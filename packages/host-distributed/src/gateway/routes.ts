@@ -75,12 +75,9 @@ function registerAuthHook(app: FastifyInstance, clients: InternalServiceClients)
       return reply.status(401).send({ error: 'Missing session token', kind: 'auth' });
     }
 
-    // Forward the token to identity-access for validation.
-    // The internal service returns 200 if the session is valid, 401 otherwise.
-    const result = await clients.identityAccess.logout({ sessionToken: token }).catch(() => null);
-    // Note: we call logout purely as a session-lookup side-effect-free probe
-    // only if no dedicated /internal/auth/validate endpoint exists.
-    // TODO: replace with a dedicated /internal/auth/validate endpoint when available.
+    const result = await clients.identityAccess
+      .validateSession({ sessionToken: token })
+      .catch(() => null);
     if (!result || result.status === 401) {
       return reply.status(401).send({ error: 'Invalid or expired session', kind: 'auth' });
     }

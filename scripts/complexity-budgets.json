@@ -27,7 +27,21 @@
       "mustContain": [
         "Phase 5 六服务 ownership 冻结补充事实",
         "`knowledge-write` 拥有 knowledge/trap/evidence 写模型真相",
-        "`job-runtime` 只拥有 queue/outbox/worker/retry/reclaim/status 等 runtime 编排"
+        "`job-runtime` 只拥有 queue/outbox/worker/retry/reclaim/status 等 runtime 编排",
+        "`packages/server` 当前是 compatibility shell 与 runtime/status surface"
+      ]
+    },
+    {
+      "file": "docs/guides/MIGRATION_GUIDE.md",
+      "mustContain": [
+        "compatibility shell",
+        "authoritative writes have moved to `@trapmap/host-distributed`"
+      ]
+    },
+    {
+      "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
+      "mustContain": [
+        "`packages/server` is now a compatibility shell for candidate/review/maintenance/decay writes"
       ]
     },
     {

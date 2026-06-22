@@ -10,10 +10,7 @@
 import type { DecayState } from '@trapmap/contracts';
 import {
   type MaintenanceAwareListItem,
-  type MaintenanceBatchOperationItem,
   maintenanceAwareListItemSchema,
-  maintenanceBatchOperationRequestSchema,
-  maintenanceBatchOperationResponseSchema,
   maintenanceEntryListRequestSchema,
   maintenanceEntryListResponseSchema,
 } from '@trapmap/contracts';
@@ -24,10 +21,6 @@ import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { reconcileKnowledgeIndexes } from '@trapmap/server/lib/indexing/pipeline.js';
 import {
-  executeMaintenanceOperation,
-  planMaintenanceOperation,
-} from '@trapmap/server/lib/maintenance/batch.js';
-import {
   isReviewOverdue,
   isStaleVerification,
   toActorRefFromRecord,
@@ -36,6 +29,8 @@ import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { loadUserOpsLogConfig, logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
+
+import { sendCompatibilityShellUnsupported } from './compatibility-shell.js';
 
 /**
  * Compute age in days from lastVerifiedAt to now.
@@ -225,121 +220,14 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
    * Execute or preview a maintenance batch operation on knowledge entries.
    * Supports assign-owner, extend-review, and mark-verified actions.
    */
-  app.post('/v1/operations/maintenance/batch', async (request, _reply) => {
+  app.post('/v1/operations/maintenance/batch', async (request, reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:update');
-
-    // Parse body
-    const body = maintenanceBatchOperationRequestSchema.parse(request.body);
-
-    const now = new Date();
-
-    // Build input for maintenance operation
-    const input = {
-      entryIds: body.entryIds,
-      action: body.action,
-      actorId: auth.actorId,
-      ...(body.newMaintainerId !== undefined ? { newMaintainerId: body.newMaintainerId } : {}),
-      ...(body.newMaintainerHandle !== undefined
-        ? { newMaintainerHandle: body.newMaintainerHandle }
-        : {}),
-      ...(body.extendDays !== undefined ? { extendDays: body.extendDays } : {}),
-    };
-
-    if (body.dryRun) {
-      // Dry-run mode: plan without executing
-      const data = await app.skillShareer.store.snapshot();
-      const planItems = planMaintenanceOperation(data, input, now);
-
-      // Map to response items
-      const items: MaintenanceBatchOperationItem[] = planItems.map((item) => ({
-        entryId: item.entryId,
-        shortcut: item.shortcut,
-        currentMaintainer: item.currentMaintainer,
-        currentReviewBy: item.currentReviewBy,
-        proposedChange: item.proposedChange,
-        eligible: item.eligible,
-        ineligibilityReason: item.ineligibilityReason,
-      }));
-
-      const eligibleCount = items.filter((i) => i.eligible).length;
-
-      // Log operation
-      const logConfig = loadUserOpsLogConfig();
-      await logUserOperation(logConfig, {
-        timestamp: nowIso(),
-        actorId: auth.actorId,
-        actorHandle: auth.handle,
-        action: 'maintenance-batch',
-        targetId: null,
-        teamId: auth.activeTeamId,
-        metadata: {
-          action: body.action,
-          dryRun: true,
-          entryCount: body.entryIds.length,
-          eligibleCount,
-        },
-      });
-
-      return maintenanceBatchOperationResponseSchema.parse({
-        action: body.action,
-        dryRun: true,
-        items,
-        totalEligible: eligibleCount,
-        totalIneligible: items.length - eligibleCount,
-        appliedAt: null,
-      });
-    }
-
-    // Execute mode: plan and execute
-    const mutatedRecords = await app.skillShareer.store.transact((data) => {
-      return executeMaintenanceOperation(app.skillShareer.store, data, input, now);
-    });
-
-    // Get the plan for response (using fresh snapshot after mutation)
-    const data = await app.skillShareer.store.snapshot();
-    const planItems = planMaintenanceOperation(data, input, now);
-
-    // Map to response items
-    const items: MaintenanceBatchOperationItem[] = planItems.map((item) => ({
-      entryId: item.entryId,
-      shortcut: item.shortcut,
-      currentMaintainer: item.currentMaintainer,
-      currentReviewBy: item.currentReviewBy,
-      proposedChange: item.proposedChange,
-      eligible: item.eligible,
-      ineligibilityReason: item.ineligibilityReason,
-    }));
-
-    const eligibleCount = items.filter((i) => i.eligible).length;
-    const appliedAt = nowIso();
-
-    // Log operation
-    const logConfig = loadUserOpsLogConfig();
-    await logUserOperation(logConfig, {
-      timestamp: appliedAt,
-      actorId: auth.actorId,
-      actorHandle: auth.handle,
-      action: 'maintenance-batch',
-      targetId: null,
-      teamId: auth.activeTeamId,
-      metadata: {
-        action: body.action,
-        dryRun: false,
-        entryCount: body.entryIds.length,
-        eligibleCount,
-        mutatedCount: mutatedRecords.length,
-      },
-    });
-
-    return maintenanceBatchOperationResponseSchema.parse({
-      action: body.action,
-      dryRun: false,
-      items,
-      totalEligible: eligibleCount,
-      totalIneligible: items.length - eligibleCount,
-      appliedAt,
-    });
+    return sendCompatibilityShellUnsupported(
+      reply,
+      'maintenance batch writes',
+      'host-distributed authoritative maintenance service',
+    );
   });
 
   /**

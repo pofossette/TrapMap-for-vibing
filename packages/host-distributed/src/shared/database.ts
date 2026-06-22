@@ -6,7 +6,7 @@
  */
 
 import pg from 'pg';
-import type { ServiceConfig } from '../config/index.js';
+import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 
 // ---------------------------------------------------------------------------
 // Database pool interface

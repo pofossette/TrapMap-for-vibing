@@ -27,6 +27,13 @@ export interface LoginResult {
 export interface IdentityAccessPort {
   login(handle: string, password: string): Promise<LoginResult>;
   logout(sessionToken: string): Promise<void>;
+  validateSession(sessionToken: string): Promise<{
+    sessionId: string;
+    userId: string;
+    handle: string;
+    activeTeamId: string | null;
+    securityLevel: number;
+  } | null>;
   selectTeam(sessionToken: string, teamId: string): Promise<void>;
   createTeam(name: string, slug: string, actorId: string): Promise<{ teamId: string }>;
   listTeams(userId: string): Promise<Array<{ id: string; slug: string; name: string }>>;

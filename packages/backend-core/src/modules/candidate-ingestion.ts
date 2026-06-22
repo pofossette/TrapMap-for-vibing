@@ -6,14 +6,14 @@
  */
 
 import type { CandidateStatus, CandidateSubmission } from '@trapmap/contracts';
-import { InvocationError } from '../invocation/invocation-model.js';
-import type { AuditLogPort } from '../ports/audit-ports.js';
+import { InvocationError } from '@trapmap/backend-core/invocation/invocation-model.js';
+import type { AuditLogPort } from '@trapmap/backend-core/ports/audit-ports.js';
 import type {
   CandidateIngestionPort,
   JobRuntimePort,
   KnowledgeWritePort,
-} from '../ports/internal-ports.js';
-import type { CandidateRepositoryPort } from '../ports/repo-ports.js';
+} from '@trapmap/backend-core/ports/internal-ports.js';
+import type { CandidateRepositoryPort } from '@trapmap/backend-core/ports/repo-ports.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)

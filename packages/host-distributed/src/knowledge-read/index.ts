@@ -9,8 +9,8 @@ export { createServer } from './server.js';
 export { registerRoutes } from './routes.js';
 export { createKnowledgeReadDeps } from './ports.js';
 
-import { loadServiceConfig } from '../config/index.js';
-import { createServiceDatabase } from '../shared/database.js';
+import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
+import { createServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { createServer } from './server.js';
 
 /**

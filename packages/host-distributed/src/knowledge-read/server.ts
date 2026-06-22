@@ -8,9 +8,9 @@
 
 import { createKnowledgeReadModule } from '@trapmap/backend-core';
 import Fastify, { type FastifyInstance } from 'fastify';
-import type { ServiceConfig } from '../config/index.js';
-import type { ServiceDatabase } from '../shared/database.js';
-import { createServicePorts } from '../shared/ports.js';
+import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
+import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
+import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
 import { createKnowledgeReadDeps } from './ports.js';
 import { registerRoutes } from './routes.js';
 

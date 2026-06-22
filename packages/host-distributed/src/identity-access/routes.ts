@@ -107,6 +107,25 @@ export function registerRoutes(app: FastifyInstance, identityAccessPort: Identit
     }
   });
 
+  // POST /internal/auth/validate
+  app.post('/internal/auth/validate', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const validationError = validateBody(request.body, ['sessionToken']);
+      if (validationError) {
+        return reply.status(400).send(validationError);
+      }
+      const body = request.body as { sessionToken: string };
+      const result = await identityAccessPort.validateSession(body.sessionToken);
+      if (!result) {
+        return reply.status(401).send({ error: 'Invalid or expired session', kind: 'auth' });
+      }
+      return reply.status(200).send(result);
+    } catch (error) {
+      const { status, body } = translateInvocationError(error);
+      return reply.status(status).send(body);
+    }
+  });
+
   // POST /internal/auth/select-team
   app.post('/internal/auth/select-team', async (request: FastifyRequest, reply: FastifyReply) => {
     try {

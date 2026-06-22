@@ -1,5 +1,5 @@
 import type { JobRuntimeDeps } from '@trapmap/backend-core';
-import type { ServicePortImplementations } from '../shared/ports.js';
+import type { ServicePortImplementations } from '@trapmap/host-distributed/shared/ports.js';
 
 export function createJobRuntimeDeps(ports: ServicePortImplementations): JobRuntimeDeps {
   return {

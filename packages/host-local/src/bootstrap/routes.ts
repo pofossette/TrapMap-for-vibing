@@ -24,8 +24,11 @@ import {
   resolveRouteFamilies,
 } from '@trapmap/backend-core';
 
-import { type GatewayHandlerDeps, registerGatewayRoutes } from '../http/gateway.js';
-import { type HealthState, registerHealthRoutes } from '../http/health.js';
+import {
+  type GatewayHandlerDeps,
+  registerGatewayRoutes,
+} from '@trapmap/host-local/http/gateway.js';
+import { type HealthState, registerHealthRoutes } from '@trapmap/host-local/http/health.js';
 
 // ---------------------------------------------------------------------------
 // Route registration

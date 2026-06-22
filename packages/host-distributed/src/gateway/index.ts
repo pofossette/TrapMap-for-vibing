@@ -10,7 +10,7 @@ export { registerGatewayRoutes } from './routes.js';
 export { createInternalServiceClients } from './internal-client.js';
 export type { InternalServiceClients } from './internal-client.js';
 
-import { loadServiceConfig } from '../config/index.js';
+import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createServer } from './server.js';
 
 /**

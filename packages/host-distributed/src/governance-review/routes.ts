@@ -78,6 +78,40 @@ export function registerRoutes(app: FastifyInstance, module: ReviewPort): void {
     }
   });
 
+  app.post('/internal/review/maintenance', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const body = request.body as {
+        entryId: string;
+        actorId: string;
+        action: string;
+        note?: string;
+        evidence?: Record<string, unknown>;
+      };
+      const result = await module.applyMaintenance(body);
+      return reply.status(200).send(result);
+    } catch (err) {
+      const { status, body } = translateInvocationError(err);
+      return reply.status(status).send(body);
+    }
+  });
+
+  app.post('/internal/review/decay', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const body = request.body as {
+        entryId: string;
+        actorId: string;
+        action: string;
+        note?: string;
+        evidence?: Record<string, unknown>;
+      };
+      const result = await module.applyDecay(body);
+      return reply.status(200).send(result);
+    } catch (err) {
+      const { status, body } = translateInvocationError(err);
+      return reply.status(status).send(body);
+    }
+  });
+
   // POST /internal/review/artifact
   app.post('/internal/review/artifact', async (request: FastifyRequest, reply: FastifyReply) => {
     try {

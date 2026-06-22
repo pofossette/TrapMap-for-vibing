@@ -9,6 +9,16 @@ function createClients(): InternalServiceClients {
     identityAccess: {
       login: vi.fn(async () => ({ status: 200, body: { token: 'session' } })),
       logout: vi.fn(async () => ({ status: 200, body: { ok: true } })),
+      validateSession: vi.fn(async () => ({
+        status: 200,
+        body: {
+          sessionId: 'session-1',
+          userId: 'user-1',
+          handle: 'alice',
+          activeTeamId: null,
+          securityLevel: 1,
+        },
+      })),
       selectTeam: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       createTeam: vi.fn(async () => ({ status: 201, body: { teamId: 'team-1' } })),
       listTeams: vi.fn(async () => ({ status: 200, body: [{ id: 'team-1' }] })),
@@ -217,6 +227,24 @@ describe('registerGatewayRoutes', () => {
 
     expect(response.statusCode).toBe(409);
     expect(response.json()).toEqual({ error: 'duplicate', kind: 'conflict' });
+    await app.close();
+  });
+
+  it('validates bearer sessions without mutating them', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/teams?userId=user-1',
+      headers: { authorization: 'Bearer session' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(clients.identityAccess.validateSession).toHaveBeenCalledWith({
+      sessionToken: 'session',
+    });
+    expect(clients.identityAccess.logout).not.toHaveBeenCalled();
     await app.close();
   });
 });

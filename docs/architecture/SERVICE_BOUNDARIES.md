@@ -126,7 +126,7 @@
 
 **Authoritative tables**: candidates, candidate_analyses, candidate_manual_results, candidate_resolution_outcomes, candidate_duplicate_cases, candidate_duplicate_matches, entity_lineage
 
-**Does NOT own**: Knowledge authoritative tables. When a candidate is resolved as "independent", the actual knowledge/skill entry creation is dispatched via the `KnowledgeWritePort` command to `knowledge-write`.
+**Does NOT own**: Knowledge authoritative tables. When a candidate is resolved as "independent", the actual knowledge/skill entry creation is dispatched via the remote `KnowledgeWritePort` command to `knowledge-write`. In the distributed host, `candidate-ingestion` must not mark a candidate resolved before that remote publish succeeds, and it must not keep a local fallback write path to knowledge truth.
 
 **Load profile**: Bursty, async-heavy. Receives submissions, then processes them through a multi-step pipeline. Suitable for independent scaling separate from the synchronous API path.
 
@@ -143,7 +143,7 @@
 
 **Authoritative tables**: human intervention queues, review workbench state, conflict resolution state, remediation queue state tables
 
-**Does NOT own**: Knowledge lifecycle truth tables. Review decisions (approve, reject) flow through the `KnowledgeWritePort` command; `knowledge-write` performs the authoritative lifecycle state transition.
+**Does NOT own**: Knowledge lifecycle truth tables. Review decisions (approve, reject, maintenance, decay) flow through the remote `KnowledgeWritePort` command; `knowledge-write` performs the authoritative lifecycle or aggregate mutation. `governance-review` must not keep direct repository writes to knowledge truth tables, even in the shared-PostgreSQL Phase 1 posture.
 
 **Key constraint**: This service is more than a simple worker. It manages governance state machines and human workflow orchestration.
 
@@ -198,6 +198,7 @@ All cross-service communication goes through internal ports defined in `backend-
 - `gateway` -> `governance-review` (review queue queries)
 - `governance-review` -> `knowledge-write` (review decisions)
 - `candidate-ingestion` -> `knowledge-write` (publish resolved candidate)
+- `governance-review` -> `knowledge-write` (maintenance / decay aggregate mutation)
 
 **Light-host mode**: in-process direct call through port interfaces.
 
@@ -216,9 +217,10 @@ All cross-service communication goes through internal ports defined in `backend-
 ### Communication rules
 
 1. **No direct service-to-service database writes.** Service A must never write to Service B's authoritative tables. All cross-service state changes go through ports.
-2. **No circular synchronous calls.** If Service A calls Service B synchronously, Service B must not call Service A synchronously. Use async event propagation for the reverse direction.
-3. **Sync calls are bounded.** Every synchronous internal call must have a timeout and a failure strategy (fail-fast, fallback, retry with backoff).
-4. **Async events are ordered per aggregate.** Outbox events for the same aggregate (e.g., same knowledge entry ID) must be delivered in order.
+2. **No local fallback writes across the candidate/review -> knowledge boundary.** If a remote `KnowledgeWritePort` call fails with `404`, `409`, `403`, `503`, or `timeout`, the caller must surface the failure semantics instead of silently mutating knowledge tables locally.
+3. **No circular synchronous calls.** If Service A calls Service B synchronously, Service B must not call Service A synchronously. Use async event propagation for the reverse direction.
+4. **Sync calls are bounded.** Every synchronous internal call must have a timeout and a failure strategy (fail-fast, fallback, retry with backoff).
+5. **Async events are ordered per aggregate.** Outbox events for the same aggregate (e.g., same knowledge entry ID) must be delivered in order.
 
 ## Ownership Model
 

@@ -29,7 +29,12 @@ import type {
   TeamRepositoryPort,
   UserRepositoryPort,
 } from '@trapmap/backend-core';
-import type { LifecycleState } from '@trapmap/contracts';
+import type {
+  AnalysisSnapshot,
+  DuplicateCase,
+  LifecycleState,
+  ManualResultSubmission,
+} from '@trapmap/contracts';
 
 // ---------------------------------------------------------------------------
 // ID generation helper
@@ -37,6 +42,18 @@ import type { LifecycleState } from '@trapmap/contracts';
 
 function generateId(prefix: string): string {
   return `${prefix}_${randomUUID()}`;
+}
+
+function mapKnowledgeRow(row: Record<string, unknown>) {
+  return {
+    ...row,
+    content: String(row.detail ?? ''),
+    title: String(row.shortcut ?? ''),
+    labels: Array.isArray(row.labels) ? (row.labels as string[]) : [],
+    ownerUserId: String(row.owner_user_id ?? row.ownerUserId ?? ''),
+    teamId: (row.team_id as string | null) ?? (row.teamId as string | null) ?? null,
+    lifecycleState: row.lifecycle_state as LifecycleState,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -71,14 +88,18 @@ function createPgKnowledgeRepo(pool: Pool): KnowledgeRepositoryPort {
     },
     async insert(entry) {
       await pool.query(
-        `INSERT INTO knowledge_entries (id, content, title, labels, team_id, owner_user_id, lifecycle_state, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        `INSERT INTO knowledge_entries (
+           id, team_id, scope, labels, shortcut, detail, required_level, lifecycle_state, owner_user_id, created_at, updated_at
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
         [
           entry.id,
-          entry.content,
-          (entry as Record<string, unknown>).title ?? null,
-          JSON.stringify(entry.labels ?? []),
           entry.teamId,
+          (entry as Record<string, unknown>).scope ?? 'global',
+          JSON.stringify(entry.labels ?? []),
+          (entry as Record<string, unknown>).title ?? '',
+          entry.content,
+          (entry as Record<string, unknown>).requiredLevel ?? 0,
           entry.ownerUserId,
           entry.lifecycleState,
           (entry as Record<string, unknown>).createdAt ?? new Date().toISOString(),
@@ -88,11 +109,7 @@ function createPgKnowledgeRepo(pool: Pool): KnowledgeRepositoryPort {
     },
     async getById(entryId) {
       const { rows } = await pool.query('SELECT * FROM knowledge_entries WHERE id = $1', [entryId]);
-      return (
-        (rows[0] as KnowledgeRepositoryPort extends { getById(id: string): Promise<infer R> }
-          ? R
-          : never) ?? null
-      );
+      return rows[0] ? (mapKnowledgeRow(rows[0] as Record<string, unknown>) as never) : null;
     },
     async updateLifecycle(entryId, newState: LifecycleState, context) {
       const { rows } = await pool.query(
@@ -101,24 +118,64 @@ function createPgKnowledgeRepo(pool: Pool): KnowledgeRepositoryPort {
         [entryId, newState],
       );
       await pool.query(
-        `INSERT INTO knowledge_lifecycle_events (id, type, actor_user_id, submission_id, state, note, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+        `INSERT INTO lifecycle_events (id, entry_id, type, actor_user_id, submission_id, state, note, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
         [
           generateId('le'),
-          'lifecycle-change',
-          context.actorId,
           entryId,
+          newState === 'approved'
+            ? 'reviewer-approved'
+            : newState === 'rejected'
+              ? 'reviewer-rejected'
+              : newState === 'submitted'
+                ? 'resubmitted'
+                : 'updated',
+          context.actorId,
+          null,
           newState,
           context.note ?? null,
         ],
       );
-      return rows[0] as never;
+      return mapKnowledgeRow(rows[0] as Record<string, unknown>) as never;
     },
-    async appendRevision(_entryId, _revision) {
-      // Implementation would insert into knowledge_revisions table
+    async appendRevision(entryId, revision) {
+      await pool.query(
+        `INSERT INTO knowledge_revisions (
+           id, entry_id, revision_no, submitted_at, submitted_by_user_id, shortcut, detail, labels, review_notes
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          revision.id,
+          entryId,
+          (revision as Record<string, unknown>).revisionNo ?? 1,
+          (revision as Record<string, unknown>).submittedAt ?? new Date().toISOString(),
+          (revision as Record<string, unknown>).submittedByUserId ?? 'system',
+          (revision as Record<string, unknown>).shortcut ?? '',
+          (revision as Record<string, unknown>).detail ?? '',
+          JSON.stringify((revision as Record<string, unknown>).labels ?? []),
+          JSON.stringify((revision as Record<string, unknown>).reviewNotes ?? []),
+        ],
+      );
     },
-    async appendLifecycleEvent(_entryId, _event) {
-      // Implementation would insert into knowledge_lifecycle_events table
+    async appendLifecycleEvent(entryId, event) {
+      await pool.query(
+        `INSERT INTO lifecycle_events (
+           id, entry_id, type, created_at, actor_user_id, submission_id, revision_no, state, note
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          event.id,
+          entryId,
+          event.type,
+          event.createdAt,
+          event.actorUserId ?? null,
+          event.submissionId ?? null,
+          ((event as unknown as Record<string, unknown>).revisionNo as number | null | undefined) ??
+            null,
+          event.state,
+          event.note,
+        ],
+      );
     },
     async listByFilter(filter) {
       const conditions: string[] = [];
@@ -143,13 +200,34 @@ function createPgKnowledgeRepo(pool: Pool): KnowledgeRepositoryPort {
         `SELECT * FROM knowledge_entries ${whereClause} ORDER BY created_at DESC LIMIT 100`,
         params,
       );
-      return rows as never[];
+      return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>)) as never[];
     },
-    async updateGovernance(_entryId, _governance) {
-      // Implementation would update governance columns
+    async updateGovernance(entryId, governance) {
+      if (governance.requiredLevel !== undefined) {
+        await pool.query(
+          'UPDATE knowledge_entries SET required_level = $2, updated_at = NOW() WHERE id = $1',
+          [entryId, governance.requiredLevel],
+        );
+      }
+      if (governance.labels !== undefined) {
+        await pool.query(
+          'UPDATE knowledge_entries SET labels = $2, updated_at = NOW() WHERE id = $1',
+          [entryId, JSON.stringify(governance.labels)],
+        );
+        await pool.query('DELETE FROM knowledge_labels WHERE entry_id = $1', [entryId]);
+        for (const label of governance.labels) {
+          await pool.query(
+            'INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [entryId, label],
+          );
+        }
+      }
     },
-    async updateEmbeddingCache(_entryId, _cache) {
-      // Implementation would update embedding_cache table
+    async updateEmbeddingCache(entryId, cache) {
+      await pool.query(
+        'UPDATE knowledge_entries SET embedding_cache = $2, updated_at = NOW() WHERE id = $1',
+        [entryId, JSON.stringify(cache)],
+      );
     },
     async supersede(entryId, input) {
       const { rows } = await pool.query(
@@ -157,17 +235,18 @@ function createPgKnowledgeRepo(pool: Pool): KnowledgeRepositoryPort {
          WHERE id = $1 RETURNING *`,
         [entryId, input.replacementId],
       );
-      return rows[0] as never;
+      return mapKnowledgeRow(rows[0] as Record<string, unknown>) as never;
     },
     async save(entry) {
       await pool.query(
-        `UPDATE knowledge_entries SET content = $2, title = $3, labels = $4, updated_at = NOW()
+        `UPDATE knowledge_entries SET detail = $2, shortcut = $3, labels = $4, team_id = $5, updated_at = NOW()
          WHERE id = $1`,
         [
           entry.id,
           entry.content,
           (entry as Record<string, unknown>).title ?? null,
           JSON.stringify(entry.labels ?? []),
+          entry.teamId,
         ],
       );
     },
@@ -210,14 +289,116 @@ function createPgCandidateRepo(pool: Pool): CandidateRepositoryPort {
         [candidateId, status, error ?? null],
       );
     },
-    async attachAnalysis(_candidateId, _snapshot) {
-      // Implementation would update analysis columns
+    async attachAnalysis(candidateId, snapshot: AnalysisSnapshot) {
+      await pool.query(
+        `UPDATE candidates SET analysis_snapshot = $2, updated_at = NOW() WHERE id = $1`,
+        [candidateId, JSON.stringify(snapshot)],
+      );
+      await pool.query(
+        `INSERT INTO candidate_analyses (
+           candidate_id, normalized_at, fingerprint, keywords, tokens, duplicate_trace
+         )
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (candidate_id) DO UPDATE SET
+           normalized_at = EXCLUDED.normalized_at,
+           fingerprint = EXCLUDED.fingerprint,
+           keywords = EXCLUDED.keywords,
+           tokens = EXCLUDED.tokens,
+           duplicate_trace = EXCLUDED.duplicate_trace`,
+        [
+          candidateId,
+          snapshot.normalizedAt,
+          snapshot.fingerprint,
+          JSON.stringify(snapshot.keywords),
+          JSON.stringify(snapshot.tokens),
+          snapshot.duplicateTrace ? JSON.stringify(snapshot.duplicateTrace) : null,
+        ],
+      );
     },
-    async attachDuplicateCase(_candidateId, _duplicateCase) {
-      // Implementation would update duplicate_case column
+    async attachDuplicateCase(candidateId, duplicateCase: DuplicateCase) {
+      await pool.query(
+        `UPDATE candidates SET duplicate_case = $2, updated_at = NOW() WHERE id = $1`,
+        [candidateId, JSON.stringify(duplicateCase)],
+      );
+      await pool.query(
+        `INSERT INTO candidate_duplicate_cases (
+           id, candidate_id, detected_at, detection_version, highest_similarity, has_exact_duplicate, duplicate_type
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (id) DO UPDATE SET
+           candidate_id = EXCLUDED.candidate_id,
+           detected_at = EXCLUDED.detected_at,
+           detection_version = EXCLUDED.detection_version,
+           highest_similarity = EXCLUDED.highest_similarity,
+           has_exact_duplicate = EXCLUDED.has_exact_duplicate,
+           duplicate_type = EXCLUDED.duplicate_type`,
+        [
+          duplicateCase.id,
+          candidateId,
+          duplicateCase.detectedAt,
+          duplicateCase.detectionVersion,
+          duplicateCase.highestSimilarity,
+          duplicateCase.hasExactDuplicate ? 1 : 0,
+          duplicateCase.duplicateType,
+        ],
+      );
+      await pool.query('DELETE FROM candidate_duplicate_matches WHERE duplicate_case_id = $1', [
+        duplicateCase.id,
+      ]);
+      for (const match of duplicateCase.matches) {
+        await pool.query(
+          `INSERT INTO candidate_duplicate_matches (
+             duplicate_case_id, entity_type, entity_id, entity_title, similarity_score, match_type, shared_keywords, shared_tokens, text_overlap_percent
+           )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [
+            duplicateCase.id,
+            match.entityType,
+            match.entityId,
+            match.entityTitle,
+            match.similarityScore,
+            match.matchType,
+            JSON.stringify(match.overlapDetails.sharedKeywords),
+            JSON.stringify(match.overlapDetails.sharedTokens),
+            match.overlapDetails.textOverlapPercent,
+          ],
+        );
+      }
     },
-    async attachManualResult(_candidateId, _result, _reviewedBy) {
-      // Implementation would update manual_result columns
+    async attachManualResult(candidateId, result: ManualResultSubmission, reviewedBy) {
+      const manualResult = {
+        ...result,
+        submittedBy: reviewedBy,
+        submittedAt: new Date().toISOString(),
+      };
+      await pool.query(
+        `UPDATE candidates SET manual_result = $2, updated_at = NOW() WHERE id = $1`,
+        [candidateId, JSON.stringify(manualResult)],
+      );
+      await pool.query(
+        `INSERT INTO candidate_manual_results (
+           candidate_id, decision, notes, merged_with_entity_type, merged_with_entity_id, merged_with_entity_title, submitted_at, submitted_by_user_id
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (candidate_id) DO UPDATE SET
+           decision = EXCLUDED.decision,
+           notes = EXCLUDED.notes,
+           merged_with_entity_type = EXCLUDED.merged_with_entity_type,
+           merged_with_entity_id = EXCLUDED.merged_with_entity_id,
+           merged_with_entity_title = EXCLUDED.merged_with_entity_title,
+           submitted_at = EXCLUDED.submitted_at,
+           submitted_by_user_id = EXCLUDED.submitted_by_user_id`,
+        [
+          candidateId,
+          result.decision,
+          result.notes,
+          result.mergedWith?.entityType ?? null,
+          result.mergedWith?.entityId ?? null,
+          result.mergedWith?.entityTitle ?? null,
+          manualResult.submittedAt,
+          reviewedBy,
+        ],
+      );
     },
     async listByStatus(status) {
       const { rows } = await pool.query(

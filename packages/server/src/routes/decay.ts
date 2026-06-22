@@ -8,8 +8,6 @@
  */
 
 import {
-  batchOperationRequestSchema,
-  batchOperationResponseSchema,
   decayAwareListItemSchema,
   decayEntryListRequestSchema,
   decayEntryListResponseSchema,
@@ -17,39 +15,16 @@ import {
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 
-import { createDecayBatchApplicationService } from '@trapmap/server/lib/decay/application-service.js';
 import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
-import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
 import { buildDecayEntriesProjection } from '@trapmap/server/lib/operations/read-model.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { loadUserOpsLogConfig, logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
-export const decayRoutes: FastifyPluginAsync = async (app) => {
-  const { store, eventBus, asyncTransport } = app.skillShareer;
-  function getDecayBatchService() {
-    return createDecayBatchApplicationService({
-      repos: {
-        knowledge: app.skillShareer.repos.knowledge,
-      },
-      lifecyclePublisher: createLifecyclePublisher(
-        asyncTransport
-          ? {
-              store,
-              eventBus,
-              asyncTransport: {
-                events: asyncTransport.events,
-              },
-            }
-          : {
-              store,
-              eventBus,
-            },
-      ),
-    });
-  }
+import { sendCompatibilityShellUnsupported } from './compatibility-shell.js';
 
+export const decayRoutes: FastifyPluginAsync = async (app) => {
   /**
    * GET /v1/operations/decay/entries
    *
@@ -108,33 +83,15 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
    * Execute or preview a batch operation on knowledge entries.
    * Supports extend, mark-review, deactivate, and supersede actions.
    */
-  app.post('/v1/operations/decay/batch', async (request, _reply) => {
+  app.post('/v1/operations/decay/batch', async (request, reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:update');
 
-    const body = batchOperationRequestSchema.parse(request.body);
-    const service = getDecayBatchService();
-    const result = body.dryRun
-      ? await service.previewBatch({ auth, command: body })
-      : await service.executeBatch({ auth, command: body });
-
-    const logConfig = loadUserOpsLogConfig();
-    await logUserOperation(logConfig, {
-      timestamp: nowIso(),
-      actorId: auth.actorId,
-      actorHandle: auth.handle,
-      action: 'decay-batch',
-      targetId: null,
-      teamId: auth.activeTeamId,
-      metadata: {
-        action: body.action,
-        dryRun: body.dryRun,
-        entryCount: body.entryIds.length,
-        eligibleCount: result.totalEligible,
-      },
-    });
-
-    return batchOperationResponseSchema.parse(result);
+    return sendCompatibilityShellUnsupported(
+      reply,
+      'decay batch writes',
+      'host-distributed authoritative decay service',
+    );
   });
 
   /**

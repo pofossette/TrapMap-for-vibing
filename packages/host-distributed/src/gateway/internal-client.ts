@@ -6,7 +6,7 @@
  * service configuration.
  */
 
-import type { InternalServiceUrls } from '../config/index.js';
+import type { InternalServiceUrls } from '@trapmap/host-distributed/config/index.js';
 
 // ---------------------------------------------------------------------------
 // HTTP client helper
@@ -17,6 +17,11 @@ interface ServiceResponse {
   body: unknown;
 }
 
+export interface InternalRequestOptions {
+  headers?: Record<string, string>;
+  timeoutMs?: number;
+}
+
 const DEFAULT_INTERNAL_TIMEOUT_MS = 10_000;
 
 async function callInternalService(
@@ -24,7 +29,7 @@ async function callInternalService(
   method: 'GET' | 'POST' | 'PUT',
   body?: unknown,
   query?: Record<string, string>,
-  timeoutMs: number = DEFAULT_INTERNAL_TIMEOUT_MS,
+  options?: InternalRequestOptions,
 ): Promise<ServiceResponse> {
   const urlObj = new URL(url);
   if (query) {
@@ -34,10 +39,12 @@ async function callInternalService(
   }
 
   const controller = new AbortController();
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_INTERNAL_TIMEOUT_MS;
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    ...(options?.headers ?? {}),
   };
 
   const init: RequestInit = {
@@ -76,6 +83,7 @@ export interface InternalServiceClients {
   identityAccess: {
     login(body: { handle: string; password: string }): Promise<ServiceResponse>;
     logout(body: { sessionToken: string }): Promise<ServiceResponse>;
+    validateSession(body: { sessionToken: string }): Promise<ServiceResponse>;
     selectTeam(body: { sessionToken: string; teamId: string }): Promise<ServiceResponse>;
     createTeam(body: { name: string; slug: string; actorId: string }): Promise<ServiceResponse>;
     listTeams(userId: string): Promise<ServiceResponse>;
@@ -97,28 +105,86 @@ export interface InternalServiceClients {
     search(body: { query: string; teamId?: string; limit?: number }): Promise<ServiceResponse>;
   };
   knowledgeWrite: {
-    submit(body: {
-      content: string;
-      actorId: string;
-      title?: string;
-      labels?: string[];
-      teamId?: string;
-    }): Promise<ServiceResponse>;
+    submit(
+      body: {
+        content: string;
+        actorId: string;
+        title?: string;
+        labels?: string[];
+        teamId?: string;
+      },
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
     updateEntry(
       entryId: string,
       body: { updates: Record<string, unknown>; actorId: string },
+      options?: InternalRequestOptions,
     ): Promise<ServiceResponse>;
-    resubmit(entryId: string, body: { actorId: string; note?: string }): Promise<ServiceResponse>;
+    resubmit(
+      entryId: string,
+      body: { actorId: string; note?: string },
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
     supersede(
       entryId: string,
       body: { replacementId: string; actorId: string },
+      options?: InternalRequestOptions,
     ): Promise<ServiceResponse>;
-    createTrap(body: {
-      content: string;
-      teamId: string;
-      actorId: string;
-      title?: string;
-    }): Promise<ServiceResponse>;
+    createTrap(
+      body: {
+        content: string;
+        teamId: string;
+        actorId: string;
+        title?: string;
+      },
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    approveReviewDecision(
+      body: {
+        entryId: string;
+        actorId: string;
+        note?: string;
+        evidence?: Record<string, unknown>;
+      },
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    rejectReviewDecision(
+      body: {
+        entryId: string;
+        actorId: string;
+        note?: string;
+        evidence?: Record<string, unknown>;
+      },
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    applyMaintenanceDecision(
+      body: {
+        entryId: string;
+        actorId: string;
+        action: string;
+        note?: string;
+        evidence?: Record<string, unknown>;
+      },
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    applyDecayDecision(
+      body: {
+        entryId: string;
+        actorId: string;
+        action: string;
+        note?: string;
+        evidence?: Record<string, unknown>;
+      },
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    publishCandidateResult(
+      body: {
+        candidateId: string;
+        actorId: string;
+        result: Record<string, unknown>;
+      },
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
     listTraps(teamId: string): Promise<ServiceResponse>;
     getTrap(trapId: string): Promise<ServiceResponse>;
   };
@@ -179,6 +245,8 @@ export function createInternalServiceClients(urls: InternalServiceUrls): Interna
         callInternalService(`${urls.identityAccess}/internal/auth/login`, 'POST', body),
       logout: (body) =>
         callInternalService(`${urls.identityAccess}/internal/auth/logout`, 'POST', body),
+      validateSession: (body) =>
+        callInternalService(`${urls.identityAccess}/internal/auth/validate`, 'POST', body),
       selectTeam: (body) =>
         callInternalService(`${urls.identityAccess}/internal/auth/select-team`, 'POST', body),
       createTeam: (body) =>
@@ -204,24 +272,86 @@ export function createInternalServiceClients(urls: InternalServiceUrls): Interna
         callInternalService(`${urls.knowledgeRead}/internal/retrieval/search`, 'POST', body),
     },
     knowledgeWrite: {
-      submit: (body) =>
-        callInternalService(`${urls.knowledgeWrite}/internal/knowledge`, 'POST', body),
-      updateEntry: (entryId, body) =>
-        callInternalService(`${urls.knowledgeWrite}/internal/knowledge/${entryId}`, 'PUT', body),
-      resubmit: (entryId, body) =>
+      submit: (body, options) =>
+        callInternalService(
+          `${urls.knowledgeWrite}/internal/knowledge`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      updateEntry: (entryId, body, options) =>
+        callInternalService(
+          `${urls.knowledgeWrite}/internal/knowledge/${entryId}`,
+          'PUT',
+          body,
+          undefined,
+          options,
+        ),
+      resubmit: (entryId, body, options) =>
         callInternalService(
           `${urls.knowledgeWrite}/internal/knowledge/${entryId}/resubmit`,
           'POST',
           body,
+          undefined,
+          options,
         ),
-      supersede: (entryId, body) =>
+      supersede: (entryId, body, options) =>
         callInternalService(
           `${urls.knowledgeWrite}/internal/knowledge/${entryId}/supersede`,
           'POST',
           body,
+          undefined,
+          options,
         ),
-      createTrap: (body) =>
-        callInternalService(`${urls.knowledgeWrite}/internal/traps`, 'POST', body),
+      createTrap: (body, options) =>
+        callInternalService(
+          `${urls.knowledgeWrite}/internal/traps`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      approveReviewDecision: (body, options) =>
+        callInternalService(
+          `${urls.knowledgeWrite}/internal/knowledge/review/approve`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      rejectReviewDecision: (body, options) =>
+        callInternalService(
+          `${urls.knowledgeWrite}/internal/knowledge/review/reject`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      applyMaintenanceDecision: (body, options) =>
+        callInternalService(
+          `${urls.knowledgeWrite}/internal/knowledge/maintenance`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      applyDecayDecision: (body, options) =>
+        callInternalService(
+          `${urls.knowledgeWrite}/internal/knowledge/decay`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      publishCandidateResult: (body, options) =>
+        callInternalService(
+          `${urls.knowledgeWrite}/internal/candidates/publish`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
       listTraps: (teamId) =>
         callInternalService(`${urls.knowledgeWrite}/internal/traps`, 'GET', undefined, { teamId }),
       getTrap: (trapId) =>

@@ -28,7 +28,7 @@ packages/
 - Phase 2 `backend-core`: done. Runtime capability model, ports, invocation seams, and bounded-context modules exist in `@trapmap/backend-core`.
 - Phase 3 `host-local`: done. Root `pnpm dev:local-agent` and `pnpm dev:team-monolith` now target `@trapmap/host-local`.
 - Phase 4 `host-distributed`: done. Root distributed dev scripts now target `@trapmap/host-distributed`.
-- Phase 5 legacy收口: partial. `packages/server` still exists as compatibility / migration surface and remains part of verification.
+- Phase 5 legacy收口: partial. `packages/server` still exists as a compatibility shell and verification surface, but candidate/review/maintenance/decay authoritative writes have moved to `@trapmap/host-distributed`.
 
 ## Current Official Entrypoints
 
@@ -151,7 +151,7 @@ pnpm check:docs-drift
 
 ## Remaining Gaps
 
-- `packages/server` is still present and still owns a large amount of real implementation.
+- `packages/server` is still present for retrieval, runtime status/readiness, and legacy read-side compatibility, but it no longer owns candidate/review/maintenance/decay authoritative write orchestration.
 - System truth docs still need continued tightening so host-local / host-distributed become the first-class runtime facts everywhere, not only in this guide.
 - Distributed host currently establishes service shells and config seams, but it is still earlier-stage than the mature legacy server runtime.
 

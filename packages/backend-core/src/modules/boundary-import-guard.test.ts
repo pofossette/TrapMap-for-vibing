@@ -18,4 +18,12 @@ describe('backend-core boundary import guard', () => {
     expect(source).toContain('JobRuntimePort');
     expect(source).toContain('KnowledgeWritePort');
   });
+
+  it('candidate-ingestion module does not mark resolved before remote publish succeeds', () => {
+    const source = readFileSync(resolve(MODULES_DIR, 'candidate-ingestion.ts'), 'utf8');
+    expect(source).toContain(
+      'const publishResult = await deps.knowledgeWrite.publishCandidateResult',
+    );
+    expect(source.indexOf('publishCandidateResult')).toBeLessThan(source.indexOf('markResolved'));
+  });
 });

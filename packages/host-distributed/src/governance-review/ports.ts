@@ -1,28 +1,17 @@
 import type { GovernanceReviewDeps } from '@trapmap/backend-core';
-import type { ServicePortImplementations } from '../shared/ports.js';
+import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
+import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
+import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
+import type { ServicePortImplementations } from '@trapmap/host-distributed/shared/ports.js';
 
 export function createGovernanceReviewDeps(
   ports: ServicePortImplementations,
+  config: ServiceConfig,
 ): GovernanceReviewDeps {
+  const internalClients = createInternalServiceClients(config.internalUrls);
+
   return {
-    knowledgeWrite: {
-      approveReviewDecision: async (input) =>
-        ports.repos.knowledge
-          .updateLifecycle(input.entryId, 'approved', {
-            actorId: input.actorId,
-            note: input.note,
-          })
-          .then(() => ({ entryId: input.entryId, lifecycleState: 'approved' as const })),
-      rejectReviewDecision: async (input) =>
-        ports.repos.knowledge
-          .updateLifecycle(input.entryId, 'rejected', {
-            actorId: input.actorId,
-            note: input.note,
-          })
-          .then(() => ({ entryId: input.entryId, lifecycleState: 'rejected' as const })),
-      applyMaintenanceDecision: async (input) => ({ entryId: input.entryId, action: input.action }),
-      applyDecayDecision: async (input) => ({ entryId: input.entryId, action: input.action }),
-    },
+    knowledgeWrite: createRemoteKnowledgeWriteClient(internalClients),
     feedbackRepo: ports.repos.feedback,
     auditLog: ports.auditLog,
   };

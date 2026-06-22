@@ -6,21 +6,16 @@
  * - POST /v1/candidates/:candidateId/apply-resolution - Apply manual resolution
  */
 
-import {
-  ManualResultSubmissionSchema,
-  applyResolutionResponseSchema,
-  manualResultResponseSchema,
-} from '@trapmap/contracts';
+import { ManualResultSubmissionSchema, manualResultResponseSchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import {
-  applyResolution,
-  attachManualResult,
-} from '@trapmap/server/lib/candidates/services/resolution-service.js';
+import { attachManualResult } from '@trapmap/server/lib/candidates/services/resolution-service.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+
+import { sendCompatibilityShellUnsupported } from '@trapmap/server/routes/compatibility-shell.js';
 
 export const candidateResolutionRoutes: FastifyPluginAsync = async (app) => {
   const { store, eventBus, asyncTransport } = app.skillShareer;
@@ -66,23 +61,14 @@ export const candidateResolutionRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /v1/candidates/:candidateId/apply-resolution - Apply manual resolution
-  app.post('/v1/candidates/:candidateId/apply-resolution', async (request) => {
+  app.post('/v1/candidates/:candidateId/apply-resolution', async (request, reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:review');
 
-    const candidateId = (request.params as { candidateId: string }).candidateId;
-
-    const result = await applyResolution(
-      {
-        store: app.skillShareer.store,
-        repos: app.skillShareer.repos,
-        lifecyclePublisher,
-        config: app.skillShareer.config,
-      },
-      auth,
-      candidateId,
+    return sendCompatibilityShellUnsupported(
+      reply,
+      'candidate resolution writes',
+      'host-distributed authoritative candidate resolution service',
     );
-
-    return applyResolutionResponseSchema.parse(result);
   });
 };

@@ -6,10 +6,9 @@
  * Final knowledge aggregate mutations are delegated to knowledge-write.
  */
 
-import { InvocationError } from '../invocation/invocation-model.js';
-import type { AuditLogPort } from '../ports/audit-ports.js';
-import type { KnowledgeWritePort, ReviewPort } from '../ports/internal-ports.js';
-import type { FeedbackRepositoryPort } from '../ports/repo-ports.js';
+import type { AuditLogPort } from '@trapmap/backend-core/ports/audit-ports.js';
+import type { KnowledgeWritePort, ReviewPort } from '@trapmap/backend-core/ports/internal-ports.js';
+import type { FeedbackRepositoryPort } from '@trapmap/backend-core/ports/repo-ports.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)

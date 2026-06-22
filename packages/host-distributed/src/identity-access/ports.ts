@@ -6,7 +6,7 @@
  */
 
 import type { IdentityAccessDeps } from '@trapmap/backend-core';
-import type { ServicePortImplementations } from '../shared/ports.js';
+import type { ServicePortImplementations } from '@trapmap/host-distributed/shared/ports.js';
 
 /**
  * Create the dependency object required by the identity-access backend-core module.

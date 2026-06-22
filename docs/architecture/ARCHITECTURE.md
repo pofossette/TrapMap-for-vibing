@@ -4,13 +4,14 @@
 
 ## 系统架构
 
-> 当前正式运行入口已经迁移到 `packages/host-local` 与 `packages/host-distributed`。本页中大量 `packages/server` 结构说明仍然保留，是因为现阶段的权威实现、测试与兼容壳层仍主要驻留在该代码面中。
+> 当前正式运行入口已经迁移到 `packages/host-local` 与 `packages/host-distributed`。本页中保留 `packages/server` 结构说明，是因为它仍承担 retrieval/status/readiness 与旧路由兼容壳职责，但 candidate/review -> knowledge 的 authoritative write orchestration 已迁移到 `packages/host-distributed`。
 
 Phase 1 边界收敛补充事实：
 
-- `packages/server` 当前仍是权威实现、测试与 compatibility shell。
+- `packages/server` 当前是 compatibility shell 与 runtime/status surface，不再是 candidate/review -> knowledge write path 的权威实现面。
 - `packages/backend-core` 当前承载 command/use-case/port 模式与内核契约，是后续收敛目标，不是允许与 `packages/server` 平行增长的第二主实现面。
 - `packages/host-local` 与 `packages/host-distributed` 当前承载宿主装配、HTTP/worker transport 和 concrete port wiring；它们消费 `backend-core` 契约，不重新定义业务真相。
+- `packages/host-distributed` 当前承载 authoritative candidate resolution、review decision、maintenance batch 与 decay batch 的最终写编排。
 
 Phase 2 异步 contract 补充事实：
 

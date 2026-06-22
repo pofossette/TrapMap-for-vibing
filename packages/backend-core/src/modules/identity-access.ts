@@ -6,21 +6,21 @@
  * that host assemblies implement.
  */
 
-import { InvocationError } from '../invocation/invocation-model.js';
+import { InvocationError } from '@trapmap/backend-core/invocation/invocation-model.js';
 import type {
   PermissionCheckPort,
   SessionLookupPort,
   TeamLookupPort,
-} from '../ports/actor-ports.js';
-import type { AuditLogPort } from '../ports/audit-ports.js';
-import type { IdentityAccessPort } from '../ports/internal-ports.js';
+} from '@trapmap/backend-core/ports/actor-ports.js';
+import type { AuditLogPort } from '@trapmap/backend-core/ports/audit-ports.js';
+import type { IdentityAccessPort } from '@trapmap/backend-core/ports/internal-ports.js';
 import type {
   AccessKeyRepositoryPort,
   MembershipRepositoryPort,
   SessionRepositoryPort,
   TeamRepositoryPort,
   UserRepositoryPort,
-} from '../ports/repo-ports.js';
+} from '@trapmap/backend-core/ports/repo-ports.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)
@@ -78,6 +78,10 @@ export function createIdentityAccessModule(deps: IdentityAccessDeps): IdentityAc
 
     async logout(sessionToken: string) {
       await deps.sessionRepo.deleteByTokenHash(sessionToken);
+    },
+
+    async validateSession(sessionToken: string) {
+      return deps.sessionLookup.resolveSession(sessionToken);
     },
 
     async selectTeam(sessionToken: string, teamId: string) {

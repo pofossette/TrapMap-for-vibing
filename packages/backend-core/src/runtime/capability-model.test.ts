@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { InvocationError } from '../invocation/invocation-model.js';
+import { InvocationError } from '@trapmap/backend-core/invocation/invocation-model.js';
 import {
   getServiceUnitProfile,
   resolveAsyncWorkerState,
@@ -11,24 +11,24 @@ import {
   shouldBootOutboxWorker,
   shouldBootTaskWorker,
   shouldOwnAsyncWork,
-} from '../runtime/capability-model.js';
+} from '@trapmap/backend-core/runtime/capability-model.js';
 import {
   buildRouteSurfaceSummary,
   getUnsupportedRouteDescriptors,
   resolveRouteFamilies,
-} from '../runtime/route-surface.js';
+} from '@trapmap/backend-core/runtime/route-surface.js';
 import {
   DISTRIBUTED_SERVICES,
   SHARED_INFRASTRUCTURE,
   buildServiceTopologySnapshot,
-} from '../runtime/topology.js';
+} from '@trapmap/backend-core/runtime/topology.js';
 import {
   createStubAuditLog,
   createStubMetrics,
   createStubRepositoryPorts,
-} from '../testing/test-utils.js';
-import { executeCommand } from '../use-cases/command-handling.js';
-import type { Command } from '../use-cases/command-handling.js';
+} from '@trapmap/backend-core/testing/test-utils.js';
+import { executeCommand } from '@trapmap/backend-core/use-cases/command-handling.js';
+import type { Command } from '@trapmap/backend-core/use-cases/command-handling.js';
 
 describe('runtime/capability-model', () => {
   describe('resolveRuntimeDeployment', () => {

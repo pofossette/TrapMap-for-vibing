@@ -45,7 +45,7 @@ The `knowledge-write` service owns the following tables for all authoritative wr
 | Evidence | evidence metadata tables | `knowledge-write` write |
 | Feedback | `feedback` tables | `knowledge-write` write |
 
-Other services may read these tables through internal ports. If `candidate-ingestion` needs to publish a new knowledge entry, it does so via the `KnowledgeWritePort` command -- it does not write to `knowledge_entries` directly.
+Other services may read these tables through internal ports. If `candidate-ingestion` needs to publish a new knowledge entry, or `governance-review` needs to approve/reject/apply maintenance/apply decay, they do so via the remote `KnowledgeWritePort` command surface. They do not write `knowledge_entries`, lifecycle tables, or maintenance/decay truth tables directly.
 
 ### candidate-ingestion (write-only)
 
@@ -73,7 +73,7 @@ The `governance-review` service owns the following tables for all authoritative 
 | Conflict resolution state | conflict detection and resolution tables | `governance-review` write |
 | Remediation queue state | remediation task tables, suppression state | `governance-review` write |
 
-`governance-review` does not directly modify knowledge lifecycle truth tables. When a review decision changes a knowledge entry's lifecycle state, the decision flows through the `KnowledgeWritePort` command, and `knowledge-write` performs the authoritative mutation.
+`governance-review` does not directly modify knowledge lifecycle truth tables. When a review decision changes a knowledge entry's lifecycle state, or when maintenance / decay changes the final knowledge aggregate state, the decision flows through the remote `KnowledgeWritePort` command, and `knowledge-write` performs the authoritative mutation.
 
 ### job-runtime (write-only)
 
@@ -176,8 +176,8 @@ This is by design. The sync response guarantees durability of the authoritative 
 |---|---|---|---|
 | `identity-access` | auth, session, access-key, user, team, membership | Yes | Via `IdentityAccessPort` |
 | `knowledge-write` | knowledge, artifact, lifecycle, decay, maintenance, evidence, feedback | Yes | Via internal ports |
-| `candidate-ingestion` | candidate, duplicate case, lineage | Yes | Via internal ports (for publishing) |
-| `governance-review` | review queue, workbench, conflict, remediation | Yes | Via `KnowledgeWritePort` for decisions |
+| `candidate-ingestion` | candidate, duplicate case, lineage | Yes | Via remote `KnowledgeWritePort` for publishing |
+| `governance-review` | review queue, workbench, conflict, remediation | Yes | Via remote `KnowledgeWritePort` for approve/reject/maintenance/decay |
 | `job-runtime` | task queue, workflow runs, outbox | Yes | Via internal ports (for event delivery) |
 | `knowledge-read` | projections, search indexes, query traces (derived only) | Yes | Phase 1: direct read (temporary); Phase 2+: projections only |
 

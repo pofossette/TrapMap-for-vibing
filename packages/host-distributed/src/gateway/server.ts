@@ -7,7 +7,7 @@
 
 import Fastify, { type FastifyInstance } from 'fastify';
 
-import type { ServiceConfig } from '../config/index.js';
+import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { type InternalServiceClients, createInternalServiceClients } from './internal-client.js';
 import { registerGatewayRoutes } from './routes.js';
 

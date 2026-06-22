@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PathValidationError } from '../enum-types/path-validation.js';
+import { PathValidationError } from '@trapmap/contracts/enum-types/path-validation.js';
 
 /**
  * Validates a relative file path for security.

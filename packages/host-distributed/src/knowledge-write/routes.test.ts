@@ -1,0 +1,119 @@
+import Fastify from 'fastify';
+import { describe, expect, it, vi } from 'vitest';
+import { InvocationError, type KnowledgeWritePort } from '@trapmap/backend-core';
+import { registerRoutes } from './routes.js';
+
+function createModule(overrides: Partial<KnowledgeWritePort> = {}): KnowledgeWritePort {
+  return {
+    submit: vi.fn(),
+    updateEntry: vi.fn(),
+    resubmit: vi.fn(),
+    supersede: vi.fn(),
+    createTrap: vi.fn(),
+    approveReviewDecision: vi.fn(async () => ({
+      entryId: 'entry-1',
+      lifecycleState: 'approved' as const,
+    })),
+    rejectReviewDecision: vi.fn(async () => ({
+      entryId: 'entry-1',
+      lifecycleState: 'rejected' as const,
+    })),
+    applyMaintenanceDecision: vi.fn(async () => ({
+      entryId: 'entry-1',
+      action: 'refresh',
+    })),
+    applyDecayDecision: vi.fn(async () => ({
+      entryId: 'entry-1',
+      action: 'suppress',
+    })),
+    publishCandidateResult: vi.fn(async () => ({
+      candidateId: 'candidate-1',
+      entryId: 'entry-1',
+    })),
+    listTraps: vi.fn(async () => []),
+    getTrap: vi.fn(async () => null),
+    ...overrides,
+  };
+}
+
+async function buildApp(module: KnowledgeWritePort) {
+  const app = Fastify();
+  registerRoutes(app, module);
+  await app.ready();
+  return app;
+}
+
+describe('knowledge-write internal routes', () => {
+  it('exposes candidate publish and review lifecycle commands', async () => {
+    const module = createModule();
+    const app = await buildApp(module);
+
+    const publish = await app.inject({
+      method: 'POST',
+      url: '/internal/candidates/publish',
+      payload: {
+        candidateId: 'candidate-1',
+        actorId: 'user-1',
+        result: { decision: 'publish' },
+      },
+    });
+    expect(publish.statusCode).toBe(200);
+    expect(module.publishCandidateResult).toHaveBeenCalledWith({
+      candidateId: 'candidate-1',
+      actorId: 'user-1',
+      result: { decision: 'publish' },
+    });
+
+    const maintenance = await app.inject({
+      method: 'POST',
+      url: '/internal/knowledge/maintenance',
+      payload: { entryId: 'entry-1', actorId: 'user-1', action: 'refresh' },
+    });
+    expect(maintenance.statusCode).toBe(200);
+    expect(module.applyMaintenanceDecision).toHaveBeenCalledWith({
+      entryId: 'entry-1',
+      actorId: 'user-1',
+      action: 'refresh',
+    });
+
+    const decay = await app.inject({
+      method: 'POST',
+      url: '/internal/knowledge/decay',
+      payload: { entryId: 'entry-1', actorId: 'user-1', action: 'suppress' },
+    });
+    expect(decay.statusCode).toBe(200);
+    expect(module.applyDecayDecision).toHaveBeenCalledWith({
+      entryId: 'entry-1',
+      actorId: 'user-1',
+      action: 'suppress',
+    });
+
+    await app.close();
+  });
+
+  it('preserves invocation failure semantics for remote callers', async () => {
+    const module = createModule({
+      publishCandidateResult: vi.fn(async () => {
+        throw InvocationError.unavailable('knowledge-write unavailable');
+      }),
+    });
+    const app = await buildApp(module);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/candidates/publish',
+      payload: {
+        candidateId: 'candidate-1',
+        actorId: 'user-1',
+        result: { decision: 'publish' },
+      },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'knowledge-write unavailable',
+      kind: 'unavailable',
+    });
+    await app.close();
+  });
+});

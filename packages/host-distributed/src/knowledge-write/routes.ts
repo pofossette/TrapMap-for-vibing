@@ -148,6 +148,93 @@ export function registerRoutes(app: FastifyInstance, module: KnowledgeWritePort)
     }
   });
 
+  app.post(
+    '/internal/knowledge/review/approve',
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const body = req.body as {
+          entryId: string;
+          actorId: string;
+          note?: string;
+          evidence?: Record<string, unknown>;
+        };
+        const result = await module.approveReviewDecision(body);
+        return reply.status(200).send(result);
+      } catch (err) {
+        const { status, body } = translateInvocationError(err);
+        return reply.status(status).send(body);
+      }
+    },
+  );
+
+  app.post(
+    '/internal/knowledge/review/reject',
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const body = req.body as {
+          entryId: string;
+          actorId: string;
+          note?: string;
+          evidence?: Record<string, unknown>;
+        };
+        const result = await module.rejectReviewDecision(body);
+        return reply.status(200).send(result);
+      } catch (err) {
+        const { status, body } = translateInvocationError(err);
+        return reply.status(status).send(body);
+      }
+    },
+  );
+
+  app.post('/internal/knowledge/maintenance', async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const body = req.body as {
+        entryId: string;
+        actorId: string;
+        action: string;
+        note?: string;
+        evidence?: Record<string, unknown>;
+      };
+      const result = await module.applyMaintenanceDecision(body);
+      return reply.status(200).send(result);
+    } catch (err) {
+      const { status, body } = translateInvocationError(err);
+      return reply.status(status).send(body);
+    }
+  });
+
+  app.post('/internal/knowledge/decay', async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const body = req.body as {
+        entryId: string;
+        actorId: string;
+        action: string;
+        note?: string;
+        evidence?: Record<string, unknown>;
+      };
+      const result = await module.applyDecayDecision(body);
+      return reply.status(200).send(result);
+    } catch (err) {
+      const { status, body } = translateInvocationError(err);
+      return reply.status(status).send(body);
+    }
+  });
+
+  app.post('/internal/candidates/publish', async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const body = req.body as {
+        candidateId: string;
+        actorId: string;
+        result: Record<string, unknown>;
+      };
+      const result = await module.publishCandidateResult(body);
+      return reply.status(200).send(result);
+    } catch (err) {
+      const { status, body } = translateInvocationError(err);
+      return reply.status(status).send(body);
+    }
+  });
+
   // --- Health ---
 
   app.get('/internal/health', async (_req: FastifyRequest, reply: FastifyReply) => {
