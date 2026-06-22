@@ -6,21 +6,21 @@
  * that host assemblies implement.
  */
 
-import { InvocationError } from '@trapmap/backend-core/invocation/invocation-model.js';
+import { InvocationError } from '../invocation/invocation-model.js';
 import type {
   PermissionCheckPort,
   SessionLookupPort,
   TeamLookupPort,
-} from '@trapmap/backend-core/ports/actor-ports.js';
-import type { AuditLogPort } from '@trapmap/backend-core/ports/audit-ports.js';
-import type { IdentityAccessPort } from '@trapmap/backend-core/ports/internal-ports.js';
+} from '../ports/actor-ports.js';
+import type { AuditLogPort } from '../ports/audit-ports.js';
+import type { IdentityAccessPort } from '../ports/internal-ports.js';
 import type {
   AccessKeyRepositoryPort,
   MembershipRepositoryPort,
   SessionRepositoryPort,
   TeamRepositoryPort,
   UserRepositoryPort,
-} from '@trapmap/backend-core/ports/repo-ports.js';
+} from '../ports/repo-ports.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)

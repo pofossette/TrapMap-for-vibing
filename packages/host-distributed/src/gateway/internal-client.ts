@@ -69,7 +69,10 @@ async function callInternalService(
     if (err instanceof DOMException && err.name === 'AbortError') {
       return { status: 504, body: { error: 'Internal service timeout', kind: 'timeout' } };
     }
-    return { status: 502, body: { error: 'Internal service unreachable', kind: 'upstream' } };
+    return {
+      status: 503,
+      body: { error: 'Internal service unavailable', kind: 'unavailable' },
+    };
   } finally {
     clearTimeout(timer);
   }
@@ -208,6 +211,20 @@ export interface InternalServiceClients {
   review: {
     approve(body: { entryId: string; actorId: string; note?: string }): Promise<ServiceResponse>;
     reject(body: { entryId: string; actorId: string; note?: string }): Promise<ServiceResponse>;
+    applyMaintenance(body: {
+      entryId: string;
+      actorId: string;
+      action: string;
+      note?: string;
+      evidence?: Record<string, unknown>;
+    }): Promise<ServiceResponse>;
+    applyDecay(body: {
+      entryId: string;
+      actorId: string;
+      action: string;
+      note?: string;
+      evidence?: Record<string, unknown>;
+    }): Promise<ServiceResponse>;
     reviewArtifact(body: {
       artifactId: string;
       decision: 'approve' | 'reject';
@@ -389,6 +406,10 @@ export function createInternalServiceClients(urls: InternalServiceUrls): Interna
       approve: (body) =>
         callInternalService(`${urls.review}/internal/review/approve`, 'POST', body),
       reject: (body) => callInternalService(`${urls.review}/internal/review/reject`, 'POST', body),
+      applyMaintenance: (body) =>
+        callInternalService(`${urls.review}/internal/review/maintenance`, 'POST', body),
+      applyDecay: (body) =>
+        callInternalService(`${urls.review}/internal/review/decay`, 'POST', body),
       reviewArtifact: (body) =>
         callInternalService(`${urls.review}/internal/review/artifact`, 'POST', body),
       submitFeedback: (body) =>
@@ -398,6 +419,10 @@ export function createInternalServiceClients(urls: InternalServiceUrls): Interna
       approve: (body) =>
         callInternalService(`${urls.review}/internal/review/approve`, 'POST', body),
       reject: (body) => callInternalService(`${urls.review}/internal/review/reject`, 'POST', body),
+      applyMaintenance: (body) =>
+        callInternalService(`${urls.review}/internal/review/maintenance`, 'POST', body),
+      applyDecay: (body) =>
+        callInternalService(`${urls.review}/internal/review/decay`, 'POST', body),
       reviewArtifact: (body) =>
         callInternalService(`${urls.review}/internal/review/artifact`, 'POST', body),
       submitFeedback: (body) =>

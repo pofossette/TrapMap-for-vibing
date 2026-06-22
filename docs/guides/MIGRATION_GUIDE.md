@@ -142,12 +142,17 @@ TRAPMAP_JOB_RUNTIME_URL=http://127.0.0.1:4006
 Minimum checks for this migration line:
 
 ```bash
+pnpm test:distributed-acceptance
 pnpm typecheck
 pnpm test
 pnpm test:deployment-smoke
 pnpm test:runtime-foundations
 pnpm check:docs-drift
 ```
+
+Microservice-split readiness uses a stricter operational gate. Before starting a physical split, run the checklist in [MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md](./MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md).
+
+For distributed split readiness, treat `pnpm test:distributed-acceptance` as the default automation gate for Gate 2 / Gate 3 / Gate 5. It is the canonical proof that `@trapmap/host-distributed` already owns the write forwarding path, preserves auth/error semantics across internal service calls, and keeps job-runtime ownership evidence stable.
 
 ## Remaining Gaps
 

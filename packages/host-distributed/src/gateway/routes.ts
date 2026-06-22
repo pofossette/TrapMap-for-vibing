@@ -536,6 +536,48 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     }
   });
 
+  app.post('/v1/knowledge/maintenance', async (request: FastifyRequest, reply: FastifyReply) => {
+    const validationError = validateBody(request.body, ['entryId', 'actorId', 'action']);
+    if (validationError) {
+      return reply.status(400).send(validationError);
+    }
+    const body = request.body as {
+      entryId: string;
+      actorId: string;
+      action: string;
+      note?: string;
+      evidence?: Record<string, unknown>;
+    };
+    try {
+      const result = await clients.review.applyMaintenance(body);
+      return forwardResponse(reply, result);
+    } catch (err: unknown) {
+      request.log.error({ err }, 'governance-review maintenance failed');
+      return reply.status(502).send({ error: 'Governance service unavailable', kind: 'upstream' });
+    }
+  });
+
+  app.post('/v1/knowledge/decay', async (request: FastifyRequest, reply: FastifyReply) => {
+    const validationError = validateBody(request.body, ['entryId', 'actorId', 'action']);
+    if (validationError) {
+      return reply.status(400).send(validationError);
+    }
+    const body = request.body as {
+      entryId: string;
+      actorId: string;
+      action: string;
+      note?: string;
+      evidence?: Record<string, unknown>;
+    };
+    try {
+      const result = await clients.review.applyDecay(body);
+      return forwardResponse(reply, result);
+    } catch (err: unknown) {
+      request.log.error({ err }, 'governance-review decay failed');
+      return reply.status(502).send({ error: 'Governance service unavailable', kind: 'upstream' });
+    }
+  });
+
   app.post('/v1/feedback', async (request: FastifyRequest, reply: FastifyReply) => {
     const body = request.body as {
       entryId: string;

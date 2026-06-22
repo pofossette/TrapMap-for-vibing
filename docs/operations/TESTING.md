@@ -159,6 +159,10 @@ pnpm typecheck
 完成 deployment flexibility 相关改动后，至少运行以下命令：
 
 ```bash
+# distributed split acceptance: gateway forwarding, remote write delegation,
+# error semantics, auth/header propagation, runtime/job ownership
+pnpm test:distributed-acceptance
+
 # profile / preset / runtime / route exposure / CLI gateway-only 关键切片
 pnpm test:deployment-smoke
 
@@ -171,6 +175,16 @@ pnpm typecheck
 # 文档叙事与命令示例一致性
 pnpm check:docs-drift
 ```
+
+当改动涉及 `packages/host-distributed` 的 candidate/review/maintenance/decay authoritative write path、gateway auth 透传、internal client 失败语义、或 distributed job runtime ownership 时，`pnpm test:distributed-acceptance` 是必跑门，不应只用 `test:deployment-smoke` 代替。
+
+该门当前聚合的 acceptance 证据包括：
+
+- gateway 对 candidate resolution / manual result / review / maintenance / decay / job-runtime 路由的分布式转发
+- internal client 的 `x-request-id` / `x-trace-id` 透传，以及 `404 / 403 / 409 / 503 / 504` 失败语义保持
+- governance-review 对 knowledge-write 的 authoritative write 委托
+- knowledge-write internal command surface 稳定性
+- distributed job-runtime service config / ownership 的 focused assertions
 
 建议的手动 smoke 步骤：
 

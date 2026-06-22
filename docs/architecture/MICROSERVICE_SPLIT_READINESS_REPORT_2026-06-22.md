@@ -39,3 +39,5 @@
 **补一组 `host-distributed` 多进程联调 + `eval:smoke` + auth/runtime consistency 证据，证明新的 authoritative write path 在真实运行时闭环成立。**
 
 原因：`packages/server` 降级本身已经完成，但如果 distributed runtime 只是在单测级别成立，当前边界仍不足以支持正式的物理拆分决策。
+
+执行验收时，使用 [微服务拆分验收清单](../guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md) 逐项判断。

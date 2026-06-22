@@ -10,15 +10,15 @@ import type {
   PermissionCheckPort,
   SessionLookupPort,
   TeamLookupPort,
-} from '@trapmap/backend-core/ports/actor-ports.js';
-import type { AuditLogPort } from '@trapmap/backend-core/ports/audit-ports.js';
-import type { MetricsPort } from '@trapmap/backend-core/ports/audit-ports.js';
+} from '../ports/actor-ports.js';
+import type { AuditLogPort } from '../ports/audit-ports.js';
+import type { MetricsPort } from '../ports/audit-ports.js';
 import type {
   OutboxPort,
   OutboxStatusSnapshot,
   TaskQueuePort,
   TaskStatusSnapshot,
-} from '@trapmap/backend-core/ports/queue-ports.js';
+} from '../ports/queue-ports.js';
 import type {
   AccessKeyRepositoryPort,
   AuditRepositoryPort,
@@ -29,8 +29,8 @@ import type {
   SessionRepositoryPort,
   TeamRepositoryPort,
   UserRepositoryPort,
-} from '@trapmap/backend-core/ports/repo-ports.js';
-import type { RepositoryPorts } from '@trapmap/backend-core/ports/repo-ports.js';
+} from '../ports/repo-ports.js';
+import type { RepositoryPorts } from '../ports/repo-ports.js';
 
 // ---------------------------------------------------------------------------
 // Stub: AuditLogPort

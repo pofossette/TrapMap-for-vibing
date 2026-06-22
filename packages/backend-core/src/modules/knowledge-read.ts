@@ -5,9 +5,9 @@
  * This module is read-only -- it does not modify domain state.
  */
 
-import type { KnowledgeReadPort } from '@trapmap/backend-core/ports/internal-ports.js';
-import type { KnowledgeRepositoryPort } from '@trapmap/backend-core/ports/repo-ports.js';
-import type { RetrievalQueryPort } from '@trapmap/backend-core/ports/retrieval-ports.js';
+import type { KnowledgeReadPort } from '../ports/internal-ports.js';
+import type { KnowledgeRepositoryPort } from '../ports/repo-ports.js';
+import type { RetrievalQueryPort } from '../ports/retrieval-ports.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)
