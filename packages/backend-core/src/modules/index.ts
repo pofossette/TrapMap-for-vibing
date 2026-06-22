@@ -14,6 +14,7 @@ export {
 export type { CandidateIngestionDeps } from './candidate-ingestion.js';
 
 export { GOVERNANCE_REVIEW_MODULE, createGovernanceReviewModule } from './governance-review.js';
+export type { GovernanceReviewDeps as ReviewDeps } from './governance-review.js';
 export type { GovernanceReviewDeps } from './governance-review.js';
 
 export { JOB_RUNTIME_MODULE, createJobRuntimeModule } from './job-runtime.js';

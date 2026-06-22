@@ -1,22 +1,28 @@
 /**
  * Governance & Review bounded-context module.
  *
- * Owns: review decisions (approve/reject), artifact review,
- * feedback submission, maintenance commands.
- * This module handles all governance write operations.
+ * Owns: review decisions, governance eligibility flows, feedback submission,
+ * and operator-facing maintenance/decay commands.
+ * Final knowledge aggregate mutations are delegated to knowledge-write.
  */
 
 import { InvocationError } from '../invocation/invocation-model.js';
 import type { AuditLogPort } from '../ports/audit-ports.js';
-import type { GovernanceReviewPort } from '../ports/internal-ports.js';
-import type { FeedbackRepositoryPort, KnowledgeRepositoryPort } from '../ports/repo-ports.js';
+import type { KnowledgeWritePort, ReviewPort } from '../ports/internal-ports.js';
+import type { FeedbackRepositoryPort } from '../ports/repo-ports.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)
 // ---------------------------------------------------------------------------
 
 export interface GovernanceReviewDeps {
-  knowledgeRepo: KnowledgeRepositoryPort;
+  knowledgeWrite: Pick<
+    KnowledgeWritePort,
+    | 'approveReviewDecision'
+    | 'rejectReviewDecision'
+    | 'applyMaintenanceDecision'
+    | 'applyDecayDecision'
+  >;
   feedbackRepo: FeedbackRepositoryPort;
   auditLog: AuditLogPort;
 }
@@ -26,52 +32,74 @@ export interface GovernanceReviewDeps {
 // ---------------------------------------------------------------------------
 
 export const GOVERNANCE_REVIEW_MODULE = {
-  name: 'governance-review' as const,
-  owns: ['review-decisions', 'artifact-review', 'feedback', 'maintenance'] as const,
+  name: 'review' as const,
+  owns: ['review-decisions', 'artifact-review', 'feedback', 'maintenance', 'decay'] as const,
   dependsOn: ['knowledge-write'] as const,
 } as const;
 
 /**
- * Create a GovernanceReviewPort backed by the given dependencies.
+ * Create a ReviewPort backed by the given dependencies.
  */
-export function createGovernanceReviewModule(deps: GovernanceReviewDeps): GovernanceReviewPort {
+export function createGovernanceReviewModule(deps: GovernanceReviewDeps): ReviewPort {
   return {
-    async approve(entryId, actorId, note) {
-      const entry = await deps.knowledgeRepo.getById(entryId);
-      if (!entry) {
-        throw InvocationError.notFound(`Knowledge entry not found: ${entryId}`);
-      }
-
-      await deps.knowledgeRepo.updateLifecycle(entryId, 'approved', {
-        actorId,
-        note: note ?? 'Approved',
-      });
+    async approve(input) {
+      const result = await deps.knowledgeWrite.approveReviewDecision(input);
 
       await deps.auditLog.record({
         action: 'review.approve',
-        actorId,
-        entityId: entryId,
-        metadata: { note },
+        actorId: input.actorId,
+        entityId: input.entryId,
+        metadata: { note: input.note, evidence: input.evidence ?? null },
       });
+
+      return result;
     },
 
-    async reject(entryId, actorId, note) {
-      const entry = await deps.knowledgeRepo.getById(entryId);
-      if (!entry) {
-        throw InvocationError.notFound(`Knowledge entry not found: ${entryId}`);
-      }
-
-      await deps.knowledgeRepo.updateLifecycle(entryId, 'rejected', {
-        actorId,
-        note: note ?? 'Rejected',
-      });
+    async reject(input) {
+      const result = await deps.knowledgeWrite.rejectReviewDecision(input);
 
       await deps.auditLog.record({
         action: 'review.reject',
-        actorId,
-        entityId: entryId,
-        metadata: { note },
+        actorId: input.actorId,
+        entityId: input.entryId,
+        metadata: { note: input.note, evidence: input.evidence ?? null },
       });
+
+      return result;
+    },
+
+    async applyMaintenance(input) {
+      const result = await deps.knowledgeWrite.applyMaintenanceDecision(input);
+
+      await deps.auditLog.record({
+        action: 'review.maintenance',
+        actorId: input.actorId,
+        entityId: input.entryId,
+        metadata: {
+          action: input.action,
+          note: input.note,
+          evidence: input.evidence ?? null,
+        },
+      });
+
+      return result;
+    },
+
+    async applyDecay(input) {
+      const result = await deps.knowledgeWrite.applyDecayDecision(input);
+
+      await deps.auditLog.record({
+        action: 'review.decay',
+        actorId: input.actorId,
+        entityId: input.entryId,
+        metadata: {
+          action: input.action,
+          note: input.note,
+          evidence: input.evidence ?? null,
+        },
+      });
+
+      return result;
     },
 
     async reviewArtifact(_artifactId, decision, actorId, note) {

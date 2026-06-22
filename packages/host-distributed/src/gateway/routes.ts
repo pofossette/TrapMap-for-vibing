@@ -520,13 +520,13 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     try {
       let result: { status: number; body: unknown };
       if (body.decision === 'approve') {
-        result = await clients.governanceReview.approve({
+        result = await clients.review.approve({
           entryId: body.entryId,
           actorId: body.actorId,
           ...(body.note !== undefined ? { note: body.note } : {}),
         });
       } else {
-        result = await clients.governanceReview.reject({
+        result = await clients.review.reject({
           entryId: body.entryId,
           actorId: body.actorId,
           ...(body.note !== undefined ? { note: body.note } : {}),
@@ -547,7 +547,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       actorId: string;
     };
     try {
-      const result = await clients.governanceReview.submitFeedback(body);
+      const result = await clients.review.submitFeedback(body);
       return forwardResponse(reply, result);
     } catch (err: unknown) {
       request.log.error({ err }, 'governance-review submitFeedback failed');
@@ -567,7 +567,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       note?: string;
     };
     try {
-      const result = await clients.governanceReview.reviewArtifact(body);
+      const result = await clients.review.reviewArtifact(body);
       return forwardResponse(reply, result);
     } catch (err: unknown) {
       request.log.error({ err }, 'governance-review reviewArtifact failed');

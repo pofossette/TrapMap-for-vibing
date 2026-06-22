@@ -7,7 +7,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import type { GovernanceReviewPort } from '@trapmap/backend-core';
+import type { ReviewPort } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
 
 // ---------------------------------------------------------------------------
@@ -43,13 +43,18 @@ function translateInvocationError(error: unknown): {
 // Route registration
 // ---------------------------------------------------------------------------
 
-export function registerRoutes(app: FastifyInstance, module: GovernanceReviewPort): void {
+export function registerRoutes(app: FastifyInstance, module: ReviewPort): void {
   // POST /internal/review/approve
   app.post('/internal/review/approve', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const body = request.body as { entryId: string; actorId: string; note?: string };
-      await module.approve(body.entryId, body.actorId, body.note);
-      return reply.status(200).send({ ok: true });
+      const body = request.body as {
+        entryId: string;
+        actorId: string;
+        note?: string;
+        evidence?: Record<string, unknown>;
+      };
+      const result = await module.approve(body);
+      return reply.status(200).send(result);
     } catch (err) {
       const { status, body } = translateInvocationError(err);
       return reply.status(status).send(body);
@@ -59,9 +64,14 @@ export function registerRoutes(app: FastifyInstance, module: GovernanceReviewPor
   // POST /internal/review/reject
   app.post('/internal/review/reject', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const body = request.body as { entryId: string; actorId: string; note?: string };
-      await module.reject(body.entryId, body.actorId, body.note);
-      return reply.status(200).send({ ok: true });
+      const body = request.body as {
+        entryId: string;
+        actorId: string;
+        note?: string;
+        evidence?: Record<string, unknown>;
+      };
+      const result = await module.reject(body);
+      return reply.status(200).send(result);
     } catch (err) {
       const { status, body } = translateInvocationError(err);
       return reply.status(status).send(body);

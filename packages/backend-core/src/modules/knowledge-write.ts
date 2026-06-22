@@ -130,6 +130,99 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
       return { trapId };
     },
 
+    async approveReviewDecision(input) {
+      const entry = await deps.knowledgeRepo.getById(input.entryId);
+      if (!entry) {
+        throw InvocationError.notFound(`Knowledge entry not found: ${input.entryId}`);
+      }
+
+      await deps.knowledgeRepo.updateLifecycle(input.entryId, 'approved', {
+        actorId: input.actorId,
+        note: input.note ?? 'Approved',
+      });
+
+      await deps.auditLog.record({
+        action: 'knowledge.review-approved',
+        actorId: input.actorId,
+        entityId: input.entryId,
+        metadata: { evidence: input.evidence ?? null, note: input.note ?? null },
+      });
+
+      return { entryId: input.entryId, lifecycleState: 'approved' };
+    },
+
+    async rejectReviewDecision(input) {
+      const entry = await deps.knowledgeRepo.getById(input.entryId);
+      if (!entry) {
+        throw InvocationError.notFound(`Knowledge entry not found: ${input.entryId}`);
+      }
+
+      await deps.knowledgeRepo.updateLifecycle(input.entryId, 'rejected', {
+        actorId: input.actorId,
+        note: input.note ?? 'Rejected',
+      });
+
+      await deps.auditLog.record({
+        action: 'knowledge.review-rejected',
+        actorId: input.actorId,
+        entityId: input.entryId,
+        metadata: { evidence: input.evidence ?? null, note: input.note ?? null },
+      });
+
+      return { entryId: input.entryId, lifecycleState: 'rejected' };
+    },
+
+    async applyMaintenanceDecision(input) {
+      const entry = await deps.knowledgeRepo.getById(input.entryId);
+      if (!entry) {
+        throw InvocationError.notFound(`Knowledge entry not found: ${input.entryId}`);
+      }
+
+      await deps.auditLog.record({
+        action: 'knowledge.maintenance-applied',
+        actorId: input.actorId,
+        entityId: input.entryId,
+        metadata: {
+          action: input.action,
+          evidence: input.evidence ?? null,
+          note: input.note ?? null,
+        },
+      });
+
+      return { entryId: input.entryId, action: input.action };
+    },
+
+    async applyDecayDecision(input) {
+      const entry = await deps.knowledgeRepo.getById(input.entryId);
+      if (!entry) {
+        throw InvocationError.notFound(`Knowledge entry not found: ${input.entryId}`);
+      }
+
+      await deps.auditLog.record({
+        action: 'knowledge.decay-applied',
+        actorId: input.actorId,
+        entityId: input.entryId,
+        metadata: {
+          action: input.action,
+          evidence: input.evidence ?? null,
+          note: input.note ?? null,
+        },
+      });
+
+      return { entryId: input.entryId, action: input.action };
+    },
+
+    async publishCandidateResult(input) {
+      await deps.auditLog.record({
+        action: 'knowledge.candidate-result-published',
+        actorId: input.actorId,
+        entityId: input.candidateId,
+        metadata: { result: input.result },
+      });
+
+      return { candidateId: input.candidateId };
+    },
+
     async listTraps(teamId: string) {
       return deps.knowledgeRepo.listByFilter({ teamId });
     },

@@ -8,8 +8,11 @@
 import type { CandidateStatus, CandidateSubmission } from '@trapmap/contracts';
 import { InvocationError } from '../invocation/invocation-model.js';
 import type { AuditLogPort } from '../ports/audit-ports.js';
-import type { CandidateIngestionPort } from '../ports/internal-ports.js';
-import type { QueuePorts } from '../ports/queue-ports.js';
+import type {
+  CandidateIngestionPort,
+  JobRuntimePort,
+  KnowledgeWritePort,
+} from '../ports/internal-ports.js';
 import type { CandidateRepositoryPort } from '../ports/repo-ports.js';
 
 // ---------------------------------------------------------------------------
@@ -19,7 +22,8 @@ import type { CandidateRepositoryPort } from '../ports/repo-ports.js';
 export interface CandidateIngestionDeps {
   candidateRepo: CandidateRepositoryPort;
   auditLog: AuditLogPort;
-  queuePorts?: QueuePorts;
+  knowledgeWrite: Pick<KnowledgeWritePort, 'publishCandidateResult'>;
+  jobRuntime?: Pick<JobRuntimePort, 'schedule'>;
 }
 
 // ---------------------------------------------------------------------------
@@ -29,7 +33,7 @@ export interface CandidateIngestionDeps {
 export const CANDIDATE_INGESTION_MODULE = {
   name: 'candidate-ingestion' as const,
   owns: ['candidate-submission', 'candidate-processing', 'dedup', 'resolution'] as const,
-  dependsOn: [] as const,
+  dependsOn: ['knowledge-write', 'job-runtime'] as const,
 } as const;
 
 /**
@@ -48,9 +52,8 @@ export function createCandidateIngestionModule(
         entityId: candidate.id,
       });
 
-      // Enqueue processing task if queue is available
-      if (deps.queuePorts?.task) {
-        await deps.queuePorts.task.enqueue('candidate-processing', {
+      if (deps.jobRuntime) {
+        await deps.jobRuntime.schedule('candidate-processing', {
           candidateId: candidate.id,
         });
       }
@@ -95,6 +98,29 @@ export function createCandidateIngestionModule(
         actorId,
         entityId: candidateId,
       });
+    },
+
+    async publishCandidateResult(candidateId, result, actorId) {
+      const candidate = await deps.candidateRepo.getById(candidateId);
+      if (!candidate) {
+        throw InvocationError.notFound(`Candidate not found: ${candidateId}`);
+      }
+
+      const publishResult = await deps.knowledgeWrite.publishCandidateResult({
+        candidateId,
+        actorId,
+        result,
+      });
+
+      await deps.candidateRepo.markResolved(candidateId, actorId);
+      await deps.auditLog.record({
+        action: 'candidate.publish-result',
+        actorId,
+        entityId: candidateId,
+        metadata: { result },
+      });
+
+      return publishResult;
     },
   };
 }

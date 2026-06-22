@@ -71,6 +71,7 @@ export interface InternalServiceUrls {
   knowledgeRead: string;
   knowledgeWrite: string;
   candidateIngestion: string;
+  review: string;
   governanceReview: string;
   jobRuntime: string;
 }
@@ -82,6 +83,7 @@ function defaultInternalUrls(): InternalServiceUrls {
     knowledgeRead: `http://localhost:${DEFAULT_PORTS['knowledge-read']}`,
     knowledgeWrite: `http://localhost:${DEFAULT_PORTS['knowledge-write']}`,
     candidateIngestion: `http://localhost:${DEFAULT_PORTS['candidate-ingestion']}`,
+    review: `http://localhost:${DEFAULT_PORTS['governance-review']}`,
     governanceReview: `http://localhost:${DEFAULT_PORTS['governance-review']}`,
     jobRuntime: `http://localhost:${DEFAULT_PORTS['job-runtime']}`,
   };
@@ -136,6 +138,7 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
       knowledgeRead: process.env[ENV_KNOWLEDGE_READ_URL] ?? defaults.knowledgeRead,
       knowledgeWrite: process.env[ENV_KNOWLEDGE_WRITE_URL] ?? defaults.knowledgeWrite,
       candidateIngestion: process.env[ENV_CANDIDATE_INGESTION_URL] ?? defaults.candidateIngestion,
+      review: process.env[ENV_GOVERNANCE_REVIEW_URL] ?? defaults.review,
       governanceReview: process.env[ENV_GOVERNANCE_REVIEW_URL] ?? defaults.governanceReview,
       jobRuntime: process.env[ENV_JOB_RUNTIME_URL] ?? defaults.jobRuntime,
     },

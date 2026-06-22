@@ -10,10 +10,10 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type {
   CandidateIngestionPort,
-  GovernanceReviewPort,
   IdentityAccessPort,
   JobRuntimePort,
   KnowledgeReadPort,
+  ReviewPort,
   KnowledgeWritePort,
 } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
@@ -28,7 +28,7 @@ export interface GatewayHandlerDeps {
   knowledgeRead: KnowledgeReadPort;
   knowledgeWrite: KnowledgeWritePort;
   candidateIngestion: CandidateIngestionPort;
-  governanceReview: GovernanceReviewPort;
+  review: ReviewPort;
   jobRuntime: JobRuntimePort;
 }
 
@@ -331,9 +331,17 @@ function registerCoreRoutes(app: FastifyInstance, deps: GatewayHandlerDeps): voi
         note?: string;
       };
       if (body.decision === 'approve') {
-        await deps.governanceReview.approve(body.entryId, body.actorId, body.note);
+        await deps.review.approve({
+          entryId: body.entryId,
+          actorId: body.actorId,
+          ...(body.note !== undefined ? { note: body.note } : {}),
+        });
       } else {
-        await deps.governanceReview.reject(body.entryId, body.actorId, body.note);
+        await deps.review.reject({
+          entryId: body.entryId,
+          actorId: body.actorId,
+          ...(body.note !== undefined ? { note: body.note } : {}),
+        });
       }
       return reply.status(200).send({ ok: true });
     } catch (error) {
@@ -344,8 +352,8 @@ function registerCoreRoutes(app: FastifyInstance, deps: GatewayHandlerDeps): voi
 
   app.post('/v1/feedback', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const body = request.body as Parameters<GovernanceReviewPort['submitFeedback']>[0];
-      const result = await deps.governanceReview.submitFeedback(body);
+      const body = request.body as Parameters<ReviewPort['submitFeedback']>[0];
+      const result = await deps.review.submitFeedback(body);
       return reply.status(201).send(result);
     } catch (error) {
       const { status, body } = translateInvocationError(error);

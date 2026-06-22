@@ -19,9 +19,10 @@ Distributed deployment assembly for TrapMap. Each bounded-context module runs as
 └──────────────────┘  └──────────────────┘  └──────────────────┘
 
 ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-│ Candidate-       │  │ Governance-      │  │ Job-Runtime      │
-│ Ingestion        │  │ Review           │  │                  │
-│   (port 4004)    │  │   (port 4005)    │  │   (port 4006)    │
+│ Candidate-       │  │ Review           │  │ Job-Runtime      │
+│ Ingestion        │  │ (deploy dir:     │  │                  │
+│   (port 4004)    │  │ governance-review)│ │   (port 4006)    │
+│                  │  │   (port 4005)    │  │                  │
 └──────────────────┘  └──────────────────┘  └──────────────────┘
 ```
 
@@ -34,7 +35,7 @@ Distributed deployment assembly for TrapMap. Each bounded-context module runs as
 | knowledge-read | 4002 | Retrieval queries, read-model access |
 | knowledge-write | 4003 | Knowledge/trap lifecycle commands |
 | candidate-ingestion | 4004 | Candidate intake, dedup, processing |
-| governance-review | 4005 | Review workflows, feedback queues |
+| governance-review | 4005 | `review` service deploy dir; review workflows, feedback queues, governance commands |
 | job-runtime | 4006 | Task queue, workflow runs, outbox |
 
 ## Quick Start
@@ -80,7 +81,7 @@ Environment variables:
 | `TRAPMAP_KNOWLEDGE_READ_URL` | `http://127.0.0.1:4002` | Knowledge-read internal URL |
 | `TRAPMAP_KNOWLEDGE_WRITE_URL` | `http://127.0.0.1:4003` | Knowledge-write internal URL |
 | `TRAPMAP_CANDIDATE_INGESTION_URL` | `http://127.0.0.1:4004` | Candidate-ingestion internal URL |
-| `TRAPMAP_GOVERNANCE_REVIEW_URL` | `http://127.0.0.1:4005` | Governance-review internal URL |
+| `TRAPMAP_GOVERNANCE_REVIEW_URL` | `http://127.0.0.1:4005` | Review service internal URL (deploy dir remains `governance-review`) |
 | `TRAPMAP_JOB_RUNTIME_URL` | `http://127.0.0.1:4006` | Job-runtime internal URL |
 
 ## Design Principles
@@ -89,4 +90,4 @@ Environment variables:
 2. **Gateway-only external access**: Only the gateway exposes public API endpoints
 3. **HTTP-based inter-service communication**: Services communicate via internal HTTP endpoints
 4. **Backend-core reuse**: All services use `@trapmap/backend-core` modules
-5. **Database ownership**: Each service owns its database schema
+5. **Ownership by business truth**: `review` decides, `knowledge-write` applies final knowledge writes, `candidate-ingestion` publishes through `knowledge-write`, and `job-runtime` only owns transport/runtime orchestration

@@ -11,6 +11,7 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
 | DB schema | `packages/server/src/lib/persistence/schema/index.ts` (barrel, re-exports all domain table modules) | `docs/reference/DATABASE_SCHEMA.md` |
 | Server data-access boundary | `packages/server/src/lib/actors/lookup.ts` (actor lookup), `packages/server/src/lib/repos/index.ts` (`SkillShareerRepos`) | `docs/PACKAGES.md`, `docs/reference/DATA_MODEL.md` |
 | Server bounded contexts and layer ownership | `docs/plans/backend-engineering-masterplan/01-boundaries-and-compat-convergence.md` + `docs/architecture/ARCHITECTURE.md` | `plan.md`, `docs/PACKAGES.md`, `docs/plans/backend-engineering-roadmap/stage-1-foundation-and-boundaries.md` |
+| Six-service ownership boundary (`identity-access` / `candidate-ingestion` / `knowledge-write` / `review` / `knowledge-read` / `job-runtime`) | `packages/backend-core/src/ports/internal-ports.ts` + `packages/backend-core/src/modules/*.ts` + `packages/host-distributed/src/config/service-config.ts` | `docs/architecture/ARCHITECTURE.md`, `packages/backend-core/README.md`, `packages/host-distributed/README.md` |
 | `backend-core` / `host-*` ownership relationship | `docs/plans/backend-engineering-masterplan/01-boundaries-and-compat-convergence.md` + `packages/backend-core/src/use-cases/command-handling.ts` + `packages/host-local/src/http/gateway.ts` + `packages/host-distributed/src/shared/ports.ts` | `docs/architecture/ARCHITECTURE.md`, `docs/plans/runtime-recomposition/`, `docs/plans/deployment-flexibility/` |
 | Persistence posture | `README.md` + `packages/server/src/lib/persistence/schema/*.ts` | `docs/README.md`, `docs/guides/GETTING_STARTED.md`, `docs/architecture/DEPLOYMENT.md` |
 | CI jobs | `.github/workflows/ci.yml` | `docs/operations/CI_CD.md`, `docs/operations/TESTING.md` |
@@ -71,6 +72,7 @@ Each architecture fact has one authoritative source. When secondary docs drift, 
 11. Phase 4 closeout 规则：根 `plan.md` 只有在“代码/contract + 聚焦测试 + facts/truth-source 回写 + `check:docs-drift` + `check:structure`”全部完成后才能勾选阶段复选框。
 12. `backend-engineering-masterplan/` 是当前唯一 active-execution 入口；仍被当前文档引用的旧目录只能保留为 `historical-reference`，不能继续承担默认执行入口。
 13. All pull requests that touch architecture or persistence docs must verify consistency against this table.
+14. Six-service boundary freeze: `knowledge-write` owns all knowledge/trap/evidence write truth, including applying review/maintenance/decay decisions and publishing candidate results; `review` owns governance queue/decision/feedback/maintenance/decay commands but must delegate final aggregate mutation through `KnowledgeWritePort`; `candidate-ingestion` owns candidate workflow facts but must publish resolved results through `KnowledgeWritePort`; `knowledge-read` only consumes read projections or events; `job-runtime` only owns queue/outbox/runtime transport and worker scheduling glue.
 
 ## CI Guards
 

@@ -84,6 +84,42 @@ export interface KnowledgeWritePort {
     [key: string]: unknown;
   }): Promise<{ trapId: string }>;
 
+  approveReviewDecision(input: {
+    entryId: string;
+    actorId: string;
+    note?: string;
+    evidence?: Record<string, unknown>;
+  }): Promise<{ entryId: string; lifecycleState: 'approved' }>;
+
+  rejectReviewDecision(input: {
+    entryId: string;
+    actorId: string;
+    note?: string;
+    evidence?: Record<string, unknown>;
+  }): Promise<{ entryId: string; lifecycleState: 'rejected' }>;
+
+  applyMaintenanceDecision(input: {
+    entryId: string;
+    actorId: string;
+    note?: string;
+    action: string;
+    evidence?: Record<string, unknown>;
+  }): Promise<{ entryId: string; action: string }>;
+
+  applyDecayDecision(input: {
+    entryId: string;
+    actorId: string;
+    note?: string;
+    action: string;
+    evidence?: Record<string, unknown>;
+  }): Promise<{ entryId: string; action: string }>;
+
+  publishCandidateResult(input: {
+    candidateId: string;
+    actorId: string;
+    result: Record<string, unknown>;
+  }): Promise<{ entryId?: string; candidateId: string }>;
+
   listTraps(teamId: string): Promise<KnowledgeEntryRecord[]>;
   getTrap(trapId: string): Promise<KnowledgeEntryRecord | null>;
 }
@@ -106,15 +142,44 @@ export interface CandidateIngestionPort {
     result: Record<string, unknown>,
     actorId: string,
   ): Promise<void>;
+  publishCandidateResult(
+    candidateId: string,
+    result: Record<string, unknown>,
+    actorId: string,
+  ): Promise<{ entryId?: string; candidateId: string }>;
 }
 
 // ---------------------------------------------------------------------------
 // Governance & Review port
 // ---------------------------------------------------------------------------
 
-export interface GovernanceReviewPort {
-  approve(entryId: string, actorId: string, note?: string): Promise<void>;
-  reject(entryId: string, actorId: string, note?: string): Promise<void>;
+export interface ReviewPort {
+  approve(input: {
+    entryId: string;
+    actorId: string;
+    note?: string;
+    evidence?: Record<string, unknown>;
+  }): Promise<{ entryId: string; lifecycleState: 'approved' }>;
+  reject(input: {
+    entryId: string;
+    actorId: string;
+    note?: string;
+    evidence?: Record<string, unknown>;
+  }): Promise<{ entryId: string; lifecycleState: 'rejected' }>;
+  applyMaintenance(input: {
+    entryId: string;
+    actorId: string;
+    note?: string;
+    action: string;
+    evidence?: Record<string, unknown>;
+  }): Promise<{ entryId: string; action: string }>;
+  applyDecay(input: {
+    entryId: string;
+    actorId: string;
+    note?: string;
+    action: string;
+    evidence?: Record<string, unknown>;
+  }): Promise<{ entryId: string; action: string }>;
   reviewArtifact(
     artifactId: string,
     decision: 'approve' | 'reject',
@@ -129,6 +194,8 @@ export interface GovernanceReviewPort {
     [key: string]: unknown;
   }): Promise<{ feedbackId: string }>;
 }
+
+export type GovernanceReviewPort = ReviewPort;
 
 // ---------------------------------------------------------------------------
 // Job Runtime port

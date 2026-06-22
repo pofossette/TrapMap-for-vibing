@@ -9,7 +9,7 @@ Backend core kernel for TrapMap. This package provides host-agnostic application
 - **Runtime capability model** -- deployment profiles, runtime modes, service units, topology
 - **Port interfaces** -- abstract contracts for repositories, queues, retrieval, auth, audit
 - **Use-case patterns** -- command handling, review flows, retrieval orchestration, job scheduling
-- **Bounded-context modules** -- identity-access, knowledge-read/write, candidate-ingestion, governance-review, job-runtime
+- **Bounded-context modules** -- identity-access, knowledge-read/write, candidate-ingestion, review, job-runtime
 - **Invocation model** -- transport-agnostic sync/async contracts with error taxonomy
 - **Testing utilities** -- stub implementations of all ports for unit testing
 
@@ -46,7 +46,7 @@ src/
     knowledge-read.ts   Read-only knowledge and retrieval queries
     knowledge-write.ts  Knowledge/trap creation, resubmit, supersede
     candidate-ingestion.ts  Candidate submission and processing
-    governance-review.ts    Review decisions and feedback
+    governance-review.ts    Review decisions, governance queue, feedback, maintenance/decay orchestration
     job-runtime.ts      Task queue and job scheduling
   invocation/
     invocation-model.ts  Sync/async invocation contracts and error taxonomy

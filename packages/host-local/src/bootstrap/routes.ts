@@ -10,10 +10,10 @@ import type { FastifyInstance } from 'fastify';
 
 import type {
   CandidateIngestionPort,
-  GovernanceReviewPort,
   IdentityAccessPort,
   JobRuntimePort,
   KnowledgeReadPort,
+  ReviewPort,
   KnowledgeWritePort,
   RepositoryPorts,
   ResolvedRuntimeDeployment,
@@ -40,7 +40,7 @@ export interface RegisterRoutesOptions {
     knowledgeRead: KnowledgeReadPort;
     knowledgeWrite: KnowledgeWritePort;
     candidateIngestion: CandidateIngestionPort;
-    governanceReview: GovernanceReviewPort;
+    review: ReviewPort;
     jobRuntime: JobRuntimePort;
   };
 }
@@ -83,7 +83,7 @@ export function registerRoutes(options: RegisterRoutesOptions): void {
     knowledgeRead: modules.knowledgeRead,
     knowledgeWrite: modules.knowledgeWrite,
     candidateIngestion: modules.candidateIngestion,
-    governanceReview: modules.governanceReview,
+    review: modules.review,
     jobRuntime: modules.jobRuntime,
   };
   registerGatewayRoutes(app, gatewayDeps, deployment);

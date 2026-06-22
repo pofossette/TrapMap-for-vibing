@@ -134,8 +134,12 @@ export interface InternalServiceClients {
       candidateId: string,
       body: { result: Record<string, unknown>; actorId: string },
     ): Promise<ServiceResponse>;
+    publishCandidateResult(
+      candidateId: string,
+      body: { result: Record<string, unknown>; actorId: string },
+    ): Promise<ServiceResponse>;
   };
-  governanceReview: {
+  review: {
     approve(body: { entryId: string; actorId: string; note?: string }): Promise<ServiceResponse>;
     reject(body: { entryId: string; actorId: string; note?: string }): Promise<ServiceResponse>;
     reviewArtifact(body: {
@@ -151,6 +155,7 @@ export interface InternalServiceClients {
       actorId: string;
     }): Promise<ServiceResponse>;
   };
+  governanceReview: InternalServiceClients['review'];
   jobRuntime: {
     schedule(body: {
       type: string;
@@ -243,16 +248,30 @@ export function createInternalServiceClients(urls: InternalServiceUrls): Interna
           'POST',
           body,
         ),
+      publishCandidateResult: (candidateId, body) =>
+        callInternalService(
+          `${urls.candidateIngestion}/internal/candidates/${candidateId}/publish`,
+          'POST',
+          body,
+        ),
+    },
+    review: {
+      approve: (body) =>
+        callInternalService(`${urls.review}/internal/review/approve`, 'POST', body),
+      reject: (body) => callInternalService(`${urls.review}/internal/review/reject`, 'POST', body),
+      reviewArtifact: (body) =>
+        callInternalService(`${urls.review}/internal/review/artifact`, 'POST', body),
+      submitFeedback: (body) =>
+        callInternalService(`${urls.review}/internal/feedback`, 'POST', body),
     },
     governanceReview: {
       approve: (body) =>
-        callInternalService(`${urls.governanceReview}/internal/review/approve`, 'POST', body),
-      reject: (body) =>
-        callInternalService(`${urls.governanceReview}/internal/review/reject`, 'POST', body),
+        callInternalService(`${urls.review}/internal/review/approve`, 'POST', body),
+      reject: (body) => callInternalService(`${urls.review}/internal/review/reject`, 'POST', body),
       reviewArtifact: (body) =>
-        callInternalService(`${urls.governanceReview}/internal/review/artifact`, 'POST', body),
+        callInternalService(`${urls.review}/internal/review/artifact`, 'POST', body),
       submitFeedback: (body) =>
-        callInternalService(`${urls.governanceReview}/internal/feedback`, 'POST', body),
+        callInternalService(`${urls.review}/internal/feedback`, 'POST', body),
     },
     jobRuntime: {
       schedule: (body) => callInternalService(`${urls.jobRuntime}/internal/jobs`, 'POST', body),

@@ -36,6 +36,16 @@ function createClients(): InternalServiceClients {
       listByStatus: vi.fn(async () => ({ status: 200, body: [{ id: 'candidate-1' }] })),
       applyResolution: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       submitManualResult: vi.fn(async () => ({ status: 200, body: { ok: true } })),
+      publishCandidateResult: vi.fn(async () => ({
+        status: 200,
+        body: { candidateId: 'candidate-1' },
+      })),
+    },
+    review: {
+      approve: vi.fn(async () => ({ status: 200, body: { ok: true } })),
+      reject: vi.fn(async () => ({ status: 200, body: { ok: true } })),
+      reviewArtifact: vi.fn(async () => ({ status: 200, body: { ok: true } })),
+      submitFeedback: vi.fn(async () => ({ status: 201, body: { id: 'feedback-1' } })),
     },
     governanceReview: {
       approve: vi.fn(async () => ({ status: 200, body: { ok: true } })),
@@ -160,7 +170,7 @@ describe('registerGatewayRoutes', () => {
       },
     });
     expect(artifactResponse.statusCode).toBe(200);
-    expect(clients.governanceReview.reviewArtifact).toHaveBeenCalledWith({
+    expect(clients.review.reviewArtifact).toHaveBeenCalledWith({
       artifactId: 'artifact-1',
       decision: 'approve',
       actorId: 'user-1',

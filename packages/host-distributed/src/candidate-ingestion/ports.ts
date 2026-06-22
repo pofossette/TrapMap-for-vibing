@@ -7,6 +7,12 @@ export function createCandidateIngestionDeps(
   return {
     candidateRepo: ports.repos.candidate,
     auditLog: ports.auditLog,
-    queuePorts: ports.queuePorts,
+    knowledgeWrite: {
+      publishCandidateResult: async (input) => ({ candidateId: input.candidateId }),
+    },
+    jobRuntime: {
+      schedule: async (type, payload, options) =>
+        String(await ports.queuePorts.task.enqueue(type, payload, options)),
+    },
   };
 }

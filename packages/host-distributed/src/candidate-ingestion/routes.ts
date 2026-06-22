@@ -116,6 +116,21 @@ export function registerRoutes(app: FastifyInstance, module: CandidateIngestionP
     },
   );
 
+  app.post(
+    '/internal/candidates/:candidateId/publish',
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const { candidateId } = req.params as { candidateId: string };
+        const body = req.body as { result: Record<string, unknown>; actorId: string };
+        const result = await module.publishCandidateResult(candidateId, body.result, body.actorId);
+        return reply.status(200).send(result);
+      } catch (err) {
+        const { status, body } = translateInvocationError(err);
+        return reply.status(status).send(body);
+      }
+    },
+  );
+
   // GET /internal/health
   app.get('/internal/health', async (_req: FastifyRequest, reply: FastifyReply) => {
     return reply.status(200).send({ status: 'ok', service: 'candidate-ingestion' });

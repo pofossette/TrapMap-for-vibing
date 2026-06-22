@@ -30,6 +30,15 @@ Phase 4 closeout 补充事实：
 - 默认 operator surface 明确保留高层容量摘要，不把热点 `team/query/artifact` 明细纳入默认首页；热点分析如有需要，应作为后续 deep drill-down 能力单独设计。
 - 上述两项都不阻塞后端工程化总计划 closeout。
 
+Phase 5 六服务 ownership 冻结补充事实：
+
+- 逻辑服务边界按最终业务真相 ownership 划分，不按请求入口划分。
+- `knowledge-write` 拥有 knowledge/trap/evidence 写模型真相，包括审核后的最终状态变更、maintenance/decay 结果落地，以及 candidate result publish 的最终聚合写入。
+- `review` 拥有人工治理流程：review queue、审核决策、治理资格校验、feedback 闭环、maintenance/decay/operator 命令；它不直接写 knowledge 主聚合，必须通过 `KnowledgeWritePort` 委托最终聚合更新。
+- `candidate-ingestion` 拥有候选提交、去重、预处理、resolution/manual result/lineage 事实；它不直接写 knowledge repo，必须通过 `KnowledgeWritePort` 发布结果。
+- `knowledge-read` 只消费写侧/治理侧派生事件或只读投影，不直接复用写侧事务对象。
+- `job-runtime` 只拥有 queue/outbox/worker/retry/reclaim/status 等 runtime 编排；worker handler 只做 transport glue，不内嵌业务判断。
+
 ## Server Bounded Context
 
 当前 `packages/server` 以内聚职责划分为七个 bounded context：

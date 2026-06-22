@@ -15,6 +15,22 @@
       "mustNotContain": ["| `HOST` | `0.0.0.0` |", "| `AI_CHAT_MODEL` | `gpt-4o` |"]
     },
     {
+      "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
+      "mustContain": [
+        "Six-service ownership boundary",
+        "review` owns governance queue/decision/feedback/maintenance/decay commands but must delegate final aggregate mutation through `KnowledgeWritePort`",
+        "candidate-ingestion` owns candidate workflow facts but must publish resolved results through `KnowledgeWritePort`"
+      ]
+    },
+    {
+      "file": "docs/architecture/ARCHITECTURE.md",
+      "mustContain": [
+        "Phase 5 六服务 ownership 冻结补充事实",
+        "`knowledge-write` 拥有 knowledge/trap/evidence 写模型真相",
+        "`job-runtime` 只拥有 queue/outbox/worker/retry/reclaim/status 等 runtime 编排"
+      ]
+    },
+    {
       "file": "docs/README.md",
       "mustNotContain": ["使用 JSON 文件存储", "48 张表", "54 张表"]
     },
