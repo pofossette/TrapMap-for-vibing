@@ -1,8 +1,6 @@
 import { z } from 'zod';
 import { PathValidationError } from '../enum-types/path-validation.js';
 
-export { PathValidationError };
-
 /**
  * Validates a relative file path for security.
  *
