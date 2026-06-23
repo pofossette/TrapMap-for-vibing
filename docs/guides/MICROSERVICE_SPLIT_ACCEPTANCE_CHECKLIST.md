@@ -164,6 +164,7 @@ rtk pnpm --filter @trapmap/host-distributed test --run <knowledge-read-related-t
 - queue/outbox/retry/reclaim/status 不是“存在实现”，而是“已被验证能服务 distributed 主路径”
 - worker ownership、remote ownership、degraded/remote/running 语义稳定
 - 没有必须依赖单进程偶然性的隐式行为
+- 唯一允许剩余的 gap 只能是单一、具体、可指向的 docker / deployed runtime operator closeout 问题，不能再泛化成 read-side 或 write ownership 未接管
 
 执行：
 
@@ -171,6 +172,7 @@ rtk pnpm --filter @trapmap/host-distributed test --run <knowledge-read-related-t
 rtk pnpm test:distributed-acceptance
 rtk pnpm test:runtime-foundations
 rtk pnpm test:deployment-smoke
+rtk pnpm test:runtime-closeout
 ```
 
 若涉及 MQ 预设，再补：
@@ -181,10 +183,12 @@ rtk docker compose --profile distributed --profile mq up -d
 
 通过标准：
 
-- `test:distributed-acceptance` 至少证明一个 gateway 场景和一个 job-runtime ownership 场景
+- `test:distributed-acceptance` 至少证明一个 gateway 场景和一个 job-runtime ownership 场景，并覆盖 queue stale-running reclaim、outbox retryable failure、dead-letter、stale-processing reclaim 的 focused evidence
 - `runtime-foundations` 继续证明 readiness / degraded / remote / running 语义
+- `test:runtime-closeout` 通过，并经现有 `/v1/operations/status/async` contract 证明 queue/outbox reclaim、recent dead letters、recent failures、retry/dead-letter policy 对 operator 可见
 - queue/outbox 相关失败恢复语义有 focused evidence
 - 可以说明哪些工作由本进程拥有，哪些是 remote ownership
+- docker / deployed runtime 若仍未完全闭环，阻塞描述必须收敛为单一 operator closeout 问题，而不是“runtime 还不稳定”
 
 ## Gate 6: Truth Docs 与执行入口一致
 
@@ -243,6 +247,7 @@ Conclusion:
 Evidence:
 - `rtk pnpm test:deployment-smoke`
 - `rtk pnpm test:distributed-acceptance`
+- `rtk pnpm test:runtime-closeout`
 - `rtk pnpm test:runtime-foundations`
 - `rtk pnpm eval:smoke`
 - focused route/host tests
@@ -258,6 +263,21 @@ Blocking gaps:
 - Gate 2: pass
 - Gate 3: pass
 - Gate 4: pass
+- Gate 5: fail
+- Gate 6: pass
+
+Conclusion:
+- Not ready
+
+Evidence:
+- `rtk pnpm test:distributed-acceptance`
+- `rtk pnpm test:deployment-smoke`
+- `rtk pnpm test:runtime-foundations`
+- `rtk pnpm eval:smoke`
+- focused `distributed-runtime-closeout` / `job-runtime ownership` tests
+
+Blocking gaps:
+- Gate 5 只剩 operator closeout 收口：需要在 docker 或 deployed runtime 中，用现有 `/v1/operations/status/async` contract 复现 queue/outbox reclaim、retryable failure、dead-letter、recent failure visibility；不再把阻塞描述成 read-side 未成熟或 distributed write-path 未接管。
 - Gate 5: pass
 - Gate 6: pass
 

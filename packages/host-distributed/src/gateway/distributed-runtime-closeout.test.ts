@@ -85,6 +85,7 @@ async function diagnostics(url: string) {
     hits: string[];
     headers: Array<Record<string, string | undefined>>;
     queueSnapshots: Array<Record<string, number>>;
+    outboxSnapshots: Array<Record<string, number>>;
     reclaimCount: number;
   };
 }
@@ -207,9 +208,24 @@ describe('distributed runtime closeout', () => {
     const afterReclaim = await fetch(`${env.TRAPMAP_GATEWAY_URL}/v1/jobs/queue`, {
       headers: { authorization: 'Bearer session' },
     });
+    const retryableOutbox = await fetch(
+      `${env.TRAPMAP_JOB_RUNTIME_URL}/__diagnostics/outbox/run-retryable-failure`,
+      { method: 'POST' },
+    );
+    const deadLetterOutbox = await fetch(
+      `${env.TRAPMAP_JOB_RUNTIME_URL}/__diagnostics/outbox/run-dead-letter`,
+      { method: 'POST' },
+    );
+    const reclaimedOutbox = await fetch(
+      `${env.TRAPMAP_JOB_RUNTIME_URL}/__diagnostics/outbox/reclaim-stale-processing`,
+      { method: 'POST' },
+    );
 
     expect(await beforeReclaim.json()).toEqual({ pending: 0, running: 2, dead: 0 });
     expect(await afterReclaim.json()).toEqual({ pending: 1, running: 1, dead: 0 });
+    expect(retryableOutbox.status).toBe(200);
+    expect(deadLetterOutbox.status).toBe(200);
+    expect(reclaimedOutbox.status).toBe(200);
 
     const identity = await diagnostics(env.TRAPMAP_IDENTITY_ACCESS_URL);
     const candidate = await diagnostics(env.TRAPMAP_CANDIDATE_INGESTION_URL);
@@ -232,12 +248,33 @@ describe('distributed runtime closeout', () => {
       'x-request-id': 'req-closeout',
       'x-trace-id': 'trace-closeout',
     });
-    expect(jobRuntime.reclaimCount).toBe(1);
+    expect(jobRuntime.reclaimCount).toBe(2);
     expect(jobRuntime.queueSnapshots).toEqual(
       expect.arrayContaining([
         { pending: 0, running: 1, dead: 0 },
         { pending: 0, running: 2, dead: 0 },
         { pending: 1, running: 1, dead: 0 },
+      ]),
+    );
+    expect(jobRuntime.outboxSnapshots).toEqual(
+      expect.arrayContaining([
+        { pending: 1, processing: 0, failed: 0, staleProcessing: 0 },
+        { pending: 0, processing: 1, failed: 0, staleProcessing: 0 },
+        { pending: 1, processing: 0, failed: 0, staleProcessing: 0 },
+        { pending: 2, processing: 0, failed: 0, staleProcessing: 0 },
+        { pending: 1, processing: 1, failed: 0, staleProcessing: 0 },
+        { pending: 1, processing: 0, failed: 1, staleProcessing: 0 },
+        { pending: 1, processing: 1, failed: 1, staleProcessing: 1 },
+        { pending: 2, processing: 0, failed: 1, staleProcessing: 0 },
+      ]),
+    );
+    expect(jobRuntime.hits).toEqual(
+      expect.arrayContaining([
+        'outbox:status:1:0:0:0',
+        'outbox:status:0:1:0:0',
+        'outbox:status:1:1:1:1',
+        'outbox:status:1:0:1:0',
+        'outbox:status:2:0:1:0',
       ]),
     );
   }, 20_000);

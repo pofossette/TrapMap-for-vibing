@@ -143,6 +143,7 @@ Minimum checks for this migration line:
 
 ```bash
 pnpm test:distributed-acceptance
+pnpm test:runtime-closeout
 pnpm typecheck
 pnpm test
 pnpm test:deployment-smoke
@@ -160,14 +161,21 @@ This gate now includes `packages/host-distributed/src/gateway/distributed-runtim
 - cross-process `x-request-id` / `x-trace-id` propagation and gateway-only auth validation
 - stable `403 / 404 / 409 / 503 / 504` failure mapping without CLI awareness of internal topology
 - focused job-runtime stale-running reclaim evidence through the distributed gateway path
+- focused outbox retryable failure, dead-letter, and stale-processing reclaim evidence on the same runtime surface
 
-It is still not equivalent to a deployed docker or production audit, but it is now a fixed operational closeout step rather than a purely manual suggestion.
+Deployment-level operator closeout now has a separate fixed entrypoint:
+
+```bash
+pnpm test:runtime-closeout
+```
+
+Run it against a live distributed gateway after `docker compose --profile distributed up -d` or an equivalent deployed runtime. It validates the existing `/v1/operations/status/async` contract rather than introducing a parallel debug surface.
 
 ## Remaining Gaps
 
 - `packages/server` is still present for retrieval, runtime status/readiness, and legacy read-side compatibility, but it no longer owns candidate/review/maintenance/decay authoritative write orchestration.
 - System truth docs still need continued tightening so host-local / host-distributed become the first-class runtime facts everywhere, not only in this guide.
-- Distributed host now has stronger acceptance evidence for remote write ownership and request semantics, but it is still earlier-stage than the mature legacy server runtime because multi-process runtime/eval closeout is not complete.
+- Distributed host now has stronger acceptance evidence for remote write ownership and request semantics. Any remaining Gate 5 gap must now be stated only as a specific docker/deployed operator closeout issue, not as read-side immaturity or distributed write-path ambiguity.
 
 ## Rollback
 

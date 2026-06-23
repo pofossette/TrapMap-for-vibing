@@ -166,6 +166,9 @@ pnpm test:distributed-acceptance
 # profile / preset / runtime / route exposure / CLI gateway-only 关键切片
 pnpm test:deployment-smoke
 
+# deployed runtime operator closeout via existing async status contract
+pnpm test:runtime-closeout
+
 # runtime metadata / readiness / ownership / startup foundations
 pnpm test:runtime-foundations
 
@@ -212,7 +215,7 @@ pnpm dev:cli -- retrieval search "capsule recall"
 为了把 acceptance 级证据提升为可重复 closeout，本仓库现在把 `pnpm test:distributed-acceptance` 视为两层证据的聚合入口：
 
 - acceptance 层：单测试进程内的真实 internal HTTP hop，证明 gateway 转发、knowledge-write 委托、error/header/auth 语义不依赖 fetch mock
-- runtime closeout 层：`packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts` 会启动多个独立 Node 子进程，固定化 `gateway -> candidate-ingestion/governance-review -> knowledge-write -> job-runtime` 联调序列，并记录 queue reclaim 证据
+- runtime closeout 层：`packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts` 会启动多个独立 Node 子进程，固定化 `gateway -> candidate-ingestion/governance-review -> knowledge-write -> job-runtime` 联调序列，并记录 queue reclaim、outbox retryable/dead-letter/stale-processing reclaim 证据
 
 该 closeout 测试当前固定覆盖：
 
@@ -222,8 +225,20 @@ pnpm dev:cli -- retrieval search "capsule recall"
 - gateway auth 仅通过 identity-access 校验 session；内部服务不直接消费外部 bearer token
 - 非 `2xx` body 与 `403 / 404 / 409 / 503 / 504` 失败语义在跨进程路径保持稳定
 - job-runtime schedule/status/queue 与 stale-running reclaim 至少有一组 focused 恢复证据
+- outbox retryable failure 会回到可恢复路径，permanent failure 会进入 operator-visible failed/dead-letter 证据，stale processing reclaim 会回到 pending
 
-这仍然不是 docker 或 deployed environment 的最终 operator 审计，但它已经不再只是“手动 smoke 建议”，而是受测试矩阵和回归门保护的运行环境级 closeout 入口。
+部署级 operator closeout 使用单独入口：
+
+```bash
+pnpm test:runtime-closeout
+```
+
+它要求运行中的 gateway 支持现有 `/v1/auth/login` 与 `/v1/operations/status/async`，并验证：
+
+- `deploymentProfile === "distributed"`
+- gateway 仍是对外唯一入口，operator 通过 async status contract 观察 queue/outbox
+- `queue.reclaimCount`、`queue.recentDeadLetters`、`outbox.staleProcessing`、`outbox.reclaimCount`、`outbox.recentFailures` 对 operator 可见
+- retry / dead-letter policy 继续以 `retryResumeContract` 为唯一事实源
 
 ### 评测（Eval）
 

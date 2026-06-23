@@ -26,6 +26,7 @@ interface DiagnosticsState {
   hits: string[];
   headers: Array<Record<string, string | undefined>>;
   queueSnapshots: Array<Record<string, number>>;
+  outboxSnapshots: Array<Record<string, number>>;
   reclaimCount: number;
 }
 
@@ -33,6 +34,17 @@ interface JobRecord {
   status: 'pending' | 'running' | 'completed' | 'failed' | 'dead';
   result?: unknown;
   stale?: boolean;
+}
+
+interface OutboxRecord {
+  id: string;
+  eventName: string;
+  status: 'pending' | 'processing' | 'failed' | 'completed';
+  attempts: number;
+  maxAttempts: number;
+  retryable: boolean;
+  staleProcessing?: boolean;
+  lastError: string | null;
 }
 
 function env(name: string): string {
@@ -232,7 +244,41 @@ function createGovernanceService(state: DiagnosticsState) {
 function createJobRuntimeService(state: DiagnosticsState) {
   const app = Fastify();
   const jobs = new Map<string, JobRecord>();
+  const outbox = new Map<string, OutboxRecord>();
   let nextId = 1;
+  let nextEventId = 1;
+
+  async function getOutboxSnapshot() {
+    let pending = 0;
+    let processing = 0;
+    let failed = 0;
+    let staleProcessing = 0;
+    for (const event of outbox.values()) {
+      if (event.status === 'pending') pending += 1;
+      if (event.status === 'processing') processing += 1;
+      if (event.status === 'failed') failed += 1;
+      if (event.status === 'processing' && event.staleProcessing) staleProcessing += 1;
+    }
+    const snapshot = {
+      pending,
+      processing,
+      failed,
+      staleProcessing,
+    };
+    state.hits.push(
+      `outbox:status:${snapshot.pending}:${snapshot.processing}:${snapshot.failed}:${snapshot.staleProcessing}`,
+    );
+    return snapshot;
+  }
+
+  function addOutboxRecord(input: Omit<OutboxRecord, 'id'>) {
+    const record: OutboxRecord = {
+      id: `evt-${nextEventId++}`,
+      ...input,
+    };
+    outbox.set(record.id, record);
+    return record;
+  }
 
   const module: JobRuntimePort = {
     async schedule(type) {
@@ -283,6 +329,64 @@ function createJobRuntimeService(state: DiagnosticsState) {
     state.queueSnapshots.push(snapshot);
     return { ok: true, reclaimCount: state.reclaimCount, snapshot };
   });
+  app.post('/__diagnostics/outbox/run-retryable-failure', async () => {
+    const event = addOutboxRecord({
+      eventName: 'knowledge.index-follow-up',
+      status: 'pending',
+      attempts: 0,
+      maxAttempts: 3,
+      retryable: true,
+      lastError: null,
+    });
+    state.outboxSnapshots.push(await getOutboxSnapshot());
+    event.status = 'processing';
+    state.outboxSnapshots.push(await getOutboxSnapshot());
+    event.status = 'pending';
+    event.attempts = 1;
+    event.lastError = 'retryable transport failure';
+    state.outboxSnapshots.push(await getOutboxSnapshot());
+    return { ok: true, eventId: event.id, snapshot: await getOutboxSnapshot() };
+  });
+  app.post('/__diagnostics/outbox/run-dead-letter', async () => {
+    const event = addOutboxRecord({
+      eventName: 'knowledge.index-follow-up',
+      status: 'pending',
+      attempts: 2,
+      maxAttempts: 3,
+      retryable: false,
+      lastError: null,
+    });
+    state.outboxSnapshots.push(await getOutboxSnapshot());
+    event.status = 'processing';
+    state.outboxSnapshots.push(await getOutboxSnapshot());
+    event.status = 'failed';
+    event.attempts = 3;
+    event.lastError = 'permanent projection failure';
+    state.outboxSnapshots.push(await getOutboxSnapshot());
+    return { ok: true, eventId: event.id, snapshot: await getOutboxSnapshot() };
+  });
+  app.post('/__diagnostics/outbox/reclaim-stale-processing', async () => {
+    const event = addOutboxRecord({
+      eventName: 'knowledge.index-follow-up',
+      status: 'processing',
+      attempts: 1,
+      maxAttempts: 3,
+      retryable: true,
+      staleProcessing: true,
+      lastError: 'worker heartbeat expired',
+    });
+    state.outboxSnapshots.push(await getOutboxSnapshot());
+    event.status = 'pending';
+    event.staleProcessing = false;
+    state.reclaimCount += 1;
+    state.outboxSnapshots.push(await getOutboxSnapshot());
+    return {
+      ok: true,
+      eventId: event.id,
+      reclaimCount: state.reclaimCount,
+      snapshot: await getOutboxSnapshot(),
+    };
+  });
   app.get('/__diagnostics', async () => state);
   return app;
 }
@@ -300,6 +404,7 @@ async function main() {
     hits: [],
     headers: [],
     queueSnapshots: [],
+    outboxSnapshots: [],
     reclaimCount: 0,
   };
 

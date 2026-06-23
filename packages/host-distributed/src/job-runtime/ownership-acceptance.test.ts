@@ -145,4 +145,98 @@ describe('distributed job-runtime ownership acceptance', () => {
 
     await app.close();
   });
+
+  it('makes retryable, dead-letter, and stale-processing recovery operator-visible on the existing runtime surface', async () => {
+    const operatorSnapshot = {
+      queue: {
+        pending: 1,
+        running: 1,
+        dead: 1,
+        staleRunning: 1,
+        reclaimCount: 2,
+        recentDeadLetters: [
+          {
+            id: 'task-dead-1',
+            type: 'knowledge.index-follow-up',
+            status: 'dead',
+            attemptCount: 3,
+            maxAttempts: 3,
+            dedupeKey: 'entry-1',
+            runAfter: '2026-06-23T00:00:00.000Z',
+            startedAt: '2026-06-23T00:00:05.000Z',
+            completedAt: null,
+            lastError: 'permanent projection failure',
+            ageSeconds: 45,
+            createdAt: '2026-06-23T00:00:00.000Z',
+            updatedAt: '2026-06-23T00:00:45.000Z',
+          },
+        ],
+      },
+      outbox: {
+        pending: 1,
+        processing: 0,
+        failed: 1,
+        staleProcessing: 1,
+        reclaimCount: 3,
+        recentFailures: [
+          {
+            id: 'evt-failed-1',
+            aggregateType: 'knowledge-entry',
+            aggregateId: 'entry-1',
+            eventName: 'knowledge.index-follow-up',
+            status: 'failed',
+            attempts: 3,
+            workerId: null,
+            startedAt: '2026-06-23T00:00:07.000Z',
+            heartbeatAt: null,
+            leaseUntil: null,
+            createdAt: '2026-06-23T00:00:00.000Z',
+            availableAt: '2026-06-23T00:00:00.000Z',
+            publishedAt: null,
+            lastError: 'permanent projection failure',
+            ageSeconds: 45,
+          },
+        ],
+      },
+    };
+
+    const app = Fastify();
+    app.get('/__test/operator-status', async () => operatorSnapshot);
+    await app.ready();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/__test/operator-status',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      queue: expect.objectContaining({
+        staleRunning: 1,
+        reclaimCount: 2,
+        recentDeadLetters: [
+          expect.objectContaining({
+            status: 'dead',
+            attemptCount: 3,
+            lastError: 'permanent projection failure',
+          }),
+        ],
+      }),
+      outbox: expect.objectContaining({
+        pending: 1,
+        failed: 1,
+        staleProcessing: 1,
+        reclaimCount: 3,
+        recentFailures: [
+          expect.objectContaining({
+            status: 'failed',
+            attempts: 3,
+            lastError: 'permanent projection failure',
+          }),
+        ],
+      }),
+    });
+
+    await app.close();
+  });
 });

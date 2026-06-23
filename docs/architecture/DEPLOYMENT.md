@@ -388,6 +388,19 @@ docker compose --profile distributed up -d
 - `governance-worker`
 - `outbox-worker`
 
+分布式 operator closeout 建议紧随 compose 启动后执行：
+
+```bash
+TRAPMAP_SYSTEM_ADMIN_KEY=<your-admin-key> pnpm test:runtime-closeout
+```
+
+该命令通过现有 `/v1/auth/login` 与 `/v1/operations/status/async` contract 校验：
+
+- 当前实例确实以 `distributed` profile 对外服务
+- gateway 仍是 operator 与 CLI 的唯一对外入口
+- queue/outbox 的 reclaim、recent dead letters、recent failures、stale processing 在 operator status 中可见
+- retry / dead-letter policy 与 status contract 保持一致
+
 可选 RabbitMQ task transport：
 
 ```bash
