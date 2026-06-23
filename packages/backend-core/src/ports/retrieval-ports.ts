@@ -31,6 +31,16 @@ export interface RetrievalSearchResponse {
   latencyMs?: number;
 }
 
+export type ReadModelConsistency = 'strong' | 'eventual';
+
+export interface ReadModelProjectionStatus {
+  source: string;
+  consistency: ReadModelConsistency;
+  freshness: 'current' | 'stale' | 'refreshing';
+  fallback: 'none' | 'direct-authoritative-read';
+  notes?: string;
+}
+
 export interface RetrievalQueryPort {
   /**
    * Execute a retrieval search across available recall channels.
@@ -63,4 +73,10 @@ export interface ReadModelProjectionPort<TQuery, TResult> {
    * Implementations may no-op if the read model is always consistent.
    */
   refresh?(): Promise<void>;
+}
+
+export interface KnowledgeReadProjectionPort<TEntry> {
+  getById(entryId: string): Promise<TEntry | null>;
+  listMine(params: { userId: string; teamId?: string }): Promise<TEntry[]>;
+  getStatus(): Promise<ReadModelProjectionStatus>;
 }

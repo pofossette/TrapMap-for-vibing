@@ -2,7 +2,7 @@
 
 ## 结论
 
-**还不能开始下一阶段微服务拆分，但 `packages/server` 已完成 compatibility shell 降级。**
+**截至 2026-06-23，仍然还不能开始下一阶段物理微服务拆分，但 `packages/server` 已完成 compatibility shell 降级，且 Gate 2 / Gate 3 / Gate 5 已有新的多进程 closeout 自动化证据可重新评估。**
 
 ## 已满足条件
 
@@ -28,16 +28,16 @@
 
 ## 未满足条件
 
-- `gateway` 鉴权链路是否已经完全脱离“破坏性探针或本地捷径”，本轮未新增专门的跨进程审计证据；当前只验证了 session 校验是只读远程调用，而不是完整的 auth boundary closeout。
+- `gateway` 鉴权链路现在已有多进程 closeout 自动化证据，证明 session 仅经 identity-access 校验、request/trace header 可跨进程透传、非 `2xx` body 不被吞掉；但仍未达到 docker / deployed runtime 的最终 operator 审计级别。
 - `packages/server` 已退化为这些核心链路的 compatibility shell：candidate apply-resolution、knowledge review、maintenance batch、decay batch 在 server 路由层统一返回 `501 capability_unsupported`，不再承担 authoritative write orchestration。
-- `knowledge-read` 仍处于 Phase 1 的临时直接读权威表姿态，债务边界虽已文档化，但尚未收敛到“可无痛物理拆分”的状态。
-- `job-runtime` 的 outbox / queue / retry / reclaim 虽有既有实现与文档，但本轮没有新增“它已经成为跨服务一致性主路径”的专项审计证明。
+- `knowledge-read` 已收口为显式 projection adapter，并暴露 freshness/fallback contract；但底层仍共享 authoritative PostgreSQL 读模型，尚未达到独立 read-store 或异步投影级别的物理拆分成熟度。
+- `job-runtime` 现在已有 gateway -> internal job-runtime 的真实 HTTP ownership 验收，并新增 stale-running reclaim 的 focused 恢复证据；但 outbox claim / retry / dead-letter 的完整生产级恢复矩阵仍未全部关闭。
 - 本轮尚未基于完整运行环境给出“host-distributed 多进程联调 + eval smoke”全部通过的最终证据前，不能把“逻辑边界收口”直接等同于“可以开始物理拆分”。
 
 ## 下一步唯一最高优先级补洞项
 
-**补一组 `host-distributed` 多进程联调 + `eval:smoke` + auth/runtime consistency 证据，证明新的 authoritative write path 在真实运行时闭环成立。**
+**补齐 `eval:smoke` 与 read-side Phase 2 收口，确认失败原因不再指向 distributed write path 未接管或 read contract 漂移。**
 
-原因：`packages/server` 降级本身已经完成，但如果 distributed runtime 只是在单测级别成立，当前边界仍不足以支持正式的物理拆分决策。
+原因：distributed runtime 多进程 closeout 已固定到自动化测试矩阵中，下一阻塞点已从“写路径是否真实接管”转向“eval 结果与 read-side 物理拆分准备度是否收口”。
 
 执行验收时，使用 [微服务拆分验收清单](../guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md) 逐项判断。

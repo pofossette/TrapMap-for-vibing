@@ -6,15 +6,15 @@
  */
 
 import type { KnowledgeReadPort } from '../ports/internal-ports.js';
-import type { KnowledgeRepositoryPort } from '../ports/repo-ports.js';
-import type { RetrievalQueryPort } from '../ports/retrieval-ports.js';
+import type { KnowledgeEntryRecord } from '../ports/repo-ports.js';
+import type { KnowledgeReadProjectionPort, RetrievalQueryPort } from '../ports/retrieval-ports.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)
 // ---------------------------------------------------------------------------
 
 export interface KnowledgeReadDeps {
-  knowledgeRepo: KnowledgeRepositoryPort;
+  knowledgeProjection: KnowledgeReadProjectionPort<KnowledgeEntryRecord>;
   retrievalQuery: RetrievalQueryPort;
 }
 
@@ -34,12 +34,12 @@ export const KNOWLEDGE_READ_MODULE = {
 export function createKnowledgeReadModule(deps: KnowledgeReadDeps): KnowledgeReadPort {
   return {
     async getById(entryId: string) {
-      return deps.knowledgeRepo.getById(entryId);
+      return deps.knowledgeProjection.getById(entryId);
     },
 
     async listMine(userId: string, teamId?: string) {
-      return deps.knowledgeRepo.listByFilter({
-        ownerUserId: userId,
+      return deps.knowledgeProjection.listMine({
+        userId,
         ...(teamId ? { teamId } : {}),
       });
     },
@@ -50,6 +50,10 @@ export function createKnowledgeReadModule(deps: KnowledgeReadDeps): KnowledgeRea
         ...(params.teamId !== undefined ? { teamId: params.teamId } : {}),
         ...(params.limit !== undefined ? { limit: params.limit } : {}),
       });
+    },
+
+    async getProjectionStatus() {
+      return deps.knowledgeProjection.getStatus();
     },
   };
 }

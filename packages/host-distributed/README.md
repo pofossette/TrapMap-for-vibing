@@ -91,3 +91,10 @@ Environment variables:
 3. **HTTP-based inter-service communication**: Services communicate via internal HTTP endpoints
 4. **Backend-core reuse**: All services use `@trapmap/backend-core` modules
 5. **Ownership by business truth**: `review` decides, `knowledge-write` applies final knowledge writes, `candidate-ingestion` publishes through `knowledge-write`, and `job-runtime` only owns transport/runtime orchestration
+
+## Readiness Notes
+
+- `test:acceptance` now includes both real internal HTTP hop coverage and a multi-process runtime closeout for gateway -> candidate-ingestion -> knowledge-write, gateway -> governance-review -> knowledge-write, and gateway -> job-runtime.
+- `knowledge-read` now exposes an explicit projection/freshness contract at `/internal/knowledge-read/projection-status`.
+- The current `knowledge-read` backing model still uses the shared authoritative PostgreSQL posture via a named projection adapter. This is sufficient for boundary clarity, not yet for full physical isolation.
+- Physical microservice split is no longer blocked on missing multi-process write-path proof; it is still blocked on `eval:smoke` closeout and read-side Phase 2 maturity, not on route ownership declarations alone.

@@ -12,7 +12,7 @@
 import type { CandidateStatus, CandidateSubmission } from '@trapmap/contracts';
 
 import type { KnowledgeEntryRecord } from './repo-ports.js';
-import type { RetrievalSearchResponse } from './retrieval-ports.js';
+import type { ReadModelProjectionStatus, RetrievalSearchResponse } from './retrieval-ports.js';
 
 // ---------------------------------------------------------------------------
 // Identity & Access port
@@ -54,6 +54,7 @@ export interface KnowledgeReadPort {
     teamId?: string;
     limit?: number;
   }): Promise<RetrievalSearchResponse>;
+  getProjectionStatus(): Promise<ReadModelProjectionStatus>;
 }
 
 // ---------------------------------------------------------------------------

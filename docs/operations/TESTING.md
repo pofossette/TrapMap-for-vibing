@@ -209,6 +209,22 @@ pnpm dev:cli -- retrieval search "capsule recall"
 - `local-agent` 裁剪掉的治理/团队/运维 API 应返回 `501 capability_unsupported`。
 - `distributed` worker runtime 命中业务 API 时也应返回 `501 capability_unsupported`，表明 gateway 才是正式入口。
 
+为了把 acceptance 级证据提升为可重复 closeout，本仓库现在把 `pnpm test:distributed-acceptance` 视为两层证据的聚合入口：
+
+- acceptance 层：单测试进程内的真实 internal HTTP hop，证明 gateway 转发、knowledge-write 委托、error/header/auth 语义不依赖 fetch mock
+- runtime closeout 层：`packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts` 会启动多个独立 Node 子进程，固定化 `gateway -> candidate-ingestion/governance-review -> knowledge-write -> job-runtime` 联调序列，并记录 queue reclaim 证据
+
+该 closeout 测试当前固定覆盖：
+
+- candidate resolution 经 gateway 命中 candidate-ingestion，再委托 knowledge-write 完成 authoritative write
+- knowledge review approve 经 gateway 命中 governance-review，再委托 knowledge-write 完成 authoritative write
+- request/trace headers 在跨进程 knowledge-write hop 保持透传
+- gateway auth 仅通过 identity-access 校验 session；内部服务不直接消费外部 bearer token
+- 非 `2xx` body 与 `403 / 404 / 409 / 503 / 504` 失败语义在跨进程路径保持稳定
+- job-runtime schedule/status/queue 与 stale-running reclaim 至少有一组 focused 恢复证据
+
+这仍然不是 docker 或 deployed environment 的最终 operator 审计，但它已经不再只是“手动 smoke 建议”，而是受测试矩阵和回归门保护的运行环境级 closeout 入口。
+
 ### 评测（Eval）
 
 #### 本地运行

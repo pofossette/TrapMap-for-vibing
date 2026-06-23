@@ -250,3 +250,28 @@ Evidence:
 Blocking gaps:
 - ...
 ```
+
+### Assessment 2026-06-23
+
+- Gate 1: pass
+- Gate 2: pass
+- Gate 3: pass
+- Gate 4: fail
+- Gate 5: pass
+- Gate 6: pass
+
+Conclusion:
+- Not ready
+
+Evidence:
+- `rtk pnpm test:distributed-acceptance`
+- `rtk pnpm test:deployment-smoke`
+- `rtk pnpm test:runtime-foundations`
+- `packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`
+- focused route/host tests
+- docs guard results
+
+Blocking gaps:
+- Gate 4: `knowledge-read` 已有显式 projection/freshness/fallback contract，但底层仍共享 authoritative PostgreSQL 读模型，尚未达到独立 read-side 物理拆分成熟度。
+- Gate 4: review queue、maintenance entries、decay entries/search、retrieval read-side 的代码归属已经更清晰，但还缺 shared authoritative projection 到独立 read-side 的 Phase 2 收口。
+- Remaining ops closeout: 仍需补 `rtk pnpm eval:smoke`，并确认失败原因不再指向 distributed write path 未接管或 read-side contract 漂移。

@@ -29,7 +29,7 @@
     "start:candidate-ingestion": "node dist/index.js --service candidate-ingestion",
     "start:governance-review": "node dist/index.js --service governance-review",
     "start:job-runtime": "node dist/index.js --service job-runtime",
-    "test:acceptance": "pnpm -C ../.. exec vitest run --project host-distributed packages/host-distributed/src/gateway/distributed-acceptance.test.ts packages/host-distributed/src/gateway/internal-client.test.ts packages/host-distributed/src/shared/internal-knowledge-write-client.test.ts packages/host-distributed/src/governance-review/routes.test.ts packages/host-distributed/src/governance-review/delegation-acceptance.test.ts packages/host-distributed/src/knowledge-write/routes.test.ts packages/host-distributed/src/job-runtime/ownership-acceptance.test.ts",
+    "test:acceptance": "pnpm -C ../.. exec vitest run --project host-distributed packages/host-distributed/src/gateway/distributed-acceptance.test.ts packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts packages/host-distributed/src/gateway/internal-client.test.ts packages/host-distributed/src/shared/internal-knowledge-write-client.test.ts packages/host-distributed/src/governance-review/routes.test.ts packages/host-distributed/src/governance-review/delegation-acceptance.test.ts packages/host-distributed/src/knowledge-write/routes.test.ts packages/host-distributed/src/knowledge-read/routes.test.ts packages/host-distributed/src/job-runtime/ownership-acceptance.test.ts",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

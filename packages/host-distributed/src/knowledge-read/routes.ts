@@ -104,4 +104,17 @@ export function registerRoutes(app: FastifyInstance, module: KnowledgeReadPort):
   app.get('/internal/health', async (_request, reply) => {
     return reply.send({ status: 'ok', service: 'knowledge-read' });
   });
+
+  // GET /internal/knowledge-read/projection-status
+  app.get('/internal/knowledge-read/projection-status', async (_request, reply) => {
+    try {
+      const status = await module.getProjectionStatus();
+      return reply.send(status);
+    } catch (err) {
+      return reply.status(errorToStatus(err)).send({
+        error: err instanceof InvocationError ? err.kind : 'internal',
+        message: err instanceof Error ? err.message : 'Unknown error',
+      });
+    }
+  });
 }

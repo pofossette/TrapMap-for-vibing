@@ -1,199 +1,374 @@
-import Fastify from 'fastify';
-import { describe, expect, it, vi } from 'vitest';
+import Fastify, { type FastifyInstance } from 'fastify';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { InternalServiceClients } from './internal-client.js';
+import type {
+  CandidateIngestionPort,
+  JobRuntimePort,
+  KnowledgeReadPort,
+  KnowledgeWritePort,
+  ReviewPort,
+} from '@trapmap/backend-core';
+import { registerRoutes as registerCandidateRoutes } from '../candidate-ingestion/routes.js';
+import { createInternalServiceClients } from './internal-client.js';
 import { registerGatewayRoutes } from './routes.js';
+import { registerRoutes as registerGovernanceRoutes } from '../governance-review/routes.js';
+import { registerRoutes as registerJobRuntimeRoutes } from '../job-runtime/routes.js';
+import { registerRoutes as registerKnowledgeReadRoutes } from '../knowledge-read/routes.js';
+import { registerRoutes as registerKnowledgeWriteRoutes } from '../knowledge-write/routes.js';
 
-function createClients(): InternalServiceClients {
-  return {
-    identityAccess: {
-      login: vi.fn(async () => ({ status: 200, body: { token: 'session' } })),
-      logout: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      validateSession: vi.fn(async () => ({
-        status: 200,
-        body: {
-          sessionId: 'session-1',
-          userId: 'user-1',
-          handle: 'alice',
-          activeTeamId: null,
-          securityLevel: 1,
-        },
-      })),
-      selectTeam: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      createTeam: vi.fn(async () => ({ status: 201, body: { teamId: 'team-1' } })),
-      listTeams: vi.fn(async () => ({ status: 200, body: [{ id: 'team-1' }] })),
-      addMember: vi.fn(async () => ({ status: 201, body: { ok: true } })),
-      updateMember: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      provisionAccessKey: vi.fn(async () => ({ status: 201, body: { keyId: 'key-1' } })),
-    },
-    knowledgeRead: {
-      getById: vi.fn(async () => ({ status: 200, body: { id: 'entry-1' } })),
-      listMine: vi.fn(async () => ({ status: 200, body: [] })),
-      search: vi.fn(async () => ({ status: 200, body: { results: [] } })),
-    },
-    knowledgeWrite: {
-      submit: vi.fn(async () => ({ status: 201, body: { id: 'entry-1' } })),
-      updateEntry: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      resubmit: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      supersede: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      createTrap: vi.fn(async () => ({ status: 201, body: { id: 'trap-1' } })),
-      approveReviewDecision: vi.fn(async () => ({
-        status: 200,
-        body: { entryId: 'entry-1', lifecycleState: 'approved' },
-      })),
-      rejectReviewDecision: vi.fn(async () => ({
-        status: 200,
-        body: { entryId: 'entry-1', lifecycleState: 'rejected' },
-      })),
-      applyMaintenanceDecision: vi.fn(async () => ({
-        status: 200,
-        body: { entryId: 'entry-1', action: 'refresh' },
-      })),
-      applyDecayDecision: vi.fn(async () => ({
-        status: 200,
-        body: { entryId: 'entry-1', action: 'suppress' },
-      })),
-      publishCandidateResult: vi.fn(async () => ({
-        status: 200,
-        body: { candidateId: 'candidate-1', entryId: 'entry-1' },
-      })),
-      listTraps: vi.fn(async () => ({ status: 200, body: [{ id: 'trap-1' }] })),
-      getTrap: vi.fn(async () => ({ status: 200, body: { id: 'trap-1' } })),
-    },
-    candidateIngestion: {
-      submit: vi.fn(async () => ({ status: 201, body: { id: 'candidate-1' } })),
-      getById: vi.fn(async () => ({ status: 200, body: { id: 'candidate-1' } })),
-      listByStatus: vi.fn(async () => ({ status: 200, body: [{ id: 'candidate-1' }] })),
-      applyResolution: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      submitManualResult: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      publishCandidateResult: vi.fn(async () => ({
-        status: 200,
-        body: { candidateId: 'candidate-1', entryId: 'entry-1' },
-      })),
-    },
-    review: {
-      approve: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      reject: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      applyMaintenance: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      applyDecay: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      reviewArtifact: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      submitFeedback: vi.fn(async () => ({ status: 201, body: { id: 'feedback-1' } })),
-    },
-    governanceReview: {
-      approve: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      reject: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      applyMaintenance: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      applyDecay: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      reviewArtifact: vi.fn(async () => ({ status: 200, body: { ok: true } })),
-      submitFeedback: vi.fn(async () => ({ status: 201, body: { id: 'feedback-1' } })),
-    },
-    jobRuntime: {
-      schedule: vi.fn(async () => ({ status: 201, body: { jobId: 'job-1' } })),
-      getStatus: vi.fn(async () => ({ status: 200, body: { id: 'job-1', status: 'running' } })),
-      getQueueStatus: vi.fn(async () => ({
-        status: 200,
-        body: { pending: 1, running: 1, degraded: false },
-      })),
-    },
-  };
+const originalFetch = globalThis.fetch;
+
+async function listen(app: FastifyInstance): Promise<string> {
+  await app.listen({ port: 0, host: '127.0.0.1' });
+  const address = app.server.address();
+  if (!address || typeof address === 'string') {
+    throw new Error('Failed to resolve server address');
+  }
+  return `http://127.0.0.1:${address.port}`;
 }
 
-async function buildApp(clients: InternalServiceClients) {
+function createIdentityApp(headersSeen: Array<Record<string, string | undefined>>) {
   const app = Fastify();
-  registerGatewayRoutes(app, clients);
-  await app.ready();
+  app.post('/internal/auth/validate', async (request, reply) => {
+    headersSeen.push({
+      'x-request-id': request.headers['x-request-id'] as string | undefined,
+      'x-trace-id': request.headers['x-trace-id'] as string | undefined,
+      authorization: request.headers.authorization as string | undefined,
+    });
+    return reply.send({
+      sessionId: 'session-1',
+      userId: 'user-1',
+      handle: 'alice',
+      activeTeamId: null,
+      securityLevel: 1,
+    });
+  });
   return app;
 }
 
-describe('distributed gateway acceptance', () => {
-  it('routes candidate resolution and manual result exclusively to candidate-ingestion', async () => {
-    const clients = createClients();
-    const app = await buildApp(clients);
+function createKnowledgeReadModule(): KnowledgeReadPort {
+  return {
+    getById: vi.fn(async () => ({
+      id: 'entry-1',
+      content: 'hello',
+      lifecycleState: 'approved',
+      ownerUserId: 'user-1',
+      teamId: 'team-1',
+    })),
+    listMine: vi.fn(async () => []),
+    search: vi.fn(async () => ({ results: [] })),
+    getProjectionStatus: vi.fn(async () => ({
+      source: 'shared-postgresql-authoritative-read-model',
+      consistency: 'strong',
+      freshness: 'current',
+      fallback: 'direct-authoritative-read',
+      notes: 'explicit projection adapter over shared authoritative reads',
+    })),
+  };
+}
 
-    await app.inject({
+function createKnowledgeWriteModule(
+  headersSeen: Array<Record<string, string | undefined>>,
+): KnowledgeWritePort {
+  return {
+    submit: vi.fn(async () => ({ entryId: 'entry-1' })),
+    updateEntry: vi.fn(async () => undefined),
+    resubmit: vi.fn(async () => undefined),
+    supersede: vi.fn(async () => undefined),
+    createTrap: vi.fn(async () => ({ trapId: 'trap-1' })),
+    approveReviewDecision: vi.fn(async (input) => {
+      return { entryId: input.entryId, lifecycleState: 'approved' as const };
+    }),
+    rejectReviewDecision: vi.fn(async (input) => {
+      return { entryId: input.entryId, lifecycleState: 'rejected' as const };
+    }),
+    applyMaintenanceDecision: vi.fn(async (input) => {
+      return { entryId: input.entryId, action: input.action };
+    }),
+    applyDecayDecision: vi.fn(async (input) => {
+      return { entryId: input.entryId, action: input.action };
+    }),
+    publishCandidateResult: vi.fn(async (input) => {
+      return { candidateId: input.candidateId, entryId: 'entry-1' };
+    }),
+    listTraps: vi.fn(async () => []),
+    getTrap: vi.fn(async () => null),
+  };
+}
+
+function createCandidateModule(
+  calls: string[],
+  clients: ReturnType<typeof createInternalServiceClients>,
+): CandidateIngestionPort {
+  return {
+    submit: vi.fn(async () => ({ candidateId: 'candidate-1' })),
+    getById: vi.fn(async () => null),
+    listByStatus: vi.fn(async () => []),
+    applyResolution: vi.fn(async (candidateId, resolution, actorId) => {
+      calls.push(`candidate-resolution:${candidateId}`);
+      await clients.knowledgeWrite.publishCandidateResult(
+        { candidateId, actorId, result: resolution },
+        { headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' } },
+      );
+    }),
+    submitManualResult: vi.fn(async (candidateId, result, actorId) => {
+      calls.push(`candidate-manual:${candidateId}`);
+      await clients.knowledgeWrite.publishCandidateResult(
+        { candidateId, actorId, result },
+        { headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' } },
+      );
+    }),
+    publishCandidateResult: vi.fn(async (candidateId) => ({ candidateId, entryId: 'entry-1' })),
+  };
+}
+
+function createGovernanceModule(
+  calls: string[],
+  clients: ReturnType<typeof createInternalServiceClients>,
+): ReviewPort {
+  return {
+    approve: vi.fn(async (input) => {
+      calls.push(`review-approve:${input.entryId}`);
+      return clients.knowledgeWrite
+        .approveReviewDecision(input, {
+          headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' },
+        })
+        .then((response) => response.body as { entryId: string; lifecycleState: 'approved' });
+    }),
+    reject: vi.fn(async (input) => {
+      calls.push(`review-reject:${input.entryId}`);
+      return clients.knowledgeWrite
+        .rejectReviewDecision(input, {
+          headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' },
+        })
+        .then((response) => response.body as { entryId: string; lifecycleState: 'rejected' });
+    }),
+    applyMaintenance: vi.fn(async (input) => {
+      calls.push(`review-maintenance:${input.entryId}`);
+      return clients.knowledgeWrite
+        .applyMaintenanceDecision(input, {
+          headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' },
+        })
+        .then((response) => response.body as { entryId: string; action: string });
+    }),
+    applyDecay: vi.fn(async (input) => {
+      calls.push(`review-decay:${input.entryId}`);
+      return clients.knowledgeWrite
+        .applyDecayDecision(input, {
+          headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' },
+        })
+        .then((response) => response.body as { entryId: string; action: string });
+    }),
+    reviewArtifact: vi.fn(async () => undefined),
+    submitFeedback: vi.fn(async () => ({ feedbackId: 'feedback-1' })),
+  };
+}
+
+function createJobRuntimeModule(calls: string[]): JobRuntimePort {
+  return {
+    schedule: vi.fn(async (type) => {
+      calls.push(`job-schedule:${type}`);
+      return 'job-1';
+    }),
+    getStatus: vi.fn(async (jobId) => {
+      calls.push(`job-status:${jobId}`);
+      return { status: 'running' as const, result: { owner: 'job-runtime' } };
+    }),
+    getQueueStatus: vi.fn(async () => {
+      calls.push('job-queue');
+      return { pending: 1, running: 1, dead: 0 };
+    }),
+  };
+}
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+  vi.restoreAllMocks();
+});
+
+describe('distributed gateway acceptance', () => {
+  it('proves candidate and review writes traverse real internal HTTP hops to their remote owners', async () => {
+    const identityHeaders: Array<Record<string, string | undefined>> = [];
+    const knowledgeWriteHeaders: Array<Record<string, string | undefined>> = [];
+    const candidateCalls: string[] = [];
+    const governanceCalls: string[] = [];
+
+    const identityApp = createIdentityApp(identityHeaders);
+    const knowledgeReadApp = Fastify();
+    registerKnowledgeReadRoutes(knowledgeReadApp, createKnowledgeReadModule());
+
+    const knowledgeWriteApp = Fastify();
+    knowledgeWriteApp.addHook('onRequest', async (request) => {
+      knowledgeWriteHeaders.push({
+        'x-request-id': request.headers['x-request-id'] as string | undefined,
+        'x-trace-id': request.headers['x-trace-id'] as string | undefined,
+      });
+    });
+    registerKnowledgeWriteRoutes(
+      knowledgeWriteApp,
+      createKnowledgeWriteModule(knowledgeWriteHeaders),
+    );
+
+    const identityUrl = await listen(identityApp);
+    const knowledgeReadUrl = await listen(knowledgeReadApp);
+    const knowledgeWriteUrl = await listen(knowledgeWriteApp);
+
+    const internalClients = createInternalServiceClients({
+      gateway: 'http://127.0.0.1:0',
+      identityAccess: identityUrl,
+      knowledgeRead: knowledgeReadUrl,
+      knowledgeWrite: knowledgeWriteUrl,
+      candidateIngestion: 'http://127.0.0.1:0',
+      review: 'http://127.0.0.1:0',
+      governanceReview: 'http://127.0.0.1:0',
+      jobRuntime: 'http://127.0.0.1:0',
+    });
+
+    const candidateApp = Fastify();
+    registerCandidateRoutes(candidateApp, createCandidateModule(candidateCalls, internalClients));
+    const governanceApp = Fastify();
+    registerGovernanceRoutes(
+      governanceApp,
+      createGovernanceModule(governanceCalls, internalClients),
+    );
+
+    const candidateUrl = await listen(candidateApp);
+    const governanceUrl = await listen(governanceApp);
+
+    const gatewayClients = createInternalServiceClients({
+      gateway: 'http://127.0.0.1:0',
+      identityAccess: identityUrl,
+      knowledgeRead: knowledgeReadUrl,
+      knowledgeWrite: knowledgeWriteUrl,
+      candidateIngestion: candidateUrl,
+      review: governanceUrl,
+      governanceReview: governanceUrl,
+      jobRuntime: 'http://127.0.0.1:0',
+    });
+
+    const gatewayApp = Fastify();
+    registerGatewayRoutes(gatewayApp, gatewayClients);
+    await gatewayApp.ready();
+
+    const resolution = await gatewayApp.inject({
       method: 'POST',
       url: '/v1/candidates/candidate-1/resolution',
-      headers: { authorization: 'Bearer session' },
+      headers: {
+        authorization: 'Bearer session',
+        'x-request-id': 'req-1',
+        'x-trace-id': 'trace-1',
+      },
       payload: { resolution: { decision: 'merge' }, actorId: 'user-1' },
     });
-
-    await app.inject({
+    const approve = await gatewayApp.inject({
       method: 'POST',
-      url: '/v1/candidates/candidate-1/manual-result',
-      headers: { authorization: 'Bearer session' },
-      payload: { result: { score: 1 }, actorId: 'user-1' },
+      url: '/v1/knowledge/review',
+      headers: {
+        authorization: 'Bearer session',
+        'x-request-id': 'req-1',
+        'x-trace-id': 'trace-1',
+      },
+      payload: { entryId: 'entry-1', actorId: 'user-1', decision: 'approve', note: 'ship it' },
     });
 
-    expect(clients.candidateIngestion.applyResolution).toHaveBeenCalledTimes(1);
-    expect(clients.candidateIngestion.submitManualResult).toHaveBeenCalledTimes(1);
-    expect(clients.knowledgeWrite.publishCandidateResult).not.toHaveBeenCalled();
-    expect(clients.review.approve).not.toHaveBeenCalled();
-    await app.close();
+    expect(resolution.statusCode).toBe(200);
+    expect(approve.statusCode).toBe(200);
+    expect(candidateCalls).toContain('candidate-resolution:candidate-1');
+    expect(governanceCalls).toContain('review-approve:entry-1');
+    expect(identityHeaders[0]).toMatchObject({
+      authorization: undefined,
+    });
+    expect(knowledgeWriteHeaders).toContainEqual({
+      'x-request-id': 'req-1',
+      'x-trace-id': 'trace-1',
+    });
+
+    await gatewayApp.close();
+    await governanceApp.close();
+    await candidateApp.close();
+    await knowledgeWriteApp.close();
+    await knowledgeReadApp.close();
+    await identityApp.close();
   });
 
-  it('routes review, maintenance, and decay write commands to governance-review without server fallback', async () => {
-    const clients = createClients();
-    const app = await buildApp(clients);
+  it('preserves gateway error semantics for remote-owner failures', async () => {
+    const identityApp = createIdentityApp([]);
+    const reviewApp = Fastify();
+    reviewApp.post('/internal/review/approve', async (_request, reply) => {
+      return reply.status(409).send({ error: 'already-reviewed', kind: 'conflict' });
+    });
 
-    const approve = await app.inject({
+    const identityUrl = await listen(identityApp);
+    const reviewUrl = await listen(reviewApp);
+
+    const gatewayApp = Fastify();
+    registerGatewayRoutes(
+      gatewayApp,
+      createInternalServiceClients({
+        gateway: 'http://127.0.0.1:0',
+        identityAccess: identityUrl,
+        knowledgeRead: 'http://127.0.0.1:1',
+        knowledgeWrite: 'http://127.0.0.1:1',
+        candidateIngestion: 'http://127.0.0.1:1',
+        review: reviewUrl,
+        governanceReview: reviewUrl,
+        jobRuntime: 'http://127.0.0.1:1',
+      }),
+    );
+    await gatewayApp.ready();
+
+    const response = await gatewayApp.inject({
       method: 'POST',
       url: '/v1/knowledge/review',
       headers: { authorization: 'Bearer session' },
-      payload: { entryId: 'entry-1', actorId: 'user-1', decision: 'approve', note: 'ship it' },
-    });
-    const maintenance = await app.inject({
-      method: 'POST',
-      url: '/v1/knowledge/maintenance',
-      headers: { authorization: 'Bearer session' },
-      payload: { entryId: 'entry-1', actorId: 'user-1', action: 'refresh' },
-    });
-    const decay = await app.inject({
-      method: 'POST',
-      url: '/v1/knowledge/decay',
-      headers: { authorization: 'Bearer session' },
-      payload: { entryId: 'entry-1', actorId: 'user-1', action: 'suppress' },
+      payload: { entryId: 'entry-1', actorId: 'user-1', decision: 'approve' },
     });
 
-    expect(approve.statusCode).toBe(200);
-    expect(maintenance.statusCode).toBe(200);
-    expect(decay.statusCode).toBe(200);
-    expect(clients.review.approve).toHaveBeenCalledWith({
-      entryId: 'entry-1',
-      actorId: 'user-1',
-      note: 'ship it',
-    });
-    expect(clients.review.applyMaintenance).toHaveBeenCalledWith({
-      entryId: 'entry-1',
-      actorId: 'user-1',
-      action: 'refresh',
-    });
-    expect(clients.review.applyDecay).toHaveBeenCalledWith({
-      entryId: 'entry-1',
-      actorId: 'user-1',
-      action: 'suppress',
-    });
-    expect(clients.knowledgeWrite.approveReviewDecision).not.toHaveBeenCalled();
-    expect(clients.governanceReview.reject).not.toHaveBeenCalled();
-    expect(clients.governanceReview.reviewArtifact).not.toHaveBeenCalled();
-    await app.close();
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({ error: 'already-reviewed', kind: 'conflict' });
+
+    await gatewayApp.close();
+    await reviewApp.close();
+    await identityApp.close();
   });
 
-  it('exposes distributed job-runtime ownership through gateway scheduling and status paths', async () => {
-    const clients = createClients();
-    const app = await buildApp(clients);
+  it('exposes distributed job-runtime ownership through real HTTP scheduling and status hops', async () => {
+    const identityApp = createIdentityApp([]);
+    const jobCalls: string[] = [];
+    const jobApp = Fastify();
+    registerJobRuntimeRoutes(jobApp, createJobRuntimeModule(jobCalls));
 
-    const schedule = await app.inject({
+    const identityUrl = await listen(identityApp);
+    const jobUrl = await listen(jobApp);
+
+    const gatewayApp = Fastify();
+    registerGatewayRoutes(
+      gatewayApp,
+      createInternalServiceClients({
+        gateway: 'http://127.0.0.1:0',
+        identityAccess: identityUrl,
+        knowledgeRead: 'http://127.0.0.1:1',
+        knowledgeWrite: 'http://127.0.0.1:1',
+        candidateIngestion: 'http://127.0.0.1:1',
+        review: 'http://127.0.0.1:1',
+        governanceReview: 'http://127.0.0.1:1',
+        jobRuntime: jobUrl,
+      }),
+    );
+    await gatewayApp.ready();
+
+    const schedule = await gatewayApp.inject({
       method: 'POST',
       url: '/v1/jobs',
       headers: { authorization: 'Bearer session' },
       payload: { type: 'knowledge.index-follow-up', payload: { entryId: 'entry-1' }, priority: 5 },
     });
-    const status = await app.inject({
+    const status = await gatewayApp.inject({
       method: 'GET',
       url: '/v1/jobs/job-1',
       headers: { authorization: 'Bearer session' },
     });
-    const queue = await app.inject({
+    const queue = await gatewayApp.inject({
       method: 'GET',
       url: '/v1/jobs/queue',
       headers: { authorization: 'Bearer session' },
@@ -202,13 +377,14 @@ describe('distributed gateway acceptance', () => {
     expect(schedule.statusCode).toBe(201);
     expect(status.statusCode).toBe(200);
     expect(queue.statusCode).toBe(200);
-    expect(clients.jobRuntime.schedule).toHaveBeenCalledWith({
-      type: 'knowledge.index-follow-up',
-      payload: { entryId: 'entry-1' },
-      priority: 5,
-    });
-    expect(clients.jobRuntime.getStatus).toHaveBeenCalledWith('job-1');
-    expect(clients.jobRuntime.getQueueStatus).toHaveBeenCalledTimes(1);
-    await app.close();
+    expect(jobCalls).toEqual([
+      'job-schedule:knowledge.index-follow-up',
+      'job-status:job-1',
+      'job-queue',
+    ]);
+
+    await gatewayApp.close();
+    await jobApp.close();
+    await identityApp.close();
   });
 });

@@ -152,13 +152,22 @@ pnpm check:docs-drift
 
 Microservice-split readiness uses a stricter operational gate. Before starting a physical split, run the checklist in [MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md](./MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md).
 
-For distributed split readiness, treat `pnpm test:distributed-acceptance` as the default automation gate for Gate 2 / Gate 3 / Gate 5. It is the canonical proof that `@trapmap/host-distributed` already owns the write forwarding path, preserves auth/error semantics across internal service calls, and keeps job-runtime ownership evidence stable.
+For distributed split readiness, treat `pnpm test:distributed-acceptance` as the default automation gate for Gate 2 / Gate 3 / Gate 5. It is the canonical automated proof that `@trapmap/host-distributed` owns the write forwarding path, preserves auth/error semantics across real internal HTTP hops, and exposes job-runtime ownership through the gateway surface.
+
+This gate now includes `packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`, which starts multiple independent Node processes for gateway, identity-access, candidate-ingestion, governance-review, knowledge-write, and job-runtime. That closeout covers:
+
+- `gateway -> internal service -> knowledge-write` multi-process authoritative write closure
+- cross-process `x-request-id` / `x-trace-id` propagation and gateway-only auth validation
+- stable `403 / 404 / 409 / 503 / 504` failure mapping without CLI awareness of internal topology
+- focused job-runtime stale-running reclaim evidence through the distributed gateway path
+
+It is still not equivalent to a deployed docker or production audit, but it is now a fixed operational closeout step rather than a purely manual suggestion.
 
 ## Remaining Gaps
 
 - `packages/server` is still present for retrieval, runtime status/readiness, and legacy read-side compatibility, but it no longer owns candidate/review/maintenance/decay authoritative write orchestration.
 - System truth docs still need continued tightening so host-local / host-distributed become the first-class runtime facts everywhere, not only in this guide.
-- Distributed host currently establishes service shells and config seams, but it is still earlier-stage than the mature legacy server runtime.
+- Distributed host now has stronger acceptance evidence for remote write ownership and request semantics, but it is still earlier-stage than the mature legacy server runtime because multi-process runtime/eval closeout is not complete.
 
 ## Rollback
 
