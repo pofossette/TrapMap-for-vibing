@@ -1,33 +1,17 @@
-import { createGovernanceReviewModule } from '@trapmap/backend-core';
-import Fastify, { type FastifyInstance } from 'fastify';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
+import {
+  createGovernanceReviewServer as createServiceGovernanceReviewServer,
+  type GovernanceReviewServer,
+} from '@trapmap/service-governance-review';
 import { createGovernanceReviewDeps } from './ports.js';
-import { registerRoutes } from './routes.js';
-
-export interface GovernanceReviewServer {
-  app: FastifyInstance;
-  start(): Promise<void>;
-  close(): Promise<void>;
-}
 
 export async function createServer(
   config: ServiceConfig,
   db: ServiceDatabase,
 ): Promise<GovernanceReviewServer> {
-  const app = Fastify({ logger: { level: config.logLevel } });
   const ports = createServicePorts(db.pool);
   const deps = createGovernanceReviewDeps(ports, config);
-  const module = createGovernanceReviewModule(deps);
-  registerRoutes(app, module);
-  return {
-    app,
-    async start() {
-      await app.listen({ port: config.port, host: config.host });
-    },
-    async close() {
-      await app.close();
-    },
-  };
+  return createServiceGovernanceReviewServer(config, deps);
 }

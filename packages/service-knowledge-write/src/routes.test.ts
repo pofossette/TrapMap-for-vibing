@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 import { InvocationError, type KnowledgeWritePort } from '@trapmap/backend-core';
-import { registerKnowledgeWriteRoutes } from '@trapmap/service-knowledge-write';
+import { registerKnowledgeWriteRoutes } from './routes.js';
 
 function createModule(overrides: Partial<KnowledgeWritePort> = {}): KnowledgeWritePort {
   return {
@@ -43,7 +43,7 @@ async function buildApp(module: KnowledgeWritePort) {
   return app;
 }
 
-describe('knowledge-write internal routes', () => {
+describe('service-knowledge-write routes', () => {
   it('exposes candidate publish and review lifecycle commands', async () => {
     const module = createModule();
     const app = await buildApp(module);

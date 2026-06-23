@@ -8,13 +8,13 @@ import type {
   KnowledgeWritePort,
   ReviewPort,
 } from '@trapmap/backend-core';
+import { registerGovernanceReviewRoutes } from '@trapmap/service-governance-review';
+import { registerKnowledgeWriteRoutes } from '@trapmap/service-knowledge-write';
 import { registerRoutes as registerCandidateRoutes } from '../candidate-ingestion/routes.js';
 import { createInternalServiceClients } from './internal-client.js';
 import { registerGatewayRoutes } from './routes.js';
-import { registerRoutes as registerGovernanceRoutes } from '../governance-review/routes.js';
 import { registerRoutes as registerJobRuntimeRoutes } from '../job-runtime/routes.js';
 import { registerRoutes as registerKnowledgeReadRoutes } from '../knowledge-read/routes.js';
-import { registerRoutes as registerKnowledgeWriteRoutes } from '../knowledge-write/routes.js';
 
 const originalFetch = globalThis.fetch;
 
@@ -253,7 +253,7 @@ describe('distributed gateway acceptance', () => {
     const candidateApp = Fastify();
     registerCandidateRoutes(candidateApp, createCandidateModule(candidateCalls, internalClients));
     const governanceApp = Fastify();
-    registerGovernanceRoutes(
+    registerGovernanceReviewRoutes(
       governanceApp,
       createGovernanceModule(governanceCalls, internalClients),
     );

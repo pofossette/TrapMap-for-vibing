@@ -5,6 +5,7 @@
 ## Status
 
 - Phase: 1 (logical boundaries defined; physical process separation incremental)
+- Execution milestone: `packages/service-knowledge-write` and `packages/service-governance-review` are the first two physical `service-*` splits now implemented in-repo.
 
 ## Service Inventory
 
@@ -99,6 +100,8 @@
 
 **Purpose**: Authoritative write path for the knowledge domain.
 
+**Implementation status**: Implemented as `packages/service-knowledge-write`. `packages/host-distributed` is now a thin host adapter for this service, and `packages/server` remains a compatibility shell rather than the authoritative assembly owner.
+
 **Responsibilities**:
 - Knowledge entry creation, update, resubmission, and supersession
 - Trap lifecycle management (submit, approve, reject, deactivate)
@@ -141,6 +144,8 @@
 ### governance-review
 
 **Purpose**: Human-in-the-loop review workflows and conflict resolution.
+
+**Implementation status**: Implemented as `packages/service-governance-review`. `packages/host-distributed` is now a thin host adapter for review decision / feedback service assembly, and `packages/server` remains a compatibility shell rather than the authoritative review assembly owner.
 
 **Responsibilities**:
 - Review queue management (knowledge review queue, skill artifact review queue)

@@ -1,18 +1,6 @@
-/**
- * Internal HTTP routes for the knowledge-write service.
- *
- * Exposes endpoints for knowledge/trap entry creation, resubmit,
- * supersede, update, and trap queries. These are internal endpoints
- * consumed by the gateway, not public-facing.
- */
-
 import type { KnowledgeWritePort } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-
-// ---------------------------------------------------------------------------
-// Error translation
-// ---------------------------------------------------------------------------
 
 function translateInvocationError(error: unknown): {
   status: number;
@@ -39,13 +27,10 @@ function translateInvocationError(error: unknown): {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Route registration
-// ---------------------------------------------------------------------------
-
-export function registerRoutes(app: FastifyInstance, module: KnowledgeWritePort): void {
-  // --- Knowledge entries ---
-
+export function registerKnowledgeWriteRoutes(
+  app: FastifyInstance,
+  module: KnowledgeWritePort,
+): void {
   app.post('/internal/knowledge', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = req.body as {
@@ -104,8 +89,6 @@ export function registerRoutes(app: FastifyInstance, module: KnowledgeWritePort)
       }
     },
   );
-
-  // --- Traps ---
 
   app.post('/internal/traps', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -234,8 +217,6 @@ export function registerRoutes(app: FastifyInstance, module: KnowledgeWritePort)
       return reply.status(status).send(body);
     }
   });
-
-  // --- Health ---
 
   app.get('/internal/health', async (_req: FastifyRequest, reply: FastifyReply) => {
     return reply.status(200).send({ status: 'ok', service: 'knowledge-write' });

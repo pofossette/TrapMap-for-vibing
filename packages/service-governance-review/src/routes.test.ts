@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 import { InvocationError, type ReviewPort } from '@trapmap/backend-core';
-import { registerGovernanceReviewRoutes } from '@trapmap/service-governance-review';
+import { registerGovernanceReviewRoutes } from './routes.js';
 
 function createModule(overrides: Partial<ReviewPort> = {}): ReviewPort {
   return {
@@ -22,8 +22,8 @@ async function buildApp(module: ReviewPort) {
   return app;
 }
 
-describe('governance-review internal routes', () => {
-  it('routes maintenance and decay commands through the module', async () => {
+describe('service-governance-review routes', () => {
+  it('routes governance decisions and feedback through the module', async () => {
     const module = createModule();
     const app = await buildApp(module);
 
@@ -39,22 +39,28 @@ describe('governance-review internal routes', () => {
       action: 'refresh',
     });
 
-    const decay = await app.inject({
+    const feedback = await app.inject({
       method: 'POST',
-      url: '/internal/review/decay',
-      payload: { entryId: 'entry-1', actorId: 'user-1', action: 'suppress' },
+      url: '/internal/feedback',
+      payload: {
+        entryId: 'entry-1',
+        problemType: 'accuracy',
+        description: 'incorrect remediation',
+        actorId: 'user-1',
+      },
     });
-    expect(decay.statusCode).toBe(200);
-    expect(module.applyDecay).toHaveBeenCalledWith({
+    expect(feedback.statusCode).toBe(201);
+    expect(module.submitFeedback).toHaveBeenCalledWith({
       entryId: 'entry-1',
+      problemType: 'accuracy',
+      description: 'incorrect remediation',
       actorId: 'user-1',
-      action: 'suppress',
     });
 
     await app.close();
   });
 
-  it('returns mapped upstream timeout errors unchanged', async () => {
+  it('preserves invocation failure semantics for remote knowledge-write delegation', async () => {
     const module = createModule({
       applyMaintenance: vi.fn(async () => {
         throw InvocationError.timeout('knowledge-write timed out');

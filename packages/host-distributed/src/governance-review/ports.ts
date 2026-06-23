@@ -1,8 +1,9 @@
-import type { GovernanceReviewDeps } from '@trapmap/backend-core';
+import type { GovernanceReviewDeps } from '@trapmap/service-governance-review';
 import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
 import type { ServicePortImplementations } from '@trapmap/host-distributed/shared/ports.js';
+import { createGovernanceReviewDeps as createServiceGovernanceReviewDeps } from '@trapmap/service-governance-review';
 
 export function createGovernanceReviewDeps(
   ports: ServicePortImplementations,
@@ -10,9 +11,9 @@ export function createGovernanceReviewDeps(
 ): GovernanceReviewDeps {
   const internalClients = createInternalServiceClients(config.internalUrls);
 
-  return {
+  return createServiceGovernanceReviewDeps({
     knowledgeWrite: createRemoteKnowledgeWriteClient(internalClients),
     feedbackRepo: ports.repos.feedback,
     auditLog: ports.auditLog,
-  };
+  });
 }

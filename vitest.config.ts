@@ -3,6 +3,10 @@ import { defineConfig } from 'vitest/config';
 
 const rootVitestMaxWorkers = process.env.VITEST_MAX_WORKERS ?? '50%';
 const rootVitestMinWorkers = process.env.VITEST_MIN_WORKERS ?? '1';
+const fastifyEntry = resolve(
+  __dirname,
+  './node_modules/.pnpm/fastify@5.8.4/node_modules/fastify/fastify.js',
+);
 
 export default defineConfig({
   test: {
@@ -85,6 +89,52 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'service-governance-review',
+          root: './packages/service-governance-review',
+          include: ['src/**/*.test.ts'],
+        },
+        resolve: {
+          alias: [
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+            {
+              find: '@trapmap/backend-core',
+              replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
+            },
+            {
+              find: 'fastify',
+              replacement: fastifyEntry,
+            },
+          ],
+        },
+      },
+      {
+        test: {
+          name: 'service-knowledge-write',
+          root: './packages/service-knowledge-write',
+          include: ['src/**/*.test.ts'],
+        },
+        resolve: {
+          alias: [
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+            {
+              find: '@trapmap/backend-core',
+              replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
+            },
+            {
+              find: 'fastify',
+              replacement: fastifyEntry,
+            },
+          ],
+        },
+      },
+      {
+        test: {
           name: 'client-core',
           root: './packages/client-core',
           include: ['src/**/*.test.ts'],
@@ -109,6 +159,18 @@ export default defineConfig({
             {
               find: '@trapmap/client-core',
               replacement: resolve(__dirname, './packages/client-core/src/index.ts'),
+            },
+            {
+              find: '@trapmap/service-knowledge-write',
+              replacement: resolve(__dirname, './packages/service-knowledge-write/src/index.ts'),
+            },
+            {
+              find: '@trapmap/service-governance-review',
+              replacement: resolve(__dirname, './packages/service-governance-review/src/index.ts'),
+            },
+            {
+              find: 'fastify',
+              replacement: fastifyEntry,
             },
           ],
         },

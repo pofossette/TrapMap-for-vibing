@@ -135,6 +135,8 @@ Each service represents a bounded context with a clear authoritative ownership b
 
 ### knowledge-write
 
+Current implementation fact: `packages/service-knowledge-write` is now the first real `service-*` package. It owns the `knowledge-write` service assembly surface consumed by both `packages/host-distributed` and the migration-time `packages/server` compatibility narrative.
+
 - **Owns**: knowledge entry CRUD, trap lifecycle, skill artifact lifecycle, maintenance assignment, decay management, lifecycle state transitions, evidence updates
 - **Authoritative tables**: knowledge, trap, skill lifecycle, maintenance, decay tables
 - **Emits**: lifecycle transition events, invalidation events, projection refresh triggers
@@ -149,6 +151,7 @@ Each service represents a bounded context with a clear authoritative ownership b
 
 ### governance-review
 
+- Current implementation fact: `packages/service-governance-review` is now the second real `service-*` package. It owns the `governance-review` service assembly surface consumed by `packages/host-distributed`, while `packages/server` remains a compatibility shell and does not recover review authoritative assembly ownership.
 - **Owns**: human-in-the-loop queues, review workbench state, conflict resolution state, remediation queue state
 - **Authoritative tables**: human intervention queues, review workbench state, conflict resolution state, remediation queue state tables
 - **Does NOT own**: knowledge lifecycle truth tables (decisions flow through `knowledge-write` via command ports)
@@ -170,7 +173,7 @@ Trap-Map/
 │   ├── service-gateway/           # Gateway host/transport/assembly
 │   ├── service-identity-access/   # Auth, session, access-keys, membership, team, RBAC
 │   ├── service-knowledge-read/    # Retrieval, read-only projections, query trace, read cache
-│   ├── service-knowledge-write/   # Knowledge/trap/skill/lifecycle/maintenance/decay writes
+│   ├── service-knowledge-write/   # Implemented first service package: knowledge/trap/skill/lifecycle/maintenance/decay writes
 │   ├── service-candidate-ingestion/ # Candidate intake, normalization, dedup, status
 │   ├── service-governance-review/ # Review queues, workbench, conflict resolution, remediation
 │   ├── service-job-runtime/       # Task queue, workflow runs, outbox dispatch, shared jobs
@@ -206,7 +209,7 @@ Key constraints:
 1. `client-core` depends on `contracts` only. Never depends on `backend-core` or any server-side package.
 2. `backend-core` depends on `contracts`. Does NOT depend on any service or host package.
 3. Each `service-*` depends on `backend-core` and `contracts`. Service packages are peers; they do NOT depend on each other directly. Cross-service interaction goes through internal ports defined in `backend-core`.
-4. `host-local` and `host-distributed` depend on `backend-core`, `contracts`, and the service packages they assemble. They wire concrete implementations to ports.
+4. `host-local` and `host-distributed` depend on `backend-core`, `contracts`, and the service packages they assemble. They wire concrete implementations to ports. `host-distributed` now consumes the real `packages/service-knowledge-write` and `packages/service-governance-review` packages instead of holding those route assemblies itself.
 5. `packages/cli` depends on `client-core` and `contracts`. Does NOT depend on `backend-core` or any server-side package.
 6. `packages/server` (transition shell) depends on `backend-core`, `contracts`, and service packages during migration. Eventually replaced.
 

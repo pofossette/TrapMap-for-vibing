@@ -7,12 +7,12 @@ import {
   type KnowledgeWritePort,
   type ReviewPort,
 } from '@trapmap/backend-core';
+import { registerGovernanceReviewRoutes } from '@trapmap/service-governance-review';
+import { registerKnowledgeWriteRoutes } from '@trapmap/service-knowledge-write';
 import { registerRoutes as registerCandidateRoutes } from '../candidate-ingestion/routes.js';
 import { createInternalServiceClients } from '../gateway/internal-client.js';
 import { registerGatewayRoutes } from '../gateway/routes.js';
-import { registerRoutes as registerGovernanceRoutes } from '../governance-review/routes.js';
 import { registerRoutes as registerJobRuntimeRoutes } from '../job-runtime/routes.js';
-import { registerRoutes as registerKnowledgeWriteRoutes } from '../knowledge-write/routes.js';
 
 type ServiceRole =
   | 'gateway'
@@ -236,7 +236,7 @@ function createGovernanceModule(
 function createGovernanceService(state: DiagnosticsState) {
   const app = Fastify();
   const clients = createInternalServiceClients(urls());
-  registerGovernanceRoutes(app, createGovernanceModule(state, clients));
+  registerGovernanceReviewRoutes(app, createGovernanceModule(state, clients));
   createDiagnosticsRoutes(app, state);
   return app;
 }

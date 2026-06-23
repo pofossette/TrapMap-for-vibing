@@ -6,10 +6,5 @@
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "exclude": ["src/**/*.test.ts"],
-  "references": [
-    { "path": "../backend-core" },
-    { "path": "../contracts" },
-    { "path": "../service-governance-review" },
-    { "path": "../service-knowledge-write" }
-  ]
+  "references": [{ "path": "../backend-core" }, { "path": "../contracts" }]
 }

@@ -1,18 +1,6 @@
-/**
- * Internal HTTP routes for the governance-review service.
- *
- * Thin transport layer -- all business logic lives in the
- * governance-review backend-core module.
- */
-
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-
 import type { ReviewPort } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
-
-// ---------------------------------------------------------------------------
-// Error translation
-// ---------------------------------------------------------------------------
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 function translateInvocationError(error: unknown): {
   status: number;
@@ -39,12 +27,7 @@ function translateInvocationError(error: unknown): {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Route registration
-// ---------------------------------------------------------------------------
-
-export function registerRoutes(app: FastifyInstance, module: ReviewPort): void {
-  // POST /internal/review/approve
+export function registerGovernanceReviewRoutes(app: FastifyInstance, module: ReviewPort): void {
   app.post('/internal/review/approve', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = request.body as {
@@ -61,7 +44,6 @@ export function registerRoutes(app: FastifyInstance, module: ReviewPort): void {
     }
   });
 
-  // POST /internal/review/reject
   app.post('/internal/review/reject', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = request.body as {
@@ -112,7 +94,6 @@ export function registerRoutes(app: FastifyInstance, module: ReviewPort): void {
     }
   });
 
-  // POST /internal/review/artifact
   app.post('/internal/review/artifact', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = request.body as {
@@ -129,7 +110,6 @@ export function registerRoutes(app: FastifyInstance, module: ReviewPort): void {
     }
   });
 
-  // POST /internal/feedback
   app.post('/internal/feedback', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = request.body as {
@@ -146,7 +126,6 @@ export function registerRoutes(app: FastifyInstance, module: ReviewPort): void {
     }
   });
 
-  // GET /internal/health
   app.get('/internal/health', async (_request: FastifyRequest, reply: FastifyReply) => {
     return reply.status(200).send({ status: 'ok', service: 'governance-review' });
   });

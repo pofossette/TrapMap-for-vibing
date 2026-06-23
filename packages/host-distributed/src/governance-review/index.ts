@@ -1,5 +1,4 @@
 export { createServer } from './server.js';
-export { registerRoutes } from './routes.js';
 export { createGovernanceReviewDeps } from './ports.js';
 
 import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';

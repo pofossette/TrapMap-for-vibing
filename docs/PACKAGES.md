@@ -366,7 +366,7 @@ flowchart TB
 
 ## 目标包布局（Runtime Recomposition）
 
-> 本节冻结于 runtime recomposition 计划 Task 00。当前 `cli + server + contracts` 三包结构将逐步演进为 `client-core + backend-core + services + hosts` 可装配体系。权威定义见 [architecture/TARGET_ARCHITECTURE.md](architecture/TARGET_ARCHITECTURE.md)。
+> Runtime recomposition 已进入物理拆分执行阶段。`packages/service-knowledge-write` 与 `packages/service-governance-review` 已作为前两刀真实 `service-*` 包落地；其余 `service-*` 仍保持目标架构定义。权威定义见 [architecture/TARGET_ARCHITECTURE.md](architecture/TARGET_ARCHITECTURE.md)。
 
 ### 目标包角色
 
@@ -374,6 +374,8 @@ flowchart TB
 |------|------|------|
 | **client-core** | `packages/client-core` | 客户端共享访问层：HTTP gateway SDK、session handling、error model、request helpers |
 | **backend-core** | `packages/backend-core` | 后端核心内核：应用服务、端口、宿主无关 runtime capability model、bounded-context 编排 |
+| **service (implemented)** | `packages/service-knowledge-write` | 已落地第一刀：knowledge/trap/skill/lifecycle/maintenance/decay authoritative 写装配、route registration、service factory |
+| **service (implemented)** | `packages/service-governance-review` | 已落地第二刀：review/feedback authoritative service assembly、internal route registration、service factory |
 | **host (light)** | `packages/host-local` | 轻量宿主：面向 `local-agent` 和 `team-monolith`，单机、最小依赖、低运维 |
 | **host (heavy)** | `packages/host-distributed` | 重型宿主：面向分布式装配，独立扩缩容、读写隔离、服务边界 |
 | **service** | `packages/service-*` | 七个逻辑服务包，每个对应一个 bounded context（见下表） |
@@ -385,9 +387,9 @@ flowchart TB
 | `packages/service-gateway` | `gateway` | 唯一外部入口：请求聚合、限流、外部认证边界、稳定 API surface |
 | `packages/service-identity-access` | `identity-access` | auth、session、access-keys、membership、team、RBAC decision |
 | `packages/service-knowledge-read` | `knowledge-read` | retrieval、query trace、只读投影、status read model、读缓存 |
-| `packages/service-knowledge-write` | `knowledge-write` | knowledge/trap/skill/lifecycle/maintenance/decay 的 authoritative 写路径 |
+| `packages/service-knowledge-write` | `knowledge-write` | 已落地：knowledge/trap/skill/lifecycle/maintenance/decay 的 authoritative 写路径 |
 | `packages/service-candidate-ingestion` | `candidate-ingestion` | candidate intake、归一化、去重预处理、候选状态推进 |
-| `packages/service-governance-review` | `governance-review` | 人工介入队列、审核工作流、冲突解决、remediation 队列 |
+| `packages/service-governance-review` | `governance-review` | 已落地：review 决策、feedback、artifact review 的 authoritative service assembly |
 | `packages/service-job-runtime` | `job-runtime` | task queue、workflow runs、outbox dispatch、shared jobs 执行 |
 
 ### 目标包布局
@@ -438,7 +440,7 @@ backend-core ← service-* ← host-local, host-distributed     │
 3. 各 `service-*` 是对等包，互不直接依赖；跨服务交互通过 `backend-core` 中定义的 internal ports。
 4. `host-local` 和 `host-distributed` 依赖 `backend-core`、`contracts` 和所装配的 service 包。
 5. `packages/cli` 依赖 `client-core` 和 `contracts`，不依赖 `backend-core` 或任何服务端包。
-6. `packages/server`（迁移期壳层）在迁移期间依赖 `backend-core`、`contracts` 和 service 包，最终被替代。
+6. `packages/server`（迁移期壳层）在迁移期间依赖 `backend-core`、`contracts` 和 service 包；当前已不再持有 `knowledge-write` authoritative service assembly，最终被替代。
 
 ### 数据库与事务边界
 
