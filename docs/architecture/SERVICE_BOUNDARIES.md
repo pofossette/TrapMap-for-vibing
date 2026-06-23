@@ -71,6 +71,8 @@
 
 **Purpose**: Optimized read path for retrieval, search, and query analytics.
 
+**Implementation status**: Implemented as `packages/service-knowledge-read`. `packages/host-distributed` is now only the thin host adapter for the knowledge-read service process, and `packages/server` remains a compatibility shell rather than the authoritative read assembly owner.
+
 **Responsibilities**:
 - Retrieval query execution (v1 semantic/hybrid/graph-assisted, v2 capsule, v3 graph-plan)
 - Query tracing and analytics (queryId generation, badcase trace recording)

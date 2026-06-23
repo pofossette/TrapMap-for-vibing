@@ -1,17 +1,10 @@
-/**
- * Knowledge-read service entry point.
- *
- * Re-exports the building blocks for composition and provides a
- * standalone start() function for process-level bootstrapping.
- */
-
-export { createServer } from './server.js';
-export { registerRoutes } from './routes.js';
-export { createKnowledgeReadDeps } from './ports.js';
-
 import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
-import { createServer } from './server.js';
+import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
+import {
+  createKnowledgeReadDeps,
+  createKnowledgeReadServer,
+} from '@trapmap/service-knowledge-read';
 
 /**
  * Bootstrap the knowledge-read service as a standalone process.
@@ -22,7 +15,12 @@ import { createServer } from './server.js';
 export async function start() {
   const config = loadServiceConfig('knowledge-read');
   const db = createServiceDatabase(config);
-  const server = await createServer(config, db);
+  const ports = createServicePorts(db.pool);
+  const deps = createKnowledgeReadDeps({
+    knowledgeRepo: ports.repos.knowledge,
+    retrievalQuery: ports.retrievalQuery,
+  });
+  const server = await createKnowledgeReadServer(config, deps);
   await server.start();
   return { config, db, server };
 }

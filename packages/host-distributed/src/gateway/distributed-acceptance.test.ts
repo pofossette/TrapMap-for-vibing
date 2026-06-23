@@ -13,10 +13,10 @@ import { registerCandidateIngestionRoutes } from '@trapmap/service-candidate-ing
 import { registerGovernanceReviewRoutes } from '@trapmap/service-governance-review';
 import { registerIdentityAccessRoutes } from '@trapmap/service-identity-access';
 import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
+import { registerKnowledgeReadRoutes } from '@trapmap/service-knowledge-read';
 import { registerKnowledgeWriteRoutes } from '@trapmap/service-knowledge-write';
 import { createInternalServiceClients } from './internal-client.js';
 import { registerGatewayRoutes } from './routes.js';
-import { registerRoutes as registerKnowledgeReadRoutes } from '../knowledge-read/routes.js';
 
 const originalFetch = globalThis.fetch;
 
@@ -374,6 +374,104 @@ describe('distributed gateway acceptance', () => {
 
     await gatewayApp.close();
     await reviewApp.close();
+    await identityApp.close();
+  });
+
+  it('proves gateway read and retrieval surfaces traverse knowledge-read over real internal HTTP hops', async () => {
+    const identityApp = createIdentityApp([]);
+    const knowledgeReadHeaders: Array<Record<string, string | undefined>> = [];
+    const knowledgeReadModule = createKnowledgeReadModule();
+    vi.mocked(knowledgeReadModule.listMine).mockResolvedValueOnce([
+      {
+        id: 'entry-1',
+        content: 'hello',
+        lifecycleState: 'approved',
+        ownerUserId: 'user-1',
+        teamId: 'team-1',
+      },
+    ]);
+    vi.mocked(knowledgeReadModule.search).mockResolvedValueOnce({
+      results: [{ entryId: 'entry-1', score: 0.99, snippet: 'hello' }],
+      totalEstimate: 1,
+      channel: 'derived-index',
+    });
+
+    const knowledgeReadApp = Fastify();
+    knowledgeReadApp.addHook('onRequest', async (request) => {
+      knowledgeReadHeaders.push({
+        'x-request-id': request.headers['x-request-id'] as string | undefined,
+        'x-trace-id': request.headers['x-trace-id'] as string | undefined,
+        authorization: request.headers.authorization as string | undefined,
+      });
+    });
+    registerKnowledgeReadRoutes(knowledgeReadApp, knowledgeReadModule);
+
+    const identityUrl = await listen(identityApp);
+    const knowledgeReadUrl = await listen(knowledgeReadApp);
+
+    const gatewayApp = Fastify();
+    registerGatewayRoutes(
+      gatewayApp,
+      createInternalServiceClients({
+        gateway: 'http://127.0.0.1:0',
+        identityAccess: identityUrl,
+        knowledgeRead: knowledgeReadUrl,
+        knowledgeWrite: 'http://127.0.0.1:1',
+        candidateIngestion: 'http://127.0.0.1:1',
+        review: 'http://127.0.0.1:1',
+        governanceReview: 'http://127.0.0.1:1',
+        jobRuntime: 'http://127.0.0.1:1',
+      }),
+    );
+    await gatewayApp.ready();
+
+    const listMine = await gatewayApp.inject({
+      method: 'GET',
+      url: '/v1/knowledge/mine?userId=user-1&teamId=team-1',
+      headers: {
+        authorization: 'Bearer session',
+        'x-request-id': 'req-read-1',
+        'x-trace-id': 'trace-read-1',
+      },
+    });
+    const getById = await gatewayApp.inject({
+      method: 'GET',
+      url: '/v1/knowledge/entry-1',
+      headers: {
+        authorization: 'Bearer session',
+        'x-request-id': 'req-read-2',
+        'x-trace-id': 'trace-read-2',
+      },
+    });
+    const search = await gatewayApp.inject({
+      method: 'POST',
+      url: '/v1/retrieval/search',
+      headers: {
+        authorization: 'Bearer session',
+        'x-request-id': 'req-read-3',
+        'x-trace-id': 'trace-read-3',
+      },
+      payload: { query: 'hello', teamId: 'team-1', limit: 3 },
+    });
+
+    expect(listMine.statusCode).toBe(200);
+    expect(getById.statusCode).toBe(200);
+    expect(search.statusCode).toBe(200);
+    expect(knowledgeReadModule.listMine).toHaveBeenCalledWith('user-1', 'team-1');
+    expect(knowledgeReadModule.getById).toHaveBeenCalledWith('entry-1');
+    expect(knowledgeReadModule.search).toHaveBeenCalledWith({
+      query: 'hello',
+      teamId: 'team-1',
+      limit: 3,
+    });
+    expect(knowledgeReadHeaders).toEqual([
+      { 'x-request-id': undefined, 'x-trace-id': undefined, authorization: undefined },
+      { 'x-request-id': undefined, 'x-trace-id': undefined, authorization: undefined },
+      { 'x-request-id': undefined, 'x-trace-id': undefined, authorization: undefined },
+    ]);
+
+    await gatewayApp.close();
+    await knowledgeReadApp.close();
     await identityApp.close();
   });
 

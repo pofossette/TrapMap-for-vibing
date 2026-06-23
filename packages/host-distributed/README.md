@@ -96,5 +96,6 @@ Environment variables:
 
 - `test:acceptance` now includes both real internal HTTP hop coverage and a multi-process runtime closeout for gateway -> candidate-ingestion -> knowledge-write, gateway -> governance-review -> knowledge-write, and gateway -> job-runtime.
 - `knowledge-read` now exposes an explicit projection/freshness contract at `/internal/knowledge-read/projection-status`.
-- The current `knowledge-read` backing model still uses the shared authoritative PostgreSQL posture via a named projection adapter. This is sufficient for boundary clarity, not yet for full physical isolation.
+- `packages/host-distributed` is now only the thin process host for `knowledge-read`; the authoritative read-service assembly and route contract live in `packages/service-knowledge-read`.
+- The current `knowledge-read` backing model still uses the shared authoritative PostgreSQL posture via a named projection adapter. This is sufficient for boundary clarity, not yet for independent derived-store isolation.
 - Physical microservice split is no longer blocked on missing multi-process write-path proof; it is still blocked on `eval:smoke` closeout and read-side Phase 2 maturity, not on route ownership declarations alone.

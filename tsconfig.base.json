@@ -29,6 +29,7 @@
       ],
       "@trapmap/service-governance-review": ["./packages/service-governance-review/src/index.ts"],
       "@trapmap/service-job-runtime": ["./packages/service-job-runtime/src/index.ts"],
+      "@trapmap/service-knowledge-read": ["./packages/service-knowledge-read/src/index.ts"],
       "@trapmap/service-knowledge-write": ["./packages/service-knowledge-write/src/index.ts"],
       "@trapmap/web-panel/*": ["./packages/web-panel/src/*"],
       "@trapmap/host-local": ["./packages/host-local/src/index.ts"],

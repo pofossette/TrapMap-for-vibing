@@ -158,6 +158,29 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'service-knowledge-read',
+          root: './packages/service-knowledge-read',
+          include: ['src/**/*.test.ts'],
+        },
+        resolve: {
+          alias: [
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+            {
+              find: '@trapmap/backend-core',
+              replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
+            },
+            {
+              find: 'fastify',
+              replacement: fastifyEntry,
+            },
+          ],
+        },
+      },
+      {
+        test: {
           name: 'service-knowledge-write',
           root: './packages/service-knowledge-write',
           include: ['src/**/*.test.ts'],
@@ -239,6 +262,10 @@ export default defineConfig({
                 __dirname,
                 './packages/service-candidate-ingestion/src/index.ts',
               ),
+            },
+            {
+              find: '@trapmap/service-knowledge-read',
+              replacement: resolve(__dirname, './packages/service-knowledge-read/src/index.ts'),
             },
             {
               find: '@trapmap/service-knowledge-write',
