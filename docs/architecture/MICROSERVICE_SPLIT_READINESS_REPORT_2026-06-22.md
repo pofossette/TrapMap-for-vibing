@@ -2,7 +2,7 @@
 
 ## 结论
 
-**截至 2026-06-23，仍然还不能开始下一阶段物理微服务拆分，但 `packages/server` 已完成 compatibility shell 降级，且 Gate 2 / Gate 3 / Gate 4 / Gate 6 已满足；当前唯一主阻塞收敛到 Gate 5 的 docker / deployed runtime operator closeout。**
+**截至 2026-06-23，已经可以开始下一阶段物理微服务拆分。`packages/server` compatibility shell 降级、Gate 2 / Gate 3 / Gate 4 / Gate 6 既有证据，以及本轮在本地 Docker `distributed` 环境下完成的 Gate 5 operator closeout，现已形成完整通过链。**
 
 ## 已满足条件
 
@@ -26,17 +26,19 @@
   - 非 `2xx` body 不被吞掉
 - truth docs 已回写，已明确 candidate/review 到 knowledge-write 的 remote ownership 事实。
 
-## 未满足条件
+## 本轮 closeout 结果
 
-- `gateway` 鉴权链路现在已有多进程 closeout 自动化证据，证明 session 仅经 identity-access 校验、request/trace header 可跨进程透传、非 `2xx` body 不被吞掉；但仍未达到 docker / deployed runtime 的最终 operator 审计级别。
-- `packages/server` 已退化为这些核心链路的 compatibility shell：candidate apply-resolution、knowledge review、maintenance batch、decay batch 在 server 路由层统一返回 `501 capability_unsupported`，不再承担 authoritative write orchestration。
-- `job-runtime` 现在已有 gateway -> internal job-runtime 的真实 HTTP ownership 验收，并新增 queue stale-running reclaim、outbox retryable failure、dead-letter、stale-processing reclaim 的 focused 恢复证据；剩余缺口只在 docker / deployed runtime 下如何经 `/v1/operations/status/async` 稳定呈现 operator closeout。
-- 本轮尚未基于完整运行环境给出“distributed compose / deployed runtime + async operator status closeout”的最终证据前，不能把“逻辑边界收口”直接等同于“可以开始物理拆分”。
+- `docker compose --profile distributed up -d --build` 现在会启动 distributed gateway `gateway`，不再错误复用 team-monolith `server` 默认值。
+- 本地 `http://127.0.0.1:4000/ready` 与 `/v1/operations/status/async` 已稳定返回：
+  - `deploymentProfile = "distributed"`
+  - `preset = "api"`
+  - `routeSurface = "gateway-core"`
+  - queue/outbox operator-visible reclaim / dead-letter / recent failure contract
+- `rtk pnpm test:runtime-closeout` 已在本地 Docker `distributed` 环境通过。
+- `rtk pnpm test:deployment-smoke`、`rtk pnpm test:runtime-foundations`、`rtk pnpm test:distributed-acceptance`、`rtk pnpm eval:smoke` 均通过，未出现与 closeout 结论冲突的结果。
 
-## 下一步唯一最高优先级补洞项
+## Remaining Work
 
-**完成 Gate 5 的部署级 operator closeout：在 `docker compose --profile distributed up -d` 或等价 deployed runtime 上运行 `rtk pnpm test:runtime-closeout`，用现有 `/v1/operations/status/async` contract 固定 queue/outbox recovery matrix 的 operator-visible 证据。**
-
-原因：截至 2026-06-23，`rtk pnpm eval:smoke` 已全量通过，不再把阻塞归因到 distributed write path 未接管或 read contract 漂移。下一判断只剩 Gate 5 的 operator closeout 是否已在完整运行环境中可审计、可复现、可解释。
+- 仍可继续做 deployed environment 复核、RabbitMQ task transport rollout、以及更细粒度恢复矩阵扩展，但这些已经属于后续 hardening，不再构成“是否可开始物理拆分”的阻塞项。
 
 执行验收时，使用 [微服务拆分验收清单](../guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md) 逐项判断。

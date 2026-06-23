@@ -382,7 +382,7 @@ LOG_LEVEL=info
 docker compose --profile distributed up -d
 ```
 
-这会额外启动：
+这会启动 distributed gateway `gateway`，并额外启动：
 
 - `candidate-worker`
 - `governance-worker`

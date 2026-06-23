@@ -120,7 +120,8 @@ docker compose --profile distributed --profile mq up -d
 curl http://127.0.0.1:4000/health
 ```
 
-`server` compose service 是统一 gateway；`candidate-worker`、`governance-worker`、`outbox-worker` 只在 `distributed` profile 下追加。
+默认 `docker compose up -d` 启动 `server`（team-monolith gateway）。
+`docker compose --profile distributed up -d` 会改为启动 `gateway`（distributed API gateway）并追加 `candidate-worker`、`governance-worker`、`outbox-worker`。
 
 ### 评估
 

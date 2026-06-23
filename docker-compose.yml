@@ -1,5 +1,6 @@
 services:
   server:
+    profiles: ["team-monolith"]
     image: trap-map-server:latest
     build:
       context: .
@@ -37,6 +38,58 @@ services:
       # Database (set to use PostgreSQL; omit for JSON file storage)
       - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
       # Logging Configuration (Phase 24)
+      - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
+      - LOG_USER_OPS_DIR=${LOG_USER_OPS_DIR:-/app/logs/user-ops}
+      - LOG_RAG_ENABLED=${LOG_RAG_ENABLED:-false}
+      - LOG_RAG_DIR=${LOG_RAG_DIR:-/app/logs/rag}
+      - LOG_MAX_FILE_SIZE_MB=${LOG_MAX_FILE_SIZE_MB:-10}
+      - LOG_MAX_BACKUP_FILES=${LOG_MAX_BACKUP_FILES:-5}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 5s
+      retries: 3
+    restart: unless-stopped
+
+  gateway:
+    image: trap-map-server:latest
+    profiles: ["distributed"]
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+    container_name: trapmap-gateway
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./.data:/app/.data
+      - ./logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - RUNTIME_MODE=api
+      - HOST=0.0.0.0
+      - PORT=4000
+      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+      - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
+      - TRAPMAP_DEPLOYMENT_PRESET=api
+      - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
+      - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      - TRAPMAP_RABBITMQ_TASK_EXCHANGE=${TRAPMAP_RABBITMQ_TASK_EXCHANGE:-trapmap.tasks}
+      - TRAPMAP_RABBITMQ_TASK_QUEUE=${TRAPMAP_RABBITMQ_TASK_QUEUE:-trapmap.default}
+      - TRAPMAP_RABBITMQ_PREFETCH=${TRAPMAP_RABBITMQ_PREFETCH:-1}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - AI_PROVIDER=${AI_PROVIDER:-}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
       - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
       - LOG_USER_OPS_DIR=${LOG_USER_OPS_DIR:-/app/logs/user-ops}
       - LOG_RAG_ENABLED=${LOG_RAG_ENABLED:-false}

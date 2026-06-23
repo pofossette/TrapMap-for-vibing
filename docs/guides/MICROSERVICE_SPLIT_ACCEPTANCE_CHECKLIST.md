@@ -220,12 +220,12 @@ rtk pnpm check:structure
 
 只有当以下复选框全部可勾选时，才允许进入“开始拆微服务”阶段：
 
-- [ ] Gate 1 通过：`packages/server` compatibility shell 边界已冻结
-- [ ] Gate 2 通过：distributed authoritative write path 多进程真实闭环成立
-- [ ] Gate 3 通过：auth、header、timeout、error mapping 跨服务一致
-- [ ] Gate 4 通过：`knowledge-read` 不再是阻塞物理拆分的临时债务
-- [ ] Gate 5 通过：`job-runtime` 已被证明能承接跨服务主路径
-- [ ] Gate 6 通过：truth docs、运行入口、验证命令叙事一致
+- [x] Gate 1 通过：`packages/server` compatibility shell 边界已冻结
+- [x] Gate 2 通过：distributed authoritative write path 多进程真实闭环成立
+- [x] Gate 3 通过：auth、header、timeout、error mapping 跨服务一致
+- [x] Gate 4 通过：`knowledge-read` 不再是阻塞物理拆分的临时债务
+- [x] Gate 5 通过：`job-runtime` 已被证明能承接跨服务主路径
+- [x] Gate 6 通过：truth docs、运行入口、验证命令叙事一致
 
 ## 当前状态记录模板
 
@@ -278,6 +278,13 @@ Evidence:
 
 Blocking gaps:
 - Gate 5 只剩 operator closeout 收口：需要在 docker 或 deployed runtime 中，用现有 `/v1/operations/status/async` contract 复现 queue/outbox reclaim、retryable failure、dead-letter、recent failure visibility；不再把阻塞描述成 read-side 未成熟或 distributed write-path 未接管。
+
+### Assessment 2026-06-23 (Operator Closeout)
+
+- Gate 1: pass
+- Gate 2: pass
+- Gate 3: pass
+- Gate 4: pass
 - Gate 5: pass
 - Gate 6: pass
 
@@ -285,14 +292,17 @@ Conclusion:
 - Ready to start physical microservice split
 
 Evidence:
-- `rtk pnpm test:distributed-acceptance`
+- `rtk docker compose --profile distributed up -d --build`
+- `rtk pnpm test:runtime-closeout`
 - `rtk pnpm test:deployment-smoke`
 - `rtk pnpm test:runtime-foundations`
+- `rtk pnpm test:distributed-acceptance`
 - `rtk pnpm eval:smoke`
-- `packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`
-- `packages/host-distributed/src/knowledge-read/routes.test.ts`
-- focused route/host tests
-- docs guard results
+- local `/ready` and `/v1/operations/status/async` now report `deploymentProfile=distributed`, `preset=api`, `routeSurface=gateway-core`
+
+Blocking gaps:
+- 无 Gate 5 阻塞：本地 Docker `distributed` 运行环境已可复现 operator closeout，`/v1/operations/status/async` 可稳定暴露 queue/outbox reclaim、recent dead letters、recent failures、retry/dead-letter policy。
+- Remaining engineering work is follow-up hardening, not a split blocker: MQ transport rollout、deployed environment recheck、以及更细粒度恢复矩阵仍可继续演进。
 
 Blocking gaps:
 - 无 Gate 4 阻塞：Phase 2 boundary-close 已把 direct-backed allowance 限定到 entry read surfaces，并把 retrieval/search/query trace 与 governance read surfaces 的 owner/backing source 固定到单一契约面。
