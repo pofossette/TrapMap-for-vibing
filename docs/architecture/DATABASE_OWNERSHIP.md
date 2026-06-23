@@ -105,7 +105,8 @@ These tables are derived from events emitted by `knowledge-write` and other auth
 
 - Any service may read tables it owns.
 - For tables owned by another service, reading must go through the appropriate internal port (defined in `backend-core`) rather than direct table access. Exception: during Phase 1, while services still share a single `packages/server` codebase, direct reads are permitted but must be documented at the call site with a comment: `// PHASE-1-TEMPORARY: direct read from <table>; replace with projection read after Phase 2`
-- `knowledge-read` may read directly from authoritative tables during Phase 1 for performance reasons, but this is a temporary allowance that will be replaced by projection-based reads as the architecture matures.
+- `knowledge-read` may read directly from authoritative tables during Phase 1 and the Phase 2 boundary-close posture, but only for explicitly declared temporary direct-backed projections surfaced by `GET /internal/knowledge-read/projection-status`. Retrieval/search/query-trace surfaces are not covered by this allowance.
+- `governance-review` owns review queue, maintenance operator views, and decay workbench reads. If a governance-facing read still needs shared authoritative state in Phase 2, it must be documented as a temporary direct-backed operator projection rather than being folded into `knowledge-read`.
 
 ## Transaction Boundary Rules
 
@@ -179,7 +180,7 @@ This is by design. The sync response guarantees durability of the authoritative 
 | `candidate-ingestion` | candidate, duplicate case, lineage | Yes | Via remote `KnowledgeWritePort` for publishing |
 | `governance-review` | review queue, workbench, conflict, remediation | Yes | Via remote `KnowledgeWritePort` for approve/reject/maintenance/decay |
 | `job-runtime` | task queue, workflow runs, outbox | Yes | Via internal ports (for event delivery) |
-| `knowledge-read` | projections, search indexes, query traces (derived only) | Yes | Phase 1: direct read (temporary); Phase 2+: projections only |
+| `knowledge-read` | projections, search indexes, query traces (derived only) | Yes | Phase 2: only explicitly declared temporary direct-backed entry projections may direct-read; retrieval/search/query-trace stay derived |
 
 ## Future Database Evolution
 

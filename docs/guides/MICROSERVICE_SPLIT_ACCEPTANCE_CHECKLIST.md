@@ -155,6 +155,7 @@ rtk pnpm --filter @trapmap/host-distributed test --run <knowledge-read-related-t
 
 - 不再需要把 `knowledge-read` 的现状描述为“还不能拆的临时债务”
 - read projection contract、freshness contract、fallback 语义都有代码和文档证据
+- `GET /internal/knowledge-read/projection-status` 能区分 temporary direct-backed entry projections、derived retrieval/search/query-trace surfaces，以及不属于 `knowledge-read` 的 governance read surfaces
 
 ## Gate 5: Job Runtime 已被证明能承接跨服务主路径
 
@@ -256,22 +257,23 @@ Blocking gaps:
 - Gate 1: pass
 - Gate 2: pass
 - Gate 3: pass
-- Gate 4: fail
+- Gate 4: pass
 - Gate 5: pass
 - Gate 6: pass
 
 Conclusion:
-- Not ready
+- Ready to start physical microservice split
 
 Evidence:
 - `rtk pnpm test:distributed-acceptance`
 - `rtk pnpm test:deployment-smoke`
 - `rtk pnpm test:runtime-foundations`
+- `rtk pnpm eval:smoke`
 - `packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`
+- `packages/host-distributed/src/knowledge-read/routes.test.ts`
 - focused route/host tests
 - docs guard results
 
 Blocking gaps:
-- Gate 4: `knowledge-read` 已有显式 projection/freshness/fallback contract，但底层仍共享 authoritative PostgreSQL 读模型，尚未达到独立 read-side 物理拆分成熟度。
-- Gate 4: review queue、maintenance entries、decay entries/search、retrieval read-side 的代码归属已经更清晰，但还缺 shared authoritative projection 到独立 read-side 的 Phase 2 收口。
-- Remaining ops closeout: 仍需补 `rtk pnpm eval:smoke`，并确认失败原因不再指向 distributed write path 未接管或 read-side contract 漂移。
+- 无 Gate 4 阻塞：Phase 2 boundary-close 已把 direct-backed allowance 限定到 entry read surfaces，并把 retrieval/search/query trace 与 governance read surfaces 的 owner/backing source 固定到单一契约面。
+- Remaining engineering work is follow-up hardening, not a split blocker: 独立 read-store、projection-only entry reads、outbox/retry/dead-letter 生产级恢复矩阵仍可继续演进。

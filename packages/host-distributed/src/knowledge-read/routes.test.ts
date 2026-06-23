@@ -16,11 +16,48 @@ function createModule(): KnowledgeReadPort {
     listMine: vi.fn(async () => []),
     search: vi.fn(async () => ({ results: [] })),
     getProjectionStatus: vi.fn(async () => ({
-      source: 'shared-postgresql-authoritative-read-model',
-      consistency: 'strong',
+      phase: 'phase-2-boundary-closed',
+      source: 'mixed-phase-2-read-side-contract',
+      consistency: 'eventual',
       freshness: 'current',
-      fallback: 'direct-authoritative-read',
-      notes: 'projection adapter is explicit even though storage is still shared',
+      fallback: 'none',
+      notes: 'phase 2 closes the read-side boundary with explicit per-surface contracts',
+      surfaces: [
+        {
+          surface: 'knowledge-entry:getById',
+          owner: 'knowledge-read',
+          providedBy: 'knowledge-read',
+          source: 'temporary-direct-backed-projection',
+          authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
+          consistency: 'strong',
+          freshness: 'current',
+          fallback: 'direct-authoritative-read',
+          notes: 'temporary phase contract for direct-backed entry lookup',
+          exitCriteria: 'replace with derived projection ownership',
+        },
+        {
+          surface: 'retrieval-search',
+          owner: 'knowledge-read',
+          providedBy: 'knowledge-read',
+          source: 'derived-search-index',
+          authoritativeSource: 'knowledge-write lifecycle events and retrieval indexing artifacts',
+          consistency: 'eventual',
+          freshness: 'current',
+          fallback: 'none',
+          notes: 'derived retrieval read-side',
+        },
+        {
+          surface: 'review-queue',
+          owner: 'governance-review',
+          providedBy: 'governance-review',
+          source: 'governance-read-model',
+          authoritativeSource: 'governance-review queue and workbench tables',
+          consistency: 'strong',
+          freshness: 'current',
+          fallback: 'none',
+          notes: 'review queue is not part of knowledge-read',
+        },
+      ],
     })),
   };
 }
@@ -39,13 +76,81 @@ describe('knowledge-read routes', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
-      source: 'shared-postgresql-authoritative-read-model',
-      consistency: 'strong',
+      phase: 'phase-2-boundary-closed',
+      source: 'mixed-phase-2-read-side-contract',
+      consistency: 'eventual',
       freshness: 'current',
-      fallback: 'direct-authoritative-read',
-      notes: 'projection adapter is explicit even though storage is still shared',
+      fallback: 'none',
+      notes: 'phase 2 closes the read-side boundary with explicit per-surface contracts',
+      surfaces: [
+        {
+          surface: 'knowledge-entry:getById',
+          owner: 'knowledge-read',
+          providedBy: 'knowledge-read',
+          source: 'temporary-direct-backed-projection',
+          authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
+          consistency: 'strong',
+          freshness: 'current',
+          fallback: 'direct-authoritative-read',
+          notes: 'temporary phase contract for direct-backed entry lookup',
+          exitCriteria: 'replace with derived projection ownership',
+        },
+        {
+          surface: 'retrieval-search',
+          owner: 'knowledge-read',
+          providedBy: 'knowledge-read',
+          source: 'derived-search-index',
+          authoritativeSource: 'knowledge-write lifecycle events and retrieval indexing artifacts',
+          consistency: 'eventual',
+          freshness: 'current',
+          fallback: 'none',
+          notes: 'derived retrieval read-side',
+        },
+        {
+          surface: 'review-queue',
+          owner: 'governance-review',
+          providedBy: 'governance-review',
+          source: 'governance-read-model',
+          authoritativeSource: 'governance-review queue and workbench tables',
+          consistency: 'strong',
+          freshness: 'current',
+          fallback: 'none',
+          notes: 'review queue is not part of knowledge-read',
+        },
+      ],
     });
 
     await app.close();
+  });
+
+  it('keeps direct-backed entry reads distinct from derived retrieval surfaces', async () => {
+    const module = createModule();
+    const status = await module.getProjectionStatus();
+    const entrySurface = status.surfaces.find(
+      (surface) => surface.surface === 'knowledge-entry:getById',
+    );
+    const retrievalSurface = status.surfaces.find(
+      (surface) => surface.surface === 'retrieval-search',
+    );
+    const reviewSurface = status.surfaces.find((surface) => surface.surface === 'review-queue');
+
+    expect(entrySurface).toMatchObject({
+      source: 'temporary-direct-backed-projection',
+      fallback: 'direct-authoritative-read',
+      owner: 'knowledge-read',
+    });
+    expect(entrySurface?.notes).toContain('temporary');
+
+    expect(retrievalSurface).toMatchObject({
+      source: 'derived-search-index',
+      fallback: 'none',
+      owner: 'knowledge-read',
+      consistency: 'eventual',
+    });
+    expect(reviewSurface).toMatchObject({
+      owner: 'governance-review',
+      providedBy: 'governance-review',
+      source: 'governance-read-model',
+    });
   });
 });

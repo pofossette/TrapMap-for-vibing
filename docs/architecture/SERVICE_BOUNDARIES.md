@@ -76,6 +76,14 @@
 - Read-side cache management (retrieval read-model cache, intent cache, embedding cache)
 - Search index management (knowledge_embeddings, knowledge_keywords, knowledge_search_documents, graph_index_documents)
 
+**Phase 2 boundary contract**:
+- `GET /internal/knowledge-read/projection-status` is the single status surface for read-side maturity, freshness, fallback, and consistency reporting.
+- `knowledge-entry:getById` and `knowledge-entry:listMine` are still temporary direct-backed projections owned by `knowledge-read`. They are explicitly allowed to read shared authoritative tables until the derived entry projection replaces them.
+- `retrieval-search`, retrieval query trace, search indexes, and cache metadata are derived read-side surfaces owned by `knowledge-read`; they are not route-local direct SQL assembly.
+- `review-queue` remains owned and served by `governance-review`, not by `knowledge-read`.
+- `maintenance entries` remain governance/operator-facing read surfaces. If they still read shared authoritative state in Phase 2, they are treated as temporary direct-backed operator projections owned by `governance-review`.
+- `decay entries/search` stay with `governance-review` when they serve the decay workbench. Only retrieval-facing derived search belongs in `knowledge-read`.
+
 **Authoritative tables**: None (all tables this service writes to are derived projections)
 
 **Derived tables it writes**:
@@ -246,6 +254,9 @@ Each service has exclusive write authority over its tables. This is the primary 
 | Retrieval read model | `knowledge-read` | `knowledge-write` authoritative tables | Lifecycle transition events |
 | Search indexes | `knowledge-read` | `knowledge-write` authoritative tables | Entry creation/update/deactivation events |
 | Query traces | `knowledge-read` | Retrieval queries | Self-generated |
+| Review queue | `governance-review` | `governance-review` queue/workbench tables | Governance state transitions |
+| Maintenance operator projection | `governance-review` | `knowledge-write` maintenance truth + governance operator read model | Maintenance decision events |
+| Decay workbench search | `governance-review` | `governance-review` decay workbench state | Decay decision events |
 | Permission cache | `identity-access` | User/team/membership tables | Membership/role change events |
 
 ### Fault domain isolation

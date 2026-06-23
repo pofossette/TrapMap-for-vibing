@@ -32,13 +32,38 @@ export interface RetrievalSearchResponse {
 }
 
 export type ReadModelConsistency = 'strong' | 'eventual';
+export type ReadModelFreshness = 'current' | 'refresh-pending' | 'degraded';
+export type ReadModelFallback = 'none' | 'direct-authoritative-read';
+export type ReadModelSurfaceOwner = 'knowledge-read' | 'governance-review';
+export type ReadModelSurfaceSource =
+  | 'temporary-direct-backed-projection'
+  | 'temporary-direct-backed-operator-projection'
+  | 'derived-projection'
+  | 'derived-search-index'
+  | 'derived-query-trace'
+  | 'governance-read-model';
+
+export interface ReadModelSurfaceStatus {
+  surface: string;
+  owner: ReadModelSurfaceOwner;
+  providedBy: ReadModelSurfaceOwner;
+  source: ReadModelSurfaceSource;
+  authoritativeSource: string;
+  consistency: ReadModelConsistency;
+  freshness: ReadModelFreshness;
+  fallback: ReadModelFallback;
+  notes?: string;
+  exitCriteria?: string;
+}
 
 export interface ReadModelProjectionStatus {
+  phase: 'phase-2-boundary-closed';
   source: string;
   consistency: ReadModelConsistency;
-  freshness: 'current' | 'stale' | 'refreshing';
-  fallback: 'none' | 'direct-authoritative-read';
+  freshness: ReadModelFreshness;
+  fallback: ReadModelFallback;
   notes?: string;
+  surfaces: ReadModelSurfaceStatus[];
 }
 
 export interface RetrievalQueryPort {

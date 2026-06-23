@@ -30,14 +30,14 @@
 
 - `gateway` 鉴权链路现在已有多进程 closeout 自动化证据，证明 session 仅经 identity-access 校验、request/trace header 可跨进程透传、非 `2xx` body 不被吞掉；但仍未达到 docker / deployed runtime 的最终 operator 审计级别。
 - `packages/server` 已退化为这些核心链路的 compatibility shell：candidate apply-resolution、knowledge review、maintenance batch、decay batch 在 server 路由层统一返回 `501 capability_unsupported`，不再承担 authoritative write orchestration。
-- `knowledge-read` 已收口为显式 projection adapter，并暴露 freshness/fallback contract；但底层仍共享 authoritative PostgreSQL 读模型，尚未达到独立 read-store 或异步投影级别的物理拆分成熟度。
+- `knowledge-read` 已进入 Phase 2 boundary-close：`/internal/knowledge-read/projection-status` 统一声明各读面的 owner、backing source、freshness、fallback 与 consistency。`entry getById/listMine` 仍是显式 temporary direct-backed projection；retrieval/search、query trace、search index 已固定为 derived read-side；review queue/maintenance/decay workbench 归属固定在 `governance-review`。
 - `job-runtime` 现在已有 gateway -> internal job-runtime 的真实 HTTP ownership 验收，并新增 stale-running reclaim 的 focused 恢复证据；但 outbox claim / retry / dead-letter 的完整生产级恢复矩阵仍未全部关闭。
 - 本轮尚未基于完整运行环境给出“host-distributed 多进程联调 + eval smoke”全部通过的最终证据前，不能把“逻辑边界收口”直接等同于“可以开始物理拆分”。
 
 ## 下一步唯一最高优先级补洞项
 
-**补齐 `eval:smoke` 与 read-side Phase 2 收口，确认失败原因不再指向 distributed write path 未接管或 read contract 漂移。**
+**维持 Gate 4 的 focused evidence：持续用 `eval:smoke` 和 `projection-status` focused tests 证明 read-side contract 不回退。**
 
-原因：distributed runtime 多进程 closeout 已固定到自动化测试矩阵中，下一阻塞点已从“写路径是否真实接管”转向“eval 结果与 read-side 物理拆分准备度是否收口”。
+原因：截至 2026-06-23，`rtk pnpm eval:smoke` 已全量通过，不再把阻塞归因到 distributed write path 未接管或 read contract 漂移。下一判断只剩“是否接受当前 Phase 2 direct-backed allowance 作为可拆分前的显式阶段契约”。
 
 执行验收时，使用 [微服务拆分验收清单](../guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md) 逐项判断。
