@@ -366,7 +366,7 @@ flowchart TB
 
 ## 目标包布局（Runtime Recomposition）
 
-> Runtime recomposition 已进入物理拆分执行阶段。`packages/service-knowledge-write` 与 `packages/service-governance-review` 已作为前两刀真实 `service-*` 包落地；其余 `service-*` 仍保持目标架构定义。权威定义见 [architecture/TARGET_ARCHITECTURE.md](architecture/TARGET_ARCHITECTURE.md)。
+> Runtime recomposition 已进入物理拆分执行阶段。`packages/service-knowledge-write`、`packages/service-governance-review`、`packages/service-candidate-ingestion` 已分别作为第一刀、第二刀、第三刀真实 `service-*` 包落地；其余 `service-*` 仍保持目标架构定义。权威定义见 [architecture/TARGET_ARCHITECTURE.md](architecture/TARGET_ARCHITECTURE.md)。
 
 ### 目标包角色
 
@@ -376,6 +376,7 @@ flowchart TB
 | **backend-core** | `packages/backend-core` | 后端核心内核：应用服务、端口、宿主无关 runtime capability model、bounded-context 编排 |
 | **service (implemented)** | `packages/service-knowledge-write` | 已落地第一刀：knowledge/trap/skill/lifecycle/maintenance/decay authoritative 写装配、route registration、service factory |
 | **service (implemented)** | `packages/service-governance-review` | 已落地第二刀：review/feedback authoritative service assembly、internal route registration、service factory |
+| **service (implemented)** | `packages/service-candidate-ingestion` | 已落地第三刀：candidate authoritative service assembly、internal route registration、service factory，并保持对 knowledge-write 的远程发布边界 |
 | **host (light)** | `packages/host-local` | 轻量宿主：面向 `local-agent` 和 `team-monolith`，单机、最小依赖、低运维 |
 | **host (heavy)** | `packages/host-distributed` | 重型宿主：面向分布式装配，独立扩缩容、读写隔离、服务边界 |
 | **service** | `packages/service-*` | 七个逻辑服务包，每个对应一个 bounded context（见下表） |
@@ -388,7 +389,7 @@ flowchart TB
 | `packages/service-identity-access` | `identity-access` | auth、session、access-keys、membership、team、RBAC decision |
 | `packages/service-knowledge-read` | `knowledge-read` | retrieval、query trace、只读投影、status read model、读缓存 |
 | `packages/service-knowledge-write` | `knowledge-write` | 已落地：knowledge/trap/skill/lifecycle/maintenance/decay 的 authoritative 写路径 |
-| `packages/service-candidate-ingestion` | `candidate-ingestion` | candidate intake、归一化、去重预处理、候选状态推进 |
+| `packages/service-candidate-ingestion` | `candidate-ingestion` | 已落地：candidate intake、归一化、去重预处理、候选状态推进、内部 route/service 装配 |
 | `packages/service-governance-review` | `governance-review` | 已落地：review 决策、feedback、artifact review 的 authoritative service assembly |
 | `packages/service-job-runtime` | `job-runtime` | task queue、workflow runs、outbox dispatch、shared jobs 执行 |
 

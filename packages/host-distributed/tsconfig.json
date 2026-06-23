@@ -9,6 +9,7 @@
   "references": [
     { "path": "../backend-core" },
     { "path": "../contracts" },
+    { "path": "../service-candidate-ingestion" },
     { "path": "../service-governance-review" },
     { "path": "../service-knowledge-write" }
   ]

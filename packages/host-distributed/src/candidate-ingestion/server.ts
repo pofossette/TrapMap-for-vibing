@@ -1,13 +1,15 @@
-import { createCandidateIngestionModule } from '@trapmap/backend-core';
-import Fastify, { type FastifyInstance } from 'fastify';
+import {
+  createCandidateIngestionDeps,
+  createCandidateIngestionServer,
+} from '@trapmap/service-candidate-ingestion';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
-import { createCandidateIngestionDeps } from './ports.js';
-import { registerRoutes } from './routes.js';
+import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
+import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
 
 export interface CandidateIngestionServer {
-  app: FastifyInstance;
+  app: Awaited<ReturnType<typeof createCandidateIngestionServer>>['app'];
   start(): Promise<void>;
   close(): Promise<void>;
 }
@@ -16,18 +18,16 @@ export async function createServer(
   config: ServiceConfig,
   db: ServiceDatabase,
 ): Promise<CandidateIngestionServer> {
-  const app = Fastify({ logger: { level: config.logLevel } });
   const ports = createServicePorts(db.pool);
-  const deps = createCandidateIngestionDeps(ports, config);
-  const module = createCandidateIngestionModule(deps);
-  registerRoutes(app, module);
-  return {
-    app,
-    async start() {
-      await app.listen({ port: config.port, host: config.host });
+  const internalClients = createInternalServiceClients(config.internalUrls);
+  const deps = createCandidateIngestionDeps({
+    candidateRepo: ports.repos.candidate,
+    auditLog: ports.auditLog,
+    knowledgeWrite: createRemoteKnowledgeWriteClient(internalClients),
+    jobRuntime: {
+      schedule: async (type, payload, options) =>
+        String(await ports.queuePorts.task.enqueue(type, payload, options)),
     },
-    async close() {
-      await app.close();
-    },
-  };
+  });
+  return createCandidateIngestionServer(config, deps);
 }

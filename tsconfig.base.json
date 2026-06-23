@@ -23,6 +23,9 @@
       "@trapmap/contracts": ["./packages/contracts/src/index.ts"],
       "@trapmap/contracts/evals": ["./packages/contracts/src/domain/evals/index.ts"],
       "@trapmap/contracts/*": ["./packages/contracts/src/*"],
+      "@trapmap/service-candidate-ingestion": [
+        "./packages/service-candidate-ingestion/src/index.ts"
+      ],
       "@trapmap/service-governance-review": ["./packages/service-governance-review/src/index.ts"],
       "@trapmap/service-knowledge-write": ["./packages/service-knowledge-write/src/index.ts"],
       "@trapmap/web-panel/*": ["./packages/web-panel/src/*"],

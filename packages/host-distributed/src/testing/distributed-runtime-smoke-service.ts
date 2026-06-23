@@ -7,9 +7,9 @@ import {
   type KnowledgeWritePort,
   type ReviewPort,
 } from '@trapmap/backend-core';
+import { registerCandidateIngestionRoutes } from '@trapmap/service-candidate-ingestion';
 import { registerGovernanceReviewRoutes } from '@trapmap/service-governance-review';
 import { registerKnowledgeWriteRoutes } from '@trapmap/service-knowledge-write';
-import { registerRoutes as registerCandidateRoutes } from '../candidate-ingestion/routes.js';
 import { createInternalServiceClients } from '../gateway/internal-client.js';
 import { registerGatewayRoutes } from '../gateway/routes.js';
 import { registerRoutes as registerJobRuntimeRoutes } from '../job-runtime/routes.js';
@@ -177,7 +177,7 @@ function createCandidateModule(
 function createCandidateService(state: DiagnosticsState) {
   const app = Fastify();
   const clients = createInternalServiceClients(urls());
-  registerCandidateRoutes(app, createCandidateModule(state, clients));
+  registerCandidateIngestionRoutes(app, createCandidateModule(state, clients));
   createDiagnosticsRoutes(app, state);
   return app;
 }

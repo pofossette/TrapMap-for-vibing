@@ -18,7 +18,7 @@ TrapMap started from a `cli + server + contracts` runtime shape, but the reposit
 | `packages/host-local` | Preferred light-host runtime for `local-agent` / `team-monolith` |
 | `packages/host-distributed` | Preferred heavy-host runtime for `distributed` |
 | `packages/cli` | Commander.js CLI client, output rendering, local config |
-| `packages/server` | Transition shell plus large compatibility / implementation surface |
+| `packages/server` | Transition shell plus large compatibility / implementation surface; not the authoritative assembly owner for knowledge-write, governance-review, or candidate-ingestion |
 | `packages/contracts` | Shared Zod schemas and TypeScript types |
 
 The runtime model already has `deployment profile` (`local-agent`, `team-monolith`, `distributed`), `runtimeMode`, `serviceUnit`, and `task transport` concepts implemented. The repository has also already introduced the new host packages and rewired the preferred root development scripts to them. However, `packages/server` still holds a large amount of gateway routing, application services, repository implementations, worker bootstrap, tests, and migration-era truth.
@@ -144,6 +144,7 @@ Current implementation fact: `packages/service-knowledge-write` is now the first
 
 ### candidate-ingestion
 
+- Current implementation fact: `packages/service-candidate-ingestion` is now the third real `service-*` package. It owns the `candidate-ingestion` service assembly surface consumed by `packages/host-distributed`, while `packages/server` remains a compatibility shell and does not recover candidate authoritative assembly ownership.
 - **Owns**: candidate intake, normalization, dedup preprocessing, candidate status advancement, duplicate case creation, resolution outcome recording
 - **Authoritative tables**: candidate intake, processing status, dedup analysis intermediate state tables
 - **Does NOT own**: knowledge authoritative tables (publishes results; `knowledge-write` consumes)
@@ -174,7 +175,7 @@ Trap-Map/
 │   ├── service-identity-access/   # Auth, session, access-keys, membership, team, RBAC
 │   ├── service-knowledge-read/    # Retrieval, read-only projections, query trace, read cache
 │   ├── service-knowledge-write/   # Implemented first service package: knowledge/trap/skill/lifecycle/maintenance/decay writes
-│   ├── service-candidate-ingestion/ # Candidate intake, normalization, dedup, status
+│   ├── service-candidate-ingestion/ # Implemented third service package: candidate intake, normalization, dedup, status
 │   ├── service-governance-review/ # Review queues, workbench, conflict resolution, remediation
 │   ├── service-job-runtime/       # Task queue, workflow runs, outbox dispatch, shared jobs
 │   ├── host-local/                # Light host assembly (local-agent, team-monolith)

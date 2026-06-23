@@ -89,6 +89,29 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'service-candidate-ingestion',
+          root: './packages/service-candidate-ingestion',
+          include: ['src/**/*.test.ts'],
+        },
+        resolve: {
+          alias: [
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+            {
+              find: '@trapmap/backend-core',
+              replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
+            },
+            {
+              find: 'fastify',
+              replacement: fastifyEntry,
+            },
+          ],
+        },
+      },
+      {
+        test: {
           name: 'service-governance-review',
           root: './packages/service-governance-review',
           include: ['src/**/*.test.ts'],
@@ -159,6 +182,13 @@ export default defineConfig({
             {
               find: '@trapmap/client-core',
               replacement: resolve(__dirname, './packages/client-core/src/index.ts'),
+            },
+            {
+              find: '@trapmap/service-candidate-ingestion',
+              replacement: resolve(
+                __dirname,
+                './packages/service-candidate-ingestion/src/index.ts',
+              ),
             },
             {
               find: '@trapmap/service-knowledge-write',

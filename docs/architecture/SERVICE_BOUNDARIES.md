@@ -5,7 +5,7 @@
 ## Status
 
 - Phase: 1 (logical boundaries defined; physical process separation incremental)
-- Execution milestone: `packages/service-knowledge-write` and `packages/service-governance-review` are the first two physical `service-*` splits now implemented in-repo.
+- Execution milestone: `packages/service-knowledge-write`, `packages/service-governance-review`, and `packages/service-candidate-ingestion` are the first three physical `service-*` splits now implemented in-repo.
 
 ## Service Inventory
 
@@ -123,6 +123,8 @@
 **Does NOT own**: Retrieval read model, search index writes (those are projections owned by `knowledge-read`)
 
 ### candidate-ingestion
+
+- Current implementation fact: `packages/service-candidate-ingestion` is now the third real `service-*` package. `packages/host-distributed` consumes it as a thin host adapter, and `packages/server` remains a compatibility shell rather than the authoritative candidate assembly owner.
 
 **Purpose**: Async intake and processing pipeline for new knowledge candidates.
 

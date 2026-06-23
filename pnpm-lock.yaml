@@ -111,6 +111,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/service-candidate-ingestion':
+        specifier: workspace:*
+        version: link:../service-candidate-ingestion
       '@trapmap/service-governance-review':
         specifier: workspace:*
         version: link:../service-governance-review
@@ -210,6 +213,28 @@ importers:
       pg-mem:
         specifier: ^3.0.14
         version: 3.0.14
+
+  packages/service-candidate-ingestion:
+    dependencies:
+      '@trapmap/backend-core':
+        specifier: workspace:*
+        version: link:../backend-core
+      '@trapmap/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      fastify:
+        specifier: ^5.6.1
+        version: 5.8.4
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.1
+        version: 3.2.4(@types/node@25.6.0)(jiti@2.7.0)(jsdom@29.1.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
   packages/service-governance-review:
     dependencies:

@@ -1,19 +1,7 @@
-/**
- * Internal HTTP routes for the candidate-ingestion service.
- *
- * Thin transport layer -- all business logic lives in the
- * candidate-ingestion backend-core module.
- */
-
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-
 import type { CandidateIngestionPort } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
 import type { CandidateStatus } from '@trapmap/contracts';
-
-// ---------------------------------------------------------------------------
-// Error translation
-// ---------------------------------------------------------------------------
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 function translateInvocationError(error: unknown): {
   status: number;
@@ -40,12 +28,10 @@ function translateInvocationError(error: unknown): {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Route registration
-// ---------------------------------------------------------------------------
-
-export function registerRoutes(app: FastifyInstance, module: CandidateIngestionPort): void {
-  // POST /internal/candidates
+export function registerCandidateIngestionRoutes(
+  app: FastifyInstance,
+  module: CandidateIngestionPort,
+): void {
   app.post('/internal/candidates', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = req.body as Parameters<CandidateIngestionPort['submit']>[0];
@@ -57,7 +43,6 @@ export function registerRoutes(app: FastifyInstance, module: CandidateIngestionP
     }
   });
 
-  // GET /internal/candidates/:candidateId
   app.get('/internal/candidates/:candidateId', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
       const { candidateId } = req.params as { candidateId: string };
@@ -72,7 +57,6 @@ export function registerRoutes(app: FastifyInstance, module: CandidateIngestionP
     }
   });
 
-  // GET /internal/candidates
   app.get('/internal/candidates', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
       const { status } = req.query as { status?: string };
@@ -84,7 +68,6 @@ export function registerRoutes(app: FastifyInstance, module: CandidateIngestionP
     }
   });
 
-  // POST /internal/candidates/:candidateId/resolution
   app.post(
     '/internal/candidates/:candidateId/resolution',
     async (req: FastifyRequest, reply: FastifyReply) => {
@@ -100,7 +83,6 @@ export function registerRoutes(app: FastifyInstance, module: CandidateIngestionP
     },
   );
 
-  // POST /internal/candidates/:candidateId/manual-result
   app.post(
     '/internal/candidates/:candidateId/manual-result',
     async (req: FastifyRequest, reply: FastifyReply) => {
@@ -131,7 +113,6 @@ export function registerRoutes(app: FastifyInstance, module: CandidateIngestionP
     },
   );
 
-  // GET /internal/health
   app.get('/internal/health', async (_req: FastifyRequest, reply: FastifyReply) => {
     return reply.status(200).send({ status: 'ok', service: 'candidate-ingestion' });
   });
