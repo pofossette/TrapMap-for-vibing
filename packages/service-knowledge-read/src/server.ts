@@ -1,7 +1,8 @@
 import Fastify, { type FastifyInstance } from 'fastify';
+import { type KnowledgeReadPort } from '@trapmap/backend-core';
 
 import { createKnowledgeReadServiceModule, type KnowledgeReadDeps } from './deps.js';
-import { registerKnowledgeReadRoutes, type KnowledgeReadRouteModule } from './routes.js';
+import { registerKnowledgeReadRoutes } from './routes.js';
 
 export interface KnowledgeReadServiceConfig {
   host: string;
@@ -11,7 +12,7 @@ export interface KnowledgeReadServiceConfig {
 
 export interface KnowledgeReadServer {
   app: FastifyInstance;
-  module: KnowledgeReadRouteModule;
+  module: KnowledgeReadPort;
   start(): Promise<void>;
   close(): Promise<void>;
 }

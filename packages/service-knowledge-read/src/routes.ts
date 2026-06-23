@@ -1,12 +1,5 @@
-import { InvocationError } from '@trapmap/backend-core';
+import { InvocationError, type KnowledgeReadPort } from '@trapmap/backend-core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-
-export interface KnowledgeReadRouteModule {
-  getById(entryId: string): Promise<unknown | null>;
-  listMine(userId: string, teamId?: string): Promise<unknown[]>;
-  search(params: { query: string; teamId?: string; limit?: number }): Promise<unknown>;
-  getProjectionStatus(): Promise<unknown>;
-}
 
 function translateInvocationError(error: unknown): {
   status: number;
@@ -34,10 +27,7 @@ function translateInvocationError(error: unknown): {
   };
 }
 
-export function registerKnowledgeReadRoutes(
-  app: FastifyInstance,
-  module: KnowledgeReadRouteModule,
-): void {
+export function registerKnowledgeReadRoutes(app: FastifyInstance, module: KnowledgeReadPort): void {
   app.get('/internal/knowledge/:entryId', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
       const { entryId } = req.params as { entryId: string };

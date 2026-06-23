@@ -1,82 +1,23 @@
-import type { KnowledgeEntryRecord } from '@trapmap/backend-core';
+import {
+  createKnowledgeReadModule,
+  type KnowledgeReadDeps,
+  type ReadModelProjectionStatus,
+} from '@trapmap/backend-core';
 
-export interface KnowledgeReadProjectionStatusSurface {
-  surface: string;
-  owner: 'knowledge-read' | 'governance-review';
-  providedBy: 'knowledge-read' | 'governance-review';
-  source:
-    | 'temporary-direct-backed-projection'
-    | 'temporary-direct-backed-operator-projection'
-    | 'derived-projection'
-    | 'derived-search-index'
-    | 'derived-query-trace'
-    | 'governance-read-model';
-  authoritativeSource: string;
-  consistency: 'strong' | 'eventual';
-  freshness: 'current' | 'refresh-pending' | 'degraded';
-  fallback: 'none' | 'direct-authoritative-read';
-  notes?: string;
-  exitCriteria?: string;
-}
-
-export interface KnowledgeReadProjectionStatus {
-  phase: 'phase-2-boundary-closed';
-  source: string;
-  consistency: 'strong' | 'eventual';
-  freshness: 'current' | 'refresh-pending' | 'degraded';
-  fallback: 'none' | 'direct-authoritative-read';
-  notes?: string;
-  surfaces: KnowledgeReadProjectionStatusSurface[];
-}
-
-export interface KnowledgeReadDeps {
-  knowledgeProjection: {
-    getById(entryId: string): Promise<KnowledgeEntryRecord | null>;
-    listMine(params: { userId: string; teamId?: string }): Promise<KnowledgeEntryRecord[]>;
-    getStatus(): Promise<KnowledgeReadProjectionStatus>;
-  };
-  retrievalQuery: {
-    search(params: {
-      query: string;
-      teamId?: string;
-      limit?: number;
-    }): Promise<{
-      results: Array<{
-        entryId: string;
-        score: number;
-        snippet?: string;
-        metadata?: Record<string, unknown>;
-      }>;
-      totalEstimate?: number;
-      channel?: string;
-      latencyMs?: number;
-    }>;
-  };
-}
-
-export interface KnowledgeReadServiceModule {
-  getById(entryId: string): Promise<KnowledgeEntryRecord | null>;
-  listMine(userId: string, teamId?: string): Promise<KnowledgeEntryRecord[]>;
-  search(params: {
-    query: string;
-    teamId?: string;
-    limit?: number;
-  }): Promise<Awaited<ReturnType<KnowledgeReadDeps['retrievalQuery']['search']>>>;
-  getProjectionStatus(): Promise<KnowledgeReadProjectionStatus>;
-}
+export { type KnowledgeReadDeps } from '@trapmap/backend-core';
 
 export interface KnowledgeReadPortDeps {
   knowledgeRepo: {
-    getById(entryId: string): Promise<KnowledgeEntryRecord | null>;
+    getById: KnowledgeReadDeps['knowledgeProjection']['getById'];
     listByFilter(filter: {
       ownerUserId?: string;
       teamId?: string;
-    }): Promise<KnowledgeEntryRecord[]>;
+    }): Promise<Awaited<ReturnType<KnowledgeReadDeps['knowledgeProjection']['listMine']>>>;
   };
   retrievalQuery: KnowledgeReadDeps['retrievalQuery'];
 }
 
-function createProjectionStatus(): KnowledgeReadProjectionStatus {
+function createProjectionStatus(): ReadModelProjectionStatus {
   return {
     phase: 'phase-2-boundary-closed',
     source: 'mixed-phase-2-read-side-contract',
@@ -194,19 +135,16 @@ function createProjectionStatus(): KnowledgeReadProjectionStatus {
 export function createKnowledgeReadDeps(deps: KnowledgeReadPortDeps): KnowledgeReadDeps {
   return {
     knowledgeProjection: {
-      async getById(entryId: string): Promise<KnowledgeEntryRecord | null> {
+      async getById(entryId) {
         return deps.knowledgeRepo.getById(entryId);
       },
-      async listMine(params: {
-        userId: string;
-        teamId?: string;
-      }): Promise<KnowledgeEntryRecord[]> {
+      async listMine(params) {
         return deps.knowledgeRepo.listByFilter({
           ownerUserId: params.userId,
           ...(params.teamId ? { teamId: params.teamId } : {}),
         });
       },
-      async getStatus(): Promise<KnowledgeReadProjectionStatus> {
+      async getStatus() {
         return createProjectionStatus();
       },
     },
@@ -214,28 +152,6 @@ export function createKnowledgeReadDeps(deps: KnowledgeReadPortDeps): KnowledgeR
   };
 }
 
-export function createKnowledgeReadServiceModule(
-  deps: KnowledgeReadDeps,
-): KnowledgeReadServiceModule {
-  return {
-    async getById(entryId: string) {
-      return deps.knowledgeProjection.getById(entryId);
-    },
-    async listMine(userId: string, teamId?: string) {
-      return deps.knowledgeProjection.listMine({
-        userId,
-        ...(teamId ? { teamId } : {}),
-      });
-    },
-    async search(params: { query: string; teamId?: string; limit?: number }) {
-      return deps.retrievalQuery.search({
-        query: params.query,
-        ...(params.teamId !== undefined ? { teamId: params.teamId } : {}),
-        ...(params.limit !== undefined ? { limit: params.limit } : {}),
-      });
-    },
-    async getProjectionStatus() {
-      return deps.knowledgeProjection.getStatus();
-    },
-  };
+export function createKnowledgeReadServiceModule(deps: KnowledgeReadDeps) {
+  return createKnowledgeReadModule(deps);
 }
