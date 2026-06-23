@@ -164,6 +164,7 @@ Current implementation fact: `packages/service-knowledge-write` is now the first
 - **Authoritative tables**: task queue, workflow runs, outbox dispatch runtime, lease/reclaim metadata tables
 - **Does NOT own**: any business domain truth tables
 - **Role**: executes async work dispatched by other services; manages task lifecycle, retries, dead-letter handling. Also owns the domain event outbox for dispatching cross-service events.
+- **Implementation status**: `packages/service-job-runtime` is now the fifth real `service-*` package. `packages/host-distributed` consumes it as a thin host adapter, and `packages/server` remains a compatibility shell rather than the authoritative job-runtime assembly owner.
 
 ## Target Package Layout
 
@@ -211,7 +212,7 @@ Key constraints:
 1. `client-core` depends on `contracts` only. Never depends on `backend-core` or any server-side package.
 2. `backend-core` depends on `contracts`. Does NOT depend on any service or host package.
 3. Each `service-*` depends on `backend-core` and `contracts`. Service packages are peers; they do NOT depend on each other directly. Cross-service interaction goes through internal ports defined in `backend-core`.
-4. `host-local` and `host-distributed` depend on `backend-core`, `contracts`, and the service packages they assemble. They wire concrete implementations to ports. `host-distributed` now consumes the real `packages/service-knowledge-write` and `packages/service-governance-review` packages instead of holding those route assemblies itself.
+4. `host-local` and `host-distributed` depend on `backend-core`, `contracts`, and the service packages they assemble. They wire concrete implementations to ports. `host-distributed` now consumes the real `packages/service-knowledge-write`, `packages/service-governance-review`, `packages/service-candidate-ingestion`, `packages/service-identity-access`, and `packages/service-job-runtime` packages instead of holding those route assemblies itself.
 5. `packages/cli` depends on `client-core` and `contracts`. Does NOT depend on `backend-core` or any server-side package.
 6. `packages/server` (transition shell) depends on `backend-core`, `contracts`, and service packages during migration. Eventually replaced.
 

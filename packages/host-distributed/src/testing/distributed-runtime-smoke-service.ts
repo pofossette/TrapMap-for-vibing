@@ -9,10 +9,10 @@ import {
 } from '@trapmap/backend-core';
 import { registerCandidateIngestionRoutes } from '@trapmap/service-candidate-ingestion';
 import { registerGovernanceReviewRoutes } from '@trapmap/service-governance-review';
+import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
 import { registerKnowledgeWriteRoutes } from '@trapmap/service-knowledge-write';
 import { createInternalServiceClients } from '../gateway/internal-client.js';
 import { registerGatewayRoutes } from '../gateway/routes.js';
-import { registerRoutes as registerJobRuntimeRoutes } from '../job-runtime/routes.js';
 
 type ServiceRole =
   | 'gateway'

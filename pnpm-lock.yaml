@@ -120,6 +120,9 @@ importers:
       '@trapmap/service-identity-access':
         specifier: workspace:*
         version: link:../service-identity-access
+      '@trapmap/service-job-runtime':
+        specifier: workspace:*
+        version: link:../service-job-runtime
       '@trapmap/service-knowledge-write':
         specifier: workspace:*
         version: link:../service-knowledge-write
@@ -262,6 +265,28 @@ importers:
         version: 3.2.4(@types/node@25.6.0)(jiti@2.7.0)(jsdom@29.1.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
   packages/service-identity-access:
+    dependencies:
+      '@trapmap/backend-core':
+        specifier: workspace:*
+        version: link:../backend-core
+      '@trapmap/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      fastify:
+        specifier: ^5.6.1
+        version: 5.8.4
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.1
+        version: 3.2.4(@types/node@25.6.0)(jiti@2.7.0)(jsdom@29.1.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+
+  packages/service-job-runtime:
     dependencies:
       '@trapmap/backend-core':
         specifier: workspace:*

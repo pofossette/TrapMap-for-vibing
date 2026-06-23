@@ -12,10 +12,10 @@ import type {
 import { registerCandidateIngestionRoutes } from '@trapmap/service-candidate-ingestion';
 import { registerGovernanceReviewRoutes } from '@trapmap/service-governance-review';
 import { registerIdentityAccessRoutes } from '@trapmap/service-identity-access';
+import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
 import { registerKnowledgeWriteRoutes } from '@trapmap/service-knowledge-write';
 import { createInternalServiceClients } from './internal-client.js';
 import { registerGatewayRoutes } from './routes.js';
-import { registerRoutes as registerJobRuntimeRoutes } from '../job-runtime/routes.js';
 import { registerRoutes as registerKnowledgeReadRoutes } from '../knowledge-read/routes.js';
 
 const originalFetch = globalThis.fetch;

@@ -5,7 +5,7 @@
 ## Status
 
 - Phase: 1 (logical boundaries defined; physical process separation incremental)
-- Execution milestone: `packages/service-knowledge-write`, `packages/service-governance-review`, `packages/service-candidate-ingestion`, and `packages/service-identity-access` are the first four physical `service-*` splits now implemented in-repo.
+- Execution milestone: `packages/service-knowledge-write`, `packages/service-governance-review`, `packages/service-candidate-ingestion`, `packages/service-identity-access`, and `packages/service-job-runtime` are the first five physical `service-*` splits now implemented in-repo.
 
 ## Service Inventory
 
@@ -180,6 +180,8 @@
 **Does NOT own**: Any business domain truth tables. It only executes work dispatched by other services.
 
 **Role clarification**: `job-runtime` is an infrastructure service. It provides the execution substrate that other services use to achieve eventual consistency. It does not make business decisions.
+
+**Implementation status**: Implemented as `packages/service-job-runtime`. `packages/host-distributed` is now only the thin host adapter for the runtime process, and `packages/server` remains a compatibility shell rather than the authoritative runtime assembly owner.
 
 ## Internal Communication
 

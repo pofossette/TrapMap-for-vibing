@@ -181,6 +181,29 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'service-job-runtime',
+          root: './packages/service-job-runtime',
+          include: ['src/**/*.test.ts'],
+        },
+        resolve: {
+          alias: [
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+            {
+              find: '@trapmap/backend-core',
+              replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
+            },
+            {
+              find: 'fastify',
+              replacement: fastifyEntry,
+            },
+          ],
+        },
+      },
+      {
+        test: {
           name: 'client-core',
           root: './packages/client-core',
           include: ['src/**/*.test.ts'],
@@ -224,6 +247,10 @@ export default defineConfig({
             {
               find: '@trapmap/service-governance-review',
               replacement: resolve(__dirname, './packages/service-governance-review/src/index.ts'),
+            },
+            {
+              find: '@trapmap/service-job-runtime',
+              replacement: resolve(__dirname, './packages/service-job-runtime/src/index.ts'),
             },
             {
               find: 'fastify',

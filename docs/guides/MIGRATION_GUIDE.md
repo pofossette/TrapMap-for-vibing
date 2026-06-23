@@ -17,6 +17,8 @@ packages/
 ├── service-knowledge-write/ first implemented service package for authoritative knowledge writes
 ├── service-governance-review/ second implemented service package for review and feedback assembly
 ├── service-candidate-ingestion/ third implemented service package for candidate authoritative assembly
+├── service-identity-access/ fourth implemented service package for identity/access assembly
+├── service-job-runtime/ fifth implemented service package for runtime queue/status assembly
 ├── host-local/        light host for local-agent / team-monolith
 ├── host-distributed/  heavy host for distributed profile
 ├── cli/               CLI logic only, consumes client-core
@@ -32,7 +34,7 @@ packages/
 - Phase 3 `host-local`: done. Root `pnpm dev:local-agent` and `pnpm dev:team-monolith` now target `@trapmap/host-local`.
 - Phase 4 `host-distributed`: done. Root distributed dev scripts now target `@trapmap/host-distributed`.
 - Phase 5 legacy收口: partial. `packages/server` still exists as a compatibility shell and verification surface, but candidate/review/maintenance/decay authoritative writes have moved to `@trapmap/host-distributed`.
-- Phase 6 physical split execution: in progress. `@trapmap/service-knowledge-write` is the first real `service-*` package, `@trapmap/service-governance-review` is the second, and `@trapmap/service-candidate-ingestion` is the third; `@trapmap/host-distributed` consumes all three as thin host adapters, and `packages/server` no longer holds the authoritative `knowledge-write`, `governance-review`, or `candidate-ingestion` assembly facts.
+- Phase 6 physical split execution: in progress. `@trapmap/service-knowledge-write` is the first real `service-*` package, `@trapmap/service-governance-review` is the second, `@trapmap/service-candidate-ingestion` is the third, `@trapmap/service-identity-access` is the fourth, and `@trapmap/service-job-runtime` is the fifth; `@trapmap/host-distributed` consumes all five as thin host adapters, and `packages/server` no longer holds the authoritative `knowledge-write`, `governance-review`, `candidate-ingestion`, `identity-access`, or `job-runtime` assembly facts.
 
 ## Current Official Entrypoints
 
@@ -114,7 +116,7 @@ pnpm --filter @trapmap/host-distributed dev:governance-review
 pnpm --filter @trapmap/host-distributed dev:job-runtime
 ```
 
-Acceptance note: `@trapmap/host-distributed` now consumes built outputs from all four implemented service packages in multi-process acceptance flows. Run `pnpm --filter @trapmap/service-identity-access build`, `pnpm --filter @trapmap/service-knowledge-write build`, `pnpm --filter @trapmap/service-governance-review build`, and `pnpm --filter @trapmap/service-candidate-ingestion build` before standalone `tsx`-driven distributed acceptance if you are not using the packaged `test:distributed-acceptance` entrypoint.
+Acceptance note: `@trapmap/host-distributed` now consumes built outputs from all five implemented service packages in multi-process acceptance flows. Run `pnpm --filter @trapmap/service-identity-access build`, `pnpm --filter @trapmap/service-knowledge-write build`, `pnpm --filter @trapmap/service-governance-review build`, `pnpm --filter @trapmap/service-candidate-ingestion build`, and `pnpm --filter @trapmap/service-job-runtime build` before standalone `tsx`-driven distributed acceptance if you are not using the packaged `test:distributed-acceptance` entrypoint.
 
 Verification:
 
@@ -161,7 +163,7 @@ Microservice-split readiness uses a stricter operational gate. Before starting a
 
 For distributed split readiness, treat `pnpm test:distributed-acceptance` as the default automation gate for Gate 2 / Gate 3 / Gate 5. It is the canonical automated proof that `@trapmap/host-distributed` owns the write forwarding path, preserves auth/error semantics across real internal HTTP hops, and exposes job-runtime ownership through the gateway surface.
 
-Readiness has now moved into execution for the first four physical splits: `knowledge-write` is the first bounded context extracted into a dedicated `service-*` package, `governance-review` is the second, `candidate-ingestion` is the third, and `identity-access` is the fourth. All four preserve the existing gateway-only external access model and shared PostgreSQL posture.
+Readiness has now moved into execution for the first five physical splits: `knowledge-write` is the first bounded context extracted into a dedicated `service-*` package, `governance-review` is the second, `candidate-ingestion` is the third, `identity-access` is the fourth, and `job-runtime` is the fifth. All five preserve the existing gateway-only external access model and shared PostgreSQL posture.
 
 This gate now includes `packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`, which starts multiple independent Node processes for gateway, identity-access, candidate-ingestion, governance-review, knowledge-write, and job-runtime. That closeout covers:
 

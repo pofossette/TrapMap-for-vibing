@@ -1,8 +1,8 @@
 import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
+import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
 
 import { loadServiceConfig } from '../config/index.js';
-import { registerRoutes } from './routes.js';
 
 describe('distributed job-runtime ownership acceptance', () => {
   it('loads job-runtime as a dedicated remote-owned worker service', () => {
@@ -26,7 +26,7 @@ describe('distributed job-runtime ownership acceptance', () => {
 
   it('serves schedule, status, and queue semantics from the dedicated job-runtime surface', async () => {
     const app = Fastify();
-    registerRoutes(app, {
+    registerJobRuntimeRoutes(app, {
       async schedule(type) {
         return `job-for-${type}`;
       },
@@ -105,7 +105,7 @@ describe('distributed job-runtime ownership acceptance', () => {
     };
 
     const app = Fastify();
-    registerRoutes(app, module);
+    registerJobRuntimeRoutes(app, module);
     app.post('/__test/reclaim', async () => {
       for (const job of jobs.values()) {
         if (job.stale && job.status === 'running') {

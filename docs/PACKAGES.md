@@ -13,6 +13,7 @@
 | `packages/host-distributed` | `src/index.ts` | `distributed` 重型宿主装配 |
 | `packages/server` | `src/index.ts` | 迁移期兼容壳层与既有实现面 |
 | `packages/contracts` | `src/index.ts` | 共享 Zod Schema 和 TypeScript 类型 |
+| `packages/service-job-runtime` | `src/index.ts` | 第五个真实 `service-*` 包，承接 job-runtime 服务装配、内部 route 与 runtime server |
 | `packages/skills` | `workflow-with-trapmap/SKILL.md` | 项目级 Skill 工作流与 CLI 使用指南 |
 
 ---

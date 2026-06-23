@@ -29,6 +29,7 @@ Historical plans, temporary notes, audits, and human-authored reports must live 
 - `packages/service-knowledge-write/`: First implemented service package. Owns knowledge-write service assembly, internal route registration, and bounded-context write wiring for knowledge/trap/skill/lifecycle/maintenance/decay.
 - `packages/service-governance-review/`: Second implemented service package. Owns governance-review service assembly, internal route registration, and bounded-context review/feedback wiring while delegating lifecycle mutations to knowledge-write.
 - `packages/service-candidate-ingestion/`: Third implemented service package. Owns candidate-ingestion service assembly, internal route registration, and bounded-context candidate wiring while delegating result publication to knowledge-write.
+- `packages/service-job-runtime/`: Fifth implemented service package. Owns job-runtime service assembly, internal route registration, queue/runtime deps wiring, and runtime server bootstrap surface.
 - `packages/host-local/`: Lightweight host assembly for local-agent and team-monolith profiles. Single-process deployment with minimal dependencies.
 - `packages/host-distributed/`: Heavy host assembly for distributed profile with 7 microservices (gateway, identity-access, knowledge-read, knowledge-write, candidate-ingestion, governance-review, job-runtime). Enables independent scaling and service isolation.
 

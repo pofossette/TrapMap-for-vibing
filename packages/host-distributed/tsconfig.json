@@ -12,6 +12,7 @@
     { "path": "../service-identity-access" },
     { "path": "../service-candidate-ingestion" },
     { "path": "../service-governance-review" },
+    { "path": "../service-job-runtime" },
     { "path": "../service-knowledge-write" }
   ]
 }
