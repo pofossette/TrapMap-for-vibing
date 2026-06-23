@@ -366,7 +366,7 @@ flowchart TB
 
 ## 目标包布局（Runtime Recomposition）
 
-> Runtime recomposition 已进入物理拆分执行阶段。`packages/service-knowledge-write`、`packages/service-governance-review`、`packages/service-candidate-ingestion` 已分别作为第一刀、第二刀、第三刀真实 `service-*` 包落地；其余 `service-*` 仍保持目标架构定义。权威定义见 [architecture/TARGET_ARCHITECTURE.md](architecture/TARGET_ARCHITECTURE.md)。
+> Runtime recomposition 已进入物理拆分执行阶段。`packages/service-knowledge-write`、`packages/service-governance-review`、`packages/service-candidate-ingestion`、`packages/service-identity-access` 已分别作为第一刀、第二刀、第三刀、第四刀真实 `service-*` 包落地；其余 `service-*` 仍保持目标架构定义。权威定义见 [architecture/TARGET_ARCHITECTURE.md](architecture/TARGET_ARCHITECTURE.md)。
 
 ### 目标包角色
 
@@ -377,6 +377,7 @@ flowchart TB
 | **service (implemented)** | `packages/service-knowledge-write` | 已落地第一刀：knowledge/trap/skill/lifecycle/maintenance/decay authoritative 写装配、route registration、service factory |
 | **service (implemented)** | `packages/service-governance-review` | 已落地第二刀：review/feedback authoritative service assembly、internal route registration、service factory |
 | **service (implemented)** | `packages/service-candidate-ingestion` | 已落地第三刀：candidate authoritative service assembly、internal route registration、service factory，并保持对 knowledge-write 的远程发布边界 |
+| **service (implemented)** | `packages/service-identity-access` | 已落地第四刀：auth/session/team/member/access-key authoritative service assembly、internal route registration、service factory |
 | **host (light)** | `packages/host-local` | 轻量宿主：面向 `local-agent` 和 `team-monolith`，单机、最小依赖、低运维 |
 | **host (heavy)** | `packages/host-distributed` | 重型宿主：面向分布式装配，独立扩缩容、读写隔离、服务边界 |
 | **service** | `packages/service-*` | 七个逻辑服务包，每个对应一个 bounded context（见下表） |
@@ -386,7 +387,7 @@ flowchart TB
 | 包 | 服务角色 | bounded context |
 |------|------|------|
 | `packages/service-gateway` | `gateway` | 唯一外部入口：请求聚合、限流、外部认证边界、稳定 API surface |
-| `packages/service-identity-access` | `identity-access` | auth、session、access-keys、membership、team、RBAC decision |
+| `packages/service-identity-access` | `identity-access` | 已落地：auth、session、access-keys、membership、team、RBAC decision |
 | `packages/service-knowledge-read` | `knowledge-read` | retrieval、query trace、只读投影、status read model、读缓存 |
 | `packages/service-knowledge-write` | `knowledge-write` | 已落地：knowledge/trap/skill/lifecycle/maintenance/decay 的 authoritative 写路径 |
 | `packages/service-candidate-ingestion` | `candidate-ingestion` | 已落地：candidate intake、归一化、去重预处理、候选状态推进、内部 route/service 装配 |

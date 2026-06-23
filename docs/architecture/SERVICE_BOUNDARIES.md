@@ -5,7 +5,7 @@
 ## Status
 
 - Phase: 1 (logical boundaries defined; physical process separation incremental)
-- Execution milestone: `packages/service-knowledge-write`, `packages/service-governance-review`, and `packages/service-candidate-ingestion` are the first three physical `service-*` splits now implemented in-repo.
+- Execution milestone: `packages/service-knowledge-write`, `packages/service-governance-review`, `packages/service-candidate-ingestion`, and `packages/service-identity-access` are the first four physical `service-*` splits now implemented in-repo.
 
 ## Service Inventory
 
@@ -47,6 +47,8 @@
 ### identity-access
 
 **Purpose**: Centralized auth, identity, and access control.
+
+**Implementation status**: Implemented as `packages/service-identity-access`. `packages/host-distributed` now acts only as the thin host adapter for the identity service process, and `packages/server` remains a compatibility shell rather than the authoritative identity assembly owner.
 
 **Responsibilities**:
 - User authentication (login, session creation, session validation)

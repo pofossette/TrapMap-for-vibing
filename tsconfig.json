@@ -4,6 +4,7 @@
     { "path": "./packages/contracts" },
     { "path": "./packages/client-core" },
     { "path": "./packages/backend-core" },
+    { "path": "./packages/service-identity-access" },
     { "path": "./packages/service-candidate-ingestion" },
     { "path": "./packages/service-governance-review" },
     { "path": "./packages/service-knowledge-write" },

@@ -114,7 +114,7 @@ pnpm --filter @trapmap/host-distributed dev:governance-review
 pnpm --filter @trapmap/host-distributed dev:job-runtime
 ```
 
-Acceptance note: `@trapmap/host-distributed` now consumes built outputs from all three implemented service packages in multi-process acceptance flows. Run `pnpm --filter @trapmap/service-knowledge-write build`, `pnpm --filter @trapmap/service-governance-review build`, and `pnpm --filter @trapmap/service-candidate-ingestion build` before standalone `tsx`-driven distributed acceptance if you are not using the packaged `test:distributed-acceptance` entrypoint.
+Acceptance note: `@trapmap/host-distributed` now consumes built outputs from all four implemented service packages in multi-process acceptance flows. Run `pnpm --filter @trapmap/service-identity-access build`, `pnpm --filter @trapmap/service-knowledge-write build`, `pnpm --filter @trapmap/service-governance-review build`, and `pnpm --filter @trapmap/service-candidate-ingestion build` before standalone `tsx`-driven distributed acceptance if you are not using the packaged `test:distributed-acceptance` entrypoint.
 
 Verification:
 
@@ -161,7 +161,7 @@ Microservice-split readiness uses a stricter operational gate. Before starting a
 
 For distributed split readiness, treat `pnpm test:distributed-acceptance` as the default automation gate for Gate 2 / Gate 3 / Gate 5. It is the canonical automated proof that `@trapmap/host-distributed` owns the write forwarding path, preserves auth/error semantics across real internal HTTP hops, and exposes job-runtime ownership through the gateway surface.
 
-Readiness has now moved into execution for the first three physical splits: `knowledge-write` is the first bounded context extracted into a dedicated `service-*` package, `governance-review` is the second, and `candidate-ingestion` is the third. All three preserve the existing gateway-only external access model and shared PostgreSQL posture.
+Readiness has now moved into execution for the first four physical splits: `knowledge-write` is the first bounded context extracted into a dedicated `service-*` package, `governance-review` is the second, `candidate-ingestion` is the third, and `identity-access` is the fourth. All four preserve the existing gateway-only external access model and shared PostgreSQL posture.
 
 This gate now includes `packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`, which starts multiple independent Node processes for gateway, identity-access, candidate-ingestion, governance-review, knowledge-write, and job-runtime. That closeout covers:
 

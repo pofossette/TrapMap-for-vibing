@@ -125,6 +125,7 @@ Each service represents a bounded context with a clear authoritative ownership b
 - **Authoritative tables**: auth, session, access-key, membership, team tables
 - **Provides to other services**: permission decisions, actor lookups, team resolution
 - **Consumers**: gateway (auth middleware), all other services (authorization checks)
+- **Implementation status**: `packages/service-identity-access` is now the fourth real `service-*` package. `packages/host-distributed` consumes it as a thin host adapter, and `packages/server` remains a compatibility shell rather than the authoritative identity assembly owner.
 
 ### knowledge-read
 

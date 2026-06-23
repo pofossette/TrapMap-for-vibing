@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   CandidateIngestionPort,
+  IdentityAccessPort,
   JobRuntimePort,
   KnowledgeReadPort,
   KnowledgeWritePort,
@@ -10,6 +11,7 @@ import type {
 } from '@trapmap/backend-core';
 import { registerCandidateIngestionRoutes } from '@trapmap/service-candidate-ingestion';
 import { registerGovernanceReviewRoutes } from '@trapmap/service-governance-review';
+import { registerIdentityAccessRoutes } from '@trapmap/service-identity-access';
 import { registerKnowledgeWriteRoutes } from '@trapmap/service-knowledge-write';
 import { createInternalServiceClients } from './internal-client.js';
 import { registerGatewayRoutes } from './routes.js';
@@ -27,22 +29,36 @@ async function listen(app: FastifyInstance): Promise<string> {
   return `http://127.0.0.1:${address.port}`;
 }
 
-function createIdentityApp(headersSeen: Array<Record<string, string | undefined>>) {
-  const app = Fastify();
-  app.post('/internal/auth/validate', async (request, reply) => {
-    headersSeen.push({
-      'x-request-id': request.headers['x-request-id'] as string | undefined,
-      'x-trace-id': request.headers['x-trace-id'] as string | undefined,
-      authorization: request.headers.authorization as string | undefined,
-    });
-    return reply.send({
+function createIdentityModule(): IdentityAccessPort {
+  return {
+    login: vi.fn(async () => ({ sessionToken: 'session-1', userId: 'user-1', handle: 'alice' })),
+    logout: vi.fn(async () => undefined),
+    validateSession: vi.fn(async () => ({
       sessionId: 'session-1',
       userId: 'user-1',
       handle: 'alice',
       activeTeamId: null,
       securityLevel: 1,
+    })),
+    selectTeam: vi.fn(async () => undefined),
+    createTeam: vi.fn(async () => ({ teamId: 'team-1' })),
+    listTeams: vi.fn(async () => []),
+    addMember: vi.fn(async () => undefined),
+    updateMember: vi.fn(async () => undefined),
+    provisionAccessKey: vi.fn(async () => ({ keyId: 'key-1', token: 'token-1' })),
+  };
+}
+
+function createIdentityApp(headersSeen: Array<Record<string, string | undefined>>) {
+  const app = Fastify();
+  app.addHook('onRequest', async (request) => {
+    headersSeen.push({
+      'x-request-id': request.headers['x-request-id'] as string | undefined,
+      'x-trace-id': request.headers['x-trace-id'] as string | undefined,
+      authorization: request.headers.authorization as string | undefined,
     });
   });
+  registerIdentityAccessRoutes(app, createIdentityModule());
   return app;
 }
 

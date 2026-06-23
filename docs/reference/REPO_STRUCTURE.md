@@ -25,6 +25,7 @@ Historical plans, temporary notes, audits, and human-authored reports must live 
 - `packages/skills/`: project-level Skill artifacts.
 - `packages/client-core/`: Browser-compatible shared gateway transport layer (HTTP SDK, session contract, error model). Used by CLI and future web panel.
 - `packages/backend-core/`: Host-agnostic backend core kernel (runtime capability model, port interfaces, use-case patterns, bounded-context modules, invocation model). Used by all hosts.
+- `packages/service-identity-access/`: Fourth implemented service package. Owns identity-access service assembly, internal route registration, and bounded-context auth/session/team/member/access-key wiring.
 - `packages/service-knowledge-write/`: First implemented service package. Owns knowledge-write service assembly, internal route registration, and bounded-context write wiring for knowledge/trap/skill/lifecycle/maintenance/decay.
 - `packages/service-governance-review/`: Second implemented service package. Owns governance-review service assembly, internal route registration, and bounded-context review/feedback wiring while delegating lifecycle mutations to knowledge-write.
 - `packages/service-candidate-ingestion/`: Third implemented service package. Owns candidate-ingestion service assembly, internal route registration, and bounded-context candidate wiring while delegating result publication to knowledge-write.
