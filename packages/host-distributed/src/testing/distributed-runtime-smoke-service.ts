@@ -1,8 +1,8 @@
 import Fastify from 'fastify';
 
 import {
-  InvocationError,
   type CandidateIngestionPort,
+  InvocationError,
   type JobRuntimePort,
   type KnowledgeWritePort,
   type ReviewPort,

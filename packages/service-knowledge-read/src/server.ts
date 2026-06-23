@@ -1,7 +1,7 @@
+import type { KnowledgeReadPort } from '@trapmap/backend-core';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { type KnowledgeReadPort } from '@trapmap/backend-core';
 
-import { createKnowledgeReadServiceModule, type KnowledgeReadDeps } from './deps.js';
+import { type KnowledgeReadDeps, createKnowledgeReadServiceModule } from './deps.js';
 import { registerKnowledgeReadRoutes } from './routes.js';
 
 export interface KnowledgeReadServiceConfig {

@@ -13,10 +13,10 @@ import type {
   IdentityAccessPort,
   JobRuntimePort,
   KnowledgeReadPort,
-  ReviewPort,
   KnowledgeWritePort,
   RepositoryPorts,
   ResolvedRuntimeDeployment,
+  ReviewPort,
 } from '@trapmap/backend-core';
 import {
   buildRouteSurfaceSummary,

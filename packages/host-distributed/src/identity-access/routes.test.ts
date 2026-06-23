@@ -1,7 +1,7 @@
-import Fastify from 'fastify';
-import { describe, expect, it, vi } from 'vitest';
 import type { IdentityAccessPort } from '@trapmap/backend-core';
 import { registerIdentityAccessRoutes } from '@trapmap/service-identity-access';
+import Fastify from 'fastify';
+import { describe, expect, it, vi } from 'vitest';
 
 function createModule(overrides: Partial<IdentityAccessPort> = {}): IdentityAccessPort {
   return {

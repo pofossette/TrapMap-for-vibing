@@ -1,6 +1,6 @@
+import { InvocationError, type ReviewPort } from '@trapmap/backend-core';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
-import { InvocationError, type ReviewPort } from '@trapmap/backend-core';
 import { registerGovernanceReviewRoutes } from './routes.js';
 
 function createModule(overrides: Partial<ReviewPort> = {}): ReviewPort {

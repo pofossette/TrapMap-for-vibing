@@ -1,7 +1,7 @@
 import { InvocationError, type KnowledgeWritePort } from '@trapmap/backend-core';
 import type {
-  InternalServiceClients,
   InternalRequestOptions,
+  InternalServiceClients,
 } from '@trapmap/host-distributed/gateway/internal-client.js';
 
 function mapRemoteError(body: unknown, fallback: string): InvocationError {

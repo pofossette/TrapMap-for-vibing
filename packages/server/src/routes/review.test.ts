@@ -1,9 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-
 import { buildServer } from '@trapmap/server/app.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('review routes', () => {
   let app: FastifyInstance;
@@ -154,7 +153,7 @@ describe('review routes', () => {
     });
   });
 
-  it('returns capability_unsupported for review writes', async () => {
+  it('applies review writes', async () => {
     const before = await store.snapshot();
 
     const response = await app.inject({
@@ -170,20 +169,23 @@ describe('review routes', () => {
       },
     });
 
-    expect(response.statusCode).toBe(501);
+    expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
-      code: 'capability_unsupported',
-      message: expect.stringContaining('compatibility shell'),
+      entry: expect.objectContaining({
+        id: entryId,
+        lifecycleState: 'approved',
+      }),
     });
 
     const after = await store.snapshot();
     const beforeEntry = before.knowledgeEntries.find((item) => item.id === entryId);
     const afterEntry = after.knowledgeEntries.find((item) => item.id === entryId);
-    expect(afterEntry?.lifecycleState).toBe(beforeEntry?.lifecycleState);
-    expect(afterEntry?.reviewHistory).toEqual(beforeEntry?.reviewHistory);
+    expect(beforeEntry?.lifecycleState).toBe('agent-pass');
+    expect(afterEntry?.lifecycleState).toBe('approved');
+    expect(afterEntry?.reviewHistory).toHaveLength(1);
   });
 
-  it('still enforces review permission before compatibility-shell rejection', async () => {
+  it('still enforces review permission before applying writes', async () => {
     let limitedSessionId = '';
 
     await store.transact(async (data) => {

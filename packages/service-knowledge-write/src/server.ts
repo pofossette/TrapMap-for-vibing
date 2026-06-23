@@ -1,6 +1,6 @@
 import type { KnowledgeWritePort } from '@trapmap/backend-core';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { createKnowledgeWriteServiceModule, type KnowledgeWriteDeps } from './deps.js';
+import { type KnowledgeWriteDeps, createKnowledgeWriteServiceModule } from './deps.js';
 import { registerKnowledgeWriteRoutes } from './routes.js';
 
 export interface KnowledgeWriteServiceConfig {

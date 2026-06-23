@@ -1,6 +1,6 @@
-import { createIdentityAccessModule, type IdentityAccessDeps } from '@trapmap/backend-core';
+import { type IdentityAccessDeps, createIdentityAccessModule } from '@trapmap/backend-core';
 
-export { type IdentityAccessDeps } from '@trapmap/backend-core';
+export type { IdentityAccessDeps } from '@trapmap/backend-core';
 
 export interface IdentityAccessPortDeps {
   sessionRepo: IdentityAccessDeps['sessionRepo'];

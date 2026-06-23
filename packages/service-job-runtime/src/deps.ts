@@ -1,6 +1,6 @@
-import { createJobRuntimeModule, type JobRuntimeDeps } from '@trapmap/backend-core';
+import { type JobRuntimeDeps, createJobRuntimeModule } from '@trapmap/backend-core';
 
-export { type JobRuntimeDeps } from '@trapmap/backend-core';
+export type { JobRuntimeDeps } from '@trapmap/backend-core';
 
 export interface JobRuntimePortDeps {
   queuePorts: JobRuntimeDeps['queuePorts'];

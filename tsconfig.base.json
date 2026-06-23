@@ -19,7 +19,9 @@
     "skipLibCheck": true,
     "paths": {
       "@trapmap/backend-core": ["./packages/backend-core/src/index.ts"],
+      "@trapmap/backend-core/*": ["./packages/backend-core/src/*"],
       "@trapmap/client-core": ["./packages/client-core/src/index.ts"],
+      "@trapmap/client-core/*": ["./packages/client-core/src/*"],
       "@trapmap/contracts": ["./packages/contracts/src/index.ts"],
       "@trapmap/contracts/evals": ["./packages/contracts/src/domain/evals/index.ts"],
       "@trapmap/contracts/*": ["./packages/contracts/src/*"],
@@ -31,9 +33,14 @@
       "@trapmap/service-job-runtime": ["./packages/service-job-runtime/src/index.ts"],
       "@trapmap/service-knowledge-read": ["./packages/service-knowledge-read/src/index.ts"],
       "@trapmap/service-knowledge-write": ["./packages/service-knowledge-write/src/index.ts"],
+      "@trapmap/host-distributed": ["./packages/host-distributed/src/index.ts"],
+      "@trapmap/host-distributed/*": ["./packages/host-distributed/src/*"],
       "@trapmap/web-panel/*": ["./packages/web-panel/src/*"],
       "@trapmap/host-local": ["./packages/host-local/src/index.ts"],
+      "@trapmap/host-local/*": ["./packages/host-local/src/*"],
+      "@trapmap/server": ["./packages/server/src/app.ts"],
       "@trapmap/server/*": ["./packages/server/src/*"],
+      "@trapmap/cli": ["./packages/cli/src/index.ts"],
       "@trapmap/cli/*": ["./packages/cli/src/*"]
     }
   }

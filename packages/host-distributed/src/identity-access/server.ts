@@ -2,9 +2,9 @@ import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
 import {
+  type IdentityAccessServer,
   createIdentityAccessDeps,
   createIdentityAccessServer as createServiceIdentityAccessServer,
-  type IdentityAccessServer,
 } from '@trapmap/service-identity-access';
 
 export async function createServer(

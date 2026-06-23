@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-const MODULES_DIR = resolve(process.cwd(), 'src/modules');
+const MODULES_DIR = resolve(process.cwd(), 'packages/backend-core/src/modules');
 
 describe('backend-core boundary import guard', () => {
   it('review module does not depend on KnowledgeRepositoryPort directly', () => {

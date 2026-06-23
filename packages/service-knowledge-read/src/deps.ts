@@ -1,10 +1,10 @@
 import {
-  createKnowledgeReadModule,
   type KnowledgeReadDeps,
   type ReadModelProjectionStatus,
+  createKnowledgeReadModule,
 } from '@trapmap/backend-core';
 
-export { type KnowledgeReadDeps } from '@trapmap/backend-core';
+export type { KnowledgeReadDeps } from '@trapmap/backend-core';
 
 export interface KnowledgeReadPortDeps {
   knowledgeRepo: {

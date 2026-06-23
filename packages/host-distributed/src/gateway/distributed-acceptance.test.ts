@@ -110,7 +110,7 @@ function createKnowledgeReadModule(): KnowledgeReadPort {
 }
 
 function createKnowledgeWriteModule(
-  headersSeen: Array<Record<string, string | undefined>>,
+  _headersSeen: Array<Record<string, string | undefined>>,
 ): KnowledgeWritePort {
   return {
     submit: vi.fn(async () => ({ entryId: 'entry-1' })),

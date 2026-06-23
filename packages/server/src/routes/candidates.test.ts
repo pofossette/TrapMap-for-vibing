@@ -1,9 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-
 import { buildServer } from '@trapmap/server/app.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('candidate routes', () => {
   let app: FastifyInstance;
@@ -152,23 +151,60 @@ describe('candidate routes', () => {
     expect(candidate?.manualResult?.decision).toBe('independent');
   });
 
-  it('returns capability_unsupported for apply-resolution', async () => {
+  it('applies resolution when a manual result is attached', async () => {
+    const candidateId = 'candidate_apply_1';
+
+    await store.transact(async (data) => {
+      data.candidateSubmissions.push({
+        id: candidateId,
+        sourceType: 'trap',
+        submittedBy: userId,
+        teamId: null,
+        status: 'duplicate_detected',
+        originalPayload: {
+          trap: {
+            scope: 'global',
+            labels: ['apply'],
+            shortcut: 'Apply Resolution',
+            detail: 'Publish this candidate',
+          },
+        },
+        analysisSnapshot: null,
+        duplicateCase: null,
+        receivedAt: nowIso(),
+        queuedAt: null,
+        analyzingAt: null,
+        completedAt: null,
+        lastError: null,
+        retryCount: 0,
+        manualResult: {
+          decision: 'independent',
+          notes: 'Looks independent',
+          reviewedAt: nowIso(),
+          reviewedBy: userId,
+        },
+      });
+    });
+
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/candidates/candidate_unsupported/apply-resolution',
+      url: `/v1/candidates/${candidateId}/apply-resolution`,
       headers: {
         authorization: `Bearer ${sessionId}`,
       },
     });
 
-    expect(response.statusCode).toBe(501);
+    expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
-      code: 'capability_unsupported',
-      message: expect.stringContaining('compatibility shell'),
+      candidateId,
+      status: 'resolved',
+      outcome: expect.objectContaining({
+        decision: 'independent',
+      }),
     });
   });
 
-  it('still enforces review permission before compatibility-shell rejection', async () => {
+  it('still enforces review permission before applying resolution', async () => {
     let limitedSessionId = '';
 
     await store.transact(async (data) => {

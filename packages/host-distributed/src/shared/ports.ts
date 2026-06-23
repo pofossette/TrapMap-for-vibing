@@ -291,7 +291,7 @@ function createPgCandidateRepo(pool: Pool): CandidateRepositoryPort {
     },
     async attachAnalysis(candidateId, snapshot: AnalysisSnapshot) {
       await pool.query(
-        `UPDATE candidates SET analysis_snapshot = $2, updated_at = NOW() WHERE id = $1`,
+        'UPDATE candidates SET analysis_snapshot = $2, updated_at = NOW() WHERE id = $1',
         [candidateId, JSON.stringify(snapshot)],
       );
       await pool.query(
@@ -317,7 +317,7 @@ function createPgCandidateRepo(pool: Pool): CandidateRepositoryPort {
     },
     async attachDuplicateCase(candidateId, duplicateCase: DuplicateCase) {
       await pool.query(
-        `UPDATE candidates SET duplicate_case = $2, updated_at = NOW() WHERE id = $1`,
+        'UPDATE candidates SET duplicate_case = $2, updated_at = NOW() WHERE id = $1',
         [candidateId, JSON.stringify(duplicateCase)],
       );
       await pool.query(
@@ -372,7 +372,7 @@ function createPgCandidateRepo(pool: Pool): CandidateRepositoryPort {
         submittedAt: new Date().toISOString(),
       };
       await pool.query(
-        `UPDATE candidates SET manual_result = $2, updated_at = NOW() WHERE id = $1`,
+        'UPDATE candidates SET manual_result = $2, updated_at = NOW() WHERE id = $1',
         [candidateId, JSON.stringify(manualResult)],
       );
       await pool.query(

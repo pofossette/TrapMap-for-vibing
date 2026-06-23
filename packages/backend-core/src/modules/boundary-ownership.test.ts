@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { InvocationError } from '@trapmap/backend-core/invocation/invocation-model.js';
 
+import { InvocationError } from '../invocation/invocation-model.js';
 import { createCandidateIngestionModule } from './candidate-ingestion.js';
 import { createGovernanceReviewModule } from './governance-review.js';
 

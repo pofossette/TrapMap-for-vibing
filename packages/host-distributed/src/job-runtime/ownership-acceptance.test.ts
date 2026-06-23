@@ -1,6 +1,6 @@
+import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
 import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
-import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
 
 import { loadServiceConfig } from '../config/index.js';
 

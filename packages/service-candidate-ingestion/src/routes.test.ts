@@ -1,6 +1,6 @@
+import { type CandidateIngestionPort, InvocationError } from '@trapmap/backend-core';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
-import { InvocationError, type CandidateIngestionPort } from '@trapmap/backend-core';
 import { registerCandidateIngestionRoutes } from './routes.js';
 
 function createModule(overrides: Partial<CandidateIngestionPort> = {}): CandidateIngestionPort {

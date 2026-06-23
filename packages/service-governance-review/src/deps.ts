@@ -1,6 +1,6 @@
-import { createGovernanceReviewModule, type GovernanceReviewDeps } from '@trapmap/backend-core';
+import { type GovernanceReviewDeps, createGovernanceReviewModule } from '@trapmap/backend-core';
 
-export { type GovernanceReviewDeps } from '@trapmap/backend-core';
+export type { GovernanceReviewDeps } from '@trapmap/backend-core';
 
 export interface GovernanceReviewPortDeps {
   knowledgeWrite: GovernanceReviewDeps['knowledgeWrite'];

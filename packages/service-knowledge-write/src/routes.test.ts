@@ -1,6 +1,6 @@
+import { InvocationError, type KnowledgeWritePort } from '@trapmap/backend-core';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
-import { InvocationError, type KnowledgeWritePort } from '@trapmap/backend-core';
 import { registerKnowledgeWriteRoutes } from './routes.js';
 
 function createModule(overrides: Partial<KnowledgeWritePort> = {}): KnowledgeWritePort {

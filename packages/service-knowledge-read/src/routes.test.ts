@@ -1,5 +1,5 @@
-import Fastify from 'fastify';
 import { InvocationError, type KnowledgeReadPort } from '@trapmap/backend-core';
+import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 
 import { registerKnowledgeReadRoutes } from './routes.js';

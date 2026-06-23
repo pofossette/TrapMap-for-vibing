@@ -9,8 +9,8 @@ import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
 import {
-  createKnowledgeWriteServer as createServiceKnowledgeWriteServer,
   type KnowledgeWriteServer,
+  createKnowledgeWriteServer as createServiceKnowledgeWriteServer,
 } from '@trapmap/service-knowledge-write';
 import { createKnowledgeWriteDeps } from './ports.js';
 

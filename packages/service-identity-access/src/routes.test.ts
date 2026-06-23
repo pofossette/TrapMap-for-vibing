@@ -1,6 +1,6 @@
+import { type IdentityAccessPort, InvocationError } from '@trapmap/backend-core';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
-import { InvocationError, type IdentityAccessPort } from '@trapmap/backend-core';
 import { registerIdentityAccessRoutes } from './routes.js';
 
 function createModule(overrides: Partial<IdentityAccessPort> = {}): IdentityAccessPort {

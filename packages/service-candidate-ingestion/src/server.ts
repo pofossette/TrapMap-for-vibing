@@ -1,6 +1,6 @@
 import type { CandidateIngestionPort } from '@trapmap/backend-core';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { createCandidateIngestionServiceModule, type CandidateIngestionDeps } from './deps.js';
+import { type CandidateIngestionDeps, createCandidateIngestionServiceModule } from './deps.js';
 import { registerCandidateIngestionRoutes } from './routes.js';
 
 export interface CandidateIngestionServiceConfig {

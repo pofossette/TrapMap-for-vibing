@@ -1,7 +1,7 @@
-import Fastify from 'fastify';
-import { describe, expect, it, vi } from 'vitest';
 import type { CandidateIngestionPort } from '@trapmap/backend-core';
 import { registerCandidateIngestionRoutes } from '@trapmap/service-candidate-ingestion';
+import Fastify from 'fastify';
+import { describe, expect, it, vi } from 'vitest';
 
 function createModule(overrides: Partial<CandidateIngestionPort> = {}): CandidateIngestionPort {
   return {

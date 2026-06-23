@@ -13,8 +13,8 @@ import type {
   IdentityAccessPort,
   JobRuntimePort,
   KnowledgeReadPort,
-  ReviewPort,
   KnowledgeWritePort,
+  ReviewPort,
 } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
 import type { ResolvedRuntimeDeployment } from '@trapmap/backend-core';

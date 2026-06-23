@@ -1,12 +1,12 @@
+import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
+import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
+import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
+import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
+import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
 import {
   createCandidateIngestionDeps,
   createCandidateIngestionServer,
 } from '@trapmap/service-candidate-ingestion';
-import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
-import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
-import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
-import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
-import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
 
 export interface CandidateIngestionServer {
   app: Awaited<ReturnType<typeof createCandidateIngestionServer>>['app'];

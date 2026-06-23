@@ -1,6 +1,6 @@
 import type { ReviewPort } from '@trapmap/backend-core';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { createGovernanceReviewServiceModule, type GovernanceReviewDeps } from './deps.js';
+import { type GovernanceReviewDeps, createGovernanceReviewServiceModule } from './deps.js';
 import { registerGovernanceReviewRoutes } from './routes.js';
 
 export interface GovernanceReviewServiceConfig {

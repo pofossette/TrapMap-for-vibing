@@ -1,6 +1,6 @@
-import { createCandidateIngestionModule, type CandidateIngestionDeps } from '@trapmap/backend-core';
+import { type CandidateIngestionDeps, createCandidateIngestionModule } from '@trapmap/backend-core';
 
-export { type CandidateIngestionDeps } from '@trapmap/backend-core';
+export type { CandidateIngestionDeps } from '@trapmap/backend-core';
 
 export interface CandidateIngestionPortDeps {
   candidateRepo: CandidateIngestionDeps['candidateRepo'];

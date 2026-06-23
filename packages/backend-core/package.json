@@ -14,25 +14,49 @@
       "types": "./dist/runtime/index.d.ts",
       "import": "./dist/runtime/index.js"
     },
+    "./runtime/*": {
+      "types": "./dist/runtime/*.d.ts",
+      "import": "./dist/runtime/*.js"
+    },
     "./ports": {
       "types": "./dist/ports/index.d.ts",
       "import": "./dist/ports/index.js"
+    },
+    "./ports/*": {
+      "types": "./dist/ports/*.d.ts",
+      "import": "./dist/ports/*.js"
     },
     "./use-cases": {
       "types": "./dist/use-cases/index.d.ts",
       "import": "./dist/use-cases/index.js"
     },
+    "./use-cases/*": {
+      "types": "./dist/use-cases/*.d.ts",
+      "import": "./dist/use-cases/*.js"
+    },
     "./modules": {
       "types": "./dist/modules/index.d.ts",
       "import": "./dist/modules/index.js"
+    },
+    "./modules/*": {
+      "types": "./dist/modules/*.d.ts",
+      "import": "./dist/modules/*.js"
     },
     "./invocation": {
       "types": "./dist/invocation/index.d.ts",
       "import": "./dist/invocation/index.js"
     },
+    "./invocation/*": {
+      "types": "./dist/invocation/*.d.ts",
+      "import": "./dist/invocation/*.js"
+    },
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.js"
+    },
+    "./testing/*": {
+      "types": "./dist/testing/*.d.ts",
+      "import": "./dist/testing/*.js"
     }
   },
   "scripts": {
