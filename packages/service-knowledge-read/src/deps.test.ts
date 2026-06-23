@@ -1,8 +1,30 @@
-import { describe, expect, it, vi } from 'vitest';
+import type {
+  KnowledgeReadDeps as BackendKnowledgeReadDeps,
+  KnowledgeReadPort,
+} from '@trapmap/backend-core';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import { createKnowledgeReadDeps, createKnowledgeReadServiceModule } from './deps.js';
 
 describe('knowledge-read deps', () => {
+  it('exports backend-core aligned deps and module contract', () => {
+    const knowledgeRepo = {
+      getById: vi.fn(async () => null),
+      listByFilter: vi.fn(async () => []),
+    };
+    const retrievalQuery = {
+      search: vi.fn(async () => ({ results: [] })),
+    };
+
+    const deps = createKnowledgeReadDeps({ knowledgeRepo, retrievalQuery });
+    const module = createKnowledgeReadServiceModule(deps);
+
+    expectTypeOf(deps).toMatchTypeOf<BackendKnowledgeReadDeps>();
+    expectTypeOf<BackendKnowledgeReadDeps>().toMatchTypeOf(deps);
+    expectTypeOf(module).toMatchTypeOf<KnowledgeReadPort>();
+    expectTypeOf<KnowledgeReadPort>().toMatchTypeOf(module);
+  });
+
   it('limits direct-backed projection reads to getById and listMine while search stays on retrievalQuery', async () => {
     const knowledgeRepo = {
       getById: vi.fn(async (entryId: string) => ({
