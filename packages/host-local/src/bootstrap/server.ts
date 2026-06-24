@@ -14,10 +14,10 @@ import type {
   TeamLookupPort,
 } from '@trapmap/backend-core';
 import {
+  type RuntimeWorkerHandle,
   shouldBootApiRuntime,
   shouldBootOutboxWorker,
   shouldBootTaskWorker,
-  type RuntimeWorkerHandle,
 } from '@trapmap/backend-core';
 import { buildServer } from '@trapmap/server';
 import type { FastifyInstance } from 'fastify';
@@ -86,6 +86,7 @@ export interface BootstrapResult {
 interface ManagedRuntime {
   taskWorker: RuntimeWorkerHandle | null;
   outboxWorker: RuntimeWorkerHandle | null;
+  stop(): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -144,8 +145,8 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<Bootstr
 function createManagedRuntime(options: {
   deploymentPreset: DeploymentPreset;
   runtimeMode: RuntimeMode | undefined;
-  taskQueue: BootstrapOptions['taskQueue'];
-  outbox: BootstrapOptions['outbox'];
+  taskQueue: TaskQueuePort | null;
+  outbox: OutboxPort | null;
   dispatchOutboxEvent: BootstrapOptions['dispatchOutboxEvent'];
   taskHandlers: BootstrapOptions['taskHandlers'];
 }): ManagedRuntime {
@@ -153,19 +154,32 @@ function createManagedRuntime(options: {
   const ownsTaskWork = shouldBootTaskWorker(effectiveRuntimeMode);
   const ownsOutboxWork = shouldBootOutboxWorker(effectiveRuntimeMode);
   if (!shouldBootApiRuntime(effectiveRuntimeMode) && !ownsTaskWork && !ownsOutboxWork) {
-    return { taskWorker: null, outboxWorker: null };
+    return {
+      taskWorker: null,
+      outboxWorker: null,
+      async stop() {},
+    };
   }
 
   const taskWorker =
     ownsTaskWork && options.taskQueue
-      ? createInProcessTaskWorker(options.taskQueue, {
-          enabled: true,
-          ownsWork: true,
-          handlers: options.taskHandlers,
-        })
+      ? (() => {
+          const workerConfig: {
+            enabled: true;
+            ownsWork: true;
+            handlers?: TaskHandler<unknown>[];
+          } = {
+            enabled: true,
+            ownsWork: true,
+          };
+          if (options.taskHandlers !== undefined) {
+            workerConfig.handlers = options.taskHandlers;
+          }
+          return createInProcessTaskWorker(options.taskQueue, workerConfig);
+        })()
       : null;
   const outboxWorker = ownsOutboxWork
-    ? createInProcessOutboxDispatcher(options.outbox, {
+    ? createInProcessOutboxDispatcher(options.outbox ?? null, {
         enabled: true,
         ownsWork: true,
         dispatch:
@@ -180,7 +194,10 @@ function createManagedRuntime(options: {
     taskWorker,
     outboxWorker,
     async stop() {
-      await Promise.all([taskWorker?.stop(), outboxWorker?.stop()]);
+      await Promise.all([
+        taskWorker?.stop() ?? Promise.resolve(),
+        outboxWorker?.stop() ?? Promise.resolve(),
+      ]);
     },
   };
 }

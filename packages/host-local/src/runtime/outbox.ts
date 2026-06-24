@@ -70,7 +70,7 @@ export function createInProcessOutboxDispatcher(
 
   const run = async () => {
     while (running) {
-      const events = await outbox.claimBatch(merged.batchSize);
+      const events = (await outbox.claimBatch(merged.batchSize)) ?? [];
       if (events.length === 0) {
         await sleep(merged.pollIntervalMs);
         continue;
