@@ -47,7 +47,7 @@
     "test:deployment-smoke": "vitest run packages/server/src/config.test.ts packages/server/src/app.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/lib/runtime/deployment-profile.test.ts packages/server/src/lib/runtime/service-topology.test.ts packages/cli/src/lib/http.test.ts packages/cli/src/commands/auth.test.ts packages/cli/src/commands/retrieval.test.ts",
     "test": "vitest run",
     "test:file": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-vitest-file.ts",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --reporter=dot --silent=true",
     "typecheck": "tsc -b --pretty false",
     "eval:retrieval": "pnpm exec tsx --tsconfig tsconfig.base.json evals/retrieval/run.ts",
     "eval:retrieval:smoke": "pnpm exec tsx --tsconfig tsconfig.base.json evals/retrieval/run.ts --tier smoke",

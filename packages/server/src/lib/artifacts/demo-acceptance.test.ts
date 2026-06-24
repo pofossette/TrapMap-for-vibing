@@ -434,36 +434,38 @@ describe('Round 4+ Demo Acceptance', () => {
         unresolved: [] as string[],
       };
 
-      console.log(`\n${'='.repeat(72)}`);
-      console.log('Round 4+ Demo Acceptance Record');
-      console.log('='.repeat(72));
-      console.log(`Date:        ${record.date}`);
-      console.log(`Database:    ${record.database}`);
-      console.log(`Fixture:     ${record.fixture}`);
-      console.log(`Result:      ${record.result}`);
-      console.log('-'.repeat(72));
-      console.log('Verified Links:');
-      for (const link of record.verifiedLinks) {
-        console.log(`  [OK] ${link}`);
-      }
-      console.log('-'.repeat(72));
-      console.log('Governance Fields Verified:');
-      for (const field of record.governanceFieldsVerified) {
-        console.log(`  [OK] ${field}`);
-      }
-      console.log('-'.repeat(72));
-      console.log('File Types Verified:');
-      for (const ft of record.fileTypesVerified) {
-        console.log(`  [OK] ${ft}`);
-      }
-      if (record.unresolved.length > 0) {
+      if (process.env.CI !== 'true') {
+        console.log(`\n${'='.repeat(72)}`);
+        console.log('Round 4+ Demo Acceptance Record');
+        console.log('='.repeat(72));
+        console.log(`Date:        ${record.date}`);
+        console.log(`Database:    ${record.database}`);
+        console.log(`Fixture:     ${record.fixture}`);
+        console.log(`Result:      ${record.result}`);
         console.log('-'.repeat(72));
-        console.log('Unresolved:');
-        for (const u of record.unresolved) {
-          console.log(`  [!!] ${u}`);
+        console.log('Verified Links:');
+        for (const link of record.verifiedLinks) {
+          console.log(`  [OK] ${link}`);
         }
+        console.log('-'.repeat(72));
+        console.log('Governance Fields Verified:');
+        for (const field of record.governanceFieldsVerified) {
+          console.log(`  [OK] ${field}`);
+        }
+        console.log('-'.repeat(72));
+        console.log('File Types Verified:');
+        for (const ft of record.fileTypesVerified) {
+          console.log(`  [OK] ${ft}`);
+        }
+        if (record.unresolved.length > 0) {
+          console.log('-'.repeat(72));
+          console.log('Unresolved:');
+          for (const u of record.unresolved) {
+            console.log(`  [!!] ${u}`);
+          }
+        }
+        console.log(`${'='.repeat(72)}\n`);
       }
-      console.log(`${'='.repeat(72)}\n`);
 
       expect(artifact).toBeDefined();
       expect(artifact.lifecycleState).toBe('approved');

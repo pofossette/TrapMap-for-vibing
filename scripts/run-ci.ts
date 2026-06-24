@@ -128,7 +128,7 @@ function runStep(step: StepDefinition, label: string): Promise<StepResult> {
     const start = Date.now();
     const options: SpawnOptions = {
       stdio: ['ignore', 'inherit', 'pipe'],
-      env: { ...process.env, ...step.env },
+      env: { ...process.env, CI: process.env.CI ?? 'true', ...step.env },
     };
 
     const child: ChildProcess = spawn(step.command, step.args, options);

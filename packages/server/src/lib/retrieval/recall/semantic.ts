@@ -274,8 +274,7 @@ export async function getBatchEmbeddings(
           const text = buildEmbeddingText(entry);
           const vector = await generateEmbedding(text);
           return { entryId: entry.id, vector };
-        } catch (error) {
-          console.error(`Failed to compute embedding for entry ${entry.id}:`, error);
+        } catch (_error) {
           return { entryId: entry.id, vector: null };
         }
       }),

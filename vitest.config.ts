@@ -10,6 +10,7 @@ const fastifyEntry = resolve(
 
 export default defineConfig({
   test: {
+    silent: process.env.CI ? 'passed-only' : false,
     projects: [
       {
         test: {
