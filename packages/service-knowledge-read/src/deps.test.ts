@@ -25,7 +25,7 @@ describe('knowledge-read deps', () => {
     expectTypeOf<KnowledgeReadPort>().toMatchTypeOf(module);
   });
 
-  it('limits direct-backed projection reads to getById and listMine while search stays on retrievalQuery', async () => {
+  it('routes knowledge reads through derived projections while search stays on retrievalQuery', async () => {
     const knowledgeRepo = {
       getById: vi.fn(async (entryId: string) => ({
         id: entryId,
@@ -75,7 +75,7 @@ describe('knowledge-read deps', () => {
     });
   });
 
-  it('keeps the phase-2 projection status contract closed over direct-backed and derived surfaces', async () => {
+  it('keeps the phase-2 projection status contract closed over derived surfaces', async () => {
     const deps = createKnowledgeReadDeps({
       knowledgeRepo: {
         getById: vi.fn(async () => null),
@@ -93,15 +93,15 @@ describe('knowledge-read deps', () => {
       status.surfaces.find((surface) => surface.surface === 'knowledge-entry:getById'),
     ).toMatchObject({
       owner: 'knowledge-read',
-      source: 'temporary-direct-backed-projection',
-      fallback: 'direct-authoritative-read',
+      source: 'derived-projection',
+      fallback: 'none',
     });
     expect(
       status.surfaces.find((surface) => surface.surface === 'knowledge-entry:listMine'),
     ).toMatchObject({
       owner: 'knowledge-read',
-      source: 'temporary-direct-backed-projection',
-      fallback: 'direct-authoritative-read',
+      source: 'derived-projection',
+      fallback: 'none',
     });
     expect(status.surfaces.find((surface) => surface.surface === 'retrieval-search')).toMatchObject(
       {
@@ -125,6 +125,13 @@ describe('knowledge-read deps', () => {
     expect(status.surfaces.find((surface) => surface.surface === 'review-queue')).toMatchObject({
       owner: 'governance-review',
       source: 'governance-read-model',
+      fallback: 'none',
+    });
+    expect(
+      status.surfaces.find((surface) => surface.surface === 'maintenance-entries'),
+    ).toMatchObject({
+      owner: 'governance-review',
+      source: 'derived-projection',
       fallback: 'none',
     });
   });

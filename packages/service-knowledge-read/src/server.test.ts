@@ -22,7 +22,7 @@ describe('knowledge-read server', () => {
           listMine: vi.fn(async () => []),
           getStatus: vi.fn(async () => ({
             phase: 'phase-2-boundary-closed' as const,
-            source: 'mixed-phase-2-read-side-contract',
+            source: 'derived-phase-2-read-side-contract',
             consistency: 'eventual' as const,
             freshness: 'current' as const,
             fallback: 'none' as const,

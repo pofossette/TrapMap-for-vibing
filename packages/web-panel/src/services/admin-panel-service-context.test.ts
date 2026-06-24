@@ -30,6 +30,24 @@ describe('admin-panel service context', () => {
     });
   });
 
+  it('defaults to the real API client when mode is explicitly real', async () => {
+    vi.stubEnv('VITE_ADMIN_PANEL_API_MODE', 'real');
+
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ authenticated: false, accounts: [] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    const { getAdminPanelApi } = await import('./admin-panel-service-context.js');
+    await getAdminPanelApi().loadSession();
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it('uses the mock API only when explicitly requested', async () => {
     vi.stubEnv('VITE_ADMIN_PANEL_API_MODE', 'mock');
 

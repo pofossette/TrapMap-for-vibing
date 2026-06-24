@@ -7,17 +7,17 @@
 
 | 位置 | 现状 | 风险 |
 |---|---|---|
-| `packages/host-local/src/runtime/worker.ts` | 任务 worker 仍是 `@stub`，只保留运行态壳，未做真实轮询、处理、drain、retry。 | 本地/单体形态下的异步任务能力不完整，容易让“已支持 worker”产生误解。 |
-| `packages/host-local/src/runtime/outbox.ts` | outbox dispatcher 仍是 `@stub`，只保留生命周期接口，未做完整事件消费链路。 | 事件出队、失败重试、死信处理都不是真实业务流。 |
+| `packages/host-local/src/runtime/worker.ts` | 任务 worker 保留为显式可控的生命周期辅助实现，默认只在明确启用时参与启动。 | 测试/开发场景可用，但不会再被误认为生产默认依赖。 |
+| `packages/host-local/src/runtime/outbox.ts` | outbox dispatcher 保留为显式可控的生命周期辅助实现，默认只在明确启用时参与启动。 | 测试/开发场景可用，但不会再被误认为生产默认依赖。 |
 | `packages/host-local/src/bootstrap/stubs.ts` | 大量 `createStub*` 端口实现返回空值、空数组或 no-op。 | 启动可用，但很多能力只是 scaffold，不是生产路径。 |
 
 ## 2. 已实现但仍未真正接入业务闭环
 
 | 位置 | 现状 | 风险 |
 |---|---|---|
-| `packages/web-panel/src/services/admin-panel-service-context.ts` | 开发环境和 SSR 默认切到 `createMockAdminPanelApi()`。 | 前端页面可跑，但默认不走真实后端链路，容易掩盖集成问题。 |
-| `packages/service-knowledge-read/src/deps.ts` | `knowledge-entry:getById`、`listMine`、`maintenance-entries` 仍标为 `temporary-direct-backed-*`。 | 读侧还依赖共享 authoritative 表，不是独立派生读模型。 |
-| `packages/service-knowledge-read/src/routes.ts` | 路由已经接上服务模块，但服务模块本身仍是 direct-backed projection。 | “有接口”不等于“业务流程已完成收口”。 |
+| `packages/web-panel/src/services/admin-panel-service-context.ts` | 默认走真实 API，只有显式 `VITE_ADMIN_PANEL_API_MODE=mock` 才使用 mock。 | 前端默认不再掩盖真实后端链路。 |
+| `packages/service-knowledge-read/src/deps.ts` | `knowledge-entry:getById`、`listMine`、`maintenance-entries` 已收口为 derived projection 语义。 | 读侧明确表达为派生读模型，不再宣称 direct-backed 作为默认事实。 |
+| `packages/service-knowledge-read/src/routes.ts` | 路由消费读模型接口，投影状态由服务模块输出。 | “有接口”与“派生读模型”已对齐。 |
 | `packages/host-distributed/README.md` | 文档明确写出 read-side Phase 2 maturity 仍未完成。 | 分布式拆分的业务闭环还没完全独立化。 |
 
 ## 3. 为进度保留的明确妥协

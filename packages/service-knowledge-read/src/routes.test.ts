@@ -18,29 +18,23 @@ function createProjectionStatus() {
         surface: 'knowledge-entry:getById',
         owner: 'knowledge-read' as const,
         providedBy: 'knowledge-read' as const,
-        source: 'temporary-direct-backed-projection' as const,
-        authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
+        source: 'derived-projection' as const,
+        authoritativeSource: 'knowledge-read derived entry projection',
         consistency: 'strong' as const,
         freshness: 'current' as const,
-        fallback: 'direct-authoritative-read' as const,
-        notes:
-          'Entry lookup is still served through an explicit projection adapter over shared authoritative tables.',
-        exitCriteria:
-          'Replace direct-backed adapter with derived projection ownership before projection-only read maturity.',
+        fallback: 'none' as const,
+        notes: 'Entry lookup is served from the knowledge-read derived projection.',
       },
       {
         surface: 'knowledge-entry:listMine',
         owner: 'knowledge-read' as const,
         providedBy: 'knowledge-read' as const,
-        source: 'temporary-direct-backed-projection' as const,
-        authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
+        source: 'derived-projection' as const,
+        authoritativeSource: 'knowledge-read derived entry projection',
         consistency: 'strong' as const,
         freshness: 'current' as const,
-        fallback: 'direct-authoritative-read' as const,
-        notes:
-          'Owned by knowledge-read as a temporary direct-backed projection for operator and user entry lists.',
-        exitCriteria:
-          'Move list queries onto derived read projection and remove direct authoritative reads.',
+        fallback: 'none' as const,
+        notes: 'List queries are served from the knowledge-read derived projection.',
       },
       {
         surface: 'retrieval-search',
@@ -92,16 +86,13 @@ function createProjectionStatus() {
         surface: 'maintenance-entries',
         owner: 'governance-review' as const,
         providedBy: 'governance-review' as const,
-        source: 'temporary-direct-backed-operator-projection' as const,
-        authoritativeSource:
-          'knowledge-write maintenance truth plus governance operator read model',
+        source: 'derived-projection' as const,
+        authoritativeSource: 'governance-review derived maintenance read model',
         consistency: 'strong' as const,
         freshness: 'current' as const,
-        fallback: 'direct-authoritative-read' as const,
+        fallback: 'none' as const,
         notes:
-          'Operator-facing maintenance entry views remain temporary direct-backed governance projections in Phase 2.',
-        exitCriteria:
-          'Converge operator maintenance views onto governance-owned derived projections with no direct reads.',
+          'Operator-facing maintenance entry views are served from a governance-owned derived projection.',
       },
       {
         surface: 'decay-entries-search',
@@ -135,7 +126,7 @@ function createModule(): KnowledgeReadPort {
 }
 
 describe('knowledge-read routes', () => {
-  it('serves direct-backed entry lookup through getById with 404 semantics', async () => {
+  it('serves derived entry lookup through getById with 404 semantics', async () => {
     const app = Fastify();
     const module = createModule();
     registerKnowledgeReadRoutes(app, module);
@@ -166,7 +157,7 @@ describe('knowledge-read routes', () => {
     await app.close();
   });
 
-  it('serves listMine as a temporary direct-backed projection with query passthrough', async () => {
+  it('serves listMine as a derived projection with query passthrough', async () => {
     const app = Fastify();
     const module = createModule();
     vi.mocked(module.listMine).mockResolvedValueOnce([
@@ -275,7 +266,7 @@ describe('knowledge-read routes', () => {
     await app.close();
   });
 
-  it('keeps direct-backed entry reads distinct from derived retrieval and governance surfaces', async () => {
+  it('keeps derived entry reads distinct from retrieval and governance surfaces', async () => {
     const module = createModule();
     const status = await module.getProjectionStatus();
 
@@ -300,13 +291,13 @@ describe('knowledge-read routes', () => {
     );
 
     expect(entryGetById).toMatchObject({
-      source: 'temporary-direct-backed-projection',
-      fallback: 'direct-authoritative-read',
+      source: 'derived-projection',
+      fallback: 'none',
       owner: 'knowledge-read',
     });
     expect(entryListMine).toMatchObject({
-      source: 'temporary-direct-backed-projection',
-      fallback: 'direct-authoritative-read',
+      source: 'derived-projection',
+      fallback: 'none',
       owner: 'knowledge-read',
     });
     expect(retrievalSurface).toMatchObject({
@@ -332,7 +323,7 @@ describe('knowledge-read routes', () => {
     });
     expect(maintenanceSurface).toMatchObject({
       owner: 'governance-review',
-      source: 'temporary-direct-backed-operator-projection',
+      source: 'derived-projection',
     });
   });
 

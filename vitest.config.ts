@@ -74,6 +74,37 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'host-local',
+          root: './packages/host-local',
+          include: ['src/**/*.test.ts'],
+        },
+        resolve: {
+          alias: [
+            {
+              find: /^@trapmap\/server\/lib\/(.+)\.js$/,
+              replacement: resolve(__dirname, './packages/server/src/lib/$1.ts'),
+            },
+            {
+              find: '@trapmap/server',
+              replacement: resolve(__dirname, './packages/server/src/index.ts'),
+            },
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+            {
+              find: '@trapmap/backend-core',
+              replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
+            },
+            {
+              find: 'fastify',
+              replacement: fastifyEntry,
+            },
+          ],
+        },
+      },
+      {
+        test: {
           name: 'backend-core',
           root: './packages/backend-core',
           include: ['src/**/*.test.ts'],
@@ -282,6 +313,31 @@ export default defineConfig({
             {
               find: 'fastify',
               replacement: fastifyEntry,
+            },
+          ],
+        },
+      },
+      {
+        test: {
+          name: 'web-panel',
+          root: './packages/web-panel',
+          include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+          environment: 'jsdom',
+          globals: true,
+        },
+        resolve: {
+          alias: [
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+            {
+              find: '@trapmap/client-core',
+              replacement: resolve(__dirname, './packages/client-core/src/index.ts'),
+            },
+            {
+              find: /^@trapmap\/web-panel\/(.+)$/,
+              replacement: resolve(__dirname, './packages/web-panel/src/$1'),
             },
           ],
         },

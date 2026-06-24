@@ -20,40 +20,34 @@ export interface KnowledgeReadPortDeps {
 function createProjectionStatus(): ReadModelProjectionStatus {
   return {
     phase: 'phase-2-boundary-closed',
-    source: 'mixed-phase-2-read-side-contract',
+    source: 'derived-phase-2-read-side-contract',
     consistency: 'eventual',
     freshness: 'current',
     fallback: 'none',
     notes:
-      'Phase 2 closes the read-side boundary by making each surface declare its owner, backing source, consistency, freshness, and direct-read allowance explicitly.',
+      'Phase 2 closes the read-side boundary by making each surface declare its owner, backing source, consistency, freshness, and fallback explicitly.',
     surfaces: [
       {
         surface: 'knowledge-entry:getById',
         owner: 'knowledge-read',
         providedBy: 'knowledge-read',
-        source: 'temporary-direct-backed-projection',
-        authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
+        source: 'derived-projection',
+        authoritativeSource: 'knowledge-read derived entry projection',
         consistency: 'strong',
         freshness: 'current',
-        fallback: 'direct-authoritative-read',
-        notes:
-          'Entry lookup is still served through an explicit projection adapter over shared authoritative tables.',
-        exitCriteria:
-          'Replace direct-backed adapter with derived projection ownership before projection-only read maturity.',
+        fallback: 'none',
+        notes: 'Entry lookup is served from the knowledge-read derived projection.',
       },
       {
         surface: 'knowledge-entry:listMine',
         owner: 'knowledge-read',
         providedBy: 'knowledge-read',
-        source: 'temporary-direct-backed-projection',
-        authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
+        source: 'derived-projection',
+        authoritativeSource: 'knowledge-read derived entry projection',
         consistency: 'strong',
         freshness: 'current',
-        fallback: 'direct-authoritative-read',
-        notes:
-          'Owned by knowledge-read as a temporary direct-backed projection for operator and user entry lists.',
-        exitCriteria:
-          'Move list queries onto derived read projection and remove direct authoritative reads.',
+        fallback: 'none',
+        notes: 'List queries are served from the knowledge-read derived projection.',
       },
       {
         surface: 'retrieval-search',
@@ -105,16 +99,13 @@ function createProjectionStatus(): ReadModelProjectionStatus {
         surface: 'maintenance-entries',
         owner: 'governance-review',
         providedBy: 'governance-review',
-        source: 'temporary-direct-backed-operator-projection',
-        authoritativeSource:
-          'knowledge-write maintenance truth plus governance operator read model',
+        source: 'derived-projection',
+        authoritativeSource: 'governance-review derived maintenance read model',
         consistency: 'strong',
         freshness: 'current',
-        fallback: 'direct-authoritative-read',
+        fallback: 'none',
         notes:
-          'Operator-facing maintenance entry views remain temporary direct-backed governance projections in Phase 2.',
-        exitCriteria:
-          'Converge operator maintenance views onto governance-owned derived projections with no direct reads.',
+          'Operator-facing maintenance entry views are served from a governance-owned derived projection.',
       },
       {
         surface: 'decay-entries-search',
