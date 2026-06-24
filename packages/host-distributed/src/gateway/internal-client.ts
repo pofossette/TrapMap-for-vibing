@@ -106,6 +106,7 @@ export interface InternalServiceClients {
     getById(entryId: string): Promise<ServiceResponse>;
     listMine(userId: string, teamId?: string): Promise<ServiceResponse>;
     search(body: { query: string; teamId?: string; limit?: number }): Promise<ServiceResponse>;
+    getProjectionStatus(): Promise<ServiceResponse>;
   };
   knowledgeWrite: {
     submit(
@@ -287,6 +288,11 @@ export function createInternalServiceClients(urls: InternalServiceUrls): Interna
         }),
       search: (body) =>
         callInternalService(`${urls.knowledgeRead}/internal/retrieval/search`, 'POST', body),
+      getProjectionStatus: () =>
+        callInternalService(
+          `${urls.knowledgeRead}/internal/knowledge-read/projection-status`,
+          'GET',
+        ),
     },
     knowledgeWrite: {
       submit: (body, options) =>

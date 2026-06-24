@@ -257,6 +257,19 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     }
   });
 
+  app.get(
+    '/v1/knowledge/projection-status',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const result = await clients.knowledgeRead.getProjectionStatus();
+        return forwardResponse(reply, result);
+      } catch (err: unknown) {
+        request.log.error({ err }, 'knowledge-read projection-status failed');
+        return reply.status(502).send({ error: 'Knowledge service unavailable', kind: 'upstream' });
+      }
+    },
+  );
+
   app.get('/v1/knowledge/:entryId', async (request: FastifyRequest, reply: FastifyReply) => {
     const params = request.params as { entryId: string };
     try {

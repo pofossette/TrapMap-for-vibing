@@ -30,6 +30,17 @@ function createClients(): InternalServiceClients {
       getById: vi.fn(async () => ({ status: 200, body: { id: 'entry-1' } })),
       listMine: vi.fn(async () => ({ status: 200, body: [] })),
       search: vi.fn(async () => ({ status: 200, body: { results: [] } })),
+      getProjectionStatus: vi.fn(async () => ({
+        status: 200,
+        body: {
+          phase: 'phase-2-boundary-closed',
+          source: 'mixed-phase-2-read-side-contract',
+          consistency: 'eventual',
+          freshness: 'current',
+          fallback: 'none',
+          surfaces: [],
+        },
+      })),
     },
     knowledgeWrite: {
       submit: vi.fn(async () => ({ status: 201, body: { id: 'entry-1' } })),
@@ -135,6 +146,21 @@ describe('registerGatewayRoutes', () => {
     });
     expect(getResponse.statusCode).toBe(200);
     expect(clients.knowledgeWrite.getTrap).toHaveBeenCalledWith('trap-1');
+    await app.close();
+  });
+
+  it('forwards projection status requests to knowledge-read', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/knowledge/projection-status',
+      headers: { authorization: 'Bearer session' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(clients.knowledgeRead.getProjectionStatus).toHaveBeenCalled();
     await app.close();
   });
 
