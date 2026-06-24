@@ -18,23 +18,25 @@ function createProjectionStatus() {
         surface: 'knowledge-entry:getById',
         owner: 'knowledge-read' as const,
         providedBy: 'knowledge-read' as const,
-        source: 'derived-projection' as const,
-        authoritativeSource: 'knowledge-read derived entry projection',
+        source: 'temporary-direct-backed-projection' as const,
+        authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
         consistency: 'strong' as const,
         freshness: 'current' as const,
-        fallback: 'none' as const,
-        notes: 'Entry lookup is served from the knowledge-read derived projection.',
+        fallback: 'direct-authoritative-read' as const,
+        notes: 'Entry lookup is a temporary direct-backed read surface owned by knowledge-read.',
+        exitCriteria: 'replace with a derived entry projection owned by knowledge-read',
       },
       {
         surface: 'knowledge-entry:listMine',
         owner: 'knowledge-read' as const,
         providedBy: 'knowledge-read' as const,
-        source: 'derived-projection' as const,
-        authoritativeSource: 'knowledge-read derived entry projection',
+        source: 'temporary-direct-backed-projection' as const,
+        authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
         consistency: 'strong' as const,
         freshness: 'current' as const,
-        fallback: 'none' as const,
-        notes: 'List queries are served from the knowledge-read derived projection.',
+        fallback: 'direct-authoritative-read' as const,
+        notes: 'List queries are a temporary direct-backed read surface owned by knowledge-read.',
+        exitCriteria: 'replace with a derived entry projection owned by knowledge-read',
       },
       {
         surface: 'retrieval-search',
@@ -157,7 +159,7 @@ describe('knowledge-read routes', () => {
     await app.close();
   });
 
-  it('serves listMine as a derived projection with query passthrough', async () => {
+  it('serves listMine as a temporary direct-backed projection with query passthrough', async () => {
     const app = Fastify();
     const module = createModule();
     vi.mocked(module.listMine).mockResolvedValueOnce([
@@ -266,7 +268,7 @@ describe('knowledge-read routes', () => {
     await app.close();
   });
 
-  it('keeps derived entry reads distinct from retrieval and governance surfaces', async () => {
+  it('keeps temporary direct-backed entry reads distinct from retrieval and governance surfaces', async () => {
     const module = createModule();
     const status = await module.getProjectionStatus();
 
@@ -291,13 +293,13 @@ describe('knowledge-read routes', () => {
     );
 
     expect(entryGetById).toMatchObject({
-      source: 'derived-projection',
-      fallback: 'none',
+      source: 'temporary-direct-backed-projection',
+      fallback: 'direct-authoritative-read',
       owner: 'knowledge-read',
     });
     expect(entryListMine).toMatchObject({
-      source: 'derived-projection',
-      fallback: 'none',
+      source: 'temporary-direct-backed-projection',
+      fallback: 'direct-authoritative-read',
       owner: 'knowledge-read',
     });
     expect(retrievalSurface).toMatchObject({

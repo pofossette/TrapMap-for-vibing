@@ -84,7 +84,7 @@
 **Phase 2 boundary contract**:
 - `GET /internal/knowledge-read/projection-status` is the single status surface for read-side maturity, freshness, fallback, and consistency reporting.
 - The gateway also forwards this contract at `GET /v1/knowledge/projection-status` for external operator visibility.
-- `knowledge-entry:getById` and `knowledge-entry:listMine` are still temporary direct-backed projections owned by `knowledge-read`. They are explicitly allowed to read shared authoritative tables until the derived entry projection replaces them.
+- `knowledge-entry:getById` and `knowledge-entry:listMine` are still temporary direct-backed projections owned by `knowledge-read`. They are explicitly allowed to read shared authoritative tables until a derived entry projection replaces them.
 - `retrieval-search`, retrieval query trace, search indexes, and cache metadata are derived read-side surfaces owned by `knowledge-read`; they are not route-local direct SQL assembly.
 - `review-queue` remains owned and served by `governance-review`, not by `knowledge-read`.
 - `maintenance entries` remain governance/operator-facing read surfaces. If they still read shared authoritative state in Phase 2, they are treated as temporary direct-backed operator projections owned by `governance-review`.

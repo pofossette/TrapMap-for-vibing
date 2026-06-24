@@ -25,7 +25,7 @@ describe('knowledge-read deps', () => {
     expectTypeOf<KnowledgeReadPort>().toMatchTypeOf(module);
   });
 
-  it('routes knowledge reads through derived projections while search stays on retrievalQuery', async () => {
+  it('routes knowledge reads through temporary direct-backed projections while search stays on retrievalQuery', async () => {
     const knowledgeRepo = {
       getById: vi.fn(async (entryId: string) => ({
         id: entryId,
@@ -93,15 +93,15 @@ describe('knowledge-read deps', () => {
       status.surfaces.find((surface) => surface.surface === 'knowledge-entry:getById'),
     ).toMatchObject({
       owner: 'knowledge-read',
-      source: 'derived-projection',
-      fallback: 'none',
+      source: 'temporary-direct-backed-projection',
+      fallback: 'direct-authoritative-read',
     });
     expect(
       status.surfaces.find((surface) => surface.surface === 'knowledge-entry:listMine'),
     ).toMatchObject({
       owner: 'knowledge-read',
-      source: 'derived-projection',
-      fallback: 'none',
+      source: 'temporary-direct-backed-projection',
+      fallback: 'direct-authoritative-read',
     });
     expect(status.surfaces.find((surface) => surface.surface === 'retrieval-search')).toMatchObject(
       {
