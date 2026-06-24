@@ -95,12 +95,15 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
       },
       context: startupContext,
       operation: async () => {
-        await ensureCapsuleVectorIndex(pool);
-        return 'ok';
+        return (await ensureCapsuleVectorIndex(pool)) ? 'ok' : 'skipped';
       },
       fallbackValue: 'degraded',
     });
-    if (capsuleIndexResult.ok && !capsuleIndexResult.degraded) {
+    if (
+      capsuleIndexResult.ok &&
+      !capsuleIndexResult.degraded &&
+      capsuleIndexResult.value === 'ok'
+    ) {
       app.log.info('Capsule vector HNSW index ensured');
     }
 

@@ -148,13 +148,23 @@ export function createPgCapsuleVectorRecall(config: PgCapsuleVectorConfig) {
  *
  * @param pool - PostgreSQL connection pool
  */
-export async function ensureCapsuleVectorIndex(pool: Pool): Promise<void> {
+export async function ensureCapsuleVectorIndex(pool: Pool): Promise<boolean> {
+  const tableCheck = await pool.query<{ regclass: string | null }>(`
+    SELECT to_regclass('public.skill_artifact_capsule_embeddings') AS regclass
+  `);
+
+  if (tableCheck.rows[0]?.regclass === null) {
+    return false;
+  }
+
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_capsule_embeddings_vector_hnsw
     ON skill_artifact_capsule_embeddings
     USING hnsw (embedding vector_cosine_ops)
     WITH (m = 16, ef_construction = 64)
   `);
+
+  return true;
 }
 
 /**
