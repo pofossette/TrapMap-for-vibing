@@ -13,6 +13,7 @@
 | 文件 | 主题 |
 |---|---|
 | `badcase-feedback-loop.md` | badcase 回流闭环 |
+| `component-replacement-plan.md` | 组件替换计划：通用工具、缓存能力、队列产品化评估 |
 | `backend-engineering-optimization-plan.md` | 后端工程化优化计划 |
 | `nestjs-service-evolution-00-target-architecture.md` | NestJS 长期目标架构与迁移边界冻结 |
 | `nestjs-service-evolution-01-host-and-contract-foundation.md` | Nest 宿主、配置与 contract 基础收口 |

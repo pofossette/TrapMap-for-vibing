@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { Logger } from '@nestjs/common';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { InvocationError } from '@trapmap/backend-core';
 
@@ -33,6 +34,10 @@ describe('AllExceptionFilter', () => {
   const requestContext = new RequestContextService();
 
   const filter = new AllExceptionFilter(requestContext);
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it('should map InvocationError.notFound to 404', () => {
     const host = createMockHost(0, null);
@@ -133,6 +138,7 @@ describe('AllExceptionFilter', () => {
   it('should map unknown errors to 500 internal_error', () => {
     const host = createMockHost(0, null);
     const error = new Error('something broke');
+    const loggerSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
 
     filter.catch(error, host as never);
 
@@ -140,5 +146,6 @@ describe('AllExceptionFilter', () => {
     const body = host.getBody() as Record<string, unknown>;
     expect(body['code']).toBe('internal_error');
     expect(body['kind']).toBe('internal');
+    expect(loggerSpy).toHaveBeenCalledWith('Unhandled exception', error);
   });
 });

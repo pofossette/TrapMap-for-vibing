@@ -34,7 +34,7 @@ export class AuthGuard implements CanActivate {
 
     // Phase 1: token presence check only.
     // Full session validation will be wired when identity-access joins the Nest host.
-    (request as Record<string, unknown>)['authToken'] = token.trim();
+    request.authToken = token.trim();
     return true;
   }
 }

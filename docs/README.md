@@ -182,7 +182,8 @@ deployment flexibility 最小验证矩阵：
 
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
-- [NestJS 与服务演进根计划](../plan.md) — 当前根级执行索引，跟踪长期 NestJS / modular monolith / 微服务迁移阶段
+- [组件替换根计划](../plan.md) — 当前根级执行索引，跟踪“哪些手搓基础设施值得引包替换”的阶段顺序
+- [组件替换细则](todos/component-replacement-plan.md) — 通用工具、缓存内核、队列产品化评估的唯一活跃细则入口
 - [Badcase 回流待办](todos/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
 - [后端工程化优化计划](todos/backend-engineering-optimization-plan.md) — 队列、MQ、微服务化与观测演进方向
 - [NestJS 目标架构冻结](todos/nestjs-service-evolution-00-target-architecture.md) — 长期目标、边界、保留与退役决策
@@ -228,7 +229,7 @@ deployment flexibility 最小验证矩阵：
 
 ### 归档文档
 - [归档文档](archived/) — 历史参考文档
-- [归档实施计划](archived/archived-plans/) — 已完成和过时的设计计划，保留作历史参考（含 [Phase 0–3 阶段归档](archived/archived-plans/plan-2026-06-26-nestjs-phase0-to-phase3-archived.md)）
+- [归档实施计划](archived/archived-plans/) — 已完成和过时的设计计划，保留作历史参考（含 [Phase 0–3 阶段归档](archived/archived-plans/plan-2026-06-26-nestjs-phase0-to-phase3-archived.md) 和 [NestJS Phase 4 根索引归档](archived/archived-plans/plan-2026-06-26-nestjs-service-evolution-phase4-index-archived.md)）
 
 ## 安全模型
 

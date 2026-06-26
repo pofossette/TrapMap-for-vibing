@@ -33,6 +33,7 @@ interface StepResult {
   outputLines: number;
   /** Raw tail of stderr for diagnostics (last N lines) */
   tail: string;
+  suppressedNoiseCount: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -95,6 +96,12 @@ const C_YELLOW = '\x1b[33m';
 const C_CYAN = '\x1b[36m';
 const C_DIM = '\x1b[2m';
 
+const STDERR_NOISE_PATTERNS = [/^Sourcemap for ".*" points to missing source files$/] as const;
+
+function isKnownStderrNoise(line: string): boolean {
+  return STDERR_NOISE_PATTERNS.some((pattern) => pattern.test(line));
+}
+
 function dim(text: string): string {
   return `${C_DIM}${text}${C_RESET}`;
 }
@@ -134,10 +141,23 @@ function runStep(step: StepDefinition, label: string): Promise<StepResult> {
     const child: ChildProcess = spawn(step.command, step.args, options);
 
     const stderrChunks: Buffer[] = [];
+    let stderrBuffer = '';
+    let suppressedNoiseCount = 0;
 
     child.stderr?.on('data', (chunk: Buffer) => {
       stderrChunks.push(chunk);
-      process.stderr.write(chunk);
+      stderrBuffer += chunk.toString('utf8');
+
+      const lines = stderrBuffer.split('\n');
+      stderrBuffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        if (isKnownStderrNoise(line)) {
+          suppressedNoiseCount += 1;
+          continue;
+        }
+        process.stderr.write(`${line}\n`);
+      }
     });
 
     child.on('close', (exitCode, signal) => {
@@ -154,6 +174,7 @@ function runStep(step: StepDefinition, label: string): Promise<StepResult> {
         durationMs,
         outputLines: stderrLines.length,
         tail,
+        suppressedNoiseCount,
       });
     });
   });
@@ -214,10 +235,14 @@ async function main(): Promise<void> {
 
   const passed = results.filter((r) => r.success).length;
   const failed = results.filter((r) => !r.success).length;
+  const suppressedNoiseTotal = results.reduce((sum, r) => sum + r.suppressedNoiseCount, 0);
   const tallyColor = allPassed ? C_GREEN : C_RED;
   console.log(
     `  ${tallyColor}${C_BOLD}${passed} passed${C_RESET}${failed > 0 ? `  ${C_RED}${C_BOLD}${failed} failed${C_RESET}` : ''}`,
   );
+  if (suppressedNoiseTotal > 0) {
+    console.log(`  ${dim(`suppressed ${suppressedNoiseTotal} known stderr noise line(s)`)}`);
+  }
   console.log('');
 
   if (failed > 0) {

@@ -8,6 +8,7 @@ import 'fastify';
 
 declare module 'fastify' {
   interface FastifyRequest {
+    authToken?: string;
     startTime?: number;
   }
 }

@@ -73,12 +73,16 @@ export class RemoteKnowledgeReadAdapter implements KnowledgeReadPort {
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
     try {
-      const response = await globalThis.fetch(url, {
+      const requestInit: RequestInit = {
         method,
         headers,
-        body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
-      });
+      };
+      if (body !== undefined) {
+        requestInit.body = JSON.stringify(body);
+      }
+
+      const response = await globalThis.fetch(url, requestInit);
       return response;
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {

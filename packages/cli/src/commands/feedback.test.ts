@@ -12,6 +12,12 @@ import * as prompts from '@trapmap/cli/lib/prompts.js';
 import { registerFeedbackAdminCommands } from './feedback-admin.js';
 import { registerFeedbackCommands } from './feedback.js';
 
+function createSilentCommand(): Command {
+  return new Command().configureOutput({
+    writeErr: () => {},
+  });
+}
+
 // Mock the dependencies
 vi.mock('../lib/http.js', () => ({
   apiRequest: vi.fn(),
@@ -127,7 +133,7 @@ describe('CLI feedback command', () => {
     it('rejects invalid entry type', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const program = new Command();
+      const program = createSilentCommand();
       registerFeedbackCommands(program, { allowSubmit: true });
 
       await expect(

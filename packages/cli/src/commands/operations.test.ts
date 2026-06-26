@@ -33,6 +33,12 @@ import { registerOperationsCommands } from './operations.js';
 const mockedApiRequest = vi.mocked(apiRequest);
 const mockedLoadCliState = vi.mocked(loadCliState);
 
+function createSilentCommand(): Command {
+  return new Command().configureOutput({
+    writeErr: () => {},
+  });
+}
+
 // Type for mock API call arguments
 interface MockCallArgs {
   body: {
@@ -1233,7 +1239,7 @@ describe('Phase 2: Input validation', () => {
   describe('deactivate --reason validation', () => {
     it('rejects reason over 500 characters', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const p = new Command();
+      const p = createSilentCommand();
       registerOperationsCommands(p, {
         allowImport: false,
         allowExport: false,
@@ -1279,7 +1285,7 @@ describe('Phase 2: Input validation', () => {
   describe('edit --required-level validation', () => {
     it('rejects float values for required-level', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const p = new Command();
+      const p = createSilentCommand();
       registerOperationsCommands(p, {
         allowImport: false,
         allowExport: false,
@@ -1301,7 +1307,7 @@ describe('Phase 2: Input validation', () => {
 
     it('rejects negative values for required-level', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const p = new Command();
+      const p = createSilentCommand();
       registerOperationsCommands(p, {
         allowImport: false,
         allowExport: false,
@@ -1417,7 +1423,7 @@ describe('Phase 85: Thin router delegation', () => {
 
 describe('fm-agent freeze: live gaps', () => {
   it('deactivate: validates reason length between 1 and 500 characters', async () => {
-    const p = new Command();
+    const p = createSilentCommand();
     p.exitOverride((err) => {
       throw err;
     });
@@ -1495,7 +1501,7 @@ describe('fm-agent freeze: live gaps', () => {
     ).rejects.toThrow(/between 1 and 500/);
 
     // Empty reason should be rejected
-    const p2 = new Command();
+    const p2 = createSilentCommand();
     p2.exitOverride((err) => {
       throw err;
     });
@@ -1520,7 +1526,7 @@ describe('fm-agent freeze: live gaps', () => {
   });
 
   it('edit: validates requiredLevel is a non-negative integer', async () => {
-    const p = new Command();
+    const p = createSilentCommand();
     p.exitOverride((err) => {
       throw err;
     });

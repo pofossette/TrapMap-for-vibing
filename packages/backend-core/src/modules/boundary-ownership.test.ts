@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { InvocationError } from '../invocation/invocation-model.js';
 import { createCandidateIngestionModule } from '../candidate-ingestion/index.js';
 import { createGovernanceReviewModule } from '../governance-review/index.js';
+import { InvocationError } from '../invocation/invocation-model.js';
 
 describe('service boundary ownership', () => {
   it('review decisions delegate final lifecycle writes to knowledge-write', async () => {

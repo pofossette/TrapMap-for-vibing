@@ -1,10 +1,10 @@
 import {
-  normalizeBadcaseTaxonomy,
   type AuditEvent,
   type BadcaseTaxonomy,
   type DecayAwareListItem,
   type FeedbackFailureClassification,
   type FeedbackListItem,
+  normalizeBadcaseTaxonomy,
 } from '@trapmap/contracts';
 
 import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';

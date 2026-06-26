@@ -6,8 +6,7 @@
  * source of truth. This bridge only composes — it never re-declares schema.
  */
 
-import type { ServerConfig } from '@trapmap/server';
-import { loadConfig } from '@trapmap/server';
+import { loadConfig, type ServerConfig } from '@trapmap/server/config.js';
 
 export interface NestConfigBridge {
   serverConfig: ServerConfig;

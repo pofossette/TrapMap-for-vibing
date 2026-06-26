@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { badcaseTaxonomySchema } from '../enum-types/index.js';
 import {
   compatibleScriptActivationPolicySchema,
   skillArtifactFileKindSchema,
@@ -19,7 +20,6 @@ import {
   sha256HexSchema,
 } from './common.js';
 import { evidenceLevelSchema, evidenceSourceTypeSchema } from './evidence.js';
-import { badcaseTaxonomySchema } from '../enum-types/index.js';
 import { feedbackFailureClassificationSchema } from './feedback.js';
 import {
   agentReviewResultSchema,

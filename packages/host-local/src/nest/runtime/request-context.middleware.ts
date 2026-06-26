@@ -2,7 +2,7 @@ import type { NestMiddleware } from '@nestjs/common';
 import { Inject, Injectable } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-import type { ServerConfig } from '@trapmap/server';
+import type { ServerConfig } from '@trapmap/server/config.js';
 
 import { SERVER_CONFIG_TOKEN } from '../config/config-bridge.js';
 import {

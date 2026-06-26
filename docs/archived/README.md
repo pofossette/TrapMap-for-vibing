@@ -15,6 +15,7 @@
 | `reports/doc-drift-audit-report-2026-05-28.md` | 2026-05-28 | 文档漂移审计报告，已从旧 `docs/archive/` 合并 |
 | `reports/doc-drift-audit-report-2026-05-28-cont.md` | 2026-05-28 | 文档漂移补充报告，已从旧 `docs/archive/` 合并 |
 | `archived-plans/old-plan-back-2026-05-28.md` | 2026-05-28 | 历史根计划备份，已合并到标准 archived-plans |
+| `archived-plans/plan-2026-06-26-nestjs-service-evolution-phase4-index-archived.md` | 2026-06-26 | 根 `plan.md` 已切换为组件替换主线，NestJS / 服务演进索引退回历史参考 |
 
 ## 归档原则
 

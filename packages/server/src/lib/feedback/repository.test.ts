@@ -1,9 +1,9 @@
-import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { JsonStore, createEmptyStoreData } from '@trapmap/server/lib/store.js';
 import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   type FeedbackRepository,
   InMemoryFeedbackRepository,
@@ -53,11 +53,11 @@ describe('InMemoryFeedbackRepository', () => {
   let repo: FeedbackRepository;
   let storePath: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     storePath = getUniqueStorePath('inmem');
     store = new JsonStore(storePath);
     // Initialize empty store
-    store.transact((d) => {
+    await store.transact((d) => {
       Object.assign(d, createEmptyStoreData());
     });
     repo = new InMemoryFeedbackRepository(store);
@@ -190,10 +190,10 @@ describe('createFeedbackRepository factory', () => {
   let store: JsonStore;
   let storePath: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     storePath = getUniqueStorePath('factory');
     store = new JsonStore(storePath);
-    store.transact((d) => {
+    await store.transact((d) => {
       Object.assign(d, createEmptyStoreData());
     });
   });
@@ -208,4 +208,10 @@ describe('createFeedbackRepository factory', () => {
     const repo = createFeedbackRepository({ store });
     expect(repo).toBeInstanceOf(InMemoryFeedbackRepository);
   });
+});
+
+afterAll(() => {
+  if (existsSync(tempDir)) {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
 });

@@ -13,7 +13,7 @@ export class LoggingMiddleware implements NestMiddleware {
   use(req: FastifyRequest, res: FastifyReply, next: () => void): void {
     const start = Date.now();
 
-    res.on('finish', () => {
+    res.raw.on('finish', () => {
       const ctx = this.requestContext.get();
       const duration = Date.now() - start;
       const requestId = ctx?.requestId ?? '-';
