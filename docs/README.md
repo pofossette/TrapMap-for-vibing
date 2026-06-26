@@ -11,6 +11,14 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 - 运行模型固定为 `embedded/local-agent`、`team-monolith`、`distributed` 三档，其中 `embedded` 是当前 `local-agent` 的长期产品语义。
 - `docs/todos/` 现在承担根 `plan.md` 链接的阶段细则与待推进议题；`docs/plans/` 默认只保留历史参考或被根计划显式重新激活的长期资料。
 
+Phase 1 Nest 宿主试点（进行中）：
+
+- 首个试点固定为 `gateway + knowledge-read`；`identity-access` 因 auth contract drift 延后。
+- Nest 宿主当前仍是 opt-in（`pnpm --filter @trapmap/host-local dev:nest`），不直接替换默认 Fastify 入口。
+- contracts Zod-first / route-manifest-first 主线已冻结；OpenAPI 仅为派生产物。
+- `in-process` / `remote` 双 adapter 语义已确定；轻后端默认走 `in-process`。
+- 详见 [`docs/todos/nestjs-service-evolution-01-host-and-contract-foundation.md`](todos/nestjs-service-evolution-01-host-and-contract-foundation.md)。
+
 ## 系统架构
 
 ```mermaid

@@ -86,6 +86,10 @@ export default defineConfig({
               replacement: resolve(__dirname, './packages/server/src/lib/$1.ts'),
             },
             {
+              find: /^@trapmap\/server\/(.+)\.js$/,
+              replacement: resolve(__dirname, './packages/server/src/$1.ts'),
+            },
+            {
               find: '@trapmap/server',
               replacement: resolve(__dirname, './packages/server/src/index.ts'),
             },
@@ -96,6 +100,10 @@ export default defineConfig({
             {
               find: '@trapmap/backend-core',
               replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
+            },
+            {
+              find: '@trapmap/service-knowledge-read',
+              replacement: resolve(__dirname, './packages/service-knowledge-read/src/index.ts'),
             },
             {
               find: 'fastify',

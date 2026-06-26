@@ -22,6 +22,7 @@
     "dev:host-local": "pnpm --filter @trapmap/host-local dev",
     "dev:host-local:local-agent": "TRAPMAP_DEPLOYMENT_PROFILE=local-agent pnpm --filter @trapmap/host-local dev",
     "dev:host-local:team-monolith": "TRAPMAP_DEPLOYMENT_PROFILE=team-monolith pnpm --filter @trapmap/host-local dev",
+    "dev:host-local:nest": "pnpm --filter @trapmap/host-local dev:nest",
     "dev:host-distributed": "pnpm --filter @trapmap/host-distributed dev",
     "dev:host-distributed:gateway": "pnpm --filter @trapmap/host-distributed start:gateway",
     "dev:host-distributed:identity-access": "pnpm --filter @trapmap/host-distributed start:identity-access",

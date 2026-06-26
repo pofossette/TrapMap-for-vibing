@@ -21,6 +21,15 @@ Phase 1 边界收敛补充事实：
 - `packages/host-local` 与 `packages/host-distributed` 当前承载宿主装配、HTTP/worker transport 和 concrete port wiring；它们消费 `backend-core` 契约，不重新定义业务真相。
 - `packages/host-distributed` 当前承载 authoritative candidate resolution、review decision、maintenance batch 与 decay batch 的最终写编排。
 
+Phase 1 Nest 宿主试点补充事实：
+
+- 首个 Nest 试点固定为 `gateway + knowledge-read`；`identity-access` 因 auth contract drift 延后到后续阶段。
+- Nest 代码落点固定在 `packages/host-local/src/nest/`，目录职责：`bootstrap/main`（NestFactory + FastifyAdapter）、`app.module`（根 module graph）、`gateway/`（外部 controller）、`knowledge-read/`（首个 bounded-context module）、`adapters/`（in-process / remote provider factory）、`config/`（ConfigModule bridge）、`runtime/`（request context、exception filter、validation pipe、auth guard、logging middleware）。
+- Nest controller 不重写业务逻辑，只注入 `backend-core` Port 或 service-assembly factory。
+- 异常映射统一为 canonical envelope：`code`、`message`、`kind`、`requestId`、`traceId?`、`details?`；兼容窗口内保留 `error` 作为 `message` 别名。
+- `401` 停留在 guard 层，不扩写进 `InvocationErrorKind`。
+- Nest 宿主当前仍是 opt-in，通过 `pnpm --filter @trapmap/host-local dev:nest` 启动，不直接替换默认 Fastify 入口，直到 Phase 2 切换完成。
+
 Phase 2 异步 contract 补充事实：
 
 - `packages/contracts/src/domain/async.ts` 冻结 async event / shared job 的 idempotency key、retry policy、dead-letter meaning 和 operator action catalog。

@@ -24,6 +24,57 @@
 - 默认开发入口仍需保留轻量本地模式；不能为了分布式目标破坏 `local-agent` 类似的低负担开发体验。
 - 轻后端必须优先支持 `in-process` 调用、单端口、单进程 worker/outbox、最小外部依赖；远端调用、MQ、多进程协调只作为 `distributed` profile 的可选展开。
 
+## 计划使用方式
+
+- 根计划维护四类信息：阶段目标、阶段切换门槛、当前关键路径、细则入口；实现细节、测试记录、遗留债务只写入 `docs/todos/` 子计划。
+- 允许为后续阶段提前做调研或预埋，但不得跳过前一阶段的退出门槛就宣告后续阶段“完成”或切换仓库默认主线。
+- 每个阶段至少要回答四个问题后才能打勾：默认入口是否变化、`in-process` 是否仍成立、共享 contract 是否唯一、旧实现是否已降级为兼容壳或明确例外。
+
+## 当前关键路径
+
+- 当前主线阶段：`Phase 1 宿主与 contract 基础收口`
+- 当前先做：
+  - [ ] 冻结首个 Nest 试点切面：`gateway + knowledge-read`；`identity-access` 因 auth contract drift 延后
+  - [ ] 建立可跑通一条真实链路的 Nest 宿主主入口，验证现有 `backend-core` 可装配
+  - [ ] 收口统一配置、异常映射、认证上下文、日志/trace、validation pipeline
+  - [ ] 冻结 `contracts` Zod-first / route-manifest-first 主线；OpenAPI 只作派生产物
+  - [ ] 为首批 internal port 接入 `in-process` / `remote` 双 adapter，并让轻后端默认仍走 `in-process`
+- 未完成以上关键路径前，不进入 `Phase 2` 的默认主线切换。
+
+## 阶段切换门槛
+
+### `Phase 0 -> Phase 1`
+
+- [x] 长期目标、运行模型、contract 主线、服务样板优先级已冻结
+- [x] 当前 distributed 成熟度基线已定为 `Level 2 / transitional-microservice`
+
+### `Phase 1 -> Phase 2`
+
+- [ ] 至少一个真实开发链路已经跑在 Nest 宿主上，而不是只完成脚手架
+- [ ] 配置、异常、鉴权上下文、生命周期钩子已有统一装配面
+- [ ] 至少一组 internal port 已经证明 `in-process` / `remote` 双 adapter 可共用同一 contract
+- [ ] 旧 `host-local` / `packages/server` / `service-*` 的兼容窗口和例外路径已写清
+
+### `Phase 2 -> Phase 3`
+
+- [ ] `team-monolith` 或等价默认开发主线已切到新的 modular monolith
+- [ ] `embedded/local-agent` 与 `team-monolith` 已共用同一主实现面，只在 capability 和依赖上裁剪
+- [ ] 主要 bounded context 已按 owner 收口成清晰 module boundary，而不是继续靠 route/目录命名假分层
+- [ ] 旧宿主只保留兼容职责，不再承接新的 authoritative orchestration
+
+### `Phase 3 -> Phase 4`
+
+- [ ] `knowledge-write + governance-review` 已完成第一批成熟服务样板 closeout
+- [ ] distributed 至少具备 `Level 3` 所需的大部分 owner/观测/故障语义证据
+- [ ] 单体与 distributed 的双形态验证矩阵已稳定，不再依赖隐含共享状态解释成功路径
+
+### `Phase 4` 关闭门槛
+
+- [ ] 新主线已成为默认开发、测试、部署与文档入口
+- [ ] 旧宿主、重复 transport、重复 client 已退役或只保留有限迁移窗口
+- [ ] 数据 owner、projection owner、runtime owner 和运维判据已经闭环
+- [ ] 根计划只保留索引职责，剩余历史信息已转入归档或对应子计划
+
 ## 阶段索引
 
 ### Phase 0 决策与目标架构冻结
@@ -40,8 +91,15 @@
 
 - [ ] 建立首个 Nest 宿主主线，并验证可装配现有 `backend-core`
 - [ ] 收敛配置、异常映射、HTTP SDK、internal client 的重复实现
-- [ ] 冻结 contract-first 或 OpenAPI 生成路线
+- [ ] 冻结 contract-first 主线；OpenAPI 仅作为共享 contract 的派生导出
 - [ ] 建立 `in-process` / `remote` 双 adapter 策略，让轻后端不依赖跨进程 hop
+- [ ] 完成以下索引级检查点后，才允许进入默认主线切换：
+  - [ ] 选定首个试点：`gateway + knowledge-read`，并标注 `identity-access` 延后的 auth contract 原因
+  - [ ] Nest bootstrap、module graph、生命周期和配置入口已能装配一条真实链路
+  - [ ] 认证上下文、异常过滤、validation、日志/trace 中间件已统一到新宿主装配面
+  - [ ] 外部 SDK 与 internal client 的事实源和维护方式已冻结，不再允许 route-local shadow type 继续扩散
+  - [ ] 轻后端默认走 `in-process`，只有 `distributed` profile 才要求跨进程 hop
+  - [ ] 旧宿主兼容窗口、回退路径、文档入口已经写清
 - 细则：[`docs/todos/nestjs-service-evolution-01-host-and-contract-foundation.md`](docs/todos/nestjs-service-evolution-01-host-and-contract-foundation.md)
 
 ### Phase 2 模块化单体切换
@@ -50,6 +108,13 @@
 - [ ] 让默认开发形态切到 Nest modular monolith
 - [ ] 让旧 `server/host-*` 进入兼容层或迁移窗口
 - [ ] 让 `embedded/local-agent` 成为第一等入口，而不是裁剪过多的特例模式
+- [ ] 以以下顺序推进并记录完成状态：
+  - [ ] `gateway` 宿主外壳与共用 app assembly 稳定
+  - [ ] `identity-access`、`knowledge-read` 先完成基础模块化，支撑鉴权与查询主链路
+  - [ ] `knowledge-write`、`governance-review` 收口为后续成熟服务样板的单体基线
+  - [ ] `candidate-ingestion`、`job-runtime` 最后接入，共享同一 modular-monolith 主实现面
+  - [ ] 本地启动命令、profile、README、testing 入口全部切到新主线
+  - [ ] 旧宿主降级为兼容层后，不再继续接纳新的主实现逻辑
 - 细则：[`docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md`](docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md)
 
 ### Phase 3 服务拆分与异步化
@@ -60,6 +125,13 @@
 - [ ] 保证服务拆分只是部署展开，不反向强迫轻后端承担微服务负载
 - [ ] 至少把一组过渡态服务提升到“成熟服务最小标准”
 - [ ] 第一批成熟服务样板固定为 `knowledge-write + governance-review`
+- [ ] 服务拆分执行顺序固定为：
+  - [ ] 先完成 `knowledge-write + governance-review` 的 preflight、contract 冻结和 owner closeout
+  - [ ] 再补齐 outbox、queue、重试、幂等、死信、投影 lag 的服务级语义与观测
+  - [ ] 然后验证单体/分布式双形态共用同一 contract 与业务真相
+  - [ ] 最后才推进第二批 `candidate-ingestion + knowledge-write`
+  - [ ] `knowledge-read`、`identity-access`、`job-runtime` 继续按“暂缓成熟化、允许配合演进”的口径推进
+  - [ ] 任一拆分若提升了部署复杂度却没有带来 owner/隔离/观测收益，视为未完成
 - 细则：[`docs/todos/nestjs-service-evolution-03-service-extraction-and-async.md`](docs/todos/nestjs-service-evolution-03-service-extraction-and-async.md)
   成熟度评估：[`docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md`](docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md)
 
@@ -69,6 +141,11 @@
 - [ ] 退役旧宿主与冗余 transport 层
 - [ ] 完成文档、测试、索引与归档收尾
 - [ ] 完成“成熟服务” closeout，补齐剩余数据 owner 与运维治理要求
+- [ ] 收尾顺序固定为：
+  - [ ] 先冻结剩余 shared DB 例外、projection owner、runtime owner 和迁移窗口关闭条件
+  - [ ] 再删除或封存旧宿主、重复 transport、重复 SDK/internal client 维护路径
+  - [ ] 再完成 truth source、目录索引、测试矩阵、归档记录回写
+  - [ ] 最后声明新的默认入口、关闭兼容壳新增功能通道，并把未做项转成后续独立计划
 - 细则：[`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)
 
 ## 文档回写要求

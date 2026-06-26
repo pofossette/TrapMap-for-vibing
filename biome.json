@@ -45,7 +45,8 @@
       ".kilo",
       ".opencode",
       "reports",
-      "scripts/codemods"
+      "scripts/codemods",
+      "packages/host-local/src/nest/**/*.ts"
     ]
   },
   "javascript": {

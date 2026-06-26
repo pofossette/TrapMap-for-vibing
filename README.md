@@ -107,6 +107,14 @@ TrapMap 有两类典型使用方式：
 - CLI 与 web-panel 继续只面向统一 gateway；HTTP / internal / event contract 分别统一收敛到 `packages/contracts`、`packages/backend-core` 和共享 async contract
 - 当前 `distributed` 定位已冻结为 `Level 2 / transitional-microservice`，第一批成熟服务样板固定为 `knowledge-write + governance-review`
 
+Phase 1 Nest 宿主试点（进行中）：
+
+- 首个试点固定为 `gateway + knowledge-read`；`identity-access` 因 auth contract drift 延后
+- Nest 宿主当前仍是 opt-in（`pnpm dev:nest`），不直接替换默认 Fastify 入口，直到 Phase 2 切换完成
+- 采用 `FastifyAdapter`，代码落点在 `packages/host-local/src/nest/`
+- contracts Zod-first / route-manifest-first 主线已冻结；OpenAPI 仅为派生产物
+- `in-process` / `remote` 双 adapter 语义已确定：`local-agent` 和 `team-monolith` 默认走 `in-process`，`remote` 仅在 `distributed` 跨 owner 调用启用
+
 ## 快速理解
 
 你可以把 TrapMap 理解为一个给 AI 编程工具使用的“受治理知识层”：
@@ -161,6 +169,12 @@ pnpm dev:distributed:gateway            # distributed gateway
 pnpm dev:distributed:candidate-worker   # distributed candidate worker
 pnpm dev:distributed:governance-worker  # distributed governance worker
 pnpm dev:distributed:outbox-worker      # distributed outbox worker
+```
+
+Nest 宿主试点（opt-in，Phase 1）：
+
+```bash
+pnpm --filter @trapmap/host-local dev:nest   # Nest + FastifyAdapter，仅 gateway + knowledge-read 试点
 ```
 
 另一个终端可运行 CLI：

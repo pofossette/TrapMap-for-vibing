@@ -157,6 +157,7 @@ git clone https://github.com/your-org/Trap-Map.git
 cd Trap-Map
 
 # 2. 安装依赖
+
 pnpm install
 
 # 3. 配置环境
@@ -172,6 +173,17 @@ pnpm dev:team-monolith
 pnpm dev:cli -- login --access-key <key>
 pnpm dev:cli -- --help
 ```
+
+### 可选：Nest 宿主试点（Phase 1，opt-in）
+
+Nest 宿主当前是 opt-in 入口，仅覆盖 `gateway + knowledge-read` 试点 surface，不替换默认 Fastify 主线：
+
+```bash
+# 启动 Nest 宿主（FastifyAdapter）
+pnpm --filter @trapmap/host-local dev:nest
+```
+
+试点范围内的路由（`/v1/knowledge/:entryId`、`/v1/knowledge/mine`、`/v1/retrieval/search`、`/v1/knowledge/projection-status`）走 Nest controller；非试点路由继续由旧宿主承载。`identity-access` 因 auth contract drift 延后，不在本轮试点内。
 
 ### 可选：本地 Neo4j 查询后端
 
