@@ -20,7 +20,8 @@ rtk pnpm --filter @trapmap/web-panel typecheck
 ## Runtime API
 
 - Default mode uses the real gateway API.
-- Set `VITE_ADMIN_PANEL_API_MODE=mock` to force the local mock API.
+- `VITE_ADMIN_PANEL_API_MODE=mock` is only supported for local development and tests.
+- Production builds reject `VITE_ADMIN_PANEL_API_MODE=mock`.
 - Set `VITE_ADMIN_PANEL_API_BASE_URL` to override the gateway origin when needed.
 
 ## Structure

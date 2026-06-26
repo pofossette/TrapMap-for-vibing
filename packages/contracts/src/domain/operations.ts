@@ -19,6 +19,7 @@ import {
   sha256HexSchema,
 } from './common.js';
 import { evidenceLevelSchema, evidenceSourceTypeSchema } from './evidence.js';
+import { badcaseTaxonomySchema } from '../enum-types/index.js';
 import { feedbackFailureClassificationSchema } from './feedback.js';
 import {
   agentReviewResultSchema,
@@ -966,6 +967,7 @@ export const badcaseEvalDraftSchema = z
     sourceFeedbackId: entityIdSchema,
     queryId: z.string().nullable(),
     routeFamily: z.enum(['entry', 'capsule', 'graph-plan']).nullable(),
+    taxonomy: badcaseTaxonomySchema.nullable(),
     request: z.record(z.string(), z.unknown()),
     expected: z.record(z.string(), z.unknown()),
     notes: z.array(z.string().min(1)),

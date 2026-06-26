@@ -1,6 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import { badcaseEvalDraftSchema, normalizeBadcaseTaxonomy } from '@trapmap/contracts';
 import { loadConfig } from '@trapmap/server/config.js';
 
 async function main() {
@@ -35,12 +36,14 @@ async function main() {
       throw new Error(`Badcase trace not found for ${feedbackId}`);
     }
 
-    const draft = {
+    const taxonomy = normalizeBadcaseTaxonomy(row.failure_classification);
+    const draft = badcaseEvalDraftSchema.parse({
       kind: 'retrieval',
       caseId: `badcase_${row.feedback_id}`,
       sourceFeedbackId: row.feedback_id,
       queryId: row.query_id,
       routeFamily: row.route_family,
+      taxonomy,
       request: {
         queryId: row.query_id,
         querySeed: row.query_seed,
@@ -49,7 +52,7 @@ async function main() {
         entryType: row.entry_type,
       },
       expected: {
-        failureClassification: row.failure_classification,
+        failureClassification: taxonomy,
         expectedCorrection: row.expected_correction,
         selectedResultSnapshot: row.selected_result_snapshot,
       },
@@ -57,7 +60,7 @@ async function main() {
         'Draft generated from retrieval_badcase_traces.',
         'Review before promoting to eval fixtures.',
       ],
-    };
+    });
 
     writeFileSync(resolve(outputPath), `${JSON.stringify(draft, null, 2)}\n`, 'utf8');
   } finally {

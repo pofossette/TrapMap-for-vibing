@@ -32,8 +32,14 @@ function getAdminPanelBaseUrl(): string {
 
 function createRuntimeApi() {
   const mode = import.meta.env.VITE_ADMIN_PANEL_API_MODE;
+  const runtimeMode = import.meta.env.MODE;
 
   if (mode === ADMIN_PANEL_API_MODE_MOCK) {
+    if (runtimeMode === 'production') {
+      throw new Error(
+        'VITE_ADMIN_PANEL_API_MODE=mock is only supported in development and test runtimes.',
+      );
+    }
     return createMockAdminPanelApi();
   }
 

@@ -1,26 +1,9 @@
-/**
- * Optional in-process task worker.
- *
- * Provides task queue consumption for host-local deployments.
- * Only enabled when the deployment profile requires async ownership
- * and the runtime mode includes task-worker.
- *
- * This module is a thin lifecycle wrapper -- all task handling logic
- * lives in backend-core modules (candidate-ingestion, job-runtime).
- *
- * @stub This is an intentionally empty lifecycle stub. The worker handle
- * tracks running state and supports stop(), but does no actual polling
- * or task processing. Real implementation is deferred to Task 04/05.
- *
- * TODO(Task 04): Wire in real task queue polling loop with claim/process/complete
- * TODO(Task 05): Add graceful drain, metrics, and retry logic
- */
-
-import type { RuntimeWorkerHandle, TaskHandler, TaskQueuePort } from '@trapmap/backend-core';
-
-// ---------------------------------------------------------------------------
-// Worker configuration
-// ---------------------------------------------------------------------------
+import type {
+  RuntimeWorkerHandle,
+  TaskConsumerHandle,
+  TaskHandler,
+  TaskQueuePort,
+} from '@trapmap/backend-core';
 
 export interface WorkerConfig {
   enabled: boolean;
@@ -38,44 +21,25 @@ export const DEFAULT_WORKER_CONFIG: WorkerConfig = {
   handlers: [],
 };
 
-// ---------------------------------------------------------------------------
-// In-process task worker (lifecycle stub)
-// ---------------------------------------------------------------------------
-
-/**
- * Create an in-process task worker that consumes from the task queue port.
- *
- * For local-agent deployments, this is a no-op (returns null) because
- * local-agent does not own async task work.
- *
- * For team-monolith deployments, this creates a lifecycle stub that
- * tracks running state but does no actual work.
- *
- * @stub Lifecycle stub only -- no polling, no task processing.
- */
 export function createInProcessTaskWorker(
   taskQueue: TaskQueuePort | null,
   config: Partial<WorkerConfig> = {},
 ): RuntimeWorkerHandle | null {
   const merged = { ...DEFAULT_WORKER_CONFIG, ...config };
 
-  if (!merged.enabled || !taskQueue) {
+  if (!merged.enabled || !taskQueue?.createConsumer) {
     return null;
   }
 
-  if (!taskQueue.createConsumer) {
-    return null;
-  }
-
-  let consumerPromise: Promise<{
-    run(): Promise<void>;
-    stop(): Promise<void>;
-    isRunning(): boolean;
-    ownsWork(): boolean;
-  }> | null = null;
+  let consumerPromise: Promise<TaskConsumerHandle> | null = null;
+  let startPromise: Promise<void> | null = null;
+  let runPromise: Promise<void> | null = null;
+  let stopPromise: Promise<void> | null = null;
+  let consumerStopPromise: Promise<void> | null = null;
   let running = false;
+  let stopRequested = false;
 
-  const getConsumer = async () => {
+  const getConsumer = async (): Promise<TaskConsumerHandle> => {
     if (!consumerPromise) {
       consumerPromise = taskQueue.createConsumer!({
         handlers: merged.handlers,
@@ -85,9 +49,37 @@ export function createInProcessTaskWorker(
     return consumerPromise;
   };
 
-  void getConsumer().then((consumer) => {
-    void consumer.run();
-    running = true;
+  const stopConsumer = async (): Promise<void> => {
+    if (!consumerStopPromise) {
+      consumerStopPromise = getConsumer().then((consumer) => consumer.stop());
+    }
+    await consumerStopPromise;
+  };
+
+  const ensureStarted = async (): Promise<void> => {
+    if (startPromise) {
+      return startPromise;
+    }
+
+    startPromise = (async () => {
+      const consumer = await getConsumer();
+      if (!runPromise) {
+        running = true;
+        runPromise = consumer.run().finally(() => {
+          running = false;
+        });
+      }
+
+      if (stopRequested) {
+        await stopConsumer();
+      }
+    })();
+
+    return startPromise;
+  };
+
+  void ensureStarted().catch(() => {
+    running = false;
   });
 
   return {
@@ -99,9 +91,18 @@ export function createInProcessTaskWorker(
       return merged.ownsWork;
     },
 
-    stop(): void {
-      running = false;
-      void getConsumer().then((consumer) => consumer.stop());
+    async stop(): Promise<void> {
+      stopRequested = true;
+      if (!stopPromise) {
+        stopPromise = (async () => {
+          await ensureStarted();
+          await stopConsumer();
+          await runPromise;
+        })().finally(() => {
+          running = false;
+        });
+      }
+      await stopPromise;
     },
   };
 }

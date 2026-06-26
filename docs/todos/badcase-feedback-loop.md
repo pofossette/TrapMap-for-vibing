@@ -2,7 +2,7 @@
 
 ## TODO
 
-- [ ] 定义 badcase 的统一分类：召回缺失、排序错误、摘要幻觉、治理泄漏、内容过时。
+- [x] 定义 badcase 的统一分类：`recall-miss`、`ranking-error`、`summary-hallucination`、`governance-leak`、`stale-content`。
 - [x] 在反馈提交中补齐 `queryId`、命中结果快照和期望结果。
 - [x] 建立从 badcase 到 eval case 的标准转换流程。
 - [x] 为回流后的 case 增加固定回归验证。
@@ -23,6 +23,16 @@
 - [x] feedback 记录已经保存 `queryId`、命中快照和正确预期
 - [x] remediation complete 已复用 shared async follow-up 与索引刷新路径
 - [x] badcase -> eval case 的自动转换脚本已落地：`scripts/export-badcase-to-eval.ts`
+
+## 当前固定 taxonomy
+
+- `recall-miss`
+- `ranking-error`
+- `summary-hallucination`
+- `governance-leak`
+- `stale-content`
+
+旧值 `missing-recall`、`outdated-content` 仅作为兼容别名输入，持久化与导出统一回写 canonical taxonomy。
 
 ## 已闭环部分（2026-06-13）
 

@@ -70,7 +70,7 @@ flowchart TB
 **Phase 5 Shared Jobs Checks:**
 - Lifecycle follow-up：在 PostgreSQL 模式下触发 knowledge approve/deactivate/update，确认不会在订阅器内同步执行重索引，而是新增 `task_queue.type='knowledge.index-follow-up'`，并能在 `workflow_runs.workflow_type='knowledge-index-follow-up'` 中观察到执行快照。
 - Remediation complete：调用 `POST /v1/operations/feedback/remediation/:entryId/complete` 后，确认响应中的 additive `asyncJobId` 存在，且队列中出现 `feedback.remediation-reactivation` 任务；该任务 dead-letter 后可通过 async operator flow 重跑。
-- Badcase draft：提交带 `badcase` 的 feedback 后，确认在 PostgreSQL 模式下响应返回 additive `asyncJobId`，并且 `task_queue` 中存在 `feedback.badcase-export-draft` 任务，同时 `retrieval_badcase_traces` 已先落库。
+- Badcase draft：提交带 `badcase` 的 feedback 后，确认在 PostgreSQL 模式下响应返回 additive `asyncJobId`，并且 `task_queue` 中存在 `feedback.badcase-export-draft` 任务，同时 `retrieval_badcase_traces` 已先落库，draft 中携带 canonical taxonomy（`recall-miss`、`ranking-error`、`summary-hallucination`、`governance-leak`、`stale-content`）。
 
 **Phase 6 Cache Invalidation Checks:**
 - Retrieval read-model cache：连续执行两次 retrieval，第二次命中缓存后，再触发 knowledge approval/deactivation 或 remediation state change；确认后续 retrieval 结果反映最新可见性，而不是继续返回旧缓存内容。

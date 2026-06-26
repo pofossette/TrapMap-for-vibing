@@ -182,7 +182,7 @@ describe('feedback routes', () => {
           queryId: 'qry_test_1',
           querySeed: 'library version issue',
           routeFamily: 'entry',
-          failureClassification: 'outdated-content',
+          failureClassification: 'stale-content',
           expectedCorrection: 'Return the current library migration guide.',
           selectedResultSnapshot: {
             entryId: 'trap_1',
@@ -642,7 +642,7 @@ describe('feedback admin routes', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.items[0].failureClassification).toBe('outdated-content');
+      expect(body.items[0].failureClassification).toBe('stale-content');
     });
   });
 

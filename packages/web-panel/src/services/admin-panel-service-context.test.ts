@@ -62,4 +62,13 @@ describe('admin-panel service context', () => {
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it('rejects mock mode in production runtimes', async () => {
+    vi.stubEnv('VITE_ADMIN_PANEL_API_MODE', 'mock');
+    vi.stubEnv('MODE', 'production');
+
+    await expect(import('./admin-panel-service-context.js')).rejects.toThrow(
+      /only supported in development and test runtimes/i,
+    );
+  });
 });

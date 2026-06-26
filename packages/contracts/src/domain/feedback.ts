@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { badcaseTaxonomySchema, normalizeBadcaseTaxonomy } from '../enum-types/index.js';
 import { actorRefSchema, entityIdSchema, isoTimestampSchema } from './common.js';
 import { decayStateSchema } from './decay.js';
 
@@ -26,14 +27,12 @@ export const feedbackCustomAnswerSchema = z
   })
   .strict();
 
-export const feedbackFailureClassificationSchema = z.enum([
-  'missing-recall',
-  'ranking-error',
-  'summary-hallucination',
-  'governance-leak',
-  'outdated-content',
-  'other',
-]);
+export const feedbackFailureClassificationSchema = z.preprocess((value) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  return normalizeBadcaseTaxonomy(value) ?? value;
+}, badcaseTaxonomySchema);
 
 export const feedbackSelectedResultSnapshotSchema = z
   .object({

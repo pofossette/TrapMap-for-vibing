@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { BADCASE_TAXONOMY_VALUES } from '../enum-types/badcase-taxonomy.js';
 import {
   feedbackBatchItemSchema,
   feedbackBatchResponseSchema,
@@ -66,7 +67,7 @@ describe('feedback schema', () => {
           queryId: 'qry_test_1',
           querySeed: 'library version issue',
           routeFamily: 'entry',
-          failureClassification: 'outdated-content',
+          failureClassification: 'stale-content',
           expectedCorrection: 'Return current docs',
           selectedResultSnapshot: {
             entryId: 'entry-123',
@@ -78,6 +79,30 @@ describe('feedback schema', () => {
         },
       });
       expect(result.badcase?.queryId).toBe('qry_test_1');
+      expect(result.badcase?.failureClassification).toBe('stale-content');
+    });
+
+    it('normalizes legacy badcase taxonomy aliases to canonical values', () => {
+      const result = feedbackSubmissionSchema.parse({
+        ...validSubmission,
+        badcase: {
+          failureClassification: 'outdated-content',
+        },
+      });
+
+      expect(result.badcase?.failureClassification).toBe('stale-content');
+    });
+
+    it('accepts the full canonical badcase taxonomy', () => {
+      for (const classification of BADCASE_TAXONOMY_VALUES) {
+        const result = feedbackSubmissionSchema.parse({
+          ...validSubmission,
+          badcase: {
+            failureClassification: classification,
+          },
+        });
+        expect(result.badcase?.failureClassification).toBe(classification);
+      }
     });
 
     it('rejects submission with description shorter than 10 characters', () => {

@@ -1,4 +1,8 @@
-import { type BadcaseEvalDraft, badcaseExportResponseSchema } from '@trapmap/contracts';
+import {
+  type BadcaseEvalDraft,
+  badcaseExportResponseSchema,
+  normalizeBadcaseTaxonomy,
+} from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '@trapmap/server/lib/errors.js';
@@ -21,12 +25,14 @@ interface BadcaseTraceRow {
 }
 
 function buildDraft(row: BadcaseTraceRow): BadcaseEvalDraft {
+  const taxonomy = normalizeBadcaseTaxonomy(row.failure_classification);
   return {
     kind: 'retrieval',
     caseId: `badcase_${row.feedback_id}`,
     sourceFeedbackId: row.feedback_id,
     queryId: row.query_id,
     routeFamily: row.route_family,
+    taxonomy,
     request: {
       queryId: row.query_id,
       querySeed: row.query_seed,
@@ -35,7 +41,7 @@ function buildDraft(row: BadcaseTraceRow): BadcaseEvalDraft {
       entryType: row.entry_type,
     },
     expected: {
-      failureClassification: row.failure_classification,
+      failureClassification: taxonomy,
       expectedCorrection: row.expected_correction,
       selectedResultSnapshot: row.selected_result_snapshot,
     },

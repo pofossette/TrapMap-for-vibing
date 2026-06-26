@@ -22,11 +22,23 @@ import type {
   TeamLookupPort,
 } from '@trapmap/backend-core';
 
+const emittedStubWarnings = new Set<string>();
+
+function warnStubUsage(name: string, message: string): void {
+  const key = `${name}:${message}`;
+  if (emittedStubWarnings.has(key)) {
+    return;
+  }
+  emittedStubWarnings.add(key);
+  console.warn(`[host-local stub] ${name}: ${message}`);
+}
+
 // ---------------------------------------------------------------------------
 // Service-port stubs
 // ---------------------------------------------------------------------------
 
 export function createStubSessionLookup(): SessionLookupPort {
+  warnStubUsage('sessionLookup', 'using development stub; authenticated runtime lookups are absent');
   return {
     async resolveSession() {
       return null;
@@ -35,6 +47,7 @@ export function createStubSessionLookup(): SessionLookupPort {
 }
 
 export function createStubTeamLookup(): TeamLookupPort {
+  warnStubUsage('teamLookup', 'using development stub; team resolution will always return empty');
   return {
     async getTeam() {
       return null;
@@ -46,6 +59,10 @@ export function createStubTeamLookup(): TeamLookupPort {
 }
 
 export function createStubPermissionCheck(): PermissionCheckPort {
+  warnStubUsage(
+    'permissionCheck',
+    'using development stub; permission evaluation always denies access',
+  );
   return {
     async resolvePermissions() {
       return [];
@@ -57,6 +74,7 @@ export function createStubPermissionCheck(): PermissionCheckPort {
 }
 
 export function createStubAuditLog(): AuditLogPort {
+  warnStubUsage('auditLog', 'using development stub; audit writes are discarded');
   return {
     async record() {
       /* no-op */
@@ -68,6 +86,7 @@ export function createStubAuditLog(): AuditLogPort {
 }
 
 export function createStubRetrievalQuery(): RetrievalQueryPort {
+  warnStubUsage('retrievalQuery', 'using development stub; retrieval always returns empty results');
   return {
     async search() {
       return { results: [] };
@@ -80,6 +99,7 @@ export function createStubRetrievalQuery(): RetrievalQueryPort {
 // ---------------------------------------------------------------------------
 
 export function createStubKnowledgeRepo(): RepositoryPorts['knowledge'] {
+  warnStubUsage('knowledgeRepo', 'using development stub; knowledge writes are non-durable');
   return {
     async nextId() {
       return `k_${Date.now()}`;
@@ -115,6 +135,7 @@ export function createStubKnowledgeRepo(): RepositoryPorts['knowledge'] {
 }
 
 export function createStubCandidateRepo(): RepositoryPorts['candidate'] {
+  warnStubUsage('candidateRepo', 'using development stub; candidate workflow state is non-durable');
   return {
     async insert() {
       /* no-op */
@@ -147,6 +168,7 @@ export function createStubCandidateRepo(): RepositoryPorts['candidate'] {
 }
 
 export function createStubSessionRepo(): RepositoryPorts['session'] {
+  warnStubUsage('sessionRepo', 'using development stub; sessions are not persisted');
   return {
     async nextId() {
       return `s_${Date.now()}`;
@@ -167,6 +189,7 @@ export function createStubSessionRepo(): RepositoryPorts['session'] {
 }
 
 export function createStubAccessKeyRepo(): RepositoryPorts['accessKey'] {
+  warnStubUsage('accessKeyRepo', 'using development stub; access keys are not persisted');
   return {
     async nextId() {
       return `ak_${Date.now()}`;
@@ -190,6 +213,7 @@ export function createStubAccessKeyRepo(): RepositoryPorts['accessKey'] {
 }
 
 export function createStubTeamRepo(): RepositoryPorts['team'] {
+  warnStubUsage('teamRepo', 'using development stub; team state is not persisted');
   return {
     async nextId() {
       return `t_${Date.now()}`;
@@ -213,6 +237,7 @@ export function createStubTeamRepo(): RepositoryPorts['team'] {
 }
 
 export function createStubMembershipRepo(): RepositoryPorts['membership'] {
+  warnStubUsage('membershipRepo', 'using development stub; membership state is not persisted');
   return {
     async nextId() {
       return `m_${Date.now()}`;
@@ -239,6 +264,7 @@ export function createStubMembershipRepo(): RepositoryPorts['membership'] {
 }
 
 export function createStubUserRepo(): RepositoryPorts['user'] {
+  warnStubUsage('userRepo', 'using development stub; user state is not persisted');
   return {
     async nextId() {
       return `u_${Date.now()}`;
@@ -259,6 +285,7 @@ export function createStubUserRepo(): RepositoryPorts['user'] {
 }
 
 export function createStubFeedbackRepo(): RepositoryPorts['feedback'] {
+  warnStubUsage('feedbackRepo', 'using development stub; feedback state is not persisted');
   return {
     async nextId() {
       return `f_${Date.now()}`;
@@ -289,6 +316,7 @@ export function createStubFeedbackRepo(): RepositoryPorts['feedback'] {
 // ---------------------------------------------------------------------------
 
 export function createStubTaskQueue(): TaskQueuePort {
+  warnStubUsage('taskQueue', 'using development stub; enqueued tasks will never be consumed');
   return {
     kind: 'postgres-task-queue',
     async enqueue() {
@@ -311,6 +339,7 @@ export function createStubTaskQueue(): TaskQueuePort {
 }
 
 export function createStubOutbox(): OutboxPort {
+  warnStubUsage('outbox', 'using development stub; outbox events will never be dispatched');
   return {
     kind: 'postgres-domain-outbox',
     async enqueue() {

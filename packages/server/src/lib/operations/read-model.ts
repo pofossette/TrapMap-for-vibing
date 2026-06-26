@@ -1,8 +1,10 @@
-import type {
-  AuditEvent,
-  DecayAwareListItem,
-  FeedbackFailureClassification,
-  FeedbackListItem,
+import {
+  normalizeBadcaseTaxonomy,
+  type AuditEvent,
+  type BadcaseTaxonomy,
+  type DecayAwareListItem,
+  type FeedbackFailureClassification,
+  type FeedbackListItem,
 } from '@trapmap/contracts';
 
 import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
@@ -15,12 +17,11 @@ type FeedbackEntryType = 'trap' | 'skill';
 type FailureClassification = FeedbackFailureClassification;
 
 const FAILURE_CLASSIFICATIONS: FailureClassification[] = [
-  'missing-recall',
+  'recall-miss',
   'ranking-error',
   'summary-hallucination',
   'governance-leak',
-  'outdated-content',
-  'other',
+  'stale-content',
 ];
 
 export interface FailureClassificationCount {
@@ -239,14 +240,11 @@ export function summarizeFailureClassifications(
   );
 
   for (const record of records) {
-    const classification = record.failureClassification;
-    if (!classification || !counts.has(classification as FailureClassification)) {
+    const classification = normalizeBadcaseTaxonomy(record.failureClassification);
+    if (!classification || !counts.has(classification as BadcaseTaxonomy)) {
       continue;
     }
-    counts.set(
-      classification as FailureClassification,
-      (counts.get(classification as FailureClassification) ?? 0) + 1,
-    );
+    counts.set(classification, (counts.get(classification) ?? 0) + 1);
   }
 
   const countEntries = FAILURE_CLASSIFICATIONS.map((classification) => ({
@@ -270,15 +268,13 @@ export function toFailureClassificationAwareFeedbackItem(
 ): Omit<FeedbackListItem, 'failureClassification'> & {
   failureClassification?: FailureClassification | undefined;
 } {
-  if (
-    !failureClassification ||
-    !FAILURE_CLASSIFICATIONS.includes(failureClassification as FailureClassification)
-  ) {
+  const classification = normalizeBadcaseTaxonomy(failureClassification);
+  if (!classification) {
     return item;
   }
 
   return Object.assign({}, item, {
-    failureClassification: failureClassification as FailureClassification,
+    failureClassification: classification,
   });
 }
 

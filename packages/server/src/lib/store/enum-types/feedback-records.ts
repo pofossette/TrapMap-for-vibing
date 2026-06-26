@@ -1,4 +1,4 @@
-import type { FeedbackProblemType } from '@trapmap/contracts';
+import type { BadcaseTaxonomy, FeedbackProblemType } from '@trapmap/contracts';
 
 export interface FeedbackQueueRecord {
   id: string;
@@ -10,14 +10,7 @@ export interface FeedbackQueueRecord {
   querySeed: string | null;
   queryId: string | null;
   routeFamily: 'entry' | 'capsule' | 'graph-plan' | null;
-  failureClassification:
-    | 'missing-recall'
-    | 'ranking-error'
-    | 'summary-hallucination'
-    | 'governance-leak'
-    | 'outdated-content'
-    | 'other'
-    | null;
+  failureClassification: BadcaseTaxonomy | null;
   expectedCorrection: string | null;
   selectedResultSnapshot: Record<string, unknown> | null;
   customAnswers: Array<{ prompt: string; answer: string }> | null;
