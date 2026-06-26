@@ -10,7 +10,7 @@
 - [ ] `governance-review` 只拥有治理命令，不拥有最终知识聚合写入
 - [ ] `knowledge-write` 拥有最终知识聚合写入，不拥有治理命令流程判断
 - [ ] `gateway` 只做对外入口与协议适配
-- [ ] 任何跨服务直接读/写例外都已命名，不再允许隐含共享状态
+- [ ] 任何跨服务数据读写例外都已命名，不再允许隐含共享状态
 
 ## 当前代码入口核对
 
@@ -24,7 +24,8 @@
 ## Contract 核对
 
 - [ ] `KnowledgeWritePort` 的治理命令调用面已经列清
-- [ ] `governance-review -> knowledge-write` 的错误语义已列清
+- [ ] `governance-review -> knowledge-write` 的 command surface 已冻结为 approve / reject / maintenance / decay / candidate publish
+- [ ] `governance-review -> knowledge-write` 的失败语义已冻结为 `403 / 404 / 409 / 503 / 504`
 - [ ] `in-process` 与 `remote` adapter 将共享同一 contract
 - [ ] request/trace 传播要求已列清
 
@@ -41,6 +42,7 @@
 - [ ] deployment/runtime smoke 相关测试入口已识别
 - [ ] 与治理链路相关的 eval/smoke 触发条件已识别
 - [ ] 文档回写目标文件已列清
+- [ ] contract 冻结后的 client / adapter、health/readiness/metrics、acceptance case、README 补齐范围已列清
 
 ## 非目标确认
 

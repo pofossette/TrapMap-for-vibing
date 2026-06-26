@@ -96,6 +96,78 @@
 - [ ] 证明跨服务错误语义稳定
 - [ ] 证明 owner 级 runtime/closeout 证据存在
 
+## 任务 7：生成冻结后的 client / adapter
+
+### 文件
+
+- [ ] [`packages/backend-core/src/ports/internal-ports.ts`](../../packages/backend-core/src/ports/internal-ports.ts)
+- [ ] [`packages/host-distributed/src/shared/internal-knowledge-write-client.ts`](../../packages/host-distributed/src/shared/internal-knowledge-write-client.ts)
+- [ ] [`packages/host-distributed/src/governance-review/ports.ts`](../../packages/host-distributed/src/governance-review/ports.ts)
+- [ ] [`packages/host-distributed/src/knowledge-write/ports.ts`](../../packages/host-distributed/src/knowledge-write/ports.ts)
+
+### 目标
+
+- [ ] 为 frozen command surface 生成 `in-process` / `remote` 双 adapter
+- [ ] 保持 request/trace 传播一致
+- [ ] 保持 `403 / 404 / 409 / 503 / 504` 失败语义和 `InvocationError` 映射一致
+
+## 任务 8：补 health / readiness / metrics
+
+### 文件
+
+- [ ] [`packages/service-governance-review/src/routes.ts`](../../packages/service-governance-review/src/routes.ts)
+- [ ] [`packages/service-governance-review/src/server.ts`](../../packages/service-governance-review/src/server.ts)
+- [ ] [`packages/service-knowledge-write/src/routes.ts`](../../packages/service-knowledge-write/src/routes.ts)
+- [ ] [`packages/service-knowledge-write/src/server.ts`](../../packages/service-knowledge-write/src/server.ts)
+- [ ] [`packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`](../../packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts)
+
+### 目标
+
+- [ ] 让两个服务都有独立 health / readiness / ownership 语义
+- [ ] 暴露 queue / outbox / workflow / dead-letter / backlog 的 owner 视角
+- [ ] 让 runtime closeout 能证明 operator 可按服务解释故障与 backlog
+
+## 任务 9：加 acceptance case
+
+### 文件
+
+- [ ] [`packages/host-distributed/src/gateway/distributed-acceptance.test.ts`](../../packages/host-distributed/src/gateway/distributed-acceptance.test.ts)
+- [ ] [`packages/host-distributed/src/governance-review/delegation-acceptance.test.ts`](../../packages/host-distributed/src/governance-review/delegation-acceptance.test.ts)
+- [ ] [`packages/service-governance-review/src/routes.test.ts`](../../packages/service-governance-review/src/routes.test.ts)
+- [ ] [`packages/service-knowledge-write/src/routes.test.ts`](../../packages/service-knowledge-write/src/routes.test.ts)
+
+### 目标
+
+- [ ] 证明 `governance-review` 不直接改最终聚合
+- [ ] 证明 `knowledge-write` 接住最终 mutation
+- [ ] 证明错误语义、request/trace、超时和幂等 contract 稳定
+
+## 任务 10：补服务 README
+
+### 文件
+
+- [ ] [`packages/service-governance-review/README.md`](../../packages/service-governance-review/README.md)
+- [ ] [`packages/service-knowledge-write/README.md`](../../packages/service-knowledge-write/README.md)
+- [ ] [`packages/host-distributed/README.md`](../../packages/host-distributed/README.md)
+
+### 目标
+
+- [ ] 写清 owner、同步 / 异步 boundary、health/readiness/metrics 入口和失败语义
+- [ ] 写清 gateway 与 service owner 的责任划分
+- [ ] 写清当前仍保留的 compatibility / delegation 例外
+
+## 任务 11：替换低信号提示词
+
+### 文件
+
+- [ ] [`docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md`](../../docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md)
+- [ ] [`docs/todos/nestjs-service-evolution-knowledge-write-governance-review-pilot.md`](../../docs/todos/nestjs-service-evolution-knowledge-write-governance-review-pilot.md)
+
+### 目标
+
+- [ ] 把暗示“跨 owner 直接读写仍是默认低风险实现”的表述替换成命名 query seam / command seam / owner exception
+- [ ] 保证后续执行者按 frozen contract 做机械实现，不再回退到 shared-state 口径
+
 ## 建议执行顺序
 
 1. 冻结 `backend-core` contract 与 adapter seam
@@ -104,6 +176,11 @@
 4. 补 owner 级 runtime 语义
 5. 回写文档事实源
 6. 补齐 acceptance / closeout 测试
+7. 生成冻结后的 client / adapter
+8. 补 health / readiness / metrics
+9. 加 acceptance case
+10. 补服务 README
+11. 替换低信号提示词
 
 ## 最小验证
 

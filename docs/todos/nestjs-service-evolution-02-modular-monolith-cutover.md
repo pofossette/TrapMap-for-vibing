@@ -36,7 +36,7 @@
 
 - 任何跨 context 同步调用都必须走 `packages/backend-core/src/ports/internal-ports.ts` 定义的 Port，不允许直接跨目录 import repo 或 route helper。
 - `knowledge-write` 是唯一能落最终 knowledge aggregate truth 的 owner；`governance-review` 和 `candidate-ingestion` 只能通过 `KnowledgeWritePort` 委托。
-- `knowledge-read` 可以保留被文档显式点名的 temporary direct-backed projection，但这些直读仍属于 `knowledge-read` 自己的 read-side debt，不得变回 route-local 拼装。
+- `knowledge-read` 可以保留被文档显式点名的 query/projection exception，但这些显式例外仍属于 `knowledge-read` 自己的 read-side debt，不得变回 route-local 拼装。
 - `job-runtime` 只拥有 runtime substrate，不拥有任何业务 state machine；handler 中出现的业务判断必须下沉回业务 context。
 
 ### 2. `backend-core` 必须保持 framework-free 的范围

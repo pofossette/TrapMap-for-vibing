@@ -86,6 +86,7 @@
 - [ ] `knowledge-write`、`knowledge-read`、`review`、`candidate-ingestion` 的数据与投影 owner 明确
 - [ ] distributed 侧不再依赖隐含共享状态或兼容壳实现
 - [ ] 故障恢复、重试、死信、投影 lag、capacity 具备服务 owner 级观测面
+- [ ] 至少一组成熟服务样板已经补齐 service README、health/readiness/metrics 和 acceptance closeout
 
 ## 第一批成熟服务样板
 
@@ -108,6 +109,7 @@
 - [ ] 两者之间的同步命令、失败语义、超时、重试、幂等 contract 已冻结
 - [ ] 相关队列 / outbox / workflow 观测面能按服务 owner 解释
 - [ ] acceptance / runtime closeout 能证明这组服务不是“shared DB + HTTP 壳”
+- [ ] service README、health/readiness/metrics 和 acceptance case 足以支持 operator 判断 owner 边界
 
 ### 第二优先级样板组
 
@@ -159,6 +161,7 @@
 - [ ] 每个服务都有最小 capacity / backlog / retry / dead-letter 观测面
 - [ ] 跨服务失败语义、超时、重试、幂等语义保持统一 contract
 - [ ] 服务滚动升级、单服务重启、局部故障不会退化成整套系统不可解释
+- [ ] outbox / queue / workflow 的 runtime owner 能和业务 owner 分开解释
 
 ### 部署与验证
 

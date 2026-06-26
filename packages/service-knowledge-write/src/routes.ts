@@ -2,6 +2,50 @@ import type { KnowledgeWritePort } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
+export interface KnowledgeWriteReadinessOptions {
+  checkDependency?: () => Promise<{ reachable: boolean; detail?: string }>;
+}
+
+const KNOWLEDGE_WRITE_OWNERSHIP = {
+  service: 'knowledge-write',
+  boundedContext: 'knowledge-write',
+  dataOwner: [
+    'knowledge-aggregate',
+    'knowledge-lifecycle',
+    'trap-aggregate',
+    'evidence-record',
+    'knowledge-revision',
+    'lifecycle-event',
+  ],
+  projectionOwner: [],
+  doesNotOwn: [
+    'governance-command-flow',
+    'review-queue',
+    'feedback-record',
+    'candidate-ingestion-workflow',
+    'retrieval-read-projection',
+  ],
+  syncBoundary:
+    'knowledge-write owns final aggregate mutation, lifecycle rules, and authoritative write truth. It does not own governance command flow judgment itself.',
+  asyncBoundary:
+    'Follow-up actions after aggregate mutation (retrieval projection refresh, artifact/skill follow-up, outbox event dispatch) enter outbox/queue/workflow as async follow-up and never return to the synchronous command path.',
+  commandSurface: [
+    'submit',
+    'updateEntry',
+    'resubmit',
+    'supersede',
+    'createTrap',
+    'approveReviewDecision',
+    'rejectReviewDecision',
+    'applyMaintenanceDecision',
+    'applyDecayDecision',
+    'publishCandidateResult',
+    'listTraps',
+    'getTrap',
+  ],
+  acceptsDelegationFrom: ['governance-review', 'candidate-ingestion'],
+} as const;
+
 function translateInvocationError(error: unknown): {
   status: number;
   body: { error: string; kind: string };
@@ -30,6 +74,7 @@ function translateInvocationError(error: unknown): {
 export function registerKnowledgeWriteRoutes(
   app: FastifyInstance,
   module: KnowledgeWritePort,
+  options?: KnowledgeWriteReadinessOptions,
 ): void {
   app.post('/internal/knowledge', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -219,6 +264,41 @@ export function registerKnowledgeWriteRoutes(
   });
 
   app.get('/internal/health', async (_req: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send({ status: 'ok', service: 'knowledge-write' });
+    return reply.status(200).send({
+      status: 'ok',
+      service: 'knowledge-write',
+      owner: KNOWLEDGE_WRITE_OWNERSHIP.boundedContext,
+      acceptsDelegationFrom: KNOWLEDGE_WRITE_OWNERSHIP.acceptsDelegationFrom,
+    });
+  });
+
+  app.get('/internal/readiness', async (_req: FastifyRequest, reply: FastifyReply) => {
+    let dependencyStatus: { reachable: boolean; detail?: string } = { reachable: true };
+    if (options?.checkDependency) {
+      try {
+        dependencyStatus = await options.checkDependency();
+      } catch {
+        dependencyStatus = { reachable: false, detail: 'dependency check threw' };
+      }
+    }
+    const ready = dependencyStatus.reachable;
+    return reply.status(ready ? 200 : 503).send({
+      ready,
+      service: 'knowledge-write',
+      checks: {
+        self: { status: 'ok' },
+        persistence: {
+          status: dependencyStatus.reachable ? 'ok' : 'degraded',
+          detail: dependencyStatus.detail ?? null,
+        },
+      },
+      aggregateMutationAuthority: true,
+      lifecycleRuleAuthority: true,
+      followUpDisposition: 'outbox-queue-workflow-async',
+    });
+  });
+
+  app.get('/internal/ownership', async (_req: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(200).send(KNOWLEDGE_WRITE_OWNERSHIP);
   });
 }

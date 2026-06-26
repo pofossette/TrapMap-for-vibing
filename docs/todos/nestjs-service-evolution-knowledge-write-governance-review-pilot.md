@@ -25,6 +25,22 @@
 - [ ] 两个服务都具备可解释的 runtime/owner/capacity/故障观测面
 - [ ] 这组服务在单体与 distributed 形态下共享同一业务真相
 
+## 同步 / 异步边界冻结
+
+### 同步 boundary
+
+- [ ] `governance-review` 只同步拥有治理命令接收、资格校验、流程解释和审计落点
+- [ ] `knowledge-write` 只同步拥有最终 aggregate mutation、生命周期规则和 authoritative write truth
+- [ ] `governance-review -> knowledge-write` 是唯一允许的最终 apply 同步调用；不得再出现 route/repo 级绕过
+- [ ] gateway 只做对外 transport、auth、request/trace 传播和 canonical error mapping
+
+### 异步 boundary
+
+- [ ] approval / rejection / maintenance / decay / candidate publish 之后的派生动作统一进入 outbox / queue / workflow follow-up
+- [ ] retrieval projection refresh、artifact / skill follow-up、remediation / badcase draft 等派生任务不回流到同步命令路径
+- [ ] 异步状态解释统一落在 queue / outbox / workflow / cache freshness 语义，不再要求 operator 自己拼日志
+- [ ] `job-runtime` 只拥有调度、回收、重试、死信、outbox dispatch，不拥有业务判断
+
 ## Owner 边界
 
 ### `governance-review`
@@ -63,8 +79,8 @@
 ### 共享 PostgreSQL 过渡策略
 
 - [ ] 允许继续共享 PostgreSQL 实例
-- [ ] 但必须明确 schema/table owner，而不是默认所有服务都可直读直写
-- [ ] 若保留跨服务直读例外，必须命名、文档化，并有关闭条件
+- [ ] 但必须明确 schema/table owner，而不是默认所有服务都可跨 owner 直接读写
+- [ ] 若保留跨服务只读例外，必须命名、文档化，并有关闭条件
 
 ## Contract 冻结面
 
@@ -74,18 +90,57 @@
 - [ ] review reject -> knowledge-write apply reject
 - [ ] maintenance decision -> knowledge-write apply maintenance
 - [ ] decay decision -> knowledge-write apply decay
+- [ ] candidate publish -> knowledge-write publish candidate result
+
+### event / follow-up contract
+
+- [ ] 最终 aggregate mutation 后发布的 outbox / follow-up 事件语义要与 `packages/contracts/src/domain/async.ts` 对齐
+- [ ] `governance-review` 只拥有命令发起和治理审计，不拥有后续 outbox publisher truth
+- [ ] `knowledge-write` 对 review/maintenance/decay/candidate publish 产生的 follow-up 负责触发 authoritative write-side 事件
+- [ ] 读侧、索引、feedback、workflow 的后续消费必须通过命名 event / task type 解释，而不是隐式副作用
 
 ### 错误与失败语义
 
 - [ ] `403 / 404 / 409 / 503 / 504` 语义跨服务保持稳定
 - [ ] timeout / unavailable / conflict / validation 等 taxonomy 不得在中间层重新发明
 - [ ] gateway、governance-review、knowledge-write 的日志与返回错误能串起同一 request/trace
+- [ ] `403` 表示 actor 无治理资格或无该命令权限
+- [ ] `404` 表示目标 entry / candidate / artifact 不存在，或当前 owner 无法定位 canonical aggregate
+- [ ] `409` 表示状态冲突、重复应用或 lifecycle precondition 不成立
+- [ ] `503` 表示 owner 服务或其关键依赖当前不可用，应保留 `unavailable` 语义
+- [ ] `504` 表示跨 owner 调用超时，应保留 `timeout` 语义
+- [ ] `401` 继续只属于 gateway/auth transport concern，不进入内部 owner 间失败语义
 
 ### 幂等与重试
 
 - [ ] 同一治理命令的重复提交有一致幂等语义
 - [ ] 失败重试不会造成最终聚合重复写入
 - [ ] 与 outbox/shared job 相关的 follow-up 能按 workflow 或 task 观测
+- [ ] sync command 幂等键至少能用 `teamId + commandName + clientRequestId` 或同等级 canonical key 解释
+- [ ] remote retry 只能重放同一 command contract，不得改写业务 payload
+- [ ] outbox retry 只能重放同一 canonical event，不得重新计算第二份 aggregate mutation
+- [ ] dead-letter 后 operator 的动作要么是 requeue/replay，要么是判定事件已失效，不允许“重复执行看看”
+- [ ] stale processing / reclaim 要能解释为 runtime owner 行为，而不是业务 owner 语义漂移
+
+## Owner 冻结
+
+### data owner
+
+- [ ] `knowledge-write` 拥有 knowledge / trap / evidence / lifecycle authoritative tables 与最终 aggregate truth
+- [ ] `governance-review` 拥有 review queue、feedback、remediation、maintenance/decay workbench 等治理主数据
+- [ ] 若继续共享 PostgreSQL，只允许“共享实例 + 明确表 owner”，不允许“默认所有服务都能碰所有表”
+
+### projection owner
+
+- [ ] `governance-review` 拥有 review queue、feedback、maintenance/decay operator workbench projection
+- [ ] `knowledge-read` 仍拥有 retrieval / read projection，不因为首批样板而转移 owner
+- [ ] `knowledge-write` 只在写后触发 projection refresh，不拥有读侧 projection 解释责任
+
+### runtime owner
+
+- [ ] `job-runtime` 拥有 queue / workflow / outbox transport、lease、reclaim、dead-letter 运行时
+- [ ] `governance-review` 负责解释“命令已接收但最终 apply 未完成”的业务视角
+- [ ] `knowledge-write` 负责解释“最终写入已完成但异步 follow-up 尚未收敛”的写侧视角
 
 ## 运行时与观测要求
 
@@ -121,7 +176,7 @@
 
 - [ ] 收口知识最终聚合写路径到 `knowledge-write`
 - [ ] 收口治理命令路径到 `governance-review`
-- [ ] 关闭未命名的跨服务数据直读/直写
+- [ ] 关闭未命名的跨服务数据读写例外
 
 ### Step 4 观测与故障治理
 
@@ -132,6 +187,23 @@
 
 - [ ] 确认这组服务已经满足成熟服务最小标准
 - [ ] 把该样板的共性规则回写到分布式成熟度评估和 Phase 3/4 文档
+
+## `Level 2 -> Level 3` 判据在本样板上的验收
+
+- [ ] `governance-review` 不再依赖未命名跨服务数据读写例外完成治理命令
+- [ ] `knowledge-write` 不再依赖 `governance-review` 本地 repo fallback 完成最终 mutation
+- [ ] `403 / 404 / 409 / 503 / 504` 失败语义可在 gateway、governance-review、knowledge-write 三段保持同义
+- [ ] acceptance / runtime closeout 能证明单体与 distributed 共用同一 command / event truth
+- [ ] queue / outbox / workflow / projection lag 能按服务 owner 解释，而不是只剩“系统里有任务”
+- [ ] 至少一份服务 README、health/readiness/metrics 入口和 acceptance case 已足以支撑 operator 判断 owner 边界
+
+## Contract 冻结后的实现性工作
+
+- [ ] 生成 `in-process` / `remote` 双 adapter 和对应 client，不再让调用方直接拼 internal HTTP
+- [ ] 为 `governance-review`、`knowledge-write` 补 health / readiness / ownership / metrics surface
+- [ ] 增加服务级 acceptance case，证明 command boundary、错误语义、request/trace 和幂等语义稳定
+- [ ] 补齐两边服务 README，写清 owner、同步 / 异步边界、失败语义和 operator 入口
+- [ ] 替换所有仍暗示“跨 owner 直接读写可默认继续”的低信号提示词，统一改写成命名 query seam / command seam / owner exception
 
 ## 最小验证
 

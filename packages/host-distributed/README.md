@@ -99,3 +99,52 @@ Environment variables:
 - `packages/host-distributed` is now only the thin process host for `knowledge-read`; the authoritative read-service assembly and route contract live in `packages/service-knowledge-read`.
 - The current `knowledge-read` backing model still uses shared authoritative PostgreSQL for the temporary direct-backed entry reads exposed by the projection status contract. Retrieval/search/query-trace surfaces remain derived read-side state. This is sufficient for boundary clarity, not yet for independent derived-store isolation.
 - Physical microservice split is no longer blocked on missing multi-process write-path proof; it is still blocked on `eval:smoke` closeout and read-side Phase 2 maturity, not on route ownership declarations alone.
+
+## Phase 3 Maturity Closeout: `knowledge-write + governance-review`
+
+`knowledge-write` and `governance-review` are the first mature service sample in this host. They serve as the reference template for subsequent services.
+
+### Frozen Owner Boundary
+
+- `governance-review` owns governance commands, feedback, and remediation/maintenance/decay workbench flow. It does **not** own final knowledge aggregate mutation.
+- `knowledge-write` owns final knowledge aggregate mutation, lifecycle rules, and authoritative write truth. It accepts delegation from `governance-review` and `candidate-ingestion`.
+- `gateway` only performs external transport, auth, request/trace propagation, and canonical error mapping.
+
+### Sync / Async Boundary
+
+- **Sync**: governance command receipt, eligibility check, flow interpretation, audit (`governance-review`); final aggregate mutation (`knowledge-write`).
+- **Async**: follow-up actions (projection refresh, artifact follow-up, remediation draft, outbox dispatch) enter outbox/queue/workflow and never return to the synchronous path.
+
+### Command / Event Contract
+
+- `governance-review -> knowledge-write`: `approveReviewDecision`, `rejectReviewDecision`, `applyMaintenanceDecision`, `applyDecayDecision`.
+- `candidate-ingestion -> knowledge-write`: `publishCandidateResult`.
+- Post-mutation events use the canonical event catalog in `packages/contracts/src/domain/async.ts`.
+
+### Failure Semantics
+
+- `403 forbidden` / `404 not-found` / `409 conflict` / `503 unavailable` / `504 timeout` maintain the same meaning across gateway, `governance-review`, and `knowledge-write`.
+- `401` remains a gateway/auth transport concern and does not enter inter-owner failure semantics.
+- Idempotent retry replays the same command contract; outbox retry replays the same canonical event.
+
+### Health / Readiness / Ownership
+
+- `GET /internal/health` - liveness with owner declaration (both services)
+- `GET /internal/readiness` - dependency reachability with operator-facing follow-up disposition (both services)
+- `GET /internal/ownership` - full static owner declaration (both services)
+
+### Shared PostgreSQL (Transitional)
+
+Both services continue to share a PostgreSQL instance but with explicit table owner. `governance-review` does not treat knowledge aggregate tables as its default write surface, and `knowledge-write` does not treat review-queue/feedback tables as its write surface.
+
+### Retained Exceptions
+
+- **Named query seam**: `governance-review` may read knowledge summaries only through a documented query seam or read-only projection.
+- **Shared instance**: the shared PostgreSQL instance continues; closing condition is documented in [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](../../docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md).
+
+### Verification
+
+- `rtk pnpm test:distributed-acceptance` - multi-process delegation, error taxonomy, request/trace propagation, idempotent retry
+- `rtk pnpm test:deployment-smoke` - service startup, health/readiness, ownership endpoints
+- `rtk pnpm typecheck`
+

@@ -65,7 +65,7 @@
 ### `Phase 3 -> Phase 4`
 
 - [ ] `knowledge-write + governance-review` 已完成第一批成熟服务样板 closeout
-- [ ] distributed 至少具备 `Level 3` 所需的大部分 owner/观测/故障语义证据
+- [ ] distributed 至少具备 `Level 3` 所需的大部分 `data owner / projection owner / runtime owner / failure` 语义证据
 - [ ] 单体与 distributed 的双形态验证矩阵已稳定，不再依赖隐含共享状态解释成功路径
 
 ### `Phase 4` 关闭门槛
@@ -125,6 +125,12 @@
 - [ ] 保证服务拆分只是部署展开，不反向强迫轻后端承担微服务负载
 - [ ] 至少把一组过渡态服务提升到“成熟服务最小标准”
 - [ ] 第一批成熟服务样板固定为 `knowledge-write + governance-review`
+- [ ] 在第一批样板上冻结以下完成判据：
+  - [ ] `governance-review -> knowledge-write` 的同步 command boundary 已固定，不再允许绕过 `KnowledgeWritePort`
+  - [ ] outbox / queue / workflow / projection refresh 的异步边界已固定，不再把 follow-up 藏在 route 或隐含共享状态里
+  - [ ] command / event contract、`403 / 404 / 409 / 503 / 504` 失败语义、幂等 / 重试 / 死信 / outbox 语义已统一
+  - [ ] `data owner / projection owner / runtime owner` 已按服务写清
+  - [ ] `Level 2 -> Level 3` 升级判据已能用这组样板验收
 - [ ] 服务拆分执行顺序固定为：
   - [ ] 先完成 `knowledge-write + governance-review` 的 preflight、contract 冻结和 owner closeout
   - [ ] 再补齐 outbox、queue、重试、幂等、死信、投影 lag 的服务级语义与观测

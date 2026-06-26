@@ -4,7 +4,10 @@ export {
   type GovernanceReviewDeps,
   type GovernanceReviewPortDeps,
 } from './deps.js';
-export { registerGovernanceReviewRoutes } from './routes.js';
+export {
+  registerGovernanceReviewRoutes,
+  type GovernanceReviewReadinessOptions,
+} from './routes.js';
 export {
   createGovernanceReviewServer,
   type GovernanceReviewServer,

@@ -530,4 +530,166 @@ describe('distributed gateway acceptance', () => {
     await jobApp.close();
     await identityApp.close();
   });
+
+  it('exposes governance-review and knowledge-write ownership declarations through real HTTP', async () => {
+    const identityApp = createIdentityApp([]);
+    const knowledgeWriteApp = Fastify();
+    registerKnowledgeWriteRoutes(knowledgeWriteApp, createKnowledgeWriteModule([]));
+    const governanceApp = Fastify();
+    registerGovernanceReviewRoutes(
+      governanceApp,
+      createGovernanceModule(
+        [],
+        createInternalServiceClients({
+          gateway: 'http://127.0.0.1:0',
+          identityAccess: 'http://127.0.0.1:0',
+          knowledgeRead: 'http://127.0.0.1:0',
+          knowledgeWrite: 'http://127.0.0.1:0',
+          candidateIngestion: 'http://127.0.0.1:0',
+          review: 'http://127.0.0.1:0',
+          governanceReview: 'http://127.0.0.1:0',
+          jobRuntime: 'http://127.0.0.1:0',
+        }),
+      ),
+    );
+
+    const knowledgeWriteUrl = await listen(knowledgeWriteApp);
+    const governanceUrl = await listen(governanceApp);
+
+    const governanceOwnership = await fetch(`${governanceUrl}/internal/ownership`);
+    const knowledgeWriteOwnership = await fetch(`${knowledgeWriteUrl}/internal/ownership`);
+    const governanceReadiness = await fetch(`${governanceUrl}/internal/readiness`);
+    const knowledgeWriteReadiness = await fetch(`${knowledgeWriteUrl}/internal/readiness`);
+
+    expect(governanceOwnership.status).toBe(200);
+    expect(knowledgeWriteOwnership.status).toBe(200);
+    expect(governanceReadiness.status).toBe(200);
+    expect(knowledgeWriteReadiness.status).toBe(200);
+
+    const governanceOwnerBody = (await governanceOwnership.json()) as {
+      service: string;
+      doesNotOwn: string[];
+      delegateTo: string;
+    };
+    expect(governanceOwnerBody.service).toBe('governance-review');
+    expect(governanceOwnerBody.doesNotOwn).toContain('knowledge-aggregate-final-mutation');
+    expect(governanceOwnerBody.delegateTo).toBe('knowledge-write');
+
+    const kwOwnerBody = (await knowledgeWriteOwnership.json()) as {
+      service: string;
+      dataOwner: string[];
+      acceptsDelegationFrom: string[];
+    };
+    expect(kwOwnerBody.service).toBe('knowledge-write');
+    expect(kwOwnerBody.dataOwner).toContain('knowledge-aggregate');
+    expect(kwOwnerBody.acceptsDelegationFrom).toContain('governance-review');
+
+    const governanceReadyBody = (await governanceReadiness.json()) as {
+      ready: boolean;
+      finalAggregateMutation: string;
+      followUpDisposition: string;
+    };
+    expect(governanceReadyBody.ready).toBe(true);
+    expect(governanceReadyBody.finalAggregateMutation).toBe('delegated-to-knowledge-write');
+    expect(governanceReadyBody.followUpDisposition).toBe('outbox-queue-workflow-async');
+
+    const kwReadyBody = (await knowledgeWriteReadiness.json()) as {
+      ready: boolean;
+      aggregateMutationAuthority: boolean;
+      followUpDisposition: string;
+    };
+    expect(kwReadyBody.ready).toBe(true);
+    expect(kwReadyBody.aggregateMutationAuthority).toBe(true);
+    expect(kwReadyBody.followUpDisposition).toBe('outbox-queue-workflow-async');
+
+    await knowledgeWriteApp.close();
+    await governanceApp.close();
+    await identityApp.close();
+  });
+
+  it('proves idempotent retry of governance delegation replays the same command without duplicate aggregate mutation', async () => {
+    const identityApp = createIdentityApp([]);
+    const knowledgeWriteHeaders: Array<Record<string, string | undefined>> = [];
+    const knowledgeWriteModule = createKnowledgeWriteModule(knowledgeWriteHeaders);
+    const approveReviewDecision = knowledgeWriteModule.approveReviewDecision;
+
+    const knowledgeWriteApp = Fastify();
+    knowledgeWriteApp.addHook('onRequest', async (request) => {
+      knowledgeWriteHeaders.push({
+        'x-request-id': request.headers['x-request-id'] as string | undefined,
+        'x-trace-id': request.headers['x-trace-id'] as string | undefined,
+      });
+    });
+    registerKnowledgeWriteRoutes(knowledgeWriteApp, knowledgeWriteModule);
+
+    const identityUrl = await listen(identityApp);
+    const knowledgeWriteUrl = await listen(knowledgeWriteApp);
+
+    const internalClients = createInternalServiceClients({
+      gateway: 'http://127.0.0.1:0',
+      identityAccess: identityUrl,
+      knowledgeRead: 'http://127.0.0.1:0',
+      knowledgeWrite: knowledgeWriteUrl,
+      candidateIngestion: 'http://127.0.0.1:0',
+      review: 'http://127.0.0.1:0',
+      governanceReview: 'http://127.0.0.1:0',
+      jobRuntime: 'http://127.0.0.1:0',
+    });
+
+    const governanceApp = Fastify();
+    registerGovernanceReviewRoutes(governanceApp, createGovernanceModule([], internalClients));
+    const governanceUrl = await listen(governanceApp);
+
+    const gatewayClients = createInternalServiceClients({
+      gateway: 'http://127.0.0.1:0',
+      identityAccess: identityUrl,
+      knowledgeRead: 'http://127.0.0.1:0',
+      knowledgeWrite: knowledgeWriteUrl,
+      candidateIngestion: 'http://127.0.0.1:0',
+      review: governanceUrl,
+      governanceReview: governanceUrl,
+      jobRuntime: 'http://127.0.0.1:0',
+    });
+    const gatewayApp = Fastify();
+    registerGatewayRoutes(gatewayApp, gatewayClients);
+    await gatewayApp.ready();
+
+    const firstAttempt = await gatewayApp.inject({
+      method: 'POST',
+      url: '/v1/knowledge/review',
+      headers: {
+        authorization: 'Bearer session',
+        'x-request-id': 'req-idempotent',
+        'x-trace-id': 'trace-idempotent',
+      },
+      payload: { entryId: 'entry-1', actorId: 'user-1', decision: 'approve', note: 'ship it' },
+    });
+    const secondAttempt = await gatewayApp.inject({
+      method: 'POST',
+      url: '/v1/knowledge/review',
+      headers: {
+        authorization: 'Bearer session',
+        'x-request-id': 'req-idempotent',
+        'x-trace-id': 'trace-idempotent',
+      },
+      payload: { entryId: 'entry-1', actorId: 'user-1', decision: 'approve', note: 'ship it' },
+    });
+
+    expect(firstAttempt.statusCode).toBe(200);
+    expect(secondAttempt.statusCode).toBe(200);
+
+    expect(approveReviewDecision).toHaveBeenCalledTimes(2);
+    const [firstCall, secondCall] = (approveReviewDecision as ReturnType<typeof vi.fn>).mock.calls;
+    expect(firstCall[0]).toEqual(secondCall[0]);
+    expect(firstCall[0]).toEqual({
+      entryId: 'entry-1',
+      actorId: 'user-1',
+      note: 'ship it',
+    });
+
+    await gatewayApp.close();
+    await governanceApp.close();
+    await knowledgeWriteApp.close();
+    await identityApp.close();
+  });
 });

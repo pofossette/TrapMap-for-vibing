@@ -2,6 +2,45 @@ import type { ReviewPort } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
+export interface GovernanceReviewReadinessOptions {
+  checkDependency?: () => Promise<{ reachable: boolean; detail?: string }>;
+}
+
+const GOVERNANCE_REVIEW_OWNERSHIP = {
+  service: 'governance-review',
+  boundedContext: 'governance-review',
+  dataOwner: [
+    'review-queue',
+    'feedback-record',
+    'remediation-workbench',
+    'maintenance-decay-workbench',
+    'governance-audit',
+  ],
+  projectionOwner: [
+    'review-queue-projection',
+    'feedback-operator-projection',
+    'maintenance-decay-operator-projection',
+  ],
+  doesNotOwn: [
+    'knowledge-aggregate-final-mutation',
+    'knowledge-lifecycle-authoritative-tables',
+    'retrieval-read-projection',
+  ],
+  syncBoundary:
+    'governance-review only owns governance command receipt, eligibility check, flow interpretation, and audit. Final aggregate mutation must be delegated through KnowledgeWritePort.',
+  asyncBoundary:
+    'Post-approval/rejection/maintenance/decay follow-up actions (projection refresh, artifact follow-up, remediation draft) enter outbox/queue/workflow as async follow-up and never return to the synchronous command path.',
+  commandSurface: [
+    'approve',
+    'reject',
+    'applyMaintenance',
+    'applyDecay',
+    'reviewArtifact',
+    'submitFeedback',
+  ],
+  delegateTo: 'knowledge-write',
+} as const;
+
 function translateInvocationError(error: unknown): {
   status: number;
   body: { error: string; kind: string };
@@ -27,7 +66,11 @@ function translateInvocationError(error: unknown): {
   };
 }
 
-export function registerGovernanceReviewRoutes(app: FastifyInstance, module: ReviewPort): void {
+export function registerGovernanceReviewRoutes(
+  app: FastifyInstance,
+  module: ReviewPort,
+  options?: GovernanceReviewReadinessOptions,
+): void {
   app.post('/internal/review/approve', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = request.body as {
@@ -127,6 +170,41 @@ export function registerGovernanceReviewRoutes(app: FastifyInstance, module: Rev
   });
 
   app.get('/internal/health', async (_request: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send({ status: 'ok', service: 'governance-review' });
+    return reply.status(200).send({
+      status: 'ok',
+      service: 'governance-review',
+      owner: GOVERNANCE_REVIEW_OWNERSHIP.boundedContext,
+      delegateTo: GOVERNANCE_REVIEW_OWNERSHIP.delegateTo,
+    });
+  });
+
+  app.get('/internal/readiness', async (_request: FastifyRequest, reply: FastifyReply) => {
+    let dependencyStatus: { reachable: boolean; detail?: string } = { reachable: true };
+    if (options?.checkDependency) {
+      try {
+        dependencyStatus = await options.checkDependency();
+      } catch {
+        dependencyStatus = { reachable: false, detail: 'dependency check threw' };
+      }
+    }
+    const ready = dependencyStatus.reachable;
+    return reply.status(ready ? 200 : 503).send({
+      ready,
+      service: 'governance-review',
+      checks: {
+        self: { status: 'ok' },
+        'delegate-to-knowledge-write': {
+          status: dependencyStatus.reachable ? 'ok' : 'degraded',
+          detail: dependencyStatus.detail ?? null,
+        },
+      },
+      commandSurfaceReceived: true,
+      finalAggregateMutation: 'delegated-to-knowledge-write',
+      followUpDisposition: 'outbox-queue-workflow-async',
+    });
+  });
+
+  app.get('/internal/ownership', async (_request: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(200).send(GOVERNANCE_REVIEW_OWNERSHIP);
   });
 }

@@ -17,10 +17,10 @@
 
 ## 范围
 
-- [ ] 同步调用边界
-- [ ] 异步命令/事件边界
+- [ ] 同步 command boundary
+- [ ] 异步 command / event boundary
 - [ ] internal transport
-- [ ] 回放、重试、恢复、死信、幂等
+- [ ] 回放、重试、恢复、死信、幂等、outbox
 - [ ] distributed maturity 升级判据
 - [ ] 服务级 data owner / projection owner / runtime owner
 - [ ] 样板组 closeout：`knowledge-write + governance-review`
@@ -30,7 +30,7 @@
 ### 第一批
 
 - [ ] `knowledge-write + governance-review`
-  目标：先把治理命令和最终聚合写入这条链路做成成熟服务样板。
+  目标：先把治理命令、最终聚合写入、异步 follow-up 和 operator 语义做成成熟服务样板。
   细则：[`docs/todos/nestjs-service-evolution-knowledge-write-governance-review-pilot.md`](docs/todos/nestjs-service-evolution-knowledge-write-governance-review-pilot.md)
 
 ### 第二批
@@ -49,10 +49,12 @@
 
 ## 文档回写
 
+- [ ] `plan.md`
 - [ ] `docs/architecture/DEPLOYMENT.md`
 - [ ] `docs/operations/ENVIRONMENT.md`
 - [ ] `docs/operations/TESTING.md`
 - [ ] `docs/reference/api-surface.md`
+- [ ] `docs/reference/SYSTEM_TRUTH_SOURCES.md`
 - [ ] 受影响服务 README
 
 ## 最小验证
@@ -69,6 +71,6 @@
 - 物理服务拆分不再依赖隐含共享进程状态。
 - 分布式形态和默认单体形态共享同一业务真相与 contract。
 - 微服务只是部署展开方式，不再反向成为默认开发负担。
-- distributed 成熟度至少从当前过渡态提升到可声明的数据和运维 owner 级别。
+- distributed 成熟度至少从 `Level 2 / transitional-microservice` 提升到 `Level 3 / service-owned distributed system` 所需的 owner、投影与故障语义都已可声明。
 - 至少一组拆分后的服务已经具备明确边界、明确 owner、明确观测面，而不是仅靠 gateway 转发和 shared DB 存活。
 - 第一批样板 `knowledge-write + governance-review` 已经能作为“成熟服务”参考模板复用到后续服务。
