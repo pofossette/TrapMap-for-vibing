@@ -14,7 +14,7 @@
 
 面向 AI 编程工作流的知识与 Skill 治理基础设施。
 
-这个仓库是一个 `pnpm` + TypeScript monorepo，包含 `client-core`、`backend-core`、`host-local`、`host-distributed`、CLI、共享契约和评测工具，用来提交、审核、索引、检索和激活团队的工程知识与 Skill 工件。
+这个仓库是一个 `pnpm` + TypeScript monorepo，包含 `client-core`、`backend-core`、`host-local`、`host-distributed`、多组 `service-*` 包、CLI、web-panel、共享契约和评测工具，用来提交、审核、索引、检索和激活团队的工程知识与 Skill 工件。
 
 文档入口分工：
 
@@ -98,6 +98,14 @@ TrapMap 有两类典型使用方式：
 - Knowledge 域已经完成结构化拆表
 - Skill Artifact 域已进入 Round 4：主路径在 PostgreSQL，`files`、`script_descriptors`、`profile/capsules/clientManifest` 已补入结构化子表；原 `artifact_revisions` JSONB 列继续保留为兼容缓存，不再是唯一事实源
 - PG-first 收敛已完成：核心请求处理通过 `repos` 读写（`packages/server/src/lib/repos/`）；`store_snapshot` 作为兼容层保留，仍服务于未迁移辅助域以及部分启动恢复/运维路径。详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+
+长期架构冻结（Phase 0）：
+
+- 唯一长期后端主线固定为 `Nest host + framework-free domain core + gradual service extraction`
+- 当前运行时实现仍以 Fastify 宿主为主；NestJS 是后续替换宿主与 DI 的目标，不是当前业务真相源
+- 运行模型固定为 `embedded/local-agent -> team-monolith -> distributed` 三档；`embedded` 是 `local-agent` 的产品语义，不新增第四种 profile
+- CLI 与 web-panel 继续只面向统一 gateway；HTTP / internal / event contract 分别统一收敛到 `packages/contracts`、`packages/backend-core` 和共享 async contract
+- 当前 `distributed` 定位已冻结为 `Level 2 / transitional-microservice`，第一批成熟服务样板固定为 `knowledge-write + governance-review`
 
 ## 快速理解
 
@@ -438,8 +446,10 @@ Trap-Map/
 ├── packages/
 │   ├── client-core/      # 共享 gateway SDK
 │   ├── backend-core/     # 宿主无关后端内核
+│   ├── service-*/        # bounded-context service assembly（identity-access / knowledge-* / candidate / governance / job-runtime）
 │   ├── host-local/       # local-agent / team-monolith 宿主
 │   ├── host-distributed/ # distributed 宿主
+│   ├── web-panel/        # 管理员 Web 运维面板
 │   ├── cli/              # Commander.js CLI 客户端
 │   ├── server/           # 迁移期兼容壳层
 │   ├── contracts/        # 共享 Zod Schema

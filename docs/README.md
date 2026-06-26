@@ -4,6 +4,13 @@
 
 TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治理基础设施。本文档负责导航到项目中的权威说明，重点覆盖治理、检索、评测与按需激活相关材料。
 
+## Phase 0 冻结口径
+
+- 长期后端主线已经冻结为 `Nest host + framework-free domain core + gradual service extraction`。
+- 当前正式入口仍是 `host-local` / `host-distributed` / `server` 上的 Fastify 宿主；NestJS 是后续宿主替换目标，不是当前业务真相源。
+- 运行模型固定为 `embedded/local-agent`、`team-monolith`、`distributed` 三档，其中 `embedded` 是当前 `local-agent` 的长期产品语义。
+- `docs/todos/` 现在承担根 `plan.md` 链接的阶段细则与待推进议题；`docs/plans/` 默认只保留历史参考或被根计划显式重新激活的长期资料。
+
 ## 系统架构
 
 ```mermaid
@@ -61,7 +68,8 @@ flowchart TB
 |------|------|
 | 运行时 | Node.js 20+ (ESM) |
 | 语言 | TypeScript 5.x |
-| Web 框架 | Fastify 5.x |
+| 当前宿主实现 | Fastify 5.x |
+| 长期宿主目标 | NestJS（Phase 0 已冻结） |
 | CLI | Commander.js 14.x |
 | 验证 | Zod 4.x |
 | AI 集成 | LangChain Core |
@@ -251,8 +259,8 @@ docs/
 ├── operations/       # 测试、环境、CI/CD、安全、Provider 运行约定
 ├── architecture/     # 架构总览、模块、组件、API/CLI/部署说明
 ├── reference/        # 真相源、Schema、术语、目录规则、API 表面
-├── plans/            # 仍被当前文档引用的长期计划
-├── todos/            # 待推进议题与提案
+├── plans/            # 历史长期设计参考；仅在根计划显式重新链接时恢复 active-reference 角色
+├── todos/            # 当前根计划链接的阶段细则，以及待推进议题与提案
 ├── superpowers/      # Superpowers 生成的 specs/plans
 └── archived/         # 历史归档文档
 ```

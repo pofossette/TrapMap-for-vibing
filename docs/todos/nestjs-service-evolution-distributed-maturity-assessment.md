@@ -2,7 +2,7 @@
 
 ## 角色
 
-- 状态：`proposed`
+- 状态：`completed`
 - 目标：对当前 distributed 形态做可追踪成熟度评估，避免后续微服务化只凭主观判断推进
 
 ## 当前结论
@@ -10,6 +10,18 @@
 - 当前 `distributed` 不是“假的微服务”。
 - 当前 `distributed` 也不是“成熟完成体微服务”。
 - 当前更准确的定位是：`有真实进程边界与真实 HTTP hop 的过渡态分布式架构`。
+- Phase 0 冻结评级：`Level 2 / transitional-microservice`。
+
+## 证据快照
+
+| 证据 | 事实源 | 结论 |
+|---|---|---|
+| gateway 仍是唯一外部入口 | `packages/host-distributed/src/gateway/server.ts`、`packages/host-distributed/src/gateway/routes.ts` | 客户端继续只对统一 gateway 编程，而不是直连内部服务 |
+| 已存在独立 service package 与真实进程装配 | `packages/service-*/src/server.ts`、`packages/host-distributed/src/config/service-config.ts` | `distributed` 不是单进程内 mock 出来的“假分布式” |
+| 已存在真实内部 HTTP hop | `packages/host-distributed/src/gateway/internal-client.ts`、`packages/host-distributed/src/shared/internal-knowledge-write-client.ts` | `review -> knowledge-write`、`candidate-ingestion -> knowledge-write` 都已有远端委托主线 |
+| shared PostgreSQL 仍是主要持久化底座 | `packages/host-distributed/src/shared/database.ts` | 服务真相边界已开始收口，但数据自治尚未完成 |
+| acceptance / closeout 已覆盖多进程 hop | `packages/host-distributed/src/gateway/distributed-acceptance.test.ts`、`packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts` | 当前 distributed 具备可验证的运行证据，而不只是口头设计 |
+| retrieval 仍是逻辑服务边界，不是独立 runtime binary | `packages/backend-core/src/runtime/topology.ts`、`packages/host-distributed/README.md` | 当前分布式还处在共享宿主与共享基础设施的过渡态，不应夸大为成熟自治服务群 |
 
 ## 已具备的成熟度证据
 
@@ -21,11 +33,11 @@
 
 ## 仍处于过渡态的证据
 
-- [ ] 数据 owner 仍未完全独立；当前主要还是 shared PostgreSQL
-- [ ] 读模型与写模型自治仍未完成
-- [ ] distributed 运行时仍有 seams / stubs / deferred isolation
-- [ ] 默认开发主线仍未完全切到新的宿主体系
-- [ ] 服务间 contract、事件流与故障语义虽已成形，但还不足以宣称完全自治
+- [x] 数据 owner 仍未完全独立；当前主要还是 shared PostgreSQL
+- [x] 读模型与写模型自治仍未完成
+- [x] distributed 运行时仍有 seams / stubs / deferred isolation
+- [x] 默认开发主线仍未完全切到新的宿主体系
+- [x] 服务间 contract、事件流与故障语义虽已成形，但还不足以宣称完全自治
 
 ## 分级标准
 
@@ -63,8 +75,8 @@
 ## 当前评级
 
 - [x] 当前评级：`Level 2 / transitional-microservice`
-- [ ] 未达到 `Level 3`
-- [ ] 未达到 `Level 4`
+- [x] 未达到 `Level 3`
+- [x] 未达到 `Level 4`
 
 ## 升级到 Level 3 的前置条件
 
@@ -75,21 +87,19 @@
 - [ ] distributed 侧不再依赖隐含共享状态或兼容壳实现
 - [ ] 故障恢复、重试、死信、投影 lag、capacity 具备服务 owner 级观测面
 
-## 拆到成熟服务的要求
-
 ## 第一批成熟服务样板
 
 ### 首选样板组
 
-- [ ] `knowledge-write + governance-review`
+- [x] `knowledge-write + governance-review`
   细则：[`docs/todos/nestjs-service-evolution-knowledge-write-governance-review-pilot.md`](docs/todos/nestjs-service-evolution-knowledge-write-governance-review-pilot.md)
 
 ### 选择理由
 
-- [ ] 这组边界已经有明确业务 owner：`governance-review` 负责治理命令，`knowledge-write` 负责最终聚合写入
-- [ ] 当前仓库已经存在真实跨服务委托链，能直接作为成熟化样板，而不是从零发明新边界
-- [ ] 这组最能验证“命令服务不直接改最终聚合，必须委托写服务”的服务自治规则
-- [ ] 这组覆盖 review/feedback/maintenance/decay 等高风险治理路径，成熟化收益高
+- [x] 这组边界已经有明确业务 owner：`governance-review` 负责治理命令，`knowledge-write` 负责最终聚合写入
+- [x] 当前仓库已经存在真实跨服务委托链，能直接作为成熟化样板，而不是从零发明新边界
+- [x] 这组最能验证“命令服务不直接改最终聚合，必须委托写服务”的服务自治规则
+- [x] 这组覆盖 review/feedback/maintenance/decay 等高风险治理路径，成熟化收益高
 
 ### 样板完成标准
 
@@ -101,32 +111,40 @@
 
 ### 第二优先级样板组
 
-- [ ] `candidate-ingestion + knowledge-write`
+- [x] `candidate-ingestion + knowledge-write`
 
 ### 第二优先级理由
 
-- [ ] 这组同样已有明确 publish 边界：`candidate-ingestion` 处理候选事实，最终 publish 通过 `knowledge-write`
-- [ ] 它能验证异步处理、结果发布、去重与写侧聚合之间的成熟服务边界
-- [ ] 但它对队列、恢复、回放、重复检测的依赖更强，复杂度高于首选样板组
+- [x] 这组同样已有明确 publish 边界：`candidate-ingestion` 处理候选事实，最终 publish 通过 `knowledge-write`
+- [x] 它能验证异步处理、结果发布、去重与写侧聚合之间的成熟服务边界
+- [x] 但它对队列、恢复、回放、重复检测的依赖更强，复杂度高于首选样板组
 
 ### 暂不作为第一批样板的组
 
-- [ ] `knowledge-read`
+- [x] `knowledge-read`
   原因：读模型 owner、projection refresh、freshness/invalidation 还需要更完整收口，直接拿它做第一批样板容易把问题扩散到读侧基础设施。
-- [ ] `identity-access`
+- [x] `identity-access`
   原因：价值明确，但对“成熟服务”样板的代表性不如写侧治理链；更适合在首批样板后补成稳定独立服务。
-- [ ] `job-runtime`
+- [x] `job-runtime`
   原因：它更像横切运行时 owner，适合作为成熟服务群的基础设施收尾，不适合作为第一批业务样板。
 
-### 服务边界
+### 服务边界冻结
 
-- [ ] `gateway` 只承担外部 API、鉴权入口、协议适配，不承载业务真相
-- [ ] `identity-access` 拥有会话、成员关系、访问控制相关真相
-- [ ] `knowledge-write` 拥有知识写模型、最终聚合写入与写侧生命周期规则
-- [ ] `knowledge-read` 拥有读模型、检索投影与 freshness contract
-- [ ] `candidate-ingestion` 拥有候选处理事实，但最终 publish 必须通过 `knowledge-write`
-- [ ] `governance-review` 拥有审核/反馈/治理命令，但最终聚合写入必须通过 `knowledge-write`
-- [ ] `job-runtime` 只拥有队列、outbox、恢复、重试、工作流运行时
+- [x] `gateway` 只承担外部 API、鉴权入口、协议适配，不承载业务真相
+- [x] `identity-access` 拥有会话、成员关系、访问控制相关真相
+- [x] `knowledge-write` 拥有知识写模型、最终聚合写入与写侧生命周期规则
+- [x] `knowledge-read` 拥有读模型、检索投影与 freshness contract
+- [x] `candidate-ingestion` 拥有候选处理事实，但最终 publish 必须通过 `knowledge-write`
+- [x] `governance-review` 拥有审核/反馈/治理命令，但最终聚合写入必须通过 `knowledge-write`
+- [x] `job-runtime` 只拥有队列、outbox、恢复、重试、工作流运行时
+
+## 冻结影响
+
+- Phase 0 之后，`distributed` 可以继续作为“真实但过渡态”的部署选项存在，不再需要在“假微服务”和“成熟微服务”之间来回摇摆。
+- 是否允许继续物理拆分，不再看口头印象，而是对照 `Level 2 -> Level 3` 前置条件与样板服务完成标准。
+- “gateway + 六个 owner service + runtime worker 展开”是当前 distributed 叙事；不会再把 `service-gateway` 作为当前主线前提。
+
+## 升级到 Level 3 时必须补齐的能力
 
 ### 数据与投影 owner
 
@@ -157,17 +175,17 @@
 
 ## 文档回写
 
-- [ ] `plan.md`
-- [ ] `docs/README.md`
+- [x] `plan.md`
+- [x] `docs/README.md`
 - [ ] `docs/operations/TESTING.md`
-- [ ] `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+- [x] `docs/reference/SYSTEM_TRUTH_SOURCES.md`
 - [ ] 需要时补充到 `docs/architecture/DEPLOYMENT.md`
 
 ## 最小验证
 
-- [ ] `pnpm check:docs-drift`
-- [ ] `pnpm check:structure`
-- [ ] 若调整 maturity 判据涉及 runtime/deployment 事实，补 `pnpm test:deployment-smoke`
+- [x] `pnpm check:docs-drift`
+- [x] `pnpm check:structure`
+- [x] 若调整 maturity 判据涉及 runtime/deployment 事实，补 `pnpm test:deployment-smoke`
 
 ## 证据入口
 

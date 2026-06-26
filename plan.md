@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 状态：`proposed`
+- 状态：`in_progress`
 - 日期：`2026-06-26`
 - 本文件角色：根级执行计划索引，只保留目标、约束、阶段顺序、进度勾选和细则入口
 - 已归档的上一份根计划：[`docs/archived/archived-plans/plan-2026-06-26-enum-and-export-cleanup-archived.md`](docs/archived/archived-plans/plan-2026-06-26-enum-and-export-cleanup-archived.md)
@@ -28,11 +28,11 @@
 
 ### Phase 0 决策与目标架构冻结
 
-- [ ] 冻结长期目标：`Nest host + framework-free domain core + gradual service extraction`
-- [ ] 明确哪些现有包保留、拆分、重命名、退役
-- [ ] 冻结 HTTP contract、internal contract、event contract 的主线方案
-- [ ] 冻结轻后端形态：`embedded/local-agent -> team-monolith -> distributed` 三档运行模型
-- [ ] 完成当前 distributed 形态成熟度评估，冻结“过渡态分布式”基线判断
+- [x] 冻结长期目标：`Nest host + framework-free domain core + gradual service extraction`
+- [x] 明确哪些现有包保留、拆分、重命名、退役
+- [x] 冻结 HTTP contract、internal contract、event contract 的主线方案
+- [x] 冻结轻后端形态：`embedded/local-agent -> team-monolith -> distributed` 三档运行模型
+- [x] 完成当前 distributed 形态成熟度评估，冻结“过渡态分布式”基线判断
 - 细则：[`docs/todos/nestjs-service-evolution-00-target-architecture.md`](docs/todos/nestjs-service-evolution-00-target-architecture.md)
   成熟度评估：[`docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md`](docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md)
 

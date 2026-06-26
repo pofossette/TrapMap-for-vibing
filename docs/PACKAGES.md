@@ -9,14 +9,27 @@
 | `packages/client-core` | `src/index.ts` | 客户端共享 gateway 传输层：HTTP SDK、session contract、error model |
 | `packages/cli` | `src/index.ts` | Commander.js CLI 客户端，用户交互终端入口 |
 | `packages/backend-core` | `src/index.ts` | 宿主无关的后端核心内核、运行时能力模型与端口 |
+| `packages/service-identity-access` | `src/index.ts` | identity-access service assembly 与内部路由 |
+| `packages/service-knowledge-read` | `src/index.ts` | knowledge-read service assembly 与检索读侧路由 |
+| `packages/service-knowledge-write` | `src/index.ts` | knowledge-write service assembly 与 authoritative 写路径 |
+| `packages/service-candidate-ingestion` | `src/index.ts` | candidate-ingestion service assembly 与候选处理路由 |
+| `packages/service-governance-review` | `src/index.ts` | governance-review service assembly 与治理/反馈路由 |
+| `packages/service-job-runtime` | `src/index.ts` | job-runtime service assembly、内部 route 与 runtime server |
 | `packages/host-local` | `src/index.ts` | `local-agent` / `team-monolith` 轻量宿主装配 |
 | `packages/host-distributed` | `src/index.ts` | `distributed` 重型宿主装配 |
 | `packages/server` | `src/index.ts` | 迁移期兼容壳层与既有实现面 |
 | `packages/contracts` | `src/index.ts` | 共享 Zod Schema 和 TypeScript 类型 |
-| `packages/service-job-runtime` | `src/index.ts` | 第五个真实 `service-*` 包，承接 job-runtime 服务装配、内部 route 与 runtime server |
+| `packages/web-panel` | `src/main.tsx` | 管理员浏览器运维面板，继续只面向 gateway surface |
 | `packages/skills` | `workflow-with-trapmap/SKILL.md` | 项目级 Skill 工作流与 CLI 使用指南 |
 
 ---
+
+## Phase 0 冻结结论
+
+- 当前长期目标以根 [`plan.md`](../plan.md) 和 [`docs/todos/nestjs-service-evolution-00-target-architecture.md`](todos/nestjs-service-evolution-00-target-architecture.md) 为准。
+- `docs/plans/runtime-recomposition/` 继续保留迁移背景，但不再承担当前阶段执行入口或唯一长期叙事。
+- gateway 继续作为宿主拥有的外部适配层存在；Phase 0 不把 `packages/service-gateway` 作为当前主线 package 目标。
+- `backend-core` 在 Phase 0 冻结为单包内核，先按模块边界收口，而不是预先切成多个 `domain-*` workspace 包。
 
 ## packages/contracts
 
@@ -365,102 +378,68 @@ flowchart TB
 
 ---
 
-## 目标包布局（Runtime Recomposition）
+## Phase 0 冻结的目标包布局
 
-> Runtime recomposition 已进入物理拆分执行阶段。`packages/service-knowledge-write`、`packages/service-governance-review`、`packages/service-candidate-ingestion`、`packages/service-identity-access` 已分别作为第一刀、第二刀、第三刀、第四刀真实 `service-*` 包落地；其余 `service-*` 仍保持目标架构定义。权威定义见 [architecture/TARGET_ARCHITECTURE.md](architecture/TARGET_ARCHITECTURE.md)。
+> 以 [`plan.md`](../plan.md) 和 [`docs/todos/nestjs-service-evolution-00-target-architecture.md`](todos/nestjs-service-evolution-00-target-architecture.md) 为准；`docs/plans/runtime-recomposition/` 只保留历史迁移背景。
 
-### 目标包角色
+### 包角色与迁移决策
 
-| 角色 | 包 | 职责 |
-|------|------|------|
-| **client-core** | `packages/client-core` | 客户端共享访问层：HTTP gateway SDK、session handling、error model、request helpers |
-| **backend-core** | `packages/backend-core` | 后端核心内核：应用服务、端口、宿主无关 runtime capability model、bounded-context 编排 |
-| **service (implemented)** | `packages/service-knowledge-write` | 已落地第一刀：knowledge/trap/skill/lifecycle/maintenance/decay authoritative 写装配、route registration、service factory |
-| **service (implemented)** | `packages/service-governance-review` | 已落地第二刀：review/feedback authoritative service assembly、internal route registration、service factory |
-| **service (implemented)** | `packages/service-candidate-ingestion` | 已落地第三刀：candidate authoritative service assembly、internal route registration、service factory，并保持对 knowledge-write 的远程发布边界 |
-| **service (implemented)** | `packages/service-identity-access` | 已落地第四刀：auth/session/team/member/access-key authoritative service assembly、internal route registration、service factory |
-| **host (light)** | `packages/host-local` | 轻量宿主：面向 `local-agent` 和 `team-monolith`，单机、最小依赖、低运维 |
-| **host (heavy)** | `packages/host-distributed` | 重型宿主：面向分布式装配，独立扩缩容、读写隔离、服务边界 |
-| **service** | `packages/service-*` | 七个逻辑服务包，每个对应一个 bounded context（见下表） |
+| 类别 | 包 / 目录 | Phase 0 冻结决策 |
+|---|---|---|
+| client | `packages/client-core` | 保持 gateway SDK 角色，不依赖 `backend-core` 或内部服务包 |
+| client | `packages/cli` | 继续只连统一 gateway；对后端是单 URL 视角 |
+| client | `packages/web-panel` | 保持管理员浏览器面板角色；继续只消费 gateway API |
+| kernel | `packages/backend-core` | 保留单包，持续按 bounded-context 模块收口，不预拆成多个 `domain-*` workspace 包 |
+| shared contracts | `packages/contracts` | 继续作为 HTTP、internal、event contract 的共享事实源 |
+| service assembly | `packages/service-identity-access` | 保留，承载 identity-access owner 的内部路由与装配 |
+| service assembly | `packages/service-knowledge-read` | 保留，承载 retrieval/read-model/freshness contract |
+| service assembly | `packages/service-knowledge-write` | 保留，承载 authoritative knowledge/trap/lifecycle 写路径 |
+| service assembly | `packages/service-candidate-ingestion` | 保留，承载 candidate owner 并通过 `KnowledgeWritePort` 发布结果 |
+| service assembly | `packages/service-governance-review` | 保留，承载 review/feedback/governance owner；Phase 0 不重命名 |
+| service assembly | `packages/service-job-runtime` | 保留，承载 queue / outbox / workflow runtime owner |
+| light host | `packages/host-local` | 保留，继续作为 `local-agent` / `team-monolith` 的轻宿主入口 |
+| heavy host | `packages/host-distributed` | 保留，继续作为 distributed profile 的重宿主与部署展开点 |
+| compatibility shell | `packages/server` | 继续缩减，只保留 compatibility shell、runtime/status 和迁移窗口 |
+| project workflow | `packages/skills` | 保留，不受宿主迁移主线影响 |
+| deferred / not-on-mainline | `packages/service-gateway` | 不创建；gateway 是宿主拥有的外部适配层，不是当前主线里的独立 service package |
 
-### 目标服务包
+### 运行模型与宿主分工
 
-| 包 | 服务角色 | bounded context |
-|------|------|------|
-| `packages/service-gateway` | `gateway` | 唯一外部入口：请求聚合、限流、外部认证边界、稳定 API surface |
-| `packages/service-identity-access` | `identity-access` | 已落地：auth、session、access-keys、membership、team、RBAC decision |
-| `packages/service-knowledge-read` | `knowledge-read` | retrieval、query trace、只读投影、status read model、读缓存 |
-| `packages/service-knowledge-write` | `knowledge-write` | 已落地：knowledge/trap/skill/lifecycle/maintenance/decay 的 authoritative 写路径 |
-| `packages/service-candidate-ingestion` | `candidate-ingestion` | 已落地：candidate intake、归一化、去重预处理、候选状态推进、内部 route/service 装配 |
-| `packages/service-governance-review` | `governance-review` | 已落地：review 决策、feedback、artifact review 的 authoritative service assembly |
-| `packages/service-job-runtime` | `job-runtime` | task queue、workflow runs、outbox dispatch、shared jobs 执行 |
-
-### 目标包布局
-
-```
-Trap-Map/
-├── packages/
-│   ├── client-core/               # 客户端共享 HTTP gateway SDK
-│   ├── backend-core/              # 后端核心内核（服务、端口、能力模型）
-│   ├── service-gateway/           # Gateway 宿主/传输/装配
-│   ├── service-identity-access/   # Auth、session、access-keys、membership、team、RBAC
-│   ├── service-knowledge-read/    # Retrieval、只读投影、query trace、读缓存
-│   ├── service-knowledge-write/   # Knowledge/trap/skill/lifecycle/maintenance/decay 写路径
-│   ├── service-candidate-ingestion/ # Candidate intake、归一化、去重、状态推进
-│   ├── service-governance-review/ # 审核队列、工作台、冲突解决、remediation
-│   ├── service-job-runtime/       # Task queue、workflow runs、outbox dispatch、shared jobs
-│   ├── host-local/                # 轻量宿主装配（local-agent、team-monolith）
-│   ├── host-distributed/          # 重型宿主装配（分布式服务）
-│   ├── cli/                       # CLI（精简后不再持有共享 HTTP SDK）
-│   ├── server/                    # 迁移期兼容壳层，逐步被 host-local/host-distributed 替代
-│   ├── contracts/                 # 共享 Zod Schema 和 TypeScript 类型
-│   └── skills/                    # 项目级 Skill 工作流
-├── evals/
-├── docs/
-├── scripts/
-└── docker-compose.yml
-```
+- `embedded/local-agent`：继续由 `host-local` 提供，要求单用户、单端口、低依赖、`in-process` 优先。
+- `team-monolith`：继续由 `host-local` 提供，要求单进程完整治理与 PostgreSQL 主路径。
+- `distributed`：继续由 `host-distributed` 提供，作为 gateway + 六个 bounded-context owner + runtime worker 的部署展开；当前成熟度冻结为 `Level 2 / transitional-microservice`。
+- 未来切换到 NestJS 时，替换的是 host/transport/DI 层，而不是 `backend-core`、`contracts` 或 service owner contract。
 
 ### 依赖方向
 
 ```
-contracts ──────────────────────────────────────────────────┐
-    │                                                       │
-    ▼                                                       │
-client-core ← cli, future web client                        │
-    │                                                       │
-backend-core ← service-* ← host-local, host-distributed     │
-    │                           │                           │
-    └───────────────────────────┴───────────────────────────┘
-                                ↑
-                           server (迁移期壳层，逐步缩减)
+contracts ────────────────────────────────────────────────┐
+    │                                                     │
+    ├── client-core ──> cli                              │
+    ├── gateway API ──> web-panel                        │
+    │                                                     │
+    └── backend-core <── service-* <── host-local / host-distributed
+                                 ▲
+                                 │
+                        server (compatibility shell)
 ```
 
 关键约束：
 
-1. `client-core` 只依赖 `contracts`，不依赖 `backend-core` 或任何服务端包。
-2. `backend-core` 依赖 `contracts`，不依赖任何 service 或 host 包。
-3. 各 `service-*` 是对等包，互不直接依赖；跨服务交互通过 `backend-core` 中定义的 internal ports。
-4. `host-local` 和 `host-distributed` 依赖 `backend-core`、`contracts` 和所装配的 service 包。
-5. `packages/cli` 依赖 `client-core` 和 `contracts`，不依赖 `backend-core` 或任何服务端包。
-6. `packages/server`（迁移期壳层）在迁移期间依赖 `backend-core`、`contracts` 和 service 包；当前已不再持有 `knowledge-write` authoritative service assembly，最终被替代。
+1. 所有客户端都只对 gateway surface 编程，不直连内部服务。
+2. `backend-core` 是框架无关内核；Nest/Fastify 都只能在 host 层做 adapter。
+3. 各 `service-*` 包互不直接依赖；跨服务交互通过 `backend-core` 中定义的 internal ports 与 invocation model。
+4. `host-local` / `host-distributed` 负责把 concrete transport 与依赖装配到统一 port contract 上。
+5. `packages/server` 只能继续缩成迁移期兼容壳层，不能再长出新的 authoritative write orchestration。
 
 ### 数据库与事务边界
 
-首期继续共享 PostgreSQL，但已冻结表级 ownership。详见 [architecture/DATABASE_OWNERSHIP.md](architecture/DATABASE_OWNERSHIP.md) 和 [architecture/SERVICE_BOUNDARIES.md](architecture/SERVICE_BOUNDARIES.md)。
-
-### 架构原则摘要
-
-1. 所有客户端只对 gateway SDK / gateway API 编程。
-2. 所有宿主都对 `backend-core` 编程，不直接复制业务逻辑。
-3. 微服务边界先按 authoritative ownership、读写路径和故障域划分，再考虑物理进程数。
-4. 首期可以保留共享数据库，但不能把共享数据库当作"服务边界不需要定义"的借口。
-5. 不引入分布式事务；跨服务一致性通过 outbox + queue + projection 实现。
-6. 不引入 RPC-first 架构；先做 port-first、transport-agnostic。
+首期继续共享 PostgreSQL，但服务 owner、写侧事实源和投影边界已经冻结。详见 [architecture/DATABASE_OWNERSHIP.md](architecture/DATABASE_OWNERSHIP.md) 和 [architecture/SERVICE_BOUNDARIES.md](architecture/SERVICE_BOUNDARIES.md)。
 
 ### 参考文档
 
-- [architecture/TARGET_ARCHITECTURE.md](architecture/TARGET_ARCHITECTURE.md) -- 术语冻结、包角色、部署角色、服务角色、架构原则
+- [docs/todos/nestjs-service-evolution-00-target-architecture.md](todos/nestjs-service-evolution-00-target-architecture.md) -- Phase 0 冻结结论
+- [docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md](todos/nestjs-service-evolution-distributed-maturity-assessment.md) -- distributed 当前成熟度基线
 - [architecture/DATABASE_OWNERSHIP.md](architecture/DATABASE_OWNERSHIP.md) -- 表级 ownership 和事务边界规则
 - [architecture/SERVICE_BOUNDARIES.md](architecture/SERVICE_BOUNDARIES.md) -- 服务角色定义和 ownership 模型
-- [plans/runtime-recomposition/](plans/runtime-recomposition/) -- 完整 Runtime Recomposition 计划
+- [plans/runtime-recomposition/](plans/runtime-recomposition/) -- 历史迁移背景，不再承担当前阶段执行入口

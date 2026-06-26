@@ -38,7 +38,10 @@ function warnStubUsage(name: string, message: string): void {
 // ---------------------------------------------------------------------------
 
 export function createStubSessionLookup(): SessionLookupPort {
-  warnStubUsage('sessionLookup', 'using development stub; authenticated runtime lookups are absent');
+  warnStubUsage(
+    'sessionLookup',
+    'using development stub; authenticated runtime lookups are absent',
+  );
   return {
     async resolveSession() {
       return null;

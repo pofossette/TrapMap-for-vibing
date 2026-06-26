@@ -6,6 +6,14 @@
 
 > 当前正式运行入口已经迁移到 `packages/host-local` 与 `packages/host-distributed`。本页中保留 `packages/server` 结构说明，是因为它仍承担 retrieval/status/readiness 与旧路由兼容壳职责，但 candidate/review -> knowledge 的 authoritative write orchestration 已迁移到 `packages/host-distributed`。
 
+Phase 0 目标架构冻结补充事实：
+
+- 唯一长期后端主线固定为 `Nest host + framework-free domain core + gradual service extraction`。
+- 当前实现仍以 Fastify 宿主为主；后续引入 NestJS 时，替换的是 host/transport/DI，而不是 `backend-core`、`contracts` 或 service owner contract。
+- 运行模型固定为 `embedded/local-agent -> team-monolith -> distributed` 三档；`embedded` 是当前 `local-agent` 的长期产品语义，不新增第四种 profile。
+- gateway 继续是宿主拥有的统一外部适配层，而不是当前主线里的 `service-gateway` package 前提。
+- 当前 `distributed` 成熟度冻结为 `Level 2 / transitional-microservice`。
+
 Phase 1 边界收敛补充事实：
 
 - `packages/server` 当前是 compatibility shell 与 runtime/status surface，不再是 candidate/review -> knowledge write path 的权威实现面。

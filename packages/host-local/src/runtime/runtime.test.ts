@@ -54,12 +54,14 @@ describe('host-local runtime workers', () => {
   });
 
   it('task worker drains when stop is requested before the consumer finishes booting', async () => {
-    let resolveConsumer: ((value: {
-      run(): Promise<void>;
-      stop(): Promise<void>;
-      isRunning(): boolean;
-      ownsWork(): boolean;
-    }) => void) | null = null;
+    let resolveConsumer:
+      | ((value: {
+          run(): Promise<void>;
+          stop(): Promise<void>;
+          isRunning(): boolean;
+          ownsWork(): boolean;
+        }) => void)
+      | null = null;
     const run = vi.fn().mockResolvedValue(undefined);
     const stop = vi.fn().mockResolvedValue(undefined);
     const queue: TaskQueuePort = {

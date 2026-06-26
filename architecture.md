@@ -72,8 +72,18 @@ Round 0 已冻结数据库演进方向，后续轮次必须遵守以下边界：
 | `packages/host-distributed` | `distributed` 重型宿主装配 |
 | `packages/server` | 迁移期兼容壳层与既有实现面 |
 | `packages/contracts` | 共享 Zod Schema 和 TypeScript 类型定义 |
+| `packages/service-*` | bounded-context service assembly：identity-access、knowledge-read/write、candidate-ingestion、governance-review、job-runtime |
+| `packages/web-panel` | 管理员浏览器运维面板，继续只面向 gateway surface |
 | `packages/skills` | 项目级 Skill 定义 |
 | `evals/` | 检索和摘要评估系统 |
+
+## Phase 0 冻结的长期宿主目标
+
+- 唯一长期后端主线固定为 `Nest host + framework-free domain core + gradual service extraction`。
+- 当前实现仍以 `host-local` / `host-distributed` / `server` 上的 Fastify 宿主为主；NestJS 是后续宿主与 DI 替换目标，不是当前业务真相源。
+- 运行模型固定为 `embedded/local-agent -> team-monolith -> distributed` 三档；`embedded` 是当前 `local-agent` 的产品语义，不新增第四种常驻 profile。
+- gateway 继续是宿主拥有的统一外部适配层；当前主线不创建 `packages/service-gateway`。
+- `distributed` 当前成熟度冻结为 `Level 2 / transitional-microservice`。
 
 ## 文档导航
 

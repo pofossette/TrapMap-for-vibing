@@ -45,6 +45,13 @@
       ]
     },
     {
+      "file": "docs/reference/REPO_STRUCTURE.md",
+      "mustContain": [
+        "`docs/plans/`: historical design references and only active again when a current root plan explicitly re-links them.",
+        "`docs/todos/`: pending work plus the phase detail docs linked from the current root `plan.md`."
+      ]
+    },
+    {
       "file": "docs/README.md",
       "mustNotContain": ["使用 JSON 文件存储", "48 张表", "54 张表"]
     },

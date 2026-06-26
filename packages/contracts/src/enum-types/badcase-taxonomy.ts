@@ -17,9 +17,7 @@ const BADCASE_TAXONOMY_LEGACY_ALIASES = {
   'outdated-content': 'stale-content',
 } as const satisfies Record<string, BadcaseTaxonomy>;
 
-export function normalizeBadcaseTaxonomy(
-  value: string | null | undefined,
-): BadcaseTaxonomy | null {
+export function normalizeBadcaseTaxonomy(value: string | null | undefined): BadcaseTaxonomy | null {
   if (!value) {
     return null;
   }
