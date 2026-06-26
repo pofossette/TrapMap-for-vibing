@@ -19,6 +19,14 @@ Phase 1 Nest 宿主试点（进行中）：
 - `in-process` / `remote` 双 adapter 语义已确定；轻后端默认走 `in-process`。
 - 详见 [`docs/todos/nestjs-service-evolution-01-host-and-contract-foundation.md`](todos/nestjs-service-evolution-01-host-and-contract-foundation.md)。
 
+Phase 2 模块化单体切换（代码级收口已落地，默认入口切换待执行）：
+
+- 六个 bounded context、`backend-core` framework-free 范围、`embedded/local-agent` 与 `team-monolith` 共用主实现面的规则已经补齐。
+- `backend-core/src/<context>/{domain,application,module.ts,index.ts}` 已落地为六个 bounded context 的规范目录；`src/modules/*.ts` 在迁移窗口内退化为 compatibility re-export。
+- `host-local/src/nest/app.module.ts` 已注册六个 bounded-context Nest module，`embedded/local-agent` 与 `team-monolith` 共用同一模块图。
+- 旧 `packages/server` / 旧 Fastify `host-*` 的 compatibility boundary 已明确：只保留 rollback、runtime/status 和 transport/bootstrapping。
+- 详见 [`docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md`](todos/nestjs-service-evolution-02-modular-monolith-cutover.md)。
+
 ## 系统架构
 
 ```mermaid
@@ -186,7 +194,7 @@ deployment flexibility 最小验证矩阵：
 - [后端工程化优化计划](todos/backend-engineering-optimization-plan.md) — 队列、MQ、微服务化与观测演进方向
 - [NestJS 目标架构冻结](todos/nestjs-service-evolution-00-target-architecture.md) — 长期目标、边界、保留与退役决策
 - [NestJS 宿主与 contract 基础](todos/nestjs-service-evolution-01-host-and-contract-foundation.md) — 首条 Nest 宿主主线与共享 contract 收口
-- [NestJS 模块化单体切换](todos/nestjs-service-evolution-02-modular-monolith-cutover.md) — 默认开发主线切换计划
+- [NestJS 模块化单体切换](todos/nestjs-service-evolution-02-modular-monolith-cutover.md) — 六个 bounded context、compatibility boundary 与机械迁移提示词
 - [NestJS 服务拆分与异步化](todos/nestjs-service-evolution-03-service-extraction-and-async.md) — 服务 owner、异步边界与分布式验证
 - [NestJS 数据与退役收尾](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md) — 数据 owner、运维面与旧宿主退役
 - [Distributed 成熟度评估](todos/nestjs-service-evolution-distributed-maturity-assessment.md) — 当前 distributed 形态到底算过渡态还是成熟微服务，以及升级判据

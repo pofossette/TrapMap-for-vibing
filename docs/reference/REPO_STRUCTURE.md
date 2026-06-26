@@ -20,20 +20,20 @@ Historical plans, temporary notes, audits, and human-authored reports must live 
 ## Product Packages
 
 - `packages/cli/`: Commander CLI and CLI tests.
-- `packages/server/`: Fastify compatibility shell, runtime/status surface, and legacy server tests. It is in a migration window and should keep shrinking.
+- `packages/server/`: Fastify compatibility shell, runtime/status surface, explicit rollback path, and legacy server tests. It is in a migration window and should keep shrinking.
 - `packages/contracts/`: shared Zod schemas and TypeScript types.
 - `packages/skills/`: project-level Skill artifacts.
 - `packages/client-core/`: Browser-compatible shared gateway transport layer (HTTP SDK, session contract, error model). Used by CLI and future web panel.
 - `packages/web-panel/`: Browser-based administrator operations panel. It remains a gateway-only client surface.
-- `packages/backend-core/`: Host-agnostic backend core kernel (runtime capability model, port interfaces, use-case patterns, bounded-context modules, invocation model). Used by all hosts.
+- `packages/backend-core/`: Host-agnostic backend core kernel (runtime capability model, port interfaces, use-case patterns, bounded-context modules, invocation model). Phase 2 keeps it framework-free and reorganizes each bounded context into internal `domain/application/module` seams under `src/identity-access/`, `src/knowledge-read/`, `src/knowledge-write/`, `src/candidate-ingestion/`, `src/governance-review/`, `src/job-runtime/`; `src/modules/*.ts` remains only as a compatibility re-export facade during the migration window. Used by all hosts.
 - `packages/service-identity-access/`: Owns identity-access service assembly, internal route registration, and bounded-context auth/session/team/member/access-key wiring.
 - `packages/service-knowledge-read/`: Knowledge-read service assembly. Owns retrieval, read-model, and projection-status route wiring.
 - `packages/service-knowledge-write/`: Owns knowledge-write service assembly, internal route registration, and bounded-context write wiring for knowledge/trap/skill/lifecycle/maintenance/decay.
 - `packages/service-governance-review/`: Owns governance-review service assembly, internal route registration, and bounded-context review/feedback wiring while delegating lifecycle mutations to knowledge-write.
 - `packages/service-candidate-ingestion/`: Owns candidate-ingestion service assembly, internal route registration, and bounded-context candidate wiring while delegating result publication to knowledge-write.
 - `packages/service-job-runtime/`: Owns job-runtime service assembly, internal route registration, queue/runtime deps wiring, and runtime server bootstrap surface.
-- `packages/host-local/`: Lightweight host assembly for local-agent and team-monolith profiles. Single-process deployment with minimal dependencies.
-- `packages/host-distributed/`: Heavy host assembly for the distributed profile. It provides the gateway deployment surface plus the current bounded-context service/runtime expansion points; the current maturity baseline is transitional, not fully autonomous microservices.
+- `packages/host-local/`: Lightweight host assembly for local-agent and team-monolith profiles. `src/nest/**` is the shared modular-monolith mainline; the six bounded-context Nest modules (`identity-access/`, `knowledge-read/`, `knowledge-write/`, `candidate-ingestion/`, `governance-review/`, `job-runtime/`) are registered in `src/nest/app.module.ts` and share the same module graph across profiles; legacy Fastify paths remain only as rollback/compatibility shell during cutover.
+- `packages/host-distributed/`: Heavy host assembly for the distributed profile. It provides the gateway deployment surface plus the current bounded-context service/runtime expansion points, but must consume the same backend-core/service-package main implementation as the monolith; the current maturity baseline is transitional, not fully autonomous microservices.
 
 ## Documentation
 

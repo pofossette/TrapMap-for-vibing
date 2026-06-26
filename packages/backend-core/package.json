@@ -42,6 +42,54 @@
       "types": "./dist/modules/*.d.ts",
       "import": "./dist/modules/*.js"
     },
+    "./identity-access": {
+      "types": "./dist/identity-access/index.d.ts",
+      "import": "./dist/identity-access/index.js"
+    },
+    "./identity-access/*": {
+      "types": "./dist/identity-access/*.d.ts",
+      "import": "./dist/identity-access/*.js"
+    },
+    "./knowledge-read": {
+      "types": "./dist/knowledge-read/index.d.ts",
+      "import": "./dist/knowledge-read/index.js"
+    },
+    "./knowledge-read/*": {
+      "types": "./dist/knowledge-read/*.d.ts",
+      "import": "./dist/knowledge-read/*.js"
+    },
+    "./knowledge-write": {
+      "types": "./dist/knowledge-write/index.d.ts",
+      "import": "./dist/knowledge-write/index.js"
+    },
+    "./knowledge-write/*": {
+      "types": "./dist/knowledge-write/*.d.ts",
+      "import": "./dist/knowledge-write/*.js"
+    },
+    "./candidate-ingestion": {
+      "types": "./dist/candidate-ingestion/index.d.ts",
+      "import": "./dist/candidate-ingestion/index.js"
+    },
+    "./candidate-ingestion/*": {
+      "types": "./dist/candidate-ingestion/*.d.ts",
+      "import": "./dist/candidate-ingestion/*.js"
+    },
+    "./governance-review": {
+      "types": "./dist/governance-review/index.d.ts",
+      "import": "./dist/governance-review/index.js"
+    },
+    "./governance-review/*": {
+      "types": "./dist/governance-review/*.d.ts",
+      "import": "./dist/governance-review/*.js"
+    },
+    "./job-runtime": {
+      "types": "./dist/job-runtime/index.d.ts",
+      "import": "./dist/job-runtime/index.js"
+    },
+    "./job-runtime/*": {
+      "types": "./dist/job-runtime/*.d.ts",
+      "import": "./dist/job-runtime/*.js"
+    },
     "./invocation": {
       "types": "./dist/invocation/index.d.ts",
       "import": "./dist/invocation/index.js"

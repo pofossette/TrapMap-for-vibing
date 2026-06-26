@@ -16,7 +16,7 @@
 | `backend-engineering-optimization-plan.md` | 后端工程化优化计划 |
 | `nestjs-service-evolution-00-target-architecture.md` | NestJS 长期目标架构与迁移边界冻结 |
 | `nestjs-service-evolution-01-host-and-contract-foundation.md` | Nest 宿主、配置与 contract 基础收口 |
-| `nestjs-service-evolution-02-modular-monolith-cutover.md` | 模块化单体切换 |
+| `nestjs-service-evolution-02-modular-monolith-cutover.md` | 模块化单体切换：边界冻结、兼容层规则与机械迁移提示词 |
 | `nestjs-service-evolution-03-service-extraction-and-async.md` | 服务拆分与异步化 |
 | `nestjs-service-evolution-04-data-runtime-and-cutover.md` | 数据、运维、退役与收尾 |
 | `nestjs-service-evolution-distributed-maturity-assessment.md` | 当前 distributed 形态成熟度评估与升级判据 |

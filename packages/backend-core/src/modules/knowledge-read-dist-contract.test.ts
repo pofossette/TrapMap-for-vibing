@@ -3,13 +3,16 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-const DIST_DECLARATION_PATH = resolve(__dirname, '../../dist/modules/knowledge-read.d.ts');
+const DIST_DECLARATION_PATH = resolve(
+  __dirname,
+  '../../dist/knowledge-read/application/module.d.ts',
+);
 
 describe('knowledge-read dist declaration contract', () => {
   it('emits the authoritative knowledgeProjection contract into dist', () => {
     expect(
       existsSync(DIST_DECLARATION_PATH),
-      `Missing ${DIST_DECLARATION_PATH}; run \`rtk pnpm --filter @trapmap/backend-core build\` before this guard.`,
+      `Missing ${DIST_DECLARATION_PATH}; run \`rtk pnpm --filter @trapmap/backend-core build\` (or the equivalent \`pnpm --filter @trapmap/backend-core build\`) before this guard.`,
     ).toBe(true);
 
     const declaration = readFileSync(DIST_DECLARATION_PATH, 'utf8');

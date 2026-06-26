@@ -31,6 +31,14 @@
 - gateway 继续作为宿主拥有的外部适配层存在；Phase 0 不把 `packages/service-gateway` 作为当前主线 package 目标。
 - `backend-core` 在 Phase 0 冻结为单包内核，先按模块边界收口，而不是预先切成多个 `domain-*` workspace 包。
 
+## Phase 2 模块化单体边界冻结
+
+- `backend-core` 继续保留单包，但其内部必须按六个 bounded context 收口到 `<context>/domain/`、`<context>/application/`、`<context>/module.ts`；`ports`、`invocation`、`runtime`、`testing` 继续作为共享且 framework-free 的顶层目录。当前六个 context 目录已经落地：`identity-access/`、`knowledge-read/`、`knowledge-write/`、`candidate-ingestion/`、`governance-review/`、`job-runtime/`；`src/modules/*.ts` 在迁移窗口内只保留对对应 `<context>/index.ts` 的兼容性 re-export。
+- `packages/host-local/src/nest/**` 是 `embedded/local-agent` 与 `team-monolith` 共用的主实现面；两档 profile 只允许在 capability、provider wiring、route surface gating 上有差异。当前六个 bounded-context Nest module 已经全部在 `packages/host-local/src/nest/app.module.ts` 注册，profile 差异仍只发生在 capability / provider / route gating 层。
+- `packages/service-*` 继续只承载 thin assembly：`deps.ts`、`routes.ts`、`server.ts`、`index.ts`。业务规则不在这些包里分叉。
+- `packages/server` 与 `packages/host-local` 旧 Fastify 路径现在都属于 compatibility shell / rollback path；新的 authoritative orchestration 不再进入这些路径。
+- `packages/host-distributed` 继续是 distributed profile 的部署展开层，但必须消费与 modular monolith 相同的 `backend-core` + `service-*` 主实现，而不是维护第二套 business truth。
+
 ## packages/contracts
 
 共享 Schema 和类型定义，同时被 CLI 和 Server 导入。

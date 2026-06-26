@@ -30,6 +30,14 @@ Phase 1 Nest 宿主试点补充事实：
 - `401` 停留在 guard 层，不扩写进 `InvocationErrorKind`。
 - Nest 宿主当前仍是 opt-in，通过 `pnpm --filter @trapmap/host-local dev:nest` 启动，不直接替换默认 Fastify 入口，直到 Phase 2 切换完成。
 
+Phase 2 modular-monolith cutover 补充事实：
+
+- 六个 bounded context 固定为 `identity-access`、`knowledge-read`、`knowledge-write`、`governance-review`、`candidate-ingestion`、`job-runtime`；`gateway` 继续只是宿主拥有的 transport shell。
+- `backend-core` 已经按这六个 context 落地 `src/<context>/{domain,application,module.ts,index.ts}`；`src/modules/*.ts` 在迁移窗口内退化为对 `<context>/index.ts` 的 compatibility re-export。`backend-core` 必须继续承担 framework-free 的 `ports`、`invocation`、`runtime capability/topology`、testing utilities，以及各 context 的 `domain/application/module` factory；Nest/Fastify/PG/MQ concrete 细节不得进入这里。
+- `embedded/local-agent` 与 `team-monolith` 在 Phase 2 以后共用同一个 `packages/host-local/src/nest/app.module.ts` 和同一套 bounded-context module graph；profile 差异只允许出现在 capability、provider wiring 和 route surface gating。当前六个 bounded-context Nest module 已经全部在 `app.module.ts` 注册。
+- 旧 `packages/server` 与 `packages/host-local` Fastify 路径只保留 compatibility shell、rollback path、runtime/status；`packages/host-distributed` 保留为 distributed 的部署展开层，但不拥有第二套业务真相。
+- `packages/service-*` 包继续保留，但只作为 distributed internal transport / process entry thin assembly；业务 owner 仍以 `backend-core` module 和本文档定义的边界为准。
+
 Phase 2 异步 contract 补充事实：
 
 - `packages/contracts/src/domain/async.ts` 冻结 async event / shared job 的 idempotency key、retry policy、dead-letter meaning 和 operator action catalog。
