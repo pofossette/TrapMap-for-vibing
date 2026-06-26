@@ -149,6 +149,30 @@
     {
       "file": "evals/README.md",
       "mustContain": ["retrieval/", "summary/", "graph-extraction/", "ingestion/", "pnpm eval:ci"]
+    },
+    {
+      "file": "docs/README.md",
+      "mustContain": ["Nest modular monolith"],
+      "mustNotContain": ["NestJS 是后续宿主替换目标", "Nest 宿主当前仍是 opt-in"]
+    },
+    {
+      "file": "docs/architecture/DEPLOYMENT.md",
+      "mustContain": ["Nest modular monolith 主线", "compatibility shell"],
+      "mustNotContain": ["Nest 宿主当前是 opt-in 入口"]
+    },
+    {
+      "file": "docs/operations/TESTING.md",
+      "mustContain": ["Phase 4 验证归属矩阵"]
+    },
+    {
+      "file": "docs/PACKAGES.md",
+      "mustContain": ["Phase 4 数据、运维与退役收尾", "packages/host-local/src/nest/**"],
+      "mustNotContain": ["packages/host-distributed 是 compatibility shell"]
+    },
+    {
+      "file": "docs/operations/ENVIRONMENT.md",
+      "mustContain": ["Phase 4 默认主线"],
+      "mustNotContain": ["Phase 1 试点"]
     }
   ],
   "lineBudgets": [

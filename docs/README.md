@@ -4,28 +4,21 @@
 
 TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治理基础设施。本文档负责导航到项目中的权威说明，重点覆盖治理、检索、评测与按需激活相关材料。
 
-## Phase 0 冻结口径
+## NestJS 服务演进进度
 
-- 长期后端主线已经冻结为 `Nest host + framework-free domain core + gradual service extraction`。
-- 当前正式入口仍是 `host-local` / `host-distributed` / `server` 上的 Fastify 宿主；NestJS 是后续宿主替换目标，不是当前业务真相源。
-- 运行模型固定为 `embedded/local-agent`、`team-monolith`、`distributed` 三档，其中 `embedded` 是当前 `local-agent` 的长期产品语义。
-- `docs/todos/` 现在承担根 `plan.md` 链接的阶段细则与待推进议题；`docs/plans/` 默认只保留历史参考或被根计划显式重新激活的长期资料。
+Phase 0–3 已全部完成，当前进入 Phase 4 收尾：
 
-Phase 1 Nest 宿主试点（进行中）：
+- 长期后端主线已冻结为 `Nest host + framework-free domain core + gradual service extraction`，Phases 1–3 已按此主线完成宿主、contract、模块化单体和服务拆分落地。
+- 默认开发入口已切到 `host-local` Nest modular monolith 主线；旧 Fastify 宿主（`packages/server`、`packages/host-local` 旧路径）降级为 compatibility shell，处于有限迁移窗口中。
+- 运行模型固定为 `embedded/local-agent`、`team-monolith`、`distributed` 三档；`host-local/src/nest/**` 是单体主实现宿主，`host-distributed` 是分布式部署展开层。
+- 六个 bounded context 已全部收口到 `backend-core/src/<context>/` 独立目录，`host-local/src/nest/app.module.ts` 注册六个 Nest module；`src/modules/*.ts` 仅为兼容 re-export facade。
+- 第一批成熟服务样板 `knowledge-write + governance-review` 已完成 closeout；仓库级 owner matrix 和迁移窗口关闭条件已冻结。
 
-- 首个试点固定为 `gateway + knowledge-read`；`identity-access` 因 auth contract drift 延后。
-- Nest 宿主当前仍是 opt-in（`pnpm --filter @trapmap/host-local dev:nest`），不直接替换默认 Fastify 入口。
-- contracts Zod-first / route-manifest-first 主线已冻结；OpenAPI 仅为派生产物。
-- `in-process` / `remote` 双 adapter 语义已确定；轻后端默认走 `in-process`。
-- 详见 [`docs/todos/nestjs-service-evolution-01-host-and-contract-foundation.md`](todos/nestjs-service-evolution-01-host-and-contract-foundation.md)。
+Phase 4 数据、运维与退役收尾（进行中）：
 
-Phase 2 模块化单体切换（代码级收口已落地，默认入口切换待执行）：
-
-- 六个 bounded context、`backend-core` framework-free 范围、`embedded/local-agent` 与 `team-monolith` 共用主实现面的规则已经补齐。
-- `backend-core/src/<context>/{domain,application,module.ts,index.ts}` 已落地为六个 bounded context 的规范目录；`src/modules/*.ts` 在迁移窗口内退化为 compatibility re-export。
-- `host-local/src/nest/app.module.ts` 已注册六个 bounded-context Nest module，`embedded/local-agent` 与 `team-monolith` 共用同一模块图。
-- 旧 `packages/server` / 旧 Fastify `host-*` 的 compatibility boundary 已明确：只保留 rollback、runtime/status 和 transport/bootstrapping。
-- 详见 [`docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md`](todos/nestjs-service-evolution-02-modular-monolith-cutover.md)。
+- 冻结仓库级 owner matrix、迁移窗口关闭标准和可退役 compatibility shell 清单。
+- 退役旧宿主与重复 transport/client，完成 truth source、测试矩阵、归档回写。
+- 详见 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
 
 ## 系统架构
 
@@ -84,8 +77,8 @@ flowchart TB
 |------|------|
 | 运行时 | Node.js 20+ (ESM) |
 | 语言 | TypeScript 5.x |
-| 当前宿主实现 | Fastify 5.x |
-| 长期宿主目标 | NestJS（Phase 0 已冻结） |
+| 主宿主实现 | NestJS（Phase 1–4 主线，`host-local/src/nest/**`） |
+| 兼容宿主 | Fastify 5.x（`packages/server`，迁移窗口内 compatibility shell） |
 | CLI | Commander.js 14.x |
 | 验证 | Zod 4.x |
 | AI 集成 | LangChain Core |
@@ -221,7 +214,7 @@ deployment flexibility 最小验证矩阵：
 - [数据库表结构速查](reference/DATABASE_SCHEMA.md) — PostgreSQL 57 张表完整参考
 
 ### 部署与运维
-- [部署指南](architecture/DEPLOYMENT.md) — `host-local` / `host-distributed` 宿主与 `local-agent` / `team-monolith` / `distributed` 启动入口
+- [部署指南](architecture/DEPLOYMENT.md) — `local-agent` / `team-monolith` / `distributed` 三档部署入口与 `host-local` Nest 主线 / `host-distributed` 分布式展开层
 - [故障排查](architecture/TROUBLESHOOTING.md) — 常见问题及解决方案
 - [环境变量参考](operations/ENVIRONMENT.md) — 所有环境变量完整参考
 - [性能指南](reference/PERFORMANCE.md) — 性能调优与瓶颈排查
@@ -235,7 +228,7 @@ deployment flexibility 最小验证矩阵：
 
 ### 归档文档
 - [归档文档](archived/) — 历史参考文档
-- [归档实施计划](archived/archived-plans/) — 已完成和过时的设计计划，保留作历史参考
+- [归档实施计划](archived/archived-plans/) — 已完成和过时的设计计划，保留作历史参考（含 [Phase 0–3 阶段归档](archived/archived-plans/plan-2026-06-26-nestjs-phase0-to-phase3-archived.md)）
 
 ## 安全模型
 

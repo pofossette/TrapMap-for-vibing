@@ -174,16 +174,17 @@ pnpm dev:cli -- login --access-key <key>
 pnpm dev:cli -- --help
 ```
 
-### 可选：Nest 宿主试点（Phase 1，opt-in）
+### Nest modular monolith 主线（默认开发入口）
 
-Nest 宿主当前是 opt-in 入口，仅覆盖 `gateway + knowledge-read` 试点 surface，不替换默认 Fastify 主线：
+`packages/host-local/src/nest/**` 是默认开发与部署主线。`local-agent` 和 `team-monolith` 都由 `@trapmap/host-local` 的 Nest 装配提供，六个 bounded-context Nest module 已在 `app.module.ts` 注册。
 
 ```bash
-# 启动 Nest 宿主（FastifyAdapter）
-pnpm --filter @trapmap/host-local dev:nest
+# 默认开发入口（Nest modular monolith）
+pnpm dev:local-agent
+pnpm dev:team-monolith
 ```
 
-试点范围内的路由（`/v1/knowledge/:entryId`、`/v1/knowledge/mine`、`/v1/retrieval/search`、`/v1/knowledge/projection-status`）走 Nest controller；非试点路由继续由旧宿主承载。`identity-access` 因 auth contract drift 延后，不在本轮试点内。
+旧 Fastify 宿主路径（`packages/server`、`packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**`）已降级为 compatibility shell，仅保留 rollback、runtime/status 和有限迁移窗口职责，不再承接新的 authoritative orchestration。
 
 ### 可选：本地 Neo4j 查询后端
 

@@ -99,21 +99,18 @@ TrapMap 有两类典型使用方式：
 - Skill Artifact 域已进入 Round 4：主路径在 PostgreSQL，`files`、`script_descriptors`、`profile/capsules/clientManifest` 已补入结构化子表；原 `artifact_revisions` JSONB 列继续保留为兼容缓存，不再是唯一事实源
 - PG-first 收敛已完成：核心请求处理通过 `repos` 读写（`packages/server/src/lib/repos/`）；`store_snapshot` 作为兼容层保留，仍服务于未迁移辅助域以及部分启动恢复/运维路径。详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
 
-长期架构冻结（Phase 0）：
+长期架构演进（Phase 0–4）：
 
-- 唯一长期后端主线固定为 `Nest host + framework-free domain core + gradual service extraction`
-- 当前运行时实现仍以 Fastify 宿主为主；NestJS 是后续替换宿主与 DI 的目标，不是当前业务真相源
+- 唯一长期后端主线已冻结并落地为 `Nest host + framework-free domain core + gradual service extraction`
+- 默认开发入口已切到 `host-local` Nest modular monolith 主线；旧 Fastify 宿主（`packages/server`）降级为 compatibility shell
 - 运行模型固定为 `embedded/local-agent -> team-monolith -> distributed` 三档；`embedded` 是 `local-agent` 的产品语义，不新增第四种 profile
 - CLI 与 web-panel 继续只面向统一 gateway；HTTP / internal / event contract 分别统一收敛到 `packages/contracts`、`packages/backend-core` 和共享 async contract
-- 当前 `distributed` 定位已冻结为 `Level 2 / transitional-microservice`，第一批成熟服务样板固定为 `knowledge-write + governance-review`
+- 当前 `distributed` 定位已冻结为 `Level 2 / transitional-microservice`，第一批成熟服务样板 `knowledge-write + governance-review` 已完成 closeout
 
-Phase 1 Nest 宿主试点（进行中）：
+Phase 4 收尾（进行中）：
 
-- 首个试点固定为 `gateway + knowledge-read`；`identity-access` 因 auth contract drift 延后
-- Nest 宿主当前仍是 opt-in（`pnpm dev:nest`），不直接替换默认 Fastify 入口，直到 Phase 2 切换完成
-- 采用 `FastifyAdapter`，代码落点在 `packages/host-local/src/nest/`
-- contracts Zod-first / route-manifest-first 主线已冻结；OpenAPI 仅为派生产物
-- `in-process` / `remote` 双 adapter 语义已确定：`local-agent` 和 `team-monolith` 默认走 `in-process`，`remote` 仅在 `distributed` 跨 owner 调用启用
+- 冻结仓库级 owner matrix、迁移窗口关闭条件和可退役 compatibility shell 清单
+- 退役旧宿主与重复 transport/client，完成 truth source、测试矩阵与归档回写
 
 ## 快速理解
 
@@ -171,10 +168,11 @@ pnpm dev:distributed:governance-worker  # distributed governance worker
 pnpm dev:distributed:outbox-worker      # distributed outbox worker
 ```
 
-Nest 宿主试点（opt-in，Phase 1）：
+Nest modular monolith 主入口（默认开发形态）：
 
 ```bash
-pnpm --filter @trapmap/host-local dev:nest   # Nest + FastifyAdapter，仅 gateway + knowledge-read 试点
+pnpm dev:local-agent                    # host-local Nest 主线，local-agent profile
+pnpm dev:team-monolith                  # host-local Nest 主线，team-monolith profile
 ```
 
 另一个终端可运行 CLI：

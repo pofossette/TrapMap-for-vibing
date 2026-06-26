@@ -39,6 +39,15 @@
 - `packages/server` 与 `packages/host-local` 旧 Fastify 路径现在都属于 compatibility shell / rollback path；新的 authoritative orchestration 不再进入这些路径。
 - `packages/host-distributed` 继续是 distributed profile 的部署展开层，但必须消费与 modular monolith 相同的 `backend-core` + `service-*` 主实现，而不是维护第二套 business truth。
 
+## Phase 4 数据、运维与退役收尾
+
+- 仓库级 owner matrix（gateway + 六个 owner service + job-runtime 的 data / projection / runtime / operations owner）已冻结，详见 [`plan.md`](../plan.md) Phase 4 和 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
+- `packages/server` 中 candidate apply-resolution、knowledge review、maintenance batch、decay batch 的 authoritative write 入口可正式退役。
+- `packages/host-local` 旧 Fastify gateway / bootstrap / runtime 写路径可正式退役。
+- `packages/backend-core/src/modules/*.ts` 兼容 re-export facade 可正式退役。
+- `packages/host-distributed` 与 `packages/service-*` 不是 compatibility shell，继续保留为分布式部署展开层和 thin service assembly。
+- `packages/host-local/src/nest/**` 是默认开发入口，不属于迁移窗口。
+
 ## packages/contracts
 
 共享 Schema 和类型定义，同时被 CLI 和 Server 导入。

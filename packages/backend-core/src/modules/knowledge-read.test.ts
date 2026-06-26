@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createKnowledgeReadModule } from './knowledge-read.js';
+import { createKnowledgeReadModule } from '../knowledge-read/index.js';
 
 describe('createKnowledgeReadModule', () => {
   it('delegates getById to knowledgeProjection.getById', async () => {

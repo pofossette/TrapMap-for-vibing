@@ -240,6 +240,53 @@ pnpm test:runtime-closeout
 - `queue.reclaimCount`、`queue.recentDeadLetters`、`outbox.staleProcessing`、`outbox.reclaimCount`、`outbox.recentFailures` 对 operator 可见
 - retry / dead-letter policy 继续以 `retryResumeContract` 为唯一事实源
 
+### Phase 4 验证归属矩阵
+
+Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解释成功路径。默认测试入口已切到 Nest modular monolith 主线（`host-local`）和 distributed 主线（`host-distributed`），旧 Fastify 宿主不再是验证默认入口。
+
+#### 单体验证（`host-local` Nest 主线）
+
+| 验证层 | 命令 | 说明 |
+|---|---|---|
+| 包级最小测试 | `pnpm --filter @trapmap/<pkg> test --run <path>` | 各包独立测试；`host-local`、`backend-core`、`service-*`、`contracts` |
+| 类型检查 | `pnpm typecheck` | 全 workspace 类型检查 |
+| Deployment smoke | `pnpm test:deployment-smoke` | profile / preset / runtime / route exposure / CLI gateway-only 关键切片 |
+| Runtime foundations | `pnpm test:runtime-foundations` | runtime metadata / readiness / ownership / startup foundations |
+| 文档守卫 | `pnpm check:docs-drift` + `pnpm check:structure` | 文档叙事与命令示例一致性、目录规则 |
+| Eval smoke | `pnpm eval:smoke` | **仅在**检索/摘要/治理/feedback/eval runner 相关改动时纳入 |
+
+#### 分布式验证（`host-distributed` 主线）
+
+| 验证层 | 命令 | 说明 |
+|---|---|---|
+| Distributed acceptance | `pnpm test:distributed-acceptance` | gateway 转发、remote write 委托、error/header/auth 语义、job ownership |
+| Runtime closeout | `pnpm test:runtime-closeout` | 部署级 operator closeout，async status contract，queue/outbox reclaim |
+| 全部单体验证层 | （同上） | 分布式验证不替代单体验证，两层独立运行 |
+
+#### Owner Service 验证归属
+
+| Owner Service | 包级测试 | 分布式 acceptance | 说明 |
+|---|---|---|---|
+| `gateway` | `host-local` / `host-distributed` | gateway forwarding, auth propagation | 不拥有业务真相 |
+| `identity-access` | `service-identity-access` | auth/session 校验 | 基础 owner service |
+| `knowledge-read` | `service-knowledge-read` | retrieval projection freshness | 只解释读侧 |
+| `knowledge-write` | `service-knowledge-write` | knowledge-write internal command surface | 写侧真相 owner |
+| `governance-review` | `service-governance-review` | governance-review → knowledge-write 委托 | 治理命令 owner |
+| `candidate-ingestion` | `service-candidate-ingestion` | candidate resolution → knowledge-write 委托 | 候选 owner |
+| `job-runtime` | `service-job-runtime` | job-runtime schedule/status/queue, reclaim | 只拥有 runtime substrate |
+
+#### Phase 4 Closeout 必跑门
+
+Phase 4 closeout 完成前，以下验证必须全部通过：
+
+1. 受影响包最小测试集合
+2. `pnpm typecheck`
+3. `pnpm test:deployment-smoke`
+4. `pnpm test:runtime-foundations`
+5. `pnpm test:distributed-acceptance`（含 runtime closeout 层）
+6. `pnpm check:docs-drift` + `pnpm check:structure`
+7. `pnpm eval:smoke`（仅在检索/摘要/治理/feedback/eval runner 相关改动时）
+
 ### 评测（Eval）
 
 #### 本地运行
