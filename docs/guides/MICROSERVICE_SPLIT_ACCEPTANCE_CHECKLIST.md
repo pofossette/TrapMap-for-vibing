@@ -20,8 +20,8 @@
 
 ## 前置事实
 
-- `packages/server` 现在是 compatibility shell，不再承担 candidate apply-resolution、knowledge review、maintenance batch、decay batch 的 authoritative write orchestration
-- authoritative write path 已迁移到 `packages/host-distributed`
+- `packages/server` 是部分 compatibility shell：maintenance batch、decay batch 已降级为 compatibility-only，但 candidate apply-resolution、knowledge review 仍在默认 Fastify 入口保留 legacy 写路径
+- distributed authoritative write path 已迁移到 `packages/host-distributed`
 - 第一阶段仍共享 PostgreSQL；本清单不要求数据库按服务拆分
 
 权威参考：
@@ -35,7 +35,8 @@
 
 必须满足：
 
-- `packages/server` 的 candidate/review/maintenance/decay 最终写路由统一返回 `501 capability_unsupported`
+- `packages/server` 的 maintenance/decay 最终写路由统一返回 `501 capability_unsupported`
+- candidate apply-resolution 与 knowledge review 若仍保留，则必须被显式记录为默认 Fastify 入口的迁移窗口例外
 - `packages/server` 仍保留 retrieval、status/readiness、必要读侧与迁移兼容面
 - truth docs 明确写出 server 是 compatibility shell，而不是主写面
 
@@ -57,7 +58,8 @@ rtk pnpm check:structure
 通过标准：
 
 - 所有命令退出码为 `0`
-- 写路由测试断言的是 `501 capability_unsupported`，不是旧的成功编排
+- maintenance/decay 写路由测试断言的是 `501 capability_unsupported`
+- 若 candidate/review 路由仍保留成功编排，相关文档和计划不得把它们写成已退役
 - 文档不再声称 `packages/server` 仍是这些链路的 authoritative write surface
 
 ## Gate 2: Distributed authoritative write path 真实闭环
@@ -220,7 +222,7 @@ rtk pnpm check:structure
 
 只有当以下复选框全部可勾选时，才允许进入“开始拆微服务”阶段：
 
-- [x] Gate 1 通过：`packages/server` compatibility shell 边界已冻结
+- [ ] Gate 1 通过：`packages/server` compatibility shell 边界已冻结
 - [x] Gate 2 通过：distributed authoritative write path 多进程真实闭环成立
 - [x] Gate 3 通过：auth、header、timeout、error mapping 跨服务一致
 - [x] Gate 4 通过：`knowledge-read` 不再是阻塞物理拆分的临时债务

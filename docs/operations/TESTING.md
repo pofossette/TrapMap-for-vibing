@@ -242,9 +242,9 @@ pnpm test:runtime-closeout
 
 ### Phase 4 验证归属矩阵
 
-Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解释成功路径。默认测试入口已切到 Nest modular monolith 主线（`host-local`）和 distributed 主线（`host-distributed`），旧 Fastify 宿主不再是验证默认入口。
+Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解释成功路径。当前默认本地入口仍是 `host-local` 的 Fastify bootstrap；`packages/host-local/src/nest/**` 是 opt-in 的 modular-monolith 迁移轨道。distributed 主线仍由 `host-distributed` 承担。
 
-#### 单体验证（`host-local` Nest 主线）
+#### 单体验证（`host-local` 默认轻宿主）
 
 | 验证层 | 命令 | 说明 |
 |---|---|---|
@@ -254,6 +254,8 @@ Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解
 | Runtime foundations | `pnpm test:runtime-foundations` | runtime metadata / readiness / ownership / startup foundations |
 | 文档守卫 | `pnpm check:docs-drift` + `pnpm check:structure` | 文档叙事与命令示例一致性、目录规则 |
 | Eval smoke | `pnpm eval:smoke` | **仅在**检索/摘要/治理/feedback/eval runner 相关改动时纳入 |
+
+`packages/host-local/src/nest/**` 若有改动，应额外运行其包级测试或 focused Nest 相关测试；但它当前不是 root `dev:local-agent` / `dev:team-monolith` 的默认入口。
 
 #### 分布式验证（`host-distributed` 主线）
 

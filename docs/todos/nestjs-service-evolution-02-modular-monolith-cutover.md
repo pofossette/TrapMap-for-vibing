@@ -2,7 +2,7 @@
 
 ## 角色
 
-- 状态：`proposed`
+- 状态：`active`
 - 目标：冻结 modular-monolith 切换时的六个 bounded context 边界、共享主实现面和 legacy compatibility boundary，并给出后续机械迁移的单一事实源
 - 说明：本文件补齐的是 `Phase 2` 的边界与迁移模板，不等于默认开发入口已经切换完成；真正 closeout 仍以代码、测试和文档回写为准
 

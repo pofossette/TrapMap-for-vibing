@@ -2,7 +2,7 @@
 
 ## 结论
 
-**截至 2026-06-23，已经可以开始下一阶段物理微服务拆分。`packages/server` compatibility shell 降级、Gate 2 / Gate 3 / Gate 4 / Gate 6 既有证据，以及本轮在本地 Docker `distributed` 环境下完成的 Gate 5 operator closeout，现已形成完整通过链。**
+**截至 2026-06-23，distributed 形态的物理微服务拆分前置证据已经基本齐备，但仓库级 Phase 4 收尾仍未完成。`packages/server` 的 maintenance/decay compatibility shell 降级、Gate 2 / Gate 3 / Gate 4 / Gate 6 既有证据，以及本轮在本地 Docker `distributed` 环境下完成的 Gate 5 operator closeout 已形成 distributed 侧通过链；candidate/review 的默认 Fastify legacy 写路径仍是仓库默认入口上的开放迁移窗口。**
 
 ## 已满足条件
 
@@ -39,6 +39,7 @@
 
 ## Remaining Work
 
-- 仍可继续做 deployed environment 复核、RabbitMQ task transport rollout、以及更细粒度恢复矩阵扩展，但这些已经属于后续 hardening，不再构成“是否可开始物理拆分”的阻塞项。
+- 仍可继续做 deployed environment 复核、RabbitMQ task transport rollout、以及更细粒度恢复矩阵扩展。
+- 若要把仓库级 Phase 4 closeout 写成完成，还需要关闭 `packages/server` 上 candidate apply-resolution / knowledge review 的默认 Fastify 迁移窗口，或把它们明确迁到新的默认 host-owned 入口。
 
 执行验收时，使用 [微服务拆分验收清单](../guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md) 逐项判断。

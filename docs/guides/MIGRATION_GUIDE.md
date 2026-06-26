@@ -33,7 +33,7 @@ packages/
 - Phase 2 `backend-core`: done. Runtime capability model, ports, invocation seams, and bounded-context modules exist in `@trapmap/backend-core`.
 - Phase 3 `host-local`: done. Root `pnpm dev:local-agent` and `pnpm dev:team-monolith` now target `@trapmap/host-local`.
 - Phase 4 `host-distributed`: done. Root distributed dev scripts now target `@trapmap/host-distributed`.
-- Phase 5 legacy收口: partial. `packages/server` still exists as a compatibility shell and verification surface, but candidate/review/maintenance/decay authoritative writes have moved to `@trapmap/host-distributed`.
+- Phase 5 legacy收口: partial. `packages/server` still exists as a compatibility shell and verification surface. In distributed mode, candidate/review/maintenance/decay authoritative writes have moved to `@trapmap/host-distributed`; in the current default `local-agent` / `team-monolith` Fastify entrypoint, candidate/review legacy write paths still remain open.
 - Phase 6 physical split execution: in progress. `@trapmap/service-knowledge-write` is the first real `service-*` package, `@trapmap/service-governance-review` is the second, `@trapmap/service-candidate-ingestion` is the third, `@trapmap/service-identity-access` is the fourth, and `@trapmap/service-job-runtime` is the fifth; `@trapmap/host-distributed` consumes all five as thin host adapters, and `packages/server` no longer holds the authoritative `knowledge-write`, `governance-review`, `candidate-ingestion`, `identity-access`, or `job-runtime` assembly facts.
 
 ## Current Official Entrypoints
@@ -183,7 +183,7 @@ Run it against a live distributed gateway after `docker compose --profile distri
 
 ## Remaining Gaps
 
-- `packages/server` is still present for retrieval, runtime status/readiness, and legacy read-side compatibility, but it no longer owns candidate/review/maintenance/decay authoritative write orchestration.
+- `packages/server` is still present for retrieval, runtime status/readiness, and legacy compatibility. It no longer owns distributed-mode maintenance/decay authoritative writes, but candidate/review legacy write orchestration is still present on the current default Fastify path.
 - `packages/server` also no longer owns the `knowledge-write` or `governance-review` service assembly. Those assemblies now live in `packages/service-knowledge-write` and `packages/service-governance-review`, with `host-distributed` consuming them directly.
 - System truth docs still need continued tightening so host-local / host-distributed become the first-class runtime facts everywhere, not only in this guide.
 - Distributed host now has stronger acceptance evidence for remote write ownership and request semantics. Any remaining Gate 5 gap must now be stated only as a specific docker/deployed operator closeout issue, not as read-side immaturity or distributed write-path ambiguity.

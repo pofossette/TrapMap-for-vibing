@@ -174,17 +174,17 @@ pnpm dev:cli -- login --access-key <key>
 pnpm dev:cli -- --help
 ```
 
-### Nest modular monolith 主线（默认开发入口）
+### Nest modular monolith 主线（opt-in 迁移入口）
 
-`packages/host-local/src/nest/**` 是默认开发与部署主线。`local-agent` 和 `team-monolith` 都由 `@trapmap/host-local` 的 Nest 装配提供，六个 bounded-context Nest module 已在 `app.module.ts` 注册。
+`packages/host-local/src/nest/**` 持有 modular-monolith 迁移轨道。六个 bounded-context Nest module 已在 `app.module.ts` 注册，但当前仍需显式使用 `dev:nest` / `start:nest` 进入该宿主。
 
 ```bash
-# 默认开发入口（Nest modular monolith）
-pnpm dev:local-agent
-pnpm dev:team-monolith
+# opt-in Nest modular monolith
+pnpm --filter @trapmap/host-local dev:nest
+pnpm --filter @trapmap/host-local start:nest
 ```
 
-旧 Fastify 宿主路径（`packages/server`、`packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**`）已降级为 compatibility shell，仅保留 rollback、runtime/status 和有限迁移窗口职责，不再承接新的 authoritative orchestration。
+当前默认开发入口仍由 `packages/host-local/src/index.ts` + `src/bootstrap/**` 组装 Fastify 轻宿主。旧 Fastify 宿主路径（`packages/server`、`packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**`）处于迁移窗口中的 compatibility shell：maintenance/decay 写路径已降级为 compatibility-only，但 candidate apply-resolution 与 knowledge review 仍由这套默认入口承接。
 
 ### 可选：本地 Neo4j 查询后端
 

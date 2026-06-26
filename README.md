@@ -102,7 +102,7 @@ TrapMap 有两类典型使用方式：
 长期架构演进（Phase 0–4）：
 
 - 唯一长期后端主线已冻结并落地为 `Nest host + framework-free domain core + gradual service extraction`
-- 默认开发入口已切到 `host-local` Nest modular monolith 主线；旧 Fastify 宿主（`packages/server`）降级为 compatibility shell
+- 默认开发入口已经统一到 `@trapmap/host-local` 轻宿主；其默认实现仍通过 Fastify bootstrap 装配 `packages/server`，`packages/host-local/src/nest/**` 仍是 opt-in 的 Nest modular-monolith 迁移轨道
 - 运行模型固定为 `embedded/local-agent -> team-monolith -> distributed` 三档；`embedded` 是 `local-agent` 的产品语义，不新增第四种 profile
 - CLI 与 web-panel 继续只面向统一 gateway；HTTP / internal / event contract 分别统一收敛到 `packages/contracts`、`packages/backend-core` 和共享 async contract
 - 当前 `distributed` 定位已冻结为 `Level 2 / transitional-microservice`，第一批成熟服务样板 `knowledge-write + governance-review` 已完成 closeout
@@ -168,11 +168,11 @@ pnpm dev:distributed:governance-worker  # distributed governance worker
 pnpm dev:distributed:outbox-worker      # distributed outbox worker
 ```
 
-Nest modular monolith 主入口（默认开发形态）：
+Nest modular monolith 试验入口（opt-in）：
 
 ```bash
-pnpm dev:local-agent                    # host-local Nest 主线，local-agent profile
-pnpm dev:team-monolith                  # host-local Nest 主线，team-monolith profile
+pnpm --filter @trapmap/host-local dev:nest
+pnpm --filter @trapmap/host-local start:nest
 ```
 
 另一个终端可运行 CLI：

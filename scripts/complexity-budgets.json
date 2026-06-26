@@ -35,13 +35,14 @@
       "file": "docs/guides/MIGRATION_GUIDE.md",
       "mustContain": [
         "compatibility shell",
-        "authoritative writes have moved to `@trapmap/host-distributed`"
+        "distributed mode",
+        "default `local-agent` / `team-monolith` Fastify entrypoint"
       ]
     },
     {
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
       "mustContain": [
-        "`packages/server` is now a compatibility shell for candidate/review/maintenance/decay writes"
+        "`packages/server` is a partial compatibility shell for candidate/review/maintenance/decay writes"
       ]
     },
     {
@@ -153,12 +154,12 @@
     {
       "file": "docs/README.md",
       "mustContain": ["Nest modular monolith"],
-      "mustNotContain": ["NestJS 是后续宿主替换目标", "Nest 宿主当前仍是 opt-in"]
+      "mustNotContain": ["NestJS 是后续宿主替换目标"]
     },
     {
       "file": "docs/architecture/DEPLOYMENT.md",
       "mustContain": ["Nest modular monolith 主线", "compatibility shell"],
-      "mustNotContain": ["Nest 宿主当前是 opt-in 入口"]
+      "mustNotContain": []
     },
     {
       "file": "docs/operations/TESTING.md",
@@ -171,7 +172,7 @@
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
-      "mustContain": ["Phase 4 默认主线"],
+      "mustContain": ["opt-in 迁移轨道"],
       "mustNotContain": ["Phase 1 试点"]
     }
   ],

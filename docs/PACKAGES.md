@@ -42,11 +42,11 @@
 ## Phase 4 数据、运维与退役收尾
 
 - 仓库级 owner matrix（gateway + 六个 owner service + job-runtime 的 data / projection / runtime / operations owner）已冻结，详见 [`plan.md`](../plan.md) Phase 4 和 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
-- `packages/server` 中 candidate apply-resolution、knowledge review、maintenance batch、decay batch 的 authoritative write 入口可正式退役。
-- `packages/host-local` 旧 Fastify gateway / bootstrap / runtime 写路径可正式退役。
-- `packages/backend-core/src/modules/*.ts` 兼容 re-export facade 可正式退役。
+- `packages/server` 中 maintenance batch、decay batch 已降级为 compatibility-only；candidate apply-resolution 与 knowledge review 仍保留为 `local-agent` / `team-monolith` 默认 Fastify 路径的迁移窗口例外，尚未正式退役。
+- `packages/host-local` 旧 Fastify gateway / bootstrap / runtime 写路径仍是当前默认轻宿主实现，尚未正式退役。
+- `packages/backend-core/src/modules/*.ts` 兼容 re-export facade 仍处于迁移窗口，尚未正式退役。
 - `packages/host-distributed` 与 `packages/service-*` 不是 compatibility shell，继续保留为分布式部署展开层和 thin service assembly。
-- `packages/host-local/src/nest/**` 是默认开发入口，不属于迁移窗口。
+- `packages/host-local/src/nest/**` 保留为 opt-in 的 modular-monolith 迁移轨道和 bounded-context module graph，不属于 compatibility shell。
 
 ## packages/contracts
 

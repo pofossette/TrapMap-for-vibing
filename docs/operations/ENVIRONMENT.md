@@ -436,7 +436,7 @@ pnpm dev:local-agent
 | `TRAPMAP_REQUEST_ID_HEADER` | 运行时 request id 响应/透传头名 | `x-request-id` |
 | `TRAPMAP_TRACE_HEADER_NAME` | 运行时 trace header 名 | `traceparent` |
 
-> **Nest 宿主（Phase 4 默认主线）**：`packages/host-local/src/nest/` 的 Nest 宿主消费同一份 `ServerConfig`（由 `packages/server/src/config.ts` 的 `loadConfig()` 提供），不引入新的环境变量。`pnpm dev:local-agent` 和 `pnpm dev:team-monolith` 已默认走 Nest 装配。旧 Fastify 宿主路径降级为 compatibility shell。
+> **Nest 宿主（opt-in 迁移轨道）**：`packages/host-local/src/nest/` 的 Nest 宿主消费同一份 `ServerConfig`（由 `packages/server/src/config.ts` 的 `loadConfig()` 提供），不引入新的环境变量。当前需要通过 `pnpm --filter @trapmap/host-local dev:nest` 或 `start:nest` 显式进入；`pnpm dev:local-agent` 和 `pnpm dev:team-monolith` 仍默认走 `packages/host-local/src/index.ts` 的 Fastify bootstrap。
 
 ## Runtime Resilience
 

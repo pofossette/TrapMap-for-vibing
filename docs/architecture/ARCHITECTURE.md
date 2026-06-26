@@ -4,7 +4,7 @@
 
 ## 系统架构
 
-> 当前正式运行入口已经迁移到 `packages/host-local` 与 `packages/host-distributed`。本页中保留 `packages/server` 结构说明，是因为它仍承担 retrieval/status/readiness 与旧路由兼容壳职责，但 candidate/review -> knowledge 的 authoritative write orchestration 已迁移到 `packages/host-distributed`。
+> 当前正式运行入口已经迁移到 `packages/host-local` 与 `packages/host-distributed`。本页中保留 `packages/server` 结构说明，是因为它仍承担 retrieval/status/readiness 与旧路由兼容壳职责。distributed 写链路已经在 `packages/host-distributed` 落地，但 `local-agent` / `team-monolith` 默认 Fastify 入口仍保留 candidate apply-resolution 与 knowledge review 的 legacy 写路径。
 
 Phase 0 目标架构冻结补充事实：
 
@@ -16,10 +16,10 @@ Phase 0 目标架构冻结补充事实：
 
 Phase 1 边界收敛补充事实：
 
-- `packages/server` 当前是 compatibility shell 与 runtime/status surface，不再是 candidate/review -> knowledge write path 的权威实现面。
+- `packages/server` 当前是 compatibility shell 与 runtime/status surface。它仍是 partial compatibility shell：maintenance/decay 写路径已降级为 compatibility-only；candidate/review -> knowledge write path 仍在默认 Fastify 入口保留迁移窗口例外。
 - `packages/backend-core` 当前承载 command/use-case/port 模式与内核契约，是后续收敛目标，不是允许与 `packages/server` 平行增长的第二主实现面。
 - `packages/host-local` 与 `packages/host-distributed` 当前承载宿主装配、HTTP/worker transport 和 concrete port wiring；它们消费 `backend-core` 契约，不重新定义业务真相。
-- `packages/host-distributed` 当前承载 authoritative candidate resolution、review decision、maintenance batch 与 decay batch 的最终写编排。
+- `packages/host-distributed` 当前承载 distributed 形态下的 authoritative candidate resolution、review decision、maintenance batch 与 decay batch 写编排。
 
 Phase 1 Nest 宿主试点补充事实：
 

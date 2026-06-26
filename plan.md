@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 状态：`Phase 4 收尾中`
+- 状态：`Phase 4 审计回写中`
 - 日期：`2026-06-26`
 - 本文件角色：根级执行计划索引，只保留目标、约束、阶段顺序、进度勾选和细则入口
 - 已归档的历史阶段详细描述：[`docs/archived/archived-plans/plan-2026-06-26-nestjs-phase0-to-phase3-archived.md`](docs/archived/archived-plans/plan-2026-06-26-nestjs-phase0-to-phase3-archived.md)
@@ -35,11 +35,12 @@
 
 - 当前主线阶段：`Phase 4 数据、运维与退役收尾`
 - 当前先做：
-  - [ ] 冻结仓库级 owner matrix、shared DB 例外和 operations owner 规则回写
-  - [ ] 标记默认入口、默认测试矩阵、默认部署入口已切到新主线
+  - [x] 冻结仓库级 owner matrix、shared DB 例外和 operations owner 规则回写
+  - [ ] 回写默认入口、默认测试矩阵、默认部署入口的真实现状：`host-local` 默认仍是 Fastify bootstrap，Nest modular-monolith 仍为 opt-in 迁移轨道
+  - [ ] 回写 `packages/server` candidate/review legacy 写路径仍未退役的迁移窗口例外
   - [ ] 删除或封存旧宿主、重复 transport、重复 SDK/internal client 维护路径
-  - [ ] 完成 truth source、目录索引、测试矩阵、归档记录回写
-  - [ ] 声明新的默认入口、关闭兼容壳新增功能通道
+  - [x] 完成 truth source、目录索引、测试矩阵、归档记录回写
+  - [x] 声明长期 Nest 目标主线，并关闭 compatibility shell 新增功能通道的文档灰区
 - 完成以上关键路径后，根 `plan.md` 退回纯索引职责。
 
 ## 阶段索引
@@ -59,10 +60,10 @@
 - [x] 冻结 contract-first 主线；`in-process` / `remote` 双 adapter 策略落地
 - 细则：[`docs/todos/nestjs-service-evolution-01-host-and-contract-foundation.md`](docs/todos/nestjs-service-evolution-01-host-and-contract-foundation.md)
 
-### Phase 2 模块化单体切换 [已完成]
+### Phase 2 模块化单体切换 [边界已完成，默认入口切换未完成]
 
 - [x] 六个 bounded context 收口到独立 domain/application 模块
-- [x] 默认开发形态切到 Nest modular monolith
+- [ ] 默认开发形态切到 Nest modular monolith
 - [x] 旧 `server/host-*` 进入兼容层或迁移窗口
 - 细则：[`docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md`](docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md)
 
@@ -75,12 +76,12 @@
 
 ### Phase 4 数据、运维与退役收尾 [进行中]
 
-- [ ] 收敛读写模型 owner、读侧投影、容量与故障语义
+- [x] 收敛读写模型 owner、读侧投影、容量与故障语义
 - [ ] 退役旧宿主与冗余 transport 层
-- [ ] 完成文档、测试、索引与归档收尾
+- [x] 完成文档、测试、索引与归档收尾
 - [ ] 完成"成熟服务" closeout，补齐剩余数据 owner 与运维治理要求
-- [ ] 冻结仓库级 owner matrix 与迁移窗口关闭条件
-- [ ] 点名可正式退役的 compatibility shell 与继续保留的部署层
+- [x] 冻结仓库级 owner matrix 与迁移窗口关闭条件
+- [x] 点名可正式退役的 compatibility shell 与继续保留的部署层
 - 细则：[`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)
 
 ## 文档回写要求
@@ -97,7 +98,7 @@
   - [x] `pnpm check:docs-drift`
   - [x] `pnpm check:structure`
 - 任一阶段的代码改动必须补最小验证，并在对应细则里记录：
-  - [ ] 包级测试或 `pnpm test:file -- <path>`
+  - [x] 包级测试或 `pnpm test:file -- <path>`
   - [ ] 受影响包 `pnpm typecheck`
   - [ ] 若影响 runtime/deployment，补 `pnpm test:deployment-smoke`
   - [ ] 若影响检索/摘要/治理/feedback/eval runner，补 `pnpm eval:smoke`
