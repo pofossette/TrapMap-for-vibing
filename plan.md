@@ -1,126 +1,100 @@
-# TrapMap Enum And Export Cleanup Plan
+# TrapMap NestJS And Service Evolution Plan Index
 
 ## 状态
 
-- 状态：`completed`
-- 日期：`2026-06-22`
-- 本文件角色：根级执行计划，专门跟踪枚举、类型定义与导出收敛
+- 状态：`proposed`
+- 日期：`2026-06-26`
+- 本文件角色：根级执行计划索引，只保留目标、约束、阶段顺序、进度勾选和细则入口
+- 已归档的上一份根计划：[`docs/archived/archived-plans/plan-2026-06-26-enum-and-export-cleanup-archived.md`](docs/archived/archived-plans/plan-2026-06-26-enum-and-export-cleanup-archived.md)
 
 ## 目标
 
-- 把项目内分散的枚举、字面量联合类型、共享类型定义收敛到就近的 `enum-types/` 文件夹。
-- 用 `index.ts` 作为每个 `enum-types/` 目录和包级类型入口的唯一聚合出口。
-- 清理当前零散的 `export *`、跨层深链类型导入和“大文件既定义又到处被直接引用”的状况。
+- 用 NestJS 重建后端宿主、HTTP transport、配置装配和进程内 DI，逐步替换大量手搓宿主代码。
+- 保留领域内核的框架无关性，把 `backend-core` 收敛为真正可被单体和微服务共用的业务内核。
+- 建立“轻后端优先”的嵌入式宿主形态，让后端可以像客户端一样低负担运行，并作为默认开发与单机部署主线。
+- 先建立 `Nest modular monolith`，再按既有 bounded context 逐步物理拆分服务，而不是直接平行重写第二套系统。
+- 统一外部 SDK、内部调用 contract、事件 contract 和测试/文档回写规则，避免 CLI、web、gateway、internal client 再次分叉。
 
-## 当前现状
+## 总体要求
 
-- `packages/web-panel/src/shared/types/admin-panel.ts` 聚合了大量 UI 共享类型与字面量联合，但当前仍是单文件承载，没有 `index.ts` 聚合层。
-- `packages/server/src/lib/store/types/index.ts` 已经形成按目录聚合导出的雏形，但目录命名仍停留在 `types/`，尚未统一到 `enum-types/` 约定。
-- `packages/server/src/lib/types.ts`、`packages/server/src/lib/store/index.ts`、`packages/contracts/src/index.ts` 存在多处 `export * from ...` 链式转发，导出边界较宽。
-- 当前仓库里显式 `enum` 很少，已识别的代表点是 `packages/contracts/src/domain/path-validation.ts` 中的 `PathValidationError`；更多“枚举语义”目前以字符串字面量联合散落在各处。
-- 已识别的分散类型热点包括：
-  - `packages/web-panel/src/shared/types/admin-panel.ts`
-  - `packages/web-panel/src/stores/theme-store.ts`
-  - `packages/server/src/lib/store/types/*.ts`
-  - `packages/server/src/lib/types.ts`
-  - `packages/contracts/src/domain/*.ts`
+- 根 `plan.md` 只做索引；所有阶段细则写入 `docs/todos/`，并从这里相对路径链接。
+- 完成某个阶段复选框前，必须同时完成：代码或 contract 落地、最小测试、事实文档回写、`pnpm check:docs-drift`、`pnpm check:structure`。
+- 任何阶段如果改动 API、事件、共享类型、运行时 profile、部署默认值、目录结构，必须同步更新对应 `README`、`docs/reference/*`、`docs/guides/*`、`docs/operations/*`。
+- 微服务化默认以“共享 contract + 明确 owner + 可单进程运行”为前提；没有通过 modular-monolith 收口的边界，不允许直接物理拆分。
+- 默认开发入口仍需保留轻量本地模式；不能为了分布式目标破坏 `local-agent` 类似的低负担开发体验。
+- 轻后端必须优先支持 `in-process` 调用、单端口、单进程 worker/outbox、最小外部依赖；远端调用、MQ、多进程协调只作为 `distributed` profile 的可选展开。
 
-## 约束
+## 阶段索引
 
-- 不为了“集中”而打破现有 domain 边界；`enum-types/` 应放在就近领域根下，而不是把全仓库类型堆到单一目录。
-- 不在本计划中顺带重做业务逻辑。
-- 收敛导出时优先保留已有公共 import path，避免无必要的对外破坏。
+### Phase 0 决策与目标架构冻结
 
-## 目标结构
+- [ ] 冻结长期目标：`Nest host + framework-free domain core + gradual service extraction`
+- [ ] 明确哪些现有包保留、拆分、重命名、退役
+- [ ] 冻结 HTTP contract、internal contract、event contract 的主线方案
+- [ ] 冻结轻后端形态：`embedded/local-agent -> team-monolith -> distributed` 三档运行模型
+- [ ] 完成当前 distributed 形态成熟度评估，冻结“过渡态分布式”基线判断
+- 细则：[`docs/todos/nestjs-service-evolution-00-target-architecture.md`](docs/todos/nestjs-service-evolution-00-target-architecture.md)
+  成熟度评估：[`docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md`](docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md)
 
-- 每个需要暴露共享枚举/类型的上下文，采用如下结构：
+### Phase 1 宿主与 contract 基础收口
 
-```text
-<context>/
-  enum-types/
-    <domain-a>.ts
-    <domain-b>.ts
-    index.ts
-```
+- [ ] 建立首个 Nest 宿主主线，并验证可装配现有 `backend-core`
+- [ ] 收敛配置、异常映射、HTTP SDK、internal client 的重复实现
+- [ ] 冻结 contract-first 或 OpenAPI 生成路线
+- [ ] 建立 `in-process` / `remote` 双 adapter 策略，让轻后端不依赖跨进程 hop
+- 细则：[`docs/todos/nestjs-service-evolution-01-host-and-contract-foundation.md`](docs/todos/nestjs-service-evolution-01-host-and-contract-foundation.md)
 
-- 目录外统一从 `<context>/enum-types/index.ts` 导入。
-- 包级 `index.ts` 只转发对应上下文的 `enum-types/index.ts`，不再拼接零散文件列表。
+### Phase 2 模块化单体切换
 
-## 分阶段执行
+- [ ] 把核心 bounded context 收口到独立 domain/application 模块
+- [ ] 让默认开发形态切到 Nest modular monolith
+- [ ] 让旧 `server/host-*` 进入兼容层或迁移窗口
+- [ ] 让 `embedded/local-agent` 成为第一等入口，而不是裁剪过多的特例模式
+- 细则：[`docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md`](docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md)
 
-### Phase 0 基线盘点
+### Phase 3 服务拆分与异步化
 
-- [x] 列出各包现有 `types/`、显式 `enum`、字面量联合热点与 `export *` 聚合点。
-- [x] 标记哪些目录直接升级为 `enum-types/`，哪些目录需要先拆分文件再迁移。
-- [x] 冻结需要兼容的公共导入路径。
+- [ ] 按既有业务 ownership 抽出独立服务
+- [ ] 让同步/异步边界、队列、outbox、事件投影进入明确 owner
+- [ ] 建立单体与分布式双形态验证矩阵
+- [ ] 保证服务拆分只是部署展开，不反向强迫轻后端承担微服务负载
+- [ ] 至少把一组过渡态服务提升到“成熟服务最小标准”
+- [ ] 第一批成熟服务样板固定为 `knowledge-write + governance-review`
+- 细则：[`docs/todos/nestjs-service-evolution-03-service-extraction-and-async.md`](docs/todos/nestjs-service-evolution-03-service-extraction-and-async.md)
+  成熟度评估：[`docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md`](docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md)
 
-### Phase 1 目录与导出规范收口
+### Phase 4 数据、运维与退役收尾
 
-- [x] 在 `AGENTS.md`、必要的包 README 或局部说明中固定 `enum-types/` + `index.ts` 规则。
-- [x] 为每个首批治理目录补齐 `enum-types/index.ts`。
-- [x] 停止新增”业务文件内顺手定义共享类型”的写法。
+- [ ] 收敛读写模型 owner、读侧投影、容量与故障语义
+- [ ] 退役旧宿主与冗余 transport 层
+- [ ] 完成文档、测试、索引与归档收尾
+- [ ] 完成“成熟服务” closeout，补齐剩余数据 owner 与运维治理要求
+- 细则：[`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)
 
-### Phase 2 首批迁移
+## 文档回写要求
 
-- [x] `packages/web-panel/src/shared/types/admin-panel.ts` 拆分为 `packages/web-panel/src/shared/enum-types/` 下的领域文件并补 `index.ts`。
-- [x] `packages/server/src/lib/store/types/` 评估后迁移到 `packages/server/src/lib/store/enum-types/`，保留兼容导出层。
-- [x] `packages/contracts/src/domain/` 中具有枚举语义的共享定义逐步抽到就近 `enum-types/` 目录，`PathValidationError` 作为首批样板。
+- 架构边界变化：更新 `docs/architecture/ARCHITECTURE.md`、必要的 component docs、`docs/PACKAGES.md`
+- 目录/包角色变化：更新 `docs/reference/REPO_STRUCTURE.md`、`docs/README.md`、相关 package README
+- 启动命令、profile、环境变量、部署方式变化：更新 `README.md`、`docs/architecture/DEPLOYMENT.md`、`docs/operations/ENVIRONMENT.md`
+- API、internal route、事件、共享 contract 变化：更新 `docs/reference/api-surface.md`、`docs/reference/SYSTEM_TRUTH_SOURCES.md`、相关 contract 文档
+- 测试与验证矩阵变化：更新 `docs/operations/TESTING.md`
 
-### Phase 3 导出清理
+## 测试与关闭要求
 
-- [x] 收紧 `packages/contracts/src/index.ts` 的零散转发，优先改为面向聚合入口导出。
-- [x] 收紧 `packages/server/src/lib/types.ts`、`packages/server/src/lib/store/index.ts` 的转发链。
-- [x] 清理跨层深链导入，避免外部模块直接引用迁移前的叶子类型文件。
-
-### Phase 4 验证与收尾
-
-- [x] 运行受影响包的最小类型检查与测试。
-- [x] 运行 `pnpm check:structure`，确认根级计划与文档入口未破坏结构守护。
-- [x] 如涉及事实源或说明入口变更，再补 `pnpm check:docs-drift`。
-- [x] 在本文件回写已完成目录、兼容导入保留策略和剩余债务。
-
-## 优先级
-
-1. `packages/web-panel/src/shared/types/admin-panel.ts`
-2. `packages/server/src/lib/store/types/`
-3. `packages/server/src/lib/types.ts`
-4. `packages/contracts/src/domain/path-validation.ts`
-5. `packages/contracts/src/index.ts`
+- 文档/索引改动至少运行：
+  - [x] `pnpm check:docs-drift`
+  - [x] `pnpm check:structure`
+- 任一阶段的代码改动必须补最小验证，并在对应细则里记录：
+  - [ ] 包级测试或 `pnpm test:file -- <path>`
+  - [ ] 受影响包 `pnpm typecheck`
+  - [ ] 若影响 runtime/deployment，补 `pnpm test:deployment-smoke`
+  - [ ] 若影响检索/摘要/治理/feedback/eval runner，补 `pnpm eval:smoke`
 
 ## 完成定义
 
-- 枚举和共享类型定义都有明确的 `enum-types/` 归属目录。
-- 每个治理目录都通过 `index.ts` 统一导出。
-- 首批重点区域不再依赖散乱的深链类型导入。
-- 根 `plan.md`、`AGENTS.md` 与仓库结构规则保持一致。
-
-## 完成记录
-
-### 已就位（计划启动前已完成）
-
-- `packages/web-panel/src/shared/enum-types/` — admin-panel.ts 已拆分为 `common.ts`、`runtime.ts`、`review.ts`、`session.ts`、`activity.ts`、`api.ts`，通过 `index.ts` 聚合导出。
-- `packages/server/src/lib/store/enum-types/` — 5 个 record 文件已就位并通过 `index.ts` 聚合。
-- `packages/contracts/src/enum-types/path-validation.ts` — `PathValidationError` enum 已抽离。
-- `AGENTS.md` 已包含 `enum-types/` + `index.ts` 约定规则。
-
-### 本次执行
-
-- 删除 `packages/server/src/lib/store/types/` 死代码兼容层（6 个纯 re-export 文件，无消费者）。
-- 删除 `packages/web-panel/src/shared/types/` 废弃目录（仅含 README 指针，无引用）。
-- 移除 `packages/contracts/src/domain/path-validation.ts` 中对 `PathValidationError` 的冗余 re-export（已通过 `enum-types/index.ts` 导出）。
-- contracts 和 server 包 typecheck 均通过。
-
-### 导出链评估结论
-
-- `contracts/src/index.ts`：通过 `enum-types/index.ts` 聚合入口 + 各 domain 模块导出，每个 domain 模块本身就是按领域聚合的 barrel，符合目标结构。
-- `server/src/lib/types.ts`：通过子模块 barrel（`store/enum-types/index.ts`、`ai/types.ts` 等）聚合导出，层次清晰，无需进一步收紧。
-- 两个 barrel 均已经是面向聚合入口的导出方式，不存在直接拼接叶子文件的状况。
-
-### 兼容导入保留策略
-
-- 无外部消费者依赖已删除的 `store/types/` 或 `shared/types/` 路径（grep 验证）。
-- `PathValidationError` 仍可通过 `@trapmap/contracts` barrel 访问，路径不变。
-
-### 剩余债务
-
-- `contracts/src/domain/*.ts` 中的 Zod `z.enum()` 派生类型（约 50+ 个）保留在各 domain 文件内，未迁移到 `enum-types/`。这是按约束"不为了集中而打破 domain 边界"的有意决策——这些类型与各自的 schema/validation 逻辑紧密耦合。
+- 默认开发体验已切到新的 Nest 主线，且不比当前本地模式更重。
+- 轻后端可以像客户端一样低负担启动，并且默认不依赖微服务基础设施。
+- 领域内核保持框架无关，可被单进程和分布式宿主复用。
+- internal client、外部 SDK、共享 contract 与文档入口不再多头维护。
+- 旧 `server/host-*` 的兼容层只保留明确迁移窗口，最终可退役。
+- 根 `plan.md` 只保留索引职责，细则、测试记录和剩余债务都留在 `docs/todos/` 对应子计划。

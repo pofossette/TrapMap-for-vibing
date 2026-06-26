@@ -1,6 +1,6 @@
 # 后端工程化优化计划
 
-> 当前角色：问题池与优先级记录，不再作为根级执行计划。正式执行入口见 [`plan.md`](../../plan.md) 与 [`docs/plans/backend-engineering-masterplan/README.md`](../plans/backend-engineering-masterplan/README.md)。
+> 当前角色：问题池与优先级记录，不再作为根级执行计划。正式执行入口见 [`plan.md`](../../plan.md)；后端工程化历史执行包保留在 [`docs/plans/backend-engineering-masterplan/README.md`](../plans/backend-engineering-masterplan/README.md)。
 
 ## TODO
 

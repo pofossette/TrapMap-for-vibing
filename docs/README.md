@@ -165,8 +165,19 @@ deployment flexibility 最小验证矩阵：
 
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
+- [NestJS 与服务演进根计划](../plan.md) — 当前根级执行索引，跟踪长期 NestJS / modular monolith / 微服务迁移阶段
 - [Badcase 回流待办](todos/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
 - [后端工程化优化计划](todos/backend-engineering-optimization-plan.md) — 队列、MQ、微服务化与观测演进方向
+- [NestJS 目标架构冻结](todos/nestjs-service-evolution-00-target-architecture.md) — 长期目标、边界、保留与退役决策
+- [NestJS 宿主与 contract 基础](todos/nestjs-service-evolution-01-host-and-contract-foundation.md) — 首条 Nest 宿主主线与共享 contract 收口
+- [NestJS 模块化单体切换](todos/nestjs-service-evolution-02-modular-monolith-cutover.md) — 默认开发主线切换计划
+- [NestJS 服务拆分与异步化](todos/nestjs-service-evolution-03-service-extraction-and-async.md) — 服务 owner、异步边界与分布式验证
+- [NestJS 数据与退役收尾](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md) — 数据 owner、运维面与旧宿主退役
+- [Distributed 成熟度评估](todos/nestjs-service-evolution-distributed-maturity-assessment.md) — 当前 distributed 形态到底算过渡态还是成熟微服务，以及升级判据
+- [成熟服务样板：Knowledge-Write + Governance-Review](todos/nestjs-service-evolution-knowledge-write-governance-review-pilot.md) — 第一批成熟服务样板的 owner、contract、测试门与 closeout
+- [样板实施前检查表](todos/nestjs-service-evolution-knowledge-write-governance-review-preflight-checklist.md) — 开始迁移前先冻结边界、契约、测试入口与非目标
+- [样板代码迁移任务列表](todos/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md) — 直接映射到具体包和文件的迁移任务清单
+- [未完成项与阶段性妥协清单](todos/open-debt-and-compromises.md) — 当前仍未收口的占位实现、阶段性妥协与开发退路
 
 ### 架构与 API
 - [架构概览](../architecture.md) — 根入口级架构摘要，适合先建立整体心智模型
