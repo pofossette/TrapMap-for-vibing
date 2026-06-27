@@ -27,19 +27,19 @@
 
 - 当前主线阶段：`Phase 0 术语与映射冻结`
 - 当前先做：
-  - [ ] 冻结 `light` / `heavy` 的正式命名和与现有 profile 的映射关系
-  - [ ] 明确哪些差异属于 host / connector / deployment，哪些仍是统一业务实现
-  - [ ] 规划客户端后端形态配置项的命名、值域、默认值与兼容迁移
-  - [ ] 盘点兼容壳清单，并按“立即清除 / 替换后删除 / 真实实现保留”三类冻结
-  - [ ] 补齐对应的文档入口和最小验证矩阵
+  - [x] 冻结 `light` / `heavy` 的正式命名和与现有 profile 的映射关系
+  - [x] 明确哪些差异属于 host / connector / deployment，哪些仍是统一业务实现
+  - [x] 规划客户端后端形态配置项的命名、值域、默认值与兼容迁移
+  - [x] 盘点兼容壳清单，并按“立即清除 / 替换后删除 / 真实实现保留”三类冻结
+  - [x] 补齐对应的文档入口和最小验证矩阵
 
 ## 阶段索引
 
-### Phase 0 术语与映射冻结 [进行中]
+### Phase 0 术语与映射冻结 [已完成]
 
-- [ ] 冻结 `light` / `heavy` 构建目标术语和适用范围
-- [ ] 写清与 `local-agent`、`team-monolith`、`distributed`、`gateway only` 的映射关系
-- [ ] 明确仍以现有 capability/profile truth source 为准，不制造第二套事实源
+- [x] 冻结 `light` / `heavy` 构建目标术语和适用范围
+- [x] 写清与 `local-agent`、`team-monolith`、`distributed`、`gateway only` 的映射关系
+- [x] 明确仍以现有 capability/profile truth source 为准，不制造第二套事实源
 - 细则：[`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md)
 
 ### Phase 1 后端构建目标收敛 [待开始]

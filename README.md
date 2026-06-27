@@ -102,7 +102,8 @@ TrapMap 有两类典型使用方式：
 长期架构演进（Phase 0–4）：
 
 - 唯一长期后端主线已冻结并落地为 `Nest host + framework-free domain core + gradual service extraction`
-- 默认开发入口已经统一到 `@trapmap/host-local` 轻宿主；其默认实现仍通过 Fastify bootstrap 装配 `packages/server`，`packages/host-local/src/nest/**` 仍是 opt-in 的 Nest modular-monolith 迁移轨道
+- `light` / `heavy` 只表示后端构建目标：`local-agent`、`team-monolith` -> `light`，`distributed` -> `heavy`
+- `light` 默认主入口终局冻结为 `packages/host-local/src/nest/**`；`packages/server` + `packages/host-local` 旧 Fastify 路径只保留为 rollback path
 - 运行模型固定为 `embedded/local-agent -> team-monolith -> distributed` 三档；`embedded` 是 `local-agent` 的产品语义，不新增第四种 profile
 - CLI 与 web-panel 继续只面向统一 gateway；HTTP / internal / event contract 分别统一收敛到 `packages/contracts`、`packages/backend-core` 和共享 async contract
 - 当前 `distributed` 定位已冻结为 `Level 2 / transitional-microservice`，第一批成熟服务样板 `knowledge-write + governance-review` 已完成 closeout
@@ -155,7 +156,7 @@ cp .env.example .env
 pnpm dev:local-agent
 ```
 
-本地默认 gateway 监听 `http://127.0.0.1:4000`，其中 `local-agent` / `team-monolith` 由 `@trapmap/host-local` 提供，`distributed` 由 `@trapmap/host-distributed` 提供。
+本地默认 gateway 监听 `http://127.0.0.1:4000`，其中 `local-agent` / `team-monolith` 映射到 `light` 并由 `@trapmap/host-local` 提供，`distributed` 映射到 `heavy` 并由 `@trapmap/host-distributed` 提供。
 
 三种正式开发入口：
 
@@ -168,11 +169,18 @@ pnpm dev:distributed:governance-worker  # distributed governance worker
 pnpm dev:distributed:outbox-worker      # distributed outbox worker
 ```
 
-Nest modular monolith 试验入口（opt-in）：
+`light` 默认主入口终局：
 
 ```bash
 pnpm --filter @trapmap/host-local dev:nest
 pnpm --filter @trapmap/host-local start:nest
+```
+
+Fastify rollback path（迁移窗口内仅保留回退用途）：
+
+```bash
+pnpm dev:local-agent
+pnpm dev:team-monolith
 ```
 
 另一个终端可运行 CLI：

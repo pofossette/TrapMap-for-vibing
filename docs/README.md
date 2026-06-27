@@ -9,7 +9,9 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 Phase 0–3 已全部完成，当前进入 Phase 4 收尾：
 
 - 长期后端主线已冻结为 `Nest host + framework-free domain core + gradual service extraction`，Phases 1–3 已按此主线完成宿主、contract、模块化单体和服务拆分落地。
-- 默认开发入口已经统一到 `@trapmap/host-local` 轻宿主；其默认实现仍通过 Fastify bootstrap 装配 `packages/server`，`host-local/src/nest/**` 仍是 opt-in 的 Nest modular monolith 迁移轨道。
+- `light` / `heavy` 只表示后端构建目标：`local-agent`、`team-monolith` -> `light`，`distributed` -> `heavy`。
+- `light` 默认主入口终局冻结为 `packages/host-local/src/nest/**`；`packages/server` 与 `host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**` 只保留为 Fastify rollback path。
+- `packages/host-local/src/nest/**` 继续承载 `Nest modular monolith` 主线。
 - 运行模型固定为 `embedded/local-agent`、`team-monolith`、`distributed` 三档；`host-local/src/nest/**` 持有单体 bounded-context module graph，`host-distributed` 是分布式部署展开层。
 - 六个 bounded context 已全部收口到 `backend-core/src/<context>/` 独立目录，`host-local/src/nest/app.module.ts` 注册六个 Nest module；`src/modules/*.ts` 仅为兼容 re-export facade。
 - 第一批成熟服务样板 `knowledge-write + governance-review` 已完成 closeout；仓库级 owner matrix 和迁移窗口关闭条件已冻结。
@@ -78,8 +80,8 @@ flowchart TB
 |------|------|
 | 运行时 | Node.js 20+ (ESM) |
 | 语言 | TypeScript 5.x |
-| 默认宿主实现 | Fastify 5.x（通过 `@trapmap/host-local` bootstrap `packages/server`） |
-| Nest 迁移轨道 | NestJS（opt-in，`host-local/src/nest/**`） |
+| `light` 默认主入口终局 | NestJS（`packages/host-local/src/nest/**`） |
+| Fastify rollback path | `@trapmap/host-local` + `packages/server` |
 | CLI | Commander.js 14.x |
 | 验证 | Zod 4.x |
 | AI 集成 | LangChain Core |

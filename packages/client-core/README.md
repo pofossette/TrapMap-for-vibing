@@ -18,6 +18,9 @@ APIs.
    are supplied via the `SessionProvider` interface.
 4. **Minimal surface** -- exports only what is needed for gateway
    communication.
+5. **Gateway-only contract** -- client-side backend shape hints such as
+   `backendTarget` stay above this package; `client-core` never grows
+   internal-service discovery or a second URL model.
 
 ## Exports
 

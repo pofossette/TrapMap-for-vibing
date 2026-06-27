@@ -1,6 +1,6 @@
 # TrapMap Server
 
-Fastify API 服务，承载检索、索引、治理、认证、候选处理等核心业务。
+`packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell：在迁移窗口内仅保留 legacy route compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责。
 
 ## 入口
 

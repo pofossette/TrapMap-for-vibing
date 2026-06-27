@@ -26,6 +26,7 @@ describe('cli config', () => {
     const state = await loadCliState();
 
     expect(state.gatewayUrl).toBe('http://localhost:9999');
+    expect(state.backendTarget).toBe('light');
     expect(state.outputProfile).toEqual({
       ...getDefaultOutputProfile(),
       tool: 'codex',
@@ -42,6 +43,7 @@ describe('cli config', () => {
       const { loadCliState } = await import('./config.js');
       const result = await loadCliState();
       expect(result.gatewayUrl).toBeDefined();
+      expect(result.backendTarget).toBe('light');
     } finally {
       osModule.default.homedir = originalHomedir;
     }
@@ -71,6 +73,7 @@ describe('cli config', () => {
     const state = await loadCliState();
 
     expect(state.gatewayUrl).toBe('http://localhost:9999');
+    expect(state.backendTarget).toBe('light');
     expect('outputProfile' in state).toBe(false);
   });
 
@@ -113,6 +116,7 @@ describe('cli config', () => {
     const state = await loadCliState();
 
     expect(state.gatewayUrl).toBe('http://legacy-server:9999');
+    expect(state.backendTarget).toBe('light');
     expect(state.serverUrl).toBeUndefined();
   });
 
@@ -129,6 +133,37 @@ describe('cli config', () => {
     const state = await loadCliState();
 
     expect(state.gatewayUrl).toBe('http://gateway:4000');
+    expect(state.backendTarget).toBe('light');
     expect(state.serverUrl).toBeUndefined();
+  });
+
+  it('keeps explicit heavy backendTarget from config', async () => {
+    const fs = await import('node:fs/promises');
+    vi.mocked(fs.readFile).mockResolvedValue(
+      JSON.stringify({
+        gatewayUrl: 'http://gateway:4000',
+        backendTarget: 'heavy',
+      }) as never,
+    );
+
+    const { loadCliState } = await import('./config.js');
+    const state = await loadCliState();
+
+    expect(state.backendTarget).toBe('heavy');
+  });
+
+  it('normalizes unknown backendTarget to light', async () => {
+    const fs = await import('node:fs/promises');
+    vi.mocked(fs.readFile).mockResolvedValue(
+      JSON.stringify({
+        gatewayUrl: 'http://gateway:4000',
+        backendTarget: 'unknown',
+      }) as never,
+    );
+
+    const { loadCliState } = await import('./config.js');
+    const state = await loadCliState();
+
+    expect(state.backendTarget).toBe('light');
   });
 });

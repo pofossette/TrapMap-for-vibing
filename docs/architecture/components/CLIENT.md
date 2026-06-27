@@ -53,6 +53,7 @@ flowchart TB
 ```typescript
 interface CliState {
   gatewayUrl: string;             // 统一 gateway URL
+  backendTarget: 'light' | 'heavy'; // 目标后端构建形态偏好
   sessionToken: string | null;    // 会话令牌
   session: ActiveSession | null;  // 活动会话
   outputProfile?: OutputProfile;  // 输出配置
@@ -77,6 +78,16 @@ interface OutputProfile {
 - **路径**：`~/.trapmap/cli.json`
 - **格式**：JSON
 - **默认 gateway**：`http://127.0.0.1:4000`（可通过 `TRAPMAP_GATEWAY_URL` 环境变量覆盖）
+- **默认 backend target**：`light`
+- **值域**：`light`、`heavy`
+- **约束**：该字段只表达目标后端形态偏好，不得派生第二套 URL、第二套认证模型或内部服务发现
+
+### 后端形态配置项
+
+- 字段名固定为 `backendTarget`。
+- `light` 对应 `local-agent` / `team-monolith`；`heavy` 对应 `distributed`。
+- 旧配置缺省该字段时按 `light` 解释；未知值也回退到 `light`。
+- 客户端继续遵守 `gateway only`：`backendTarget` 只影响提示、诊断和默认行为选择，不改变 `gatewayUrl` 的单 URL 模型。
 
 ### 状态管理 API
 

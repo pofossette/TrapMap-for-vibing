@@ -19,6 +19,7 @@ export interface ScriptPolicyOverride {
 
 export interface CliState {
   gatewayUrl?: string;
+  backendTarget?: BackendTarget;
   /**
    * @deprecated P2 keeps reading legacy config files that still persist `serverUrl`.
    * New writes must only persist `gatewayUrl`.
@@ -34,6 +35,7 @@ export type OutputModelHint = 'claude' | 'gpt' | 'qwen' | 'generic';
 export type OutputRenderMode = 'text' | 'json';
 export type OutputGraphPlanMode = 'summary' | 'full' | 'skill-list';
 export type OutputVerbosity = 'compact' | 'balanced' | 'detailed';
+export type BackendTarget = 'light' | 'heavy';
 
 export interface OutputProfile {
   tool: OutputToolProfile;
@@ -60,6 +62,7 @@ function getConfigPath(): string {
 function getDefaultState(): CliState {
   return {
     gatewayUrl: DEFAULT_GATEWAY_URL,
+    backendTarget: 'light',
     sessionToken: null,
     session: null,
   };
@@ -75,6 +78,10 @@ function normalizeGatewayUrl(parsed: Partial<CliState>): string {
   }
 
   return DEFAULT_GATEWAY_URL;
+}
+
+function normalizeBackendTarget(parsed: Partial<CliState>): BackendTarget {
+  return parsed.backendTarget === 'heavy' ? 'heavy' : 'light';
 }
 
 export function resolveCliGatewayUrl(state: Pick<CliState, 'gatewayUrl' | 'serverUrl'>): string {
@@ -140,6 +147,7 @@ export async function loadCliState(): Promise<CliState> {
       ...getDefaultState(),
       ...parsedWithoutLegacyServerUrl,
       gatewayUrl: normalizeGatewayUrl(parsed),
+      backendTarget: normalizeBackendTarget(parsed),
       ...(outputProfile != null
         ? { outputProfile }
         : configHadOutputProfile
@@ -156,6 +164,7 @@ export async function saveCliState(state: CliState): Promise<void> {
   await mkdir(path.dirname(configPath), { recursive: true });
   const persistedState = {
     gatewayUrl: state.gatewayUrl,
+    backendTarget: state.backendTarget ?? 'light',
     sessionToken: state.sessionToken,
     session: state.session,
     ...(state.outputProfile === undefined ? {} : { outputProfile: state.outputProfile }),

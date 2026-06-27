@@ -4,7 +4,7 @@ Backend core kernel for TrapMap. This package provides host-agnostic application
 
 ## Purpose
 
-`backend-core` is the foundation that both light-host (local-agent) and heavy-host (team-monolith, distributed) assemblies share. It contains:
+`backend-core` is the foundation that both light-host (`local-agent`, `team-monolith`) and heavy-host (`distributed`) assemblies share. It contains:
 
 - **Runtime capability model** -- deployment profiles, runtime modes, service units, topology
 - **Port interfaces** -- abstract contracts for repositories, queues, retrieval, auth, audit

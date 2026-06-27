@@ -1,10 +1,10 @@
 # @trapmap/host-local
 
-Light-weight local host assembly for TrapMap's `local-agent` and `team-monolith` deployment profiles.
+Light-host assembly for TrapMap's `local-agent` and `team-monolith` deployment profiles. The frozen default light mainline is `src/nest/**`; the old Fastify path remains rollback-only during the migration window.
 
 ## Purpose
 
-This package is the local entrypoint for single-machine TrapMap deployments. It now reuses the production `@trapmap/server` runtime assembly so `local-agent` and `team-monolith` share the same feedback, review, duplicate-resolution, and skill-governance behavior.
+This package is the real `light` host implementation for single-machine TrapMap deployments. `src/nest/**` is the default light mainline; `src/bootstrap/**`, `src/http/**`, and `src/runtime/**` remain only as the Fastify rollback path and must not be described as the long-term default host.
 
 ## Deployment Profiles
 
@@ -41,7 +41,7 @@ const handle = await start({
 
 ## Architecture
 
-The host-local package is a thin bootstrap wrapper. Runtime behavior comes from `@trapmap/server`, so local deployments and the main server share one route surface and one governance implementation.
+The host-local package owns `light` host assembly. The Nest path is the frozen default mainline. The legacy Fastify path delegates to `@trapmap/server` only for rollback compatibility and shared runtime/status seam; it is not the default host truth.
 
 ```
 host-local (HTTP, middleware, lifecycle)

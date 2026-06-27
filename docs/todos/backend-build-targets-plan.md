@@ -29,6 +29,125 @@
 - 轻量路径允许进程内 connector，重型路径允许 remote connector，但两者必须消费同一组 port contract
 - “彻底替换兼容壳”不等于“直接删文件”；它的标准是：旧壳层承担的职责都被更成熟、更稳定、owner 清晰的真实实现接管，且默认入口不再依赖旧壳
 
+## Phase 0 冻结结论
+
+### A. 正式术语表
+
+| 术语 | 正式中文 | 适用范围 | 正式映射 |
+|---|---|---|---|
+| `light` | 轻量后端构建目标 | 只描述 build/deployment target，不改写 profile/capability 模型 | `local-agent` -> `light`；`team-monolith` -> `light` |
+| `heavy` | 重型后端构建目标 | 只描述 build/deployment target，不改写 profile/capability 模型 | `distributed` -> `heavy` |
+| `deployment profile` | 部署 profile | 产品/部署形态真相 | 继续固定为 `local-agent`、`team-monolith`、`distributed` |
+| `embedded` | 嵌入式本地产品语义 | 只是 `local-agent` 的产品语义别名，不是第四种 profile | `embedded` 属于 `local-agent`，因此映射到 `light` |
+| `gateway only` | 仅网关接入模型 | 客户端接入真相，不属于 build target 词汇 | `light` 与 `heavy` 都只暴露单一 gateway URL |
+
+映射总表：
+
+| profile / 语义 | build target | 客户端接入模型 |
+|---|---|---|
+| `embedded` | `light` | `gateway only` |
+| `local-agent` | `light` | `gateway only` |
+| `team-monolith` | `light` | `gateway only` |
+| `distributed` | `heavy` | `gateway only` |
+
+冻结补充：
+
+- `light` / `heavy` 只允许作为“后端构建目标”术语出现，不得替换 `deployment profile`、`capability`、`runtimeMode`、`serviceUnit`。
+- `packages/backend-core` 的正式共享关系是：`local-agent` 与 `team-monolith` 共同属于 `light`，`distributed` 属于 `heavy`；`packages/backend-core/README.md` 中把 `team-monolith` 归入 heavy-host 的旧表述必须视为已关闭冲突。
+
+### B. Compatibility 词族判定标准 checklist
+
+#### `compatibility shell`
+
+- [x] 该对象直接暴露可执行或可挂载的进程/HTTP 入口。
+- [x] 它保留的是 legacy 路由、legacy 宿主或迁移期外观，而不是冻结后的默认主入口。
+- [x] 它可以调用共享内核或真实宿主实现，但自身不得继续长出新的 authoritative orchestration。
+- [x] 只有在调用方和 rollback path 都切走后才能删除。
+
+#### `compatibility facade`
+
+- [x] 该对象不拥有 bootstrap、config、transport 或进程生命周期。
+- [x] 它只提供 re-export、import-path shim 或极薄委托。
+- [x] 删除动作只需要迁移 import/call site，不需要做流量切换。
+
+#### `compatibility layer`
+
+- [x] 该对象承担旧 contract / 旧配置 / 旧运行时语义到新 seam 的翻译。
+- [x] 它不是默认可执行入口。
+- [x] 它可以有 glue code，但不能拥有 profile 级业务真相或长期宿主 owner 决策。
+
+#### `migration window`
+
+- [x] 至少还有一个受支持调用方、默认链路或 rollback path 依赖该兼容对象。
+- [x] 关闭条件已在计划或 truth source 中命名。
+- [x] 在窗口关闭前，只允许收缩或迁移，不允许继续向其添加新的长期业务职责。
+
+#### `rollback path`
+
+- [x] 它是显式保留的非默认回退入口，用于切换失败时恢复旧行为。
+- [x] 文档不得再把它描述为默认主入口。
+- [x] 它的关闭条件必须同时包含：调用方切换、文档回写、最小测试与 smoke 验证完成。
+
+#### `real host implementation`
+
+- [x] 它直接拥有受支持 build target 或 service process 的 bootstrap、transport、依赖装配与 runtime capability 暴露。
+- [x] 它可以直接解释目标部署形态，而不把默认 owner 委托给 compatibility shell。
+- [x] 它允许依赖 `backend-core`、`contracts`、`service-*` 或共享 seam，但这些依赖不改变其宿主 owner 身份。
+
+分类冻结：
+
+| 对象 | 冻结归类 | 说明 |
+|---|---|---|
+| `packages/server` | `compatibility shell` | 供 `host-local` Fastify rollback path 使用的 Fastify 兼容壳 |
+| `packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**` | `rollback path` | 旧 Fastify 轻宿主路径，迁移窗口内仅保留回退职责 |
+| `packages/backend-core/src/modules/*.ts` | `compatibility facade` | 只保留 re-export/import-path 兼容面 |
+| `packages/host-local/src/nest/**` | `real host implementation` | `light` 默认主入口终局 |
+| `packages/host-distributed` | `real host implementation` | `heavy` 的真实重宿主实现，成熟度冻结为 `Level 2 / transitional-microservice` |
+| `packages/service-*` | `real host implementation` | thin assembly，但属于真实 service process 装配，不是兼容层 |
+
+### C. `packages/server` 三类职责归属表
+
+统一描述句：
+
+`packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell：在迁移窗口内仅保留 legacy route compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责。`
+
+| 当前职责类别 | 冻结归属 | 处理结论 |
+|---|---|---|
+| shared runtime/status seam：runtime deployment 解析、runtime metadata、status/readiness payload helper、request/trace context glue | 共享 seam 保留 | 长期可继续存在，但应迁到共享 seam 或宿主内明确模块，不继续以 `packages/server` 的“默认宿主”名义存在 |
+| Fastify app 聚合、默认启动入口、host-local config bridge、gateway route registration、in-process adapter 选择 | 迁到 `host-local` 或共享 seam 后删除 | 这些是宿主 owner 职责，不属于长期共享壳层 |
+| maintenance/decay legacy 写入口、candidate apply-resolution legacy 写入口、knowledge review legacy 写入口、只为旧链路保留的 route pack | compatibility-only，优先删除 | maintenance/decay 已降级为 `501 capability_unsupported`；candidate apply-resolution 与 knowledge review 在默认 light 切到 Nest 后删除 |
+
+### D. `light` 默认主入口终局与 rollback 关闭条件
+
+终局选择：
+
+- `light` 默认主入口冻结为 `packages/host-local/src/nest/**`。
+
+不选 `host-local` owned Fastify 作为终局默认的原因：
+
+- 旧 Fastify 路径仍依赖 `packages/server` compatibility shell，继续选择它会把 rollback path 固化成长期默认事实。
+- `packages/host-local/src/nest/**` 已被确认不是 compatibility shell，而是 owner 清晰的真实宿主实现。
+- 这能把 `packages/server` 的身份稳定收缩为“兼容壳 + shared runtime/status seam”，关闭默认入口双轨叙事。
+
+Fastify rollback path 关闭条件：
+
+- `local-agent` 与 `team-monolith` 的默认启动脚本切到 `packages/host-local/src/nest/**`。
+- candidate apply-resolution 与 knowledge review 不再经过 `packages/server` legacy 写入口。
+- `rtk pnpm test:deployment-smoke` 与 `@trapmap/host-local` 最小测试覆盖 Nest 默认路径。
+- `README.md`、`docs/README.md`、`docs/PACKAGES.md`、`docs/reference/SYSTEM_TRUTH_SOURCES.md`、`docs/reference/REPO_STRUCTURE.md` 不再把 Fastify 路径描述为默认主入口。
+
+### E. 客户端后端形态配置项定义
+
+| 字段 | 值域 | 默认值 | 语义 | 兼容迁移 |
+|---|---|---|---|---|
+| `backendTarget` | `'light' \| 'heavy'` | `'light'` | 只表达客户端期望连接的后端构建目标偏好，用于提示、诊断和默认行为选择 | 旧配置缺省该字段时按 `'light'` 解释；未知值回退到 `'light'`；不派生第二套 URL、认证模型或服务发现 |
+
+约束：
+
+- `backendTarget` 不能改变 `gatewayUrl` 的单 URL 事实。
+- `backendTarget` 不能让 CLI 或 `client-core` 直连内部 service。
+- `client-core` 不解释该字段；它只继续消费单一 gateway URL + session contract。
+
 ## 目标替换架构（冻结方向）
 
 ### 1. `light` 的成熟实现目标
@@ -423,7 +542,7 @@
 
 ### Track B. 把 `light` 默认入口从 `@trapmap/server` 脱钩
 
-- [ ] 明确 `host-local` 默认主入口候选：`Nest default` 或 `host-local owned Fastify`
+- [x] 冻结 `host-local` 默认主入口终局：`Nest default`
 - [ ] 把 `buildServer()` 里仍属于宿主的职责列成迁移清单：config、runtime mode、status、readiness、route mounting、worker boot 协调
 - [ ] 把这些职责迁到 `host-local` 自己拥有的目录后，再让 `dev:local-agent` / `dev:team-monolith` 默认走新入口
 - [ ] 默认入口切换完成后，把 `packages/server` 降级为仅保留共享基础设施或继续拆薄
@@ -486,9 +605,9 @@
 - [ ] 冻结两种目标共享的核心实现面：`contracts`、`backend-core`、`service-*` 主实现
 - [ ] 冻结两种目标差异化的宿主实现面：`host-local`、`host-distributed`、bootstrap、transport、deployment wiring
 - [ ] 明确是否需要新的 root/build script、包脚本或文档入口；若新增必须同步 truth source
-- [ ] 冻结 `light` 默认入口是否继续暂时依赖 `@trapmap/server`，还是在本轮直接切到 `host-local/src/nest/**` 或新的宿主主入口
+- [x] 冻结 `light` 默认入口终局为 `host-local/src/nest/**`
 - [ ] 给出 `@trapmap/server` 从“混合包”拆成“共享 runtime seam + 可删除 legacy route”的目标落点
-- [ ] 冻结 `light` 的真实成熟实现是否以 `Nest default` 为终局；若不是，需要写清为什么保留 Fastify host-owned 实现更优雅且更稳
+- [x] 冻结 `light` 的真实成熟实现以 `Nest default` 为终局
 
 文档要求：
 
@@ -642,11 +761,11 @@
 
 ### Wave 1. `light` 默认入口脱离 `@trapmap/server`
 
-#### Task 1.1 冻结默认主入口形态
+#### Task 1.1 已冻结默认主入口形态
 
 目标：
 
-- 在实施前先明确 `host-local` 的默认主入口到底是 `Nest default` 还是 `host-local owned Fastify`
+- 保持 Phase 0 已冻结结论：`host-local` 的默认主入口终局是 `Nest default`
 
 文件：
 
@@ -658,9 +777,9 @@
 
 决策输出：
 
-- [ ] 选定默认主入口
-- [ ] 写清不选另一条路的原因
-- [ ] 写清 rollback window 和关闭条件
+- [x] 选定默认主入口
+- [x] 写清不选另一条路的原因
+- [x] 写清 rollback window 和关闭条件
 
 最小测试：
 

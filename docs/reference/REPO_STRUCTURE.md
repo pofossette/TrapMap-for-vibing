@@ -20,7 +20,7 @@ Historical plans, temporary notes, audits, and human-authored reports must live 
 ## Product Packages
 
 - `packages/cli/`: Commander CLI and CLI tests.
-- `packages/server/`: Fastify compatibility shell, runtime/status surface, explicit rollback path, and legacy server tests. It is in a migration window and should keep shrinking.
+- `packages/server/`: `packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell：在迁移窗口内仅保留 legacy route compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责。
 - `packages/contracts/`: shared Zod schemas and TypeScript types.
 - `packages/skills/`: project-level Skill artifacts.
 - `packages/client-core/`: Browser-compatible shared gateway transport layer (HTTP SDK, session contract, error model). Used by CLI and future web panel.
@@ -32,8 +32,8 @@ Historical plans, temporary notes, audits, and human-authored reports must live 
 - `packages/service-governance-review/`: Owns governance-review service assembly, internal route registration, and bounded-context review/feedback wiring while delegating lifecycle mutations to knowledge-write.
 - `packages/service-candidate-ingestion/`: Owns candidate-ingestion service assembly, internal route registration, and bounded-context candidate wiring while delegating result publication to knowledge-write.
 - `packages/service-job-runtime/`: Owns job-runtime service assembly, internal route registration, queue/runtime deps wiring, and runtime server bootstrap surface.
-- `packages/host-local/`: Lightweight host assembly for local-agent and team-monolith profiles. The current default root entrypoint still uses `src/index.ts` + `src/bootstrap/**` to assemble the Fastify-based light host around `packages/server`. `src/nest/**` is the opt-in modular-monolith migration track; its six bounded-context Nest modules (`identity-access/`, `knowledge-read/`, `knowledge-write/`, `candidate-ingestion/`, `governance-review/`, `job-runtime/`) are registered in `src/nest/app.module.ts` and share the same module graph across profiles.
-- `packages/host-distributed/`: Heavy host assembly for the distributed profile. It provides the gateway deployment surface plus the current bounded-context service/runtime expansion points, but must consume the same backend-core/service-package main implementation as the monolith; the current maturity baseline is transitional, not fully autonomous microservices.
+- `packages/host-local/`: Light host assembly for `local-agent` and `team-monolith`. The frozen default light mainline is `src/nest/**`; the old Fastify path under `src/bootstrap/**`, `src/http/**`, and `src/runtime/**` is rollback-only during the migration window.
+- `packages/host-distributed/`: Heavy host assembly for the `distributed` profile. It is the real heavy-host implementation, consumes the same backend-core/service-package main implementation as `light`, and its maturity baseline remains `Level 2 / transitional-microservice`.
 
 ## Documentation
 

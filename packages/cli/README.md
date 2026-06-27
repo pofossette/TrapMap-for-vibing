@@ -20,6 +20,18 @@ Commander.js 命令行客户端，用于与 TrapMap API 交互。
 
 CLI 状态文件存储在 `~/.trapmap/cli.json`。若 `os.homedir()` 不可用时，会退回到系统临时目录。配置文件支持以下输出配置（`outputProfile` 字段）：
 
+`CliState` 还包含一个后端形态字段 `backendTarget`：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|---|---|---|---|
+| `backendTarget` | `"light" \| "heavy"` | `"light"` | 目标后端构建形态偏好；`light` 对应 `local-agent` / `team-monolith`，`heavy` 对应 `distributed` |
+
+兼容迁移规则：
+
+- 旧配置缺省 `backendTarget` 时按 `"light"` 解释。
+- 非法值会被规范化回 `"light"`。
+- 该字段不改变单一 `gatewayUrl`、认证模型或任何内部服务发现逻辑。
+
 | 字段 | 类型 | 默认值 | 说明 |
 |---|---|---|---|
 | `tool` | `"claude-code" \| "codex" \| "opencode" \| "generic"` | `"generic"` | 目标渲染工具 |

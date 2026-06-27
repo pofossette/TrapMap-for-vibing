@@ -32,6 +32,7 @@ TrapMap 当前把部署语义拆成几层，后续文档与实现都应按这组
 
 - 已实现的是 `deployment preset -> runtimeMode/serviceUnit` 这层运行时语义。
 - `local-agent`、`team-monolith`、`distributed` 现在已经作为正式 profile 入口落到根脚本与宿主装配中；底层运行时兼容语义仍继续复用 `preset + runtimeMode + serviceUnit`。
+- `light` / `heavy` 是 build target 视角：`local-agent`、`team-monolith` -> `light`，`distributed` -> `heavy`。
 
 当前阶段的明确非目标：
 
@@ -68,9 +69,9 @@ Round 0 已冻结数据库演进方向，后续轮次必须遵守以下边界：
 | `packages/client-core` | 共享 gateway 访问层，供 CLI 与未来 Web 面板复用 |
 | `packages/cli` | Commander.js CLI 客户端，所有用户交互的终端入口 |
 | `packages/backend-core` | 宿主无关的后端核心内核、运行时能力模型与端口定义 |
-| `packages/host-local` | `local-agent` / `team-monolith` 轻量宿主装配 |
-| `packages/host-distributed` | `distributed` 重型宿主装配 |
-| `packages/server` | 迁移期兼容壳层与既有实现面 |
+| `packages/host-local` | `local-agent` / `team-monolith` 的 `light` 宿主装配；默认主入口终局为 `src/nest/**` |
+| `packages/host-distributed` | `distributed` 的 `heavy` 重型宿主装配 |
+| `packages/server` | Fastify compatibility shell，仅服务 `host-local` rollback path 与 shared runtime/status seam |
 | `packages/contracts` | 共享 Zod Schema 和 TypeScript 类型定义 |
 | `packages/service-*` | bounded-context service assembly：identity-access、knowledge-read/write、candidate-ingestion、governance-review、job-runtime |
 | `packages/web-panel` | 管理员浏览器运维面板，继续只面向 gateway surface |
@@ -80,7 +81,7 @@ Round 0 已冻结数据库演进方向，后续轮次必须遵守以下边界：
 ## Phase 0 冻结的长期宿主目标
 
 - 唯一长期后端主线固定为 `Nest host + framework-free domain core + gradual service extraction`。
-- 当前实现仍以 `host-local` / `host-distributed` / `server` 上的 Fastify 宿主为主；NestJS 是后续宿主与 DI 替换目标，不是当前业务真相源。
+- `packages/host-local/src/nest/**` 是冻结后的 `light` 默认主入口终局；`packages/server` 与 `host-local` 旧 Fastify 路径只保留为 rollback path。
 - 运行模型固定为 `embedded/local-agent -> team-monolith -> distributed` 三档；`embedded` 是当前 `local-agent` 的产品语义，不新增第四种常驻 profile。
 - gateway 继续是宿主拥有的统一外部适配层；当前主线不创建 `packages/service-gateway`。
 - `distributed` 当前成熟度冻结为 `Level 2 / transitional-microservice`。

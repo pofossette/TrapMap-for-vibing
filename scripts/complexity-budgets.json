@@ -42,7 +42,7 @@
     {
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
       "mustContain": [
-        "`packages/server` is a partial compatibility shell for candidate/review/maintenance/decay writes"
+        "`packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell"
       ]
     },
     {
