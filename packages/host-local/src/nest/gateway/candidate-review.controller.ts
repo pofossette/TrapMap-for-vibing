@@ -16,14 +16,15 @@ import {
   reviewDecisionRequestSchema,
   reviewQueueResponseSchema,
 } from '@trapmap/contracts';
+import type { CandidateIngestionPort, ReviewPort } from '@trapmap/backend-core';
 import type { FastifyRequest } from 'fastify';
 
-import { applyResolution, attachManualResult } from '@trapmap/server/lib/candidates/services/resolution-service.js';
+import { applyResolution } from '@trapmap/server/lib/candidates/services/resolution-service.js';
 import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
-import { createReviewApplicationService } from '@trapmap/server/lib/knowledge/review-application-service.js';
 import { buildReviewQueueProjection } from '@trapmap/server/lib/operations/read-model.js';
-import { nowIso } from '@trapmap/server/lib/store.js';
 
+import { CANDIDATE_INGESTION_PORT } from '../candidate-ingestion/candidate-ingestion.tokens.js';
+import { GOVERNANCE_REVIEW_PORT } from '../governance-review/governance-review.tokens.js';
 import { HOST_LOCAL_RUNTIME_TOKEN } from '../runtime/host-runtime.js';
 import type { HostLocalRuntime } from '../runtime/host-runtime.js';
 import { AuthGuard } from '../runtime/auth.guard.js';
@@ -33,6 +34,10 @@ import { ZodBodyValidationPipe } from '../runtime/validation.pipe.js';
 @UseGuards(AuthGuard)
 export class CandidateReviewController {
   constructor(
+    @Inject(CANDIDATE_INGESTION_PORT)
+    private readonly candidateIngestion: CandidateIngestionPort,
+    @Inject(GOVERNANCE_REVIEW_PORT)
+    private readonly governanceReview: ReviewPort,
     @Inject(HOST_LOCAL_RUNTIME_TOKEN)
     private readonly runtime: HostLocalRuntime,
   ) {}
@@ -46,32 +51,15 @@ export class CandidateReviewController {
     @Req() request: FastifyRequest,
   ) {
     const auth = request.authContext!;
-    const lifecyclePublisher = createLifecyclePublisher(
-      this.runtime.services.asyncTransport
-        ? {
-            store: this.runtime.services.store,
-            eventBus: this.runtime.services.eventBus,
-            asyncTransport: this.runtime.services.asyncTransport,
-          }
-        : {
-            store: this.runtime.services.store,
-            eventBus: this.runtime.services.eventBus,
-          },
-    );
+    await this.candidateIngestion.submitManualResult(candidateId, body, auth.actorId);
 
-    const result = await attachManualResult(
-      {
-        store: this.runtime.services.store,
-        repos: this.runtime.services.repos,
-        lifecyclePublisher,
-        config: this.runtime.services.config,
-      },
-      auth,
+    return manualResultResponseSchema.parse({
       candidateId,
-      body,
-    );
-
-    return manualResultResponseSchema.parse(result);
+      decision: body.decision,
+      reviewedAt: new Date().toISOString(),
+      reviewedBy: auth.actorId,
+      nextState: body.decision === 'independent' ? 'ready_for_review' : 'rejected',
+    });
   }
 
   @Post('candidates/:candidateId/apply-resolution')
@@ -135,42 +123,29 @@ export class CandidateReviewController {
     @Req() request: FastifyRequest,
   ) {
     const auth = request.authContext!;
-    const lifecyclePublisher = createLifecyclePublisher(
-      this.runtime.services.asyncTransport
-        ? {
-            store: this.runtime.services.store,
-            eventBus: this.runtime.services.eventBus,
-            asyncTransport: this.runtime.services.asyncTransport,
-          }
-        : {
-            store: this.runtime.services.store,
-            eventBus: this.runtime.services.eventBus,
-          },
-    );
-    const reviewService = createReviewApplicationService({
-      repos: {
-        knowledge: this.runtime.services.repos.knowledge,
-        audit: this.runtime.services.repos.audit,
-        user: this.runtime.services.repos.user,
-        membership: this.runtime.services.repos.membership,
-      },
-      lifecyclePublisher,
-      feedbackRepo: this.runtime.services.repos.feedback,
-    });
+    const result =
+      body.decision === 'approve'
+        ? await this.governanceReview.approve({
+            entryId: body.entryId,
+            actorId: auth.actorId,
+            note: body.notes,
+            evidence: body.evidence,
+          })
+        : await this.governanceReview.reject({
+            entryId: body.entryId,
+            actorId: auth.actorId,
+            note: body.notes,
+            evidence: body.evidence,
+          });
 
-    const result = await reviewService.applyDecision({
-      actorId: auth.actorId,
-      authContext: auth,
-      entryId: body.entryId,
-      decision: body.decision,
-      notes: body.notes,
-      appliedAt: nowIso(),
-      boundary: body.boundary ?? undefined,
-      evidence: body.evidence,
-    });
+    const entry = await this.runtime.services.repos.knowledge.getById(result.entryId);
 
     return {
-      entry: result.entry,
+      entry:
+        entry ?? {
+          id: result.entryId,
+          lifecycleState: result.lifecycleState,
+        },
     };
   }
 }

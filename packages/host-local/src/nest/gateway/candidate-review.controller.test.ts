@@ -1,18 +1,28 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CandidateIngestionPort, ReviewPort } from '@trapmap/backend-core';
 
 import type { HostLocalRuntime } from '../runtime/host-runtime.js';
 
-const reviewServiceMock = {
-  applyDecision: vi.fn(),
+const candidateIngestionMock: CandidateIngestionPort = {
+  submit: vi.fn(),
+  getById: vi.fn(),
+  listByStatus: vi.fn(),
+  applyResolution: vi.fn(),
+  submitManualResult: vi.fn(),
+  publishCandidateResult: vi.fn(),
+};
+
+const governanceReviewMock: ReviewPort = {
+  approve: vi.fn(),
+  reject: vi.fn(),
+  applyMaintenance: vi.fn(),
+  applyDecay: vi.fn(),
+  reviewArtifact: vi.fn(),
+  submitFeedback: vi.fn(),
 };
 
 vi.mock('@trapmap/server/lib/candidates/services/resolution-service.js', () => ({
   applyResolution: vi.fn(),
-  attachManualResult: vi.fn(),
-}));
-
-vi.mock('@trapmap/server/lib/knowledge/review-application-service.js', () => ({
-  createReviewApplicationService: () => reviewServiceMock,
 }));
 
 vi.mock('@trapmap/server/lib/operations/read-model.js', () => ({
@@ -36,7 +46,12 @@ function createRuntime(): HostLocalRuntime {
       repos: {
         candidate: {},
         lineage: {},
-        knowledge: {},
+        knowledge: {
+          getById: vi.fn(async () => ({
+            id: 'entry-1',
+            lifecycleState: 'approved',
+          })),
+        },
         audit: {},
         user: {},
         membership: {},
@@ -62,7 +77,11 @@ describe('CandidateReviewController', () => {
       candidateId: 'candidate-1',
       status: 'resolved',
     });
-    const controller = new CandidateReviewController(createRuntime());
+    const controller = new CandidateReviewController(
+      candidateIngestionMock,
+      governanceReviewMock,
+      createRuntime(),
+    );
 
     const result = await controller.applyCandidateResolution('candidate-1', {
       authContext: {
@@ -89,13 +108,15 @@ describe('CandidateReviewController', () => {
   });
 
   it('routes knowledge review through the Nest light mainline runtime', async () => {
-    reviewServiceMock.applyDecision.mockResolvedValueOnce({
-      entry: {
-        id: 'entry-1',
-        lifecycleState: 'approved',
-      },
+    vi.mocked(governanceReviewMock.approve).mockResolvedValueOnce({
+      entryId: 'entry-1',
+      lifecycleState: 'approved',
     });
-    const controller = new CandidateReviewController(createRuntime());
+    const controller = new CandidateReviewController(
+      candidateIngestionMock,
+      governanceReviewMock,
+      createRuntime(),
+    );
 
     const result = await controller.applyReviewDecision(
       {
@@ -110,18 +131,54 @@ describe('CandidateReviewController', () => {
       } as any,
     );
 
-    expect(reviewServiceMock.applyDecision).toHaveBeenCalledWith(
-      expect.objectContaining({
-        actorId: 'reviewer-1',
-        entryId: 'entry-1',
-        decision: 'approve',
-      }),
-    );
+    expect(governanceReviewMock.approve).toHaveBeenCalledWith({
+      entryId: 'entry-1',
+      actorId: 'reviewer-1',
+      note: 'ship it',
+      evidence: undefined,
+    });
     expect(result).toMatchObject({
       entry: {
         id: 'entry-1',
         lifecycleState: 'approved',
       },
+    });
+  });
+
+  it('routes manual-result through the candidate-ingestion owner port', async () => {
+    vi.mocked(candidateIngestionMock.submitManualResult).mockResolvedValueOnce(undefined);
+    const controller = new CandidateReviewController(
+      candidateIngestionMock,
+      governanceReviewMock,
+      createRuntime(),
+    );
+
+    const result = await controller.submitManualResult(
+      'candidate-1',
+      {
+        decision: 'independent',
+        notes: 'keep as standalone',
+      } as any,
+      {
+        authContext: {
+          actorId: 'reviewer-1',
+        },
+      } as any,
+    );
+
+    expect(candidateIngestionMock.submitManualResult).toHaveBeenCalledWith(
+      'candidate-1',
+      {
+        decision: 'independent',
+        notes: 'keep as standalone',
+      },
+      'reviewer-1',
+    );
+    expect(result).toMatchObject({
+      candidateId: 'candidate-1',
+      decision: 'independent',
+      reviewedBy: 'reviewer-1',
+      nextState: 'ready_for_review',
     });
   });
 });

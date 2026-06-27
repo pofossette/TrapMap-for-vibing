@@ -8,7 +8,6 @@
  * Sub-modules:
  * - submit.ts     : POST /v1/candidates
  * - query.ts      : GET /v1/candidates, GET /v1/candidates/:candidateId
- * - resolution.ts : POST /v1/candidates/:candidateId/manual-result, POST .../apply-resolution
  * - duplicates.ts : GET /v1/duplicates, GET /v1/duplicates/:candidateId, GET .../bundle
  */
 

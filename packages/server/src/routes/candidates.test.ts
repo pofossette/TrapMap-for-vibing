@@ -96,4 +96,29 @@ describe('candidate routes', () => {
       receivedAt: expect.any(String),
     });
   });
+
+  it('does not expose retired legacy write routes on the compatibility shell', async () => {
+    const manualResult = await app.inject({
+      method: 'POST',
+      url: '/v1/candidates/candidate-1/manual-result',
+      headers: {
+        authorization: `Bearer ${sessionId}`,
+      },
+      payload: {
+        decision: 'independent',
+        notes: 'compat-shell retired route probe',
+      },
+    });
+
+    const resolution = await app.inject({
+      method: 'POST',
+      url: '/v1/candidates/candidate-1/apply-resolution',
+      headers: {
+        authorization: `Bearer ${sessionId}`,
+      },
+    });
+
+    expect(manualResult.statusCode).toBe(404);
+    expect(resolution.statusCode).toBe(404);
+  });
 });

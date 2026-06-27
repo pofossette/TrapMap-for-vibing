@@ -54,11 +54,11 @@
 | `POST` | `/v1/knowledge/:entryId/resubmit` | `knowledgeResubmissionSchema` | `knowledgeEntryResponseSchema` | 重新提交被拒内容并保留历史记录 |
 | `POST` | `/v1/knowledge/:entryId/supersede` | `{ replacementId: string }` | `knowledgeEntryResponseSchema` | 标记条目已被新条目取代 |
 | `GET` | `/v1/knowledge/review-queue` | `reviewQueueQuerySchema` | `reviewQueueResponseSchema` | 列出待审核条目 |
-| `POST` | `/v1/knowledge/review` | `reviewDecisionRequestSchema` | `knowledgeEntryResponseSchema` | 批准或拒绝提交 |
+| `POST` | `/v1/knowledge/review` | `reviewDecisionRequestSchema` | `knowledgeEntryResponseSchema` | 批准或拒绝提交；默认 `light` 主线通过 `host-local` Nest gateway 委托 `governance-review` owner，`heavy` 通过 distributed gateway 转发到 `governance-review` service |
 | `PATCH` | `/v1/knowledge/:id/evidence` | `evidenceMetaSchema`（部分） | `{ evidence: evidenceMetaSchema }` | 更新知识条目的 evidence 元数据 |
 | `POST` | `/v1/operations/knowledge/:entryId/deactivate` | `knowledgeDeactivateRequestSchema` | `knowledgeDeactivateResponseSchema` | 停用知识条目并记录审计日志 |
 
-> 源码：`packages/server/src/routes/knowledge.ts`、`packages/server/src/routes/review.ts`、`packages/server/src/routes/evidence.ts`
+> 源码：`packages/server/src/routes/knowledge.ts`、`packages/host-local/src/nest/gateway/candidate-review.controller.ts`、`packages/host-distributed/src/gateway/routes.ts`、`packages/service-governance-review/src/routes.ts`、`packages/server/src/routes/evidence.ts`
 
 ## 陷阱（Traps）
 
@@ -80,12 +80,12 @@
 | `GET` | `/v1/candidates` | `{ status?: string }` | `candidateListResponseSchema` | 列出候选（支持按状态过滤） |
 | `GET` | `/v1/candidates/:candidateId` | 无 | `candidateStatusResponseSchema` | 获取候选状态 |
 | `POST` | `/v1/candidates/:candidateId/manual-result` | `ManualResultSubmissionSchema` | `manualResultResponseSchema` | 人工解决重复 |
-| `POST` | `/v1/candidates/:candidateId/apply-resolution` | 无 | `applyResolutionResponseSchema` | 应用人工解决方案并发布 |
+| `POST` | `/v1/candidates/:candidateId/apply-resolution` | 无 | `applyResolutionResponseSchema` | 兼容候选发布入口；不再由 `packages/server` Fastify compatibility shell 提供默认 authoritative write |
 | `GET` | `/v1/duplicates` | 无 | `duplicateCaseListResponseSchema` | 列出所有重复案例 |
 | `GET` | `/v1/duplicates/:candidateId` | 无 | `duplicateCaseResponseSchema` | 获取特定候选的重复案例 |
 | `GET` | `/v1/duplicates/:candidateId/bundle` | 无 | `DuplicateJobBundleResponseSchema` | 获取重复候选完整包（含匹配实体） |
 
-> 源码：`packages/server/src/routes/candidates.ts`
+> 源码：`packages/server/src/routes/candidates.ts`（submit/query/duplicates compatibility surface）、`packages/host-local/src/nest/gateway/candidate-review.controller.ts`、`packages/host-distributed/src/gateway/routes.ts`、`packages/service-candidate-ingestion/src/routes.ts`
 
 ## 检索
 

@@ -42,7 +42,7 @@
 ## Phase 4 数据、运维与退役收尾
 
 - 仓库级 owner matrix（gateway + 六个 owner service + job-runtime 的 data / projection / runtime / operations owner）已冻结，详见 [`plan.md`](../plan.md) Phase 4 和 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
-- `packages/server` 中 candidate apply-resolution、knowledge review、maintenance、decay 旧 Fastify 写路由都已删除。
+- `packages/server` 中 candidate apply-resolution、knowledge review、maintenance、decay 旧 Fastify 写路由都已删除。`light` 默认 review/manual-result 写链路现由 `packages/host-local/src/nest/gateway/candidate-review.controller.ts` 直接委托 `governance-review` / `candidate-ingestion` owner port，而不是回落到 `packages/server`。
 - `packages/backend-core/src/modules/*.ts` 兼容 re-export facade 已退役并删除；truth source 只保留真实 context 目录入口。
 - `packages/host-distributed` 与 `packages/service-*` 不是 compatibility shell，继续保留为分布式部署展开层和 thin service assembly。
 - `packages/host-local/src/nest/**` 是冻结后的默认 `light` 主入口终局和 bounded-context module graph，不属于 compatibility shell。
@@ -207,7 +207,7 @@ P3 起，`topology` 会把 distributed 第一阶段的正式服务词汇固化�
 | `routes/members.ts` | `/v1/members` | 成员管理 |
 | `routes/access-keys.ts` | `/v1/access-keys` | 访问密钥签发 |
 | `routes/knowledge.ts` | `/v1/knowledge` | 知识条目 CRUD，通过 `KnowledgeApplicationService` 执行提交/重提/取代 |
-| `routes/review.ts` | `/v1/knowledge/review` | 审核工作流 |
+| `host-local/src/nest/gateway/candidate-review.controller.ts` + `host-distributed/src/gateway/routes.ts` | `/v1/knowledge/review` | 审核工作流；默认写链路委托 `governance-review` owner |
 | `routes/evidence.ts` | `/v1/knowledge/:id/evidence` | 知识条目 evidence 元数据更新 |
 | `routes/retrieval.ts` | `/v1/retrieval`、`/v2/retrieval`、`/v3/retrieval` | 检索（v1/v2/v3），通过 `buildRetrievalReadModel()` 从仓库读取数据 |
 | `routes/operations.ts` | `/v1/operations` | 导入/导出（注册子路由：audit、knowledge-legacy、artifacts-export/import/activate、migrate、status、skill-edit、skill-review、stats） |
