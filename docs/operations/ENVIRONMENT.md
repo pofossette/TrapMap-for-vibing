@@ -393,7 +393,7 @@ pnpm dev:local-agent
 - `pnpm dev:distributed:governance-worker`
 - `pnpm dev:distributed:outbox-worker`
 
-兼容脚本 `pnpm dev:server*` 仍可使用，但不再作为主要文档入口。正式入口优先使用 `pnpm dev:local-agent`、`pnpm dev:team-monolith` 和 `pnpm dev:distributed:*`，它们分别装配 `@trapmap/host-local` 与 `@trapmap/host-distributed`。
+兼容脚本 `pnpm dev:server:compat*` 仍可使用，但不再作为主要文档入口。正式入口优先使用 `pnpm dev:local-agent`、`pnpm dev:team-monolith` 和 `pnpm dev:distributed:*`，它们分别装配 `@trapmap/host-local` 与 `@trapmap/host-distributed`。
 
 ### PG Recall 配置 (Phase 6，多路召回已全线落地)
 
@@ -436,7 +436,7 @@ pnpm dev:local-agent
 | `TRAPMAP_REQUEST_ID_HEADER` | 运行时 request id 响应/透传头名 | `x-request-id` |
 | `TRAPMAP_TRACE_HEADER_NAME` | 运行时 trace header 名 | `traceparent` |
 
-> **Nest 宿主（opt-in 迁移轨道）**：`packages/host-local/src/nest/` 的 Nest 宿主消费同一份 `ServerConfig`（由 `packages/server/src/config.ts` 的 `loadConfig()` 提供），不引入新的环境变量。当前需要通过 `pnpm --filter @trapmap/host-local dev:nest` 或 `start:nest` 显式进入；`pnpm dev:local-agent` 和 `pnpm dev:team-monolith` 仍默认走 `packages/host-local/src/index.ts` 的 Fastify bootstrap。
+> **Nest 宿主（默认 `light` 主线）**：`packages/host-local/src/nest/` 的 Nest 宿主消费同一份 `ServerConfig`（由 `packages/server/src/config.ts` 的 `loadConfig()` 提供），不引入新的环境变量。`pnpm dev:local-agent`、`pnpm dev:team-monolith` 与 `pnpm --filter @trapmap/host-local dev` 都直接进入这条主线；旧 Fastify 宿主和相关 rollback 脚本已删除。
 
 ## Runtime Resilience
 

@@ -15,9 +15,9 @@
 | `packages/service-candidate-ingestion` | `src/index.ts` | candidate-ingestion service assembly 与候选处理路由 |
 | `packages/service-governance-review` | `src/index.ts` | governance-review service assembly 与治理/反馈路由 |
 | `packages/service-job-runtime` | `src/index.ts` | job-runtime service assembly、内部 route 与 runtime server |
-| `packages/host-local` | `src/index.ts` | `local-agent` / `team-monolith` 的 `light` 宿主装配；冻结默认主入口终局为 `src/nest/**`。⚠ 当前 `package.json` 的 `main` / `dev` / `start` 仍指向 `src/index.ts`（Fastify rollback path），`dev:nest` / `start:nest` 才走 Nest 主线——这是 Phase 4 cutover 前的已知脚本漂移。 |
+| `packages/host-local` | `src/index.ts` | `local-agent` / `team-monolith` 的 `light` 宿主装配；默认 `main` / `dev` / `start` 只进入 `src/nest/**` 主线，旧 Fastify 轻宿主路径已删除。 |
 | `packages/host-distributed` | `src/index.ts` | `distributed` 的 `heavy` 重宿主装配 |
-| `packages/server` | `src/index.ts` | `packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell + shared runtime/status seam + rollback path 过渡层：在迁移窗口内仅保留 legacy route compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责，也不是共享业务内核。 |
+| `packages/server` | `src/index.ts` | `packages/server` 是 Fastify compatibility shell + shared runtime/status seam，不再承担默认 light 宿主职责，也不是共享业务内核。 |
 | `packages/contracts` | `src/index.ts` | 共享 Zod Schema 和 TypeScript 类型 |
 | `packages/web-panel` | `src/main.tsx` | 管理员浏览器运维面板，继续只面向 gateway surface |
 | `packages/skills` | `workflow-with-trapmap/SKILL.md` | 项目级 Skill 工作流与 CLI 使用指南 |
@@ -33,18 +33,17 @@
 
 ## Phase 2 模块化单体边界冻结
 
-- `backend-core` 继续保留单包，但其内部必须按六个 bounded context 收口到 `<context>/domain/`、`<context>/application/`、`<context>/module.ts`；`ports`、`invocation`、`runtime`、`testing` 继续作为共享且 framework-free 的顶层目录。当前六个 context 目录已经落地：`identity-access/`、`knowledge-read/`、`knowledge-write/`、`candidate-ingestion/`、`governance-review/`、`job-runtime/`；`src/modules/*.ts` 在迁移窗口内只保留对对应 `<context>/index.ts` 的兼容性 re-export。
+- `backend-core` 继续保留单包，但其内部必须按六个 bounded context 收口到 `<context>/domain/`、`<context>/application/`、`<context>/module.ts`；`ports`、`invocation`、`runtime`、`testing` 继续作为共享且 framework-free 的顶层目录。当前六个 context 目录已经落地：`identity-access/`、`knowledge-read/`、`knowledge-write/`、`candidate-ingestion/`、`governance-review/`、`job-runtime/`；原 `src/modules/*.ts` compatibility re-export facade 已在 build-target closeout 的 Wave 1 清理中删除，消费方应直接使用真实 context 入口。
 - `packages/host-local/src/nest/**` 是 `light` 默认主入口终局与真实宿主实现；`embedded/local-agent` 与 `team-monolith` 继续共用这套 module graph，两档 profile 只允许在 capability、provider wiring、route surface gating 上有差异。
 - `packages/service-*` 继续只承载 thin assembly：`deps.ts`、`routes.ts`、`server.ts`、`index.ts`。业务规则不在这些包里分叉。
-- `packages/server` 是兼容壳；`packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**` 是 Fastify rollback path。两者都处于 migration window，但都不再是默认 `light` 主入口叙事。
+- `packages/server` 是兼容壳；默认 `light` 主入口已经完全收敛到 `packages/host-local/src/nest/**`。
 - `packages/host-distributed` 继续是 distributed profile 的部署展开层，但必须消费与 modular monolith 相同的 `backend-core` + `service-*` 主实现，而不是维护第二套 business truth。
 
 ## Phase 4 数据、运维与退役收尾
 
 - 仓库级 owner matrix（gateway + 六个 owner service + job-runtime 的 data / projection / runtime / operations owner）已冻结，详见 [`plan.md`](../plan.md) Phase 4 和 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
-- `packages/server` 中 maintenance batch、decay batch 已降级为 compatibility-only；candidate apply-resolution 与 knowledge review 仍保留为 Fastify rollback path 的迁移窗口例外，尚未正式退役。
-- `packages/host-local` 旧 Fastify gateway / bootstrap / runtime 写路径是 rollback path，不再作为默认轻宿主事实源。
-- `packages/backend-core/src/modules/*.ts` 兼容 re-export facade 仍处于迁移窗口，尚未正式退役。
+- `packages/server` 中 candidate apply-resolution、knowledge review、maintenance、decay 旧 Fastify 写路由都已删除。
+- `packages/backend-core/src/modules/*.ts` 兼容 re-export facade 已退役并删除；truth source 只保留真实 context 目录入口。
 - `packages/host-distributed` 与 `packages/service-*` 不是 compatibility shell，继续保留为分布式部署展开层和 thin service assembly。
 - `packages/host-local/src/nest/**` 是冻结后的默认 `light` 主入口终局和 bounded-context module graph，不属于 compatibility shell。
 
@@ -97,15 +96,14 @@ import { reviewDecisionRequestSchema } from '@trapmap/contracts';
 
 ## packages/server
 
-`packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell + shared runtime/status seam + rollback path 过渡层：在迁移窗口内仅保留 legacy route compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责，也不是共享业务内核。
+`packages/server` 是 Fastify compatibility shell + shared runtime/status seam，不再承担默认 light 宿主职责，也不是共享业务内核。
 
-当前阅读该包时，默认按三类职责理解：
+当前阅读该包时，默认按两类职责理解：
 
 - shared runtime/status seam：可迁到共享 seam 后长期保留。
-- host-owned Fastify 装配：迁到 `host-local` 后删除。
-- compatibility-only legacy route：在 rollback path 关闭后优先删除。
+- Fastify compatibility surface：仅限仍未迁出的兼容 HTTP/runtime 组装。
 
-> ⚠ 以上三层在 `packages/server` 内的存在是 rollback window 内的历史事实，不是长期业务归属。正式终局归属是 `backend-core` + `service-*` + `host-local` / `host-distributed`。
+> ⚠ 以上内容不是默认 `light` 主线。正式终局归属是 `backend-core` + `service-*` + `host-local` / `host-distributed`。
 
 ### Runtime 与部署词汇
 
@@ -424,7 +422,7 @@ flowchart TB
 | service assembly | `packages/service-job-runtime` | 保留，承载 queue / outbox / workflow runtime owner |
 | light host | `packages/host-local` | 保留；`local-agent` / `team-monolith` 都映射到 `light`，冻结默认主入口终局为 `src/nest/**` |
 | heavy host | `packages/host-distributed` | 保留；`distributed` 映射到 `heavy`，继续作为重宿主与部署展开点 |
-| compatibility shell | `packages/server` | 继续缩减，只服务 `host-local` Fastify rollback path 与 shared runtime/status seam |
+| compatibility shell | `packages/server` | 继续缩减，只保留 shared runtime/status seam 与必要的 Fastify compatibility 面 |
 | project workflow | `packages/skills` | 保留，不受宿主迁移主线影响 |
 | deferred / not-on-mainline | `packages/service-gateway` | 不创建；gateway 是宿主拥有的外部适配层，不是当前主线里的独立 service package |
 

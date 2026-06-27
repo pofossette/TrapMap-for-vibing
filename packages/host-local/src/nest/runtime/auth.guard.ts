@@ -1,10 +1,17 @@
 import {
   type CanActivate,
   type ExecutionContext,
+  Inject,
   Injectable,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
+
+import { resolveAuthContext } from '@trapmap/server/lib/session.js';
+
+import { HOST_LOCAL_RUNTIME_TOKEN } from './host-runtime.js';
+import type { HostLocalRuntime } from './host-runtime.js';
 
 /**
  * Auth guard for the Nest host.
@@ -19,7 +26,13 @@ import type { FastifyRequest } from 'fastify';
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  constructor(
+    @Optional()
+    @Inject(HOST_LOCAL_RUNTIME_TOKEN)
+    private readonly runtime?: HostLocalRuntime,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<FastifyRequest>();
     const authHeader = request.headers.authorization;
 
@@ -32,9 +45,10 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid authorization scheme');
     }
 
-    // Phase 1: token presence check only.
-    // Full session validation will be wired when identity-access joins the Nest host.
     request.authToken = token.trim();
+    if (this.runtime) {
+      request.authContext = await resolveAuthContext(this.runtime.services, request as never);
+    }
     return true;
   }
 }

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { CandidateReviewController } from './candidate-review.controller.js';
 import { KnowledgeReadController } from './knowledge-read.controller.js';
 
 /**
@@ -11,6 +12,6 @@ import { KnowledgeReadController } from './knowledge-read.controller.js';
  * The KnowledgeReadPort is provided globally by KnowledgeReadModule.
  */
 @Module({
-  controllers: [KnowledgeReadController],
+  controllers: [KnowledgeReadController, CandidateReviewController],
 })
 export class GatewayModule {}

@@ -180,11 +180,11 @@ pnpm dev:cli -- --help
 
 ```bash
 # opt-in Nest modular monolith
-pnpm --filter @trapmap/host-local dev:nest
-pnpm --filter @trapmap/host-local start:nest
+pnpm --filter @trapmap/host-local dev
+pnpm --filter @trapmap/host-local start
 ```
 
-旧 Fastify 宿主路径（`packages/server`、`packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**`）是 rollback path，也是当前仍在收缩的 `compatibility shell`。它不再作为默认 `light` 主入口描述。maintenance/decay 写路径已降级为 compatibility-only；candidate apply-resolution 与 knowledge review 仍由该 rollback path 承接，直到 Nest 默认路径完成 cutover。
+旧 Fastify 轻宿主路径（`packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**`）已经删除。`light` 默认主入口只剩 `packages/host-local/src/nest/**`；`packages/server` 当前仅保留 Fastify compatibility shell 与 shared runtime/status seam，不再提供本地宿主回退入口。
 
 ### 可选：本地 Neo4j 查询后端
 

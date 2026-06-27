@@ -3,8 +3,8 @@
 ## 角色
 
 - 状态：`active`
-- 目标：完成数据 owner、运维面、迁移收尾事实回写，并把未关闭的迁移窗口例外显式记录下来
-- 本阶段定位：把 `Phase 3` 已冻结的服务边界收敛成仓库级 owner matrix、迁移窗口关闭标准和 closeout 执行清单；不在这里重新发明新的服务边界，也不再把尚未完成的退役项写成已完成
+- 目标：完成数据 owner、运维面和迁移收尾事实回写，并把未关闭例外显式记录下来
+- 本阶段定位：把 `Phase 3` 已冻结的服务边界收敛成仓库级 owner matrix、closeout 标准和执行清单；不在这里重新发明新的服务边界，也不再把尚未完成的退役项写成已完成
 
 ## 交付物
 
@@ -18,7 +18,7 @@
 - [x] 数据库与读模型 owner
 - [x] 运行时 profile 与部署入口
 - [ ] 兼容壳退役
-- [x] 迁移窗口关闭条件
+- [x] closeout 关闭条件
 - [x] 成熟服务 closeout 判据
 
 ## 仓库级 Owner Matrix
@@ -49,13 +49,13 @@
 - [x] `governance-review` 允许通过命名 query seam 读取知识摘要或治理视图，但不得以 shared DB 为由直接改知识聚合
 - [x] `candidate-ingestion` 允许保留 duplicate / analysis / manual result 的本地事实表，但 publish success 之前不得把 candidate 标记为最终 resolved
 - [x] `job-runtime` 可观察各服务 follow-up 队列与 worker backlog，但不能解释业务层“为什么应该 approve / reject / publish”
-- [x] `packages/server` 当前只在 maintenance/decay 写路径上是 compatibility-only；candidate apply-resolution 与 knowledge review 仍保留为 local/team-monolith 默认 Fastify 路径的迁移窗口例外
+- [x] `packages/server` 当前只保留 compatibility-shell 语义：默认 light 主线已完全切离，candidate apply-resolution、knowledge review、maintenance、decay 旧 Fastify 写路径已删除
 
-## 迁移窗口关闭条件
+## Closeout 关闭条件
 
 ### 总关闭条件
 
-- [x] 默认开发入口已经统一到 `packages/host-local`，但默认实现仍是 Fastify bootstrap；Nest modular-monolith 仍以 `dev:nest` / `start:nest` 暴露
+- [x] 默认开发入口已经统一到 `packages/host-local`，且默认实现已切到 Nest modular-monolith；旧 Fastify 本地宿主入口已删除
 - [x] 默认测试矩阵已经区分 `host-local` 默认 Fastify 入口、opt-in Nest 轨道、`host-distributed` distributed 主线和 service README
 - [x] 默认部署/环境文档已经只声明 `local-agent`、`team-monolith`、`distributed` 三档入口；Nest 轨道不再被写成默认入口
 - [ ] compatibility shell 上不存在新增主实现逻辑、新 contract、新 route-local shadow type
@@ -65,32 +65,32 @@
 
 | Compatibility shell | 允许保留到 Phase 4 的职责 | 正式关闭条件 | 关闭后动作 |
 |---|---|---|---|
-| `packages/server` candidate apply-resolution / knowledge review | local-agent、team-monolith 默认 Fastify 写路径、legacy route compatibility、显式 rollback path、旧测试夹具 | `packages/host-local` 默认入口不再依赖 `buildServer()` 的这两条 legacy 写路径，且等价的 host-owned 或 Nest-owned gateway 路径成为默认入口 | 删除这两条 legacy authoritative write 入口；保留必要 runtime/status surface |
-| `packages/server` maintenance / decay batch writes | compatibility-only、错误语义与旧测试夹具 | 已满足：两条写路由统一返回 `501 capability_unsupported`；剩余工作只是在调用方与文档不再依赖这些 compatibility route | 可在调用方完成切换后删除 compatibility route |
-| `packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**` 旧 Fastify 路径 | 当前默认 `local-agent` / `team-monolith` 轻宿主实现、rollback path、parity fix | root `dev:local-agent` / `dev:team-monolith` 与 docs/testing/deployment 默认切到 Nest modular-monolith 或其他新主实现 | 封存或删除旧 Fastify 宿主路径；禁止再接新 controller / schema / business wiring |
-| `packages/backend-core/src/modules/*.ts` compatibility re-export facade | import 迁移过渡层 | 仓库内主消费方已经切到六个 context 真实目录入口 | 删除 re-export facade，truth source 只指向真实 context 目录 |
+| `packages/server` candidate apply-resolution / knowledge review | legacy route compatibility、旧测试夹具 | 已满足：`packages/host-local` 默认入口不再依赖 `buildServer()` 的这两条 legacy 写路径，且旧写路由已删除 | 保留必要 runtime/status surface |
+| `packages/server` maintenance / decay batch writes | compatibility-only、错误语义与旧测试夹具 | 已满足：两条写路由已删除，调用方与文档也不再依赖这些 compatibility route | 保留必要 runtime/status surface |
+| `packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**` 旧 Fastify 路径 | 已删除的旧轻宿主实现 | 已满足：root `dev:local-agent` / `dev:team-monolith` 与 docs/testing/deployment 默认切到 Nest modular-monolith | 无后续动作 |
+| `packages/backend-core/src/modules/*.ts` compatibility re-export facade | import 迁移过渡层 | 仓库内主消费方已经切到六个 context 真实目录入口 | 已完成：re-export facade 已删除，truth source 只指向真实 context 目录 |
 
 ### “彻底替换兼容壳”补充判据
 
 - [ ] 默认 `light` 入口已经是成熟宿主实现，而不是通过 `@trapmap/server` 间接持有主路径
-- [ ] `@trapmap/server` 不再同时承担默认入口、compatibility shell 和 legacy route pack 三重身份
-- [ ] 任何 remaining compatibility shell 都只用于显式 rollback window，且关闭条件写清
+- [x] `@trapmap/server` 不再同时承担默认入口、compatibility shell 和 legacy route pack 三重身份
+- [x] 旧本地 rollback window 已关闭；remaining compatibility shell 只保留非默认 Fastify 兼容面
 - [ ] 文档对 `host-local`、`host-distributed`、`service-*` 的叙事不再依赖“迁移期暂存”措辞
 
 ### 非兼容壳但要继续保留的层
 
 - [x] `packages/host-distributed` 继续保留，角色是 distributed deployment layer、process bootstrap、remote adapter 和 service registration；它不是 compatibility shell，也不是第二套业务真相
 - [x] `packages/service-*` 继续保留，角色是 internal route / deps / server thin assembly；它们长期存在，但不得演化成 framework-free business fork
-- [x] `packages/host-local/src/nest/**` 继续保留为 modular-monolith 迁移轨道和 bounded-context module graph；当前仍不是默认开发入口
+- [x] `packages/host-local/src/nest/**` 继续保留为 modular-monolith 主线和 bounded-context module graph；当前已是默认开发入口
 
 ## 可正式退役的 Compatibility Shell / 重复入口
 
 ### 可在 Phase 4 正式退役
 
-- [ ] `packages/server` 中 candidate apply-resolution 与 knowledge review 的 legacy authoritative write 入口
+- [x] `packages/server` 中 candidate apply-resolution 与 knowledge review 的 legacy authoritative write 入口已从默认主线退役
 - [x] `packages/server` 中 maintenance batch 与 decay batch 已降级为 compatibility-only (`501 capability_unsupported`)
-- [ ] `packages/host-local` 旧 Fastify gateway / bootstrap / runtime 写路径
-- [ ] `packages/backend-core/src/modules/*.ts` 兼容 re-export facade
+- [x] `packages/host-local` 旧 Fastify gateway / bootstrap / runtime 写路径
+- [x] `packages/backend-core/src/modules/*.ts` 兼容 re-export facade 已退役并删除
 - [x] 文档中仍把 `server` / 旧 Fastify 宿主写成默认开发入口的描述
 - [x] 文档中仍把 compatibility shell 写成 authoritative orchestration 的描述
 

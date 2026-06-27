@@ -36,13 +36,13 @@
       "mustContain": [
         "compatibility shell",
         "distributed mode",
-        "default `local-agent` / `team-monolith` Fastify entrypoint"
+        "explicit `local-agent` / `team-monolith` rollback path"
       ]
     },
     {
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
       "mustContain": [
-        "`packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell"
+        "`packages/server` 是 Fastify compatibility shell 与 shared runtime/status seam，不再承担默认 light 宿主职责，也不再提供本地宿主 rollback 入口。"
       ]
     },
     {
@@ -172,7 +172,7 @@
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
-      "mustContain": ["opt-in 迁移轨道"],
+      "mustContain": ["默认 `light` 主线"],
       "mustNotContain": ["Phase 1 试点"]
     }
   ],

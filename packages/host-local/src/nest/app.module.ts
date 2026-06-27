@@ -1,22 +1,13 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-
 import {
-  createStubAuditLog,
-  createStubCandidateRepository,
-  createStubFeedbackRepository,
-  createStubKnowledgeRepository,
-  createStubMembershipRepository,
-  createStubOutbox,
-  createStubPermissionCheck,
-  createStubSessionLookup,
-  createStubSessionRepository,
-  createStubAccessKeyRepository,
-  createStubTaskQueue,
-  createStubTeamLookup,
-  createStubTeamRepository,
-  createStubUserRepository,
-} from '@trapmap/backend-core/testing';
+  createCandidateIngestionDeps,
+  createGovernanceReviewDeps,
+  createIdentityAccessDeps,
+  createJobRuntimeDeps,
+  createKnowledgeWriteDeps,
+} from '@trapmap/service-candidate-ingestion';
+import { createKnowledgeReadDeps } from '@trapmap/service-knowledge-read';
 
 import { loadServerConfigBridge, SERVER_CONFIG_TOKEN } from './config/config-bridge.js';
 import { GatewayModule } from './gateway/gateway.module.js';
@@ -27,6 +18,7 @@ import { JobRuntimeModule } from './job-runtime/job-runtime.module.js';
 import { KnowledgeReadModule } from './knowledge-read/knowledge-read.module.js';
 import { KnowledgeWriteModule } from './knowledge-write/knowledge-write.module.js';
 import { LoggingMiddleware } from './runtime/logging.middleware.js';
+import { createHostLocalRuntime, HOST_LOCAL_RUNTIME_TOKEN } from './runtime/host-runtime.js';
 import { RequestContextMiddleware } from './runtime/request-context.middleware.js';
 import { RequestContextService } from './runtime/request-context.service.js';
 
@@ -38,92 +30,73 @@ import { RequestContextService } from './runtime/request-context.service.js';
  *   / local-agent and team-monolith profiles share this exact module
  *   graph. Profile differences happen at capability / provider wiring
  *   / route surface gating, never at the bounded-context module layer.
- * - Default registrations use `backend-core/testing` stub ports so the
- *   app still boots when no host-specific provider wiring has run. A
- *   real deployment replaces individual stub providers through the
- *   `forDeps` / `forTesting` dynamic-module seams on each bounded
- *   context module — the last registration for a token wins.
- *   TODO(Phase 4 cutover): replace stub providers with host-local owned
- *   real wiring via each module's forDeps() seam.
- * - `packages/server` and legacy Fastify host paths stay as the
- *   compatibility shell / rollback surface; they do not appear in this
+ * - Default registrations are host-local owned real wiring backed by the
+ *   authoritative server config, store, repos, audit, retrieval, and async
+ *   transport seams. No `backend-core/testing` stub ports remain on the
+ *   default light mainline.
+ * - Legacy Fastify host paths have been removed; they do not appear in this
  *   module graph.
  */
+const hostLocalRuntime = await createHostLocalRuntime();
 
-const auditLog = createStubAuditLog();
-const knowledgeRepo = createStubKnowledgeRepository();
-const candidateRepo = createStubCandidateRepository();
-const feedbackRepo = createStubFeedbackRepository();
-const sessionRepo = createStubSessionRepository();
-const accessKeyRepo = createStubAccessKeyRepository();
-const teamRepo = createStubTeamRepository();
-const membershipRepo = createStubMembershipRepository();
-const userRepo = createStubUserRepository();
+const identityAccessModule = IdentityAccessModule.forDeps(
+  createIdentityAccessDeps({
+    sessionRepo: hostLocalRuntime.services.repos.session,
+    accessKeyRepo: hostLocalRuntime.services.repos.accessKey,
+    teamRepo: hostLocalRuntime.services.repos.team,
+    membershipRepo: hostLocalRuntime.services.repos.membership,
+    userRepo: hostLocalRuntime.services.repos.user,
+    sessionLookup: hostLocalRuntime.sessionLookup,
+    teamLookup: hostLocalRuntime.teamLookup,
+    permissionCheck: hostLocalRuntime.permissionCheck,
+    auditLog: hostLocalRuntime.auditLog,
+  }),
+);
 
-const identityAccessStub = IdentityAccessModule.forDeps({
-  sessionRepo,
-  accessKeyRepo,
-  teamRepo,
-  membershipRepo,
-  userRepo,
-  sessionLookup: createStubSessionLookup(),
-  teamLookup: createStubTeamLookup(),
-  permissionCheck: createStubPermissionCheck(),
-  auditLog,
-});
-
-const knowledgeReadStub = KnowledgeReadModule.forDeps({
-  knowledgeRepo: {
-    getById: knowledgeRepo.getById.bind(knowledgeRepo),
-    listByFilter: knowledgeRepo.listByFilter.bind(knowledgeRepo),
-  },
-  retrievalQuery: {
-    async search() {
-      return { results: [] };
+const knowledgeReadModule = KnowledgeReadModule.forDeps(
+  createKnowledgeReadDeps({
+    knowledgeRepo: {
+      getById: hostLocalRuntime.services.repos.knowledge.getById.bind(
+        hostLocalRuntime.services.repos.knowledge,
+      ),
+      listByFilter: hostLocalRuntime.services.repos.knowledge.listByFilter.bind(
+        hostLocalRuntime.services.repos.knowledge,
+      ),
     },
-  },
-});
+    retrievalQuery: hostLocalRuntime.retrievalQuery,
+  }),
+);
 
-const knowledgeWriteStub = KnowledgeWriteModule.forDeps({
-  knowledgeRepo,
-  auditLog,
-});
+const knowledgeWriteModule = KnowledgeWriteModule.forDeps(
+  createKnowledgeWriteDeps({
+    knowledgeRepo: hostLocalRuntime.services.repos.knowledge,
+    auditLog: hostLocalRuntime.auditLog,
+  }),
+);
 
-const governanceReviewStub = GovernanceReviewModule.forDeps({
-  knowledgeWrite: {
-    approveReviewDecision: async () => ({
-      entryId: '',
-      lifecycleState: 'approved',
-    }),
-    rejectReviewDecision: async () => ({
-      entryId: '',
-      lifecycleState: 'rejected',
-    }),
-    applyMaintenanceDecision: async () => ({ entryId: '', action: '' }),
-    applyDecayDecision: async () => ({ entryId: '', action: '' }),
-  },
-  feedbackRepo,
-  auditLog,
-});
+const governanceReviewModule = GovernanceReviewModule.forDeps(
+  createGovernanceReviewDeps({
+    knowledgeWrite: knowledgeWriteModule.providers[0].useValue,
+    feedbackRepo: hostLocalRuntime.services.repos.feedback,
+    auditLog: hostLocalRuntime.auditLog,
+  }),
+);
 
-const candidateIngestionStub = CandidateIngestionModule.forDeps({
-  candidateRepo,
-  auditLog,
-  knowledgeWrite: {
-    publishCandidateResult: async () => ({ candidateId: '' }),
-  },
-  jobRuntime: {
-    schedule: async () => `job_${Date.now()}`,
-  },
-});
+const jobRuntimeModule = JobRuntimeModule.forDeps(
+  createJobRuntimeDeps({
+    queuePorts: hostLocalRuntime.queuePorts,
+    auditLog: hostLocalRuntime.auditLog,
+  }),
+);
 
-const jobRuntimeStub = JobRuntimeModule.forDeps({
-  queuePorts: {
-    task: createStubTaskQueue(),
-    outbox: createStubOutbox(),
-  },
-  auditLog,
-});
+const candidateIngestionModule = CandidateIngestionModule.forDeps(
+  createCandidateIngestionDeps({
+    candidateRepo: hostLocalRuntime.services.repos.candidate,
+    auditLog: hostLocalRuntime.auditLog,
+    knowledgeWrite: knowledgeWriteModule.providers[0].useValue,
+    jobRuntime: jobRuntimeModule.providers[0].useValue,
+  }),
+);
 
 @Module({
   imports: [
@@ -131,16 +104,20 @@ const jobRuntimeStub = JobRuntimeModule.forDeps({
       isGlobal: true,
       load: [loadServerConfigBridge],
     }),
-    identityAccessStub,
-    knowledgeReadStub,
-    knowledgeWriteStub,
-    governanceReviewStub,
-    candidateIngestionStub,
-    jobRuntimeStub,
+    identityAccessModule,
+    knowledgeReadModule,
+    knowledgeWriteModule,
+    governanceReviewModule,
+    candidateIngestionModule,
+    jobRuntimeModule,
     GatewayModule,
   ],
   providers: [
     RequestContextService,
+    {
+      provide: HOST_LOCAL_RUNTIME_TOKEN,
+      useValue: hostLocalRuntime,
+    },
     {
       provide: SERVER_CONFIG_TOKEN,
       useFactory: () => loadServerConfigBridge().serverConfig,

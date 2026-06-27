@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 状态：`执行入口已切换`
+- 状态：`进行中`
 - 日期：`2026-06-27`
 - 本文件角色：根级执行计划索引，只保留目标、总体要求、阶段勾选和细则入口
 - 当前活跃细则：[`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md)
@@ -25,7 +25,7 @@
 
 ## 当前关键路径
 
-- 当前主线阶段：`Phase 0 术语与映射冻结`
+- 当前主线阶段：`Phase 2 与 Phase 4 进行中`
 - 当前先做：
   - [x] 冻结 `light` / `heavy` 的正式命名和与现有 profile 的映射关系
   - [x] 明确哪些差异属于 host / connector / deployment，哪些仍是统一业务实现
@@ -42,7 +42,7 @@
 - [x] 明确仍以现有 capability/profile truth source 为准，不制造第二套事实源
 - 细则：[`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md)
 
-### Phase 1 后端构建目标收敛 [待开始]
+### Phase 1 后端构建目标收敛 [进行中]
 
 - [ ] 冻结 `light` 与 `heavy` 的正式边界、共享实现面和宿主差异面
 - [ ] 明确是否需要新的 build/startup 入口或脚本别名
@@ -50,7 +50,7 @@
 - [ ] 回写 package/host/deployment 叙事，避免多套描述并存
 - 细则：[`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md)
 
-### Phase 2 connector、装配与兼容壳清理 [待开始]
+### Phase 2 connector、装配与兼容壳清理 [进行中]
 
 - [ ] 收敛轻重路径的 connector / invocation / transport glue
 - [ ] 保留本地 connector 与远端 connector 两套 adapter，但统一依赖同一组 port
@@ -59,14 +59,14 @@
 - [ ] 将 `@trapmap/server` 中仍被默认轻宿主依赖的真实职责迁到明确宿主或共享 seam，再删除残余 compatibility route
 - 细则：[`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md)
 
-### Phase 3 客户端后端形态配置项 [待开始]
+### Phase 3 客户端后端形态配置项 [已完成]
 
-- [ ] 在客户端状态中新增后端形态配置项
-- [ ] 明确它对 CLI / client-core / web-panel 的影响边界
-- [ ] 补齐配置兼容迁移、文档和最小测试
+- [x] 在客户端状态中新增后端形态配置项
+- [x] 明确它对 CLI / client-core / web-panel 的影响边界
+- [x] 补齐配置兼容迁移、文档和最小测试
 - 细则：[`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md)
 
-### Phase 4 closeout 与守卫 [待开始]
+### Phase 4 closeout 与守卫 [进行中]
 
 - [ ] 冻结最终术语、入口文档和 truth source
 - [ ] 必要时补 docs drift / smoke 守卫，避免旧叙事回流

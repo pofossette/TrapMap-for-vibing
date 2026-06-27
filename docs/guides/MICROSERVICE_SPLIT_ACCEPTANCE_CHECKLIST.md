@@ -20,7 +20,7 @@
 
 ## 前置事实
 
-- `packages/server` 是部分 compatibility shell：maintenance batch、decay batch 已降级为 compatibility-only，但 candidate apply-resolution、knowledge review 仍在默认 Fastify 入口保留 legacy 写路径
+- `packages/server` 是部分 compatibility shell：maintenance batch、decay batch 已降级为 compatibility-only；candidate apply-resolution、knowledge review 也已从默认 light 主线退役，在显式 compat/rollback 入口上只保留 retired compatibility 响应
 - distributed authoritative write path 已迁移到 `packages/host-distributed`
 - 第一阶段仍共享 PostgreSQL；本清单不要求数据库按服务拆分
 
@@ -36,7 +36,7 @@
 必须满足：
 
 - `packages/server` 的 maintenance/decay 最终写路由统一返回 `501 capability_unsupported`
-- candidate apply-resolution 与 knowledge review 若仍保留，则必须被显式记录为默认 Fastify 入口的迁移窗口例外
+- candidate apply-resolution 与 knowledge review 若仍保留 compat 路由，则必须被显式记录为 retired rollback-only surface，不能再写成默认入口例外
 - `packages/server` 仍保留 retrieval、status/readiness、必要读侧与迁移兼容面
 - truth docs 明确写出 server 是 compatibility shell，而不是主写面
 
@@ -59,7 +59,7 @@ rtk pnpm check:structure
 
 - 所有命令退出码为 `0`
 - maintenance/decay 写路由测试断言的是 `501 capability_unsupported`
-- 若 candidate/review 路由仍保留成功编排，相关文档和计划不得把它们写成已退役
+- 若 candidate/review compat 路由仍保留，相关文档和计划必须把它们写成 retired rollback-only surface，而不是成功编排主路径
 - 文档不再声称 `packages/server` 仍是这些链路的 authoritative write surface
 
 ## Gate 2: Distributed authoritative write path 真实闭环

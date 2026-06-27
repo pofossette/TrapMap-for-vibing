@@ -1,10 +1,9 @@
 /**
  * @trapmap/host-local
  *
- * Light-weight local host assembly for TrapMap.
+ * Default Nest-based light host entry for TrapMap.
  *
- * This is the main entry point. The `start()` function boots the HTTP server
- * using configuration from environment variables or the provided options.
+ * This is the default and only supported `light` host entry.
  *
  * Usage:
  *   import { start } from '@trapmap/host-local';
@@ -12,36 +11,19 @@
  *   // handle.close() to shut down
  */
 
-import { type BootstrapOptions, type BootstrapResult, bootstrap } from './bootstrap/index.js';
-import { loadHostConfig } from './config/index.js';
+import { type NestBootstrapOptions, type NestBootstrapResult, bootstrapNest } from './nest/main.js';
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
-export type { BootstrapOptions, BootstrapResult } from './bootstrap/index.js';
-export type { HostConfig } from './config/index.js';
+export type { NestBootstrapOptions, NestBootstrapResult } from './nest/main.js';
 
 /**
- * Start the light host server.
- *
- * Loads configuration from environment variables if not overridden
- * by the provided options.
+ * Start the default Nest light host.
  */
-export async function start(overrides: Partial<BootstrapOptions> = {}): Promise<BootstrapResult> {
-  const config = loadHostConfig();
-
-  const options: BootstrapOptions = {
-    deploymentProfile: overrides.deploymentProfile ?? config.deploymentProfile,
-    deploymentPreset: overrides.deploymentPreset ?? config.deploymentPreset,
-    runtimeMode: overrides.runtimeMode ?? config.runtimeMode,
-    port: overrides.port ?? config.port,
-    host: overrides.host ?? config.host,
-    logLevel: overrides.logLevel ?? config.logLevel,
-    ...overrides,
-  };
-
-  return bootstrap(options);
+export async function start(options: NestBootstrapOptions = {}): Promise<NestBootstrapResult> {
+  return bootstrapNest(options);
 }
 
 // ---------------------------------------------------------------------------
@@ -50,7 +32,7 @@ export async function start(overrides: Partial<BootstrapOptions> = {}): Promise<
 
 /**
  * When run directly via `tsx src/index.ts` or `node dist/index.ts`,
- * start the server with default configuration.
+ * start the Nest light host with default configuration.
  */
 const isDirectExecution =
   process.argv[1] &&

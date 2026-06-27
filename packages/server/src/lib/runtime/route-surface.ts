@@ -35,7 +35,6 @@ const coreGatewayApiRoutes = [
   'POST /v1/candidates',
   'GET /v1/candidates',
   'GET /v1/candidates/:candidateId',
-  'POST /v1/candidates/:candidateId/apply-resolution',
   'GET /v1/duplicates',
   'GET /v1/duplicates/:candidateId',
   'POST /v1/traps',
@@ -48,8 +47,6 @@ const coreGatewayApiRoutes = [
   'GET /v1/knowledge/:entryId',
   'POST /v1/knowledge/:entryId/resubmit',
   'PATCH /v1/knowledge/:entryId',
-  'GET /v1/knowledge/review-queue',
-  'POST /v1/knowledge/review',
 ] as const;
 
 const governanceGatewayRoutes = [
@@ -66,7 +63,6 @@ const governanceGatewayRoutes = [
   'GET /v1/operations/artifacts/:artifactId/history',
   'GET /v1/operations/artifacts/review-queue',
   'POST /v1/operations/artifacts/:artifactId/review',
-  'POST /v1/candidates/:candidateId/manual-result',
   'POST /v1/feedback',
   'GET /v1/operations/feedback',
   'POST /v1/operations/feedback/batch',

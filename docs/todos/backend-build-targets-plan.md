@@ -98,8 +98,8 @@
 
 | 对象 | 冻结归类 | 说明 |
 |---|---|---|
-| `packages/server` | `compatibility shell` | 供 `host-local` Fastify rollback path 使用的 Fastify 兼容壳 |
-| `packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**` | `rollback path` | 旧 Fastify 轻宿主路径，迁移窗口内仅保留回退职责 |
+| `packages/server` | `compatibility shell` | 非默认 Fastify 兼容壳与 shared runtime/status seam |
+| `packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**` | `retired implementation` | 旧 Fastify 轻宿主路径，已删除 |
 | `packages/backend-core/src/modules/*.ts` | `compatibility facade` | 只保留 re-export/import-path 兼容面 |
 | `packages/host-local/src/nest/**` | `real host implementation` | `light` 默认主入口终局 |
 | `packages/host-distributed` | `real host implementation` | `heavy` 的真实重宿主实现，成熟度冻结为 `Level 2 / transitional-microservice` |
@@ -109,15 +109,15 @@
 
 统一描述句：
 
-`packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell：在迁移窗口内仅保留 legacy route compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责。`
+`packages/server` 是非默认 Fastify compatibility shell：只保留 legacy compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责，也不再提供本地宿主 rollback 入口。`
 
 | 当前职责类别 | 冻结归属 | 处理结论 |
 |---|---|---|
 | shared runtime/status seam：runtime deployment 解析、runtime metadata、status/readiness payload helper、request/trace context glue | 共享 seam 保留 | 长期可继续存在，但应迁到共享 seam 或宿主内明确模块，不继续以 `packages/server` 的“默认宿主”名义存在 |
 | Fastify app 聚合、默认启动入口、host-local config bridge、gateway route registration、in-process adapter 选择 | 迁到 `host-local` 或共享 seam 后删除 | 这些是宿主 owner 职责，不属于长期共享壳层 |
-| maintenance/decay legacy 写入口、candidate apply-resolution legacy 写入口、knowledge review legacy 写入口、只为旧链路保留的 route pack | compatibility-only，优先删除 | maintenance/decay 已降级为 `501 capability_unsupported`；candidate apply-resolution 与 knowledge review 在默认 light 切到 Nest 后删除 |
+| maintenance/decay legacy 写入口、candidate apply-resolution legacy 写入口、knowledge review legacy 写入口、只为旧链路保留的 route pack | compatibility-only，优先删除 | 已删除 |
 
-### D. `light` 默认主入口终局与 rollback 关闭条件
+### D. `light` 默认主入口终局与旧宿主关闭条件
 
 终局选择：
 
@@ -129,12 +129,12 @@
 - `packages/host-local/src/nest/**` 已被确认不是 compatibility shell，而是 owner 清晰的真实宿主实现。
 - 这能把 `packages/server` 的身份稳定收缩为“兼容壳 + shared runtime/status seam”，关闭默认入口双轨叙事。
 
-Fastify rollback path 关闭条件：
+旧 Fastify 轻宿主关闭条件：
 
 - `local-agent` 与 `team-monolith` 的默认启动脚本切到 `packages/host-local/src/nest/**`。
 - candidate apply-resolution 与 knowledge review 不再经过 `packages/server` legacy 写入口。
 - `rtk pnpm test:deployment-smoke` 与 `@trapmap/host-local` 最小测试覆盖 Nest 默认路径。
-- `README.md`、`docs/README.md`、`docs/PACKAGES.md`、`docs/reference/SYSTEM_TRUTH_SOURCES.md`、`docs/reference/REPO_STRUCTURE.md` 不再把 Fastify 路径描述为默认主入口。
+- `README.md`、`docs/README.md`、`docs/PACKAGES.md`、`docs/reference/SYSTEM_TRUTH_SOURCES.md`、`docs/reference/REPO_STRUCTURE.md` 不再把 Fastify 路径描述为默认主入口或可用 rollback 入口。
 
 ### E. 客户端后端形态配置项定义
 
@@ -512,7 +512,7 @@ Fastify rollback path 关闭条件：
 
 - [ ] `packages/server` 的 `buildServer()` 聚合入口
 - [ ] `packages/server` 中仍被 `packages/host-local/src/bootstrap/server.ts` 依赖的 config / runtime / status / route registration
-- [ ] `packages/server` 中 candidate apply-resolution 与 knowledge review 的 legacy authoritative write 入口
+- [x] `packages/server` 中 candidate apply-resolution 与 knowledge review 的 legacy authoritative write 入口已从默认主线退役
 
 阻力：
 
@@ -525,7 +525,7 @@ Fastify rollback path 关闭条件：
 - [ ] `buildServer()` 的宿主职责必须下沉到 `packages/host-local`
 - [ ] route registration 若仍需共享，只能保留为明确的 host-owned composition helper，不能继续是“server 包兜底”
 - [ ] `runtime deployment` 解析若被 `light` 与 `heavy` 共用，应抽成共享 seam；若只服务 `light`，应回归 `host-local`
-- [ ] candidate apply-resolution / knowledge review 必须先有等价的新默认路径，再删除旧 Fastify authoritative write 入口
+- [x] candidate apply-resolution / knowledge review 已有等价的新默认路径；旧 Fastify authoritative write 入口已退役为 rollback-only compat surface
 
 ### C. 不应再叫“兼容壳”、而应视为真实实现保留的层
 
@@ -567,8 +567,8 @@ Fastify rollback path 关闭条件：
 
 ### Track C. 替换 legacy authoritative write 路径
 
-- [ ] 为 candidate apply-resolution 建立明确的新 host-owned 或 service-owned 默认写路径
-- [ ] 为 knowledge review 建立明确的新 host-owned 或 service-owned 默认写路径
+- [x] 为 candidate apply-resolution 建立明确的新 host-owned 或 service-owned 默认写路径
+- [x] 为 knowledge review 建立明确的新 host-owned 或 service-owned 默认写路径
 - [ ] 切换 CLI / tests / docs / closeout 入口后，删除旧 Fastify authoritative write 路径
 
 完成标志：
@@ -644,7 +644,7 @@ Fastify rollback path 关闭条件：
 - [x] 优先删除 `packages/backend-core/src/modules/*.ts` 这类纯 facade 兼容层
 - [x] 删除已经只剩 compatibility 提示语义的 route / helper / shadow schema
 - [ ] 将 `packages/server` 中仍属真实职责的 config / runtime / status / route wiring 迁到明确宿主或共享 seam
-- [ ] 在默认轻宿主不再依赖后，删除 `packages/server` 中 candidate apply-resolution / knowledge review legacy authoritative write 入口
+- [x] 在默认轻宿主不再依赖后，`packages/server` 中 candidate apply-resolution / knowledge review legacy authoritative write 入口已退役为 rollback-only compat surface
 - [ ] 若 `host-local` 选择 Nest default，明确 Fastify 只保留 rollback window 的关闭日期或触发条件
 - [ ] 若 `host-local` 不切 Nest default，明确为什么“host-local owned Fastify”属于成熟实现而非继续保留兼容壳
 
@@ -822,7 +822,7 @@ Fastify rollback path 关闭条件：
 - [ ] 再把 health / readiness / route mounting owner 定到 `host-local`
 - [ ] 最后移除 `host-local` 对 `buildServer()` 顶层聚合的依赖
 
-> **调查结论**：`config.ts` 暂留 `packages/server`，暂不迁移。`buildServer()` 应逐步拆解为可组合模块后迁入 `host-local`。
+> **当前状态**：默认 `light` 入口与根开发脚本已切到 `packages/host-local/src/nest/**`；`config.ts` 暂留 `packages/server`，旧 Fastify 轻宿主路径已删除。`buildServer()` 的剩余价值后续继续拆到明确 owner。
 
 最小测试：
 

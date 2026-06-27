@@ -33,7 +33,7 @@ packages/
 - Phase 2 `backend-core`: done. Runtime capability model, ports, invocation seams, and bounded-context modules exist in `@trapmap/backend-core`.
 - Phase 3 `host-local`: done. Root `pnpm dev:local-agent` and `pnpm dev:team-monolith` now target `@trapmap/host-local`.
 - Phase 4 `host-distributed`: done. Root distributed dev scripts now target `@trapmap/host-distributed`.
-- Phase 5 legacy收口: partial. `packages/server` still exists as a compatibility shell and verification surface. In distributed mode, candidate/review/maintenance/decay authoritative writes have moved to `@trapmap/host-distributed`; in the current default `local-agent` / `team-monolith` Fastify entrypoint, candidate/review legacy write paths still remain open.
+- Phase 5 legacy收口: partial. `packages/server` still exists as a compatibility shell and verification surface. In distributed mode, candidate/review/maintenance/decay authoritative writes have moved to `@trapmap/host-distributed`; on the `light` side, default `@trapmap/host-local` Nest mainline now owns candidate/review writes, while the explicit rollback path keeps only retired compatibility behavior plus runtime/status seam.
 - Phase 6 physical split execution: in progress. `@trapmap/service-knowledge-write` is the first real `service-*` package, `@trapmap/service-governance-review` is the second, `@trapmap/service-candidate-ingestion` is the third, `@trapmap/service-identity-access` is the fourth, and `@trapmap/service-job-runtime` is the fifth; `@trapmap/host-distributed` consumes all five as thin host adapters, and `packages/server` no longer holds the authoritative `knowledge-write`, `governance-review`, `candidate-ingestion`, `identity-access`, or `job-runtime` assembly facts.
 
 ## Current Official Entrypoints
@@ -50,7 +50,8 @@ pnpm dev:distributed:outbox-worker
 pnpm dev:cli
 ```
 
-Compatibility scripts such as `pnpm dev:server*` still exist, but they are no longer the primary migration target.
+Compatibility scripts such as `pnpm dev:server:compat*` still exist, but they are no longer the primary migration target.
+The explicit `local-agent` / `team-monolith` rollback path also still exists, but it is rollback-only and no longer the default light entry.
 
 ## Environment Compatibility
 
@@ -193,10 +194,10 @@ Run it against a live distributed gateway after `docker compose --profile distri
 If a migration issue blocks progress, fall back to compatibility entrypoints:
 
 ```bash
-pnpm dev:server
-pnpm dev:server:api
-pnpm dev:server:task-worker
-pnpm dev:server:outbox-worker
+pnpm dev:server:compat
+pnpm dev:server:compat:api
+pnpm dev:server:compat:task-worker
+pnpm dev:server:compat:outbox-worker
 ```
 
 That is a temporary escape hatch, not the target architecture.

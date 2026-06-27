@@ -14,9 +14,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx watch src/index.ts",
-    "dev:nest": "tsx watch src/nest/main.ts",
     "start": "node dist/index.js",
-    "start:nest": "node dist/nest/main.js",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -30,7 +28,6 @@
     "@trapmap/contracts": "workspace:*",
     "@trapmap/server": "workspace:*",
     "@trapmap/service-knowledge-read": "workspace:*",
-    "fastify": "^5.6.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },

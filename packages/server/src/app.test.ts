@@ -373,24 +373,10 @@ describe('app.ts live gaps — fm-agent raw report', () => {
       ],
     });
     expect(routes.json().documentedRoutes).toContain('POST /v1/feedback');
-    expect(routes.json().documentedRoutes).toContain('GET /v1/knowledge/review-queue');
-    expect(routes.json().documentedRoutes).toContain('POST /v1/knowledge/review');
     expect(routes.json().documentedRoutes).toContain('GET /v1/duplicates');
-    expect(routes.json().documentedRoutes).toContain(
-      'POST /v1/candidates/:candidateId/manual-result',
-    );
-    expect(routes.json().documentedRoutes).toContain(
-      'POST /v1/candidates/:candidateId/apply-resolution',
-    );
 
     const authResponse = await app.inject({ method: 'GET', url: '/v1/auth/session' });
     expect(authResponse.statusCode).not.toBe(501);
-
-    const compatibilityWrite = await app.inject({
-      method: 'POST',
-      url: '/v1/candidates/test/apply-resolution',
-    });
-    expect(compatibilityWrite.statusCode).toBe(401);
 
     const ready = await app.inject({ method: 'GET', url: '/ready' });
     expect(ready.statusCode).toBe(200);

@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
+import { Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 
 import type { KnowledgeReadPort } from '@trapmap/backend-core';
 
-import { GatewayModule } from './gateway/gateway.module.js';
+import { KnowledgeReadController } from './gateway/knowledge-read.controller.js';
 import { KnowledgeReadModule } from './knowledge-read/knowledge-read.module.js';
 import { AllExceptionFilter } from './runtime/exception.filter.js';
 import { RequestContextService } from './runtime/request-context.service.js';
@@ -44,8 +45,14 @@ function createMockPort(): KnowledgeReadPort {
 }
 
 async function createTestApp(mockPort: KnowledgeReadPort) {
+  @Module({
+    imports: [KnowledgeReadModule.forTesting(mockPort)],
+    controllers: [KnowledgeReadController],
+  })
+  class TestGatewayModule {}
+
   const moduleRef = await Test.createTestingModule({
-    imports: [KnowledgeReadModule.forTesting(mockPort), GatewayModule],
+    imports: [TestGatewayModule],
     providers: [RequestContextService],
   }).compile();
 

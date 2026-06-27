@@ -55,7 +55,7 @@ describe('buildRuntimeStatusSnapshot', () => {
         profile: 'local-agent',
         routeSurface: 'gateway-core',
         storagePosture: 'json-store-ok',
-        publicGatewayRouteCount: 56,
+        publicGatewayRouteCount: 52,
         internalRouteCount: 0,
       },
     });
@@ -460,7 +460,7 @@ describe('buildRuntimeStatusSnapshot', () => {
     expect(snapshot.dependencies.deployment).toMatchObject({
       profile: 'local-agent',
       routeSurface: 'gateway-core',
-      publicGatewayRouteCount: 56,
+      publicGatewayRouteCount: 52,
       internalRouteCount: 0,
     });
   });

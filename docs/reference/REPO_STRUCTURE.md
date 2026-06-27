@@ -20,19 +20,19 @@ Historical plans, temporary notes, audits, and human-authored reports must live 
 ## Product Packages
 
 - `packages/cli/`: Commander CLI and CLI tests.
-- `packages/server/`: `packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell：在迁移窗口内仅保留 legacy route compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责。
+- `packages/server/`: Fastify compatibility shell and shared runtime/status seam. It no longer serves as any default `light` host entry or local rollback host.
 - `packages/contracts/`: shared Zod schemas and TypeScript types.
 - `packages/skills/`: project-level Skill artifacts.
 - `packages/client-core/`: Browser-compatible shared gateway transport layer (HTTP SDK, session contract, error model). Used by CLI and future web panel.
 - `packages/web-panel/`: Browser-based administrator operations panel. It remains a gateway-only client surface.
-- `packages/backend-core/`: Host-agnostic backend core kernel (runtime capability model, port interfaces, use-case patterns, bounded-context modules, invocation model). Phase 2 keeps it framework-free and reorganizes each bounded context into internal `domain/application/module` seams under `src/identity-access/`, `src/knowledge-read/`, `src/knowledge-write/`, `src/candidate-ingestion/`, `src/governance-review/`, `src/job-runtime/`; `src/modules/*.ts` remains only as a compatibility re-export facade during the migration window. Used by all hosts.
+- `packages/backend-core/`: Host-agnostic backend core kernel (runtime capability model, port interfaces, use-case patterns, bounded-context modules, invocation model). Phase 2 keeps it framework-free and reorganizes each bounded context into internal `domain/application/module` seams under `src/identity-access/`, `src/knowledge-read/`, `src/knowledge-write/`, `src/candidate-ingestion/`, `src/governance-review/`, `src/job-runtime/`; the old `src/modules/*.ts` compatibility facade has been removed, and consumers use the package root or context entrypoints. Used by all hosts.
 - `packages/service-identity-access/`: Owns identity-access service assembly, internal route registration, and bounded-context auth/session/team/member/access-key wiring.
 - `packages/service-knowledge-read/`: Knowledge-read service assembly. Owns retrieval, read-model, and projection-status route wiring.
 - `packages/service-knowledge-write/`: Owns knowledge-write service assembly, internal route registration, and bounded-context write wiring for knowledge/trap/skill/lifecycle/maintenance/decay.
 - `packages/service-governance-review/`: Owns governance-review service assembly, internal route registration, and bounded-context review/feedback wiring while delegating lifecycle mutations to knowledge-write.
 - `packages/service-candidate-ingestion/`: Owns candidate-ingestion service assembly, internal route registration, and bounded-context candidate wiring while delegating result publication to knowledge-write.
 - `packages/service-job-runtime/`: Owns job-runtime service assembly, internal route registration, queue/runtime deps wiring, and runtime server bootstrap surface.
-- `packages/host-local/`: Light host assembly for `local-agent` and `team-monolith`. The frozen default light mainline is `src/nest/**`; the old Fastify path under `src/bootstrap/**`, `src/http/**`, and `src/runtime/**` is rollback-only during the migration window. ⚠ Current `package.json` `main`/`dev`/`start` still default to `src/index.ts` (Fastify rollback path); Nest entry requires explicit `dev:nest`/`start:nest` — known drift until Phase 4 cutover.
+- `packages/host-local/`: Light host assembly for `local-agent` and `team-monolith`. The frozen default light mainline is `src/nest/**`, exposed through the package default entry (`src/index.ts`) and default `dev` / `start` scripts.
 - `packages/host-distributed/`: Heavy host assembly for the `distributed` profile. It is the real heavy-host implementation, consumes the same backend-core/service-package main implementation as `light`, and its maturity baseline remains `Level 2 / transitional-microservice`.
 
 ## Documentation

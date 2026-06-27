@@ -4,7 +4,7 @@
 
 ## 系统架构
 
-> 当前正式运行入口已经迁移到 `packages/host-local` 与 `packages/host-distributed`。本页中保留 `packages/server` 结构说明，是因为它仍承担 retrieval/status/readiness 与旧路由兼容壳职责。distributed 写链路已经在 `packages/host-distributed` 落地，但 `local-agent` / `team-monolith` 默认 Fastify 入口仍保留 candidate apply-resolution 与 knowledge review 的 legacy 写路径。
+> 当前正式运行入口已经迁移到 `packages/host-local` 与 `packages/host-distributed`。本页中保留 `packages/server` 结构说明，是因为它仍承担 retrieval/status/readiness 与旧路由兼容壳职责。distributed 写链路已经在 `packages/host-distributed` 落地，而 `local-agent` / `team-monolith` 默认 light 主线也已由 `packages/host-local/src/nest/**` 接管 candidate apply-resolution 与 knowledge review，旧 Fastify 写路由已删除。
 
 Phase 0 目标架构冻结补充事实：
 
@@ -16,7 +16,7 @@ Phase 0 目标架构冻结补充事实：
 
 Phase 1 边界收敛补充事实：
 
-- `packages/server` 当前是 compatibility shell 与 runtime/status surface。它仍是 partial compatibility shell：maintenance/decay 写路径已降级为 compatibility-only；candidate/review -> knowledge write path 仍在默认 Fastify 入口保留迁移窗口例外。
+- `packages/server` 当前是 compatibility shell 与 runtime/status surface。它仍是 partial compatibility shell：maintenance/decay 写路径已降级为 compatibility-only；candidate/review legacy 写路径已经删除。
 - `packages/backend-core` 当前承载 command/use-case/port 模式与内核契约，是后续收敛目标，不是允许与 `packages/server` 平行增长的第二主实现面。
 - `packages/host-local` 与 `packages/host-distributed` 当前承载宿主装配、HTTP/worker transport 和 concrete port wiring；它们消费 `backend-core` 契约，不重新定义业务真相。
 - `packages/host-distributed` 当前承载 distributed 形态下的 authoritative candidate resolution、review decision、maintenance batch 与 decay batch 写编排。
@@ -28,14 +28,14 @@ Phase 1 Nest 宿主试点补充事实：
 - Nest controller 不重写业务逻辑，只注入 `backend-core` Port 或 service-assembly factory。
 - 异常映射统一为 canonical envelope：`code`、`message`、`kind`、`requestId`、`traceId?`、`details?`；兼容窗口内保留 `error` 作为 `message` 别名。
 - `401` 停留在 guard 层，不扩写进 `InvocationErrorKind`。
-- Nest 宿主当前仍是 opt-in，通过 `pnpm --filter @trapmap/host-local dev:nest` 启动，不直接替换默认 Fastify 入口，直到 Phase 2 切换完成。
+- Nest 宿主现已是默认 `light` 主线，通过 `pnpm dev:local-agent`、`pnpm dev:team-monolith` 或 `pnpm --filter @trapmap/host-local dev` 启动；旧 Fastify 入口已删除。
 
 Phase 2 modular-monolith cutover 补充事实：
 
 - 六个 bounded context 固定为 `identity-access`、`knowledge-read`、`knowledge-write`、`governance-review`、`candidate-ingestion`、`job-runtime`；`gateway` 继续只是宿主拥有的 transport shell。
 - `backend-core` 已经按这六个 context 落地 `src/<context>/{domain,application,module.ts,index.ts}`；`src/modules/*.ts` 在迁移窗口内退化为对 `<context>/index.ts` 的 compatibility re-export。`backend-core` 必须继续承担 framework-free 的 `ports`、`invocation`、`runtime capability/topology`、testing utilities，以及各 context 的 `domain/application/module` factory；Nest/Fastify/PG/MQ concrete 细节不得进入这里。
 - `embedded/local-agent` 与 `team-monolith` 在 Phase 2 以后共用同一个 `packages/host-local/src/nest/app.module.ts` 和同一套 bounded-context module graph；profile 差异只允许出现在 capability、provider wiring 和 route surface gating。当前六个 bounded-context Nest module 已经全部在 `app.module.ts` 注册。
-- 旧 `packages/server` 与 `packages/host-local` Fastify 路径只保留 compatibility shell、rollback path、runtime/status；`packages/host-distributed` 保留为 distributed 的部署展开层，但不拥有第二套业务真相。
+- `packages/server` 只保留 compatibility shell 与 runtime/status；`packages/host-distributed` 保留为 distributed 的部署展开层，但不拥有第二套业务真相。
 - `packages/service-*` 包继续保留，但只作为 distributed internal transport / process entry thin assembly；业务 owner 仍以 `backend-core` module 和本文档定义的边界为准。
 
 Phase 2 异步 contract 补充事实：

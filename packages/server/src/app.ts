@@ -51,7 +51,6 @@ import { maintenanceRoutes } from './routes/maintenance.js';
 import { memberRoutes } from './routes/members.js';
 import { operationsRoutes } from './routes/operations.js';
 import { retrievalRoutes } from './routes/retrieval.js';
-import { reviewRoutes } from './routes/review.js';
 import { teamRoutes } from './routes/teams.js';
 import { trapRoutes } from './routes/traps.js';
 
@@ -79,7 +78,6 @@ async function registerCapabilityRoutes(app: FastifyInstance, config: ServerConf
   await app.register(teamRoutes);
   await app.register(memberRoutes);
   await app.register(accessKeyRoutes);
-  await app.register(reviewRoutes);
   await app.register(trapRoutes);
   await app.register(knowledgeRoutes);
   await app.register(candidateRoutes);

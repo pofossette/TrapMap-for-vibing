@@ -1,10 +1,10 @@
 # @trapmap/host-local
 
-Light-host assembly for TrapMap's `local-agent` and `team-monolith` deployment profiles. The frozen default light mainline is `src/nest/**`; the old Fastify path remains rollback-only during the migration window.
+Light-host assembly for TrapMap's `local-agent` and `team-monolith` deployment profiles. The frozen default light mainline is `src/nest/**`.
 
 ## Purpose
 
-This package is the real `light` host implementation for single-machine TrapMap deployments. `src/nest/**` is the default light mainline; `src/bootstrap/**`, `src/http/**`, and `src/runtime/**` remain only as the Fastify rollback path and must not be described as the long-term default host.
+This package is the real `light` host implementation for single-machine TrapMap deployments. `src/nest/**` is the default and only host mainline.
 
 ## Deployment Profiles
 
@@ -17,15 +17,13 @@ This package is the real `light` host implementation for single-machine TrapMap 
 
 ### Programmatic (via `start()`)
 
-> ⚠ 下方 `start()` 示例对应的是 `src/index.ts` 导出的 Fastify rollback path，不是 Nest 正式入口。Nest 正式入口见 `dev:nest` / `start:nest` 脚本。Phase 4 cutover 后默认入口将统一切换到 Nest。
+下方 `start()` 示例对应默认 Nest 主线。
 
 ```typescript
 import { start } from '@trapmap/host-local';
 
 const handle = await start({
   port: 3000,
-  profile: 'local-agent',
-  // Provide port implementations ...
 });
 
 // handle.close() to shut down
@@ -43,7 +41,7 @@ const handle = await start({
 
 ## Architecture
 
-The host-local package owns `light` host assembly. The Nest path is the frozen default mainline. The legacy Fastify path delegates to `@trapmap/server` only for rollback compatibility and shared runtime/status seam; it is not the default host truth.
+The host-local package owns `light` host assembly. The Nest path is the frozen default mainline and the only supported local host entry.
 
 ```
 host-local (HTTP, middleware, lifecycle)
