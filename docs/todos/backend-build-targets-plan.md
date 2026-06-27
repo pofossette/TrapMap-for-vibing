@@ -486,9 +486,21 @@ Fastify rollback path 关闭条件：
 
 ### A. 可以直接纳入优先清理的壳层
 
-- [ ] `packages/backend-core/src/modules/*.ts` compatibility re-export facade
-- [ ] `packages/server` 中只返回 `501 capability_unsupported` 的 compatibility route
+- [x] `packages/backend-core/src/modules/*.ts` compatibility re-export facade
+- [x] `packages/server` 中只返回 `501 capability_unsupported` 的 compatibility route
 - [ ] 已无调用方的旧 transport 专用 helper、shadow DTO、shadow schema、重复 internal client 文档
+
+> **Wave 1 清理结论（Tasks 1–9）**：
+> - `compatibility-shell.ts` 已删除；501 响应已内联到 maintenance.ts 和 decay.ts，随后这些 handler 和对应 batch write 测试也一并删除（Tasks 1, 8）。
+> - `backend-core/src/modules/` facade 已删除（Task 2）。
+> - `operations/**` 路由经审计全部为真实功能，无 501 桩（Task 9）。
+
+> **调查结论**：
+> - **config.ts 归属**（Task 3）：`config.ts` 留在 `packages/server`，暂不迁移。
+> - **buildServer() 渐进拆分**（Task 4）：`buildServer()` 应拆解为可组合模块后逐步迁入 `host-local`。
+> - **host-local 健康/就绪**（Task 5）：`host-local` 已通过 `http/health.ts` 拥有 health/readiness 端点。
+> - **review.ts / candidates/resolution.ts 迁移**（Tasks 6–7）：两者可迁入现有 Nest modules/ports。
+> - **operations/**（Task 9）：零 501 桩，全部真实功能。
 
 判据：
 
@@ -531,8 +543,8 @@ Fastify rollback path 关闭条件：
 
 ### Track A. 先清纯壳与 facade
 
-- [ ] 删除 `packages/backend-core/src/modules/*.ts` compatibility re-export facade
-- [ ] 删除 `packages/server` 中 maintenance / decay 这类已退化为 `501` 的 compatibility route
+- [x] 删除 `packages/backend-core/src/modules/*.ts` compatibility re-export facade
+- [x] 删除 `packages/server` 中 maintenance / decay 这类已退化为 `501` 的 compatibility route
 - [ ] 删除已无调用方的 shadow DTO、shadow schema、legacy helper、重复 internal client 文档
 
 完成标志：
@@ -629,8 +641,8 @@ Fastify rollback path 关闭条件：
 - [ ] 保留“本地 connector”与“远端 connector”两套 adapter，但统一依赖同一组 port
 - [ ] 明确失败语义、超时、重试、幂等、trace/header 传播在哪一层负责，不允许藏进“万能 client”
 - [ ] 明确 gateway 只做外部入口，不成为 build target 切换时的业务分叉点
-- [ ] 优先删除 `packages/backend-core/src/modules/*.ts` 这类纯 facade 兼容层
-- [ ] 删除已经只剩 compatibility 提示语义的 route / helper / shadow schema
+- [x] 优先删除 `packages/backend-core/src/modules/*.ts` 这类纯 facade 兼容层
+- [x] 删除已经只剩 compatibility 提示语义的 route / helper / shadow schema
 - [ ] 将 `packages/server` 中仍属真实职责的 config / runtime / status / route wiring 迁到明确宿主或共享 seam
 - [ ] 在默认轻宿主不再依赖后，删除 `packages/server` 中 candidate apply-resolution / knowledge review legacy authoritative write 入口
 - [ ] 若 `host-local` 选择 Nest default，明确 Fastify 只保留 rollback window 的关闭日期或触发条件
@@ -727,7 +739,7 @@ Fastify rollback path 关闭条件：
 检查：
 
 - [x] `packages/backend-core/README.md` 已移除 `@trapmap/backend-core/modules` 示例导入
-- [ ] 不再有其他 README / 文档示例使用 `@trapmap/backend-core/modules`
+- [x] 不再有其他 README / 文档示例使用 `@trapmap/backend-core/modules`
 - [ ] 代码消费方全部走 `@trapmap/backend-core` 或 `@trapmap/backend-core/<context>`
 
 最小测试：
@@ -809,6 +821,8 @@ Fastify rollback path 关闭条件：
 - [ ] 先把 `runtime deployment` 解析 owner 定下来
 - [ ] 再把 health / readiness / route mounting owner 定到 `host-local`
 - [ ] 最后移除 `host-local` 对 `buildServer()` 顶层聚合的依赖
+
+> **调查结论**：`config.ts` 暂留 `packages/server`，暂不迁移。`buildServer()` 应逐步拆解为可组合模块后迁入 `host-local`。
 
 最小测试：
 
@@ -902,7 +916,9 @@ Fastify rollback path 关闭条件：
 
 前提：
 
-- [ ] 调用方、文档、operator flow 不再依赖这些 route
+- [x] 调用方、文档、operator flow 不再依赖这些 route
+
+> **清理结论**：`compatibility-shell.ts` 已删除；501 响应已内联后 handler 整体移除；batch write 测试已从 decay.test.ts 和 maintenance.test.ts 中删除。
 
 最小测试：
 

@@ -41,13 +41,6 @@ src/
     review-flows.ts     Review decision and queue orchestration
     retrieval-orchestration.ts  Retrieval search orchestration
     job-scheduling.ts   Async job scheduling patterns
-  modules/
-    identity-access.ts  Auth, session, permissions, team membership
-    knowledge-read.ts   Read-only knowledge and retrieval queries
-    knowledge-write.ts  Knowledge/trap creation, resubmit, supersede
-    candidate-ingestion.ts  Candidate submission and processing
-    governance-review.ts    Review decisions, governance queue, feedback, maintenance/decay orchestration
-    job-runtime.ts      Task queue and job scheduling
   invocation/
     invocation-model.ts  Sync/async invocation contracts and error taxonomy
     invocation-config.ts Internal service routing configuration
