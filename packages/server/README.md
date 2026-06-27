@@ -1,6 +1,6 @@
 # TrapMap Server
 
-`packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell：在迁移窗口内仅保留 legacy route compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责。
+`packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell + shared runtime/status seam + rollback path 过渡层：在迁移窗口内仅保留 legacy route compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责，也不是共享业务内核。
 
 ## 入口
 
@@ -60,6 +60,8 @@
 
 - runtime/bootstrap responsibility 留在 `infrastructure`，不要放进 `domain` 或 `application` 模块。
 - read-model assembly 留在读侧模块；写侧 application service 默认不负责拼装 retrieval/review/runtime projection，除非该耦合被刻意记录。
+
+> ⚠ 以上五层在 `packages/server` 内的存在是 rollback window 内的历史事实，不是长期业务归属。正式终局归属是 `packages/backend-core` + `packages/service-*`（shared implementation surface）+ `packages/host-local` / `packages/host-distributed`（host-specific surface）。
 
 ## 重上下文落点
 

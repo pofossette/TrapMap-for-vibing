@@ -43,6 +43,8 @@ import { RequestContextService } from './runtime/request-context.service.js';
  *   real deployment replaces individual stub providers through the
  *   `forDeps` / `forTesting` dynamic-module seams on each bounded
  *   context module — the last registration for a token wins.
+ *   TODO(Phase 4 cutover): replace stub providers with host-local owned
+ *   real wiring via each module's forDeps() seam.
  * - `packages/server` and legacy Fastify host paths stay as the
  *   compatibility shell / rollback surface; they do not appear in this
  *   module graph.

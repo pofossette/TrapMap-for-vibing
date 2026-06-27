@@ -17,6 +17,8 @@ This package is the real `light` host implementation for single-machine TrapMap 
 
 ### Programmatic (via `start()`)
 
+> ⚠ 下方 `start()` 示例对应的是 `src/index.ts` 导出的 Fastify rollback path，不是 Nest 正式入口。Nest 正式入口见 `dev:nest` / `start:nest` 脚本。Phase 4 cutover 后默认入口将统一切换到 Nest。
+
 ```typescript
 import { start } from '@trapmap/host-local';
 

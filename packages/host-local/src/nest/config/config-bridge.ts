@@ -4,6 +4,10 @@
  *
  * Phase 1 rule: packages/server/src/config.ts remains the single env schema
  * source of truth. This bridge only composes — it never re-declares schema.
+ *
+ * TODO(Phase 4 cutover): extract config loading into host-local owned config
+ * module; current dependency on @trapmap/server/config.js is a
+ * migration-window coupling.
  */
 
 import { loadConfig, type ServerConfig } from '@trapmap/server/config.js';

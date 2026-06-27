@@ -15,9 +15,9 @@
 | `packages/service-candidate-ingestion` | `src/index.ts` | candidate-ingestion service assembly 与候选处理路由 |
 | `packages/service-governance-review` | `src/index.ts` | governance-review service assembly 与治理/反馈路由 |
 | `packages/service-job-runtime` | `src/index.ts` | job-runtime service assembly、内部 route 与 runtime server |
-| `packages/host-local` | `src/index.ts` | `local-agent` / `team-monolith` 的 `light` 宿主装配；冻结默认主入口终局为 `src/nest/**` |
+| `packages/host-local` | `src/index.ts` | `local-agent` / `team-monolith` 的 `light` 宿主装配；冻结默认主入口终局为 `src/nest/**`。⚠ 当前 `package.json` 的 `main` / `dev` / `start` 仍指向 `src/index.ts`（Fastify rollback path），`dev:nest` / `start:nest` 才走 Nest 主线——这是 Phase 4 cutover 前的已知脚本漂移。 |
 | `packages/host-distributed` | `src/index.ts` | `distributed` 的 `heavy` 重宿主装配 |
-| `packages/server` | `src/index.ts` | `packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell：在迁移窗口内仅保留 legacy route compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责。 |
+| `packages/server` | `src/index.ts` | `packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell + shared runtime/status seam + rollback path 过渡层：在迁移窗口内仅保留 legacy route compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责，也不是共享业务内核。 |
 | `packages/contracts` | `src/index.ts` | 共享 Zod Schema 和 TypeScript 类型 |
 | `packages/web-panel` | `src/main.tsx` | 管理员浏览器运维面板，继续只面向 gateway surface |
 | `packages/skills` | `workflow-with-trapmap/SKILL.md` | 项目级 Skill 工作流与 CLI 使用指南 |
@@ -97,13 +97,15 @@ import { reviewDecisionRequestSchema } from '@trapmap/contracts';
 
 ## packages/server
 
-`packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell：在迁移窗口内仅保留 legacy route compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责。
+`packages/server` 是供 `host-local` Fastify rollback path 使用的 Fastify compatibility shell + shared runtime/status seam + rollback path 过渡层：在迁移窗口内仅保留 legacy route compatibility 与 shared runtime/status seam，不再承担默认 light 宿主职责，也不是共享业务内核。
 
 当前阅读该包时，默认按三类职责理解：
 
 - shared runtime/status seam：可迁到共享 seam 后长期保留。
 - host-owned Fastify 装配：迁到 `host-local` 后删除。
 - compatibility-only legacy route：在 rollback path 关闭后优先删除。
+
+> ⚠ 以上三层在 `packages/server` 内的存在是 rollback window 内的历史事实，不是长期业务归属。正式终局归属是 `backend-core` + `service-*` + `host-local` / `host-distributed`。
 
 ### Runtime 与部署词汇
 

@@ -11,6 +11,7 @@ Phase 0–3 已全部完成，当前进入 Phase 4 收尾：
 - 长期后端主线已冻结为 `Nest host + framework-free domain core + gradual service extraction`，Phases 1–3 已按此主线完成宿主、contract、模块化单体和服务拆分落地。
 - `light` / `heavy` 只表示后端构建目标：`local-agent`、`team-monolith` -> `light`，`distributed` -> `heavy`。
 - `light` 默认主入口终局冻结为 `packages/host-local/src/nest/**`；`packages/server` 与 `host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**` 只保留为 Fastify rollback path。
+- ⚠ **Nest cutover 尚未完成**：当前 `host-local/package.json` 的默认 `dev` / `start` 脚本仍走 `src/index.ts`（Fastify rollback path），Nest 正式入口需显式调用 `dev:nest` / `start:nest`。rollback window 未关闭。
 - `packages/host-local/src/nest/**` 继续承载 `Nest modular monolith` 主线。
 - 运行模型固定为 `embedded/local-agent`、`team-monolith`、`distributed` 三档；`host-local/src/nest/**` 持有单体 bounded-context module graph，`host-distributed` 是分布式部署展开层。
 - 六个 bounded context 已全部收口到 `backend-core/src/<context>/` 独立目录，`host-local/src/nest/app.module.ts` 注册六个 Nest module；`src/modules/*.ts` 仅为兼容 re-export facade。
@@ -20,7 +21,7 @@ Phase 4 数据、运维与退役收尾（进行中）：
 
 - 冻结仓库级 owner matrix、迁移窗口关闭标准和可退役 compatibility shell 清单。
 - 退役旧宿主与重复 transport/client，完成 truth source、测试矩阵、归档回写。
-- 当前主线还要求把默认轻宿主从“经由 `@trapmap/server` 的混合入口”替换为成熟且 owner 清晰的真实实现，避免 compatibility shell 长期滞留在主路径。
+- 当前主线还要求把默认轻宿主从”经由 `@trapmap/server` 的混合入口”替换为成熟且 owner 清晰的真实实现，避免 compatibility shell 长期滞留在主路径。
 - 详见 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
 
 ## 系统架构
@@ -80,8 +81,8 @@ flowchart TB
 |------|------|
 | 运行时 | Node.js 20+ (ESM) |
 | 语言 | TypeScript 5.x |
-| `light` 默认主入口终局 | NestJS（`packages/host-local/src/nest/**`） |
-| Fastify rollback path | `@trapmap/host-local` + `packages/server` |
+| `light` 默认主入口终局 | NestJS（`packages/host-local/src/nest/**`）；⚠ 当前默认脚本仍走 Fastify rollback path，见 `dev:nest` |
+| Fastify rollback path | `@trapmap/host-local`（`src/index.ts`）+ `packages/server` |
 | CLI | Commander.js 14.x |
 | 验证 | Zod 4.x |
 | AI 集成 | LangChain Core |

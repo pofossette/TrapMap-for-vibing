@@ -15,11 +15,14 @@ export interface NestBootstrapResult {
 /**
  * Bootstrap the Nest host with FastifyAdapter.
  *
- * Phase 1 rules:
+ * Frozen facts (Phase 2 boundary freeze):
  * - FastifyAdapter is the fixed HTTP底座
- * - Nest host is opt-in (separate start:nest / dev:nest scripts)
- * - Does NOT replace the existing Fastify bootstrap until Phase 2 cutover
- * - Only pilot surface (gateway + knowledge-read) is wired
+ * - Nest host is the frozen default light mainline (`src/nest/**`)
+ * - Current `package.json` default scripts still point to Fastify rollback
+ *   path (`src/index.ts`); `dev:nest` / `start:nest` are required to run
+ *   the Nest entry — this is a known script drift until Phase 4 cutover
+ * - AppModule registers all six bounded-context modules; default provider
+ *   wiring currently uses stubs (see app.module.ts)
  */
 export async function bootstrapNest(): Promise<NestBootstrapResult> {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {

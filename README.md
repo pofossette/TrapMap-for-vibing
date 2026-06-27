@@ -104,6 +104,7 @@ TrapMap 有两类典型使用方式：
 - 唯一长期后端主线已冻结并落地为 `Nest host + framework-free domain core + gradual service extraction`
 - `light` / `heavy` 只表示后端构建目标：`local-agent`、`team-monolith` -> `light`，`distributed` -> `heavy`
 - `light` 默认主入口终局冻结为 `packages/host-local/src/nest/**`；`packages/server` + `packages/host-local` 旧 Fastify 路径只保留为 rollback path
+- ⚠ **已知脚本漂移**：当前 `host-local/package.json` 的默认 `dev` / `start` 仍走 `src/index.ts`（Fastify rollback path）；Nest 正式入口需显式调用 `dev:nest` / `start:nest`。这是 Phase 4 cutover 前的过渡状态，不是第二套真相。
 - 运行模型固定为 `embedded/local-agent -> team-monolith -> distributed` 三档；`embedded` 是 `local-agent` 的产品语义，不新增第四种 profile
 - CLI 与 web-panel 继续只面向统一 gateway；HTTP / internal / event contract 分别统一收敛到 `packages/contracts`、`packages/backend-core` 和共享 async contract
 - 当前 `distributed` 定位已冻结为 `Level 2 / transitional-microservice`，第一批成熟服务样板 `knowledge-write + governance-review` 已完成 closeout
@@ -112,6 +113,7 @@ Phase 4 收尾（进行中）：
 
 - 冻结仓库级 owner matrix、迁移窗口关闭条件和可退役 compatibility shell 清单
 - 退役旧宿主与重复 transport/client，完成 truth source、测试矩阵与归档回写
+- Nest cutover 尚未完成：`host-local` 默认脚本仍走 Fastify rollback path，rollback window 未关闭
 
 ## 快速理解
 
@@ -157,6 +159,8 @@ pnpm dev:local-agent
 ```
 
 本地默认 gateway 监听 `http://127.0.0.1:4000`，其中 `local-agent` / `team-monolith` 映射到 `light` 并由 `@trapmap/host-local` 提供，`distributed` 映射到 `heavy` 并由 `@trapmap/host-distributed` 提供。
+
+> ⚠ 当前 `dev:local-agent` / `dev:team-monolith` 走的是 `host-local/src/index.ts`（Fastify rollback path），不是 Nest 正式入口。Nest 正式入口见下方 `dev:nest` / `start:nest`。这是 Phase 4 cutover 前的已知脚本漂移。
 
 三种正式开发入口：
 
