@@ -3,7 +3,6 @@
  *
  * Provides endpoints for the maintenance management interface (MAINT-02):
  * - GET /v1/operations/maintenance/entries: List entries with maintenance metadata filters
- * - POST /v1/operations/maintenance/batch: Batch operations (assign-owner/extend-review/mark-verified)
  * - POST /v1/admin/reconcile-knowledge-indexes: Reconcile all knowledge indexes (Phase 77)
  */
 
@@ -209,22 +208,6 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
     return maintenanceEntryListResponseSchema.parse({
       items: limitedItems,
       total,
-    });
-  });
-
-  /**
-   * POST /v1/operations/maintenance/batch
-   *
-   * Execute or preview a maintenance batch operation on knowledge entries.
-   * Supports assign-owner, extend-review, and mark-verified actions.
-   */
-  app.post('/v1/operations/maintenance/batch', async (request, reply) => {
-    const auth = await resolveAuthContext(app.skillShareer, request);
-    requirePermission(auth, 'knowledge:update');
-    return reply.status(501).send({
-      code: 'capability_unsupported',
-      message:
-        'This server route is a compatibility shell and no longer performs authoritative writes. Use host-distributed authoritative maintenance service for maintenance batch writes.',
     });
   });
 

@@ -1,9 +1,8 @@
 /**
  * Decay management routes for batch operations on knowledge lifecycle.
  *
- * Provides three endpoints for the batch management interface (DECAY-03):
+ * Provides two endpoints for the batch management interface (DECAY-03):
  * - GET /v1/operations/decay/entries: List entries with decay-state enrichment
- * - POST /v1/operations/decay/batch: Batch mutations (extend/mark-review/deactivate/supersede)
  * - POST /v1/operations/decay/search: Pattern search with decay-state facets
  */
 
@@ -72,23 +71,6 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
     return decayEntryListResponseSchema.parse({
       items: projection.items.map((item) => decayAwareListItemSchema.parse(item)),
       total: projection.total,
-    });
-  });
-
-  /**
-   * POST /v1/operations/decay/batch
-   *
-   * Execute or preview a batch operation on knowledge entries.
-   * Supports extend, mark-review, deactivate, and supersede actions.
-   */
-  app.post('/v1/operations/decay/batch', async (request, reply) => {
-    const auth = await resolveAuthContext(app.skillShareer, request);
-    requirePermission(auth, 'knowledge:update');
-
-    return reply.status(501).send({
-      code: 'capability_unsupported',
-      message:
-        'This server route is a compatibility shell and no longer performs authoritative writes. Use host-distributed authoritative decay service for decay batch writes.',
     });
   });
 

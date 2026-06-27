@@ -130,27 +130,6 @@ describe('decay routes', () => {
     });
   });
 
-  it('returns capability_unsupported for decay batch writes', async () => {
-    const auth = await getSystemAdminAuth(app);
-
-    const response = await app.inject({
-      method: 'POST',
-      url: '/v1/operations/decay/batch',
-      headers: auth,
-      payload: {
-        action: 'extend',
-        entryIds: ['entry-1'],
-        dryRun: true,
-      },
-    });
-
-    expect(response.statusCode).toBe(501);
-    expect(response.json()).toMatchObject({
-      code: 'capability_unsupported',
-      message: expect.stringContaining('compatibility shell'),
-    });
-  });
-
   it('keeps decay search read-side working', async () => {
     const auth = await getSystemAdminAuth(app);
 

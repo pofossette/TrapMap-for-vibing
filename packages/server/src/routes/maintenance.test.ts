@@ -132,38 +132,4 @@ describe('maintenance routes', () => {
       ],
     });
   });
-
-  it('returns capability_unsupported for maintenance batch writes', async () => {
-    const auth = await getSystemAdminAuth(app);
-
-    const response = await app.inject({
-      method: 'POST',
-      url: '/v1/operations/maintenance/batch',
-      headers: auth,
-      payload: {
-        action: 'assign-owner',
-        entryIds: ['entry-1'],
-        newMaintainerId: 'user_new',
-      },
-    });
-
-    expect(response.statusCode).toBe(501);
-    expect(response.json()).toMatchObject({
-      code: 'capability_unsupported',
-      message: expect.stringContaining('compatibility shell'),
-    });
-  });
-
-  it('still requires auth on maintenance batch route', async () => {
-    const response = await app.inject({
-      method: 'POST',
-      url: '/v1/operations/maintenance/batch',
-      payload: {
-        action: 'assign-owner',
-        entryIds: ['entry-1'],
-      },
-    });
-
-    expect(response.statusCode).toBe(401);
-  });
 });
