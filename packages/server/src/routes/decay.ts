@@ -22,8 +22,6 @@ import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { loadUserOpsLogConfig, logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
-import { sendCompatibilityShellUnsupported } from './compatibility-shell.js';
-
 export const decayRoutes: FastifyPluginAsync = async (app) => {
   /**
    * GET /v1/operations/decay/entries
@@ -87,11 +85,11 @@ export const decayRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:update');
 
-    return sendCompatibilityShellUnsupported(
-      reply,
-      'decay batch writes',
-      'host-distributed authoritative decay service',
-    );
+    return reply.status(501).send({
+      code: 'capability_unsupported',
+      message:
+        'This server route is a compatibility shell and no longer performs authoritative writes. Use host-distributed authoritative decay service for decay batch writes.',
+    });
   });
 
   /**

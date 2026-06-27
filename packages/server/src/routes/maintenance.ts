@@ -30,8 +30,6 @@ import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { loadUserOpsLogConfig, logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
-import { sendCompatibilityShellUnsupported } from './compatibility-shell.js';
-
 /**
  * Compute age in days from lastVerifiedAt to now.
  */
@@ -223,11 +221,11 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/operations/maintenance/batch', async (request, reply) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:update');
-    return sendCompatibilityShellUnsupported(
-      reply,
-      'maintenance batch writes',
-      'host-distributed authoritative maintenance service',
-    );
+    return reply.status(501).send({
+      code: 'capability_unsupported',
+      message:
+        'This server route is a compatibility shell and no longer performs authoritative writes. Use host-distributed authoritative maintenance service for maintenance batch writes.',
+    });
   });
 
   /**
