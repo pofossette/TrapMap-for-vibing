@@ -18,6 +18,7 @@ Phase 4 数据、运维与退役收尾（进行中）：
 
 - 冻结仓库级 owner matrix、迁移窗口关闭标准和可退役 compatibility shell 清单。
 - 退役旧宿主与重复 transport/client，完成 truth source、测试矩阵、归档回写。
+- 当前主线还要求把默认轻宿主从“经由 `@trapmap/server` 的混合入口”替换为成熟且 owner 清晰的真实实现，避免 compatibility shell 长期滞留在主路径。
 - 详见 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
 
 ## 系统架构
@@ -182,8 +183,9 @@ deployment flexibility 最小验证矩阵：
 
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
-- [组件替换根计划](../plan.md) — 当前根级执行索引，跟踪“哪些手搓基础设施值得引包替换”的阶段顺序
-- [组件替换细则](todos/component-replacement-plan.md) — 通用工具、缓存内核、队列产品化评估的唯一活跃细则入口
+- [轻重后端构建目标根计划](../plan.md) — 当前根级执行索引，跟踪 `light/heavy` 构建目标、兼容壳清理和客户端后端形态配置
+- [轻重后端构建目标细则](todos/backend-build-targets-plan.md) — 当前唯一活跃细则入口，包含 ASCII 依赖图、兼容壳分类、删除顺序与验证矩阵
+- [组件替换细则](todos/component-replacement-plan.md) — 成熟包替换的独立细则；根计划已切换，不再是当前主线
 - [Badcase 回流待办](todos/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
 - [后端工程化优化计划](todos/backend-engineering-optimization-plan.md) — 队列、MQ、微服务化与观测演进方向
 - [NestJS 目标架构冻结](todos/nestjs-service-evolution-00-target-architecture.md) — 长期目标、边界、保留与退役决策

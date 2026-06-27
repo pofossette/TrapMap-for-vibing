@@ -74,7 +74,7 @@ import {
 import { resolveRuntimeDeployment } from '@trapmap/backend-core/runtime';
 import type { KnowledgeRepositoryPort } from '@trapmap/backend-core/ports';
 import type { Command } from '@trapmap/backend-core/use-cases';
-import { createKnowledgeWriteModule } from '@trapmap/backend-core/modules';
+import { createKnowledgeWriteModule } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core/invocation';
 import { createStubRepositoryPorts } from '@trapmap/backend-core/testing';
 ```
@@ -94,7 +94,7 @@ const deployment = resolveRuntimeDeployment({
 
 ```typescript
 import { createStubAuditLog, createStubKnowledgeRepository } from '@trapmap/backend-core/testing';
-import { createKnowledgeWriteModule } from '@trapmap/backend-core/modules';
+import { createKnowledgeWriteModule } from '@trapmap/backend-core';
 
 const module = createKnowledgeWriteModule({
   knowledgeRepo: createStubKnowledgeRepository(),

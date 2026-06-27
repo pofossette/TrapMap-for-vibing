@@ -70,6 +70,13 @@
 | `packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**` 旧 Fastify 路径 | 当前默认 `local-agent` / `team-monolith` 轻宿主实现、rollback path、parity fix | root `dev:local-agent` / `dev:team-monolith` 与 docs/testing/deployment 默认切到 Nest modular-monolith 或其他新主实现 | 封存或删除旧 Fastify 宿主路径；禁止再接新 controller / schema / business wiring |
 | `packages/backend-core/src/modules/*.ts` compatibility re-export facade | import 迁移过渡层 | 仓库内主消费方已经切到六个 context 真实目录入口 | 删除 re-export facade，truth source 只指向真实 context 目录 |
 
+### “彻底替换兼容壳”补充判据
+
+- [ ] 默认 `light` 入口已经是成熟宿主实现，而不是通过 `@trapmap/server` 间接持有主路径
+- [ ] `@trapmap/server` 不再同时承担默认入口、compatibility shell 和 legacy route pack 三重身份
+- [ ] 任何 remaining compatibility shell 都只用于显式 rollback window，且关闭条件写清
+- [ ] 文档对 `host-local`、`host-distributed`、`service-*` 的叙事不再依赖“迁移期暂存”措辞
+
 ### 非兼容壳但要继续保留的层
 
 - [x] `packages/host-distributed` 继续保留，角色是 distributed deployment layer、process bootstrap、remote adapter 和 service registration；它不是 compatibility shell，也不是第二套业务真相
@@ -147,6 +154,8 @@
 - [ ] 删除旧 authoritative write 入口和重复 internal transport
 - [ ] 合并重复 SDK/internal client 维护路径
 - [ ] 清理文档中的旧入口、旧 profile、旧迁移语义
+- [ ] 让 `light` 默认入口摆脱 `@trapmap/server` 顶层聚合依赖
+- [ ] 把 `@trapmap/server` 中仍有价值的 runtime/status/helper 职责迁到明确 owner 后，再继续删 legacy route
 
 ### Step 4 文档与测试矩阵收尾
 
