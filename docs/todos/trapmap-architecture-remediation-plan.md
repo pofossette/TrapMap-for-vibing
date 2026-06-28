@@ -168,9 +168,23 @@
 
 ### Phase 2 Store Snapshot 现状盘点与迁移口径冻结
 
-- [ ] Wave 2A：盘点 `store_snapshot`、InMemory、PG 双轨的当前角色与退役/保留条件
-- [ ] Wave 2B：冻结直接操作 God Object 的入口、迁移波次和 owner
-- [ ] Wave 2C：冻结测试矩阵、PG-first 优先域、兼容缓存边界与双写验收口径
+- [x] Wave 2A：盘点 `store_snapshot`、InMemory、PG 双轨的当前角色与退役/保留条件
+- [x] Wave 2B：冻结直接操作 God Object 的入口、迁移波次和 owner
+- [x] Wave 2C：冻结测试矩阵、PG-first 优先域、兼容缓存边界与双写验收口径
+
+### Phase 2 closure freeze (G2 `#11-#16`)
+
+- `store_snapshot` 当前冻结为 PostgreSQL 结构化事实之外的 compatibility JSONB store，而不是新的聚合 owner。它只允许继续承载四类剩余职责：`(1)` InMemory repository fallback 的底层 `StoreData` 载体，`(2)` 明确列名的 operator/admin compatibility mutation，`(3)` startup / recovery / migration / backfill / lifecycle-indexing 对旧快照字段的过渡读写，`(4)` artifact file payload、部分 skill history 与少量 operator projection helper 这类尚无专用 repo capability 的 compatibility cache / payload hydration seam。
+- `store_snapshot` JSONB God Object 风险在本轮冻结为显式整改策略，而不是抽象口号：不再接受新的 production primary-read / primary-write owner；任何新增 `store.snapshot()` / `store.transact()` 调用都必须属于 allowlist 中的命名类别并伴随迁移理由；后续 phase 只能通过“新增 repo / projection capability 后收缩 allowlist”来消债，不能再把 route-local snapshot 读写写回主路径。
+- PG-first 当前口径冻结为：生产 truth 以 PostgreSQL 结构化表和对应 `repos.*` 为主，身份/审计、knowledge、artifact、candidate、feedback、usage、queue/outbox 等主域都不得再把 `store_snapshot` 写成主事实源。`store_snapshot` 仍可作为兼容缓存或 payload carrier 存在，但不改变 PG owner。
+- InMemory 当前口径冻结为：它不是与 PG 对等的第二套 production owner，而是测试 / 无 PG 本地模式下的 repo-backed fallback。`InMemory*Repository` 继续通过 `SkillShareerStore` 读写 `StoreData`，用来维持 route/repository contract 一致性；它的 owner 是 compatibility/testing posture，而不是长期双轨演进目标。
+- remaining direct God Object entrypoints 已冻结为以下 owner 桶，不再笼统称作“少量遗留”：`routes/teams.ts`、`routes/members.ts`、`routes/access-keys.ts`、`routes/knowledge.ts`、`routes/evidence.ts`、`routes/maintenance.ts`、`routes/admin-boundary-search.ts`、`routes/admin-benchmark.ts`、`routes/feedback-admin.ts`、`routes/operations/{artifacts-export,artifacts-activate,artifacts-import,skill-edit,skill-review,knowledge-legacy,migrate}.ts`，以及 `bootstrap/bootstrap-candidate-recovery.ts`、`lib/operations/read-model.ts`、`lib/jobs/handlers/{knowledge-index-follow-up,skill-index-follow-up,remediation-reactivation}.ts`、`lib/jobs/skill-index-follow-up.ts`、`lib/session.ts`、`lib/knowledge/review-application-service.ts`。这些入口都是 Phase 2 inventory，不能被二级文档写成“已迁完”。
+- direct-entry migration waves 已冻结为：Wave A 先补 repo / projection capability，消除只因 `artifactFilePayloads`、skill history、maintenance list、operator projection 缺口导致的 snapshot 读取；Wave B 再清理 compatibility shell 中仍直接写 `store.transact()` 的 operator/admin routes；Wave C 最后处理 startup recovery、indexing subscriber、legacy application-service seam 与 session fallback。Phase 2 只冻结次序和 owner，不提前做 Phase 3+ adapter 重构。
+- owner posture 已冻结为：`packages/server` 继续拥有当前 `store_snapshot` schema、JsonStore/PostgresStore compatibility seam、InMemory repository fallback 与 snapshot allowlist guard；各 bounded-context service / `backend-core` 当前不直接拥有新的 snapshot adapter。若后续要删除某个 compatibility entrypoint，必须先由对应 repo、projection helper 或 owner service 提供替代 capability。
+- `store_snapshot` retention / deletion 条件当前冻结为显式 gate，而不是“未来会删”：只有当某一剩余字段或调用面满足“所有生产路由/worker/startup path 已改走 repo 或专用 projection capability、focused tests 已迁移、truth docs 已回写、allowlist 已收缩”四项时，才允许删除对应快照字段或调用面。只要 `artifactFilePayloads` hydration、skill history full-data read、startup candidate recovery、legacy migration/backfill 仍依赖快照，`store_snapshot` 整体就仍处于 retained compatibility 状态。
+- dual-write acceptance 事实冻结为“主域长期双写已结束，剩余仅是结构化 truth + JSONB compatibility cache synchronization”。当前允许的同步语义集中在 artifact/knowledge 等仓库内部的 structured-table write plus compatibility cache maintenance，以及 operator/import/migrate 路由对 `artifactFilePayloads` 等兼容载体的补写；这不是新的并行 owner。验收关注点是 cache/payload 与结构化真相不漂移，而不是重新引入 `DualWrite*Repository`。
+- compatibility-cache boundary 当前冻结为：当结构化真表与 JSONB 兼容缓存同时存在时，读取优先级始终以结构化 truth 为准，JSONB 只在专用 payload / history / fallback seam 中兜底。`artifactFilePayloads`、旧 skill history 读取、maintenance/operation projection helper、startup recovery 所见的 compatibility snapshot 都属于这一边界。
+- Phase 2 test matrix 当前冻结为：`snapshot-usage-guard.test.ts` 负责守住 allowlist 和禁止新增未命名调用；`pg-first-compat.test.ts` 负责证明 auth/member/access-key 等 PG-first API contract 在 InMemory fallback 下仍一致；`docs-truth-smoke.test.ts` 负责保证 remediation/truth/package/testing docs 对上述事实的引用不漂移。更广的 runtime/deployment 验证留给后续 phase，只在真正触边界时补跑。
 
 ### Phase 3 统一适配器范围、目录与接口冻结
 

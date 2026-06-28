@@ -181,6 +181,50 @@ describe('docs truth smoke', () => {
     expect(packagesDoc).toContain('`packages/service-*` 只承载 owner-aligned thin assembly');
   });
 
+  it('Phase 2 docs freeze store_snapshot, InMemory fallback, and PG-first posture facts', () => {
+    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
+    const packagesDoc = readDoc('docs/PACKAGES.md');
+    const persistenceDoc = readDoc('docs/architecture/components/PERSISTENCE.md');
+    const testingDoc = readDoc('docs/operations/TESTING.md');
+    const snapshotGuard = readDoc('packages/server/src/__tests__/snapshot-usage-guard.test.ts');
+    const pgCompat = readDoc('packages/server/src/__tests__/pg-first-compat.test.ts');
+    const readModelSource = readDoc('packages/server/src/lib/operations/read-model.ts');
+    const activateRouteSource = readDoc('packages/server/src/routes/operations/artifacts-activate.ts');
+
+    expect(remediation).toContain('### Phase 2 closure freeze (G2 `#11-#16`)');
+    expect(remediation).toContain('compatibility JSONB store');
+    expect(remediation).toContain('Wave A 先补 repo / projection capability');
+    expect(remediation).toContain('artifactFilePayloads');
+    expect(remediation).toContain('InMemory repository fallback');
+
+    expect(truthSources).toContain('Phase 2 store-snapshot / PG-first posture freeze');
+    expect(truthSources).toContain('InMemory 继续是 repo-backed fallback/testing posture');
+    expect(truthSources).toContain('artifactFilePayloads hydration');
+
+    expect(packagesDoc).toContain('## Phase 2 Store Snapshot / PG-first posture freeze');
+    expect(packagesDoc).toContain('InMemory 不是与 PG 对等的长期生产轨道');
+    expect(packagesDoc).toContain('direct `store.snapshot()` / `store.transact()` 入口当前仍集中在 compatibility shell');
+
+    expect(persistenceDoc).toContain('PostgreSQL 是主要且权威的生产存储后端');
+    expect(persistenceDoc).toContain('PG-first + InMemory fallback/testing posture');
+    expect(persistenceDoc).toContain('不再接纳新的 production 主路径');
+
+    expect(testingDoc).toContain('Phase 2 Store Snapshot / PG-first Freeze Checks');
+    expect(testingDoc).toContain('snapshot-usage-guard.test.ts');
+    expect(testingDoc).toContain('pg-first-compat.test.ts');
+
+    expect(snapshotGuard).toContain('Phase 2 posture freeze');
+    expect(snapshotGuard).toContain('routes/teams.ts');
+    expect(snapshotGuard).toContain('lib/operations/read-model.ts');
+
+    expect(pgCompat).toContain('Phase 2 (PG-First Convergence)');
+    expect(pgCompat).toContain('fallback still works correctly');
+
+    expect(readModelSource).toContain('store.snapshot()');
+    expect(activateRouteSource).toContain('artifactFilePayloads');
+  });
+
   it('docs/README.md does not contain stale schema counts', () => {
     const content = readDoc('docs/README.md');
     expect(content).not.toContain('48 张表');

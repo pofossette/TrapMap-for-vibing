@@ -2,7 +2,7 @@
 
 ## 概述
 
-持久化存储层为 TrapMap 提供数据持久化能力。PostgreSQL 是主要的推荐存储后端；JsonStore 作为向后兼容的回退方案保留。
+持久化存储层为 TrapMap 提供数据持久化能力。PostgreSQL 是主要且权威的生产存储后端；JsonStore / `store_snapshot` 只作为 compatibility fallback 与迁移期载体保留。
 
 ## 架构
 
@@ -74,7 +74,7 @@ interface StoreData {
 
 ### Repository 模式
 
-各域通过 Repository 接口抽象 CRUD 操作，支持 PostgreSQL 和内存两种实现：
+各域通过 Repository 接口抽象 CRUD 操作，支持 PostgreSQL 和内存两种实现。这里的“双实现”不是两套并行 production truth，而是“PG-first + InMemory fallback/testing posture”：
 
 | 域 | Repository 接口 | PG 实现 | 内存实现 |
 |----|----------------|---------|---------|
@@ -106,7 +106,7 @@ function createSessionRepository(config: { pool?: Pool; store: SkillShareerStore
 | 存储介质 | 本地 JSON 文件 |
 | 并发控制 | 文件锁定 |
 | 事务支持 | 内存模拟 |
-| 适用场景 | 开发、测试、小规模部署 |
+| 适用场景 | 开发、测试、无 PG 的兼容运行 |
 
 ### 文件结构
 
@@ -255,7 +255,7 @@ Schema 按业务域组织为六大模块：
 | 反馈分析 | `feedback_records` | 4 | 含自定义问答、使用事件、日聚合 |
 | 跨域 | `store_snapshot` / `task_queue` | 3 | 含 JSONB 兼容层、图索引文档、后台任务队列 |
 
-另有 `store_snapshot` (JSONB 兼容层，仅保留未迁移辅助域) 和 `task_queue` (后台任务队列)。身份域和审计域在 PG 模式下不再通过 `store_snapshot` 读取。
+另有 `store_snapshot` (JSONB 兼容层，仅保留未迁移辅助域、payload hydration seam、startup recovery 和命名 operator/admin compatibility path) 和 `task_queue` (后台任务队列)。身份域和审计域在 PG 模式下不再通过 `store_snapshot` 读取。
 
 候选读取路径（Phase 4）默认从结构化表读取重复检测数据。候选记录上的 JSONB 列（`duplicate_case`、`analysis_snapshot`、`manual_result`）仅作为兼容缓存，不再作为读取路径的真相来源。
 
@@ -310,7 +310,7 @@ PostgresStore 通过 Drizzle ORM 操作 PostgreSQL，主要特点：
 
 - **事务支持**: 使用 `db.transaction()` 实现原生 ACID 事务
 - **批量操作**: 子表写入使用 `db.insert().values([...])` 批量插入
-- **JSONB 兼容层**: `store_snapshot` 表存储完整 StoreData，支持渐进式迁移
+- **JSONB 兼容层**: `store_snapshot` 表存储完整 StoreData，但它当前只允许承载 compatibility fallback、migration/backfill、startup recovery、以及少量命名 payload/projection seam；不再接纳新的 production 主路径
 - **向量搜索**: 通过 raw SQL 调用 pgvector 的余弦距离操作符 `<=>`
 
 ---

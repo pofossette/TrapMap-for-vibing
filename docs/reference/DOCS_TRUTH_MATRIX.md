@@ -12,6 +12,7 @@ This matrix complements `SYSTEM_TRUTH_SOURCES.md`, which focuses on runtime arch
 | DB schema | `packages/server/src/lib/persistence/schema/index.ts` (barrel, re-exports all domain table modules) | `docs/reference/DATABASE_SCHEMA.md` | descriptive |
 | Schema count | `packages/server/src/lib/persistence/schema/*.ts` (artifacts.ts, knowledge.ts, candidates.ts, auth.ts, retrieval.ts, queue.ts, index.ts) | `docs/reference/DATABASE_SCHEMA.md`, `docs/README.md` | descriptive |
 | Persistence migration state | `docs/reference/DATA_MODEL.md` | `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md` | descriptive |
+| Phase 2 store-snapshot / PG-first posture freeze | `docs/todos/trapmap-architecture-remediation-plan.md` + `docs/reference/SYSTEM_TRUTH_SOURCES.md` + `packages/server/src/__tests__/snapshot-usage-guard.test.ts` + `packages/server/src/__tests__/pg-first-compat.test.ts` | `docs/PACKAGES.md`, `docs/architecture/components/PERSISTENCE.md`, `docs/operations/TESTING.md` | descriptive |
 | Server data-access boundary | `packages/server/src/lib/actors/lookup.ts` (actor lookup), `packages/server/src/lib/repos/index.ts` (`SkillShareerRepos`) | `docs/PACKAGES.md`, `docs/reference/DATA_MODEL.md` | descriptive |
 | CI jobs | `.github/workflows/ci.yml` | `docs/operations/CI_CD.md`, `docs/operations/TESTING.md` | descriptive |
 | Guardrail commands | `scripts/complexity-budgets.json` + `.github/workflows/ci.yml` | `docs/reference/SYSTEM_TRUTH_SOURCES.md`, `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` | descriptive |

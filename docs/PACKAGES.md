@@ -48,6 +48,14 @@
 - `packages/server` 是兼容壳；默认 `light` 主入口已经完全收敛到 `packages/host-local/src/nest/**`。
 - `packages/host-distributed` 继续是 distributed profile 的部署展开层，但必须消费与 modular monolith 相同的 `backend-core` + `service-*` 主实现，而不是维护第二套 business truth。
 
+## Phase 2 Store Snapshot / PG-first posture freeze
+
+- `store_snapshot` 继续只扮演 compatibility JSONB store：它是 InMemory repository fallback、migration/backfill、startup recovery、部分 operator/admin mutation、以及少量 payload/projection seam 的载体，不是新的聚合 owner。
+- PG-first 的当前真相是“生产主事实走 PostgreSQL 结构化表 + `repos.*`；兼容缓存/兼容快照按命名例外保留”。身份/审计、knowledge、artifact、candidate、feedback、usage、queue/outbox 已冻结为 PG-first domain，不得再在文档中写成依赖 `store_snapshot` 才能成立。
+- InMemory 不是与 PG 对等的长期生产轨道。它只是在无 PG 场景和测试里，通过 `InMemory*Repository -> SkillShareerStore` 维持相同 repo/route contract 的 fallback posture。
+- direct `store.snapshot()` / `store.transact()` 入口当前仍集中在 compatibility shell 与 operator/admin seam：`teams`、`members`、`access-keys`、`knowledge`、`evidence`、`maintenance`、`feedback-admin`、`admin-*`、`operations/artifacts-*`、`operations/skill-*`、`operations/migrate`、`operations/knowledge-legacy`，以及 startup recovery、index follow-up/remediation handlers、`lib/operations/read-model.ts`、`lib/session.ts`、`lib/knowledge/review-application-service.ts`。Phase 2 把这些入口从“模糊遗留”冻结为明确 inventory。
+- 当前 compatibility-cache 边界也已冻结：artifact / knowledge 等结构化真表优先，JSONB 只在 `artifactFilePayloads`、skill history full-data read、maintenance/operator projection helper 等命名 seam 中兜底；后续 phase 只能通过补 repo/projection capability 来缩小这条边界。
+
 ## Phase 4 数据、运维与退役收尾
 
 - 仓库级 owner matrix（gateway + 六个 owner service + job-runtime 的 data / projection / runtime / operations owner）已冻结，详见 [`plan.md`](../plan.md) Phase 4 和 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
@@ -207,7 +215,7 @@ P3 起，`topology` 会把 distributed 第一阶段的正式服务词汇固化�
 | `TeamRepository` | `lib/teams/repository.ts` | PG (`PgTeamRepository`) 或 JSON (`InMemoryTeamRepository`) |
 | `MembershipRepository` | `lib/teams/repository.ts` | PG (`PgMembershipRepository`) 或 JSON (`InMemoryMembershipRepository`) |
 
-> **Phase 2 更新**：`POST /v1/access-keys` 已从 `store.transact()` 迁移到 `repos.accessKey` + `repos.membership`，PG 模式下不再经过 JSONB 兼容层。`POST /v1/members` 现在持久化 caller-provided `securityLevel`（而非硬编码为 0）。Auth 路由（login/session/logout）已在 PG 模式下使用 `repos.session`、`repos.accessKey`、`repos.membership`。
+> **Phase 2 更新**：`POST /v1/access-keys`、`POST/PATCH /v1/members`、`GET/POST /v1/teams` 在仓库可用时优先走 `repos.*`，但 compatibility shell 仍保留 InMemory / no-PG fallback，因此这些 route 文件今天仍是 `store.transact()` / `store.snapshot()` inventory 的一部分。Auth 路由（login/session/logout）已在 PG 模式下使用 `repos.session`、`repos.accessKey`、`repos.membership`；成员 `securityLevel` 也已按 caller-provided value 持久化，而不是硬编码为 0。
 
 ### 路由模块
 

@@ -62,6 +62,12 @@ flowchart TB
 
 这些根脚本现在分别装配 `@trapmap/host-local` 与 `@trapmap/host-distributed`。测试命令里仍然大量引用 `packages/server/...`，是因为当前权威测试文件与核心实现仍主要驻留在该兼容层和既有代码面中。
 
+**Phase 2 Store Snapshot / PG-first Freeze Checks:**
+- Snapshot allowlist：运行 `packages/server/src/__tests__/snapshot-usage-guard.test.ts`，确认新的 `store.snapshot()` / `store.transact()` 调用没有逃出 allowlist，并且 allowlist 仍只覆盖命名 compatibility buckets。
+- PG-first compatibility：运行 `packages/server/src/__tests__/pg-first-compat.test.ts`，确认 access-key / member 等 PG-first surface 在 InMemory fallback 下仍维持相同外部 contract；这证明 InMemory 当前是 compatibility/testing posture，而不是第二套 owner 语义。
+- Truth freeze：运行 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，确认 remediation detail plan、truth source、packages doc、persistence doc 与 testing doc 对 `store_snapshot` / InMemory / PG-first 口径的描述一致。
+- 解释边界：Phase 2 不要求把全部 compatibility path 都迁走；它要求把 remaining direct entrypoints、retention 条件、priority waves 和测试门写成显式事实。
+
 **Phase 3 Workflow Snapshot Checks:**
 - 候选处理：提交 candidate 后，调用 `GET /v1/operations/status/async` 或直接查询 `workflow_runs`，确认存在 `workflowType='candidate-processing'` 且 step/status 随处理推进。
 - 失败持久化：制造 candidate 处理失败，确认 `lastError` 与 `status='failed'` 被保留。

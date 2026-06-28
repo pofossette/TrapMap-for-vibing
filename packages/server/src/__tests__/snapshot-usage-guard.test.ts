@@ -16,6 +16,8 @@ const SERVER_SRC = resolve(process.cwd(), 'packages/server/src');
  * - Diagnostic/admin mutations: controlled operator writes and migration HTTP tools
  * - Projection exceptions: explicit read-side helpers that still need compatibility snapshot input
  * - Named compatibility debt: audit seams that still require store access
+ * - Phase 2 posture freeze: every entry here must belong to an explicit
+ *   compatibility bucket and may not silently expand production primary-owner scope
  *
  * Core business routes (auth, knowledge, traps, retrieval, members, teams)
  * must use repos.* and must NOT appear here.
@@ -174,5 +176,27 @@ describe('snapshot usage guard', () => {
     });
 
     expect(missing, `Allowlist entries not found on disk: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  it('Phase 2 freeze keeps key compatibility buckets explicit', () => {
+    expect(SNAPSHOT_ALLOWLIST).toEqual(
+      expect.arrayContaining([
+        'routes/teams.ts',
+        'routes/members.ts',
+        'routes/access-keys.ts',
+        'routes/maintenance.ts',
+        'routes/feedback-admin.ts',
+        'routes/operations/artifacts-activate.ts',
+        'routes/operations/skill-edit.ts',
+        'routes/operations/skill-review.ts',
+        'bootstrap/bootstrap-candidate-recovery.ts',
+        'lib/operations/read-model.ts',
+        'lib/jobs/handlers/knowledge-index-follow-up.ts',
+        'lib/jobs/handlers/skill-index-follow-up.ts',
+        'lib/jobs/handlers/remediation-reactivation.ts',
+        'lib/session.ts',
+        'lib/knowledge/review-application-service.ts',
+      ]),
+    );
   });
 });
