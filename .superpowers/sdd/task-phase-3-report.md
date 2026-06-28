@@ -69,3 +69,17 @@
   - server-owned concrete provider implementations
   - repository/persistence seams
 - No runtime behavior or broad refactor was introduced.
+
+## Review Fix Append
+
+1. `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
+   - Result: PASS
+   - Output: `✓ |server| src/__tests__/docs-truth-smoke.test.ts (36 tests) 15ms`
+
+2. `rtk pnpm check:docs-drift`
+   - Result: PASS
+   - Output: `[doc-drift] All 33 doc rule(s) passed.`
+
+3. `rtk pnpm check:structure`
+   - Result: PASS
+   - Output: `[structure-guard] All checks passed.`
