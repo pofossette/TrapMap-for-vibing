@@ -9,7 +9,8 @@ import {
 } from '@trapmap/service-candidate-ingestion';
 import { createKnowledgeReadDeps } from '@trapmap/service-knowledge-read';
 
-import { loadServerConfigBridge, SERVER_CONFIG_TOKEN } from './config/config-bridge.js';
+import { SERVER_CONFIG_TOKEN } from './config/config-bridge.js';
+import { loadConfig } from './config/config.js';
 import { GatewayModule } from './gateway/gateway.module.js';
 import { CandidateIngestionModule } from './candidate-ingestion/candidate-ingestion.module.js';
 import { GovernanceReviewModule } from './governance-review/governance-review.module.js';
@@ -102,7 +103,7 @@ const candidateIngestionModule = CandidateIngestionModule.forDeps(
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [loadServerConfigBridge],
+      load: [() => ({ serverConfig: loadConfig() })],
     }),
     identityAccessModule,
     knowledgeReadModule,
@@ -120,7 +121,7 @@ const candidateIngestionModule = CandidateIngestionModule.forDeps(
     },
     {
       provide: SERVER_CONFIG_TOKEN,
-      useFactory: () => loadServerConfigBridge().serverConfig,
+      useFactory: () => loadConfig(),
     },
   ],
   exports: [RequestContextService, SERVER_CONFIG_TOKEN],

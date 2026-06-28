@@ -11,7 +11,6 @@ import type {
   SessionLookupPort,
   TeamLookupPort,
 } from '@trapmap/backend-core';
-import type { Permission } from '@trapmap/contracts';
 import { createAsyncTransport } from '@trapmap/server/lib/async/factory.js';
 import { createAiProviders } from '@trapmap/server/lib/ai/index.js';
 import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
@@ -36,9 +35,9 @@ import { searchKnowledge } from '@trapmap/server/lib/retrieval.js';
 import { resolveEffectivePermissions } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
-import { resolveRuntimeDeployment } from '@trapmap/server/lib/runtime/deployment-profile.js';
-import { resolveServiceUnit } from '@trapmap/server/lib/runtime/service-unit.js';
-import type { ServerConfig } from '@trapmap/server/config.js';
+import type { Permission } from '@trapmap/contracts';
+import { resolveRuntimeDeployment, resolveServiceUnit } from '@trapmap/backend-core/runtime';
+import type { ServerConfig } from '../config/config.js';
 
 import { loadServerConfigBridge } from '../config/config-bridge.js';
 
@@ -230,10 +229,7 @@ function createRetrievalQuery(services: SkillShareerServices): RetrievalQueryPor
 }
 
 export async function createHostLocalRuntime(): Promise<HostLocalRuntime> {
-  const serverConfig = loadServerConfigBridge().serverConfig;
-  const config: ServerConfig = {
-    ...serverConfig,
-  };
+  const config = loadServerConfigBridge().serverConfig;
   const runtimeDeployment = resolveRuntimeDeployment({
     preset: config.deployment.preset,
     ...(config.deployment.profile ? { profile: config.deployment.profile } : {}),

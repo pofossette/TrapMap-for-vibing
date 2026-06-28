@@ -105,6 +105,40 @@ export interface ResolvedRuntimeDeployment {
 }
 
 // ---------------------------------------------------------------------------
+// Async worker ownership resolution
+// ---------------------------------------------------------------------------
+
+export type AsyncWorkerDependencyState = 'not-configured' | 'running' | 'degraded' | 'remote';
+
+export interface ResolveAsyncWorkerStateOptions {
+  database: 'postgres' | 'json-store';
+  runtimeMode: RuntimeMode;
+  workerKind: AsyncWorkerKind;
+  worker?: RuntimeWorkerHandle | null;
+  owner?: boolean | undefined;
+  running?: boolean;
+}
+
+export function resolveAsyncWorkerState(
+  args: ResolveAsyncWorkerStateOptions,
+): AsyncWorkerDependencyState {
+  if (args.database === 'json-store') {
+    return 'not-configured';
+  }
+
+  const snapshot: RuntimeWorkerSnapshot =
+    args.worker === undefined
+      ? { owner: args.owner, running: args.running ?? false }
+      : snapshotRuntimeWorker(args.worker);
+
+  if (!shouldOwnAsyncWork(args.runtimeMode, args.workerKind) || snapshot.owner === false) {
+    return 'remote';
+  }
+
+  return snapshot.running ? 'running' : 'degraded';
+}
+
+// ---------------------------------------------------------------------------
 // Runtime mode boot logic
 // ---------------------------------------------------------------------------
 
@@ -475,38 +509,4 @@ export function resolveDeploymentProfileCompatibility(args: {
     requiresPostgres,
     minimumPreset: resolved.deploymentProfile === 'distributed' ? 'api' : 'monolith',
   };
-}
-
-// ---------------------------------------------------------------------------
-// Async worker ownership resolution
-// ---------------------------------------------------------------------------
-
-export type AsyncWorkerDependencyState = 'not-configured' | 'running' | 'degraded' | 'remote';
-
-export interface ResolveAsyncWorkerStateOptions {
-  database: 'postgres' | 'json-store';
-  runtimeMode: RuntimeMode;
-  workerKind: AsyncWorkerKind;
-  worker?: RuntimeWorkerHandle | null;
-  owner?: boolean | undefined;
-  running?: boolean;
-}
-
-export function resolveAsyncWorkerState(
-  args: ResolveAsyncWorkerStateOptions,
-): AsyncWorkerDependencyState {
-  if (args.database === 'json-store') {
-    return 'not-configured';
-  }
-
-  const snapshot: RuntimeWorkerSnapshot =
-    args.worker === undefined
-      ? { owner: args.owner, running: args.running ?? false }
-      : snapshotRuntimeWorker(args.worker);
-
-  if (!shouldOwnAsyncWork(args.runtimeMode, args.workerKind) || snapshot.owner === false) {
-    return 'remote';
-  }
-
-  return snapshot.running ? 'running' : 'degraded';
 }

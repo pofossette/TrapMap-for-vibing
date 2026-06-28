@@ -9,6 +9,12 @@ dist/
 build/
 *.tsbuildinfo
 
+# TS emit that leaks into src (tsc without outDir)
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
+
 # Reports (keep directory, ignore generated JSON)
 reports/*.json
 
