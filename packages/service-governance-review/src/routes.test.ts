@@ -81,4 +81,37 @@ describe('service-governance-review routes', () => {
     });
     await app.close();
   });
+
+  it('reports readiness and ownership for the governance-review owner-port path', async () => {
+    const module = createModule();
+    const app = Fastify();
+    registerGovernanceReviewRoutes(app, module, {
+      checkDependency: vi.fn(async () => ({ reachable: true })),
+    });
+    await app.ready();
+
+    const readiness = await app.inject({
+      method: 'GET',
+      url: '/internal/readiness',
+    });
+    expect(readiness.statusCode).toBe(200);
+    expect(readiness.json()).toMatchObject({
+      ready: true,
+      service: 'governance-review',
+      finalAggregateMutation: 'delegated-to-knowledge-write',
+      followUpDisposition: 'outbox-queue-workflow-async',
+    });
+
+    const ownership = await app.inject({
+      method: 'GET',
+      url: '/internal/ownership',
+    });
+    expect(ownership.statusCode).toBe(200);
+    expect(ownership.json()).toMatchObject({
+      service: 'governance-review',
+      delegateTo: 'knowledge-write',
+    });
+
+    await app.close();
+  });
 });

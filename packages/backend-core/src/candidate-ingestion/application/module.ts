@@ -45,6 +45,65 @@ export const CANDIDATE_INGESTION_MODULE = {
 export function createCandidateIngestionModule(
   deps: CandidateIngestionDeps,
 ): CandidateIngestionPort {
+  const normalizeManualResult = (
+    resolution: Record<string, unknown>,
+  ): Parameters<CandidateRepositoryPort['attachManualResult']>[1] => {
+    const decision = resolution.decision;
+    const notes = resolution.notes;
+    const mergedWith = resolution.mergedWith;
+
+    if (decision !== 'independent' && decision !== 'merged') {
+      throw InvocationError.validation(
+        'Candidate resolution requires decision "independent" or "merged"',
+      );
+    }
+
+    if (typeof notes !== 'string' || notes.trim().length === 0) {
+      throw InvocationError.validation('Candidate resolution requires non-empty notes');
+    }
+
+    if (decision === 'merged') {
+      if (
+        !mergedWith ||
+        typeof mergedWith !== 'object' ||
+        !('entityType' in mergedWith) ||
+        !('entityId' in mergedWith)
+      ) {
+        throw InvocationError.validation(
+          'Merged candidate resolution requires mergedWith.entityType and mergedWith.entityId',
+        );
+      }
+
+      const entityType = mergedWith.entityType;
+      const entityId = mergedWith.entityId;
+      const entityTitle =
+        'entityTitle' in mergedWith && typeof mergedWith.entityTitle === 'string'
+          ? mergedWith.entityTitle
+          : undefined;
+
+      if ((entityType !== 'trap' && entityType !== 'skill') || typeof entityId !== 'string') {
+        throw InvocationError.validation(
+          'Merged candidate resolution requires a valid mergedWith target',
+        );
+      }
+
+      return {
+        decision,
+        notes,
+        mergedWith: {
+          entityType,
+          entityId,
+          ...(entityTitle ? { entityTitle } : {}),
+        },
+      };
+    }
+
+    return {
+      decision,
+      notes,
+    };
+  };
+
   return {
     async submit(candidate: CandidateSubmission) {
       await deps.candidateRepo.insert(candidate);
@@ -77,12 +136,26 @@ export function createCandidateIngestionModule(
       if (!candidate) {
         throw InvocationError.notFound(`Candidate not found: ${candidateId}`);
       }
-      await deps.candidateRepo.updateStatus(candidateId, 'resolved');
+
+      const manualResult =
+        candidate.manualResult ?? normalizeManualResult(resolution as Record<string, unknown>);
+
+      if (!candidate.manualResult) {
+        await deps.candidateRepo.attachManualResult(candidateId, manualResult, actorId);
+      }
+
+      await deps.knowledgeWrite.publishCandidateResult({
+        candidateId,
+        actorId,
+        result: manualResult as Record<string, unknown>,
+      });
+
+      await deps.candidateRepo.markResolved(candidateId, actorId);
       await deps.auditLog.record({
         action: 'candidate.resolve',
         actorId,
         entityId: candidateId,
-        metadata: { resolution },
+        metadata: { resolution: manualResult },
       });
     },
 

@@ -140,8 +140,8 @@ docker compose --profile distributed --profile mq up -d
 curl http://127.0.0.1:4000/health
 ```
 
-默认 `docker compose up -d` 启动 `server`（team-monolith gateway）。
-`docker compose --profile distributed up -d` 会改为启动 `gateway`（distributed API gateway）并追加 `candidate-worker`、`governance-worker`、`outbox-worker`。
+默认 `docker compose up -d` 启动的 `server` service 现在实际运行 `packages/host-local/Dockerfile` 构建的 `team-monolith` light host。
+`docker compose --profile distributed up -d` 会启动 `packages/host-distributed/Dockerfile` 构建的 `gateway`，并追加 `candidate-worker`、`governance-worker`、`outbox-worker`。
 
 ### 评估
 

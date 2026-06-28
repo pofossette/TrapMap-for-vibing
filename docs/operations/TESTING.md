@@ -242,7 +242,7 @@ pnpm test:runtime-closeout
 
 ### Phase 4 验证归属矩阵
 
-Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解释成功路径。当前默认本地入口仍是 `host-local` 的 Fastify bootstrap；`packages/host-local/src/nest/**` 是 opt-in 的 modular-monolith 迁移轨道。distributed 主线仍由 `host-distributed` 承担。
+Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解释成功路径。当前默认本地入口已经是 `packages/host-local/src/nest/**`；distributed 主线仍由 `host-distributed` 承担。
 
 #### 单体验证（`host-local` 默认轻宿主）
 

@@ -9,8 +9,7 @@ import {
 } from '@trapmap/service-candidate-ingestion';
 import { createKnowledgeReadDeps } from '@trapmap/service-knowledge-read';
 
-import { SERVER_CONFIG_TOKEN } from './config/config-bridge.js';
-import { loadConfig } from './config/config.js';
+import { HOST_LOCAL_CONFIG_TOKEN, loadHostLocalConfig } from './config/index.js';
 import { GatewayModule } from './gateway/gateway.module.js';
 import { CandidateIngestionModule } from './candidate-ingestion/candidate-ingestion.module.js';
 import { GovernanceReviewModule } from './governance-review/governance-review.module.js';
@@ -103,7 +102,7 @@ const candidateIngestionModule = CandidateIngestionModule.forDeps(
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [() => ({ serverConfig: loadConfig() })],
+      load: [() => ({ hostLocalConfig: loadHostLocalConfig() })],
     }),
     identityAccessModule,
     knowledgeReadModule,
@@ -120,11 +119,11 @@ const candidateIngestionModule = CandidateIngestionModule.forDeps(
       useValue: hostLocalRuntime,
     },
     {
-      provide: SERVER_CONFIG_TOKEN,
-      useFactory: () => loadConfig(),
+      provide: HOST_LOCAL_CONFIG_TOKEN,
+      useFactory: () => loadHostLocalConfig(),
     },
   ],
-  exports: [RequestContextService, SERVER_CONFIG_TOKEN],
+  exports: [RequestContextService, HOST_LOCAL_CONFIG_TOKEN],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

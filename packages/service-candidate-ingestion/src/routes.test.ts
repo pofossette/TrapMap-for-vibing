@@ -57,6 +57,24 @@ describe('service-candidate-ingestion routes', () => {
     await app.close();
   });
 
+  it('exposes candidate-ingestion as the owner of resolution command receipt', async () => {
+    const module = createModule();
+    const app = await buildApp(module);
+
+    const health = await app.inject({
+      method: 'GET',
+      url: '/internal/health',
+    });
+
+    expect(health.statusCode).toBe(200);
+    expect(health.json()).toEqual({
+      status: 'ok',
+      service: 'candidate-ingestion',
+    });
+
+    await app.close();
+  });
+
   it('preserves invocation failure semantics for remote knowledge-write delegation', async () => {
     const module = createModule({
       publishCandidateResult: vi.fn(async () => {

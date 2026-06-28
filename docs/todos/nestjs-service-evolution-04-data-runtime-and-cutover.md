@@ -58,6 +58,7 @@
 - [x] 默认开发入口已经统一到 `packages/host-local`，且默认实现已切到 Nest modular-monolith；旧 Fastify 本地宿主入口已删除
 - [x] 默认测试矩阵已经区分 `host-local` 默认 Fastify 入口、opt-in Nest 轨道、`host-distributed` distributed 主线和 service README
 - [x] 默认部署/环境文档已经只声明 `local-agent`、`team-monolith`、`distributed` 三档入口；Nest 轨道不再被写成默认入口
+- [x] compose 默认 `team-monolith` 入口已切到 `packages/host-local/Dockerfile`，distributed compose 入口已切到 `packages/host-distributed/Dockerfile`；`packages/server` 不再承担 compose 默认宿主 bootstrap
 - [ ] compatibility shell 上不存在新增主实现逻辑、新 contract、新 route-local shadow type
 - [x] 分布式 closeout 证据已经覆盖 owner / failure / backlog / readiness，而不是只覆盖 HTTP 200 通路
 
@@ -72,7 +73,7 @@
 
 ### “彻底替换兼容壳”补充判据
 
-- [ ] 默认 `light` 入口已经是成熟宿主实现，而不是通过 `@trapmap/server` 间接持有主路径
+- [x] 默认 `light` 入口已经是成熟宿主实现，而不是通过 `@trapmap/server` 间接持有主路径
 - [x] `@trapmap/server` 不再同时承担默认入口、compatibility shell 和 legacy route pack 三重身份
 - [x] 旧本地 rollback window 已关闭；remaining compatibility shell 只保留非默认 Fastify 兼容面
 - [ ] 文档对 `host-local`、`host-distributed`、`service-*` 的叙事不再依赖“迁移期暂存”措辞
@@ -154,8 +155,9 @@
 - [ ] 删除旧 authoritative write 入口和重复 internal transport
 - [ ] 合并重复 SDK/internal client 维护路径
 - [ ] 清理文档中的旧入口、旧 profile、旧迁移语义
-- [ ] 让 `light` 默认入口摆脱 `@trapmap/server` 顶层聚合依赖
+- [x] 让 `light` 默认入口摆脱 `@trapmap/server` 顶层聚合依赖
 - [ ] 把 `@trapmap/server` 中仍有价值的 runtime/status/helper 职责迁到明确 owner 后，再继续删 legacy route
+- [ ] 继续把 `packages/host-local/src/nest/runtime/{host-services,shared-infra,retrieval-assembly}.ts` 对 `@trapmap/server` 的 store/repo/retrieval/async wiring 依赖收敛为 host-owned 或明确 shared seam；当前 `host-services.ts` 已只保留 host-local service composition，server context cast 已移到 compat-only `service-compat.ts`
 
 ### Step 4 文档与测试矩阵收尾
 
@@ -184,6 +186,7 @@
 - [ ] `pnpm eval:smoke`
 - [x] `pnpm check:docs-drift`
 - [x] `pnpm check:structure`
+- [x] 定向包测命令已修正为 project-scoped 入口，避免 `pnpm --filter <pkg> test --run <path>` 命令看似通过但未命中对应 test project；本轮已修正 `@trapmap/host-local`、`@trapmap/service-governance-review` 及同类 service package 脚本
 
 ## 完成定义
 

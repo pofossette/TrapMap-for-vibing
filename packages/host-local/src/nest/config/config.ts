@@ -5,10 +5,7 @@ import { z } from 'zod';
 import { loadAiProviderConfig } from '@trapmap/server/lib/ai/index.js';
 import { GraphDbConfigSchema, loadGraphDbConfig } from '@trapmap/server/lib/graph-query/config.js';
 import { loadRagLogConfig } from '@trapmap/server/lib/rag-log.js';
-import {
-  resolveDeploymentProfileCompatibility,
-  resolveRuntimeDeployment,
-} from '@trapmap/backend-core/runtime';
+import { resolveDeploymentProfileCompatibility, resolveRuntimeDeployment } from '@trapmap/backend-core';
 import { loadUserOpsLogConfig } from '@trapmap/server/lib/user-ops-log.js';
 
 const HostSchema = z.string().min(1).default('127.0.0.1');
@@ -105,7 +102,7 @@ const DeploymentSchema = z.object({
   }),
 });
 
-export interface ServerConfig {
+export interface HostLocalConfig {
   dataFile: string;
   databaseUrl: string | null;
   host: string;
@@ -134,7 +131,7 @@ function normalizeOptionalEnvValue(value: string | undefined): string | undefine
   return normalized.length > 0 ? normalized : undefined;
 }
 
-export function loadConfig(): ServerConfig {
+export function loadConfig(): HostLocalConfig {
   const userOpsLog = loadUserOpsLogConfig();
   const ragLog = loadRagLogConfig();
   const graphDb = loadGraphDbConfig();
@@ -233,10 +230,10 @@ export function loadConfig(): ServerConfig {
     throw new Error(`Configuration validation failed:\n  ${errors}`);
   }
 
-  return result.data as ServerConfig;
+  return result.data as HostLocalConfig;
 }
 
-export function buildConfigFingerprint(config: ServerConfig): string {
+export function buildConfigFingerprint(config: HostLocalConfig): string {
   return createHash('sha256')
     .update(
       JSON.stringify({

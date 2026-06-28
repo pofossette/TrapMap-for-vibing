@@ -1,13 +1,2 @@
-import { loadConfig, type ServerConfig } from './config.js';
-
-export interface NestConfigBridge {
-  serverConfig: ServerConfig;
-}
-
-export function loadServerConfigBridge(): NestConfigBridge {
-  return {
-    serverConfig: loadConfig(),
-  };
-}
-
-export const SERVER_CONFIG_TOKEN = 'SERVER_CONFIG';
+export { HOST_LOCAL_CONFIG_TOKEN, loadHostLocalConfig } from './index.js';
+export type { HostLocalConfig } from './index.js';

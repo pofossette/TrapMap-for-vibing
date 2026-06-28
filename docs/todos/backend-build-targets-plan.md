@@ -105,6 +105,12 @@
 | `packages/host-distributed` | `real host implementation` | `heavy` 的真实重宿主实现，成熟度冻结为 `Level 2 / transitional-microservice` |
 | `packages/service-*` | `real host implementation` | thin assembly，但属于真实 service process 装配，不是兼容层 |
 
+Round 2 closeout note:
+
+- `docker-compose.yml` 默认 `server` service 已切到 `packages/host-local/Dockerfile`，因此 compose 默认入口不再经 `packages/server` 启动默认 `light` 主线。
+- `docker-compose.yml` 的 `gateway` / `candidate-worker` / `governance-worker` / `outbox-worker` 也已切到 `packages/host-distributed/Dockerfile`，`packages/server` 不再充当 distributed compose bootstrap owner。
+- 仍未关闭的债是：默认 `light` 宿主已把 `host-services.ts` 收敛为 host-local service composition，并把 retrieval assembly / compat bridge / shared infra 拆到 `packages/host-local/src/nest/runtime/{retrieval-assembly,service-compat,shared-infra}.ts`；但这些 seam 仍暂时复用 `@trapmap/server` 的 shared infrastructure（store/repo/retrieval/async wiring），这属于 shared seam 收口问题，而不是默认 compose owner 仍在 `packages/server`。
+
 ### C. `packages/server` 三类职责归属表
 
 统一描述句：
@@ -516,7 +522,7 @@
 
 阻力：
 
-- [ ] 当前 `@trapmap/host-local` 默认轻宿主仍通过 `@trapmap/server` 启动 Fastify 主入口
+- [x] 当前 `@trapmap/host-local` 默认轻宿主不再通过 `@trapmap/server` 启动 Fastify 主入口
 - [ ] `packages/server/src/index.ts` 仍承载启动脚本与 runtime deployment 解析
 - [ ] 若不先把这些职责迁到 `host-local` 新宿主或共享 seam，直接删壳会导致 `light` 默认入口失效
 
@@ -562,7 +568,7 @@
 完成标志：
 
 - [ ] `@trapmap/host-local` 默认启动不再 import `@trapmap/server` 的顶层 `buildServer()`
-- [ ] `docs/README.md`、`README.md`、`docs/PACKAGES.md` 对默认轻宿主的描述不再经过 `server`
+- [x] `docs/README.md`、`README.md`、`docs/PACKAGES.md` 对默认轻宿主的描述不再经过 `server`
 - [ ] `deployment-smoke` 覆盖新的默认 `light` 启动路径
 
 ### Track C. 替换 legacy authoritative write 路径
@@ -575,6 +581,7 @@
 
 - [ ] `packages/server` 不再承载默认 authoritative write 行为
 - [ ] 旧 route 只剩删除，不再有“暂时继续挂着”的理由
+- [x] `packages/host-local/src/nest/gateway/candidate-review.controller.ts` 默认将 apply-resolution 委托给 `candidate-ingestion` owner port，并由 `KnowledgeWritePort` 完成最终 aggregate mutation
 
 ### Track D. 让 `heavy` 成为真正的成熟实现，而不是对 `server` 的绕行
 
@@ -822,7 +829,7 @@
 - [ ] 再把 health / readiness / route mounting owner 定到 `host-local`
 - [ ] 最后移除 `host-local` 对 `buildServer()` 顶层聚合的依赖
 
-> **当前状态**：默认 `light` 入口与根开发脚本已切到 `packages/host-local/src/nest/**`；`config.ts` 暂留 `packages/server`，旧 Fastify 轻宿主路径已删除。`buildServer()` 的剩余价值后续继续拆到明确 owner。
+> **当前状态**：默认 `light` 入口与根开发脚本已切到 `packages/host-local/src/nest/**`；candidate manual-result / apply-resolution / review 默认写链路也已切到 host-owned owner-port 路径。`config.ts` 与部分 runtime/shared infrastructure 暂留 `packages/server`，旧 Fastify 轻宿主路径已删除。`buildServer()` 的剩余价值后续继续拆到明确 owner。
 
 最小测试：
 

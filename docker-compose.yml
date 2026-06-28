@@ -1,10 +1,10 @@
 services:
   server:
     profiles: ["team-monolith"]
-    image: trap-map-server:latest
+    image: trap-map-host-local:latest
     build:
       context: .
-      dockerfile: packages/server/Dockerfile
+      dockerfile: packages/host-local/Dockerfile
     container_name: trapmap-server
     ports:
       - "4000:4000"
@@ -68,7 +68,7 @@ services:
     profiles: ["distributed"]
     build:
       context: .
-      dockerfile: packages/server/Dockerfile
+      dockerfile: packages/host-distributed/Dockerfile
     container_name: trapmap-gateway
     ports:
       - "4000:4000"
@@ -124,10 +124,13 @@ services:
     restart: unless-stopped
 
   candidate-worker:
-    image: trap-map-server:latest
+    image: trap-map-host-distributed:latest
     profiles: ["distributed"]
-    command: ["node", "dist/worker.js"]
-    working_dir: /app/packages/server
+    build:
+      context: .
+      dockerfile: packages/host-distributed/Dockerfile
+    command: ["node", "dist/index.js", "--service", "candidate-ingestion"]
+    working_dir: /app/packages/host-distributed
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
@@ -169,10 +172,13 @@ services:
     restart: unless-stopped
 
   governance-worker:
-    image: trap-map-server:latest
+    image: trap-map-host-distributed:latest
     profiles: ["distributed"]
-    command: ["node", "dist/worker.js"]
-    working_dir: /app/packages/server
+    build:
+      context: .
+      dockerfile: packages/host-distributed/Dockerfile
+    command: ["node", "dist/index.js", "--service", "governance-review"]
+    working_dir: /app/packages/host-distributed
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
@@ -214,10 +220,13 @@ services:
     restart: unless-stopped
 
   outbox-worker:
-    image: trap-map-server:latest
+    image: trap-map-host-distributed:latest
     profiles: ["distributed"]
-    command: ["node", "dist/worker.js"]
-    working_dir: /app/packages/server
+    build:
+      context: .
+      dockerfile: packages/host-distributed/Dockerfile
+    command: ["node", "dist/index.js", "--service", "job-runtime"]
+    working_dir: /app/packages/host-distributed
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0

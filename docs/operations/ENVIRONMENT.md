@@ -436,7 +436,7 @@ pnpm dev:local-agent
 | `TRAPMAP_REQUEST_ID_HEADER` | 运行时 request id 响应/透传头名 | `x-request-id` |
 | `TRAPMAP_TRACE_HEADER_NAME` | 运行时 trace header 名 | `traceparent` |
 
-> **Nest 宿主（默认 `light` 主线）**：`packages/host-local/src/nest/` 的 Nest 宿主消费同一份 `ServerConfig`（由 `packages/server/src/config.ts` 的 `loadConfig()` 提供），不引入新的环境变量。`pnpm dev:local-agent`、`pnpm dev:team-monolith` 与 `pnpm --filter @trapmap/host-local dev` 都直接进入这条主线；旧 Fastify 宿主和相关 rollback 脚本已删除。
+> **Nest 宿主（默认 `light` 主线）**：`packages/host-local/src/nest/` 的 Nest 宿主现在通过 `packages/host-local/src/nest/config/config.ts` 自己加载 `HostLocalConfig`，这是 default `light` runtime env defaults 的 host-owned truth entry；`packages/server/src/config.ts` 仅保留 compatibility shell / shared consumer 侧入口。两者仍复用同一套环境变量与子配置 helper，不引入新的环境变量。`pnpm dev:local-agent`、`pnpm dev:team-monolith` 与 `pnpm --filter @trapmap/host-local dev` 都直接进入这条主线；旧 Fastify 宿主和相关 rollback 脚本已删除。
 
 ## Runtime Resilience
 

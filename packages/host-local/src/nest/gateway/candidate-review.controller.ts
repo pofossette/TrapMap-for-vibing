@@ -19,8 +19,6 @@ import {
 import type { CandidateIngestionPort, ReviewPort } from '@trapmap/backend-core';
 import type { FastifyRequest } from 'fastify';
 
-import { applyResolution } from '@trapmap/server/lib/candidates/services/resolution-service.js';
-import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
 import { buildReviewQueueProjection } from '@trapmap/server/lib/operations/read-model.js';
 
 import { CANDIDATE_INGESTION_PORT } from '../candidate-ingestion/candidate-ingestion.tokens.js';
@@ -69,32 +67,24 @@ export class CandidateReviewController {
     @Req() request: FastifyRequest,
   ) {
     const auth = request.authContext!;
-    const lifecyclePublisher = createLifecyclePublisher(
-      this.runtime.services.asyncTransport
-        ? {
-            store: this.runtime.services.store,
-            eventBus: this.runtime.services.eventBus,
-            asyncTransport: this.runtime.services.asyncTransport,
-          }
-        : {
-            store: this.runtime.services.store,
-            eventBus: this.runtime.services.eventBus,
-          },
-    );
+    const candidate = await this.runtime.services.repos.candidate.getById(candidateId);
+    if (!candidate?.manualResult) {
+      return {
+        candidateId,
+        status: candidate?.status ?? 'missing',
+        outcome: null,
+      };
+    }
 
-    return applyResolution(
-      {
-        store: this.runtime.services.store,
-        repos: {
-          candidate: this.runtime.services.repos.candidate,
-          lineage: this.runtime.services.repos.lineage,
-        },
-        lifecyclePublisher,
-        config: this.runtime.services.config,
-      },
-      auth,
+    await this.candidateIngestion.applyResolution(candidateId, candidate.manualResult, auth.actorId);
+
+    const resolvedCandidate = await this.runtime.services.repos.candidate.getById(candidateId);
+
+    return {
       candidateId,
-    );
+      status: resolvedCandidate?.status ?? 'resolved',
+      outcome: candidate.manualResult,
+    };
   }
 
   @Get('knowledge/review-queue')

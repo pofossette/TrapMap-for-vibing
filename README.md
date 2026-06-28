@@ -112,7 +112,7 @@ Phase 4 收尾（进行中）：
 
 - 冻结仓库级 owner matrix、迁移窗口关闭条件和可退役 compatibility shell 清单
 - 退役旧宿主与重复 transport/client，完成 truth source、测试矩阵与归档回写
-- 默认 `light` 入口已切到 `packages/host-local/src/nest/**`；candidate apply-resolution / knowledge review 已由 Nest 主线接管，旧 Fastify rollback/compat 路径已删除
+- 默认 `light` 入口已切到 `packages/host-local/src/nest/**`；candidate manual-result / apply-resolution / knowledge review 已由 Nest 主线通过 owner port 接管，旧 Fastify rollback/compat 写路径已删除
 
 ## 快速理解
 
@@ -202,7 +202,7 @@ docker compose --profile distributed --profile mq up -d
 
 `local-agent` 不推荐走 compose；直接使用 `pnpm dev:local-agent` 更符合单用户轻量模式。
 
-`docker-compose.yml` 中的 `server` service 目前仍承担统一 gateway 的 compose 入口。`distributed` profile 只是在它之外追加 `candidate-worker`、`governance-worker`、`outbox-worker`；CLI 仍然只连 `TRAPMAP_GATEWAY_URL`。
+`docker-compose.yml` 中的 `server` service 现在只是 service name，实际运行的是 `packages/host-local/Dockerfile` 构建出来的 `team-monolith` light host。`distributed` profile 改为运行 `packages/host-distributed/Dockerfile` 构建的 gateway/worker 入口；CLI 仍然只连 `TRAPMAP_GATEWAY_URL`。
 
 最快捷试跑方式：
 

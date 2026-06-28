@@ -11,40 +11,21 @@ import type {
   SessionLookupPort,
   TeamLookupPort,
 } from '@trapmap/backend-core';
-import { createAsyncTransport } from '@trapmap/server/lib/async/factory.js';
-import { createAiProviders } from '@trapmap/server/lib/ai/index.js';
 import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
-import { setGlobalEmbeddingsProvider } from '@trapmap/server/lib/embeddings.js';
-import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
-import { buildDefaultAdapterRegistry } from '@trapmap/server/lib/indexing/adapters/index.js';
-import { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
-import { createSkillShareerStore } from '@trapmap/server/lib/persistence/create-store.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import { createAllRepos } from '@trapmap/server/lib/repos/index.js';
-import { keywordChannel } from '@trapmap/server/lib/retrieval/recall/keyword.js';
-import { semanticChannel } from '@trapmap/server/lib/retrieval/recall/semantic.js';
-import { ChannelRegistry } from '@trapmap/server/lib/retrieval/orchestration/channel-registry.js';
-import {
-  graphAssistedRecall,
-  hybridRecall,
-  semanticRecall,
-} from '@trapmap/server/lib/retrieval/orchestration/recall-coordinator.js';
-import type { RetrievalStrategy } from '@trapmap/server/lib/retrieval/orchestration/strategy-registry.js';
-import { StrategyRegistry } from '@trapmap/server/lib/retrieval/orchestration/strategy-registry.js';
 import { searchKnowledge } from '@trapmap/server/lib/retrieval.js';
 import { resolveEffectivePermissions } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import type { Permission } from '@trapmap/contracts';
-import { resolveRuntimeDeployment, resolveServiceUnit } from '@trapmap/backend-core/runtime';
-import type { ServerConfig } from '../config/config.js';
 
-import { loadServerConfigBridge } from '../config/config-bridge.js';
+import { loadHostLocalConfig } from '../config/index.js';
+import { createHostLocalServices, type HostLocalServices } from './host-services.js';
+import { asServerSkillShareerServices } from './service-compat.js';
 
 export const HOST_LOCAL_RUNTIME_TOKEN = 'HOST_LOCAL_RUNTIME';
 
 export interface HostLocalRuntime {
-  services: SkillShareerServices;
+  services: HostLocalServices;
   retrievalQuery: RetrievalQueryPort;
   sessionLookup: SessionLookupPort;
   teamLookup: TeamLookupPort;
@@ -229,96 +210,18 @@ function createRetrievalQuery(services: SkillShareerServices): RetrievalQueryPor
 }
 
 export async function createHostLocalRuntime(): Promise<HostLocalRuntime> {
-  const config = loadServerConfigBridge().serverConfig;
-  const runtimeDeployment = resolveRuntimeDeployment({
-    preset: config.deployment.preset,
-    ...(config.deployment.profile ? { profile: config.deployment.profile } : {}),
-    ...(config.deployment.resolved?.runtimeMode
-      ? { runtimeMode: config.deployment.resolved.runtimeMode }
-      : {}),
-    ...(config.deployment.resolved?.serviceUnit
-      ? { serviceUnit: resolveServiceUnit(config.deployment.resolved.serviceUnit) }
-      : {}),
-  });
-  config.deployment.resolved = runtimeDeployment;
-
-  const store = createSkillShareerStore({
-    dataFile: config.dataFile,
-    databaseUrl: config.databaseUrl,
-  });
-  const pool = store instanceof PostgresStore ? store.getPool() : undefined;
-  const repos = await createAllRepos(pool ? { store, pool } : { store });
-  const asyncTransport = pool ? createAsyncTransport({ config, pool }) : undefined;
-
-  const channelRegistry = new ChannelRegistry();
-  channelRegistry.register(semanticChannel);
-  channelRegistry.register(keywordChannel);
-
-  const strategyRegistry = new StrategyRegistry();
-  const semanticStrategy: RetrievalStrategy = {
-    version: 'semantic',
-    async execute(query, _channels, eligibleEntries, services, auth) {
-      return semanticRecall(query.seed, eligibleEntries, query, services, auth);
-    },
-  };
-  const hybridStrategy: RetrievalStrategy = {
-    version: 'hybrid',
-    async execute(query, _channels, eligibleEntries, services, auth) {
-      return hybridRecall(query.seed, eligibleEntries, query, services, auth);
-    },
-  };
-  const graphAssistedStrategy: RetrievalStrategy = {
-    version: 'graph-assisted',
-    async execute(query, _channels, eligibleEntries, services) {
-      return graphAssistedRecall(query.seed, eligibleEntries, query, services);
-    },
-  };
-  strategyRegistry.register(semanticStrategy);
-  strategyRegistry.register(hybridStrategy);
-  strategyRegistry.register(graphAssistedStrategy);
-
-  const graphQueryBackend = createMemoryGraphQueryBackend(repos.graphIndex);
-  const services: SkillShareerServices = {
-    config,
-    runtimeDeployment,
-    runtimeMode: runtimeDeployment.runtimeMode,
-    serviceUnit: runtimeDeployment.serviceUnit,
-    store,
-    ...(asyncTransport ? { asyncTransport } : {}),
-    adapterRegistry: buildDefaultAdapterRegistry(),
-    channelRegistry,
-    strategyRegistry,
-    ai: createAiProviders(config.ai),
-    knowledgeRepo: repos.knowledge,
-    artifactRepo: repos.artifact,
-    sessionRepo: repos.session,
-    accessKeyRepo: repos.accessKey,
-    userRepo: repos.user,
-    teamRepo: repos.team,
-    membershipRepo: repos.membership,
-    usageAnalyticsRepo: repos.usageAnalytics,
-    repos,
-    graphQueryBackend,
-    graphQuery: {
-      backendKind: 'memory',
-      enabled: false,
-      failOpen: true,
-      mode: 'disabled',
-      syncOnWrite: false,
-    },
-    eventBus: new LifecycleEventBus(),
-  };
-
-  setGlobalEmbeddingsProvider(services.ai.embeddings);
+  const config = loadHostLocalConfig();
+  const services = await createHostLocalServices(config);
+  const compatServices = asServerSkillShareerServices(services);
 
   const runtime: HostLocalRuntime = {
     services,
-    retrievalQuery: createRetrievalQuery(services),
-    sessionLookup: createSessionLookup(services),
-    teamLookup: createTeamLookup(services),
-    permissionCheck: createPermissionCheck(services),
-    auditLog: createAuditLog(services),
-    queuePorts: createQueuePorts(services),
+    retrievalQuery: createRetrievalQuery(compatServices),
+    sessionLookup: createSessionLookup(compatServices),
+    teamLookup: createTeamLookup(compatServices),
+    permissionCheck: createPermissionCheck(compatServices),
+    auditLog: createAuditLog(compatServices),
+    queuePorts: createQueuePorts(compatServices),
   };
 
   return runtime;

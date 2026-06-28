@@ -21,20 +21,11 @@ const governanceReviewMock: ReviewPort = {
   submitFeedback: vi.fn(),
 };
 
-vi.mock('@trapmap/server/lib/candidates/services/resolution-service.js', () => ({
-  applyResolution: vi.fn(),
-}));
-
 vi.mock('@trapmap/server/lib/operations/read-model.js', () => ({
   buildReviewQueueProjection: vi.fn(),
 }));
 
-vi.mock('@trapmap/server/lib/lifecycle/publisher.js', () => ({
-  createLifecyclePublisher: () => ({ publish: vi.fn() }),
-}));
-
 import { CandidateReviewController } from './candidate-review.controller.js';
-import { applyResolution } from '@trapmap/server/lib/candidates/services/resolution-service.js';
 
 function createRuntime(): HostLocalRuntime {
   return {
@@ -73,14 +64,33 @@ describe('CandidateReviewController', () => {
   });
 
   it('routes apply-resolution through the Nest light mainline runtime', async () => {
-    vi.mocked(applyResolution).mockResolvedValueOnce({
-      candidateId: 'candidate-1',
-      status: 'resolved',
-    });
+    const runtime = createRuntime();
+    const candidateRepo = {
+      getById: vi
+        .fn()
+        .mockResolvedValueOnce({
+          id: 'candidate-1',
+          status: 'duplicate_detected',
+          manualResult: {
+            decision: 'independent',
+            notes: 'publish it',
+          },
+        })
+        .mockResolvedValueOnce({
+          id: 'candidate-1',
+          status: 'resolved',
+          manualResult: {
+            decision: 'independent',
+            notes: 'publish it',
+          },
+        }),
+    };
+    runtime.services.repos.candidate = candidateRepo as any;
+    vi.mocked(candidateIngestionMock.applyResolution).mockResolvedValueOnce(undefined);
     const controller = new CandidateReviewController(
       candidateIngestionMock,
       governanceReviewMock,
-      createRuntime(),
+      runtime,
     );
 
     const result = await controller.applyCandidateResolution('candidate-1', {
@@ -89,21 +99,21 @@ describe('CandidateReviewController', () => {
       },
     } as any);
 
-    expect(applyResolution).toHaveBeenCalledWith(
-      expect.objectContaining({
-        repos: expect.objectContaining({
-          candidate: {},
-          lineage: {},
-        }),
-      }),
-      expect.objectContaining({
-        actorId: 'user-1',
-      }),
+    expect(candidateIngestionMock.applyResolution).toHaveBeenCalledWith(
       'candidate-1',
+      {
+        decision: 'independent',
+        notes: 'publish it',
+      },
+      'user-1',
     );
     expect(result).toMatchObject({
       candidateId: 'candidate-1',
       status: 'resolved',
+      outcome: {
+        decision: 'independent',
+        notes: 'publish it',
+      },
     });
   });
 

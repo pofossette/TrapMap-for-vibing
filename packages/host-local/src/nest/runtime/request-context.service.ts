@@ -41,7 +41,7 @@ export class RequestContextService {
 
 /**
  * Extract or generate request context from an incoming Fastify request.
- * Uses the configured header names from ServerConfig.
+ * Uses the configured header names from the host-local config seam.
  */
 export function extractRequestContext(
   headers: Record<string, string | string[] | undefined>,

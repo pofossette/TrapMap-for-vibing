@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsc -b tsconfig.json",
-    "test": "vitest run --passWithNoTests",
+    "test": "pnpm -C ../.. exec vitest run --project service-knowledge-read --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
