@@ -59,7 +59,17 @@ export async function attachManualResult(
   const nextState = body.decision === 'independent' ? 'ready_for_review' : 'rejected';
 
   const { candidate: candidateRepo } = deps.repos;
-  await candidateRepo.attachManualResult(candidateId, body, auth.user!.id);
+  try {
+    await candidateRepo.attachManualResult(candidateId, body, auth.user!.id);
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    if (error instanceof Error && error.message.includes('not found')) {
+      throw new AppError(404, 'candidate_not_found', 'Candidate not found');
+    }
+    throw error;
+  }
 
   void logUserOperation(deps.config.userOpsLog, {
     timestamp: nowIso(),

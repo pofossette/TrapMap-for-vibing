@@ -45,6 +45,10 @@
       ".kilo",
       ".opencode",
       "reports",
+      "packages/*/src/**/*.js",
+      "packages/*/src/**/*.js.map",
+      "packages/*/src/**/*.d.ts",
+      "packages/*/src/**/*.d.ts.map",
       "scripts/codemods",
       "packages/host-local/src/nest/**/*.ts"
     ]

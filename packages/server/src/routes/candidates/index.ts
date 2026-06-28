@@ -11,10 +11,12 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { candidateDuplicateRoutes } from './duplicates.js';
 import { candidateQueryRoutes } from './query.js';
+import { candidateResolutionRoutes } from './resolution.js';
 import { candidateSubmissionRoutes } from './submit.js';
 
 export const candidateRoutes: FastifyPluginAsync = async (app) => {
   await app.register(candidateSubmissionRoutes);
   await app.register(candidateQueryRoutes);
   await app.register(candidateDuplicateRoutes);
+  await app.register(candidateResolutionRoutes);
 };

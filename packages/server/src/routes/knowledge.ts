@@ -4,6 +4,8 @@ import {
   knowledgeResubmissionSchema,
   knowledgeSubmissionSchema,
   knowledgeUpdateSchema,
+  reviewDecisionRequestSchema,
+  reviewerDecisionOutputSchema,
 } from '@trapmap/contracts';
 import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
@@ -12,6 +14,7 @@ import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/look
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { createKnowledgeRevision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
+import { createReviewApplicationService } from '@trapmap/server/lib/knowledge/review-application-service.js';
 import { upsertKnowledgeEntryShadow } from '@trapmap/server/lib/knowledge/shadow-sync.js';
 import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
 import {
@@ -110,6 +113,47 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
 
     return knowledgeEntryResponseSchema.parse({
       entry: toKnowledgeEntry(lookup, entry),
+    });
+  });
+
+  app.post('/v1/knowledge/review', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    requirePermission(auth, 'knowledge:review');
+
+    const payload = reviewDecisionRequestSchema.parse(request.body);
+    const appliedAt = nowIso();
+    const reviewService = createReviewApplicationService({
+      repos: {
+        knowledge: app.skillShareer.repos.knowledge,
+        audit: app.skillShareer.repos.audit,
+        user: app.skillShareer.repos.user,
+        membership: app.skillShareer.repos.membership,
+      },
+      lifecyclePublisher,
+      feedbackRepo: app.skillShareer.repos.feedback,
+    });
+
+    const result = await reviewService.applyDecision({
+      actorId: auth.actorId,
+      authContext: auth,
+      entryId: payload.entryId,
+      decision: payload.decision,
+      notes: payload.notes,
+      appliedAt,
+      boundary: payload.boundary ?? undefined,
+      evidence: payload.evidence,
+    });
+
+    const latestSubmission = result.entry.submissionHistory.at(-1) ?? null;
+    const latestDecision = result.entry.reviewHistory.at(-1);
+    if (!latestDecision) {
+      throw new AppError(500, 'review_decision_missing', 'Review decision record missing');
+    }
+
+    return reviewerDecisionOutputSchema.parse({
+      entry: result.entry,
+      submission: latestSubmission,
+      decision: latestDecision,
     });
   });
 

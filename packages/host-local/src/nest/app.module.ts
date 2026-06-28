@@ -1,13 +1,11 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import {
-  createCandidateIngestionDeps,
-  createGovernanceReviewDeps,
-  createIdentityAccessDeps,
-  createJobRuntimeDeps,
-  createKnowledgeWriteDeps,
-} from '@trapmap/service-candidate-ingestion';
+import { createCandidateIngestionDeps } from '@trapmap/service-candidate-ingestion';
+import { createGovernanceReviewDeps } from '@trapmap/service-governance-review';
+import { createIdentityAccessDeps } from '@trapmap/service-identity-access';
+import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
 import { createKnowledgeReadDeps } from '@trapmap/service-knowledge-read';
+import { createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';
 
 import { HOST_LOCAL_CONFIG_TOKEN, loadHostLocalConfig } from './config/index.js';
 import { GatewayModule } from './gateway/gateway.module.js';

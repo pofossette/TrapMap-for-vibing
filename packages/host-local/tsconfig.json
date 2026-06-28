@@ -1,17 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts"],
-  "exclude": ["src/**/*.test.ts"],
-  "references": [
-    { "path": "../backend-core" },
-    { "path": "../contracts" },
-    { "path": "../server" },
-    { "path": "../service-knowledge-read" }
-  ]
+  "include": ["src/index.ts"],
+  "exclude": ["src/**/*.test.ts", "src/nest/**/*.ts"],
+  "references": [{ "path": "../backend-core" }, { "path": "../contracts" }]
 }

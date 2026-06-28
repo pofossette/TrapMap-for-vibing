@@ -1,7 +1,7 @@
-import type { RouteFamilyDescriptor } from './route-surface.js';
-import { buildRouteSurfaceSummary } from './route-surface.js';
 import type { ResolvedRuntimeDeployment } from './capability-model.js';
 import type { RuntimeMode, ServiceUnit, ServiceUnitProfile } from './capability-model.js';
+import type { RouteFamilyDescriptor } from './route-surface.js';
+import { buildRouteSurfaceSummary } from './route-surface.js';
 import { buildServiceTopologySnapshot } from './topology.js';
 import type { ServiceTopologySnapshot } from './topology.js';
 

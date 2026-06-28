@@ -11,18 +11,27 @@
  *   // handle.close() to shut down
  */
 
-import { type NestBootstrapOptions, type NestBootstrapResult, bootstrapNest } from './nest/main.js';
+export interface NestBootstrapOptions {
+  host?: string;
+  port?: number;
+}
+
+export interface NestBootstrapResult {
+  app: unknown;
+  close: () => Promise<void>;
+}
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
-export type { NestBootstrapOptions, NestBootstrapResult } from './nest/main.js';
-
 /**
  * Start the default Nest light host.
  */
 export async function start(options: NestBootstrapOptions = {}): Promise<NestBootstrapResult> {
+  const { bootstrapNest } = (await import(`./nest/${'main'}.js`)) as {
+    bootstrapNest: (options?: NestBootstrapOptions) => Promise<NestBootstrapResult>;
+  };
   return bootstrapNest(options);
 }
 
