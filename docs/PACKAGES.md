@@ -403,7 +403,7 @@ flowchart TB
 
 ## Phase 0 冻结的目标包布局
 
-> 以 [`plan.md`](../plan.md) 和 [`docs/todos/nestjs-service-evolution-00-target-architecture.md`](todos/nestjs-service-evolution-00-target-architecture.md) 为准；`docs/plans/runtime-recomposition/` 只保留历史迁移背景。
+> 以 [`plan.md`](../plan.md) 和 [`docs/todos/trapmap-architecture-remediation-plan.md`](todos/trapmap-architecture-remediation-plan.md) 为准；`docs/todos/nestjs-service-evolution-00-target-architecture.md` 与 `docs/plans/runtime-recomposition/` 只保留历史目标/迁移背景输入。
 
 ### 包角色与迁移决策
 

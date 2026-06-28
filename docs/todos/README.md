@@ -18,7 +18,7 @@
 | `backend-build-targets-plan.md` | 轻重后端构建目标、兼容壳清理与客户端后端形态配置计划 |
 | `instrumentation-observability-plan.md` | 数据埋点增强、运行监控、链路追踪与 debug surface 计划 |
 | `robustness-scalability-closeout-plan.md` | 健壮性与可扩展性收尾：问题清理、风险收敛、truth source 修复与测试证据补强 |
-| `trapmap-architecture-remediation-plan.md` | 当前活跃主线细则：30 个架构问题的整改索引、阶段复选框、文档矩阵与测试矩阵 |
+| `trapmap-architecture-remediation-plan.md` | 当前唯一活跃主线细则：30 个架构问题的单一问题池、阶段复选框、文档矩阵与测试矩阵 |
 | `nestjs-service-evolution-00-target-architecture.md` | NestJS 长期目标架构与迁移边界冻结 |
 | `nestjs-service-evolution-01-host-and-contract-foundation.md` | Nest 宿主、配置与 contract 基础收口 |
 | `nestjs-service-evolution-02-modular-monolith-cutover.md` | 模块化单体切换：边界冻结、兼容层规则与机械迁移提示词 |
@@ -30,10 +30,10 @@
 | `nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md` | 样板代码迁移任务列表 |
 | `open-debt-and-compromises.md` | 当前仍未收口的占位实现、阶段性妥协与开发退路 |
 
-当前根 `plan.md` 已切换为“TrapMap 架构整改计划索引”；当前唯一活跃细则入口为 [`trapmap-architecture-remediation-plan.md`](trapmap-architecture-remediation-plan.md)，用于收口 30 个架构问题的分组、进度复选框、文档回写要求和测试矩阵。
+当前根 `plan.md` 已切换为“TrapMap 架构整改计划索引”；当前唯一活跃细则入口为 [`trapmap-architecture-remediation-plan.md`](trapmap-architecture-remediation-plan.md)，用于收口 30 个架构问题的单一问题池、治理主题、进度复选框、文档回写要求和测试矩阵。Phase 0 已完成入口归并、历史输入角色冻结、deferred 入口冻结与统一适配器显式目标冻结。
 
 [`robustness-scalability-closeout-plan.md`](robustness-scalability-closeout-plan.md) 已完成并退回为历史 closeout 参考；`instrumentation-observability-plan.md` 保留为上一轮 observability 主线背景，不再由根计划直接跟踪。
-历史状态说明：当前根 `plan.md` 已完成“健壮性与可扩展性收尾”主线；后续新增问题应转入独立审计或独立计划。
+历史状态说明：当前根 `plan.md` 已完成“健壮性与可扩展性收尾”主线；后续新增问题应转入独立审计或独立计划。对当前架构整改主题，这些新增问题应优先进入当前活跃细则的问题池，或转入该细则显式声明的 deferred 落点。
 
 当前 closeout 还冻结了一条 badcase/eval 边界：operator route 可返回 `debug` 闭环信息，但 `scripts/export-badcase-to-eval.ts` 与 eval fixtures 只承载 deterministic `draft`。
 
@@ -41,4 +41,4 @@
 
 - `backend-engineering-optimization-plan.md`：MQ 产品化、监控平台、长期服务化与平台级工程化问题池
 - `nestjs-service-evolution-04-data-runtime-and-cutover.md` 与 `nestjs-service-evolution-distributed-maturity-assessment.md`：compatibility shell 进一步退役、owner matrix 历史冻结和 distributed 成熟度审计
-- `robustness-scalability-closeout-plan.md`：保留为已完成 truth source / observability / debug closeout 背景，不再承载当前架构整改执行面
+- `robustness-scalability-closeout-plan.md` 与 `instrumentation-observability-plan.md`：保留为已完成 closeout / observability 背景，不再承载当前架构整改执行面

@@ -26,24 +26,24 @@
 
 ## 当前关键路径
 
-- 当前主线阶段：`Phase 0-2`
+- 当前主线阶段：`Phase 1-2`
 - 当前先做：
-  - [ ] 归并 30 个问题到单一问题池并冻结优先级
+  - [x] 归并 30 个问题到单一问题池并冻结优先级
   - [ ] 明确 `server`、`backend-core`、`service-*`、`host-*` 的当前事实与目标边界
   - [ ] 明确 `store_snapshot`、InMemory、PG-first` 的测试与运行口径
   - [ ] 冻结统一适配器的范围、目录与接口边界
   - [ ] 冻结统一适配器的环境变量矩阵与 target 裁剪策略
   - [ ] 写清 distributed 当前过渡态成熟度基线与 deferred 范围
-  - [ ] 收口历史计划、索引和 truth source，避免继续双轨叙述
+  - [x] 收口历史计划、索引和 truth source，避免继续双轨叙述
 
 ## 阶段索引
 
 ### Phase 0 问题池冻结与入口归并
 
-- [ ] Wave 0A：把 30 个问题映射为 5 个治理主题并冻结优先级
-- [ ] Wave 0B：明确本轮非目标与 deferred 入口
-- [ ] Wave 0C：收口当前唯一根索引与唯一活跃细则
-- [ ] Wave 0D：把“统一适配器”写成本轮正式目标，而不是 `store_snapshot` 迁移的隐含副产物
+- [x] Wave 0A：把 30 个问题映射为 5 个治理主题并冻结优先级
+- [x] Wave 0B：明确本轮非目标、deferred 入口与代码整改 / 文档冻结的关闭方式分类
+- [x] Wave 0C：收口当前唯一根索引与唯一活跃细则，并明确历史输入角色
+- [x] Wave 0D：把“统一适配器”写成本轮正式目标，而不是 `store_snapshot` 迁移的隐含副产物
 - 细则：[`docs/todos/trapmap-architecture-remediation-plan.md`](docs/todos/trapmap-architecture-remediation-plan.md)
 
 ### Phase 1 Server / Backend-Core 边界整改

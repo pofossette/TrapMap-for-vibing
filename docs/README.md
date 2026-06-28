@@ -4,9 +4,14 @@
 
 TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治理基础设施。本文档负责导航到项目中的权威说明，重点覆盖治理、检索、评测与按需激活相关材料。
 
-## NestJS 服务演进进度
+## 当前整改主线
 
-Phase 0–3 已全部完成，当前进入 Phase 4 收尾：
+当前根计划已切换为“TrapMap 架构整改计划索引”，Phase 0 已完成文档/结构冻结，当前执行面只有一条：
+
+- 根索引：[`../plan.md`](../plan.md)
+- 当前唯一活跃细则：[`todos/trapmap-architecture-remediation-plan.md`](todos/trapmap-architecture-remediation-plan.md)
+
+以下 NestJS / 服务演进内容仅保留为历史背景输入，不再作为当前根计划执行面：
 
 - 长期后端主线已冻结为 `Nest host + framework-free domain core + gradual service extraction`，Phases 1–3 已按此主线完成宿主、contract、模块化单体和服务拆分落地。
 - `light` / `heavy` 只表示后端构建目标：`local-agent`、`team-monolith` -> `light`，`distributed` -> `heavy`。
@@ -185,16 +190,16 @@ deployment flexibility 最小验证矩阵：
 
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
-- [架构整改根计划](../plan.md) — 当前根级执行索引，跟踪 30 个架构问题的分组、阶段推进、文档回写和测试关闭要求
-- [架构整改细则](todos/trapmap-architecture-remediation-plan.md) — 当前唯一活跃细则入口，收口 `server`/`backend-core`/`store_snapshot`/distributed/维护性 五类问题的执行复选框
+- [架构整改根计划](../plan.md) — 当前根级执行索引；只保留阶段、关键路径和唯一细则入口
+- [架构整改细则](todos/trapmap-architecture-remediation-plan.md) — 当前唯一活跃细则入口；Phase 0 已冻结单一问题池、历史输入角色、deferred 入口和统一适配器显式目标
 - [健壮性与可扩展性收尾细则](todos/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](todos/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪
 - [轻重后端构建目标细则](todos/backend-build-targets-plan.md) — 轻重后端构建目标、兼容壳清理与客户端后端形态配置的细则；根计划已切换，不再是当前主线
 - [组件替换细则](todos/component-replacement-plan.md) — 成熟包替换的独立细则；根计划已切换，不再是当前主线
 - [Badcase 回流待办](todos/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
-- [后端工程化优化计划](todos/backend-engineering-optimization-plan.md) — 队列、MQ、微服务化与观测演进方向的问题池；本轮 closeout 明确将其列为 deferred 背景，不作为当前执行面
-- closeout 后仍允许扩展的 seam 只有独立 deep drill-down、compatibility shell 进一步退役、distributed 成熟度审计和平台化问题池；这些都不得回写为当前根计划仍在进行中的事项
+- [后端工程化优化计划](todos/backend-engineering-optimization-plan.md) — 平台化 deferred 问题池；承接 MQ 产品化、监控平台、长期服务化与更重的平台工程议题
+- 当前主线不再接受新的平行整改索引；若后续继续深入历史主题或平台化议题，必须转入当前细则显式链接的 deferred 落点
 - [NestJS 目标架构冻结](todos/nestjs-service-evolution-00-target-architecture.md) — 长期目标、边界、保留与退役决策
 - [NestJS 宿主与 contract 基础](todos/nestjs-service-evolution-01-host-and-contract-foundation.md) — 首条 Nest 宿主主线与共享 contract 收口
 - [NestJS 模块化单体切换](todos/nestjs-service-evolution-02-modular-monolith-cutover.md) — 六个 bounded context、compatibility boundary 与机械迁移提示词
