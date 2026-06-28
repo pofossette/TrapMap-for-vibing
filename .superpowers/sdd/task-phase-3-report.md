@@ -45,6 +45,20 @@
 3. `rtk pnpm check:structure`
    - Result: PASS
 
+## Review Fix Follow-up
+
+1. `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
+   - Result: PASS
+   - Output: `✓ |server| src/__tests__/docs-truth-smoke.test.ts (36 tests) 15ms`
+
+2. `rtk pnpm check:docs-drift`
+   - Result: PASS
+   - Output: `[doc-drift] All 33 doc rule(s) passed.`
+
+3. `rtk pnpm check:structure`
+   - Result: PASS
+   - Output: `[structure-guard] All checks passed.`
+
 ## Outcome
 
 - Phase 3 Wave 3A-3C is now frozen as a documentation/truth-source boundary closeout.

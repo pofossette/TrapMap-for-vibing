@@ -229,6 +229,61 @@ describe('docs truth smoke', () => {
     expect(activateRouteSource).toContain('artifactFilePayloads');
   });
 
+  it('Phase 3 docs freeze adapter scope, provider taxonomy, and host/gateway boundaries', () => {
+    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
+    const packagesDoc = readDoc('docs/PACKAGES.md');
+    const repoStructure = readDoc('docs/reference/REPO_STRUCTURE.md');
+    const testingDoc = readDoc('docs/operations/TESTING.md');
+    const hostLocalAdapterFactory = readDoc('packages/host-local/src/nest/adapters/adapter-factory.ts');
+    const hostLocalRemoteAdapter = readDoc('packages/host-local/src/nest/adapters/remote.adapter.ts');
+    const hostLocalSharedInfra = readDoc('packages/host-local/src/nest/runtime/shared-infra.ts');
+    const internalPorts = readDoc('packages/backend-core/src/ports/internal-ports.ts');
+    const distributedClient = readDoc('packages/host-distributed/src/gateway/internal-client.ts');
+    const distributedKnowledgeWriteClient = readDoc(
+      'packages/host-distributed/src/shared/internal-knowledge-write-client.ts',
+    );
+
+    expect(remediation).toContain('### Phase 3 closure freeze (G3 `#17` `#18` `#19` `#21` `#23` `#29` `#30` adapter scope)');
+    expect(remediation).toContain('provider taxonomy');
+    expect(remediation).toContain('host-owned adapter selection seam');
+    expect(remediation).toContain('gateway client');
+    expect(remediation).toContain('mega-adapter');
+
+    expect(truthSources).toContain('Phase 3 unified-adapter boundary freeze');
+    expect(truthSources).toContain('packages/host-local/src/nest/adapters/adapter-factory.ts');
+    expect(truthSources).toContain('packages/host-distributed/src/gateway/internal-client.ts');
+    expect(truthSources).toContain('packages/host-distributed/src/shared/internal-knowledge-write-client.ts');
+    expect(truthSources).toContain('host-owned adapter selection');
+
+    expect(packagesDoc).toContain('## Phase 3 Unified adapter boundary freeze');
+    expect(packagesDoc).toContain('统一适配器不是 mega-adapter');
+    expect(packagesDoc).toContain('`backend-core` 只定义 port contract');
+    expect(packagesDoc).toContain('`packages/host-local/src/nest/adapters/`');
+    expect(packagesDoc).toContain('`packages/host-distributed/src/gateway/internal-client.ts`');
+
+    expect(repoStructure).toContain('packages/host-local/src/nest/adapters/');
+    expect(repoStructure).toContain('packages/host-distributed/src/gateway/');
+    expect(repoStructure).toContain('packages/host-distributed/src/shared/');
+
+    expect(testingDoc).toContain('Phase 3 Unified Adapter Freeze Checks');
+    expect(testingDoc).toContain(
+      '运行 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，确认 remediation detail plan、truth source、packages doc、repo structure 与 testing doc 一致冻结 unified adapter scope、provider taxonomy、host-owned adapter selection seam、gateway client 边界与 transitional shared infra seam。',
+    );
+    expect(testingDoc).toContain('pnpm check:docs-drift');
+    expect(testingDoc).toContain('pnpm check:structure');
+    expect(testingDoc).toContain('packages/server/src/__tests__/docs-truth-smoke.test.ts');
+
+    expect(hostLocalAdapterFactory).toContain("export type AdapterMode = 'in-process' | 'remote'");
+    expect(hostLocalAdapterFactory).toContain('Adapter selection is the host assembly');
+    expect(hostLocalRemoteAdapter).toContain('Remote adapter must NOT leak fetch Response');
+    expect(hostLocalSharedInfra).toContain('buildDefaultAdapterRegistry()');
+    expect(hostLocalSharedInfra).toContain('Shared seam only');
+    expect(internalPorts).toContain('This layer enables both in-process direct invocation');
+    expect(distributedClient).toContain('normalizeCanonicalErrorBody');
+    expect(distributedKnowledgeWriteClient).toContain('createRemoteKnowledgeWriteClient');
+  });
+
   it('docs/README.md does not contain stale schema counts', () => {
     const content = readDoc('docs/README.md');
     expect(content).not.toContain('48 张表');
