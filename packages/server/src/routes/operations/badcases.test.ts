@@ -130,6 +130,7 @@ describe('badcase export route', () => {
     });
     expect(exportResponse.json().draft.request.workflowRunId).toBeUndefined();
     expect(exportResponse.json().draft.request.asyncJobId).toBeUndefined();
+    expect(exportResponse.json().draft.debug).toBeUndefined();
   });
 
   it('proves retrieval -> feedback -> workflow correlation -> export debug contract on the real async path', async () => {
@@ -274,5 +275,6 @@ describe('badcase export route', () => {
       },
     });
     expect(exportResponse.json().draft.request.asyncJobId).toBeUndefined();
+    expect(exportResponse.json().draft.debug).toBeUndefined();
   });
 });

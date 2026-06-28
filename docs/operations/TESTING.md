@@ -90,7 +90,7 @@ flowchart TB
 
 **Phase 7 Badcase Export / Decision Metrics Checks:**
 - Operator export flow：先用 retrieval 拿到 `queryId`，提交带 badcase 的 feedback，再调用 `GET /v1/operations/badcases/:feedbackId/export`，确认返回 deterministic draft JSON。
-- Script export flow：运行 `pnpm exec tsx scripts/export-badcase-to-eval.ts <feedbackId> <outputPath>`，确认输出文件与 route `draft` shape 一致；route 额外携带的 `debug` 仅用于 operator/debug 闭环，不属于 eval draft payload。
+- Script export flow：运行 `pnpm exec tsx scripts/export-badcase-to-eval.ts <feedbackId> <outputPath>`，确认输出文件与 route `draft` shape 一致，并且输出只包含 `badcaseEvalDraftSchema`；route 额外携带的 `debug` 仅用于 operator/debug 闭环，不属于 eval draft payload。
 - Decision metrics：调用 `GET /v1/operations/stats/summary`，确认返回 `asyncArchitecture.queueBacklogByType`、`deadLetterByType`、`retryRateByType`、`avgHandlerLatencyMsByType`、`cacheHitRateByNamespace`、`badcaseExportCount`、`retrievalFailureDistribution` 与 `thresholds`。
 
 **Phase 1 Instrumentation Contract Checks:**

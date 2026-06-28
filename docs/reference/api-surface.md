@@ -165,7 +165,7 @@
 | `GET` | `/v1/operations/status` | `compatibilityStatusRequestSchema` | `compatibilityStatusResponseSchema` | 获取系统兼容性状态 |
 | `GET` | `/v1/operations/status/async` | 无 | `asyncOperationsStatusResponseSchema` | 获取 Phase 2 async contract，以及 Phase 3 的 `operatorHome`、`configGovernance`、`capacityModel`、`bulkOperations`、queue/outbox/cache/workflow drill-down |
 | `POST` | `/v1/operations/status/async/tasks/:taskId/requeue` | 无 | `asyncTaskRequeueResponseSchema` | 通过统一 operator flow 重新入队 dead task |
-| `GET` | `/v1/operations/badcases/:feedbackId/export` | 无 | `badcaseExportResponseSchema` | 把持久化 badcase trace 导出为 deterministic eval draft |
+| `GET` | `/v1/operations/badcases/:feedbackId/export` | 无 | `badcaseExportResponseSchema` | 把持久化 badcase trace 导出为 deterministic eval draft，并附带 operator-only `debug` 闭环信息 |
 
 > 源码：`packages/server/src/routes/operations.ts`（注册子路由）
 
@@ -173,6 +173,7 @@ Phase 4 closeout 补充：
 
 - 默认 operator surface 已冻结为 `operatorHome`、`configGovernance`、`capacityModel`、`bulkOperations` 以及 queue/outbox/cache/workflow drill-down。
 - `workflow` drill-down 当前可返回 internal/operator-only `workflows[*].correlation`，用于解释 `requestId` / `traceId` / `queryId` / `feedbackId` / `asyncJobId` 与 async follow-up 的关系；它不属于新的通用 public additive field。
+- `GET /v1/operations/badcases/:feedbackId/export` 的 `debug` 字段同样属于 operator/debug 闭环，不属于 script/eval draft payload；`scripts/export-badcase-to-eval.ts` 只序列化 `draft`。
 - 热点 `team/query/artifact` 当前不属于默认 operator surface contract；如后续需要，应作为单独 deep drill-down 能力新增，而不是隐式塞入现有首页 schema。
 
 ## Capsule-Index 运维

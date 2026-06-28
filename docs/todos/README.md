@@ -30,3 +30,5 @@
 | `open-debt-and-compromises.md` | 当前仍未收口的占位实现、阶段性妥协与开发退路 |
 
 当前根 `plan.md` 已切换到“健壮性与可扩展性收尾”主线；已发现问题、残余风险、truth source 收敛与测试/文档关闭要求统一追踪在 [`robustness-scalability-closeout-plan.md`](robustness-scalability-closeout-plan.md)。该细则已冻结单一问题池、后续固定执行顺序和 deferred 边界。`instrumentation-observability-plan.md` 保留为上一轮 observability 主线细则参考，不再是当前唯一活跃入口。
+
+当前 closeout 还冻结了一条 badcase/eval 边界：operator route 可返回 `debug` 闭环信息，但 `scripts/export-badcase-to-eval.ts` 与 eval fixtures 只承载 deterministic `draft`。

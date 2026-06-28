@@ -187,6 +187,7 @@ deployment flexibility 最小验证矩阵：
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
 - [健壮性与可扩展性收尾根计划](../plan.md) — 当前根级执行索引，跟踪已发现问题、残余风险、truth source 收敛与测试/文档关闭要求
 - [健壮性与可扩展性收尾细则](todos/robustness-scalability-closeout-plan.md) — 当前唯一活跃细则入口，包含冻结后的单一问题池、固定阶段顺序、非目标边界、文档回写矩阵与最小验证要求
+- 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](todos/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪
 - [轻重后端构建目标细则](todos/backend-build-targets-plan.md) — 轻重后端构建目标、兼容壳清理与客户端后端形态配置的细则；根计划已切换，不再是当前主线
 - [组件替换细则](todos/component-replacement-plan.md) — 成熟包替换的独立细则；根计划已切换，不再是当前主线

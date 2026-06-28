@@ -161,9 +161,9 @@
 
 **Phase 3 关闭条件：**
 
-- [ ] retrieval / governance / feedback / badcase / operator / eval 之间使用同一套关键字段语义
-- [ ] 关键传播证据存在 focused test 或 acceptance proof
-- [ ] `rtk pnpm eval:smoke` 已通过
+- [x] retrieval / governance / feedback / badcase / operator / eval 之间使用同一套关键字段语义
+- [x] 关键传播证据存在 focused test 或 acceptance proof
+- [x] `rtk pnpm eval:smoke` 已通过
 
 ### Phase 4 守卫、文档与扩展缝隙收尾
 
@@ -171,9 +171,9 @@
 
 **补齐清单：**
 
-- [ ] 根据复发风险决定是否新增 docs drift / structure / contract focused guard
-- [ ] 清理 docs 索引中的旧主线描述和过期阶段表述
-- [ ] 在相关文档中标记本轮 deferred risk 与后续扩展 seam
+- [x] 根据复发风险决定是否新增 docs drift / structure / contract focused guard
+- [x] 清理 docs 索引中的旧主线描述和过期阶段表述
+- [x] 在相关文档中标记本轮 deferred risk 与后续扩展 seam
 - [ ] 关闭根计划与本细则中的所有未决项
 
 **Phase 4 关闭条件：**
@@ -222,17 +222,17 @@
 
 ### test evidence
 
-- [ ] propagation 证据仍可能依赖 mock 或局部 helper，而不是 request-to-async / cross-hop 真实链路
+- [x] propagation 证据仍可能依赖 mock 或局部 helper，而不是 request-to-async / cross-hop 真实链路
   - 当前落点：distributed internal client tests、feedback/badcase 相关测试、operator acceptance 路径
   - 影响面：trace/request/query/feedback/async 传播可信度、回归防线
   - 建议归属 phase：Phase 3
   - 优先级：`必须修`
-- [ ] 部分测试仍通过手工插库或伪造状态验证 operator/debug surface，缺少 focused end-to-end proof
+- [x] 部分测试仍通过手工插库或伪造状态验证 operator/debug surface，缺少 focused end-to-end proof
   - 当前落点：badcase export、operator drill-down、async status 相关测试与 fixtures
   - 影响面：debug contract 的真实可用性、实施结论可信度
   - 建议归属 phase：Phase 3
   - 优先级：`应该修`
-- [ ] 计划与文档对测试覆盖强度的表述强于当前真实测试证据
+- [x] 计划与文档对测试覆盖强度的表述强于当前真实测试证据
   - 当前落点：`docs/operations/TESTING.md`、历史 observability 细则、当前 closeout 细则
   - 影响面：阶段关闭判断、审计可复核性、后续执行者误判
   - 建议归属 phase：Phase 3
@@ -240,17 +240,17 @@
 
 ### governance/docs
 
-- [ ] 根计划、细则与 docs 索引曾存在主线切换不完整和阶段边界不一致
+- [x] 根计划、细则与 docs 索引曾存在主线切换不完整和阶段边界不一致
   - 当前落点：`plan.md`、`docs/README.md`、`docs/todos/README.md`、`docs/archived/README.md`
   - 影响面：执行入口混乱、旧主线误引用、关闭条件误判
   - 建议归属 phase：Phase 0
   - 优先级：`必须修`
-- [ ] 历史 observability 主线与当前健壮性收尾主线关系不够显式，容易把历史细则误当当前执行索引
+- [x] 历史 observability 主线与当前健壮性收尾主线关系不够显式，容易把历史细则误当当前执行索引
   - 当前落点：`docs/reference/SYSTEM_TRUTH_SOURCES.md`、`docs/README.md`、`docs/todos/README.md`
   - 影响面：truth source 误判、执行顺序越界、文档回写漂移
   - 建议归属 phase：Phase 0
   - 优先级：`必须修`
-- [ ] backend engineering / service evolution 等长期问题池与本轮 closeout 边界需要明确切断，避免“顺手优化”越界
+- [x] backend engineering / service evolution 等长期问题池与本轮 closeout 边界需要明确切断，避免“顺手优化”越界
   - 当前落点：`docs/todos/backend-engineering-optimization-plan.md`、Nest service evolution 系列细则、当前 closeout 细则
   - 影响面：阶段膨胀、审计范围失焦、交付不可关闭
   - 建议归属 phase：Phase 0
@@ -265,7 +265,7 @@
 
 ## 7. 完成定义
 
-- [ ] 已确认问题、残余风险和越界点被处理或明确 deferred
+- [x] 已确认问题、残余风险和越界点被处理或明确 deferred
 - [ ] runtime / async / retrieval / feedback / operator 关键 contract 具备单一 truth source
 - [ ] 指标语义、传播证据、错误映射和 debug contract 具备可验证、可维护、可扩展基础
 - [ ] 根计划、细则、文档索引、归档入口和测试矩阵与当前实现一致

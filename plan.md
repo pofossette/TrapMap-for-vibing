@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 状态：`进行中`
+- 状态：`进行中（Phase 3 已完成，Phase 4 进行中）`
 - 日期：`2026-06-28`
 - 本文件角色：根级执行计划索引，只保留目标、总体要求、阶段勾选和细则入口
 - 当前活跃细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
@@ -26,15 +26,17 @@
 
 ## 当前关键路径
 
-- 当前主线阶段：`Phase 1 -> Phase 2`
+- 当前主线阶段：`Phase 4`
 - 当前先做：
   - [x] 冻结本轮要清理的已知问题、残余风险与非目标
   - [x] 明确哪些问题属于 contract truth、runtime seam、operator surface、测试证据、文档治理
   - [x] 收敛后续阶段的固定执行顺序与越界约束
   - [x] 冻结本轮文档回写矩阵与最小验证矩阵
   - [x] 完成 Phase 1 的 truth source / contract 收敛主项
-  - [ ] 进入 Phase 2，修正 runtime / async correctness 的统计与错误映射漂移
-  - [ ] 在不扩张 debug surface 的前提下关闭当前已发现的 correctness 问题池
+  - [x] 进入 Phase 2，修正 runtime / async correctness 的统计与错误映射漂移
+  - [x] 在不扩张 debug surface 的前提下关闭当前已发现的 correctness 问题池
+  - [x] 完成 Phase 3，收口 badcase/debug/eval draft 边界与传播证据
+  - [ ] 进入 Phase 4，完成守卫、文档与扩展缝隙收尾
 
 ## 阶段索引
 
@@ -67,10 +69,10 @@
 - [x] 把 request/trace/query/feedback/async 关联句柄的真实传播证据补齐到 focused tests / acceptance
 - [x] 让 retrieval、feedback、badcase export、operator drill-down、eval replay 使用同一套关键字段语义
 - [x] 为高频排障路径提供稳定、可复用的最小 debug contract
-- [ ] 补齐对应测试与必要的 `rtk pnpm eval:smoke`
+- [x] 补齐对应测试与必要的 `rtk pnpm eval:smoke`
 - 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
 
-### Phase 4 守卫、文档与扩展缝隙收尾 [未开始]
+### Phase 4 守卫、文档与扩展缝隙收尾 [进行中]
 
 - [ ] 回写 README、docs 索引、reference、operations、architecture 与必要 package README
 - [ ] 必要时补 docs drift / structure / focused test guard，防止旧口径回流

@@ -44,6 +44,8 @@ pnpm eval:summary:core
 pnpm exec tsx scripts/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
 ```
 
+该脚本只输出 `badcaseEvalDraftSchema` 对应的 deterministic draft。`GET /v1/operations/badcases/:feedbackId/export` 返回的 route wrapper 还会附带 operator-only `debug`，但这部分不属于 eval draft payload。
+
 ## 工作区布局
 
 ```text

@@ -37,7 +37,7 @@
 ## 已闭环部分（2026-06-13）
 
 - `GET /v1/operations/badcases/:feedbackId/export` 可返回 deterministic eval draft
-- `scripts/export-badcase-to-eval.ts` 可把同一 draft 写入本地 JSON
+- `scripts/export-badcase-to-eval.ts` 可把同一 draft 写入本地 JSON；script payload 只包含 deterministic `draft`，不携带 operator-only `debug`
 - `evals/fixtures/badcases/example-retrieval-badcase-draft.json` 已作为首个导出样例入库
 - 当前剩余人工边界只在“是否把 draft 正式提升为 eval fixture”的审核动作
 

@@ -8,6 +8,7 @@ import {
 import {
   asyncFailureCategorySchema,
   asyncFailureTaxonomyItemSchema,
+  badcaseEvalDraftSchema,
   badcaseExportResponseSchema,
   workflowRunSnapshotSchema,
   buildBadcaseDebugContract,
@@ -175,6 +176,29 @@ describe('operations schema fixes', () => {
       expect(response.debug.durableTrace.queryId).toBe('qry_1');
       expect(response.debug.workflow.asyncJobId).toBe('wf_badcase_feedback_1');
       expect(response.draft.request.asyncJobId).toBeUndefined();
+    });
+
+    it('keeps the script/export draft payload narrower than the operator route wrapper', () => {
+      const draft = buildBadcaseEvalDraft({
+        feedbackId: 'feedback_1',
+        queryId: 'qry_1',
+        querySeed: 'seed',
+        routeFamily: 'entry',
+        entryId: 'trap_1',
+        entryType: 'trap',
+        failureClassification: 'stale-content',
+        expectedCorrection: 'Use the latest answer.',
+        selectedResultSnapshot: { entryId: 'trap_1' },
+      });
+
+      expect(() =>
+        badcaseEvalDraftSchema.parse({
+          ...draft,
+          debug: {
+            correlation: { queryId: 'qry_1', feedbackId: 'feedback_1', asyncJobId: 'wf_1' },
+          },
+        }),
+      ).toThrow();
     });
   });
 

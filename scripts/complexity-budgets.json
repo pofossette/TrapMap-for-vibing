@@ -149,7 +149,21 @@
     },
     {
       "file": "evals/README.md",
-      "mustContain": ["retrieval/", "summary/", "graph-extraction/", "ingestion/", "pnpm eval:ci"]
+      "mustContain": [
+        "retrieval/",
+        "summary/",
+        "graph-extraction/",
+        "ingestion/",
+        "pnpm eval:ci",
+        "只输出 `badcaseEvalDraftSchema`",
+        "不属于 eval draft payload"
+      ]
+    },
+    {
+      "file": "docs/operations/TESTING.md",
+      "mustContain": [
+        "route 额外携带的 `debug` 仅用于 operator/debug 闭环，不属于 eval draft payload。"
+      ]
     },
     {
       "file": "docs/README.md",

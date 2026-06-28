@@ -1,10 +1,11 @@
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import { buildBadcaseEvalDraft } from '@trapmap/contracts';
 import { loadConfig } from '@trapmap/server/config.js';
+import { type BadcaseTraceExportRow, serializeBadcaseEvalDraft } from './lib/badcase-eval-draft.js';
 
-async function main() {
+export async function main() {
   const feedbackId = process.argv[2];
   const outputPath = process.argv[3];
 
@@ -31,30 +32,22 @@ async function main() {
       [feedbackId],
     );
 
-    const row = result.rows[0];
+    const row = result.rows[0] as BadcaseTraceExportRow | undefined;
     if (!row) {
       throw new Error(`Badcase trace not found for ${feedbackId}`);
     }
 
-    const draft = buildBadcaseEvalDraft({
-      feedbackId: row.feedback_id,
-      queryId: row.query_id,
-      querySeed: row.query_seed,
-      routeFamily: row.route_family,
-      entryId: row.entry_id,
-      entryType: row.entry_type,
-      failureClassification: row.failure_classification,
-      expectedCorrection: row.expected_correction,
-      selectedResultSnapshot: row.selected_result_snapshot,
-    });
-
-    writeFileSync(resolve(outputPath), `${JSON.stringify(draft, null, 2)}\n`, 'utf8');
+    writeFileSync(resolve(outputPath), serializeBadcaseEvalDraft(row), 'utf8');
   } finally {
     await pool.end();
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});
+const isEntrypoint = process.argv[1] === fileURLToPath(import.meta.url);
+
+if (isEntrypoint) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}
