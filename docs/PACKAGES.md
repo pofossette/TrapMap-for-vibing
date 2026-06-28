@@ -26,7 +26,7 @@
 
 ## Phase 0 冻结结论
 
-- 当前长期目标以根 [`plan.md`](../plan.md) 和 [`docs/todos/nestjs-service-evolution-00-target-architecture.md`](todos/nestjs-service-evolution-00-target-architecture.md) 为准。
+- 当前架构整改主线以根 [`plan.md`](../plan.md) 和 [`docs/todos/trapmap-architecture-remediation-plan.md`](todos/trapmap-architecture-remediation-plan.md) 为准；`docs/todos/nestjs-service-evolution-00-target-architecture.md` 仅保留为历史目标架构背景输入。
 - `docs/plans/runtime-recomposition/` 继续保留迁移背景，但不再承担当前阶段执行入口或唯一长期叙事。
 - gateway 继续作为宿主拥有的外部适配层存在；Phase 0 不把 `packages/service-gateway` 作为当前主线 package 目标。
 - `backend-core` 在 Phase 0 冻结为单包内核，先按模块边界收口，而不是预先切成多个 `domain-*` workspace 包。
