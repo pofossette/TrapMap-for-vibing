@@ -482,6 +482,18 @@ TrapMap 现在通过共享 runtime resilience 层统一处理部分 timeout / re
 - runtime metrics label 仅允许低基数字段，例如 `failureClassification`、`runtimeMode`、`serviceUnit`、`routeFamily`、`dependencyName`、`cacheNamespace`、`taskType`、`workflowType`
 - distributed hop 继续只透传既有 request/trace/correlation header，不为 observability 新增第二套内部 hop header 名；如果 internal hop 返回空 body 或 transport 级错误，gateway/internal client 仍必须先归一化为 canonical `kind`（如 `timeout`、`unavailable`、`forbidden`、`conflict`、`not-found`）再交给 route/worker/operator surface 解释
 
+### Phase 6 freeze
+
+Phase 6 只冻结当前 mature-capability / library-replacement 边界，不把 follow-up platform capability 写成现状。
+
+- `internal client + resilience` 当前已经在主线存在，但范围有限：现有证据只支持 internal HTTP client、canonical error normalization、shared timeout/retry/degraded helper、runtime metrics snapshot 和 operator-visible summary。它不是完整 mature-service platform stack，也不是所有 internal hop 都已有统一 externalized policy engine 的证据。
+- `tracing + metrics` 当前只能按现有 surface 描述：request/trace header propagation、`runtimeMetrics` snapshot、`/v1/operations/status/async` 与 stats summary 中的 operator 可见聚合、以及低基数 label 规则。不要把它写成全链路 distributed tracing、外部 observability backend、或 service-owned telemetry pipeline 已落地。
+- `rate limiting + bulkhead / 背压` 当前不是 built-in runtime default。`rateLimitMaxPerMinute` 仍只是 compatibility config seam；没有源码证据表明 host-local、gateway、worker 或 distributed services 已默认启用 service bulkhead、adaptive backpressure、或统一 rate-policy rollout。
+- `cache + invalidation` 当前是 active operator/testing surface，但只证明 derived cache / invalidation seam。retrieval read-model cache、intent cache、shared invalidation events、pending invalidation summary 都是当前真相；它们不是 remote cache platform、自治 cache infrastructure、或 cache-backed service discovery 的证据。
+- `service discovery`、`DB budget / PgBouncer`、以及 richer `health indicator` rollout 继续是 adoption condition / deferred capability gate。当前分布式事实仍是 checked-in URL env + shared PostgreSQL + existing readiness endpoints；不能改写成动态 discovery、PgBouncer rollout default、或 richer health policy 已内建。
+- `light` 与 `heavy` 的默认策略姿态不同，但 Phase 6 不引入新行为：`light` 继续偏向 in-process / fewer remote dependencies，`heavy` 继续偏向 gateway + internal HTTP hop + shared PostgreSQL 的 remote-expected posture。这里描述的是当前 adoption posture，不是 capability parity 或 platform maturity proof。
+- graph runtime 配置入口继续冻结为同一组 `TRAPMAP_GRAPH_DB_*` env family 和 shared config parser。`TRAPMAP_GRAPH_DB_FAIL_OPEN`、provider、enabled state、worker-status conflict warning 都已存在；但当前文档不能宣称 `packages/server` compatibility shell、`host-local` 默认主线、distributed gateway/service/worker 在 graph provider、readiness、fail-open disposition 上已经完全一致，只能说它们复用同一 env family 与部分 shared consumer seam。
+
 ## AI 提供商配置
 
 | 变量 | 说明 | 默认值 |

@@ -93,6 +93,16 @@
 - compose / runtime 叙事继续冻结为当前拓扑证据：`docker-compose.yml` 证明 `distributed` profile 会展开 gateway 与多个 service/worker 进程，并通过环境变量连到真实 internal surface；这不是 service discovery、K8s orchestration 或成熟平台化能力的证据。
 - deferred boundary 当前必须显式保留在 platform follow-up：service discovery、K8s/platformization、per-service database、全链路 tracing、以及更强 isolation/autonomy claim 继续 deferred，不纳入 Phase 5 当前 state。
 
+## Phase 6 Mature capability freeze
+
+- `internal client + resilience` 当前已经是主线 shared runtime seam，但不是完整 mature-service platform stack。`packages/host-distributed/src/gateway/internal-client.ts`、`packages/server/src/lib/runtime/resilience.ts` 与 `packages/server/src/lib/runtime/metrics.ts` 证明当前存在 internal forwarding、canonical error normalization、timeout/retry/degraded 统计与 shared runtime helper；它们不能被改写成“平台层 resilience 已全面产品化”。
+- `tracing + metrics` 当前只冻结到现有 request/trace headers、runtime metrics snapshot、operator summary、以及低基数 label discipline。文档不得把这层夸大成完整 distributed tracing、外部 metrics backend、或 per-service telemetry platform 已落地。
+- `rate limiting + bulkhead / 背压` 当前不是 runtime built-in default。即使 compatibility shell 仍保留 `rateLimitMaxPerMinute` 这类 config seam，也只能写成 follow-up capability order，而不是 host-local 或 distributed 已默认拥有 service bulkhead / adaptive backpressure。
+- retrieval-side `cache + invalidation` 当前是 active seam，而不是自治缓存平台。`packages/server/src/lib/cache/invalidation.ts`、read-model cache、intent cache 与 operator status/stats surface 证明当前有 freshness / invalidation contract；它们不构成 remote cache fabric、service-owned cache budget、或 service-autonomous cache substrate 的当前-state claim。
+- `service discovery`、`DB budget / PgBouncer`、以及 richer `health indicator` rollout 继续冻结为 adoption conditions。当前 distributed 仍使用 checked-in URL env 与 shared PostgreSQL；pool budget / PgBouncer 还只是 operator/capacity follow-up；health/readiness surface 已存在，但 richer rollout policy 不应被描述成当前平台保证。
+- `light` 与 `heavy` 只冻结不同默认策略姿态。`light` 继续以 host-local、in-process 默认、较少 remote dependency 为主；`heavy` 继续以 distributed、gateway + internal HTTP hop、shared PostgreSQL、remote-expected async posture 为主。这里的区别是 adoption posture，不是新 runtime behavior，也不是证明 `heavy` 已自动具备 tracing/discovery/bulkhead 默认值。
+- graph runtime 继续使用同一组 `TRAPMAP_GRAPH_DB_*` env family，但文档必须承认当前实现只是 shared config family + partial shared consumer seam。`packages/server` compatibility shell、`host-local` 默认主线、distributed gateway/service/worker 不能在没有源码证据时被写成 graph provider、readiness disposition、fail-open behavior 完全等价。
+
 ## packages/contracts
 
 共享 Schema 和类型定义，同时被 CLI 和 Server 导入。

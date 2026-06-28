@@ -434,6 +434,76 @@ describe('docs truth smoke', () => {
     );
   });
 
+  it('Phase 6 docs freeze mature-capability boundaries without overstating platform maturity', () => {
+    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
+    const packagesDoc = readDoc('docs/PACKAGES.md');
+    const environmentDoc = readDoc('docs/operations/ENVIRONMENT.md');
+    const testingDoc = readDoc('docs/operations/TESTING.md');
+    const resilienceSource = readDoc('packages/server/src/lib/runtime/resilience.ts');
+    const metricsSource = readDoc('packages/server/src/lib/runtime/metrics.ts');
+    const cacheInvalidationSource = readDoc('packages/server/src/lib/cache/invalidation.ts');
+    const serverConfig = readDoc('packages/server/src/config.ts');
+    const graphConfig = readDoc('packages/server/src/lib/graph-query/config.ts');
+    const distributedServiceConfig = readDoc(
+      'packages/host-distributed/src/config/service-config.ts',
+    );
+    const distributedClient = readDoc('packages/host-distributed/src/gateway/internal-client.ts');
+
+    expect(remediation).toContain(
+      '### Phase 6 closure freeze (G4 mature-capability / library-replacement freeze)',
+    );
+    expect(remediation).toContain('internal client + resilience');
+    expect(remediation).toContain('tracing + metrics');
+    expect(remediation).toContain('rate limiting + bulkhead / 背压');
+    expect(remediation).toContain('service discovery');
+    expect(remediation).toContain('DB budget / PgBouncer');
+    expect(remediation).toContain('light` 与 `heavy`');
+    expect(remediation).toContain('TRAPMAP_GRAPH_DB_*');
+
+    expect(truthSources).toContain('Phase 6 mature-capability / library-replacement freeze');
+    expect(truthSources).toContain('packages/server/src/lib/runtime/resilience.ts');
+    expect(truthSources).toContain('packages/server/src/lib/runtime/metrics.ts');
+    expect(truthSources).toContain('packages/server/src/lib/cache/invalidation.ts');
+    expect(truthSources).toContain('packages/server/src/lib/graph-query/config.ts');
+    expect(truthSources).toContain('not current built-in runtime default');
+
+    expect(packagesDoc).toContain('## Phase 6 Mature capability freeze');
+    expect(packagesDoc).toContain('不是完整 mature-service platform stack');
+    expect(packagesDoc).toContain('rate limiting + bulkhead / 背压');
+    expect(packagesDoc).toContain('自治缓存平台');
+    expect(packagesDoc).toContain('不同默认策略姿态');
+
+    expect(environmentDoc).toContain('### Phase 6 freeze');
+    expect(environmentDoc).toContain('internal client + resilience');
+    expect(environmentDoc).toContain('rate limiting + bulkhead / 背压');
+    expect(environmentDoc).toContain('DB budget / PgBouncer');
+    expect(environmentDoc).toContain('TRAPMAP_GRAPH_DB_*');
+
+    expect(testingDoc).toContain('Phase 6 Mature Capability Freeze Checks');
+    expect(testingDoc).toContain(
+      'rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts',
+    );
+    expect(testingDoc).toContain('rtk pnpm check:docs-drift');
+    expect(testingDoc).toContain('rtk pnpm check:structure');
+
+    expect(resilienceSource).toContain('export interface ResiliencePolicy');
+    expect(resilienceSource).toContain(
+      "export type ResilienceFailureMode = 'fail-closed' | 'fail-open'",
+    );
+    expect(metricsSource).toContain('export interface RuntimeMetricsSnapshot');
+    expect(metricsSource).toContain('retryableFailures');
+    expect(cacheInvalidationSource).toContain('CacheInvalidationReason');
+    expect(cacheInvalidationSource).toContain('pendingInvalidation');
+    expect(serverConfig).toContain('rateLimitMaxPerMinute');
+    expect(serverConfig).toContain('graphDb: GraphDbConfigSchema');
+    expect(graphConfig).toContain("provider: z.enum(['neo4j']).default('neo4j')");
+    expect(graphConfig).toContain('failOpen: z.boolean().default(true)');
+    expect(distributedServiceConfig).toContain('TRAPMAP_KNOWLEDGE_READ_URL');
+    expect(distributedServiceConfig).toContain('TRAPMAP_JOB_RUNTIME_URL');
+    expect(distributedClient).toContain('normalizeCanonicalErrorBody');
+  });
+
   it('docs/README.md does not contain stale schema counts', () => {
     const content = readDoc('docs/README.md');
     expect(content).not.toContain('48 张表');

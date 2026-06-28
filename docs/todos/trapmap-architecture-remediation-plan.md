@@ -238,9 +238,24 @@
 
 ### Phase 6 成熟能力与成熟库替换矩阵冻结
 
-- [ ] Wave 6A：冻结 internal client/resilience、tracing/metrics、rate limit/bulkhead 的实施顺序
-- [ ] Wave 6B：冻结 cache/invalidation、service discovery、DB budget、health indicator 的引入条件
-- [ ] Wave 6C：冻结“优先引入 / 条件成熟后引入 / 暂不替换”的矩阵
+- [x] Wave 6A：冻结 `internal client + resilience` 与 `tracing + metrics` 的实施顺序
+- [x] Wave 6B：冻结 `rate limiting + bulkhead / 背压` 的实施顺序
+- [x] Wave 6C：冻结 `cache + invalidation`、`service discovery`、`DB budget / PgBouncer`、`health indicator` 的引入条件
+- [x] Wave 6D：冻结“优先引成熟库 / 条件成熟后引入 / 暂不替换”的矩阵
+- [x] Wave 6E：明确 `light` / `heavy` 下的不同默认策略
+- [x] Wave 6F：统一 graph runtime 配置入口，明确 `server` compatibility shell、`host-local` 和 distributed 下 graph provider / readiness / fail-open 行为是否一致
+
+### Phase 6 closure freeze (G4 mature-capability / library-replacement freeze)
+
+- Phase 6 冻结的是 mature-capability / library-replacement 的 truth-source 边界，不是 runtime refactor。`internal client + resilience` 当前已经是主线 shared runtime seam：`packages/host-distributed/src/gateway/internal-client.ts` 负责 internal HTTP forwarding / canonical error normalization，`packages/server/src/lib/runtime/resilience.ts` 与 `packages/server/src/lib/runtime/metrics.ts` 负责当前 timeout / retry / degraded 统计语义；但这还不能被写成“已具备完整 mature-service platform stack”。
+- `tracing + metrics` 的当前真相必须限制在现有 request/trace headers、runtime metrics snapshot、operator 可见的 summary surface、以及已冻结的低基数 label 规则。当前没有证据支持把这层写成完整 distributed tracing、外部 observability platform、或 per-service telemetry backend 已落地；这些都继续属于 deferred capability。
+- `rate limiting + bulkhead / 背压` 当前不是 built-in runtime default。虽然 `packages/server/src/config.ts` 仍有 `rateLimitMaxPerMinute` 这一 compatibility config seam，但 Phase 6 冻结的是“后续 ordered follow-up capability”，不是“系统已经默认具备 gateway/service bulkhead、adaptive backpressure 或 platform-wide rate policy”。
+- `cache + invalidation` 当前已经有真实 operator/testing surface，但其事实边界必须收窄为“derived cache + invalidation seam”：`lib/cache/invalidation.ts`、retrieval read-model cache、intent cache、`/v1/operations/status/async` 与 stats summary 证明当前存在 cache freshness / invalidation contract；它们不是 service-autonomous remote cache infrastructure、也不是宣称每个 service 已拥有独立 cache substrate 的依据。
+- `service discovery`、`DB budget / PgBouncer`、以及 richer `health indicator` rollout rules 当前都只能冻结为 adoption condition / deferred capability gate。distributed 仍以 checked-in URL env 和 shared PostgreSQL 为当前证据；pool budget / PgBouncer 只存在 operator/capacity follow-up 背景，不是 runtime default；`/health`、`/ready`、`/internal/readiness` 继续是现有 readiness surface，但 richer indicator policy 仍不能被写成当前平台 guarantee。
+- “优先引成熟库 / 条件成熟后引入 / 暂不替换”的矩阵在本 phase 冻结为文档边界，而不是立即替换实现：当前优先复用既有 internal client、shared resilience helper、runtime metrics snapshot、cache invalidation seam；只有当真实吞吐、独立故障域、外部 telemetry / discovery / pool-governance 需求持续存在时，才进入条件成熟后引库；而 service discovery platform、PgBouncer rollout、完整 distributed tracing/backend、以及 service-autonomous remote cache 继续属于暂不替换或 deferred。
+- `light` 与 `heavy` 的默认策略姿态必须区分，但不得发明新 runtime 行为：`light` 当前仍以 host-local、in-process 默认、较少 remote dependency、`local-agent` 的 `json-store-ok` 与 `team-monolith` 的 `postgres-required` posture 为主；`heavy` 当前以 distributed、gateway + internal HTTP hop、shared PostgreSQL、remote-expected async posture 为主，因此更接近后续 mature capability 的 adoption front。Phase 6 只冻结“不同默认姿态”，不是宣称 `heavy` 已自动带来 resilience / discovery / bulkhead / tracing platform 默认值。
+- `graph runtime` 配置入口必须按当前证据冻结：同一组 `TRAPMAP_GRAPH_DB_*` env family 今天由 `packages/server/src/config.ts` / `lib/graph-query/config.ts` 解析，`TRAPMAP_GRAPH_DB_FAIL_OPEN` 与 runtime readiness/metrics 已有 shared truth；但主文档不能把 `server` compatibility shell、`host-local` default mainline、distributed profile、以及 worker-status surface 写成“graph behavior perfectly identical”。当前代码只证明它们共享同一 env family 和部分 shared consumer seam，同时对 worker-status + graph-enabled 组合保留 conflict warning。
+- Phase 6 minimum verification matrix 冻结为 focused docs/truth checks：`rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。只有 closure freeze 文本、truth source / packages / environment / testing 回写和这三条 focused checks 的实际结果都完成记录后，Wave 6A-6F 才允许关闭。
 
 ### Phase 7 可维护性、测试矩阵与文档真相收口
 

@@ -143,6 +143,14 @@ flowchart TB
 - 验证重点：Phase 5 只冻结 distributed maturity baseline、gateway-only external access、shared PostgreSQL transitional posture、真实内部 hop 证据、compose 当前拓扑限制与 deferred platform boundary；不引入新的 runtime behavior。
 - 关闭条件：只有在 remediation detail plan、`SYSTEM_TRUTH_SOURCES.md`、`PACKAGES.md`、`DEPLOYMENT.md`、`TESTING.md` 已同步更新，且三条 focused checks 实际通过并记录到 phase report 后，才能勾选 Wave 5A-5C。
 
+**Phase 6 Mature Capability Freeze Checks:**
+- 最小验证矩阵：
+  - `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `rtk pnpm check:docs-drift`
+  - `rtk pnpm check:structure`
+- 验证重点：Phase 6 只冻结 mature-capability / library-replacement truth 边界，明确 `internal client + resilience`、`tracing + metrics`、`rate limiting + bulkhead / 背压`、`cache + invalidation`、`service discovery`、`DB budget / PgBouncer`、`health indicator`、`light` / `heavy` posture 与 graph runtime config 的 current-vs-deferred 边界；不引入新的 runtime behavior。
+- 关闭条件：只有在 remediation detail plan、`SYSTEM_TRUTH_SOURCES.md`、`PACKAGES.md`、`ENVIRONMENT.md`、`TESTING.md` 已同步更新，且三条 focused checks 实际通过并记录到 phase report 后，才能勾选 Wave 6A-6F。
+
 ### 目录结构
 
 ```text
