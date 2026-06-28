@@ -142,20 +142,28 @@ describe('docs truth smoke', () => {
     const internalPortsSource = readDoc('packages/backend-core/src/ports/internal-ports.ts');
     const reposSource = readDoc('packages/server/src/lib/repos/index.ts');
     const schemaSource = readDoc('packages/server/src/lib/persistence/schema/index.ts');
-    const migrationRunnerSource = readDoc('packages/server/src/lib/persistence/migration-runner.ts');
+    const migrationRunnerSource = readDoc(
+      'packages/server/src/lib/persistence/migration-runner.ts',
+    );
 
     expect(remediation).toContain('### Phase 1 closure freeze (G1 `#1-#10`)');
-    expect(remediation).toContain('`packages/server` 只保留 Fastify compatibility shell 与 shared runtime/status seam');
+    expect(remediation).toContain(
+      '`packages/server` 只保留 Fastify compatibility shell 与 shared runtime/status seam',
+    );
     expect(remediation).toContain('packages/server/src/lib/*/repository.ts');
     expect(remediation).toContain('packages/server/src/lib/repos/index.ts');
-    expect(remediation).toContain('Drizzle schema 与 migration 执行 owner 继续冻结在 `packages/server`');
+    expect(remediation).toContain(
+      'Drizzle schema 与 migration 执行 owner 继续冻结在 `packages/server`',
+    );
     expect(remediation).toContain('`service-*` 只承载 owner-aligned thin assembly');
 
     expect(appSource).toContain('await registerCapabilityRoutes(capabilityScopedApp, config);');
     expect(appSource).toContain("if (capabilities.routeSurface === 'minimal-agent') {");
-    expect(appSource).toContain("await app.register(operationsRoutes);");
-    expect(appSource).toContain("await app.register(feedbackAdminRoutes);");
-    expect(configSource).toContain("routeSurface: z.enum(['minimal-agent', 'gateway-core', 'worker-status'])");
+    expect(appSource).toContain('await app.register(operationsRoutes);');
+    expect(appSource).toContain('await app.register(feedbackAdminRoutes);');
+    expect(configSource).toContain(
+      "routeSurface: z.enum(['minimal-agent', 'gateway-core', 'worker-status'])",
+    );
     expect(configSource).toContain('supportsReviewGovernance: z.boolean()');
     expect(configSource).toContain('requiresPostgres: z.boolean()');
     expect(internalPortsSource).toContain('export interface KnowledgeWritePort');
@@ -176,7 +184,9 @@ describe('docs truth smoke', () => {
     expect(truthSources).toContain('thin assembly');
 
     expect(packagesDoc).toContain('## Phase 1 Server / Backend-Core boundary freeze');
-    expect(packagesDoc).toContain('`packages/server` 保留 Fastify compatibility shell 与 shared runtime/status seam');
+    expect(packagesDoc).toContain(
+      '`packages/server` 保留 Fastify compatibility shell 与 shared runtime/status seam',
+    );
     expect(packagesDoc).toContain('`packages/backend-core` 不是“仅接口”空壳');
     expect(packagesDoc).toContain('`packages/service-*` 只承载 owner-aligned thin assembly');
   });
@@ -190,7 +200,9 @@ describe('docs truth smoke', () => {
     const snapshotGuard = readDoc('packages/server/src/__tests__/snapshot-usage-guard.test.ts');
     const pgCompat = readDoc('packages/server/src/__tests__/pg-first-compat.test.ts');
     const readModelSource = readDoc('packages/server/src/lib/operations/read-model.ts');
-    const activateRouteSource = readDoc('packages/server/src/routes/operations/artifacts-activate.ts');
+    const activateRouteSource = readDoc(
+      'packages/server/src/routes/operations/artifacts-activate.ts',
+    );
 
     expect(remediation).toContain('### Phase 2 closure freeze (G2 `#11-#16`)');
     expect(remediation).toContain('compatibility JSONB store');
@@ -207,7 +219,9 @@ describe('docs truth smoke', () => {
     expect(packagesDoc).toContain('## Phase 2 Store Snapshot / PG-first posture freeze');
     expect(packagesDoc).toContain('InMemory 不是与 PG 对等的长期生产轨道');
     expect(packagesDoc).toContain('PG-primary 事实已经成立');
-    expect(packagesDoc).toContain('direct `store.snapshot()` / `store.transact()` 入口当前仍集中在 compatibility shell');
+    expect(packagesDoc).toContain(
+      'direct `store.snapshot()` / `store.transact()` 入口当前仍集中在 compatibility shell',
+    );
 
     expect(persistenceDoc).toContain('PostgreSQL 是主要且权威的生产存储后端');
     expect(persistenceDoc).toContain('PG-first + InMemory fallback/testing posture');
@@ -235,8 +249,12 @@ describe('docs truth smoke', () => {
     const packagesDoc = readDoc('docs/PACKAGES.md');
     const repoStructure = readDoc('docs/reference/REPO_STRUCTURE.md');
     const testingDoc = readDoc('docs/operations/TESTING.md');
-    const hostLocalAdapterFactory = readDoc('packages/host-local/src/nest/adapters/adapter-factory.ts');
-    const hostLocalRemoteAdapter = readDoc('packages/host-local/src/nest/adapters/remote.adapter.ts');
+    const hostLocalAdapterFactory = readDoc(
+      'packages/host-local/src/nest/adapters/adapter-factory.ts',
+    );
+    const hostLocalRemoteAdapter = readDoc(
+      'packages/host-local/src/nest/adapters/remote.adapter.ts',
+    );
     const hostLocalSharedInfra = readDoc('packages/host-local/src/nest/runtime/shared-infra.ts');
     const internalPorts = readDoc('packages/backend-core/src/ports/internal-ports.ts');
     const distributedClient = readDoc('packages/host-distributed/src/gateway/internal-client.ts');
@@ -244,7 +262,9 @@ describe('docs truth smoke', () => {
       'packages/host-distributed/src/shared/internal-knowledge-write-client.ts',
     );
 
-    expect(remediation).toContain('### Phase 3 closure freeze (G3 `#17` `#18` `#19` `#21` `#23` `#29` `#30` adapter scope)');
+    expect(remediation).toContain(
+      '### Phase 3 closure freeze (G3 `#17` `#18` `#19` `#21` `#23` `#29` `#30` adapter scope)',
+    );
     expect(remediation).toContain('provider taxonomy');
     expect(remediation).toContain('host-owned adapter selection seam');
     expect(remediation).toContain('gateway client');
@@ -253,7 +273,9 @@ describe('docs truth smoke', () => {
     expect(truthSources).toContain('Phase 3 unified-adapter boundary freeze');
     expect(truthSources).toContain('packages/host-local/src/nest/adapters/adapter-factory.ts');
     expect(truthSources).toContain('packages/host-distributed/src/gateway/internal-client.ts');
-    expect(truthSources).toContain('packages/host-distributed/src/shared/internal-knowledge-write-client.ts');
+    expect(truthSources).toContain(
+      'packages/host-distributed/src/shared/internal-knowledge-write-client.ts',
+    );
     expect(truthSources).toContain('host-owned adapter selection');
 
     expect(packagesDoc).toContain('## Phase 3 Unified adapter boundary freeze');
@@ -293,7 +315,9 @@ describe('docs truth smoke', () => {
     const testingDoc = readDoc('docs/operations/TESTING.md');
     const serverConfig = readDoc('packages/server/src/config.ts');
     const hostLocalConfig = readDoc('packages/host-local/src/nest/config/config.ts');
-    const distributedServiceConfig = readDoc('packages/host-distributed/src/config/service-config.ts');
+    const distributedServiceConfig = readDoc(
+      'packages/host-distributed/src/config/service-config.ts',
+    );
 
     expect(remediation).toContain('### Phase 4 closure freeze (G3 env / target matrix)');
     expect(remediation).toContain('selector env');
@@ -326,18 +350,88 @@ describe('docs truth smoke', () => {
     expect(deploymentDoc).toContain('heavy');
 
     expect(testingDoc).toContain('Phase 4 Adapter Env / Target Freeze Checks');
-    expect(testingDoc).toContain('rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts');
+    expect(testingDoc).toContain(
+      'rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts',
+    );
     expect(testingDoc).toContain('rtk pnpm check:docs-drift');
     expect(testingDoc).toContain('rtk pnpm check:structure');
 
-    expect(serverConfig).toContain("provider: z.enum(['postgres', 'rabbitmq']).default('postgres')");
-    expect(serverConfig).toContain("profile: z.enum(['local-agent', 'team-monolith', 'distributed'])");
-    expect(serverConfig).toContain("preset: z\n    .enum(['monolith', 'api', 'candidate-worker', 'governance-worker', 'outbox-worker'])");
+    expect(serverConfig).toContain(
+      "provider: z.enum(['postgres', 'rabbitmq']).default('postgres')",
+    );
+    expect(serverConfig).toContain(
+      "profile: z.enum(['local-agent', 'team-monolith', 'distributed'])",
+    );
+    expect(serverConfig).toContain(
+      "preset: z\n    .enum(['monolith', 'api', 'candidate-worker', 'governance-worker', 'outbox-worker'])",
+    );
     expect(hostLocalConfig).toContain('TRAPMAP_DEPLOYMENT_PROFILE');
     expect(hostLocalConfig).toContain('TRAPMAP_DEPLOYMENT_PRESET');
     expect(hostLocalConfig).toContain('TRAPMAP_TASK_TRANSPORT');
     expect(distributedServiceConfig).toContain('TRAPMAP_SERVICE_NAME');
     expect(distributedServiceConfig).toContain('TRAPMAP_KNOWLEDGE_WRITE_URL');
+  });
+
+  it('Phase 5 docs freeze distributed maturity baseline, shared-PG posture, and deferred boundary', () => {
+    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
+    const packagesDoc = readDoc('docs/PACKAGES.md');
+    const deploymentDoc = readDoc('docs/architecture/DEPLOYMENT.md');
+    const testingDoc = readDoc('docs/operations/TESTING.md');
+    const maturityDoc = readDoc(
+      'docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md',
+    );
+    const hostDistributedReadme = readDoc('packages/host-distributed/README.md');
+    const composeFile = readDoc('docker-compose.yml');
+    const distributedCloseoutTest = readDoc(
+      'packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts',
+    );
+
+    expect(remediation).toContain('### Phase 5 closure freeze (G4 distributed baseline)');
+    expect(remediation).toContain('Level 2 / transitional-microservice');
+    expect(remediation).toContain('shared PostgreSQL');
+    expect(remediation).toContain('真实内部 HTTP hop');
+    expect(remediation).toContain('deferred');
+
+    expect(truthSources).toContain('Phase 5 distributed baseline / runtime-isolation freeze');
+    expect(truthSources).toContain(
+      'docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md',
+    );
+    expect(truthSources).toContain(
+      'packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts',
+    );
+    expect(truthSources).toContain('docker-compose.yml');
+
+    expect(packagesDoc).toContain('## Phase 5 Distributed baseline freeze');
+    expect(packagesDoc).toContain('Level 2 / transitional-microservice');
+    expect(packagesDoc).toContain('shared PostgreSQL');
+    expect(packagesDoc).toContain('gateway-only external access');
+
+    expect(deploymentDoc).toContain('Phase 5 freeze');
+    expect(deploymentDoc).toContain('Level 2 / transitional-microservice');
+    expect(deploymentDoc).toContain('shared PostgreSQL');
+    expect(deploymentDoc).toContain('compose');
+
+    expect(testingDoc).toContain('Phase 5 Distributed Baseline Freeze Checks');
+    expect(testingDoc).toContain(
+      'rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts',
+    );
+    expect(testingDoc).toContain('rtk pnpm check:docs-drift');
+    expect(testingDoc).toContain('rtk pnpm check:structure');
+
+    expect(maturityDoc).toContain('Level 2 / transitional-microservice');
+    expect(maturityDoc).toContain('gateway 仍是唯一外部入口');
+    expect(maturityDoc).toContain('已存在真实内部 HTTP hop');
+    expect(maturityDoc).toContain('shared PostgreSQL 仍是主要持久化底座');
+
+    expect(hostDistributedReadme).toContain('Gateway-only external access');
+    expect(hostDistributedReadme).toContain('HTTP-based inter-service communication');
+    expect(hostDistributedReadme).toContain('Shared PostgreSQL (Transitional)');
+    expect(composeFile).toContain('profiles: ["distributed"]');
+    expect(composeFile).toContain('TRAPMAP_DEPLOYMENT_PROFILE=distributed');
+    expect(distributedCloseoutTest).toContain(
+      'proves multi-process gateway to internal services to knowledge-write closeout with recovery evidence',
+    );
   });
 
   it('docs/README.md does not contain stale schema counts', () => {

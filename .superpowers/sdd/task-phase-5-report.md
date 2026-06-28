@@ -49,3 +49,4 @@ Results:
 ## Notes
 
 - `packages/server/src/__tests__/docs-truth-smoke.test.ts` already had local modifications before this task; I treated its current assertions as the contract and did not overwrite unrelated edits.
+- Follow-up: kept the Phase 5 docs-freeze truth-smoke assertion block in `packages/server/src/__tests__/docs-truth-smoke.test.ts`, re-ran `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`, and the test passed.
