@@ -516,7 +516,7 @@ pnpm check:complexity
 | `Phase 0` | `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
 | `Phase 1` | `pnpm test -- --run packages/server/src/app.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/config.test.ts packages/server/src/__tests__/docs-truth-smoke.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
 | `Phase 2` | `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts packages/server/src/config.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
-| `Phase 3` | `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/routes/operations/stats.test.ts packages/server/src/config.test.ts` + 如涉及 retrieval/cache freshness 则补 `pnpm eval:smoke` + `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts` + `rtk pnpm check:docs-drift` + `rtk pnpm check:structure` |
+| `Phase 3` | `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts` + `rtk pnpm check:docs-drift` + `rtk pnpm check:structure` |
 | `Phase 4` | 本轮相关测试 + `pnpm check:docs-drift` + `pnpm check:structure`；只有在 truth-source、计划边界和 closeout 规则回写完成后才能勾选根 `plan.md` |
 | CI 配置变更 | `pnpm check:docs-drift` + 更新 `CI_CD.md` |
 | 架构变更 | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:complexity` + `pnpm eval:smoke` |
