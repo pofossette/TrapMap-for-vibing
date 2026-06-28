@@ -196,18 +196,22 @@ describe('docs truth smoke', () => {
     expect(remediation).toContain('compatibility JSONB store');
     expect(remediation).toContain('Wave A 先补 repo / projection capability');
     expect(remediation).toContain('artifactFilePayloads');
+    expect(remediation).toContain('teams / members / access-keys');
     expect(remediation).toContain('InMemory repository fallback');
 
     expect(truthSources).toContain('Phase 2 store-snapshot / PG-first posture freeze');
     expect(truthSources).toContain('InMemory 继续是 repo-backed fallback/testing posture');
+    expect(truthSources).toContain('live no-PG / InMemory fallback');
     expect(truthSources).toContain('artifactFilePayloads hydration');
 
     expect(packagesDoc).toContain('## Phase 2 Store Snapshot / PG-first posture freeze');
     expect(packagesDoc).toContain('InMemory 不是与 PG 对等的长期生产轨道');
+    expect(packagesDoc).toContain('PG-primary 事实已经成立');
     expect(packagesDoc).toContain('direct `store.snapshot()` / `store.transact()` 入口当前仍集中在 compatibility shell');
 
     expect(persistenceDoc).toContain('PostgreSQL 是主要且权威的生产存储后端');
     expect(persistenceDoc).toContain('PG-first + InMemory fallback/testing posture');
+    expect(persistenceDoc).toContain('fallback 已经从运行态消失');
     expect(persistenceDoc).toContain('不再接纳新的 production 主路径');
 
     expect(testingDoc).toContain('Phase 2 Store Snapshot / PG-first Freeze Checks');

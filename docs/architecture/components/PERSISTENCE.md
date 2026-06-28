@@ -95,6 +95,8 @@ function createSessionRepository(config: { pool?: Pool; store: SkillShareerStore
 }
 ```
 
+对 `teams`、`members`、`access-keys` 这些仍在当前代码库里保留 no-PG 路径的入口，PG-first 的含义是“PG 已是主行为”，不是“fallback 已经从运行态消失”。它们仍可在无 PG 场景下落到 InMemory / JsonStore 兼容实现。
+
 ---
 
 ## JsonStore (兼容回退存储)
