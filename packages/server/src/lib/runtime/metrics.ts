@@ -9,6 +9,12 @@ export interface RuntimeMetricsCounter {
   permanentFailures: number;
   retries: number;
   totalLatencyMs: number;
+  queueBacklogSamples: number;
+  queueBacklogTotal: number;
+  outboxBacklogSamples: number;
+  outboxBacklogTotal: number;
+  staleWorkerSamples: number;
+  staleWorkerTotal: number;
 }
 
 export interface RuntimeMetricsSnapshot {
@@ -26,6 +32,12 @@ function makeCounter(): RuntimeMetricsCounter {
     permanentFailures: 0,
     retries: 0,
     totalLatencyMs: 0,
+    queueBacklogSamples: 0,
+    queueBacklogTotal: 0,
+    outboxBacklogSamples: 0,
+    outboxBacklogTotal: 0,
+    staleWorkerSamples: 0,
+    staleWorkerTotal: 0,
   };
 }
 
@@ -91,6 +103,36 @@ export function recordRuntimeReclaim(dependencyName: string, count = 1) {
   dependency.reclaims += count;
 }
 
+export function recordRuntimeBacklog(params: {
+  dependencyName: string;
+  queueBacklog?: number;
+  outboxBacklog?: number;
+  staleWorkers?: number;
+}) {
+  const dependency = getDependencyCounter(params.dependencyName);
+
+  if (typeof params.queueBacklog === 'number') {
+    totals.queueBacklogSamples += 1;
+    totals.queueBacklogTotal += params.queueBacklog;
+    dependency.queueBacklogSamples += 1;
+    dependency.queueBacklogTotal += params.queueBacklog;
+  }
+
+  if (typeof params.outboxBacklog === 'number') {
+    totals.outboxBacklogSamples += 1;
+    totals.outboxBacklogTotal += params.outboxBacklog;
+    dependency.outboxBacklogSamples += 1;
+    dependency.outboxBacklogTotal += params.outboxBacklog;
+  }
+
+  if (typeof params.staleWorkers === 'number') {
+    totals.staleWorkerSamples += 1;
+    totals.staleWorkerTotal += params.staleWorkers;
+    dependency.staleWorkerSamples += 1;
+    dependency.staleWorkerTotal += params.staleWorkers;
+  }
+}
+
 export function getRuntimeMetricsSnapshot(): RuntimeMetricsSnapshot {
   const dependencies = Object.fromEntries(
     [...dependencyCounters.entries()].map(([name, counter]) => [name, { ...counter }]),
@@ -104,6 +146,22 @@ export function getRuntimeMetricsSnapshot(): RuntimeMetricsSnapshot {
 
 export function getAverageLatencyMs(counter: RuntimeMetricsCounter): number {
   return counter.executions > 0 ? counter.totalLatencyMs / counter.executions : 0;
+}
+
+export function getAverageQueueBacklog(counter: RuntimeMetricsCounter): number {
+  return counter.queueBacklogSamples > 0
+    ? counter.queueBacklogTotal / counter.queueBacklogSamples
+    : 0;
+}
+
+export function getAverageOutboxBacklog(counter: RuntimeMetricsCounter): number {
+  return counter.outboxBacklogSamples > 0
+    ? counter.outboxBacklogTotal / counter.outboxBacklogSamples
+    : 0;
+}
+
+export function getAverageStaleWorkers(counter: RuntimeMetricsCounter): number {
+  return counter.staleWorkerSamples > 0 ? counter.staleWorkerTotal / counter.staleWorkerSamples : 0;
 }
 
 export function resetRuntimeMetrics() {

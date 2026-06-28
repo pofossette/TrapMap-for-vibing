@@ -139,6 +139,7 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
       selectedResultSnapshot: feedbackRecord.selectedResultSnapshot,
     });
     if (payload.badcase) {
+      const requestContext = request.requestContext ?? null;
       await scheduleSharedJob(
         sharedJobQueue,
         app.skillShareer.store,
@@ -148,6 +149,8 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
           entryId: feedbackRecord.entryId,
           entryType: feedbackRecord.entryType,
           queryId: feedbackRecord.queryId,
+          requestId: requestContext?.requestId ?? null,
+          traceId: requestContext?.traceId ?? null,
         },
         `${BADCASE_EXPORT_DRAFT_TASK_TYPE}:${feedbackRecord.id}`,
       );
@@ -197,6 +200,8 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
               entryId: feedbackRecord.entryId,
               entryType: feedbackRecord.entryType,
               queryId: feedbackRecord.queryId,
+              requestId: request.requestContext?.requestId ?? null,
+              traceId: request.requestContext?.traceId ?? null,
             }),
           }
         : {}),

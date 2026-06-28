@@ -24,6 +24,37 @@ export interface InternalRequestOptions {
 
 const DEFAULT_INTERNAL_TIMEOUT_MS = 10_000;
 
+function normalizeCanonicalErrorBody(status: number, body: unknown): unknown {
+  if (body && typeof body === 'object') {
+    const payload = body as Record<string, unknown>;
+    if (typeof payload.kind === 'string' && typeof payload.error === 'string') {
+      return body;
+    }
+  }
+
+  const kind =
+    status === 400 || status === 422
+      ? 'validation'
+      : status === 401
+        ? 'unauthorized'
+        : status === 403
+          ? 'forbidden'
+          : status === 404
+            ? 'not-found'
+            : status === 409
+              ? 'conflict'
+              : status === 504
+                ? 'timeout'
+                : status === 503
+                  ? 'unavailable'
+                  : 'internal';
+
+  return {
+    error: `Internal service ${kind.replace(/-/g, ' ')}`,
+    kind,
+  };
+}
+
 async function callInternalService(
   url: string,
   method: 'GET' | 'POST' | 'PUT',
@@ -63,7 +94,10 @@ async function callInternalService(
 
     return {
       status: response.status,
-      body: responseBody,
+      body:
+        response.status >= 200 && response.status < 300
+          ? responseBody
+          : normalizeCanonicalErrorBody(response.status, responseBody),
     };
   } catch (err: unknown) {
     if (err instanceof DOMException && err.name === 'AbortError') {

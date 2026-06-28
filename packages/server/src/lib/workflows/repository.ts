@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
+import { pickWorkflowCorrelation } from '@trapmap/contracts';
 import { workflowRuns } from '@trapmap/server/lib/persistence/schema.js';
 import type {
   WorkflowRunSnapshot,
@@ -25,6 +26,12 @@ interface WorkflowRunRow {
   updated_at: Date;
 }
 
+function extractWorkflowCorrelation(
+  stats: Record<string, number | string | boolean | null> | null | undefined,
+): WorkflowRunSnapshot['correlation'] {
+  return pickWorkflowCorrelation(stats);
+}
+
 function rowToSnapshot(row: WorkflowRunRow): WorkflowRunSnapshot {
   return {
     runId: row.run_id,
@@ -36,6 +43,7 @@ function rowToSnapshot(row: WorkflowRunRow): WorkflowRunSnapshot {
     startedAt: row.started_at?.toISOString() ?? null,
     completedAt: row.completed_at?.toISOString() ?? null,
     lastError: row.last_error,
+    correlation: extractWorkflowCorrelation(row.stats),
     stats: row.stats ?? {},
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),

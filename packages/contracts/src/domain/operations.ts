@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { badcaseTaxonomySchema } from '../enum-types/index.js';
+import { badcaseTaxonomySchema, normalizeBadcaseTaxonomy } from '../enum-types/index.js';
 import {
   compatibleScriptActivationPolicySchema,
   skillArtifactFileKindSchema,
@@ -28,6 +28,12 @@ import {
   knowledgeSubmissionSchema,
   reviewDecisionSchema,
 } from './knowledge.js';
+import {
+  type WorkflowCorrelation,
+  observabilityFailureClassificationSchema,
+  observabilityFailureTaxonomyItemSchema,
+  workflowCorrelationSchema,
+} from './observability.js';
 import { canonicalPathSchema } from './path-validation.js';
 
 export const knowledgeDeactivateRequestSchema = z
@@ -692,6 +698,7 @@ export const workflowRunSnapshotSchema = z
     startedAt: isoTimestampSchema.nullable(),
     completedAt: isoTimestampSchema.nullable(),
     lastError: z.string().nullable(),
+    correlation: workflowCorrelationSchema.nullable(),
     stats: z.record(z.string(), z.union([z.number(), z.string(), z.boolean(), z.null()])),
     createdAt: isoTimestampSchema,
     updatedAt: isoTimestampSchema,
@@ -772,6 +779,44 @@ export const capacityModelSummarySchema = z
   })
   .strict();
 
+export const runtimeMetricsSummarySchema = z
+  .object({
+    totals: z
+      .object({
+        executions: z.number().int().min(0),
+        degraded: z.number().int().min(0),
+        reclaims: z.number().int().min(0),
+        timeouts: z.number().int().min(0),
+        retryableFailures: z.number().int().min(0),
+        permanentFailures: z.number().int().min(0),
+        retries: z.number().int().min(0),
+        averageLatencyMs: z.number().min(0),
+        averageQueueBacklog: z.number().min(0),
+        averageOutboxBacklog: z.number().min(0),
+        averageStaleWorkers: z.number().min(0),
+      })
+      .strict(),
+    dependencies: z.record(
+      z.string(),
+      z
+        .object({
+          executions: z.number().int().min(0),
+          degraded: z.number().int().min(0),
+          reclaims: z.number().int().min(0),
+          timeouts: z.number().int().min(0),
+          retryableFailures: z.number().int().min(0),
+          permanentFailures: z.number().int().min(0),
+          retries: z.number().int().min(0),
+          averageLatencyMs: z.number().min(0),
+          averageQueueBacklog: z.number().min(0),
+          averageOutboxBacklog: z.number().min(0),
+          averageStaleWorkers: z.number().min(0),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+
 export const workflowOperatorSummarySchema = z
   .object({
     runId: entityIdSchema,
@@ -792,23 +837,9 @@ export const workflowOperatorSummarySchema = z
   })
   .strict();
 
-export const asyncFailureCategorySchema = z.enum([
-  'user-error',
-  'auth-policy-error',
-  'dependency-error',
-  'timeout',
-  'stale-projection',
-  'retryable-async-failure',
-  'permanent-failure',
-]);
+export const asyncFailureCategorySchema = observabilityFailureClassificationSchema;
 
-export const asyncFailureTaxonomyItemSchema = z
-  .object({
-    category: asyncFailureCategorySchema,
-    meaning: z.string().min(1).max(500),
-    operatorAction: z.string().min(1).max(1000),
-  })
-  .strict();
+export const asyncFailureTaxonomyItemSchema = observabilityFailureTaxonomyItemSchema;
 
 export const asyncFreshnessContractSchema = z
   .object({
@@ -859,6 +890,8 @@ export const asyncRetryResumeContractSchema = z
   .object({
     queueRetryPolicy: z.string().min(1).max(500),
     outboxRetryPolicy: z.string().min(1).max(500),
+    runtimeMetricsSemantics: z.string().min(1).max(500),
+    canonicalErrorSemantics: z.string().min(1).max(500),
     deadLetterPolicy: z.string().min(1).max(500),
     reclaimPolicy: z.string().min(1).max(500),
     workflowCheckpointSource: z.string().min(1).max(500),
@@ -895,6 +928,7 @@ export const asyncOperationsStatusResponseSchema = z
       .strict(),
     configGovernance: configGovernanceSummarySchema,
     capacityModel: capacityModelSummarySchema,
+    runtimeMetrics: runtimeMetricsSummarySchema,
     queue: queueStatusSnapshotSchema,
     outbox: outboxStatusSnapshotSchema,
     diagnostics: z
@@ -950,6 +984,7 @@ export type RetrievalCacheNamespaceStats = z.infer<typeof retrievalCacheNamespac
 export type OperatorStatusGroup = z.infer<typeof operatorStatusGroupSchema>;
 export type ConfigGovernanceSummary = z.infer<typeof configGovernanceSummarySchema>;
 export type CapacityModelSummary = z.infer<typeof capacityModelSummarySchema>;
+export type RuntimeMetricsSummary = z.infer<typeof runtimeMetricsSummarySchema>;
 export type WorkflowOperatorSummary = z.infer<typeof workflowOperatorSummarySchema>;
 export type AsyncFailureCategory = z.infer<typeof asyncFailureCategorySchema>;
 export type AsyncFailureTaxonomyItem = z.infer<typeof asyncFailureTaxonomyItemSchema>;
@@ -974,13 +1009,97 @@ export const badcaseEvalDraftSchema = z
   })
   .strict();
 
+export const badcaseDebugContractSchema = z
+  .object({
+    correlation: workflowCorrelationSchema,
+    durableTrace: z
+      .object({
+        sourceFeedbackId: entityIdSchema,
+        queryId: entityIdSchema.nullable(),
+        routeFamily: z.enum(['entry', 'capsule', 'graph-plan']).nullable(),
+      })
+      .strict(),
+    workflow: z
+      .object({
+        asyncJobId: entityIdSchema,
+        workflowType: z.literal('badcase-export-draft'),
+        exportDraftReady: z.boolean(),
+      })
+      .strict(),
+  })
+  .strict();
+
 export const badcaseExportResponseSchema = z
   .object({
     feedbackId: entityIdSchema,
     draft: badcaseEvalDraftSchema,
+    debug: badcaseDebugContractSchema,
     exportedAt: isoTimestampSchema,
   })
   .strict();
+
+export interface BadcaseTraceDraftInput {
+  feedbackId: string;
+  queryId: string | null;
+  querySeed: string | null;
+  routeFamily: 'entry' | 'capsule' | 'graph-plan' | null;
+  entryId: string;
+  entryType: 'trap' | 'skill';
+  failureClassification: string | null;
+  expectedCorrection: string | null;
+  selectedResultSnapshot: Record<string, unknown> | null;
+}
+
+export function buildBadcaseEvalDraft(input: BadcaseTraceDraftInput): BadcaseEvalDraft {
+  const taxonomy = normalizeBadcaseTaxonomy(input.failureClassification);
+  return badcaseEvalDraftSchema.parse({
+    kind: 'retrieval',
+    caseId: `badcase_${input.feedbackId}`,
+    sourceFeedbackId: input.feedbackId,
+    queryId: input.queryId,
+    routeFamily: input.routeFamily,
+    taxonomy,
+    request: {
+      queryId: input.queryId,
+      querySeed: input.querySeed,
+      routeFamily: input.routeFamily,
+      entryId: input.entryId,
+      entryType: input.entryType,
+    },
+    expected: {
+      failureClassification: taxonomy,
+      expectedCorrection: input.expectedCorrection,
+      selectedResultSnapshot: input.selectedResultSnapshot,
+    },
+    notes: [
+      'Draft generated from retrieval_badcase_traces.',
+      'Review expectedCorrection and selectedResultSnapshot before promoting into eval fixtures.',
+    ],
+  });
+}
+
+export function buildBadcaseDebugContract(args: {
+  correlation: WorkflowCorrelation;
+  sourceFeedbackId: string;
+  queryId: string | null;
+  routeFamily: 'entry' | 'capsule' | 'graph-plan' | null;
+  asyncJobId: string;
+  exportDraftReady: boolean;
+}) {
+  return badcaseDebugContractSchema.parse({
+    correlation: args.correlation,
+    durableTrace: {
+      sourceFeedbackId: args.sourceFeedbackId,
+      queryId: args.queryId,
+      routeFamily: args.routeFamily,
+    },
+    workflow: {
+      asyncJobId: args.asyncJobId,
+      workflowType: 'badcase-export-draft',
+      exportDraftReady: args.exportDraftReady,
+    },
+  });
+}
 
 export const architectureDecisionThresholdSchema = z
   .object({

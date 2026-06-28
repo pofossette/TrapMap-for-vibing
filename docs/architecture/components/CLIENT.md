@@ -4,6 +4,13 @@
 
 TrapMap 的客户端（CLI）基于 Commander.js 构建，提供终端用户与 TrapMap 服务器交互的命令行界面。客户端通过 HTTP API 与服务器通信，支持知识提交、检索、审核、团队管理等操作。
 
+## Phase 1 埋点可见性边界
+
+- client surface 只消费 shared observability contract 中允许的 additive debug handles：`requestId`、`traceId`、`queryId`、`feedbackId`、`asyncJobId`
+- 这些字段的用途是帮助用户把一次请求、一次 retrieval、一次 feedback follow-up 关联到 operator 或 badcase export 路径
+- `workflowRunId`、`candidateId`、`entryId`、`artifactId` 不属于默认通用 client debug envelope；如未来需要暴露，必须按具体路由单独设计，而不是在 CLI/http 基础层隐式常驻输出
+- `backendTarget` 继续只表达部署形态偏好，不承载第二套 observability owner 或 trace config 语义
+
 ## 客户端架构
 
 ```mermaid

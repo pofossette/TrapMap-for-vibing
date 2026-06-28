@@ -1,6 +1,9 @@
 import type { CacheMetricsSnapshot } from '@trapmap/server/lib/cache/metrics.js';
 import {
   getAverageLatencyMs,
+  getAverageOutboxBacklog,
+  getAverageQueueBacklog,
+  getAverageStaleWorkers,
   getRuntimeMetricsSnapshot,
 } from '@trapmap/server/lib/runtime/metrics.js';
 import type { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
@@ -112,6 +115,43 @@ export function buildCapacityModel(args: {
       ).length,
       staleRecoveryCount: cacheValues.reduce((sum, snapshot) => sum + snapshot.staleRecoveries, 0),
     },
+  } as const;
+}
+
+export function buildRuntimeMetricsSummary() {
+  const runtime = getRuntimeMetricsSnapshot();
+  return {
+    totals: {
+      executions: runtime.totals.executions,
+      degraded: runtime.totals.degraded,
+      reclaims: runtime.totals.reclaims,
+      timeouts: runtime.totals.timeouts,
+      retryableFailures: runtime.totals.retryableFailures,
+      permanentFailures: runtime.totals.permanentFailures,
+      retries: runtime.totals.retries,
+      averageLatencyMs: getAverageLatencyMs(runtime.totals),
+      averageQueueBacklog: getAverageQueueBacklog(runtime.totals),
+      averageOutboxBacklog: getAverageOutboxBacklog(runtime.totals),
+      averageStaleWorkers: getAverageStaleWorkers(runtime.totals),
+    },
+    dependencies: Object.fromEntries(
+      Object.entries(runtime.dependencies).map(([dependencyName, counter]) => [
+        dependencyName,
+        {
+          executions: counter.executions,
+          degraded: counter.degraded,
+          reclaims: counter.reclaims,
+          timeouts: counter.timeouts,
+          retryableFailures: counter.retryableFailures,
+          permanentFailures: counter.permanentFailures,
+          retries: counter.retries,
+          averageLatencyMs: getAverageLatencyMs(counter),
+          averageQueueBacklog: getAverageQueueBacklog(counter),
+          averageOutboxBacklog: getAverageOutboxBacklog(counter),
+          averageStaleWorkers: getAverageStaleWorkers(counter),
+        },
+      ]),
+    ),
   } as const;
 }
 

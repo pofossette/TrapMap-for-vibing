@@ -17,9 +17,11 @@
 | `archived-plans/old-plan-back-2026-05-28.md` | 2026-05-28 | 历史根计划备份，已合并到标准 archived-plans |
 | `archived-plans/plan-2026-06-26-nestjs-service-evolution-phase4-index-archived.md` | 2026-06-26 | 根 `plan.md` 已切换为组件替换主线，NestJS / 服务演进索引退回历史参考 |
 | `archived-plans/plan-2026-06-27-component-replacement-index-archived.md` | 2026-06-27 | 根 `plan.md` 已切换为轻重后端构建目标主线，组件替换计划退回历史参考 |
+| `archived-plans/plan-2026-06-28-backend-build-targets-index-archived.md` | 2026-06-28 | 根 `plan.md` 已切换为数据埋点增强主线，轻重后端构建目标索引退回历史参考 |
+| `archived-plans/plan-2026-06-28-instrumentation-observability-index-archived.md` | 2026-06-28 | 根 `plan.md` 已切换为健壮性与可扩展性收尾主线，数据埋点增强索引退回历史参考 |
 
 ## 归档原则
 
 文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档引用。
 
-当前活跃主线不是组件替换；`liquidjs`、`pg-boss` 等成熟包引入结论保留在对应归档计划与细则中，供后续实施时参考，但不再由根 `plan.md` 跟踪。
+当前活跃主线是“健壮性与可扩展性收尾”；数据埋点增强、轻重后端构建目标、组件替换等旧主线保留在归档计划与 `docs/todos/` 细则中，供后续实施时参考，但不再由根 `plan.md` 跟踪。

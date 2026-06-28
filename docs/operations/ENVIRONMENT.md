@@ -438,6 +438,18 @@ pnpm dev:local-agent
 
 > **Nest 宿主（默认 `light` 主线）**：`packages/host-local/src/nest/` 的 Nest 宿主现在通过 `packages/host-local/src/nest/config/config.ts` 自己加载 `HostLocalConfig`，这是 default `light` runtime env defaults 的 host-owned truth entry；`packages/server/src/config.ts` 仅保留 compatibility shell / shared consumer 侧入口。两者仍复用同一套环境变量与子配置 helper，不引入新的环境变量。`pnpm dev:local-agent`、`pnpm dev:team-monolith` 与 `pnpm --filter @trapmap/host-local dev` 都直接进入这条主线；旧 Fastify 宿主和相关 rollback 脚本已删除。
 
+### Phase 1 instrumentation 语义冻结
+
+- correlation key truth：`packages/contracts/src/domain/observability.ts`
+- `packages/contracts/src/domain/observability.ts` 同时冻结 `workflowCorrelationSchema` 与共享 failure taxonomy 文案；`operations.ts`、`/v1/operations/status/async`、workflow snapshot repository、feedback badcase capture 都只消费这套定义
+- request 入口统一使用 `TRAPMAP_REQUEST_ID_HEADER` 和 `TRAPMAP_TRACE_HEADER_NAME`，生成/透传的 public additive 句柄默认只包括 `requestId`、`traceId`、`queryId`、`feedbackId`、`asyncJobId`
+- `workflowRunId`、`candidateId`、`entryId`、`artifactId` 默认属于 internal/operator/durable trace surface，不作为新的 public header 或通用 response additive field 扩散
+- workflow correlation 只允许 `requestId`、`traceId`、`queryId`、`feedbackId`、`asyncJobId` 进入 `workflow_runs.stats` -> `workflows[*].correlation` 这条 operator seam；它是 public additive key 的 operator 视图，不承载 `workflowRunId`、`candidateId`、`artifactId` 之类 internal 扩展
+- Phase 2 当前样板实现把 `requestId` / `traceId` 继续传播到 `feedback.badcase-export-draft` 这类 shared job payload，并以 `workflow_runs.stats` + `/v1/operations/status/async -> workflows[*].correlation` 暴露给 operator；这不是新增 public response field
+- Phase 3 当前样板实现把 `retrieval_badcase_traces`、`workflow_runs.stats` 和 eval draft/export 收敛到同一份最小 debug contract：`GET /v1/operations/badcases/:feedbackId/export` 的 `debug.correlation` 只复用冻结的五个 public additive handle，`debug.durableTrace` 只承载 `sourceFeedbackId` / `queryId` / `routeFamily` 这组可复现句柄，`debug.workflow` 只承载 badcase draft async 状态；`draft.request` 仍不扩散 `asyncJobId`、`workflowRunId` 一类 operator-only 字段
+- metric namespace 冻结为 `trapmap.runtime`、`trapmap.async`、`trapmap.retrieval`、`trapmap.cache`、`trapmap.feedback`、`trapmap.operator`
+- 高基数关联键不得进入 metric label；它们只能进入日志、trace、workflow snapshot 或 durable badcase trace
+
 ## Runtime Resilience
 
 TrapMap 现在通过共享 runtime resilience 层统一处理部分 timeout / retry / degraded-fallback 行为。当前这层首先覆盖：
@@ -453,6 +465,12 @@ TrapMap 现在通过共享 runtime resilience 层统一处理部分 timeout / re
 - `/ready` 会把 `queueWorker`、`outboxWorker`、`graphQuery` 的当前状态汇总到 `dependencies.*`
 - `readiness === "not-ready"` 时，`GET /ready` 返回 HTTP `503`
 - runtime metrics 目前是内部/test-visible snapshot，用于统一统计 retry / timeout / degraded 次数，暂未暴露为稳定外部 metrics endpoint
+- `/v1/operations/status/async` 现在会以 internal/operator additive `runtimeMetrics` 汇总这些 snapshot，统一包含 `executions`、`degraded`、`reclaims`、`timeouts`、`retryableFailures`、`permanentFailures`、`retries` 以及 queue/outbox/stale-worker 的平均 backlog 统计
+- `executions`、`degraded`、`timeouts`、`retryableFailures`、`permanentFailures` 现在固定为 logical operation 终态计数：每个依赖调用无论中间经历多少次 attempt，最终只计一次 terminal outcome；只有 `retries` 统计首个 attempt 之后的额外尝试次数
+- fail-open fallback 也只算一次 terminal execution：如果最终降级到 fallback，则 `executions += 1`、`degraded += 1`，并按最终 failure kind 只增加一次 `timeouts` / `retryableFailures` / `permanentFailures`
+- runtime metrics 的语义 truth 仍在 `packages/server/src/lib/runtime/metrics.ts`；operator route 只做聚合展示，不复制另一套指标字段或高基数 label 规则
+- runtime metrics label 仅允许低基数字段，例如 `failureClassification`、`runtimeMode`、`serviceUnit`、`routeFamily`、`dependencyName`、`cacheNamespace`、`taskType`、`workflowType`
+- distributed hop 继续只透传既有 request/trace/correlation header，不为 observability 新增第二套内部 hop header 名；如果 internal hop 返回空 body 或 transport 级错误，gateway/internal client 仍必须先归一化为 canonical `kind`（如 `timeout`、`unavailable`、`forbidden`、`conflict`、`not-found`）再交给 route/worker/operator surface 解释
 
 ## AI 提供商配置
 

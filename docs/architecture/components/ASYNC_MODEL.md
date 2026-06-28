@@ -2,6 +2,14 @@
 
 本文是当前 TrapMap 异步模型的详细说明，覆盖 authoritative write、outbox、task queue、worker modes、shared jobs、workflow snapshots、cache invalidation 与 badcase export。
 
+## Phase 1 observability seam
+
+- 统一命名与可见性 contract 以 `packages/contracts/src/domain/observability.ts` 为准
+- async/operator 面消费的是其中的 failure taxonomy、metric namespace 和 surface owner 边界，而不是再维护一份平行术语表
+- `workflowRunId` 属于 async/operator/durable trace 语义，不等同于 public `asyncJobId`
+- `asyncJobId` 是允许返回给 client/operator follow-up 的 additive 句柄；更细的 workflow checkpoint、candidate/artifact 关联仍应留在 operator surface 或 durable trace
+- Phase 2 当前只把最小 request correlation 落到已存在的 shared job 样板链路：`feedback.badcase-export-draft` 会把 `requestId` / `traceId` 从 runtime seam 传播进 payload，并通过 `workflow_runs.stats` 投影为 operator-visible `workflows[*].correlation`
+
 ## 总览
 
 ```mermaid
@@ -219,6 +227,12 @@ flowchart TB
     R --> WF2["workflow_runs"]
     B --> WF3["workflow_runs"]
 ```
+
+### 4.1 Phase 2 correlation sample
+
+- `POST /v1/feedback` 在带 badcase payload 且 PostgreSQL async runtime 可用时，会把当前 request context 中的 `requestId` / `traceId` 与 `queryId`、`feedbackId` 一并传给 `feedback.badcase-export-draft` shared job。
+- worker 执行该 shared job 时，会把 `asyncJobId`、`feedbackId`、`queryId`、`requestId`、`traceId` 写入 `workflow_runs.stats`。
+- `/v1/operations/status/async` 读取 workflow snapshot 时，会将这组字段抽成 `workflows[*].correlation`，让 operator 能从 request 跟到 async follow-up，而不把完整内部 stats 或 workflow internals 暴露到通用 client surface。
 
 ### 当前 shared jobs
 

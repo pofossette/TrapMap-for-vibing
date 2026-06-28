@@ -1,53 +1,8 @@
 import type { getCacheMetricsSnapshot } from '@trapmap/server/lib/cache/metrics.js';
 import type { summarizeFailureClassifications } from '@trapmap/server/lib/operations/read-model.js';
+import { observabilityFailureTaxonomyItems } from '@trapmap/contracts';
 
-export const FAILURE_TAXONOMY = [
-  {
-    category: 'user-error',
-    meaning:
-      'The request or operator input is invalid and retrying without correction will not succeed.',
-    operatorAction: 'Fix the request payload, command parameters, or target state before retrying.',
-  },
-  {
-    category: 'auth-policy-error',
-    meaning: 'Authorization, membership, or policy checks rejected the action.',
-    operatorAction:
-      'Adjust actor permissions, team context, or policy state before replaying the action.',
-  },
-  {
-    category: 'dependency-error',
-    meaning:
-      'A required dependency such as PostgreSQL, graph/indexing, or storage integration is unavailable or unhealthy.',
-    operatorAction: 'Restore the dependency, then replay or requeue the blocked work item.',
-  },
-  {
-    category: 'timeout',
-    meaning: 'The action exceeded its runtime budget and may require retry or decomposition.',
-    operatorAction:
-      'Check handler latency, reduce batch size if relevant, and retry after the timeout source is addressed.',
-  },
-  {
-    category: 'stale-projection',
-    meaning:
-      'Authoritative writes committed, but read-side projections or caches have not converged yet.',
-    operatorAction:
-      'Inspect queue/outbox backlog, workflow runs, and cache invalidation status; replay refresh work only after the updater is healthy.',
-  },
-  {
-    category: 'retryable-async-failure',
-    meaning:
-      'The async substrate captured a transient failure and will retry automatically until limits are exhausted.',
-    operatorAction:
-      'Monitor retry progress; intervene only if backlog, stale leases, or repeated failures indicate the worker cannot self-recover.',
-  },
-  {
-    category: 'permanent-failure',
-    meaning:
-      'Retry limits were exhausted and the work item is now dead-lettered or failed for manual intervention.',
-    operatorAction:
-      'Inspect the failed task or outbox record, repair the underlying cause, then requeue or replay the item if it is still canonical.',
-  },
-] as const;
+export const FAILURE_TAXONOMY = observabilityFailureTaxonomyItems;
 
 export function buildRuntimeContract() {
   return {
@@ -81,6 +36,10 @@ export function buildRetryResumeContract() {
       'task_queue retries with bounded attempts, exponential backoff for PostgreSQL transport, and dead-letter on exhaustion; RabbitMQ transport preserves operator surface but does not support task-id requeue.',
     outboxRetryPolicy:
       'domain_event_outbox retries with bounded attempts and backoff before moving failed events into manual replay territory.',
+    runtimeMetricsSemantics:
+      'executions/degraded/timeouts/retryableFailures/permanentFailures count one terminal outcome per logical operation; retries counts only extra attempts beyond the first.',
+    canonicalErrorSemantics:
+      'route, worker, and internal client hops must normalize transport failures to the shared canonical kinds (timeout, unavailable, forbidden, conflict, not-found, validation, internal) before operator surfaces interpret them.',
     deadLetterPolicy:
       'Dead queue tasks and failed outbox events are operator-visible and require manual repair plus requeue/replay when the write is still canonical.',
     reclaimPolicy:

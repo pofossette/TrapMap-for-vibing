@@ -171,7 +171,11 @@ describe('feedback routes', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/feedback',
-      headers: { authorization: `Bearer ${sessionToken}` },
+      headers: {
+        authorization: `Bearer ${sessionToken}`,
+        'x-request-id': 'req_feedback_test',
+        'x-trace-id': 'trace_feedback_test',
+      },
       payload: {
         entryId: 'trap_1',
         entryType: 'trap',
@@ -210,16 +214,25 @@ describe('feedback routes', () => {
     expect(body.feedback.expectedCorrection).toBe('Return the current library migration guide.');
     expect(body.feedback.submittedBy).toBeDefined();
     expect(body.feedback.submittedBy.id).toBe(userId);
+    expect(body.feedback.workflowRunId).toBeUndefined();
+    expect(body.feedback.candidateId).toBeUndefined();
+    expect(body.feedback.artifactId).toBeUndefined();
 
     if (store instanceof PostgresStore) {
       expect(body.feedback.asyncJobId).toBeDefined();
       const queued = await store
         .getPool()
-        .query<{ count: string }>(
-          'SELECT COUNT(*) AS count FROM task_queue WHERE type = $1 AND dedupe_key = $2',
+        .query<{ count: string; payload: string }>(
+          'SELECT COUNT(*) AS count, MAX(payload)::text AS payload FROM task_queue WHERE type = $1 AND dedupe_key = $2 GROUP BY type, dedupe_key',
           [BADCASE_EXPORT_DRAFT_TASK_TYPE, `${BADCASE_EXPORT_DRAFT_TASK_TYPE}:feedback_1`],
         );
       expect(Number(queued.rows[0]?.count ?? '0')).toBe(1);
+      expect(JSON.parse(queued.rows[0]!.payload)).toMatchObject({
+        feedbackId: 'feedback_1',
+        queryId: 'qry_test_1',
+        requestId: 'req_feedback_test',
+        traceId: 'trace_feedback_test',
+      });
     }
   });
 

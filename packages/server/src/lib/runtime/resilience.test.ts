@@ -30,6 +30,13 @@ describe('executeWithResilience', () => {
       degraded: true,
       value: 'fallback',
     });
+    expect(getRuntimeMetricsSnapshot().totals).toMatchObject({
+      executions: 1,
+      degraded: 1,
+      retryableFailures: 0,
+      permanentFailures: 1,
+      retries: 1,
+    });
   });
 
   it('retries then succeeds', async () => {
@@ -56,7 +63,12 @@ describe('executeWithResilience', () => {
       value: 'ok',
       attempts: 2,
     });
-    expect(getRuntimeMetricsSnapshot().totals.retries).toBe(1);
+    expect(getRuntimeMetricsSnapshot().totals).toMatchObject({
+      executions: 1,
+      retries: 1,
+      retryableFailures: 0,
+      permanentFailures: 0,
+    });
   });
 
   it('fails closed after retry exhaustion', async () => {
@@ -75,6 +87,12 @@ describe('executeWithResilience', () => {
 
     expect(result.ok).toBe(false);
     expect(result.failureKind).toBe('permanent');
+    expect(result.failureClassification).toBe('permanent-failure');
+    expect(getRuntimeMetricsSnapshot().totals).toMatchObject({
+      executions: 1,
+      retries: 0,
+      permanentFailures: 1,
+    });
   });
 
   it('classifies timeout failures', async () => {
@@ -94,6 +112,66 @@ describe('executeWithResilience', () => {
 
     expect(result.ok).toBe(false);
     expect(result.failureKind).toBe('timeout');
+    expect(result.failureClassification).toBe('timeout');
+    expect(getRuntimeMetricsSnapshot().totals).toMatchObject({
+      executions: 1,
+      timeouts: 1,
+      retries: 0,
+    });
+  });
+
+  it('maps degraded fail-open exhaustion to the shared failure classification', async () => {
+    resetRuntimeMetrics();
+
+    const result = await executeWithResilience({
+      policy: {
+        ...immediatePolicy,
+        failureMode: 'fail-open',
+      },
+      operation: async () => {
+        throw new Error('temporary failure');
+      },
+      fallbackValue: 'fallback',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.degraded).toBe(true);
+    expect(result.failureClassification).toBe('permanent-failure');
+    expect(getRuntimeMetricsSnapshot().totals).toMatchObject({
+      executions: 1,
+      degraded: 1,
+      permanentFailures: 1,
+      retries: 1,
+    });
+  });
+
+  it('treats unsuccessful-result retries as retry attempts instead of extra executions', async () => {
+    resetRuntimeMetrics();
+    let attempts = 0;
+
+    const result = await executeWithResilience({
+      policy: {
+        ...immediatePolicy,
+        failureMode: 'fail-closed',
+      },
+      operation: async () => {
+        attempts += 1;
+        return attempts === 1 ? 'bad-result' : 'ok';
+      },
+      isSuccessfulResult: (value) => value === 'ok',
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: 'ok',
+      attempts: 2,
+    });
+    expect(getRuntimeMetricsSnapshot().totals).toMatchObject({
+      executions: 1,
+      retries: 1,
+      retryableFailures: 0,
+      permanentFailures: 0,
+    });
   });
 
   it('logs retries and failures when logger is provided', async () => {

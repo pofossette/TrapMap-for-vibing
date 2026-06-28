@@ -185,11 +185,13 @@ deployment flexibility 最小验证矩阵：
 
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
-- [轻重后端构建目标根计划](../plan.md) — 当前根级执行索引，跟踪 `light/heavy` 构建目标、兼容壳清理和客户端后端形态配置
-- [轻重后端构建目标细则](todos/backend-build-targets-plan.md) — 当前唯一活跃细则入口，包含 ASCII 依赖图、兼容壳分类、删除顺序与验证矩阵
+- [健壮性与可扩展性收尾根计划](../plan.md) — 当前根级执行索引，跟踪已发现问题、残余风险、truth source 收敛与测试/文档关闭要求
+- [健壮性与可扩展性收尾细则](todos/robustness-scalability-closeout-plan.md) — 当前唯一活跃细则入口，包含冻结后的单一问题池、固定阶段顺序、非目标边界、文档回写矩阵与最小验证要求
+- [数据埋点增强细则](todos/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪
+- [轻重后端构建目标细则](todos/backend-build-targets-plan.md) — 轻重后端构建目标、兼容壳清理与客户端后端形态配置的细则；根计划已切换，不再是当前主线
 - [组件替换细则](todos/component-replacement-plan.md) — 成熟包替换的独立细则；根计划已切换，不再是当前主线
 - [Badcase 回流待办](todos/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
-- [后端工程化优化计划](todos/backend-engineering-optimization-plan.md) — 队列、MQ、微服务化与观测演进方向
+- [后端工程化优化计划](todos/backend-engineering-optimization-plan.md) — 队列、MQ、微服务化与观测演进方向的问题池；本轮 closeout 明确将其列为 deferred 背景，不作为当前执行面
 - [NestJS 目标架构冻结](todos/nestjs-service-evolution-00-target-architecture.md) — 长期目标、边界、保留与退役决策
 - [NestJS 宿主与 contract 基础](todos/nestjs-service-evolution-01-host-and-contract-foundation.md) — 首条 Nest 宿主主线与共享 contract 收口
 - [NestJS 模块化单体切换](todos/nestjs-service-evolution-02-modular-monolith-cutover.md) — 六个 bounded context、compatibility boundary 与机械迁移提示词

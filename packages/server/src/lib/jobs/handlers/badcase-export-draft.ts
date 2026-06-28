@@ -37,9 +37,13 @@ export function createBadcaseExportDraftHandler(args: {
         lastError: null,
         stats: {
           taskType: BADCASE_EXPORT_DRAFT_TASK_TYPE,
+          asyncJobId: runId,
           entryId: task.payload.entryId,
           entryType: task.payload.entryType,
+          feedbackId: task.payload.feedbackId,
           queryId: task.payload.queryId,
+          requestId: task.payload.requestId,
+          traceId: task.payload.traceId,
         },
         createdAt: now,
         updatedAt: now,
@@ -60,6 +64,11 @@ export function createBadcaseExportDraftHandler(args: {
         completedAt: new Date().toISOString(),
         stats: {
           taskType: BADCASE_EXPORT_DRAFT_TASK_TYPE,
+          asyncJobId: runId,
+          feedbackId: task.payload.feedbackId,
+          queryId: task.payload.queryId,
+          requestId: task.payload.requestId,
+          traceId: task.payload.traceId,
           exportDraftReady: true,
         },
       });
@@ -82,6 +91,11 @@ export function createBadcaseExportDraftHandler(args: {
         lastError: task.lastError ?? 'Unknown error',
         stats: {
           taskType: BADCASE_EXPORT_DRAFT_TASK_TYPE,
+          asyncJobId: contract.workflow.runId(task.payload),
+          feedbackId: task.payload.feedbackId,
+          queryId: task.payload.queryId,
+          requestId: task.payload.requestId,
+          traceId: task.payload.traceId,
         },
         createdAt: task.createdAt.toISOString(),
         updatedAt: new Date().toISOString(),

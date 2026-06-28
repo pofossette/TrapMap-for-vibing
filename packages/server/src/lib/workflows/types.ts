@@ -18,6 +18,13 @@ export interface WorkflowRunSnapshot {
   startedAt: string | null;
   completedAt: string | null;
   lastError: string | null;
+  correlation: {
+    requestId?: string;
+    traceId?: string;
+    queryId?: string;
+    feedbackId?: string;
+    asyncJobId?: string;
+  } | null;
   stats: Record<string, number | string | boolean | null>;
   createdAt: string;
   updatedAt: string;

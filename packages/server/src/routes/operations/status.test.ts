@@ -800,6 +800,8 @@ describeIfDb('operations async status routes', () => {
       retryResumeContract: expect.objectContaining({
         queueRetryPolicy: expect.any(String),
         outboxRetryPolicy: expect.any(String),
+        runtimeMetricsSemantics: expect.any(String),
+        canonicalErrorSemantics: expect.any(String),
         deadLetterPolicy: expect.any(String),
         reclaimPolicy: expect.any(String),
         workflowCheckpointSource: expect.any(String),
@@ -867,6 +869,22 @@ describeIfDb('operations async status routes', () => {
           namespacesWithPendingInvalidation: expect.any(Number),
           staleRecoveryCount: expect.any(Number),
         }),
+      }),
+      runtimeMetrics: expect.objectContaining({
+        totals: expect.objectContaining({
+          executions: expect.any(Number),
+          degraded: expect.any(Number),
+          reclaims: expect.any(Number),
+          timeouts: expect.any(Number),
+          retryableFailures: expect.any(Number),
+          permanentFailures: expect.any(Number),
+          retries: expect.any(Number),
+          averageLatencyMs: expect.any(Number),
+          averageQueueBacklog: expect.any(Number),
+          averageOutboxBacklog: expect.any(Number),
+          averageStaleWorkers: expect.any(Number),
+        }),
+        dependencies: expect.any(Object),
       }),
       queue: expect.objectContaining({
         pending: expect.any(Number),
@@ -1002,6 +1020,15 @@ describeIfDb('operations async status routes', () => {
           workflowsInFlight: 0,
         },
       }),
+      runtimeMetrics: expect.objectContaining({
+        dependencies: expect.objectContaining({
+          'async-operator-status': expect.objectContaining({
+            averageQueueBacklog: 17,
+            averageOutboxBacklog: 8,
+            averageStaleWorkers: 0,
+          }),
+        }),
+      }),
     });
     expect(app.skillShareer.asyncTransport.task.kind).toBe('postgres-task-queue');
     expect(app.skillShareer.asyncTransport.events.kind).toBe('postgres-domain-outbox');
@@ -1126,6 +1153,53 @@ describeIfDb('operations async status routes', () => {
         resumeAllowed: expect.any(Boolean),
       });
     }
+  });
+
+  it('surfaces workflow correlation context for async follow-up traces', async () => {
+    const store = app.skillShareer.store as any;
+    await store.getPool().query(
+      `INSERT INTO workflow_runs
+       (run_id, workflow_type, subject_id, status, step_name, attempt, started_at, completed_at, last_error, stats, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NULL, NULL, $7::jsonb, NOW(), NOW())`,
+      [
+        'wf_badcase_feedback_test',
+        'badcase-export-draft',
+        'feedback_test',
+        'running',
+        'draft-export',
+        1,
+        JSON.stringify({
+          asyncJobId: 'wf_badcase_feedback_test',
+          feedbackId: 'feedback_test',
+          queryId: 'qry_status_test',
+          requestId: 'req_status_test',
+          traceId: 'trace_status_test',
+          taskType: 'feedback.badcase-export-draft',
+        }),
+      ],
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/operations/status/async',
+      headers: { authorization: `Bearer ${sessionId}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().workflows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          runId: 'wf_badcase_feedback_test',
+          correlation: {
+            asyncJobId: 'wf_badcase_feedback_test',
+            feedbackId: 'feedback_test',
+            queryId: 'qry_status_test',
+            requestId: 'req_status_test',
+            traceId: 'trace_status_test',
+          },
+        }),
+      ]),
+    );
   });
 
   it('reports candidate-ingestion ownership without implying outbox ownership', async () => {

@@ -23,6 +23,7 @@ import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAsyncWorkerState } from '@trapmap/server/lib/runtime/runtime-metadata.js';
 import { getServiceUnitProfile } from '@trapmap/server/lib/runtime/service-unit.js';
+import { recordRuntimeBacklog } from '@trapmap/server/lib/runtime/metrics.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
@@ -30,6 +31,7 @@ import {
   buildCapacityModel,
   buildFreshnessContract,
   buildOperatorHome,
+  buildRuntimeMetricsSummary,
   buildWorkflowOperatorSummary,
 } from './status-phase3.js';
 
@@ -97,6 +99,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
         }),
         configGovernance,
         capacityModel,
+        runtimeMetrics: buildRuntimeMetricsSummary(),
         queue: {
           provider: 'not-configured',
           pending: 0,
@@ -188,6 +191,12 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
       (workflow) => workflow.status !== 'completed',
     ).length;
     const staleWorkers = queueSnapshot.staleRunning + outboxSnapshot.staleProcessing;
+    recordRuntimeBacklog({
+      dependencyName: 'async-operator-status',
+      queueBacklog: queueSnapshot.pending,
+      outboxBacklog: outboxSnapshot.pending,
+      staleWorkers,
+    });
     const bulkOperations = buildWorkflowOperatorSummary(workflows);
     const capacityModel = buildCapacityModel({
       queuePending: queueSnapshot.pending,
@@ -247,6 +256,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
       }),
       configGovernance,
       capacityModel,
+      runtimeMetrics: buildRuntimeMetricsSummary(),
       queue: {
         ...queueSnapshot,
         workerState: queueWorkerState,

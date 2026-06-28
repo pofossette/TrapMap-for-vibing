@@ -79,14 +79,26 @@ flowchart TB
 
 **Phase 2 Contract Checks:**
 - Async status contract：调用 `GET /v1/operations/status/async`，确认返回 `runtimeContract`、`idempotencyContract`、`retryResumeContract`、`freshnessContract` 和 `failureTaxonomy`。
+- Runtime metrics contract：确认 `/v1/operations/status/async` 的 `runtimeMetrics` 返回统一的 timeout / retry / degraded / reclaim / queue backlog / outbox backlog / stale-worker 统计，且高基数键没有进入该汇总。
+  `executions` / `degraded` / `timeouts` / `retryableFailures` / `permanentFailures` 必须表示 logical operation 终态，不得把同一次操作的中间 retry attempt 再计成额外 execution。
 - Freshness contract：制造 queue backlog、outbox backlog 或 cache pending invalidation，确认 `freshnessContract.writeVisibility.projectionRefreshPending=true`，并且 `projectionLag` 计数随实际 backlog 变化。
 - Resume/checkpoint contract：触发带 workflow snapshot 的 shared job 或 candidate processing，确认 checkpoint/progress 位于 `workflow_runs.stats`，而不是仅存在于日志或内存。
+- Request-to-async correlation：提交带 badcase 的 feedback，并带上 `TRAPMAP_REQUEST_ID_HEADER` / `TRAPMAP_TRACE_HEADER_NAME`，确认 `task_queue.payload` 与 `/v1/operations/status/async` 的 `workflows[*].correlation` 都能看到同一组 `requestId`、`traceId`、`queryId`、`feedbackId`、`asyncJobId` 句柄。
+- Focused end-to-end proof：在 PostgreSQL 模式下先走一次 retrieval 拿到真实 `queryId`，再提交 badcase feedback，消费 `feedback.badcase-export-draft` 任务并写入 `workflow_runs`，最后调用 `GET /v1/operations/badcases/:feedbackId/export`；确认 `debug.correlation`、`debug.durableTrace`、`debug.workflow` 与 queued payload / workflow snapshot 使用同一组语义，同时 `draft.request` 仍不泄露 `asyncJobId`、`workflowRunId`。
 - Failure taxonomy：制造 dead-letter / failed event，确认 operator 仍通过统一 taxonomy 解释为 `permanent-failure`，而不是只输出底层 status 字符串。
+- Distributed hop correlation：运行 `packages/host-distributed/src/gateway/internal-client.test.ts` 或 distributed acceptance/closeout，确认 `x-request-id`、`x-trace-id` 与既有 `x-correlation-id` 跨 hop 透传，且 `403/404/409/503/504` canonical `kind` 不因 internal client 而漂移；上游空 body 或 transport 级失败也必须被归一化成 canonical body。
 
 **Phase 7 Badcase Export / Decision Metrics Checks:**
 - Operator export flow：先用 retrieval 拿到 `queryId`，提交带 badcase 的 feedback，再调用 `GET /v1/operations/badcases/:feedbackId/export`，确认返回 deterministic draft JSON。
-- Script export flow：运行 `pnpm exec tsx scripts/export-badcase-to-eval.ts <feedbackId> <outputPath>`，确认输出文件与 route draft shape 一致。
+- Script export flow：运行 `pnpm exec tsx scripts/export-badcase-to-eval.ts <feedbackId> <outputPath>`，确认输出文件与 route `draft` shape 一致；route 额外携带的 `debug` 仅用于 operator/debug 闭环，不属于 eval draft payload。
 - Decision metrics：调用 `GET /v1/operations/stats/summary`，确认返回 `asyncArchitecture.queueBacklogByType`、`deadLetterByType`、`retryRateByType`、`avgHandlerLatencyMsByType`、`cacheHitRateByNamespace`、`badcaseExportCount`、`retrievalFailureDistribution` 与 `thresholds`。
+
+**Phase 1 Instrumentation Contract Checks:**
+- Contract truth：运行受影响 contracts 测试并确认 `packages/contracts/src/domain/observability.ts` 仍冻结统一 correlation key、metric namespace、failure taxonomy 与 public/internal 边界。
+- Workflow correlation truth：确认 `packages/contracts/src/domain/observability.ts` 的 `workflowCorrelationSchema` 仍是 `workflow_runs.stats` -> `/v1/operations/status/async` 的唯一 correlation key allowlist，route/repository 不再各自手写另一套 key。
+- Header/additive boundary：验证 request/trace header 仍由 runtime seam 负责；public response additive field 仅限 `requestId`、`traceId`、`queryId`、`feedbackId`、`asyncJobId`，不要把 `workflowRunId`、`candidateId`、`artifactId` 直接扩散到通用 client surface。
+- Metric discipline：新增 runtime/async/cache/operator 指标时，确认高基数键没有进入 metrics label，而是保留在 logs、workflow snapshot 或 durable badcase trace。
+- Operator vs durable trace：验证 `/v1/operations/status/async` 负责解释当前运行状态；`retrieval_badcase_traces` 负责 reproducibility；二者不互相替代。
 
 **Phase 3 Operator / Config / Capacity Checks:**
 - Operator home：调用 `GET /v1/operations/status/async`，确认返回 `operatorHome.health/status/freshness/capacity/jobControl` 五组首页摘要，而不是要求 operator 自己拼 queue/outbox/cache/workflow 字段。
@@ -98,6 +110,7 @@ flowchart TB
 - Phase 0：至少运行当前 gap / docs 相关 truth smoke，并确认 `docs/plans/README.md`、`plan.md` 与阶段索引没有入口漂移。
 - Phase 1：至少运行边界/compat 相关测试入口，并确认 `ARCHITECTURE.md`、`SYSTEM_TRUTH_SOURCES.md` 与相关 README 已回写 ownership / allowlist。
 - Phase 2：至少运行 `packages/server/src/routes/operations/status.test.ts` 与 async/runtime 相关测试，确认 `/v1/operations/status/async` contract、`workflow_runs.stats` checkpoint source 和 failure taxonomy 已冻结。
+- Phase 2：同时确认 runtime metrics 采用“logical terminal outcome + separate retry attempts”语义，且 route/worker/internal client/operator status 的 canonical error kind 映射没有漂移。
 - Phase 3：至少运行 `packages/server/src/routes/operations/status.test.ts`、`packages/server/src/routes/operations/stats.test.ts`、`packages/server/src/config.test.ts`，确认 operatorHome / configGovernance / capacityModel / bulkOperations 以及 cache invalidation summary 已落地。
 - Phase 4：至少运行本轮 closeout 相关测试与守卫，确认 truth-source 回写、active-execution 边界和 closeout 规则已固定。
 
@@ -457,6 +470,7 @@ pnpm check:complexity
 - `/ready` 在 `readiness === "not-ready"` 时应返回 HTTP `503`
 - PostgreSQL 模式下，`queueWorker` 和 `outboxWorker` 都应纳入 readiness 解释
 - 如果更改了 runtime doc contract，需要同步更新 `SYSTEM_TRUTH_SOURCES.md` 与 `docs-truth-smoke.test.ts`
+- 如果更改了统一 instrumentation contract，需要同步更新 `SYSTEM_TRUTH_SOURCES.md`、`docs/todos/instrumentation-observability-plan.md` 和相关 architecture/reference 文档；其中 `observability.ts` 必须继续作为 correlation key / workflow correlation / failure taxonomy / public-internal 边界的唯一共享入口
 
 ### 按变更类型的验证矩阵
 

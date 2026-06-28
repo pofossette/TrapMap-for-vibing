@@ -1,100 +1,105 @@
-# TrapMap Backend Build Targets Plan Index
+# TrapMap 健壮性与可扩展性收尾计划索引
 
 ## 状态
 
 - 状态：`进行中`
-- 日期：`2026-06-27`
+- 日期：`2026-06-28`
 - 本文件角色：根级执行计划索引，只保留目标、总体要求、阶段勾选和细则入口
-- 当前活跃细则：[`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md)
-- 刚归档的上一份根计划：[`docs/archived/archived-plans/plan-2026-06-27-component-replacement-index-archived.md`](docs/archived/archived-plans/plan-2026-06-27-component-replacement-index-archived.md)
+- 当前活跃细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
+- 刚归档的上一份根计划：[`docs/archived/archived-plans/plan-2026-06-28-instrumentation-observability-index-archived.md`](docs/archived/archived-plans/plan-2026-06-28-instrumentation-observability-index-archived.md)
 
 ## 目标
 
-- 将 TrapMap 后端收敛为更优雅、更易管理的两种构建目标：`light` 与 `heavy`
-- 保持 `contracts + backend-core + service assembly` 的实现复用，不维护第二套业务真相
-- 将轻重差异收敛到宿主、connector、bootstrap、deployment wiring，而不是散落到业务实现
-- 为客户端增加一个显式配置项，用于区分目标后端形态，同时继续保持 `gateway only` 接入模型
+- 清理本轮审计与实施过程中已经确认的问题、口径漂移和测试证据缺口
+- 把 runtime、async、retrieval、governance、feedback、operator surface 的关键 contract 收敛为更健壮且可扩展的系统基础
+- 让“指标语义、trace 传播、错误映射、operator/debug surface、文档/测试矩阵”具备长期可维护性，而不是靠局部实现或临时约定维持
+- 在不制造第二套 truth source 的前提下，为后续持续演进预留清晰扩展点
 
 ## 总体要求
 
-- 根 `plan.md` 只做索引；执行细节、冻结结论、最小验证和回写清单统一写入 [`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md)
-- 每个阶段勾选前，必须同时完成：实现或结论冻结、聚焦测试、相关文档回写、`pnpm check:docs-drift`、`pnpm check:structure`
-- 不允许把 `light/heavy` 做成新的业务真相分叉；共享实现必须继续落在 `contracts`、`backend-core`、`service-*` 主实现与明确的 host-agnostic seam
-- 客户端新增配置项只能表达目标后端形态，不得演化成第二套 URL、第二套认证模型或内部服务直连能力
-- 兼容壳清理以“尽可能清除”为默认方向：已经有真实替代实现的壳层优先删除，尚无替代实现的部分必须先抽离职责再删，禁止继续向兼容壳写入新的 authoritative 业务逻辑
+- 根 `plan.md` 只做索引；执行细节、落点清单、关闭条件、最小验证和文档回写统一写入 [`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
+- 每个阶段勾选前，必须同时完成：实现或冻结结论、聚焦测试、相关文档回写、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
+- 本轮主线目标是健壮性与可扩展性，不得借修复名义新增第二套状态机、第二套 taxonomy、第二套 debug surface 或第二套部署语义
+- 共享命名、taxonomy、public/internal 边界、operator/debug 语义与 metrics 口径，必须优先复用既有 truth source，不允许局部复制再演化
+- 文档、计划、测试和代码必须同步收口；任何“代码已改但 contract/test/doc 仍是旧口径”的状态都不能勾选完成
+- 涉及 retrieval、governance、feedback、badcase、eval runner 的改动，最少补 `rtk pnpm eval:smoke`
 
 ## 当前关键路径
 
-- 当前主线阶段：`Phase 2 与 Phase 4 进行中`
+- 当前主线阶段：`Phase 1 -> Phase 2`
 - 当前先做：
-  - [x] 冻结 `light` / `heavy` 的正式命名和与现有 profile 的映射关系
-  - [x] 明确哪些差异属于 host / connector / deployment，哪些仍是统一业务实现
-  - [x] 规划客户端后端形态配置项的命名、值域、默认值与兼容迁移
-  - [x] 盘点兼容壳清单，并按“立即清除 / 替换后删除 / 真实实现保留”三类冻结
-  - [x] 补齐对应的文档入口和最小验证矩阵
+  - [x] 冻结本轮要清理的已知问题、残余风险与非目标
+  - [x] 明确哪些问题属于 contract truth、runtime seam、operator surface、测试证据、文档治理
+  - [x] 收敛后续阶段的固定执行顺序与越界约束
+  - [x] 冻结本轮文档回写矩阵与最小验证矩阵
+  - [x] 完成 Phase 1 的 truth source / contract 收敛主项
+  - [ ] 进入 Phase 2，修正 runtime / async correctness 的统计与错误映射漂移
+  - [ ] 在不扩张 debug surface 的前提下关闭当前已发现的 correctness 问题池
 
 ## 阶段索引
 
-### Phase 0 术语与映射冻结 [已完成]
+### Phase 0 问题清单冻结与边界校准 [进行中]
 
-- [x] 冻结 `light` / `heavy` 构建目标术语和适用范围
-- [x] 写清与 `local-agent`、`team-monolith`、`distributed`、`gateway only` 的映射关系
-- [x] 明确仍以现有 capability/profile truth source 为准，不制造第二套事实源
-- 细则：[`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md)
+- [x] 把当前已确认问题、残余风险、越界点和证据缺口整理为单一问题池
+- [x] 冻结本轮“必须修 / 应该修 / 可延后”的优先级
+- [x] 明确非目标，避免把新功能、UI 扩张或平台替换混入本轮
+- [x] 写清与历史 observability / backend engineering / service evolution 细则的关系
+- 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
 
-### Phase 1 后端构建目标收敛 [进行中]
+### Phase 1 Truth Source 与 Contract 收敛 [已完成]
 
-- [ ] 冻结 `light` 与 `heavy` 的正式边界、共享实现面和宿主差异面
-- [ ] 明确是否需要新的 build/startup 入口或脚本别名
-- [ ] 冻结当前兼容壳判定：哪些属于过渡层，哪些其实已经是默认轻宿主真实实现
-- [ ] 回写 package/host/deployment 叙事，避免多套描述并存
-- 细则：[`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md)
+- [x] 消除共享 observability / failure taxonomy / correlation key 的重复定义
+- [x] 明确 runtime metrics、workflow correlation、operator status、durable trace 的单一语义来源
+- [x] 收敛 public/internal 边界，避免局部 surface 继续扩散内部字段
+- [x] 回写 truth source、reference 与 contract 相关文档
+- 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
 
-### Phase 2 connector、装配与兼容壳清理 [进行中]
+### Phase 2 Runtime / Async Correctness 修复 [进行中]
 
-- [ ] 收敛轻重路径的 connector / invocation / transport glue
-- [ ] 保留本地 connector 与远端 connector 两套 adapter，但统一依赖同一组 port
-- [ ] 明确失败语义、重试、超时、trace/header 传播的负责层
-- [ ] 优先删除“只有转发或 501 语义”的兼容壳与 facade
-- [ ] 将 `@trapmap/server` 中仍被默认轻宿主依赖的真实职责迁到明确宿主或共享 seam，再删除残余 compatibility route
-- 细则：[`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md)
+- [x] 修正 timeout、retry、degraded、failure classification、execution semantics 的统计一致性
+- [x] 清理 route、worker、internal client、operator status 之间的错误映射漂移
+- [x] 冻结“attempt 级”与“logical operation 级”指标语义
+- [x] 补齐受影响测试与必要文档
+- 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
 
-### Phase 3 客户端后端形态配置项 [已完成]
+### Phase 3 传播证据与 Debug 闭环加固 [进行中]
 
-- [x] 在客户端状态中新增后端形态配置项
-- [x] 明确它对 CLI / client-core / web-panel 的影响边界
-- [x] 补齐配置兼容迁移、文档和最小测试
-- 细则：[`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md)
+- [x] 把 request/trace/query/feedback/async 关联句柄的真实传播证据补齐到 focused tests / acceptance
+- [x] 让 retrieval、feedback、badcase export、operator drill-down、eval replay 使用同一套关键字段语义
+- [x] 为高频排障路径提供稳定、可复用的最小 debug contract
+- [ ] 补齐对应测试与必要的 `rtk pnpm eval:smoke`
+- 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
 
-### Phase 4 closeout 与守卫 [进行中]
+### Phase 4 守卫、文档与扩展缝隙收尾 [未开始]
 
-- [ ] 冻结最终术语、入口文档和 truth source
-- [ ] 必要时补 docs drift / smoke 守卫，避免旧叙事回流
-- [ ] 关闭本轮索引与细则中的所有未决项
-- 细则：[`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md)
+- [ ] 回写 README、docs 索引、reference、operations、architecture 与必要 package README
+- [ ] 必要时补 docs drift / structure / focused test guard，防止旧口径回流
+- [ ] 标记 deferred risk、扩展 seam 与后续问题池，不在根计划里保留模糊未决项
+- [ ] 关闭本轮索引与细则中的所有未决复选框
+- 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
 
 ## 文档回写要求
 
-- 架构概览、快速开始或对外叙事变化：更新 `README.md`、`docs/README.md`
-- 包职责、宿主职责、目录落点变化：更新 `docs/PACKAGES.md`、`docs/reference/REPO_STRUCTURE.md`
-- 真相源、术语映射、执行索引变化：更新 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
-- 兼容壳清单、默认入口和退役顺序变化：更新 `docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`、必要的 host/server README
-- 客户端配置、接入模型或状态结构变化：更新 `docs/architecture/components/CLIENT.md`、`packages/cli/README.md`、必要时更新 `packages/client-core/README.md`
-- 根计划切换或归档变化：更新 `docs/archived/README.md`、`docs/todos/README.md`
+- 每完成一个阶段或子项，都同步更新 [`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md) 中对应复选框、关闭条件与问题池状态
+- 健壮性收尾主线、阶段关闭规则、truth source 变化：更新 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+- 根计划切换、当前主线入口和索引变化：更新 `docs/README.md`、`docs/todos/README.md`、`docs/archived/README.md`
+- runtime / operator / trace / testing 规则变化：更新 `docs/operations/ENVIRONMENT.md`、`docs/operations/TESTING.md`
+- contract、debug surface、operator drill-down、async/retrieval 语义变化：更新相关 `docs/architecture/*`、`docs/PACKAGES.md`、必要 package `README.md`
+- 根 `plan.md` 只保留当前主线索引职责，不承载实现细节
 
 ## 测试回写要求
 
-- 仅调整计划/索引文档：至少运行 `pnpm check:docs-drift` 与 `pnpm check:structure`
-- 涉及客户端配置项：补 `packages/cli` 配置读写/兼容迁移相关测试
-- 涉及 client-core contract：补对应包的最小测试
-- 涉及构建目标映射、宿主选择、runtime/deployment surface：补 `pnpm test:deployment-smoke`
-- 涉及 bootstrap/runtime/connector foundations：补 `pnpm test:runtime-foundations`
-- 涉及兼容壳删除、入口切换或 facade 清理：补受影响包最小测试，并确认 `pnpm test:deployment-smoke` 覆盖新默认路径
+- 仅调整计划/索引文档：至少运行 `rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`
+- 涉及 contracts、共享类型或 client/server surface：补 `rtk pnpm typecheck` 与受影响包最小测试
+- 涉及 runtime metrics、request/trace 传播、operator status、错误映射或 async correctness：补 `rtk pnpm test:runtime-foundations`、必要时补包级 focused tests
+- 涉及 distributed hop、gateway/internal client、service 间传播与 canonical error semantics：补相关 distributed focused tests，必要时补 `rtk pnpm test:deployment-smoke`
+- 涉及 retrieval、governance、feedback、badcase export、eval runner：相关包测试外，至少补 `rtk pnpm eval:smoke`
+- 任一阶段勾选完成前，至少确认“代码/contract + focused tests + 文档回写 + `check:docs-drift` + `check:structure`”同时完成
 
 ## 完成定义
 
-- 根 `plan.md` 只保留当前“轻重后端构建目标”主线的索引职责
-- [`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md) 成为唯一活跃细则入口
-- `light` / `heavy` 的术语、映射关系、共享实现边界和宿主差异边界已冻结
-- 客户端后端形态配置项有明确语义、兼容迁移和最小测试要求
-- 入口文档、truth source、结构索引和最小守卫与实现一致
+- 根 `plan.md` 只保留当前“健壮性与可扩展性收尾”主线的索引职责
+- [`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md) 成为唯一活跃细则入口
+- 已确认问题、残余风险、语义漂移与证据缺口被收敛到单一问题池并按优先级处理或明确 deferred
+- runtime / async / retrieval / feedback / operator / debug 相关关键 contract、trace 和测试证据具备稳定且可扩展的演进基础
+- 文档入口、truth source、测试矩阵和守卫与当前实现一致

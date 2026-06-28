@@ -32,7 +32,24 @@ export interface ResilienceResult<T> {
   degraded: boolean;
   attempts: number;
   failureKind?: ResilienceFailureKind;
+  failureClassification?:
+    | 'dependency-error'
+    | 'timeout'
+    | 'retryable-async-failure'
+    | 'permanent-failure';
   error?: unknown;
+}
+
+function mapFailureClassification(
+  failureKind: ResilienceFailureKind,
+): 'dependency-error' | 'timeout' | 'retryable-async-failure' | 'permanent-failure' {
+  if (failureKind === 'timeout') {
+    return 'timeout';
+  }
+  if (failureKind === 'retryable') {
+    return 'retryable-async-failure';
+  }
+  return 'permanent-failure';
 }
 
 export interface ExecuteWithResilienceOptions<T> {
@@ -92,6 +109,7 @@ export async function executeWithResilience<T>(
 
   let lastError: unknown;
   let lastFailureKind: ResilienceFailureKind | undefined;
+  const startedAt = Date.now();
 
   for (let attempt = 1; attempt <= policy.maxAttempts; attempt += 1) {
     try {
@@ -99,6 +117,7 @@ export async function executeWithResilience<T>(
       if (isSuccessfulResult(value)) {
         recordRuntimeExecution({
           dependencyName: policy.dependencyName,
+          latencyMs: Date.now() - startedAt,
         });
         return {
           ok: true,
@@ -113,21 +132,29 @@ export async function executeWithResilience<T>(
       );
       lastError = resultError;
       const retryable = attempt < policy.maxAttempts;
-      recordRuntimeExecution({
-        dependencyName: policy.dependencyName,
-        failureKind: retryable ? 'retryable' : 'permanent',
-      });
+      lastFailureKind = retryable ? 'retryable' : 'permanent';
       if (!retryable) {
         break;
       }
+      recordRuntimeRetry(policy.dependencyName);
+      context?.logger?.warn?.(
+        {
+          dependencyName: policy.dependencyName,
+          attempt,
+          requestId: context.requestId ?? null,
+          traceId: context.traceId ?? null,
+          route: context.route,
+          workItemId: context.workItemId,
+          failureKind: lastFailureKind,
+          metrics: getRuntimeMetricsSnapshot().dependencies[policy.dependencyName],
+        },
+        'Retrying resilient operation after unsuccessful result',
+      );
+      await new Promise((resolve) => setTimeout(resolve, policy.backoffMs(attempt)));
     } catch (error) {
       lastError = error;
       const retryable = isRetryableError(error) && attempt < policy.maxAttempts;
       lastFailureKind = classifyFailureKind(error, retryable);
-      recordRuntimeExecution({
-        dependencyName: policy.dependencyName,
-        failureKind: lastFailureKind,
-      });
 
       if (!retryable) {
         break;
@@ -156,6 +183,7 @@ export async function executeWithResilience<T>(
       dependencyName: policy.dependencyName,
       degraded: true,
       failureKind,
+      latencyMs: Date.now() - startedAt,
     });
     context?.logger?.warn?.(
       {
@@ -173,10 +201,16 @@ export async function executeWithResilience<T>(
       degraded: true,
       attempts: policy.maxAttempts,
       failureKind,
+      failureClassification: mapFailureClassification(failureKind),
       error: lastError,
     };
   }
 
+  recordRuntimeExecution({
+    dependencyName: policy.dependencyName,
+    failureKind,
+    latencyMs: Date.now() - startedAt,
+  });
   context?.logger?.error?.(
     {
       dependencyName: policy.dependencyName,
@@ -198,6 +232,7 @@ export async function executeWithResilience<T>(
     degraded: false,
     attempts: policy.maxAttempts,
     failureKind,
+    failureClassification: mapFailureClassification(failureKind),
     error: lastError,
   };
 }

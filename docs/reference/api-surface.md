@@ -7,6 +7,8 @@
 所有路由均以 `/v1` 或 `/v3` 为版本前缀，通过 `@trapmap/contracts` 验证进行 JSON 数据交换。
 
 > 源码依据：`packages/server/src/routes/*.ts`、`packages/contracts/src/domain/*.ts`
+>
+> **Phase 1 instrumentation freeze**：统一 correlation key、metric namespace 与 public/internal debug 边界以 `packages/contracts/src/domain/observability.ts` 为准。API 响应只能增加 additive debug handles，不得把内部 workflow/candidate/artifact trace payload 直接提升为通用 public surface。
 
 ---
 
@@ -170,6 +172,7 @@
 Phase 4 closeout 补充：
 
 - 默认 operator surface 已冻结为 `operatorHome`、`configGovernance`、`capacityModel`、`bulkOperations` 以及 queue/outbox/cache/workflow drill-down。
+- `workflow` drill-down 当前可返回 internal/operator-only `workflows[*].correlation`，用于解释 `requestId` / `traceId` / `queryId` / `feedbackId` / `asyncJobId` 与 async follow-up 的关系；它不属于新的通用 public additive field。
 - 热点 `team/query/artifact` 当前不属于默认 operator surface contract；如后续需要，应作为单独 deep drill-down 能力新增，而不是隐式塞入现有首页 schema。
 
 ## Capsule-Index 运维

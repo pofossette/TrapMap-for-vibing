@@ -1,7 +1,9 @@
 import {
   type BadcaseEvalDraft,
+  buildBadcaseDebugContract,
+  buildBadcaseEvalDraft,
   badcaseExportResponseSchema,
-  normalizeBadcaseTaxonomy,
+  pickWorkflowCorrelation,
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
@@ -22,34 +24,21 @@ interface BadcaseTraceRow {
   failure_classification: string | null;
   expected_correction: string | null;
   selected_result_snapshot: Record<string, unknown> | null;
+  workflow_stats: Record<string, unknown> | null;
 }
 
 function buildDraft(row: BadcaseTraceRow): BadcaseEvalDraft {
-  const taxonomy = normalizeBadcaseTaxonomy(row.failure_classification);
-  return {
-    kind: 'retrieval',
-    caseId: `badcase_${row.feedback_id}`,
-    sourceFeedbackId: row.feedback_id,
+  return buildBadcaseEvalDraft({
+    feedbackId: row.feedback_id,
     queryId: row.query_id,
+    querySeed: row.query_seed,
     routeFamily: row.route_family,
-    taxonomy,
-    request: {
-      queryId: row.query_id,
-      querySeed: row.query_seed,
-      routeFamily: row.route_family,
-      entryId: row.entry_id,
-      entryType: row.entry_type,
-    },
-    expected: {
-      failureClassification: taxonomy,
-      expectedCorrection: row.expected_correction,
-      selectedResultSnapshot: row.selected_result_snapshot,
-    },
-    notes: [
-      'Draft generated from retrieval_badcase_traces.',
-      'Review expectedCorrection and selectedResultSnapshot before promoting into eval fixtures.',
-    ],
-  };
+    entryId: row.entry_id,
+    entryType: row.entry_type,
+    failureClassification: row.failure_classification,
+    expectedCorrection: row.expected_correction,
+    selectedResultSnapshot: row.selected_result_snapshot,
+  });
 }
 
 export const badcaseRoutes: FastifyPluginAsync = async (app) => {
@@ -65,13 +54,17 @@ export const badcaseRoutes: FastifyPluginAsync = async (app) => {
 
     const feedbackId = (request.params as { feedbackId: string }).feedbackId;
     const pool = store.getPool();
+    const asyncJobId = `wf_badcase_${feedbackId}`;
     const result = await pool.query<BadcaseTraceRow>(
-      `SELECT feedback_id, query_id, query_seed, route_family, entry_id, entry_type,
-              failure_classification, expected_correction, selected_result_snapshot
-       FROM retrieval_badcase_traces
-       WHERE feedback_id = $1
+      `SELECT trace.feedback_id, trace.query_id, trace.query_seed, trace.route_family, trace.entry_id,
+              trace.entry_type, trace.failure_classification, trace.expected_correction,
+              trace.selected_result_snapshot, workflow.stats AS workflow_stats
+       FROM retrieval_badcase_traces AS trace
+       LEFT JOIN workflow_runs AS workflow
+         ON workflow.run_id = $2
+       WHERE trace.feedback_id = $1
        LIMIT 1`,
-      [feedbackId],
+      [feedbackId, asyncJobId],
     );
 
     const row = result.rows[0];
@@ -79,9 +72,25 @@ export const badcaseRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(404, 'badcase_not_found', `Badcase trace not found for ${feedbackId}`);
     }
 
+    const correlation =
+      pickWorkflowCorrelation(row.workflow_stats ?? undefined) ??
+      pickWorkflowCorrelation({
+        feedbackId,
+        queryId: row.query_id,
+        asyncJobId,
+      });
     const response = badcaseExportResponseSchema.parse({
       feedbackId,
       draft: buildDraft(row),
+      debug: buildBadcaseDebugContract({
+        correlation,
+        sourceFeedbackId: feedbackId,
+        queryId: row.query_id,
+        routeFamily: row.route_family,
+        asyncJobId,
+        exportDraftReady:
+          row.workflow_stats != null && row.workflow_stats.exportDraftReady === true,
+      }),
       exportedAt: nowIso(),
     });
     recordRuntimeExecution({

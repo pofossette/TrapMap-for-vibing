@@ -43,6 +43,8 @@ export interface BadcaseExportDraftPayload {
   entryId: string;
   entryType: 'trap' | 'skill';
   queryId: string | null;
+  requestId: string | null;
+  traceId: string | null;
 }
 
 export interface CandidateProcessingPayload {

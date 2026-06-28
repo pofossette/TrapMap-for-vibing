@@ -2,6 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import { maintenanceEntryListRequestSchema } from './maintenance.js';
 import {
+  OBSERVABILITY_FAILURE_CLASSIFICATIONS,
+  OBSERVABILITY_PUBLIC_ADDITIVE_FIELDS,
+} from './observability.js';
+import {
+  asyncFailureCategorySchema,
+  asyncFailureTaxonomyItemSchema,
+  badcaseExportResponseSchema,
+  workflowRunSnapshotSchema,
+  buildBadcaseDebugContract,
+  buildBadcaseEvalDraft,
   activationFilePayloadSchema,
   artifactExportResponseSchema,
   bundleFilePayloadSchema,
@@ -73,6 +83,101 @@ const validKnowledgeEntry = {
 };
 
 describe('operations schema fixes', () => {
+  describe('phase 1 truth-source reuse', () => {
+    it('reuses the shared observability failure taxonomy categories', () => {
+      expect(asyncFailureCategorySchema.options).toEqual([
+        ...OBSERVABILITY_FAILURE_CLASSIFICATIONS,
+      ]);
+    });
+
+    it('limits workflow correlation to the frozen public additive keys', () => {
+      const parsed = workflowRunSnapshotSchema.parse({
+        runId: 'wf_1',
+        workflowType: 'badcase-export-draft',
+        subjectId: 'feedback_1',
+        status: 'running',
+        stepName: 'draft-export',
+        attempt: 1,
+        startedAt: validTimestamp,
+        completedAt: null,
+        lastError: null,
+        correlation: {
+          requestId: 'req_1',
+          traceId: 'trace_1',
+          queryId: 'qry_1',
+          feedbackId: 'feedback_1',
+          asyncJobId: 'wf_1',
+        },
+        stats: {},
+        createdAt: validTimestamp,
+        updatedAt: validTimestamp,
+      });
+
+      expect(Object.keys(parsed.correlation ?? {})).toEqual([
+        ...OBSERVABILITY_PUBLIC_ADDITIVE_FIELDS,
+      ]);
+      expect(() =>
+        workflowRunSnapshotSchema.parse({
+          ...parsed,
+          correlation: {
+            ...parsed.correlation,
+            workflowRunId: 'wf_internal_only',
+          },
+        }),
+      ).toThrow();
+    });
+
+    it('requires async failure taxonomy items to stay aligned with the shared contract', () => {
+      const parsed = asyncFailureTaxonomyItemSchema.parse({
+        category: 'permanent-failure',
+        meaning: 'Retry exhausted.',
+        operatorAction: 'Repair and requeue.',
+      });
+
+      expect(parsed.category).toBe('permanent-failure');
+    });
+
+    it('reuses one badcase debug contract across export and workflow correlation views', () => {
+      const draft = buildBadcaseEvalDraft({
+        feedbackId: 'feedback_1',
+        queryId: 'qry_1',
+        querySeed: 'seed',
+        routeFamily: 'entry',
+        entryId: 'trap_1',
+        entryType: 'trap',
+        failureClassification: 'stale-content',
+        expectedCorrection: 'Use the latest answer.',
+        selectedResultSnapshot: { entryId: 'trap_1' },
+      });
+      const debug = buildBadcaseDebugContract({
+        correlation: {
+          requestId: 'req_1',
+          traceId: 'trace_1',
+          queryId: 'qry_1',
+          feedbackId: 'feedback_1',
+          asyncJobId: 'wf_badcase_feedback_1',
+        },
+        sourceFeedbackId: 'feedback_1',
+        queryId: 'qry_1',
+        routeFamily: 'entry',
+        asyncJobId: 'wf_badcase_feedback_1',
+        exportDraftReady: true,
+      });
+
+      const response = badcaseExportResponseSchema.parse({
+        feedbackId: 'feedback_1',
+        draft,
+        debug,
+        exportedAt: validTimestamp,
+      });
+
+      expect(response.debug.correlation.feedbackId).toBe('feedback_1');
+      expect(response.debug.durableTrace.queryId).toBe('qry_1');
+      expect(response.debug.workflow.asyncJobId).toBe('wf_badcase_feedback_1');
+      expect(response.draft.request.asyncJobId).toBeUndefined();
+    });
+  });
+
   // =========================================================================
   // .strict() fixes
   // =========================================================================

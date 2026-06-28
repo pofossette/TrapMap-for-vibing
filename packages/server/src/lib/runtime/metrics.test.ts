@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getAverageLatencyMs,
+  getAverageOutboxBacklog,
+  getAverageQueueBacklog,
+  getAverageStaleWorkers,
   getRuntimeMetricsSnapshot,
+  recordRuntimeBacklog,
   recordRuntimeExecution,
   recordRuntimeReclaim,
   recordRuntimeRetry,
@@ -10,7 +14,7 @@ import {
 } from './metrics.js';
 
 describe('runtime metrics', () => {
-  it('records retries and degraded executions per dependency', () => {
+  it('records logical executions separately from retries and degraded terminal outcomes', () => {
     resetRuntimeMetrics();
 
     recordRuntimeRetry('graph-bootstrap');
@@ -22,14 +26,37 @@ describe('runtime metrics', () => {
     });
 
     const snapshot = getRuntimeMetricsSnapshot();
+    expect(snapshot.totals.executions).toBe(1);
     expect(snapshot.totals.retries).toBe(1);
     expect(snapshot.totals.degraded).toBe(1);
     expect(snapshot.totals.reclaims).toBe(2);
     expect(snapshot.dependencies['graph-bootstrap']).toMatchObject({
+      executions: 1,
       retries: 1,
       reclaims: 2,
       degraded: 1,
       retryableFailures: 1,
+    });
+  });
+
+  it('counts timeout and permanent failures as terminal logical outcomes', () => {
+    resetRuntimeMetrics();
+
+    recordRuntimeExecution({
+      dependencyName: 'queue-runtime',
+      failureKind: 'timeout',
+    });
+    recordRuntimeExecution({
+      dependencyName: 'queue-runtime',
+      failureKind: 'permanent',
+    });
+
+    const snapshot = getRuntimeMetricsSnapshot();
+    expect(snapshot.dependencies['queue-runtime']).toMatchObject({
+      executions: 2,
+      timeouts: 1,
+      permanentFailures: 1,
+      retries: 0,
     });
   });
 
@@ -68,5 +95,35 @@ describe('runtime metrics', () => {
     const snapshot = getRuntimeMetricsSnapshot();
     expect(snapshot.dependencies['badcase-export'].totalLatencyMs).toBe(400);
     expect(getAverageLatencyMs(snapshot.dependencies['badcase-export'])).toBe(200);
+  });
+
+  it('tracks queue, outbox, and stale worker backlog samples per dependency', () => {
+    resetRuntimeMetrics();
+
+    recordRuntimeBacklog({
+      dependencyName: 'async-operator-status',
+      queueBacklog: 3,
+      outboxBacklog: 2,
+      staleWorkers: 1,
+    });
+    recordRuntimeBacklog({
+      dependencyName: 'async-operator-status',
+      queueBacklog: 1,
+      outboxBacklog: 4,
+      staleWorkers: 0,
+    });
+
+    const snapshot = getRuntimeMetricsSnapshot();
+    expect(snapshot.dependencies['async-operator-status']).toMatchObject({
+      queueBacklogSamples: 2,
+      queueBacklogTotal: 4,
+      outboxBacklogSamples: 2,
+      outboxBacklogTotal: 6,
+      staleWorkerSamples: 2,
+      staleWorkerTotal: 1,
+    });
+    expect(getAverageQueueBacklog(snapshot.dependencies['async-operator-status'])).toBe(2);
+    expect(getAverageOutboxBacklog(snapshot.dependencies['async-operator-status'])).toBe(3);
+    expect(getAverageStaleWorkers(snapshot.dependencies['async-operator-status'])).toBe(0.5);
   });
 });

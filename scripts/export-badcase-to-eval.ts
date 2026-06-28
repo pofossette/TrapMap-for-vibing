@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { badcaseEvalDraftSchema, normalizeBadcaseTaxonomy } from '@trapmap/contracts';
+import { buildBadcaseEvalDraft } from '@trapmap/contracts';
 import { loadConfig } from '@trapmap/server/config.js';
 
 async function main() {
@@ -36,30 +36,16 @@ async function main() {
       throw new Error(`Badcase trace not found for ${feedbackId}`);
     }
 
-    const taxonomy = normalizeBadcaseTaxonomy(row.failure_classification);
-    const draft = badcaseEvalDraftSchema.parse({
-      kind: 'retrieval',
-      caseId: `badcase_${row.feedback_id}`,
-      sourceFeedbackId: row.feedback_id,
+    const draft = buildBadcaseEvalDraft({
+      feedbackId: row.feedback_id,
       queryId: row.query_id,
+      querySeed: row.query_seed,
       routeFamily: row.route_family,
-      taxonomy,
-      request: {
-        queryId: row.query_id,
-        querySeed: row.query_seed,
-        routeFamily: row.route_family,
-        entryId: row.entry_id,
-        entryType: row.entry_type,
-      },
-      expected: {
-        failureClassification: taxonomy,
-        expectedCorrection: row.expected_correction,
-        selectedResultSnapshot: row.selected_result_snapshot,
-      },
-      notes: [
-        'Draft generated from retrieval_badcase_traces.',
-        'Review before promoting to eval fixtures.',
-      ],
+      entryId: row.entry_id,
+      entryType: row.entry_type,
+      failureClassification: row.failure_classification,
+      expectedCorrection: row.expected_correction,
+      selectedResultSnapshot: row.selected_result_snapshot,
     });
 
     writeFileSync(resolve(outputPath), `${JSON.stringify(draft, null, 2)}\n`, 'utf8');
