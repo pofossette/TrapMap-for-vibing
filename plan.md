@@ -1,108 +1,139 @@
-# TrapMap 健壮性与可扩展性收尾计划索引
+# TrapMap 架构整改计划索引
 
 ## 状态
 
-- 状态：`已完成（Phase 4 已完成）`
+- 状态：`进行中`
 - 日期：`2026-06-28`
-- 本文件角色：根级执行计划索引，只保留目标、总体要求、阶段勾选和细则入口
-- 当前活跃细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
-- 刚归档的上一份根计划：[`docs/archived/archived-plans/plan-2026-06-28-instrumentation-observability-index-archived.md`](docs/archived/archived-plans/plan-2026-06-28-instrumentation-observability-index-archived.md)
+- 本文件角色：根级执行索引，只保留目标、总体要求、阶段复选框与细则入口
+- 当前活跃细则：[`docs/todos/trapmap-architecture-remediation-plan.md`](docs/todos/trapmap-architecture-remediation-plan.md)
+- 刚归档的上一份根计划：[`docs/archived/archived-plans/plan-2026-06-28-robustness-scalability-closeout-index-archived.md`](docs/archived/archived-plans/plan-2026-06-28-robustness-scalability-closeout-index-archived.md)
 
 ## 目标
 
-- 清理本轮审计与实施过程中已经确认的问题、口径漂移和测试证据缺口
-- 把 runtime、async、retrieval、governance、feedback、operator surface 的关键 contract 收敛为更健壮且可扩展的系统基础
-- 让“指标语义、trace 传播、错误映射、operator/debug surface、文档/测试矩阵”具备长期可维护性，而不是靠局部实现或临时约定维持
-- 在不制造第二套 truth source 的前提下，为后续持续演进预留清晰扩展点
+- 收口 `packages/server`、`backend-core`、`service-*`、`host-*`、`store_snapshot`、distributed 运行形态之间长期漂移的架构事实
+- 把 30 个架构问题整理成单一整改主线，避免继续在多份迁移计划里并行定义“当前状态”和“目标状态”
+- 以 `store_snapshot` 迁移为切入口，补一套统一存储/缓存/队列/图适配器设计，集中承载 `pg`、`redis`、`mq`、`neo4j`、内存替身等基础设施接入
+- 为后续代码整改提供统一的进度跟踪、文档回写要求、最小测试矩阵和 deferred 规则
 
 ## 总体要求
 
-- 根 `plan.md` 只做索引；执行细节、落点清单、关闭条件、最小验证和文档回写统一写入 [`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
-- 每个阶段勾选前，必须同时完成：实现或冻结结论、聚焦测试、相关文档回写、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
-- 本轮主线目标是健壮性与可扩展性，不得借修复名义新增第二套状态机、第二套 taxonomy、第二套 debug surface 或第二套部署语义
-- 共享命名、taxonomy、public/internal 边界、operator/debug 语义与 metrics 口径，必须优先复用既有 truth source，不允许局部复制再演化
-- 文档、计划、测试和代码必须同步收口；任何“代码已改但 contract/test/doc 仍是旧口径”的状态都不能勾选完成
-- 涉及 retrieval、governance、feedback、badcase、eval runner 的改动，最少补 `rtk pnpm eval:smoke`
+- 根 `plan.md` 只做索引；具体问题池、关闭条件、文档矩阵和测试矩阵统一写在 [`docs/todos/trapmap-architecture-remediation-plan.md`](docs/todos/trapmap-architecture-remediation-plan.md)
+- 每个阶段勾选完成前，必须同时完成：结构结论或代码整改、受影响测试、相关文档回写、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
+- 不允许再新增平行根计划描述同一架构整改主题；新增专题必须被当前细则直接引用，或转入明确的 deferred 独立计划
+- 文档不得把未来态写成当前态；若整改尚未落地，必须明确写成“现状 / 目标 / 过渡态”
+- 统一适配器必须满足：接口集中定义、适配器集中实现、宿主按环境变量选择、构建可按 target 摇树裁剪
+- 涉及 retrieval、governance、feedback、fixtures、eval runner 的改动，至少补 `rtk pnpm eval:smoke`
 
 ## 当前关键路径
 
-- 当前主线阶段：`Phase 4（已关闭）`
+- 当前主线阶段：`Phase 0-2`
 - 当前先做：
-  - [x] 冻结本轮要清理的已知问题、残余风险与非目标
-  - [x] 明确哪些问题属于 contract truth、runtime seam、operator surface、测试证据、文档治理
-  - [x] 收敛后续阶段的固定执行顺序与越界约束
-  - [x] 冻结本轮文档回写矩阵与最小验证矩阵
-  - [x] 完成 Phase 1 的 truth source / contract 收敛主项
-  - [x] 进入 Phase 2，修正 runtime / async correctness 的统计与错误映射漂移
-  - [x] 在不扩张 debug surface 的前提下关闭当前已发现的 correctness 问题池
-  - [x] 完成 Phase 3，收口 badcase/debug/eval draft 边界与传播证据
-  - [x] 进入 Phase 4，完成守卫、文档与扩展缝隙收尾
+  - [ ] 归并 30 个问题到单一问题池并冻结优先级
+  - [ ] 明确 `server`、`backend-core`、`service-*`、`host-*` 的当前事实与目标边界
+  - [ ] 明确 `store_snapshot`、InMemory、PG-first` 的测试与运行口径
+  - [ ] 冻结统一适配器的范围、目录与接口边界
+  - [ ] 冻结统一适配器的环境变量矩阵与 target 裁剪策略
+  - [ ] 写清 distributed 当前过渡态成熟度基线与 deferred 范围
+  - [ ] 收口历史计划、索引和 truth source，避免继续双轨叙述
 
 ## 阶段索引
 
-### Phase 0 问题清单冻结与边界校准 [进行中]
+### Phase 0 问题池冻结与入口归并
 
-- [x] 把当前已确认问题、残余风险、越界点和证据缺口整理为单一问题池
-- [x] 冻结本轮“必须修 / 应该修 / 可延后”的优先级
-- [x] 明确非目标，避免把新功能、UI 扩张或平台替换混入本轮
-- [x] 写清与历史 observability / backend engineering / service evolution 细则的关系
-- 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
+- [ ] Wave 0A：把 30 个问题映射为 5 个治理主题并冻结优先级
+- [ ] Wave 0B：明确本轮非目标与 deferred 入口
+- [ ] Wave 0C：收口当前唯一根索引与唯一活跃细则
+- [ ] Wave 0D：把“统一适配器”写成本轮正式目标，而不是 `store_snapshot` 迁移的隐含副产物
+- 细则：[`docs/todos/trapmap-architecture-remediation-plan.md`](docs/todos/trapmap-architecture-remediation-plan.md)
 
-### Phase 1 Truth Source 与 Contract 收敛 [已完成]
+### Phase 1 Server / Backend-Core 边界整改
 
-- [x] 消除共享 observability / failure taxonomy / correlation key 的重复定义
-- [x] 明确 runtime metrics、workflow correlation、operator status、durable trace 的单一语义来源
-- [x] 收敛 public/internal 边界，避免局部 surface 继续扩散内部字段
-- [x] 回写 truth source、reference 与 contract 相关文档
-- 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
+- [ ] Wave 1A：收口 `server` 的 compatibility shell 定位
+- [ ] Wave 1B：冻结 `backend-core`、`service-*`、schema、repository` 的目标归属
+- [ ] Wave 1C：冻结 AI adapter 与基础设施 owner 边界
+- [ ] Wave 1D：补齐对应文档真相与最小测试入口
+- [ ] Wave 1E：核查 Nest `light` 主线与 Fastify compatibility shell 的 startup lifecycle 等价性，明确 worker/outbox/candidate recovery/graph reconciliation 的 owner、启动入口和测试证据
+- [ ] Wave 1F：移除或封装 `host-local` 顶层 runtime 初始化副作用，冻结 Nest provider factory / lifecycle hook 的目标形态
+- [ ] Wave 1G：拆分 `packages/server/src/app.ts` 的 route gating、service composition、runtime metadata、startup/shutdown 组合职责，降低 compatibility shell 退役成本
+- 细则：[`docs/todos/trapmap-architecture-remediation-plan.md`](docs/todos/trapmap-architecture-remediation-plan.md)
 
-### Phase 2 Runtime / Async Correctness 修复 [进行中]
+### Phase 2 Store Snapshot 现状盘点与迁移口径冻结
 
-- [x] 修正 timeout、retry、degraded、failure classification、execution semantics 的统计一致性
-- [x] 清理 route、worker、internal client、operator status 之间的错误映射漂移
-- [x] 冻结“attempt 级”与“logical operation 级”指标语义
-- [x] 补齐受影响测试与必要文档
-- 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
+- [ ] Wave 2A：收口 `store_snapshot`、InMemory、PG 双轨的角色和退役/保留条件
+- [ ] Wave 2B：明确直接操作 God Object 的入口与整改优先级
+- [ ] Wave 2C：冻结迁移波次、双写语义与兼容层 / 生产路径测试口径
+- 细则：[`docs/todos/trapmap-architecture-remediation-plan.md`](docs/todos/trapmap-architecture-remediation-plan.md)
 
-### Phase 3 传播证据与 Debug 闭环加固 [进行中]
+### Phase 3 统一适配器范围、目录与接口冻结
 
-- [x] 把 request/trace/query/feedback/async 关联句柄的真实传播证据补齐到 focused tests / acceptance
-- [x] 让 retrieval、feedback、badcase export、operator drill-down、eval replay 使用同一套关键字段语义
-- [x] 为高频排障路径提供稳定、可复用的最小 debug contract
-- [x] 补齐对应测试与必要的 `rtk pnpm eval:smoke`
-- 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
+- [ ] Wave 3A：冻结统一适配器覆盖范围与 provider taxonomy
+- [ ] Wave 3B：建立统一适配器接口层与集中 provider 实现目录
+- [ ] Wave 3C：冻结 repository / adapter / host 装配边界
+- [ ] Wave 3D：明确 `packages/server`、`host-*`、`service-*` 的 provider 消费规则
+- [ ] Wave 3E：冻结 distributed gateway contract adapter 方向，避免在 gateway route 中继续手写 validation / forward / canonical error mapping
+- [ ] Wave 3F：明确 `client-core` 的运行时响应校验策略，区分 `apiRequest<T>` 编译期类型提示与 contracts schema parse 的边界
+- 细则：[`docs/todos/trapmap-architecture-remediation-plan.md`](docs/todos/trapmap-architecture-remediation-plan.md)
 
-### Phase 4 守卫、文档与扩展缝隙收尾 [已完成]
+### Phase 4 统一适配器环境变量与构建裁剪冻结
 
-- [x] 回写 README、docs 索引、reference、operations、architecture 与必要 package README
-- [x] 必要时补 docs drift / structure / focused test guard，防止旧口径回流
-- [x] 标记 deferred risk、扩展 seam 与后续问题池，不在根计划里保留模糊未决项
-- [x] 关闭本轮索引与细则中的所有未决复选框
-- 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
+- [ ] Wave 4A：冻结 selector env 与 provider-specific env
+- [ ] Wave 4B：冻结 profile 推荐组合与 fail-fast / fallback 规则
+- [ ] Wave 4C：明确 `light` / `heavy` target 的 tree-shaking / optional dependency 约束
+- 细则：[`docs/todos/trapmap-architecture-remediation-plan.md`](docs/todos/trapmap-architecture-remediation-plan.md)
+
+### Phase 5 Distributed 基线与运行隔离冻结
+
+- [ ] Wave 5A：明确 shared PG、同步 RPC、无熔断、无 tracing、compose 编排限制的真实状态
+- [ ] Wave 5B：收口 distributed 当前基线与未来成熟态的边界
+- [ ] Wave 5C：让 distributed 形态复用统一适配器装配，不再私有拼接数据库、队列、缓存和图接入
+- [ ] Wave 5D：对齐 `docker-compose.yml` 的 distributed 服务清单与 gateway internal URL 拓扑，明确当前阶段是完整七服务拓扑还是受限 phase-1 worker 拓扑
+- [ ] Wave 5E：冻结 compose 默认 `team-monolith` 启动语义，避免 `docker compose up -d`、profile、README 和部署文档互相漂移
+- 细则：[`docs/todos/trapmap-architecture-remediation-plan.md`](docs/todos/trapmap-architecture-remediation-plan.md)
+
+### Phase 6 分布式成熟能力与成熟库替换矩阵冻结
+
+- [ ] Wave 6A：冻结 `internal client + resilience` 与 `tracing + metrics` 的实施顺序
+- [ ] Wave 6B：冻结 `rate limiting + bulkhead / 背压` 的实施顺序
+- [ ] Wave 6C：冻结 `cache + invalidation`、`service discovery`、`DB budget / PgBouncer`、`health indicator` 的引入条件
+- [ ] Wave 6D：冻结“优先引成熟库 / 条件成熟后引入 / 暂不替换”的矩阵
+- [ ] Wave 6E：明确 `light` / `heavy` 下的不同默认策略
+- [ ] Wave 6F：统一 graph runtime 配置入口，明确 `server` compatibility shell、`host-local` 和 distributed 下 graph provider / readiness / fail-open 行为是否一致
+- 细则：[`docs/todos/trapmap-architecture-remediation-plan.md`](docs/todos/trapmap-architecture-remediation-plan.md)
+
+### Phase 7 可维护性、配置复杂度与文档真相收口
+
+- [ ] Wave 7A：收口文档/代码状态漂移、contracts 膨胀、历史计划过多和测试路径依赖
+- [ ] Wave 7B：明确 Dockerfile / config 复杂度问题的处理方向
+- [ ] Wave 7C：收口成熟库替换边界、暂缓原因与 deferred 问题池
+- [ ] Wave 7D：补齐部署、运行、testing、architecture 文档
+- [ ] Wave 7E：关闭本轮未决复选框或明确 deferred
+- [ ] Wave 7F：统一 `eval:smoke`、`eval:ci`、`eval:ci:core` 的覆盖语义、baseline 策略和文档表述
+- [ ] Wave 7G：对齐 GitHub CI、`pnpm run ci`、`docs/operations/CI_CD.md` 与 `docs/operations/TESTING.md` 的真实命令、Node 版本、job 覆盖和质量门边界
+- [ ] Wave 7H：增强 doc-drift / structure / complexity 守卫，覆盖当前唯一活跃细则、历史 todo 状态、plan/todos 索引一致性和本轮热点文件预算
+- 细则：[`docs/todos/trapmap-architecture-remediation-plan.md`](docs/todos/trapmap-architecture-remediation-plan.md)
 
 ## 文档回写要求
 
-- 每完成一个阶段或子项，都同步更新 [`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md) 中对应复选框、关闭条件与问题池状态
-- 健壮性收尾主线、阶段关闭规则、truth source 变化：更新 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
-- 根计划切换、当前主线入口和索引变化：更新 `docs/README.md`、`docs/todos/README.md`、`docs/archived/README.md`
-- runtime / operator / trace / testing 规则变化：更新 `docs/operations/ENVIRONMENT.md`、`docs/operations/TESTING.md`
-- contract、debug surface、operator drill-down、async/retrieval 语义变化：更新相关 `docs/architecture/*`、`docs/PACKAGES.md`、必要 package `README.md`
-- 根 `plan.md` 只保留当前主线索引职责，不承载实现细节
+- 每完成一个阶段或子项，同步更新 [`docs/todos/trapmap-architecture-remediation-plan.md`](docs/todos/trapmap-architecture-remediation-plan.md) 中对应复选框、问题池状态和关闭条件
+- 根计划切换、待办索引、归档入口变化：更新 `docs/README.md`、`docs/todos/README.md`、`docs/archived/README.md`
+- 架构事实、目录归属、包职责变化：更新 `docs/reference/SYSTEM_TRUTH_SOURCES.md`、`docs/reference/REPO_STRUCTURE.md`、`docs/PACKAGES.md`
+- distributed、部署、环境、测试口径变化：更新 `docs/architecture/*`、`docs/operations/ENVIRONMENT.md`、`docs/operations/TESTING.md`
+- 统一适配器目录、provider 组合、环境变量矩阵、target 裁剪规则变化：更新相关 package README 与 host/build 细则
+- 根 `plan.md` 不承载实现细节，只保留索引职责
 
 ## 测试回写要求
 
 - 仅调整计划/索引文档：至少运行 `rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`
-- 涉及 contracts、共享类型或 client/server surface：补 `rtk pnpm typecheck` 与受影响包最小测试
-- 涉及 runtime metrics、request/trace 传播、operator status、错误映射或 async correctness：补 `rtk pnpm test:runtime-foundations`、必要时补包级 focused tests
-- 涉及 distributed hop、gateway/internal client、service 间传播与 canonical error semantics：补相关 distributed focused tests，必要时补 `rtk pnpm test:deployment-smoke`
-- 涉及 retrieval、governance、feedback、badcase export、eval runner：相关包测试外，至少补 `rtk pnpm eval:smoke`
-- 任一阶段勾选完成前，至少确认“代码/contract + focused tests + 文档回写 + `check:docs-drift` + `check:structure`”同时完成
+- 涉及 contracts、共享类型、导出边界：补 `rtk pnpm typecheck` 与受影响包最小测试
+- 涉及统一适配器接口、provider registry 或 host 装配：补 focused tests，必要时补 target-specific smoke
+- 涉及 `server`、`backend-core`、`service-*`、`host-*`、runtime 或 distributed 边界：补受影响包 focused tests，必要时补 `rtk pnpm test:runtime-foundations` 与 `rtk pnpm test:deployment-smoke`
+- 涉及 retrieval、governance、feedback、fixtures、eval runner：相关包测试外，至少补 `rtk pnpm eval:smoke`
+- 任一阶段勾选完成前，至少确认“结构结论或代码整改 + focused tests + 文档回写 + `check:docs-drift` + `check:structure`”同时完成
 
 ## 完成定义
 
-- 根 `plan.md` 只保留当前“健壮性与可扩展性收尾”主线的索引职责
-- [`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md) 成为唯一活跃细则入口
-- 已确认问题、残余风险、语义漂移与证据缺口被收敛到单一问题池并按优先级处理或明确 deferred
-- runtime / async / retrieval / feedback / operator / debug 相关关键 contract、trace 和测试证据具备稳定且可扩展的演进基础
-- 文档入口、truth source、测试矩阵和守卫与当前实现一致
-- 后续新增 operator/debug 能力、平台化/MQ、部署形态扩张或更深 drill-down，必须转入独立审计或独立计划，不在本根计划内续写
+- 根 `plan.md` 只保留当前“架构整改”主线的索引职责
+- [`docs/todos/trapmap-architecture-remediation-plan.md`](docs/todos/trapmap-architecture-remediation-plan.md) 成为当前唯一活跃细则入口
+- 30 个问题都被归类为“已关闭 / 进行中且有 owner / 明确 deferred”
+- 统一适配器的接口、provider、环境变量和构建策略已冻结并进入权威文档
+- 文档入口、truth source、测试矩阵与当前实现一致，不再把未来态误写为现状

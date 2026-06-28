@@ -185,8 +185,9 @@ deployment flexibility 最小验证矩阵：
 
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
-- [健壮性与可扩展性收尾根计划](../plan.md) — 当前根级执行索引，跟踪已发现问题、残余风险、truth source 收敛与测试/文档关闭要求
-- [健壮性与可扩展性收尾细则](todos/robustness-scalability-closeout-plan.md) — 当前唯一活跃细则入口，已完成 Phase 4 收尾；后续如需继续推进，只能转入独立审计或独立计划
+- [架构整改根计划](../plan.md) — 当前根级执行索引，跟踪 30 个架构问题的分组、阶段推进、文档回写和测试关闭要求
+- [架构整改细则](todos/trapmap-architecture-remediation-plan.md) — 当前唯一活跃细则入口，收口 `server`/`backend-core`/`store_snapshot`/distributed/维护性 五类问题的执行复选框
+- [健壮性与可扩展性收尾细则](todos/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](todos/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪
 - [轻重后端构建目标细则](todos/backend-build-targets-plan.md) — 轻重后端构建目标、兼容壳清理与客户端后端形态配置的细则；根计划已切换，不再是当前主线
