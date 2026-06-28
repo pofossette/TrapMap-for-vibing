@@ -76,6 +76,13 @@
 - `packages/host-distributed` 与 `packages/service-*` 不是 compatibility shell，继续保留为分布式部署展开层和 thin service assembly。
 - `packages/host-local/src/nest/**` 是冻结后的默认 `light` 主入口终局和 bounded-context module graph，不属于 compatibility shell。
 
+## Phase 4 Adapter env / target-pruning freeze
+
+- Phase 4 的 adapter env freeze 只收口 selector env 与 owner-specific env truth，不把配置层改写成新的 mega taxonomy。selector env 继续以 `TRAPMAP_DEPLOYMENT_PROFILE`、`TRAPMAP_DEPLOYMENT_PRESET`、`TRAPMAP_TASK_TRANSPORT` 为中心；AI provider env 继续留在 `packages/server` / shared runtime seam；distributed internal service URL env 继续留在 `packages/host-distributed` owner seam。
+- 推荐组合冻结为 `local-agent` / `team-monolith` -> `light`，`distributed` -> `heavy`。这表示 `local-agent` 继续是 in-process/internal defaults + `json-store-ok` posture，`team-monolith` 继续是 `postgres-required` + `gateway-core` + `split-owned` async posture，而 `distributed` 继续是 service/gateway split + `remote-expected` async posture。
+- fail-fast / fallback 规则不再允许文档写模糊话术：`rabbitmq` 缺少 RabbitMQ config 时必须 fail-fast；`distributed` 缺少 PostgreSQL 不能被描述成仍支持 JSON-store runtime；`local-agent` 允许保持 JSON store fallback；`in-process` mode 下 internal service URLs 继续只是 ignored config。
+- target-pruning posture 冻结为文档边界，不夸大实现程度：`light` 与 `heavy` 是 build/deployment targets，不是新的 runtime profiles；optional dependency、tree-shaking 与 target-pruning 仅可写成当前 intent / non-goal，除非代码明确证明，否则不能声称已经具备自动化 optional dependency pruning。
+
 ## packages/contracts
 
 共享 Schema 和类型定义，同时被 CLI 和 Server 导入。

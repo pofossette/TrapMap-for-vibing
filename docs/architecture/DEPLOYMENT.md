@@ -84,6 +84,16 @@ CLI 接入语义在这三个 profile 下保持一致：
 | `team-monolith` | `pnpm dev:team-monolith` 或 `docker compose up -d` | 单实例、多用户、完整 HTTP API 与 PostgreSQL 主路径；compose 默认启动统一 gateway |
 | `distributed` | `pnpm dev:distributed:*` 或 `docker compose --profile distributed up -d` | gateway + 多 worker，CLI 仍只连接 gateway |
 
+### Phase 4 freeze
+
+Phase 4 freeze 把 adapter env / target-pruning 的推荐组合固定为文档事实，而不是新的 runtime implementation claim。
+
+- `local-agent` -> `light`：保持 in-process/internal defaults 与 `json-store-ok` posture。它是单机、本地、最小依赖面部署目标，不要求 remote internal services，也不要求 PostgreSQL 才能启动。
+- `team-monolith` -> `light`：保持 `postgres-required` + `gateway-core` + `split-owned` async posture。它仍然是单实例部署目标，但 truth source 要明确它依赖 PostgreSQL，并把 gateway 与本地 async ownership 组合在同一 `light` target。
+- `distributed` -> `heavy`：保持 service/gateway split 与 `remote-expected` async posture。它要求 PostgreSQL，并预期 gateway 与 worker/service 通过 internal transport 协作，而不是写成“heavy 只是 preset 别名”。
+- fail-fast / fallback 边界要写清：`rabbitmq` 需要 RabbitMQ config；`distributed` 需要 PostgreSQL；`local-agent` 可保持 JSON-store-ok；internal service URLs 仅在 remote mode 下有意义，在 `in-process` mode 下继续被忽略。
+- `light` 与 `heavy` 是 build/deployment targets，不是新的 runtime profiles。optional dependency / target-pruning 的当前文档语义只应描述推荐方向与非目标，不能在没有代码证据时宣称已经实现自动 package tree-shaking。
+
 ## 当前已实现的部署形态
 
 当前代码已经把对操作者的正式入口收敛到三种 profile：

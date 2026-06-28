@@ -88,6 +88,16 @@ profile capability 语义：
 - 没有明确 backlog / isolation 需求时，建议保持 `TRAPMAP_TASK_TRANSPORT=postgres`。
 - `TRAPMAP_TASK_TRANSPORT=rabbitmq` 且 `runtimeMode=api` 时，不应假设 API 进程自己拥有 shared-job backlog；应确保独立 worker preset 在运行，这类风险会通过 `configGovernance.conflictWarnings` 暴露。
 
+### Phase 4 freeze
+
+Phase 4 freeze 只冻结当前 selector env / provider-specific env / fail-fast posture 的 truth surface，不引入新的运行时配置模型。
+
+- selector env truth 以 `TRAPMAP_DEPLOYMENT_PROFILE`、`TRAPMAP_DEPLOYMENT_PRESET`、`TRAPMAP_TASK_TRANSPORT` 为中心。它们决定 profile、preset 与 task transport 的选择面；secondary docs 不得再把这些入口改写成新的 generic config taxonomy。
+- provider-specific env 继续留在 owner seam。AI provider env 仍以 `AI_PROVIDER`、`OPENAI_API_KEY`、`GEMINI_API_KEY` 等当前 server/shared runtime 事实为准；distributed internal service URLs 仍以 `TRAPMAP_GATEWAY_URL`、`TRAPMAP_IDENTITY_ACCESS_URL`、`TRAPMAP_KNOWLEDGE_READ_URL`、`TRAPMAP_KNOWLEDGE_WRITE_URL`、`TRAPMAP_CANDIDATE_INGESTION_URL`、`TRAPMAP_GOVERNANCE_REVIEW_URL`、`TRAPMAP_JOB_RUNTIME_URL` 为当前 owner-specific env。
+- 推荐组合冻结为：`local-agent` -> `light` + in-process/internal defaults + `json-store-ok`；`team-monolith` -> `light` + `postgres-required` + `gateway-core` + `split-owned`；`distributed` -> `heavy` + service/gateway split + `remote-expected`。
+- fail-fast / fallback 规则冻结为：`TRAPMAP_TASK_TRANSPORT=rabbitmq` 时必须同时提供 RabbitMQ config；`distributed` profile 需要 PostgreSQL；`local-agent` 仍允许 `.data/skill-shareer.json` 这类 JSON store fallback；internal service URLs 在 `in-process` mode 下继续视为 ignored config，而不是必填值。
+- target-pruning 仅是文档边界。`light` / `heavy` 不是新的 env value，也不是新的 runtime profile；optional dependency / tree-shaking 规则只表达当前 intent 与 non-goal，不表示仓库已经实现自动化 package pruning。
+
 Phase 2 runtime / failure contract 补充约定：
 
 - `GET /v1/operations/status/async` 现在是 async operator truth surface，统一暴露：

@@ -127,6 +127,14 @@ flowchart TB
 - Phase 3：至少运行 `packages/server/src/routes/operations/status.test.ts`、`packages/server/src/routes/operations/stats.test.ts`、`packages/server/src/config.test.ts`，确认 operatorHome / configGovernance / capacityModel / bulkOperations 以及 cache invalidation summary 已落地。
 - Phase 4：至少运行本轮 closeout 相关测试与守卫，确认 truth-source 回写、active-execution 边界和 closeout 规则已固定。
 
+**Phase 4 Adapter Env / Target Freeze Checks:**
+- 最小验证矩阵：
+  - `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `rtk pnpm check:docs-drift`
+  - `rtk pnpm check:structure`
+- 验证重点：Phase 4 只冻结 selector env、provider-specific env、推荐 profile/target 组合、fail-fast / fallback 规则与 optional dependency / target-pruning 文档边界，不宣称新的 runtime refactor。
+- 关闭条件：只有在 remediation detail plan、`SYSTEM_TRUTH_SOURCES.md`、`PACKAGES.md`、`ENVIRONMENT.md`、`DEPLOYMENT.md`、`TESTING.md` 已同步更新，且三条 focused checks 实际通过并记录到 phase report 后，才能勾选 Wave 4A-4C。
+
 ### 目录结构
 
 ```text

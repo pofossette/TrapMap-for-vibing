@@ -207,9 +207,18 @@
 
 ### Phase 4 统一适配器环境变量与构建裁剪冻结
 
-- [ ] Wave 4A：冻结 selector env 与 provider-specific env
-- [ ] Wave 4B：冻结 `local-agent`、`team-monolith`、`distributed` 推荐组合与 fail-fast / fallback 规则
-- [ ] Wave 4C：冻结 `light` / `heavy` target 裁剪与 optional dependency 规则
+- [x] Wave 4A：冻结 selector env 与 provider-specific env
+- [x] Wave 4B：冻结 `local-agent`、`team-monolith`、`distributed` 推荐组合与 fail-fast / fallback 规则
+- [x] Wave 4C：冻结 `light` / `heavy` target 裁剪与 optional dependency 规则
+
+### Phase 4 closure freeze (G3 env / target matrix)
+
+- Phase 4 冻结的是 adapter env / target-pruning 的文档与 truth-source 边界，不是 runtime refactor。selector env truth 继续以 `TRAPMAP_DEPLOYMENT_PROFILE`、`TRAPMAP_DEPLOYMENT_PRESET` 与 `TRAPMAP_TASK_TRANSPORT` 为中心；它们定义 deployment/profile/preset/task-transport 的主选择面，不能再被 secondary docs 改写成新的 mega-config taxonomy。
+- provider-specific env 继续留在 owner seam，而不是收口成通用“大一统 provider taxonomy”。当前代码事实包括：AI provider env 仍以 `AI_PROVIDER`、`OPENAI_API_KEY`、`GEMINI_API_KEY` 等 server/shared runtime 配置为准；distributed internal service URL env 仍以 `TRAPMAP_GATEWAY_URL`、`TRAPMAP_IDENTITY_ACCESS_URL`、`TRAPMAP_KNOWLEDGE_READ_URL`、`TRAPMAP_KNOWLEDGE_WRITE_URL`、`TRAPMAP_CANDIDATE_INGESTION_URL`、`TRAPMAP_GOVERNANCE_REVIEW_URL`、`TRAPMAP_JOB_RUNTIME_URL` 为当前 owner-specific seam。
+- 推荐组合在本 phase 明确冻结为三档，不再让 follow-up docs 重新发明矩阵：`local-agent` -> `light`，保持 in-process/internal defaults 与 `json-store-ok` posture；`team-monolith` -> `light`，保持 `postgres-required` + `gateway-core` + `split-owned` async posture；`distributed` -> `heavy`，保持 service/gateway split 与 `remote-expected` async posture。
+- fail-fast / fallback 规则必须区分当前允许的回退与被禁止的歧义：`rabbitmq` 需要 RabbitMQ config，缺 `TRAPMAP_RABBITMQ_URL` 时应 fail-fast；`distributed` 需要 PostgreSQL，缺 `TRAPMAP_DATABASE_URL` / `DATABASE_URL` 时只能报告冲突/缺口，不得写成仍支持 JSON-store runtime；`local-agent` 当前仍允许 `json-store-ok`；internal service URLs 在 `in-process` mode 下继续视为 ignored config，而不是必填依赖。
+- target-pruning posture 当前只冻结为文档边界：`light` 与 `heavy` 是 build/deployment targets，不是新增 runtime profiles；optional dependency、tree-shaking、target 裁剪规则当前只可描述为既有 intent 与 non-goals。除非源码已经证明，否则文档不得宣称已存在 fully automated package-pruning / optional-dependency elimination。
+- Phase 4 minimum verification matrix 冻结为 focused docs/truth checks：`rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。只有这些检查通过、且结果已记录到 phase report 后，Wave 4A-4C 才允许勾选关闭。
 
 ### Phase 5 Distributed 基线与运行隔离冻结
 
@@ -235,7 +244,7 @@
 - [x] 文档导航与待办入口：[`../README.md`](../README.md)、[`README.md`](README.md)、[`../archived/README.md`](../archived/README.md)
 - [x] truth source 当前活跃整改入口：[`../reference/SYSTEM_TRUTH_SOURCES.md`](../reference/SYSTEM_TRUTH_SOURCES.md)
 - [ ] 目录归属与包职责真相：[`../reference/REPO_STRUCTURE.md`](../reference/REPO_STRUCTURE.md)、[`../PACKAGES.md`](../PACKAGES.md)（仅在存在冲突时更新）
-- [ ] distributed、部署、环境、测试细则：待后续阶段按改动范围回写
+- [x] distributed、部署、环境、测试细则：已按 Phase 4 env / target freeze 回写
 
 ## 测试矩阵
 
