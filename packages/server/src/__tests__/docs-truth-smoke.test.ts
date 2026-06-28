@@ -137,6 +137,12 @@ describe('docs truth smoke', () => {
     const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
     const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
     const packagesDoc = readDoc('docs/PACKAGES.md');
+    const appSource = readDoc('packages/server/src/app.ts');
+    const configSource = readDoc('packages/server/src/config.ts');
+    const internalPortsSource = readDoc('packages/backend-core/src/ports/internal-ports.ts');
+    const reposSource = readDoc('packages/server/src/lib/repos/index.ts');
+    const schemaSource = readDoc('packages/server/src/lib/persistence/schema/index.ts');
+    const migrationRunnerSource = readDoc('packages/server/src/lib/persistence/migration-runner.ts');
 
     expect(remediation).toContain('### Phase 1 closure freeze (G1 `#1-#10`)');
     expect(remediation).toContain('`packages/server` 只保留 Fastify compatibility shell 与 shared runtime/status seam');
@@ -144,6 +150,24 @@ describe('docs truth smoke', () => {
     expect(remediation).toContain('packages/server/src/lib/repos/index.ts');
     expect(remediation).toContain('Drizzle schema 与 migration 执行 owner 继续冻结在 `packages/server`');
     expect(remediation).toContain('`service-*` 只承载 owner-aligned thin assembly');
+
+    expect(appSource).toContain('await registerCapabilityRoutes(capabilityScopedApp, config);');
+    expect(appSource).toContain("if (capabilities.routeSurface === 'minimal-agent') {");
+    expect(appSource).toContain("await app.register(operationsRoutes);");
+    expect(appSource).toContain("await app.register(feedbackAdminRoutes);");
+    expect(configSource).toContain("routeSurface: z.enum(['minimal-agent', 'gateway-core', 'worker-status'])");
+    expect(configSource).toContain('supportsReviewGovernance: z.boolean()');
+    expect(configSource).toContain('requiresPostgres: z.boolean()');
+    expect(internalPortsSource).toContain('export interface KnowledgeWritePort');
+    expect(internalPortsSource).toContain('applyMaintenanceDecision');
+    expect(internalPortsSource).toContain('publishCandidateResult');
+    expect(internalPortsSource).toContain('export interface CandidateIngestionPort');
+    expect(reposSource).toContain('export interface SkillShareerRepos');
+    expect(reposSource).toContain('createAllRepos');
+    expect(schemaSource).toContain('export const storeSnapshot = pgTable');
+    expect(schemaSource).toContain("export * from './queue.js';");
+    expect(migrationRunnerSource).toContain('ADD COLUMN IF NOT EXISTS "worker_id" TEXT');
+    expect(migrationRunnerSource).toContain('INSERT INTO "users"');
 
     expect(truthSources).toContain('Phase 1 server/backend-core boundary freeze');
     expect(truthSources).toContain('packages/server/src/lib/persistence/schema/index.ts');

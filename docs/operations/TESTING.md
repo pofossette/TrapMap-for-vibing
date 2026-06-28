@@ -108,7 +108,7 @@ flowchart TB
 
 **Backend Engineering Master Plan Phase 4 Closeout Matrix:**
 - Phase 0：至少运行当前 gap / docs 相关 truth smoke，并确认 `docs/plans/README.md`、`plan.md` 与阶段索引没有入口漂移。
-- Phase 1：至少运行边界/compat 相关测试入口，并确认 `ARCHITECTURE.md`、`SYSTEM_TRUTH_SOURCES.md` 与相关 README 已回写 ownership / allowlist。
+- Phase 1：至少运行 `packages/server/src/app.test.ts`、`packages/server/src/bootstrap/startup.test.ts`、`packages/server/src/config.test.ts`、`packages/server/src/__tests__/docs-truth-smoke.test.ts`，并确认 `ARCHITECTURE.md`、`SYSTEM_TRUTH_SOURCES.md` 与相关 README 已回写 ownership / allowlist。
 - Phase 2：至少运行 `packages/server/src/routes/operations/status.test.ts` 与 async/runtime 相关测试，确认 `/v1/operations/status/async` contract、`workflow_runs.stats` checkpoint source 和 failure taxonomy 已冻结。
 - Phase 2：同时确认 runtime metrics 采用“logical terminal outcome + separate retry attempts”语义，且 route/worker/internal client/operator status 的 canonical error kind 映射没有漂移。
 - Phase 3：至少运行 `packages/server/src/routes/operations/status.test.ts`、`packages/server/src/routes/operations/stats.test.ts`、`packages/server/src/config.test.ts`，确认 operatorHome / configGovernance / capacityModel / bulkOperations 以及 cache invalidation summary 已落地。
@@ -501,7 +501,7 @@ pnpm check:complexity
 | 阶段 | 最小验证 |
 |---|---|
 | `Phase 0` | `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
-| `Phase 1` | 聚焦边界/compat 测试入口 + `pnpm check:docs-drift` + `pnpm check:structure` |
+| `Phase 1` | `pnpm test -- --run packages/server/src/app.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/config.test.ts packages/server/src/__tests__/docs-truth-smoke.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
 | `Phase 2` | `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts packages/server/src/config.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
 | `Phase 3` | `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/routes/operations/stats.test.ts packages/server/src/config.test.ts` + 如涉及 retrieval/cache freshness 则补 `pnpm eval:smoke` + `pnpm check:docs-drift` + `pnpm check:structure` |
 | `Phase 4` | 本轮相关测试 + `pnpm check:docs-drift` + `pnpm check:structure`；只有在 truth-source、计划边界和 closeout 规则回写完成后才能勾选根 `plan.md` |
