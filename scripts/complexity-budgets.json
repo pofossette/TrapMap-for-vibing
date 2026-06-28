@@ -114,6 +114,58 @@
       "mustNotContain": ["TIER=core pnpm eval:ci"]
     },
     {
+      "file": "docs/todos/trapmap-architecture-remediation-plan.md",
+      "mustContain": [
+        "### Phase 7 closure freeze (G5 maintainability / CI-testing truth / docs closeout)",
+        "current active execution surface",
+        "`pnpm run ci`",
+        "`pnpm eval:smoke`",
+        "`pnpm eval:ci`",
+        "`pnpm eval:ci:core`",
+        "Node `24`"
+      ]
+    },
+    {
+      "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
+      "mustContain": [
+        "Phase 7 maintainability / CI-testing truth / docs closeout freeze",
+        "current active execution surface remains only `plan.md` + `docs/todos/trapmap-architecture-remediation-plan.md`",
+        "`architecture-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:mermaid`, and `pnpm check:complexity`"
+      ]
+    },
+    {
+      "file": "docs/README.md",
+      "mustContain": [
+        "当前执行面只有一条",
+        "background 或 deferred reference",
+        "`pnpm run ci`",
+        "`pnpm eval:ci:core`"
+      ],
+      "mustNotContain": ["Node.js 20+ (ESM)"]
+    },
+    {
+      "file": "docs/todos/README.md",
+      "mustContain": [
+        "背景/deferred 参考",
+        "不再描述为仍由当前根计划并行拥有的 checklist"
+      ]
+    },
+    {
+      "file": "docs/archived/README.md",
+      "mustContain": ["不承担当前执行面"]
+    },
+    {
+      "file": "docs/operations/CI_CD.md",
+      "mustContain": [
+        "Node.js 24 + pnpm 10.33.0",
+        "`architecture-guardrails` | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:complexity`",
+        "`pnpm run ci`",
+        "`pnpm eval:ci`",
+        "`pnpm eval:ci:core`"
+      ],
+      "mustNotContain": ["Node.js 20 + pnpm 10.33.0"]
+    },
+    {
       "file": "docs/architecture/components/EVALUATION.md",
       "mustContain": ["pnpm eval:smoke", "pnpm eval:core"],
       "mustNotContain": ["pnpm eval:governance"]

@@ -566,6 +566,73 @@ describe('docs truth smoke', () => {
     expect(content).not.toContain('TIER=core pnpm eval:ci');
   });
 
+  it('Phase 7 docs freeze active execution surface, CI truth, and deferred landing spots', () => {
+    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
+    const docsIndex = readDoc('docs/README.md');
+    const todosIndex = readDoc('docs/todos/README.md');
+    const archivedIndex = readDoc('docs/archived/README.md');
+    const testing = readDoc('docs/operations/TESTING.md');
+    const ci = readDoc('docs/operations/CI_CD.md');
+    const repoStructure = readDoc('docs/reference/REPO_STRUCTURE.md');
+    const packageJson = readDoc('package.json');
+    const ciWorkflow = readDoc('.github/workflows/ci.yml');
+
+    expect(remediation).toContain('### Phase 7 closure freeze (G5 maintainability / CI-testing truth / docs closeout)');
+    expect(remediation).toContain('current active execution surface remains only `plan.md` + `docs/todos/trapmap-architecture-remediation-plan.md`');
+    expect(remediation).toContain('Historical todo docs may remain as background/deferred references');
+    expect(remediation).toContain('`pnpm run ci`');
+    expect(remediation).toContain('`pnpm eval:smoke`');
+    expect(remediation).toContain('`pnpm eval:ci`');
+    expect(remediation).toContain('`pnpm eval:ci:core`');
+    expect(remediation).toContain('Node `24`');
+    expect(remediation).toContain('deferred platform topics');
+
+    expect(truthSources).toContain('Phase 7 maintainability / CI-testing truth / docs closeout freeze');
+    expect(truthSources).toContain('Current architecture remediation execution entry');
+    expect(truthSources).toContain('current active execution surface remains only `plan.md` + `docs/todos/trapmap-architecture-remediation-plan.md`');
+    expect(truthSources).toContain('Historical todo docs may remain as background/deferred references');
+    expect(truthSources).toContain('Node `24`');
+    expect(truthSources).toContain('`architecture-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:mermaid`, and `pnpm check:complexity`');
+
+    expect(docsIndex).toContain('当前执行面只有');
+    expect(docsIndex).toContain('历史背景输入，不再作为当前根计划执行面');
+    expect(docsIndex).toContain('`pnpm run ci`');
+    expect(docsIndex).toContain('`pnpm eval:ci:core`');
+
+    expect(todosIndex).toContain('背景/deferred 参考');
+    expect(todosIndex).toContain('不再描述为仍由当前根计划并行拥有的 checklist');
+
+    expect(archivedIndex).toContain('不承担当前执行面');
+    expect(archivedIndex).toContain('当前架构整改主题');
+
+    expect(testing).toContain('Phase 7 Maintainability / CI-Testing Truth / Documentation Closeout Checks');
+    expect(testing).toContain('rtk pnpm eval:smoke');
+    expect(testing).toContain('`pnpm eval:ci`');
+    expect(testing).toContain('`pnpm eval:ci:core`');
+
+    expect(ci).toContain('Node.js 24 + pnpm 10.33.0');
+    expect(ci).toContain('`architecture-guardrails` | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:complexity`');
+    expect(ci).toContain('`pnpm run ci`');
+    expect(ci).toContain('`pnpm eval:smoke`');
+    expect(ci).toContain('`pnpm eval:ci`');
+    expect(ci).toContain('`pnpm eval:ci:core`');
+    expect(ci).not.toContain('Node.js 20 + pnpm 10.33.0');
+
+    expect(repoStructure).toContain('`docs/plans/`: historical design references and only active again when a current root plan explicitly re-links them.');
+    expect(repoStructure).toContain('`docs/todos/`: pending work plus the phase detail docs linked from the current root `plan.md`.');
+
+    expect(packageJson).toContain('"ci": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-ci.ts"');
+    expect(packageJson).toContain('"eval:smoke": "pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier smoke"');
+    expect(packageJson).toContain('"eval:ci": "pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts"');
+    expect(packageJson).toContain('"eval:ci:core": "TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts"');
+
+    expect(ciWorkflow).toContain("node-version: '24'");
+    expect(ciWorkflow).toContain('architecture-guardrails:');
+    expect(ciWorkflow).toContain('- run: pnpm check:mermaid');
+    expect(ciWorkflow).toContain('- run: pnpm check:structure');
+  });
+
   it('runtime docs describe resilience and readiness verification', () => {
     const env = readDoc('docs/operations/ENVIRONMENT.md');
     const testing = readDoc('docs/operations/TESTING.md');

@@ -259,9 +259,21 @@
 
 ### Phase 7 可维护性、测试矩阵与文档真相收口
 
-- [ ] Wave 7A：收口文档状态漂移、contracts 膨胀、历史计划过多的问题
-- [ ] Wave 7B：明确 Dockerfile/config 复杂度问题的处理方向或 deferred 落点
-- [ ] Wave 7C：关闭本轮未决项或明确 deferred
+- [x] Wave 7A：收口文档状态漂移、contracts 膨胀、历史计划过多的问题
+- [x] Wave 7B：明确 Dockerfile/config 复杂度问题的处理方向或 deferred 落点
+- [x] Wave 7C：关闭本轮未决项或明确 deferred
+
+### Phase 7 closure freeze (G5 maintainability / CI-testing truth / docs closeout)
+
+- Phase 7 冻结的是 maintainability / CI-testing truth / documentation closeout，不引入 runtime refactor。The current active execution surface remains only `plan.md` + `docs/todos/trapmap-architecture-remediation-plan.md`；历史计划、历史 closeout、以及背景/专题文档都不得再被描述成与当前根计划并行的 active execution surface。
+- Historical todo docs may remain as background/deferred references。`docs/todos/backend-engineering-optimization-plan.md`、`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`、`docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md`、`docs/todos/robustness-scalability-closeout-plan.md`、`docs/todos/instrumentation-observability-plan.md` 等文档，必须被描述为历史背景、deferred 落点或已完成 closeout 参考，而不是仍由当前根计划并行拥有的 checklist。
+- CI/testing truth 当前冻结为实际文件与脚本面：CI authoritative source 是 `.github/workflows/ci.yml`，workspace command truth 是 `package.json` scripts。文档引用 CI 或测试命令时，必须以 `pnpm run ci`、`pnpm eval:smoke`、`pnpm eval:ci`、`pnpm eval:ci:core` 的当前脚本语义为准，而不是旧命名、旧 tier 入口或手写替代表述。
+- eval command semantics 当前冻结为：`pnpm eval:smoke` 运行 smoke tier 的统一 eval 聚合器；`pnpm eval:ci` 运行 CI baseline-aware eval runner 的默认 smoke tier；`pnpm eval:ci:core` 运行同一 CI runner 的 core tier 入口；这些命令之间可以有实现复用，但 secondary docs 不得把 `pnpm eval:ci:core` 改写成别的用户面命令，也不得把 `pnpm eval:smoke` 写成 CI baseline 对比命令。
+- CI job truth 必须匹配当前 `.github/workflows/ci.yml`：所有 documented CI jobs 运行在 Node `24` + pnpm `10.33.0`；`architecture-guardrails` job 当前运行 `pnpm check:docs-drift`、`pnpm check:mermaid`、`pnpm check:complexity`；`doc-rules` job 当前运行 `pnpm check:docs-drift`、`pnpm check:mermaid`、`pnpm check:structure`；`postgres-integration` 继续以 `pgvector/pgvector:pg16` service container 验证 PG integration slice。文档不得再写 Node `20` 或省略当前 job coverage。
+- Dockerfile / config maintainability topic 在本 phase 的冻结方式是“truth + deferred landing spot”，不是新增平台重构 claim。`packages/host-local/Dockerfile`、`packages/host-distributed/Dockerfile`、compose profile、以及 config surface 的同步风险继续作为维护性 guard topic 记录，但更重的平台化、镜像矩阵收敛、service discovery、K8s、独立 deployment shape 与 monitoring platform 仍进入既有 deferred 落点，而不是留成模糊的“later”。
+- deferred platform topics 的 landing spot 在本 phase 明确冻结：MQ 产品化、监控平台、长期服务化与更重的平台工程议题继续落在 `docs/todos/backend-engineering-optimization-plan.md`；compatibility shell 进一步退役与 owner matrix 历史补充继续落在 `docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`；distributed 成熟度独立审计继续落在 `docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md`；observability / debug closeout 背景继续保留在 `docs/todos/robustness-scalability-closeout-plan.md` 与 `docs/todos/instrumentation-observability-plan.md`。Phase 7 不允许再把这些写成未指定落点的“后续再看”。
+- guardrail scope 在本 phase 只冻结当前代码已可验证的 truth：`scripts/complexity-budgets.json` 与 `packages/server/src/__tests__/docs-truth-smoke.test.ts` 应覆盖 current active-remediation entry、todos/archived index truth、以及 eval/CI command drift 的高风险表述；但它们不得 invent 未由 `.github/workflows/ci.yml`、`package.json`、`scripts/check-doc-drift.ts`、`scripts/check-structure.mjs` 实际 enforce 的新行为。
+- Wave 7A-7C 只有在本 closure freeze、truth-source/docs 回写、guardrail 更新，以及 `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`、`rtk pnpm eval:smoke` 四条 focused validations 的实际结果全部记录后，才允许勾选完成。
 
 ## 文档回写矩阵
 

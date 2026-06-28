@@ -10,8 +10,9 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 - 根索引：[`../plan.md`](../plan.md)
 - 当前唯一活跃细则：[`todos/trapmap-architecture-remediation-plan.md`](todos/trapmap-architecture-remediation-plan.md)
+- CI/testing truth source：[`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md)
 
-以下 NestJS / 服务演进内容仅保留为历史背景输入，不再作为当前根计划执行面：
+以下 NestJS / 服务演进内容仅保留为历史背景输入，不再作为当前根计划执行面；其他历史 todo/closeout 文档也只能被视为 background 或 deferred reference，而不是平行 active checklist：
 
 - 长期后端主线已冻结为 `Nest host + framework-free domain core + gradual service extraction`，Phases 1–3 已按此主线完成宿主、contract、模块化单体和服务拆分落地。
 - `light` / `heavy` 只表示后端构建目标：`local-agent`、`team-monolith` -> `light`，`distributed` -> `heavy`。
@@ -83,7 +84,7 @@ flowchart TB
 
 | 层级 | 技术 |
 |------|------|
-| 运行时 | Node.js 20+ (ESM) |
+| 运行时 | Node.js 24+ (ESM) |
 | 语言 | TypeScript 5.x |
 | `light` 默认主入口终局 | NestJS（`packages/host-local/src/nest/**`），由 `@trapmap/host-local` 默认 `dev` / `start` / package export 提供 |
 | Fastify rollback path | 已删除 |
@@ -154,14 +155,23 @@ curl http://127.0.0.1:4000/health
 # 运行 smoke 层级统一评测
 pnpm eval:smoke
 
+# 运行 CI smoke tier baseline-aware eval
+pnpm eval:ci
+
 # 运行检索评估
 pnpm eval:retrieval
 
 # 运行摘要评估
 pnpm eval:summary
 
-# 运行所有 CI 评估
+# 运行所有 CI 评估（默认 smoke；core 使用独立入口）
 pnpm eval:ci
+
+# 运行 CI core tier
+pnpm eval:ci:core
+
+# 运行仓库聚合 CI 本地脚本
+pnpm run ci
 ```
 
 ## 文档
@@ -182,6 +192,8 @@ pnpm eval:ci
 - [测试指南](operations/TESTING.md) — 测试架构、运行方法和用例编写规范
 - [CI/CD 流水线](operations/CI_CD.md) — GitHub Actions 流水线、评测质量门
 
+当前 CI/testing 命令真相以 `pnpm run ci`、`pnpm eval:smoke`、`pnpm eval:ci`、`pnpm eval:ci:core` 为准，具体语义由 `package.json` 与 `reference/SYSTEM_TRUTH_SOURCES.md` 冻结。
+
 deployment flexibility 最小验证矩阵：
 - `pnpm test:deployment-smoke`
 - `pnpm test:runtime-foundations`
@@ -192,6 +204,7 @@ deployment flexibility 最小验证矩阵：
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
 - [架构整改根计划](../plan.md) — 当前根级执行索引；只保留阶段、关键路径和唯一细则入口
 - [架构整改细则](todos/trapmap-architecture-remediation-plan.md) — 当前唯一活跃细则入口；Phase 0 已冻结单一问题池、历史输入角色、deferred 入口和统一适配器显式目标
+- 当前 active execution surface 只允许写成上面两项；其余 todo 文档只能写成背景输入、deferred 落点或已完成 closeout 参考
 - [健壮性与可扩展性收尾细则](todos/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](todos/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪

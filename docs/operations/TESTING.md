@@ -151,6 +151,20 @@ flowchart TB
 - 验证重点：Phase 6 只冻结 mature-capability / library-replacement truth 边界，明确 `internal client + resilience`、`tracing + metrics`、`rate limiting + bulkhead / 背压`、`cache + invalidation`、`service discovery`、`DB budget / PgBouncer`、`health indicator`、`light` / `heavy` posture 与 graph runtime config 的 current-vs-deferred 边界；不引入新的 runtime behavior。
 - 关闭条件：只有在 remediation detail plan、`SYSTEM_TRUTH_SOURCES.md`、`PACKAGES.md`、`ENVIRONMENT.md`、`TESTING.md` 已同步更新，且三条 focused checks 实际通过并记录到 phase report 后，才能勾选 Wave 6A-6F。
 
+**Phase 7 Maintainability / CI-Testing Truth / Documentation Closeout Checks:**
+- 最小验证矩阵：
+  - `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `rtk pnpm check:docs-drift`
+  - `rtk pnpm check:structure`
+  - `rtk pnpm eval:smoke`
+- 验证重点：Phase 7 只冻结 current active execution surface、historical/deferred doc role、CI job truth、eval command semantics、以及 deferred landing spot wording；不引入新的 runtime behavior。
+- CI/testing truth 解释：
+  - `pnpm run ci` 是当前仓库聚合 CI 本地入口。
+  - `pnpm eval:smoke` 是 smoke tier 的统一 eval 聚合器。
+  - `pnpm eval:ci` 是 baseline-aware CI eval runner 的默认 smoke tier 入口。
+  - `pnpm eval:ci:core` 是同一 CI runner 的 core tier 入口；secondary docs 不应改写为别的用户面命令。
+- 关闭条件：只有在 remediation detail plan、`SYSTEM_TRUTH_SOURCES.md`、`docs/README.md`、`docs/todos/README.md`、`docs/archived/README.md`、`CI_CD.md`、必要时 `REPO_STRUCTURE.md` 已同步更新，且四条 focused checks 实际通过并记录到 phase report 后，才能勾选 Wave 7A-7C。
+
 ### 目录结构
 
 ```text

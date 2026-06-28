@@ -31,6 +31,7 @@
 | `open-debt-and-compromises.md` | 当前仍未收口的占位实现、阶段性妥协与开发退路 |
 
 当前根 `plan.md` 已切换为“TrapMap 架构整改计划索引”；当前唯一活跃细则入口为 [`trapmap-architecture-remediation-plan.md`](trapmap-architecture-remediation-plan.md)，用于收口 30 个架构问题的单一问题池、治理主题、进度复选框、文档回写要求和测试矩阵。Phase 0 已完成入口归并、历史输入角色冻结、deferred 入口冻结与统一适配器显式目标冻结。
+除该细则外，本目录其余文档当前都只能被描述为背景/deferred 参考，不再描述为仍由当前根计划并行拥有的 checklist。
 
 [`robustness-scalability-closeout-plan.md`](robustness-scalability-closeout-plan.md) 已完成并退回为历史 closeout 参考；`instrumentation-observability-plan.md` 保留为上一轮 observability 主线背景，不再由根计划直接跟踪。
 历史状态说明：当前根 `plan.md` 已完成“健壮性与可扩展性收尾”主线；后续新增问题应转入独立审计或独立计划。对当前架构整改主题，这些新增问题应优先进入当前活跃细则的问题池，或转入该细则显式声明的 deferred 落点。
