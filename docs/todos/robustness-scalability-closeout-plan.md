@@ -19,37 +19,36 @@
 ## 2. 关闭规则
 
 - 任一任务或阶段勾选为完成前，必须同时满足：
-  - [ ] 实现已落地，或冻结为明确结论并写清 deferred 理由
-  - [ ] 受影响最小测试已执行
-  - [ ] 受影响文档已回写
-  - [ ] `rtk pnpm check:docs-drift` 已通过
-  - [ ] `rtk pnpm check:structure` 已通过
+  - [x] 实现已落地，或冻结为明确结论并写清 deferred 理由
+  - [x] 受影响最小测试已执行
+  - [x] 受影响文档已回写
+  - [x] `rtk pnpm check:docs-drift` 已通过
+  - [x] `rtk pnpm check:structure` 已通过
 - 若改动涉及 retrieval、summary、governance、feedback、fixtures、eval runner：
-  - [ ] 补跑 `rtk pnpm eval:smoke`
+  - [x] 补跑 `rtk pnpm eval:smoke`
 
 ## 3. 文档与测试回写总表
 
 ### 文档
 
-- [ ] `plan.md`：只保留当前阶段、勾选状态、总体要求和细则入口
-- [ ] `docs/README.md`：更新当前根计划主线与细则入口描述
-- [ ] `docs/todos/README.md`：更新本细则主题和当前活跃主线说明
-- [ ] `docs/archived/README.md`：补记旧根计划归档记录
-- [ ] `docs/reference/SYSTEM_TRUTH_SOURCES.md`：回写 contract truth、metrics/debug/trace surface 权威入口
-- [ ] `docs/operations/ENVIRONMENT.md`：回写 runtime / trace / operator / resilience 相关语义
-- [ ] `docs/operations/TESTING.md`：回写最小验证矩阵、传播证据、operator/debug 验证方法
-- [ ] `docs/architecture/*`：仅在 owner、链路、debug surface 或 operator semantics 变化时更新
-- [ ] `docs/PACKAGES.md` 与必要 `packages/*/README.md`：仅在包职责或可见性边界变化时更新
+- [x] `plan.md`：只保留当前阶段、勾选状态、总体要求和细则入口
+- [x] `docs/README.md`：更新当前根计划主线与细则入口描述
+- [x] `docs/todos/README.md`：更新本细则主题和当前活跃主线说明
+- [x] `docs/archived/README.md`：补记旧根计划归档记录
+- [x] `docs/reference/SYSTEM_TRUTH_SOURCES.md`：回写 contract truth、metrics/debug/trace surface 权威入口
+- [x] `docs/operations/ENVIRONMENT.md`：本轮无需新增回写；现有 Phase 1-3 语义继续作为权威说明
+- [x] `docs/operations/TESTING.md`：回写最小验证矩阵、传播证据、operator/debug 验证方法
+- [x] `docs/architecture/*`：本轮无需新增 owner/链路/debug surface 事实回写
+- [x] `docs/PACKAGES.md` 与必要 `packages/*/README.md`：本轮无包职责或可见性边界变更
 
 ### 测试
 
-- [ ] 文档-only 变更：`rtk pnpm check:docs-drift`
-- [ ] 文档-only 变更：`rtk pnpm check:structure`
-- [ ] contract / 类型 / client-server shape 变化：`rtk pnpm typecheck`
-- [ ] runtime / resilience / operator / correctness 变化：`rtk pnpm test:runtime-foundations`
-- [ ] deployment / host / internal-client / distributed hop 变化：`rtk pnpm test:deployment-smoke`
-- [ ] retrieval / governance / feedback / badcase / eval 相关变化：`rtk pnpm eval:smoke`
-- [ ] 受影响包最小测试：优先使用 `rtk pnpm test:file -- <path>` 或包级 `--filter` 测试
+- [x] 文档-only 变更：`rtk pnpm check:docs-drift`
+- [x] 文档-only 变更：`rtk pnpm check:structure`
+- [x] contract / 类型 / client-server shape 守卫：`rtk pnpm typecheck`
+- [x] retrieval / governance / feedback / badcase / eval 相关 closeout：`rtk pnpm eval:smoke`
+- [x] 受影响包最小测试：`rtk pnpm test:file -- packages/contracts/src/domain/operations.test.ts`、`rtk pnpm test:file -- packages/server/src/routes/operations/badcases.test.ts`、`rtk pnpm test:file -- packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`
+- [x] 本轮未改 runtime/API/operator 实现面，因此 `rtk pnpm test:runtime-foundations` 与 `rtk pnpm test:deployment-smoke` 不属于本次最小 closeout 集合
 
 ## 4. 分阶段执行
 
@@ -112,7 +111,6 @@
 
 **补齐清单：**
 
-- [ ] 审核 `operations.ts`、feedback/badcase/operator/debug 相关 schema 是否直接复用 `observability.ts`
 - [x] 审核 `operations.ts`、feedback/badcase/operator/debug 相关 schema 是否直接复用 `observability.ts`
 - [x] 收敛 workflow correlation keys，只允许使用冻结过的共享 key
 - [x] 收敛 failure taxonomy 引用，避免 runtime/operator/feedback 各自维护近似语义
@@ -149,10 +147,6 @@
 
 **补齐清单：**
 
-- [ ] 用真实链路测试补足 `requestId` / `traceId` / `queryId` / `feedbackId` / `asyncJobId` 传播证据
-- [ ] 明确 retrieval trace、durable badcase trace、operator drill-down、eval draft/export 的边界与关系
-- [ ] 为高频排障链路提供最小可复用 debug contract，而不是 route-local 临时字段或临时日志
-- [ ] 清理只靠手工插库伪造状态的测试盲点，至少让关键路径存在一条 end-to-end focused proof
 - [x] 用真实链路测试补足 `requestId` / `traceId` / `queryId` / `feedbackId` / `asyncJobId` 传播证据
 - [x] 明确 retrieval trace、durable badcase trace、operator drill-down、eval draft/export 的边界与关系
 - [x] 为高频排障链路提供最小可复用 debug contract，而不是 route-local 临时字段或临时日志
@@ -174,13 +168,13 @@
 - [x] 根据复发风险决定是否新增 docs drift / structure / contract focused guard
 - [x] 清理 docs 索引中的旧主线描述和过期阶段表述
 - [x] 在相关文档中标记本轮 deferred risk 与后续扩展 seam
-- [ ] 关闭根计划与本细则中的所有未决项
+- [x] 关闭根计划与本细则中的所有未决项
 
 **Phase 4 关闭条件：**
 
-- [ ] 文档入口、细则入口、归档入口一致
-- [ ] 必要守卫已补齐
-- [ ] 所有 deferred 项都已明确落点，不留模糊口头债务
+- [x] 文档入口、细则入口、归档入口一致
+- [x] 必要守卫已补齐
+- [x] 所有 deferred 项都已明确落点，不留模糊口头债务
 
 ## 5. 冻结后的单一问题池
 
@@ -263,9 +257,16 @@
 - `docs/todos/nestjs-service-evolution-*.md` 保留宿主、owner matrix、service boundary 的历史与现状参考；除非当前问题直接关联 truth source 或测试闭环，否则不在本轮扩展其实施面。
 - 本轮执行入口只有 `plan.md` 与本文档；历史细则只能作为证据输入，不能反向覆盖当前阶段顺序和非目标边界。
 
-## 7. 完成定义
+## 7. Deferred 落点与扩展缝隙
+
+- `docs/todos/backend-engineering-optimization-plan.md`：承接 MQ 产品化、新监控平台、长期服务化和平台级工程化问题池
+- `docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md` 与 `docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md`：承接 compatibility shell 退役、owner matrix 历史冻结和 distributed 成熟度后续审计
+- `docs/reference/api-surface.md`：冻结默认 operator surface 与 badcase export `debug` / `draft` 边界；热点 `team/query/artifact` drill-down 仍是独立 deep drill-down seam
+- `docs/operations/TESTING.md`：冻结本轮 root-plan closeout 的最小验证集合，避免旧的实现型 Phase 4 测试口径回流到纯收尾审计
+
+## 8. 完成定义
 
 - [x] 已确认问题、残余风险和越界点被处理或明确 deferred
-- [ ] runtime / async / retrieval / feedback / operator 关键 contract 具备单一 truth source
-- [ ] 指标语义、传播证据、错误映射和 debug contract 具备可验证、可维护、可扩展基础
-- [ ] 根计划、细则、文档索引、归档入口和测试矩阵与当前实现一致
+- [x] runtime / async / retrieval / feedback / operator 关键 contract 具备单一 truth source
+- [x] 指标语义、传播证据、错误映射和 debug contract 具备可验证、可维护、可扩展基础
+- [x] 根计划、细则、文档索引、归档入口和测试矩阵与当前实现一致

@@ -175,6 +175,7 @@ Phase 4 closeout 补充：
 - `workflow` drill-down 当前可返回 internal/operator-only `workflows[*].correlation`，用于解释 `requestId` / `traceId` / `queryId` / `feedbackId` / `asyncJobId` 与 async follow-up 的关系；它不属于新的通用 public additive field。
 - `GET /v1/operations/badcases/:feedbackId/export` 的 `debug` 字段同样属于 operator/debug 闭环，不属于 script/eval draft payload；`scripts/export-badcase-to-eval.ts` 只序列化 `draft`。
 - 热点 `team/query/artifact` 当前不属于默认 operator surface contract；如后续需要，应作为单独 deep drill-down 能力新增，而不是隐式塞入现有首页 schema。
+- 本根计划已经关闭；如需新增 operator/debug route、operator panel、额外 public additive field 或新的 export wrapper，必须转入独立审计或独立计划，而不是继续在当前 closeout 口径下扩写。
 
 ## Capsule-Index 运维
 

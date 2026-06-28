@@ -278,6 +278,11 @@ Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解
 | Runtime closeout | `pnpm test:runtime-closeout` | 部署级 operator closeout，async status contract，queue/outbox reclaim |
 | 全部单体验证层 | （同上） | 分布式验证不替代单体验证，两层独立运行 |
 
+根计划最终关闭补充说明：
+
+- 仅当本轮变更停留在文档、守卫和计划关闭时，不需要再把实现型 `deployment-smoke` / `runtime-foundations` / `distributed-acceptance` 重新当作必跑门。
+- 这种纯收尾审计仍必须保留 contracts、badcase export 和 distributed closeout 的 focused proof，以防旧口径把 `debug` / `draft` 边界、传播证据或 deferred seam 写回旧描述。
+
 #### Owner Service 验证归属
 
 | Owner Service | 包级测试 | 分布式 acceptance | 说明 |
@@ -292,7 +297,7 @@ Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解
 
 #### Phase 4 Closeout 必跑门
 
-Phase 4 closeout 完成前，以下验证必须全部通过：
+若本轮改动涉及 runtime、host、distributed hop、operator surface 或实现行为收尾，Phase 4 implementation closeout 前以下验证必须全部通过：
 
 1. 受影响包最小测试集合
 2. `pnpm typecheck`
@@ -301,6 +306,15 @@ Phase 4 closeout 完成前，以下验证必须全部通过：
 5. `pnpm test:distributed-acceptance`（含 runtime closeout 层）
 6. `pnpm check:docs-drift` + `pnpm check:structure`
 7. `pnpm eval:smoke`（仅在检索/摘要/治理/feedback/eval runner 相关改动时）
+
+若本轮只是根计划 Phase 4 的最终收口审计，且未改 runtime/API/operator 实现面，则使用更小的 root-plan closeout 集合：
+
+1. `pnpm test:file -- packages/contracts/src/domain/operations.test.ts`
+2. `pnpm test:file -- packages/server/src/routes/operations/badcases.test.ts`
+3. `pnpm test:file -- packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`
+4. `pnpm typecheck`
+5. `pnpm check:docs-drift` + `pnpm check:structure`
+6. `pnpm eval:smoke`
 
 ### 评测（Eval）
 

@@ -46,6 +46,8 @@ pnpm exec tsx scripts/export-badcase-to-eval.ts feedback_example ./reports/badca
 
 该脚本只输出 `badcaseEvalDraftSchema` 对应的 deterministic draft。`GET /v1/operations/badcases/:feedbackId/export` 返回的 route wrapper 还会附带 operator-only `debug`，但这部分不属于 eval draft payload。
 
+本轮 root-plan closeout 已冻结该边界；若后续需要扩展 operator/debug 包装信息，必须保持 `draft` 继续是 script/eval fixture 的唯一序列化载荷。
+
 ## 工作区布局
 
 ```text

@@ -29,6 +29,11 @@
 | `nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md` | 样板代码迁移任务列表 |
 | `open-debt-and-compromises.md` | 当前仍未收口的占位实现、阶段性妥协与开发退路 |
 
-当前根 `plan.md` 已切换到“健壮性与可扩展性收尾”主线；已发现问题、残余风险、truth source 收敛与测试/文档关闭要求统一追踪在 [`robustness-scalability-closeout-plan.md`](robustness-scalability-closeout-plan.md)。该细则已冻结单一问题池、后续固定执行顺序和 deferred 边界。`instrumentation-observability-plan.md` 保留为上一轮 observability 主线细则参考，不再是当前唯一活跃入口。
+当前根 `plan.md` 已完成“健壮性与可扩展性收尾”主线；已发现问题、残余风险、truth source 收敛与测试/文档关闭要求统一收口在 [`robustness-scalability-closeout-plan.md`](robustness-scalability-closeout-plan.md)。该细则仍是当前根计划对应的唯一细则入口，但已无未闭合阶段项；后续新增问题应转入独立审计或独立计划。`instrumentation-observability-plan.md` 保留为上一轮 observability 主线细则参考，不再是当前唯一活跃入口。
 
 当前 closeout 还冻结了一条 badcase/eval 边界：operator route 可返回 `debug` 闭环信息，但 `scripts/export-badcase-to-eval.ts` 与 eval fixtures 只承载 deterministic `draft`。
+
+当前已明确的 deferred 落点：
+
+- `backend-engineering-optimization-plan.md`：MQ 产品化、监控平台、长期服务化与平台级工程化问题池
+- `nestjs-service-evolution-04-data-runtime-and-cutover.md` 与 `nestjs-service-evolution-distributed-maturity-assessment.md`：compatibility shell 进一步退役、owner matrix 历史冻结和 distributed 成熟度审计

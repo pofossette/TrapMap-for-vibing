@@ -166,6 +166,22 @@
       ]
     },
     {
+      "file": "docs/todos/README.md",
+      "mustContain": ["已完成“健壮性与可扩展性收尾”主线", "后续新增问题应转入独立审计或独立计划"]
+    },
+    {
+      "file": "docs/archived/README.md",
+      "mustContain": ["当前根 `plan.md` 已完成“健壮性与可扩展性收尾”", "应新开独立审计或独立计划"]
+    },
+    {
+      "file": "docs/reference/api-surface.md",
+      "mustContain": ["必须转入独立审计或独立计划", "不属于 script/eval draft payload"]
+    },
+    {
+      "file": "evals/README.md",
+      "mustContain": ["root-plan closeout 已冻结该边界", "唯一序列化载荷"]
+    },
+    {
       "file": "docs/README.md",
       "mustContain": ["Nest modular monolith"],
       "mustNotContain": ["NestJS 是后续宿主替换目标"]

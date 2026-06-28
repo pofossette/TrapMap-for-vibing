@@ -16,11 +16,11 @@ Phase 0–3 已全部完成，当前进入 Phase 4 收尾：
 - 六个 bounded context 已全部收口到 `backend-core/src/<context>/` 独立目录，`host-local/src/nest/app.module.ts` 注册六个 Nest module；旧 `src/modules/*.ts` compatibility facade 已删除。
 - 第一批成熟服务样板 `knowledge-write + governance-review` 已完成 closeout；仓库级 owner matrix 和迁移窗口关闭条件已冻结。
 
-Phase 4 数据、运维与退役收尾（进行中）：
+Phase 4 数据、运维与退役收尾（历史主线，已冻结）：
 
 - 冻结仓库级 owner matrix、迁移窗口关闭标准和可退役 compatibility shell 清单。
 - 退役旧宿主与重复 transport/client，完成 truth source、测试矩阵、归档回写。
-- 当前主线已把默认轻宿主切到 owner 清晰的 Nest 实现；candidate/review 默认写入口也已完成切换。剩余 closeout 聚焦在继续收缩 `packages/server` 兼容壳与历史实现面。
+- 当前主线已把默认轻宿主切到 owner 清晰的 Nest 实现；candidate/review 默认写入口也已完成切换。该历史主线只保留为 owner matrix、compatibility shell 退役和 distributed 成熟度参考，不再作为当前根计划执行面。
 - 详见 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
 
 ## 系统架构
@@ -186,13 +186,14 @@ deployment flexibility 最小验证矩阵：
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
 - [健壮性与可扩展性收尾根计划](../plan.md) — 当前根级执行索引，跟踪已发现问题、残余风险、truth source 收敛与测试/文档关闭要求
-- [健壮性与可扩展性收尾细则](todos/robustness-scalability-closeout-plan.md) — 当前唯一活跃细则入口，包含冻结后的单一问题池、固定阶段顺序、非目标边界、文档回写矩阵与最小验证要求
+- [健壮性与可扩展性收尾细则](todos/robustness-scalability-closeout-plan.md) — 当前唯一活跃细则入口，已完成 Phase 4 收尾；后续如需继续推进，只能转入独立审计或独立计划
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](todos/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪
 - [轻重后端构建目标细则](todos/backend-build-targets-plan.md) — 轻重后端构建目标、兼容壳清理与客户端后端形态配置的细则；根计划已切换，不再是当前主线
 - [组件替换细则](todos/component-replacement-plan.md) — 成熟包替换的独立细则；根计划已切换，不再是当前主线
 - [Badcase 回流待办](todos/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
 - [后端工程化优化计划](todos/backend-engineering-optimization-plan.md) — 队列、MQ、微服务化与观测演进方向的问题池；本轮 closeout 明确将其列为 deferred 背景，不作为当前执行面
+- closeout 后仍允许扩展的 seam 只有独立 deep drill-down、compatibility shell 进一步退役、distributed 成熟度审计和平台化问题池；这些都不得回写为当前根计划仍在进行中的事项
 - [NestJS 目标架构冻结](todos/nestjs-service-evolution-00-target-architecture.md) — 长期目标、边界、保留与退役决策
 - [NestJS 宿主与 contract 基础](todos/nestjs-service-evolution-01-host-and-contract-foundation.md) — 首条 Nest 宿主主线与共享 contract 收口
 - [NestJS 模块化单体切换](todos/nestjs-service-evolution-02-modular-monolith-cutover.md) — 六个 bounded context、compatibility boundary 与机械迁移提示词

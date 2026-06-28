@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 状态：`进行中（Phase 3 已完成，Phase 4 进行中）`
+- 状态：`已完成（Phase 4 已完成）`
 - 日期：`2026-06-28`
 - 本文件角色：根级执行计划索引，只保留目标、总体要求、阶段勾选和细则入口
 - 当前活跃细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
@@ -26,7 +26,7 @@
 
 ## 当前关键路径
 
-- 当前主线阶段：`Phase 4`
+- 当前主线阶段：`Phase 4（已关闭）`
 - 当前先做：
   - [x] 冻结本轮要清理的已知问题、残余风险与非目标
   - [x] 明确哪些问题属于 contract truth、runtime seam、operator surface、测试证据、文档治理
@@ -36,7 +36,7 @@
   - [x] 进入 Phase 2，修正 runtime / async correctness 的统计与错误映射漂移
   - [x] 在不扩张 debug surface 的前提下关闭当前已发现的 correctness 问题池
   - [x] 完成 Phase 3，收口 badcase/debug/eval draft 边界与传播证据
-  - [ ] 进入 Phase 4，完成守卫、文档与扩展缝隙收尾
+  - [x] 进入 Phase 4，完成守卫、文档与扩展缝隙收尾
 
 ## 阶段索引
 
@@ -72,12 +72,12 @@
 - [x] 补齐对应测试与必要的 `rtk pnpm eval:smoke`
 - 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
 
-### Phase 4 守卫、文档与扩展缝隙收尾 [进行中]
+### Phase 4 守卫、文档与扩展缝隙收尾 [已完成]
 
-- [ ] 回写 README、docs 索引、reference、operations、architecture 与必要 package README
-- [ ] 必要时补 docs drift / structure / focused test guard，防止旧口径回流
-- [ ] 标记 deferred risk、扩展 seam 与后续问题池，不在根计划里保留模糊未决项
-- [ ] 关闭本轮索引与细则中的所有未决复选框
+- [x] 回写 README、docs 索引、reference、operations、architecture 与必要 package README
+- [x] 必要时补 docs drift / structure / focused test guard，防止旧口径回流
+- [x] 标记 deferred risk、扩展 seam 与后续问题池，不在根计划里保留模糊未决项
+- [x] 关闭本轮索引与细则中的所有未决复选框
 - 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](docs/todos/robustness-scalability-closeout-plan.md)
 
 ## 文档回写要求
@@ -105,3 +105,4 @@
 - 已确认问题、残余风险、语义漂移与证据缺口被收敛到单一问题池并按优先级处理或明确 deferred
 - runtime / async / retrieval / feedback / operator / debug 相关关键 contract、trace 和测试证据具备稳定且可扩展的演进基础
 - 文档入口、truth source、测试矩阵和守卫与当前实现一致
+- 后续新增 operator/debug 能力、平台化/MQ、部署形态扩张或更深 drill-down，必须转入独立审计或独立计划，不在本根计划内续写
