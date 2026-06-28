@@ -33,7 +33,11 @@ Historical plans, temporary notes, audits, and human-authored reports must live 
 - `packages/service-candidate-ingestion/`: Owns candidate-ingestion service assembly, internal route registration, and bounded-context candidate wiring while delegating result publication to knowledge-write.
 - `packages/service-job-runtime/`: Owns job-runtime service assembly, internal route registration, queue/runtime deps wiring, and runtime server bootstrap surface.
 - `packages/host-local/`: Light host assembly for `local-agent` and `team-monolith`. The frozen default light mainline is `src/nest/**`, exposed through the package default entry (`src/index.ts`) and default `dev` / `start` scripts.
+  `packages/host-local/src/nest/adapters/` is the authoritative placement for host-owned port adapter selection (`in-process` vs `remote`) in the light host. These files are adapter seams for internal ports, not repository adapters and not a catch-all directory for host composition.
+  `packages/host-local/src/nest/runtime/shared-infra.ts` is the authoritative placement for the current transitional shared infrastructure seam that borrows server-owned infra helpers without changing host ownership.
 - `packages/host-distributed/`: Heavy host assembly for the `distributed` profile. It is the real heavy-host implementation, consumes the same backend-core/service-package main implementation as `light`, and its maturity baseline remains `Level 2 / transitional-microservice`.
+  `packages/host-distributed/src/gateway/` is the authoritative placement for gateway transport helpers and forwarding seams, including `internal-client.ts` as the thin internal HTTP / canonical error normalization helper.
+  `packages/host-distributed/src/shared/` is the authoritative placement for shared distributed-host wrappers around internal ports, such as `internal-knowledge-write-client.ts`; these wrappers map transport semantics back to backend-core port semantics and are not repository adapters.
 
 ## Documentation
 

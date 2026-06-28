@@ -68,6 +68,12 @@ flowchart TB
 - Truth freeze：运行 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，确认 remediation detail plan、truth source、packages doc、persistence doc 与 testing doc 对 `store_snapshot` / InMemory / PG-first 口径的描述一致。
 - 解释边界：Phase 2 不要求把全部 compatibility path 都迁走；它要求把 remaining direct entrypoints、retention 条件、priority waves 和测试门写成显式事实。
 
+**Phase 3 Unified Adapter Freeze Checks:**
+- Docs truth freeze：运行 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，确认 remediation detail plan、truth source、packages doc、repo structure 与 testing doc 一致冻结 unified adapter scope、provider taxonomy、host-owned adapter selection seam、gateway client 边界与 transitional shared infra seam。
+- Host-local adapter seam：运行 `packages/host-local/src/nest/adapters/adapter-factory.test.ts`，确认 `packages/host-local/src/nest/adapters/adapter-factory.ts` 仍把 adapter selection 固定在 host assembly，而不是把选择责任泄漏到 business code。
+- Focused guardrails：运行 `pnpm check:docs-drift` 与 `pnpm check:structure`，确认 Phase 3 freeze 的 truth-source 回写与目录归属没有漂移。
+- 非目标说明：Phase 3 不要求在此轮提取新的 shared provider workspace package，也不要求把 gateway client / remote adapter / repository seam 合并成一个统一 mega-adapter；测试门要守住的是边界文案与 authoritative placement，而不是 runtime behavior 扩张。
+
 **Phase 3 Workflow Snapshot Checks:**
 - 候选处理：提交 candidate 后，调用 `GET /v1/operations/status/async` 或直接查询 `workflow_runs`，确认存在 `workflowType='candidate-processing'` 且 step/status 随处理推进。
 - 失败持久化：制造 candidate 处理失败，确认 `lastError` 与 `status='failed'` 被保留。

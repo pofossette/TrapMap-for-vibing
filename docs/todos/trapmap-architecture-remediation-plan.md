@@ -188,9 +188,22 @@
 
 ### Phase 3 统一适配器范围、目录与接口冻结
 
-- [ ] Wave 3A：冻结统一适配器覆盖范围与 provider taxonomy
-- [ ] Wave 3B：冻结 adapter port、provider 实现、host 装配目录与 owner
-- [ ] Wave 3C：冻结 repository / adapter / host / gateway client 的边界
+- [x] Wave 3A：冻结统一适配器覆盖范围与 provider taxonomy
+- [x] Wave 3B：冻结 adapter port、provider 实现、host 装配目录与 owner
+- [x] Wave 3C：冻结 repository / adapter / host / gateway client 的边界
+
+### Phase 3 closure freeze (G3 `#17` `#18` `#19` `#21` `#23` `#29` `#30` adapter scope)
+
+- Phase 3 在当前轮次冻结的是 unified adapter 的边界与 taxonomy，不是把现有 host、gateway、repository、application service 全部抽成一个“统一 mega-adapter”。统一适配器的 scope 只覆盖 infrastructure/provider seam：例如 provider registry、remote/in-process port adapter、thin transport helper、以及把 transport error 映射回 port 语义的 remote client wrapper。repository、application service、gateway route/controller、host composition 仍各自保留 owner。
+- provider taxonomy 已冻结为“contract 在 `backend-core`，concrete provider implementation 继续留在当前 owner package”。`packages/backend-core` 只拥有 port contracts、invocation model 和 host-agnostic invocation semantics；它不拥有 AI/provider/indexing 的 concrete implementation，也不在本 phase 新建共享 provider workspace 包。
+- host-owned adapter selection seam 已冻结在 host assembly。当前 `packages/host-local/src/nest/adapters/adapter-factory.ts` 与同目录下的 in-process / remote adapter 构成 `light` host 的选择面；文档必须把它写成 host-owned adapter selection seam，而不是把选择责任下推到 business code、repository 或 `backend-core`。
+- `packages/host-local/src/nest/adapters/` 当前只承载 port adapter seam：它解决同一个 `KnowledgeReadPort` 在 in-process direct invocation 与 remote invocation 之间的切换。它不是 repository adapter 目录，也不是 provider registry 总入口，更不是“所有边界都统一塞进 adapter”的证明。
+- `packages/host-distributed/src/gateway/internal-client.ts` 冻结为 distributed gateway forwarding 的 thin transport helper / canonical error normalization seam。它负责内部 HTTP hop、request/trace header 透传和 canonical error body 归一化，但不升级为 repository adapter、domain orchestrator 或 host composition root。
+- `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` 冻结为 remote port client wrapper 示例：它消费 gateway internal client，负责把 transport/body error 映射回 `InvocationError` 与 `KnowledgeWritePort` 语义。Phase 3 要冻结的是这种 wrapper owner 和职责，不是把它误写成 repository seam。
+- `packages/server/src/lib/ai/**` 与 `packages/server/src/lib/indexing/adapters/**` 在当前 phase 继续是 server-owned concrete infrastructure/provider implementation。Phase 3 冻结的是 taxonomy 和 owner：这些 concrete provider seam 仍归 `packages/server`，并未在本轮抽成新的 shared workspace package。
+- gateway client、remote adapter 与 repository adapter 的边界已经冻结为三件不同的事：gateway client 负责跨进程 transport；remote adapter 负责把 port 调用桥接到 transport；repository / persistence seam 继续留在 repo-owned boundary。文档不得把 gateway client 或 remote adapter 改写成 repository adapter，也不得把 repository seam 混入 unified adapter 口径。
+- `packages/host-local/src/nest/runtime/shared-infra.ts` 借用 `packages/server` 的 shared infra helpers 这一事实，只证明当前存在 transitional shared infrastructure seam；它不是 `packages/server` 仍是默认 host owner 的证据。默认 `light` host owner 仍冻结在 `packages/host-local/src/nest/**`，而 shared-infra 借用只是过渡态基础设施复用。
+- Phase 3 minimum verification matrix 已冻结为 focused docs/truth checks：`rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。只有在后续 phase 真正改动 adapter runtime behavior、internal client transport semantics 或 host assembly wiring 时，才补更广的 runtime/deployment tests。
 
 ### Phase 4 统一适配器环境变量与构建裁剪冻结
 

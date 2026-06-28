@@ -56,6 +56,18 @@
 - direct `store.snapshot()` / `store.transact()` 入口当前仍集中在 compatibility shell 与 operator/admin seam：`teams`、`members`、`access-keys`、`knowledge`、`evidence`、`maintenance`、`feedback-admin`、`admin-*`、`operations/artifacts-*`、`operations/skill-*`、`operations/migrate`、`operations/knowledge-legacy`，以及 startup recovery、index follow-up/remediation handlers、`lib/operations/read-model.ts`、`lib/session.ts`、`lib/knowledge/review-application-service.ts`。Phase 2 把这些入口从“模糊遗留”冻结为明确 inventory，其中 teams / members / access-keys 还是 PG-primary 与兼容 fallback 并存的当前状态。
 - 当前 compatibility-cache 边界也已冻结：artifact / knowledge 等结构化真表优先，JSONB 只在 `artifactFilePayloads`、skill history full-data read、maintenance/operator projection helper 等命名 seam 中兜底；后续 phase 只能通过补 repo/projection capability 来缩小这条边界。
 
+## Phase 3 Unified adapter boundary freeze
+
+- 统一适配器不是 mega-adapter。它当前只覆盖 infrastructure/provider seam，不混入 repository、application service、gateway route/client 或 host composition owner。
+- `backend-core` 只定义 port contract、invocation model 和 host-agnostic invocation semantics；它不拥有 concrete provider implementation，也不在本 phase 承诺抽出新的 shared provider package。
+- `packages/host-local/src/nest/adapters/` 是当前默认 `light` host 的 host-owned adapter selection seam。`adapter-factory.ts` 在这里决定 `in-process` 与 `remote` 两种 port adapter，business code 不负责自行挑选实现。
+- `packages/host-local/src/nest/adapters/remote.adapter.ts` 是 port-level remote adapter，不是 repository adapter。它把 remote HTTP call 包装成 `KnowledgeReadPort` 语义，并把 transport failure 收口为 `InvocationError`，而不是把 `fetch`/`Response` 暴露给上层。
+- `packages/host-distributed/src/gateway/internal-client.ts` 是 distributed gateway 的 thin transport helper / canonical error normalization seam；它负责内部 forwarding、header propagation 与 canonical body normalization，而不是业务编排或 repo adapter。
+- `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` 是 remote port client wrapper 示例：它消费 gateway internal client，把 transport 错误映射回 `InvocationError` / `KnowledgeWritePort` 语义，证明 remote client wrapper 与 gateway transport helper 属于不同层次。
+- `packages/server/src/lib/ai/**` 与 `packages/server/src/lib/indexing/adapters/**` 继续是 server-owned concrete infrastructure/provider implementation。Phase 3 冻结 taxonomy 和 owner，不把它们提前描述成 `backend-core` provider contract，也不把它们抽离成新的 shared workspace package。
+- gateway client 和 remote adapter 不是 repository adapters；repository / persistence seam 仍继续冻结在 repo-owned boundary。`packages/server/src/lib/repos/**`、`packages/server/src/lib/*/repository.ts` 与 persistence implementation 不属于 unified adapter 目录。
+- `packages/host-local/src/nest/runtime/shared-infra.ts` 当前借用 `packages/server` 的 shared infra helper，只能被描述为 transitional shared infrastructure seam。它不是 `packages/server` 仍是默认 host owner 的证据，也不是统一适配器范围应该无限扩大到 host bootstrap 的依据。
+
 ## Phase 4 数据、运维与退役收尾
 
 - 仓库级 owner matrix（gateway + 六个 owner service + job-runtime 的 data / projection / runtime / operations owner）已冻结，详见 [`plan.md`](../plan.md) Phase 4 和 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
