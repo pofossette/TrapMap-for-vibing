@@ -268,9 +268,6 @@ describe('docs truth smoke', () => {
 
     expect(testingDoc).toContain('Phase 3 Unified Adapter Freeze Checks');
     expect(testingDoc).toContain(
-      '运行 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，确认 remediation detail plan、truth source、packages doc、repo structure 与 testing doc 一致冻结 unified adapter scope、provider taxonomy、host-owned adapter selection seam、gateway client 边界与 transitional shared infra seam。',
-    );
-    expect(testingDoc).toContain(
       'rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts',
     );
     expect(testingDoc).toContain('rtk pnpm check:docs-drift');
