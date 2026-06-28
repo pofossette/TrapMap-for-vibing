@@ -1,11 +1,11 @@
-# 活跃计划
+# 历史计划参考
 
-本目录保存仍在使用或仍被当前文档引用的长期设计计划。
+本目录保存仍被当前文档引用的长期设计计划与历史设计参考。
 
 规则：
 
-1. 根 `plan.md` 是当前仓库级执行轨道的总规约与索引。
-2. `docs/plans/` 用于仍被当前文档引用的长期设计计划与历史主线参考；根索引如需新的执行细则，可改为链接到 `docs/todos/`。
+1. 根 `plan.md` 与 `docs/todos/trapmap-architecture-remediation-plan.md` 是当前仓库级执行轨道的唯一 active execution surface。
+2. `docs/plans/` 只用于仍被当前文档引用的长期设计计划与历史主线参考；除非未来某个新的根计划显式重新链接，否则本目录默认不承担当前执行面。
 3. 过时的执行计划必须移动到 `docs/archived/archived-plans/`。
 4. 过时的报告必须移动到 `docs/archived/reports/`。
 5. 新计划应优先使用 `_templates/` 里的模板，以保持结构一致。
@@ -25,14 +25,14 @@
 | `deployment-flexibility/` | historical-reference | 仍提供 deployment profile、gateway-only CLI 接入与 distributed 约束背景，但不再是默认执行入口 |
 | `runtime-recomposition/` | historical-reference | 仍提供 backend-core / host-local / host-distributed 的迁移背景，但不再承担当前阶段执行入口 |
 | `backend-engineering-roadmap/` | historical-reference | 保留 Stage 1/2/3 的历史收敛事实与旧细化计划，供引用，不再承担主执行入口 |
-| `fm-agent-scan/` | active-reference | FM-agent 原始报告整改计划、source pack 和 live-gap matrix |
-| `capsule-contextual-enrichment-plan.md` | active-reference | 检索/capsule 设计上下文 |
-| `round4-cross-table-consistency-plan.md` | active-reference | package 文档引用的 artifact 结构化事实源 |
-| `v2-multi-recall-plan.md` | active-reference | 检索设计上下文 |
+| `fm-agent-scan/` | historical-reference | FM-agent 原始报告整改计划、source pack 和 live-gap matrix，现仅作背景引用 |
+| `capsule-contextual-enrichment-plan.md` | historical-reference | 检索/capsule 设计上下文，现仅作背景引用 |
+| `round4-cross-table-consistency-plan.md` | historical-reference | package 文档引用的 artifact 结构化事实源，现仅作背景引用 |
+| `v2-multi-recall-plan.md` | historical-reference | 检索设计上下文，现仅作背景引用 |
 
 ## 后端工程化阶段总结
 
-后端工程化三段主线已经完成并留存在本目录：Stage 1「基础与边界」、Stage 2「异步运行时与读写分离」、以及横切「耦合度降低」。这些成果仍然有效，但当前根 `plan.md` 已切换到新的 NestJS 与服务演进索引，不再把本目录作为默认执行入口。
+后端工程化三段主线已经完成并留存在本目录：Stage 1「基础与边界」、Stage 2「异步运行时与读写分离」、以及横切「耦合度降低」。这些成果仍然有效，但当前根 `plan.md` 已切换到 TrapMap 架构整改计划索引，不再把本目录作为默认执行入口。
 
 这些历史成果仍然为三种 deployment profile 提供背景：
 
@@ -46,10 +46,10 @@
 
 ## 当前主入口补充
 
-当前根 [`plan.md`](../../plan.md) 是新的 NestJS 与服务演进执行索引。默认阅读顺序应为：
+当前根 [`plan.md`](../../plan.md) 与 [`docs/todos/trapmap-architecture-remediation-plan.md`](../todos/trapmap-architecture-remediation-plan.md) 共同构成当前唯一 active execution surface。默认阅读顺序应为：
 
 1. 根 `plan.md`
-2. 根计划链接到的 `docs/todos/*` 细则
+2. `docs/todos/trapmap-architecture-remediation-plan.md`
 3. 本目录中的 historical-reference 计划
 
 本目录的角色现在是：

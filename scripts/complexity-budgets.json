@@ -155,6 +155,15 @@
       "mustContain": ["不承担当前执行面"]
     },
     {
+      "file": "docs/plans/README.md",
+      "mustContain": [
+        "唯一 active execution surface",
+        "默认不承担当前执行面",
+        "historical-reference"
+      ],
+      "mustNotContain": ["active-reference", "NestJS 与服务演进执行索引"]
+    },
+    {
       "file": "docs/operations/CI_CD.md",
       "mustContain": [
         "Node.js 24 + pnpm 10.33.0",

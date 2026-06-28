@@ -572,6 +572,7 @@ describe('docs truth smoke', () => {
     const docsIndex = readDoc('docs/README.md');
     const todosIndex = readDoc('docs/todos/README.md');
     const archivedIndex = readDoc('docs/archived/README.md');
+    const plansIndex = readDoc('docs/plans/README.md');
     const testing = readDoc('docs/operations/TESTING.md');
     const ci = readDoc('docs/operations/CI_CD.md');
     const repoStructure = readDoc('docs/reference/REPO_STRUCTURE.md');
@@ -605,6 +606,12 @@ describe('docs truth smoke', () => {
 
     expect(archivedIndex).toContain('不承担当前执行面');
     expect(archivedIndex).toContain('当前架构整改主题');
+
+    expect(plansIndex).toContain('唯一 active execution surface');
+    expect(plansIndex).toContain('默认不承担当前执行面');
+    expect(plansIndex).toContain('historical-reference');
+    expect(plansIndex).not.toContain('active-reference');
+    expect(plansIndex).not.toContain('NestJS 与服务演进执行索引');
 
     expect(testing).toContain('Phase 7 Maintainability / CI-Testing Truth / Documentation Closeout Checks');
     expect(testing).toContain('rtk pnpm eval:smoke');
