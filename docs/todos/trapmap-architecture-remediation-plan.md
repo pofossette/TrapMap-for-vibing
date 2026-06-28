@@ -148,10 +148,23 @@
 
 ### Phase 1 Server / Backend-Core 边界整改
 
-- [ ] Wave 1A：收口 `packages/server` compatibility shell 角色与仍滞留主业务的入口
-- [ ] Wave 1B：冻结 `backend-core`、repository、schema、migration 的 owner 边界与过渡态
-- [ ] Wave 1C：冻结 `service-*`、`host-*` 与 shared runtime seam 的职责边界
-- [ ] Wave 1D：补齐对应 truth source、packages 文档与 focused tests
+- [x] Wave 1A：收口 `packages/server` compatibility shell 角色与仍滞留主业务的入口
+- [x] Wave 1B：冻结 `backend-core`、repository、schema、migration 的 owner 边界与过渡态
+- [x] Wave 1C：冻结 `service-*`、`host-*` 与 shared runtime seam 的职责边界
+- [x] Wave 1D：补齐对应 truth source、packages 文档与 focused tests
+
+### Phase 1 closure freeze (G1 `#1-#10`)
+
+- `packages/server` 只保留 Fastify compatibility shell 与 shared runtime/status seam。当前仍留在该包内、且需要后续 phase 继续迁移的 primary-business entrypoint，限定为 Fastify 路由/worker 对 `lib/knowledge/`、`lib/candidates/`、`lib/feedback/`、`lib/maintenance/`、`lib/decay/`、`lib/retrieval/`、`lib/ai/` 等 server-owned application/infrastructure module 的兼容调用面；它们不是默认 `light` host 主入口，也不是新的 owner truth。
+- `server` 与 `backend-core` 的 closure direction 已冻结为单向内核复用：`backend-core` 提供 host-agnostic runtime capability model、invocation contract、internal ports 与 bounded-context module factory；`packages/server` 仅消费这些运行时/边界定义，不反向作为 `backend-core` 的业务内核或事实源。
+- remaining route migration priority 已冻结为：先继续清理仍驻留 `packages/server/src/routes/` 的 owner-sensitive command orchestration，再处理只读 projection / compatibility runtime surface；Phase 1 不把这些剩余路由写成“已经迁完”。
+- repository interface target package 继续冻结在 `packages/server/src/lib/*/repository.ts` 与 `packages/server/src/lib/repos/index.ts`。Phase 1 不把 repository contract 提前迁入 `backend-core`；`backend-core` 当前只冻结 cross-owner internal port 和 use-case contract。
+- Drizzle schema 与 migration 执行 owner 继续冻结在 `packages/server`：schema truth source 为 `packages/server/src/lib/persistence/schema/index.ts` 及其 domain table modules，migration runtime owner 为 `packages/server/src/lib/persistence/migration-runner.ts` 与 `packages/server/drizzle/`。shared PostgreSQL 仍是过渡态事实，不等于 schema owner 已转移到 `service-*`。
+- `packages/backend-core` 当前不是“仅接口”空壳。它承载六个 bounded context 的 module factory、runtime capability model、invocation model、port contract 与 testing utilities；其 closure path 是继续吸收 host-agnostic command/use-case contract，而不是在 Phase 1 新拆 workspace 包。
+- high-complexity domain logic 仍在 `packages/server` 的部分，按 layering 先冻结为 server-owned compatibility/application debt：候选处理策略、检索编排、AI provider/prompt/cache wiring、反馈/maintenance/decay 的 operator use case 仍可在 `server` 内存在，但文档必须把它们标记为 compatibility/business debt，而不是默认 host owner。
+- AI/provider/prompt/caching boundary 已冻结为 shared infrastructure seam：`packages/server/src/lib/ai/**` 继续拥有 provider config、prompt loading、dynamic context、cache/wrapper 等 concrete adapter；Phase 1 不把这些实现宣称为 `backend-core` contract，也不把 `service-*` 写成各自分叉 provider owner。
+- persistence implementation reuse path 已冻结为 host/service 复用 `packages/server` 当前 persistence/repository/runtime infrastructure seam，而不是复制第二套 PG/JSON/queue/outbox implementation。后续 phase 如需抽 shared adapter seam，也必须从这一单一实现面演进。
+- `service-*` 只承载 owner-aligned thin assembly：`deps.ts`、`routes.ts`、`server.ts`、`index.ts` 负责把 `backend-core` owner module 暴露给 host。`host-local` / `host-distributed` 负责 transport/DI/process composition；shared runtime seam 仍暂时复用 `packages/server` 的 runtime/status/persistence support，而不是让 service 包直接拥有 bootstrap 或 schema/migration。
 
 ### Phase 2 Store Snapshot 现状盘点与迁移口径冻结
 

@@ -31,6 +31,15 @@
 - gateway 继续作为宿主拥有的外部适配层存在；Phase 0 不把 `packages/service-gateway` 作为当前主线 package 目标。
 - `backend-core` 在 Phase 0 冻结为单包内核，先按模块边界收口，而不是预先切成多个 `domain-*` workspace 包。
 
+## Phase 1 Server / Backend-Core boundary freeze
+
+- `packages/server` 保留 Fastify compatibility shell 与 shared runtime/status seam；当前仍负责 `packages/server/src/app.ts`、`packages/server/src/config.ts`、`packages/server/src/lib/repos/index.ts`、`packages/server/src/lib/persistence/schema/index.ts`、`packages/server/src/lib/persistence/migration-runner.ts`，但不再被描述为默认 `light` 主应用主体。
+- `packages/backend-core` 不是“仅接口”空壳。它继续承载 runtime capability model、internal ports、invocation contract、bounded-context module factory 与 testing utilities，作为 host-agnostic 内核被 `host-local`、`host-distributed` 和 `service-*` 复用。
+- `packages/service-*` 只承载 owner-aligned thin assembly：`deps.ts`、`routes.ts`、`server.ts`、`index.ts`。它们暴露 backend-core owner module，但不定义自己的 schema/migration owner。
+- `packages/host-local` 与 `packages/host-distributed` 负责 transport/DI/process composition；shared runtime seam 仍可暂时复用 `packages/server` 的实现面，但它们才是宿主装配语义的归宿。
+- repository interface 的当前 target package 仍冻结在 `packages/server/src/lib/*/repository.ts` 与 `packages/server/src/lib/repos/index.ts`，Drizzle schema 与 migration owner 仍在 `packages/server`，后续 phase 再决定是否抽出共享 seam。
+- 高复杂度 domain logic 继续允许留在 `packages/server` 的 compatibility/application debt 区，但文档必须把它们视为冻结中的过渡态，而不是新的 long-term owner。
+
 ## Phase 2 模块化单体边界冻结
 
 - `backend-core` 继续保留单包，但其内部必须按六个 bounded context 收口到 `<context>/domain/`、`<context>/application/`、`<context>/module.ts`；`ports`、`invocation`、`runtime`、`testing` 继续作为共享且 framework-free 的顶层目录。当前六个 context 目录已经落地：`identity-access/`、`knowledge-read/`、`knowledge-write/`、`candidate-ingestion/`、`governance-review/`、`job-runtime/`；原 `src/modules/*.ts` compatibility re-export facade 已在 build-target closeout 的 Wave 1 清理中删除，消费方应直接使用真实 context 入口。
@@ -104,6 +113,8 @@ import { reviewDecisionRequestSchema } from '@trapmap/contracts';
 - Fastify compatibility surface：仅限仍未迁出的兼容 HTTP/runtime 组装。
 
 > ⚠ 以上内容不是默认 `light` 主线。正式终局归属是 `backend-core` + `service-*` + `host-local` / `host-distributed`。
+
+Phase 1 进一步冻结当前事实：`packages/server` 仍是当前 Drizzle schema/migration owner 与兼容 runtime seam，而 `backend-core` 提供 service assemblies 复用的宿主无关 contracts。
 
 ### Runtime 与部署词汇
 

@@ -133,6 +133,30 @@ describe('docs truth smoke', () => {
     expect(sources).toContain('Queue / outbox reliability policy');
   });
 
+  it('Phase 1 boundary docs freeze server/backend-core/service-host ownership facts', () => {
+    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
+    const packagesDoc = readDoc('docs/PACKAGES.md');
+
+    expect(remediation).toContain('### Phase 1 closure freeze (G1 `#1-#10`)');
+    expect(remediation).toContain('`packages/server` 只保留 Fastify compatibility shell 与 shared runtime/status seam');
+    expect(remediation).toContain('packages/server/src/lib/*/repository.ts');
+    expect(remediation).toContain('packages/server/src/lib/repos/index.ts');
+    expect(remediation).toContain('Drizzle schema 与 migration 执行 owner 继续冻结在 `packages/server`');
+    expect(remediation).toContain('`service-*` 只承载 owner-aligned thin assembly');
+
+    expect(truthSources).toContain('Phase 1 server/backend-core boundary freeze');
+    expect(truthSources).toContain('packages/server/src/lib/persistence/schema/index.ts');
+    expect(truthSources).toContain('packages/server/src/lib/persistence/migration-runner.ts');
+    expect(truthSources).toContain('packages/service-*');
+    expect(truthSources).toContain('thin assembly');
+
+    expect(packagesDoc).toContain('## Phase 1 Server / Backend-Core boundary freeze');
+    expect(packagesDoc).toContain('`packages/server` 保留 Fastify compatibility shell 与 shared runtime/status seam');
+    expect(packagesDoc).toContain('`packages/backend-core` 不是“仅接口”空壳');
+    expect(packagesDoc).toContain('`packages/service-*` 只承载 owner-aligned thin assembly');
+  });
+
   it('docs/README.md does not contain stale schema counts', () => {
     const content = readDoc('docs/README.md');
     expect(content).not.toContain('48 张表');
