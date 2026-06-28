@@ -284,6 +284,62 @@ describe('docs truth smoke', () => {
     expect(distributedKnowledgeWriteClient).toContain('createRemoteKnowledgeWriteClient');
   });
 
+  it('Phase 4 docs freeze selector envs, recommended profile combos, and target-pruning posture', () => {
+    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
+    const packagesDoc = readDoc('docs/PACKAGES.md');
+    const environmentDoc = readDoc('docs/operations/ENVIRONMENT.md');
+    const deploymentDoc = readDoc('docs/architecture/DEPLOYMENT.md');
+    const testingDoc = readDoc('docs/operations/TESTING.md');
+    const serverConfig = readDoc('packages/server/src/config.ts');
+    const hostLocalConfig = readDoc('packages/host-local/src/nest/config/config.ts');
+    const distributedServiceConfig = readDoc('packages/host-distributed/src/config/service-config.ts');
+
+    expect(remediation).toContain('### Phase 4 closure freeze (G3 env / target matrix)');
+    expect(remediation).toContain('selector env');
+    expect(remediation).toContain('provider-specific env');
+    expect(remediation).toContain('fail-fast / fallback');
+    expect(remediation).toContain('optional dependency');
+
+    expect(truthSources).toContain('Phase 4 adapter env / target-pruning freeze');
+    expect(truthSources).toContain('packages/host-local/src/nest/config/config.ts');
+    expect(truthSources).toContain('packages/host-distributed/src/config/service-config.ts');
+    expect(truthSources).toContain('TRAPMAP_DEPLOYMENT_PROFILE');
+    expect(truthSources).toContain('TRAPMAP_TASK_TRANSPORT');
+
+    expect(packagesDoc).toContain('## Phase 4 Adapter env / target-pruning freeze');
+    expect(packagesDoc).toContain('`local-agent` / `team-monolith` -> `light`');
+    expect(packagesDoc).toContain('`distributed` -> `heavy`');
+    expect(packagesDoc).toContain('optional dependency');
+
+    expect(environmentDoc).toContain('Phase 4 freeze');
+    expect(environmentDoc).toContain('TRAPMAP_DEPLOYMENT_PROFILE');
+    expect(environmentDoc).toContain('TRAPMAP_DEPLOYMENT_PRESET');
+    expect(environmentDoc).toContain('TRAPMAP_TASK_TRANSPORT');
+    expect(environmentDoc).toContain('AI_PROVIDER');
+
+    expect(deploymentDoc).toContain('Phase 4 freeze');
+    expect(deploymentDoc).toContain('local-agent');
+    expect(deploymentDoc).toContain('team-monolith');
+    expect(deploymentDoc).toContain('distributed');
+    expect(deploymentDoc).toContain('light');
+    expect(deploymentDoc).toContain('heavy');
+
+    expect(testingDoc).toContain('Phase 4 Adapter Env / Target Freeze Checks');
+    expect(testingDoc).toContain('rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts');
+    expect(testingDoc).toContain('rtk pnpm check:docs-drift');
+    expect(testingDoc).toContain('rtk pnpm check:structure');
+
+    expect(serverConfig).toContain("provider: z.enum(['postgres', 'rabbitmq']).default('postgres')");
+    expect(serverConfig).toContain("profile: z.enum(['local-agent', 'team-monolith', 'distributed'])");
+    expect(serverConfig).toContain("preset: z\n    .enum(['monolith', 'api', 'candidate-worker', 'governance-worker', 'outbox-worker'])");
+    expect(hostLocalConfig).toContain('TRAPMAP_DEPLOYMENT_PROFILE');
+    expect(hostLocalConfig).toContain('TRAPMAP_DEPLOYMENT_PRESET');
+    expect(hostLocalConfig).toContain('TRAPMAP_TASK_TRANSPORT');
+    expect(distributedServiceConfig).toContain('TRAPMAP_SERVICE_NAME');
+    expect(distributedServiceConfig).toContain('TRAPMAP_KNOWLEDGE_WRITE_URL');
+  });
+
   it('docs/README.md does not contain stale schema counts', () => {
     const content = readDoc('docs/README.md');
     expect(content).not.toContain('48 张表');
