@@ -69,3 +69,9 @@ Results:
 
 - No runtime refactor was performed, so the docs intentionally preserve some asymmetry around graph behavior and mature-platform capability rollout.
 - The repository already contains older “Phase 6” wording in unrelated docs about retrieval/PG recall; I did not normalize those broader historical labels because the brief constrained ownership to the listed files.
+
+## Fix note
+
+- Reviewer finding on Wave 6D was correct: before this fix, the “优先引成熟库 / 条件成熟后引入 / 暂不替换” matrix existed in `docs/todos/trapmap-architecture-remediation-plan.md` but was not restated in the dedicated Phase 6 secondary doc or asserted by `docs-truth-smoke.test.ts`.
+- Added a minimal `Phase 6 Wave 6D replacement matrix freeze` subsection to `docs/PACKAGES.md` and extended the Phase 6 smoke assertions to require the three matrix labels plus their frozen examples/boundaries.
+- Validation rerun: `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts` -> PASS.

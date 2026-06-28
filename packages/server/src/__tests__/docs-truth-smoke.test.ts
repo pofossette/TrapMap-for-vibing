@@ -460,6 +460,7 @@ describe('docs truth smoke', () => {
     expect(remediation).toContain('DB budget / PgBouncer');
     expect(remediation).toContain('light` 与 `heavy`');
     expect(remediation).toContain('TRAPMAP_GRAPH_DB_*');
+    expect(remediation).toContain('优先引成熟库 / 条件成熟后引入 / 暂不替换');
 
     expect(truthSources).toContain('Phase 6 mature-capability / library-replacement freeze');
     expect(truthSources).toContain('packages/server/src/lib/runtime/resilience.ts');
@@ -473,6 +474,18 @@ describe('docs truth smoke', () => {
     expect(packagesDoc).toContain('rate limiting + bulkhead / 背压');
     expect(packagesDoc).toContain('自治缓存平台');
     expect(packagesDoc).toContain('不同默认策略姿态');
+    expect(packagesDoc).toContain('### Phase 6 Wave 6D replacement matrix freeze');
+    expect(packagesDoc).toContain('`优先引成熟库`');
+    expect(packagesDoc).toContain('`条件成熟后引入`');
+    expect(packagesDoc).toContain('`暂不替换`');
+    expect(packagesDoc).toContain('internal client');
+    expect(packagesDoc).toContain('shared resilience helper');
+    expect(packagesDoc).toContain('runtime metrics snapshot');
+    expect(packagesDoc).toContain('cache invalidation seam');
+    expect(packagesDoc).toContain('service discovery');
+    expect(packagesDoc).toContain('PgBouncer');
+    expect(packagesDoc).toContain('service-autonomous remote cache');
+    expect(packagesDoc).toContain('adaptive backpressure');
 
     expect(environmentDoc).toContain('### Phase 6 freeze');
     expect(environmentDoc).toContain('internal client + resilience');

@@ -103,6 +103,12 @@
 - `light` 与 `heavy` 只冻结不同默认策略姿态。`light` 继续以 host-local、in-process 默认、较少 remote dependency 为主；`heavy` 继续以 distributed、gateway + internal HTTP hop、shared PostgreSQL、remote-expected async posture 为主。这里的区别是 adoption posture，不是新 runtime behavior，也不是证明 `heavy` 已自动具备 tracing/discovery/bulkhead 默认值。
 - graph runtime 继续使用同一组 `TRAPMAP_GRAPH_DB_*` env family，但文档必须承认当前实现只是 shared config family + partial shared consumer seam。`packages/server` compatibility shell、`host-local` 默认主线、distributed gateway/service/worker 不能在没有源码证据时被写成 graph provider、readiness disposition、fail-open behavior 完全等价。
 
+### Phase 6 Wave 6D replacement matrix freeze
+
+- `优先引成熟库`：当前优先复用 repo 已有 seam，包括 internal client、shared resilience helper、runtime metrics snapshot、cache invalidation seam。Phase 6 的当前事实是先把这些能力当作 shared runtime surface 维护，而不是立即替换成新的平台库。
+- `条件成熟后引入`：只有在真实吞吐、独立故障域、外部 telemetry / discovery、或 database pool governance 需求持续存在时，才把对应成熟库纳入 follow-up。当前这类候选包括 richer tracing / observability backend、service discovery、以及 DB budget / PgBouncer rollout。
+- `暂不替换`：service-autonomous remote cache、完整 distributed tracing platform、以及默认内建的 bulkhead / adaptive backpressure 继续冻结为 deferred capability，不得在 secondary docs 中写成已决定替换或已默认落地。
+
 ## packages/contracts
 
 共享 Schema 和类型定义，同时被 CLI 和 Server 导入。
