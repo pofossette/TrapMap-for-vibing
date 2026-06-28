@@ -135,6 +135,14 @@ flowchart TB
 - 验证重点：Phase 4 只冻结 selector env、provider-specific env、推荐 profile/target 组合、fail-fast / fallback 规则与 optional dependency / target-pruning 文档边界，不宣称新的 runtime refactor。
 - 关闭条件：只有在 remediation detail plan、`SYSTEM_TRUTH_SOURCES.md`、`PACKAGES.md`、`ENVIRONMENT.md`、`DEPLOYMENT.md`、`TESTING.md` 已同步更新，且三条 focused checks 实际通过并记录到 phase report 后，才能勾选 Wave 4A-4C。
 
+**Phase 5 Distributed Baseline Freeze Checks:**
+- 最小验证矩阵：
+  - `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `rtk pnpm check:docs-drift`
+  - `rtk pnpm check:structure`
+- 验证重点：Phase 5 只冻结 distributed maturity baseline、gateway-only external access、shared PostgreSQL transitional posture、真实内部 hop 证据、compose 当前拓扑限制与 deferred platform boundary；不引入新的 runtime behavior。
+- 关闭条件：只有在 remediation detail plan、`SYSTEM_TRUTH_SOURCES.md`、`PACKAGES.md`、`DEPLOYMENT.md`、`TESTING.md` 已同步更新，且三条 focused checks 实际通过并记录到 phase report 后，才能勾选 Wave 5A-5C。
+
 ### 目录结构
 
 ```text

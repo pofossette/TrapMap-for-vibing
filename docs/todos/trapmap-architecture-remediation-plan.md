@@ -222,9 +222,19 @@
 
 ### Phase 5 Distributed 基线与运行隔离冻结
 
-- [ ] Wave 5A：冻结 distributed 当前过渡态成熟度基线
-- [ ] Wave 5B：写清 shared PG、同步 RPC、无 tracing、compose 编排限制的真实现状
-- [ ] Wave 5C：明确哪些能力进入 deferred，哪些纳入当前整改主线
+- [x] Wave 5A：冻结 distributed 当前过渡态成熟度基线
+- [x] Wave 5B：写清 shared PG、同步 RPC、无 tracing、compose 编排限制的真实现状
+- [x] Wave 5C：明确哪些能力进入 deferred，哪些纳入当前整改主线
+
+### Phase 5 closure freeze (G4 distributed baseline)
+
+- Phase 5 冻结的是 distributed baseline / runtime-isolation 的 truth-source 边界，不是 runtime refactor。当前 distributed 成熟度基线继续明确冻结为 `Level 2 / transitional-microservice`；后续文档不得把它改写成“假的分布式”，也不得提前写成成熟自治服务群。
+- distributed 当前已是“真实分布式”，不是单进程内 mock：gateway 继续是唯一外部入口，`packages/service-*` 与 `packages/host-distributed` 继续提供真实 service process 装配，gateway 到 owner service / runtime service 之间继续存在真实内部 HTTP hop。
+- distributed 当前仍不是成熟的 service-autonomous system。shared PostgreSQL 继续是主要持久化底座；retrieval 当前仍主要是逻辑服务边界而不是独立 runtime binary；部分 shared infra、queue/outbox、auth/session、runtime seam 仍处于过渡复用状态，不能被写成每个服务已经完全自治。
+- runtime-isolation 现状必须按当前证据描述：内部同步 RPC 已存在，但统一 resilience、全链路 tracing、service-owned persistence budget、独立 platform isolation 仍未在本 phase 落地；当前只允许把这些写成 deferred capability，而不是 current-state claim。
+- compose/runtime wording 继续冻结为“真实当前拓扑而非成熟编排”：`docker-compose.yml` 当前证明的是 gateway + 多个 service/worker 进程可运行、`distributed` profile 真实展开、并通过 env 指向 shared runtime substrate；它不是 service discovery、K8s orchestration、mesh、per-service autonomous deployment 的证据。
+- deferred boundary 必须显式保留：service discovery、K8s/platformization、per-service database、成熟 observability/tracing、以及更强 autonomy / isolation claim 继续留在 deferred 路径，而不是在 distributed baseline 文案中被隐含为当前已具备。
+- Phase 5 minimum verification matrix 冻结为 focused docs/truth checks：`rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。只有 closure freeze 文本、truth source / packages / deployment / testing 回写和这三条 focused checks 的实际结果都完成记录后，Wave 5A-5C 才允许关闭。
 
 ### Phase 6 成熟能力与成熟库替换矩阵冻结
 

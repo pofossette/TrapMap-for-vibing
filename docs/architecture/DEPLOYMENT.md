@@ -94,6 +94,17 @@ Phase 4 freeze 把 adapter env / target-pruning 的推荐组合固定为文档�
 - fail-fast / fallback 边界要写清：`rabbitmq` 需要 RabbitMQ config；`distributed` 需要 PostgreSQL；`local-agent` 可保持 JSON-store-ok；internal service URLs 仅在 remote mode 下有意义，在 `in-process` mode 下继续被忽略。
 - `light` 与 `heavy` 是 build/deployment targets，不是新的 runtime profiles。optional dependency / target-pruning 的当前文档语义只应描述推荐方向与非目标，不能在没有代码证据时宣称已经实现自动 package tree-shaking。
 
+### Phase 5 freeze
+
+Phase 5 freeze 固定 distributed baseline / runtime-isolation 的当前叙事，只描述已被代码、compose 和 closeout tests 证明的事实。
+
+- `distributed` 当前成熟度固定为 `Level 2 / transitional-microservice`。
+- gateway 继续是唯一外部入口；CLI 与外部 HTTP client 仍只连接 gateway，而不是直接访问内部服务。
+- 当前 distributed 已有真实内部 HTTP hop、真实多进程 service/worker 装配，以及 shared PostgreSQL 支撑下的运行证据；因此它不是 fake distributed。
+- 当前 distributed 仍不是成熟自治平台：shared PostgreSQL 仍是主要持久化底座，retrieval 仍带有逻辑服务边界，部分 shared infra/runtime seam 仍未服务自治化。
+- compose 文案必须按当前事实收口：checked-in compose 证明的是 `distributed` profile 可展开 gateway 与多进程 worker/service 拓扑，不应被表述成 service discovery、K8s orchestration、或成熟 platform isolation。
+- deferred 边界保持显式：service discovery、K8s/platformization、per-service database、全链路 tracing、以及更强 autonomy / isolation claim 仍属于 follow-up，而不是当前部署默认能力。
+
 ## 当前已实现的部署形态
 
 当前代码已经把对操作者的正式入口收敛到三种 profile：

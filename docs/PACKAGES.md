@@ -83,6 +83,16 @@
 - fail-fast / fallback 规则不再允许文档写模糊话术：`rabbitmq` 缺少 RabbitMQ config 时必须 fail-fast；`distributed` 缺少 PostgreSQL 不能被描述成仍支持 JSON-store runtime；`local-agent` 允许保持 JSON store fallback；`in-process` mode 下 internal service URLs 继续只是 ignored config。
 - target-pruning posture 冻结为文档边界，不夸大实现程度：`light` 与 `heavy` 是 build/deployment targets，不是新的 runtime profiles；optional dependency、tree-shaking 与 target-pruning 仅可写成当前 intent / non-goal，除非代码明确证明，否则不能声称已经具备自动化 optional dependency pruning。
 
+## Phase 5 Distributed baseline freeze
+
+- `distributed` 当前成熟度继续冻结为 `Level 2 / transitional-microservice`。它不是 fake split，也不是 mature service-autonomous platform；后续文档必须同时保留这两个边界。
+- gateway-only external access 继续是当前正式入口事实。CLI 与外部调用方仍只面向 gateway，不能把内部 service URL 写成 public integration surface。
+- `packages/host-distributed` 与 `packages/service-*` 继续证明这是“真实分布式”：存在真实 service process、真实 owner-aligned process assembly，以及真实 HTTP-based inter-service communication，而不是单进程内模拟出来的 hop。
+- shared PostgreSQL (Transitional) 继续是当前 distributed 的主要持久化底座。shared queue/outbox、auth/session 和部分 shared runtime seam 仍是过渡复用，不得写成每个服务已拥有完全独立 persistence substrate。
+- retrieval 当前仍保留逻辑服务 seam，而不是已落地成独立 runtime binary；因此 distributed 文案只能写“服务边界已开始收口”，不能夸大成“所有 bounded context 都已独立部署自治”。
+- compose / runtime 叙事继续冻结为当前拓扑证据：`docker-compose.yml` 证明 `distributed` profile 会展开 gateway 与多个 service/worker 进程，并通过环境变量连到真实 internal surface；这不是 service discovery、K8s orchestration 或成熟平台化能力的证据。
+- deferred boundary 当前必须显式保留在 platform follow-up：service discovery、K8s/platformization、per-service database、全链路 tracing、以及更强 isolation/autonomy claim 继续 deferred，不纳入 Phase 5 当前 state。
+
 ## packages/contracts
 
 共享 Schema 和类型定义，同时被 CLI 和 Server 导入。
