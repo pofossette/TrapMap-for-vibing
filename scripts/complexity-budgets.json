@@ -114,8 +114,19 @@
       "mustNotContain": ["TIER=core pnpm eval:ci"]
     },
     {
+      "file": "plan.md",
+      "mustContain": [
+        "状态：`完成`",
+        "当前主线阶段：`Phase 0-7 全部完成`",
+        "Wave 7H：增强 doc-drift / structure / complexity 守卫",
+        "- [x] 文档入口、truth source、测试矩阵与当前实现一致，不再把未来态误写为现状"
+      ],
+      "mustNotContain": ["状态：`进行中`", "当前主线阶段：`Phase 1-2`"]
+    },
+    {
       "file": "docs/todos/trapmap-architecture-remediation-plan.md",
       "mustContain": [
+        "状态：`完成`",
         "### Phase 7 closure freeze (G5 maintainability / CI-testing truth / docs closeout)",
         "current active execution surface",
         "`pnpm run ci`",

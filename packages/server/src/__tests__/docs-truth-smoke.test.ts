@@ -567,6 +567,7 @@ describe('docs truth smoke', () => {
   });
 
   it('Phase 7 docs freeze active execution surface, CI truth, and deferred landing spots', () => {
+    const plan = readDoc('plan.md');
     const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
     const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
     const docsIndex = readDoc('docs/README.md');
@@ -579,7 +580,14 @@ describe('docs truth smoke', () => {
     const packageJson = readDoc('package.json');
     const ciWorkflow = readDoc('.github/workflows/ci.yml');
 
+    expect(plan).toContain('状态：`完成`');
+    expect(plan).toContain('当前主线阶段：`Phase 0-7 全部完成`');
+    expect(plan).toContain('Wave 7H：增强 doc-drift / structure / complexity 守卫');
+    expect(plan).not.toContain('状态：`进行中`');
+    expect(plan).not.toContain('当前主线阶段：`Phase 1-2`');
+
     expect(remediation).toContain('### Phase 7 closure freeze (G5 maintainability / CI-testing truth / docs closeout)');
+    expect(remediation).toContain('状态：`完成`');
     expect(remediation).toContain('current active execution surface remains only `plan.md` + `docs/todos/trapmap-architecture-remediation-plan.md`');
     expect(remediation).toContain('Historical todo docs may remain as background/deferred references');
     expect(remediation).toContain('`pnpm run ci`');

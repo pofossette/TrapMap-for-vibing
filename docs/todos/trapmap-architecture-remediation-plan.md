@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 状态：`进行中`
+- 状态：`完成`
 - 日期：`2026-06-28`
 - 对应根索引：[`../../plan.md`](../../plan.md)
 - 本文件角色：当前主线唯一执行细则，承接单一问题池、阶段复选框、冻结边界、文档矩阵、测试矩阵与 deferred 规则
@@ -262,6 +262,11 @@
 - [x] Wave 7A：收口文档状态漂移、contracts 膨胀、历史计划过多的问题
 - [x] Wave 7B：明确 Dockerfile/config 复杂度问题的处理方向或 deferred 落点
 - [x] Wave 7C：关闭本轮未决项或明确 deferred
+- [x] Wave 7D：补齐部署、运行、testing、architecture 文档
+- [x] Wave 7E：关闭本轮未决复选框或明确 deferred
+- [x] Wave 7F：统一 `eval:smoke`、`eval:ci`、`eval:ci:core` 的覆盖语义、baseline 策略和文档表述
+- [x] Wave 7G：对齐 GitHub CI、`pnpm run ci`、`docs/operations/CI_CD.md` 与 `docs/operations/TESTING.md` 的真实命令、Node 版本、job 覆盖和质量门边界
+- [x] Wave 7H：增强 doc-drift / structure / complexity 守卫，覆盖当前唯一活跃细则、历史 todo 状态、plan/todos 索引一致性和本轮热点文件预算
 
 ### Phase 7 closure freeze (G5 maintainability / CI-testing truth / docs closeout)
 
@@ -280,7 +285,7 @@
 - [x] 根级索引与当前关键路径：[`../../plan.md`](../../plan.md)
 - [x] 文档导航与待办入口：[`../README.md`](../README.md)、[`README.md`](README.md)、[`../archived/README.md`](../archived/README.md)
 - [x] truth source 当前活跃整改入口：[`../reference/SYSTEM_TRUTH_SOURCES.md`](../reference/SYSTEM_TRUTH_SOURCES.md)
-- [ ] 目录归属与包职责真相：[`../reference/REPO_STRUCTURE.md`](../reference/REPO_STRUCTURE.md)、[`../PACKAGES.md`](../PACKAGES.md)（仅在存在冲突时更新）
+- [x] 目录归属与包职责真相：[`../reference/REPO_STRUCTURE.md`](../reference/REPO_STRUCTURE.md)、[`../PACKAGES.md`](../PACKAGES.md)（已按存在冲突处完成回写）
 - [x] distributed、部署、环境、测试细则：已按 Phase 4 env / target freeze 回写
 
 ## 测试矩阵
