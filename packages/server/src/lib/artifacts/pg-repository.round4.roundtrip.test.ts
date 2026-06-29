@@ -180,7 +180,7 @@ function createFullArtifactFixture(artifactId: string): SkillArtifactRecord {
     scope: 'global',
     labels: ['test', 'roundtrip'],
     title: 'Test Skill',
-    slug: 'test-skill',
+    slug: `test-skill-${artifactId}`,
     requiredLevel: 0,
     lifecycleState: 'approved',
     ownerUserId: 'user_tester',
@@ -290,7 +290,7 @@ describeIfDb('PgArtifactRepository Round 4 real PG round-trip', () => {
       expect(artifact!.scope).toBe('global');
       expect(artifact!.labels).toEqual(['test', 'roundtrip']);
       expect(artifact!.title).toBe('Test Skill');
-      expect(artifact!.slug).toBe('test-skill');
+      expect(artifact!.slug).toBe('test-skill-artifact_round4_test_1');
       expect(artifact!.requiredLevel).toBe(0);
       expect(artifact!.lifecycleState).toBe('approved');
       expect(artifact!.ownerUserId).toBe('user_tester');

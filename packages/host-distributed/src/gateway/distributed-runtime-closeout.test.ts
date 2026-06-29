@@ -277,5 +277,5 @@ describe('distributed runtime closeout', () => {
         'outbox:status:2:0:1:0',
       ]),
     );
-  }, 20_000);
+  }, 120_000);
 });

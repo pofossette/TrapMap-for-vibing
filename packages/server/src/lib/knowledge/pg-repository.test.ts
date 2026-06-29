@@ -149,8 +149,9 @@ describeIfDb('PgKnowledgeRepository', () => {
   });
 
   beforeEach(async () => {
-    // Clean up test data before each test
-    await testPool.query("DELETE FROM knowledge_entries WHERE id LIKE 'knowledge_test_%'");
+    // Clean up test data before each test.
+    // Delete child rows first so the knowledge_entries DELETE doesn't violate
+    // the fk_knowledge_revisions_entry foreign key.
     await testPool.query("DELETE FROM knowledge_revisions WHERE entry_id LIKE 'knowledge_test_%'");
     await testPool.query("DELETE FROM lifecycle_events WHERE entry_id LIKE 'knowledge_test_%'");
     await testPool.query("DELETE FROM knowledge_labels WHERE entry_id LIKE 'knowledge_test_%'");
@@ -175,6 +176,7 @@ describeIfDb('PgKnowledgeRepository', () => {
     await testPool.query(
       "DELETE FROM knowledge_maintenance_assignments WHERE entry_id LIKE 'knowledge_test_%'",
     );
+    await testPool.query("DELETE FROM knowledge_entries WHERE id LIKE 'knowledge_test_%'");
   });
 
   describe('nextId()', () => {
@@ -765,13 +767,13 @@ describeIfDb('PgKnowledgeRepository concurrent access', () => {
   });
 
   beforeEach(async () => {
-    await testPool.query("DELETE FROM knowledge_entries WHERE id LIKE 'knowledge_concurrent_%'");
     await testPool.query(
       "DELETE FROM knowledge_revisions WHERE entry_id LIKE 'knowledge_concurrent_%'",
     );
     await testPool.query(
       "DELETE FROM lifecycle_events WHERE entry_id LIKE 'knowledge_concurrent_%'",
     );
+    await testPool.query("DELETE FROM knowledge_entries WHERE id LIKE 'knowledge_concurrent_%'");
   });
 
   it('should handle concurrent lifecycle updates safely', async () => {
