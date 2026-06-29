@@ -18,7 +18,7 @@
 | `backend-build-targets-plan.md` | 轻重后端构建目标、兼容壳清理与客户端后端形态配置计划 |
 | `instrumentation-observability-plan.md` | 数据埋点增强、运行监控、链路追踪与 debug surface 计划 |
 | `robustness-scalability-closeout-plan.md` | 健壮性与可扩展性收尾：问题清理、风险收敛、truth source 修复与测试证据补强 |
-| `trapmap-architecture-remediation-plan.md` | 当前唯一活跃主线细则：30 个架构问题的单一问题池、阶段复选框、文档矩阵与测试矩阵 |
+| `trapmap-architecture-remediation-plan.md` | 当前唯一活跃主线细则：30 个架构问题的单一问题池、阶段复选框、文档矩阵、测试矩阵与 deferred 落点 |
 | `nestjs-service-evolution-00-target-architecture.md` | NestJS 长期目标架构与迁移边界冻结 |
 | `nestjs-service-evolution-01-host-and-contract-foundation.md` | Nest 宿主、配置与 contract 基础收口 |
 | `nestjs-service-evolution-02-modular-monolith-cutover.md` | 模块化单体切换：边界冻结、兼容层规则与机械迁移提示词 |
@@ -30,7 +30,7 @@
 | `nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md` | 样板代码迁移任务列表 |
 | `open-debt-and-compromises.md` | 当前仍未收口的占位实现、阶段性妥协与开发退路 |
 
-当前根 `plan.md` 已切换为“TrapMap 架构整改计划索引”；当前唯一活跃细则入口为 [`trapmap-architecture-remediation-plan.md`](trapmap-architecture-remediation-plan.md)，用于收口 30 个架构问题的单一问题池、治理主题、进度复选框、文档回写要求和测试矩阵。Phase 0 已完成入口归并、历史输入角色冻结、deferred 入口冻结与统一适配器显式目标冻结。
+当前根 `plan.md` 已切换为“TrapMap 架构整改计划索引”；当前唯一活跃细则入口为 [`trapmap-architecture-remediation-plan.md`](trapmap-architecture-remediation-plan.md)，用于收口 30 个架构问题的单一问题池、治理主题、进度复选框、文档回写要求和测试矩阵。Phase 0-7 已完成入口归并、边界冻结、deferred 入口、统一适配器范围、distributed 基线、成熟能力矩阵、CI/testing truth 与文档守卫收口。
 除该细则外，本目录其余文档当前都只能被描述为背景/deferred 参考，不再描述为仍由当前根计划并行拥有的 checklist。
 
 [`robustness-scalability-closeout-plan.md`](robustness-scalability-closeout-plan.md) 已完成并退回为历史 closeout 参考；`instrumentation-observability-plan.md` 保留为上一轮 observability 主线背景，不再由根计划直接跟踪。

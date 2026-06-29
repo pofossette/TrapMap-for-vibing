@@ -6,7 +6,7 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 ## 当前整改主线
 
-当前根计划已切换为“TrapMap 架构整改计划索引”，Phase 0 已完成文档/结构冻结，当前执行面只有一条：
+当前根计划已切换为“TrapMap 架构整改计划索引”，Phase 0-7 已完成文档/结构冻结、truth source 回写、测试矩阵与 deferred 落点收口；当前执行面只有一条：
 
 - 根索引：[`../plan.md`](../plan.md)
 - 当前唯一活跃细则：[`todos/trapmap-architecture-remediation-plan.md`](todos/trapmap-architecture-remediation-plan.md)
@@ -203,7 +203,7 @@ deployment flexibility 最小验证矩阵：
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
 - [架构整改根计划](../plan.md) — 当前根级执行索引；只保留阶段、关键路径和唯一细则入口
-- [架构整改细则](todos/trapmap-architecture-remediation-plan.md) — 当前唯一活跃细则入口；Phase 0 已冻结单一问题池、历史输入角色、deferred 入口和统一适配器显式目标
+- [架构整改细则](todos/trapmap-architecture-remediation-plan.md) — 当前唯一活跃细则入口；Phase 0-7 已冻结单一问题池、边界结论、deferred 入口、测试矩阵和 CI/testing truth
 - 当前 active execution surface 只允许写成上面两项；其余 todo 文档只能写成背景输入、deferred 落点或已完成 closeout 参考
 - [健壮性与可扩展性收尾细则](todos/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`

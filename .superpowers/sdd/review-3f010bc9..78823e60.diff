@@ -1,0 +1,713 @@
+# Review package: 3f010bc9..78823e60
+
+## Commits
+78823e60 docs: freeze phase 3 validation commands
+62de25c8 Fix Phase 3 freeze validation scope
+ab0a0e76 docs: freeze phase 3 unified adapter boundaries
+
+## Files changed
+.superpowers/sdd/task-phase-3-report.md            | 85 ++++++++++++++++++++++
+ docs/PACKAGES.md                                   | 12 +++
+ docs/operations/TESTING.md                         |  7 +-
+ docs/reference/REPO_STRUCTURE.md                   |  4 +
+ docs/reference/SYSTEM_TRUTH_SOURCES.md             |  2 +
+ .../todos/trapmap-architecture-remediation-plan.md | 19 ++++-
+ .../server/src/__tests__/docs-truth-smoke.test.ts  | 58 +++++++++++++++
+ 7 files changed, 183 insertions(+), 4 deletions(-)
+
+## Diff
+.superpowers/sdd/task-phase-3-report.md            | 85 ++++++++++++++++++++++
+ docs/PACKAGES.md                                   | 12 +++
+ docs/operations/TESTING.md                         |  7 +-
+ docs/reference/REPO_STRUCTURE.md                   |  4 +
+ docs/reference/SYSTEM_TRUTH_SOURCES.md             |  2 +
+ .../todos/trapmap-architecture-remediation-plan.md | 19 ++++-
+ .../server/src/__tests__/docs-truth-smoke.test.ts  | 58 +++++++++++++++
+ 7 files changed, 183 insertions(+), 4 deletions(-)
+
+diff --git a/.superpowers/sdd/task-phase-3-report.md b/.superpowers/sdd/task-phase-3-report.md
+new file mode 100644
+index 00000000..a5736a5a
+--- /dev/null
++++ b/.superpowers/sdd/task-phase-3-report.md
+@@ -0,0 +1,85 @@
++# Phase 3 Unified Adapter Boundary Freeze Report
++
++## Scope
++
++- Completed the Phase 3 documentation/truth-source freeze only.
++- Kept edits within the allowed documentation files plus this required report file.
++- Relied on the current code facts in:
++  - `packages/host-local/src/nest/adapters/adapter-factory.ts`
++  - `packages/host-local/src/nest/adapters/remote.adapter.ts`
++  - `packages/host-local/src/nest/runtime/shared-infra.ts`
++  - `packages/backend-core/src/ports/internal-ports.ts`
++  - `packages/host-distributed/src/gateway/internal-client.ts`
++  - `packages/host-distributed/src/shared/internal-knowledge-write-client.ts`
++
++## Phase 3 Freeze Applied
++
++- Added `Phase 3 closure freeze` to `docs/todos/trapmap-architecture-remediation-plan.md` and marked Wave 3A-3C complete.
++- Froze the unified adapter scope as infrastructure/provider seams only, explicitly not a mega-adapter mixing repository, application service, gateway client, and host composition.
++- Froze `backend-core` as the owner of port contracts and invocation model only, not concrete provider implementations.
++- Froze `packages/host-local/src/nest/adapters/` as the host-owned adapter selection seam for the current light host.
++- Froze `packages/host-distributed/src/gateway/internal-client.ts` as the thin transport helper / canonical error normalization seam.
++- Froze `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` as the remote port client wrapper that maps transport errors back into `InvocationError` / port semantics.
++- Froze `packages/server/src/lib/ai/**` and `packages/server/src/lib/indexing/adapters/**` as current server-owned concrete infrastructure/provider implementations, without claiming extraction into a new shared workspace package.
++- Froze the rule that gateway client and remote adapter are not repository adapters, and that repository/persistence seams remain separate.
++- Froze `packages/host-local/src/nest/runtime/shared-infra.ts` as a transitional shared infrastructure seam only, not evidence that `packages/server` is still the default host owner.
++
++## Files Updated
++
++- `docs/todos/trapmap-architecture-remediation-plan.md`
++- `docs/reference/SYSTEM_TRUTH_SOURCES.md`
++- `docs/PACKAGES.md`
++- `docs/reference/REPO_STRUCTURE.md`
++- `docs/operations/TESTING.md`
++- `.superpowers/sdd/task-phase-3-report.md`
++
++## Validation
++
++1. `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
++   - Result: PASS
++   - Notes: Phase 3 truth-smoke assertions now pass, including the new adapter-scope and boundary checks.
++
++2. `rtk pnpm check:docs-drift`
++   - Result: PASS
++
++3. `rtk pnpm check:structure`
++   - Result: PASS
++
++## Review Fix Follow-up
++
++1. `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
++   - Result: PASS
++   - Output: `✓ |server| src/__tests__/docs-truth-smoke.test.ts (36 tests) 15ms`
++
++2. `rtk pnpm check:docs-drift`
++   - Result: PASS
++   - Output: `[doc-drift] All 33 doc rule(s) passed.`
++
++3. `rtk pnpm check:structure`
++   - Result: PASS
++   - Output: `[structure-guard] All checks passed.`
++
++## Outcome
++
++- Phase 3 Wave 3A-3C is now frozen as a documentation/truth-source boundary closeout.
++- The docs now consistently distinguish:
++  - host-owned adapter selection
++  - distributed gateway transport helpers
++  - remote port client wrappers
++  - server-owned concrete provider implementations
++  - repository/persistence seams
++- No runtime behavior or broad refactor was introduced.
++
++## Review Fix Append
++
++1. `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
++   - Result: PASS
++   - Output: `✓ |server| src/__tests__/docs-truth-smoke.test.ts (36 tests) 15ms`
++
++2. `rtk pnpm check:docs-drift`
++   - Result: PASS
++   - Output: `[doc-drift] All 33 doc rule(s) passed.`
++
++3. `rtk pnpm check:structure`
++   - Result: PASS
++   - Output: `[structure-guard] All checks passed.`
+diff --git a/docs/PACKAGES.md b/docs/PACKAGES.md
+index 3aa2d1b5..652cce3d 100644
+--- a/docs/PACKAGES.md
++++ b/docs/PACKAGES.md
+@@ -49,20 +49,32 @@
+ - `packages/host-distributed` 继续是 distributed profile 的部署展开层，但必须消费与 modular monolith 相同的 `backend-core` + `service-*` 主实现，而不是维护第二套 business truth。
+ 
+ ## Phase 2 Store Snapshot / PG-first posture freeze
+ 
+ - `store_snapshot` 继续只扮演 compatibility JSONB store：它是 InMemory repository fallback、migration/backfill、startup recovery、部分 operator/admin mutation、以及少量 payload/projection seam 的载体，不是新的聚合 owner。
+ - PG-first 的当前真相是“生产主事实走 PostgreSQL 结构化表 + `repos.*`；兼容缓存/兼容快照按命名例外保留”。身份/审计、knowledge、artifact、candidate、feedback、usage、queue/outbox 已冻结为 PG-first domain，不得再在文档中写成依赖 `store_snapshot` 才能成立。对 `teams`、`members`、`access-keys` 这几条路由，PG-primary 事实已经成立，但它们当前仍保留 live no-PG / InMemory fallback，所以这里不能被写成“回退已完全删除”。
+ - InMemory 不是与 PG 对等的长期生产轨道。它只是在无 PG 场景和测试里，通过 `InMemory*Repository -> SkillShareerStore` 维持相同 repo/route contract 的 fallback posture。对仍保留 fallback 的 teams / members / access-keys 入口，这一姿态仍在运行中。
+ - direct `store.snapshot()` / `store.transact()` 入口当前仍集中在 compatibility shell 与 operator/admin seam：`teams`、`members`、`access-keys`、`knowledge`、`evidence`、`maintenance`、`feedback-admin`、`admin-*`、`operations/artifacts-*`、`operations/skill-*`、`operations/migrate`、`operations/knowledge-legacy`，以及 startup recovery、index follow-up/remediation handlers、`lib/operations/read-model.ts`、`lib/session.ts`、`lib/knowledge/review-application-service.ts`。Phase 2 把这些入口从“模糊遗留”冻结为明确 inventory，其中 teams / members / access-keys 还是 PG-primary 与兼容 fallback 并存的当前状态。
+ - 当前 compatibility-cache 边界也已冻结：artifact / knowledge 等结构化真表优先，JSONB 只在 `artifactFilePayloads`、skill history full-data read、maintenance/operator projection helper 等命名 seam 中兜底；后续 phase 只能通过补 repo/projection capability 来缩小这条边界。
+ 
++## Phase 3 Unified adapter boundary freeze
++
++- 统一适配器不是 mega-adapter。它当前只覆盖 infrastructure/provider seam，不混入 repository、application service、gateway route/client 或 host composition owner。
++- `backend-core` 只定义 port contract、invocation model 和 host-agnostic invocation semantics；它不拥有 concrete provider implementation，也不在本 phase 承诺抽出新的 shared provider package。
++- `packages/host-local/src/nest/adapters/` 是当前默认 `light` host 的 host-owned adapter selection seam。`adapter-factory.ts` 在这里决定 `in-process` 与 `remote` 两种 port adapter，business code 不负责自行挑选实现。
++- `packages/host-local/src/nest/adapters/remote.adapter.ts` 是 port-level remote adapter，不是 repository adapter。它把 remote HTTP call 包装成 `KnowledgeReadPort` 语义，并把 transport failure 收口为 `InvocationError`，而不是把 `fetch`/`Response` 暴露给上层。
++- `packages/host-distributed/src/gateway/internal-client.ts` 是 distributed gateway 的 thin transport helper / canonical error normalization seam；它负责内部 forwarding、header propagation 与 canonical body normalization，而不是业务编排或 repo adapter。
++- `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` 是 remote port client wrapper 示例：它消费 gateway internal client，把 transport 错误映射回 `InvocationError` / `KnowledgeWritePort` 语义，证明 remote client wrapper 与 gateway transport helper 属于不同层次。
++- `packages/server/src/lib/ai/**` 与 `packages/server/src/lib/indexing/adapters/**` 继续是 server-owned concrete infrastructure/provider implementation。Phase 3 冻结 taxonomy 和 owner，不把它们提前描述成 `backend-core` provider contract，也不把它们抽离成新的 shared workspace package。
++- gateway client 和 remote adapter 不是 repository adapters；repository / persistence seam 仍继续冻结在 repo-owned boundary。`packages/server/src/lib/repos/**`、`packages/server/src/lib/*/repository.ts` 与 persistence implementation 不属于 unified adapter 目录。
++- `packages/host-local/src/nest/runtime/shared-infra.ts` 当前借用 `packages/server` 的 shared infra helper，只能被描述为 transitional shared infrastructure seam。它不是 `packages/server` 仍是默认 host owner 的证据，也不是统一适配器范围应该无限扩大到 host bootstrap 的依据。
++
+ ## Phase 4 数据、运维与退役收尾
+ 
+ - 仓库级 owner matrix（gateway + 六个 owner service + job-runtime 的 data / projection / runtime / operations owner）已冻结，详见 [`plan.md`](../plan.md) Phase 4 和 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
+ - `packages/server` 中 candidate apply-resolution、knowledge review、maintenance、decay 旧 Fastify 写路由都已删除。`light` 默认 review/manual-result/apply-resolution 写链路现由 `packages/host-local/src/nest/gateway/candidate-review.controller.ts` 直接委托 `governance-review` / `candidate-ingestion` owner port；candidate-ingestion 再通过 `KnowledgeWritePort` 完成最终 aggregate mutation，而不是回落到 `packages/server`。
+ - `packages/backend-core/src/modules/*.ts` 兼容 re-export facade 已退役并删除；truth source 只保留真实 context 目录入口。
+ - `packages/host-distributed` 与 `packages/service-*` 不是 compatibility shell，继续保留为分布式部署展开层和 thin service assembly。
+ - `packages/host-local/src/nest/**` 是冻结后的默认 `light` 主入口终局和 bounded-context module graph，不属于 compatibility shell。
+ 
+ ## packages/contracts
+ 
+diff --git a/docs/operations/TESTING.md b/docs/operations/TESTING.md
+index 0b86c245..d6f635ce 100644
+--- a/docs/operations/TESTING.md
++++ b/docs/operations/TESTING.md
+@@ -61,20 +61,25 @@ flowchart TB
+ - `distributed outbox worker`：`pnpm dev:distributed:outbox-worker`，确认该进程只拥有 outbox runtime。
+ 
+ 这些根脚本现在分别装配 `@trapmap/host-local` 与 `@trapmap/host-distributed`。测试命令里仍然大量引用 `packages/server/...`，是因为当前权威测试文件与核心实现仍主要驻留在该兼容层和既有代码面中。
+ 
+ **Phase 2 Store Snapshot / PG-first Freeze Checks:**
+ - Snapshot allowlist：运行 `packages/server/src/__tests__/snapshot-usage-guard.test.ts`，确认新的 `store.snapshot()` / `store.transact()` 调用没有逃出 allowlist，并且 allowlist 仍只覆盖命名 compatibility buckets。
+ - PG-first compatibility：运行 `packages/server/src/__tests__/pg-first-compat.test.ts`，确认 access-key / member 等 PG-first surface 在 InMemory fallback 下仍维持相同外部 contract；这证明 InMemory 当前是 compatibility/testing posture，而不是第二套 owner 语义。
+ - Truth freeze：运行 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，确认 remediation detail plan、truth source、packages doc、persistence doc 与 testing doc 对 `store_snapshot` / InMemory / PG-first 口径的描述一致。
+ - 解释边界：Phase 2 不要求把全部 compatibility path 都迁走；它要求把 remaining direct entrypoints、retention 条件、priority waves 和测试门写成显式事实。
+ 
++**Phase 3 Unified Adapter Freeze Checks:**
++- Docs truth freeze：运行 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，确认 remediation detail plan、truth source、packages doc、repo structure 与 testing doc 一致冻结 unified adapter scope、provider taxonomy、host-owned adapter selection seam、gateway client 边界与 transitional shared infra seam。
++- Focused guardrails：运行 `pnpm check:docs-drift` 与 `pnpm check:structure`，确认 Phase 3 freeze 的 truth-source 回写与目录归属没有漂移。
++- 非目标说明：Phase 3 不要求在此轮提取新的 shared provider workspace package，也不要求把 gateway client / remote adapter / repository seam 合并成一个统一 mega-adapter；测试门要守住的是边界文案与 authoritative placement，而不是 runtime behavior 扩张。
++
+ **Phase 3 Workflow Snapshot Checks:**
+ - 候选处理：提交 candidate 后，调用 `GET /v1/operations/status/async` 或直接查询 `workflow_runs`，确认存在 `workflowType='candidate-processing'` 且 step/status 随处理推进。
+ - 失败持久化：制造 candidate 处理失败，确认 `lastError` 与 `status='failed'` 被保留。
+ - Rebuild workflow：触发 capsule-index rebuild，确认存在 `workflowType='capsule-index-rebuild'` 的运行快照。
+ 
+ **Phase 5 Shared Jobs Checks:**
+ - Lifecycle follow-up：在 PostgreSQL 模式下触发 knowledge approve/deactivate/update，确认不会在订阅器内同步执行重索引，而是新增 `task_queue.type='knowledge.index-follow-up'`，并能在 `workflow_runs.workflow_type='knowledge-index-follow-up'` 中观察到执行快照。
+ - Remediation complete：调用 `POST /v1/operations/feedback/remediation/:entryId/complete` 后，确认响应中的 additive `asyncJobId` 存在，且队列中出现 `feedback.remediation-reactivation` 任务；该任务 dead-letter 后可通过 async operator flow 重跑。
+ - Badcase draft：提交带 `badcase` 的 feedback 后，确认在 PostgreSQL 模式下响应返回 additive `asyncJobId`，并且 `task_queue` 中存在 `feedback.badcase-export-draft` 任务，同时 `retrieval_badcase_traces` 已先落库，draft 中携带 canonical taxonomy（`recall-miss`、`ranking-error`、`summary-hallucination`、`governance-leak`、`stale-content`）。
+ 
+@@ -502,21 +507,21 @@ pnpm check:complexity
+ | 深层架构文档变更 | `pnpm check:docs-drift` + smoke 测试（验证 ARCHITECTURE.md / PERSISTENCE.md 中的运行时默认值和表计数） |
+ | Schema 变更 (retrieval/artifact/eval) | `pnpm test` + `pnpm --filter @trapmap/contracts typecheck` + `pnpm eval:smoke` + `pnpm check:docs-drift` + 更新 `DATABASE_SCHEMA.md` 表计数 |
+ 
+ ### 后端工程化总控阶段最小验证矩阵
+ 
+ | 阶段 | 最小验证 |
+ |---|---|
+ | `Phase 0` | `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
+ | `Phase 1` | `pnpm test -- --run packages/server/src/app.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/config.test.ts packages/server/src/__tests__/docs-truth-smoke.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
+ | `Phase 2` | `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts packages/server/src/config.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
+-| `Phase 3` | `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/routes/operations/stats.test.ts packages/server/src/config.test.ts` + 如涉及 retrieval/cache freshness 则补 `pnpm eval:smoke` + `pnpm check:docs-drift` + `pnpm check:structure` |
++| `Phase 3` | `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/routes/operations/stats.test.ts packages/server/src/config.test.ts` + 如涉及 retrieval/cache freshness 则补 `pnpm eval:smoke` + `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts` + `rtk pnpm check:docs-drift` + `rtk pnpm check:structure` |
+ | `Phase 4` | 本轮相关测试 + `pnpm check:docs-drift` + `pnpm check:structure`；只有在 truth-source、计划边界和 closeout 规则回写完成后才能勾选根 `plan.md` |
+ | CI 配置变更 | `pnpm check:docs-drift` + 更新 `CI_CD.md` |
+ | 架构变更 | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:complexity` + `pnpm eval:smoke` |
+ | 脚本/守卫变更 | `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` + `pnpm check:docs-drift` |
+ | 摘要生成变更 (`summary.ts`) | `rtk pnpm test -- --run packages/server/src/lib/retrieval/response/summary.test.ts evals/summary/__tests__/runner-api.test.ts` + `pnpm eval:summary:smoke` |
+ | 评测命令变更 | `pnpm check:docs-drift` + smoke 测试（验证 EVALUATION.md / TESTING.md 中的 eval 命令正确） |
+ | 贡献指南变更 | `pnpm check:docs-drift` + smoke 测试（验证 CONTRIBUTING.md 中的 DB 命令格式） |
+ 
+ ### 文档维护工作流
+ 
+diff --git a/docs/reference/REPO_STRUCTURE.md b/docs/reference/REPO_STRUCTURE.md
+index 35cf644e..bf32c1ce 100644
+--- a/docs/reference/REPO_STRUCTURE.md
++++ b/docs/reference/REPO_STRUCTURE.md
+@@ -26,21 +26,25 @@ Historical plans, temporary notes, audits, and human-authored reports must live
+ - `packages/client-core/`: Browser-compatible shared gateway transport layer (HTTP SDK, session contract, error model). Used by CLI and future web panel.
+ - `packages/web-panel/`: Browser-based administrator operations panel. It remains a gateway-only client surface.
+ - `packages/backend-core/`: Host-agnostic backend core kernel (runtime capability model, port interfaces, use-case patterns, bounded-context modules, invocation model). Phase 2 keeps it framework-free and reorganizes each bounded context into internal `domain/application/module` seams under `src/identity-access/`, `src/knowledge-read/`, `src/knowledge-write/`, `src/candidate-ingestion/`, `src/governance-review/`, `src/job-runtime/`; the old `src/modules/*.ts` compatibility facade has been removed, and consumers use the package root or context entrypoints. Used by all hosts.
+ - `packages/service-identity-access/`: Owns identity-access service assembly, internal route registration, and bounded-context auth/session/team/member/access-key wiring.
+ - `packages/service-knowledge-read/`: Knowledge-read service assembly. Owns retrieval, read-model, and projection-status route wiring.
+ - `packages/service-knowledge-write/`: Owns knowledge-write service assembly, internal route registration, and bounded-context write wiring for knowledge/trap/skill/lifecycle/maintenance/decay.
+ - `packages/service-governance-review/`: Owns governance-review service assembly, internal route registration, and bounded-context review/feedback wiring while delegating lifecycle mutations to knowledge-write.
+ - `packages/service-candidate-ingestion/`: Owns candidate-ingestion service assembly, internal route registration, and bounded-context candidate wiring while delegating result publication to knowledge-write.
+ - `packages/service-job-runtime/`: Owns job-runtime service assembly, internal route registration, queue/runtime deps wiring, and runtime server bootstrap surface.
+ - `packages/host-local/`: Light host assembly for `local-agent` and `team-monolith`. The frozen default light mainline is `src/nest/**`, exposed through the package default entry (`src/index.ts`) and default `dev` / `start` scripts.
++  `packages/host-local/src/nest/adapters/` is the authoritative placement for host-owned port adapter selection (`in-process` vs `remote`) in the light host. These files are adapter seams for internal ports, not repository adapters and not a catch-all directory for host composition.
++  `packages/host-local/src/nest/runtime/shared-infra.ts` is the authoritative placement for the current transitional shared infrastructure seam that borrows server-owned infra helpers without changing host ownership.
+ - `packages/host-distributed/`: Heavy host assembly for the `distributed` profile. It is the real heavy-host implementation, consumes the same backend-core/service-package main implementation as `light`, and its maturity baseline remains `Level 2 / transitional-microservice`.
++  `packages/host-distributed/src/gateway/` is the authoritative placement for gateway transport helpers and forwarding seams, including `internal-client.ts` as the thin internal HTTP / canonical error normalization helper.
++  `packages/host-distributed/src/shared/` is the authoritative placement for shared distributed-host wrappers around internal ports, such as `internal-knowledge-write-client.ts`; these wrappers map transport semantics back to backend-core port semantics and are not repository adapters.
+ 
+ ## Documentation
+ 
+ - `docs/guides/`: onboarding and contributor workflows.
+ - `docs/operations/`: runtime, CI, security, testing, deployment-adjacent operations.
+ - `docs/architecture/`: architecture overview and component docs.
+ - `docs/reference/`: truth sources, schemas, glossary, API surface, and repository structure.
+ - `docs/plans/`: historical design references and only active again when a current root plan explicitly re-links them.
+ - `docs/todos/`: pending work plus the phase detail docs linked from the current root `plan.md`.
+ - `docs/archived/`: obsolete plans, historical reports, and retired decisions.
+diff --git a/docs/reference/SYSTEM_TRUTH_SOURCES.md b/docs/reference/SYSTEM_TRUTH_SOURCES.md
+index d8acaffd..c40c0384 100644
+--- a/docs/reference/SYSTEM_TRUTH_SOURCES.md
++++ b/docs/reference/SYSTEM_TRUTH_SOURCES.md
+@@ -9,20 +9,21 @@ Each architecture fact has one authoritative source. When secondary docs drift,
+ | Startup sequence | `packages/server/src/bootstrap/run-startup-sequence.ts` + `packages/server/src/bootstrap/run-worker-sequence.ts` | `docs/architecture/ARCHITECTURE.md`, `docs/guides/CODE_GUIDE.md` |
+ | Server layer ownership (`domain` / `application` / `infrastructure` / `interfaces/http` / `interfaces/worker`) | `docs/plans/backend-engineering-masterplan/01-boundaries-and-compat-convergence.md` + `packages/server/README.md` + `packages/server/src/lib/README.md` + `packages/server/src/routes/README.md` | `docs/plans/backend-engineering-roadmap/stage-1-foundation-and-boundaries.md`, `docs/architecture/ARCHITECTURE.md`, `docs/PACKAGES.md` |
+ | Persistence migration state | `docs/reference/DATA_MODEL.md` | `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md` |
+ | DB schema | `packages/server/src/lib/persistence/schema/index.ts` (barrel, re-exports all domain table modules) | `docs/reference/DATABASE_SCHEMA.md` |
+ | Server data-access boundary | `packages/server/src/lib/actors/lookup.ts` (actor lookup), `packages/server/src/lib/repos/index.ts` (`SkillShareerRepos`) | `docs/PACKAGES.md`, `docs/reference/DATA_MODEL.md` |
+ | Server bounded contexts and layer ownership | `docs/plans/backend-engineering-masterplan/01-boundaries-and-compat-convergence.md` + `docs/architecture/ARCHITECTURE.md` | `plan.md`, `docs/PACKAGES.md`, `docs/plans/backend-engineering-roadmap/stage-1-foundation-and-boundaries.md` |
+ | Six-service ownership boundary (`identity-access` / `candidate-ingestion` / `knowledge-write` / `governance-review` [`backend-core` descriptor shorthand: `review`] / `knowledge-read` / `job-runtime`) | `packages/backend-core/src/ports/internal-ports.ts` + `packages/backend-core/src/<context>/{application/module.ts,index.ts}` (six context directories: `identity-access/`, `knowledge-read/`, `knowledge-write/`, `candidate-ingestion/`, `governance-review/`, `job-runtime/`) + `packages/host-distributed/src/config/service-config.ts` + `packages/service-*/src/index.ts` | `docs/architecture/ARCHITECTURE.md`, `packages/backend-core/README.md`, `packages/host-distributed/README.md` |
+ | `backend-core` / `host-*` ownership relationship | `docs/plans/backend-engineering-masterplan/01-boundaries-and-compat-convergence.md` + `packages/backend-core/src/use-cases/command-handling.ts` + `packages/host-local/src/nest/app.module.ts` + `packages/host-distributed/src/shared/ports.ts` | `docs/architecture/ARCHITECTURE.md`, `docs/plans/runtime-recomposition/`, `docs/plans/deployment-flexibility/` |
+ | Phase 1 server/backend-core boundary freeze | `docs/todos/trapmap-architecture-remediation-plan.md` + `packages/server/src/app.ts` + `packages/server/src/config.ts` + `packages/backend-core/src/ports/internal-ports.ts` + `packages/server/src/lib/repos/index.ts` + `packages/server/src/lib/persistence/schema/index.ts` + `packages/server/src/lib/persistence/migration-runner.ts` | `docs/PACKAGES.md`, `docs/reference/REPO_STRUCTURE.md`, `packages/server/README.md`, `packages/backend-core/README.md`, `packages/service-knowledge-write/README.md`, `packages/service-governance-review/README.md`, `packages/host-local/README.md`, `packages/host-distributed/README.md` |
+ | Phase 2 store-snapshot / PG-first posture freeze | `docs/todos/trapmap-architecture-remediation-plan.md` + `docs/reference/DATA_MODEL.md` + `packages/server/src/__tests__/snapshot-usage-guard.test.ts` + `packages/server/src/__tests__/pg-first-compat.test.ts` + `packages/server/src/lib/operations/read-model.ts` + `packages/server/src/routes/operations/artifacts-activate.ts` | `docs/PACKAGES.md`, `docs/architecture/components/PERSISTENCE.md`, `docs/operations/TESTING.md`, `docs/architecture/ARCHITECTURE.md` |
++| Phase 3 unified-adapter boundary freeze | `docs/todos/trapmap-architecture-remediation-plan.md` + `packages/backend-core/src/ports/internal-ports.ts` + `packages/host-local/src/nest/adapters/adapter-factory.ts` + `packages/host-local/src/nest/adapters/remote.adapter.ts` + `packages/host-local/src/nest/runtime/shared-infra.ts` + `packages/host-distributed/src/gateway/internal-client.ts` + `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` | `docs/PACKAGES.md`, `docs/reference/REPO_STRUCTURE.md`, `docs/operations/TESTING.md`, `packages/host-local/README.md`, `packages/host-distributed/README.md`, `docs/architecture/ARCHITECTURE.md` |
+ | Nest service evolution Phase 0 target architecture freeze | `plan.md` + `docs/todos/nestjs-service-evolution-00-target-architecture.md` + `packages/backend-core/src/runtime/capability-model.ts` + `packages/backend-core/src/ports/internal-ports.ts` + `packages/contracts/src/domain/async.ts` | `README.md`, `architecture.md`, `docs/README.md`, `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md` |
+ | Nest service evolution Phase 1 host and contract foundation freeze | `plan.md` + `docs/todos/nestjs-service-evolution-01-host-and-contract-foundation.md` + `packages/backend-core/src/invocation/invocation-model.ts` + `packages/service-knowledge-read/src/routes.ts` + `packages/service-knowledge-read/src/deps.ts` + `packages/host-distributed/src/gateway/internal-client.ts` + `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` + `docs/PACKAGE_STACK_RATIONALE.md` | `README.md`, `docs/README.md`, `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md`, `docs/architecture/DEPLOYMENT.md`, `docs/reference/api-surface.md` |
+ | Nest service evolution Phase 2 modular monolith boundary freeze | `plan.md` + `docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md` + `packages/backend-core/src/<context>/{domain,application,module.ts,index.ts}` (six context directories) + `packages/host-local/src/nest/app.module.ts` + `packages/host-local/src/nest/*/*.module.ts` (six bounded-context Nest modules) + `packages/service-*/src/deps.ts` | `docs/README.md`, `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md`, `docs/reference/REPO_STRUCTURE.md`, package README |
+ | Nest service evolution Phase 4 owner matrix / migration-window / closeout freeze | `plan.md` + `docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md` + `packages/service-knowledge-write/README.md` + `packages/service-governance-review/README.md` + `docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md` | `README.md`, `docs/README.md`, `docs/PACKAGES.md`, `docs/operations/TESTING.md`, `docs/reference/REPO_STRUCTURE.md`, `docs/architecture/DEPLOYMENT.md` |
+ | Distributed maturity baseline (`Level 2 / transitional-microservice`) | `docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md` + `packages/host-distributed/src/gateway/distributed-acceptance.test.ts` + `packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts` + `packages/host-distributed/src/shared/database.ts` | `plan.md`, `README.md`, `docs/README.md`, `docs/PACKAGES.md`, `docs/architecture/DEPLOYMENT.md` |
+ | Backend build target mapping (`light` / `heavy`) | `plan.md` + `docs/todos/backend-build-targets-plan.md` | `README.md`, `docs/README.md`, `architecture.md`, `docs/PACKAGES.md`, `docs/architecture/DEPLOYMENT.md`, `packages/backend-core/README.md`, `packages/host-local/README.md`, `packages/host-distributed/README.md` |
+ | Persistence posture | `README.md` + `packages/server/src/lib/persistence/schema/*.ts` | `docs/README.md`, `docs/guides/GETTING_STARTED.md`, `docs/architecture/DEPLOYMENT.md` |
+ | CI jobs | `.github/workflows/ci.yml` | `docs/operations/CI_CD.md`, `docs/operations/TESTING.md` |
+ | Schema count | `packages/server/src/lib/persistence/schema/*.ts` (artifacts.ts, knowledge.ts, candidates.ts, auth.ts, retrieval.ts, queue.ts, index.ts) | `docs/reference/DATABASE_SCHEMA.md`, `docs/README.md` |
+ | Guardrail commands | `scripts/complexity-budgets.json` + `.github/workflows/ci.yml` | `docs/reference/SYSTEM_TRUTH_SOURCES.md`, `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` |
+@@ -92,20 +93,21 @@ Each architecture fact has one authoritative source. When secondary docs drift,
+ 13. Phase 1 truth-source 收口现状：`packages/contracts/src/domain/observability.ts` 还负责冻结 `workflowCorrelationSchema`、public additive correlation keys、internal-only correlation keys 和共享 failure taxonomy 文案；`packages/contracts/src/domain/operations.ts`、`packages/server/src/lib/workflows/repository.ts`、`packages/server/src/routes/feedback.ts`、`packages/server/src/routes/operations/badcases.ts` 只能复用这些定义，不能局部再扩一套字段。
+ 14. 根计划 closeout 规则：根 `plan.md` 只有在“代码/contract + 聚焦测试 + facts/truth-source 回写 + `check:docs-drift` + `check:structure`”全部完成后才能勾选阶段复选框。
+ 15. 根 `plan.md` 是当前执行索引；`docs/todos/` 中被根计划链接的文件可以承担当前细则执行角色。`docs/plans/` 默认保存 historical-reference 或长期参考，除非根计划显式重新激活某个目录。
+ 16. All pull requests that touch architecture or persistence docs must verify consistency against this table.
+ 17. Six-service boundary freeze: `knowledge-write` owns all knowledge/trap/evidence write truth, including applying review/maintenance/decay decisions and publishing candidate results; `review` owns governance queue/decision/feedback/maintenance/decay commands but must delegate final aggregate mutation through remote `KnowledgeWritePort` invocation with no local knowledge-repo fallback; `candidate-ingestion` owns candidate workflow facts but must publish resolved results through remote `KnowledgeWritePort` and may only mark candidates resolved after that publish succeeds; `knowledge-read` only consumes read projections or events; `job-runtime` only owns queue/outbox/runtime transport and worker scheduling glue.
+ 18. Compatibility-shell closeout fact: `review` owns governance queue/decision/feedback/maintenance/decay commands but must delegate final aggregate mutation through `KnowledgeWritePort`; `candidate-ingestion` owns candidate workflow facts but must publish resolved results through `KnowledgeWritePort`; default `light` 主线已不再依赖任何旧 Fastify candidate/review 写路由，旧 Fastify 本地宿主路径也已删除，`packages/server` 仅保留 shared runtime/status seam 和仍需存在的 Fastify compatibility shell。当前 `packages/host-local/src/nest/config/config.ts` 是 default `light` runtime env defaults 的 host-owned truth entry；`packages/host-local/src/nest/runtime/host-services.ts` 只负责 host-local service composition，`packages/host-local/src/nest/runtime/retrieval-assembly.ts` 收口 host-owned retrieval assembly，`packages/host-local/src/nest/runtime/shared-infra.ts` 明确仅为 shared infrastructure seam，`packages/host-local/src/nest/runtime/service-compat.ts` 仅保留 server context cast bridge。`packages/host-local/src/nest/gateway/candidate-review.controller.ts` 对 review、manual-result 和 apply-resolution 均直接委托 owner port。remaining debt 是这些 seam 仍暂时复用部分 `packages/server` shared infrastructure，而不是默认 authoritative write orchestration。
+ 19. Phase 4 closeout fact: the repository-level owner matrix, compatibility-shell retirement list, and distributed mature-service closeout task categories are frozen in `plan.md` and `docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`; follow-up docs must not invent a second matrix or reintroduce removed rollback/compat entrypoints as active runtime choices.
+ 20. Badcase export boundary fact: `GET /v1/operations/badcases/:feedbackId/export` may wrap the deterministic eval `draft` with operator-only `debug`, but `scripts/export-badcase-to-eval.ts` and eval fixtures must serialize `badcaseEvalDraftSchema` only.
+ 21. Root-plan remediation deferred fact: MQ productization, new monitoring platform, new deployment shape, full service discovery/K8s platformization, and large web/CLI debug UI are deferred to dedicated follow-up plans; they are not unresolved items inside Phase 0 or a reason to reopen parallel root plans.
+ 22. Root-plan remediation extension-seam fact: compatibility-shell retirement continues under the Nest/service-evolution background docs, distributed maturity audit continues under its dedicated assessment doc, and any new platform-scale topic must enter the current remediation detail plan or one of its explicit deferred landing spots instead of creating a parallel active plan.
++23. Phase 3 unified-adapter boundary freeze：统一适配器只覆盖 infrastructure/provider seam，不得扩张成混合 repository、application service、gateway client 与 host composition 的 mega-adapter。`packages/backend-core` 只拥有 port contract 与 invocation model，不拥有 concrete provider implementation；host-owned adapter selection 继续冻结在 `packages/host-local/src/nest/adapters/`；`packages/host-distributed/src/gateway/internal-client.ts` 是 thin transport helper / canonical error normalization seam；`packages/host-distributed/src/shared/internal-knowledge-write-client.ts` 是把 transport error 映射回 `InvocationError` / port semantics 的 remote client wrapper；`packages/server/src/lib/ai/**` 与 `packages/server/src/lib/indexing/adapters/**` 继续是 server-owned concrete infrastructure/provider implementation；gateway client 与 remote adapter 不是 repository adapter；`packages/host-local/src/nest/runtime/shared-infra.ts` 借用 server shared infra 只是 transitional shared infrastructure seam，不代表 server 仍是默认 host owner。
+ 
+ ## CI Guards
+ 
+ Two automated guards enforce these rules on every PR. They run as the `architecture-guardrails` job in CI and can be run locally. For the full cross-cutting documentation truth matrix, see [`DOCS_TRUTH_MATRIX.md`](DOCS_TRUTH_MATRIX.md).
+ 
+ ### Doc Drift Guard
+ 
+ ```bash
+ pnpm check:docs-drift
+ ```
+diff --git a/docs/todos/trapmap-architecture-remediation-plan.md b/docs/todos/trapmap-architecture-remediation-plan.md
+index f3421b43..2e95cb98 100644
+--- a/docs/todos/trapmap-architecture-remediation-plan.md
++++ b/docs/todos/trapmap-architecture-remediation-plan.md
+@@ -181,23 +181,36 @@
+ - remaining direct God Object entrypoints 已冻结为以下 owner 桶，不再笼统称作“少量遗留”：`routes/teams.ts`、`routes/members.ts`、`routes/access-keys.ts`、`routes/knowledge.ts`、`routes/evidence.ts`、`routes/maintenance.ts`、`routes/admin-boundary-search.ts`、`routes/admin-benchmark.ts`、`routes/feedback-admin.ts`、`routes/operations/{artifacts-export,artifacts-activate,artifacts-import,skill-edit,skill-review,knowledge-legacy,migrate}.ts`，以及 `bootstrap/bootstrap-candidate-recovery.ts`、`lib/operations/read-model.ts`、`lib/jobs/handlers/{knowledge-index-follow-up,skill-index-follow-up,remediation-reactivation}.ts`、`lib/jobs/skill-index-follow-up.ts`、`lib/session.ts`、`lib/knowledge/review-application-service.ts`。其中 teams / members / access-keys 仍属于 PG-primary 但兼容回退未完全收口的 inventory，不能被二级文档写成“已迁完”。
+ - direct-entry migration waves 已冻结为：Wave A 先补 repo / projection capability，消除只因 `artifactFilePayloads`、skill history、maintenance list、operator projection 缺口导致的 snapshot 读取；Wave B 再清理 compatibility shell 中仍直接写 `store.transact()` 的 operator/admin routes；Wave C 最后处理 startup recovery、indexing subscriber、legacy application-service seam 与 session fallback。Phase 2 只冻结次序和 owner，不提前做 Phase 3+ adapter 重构。
+ - owner posture 已冻结为：`packages/server` 继续拥有当前 `store_snapshot` schema、JsonStore/PostgresStore compatibility seam、InMemory repository fallback 与 snapshot allowlist guard；各 bounded-context service / `backend-core` 当前不直接拥有新的 snapshot adapter。若后续要删除某个 compatibility entrypoint，必须先由对应 repo、projection helper 或 owner service 提供替代 capability。
+ - `store_snapshot` retention / deletion 条件当前冻结为显式 gate，而不是“未来会删”：只有当某一剩余字段或调用面满足“所有生产路由/worker/startup path 已改走 repo 或专用 projection capability、focused tests 已迁移、truth docs 已回写、allowlist 已收缩”四项时，才允许删除对应快照字段或调用面。只要 `artifactFilePayloads` hydration、skill history full-data read、startup candidate recovery、legacy migration/backfill 仍依赖快照，`store_snapshot` 整体就仍处于 retained compatibility 状态。
+ - dual-write acceptance 事实冻结为“主域长期双写已结束，剩余仅是结构化 truth + JSONB compatibility cache synchronization”。当前允许的同步语义集中在 artifact/knowledge 等仓库内部的 structured-table write plus compatibility cache maintenance，以及 operator/import/migrate 路由对 `artifactFilePayloads` 等兼容载体的补写；这不是新的并行 owner。验收关注点是 cache/payload 与结构化真相不漂移，而不是重新引入 `DualWrite*Repository`。
+ - compatibility-cache boundary 当前冻结为：当结构化真表与 JSONB 兼容缓存同时存在时，读取优先级始终以结构化 truth 为准，JSONB 只在专用 payload / history / fallback seam 中兜底。`artifactFilePayloads`、旧 skill history 读取、maintenance/operation projection helper、startup recovery 所见的 compatibility snapshot 都属于这一边界。
+ - Phase 2 test matrix 当前冻结为：`snapshot-usage-guard.test.ts` 负责守住 allowlist 和禁止新增未命名调用；`pg-first-compat.test.ts` 负责证明 auth/member/access-key 等 PG-first API contract 在 InMemory fallback 下仍一致；`docs-truth-smoke.test.ts` 负责保证 remediation/truth/package/testing docs 对上述事实的引用不漂移。更广的 runtime/deployment 验证留给后续 phase，只在真正触边界时补跑。
+ 
+ ### Phase 3 统一适配器范围、目录与接口冻结
+ 
+-- [ ] Wave 3A：冻结统一适配器覆盖范围与 provider taxonomy
+-- [ ] Wave 3B：冻结 adapter port、provider 实现、host 装配目录与 owner
+-- [ ] Wave 3C：冻结 repository / adapter / host / gateway client 的边界
++- [x] Wave 3A：冻结统一适配器覆盖范围与 provider taxonomy
++- [x] Wave 3B：冻结 adapter port、provider 实现、host 装配目录与 owner
++- [x] Wave 3C：冻结 repository / adapter / host / gateway client 的边界
++
++### Phase 3 closure freeze (G3 `#17` `#18` `#19` `#21` `#23` `#29` `#30` adapter scope)
++
++- Phase 3 在当前轮次冻结的是 unified adapter 的边界与 taxonomy，不是把现有 host、gateway、repository、application service 全部抽成一个“统一 mega-adapter”。统一适配器的 scope 只覆盖 infrastructure/provider seam：例如 provider registry、remote/in-process port adapter、thin transport helper、以及把 transport error 映射回 port 语义的 remote client wrapper。repository、application service、gateway route/controller、host composition 仍各自保留 owner。
++- provider taxonomy 已冻结为“contract 在 `backend-core`，concrete provider implementation 继续留在当前 owner package”。`packages/backend-core` 只拥有 port contracts、invocation model 和 host-agnostic invocation semantics；它不拥有 AI/provider/indexing 的 concrete implementation，也不在本 phase 新建共享 provider workspace 包。
++- host-owned adapter selection seam 已冻结在 host assembly。当前 `packages/host-local/src/nest/adapters/adapter-factory.ts` 与同目录下的 in-process / remote adapter 构成 `light` host 的选择面；文档必须把它写成 host-owned adapter selection seam，而不是把选择责任下推到 business code、repository 或 `backend-core`。
++- `packages/host-local/src/nest/adapters/` 当前只承载 port adapter seam：它解决同一个 `KnowledgeReadPort` 在 in-process direct invocation 与 remote invocation 之间的切换。它不是 repository adapter 目录，也不是 provider registry 总入口，更不是“所有边界都统一塞进 adapter”的证明。
++- `packages/host-distributed/src/gateway/internal-client.ts` 冻结为 distributed gateway forwarding 的 thin transport helper / canonical error normalization seam。它负责内部 HTTP hop、request/trace header 透传和 canonical error body 归一化，但不升级为 repository adapter、domain orchestrator 或 host composition root。
++- `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` 冻结为 remote port client wrapper 示例：它消费 gateway internal client，负责把 transport/body error 映射回 `InvocationError` 与 `KnowledgeWritePort` 语义。Phase 3 要冻结的是这种 wrapper owner 和职责，不是把它误写成 repository seam。
++- `packages/server/src/lib/ai/**` 与 `packages/server/src/lib/indexing/adapters/**` 在当前 phase 继续是 server-owned concrete infrastructure/provider implementation。Phase 3 冻结的是 taxonomy 和 owner：这些 concrete provider seam 仍归 `packages/server`，并未在本轮抽成新的 shared workspace package。
++- gateway client、remote adapter 与 repository adapter 的边界已经冻结为三件不同的事：gateway client 负责跨进程 transport；remote adapter 负责把 port 调用桥接到 transport；repository / persistence seam 继续留在 repo-owned boundary。文档不得把 gateway client 或 remote adapter 改写成 repository adapter，也不得把 repository seam 混入 unified adapter 口径。
++- `packages/host-local/src/nest/runtime/shared-infra.ts` 借用 `packages/server` 的 shared infra helpers 这一事实，只证明当前存在 transitional shared infrastructure seam；它不是 `packages/server` 仍是默认 host owner 的证据。默认 `light` host owner 仍冻结在 `packages/host-local/src/nest/**`，而 shared-infra 借用只是过渡态基础设施复用。
++- Phase 3 minimum verification matrix 已冻结为 focused docs/truth checks：`rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。只有在后续 phase 真正改动 adapter runtime behavior、internal client transport semantics 或 host assembly wiring 时，才补更广的 runtime/deployment tests。
+ 
+ ### Phase 4 统一适配器环境变量与构建裁剪冻结
+ 
+ - [ ] Wave 4A：冻结 selector env 与 provider-specific env
+ - [ ] Wave 4B：冻结 `local-agent`、`team-monolith`、`distributed` 推荐组合与 fail-fast / fallback 规则
+ - [ ] Wave 4C：冻结 `light` / `heavy` target 裁剪与 optional dependency 规则
+ 
+ ### Phase 5 Distributed 基线与运行隔离冻结
+ 
+ - [ ] Wave 5A：冻结 distributed 当前过渡态成熟度基线
+diff --git a/packages/server/src/__tests__/docs-truth-smoke.test.ts b/packages/server/src/__tests__/docs-truth-smoke.test.ts
+index abdd6d91..10cf905f 100644
+--- a/packages/server/src/__tests__/docs-truth-smoke.test.ts
++++ b/packages/server/src/__tests__/docs-truth-smoke.test.ts
+@@ -222,20 +222,78 @@ describe('docs truth smoke', () => {
+     expect(snapshotGuard).toContain('routes/teams.ts');
+     expect(snapshotGuard).toContain('lib/operations/read-model.ts');
+ 
+     expect(pgCompat).toContain('Phase 2 (PG-First Convergence)');
+     expect(pgCompat).toContain('fallback still works correctly');
+ 
+     expect(readModelSource).toContain('store.snapshot()');
+     expect(activateRouteSource).toContain('artifactFilePayloads');
+   });
+ 
++  it('Phase 3 docs freeze adapter scope, provider taxonomy, and host/gateway boundaries', () => {
++    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
++    const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
++    const packagesDoc = readDoc('docs/PACKAGES.md');
++    const repoStructure = readDoc('docs/reference/REPO_STRUCTURE.md');
++    const testingDoc = readDoc('docs/operations/TESTING.md');
++    const hostLocalAdapterFactory = readDoc('packages/host-local/src/nest/adapters/adapter-factory.ts');
++    const hostLocalRemoteAdapter = readDoc('packages/host-local/src/nest/adapters/remote.adapter.ts');
++    const hostLocalSharedInfra = readDoc('packages/host-local/src/nest/runtime/shared-infra.ts');
++    const internalPorts = readDoc('packages/backend-core/src/ports/internal-ports.ts');
++    const distributedClient = readDoc('packages/host-distributed/src/gateway/internal-client.ts');
++    const distributedKnowledgeWriteClient = readDoc(
++      'packages/host-distributed/src/shared/internal-knowledge-write-client.ts',
++    );
++
++    expect(remediation).toContain('### Phase 3 closure freeze (G3 `#17` `#18` `#19` `#21` `#23` `#29` `#30` adapter scope)');
++    expect(remediation).toContain('provider taxonomy');
++    expect(remediation).toContain('host-owned adapter selection seam');
++    expect(remediation).toContain('gateway client');
++    expect(remediation).toContain('mega-adapter');
++
++    expect(truthSources).toContain('Phase 3 unified-adapter boundary freeze');
++    expect(truthSources).toContain('packages/host-local/src/nest/adapters/adapter-factory.ts');
++    expect(truthSources).toContain('packages/host-distributed/src/gateway/internal-client.ts');
++    expect(truthSources).toContain('packages/host-distributed/src/shared/internal-knowledge-write-client.ts');
++    expect(truthSources).toContain('host-owned adapter selection');
++
++    expect(packagesDoc).toContain('## Phase 3 Unified adapter boundary freeze');
++    expect(packagesDoc).toContain('统一适配器不是 mega-adapter');
++    expect(packagesDoc).toContain('`backend-core` 只定义 port contract');
++    expect(packagesDoc).toContain('`packages/host-local/src/nest/adapters/`');
++    expect(packagesDoc).toContain('`packages/host-distributed/src/gateway/internal-client.ts`');
++
++    expect(repoStructure).toContain('packages/host-local/src/nest/adapters/');
++    expect(repoStructure).toContain('packages/host-distributed/src/gateway/');
++    expect(repoStructure).toContain('packages/host-distributed/src/shared/');
++
++    expect(testingDoc).toContain('Phase 3 Unified Adapter Freeze Checks');
++    expect(testingDoc).toContain(
++      '运行 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，确认 remediation detail plan、truth source、packages doc、repo structure 与 testing doc 一致冻结 unified adapter scope、provider taxonomy、host-owned adapter selection seam、gateway client 边界与 transitional shared infra seam。',
++    );
++    expect(testingDoc).toContain(
++      'rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts',
++    );
++    expect(testingDoc).toContain('rtk pnpm check:docs-drift');
++    expect(testingDoc).toContain('rtk pnpm check:structure');
++    expect(testingDoc).toContain('packages/server/src/__tests__/docs-truth-smoke.test.ts');
++
++    expect(hostLocalAdapterFactory).toContain("export type AdapterMode = 'in-process' | 'remote'");
++    expect(hostLocalAdapterFactory).toContain('Adapter selection is the host assembly');
++    expect(hostLocalRemoteAdapter).toContain('Remote adapter must NOT leak fetch Response');
++    expect(hostLocalSharedInfra).toContain('buildDefaultAdapterRegistry()');
++    expect(hostLocalSharedInfra).toContain('Shared seam only');
++    expect(internalPorts).toContain('This layer enables both in-process direct invocation');
++    expect(distributedClient).toContain('normalizeCanonicalErrorBody');
++    expect(distributedKnowledgeWriteClient).toContain('createRemoteKnowledgeWriteClient');
++  });
++
+   it('docs/README.md does not contain stale schema counts', () => {
+     const content = readDoc('docs/README.md');
+     expect(content).not.toContain('48 张表');
+     expect(content).not.toContain('54 张表');
+   });
+ 
+   it('GETTING_STARTED uses package-scoped DB commands and current JSON fallback path', () => {
+     const content = readDoc('docs/guides/GETTING_STARTED.md');
+     expect(content).toContain('pnpm --filter @trapmap/server db:migrate');
+     expect(content).toContain('.data/skill-shareer.json');
+
+Changes:
+
+.superpowers/sdd/task-phase-3-report.md
+  @@ -0,0 +1,85 @@
+  +# Phase 3 Unified Adapter Boundary Freeze Report
+  +
+  +## Scope
+  +
+  +- Completed the Phase 3 documentation/truth-source freeze only.
+  +- Kept edits within the allowed documentation files plus this required report file.
+  +- Relied on the current code facts in:
+  +  - `packages/host-local/src/nest/adapters/adapter-factory.ts`
+  +  - `packages/host-local/src/nest/adapters/remote.adapter.ts`
+  +  - `packages/host-local/src/nest/runtime/shared-infra.ts`
+  +  - `packages/backend-core/src/ports/internal-ports.ts`
+  +  - `packages/host-distributed/src/gateway/internal-client.ts`
+  +  - `packages/host-distributed/src/shared/internal-knowledge-write-client.ts`
+  +
+  +## Phase 3 Freeze Applied
+  +
+  +- Added `Phase 3 closure freeze` to `docs/todos/trapmap-architecture-remediation-plan.md` and marked Wave 3A-3C complete.
+  +- Froze the unified adapter scope as infrastructure/provider seams only, explicitly not a mega-adapter mixing repository, application service, gateway client, and host composition.
+  +- Froze `backend-core` as the owner of port contracts and invocation model only, not concrete provider implementations.
+  +- Froze `packages/host-local/src/nest/adapters/` as the host-owned adapter selection seam for the current light host.
+  +- Froze `packages/host-distributed/src/gateway/internal-client.ts` as the thin transport helper / canonical error normalization seam.
+  +- Froze `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` as the remote port client wrapper that maps transport errors back into `InvocationError` / port semantics.
+  +- Froze `packages/server/src/lib/ai/**` and `packages/server/src/lib/indexing/adapters/**` as current server-owned concrete infrastructure/provider implementations, without claiming extraction into a new shared workspace package.
+  +- Froze the rule that gateway client and remote adapter are not repository adapters, and that repository/persistence seams remain separate.
+  +- Froze `packages/host-local/src/nest/runtime/shared-infra.ts` as a transitional shared infrastructure seam only, not evidence that `packages/server` is still the default host owner.
+  +
+  +## Files Updated
+  +
+  +- `docs/todos/trapmap-architecture-remediation-plan.md`
+  +- `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+  +- `docs/PACKAGES.md`
+  +- `docs/reference/REPO_STRUCTURE.md`
+  +- `docs/operations/TESTING.md`
+  +- `.superpowers/sdd/task-phase-3-report.md`
+  +
+  +## Validation
+  +
+  +1. `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  +   - Result: PASS
+  +   - Notes: Phase 3 truth-smoke assertions now pass, including the new adapter-scope and boundary checks.
+  +
+  +2. `rtk pnpm check:docs-drift`
+  +   - Result: PASS
+  +
+  +3. `rtk pnpm check:structure`
+  +   - Result: PASS
+  +
+  +## Review Fix Follow-up
+  +
+  +1. `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  +   - Result: PASS
+  +   - Output: `✓ |server| src/__tests__/docs-truth-smoke.test.ts (36 tests) 15ms`
+  +
+  +2. `rtk pnpm check:docs-drift`
+  +   - Result: PASS
+  +   - Output: `[doc-drift] All 33 doc rule(s) passed.`
+  +
+  +3. `rtk pnpm check:structure`
+  +   - Result: PASS
+  +   - Output: `[structure-guard] All checks passed.`
+  +
+  +## Outcome
+  +
+  +- Phase 3 Wave 3A-3C is now frozen as a documentation/truth-source boundary closeout.
+  +- The docs now consistently distinguish:
+  +  - host-owned adapter selection
+  +  - distributed gateway transport helpers
+  +  - remote port client wrappers
+  +  - server-owned concrete provider implementations
+  +  - repository/persistence seams
+  +- No runtime behavior or broad refactor was introduced.
+  +
+  +## Review Fix Append
+  +
+  +1. `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  +   - Result: PASS
+  +   - Output: `✓ |server| src/__tests__/docs-truth-smoke.test.ts (36 tests) 15ms`
+  +
+  +2. `rtk pnpm check:docs-drift`
+  +   - Result: PASS
+  +   - Output: `[doc-drift] All 33 doc rule(s) passed.`
+  +
+  +3. `rtk pnpm check:structure`
+  +   - Result: PASS
+  +   - Output: `[structure-guard] All checks passed.`
+  +85 -0
+
+docs/PACKAGES.md
+  @@ -49,20 +49,32 @@
+  +## Phase 3 Unified adapter boundary freeze
+  +
+  +- 统一适配器不是 mega-adapter。它当前只覆盖 infrastructure/provider seam，不混入 repository、application service、gateway route/client 或 host composition owner。
+  +- `backend-core` 只定义 port contract、invocation model 和 host-agnostic invocation semantics；它不拥有 concrete provider implementation，也不在本 phase 承诺抽出新的 shared provider package。
+  +- `packages/host-local/src/nest/adapters/` 是当前默认 `light` host 的 host-owned adapter selection seam。`adapter-factory.ts` 在这里决定 `in-process` 与 `remote` 两种 port adapter，business code 不负责自行挑选实现。
+  +- `packages/host-local/src/nest/adapters/remote.adapter.ts` 是 port-level remote adapter，不是 repository adapter。它把 remote HTTP call 包装成 `KnowledgeReadPort` 语义，并把 transport failure 收口为 `InvocationError`，而不是把 `fetch`/`Response` 暴露给上层。
+  +- `packages/host-distributed/src/gateway/internal-client.ts` 是 distributed gateway 的 thin transport helper / canonical error normalization seam；它负责内部 forwarding、header propagation 与 canonical body normalization，而不是业务编排或 repo adapter。
+  +- `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` 是 remote port client wrapper 示例：它消费 gateway internal client，把 transport 错误映射回 `InvocationError` / `KnowledgeWritePort` 语义，证明 remote client wrapper 与 gateway transport helper 属于不同层次。
+  +- `packages/server/src/lib/ai/**` 与 `packages/server/src/lib/indexing/adapters/**` 继续是 server-owned concrete infrastructure/provider implementation。Phase 3 冻结 taxonomy 和 owner，不把它们提前描述成 `backend-core` provider contract，也不把它们抽离成新的 shared workspace package。
+  +- gateway client 和 remote adapter 不是 repository adapters；repository / persistence seam 仍继续冻结在 repo-owned boundary。`packages/server/src/lib/repos/**`、`packages/server/src/lib/*/repository.ts` 与 persistence implementation 不属于 unified adapter 目录。
+  +- `packages/host-local/src/nest/runtime/shared-infra.ts` 当前借用 `packages/server` 的 shared infra helper，只能被描述为 transitional shared infrastructure seam。它不是 `packages/server` 仍是默认 host owner 的证据，也不是统一适配器范围应该无限扩大到 host bootstrap 的依据。
+  +
+   ## Phase 4 数据、运维与退役收尾
+   
+   - 仓库级 owner matrix（gateway + 六个 owner service + job-runtime 的 data / projection / runtime / operations owner）已冻结，详见 [`plan.md`](../plan.md) Phase 4 和 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
+   - `packages/server` 中 candidate apply-resolution、knowledge review、maintenance、decay 旧 Fastify 写路由都已删除。`light` 默认 review/manual-result/apply-resolution 写链路现由 `packages/host-local/src/nest/gateway/candidate-review.controller.ts` 直接委托 `governance-review` / `candidate-ingestion` owner port；candidate-ingestion 再通过 `KnowledgeWritePort` 完成最终 aggregate mutation，而不是回落到 `packages/server`。
+   - `packages/backend-core/src/modules/*.ts` 兼容 re-export facade 已退役并删除；truth source 只保留真实 context 目录入口。
+   - `packages/host-distributed` 与 `packages/service-*` 不是 compatibility shell，继续保留为分布式部署展开层和 thin service assembly。
+   - `packages/host-local/src/nest/**` 是冻结后的默认 `light` 主入口终局和 bounded-context module graph，不属于 compatibility shell。
+   
+   ## packages/contracts
+   
+  +12 -0
+
+docs/operations/TESTING.md
+  @@ -61,20 +61,25 @@ flowchart TB
+  +**Phase 3 Unified Adapter Freeze Checks:**
+  +- Docs truth freeze：运行 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，确认 remediation detail plan、truth source、packages doc、repo structure 与 testing doc 一致冻结 unified adapter scope、provider taxonomy、host-owned adapter selection seam、gateway client 边界与 transitional shared infra seam。
+  +- Focused guardrails：运行 `pnpm check:docs-drift` 与 `pnpm check:structure`，确认 Phase 3 freeze 的 truth-source 回写与目录归属没有漂移。
+  +- 非目标说明：Phase 3 不要求在此轮提取新的 shared provider workspace package，也不要求把 gateway client / remote adapter / repository seam 合并成一个统一 mega-adapter；测试门要守住的是边界文案与 authoritative placement，而不是 runtime behavior 扩张。
+  +
+   **Phase 3 Workflow Snapshot Checks:**
+   - 候选处理：提交 candidate 后，调用 `GET /v1/operations/status/async` 或直接查询 `workflow_runs`，确认存在 `workflowType='candidate-processing'` 且 step/status 随处理推进。
+   - 失败持久化：制造 candidate 处理失败，确认 `lastError` 与 `status='failed'` 被保留。
+   - Rebuild workflow：触发 capsule-index rebuild，确认存在 `workflowType='capsule-index-rebuild'` 的运行快照。
+   
+   **Phase 5 Shared Jobs Checks:**
+   - Lifecycle follow-up：在 PostgreSQL 模式下触发 knowledge approve/deactivate/update，确认不会在订阅器内同步执行重索引，而是新增 `task_queue.type='knowledge.index-follow-up'`，并能在 `workflow_runs.workflow_type='knowledge-index-follow-up'` 中观察到执行快照。
+   - Remediation complete：调用 `POST /v1/operations/feedback/remediation/:entryId/complete` 后，确认响应中的 additive `asyncJobId` 存在，且队列中出现 `feedback.remediation-reactivation` 任务；该任务 dead-letter 后可通过 async operator flow 重跑。
+   - Badcase draft：提交带 `badcase` 的 feedback 后，确认在 PostgreSQL 模式下响应返回 additive `asyncJobId`，并且 `task_queue` 中存在 `feedback.badcase-export-draft` 任务，同时 `retrieval_badcase_traces` 已先落库，draft 中携带 canonical taxonomy（`recall-miss`、`ranking-error`、`summary-hallucination`、`governance-leak`、`stale-content`）。
+   
+  @@ -502,21 +507,21 @@ pnpm check:complexity
+  -| `Phase 3` | `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/routes/operations/stats.test.ts packages/server/src/config.test.ts` + 如涉及 retrieval/cache freshness 则补 `pnpm eval:smoke` + `pnpm check:docs-drift` + `pnpm check:structure` |
+  +| `Phase 3` | `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/routes/operations/stats.test.ts packages/server/src/config.test.ts` + 如涉及 retrieval/cache freshness 则补 `pnpm eval:smoke` + `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts` + `rtk pnpm check:docs-drift` + `rtk pnpm check:structure` |
+   | `Phase 4` | 本轮相关测试 + `pnpm check:docs-drift` + `pnpm check:structure`；只有在 truth-source、计划边界和 closeout 规则回写完成后才能勾选根 `plan.md` |
+   | CI 配置变更 | `pnpm check:docs-drift` + 更新 `CI_CD.md` |
+   | 架构变更 | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:complexity` + `pnpm eval:smoke` |
+   | 脚本/守卫变更 | `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` + `pnpm check:docs-drift` |
+   | 摘要生成变更 (`summary.ts`) | `rtk pnpm test -- --run packages/server/src/lib/retrieval/response/summary.test.ts evals/summary/__tests__/runner-api.test.ts` + `pnpm eval:summary:smoke` |
+   | 评测命令变更 | `pnpm check:docs-drift` + smoke 测试（验证 EVALUATION.md / TESTING.md 中的 eval 命令正确） |
+   | 贡献指南变更 | `pnpm check:docs-drift` + smoke 测试（验证 CONTRIBUTING.md 中的 DB 命令格式） |
+   
+   ### 文档维护工作流
+   
+  +6 -1
+
+docs/reference/REPO_STRUCTURE.md
+  @@ -26,21 +26,25 @@ Historical plans, temporary notes, audits, and human-authored reports must live
+  +  `packages/host-local/src/nest/adapters/` is the authoritative placement for host-owned port adapter selection (`in-process` vs `remote`) in the light host. These files are adapter seams for internal ports, not repository adapters and not a catch-all directory for host composition.
+  +  `packages/host-local/src/nest/runtime/shared-infra.ts` is the authoritative placement for the current transitional shared infrastructure seam that borrows server-owned infra helpers without changing host ownership.
+   - `packages/host-distributed/`: Heavy host assembly for the `distributed` profile. It is the real heavy-host implementation, consumes the same backend-core/service-package main implementation as `light`, and its maturity baseline remains `Level 2 / transitional-microservice`.
+  +  `packages/host-distributed/src/gateway/` is the authoritative placement for gateway transport helpers and forwarding seams, including `internal-client.ts` as the thin internal HTTP / canonical error normalization helper.
+  +  `packages/host-distributed/src/shared/` is the authoritative placement for shared distributed-host wrappers around internal ports, such as `internal-knowledge-write-client.ts`; these wrappers map transport semantics back to backend-core port semantics and are not repository adapters.
+   
+   ## Documentation
+   
+   - `docs/guides/`: onboarding and contributor workflows.
+   - `docs/operations/`: runtime, CI, security, testing, deployment-adjacent operations.
+   - `docs/architecture/`: architecture overview and component docs.
+   - `docs/reference/`: truth sources, schemas, glossary, API surface, and repository structure.
+   - `docs/plans/`: historical design references and only active again when a current root plan explicitly re-links them.
+   - `docs/todos/`: pending work plus the phase detail docs linked from the current root `plan.md`.
+   - `docs/archived/`: obsolete plans, historical reports, and retired decisions.
+  +4 -0
+
+docs/reference/SYSTEM_TRUTH_SOURCES.md
+  @@ -9,20 +9,21 @@ Each architecture fact has one authoritative source. When secondary docs drift,
+  +| Phase 3 unified-adapter boundary freeze | `docs/todos/trapmap-architecture-remediation-plan.md` + `packages/backend-core/src/ports/internal-ports.ts` + `packages/host-local/src/nest/adapters/adapter-factory.ts` + `packages/host-local/src/nest/adapters/remote.adapter.ts` + `packages/host-local/src/nest/runtime/shared-infra.ts` + `packages/host-distributed/src/gateway/internal-client.ts` + `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` | `docs/PACKAGES.md`, `docs/reference/REPO_STRUCTURE.md`, `docs/operations/TESTING.md`, `packages/host-local/README.md`, `packages/host-distributed/README.md`, `docs/architecture/ARCHITECTURE.md` |
+   | Nest service evolution Phase 0 target architecture freeze | `plan.md` + `docs/todos/nestjs-service-evolution-00-target-architecture.md` + `packages/backend-core/src/runtime/capability-model.ts` + `packages/backend-core/src/ports/internal-ports.ts` + `packages/contracts/src/domain/async.ts` | `README.md`, `architecture.md`, `docs/README.md`, `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md` |
+   | Nest service evolution Phase 1 host and contract foundation freeze | `plan.md` + `docs/todos/nestjs-service-evolution-01-host-and-contract-foundation.md` + `packages/backend-core/src/invocation/invocation-model.ts` + `packages/service-knowledge-read/src/routes.ts` + `packages/service-knowledge-read/src/deps.ts` + `packages/host-distributed/src/gateway/internal-client.ts` + `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` + `docs/PACKAGE_STACK_RATIONALE.md` | `README.md`, `docs/README.md`, `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md`, `docs/architecture/DEPLOYMENT.md`, `docs/reference/api-surface.md` |
+   | Nest service evolution Phase 2 modular monolith boundary freeze | `plan.md` + `docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md` + `packages/backend-core/src/<context>/{domain,application,module.ts,index.ts}` (six context directories) + `packages/host-local/src/nest/app.module.ts` + `packages/host-local/src/nest/*/*.module.ts` (six bounded-context Nest modules) + `packages/service-*/src/deps.ts` | `docs/README.md`, `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md`, `docs/reference/REPO_STRUCTURE.md`, package README |
+   | Nest service evolution Phase 4 owner matrix / migration-window / closeout freeze | `plan.md` + `docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md` + `packages/service-knowledge-write/README.md` + `packages/service-governance-review/README.md` + `docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md` | `README.md`, `docs/README.md`, `docs/PACKAGES.md`, `docs/operations/TESTING.md`, `docs/reference/REPO_STRUCTURE.md`, `docs/architecture/DEPLOYMENT.md` |
+   | Distributed maturity baseline (`Level 2 / transitional-microservice`) | `docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md` + `packages/host-distributed/src/gateway/distributed-acceptance.test.ts` + `packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts` + `packages/host-distributed/src/shared/database.ts` | `plan.md`, `README.md`, `docs/README.md`, `docs/PACKAGES.md`, `docs/architecture/DEPLOYMENT.md` |
+   | Backend build target mapping (`light` / `heavy`) | `plan.md` + `docs/todos/backend-build-targets-plan.md` | `README.md`, `docs/README.md`, `architecture.md`, `docs/PACKAGES.md`, `docs/architecture/DEPLOYMENT.md`, `packages/backend-core/README.md`, `packages/host-local/README.md`, `packages/host-distributed/README.md` |
+   | Persistence posture | `README.md` + `packages/server/src/lib/persistence/schema/*.ts` | `docs/README.md`, `docs/guides/GETTING_STARTED.md`, `docs/architecture/DEPLOYMENT.md` |
+   | CI jobs | `.github/workflows/ci.yml` | `docs/operations/CI_CD.md`, `docs/operations/TESTING.md` |
+   | Schema count | `packages/server/src/lib/persistence/schema/*.ts` (artifacts.ts, knowledge.ts, candidates.ts, auth.ts, retrieval.ts, queue.ts, index.ts) | `docs/reference/DATABASE_SCHEMA.md`, `docs/README.md` |
+   | Guardrail commands | `scripts/complexity-budgets.json` + `.github/workflows/ci.yml` | `docs/reference/SYSTEM_TRUTH_SOURCES.md`, `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` |
+  @@ -92,20 +93,21 @@ Each architecture fact has one authoritative source. When secondary docs drift,
+  +23. Phase 3 unified-adapter boundary freeze：统一适配器只覆盖 infrastructure/provider seam，不得扩张成混合 repository、application service、gateway client 与 host composition 的 mega-adapter。`packages/backend-core` 只拥有 port contract 与 invocation model，不拥有 concrete provider implementation；host-owned adapter selection 继续冻结在 `packages/host-local/src/nest/adapters/`；`packages/host-distributed/src/gateway/internal-client.ts` 是 thin transport helper / canonical error normalization seam；`packages/host-distributed/src/shared/internal-knowledge-write-client.ts` 是把 transport error 映射回 `InvocationError` / port semantics 的 remote client wrapper；`packages/server/src/lib/ai/**` 与 `packages/server/src/lib/indexing/adapters/**` 继续是 server-owned concrete infrastructure/provider implementation；gateway client 与 remote adapter 不是 repository adapter；`packages/host-local/src/nest/runtime/shared-infra.ts` 借用 server shared infra 只是 transitional shared infrastructure seam，不代表 server 仍是默认 host owner。
+   
+   ## CI Guards
+   
+   Two automated guards enforce these rules on every PR. They run as the `architecture-guardrails` job in CI and can be run locally. For the full cross-cutting documentation truth matrix, see [`DOCS_TRUTH_MATRIX.md`](DOCS_TRUTH_MATRIX.md).
+   
+   ### Doc Drift Guard
+   
+   ```bash
+   pnpm check:docs-drift
+   ```
+  +2 -0
+
+docs/todos/trapmap-architecture-remediation-plan.md
+  @@ -181,23 +181,36 @@
+  -- [ ] Wave 3A：冻结统一适配器覆盖范围与 provider taxonomy
+  -- [ ] Wave 3B：冻结 adapter port、provider 实现、host 装配目录与 owner
+  -- [ ] Wave 3C：冻结 repository / adapter / host / gateway client 的边界
+  +- [x] Wave 3A：冻结统一适配器覆盖范围与 provider taxonomy
+  +- [x] Wave 3B：冻结 adapter port、provider 实现、host 装配目录与 owner
+  +- [x] Wave 3C：冻结 repository / adapter / host / gateway client 的边界
+  +
+  +### Phase 3 closure freeze (G3 `#17` `#18` `#19` `#21` `#23` `#29` `#30` adapter scope)
+  +
+  +- Phase 3 在当前轮次冻结的是 unified adapter 的边界与 taxonomy，不是把现有 host、gateway、repository、application service 全部抽成一个“统一 mega-adapter”。统一适配器的 scope 只覆盖 infrastructure/provider seam：例如 provider registry、remote/in-process port adapter、thin transport helper、以及把 transport error 映射回 port 语义的 remote client wrapper。repository、application service、gateway route/controller、host composition 仍各自保留 owner。
+  +- provider taxonomy 已冻结为“contract 在 `backend-core`，concrete provider implementation 继续留在当前 owner package”。`packages/backend-core` 只拥有 port contracts、invocation model 和 host-agnostic invocation semantics；它不拥有 AI/provider/indexing 的 concrete implementation，也不在本 phase 新建共享 provider workspace 包。
+  +- host-owned adapter selection seam 已冻结在 host assembly。当前 `packages/host-local/src/nest/adapters/adapter-factory.ts` 与同目录下的 in-process / remote adapter 构成 `light` host 的选择面；文档必须把它写成 host-owned adapter selection seam，而不是把选择责任下推到 business code、repository 或 `backend-core`。
+  +- `packages/host-local/src/nest/adapters/` 当前只承载 port adapter seam：它解决同一个 `KnowledgeReadPort` 在 in-process direct invocation 与 remote invocation 之间的切换。它不是 repository adapter 目录，也不是 provider registry 总入口，更不是“所有边界都统一塞进 adapter”的证明。
+  +- `packages/host-distributed/src/gateway/internal-client.ts` 冻结为 distributed gateway forwarding 的 thin transport helper / canonical error normalization seam。它负责内部 HTTP hop、request/trace header 透传和 canonical error body 归一化，但不升级为 repository adapter、domain orchestrator 或 host composition root。
+  +- `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` 冻结为 remote port client wrapper 示例：它消费 gateway internal client，负责把 transport/body error 映射回 `InvocationError` 与 `KnowledgeWritePort` 语义。Phase 3 要冻结的是这种 wrapper owner 和职责，不是把它误写成 repository seam。
+  +- `packages/server/src/lib/ai/**` 与 `packages/server/src/lib/indexing/adapters/**` 在当前 phase 继续是 server-owned concrete infrastructure/provider implementation。Phase 3 冻结的是 taxonomy 和 owner：这些 concrete provider seam 仍归 `packages/server`，并未在本轮抽成新的 shared workspace package。
+  +- gateway client、remote adapter 与 repository adapter 的边界已经冻结为三件不同的事：gateway client 负责跨进程 transport；remote adapter 负责把 port 调用桥接到 transport；repository / persistence seam 继续留在 repo-owned boundary。文档不得把 gateway client 或 remote adapter 改写成 repository adapter，也不得把 repository seam 混入 unified adapter 口径。
+  +- `packages/host-local/src/nest/runtime/shared-infra.ts` 借用 `packages/server` 的 shared infra helpers 这一事实，只证明当前存在 transitional shared infrastructure seam；它不是 `packages/server` 仍是默认 host owner 的证据。默认 `light` host owner 仍冻结在 `packages/host-local/src/nest/**`，而 shared-infra 借用只是过渡态基础设施复用。
+  +- Phase 3 minimum verification matrix 已冻结为 focused docs/truth checks：`rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。只有在后续 phase 真正改动 adapter runtime behavior、internal client transport semantics 或 host assembly wiring 时，才补更广的 runtime/deployment tests。
+   
+   ### Phase 4 统一适配器环境变量与构建裁剪冻结
+   
+   - [ ] Wave 4A：冻结 selector env 与 provider-specific env
+   - [ ] Wave 4B：冻结 `local-agent`、`team-monolith`、`distributed` 推荐组合与 fail-fast / fallback 规则
+   - [ ] Wave 4C：冻结 `light` / `heavy` target 裁剪与 optional dependency 规则
+   
+   ### Phase 5 Distributed 基线与运行隔离冻结
+   
+   - [ ] Wave 5A：冻结 distributed 当前过渡态成熟度基线
+  +16 -3
+
+packages/server/src/__tests__/docs-truth-smoke.test.ts
+  @@ -222,20 +222,78 @@ describe('docs truth smoke', () => {
+  +  it('Phase 3 docs freeze adapter scope, provider taxonomy, and host/gateway boundaries', () => {
+  +    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+  +    const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
+  +    const packagesDoc = readDoc('docs/PACKAGES.md');
+  +    const repoStructure = readDoc('docs/reference/REPO_STRUCTURE.md');
+  +    const testingDoc = readDoc('docs/operations/TESTING.md');
+  +    const hostLocalAdapterFactory = readDoc('packages/host-local/src/nest/adapters/adapter-factory.ts');
+  +    const hostLocalRemoteAdapter = readDoc('packages/host-local/src/nest/adapters/remote.adapter.ts');
+  +    const hostLocalSharedInfra = readDoc('packages/host-local/src/nest/runtime/shared-infra.ts');
+  +    const internalPorts = readDoc('packages/backend-core/src/ports/internal-ports.ts');
+  +    const distributedClient = readDoc('packages/host-distributed/src/gateway/internal-client.ts');
+  +    const distributedKnowledgeWriteClient = readDoc(
+  +      'packages/host-distributed/src/shared/internal-knowledge-write-client.ts',
+  +    );
+  +
+  +    expect(remediation).toContain('### Phase 3 closure freeze (G3 `#17` `#18` `#19` `#21` `#23` `#29` `#30` adapter scope)');
+  +    expect(remediation).toContain('provider taxonomy');
+  +    expect(remediation).toContain('host-owned adapter selection seam');
+  +    expect(remediation).toContain('gateway client');
+  +    expect(remediation).toContain('mega-adapter');
+  +
+  +    expect(truthSources).toContain('Phase 3 unified-adapter boundary freeze');
+  +    expect(truthSources).toContain('packages/host-local/src/nest/adapters/adapter-factory.ts');
+  +    expect(truthSources).toContain('packages/host-distributed/src/gateway/internal-client.ts');
+  +    expect(truthSources).toContain('packages/host-distributed/src/shared/internal-knowledge-write-client.ts');
+  +    expect(truthSources).toContain('host-owned adapter selection');
+  +
+  +    expect(packagesDoc).toContain('## Phase 3 Unified adapter boundary freeze');
+  +    expect(packagesDoc).toContain('统一适配器不是 mega-adapter');
+  +    expect(packagesDoc).toContain('`backend-core` 只定义 port contract');
+  +    expect(packagesDoc).toContain('`packages/host-local/src/nest/adapters/`');
+  +    expect(packagesDoc).toContain('`packages/host-distributed/src/gateway/internal-client.ts`');
+  +
+  +    expect(repoStructure).toContain('packages/host-local/src/nest/adapters/');
+  +    expect(repoStructure).toContain('packages/host-distributed/src/gateway/');
+  +    expect(repoStructure).toContain('packages/host-distributed/src/shared/');
+  +
+  +    expect(testingDoc).toContain('Phase 3 Unified Adapter Freeze Checks');
+  +    expect(testingDoc).toContain(
+  +      '运行 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，确认 remediation detail plan、truth source、packages doc、repo structure 与 testing doc 一致冻结 unified adapter scope、provider taxonomy、host-owned adapter selection seam、gateway client 边界与 transitional shared infra seam。',
+  +    );
+  +    expect(testingDoc).toContain(
+  +      'rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts',
+  +    );
+  +    expect(testingDoc).toContain('rtk pnpm check:docs-drift');
+  +    expect(testingDoc).toContain('rtk pnpm check:structure');
+  +    expect(testingDoc).toContain('packages/server/src/__tests__/docs-truth-smoke.test.ts');
+  +
+  +    expect(hostLocalAdapterFactory).toContain("export type AdapterMode = 'in-process' | 'remote'");
+  +    expect(hostLocalAdapterFactory).toContain('Adapter selection is the host assembly');
+  +    expect(hostLocalRemoteAdapter).toContain('Remote adapter must NOT leak fetch Response');
+  +    expect(hostLocalSharedInfra).toContain('buildDefaultAdapterRegistry()');
+  +    expect(hostLocalSharedInfra).toContain('Shared seam only');
+  +    expect(internalPorts).toContain('This layer enables both in-process direct invocation');
+  +    expect(distributedClient).toContain('normalizeCanonicalErrorBody');
+  +    expect(distributedKnowledgeWriteClient).toContain('createRemoteKnowledgeWriteClient');
+  +  });
+  +
+     it('docs/README.md does not contain stale schema counts', () => {
+       const content = readDoc('docs/README.md');
+       expect(content).not.toContain('48 张表');
+       expect(content).not.toContain('54 张表');
+     });
+   
+     it('GETTING_STARTED uses package-scoped DB commands and current JSON fallback path', () => {
+       const content = readDoc('docs/guides/GETTING_STARTED.md');
+       expect(content).toContain('pnpm --filter @trapmap/server db:migrate');
+       expect(content).toContain('.data/skill-shareer.json');
+  +58 -0
