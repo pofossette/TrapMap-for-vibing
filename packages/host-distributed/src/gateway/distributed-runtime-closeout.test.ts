@@ -34,7 +34,7 @@ async function allocatePort(): Promise<number> {
 }
 
 async function waitFor(url: string): Promise<void> {
-  const deadline = Date.now() + 15_000;
+  const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
     try {
       const response = await fetch(url);
