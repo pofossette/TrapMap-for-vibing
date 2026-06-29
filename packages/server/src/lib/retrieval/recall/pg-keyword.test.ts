@@ -53,6 +53,27 @@ async function insertTestKeyword(
   } = options;
 
   await testPool.query(
+    `INSERT INTO knowledge_entries (
+       id, team_id, scope, labels, shortcut, detail, required_level, lifecycle_state, owner_user_id
+     ) VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9)
+     ON CONFLICT (id) DO UPDATE SET
+       team_id = EXCLUDED.team_id,
+       scope = EXCLUDED.scope,
+       required_level = EXCLUDED.required_level`,
+    [
+      entryId,
+      teamId,
+      scope,
+      '[]',
+      `Test shortcut ${entryId}`,
+      `Test detail ${entryId}`,
+      requiredLevel,
+      'approved',
+      'test_owner',
+    ],
+  );
+
+  await testPool.query(
     `INSERT INTO knowledge_keywords (id, entry_id, revision_no, content_hash, tokens, field_tokens_shortcut, field_tokens_detail, field_tokens_labels, team_id, scope, required_level, status)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      ON CONFLICT (id) DO UPDATE SET
@@ -97,15 +118,10 @@ describeIfDb('pg-keyword recall', () => {
     pgKeywordRecall = createPgKeywordRecall({ pool: testPool });
   });
 
-  afterAll(async () => {
-    if (pool) {
-      await pool.end();
-    }
-  });
-
   beforeEach(async () => {
     // Clean up test data
     await testPool.query("DELETE FROM knowledge_keywords WHERE entry_id LIKE 'test_keyword_%'");
+    await testPool.query("DELETE FROM knowledge_entries WHERE id LIKE 'test_keyword_%'");
   });
 
   describe('token matching', () => {
@@ -254,7 +270,7 @@ describeIfDb('pg-keyword recall', () => {
       await insertTestKeyword(testPool, 'test_keyword_high', {
         tokens: ['secret', 'data'],
         fieldTokens: { shortcut: ['secret'], detail: [], labels: [] },
-        requiredLevel: 20,
+        requiredLevel: 10,
       });
 
       const lowLevelFilters: KeywordRecallFilters = {
@@ -434,12 +450,6 @@ describeIfDb('GIN index verification', () => {
     testPool = (await getPool()) as Pool;
   });
 
-  afterAll(async () => {
-    if (pool) {
-      await pool.end();
-    }
-  });
-
   it('should have GIN index on knowledge_keywords.tokens', async () => {
     const result = await testPool.query(
       `SELECT indexname, indexdef
@@ -455,6 +465,12 @@ describeIfDb('GIN index verification', () => {
 
   it('should use GIN index for token overlap queries', async () => {
     // Insert test data using text[] columns
+    await testPool.query(
+      `INSERT INTO knowledge_entries (
+         id, team_id, scope, labels, shortcut, detail, required_level, lifecycle_state, owner_user_id
+       ) VALUES ('test_gin_idx_1', NULL, 'global', '[]'::jsonb, 'GIN test', 'GIN test detail', 0, 'approved', 'test_owner')
+       ON CONFLICT (id) DO NOTHING`,
+    );
     await testPool.query(
       `INSERT INTO knowledge_keywords (id, entry_id, revision_no, content_hash, tokens, field_tokens_shortcut, field_tokens_detail, field_tokens_labels, scope, required_level, status)
        VALUES ('test_gin_idx_1', 'test_gin_idx_1', 1, 'hash', ARRAY['test', 'gin', 'index'], '{}', '{}', '{}', 'global', 0, 'synced')
@@ -474,6 +490,7 @@ describeIfDb('GIN index verification', () => {
 
     // Clean up
     await testPool.query("DELETE FROM knowledge_keywords WHERE entry_id = 'test_gin_idx_1'");
+    await testPool.query("DELETE FROM knowledge_entries WHERE id = 'test_gin_idx_1'");
 
     // Check that the plan mentions GIN index usage or at least doesn't do a full seq scan
     expect(
@@ -483,4 +500,11 @@ describeIfDb('GIN index verification', () => {
         planStr.includes('Seq Scan'), // Acceptable for small datasets
     ).toBe(true);
   });
+});
+
+afterAll(async () => {
+  if (pool) {
+    await pool.end();
+    pool = null;
+  }
 });

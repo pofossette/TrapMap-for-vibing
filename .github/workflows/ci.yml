@@ -137,7 +137,7 @@ jobs:
       - run: pnpm build
 
       - name: Run PG integration tests
-        run: pnpm test -- --run packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts
+        run: pnpm exec vitest run packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/trapmap
           NODE_ENV: test
