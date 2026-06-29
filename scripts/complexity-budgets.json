@@ -25,10 +25,10 @@
     {
       "file": "docs/architecture/ARCHITECTURE.md",
       "mustContain": [
-        "Phase 5 六服务 ownership 冻结补充事实",
-        "`knowledge-write` 拥有 knowledge/trap/evidence 写模型真相",
-        "`job-runtime` 只拥有 queue/outbox/worker/retry/reclaim/status 等 runtime 编排",
-        "`packages/server` 当前是 compatibility shell 与 runtime/status surface"
+        "Phase 5 \u516d\u670d\u52a1 ownership \u51bb\u7ed3\u8865\u5145\u4e8b\u5b9e",
+        "`knowledge-write` \u62e5\u6709 knowledge/trap/evidence \u5199\u6a21\u578b\u771f\u76f8",
+        "`job-runtime` \u53ea\u62e5\u6709 queue/outbox/worker/retry/reclaim/status \u7b49 runtime \u7f16\u6392",
+        "`packages/server` \u5f53\u524d\u662f compatibility shell \u4e0e runtime/status surface"
       ]
     },
     {
@@ -42,7 +42,7 @@
     {
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
       "mustContain": [
-        "`packages/server` 是 Fastify compatibility shell 与 shared runtime/status seam，不再承担默认 light 宿主职责，也不再提供本地宿主 rollback 入口。"
+        "`packages/server` \u662f Fastify compatibility shell \u4e0e shared runtime/status seam\uff0c\u4e0d\u518d\u627f\u62c5\u9ed8\u8ba4 light \u5bbf\u4e3b\u804c\u8d23\uff0c\u4e5f\u4e0d\u518d\u63d0\u4f9b\u672c\u5730\u5bbf\u4e3b rollback \u5165\u53e3\u3002"
       ]
     },
     {
@@ -54,17 +54,21 @@
     },
     {
       "file": "docs/README.md",
-      "mustNotContain": ["使用 JSON 文件存储", "48 张表", "54 张表"]
+      "mustNotContain": [
+        "\u4f7f\u7528 JSON \u6587\u4ef6\u5b58\u50a8",
+        "48 \u5f20\u8868",
+        "54 \u5f20\u8868"
+      ]
     },
     {
       "file": "docs/guides/GETTING_STARTED.md",
       "mustContain": [
-        "PostgreSQL 设置（默认）",
+        "PostgreSQL \u8bbe\u7f6e\uff08\u9ed8\u8ba4\uff09",
         ".data/skill-shareer.json",
         "pnpm --filter @trapmap/server db:migrate"
       ],
       "mustNotContain": [
-        "PostgreSQL 模式（可选）",
+        "PostgreSQL \u6a21\u5f0f\uff08\u53ef\u9009\uff09",
         ".data/trapmap.json",
         "pnpm run db:migrate",
         "pnpm run db:generate"
@@ -76,19 +80,20 @@
         "TRAPMAP_DATABASE_URL",
         "gpt-4o-mini",
         ".data/skill-shareer.json",
-        "仓库当前未包含 Helm chart"
+        "\u4ed3\u5e93\u5f53\u524d\u672a\u5305\u542b Helm chart"
       ],
-      "mustNotContain": ["使用 JSON 文件存储", "DEBUG=false", "SESSION_SECRET"],
+      "mustNotContain": [
+        "\u4f7f\u7528 JSON \u6587\u4ef6\u5b58\u50a8",
+        "DEBUG=false",
+        "SESSION_SECRET"
+      ],
       "mustNotContainRegex": ["gpt-4o(?!-)"],
-      "mustContainCount": {
-        "pattern": "PostgreSQL",
-        "minOccurrences": 3
-      }
+      "mustContainCount": { "pattern": "PostgreSQL", "minOccurrences": 3 }
     },
     {
       "file": "docs/reference/DATABASE_SCHEMA.md",
-      "mustContain": ["57 张表"],
-      "mustNotContain": ["48 张表", "54 张表", "56 张表"]
+      "mustContain": ["57 \u5f20\u8868"],
+      "mustNotContain": ["48 \u5f20\u8868", "54 \u5f20\u8868", "56 \u5f20\u8868"]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
@@ -97,8 +102,8 @@
     },
     {
       "file": "docs/architecture/components/PERSISTENCE.md",
-      "mustContain": ["57 张表", ".data/skill-shareer.json"],
-      "mustNotContain": ["48 张表", "56 张表"]
+      "mustContain": ["57 \u5f20\u8868", ".data/skill-shareer.json"],
+      "mustNotContain": ["48 \u5f20\u8868", "56 \u5f20\u8868"]
     },
     {
       "file": "docs/guides/CONTRIBUTING.md",
@@ -116,17 +121,17 @@
     {
       "file": "plan.md",
       "mustContain": [
-        "状态：`完成`",
-        "当前主线阶段：`Phase 0-7 全部完成`",
-        "Wave 7H：增强 doc-drift / structure / complexity 守卫",
-        "- [x] 文档入口、truth source、测试矩阵与当前实现一致，不再把未来态误写为现状"
+        "\u6267\u884c\u8ba1\u5212\u7d22\u5f15",
+        "\u5f53\u524d\u6d3b\u8dc3\u7ec6\u5219",
+        "docs/todos/backend-build-targets-plan.md",
+        "\u67b6\u6784\u6574\u6539\u4e3b\u7ebf Phase 0-7 \u5df2\u5168\u90e8\u5b8c\u6210"
       ],
-      "mustNotContain": ["状态：`进行中`", "当前主线阶段：`Phase 1-2`"]
+      "mustNotContain": ["\u5f53\u524d\u4e3b\u7ebf\u9636\u6bb5\uff1a`Phase 1-2`"]
     },
     {
-      "file": "docs/todos/trapmap-architecture-remediation-plan.md",
+      "file": "docs/archived/archived-plans/trapmap-architecture-remediation-plan.md",
       "mustContain": [
-        "状态：`完成`",
+        "\u72b6\u6001\uff1a`\u5b8c\u6210`",
         "### Phase 7 closure freeze (G5 maintainability / CI-testing truth / docs closeout)",
         "current active execution surface",
         "`pnpm run ci`",
@@ -140,15 +145,15 @@
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
       "mustContain": [
         "Phase 7 maintainability / CI-testing truth / docs closeout freeze",
-        "current active execution surface remains only `plan.md` + `docs/todos/trapmap-architecture-remediation-plan.md`",
+        "current active execution surface remains only `plan.md` + `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md`",
         "`architecture-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:mermaid`, and `pnpm check:complexity`"
       ]
     },
     {
       "file": "docs/README.md",
       "mustContain": [
-        "当前执行面只有一条",
-        "background 或 deferred reference",
+        "\u5f53\u524d\u6267\u884c\u9762\u53ea\u6709\u4e00\u6761",
+        "background \u6216 deferred reference",
         "`pnpm run ci`",
         "`pnpm eval:ci:core`"
       ],
@@ -156,20 +161,26 @@
     },
     {
       "file": "docs/todos/README.md",
-      "mustContain": ["背景/deferred 参考", "不再描述为仍由当前根计划并行拥有的 checklist"]
+      "mustContain": [
+        "\u80cc\u666f/deferred \u53c2\u8003",
+        "\u4e0d\u518d\u63cf\u8ff0\u4e3a\u4ecd\u7531\u5f53\u524d\u6839\u8ba1\u5212\u5e76\u884c\u62e5\u6709\u7684 checklist"
+      ]
     },
     {
       "file": "docs/archived/README.md",
-      "mustContain": ["不承担当前执行面"]
+      "mustContain": ["\u4e0d\u627f\u62c5\u5f53\u524d\u6267\u884c\u9762"]
     },
     {
       "file": "docs/plans/README.md",
       "mustContain": [
-        "唯一 active execution surface",
-        "默认不承担当前执行面",
+        "\u552f\u4e00 active execution surface",
+        "\u9ed8\u8ba4\u4e0d\u627f\u62c5\u5f53\u524d\u6267\u884c\u9762",
         "historical-reference"
       ],
-      "mustNotContain": ["active-reference", "NestJS 与服务演进执行索引"]
+      "mustNotContain": [
+        "active-reference",
+        "NestJS \u4e0e\u670d\u52a1\u6f14\u8fdb\u6267\u884c\u7d22\u5f15"
+      ]
     },
     {
       "file": "docs/operations/CI_CD.md",
@@ -189,13 +200,18 @@
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
-      "mustContain": ["fallback", "OPENAI_API_KEY", "GEMINI_API_KEY", "未暴露为稳定 CLI 命令"],
-      "mustNotContain": ["默认 openai"]
+      "mustContain": [
+        "fallback",
+        "OPENAI_API_KEY",
+        "GEMINI_API_KEY",
+        "\u672a\u66b4\u9732\u4e3a\u7a33\u5b9a CLI \u547d\u4ee4"
+      ],
+      "mustNotContain": ["\u9ed8\u8ba4 openai"]
     },
     {
       "file": "docs/architecture/components/AI_PROVIDER.md",
       "mustContain": ["fallback", "google-genai", "gpt-4o-mini", "llama3"],
-      "mustNotContain": ["默认 openai", "llama2"]
+      "mustNotContain": ["\u9ed8\u8ba4 openai", "llama2"]
     },
     {
       "file": "docs/architecture/ARCHITECTURE.md",
@@ -224,55 +240,69 @@
         "graph-extraction/",
         "ingestion/",
         "pnpm eval:ci",
-        "只输出 `badcaseEvalDraftSchema`",
-        "不属于 eval draft payload"
+        "\u53ea\u8f93\u51fa `badcaseEvalDraftSchema`",
+        "\u4e0d\u5c5e\u4e8e eval draft payload"
       ]
     },
     {
       "file": "docs/operations/TESTING.md",
       "mustContain": [
-        "route 额外携带的 `debug` 仅用于 operator/debug 闭环，不属于 eval draft payload。"
+        "route \u989d\u5916\u643a\u5e26\u7684 `debug` \u4ec5\u7528\u4e8e operator/debug \u95ed\u73af\uff0c\u4e0d\u5c5e\u4e8e eval draft payload\u3002"
       ]
     },
     {
       "file": "docs/todos/README.md",
-      "mustContain": ["已完成“健壮性与可扩展性收尾”主线", "后续新增问题应转入独立审计或独立计划"]
+      "mustContain": [
+        "\u5df2\u5b8c\u6210\"\u5065\u58ee\u6027\u4e0e\u53ef\u6269\u5c55\u6027\u6536\u5c3e\"\u4e3b\u7ebf",
+        "\u540e\u7eed\u65b0\u589e\u95ee\u9898\u5e94\u8f6c\u5165\u72ec\u7acb\u5ba1\u8ba1\u6216\u72ec\u7acb\u8ba1\u5212"
+      ]
     },
     {
       "file": "docs/archived/README.md",
-      "mustContain": ["当前根 `plan.md` 已完成“健壮性与可扩展性收尾”", "应新开独立审计或独立计划"]
+      "mustContain": [
+        "\u5f53\u524d\u6839 `plan.md` \u5df2\u5b8c\u6210\u201c\u5065\u58ee\u6027\u4e0e\u53ef\u6269\u5c55\u6027\u6536\u5c3e\u201d",
+        "\u5e94\u65b0\u5f00\u72ec\u7acb\u5ba1\u8ba1\u6216\u72ec\u7acb\u8ba1\u5212"
+      ]
     },
     {
       "file": "docs/reference/api-surface.md",
-      "mustContain": ["必须转入独立审计或独立计划", "不属于 script/eval draft payload"]
+      "mustContain": [
+        "\u5fc5\u987b\u8f6c\u5165\u72ec\u7acb\u5ba1\u8ba1\u6216\u72ec\u7acb\u8ba1\u5212",
+        "\u4e0d\u5c5e\u4e8e script/eval draft payload"
+      ]
     },
     {
       "file": "evals/README.md",
-      "mustContain": ["root-plan closeout 已冻结该边界", "唯一序列化载荷"]
+      "mustContain": [
+        "root-plan closeout \u5df2\u51bb\u7ed3\u8be5\u8fb9\u754c",
+        "\u552f\u4e00\u5e8f\u5217\u5316\u8f7d\u8377"
+      ]
     },
     {
       "file": "docs/README.md",
       "mustContain": ["Nest modular monolith"],
-      "mustNotContain": ["NestJS 是后续宿主替换目标"]
+      "mustNotContain": ["NestJS \u662f\u540e\u7eed\u5bbf\u4e3b\u66ff\u6362\u76ee\u6807"]
     },
     {
       "file": "docs/architecture/DEPLOYMENT.md",
-      "mustContain": ["Nest modular monolith 主线", "compatibility shell"],
-      "mustNotContain": []
+      "mustContain": ["Nest modular monolith \u4e3b\u7ebf", "compatibility shell"]
     },
     {
       "file": "docs/operations/TESTING.md",
-      "mustContain": ["Phase 4 验证归属矩阵"]
+      "mustContain": ["Phase 4 \u9a8c\u8bc1\u5f52\u5c5e\u77e9\u9635"]
     },
     {
       "file": "docs/PACKAGES.md",
-      "mustContain": ["Phase 4 数据、运维与退役收尾", "packages/host-local/src/nest/**"],
-      "mustNotContain": ["packages/host-distributed 是 compatibility shell"]
+      "mustContain": [
+        "Phase 4 \u6570\u636e\u3001\u8fd0\u7ef4\u4e0e\u9000\u5f79\u6536\u5c3e",
+        "packages/host-local/src/nest/**"
+      ],
+      "mustNotContain": ["packages/host-distributed \u662f compatibility shell"]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
-      "mustContain": ["默认 `light` 主线"],
-      "mustNotContain": ["Phase 1 试点"]
+      "mustContain": ["\u9ed8\u8ba4 `light` \u4e3b\u7ebf"],
+      "mustNotContain": ["Phase 1 \u8bd5\u70b9"]
     }
   ],
   "lineBudgets": [

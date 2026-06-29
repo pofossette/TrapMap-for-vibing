@@ -10,9 +10,13 @@ interface ServiceProcess {
   port: number;
   url: string;
   process: ChildProcess;
+  stdoutTail: string[];
+  stderrTail: string[];
 }
 
 const services: ServiceProcess[] = [];
+const STARTUP_TIMEOUT_MS =
+  process.env.VITEST_V8_COVERAGE === 'true' || process.env.CI === 'true' ? 180_000 : 60_000;
 
 async function allocatePort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -33,8 +37,19 @@ async function allocatePort(): Promise<number> {
   });
 }
 
-async function waitFor(url: string): Promise<void> {
-  const deadline = Date.now() + 60_000;
+function appendTail(target: string[], chunk: string) {
+  const lines = chunk.split('\n').filter(Boolean);
+  target.push(...lines);
+  if (target.length > 20) {
+    target.splice(0, target.length - 20);
+  }
+}
+
+async function waitFor(
+  url: string,
+  service?: Pick<ServiceProcess, 'name' | 'stdoutTail' | 'stderrTail'>,
+): Promise<void> {
+  const deadline = Date.now() + STARTUP_TIMEOUT_MS;
   while (Date.now() < deadline) {
     try {
       const response = await fetch(url);
@@ -46,7 +61,12 @@ async function waitFor(url: string): Promise<void> {
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error(`Timed out waiting for ${url}`);
+  const diagnostic = service
+    ? `\nstdout:\n${service.stdoutTail.join('\n') || '(empty)'}\n\nstderr:\n${service.stderrTail.join('\n') || '(empty)'}`
+    : '';
+  throw new Error(
+    `Timed out waiting for ${service?.name ?? 'service'} at ${url} after ${STARTUP_TIMEOUT_MS}ms${diagnostic}`,
+  );
 }
 
 async function startService(
@@ -61,11 +81,18 @@ async function startService(
     'packages/host-distributed/src/testing/distributed-runtime-smoke-service.ts',
   );
   const tsxCli = path.join(repoRoot, 'node_modules/tsx/dist/cli.mjs');
+  const childEnv = { ...process.env };
+  childEnv.NODE_V8_COVERAGE = undefined;
+  childEnv.VITEST = undefined;
+  childEnv.VITEST_MODE = undefined;
+  childEnv.__VITEST_POOL_ID__ = undefined;
+  childEnv.__VITEST_WORKER__ = undefined;
+  childEnv.__VITEST_PROVIDER__ = undefined;
 
   const child = spawn(process.execPath, [tsxCli, helperPath], {
     cwd: repoRoot,
     env: {
-      ...process.env,
+      ...childEnv,
       ...env,
       TRAPMAP_TEST_SERVICE_ROLE: role,
       TRAPMAP_SERVICE_PORT: String(port),
@@ -73,9 +100,34 @@ async function startService(
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
+  const stdoutTail: string[] = [];
+  const stderrTail: string[] = [];
+  child.stdout?.on('data', (chunk) => appendTail(stdoutTail, chunk.toString('utf8')));
+  child.stderr?.on('data', (chunk) => appendTail(stderrTail, chunk.toString('utf8')));
+
   const url = `http://127.0.0.1:${port}`;
-  await waitFor(`${url}${role === 'gateway' ? '/health' : '/internal/health'}`);
-  services.push({ name, port, url, process: child });
+  const service = { name, stdoutTail, stderrTail };
+  const readinessUrl = `${url}${role === 'gateway' ? '/health' : '/internal/health'}`;
+  await Promise.race([
+    waitFor(readinessUrl, service),
+    new Promise<never>((_, reject) => {
+      child.once('exit', (code, signal) => {
+        reject(
+          new Error(
+            `Service ${name} exited before readiness check (code=${code}, signal=${signal})\nstdout:\n${stdoutTail.join('\n') || '(empty)'}\n\nstderr:\n${stderrTail.join('\n') || '(empty)'}`,
+          ),
+        );
+      });
+      child.once('error', (error) => {
+        reject(
+          new Error(
+            `Service ${name} failed before readiness check: ${String(error)}\nstdout:\n${stdoutTail.join('\n') || '(empty)'}\n\nstderr:\n${stderrTail.join('\n') || '(empty)'}`,
+          ),
+        );
+      });
+    }),
+  ]);
+  services.push({ name, port, url, process: child, stdoutTail, stderrTail });
 }
 
 async function diagnostics(url: string) {

@@ -276,7 +276,7 @@ Round 2 closeout note:
 处理原则：
 
 - [ ] 本计划顺带收口与 connector / ownership 直接相关的部分
-- [ ] 其余更深的运维硬化继续由 `docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md` 跟踪
+- [ ] 其余更深的运维硬化继续由 `docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md` 跟踪
 
 ### B. 实现债
 
@@ -319,7 +319,7 @@ Round 2 closeout note:
 
 - [ ] 本计划记录为 P1 债
 - [ ] 仅当其直接阻碍默认入口替换时才纳入本轮实现
-- [ ] 更深的 runtime productization 继续参考 `docs/todos/backend-engineering-optimization-plan.md`
+- [ ] 更深的 runtime productization 继续参考 `docs/archived/archived-plans/backend-engineering-optimization-plan.md`
 
 #### B3. 读侧 / route hotspot 债
 
