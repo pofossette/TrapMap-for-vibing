@@ -181,9 +181,6 @@ importers:
       '@trapmap/service-knowledge-read':
         specifier: workspace:*
         version: link:../service-knowledge-read
-      fastify:
-        specifier: ^5.6.1
-        version: 5.8.4
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
