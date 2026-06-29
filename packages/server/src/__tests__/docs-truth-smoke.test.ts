@@ -586,10 +586,16 @@ describe('docs truth smoke', () => {
     expect(plan).not.toContain('状态：`进行中`');
     expect(plan).not.toContain('当前主线阶段：`Phase 1-2`');
 
-    expect(remediation).toContain('### Phase 7 closure freeze (G5 maintainability / CI-testing truth / docs closeout)');
+    expect(remediation).toContain(
+      '### Phase 7 closure freeze (G5 maintainability / CI-testing truth / docs closeout)',
+    );
     expect(remediation).toContain('状态：`完成`');
-    expect(remediation).toContain('current active execution surface remains only `plan.md` + `docs/todos/trapmap-architecture-remediation-plan.md`');
-    expect(remediation).toContain('Historical todo docs may remain as background/deferred references');
+    expect(remediation).toContain(
+      'current active execution surface remains only `plan.md` + `docs/todos/trapmap-architecture-remediation-plan.md`',
+    );
+    expect(remediation).toContain(
+      'Historical todo docs may remain as background/deferred references',
+    );
     expect(remediation).toContain('`pnpm run ci`');
     expect(remediation).toContain('`pnpm eval:smoke`');
     expect(remediation).toContain('`pnpm eval:ci`');
@@ -597,12 +603,20 @@ describe('docs truth smoke', () => {
     expect(remediation).toContain('Node `24`');
     expect(remediation).toContain('deferred platform topics');
 
-    expect(truthSources).toContain('Phase 7 maintainability / CI-testing truth / docs closeout freeze');
+    expect(truthSources).toContain(
+      'Phase 7 maintainability / CI-testing truth / docs closeout freeze',
+    );
     expect(truthSources).toContain('Current architecture remediation execution entry');
-    expect(truthSources).toContain('current active execution surface remains only `plan.md` + `docs/todos/trapmap-architecture-remediation-plan.md`');
-    expect(truthSources).toContain('Historical todo docs may remain as background/deferred references');
+    expect(truthSources).toContain(
+      'current active execution surface remains only `plan.md` + `docs/todos/trapmap-architecture-remediation-plan.md`',
+    );
+    expect(truthSources).toContain(
+      'Historical todo docs may remain as background/deferred references',
+    );
     expect(truthSources).toContain('Node `24`');
-    expect(truthSources).toContain('`architecture-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:mermaid`, and `pnpm check:complexity`');
+    expect(truthSources).toContain(
+      '`architecture-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:mermaid`, and `pnpm check:complexity`',
+    );
 
     expect(docsIndex).toContain('当前执行面只有');
     expect(docsIndex).toContain('历史背景输入，不再作为当前根计划执行面');
@@ -621,26 +635,42 @@ describe('docs truth smoke', () => {
     expect(plansIndex).not.toContain('active-reference');
     expect(plansIndex).not.toContain('NestJS 与服务演进执行索引');
 
-    expect(testing).toContain('Phase 7 Maintainability / CI-Testing Truth / Documentation Closeout Checks');
+    expect(testing).toContain(
+      'Phase 7 Maintainability / CI-Testing Truth / Documentation Closeout Checks',
+    );
     expect(testing).toContain('rtk pnpm eval:smoke');
     expect(testing).toContain('`pnpm eval:ci`');
     expect(testing).toContain('`pnpm eval:ci:core`');
 
     expect(ci).toContain('Node.js 24 + pnpm 10.33.0');
-    expect(ci).toContain('`architecture-guardrails` | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:complexity`');
+    expect(ci).toContain(
+      '`architecture-guardrails` | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:complexity`',
+    );
     expect(ci).toContain('`pnpm run ci`');
     expect(ci).toContain('`pnpm eval:smoke`');
     expect(ci).toContain('`pnpm eval:ci`');
     expect(ci).toContain('`pnpm eval:ci:core`');
     expect(ci).not.toContain('Node.js 20 + pnpm 10.33.0');
 
-    expect(repoStructure).toContain('`docs/plans/`: historical design references and only active again when a current root plan explicitly re-links them.');
-    expect(repoStructure).toContain('`docs/todos/`: pending work plus the phase detail docs linked from the current root `plan.md`.');
+    expect(repoStructure).toContain(
+      '`docs/plans/`: historical design references and only active again when a current root plan explicitly re-links them.',
+    );
+    expect(repoStructure).toContain(
+      '`docs/todos/`: pending work plus the phase detail docs linked from the current root `plan.md`.',
+    );
 
-    expect(packageJson).toContain('"ci": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-ci.ts"');
-    expect(packageJson).toContain('"eval:smoke": "pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier smoke"');
-    expect(packageJson).toContain('"eval:ci": "pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts"');
-    expect(packageJson).toContain('"eval:ci:core": "TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts"');
+    expect(packageJson).toContain(
+      '"ci": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-ci.ts"',
+    );
+    expect(packageJson).toContain(
+      '"eval:smoke": "pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier smoke"',
+    );
+    expect(packageJson).toContain(
+      '"eval:ci": "pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts"',
+    );
+    expect(packageJson).toContain(
+      '"eval:ci:core": "TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts"',
+    );
 
     expect(ciWorkflow).toContain("node-version: '24'");
     expect(ciWorkflow).toContain('architecture-guardrails:');
@@ -737,5 +767,52 @@ describe('docs truth smoke', () => {
 
   it('server raw report revalidation — source pack exists', () => {
     expect(existsSync(resolve(ROOT, 'docs/plans/fm-agent-scan/server-source-pack.md'))).toBe(true);
+  });
+
+  it('open-debt evidence paths point to existing files', () => {
+    const openDebt = readDoc('docs/todos/open-debt-and-compromises.md');
+    const evidenceSection = openDebt.slice(openDebt.indexOf('## 6. 证据入口'));
+    const linkPattern = /\(\.\.\/\.\.\/([^)]+)\)/g;
+    const matches = [...evidenceSection.matchAll(linkPattern)];
+    expect(matches.length).toBeGreaterThan(0);
+    for (const match of matches) {
+      const relPath = match[1];
+      expect(
+        existsSync(resolve(ROOT, relPath)),
+        `open-debt evidence path should exist: ${relPath}`,
+      ).toBe(true);
+    }
+  });
+
+  it('open-debt does not reference removed stubs/worker/outbox paths', () => {
+    const openDebt = readDoc('docs/todos/open-debt-and-compromises.md');
+    expect(openDebt).not.toContain('packages/host-local/src/bootstrap/stubs.ts');
+    expect(openDebt).not.toContain('packages/host-local/src/runtime/worker.ts');
+    expect(openDebt).not.toContain('packages/host-local/src/runtime/outbox.ts');
+  });
+
+  it('open-debt does not describe badcase taxonomy as uncompleted', () => {
+    const openDebt = readDoc('docs/todos/open-debt-and-compromises.md');
+    expect(openDebt).not.toContain('badcase 分类标准仍未统一定义');
+    expect(openDebt).not.toContain('待定分类');
+    expect(openDebt).toContain('canonical taxonomy');
+  });
+
+  it('badcase-feedback-loop retains five canonical taxonomy values', () => {
+    const badcase = readDoc('docs/todos/badcase-feedback-loop.md');
+    expect(badcase).toContain('recall-miss');
+    expect(badcase).toContain('ranking-error');
+    expect(badcase).toContain('summary-hallucination');
+    expect(badcase).toContain('governance-leak');
+    expect(badcase).toContain('stale-content');
+  });
+
+  it('backend-engineering plan clearly separates completed and remaining items', () => {
+    const plan = readDoc('docs/todos/backend-engineering-optimization-plan.md');
+    const todoSection = plan.slice(plan.indexOf('## TODO'), plan.indexOf('## 与总控阶段的映射'));
+    expect(todoSection).toContain('[x] 为检索、摘要、治理失败补齐');
+    expect(todoSection).toContain('[ ] 将高频异步任务从进程内副作用迁移到持久化任务队列');
+    expect(todoSection).toContain('PG 持久队列 schema');
+    expect(todoSection).not.toMatch(/^\- \[ \] 为检索、摘要、治理失败补齐/m);
   });
 });

@@ -156,10 +156,7 @@
     },
     {
       "file": "docs/todos/README.md",
-      "mustContain": [
-        "背景/deferred 参考",
-        "不再描述为仍由当前根计划并行拥有的 checklist"
-      ]
+      "mustContain": ["背景/deferred 参考", "不再描述为仍由当前根计划并行拥有的 checklist"]
     },
     {
       "file": "docs/archived/README.md",

@@ -5,8 +5,8 @@
 ## TODO
 
 - [x] 建立 badcase 回流闭环，把线上失败样本沉淀成可复现的评测 case。
-- [ ] 为检索、摘要、治理失败补齐 `queryId`、结果快照和失败分类。
-- [ ] 将高频异步任务从进程内副作用迁移到持久化任务队列。
+- [x] 为检索、摘要、治理失败补齐 `queryId`、结果快照和失败分类。（检索 `queryId` + feedback 快照已由 badcase-feedback-loop 链路覆盖；摘要失败分类由 `summaryEvalFailureKindSchema` 覆盖；治理失败分类由 `summarizeFailureClassifications` 覆盖。）
+- [ ] 将高频异步任务从进程内副作用迁移到持久化任务队列。（PG 持久队列 schema `queue.ts` 与 outbox dispatcher `outbox.ts` 已存在；badcase export、remediation 等异步工作流已走 PG-backed job runtime。剩余：部分索引重建与批量派生仍作为进程内副作用执行，尚未完全迁移。）
 - [x] 补齐队列、回流、检索失败分布等关键指标。
 - [x] 在真实吞吐出现后再评估 MQ 和微服务拆分。
 - [x] 统一 read freshness / projection lag contract，并把 freshness 暴露到 retrieval、operator、governance read model。

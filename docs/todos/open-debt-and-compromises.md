@@ -7,59 +7,47 @@
 - 本文档只描述“当前仍成立”的事项
 - 归档报告保留历史背景和阶段性快照
 
-## 1. 仍是占位实现
+## 1. host-local 运行时：已从 scaffold 推进到 Nest 装配
 
-### `packages/host-local/src/bootstrap/stubs.ts`
+当前 host-local 运行时通过 Nest 模块化装配，早期 scaffolding stubs 已被替换为真实的服务装配：
 
-当前 `createStubSessionLookup()`、`createStubTeamLookup()`、`createStubPermissionCheck()`、`createStubAuditLog()`、`createStubRetrievalQuery()` 以及多组 `createStub*Repo()` 仍返回 `null`、空数组、空对象或 no-op。
+- [`packages/host-local/src/nest/runtime/host-runtime.ts`](../../packages/host-local/src/nest/runtime/host-runtime.ts)：运行时生命周期装配
+- [`packages/host-local/src/nest/runtime/host-services.ts`](../../packages/host-local/src/nest/runtime/host-services.ts)：宿主服务注册
+- [`packages/host-local/src/nest/runtime/shared-infra.ts`](../../packages/host-local/src/nest/runtime/shared-infra.ts)：共享基础设施（adapter registry 等）
+- [`packages/host-local/src/nest/app.module.ts`](../../packages/host-local/src/nest/app.module.ts)：顶层 Nest module 入口
 
-这说明：
-
-- `host-local` 可以在缺少外部依赖时完成启动
-- 但不少 service port / repository port 还只是 scaffolding，不应被误判为完整实现
-
-### `packages/host-local/src/runtime/worker.ts`
-
-文件头已明确标注 `@stub`，并写明 real implementation deferred to Task 04/05。当前实现只是生命周期包装：
-
-- 可以创建 consumer
-- 可以暴露 `isRunning()` / `stop()`
-- 但真实任务轮询、处理、graceful drain、metrics、retry 仍未收口
-
-### `packages/host-local/src/runtime/outbox.ts`
-
-文件头同样明确标注 `@stub`。当前 outbox dispatcher 具备最小循环骨架，但仍缺少文档中已承认的收口项：
-
-- graceful drain
-- metrics
-- dead-letter handling
-
-这意味着它更接近“可运行的过渡态”，而不是完整的生产硬化实现。
+这意味着早期 scaffolding stubs 已被替换为真实的服务装配。剩余的运行时成熟度问题（如 distributed 侧的完整硬化）归入 deferred 平台级事项，不再是”占位实现”。
 
 ## 2. 明确还没完成的工程化事项
 
 ### `docs/todos/backend-engineering-optimization-plan.md`
 
-当前仍未完成的条目只剩两项：
+当前真正仍未完成的条目只剩一项：
 
-1. 为检索、摘要、治理失败补齐 `queryId`、结果快照和失败分类
-2. 将高频异步任务从进程内副作用迁移到持久化任务队列
+1. 将高频异步任务从进程内副作用迁移到持久化任务队列
 
-其中第 2 项和 `host-local` 的 worker/outbox 现状互相印证，说明异步治理仍在“已设计、未完全收口”的阶段。
+当前已存在的事实：
+
+- `packages/server/src/lib/persistence/schema/queue.ts` 已定义 PG 持久队列 schema
+- `packages/server/src/lib/lifecycle/outbox.ts` 已实现 outbox dispatcher 与投递循环
+- badcase export、remediation 等异步工作流已走 PG-backed job runtime
+
+剩余债务是：仍有部分高频异步路径（如部分索引重建、批量派生）尚未完全迁移到持久化队列调度，而是作为进程内副作用执行。
+
+之前”为检索、摘要、治理失败补齐 `queryId`、结果快照和失败分类”这一条目已经闭环：
+
+- 检索响应已暴露 `queryId`，feedback 已保存 `queryId` + 命中快照 + 正确预期
+- 摘要失败分类已有 `summaryEvalFailureKindSchema`（`contracts/src/domain/evals/report.ts`）
+- 治理失败分类已由 `summarizeFailureClassifications`（`server/src/routes/operations/status.ts`）暴露
+- badcase export / eval draft 链路已由 `scripts/export-badcase-to-eval.ts` 和 `/v1/operations/badcases/:feedbackId/export` 覆盖
 
 ### `docs/todos/badcase-feedback-loop.md`
 
-badcase 回流链路的大部分能力已经落地，但还差一个统一事实层：
+badcase 回流链路已全面闭环，包括分类标准：
 
-- badcase 分类标准仍未统一定义
-
-当前文档列出的待定分类包括：
-
-- 召回缺失
-- 排序错误
-- 摘要幻觉
-- 治理泄漏
-- 内容过时
+- 统一分类已定义并落地为 canonical taxonomy：`recall-miss`、`ranking-error`、`summary-hallucination`、`governance-leak`、`stale-content`
+- 权威定义位于 [`packages/contracts/src/enum-types/badcase-taxonomy.ts`](../../packages/contracts/src/enum-types/badcase-taxonomy.ts)
+- 旧值 `missing-recall`、`outdated-content` 仅作为兼容别名输入，持久化统一回写 canonical taxonomy
 
 ## 3. 为推进节奏保留的结构性妥协
 
@@ -97,19 +85,23 @@ badcase 回流链路的大部分能力已经落地，但还差一个统一事实
 
 ## 5. 当前判断
 
-按影响面排序，最值得优先继续收口的是：
+按影响面排序，当前最值得优先继续收口的是：
 
-1. `host-local` 的 worker / outbox 真实化
-2. 高频异步任务迁移到持久化任务队列
-3. badcase 分类标准统一
-4. 读侧 temporary direct-backed / projection exception 继续压缩
-5. 前端 mock 退路只保留在更明确的测试或开发场景
+1. `store_snapshot` allowlist 继续收缩：把 `compatibility JSONB store` 的剩余直读调用迁移到 repo-backed 路径
+2. 读侧 temporary direct-backed / projection exception 继续压缩
+3. compat shell / 重复 transport 清理：`packages/server` Fastify compatibility shell 的进一步瘦身
+4. 高频异步任务从进程内副作用迁移到持久化任务队列
+5. 平台级 distributed 运维成熟度（service discovery、独立扩缩容、独立故障域）：明确 deferred，在真实吞吐出现后再评估
 
 ## 6. 证据入口
 
-- [`packages/host-local/src/bootstrap/stubs.ts`](../../packages/host-local/src/bootstrap/stubs.ts)
-- [`packages/host-local/src/runtime/worker.ts`](../../packages/host-local/src/runtime/worker.ts)
-- [`packages/host-local/src/runtime/outbox.ts`](../../packages/host-local/src/runtime/outbox.ts)
+- [`packages/host-local/src/nest/runtime/host-runtime.ts`](../../packages/host-local/src/nest/runtime/host-runtime.ts)
+- [`packages/host-local/src/nest/runtime/host-services.ts`](../../packages/host-local/src/nest/runtime/host-services.ts)
+- [`packages/host-local/src/nest/runtime/shared-infra.ts`](../../packages/host-local/src/nest/runtime/shared-infra.ts)
+- [`packages/host-local/src/nest/app.module.ts`](../../packages/host-local/src/nest/app.module.ts)
+- [`packages/contracts/src/enum-types/badcase-taxonomy.ts`](../../packages/contracts/src/enum-types/badcase-taxonomy.ts)
+- [`packages/server/src/lib/persistence/schema/queue.ts`](../../packages/server/src/lib/persistence/schema/queue.ts)
+- [`packages/server/src/lib/lifecycle/outbox.ts`](../../packages/server/src/lib/lifecycle/outbox.ts)
 - [`packages/web-panel/src/services/admin-panel-service-context.ts`](../../packages/web-panel/src/services/admin-panel-service-context.ts)
 - [`docs/todos/backend-engineering-optimization-plan.md`](./backend-engineering-optimization-plan.md)
 - [`docs/todos/badcase-feedback-loop.md`](./badcase-feedback-loop.md)
