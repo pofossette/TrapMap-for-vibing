@@ -29,7 +29,8 @@
     "@trapmap/server": "workspace:*",
     "@trapmap/service-knowledge-read": "workspace:*",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@nestjs/testing": "^11.1.27",
