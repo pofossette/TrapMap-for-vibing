@@ -11,6 +11,14 @@
 - 什么时候必须更新文档、索引、测试或 badcase：看 [`docs/guides/DOCUMENTATION_GOVERNANCE.md`](docs/guides/DOCUMENTATION_GOVERNANCE.md)
 - 在本仓库执行 shell 命令时按本地约定加 `rtk` 前缀，例如 `rtk pnpm test:file -- packages/server/src/app.test.ts`
 
+## 计划与待办目录规则
+
+- `plan.md`（根）：只做索引，链接当前活跃细则，不承载执行细节
+- `docs/todos/`：存放当前活跃的计划细则和 debt register；已完成或 deferred 的文档归档至 `docs/archived/archived-plans/`
+- 活跃文档只有当前主线计划和 `open-debt-and-compromises.md`；NestJS 服务演进 01/02/04 作为背景参考保留
+- 新增问题优先进入当前活跃细则的问题池或其显式声明的 deferred 落点，不回写已归档文档
+- 归档操作：`git mv` 到 `docs/archived/archived-plans/`，同步更新 `docs/archived/README.md` 归档表和 `docs/todos/README.md` 索引
+
 ## 通用执行约束
 
 - 共享类型、Schema、API shape 以 [`packages/contracts/src/index.ts`](packages/contracts/src/index.ts) 和 [`packages/contracts/src/domain/`](packages/contracts/src/domain/) 为准

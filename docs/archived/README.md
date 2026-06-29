@@ -20,6 +20,18 @@
 | `archived-plans/plan-2026-06-28-backend-build-targets-index-archived.md` | 2026-06-28 | 根 `plan.md` 已切换为数据埋点增强主线，轻重后端构建目标索引退回历史参考 |
 | `archived-plans/plan-2026-06-28-instrumentation-observability-index-archived.md` | 2026-06-28 | 根 `plan.md` 已切换为健壮性与可扩展性收尾主线，数据埋点增强索引退回历史参考 |
 | `archived-plans/plan-2026-06-28-robustness-scalability-closeout-index-archived.md` | 2026-06-28 | 根 `plan.md` 已切换为架构整改主线，健壮性与可扩展性收尾索引退回历史参考 |
+| `archived-plans/trapmap-architecture-remediation-plan.md` | 2026-06-29 | 架构整改主线 Phase 0-7 全部完成，归档 |
+| `archived-plans/robustness-scalability-closeout-plan.md` | 2026-06-29 | 健壮性与可扩展性收尾已完成，历史参考 |
+| `archived-plans/badcase-feedback-loop.md` | 2026-06-29 | badcase 回流闭环已完成，历史参考 |
+| `archived-plans/backend-engineering-optimization-plan.md` | 2026-06-29 | 85% 完成，剩余 1 项（异步任务队列迁移）转入 debt register 跟踪 |
+| `archived-plans/instrumentation-observability-plan.md` | 2026-06-29 | 45% 完成，不再由根计划跟踪，Phase 2-4 保留为背景参考 |
+| `archived-plans/component-replacement-plan.md` | 2026-06-29 | 5% 完成，5 个库替换均未启动，退回背景参考 |
+| `archived-plans/nestjs-service-evolution-00-target-architecture.md` | 2026-06-29 | 目标架构冻结已完成，历史参考 |
+| `archived-plans/nestjs-service-evolution-03-service-extraction-and-async.md` | 2026-06-29 | 状态 proposed，0% 完成，退回背景参考 |
+| `archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md` | 2026-06-29 | 评估本身完成，Level 3/4 升级判据保留为前瞻性参考 |
+| `archived-plans/nestjs-service-evolution-knowledge-write-governance-review-pilot.md` | 2026-06-29 | 状态 proposed，0% 完成，成熟服务样板规划退回背景参考 |
+| `archived-plans/nestjs-service-evolution-knowledge-write-governance-review-preflight-checklist.md` | 2026-06-29 | 状态 proposed，0% 完成，样板实施前检查表退回背景参考 |
+| `archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md` | 2026-06-29 | 状态 proposed，0% 完成，样板代码迁移任务列表退回背景参考 |
 
 ## 归档原则
 

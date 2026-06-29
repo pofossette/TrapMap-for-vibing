@@ -134,7 +134,9 @@ describe('docs truth smoke', () => {
   });
 
   it('Phase 1 boundary docs freeze server/backend-core/service-host ownership facts', () => {
-    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const remediation = readDoc(
+      'docs/archived/archived-plans/trapmap-architecture-remediation-plan.md',
+    );
     const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
     const packagesDoc = readDoc('docs/PACKAGES.md');
     const appSource = readDoc('packages/server/src/app.ts');
@@ -192,7 +194,9 @@ describe('docs truth smoke', () => {
   });
 
   it('Phase 2 docs freeze store_snapshot, InMemory fallback, and PG-first posture facts', () => {
-    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const remediation = readDoc(
+      'docs/archived/archived-plans/trapmap-architecture-remediation-plan.md',
+    );
     const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
     const packagesDoc = readDoc('docs/PACKAGES.md');
     const persistenceDoc = readDoc('docs/architecture/components/PERSISTENCE.md');
@@ -244,7 +248,9 @@ describe('docs truth smoke', () => {
   });
 
   it('Phase 3 docs freeze adapter scope, provider taxonomy, and host/gateway boundaries', () => {
-    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const remediation = readDoc(
+      'docs/archived/archived-plans/trapmap-architecture-remediation-plan.md',
+    );
     const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
     const packagesDoc = readDoc('docs/PACKAGES.md');
     const repoStructure = readDoc('docs/reference/REPO_STRUCTURE.md');
@@ -307,7 +313,9 @@ describe('docs truth smoke', () => {
   });
 
   it('Phase 4 docs freeze selector envs, recommended profile combos, and target-pruning posture', () => {
-    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const remediation = readDoc(
+      'docs/archived/archived-plans/trapmap-architecture-remediation-plan.md',
+    );
     const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
     const packagesDoc = readDoc('docs/PACKAGES.md');
     const environmentDoc = readDoc('docs/operations/ENVIRONMENT.md');
@@ -373,13 +381,15 @@ describe('docs truth smoke', () => {
   });
 
   it('Phase 5 docs freeze distributed maturity baseline, shared-PG posture, and deferred boundary', () => {
-    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const remediation = readDoc(
+      'docs/archived/archived-plans/trapmap-architecture-remediation-plan.md',
+    );
     const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
     const packagesDoc = readDoc('docs/PACKAGES.md');
     const deploymentDoc = readDoc('docs/architecture/DEPLOYMENT.md');
     const testingDoc = readDoc('docs/operations/TESTING.md');
     const maturityDoc = readDoc(
-      'docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md',
+      'docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md',
     );
     const hostDistributedReadme = readDoc('packages/host-distributed/README.md');
     const composeFile = readDoc('docker-compose.yml');
@@ -395,7 +405,7 @@ describe('docs truth smoke', () => {
 
     expect(truthSources).toContain('Phase 5 distributed baseline / runtime-isolation freeze');
     expect(truthSources).toContain(
-      'docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md',
+      'docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md',
     );
     expect(truthSources).toContain(
       'packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts',
@@ -435,7 +445,9 @@ describe('docs truth smoke', () => {
   });
 
   it('Phase 6 docs freeze mature-capability boundaries without overstating platform maturity', () => {
-    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const remediation = readDoc(
+      'docs/archived/archived-plans/trapmap-architecture-remediation-plan.md',
+    );
     const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
     const packagesDoc = readDoc('docs/PACKAGES.md');
     const environmentDoc = readDoc('docs/operations/ENVIRONMENT.md');
@@ -568,7 +580,9 @@ describe('docs truth smoke', () => {
 
   it('Phase 7 docs freeze active execution surface, CI truth, and deferred landing spots', () => {
     const plan = readDoc('plan.md');
-    const remediation = readDoc('docs/todos/trapmap-architecture-remediation-plan.md');
+    const remediation = readDoc(
+      'docs/archived/archived-plans/trapmap-architecture-remediation-plan.md',
+    );
     const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
     const docsIndex = readDoc('docs/README.md');
     const todosIndex = readDoc('docs/todos/README.md');
@@ -591,7 +605,7 @@ describe('docs truth smoke', () => {
     );
     expect(remediation).toContain('状态：`完成`');
     expect(remediation).toContain(
-      'current active execution surface remains only `plan.md` + `docs/todos/trapmap-architecture-remediation-plan.md`',
+      'current active execution surface remains only `plan.md` + `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md`',
     );
     expect(remediation).toContain(
       'Historical todo docs may remain as background/deferred references',
@@ -608,7 +622,7 @@ describe('docs truth smoke', () => {
     );
     expect(truthSources).toContain('Current architecture remediation execution entry');
     expect(truthSources).toContain(
-      'current active execution surface remains only `plan.md` + `docs/todos/trapmap-architecture-remediation-plan.md`',
+      'current active execution surface remains only `plan.md` + `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md`',
     );
     expect(truthSources).toContain(
       'Historical todo docs may remain as background/deferred references',
@@ -799,7 +813,7 @@ describe('docs truth smoke', () => {
   });
 
   it('badcase-feedback-loop retains five canonical taxonomy values', () => {
-    const badcase = readDoc('docs/todos/badcase-feedback-loop.md');
+    const badcase = readDoc('docs/archived/archived-plans/badcase-feedback-loop.md');
     expect(badcase).toContain('recall-miss');
     expect(badcase).toContain('ranking-error');
     expect(badcase).toContain('summary-hallucination');
@@ -808,7 +822,7 @@ describe('docs truth smoke', () => {
   });
 
   it('backend-engineering plan clearly separates completed and remaining items', () => {
-    const plan = readDoc('docs/todos/backend-engineering-optimization-plan.md');
+    const plan = readDoc('docs/archived/archived-plans/backend-engineering-optimization-plan.md');
     const todoSection = plan.slice(plan.indexOf('## TODO'), plan.indexOf('## 与总控阶段的映射'));
     expect(todoSection).toContain('[x] 为检索、摘要、治理失败补齐');
     expect(todoSection).toContain('[ ] 将高频异步任务从进程内副作用迁移到持久化任务队列');

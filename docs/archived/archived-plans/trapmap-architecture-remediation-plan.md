@@ -270,7 +270,7 @@
 
 ### Phase 7 closure freeze (G5 maintainability / CI-testing truth / docs closeout)
 
-- Phase 7 冻结的是 maintainability / CI-testing truth / documentation closeout，不引入 runtime refactor。The current active execution surface remains only `plan.md` + `docs/todos/trapmap-architecture-remediation-plan.md`；历史计划、历史 closeout、以及背景/专题文档都不得再被描述成与当前根计划并行的 active execution surface。
+- Phase 7 冻结的是 maintainability / CI-testing truth / documentation closeout，不引入 runtime refactor。The current active execution surface remains only `plan.md` + `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md`；历史计划、历史 closeout、以及背景/专题文档都不得再被描述成与当前根计划并行的 active execution surface。
 - Historical todo docs may remain as background/deferred references。`docs/todos/backend-engineering-optimization-plan.md`、`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`、`docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md`、`docs/todos/robustness-scalability-closeout-plan.md`、`docs/todos/instrumentation-observability-plan.md` 等文档，必须被描述为历史背景、deferred 落点或已完成 closeout 参考，而不是仍由当前根计划并行拥有的 checklist。
 - CI/testing truth 当前冻结为实际文件与脚本面：CI authoritative source 是 `.github/workflows/ci.yml`，workspace command truth 是 `package.json` scripts。文档引用 CI 或测试命令时，必须以 `pnpm run ci`、`pnpm eval:smoke`、`pnpm eval:ci`、`pnpm eval:ci:core` 的当前脚本语义为准，而不是旧命名、旧 tier 入口或手写替代表述。
 - eval command semantics 当前冻结为：`pnpm eval:smoke` 运行 smoke tier 的统一 eval 聚合器；`pnpm eval:ci` 运行 CI baseline-aware eval runner 的默认 smoke tier；`pnpm eval:ci:core` 运行同一 CI runner 的 core tier 入口；这些命令之间可以有实现复用，但 secondary docs 不得把 `pnpm eval:ci:core` 改写成别的用户面命令，也不得把 `pnpm eval:smoke` 写成 CI baseline 对比命令。

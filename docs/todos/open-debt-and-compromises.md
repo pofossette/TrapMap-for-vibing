@@ -20,7 +20,7 @@
 
 ## 2. 明确还没完成的工程化事项
 
-### `docs/todos/backend-engineering-optimization-plan.md`
+### `docs/archived/archived-plans/backend-engineering-optimization-plan.md`（已归档）
 
 当前真正仍未完成的条目只剩一项：
 
@@ -41,7 +41,7 @@
 - 治理失败分类已由 `summarizeFailureClassifications`（`server/src/routes/operations/status.ts`）暴露
 - badcase export / eval draft 链路已由 `scripts/export-badcase-to-eval.ts` 和 `/v1/operations/badcases/:feedbackId/export` 覆盖
 
-### `docs/todos/badcase-feedback-loop.md`
+### `docs/archived/archived-plans/badcase-feedback-loop.md`（已归档）
 
 badcase 回流链路已全面闭环，包括分类标准：
 
@@ -66,7 +66,7 @@ badcase 回流链路已全面闭环，包括分类标准：
 
 ### 深度细节被有意 deferred
 
-`docs/todos/backend-engineering-optimization-plan.md` 还明确写了两类 closeout 方式：
+`docs/archived/archived-plans/backend-engineering-optimization-plan.md` 还明确写了两类 closeout 方式：
 
 - `capacityModel.databasePool.maxConnections` 被关闭为 deferred detail
 - 热点 `team/query/artifact` drill-down 被关闭为 non-default deep drill-down
@@ -103,6 +103,6 @@ badcase 回流链路已全面闭环，包括分类标准：
 - [`packages/server/src/lib/persistence/schema/queue.ts`](../../packages/server/src/lib/persistence/schema/queue.ts)
 - [`packages/server/src/lib/lifecycle/outbox.ts`](../../packages/server/src/lib/lifecycle/outbox.ts)
 - [`packages/web-panel/src/services/admin-panel-service-context.ts`](../../packages/web-panel/src/services/admin-panel-service-context.ts)
-- [`docs/todos/backend-engineering-optimization-plan.md`](./backend-engineering-optimization-plan.md)
-- [`docs/todos/badcase-feedback-loop.md`](./badcase-feedback-loop.md)
+- [`docs/archived/archived-plans/backend-engineering-optimization-plan.md`](../archived/archived-plans/backend-engineering-optimization-plan.md)
+- [`docs/archived/archived-plans/badcase-feedback-loop.md`](../archived/archived-plans/badcase-feedback-loop.md)
 - [`docs/archived/reports/DEBT_AND_PLACEHOLDER_REPORT.md`](../archived/reports/DEBT_AND_PLACEHOLDER_REPORT.md)

@@ -10,36 +10,37 @@
 
 当前文档：
 
-| 文件 | 主题 |
-|---|---|
-| `badcase-feedback-loop.md` | badcase 回流闭环 |
-| `component-replacement-plan.md` | 组件替换计划：通用工具、缓存能力、队列产品化评估 |
-| `backend-engineering-optimization-plan.md` | 后端工程化优化计划 |
-| `backend-build-targets-plan.md` | 轻重后端构建目标、兼容壳清理与客户端后端形态配置计划 |
-| `instrumentation-observability-plan.md` | 数据埋点增强、运行监控、链路追踪与 debug surface 计划 |
-| `robustness-scalability-closeout-plan.md` | 健壮性与可扩展性收尾：问题清理、风险收敛、truth source 修复与测试证据补强 |
-| `trapmap-architecture-remediation-plan.md` | 当前唯一活跃主线细则：30 个架构问题的单一问题池、阶段复选框、文档矩阵、测试矩阵与 deferred 落点 |
-| `nestjs-service-evolution-00-target-architecture.md` | NestJS 长期目标架构与迁移边界冻结 |
-| `nestjs-service-evolution-01-host-and-contract-foundation.md` | Nest 宿主、配置与 contract 基础收口 |
-| `nestjs-service-evolution-02-modular-monolith-cutover.md` | 模块化单体切换：边界冻结、兼容层规则与机械迁移提示词 |
-| `nestjs-service-evolution-03-service-extraction-and-async.md` | 服务拆分与异步化 |
-| `nestjs-service-evolution-04-data-runtime-and-cutover.md` | 数据、运维、退役与收尾 |
-| `nestjs-service-evolution-distributed-maturity-assessment.md` | 当前 distributed 形态成熟度评估与升级判据 |
-| `nestjs-service-evolution-knowledge-write-governance-review-pilot.md` | 第一批成熟服务样板：`knowledge-write + governance-review` |
-| `nestjs-service-evolution-knowledge-write-governance-review-preflight-checklist.md` | 样板实施前检查表 |
-| `nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md` | 样板代码迁移任务列表 |
-| `open-debt-and-compromises.md` | 当前仍未收口的占位实现、阶段性妥协与开发退路 |
+| 文件 | 主题 | 状态 |
+|---|---|---|
+| `backend-build-targets-plan.md` | 轻重后端构建目标、兼容壳清理与客户端后端形态配置计划 | 进行中 (~35%) |
+| `open-debt-and-compromises.md` | 当前仍未收口的占位实现、阶段性妥协与开发退路 | 活跃 debt register |
 
-当前根 `plan.md` 已切换为“TrapMap 架构整改计划索引”；当前唯一活跃细则入口为 [`trapmap-architecture-remediation-plan.md`](trapmap-architecture-remediation-plan.md)，用于收口 30 个架构问题的单一问题池、治理主题、进度复选框、文档回写要求和测试矩阵。Phase 0-7 已完成入口归并、边界冻结、deferred 入口、统一适配器范围、distributed 基线、成熟能力矩阵、CI/testing truth 与文档守卫收口。
-除该细则外，本目录其余文档当前都只能被描述为背景/deferred 参考，不再描述为仍由当前根计划并行拥有的 checklist。
+## 背景/deferred 参考
 
-[`robustness-scalability-closeout-plan.md`](robustness-scalability-closeout-plan.md) 已完成并退回为历史 closeout 参考；`instrumentation-observability-plan.md` 保留为上一轮 observability 主线背景，不再由根计划直接跟踪。
-历史状态说明：当前根 `plan.md` 已完成“健壮性与可扩展性收尾”主线；后续新增问题应转入独立审计或独立计划。对当前架构整改主题，这些新增问题应优先进入当前活跃细则的问题池，或转入该细则显式声明的 deferred 落点。
+以下 NestJS 服务演进文档保留为后续参考，但不再描述为仍由当前根计划并行拥有的 checklist。
 
-当前 closeout 还冻结了一条 badcase/eval 边界：operator route 可返回 `debug` 闭环信息，但 `scripts/export-badcase-to-eval.ts` 与 eval fixtures 只承载 deterministic `draft`。
+| 文件 | 主题 | 状态 |
+|---|---|---|
+| `nestjs-service-evolution-01-host-and-contract-foundation.md` | Nest 宿主、配置与 contract 基础收口 | 进行中 (~60%) |
+| `nestjs-service-evolution-02-modular-monolith-cutover.md` | 模块化单体切换：边界冻结、兼容层规则与机械迁移提示词 | 进行中 (~55%) |
+| `nestjs-service-evolution-04-data-runtime-and-cutover.md` | 数据、运维、退役与收尾 | 进行中 (~55%) |
 
-当前已明确的 deferred 落点：
+## 已归档
 
-- `backend-engineering-optimization-plan.md`：MQ 产品化、监控平台、长期服务化与平台级工程化问题池
-- `nestjs-service-evolution-04-data-runtime-and-cutover.md` 与 `nestjs-service-evolution-distributed-maturity-assessment.md`：compatibility shell 进一步退役、owner matrix 历史冻结和 distributed 成熟度审计
-- `robustness-scalability-closeout-plan.md` 与 `instrumentation-observability-plan.md`：保留为已完成 closeout / observability 背景，不再承载当前架构整改执行面
+已完成"健壮性与可扩展性收尾"主线。2026-06-29 批量归档已完成和 deferred 的文档至 [`docs/archived/archived-plans/`](../archived/archived-plans/)，详见 [`docs/archived/README.md`](../archived/README.md)。
+
+后续新增问题应转入独立审计或独立计划，不再回写已归档的旧主线。
+
+归档文件：
+- `trapmap-architecture-remediation-plan.md` — 架构整改主线，Phase 0-7 全部完成
+- `robustness-scalability-closeout-plan.md` — 健壮性与可扩展性收尾，已完成
+- `badcase-feedback-loop.md` — badcase 回流闭环，已完成
+- `backend-engineering-optimization-plan.md` — 后端工程化优化，85% 完成，剩余 1 项转入 debt register
+- `instrumentation-observability-plan.md` — 数据埋点增强，45% 完成，不再由根计划跟踪
+- `component-replacement-plan.md` — 组件替换计划，5% 完成，未启动
+- `nestjs-service-evolution-00-target-architecture.md` — 目标架构冻结，已完成
+- `nestjs-service-evolution-03-service-extraction-and-async.md` — 服务拆分与异步化，proposed 状态
+- `nestjs-service-evolution-distributed-maturity-assessment.md` — 分布式成熟度评估，评估完成
+- `nestjs-service-evolution-knowledge-write-governance-review-pilot.md` — 成熟服务样板，proposed 状态
+- `nestjs-service-evolution-knowledge-write-governance-review-preflight-checklist.md` — 样板实施前检查表，proposed 状态
+- `nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md` — 样板代码迁移任务列表，proposed 状态
