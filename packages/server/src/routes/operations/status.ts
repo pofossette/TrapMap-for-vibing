@@ -21,9 +21,9 @@ import {
 } from '@trapmap/server/lib/operations/status-support.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { recordRuntimeBacklog } from '@trapmap/server/lib/runtime/metrics.js';
 import { resolveAsyncWorkerState } from '@trapmap/server/lib/runtime/runtime-metadata.js';
 import { getServiceUnitProfile } from '@trapmap/server/lib/runtime/service-unit.js';
-import { recordRuntimeBacklog } from '@trapmap/server/lib/runtime/metrics.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';

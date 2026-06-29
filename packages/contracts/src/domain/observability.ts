@@ -130,24 +130,23 @@ export function pickWorkflowCorrelation(
     return null;
   }
 
-  const candidate = {
-    requestId:
-      typeof source.requestId === 'string' && source.requestId.length > 0
-        ? source.requestId
-        : undefined,
-    traceId:
-      typeof source.traceId === 'string' && source.traceId.length > 0 ? source.traceId : undefined,
-    queryId:
-      typeof source.queryId === 'string' && source.queryId.length > 0 ? source.queryId : undefined,
-    feedbackId:
-      typeof source.feedbackId === 'string' && source.feedbackId.length > 0
-        ? source.feedbackId
-        : undefined,
-    asyncJobId:
-      typeof source.asyncJobId === 'string' && source.asyncJobId.length > 0
-        ? source.asyncJobId
-        : undefined,
-  };
+  const candidate: WorkflowCorrelation = {};
+
+  if (typeof source.requestId === 'string' && source.requestId.length > 0) {
+    candidate.requestId = source.requestId;
+  }
+  if (typeof source.traceId === 'string' && source.traceId.length > 0) {
+    candidate.traceId = source.traceId;
+  }
+  if (typeof source.queryId === 'string' && source.queryId.length > 0) {
+    candidate.queryId = source.queryId;
+  }
+  if (typeof source.feedbackId === 'string' && source.feedbackId.length > 0) {
+    candidate.feedbackId = source.feedbackId;
+  }
+  if (typeof source.asyncJobId === 'string' && source.asyncJobId.length > 0) {
+    candidate.asyncJobId = source.asyncJobId;
+  }
 
   const parsed = workflowCorrelationSchema.safeParse(candidate);
   if (!parsed.success) {

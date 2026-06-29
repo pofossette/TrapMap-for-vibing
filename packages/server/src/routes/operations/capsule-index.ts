@@ -110,6 +110,7 @@ export const capsuleIndexRoutes: FastifyPluginAsync = async (app) => {
         startedAt,
         completedAt: null,
         lastError: null,
+        correlation: null,
         stats: { mode: body.mode },
         createdAt: startedAt,
         updatedAt: startedAt,

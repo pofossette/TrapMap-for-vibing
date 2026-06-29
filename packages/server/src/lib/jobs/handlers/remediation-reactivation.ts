@@ -46,6 +46,7 @@ export function createRemediationReactivationHandler(args: {
         startedAt: now,
         completedAt: null,
         lastError: null,
+        correlation: null,
         stats: {
           taskType: REMEDIATION_REACTIVATION_TASK_TYPE,
           feedbackCount: task.payload.feedbackIds.length,
@@ -129,6 +130,7 @@ export function createRemediationReactivationHandler(args: {
         startedAt: task.startedAt?.toISOString() ?? new Date().toISOString(),
         completedAt: new Date().toISOString(),
         lastError: task.lastError ?? 'Unknown error',
+        correlation: null,
         stats: {
           taskType: REMEDIATION_REACTIVATION_TASK_TYPE,
         },

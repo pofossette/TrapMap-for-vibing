@@ -36,6 +36,7 @@ export function createSkillIndexFollowUpHandler(args: {
         startedAt: now,
         completedAt: null,
         lastError: null,
+        correlation: null,
         stats: {
           taskType: SKILL_INDEX_FOLLOW_UP_TASK_TYPE,
           reason: task.payload.reason,
@@ -89,6 +90,7 @@ export function createSkillIndexFollowUpHandler(args: {
         startedAt: task.startedAt?.toISOString() ?? new Date().toISOString(),
         completedAt: new Date().toISOString(),
         lastError: task.lastError ?? 'Unknown error',
+        correlation: null,
         stats: {
           taskType: SKILL_INDEX_FOLLOW_UP_TASK_TYPE,
         },

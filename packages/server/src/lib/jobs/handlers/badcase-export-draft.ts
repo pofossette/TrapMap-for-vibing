@@ -35,6 +35,7 @@ export function createBadcaseExportDraftHandler(args: {
         startedAt: now,
         completedAt: null,
         lastError: null,
+        correlation: null,
         stats: {
           taskType: BADCASE_EXPORT_DRAFT_TASK_TYPE,
           asyncJobId: runId,
@@ -89,6 +90,7 @@ export function createBadcaseExportDraftHandler(args: {
         startedAt: task.startedAt?.toISOString() ?? new Date().toISOString(),
         completedAt: new Date().toISOString(),
         lastError: task.lastError ?? 'Unknown error',
+        correlation: null,
         stats: {
           taskType: BADCASE_EXPORT_DRAFT_TASK_TYPE,
           asyncJobId: contract.workflow.runId(task.payload),

@@ -96,6 +96,7 @@ export async function processCandidate(
         startedAt: now,
         completedAt: null,
         lastError: null,
+        correlation: null,
         stats: {},
         createdAt: now,
         updatedAt: now,

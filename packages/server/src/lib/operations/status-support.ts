@@ -1,6 +1,6 @@
+import { observabilityFailureTaxonomyItems } from '@trapmap/contracts';
 import type { getCacheMetricsSnapshot } from '@trapmap/server/lib/cache/metrics.js';
 import type { summarizeFailureClassifications } from '@trapmap/server/lib/operations/read-model.js';
-import { observabilityFailureTaxonomyItems } from '@trapmap/contracts';
 
 export const FAILURE_TAXONOMY = observabilityFailureTaxonomyItems;
 

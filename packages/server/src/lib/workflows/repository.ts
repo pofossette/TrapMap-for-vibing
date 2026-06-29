@@ -2,7 +2,6 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
-import { pickWorkflowCorrelation } from '@trapmap/contracts';
 import { workflowRuns } from '@trapmap/server/lib/persistence/schema.js';
 import type {
   WorkflowRunSnapshot,
@@ -29,7 +28,34 @@ interface WorkflowRunRow {
 function extractWorkflowCorrelation(
   stats: Record<string, number | string | boolean | null> | null | undefined,
 ): WorkflowRunSnapshot['correlation'] {
-  return pickWorkflowCorrelation(stats);
+  if (!stats) {
+    return null;
+  }
+
+  const correlation: NonNullable<WorkflowRunSnapshot['correlation']> = {};
+
+  const requestId = stats.requestId;
+  if (typeof requestId === 'string' && requestId.length > 0) {
+    correlation.requestId = requestId;
+  }
+  const traceId = stats.traceId;
+  if (typeof traceId === 'string' && traceId.length > 0) {
+    correlation.traceId = traceId;
+  }
+  const queryId = stats.queryId;
+  if (typeof queryId === 'string' && queryId.length > 0) {
+    correlation.queryId = queryId;
+  }
+  const feedbackId = stats.feedbackId;
+  if (typeof feedbackId === 'string' && feedbackId.length > 0) {
+    correlation.feedbackId = feedbackId;
+  }
+  const asyncJobId = stats.asyncJobId;
+  if (typeof asyncJobId === 'string' && asyncJobId.length > 0) {
+    correlation.asyncJobId = asyncJobId;
+  }
+
+  return Object.keys(correlation).length > 0 ? correlation : null;
 }
 
 function rowToSnapshot(row: WorkflowRunRow): WorkflowRunSnapshot {

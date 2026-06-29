@@ -1,8 +1,8 @@
 import {
   type BadcaseEvalDraft,
+  badcaseExportResponseSchema,
   buildBadcaseDebugContract,
   buildBadcaseEvalDraft,
-  badcaseExportResponseSchema,
   pickWorkflowCorrelation,
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
@@ -78,7 +78,8 @@ export const badcaseRoutes: FastifyPluginAsync = async (app) => {
         feedbackId,
         queryId: row.query_id,
         asyncJobId,
-      });
+      }) ??
+      {};
     const response = badcaseExportResponseSchema.parse({
       feedbackId,
       draft: buildDraft(row),
