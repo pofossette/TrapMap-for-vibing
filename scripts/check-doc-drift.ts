@@ -26,7 +26,7 @@ export interface DocRule {
   mustNotContainRegex?: string[];
   /** Assert count-based constraints via regex matching. */
   mustContainCount?: CountAssertion;
-  /** Content must match at least one of these regex patterns. */
+  /** Content must match all of these regex patterns. */
   mustMatchRegex?: string[];
 }
 
