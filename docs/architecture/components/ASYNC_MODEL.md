@@ -10,6 +10,14 @@
 - `asyncJobId` 是允许返回给 client/operator follow-up 的 additive 句柄；更细的 workflow checkpoint、candidate/artifact 关联仍应留在 operator surface 或 durable trace
 - Phase 2 当前只把最小 request correlation 落到已存在的 shared job 样板链路：`feedback.badcase-export-draft` 会把 `requestId` / `traceId` 从 runtime seam 传播进 payload，并通过 `workflow_runs.stats` 投影为 operator-visible `workflows[*].correlation`
 
+## Phase 3 runtime observability closeout
+
+- HTTP request seam：`packages/server/src/app.ts` 现在是 request completion log 与 `/metrics` export owner，统一输出 `eventCategory=request`、`eventName=request.completed`、`requestId`、`traceId`、`serviceName`、`routeFamily`
+- DB seam：`packages/server/src/lib/persistence/postgres-store.ts` 现在为 `store_snapshot.select` / `store_snapshot.transact` 记录低基数 DB metrics
+- queue/outbox seam：`packages/server/src/lib/queue/task-queue.ts` 与 `packages/server/src/lib/lifecycle/outbox.ts` 现在为 enqueue / claim / complete / fail 记录低基数 async metrics
+- distributed hop seam：`packages/host-distributed/src/gateway/routes.ts` 继续透传 `traceparent`，`packages/host-distributed/src/gateway/internal-client.ts` 为每个 internal hop 生成 `x-trapmap-span-id` / `x-trapmap-parent-span-id`
+- backend boundary：当前仓库只冻结 scrape/collector/log-shipper 接入边界，不提供完整 OTEL collector pipeline、dashboard-as-code 或日志代理部署资产
+
 ## 总览
 
 ```mermaid

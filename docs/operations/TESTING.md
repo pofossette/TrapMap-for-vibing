@@ -100,6 +100,9 @@ flowchart TB
 - Focused end-to-end proof：在 PostgreSQL 模式下先走一次 retrieval 拿到真实 `queryId`，再提交 badcase feedback，消费 `feedback.badcase-export-draft` 任务并写入 `workflow_runs`，最后调用 `GET /v1/operations/badcases/:feedbackId/export`；确认 `debug.correlation`、`debug.durableTrace`、`debug.workflow` 与 queued payload / workflow snapshot 使用同一组语义，同时 `draft.request` 仍不泄露 `asyncJobId`、`workflowRunId`。
 - Failure taxonomy：制造 dead-letter / failed event，确认 operator 仍通过统一 taxonomy 解释为 `permanent-failure`，而不是只输出底层 status 字符串。
 - Distributed hop correlation：运行 `packages/host-distributed/src/gateway/internal-client.test.ts` 或 distributed acceptance/closeout，确认 `x-request-id`、`x-trace-id` 与既有 `x-correlation-id` 跨 hop 透传，且 `403/404/409/503/504` canonical `kind` 不因 internal client 而漂移；上游空 body 或 transport 级失败也必须被归一化成 canonical body。
+- Phase 3 runtime metrics export：运行 `packages/server/src/app.test.ts`，确认 `/metrics` 返回 Prometheus text，包含 `trapmap_runtime_executions_total`、`trapmap_runtime_request_duration_ms_*` 等真实样本，并且 label 中不出现 `requestId` / `traceId` 这类高基数键。
+- Phase 3 span propagation：运行 `packages/host-distributed/src/gateway/routes.test.ts` 与 `packages/host-distributed/src/gateway/internal-client.test.ts`，确认 distributed write hop 继续透传 `traceparent`，并由 internal client 生成 `x-trapmap-span-id` / `x-trapmap-parent-span-id`。
+- Phase 3 structured logging：运行 `packages/server/src/app.test.ts` 与 `packages/server/src/lib/runtime/resilience.test.ts`，确认 request / resilience 日志至少带 `eventCategory`、`eventName`、`requestId`、`traceId`、`serviceName`、必要时 `attempt`。
 
 **Phase 7 Badcase Export / Decision Metrics Checks:**
 - Operator export flow：先用 retrieval 拿到 `queryId`，提交带 badcase 的 feedback，再调用 `GET /v1/operations/badcases/:feedbackId/export`，确认返回 deterministic draft JSON。

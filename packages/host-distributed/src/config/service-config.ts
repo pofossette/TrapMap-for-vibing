@@ -22,6 +22,7 @@ const ENV_KNOWLEDGE_WRITE_URL = 'TRAPMAP_KNOWLEDGE_WRITE_URL';
 const ENV_CANDIDATE_INGESTION_URL = 'TRAPMAP_CANDIDATE_INGESTION_URL';
 const ENV_GOVERNANCE_REVIEW_URL = 'TRAPMAP_GOVERNANCE_REVIEW_URL';
 const ENV_JOB_RUNTIME_URL = 'TRAPMAP_JOB_RUNTIME_URL';
+const ENV_KNOWLEDGE_WRITE_TRANSPORT = 'TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT';
 const ENV_LOG_LEVEL = 'TRAPMAP_LOG_LEVEL';
 const ENV_DEPLOYMENT_PROFILE = 'TRAPMAP_DEPLOYMENT_PROFILE';
 
@@ -97,6 +98,12 @@ export interface InternalServiceUrls {
   jobRuntime: string;
 }
 
+export type InternalTransportKind = 'http' | 'rpc';
+
+export interface InternalServiceTransports {
+  knowledgeWrite: InternalTransportKind;
+}
+
 function defaultInternalUrls(): InternalServiceUrls {
   return buildInternalUrls(DEFAULT_INTERNAL_HOSTS);
 }
@@ -150,6 +157,13 @@ export interface ServiceConfig {
 
   /** Internal URLs for inter-service communication. */
   internalUrls: InternalServiceUrls;
+
+  /** Transport seam for selected high-frequency internal owner hops. */
+  internalTransports: InternalServiceTransports;
+}
+
+function resolveKnowledgeWriteTransport(): InternalTransportKind {
+  return process.env[ENV_KNOWLEDGE_WRITE_TRANSPORT] === 'rpc' ? 'rpc' : 'http';
 }
 
 export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
@@ -184,6 +198,9 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
       review: process.env[ENV_GOVERNANCE_REVIEW_URL] ?? defaults.review,
       governanceReview: process.env[ENV_GOVERNANCE_REVIEW_URL] ?? defaults.governanceReview,
       jobRuntime: process.env[ENV_JOB_RUNTIME_URL] ?? defaults.jobRuntime,
+    },
+    internalTransports: {
+      knowledgeWrite: resolveKnowledgeWriteTransport(),
     },
   };
 }

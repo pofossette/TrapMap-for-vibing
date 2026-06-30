@@ -60,6 +60,17 @@ describe('distributed job-runtime ownership acceptance', () => {
     expect(config.internalUrls.jobRuntime).toBe('http://custom-job-runtime:4406');
   });
 
+  it('defaults knowledge-write internal transport to http and allows rpc override', () => {
+    process.env.TRAPMAP_DEPLOYMENT_PROFILE = 'distributed';
+
+    const defaultConfig = loadServiceConfig('governance-review');
+    expect(defaultConfig.internalTransports.knowledgeWrite).toBe('http');
+
+    process.env.TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT = 'rpc';
+    const rpcConfig = loadServiceConfig('governance-review');
+    expect(rpcConfig.internalTransports.knowledgeWrite).toBe('rpc');
+  });
+
   it('serves schedule, status, and queue semantics from the dedicated job-runtime surface', async () => {
     const app = Fastify();
     registerJobRuntimeRoutes(app, {

@@ -12,7 +12,9 @@ export function createGovernanceReviewDeps(
   const internalClients = createInternalServiceClients(config.internalUrls);
 
   return createServiceGovernanceReviewDeps({
-    knowledgeWrite: createRemoteKnowledgeWriteClient(internalClients),
+    knowledgeWrite: createRemoteKnowledgeWriteClient(internalClients, {
+      transport: config.internalTransports.knowledgeWrite,
+    }),
     feedbackRepo: ports.repos.feedback,
     auditLog: ports.auditLog,
   });

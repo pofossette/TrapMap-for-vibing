@@ -1,8 +1,79 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildServer } from './app.js';
+import { recordRuntimeExecution, resetRuntimeMetrics } from './lib/runtime/metrics.js';
 
 describe('app.ts live gaps — fm-agent raw report', () => {
+  it('exports prometheus metrics with frozen trapmap namespaces and low-cardinality labels', async () => {
+    resetRuntimeMetrics();
+    recordRuntimeExecution({
+      dependencyName: 'queue-runtime',
+      latencyMs: 25,
+      failureKind: 'timeout',
+    });
+
+    const app = buildServer();
+    await app.ready();
+
+    await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: {
+        'x-request-id': 'req_metrics_1',
+        traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00',
+      },
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/metrics',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('text/plain');
+    expect(response.body).toContain('trapmap_runtime_executions_total');
+    expect(response.body).toContain('dependency_name="queue-runtime"');
+    expect(response.body).toContain('failure_classification="timeout"');
+    expect(response.body).toContain('trapmap_runtime_request_duration_ms_count');
+    expect(response.body).toContain('route_family="runtime"');
+    expect(response.body).not.toContain('requestId=');
+    expect(response.body).not.toContain('traceId=');
+
+    await app.close();
+  });
+
+  it('logs structured request fields including requestId traceId and serviceName', async () => {
+    const app = buildServer();
+    await app.ready();
+
+    const infoSpy = vi.spyOn(app.log, 'info');
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: {
+        'x-request-id': 'req_log_2',
+        traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(infoSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventCategory: 'request',
+        eventName: 'request.completed',
+        requestId: 'req_log_2',
+        traceId: '4bf92f3577b34da6a3ce929d0e0e4736',
+        serviceName: 'gateway',
+        ownerSurface: 'runtime-seam',
+        routeFamily: 'runtime',
+      }),
+      'Request completed',
+    );
+
+    await app.close();
+  });
+
   it('fm-agent: onClose awaits async worker shutdown before resolving', async () => {
     const app = buildServer();
     const events: string[] = [];

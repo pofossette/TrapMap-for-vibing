@@ -83,4 +83,49 @@ describe('createRemoteKnowledgeWriteClient', () => {
       ).rejects.toMatchObject({ kind: expectedKind, message: body.error });
     },
   );
+
+  it('uses rpc invoke endpoint when the knowledge-write transport is rpc', async () => {
+    const invoke = vi.fn(async () => ({
+      status: 200,
+      body: { ok: true, result: { entryId: 'entry-1', lifecycleState: 'approved' } },
+    }));
+
+    const client = createRemoteKnowledgeWriteClient(
+      {
+        knowledgeWrite: {
+          submit: vi.fn(),
+          updateEntry: vi.fn(),
+          resubmit: vi.fn(),
+          supersede: vi.fn(),
+          createTrap: vi.fn(),
+          approveReviewDecision: vi.fn(),
+          rejectReviewDecision: vi.fn(),
+          applyMaintenanceDecision: vi.fn(),
+          applyDecayDecision: vi.fn(),
+          publishCandidateResult: vi.fn(),
+          listTraps: vi.fn(),
+          getTrap: vi.fn(),
+          invoke,
+        },
+      },
+      {
+        transport: 'rpc',
+        headers: { 'x-request-id': 'req-rpc' },
+      },
+    );
+
+    await expect(
+      client.approveReviewDecision({ entryId: 'entry-1', actorId: 'user-1' }),
+    ).resolves.toEqual({ entryId: 'entry-1', lifecycleState: 'approved' });
+
+    expect(invoke).toHaveBeenCalledWith(
+      {
+        method: 'approveReviewDecision',
+        input: { entryId: 'entry-1', actorId: 'user-1' },
+      },
+      {
+        headers: { 'x-request-id': 'req-rpc' },
+      },
+    );
+  });
 });

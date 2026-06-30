@@ -60,46 +60,78 @@
 - [x] 更新 `docs/reference/REPO_STRUCTURE.md`（如新增 resolver/config seam）
 
 最小验证：
-- [ ] `rtk pnpm test:deployment-smoke`
+- [x] `rtk pnpm test:deployment-smoke`
 - [x] 受影响 host/service 包的最小测试
 - [x] `rtk pnpm check:docs-drift`
 
 ### Phase 2: 内部 RPC seam 与试点
 
-- [ ] 盘点内部服务调用矩阵，挑出最值得试点的高频、类型稳定调用链
-- [ ] 明确 RPC 方案选择标准，比较“保持 HTTP/JSON + 优化”、“Connect RPC”、“gRPC”等候选，并给出本仓库适配约束
-- [ ] 在 `backend-core` port contract 不变的前提下，为 `host-distributed` 增加 transport seam，使 internal client 可以在 HTTP 与 RPC adapter 间切换
-- [ ] 选择一个 bounded-context 间调用作为 RPC 试点，补齐错误映射、超时、trace propagation 和回退策略
-- [ ] 为 RPC 试点增加最小测试、deployment smoke 或 runtime closeout 证据
+- [x] 盘点内部服务调用矩阵，挑出最值得试点的高频、类型稳定调用链
+- [x] 明确 RPC 方案选择标准，比较“保持 HTTP/JSON + 优化”、“Connect RPC”、“gRPC”等候选，并给出本仓库适配约束
+- [x] 在 `backend-core` port contract 不变的前提下，为 `host-distributed` 增加 transport seam，使 internal client 可以在 HTTP 与 RPC adapter 间切换
+- [x] 选择一个 bounded-context 间调用作为 RPC 试点，补齐错误映射、超时、trace propagation 和回退策略
+- [x] 为 RPC 试点增加最小测试、deployment smoke 或 runtime closeout 证据
 
 文档更新要求：
-- [ ] 更新 `docs/architecture/TARGET_ARCHITECTURE.md`
-- [ ] 更新 `docs/architecture/SERVICE_BOUNDARIES.md`
-- [ ] 更新 `docs/operations/ENVIRONMENT.md`
-- [ ] 更新 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+- [x] 更新 `docs/architecture/TARGET_ARCHITECTURE.md`
+- [x] 更新 `docs/architecture/SERVICE_BOUNDARIES.md`
+- [x] 更新 `docs/operations/ENVIRONMENT.md`
+- [x] 更新 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
 
 最小验证：
-- [ ] 受影响 host/service 包的最小测试
+- [x] 受影响 host/service 包的最小测试
 - [ ] `rtk pnpm test:deployment-smoke`
-- [ ] `rtk pnpm typecheck`
+- [x] `rtk pnpm typecheck`
+
+当前试点事实：
+
+- 已确认 `governance-review -> knowledge-write` 与 `candidate-ingestion -> knowledge-write` 是当前最适合的高频、类型稳定 owner-hop；首个 RPC seam 先冻结在 `governance-review -> knowledge-write`
+- `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` 现在支持 `http` / `rpc` 可切换 transport，默认仍为 `http`
+- `packages/service-knowledge-write/src/routes.ts` 新增 `/internal/rpc/knowledge-write` envelope route，只覆盖冻结后的 review / maintenance / decay / candidate publish command surface
+- 环境开关当前只冻结到 `TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT=http|rpc`
+- 第二条运行证据已补齐到 distributed closeout：`gateway -> candidate-ingestion -> knowledge-write` 的 `manual-result` 链路在 `TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT=rpc` 下已通过 closeout 测试，并验证 `x-request-id` / `x-trace-id` 继续传到 `knowledge-write`
+
+Phase 2 transport decision（2026-06-30）：
+
+- 选择标准：
+  - 是否要求新增 `proto` / Buf / codegen 作为第二套 contract truth
+  - 是否能继续保持 `packages/contracts` 与 `packages/backend-core/src/ports/internal-ports.ts` 为主线真相
+  - 是否适合当前仅有的少量 unary internal owner-hop，而不是 repo-wide streaming/RPC 平台
+  - 是否能延续当前 Fastify + request/trace header + `InvocationError` 映射，而不引入新的基础设施门槛
+  - 是否会扩大 distributed profile 的 operator/deploy complexity（TLS、HTTP/2、proxy/ingress、codegen drift）
+- 仓库约束：
+  - 当前仓库没有 `.proto`、Buf、Protobuf codegen 或 gRPC/Connect 依赖链
+  - 共享 contract 真相当前冻结在 `packages/contracts/src/index.ts` 与 `packages/contracts/src/domain/**` 的 Zod/TS surface
+  - 当前试点链路是 server-to-server unary command hop，不涉及浏览器直连、双向流、跨语言 SDK 或公开 API surface
+  - 当前 gateway only、shared PostgreSQL、Level 2 transitional-microservice posture 不支持把 internal transport 试点写成平台级协议切换
+- 结论：
+  - 当前 seam 继续停在自有 RPC envelope，作为 host-owned pilot seam；不在本阶段抽到 Connect RPC 或 gRPC
+  - `HTTP/JSON + 当前 envelope RPC` 胜出的原因是迁移面最小、无需第二套 schema truth、可以直接复用现有错误语义/trace headers/测试模式
+  - `Connect RPC` 是后续最优先的 formal protocol 候选，因为它支持 Connect / gRPC / gRPC-Web 多协议、Fastify/Node 集成成熟，但前提是仓库先接受 Protobuf/Buf 成为新增 truth surface
+  - `gRPC` 当前不采纳：它同样要求 proto/codegen，同时对 HTTP/2/TLS/dev ergonomics 的要求更重，而本仓库现阶段没有 streaming 或跨语言收益来覆盖成本
+- 触发重新评估的 adoption gate：
+  - 至少两个以上高频 owner-hop 需要复用同一正式 RPC stack
+  - internal unary envelope 数量明显扩张，手写 route/client 映射开始重复
+  - 需要标准化 streaming、跨语言消费端，或需要 Connect/gRPC 生态现成拦截器/观测能力
+  - 团队接受 `proto + Buf + generated code` 成为新的仓库事实源
 
 ### Phase 3: Metrics、Tracing、Structured Logging 落地
 
-- [ ] 把现有 `MetricsPort` / observability contract 映射到真实实现，至少收口 Prometheus metrics export 的 owner、命名空间和标签规则
-- [ ] 为 distributed internal hop 接入 trace propagation 与 span 生命周期，优先保证 HTTP、DB、queue 三类关键链路可观测
-- [ ] 统一结构化 JSON 日志字段，保证 requestId/traceId/serviceName/workerId/attempt 等关键字段可检索
-- [ ] 定义 observability backend 的最小接入面：OTEL collector、Prometheus scrape、日志采集方案的仓库内事实边界
-- [ ] 补齐对应测试或 smoke，证明 metrics/tracing/logging 不是只停留在 contract 层
+- [x] 把现有 `MetricsPort` / observability contract 映射到真实实现，至少收口 Prometheus metrics export 的 owner、命名空间和标签规则
+- [x] 为 distributed internal hop 接入 trace propagation 与 span 生命周期，优先保证 HTTP、DB、queue 三类关键链路可观测
+- [x] 统一结构化 JSON 日志字段，保证 requestId/traceId/serviceName/workerId/attempt 等关键字段可检索
+- [x] 定义 observability backend 的最小接入面：OTEL collector、Prometheus scrape、日志采集方案的仓库内事实边界
+- [x] 补齐对应测试或 smoke，证明 metrics/tracing/logging 不是只停留在 contract 层
 
 文档更新要求：
-- [ ] 更新 `docs/operations/ENVIRONMENT.md`
-- [ ] 更新 `docs/operations/TESTING.md`
-- [ ] 更新 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
-- [ ] 更新 `docs/architecture/components/ASYNC_MODEL.md`
-- [ ] 更新 `docs/reference/api-surface.md`（如新增 `/metrics` 或 operator/debug surface）
+- [x] 更新 `docs/operations/ENVIRONMENT.md`
+- [x] 更新 `docs/operations/TESTING.md`
+- [x] 更新 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+- [x] 更新 `docs/architecture/components/ASYNC_MODEL.md`
+- [x] 更新 `docs/reference/api-surface.md`（如新增 `/metrics` 或 operator/debug surface）
 
 最小验证：
-- [ ] 受影响 contracts/host/service/server 包测试
+- [x] 受影响 contracts/host/service/server 包测试
 - [ ] `rtk pnpm test:deployment-smoke`
 - [ ] `rtk pnpm eval:smoke`
 - [ ] `rtk pnpm typecheck`

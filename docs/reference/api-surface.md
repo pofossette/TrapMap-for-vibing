@@ -18,9 +18,12 @@
 |------|------|----------|----------|------|
 | `GET` | `/health` | 无 | 非 contracts 内部 runtime JSON：`{ status, product, packages, liveness, readiness, requestContext, dependencies, graphQuery, memory, uptimeSeconds }` | Liveness 与实例运行时状态快照 |
 | `GET` | `/ready` | 无 | 非 contracts 内部 runtime JSON：`{ ok, product, packages, liveness, readiness, requestContext, dependencies, graphQuery, memory, uptimeSeconds }`；`readiness === "not-ready"` 时返回 `503` | Traffic readiness 与降级状态判断 |
+| `GET` | `/metrics` | 无 | `text/plain; version=0.0.4` Prometheus exposition | Runtime / async / DB / queue / internal-hop 指标导出；仅低基数标签，禁止 requestId/traceId/queryId 等高基数键进入 label |
 | `GET` | `/meta/routes` | 无 | `{ documentedRoutes: string[] }` | 暴露当前 server 维护的文档化路由列表 |
 
 > 源码：`packages/server/src/app.ts`
+>
+> **Phase 3 observability closeout**：`/metrics` 当前只冻结 Prometheus scrape surface，不引入第二套 operator JSON route。`requestId`、`traceId`、`queryId`、`feedbackId`、`asyncJobId` 等高基数关联键继续留在日志、workflow snapshot 或 durable trace，而不是 metrics label。
 
 ## 认证
 

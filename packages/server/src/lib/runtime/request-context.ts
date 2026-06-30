@@ -8,8 +8,18 @@ export interface RequestContext {
   requestId: string;
   traceHeaderName: string;
   traceId: string | null;
+  traceParent: string | null;
   method: string;
   route: string;
+}
+
+function extractTraceId(existingTraceId: string): string {
+  const trimmed = existingTraceId.trim();
+  const traceParentMatch = /^00-([0-9a-f]{32})-[0-9a-f]{16}-[0-9a-f]{2}$/i.exec(trimmed);
+  if (traceParentMatch) {
+    return traceParentMatch[1] ?? trimmed;
+  }
+  return trimmed;
 }
 
 export function getOrCreateRequestContext(
@@ -27,6 +37,10 @@ export function getOrCreateRequestContext(
       : request.id || randomUUID();
   const traceId =
     typeof existingTraceId === 'string' && existingTraceId.trim().length > 0
+      ? extractTraceId(existingTraceId)
+      : null;
+  const traceParent =
+    typeof existingTraceId === 'string' && existingTraceId.trim().length > 0
       ? existingTraceId.trim()
       : null;
 
@@ -34,6 +48,7 @@ export function getOrCreateRequestContext(
     requestId,
     traceHeaderName,
     traceId,
+    traceParent,
     method: request.method,
     route: request.routeOptions.url || request.url,
   };

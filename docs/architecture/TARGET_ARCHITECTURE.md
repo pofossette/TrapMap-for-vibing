@@ -230,6 +230,15 @@ Key constraints:
 
 6. **No RPC-first architecture.** Internal communication starts with port-first, transport-agnostic interfaces defined in `backend-core`. Light-host uses in-process calls. Heavy-host starts with internal HTTP/JSON adapters. RPC is adopted only when call frequency, type stability, and latency pressure justify it.
 
+Phase 2 microservice-platform evolution update:
+
+- The first frozen distributed RPC seam is the owner hop into `knowledge-write`.
+- `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` now keeps the `KnowledgeWritePort` contract stable while allowing the host to choose `http` or `rpc` transport for `governance-review -> knowledge-write` and `candidate-ingestion -> knowledge-write`.
+- The current RPC pilot is intentionally narrow: it uses a single envelope route at `POST /internal/rpc/knowledge-write` and covers only the frozen authoritative command set already delegated through `KnowledgeWritePort`.
+- This does not change the external model: `gateway` remains the only externally reachable surface, and no client or external integration can bypass it to call the pilot seam directly.
+- Protocol decision at this stage: the seam stays on the host-owned envelope RPC instead of moving to Connect RPC or gRPC. The deciding constraint is not transport mechanics but truth ownership: TrapMap currently freezes shared contracts in `packages/contracts` Zod/TypeScript definitions and `backend-core` ports, and does not yet accept `proto`/Buf/codegen as a second authoritative contract layer.
+- If the repository later needs a formal RPC stack, Connect RPC is the preferred next candidate over raw gRPC because it preserves unary HTTP ergonomics better while still allowing Connect / gRPC / gRPC-Web protocol support. That migration is gated on explicit acceptance of Protobuf schema truth and generation workflow.
+
 7. **Read-side state is derived, not authoritative.** `knowledge-read` projections, caches, and search indexes are derived from events emitted by `knowledge-write`. The write side is responsible for invalidation triggers; the read side is responsible for consuming them.
 
 8. **Gateway does not hold business logic.** It delegates to backend-core application services via ports. Gateway is responsible for API surface stability, request aggregation, rate limiting, and auth boundary enforcement -- nothing more.
@@ -242,7 +251,7 @@ These are explicitly out of scope for the current recomposition:
 - Splitting individual services further into fine-grained technical-layer services (e.g., separate `role-service`, `permission-service`, `queue-service`)
 - Independent database per bounded context in Phase 1
 - Cross-database distributed transactions or two-phase commit
-- RPC framework selection or adoption (deferred to Phase 2+)
+- Broad RPC framework selection or repo-wide adoption (Connect RPC / gRPC / other) beyond the current `knowledge-write` pilot seam
 
 ## References
 

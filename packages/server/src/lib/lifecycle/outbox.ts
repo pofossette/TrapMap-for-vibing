@@ -17,6 +17,7 @@ import type { Pool, PoolClient } from 'pg';
 
 import { domainEventOutbox } from '@trapmap/server/lib/persistence/schema.js';
 import {
+  recordQueueMetric,
   recordRuntimeExecution,
   recordRuntimeReclaim,
 } from '@trapmap/server/lib/runtime/metrics.js';
@@ -129,6 +130,7 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
       delayMs?: number;
     },
   ): Promise<OutboxEvent> {
+    const startedAt = Date.now();
     const id = `evt_${Date.now()}_${randomUUID().slice(0, 8)}`;
     const availableAt = params.delayMs ? new Date(Date.now() + params.delayMs) : new Date();
 
@@ -150,6 +152,14 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
         availableAt,
       ],
     );
+
+    recordQueueMetric({
+      serviceName: 'server-compatibility-seam',
+      queueKind: 'outbox',
+      operation: 'enqueue',
+      latencyMs: Date.now() - startedAt,
+      success: true,
+    });
 
     return {
       id,
@@ -188,6 +198,7 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
     limit = 10,
     workerId = `outbox_${process.pid}`,
   ): Promise<OutboxEvent[]> {
+    const startedAt = Date.now();
     await reclaimExpiredLeases();
 
     const result = await pool.query<OutboxRow>(
@@ -213,6 +224,14 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
       [maxAttempts, limit, workerId, leaseDurationMs],
     );
 
+    recordQueueMetric({
+      serviceName: 'server-compatibility-seam',
+      queueKind: 'outbox',
+      operation: 'claim',
+      latencyMs: Date.now() - startedAt,
+      success: true,
+    });
+
     return result.rows.map(rowToOutboxEvent);
   }
 
@@ -220,6 +239,7 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
    * Mark an event as completed.
    */
   async function complete(eventId: string): Promise<void> {
+    const startedAt = Date.now();
     await db
       .update(domainEventOutbox)
       .set({
@@ -231,6 +251,13 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
         leaseUntil: null,
       })
       .where(eq(domainEventOutbox.id, eventId));
+    recordQueueMetric({
+      serviceName: 'server-compatibility-seam',
+      queueKind: 'outbox',
+      operation: 'complete',
+      latencyMs: Date.now() - startedAt,
+      success: true,
+    });
   }
 
   /**
@@ -238,6 +265,7 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
    * The event will be retried on the next claimBatch if attempts < maxAttempts.
    */
   async function fail(eventId: string, error: string): Promise<void> {
+    const startedAt = Date.now();
     const result = await pool.query<Pick<OutboxRow, 'attempts'>>(
       'SELECT attempts FROM domain_event_outbox WHERE id = $1',
       [eventId],
@@ -267,6 +295,13 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
           leaseUntil: null,
         })
         .where(eq(domainEventOutbox.id, eventId));
+      recordQueueMetric({
+        serviceName: 'server-compatibility-seam',
+        queueKind: 'outbox',
+        operation: 'fail',
+        latencyMs: Date.now() - startedAt,
+        success: true,
+      });
     } else {
       // Back-off: available_at = now + delay based on attempts
       const backoffMs = Math.min(baseRetryDelayMs * 2 ** (newAttempts - 1), maxRetryDelayMs);
@@ -288,6 +323,13 @@ export function createDomainEventOutbox(config: DomainEventOutboxConfig) {
           leaseUntil: null,
         })
         .where(eq(domainEventOutbox.id, eventId));
+      recordQueueMetric({
+        serviceName: 'server-compatibility-seam',
+        queueKind: 'outbox',
+        operation: 'fail',
+        latencyMs: Date.now() - startedAt,
+        success: true,
+      });
     }
   }
 

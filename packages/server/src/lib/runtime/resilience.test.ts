@@ -196,5 +196,28 @@ describe('executeWithResilience', () => {
 
     expect(warn).toHaveBeenCalled();
     expect(error).toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dependencyName: 'test-dependency',
+        requestId: 'req_1',
+        eventCategory: 'async-job',
+        eventName: 'resilience.retry',
+        serviceName: 'gateway',
+        ownerSurface: 'runtime-seam',
+        attempt: 1,
+      }),
+      'Retrying resilient operation',
+    );
+    expect(error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dependencyName: 'test-dependency',
+        requestId: 'req_1',
+        eventCategory: 'async-job',
+        eventName: 'resilience.failed',
+        serviceName: 'gateway',
+        ownerSurface: 'runtime-seam',
+      }),
+      'Resilient operation failed',
+    );
   });
 });

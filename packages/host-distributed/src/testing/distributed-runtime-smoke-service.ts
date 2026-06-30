@@ -7,12 +7,12 @@ import {
   type KnowledgeWritePort,
   type ReviewPort,
 } from '@trapmap/backend-core';
-import { registerCandidateIngestionRoutes } from '@trapmap/service-candidate-ingestion';
 import { registerGovernanceReviewRoutes } from '@trapmap/service-governance-review';
 import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
 import { registerKnowledgeWriteRoutes } from '@trapmap/service-knowledge-write';
 import { createInternalServiceClients } from '../gateway/internal-client.js';
 import { registerGatewayRoutes } from '../gateway/routes.js';
+import { createRemoteKnowledgeWriteClient } from '../shared/internal-knowledge-write-client.js';
 
 type ServiceRole =
   | 'gateway'
@@ -65,6 +65,13 @@ function urls() {
     review: env('TRAPMAP_GOVERNANCE_REVIEW_URL'),
     governanceReview: env('TRAPMAP_GOVERNANCE_REVIEW_URL'),
     jobRuntime: env('TRAPMAP_JOB_RUNTIME_URL'),
+  };
+}
+
+function requestHeaders(request: { headers: Record<string, unknown> }) {
+  return {
+    'x-request-id': request.headers['x-request-id'] as string | undefined,
+    'x-trace-id': request.headers['x-trace-id'] as string | undefined,
   };
 }
 
@@ -150,7 +157,7 @@ function createKnowledgeWriteService(state: DiagnosticsState) {
 
 function createCandidateModule(
   state: DiagnosticsState,
-  clients: ReturnType<typeof createInternalServiceClients>,
+  publishCandidateResult: CandidateIngestionPort['publishCandidateResult'],
 ): CandidateIngestionPort {
   return {
     submit: async () => ({ candidateId: 'candidate-1' }),
@@ -158,26 +165,63 @@ function createCandidateModule(
     listByStatus: async () => [],
     applyResolution: async (candidateId, resolution, actorId) => {
       state.hits.push(`candidate:resolution:${candidateId}`);
-      await clients.knowledgeWrite.publishCandidateResult(
-        { candidateId, actorId, result: resolution },
-        { headers: { 'x-request-id': 'req-closeout', 'x-trace-id': 'trace-closeout' } },
-      );
+      await publishCandidateResult(candidateId, resolution, actorId);
     },
     submitManualResult: async (candidateId, result, actorId) => {
       state.hits.push(`candidate:manual:${candidateId}`);
-      await clients.knowledgeWrite.publishCandidateResult(
-        { candidateId, actorId, result },
-        { headers: { 'x-request-id': 'req-closeout', 'x-trace-id': 'trace-closeout' } },
-      );
+      await publishCandidateResult(candidateId, result, actorId);
     },
-    publishCandidateResult: async (candidateId) => ({ candidateId, entryId: 'entry-1' }),
+    publishCandidateResult,
   };
 }
 
 function createCandidateService(state: DiagnosticsState) {
   const app = Fastify();
   const clients = createInternalServiceClients(urls());
-  registerCandidateIngestionRoutes(app, createCandidateModule(state, clients));
+  const transport = process.env.TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT === 'rpc' ? 'rpc' : 'http';
+  const publishWithHeaders = async (
+    candidateId: string,
+    result: Record<string, unknown>,
+    actorId: string,
+    headers: Record<string, string | undefined>,
+  ) => {
+    const knowledgeWrite = createRemoteKnowledgeWriteClient(
+      { knowledgeWrite: clients.knowledgeWrite },
+      { transport, headers },
+    );
+    return knowledgeWrite.publishCandidateResult({ candidateId, actorId, result });
+  };
+
+  app.post('/internal/candidates/:candidateId/resolution', async (request, reply) => {
+    const { candidateId } = request.params as { candidateId: string };
+    const body = request.body as { resolution: Record<string, unknown>; actorId: string };
+    state.hits.push(`candidate:resolution:${candidateId}`);
+    await publishWithHeaders(candidateId, body.resolution, body.actorId, requestHeaders(request));
+    return reply.status(200).send({ ok: true });
+  });
+
+  app.post('/internal/candidates/:candidateId/manual-result', async (request, reply) => {
+    const { candidateId } = request.params as { candidateId: string };
+    const body = request.body as { result: Record<string, unknown>; actorId: string };
+    state.hits.push(`candidate:manual:${candidateId}`);
+    await publishWithHeaders(candidateId, body.result, body.actorId, requestHeaders(request));
+    return reply.status(200).send({ ok: true });
+  });
+
+  app.post('/internal/candidates/:candidateId/publish', async (request, reply) => {
+    const { candidateId } = request.params as { candidateId: string };
+    const body = request.body as { result: Record<string, unknown>; actorId: string };
+    state.hits.push(`candidate:publish:${candidateId}`);
+    const result = await publishWithHeaders(
+      candidateId,
+      body.result,
+      body.actorId,
+      requestHeaders(request),
+    );
+    return reply.status(200).send(result);
+  });
+
+  app.get('/internal/health', async () => ({ status: 'ok', service: 'candidate-ingestion' }));
   createDiagnosticsRoutes(app, state);
   return app;
 }

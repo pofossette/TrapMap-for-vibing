@@ -71,6 +71,42 @@ function translateInvocationError(error: unknown): {
   };
 }
 
+type KnowledgeWriteRpcMethod =
+  | 'approveReviewDecision'
+  | 'rejectReviewDecision'
+  | 'applyMaintenanceDecision'
+  | 'applyDecayDecision'
+  | 'publishCandidateResult';
+
+async function invokeKnowledgeWriteRpc(
+  module: KnowledgeWritePort,
+  method: KnowledgeWriteRpcMethod,
+  input: unknown,
+) {
+  switch (method) {
+    case 'approveReviewDecision':
+      return module.approveReviewDecision(
+        input as Parameters<KnowledgeWritePort['approveReviewDecision']>[0],
+      );
+    case 'rejectReviewDecision':
+      return module.rejectReviewDecision(
+        input as Parameters<KnowledgeWritePort['rejectReviewDecision']>[0],
+      );
+    case 'applyMaintenanceDecision':
+      return module.applyMaintenanceDecision(
+        input as Parameters<KnowledgeWritePort['applyMaintenanceDecision']>[0],
+      );
+    case 'applyDecayDecision':
+      return module.applyDecayDecision(
+        input as Parameters<KnowledgeWritePort['applyDecayDecision']>[0],
+      );
+    case 'publishCandidateResult':
+      return module.publishCandidateResult(
+        input as Parameters<KnowledgeWritePort['publishCandidateResult']>[0],
+      );
+  }
+}
+
 export function registerKnowledgeWriteRoutes(
   app: FastifyInstance,
   module: KnowledgeWritePort,
@@ -257,6 +293,17 @@ export function registerKnowledgeWriteRoutes(
       };
       const result = await module.publishCandidateResult(body);
       return reply.status(200).send(result);
+    } catch (err) {
+      const { status, body } = translateInvocationError(err);
+      return reply.status(status).send(body);
+    }
+  });
+
+  app.post('/internal/rpc/knowledge-write', async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const body = req.body as { method: KnowledgeWriteRpcMethod; input: unknown };
+      const result = await invokeKnowledgeWriteRpc(module, body.method, body.input);
+      return reply.status(200).send({ ok: true, result });
     } catch (err) {
       const { status, body } = translateInvocationError(err);
       return reply.status(status).send(body);

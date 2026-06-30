@@ -260,4 +260,49 @@ describe('governance-review delegation acceptance', () => {
       headers: { 'x-request-id': 'req-retry', 'x-trace-id': 'trace-retry' },
     });
   });
+
+  it('supports rpc seam for the governance-review -> knowledge-write pilot without changing the port contract', async () => {
+    const invoke = vi.fn(async () => ({
+      status: 200,
+      body: { ok: true, result: { entryId: 'entry-1', lifecycleState: 'approved' } },
+    }));
+
+    const knowledgeWrite = createRemoteKnowledgeWriteClient(
+      {
+        knowledgeWrite: {
+          submit: vi.fn(),
+          updateEntry: vi.fn(),
+          resubmit: vi.fn(),
+          supersede: vi.fn(),
+          createTrap: vi.fn(),
+          approveReviewDecision: vi.fn(),
+          rejectReviewDecision: vi.fn(),
+          applyMaintenanceDecision: vi.fn(),
+          applyDecayDecision: vi.fn(),
+          publishCandidateResult: vi.fn(),
+          invoke,
+          listTraps: vi.fn(),
+          getTrap: vi.fn(),
+        },
+      },
+      {
+        transport: 'rpc',
+        headers: { 'x-request-id': 'req-rpc-hop', 'x-trace-id': 'trace-rpc-hop' },
+      },
+    );
+
+    await expect(
+      knowledgeWrite.approveReviewDecision({ entryId: 'entry-1', actorId: 'user-1' }),
+    ).resolves.toEqual({ entryId: 'entry-1', lifecycleState: 'approved' });
+
+    expect(invoke).toHaveBeenCalledWith(
+      {
+        method: 'approveReviewDecision',
+        input: { entryId: 'entry-1', actorId: 'user-1' },
+      },
+      {
+        headers: { 'x-request-id': 'req-rpc-hop', 'x-trace-id': 'trace-rpc-hop' },
+      },
+    );
+  });
 });

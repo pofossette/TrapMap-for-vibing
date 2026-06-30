@@ -175,10 +175,14 @@ describe('registerGatewayRoutes', () => {
       payload: { resolution: { decision: 'merge' }, actorId: 'user-1' },
     });
     expect(resolutionResponse.statusCode).toBe(200);
-    expect(clients.candidateIngestion.applyResolution).toHaveBeenCalledWith('candidate-1', {
-      resolution: { decision: 'merge' },
-      actorId: 'user-1',
-    });
+    expect(clients.candidateIngestion.applyResolution).toHaveBeenCalledWith(
+      'candidate-1',
+      {
+        resolution: { decision: 'merge' },
+        actorId: 'user-1',
+      },
+      {},
+    );
 
     const manualResultResponse = await app.inject({
       method: 'POST',
@@ -187,10 +191,78 @@ describe('registerGatewayRoutes', () => {
       payload: { result: { score: 1 }, actorId: 'user-1' },
     });
     expect(manualResultResponse.statusCode).toBe(200);
-    expect(clients.candidateIngestion.submitManualResult).toHaveBeenCalledWith('candidate-1', {
-      result: { score: 1 },
-      actorId: 'user-1',
+    expect(clients.candidateIngestion.submitManualResult).toHaveBeenCalledWith(
+      'candidate-1',
+      {
+        result: { score: 1 },
+        actorId: 'user-1',
+      },
+      {},
+    );
+    await app.close();
+  });
+
+  it('forwards request correlation headers to candidate-ingestion write hops', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    await app.inject({
+      method: 'POST',
+      url: '/v1/candidates/candidate-1/manual-result',
+      headers: {
+        authorization: 'Bearer session',
+        'x-request-id': 'req-candidate-hop',
+        'x-trace-id': 'trace-candidate-hop',
+      },
+      payload: { result: { score: 1 }, actorId: 'user-1' },
     });
+
+    expect(clients.candidateIngestion.submitManualResult).toHaveBeenCalledWith(
+      'candidate-1',
+      {
+        result: { score: 1 },
+        actorId: 'user-1',
+      },
+      {
+        headers: {
+          'x-request-id': 'req-candidate-hop',
+          'x-trace-id': 'trace-candidate-hop',
+        },
+      },
+    );
+    await app.close();
+  });
+
+  it('forwards traceparent alongside existing request correlation headers', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    await app.inject({
+      method: 'POST',
+      url: '/v1/candidates/candidate-1/manual-result',
+      headers: {
+        authorization: 'Bearer session',
+        'x-request-id': 'req-candidate-hop-2',
+        'x-trace-id': 'trace-candidate-hop-2',
+        traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00',
+      },
+      payload: { result: { score: 1 }, actorId: 'user-1' },
+    });
+
+    expect(clients.candidateIngestion.submitManualResult).toHaveBeenCalledWith(
+      'candidate-1',
+      {
+        result: { score: 1 },
+        actorId: 'user-1',
+      },
+      {
+        headers: {
+          'x-request-id': 'req-candidate-hop-2',
+          'x-trace-id': 'trace-candidate-hop-2',
+          traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00',
+        },
+      },
+    );
     await app.close();
   });
 

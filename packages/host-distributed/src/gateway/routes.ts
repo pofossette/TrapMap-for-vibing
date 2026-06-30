@@ -44,6 +44,23 @@ function validateBody(
   return null;
 }
 
+function internalHeaders(request: FastifyRequest): Record<string, string> | undefined {
+  const requestId = request.headers['x-request-id'];
+  const traceId = request.headers['x-trace-id'];
+  const traceParent = request.headers.traceparent;
+  const headers: Record<string, string> = {};
+  if (typeof requestId === 'string' && requestId.length > 0) {
+    headers['x-request-id'] = requestId;
+  }
+  if (typeof traceId === 'string' && traceId.length > 0) {
+    headers['x-trace-id'] = traceId;
+  }
+  if (typeof traceParent === 'string' && traceParent.length > 0) {
+    headers.traceparent = traceParent;
+  }
+  return Object.keys(headers).length > 0 ? headers : undefined;
+}
+
 /**
  * Extract the session token from the Authorization header.
  * Expects the format: `Bearer <token>`.
@@ -483,7 +500,9 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       }
       const body = request.body as { resolution: Record<string, unknown>; actorId: string };
       try {
-        const result = await clients.candidateIngestion.applyResolution(params.candidateId, body);
+        const result = await clients.candidateIngestion.applyResolution(params.candidateId, body, {
+          ...(internalHeaders(request) ? { headers: internalHeaders(request)! } : {}),
+        });
         return forwardResponse(reply, result);
       } catch (err: unknown) {
         request.log.error({ err }, 'candidate-ingestion applyResolution failed');
@@ -505,6 +524,9 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
         const result = await clients.candidateIngestion.submitManualResult(
           params.candidateId,
           body,
+          {
+            ...(internalHeaders(request) ? { headers: internalHeaders(request)! } : {}),
+          },
         );
         return forwardResponse(reply, result);
       } catch (err: unknown) {

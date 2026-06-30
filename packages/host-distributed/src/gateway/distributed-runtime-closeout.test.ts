@@ -330,4 +330,63 @@ describe('distributed runtime closeout', () => {
       ]),
     );
   }, 120_000);
+
+  it('proves candidate-ingestion manual-result can traverse the knowledge-write rpc seam with distributed evidence', async () => {
+    const ports = {
+      gateway: await allocatePort(),
+      identity: await allocatePort(),
+      knowledgeWrite: await allocatePort(),
+      knowledgeRead: await allocatePort(),
+      candidate: await allocatePort(),
+      governance: await allocatePort(),
+      jobRuntime: await allocatePort(),
+    };
+
+    const env = {
+      TRAPMAP_GATEWAY_URL: `http://127.0.0.1:${ports.gateway}`,
+      TRAPMAP_IDENTITY_ACCESS_URL: `http://127.0.0.1:${ports.identity}`,
+      TRAPMAP_KNOWLEDGE_READ_URL: `http://127.0.0.1:${ports.knowledgeRead}`,
+      TRAPMAP_KNOWLEDGE_WRITE_URL: `http://127.0.0.1:${ports.knowledgeWrite}`,
+      TRAPMAP_CANDIDATE_INGESTION_URL: `http://127.0.0.1:${ports.candidate}`,
+      TRAPMAP_GOVERNANCE_REVIEW_URL: `http://127.0.0.1:${ports.governance}`,
+      TRAPMAP_JOB_RUNTIME_URL: `http://127.0.0.1:${ports.jobRuntime}`,
+      TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT: 'rpc',
+    };
+
+    await startService('identity-access', 'identity-access', ports.identity, env);
+    await startService('knowledge-write', 'knowledge-write', ports.knowledgeWrite, env);
+    await startService('candidate-ingestion', 'candidate-ingestion', ports.candidate, env);
+    await startService('governance-review', 'governance-review', ports.governance, env);
+    await startService('job-runtime', 'job-runtime', ports.jobRuntime, env);
+    await startService('gateway', 'gateway', ports.gateway, env);
+
+    const manualResult = await fetch(
+      `${env.TRAPMAP_GATEWAY_URL}/v1/candidates/candidate-rpc/manual-result`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer session',
+          'x-request-id': 'req-candidate-rpc',
+          'x-trace-id': 'trace-candidate-rpc',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          result: { decision: 'publish' },
+          actorId: 'user-1',
+        }),
+      },
+    );
+
+    expect(manualResult.status).toBe(200);
+
+    const candidate = await diagnostics(env.TRAPMAP_CANDIDATE_INGESTION_URL);
+    const knowledgeWrite = await diagnostics(env.TRAPMAP_KNOWLEDGE_WRITE_URL);
+
+    expect(candidate.hits).toContain('candidate:manual:candidate-rpc');
+    expect(knowledgeWrite.hits).toContain('knowledge-write:candidate:candidate-rpc');
+    expect(knowledgeWrite.headers).toContainEqual({
+      'x-request-id': 'req-candidate-rpc',
+      'x-trace-id': 'trace-candidate-rpc',
+    });
+  }, 120_000);
 });

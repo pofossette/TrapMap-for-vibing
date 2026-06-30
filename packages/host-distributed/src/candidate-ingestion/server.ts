@@ -23,7 +23,9 @@ export async function createServer(
   const deps = createCandidateIngestionDeps({
     candidateRepo: ports.repos.candidate,
     auditLog: ports.auditLog,
-    knowledgeWrite: createRemoteKnowledgeWriteClient(internalClients),
+    knowledgeWrite: createRemoteKnowledgeWriteClient(internalClients, {
+      transport: config.internalTransports.knowledgeWrite,
+    }),
     jobRuntime: {
       schedule: async (type, payload, options) =>
         String(await ports.queuePorts.task.enqueue(type, payload, options)),

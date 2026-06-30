@@ -1,7 +1,7 @@
 import { InvocationError, type KnowledgeWritePort } from '@trapmap/backend-core';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
-import { registerKnowledgeWriteRoutes } from './routes.js';
+import { registerKnowledgeWriteRoutes } from './routes.ts';
 
 function createModule(overrides: Partial<KnowledgeWritePort> = {}): KnowledgeWritePort {
   return {
@@ -114,6 +114,37 @@ describe('service-knowledge-write routes', () => {
       error: 'knowledge-write unavailable',
       kind: 'unavailable',
     });
+    await app.close();
+  });
+
+  it('accepts rpc invoke envelope for the frozen remote command surface', async () => {
+    const module = createModule();
+    const app = await buildApp(module);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/rpc/knowledge-write',
+      payload: {
+        method: 'publishCandidateResult',
+        input: {
+          candidateId: 'candidate-1',
+          actorId: 'user-1',
+          result: { decision: 'publish' },
+        },
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      ok: true,
+      result: { candidateId: 'candidate-1', entryId: 'entry-1' },
+    });
+    expect(module.publishCandidateResult).toHaveBeenCalledWith({
+      candidateId: 'candidate-1',
+      actorId: 'user-1',
+      result: { decision: 'publish' },
+    });
+
     await app.close();
   });
 });

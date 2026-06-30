@@ -33,6 +33,7 @@ import {
   flattenDocumentedRoutes,
   getUnsupportedRouteDescriptors,
 } from './lib/runtime/route-surface.js';
+import { recordHttpRequestMetric, renderPrometheusMetrics } from './lib/runtime/metrics.js';
 import type { RuntimeMode } from './lib/runtime/runtime-contract.js';
 import { type ServiceUnit, resolveServiceUnit } from './lib/runtime/service-unit.js';
 
@@ -147,9 +148,50 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.addHook('onRequest', async (request, reply) => {
     const context = getOrCreateRequestContext(request, config);
     reply.header(config.runtime.requestIdHeader, context.requestId);
-    if (context.traceId) {
-      reply.header(config.runtime.traceHeaderName, context.traceId);
+    if (context.traceParent) {
+      reply.header(config.runtime.traceHeaderName, context.traceParent);
     }
+  });
+
+  app.addHook('onResponse', async (request, reply) => {
+    const context = request.requestContext;
+    const route = context?.route ?? request.routeOptions.url ?? request.url;
+    const routeFamily =
+      route.startsWith('/health') || route.startsWith('/ready') || route === '/metrics'
+        ? 'runtime'
+        : route.startsWith('/v1/operations')
+          ? 'operator'
+          : route.startsWith('/v1/')
+            ? 'gateway'
+            : 'runtime';
+    const responseTime =
+      typeof reply.elapsedTime === 'number' && Number.isFinite(reply.elapsedTime)
+        ? reply.elapsedTime
+        : 0;
+
+    recordHttpRequestMetric({
+      routeFamily,
+      serviceName: 'gateway',
+      latencyMs: responseTime,
+      statusCode: reply.statusCode,
+      method: request.method,
+    });
+
+    app.log.info(
+      {
+        eventCategory: 'request',
+        eventName: 'request.completed',
+        requestId: context?.requestId ?? null,
+        traceId: context?.traceId ?? null,
+        serviceName: 'gateway',
+        ownerSurface: 'runtime-seam',
+        routeFamily,
+        method: request.method,
+        route,
+        statusCode: reply.statusCode,
+      },
+      'Request completed',
+    );
   });
 
   const routeSurfaceSummary = buildRouteSurfaceSummary(runtimeDeployment);
@@ -161,6 +203,12 @@ export function buildServer(options: BuildServerOptions = {}) {
       routeSurfaceSummary.routeFamilies.filter((family) => family.audience === 'gateway-public'),
     ),
   );
+
+  app.get('/metrics', async (_request, reply) => {
+    return reply
+      .header('content-type', 'text/plain; version=0.0.4; charset=utf-8')
+      .send(renderPrometheusMetrics());
+  });
 
   const skillShareer: SkillShareerServices = {
     config,

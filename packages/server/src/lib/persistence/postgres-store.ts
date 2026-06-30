@@ -1,6 +1,7 @@
 import type { Pool } from 'pg';
 
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import { recordDatabaseMetric } from '@trapmap/server/lib/runtime/metrics.js';
 import { createEmptyStoreData } from '@trapmap/server/lib/store.js';
 
 /**
@@ -30,16 +31,34 @@ export class PostgresStore implements SkillShareerStore {
   }
 
   async snapshot(): Promise<StoreData> {
-    const { rows } = await this.pool.query<{ data: StoreData | null }>(
-      'SELECT data FROM store_snapshot WHERE key = $1',
-      ['main'],
-    );
+    const startedAt = Date.now();
+    try {
+      const { rows } = await this.pool.query<{ data: StoreData | null }>(
+        'SELECT data FROM store_snapshot WHERE key = $1',
+        ['main'],
+      );
 
-    if (rows.length === 0) {
-      return createEmptyStoreData();
+      recordDatabaseMetric({
+        serviceName: 'server-compatibility-seam',
+        operation: 'store_snapshot.select',
+        latencyMs: Date.now() - startedAt,
+        success: true,
+      });
+
+      if (rows.length === 0) {
+        return createEmptyStoreData();
+      }
+
+      return rows[0]!.data ?? createEmptyStoreData();
+    } catch (error) {
+      recordDatabaseMetric({
+        serviceName: 'server-compatibility-seam',
+        operation: 'store_snapshot.select',
+        latencyMs: Date.now() - startedAt,
+        success: false,
+      });
+      throw error;
     }
-
-    return rows[0]!.data ?? createEmptyStoreData();
   }
 
   async transact<T>(mutator: (data: StoreData) => Promise<T> | T): Promise<T> {
@@ -49,6 +68,7 @@ export class PostgresStore implements SkillShareerStore {
   async transactWithPgClient<T>(
     mutator: (data: StoreData, client: import('pg').PoolClient) => Promise<T> | T,
   ): Promise<T> {
+    const startedAt = Date.now();
     // Use a database transaction with row-level locking to serialize writes
     const client = await this.pool.connect();
     try {
@@ -75,9 +95,21 @@ export class PostgresStore implements SkillShareerStore {
       );
 
       await client.query('COMMIT');
+      recordDatabaseMetric({
+        serviceName: 'server-compatibility-seam',
+        operation: 'store_snapshot.transact',
+        latencyMs: Date.now() - startedAt,
+        success: true,
+      });
       return result;
     } catch (error) {
       await client.query('ROLLBACK').catch(() => {});
+      recordDatabaseMetric({
+        serviceName: 'server-compatibility-seam',
+        operation: 'store_snapshot.transact',
+        latencyMs: Date.now() - startedAt,
+        success: false,
+      });
       throw error;
     } finally {
       client.release();

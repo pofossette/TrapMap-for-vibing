@@ -95,6 +95,11 @@ Phase 4 freeze 只冻结当前 selector env / provider-specific env / fail-fast 
 - selector env truth 以 `TRAPMAP_DEPLOYMENT_PROFILE`、`TRAPMAP_DEPLOYMENT_PRESET`、`TRAPMAP_TASK_TRANSPORT` 为中心。它们决定 profile、preset 与 task transport 的选择面；secondary docs 不得再把这些入口改写成新的 generic config taxonomy。
 - provider-specific env 继续留在 owner seam。AI provider env 仍以 `AI_PROVIDER`、`OPENAI_API_KEY`、`GEMINI_API_KEY` 等当前 server/shared runtime 事实为准；distributed internal service URLs 仍以 `TRAPMAP_GATEWAY_URL`、`TRAPMAP_IDENTITY_ACCESS_URL`、`TRAPMAP_KNOWLEDGE_READ_URL`、`TRAPMAP_KNOWLEDGE_WRITE_URL`、`TRAPMAP_CANDIDATE_INGESTION_URL`、`TRAPMAP_GOVERNANCE_REVIEW_URL`、`TRAPMAP_JOB_RUNTIME_URL` 为当前 owner-specific env。
 - `packages/host-distributed/src/config/service-config.ts` 现在同时冻结内部服务发现默认值：`distributed` profile 默认走 compose Docker DNS（`gateway`、`identity-access`、`knowledge-read`、`knowledge-write`、`candidate-worker`、`governance-worker`、`outbox-worker`），非 distributed / 本地进程默认走 `localhost`，显式 `TRAPMAP_*_URL` 覆盖优先级最高。
+- `packages/host-distributed/src/config/service-config.ts` 现在还冻结了首个 host-distributed transport seam：`TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT` 只允许 `http` 或 `rpc`，默认值是 `http`。当前它只影响 `governance-review -> knowledge-write` 与 `candidate-ingestion -> knowledge-write` 这两个 owner-hop 的 host wiring，不改变 gateway external surface，也不改变 `KnowledgeWritePort` contract。
+- 当前 `rpc` 值表示仓库自有 envelope RPC，而不是 Connect RPC 或 gRPC。切到更正式协议层需要额外接受 Protobuf schema、Buf/codegen、以及对应 operator/runtime 复杂度进入主线 truth source；在此之前 `TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT=rpc` 只代表启用当前 pilot seam。
+- 当前 closeout 证据已覆盖两条 owner-hop：
+  - `gateway -> governance-review -> knowledge-write`
+  - `gateway -> candidate-ingestion -> knowledge-write`（通过 `manual-result` distributed closeout 样板验证）
 - 推荐组合冻结为：`local-agent` -> `light` + in-process/internal defaults + `json-store-ok`；`team-monolith` -> `light` + `postgres-required` + `gateway-core` + `split-owned`；`distributed` -> `heavy` + service/gateway split + `remote-expected`。
 - fail-fast / fallback 规则冻结为：`TRAPMAP_TASK_TRANSPORT=rabbitmq` 时必须同时提供 RabbitMQ config；`distributed` profile 需要 PostgreSQL；`local-agent` 仍允许 `.data/skill-shareer.json` 这类 JSON store fallback；internal service URLs 在 `in-process` mode 下继续视为 ignored config，而不是必填值。
 - target-pruning 仅是文档边界。`light` / `heavy` 不是新的 env value，也不是新的 runtime profile；optional dependency / tree-shaking 规则只表达当前 intent 与 non-goal，不表示仓库已经实现自动化 package pruning。
@@ -203,7 +208,7 @@ Phase 3 operator / config governance 补充约定：
 
 - `local-agent` 与 `team-monolith` 默认保持全部 internal service `in-process`
 - `distributed` 首期可以按服务逐步切到 `http`
-- `rpc` 是预留值，不作为当前主文档推荐入口
+- `rpc` 不再只是纯预留值：当前仅为 `knowledge-write` owner-hop 试点开放，通过 `TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT=rpc` 启用；除该 seam 外，其余内部调用仍按现状保持 `http` 或 `in-process`
 
 ### 预留的重后端缓存配置
 
@@ -462,6 +467,8 @@ pnpm dev:local-agent
 - Phase 3 当前样板实现把 `retrieval_badcase_traces`、`workflow_runs.stats` 和 eval draft/export 收敛到同一份最小 debug contract：`GET /v1/operations/badcases/:feedbackId/export` 的 `debug.correlation` 只复用冻结的五个 public additive handle，`debug.durableTrace` 只承载 `sourceFeedbackId` / `queryId` / `routeFamily` 这组可复现句柄，`debug.workflow` 只承载 badcase draft async 状态；`draft.request` 仍不扩散 `asyncJobId`、`workflowRunId` 一类 operator-only 字段
 - metric namespace 冻结为 `trapmap.runtime`、`trapmap.async`、`trapmap.retrieval`、`trapmap.cache`、`trapmap.feedback`、`trapmap.operator`
 - 高基数关联键不得进入 metric label；它们只能进入日志、trace、workflow snapshot 或 durable badcase trace
+- Phase 3 当前已把 `GET /metrics` 冻结为 Prometheus scrape surface：owner 仍是 `packages/server/src/app.ts` + `packages/server/src/lib/runtime/metrics.ts`，当前真实导出命名主要收口到 `trapmap_runtime_*` 与 `trapmap_async_*`
+- distributed internal hop 现在除 `x-request-id` / `x-trace-id` 外，还继续透传 `traceparent`；`packages/host-distributed/src/gateway/internal-client.ts` 会补 `x-trapmap-span-id` 与 `x-trapmap-parent-span-id` 作为当前 host-owned internal span lifecycle 句柄
 
 ## Runtime Resilience
 
@@ -477,20 +484,29 @@ TrapMap 现在通过共享 runtime resilience 层统一处理部分 timeout / re
 - `TRAPMAP_GRAPH_DB_FAIL_OPEN=true` 时，graph backend healthcheck 失败会进入 degraded fallback，而不是直接阻断启动
 - `/ready` 会把 `queueWorker`、`outboxWorker`、`graphQuery` 的当前状态汇总到 `dependencies.*`
 - `readiness === "not-ready"` 时，`GET /ready` 返回 HTTP `503`
-- runtime metrics 目前是内部/test-visible snapshot，用于统一统计 retry / timeout / degraded 次数，暂未暴露为稳定外部 metrics endpoint
+- runtime metrics 目前同时承担内部/test-visible snapshot 与 `/metrics` Prometheus export 的最小 owner seam
 - `/v1/operations/status/async` 现在会以 internal/operator additive `runtimeMetrics` 汇总这些 snapshot，统一包含 `executions`、`degraded`、`reclaims`、`timeouts`、`retryableFailures`、`permanentFailures`、`retries` 以及 queue/outbox/stale-worker 的平均 backlog 统计
 - `executions`、`degraded`、`timeouts`、`retryableFailures`、`permanentFailures` 现在固定为 logical operation 终态计数：每个依赖调用无论中间经历多少次 attempt，最终只计一次 terminal outcome；只有 `retries` 统计首个 attempt 之后的额外尝试次数
 - fail-open fallback 也只算一次 terminal execution：如果最终降级到 fallback，则 `executions += 1`、`degraded += 1`，并按最终 failure kind 只增加一次 `timeouts` / `retryableFailures` / `permanentFailures`
 - runtime metrics 的语义 truth 仍在 `packages/server/src/lib/runtime/metrics.ts`；operator route 只做聚合展示，不复制另一套指标字段或高基数 label 规则
 - runtime metrics label 仅允许低基数字段，例如 `failureClassification`、`runtimeMode`、`serviceUnit`、`routeFamily`、`dependencyName`、`cacheNamespace`、`taskType`、`workflowType`
-- distributed hop 继续只透传既有 request/trace/correlation header，不为 observability 新增第二套内部 hop header 名；如果 internal hop 返回空 body 或 transport 级错误，gateway/internal client 仍必须先归一化为 canonical `kind`（如 `timeout`、`unavailable`、`forbidden`、`conflict`、`not-found`）再交给 route/worker/operator surface 解释
+- Phase 3 当前已把三类关键链路落到真实实现：
+  - HTTP：`packages/server/src/app.ts` 记录 request-completed JSON log，并导出 request total / duration metrics
+  - DB：`packages/server/src/lib/persistence/postgres-store.ts` 导出 `store_snapshot.select` / `store_snapshot.transact` metrics
+  - queue/outbox：`packages/server/src/lib/queue/task-queue.ts` 与 `packages/server/src/lib/lifecycle/outbox.ts` 导出 enqueue / claim / complete / fail metrics
+- 结构化日志字段当前至少收口到 `eventCategory`、`eventName`、`requestId`、`traceId`、`serviceName`、`ownerSurface`、`routeFamily`；async retry/failure 路径还会记录 `attempt` 与 `workItemId`
+- observability backend 最小接入面当前只承诺：
+  - Prometheus scrape `/metrics`
+  - OTEL collector 通过现有 `traceparent` 传播和日志/指标接缝接入
+  - 日志采集器读取 JSON stdout/stderr
+- distributed hop 继续以现有 request/trace/correlation headers 为主，不引入第二套 public contract；如果 internal hop 返回空 body 或 transport 级错误，gateway/internal client 仍必须先归一化为 canonical `kind`（如 `timeout`、`unavailable`、`forbidden`、`conflict`、`not-found`）再交给 route/worker/operator surface 解释
 
 ### Phase 6 freeze
 
 Phase 6 只冻结当前 mature-capability / library-replacement 边界，不把 follow-up platform capability 写成现状。
 
 - `internal client + resilience` 当前已经在主线存在，但范围有限：现有证据只支持 internal HTTP client、canonical error normalization、shared timeout/retry/degraded helper、runtime metrics snapshot 和 operator-visible summary。它不是完整 mature-service platform stack，也不是所有 internal hop 都已有统一 externalized policy engine 的证据。
-- `tracing + metrics` 当前只能按现有 surface 描述：request/trace header propagation、`runtimeMetrics` snapshot、`/v1/operations/status/async` 与 stats summary 中的 operator 可见聚合、以及低基数 label 规则。不要把它写成全链路 distributed tracing、外部 observability backend、或 service-owned telemetry pipeline 已落地。
+- `tracing + metrics` 当前只能按现有 surface 描述：request/trace header propagation、host-owned internal span headers、`/metrics` text export、`runtimeMetrics` snapshot、`/v1/operations/status/async` 与 stats summary 中的 operator 可见聚合、以及低基数 label 规则。不要把它写成全链路 distributed tracing 平台、外部 observability backend 已产品化、或 service-owned telemetry pipeline 已完全落地。
 - `rate limiting + bulkhead / 背压` 当前不是 built-in runtime default。`rateLimitMaxPerMinute` 仍只是 compatibility config seam；没有源码证据表明 host-local、gateway、worker 或 distributed services 已默认启用 service bulkhead、adaptive backpressure、或统一 rate-policy rollout。
 - `cache + invalidation` 当前是 active operator/testing surface，但只证明 derived cache / invalidation seam。retrieval read-model cache、intent cache、shared invalidation events、pending invalidation summary 都是当前真相；它们不是 remote cache platform、自治 cache infrastructure、或 cache-backed service discovery 的证据。
 - `service discovery`、`DB budget / PgBouncer`、以及 richer `health indicator` rollout 继续是 adoption condition / deferred capability gate。当前分布式事实仍是 checked-in URL env + shared PostgreSQL + existing readiness endpoints；不能改写成动态 discovery、PgBouncer rollout default、或 richer health policy 已内建。

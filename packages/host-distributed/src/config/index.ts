@@ -6,6 +6,8 @@ export {
   type ServiceName,
   type ServiceConfig,
   type ServiceDiscoveryMode,
+  type InternalServiceTransports,
+  type InternalTransportKind,
   type InternalServiceUrls,
   ALL_SERVICES,
   loadServiceConfig,

@@ -7,6 +7,7 @@
  */
 
 import type { InternalServiceUrls } from '@trapmap/host-distributed/config/index.js';
+import { recordDistributedInternalHopMetric } from './internal-observability.js';
 
 // ---------------------------------------------------------------------------
 // HTTP client helper
@@ -17,12 +18,36 @@ interface ServiceResponse {
   body: unknown;
 }
 
+export interface InternalRpcEnvelope {
+  method: string;
+  input: unknown;
+}
+
 export interface InternalRequestOptions {
   headers?: Record<string, string>;
   timeoutMs?: number;
 }
 
 const DEFAULT_INTERNAL_TIMEOUT_MS = 10_000;
+
+function randomHex(size: number): string {
+  let output = '';
+  while (output.length < size) {
+    output += Math.random().toString(16).slice(2);
+  }
+  return output.slice(0, size);
+}
+
+function deriveSpanHeaders(headers: Record<string, string>): Record<string, string> {
+  const nextHeaders = { ...headers };
+  const traceParent = headers.traceparent;
+  const parentSpanId = /^00-[0-9a-f]{32}-([0-9a-f]{16})-[0-9a-f]{2}$/i.exec(traceParent ?? '')?.[1];
+  nextHeaders['x-trapmap-span-id'] = randomHex(16);
+  if (parentSpanId) {
+    nextHeaders['x-trapmap-parent-span-id'] = parentSpanId;
+  }
+  return nextHeaders;
+}
 
 function normalizeCanonicalErrorBody(status: number, body: unknown): unknown {
   if (body && typeof body === 'object') {
@@ -62,6 +87,7 @@ async function callInternalService(
   query?: Record<string, string>,
   options?: InternalRequestOptions,
 ): Promise<ServiceResponse> {
+  const startedAt = Date.now();
   const urlObj = new URL(url);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
@@ -73,10 +99,13 @@ async function callInternalService(
   const timeoutMs = options?.timeoutMs ?? DEFAULT_INTERNAL_TIMEOUT_MS;
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  const headers: Record<string, string> = {
+  const headers: Record<string, string> = deriveSpanHeaders({
     'Content-Type': 'application/json',
     ...(options?.headers ?? {}),
-  };
+  });
+
+  const serviceName = 'gateway';
+  const targetService = urlObj.hostname;
 
   const init: RequestInit = {
     method,
@@ -91,6 +120,13 @@ async function callInternalService(
   try {
     const response = await fetch(urlObj.toString(), init);
     const responseBody = await response.json().catch(() => null);
+    recordDistributedInternalHopMetric({
+      serviceName,
+      targetService,
+      transport: urlObj.pathname.includes('/rpc/') ? 'rpc' : 'http',
+      latencyMs: Date.now() - startedAt,
+      statusCode: response.status,
+    });
 
     return {
       status: response.status,
@@ -101,8 +137,22 @@ async function callInternalService(
     };
   } catch (err: unknown) {
     if (err instanceof DOMException && err.name === 'AbortError') {
+      recordDistributedInternalHopMetric({
+        serviceName,
+        targetService,
+        transport: urlObj.pathname.includes('/rpc/') ? 'rpc' : 'http',
+        latencyMs: Date.now() - startedAt,
+        statusCode: 504,
+      });
       return { status: 504, body: { error: 'Internal service timeout', kind: 'timeout' } };
     }
+    recordDistributedInternalHopMetric({
+      serviceName,
+      targetService,
+      transport: urlObj.pathname.includes('/rpc/') ? 'rpc' : 'http',
+      latencyMs: Date.now() - startedAt,
+      statusCode: 503,
+    });
     return {
       status: 503,
       body: { error: 'Internal service unavailable', kind: 'unavailable' },
@@ -223,6 +273,7 @@ export interface InternalServiceClients {
       },
       options?: InternalRequestOptions,
     ): Promise<ServiceResponse>;
+    invoke(body: InternalRpcEnvelope, options?: InternalRequestOptions): Promise<ServiceResponse>;
     listTraps(teamId: string): Promise<ServiceResponse>;
     getTrap(trapId: string): Promise<ServiceResponse>;
   };
@@ -233,14 +284,17 @@ export interface InternalServiceClients {
     applyResolution(
       candidateId: string,
       body: { resolution: Record<string, unknown>; actorId: string },
+      options?: InternalRequestOptions,
     ): Promise<ServiceResponse>;
     submitManualResult(
       candidateId: string,
       body: { result: Record<string, unknown>; actorId: string },
+      options?: InternalRequestOptions,
     ): Promise<ServiceResponse>;
     publishCandidateResult(
       candidateId: string,
       body: { result: Record<string, unknown>; actorId: string },
+      options?: InternalRequestOptions,
     ): Promise<ServiceResponse>;
   };
   review: {
@@ -409,6 +463,14 @@ export function createInternalServiceClients(urls: InternalServiceUrls): Interna
           undefined,
           options,
         ),
+      invoke: (body, options) =>
+        callInternalService(
+          `${urls.knowledgeWrite}/internal/rpc/knowledge-write`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
       listTraps: (teamId) =>
         callInternalService(`${urls.knowledgeWrite}/internal/traps`, 'GET', undefined, { teamId }),
       getTrap: (trapId) =>
@@ -423,23 +485,29 @@ export function createInternalServiceClients(urls: InternalServiceUrls): Interna
         callInternalService(`${urls.candidateIngestion}/internal/candidates`, 'GET', undefined, {
           status,
         }),
-      applyResolution: (candidateId, body) =>
+      applyResolution: (candidateId, body, options) =>
         callInternalService(
           `${urls.candidateIngestion}/internal/candidates/${candidateId}/resolution`,
           'POST',
           body,
+          undefined,
+          options,
         ),
-      submitManualResult: (candidateId, body) =>
+      submitManualResult: (candidateId, body, options) =>
         callInternalService(
           `${urls.candidateIngestion}/internal/candidates/${candidateId}/manual-result`,
           'POST',
           body,
+          undefined,
+          options,
         ),
-      publishCandidateResult: (candidateId, body) =>
+      publishCandidateResult: (candidateId, body, options) =>
         callInternalService(
           `${urls.candidateIngestion}/internal/candidates/${candidateId}/publish`,
           'POST',
           body,
+          undefined,
+          options,
         ),
     },
     review: {

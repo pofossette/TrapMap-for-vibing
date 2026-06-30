@@ -139,12 +139,16 @@ export async function executeWithResilience<T>(
       recordRuntimeRetry(policy.dependencyName);
       context?.logger?.warn?.(
         {
+          eventCategory: 'async-job',
+          eventName: 'resilience.retry',
           dependencyName: policy.dependencyName,
           attempt,
           requestId: context.requestId ?? null,
           traceId: context.traceId ?? null,
           route: context.route,
           workItemId: context.workItemId,
+          serviceName: 'gateway',
+          ownerSurface: 'runtime-seam',
           failureKind: lastFailureKind,
           metrics: getRuntimeMetricsSnapshot().dependencies[policy.dependencyName],
         },
@@ -163,12 +167,16 @@ export async function executeWithResilience<T>(
       recordRuntimeRetry(policy.dependencyName);
       context?.logger?.warn?.(
         {
+          eventCategory: 'async-job',
+          eventName: 'resilience.retry',
           dependencyName: policy.dependencyName,
           attempt,
           requestId: context.requestId ?? null,
           traceId: context.traceId ?? null,
           route: context.route,
           workItemId: context.workItemId,
+          serviceName: 'gateway',
+          ownerSurface: 'runtime-seam',
           metrics: getRuntimeMetricsSnapshot().dependencies[policy.dependencyName],
         },
         'Retrying resilient operation',
@@ -187,11 +195,15 @@ export async function executeWithResilience<T>(
     });
     context?.logger?.warn?.(
       {
+        eventCategory: 'async-job',
+        eventName: 'resilience.degraded',
         dependencyName: policy.dependencyName,
         requestId: context?.requestId ?? null,
         traceId: context?.traceId ?? null,
         route: context?.route,
         workItemId: context?.workItemId,
+        serviceName: 'gateway',
+        ownerSurface: 'runtime-seam',
       },
       'Resilient operation degraded to fallback',
     );
@@ -213,11 +225,15 @@ export async function executeWithResilience<T>(
   });
   context?.logger?.error?.(
     {
+      eventCategory: 'async-job',
+      eventName: 'resilience.failed',
       dependencyName: policy.dependencyName,
       requestId: context?.requestId ?? null,
       traceId: context?.traceId ?? null,
       route: context?.route,
       workItemId: context?.workItemId,
+      serviceName: 'gateway',
+      ownerSurface: 'runtime-seam',
       failureKind,
       error:
         lastError instanceof Error

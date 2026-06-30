@@ -7,7 +7,7 @@
  * Phase: Replace setTimeout-based retry with persistent queue
  */
 
-import { recordRuntimeReclaim } from '@trapmap/server/lib/runtime/metrics.js';
+import { recordQueueMetric, recordRuntimeReclaim } from '@trapmap/server/lib/runtime/metrics.js';
 import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
@@ -196,6 +196,7 @@ export function createTaskQueue(config: TaskQueueConfig) {
     payload: T,
     options: EnqueueOptions = {},
   ): Promise<Task<T>> {
+    const startedAt = Date.now();
     const id = generateTaskId();
     const processAfter = options.delayMs ? new Date(Date.now() + options.delayMs) : new Date();
     const dedupeKey = options.dedupeKey ?? null;
@@ -230,9 +231,24 @@ export function createTaskQueue(config: TaskQueueConfig) {
           throw new Error(`Failed to insert task ${id}`);
         }
 
+        recordQueueMetric({
+          serviceName: 'server-compatibility-seam',
+          queueKind: 'task',
+          operation: 'enqueue',
+          latencyMs: Date.now() - startedAt,
+          success: true,
+        });
+
         return rowToTask<T>(row);
       } catch (error) {
         if (!(dedupeKey && isUniqueViolation(error))) {
+          recordQueueMetric({
+            serviceName: 'server-compatibility-seam',
+            queueKind: 'task',
+            operation: 'enqueue',
+            latencyMs: Date.now() - startedAt,
+            success: false,
+          });
           throw error;
         }
 
@@ -288,6 +304,7 @@ export function createTaskQueue(config: TaskQueueConfig) {
    * Dequeue the next pending task for a given type (with SKIP LOCKED).
    */
   async function dequeue<T>(type: string, options: DequeueOptions = {}): Promise<Task<T> | null> {
+    const startedAt = Date.now();
     const workerId = options.workerId ?? `worker_${process.pid}`;
     await reclaimExpiredLeases(type);
 
@@ -317,11 +334,26 @@ export function createTaskQueue(config: TaskQueueConfig) {
     );
 
     if (result.rows.length === 0) {
+      recordQueueMetric({
+        serviceName: 'server-compatibility-seam',
+        queueKind: 'task',
+        operation: 'claim',
+        latencyMs: Date.now() - startedAt,
+        success: true,
+      });
       return null;
     }
 
     const row = result.rows[0];
     if (!row) return null;
+
+    recordQueueMetric({
+      serviceName: 'server-compatibility-seam',
+      queueKind: 'task',
+      operation: 'claim',
+      latencyMs: Date.now() - startedAt,
+      success: true,
+    });
 
     return rowToTask(row);
   }
@@ -330,6 +362,7 @@ export function createTaskQueue(config: TaskQueueConfig) {
    * Mark task as completed.
    */
   async function complete(taskId: string): Promise<void> {
+    const startedAt = Date.now();
     await db
       .update(taskQueue)
       .set({
@@ -342,12 +375,20 @@ export function createTaskQueue(config: TaskQueueConfig) {
         updatedAt: new Date(),
       })
       .where(eq(taskQueue.id, taskId));
+    recordQueueMetric({
+      serviceName: 'server-compatibility-seam',
+      queueKind: 'task',
+      operation: 'complete',
+      latencyMs: Date.now() - startedAt,
+      success: true,
+    });
   }
 
   /**
    * Mark task as failed and schedule retry or dead letter.
    */
   async function fail(taskId: string, error: string): Promise<void> {
+    const startedAt = Date.now();
     const result = await pool.query<Pick<TaskRow, 'attempts' | 'max_attempts' | 'status'>>(
       'SELECT attempts, max_attempts, status FROM task_queue WHERE id = $1',
       [taskId],
@@ -388,6 +429,13 @@ export function createTaskQueue(config: TaskQueueConfig) {
         })
         .where(eq(taskQueue.id, taskId));
     }
+    recordQueueMetric({
+      serviceName: 'server-compatibility-seam',
+      queueKind: 'task',
+      operation: 'fail',
+      latencyMs: Date.now() - startedAt,
+      success: true,
+    });
   }
 
   /**

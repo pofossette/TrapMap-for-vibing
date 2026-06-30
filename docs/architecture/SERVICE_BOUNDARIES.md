@@ -224,7 +224,19 @@ All cross-service communication goes through internal ports defined in `backend-
 
 **Light-host mode**: in-process direct call through port interfaces.
 
-**Heavy-host mode**: internal HTTP/JSON adapter (Phase 1). RPC evaluation deferred until call frequency and type stability justify it.
+**Heavy-host mode**: internal HTTP/JSON adapter by default. The current Phase 2 pilot adds an optional RPC seam only for the frozen `knowledge-write` owner hop, while keeping the same `KnowledgeWritePort` contract and failure taxonomy.
+
+Current RPC pilot scope:
+
+- `governance-review` -> `knowledge-write`
+- `candidate-ingestion` -> `knowledge-write`
+
+Current pilot constraints:
+
+- The transport selector is host-owned; service packages still depend only on `backend-core` ports.
+- The RPC envelope route is limited to the existing authoritative command set already delegated through `KnowledgeWritePort`.
+- Review/candidate owners must preserve the same timeout, trace propagation, and canonical `InvocationError` mapping whether the host picks `http` or `rpc`.
+- The pilot does not introduce Protobuf, Buf, Connect RPC, or gRPC as new repository truth surfaces. Until that changes explicitly, formal protocol stacks remain deferred and the current seam stays on the repo-owned envelope RPC.
 
 #### Asynchronous (event/queue)
 
