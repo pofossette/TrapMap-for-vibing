@@ -4,7 +4,7 @@
 
 规则：
 
-1. 根 `plan.md` 与 `docs/todos/trapmap-architecture-remediation-plan.md` 是当前仓库级执行轨道的唯一 active execution surface。
+1. 根 `plan.md` 与根计划当前显式链接的 `docs/todos/*` 活跃细则，才是当前仓库级执行轨道的唯一 active execution surface。
 2. `docs/plans/` 只用于仍被当前文档引用的长期设计计划与历史主线参考；除非未来某个新的根计划显式重新链接，否则本目录默认不承担当前执行面。
 3. 过时的执行计划必须移动到 `docs/archived/archived-plans/`。
 4. 过时的报告必须移动到 `docs/archived/reports/`。
@@ -32,7 +32,7 @@
 
 ## 后端工程化阶段总结
 
-后端工程化三段主线已经完成并留存在本目录：Stage 1「基础与边界」、Stage 2「异步运行时与读写分离」、以及横切「耦合度降低」。这些成果仍然有效，但当前根 `plan.md` 已切换到 TrapMap 架构整改计划索引，不再把本目录作为默认执行入口。
+后端工程化三段主线已经完成并留存在本目录：Stage 1「基础与边界」、Stage 2「异步运行时与读写分离」、以及横切「耦合度降低」。这些成果仍然有效，但当前根 `plan.md` 已切换到“微服务平台能力增强”索引，不再把本目录作为默认执行入口。
 
 这些历史成果仍然为三种 deployment profile 提供背景：
 
@@ -46,10 +46,10 @@
 
 ## 当前主入口补充
 
-当前根 [`plan.md`](../../plan.md) 与 [`docs/todos/trapmap-architecture-remediation-plan.md`](../todos/trapmap-architecture-remediation-plan.md) 共同构成当前唯一 active execution surface。默认阅读顺序应为：
+当前默认阅读顺序应为：
 
 1. 根 `plan.md`
-2. `docs/todos/trapmap-architecture-remediation-plan.md`
+2. 根计划当前显式链接的 `docs/todos/*` 活跃细则
 3. 本目录中的 historical-reference 计划
 
 本目录的角色现在是：

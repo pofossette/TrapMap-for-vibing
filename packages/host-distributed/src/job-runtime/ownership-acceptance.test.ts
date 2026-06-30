@@ -71,6 +71,18 @@ describe('distributed job-runtime ownership acceptance', () => {
     expect(rpcConfig.internalTransports.knowledgeWrite).toBe('rpc');
   });
 
+  it('accepts service-specific pool budget env overrides for distributed operators', () => {
+    process.env.TRAPMAP_DEPLOYMENT_PROFILE = 'distributed';
+    process.env.TRAPMAP_SERVICE_POOL_SIZE = '11';
+    process.env.TRAPMAP_JOB_RUNTIME_POOL_SIZE = '17';
+
+    const gatewayConfig = loadServiceConfig('gateway');
+    const jobRuntimeConfig = loadServiceConfig('job-runtime');
+
+    expect(gatewayConfig.poolSize).toBe(11);
+    expect(jobRuntimeConfig.poolSize).toBe(17);
+  });
+
   it('serves schedule, status, and queue semantics from the dedicated job-runtime surface', async () => {
     const app = Fastify();
     registerJobRuntimeRoutes(app, {

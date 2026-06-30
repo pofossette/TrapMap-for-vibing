@@ -69,6 +69,16 @@ flowchart TB
     L -->|是| N[返回结果]
 ```
 
+## Phase 4 trust-boundary freeze
+
+本轮微服务平台能力增强 Phase 4 没有把 service-to-service auth、mTLS 或零信任网络扩成已落地能力。当前安全 truth 仍然是：
+
+- `gateway only`：外部调用方只通过 gateway 进入，不直连内部 service
+- internal service hop 当前主要依赖现有 runtime trust boundary、canonical error normalization、request/trace propagation 和部署隔离
+- `service-to-service auth hardening` 仍是 deferred platform topic，已转入 `docs/todos/open-debt-and-compromises.md`
+
+因此当前文档只能把 internal hop 写成“已有最小运行边界”，不能写成“已具备独立 service identity、mTLS 或零信任策略默认值”。
+
 
 ---
 

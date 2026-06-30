@@ -25,6 +25,7 @@ const ENV_JOB_RUNTIME_URL = 'TRAPMAP_JOB_RUNTIME_URL';
 const ENV_KNOWLEDGE_WRITE_TRANSPORT = 'TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT';
 const ENV_LOG_LEVEL = 'TRAPMAP_LOG_LEVEL';
 const ENV_DEPLOYMENT_PROFILE = 'TRAPMAP_DEPLOYMENT_PROFILE';
+const ENV_SERVICE_POOL_SIZE = 'TRAPMAP_SERVICE_POOL_SIZE';
 
 // ---------------------------------------------------------------------------
 // Service names
@@ -162,6 +163,23 @@ export interface ServiceConfig {
   internalTransports: InternalServiceTransports;
 }
 
+function envKeyForServicePoolSize(serviceName: ServiceName): string {
+  return `TRAPMAP_${serviceName.replace(/-/g, '_').toUpperCase()}_POOL_SIZE`;
+}
+
+function resolvePoolSize(serviceName: ServiceName): number {
+  const specific = process.env[envKeyForServicePoolSize(serviceName)];
+  const shared = process.env[ENV_SERVICE_POOL_SIZE];
+  const rawValue = specific ?? shared;
+  const parsed = rawValue ? Number.parseInt(rawValue, 10) : Number.NaN;
+
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return parsed;
+  }
+
+  return 5;
+}
+
 function resolveKnowledgeWriteTransport(): InternalTransportKind {
   return process.env[ENV_KNOWLEDGE_WRITE_TRANSPORT] === 'rpc' ? 'rpc' : 'http';
 }
@@ -188,7 +206,7 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
     host: '0.0.0.0',
     logLevel: process.env[ENV_LOG_LEVEL] ?? 'info',
     databaseUrl,
-    poolSize: 5,
+    poolSize: resolvePoolSize(name),
     internalUrls: {
       gateway: process.env[ENV_GATEWAY_URL] ?? defaults.gateway,
       identityAccess: process.env[ENV_IDENTITY_ACCESS_URL] ?? defaults.identityAccess,

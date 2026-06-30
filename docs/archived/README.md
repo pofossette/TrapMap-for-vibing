@@ -33,9 +33,10 @@
 | `archived-plans/nestjs-service-evolution-knowledge-write-governance-review-preflight-checklist.md` | 2026-06-29 | 状态 proposed，0% 完成，样板实施前检查表退回背景参考 |
 | `archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md` | 2026-06-29 | 状态 proposed，0% 完成，样板代码迁移任务列表退回背景参考 |
 | `archived-plans/plan-2026-06-30-backend-build-targets-root-index-archived.md` | 2026-06-30 | 根 `plan.md` 已切换为微服务平台能力增强主线，旧轻重后端构建目标根索引归档 |
+| `archived-plans/microservice-platform-evolution-plan.md` | 2026-06-30 | 微服务平台能力增强 Phase 0-4 closeout 完成；剩余平台化议题全部转 deferred，不再保留 active todo |
 
 ## 归档原则
 
 文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档引用。
 
-当前根 `plan.md` 已切换为“微服务平台能力增强”主线；旧轻重后端构建目标根索引已归档。健壮性与可扩展性收尾、数据埋点增强、轻重后端构建目标、组件替换与更早的架构整改主线都保留在归档计划与 `docs/todos/` 背景文档中，供后续审计或 deferred 议题参考，但不承担当前执行面，也不再由根 `plan.md` 跟踪。若后续继续深入这些旧主线主题，应新开独立计划或转入当前活跃细则显式声明的 deferred 落点。
+当前根 `plan.md` 的微服务平台能力增强主线已完成 closeout，并归档到 `archived-plans/microservice-platform-evolution-plan.md`。旧轻重后端构建目标根索引与更早的健壮性/架构整改/组件替换等主线也都保留在归档计划与 `docs/todos/` 背景文档中，供后续审计或 deferred 议题参考，但不承担当前执行面，也不再由根 `plan.md` 跟踪。若后续继续深入这些旧主线主题，应新开独立计划或直接转入 `docs/todos/open-debt-and-compromises.md` 等显式 deferred 落点。

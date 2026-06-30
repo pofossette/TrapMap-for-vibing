@@ -18,6 +18,15 @@
 - distributed hop seam：`packages/host-distributed/src/gateway/routes.ts` 继续透传 `traceparent`，`packages/host-distributed/src/gateway/internal-client.ts` 为每个 internal hop 生成 `x-trapmap-span-id` / `x-trapmap-parent-span-id`
 - backend boundary：当前仓库只冻结 scrape/collector/log-shipper 接入边界，不提供完整 OTEL collector pipeline、dashboard-as-code 或日志代理部署资产
 
+## Phase 4 closeout
+
+- operator runbook 继续冻结在既有入口：`/health`、`/ready`、`/metrics`、`/v1/operations/status/async`
+- task queue 的第一现场仍是 `/v1/operations/status/async` 中的 backlog、dead-letter、stale worker、reclaimCount；`/metrics` 只补充低基数聚合
+- internal hop latency 当前只冻结到 gateway/internal-service hop 聚合、timeout/retry 统计与 distributed closeout 证据，不承诺额外 trace UI
+- error rate 继续通过 `timeouts`、`retryableFailures`、`permanentFailures`、`failureTaxonomy` 和结构化日志联合解释
+- dashboard/alert/SLO 当前只冻结首批 operator 文档面：task queue、internal hop latency、error rate 三组指标必须有 dashboard/alert/SLO 语义，但不要求 checked-in Grafana/Prometheus assets
+- service-to-service auth、mTLS、零信任 trust boundary hardening 仍然是 deferred platform topic，不属于当前 async substrate 已落地能力
+
 ## 总览
 
 ```mermaid

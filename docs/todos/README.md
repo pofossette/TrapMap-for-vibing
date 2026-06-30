@@ -12,7 +12,6 @@
 
 | 文件 | 主题 | 状态 |
 |---|---|---|
-| `microservice-platform-evolution-plan.md` | 微服务平台能力增强：服务发现、内部 RPC、可观测性与资源治理 | 进行中 (Phase 1 in progress) |
 | `backend-build-targets-plan.md` | 轻重后端构建目标、兼容壳清理与客户端后端形态配置计划 | 进行中 (~35%) |
 | `open-debt-and-compromises.md` | 当前仍未收口的占位实现、阶段性妥协与开发退路 | 活跃 debt register |
 | `static-analysis-audit-2026-06-29.md` | fallow 静态分析审计：占位实现、未接入代码、死代码（382 问题） | 待处理 |
@@ -30,13 +29,14 @@
 
 ## 已归档
 
-当前根 `plan.md` 已切换到“微服务平台能力增强”主线；唯一活跃细则是 [`microservice-platform-evolution-plan.md`](microservice-platform-evolution-plan.md)。`microservice-architecture-and-observability.md` 保留为本轮输入与架构盘点，不承担执行 checklist。
+`microservice-platform-evolution-plan.md` 已于 2026-06-30 完成 Phase 4 closeout，并归档至 [`../archived/archived-plans/microservice-platform-evolution-plan.md`](../archived/archived-plans/microservice-platform-evolution-plan.md)。`microservice-architecture-and-observability.md` 保留为本轮输入与架构盘点，不承担执行 checklist。
 
 2026-06-29 的批量归档仍保留已完成和 deferred 的旧主线，详见 [`docs/archived/README.md`](../archived/README.md)。
 
 后续新增问题应转入独立审计或独立计划，不再回写已归档的旧主线。
 
 归档文件：
+- `microservice-platform-evolution-plan.md` — 微服务平台能力增强主线，Phase 0-4 closeout 完成并归档
 - `trapmap-architecture-remediation-plan.md` — 架构整改主线，Phase 0-7 全部完成
 - `robustness-scalability-closeout-plan.md` — 健壮性与可扩展性收尾，已完成
 - `badcase-feedback-loop.md` — badcase 回流闭环，已完成

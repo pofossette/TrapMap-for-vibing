@@ -92,6 +92,14 @@ badcase 回流链路已全面闭环，包括分类标准：
 3. compat shell / 重复 transport 清理：`packages/server` Fastify compatibility shell 的进一步瘦身
 4. 高频异步任务从进程内副作用迁移到持久化任务队列
 5. 平台级 distributed 运维成熟度（service discovery、独立扩缩容、独立故障域）：明确 deferred，在真实吞吐出现后再评估
+6. Phase 3/4 closeout deferred：OTEL collector deployment asset、Prometheus/Grafana dashboard-as-code、alert rule pack、service-to-service auth hardening、container CPU/memory checked-in defaults、Node heap presets、PgBouncer / pool introspection contract 仍未落地。本轮只补到 `/metrics`、trace/span propagation、structured logging、distributed pool-budget env seam，以及基于 `/health`、`/ready`、`/metrics`、`/v1/operations/status/async` 的 operator runbook 与 task queue / internal hop latency / error rate 首批 dashboard/alert/SLO 文档面，不扩成新的 monitoring platform。
+
+Phase 4 closeout 对剩余 deferred 的处理原则已经冻结：
+
+- 能用现有 truth source 明确写成“当前不承诺”的事项，不再继续保留为 active checklist，而是直接留在 debt register / deferred 落点
+- 只有仍然阻塞当前 active plan 完成定义、且能够在保持 `gateway only` 与既有 truth boundary 不变的前提下做最小真实落地的项，才继续留在 active todo
+- 当前明确转 deferred 的包括：Kubernetes/Ingress/Service Mesh 平台化、service-to-service auth hardening、per-service database、MQ 全面替换、外部缓存平台、dashboard-as-code、alert rule pack、Node heap preset 与 PgBouncer introspection contract
+- 当前仍留在 active todo 的剩余 closeout 只剩两类：checked-in 资源治理默认值是否要继续最小补齐，以及 active-vs-archived 索引状态何时满足归档条件
 
 ## 6. 证据入口
 

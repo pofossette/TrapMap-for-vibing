@@ -175,6 +175,8 @@
 Phase 4 closeout 补充：
 
 - 默认 operator surface 已冻结为 `operatorHome`、`configGovernance`、`capacityModel`、`bulkOperations` 以及 queue/outbox/cache/workflow drill-down。
+- operator runbook 继续只依赖 `/health`、`/ready`、`/metrics`、`/v1/operations/status/async` 四个既有入口，不新增第二套 runtime control plane。
+- dashboard/alert/SLO 当前只冻结为 operator 文档 truth：task queue、internal hop latency、error rate 需要被解释为可观测指标族，但不表示仓库已经提供 checked-in dashboard-as-code 或 alert rule pack。
 - `workflow` drill-down 当前可返回 internal/operator-only `workflows[*].correlation`，用于解释 `requestId` / `traceId` / `queryId` / `feedbackId` / `asyncJobId` 与 async follow-up 的关系；它不属于新的通用 public additive field。
 - `GET /v1/operations/badcases/:feedbackId/export` 的 `debug` 字段同样属于 operator/debug 闭环，不属于 script/eval draft payload；`scripts/export-badcase-to-eval.ts` 只序列化 `draft`。
 - 热点 `team/query/artifact` 当前不属于默认 operator surface contract；如后续需要，应作为单独 deep drill-down 能力新增，而不是隐式塞入现有首页 schema。

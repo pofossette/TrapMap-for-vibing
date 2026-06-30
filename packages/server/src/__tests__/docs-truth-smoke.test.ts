@@ -535,6 +535,167 @@ describe('docs truth smoke', () => {
     expect(content).not.toContain('54 张表');
   });
 
+  it('microservice platform plan docs show the plan as archived after Phase 4 closeout', () => {
+    const rootPlan = readDoc('plan.md');
+    const archivedPlan = readDoc(
+      'docs/archived/archived-plans/microservice-platform-evolution-plan.md',
+    );
+    const todosIndex = readDoc('docs/todos/README.md');
+    const archivedIndex = readDoc('docs/archived/README.md');
+    const apiSurface = readDoc('docs/reference/api-surface.md');
+
+    expect(rootPlan).toContain('微服务平台能力增强');
+    expect(rootPlan).toContain('状态：`完成`');
+    expect(rootPlan).not.toContain('当前唯一执行面是');
+    expect(archivedPlan).toContain('状态：`完成`');
+    expect(archivedPlan).toContain('归档');
+    expect(todosIndex).toContain('已归档');
+    expect(todosIndex).not.toContain(
+      '| `microservice-platform-evolution-plan.md` | 微服务平台能力增强：服务发现、内部 RPC、可观测性与资源治理 |',
+    );
+    expect(archivedIndex).toContain('microservice-platform-evolution-plan.md');
+    expect(apiSurface).toContain('本根计划已经关闭');
+  });
+
+  it('Phase 4 closeout docs freeze operator runbook, dashboard/SLO doc surface, and archive gating', () => {
+    const archivedPlan = readDoc(
+      'docs/archived/archived-plans/microservice-platform-evolution-plan.md',
+    );
+    const debt = readDoc('docs/todos/open-debt-and-compromises.md');
+    const environment = readDoc('docs/operations/ENVIRONMENT.md');
+    const testing = readDoc('docs/operations/TESTING.md');
+    const asyncModel = readDoc('docs/architecture/components/ASYNC_MODEL.md');
+    const apiSurface = readDoc('docs/reference/api-surface.md');
+    const docsIndex = readDoc('docs/README.md');
+    const todosIndex = readDoc('docs/todos/README.md');
+    const archivedIndex = readDoc('docs/archived/README.md');
+    const rootPlan = readDoc('plan.md');
+
+    expect(archivedPlan).toContain('health/readiness/metrics/logging/tracing');
+    expect(archivedPlan).toContain('task queue、internal hop latency、error rate');
+    expect(archivedPlan).toContain('dashboard/alert/SLO');
+    expect(archivedPlan).toContain('open-debt-and-compromises.md');
+    expect(archivedPlan).toContain('状态：`完成`');
+
+    expect(environment).toContain('/health');
+    expect(environment).toContain('/ready');
+    expect(environment).toContain('/metrics');
+    expect(environment).toContain('/v1/operations/status/async');
+    expect(environment).toContain('operator runbook');
+    expect(environment).toContain('task queue');
+    expect(environment).toContain('internal hop latency');
+    expect(environment).toContain('error rate');
+    expect(environment).toContain('SLO');
+
+    expect(testing).toContain('operator runbook');
+    expect(testing).toContain('dashboard/alert/SLO');
+    expect(testing).toContain('root-plan closeout');
+    expect(testing).toContain('pnpm test:deployment-smoke');
+    expect(testing).toContain('pnpm eval:smoke');
+
+    expect(asyncModel).toContain('Phase 4 closeout');
+    expect(asyncModel).toContain('operator runbook');
+    expect(asyncModel).toContain('task queue');
+    expect(asyncModel).toContain('internal hop latency');
+    expect(asyncModel).toContain('error rate');
+    expect(asyncModel).toContain('dashboard/alert/SLO');
+
+    expect(apiSurface).toContain('Phase 4 closeout');
+    expect(apiSurface).toContain('operator runbook');
+    expect(apiSurface).toContain('dashboard/alert/SLO');
+    expect(apiSurface).toContain('/v1/operations/status/async');
+
+    expect(debt).toContain('service-to-service auth hardening');
+    expect(debt).toContain('dashboard-as-code');
+    expect(debt).toContain('alert rule pack');
+    expect(debt).toContain('PgBouncer');
+    expect(debt).not.toContain('模糊 later');
+
+    expect(rootPlan).toContain('完成');
+    expect(rootPlan).toContain('已归档');
+    expect(rootPlan).not.toContain('docs/todos/microservice-platform-evolution-plan.md');
+
+    expect(docsIndex).toContain('微服务平台能力增强细则');
+    expect(docsIndex).toContain('已归档');
+    expect(todosIndex).toContain('已归档');
+    expect(todosIndex).not.toContain(
+      '| `microservice-platform-evolution-plan.md` | 微服务平台能力增强：服务发现、内部 RPC、可观测性与资源治理 |',
+    );
+    expect(archivedIndex).toContain('不承担当前执行面');
+    expect(archivedIndex).toContain('microservice-platform-evolution-plan.md');
+  });
+
+  it('Phase 4 closeout docs freeze RPC seam, transport fallback semantics, and deferred handling', () => {
+    const targetArchitecture = readDoc('docs/architecture/TARGET_ARCHITECTURE.md');
+    const serviceBoundaries = readDoc('docs/architecture/SERVICE_BOUNDARIES.md');
+    const environment = readDoc('docs/operations/ENVIRONMENT.md');
+    const archivedPlan = readDoc(
+      'docs/archived/archived-plans/microservice-platform-evolution-plan.md',
+    );
+    const debt = readDoc('docs/todos/open-debt-and-compromises.md');
+
+    expect(targetArchitecture).toContain('Phase 2 microservice-platform evolution update');
+    expect(targetArchitecture).toContain('knowledge-write');
+    expect(targetArchitecture).toContain('http` or `rpc` transport');
+    expect(targetArchitecture).toContain('governance-review -> knowledge-write');
+    expect(targetArchitecture).toContain('candidate-ingestion -> knowledge-write');
+    expect(targetArchitecture).toContain('Connect RPC');
+    expect(targetArchitecture).toContain('gRPC');
+    expect(targetArchitecture).toContain('Protobuf');
+
+    expect(serviceBoundaries).toContain('Current RPC pilot scope');
+    expect(serviceBoundaries).toContain('governance-review');
+    expect(serviceBoundaries).toContain('candidate-ingestion');
+    expect(serviceBoundaries).toContain('timeout');
+    expect(serviceBoundaries).toContain('InvocationError');
+    expect(serviceBoundaries).toContain('404');
+    expect(serviceBoundaries).toContain('409');
+    expect(serviceBoundaries).toContain('503');
+    expect(serviceBoundaries).toContain('timeout');
+    expect(serviceBoundaries).toContain('Connect RPC');
+    expect(serviceBoundaries).toContain('gRPC');
+
+    expect(environment).toContain('TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT');
+    expect(environment).toContain('http` 或 `rpc`');
+    expect(environment).toContain('gateway -> governance-review -> knowledge-write');
+    expect(environment).toContain('gateway -> candidate-ingestion -> knowledge-write');
+
+    expect(archivedPlan).toContain('RPC seam、transport adapter、错误语义、回退策略');
+    expect(archivedPlan).toContain('Deferred 落点');
+    expect(archivedPlan).toContain('Service Mesh、mTLS、零信任网络');
+    expect(archivedPlan).toContain(
+      'per-service database、MQ 全面替换、外部缓存平台、全量 dashboard-as-code',
+    );
+
+    expect(debt).toContain('service-to-service auth hardening');
+    expect(debt).toContain('dashboard-as-code');
+    expect(debt).toContain('Node heap presets');
+    expect(debt).toContain('PgBouncer / pool introspection contract');
+    expect(debt).toContain('不扩成新的 monitoring platform');
+  });
+
+  it('Phase 4 closeout marks platformized resource defaults as deferred instead of blocking active closeout', () => {
+    const archivedPlan = readDoc(
+      'docs/archived/archived-plans/microservice-platform-evolution-plan.md',
+    );
+    const debt = readDoc('docs/todos/open-debt-and-compromises.md');
+    const rootPlan = readDoc('plan.md');
+
+    expect(archivedPlan).toContain('deferred');
+    expect(archivedPlan).not.toContain(
+      '为 distributed 容器补齐内存/CPU 预算、连接池与堆配置约束，形成可执行默认值',
+    );
+    expect(archivedPlan).toContain('活跃细则状态、入口索引与归档关系');
+    expect(archivedPlan).toContain('完成时本计划中的阶段 checklist、文档回写矩阵和最小验证项全部打勾');
+
+    expect(debt).toContain('container CPU/memory checked-in defaults');
+    expect(debt).toContain('Node heap presets');
+    expect(debt).toContain('PgBouncer / pool introspection contract');
+    expect(debt).toContain('当前仍留在 active todo 的剩余 closeout 只剩');
+
+    expect(rootPlan).not.toContain('当前活跃细则中的阶段 checklist');
+  });
+
   it('GETTING_STARTED uses package-scoped DB commands and current JSON fallback path', () => {
     const content = readDoc('docs/guides/GETTING_STARTED.md');
     expect(content).toContain('pnpm --filter @trapmap/server db:migrate');
@@ -580,9 +741,6 @@ describe('docs truth smoke', () => {
 
   it('Phase 7 docs freeze active execution surface, CI truth, and deferred landing spots', () => {
     const plan = readDoc('plan.md');
-    const remediation = readDoc(
-      'docs/archived/archived-plans/trapmap-architecture-remediation-plan.md',
-    );
     const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
     const docsIndex = readDoc('docs/README.md');
     const todosIndex = readDoc('docs/todos/README.md');
@@ -595,55 +753,38 @@ describe('docs truth smoke', () => {
     const ciWorkflow = readDoc('.github/workflows/ci.yml');
 
     expect(plan).toContain('状态：`完成`');
-    expect(plan).toContain('当前主线阶段：`Phase 0-7 全部完成`');
-    expect(plan).toContain('Wave 7H：增强 doc-drift / structure / complexity 守卫');
-    expect(plan).not.toContain('状态：`进行中`');
-    expect(plan).not.toContain('当前主线阶段：`Phase 1-2`');
-
-    expect(remediation).toContain(
-      '### Phase 7 closure freeze (G5 maintainability / CI-testing truth / docs closeout)',
-    );
-    expect(remediation).toContain('状态：`完成`');
-    expect(remediation).toContain(
-      'current active execution surface remains only `plan.md` + `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md`',
-    );
-    expect(remediation).toContain(
-      'Historical todo docs may remain as background/deferred references',
-    );
-    expect(remediation).toContain('`pnpm run ci`');
-    expect(remediation).toContain('`pnpm eval:smoke`');
-    expect(remediation).toContain('`pnpm eval:ci`');
-    expect(remediation).toContain('`pnpm eval:ci:core`');
-    expect(remediation).toContain('Node `24`');
-    expect(remediation).toContain('deferred platform topics');
+    expect(plan).toContain('当前主线：微服务平台能力增强');
+    expect(plan).toContain('已归档');
+    expect(plan).not.toContain('当前唯一执行面是');
+    expect(plan).not.toContain('当前主线阶段：`Phase 0-7 全部完成`');
 
     expect(truthSources).toContain(
       'Phase 7 maintainability / CI-testing truth / docs closeout freeze',
     );
-    expect(truthSources).toContain('Current architecture remediation execution entry');
-    expect(truthSources).toContain(
-      'current active execution surface remains only `plan.md` + `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md`',
-    );
-    expect(truthSources).toContain(
-      'Historical todo docs may remain as background/deferred references',
-    );
+    expect(truthSources).toContain('Root execution-plan governance and closeout rules');
     expect(truthSources).toContain('Node `24`');
     expect(truthSources).toContain(
       '`architecture-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:mermaid`, and `pnpm check:complexity`',
     );
 
-    expect(docsIndex).toContain('当前执行面只有');
+    expect(docsIndex).toContain('已完成并归档');
     expect(docsIndex).toContain('历史背景输入，不再作为当前根计划执行面');
     expect(docsIndex).toContain('`pnpm run ci`');
     expect(docsIndex).toContain('`pnpm eval:ci:core`');
+    expect(docsIndex).toContain('微服务平台能力增强细则');
+    expect(docsIndex).toContain('已归档');
 
     expect(todosIndex).toContain('背景/deferred 参考');
     expect(todosIndex).toContain('不再描述为仍由当前根计划并行拥有的 checklist');
+    expect(todosIndex).not.toContain('唯一活跃细则');
+    expect(todosIndex).not.toContain(
+      '| `microservice-platform-evolution-plan.md` | 微服务平台能力增强：服务发现、内部 RPC、可观测性与资源治理 |',
+    );
 
     expect(archivedIndex).toContain('不承担当前执行面');
-    expect(archivedIndex).toContain('当前架构整改主题');
+    expect(archivedIndex).toContain('微服务平台能力增强');
+    expect(archivedIndex).toContain('microservice-platform-evolution-plan.md');
 
-    expect(plansIndex).toContain('唯一 active execution surface');
     expect(plansIndex).toContain('默认不承担当前执行面');
     expect(plansIndex).toContain('historical-reference');
     expect(plansIndex).not.toContain('active-reference');

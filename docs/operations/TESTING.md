@@ -361,6 +361,14 @@ Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解
 6. `pnpm check:docs-drift` + `pnpm check:structure`
 7. `pnpm eval:smoke`（仅在检索/摘要/治理/feedback/eval runner 相关改动时）
 
+Phase 4 最小真实落地补充：
+
+- distributed 资源治理当前真实可测的默认值只到 DB pool budget env seam：`TRAPMAP_SERVICE_POOL_SIZE` 与 `TRAPMAP_<SERVICE>_POOL_SIZE`
+- focused proof 先看 `packages/host-distributed/src/job-runtime/ownership-acceptance.test.ts`，确认 shared default 与 per-service override 都能进入 `loadServiceConfig()`
+- operator runbook 当前仍以现有 `/health`、`/ready`、`/metrics`、`/v1/operations/status/async` 为入口，不新增第二套 runtime control plane
+- dashboard/alert/SLO 当前已冻结为首批 operator 文档面：task queue、internal hop latency、error rate 三组指标必须有 dashboard/alert/SLO 说明，但仍不要求新增 checked-in Grafana/Prometheus asset
+- root-plan closeout 的最小文档证据应能回答 operator runbook、dashboard/alert/SLO、以及 active-vs-archived 索引状态三件事
+
 若本轮只是根计划 Phase 4 的最终收口审计，且未改 runtime/API/operator 实现面，则使用更小的 root-plan closeout 集合：
 
 1. `pnpm test:file -- packages/contracts/src/domain/operations.test.ts`

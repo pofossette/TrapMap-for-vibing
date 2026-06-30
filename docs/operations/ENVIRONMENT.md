@@ -501,6 +501,57 @@ TrapMap 现在通过共享 runtime resilience 层统一处理部分 timeout / re
   - 日志采集器读取 JSON stdout/stderr
 - distributed hop 继续以现有 request/trace/correlation headers 为主，不引入第二套 public contract；如果 internal hop 返回空 body 或 transport 级错误，gateway/internal client 仍必须先归一化为 canonical `kind`（如 `timeout`、`unavailable`、`forbidden`、`conflict`、`not-found`）再交给 route/worker/operator surface 解释
 
+## Phase 4 operator runbook
+
+Phase 4 closeout 不新增第二套 runtime control plane。当前 operator runbook 只冻结现有入口与排查顺序：
+
+1. `GET /health`
+   - 用于确认进程存活、HTTP listener 正常、基础 runtime metadata 可读。
+   - 如果这里失败，先排查进程启动日志、端口绑定、容器重启和基础依赖注入。
+2. `GET /ready`
+   - 用于确认 readiness 与依赖摘要，重点看 `dependencies.queueWorker`、`dependencies.outboxWorker`、`dependencies.graphQuery`。
+   - `503` 或 `readiness === "not-ready"` 时，先区分是 profile 允许的 remote worker 缺席，还是本地应拥有的 worker/runtime 未就绪。
+3. `GET /metrics`
+   - 用于 Prometheus scrape 与现场数值检查；这里只看低基数聚合，不在 metrics label 里追 requestId/traceId。
+   - 重点先看 task queue backlog、outbox backlog、runtime retries/timeouts，以及 internal hop latency 的聚合变化。
+4. `GET /v1/operations/status/async`
+   - 这是 async/operator truth surface。排查 task queue、worker reclaim、projection lag、failure taxonomy、bulk workflow checkpoint 时优先看这里。
+   - `operatorHome`、`capacityModel`、`runtimeMetrics` 与 `bulkOperations` 是第一现场，不要求人工先查表。
+
+### Runbook focus areas
+
+- task queue
+  - 先看 `/v1/operations/status/async` 的 queue backlog、dead letter、stale worker、reclaimCount。
+  - 如果 backlog 持续上升，再结合 `/metrics` 判断是 handler latency、worker 缺席，还是 queue transport 配置不匹配。
+- internal hop latency
+  - 当前以 `/metrics` 中的 runtime/internal hop 聚合和 distributed closeout 证据为准，不单独承诺 per-request trace UI。
+  - 延迟升高时，先区分 gateway -> service hop、DB 侧延迟、还是 queue/outbox 后压造成的连带症状。
+- error rate
+  - 先看 `/metrics` 与 `/v1/operations/status/async` 中的 `timeouts`、`retryableFailures`、`permanentFailures`、`failureTaxonomy`。
+  - 再回到结构化 JSON 日志，用 `requestId`、`traceId`、`serviceName`、`attempt`、`workItemId` 做定点排查。
+- logging/tracing
+  - 当前真实落地的 tracing/logging 入口仍是 `traceparent` 传播、host-owned span headers、JSON stdout/stderr。
+  - OTEL collector 和日志采集器在本仓库中只冻结为接入边界，不作为 checked-in deployment asset。
+
+### Dashboard / alert / SLO starter surface
+
+本轮只冻结首批文档面，不新增 checked-in Grafana/Prometheus 资产。operator 侧应围绕以下三组指标组织 dashboard/alert/SLO：
+
+- task queue
+  - dashboard: backlog、dead-letter count、reclaimCount、avg handler latency
+  - alert: backlog 持续增长、dead-letter 突增、stale worker 未恢复
+  - SLO: queue work 在约定 freshness budget 内被 claim 并完成
+- internal hop latency
+  - dashboard: gateway -> internal service hop latency、timeout rate、retry rate
+  - alert: internal hop latency 持续高于基线、timeout rate 升高
+  - SLO: owner-hop latency 维持在当前 distributed closeout 可接受预算内
+- error rate
+  - dashboard: `retryableFailures`、`permanentFailures`、canonical error kind 分布
+  - alert: `permanentFailures` 或 `timeout` 连续超阈值
+  - SLO: 关键 operator surface 的 success rate 与 freshness 不低于约定门槛
+
+这些 dashboard/alert/SLO 当前是 operator 文档 truth，不等同于 dashboard-as-code、alert rule pack 或独立 monitoring platform 已落地。
+
 ### Phase 6 freeze
 
 Phase 6 只冻结当前 mature-capability / library-replacement 边界，不把 follow-up platform capability 写成现状。
@@ -510,6 +561,7 @@ Phase 6 只冻结当前 mature-capability / library-replacement 边界，不把 
 - `rate limiting + bulkhead / 背压` 当前不是 built-in runtime default。`rateLimitMaxPerMinute` 仍只是 compatibility config seam；没有源码证据表明 host-local、gateway、worker 或 distributed services 已默认启用 service bulkhead、adaptive backpressure、或统一 rate-policy rollout。
 - `cache + invalidation` 当前是 active operator/testing surface，但只证明 derived cache / invalidation seam。retrieval read-model cache、intent cache、shared invalidation events、pending invalidation summary 都是当前真相；它们不是 remote cache platform、自治 cache infrastructure、或 cache-backed service discovery 的证据。
 - `service discovery`、`DB budget / PgBouncer`、以及 richer `health indicator` rollout 继续是 adoption condition / deferred capability gate。当前分布式事实仍是 checked-in URL env + shared PostgreSQL + existing readiness endpoints；不能改写成动态 discovery、PgBouncer rollout default、或 richer health policy 已内建。
+- 本轮 Phase 4 最小真实落地只补到 distributed host 的可执行 DB pool budget env seam：`TRAPMAP_SERVICE_POOL_SIZE` 提供 shared 默认值，`TRAPMAP_<SERVICE>_POOL_SIZE` 提供 per-service override。它只约束 Node `pg.Pool.max`，不等同于 PgBouncer rollout、连接池 introspection contract 或完整容量治理平台。
 - `light` 与 `heavy` 的默认策略姿态不同，但 Phase 6 不引入新行为：`light` 继续偏向 in-process / fewer remote dependencies，`heavy` 继续偏向 gateway + internal HTTP hop + shared PostgreSQL 的 remote-expected posture。这里描述的是当前 adoption posture，不是 capability parity 或 platform maturity proof。
 - graph runtime 配置入口继续冻结为同一组 `TRAPMAP_GRAPH_DB_*` env family 和 shared config parser。`TRAPMAP_GRAPH_DB_FAIL_OPEN`、provider、enabled state、worker-status conflict warning 都已存在；但当前文档不能宣称 `packages/server` compatibility shell、`host-local` 默认主线、distributed gateway/service/worker 在 graph provider、readiness、fail-open disposition 上已经完全一致，只能说它们复用同一 env family 与部分 shared consumer seam。
 

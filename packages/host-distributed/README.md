@@ -76,6 +76,8 @@ Environment variables:
 | `TRAPMAP_SERVICE_NAME` | - | Service name (when running single service) |
 | `TRAPMAP_SERVICE_PORT` | - | Service port (overrides default) |
 | `TRAPMAP_LOG_LEVEL` | `info` | Log level |
+| `TRAPMAP_SERVICE_POOL_SIZE` | `5` | Shared PostgreSQL pool budget for distributed services |
+| `TRAPMAP_<SERVICE>_POOL_SIZE` | unset | Per-service pool budget override, e.g. `TRAPMAP_JOB_RUNTIME_POOL_SIZE=12` |
 | `TRAPMAP_GATEWAY_URL` | `http://localhost:4000` locally, `http://gateway:4000` in `distributed` | Gateway internal URL |
 | `TRAPMAP_IDENTITY_ACCESS_URL` | `http://localhost:4001` locally, `http://identity-access:4001` in `distributed` | Identity-access internal URL |
 | `TRAPMAP_KNOWLEDGE_READ_URL` | `http://localhost:4002` locally, `http://knowledge-read:4002` in `distributed` | Knowledge-read internal URL |
@@ -89,6 +91,7 @@ Environment variables:
 - `distributed` profile -> Docker DNS defaults on the shared compose network
 - other profiles / local dev -> `localhost` defaults
 - explicit `TRAPMAP_*_URL` env -> highest priority override
+- distributed DB pool budget by `TRAPMAP_SERVICE_POOL_SIZE`, with per-service override via `TRAPMAP_<SERVICE>_POOL_SIZE`
 
 ## Design Principles
 
