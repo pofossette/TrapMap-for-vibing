@@ -26,7 +26,7 @@
 
 ## Phase 0 冻结结论
 
-- 当前架构整改主线以根 [`plan.md`](../plan.md) 和 [`docs/todos/trapmap-architecture-remediation-plan.md`](todos/trapmap-architecture-remediation-plan.md) 为准；`docs/todos/nestjs-service-evolution-00-target-architecture.md` 仅保留为历史目标架构背景输入。
+- 当前架构整改主线以根 [`plan.md`](../plan.md) 和 [`docs/archived/archived-plans/trapmap-architecture-remediation-plan.md`](archived/archived-plans/trapmap-architecture-remediation-plan.md) 为准；`docs/archived/archived-plans/nestjs-service-evolution-00-target-architecture.md` 仅保留为历史目标架构背景输入。
 - `docs/plans/runtime-recomposition/` 继续保留迁移背景，但不再承担当前阶段执行入口或唯一长期叙事。
 - gateway 继续作为宿主拥有的外部适配层存在；Phase 0 不把 `packages/service-gateway` 作为当前主线 package 目标。
 - `backend-core` 在 Phase 0 冻结为单包内核，先按模块边界收口，而不是预先切成多个 `domain-*` workspace 包。
@@ -70,7 +70,7 @@
 
 ## Phase 4 数据、运维与退役收尾
 
-- 仓库级 owner matrix（gateway + 六个 owner service + job-runtime 的 data / projection / runtime / operations owner）已冻结，详见 [`plan.md`](../plan.md) Phase 4 和 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
+- 仓库级 owner matrix（gateway + 六个 owner service + job-runtime 的 data / projection / runtime / operations owner）已冻结，详见 [`plan.md`](../plan.md) Phase 4 和 [`docs/archived/archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md`](archived/archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md)。
 - `packages/server` 中 candidate apply-resolution、knowledge review、maintenance、decay 旧 Fastify 写路由都已删除。`light` 默认 review/manual-result/apply-resolution 写链路现由 `packages/host-local/src/nest/gateway/candidate-review.controller.ts` 直接委托 `governance-review` / `candidate-ingestion` owner port；candidate-ingestion 再通过 `KnowledgeWritePort` 完成最终 aggregate mutation，而不是回落到 `packages/server`。
 - `packages/backend-core/src/modules/*.ts` 兼容 re-export facade 已退役并删除；truth source 只保留真实 context 目录入口。
 - `packages/host-distributed` 与 `packages/service-*` 不是 compatibility shell，继续保留为分布式部署展开层和 thin service assembly。
@@ -467,7 +467,7 @@ flowchart TB
 
 ## Phase 0 冻结的目标包布局
 
-> 以 [`plan.md`](../plan.md) 和 [`docs/todos/trapmap-architecture-remediation-plan.md`](todos/trapmap-architecture-remediation-plan.md) 为准；`docs/todos/nestjs-service-evolution-00-target-architecture.md` 与 `docs/plans/runtime-recomposition/` 只保留历史目标/迁移背景输入。
+> 以 [`plan.md`](../plan.md) 和 [`docs/archived/archived-plans/trapmap-architecture-remediation-plan.md`](archived/archived-plans/trapmap-architecture-remediation-plan.md) 为准；`docs/archived/archived-plans/nestjs-service-evolution-00-target-architecture.md` 与 `docs/plans/runtime-recomposition/` 只保留历史目标/迁移背景输入。
 
 ### 包角色与迁移决策
 
@@ -525,8 +525,8 @@ contracts ───────────────────────�
 
 ### 参考文档
 
-- [docs/todos/nestjs-service-evolution-00-target-architecture.md](todos/nestjs-service-evolution-00-target-architecture.md) -- Phase 0 冻结结论
-- [docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md](todos/nestjs-service-evolution-distributed-maturity-assessment.md) -- distributed 当前成熟度基线
+- [docs/archived/archived-plans/nestjs-service-evolution-00-target-architecture.md](archived/archived-plans/nestjs-service-evolution-00-target-architecture.md) -- Phase 0 冻结结论
+- [docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md](archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md) -- distributed 当前成熟度基线
 - [architecture/DATABASE_OWNERSHIP.md](architecture/DATABASE_OWNERSHIP.md) -- 表级 ownership 和事务边界规则
 - [architecture/SERVICE_BOUNDARIES.md](architecture/SERVICE_BOUNDARIES.md) -- 服务角色定义和 ownership 模型
 - [plans/runtime-recomposition/](plans/runtime-recomposition/) -- 历史迁移背景，不再承担当前阶段执行入口

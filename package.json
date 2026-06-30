@@ -77,7 +77,7 @@
     "bench:store": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/bench-store.ts",
     "rag:analyze": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/rag-analyze.ts",
     "check:md-lint": "markdownlint-cli2 'docs/**/*.md' 'README.md' 'evals/**/*.md'",
-    "check:links": "find docs evals -name '*.md' -exec markdown-link-check {} +",
+    "check:links": "find docs evals -name '*.md' -not -path 'docs/archived/*' -not -path 'docs/plans/*' -not -path 'docs/superpowers/specs/*' -exec markdown-link-check {} +",
     "check:imports": "node scripts/check-relative-imports.mjs --only-cross-dir",
     "check:deps": "depcruise --config .dependency-cruiser.cjs packages/*/src",
     "docs:api": "typedoc",

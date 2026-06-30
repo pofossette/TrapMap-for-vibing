@@ -4,7 +4,7 @@
 
 TrapMap 的治理模型基于 RBAC (基于角色的访问控制) 和多层级安全模型，确保知识条目在正确的权限级别下被访问和操作。
 
-> **Round 3 更新**：知识域治理约束已从纯应用层校验升级为数据库级约束。`knowledge_entries` 表补齐 `CHECK` 约束（`scope`、`lifecycle_state`、`required_level`），`lifecycle_events` 表补齐 `type` CHECK 约束。标签、边界、维护分配已从 JSONB 拆为结构化子表（见 [数据库级治理约束](#数据库级治理约束)），支持按治理维度直接查询、过滤和索引。
+> **Round 3 更新**：知识域治理约束已从纯应用层校验升级为数据库级约束。`knowledge_entries` 表补齐 `CHECK` 约束（`scope`、`lifecycle_state`、`required_level`），`lifecycle_events` 表补齐 `type` CHECK 约束。标签、边界、维护分配已从 JSONB 拆为结构化子表（见 [数据库级治理约束](#数据库级治理约束round-3)），支持按治理维度直接查询、过滤和索引。
 
 ## 安全等级 (Security Levels)
 

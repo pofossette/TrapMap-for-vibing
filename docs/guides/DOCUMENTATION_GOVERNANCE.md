@@ -71,7 +71,7 @@
 
 参考：
 
-- [`docs/todos/badcase-feedback-loop.md`](../todos/badcase-feedback-loop.md)
+- [`docs/archived/archived-plans/badcase-feedback-loop.md`](../archived/archived-plans/badcase-feedback-loop.md)
 - `GET /v1/operations/badcases/:feedbackId/export`
 - `scripts/export-badcase-to-eval.ts`
 
