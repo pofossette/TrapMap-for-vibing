@@ -6,6 +6,7 @@ import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/ty
 import { alignLabel } from '@trapmap/server/lib/labels/llm-align.js';
 import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
 
+import { buildCatalogSeed, seedCatalogEntries } from './catalog-seed.js';
 import { calculateCaseMetrics } from './metrics.js';
 import { runDeterministicRecall } from './recall-eval.js';
 
@@ -13,6 +14,7 @@ export interface LiveDecisionContext {
   repository?: LabelRepository;
   chat?: ChatProvider;
   embeddings?: EmbeddingsProvider;
+  cleanupCatalog?: () => Promise<void>;
 }
 
 export async function runLiveDecisionEvaluation(
@@ -21,7 +23,7 @@ export async function runLiveDecisionEvaluation(
 ): Promise<Omit<LabelAlignmentEvalCaseResult, 'durationMs' | 'mode'>> {
   const fallback = runDeterministicRecall(case_);
 
-  if (!context.repository || !context.chat) {
+  if (!context.repository || !context.chat || !context.cleanupCatalog) {
     const metrics = calculateCaseMetrics(case_, fallback.predictions);
     return {
       caseId: case_.caseId,
@@ -41,35 +43,40 @@ export async function runLiveDecisionEvaluation(
       },
       notes: [
         ...fallback.notes,
-        'Live interfaces unavailable; used deterministic dry-run scaffold.',
+        'Live isolation adapters unavailable; used deterministic dry-run scaffold.',
       ],
     };
   }
 
+  await seedCatalogEntries(context.repository, buildCatalogSeed(case_).entries);
   const predictions = [];
-  for (const annotation of case_.goldenAnnotations) {
-    const result = await alignLabel(
-      context.repository,
-      context.chat,
-      annotation.rawLabel,
-      `${case_.skillId}:${case_.caseId}:${annotation.rawLabel}`,
-      undefined,
-      {
-        embeddings: case_.embeddingEnabled ? context.embeddings : undefined,
-        sourceContext: 'label-alignment-eval',
-      },
-    );
+  try {
+    for (const annotation of case_.goldenAnnotations) {
+      const result = await alignLabel(
+        context.repository,
+        context.chat,
+        annotation.rawLabel,
+        `${case_.skillId}:${case_.caseId}:${annotation.rawLabel}`,
+        undefined,
+        {
+          embeddings: case_.embeddingEnabled ? context.embeddings : undefined,
+          sourceContext: 'label-alignment-eval',
+        },
+      );
 
-    const predictedCanonicalLabel = await normalizePredictedCanonicalLabel(
-      result,
-      context.repository,
-    );
-    predictions.push({
-      rawLabel: annotation.rawLabel,
-      predictedCanonicalLabel,
-      predictedGroupId: annotation.groupId,
-      recallReason: 'live-decision' as const,
-    });
+      const predictedCanonicalLabel = await normalizePredictedCanonicalLabel(
+        result,
+        context.repository,
+      );
+      predictions.push({
+        rawLabel: annotation.rawLabel,
+        predictedCanonicalLabel,
+        predictedGroupId: annotation.groupId,
+        recallReason: 'live-decision' as const,
+      });
+    }
+  } finally {
+    await context.cleanupCatalog();
   }
 
   const metrics = calculateCaseMetrics(case_, predictions);

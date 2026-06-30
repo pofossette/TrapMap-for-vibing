@@ -18,7 +18,20 @@ export const smokeFixtures: LabelAlignmentEvalFixture[] = [
         synonymGroupCount: 2,
         totalRawLabels: 4,
         totalCanonicalLabels: 3,
-        catalogSeed: 'catalog-populated',
+        catalogSeed: [
+          {
+            id: 'lbl_react_stale_closure',
+            canonicalName: 'react-stale-closure',
+            aliases: ['stale closure', 'stale state bug'],
+            kind: 'trap',
+          },
+          {
+            id: 'lbl_react_duplicate_key',
+            canonicalName: 'react-duplicate-key',
+            aliases: ['duplicate key warning'],
+            kind: 'trap',
+          },
+        ],
         embeddingEnabled: true,
         goldenAnnotations: [
           {
@@ -69,7 +82,7 @@ export const smokeFixtures: LabelAlignmentEvalFixture[] = [
         synonymGroupCount: 2,
         totalRawLabels: 3,
         totalCanonicalLabels: 2,
-        catalogSeed: 'catalog-empty',
+        catalogSeed: [],
         embeddingEnabled: false,
         goldenAnnotations: [
           {
@@ -116,7 +129,14 @@ export const smokeFixtures: LabelAlignmentEvalFixture[] = [
         synonymGroupCount: 2,
         totalRawLabels: 3,
         totalCanonicalLabels: 2,
-        catalogSeed: 'catalog-populated',
+        catalogSeed: [
+          {
+            id: 'lbl_api_pagination_missing',
+            canonicalName: 'api-pagination-missing',
+            aliases: ['missing pagination', 'unbounded list endpoint'],
+            kind: 'trap',
+          },
+        ],
         embeddingEnabled: false,
         goldenAnnotations: [
           {
@@ -157,7 +177,7 @@ export const smokeFixtures: LabelAlignmentEvalFixture[] = [
         synonymGroupCount: 2,
         totalRawLabels: 3,
         totalCanonicalLabels: 2,
-        catalogSeed: 'catalog-empty',
+        catalogSeed: [],
         embeddingEnabled: false,
         goldenAnnotations: [
           {

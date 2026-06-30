@@ -39,11 +39,10 @@ export function calculateCaseMetrics(
     }
   }
 
-  const canonicalGroups = new Set(case_.goldenAnnotations.map((annotation) => annotation.groupId))
-    .size;
-  const synonymEliminationCount = Math.max(0, case_.totalRawLabels - canonicalGroups);
+  const synonymEliminationTarget = Math.max(0, case_.totalRawLabels - case_.totalCanonicalLabels);
+  const synonymEliminationCount = countSuccessfulEliminations(case_, predictions);
   const synonymEliminationRate =
-    case_.totalRawLabels === 0 ? 0 : synonymEliminationCount / case_.totalRawLabels;
+    synonymEliminationTarget === 0 ? 0 : synonymEliminationCount / synonymEliminationTarget;
 
   const missedMerges = countMissedMerges(case_, predictions);
   const falseMerges = countFalseMerges(case_, predictions);
@@ -112,6 +111,45 @@ export function summarizeCaseResults(
     'catalog-empty': 0,
     'live-decision': 0,
   };
+}
+
+function countSuccessfulEliminations(
+  case_: LabelAlignmentEvalCase,
+  predictions: DryRunPrediction[],
+): number {
+  const predictedByRawLabel = new Map(
+    predictions.map((prediction) => [prediction.rawLabel, prediction.predictedCanonicalLabel]),
+  );
+
+  let successfulEliminations = 0;
+
+  for (const group of case_.expectedAlignment.canonicalGroups) {
+    if (group.length < 2) {
+      continue;
+    }
+
+    const predictedLabels = new Set(
+      group.map((rawLabel) => predictedByRawLabel.get(rawLabel) ?? `missing:${rawLabel}`),
+    );
+    if (predictedLabels.size !== 1) {
+      continue;
+    }
+
+    const predictedCanonicalLabel = [...predictedLabels][0];
+    const hasContaminatingMerge = case_.expectedAlignment.shouldNotMerge.some(
+      ([left, right]) =>
+        (group.includes(left) &&
+          (predictedByRawLabel.get(right) ?? `missing:${right}`) === predictedCanonicalLabel) ||
+        (group.includes(right) &&
+          (predictedByRawLabel.get(left) ?? `missing:${left}`) === predictedCanonicalLabel),
+    );
+
+    if (!hasContaminatingMerge) {
+      successfulEliminations += group.length - 1;
+    }
+  }
+
+  return successfulEliminations;
 }
 
 function countMissedMerges(case_: LabelAlignmentEvalCase, predictions: DryRunPrediction[]): number {

@@ -2,8 +2,6 @@ import { z } from 'zod';
 
 import { retrievalEvalTierSchema } from './retrieval.js';
 
-export const labelAlignmentCatalogSeedSchema = z.enum(['catalog-populated', 'catalog-empty']);
-
 export const labelAlignmentRecallReasonSchema = z.enum([
   'exact-alias',
   'normalized-name',
@@ -11,6 +9,16 @@ export const labelAlignmentRecallReasonSchema = z.enum([
   'catalog-empty',
   'live-decision',
 ]);
+
+export const labelAlignmentCatalogSeedEntrySchema = z
+  .object({
+    id: z.string().min(1),
+    canonicalName: z.string().min(1),
+    aliases: z.array(z.string().min(1)).default([]),
+    kind: z.string().min(1).optional(),
+    definition: z.string().min(1).optional(),
+  })
+  .strict();
 
 export const labelAlignmentGoldenAnnotationSchema = z
   .object({
@@ -39,7 +47,7 @@ export const labelAlignmentEvalCaseSchema = z
     synonymGroupCount: z.number().int().min(0),
     totalRawLabels: z.number().int().min(1),
     totalCanonicalLabels: z.number().int().min(0),
-    catalogSeed: labelAlignmentCatalogSeedSchema,
+    catalogSeed: z.array(labelAlignmentCatalogSeedEntrySchema).default([]),
     embeddingEnabled: z.boolean(),
     goldenAnnotations: z.array(labelAlignmentGoldenAnnotationSchema).min(1),
     expectedAlignment: labelAlignmentExpectedAlignmentSchema,
@@ -190,8 +198,8 @@ export const labelAlignmentEvalReportSchema = z
     }
   });
 
-export type LabelAlignmentCatalogSeed = z.infer<typeof labelAlignmentCatalogSeedSchema>;
 export type LabelAlignmentRecallReason = z.infer<typeof labelAlignmentRecallReasonSchema>;
+export type LabelAlignmentCatalogSeedEntry = z.infer<typeof labelAlignmentCatalogSeedEntrySchema>;
 export type LabelAlignmentGoldenAnnotation = z.infer<typeof labelAlignmentGoldenAnnotationSchema>;
 export type LabelAlignmentExpectedAlignment = z.infer<typeof labelAlignmentExpectedAlignmentSchema>;
 export type LabelAlignmentEvalCase = z.infer<typeof labelAlignmentEvalCaseSchema>;

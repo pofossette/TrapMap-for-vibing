@@ -39,4 +39,16 @@ describe('label alignment eval scaffold', () => {
     expect(report.summary.recallReasonDistribution['catalog-empty']).toBeGreaterThan(0);
     expect(report.cases.some((case_) => case_.falseMerges === 0)).toBe(true);
   });
+
+  it('materializes runnable core fixtures instead of silently passing zero cases', async () => {
+    const fixtures = await loadLabelAlignmentFixtures({ tier: 'core' });
+    const report = await runLabelAlignmentSuite({
+      tier: 'core',
+      mode: 'dry-run',
+    });
+
+    expect(fixtures.length).toBeGreaterThan(0);
+    expect(report.summary.totalCases).toBeGreaterThan(0);
+    expect(report.cases.every((case_) => case_.tier === 'core')).toBe(true);
+  });
 });

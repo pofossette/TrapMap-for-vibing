@@ -1,39 +1,37 @@
 import type {
-  LabelAlignmentCatalogSeed,
+  LabelAlignmentCatalogSeedEntry,
   LabelAlignmentEvalCase,
-  LabelAlignmentGoldenAnnotation,
 } from '../../../packages/contracts/src/domain/evals/label-alignment.js';
-
-export interface SeededCatalogEntry {
-  canonicalLabel: string;
-  aliases: string[];
-}
+import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
 
 export function buildCatalogSeed(case_: LabelAlignmentEvalCase): {
-  seed: LabelAlignmentCatalogSeed;
-  entries: SeededCatalogEntry[];
+  entries: LabelAlignmentCatalogSeedEntry[];
 } {
-  if (case_.catalogSeed === 'catalog-empty') {
-    return {
-      seed: case_.catalogSeed,
-      entries: [],
-    };
-  }
-
-  const byCanonical = new Map<string, LabelAlignmentGoldenAnnotation[]>();
-  for (const annotation of case_.goldenAnnotations) {
-    const annotations = byCanonical.get(annotation.canonicalLabel) ?? [];
-    annotations.push(annotation);
-    byCanonical.set(annotation.canonicalLabel, annotations);
-  }
-
-  const entries = Array.from(byCanonical.entries()).map(([canonicalLabel, annotations]) => ({
-    canonicalLabel,
-    aliases: annotations.map((annotation) => annotation.rawLabel).slice(0, 2),
-  }));
-
   return {
-    seed: case_.catalogSeed,
-    entries,
+    entries: case_.catalogSeed,
   };
+}
+
+export async function seedCatalogEntries(
+  repository: LabelRepository,
+  entries: LabelAlignmentCatalogSeedEntry[],
+): Promise<void> {
+  for (const entry of entries) {
+    await repository.upsertCanonicalLabel({
+      id: entry.id,
+      canonicalName: entry.canonicalName,
+      kind: entry.kind ?? 'cue',
+      definition: entry.definition ?? null,
+      status: 'active',
+    });
+
+    for (const alias of entry.aliases) {
+      await repository.upsertAlias({
+        alias,
+        canonicalLabelId: entry.id,
+        source: 'manual',
+        confidence: 1,
+      });
+    }
+  }
 }

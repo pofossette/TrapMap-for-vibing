@@ -27,7 +27,13 @@ describe('label alignment eval schemas', () => {
           synonymGroupCount: 2,
           totalRawLabels: 3,
           totalCanonicalLabels: 3,
-          catalogSeed: 'catalog-populated',
+          catalogSeed: [
+            {
+              id: 'lbl_react_stale_closure',
+              canonicalName: 'react-stale-closure',
+              aliases: ['stale closure'],
+            },
+          ],
           embeddingEnabled: true,
           goldenAnnotations: [
             {
@@ -74,7 +80,7 @@ describe('label alignment eval schemas', () => {
         synonymGroupCount: 1,
         totalRawLabels: 2,
         totalCanonicalLabels: 1,
-        catalogSeed: 'catalog-empty',
+        catalogSeed: [],
         embeddingEnabled: false,
         goldenAnnotations: [
           {

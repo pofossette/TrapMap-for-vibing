@@ -25,7 +25,20 @@ export interface RunLabelAlignmentSuiteOptions extends LoadFixtureOptions {
 export async function loadLabelAlignmentFixtures(
   options: LoadFixtureOptions,
 ): Promise<LabelAlignmentEvalFixture[]> {
-  const fixtures = options.tier === 'smoke' ? smokeFixtures : smokeFixtures;
+  const fixtures =
+    options.tier === 'smoke'
+      ? smokeFixtures
+      : smokeFixtures.map((fixture) => ({
+          ...fixture,
+          fixtureId: `${fixture.fixtureId}-core`,
+          tags: [...fixture.tags, 'core'],
+          cases: fixture.cases.map((case_) => ({
+            ...case_,
+            caseId: `${case_.caseId}-core`,
+            tier: 'core' as const,
+            tags: [...case_.tags, 'core'],
+          })),
+        }));
   return fixtures.map((fixture) => labelAlignmentEvalFixtureSchema.parse(fixture));
 }
 
