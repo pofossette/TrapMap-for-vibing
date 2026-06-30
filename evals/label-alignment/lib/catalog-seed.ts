@@ -1,8 +1,8 @@
+import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
 import type {
   LabelAlignmentCatalogSeedEntry,
   LabelAlignmentEvalCase,
 } from '../../../packages/contracts/src/domain/evals/label-alignment.js';
-import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
 
 export function buildCatalogSeed(case_: LabelAlignmentEvalCase): {
   entries: LabelAlignmentCatalogSeedEntry[];

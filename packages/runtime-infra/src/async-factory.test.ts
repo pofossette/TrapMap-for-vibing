@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import * as runtimeInfra from './index.js';
 import { createAsyncTransport } from './async-factory.js';
+import * as runtimeInfra from './index.js';
 
 describe('runtime-infra async factory', () => {
   it('re-exports async transport seam from package entry', () => {

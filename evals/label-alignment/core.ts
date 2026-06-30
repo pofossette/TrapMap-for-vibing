@@ -1,6 +1,6 @@
 import type {
-  LabelAlignmentEvalCaseResult,
   LabelAlignmentEvalCase,
+  LabelAlignmentEvalCaseResult,
   LabelAlignmentEvalFixture,
   LabelAlignmentEvalReport,
   LabelAlignmentRecallReason,
@@ -9,7 +9,7 @@ import { labelAlignmentEvalFixtureSchema } from '../../packages/contracts/src/do
 
 import { coreFixtures } from './fixtures/core.js';
 import { smokeFixtures } from './fixtures/smoke.js';
-import { runLiveDecisionEvaluation, type LiveDecisionContext } from './lib/decision-eval.js';
+import { type LiveDecisionContext, runLiveDecisionEvaluation } from './lib/decision-eval.js';
 import { formatLabelAlignmentReport } from './lib/format.js';
 import { calculateCaseMetrics } from './lib/metrics.js';
 import { runDeterministicRecall } from './lib/recall-eval.js';
@@ -117,5 +117,8 @@ function inferRecallReason(
 }
 
 function normalizeLabel(value: string): string {
-  return value.trim().toLowerCase().replace(/[\s_-]+/g, '');
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
 }

@@ -28,16 +28,12 @@ function buildDryRunOutput(
   }
 
   if (caseDefinition.interferenceLevel === 'high') {
-    return [
-      ...numberedSteps,
-      `Final answer: ${scenario.taskPrompt}`,
-    ].join('\n');
+    return [...numberedSteps, `Final answer: ${scenario.taskPrompt}`].join('\n');
   }
 
-  return [
-    ...numberedSteps,
-    `Final answer: ${caseDefinition.expectedOutcome.finalAnswer}`,
-  ].join('\n');
+  return [...numberedSteps, `Final answer: ${caseDefinition.expectedOutcome.finalAnswer}`].join(
+    '\n',
+  );
 }
 
 export async function runActor(

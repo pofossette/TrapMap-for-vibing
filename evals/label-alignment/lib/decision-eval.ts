@@ -1,10 +1,10 @@
+import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
+import { alignLabel } from '@trapmap/server/lib/labels/llm-align.js';
+import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
 import type {
   LabelAlignmentEvalCase,
   LabelAlignmentEvalCaseResult,
 } from '../../../packages/contracts/src/domain/evals/label-alignment.js';
-import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
-import { alignLabel } from '@trapmap/server/lib/labels/llm-align.js';
-import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
 
 import { buildCatalogSeed, seedCatalogEntries } from './catalog-seed.js';
 import { calculateCaseMetrics } from './metrics.js';

@@ -5,7 +5,8 @@ const smokeFixtures: LabelAlignmentEvalFixture[] = [
     schemaVersion: 1,
     fixtureId: 'react-hooks-trap-labels',
     skillId: 'skill/react-hooks-trap',
-    description: 'React hooks smoke fixture covering alias, normalization, and near-match separation.',
+    description:
+      'React hooks smoke fixture covering alias, normalization, and near-match separation.',
     tags: ['smoke', 'frontend', 'trap', 'live-decision'],
     cases: [
       {
@@ -250,10 +251,7 @@ const smokeFixtures: LabelAlignmentEvalFixture[] = [
           },
         ],
         expectedAlignment: {
-          canonicalGroups: [
-            ['connection pool exhaustion', 'pool exhaustion'],
-            ['port forwarding'],
-          ],
+          canonicalGroups: [['connection pool exhaustion', 'pool exhaustion'], ['port forwarding']],
           shouldNotMerge: [['connection pool exhaustion', 'port forwarding']],
         },
         tags: ['catalog-empty', 'should-merge', 'should-not-merge', 'live-decision'],

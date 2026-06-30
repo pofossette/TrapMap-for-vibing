@@ -5,8 +5,8 @@ import {
 } from '@trapmap/server/lib/cache/query-embedding-cache.js';
 import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
 
-import type { RecallChannel } from './retrieval-orchestration.js';
 import { normalizeQuery } from './retrieval-keyword.js';
+import type { RecallChannel } from './retrieval-orchestration.js';
 import type { KnowledgeRecord } from './store.js';
 
 export function buildEmbeddingText(entry: KnowledgeRecord): string {

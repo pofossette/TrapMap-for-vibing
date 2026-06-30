@@ -2,7 +2,7 @@ import type { Pool } from 'pg';
 
 import { recordDatabaseMetric } from './metrics.js';
 
-import { createEmptyStoreData, type SkillShareerStore, type StoreData } from './store.js';
+import { type SkillShareerStore, type StoreData, createEmptyStoreData } from './store.js';
 
 export class PostgresStore implements SkillShareerStore {
   private closed = false;

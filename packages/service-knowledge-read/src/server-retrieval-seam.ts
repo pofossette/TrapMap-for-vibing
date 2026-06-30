@@ -1,18 +1,19 @@
-import type { ResolvedAuthContext, RetrievalQueryPort } from '@trapmap/backend-core';
+import type { RetrievalQueryPort } from '@trapmap/backend-core';
 import type { RetrievalQuery } from '@trapmap/contracts';
+import type { ResolvedAuthContext } from './context.js';
 import { keywordChannel } from './retrieval-keyword.js';
-import {
-  graphAssistedRecall,
-  hybridRecall,
-  semanticRecall,
-} from './retrieval-recall-coordinator.js';
 import {
   ChannelRegistry,
   type RetrievalStrategy,
   StrategyRegistry,
 } from './retrieval-orchestration.js';
-import { searchKnowledge } from './search-knowledge.js';
+import {
+  graphAssistedRecall,
+  hybridRecall,
+  semanticRecall,
+} from './retrieval-recall-coordinator.js';
 import { semanticChannel } from './retrieval-semantic.js';
+import { searchKnowledge } from './search-knowledge.js';
 
 type SearchKnowledgeServices = Parameters<typeof searchKnowledge>[0];
 type SearchKnowledgeAuth = Parameters<typeof searchKnowledge>[1];
@@ -64,6 +65,13 @@ export function createKnowledgeReadRetrievalQuery(
       const auth = options.resolveAuthContext(params) as ResolvedAuthContext;
       const result = await searchKnowledge(options.services, auth, {
         seed: params.query,
+        filters: {
+          labels: [],
+          scopes: ['global', 'project'],
+          ...(params.teamId ? { teamId: params.teamId } : {}),
+        },
+        includeRefinement: false,
+        includeSummary: false,
         mode: options.mode ?? 'hybrid',
         maxResults: params.limit ?? 10,
       });
@@ -76,7 +84,7 @@ export function createKnowledgeReadRetrievalQuery(
           snippet: row.detail,
         })),
         totalEstimate: rows.length,
-        channel: result.routingTrace.channelsUsed.join(','),
+        channel: result.routingTrace?.channelsUsed.join(',') ?? 'semantic',
       };
     },
   };

@@ -1,13 +1,13 @@
 import {
-  knowledgeEntrySchema,
   type AgentReviewResult,
   type Boundary,
   type EvidenceMeta,
   type FeedbackRemediationState,
   type KnowledgeEntry,
   type LifecycleState,
-  type Scope,
   type ReviewQueueItem,
+  type Scope,
+  knowledgeEntrySchema,
 } from '@trapmap/contracts';
 
 interface KnowledgeReviewNoteRecord {

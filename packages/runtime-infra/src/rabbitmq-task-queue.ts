@@ -1,5 +1,5 @@
-import type { Task, TaskHandler } from './task-queue.js';
 import type { RuntimeWorkerHandle } from './runtime-contract.js';
+import type { Task, TaskHandler } from './task-queue.js';
 
 import type { AsyncTaskTransport } from './async-transport.js';
 
@@ -260,10 +260,11 @@ export function createRabbitMqTaskTransport(
                 leaseUntil: null,
                 createdAt: new Date(),
                 updatedAt: new Date(),
+                completedAt: null,
               };
 
               try {
-                await handler.handle(task);
+                await handler.handle(task, new AbortController().signal);
                 channel?.ack?.(message);
               } catch (_error) {
                 channel?.nack?.(message, false, false);

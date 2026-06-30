@@ -1,9 +1,9 @@
 import type { Pool } from 'pg';
 
 import {
+  type AsyncTransport,
   createPostgresEventTransport,
   createPostgresTaskTransport,
-  type AsyncTransport,
 } from './async-transport.js';
 import { createRabbitMqTaskTransport } from './rabbitmq-task-queue.js';
 

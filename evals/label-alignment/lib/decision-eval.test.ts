@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 
-import { runLiveDecisionEvaluation } from './decision-eval.js';
 import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
+import { runLiveDecisionEvaluation } from './decision-eval.js';
 
 function makeMockRepo(overrides: Partial<LabelRepository> = {}): LabelRepository {
   return {
@@ -53,7 +53,13 @@ describe('runLiveDecisionEvaluation', () => {
       synonymGroupCount: 1,
       totalRawLabels: 1,
       totalCanonicalLabels: 1,
-      catalogSeed: 'catalog-populated' as const,
+      catalogSeed: [
+        {
+          id: 'lbl_timeout',
+          canonicalName: 'timeout-issue',
+          aliases: ['pod timeout'],
+        },
+      ],
       embeddingEnabled: false,
       goldenAnnotations: [
         {
@@ -81,6 +87,7 @@ describe('runLiveDecisionEvaluation', () => {
     const result = await runLiveDecisionEvaluation(case_, {
       repository: repo,
       chat,
+      cleanupCatalog: vi.fn().mockResolvedValue(undefined),
     });
 
     expect(result.alignmentAccuracy).toBe(1);

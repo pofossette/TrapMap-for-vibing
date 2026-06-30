@@ -1,6 +1,6 @@
+import type { RecallChannel } from './retrieval-orchestration.js';
 import type { RecallCandidate, TokenMatchDetail } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
-import type { RecallChannel } from './retrieval-orchestration.js';
 
 export function tokenize(text: string): string[] {
   const normalized = text.toLowerCase();

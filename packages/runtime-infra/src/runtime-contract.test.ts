@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  snapshotRuntimeWorker,
   shouldBootApiRuntime,
   shouldBootOutboxWorker,
   shouldBootTaskWorker,
   shouldOwnAsyncWork,
+  snapshotRuntimeWorker,
 } from './runtime-contract.js';
 
 describe('runtime contract', () => {

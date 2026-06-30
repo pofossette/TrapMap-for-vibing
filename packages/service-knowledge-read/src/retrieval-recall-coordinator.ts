@@ -18,12 +18,12 @@ import {
   rerankCandidates,
   toScoredEntriesFromReranked,
 } from '@trapmap/server/lib/retrieval/scoring/rerank.js';
-import type { MergedCandidate, RoutingChannel, ScoredEntry } from './retrieval-types.js';
 import type { Pool } from 'pg';
+import type { MergedCandidate, RoutingChannel, ScoredEntry } from './retrieval-types.js';
 
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
-import type { ChannelRegistry, StrategyRegistry } from './retrieval-orchestration.js';
 import { keywordRecall, normalizeQuery } from './retrieval-keyword.js';
+import type { ChannelRegistry, StrategyRegistry } from './retrieval-orchestration.js';
 import { computeScore, getQueryEmbedding, optimizedSemanticRecall } from './retrieval-semantic.js';
 import type { KnowledgeRecord } from './store.js';
 

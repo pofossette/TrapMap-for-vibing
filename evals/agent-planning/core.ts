@@ -2,8 +2,8 @@ import type { AgentPlanningEvalCase, AgentPlanningEvalScenario } from '@trapmap/
 
 import { agentPlanningCoreCases } from './datasets/core/agent-planning-core.js';
 import {
-  coreScenarios as scenarios,
   coreScenariosMap,
+  coreScenarios as scenarios,
 } from './scenarios/core/agent-planning-core-scenarios.js';
 
 export const coreCases: AgentPlanningEvalCase[] = agentPlanningCoreCases;

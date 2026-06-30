@@ -1,4 +1,4 @@
-import { createAiProviders, type AiProviders } from '@trapmap/server/lib/ai/index.js';
+import { type AiProviders, createAiProviders } from '@trapmap/server/lib/ai/index.js';
 import { setGlobalEmbeddingsProvider } from '@trapmap/server/lib/embeddings.js';
 import type {
   GraphQueryBackend,
@@ -6,16 +6,16 @@ import type {
 } from '@trapmap/server/lib/graph-query/backend.js';
 import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
 import {
-  buildDefaultAdapterRegistry,
   type AdapterRegistry,
+  buildDefaultAdapterRegistry,
 } from '@trapmap/server/lib/indexing/adapters/index.js';
-import type { AsyncTransport } from './async-transport.js';
 import { createAsyncTransport } from './async-factory.js';
+import type { AsyncTransport } from './async-transport.js';
 import { LifecycleEventBus } from './event-bus.js';
 import { PostgresStore } from './postgres-store.js';
-import { createRuntimeInfraRepos, type SkillShareerRepos } from './repos.js';
-import type { SkillShareerStore } from './store.js';
+import { type SkillShareerRepos, createRuntimeInfraRepos } from './repos.js';
 import { createSkillShareerStore } from './store-factory.js';
+import type { SkillShareerStore } from './store.js';
 
 type AiProviderConfig = Parameters<typeof createAiProviders>[0];
 
@@ -80,10 +80,8 @@ export async function createRuntimeSharedInfra(
     graphQueryBackend: createMemoryGraphQueryBackend(repos.graphIndex),
     graphQuery: {
       backendKind: 'memory',
-      enabled: false,
       failOpen: true,
       mode: 'disabled',
-      syncOnWrite: false,
     },
     eventBus: new LifecycleEventBus(),
   };

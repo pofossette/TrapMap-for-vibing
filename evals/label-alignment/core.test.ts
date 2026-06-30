@@ -36,9 +36,7 @@ describe('label alignment eval scaffold', () => {
       ),
     ).toBe(true);
     expect(
-      fixtures.some((fixture) =>
-        fixture.cases.some((case_) => case_.tags.includes('exact-alias')),
-      ),
+      fixtures.some((fixture) => fixture.cases.some((case_) => case_.tags.includes('exact-alias'))),
     ).toBe(true);
     expect(
       fixtures.some((fixture) =>
@@ -66,9 +64,7 @@ describe('label alignment eval scaffold', () => {
       ),
     ).toBe(true);
     expect(
-      fixtures.some((fixture) =>
-        fixture.cases.some((case_) => case_.tags.includes('multi-alias')),
-      ),
+      fixtures.some((fixture) => fixture.cases.some((case_) => case_.tags.includes('multi-alias'))),
     ).toBe(true);
     expect(
       fixtures.some((fixture) =>
@@ -110,8 +106,7 @@ describe('label alignment eval scaffold', () => {
     expect(
       fixtures.some((fixture) =>
         fixture.cases.some(
-          (case_) =>
-            case_.tags.includes('multi-alias') && case_.tags.includes('near-match-guard'),
+          (case_) => case_.tags.includes('multi-alias') && case_.tags.includes('near-match-guard'),
         ),
       ),
     ).toBe(true);

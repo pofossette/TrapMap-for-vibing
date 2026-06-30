@@ -5,13 +5,13 @@ import {
 } from '@trapmap/contracts';
 
 import { enrichMatchesWithConflicts } from '@trapmap/server/lib/conflict/enrich.js';
-import { AppError } from '@trapmap/server/lib/errors.js';
 import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
-import { nowIso } from '@trapmap/server/lib/store.js';
+import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   selectRetrievalStrategy,
   toRoutingTrace,
 } from '@trapmap/server/lib/retrieval/orchestration/routing.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
@@ -25,10 +25,10 @@ import {
 import { buildCitations } from './response-citations.js';
 import { generateRefinement } from './response-refinement.js';
 import { buildSummary } from './response-summary.js';
+import { dispatchByMode, inferChannelsFromMerged } from './retrieval-recall-coordinator.js';
 import { buildEmbeddingText } from './retrieval-semantic.js';
 import type { ScoredEntry } from './retrieval-types.js';
 import type { KnowledgeRecord, StoreData } from './store.js';
-import { dispatchByMode, inferChannelsFromMerged } from './retrieval-recall-coordinator.js';
 
 function buildRoutingTrace(
   routingDecision: ReturnType<typeof selectRetrievalStrategy>,

@@ -9,6 +9,7 @@
  */
 
 import type { ConflictRelation } from '@trapmap/contracts';
+import type { SkillShareerRepos } from '@trapmap/runtime-infra';
 import {
   getCachedRetrievalReadModel,
   setCachedRetrievalReadModel,
@@ -17,7 +18,6 @@ import {
   attachRemediationToArtifacts,
   attachRemediationToKnowledgeEntries,
 } from '@trapmap/server/lib/feedback/remediation.js';
-import type { SkillShareerRepos } from '@trapmap/runtime-infra';
 import type { KnowledgeRecord, SkillArtifactRecord } from './store.js';
 
 /**

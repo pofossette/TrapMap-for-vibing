@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { JsonStore } from './store.js';
 import { createSkillShareerStore } from './store-factory.js';
+import { JsonStore } from './store.js';
 
 describe('runtime-infra store factory', () => {
   it('returns JsonStore when databaseUrl is absent', () => {

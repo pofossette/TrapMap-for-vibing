@@ -317,7 +317,8 @@ export const agentPlanningSmokeCases: AgentPlanningEvalCase[] = [
       ],
     },
     expectedOutcome: {
-      finalAnswer: 'Insufficient evidence to confirm the root cause; request the missing logs first.',
+      finalAnswer:
+        'Insufficient evidence to confirm the root cause; request the missing logs first.',
       successCriteria: ['insufficient evidence stated', 'missing logs requested'],
     },
     tags: ['smoke', 'conservative-response', 'missing-evidence', 'skill-set'],

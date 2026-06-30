@@ -1,7 +1,7 @@
 import type { Pool, PoolClient } from 'pg';
 
 import { createDomainEventOutbox } from './outbox.js';
-import { createTaskQueue, createTaskWorker, type TaskHandler } from './task-queue.js';
+import { type TaskHandler, createTaskQueue, createTaskWorker } from './task-queue.js';
 
 export interface AsyncTaskTransport {
   kind: 'postgres-task-queue' | 'rabbitmq-task-queue';

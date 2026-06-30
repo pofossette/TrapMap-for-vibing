@@ -1,7 +1,7 @@
 import type {
   LabelAlignmentEvalCase,
-  LabelAlignmentRecallReason,
   LabelAlignmentGoldenAnnotation,
+  LabelAlignmentRecallReason,
 } from '../../../packages/contracts/src/domain/evals/label-alignment.js';
 
 import { buildCatalogSeed } from './catalog-seed.js';
