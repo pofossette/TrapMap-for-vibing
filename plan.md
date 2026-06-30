@@ -4,10 +4,11 @@
 
 ## 当前主线
 
-- 状态：`进行中`
-- 主线：服务发现和可观测性升级
-- 目标：为 TrapMap 引入完整的服务发现机制和可观测性三大支柱（追踪、指标、日志），并同步纳入两类成熟能力替换方向：LLM 结构化输出解析优先评估以 LangChain 结构化输出能力替换、自研 `executeWithResilience` 优先评估以成熟 resilience 库替换；同时补齐运行时、测试、部署与文档闭环
-- 主细则：[`docs/todos/service-discovery-and-observability-plan.md`](docs/todos/service-discovery-and-observability-plan.md)
+- 当前主线：微服务平台能力增强
+- 状态：`完成`
+- 主线：已归档
+- 历史入口：[`docs/archived/archived-plans/microservice-platform-evolution-plan.md`](docs/archived/archived-plans/microservice-platform-evolution-plan.md)
+- 当前活跃细则：[`docs/todos/service-discovery-and-observability-plan.md`](docs/todos/service-discovery-and-observability-plan.md)
 
 ### 前置工作：六边形架构清理
 

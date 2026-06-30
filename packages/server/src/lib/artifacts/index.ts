@@ -6,7 +6,7 @@
  */
 
 // Export existing functions from model.ts for backward compatibility
-export * from '@trapmap/server/lib/artifacts/model.js';
+export * from './model.js';
 
 // Export new repository types and functions
 export * from './repository.js';

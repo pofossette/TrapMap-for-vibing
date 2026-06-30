@@ -23,9 +23,29 @@ import type { MergedCandidate, RoutingChannel, ScoredEntry } from './retrieval-t
 
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { keywordRecall, normalizeQuery } from './retrieval-keyword.js';
-import type { ChannelRegistry, StrategyRegistry } from './retrieval-orchestration.js';
 import { computeScore, getQueryEmbedding, optimizedSemanticRecall } from './retrieval-semantic.js';
 import type { KnowledgeRecord } from './store.js';
+
+interface RetrievalStrategyLike {
+  readonly version: string;
+  execute(
+    query: ReturnType<typeof retrievalQuerySchema.parse>,
+    channels: unknown,
+    eligibleEntries: KnowledgeRecord[],
+    services?: SkillShareerServices,
+    auth?: ResolvedAuthContext,
+  ): Promise<RecallExecutionResult>;
+}
+
+interface StrategyRegistryLike {
+  get(version: string): RetrievalStrategyLike | undefined;
+  all(): Array<Pick<RetrievalStrategyLike, 'version'>>;
+}
+
+interface ChannelRegistryLike {
+  get(name: string): unknown;
+  all(): unknown[];
+}
 
 export interface DbSearchConfig {
   enabled: boolean;
@@ -74,8 +94,8 @@ export async function dispatchByMode(
   _seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
-  strategyRegistry: StrategyRegistry,
-  channelRegistry: ChannelRegistry,
+  strategyRegistry: StrategyRegistryLike,
+  channelRegistry: ChannelRegistryLike,
   services?: SkillShareerServices,
   auth?: ResolvedAuthContext,
 ): Promise<RecallExecutionResult> {
@@ -225,28 +245,30 @@ export async function hybridRecall(
       });
 
       const semanticCandidates = dbVectorResults
-        .filter((r) => eligibleIds.has(r.entryId))
-        .map((r) => {
+        .filter((r: (typeof dbVectorResults)[number]) => eligibleIds.has(r.entryId))
+        .map((r: (typeof dbVectorResults)[number]) => {
           const entry = entryMap.get(r.entryId);
           if (!entry) return null;
           return createSemanticCandidate(entry, r.similarity);
         })
         .filter((c): c is NonNullable<ReturnType<typeof createSemanticCandidate>> => c !== null);
 
-      const keywordCandidates: Awaited<ReturnType<typeof keywordRecall>> = keywordResults
-        .filter((r) => eligibleIds.has(r.entryId))
-        .map((r) => {
-          const entry = entryMap.get(r.entryId);
-          if (!entry) return null;
-          return {
-            entry,
-            score: r.score,
-            tokenMatches: r.tokenMatches,
-          };
-        })
-        .filter(
-          (c): c is NonNullable<Awaited<ReturnType<typeof keywordRecall>>[number]> => c !== null,
-        );
+      const keywordCandidates: Awaited<ReturnType<typeof keywordRecall>> = [];
+      for (const result of keywordResults) {
+        if (!eligibleIds.has(result.entryId)) {
+          continue;
+        }
+        const entry = entryMap.get(result.entryId);
+        if (!entry) {
+          continue;
+        }
+        keywordCandidates.push({
+          entry,
+          channel: 'keyword',
+          score: result.score,
+          tokenMatches: result.tokenMatches,
+        });
+      }
 
       const mergedCandidates = mergeCandidates(semanticCandidates, keywordCandidates);
       const rerankedCandidates = rerankCandidates(mergedCandidates, queryTokens, {

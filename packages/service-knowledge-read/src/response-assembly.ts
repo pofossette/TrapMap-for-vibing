@@ -369,18 +369,21 @@ export function buildActivationHints(
   }
 
   // Build read-next hints from manifest references
-  const readNext: ReadNextReferenceHint[] = manifest.references.map((ref) =>
-    buildReadNextHint(manifest.artifactId, manifest.revision, ref),
+  const readNext: ReadNextReferenceHint[] = manifest.references.map(
+    (ref: ClientManifestRecord['references'][number]) =>
+      buildReadNextHint(manifest.artifactId, manifest.revision, ref),
   );
 
   // Build asset hints from manifest assets
-  const assets: AssetAvailabilityHint[] = manifest.assets.map((asset) =>
-    buildAssetHint(manifest.artifactId, manifest.revision, asset),
+  const assets: AssetAvailabilityHint[] = manifest.assets.map(
+    (asset: ClientManifestRecord['assets'][number]) =>
+      buildAssetHint(manifest.artifactId, manifest.revision, asset),
   );
 
   // Build script hints from manifest scripts
-  const scripts: ScriptProfileHint[] = manifest.scripts.map((script) =>
-    buildScriptHint(manifest.artifactId, manifest.revision, script),
+  const scripts: ScriptProfileHint[] = manifest.scripts.map(
+    (script: ClientManifestRecord['scripts'][number]) =>
+      buildScriptHint(manifest.artifactId, manifest.revision, script),
   );
 
   return capsuleActivationHintsSchema.parse({

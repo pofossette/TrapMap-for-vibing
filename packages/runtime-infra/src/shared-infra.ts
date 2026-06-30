@@ -5,10 +5,8 @@ import type {
   GraphQueryRuntimeState,
 } from '@trapmap/server/lib/graph-query/backend.js';
 import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
-import {
-  type AdapterRegistry,
-  buildDefaultAdapterRegistry,
-} from '@trapmap/server/lib/indexing/adapters/index.js';
+import { buildDefaultAdapterRegistry } from '@trapmap/server/lib/indexing/adapters/index.js';
+import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import { createAsyncTransport } from './async-factory.js';
 import type { AsyncTransport } from './async-transport.js';
 import { LifecycleEventBus } from './event-bus.js';

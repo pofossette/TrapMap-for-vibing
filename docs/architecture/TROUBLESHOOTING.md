@@ -805,4 +805,4 @@ v3 graph-plan 的核心场景仅包含 2 个核心用例，测试覆盖可能不
 
 1. 收集日志：`docker compose logs > debug.log`
 2. 收集环境信息：`docker compose ps && docker compose exec server node --version`
-3. 创建 Issue：https://github.com/pofossette/TrapMap-for-vibing/issues
+3. 创建 Issue：`<repository issues URL pending update>`

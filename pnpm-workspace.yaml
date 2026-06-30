@@ -1,6 +1,10 @@
 packages:
   - packages/*
 
+overrides:
+  pg: 8.20.0
+  "@types/pg": 8.20.0
+
 allowBuilds:
   "@biomejs/biome": true
   esbuild: true

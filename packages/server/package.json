@@ -7,7 +7,10 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
-    "./lib/*": "./dist/lib/*.js"
+    "./lib/*.js": {
+      "types": "./dist/lib/*.d.ts",
+      "import": "./dist/lib/*.js"
+    }
   },
   "scripts": {
     "backfill-indexes": "tsx scripts/backfill-indexes.ts",
@@ -34,13 +37,13 @@
     "liquidjs": "^10.27.1",
     "nanoid": "^5.1.6",
     "neo4j-driver": "^5.28.2",
-    "pg": "^8.20.0",
+    "pg": "8.20.0",
     "pg-boss": "^12.23.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "@types/pg": "^8.15.4",
+    "@types/pg": "8.20.0",
     "drizzle-kit": "^0.31.10",
     "pg-mem": "^3.0.14"
   }

@@ -19,5 +19,7 @@ export type HostLocalEventBus = HostLocalSharedInfra['eventBus'];
 export async function createHostLocalSharedInfra(
   config: HostLocalConfig,
 ): Promise<HostLocalSharedInfra> {
+  // Shared seam only: host-local delegates adapter construction to runtime-infra,
+  // which currently uses buildDefaultAdapterRegistry().
   return createRuntimeSharedInfra(config);
 }
