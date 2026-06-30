@@ -853,11 +853,9 @@ Round 2 closeout note:
 - 修改：`docs/guides/MIGRATION_GUIDE.md`
 - 修改：`docs/operations/ENVIRONMENT.md`
 - 修改：`docs/architecture/DEPLOYMENT.md`
-- 修改：`packages/server/src/__tests__/docs-truth-smoke.test.ts`
 
 最小测试：
 
-- `pnpm --filter @trapmap/server test --run src/__tests__/docs-truth-smoke.test.ts`
 - `pnpm check:docs-drift`
 - `pnpm check:structure`
 

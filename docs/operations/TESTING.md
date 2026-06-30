@@ -65,12 +65,11 @@ flowchart TB
 **Phase 2 Store Snapshot / PG-first Freeze Checks:**
 - Snapshot allowlist：运行 `packages/server/src/__tests__/snapshot-usage-guard.test.ts`，确认新的 `store.snapshot()` / `store.transact()` 调用没有逃出 allowlist，并且 allowlist 仍只覆盖命名 compatibility buckets。
 - PG-first compatibility：运行 `packages/server/src/__tests__/pg-first-compat.test.ts`，确认 access-key / member 等 PG-first surface 在 InMemory fallback 下仍维持相同外部 contract；这证明 InMemory 当前是 compatibility/testing posture，而不是第二套 owner 语义。
-- Truth freeze：运行 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，确认 remediation detail plan、truth source、packages doc、persistence doc 与 testing doc 对 `store_snapshot` / InMemory / PG-first 口径的描述一致。
+- Truth freeze：运行 `pnpm check:docs-drift`，确认 remediation detail plan、truth source、packages doc、persistence doc 与 testing doc 对 `store_snapshot` / InMemory / PG-first 口径的描述一致。
 - 解释边界：Phase 2 不要求把全部 compatibility path 都迁走；它要求把 remaining direct entrypoints、retention 条件、priority waves 和测试门写成显式事实。
 
 **Phase 3 Unified Adapter Freeze Checks:**
 - 最小验证矩阵:
-  - `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
   - `rtk pnpm check:docs-drift`
   - `rtk pnpm check:structure`
 - 说明：Phase 3 只冻结边界文案与 authoritative placement，不扩张 runtime behavior。
@@ -123,8 +122,8 @@ flowchart TB
 - Cache capacity summary：调用 `GET /v1/operations/stats/summary`，确认 `asyncArchitecture.cacheInvalidationByNamespace` 与 `cachePendingInvalidationByNamespace` 可用。
 
 **Backend Engineering Master Plan Phase 4 Closeout Matrix:**
-- Phase 0：至少运行当前 gap / docs 相关 truth smoke，并确认 `docs/plans/README.md`、`plan.md` 与阶段索引没有入口漂移。
-- Phase 1：至少运行 `packages/server/src/app.test.ts`、`packages/server/src/bootstrap/startup.test.ts`、`packages/server/src/config.test.ts`、`packages/server/src/__tests__/docs-truth-smoke.test.ts`，并确认 `ARCHITECTURE.md`、`SYSTEM_TRUTH_SOURCES.md` 与相关 README 已回写 ownership / allowlist。
+- Phase 0：至少运行当前 gap / docs 相关守卫，并确认 `docs/plans/README.md`、`plan.md` 与阶段索引没有入口漂移。
+- Phase 1：至少运行 `packages/server/src/app.test.ts`、`packages/server/src/bootstrap/startup.test.ts`、`packages/server/src/config.test.ts`，并确认 `ARCHITECTURE.md`、`SYSTEM_TRUTH_SOURCES.md` 与相关 README 已回写 ownership / allowlist。
 - Phase 2：至少运行 `packages/server/src/routes/operations/status.test.ts` 与 async/runtime 相关测试，确认 `/v1/operations/status/async` contract、`workflow_runs.stats` checkpoint source 和 failure taxonomy 已冻结。
 - Phase 2：同时确认 runtime metrics 采用“logical terminal outcome + separate retry attempts”语义，且 route/worker/internal client/operator status 的 canonical error kind 映射没有漂移。
 - Phase 3：至少运行 `packages/server/src/routes/operations/status.test.ts`、`packages/server/src/routes/operations/stats.test.ts`、`packages/server/src/config.test.ts`，确认 operatorHome / configGovernance / capacityModel / bulkOperations 以及 cache invalidation summary 已落地。
@@ -132,7 +131,6 @@ flowchart TB
 
 **Phase 4 Adapter Env / Target Freeze Checks:**
 - 最小验证矩阵：
-  - `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
   - `rtk pnpm check:docs-drift`
   - `rtk pnpm check:structure`
 - 验证重点：Phase 4 只冻结 selector env、provider-specific env、推荐 profile/target 组合、fail-fast / fallback 规则与 optional dependency / target-pruning 文档边界，不宣称新的 runtime refactor。
@@ -140,7 +138,6 @@ flowchart TB
 
 **Phase 5 Distributed Baseline Freeze Checks:**
 - 最小验证矩阵：
-  - `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
   - `rtk pnpm check:docs-drift`
   - `rtk pnpm check:structure`
 - 验证重点：Phase 5 只冻结 distributed maturity baseline、gateway-only external access、shared PostgreSQL transitional posture、真实内部 hop 证据、compose 当前拓扑限制与 deferred platform boundary；不引入新的 runtime behavior。
@@ -148,7 +145,6 @@ flowchart TB
 
 **Phase 6 Mature Capability Freeze Checks:**
 - 最小验证矩阵：
-  - `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
   - `rtk pnpm check:docs-drift`
   - `rtk pnpm check:structure`
 - 验证重点：Phase 6 只冻结 mature-capability / library-replacement truth 边界，明确 `internal client + resilience`、`tracing + metrics`、`rate limiting + bulkhead / 背压`、`cache + invalidation`、`service discovery`、`DB budget / PgBouncer`、`health indicator`、`light` / `heavy` posture 与 graph runtime config 的 current-vs-deferred 边界；不引入新的 runtime behavior。
@@ -156,9 +152,11 @@ flowchart TB
 
 **Phase 7 Maintainability / CI-Testing Truth / Documentation Closeout Checks:**
 - 最小验证矩阵：
-  - `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`
   - `rtk pnpm check:docs-drift`
   - `rtk pnpm check:structure`
+  - `rtk pnpm check:deps`
+  - `rtk pnpm check:md-lint`
+  - `rtk pnpm check:links`
   - `rtk pnpm eval:smoke`
 - 验证重点：Phase 7 只冻结 current active execution surface、historical/deferred doc role、CI job truth、eval command semantics、以及 deferred landing spot wording；不引入新的 runtime behavior。
 - CI/testing truth 解释：
@@ -535,9 +533,10 @@ pnpm test -- --run \
   packages/server/src/routes/candidates.test.ts
 
 # Docs and guardrails
-pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
 pnpm check:docs-drift
-pnpm check:complexity
+pnpm check:deps
+pnpm check:md-lint
+pnpm check:links
 ```
 
 说明：
@@ -545,14 +544,14 @@ pnpm check:complexity
 - 共享 runtime metrics 当前是内部/test-visible snapshot，不要求稳定对外 endpoint 验证
 - `/ready` 在 `readiness === "not-ready"` 时应返回 HTTP `503`
 - PostgreSQL 模式下，`queueWorker` 和 `outboxWorker` 都应纳入 readiness 解释
-- 如果更改了 runtime doc contract，需要同步更新 `SYSTEM_TRUTH_SOURCES.md` 与 `docs-truth-smoke.test.ts`
+- 如果更改了 runtime doc contract，需要同步更新 `SYSTEM_TRUTH_SOURCES.md` 与 `scripts/complexity-budgets.json` 中对应的 docRules
 - 如果更改了统一 instrumentation contract，需要同步更新 `SYSTEM_TRUTH_SOURCES.md`、`docs/todos/instrumentation-observability-plan.md` 和相关 architecture/reference 文档；其中 `observability.ts` 必须继续作为 correlation key / workflow correlation / failure taxonomy / public-internal 边界的唯一共享入口
 
 ### 按变更类型的验证矩阵
 
 | 变更类型 | 必须运行的验证 |
 |----------|--------------|
-| 文档修改 | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` |
+| 文档修改 | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:deps` + `pnpm check:md-lint` |
 | 命令范围变更 | `pnpm check:docs-drift` + smoke 测试（验证包级 DB 命令和 JSON 回退路径） |
 | 环境默认值变更 | `pnpm check:docs-drift` + smoke 测试（验证 ENVIRONMENT.md 中的默认值正确） |
 | 深层架构文档变更 | `pnpm check:docs-drift` + smoke 测试（验证 ARCHITECTURE.md / PERSISTENCE.md 中的运行时默认值和表计数） |
@@ -562,10 +561,10 @@ pnpm check:complexity
 
 | 阶段 | 最小验证 |
 |---|---|
-| `Phase 0` | `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
-| `Phase 1` | `pnpm test -- --run packages/server/src/app.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/config.test.ts packages/server/src/__tests__/docs-truth-smoke.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
+| `Phase 0` | `pnpm check:docs-drift` + `pnpm check:structure` |
+| `Phase 1` | `pnpm test -- --run packages/server/src/app.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/config.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
 | `Phase 2` | `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts packages/server/src/config.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
-| `Phase 3` | `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts` + `rtk pnpm check:docs-drift` + `rtk pnpm check:structure` |
+| `Phase 3` | `rtk pnpm check:docs-drift` + `rtk pnpm check:structure` |
 | `Phase 4` | 本轮相关测试 + `pnpm check:docs-drift` + `pnpm check:structure`；只有在 truth-source、计划边界和 closeout 规则回写完成后才能勾选根 `plan.md` |
 | CI 配置变更 | `pnpm check:docs-drift` + 更新 `CI_CD.md` |
 | 架构变更 | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:complexity` + `pnpm eval:smoke` |
@@ -582,8 +581,7 @@ pnpm check:complexity
 2. 查阅 [`DOCS_TRUTH_MATRIX.md`](../reference/DOCS_TRUTH_MATRIX.md) 找到所有二级文档
 3. 更新所有二级文档
 4. 运行 `pnpm check:docs-drift` 确认无漂移
-5. 运行 `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` 确认真理性断言通过
-6. 如添加了新的漂移类别，在 `scripts/complexity-budgets.json` 中添加对应的 `docRules`
+5. 如添加了新的漂移类别，在 `scripts/complexity-budgets.json` 中添加对应的 `docRules`
 
 ### CI 自动触发
 
@@ -1144,7 +1142,6 @@ fm-agent 针对 `packages/server` 生成了 391 个已确认的原始发现（�
 | `packages/server/src/bootstrap/startup.test.ts` | 已修复 / 已文档化边界：生命周期审计订阅补齐；JSON store recovery 不重入 PG queue |
 | `packages/server/src/lib/ai/dynamic/context-resolver.test.ts` | 已文档化边界：MCP 状态当前显式为 `unavailable` |
 | `packages/server/src/lib/ai/provider-config.test.ts` | 已修复：provider-specific key 优先级 |
-| `packages/server/src/__tests__/docs-truth-smoke.test.ts` | 重新验证文件存在性守卫 |
 
 ### 运行激活测试
 
@@ -1154,11 +1151,10 @@ rtk pnpm --filter @trapmap/server test -- \
   --run packages/server/src/app.test.ts \
   packages/server/src/bootstrap/startup.test.ts \
   packages/server/src/lib/ai/dynamic/context-resolver.test.ts \
-  packages/server/src/lib/ai/provider-config.test.ts \
-  packages/server/src/__tests__/docs-truth-smoke.test.ts
+  packages/server/src/lib/ai/provider-config.test.ts
 
 # 重新验证源文档和分类矩阵是否存在
-rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
+rtk pnpm check:docs-drift
 ```
 
 ### 过时热点桶（HEAD 已解决）

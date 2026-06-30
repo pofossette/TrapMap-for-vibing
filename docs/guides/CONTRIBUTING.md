@@ -208,8 +208,8 @@ pnpm check:complexity
 # 增量 fallow 守卫（按当前分支相对 main 的新增问题）
 pnpm exec fallow audit --base origin/main --gate new-only --ci --fail-on-issues
 
-# 运行文档真理性测试
-pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
+# 运行文档漂移守卫
+pnpm check:docs-drift
 ```
 
 详见 [`docs/reference/DOCS_TRUTH_MATRIX.md`](../reference/DOCS_TRUTH_MATRIX.md) 和 [`docs/reference/SYSTEM_TRUTH_SOURCES.md`](../reference/SYSTEM_TRUTH_SOURCES.md)。
