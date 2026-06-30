@@ -1,0 +1,211 @@
+{
+  "archFreezeRules": [
+    {
+      "id": "phase1-server-boundary",
+      "description": "Phase 1 server/backend-core boundary freeze: source-code invariants",
+      "files": {
+        "packages/server/src/app.ts": {
+          "mustContain": [
+            "await registerCapabilityRoutes(capabilityScopedApp, config);",
+            "if (capabilities.routeSurface === 'minimal-agent') {",
+            "await app.register(operationsRoutes);",
+            "await app.register(feedbackAdminRoutes);"
+          ]
+        },
+        "packages/server/src/config.ts": {
+          "mustContain": [
+            "routeSurface: z.enum(['minimal-agent', 'gateway-core', 'worker-status'])",
+            "supportsReviewGovernance: z.boolean()",
+            "requiresPostgres: z.boolean()"
+          ]
+        },
+        "packages/backend-core/src/ports/internal-ports.ts": {
+          "mustContain": [
+            "export interface KnowledgeWritePort",
+            "applyMaintenanceDecision",
+            "publishCandidateResult",
+            "export interface CandidateIngestionPort"
+          ]
+        },
+        "packages/server/src/lib/repos/index.ts": {
+          "mustContain": ["export interface SkillShareerRepos", "createAllRepos"]
+        },
+        "packages/server/src/lib/persistence/schema/index.ts": {
+          "mustContain": ["export const storeSnapshot = pgTable", "export * from './queue.js';"]
+        },
+        "packages/server/src/lib/persistence/migration-runner.ts": {
+          "mustContain": ["ADD COLUMN IF NOT EXISTS \"worker_id\" TEXT", "INSERT INTO \"users\""]
+        }
+      }
+    },
+    {
+      "id": "phase2-store-snapshot-pg-first",
+      "description": "Phase 2 store_snapshot, InMemory fallback, and PG-first posture freeze: source-code invariants",
+      "files": {
+        "packages/server/src/__tests__/snapshot-usage-guard.test.ts": {
+          "mustContain": [
+            "Phase 2 posture freeze",
+            "routes/teams.ts",
+            "lib/operations/read-model.ts"
+          ]
+        },
+        "packages/server/src/__tests__/pg-first-compat.test.ts": {
+          "mustContain": ["Phase 2 (PG-First Convergence)", "fallback still works correctly"]
+        },
+        "packages/server/src/lib/operations/read-model.ts": {
+          "mustContain": ["store.snapshot()"]
+        },
+        "packages/server/src/routes/operations/artifacts-activate.ts": {
+          "mustContain": ["artifactFilePayloads"]
+        }
+      }
+    },
+    {
+      "id": "phase3-unified-adapter-boundary",
+      "description": "Phase 3 adapter scope, provider taxonomy, and host/gateway boundaries: source-code invariants",
+      "files": {
+        "packages/host-local/src/nest/adapters/adapter-factory.ts": {
+          "mustContain": [
+            "export type AdapterMode = 'in-process' | 'remote'",
+            "Adapter selection is the host assembly"
+          ]
+        },
+        "packages/host-local/src/nest/adapters/remote.adapter.ts": {
+          "mustContain": ["Remote adapter must NOT leak fetch Response"]
+        },
+        "packages/host-local/src/nest/runtime/shared-infra.ts": {
+          "mustContain": ["buildDefaultAdapterRegistry()", "Shared seam only"]
+        },
+        "packages/backend-core/src/ports/internal-ports.ts": {
+          "mustContain": ["This layer enables both in-process direct invocation"]
+        },
+        "packages/host-distributed/src/gateway/internal-client.ts": {
+          "mustContain": ["normalizeCanonicalErrorBody"]
+        },
+        "packages/host-distributed/src/shared/internal-knowledge-write-client.ts": {
+          "mustContain": ["createRemoteKnowledgeWriteClient"]
+        }
+      }
+    },
+    {
+      "id": "phase4-adapter-env-target-pruning",
+      "description": "Phase 4 selector envs, recommended profile combos, and target-pruning posture: source-code invariants",
+      "files": {
+        "packages/server/src/config.ts": {
+          "mustContain": [
+            "provider: z.enum(['postgres', 'rabbitmq']).default('postgres')",
+            "profile: z.enum(['local-agent', 'team-monolith', 'distributed'])",
+            "preset: z\n    .enum(['monolith', 'api', 'candidate-worker', 'governance-worker', 'outbox-worker'])"
+          ]
+        },
+        "packages/host-local/src/nest/config/config.ts": {
+          "mustContain": [
+            "TRAPMAP_DEPLOYMENT_PROFILE",
+            "TRAPMAP_DEPLOYMENT_PRESET",
+            "TRAPMAP_TASK_TRANSPORT"
+          ]
+        },
+        "packages/host-distributed/src/config/service-config.ts": {
+          "mustContain": ["TRAPMAP_SERVICE_NAME", "TRAPMAP_KNOWLEDGE_WRITE_URL"]
+        }
+      }
+    },
+    {
+      "id": "phase5-distributed-baseline",
+      "description": "Phase 5 distributed maturity baseline, shared-PG posture, and deferred boundary: source-code invariants",
+      "files": {
+        "packages/host-distributed/README.md": {
+          "mustContain": [
+            "Gateway-only external access",
+            "HTTP-based inter-service communication",
+            "Shared PostgreSQL (Transitional)"
+          ]
+        },
+        "docker-compose.yml": {
+          "mustContain": ["profiles: [\"distributed\"]", "TRAPMAP_DEPLOYMENT_PROFILE=distributed"]
+        },
+        "packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts": {
+          "mustContain": [
+            "proves multi-process gateway to internal services to knowledge-write closeout with recovery evidence"
+          ]
+        }
+      }
+    },
+    {
+      "id": "phase6-mature-capability-boundary",
+      "description": "Phase 6 mature-capability boundaries without overstating platform maturity: source-code invariants",
+      "files": {
+        "packages/server/src/lib/runtime/resilience.ts": {
+          "mustContain": [
+            "export interface ResiliencePolicy",
+            "export type ResilienceFailureMode = 'fail-closed' | 'fail-open'"
+          ]
+        },
+        "packages/server/src/lib/runtime/metrics.ts": {
+          "mustContain": ["export interface RuntimeMetricsSnapshot", "retryableFailures"]
+        },
+        "packages/server/src/lib/cache/invalidation.ts": {
+          "mustContain": ["CacheInvalidationReason", "pendingInvalidation"]
+        },
+        "packages/server/src/config.ts": {
+          "mustContain": ["rateLimitMaxPerMinute", "graphDb: GraphDbConfigSchema"]
+        },
+        "packages/server/src/lib/graph-query/config.ts": {
+          "mustContain": [
+            "provider: z.enum(['neo4j']).default('neo4j')",
+            "failOpen: z.boolean().default(true)"
+          ]
+        },
+        "packages/host-distributed/src/config/service-config.ts": {
+          "mustContain": ["TRAPMAP_KNOWLEDGE_READ_URL", "TRAPMAP_JOB_RUNTIME_URL"]
+        },
+        "packages/host-distributed/src/gateway/internal-client.ts": {
+          "mustContain": ["normalizeCanonicalErrorBody"]
+        }
+      }
+    },
+    {
+      "id": "phase7-ci-truth-execution-surface",
+      "description": "Phase 7 docs freeze active execution surface, CI truth, and deferred landing spots: source-code and non-doc invariants",
+      "files": {
+        "package.json": {
+          "mustContain": [
+            "\"ci\": \"pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-ci.ts\"",
+            "\"eval:smoke\": \"pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier smoke\"",
+            "\"eval:ci\": \"pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts\"",
+            "\"eval:ci:core\": \"TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts\""
+          ]
+        },
+        ".github/workflows/ci.yml": {
+          "mustContain": [
+            "node-version: '24'",
+            "architecture-guardrails:",
+            "- run: pnpm check:mermaid",
+            "- run: pnpm check:structure"
+          ]
+        }
+      }
+    },
+    {
+      "id": "existence-checks",
+      "description": "File existence checks from the smoke test",
+      "files": {
+        "packages/server/src/lib/README.md": {
+          "mustExist": true
+        },
+        "packages/server/src/routes/README.md": {
+          "mustExist": true
+        },
+        "packages/server/src/app.test.ts": {
+          "mustExist": true
+        },
+        "docs/plans/fm-agent-scan/server-live-gap-matrix.md": {
+          "mustExist": true
+        },
+        "docs/plans/fm-agent-scan/server-source-pack.md": {
+          "mustExist": true
+        }
+      }
+    }
+  ]
+}

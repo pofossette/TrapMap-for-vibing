@@ -38,6 +38,7 @@
     "check:mermaid": "pnpm exec tsx scripts/check-mermaid.ts",
     "check:structure": "node scripts/check-structure.mjs",
     "check:complexity": "pnpm exec tsx scripts/check-complexity-budgets.ts",
+    "check:arch-freeze": "pnpm exec tsx scripts/check-arch-freeze.ts",
     "test:distributed-acceptance": "pnpm --filter @trapmap/host-distributed test:acceptance",
     "test:runtime-closeout": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/runtime-closeout.ts",
     "test:runtime-foundations": "vitest run packages/server/src/app.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts packages/server/src/lib/runtime/resilience.test.ts packages/server/src/lib/runtime/metrics.test.ts packages/server/src/lib/candidates/processor.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/lifecycle/outbox.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts packages/server/src/routes/candidates.test.ts packages/server/src/__tests__/docs-truth-smoke.test.ts",
