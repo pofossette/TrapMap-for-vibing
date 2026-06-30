@@ -338,6 +338,10 @@
         "不再描述为仍由当前根计划并行拥有的 checklist",
         "已于 2026-06-30 完成 Phase 4 closeout，并归档",
         "已归档"
+      ],
+      "mustNotContain": [
+        "唯一活跃细则",
+        "| `microservice-platform-evolution-plan.md` | 微服务平台能力增强：服务发现、内部 RPC、可观测性与资源治理 |"
       ]
     },
     {
@@ -537,13 +541,25 @@
     },
     {
       "file": "docs/todos/open-debt-and-compromises.md",
-      "mustContain": ["canonical taxonomy"],
+      "mustContain": [
+        "canonical taxonomy",
+        "service-to-service auth hardening",
+        "dashboard-as-code",
+        "alert rule pack",
+        "PgBouncer",
+        "Node heap presets",
+        "PgBouncer / pool introspection contract",
+        "不扩成新的 monitoring platform",
+        "container CPU/memory checked-in defaults",
+        "当前仍留在 active todo 的剩余 closeout 只剩"
+      ],
       "mustNotContain": [
         "packages/host-local/src/bootstrap/stubs.ts",
         "packages/host-local/src/runtime/worker.ts",
         "packages/host-local/src/runtime/outbox.ts",
         "badcase 分类标准仍未统一定义",
-        "待定分类"
+        "待定分类",
+        "模糊 later"
       ]
     },
     {
