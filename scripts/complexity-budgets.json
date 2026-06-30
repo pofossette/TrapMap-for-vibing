@@ -393,7 +393,8 @@
     {
       "file": "docs/architecture/ARCHITECTURE.md",
       "mustContain": ["pgvector/pgvector:pg16", "wget"],
-      "mustNotContain": ["image: postgres:16", "curl.*-f.*health"]
+      "mustNotContain": ["image: postgres:16"],
+      "mustNotContainRegex": ["curl.*-f.*health"]
     },
     {
       "file": "docs/architecture/components/ASYNC_INFRASTRUCTURE.md",
