@@ -26,7 +26,7 @@
     "@trapmap/backend-core": "workspace:*",
     "@trapmap/client-core": "workspace:*",
     "@trapmap/contracts": "workspace:*",
-    "@trapmap/server": "workspace:*",
+    "@trapmap/runtime-infra": "workspace:*",
     "@trapmap/service-knowledge-read": "workspace:*",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",

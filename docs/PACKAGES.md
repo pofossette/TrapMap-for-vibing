@@ -9,6 +9,7 @@
 | `packages/client-core` | `src/index.ts` | 客户端共享 gateway 传输层：HTTP SDK、session contract、error model |
 | `packages/cli` | `src/index.ts` | Commander.js CLI 客户端，用户交互终端入口 |
 | `packages/backend-core` | `src/index.ts` | 宿主无关的后端核心内核、运行时能力模型与端口 |
+| `packages/runtime-infra` | `src/index.ts` | 共享 runtime 基础设施 seam：store/repos、async transport、AI provider、adapter registry、graph-query memory bootstrap |
 | `packages/service-identity-access` | `src/index.ts` | identity-access service assembly 与内部路由 |
 | `packages/service-knowledge-read` | `src/index.ts` | knowledge-read service assembly 与检索读侧路由 |
 | `packages/service-knowledge-write` | `src/index.ts` | knowledge-write service assembly 与 authoritative 写路径 |
@@ -36,7 +37,7 @@
 - `packages/server` 保留 Fastify compatibility shell 与 shared runtime/status seam；当前仍负责 `packages/server/src/app.ts`、`packages/server/src/config.ts`、`packages/server/src/lib/repos/index.ts`、`packages/server/src/lib/persistence/schema/index.ts`、`packages/server/src/lib/persistence/migration-runner.ts`，但不再被描述为默认 `light` 主应用主体。
 - `packages/backend-core` 不是“仅接口”空壳。它继续承载 runtime capability model、internal ports、invocation contract、bounded-context module factory 与 testing utilities，作为 host-agnostic 内核被 `host-local`、`host-distributed` 和 `service-*` 复用。
 - `packages/service-*` 只承载 owner-aligned thin assembly：`deps.ts`、`routes.ts`、`server.ts`、`index.ts`。它们暴露 backend-core owner module，但不定义自己的 schema/migration owner。
-- `packages/host-local` 与 `packages/host-distributed` 负责 transport/DI/process composition；shared runtime seam 仍可暂时复用 `packages/server` 的实现面，但它们才是宿主装配语义的归宿。
+- `packages/host-local` 与 `packages/host-distributed` 负责 transport/DI/process composition；shared runtime seam 当前收敛到 `packages/runtime-infra`，底层仍可暂时复用 `packages/server` 的实现面，但宿主装配 owner 不再留在 `host-local` 文件内。
 - repository interface 的当前 target package 仍冻结在 `packages/server/src/lib/*/repository.ts` 与 `packages/server/src/lib/repos/index.ts`，Drizzle schema 与 migration owner 仍在 `packages/server`，后续 phase 再决定是否抽出共享 seam。
 - 高复杂度 domain logic 继续允许留在 `packages/server` 的 compatibility/application debt 区，但文档必须把它们视为冻结中的过渡态，而不是新的 long-term owner。
 
@@ -66,7 +67,7 @@
 - `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` 是 remote port client wrapper 示例：它消费 gateway internal client，把 transport 错误映射回 `InvocationError` / `KnowledgeWritePort` 语义，证明 remote client wrapper 与 gateway transport helper 属于不同层次。
 - `packages/server/src/lib/ai/**` 与 `packages/server/src/lib/indexing/adapters/**` 继续是 server-owned concrete infrastructure/provider implementation。Phase 3 冻结 taxonomy 和 owner，不把它们提前描述成 `backend-core` provider contract，也不把它们抽离成新的 shared workspace package。
 - gateway client 和 remote adapter 不是 repository adapters；repository / persistence seam 仍继续冻结在 repo-owned boundary。`packages/server/src/lib/repos/**`、`packages/server/src/lib/*/repository.ts` 与 persistence implementation 不属于 unified adapter 目录。
-- `packages/host-local/src/nest/runtime/shared-infra.ts` 当前借用 `packages/server` 的 shared infra helper，只能被描述为 transitional shared infrastructure seam。它不是 `packages/server` 仍是默认 host owner 的证据，也不是统一适配器范围应该无限扩大到 host bootstrap 的依据。
+- `packages/runtime-infra/src/shared-infra.ts` 当前借用 `packages/server` 的 shared infra helper，只能被描述为 transitional shared infrastructure seam。它不是 `packages/server` 仍是默认 host owner 的证据，也不是统一适配器范围应该无限扩大到 host bootstrap 的依据。
 
 ## Phase 4 数据、运维与退役收尾
 

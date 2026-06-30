@@ -11,8 +11,8 @@ import type {
   SessionLookupPort,
   TeamLookupPort,
 } from '@trapmap/backend-core';
-import { searchKnowledge } from '@trapmap/server/lib/retrieval.js';
 import type { Permission } from '@trapmap/contracts';
+import { createKnowledgeReadRetrievalQuery } from '@trapmap/service-knowledge-read';
 import type { FastifyRequest } from 'fastify';
 
 import { loadHostLocalConfig } from '../config/index.js';
@@ -174,9 +174,10 @@ function createQueuePorts(services: HostLocalServices): QueuePorts {
 }
 
 function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
-  return {
-    async search(params) {
-      const auth: ResolvedAuthContext = {
+  return createKnowledgeReadRetrievalQuery({
+    services,
+    resolveAuthContext(params): ResolvedAuthContext {
+      return {
         subjectType: 'system-admin',
         actorId: 'nest-light-runtime',
         handle: 'nest-light-runtime',
@@ -187,25 +188,9 @@ function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
         membership: null,
         team: null,
       };
-
-      const result = await searchKnowledge(services, auth, {
-        seed: params.query,
-        mode: 'hybrid',
-        maxResults: params.limit ?? 10,
-      });
-
-      const rows = [...result.globalConstraints, ...result.projectKnowledge];
-      return {
-        results: rows.map((row) => ({
-          entryId: row.entryId,
-          score: row.score,
-          snippet: row.detail,
-        })),
-        totalEstimate: rows.length,
-        channel: result.routingTrace.channelsUsed.join(','),
-      };
     },
-  };
+    mode: 'hybrid',
+  });
 }
 
 export async function createHostLocalRuntime(): Promise<HostLocalRuntime> {

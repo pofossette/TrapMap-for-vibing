@@ -102,6 +102,10 @@ export default defineConfig({
               replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
             },
             {
+              find: '@trapmap/runtime-infra',
+              replacement: resolve(__dirname, './packages/runtime-infra/src/index.ts'),
+            },
+            {
               find: '@trapmap/service-knowledge-read',
               replacement: resolve(__dirname, './packages/service-knowledge-read/src/index.ts'),
             },
@@ -112,6 +116,10 @@ export default defineConfig({
             {
               find: 'fastify',
               replacement: fastifyEntry,
+            },
+            {
+              find: 'pg',
+              replacement: resolve(__dirname, './packages/server/node_modules/pg/lib/index.js'),
             },
           ],
         },
@@ -257,6 +265,18 @@ export default defineConfig({
         resolve: {
           alias: [
             {
+              find: /^@trapmap\/server\/lib\/(.+)\.js$/,
+              replacement: resolve(__dirname, './packages/server/src/lib/$1.ts'),
+            },
+            {
+              find: /^@trapmap\/server\/(.+)\.js$/,
+              replacement: resolve(__dirname, './packages/server/src/$1.ts'),
+            },
+            {
+              find: '@trapmap/server',
+              replacement: resolve(__dirname, './packages/server/src/index.ts'),
+            },
+            {
               find: '@trapmap/contracts',
               replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
             },
@@ -267,6 +287,33 @@ export default defineConfig({
             {
               find: 'fastify',
               replacement: fastifyEntry,
+            },
+          ],
+        },
+      },
+      {
+        test: {
+          name: 'runtime-infra',
+          root: './packages/runtime-infra',
+          include: ['src/**/*.test.ts'],
+        },
+        resolve: {
+          alias: [
+            {
+              find: /^@trapmap\/server\/lib\/(.+)\.js$/,
+              replacement: resolve(__dirname, './packages/server/src/lib/$1.ts'),
+            },
+            {
+              find: /^@trapmap\/server\/(.+)\.js$/,
+              replacement: resolve(__dirname, './packages/server/src/$1.ts'),
+            },
+            {
+              find: '@trapmap/server',
+              replacement: resolve(__dirname, './packages/server/src/index.ts'),
+            },
+            {
+              find: 'pg',
+              replacement: resolve(__dirname, './packages/server/node_modules/pg/lib/index.js'),
             },
           ],
         },

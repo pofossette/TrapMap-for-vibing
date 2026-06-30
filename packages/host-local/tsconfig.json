@@ -8,5 +8,9 @@
   },
   "include": ["src/index.ts"],
   "exclude": ["src/**/*.test.ts", "src/nest/**/*.ts"],
-  "references": [{ "path": "../backend-core" }, { "path": "../contracts" }]
+  "references": [
+    { "path": "../backend-core" },
+    { "path": "../contracts" },
+    { "path": "../runtime-infra" }
+  ]
 }
