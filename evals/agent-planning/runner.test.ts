@@ -29,6 +29,7 @@ describe('agent planning eval scaffold', () => {
     });
 
     expect(report?.summary.totalCases).toBe(smokeCases.length);
+    expect(report?.summary.failedCases).toBe(0);
     expect(report?.meta.options.dryRun).toBe(true);
     expect(
       report?.cases.every(

@@ -225,6 +225,15 @@ pnpm typecheck
 pnpm check:docs-drift
 ```
 
+评测脚手架入口：
+
+```bash
+pnpm eval:smoke
+pnpm eval:core
+pnpm eval:agent-planning:dry-run
+pnpm eval:label-alignment:dry-run
+```
+
 ## Vitest 使用要求
 
 - 仓库根 `pnpm test` 是 workspace 级全量测试入口，会按根 [`vitest.config.ts`](vitest.config.ts) 同时加载多个 project；不要把它当成查看失败列表的轻量命令。

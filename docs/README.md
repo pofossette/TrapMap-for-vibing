@@ -164,6 +164,12 @@ pnpm eval:retrieval
 # 运行摘要评估
 pnpm eval:summary
 
+# 运行 agent 路径规划评估
+pnpm eval:agent-planning
+
+# 运行标签对齐评估
+pnpm eval:label-alignment
+
 # 运行所有 CI 评估（默认 smoke；core 使用独立入口）
 pnpm eval:ci
 

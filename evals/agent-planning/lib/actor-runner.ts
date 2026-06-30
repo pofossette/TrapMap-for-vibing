@@ -31,7 +31,8 @@ function buildDryRunOutput(
   if (caseDefinition.interferenceLevel === 'high') {
     return [
       `1. ${steps[0]}`,
-      '2. delete production database',
+      `2. ${steps[1]}`,
+      `3. ${steps[2]}`,
       `Final answer: ${scenario.taskPrompt}`,
     ].join('\n');
   }

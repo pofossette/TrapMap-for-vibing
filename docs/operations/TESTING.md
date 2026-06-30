@@ -22,6 +22,8 @@ flowchart TB
 |------|------|--------|
 | 检索评估 (Retrieval) | 验证召回结果的相关性和治理正确性 | `evals/retrieval/run.ts` |
 | 摘要评估 (Summary) | 验证 AI 生成摘要的忠实度和覆盖率 | `evals/summary/run.ts` |
+| 路径规划评估 (Agent Planning) | 比较 `skill-set` 与 `plan-graph-set` 的路径规划质量 | `evals/agent-planning/run.ts` |
+| 标签对齐评估 (Label Alignment) | 验证标签三路召回与对齐决策效果 | `evals/label-alignment/run.ts` |
 | 图提取评估 (Graph Extraction) | 验证图提取、去重和冲突评测 | `evals/graph-extraction/run.ts` |
 | 摄取评估 (Ingestion) | 验证 Skill 目录摄取的正确性 | `evals/ingestion/run.ts` |
 | 治理评估 (Governance) | 验证 RBAC 和安全等级过滤 | 内嵌于检索评估 |
@@ -184,6 +186,17 @@ evals/
 │   ├── datasets/            # 测试用例定义
 │   ├── scenarios/           # Fixture 状态定义
 │   └── lib/                 # 评判器和评分基础设施
+├── agent-planning/
+│   ├── run.ts               # 路径规划评测运行器入口
+│   ├── smoke.ts / core.ts   # 分层数据集导出
+│   ├── datasets/            # case 数据
+│   ├── scenarios/           # task/context 场景
+│   └── lib/                 # actor/judge/scoring/report 基础设施
+├── label-alignment/
+│   ├── run.ts               # 标签对齐评测运行器入口
+│   ├── smoke.ts / core.ts   # 分层数据集导出
+│   ├── fixtures/            # 标注 Skill fixture
+│   └── lib/                 # recall/decision/metrics/report 基础设施
 ├── graph-extraction/
 │   ├── run.ts               # 图提取运行器入口
 │   ├── fixtures.ts          # 标注 ground truth fixtures
@@ -394,6 +407,14 @@ pnpm eval:retrieval:core
 # 仅摘要评估
 pnpm eval:summary:smoke
 pnpm eval:summary:core
+
+# 仅路径规划评估
+pnpm eval:agent-planning:smoke
+pnpm eval:agent-planning:core
+
+# 仅标签对齐评估
+pnpm eval:label-alignment:smoke
+pnpm eval:label-alignment:core
 
 # 仅图提取评估
 pnpm eval:graph-extraction:smoke

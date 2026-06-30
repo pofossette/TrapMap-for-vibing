@@ -56,6 +56,8 @@ Historical plans, temporary notes, audits, and human-authored reports must live 
 
 - `evals/retrieval/`: retrieval datasets, scenarios, runner, metrics, and reports.
 - `evals/summary/`: summary datasets, scenarios, judge logic, runner, and reports.
+- `evals/agent-planning/`: agent planning comparison datasets, scenarios, and runner.
+- `evals/label-alignment/`: label alignment fixtures, recall/decision evaluation, and runner.
 - `evals/graph-extraction/`: graph extraction, conflict, and dedup evals.
 - `evals/ingestion/`: Skill ingestion fixtures and runner.
 - `evals/fixtures/`: shared trap fixtures.

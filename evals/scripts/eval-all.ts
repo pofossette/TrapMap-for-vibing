@@ -140,6 +140,34 @@ interface IngestionResult {
   durationMs: number;
 }
 
+interface AgentPlanningResult {
+  passed: boolean;
+  report: unknown;
+  durationMs: number;
+  summary: {
+    totalCases: number;
+    passedCases: number;
+    failedCases: number;
+    passRate: number;
+    avgScore: number;
+  };
+}
+
+interface LabelAlignmentResult {
+  passed: boolean;
+  report: unknown;
+  durationMs: number;
+  summary: {
+    totalCases: number;
+    passedCases: number;
+    failedCases: number;
+    passRate: number;
+    alignmentAccuracy: number;
+    falseMerges: number;
+    missedMerges: number;
+  };
+}
+
 interface CombinedReport {
   schemaVersion: 1;
   timestamp: string;
@@ -149,6 +177,8 @@ interface CombinedReport {
   summary: SummaryResult | null;
   graphExtraction: GraphExtractionResult | null;
   ingestion: IngestionResult | null;
+  agentPlanning: AgentPlanningResult | null;
+  labelAlignment: LabelAlignmentResult | null;
   overall: {
     passed: boolean;
     totalCases: number;
@@ -399,6 +429,77 @@ async function runSummaryEval(options: EvalAllOptions): Promise<SummaryResult | 
   }
 }
 
+async function runAgentPlanningEval(options: EvalAllOptions): Promise<AgentPlanningResult | null> {
+  const startTime = Date.now();
+
+  try {
+    const { runAgentPlanningEval: runSuite } = await import('../agent-planning/run.js');
+    const report = await runSuite({
+      tier: options.tier,
+      dryRun: options.dryRun,
+      provider: options.dryRun ? 'fallback' : 'openai',
+    });
+
+    return {
+      passed: report.summary.failedCases === 0,
+      report,
+      durationMs: Date.now() - startTime,
+      summary: {
+        totalCases: report.summary.totalCases,
+        passedCases: report.summary.passedCases,
+        failedCases: report.summary.failedCases,
+        passRate: report.summary.passRate,
+        avgScore: report.summary.avgScore,
+      },
+    };
+  } catch (error) {
+    if (options.dryRun) {
+      console.log('  Agent planning evaluation: dry-run mode (runner not available)');
+      return null;
+    }
+
+    console.error('Agent planning evaluation failed:', error);
+    throw error;
+  }
+}
+
+async function runLabelAlignmentEval(
+  options: EvalAllOptions,
+): Promise<LabelAlignmentResult | null> {
+  const startTime = Date.now();
+
+  try {
+    const { runLabelAlignmentSuite } = await import('../label-alignment/core.js');
+    const report = await runLabelAlignmentSuite({
+      tier: options.tier,
+      mode: options.dryRun ? 'dry-run' : 'live',
+    });
+
+    return {
+      passed: report.summary.failedCases === 0,
+      report,
+      durationMs: Date.now() - startTime,
+      summary: {
+        totalCases: report.summary.totalCases,
+        passedCases: report.summary.passedCases,
+        failedCases: report.summary.failedCases,
+        passRate: report.summary.passRate,
+        alignmentAccuracy: report.summary.alignmentAccuracy,
+        falseMerges: report.summary.falseMerges,
+        missedMerges: report.summary.missedMerges,
+      },
+    };
+  } catch (error) {
+    if (options.dryRun) {
+      console.log('  Label alignment evaluation: dry-run mode (runner not available)');
+      return null;
+    }
+
+    console.error('Label alignment evaluation failed:', error);
+    throw error;
+  }
+}
+
 // =============================================================================
 // Combined Report Formatting
 // =============================================================================
@@ -549,6 +650,50 @@ function formatCombinedReport(report: CombinedReport, _options: EvalAllOptions):
     lines.push('');
   }
 
+  // Agent Planning Evaluation Section
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('                  Agent Planning Evaluation');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+  if (report.agentPlanning) {
+    const agent = report.agentPlanning;
+    lines.push('');
+    lines.push(`Total cases: ${agent.summary.totalCases}`);
+    lines.push(`Passed: ${agent.summary.passedCases}`);
+    lines.push(`Failed: ${agent.summary.failedCases}`);
+    lines.push(`Pass rate: ${(agent.summary.passRate * 100).toFixed(1)}%`);
+    lines.push(`Average score: ${agent.summary.avgScore.toFixed(3)}`);
+    lines.push(`Duration: ${agent.durationMs}ms`);
+    lines.push('');
+  } else {
+    lines.push('');
+    lines.push('(No agent planning evaluation data - dry-run or skipped)');
+    lines.push('');
+  }
+
+  // Label Alignment Evaluation Section
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('                  Label Alignment Evaluation');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+  if (report.labelAlignment) {
+    const label = report.labelAlignment;
+    lines.push('');
+    lines.push(`Total cases: ${label.summary.totalCases}`);
+    lines.push(`Passed: ${label.summary.passedCases}`);
+    lines.push(`Failed: ${label.summary.failedCases}`);
+    lines.push(`Pass rate: ${(label.summary.passRate * 100).toFixed(1)}%`);
+    lines.push(`Alignment accuracy: ${(label.summary.alignmentAccuracy * 100).toFixed(1)}%`);
+    lines.push(`False merges: ${label.summary.falseMerges}`);
+    lines.push(`Missed merges: ${label.summary.missedMerges}`);
+    lines.push(`Duration: ${label.durationMs}ms`);
+    lines.push('');
+  } else {
+    lines.push('');
+    lines.push('(No label alignment evaluation data - dry-run or skipped)');
+    lines.push('');
+  }
+
   // Overall Status
   lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   lines.push('                      Overall Status');
@@ -609,6 +754,8 @@ async function main(): Promise<void> {
 
   let retrievalResult: RetrievalResult | null = null;
   let summaryResult: SummaryResult | null = null;
+  let agentPlanningResult: AgentPlanningResult | null = null;
+  let labelAlignmentResult: LabelAlignmentResult | null = null;
 
   // Run retrieval evaluation
   console.log('--- Retrieval Evaluation ---');
@@ -680,17 +827,55 @@ async function main(): Promise<void> {
   }
   console.log('');
 
+  // Run agent planning evaluation
+  console.log('--- Agent Planning Evaluation ---');
+  try {
+    agentPlanningResult = await runAgentPlanningEval(options);
+    if (agentPlanningResult) {
+      console.log(
+        `  Completed: ${agentPlanningResult.summary.passedCases}/${agentPlanningResult.summary.totalCases} passed`,
+      );
+    }
+  } catch (error) {
+    console.error('  Failed:', error);
+    if (!options.allowEmpty && !options.dryRun) {
+      process.exit(1);
+    }
+  }
+  console.log('');
+
+  // Run label alignment evaluation
+  console.log('--- Label Alignment Evaluation ---');
+  try {
+    labelAlignmentResult = await runLabelAlignmentEval(options);
+    if (labelAlignmentResult) {
+      console.log(
+        `  Completed: ${labelAlignmentResult.summary.passedCases}/${labelAlignmentResult.summary.totalCases} passed`,
+      );
+    }
+  } catch (error) {
+    console.error('  Failed:', error);
+    if (!options.allowEmpty && !options.dryRun) {
+      process.exit(1);
+    }
+  }
+  console.log('');
+
   // Build combined report
   const totalCases =
     (retrievalResult?.summary.totalCases ?? 0) +
     (summaryResult?.summary.totalCases ?? 0) +
     (graphExtractionResult?.totalFixtures ?? 0) +
-    (ingestionResult?.totalBundles ?? 0);
+    (ingestionResult?.totalBundles ?? 0) +
+    (agentPlanningResult?.summary.totalCases ?? 0) +
+    (labelAlignmentResult?.summary.totalCases ?? 0);
   const passedCases =
     (retrievalResult?.summary.passedCases ?? 0) +
     (summaryResult?.summary.passedCases ?? 0) +
     (graphExtractionResult?.passed ? (graphExtractionResult?.totalFixtures ?? 0) : 0) +
-    (ingestionResult?.passedBundles ?? 0);
+    (ingestionResult?.passedBundles ?? 0) +
+    (agentPlanningResult?.summary.passedCases ?? 0) +
+    (labelAlignmentResult?.summary.passedCases ?? 0);
   const failedCases = totalCases - passedCases;
 
   const combinedReport: CombinedReport = {
@@ -702,13 +887,17 @@ async function main(): Promise<void> {
     summary: summaryResult,
     graphExtraction: graphExtractionResult,
     ingestion: ingestionResult,
+    agentPlanning: agentPlanningResult,
+    labelAlignment: labelAlignmentResult,
     overall: {
       passed:
         failedCases === 0 &&
         (retrievalResult !== null ||
           summaryResult !== null ||
           graphExtractionResult !== null ||
-          ingestionResult !== null),
+          ingestionResult !== null ||
+          agentPlanningResult !== null ||
+          labelAlignmentResult !== null),
       totalCases,
       passedCases,
       failedCases,

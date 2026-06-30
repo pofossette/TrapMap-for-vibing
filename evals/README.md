@@ -40,6 +40,14 @@ pnpm eval:retrieval:core
 pnpm eval:summary:smoke
 pnpm eval:summary:core
 
+# 仅 agent 路径规划
+pnpm eval:agent-planning:smoke
+pnpm eval:agent-planning:core
+
+# 仅标签对齐
+pnpm eval:label-alignment:smoke
+pnpm eval:label-alignment:core
+
 # 从持久化 badcase trace 导出 eval draft
 pnpm exec tsx scripts/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
 ```
@@ -75,6 +83,19 @@ evals/
 │   ├── datasets/                # 摘要用例定义
 │   ├── scenarios/               # Fixture 状态定义
 │   └── lib/                     # 评判器和评分基础设施
+├── agent-planning/
+│   ├── README.md                # 路径规划对比评测文档
+│   ├── run.ts                   # 运行器入口
+│   ├── smoke.ts / core.ts       # 分层数据集导出
+│   ├── datasets/                # case 数据
+│   ├── scenarios/               # task/context 场景
+│   └── lib/                     # actor/judge/scoring/report 基础设施
+├── label-alignment/
+│   ├── README.md                # 标签对齐评测文档
+│   ├── run.ts                   # 运行器入口
+│   ├── smoke.ts / core.ts       # 分层导出
+│   ├── fixtures/                # 标注 Skill fixture
+│   └── lib/                     # recall/decision/metrics/report 基础设施
 ├── graph-extraction/
 │   ├── README.md                # 图提取评测文档
 │   ├── run.ts                   # 图提取运行器入口
@@ -98,6 +119,8 @@ evals/
 |---|---|---|
 | `retrieval/` | Retrieval datasets, scenarios, metrics, and runner | `pnpm eval:retrieval:smoke` |
 | `summary/` | Summary datasets, scenarios, assertions, judge, and runner | `pnpm eval:summary:smoke` |
+| `agent-planning/` | Agent planning comparison datasets, scenarios, and runner | `pnpm eval:agent-planning:smoke` |
+| `label-alignment/` | Label alignment fixtures, recall/decision evaluation, and runner | `pnpm eval:label-alignment:smoke` |
 | `graph-extraction/` | Graph extraction, dedup, and conflict evaluation | `pnpm eval:graph-extraction:smoke` |
 | `ingestion/` | Skill ingestion fixtures, assertions, adapter, and runner | `pnpm eval:ingestion:smoke` |
 | `fixtures/` | Shared trap fixtures | Imported by eval suites |
@@ -184,6 +207,8 @@ export const mySummaryCase = summaryEvalCaseSchema.parse({
 所有 schema 定义在 `packages/contracts/src/domain/evals/`：
 - `retrieval.ts` - 检索用例和请求 schema
 - `summary.ts` - 摘要用例和预期结果 schema
+- `agent-planning.ts` - 路径规划对比 case/scenario/report schema
+- `label-alignment.ts` - 标签对齐 fixture/case/report schema
 - `report.ts` - 报告结构 schema
 
 ## 解读失败
