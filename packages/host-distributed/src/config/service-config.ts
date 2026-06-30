@@ -23,6 +23,7 @@ const ENV_CANDIDATE_INGESTION_URL = 'TRAPMAP_CANDIDATE_INGESTION_URL';
 const ENV_GOVERNANCE_REVIEW_URL = 'TRAPMAP_GOVERNANCE_REVIEW_URL';
 const ENV_JOB_RUNTIME_URL = 'TRAPMAP_JOB_RUNTIME_URL';
 const ENV_LOG_LEVEL = 'TRAPMAP_LOG_LEVEL';
+const ENV_DEPLOYMENT_PROFILE = 'TRAPMAP_DEPLOYMENT_PROFILE';
 
 // ---------------------------------------------------------------------------
 // Service names
@@ -61,6 +62,26 @@ const DEFAULT_PORTS: Record<ServiceName, number> = {
   'job-runtime': 4006,
 };
 
+const DEFAULT_INTERNAL_HOSTS: Record<ServiceName, string> = {
+  gateway: 'localhost',
+  'identity-access': 'localhost',
+  'knowledge-read': 'localhost',
+  'knowledge-write': 'localhost',
+  'candidate-ingestion': 'localhost',
+  'governance-review': 'localhost',
+  'job-runtime': 'localhost',
+};
+
+const DISTRIBUTED_INTERNAL_HOSTS: Record<ServiceName, string> = {
+  gateway: 'gateway',
+  'identity-access': 'identity-access',
+  'knowledge-read': 'knowledge-read',
+  'knowledge-write': 'knowledge-write',
+  'candidate-ingestion': 'candidate-worker',
+  'governance-review': 'governance-worker',
+  'job-runtime': 'outbox-worker',
+};
+
 // ---------------------------------------------------------------------------
 // Internal service URLs (defaults assume all on localhost)
 // ---------------------------------------------------------------------------
@@ -77,16 +98,38 @@ export interface InternalServiceUrls {
 }
 
 function defaultInternalUrls(): InternalServiceUrls {
+  return buildInternalUrls(DEFAULT_INTERNAL_HOSTS);
+}
+
+function distributedInternalUrls(): InternalServiceUrls {
+  return buildInternalUrls(DISTRIBUTED_INTERNAL_HOSTS);
+}
+
+function buildInternalUrls(hosts: Record<ServiceName, string>): InternalServiceUrls {
   return {
-    gateway: `http://localhost:${DEFAULT_PORTS.gateway}`,
-    identityAccess: `http://localhost:${DEFAULT_PORTS['identity-access']}`,
-    knowledgeRead: `http://localhost:${DEFAULT_PORTS['knowledge-read']}`,
-    knowledgeWrite: `http://localhost:${DEFAULT_PORTS['knowledge-write']}`,
-    candidateIngestion: `http://localhost:${DEFAULT_PORTS['candidate-ingestion']}`,
-    review: `http://localhost:${DEFAULT_PORTS['governance-review']}`,
-    governanceReview: `http://localhost:${DEFAULT_PORTS['governance-review']}`,
-    jobRuntime: `http://localhost:${DEFAULT_PORTS['job-runtime']}`,
+    gateway: `http://${hosts.gateway}:${DEFAULT_PORTS.gateway}`,
+    identityAccess: `http://${hosts['identity-access']}:${DEFAULT_PORTS['identity-access']}`,
+    knowledgeRead: `http://${hosts['knowledge-read']}:${DEFAULT_PORTS['knowledge-read']}`,
+    knowledgeWrite: `http://${hosts['knowledge-write']}:${DEFAULT_PORTS['knowledge-write']}`,
+    candidateIngestion: `http://${hosts['candidate-ingestion']}:${DEFAULT_PORTS['candidate-ingestion']}`,
+    review: `http://${hosts['governance-review']}:${DEFAULT_PORTS['governance-review']}`,
+    governanceReview: `http://${hosts['governance-review']}:${DEFAULT_PORTS['governance-review']}`,
+    jobRuntime: `http://${hosts['job-runtime']}:${DEFAULT_PORTS['job-runtime']}`,
   };
+}
+
+export type ServiceDiscoveryMode = 'localhost-defaults' | 'docker-dns';
+
+export function resolveServiceDiscoveryMode(): ServiceDiscoveryMode {
+  return process.env[ENV_DEPLOYMENT_PROFILE] === 'distributed'
+    ? 'docker-dns'
+    : 'localhost-defaults';
+}
+
+export function resolveDefaultInternalUrls(
+  mode = resolveServiceDiscoveryMode(),
+): InternalServiceUrls {
+  return mode === 'docker-dns' ? distributedInternalUrls() : defaultInternalUrls();
 }
 
 // ---------------------------------------------------------------------------
@@ -123,7 +166,7 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
     process.env[ENV_LEGACY_DATABASE_URL] ??
     null;
 
-  const defaults = defaultInternalUrls();
+  const defaults = resolveDefaultInternalUrls();
 
   return {
     serviceName: name,

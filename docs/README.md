@@ -6,10 +6,10 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 ## 当前整改主线
 
-当前根计划已切换为“TrapMap 架构整改计划索引”，Phase 0-7 已完成文档/结构冻结、truth source 回写、测试矩阵与 deferred 落点收口；当前执行面只有一条：
+当前根计划已切换为“微服务平台能力增强”主线；当前执行面只有一条：
 
 - 根索引：[`../plan.md`](../plan.md)
-- 当前唯一活跃细则：[`todos/trapmap-architecture-remediation-plan.md`](todos/trapmap-architecture-remediation-plan.md)
+- 当前唯一活跃细则：[`todos/microservice-platform-evolution-plan.md`](todos/microservice-platform-evolution-plan.md)
 - CI/testing truth source：[`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md)
 
 以下 NestJS / 服务演进内容仅保留为历史背景输入，不再作为当前根计划执行面；其他历史 todo/closeout 文档也只能被视为 background 或 deferred reference，而不是平行 active checklist：
@@ -202,13 +202,14 @@ deployment flexibility 最小验证矩阵：
 
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
-- [架构整改根计划](../plan.md) — 当前根级执行索引；只保留阶段、关键路径和唯一细则入口
-- [架构整改细则](todos/trapmap-architecture-remediation-plan.md) — 当前唯一活跃细则入口；Phase 0-7 已冻结单一问题池、边界结论、deferred 入口、测试矩阵和 CI/testing truth
+- [微服务平台增强根计划](../plan.md) — 当前根级执行索引；只保留总体要求、目标和唯一活跃细则入口
+- [微服务平台能力增强细则](todos/microservice-platform-evolution-plan.md) — 当前唯一活跃细则入口；跟踪服务发现、内部 RPC、可观测性与资源治理的执行 checklist
 - 当前 active execution surface 只允许写成上面两项；其余 todo 文档只能写成背景输入、deferred 落点或已完成 closeout 参考
 - [健壮性与可扩展性收尾细则](todos/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](todos/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪
-- [轻重后端构建目标细则](todos/backend-build-targets-plan.md) — 轻重后端构建目标、兼容壳清理与客户端后端形态配置的细则；根计划已切换，不再是当前主线
+- [微服务架构与可观测性全景](todos/microservice-architecture-and-observability.md) — 当前微服务增强主线的架构盘点与问题输入，不承担执行 checklist
+- [轻重后端构建目标细则](todos/backend-build-targets-plan.md) — 轻重后端构建目标、兼容壳清理与客户端后端形态配置的细则；现退回背景参考
 - [组件替换细则](todos/component-replacement-plan.md) — 成熟包替换的独立细则；根计划已切换，不再是当前主线
 - [Badcase 回流待办](todos/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
 - [后端工程化优化计划](todos/backend-engineering-optimization-plan.md) — 平台化 deferred 问题池；承接 MQ 产品化、监控平台、长期服务化与更重的平台工程议题

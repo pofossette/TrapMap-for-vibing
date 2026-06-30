@@ -1,27 +1,63 @@
 import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
 import Fastify from 'fastify';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { loadServiceConfig } from '../config/index.js';
 
+const ORIGINAL_ENV = { ...process.env };
+
+afterEach(() => {
+  process.env = { ...ORIGINAL_ENV };
+});
+
 describe('distributed job-runtime ownership acceptance', () => {
-  it('loads job-runtime as a dedicated remote-owned worker service', () => {
+  it('loads distributed job-runtime with docker-dns internal defaults', () => {
+    process.env.TRAPMAP_DEPLOYMENT_PROFILE = 'distributed';
+
     const config = loadServiceConfig('job-runtime');
 
     expect(config.serviceName).toBe('job-runtime');
     expect(config.port).toBe(4006);
+    expect(config.internalUrls.gateway).toBe('http://gateway:4000');
+    expect(config.internalUrls.identityAccess).toBe('http://identity-access:4001');
+    expect(config.internalUrls.knowledgeRead).toBe('http://knowledge-read:4002');
+    expect(config.internalUrls.knowledgeWrite).toBe('http://knowledge-write:4003');
+    expect(config.internalUrls.candidateIngestion).toBe('http://candidate-worker:4004');
+    expect(config.internalUrls.governanceReview).toBe('http://governance-worker:4005');
+    expect(config.internalUrls.review).toBe('http://governance-worker:4005');
+    expect(config.internalUrls.jobRuntime).toBe('http://outbox-worker:4006');
+  });
+
+  it('keeps localhost defaults outside distributed profile', () => {
+    delete process.env.TRAPMAP_DEPLOYMENT_PROFILE;
+
+    const config = loadServiceConfig('job-runtime');
+
     expect(config.internalUrls.gateway).toBe('http://localhost:4000');
     expect(config.internalUrls.jobRuntime).toBe('http://localhost:4006');
   });
 
   it('keeps gateway and candidate-worker ownership separated by service config defaults', () => {
+    process.env.TRAPMAP_DEPLOYMENT_PROFILE = 'distributed';
+
     const gateway = loadServiceConfig('gateway');
     const candidateWorker = loadServiceConfig('candidate-ingestion');
 
     expect(gateway.port).toBe(4000);
     expect(candidateWorker.port).toBe(4004);
     expect(gateway.internalUrls.jobRuntime).toBe(candidateWorker.internalUrls.jobRuntime);
-    expect(gateway.internalUrls.candidateIngestion).toBe('http://localhost:4004');
+    expect(gateway.internalUrls.candidateIngestion).toBe('http://candidate-worker:4004');
+  });
+
+  it('lets explicit internal urls override distributed defaults', () => {
+    process.env.TRAPMAP_DEPLOYMENT_PROFILE = 'distributed';
+    process.env.TRAPMAP_KNOWLEDGE_WRITE_URL = 'http://custom-knowledge-write:4403';
+    process.env.TRAPMAP_JOB_RUNTIME_URL = 'http://custom-job-runtime:4406';
+
+    const config = loadServiceConfig('gateway');
+
+    expect(config.internalUrls.knowledgeWrite).toBe('http://custom-knowledge-write:4403');
+    expect(config.internalUrls.jobRuntime).toBe('http://custom-job-runtime:4406');
   });
 
   it('serves schedule, status, and queue semantics from the dedicated job-runtime surface', async () => {

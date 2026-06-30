@@ -94,6 +94,7 @@ Phase 4 freeze 只冻结当前 selector env / provider-specific env / fail-fast 
 
 - selector env truth 以 `TRAPMAP_DEPLOYMENT_PROFILE`、`TRAPMAP_DEPLOYMENT_PRESET`、`TRAPMAP_TASK_TRANSPORT` 为中心。它们决定 profile、preset 与 task transport 的选择面；secondary docs 不得再把这些入口改写成新的 generic config taxonomy。
 - provider-specific env 继续留在 owner seam。AI provider env 仍以 `AI_PROVIDER`、`OPENAI_API_KEY`、`GEMINI_API_KEY` 等当前 server/shared runtime 事实为准；distributed internal service URLs 仍以 `TRAPMAP_GATEWAY_URL`、`TRAPMAP_IDENTITY_ACCESS_URL`、`TRAPMAP_KNOWLEDGE_READ_URL`、`TRAPMAP_KNOWLEDGE_WRITE_URL`、`TRAPMAP_CANDIDATE_INGESTION_URL`、`TRAPMAP_GOVERNANCE_REVIEW_URL`、`TRAPMAP_JOB_RUNTIME_URL` 为当前 owner-specific env。
+- `packages/host-distributed/src/config/service-config.ts` 现在同时冻结内部服务发现默认值：`distributed` profile 默认走 compose Docker DNS（`gateway`、`identity-access`、`knowledge-read`、`knowledge-write`、`candidate-worker`、`governance-worker`、`outbox-worker`），非 distributed / 本地进程默认走 `localhost`，显式 `TRAPMAP_*_URL` 覆盖优先级最高。
 - 推荐组合冻结为：`local-agent` -> `light` + in-process/internal defaults + `json-store-ok`；`team-monolith` -> `light` + `postgres-required` + `gateway-core` + `split-owned`；`distributed` -> `heavy` + service/gateway split + `remote-expected`。
 - fail-fast / fallback 规则冻结为：`TRAPMAP_TASK_TRANSPORT=rabbitmq` 时必须同时提供 RabbitMQ config；`distributed` profile 需要 PostgreSQL；`local-agent` 仍允许 `.data/skill-shareer.json` 这类 JSON store fallback；internal service URLs 在 `in-process` mode 下继续视为 ignored config，而不是必填值。
 - target-pruning 仅是文档边界。`light` / `heavy` 不是新的 env value，也不是新的 runtime profile；optional dependency / tree-shaking 规则只表达当前 intent 与 non-goal，不表示仓库已经实现自动化 package pruning。
@@ -145,6 +146,8 @@ Phase 3 operator / config governance 补充约定：
 - `rpc`：为未来正式 RPC adapter 预留；首期可未实现
 
 #### Internal service endpoint
+
+以下 `TRAPMAP_INTERNAL_*_URL` 仍是未来内部 transport mode/rpc seam 的预留 planned surface，不是当前 `host-distributed` 已生效的服务发现变量。当前真实生效的是上面的 `TRAPMAP_*_URL` 系列。
 
 | 变量 | 说明 | 计划默认值 |
 |------|------|------------|

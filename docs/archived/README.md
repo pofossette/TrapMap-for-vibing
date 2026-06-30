@@ -32,10 +32,10 @@
 | `archived-plans/nestjs-service-evolution-knowledge-write-governance-review-pilot.md` | 2026-06-29 | 状态 proposed，0% 完成，成熟服务样板规划退回背景参考 |
 | `archived-plans/nestjs-service-evolution-knowledge-write-governance-review-preflight-checklist.md` | 2026-06-29 | 状态 proposed，0% 完成，样板实施前检查表退回背景参考 |
 | `archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md` | 2026-06-29 | 状态 proposed，0% 完成，样板代码迁移任务列表退回背景参考 |
+| `archived-plans/plan-2026-06-30-backend-build-targets-root-index-archived.md` | 2026-06-30 | 根 `plan.md` 已切换为微服务平台能力增强主线，旧轻重后端构建目标根索引归档 |
 
 ## 归档原则
 
 文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档引用。
 
-当前根 `plan.md` 已切换为“架构整改”主线；Phase 0-7 已完成当前唯一活跃细则、历史输入角色、truth source、测试矩阵与 deferred 落点的冻结。健壮性与可扩展性收尾、数据埋点增强、轻重后端构建目标、组件替换等旧主线保留在归档计划与 `docs/todos/` 背景文档中，供后续审计或 deferred 议题参考，但不承担当前执行面，也不再由根 `plan.md` 跟踪。若后续继续深入旧主线主题，应新开独立审计或独立计划；对当前架构整改主题，则应进入当前活跃细则显式链接的 deferred 落点，而不是回写这些归档主线。
-历史记录：当前根 `plan.md` 已完成“健壮性与可扩展性收尾”。
+当前根 `plan.md` 已切换为“微服务平台能力增强”主线；旧轻重后端构建目标根索引已归档。健壮性与可扩展性收尾、数据埋点增强、轻重后端构建目标、组件替换与更早的架构整改主线都保留在归档计划与 `docs/todos/` 背景文档中，供后续审计或 deferred 议题参考，但不承担当前执行面，也不再由根 `plan.md` 跟踪。若后续继续深入这些旧主线主题，应新开独立计划或转入当前活跃细则显式声明的 deferred 落点。

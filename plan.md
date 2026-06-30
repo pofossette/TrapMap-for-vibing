@@ -1,53 +1,50 @@
 # TrapMap 执行计划索引
 
-根 `plan.md` 只做索引；阶段任务、设计冻结、验证矩阵与完成定义统一写在当前活跃细则。
+根 `plan.md` 只做索引；阶段任务、执行 checklist、验证矩阵与完成定义统一写在当前活跃细则。
 
 ## 状态
 
-- 状态：`完成`
-- 收口 30 个架构问题，避免继续在多份计划里并行定义当前状态、目标状态和 deferred 入口
-- 当前主线阶段：`Phase 0-7 全部完成`
-- [x] Wave 7H：增强 doc-drift / structure / complexity 守卫，覆盖当前唯一活跃细则、历史 todo 状态、plan/todos 索引一致性和本轮热点文件预算
+- 状态：`进行中`
+- 当前主线：微服务平台能力增强
+- 目标：在保持 `gateway only` 与现有 bounded-context/port contract 不变的前提下，继续推进服务发现、RPC 评估与落地、更强的可观测性与资源治理
 
 ## 当前活跃细则
 
 | 细则 | 状态 | 主题 |
 |---|---|---|
-| [`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md) | 进行中 (~35%) | 轻重后端构建目标、兼容壳清理与客户端后端形态配置 |
+| [`docs/todos/microservice-platform-evolution-plan.md`](docs/todos/microservice-platform-evolution-plan.md) | 进行中 (0%) | 服务发现、内部 RPC、OpenTelemetry/metrics/logging、部署与验证收口 |
 
-## 背景参考（不承担当前执行面）
+## 总体要求
+
+- 当前唯一执行面是 [`docs/todos/microservice-platform-evolution-plan.md`](docs/todos/microservice-platform-evolution-plan.md)；进度更新统一回写该细则中的复选框
+- 保持 `light` / `heavy` 只是 build target 术语，不能改写 `local-agent`、`team-monolith`、`distributed` 三个 deployment profile 的既有真相
+- 保持 `gateway only` 接入模型；不得让 CLI、`client-core` 或其他外部调用方直连内部 service
+- 共享契约、枚举和可观测性字段继续以 `packages/contracts/src/index.ts`、`packages/contracts/src/domain/` 为准
+- 服务发现、RPC、可观测性能力的增强必须优先复用既有 port-first、transport-agnostic 设计，不得引入第二套业务真相
+- 文档回写顺序遵循 [`docs/guides/DOCUMENTATION_GOVERNANCE.md`](docs/guides/DOCUMENTATION_GOVERNANCE.md)：先更新 truth source/源码，再更新说明文档和入口索引
+
+## 文档与测试要求
+
+- 每个阶段完成后，至少同步检查并回写受影响的 `docs/reference/*`、`docs/architecture/*`、`docs/operations/*` 与 `docs/README.md`
+- 涉及环境变量、部署默认值、服务发现行为、RPC transport 约定、metrics/tracing/logging contract 变化时，必须更新 `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+- 涉及 shared contract、内部 API shape、观测字段或状态枚举变化时，必须补跑受影响包测试与 `rtk pnpm typecheck`
+- 涉及 distributed 路径、检索/治理/异步运行时、可观测性链路时，至少补跑对应最小测试与 `rtk pnpm eval:smoke`
+
+## 背景参考
 
 | 文档 | 角色 |
 |---|---|
+| [`docs/todos/microservice-architecture-and-observability.md`](docs/todos/microservice-architecture-and-observability.md) | 当前主线的架构盘点与问题输入，不承担执行 checklist |
 | [`docs/todos/open-debt-and-compromises.md`](docs/todos/open-debt-and-compromises.md) | 活跃 debt register：当前仍未收口的占位实现、阶段性妥协与开发退路 |
-| [`docs/todos/nestjs-service-evolution-01-host-and-contract-foundation.md`](docs/todos/nestjs-service-evolution-01-host-and-contract-foundation.md) | Nest 宿主、配置与 contract 基础收口 (~60%) |
-| [`docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md`](docs/todos/nestjs-service-evolution-02-modular-monolith-cutover.md) | 模块化单体切换：边界冻结、兼容层规则与机械迁移提示词 (~55%) |
-| [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md) | 数据、运维、退役与收尾 (~55%) |
+| [`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md) | 轻重后端构建目标与兼容壳收口背景参考，不再由根计划直接跟踪 |
+| [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md) | 数据、运行时、退役与平台化 deferred 参考 |
 
 ## 已归档
 
-架构整改主线 Phase 0-7 已全部完成（2026-06-28），相关文档已归档至 [`docs/archived/archived-plans/`](docs/archived/archived-plans/)。详见 [`docs/archived/README.md`](docs/archived/README.md)。
-
-归档内容包括：
-- `trapmap-architecture-remediation-plan.md` — 架构整改 30 个问题的单一问题池，Phase 0-7 全部完成
-- `robustness-scalability-closeout-plan.md` — 健壮性与可扩展性收尾，已完成
-- `badcase-feedback-loop.md` — badcase 回流闭环，已完成
-- `backend-engineering-optimization-plan.md` — 后端工程化优化，85% 完成，剩余 1 项转入 debt register
-- `instrumentation-observability-plan.md` — 数据埋点增强，45% 完成，不再由根计划跟踪
-- `component-replacement-plan.md` — 组件替换计划，5% 完成，未启动
-- `nestjs-service-evolution-00-target-architecture.md` — 目标架构冻结，已完成
-- `nestjs-service-evolution-03-service-extraction-and-async.md` — 服务拆分与异步化，proposed 状态
-- `nestjs-service-evolution-distributed-maturity-assessment.md` — 分布式成熟度评估
-- `nestjs-service-evolution-knowledge-write-governance-review-*.md` — 成熟服务样板 3 件套，proposed 状态
-
-## 当前活跃细则执行规则
-
-- 每完成一个阶段或子项，同步更新 [`docs/todos/backend-build-targets-plan.md`](docs/todos/backend-build-targets-plan.md) 中的对应复选框
-- 新增问题应优先进入当前活跃细则的问题池，或转入该细则显式声明的 deferred 落点
-- 不再回写已归档的旧主线；若需继续深入旧主线主题，应新开独立审计或独立计划
+上一轮根计划已归档至 [`docs/archived/archived-plans/plan-2026-06-30-backend-build-targets-root-index-archived.md`](docs/archived/archived-plans/plan-2026-06-30-backend-build-targets-root-index-archived.md)。
 
 ## Closeout 前的守卫
 
 - [ ] `rtk pnpm check:docs-drift`
 - [ ] `rtk pnpm check:structure`
-- [ ] 当前活跃细则的完成定义全部满足
+- [ ] 当前活跃细则中的阶段 checklist、文档更新要求与完成定义全部满足

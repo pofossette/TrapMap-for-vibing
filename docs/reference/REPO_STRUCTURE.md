@@ -37,6 +37,7 @@ Historical plans, temporary notes, audits, and human-authored reports must live 
   `packages/host-local/src/nest/runtime/shared-infra.ts` is the authoritative placement for the current transitional shared infrastructure seam that borrows server-owned infra helpers without changing host ownership.
 - `packages/host-distributed/`: Heavy host assembly for the `distributed` profile. It is the real heavy-host implementation, consumes the same backend-core/service-package main implementation as `light`, and its maturity baseline remains `Level 2 / transitional-microservice`.
   `packages/host-distributed/src/gateway/` is the authoritative placement for gateway transport helpers and forwarding seams, including `internal-client.ts` as the thin internal HTTP / canonical error normalization helper.
+  `packages/host-distributed/src/config/service-config.ts` is the authoritative placement for service discovery defaults and URL resolver seams. It owns the profile-aware mapping between explicit `TRAPMAP_*_URL` overrides, Docker DNS defaults in `distributed`, and `localhost` defaults in local/dev contexts.
   `packages/host-distributed/src/shared/` is the authoritative placement for shared distributed-host wrappers around internal ports, such as `internal-knowledge-write-client.ts`; these wrappers map transport semantics back to backend-core port semantics and are not repository adapters.
 
 ## Documentation

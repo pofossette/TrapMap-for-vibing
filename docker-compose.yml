@@ -62,6 +62,8 @@ services:
       start_period: 5s
       retries: 3
     restart: unless-stopped
+    networks:
+      - trapmap-distributed
 
   gateway:
     image: trap-map-server:latest
@@ -122,6 +124,8 @@ services:
       start_period: 5s
       retries: 3
     restart: unless-stopped
+    networks:
+      - trapmap-distributed
 
   candidate-worker:
     image: trap-map-host-distributed:latest
@@ -170,6 +174,8 @@ services:
     healthcheck:
       disable: true
     restart: unless-stopped
+    networks:
+      - trapmap-distributed
 
   governance-worker:
     image: trap-map-host-distributed:latest
@@ -218,6 +224,8 @@ services:
     healthcheck:
       disable: true
     restart: unless-stopped
+    networks:
+      - trapmap-distributed
 
   outbox-worker:
     image: trap-map-host-distributed:latest
@@ -259,6 +267,8 @@ services:
     healthcheck:
       disable: true
     restart: unless-stopped
+    networks:
+      - trapmap-distributed
 
   rabbitmq:
     image: rabbitmq:3.13-management
@@ -267,6 +277,8 @@ services:
       - "5672:5672"
       - "15672:15672"
     restart: unless-stopped
+    networks:
+      - trapmap-distributed
 
   postgres:
     image: pgvector/pgvector:pg16
@@ -285,6 +297,12 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - trapmap-distributed
 
 volumes:
   postgres_data:
+
+networks:
+  trapmap-distributed:
+    name: trapmap-distributed

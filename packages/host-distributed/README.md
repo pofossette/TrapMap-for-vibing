@@ -76,13 +76,19 @@ Environment variables:
 | `TRAPMAP_SERVICE_NAME` | - | Service name (when running single service) |
 | `TRAPMAP_SERVICE_PORT` | - | Service port (overrides default) |
 | `TRAPMAP_LOG_LEVEL` | `info` | Log level |
-| `TRAPMAP_GATEWAY_URL` | `http://127.0.0.1:4000` | Gateway internal URL |
-| `TRAPMAP_IDENTITY_ACCESS_URL` | `http://127.0.0.1:4001` | Identity-access internal URL |
-| `TRAPMAP_KNOWLEDGE_READ_URL` | `http://127.0.0.1:4002` | Knowledge-read internal URL |
-| `TRAPMAP_KNOWLEDGE_WRITE_URL` | `http://127.0.0.1:4003` | Knowledge-write internal URL |
-| `TRAPMAP_CANDIDATE_INGESTION_URL` | `http://127.0.0.1:4004` | Candidate-ingestion internal URL |
-| `TRAPMAP_GOVERNANCE_REVIEW_URL` | `http://127.0.0.1:4005` | Review service internal URL (deploy dir remains `governance-review`) |
-| `TRAPMAP_JOB_RUNTIME_URL` | `http://127.0.0.1:4006` | Job-runtime internal URL |
+| `TRAPMAP_GATEWAY_URL` | `http://localhost:4000` locally, `http://gateway:4000` in `distributed` | Gateway internal URL |
+| `TRAPMAP_IDENTITY_ACCESS_URL` | `http://localhost:4001` locally, `http://identity-access:4001` in `distributed` | Identity-access internal URL |
+| `TRAPMAP_KNOWLEDGE_READ_URL` | `http://localhost:4002` locally, `http://knowledge-read:4002` in `distributed` | Knowledge-read internal URL |
+| `TRAPMAP_KNOWLEDGE_WRITE_URL` | `http://localhost:4003` locally, `http://knowledge-write:4003` in `distributed` | Knowledge-write internal URL |
+| `TRAPMAP_CANDIDATE_INGESTION_URL` | `http://localhost:4004` locally, `http://candidate-worker:4004` in `distributed` | Candidate-ingestion internal URL |
+| `TRAPMAP_GOVERNANCE_REVIEW_URL` | `http://localhost:4005` locally, `http://governance-worker:4005` in `distributed` | Review service internal URL (deploy dir remains `governance-review`) |
+| `TRAPMAP_JOB_RUNTIME_URL` | `http://localhost:4006` locally, `http://outbox-worker:4006` in `distributed` | Job-runtime internal URL |
+
+`packages/host-distributed/src/config/service-config.ts` is the owner seam for these defaults. It resolves:
+
+- `distributed` profile -> Docker DNS defaults on the shared compose network
+- other profiles / local dev -> `localhost` defaults
+- explicit `TRAPMAP_*_URL` env -> highest priority override
 
 ## Design Principles
 
@@ -147,4 +153,3 @@ Both services continue to share a PostgreSQL instance but with explicit table ow
 - `rtk pnpm test:distributed-acceptance` - multi-process delegation, error taxonomy, request/trace propagation, idempotent retry
 - `rtk pnpm test:deployment-smoke` - service startup, health/readiness, ownership endpoints
 - `rtk pnpm typecheck`
-
