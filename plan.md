@@ -9,6 +9,14 @@
 - 目标：为 TrapMap 引入完整的服务发现机制和可观测性三大支柱（追踪、指标、日志），并同步纳入两类成熟能力替换方向：LLM 结构化输出解析优先评估以 LangChain 结构化输出能力替换、自研 `executeWithResilience` 优先评估以成熟 resilience 库替换；同时补齐运行时、测试、部署与文档闭环
 - 主细则：[`docs/todos/service-discovery-and-observability-plan.md`](docs/todos/service-discovery-and-observability-plan.md)
 
+### 前置工作：六边形架构清理
+
+- 状态：`计划中`
+- 目标：在引入服务发现之前，解决六边形架构的技术债和质量缺陷（架构边界、代码重复、依赖管理、模块大小等）
+- 细则：[`docs/todos/hexagonal-architecture-cleanup.md`](docs/todos/hexagonal-architecture-cleanup.md)
+- 时间线：7 周（Week 1-7）
+- 依赖：必须在服务发现主线 Phase 1 之前完成 Phase 0.1（边界配置）
+
 ## 索引使用规则
 
 - 更新根计划时，只维护阶段状态、总体要求、文档/测试回写要求、以及指向 `docs/todos/` 的相对路径链接
@@ -35,6 +43,7 @@
 - [ ] 若服务发现/可观测性主线涉及 LLM 结构化输出或 resilience 能力替换判断，同步回写对应替换结论、适用边界、暂缓原因与后续条件，避免根计划与技术债文档分叉
 - [ ] 真实且可能复发的问题，需要判断是否沉淀到测试、文档规则、Skill、badcase 或 debt register；如果不沉淀，需要在变更说明中写明原因
 - [ ] 若同类文档漂移可能复发，优先补 `pnpm check:docs-drift`、`pnpm check:structure` 或 truth smoke，而不是只补说明文字
+- [ ] 六边形架构清理计划涉及的架构边界规则、测试编写指南、模块结构文档、质量门禁使用指南，完成后需同步更新 `docs/architecture/*`、`docs/guides/*`、`AGENTS.md`
 
 ### 测试与验证要求
 
@@ -42,15 +51,39 @@
 - [ ] 涉及检索、摘要、治理、feedback、fixtures、eval runner 的改动，至少补跑 `rtk pnpm eval:smoke`
 - [ ] 涉及 runtime/profile/route surface、部署默认值、健康检查或服务发现链路时，补跑对应 smoke，例如 `rtk pnpm test:deployment-smoke`、`rtk pnpm test:runtime-foundations`
 - [ ] 文档、入口、结构规则变更完成后，至少补跑 `rtk pnpm check:docs-drift` 和 `rtk pnpm check:structure`
+- [ ] 六边形架构清理涉及的代码变更（Phase 0.1-0.7），需补跑 `fallow audit --base main` 验证不引入新违规
 
 ## 阶段索引与进度
 
-### Phase 0 基础架构设计
+### Phase -1 六边形架构清理（前置工作）
+
+- 状态：`计划中`
+- 目标：解决六边形架构的技术债和质量缺陷（架构边界、代码重复、依赖管理、模块大小、死代码）
+- 细则：[`docs/todos/hexagonal-architecture-cleanup.md`](docs/todos/hexagonal-architecture-cleanup.md)
+- 时间线：Week 1-7
+- 子阶段：
+  - Phase 0.1：架构边界配置（Week 1）
+  - Phase 0.2：依赖清理（Week 1-2）
+  - Phase 0.3：测试代码去重（Week 2-3）
+  - Phase 0.4：模块大小拆分（Week 3-4）
+  - Phase 0.5：死代码清理（Week 4-5）
+  - Phase 0.6：耦合度优化（Week 5-6）
+  - Phase 0.7：架构边界验证自动化（Week 6-7）
+- 验收标准：
+  - [ ] 健康评分从 70.3 提升到 85+
+  - [ ] 架构边界违规降至 0
+  - [ ] 代码重复率降低 50%+
+  - [ ] CI 门禁完整且有效
+- 文档更新：补齐 fallow 配置说明、架构边界规则、测试编写指南、质量门禁使用指南
+- 测试更新：每个子阶段完成后运行 `fallow audit --base main` 和受影响包的最小测试
+
+### Phase 0 基础架构设计（服务发现）
 
 - [ ] 完成阶段目标与验收
 - [ ] 细则文档：[`docs/todos/service-discovery-and-observability-plan.md#2-阶段-0基础架构设计`](docs/todos/service-discovery-and-observability-plan.md#2-阶段-0基础架构设计)
 - [ ] 文档更新：补齐可观测性/服务发现架构说明、部署概览入口、相关 Mermaid 图和技术选型理由
 - [ ] 测试更新：如新增文档规则或结构约束，补跑 `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
+- [ ] 前置依赖：Phase -1 的 Phase 0.1（架构边界配置）必须完成
 
 ### Phase 1 服务发现集成
 
@@ -90,6 +123,8 @@
 ## 活跃配套文档
 
 - 主细则：[`docs/todos/service-discovery-and-observability-plan.md`](docs/todos/service-discovery-and-observability-plan.md)
+- 六边形架构清理（前置工作）：[`docs/todos/hexagonal-architecture-cleanup.md`](docs/todos/hexagonal-architecture-cleanup.md)
+- 静态分析审计：[`docs/todos/static-analysis-audit-2026-06-29.md`](docs/todos/static-analysis-audit-2026-06-29.md)
 - 活跃 debt register：[`docs/todos/open-debt-and-compromises.md`](docs/todos/open-debt-and-compromises.md)
 - 背景输入：[`docs/todos/microservice-architecture-and-observability.md`](docs/todos/microservice-architecture-and-observability.md)
 - 成熟库替换相关活跃细则：[`docs/todos/nestjs-langchain-debt-cleanup.md`](docs/todos/nestjs-langchain-debt-cleanup.md)

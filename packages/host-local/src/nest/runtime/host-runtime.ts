@@ -11,16 +11,15 @@ import type {
   SessionLookupPort,
   TeamLookupPort,
 } from '@trapmap/backend-core';
-import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { searchKnowledge } from '@trapmap/server/lib/retrieval.js';
-import { resolveEffectivePermissions } from '@trapmap/server/lib/rbac.js';
-import { resolveAuthContext } from '@trapmap/server/lib/session.js';
-import { nowIso } from '@trapmap/server/lib/store.js';
 import type { Permission } from '@trapmap/contracts';
+import type { FastifyRequest } from 'fastify';
 
 import { loadHostLocalConfig } from '../config/index.js';
 import { createHostLocalServices, type HostLocalServices } from './host-services.js';
-import { asServerSkillShareerServices } from './service-compat.js';
+import { resolveHostLocalAuthContext } from './auth-context.js';
+import { nowIso } from './now-iso.js';
+import { resolveEffectivePermissions } from './permissions.js';
 
 export const HOST_LOCAL_RUNTIME_TOKEN = 'HOST_LOCAL_RUNTIME';
 
@@ -34,13 +33,13 @@ export interface HostLocalRuntime {
   queuePorts: QueuePorts;
 }
 
-function createSessionLookup(services: SkillShareerServices): SessionLookupPort {
+function createSessionLookup(services: HostLocalServices): SessionLookupPort {
   return {
     async resolveSession(sessionToken: string): Promise<ResolvedSession | null> {
       try {
-        const auth = await resolveAuthContext(services, {
+        const auth = await resolveHostLocalAuthContext(services, {
           headers: { authorization: `Bearer ${sessionToken}` },
-        } as never);
+        } as FastifyRequest);
         return {
           sessionId: sessionToken,
           userId: auth.actorId,
@@ -55,7 +54,7 @@ function createSessionLookup(services: SkillShareerServices): SessionLookupPort 
   };
 }
 
-function createTeamLookup(services: SkillShareerServices): TeamLookupPort {
+function createTeamLookup(services: HostLocalServices): TeamLookupPort {
   return {
     async getTeam(teamId: string) {
       const team = await services.repos.team.getById(teamId);
@@ -73,7 +72,7 @@ function createTeamLookup(services: SkillShareerServices): TeamLookupPort {
   };
 }
 
-function createPermissionCheck(services: SkillShareerServices): PermissionCheckPort {
+function createPermissionCheck(services: HostLocalServices): PermissionCheckPort {
   return {
     async resolvePermissions(userId: string, teamId: string | null): Promise<Permission[]> {
       if (!teamId) {
@@ -92,7 +91,7 @@ function createPermissionCheck(services: SkillShareerServices): PermissionCheckP
   };
 }
 
-function createAuditLog(services: SkillShareerServices): AuditLogPort {
+function createAuditLog(services: HostLocalServices): AuditLogPort {
   return {
     async record(entry: AuditLogEntry): Promise<void> {
       const id = await services.repos.audit.nextId();
@@ -124,7 +123,7 @@ function createAuditLog(services: SkillShareerServices): AuditLogPort {
   };
 }
 
-function createQueuePorts(services: SkillShareerServices): QueuePorts {
+function createQueuePorts(services: HostLocalServices): QueuePorts {
   if (services.asyncTransport) {
     return {
       task: services.asyncTransport.task,
@@ -174,7 +173,7 @@ function createQueuePorts(services: SkillShareerServices): QueuePorts {
   };
 }
 
-function createRetrievalQuery(services: SkillShareerServices): RetrievalQueryPort {
+function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
   return {
     async search(params) {
       const auth: ResolvedAuthContext = {
@@ -212,16 +211,15 @@ function createRetrievalQuery(services: SkillShareerServices): RetrievalQueryPor
 export async function createHostLocalRuntime(): Promise<HostLocalRuntime> {
   const config = loadHostLocalConfig();
   const services = await createHostLocalServices(config);
-  const compatServices = asServerSkillShareerServices(services);
 
   const runtime: HostLocalRuntime = {
     services,
-    retrievalQuery: createRetrievalQuery(compatServices),
-    sessionLookup: createSessionLookup(compatServices),
-    teamLookup: createTeamLookup(compatServices),
-    permissionCheck: createPermissionCheck(compatServices),
-    auditLog: createAuditLog(compatServices),
-    queuePorts: createQueuePorts(compatServices),
+    retrievalQuery: createRetrievalQuery(services),
+    sessionLookup: createSessionLookup(services),
+    teamLookup: createTeamLookup(services),
+    permissionCheck: createPermissionCheck(services),
+    auditLog: createAuditLog(services),
+    queuePorts: createQueuePorts(services),
   };
 
   return runtime;

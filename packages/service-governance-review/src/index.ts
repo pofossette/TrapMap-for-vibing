@@ -9,6 +9,10 @@ export {
   type GovernanceReviewReadinessOptions,
 } from './routes.js';
 export {
+  buildReviewQueueProjection,
+  type ReviewQueueProjection,
+} from './review-queue-projection.js';
+export {
   createGovernanceReviewServer,
   type GovernanceReviewServer,
   type GovernanceReviewServiceConfig,

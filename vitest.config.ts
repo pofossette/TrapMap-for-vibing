@@ -106,6 +106,10 @@ export default defineConfig({
               replacement: resolve(__dirname, './packages/service-knowledge-read/src/index.ts'),
             },
             {
+              find: '@trapmap/service-governance-review',
+              replacement: resolve(__dirname, './packages/service-governance-review/src/index.ts'),
+            },
+            {
               find: 'fastify',
               replacement: fastifyEntry,
             },

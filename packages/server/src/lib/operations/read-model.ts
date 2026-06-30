@@ -7,9 +7,7 @@ import {
   normalizeBadcaseTaxonomy,
 } from '@trapmap/contracts';
 
-import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
 import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
-import { toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type { KnowledgeRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
 
@@ -147,87 +145,6 @@ export async function buildAuditEventProjection(
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   }));
-}
-
-export async function buildReviewQueueProjection(
-  repos: Pick<SkillShareerRepos, 'knowledge' | 'user' | 'membership'>,
-  input: {
-    auth: {
-      subjectType: 'user' | 'system-admin';
-      activeTeamId: string | null;
-      securityLevel: number;
-    };
-    status?: string;
-  },
-) {
-  const { knowledge: knowledgeRepo, user: userRepo } = repos;
-  const allEntries = await knowledgeRepo.listByFilter({});
-  const filteredEntries = allEntries.filter((entry) => {
-    if (
-      entry.teamId &&
-      input.auth.subjectType !== 'system-admin' &&
-      input.auth.activeTeamId !== entry.teamId
-    ) {
-      return false;
-    }
-    if (
-      input.auth.subjectType !== 'system-admin' &&
-      input.auth.securityLevel <= entry.requiredLevel
-    ) {
-      return false;
-    }
-    return input.status ? entry.lifecycleState === input.status : true;
-  });
-
-  const fullEntries = await Promise.all(
-    filteredEntries.map(
-      async (entrySummary) => (await knowledgeRepo.getById(entrySummary.id)) ?? entrySummary,
-    ),
-  );
-  const lookup = await buildUserLookupContextFromRepos(repos, fullEntries);
-
-  const items = (
-    await Promise.all(
-      fullEntries.map(async (entry) => {
-        const owner = await userRepo.getById(entry.ownerUserId);
-        if (!owner) {
-          return null;
-        }
-
-        const lastDecision = entry.reviewHistory.at(-1) ?? null;
-        const lastDecisionUserId = lastDecision?.decidedByUserId ?? owner.id;
-        const lastDecisionUser =
-          lastDecisionUserId === owner.id ? owner : await userRepo.getById(lastDecisionUserId);
-
-        const serializedEntry = toKnowledgeEntry(lookup, entry);
-        const latestSubmission = serializedEntry.latestSubmission;
-        return {
-          entry: serializedEntry,
-          agentReview: entry.agentReview,
-          submittedBy: latestSubmission?.submittedBy ?? serializedEntry.owner,
-          latestSubmission,
-          reviewNotes: serializedEntry.reviewNotes,
-          lastDecision: lastDecision
-            ? {
-                decidedAt: lastDecision.decidedAt,
-                decidedBy: {
-                  id: lastDecisionUserId,
-                  handle: lastDecisionUser?.handle ?? owner.handle,
-                  securityLevel: entry.requiredLevel,
-                },
-                decision: lastDecision.decision,
-                notes: lastDecision.notes,
-              }
-            : null,
-        };
-      }),
-    )
-  ).filter((item): item is NonNullable<typeof item> => item !== null);
-
-  return {
-    items,
-    total: items.length,
-  };
 }
 
 export function summarizeFailureClassifications(

@@ -2,11 +2,12 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { z } from 'zod';
 
-import { loadAiProviderConfig } from '@trapmap/server/lib/ai/index.js';
-import { GraphDbConfigSchema, loadGraphDbConfig } from '@trapmap/server/lib/graph-query/config.js';
-import { loadRagLogConfig } from '@trapmap/server/lib/rag-log.js';
 import { resolveDeploymentProfileCompatibility, resolveRuntimeDeployment } from '@trapmap/backend-core';
-import { loadUserOpsLogConfig } from '@trapmap/server/lib/user-ops-log.js';
+
+import { loadAiProviderConfig } from './ai-provider-config.js';
+import { GraphDbConfigSchema, loadGraphDbConfig } from './graph-db-config.js';
+import { loadRagLogConfig } from './rag-log.js';
+import { loadUserOpsLogConfig } from './user-ops-log.js';
 
 const HostSchema = z.string().min(1).default('127.0.0.1');
 const PortSchema = z.coerce.number().int().min(1).max(65535).default(4000);

@@ -8,9 +8,8 @@ import {
 } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 
-import { resolveAuthContext } from '@trapmap/server/lib/session.js';
-
 import { HOST_LOCAL_RUNTIME_TOKEN } from './host-runtime.js';
+import { resolveHostLocalAuthContext } from './auth-context.js';
 import type { HostLocalRuntime } from './host-runtime.js';
 
 /**
@@ -47,7 +46,7 @@ export class AuthGuard implements CanActivate {
 
     request.authToken = token.trim();
     if (this.runtime) {
-      request.authContext = await resolveAuthContext(this.runtime.services, request as never);
+      request.authContext = await resolveHostLocalAuthContext(this.runtime.services, request);
     }
     return true;
   }

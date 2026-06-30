@@ -21,9 +21,13 @@ const governanceReviewMock: ReviewPort = {
   submitFeedback: vi.fn(),
 };
 
-vi.mock('@trapmap/server/lib/operations/read-model.js', () => ({
+vi.mock('@trapmap/service-governance-review', async () => {
+  const actual = await vi.importActual('@trapmap/service-governance-review');
+  return {
+    ...actual,
   buildReviewQueueProjection: vi.fn(),
-}));
+  };
+});
 
 import { CandidateReviewController } from './candidate-review.controller.js';
 

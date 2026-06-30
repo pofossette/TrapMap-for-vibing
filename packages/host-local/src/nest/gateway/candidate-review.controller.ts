@@ -18,8 +18,7 @@ import {
 } from '@trapmap/contracts';
 import type { CandidateIngestionPort, ReviewPort } from '@trapmap/backend-core';
 import type { FastifyRequest } from 'fastify';
-
-import { buildReviewQueueProjection } from '@trapmap/server/lib/operations/read-model.js';
+import { buildReviewQueueProjection } from '@trapmap/service-governance-review';
 
 import { CANDIDATE_INGESTION_PORT } from '../candidate-ingestion/candidate-ingestion.tokens.js';
 import { GOVERNANCE_REVIEW_PORT } from '../governance-review/governance-review.tokens.js';
