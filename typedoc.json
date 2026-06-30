@@ -1,0 +1,9 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPointStrategy": "packages",
+  "entryPoints": ["packages/contracts", "packages/backend-core"],
+  "out": "docs/api",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "categorizeByGroup": true
+}

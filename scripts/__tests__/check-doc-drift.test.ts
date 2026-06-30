@@ -170,6 +170,54 @@ describe('checkRule', () => {
     });
   });
 
+  // ── mustMatchRegex ────────────────────────────────────────────────
+
+  describe('mustMatchRegex', () => {
+    it('passes when regex matches content', () => {
+      const rule: DocRule = { file, mustMatchRegex: ['version \\d+\\.\\d+'] };
+      expect(checkRule(rule, 'deploy version 1.0 of the system')).toEqual([]);
+    });
+
+    it('fails when regex does not match content', () => {
+      const rule: DocRule = { file, mustMatchRegex: ['version \\d+\\.\\d+'] };
+      const msgs = checkRule(rule, 'no version info here');
+      expect(msgs).toHaveLength(1);
+      expect(msgs[0]).toContain('must match regex');
+      expect(msgs[0]).toContain('no match found');
+    });
+
+    it('reports invalid regex as an error', () => {
+      const rule: DocRule = { file, mustMatchRegex: ['[invalid'] };
+      const msgs = checkRule(rule, 'any content');
+      expect(msgs).toHaveLength(1);
+      expect(msgs[0]).toContain('ERROR');
+      expect(msgs[0]).toContain('invalid regex');
+      expect(msgs[0]).toContain('mustMatchRegex');
+    });
+
+    it('supports multiline matching with s flag', () => {
+      const rule: DocRule = { file, mustMatchRegex: ['start.*end'] };
+      const content = 'start\nmiddle\nend';
+      // Without 's' flag, . wouldn't match \n; with 's' it does.
+      expect(checkRule(rule, content)).toEqual([]);
+    });
+
+    it('returns empty array when mustMatchRegex is empty', () => {
+      const rule: DocRule = { file, mustMatchRegex: [] };
+      expect(checkRule(rule, 'any content')).toEqual([]);
+    });
+
+    it('fails when only some patterns match (all must match)', () => {
+      const rule: DocRule = {
+        file,
+        mustMatchRegex: ['alpha', 'beta'],
+      };
+      const msgs = checkRule(rule, 'alpha only');
+      expect(msgs).toHaveLength(1);
+      expect(msgs[0]).toContain('beta');
+    });
+  });
+
   // ── Combined rules ───────────────────────────────────────────────
 
   describe('combined rules', () => {

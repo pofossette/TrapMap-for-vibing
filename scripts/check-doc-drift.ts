@@ -26,6 +26,8 @@ export interface DocRule {
   mustNotContainRegex?: string[];
   /** Assert count-based constraints via regex matching. */
   mustContainCount?: CountAssertion;
+  /** Content must match at least one of these regex patterns. */
+  mustMatchRegex?: string[];
 }
 
 export interface Config {
@@ -78,6 +80,24 @@ export function checkRule(rule: DocRule, content: string): string[] {
       } catch (err) {
         msgs.push(
           `[doc-drift] ERROR: invalid regex "${patternStr}" in rule for ${rule.file}: ${err}`,
+        );
+      }
+    }
+  }
+
+  // mustMatchRegex
+  if (rule.mustMatchRegex) {
+    for (const patternStr of rule.mustMatchRegex) {
+      try {
+        const re = new RegExp(patternStr, 's');
+        if (!re.test(content)) {
+          msgs.push(
+            `[doc-drift] FAIL: ${rule.file} must match regex /${patternStr}/ but no match found`,
+          );
+        }
+      } catch (err) {
+        msgs.push(
+          `[doc-drift] ERROR: invalid regex "${patternStr}" in mustMatchRegex for ${rule.file}: ${err}`,
         );
       }
     }
