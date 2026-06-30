@@ -1,0 +1,304 @@
+ .dependency-cruiser.cjs                   |  92 +++++++
+ package.json                              |   4 +
+ pnpm-lock.yaml                            | 420 ++++++++++++++++++++++++++++--
+ scripts/__tests__/check-doc-drift.test.ts |  48 ++++
+ scripts/check-doc-drift.ts                |  20 ++
+ typedoc.json                              |   9 +
+ 6 files changed, 577 insertions(+), 16 deletions(-)
+---
+diff --git a/.dependency-cruiser.cjs b/.dependency-cruiser.cjs
+new file mode 100644
+index 00000000..4eda3bbb
+--- /dev/null
++++ b/.dependency-cruiser.cjs
+@@ -0,0 +1,92 @@
++/**
++ * dependency-cruiser configuration for Trap-Map monorepo.
++ *
++ * Enforces layer-boundary rules:
++ *   contracts  -> no workspace deps
++ *   backend-core -> contracts only
++ *   server     -> no host-* deps
++ *   service-*  -> no cross-deps between services
++ *   web-panel  -> no server/backend-core/host-* deps
++ */
++
++const SERVICE_PACKAGES = [
++  'service-candidate-ingestion',
++  'service-governance-review',
++  'service-identity-access',
++  'service-job-runtime',
++  'service-knowledge-read',
++  'service-knowledge-write',
++];
++
++/** @type {import('dependency-cruiser').IConfiguration} */
++module.exports = {
++  forbidden: [
++    // 1. contracts is the foundation — must not depend on any other workspace package
++    {
++      name: 'contracts-is-foundation',
++      comment: 'packages/contracts must NOT depend on any workspace package',
++      severity: 'error',
++      from: { path: '^packages/contracts/' },
++      to: { path: '^packages/', pathNot: '^packages/contracts/' },
++    },
++
++    // 2. backend-core may only depend on contracts
++    {
++      name: 'backend-core-only-depends-contracts',
++      comment:
++        'packages/backend-core must only depend on packages/contracts (NOT server, host-*, service-*, web-panel, cli)',
++      severity: 'error',
++      from: { path: '^packages/backend-core/' },
++      to: {
++        path: '^packages/(server|host-[^/]+|service-[^/]+|web-panel|cli)/',
++      },
++    },
++
++    // 3. server must not depend on host-* packages
++    {
++      name: 'server-no-host-deps',
++      comment: 'packages/server must NOT depend on packages/host-*',
++      severity: 'error',
++      from: { path: '^packages/server/' },
++      to: {
++        path: '^packages/host-[^/]+/',
++      },
++    },
++
++    // 4. service-* must not cross-depend on each other.
++    //    One rule per service, excluding self-package via pathNot.
++    ...SERVICE_PACKAGES.map((svc) => ({
++      name: `services-must-not-cross-dep:${svc}`,
++      comment: `${svc} must NOT depend on other service-* packages`,
++      severity: 'error',
++      from: { path: `^packages/${svc}/` },
++      to: {
++        path: '^packages/service-[^/]+/',
++        pathNot: `^packages/${svc}/`,
++      },
++    })),
++
++    // 5. web-panel must not import from server, backend-core, or host-*
++    {
++      name: 'web-panel-server-isolation',
++      comment:
++        'packages/web-panel must NOT import from packages/server, packages/backend-core, or packages/host-*',
++      severity: 'error',
++      from: { path: '^packages/web-panel/' },
++      to: {
++        path: '^packages/(server|backend-core|host-[^/]+)/',
++      },
++    },
++  ],
++
++  options: {
++    tsPreCompilationDeps: true,
++    tsConfig: {
++      fileName: 'tsconfig.base.json',
++    },
++    enhancedResolveOptions: {
++      exportsFields: ['exports'],
++      conditionNames: ['import', 'require', 'default'],
++    },
++  },
++};
+diff --git a/package.json b/package.json
+index 1185c21c..3023c12c 100644
+--- a/package.json
++++ b/package.json
+@@ -69,35 +69,39 @@
+     "eval:all": "pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier core",
+     "eval:all:json": "pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json",
+     "eval:ci": "pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts",
+     "eval:ci:core": "TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts",
+     "download:skills": "pnpm exec tsx scripts/batch-download-skills.ts",
+     "download:skills:dry": "pnpm exec tsx scripts/batch-download-skills.ts --dry-run --verbose",
+     "test:import-export": "pnpm exec tsx scripts/test-skill-import-export.ts",
+     "bench:store": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/bench-store.ts",
+     "rag:analyze": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/rag-analyze.ts",
+     "check:imports": "node scripts/check-relative-imports.mjs --only-cross-dir",
++    "check:deps": "depcruise --config .dependency-cruiser.cjs packages/*/src",
++    "docs:api": "typedoc",
+     "codemod:relative": "FIX_IMPORTS_HEAP_MB=4096 bash scripts/codemod-batch.sh",
+     "codemod:relative:dry": "bash scripts/codemod-batch.sh --dry",
+     "deploy": "bash scripts/deploy.sh",
+     "deploy:quick": "bash scripts/deploy-quick.sh",
+     "backfill:labels": "pnpm exec tsx --tsconfig tsconfig.base.json packages/server/src/lib/labels/backfill-runner.ts",
+     "backfill:labels:dry-run": "pnpm exec tsx --tsconfig tsconfig.base.json packages/server/src/lib/labels/backfill-runner.ts --dry-run",
+     "label-merge:repair": "pnpm exec tsx --tsconfig tsconfig.base.json packages/server/src/lib/labels/merge-repair-runner.ts",
+     "label-merge:repair:dry-run": "pnpm exec tsx --tsconfig tsconfig.base.json packages/server/src/lib/labels/merge-repair-runner.ts --dry-run"
+   },
+   "devDependencies": {
+     "@biomejs/biome": "^1.9.4",
+     "@types/node": "^25.6.0",
+     "@vitest/coverage-v8": "^3.2.4",
++    "dependency-cruiser": "^18.0.0",
+     "fallow": "^2.101.0",
+     "husky": "^9.1.7",
+     "jscodeshift": "^17.3.0",
+     "jsdom": "^29.1.1",
+     "knip": "^6.4.1",
+     "mermaid": "^11.15.0",
+     "tslib": "^2.8.1",
+     "tsx": "^4.20.3",
++    "typedoc": "^0.28.19",
+     "typescript": "^5.9.3",
+     "vitest": "^3.2.4"
+   }
+ }
+diff --git a/scripts/__tests__/check-doc-drift.test.ts b/scripts/__tests__/check-doc-drift.test.ts
+index 4d73b278..f5c246ed 100644
+--- a/scripts/__tests__/check-doc-drift.test.ts
++++ b/scripts/__tests__/check-doc-drift.test.ts
+@@ -163,20 +163,68 @@ describe('checkRule', () => {
+       const rule: DocRule = {
+         file,
+         mustContainCount: { pattern: 'PostgreSQL', minOccurrences: 1 },
+       };
+       const msgs = checkRule(rule, 'use MySQL instead');
+       expect(msgs).toHaveLength(1);
+       expect(msgs[0]).toContain('found 0');
+     });
+   });
+ 
++  // ── mustMatchRegex ────────────────────────────────────────────────
++
++  describe('mustMatchRegex', () => {
++    it('passes when regex matches content', () => {
++      const rule: DocRule = { file, mustMatchRegex: ['version \\d+\\.\\d+'] };
++      expect(checkRule(rule, 'deploy version 1.0 of the system')).toEqual([]);
++    });
++
++    it('fails when regex does not match content', () => {
++      const rule: DocRule = { file, mustMatchRegex: ['version \\d+\\.\\d+'] };
++      const msgs = checkRule(rule, 'no version info here');
++      expect(msgs).toHaveLength(1);
++      expect(msgs[0]).toContain('must match regex');
++      expect(msgs[0]).toContain('no match found');
++    });
++
++    it('reports invalid regex as an error', () => {
++      const rule: DocRule = { file, mustMatchRegex: ['[invalid'] };
++      const msgs = checkRule(rule, 'any content');
++      expect(msgs).toHaveLength(1);
++      expect(msgs[0]).toContain('ERROR');
++      expect(msgs[0]).toContain('invalid regex');
++      expect(msgs[0]).toContain('mustMatchRegex');
++    });
++
++    it('supports multiline matching with s flag', () => {
++      const rule: DocRule = { file, mustMatchRegex: ['start.*end'] };
++      const content = 'start\nmiddle\nend';
++      // Without 's' flag, . wouldn't match \n; with 's' it does.
++      expect(checkRule(rule, content)).toEqual([]);
++    });
++
++    it('returns empty array when mustMatchRegex is empty', () => {
++      const rule: DocRule = { file, mustMatchRegex: [] };
++      expect(checkRule(rule, 'any content')).toEqual([]);
++    });
++
++    it('fails when only some patterns match (all must match)', () => {
++      const rule: DocRule = {
++        file,
++        mustMatchRegex: ['alpha', 'beta'],
++      };
++      const msgs = checkRule(rule, 'alpha only');
++      expect(msgs).toHaveLength(1);
++      expect(msgs[0]).toContain('beta');
++    });
++  });
++
+   // ── Combined rules ───────────────────────────────────────────────
+ 
+   describe('combined rules', () => {
+     it('checks all rule types independently', () => {
+       const rule: DocRule = {
+         file,
+         mustContain: ['required'],
+         mustNotContain: ['forbidden'],
+         mustNotContainRegex: ['\\d+ 张表'],
+         mustContainCount: { pattern: 'important', minOccurrences: 2 },
+diff --git a/scripts/check-doc-drift.ts b/scripts/check-doc-drift.ts
+index c2bcfabb..966c55eb 100644
+--- a/scripts/check-doc-drift.ts
++++ b/scripts/check-doc-drift.ts
+@@ -19,20 +19,22 @@ export interface CountAssertion {
+ }
+ 
+ export interface DocRule {
+   file: string;
+   mustContain?: string[];
+   mustNotContain?: string[];
+   /** Array of regex pattern strings. Fails if any match is found. */
+   mustNotContainRegex?: string[];
+   /** Assert count-based constraints via regex matching. */
+   mustContainCount?: CountAssertion;
++  /** Content must match at least one of these regex patterns. */
++  mustMatchRegex?: string[];
+ }
+ 
+ export interface Config {
+   docRules: DocRule[];
+ }
+ 
+ // ── Checking logic (testable) ────────────────────────────────────────
+ 
+ export interface CheckResult {
+   failures: number;
+@@ -76,20 +78,38 @@ export function checkRule(rule: DocRule, content: string): string[] {
+           );
+         }
+       } catch (err) {
+         msgs.push(
+           `[doc-drift] ERROR: invalid regex "${patternStr}" in rule for ${rule.file}: ${err}`,
+         );
+       }
+     }
+   }
+ 
++  // mustMatchRegex
++  if (rule.mustMatchRegex) {
++    for (const patternStr of rule.mustMatchRegex) {
++      try {
++        const re = new RegExp(patternStr, 's');
++        if (!re.test(content)) {
++          msgs.push(
++            `[doc-drift] FAIL: ${rule.file} must match regex /${patternStr}/ but no match found`,
++          );
++        }
++      } catch (err) {
++        msgs.push(
++          `[doc-drift] ERROR: invalid regex "${patternStr}" in mustMatchRegex for ${rule.file}: ${err}`,
++        );
++      }
++    }
++  }
++
+   // mustContainCount
+   if (rule.mustContainCount) {
+     const { pattern, expected, minOccurrences } = rule.mustContainCount;
+     try {
+       const re = new RegExp(pattern, 'g');
+       const allMatches = [...content.matchAll(re)];
+ 
+       if (minOccurrences !== undefined) {
+         // minOccurrences mode: count total matches
+         if (allMatches.length < minOccurrences) {
+diff --git a/typedoc.json b/typedoc.json
+new file mode 100644
+index 00000000..bb730b3a
+--- /dev/null
++++ b/typedoc.json
+@@ -0,0 +1,9 @@
++{
++  "$schema": "https://typedoc.org/schema.json",
++  "entryPointStrategy": "packages",
++  "entryPoints": ["packages/contracts", "packages/backend-core"],
++  "out": "docs/api",
++  "excludePrivate": true,
++  "excludeInternal": true,
++  "categorizeByGroup": true
++}
