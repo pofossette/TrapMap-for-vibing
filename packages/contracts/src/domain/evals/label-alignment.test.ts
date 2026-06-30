@@ -22,11 +22,11 @@ describe('label alignment eval schemas', () => {
           caseId: 'timeout-catalog-populated',
           skillId: 'skill/react-hooks-trap',
           variantId: 'catalog-populated',
-          variantGroupId: 'timeout-synonyms',
+          variantGroupId: 'catalog-populated',
           tier: 'smoke',
           synonymGroupCount: 2,
           totalRawLabels: 3,
-          totalCanonicalLabels: 3,
+          totalCanonicalLabels: 2,
           catalogSeed: [
             {
               id: 'lbl_react_stale_closure',
@@ -59,13 +59,14 @@ describe('label alignment eval schemas', () => {
             canonicalGroups: [['stale closure', 'stale state bug'], ['render loop']],
             shouldNotMerge: [['stale closure', 'render loop']],
           },
-          tags: ['smoke'],
+          tags: ['smoke', 'exact-alias', 'normalized-name', 'should-merge'],
         },
       ],
     });
 
     expect(fixture.cases).toHaveLength(1);
     expect(fixture.cases[0]?.expectedAlignment.canonicalGroups).toHaveLength(2);
+    expect(fixture.cases[0]?.variantGroupId).toBe('catalog-populated');
   });
 
   it('rejects expected alignments that reference unknown raw labels', () => {
@@ -75,7 +76,7 @@ describe('label alignment eval schemas', () => {
         caseId: 'bad-case',
         skillId: 'skill/react-hooks-trap',
         variantId: 'catalog-empty',
-        variantGroupId: 'timeout-synonyms',
+        variantGroupId: 'catalog-empty',
         tier: 'smoke',
         synonymGroupCount: 1,
         totalRawLabels: 2,
@@ -103,6 +104,86 @@ describe('label alignment eval schemas', () => {
         tags: [],
       }),
     ).toThrow(/canonicalGroups/i);
+  });
+
+  it('rejects cases whose canonical label count disagrees with expected groups', () => {
+    expect(() =>
+      labelAlignmentEvalCaseSchema.parse({
+        schemaVersion: 1,
+        caseId: 'mismatched-canonical-count',
+        skillId: 'skill/react-hooks-trap',
+        variantId: 'catalog-empty',
+        variantGroupId: 'catalog-empty',
+        tier: 'smoke',
+        synonymGroupCount: 1,
+        totalRawLabels: 3,
+        totalCanonicalLabels: 3,
+        catalogSeed: [],
+        embeddingEnabled: false,
+        goldenAnnotations: [
+          {
+            rawLabel: 'stale closure',
+            canonicalLabel: 'react-stale-closure',
+            groupId: 'g-1',
+            shouldMerge: true,
+          },
+          {
+            rawLabel: 'stale state bug',
+            canonicalLabel: 'react-stale-closure',
+            groupId: 'g-1',
+            shouldMerge: true,
+          },
+          {
+            rawLabel: 'render loop',
+            canonicalLabel: 'react-render-loop',
+            groupId: 'g-2',
+            shouldMerge: false,
+          },
+        ],
+        expectedAlignment: {
+          canonicalGroups: [['stale closure', 'stale state bug'], ['render loop']],
+          shouldNotMerge: [['stale closure', 'render loop']],
+        },
+        tags: ['should-merge', 'should-not-merge'],
+      }),
+    ).toThrow(/totalCanonicalLabels/i);
+  });
+
+  it('rejects shouldMerge annotations that contradict expected groups', () => {
+    expect(() =>
+      labelAlignmentEvalCaseSchema.parse({
+        schemaVersion: 1,
+        caseId: 'contradicting-merge-flags',
+        skillId: 'skill/react-hooks-trap',
+        variantId: 'catalog-populated',
+        variantGroupId: 'catalog-populated',
+        tier: 'smoke',
+        synonymGroupCount: 1,
+        totalRawLabels: 2,
+        totalCanonicalLabels: 1,
+        catalogSeed: [],
+        embeddingEnabled: false,
+        goldenAnnotations: [
+          {
+            rawLabel: 'stale closure',
+            canonicalLabel: 'react-stale-closure',
+            groupId: 'g-1',
+            shouldMerge: true,
+          },
+          {
+            rawLabel: 'render loop',
+            canonicalLabel: 'react-render-loop',
+            groupId: 'g-2',
+            shouldMerge: true,
+          },
+        ],
+        expectedAlignment: {
+          canonicalGroups: [['stale closure'], ['render loop']],
+          shouldNotMerge: [['stale closure', 'render loop']],
+        },
+        tags: ['should-not-merge'],
+      }),
+    ).toThrow(/shouldMerge/i);
   });
 
   it('accepts a structured report with alignment metrics', () => {
@@ -140,7 +221,7 @@ describe('label alignment eval schemas', () => {
           caseId: 'timeout-catalog-populated',
           skillId: 'skill/react-hooks-trap',
           variantId: 'catalog-populated',
-          variantGroupId: 'timeout-synonyms',
+          variantGroupId: 'catalog-populated',
           tier: 'smoke',
           mode: 'dry-run',
           passed: true,

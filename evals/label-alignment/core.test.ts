@@ -25,6 +25,56 @@ describe('label alignment eval scaffold', () => {
         ),
       ),
     ).toBe(true);
+    expect(
+      fixtures.every((fixture) =>
+        fixture.cases.some((case_) => case_.variantGroupId === 'catalog-empty'),
+      ),
+    ).toBe(true);
+    expect(
+      fixtures.every((fixture) =>
+        fixture.cases.some((case_) => case_.variantGroupId === 'catalog-populated'),
+      ),
+    ).toBe(true);
+    expect(
+      fixtures.some((fixture) =>
+        fixture.cases.some((case_) => case_.tags.includes('exact-alias')),
+      ),
+    ).toBe(true);
+    expect(
+      fixtures.some((fixture) =>
+        fixture.cases.some((case_) => case_.tags.includes('normalized-name')),
+      ),
+    ).toBe(true);
+    expect(
+      fixtures.some((fixture) =>
+        fixture.cases.some((case_) => case_.tags.includes('semantic-embedding')),
+      ),
+    ).toBe(true);
+    expect(
+      fixtures.some((fixture) =>
+        fixture.cases.some((case_) => case_.tags.includes('live-decision')),
+      ),
+    ).toBe(true);
+    expect(
+      fixtures.some((fixture) =>
+        fixture.cases.some((case_) => case_.tags.includes('should-merge')),
+      ),
+    ).toBe(true);
+    expect(
+      fixtures.some((fixture) =>
+        fixture.cases.some((case_) => case_.tags.includes('should-not-merge')),
+      ),
+    ).toBe(true);
+    expect(
+      fixtures.some((fixture) =>
+        fixture.cases.some((case_) => case_.tags.includes('multi-alias')),
+      ),
+    ).toBe(true);
+    expect(
+      fixtures.some((fixture) =>
+        fixture.cases.some((case_) => case_.tags.includes('near-match-guard')),
+      ),
+    ).toBe(true);
   });
 
   it('runs deterministic dry-run evaluation and reports metrics', async () => {
@@ -37,7 +87,13 @@ describe('label alignment eval scaffold', () => {
     expect(report.summary.totalCases).toBeGreaterThan(0);
     expect(report.summary.alignmentAccuracy).toBeGreaterThan(0);
     expect(report.summary.recallReasonDistribution['catalog-empty']).toBeGreaterThan(0);
+    expect(report.summary.recallReasonDistribution['exact-alias']).toBeGreaterThan(0);
+    expect(report.summary.recallReasonDistribution['normalized-name']).toBeGreaterThan(0);
+    expect(report.summary.recallReasonDistribution['semantic-embedding']).toBeGreaterThan(0);
     expect(report.cases.some((case_) => case_.falseMerges === 0)).toBe(true);
+    expect(report.cases.some((case_) => case_.synonymEliminationCount >= 2)).toBe(true);
+    expect(report.cases.some((case_) => case_.variantId === 'catalog-empty')).toBe(true);
+    expect(report.cases.some((case_) => case_.variantId === 'catalog-populated')).toBe(true);
   });
 
   it('materializes runnable core fixtures instead of silently passing zero cases', async () => {
@@ -50,5 +106,19 @@ describe('label alignment eval scaffold', () => {
     expect(fixtures.length).toBeGreaterThan(0);
     expect(report.summary.totalCases).toBeGreaterThan(0);
     expect(report.cases.every((case_) => case_.tier === 'core')).toBe(true);
+    expect(fixtures.every((fixture) => fixture.tags.includes('core'))).toBe(true);
+    expect(
+      fixtures.some((fixture) =>
+        fixture.cases.some(
+          (case_) =>
+            case_.tags.includes('multi-alias') && case_.tags.includes('near-match-guard'),
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      fixtures.some((fixture) =>
+        fixture.cases.some((case_) => case_.variantGroupId === 'catalog-populated'),
+      ),
+    ).toBe(true);
   });
 });

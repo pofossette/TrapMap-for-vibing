@@ -63,9 +63,21 @@ export const labelAlignmentEvalCaseSchema = z
       });
     }
 
+    if (value.totalCanonicalLabels !== value.expectedAlignment.canonicalGroups.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'totalCanonicalLabels must equal expectedAlignment canonical group count',
+        path: ['totalCanonicalLabels'],
+      });
+    }
+
+    const shouldNotMergeLabels = new Set(value.expectedAlignment.shouldNotMerge.flat());
+    const groupedRawLabels = new Set<string>();
+
     const rawLabels = new Set(value.goldenAnnotations.map((annotation) => annotation.rawLabel));
     for (const [groupIndex, group] of value.expectedAlignment.canonicalGroups.entries()) {
       for (const rawLabel of group) {
+        groupedRawLabels.add(rawLabel);
         if (!rawLabels.has(rawLabel)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -73,6 +85,41 @@ export const labelAlignmentEvalCaseSchema = z
             path: ['expectedAlignment', 'canonicalGroups', groupIndex],
           });
         }
+      }
+    }
+
+    for (const [annotationIndex, annotation] of value.goldenAnnotations.entries()) {
+      if (!groupedRawLabels.has(annotation.rawLabel)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `golden annotation missing from expectedAlignment canonicalGroups: ${annotation.rawLabel}`,
+          path: ['goldenAnnotations', annotationIndex, 'rawLabel'],
+        });
+      }
+
+      if (annotation.shouldMerge) {
+        const groupedWithOthers = value.expectedAlignment.canonicalGroups.some(
+          (group) => group.includes(annotation.rawLabel) && group.length > 1,
+        );
+        if (!groupedWithOthers) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `shouldMerge=true requires membership in a multi-label canonical group: ${annotation.rawLabel}`,
+            path: ['goldenAnnotations', annotationIndex, 'shouldMerge'],
+          });
+        }
+      }
+
+      if (
+        !annotation.shouldMerge &&
+        shouldNotMergeLabels.size > 0 &&
+        !shouldNotMergeLabels.has(annotation.rawLabel)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `shouldMerge=false requires shouldNotMerge coverage: ${annotation.rawLabel}`,
+          path: ['goldenAnnotations', annotationIndex, 'shouldMerge'],
+        });
       }
     }
 

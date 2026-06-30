@@ -1,10 +1,13 @@
 import type {
   LabelAlignmentEvalCaseResult,
+  LabelAlignmentEvalCase,
   LabelAlignmentEvalFixture,
   LabelAlignmentEvalReport,
+  LabelAlignmentRecallReason,
 } from '../../packages/contracts/src/domain/evals/label-alignment.js';
 import { labelAlignmentEvalFixtureSchema } from '../../packages/contracts/src/domain/evals/label-alignment.js';
 
+import { coreFixtures } from './fixtures/core.js';
 import { smokeFixtures } from './fixtures/smoke.js';
 import { runLiveDecisionEvaluation, type LiveDecisionContext } from './lib/decision-eval.js';
 import { formatLabelAlignmentReport } from './lib/format.js';
@@ -25,20 +28,7 @@ export interface RunLabelAlignmentSuiteOptions extends LoadFixtureOptions {
 export async function loadLabelAlignmentFixtures(
   options: LoadFixtureOptions,
 ): Promise<LabelAlignmentEvalFixture[]> {
-  const fixtures =
-    options.tier === 'smoke'
-      ? smokeFixtures
-      : smokeFixtures.map((fixture) => ({
-          ...fixture,
-          fixtureId: `${fixture.fixtureId}-core`,
-          tags: [...fixture.tags, 'core'],
-          cases: fixture.cases.map((case_) => ({
-            ...case_,
-            caseId: `${case_.caseId}-core`,
-            tier: 'core' as const,
-            tags: [...case_.tags, 'core'],
-          })),
-        }));
+  const fixtures = options.tier === 'smoke' ? smokeFixtures : coreFixtures;
   return fixtures.map((fixture) => labelAlignmentEvalFixtureSchema.parse(fixture));
 }
 
@@ -66,7 +56,11 @@ export async function runLabelAlignmentSuite(
       }
 
       const recallResult = runDeterministicRecall(case_);
-      const metrics = calculateCaseMetrics(case_, recallResult.predictions);
+      const predictions = recallResult.predictions.map((prediction) => ({
+        ...prediction,
+        recallReason: inferRecallReason(case_, prediction.rawLabel),
+      }));
+      const metrics = calculateCaseMetrics(case_, predictions);
       caseResults.push({
         caseId: case_.caseId,
         skillId: case_.skillId,
@@ -98,4 +92,30 @@ export async function runLabelAlignmentSuite(
 
 export function formatRunResult(report: LabelAlignmentEvalReport): string {
   return formatLabelAlignmentReport(report);
+}
+
+function inferRecallReason(
+  case_: LabelAlignmentEvalCase,
+  rawLabel: string,
+): LabelAlignmentRecallReason {
+  if (case_.catalogSeed.length === 0) {
+    return 'catalog-empty';
+  }
+
+  const normalizedRawLabel = normalizeLabel(rawLabel);
+  for (const entry of case_.catalogSeed) {
+    if (entry.aliases.includes(rawLabel)) {
+      return 'exact-alias';
+    }
+
+    if (normalizeLabel(entry.canonicalName) === normalizedRawLabel) {
+      return 'normalized-name';
+    }
+  }
+
+  return case_.embeddingEnabled ? 'semantic-embedding' : 'normalized-name';
+}
+
+function normalizeLabel(value: string): string {
+  return value.trim().toLowerCase().replace(/[\s_-]+/g, '');
 }
