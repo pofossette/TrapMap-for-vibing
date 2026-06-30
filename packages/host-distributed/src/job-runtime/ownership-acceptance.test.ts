@@ -29,7 +29,7 @@ describe('distributed job-runtime ownership acceptance', () => {
   });
 
   it('keeps localhost defaults outside distributed profile', () => {
-    delete process.env.TRAPMAP_DEPLOYMENT_PROFILE;
+    process.env.TRAPMAP_DEPLOYMENT_PROFILE = undefined;
 
     const config = loadServiceConfig('job-runtime');
 

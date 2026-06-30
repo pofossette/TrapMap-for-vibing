@@ -121,7 +121,7 @@ interface FeedbackRequest {
 
 ## 相关源码
 
-- [packages/cli/src/commands/feedback.ts](../../packages/cli/src/commands/feedback.ts)
-- [packages/server/src/lib/feedback/repository.ts](../../packages/server/src/lib/feedback/repository.ts)
-- [packages/server/src/lib/feedback/lifecycle-triggers.ts](../../packages/server/src/lib/feedback/lifecycle-triggers.ts)
-- [packages/contracts/src/domain/](../../packages/contracts/src/domain/)
+- [packages/cli/src/commands/feedback.ts](../../../packages/cli/src/commands/feedback.ts)
+- [packages/server/src/lib/feedback/repository.ts](../../../packages/server/src/lib/feedback/repository.ts)
+- [packages/server/src/lib/feedback/lifecycle-triggers.ts](../../../packages/server/src/lib/feedback/lifecycle-triggers.ts)
+- [packages/contracts/src/domain/](../../../packages/contracts/src/domain/)

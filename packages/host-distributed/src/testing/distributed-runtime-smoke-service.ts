@@ -1,7 +1,6 @@
 import Fastify from 'fastify';
 
 import {
-  type CandidateIngestionPort,
   InvocationError,
   type JobRuntimePort,
   type KnowledgeWritePort,
@@ -155,26 +154,6 @@ function createKnowledgeWriteService(state: DiagnosticsState) {
   return app;
 }
 
-function createCandidateModule(
-  state: DiagnosticsState,
-  publishCandidateResult: CandidateIngestionPort['publishCandidateResult'],
-): CandidateIngestionPort {
-  return {
-    submit: async () => ({ candidateId: 'candidate-1' }),
-    getById: async () => null,
-    listByStatus: async () => [],
-    applyResolution: async (candidateId, resolution, actorId) => {
-      state.hits.push(`candidate:resolution:${candidateId}`);
-      await publishCandidateResult(candidateId, resolution, actorId);
-    },
-    submitManualResult: async (candidateId, result, actorId) => {
-      state.hits.push(`candidate:manual:${candidateId}`);
-      await publishCandidateResult(candidateId, result, actorId);
-    },
-    publishCandidateResult,
-  };
-}
-
 function createCandidateService(state: DiagnosticsState) {
   const app = Fastify();
   const clients = createInternalServiceClients(urls());
@@ -185,9 +164,12 @@ function createCandidateService(state: DiagnosticsState) {
     actorId: string,
     headers: Record<string, string | undefined>,
   ) => {
+    const filteredHeaders = Object.fromEntries(
+      Object.entries(headers).filter(([, v]) => v !== undefined) as [string, string][],
+    );
     const knowledgeWrite = createRemoteKnowledgeWriteClient(
       { knowledgeWrite: clients.knowledgeWrite },
-      { transport, headers },
+      { transport, headers: filteredHeaders },
     );
     return knowledgeWrite.publishCandidateResult({ candidateId, actorId, result });
   };

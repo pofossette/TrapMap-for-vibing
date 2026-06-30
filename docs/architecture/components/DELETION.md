@@ -222,6 +222,6 @@ interface BatchDeleteResponse {
 
 ## 相关源码
 
-- [packages/server/src/routes/knowledge.ts](../../packages/server/src/routes/knowledge.ts)
-- [packages/server/src/lib/knowledge.ts](../../packages/server/src/lib/knowledge.ts)
-- [packages/server/src/lib/lifecycle/state-machine.ts](../../packages/server/src/lib/lifecycle/state-machine.ts)
+- [packages/server/src/routes/knowledge.ts](../../../packages/server/src/routes/knowledge.ts)
+- [packages/server/src/lib/knowledge.ts](../../../packages/server/src/lib/knowledge.ts)
+- [packages/server/src/lib/lifecycle/state-machine.ts](../../../packages/server/src/lib/lifecycle/state-machine.ts)

@@ -27,7 +27,7 @@ Phase 4 数据、运维与退役收尾（历史主线，已冻结）：
 - 冻结仓库级 owner matrix、迁移窗口关闭标准和可退役 compatibility shell 清单。
 - 退役旧宿主与重复 transport/client，完成 truth source、测试矩阵、归档回写。
 - 当前主线已把默认轻宿主切到 owner 清晰的 Nest 实现；candidate/review 默认写入口也已完成切换。该历史主线只保留为 owner matrix、compatibility shell 退役和 distributed 成熟度参考，不再作为当前根计划执行面。
-- 详见 [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md)。
+- 详见 [`docs/archived/archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md`](archived/archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md)。
 
 ## 系统架构
 
@@ -205,24 +205,24 @@ deployment flexibility 最小验证矩阵：
 - [微服务平台增强根计划](../plan.md) — 当前根级 closeout 索引；只保留归档状态、deferred 落点与背景入口
 - [微服务平台能力增强细则](archived/archived-plans/microservice-platform-evolution-plan.md) — 已归档的 Phase 0-4 closeout 细则；保留服务发现、内部 RPC、可观测性与资源治理的完成证据
 - 当前 active execution surface 不再包含该细则；其余 todo 文档只能写成背景输入、deferred 落点或已完成 closeout 参考
-- [健壮性与可扩展性收尾细则](todos/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
+- [健壮性与可扩展性收尾细则](archived/archived-plans/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
-- [数据埋点增强细则](todos/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪
+- [数据埋点增强细则](archived/archived-plans/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪
 - [微服务架构与可观测性全景](todos/microservice-architecture-and-observability.md) — 当前微服务增强主线的架构盘点与问题输入，不承担执行 checklist
 - [轻重后端构建目标细则](todos/backend-build-targets-plan.md) — 轻重后端构建目标、兼容壳清理与客户端后端形态配置的细则；现退回背景参考
-- [组件替换细则](todos/component-replacement-plan.md) — 成熟包替换的独立细则；根计划已切换，不再是当前主线
-- [Badcase 回流待办](todos/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
-- [后端工程化优化计划](todos/backend-engineering-optimization-plan.md) — 平台化 deferred 问题池；承接 MQ 产品化、监控平台、长期服务化与更重的平台工程议题
+- [组件替换细则](archived/archived-plans/component-replacement-plan.md) — 成熟包替换的独立细则；根计划已切换，不再是当前主线
+- [Badcase 回流待办](archived/archived-plans/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
+- [后端工程化优化计划](archived/archived-plans/backend-engineering-optimization-plan.md) — 平台化 deferred 问题池；承接 MQ 产品化、监控平台、长期服务化与更重的平台工程议题
 - 当前主线不再接受新的平行整改索引；若后续继续深入历史主题或平台化议题，必须转入当前细则显式链接的 deferred 落点
-- [NestJS 目标架构冻结](todos/nestjs-service-evolution-00-target-architecture.md) — 长期目标、边界、保留与退役决策
-- [NestJS 宿主与 contract 基础](todos/nestjs-service-evolution-01-host-and-contract-foundation.md) — 首条 Nest 宿主主线与共享 contract 收口
-- [NestJS 模块化单体切换](todos/nestjs-service-evolution-02-modular-monolith-cutover.md) — 六个 bounded context、compatibility boundary 与机械迁移提示词
-- [NestJS 服务拆分与异步化](todos/nestjs-service-evolution-03-service-extraction-and-async.md) — 服务 owner、异步边界与分布式验证
-- [NestJS 数据与退役收尾](todos/nestjs-service-evolution-04-data-runtime-and-cutover.md) — 数据 owner、运维面与旧宿主退役
-- [Distributed 成熟度评估](todos/nestjs-service-evolution-distributed-maturity-assessment.md) — 当前 distributed 形态到底算过渡态还是成熟微服务，以及升级判据
-- [成熟服务样板：Knowledge-Write + Governance-Review](todos/nestjs-service-evolution-knowledge-write-governance-review-pilot.md) — 第一批成熟服务样板的 owner、contract、测试门与 closeout
-- [样板实施前检查表](todos/nestjs-service-evolution-knowledge-write-governance-review-preflight-checklist.md) — 开始迁移前先冻结边界、契约、测试入口与非目标
-- [样板代码迁移任务列表](todos/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md) — 直接映射到具体包和文件的迁移任务清单
+- [NestJS 目标架构冻结](archived/archived-plans/nestjs-service-evolution-00-target-architecture.md) — 长期目标、边界、保留与退役决策
+- [NestJS 宿主与 contract 基础](archived/archived-plans/nestjs-service-evolution-01-host-and-contract-foundation-archived.md) — 首条 Nest 宿主主线与共享 contract 收口
+- [NestJS 模块化单体切换](archived/archived-plans/nestjs-service-evolution-02-modular-monolith-cutover-archived.md) — 六个 bounded context、compatibility boundary 与机械迁移提示词
+- [NestJS 服务拆分与异步化](archived/archived-plans/nestjs-service-evolution-03-service-extraction-and-async.md) — 服务 owner、异步边界与分布式验证
+- [NestJS 数据与退役收尾](archived/archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md) — 数据 owner、运维面与旧宿主退役
+- [Distributed 成熟度评估](archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md) — 当前 distributed 形态到底算过渡态还是成熟微服务，以及升级判据
+- [成熟服务样板：Knowledge-Write + Governance-Review](archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-pilot.md) — 第一批成熟服务样板的 owner、contract、测试门与 closeout
+- [样板实施前检查表](archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-preflight-checklist.md) — 开始迁移前先冻结边界、契约、测试入口与非目标
+- [样板代码迁移任务列表](archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md) — 直接映射到具体包和文件的迁移任务清单
 - [未完成项与阶段性妥协清单](todos/open-debt-and-compromises.md) — 当前仍未收口的占位实现、阶段性妥协与开发退路
 
 ### 架构与 API

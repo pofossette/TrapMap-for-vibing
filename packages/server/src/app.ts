@@ -27,13 +27,13 @@ import { keywordChannel } from './lib/retrieval/recall/keyword.js';
 import { semanticChannel } from './lib/retrieval/recall/semantic.js';
 import { resolveRuntimeDeployment } from './lib/runtime/deployment-profile.js';
 import { handleRuntimeError, registerRuntimeRoutes } from './lib/runtime/http-surface.js';
+import { recordHttpRequestMetric, renderPrometheusMetrics } from './lib/runtime/metrics.js';
 import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
 import {
   buildRouteSurfaceSummary,
   flattenDocumentedRoutes,
   getUnsupportedRouteDescriptors,
 } from './lib/runtime/route-surface.js';
-import { recordHttpRequestMetric, renderPrometheusMetrics } from './lib/runtime/metrics.js';
 import type { RuntimeMode } from './lib/runtime/runtime-contract.js';
 import { type ServiceUnit, resolveServiceUnit } from './lib/runtime/service-unit.js';
 

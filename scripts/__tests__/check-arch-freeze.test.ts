@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   type ArchFreezeFileRule,
-  checkFile,
-  checkArchFreezeRule,
   type ArchFreezeRule,
+  checkArchFreezeRule,
+  checkFile,
 } from '../check-arch-freeze';
 
 describe('checkFile', () => {

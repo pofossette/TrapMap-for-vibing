@@ -5,6 +5,10 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./lib/*": "./dist/lib/*.js"
+  },
   "scripts": {
     "backfill-indexes": "tsx scripts/backfill-indexes.ts",
     "build": "tsc -p tsconfig.json",

@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createInternalServiceClients } from './internal-client.js';
 import {
   getDistributedInternalObservabilitySnapshot,
   resetDistributedInternalObservability,
 } from './internal-observability.js';
-import { createInternalServiceClients } from './internal-client.js';
 
 const originalFetch = globalThis.fetch;
 

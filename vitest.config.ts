@@ -82,6 +82,18 @@ export default defineConfig({
         resolve: {
           alias: [
             {
+              find: /^@trapmap\/server\/lib\/(.+)\.js$/,
+              replacement: resolve(__dirname, './packages/server/src/lib/$1.ts'),
+            },
+            {
+              find: /^@trapmap\/server\/(.+)\.js$/,
+              replacement: resolve(__dirname, './packages/server/src/$1.ts'),
+            },
+            {
+              find: '@trapmap/server',
+              replacement: resolve(__dirname, './packages/server/src/index.ts'),
+            },
+            {
               find: '@trapmap/contracts',
               replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
             },
