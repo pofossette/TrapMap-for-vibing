@@ -1,5 +1,5 @@
-import type { Task, TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
-import type { RuntimeWorkerHandle } from '@trapmap/server/lib/runtime/runtime-contract.js';
+import type { Task, TaskHandler } from './task-queue.js';
+import type { RuntimeWorkerHandle } from './runtime-contract.js';
 
 import type { AsyncTaskTransport } from './async-transport.js';
 

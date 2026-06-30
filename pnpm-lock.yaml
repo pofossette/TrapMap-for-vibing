@@ -187,9 +187,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@trapmap/server':
+      '@trapmap/runtime-infra':
         specifier: workspace:*
-        version: link:../server
+        version: link:../runtime-infra
       '@trapmap/service-knowledge-read':
         specifier: workspace:*
         version: link:../service-knowledge-read
@@ -209,6 +209,25 @@ importers:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
+
+  packages/runtime-infra:
+    dependencies:
+      '@trapmap/server':
+        specifier: workspace:*
+        version: link:../server
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(@types/pg@8.20.0)(pg@8.22.0)
+      pg:
+        specifier: ^8.16.3
+        version: 8.22.0
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   packages/server:
     dependencies:
@@ -370,6 +389,12 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/runtime-infra':
+        specifier: workspace:*
+        version: link:../runtime-infra
+      '@trapmap/server':
+        specifier: workspace:*
+        version: link:../server
       fastify:
         specifier: ^5.6.1
         version: 5.8.4
@@ -7727,6 +7752,11 @@ snapshots:
     optionalDependencies:
       '@types/pg': 8.20.0
       pg: 8.20.0
+
+  drizzle-orm@0.45.2(@types/pg@8.20.0)(pg@8.22.0):
+    optionalDependencies:
+      '@types/pg': 8.20.0
+      pg: 8.22.0
 
   dunder-proto@1.0.1:
     dependencies:

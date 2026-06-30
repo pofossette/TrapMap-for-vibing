@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 
-import type { DomainEvent, DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
+import type { DomainEvent, DomainEventHandler } from './lifecycle-types.js';
 
 export class LifecycleEventBus extends EventEmitter {
   emitDomainEvent(event: DomainEvent): void {

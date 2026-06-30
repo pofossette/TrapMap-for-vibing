@@ -38,4 +38,23 @@ export {
   semanticRecall,
   type RecallExecutionResult,
 } from './retrieval-recall-coordinator.js';
+export { filterByBoundaryContext, filterEligibleEntries, isEntryEligible } from './filters.js';
+export {
+  type PipelineStep,
+  type RagLogConfig,
+  type RagLogEntry,
+  generateQueryId,
+  loadRagLogConfig,
+  logRagRetrieval,
+} from './rag-log.js';
+export { buildRetrievalReadModel, type RetrievalReadModel } from './read-model.js';
+export {
+  assembleResponseBuckets,
+  buildEmptyResponse,
+  buildRetrievalResponse,
+  toRetrievalMatch,
+} from './response-assembly.js';
+export { buildCitations } from './response-citations.js';
+export { generateRefinement, isRefinementAvailable } from './response-refinement.js';
+export { buildSummary } from './response-summary.js';
 export { searchKnowledge, updateEntryEmbeddingCache } from './search-knowledge.js';

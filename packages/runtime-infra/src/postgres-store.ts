@@ -1,6 +1,6 @@
 import type { Pool } from 'pg';
 
-import { recordDatabaseMetric } from '@trapmap/server/lib/runtime/metrics.js';
+import { recordDatabaseMetric } from './metrics.js';
 
 import { createEmptyStoreData, type SkillShareerStore, type StoreData } from './store.js';
 

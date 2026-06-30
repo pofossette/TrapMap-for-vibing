@@ -19,6 +19,7 @@
   "dependencies": {
     "@trapmap/backend-core": "workspace:*",
     "@trapmap/contracts": "workspace:*",
+    "@trapmap/runtime-infra": "workspace:*",
     "@trapmap/server": "workspace:*",
     "fastify": "^5.6.1"
   },

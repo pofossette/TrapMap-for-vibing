@@ -1,6 +1,5 @@
 import type { RetrievalQuery } from '@trapmap/contracts';
 import type { MergedCandidate, ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
-import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -9,6 +8,7 @@ import {
   type RetrievalStrategy,
   StrategyRegistry,
 } from './retrieval-orchestration.js';
+import type { KnowledgeRecord } from './store.js';
 
 function makeMockChannel(name: string): RecallChannel {
   return {

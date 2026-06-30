@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
-
 import { keywordRecall, normalizeQuery, tokenize } from './retrieval-keyword.js';
+import type { KnowledgeRecord } from './store.js';
 
 function createTestEntry(overrides: Partial<KnowledgeRecord>): KnowledgeRecord {
   return {
