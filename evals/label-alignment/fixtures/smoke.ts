@@ -1,4 +1,4 @@
-import type { LabelAlignmentEvalFixture } from '../../packages/contracts/src/domain/evals/label-alignment.js';
+import type { LabelAlignmentEvalFixture } from '../../../packages/contracts/src/domain/evals/label-alignment.js';
 
 export const smokeFixtures: LabelAlignmentEvalFixture[] = [
   {
@@ -146,6 +146,47 @@ export const smokeFixtures: LabelAlignmentEvalFixture[] = [
           shouldNotMerge: [['missing pagination', 'connection pool exhaustion']],
         },
         tags: ['near-match-guard'],
+      },
+      {
+        schemaVersion: 1,
+        caseId: 'backend-pagination-catalog-empty',
+        skillId: 'skill/api-pagination-trap',
+        variantId: 'catalog-empty',
+        variantGroupId: 'backend-pagination-empty-group',
+        tier: 'smoke',
+        synonymGroupCount: 2,
+        totalRawLabels: 3,
+        totalCanonicalLabels: 2,
+        catalogSeed: 'catalog-empty',
+        embeddingEnabled: false,
+        goldenAnnotations: [
+          {
+            rawLabel: 'missing pagination',
+            canonicalLabel: 'api-pagination-missing',
+            groupId: 'g-pagination',
+            shouldMerge: true,
+          },
+          {
+            rawLabel: 'unbounded list endpoint',
+            canonicalLabel: 'api-pagination-missing',
+            groupId: 'g-pagination',
+            shouldMerge: true,
+          },
+          {
+            rawLabel: 'connection pool exhaustion',
+            canonicalLabel: 'db-connection-pool-exhaustion',
+            groupId: 'g-pool',
+            shouldMerge: false,
+          },
+        ],
+        expectedAlignment: {
+          canonicalGroups: [
+            ['missing pagination', 'unbounded list endpoint'],
+            ['connection pool exhaustion'],
+          ],
+          shouldNotMerge: [['missing pagination', 'connection pool exhaustion']],
+        },
+        tags: ['catalog-empty', 'near-match-guard'],
       },
     ],
   },

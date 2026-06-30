@@ -60,12 +60,13 @@ export async function runLiveDecisionEvaluation(
       },
     );
 
+    const predictedCanonicalLabel = await normalizePredictedCanonicalLabel(
+      result,
+      context.repository,
+    );
     predictions.push({
       rawLabel: annotation.rawLabel,
-      predictedCanonicalLabel:
-        result.decision.canonicalName ??
-        result.decision.canonicalLabelId ??
-        annotation.canonicalLabel,
+      predictedCanonicalLabel,
       predictedGroupId: annotation.groupId,
       recallReason: 'live-decision' as const,
     });
@@ -90,4 +91,22 @@ export async function runLiveDecisionEvaluation(
     },
     notes: ['Executed through live label-alignment interfaces.'],
   };
+}
+
+async function normalizePredictedCanonicalLabel(
+  result: Awaited<ReturnType<typeof alignLabel>>,
+  repository?: LabelRepository,
+): Promise<string> {
+  if (result.decision.canonicalName) {
+    return result.decision.canonicalName;
+  }
+
+  if (result.decision.canonicalLabelId) {
+    const canonicalLabel = await repository?.findCanonicalById(result.decision.canonicalLabelId);
+    if (canonicalLabel) {
+      return canonicalLabel.canonicalName;
+    }
+  }
+
+  return result.decision.canonicalLabelId ?? '';
 }

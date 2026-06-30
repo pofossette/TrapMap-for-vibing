@@ -9,14 +9,21 @@ describe('label alignment eval scaffold', () => {
     expect(fixtures.length).toBeGreaterThan(0);
     expect(fixtures.every((fixture) => fixture.skillId.length > 0)).toBe(true);
     expect(
-      fixtures
-        .flatMap((fixture) => fixture.cases)
-        .some((case_) => case_.variantId === 'catalog-empty'),
+      fixtures.every((fixture) =>
+        fixture.cases.some((case_) => case_.variantId === 'catalog-empty'),
+      ),
     ).toBe(true);
     expect(
-      fixtures
-        .flatMap((fixture) => fixture.cases)
-        .some((case_) => case_.variantId === 'catalog-populated' && case_.embeddingEnabled),
+      fixtures.every((fixture) =>
+        fixture.cases.some((case_) => case_.variantId === 'catalog-populated'),
+      ),
+    ).toBe(true);
+    expect(
+      fixtures.some((fixture) =>
+        fixture.cases.some(
+          (case_) => case_.variantId === 'catalog-populated' && case_.embeddingEnabled,
+        ),
+      ),
     ).toBe(true);
   });
 
