@@ -37,7 +37,7 @@ function passRate(results: AgentPlanningCaseResult[]): number {
     return 0;
   }
 
-  return Number((results.filter((result) => result.passed).length / results.length).toFixed(4));
+  return results.filter((result) => result.passed).length / results.length;
 }
 
 function compareContextSet(

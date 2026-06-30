@@ -1,6 +1,87 @@
 import { describe, expect, it } from 'vitest';
 
 describe('agent planning eval scaffold', () => {
+  it('keeps smoke/core datasets self-consistent and covers required planning behaviors', async () => {
+    const smokeMod = await import('./smoke.js').catch(() => null);
+    const coreMod = await import('./core.js').catch(() => null);
+
+    expect(smokeMod).not.toBeNull();
+    expect(coreMod).not.toBeNull();
+
+    const smokeCases = smokeMod?.smokeCases ?? [];
+    const smokeScenarios = smokeMod?.smokeScenarios ?? [];
+    const coreCases = coreMod?.coreCases ?? [];
+    const coreScenarios = coreMod?.coreScenarios ?? [];
+
+    expect(smokeCases.length).toBeGreaterThanOrEqual(5);
+    expect(coreCases.length).toBeGreaterThan(smokeCases.length);
+
+    const smokeScenarioIds = new Set(smokeScenarios.map((scenario) => scenario.scenarioId));
+    const coreScenarioIds = new Set(coreScenarios.map((scenario) => scenario.scenarioId));
+
+    for (const caseDefinition of smokeCases) {
+      expect(caseDefinition.tier).toBe('smoke');
+      expect(caseDefinition.tags).toContain('smoke');
+      expect(smokeScenarioIds.has(caseDefinition.scenarioId)).toBe(true);
+    }
+
+    for (const caseDefinition of coreCases) {
+      expect(caseDefinition.tier).toBe('core');
+      expect(caseDefinition.tags).toContain('core');
+      expect(coreScenarioIds.has(caseDefinition.scenarioId)).toBe(true);
+    }
+
+    const smokeTaskIds = new Set(smokeCases.map((caseDefinition) => caseDefinition.taskId));
+    const coreTaskIds = new Set(coreCases.map((caseDefinition) => caseDefinition.taskId));
+    const coreOnlyTaskIds = [...coreTaskIds].filter((taskId) => !smokeTaskIds.has(taskId));
+    expect(coreOnlyTaskIds.length).toBeGreaterThanOrEqual(1);
+
+    expect(
+      smokeCases.some(
+        (caseDefinition) =>
+          caseDefinition.contextSetKind === 'skill-set' &&
+          caseDefinition.interferenceLevel === 'none' &&
+          caseDefinition.taskType === 'sequential',
+      ),
+    ).toBe(true);
+    expect(
+      smokeCases.some(
+        (caseDefinition) =>
+          caseDefinition.contextSetKind === 'plan-graph-set' &&
+          caseDefinition.interferenceLevel === 'none' &&
+          caseDefinition.taskType === 'sequential',
+      ),
+    ).toBe(true);
+    expect(
+      smokeCases.some(
+        (caseDefinition) =>
+          caseDefinition.expectedOutcome.finalAnswer.toLowerCase().includes('insufficient') &&
+          caseDefinition.tags.includes('conservative-response'),
+      ),
+    ).toBe(true);
+    expect(
+      smokeCases.some(
+        (caseDefinition) =>
+          caseDefinition.interferenceLevel === 'high' &&
+          caseDefinition.tags.includes('high-interference'),
+      ),
+    ).toBe(true);
+    expect(
+      coreCases.some(
+        (caseDefinition) =>
+          caseDefinition.taskType === 'composite' &&
+          caseDefinition.tags.includes('multi-step-decomposition'),
+      ),
+    ).toBe(true);
+    expect(
+      coreCases.some(
+        (caseDefinition) =>
+          caseDefinition.goldenPath.forbiddenActions.length > 0 &&
+          caseDefinition.tags.includes('out-of-scope-guard'),
+      ),
+    ).toBe(true);
+  });
+
   it('loads smoke fixtures and runs deterministic dry-run reporting', async () => {
     const smokeMod = await import('./smoke.js').catch(() => null);
     const runMod = await import('./run.js').catch(() => null);

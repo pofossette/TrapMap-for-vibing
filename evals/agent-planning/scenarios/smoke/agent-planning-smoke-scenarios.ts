@@ -108,6 +108,41 @@ export const smokeScenarios: AgentPlanningEvalScenario[] = [
       owner: 'agent-planning-eval',
     },
   },
+  {
+    scenarioId: 'scenario-triage-missing-evidence',
+    taskId: 'task-triage-missing-evidence',
+    variantIds: ['task-triage-missing-evidence-skill-set-none'],
+    taskPrompt:
+      'Plan how to respond when an incident report claims a database migration caused an outage, but no logs or rollout timeline are attached.',
+    promptTemplateId: 'default-agent-planning',
+    actor: {
+      mode: 'dry-run',
+      provider: 'fallback',
+    },
+    context: {
+      required: [
+        {
+          id: 'skill-evidence-triage',
+          kind: 'skill',
+          title: 'Incident evidence triage',
+          body: 'If logs are missing, state the evidence gap, request the missing artifacts, and avoid irreversible actions until confirmation.',
+        },
+      ],
+      optional: [
+        {
+          id: 'note-needed-artifacts',
+          kind: 'note',
+          title: 'Artifacts to request',
+          body: 'Ask for deploy logs, migration timestamps, and the first failing alert sample.',
+        },
+      ],
+      interference: [],
+    },
+    metadata: {
+      repository: 'Trap-Map',
+      owner: 'agent-planning-eval',
+    },
+  },
 ];
 
 export const smokeScenariosMap = Object.fromEntries(

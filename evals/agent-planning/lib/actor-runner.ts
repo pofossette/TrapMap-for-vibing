@@ -17,12 +17,11 @@ function buildDryRunOutput(
   scenario: AgentPlanningEvalScenario,
 ): string {
   const steps = caseDefinition.goldenPath.requiredSteps;
+  const numberedSteps = steps.map((step, index) => `${index + 1}. ${step}`);
 
   if (caseDefinition.contextSetKind === 'plan-graph-set') {
     return [
-      `1. ${steps[0]}`,
-      `2. ${steps[1]}`,
-      `3. ${steps[2]}`,
+      ...numberedSteps,
       `Final answer: ${caseDefinition.expectedOutcome.finalAnswer}`,
       `Success criteria: ${caseDefinition.expectedOutcome.successCriteria.join(', ')}`,
     ].join('\n');
@@ -30,18 +29,14 @@ function buildDryRunOutput(
 
   if (caseDefinition.interferenceLevel === 'high') {
     return [
-      `1. ${steps[0]}`,
-      `2. ${steps[1]}`,
-      `3. ${steps[2]}`,
+      ...numberedSteps,
       `Final answer: ${scenario.taskPrompt}`,
     ].join('\n');
   }
 
   return [
-    `1. ${steps[0]}`,
-    `2. ${steps[1]}`,
-    `3. ${steps[2]}`,
-    `Final answer: ${caseDefinition.expectedOutcome.successCriteria.join(', ')}`,
+    ...numberedSteps,
+    `Final answer: ${caseDefinition.expectedOutcome.finalAnswer}`,
   ].join('\n');
 }
 

@@ -1,7 +1,7 @@
 import type { AgentPlanningEvalCase } from '@trapmap/contracts/evals';
 
-const skillFixturePath = 'evals/ingestion/fixtures/minimal-skill/SKILL.md';
-const altSkillFixturePath = 'evals/ingestion/fixtures/demo-full/SKILL.md';
+const minimalSkillFixturePath = 'evals/ingestion/fixtures/minimal-skill/SKILL.md';
+const demoSkillFixturePath = 'evals/ingestion/fixtures/demo-full/SKILL.md';
 const trapFixturePath = 'evals/fixtures/traps/testing/trap_flaky_test_timing.json';
 
 export const agentPlanningSmokeCases: AgentPlanningEvalCase[] = [
@@ -49,7 +49,7 @@ export const agentPlanningSmokeCases: AgentPlanningEvalCase[] = [
       finalAnswer: 'Upgrade the CI pipeline in a deterministic order.',
       successCriteria: ['upgrade completed', 'validation passed'],
     },
-    tags: ['smoke', 'ci', 'skill-set'],
+    tags: ['smoke', 'ci', 'normal-planning', 'skill-set'],
   },
   {
     schemaVersion: 1,
@@ -95,7 +95,7 @@ export const agentPlanningSmokeCases: AgentPlanningEvalCase[] = [
       finalAnswer: 'Upgrade the CI pipeline in a deterministic order.',
       successCriteria: ['upgrade completed', 'validation passed'],
     },
-    tags: ['smoke', 'ci', 'plan-graph'],
+    tags: ['smoke', 'ci', 'normal-planning', 'plan-graph-set'],
   },
   {
     schemaVersion: 1,
@@ -112,7 +112,7 @@ export const agentPlanningSmokeCases: AgentPlanningEvalCase[] = [
         sourcePool: 'evals/ingestion/fixtures',
         sourceId: 'minimal-skill',
         kind: 'skill',
-        path: skillFixturePath,
+        path: minimalSkillFixturePath,
       },
       {
         sourcePool: 'evals/fixtures/traps/testing',
@@ -140,13 +140,13 @@ export const agentPlanningSmokeCases: AgentPlanningEvalCase[] = [
           id: 'path-correctness',
           label: 'Path correctness',
           weight: 0.6,
-          guidance: 'Uses the required upgrade sequence.',
+          guidance: 'Uses the required upgrade sequence under noisy context.',
         },
         {
           id: 'final-answer',
           label: 'Final answer quality',
           weight: 0.4,
-          guidance: 'Ends with the required final answer.',
+          guidance: 'Still concludes with the intended migration outcome.',
         },
       ],
     },
@@ -154,7 +154,7 @@ export const agentPlanningSmokeCases: AgentPlanningEvalCase[] = [
       finalAnswer: 'Upgrade the CI pipeline in a deterministic order.',
       successCriteria: ['upgrade completed', 'validation passed'],
     },
-    tags: ['smoke', 'ci', 'high-interference'],
+    tags: ['smoke', 'ci', 'high-interference', 'skill-set'],
   },
   {
     schemaVersion: 1,
@@ -171,7 +171,7 @@ export const agentPlanningSmokeCases: AgentPlanningEvalCase[] = [
         sourcePool: 'evals/ingestion/fixtures',
         sourceId: 'demo-full',
         kind: 'skill',
-        path: altSkillFixturePath,
+        path: demoSkillFixturePath,
       },
     ],
     promptTemplateId: 'default-agent-planning',
@@ -212,7 +212,7 @@ export const agentPlanningSmokeCases: AgentPlanningEvalCase[] = [
         'Stabilize flaky tests by reproducing, isolating, and fixing the timing dependency.',
       successCriteria: ['failure reproduced', 'timing issue isolated', 'assertions stabilized'],
     },
-    tags: ['smoke', 'testing', 'skill-set'],
+    tags: ['smoke', 'testing', 'normal-planning', 'skill-set'],
   },
   {
     schemaVersion: 1,
@@ -229,7 +229,7 @@ export const agentPlanningSmokeCases: AgentPlanningEvalCase[] = [
         sourcePool: 'evals/ingestion/fixtures',
         sourceId: 'demo-full',
         kind: 'skill',
-        path: altSkillFixturePath,
+        path: demoSkillFixturePath,
       },
     ],
     promptTemplateId: 'default-agent-planning',
@@ -270,6 +270,56 @@ export const agentPlanningSmokeCases: AgentPlanningEvalCase[] = [
         'Stabilize flaky tests by reproducing, isolating, and fixing the timing dependency.',
       successCriteria: ['failure reproduced', 'timing issue isolated', 'assertions stabilized'],
     },
-    tags: ['smoke', 'testing', 'plan-graph'],
+    tags: ['smoke', 'testing', 'normal-planning', 'plan-graph-set'],
+  },
+  {
+    schemaVersion: 1,
+    taskId: 'task-triage-missing-evidence',
+    variantId: 'task-triage-missing-evidence-skill-set-none',
+    variantGroupId: 'skill-set',
+    tier: 'smoke',
+    taskType: 'selection',
+    taskComplexity: 'simple',
+    contextSetKind: 'skill-set',
+    interferenceLevel: 'none',
+    interferenceSources: [],
+    promptTemplateId: 'default-agent-planning',
+    scenarioId: 'scenario-triage-missing-evidence',
+    goldenPath: {
+      requiredSteps: [
+        'state evidence is insufficient',
+        'request missing logs',
+        'defer irreversible action',
+      ],
+      keyActions: ['state evidence is insufficient', 'request missing logs'],
+      allowedAlternativeActions: ['list the exact artifacts needed'],
+      forbiddenActions: ['approve production rollback', 'claim root cause confirmed'],
+      stepWeights: {
+        'state evidence is insufficient': 0.4,
+        'request missing logs': 0.3,
+        'defer irreversible action': 0.3,
+      },
+    },
+    judgeRubric: {
+      dimensions: [
+        {
+          id: 'path-correctness',
+          label: 'Path correctness',
+          weight: 0.65,
+          guidance: 'Preserves uncertainty and asks for the next validating evidence.',
+        },
+        {
+          id: 'final-answer',
+          label: 'Final answer quality',
+          weight: 0.35,
+          guidance: 'Concludes with a conservative answer instead of a guessed fix.',
+        },
+      ],
+    },
+    expectedOutcome: {
+      finalAnswer: 'Insufficient evidence to confirm the root cause; request the missing logs first.',
+      successCriteria: ['insufficient evidence stated', 'missing logs requested'],
+    },
+    tags: ['smoke', 'conservative-response', 'missing-evidence', 'skill-set'],
   },
 ];
