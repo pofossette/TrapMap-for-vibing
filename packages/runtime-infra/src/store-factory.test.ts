@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { JsonStore } from '@trapmap/server/lib/store.js';
-
+import { JsonStore } from './store.js';
 import { createSkillShareerStore } from './store-factory.js';
 
 describe('runtime-infra store factory', () => {

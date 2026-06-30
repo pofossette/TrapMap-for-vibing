@@ -17,6 +17,7 @@
 | 文件 | 主题 | 状态 |
 |---|---|---|
 | `backend-build-targets-plan.md` | 轻重后端构建目标、兼容壳清理与客户端后端形态配置计划 | 进行中 (~35%) |
+| `agent-planning-eval-benchmark-plan.md` | Agent 路径规划对比测评脚手架与数据规则计划 | 待处理 |
 | `nestjs-service-evolution-residual-tasks.md` | NestJS 服务演进 Phase 01/02/04 归档后的残余任务去重整合 | 活跃 |
 | `open-debt-and-compromises.md` | 当前仍未收口的占位实现、阶段性妥协与开发退路 | 活跃 debt register |
 | `static-analysis-audit-2026-06-29.md` | fallow 静态分析审计：占位实现、未接入代码、死代码（382 问题） | 待处理 |

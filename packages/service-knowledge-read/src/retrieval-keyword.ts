@@ -1,6 +1,5 @@
-import type { RecallCandidate, TokenMatchDetail } from '@trapmap/server/lib/retrieval/types.js';
-import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
-
+import type { RecallCandidate, TokenMatchDetail } from './retrieval-types.js';
+import type { KnowledgeRecord } from './store.js';
 import type { RecallChannel } from './retrieval-orchestration.js';
 
 export function tokenize(text: string): string[] {

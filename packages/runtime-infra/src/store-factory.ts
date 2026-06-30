@@ -1,7 +1,7 @@
 import pg from 'pg';
 
-import { JsonStore, type SkillShareerStore } from '@trapmap/server/lib/store.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { PostgresStore } from './postgres-store.js';
+import { JsonStore, type SkillShareerStore } from './store.js';
 
 export interface StoreConfig {
   dataFile: string;

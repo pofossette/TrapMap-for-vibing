@@ -1,9 +1,8 @@
 import type { RetrievalQuery } from '@trapmap/contracts';
-import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
-import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
-import type { RecallExecutionResult } from '@trapmap/server/lib/retrieval/orchestration/recall-coordinator.js';
-import type { RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
-import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
+import type { RecallExecutionResult } from './retrieval-recall-coordinator.js';
+import type { RecallCandidate } from './retrieval-types.js';
+import type { KnowledgeRecord } from './store.js';
 
 export interface RecallChannel {
   readonly name: string;

@@ -38,3 +38,4 @@ export {
   semanticRecall,
   type RecallExecutionResult,
 } from './retrieval-recall-coordinator.js';
+export { searchKnowledge, updateEntryEmbeddingCache } from './search-knowledge.js';

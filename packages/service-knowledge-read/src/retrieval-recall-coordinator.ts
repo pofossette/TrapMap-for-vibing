@@ -1,5 +1,4 @@
 import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
-import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { DEFAULT_FRESHNESS_CONFIG } from '@trapmap/server/lib/decay/freshness.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/backend.js';
@@ -19,17 +18,14 @@ import {
   rerankCandidates,
   toScoredEntriesFromReranked,
 } from '@trapmap/server/lib/retrieval/scoring/rerank.js';
-import type {
-  MergedCandidate,
-  RoutingChannel,
-  ScoredEntry,
-} from '@trapmap/server/lib/retrieval/types.js';
-import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import type { MergedCandidate, RoutingChannel, ScoredEntry } from './retrieval-types.js';
 import type { Pool } from 'pg';
 
+import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import type { ChannelRegistry, StrategyRegistry } from './retrieval-orchestration.js';
 import { keywordRecall, normalizeQuery } from './retrieval-keyword.js';
 import { computeScore, getQueryEmbedding, optimizedSemanticRecall } from './retrieval-semantic.js';
+import type { KnowledgeRecord } from './store.js';
 
 export interface DbSearchConfig {
   enabled: boolean;

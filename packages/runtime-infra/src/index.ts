@@ -25,4 +25,7 @@ export {
   type RabbitMqTaskTransport,
   type RabbitMqTaskTransportConfig,
 } from './rabbitmq-task-queue.js';
+export { PostgresStore } from './postgres-store.js';
+export { createRuntimeInfraRepos, type SkillShareerRepos } from './repos.js';
+export { JsonStore, type SkillShareerStore, type StoreData } from './store.js';
 export { createSkillShareerStore, type StoreConfig } from './store-factory.js';

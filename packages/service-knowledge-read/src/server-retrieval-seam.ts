@@ -1,6 +1,5 @@
 import type { ResolvedAuthContext, RetrievalQueryPort } from '@trapmap/backend-core';
 import type { RetrievalQuery } from '@trapmap/contracts';
-import { searchKnowledge } from '@trapmap/server/lib/retrieval.js';
 import { keywordChannel } from './retrieval-keyword.js';
 import {
   graphAssistedRecall,
@@ -12,6 +11,7 @@ import {
   type RetrievalStrategy,
   StrategyRegistry,
 } from './retrieval-orchestration.js';
+import { searchKnowledge } from './search-knowledge.js';
 import { semanticChannel } from './retrieval-semantic.js';
 
 type SearchKnowledgeServices = Parameters<typeof searchKnowledge>[0];

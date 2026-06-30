@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-const FILES = ['src/shared-infra.ts', 'src/async-factory.ts'];
+const FILES = ['src/shared-infra.ts', 'src/async-factory.ts', 'src/store-factory.ts'];
 
 const FORBIDDEN_IMPORTS = [
   '@trapmap/server/lib/lifecycle/event-bus',
@@ -11,6 +11,9 @@ const FORBIDDEN_IMPORTS = [
   '@trapmap/server/lib/async/transport',
   '@trapmap/server/lib/async/rabbitmq-task-queue',
   '@trapmap/server/lib/persistence/create-store',
+  '@trapmap/server/lib/persistence/postgres-store',
+  '@trapmap/server/lib/store',
+  '@trapmap/server/lib/repos/index',
 ];
 
 describe('runtime-infra import boundary', () => {
