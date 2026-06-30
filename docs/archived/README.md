@@ -34,6 +34,9 @@
 | `archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md` | 2026-06-29 | 状态 proposed，0% 完成，样板代码迁移任务列表退回背景参考 |
 | `archived-plans/plan-2026-06-30-backend-build-targets-root-index-archived.md` | 2026-06-30 | 根 `plan.md` 已切换为微服务平台能力增强主线，旧轻重后端构建目标根索引归档 |
 | `archived-plans/microservice-platform-evolution-plan.md` | 2026-06-30 | 微服务平台能力增强 Phase 0-4 closeout 完成；剩余平台化议题全部转 deferred，不再保留 active todo |
+| `archived-plans/nestjs-service-evolution-01-host-and-contract-foundation-archived.md` | 2026-06-30 | Phase 1 工程任务全部完成（代码 + 架构 100%），剩余验证闭环和 checkbox 整理转入 `nestjs-service-evolution-residual-tasks.md` |
+| `archived-plans/nestjs-service-evolution-02-modular-monolith-cutover-archived.md` | 2026-06-30 | 六个 bounded context 目录结构完成、默认入口已切 Nest、旧 Fastify 源码已删；残余 `@trapmap/server` 依赖转入 residual tasks |
+| `archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md` | 2026-06-30 | 大部分 closeout 条件已满足（默认入口切换、compose 切换、compatibility shell 退役）；未完成项去重整合入 residual tasks |
 
 ## 归档原则
 
