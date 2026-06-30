@@ -1,0 +1,33 @@
+{
+  "config": {
+    "default": true,
+    "MD001": false, // heading-increment — existing docs jump heading levels
+    "MD005": false, // list-indent — inconsistent indentation in existing docs
+    "MD007": false, // ul-indent — existing docs use non-standard indentation
+    "MD009": false, // no-trailing-spaces — minor whitespace issues everywhere
+    "MD012": false, // no-multiple-blanks — existing docs have extra blank lines
+    "MD013": false, // line-length — too noisy for docs with tables
+    "MD022": false, // blanks-around-headings — existing docs don't always blank-line around headings
+    "MD023": false, // heading-start-left — some headings don't start at line beginning
+    "MD024": false, // no-duplicate-heading — used in Phase sections
+    "MD025": false, // single-title — multiple h1 in some docs
+    "MD028": false, // blanks-around-blockquote — blockquotes not blank-lined
+    "MD029": false, // ol-prefix — existing docs mix ordered list styles
+    "MD031": false, // blanks-around-fences — existing docs omit blank lines around code blocks
+    "MD032": false, // blanks-around-lists — existing docs omit blank lines around lists
+    "MD033": false, // no-inline-html — used intentionally in some docs
+    "MD034": false, // no-bare-urls — bare URLs intentional in some docs
+    "MD036": false, // no-emphasis-as-heading — emphasis used as sub-headings
+    "MD037": false, // no-space-in-emphasis — spaces inside emphasis
+    "MD038": false, // no-space-in-code — spaces inside code spans
+    "MD040": false, // fenced-code-language — not all code blocks specify a language
+    "MD041": false, // first-line-heading — some files have frontmatter
+    "MD050": false, // strong-style — existing docs mix bold styles
+    "MD051": false, // link-fragments — fragment links
+    "MD056": false, // table-column-style — existing docs don't use consistent table column style
+    "MD058": false, // table-pipe-style — existing docs mix table pipe styles
+    "MD060": false // table-column-style — existing docs don't use consistent column alignment
+  },
+  "globs": ["docs/**/*.md", "README.md", "evals/**/*.md"],
+  "ignores": ["node_modules", "packages/*/node_modules"]
+}
