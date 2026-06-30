@@ -686,7 +686,9 @@ describe('docs truth smoke', () => {
       '为 distributed 容器补齐内存/CPU 预算、连接池与堆配置约束，形成可执行默认值',
     );
     expect(archivedPlan).toContain('活跃细则状态、入口索引与归档关系');
-    expect(archivedPlan).toContain('完成时本计划中的阶段 checklist、文档回写矩阵和最小验证项全部打勾');
+    expect(archivedPlan).toContain(
+      '完成时本计划中的阶段 checklist、文档回写矩阵和最小验证项全部打勾',
+    );
 
     expect(debt).toContain('container CPU/memory checked-in defaults');
     expect(debt).toContain('Node heap presets');
@@ -764,7 +766,7 @@ describe('docs truth smoke', () => {
     expect(truthSources).toContain('Root execution-plan governance and closeout rules');
     expect(truthSources).toContain('Node `24`');
     expect(truthSources).toContain(
-      '`architecture-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:mermaid`, and `pnpm check:complexity`',
+      '`doc-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:arch-freeze`, `pnpm check:deps`, `pnpm check:mermaid`, `pnpm check:structure`, `pnpm check:complexity`, `pnpm check:md-lint`, and `pnpm check:links`',
     );
 
     expect(docsIndex).toContain('已完成并归档');
@@ -799,7 +801,7 @@ describe('docs truth smoke', () => {
 
     expect(ci).toContain('Node.js 24 + pnpm 10.33.0');
     expect(ci).toContain(
-      '`architecture-guardrails` | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:complexity`',
+      '`doc-guardrails` | `pnpm check:docs-drift` + `pnpm check:arch-freeze` + `pnpm check:deps` + `pnpm check:mermaid` + `pnpm check:structure` + `pnpm check:complexity` + `pnpm check:md-lint` + `pnpm check:links`',
     );
     expect(ci).toContain('`pnpm run ci`');
     expect(ci).toContain('`pnpm eval:smoke`');
@@ -828,7 +830,7 @@ describe('docs truth smoke', () => {
     );
 
     expect(ciWorkflow).toContain("node-version: '24'");
-    expect(ciWorkflow).toContain('architecture-guardrails:');
+    expect(ciWorkflow).toContain('doc-guardrails:');
     expect(ciWorkflow).toContain('- run: pnpm check:mermaid');
     expect(ciWorkflow).toContain('- run: pnpm check:structure');
   });
@@ -843,7 +845,7 @@ describe('docs truth smoke', () => {
     expect(testing).toContain('Runtime Foundations Verification');
     expect(testing).toContain('outboxWorker');
     expect(ci).toContain('Runtime foundations');
-    expect(ci).toContain('doc-rules');
+    expect(ci).toContain('doc-guardrails');
   });
 
   it('ENVIRONMENT.md describes provider auto-detection', () => {

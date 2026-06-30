@@ -179,7 +179,7 @@
         ".github/workflows/ci.yml": {
           "mustContain": [
             "node-version: '24'",
-            "architecture-guardrails:",
+            "doc-guardrails:",
             "- run: pnpm check:mermaid",
             "- run: pnpm check:structure"
           ]

@@ -328,7 +328,7 @@
       "mustContain": [
         "Phase 7 maintainability / CI-testing truth / docs closeout freeze",
         "current active execution surface remains only `plan.md` + `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md`",
-        "`architecture-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:mermaid`, and `pnpm check:complexity`"
+        "`doc-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:arch-freeze`, `pnpm check:deps`, `pnpm check:mermaid`, `pnpm check:structure`, `pnpm check:complexity`, `pnpm check:md-lint`, and `pnpm check:links`"
       ]
     },
     {
@@ -367,12 +367,12 @@
       "file": "docs/operations/CI_CD.md",
       "mustContain": [
         "Node.js 24 + pnpm 10.33.0",
-        "`architecture-guardrails` | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:complexity`",
+        "`doc-guardrails` | `pnpm check:docs-drift` + `pnpm check:arch-freeze` + `pnpm check:deps` + `pnpm check:mermaid` + `pnpm check:structure` + `pnpm check:complexity` + `pnpm check:md-lint` + `pnpm check:links`",
         "`pnpm run ci`",
         "`pnpm eval:ci`",
         "`pnpm eval:ci:core`",
         "Runtime foundations",
-        "doc-rules",
+        "doc-guardrails",
         "`pnpm eval:smoke`"
       ],
       "mustNotContain": ["Node.js 20 + pnpm 10.33.0"]

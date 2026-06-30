@@ -497,7 +497,7 @@ pnpm check:mermaid
 pnpm check:complexity
 ```
 
-CI 中由 `architecture-guardrails` 和 `doc-rules` jobs 自动执行。本地开发时可在改动 Mermaid 图、热点文件或架构文档后手动运行。
+CI 中由 `doc-guardrails` job 自动执行。本地开发时可在改动 Mermaid 图、热点文件或架构文档后手动运行。
 
 push CI 还会运行一层增量 `fallow` 守卫，只检查相对上一次 push 新增的静态问题：
 

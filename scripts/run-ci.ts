@@ -68,6 +68,16 @@ const STEPS: StepDefinition[] = [
     args: ['run', 'check:docs-drift'],
   },
   {
+    name: 'check:arch-freeze',
+    command: 'pnpm',
+    args: ['run', 'check:arch-freeze'],
+  },
+  {
+    name: 'check:deps',
+    command: 'pnpm',
+    args: ['run', 'check:deps'],
+  },
+  {
     name: 'check:mermaid',
     command: 'pnpm',
     args: ['run', 'check:mermaid'],
@@ -81,6 +91,16 @@ const STEPS: StepDefinition[] = [
     name: 'check:structure',
     command: 'node',
     args: ['scripts/check-structure.mjs'],
+  },
+  {
+    name: 'check:md-lint',
+    command: 'pnpm',
+    args: ['run', 'check:md-lint'],
+  },
+  {
+    name: 'check:links',
+    command: 'pnpm',
+    args: ['run', 'check:links'],
   },
 ];
 
