@@ -25,6 +25,7 @@
 - 修改后优先运行“与改动直接相关的最小验证集合”，只有确实需要时才跑根级全量 `pnpm test`
 - 涉及检索、摘要、治理、feedback、fixtures、eval runner 的改动，至少补跑 `pnpm eval:smoke`
 - 新增枚举、字面量联合、共享接口/类型别名时，默认放到就近 `enum-types/` 目录并通过 `index.ts` 聚合导出
+- 涉及跨包导入路径变更或新增包时，必须通过 `rtk pnpm exec fallow audit --base main` 验证架构边界合规；zone 规则和已知例外详见 [`docs/architecture/BOUNDARIES.md`](docs/architecture/BOUNDARIES.md)
 
 ## Vitest 使用要求
 
@@ -49,6 +50,7 @@
 - 权威事实：[`docs/reference/SYSTEM_TRUTH_SOURCES.md`](docs/reference/SYSTEM_TRUTH_SOURCES.md)、[`packages/server/src/config.ts`](packages/server/src/config.ts)、相关 route/schema 源码
 - 最小验证：按改动范围运行对应包级测试；涉及 runtime/profile/route surface 时补 `rtk pnpm test:deployment-smoke` 或 `rtk pnpm test:runtime-foundations`
 - 必须同步：API surface、运行时默认值、健康检查、部署行为变化时，更新对应 `reference/`、`architecture/`、`operations/` 文档
+- 涉及 `server` zone 内部模块之间的跨包导入重构时，运行 `rtk pnpm exec fallow list --boundaries` 确认当前 zone 覆盖范围
 
 ### Contracts / 共享类型变更
 

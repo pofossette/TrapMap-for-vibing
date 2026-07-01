@@ -24,6 +24,132 @@
     "**/*.generated.*",
     "reports/**",
     "data/**",
-    "graphify-out/**"
-  ]
+    "graphify-out/**",
+    "packages/skills"
+  ],
+  "boundaries": {
+    "zones": [
+      {
+        "name": "contracts",
+        "patterns": ["packages/contracts/src/**"]
+      },
+      {
+        "name": "client-core",
+        "patterns": ["packages/client-core/src/**"]
+      },
+      {
+        "name": "backend-core",
+        "patterns": ["packages/backend-core/src/**"]
+      },
+      {
+        "name": "server",
+        "patterns": ["packages/server/src/**"]
+      },
+      {
+        "name": "runtime-infra",
+        "patterns": ["packages/runtime-infra/src/**"]
+      },
+      {
+        "name": "service-standard",
+        "patterns": [
+          "packages/service-identity-access/src/**",
+          "packages/service-candidate-ingestion/src/**",
+          "packages/service-governance-review/src/**",
+          "packages/service-job-runtime/src/**",
+          "packages/service-knowledge-write/src/**"
+        ]
+      },
+      {
+        "name": "service-knowledge-read",
+        "patterns": ["packages/service-knowledge-read/src/**"]
+      },
+      {
+        "name": "host-local",
+        "patterns": ["packages/host-local/src/**"]
+      },
+      {
+        "name": "host-distributed",
+        "patterns": ["packages/host-distributed/src/**"]
+      },
+      {
+        "name": "cli",
+        "patterns": ["packages/cli/src/**"]
+      },
+      {
+        "name": "web-panel",
+        "patterns": ["packages/web-panel/src/**"]
+      }
+    ],
+    "rules": [
+      {
+        "from": "contracts",
+        "allow": []
+      },
+      {
+        "from": "client-core",
+        "allow": []
+      },
+      {
+        "from": "backend-core",
+        "allow": ["contracts"]
+      },
+      {
+        "from": "server",
+        "allow": ["contracts"]
+      },
+      {
+        "from": "runtime-infra",
+        "allow": ["contracts", "server"]
+      },
+      {
+        "from": "service-standard",
+        "allow": ["backend-core", "contracts"]
+      },
+      {
+        "from": "service-knowledge-read",
+        "allow": ["backend-core", "contracts", "server", "runtime-infra"]
+      },
+      {
+        "from": "host-local",
+        "allow": [
+          "contracts",
+          "client-core",
+          "backend-core",
+          "server",
+          "runtime-infra",
+          "service-standard",
+          "service-knowledge-read"
+        ]
+      },
+      {
+        "from": "host-distributed",
+        "allow": [
+          "contracts",
+          "client-core",
+          "backend-core",
+          "server",
+          "runtime-infra",
+          "service-standard",
+          "service-knowledge-read"
+        ]
+      },
+      {
+        "from": "cli",
+        "allow": ["client-core", "contracts"]
+      },
+      {
+        "from": "web-panel",
+        "allow": ["client-core", "contracts"]
+      }
+    ],
+    "coverage": {
+      "requireAllFiles": false,
+      "allowUnmatched": [
+        "scripts/**",
+        "packages/server/scripts/**",
+        "evals/**",
+        "packages/skills/**"
+      ]
+    }
+  }
 }

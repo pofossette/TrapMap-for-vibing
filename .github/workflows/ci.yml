@@ -169,3 +169,4 @@ jobs:
       - run: pnpm check:complexity
       - run: pnpm check:md-lint
       - run: pnpm check:links || true
+      - run: pnpm exec fallow list --boundaries

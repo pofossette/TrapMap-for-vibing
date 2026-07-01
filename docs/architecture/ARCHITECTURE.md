@@ -16,6 +16,7 @@ Phase 0 目标架构冻结补充事实：
 
 Phase 1 边界收敛补充事实：
 
+- 架构边界的自动化守护和 zone 规则详见 [BOUNDARIES.md](BOUNDARIES.md)。
 - `packages/server` 当前是 compatibility shell 与 runtime/status surface。它仍是 partial compatibility shell：maintenance/decay 写路径已降级为 compatibility-only；candidate/review legacy 写路径已经删除。
 - `packages/backend-core` 当前承载 command/use-case/port 模式与内核契约，是后续收敛目标，不是允许与 `packages/server` 平行增长的第二主实现面。
 - `packages/host-local` 与 `packages/host-distributed` 当前承载宿主装配、HTTP/worker transport 和 concrete port wiring；它们消费 `backend-core` 契约，不重新定义业务真相。
