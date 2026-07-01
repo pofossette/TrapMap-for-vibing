@@ -236,6 +236,54 @@ pnpm typecheck
 
 完成 deployment flexibility 相关改动后，至少运行以下命令：
 
+### Retrieval Live Snapshot Checks
+
+- 真实库快照导出：运行 `rtk pnpm eval:retrieval:snapshot:export --output <path> [--teamId <teamId>]`，确认输出 JSON 只包含 retrieval eval 回放所需的 knowledge/artifact/graph 文档，而不是全库转储。
+- 快照场景回放：让某个 retrieval scenario 使用 `snapshot.kind='retrieval-db-snapshot'` + `snapshot.path`，确认 runner 会先恢复快照再执行 case，并且 scenario actor 可以覆盖快照自带 actor。
+- 最小验证：至少运行相关 contracts 测试与 `rtk pnpm test:file -- evals/retrieval/lib/adapters.test.ts`；如果快照被接入 smoke/core 数据集，再补 `rtk pnpm eval:retrieval:smoke` 或 `rtk pnpm eval:smoke`。
+
+### Live Retrieval Eval（真实后端）
+
+Live eval 在真实 TrapMap 服务实例上运行检索评测，使用命名 snapshot 版本控制数据变量。
+
+**两种恢复模式**：
+- `frozen`：快照包含完整派生状态（embedding、keyword、capsule index），恢复时只导入不重算。适用于回归检测。
+- `rebuild`：快照只含 source 数据，恢复时触发完整 indexing pipeline。适用于验证派生链路。
+
+**断言稳定性**：
+- `stable`：governance、outcome、shape 结构断言在任何兼容 snapshot version 上必须 pass。
+- `version-sensitive`：排序、Hit@K 等断言用于版本间对比，不导致硬性失败。
+
+**最小验证矩阵**：
+
+| 检查项 | 命令 |
+|---|---|
+| Live eval contracts 测试 | `rtk pnpm test:file -- evals/retrieval-live/lib/live-eval.test.ts` |
+| Snapshot fixture 加载 | `rtk pnpm test:file -- evals/retrieval-live/lib/live-eval.test.ts`（loadSnapshot 测试） |
+| Snapshot 版本导出 | `rtk pnpm eval:retrieval:snapshot:export --version test-export --output /dev/null` |
+| Live eval dry-run | `rtk pnpm eval:retrieval:live --snapshot-version test-smoke-baseline --base-url http://localhost:3000 --dry-run` |
+
+**全量验证**（需要运行中的 TrapMap 服务）：
+
+```bash
+# 1. 启动服务
+rtk pnpm dev
+
+# 2. 导出 snapshot（如已有可跳过）
+rtk pnpm eval:retrieval:snapshot:export --version 2026-07-baseline --teamId <teamId>
+
+# 3. 运行 live eval
+TRAPMAP_LIVE_EVAL_TOKEN=<token> rtk pnpm eval:retrieval:live:smoke \
+  --snapshot-version 2026-07-baseline \
+  --base-url http://localhost:3000 \
+  --json --json-path ./reports/live-smoke.json
+
+# 4. 对比两个版本
+rtk pnpm eval:retrieval:live:compare \
+  --baseline ./reports/live-baseline.json \
+  --current ./reports/live-current.json
+```
+
 ```bash
 # distributed split acceptance: gateway forwarding, remote write delegation,
 # error semantics, auth/header propagation, runtime/job ownership

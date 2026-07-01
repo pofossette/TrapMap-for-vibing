@@ -71,6 +71,24 @@ export const retrievalEvalActorSchema = z.object({
 
 export type RetrievalEvalActor = z.infer<typeof retrievalEvalActorSchema>;
 
+const retrievalEvalFixturesSchema = z.object({
+  /** Legacy knowledge entries (for v1 compatibility testing) */
+  knowledgeEntries: z.array(z.unknown()).default([]),
+  /** Skill artifacts with capsules (for v2 testing) */
+  skillArtifacts: z.array(z.unknown()).default([]),
+  /** Graph index documents for v3 graph-plan testing */
+  graphIndexDocuments: z.array(z.unknown()).default([]),
+});
+
+export const retrievalEvalScenarioSnapshotSchema = z.object({
+  /** Optional actor baseline captured alongside the snapshot */
+  actor: retrievalEvalActorSchema.optional(),
+  /** Snapshot fixture corpus state */
+  fixtures: retrievalEvalFixturesSchema,
+});
+
+export type RetrievalEvalScenarioSnapshot = z.infer<typeof retrievalEvalScenarioSnapshotSchema>;
+
 // =============================================================================
 // Retrieval Eval Scenario Schema
 // =============================================================================
@@ -87,15 +105,15 @@ export const retrievalEvalScenarioSchema = z.object({
   description: z.string().min(1),
   /** Actor context for this scenario */
   actor: retrievalEvalActorSchema,
+  /** Optional external snapshot source for live-db derived fixture state */
+  snapshot: z
+    .object({
+      kind: z.literal('retrieval-db-snapshot'),
+      path: z.string().min(1),
+    })
+    .optional(),
   /** Fixture corpus state */
-  fixtures: z.object({
-    /** Legacy knowledge entries (for v1 compatibility testing) */
-    knowledgeEntries: z.array(z.unknown()).default([]),
-    /** Skill artifacts with capsules (for v2 testing) */
-    skillArtifacts: z.array(z.unknown()).default([]),
-    /** Graph index documents for v3 graph-plan testing */
-    graphIndexDocuments: z.array(z.unknown()).default([]),
-  }),
+  fixtures: retrievalEvalFixturesSchema,
 });
 
 export type RetrievalEvalScenario = z.infer<typeof retrievalEvalScenarioSchema>;

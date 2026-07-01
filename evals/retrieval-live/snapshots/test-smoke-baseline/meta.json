@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "version": "test-smoke-baseline",
+  "description": "Minimal test snapshot for live eval integration testing",
+  "source": {
+    "environment": "local",
+    "exportedAt": "2026-07-01T00:00:00.000Z",
+    "exportedBy": "test-fixture",
+    "teamId": "team_live_test"
+  },
+  "serviceProfile": {
+    "embeddingModel": "fallback-hash",
+    "useDbSearch": true,
+    "capsulePgKeyword": true,
+    "capsulePgSemantic": true,
+    "graphDbEnabled": false,
+    "graphDbProvider": null,
+    "decayEnabled": false
+  },
+  "derivationContext": {
+    "mode": "frozen",
+    "pipelineVersion": null,
+    "embeddingModelUsed": "fallback-hash"
+  },
+  "corpusSummary": {
+    "knowledgeEntryCount": 2,
+    "skillArtifactCount": 1,
+    "graphIndexDocumentCount": 1,
+    "capsuleEmbeddingCount": 1,
+    "capsuleKeywordCount": 1
+  },
+  "fingerprint": "test-fingerprint-placeholder",
+  "compatibleEndpoints": ["/v2/retrieval/search", "/v3/retrieval/search"],
+  "knownLimitations": ["Test fixture - not for production use"]
+}

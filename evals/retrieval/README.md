@@ -1,6 +1,16 @@
-# 检索评测数据集
+# 检索评测数据集（离线）
 
-本目录包含用于评测 TrapMap 检索端点的黄金数据集和入口点。
+本目录包含用于评测 TrapMap 检索端点的**离线**黄金数据集和入口点。离线 eval 使用 `buildServer()` + `app.inject()` 在进程中执行，每个 case 有独立隔离的 context，不依赖外部服务。
+
+> **需要真实后端评测？** 参见 [`evals/retrieval-live/`](../retrieval-live/)，它面向运行中的 TrapMap 服务实例，使用命名 snapshot 版本控制数据变量。
+
+| 维度 | 离线 eval（本目录） | Live eval（`retrieval-live/`） |
+|---|---|---|
+| 服务实例 | `buildServer()` 内建 | 外部运行的 TrapMap 服务 |
+| 请求方式 | `app.inject()` | 真实 HTTP 请求 |
+| 隔离模型 | 每 case 独立 context + TRUNCATE | 共享 snapshot，全量恢复后依次执行 |
+| 数据控制 | fixture 直写 | 命名 snapshot 版本恢复 |
+| CI 集成 | `pnpm eval:smoke` 纳入 | 独立脚本，不默认纳入 CI |
 
 ## 快速开始
 
@@ -167,6 +177,65 @@ expected: {
 - feedback 记录还没有统一保存完整命中快照
 - 已有 badcase draft 导出脚本；正式纳入 `evals/retrieval` 仍保留人工审核
 - remediation 解除仍以“索引刷新 + active feedback 清理”为主，不含额外运维审批层
+
+## 数据库快照回放
+
+针对“连接真实检索服务验证图检索和胶囊检索效果”的场景，retrieval eval 现在支持把真实 PostgreSQL 中的检索语料导出为可回放 JSON 快照，再作为 scenario 输入恢复到隔离测试上下文。
+
+### 导出真实库快照
+
+```bash
+TRAPMAP_DATABASE_URL=postgres://user:pass@host:5432/db \
+pnpm eval:retrieval:snapshot:export --output ./evals/retrieval/snapshots/team-a.json --teamId team_a
+```
+
+可选参数：
+
+- `--teamId <teamId>`：只导出该 team 的 knowledge/artifact；graph 文档会保留该 team 与 global 文档
+- `--actorTeamId <teamId>`：设置回放时 actor 的 active team，默认跟 `teamId` 一致
+- `--securityLevel <0-10>`：设置快照附带 actor 的安全级别，默认 `0`
+- `--subjectType user|system-admin`：设置快照附带 actor 身份，默认 `user`
+- `--permissions p1,p2`：设置快照附带 actor 权限列表，默认 `knowledge:search,artifact:read`
+
+脚本输出的是 retrieval 专用最小快照，不是全库备份。它只包含：
+
+- knowledge entries
+- skill artifacts 的 retrieval 所需字段和 capsules
+- graph index documents
+- 可选 actor 基线
+
+### 在 scenario 中引用快照
+
+```typescript
+export const liveSnapshotScenario = retrievalEvalScenarioSchema.parse({
+  scenarioId: 'live-snapshot-team-a',
+  description: 'Replay retrieval against a captured live-like corpus',
+  actor: {
+    subjectType: 'user',
+    activeTeamId: 'team_a',
+    securityLevel: 3,
+    permissions: ['knowledge:search', 'artifact:read'],
+  },
+  snapshot: {
+    kind: 'retrieval-db-snapshot',
+    path: 'evals/retrieval/snapshots/team-a.json',
+  },
+  fixtures: {},
+});
+```
+
+执行时 runner 会：
+
+1. 读取 `snapshot.path`
+2. 用快照里的 fixture 还原 knowledge/artifact/graph 文档
+3. 用 scenario 的 `actor` 覆盖快照里的 actor 基线
+4. 在隔离上下文里执行 retrieval case
+
+这个机制适合：
+
+- 从真实库抽样一批代表性团队/语料做回归
+- 验证图检索、capsule 检索在真实派生数据上的表现
+- 把线上 badcase 附近的真实 corpus 固化成长期回放样本
 
 ## Phase 25 范围外
 

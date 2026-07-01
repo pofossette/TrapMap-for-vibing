@@ -1,0 +1,92 @@
+{
+  "knowledgeEntries": [
+    {
+      "id": "entry_live_1",
+      "teamId": "team_live_test",
+      "scope": "project",
+      "labels": ["postgresql", "connection-pooling"],
+      "shortcut": "Configure PostgreSQL connection pooling with pgBouncer",
+      "detail": "Use pgBouncer in transaction pooling mode for optimal connection management. Set pool_size to 20 and reserve_pool to 5.",
+      "requiredLevel": 2,
+      "lifecycleState": "approved"
+    },
+    {
+      "id": "entry_live_2",
+      "teamId": "team_live_test",
+      "scope": "global",
+      "labels": ["docker", "container"],
+      "shortcut": "Docker container deployment best practices",
+      "detail": "Use multi-stage builds to reduce image size. Set HEALTHCHECK directives. Use non-root USER for security.",
+      "requiredLevel": 0,
+      "lifecycleState": "approved"
+    }
+  ],
+  "skillArtifacts": [
+    {
+      "id": "artifact_live_1",
+      "teamId": "team_live_test",
+      "scope": "project",
+      "labels": ["postgresql", "optimization"],
+      "title": "PostgreSQL Query Optimization",
+      "slug": "pg-optimization",
+      "requiredLevel": 2,
+      "lifecycleState": "approved",
+      "capsules": [
+        {
+          "capsuleId": "capsule_live_1",
+          "content": "Use EXPLAIN ANALYZE to identify slow queries and missing indexes",
+          "situation": "Application queries are running slowly in production",
+          "problem": "Queries take too long due to missing indexes or poor query plans",
+          "goal": "Identify and fix slow queries using EXPLAIN ANALYZE",
+          "labels": ["postgresql", "performance"],
+          "scope": "project",
+          "requiredLevel": 2
+        }
+      ]
+    }
+  ],
+  "graphIndexDocuments": [
+    {
+      "id": "graph_live_1",
+      "sourceType": "skill",
+      "sourceId": "artifact_live_1",
+      "revision": 1,
+      "contentHash": "graph-live-hash-1",
+      "teamId": "team_live_test",
+      "scope": "project",
+      "requiredLevel": 2,
+      "nodes": [
+        {
+          "nodeId": "node_query_slow",
+          "kind": "trap",
+          "label": "Slow query execution",
+          "scope": "project"
+        },
+        {
+          "nodeId": "node_explain_analyze",
+          "kind": "skill",
+          "label": "Use EXPLAIN ANALYZE",
+          "scope": "project",
+          "capsuleId": "capsule_live_1",
+          "artifactId": "artifact_live_1"
+        }
+      ],
+      "edges": [
+        {
+          "sourceNodeId": "node_explain_analyze",
+          "targetNodeId": "node_query_slow",
+          "type": "mitigates"
+        }
+      ],
+      "evidence": "Live eval test graph document",
+      "createdAt": "2026-07-01T00:00:00.000Z",
+      "updatedAt": "2026-07-01T00:00:00.000Z"
+    }
+  ],
+  "actor": {
+    "subjectType": "user",
+    "activeTeamId": "team_live_test",
+    "securityLevel": 3,
+    "permissions": ["knowledge:search", "artifact:read"]
+  }
+}

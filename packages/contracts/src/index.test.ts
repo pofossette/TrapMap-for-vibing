@@ -3883,6 +3883,29 @@ describe('Phase 25: Retrieval Evaluation Contracts', () => {
       expect(parsed.fixtures.knowledgeEntries).toEqual([]);
       expect(parsed.fixtures.skillArtifacts).toEqual([]);
     });
+
+    it('accepts retrieval db snapshot metadata alongside fixtures', () => {
+      const scenario = {
+        scenarioId: 'live-corpus-snapshot',
+        description: 'Scenario restored from a captured retrieval database snapshot',
+        actor: {
+          subjectType: 'user',
+          activeTeamId: 'team_live',
+          securityLevel: 4,
+          permissions: ['knowledge:search'],
+        },
+        snapshot: {
+          kind: 'retrieval-db-snapshot',
+          path: 'evals/retrieval/snapshots/team-live.json',
+        },
+        fixtures: {},
+      };
+
+      const parsed = retrievalEvalScenarioSchema.parse(scenario);
+      expect(parsed.snapshot?.kind).toBe('retrieval-db-snapshot');
+      expect(parsed.snapshot?.path).toContain('team-live.json');
+      expect(parsed.fixtures.graphIndexDocuments).toEqual([]);
+    });
   });
 
   describe('retrievalEvalRequestSchema', () => {

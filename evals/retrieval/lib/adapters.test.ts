@@ -238,5 +238,47 @@ describe('adapters', () => {
         await closeExecutionContext(ctx);
       }
     });
+
+    it('hydrates fixtures from a retrieval db snapshot file before seeding', async () => {
+      const ctx = await createExecutionContext();
+
+      try {
+        const scenario: RetrievalEvalScenario = {
+          scenarioId: 'test-snapshot-hydration',
+          description: 'Test snapshot-backed scenario hydration',
+          actor: {
+            subjectType: 'user',
+            activeTeamId: 'team_snapshot_override',
+            securityLevel: 7,
+            permissions: ['read:artifact'],
+          },
+          snapshot: {
+            kind: 'retrieval-db-snapshot',
+            path: 'evals/retrieval/fixtures/test-live-snapshot.json',
+          },
+          fixtures: {
+            knowledgeEntries: [],
+            skillArtifacts: [],
+            graphIndexDocuments: [],
+          },
+        };
+
+        await seedScenarioFixtures(ctx, { scenarioId: scenario.scenarioId }, scenario);
+
+        const repos = ctx.app.skillShareer.repos;
+        const entries = await repos.knowledge.listByFilter({ teamId: 'team_snapshot' });
+        const artifacts = await repos.artifact.listForRetrieval({ teamId: 'team_snapshot' });
+        const session = await repos.session.getByTokenHash(hashSecret(ctx.sessionToken));
+
+        expect(entries).toHaveLength(1);
+        expect(entries[0]?.id).toBe('entry_snapshot_1');
+        expect(artifacts).toHaveLength(1);
+        expect(artifacts[0]?.id).toBe('artifact_snapshot_1');
+        expect(session?.activeTeamId).toBe('team_snapshot_override');
+        expect(session?.subjectType).toBe('user');
+      } finally {
+        await closeExecutionContext(ctx);
+      }
+    });
   });
 });

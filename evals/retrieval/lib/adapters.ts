@@ -24,6 +24,7 @@ import type {
 } from '../../../packages/server/src/lib/store.js';
 import { loadScenario } from './load.js';
 import { normalizeResponse } from './normalize.js';
+import { hydrateScenarioSnapshot } from './snapshot.js';
 import type { AdapterType, AdapterWarning, ExecutionMetadata, NormalizedResult } from './types.js';
 
 // =============================================================================
@@ -266,7 +267,8 @@ export async function seedScenarioFixtures(
   case_: Pick<RetrievalEvalCase, 'scenarioId'>,
   explicitScenario?: RetrievalEvalScenario,
 ): Promise<void> {
-  const scenario = explicitScenario ?? loadScenario(case_.scenarioId);
+  const loadedScenario = explicitScenario ?? loadScenario(case_.scenarioId);
+  const scenario = loadedScenario ? await hydrateScenarioSnapshot(loadedScenario) : undefined;
   if (!scenario) return;
 
   const fixtureEntries = scenario.fixtures.knowledgeEntries as Array<{

@@ -1,0 +1,63 @@
+{
+  "actor": {
+    "subjectType": "user",
+    "activeTeamId": "team_snapshot",
+    "securityLevel": 3,
+    "permissions": ["knowledge:search"]
+  },
+  "fixtures": {
+    "knowledgeEntries": [
+      {
+        "id": "entry_snapshot_1",
+        "teamId": "team_snapshot",
+        "scope": "project",
+        "labels": ["postgres", "retrieval"],
+        "shortcut": "Snapshot-backed retrieval case",
+        "detail": "Captured from a live-like database for retrieval evaluation replay.",
+        "requiredLevel": 2,
+        "lifecycleState": "approved"
+      }
+    ],
+    "skillArtifacts": [
+      {
+        "id": "artifact_snapshot_1",
+        "teamId": "team_snapshot",
+        "scope": "project",
+        "labels": ["postgres", "capsule"],
+        "title": "Snapshot Capsule",
+        "slug": "snapshot-capsule",
+        "requiredLevel": 2,
+        "lifecycleState": "approved",
+        "capsules": [
+          {
+            "capsuleId": "capsule_snapshot_1",
+            "content": "Replay retrieval behavior against a frozen database snapshot.",
+            "situation": "Need deterministic live-service regression inputs",
+            "problem": "Ad-hoc corpora drift between test runs",
+            "goal": "Use a frozen retrieval snapshot",
+            "labels": ["postgres", "snapshot"],
+            "scope": "project",
+            "requiredLevel": 2
+          }
+        ]
+      }
+    ],
+    "graphIndexDocuments": [
+      {
+        "id": "graph_snapshot_1",
+        "sourceType": "skill",
+        "sourceId": "artifact_snapshot_1",
+        "revision": 1,
+        "contentHash": "graph-snapshot-hash",
+        "teamId": "team_snapshot",
+        "scope": "project",
+        "requiredLevel": 2,
+        "nodes": [],
+        "edges": [],
+        "evidence": "Snapshot fixture evidence",
+        "createdAt": "2026-07-01T00:00:00.000Z",
+        "updatedAt": "2026-07-01T00:00:00.000Z"
+      }
+    ]
+  }
+}
