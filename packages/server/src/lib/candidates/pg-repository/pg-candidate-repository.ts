@@ -24,8 +24,8 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool, PoolClient } from 'pg';
 
 import { candidateAnalyses, candidates } from '@trapmap/server/lib/persistence/schema.js';
-import type { TransactionalCandidateRepository } from '@trapmap/server/lib/candidates/repository.js';
-import { createManualResultRecord } from '@trapmap/server/lib/candidates/repository.js';
+import type { TransactionalCandidateRepository } from '@trapmap/server/lib/candidates/repository-interfaces.js';
+import type { ManualResultRecord } from '@trapmap/server/lib/candidates/store.js';
 
 import type { DrizzleCandidateRow } from './row-types.js';
 import { rowToCandidateSubmission } from './row-mappers.js';
@@ -346,7 +346,11 @@ export class PgCandidateRepository implements TransactionalCandidateRepository {
       }
 
       const now = new Date().toISOString();
-      const manualResult = createManualResultRecord(result, reviewedBy);
+      const manualResult: ManualResultRecord = {
+        ...result,
+        submittedAt: now,
+        submittedBy: reviewedBy,
+      };
 
       // Write to JSONB column (read-optimization cache)
       await client.query(
