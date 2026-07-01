@@ -15,6 +15,7 @@
     "packages/server/scripts/*.ts",
     "evals/**/*.ts"
   ],
+  "ignoreDependencies": ["amqplib", "markdown-link-check"],
   "ignorePatterns": [
     "**/node_modules/**",
     "**/dist/**",
