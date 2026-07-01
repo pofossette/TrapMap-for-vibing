@@ -1,35 +1,50 @@
-import type {
-  ExtractionMetrics,
-  ExtractionPlan,
-  LlmGraphEdge,
-  LlmGraphExtraction,
-  LlmGraphNode,
-} from '@trapmap/contracts';
-import { extractionPlanSchema, llmGraphExtractionSchema } from '@trapmap/contracts';
+/**
+ * LLM-powered graph extraction orchestrator.
+ *
+ * Pipeline:
+ * 1. Phase 1 (planning): segment the text via `planExtraction`
+ * 2. Phase 2 (extraction): extract entities from each segment (concurrent)
+ * 3. Merge segment results via `mergeExtractions`
+ * 4. Optional gleaning (secondary extraction)
+ * 5. Convert to GraphNodeRecord/GraphEdgeRecord via `toGraphRecords`
+ *
+ * Sub-modules:
+ * - `llm-extract-ids.ts`     — deterministic ID generation
+ * - `llm-extract-parsing.ts` — LLM JSON response parsing + Zod validation
+ * - `llm-extract-planning.ts` — Phase 1 text segmentation
+ * - `llm-extract-merge.ts`   — merging + record conversion
+ */
 
-import { stripCodeFences } from '@trapmap/server/lib/ai/parse.js';
-import {
-  buildGraphExtractionPlannerSlots_default,
-  buildGraphExtractionSlots_default,
-  buildPrompt,
-} from '@trapmap/server/lib/ai/prompts.js';
+import type { ExtractionMetrics, LlmGraphExtraction, LlmGraphNode } from '@trapmap/contracts';
+
+import { buildGraphExtractionSlots_default, buildPrompt } from '@trapmap/server/lib/ai/prompts.js';
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
 import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
 import { executeWithResilience } from '@trapmap/server/lib/runtime/resilience.js';
-import type {
-  GraphEdgeRecord,
-  GraphNodeKind,
-  GraphNodeRecord,
-  GraphRelationStrength,
-  GraphRelationType,
-} from './documents.js';
+import type { GraphEdgeRecord, GraphNodeRecord } from './documents.js';
+
+import type { LlmExtractionCache } from './llm-cache.js';
+import { normalizeValue } from './llm-extract-ids.js';
+import { dedupeGraphRecords, mergeExtractions, toGraphRecords } from './llm-extract-merge.js';
+import { parseLlmExtraction } from './llm-extract-parsing.js';
+import { planExtraction } from './llm-extract-planning.js';
+
+// ---------------------------------------------------------------------------
+// Re-exports for backward compatibility
+// ---------------------------------------------------------------------------
+
+export { buildEdgeId, buildNodeId, normalizeValue } from './llm-extract-ids.js';
+export {
+  dedupeGraphRecords,
+  mergeExtractions,
+  toGraphRecords,
+} from './llm-extract-merge.js';
+export { parseExtractionPlan, parseLlmExtraction } from './llm-extract-parsing.js';
+export { planExtraction } from './llm-extract-planning.js';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-/** Texts longer than this trigger two-phase extraction (Phase 1 planning). */
-const CHUNK_THRESHOLD = 2000;
 
 /** Maximum concurrent segment extractions in Phase 2. */
 const MAX_CONCURRENT = 3;
@@ -39,8 +54,6 @@ const MAX_RETRIES = 2;
 
 /** Base delay for exponential backoff (ms). */
 const BACKOFF_BASE_MS = 100;
-
-import type { LlmExtractionCache } from './llm-cache.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,117 +81,6 @@ export interface ExtractGraphOptions {
     embeddings?: EmbeddingsProvider | null;
     sourceContext?: string;
   } | null;
-}
-
-// ---------------------------------------------------------------------------
-// ID generation
-// ---------------------------------------------------------------------------
-
-/** Normalize a label into a stable, hyphen-delimited ID fragment. */
-export function normalizeValue(value: string): string {
-  return value.toLowerCase().trim().replace(/\s+/g, '-');
-}
-
-/** Build a deterministic node ID from kind and label. */
-export function buildNodeId(kind: string, label: string): string {
-  return `${kind}:${normalizeValue(label)}`;
-}
-
-/** Build a deterministic edge ID from source, target, and relation. */
-export function buildEdgeId(
-  sourceNodeId: string,
-  targetNodeId: string,
-  relationType: string,
-): string {
-  return `${sourceNodeId}-${relationType}-${targetNodeId}`;
-}
-
-// ---------------------------------------------------------------------------
-// JSON parsing helpers
-// ---------------------------------------------------------------------------
-
-/** Parse LLM JSON response and validate with Zod. Returns null on failure. */
-function parseLlmExtraction(raw: string): LlmGraphExtraction | null {
-  try {
-    const cleaned = stripCodeFences(raw);
-    const parsed: unknown = JSON.parse(cleaned);
-    const result = llmGraphExtractionSchema.safeParse(parsed);
-    return result.success ? result.data : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Parse LLM JSON response as an extraction plan. Returns null on failure. */
-function parseExtractionPlan(raw: string): ExtractionPlan | null {
-  try {
-    const cleaned = stripCodeFences(raw);
-    const parsed: unknown = JSON.parse(cleaned);
-    const result = extractionPlanSchema.safeParse(parsed);
-    return result.success ? result.data : null;
-  } catch {
-    return null;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Phase 1: Extraction planning (text segmentation)
-// ---------------------------------------------------------------------------
-
-/**
- * Plan text segmentation for extraction.
- * For short text (<= CHUNK_THRESHOLD), returns a single segment without LLM.
- * For longer text, calls the LLM to create a segment plan.
- */
-export async function planExtraction(
-  chat: ChatProvider,
-  text: string,
-  cache?: LlmExtractionCache,
-): Promise<ExtractionPlan> {
-  if (text.length <= CHUNK_THRESHOLD) {
-    return { segments: [{ text, priority: 1 }] };
-  }
-
-  // Check cache
-  if (cache) {
-    const cached = cache.getPhase1(text);
-    if (cached) return cached;
-  }
-
-  if (!chat.isConfigured) {
-    // Fallback: split into fixed-size chunks
-    return createFixedChunkPlan(text);
-  }
-
-  try {
-    const systemPrompt = buildPrompt(
-      'graph-extraction-planner',
-      buildGraphExtractionPlannerSlots_default(),
-    );
-    const response = await chat.invoke(systemPrompt, text);
-    const plan = parseExtractionPlan(response);
-    if (plan && plan.segments.length > 0) {
-      if (cache) cache.setPhase1(text, plan);
-      return plan;
-    }
-  } catch {
-    // Fall through to fixed chunking
-  }
-
-  return createFixedChunkPlan(text);
-}
-
-/** Create a simple fixed-size chunk plan as fallback. */
-function createFixedChunkPlan(text: string): ExtractionPlan {
-  const segments: ExtractionPlan['segments'] = [];
-  const chunkSize = CHUNK_THRESHOLD;
-  for (let i = 0; i < text.length; i += chunkSize) {
-    segments.push({
-      text: text.slice(i, i + chunkSize),
-      priority: segments.length + 1,
-    });
-  }
-  return { segments };
 }
 
 // ---------------------------------------------------------------------------
@@ -214,169 +116,6 @@ export async function extractSegmentEntities(
   });
 
   return result.value ?? null;
-}
-
-// ---------------------------------------------------------------------------
-// Result merging
-// ---------------------------------------------------------------------------
-
-/**
- * Merge multiple segment extractions into a single result.
- * Deduplicates nodes by label (keeping the longer description).
- * Deduplicates edges by source+target+relationType.
- */
-export function mergeExtractions(extractions: LlmGraphExtraction[]): LlmGraphExtraction {
-  const nodeMap = new Map<string, LlmGraphNode>();
-  const edgeSet = new Map<string, LlmGraphEdge>();
-
-  for (const extraction of extractions) {
-    for (const node of extraction.nodes) {
-      const key = `${node.kind}:${normalizeValue(node.label)}`;
-      const existing = nodeMap.get(key);
-      if (
-        !existing ||
-        (node.description &&
-          (!existing.description || node.description.length > existing.description.length))
-      ) {
-        nodeMap.set(key, node);
-      }
-    }
-    for (const edge of extraction.edges) {
-      const key = `${normalizeValue(edge.sourceLabel)}-${edge.relationType.toLowerCase().trim()}-${normalizeValue(edge.targetLabel)}`;
-      if (!edgeSet.has(key)) {
-        edgeSet.set(key, edge);
-      }
-    }
-  }
-
-  return {
-    nodes: [...nodeMap.values()],
-    edges: [...edgeSet.values()],
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Convert LLM output to GraphNodeRecord/GraphEdgeRecord
-// ---------------------------------------------------------------------------
-
-const LLM_TO_NODE_KIND: Record<string, GraphNodeKind> = {
-  trap: 'trap',
-  skill: 'skill',
-  cue: 'cue',
-  tool: 'tool',
-  environment: 'environment',
-  prerequisite: 'prerequisite',
-  mitigation: 'mitigation',
-};
-
-const LLM_TO_RELATION_TYPE: Record<string, GraphRelationType> = {
-  mitigates: 'mitigates',
-  requires: 'requires',
-  order: 'order',
-  'risk-blocks': 'risk-blocks',
-  'co-occurs-with': 'co-occurs-with',
-};
-
-const RELATION_ALIASES: Record<string, string> = {
-  mitigate: 'mitigates',
-  require: 'requires',
-  'co-occurs': 'co-occurs-with',
-  'risk-block': 'risk-blocks',
-  orders: 'order',
-};
-
-/**
- * Convert LLM extraction output to typed GraphNodeRecord[] and GraphEdgeRecord[].
- * Maps LLM labels to node IDs and validates kind/relationType values.
- */
-export function toGraphRecords(extraction: LlmGraphExtraction): {
-  nodes: GraphNodeRecord[];
-  edges: GraphEdgeRecord[];
-} {
-  const nodeIdByLabel = new Map<string, string>();
-
-  const nodes: GraphNodeRecord[] = [];
-  for (const node of extraction.nodes) {
-    const kind = LLM_TO_NODE_KIND[node.kind];
-    if (!kind) continue;
-    const id = buildNodeId(kind, node.label);
-    nodeIdByLabel.set(normalizeValue(node.label), id);
-    nodes.push({
-      id,
-      kind,
-      label: node.label,
-      evidence: node.description ?? 'llm-extracted',
-    });
-  }
-
-  const edges: GraphEdgeRecord[] = [];
-  let skippedEdgeCount = 0;
-  for (const edge of extraction.edges) {
-    const normalizedType = edge.relationType.toLowerCase().trim();
-    const relationType =
-      LLM_TO_RELATION_TYPE[normalizedType] ??
-      LLM_TO_RELATION_TYPE[RELATION_ALIASES[normalizedType] ?? ''];
-    if (!relationType) {
-      skippedEdgeCount++;
-      continue;
-    }
-    const sourceId = nodeIdByLabel.get(normalizeValue(edge.sourceLabel));
-    const targetId = nodeIdByLabel.get(normalizeValue(edge.targetLabel));
-    if (!sourceId || !targetId) {
-      skippedEdgeCount++;
-      continue;
-    }
-    edges.push({
-      id: buildEdgeId(sourceId, targetId, relationType),
-      sourceNodeId: sourceId,
-      targetNodeId: targetId,
-      relationType,
-      strength: edge.strength as GraphRelationStrength,
-      evidence: edge.description ?? 'llm-extracted',
-    });
-  }
-
-  if (skippedEdgeCount > 0) {
-    console.warn(
-      `[toGraphRecords] skipped ${skippedEdgeCount} edge(s) (unknown relationType or missing node)`,
-    );
-  }
-
-  return { nodes, edges };
-}
-
-function dedupeGraphRecords(records: {
-  nodes: GraphNodeRecord[];
-  edges: GraphEdgeRecord[];
-}): { nodes: GraphNodeRecord[]; edges: GraphEdgeRecord[] } {
-  const nodeMap = new Map<string, GraphNodeRecord>();
-  for (const node of records.nodes) {
-    const existing = nodeMap.get(node.id);
-    if (
-      !existing ||
-      node.evidence.length > existing.evidence.length ||
-      (!!node.canonicalLabelId && !existing.canonicalLabelId)
-    ) {
-      nodeMap.set(node.id, node);
-    }
-  }
-
-  const validNodeIds = new Set(nodeMap.keys());
-  const edgeMap = new Map<string, GraphEdgeRecord>();
-  for (const edge of records.edges) {
-    if (!validNodeIds.has(edge.sourceNodeId) || !validNodeIds.has(edge.targetNodeId)) {
-      continue;
-    }
-    const id = buildEdgeId(edge.sourceNodeId, edge.targetNodeId, edge.relationType);
-    if (!edgeMap.has(id)) {
-      edgeMap.set(id, { ...edge, id });
-    }
-  }
-
-  return {
-    nodes: [...nodeMap.values()],
-    edges: [...edgeMap.values()],
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -422,6 +161,30 @@ async function gleaningExtraction(
   } catch {
     return null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Batched concurrent extraction
+// ---------------------------------------------------------------------------
+
+/** Process segments in batches with max concurrency. */
+async function extractBatched(
+  chat: ChatProvider,
+  segments: string[],
+): Promise<LlmGraphExtraction[]> {
+  const results: LlmGraphExtraction[] = [];
+
+  for (let i = 0; i < segments.length; i += MAX_CONCURRENT) {
+    const batch = segments.slice(i, i + MAX_CONCURRENT);
+    const batchResults = await Promise.all(
+      batch.map((segment) => extractSegmentEntities(chat, segment)),
+    );
+    for (const result of batchResults) {
+      if (result) results.push(result);
+    }
+  }
+
+  return results;
 }
 
 // ---------------------------------------------------------------------------
@@ -568,28 +331,4 @@ export async function extractGraphEntitiesWithLLM(
     metrics.extractionErrorCount = 1;
     return { nodes: [], edges: [], metrics };
   }
-}
-
-// ---------------------------------------------------------------------------
-// Batched concurrent extraction
-// ---------------------------------------------------------------------------
-
-/** Process segments in batches with max concurrency. */
-async function extractBatched(
-  chat: ChatProvider,
-  segments: string[],
-): Promise<LlmGraphExtraction[]> {
-  const results: LlmGraphExtraction[] = [];
-
-  for (let i = 0; i < segments.length; i += MAX_CONCURRENT) {
-    const batch = segments.slice(i, i + MAX_CONCURRENT);
-    const batchResults = await Promise.all(
-      batch.map((segment) => extractSegmentEntities(chat, segment)),
-    );
-    for (const result of batchResults) {
-      if (result) results.push(result);
-    }
-  }
-
-  return results;
 }
