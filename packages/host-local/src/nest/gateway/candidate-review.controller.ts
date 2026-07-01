@@ -20,12 +20,12 @@ import type { CandidateIngestionPort, ReviewPort } from '@trapmap/backend-core';
 import type { FastifyRequest } from 'fastify';
 import { buildReviewQueueProjection } from '@trapmap/service-governance-review';
 
-import { CANDIDATE_INGESTION_PORT } from '../candidate-ingestion/candidate-ingestion.tokens.js';
-import { GOVERNANCE_REVIEW_PORT } from '../governance-review/governance-review.tokens.js';
-import { HOST_LOCAL_RUNTIME_TOKEN } from '../runtime/host-runtime.js';
-import type { HostLocalRuntime } from '../runtime/host-runtime.js';
-import { AuthGuard } from '../runtime/auth.guard.js';
-import { ZodBodyValidationPipe } from '../runtime/validation.pipe.js';
+import { CANDIDATE_INGESTION_PORT } from "@trapmap/host-local/nest/candidate-ingestion/candidate-ingestion.tokens.js";
+import { GOVERNANCE_REVIEW_PORT } from "@trapmap/host-local/nest/governance-review/governance-review.tokens.js";
+import { HOST_LOCAL_RUNTIME_TOKEN } from "@trapmap/host-local/nest/runtime/host-runtime.js";
+import type { HostLocalRuntime } from "@trapmap/host-local/nest/runtime/host-runtime.js";
+import { AuthGuard } from "@trapmap/host-local/nest/runtime/auth.guard.js";
+import { ZodBodyValidationPipe } from "@trapmap/host-local/nest/runtime/validation.pipe.js";
 
 @Controller('v1')
 @UseGuards(AuthGuard)

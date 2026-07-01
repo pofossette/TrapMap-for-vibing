@@ -18,6 +18,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CandidateRepository } from '@trapmap/server/lib/repository.js';
 import { PgCandidateRepository } from './pg-repository.js';
+import { writeAnalysisToSubTable } from './pg-repository/subtable-io.js';
 
 // Helper to create a test candidate
 function createTestCandidate(overrides: Partial<CandidateSubmission> = {}): CandidateSubmission {
@@ -195,24 +196,15 @@ describe('PgCandidateRepository', () => {
       const valuesSpy = vi.fn();
       const onConflictDoUpdateSpy = vi.fn();
 
-      const repo = {
-        db: {
-          insert: vi.fn(() => ({
-            values: valuesSpy.mockImplementation((valuesArg) => ({
-              onConflictDoUpdate: onConflictDoUpdateSpy.mockResolvedValue(valuesArg),
-            })),
+      const mockDb = {
+        insert: vi.fn(() => ({
+          values: valuesSpy.mockImplementation((valuesArg) => ({
+            onConflictDoUpdate: onConflictDoUpdateSpy.mockResolvedValue(valuesArg),
           })),
-        },
-      } as unknown as {
-        db: { insert: ReturnType<typeof vi.fn> };
-        writeAnalysisToSubTable: (candidateId: string, snapshot: AnalysisSnapshot) => Promise<void>;
+        })),
       };
 
-      await (PgCandidateRepository.prototype as any).writeAnalysisToSubTable.call(
-        repo,
-        'candidate_1',
-        snapshot,
-      );
+      await writeAnalysisToSubTable(mockDb as any, 'candidate_1', snapshot);
 
       expect(valuesSpy).toHaveBeenCalledWith(
         expect.objectContaining({

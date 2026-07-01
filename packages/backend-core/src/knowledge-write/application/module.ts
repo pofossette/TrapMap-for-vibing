@@ -6,12 +6,12 @@
  * candidate-result publication.
  */
 
-import { InvocationError } from '../../invocation/invocation-model.js';
-import type { AuditLogPort } from '../../ports/audit-ports.js';
-import type { KnowledgeWritePort } from '../../ports/internal-ports.js';
-import type { KnowledgeRepositoryPort } from '../../ports/repo-ports.js';
+import { InvocationError } from '@trapmap/backend-core/invocation/invocation-model.js';
+import type { AuditLogPort } from '@trapmap/backend-core/ports/audit-ports.js';
+import type { KnowledgeWritePort } from '@trapmap/backend-core/ports/internal-ports.js';
+import type { KnowledgeRepositoryPort } from '@trapmap/backend-core/ports/repo-ports.js';
 
-import { KNOWLEDGE_WRITE_OWNED_CAPABILITIES } from '../domain/index.js';
+import { KNOWLEDGE_WRITE_OWNED_CAPABILITIES } from '@trapmap/backend-core/knowledge-write/domain/index.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)

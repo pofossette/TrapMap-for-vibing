@@ -2,7 +2,7 @@ import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
 import Fastify from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { loadServiceConfig } from '../config/index.js';
+import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
 
 const ORIGINAL_ENV = { ...process.env };
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { BADCASE_TAXONOMY_VALUES } from '../enum-types/badcase-taxonomy.js';
+import { BADCASE_TAXONOMY_VALUES } from '@trapmap/contracts/enum-types/badcase-taxonomy.js';
 import {
   feedbackBatchItemSchema,
   feedbackBatchResponseSchema,

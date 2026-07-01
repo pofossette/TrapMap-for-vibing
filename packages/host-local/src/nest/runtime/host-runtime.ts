@@ -15,7 +15,7 @@ import type { Permission } from '@trapmap/contracts';
 import { createKnowledgeReadRetrievalQuery } from '@trapmap/service-knowledge-read';
 import type { FastifyRequest } from 'fastify';
 
-import { loadHostLocalConfig } from '../config/index.js';
+import { loadHostLocalConfig } from "@trapmap/host-local/nest/config/index.js";
 import { createHostLocalServices, type HostLocalServices } from './host-services.js';
 import { resolveHostLocalAuthContext } from './auth-context.js';
 import { nowIso } from './now-iso.js';

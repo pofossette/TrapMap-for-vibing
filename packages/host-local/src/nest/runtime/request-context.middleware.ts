@@ -2,8 +2,8 @@ import type { NestMiddleware } from '@nestjs/common';
 import { Inject, Injectable } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-import { HOST_LOCAL_CONFIG_TOKEN } from '../config/index.js';
-import type { HostLocalConfig } from '../config/index.js';
+import { HOST_LOCAL_CONFIG_TOKEN } from "@trapmap/host-local/nest/config/index.js";
+import type { HostLocalConfig } from "@trapmap/host-local/nest/config/index.js";
 import {
   RequestContextService,
   extractRequestContext,

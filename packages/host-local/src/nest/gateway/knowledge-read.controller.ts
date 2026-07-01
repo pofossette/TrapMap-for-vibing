@@ -13,9 +13,9 @@ import {
 } from '@nestjs/common';
 import type { KnowledgeReadPort } from '@trapmap/backend-core';
 
-import { ZodBodyValidationPipe } from '../runtime/validation.pipe.js';
-import { AuthGuard } from '../runtime/auth.guard.js';
-import { KNOWLEDGE_READ_PORT } from '../knowledge-read/knowledge-read.tokens.js';
+import { ZodBodyValidationPipe } from "@trapmap/host-local/nest/runtime/validation.pipe.js";
+import { AuthGuard } from "@trapmap/host-local/nest/runtime/auth.guard.js";
+import { KNOWLEDGE_READ_PORT } from "@trapmap/host-local/nest/knowledge-read/knowledge-read.tokens.js";
 
 import { searchBodySchema } from './gateway.schemas.js';
 

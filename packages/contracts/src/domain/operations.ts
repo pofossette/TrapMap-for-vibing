@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-import { badcaseTaxonomySchema, normalizeBadcaseTaxonomy } from '../enum-types/index.js';
+import {
+  badcaseTaxonomySchema,
+  normalizeBadcaseTaxonomy,
+} from '@trapmap/contracts/enum-types/index.js';
 import {
   compatibleScriptActivationPolicySchema,
   skillArtifactFileKindSchema,

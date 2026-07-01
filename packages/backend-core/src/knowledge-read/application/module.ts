@@ -5,14 +5,14 @@
  * is read-only — it does not modify domain state.
  */
 
-import type { KnowledgeReadPort } from '../../ports/internal-ports.js';
-import type { KnowledgeEntryRecord } from '../../ports/repo-ports.js';
+import type { KnowledgeReadPort } from '@trapmap/backend-core/ports/internal-ports.js';
+import type { KnowledgeEntryRecord } from '@trapmap/backend-core/ports/repo-ports.js';
 import type {
   KnowledgeReadProjectionPort,
   RetrievalQueryPort,
-} from '../../ports/retrieval-ports.js';
+} from '@trapmap/backend-core/ports/retrieval-ports.js';
 
-import { KNOWLEDGE_READ_OWNED_CAPABILITIES } from '../domain/index.js';
+import { KNOWLEDGE_READ_OWNED_CAPABILITIES } from '@trapmap/backend-core/knowledge-read/domain/index.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)

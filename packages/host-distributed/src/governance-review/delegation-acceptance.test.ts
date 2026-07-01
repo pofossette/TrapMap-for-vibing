@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { InvocationError } from '@trapmap/backend-core';
-import { createRemoteKnowledgeWriteClient } from '../shared/internal-knowledge-write-client.js';
+import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
 
 describe('governance-review delegation acceptance', () => {
   it('delegates authoritative review and lifecycle writes to remote knowledge-write with request context', async () => {

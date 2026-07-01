@@ -3,7 +3,7 @@ import {
   type RuntimeInfraShared,
 } from '@trapmap/runtime-infra';
 
-import type { HostLocalConfig } from '../config/index.js';
+import type { HostLocalConfig } from "@trapmap/host-local/nest/config/index.js";
 
 export type HostLocalSharedInfra = RuntimeInfraShared;
 

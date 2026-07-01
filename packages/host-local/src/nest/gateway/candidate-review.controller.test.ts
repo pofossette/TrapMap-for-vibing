@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CandidateIngestionPort, ReviewPort } from '@trapmap/backend-core';
 
-import type { HostLocalRuntime } from '../runtime/host-runtime.js';
+import type { HostLocalRuntime } from "@trapmap/host-local/nest/runtime/host-runtime.js";
 
 const candidateIngestionMock: CandidateIngestionPort = {
   submit: vi.fn(),
