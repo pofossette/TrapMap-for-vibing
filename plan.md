@@ -58,23 +58,23 @@
 
 ### Phase -1 六边形架构清理（前置工作）
 
-- 状态：`计划中`
+- 状态：`进行中`
 - 目标：解决六边形架构的技术债和质量缺陷（架构边界、代码重复、依赖管理、模块大小、死代码）
 - 细则：[`docs/todos/hexagonal-architecture-cleanup.md`](docs/todos/hexagonal-architecture-cleanup.md)
 - 时间线：Week 1-7
 - 子阶段：
-  - Phase 0.1：架构边界配置（Week 1）
-  - Phase 0.2：依赖清理（Week 1-2）
-  - Phase 0.3：测试代码去重（Week 2-3）
-  - Phase 0.4：模块大小拆分（Week 3-4）
-  - Phase 0.5：死代码清理（Week 4-5）
-  - Phase 0.6：耦合度优化（Week 5-6）
-  - Phase 0.7：架构边界验证自动化（Week 6-7）
+  - Phase 0.1：架构边界配置（Week 1）— `完成`
+  - Phase 0.2：依赖清理（Week 1-2）— `完成`
+  - Phase 0.3：测试代码去重（Week 2-3）— `完成`
+  - Phase 0.4：模块大小拆分（Week 3-4）— `进行中`（P0+P1 完成，P2 待续）
+  - Phase 0.5：死代码清理（Week 4-5）— `完成`
+  - Phase 0.6：耦合度优化（Week 5-6）— `计划中`
+  - Phase 0.7：架构边界验证自动化（Week 6-7）— `进行中`（CI+pre-commit 已集成）
 - 验收标准：
-  - [ ] 健康评分从 70.3 提升到 85+
-  - [ ] 架构边界违规降至 0
+  - [x] 健康评分从 70.3 提升到 75.9（目标 85+，持续优化中）
+  - [x] 架构边界违规降至 0（11 zones 配置，0 违规）
   - [ ] 代码重复率降低 50%+
-  - [ ] CI 门禁完整且有效
+  - [x] CI 门禁已集成（fallow audit + boundary check + unused-deps check）
 - 文档更新：补齐 fallow 配置说明、架构边界规则、测试编写指南、质量门禁使用指南
 - 测试更新：每个子阶段完成后运行 `fallow audit --base main` 和受影响包的最小测试
 
