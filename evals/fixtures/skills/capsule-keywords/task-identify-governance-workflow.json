@@ -1,0 +1,23 @@
+{
+  "taskId": "task-identify-governance-workflow",
+  "capsuleMatches": [
+    {
+      "skillId": "workflow-with-trapmap",
+      "capsuleId": "capsule-trapmap-lifecycle",
+      "keyword": "lifecycle",
+      "score": 0.95
+    },
+    {
+      "skillId": "workflow-with-trapmap",
+      "capsuleId": "capsule-trapmap-retrieval",
+      "keyword": "governance",
+      "score": 0.85
+    },
+    {
+      "skillId": "workflow-with-trapmap",
+      "capsuleId": "capsule-trapmap-auth-preflight",
+      "keyword": "trapmap",
+      "score": 0.8
+    }
+  ]
+}

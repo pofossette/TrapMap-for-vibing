@@ -1,0 +1,7 @@
+{
+  "id": "oss-log-analysis-patterns",
+  "title": "Log Analysis Patterns",
+  "summary": "Systematic log analysis patterns for production incident triage and cross-service correlation",
+  "keywords": ["logging", "incident-triage", "correlation", "anomaly-detection", "observability"],
+  "labels": ["observability", "logging", "incident-response", "monitoring"]
+}

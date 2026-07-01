@@ -1,0 +1,17 @@
+{
+  "id": "trapmap-cli-usage-guide",
+  "title": "TrapMap CLI Usage Guide",
+  "summary": "Command index for TrapMap CLI: session management, retrieval, registration, review, artifact export, feedback, decay maintenance, skill management, operations",
+  "keywords": [
+    "cli",
+    "trapmap",
+    "command-reference",
+    "session",
+    "retrieval",
+    "registration",
+    "review",
+    "export"
+  ],
+  "labels": ["trapmap", "cli", "command-reference", "operations"],
+  "capsuleIds": ["capsule-cli-session", "capsule-cli-retrieval", "capsule-cli-registration"]
+}

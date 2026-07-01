@@ -1,0 +1,23 @@
+{
+  "taskId": "task-distractor-rejection-multi",
+  "capsuleMatches": [
+    {
+      "skillId": "ci-pipeline",
+      "capsuleId": "capsule-ci-timing",
+      "keyword": "pipeline",
+      "score": 0.9
+    },
+    {
+      "skillId": "ci-pipeline",
+      "capsuleId": "capsule-ci-docker-cache",
+      "keyword": "caching",
+      "score": 0.85
+    },
+    {
+      "skillId": "ci-pipeline",
+      "capsuleId": "capsule-ci-health-check",
+      "keyword": "health-check",
+      "score": 0.8
+    }
+  ]
+}

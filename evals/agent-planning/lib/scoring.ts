@@ -32,6 +32,34 @@ export function evaluateDeterministicPrecheck(
   );
   const emptyOutput = input.emptyOutput ?? input.actorOutput.trim().length === 0;
 
+  // Skill identification precheck fields
+  const caseDef = input.caseDefinition as Pick<
+    import('@trapmap/contracts/evals').AgentPlanningEvalCase,
+    'goldenPath' | 'expectedSkillIds' | 'expectedDistractorSkillIds' | 'contextSetKind'
+  >;
+  const expectedSkillHitCount =
+    caseDef.expectedSkillIds?.filter(
+      (id) =>
+        lowerPlan.some((step) => step.includes(id.toLowerCase())) ||
+        lowerOutput.includes(id.toLowerCase()),
+    ).length ?? 0;
+  const distractorHitCount =
+    caseDef.expectedDistractorSkillIds?.filter(
+      (id) =>
+        lowerPlan.some((step) => step.includes(id.toLowerCase())) ||
+        lowerOutput.includes(id.toLowerCase()),
+    ).length ?? 0;
+  const capsuleSignalCount =
+    caseDef.contextSetKind === 'capsule-match-set'
+      ? lowerPlan.filter(
+          (step) =>
+            step.includes('situation') ||
+            step.includes('problem') ||
+            step.includes('goal') ||
+            step.includes('capsule'),
+        ).length
+      : 0;
+
   return {
     passed:
       !input.parseFailed &&
@@ -44,5 +72,8 @@ export function evaluateDeterministicPrecheck(
     forbiddenActionHits,
     emptyOutput,
     parseFailed: input.parseFailed,
+    expectedSkillHitCount,
+    distractorHitCount,
+    capsuleSignalCount,
   };
 }

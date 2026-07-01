@@ -22,6 +22,8 @@ const sliceDimensions: AgentPlanningSliceDimension[] = [
   'taskComplexity',
   'contextSetKind',
   'interferenceLevel',
+  'matchStrategy',
+  'sourceQualityMix',
 ];
 
 function average(values: number[]): number {
@@ -100,6 +102,20 @@ function buildGroups(results: AgentPlanningCaseResult[]) {
                 candidateAvg: candidate.avg ?? 0,
                 absoluteDiff: Number(((candidate.avg ?? 0) - (baseline.avg ?? 0)).toFixed(4)),
               })),
+        capsuleMatchAvg: compareContextSet(taskResults, 'capsule-match-set'),
+        skillSummaryAvg: compareContextSet(taskResults, 'skill-summary-set'),
+        capsuleAbsoluteLift: (() => {
+          const cm = compareContextSet(taskResults, 'capsule-match-set');
+          const ss = compareContextSet(taskResults, 'skill-summary-set');
+          return cm === null || ss === null ? null : Number((cm - ss).toFixed(4));
+        })(),
+        capsuleRelativeLift: (() => {
+          const cm = compareContextSet(taskResults, 'capsule-match-set');
+          const ss = compareContextSet(taskResults, 'skill-summary-set');
+          return cm === null || ss === null
+            ? null
+            : Number(((cm - ss) / Math.max(ss, epsilon)).toFixed(4));
+        })(),
       };
     });
 }
@@ -108,12 +124,26 @@ function buildSlices(results: AgentPlanningCaseResult[]) {
   const slices = [];
 
   for (const dimension of sliceDimensions) {
-    const values = [...new Set(results.map((result) => String(result[dimension])))].sort(
-      (left, right) => left.localeCompare(right),
-    );
+    // Skip slice dimensions that have no data (e.g. optional fields)
+    const values = [
+      ...new Set(
+        results
+          .map((result) => {
+            const val = result[dimension as keyof AgentPlanningCaseResult];
+            return val !== undefined && val !== null ? String(val) : null;
+          })
+          .filter((v): v is string => v !== null),
+      ),
+    ].sort((left, right) => left.localeCompare(right));
+
+    if (values.length === 0) {
+      continue;
+    }
 
     for (const value of values) {
-      const matchingResults = results.filter((result) => String(result[dimension]) === value);
+      const matchingResults = results.filter(
+        (result) => String(result[dimension as keyof AgentPlanningCaseResult]) === value,
+      );
       slices.push({
         dimension,
         value,

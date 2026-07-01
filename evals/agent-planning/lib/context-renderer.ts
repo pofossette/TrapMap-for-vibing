@@ -30,16 +30,46 @@ export function renderScenarioContext(
   caseDefinition: AgentPlanningEvalCase,
   scenario: AgentPlanningEvalScenario,
 ): string {
-  const required = scenario.context.required.filter((entry) =>
-    caseDefinition.contextSetKind === 'plan-graph-set'
-      ? entry.kind === 'plan-node' || entry.kind === 'note'
-      : entry.kind === 'skill' || entry.kind === 'note',
-  );
+  let required: AgentPlanningContextEntry[];
+
+  if (caseDefinition.contextSetKind === 'plan-graph-set') {
+    required = scenario.context.required.filter(
+      (entry) => entry.kind === 'plan-node' || entry.kind === 'note',
+    );
+  } else if (caseDefinition.contextSetKind === 'capsule-match-set') {
+    required = scenario.context.required.filter(
+      (entry) => entry.kind === 'capsule-card' || entry.kind === 'note',
+    );
+  } else if (caseDefinition.contextSetKind === 'skill-summary-set') {
+    required = scenario.context.required.filter(
+      (entry) => entry.kind === 'skill-profile' || entry.kind === 'note',
+    );
+  } else {
+    // skill-set (backward compatible)
+    required = scenario.context.required.filter(
+      (entry) => entry.kind === 'skill' || entry.kind === 'note',
+    );
+  }
+
   const optional = scenario.context.optional;
+  let interferenceSource: AgentPlanningContextEntry[];
+
+  if (caseDefinition.contextSetKind === 'capsule-match-set') {
+    interferenceSource = scenario.context.interference.filter(
+      (entry) => entry.kind === 'capsule-card' || entry.kind === 'note',
+    );
+  } else if (caseDefinition.contextSetKind === 'skill-summary-set') {
+    interferenceSource = scenario.context.interference.filter(
+      (entry) => entry.kind === 'skill-profile' || entry.kind === 'note',
+    );
+  } else {
+    interferenceSource = scenario.context.interference;
+  }
+
   const interference =
     caseDefinition.interferenceLevel === 'none'
       ? []
-      : scenario.context.interference.slice(
+      : interferenceSource.slice(
           0,
           caseDefinition.interferenceLevel === 'low'
             ? 7

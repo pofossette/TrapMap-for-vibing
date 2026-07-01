@@ -1,0 +1,7 @@
+{
+  "id": "oss-ci-monitoring-lite",
+  "title": "CI Monitoring Lite",
+  "summary": "Lightweight CI pipeline monitoring with flaky test detection and build health tracking",
+  "keywords": ["ci", "monitoring", "flaky-test", "build-health", "github-actions", "pipeline"],
+  "labels": ["ci", "monitoring", "testing", "devops"]
+}

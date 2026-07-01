@@ -1,0 +1,20 @@
+{
+  "id": "database-migration",
+  "title": "Database Migration Skill",
+  "summary": "Database schema migration practices: expand-contract pattern, lock management, rollback safety, transaction wrapping for PostgreSQL",
+  "keywords": [
+    "database",
+    "migration",
+    "schema",
+    "postgresql",
+    "expand-contract",
+    "rollback",
+    "lock"
+  ],
+  "labels": ["database", "migration", "postgresql", "schema", "backend"],
+  "capsuleIds": [
+    "capsule-migration-expand-contract",
+    "capsule-migration-lock",
+    "capsule-migration-rollback"
+  ]
+}

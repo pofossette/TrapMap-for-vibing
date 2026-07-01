@@ -40,19 +40,95 @@ export function runJudge(input: JudgeRunInput): AgentPlanningJudgeResult {
     )
       ? 1
       : 0.5;
-  const dimensionScores = input.caseDefinition.judgeRubric.dimensions.map((dimension) => {
-    const score = dimension.id === 'path-correctness' ? pathScore : finalAnswerScore;
 
-    return {
-      dimensionId: dimension.id,
-      score,
-      rationale:
-        dimension.id === 'path-correctness'
-          ? `Matched ${matchedKeyActions.length}/${input.caseDefinition.goldenPath.keyActions.length} key actions.`
-          : finalAnswerScore === 1
+  // Skill identification dimension scores
+  const lowerPlan = normalized.normalizedPlan.map((s) => s.toLowerCase());
+  const lowerOutput = input.actorOutput.toLowerCase();
+
+  // skill_selection_correctness
+  const expectedSkillIds = input.caseDefinition.expectedSkillIds ?? [];
+  const expectedHits = expectedSkillIds.filter(
+    (id) =>
+      lowerPlan.some((step) => step.includes(id.toLowerCase())) ||
+      lowerOutput.includes(id.toLowerCase()),
+  );
+  const selectionScore =
+    expectedSkillIds.length === 0
+      ? undefined
+      : expectedHits.length === expectedSkillIds.length
+        ? 1.0
+        : expectedHits.length > 0
+          ? 0.5
+          : 0;
+
+  // distractor_rejection
+  const distractorIds = input.caseDefinition.expectedDistractorSkillIds ?? [];
+  const distractorHits = distractorIds.filter(
+    (id) =>
+      lowerPlan.some((step) => step.includes(id.toLowerCase())) ||
+      lowerOutput.includes(id.toLowerCase()),
+  );
+  const rejectionScore =
+    distractorIds.length === 0
+      ? undefined
+      : distractorHits.length === 0
+        ? 1.0
+        : distractorHits.length === 1
+          ? 0.5
+          : 0;
+
+  // capsule_signal_usage (only for capsule-match-set)
+  const capsuleKeywords = ['situation', 'problem', 'goal', 'capsule'];
+  const signalHits = capsuleKeywords.filter((kw) => lowerPlan.some((step) => step.includes(kw)));
+  const capsuleScore =
+    input.caseDefinition.contextSetKind === 'capsule-match-set'
+      ? signalHits.length >= 2
+        ? 1.0
+        : signalHits.length === 1
+          ? 0.5
+          : 0
+      : undefined;
+
+  const dimensionScores = input.caseDefinition.judgeRubric.dimensions.map((dimension) => {
+    let score: number;
+    let rationale: string;
+
+    switch (dimension.id) {
+      case 'path-correctness':
+        score = pathScore;
+        rationale = `Matched ${matchedKeyActions.length}/${input.caseDefinition.goldenPath.keyActions.length} key actions.`;
+        break;
+      case 'skill_selection_correctness':
+        score = selectionScore ?? finalAnswerScore;
+        rationale =
+          selectionScore !== undefined
+            ? `Hit ${expectedHits.length}/${expectedSkillIds.length} expected skills.`
+            : 'No expected skill IDs configured.';
+        break;
+      case 'distractor_rejection':
+        score = rejectionScore ?? finalAnswerScore;
+        rationale =
+          rejectionScore !== undefined
+            ? `Distractor hits: ${distractorHits.length}/${distractorIds.length}.`
+            : 'No distractor skill IDs configured.';
+        break;
+      case 'capsule_signal_usage':
+        score = capsuleScore ?? finalAnswerScore;
+        rationale =
+          capsuleScore !== undefined
+            ? `Capsule signals used: ${signalHits.length}/4.`
+            : 'Not a capsule-match-set case.';
+        break;
+      default:
+        score = finalAnswerScore;
+        rationale =
+          finalAnswerScore === 1
             ? 'Final answer satisfied the expected outcome.'
-            : 'Final answer only partially satisfied the expected outcome.',
-    };
+            : 'Final answer only partially satisfied the expected outcome.';
+        break;
+    }
+
+    return { dimensionId: dimension.id, score, rationale };
   });
   const totalScore = dimensionScores.reduce((sum, dimensionScore) => {
     const dimension = input.caseDefinition.judgeRubric.dimensions.find(

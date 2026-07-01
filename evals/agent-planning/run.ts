@@ -18,6 +18,10 @@ import { loadPromptTemplate, renderPromptTemplate } from './lib/prompt-loader.js
 import { buildAgentPlanningReport } from './lib/report.js';
 import { evaluateDeterministicPrecheck } from './lib/scoring.js';
 import { smokeCases, smokeScenariosMap } from './smoke.js';
+import { skillIdentificationCoreCases } from './datasets/core/skill-identification-core.js';
+import { skillIdentificationCoreScenarios } from './scenarios/core/skill-identification-core-scenarios.js';
+import { skillIdentificationSmokeCases } from './datasets/smoke/skill-identification-smoke.js';
+import { skillIdentificationSmokeScenarios } from './scenarios/smoke/skill-identification-smoke-scenarios.js';
 
 export interface AgentPlanningRunOptions {
   tier: AgentPlanningEvalTier;
@@ -27,13 +31,27 @@ export interface AgentPlanningRunOptions {
   promptTemplatePath?: string;
 }
 
+// Build merged scenario maps for skill identification
+const smokeSidScenariosMap: Record<string, AgentPlanningEvalScenario> = {};
+for (const s of skillIdentificationSmokeScenarios) {
+  smokeSidScenariosMap[s.scenarioId] = s;
+}
+const coreSidScenariosMap: Record<string, AgentPlanningEvalScenario> = {};
+for (const s of skillIdentificationCoreScenarios) {
+  coreSidScenariosMap[s.scenarioId] = s;
+}
+
 function loadCases(tier: AgentPlanningEvalTier): AgentPlanningEvalCase[] {
-  const cases = tier === 'smoke' ? smokeCases : coreCases;
+  const base = tier === 'smoke' ? smokeCases : coreCases;
+  const sidCases = tier === 'smoke' ? skillIdentificationSmokeCases : skillIdentificationCoreCases;
+  const cases = [...base, ...sidCases];
   return cases.map((caseDefinition) => agentPlanningEvalCaseSchema.parse(caseDefinition));
 }
 
 function loadScenario(tier: AgentPlanningEvalTier, scenarioId: string): AgentPlanningEvalScenario {
-  const scenario = tier === 'smoke' ? smokeScenariosMap[scenarioId] : coreScenariosMap[scenarioId];
+  const baseMap = tier === 'smoke' ? smokeScenariosMap : coreScenariosMap;
+  const sidMap = tier === 'smoke' ? smokeSidScenariosMap : coreSidScenariosMap;
+  const scenario = baseMap[scenarioId] ?? sidMap[scenarioId];
 
   if (!scenario) {
     throw new Error(`Unknown scenario: ${scenarioId}`);
@@ -94,6 +112,8 @@ async function executeCase(
     deterministicPrecheck,
     judge,
     durationMs: Date.now() - start,
+    matchStrategy: caseDefinition.matchStrategy,
+    sourceQualityMix: caseDefinition.sourceQualityMix,
   };
 }
 

@@ -1,0 +1,20 @@
+{
+  "id": "workflow-with-trapmap",
+  "title": "Workflow With TrapMap",
+  "summary": "Retrieve traps and skills before TrapMap work: auth preflight, skill/trap search, load, plan, execute, review, export, feedback, maintenance lifecycle",
+  "keywords": [
+    "trapmap",
+    "workflow",
+    "trap-retrieval",
+    "skill-search",
+    "lifecycle",
+    "governance",
+    "decay"
+  ],
+  "labels": ["trapmap", "workflow", "governance", "lifecycle-management"],
+  "capsuleIds": [
+    "capsule-trapmap-auth-preflight",
+    "capsule-trapmap-retrieval",
+    "capsule-trapmap-lifecycle"
+  ]
+}

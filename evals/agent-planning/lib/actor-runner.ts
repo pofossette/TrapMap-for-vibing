@@ -27,6 +27,30 @@ function buildDryRunOutput(
     ].join('\n');
   }
 
+  if (caseDefinition.contextSetKind === 'capsule-match-set') {
+    // Include capsule signals in dry-run output to simulate capsule-aware reasoning
+    const skillIds = caseDefinition.expectedSkillIds ?? [];
+    const capsuleSignals = skillIds.map((id) => `Selected skill: ${id}`);
+    return [
+      ...numberedSteps,
+      ...capsuleSignals,
+      'Capsule signal: situation matches user query',
+      'Capsule signal: problem is clear from context',
+      `Final answer: ${caseDefinition.expectedOutcome.finalAnswer}`,
+    ].join('\n');
+  }
+
+  if (caseDefinition.contextSetKind === 'skill-summary-set') {
+    // Skill summary mode: include skill selection but no capsule signals
+    const skillIds = caseDefinition.expectedSkillIds ?? [];
+    const capsuleSignals = skillIds.map((id) => `Selected skill: ${id}`);
+    return [
+      ...numberedSteps,
+      ...capsuleSignals,
+      `Final answer: ${caseDefinition.expectedOutcome.finalAnswer}`,
+    ].join('\n');
+  }
+
   if (caseDefinition.interferenceLevel === 'high') {
     return [...numberedSteps, `Final answer: ${scenario.taskPrompt}`].join('\n');
   }

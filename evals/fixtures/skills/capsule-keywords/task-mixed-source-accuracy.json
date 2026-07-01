@@ -1,0 +1,17 @@
+{
+  "taskId": "task-mixed-source-accuracy",
+  "capsuleMatches": [
+    {
+      "skillId": "workflow-with-trapmap",
+      "capsuleId": "capsule-trapmap-lifecycle",
+      "keyword": "lifecycle",
+      "score": 0.9
+    },
+    {
+      "skillId": "oss-ci-monitoring-lite",
+      "capsuleId": "capsule-ci-monitor",
+      "keyword": "monitoring",
+      "score": 0.85
+    }
+  ]
+}

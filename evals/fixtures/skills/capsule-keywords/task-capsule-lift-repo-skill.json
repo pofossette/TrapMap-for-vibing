@@ -1,0 +1,17 @@
+{
+  "taskId": "task-capsule-lift-repo-skill",
+  "capsuleMatches": [
+    {
+      "skillId": "workflow-with-trapmap",
+      "capsuleId": "capsule-trapmap-lifecycle",
+      "keyword": "lifecycle",
+      "score": 0.95
+    },
+    {
+      "skillId": "workflow-with-trapmap",
+      "capsuleId": "capsule-trapmap-retrieval",
+      "keyword": "retrieval",
+      "score": 0.9
+    }
+  ]
+}

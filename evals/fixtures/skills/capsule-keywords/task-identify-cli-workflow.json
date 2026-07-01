@@ -1,0 +1,23 @@
+{
+  "taskId": "task-identify-cli-workflow",
+  "capsuleMatches": [
+    {
+      "skillId": "trapmap-cli-usage-guide",
+      "capsuleId": "capsule-cli-session",
+      "keyword": "trapmap",
+      "score": 0.9
+    },
+    {
+      "skillId": "trapmap-cli-usage-guide",
+      "capsuleId": "capsule-cli-retrieval",
+      "keyword": "cli",
+      "score": 0.85
+    },
+    {
+      "skillId": "trapmap-cli-usage-guide",
+      "capsuleId": "capsule-cli-registration",
+      "keyword": "command",
+      "score": 0.8
+    }
+  ]
+}

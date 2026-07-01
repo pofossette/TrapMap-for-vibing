@@ -1,0 +1,8 @@
+{
+  "id": "ci-pipeline",
+  "title": "CI/CD Pipeline Skill",
+  "summary": "CI/CD pipeline best practices: stable test timing, Docker layer caching, container startup health checks, integration with GitHub Actions",
+  "keywords": ["ci", "pipeline", "github-actions", "docker", "testing", "caching", "health-check"],
+  "labels": ["ci", "cd", "pipeline", "testing", "devops"],
+  "capsuleIds": ["capsule-ci-timing", "capsule-ci-docker-cache", "capsule-ci-health-check"]
+}

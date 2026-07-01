@@ -19,7 +19,12 @@ export const agentPlanningTaskComplexitySchema = z.enum(['simple', 'medium', 'co
 
 export type AgentPlanningTaskComplexity = z.infer<typeof agentPlanningTaskComplexitySchema>;
 
-export const agentPlanningContextSetKindSchema = z.enum(['skill-set', 'plan-graph-set']);
+export const agentPlanningContextSetKindSchema = z.enum([
+  'skill-set',
+  'plan-graph-set',
+  'skill-summary-set',
+  'capsule-match-set',
+]);
 
 export type AgentPlanningContextSetKind = z.infer<typeof agentPlanningContextSetKindSchema>;
 
@@ -90,31 +95,77 @@ export const agentPlanningJudgeRubricSchema = z
 
 export type AgentPlanningJudgeRubric = z.infer<typeof agentPlanningJudgeRubricSchema>;
 
-export const agentPlanningEvalCaseSchema = z.object({
-  schemaVersion: z.literal(1),
-  taskId: z.string().min(1),
-  variantId: z.string().min(1),
-  variantGroupId: z.string().min(1),
-  tier: agentPlanningEvalTierSchema,
-  taskType: agentPlanningTaskTypeSchema,
-  taskComplexity: agentPlanningTaskComplexitySchema,
-  contextSetKind: agentPlanningContextSetKindSchema,
-  interferenceLevel: agentPlanningInterferenceLevelSchema,
-  interferenceSources: z.array(agentPlanningInterferenceSourceSchema),
-  promptTemplateId: z.string().min(1),
-  scenarioId: z.string().min(1),
-  goldenPath: agentPlanningGoldenPathSchema,
-  judgeRubric: agentPlanningJudgeRubricSchema,
-  expectedOutcome: agentPlanningExpectedOutcomeSchema,
-  tags: z.array(z.string().min(1)).default([]),
-});
+export const agentPlanningMatchStrategySchema = z.enum(['keyword-capsule', 'direct-summary']);
+
+export type AgentPlanningMatchStrategy = z.infer<typeof agentPlanningMatchStrategySchema>;
+
+export const agentPlanningSourceQualityMixSchema = z.enum([
+  'repo-only',
+  'mixed-repo-oss',
+  'oss-only',
+]);
+
+export type AgentPlanningSourceQualityMix = z.infer<typeof agentPlanningSourceQualityMixSchema>;
+
+export const agentPlanningEvalCaseSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    taskId: z.string().min(1),
+    variantId: z.string().min(1),
+    variantGroupId: z.string().min(1),
+    tier: agentPlanningEvalTierSchema,
+    taskType: agentPlanningTaskTypeSchema,
+    taskComplexity: agentPlanningTaskComplexitySchema,
+    contextSetKind: agentPlanningContextSetKindSchema,
+    interferenceLevel: agentPlanningInterferenceLevelSchema,
+    interferenceSources: z.array(agentPlanningInterferenceSourceSchema),
+    promptTemplateId: z.string().min(1),
+    scenarioId: z.string().min(1),
+    goldenPath: agentPlanningGoldenPathSchema,
+    judgeRubric: agentPlanningJudgeRubricSchema,
+    expectedOutcome: agentPlanningExpectedOutcomeSchema,
+    tags: z.array(z.string().min(1)).default([]),
+    // Skill identification fields (optional, backward compatible)
+    matchStrategy: agentPlanningMatchStrategySchema.optional(),
+    expectedSkillIds: z.array(z.string().min(1)).optional(),
+    expectedDistractorSkillIds: z.array(z.string().min(1)).optional(),
+    sourceQualityMix: agentPlanningSourceQualityMixSchema.optional(),
+  })
+  .refine(
+    (value) => {
+      if (
+        value.contextSetKind === 'skill-summary-set' ||
+        value.contextSetKind === 'capsule-match-set'
+      ) {
+        return value.matchStrategy !== undefined;
+      }
+      return true;
+    },
+    {
+      message:
+        'matchStrategy is required when contextSetKind is skill-summary-set or capsule-match-set',
+      path: ['matchStrategy'],
+    },
+  )
+  .refine(
+    (value) => {
+      if (value.matchStrategy !== undefined) {
+        return value.expectedSkillIds !== undefined && value.expectedSkillIds.length > 0;
+      }
+      return true;
+    },
+    {
+      message: 'expectedSkillIds must be non-empty when matchStrategy is present',
+      path: ['expectedSkillIds'],
+    },
+  );
 
 export type AgentPlanningEvalCase = z.infer<typeof agentPlanningEvalCaseSchema>;
 
 export const agentPlanningContextEntrySchema = z
   .object({
     id: z.string().min(1),
-    kind: z.enum(['skill', 'plan-node', 'trap', 'note']),
+    kind: z.enum(['skill', 'plan-node', 'trap', 'note', 'capsule-card', 'skill-profile']),
     title: z.string().min(1),
     body: z.string().min(1).optional(),
     sourcePath: z.string().min(1).optional(),
@@ -154,6 +205,9 @@ export const agentPlanningDeterministicPrecheckSchema = z.object({
   forbiddenActionHits: z.array(z.string()),
   emptyOutput: z.boolean(),
   parseFailed: z.boolean(),
+  expectedSkillHitCount: z.number().int().min(0).optional(),
+  distractorHitCount: z.number().int().min(0).optional(),
+  capsuleSignalCount: z.number().int().min(0).optional(),
 });
 
 export type AgentPlanningDeterministicPrecheck = z.infer<
@@ -201,6 +255,8 @@ export const agentPlanningCaseResultSchema = z.object({
   deterministicPrecheck: agentPlanningDeterministicPrecheckSchema,
   judge: agentPlanningJudgeResultSchema,
   durationMs: z.number().int().min(0),
+  matchStrategy: agentPlanningMatchStrategySchema.optional(),
+  sourceQualityMix: agentPlanningSourceQualityMixSchema.optional(),
 });
 
 export type AgentPlanningCaseResult = z.infer<typeof agentPlanningCaseResultSchema>;
@@ -225,6 +281,10 @@ export const agentPlanningGroupSummarySchema = z.object({
   absoluteDiff: z.number().min(-1).max(1).nullable(),
   relativeLift: z.number().nullable(),
   interferenceComparisons: z.array(agentPlanningInterferenceComparisonSchema),
+  capsuleMatchAvg: z.number().min(0).max(1).nullable().optional(),
+  skillSummaryAvg: z.number().min(0).max(1).nullable().optional(),
+  capsuleAbsoluteLift: z.number().min(-1).max(1).nullable().optional(),
+  capsuleRelativeLift: z.number().nullable().optional(),
 });
 
 export type AgentPlanningGroupSummary = z.infer<typeof agentPlanningGroupSummarySchema>;
@@ -234,6 +294,8 @@ export const agentPlanningSliceDimensionSchema = z.enum([
   'taskComplexity',
   'contextSetKind',
   'interferenceLevel',
+  'matchStrategy',
+  'sourceQualityMix',
 ]);
 
 export type AgentPlanningSliceDimension = z.infer<typeof agentPlanningSliceDimensionSchema>;

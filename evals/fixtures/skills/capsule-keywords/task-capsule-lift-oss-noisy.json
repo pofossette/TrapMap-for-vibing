@@ -1,0 +1,17 @@
+{
+  "taskId": "task-capsule-lift-oss-noisy",
+  "capsuleMatches": [
+    {
+      "skillId": "oss-log-analysis-patterns",
+      "capsuleId": "capsule-log-correlation",
+      "keyword": "correlation",
+      "score": 0.9
+    },
+    {
+      "skillId": "oss-log-analysis-patterns",
+      "capsuleId": "capsule-log-anomaly",
+      "keyword": "anomaly",
+      "score": 0.85
+    }
+  ]
+}
