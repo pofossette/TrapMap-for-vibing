@@ -5,146 +5,38 @@
  * Supports retry with exponential backoff, dead letter queue, and task priorities.
  *
  * Phase: Replace setTimeout-based retry with persistent queue
+ *
+ * This file is the main entry point. Schema and worker are in separate modules.
  */
 
 import { recordQueueMetric, recordRuntimeReclaim } from '@trapmap/server/lib/runtime/metrics.js';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import type { Pool, PoolClient } from 'pg';
 
-// =============================================================================
-// Schema Definition
-// =============================================================================
+import { taskQueue, rowToTask, isUniqueViolation, parseNullableInt } from './task-queue-schema.js';
+import type {
+  Task,
+  TaskRow,
+  TaskStatus,
+  TaskQueueConfig,
+  TaskQueueStatusSnapshot,
+  EnqueueOptions,
+  DequeueOptions,
+} from './task-queue-schema.js';
 
-/**
- * Task queue table using PostgreSQL SKIP LOCKED for concurrent processing.
- */
-const taskQueue = pgTable(
-  'task_queue',
-  {
-    id: text('id').primaryKey(),
-    /** Task type for routing to handlers */
-    type: text('type').notNull(),
-    /** JSON payload for the task */
-    payload: text('payload').notNull(),
-    /** Current status */
-    status: text('status').notNull().default('pending'), // pending | running | completed | failed | dead
-    /** Priority (higher = more urgent) */
-    priority: integer('priority').notNull().default(0),
-    /** Number of retry attempts */
-    attempts: integer('attempts').notNull().default(0),
-    /** Maximum retry attempts before dead letter */
-    maxAttempts: integer('max_attempts').notNull().default(3),
-    /** Last error message */
-    lastError: text('last_error'),
-    /** Opaque key for idempotent enqueue — prevents duplicate (type, key) pairs */
-    dedupeKey: text('dedupe_key'),
-    /** When to process next (for delayed retry) */
-    processAfter: timestamp('process_after', { withTimezone: true }).notNull().defaultNow(),
-    /** Worker that currently owns the task lease */
-    workerId: text('worker_id'),
-    /** When processing first started */
-    startedAt: timestamp('started_at', { withTimezone: true }),
-    /** Last worker heartbeat timestamp */
-    heartbeatAt: timestamp('heartbeat_at', { withTimezone: true }),
-    /** Lease expiry timestamp used for reclaiming stuck work */
-    leaseUntil: timestamp('lease_until', { withTimezone: true }),
-    /** When task was created */
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    /** When task was last updated */
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-    /** When task was completed */
-    completedAt: timestamp('completed_at', { withTimezone: true }),
-  },
-  (table) => [
-    index('task_queue_type_dedupe_idx').on(table.type, table.dedupeKey),
-    uniqueIndex('task_queue_dedupe_pending_idx')
-      .on(table.type, table.dedupeKey)
-      .where(sql`${table.status} IN ('pending', 'running')`),
-  ],
-);
-
-// =============================================================================
-// Types
-// =============================================================================
-
-export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'dead';
-
-export interface Task<T = unknown> {
-  id: string;
-  type: string;
-  payload: T;
-  status: TaskStatus;
-  priority: number;
-  attempts: number;
-  maxAttempts: number;
-  lastError: string | null;
-  dedupeKey: string | null;
-  processAfter: Date;
-  workerId: string | null;
-  startedAt: Date | null;
-  heartbeatAt: Date | null;
-  leaseUntil: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-  completedAt: Date | null;
-}
-
-export interface TaskQueueConfig {
-  pool: Pool;
-  /** Default max attempts for tasks */
-  defaultMaxAttempts?: number;
-  /** Base delay for exponential backoff (ms) */
-  baseRetryDelayMs?: number;
-  /** Maximum delay for retries (ms) */
-  maxRetryDelayMs?: number;
-  /** Lease duration for claimed tasks in ms */
-  leaseDurationMs?: number;
-}
-
-interface EnqueueOptions {
-  /** Task priority (higher = more urgent) */
-  priority?: number;
-  /** Maximum retry attempts */
-  maxAttempts?: number;
-  /** Delay before processing (ms) */
-  delayMs?: number;
-  /** Opaque deduplication key — prevents duplicate (type, key) pairs */
-  dedupeKey?: string;
-}
-
-interface LeaseSnapshot {
-  workerId: string | null;
-  startedAt: string | null;
-  heartbeatAt: string | null;
-  leaseUntil: string | null;
-}
-
-interface DequeueOptions {
-  workerId?: string;
-}
-
-export interface TaskQueueStatusSnapshot {
-  pending: number;
-  running: number;
-  dead: number;
-  staleRunning: number;
-  backlogOldestAgeSeconds: number | null;
-  runningOldestAgeSeconds: number | null;
-  deadOldestAgeSeconds: number | null;
-  reclaimCount: number;
-  recentDeadLetters: Task[];
-}
-
-export interface TaskHandler<T = unknown> {
-  /** Handler name for task type */
-  type: string;
-  /** Process the task, throw on error for retry */
-  handle: (task: Task<T>, signal: AbortSignal) => Promise<void>;
-  /** Optional: called when task exceeds max attempts */
-  onDead?: (task: Task<T>) => Promise<void> | void;
-}
+// Re-export schema types and worker for backward compatibility.
+export {
+  taskQueue,
+  type TaskStatus,
+  type Task,
+  type TaskQueueConfig,
+  type TaskQueueStatusSnapshot,
+  type TaskHandler,
+  type TaskRow,
+} from './task-queue-schema.js';
+export { createTaskWorker } from './task-worker.js';
+export type { TaskWorkerConfig } from './task-worker.js';
 
 // =============================================================================
 // Task Queue Implementation
@@ -646,172 +538,4 @@ export function createTaskQueue(config: TaskQueueConfig) {
     requeue,
     cleanup,
   };
-}
-
-// =============================================================================
-// Worker Implementation
-// =============================================================================
-
-export interface TaskWorkerConfig {
-  pool: Pool;
-  handlers: TaskHandler[];
-  /** Polling interval in ms */
-  pollIntervalMs?: number;
-  /** Maximum concurrent tasks */
-  concurrency?: number;
-  ownsWork?: boolean;
-}
-
-/**
- * Create a task worker that processes tasks from the queue.
- */
-export function createTaskWorker(config: TaskWorkerConfig) {
-  const { pool, handlers, pollIntervalMs = 1000, concurrency = 1, ownsWork = true } = config;
-
-  const queue = createTaskQueue({ pool });
-  const handlerMap = new Map(handlers.map((h) => [h.type, h]));
-  let running = false;
-  const activeTasks = new Set<Promise<void>>();
-  let runPromise: Promise<void> | null = null;
-
-  async function processOneTask(): Promise<boolean> {
-    for (const [type, handler] of handlerMap) {
-      const task = await queue.dequeue(type);
-      if (task) {
-        const controller = new AbortController();
-        // Use a wrapper promise to allow self-reference for cleanup
-        const taskPromise = new Promise<void>((resolve) => {
-          (async () => {
-            try {
-              await handler.handle(task, controller.signal);
-              await queue.complete(task.id);
-              resolve();
-            } catch (error) {
-              const errorMessage = error instanceof Error ? error.message : String(error);
-              await queue.fail(task.id, errorMessage);
-
-              // Check if dead
-              const deadTasks = await queue.getDeadTasks(1);
-              const deadTask = deadTasks.find((t) => t.id === task.id);
-              if (deadTask && handler.onDead) {
-                await handler.onDead(deadTask);
-              }
-              resolve(); // Resolve even on error (error handled via queue.fail)
-            } finally {
-              activeTasks.delete(taskPromise);
-            }
-          })();
-        });
-
-        activeTasks.add(taskPromise);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  async function run(): Promise<void> {
-    if (runPromise) {
-      return runPromise;
-    }
-
-    runPromise = (async () => {
-      running = true;
-
-      while (running) {
-        // Process tasks up to concurrency limit
-        while (activeTasks.size < concurrency) {
-          const processed = await processOneTask();
-          if (!processed) break;
-        }
-
-        // Wait for poll interval or any task to complete
-        if (activeTasks.size >= concurrency || !(await processOneTask())) {
-          await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-        }
-      }
-
-      // Wait for all active tasks to complete
-      await Promise.all(activeTasks);
-    })();
-
-    try {
-      await runPromise;
-    } finally {
-      runPromise = null;
-      running = false;
-    }
-  }
-
-  async function stop(): Promise<void> {
-    running = false;
-    if (runPromise) {
-      await runPromise;
-    }
-  }
-
-  function isRunning(): boolean {
-    return running;
-  }
-
-  function workerOwnsWork(): boolean {
-    return ownsWork;
-  }
-
-  return { run, stop, isRunning, ownsWork: workerOwnsWork };
-}
-
-// =============================================================================
-// Helpers
-// =============================================================================
-
-interface TaskRow {
-  id: string;
-  type: string;
-  payload: string;
-  status: string;
-  priority: number;
-  attempts: number;
-  max_attempts: number;
-  last_error: string | null;
-  dedupe_key: string | null;
-  process_after: Date;
-  worker_id: string | null;
-  started_at: Date | null;
-  heartbeat_at: Date | null;
-  lease_until: Date | null;
-  created_at: Date;
-  updated_at: Date;
-  completed_at: Date | null;
-}
-
-function rowToTask<T>(row: TaskRow): Task<T> {
-  return {
-    id: row.id,
-    type: row.type,
-    payload: JSON.parse(row.payload) as T,
-    status: row.status as TaskStatus,
-    priority: row.priority,
-    attempts: row.attempts,
-    maxAttempts: row.max_attempts,
-    lastError: row.last_error,
-    dedupeKey: row.dedupe_key,
-    processAfter: row.process_after,
-    workerId: row.worker_id,
-    startedAt: row.started_at,
-    heartbeatAt: row.heartbeat_at,
-    leaseUntil: row.lease_until,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    completedAt: row.completed_at,
-  };
-}
-
-function isUniqueViolation(error: unknown): error is { code: string } {
-  return typeof error === 'object' && error !== null && 'code' in error && error.code === '23505';
-}
-
-function parseNullableInt(value: string | null | undefined): number | null {
-  if (value == null) return null;
-  return Number.parseInt(value, 10);
 }
