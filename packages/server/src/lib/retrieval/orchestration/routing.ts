@@ -15,7 +15,7 @@ type ContractsChannel = 'semantic' | 'keyword' | 'graph' | 'capsule' | 'profile'
  * Internal routing decision produced by the strategy selector.
  * Used by the orchestrator for RAG logging and channel tracking.
  */
-interface RetrievalDecision {
+export interface RetrievalDecision {
   selectedMode: RetrievalStrategy;
   routeFamily: 'entry' | 'capsule' | 'graph-plan';
   routingReason: RoutingReason;
