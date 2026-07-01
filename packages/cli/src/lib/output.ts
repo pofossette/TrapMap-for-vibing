@@ -24,7 +24,7 @@ export function printResult<T>(value: T, options: JsonFlag, formatter: (input: T
  * Output a single-line JSON representation.
  * Ensures compact format for machine-readable output.
  */
-export function printJsonLine(value: unknown): void {
+function printJsonLine(value: unknown): void {
   console.log(JSON.stringify(value));
 }
 

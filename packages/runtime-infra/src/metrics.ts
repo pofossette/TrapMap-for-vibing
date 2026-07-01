@@ -283,6 +283,7 @@ export function recordRuntimeBacklog(params: {
   }
 }
 
+// fallow-ignore-next-line unused-export
 export function recordHttpRequestMetric(params: {
   routeFamily: string;
   serviceName: string;
@@ -301,6 +302,7 @@ export function recordHttpRequestMetric(params: {
   observeHistogramMetric('trapmap_runtime_request_duration_ms', labels, params.latencyMs);
 }
 
+// fallow-ignore-next-line unused-export
 export function recordInternalHopMetric(params: {
   serviceName: string;
   targetService: string;

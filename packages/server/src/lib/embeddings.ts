@@ -166,6 +166,7 @@ export async function getEmbeddingsAdapter(): Promise<EmbeddingsAdapter> {
 /**
  * Embedding result with timing metadata.
  */
+// fallow-ignore-next-line unused-type
 export interface EmbeddingResult {
   vector: number[];
   latencyMs: number;
@@ -180,7 +181,7 @@ export interface EmbeddingResult {
  * @param text - Text to embed
  * @returns Embedding result with vector, latency, provider, and cache status
  */
-export async function generateEmbeddingWithMeta(text: string): Promise<EmbeddingResult> {
+async function generateEmbeddingWithMeta(text: string): Promise<EmbeddingResult> {
   const t0 = performance.now();
 
   if (globalProvider) {

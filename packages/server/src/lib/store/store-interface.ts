@@ -7,7 +7,7 @@ export interface SkillShareerStore {
   getPool?(): import('pg').Pool;
 }
 
-export interface PostgresTransactionalStore extends SkillShareerStore {
+interface PostgresTransactionalStore extends SkillShareerStore {
   transactWithPgClient<T>(
     mutator: (data: StoreData, client: import('pg').PoolClient) => Promise<T> | T,
   ): Promise<T>;

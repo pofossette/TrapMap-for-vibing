@@ -37,7 +37,7 @@ const MAX_SNIPPET_LENGTH = 200;
  * - recallChannels: which channels contributed
  * - scores: per-channel scores plus pre-rerank and final scores
  */
-export function buildCitation(candidate: MergedCandidate) {
+function buildCitation(candidate: MergedCandidate) {
   const { entry, semanticScore, keywordScore, graphScore, preRerankScore, finalScore, channels } =
     candidate;
 

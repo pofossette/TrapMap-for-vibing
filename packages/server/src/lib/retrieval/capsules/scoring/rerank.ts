@@ -19,7 +19,7 @@ import type {
 import type { DerivedSkillCapsuleRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import { buildMultiChannelReason } from './reasons.js';
 
-export interface CapsuleDataLookup {
+interface CapsuleDataLookup {
   capsule: DerivedSkillCapsuleRecord;
 }
 

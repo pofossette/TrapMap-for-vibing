@@ -5,9 +5,6 @@
  * that loads config, connects to the database, and boots the server.
  */
 
-export { createServer } from './server.js';
-export { createKnowledgeWriteDeps } from './ports.js';
-
 import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { createServer } from './server.js';

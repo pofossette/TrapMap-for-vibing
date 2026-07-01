@@ -265,9 +265,7 @@ export function rowToSkillArtifact(row: DrizzleSkillArtifactRow): SkillArtifactR
 /**
  * Map a Drizzle revision row to SkillArtifactRevisionRecord.
  */
-export function rowToArtifactRevision(
-  row: DrizzleArtifactRevisionRow,
-): SkillArtifactRevisionRecord {
+function rowToArtifactRevision(row: DrizzleArtifactRevisionRow): SkillArtifactRevisionRecord {
   return {
     revision: row.revision_no,
     sourceHash: row.source_hash,
@@ -279,7 +277,7 @@ export function rowToArtifactRevision(
   };
 }
 
-export function buildDerivedFromStructured(
+function buildDerivedFromStructured(
   data: StructuredRevisionData,
   fallback: ArtifactDerivedRow | null,
 ): ArtifactDerivedRow | null {
@@ -292,7 +290,7 @@ export function buildDerivedFromStructured(
 /**
  * Map a Drizzle lifecycle event row to SkillArtifactLifecycleEventRecord.
  */
-export function rowToArtifactLifecycleEvent(
+function rowToArtifactLifecycleEvent(
   row: DrizzleArtifactLifecycleEventRow,
 ): SkillArtifactLifecycleEventRecord {
   return {

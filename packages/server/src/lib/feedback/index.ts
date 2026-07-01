@@ -7,6 +7,4 @@
 export {
   createFeedbackRepository,
   type FeedbackRepository,
-  InMemoryFeedbackRepository,
 } from './repository.js';
-export { PgFeedbackRepository } from './pg-repository.js';

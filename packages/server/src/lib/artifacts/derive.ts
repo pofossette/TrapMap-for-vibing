@@ -228,7 +228,7 @@ export function deriveSkillArtifactOutputs(
  * @param derived - Derived outputs to apply
  * @returns Updated artifact record
  */
-export function applyDerivedArtifactOutputs(
+function applyDerivedArtifactOutputs(
   artifact: SkillArtifactRecord,
   revision: SkillArtifactRevisionRecord,
   derived: DerivedArtifactOutputs,

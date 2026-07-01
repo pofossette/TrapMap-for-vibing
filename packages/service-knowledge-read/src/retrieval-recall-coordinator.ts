@@ -302,7 +302,7 @@ export async function hybridRecall(
   return { scoredEntries, mergedCandidates: rerankedCandidates };
 }
 
-export async function computeSemanticCandidates(
+async function computeSemanticCandidates(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   filters: RetrievalQuery['filters'],
@@ -319,7 +319,7 @@ export async function computeSemanticCandidates(
   return candidates;
 }
 
-export const GRAPH_SCORE_BOOST_FACTOR = 0.2;
+const GRAPH_SCORE_BOOST_FACTOR = 0.2;
 
 export async function graphAssistedRecall(
   seed: string,
@@ -379,7 +379,7 @@ export async function graphAssistedRecall(
   };
 }
 
-export function mergeCandidatesWithGraph(
+function mergeCandidatesWithGraph(
   hybridMerged: ReturnType<typeof mergeCandidates>,
   graphCandidates: Awaited<ReturnType<typeof graphRecall>>,
 ): MergedCandidate[] {

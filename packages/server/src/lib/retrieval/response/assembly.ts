@@ -54,7 +54,7 @@ type RetrievalMatch = ReturnType<typeof retrievalMatchSchema.parse>;
 /**
  * Generate a human-readable reason for the match.
  */
-export function generateMatchReason(
+function generateMatchReason(
   entry: { labels: string[]; scope: string },
   score: number,
   filters: RetrievalQuery['filters'],

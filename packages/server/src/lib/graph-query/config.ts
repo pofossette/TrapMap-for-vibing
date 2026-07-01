@@ -73,7 +73,7 @@ export function loadGraphDbConfig(): GraphDbConfig {
   return result.data;
 }
 
-export function resolveGraphQueryMode(
+function resolveGraphQueryMode(
   config: GraphDbConfig,
   options: { fallbackActive?: boolean } = {},
 ): GraphQueryMode {

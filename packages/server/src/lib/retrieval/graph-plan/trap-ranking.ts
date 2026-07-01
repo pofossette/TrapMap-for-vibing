@@ -82,10 +82,7 @@ function scoreTrapEntry(intent: ParsedIntent, entry: KnowledgeRecord): number {
   return Math.min(1, baseScore * stackPathBoost);
 }
 
-export function rankTrapCandidates(
-  entries: KnowledgeRecord[],
-  intent: ParsedIntent,
-): RankedTrapSeed[] {
+function rankTrapCandidates(entries: KnowledgeRecord[], intent: ParsedIntent): RankedTrapSeed[] {
   const scored: RankedTrapSeed[] = [];
 
   for (const entry of entries) {

@@ -20,7 +20,7 @@ import type { Pool, PoolClient } from 'pg';
 /**
  * Task queue table using PostgreSQL SKIP LOCKED for concurrent processing.
  */
-export const taskQueue = pgTable(
+const taskQueue = pgTable(
   'task_queue',
   {
     id: text('id').primaryKey(),
@@ -103,7 +103,7 @@ export interface TaskQueueConfig {
   leaseDurationMs?: number;
 }
 
-export interface EnqueueOptions {
+interface EnqueueOptions {
   /** Task priority (higher = more urgent) */
   priority?: number;
   /** Maximum retry attempts */
@@ -114,14 +114,14 @@ export interface EnqueueOptions {
   dedupeKey?: string;
 }
 
-export interface LeaseSnapshot {
+interface LeaseSnapshot {
   workerId: string | null;
   startedAt: string | null;
   heartbeatAt: string | null;
   leaseUntil: string | null;
 }
 
-export interface DequeueOptions {
+interface DequeueOptions {
   workerId?: string;
 }
 

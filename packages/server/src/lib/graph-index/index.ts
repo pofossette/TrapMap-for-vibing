@@ -7,5 +7,4 @@
 export {
   createGraphIndexRepository,
   type GraphIndexRepository,
-  InMemoryGraphIndexRepository,
 } from './repository.js';

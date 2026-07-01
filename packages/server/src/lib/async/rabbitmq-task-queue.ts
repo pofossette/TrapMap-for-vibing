@@ -48,7 +48,7 @@ interface RabbitMqConnectionLike {
   close?(): Promise<unknown> | unknown;
 }
 
-export interface RabbitMqTaskEnvelope<T = unknown> {
+interface RabbitMqTaskEnvelope<T = unknown> {
   id: string;
   type: string;
   payload: T;

@@ -1,5 +1,3 @@
-export { createServer } from './server.js';
-
 import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { createServer } from './server.js';

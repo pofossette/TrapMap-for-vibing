@@ -161,7 +161,7 @@ export async function buildUserLookupContextForKnowledge(
 /**
  * Build an ActorLookupSource from the unified repository object.
  */
-export function createActorLookupSource(repos: {
+function createActorLookupSource(repos: {
   user: UserRepository;
   membership: MembershipRepository;
 }): ActorLookupSource {

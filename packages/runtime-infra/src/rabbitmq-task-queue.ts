@@ -49,6 +49,7 @@ interface RabbitMqConnectionLike {
   close?(): Promise<unknown> | unknown;
 }
 
+// fallow-ignore-next-line unused-type
 export interface RabbitMqTaskEnvelope<T = unknown> {
   id: string;
   type: string;

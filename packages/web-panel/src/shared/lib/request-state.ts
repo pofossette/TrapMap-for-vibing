@@ -65,6 +65,6 @@ export function createErrorRequestState<T>(
   };
 }
 
-export function isRequestSettled(status: RequestStatus): boolean {
+function isRequestSettled(status: RequestStatus): boolean {
   return status === 'success' || status === 'error';
 }

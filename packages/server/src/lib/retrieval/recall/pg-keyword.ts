@@ -37,7 +37,7 @@ export interface KeywordRecallFilters {
   scopes: string[];
 }
 
-export interface KeywordRecallResult {
+interface KeywordRecallResult {
   entryId: string;
   score: number;
   tokenMatches: TokenMatchDetail[];

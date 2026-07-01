@@ -54,7 +54,7 @@ type RetrievalMatch = ReturnType<typeof retrievalMatchSchema.parse>;
 /**
  * Generate a human-readable reason for the match.
  */
-export function generateMatchReason(
+function generateMatchReason(
   entry: { labels: string[]; scope: string },
   score: number,
   filters: RetrievalQuery['filters'],
@@ -181,7 +181,7 @@ export function buildEmptyResponse(): RetrievalResponse {
  * @param conflicts - Optional conflict hints for the capsule
  * @returns CapsuleMatch for v2 response
  */
-export function buildCapsuleMatch(
+function buildCapsuleMatch(
   capsule: DerivedSkillCapsuleRecord,
   candidate: CapsuleCandidate,
   conflicts?: ConflictHint[],
@@ -212,7 +212,7 @@ export function buildCapsuleMatch(
  * @param artifact - Skill artifact record (partial with needed fields)
  * @returns ProfileHint for v2 response
  */
-export function buildProfileHint(
+function buildProfileHint(
   artifact: Pick<SkillArtifactRecord, 'id' | 'title' | 'slug' | 'labels'>,
 ): ProfileHint {
   return profileHintSchema.parse({
@@ -237,7 +237,7 @@ export function buildProfileHint(
  * @param activationHints - Optional activation hints per capsule
  * @returns v2 retrieval response
  */
-export function buildV2RetrievalResponse(
+function buildV2RetrievalResponse(
   capsules: CapsuleMatch[],
   profileHints: ProfileHint[],
   summary?: RetrievalSummary | null,
@@ -258,7 +258,7 @@ export function buildV2RetrievalResponse(
 /**
  * Build an empty v2 retrieval response when no matches are found.
  */
-export function buildEmptyV2Response(): RetrievalV2Response {
+function buildEmptyV2Response(): RetrievalV2Response {
   return retrievalV2ResponseSchema.parse({
     capsules: [],
     profileHints: [],
@@ -282,7 +282,7 @@ export function buildEmptyV2Response(): RetrievalV2Response {
  * @param ref - Client manifest reference record
  * @returns ReadNextReferenceHint for activation guidance
  */
-export function buildReadNextHint(
+function buildReadNextHint(
   artifactId: string,
   revision: number,
   ref: ClientManifestRecord['references'][number],
@@ -304,7 +304,7 @@ export function buildReadNextHint(
  * @param asset - Client manifest asset record
  * @returns AssetAvailabilityHint for activation guidance
  */
-export function buildAssetHint(
+function buildAssetHint(
   artifactId: string,
   revision: number,
   asset: ClientManifestRecord['assets'][number],
@@ -328,7 +328,7 @@ export function buildAssetHint(
  * @param script - Client manifest script record
  * @returns ScriptProfileHint for activation guidance
  */
-export function buildScriptHint(
+function buildScriptHint(
   artifactId: string,
   revision: number,
   script: ClientManifestRecord['scripts'][number],
@@ -354,7 +354,7 @@ export function buildScriptHint(
  * @param manifest - Client manifest from artifact's latest revision (may be null)
  * @returns CapsuleActivationHints for the capsule
  */
-export function buildActivationHints(
+function buildActivationHints(
   capsule: CapsuleMatch,
   manifest: ClientManifestRecord | null,
 ): CapsuleActivationHints {
@@ -402,7 +402,7 @@ export function buildActivationHints(
  * @param artifacts - Skill artifacts with manifests
  * @returns Array of activation hints, one per capsule (empty if no manifest)
  */
-export function buildAllActivationHints(
+function buildAllActivationHints(
   capsules: CapsuleMatch[],
   artifacts: SkillArtifactRecord[],
 ): CapsuleActivationHints[] {

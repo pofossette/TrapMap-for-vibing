@@ -7,7 +7,7 @@ export interface ConflictRepository {
   listAll(): Promise<ConflictRelation[]>;
 }
 
-export class InMemoryConflictRepository implements ConflictRepository {
+class InMemoryConflictRepository implements ConflictRepository {
   constructor(private readonly store: SkillShareerStore) {}
 
   async listAll(): Promise<ConflictRelation[]> {

@@ -17,7 +17,7 @@ import type {
   GraphQueryRuntimeState,
 } from './backend.js';
 
-export class MemoryGraphQueryBackend implements GraphQueryBackend {
+class MemoryGraphQueryBackend implements GraphQueryBackend {
   readonly kind = 'memory' as const;
 
   constructor(private readonly graphIndexRepo: GraphIndexRepository) {}

@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 
-export type Language = 'cn' | 'en';
+type Language = 'cn' | 'en';
 
-export const translations = {
+const translations = {
   cn: {
     // Shell & Nav
     dashboard: '控制台',

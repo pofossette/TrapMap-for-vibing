@@ -6,7 +6,7 @@ import { AppError } from './errors.js';
 
 const ALL_PERMISSIONS = [...permissionSchema.options];
 
-export const ROLE_TEMPLATE_PERMISSIONS: Record<RoleTemplate, Permission[]> = {
+const ROLE_TEMPLATE_PERMISSIONS: Record<RoleTemplate, Permission[]> = {
   user: ['session:read', 'team:list', 'team:select', 'knowledge:submit', 'knowledge:search'],
   admin: [...ALL_PERMISSIONS],
   'system-admin': [...ALL_PERMISSIONS],
@@ -19,7 +19,7 @@ export function resolveEffectivePermissions(
   return [...new Set([...ROLE_TEMPLATE_PERMISSIONS[roleTemplate], ...explicitPermissions])];
 }
 
-export function hasPermission(auth: ResolvedAuthContext, permission: Permission): boolean {
+function hasPermission(auth: ResolvedAuthContext, permission: Permission): boolean {
   return auth.effectivePermissions.includes(permission);
 }
 

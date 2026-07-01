@@ -205,7 +205,7 @@ export const vectorIndexAdapter: VectorIndexAdapter = {
 /**
  * Upsert vector index for a knowledge entry (wrapper function).
  */
-export async function upsertVectorIndex(
+async function upsertVectorIndex(
   entry: KnowledgeRecord,
   document: NormalizedIndexDocument,
 ): Promise<IndexSyncResult> {
@@ -215,7 +215,7 @@ export async function upsertVectorIndex(
 /**
  * Remove vector index for a knowledge entry (wrapper function).
  */
-export async function removeVectorIndex(entry: KnowledgeRecord, ref: EntryRef): Promise<void> {
+async function removeVectorIndex(entry: KnowledgeRecord, ref: EntryRef): Promise<void> {
   return vectorIndexAdapter.removeLegacy(entry, ref);
 }
 
@@ -223,11 +223,11 @@ export async function removeVectorIndex(entry: KnowledgeRecord, ref: EntryRef): 
  * Get vector payload from entry's embedding cache.
  * Returns null if the entry has not been synced.
  */
-export function getVectorPayload(entry: KnowledgeRecord): number[] | null {
+function getVectorPayload(entry: KnowledgeRecord): number[] | null {
   return entry.embeddingCache?.vector || null;
 }
 
 /**
  * Vector index payload type.
  */
-export type VectorIndexPayload = number[];
+type VectorIndexPayload = number[];

@@ -397,10 +397,7 @@ export function findEntriesByContext(
  * @param packageName - The package name to search for (e.g., 'react')
  * @returns Set of source entry IDs that require this package
  */
-export function findEntriesByPackage(
-  runtime: GraphRuntimeSnapshot,
-  packageName: string,
-): Set<string> {
+function findEntriesByPackage(runtime: GraphRuntimeSnapshot, packageName: string): Set<string> {
   const normalizedPkg = packageName.toLowerCase();
   const result = new Set<string>();
 
@@ -424,7 +421,7 @@ export function findEntriesByPackage(
  * @param constraints - Boundary constraints to match
  * @returns Set of source entry IDs matching all constraints
  */
-export function findEntriesByBoundaryConstraints(
+function findEntriesByBoundaryConstraints(
   runtime: GraphRuntimeSnapshot,
   constraints: {
     contexts?: string[];

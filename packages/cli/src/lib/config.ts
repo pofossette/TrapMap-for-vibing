@@ -159,7 +159,7 @@ export async function loadCliState(): Promise<CliState> {
   }
 }
 
-export async function saveCliState(state: CliState): Promise<void> {
+async function saveCliState(state: CliState): Promise<void> {
   const configPath = getConfigPath();
   await mkdir(path.dirname(configPath), { recursive: true });
   const persistedState = {

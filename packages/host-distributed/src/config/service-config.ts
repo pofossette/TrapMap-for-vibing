@@ -126,17 +126,16 @@ function buildInternalUrls(hosts: Record<ServiceName, string>): InternalServiceU
   };
 }
 
+// fallow-ignore-next-line unused-type
 export type ServiceDiscoveryMode = 'localhost-defaults' | 'docker-dns';
 
-export function resolveServiceDiscoveryMode(): ServiceDiscoveryMode {
+function resolveServiceDiscoveryMode(): ServiceDiscoveryMode {
   return process.env[ENV_DEPLOYMENT_PROFILE] === 'distributed'
     ? 'docker-dns'
     : 'localhost-defaults';
 }
 
-export function resolveDefaultInternalUrls(
-  mode = resolveServiceDiscoveryMode(),
-): InternalServiceUrls {
+function resolveDefaultInternalUrls(mode = resolveServiceDiscoveryMode()): InternalServiceUrls {
   return mode === 'docker-dns' ? distributedInternalUrls() : defaultInternalUrls();
 }
 

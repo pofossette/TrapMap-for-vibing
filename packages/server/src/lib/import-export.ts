@@ -358,7 +358,7 @@ export function createImportedEntry(args: {
  * Migration provenance record linking artifacts to legacy entries.
  * Stored on artifact metadata to trace migration source.
  */
-export interface LegacyMigrationProvenance {
+interface LegacyMigrationProvenance {
   /** Source legacy entry ID */
   sourceEntryId: string;
   /** Original lifecycle state at migration time */
@@ -374,7 +374,7 @@ export interface LegacyMigrationProvenance {
  * Normalizes shortcut as title and detail as body.
  * T-16-01 mitigation: preserves labels, scope, requiredLevel without inventing content.
  */
-export function buildMinimalSkillMdContent(args: {
+function buildMinimalSkillMdContent(args: {
   shortcut: string;
   detail: string;
   labels: string[];

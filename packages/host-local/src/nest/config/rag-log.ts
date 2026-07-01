@@ -21,6 +21,7 @@ export interface PipelineStep {
   error?: string;
 }
 
+// fallow-ignore-next-line unused-type
 export interface RagLogEntry {
   timestamp: string;
   queryId: string;
@@ -54,7 +55,7 @@ function formatDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export async function logRagRetrieval(config: RagLogConfig, entry: RagLogEntry): Promise<void> {
+async function logRagRetrieval(config: RagLogConfig, entry: RagLogEntry): Promise<void> {
   if (!config.enabled) {
     return;
   }

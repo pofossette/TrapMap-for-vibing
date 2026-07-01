@@ -1,3 +1,4 @@
+// fallow-ignore-next-line unused-type
 export type { OperationsCommandOptions } from './types.js';
 export { registerListCommand } from './list.js';
 export { registerEditCommand } from './edit.js';

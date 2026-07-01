@@ -56,7 +56,7 @@ export class CapsuleChannelRegistry {
  * Create a CapsuleChannelRegistry with the default heuristic channel pre-registered.
  * This provides the backward-compatible Phase 1 configuration.
  */
-export function createDefaultCapsuleChannelRegistry(): CapsuleChannelRegistry {
+function createDefaultCapsuleChannelRegistry(): CapsuleChannelRegistry {
   const registry = new CapsuleChannelRegistry();
   registry.register(capsuleHeuristicChannel);
   return registry;

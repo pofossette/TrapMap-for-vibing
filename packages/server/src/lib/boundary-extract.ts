@@ -72,14 +72,14 @@ Labels: ${input.labels.join(', ')}`;
  */
 export type EvidenceQuality = 'strong' | 'moderate' | 'weak' | 'none';
 
-export const evidenceQualitySchema = z.enum(['strong', 'moderate', 'weak', 'none']);
+const evidenceQualitySchema = z.enum(['strong', 'moderate', 'weak', 'none']);
 
-export const correctnessAssessmentSchema = z.object({
+const correctnessAssessmentSchema = z.object({
   evidenceQuality: evidenceQualitySchema,
   reasoning: z.string().max(500),
 });
 
-export const completenessAssessmentSchema = z.object({
+const completenessAssessmentSchema = z.object({
   isComplete: z.boolean(),
   missingAspects: z.array(z.string().max(200)).max(10),
 });
@@ -99,7 +99,7 @@ export interface BoundaryWithQuality {
  * Validates the full JSON output from extractCandidateBoundariesWithQuality,
  * including boundary constraints and quality assessment fields.
  */
-export const boundaryWithQualityLlmSchema = z.object({
+const boundaryWithQualityLlmSchema = z.object({
   // Boundary fields (same structure as boundarySchema but validated separately)
   context: z.array(z.string().min(1).max(64)).max(10).default([]),
   versions: z

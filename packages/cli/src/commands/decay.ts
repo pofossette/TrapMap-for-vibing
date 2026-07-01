@@ -39,7 +39,7 @@ export function formatDecayList(data: DecayEntryListResponse): string {
 /**
  * Formats a batch operation response for human-readable output.
  */
-export function formatBatchResult(data: BatchOperationResponse): string {
+function formatBatchResult(data: BatchOperationResponse): string {
   const lines: string[] = [];
   const mode = data.dryRun ? 'DRY RUN - ' : '';
   lines.push(`${mode}Action: ${data.action}`);

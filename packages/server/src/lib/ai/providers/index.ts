@@ -21,16 +21,6 @@ import type {
 } from './types.js';
 
 // Re-export types so consumers can import everything from './providers/index.js'
-export type {
-  AiPromptProvider,
-  AiPromptFormat,
-  ProviderConfig,
-  ProviderCacheStrategy,
-  CacheSection,
-  CacheBoundaryMarker,
-  PromptSlots,
-  AiPromptTaskType,
-};
 
 export { PROVIDER_CONFIGS, ALL_PROVIDERS };
 

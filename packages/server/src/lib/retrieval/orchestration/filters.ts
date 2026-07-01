@@ -62,7 +62,7 @@ function toGovernedEntity(entry: KnowledgeRecord) {
  * @param filters - Query filters (scopes, labels)
  * @returns true if entry is eligible for retrieval
  */
-export function isEntryEligible(
+function isEntryEligible(
   entry: KnowledgeRecord,
   auth: ResolvedAuthContext,
   filters: RetrievalQuery['filters'],

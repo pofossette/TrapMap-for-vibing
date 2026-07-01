@@ -14,7 +14,7 @@ export function buildEmbeddingText(entry: KnowledgeRecord): string {
   return `${entry.shortcut}\n${entry.detail}\n${labelsText}`.trim();
 }
 
-export function computeLexicalIntentBoost(seed: string, entry: KnowledgeRecord): number {
+function computeLexicalIntentBoost(seed: string, entry: KnowledgeRecord): number {
   const queryTokens = normalizeQuery(seed);
   if (queryTokens.length === 0) return 0;
 
@@ -29,7 +29,7 @@ export function computeLexicalIntentBoost(seed: string, entry: KnowledgeRecord):
   return Math.min(0.55, baseBoost);
 }
 
-export function cosineSimilarity(a: number[], b: number[]): number {
+function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) {
     throw new Error('Vector dimensions must match');
   }
@@ -82,7 +82,7 @@ export function computeScore(
   return score;
 }
 
-export async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[]> {
+async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[]> {
   const text = buildEmbeddingText(entry);
   const textHash = hashEmbeddingText(text);
 
@@ -161,7 +161,7 @@ function getCachedEmbedding(entry: KnowledgeRecord): number[] | null {
   return null;
 }
 
-export async function getBatchEmbeddings(
+async function getBatchEmbeddings(
   entries: KnowledgeRecord[],
 ): Promise<{ embeddings: Map<string, BatchEmbeddingResult>; stats: BatchCacheStats }> {
   const embeddings = new Map<string, BatchEmbeddingResult>();

@@ -32,7 +32,7 @@ export function createAuditEvent(args: CreateAuditEventArgs) {
   };
 }
 
-export function toAuditEvent(
+function toAuditEvent(
   record: {
     id: string;
     teamId: string | null;

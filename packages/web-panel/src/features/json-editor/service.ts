@@ -1,7 +1,5 @@
 import type { ManualJsonEditInput } from '@trapmap/web-panel/shared/enum-types';
-import { buildJsonDraftState, prettyPrintJson } from '@trapmap/web-panel/shared/lib/json-editor';
-
-export { buildJsonDraftState };
+import { prettyPrintJson } from '@trapmap/web-panel/shared/lib/json-editor';
 
 export function formatJsonDraft(text: string): { error: string | null; value: string } {
   return prettyPrintJson(text);

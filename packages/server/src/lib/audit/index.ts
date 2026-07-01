@@ -8,6 +8,4 @@
 export {
   createAuditRepository,
   type AuditRepository,
-  InMemoryAuditRepository,
 } from './repository.js';
-export { PgAuditRepository } from './pg-repository.js';

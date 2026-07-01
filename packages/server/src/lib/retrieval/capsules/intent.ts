@@ -116,7 +116,7 @@ const PATH_PATTERN = /[\w/-]+\.[\w]+/g;
  * @param token - The raw token text
  * @returns Normalized token with metadata
  */
-export function normalizeToken(token: string): NormalizedToken {
+function normalizeToken(token: string): NormalizedToken {
   const normalized = token.toLowerCase();
   const isTechnical = RECOGNIZED_STACKS.has(normalized) || PATH_PATTERN.test(normalized);
 
@@ -133,7 +133,7 @@ export function normalizeToken(token: string): NormalizedToken {
  * @param text - Normalized text to analyze
  * @returns Array of stack/path hints with confidence scores
  */
-export function extractStackPathHints(text: string): StackPathHint[] {
+function extractStackPathHints(text: string): StackPathHint[] {
   const hints: StackPathHint[] = [];
   // Split by whitespace and strip punctuation from tokens
   const tokens = text
@@ -203,7 +203,7 @@ function detectError(seed: string): string | null {
  * @param seed - The natural-language seed string
  * @returns Parsed intent with situation, problem, goal, errorText, tokens, and hints
  */
-export function parseSeedIntent(seed: string): ParsedIntent {
+function parseSeedIntent(seed: string): ParsedIntent {
   // Handle empty seed
   if (!seed || seed.trim().length === 0) {
     return {
@@ -248,7 +248,7 @@ export function parseSeedIntent(seed: string): ParsedIntent {
   };
 }
 
-export const INTENT_CATEGORY_VALUES = [
+const INTENT_CATEGORY_VALUES = [
   'debugging',
   'configuration',
   'deployment',

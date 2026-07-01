@@ -94,7 +94,7 @@ const workerOnlyUnsupportedRoutes: readonly UnsupportedRouteDescriptor[] = [
   },
 ] as const;
 
-export function resolveRouteFamilies(
+function resolveRouteFamilies(
   routeSurface: DeploymentRouteSurface,
   supportsReviewGovernance: boolean,
 ): RouteFamilyDescriptor[] {

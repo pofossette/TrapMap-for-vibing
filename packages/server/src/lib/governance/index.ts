@@ -7,27 +7,11 @@
  * @module governance
  */
 
-// Types
-export type {
-  GovernanceContext,
-  GovernedEntity,
-  GovernanceFilters,
-  EligibilityOptions,
-} from './types.js';
-
 // Eligibility functions
 export {
   isGovernanceEligible,
   matchesGovernanceFilters,
-  isGovernedEntityAccessible,
-  filterGovernedEntities,
 } from './eligibility.js';
 
 // Permission helpers
-export {
-  extractGovernanceContext,
-  hasPermission,
-  requirePermission,
-  requireTeamAccess,
-  requireHigherLevel,
-} from './permissions.js';
+export { extractGovernanceContext } from './permissions.js';

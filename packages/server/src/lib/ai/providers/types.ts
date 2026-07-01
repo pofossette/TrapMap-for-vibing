@@ -81,6 +81,7 @@ export interface CacheSection {
   readonly cacheScope: 'global' | 'org' | null;
 }
 
+// fallow-ignore-next-line unused-type
 export interface CacheBoundaryMarker {
   /** Byte offset where the boundary is inserted. */
   readonly position: number;

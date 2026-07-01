@@ -21,7 +21,6 @@ export {
   splitPromptByBoundary,
   insertBoundaryMarker,
 } from './boundary-marker.js';
-export type { BoundarySplit } from './boundary-marker.js';
 
 // Cache metrics
 export {
@@ -30,11 +29,9 @@ export {
   getCacheMetrics,
   resetCacheMetrics,
 } from './metrics.js';
-export type { CacheMetrics, CacheMissReason } from './metrics.js';
 
 // API cache control integration
 export {
   buildCacheControlForSection,
   buildSystemPromptBlocks,
 } from './api-integration.js';
-export type { CacheControlHeader, PromptBlock } from './api-integration.js';

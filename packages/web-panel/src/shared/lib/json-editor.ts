@@ -46,7 +46,7 @@ export function isDirtyJsonDraft(originalText: string, draftText: string): boole
   return normalizeJsonText(originalText) !== normalizeJsonText(draftText);
 }
 
-export function normalizeJsonText(text: string): string {
+function normalizeJsonText(text: string): string {
   return text.trim().replace(/\r\n/g, '\n');
 }
 

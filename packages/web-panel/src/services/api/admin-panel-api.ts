@@ -114,9 +114,7 @@ export function createAdminPanelApi(client: HttpClient): AdminPanelApiContract {
   };
 }
 
-export function buildReviewQueueRequest(
-  request?: Partial<ReviewQueueRequest>,
-): Partial<ReviewQueueQuery> {
+function buildReviewQueueRequest(request?: Partial<ReviewQueueRequest>): Partial<ReviewQueueQuery> {
   if (!request) {
     return {};
   }

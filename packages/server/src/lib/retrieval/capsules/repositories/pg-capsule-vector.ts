@@ -170,7 +170,7 @@ export async function ensureCapsuleVectorIndex(pool: Pool): Promise<boolean> {
 /**
  * Drop the HNSW index if it exists.
  */
-export async function dropCapsuleVectorIndex(pool: Pool): Promise<void> {
+async function dropCapsuleVectorIndex(pool: Pool): Promise<void> {
   await pool.query(`
     DROP INDEX IF EXISTS idx_capsule_embeddings_vector_hnsw
   `);

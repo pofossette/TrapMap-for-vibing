@@ -16,10 +16,7 @@ import type { SkillArtifactRevisionRecord } from '@trapmap/server/lib/store.js';
 /**
  * Validate that derived data references match the parent artifact and revision.
  */
-export function assertDerivedConsistency(
-  artifactId: string,
-  revision: SkillArtifactRevisionRecord,
-): void {
+function assertDerivedConsistency(artifactId: string, revision: SkillArtifactRevisionRecord): void {
   const revNo = revision.revision;
   const derived = revision.derived;
   if (!derived) return;

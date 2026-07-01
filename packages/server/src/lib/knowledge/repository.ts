@@ -16,11 +16,6 @@
 import type { LifecycleState } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
-import {
-  createKnowledgeEntryRecord,
-  toKnowledgeEntry,
-  toKnowledgeListItem,
-} from '@trapmap/server/lib/knowledge.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
 import type {
   EmbeddingCacheRecord,
@@ -137,7 +132,7 @@ export interface KnowledgeRepository {
  * In-memory repository that uses JsonStore for all operations.
  * Used when no PostgreSQL pool is available (tests, local dev).
  */
-export class InMemoryKnowledgeRepository implements KnowledgeRepository {
+class InMemoryKnowledgeRepository implements KnowledgeRepository {
   constructor(private readonly store: SkillShareerStore) {}
 
   async nextId(): Promise<string> {
@@ -382,6 +377,3 @@ export async function saveKnowledgeEntry(
   }
   throw new Error('KnowledgeRepository.save() is required for this workflow');
 }
-
-// Re-export types and functions for convenience
-export { createKnowledgeEntryRecord, toKnowledgeEntry, toKnowledgeListItem };

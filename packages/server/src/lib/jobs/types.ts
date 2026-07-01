@@ -2,7 +2,7 @@ import type { LifecycleState } from '@trapmap/contracts';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 import type { WorkflowType } from '@trapmap/server/lib/workflows/types.js';
 
-export const CANDIDATE_PROCESSING_TASK_TYPE = 'candidate_processing';
+const CANDIDATE_PROCESSING_TASK_TYPE = 'candidate_processing';
 export const KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE = 'knowledge.index-follow-up';
 export const SKILL_INDEX_FOLLOW_UP_TASK_TYPE = 'skill.index-follow-up';
 export const REMEDIATION_REACTIVATION_TASK_TYPE = 'feedback.remediation-reactivation';

@@ -14,7 +14,7 @@ export function loadRotationConfig(): RotationConfig {
   };
 }
 
-export async function getFileSize(filepath: string): Promise<number> {
+async function getFileSize(filepath: string): Promise<number> {
   try {
     const stats = await stat(filepath);
     return stats.size;
@@ -26,7 +26,7 @@ export async function getFileSize(filepath: string): Promise<number> {
   }
 }
 
-export async function rotateFile(filepath: string, maxBackupFiles: number): Promise<void> {
+async function rotateFile(filepath: string, maxBackupFiles: number): Promise<void> {
   try {
     const oldestBackup = `${filepath}.${maxBackupFiles}`;
     try {

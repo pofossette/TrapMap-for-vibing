@@ -33,7 +33,7 @@ export async function submitReviewDecision(
   return mapReviewDetail(response.entry);
 }
 
-export async function saveManualJsonEdit(
+async function saveManualJsonEdit(
   api: AdminPanelApiContract,
   input: ManualJsonEditInput,
 ): Promise<{ savedAt: string }> {

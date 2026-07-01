@@ -12,6 +12,7 @@ import type { CliState } from './config.js';
 // ---------------------------------------------------------------------------
 
 export { ClientApiError as ApiError };
+// fallow-ignore-next-line unused-type
 export type { ClientApiResponse as ApiResponse };
 
 /** CLI-level request options (backward compatible with the pre-extraction shape). */

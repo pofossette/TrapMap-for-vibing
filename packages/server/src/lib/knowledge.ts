@@ -36,7 +36,7 @@ export interface UserLookupContext {
 }
 
 /** Round 2: Build UserLookupContext from StoreData for callers that still use store_snapshot. */
-export function buildUserLookupFromStoreData(data: StoreData): UserLookupContext {
+function buildUserLookupFromStoreData(data: StoreData): UserLookupContext {
   return {
     users: data.users,
     memberships: data.memberships,
@@ -337,7 +337,7 @@ type ReviewEvidenceInput = Omit<EvidenceMeta, 'verifiedAt' | 'verifiedBy'> & {
   verifiedBy?: EvidenceMeta['verifiedBy'];
 };
 
-export function resubmitKnowledgeEntry(args: {
+function resubmitKnowledgeEntry(args: {
   entry: KnowledgeRecord;
   ownerUserId: string;
   payload: KnowledgeResubmission;
@@ -493,7 +493,7 @@ export function applyReviewDecision(args: {
   return args.entry;
 }
 
-export function updateKnowledgeEntry(args: {
+function updateKnowledgeEntry(args: {
   entry: KnowledgeRecord;
   modifierUserId: string;
   payload: {

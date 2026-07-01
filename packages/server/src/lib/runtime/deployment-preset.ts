@@ -8,12 +8,13 @@ export type DeploymentPreset =
   | 'governance-worker'
   | 'outbox-worker';
 
+// fallow-ignore-next-line unused-type
 export interface ResolvedDeploymentPreset {
   runtimeMode: RuntimeMode;
   serviceUnit: ServiceUnit;
 }
 
-export function resolveDeploymentPreset(
+function resolveDeploymentPreset(
   preset: DeploymentPreset | undefined,
 ): ResolvedDeploymentPreset | null {
   switch (preset) {

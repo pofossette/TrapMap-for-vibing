@@ -28,6 +28,7 @@ export type UserOpsAction =
   | 'maintenance-batch'
   | 'reconcile-knowledge-indexes';
 
+// fallow-ignore-next-line unused-type
 export interface UserOpsLogEntry {
   timestamp: string;
   actorId: string;
@@ -59,7 +60,7 @@ function formatDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export async function logUserOperation(
+async function logUserOperation(
   config: UserOpsLogConfig,
   entry: UserOpsLogEntry,
 ): Promise<void> {

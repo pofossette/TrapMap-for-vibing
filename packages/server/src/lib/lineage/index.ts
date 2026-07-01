@@ -7,5 +7,4 @@
 export {
   createLineageRepository,
   type LineageRepository,
-  InMemoryLineageRepository,
 } from './repository.js';

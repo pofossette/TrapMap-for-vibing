@@ -13,4 +13,3 @@ export {
   type MembershipRepository,
   InMemoryMembershipRepository,
 } from './repository.js';
-export { PgTeamRepository, PgMembershipRepository } from './pg-repository.js';

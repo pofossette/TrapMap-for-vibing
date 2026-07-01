@@ -66,9 +66,7 @@ export function buildSharedJobHandlersContract(
   };
 }
 
-export function createSharedJobHandlers(
-  args: SharedJobHandlerDependencies,
-): TaskHandler<unknown>[] {
+function createSharedJobHandlers(args: SharedJobHandlerDependencies): TaskHandler<unknown>[] {
   const contract = buildSharedJobHandlersContract(args);
   return [
     contract.knowledgeIndexFollowUp,

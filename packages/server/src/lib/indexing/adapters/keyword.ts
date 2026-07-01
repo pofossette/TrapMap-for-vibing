@@ -36,6 +36,7 @@ export type KeywordIndexAdapter = IndexAdapter & {
  * Persisted keyword state for query-time reuse.
  * Contains normalized tokens and per-field token sets.
  */
+// fallow-ignore-next-line unused-type
 export interface PersistedKeywordState {
   /** Normalized tokens (lowercase, deduplicated) */
   tokens: string[];
@@ -53,7 +54,7 @@ export interface PersistedKeywordState {
  * Index state for keyword adapter including persisted state.
  * Extends the base index state with an optional persistedState field.
  */
-export interface IndexStateKeyword {
+interface IndexStateKeyword {
   status: 'pending' | 'synced' | 'failed';
   revision: number;
   contentHash: string;
@@ -247,7 +248,7 @@ export const keywordIndexAdapter: KeywordIndexAdapter = createKeywordAdapter();
  * Legacy upsert method for backward compatibility.
  * This method mutates the entry directly and is used by non-pipeline code.
  */
-export async function upsertKeywordIndex(
+async function upsertKeywordIndex(
   entry: KnowledgeRecord,
   document: NormalizedIndexDocument,
 ): Promise<IndexSyncResult> {
@@ -342,7 +343,7 @@ export async function upsertKeywordIndex(
 /**
  * Legacy remove method for backward compatibility.
  */
-export async function removeKeywordIndex(
+async function removeKeywordIndex(
   entry: KnowledgeRecord,
   ref: { entryId: string; revision: number },
 ): Promise<void> {
@@ -356,7 +357,7 @@ export async function removeKeywordIndex(
  * @param entry - The knowledge entry
  * @returns Persisted keyword state or null
  */
-export function getIndexedKeywordTokens(entry: KnowledgeRecord): PersistedKeywordState | null {
+function getIndexedKeywordTokens(entry: KnowledgeRecord): PersistedKeywordState | null {
   if (entry.indexState?.adapters?.keyword?.status === 'synced') {
     return (entry.indexState.adapters.keyword as IndexStateKeyword).persistedState || null;
   }
@@ -369,11 +370,11 @@ export function getIndexedKeywordTokens(entry: KnowledgeRecord): PersistedKeywor
  * @param entry - The knowledge entry
  * @returns true if the entry has synced keyword tokens
  */
-export function hasIndexedKeywordTokens(entry: KnowledgeRecord): boolean {
+function hasIndexedKeywordTokens(entry: KnowledgeRecord): boolean {
   return entry.indexState?.adapters?.keyword?.status === 'synced';
 }
 
 /**
  * Keyword index payload type.
  */
-export type KeywordIndexPayload = PersistedKeywordState;
+type KeywordIndexPayload = PersistedKeywordState;

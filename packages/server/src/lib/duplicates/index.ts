@@ -7,5 +7,4 @@
 export {
   createDuplicateRepository,
   type DuplicateRepository,
-  InMemoryDuplicateRepository,
 } from './repository.js';

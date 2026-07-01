@@ -234,7 +234,7 @@ export function loadConfig(): HostLocalConfig {
   return result.data as HostLocalConfig;
 }
 
-export function buildConfigFingerprint(config: HostLocalConfig): string {
+function buildConfigFingerprint(config: HostLocalConfig): string {
   return createHash('sha256')
     .update(
       JSON.stringify({

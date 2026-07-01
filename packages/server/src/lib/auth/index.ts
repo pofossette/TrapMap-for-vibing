@@ -12,4 +12,3 @@ export {
   createSessionRepository,
   createAccessKeyRepository,
 } from './repository.js';
-export { PgSessionRepository, PgAccessKeyRepository } from './pg-repository.js';

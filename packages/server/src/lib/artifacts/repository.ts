@@ -123,7 +123,7 @@ export interface ArtifactRepository {
  * In-memory repository that uses JsonStore for all operations.
  * Used when no PostgreSQL pool is available (tests, local dev).
  */
-export class InMemoryArtifactRepository implements ArtifactRepository {
+class InMemoryArtifactRepository implements ArtifactRepository {
   constructor(private readonly store: SkillShareerStore) {}
 
   async nextId(): Promise<string> {

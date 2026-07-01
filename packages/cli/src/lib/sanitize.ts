@@ -11,6 +11,6 @@ export function sanitizeForDisplay(text: string): string {
   return stripAnsi(stripNewlines(text));
 }
 
-export function formatOptionalSuffix(value: string | null | undefined): string {
+function formatOptionalSuffix(value: string | null | undefined): string {
   return value != null ? ` (${sanitizeForDisplay(value)})` : '';
 }

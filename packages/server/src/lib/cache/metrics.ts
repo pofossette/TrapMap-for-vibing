@@ -1,10 +1,5 @@
 export { getRetrievalCacheStats } from './retrieval-cache.js';
 export type { CacheStats } from './retrieval-cache.js';
-export {
-  getCacheFreshnessSnapshot,
-  resetCacheFreshnessForTests,
-} from './invalidation.js';
-export type { CacheFreshnessSnapshot, CacheInvalidationEvent } from './invalidation.js';
 
 import { getCacheFreshnessSnapshot } from './invalidation.js';
 import { type CacheStats, getRetrievalCacheStats } from './retrieval-cache.js';

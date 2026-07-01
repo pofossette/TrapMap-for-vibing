@@ -15,7 +15,7 @@ import type { TransitionDefinition } from './types.js';
  * Every valid (from, to) pair from VALID_TRANSITIONS has an entry here.
  * Event names follow the pattern: knowledge.<action>
  */
-export const TRANSITIONS: TransitionDefinition[] = [
+const TRANSITIONS: TransitionDefinition[] = [
   // Submit
   { from: 'draft', to: 'submitted', event: 'knowledge.submitted' },
   // Agent review

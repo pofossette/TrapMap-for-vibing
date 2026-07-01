@@ -10,4 +10,3 @@ export {
   type UserRepository,
   InMemoryUserRepository,
 } from './repository.js';
-export { PgUserRepository } from './pg-repository.js';

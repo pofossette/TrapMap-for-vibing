@@ -46,7 +46,7 @@ export interface SubmissionDeps {
   config: SkillShareerServices['config'];
 }
 
-export function createCandidateQueuePort(queue: AsyncTaskTransport): CandidateQueuePort {
+function createCandidateQueuePort(queue: AsyncTaskTransport): CandidateQueuePort {
   return {
     async enqueue(payload) {
       await queue.enqueue(CANDIDATE_PROCESSING_TASK_TYPE, payload, {
@@ -63,7 +63,7 @@ export function createCandidateQueuePort(queue: AsyncTaskTransport): CandidateQu
   };
 }
 
-export function createImmediateCandidateQueuePort(
+function createImmediateCandidateQueuePort(
   services: CandidateProcessorServices,
 ): CandidateQueuePort {
   return {

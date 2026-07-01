@@ -21,40 +21,7 @@ import { createPgKeywordAdapter } from './pg-keyword.js';
 import { createPgVectorAdapter } from './pg-vector.js';
 import { vectorIndexAdapter } from './vector.js';
 
-export {
-  vectorIndexAdapter,
-  upsertVectorIndex,
-  removeVectorIndex,
-  getVectorPayload,
-  type VectorIndexPayload,
-} from './vector.js';
-
-export {
-  keywordIndexAdapter,
-  upsertKeywordIndex,
-  removeKeywordIndex,
-  getIndexedKeywordTokens,
-  hasIndexedKeywordTokens,
-  type KeywordIndexPayload,
-} from './keyword.js';
-
-export {
-  graphIndexAdapter,
-  clearGraphCache,
-  getCachedGraphIndexDocuments,
-  setCachedGraphIndexDocuments,
-} from './graph.js';
-
-// PostgreSQL pgvector adapters
-export {
-  createPgVectorAdapter,
-  type PgVectorAdapterConfig,
-} from './pg-vector.js';
-
-export {
-  createPgKeywordAdapter,
-  type PgKeywordAdapterConfig,
-} from './pg-keyword.js';
+// PostgreSQL pgvector adapters (re-exported for buildHybridAdapterRegistry callers)
 
 /**
  * Build the default adapter registry for server bootstrap.
@@ -114,12 +81,4 @@ export function buildHybridAdapterRegistry(config?: {
   registry.register(graphIndexAdapter);
 
   return registry;
-}
-
-/**
- * @deprecated Use buildDefaultAdapterRegistry() instead.
- * Get the default index adapter list for server bootstrap.
- */
-export function buildDefaultIndexAdapters(): IndexAdapter[] {
-  return [vectorIndexAdapter, keywordIndexAdapter, graphIndexAdapter];
 }

@@ -29,7 +29,7 @@ import type {
 // ---------------------------------------------------------------------------
 
 /** Texts longer than this trigger two-phase extraction (Phase 1 planning). */
-export const CHUNK_THRESHOLD = 2000;
+const CHUNK_THRESHOLD = 2000;
 
 /** Maximum concurrent segment extractions in Phase 2. */
 const MAX_CONCURRENT = 3;
@@ -402,7 +402,7 @@ ${originalText}`;
  * Perform gleaning (secondary extraction) to catch missed entities.
  * Compares the gleaning result with the original and merges.
  */
-export async function gleaningExtraction(
+async function gleaningExtraction(
   chat: ChatProvider,
   text: string,
   existing: LlmGraphExtraction,

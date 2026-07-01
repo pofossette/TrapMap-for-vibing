@@ -21,7 +21,7 @@ export function isRefinementAvailable(services: SkillShareerServices): boolean {
 /**
  * Build a refinement prompt from search results.
  */
-export function buildRefinementPrompt(
+function buildRefinementPrompt(
   query: string,
   globalConstraints: unknown[],
   projectKnowledge: unknown[],

@@ -29,6 +29,7 @@ export type ReviewWarning = {
   message: string;
 };
 
+// fallow-ignore-next-line unused-type
 export type ReviewDecisionKind = 'approve' | 'reject' | 'return-for-correction';
 
 export type ReviewHistoryEntry = {
@@ -73,7 +74,7 @@ export type ReviewQueueRequest = {
   paging: Pick<ReviewQueueQuery, 'cursor' | 'limit'>;
 };
 
-export type ReviewDetailDecisionInput = {
+type ReviewDetailDecisionInput = {
   decision: ReviewDecisionKind;
   notes: string;
 };
@@ -94,7 +95,7 @@ export type ReviewArtifactFile = {
   size: number;
 };
 
-export type ReviewQueueDto = ReviewQueueResponse;
+type ReviewQueueDto = ReviewQueueResponse;
 export type ReviewQueueItemDto = ReviewQueueItem;
 export type ActorRefDto = ActorRef;
 

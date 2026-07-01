@@ -1,6 +1,6 @@
 import type { ActivityEventViewModel } from '@trapmap/web-panel/shared/enum-types';
 
-export function mapActivityEvent(event: ActivityEventViewModel): ActivityEventViewModel {
+function mapActivityEvent(event: ActivityEventViewModel): ActivityEventViewModel {
   return { ...event };
 }
 

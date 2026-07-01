@@ -138,7 +138,7 @@ export function createCacheInvalidationEvent(args: {
   return normalizeCacheInvalidationEvent(args);
 }
 
-export function recordCacheInvalidation(namespace: string, event: CacheInvalidationEvent): void {
+function recordCacheInvalidation(namespace: string, event: CacheInvalidationEvent): void {
   const snapshot = getOrCreateFreshness(namespace);
   snapshot.invalidations += 1;
   snapshot.pendingInvalidation = true;
@@ -173,7 +173,7 @@ export function getCacheFreshnessSnapshot(): Record<string, CacheFreshnessSnapsh
   );
 }
 
-export function clearCacheInvalidationListeners(): void {
+function clearCacheInvalidationListeners(): void {
   listeners.clear();
 }
 

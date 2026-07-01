@@ -36,6 +36,7 @@ export interface DomainEvent {
 export type DomainEventHandler = (event: DomainEvent) => void | Promise<void>;
 
 /** Definition of a lifecycle state transition with event metadata. */
+// fallow-ignore-next-line unused-type
 export interface TransitionDefinition {
   /** Source lifecycle state */
   from: LifecycleState;

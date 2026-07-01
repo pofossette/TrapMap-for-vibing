@@ -108,7 +108,7 @@ export interface TransactionalCandidateRepository extends CandidateRepository {
  * Type guard to check if an object is a valid CandidateSubmission.
  * Useful for validation in repository implementations.
  */
-export function isCandidateSubmission(value: unknown): value is CandidateSubmission {
+function isCandidateSubmission(value: unknown): value is CandidateSubmission {
   if (typeof value !== 'object' || value === null) return false;
   const obj = value as Record<string, unknown>;
   return (

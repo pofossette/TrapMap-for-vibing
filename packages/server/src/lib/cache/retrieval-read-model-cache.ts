@@ -42,7 +42,7 @@ export function setCachedRetrievalReadModel(model: RetrievalReadModel): void {
   recordCacheStaleRecovery(READ_MODEL_CACHE_NAMESPACE);
 }
 
-export function invalidateRetrievalReadModel(reason: CacheInvalidationEvent['reason']): void {
+function invalidateRetrievalReadModel(reason: CacheInvalidationEvent['reason']): void {
   emitCacheInvalidation(
     createCacheInvalidationEvent({
       sourceType: 'trap',
@@ -54,7 +54,7 @@ export function invalidateRetrievalReadModel(reason: CacheInvalidationEvent['rea
   );
 }
 
-export function clearRetrievalReadModelCache(): void {
+function clearRetrievalReadModelCache(): void {
   readModelCache.clear();
 }
 
