@@ -69,6 +69,8 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   'lib/indexing/pipeline.ts',
   'lib/indexing/events.ts',
   'lib/indexing/skill-events.ts',
+  'lib/indexing/skill-extract.ts',
+  'lib/indexing/skill-graph-build.ts',
   'lib/indexing/reconcile.ts',
   'lib/indexing/adapters/graph.ts',
   'lib/jobs/handlers/knowledge-index-follow-up.ts',

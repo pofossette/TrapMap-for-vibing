@@ -395,10 +395,10 @@ describe('skill-events', () => {
 
     it('contains the exact strings latestRevision.derived.profile and latestRevision.derived.capsules in source', async () => {
       // This test verifies the presence of the required strings in the source file
-      // (acceptance criteria check)
+      // (acceptance criteria check) — now lives in skill-graph-build.ts
       const fs = await import('node:fs');
       const path = await import('node:path');
-      const sourcePath = path.join(__dirname, 'skill-events.ts');
+      const sourcePath = path.join(__dirname, 'skill-graph-build.ts');
       const source = fs.readFileSync(sourcePath, 'utf-8');
 
       expect(source).toContain('latestRevision.derived.profile');
@@ -408,7 +408,8 @@ describe('skill-events', () => {
     it('contains locked relation strings in source', async () => {
       const fs = await import('node:fs');
       const path = await import('node:path');
-      const sourcePath = path.join(__dirname, 'skill-events.ts');
+      // Locked vocabulary types now live in skill-extract.ts
+      const sourcePath = path.join(__dirname, 'skill-extract.ts');
       const source = fs.readFileSync(sourcePath, 'utf-8');
 
       expect(source).toContain('mitigates');
