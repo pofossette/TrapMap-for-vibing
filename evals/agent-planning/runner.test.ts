@@ -13,7 +13,7 @@ describe('agent planning eval scaffold', () => {
     const coreCases = coreMod?.coreCases ?? [];
     const coreScenarios = coreMod?.coreScenarios ?? [];
 
-    expect(smokeCases.length).toBeGreaterThanOrEqual(5);
+    expect(smokeCases.length).toBeGreaterThanOrEqual(10);
     expect(coreCases.length).toBeGreaterThan(smokeCases.length);
 
     const smokeScenarioIds = new Set(smokeScenarios.map((scenario) => scenario.scenarioId));
@@ -34,7 +34,26 @@ describe('agent planning eval scaffold', () => {
     const smokeTaskIds = new Set(smokeCases.map((caseDefinition) => caseDefinition.taskId));
     const coreTaskIds = new Set(coreCases.map((caseDefinition) => caseDefinition.taskId));
     const coreOnlyTaskIds = [...coreTaskIds].filter((taskId) => !smokeTaskIds.has(taskId));
-    expect(coreOnlyTaskIds.length).toBeGreaterThanOrEqual(1);
+    expect(coreOnlyTaskIds.length).toBeGreaterThanOrEqual(5);
+
+    // Selection/ranking coverage in smoke
+    expect(
+      smokeCases.some(
+        (caseDefinition) =>
+          caseDefinition.taskType === 'selection' &&
+          caseDefinition.tags.includes('selection-ranking'),
+      ),
+    ).toBe(true);
+    // Composite/coordination coverage in smoke
+    expect(
+      smokeCases.some(
+        (caseDefinition) =>
+          caseDefinition.taskType === 'composite' &&
+          caseDefinition.tags.includes('composite-coordination'),
+      ),
+    ).toBe(true);
+    // Debugging coverage in smoke
+    expect(smokeCases.some((caseDefinition) => caseDefinition.taskType === 'debugging')).toBe(true);
 
     expect(
       smokeCases.some(
@@ -80,6 +99,25 @@ describe('agent planning eval scaffold', () => {
           caseDefinition.tags.includes('out-of-scope-guard'),
       ),
     ).toBe(true);
+    // Conservative response coverage in core
+    expect(
+      coreCases.some((caseDefinition) => caseDefinition.tags.includes('conservative-response')),
+    ).toBe(true);
+    // Security/forbidden behavior in core
+    expect(
+      coreCases.some(
+        (caseDefinition) =>
+          caseDefinition.tags.includes('security') &&
+          caseDefinition.tags.includes('forbidden-behavior'),
+      ),
+    ).toBe(true);
+    // New domain coverage in core (caching or api-versioning)
+    expect(
+      coreCases.some(
+        (caseDefinition) =>
+          caseDefinition.tags.includes('caching') || caseDefinition.tags.includes('api-versioning'),
+      ),
+    ).toBe(true);
   });
 
   it('loads smoke fixtures and runs deterministic dry-run reporting', async () => {
@@ -90,7 +128,7 @@ describe('agent planning eval scaffold', () => {
     expect(runMod).not.toBeNull();
 
     const smokeCases = smokeMod?.smokeCases ?? [];
-    expect(smokeCases.length).toBeGreaterThanOrEqual(3);
+    expect(smokeCases.length).toBeGreaterThanOrEqual(10);
 
     const groupedVariants = new Map<string, Set<string>>();
     for (const case_ of smokeCases) {

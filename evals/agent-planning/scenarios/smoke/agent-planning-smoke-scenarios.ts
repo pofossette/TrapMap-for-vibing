@@ -1,5 +1,9 @@
 import type { AgentPlanningEvalScenario } from '@trapmap/contracts/evals';
 
+const minimalSkillFixturePath = 'evals/ingestion/fixtures/minimal-skill/SKILL.md';
+const demoSkillFixturePath = 'evals/ingestion/fixtures/demo-full/SKILL.md';
+const trapFrontendAsyncPath = 'evals/fixtures/traps/frontend/trap_async_race_condition.json';
+
 export const smokeScenarios: AgentPlanningEvalScenario[] = [
   {
     scenarioId: 'scenario-upgrade-ci-pipeline',
@@ -137,6 +141,193 @@ export const smokeScenarios: AgentPlanningEvalScenario[] = [
         },
       ],
       interference: [],
+    },
+    metadata: {
+      repository: 'Trap-Map',
+      owner: 'agent-planning-eval',
+    },
+  },
+  {
+    scenarioId: 'scenario-rank-deployment-strategy',
+    taskId: 'task-rank-deployment-strategy',
+    variantIds: [
+      'task-rank-deployment-strategy-skill-set-none',
+      'task-rank-deployment-strategy-plan-graph-none',
+    ],
+    taskPrompt:
+      'Plan how to select the safest deployment strategy when given blue-green, canary, and rolling-update options for a stateful service.',
+    promptTemplateId: 'default-agent-planning',
+    actor: {
+      mode: 'dry-run',
+      provider: 'fallback',
+    },
+    context: {
+      required: [
+        {
+          id: 'skill-deploy-patterns',
+          kind: 'skill',
+          title: 'Deployment Patterns',
+          body: 'Compare blue-green, canary, and rolling-update strategies by rollback speed, blast radius, and resource cost for stateful workloads.',
+        },
+        {
+          id: 'skill-rollback-procedures',
+          kind: 'skill',
+          title: 'Rollback Procedures',
+          body: 'Define rollback triggers, automated health checks, and manual override steps for each deployment strategy.',
+        },
+      ],
+      optional: [
+        {
+          id: 'note-service-statefulness',
+          kind: 'note',
+          title: 'Service Statefulness',
+          body: 'Stateful services require session draining and persistent volume coordination during any deployment strategy.',
+        },
+      ],
+      interference: [],
+    },
+    metadata: {
+      repository: 'Trap-Map',
+      owner: 'agent-planning-eval',
+    },
+  },
+  {
+    scenarioId: 'scenario-coordinate-database-migration',
+    taskId: 'task-coordinate-database-migration',
+    variantIds: ['task-coordinate-database-migration-skill-set-none'],
+    taskPrompt:
+      'Plan a database schema migration that requires verifying backups, confirming permissions, running the migration in stages, and validating results before cutover.',
+    promptTemplateId: 'default-agent-planning',
+    actor: {
+      mode: 'dry-run',
+      provider: 'fallback',
+    },
+    context: {
+      required: [
+        {
+          id: 'skill-db-migration',
+          kind: 'skill',
+          title: 'Database Migration Playbook',
+          body: 'Verify backup integrity, confirm migration permissions, execute schema changes in a staged rollout, and validate data integrity before cutover.',
+        },
+        {
+          id: 'skill-backup-verification',
+          kind: 'skill',
+          title: 'Backup Verification',
+          body: 'Check backup freshness, test restore capability, and confirm point-in-time recovery options before starting any migration.',
+        },
+      ],
+      optional: [
+        {
+          id: 'note-staging-env',
+          kind: 'note',
+          title: 'Staging Environment',
+          body: 'Run the migration against the staging environment first and confirm row counts match before production cutover.',
+        },
+      ],
+      interference: [],
+    },
+    metadata: {
+      repository: 'Trap-Map',
+      owner: 'agent-planning-eval',
+    },
+  },
+  {
+    scenarioId: 'scenario-triage-alert-storm',
+    taskId: 'task-triage-alert-storm',
+    variantIds: ['task-triage-alert-storm-skill-set-low', 'task-triage-alert-storm-plan-graph-low'],
+    taskPrompt:
+      'Plan how to triage an alert storm where 200+ alerts fire in 5 minutes and most are cascading side effects rather than root cause indicators.',
+    promptTemplateId: 'default-agent-planning',
+    actor: {
+      mode: 'dry-run',
+      provider: 'fallback',
+    },
+    context: {
+      required: [
+        {
+          id: 'skill-alert-triage',
+          kind: 'skill',
+          title: 'Alert Triage Guide',
+          body: 'Group alerts by time window and dependency graph, filter known cascading patterns, and isolate the earliest root-cause signal.',
+        },
+        {
+          id: 'plan-alert-triage',
+          kind: 'plan-node',
+          title: 'Alert triage graph',
+          body: 'identify alert correlation window -> filter cascading side-effect alerts -> isolate root-cause alert -> confirm single root cause',
+        },
+      ],
+      optional: [
+        {
+          id: 'note-monitoring-stack',
+          kind: 'note',
+          title: 'Monitoring Stack',
+          body: 'Alerts originate from Prometheus alertmanager with PagerDuty integration; cascading alerts often correlate with shared dependency failures.',
+        },
+      ],
+      interference: [
+        {
+          id: 'noise-demo-full-skill-alert',
+          kind: 'skill',
+          title: 'General-purpose skill distractor',
+          sourcePath: demoSkillFixturePath,
+          summary: 'Non-monitoring skill used as a low-signal distractor.',
+        },
+      ],
+    },
+    metadata: {
+      repository: 'Trap-Map',
+      owner: 'agent-planning-eval',
+    },
+  },
+  {
+    scenarioId: 'scenario-rollback-feature-flag',
+    taskId: 'task-rollback-feature-flag',
+    variantIds: [
+      'task-rollback-feature-flag-skill-set-high',
+      'task-rollback-feature-flag-plan-graph-none',
+    ],
+    taskPrompt:
+      'Plan how to safely roll back a feature flag that is causing performance degradation in production, while preserving user sessions.',
+    promptTemplateId: 'default-agent-planning',
+    actor: {
+      mode: 'dry-run',
+      provider: 'fallback',
+    },
+    context: {
+      required: [
+        {
+          id: 'skill-feature-flag-rollback',
+          kind: 'skill',
+          title: 'Feature Flag Rollback',
+          body: 'Assess the blast radius of the flag, prepare the rollback toggle, execute a gradual rollout reversal, and verify session preservation throughout.',
+        },
+      ],
+      optional: [
+        {
+          id: 'note-flag-service-health',
+          kind: 'note',
+          title: 'Feature Flag Service Health',
+          body: 'Check the feature flag service health endpoint before initiating rollback to ensure toggle commands will be processed.',
+        },
+      ],
+      interference: [
+        {
+          id: 'noise-minimal-skill-rollback',
+          kind: 'skill',
+          title: 'Unrelated minimal skill',
+          sourcePath: minimalSkillFixturePath,
+          summary: 'Used as a low-signal distractor under high interference.',
+        },
+        {
+          id: 'noise-trap-frontend-async',
+          kind: 'trap',
+          title: 'Async race condition trap',
+          sourcePath: trapFrontendAsyncPath,
+          summary: 'Used as a high-interference distractor from the frontend domain.',
+        },
+      ],
     },
     metadata: {
       repository: 'Trap-Map',

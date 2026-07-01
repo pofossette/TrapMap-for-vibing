@@ -7,6 +7,8 @@ describe('label alignment eval scaffold', () => {
     const fixtures = await loadLabelAlignmentFixtures({ tier: 'smoke' });
 
     expect(fixtures.length).toBeGreaterThan(0);
+    // New: at least 3 smoke fixtures
+    expect(fixtures.length).toBeGreaterThanOrEqual(3);
     expect(fixtures.every((fixture) => fixture.skillId.length > 0)).toBe(true);
     expect(
       fixtures.every((fixture) =>
@@ -71,6 +73,16 @@ describe('label alignment eval scaffold', () => {
         fixture.cases.some((case_) => case_.tags.includes('near-match-guard')),
       ),
     ).toBe(true);
+    // New: toolchain coverage in smoke
+    expect(fixtures.some((fixture) => fixture.tags.includes('toolchain'))).toBe(true);
+    // New: cicd coverage in smoke
+    expect(fixtures.some((fixture) => fixture.tags.includes('cicd'))).toBe(true);
+    // New: testing/strategy coverage in smoke
+    expect(
+      fixtures.some(
+        (fixture) => fixture.tags.includes('testing') && fixture.fixtureId.includes('strategy'),
+      ),
+    ).toBe(true);
   });
 
   it('runs deterministic dry-run evaluation and reports metrics', async () => {
@@ -100,6 +112,8 @@ describe('label alignment eval scaffold', () => {
     });
 
     expect(fixtures.length).toBeGreaterThan(0);
+    // New: at least 3 core fixtures
+    expect(fixtures.length).toBeGreaterThanOrEqual(3);
     expect(report.summary.totalCases).toBeGreaterThan(0);
     expect(report.cases.every((case_) => case_.tier === 'core')).toBe(true);
     expect(fixtures.every((fixture) => fixture.tags.includes('core'))).toBe(true);
@@ -113,6 +127,24 @@ describe('label alignment eval scaffold', () => {
     expect(
       fixtures.some((fixture) =>
         fixture.cases.some((case_) => case_.variantGroupId === 'catalog-populated'),
+      ),
+    ).toBe(true);
+    // New: telemetry coverage in core
+    expect(fixtures.some((fixture) => fixture.tags.includes('telemetry'))).toBe(true);
+    // New: auth coverage in core
+    expect(fixtures.some((fixture) => fixture.tags.includes('auth'))).toBe(true);
+    // New: containers coverage in core
+    expect(fixtures.some((fixture) => fixture.tags.includes('containers'))).toBe(true);
+    // New: at least one case with synonymGroupCount >= 3 (dense fixture)
+    expect(
+      fixtures.some((fixture) => fixture.cases.some((case_) => case_.synonymGroupCount >= 3)),
+    ).toBe(true);
+    // New: at least one case with a canonicalGroup of >= 4 members
+    expect(
+      fixtures.some((fixture) =>
+        fixture.cases.some((case_) =>
+          case_.expectedAlignment.canonicalGroups.some((group) => group.length >= 4),
+        ),
       ),
     ).toBe(true);
   });
