@@ -25,7 +25,7 @@ import {
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
 } from '@trapmap/server/lib/indexing/graph-lite/store.js';
-import { buildSkillGraphDocument } from '@trapmap/server/lib/indexing/skill-events.js';
+import { buildSkillGraphDocument } from '@trapmap/server/lib/indexing/skill-graph-build.js';
 import type { SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
 
 // ---------------------------------------------------------------------------

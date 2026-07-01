@@ -35,8 +35,6 @@ export {
   type TaskHandler,
   type TaskRow,
 } from './task-queue-schema.js';
-export { createTaskWorker } from './task-worker.js';
-export type { TaskWorkerConfig } from './task-worker.js';
 
 // =============================================================================
 // Task Queue Implementation

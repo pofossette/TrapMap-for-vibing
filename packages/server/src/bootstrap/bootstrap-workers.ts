@@ -10,7 +10,8 @@ import type { FastifyInstance } from 'fastify';
 import { createCandidateProcessingHandler } from '@trapmap/server/lib/candidates/index.js';
 import { buildSharedJobHandlersContract } from '@trapmap/server/lib/jobs/index.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import { type TaskHandler, createTaskWorker } from '@trapmap/server/lib/queue/task-queue.js';
+import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
+import { createTaskWorker } from '@trapmap/server/lib/queue/task-worker.js';
 
 export interface BootstrapWorkersOptions {
   enabled?: boolean;
