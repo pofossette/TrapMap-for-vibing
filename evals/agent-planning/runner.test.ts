@@ -13,7 +13,7 @@ describe('agent planning eval scaffold', () => {
     const coreCases = coreMod?.coreCases ?? [];
     const coreScenarios = coreMod?.coreScenarios ?? [];
 
-    expect(smokeCases.length).toBeGreaterThanOrEqual(10);
+    expect(smokeCases.length).toBeGreaterThanOrEqual(25);
     expect(coreCases.length).toBeGreaterThan(smokeCases.length);
 
     const smokeScenarioIds = new Set(smokeScenarios.map((scenario) => scenario.scenarioId));
@@ -118,6 +118,41 @@ describe('agent planning eval scaffold', () => {
           caseDefinition.tags.includes('caching') || caseDefinition.tags.includes('api-versioning'),
       ),
     ).toBe(true);
+
+    // Interference level distribution targets
+    const allCases = [...smokeCases, ...coreCases];
+    const lowCount = allCases.filter((c) => c.interferenceLevel === 'low').length;
+    const medCount = allCases.filter((c) => c.interferenceLevel === 'medium').length;
+    const highCount = allCases.filter((c) => c.interferenceLevel === 'high').length;
+    expect(lowCount).toBeGreaterThanOrEqual(7);
+    expect(medCount).toBeGreaterThanOrEqual(14);
+    expect(highCount).toBeGreaterThanOrEqual(21);
+
+    // Complexity coverage
+    expect(
+      smokeCases.some((c) => c.taskComplexity === 'simple' && c.tags.includes('simple-task')),
+    ).toBe(true);
+    expect(
+      coreCases.some((c) => c.taskComplexity === 'complex' && c.tags.includes('complex-task')),
+    ).toBe(true);
+
+    // New taskIds exist in smoke
+    const newSmokeTaskIds = new Set(smokeCases.map((c) => c.taskId));
+    expect(newSmokeTaskIds.has('task-setup-code-quality-pipeline')).toBe(true);
+    expect(newSmokeTaskIds.has('task-migrate-auth-microservice')).toBe(true);
+    expect(newSmokeTaskIds.has('task-replatform-legacy-monolith')).toBe(true);
+
+    // Interference array completeness — non-empty scenarios must have exactly 21 items
+    for (const scenario of smokeScenarios) {
+      if (scenario.context.interference.length > 0) {
+        expect(scenario.context.interference.length).toBe(21);
+      }
+    }
+    for (const scenario of coreScenarios) {
+      if (scenario.context.interference.length > 0) {
+        expect(scenario.context.interference.length).toBe(21);
+      }
+    }
   });
 
   it('loads smoke fixtures and runs deterministic dry-run reporting', async () => {

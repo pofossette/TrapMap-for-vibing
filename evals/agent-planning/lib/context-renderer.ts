@@ -42,10 +42,10 @@ export function renderScenarioContext(
       : scenario.context.interference.slice(
           0,
           caseDefinition.interferenceLevel === 'low'
-            ? 1
+            ? 7
             : caseDefinition.interferenceLevel === 'medium'
-              ? 2
-              : scenario.context.interference.length,
+              ? 14
+              : 21,
         );
 
   return [
