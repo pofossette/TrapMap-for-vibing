@@ -13,27 +13,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { judgeConflictWithLLM, parseConflictJudgmentResponse } from './llm-conflict.js';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function createMockChat(overrides: Partial<ChatProvider> = {}): ChatProvider {
-  return {
-    provider: 'mock',
-    isConfigured: true,
-    invoke: vi.fn().mockResolvedValue(
-      JSON.stringify({
-        conflictType: 'none',
-        confidence: 0.9,
-        reasoning: 'Different topics',
-      }),
-    ),
-    ...overrides,
-  };
-}
+import { createMockChat } from '@trapmap/server/testing/mock-factories.js';
 
 // ---------------------------------------------------------------------------
 // Tests

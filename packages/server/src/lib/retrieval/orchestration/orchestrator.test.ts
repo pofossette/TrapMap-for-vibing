@@ -15,6 +15,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import { createMockEntry as _createMockEntry } from '@trapmap/server/testing/mock-factories.js';
 
 // ── Mocks for recall modules ──────────────────────────────────────────────
 
@@ -336,63 +337,14 @@ function createMockAuth(overrides: Partial<ResolvedAuthContext> = {}): ResolvedA
 }
 
 function createMockEntry(id: string, overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord {
-  const now = new Date().toISOString();
-  return {
+  return _createMockEntry({
     id,
     teamId: 'team_test',
     scope: 'project',
-    labels: ['test'],
     shortcut: `Entry ${id}`,
     detail: `Detail for ${id}`,
-    requiredLevel: 0,
-    lifecycleState: 'approved',
-    ownerUserId: 'user_test_001',
-    latestRevision: {
-      revision: 1,
-      submittedAt: now,
-      submittedByUserId: 'user_test_001',
-      shortcut: `Entry ${id}`,
-      detail: `Detail for ${id}`,
-      labels: ['test'],
-      reviewNotes: [],
-    },
-    history: [
-      {
-        revision: 1,
-        submittedAt: now,
-        submittedByUserId: 'user_test_001',
-        shortcut: `Entry ${id}`,
-        detail: `Detail for ${id}`,
-        labels: ['test'],
-        reviewNotes: [],
-      },
-    ],
-    metadata: {
-      scopeLabel: 'project-knowledge',
-      submissionCount: 1,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: `sub_${id}`,
-      latestSubmittedAt: now,
-      latestReviewedAt: now,
-      latestDecision: 'approve',
-    },
-    latestSubmissionId: null,
-    submissionHistory: [],
-    agentReview: null,
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    embeddingCache: null,
-    indexState: null,
-    boundary: null,
-    decayMeta: null,
-    evidenceMeta: null,
-    maintenanceMeta: null,
-    createdAt: now,
-    updatedAt: now,
     ...overrides,
-  };
+  });
 }
 
 function createMockServices(overrides: Partial<SkillShareerServices> = {}): SkillShareerServices {

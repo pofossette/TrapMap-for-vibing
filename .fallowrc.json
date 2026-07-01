@@ -13,6 +13,8 @@
     "packages/web-panel/src/main.tsx",
     "scripts/*.ts",
     "packages/server/scripts/*.ts",
+    "packages/cli/src/testing/index.ts",
+    "packages/server/src/testing/index.ts",
     "evals/**/*.ts"
   ],
   "ignoreDependencies": ["amqplib", "markdown-link-check"],

@@ -1,9 +1,12 @@
-import type { LoginResponse, SessionStatusResponse } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import * as http from '@trapmap/cli/lib/http.js';
+import {
+  createMockLoginResponse,
+  createMockSessionResponse,
+} from '@trapmap/cli/testing/cli-test-utils.js';
 
 // Mock dependencies
 vi.mock('../lib/http.js', () => ({
@@ -32,46 +35,6 @@ const mockBaseState = {
   },
 };
 
-function createMockLoginResponse(teamId = 'team-1'): LoginResponse {
-  return {
-    session: {
-      sessionId: 'session-1',
-      member: {
-        id: 'member-1',
-        teamId,
-        handle: 'testuser',
-        roleTemplate: 'user',
-        securityLevel: 5,
-        permissions: [],
-        notes: null,
-        isSystem: false,
-        createdAt: '2026-01-01T00:00:00Z',
-        updatedAt: '2026-01-01T00:00:00Z',
-      },
-      activeTeam: {
-        id: teamId,
-        name: 'Test Team',
-        slug: 'test-team',
-        description: null,
-        createdAt: '2026-01-01T00:00:00Z',
-        updatedAt: '2026-01-01T00:00:00Z',
-      },
-      effectivePermissions: ['session:read'],
-      expiresAt: null,
-      issuedAt: '2026-01-01T00:00:00Z',
-    },
-  };
-}
-
-function createMockSessionResponse(
-  session: LoginResponse['session'] | null = null,
-): SessionStatusResponse {
-  return {
-    authenticated: session !== null,
-    session,
-  };
-}
-
 describe('auth commands', () => {
   beforeEach(() => {
     vi.mocked(loadCliState).mockResolvedValue(mockBaseState);
@@ -83,7 +46,7 @@ describe('auth commands', () => {
 
   describe('login command', () => {
     it('calls API with access key', async () => {
-      const mockResponse = createMockLoginResponse();
+      const mockResponse = createMockLoginResponse({ securityLevel: 5 });
       vi.mocked(http.apiRequest).mockResolvedValue({
         data: mockResponse,
         sessionToken: 'new-token',
@@ -111,7 +74,7 @@ describe('auth commands', () => {
     });
 
     it('calls API with system admin key', async () => {
-      const mockResponse = createMockLoginResponse();
+      const mockResponse = createMockLoginResponse({ securityLevel: 5 });
       vi.mocked(http.apiRequest).mockResolvedValue({
         data: mockResponse,
         sessionToken: 'new-token',
@@ -141,7 +104,7 @@ describe('auth commands', () => {
     });
 
     it('outputs formatted result with handle and level', async () => {
-      const mockResponse = createMockLoginResponse();
+      const mockResponse = createMockLoginResponse({ securityLevel: 5 });
       vi.mocked(http.apiRequest).mockResolvedValue({
         data: mockResponse,
         sessionToken: 'new-token',
@@ -162,7 +125,7 @@ describe('auth commands', () => {
     });
 
     it('outputs JSON when --json flag is used', async () => {
-      const mockResponse = createMockLoginResponse();
+      const mockResponse = createMockLoginResponse({ securityLevel: 5 });
       vi.mocked(http.apiRequest).mockResolvedValue({
         data: mockResponse,
         sessionToken: 'new-token',
@@ -195,7 +158,7 @@ describe('auth commands', () => {
     });
 
     it('persists only one gateway URL when login overrides remote address', async () => {
-      const mockResponse = createMockLoginResponse();
+      const mockResponse = createMockLoginResponse({ securityLevel: 5 });
       vi.mocked(http.apiRequest).mockResolvedValue({
         data: mockResponse,
         sessionToken: 'new-token',
@@ -309,7 +272,7 @@ describe('auth commands', () => {
 
   describe('session command', () => {
     it('calls API to fetch session status', async () => {
-      const mockSession = createMockLoginResponse().session;
+      const mockSession = createMockLoginResponse({ securityLevel: 5 }).session;
       const mockResponse = createMockSessionResponse(mockSession);
       vi.mocked(http.apiRequest).mockResolvedValue({
         data: mockResponse,
@@ -334,7 +297,7 @@ describe('auth commands', () => {
     });
 
     it('outputs formatted result with user handle', async () => {
-      const mockSession = createMockLoginResponse().session;
+      const mockSession = createMockLoginResponse({ securityLevel: 5 }).session;
       const mockResponse = createMockSessionResponse(mockSession);
       vi.mocked(http.apiRequest).mockResolvedValue({
         data: mockResponse,
@@ -375,7 +338,7 @@ describe('auth commands', () => {
     });
 
     it('outputs JSON when --json flag is used', async () => {
-      const mockSession = createMockLoginResponse().session;
+      const mockSession = createMockLoginResponse({ securityLevel: 5 }).session;
       const mockResponse = createMockSessionResponse(mockSession);
       vi.mocked(http.apiRequest).mockResolvedValue({
         data: mockResponse,
@@ -416,7 +379,7 @@ describe('auth commands', () => {
     it('renders codex command-result JSON for login', async () => {
       vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
 
-      const mockResponse = createMockLoginResponse();
+      const mockResponse = createMockLoginResponse({ securityLevel: 5 });
       vi.mocked(http.apiRequest).mockResolvedValue({
         data: mockResponse,
         sessionToken: 'test-token',
@@ -467,7 +430,7 @@ describe('auth commands', () => {
     it('renders codex command-result JSON for session', async () => {
       vi.mocked(loadCliState).mockResolvedValue(codexProfileState);
 
-      const mockSession = createMockLoginResponse().session;
+      const mockSession = createMockLoginResponse({ securityLevel: 5 }).session;
       const mockResponse = createMockSessionResponse(mockSession);
       vi.mocked(http.apiRequest).mockResolvedValue({
         data: mockResponse,

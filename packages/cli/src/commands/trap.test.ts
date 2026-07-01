@@ -1,12 +1,9 @@
-import type {
-  KnowledgeEntry,
-  KnowledgeEntryResponse,
-  KnowledgeHistoryResponse,
-} from '@trapmap/contracts';
+import type { KnowledgeEntryResponse, KnowledgeHistoryResponse } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as http from '@trapmap/cli/lib/http.js';
+import { createMockEntry } from '@trapmap/cli/testing/cli-test-utils.js';
 
 vi.mock('../lib/http.js', () => ({
   apiRequest: vi.fn(),
@@ -35,60 +32,6 @@ vi.mock('../lib/input.js', () => ({
 }));
 
 import { registerTrapCommands } from './trap.js';
-
-function createMockEntry(overrides: Partial<KnowledgeEntry> = {}): KnowledgeEntry {
-  return {
-    id: 'trap-1',
-    teamId: null,
-    scope: 'global',
-    labels: ['pitfall'],
-    shortcut: 'Test trap shortcut',
-    detail: 'Test trap detail',
-    requiredLevel: 0,
-    lifecycleState: 'submitted',
-    owner: { id: 'user-1', handle: 'testuser', securityLevel: 0 },
-    latestRevision: {
-      revision: 1,
-      submittedAt: '2024-01-01T00:00:00Z',
-      submittedBy: { id: 'user-1', handle: 'testuser', securityLevel: 0 },
-      shortcut: 'Test trap shortcut',
-      detail: 'Test trap detail',
-      labels: ['pitfall'],
-      reviewNotes: [],
-    },
-    history: [
-      {
-        revision: 1,
-        submittedAt: '2024-01-01T00:00:00Z',
-        submittedBy: { id: 'user-1', handle: 'testuser', securityLevel: 0 },
-        shortcut: 'Test trap shortcut',
-        detail: 'Test trap detail',
-        labels: ['pitfall'],
-        reviewNotes: [],
-      },
-    ],
-    metadata: {
-      scopeLabel: 'global-constraint',
-      submissionCount: 1,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: 'sub-1',
-      latestSubmittedAt: '2024-01-01T00:00:00Z',
-      latestReviewedAt: null,
-      latestDecision: null,
-    },
-    agentReview: null,
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    boundary: null,
-    evidenceMeta: null,
-    maintenanceMeta: null,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-    ...overrides,
-  };
-}
 
 describe('trap commands', () => {
   beforeEach(() => {

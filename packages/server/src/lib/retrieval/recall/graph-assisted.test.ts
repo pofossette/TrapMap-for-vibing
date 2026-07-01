@@ -7,6 +7,7 @@ import type {
   GraphNodeRecord,
 } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import { createMockEntry } from '@trapmap/server/testing/mock-factories.js';
 import { graphAssistedRecall } from './graph-assisted.js';
 
 function createMockGraphIndexRepo(docs: GraphIndexDocumentRecord[] = []): GraphIndexRepository {
@@ -15,75 +16,6 @@ function createMockGraphIndexRepo(docs: GraphIndexDocumentRecord[] = []): GraphI
       return docs;
     },
   } as GraphIndexRepository;
-}
-
-function createMockEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord {
-  return {
-    id: overrides.id || 'entry-1',
-    teamId: overrides.teamId || null,
-    scope: overrides.scope || 'global',
-    labels: overrides.labels || ['test'],
-    shortcut: overrides.shortcut || 'Test shortcut',
-    detail: overrides.detail || 'Test detail',
-    requiredLevel: overrides.requiredLevel ?? 0,
-    lifecycleState: overrides.lifecycleState || 'approved',
-    ownerUserId: 'user-1',
-    latestRevision: {
-      revision: 1,
-      submittedAt: '2024-01-01T00:00:00Z',
-      submittedByUserId: 'user-1',
-      shortcut: overrides.shortcut || 'Test shortcut',
-      detail: overrides.detail || 'Test detail',
-      labels: overrides.labels || ['test'],
-      reviewNotes: [],
-    },
-    history: [],
-    metadata: {
-      scopeLabel: 'global-constraint',
-      submissionCount: 1,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: null,
-      latestSubmittedAt: null,
-      latestReviewedAt: null,
-      latestDecision: null,
-    },
-    latestSubmissionId: null,
-    submissionHistory: [],
-    agentReview: null,
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    embeddingCache: null,
-    indexState: {
-      contentHash: 'hash-1',
-      normalizedAt: '2024-01-01T00:00:00Z',
-      vector: {
-        status: 'synced',
-        revision: 1,
-        contentHash: 'hash-1',
-        lastSyncedAt: null,
-        lastError: null,
-      },
-      keyword: {
-        status: 'synced',
-        revision: 1,
-        contentHash: 'hash-1',
-        lastSyncedAt: null,
-        lastError: null,
-      },
-      graph: {
-        status: 'synced',
-        revision: 1,
-        contentHash: 'hash-1',
-        lastSyncedAt: null,
-        lastError: null,
-      },
-    },
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-    ...overrides,
-  };
 }
 
 function makeDoc(

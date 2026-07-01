@@ -12,28 +12,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { judgeDuplicateWithLLM, parseDuplicateJudgmentResponse } from './llm-dedup.js';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function createMockChat(overrides: Partial<ChatProvider> = {}): ChatProvider {
-  return {
-    provider: 'mock',
-    isConfigured: true,
-    invoke: vi.fn().mockResolvedValue(
-      JSON.stringify({
-        isDuplicate: false,
-        confidence: 0.9,
-        overlapType: 'none',
-        reasoning: 'Different topics',
-      }),
-    ),
-    ...overrides,
-  };
-}
+import { createMockChat } from '@trapmap/server/testing/mock-factories.js';
 
 // ---------------------------------------------------------------------------
 // Tests

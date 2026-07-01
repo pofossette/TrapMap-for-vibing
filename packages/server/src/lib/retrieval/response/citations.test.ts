@@ -1,61 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { MergedCandidate } from '@trapmap/server/lib/retrieval/types.js';
+import { createMockEntry } from '@trapmap/server/testing/mock-factories.js';
 import { buildCitation } from './citations.js';
-
-// Helper to create a minimal KnowledgeRecord for tests
-function createMockEntry(
-  overrides: Partial<{
-    id: string;
-    scope: 'global' | 'project';
-    shortcut: string;
-    detail: string;
-    labels: string[];
-    requiredLevel: number;
-  }>,
-): MergedCandidate['entry'] {
-  return {
-    id: overrides.id ?? 'entry_1',
-    teamId: null,
-    scope: overrides.scope ?? 'global',
-    shortcut: overrides.shortcut ?? 'Test shortcut',
-    detail: overrides.detail ?? 'Test detail with more context',
-    labels: overrides.labels ?? ['test', 'example'],
-    requiredLevel: overrides.requiredLevel ?? 3,
-    lifecycleState: 'approved',
-    ownerUserId: 'user_1',
-    latestRevision: {
-      revision: 1,
-      submittedByUserId: 'user_1',
-      submittedAt: '2024-01-01T00:00:00Z',
-      shortcut: overrides.shortcut ?? 'Test shortcut',
-      detail: overrides.detail ?? 'Test detail with more context',
-      labels: overrides.labels ?? ['test', 'example'],
-      reviewNotes: [],
-    },
-    history: [],
-    metadata: {
-      scopeLabel: overrides.scope === 'global' ? 'global-constraint' : 'project-knowledge',
-      submissionCount: 0,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: null,
-      latestSubmittedAt: null,
-      latestReviewedAt: '2024-01-01T00:00:00Z',
-      latestDecision: 'approve',
-    },
-    latestSubmissionId: null,
-    submissionHistory: [],
-    agentReview: null,
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    embeddingCache: null,
-    indexState: null,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  };
-}
 
 describe('citations', () => {
   describe('buildCitation', () => {

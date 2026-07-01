@@ -1,9 +1,10 @@
-import type { LoginResponse, Team, TeamListResponse } from '@trapmap/contracts';
+import type { TeamListResponse } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import * as http from '@trapmap/cli/lib/http.js';
+import { createMockTeam, createMockLoginResponse } from '@trapmap/cli/testing/cli-test-utils.js';
 
 // Mock the dependencies
 vi.mock('../lib/http.js', () => ({
@@ -40,44 +41,6 @@ const mockBaseState = {
     effectivePermissions: ['team:list', 'team:select'],
   },
 };
-
-// Helper to create minimal valid Team
-function createMockTeam(overrides: Partial<Team> = {}): Team {
-  return {
-    id: 'team-1',
-    name: 'Test Team',
-    slug: 'test-team',
-    description: 'A test team',
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-    ...overrides,
-  };
-}
-
-// Helper to create LoginResponse
-function createMockLoginResponse(teamId = 'team-1'): LoginResponse {
-  return {
-    session: {
-      sessionId: 'session-1',
-      member: {
-        id: 'member-1',
-        teamId: teamId,
-        handle: 'testuser',
-        roleTemplate: 'user',
-        securityLevel: 0,
-        permissions: [],
-        notes: null,
-        isSystem: false,
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-01T00:00:00Z',
-      },
-      activeTeam: createMockTeam({ id: teamId }),
-      effectivePermissions: ['team:list', 'team:select'],
-      expiresAt: null,
-      issuedAt: '2024-01-01T00:00:00Z',
-    },
-  };
-}
 
 describe('team commands', () => {
   beforeEach(() => {
