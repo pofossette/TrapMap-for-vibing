@@ -71,9 +71,9 @@
 
 ### Phase 1A 应用接入骨架
 
-- [ ] 状态：`进行中`
-- [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#3-phase-1a-应用接入骨架`](docs/todos/service-discovery-and-observability-plan.md#3-phase-1a-应用接入骨架)
-- [ ] 目标：先稳定 Nest bootstrap、配置模型、健康检查语义和统一 discovery/telemetry 接口
+- [x] 状态：`完成`
+- [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#3-phase-1a-应用接入骨架`](docs/todos/service-discovery-and-observability-plan.md#3-phase-1a-应用接入骨架)
+- [x] 目标：先稳定 Nest bootstrap、配置模型、健康检查语义和统一 discovery/telemetry 接口
 
 ### Phase 1B 服务发现 MVP
 

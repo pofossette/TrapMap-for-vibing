@@ -126,7 +126,7 @@
 
 ## 3. Phase 1A 应用接入骨架
 
-**状态：** 进行中  
+**状态：** 完成  
 **目标：** 先稳定所有后续能力共享的接入点，避免每条子链路重复造轮子
 
 ### 进度追踪
@@ -134,8 +134,8 @@
 - [x] 建立统一配置入口、feature flags 与 runtime profile 映射
 - [x] 建立 discovery / telemetry 抽象接口与共享类型
 - [x] 固定 `/health`、`/ready`、`/live`、`/metrics` 的语义和输出 shape
-- [ ] 接入 Nest bootstrap 生命周期钩子
-- [ ] 完成本 phase 最小验证与文档回写
+- [x] 接入 Nest bootstrap 生命周期钩子
+- [x] 完成本 phase 最小验证与文档回写
 
 ### 范围
 
@@ -173,7 +173,7 @@
 - [x] 存在统一 discovery/telemetry 接口，业务实现不直连具体 SDK
 - [x] 健康检查和 metrics surface 的语义固定并有测试保护
 - [x] 应用在 `dev-minimal` 下可在外部依赖关闭时启动
-- [ ] 配置项、默认值和 profile 已回写文档
+- [x] 配置项、默认值和 profile 已回写文档
 
 ### 最小验证
 
