@@ -23,11 +23,7 @@ import type { LifecycleState } from '@trapmap/contracts';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
-import type {
-  SkillArtifactRecord,
-  SkillShareerStore,
-  StoreData,
-} from '@trapmap/server/lib/store.js';
+import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 import {
   resolveArtifactAdapters,

@@ -24,7 +24,6 @@ import { executeWithResilience } from '@trapmap/server/lib/runtime/index.js';
 import type { GraphEdgeRecord, GraphNodeRecord } from './documents.js';
 
 import type { LlmExtractionCache } from './llm-cache.js';
-import { normalizeValue } from './llm-extract-ids.js';
 import { dedupeGraphRecords, mergeExtractions, toGraphRecords } from './llm-extract-merge.js';
 import { parseLlmExtraction } from './llm-extract-parsing.js';
 import { planExtraction } from './llm-extract-planning.js';

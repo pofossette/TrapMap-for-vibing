@@ -9,16 +9,7 @@
 import { readFileSync } from 'node:fs';
 
 import { ALL_PROVIDERS, PROVIDER_CONFIGS } from './defaults.js';
-import type {
-  AiPromptFormat,
-  AiPromptProvider,
-  AiPromptTaskType,
-  CacheBoundaryMarker,
-  CacheSection,
-  PromptSlots,
-  ProviderCacheStrategy,
-  ProviderConfig,
-} from './types.js';
+import type { AiPromptProvider, ProviderConfig } from './types.js';
 
 // Re-export types so consumers can import everything from './providers/index.js'
 

@@ -12,7 +12,7 @@
 import { recordQueueMetric, recordRuntimeReclaim } from '@trapmap/server/lib/runtime/index.js';
 import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import type { Pool, PoolClient } from 'pg';
+import type { PoolClient } from 'pg';
 
 import { isUniqueViolation, parseNullableInt, rowToTask, taskQueue } from './task-queue-schema.js';
 import type {
@@ -22,7 +22,6 @@ import type {
   TaskQueueConfig,
   TaskQueueStatusSnapshot,
   TaskRow,
-  TaskStatus,
 } from './task-queue-schema.js';
 
 // Re-export schema types and worker for backward compatibility.

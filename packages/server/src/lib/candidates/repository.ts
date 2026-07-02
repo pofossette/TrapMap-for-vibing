@@ -10,6 +10,7 @@ import type { Pool } from 'pg';
 import type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { PgCandidateRepository } from './pg-repository/pg-candidate-repository.js';
+import type { CandidateRepository } from './repository-interfaces.js';
 import type { ManualResultRecord } from './store.js';
 import {
   attachAnalysisSnapshot,

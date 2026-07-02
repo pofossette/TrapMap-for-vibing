@@ -1,6 +1,5 @@
 import type {
   ApplyResolutionResponse,
-  CandidateListResponse,
   DuplicateJobBundleResponse,
   ManualResultResponse,
   SkillEditResponse,
@@ -11,7 +10,6 @@ import type {
 } from '@trapmap/contracts';
 
 import { stripNewlines } from '@trapmap/cli/lib/sanitize.js';
-import { formatCandidateTable } from '@trapmap/cli/lib/skill-utils.js';
 
 /**
  * Format a skill lookup match for text output (Phase 18 SKED-01).

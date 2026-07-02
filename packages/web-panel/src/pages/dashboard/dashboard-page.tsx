@@ -1,16 +1,15 @@
 import { Button, Card, Chip, toast } from '@heroui/react';
 import type { ReactElement } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { useDashboardPageModel } from '@trapmap/web-panel/features/dashboard/use-dashboard-page-model';
-import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
+import { PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
   ErrorPanel,
   PageContainer,
   SectionHeader,
   SkeletonBlock,
   StatusBadge,
-  SummaryCard,
 } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 
@@ -66,8 +65,8 @@ export function DashboardPage(): ReactElement {
 
             <Button
               size="sm"
-              variant="flat"
-              disabled={model.loading}
+              variant="secondary"
+              isDisabled={model.loading}
               onPress={async () => {
                 const success = await model.refresh();
                 if (success) {
@@ -100,7 +99,7 @@ export function DashboardPage(): ReactElement {
                     <h3 className="text-sm font-bold uppercase tracking-wider text-panel-muted">
                       {t('serviceHealth')}
                     </h3>
-                    <Chip size="sm" variant="flat" color="success">
+                    <Chip size="sm" variant="soft" color="success">
                       Running
                     </Chip>
                   </div>
@@ -142,7 +141,7 @@ export function DashboardPage(): ReactElement {
                     <h3 className="text-sm font-bold uppercase tracking-wider text-panel-muted">
                       Pending Backlogs
                     </h3>
-                    <Chip size="sm" variant="flat" color="warning">
+                    <Chip size="sm" variant="soft" color="warning">
                       Action Needed
                     </Chip>
                   </div>
@@ -153,7 +152,7 @@ export function DashboardPage(): ReactElement {
                         <p className="text-xs text-panel-muted">Pending Reviews</p>
                         <p className="text-xl font-bold text-panel-text mt-1">18 items</p>
                       </div>
-                      <Button size="sm" color="warning" onPress={() => navigate('/reviews')}>
+                      <Button size="sm" variant="secondary" onPress={() => navigate('/reviews')}>
                         Audit Queue
                       </Button>
                     </div>
@@ -163,12 +162,7 @@ export function DashboardPage(): ReactElement {
                         <p className="text-xs text-panel-muted">Failed Runtime Jobs</p>
                         <p className="text-xl font-bold text-rose-400 mt-1">2 jobs</p>
                       </div>
-                      <Button
-                        size="sm"
-                        color="danger"
-                        variant="flat"
-                        onPress={() => navigate('/activity')}
-                      >
+                      <Button size="sm" variant="danger" onPress={() => navigate('/activity')}>
                         Check Logs
                       </Button>
                     </div>
@@ -186,7 +180,7 @@ export function DashboardPage(): ReactElement {
                         <h3 className="text-md font-bold text-panel-text">Trap Graph Overview</h3>
                         <p className="text-xs text-panel-muted mt-1">9 nodes · 8 relationships</p>
                       </div>
-                      <Chip size="sm" color="warning" variant="flat">
+                      <Chip size="sm" color="warning" variant="soft">
                         Topology
                       </Chip>
                     </div>
@@ -294,7 +288,7 @@ export function DashboardPage(): ReactElement {
                   <div className="flex gap-2">
                     <Button
                       className="flex-1"
-                      color="primary"
+                      variant="primary"
                       onPress={() => navigate('/trap-graph')}
                     >
                       Interactive Debug
@@ -310,7 +304,7 @@ export function DashboardPage(): ReactElement {
                         <h3 className="text-md font-bold text-panel-text">Skill Graph Overview</h3>
                         <p className="text-xs text-panel-muted mt-1">7 nodes · 7 relationships</p>
                       </div>
-                      <Chip size="sm" color="primary" variant="flat">
+                      <Chip size="sm" color="accent" variant="soft">
                         Derivation
                       </Chip>
                     </div>
@@ -436,7 +430,7 @@ export function DashboardPage(): ReactElement {
                   <div className="flex gap-2">
                     <Button
                       className="flex-1"
-                      color="primary"
+                      variant="primary"
                       onPress={() => navigate('/skill-graph')}
                     >
                       Audit Derivation

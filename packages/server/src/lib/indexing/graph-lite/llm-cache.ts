@@ -16,8 +16,8 @@ import { createHash } from 'node:crypto';
 
 import type { ExtractionPlan } from '@trapmap/contracts';
 
-import type { CacheStats } from '@trapmap/server/lib/cache/index.js';
 import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
+import type { CacheStats } from '@trapmap/server/lib/cache/retrieval-cache.js';
 
 import type { LlmExtractionResult } from './llm-extract.js';
 

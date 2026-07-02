@@ -1,21 +1,4 @@
-import {
-  Button,
-  Chip,
-  Drawer,
-  DrawerBody,
-  DrawerContent,
-  DrawerFooter,
-  DrawerHeader,
-  Input,
-  Select,
-  SelectItem,
-  Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow,
-} from '@heroui/react';
+import { Button, Chip } from '@heroui/react';
 import { type ReactElement, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -47,11 +30,12 @@ export function ArtifactsPage(): ReactElement {
     setLoading(true);
     setError(null);
     try {
-      const response = await getAdminPanelApi().loadArtifacts({
-        search: search || undefined,
-        lifecycleState: lifecycleState === 'all' ? undefined : lifecycleState,
-        scope: scope === 'all' ? undefined : scope,
-      });
+      const query = {
+        ...(search ? { search } : {}),
+        ...(lifecycleState !== 'all' ? { lifecycleState } : {}),
+        ...(scope !== 'all' ? { scope } : {}),
+      };
+      const response = await getAdminPanelApi().loadArtifacts(query);
       setArtifacts(response.items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load artifacts');
@@ -82,6 +66,13 @@ export function ArtifactsPage(): ReactElement {
     (h) => h.revision === selectedArtifact.latestRevision,
   );
 
+  const lifecycleTone = (state: SkillArtifact['lifecycleState']) =>
+    state === 'approved'
+      ? 'success'
+      : state === 'submitted' || state === 'agent-pass'
+        ? 'warning'
+        : 'danger';
+
   return (
     <PageTransition className="space-y-6">
       <PageContainer>
@@ -92,302 +83,294 @@ export function ArtifactsPage(): ReactElement {
 
         {/* Filters bar */}
         <div className="grid gap-4 md:grid-cols-3 bg-panel-surface border border-panel-line rounded-2xl p-4">
-          <Input
-            isClearable
-            className="w-full"
+          <input
+            className="w-full rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
             placeholder="Search by ID or title..."
             value={search}
-            onValueChange={setSearch}
-            size="sm"
+            onChange={(event) => setSearch(event.target.value)}
           />
 
-          <Select
-            label="Lifecycle State"
-            size="sm"
-            selectedKeys={[lifecycleState]}
-            onSelectionChange={(keys) => setLifecycleState(String(Array.from(keys)[0]))}
+          <select
+            className="w-full rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
+            value={lifecycleState}
+            onChange={(event) => setLifecycleState(event.target.value)}
           >
-            <SelectItem key="all" textValue="All States">
-              All States
-            </SelectItem>
-            <SelectItem key="active" textValue="Active">
-              Active
-            </SelectItem>
-            <SelectItem key="submitted" textValue="Submitted">
-              Submitted
-            </SelectItem>
-            <SelectItem key="draft" textValue="Draft">
-              Draft
-            </SelectItem>
-          </Select>
+            <option value="all">All States</option>
+            <option value="approved">Approved</option>
+            <option value="submitted">Submitted</option>
+            <option value="draft">Draft</option>
+          </select>
 
-          <Select
-            label="Scope"
-            size="sm"
-            selectedKeys={[scope]}
-            onSelectionChange={(keys) => setScope(String(Array.from(keys)[0]))}
+          <select
+            className="w-full rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
+            value={scope}
+            onChange={(event) => setScope(event.target.value)}
           >
-            <SelectItem key="all" textValue="All Scopes">
-              All Scopes
-            </SelectItem>
-            <SelectItem key="global" textValue="Global">
-              Global
-            </SelectItem>
-            <SelectItem key="project" textValue="Project">
-              Project
-            </SelectItem>
-          </Select>
+            <option value="all">All Scopes</option>
+            <option value="global">Global</option>
+            <option value="project">Project</option>
+          </select>
         </div>
 
         {/* Artifacts Table */}
         {error ? (
           <div className="p-6 text-center border border-panel-line rounded-2xl bg-panel-surface">
             <p className="text-rose-400 font-semibold">{error}</p>
-            <Button className="mt-4" size="sm" variant="flat" onPress={() => void fetchArtifacts()}>
+            <Button
+              className="mt-4"
+              size="sm"
+              variant="secondary"
+              onPress={() => void fetchArtifacts()}
+            >
               Retry
             </Button>
           </div>
         ) : (
           <div className="border border-panel-line rounded-2xl bg-panel-surface overflow-hidden">
-            <Table
-              aria-label="Governed Artifacts Table"
-              selectionMode="single"
-              onRowAction={(key) => {
-                const item = artifacts.find((a) => a.id === key);
-                if (item) void handleRowClick(item);
-              }}
-              classNames={{
-                wrapper: 'bg-transparent p-0 shadow-none',
-                th: 'bg-panel-surface-strong text-panel-muted font-mono text-[11px] uppercase tracking-wider py-3 px-4 border-b border-panel-line',
-                td: 'py-3 px-4 border-b border-panel-line/30 text-sm text-panel-text font-medium',
-              }}
-            >
-              <TableHeader>
-                <TableColumn>ID</TableColumn>
-                <TableColumn>TITLE</TableColumn>
-                <TableColumn>SCOPE</TableColumn>
-                <TableColumn>REQ LEVEL</TableColumn>
-                <TableColumn>STATE</TableColumn>
-                <TableColumn>REVISION</TableColumn>
-                <TableColumn>UPDATED AT</TableColumn>
-              </TableHeader>
-              <TableBody emptyContent="No governed artifacts found." isLoading={loading}>
-                {artifacts.map((art) => (
-                  <TableRow
-                    key={art.id}
-                    className="hover:bg-panel-surface-strong cursor-pointer transition"
-                  >
-                    <TableCell className="font-mono text-panel-accent text-xs">{art.id}</TableCell>
-                    <TableCell>{art.title}</TableCell>
-                    <TableCell>
-                      <Chip size="sm" variant="flat" className="capitalize">
-                        {art.scope}
-                      </Chip>
-                    </TableCell>
-                    <TableCell className="font-mono text-center">{art.requiredLevel}</TableCell>
-                    <TableCell>
-                      <StatusBadge
-                        tone={
-                          art.lifecycleState === 'active'
-                            ? 'success'
-                            : art.lifecycleState === 'submitted'
-                              ? 'warning'
-                              : 'danger'
-                        }
-                      >
-                        {art.lifecycleState.toUpperCase()}
-                      </StatusBadge>
-                    </TableCell>
-                    <TableCell className="font-mono">v{art.latestRevision}</TableCell>
-                    <TableCell className="text-panel-muted text-xs font-mono">
-                      {new Date(art.updatedAt).toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            {loading ? (
+              <div className="p-6 text-sm text-panel-muted">Loading artifacts...</div>
+            ) : artifacts.length === 0 ? (
+              <div className="p-6 text-sm text-panel-muted">No governed artifacts found.</div>
+            ) : (
+              <table className="w-full border-collapse text-sm">
+                <thead className="bg-panel-surface-strong text-panel-muted font-mono text-[11px] uppercase tracking-wider">
+                  <tr>
+                    <th className="border-b border-panel-line px-4 py-3 text-left">ID</th>
+                    <th className="border-b border-panel-line px-4 py-3 text-left">TITLE</th>
+                    <th className="border-b border-panel-line px-4 py-3 text-left">SCOPE</th>
+                    <th className="border-b border-panel-line px-4 py-3 text-left">REQ LEVEL</th>
+                    <th className="border-b border-panel-line px-4 py-3 text-left">STATE</th>
+                    <th className="border-b border-panel-line px-4 py-3 text-left">REVISION</th>
+                    <th className="border-b border-panel-line px-4 py-3 text-left">UPDATED AT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {artifacts.map((art) => (
+                    <tr
+                      key={art.id}
+                      className="border-b border-panel-line/30 transition hover:bg-panel-surface-strong"
+                    >
+                      <td className="px-4 py-3 font-mono text-xs text-panel-accent">
+                        <button
+                          type="button"
+                          className="text-left text-inherit"
+                          onClick={() => void handleRowClick(art)}
+                        >
+                          {art.id}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-panel-text">
+                        <button
+                          type="button"
+                          className="text-left text-inherit"
+                          onClick={() => void handleRowClick(art)}
+                        >
+                          {art.title}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Chip size="sm" variant="soft" className="capitalize">
+                          {art.scope}
+                        </Chip>
+                      </td>
+                      <td className="px-4 py-3 text-center font-mono">{art.requiredLevel}</td>
+                      <td className="px-4 py-3">
+                        <StatusBadge tone={lifecycleTone(art.lifecycleState)}>
+                          {art.lifecycleState.toUpperCase()}
+                        </StatusBadge>
+                      </td>
+                      <td className="px-4 py-3 font-mono">v{art.latestRevision}</td>
+                      <td className="px-4 py-3 text-xs font-mono text-panel-muted">
+                        {new Date(art.updatedAt).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
       </PageContainer>
 
       {/* Detail Drawer */}
-      <Drawer isOpen={drawerOpen} onOpenChange={setDrawerOpen} size="md">
-        <DrawerContent className="bg-panel-surface border-l border-panel-line text-panel-text">
-          {(onClose) => (
-            <>
-              <DrawerHeader className="border-b border-panel-line flex flex-col gap-1 p-5">
-                <span className="font-mono text-xs text-panel-accent">{selectedArtifact?.id}</span>
-                <h2 className="text-xl font-bold">{selectedArtifact?.title}</h2>
-              </DrawerHeader>
-              <DrawerBody className="p-5 overflow-y-auto space-y-6">
-                {detailLoading ? (
-                  <div className="space-y-4 py-8 text-center text-panel-muted animate-pulse">
-                    Loading detailed metadata...
-                  </div>
-                ) : selectedArtifact ? (
-                  <>
-                    {/* Basic Info */}
-                    <div className="space-y-3">
-                      <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-1.5">
-                        Base Information
-                      </h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-xs text-panel-muted font-medium">Lifecycle State</p>
-                          <div className="mt-1">
-                            <StatusBadge
-                              tone={
-                                selectedArtifact.lifecycleState === 'active'
-                                  ? 'success'
-                                  : selectedArtifact.lifecycleState === 'submitted'
-                                    ? 'warning'
-                                    : 'danger'
-                              }
-                            >
-                              {selectedArtifact.lifecycleState.toUpperCase()}
-                            </StatusBadge>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-xs text-panel-muted font-medium">Required Level</p>
-                          <p className="mt-1 font-mono text-sm">{selectedArtifact.requiredLevel}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-panel-muted font-medium">Scope</p>
-                          <p className="mt-1 text-sm capitalize">{selectedArtifact.scope}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-panel-muted font-medium">Owner</p>
-                          <p className="mt-1 text-sm font-mono text-panel-accent">
-                            @{selectedArtifact.owner.handle}
-                          </p>
+      {drawerOpen ? (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/20 backdrop-blur-sm">
+          <button
+            type="button"
+            aria-label="Close artifact details"
+            className="flex-1"
+            onClick={() => setDrawerOpen(false)}
+          />
+          <div className="flex h-full w-full max-w-xl flex-col border-l border-panel-line bg-panel-surface text-panel-text shadow-2xl">
+            <div className="border-b border-panel-line p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-1">
+                  <span className="font-mono text-xs text-panel-accent">
+                    {selectedArtifact?.id}
+                  </span>
+                  <h2 className="text-xl font-bold">{selectedArtifact?.title}</h2>
+                </div>
+                <Button variant="tertiary" onPress={() => setDrawerOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+            <div className="flex-1 space-y-6 overflow-y-auto p-5">
+              {detailLoading ? (
+                <div className="space-y-4 py-8 text-center text-panel-muted animate-pulse">
+                  Loading detailed metadata...
+                </div>
+              ) : selectedArtifact ? (
+                <>
+                  {/* Basic Info */}
+                  <div className="space-y-3">
+                    <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-1.5">
+                      Base Information
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-panel-muted font-medium">Lifecycle State</p>
+                        <div className="mt-1">
+                          <StatusBadge tone={lifecycleTone(selectedArtifact.lifecycleState)}>
+                            {selectedArtifact.lifecycleState.toUpperCase()}
+                          </StatusBadge>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Derivation Summary */}
-                    <div className="space-y-3">
-                      <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-1.5">
-                        Derivation Results
-                      </h3>
-                      {activeRevision?.derived ? (
-                        <div className="space-y-3 bg-[#0a0f1d] border border-panel-line p-4 rounded-xl">
-                          <p className="text-sm leading-relaxed">
-                            {activeRevision.derived.profile?.summary}
-                          </p>
-                          <div className="flex gap-4 pt-2 border-t border-panel-line/35 font-mono text-xs text-panel-muted">
-                            <div>
-                              Capsules:{' '}
-                              <span className="text-panel-text font-bold">
-                                {activeRevision.derived.capsules.length}
-                              </span>
-                            </div>
-                            <div>
-                              References:{' '}
-                              <span className="text-panel-text font-bold">
-                                {activeRevision.derived.clientManifest?.references.length || 0}
-                              </span>
-                            </div>
-                            <div>
-                              Scripts:{' '}
-                              <span className="text-panel-text font-bold">
-                                {activeRevision.derived.clientManifest?.scripts.length || 0}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-panel-muted italic">
-                          No computed derivation outputs found for this revision.
+                      <div>
+                        <p className="text-xs text-panel-muted font-medium">Required Level</p>
+                        <p className="mt-1 font-mono text-sm">{selectedArtifact.requiredLevel}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-panel-muted font-medium">Scope</p>
+                        <p className="mt-1 text-sm capitalize">{selectedArtifact.scope}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-panel-muted font-medium">Owner</p>
+                        <p className="mt-1 text-sm font-mono text-panel-accent">
+                          @{selectedArtifact.owner.handle}
                         </p>
-                      )}
+                      </div>
                     </div>
+                  </div>
 
-                    {/* File Manifest */}
-                    <div className="space-y-3">
-                      <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-1.5">
-                        File Manifest (v{selectedArtifact.latestRevision})
-                      </h3>
-                      <div className="space-y-2 max-h-[180px] overflow-y-auto divide-y divide-panel-line/20 pr-1">
-                        {activeRevision?.files.map((file) => (
-                          <div
-                            key={file.path}
-                            className="flex justify-between py-2 text-xs font-mono"
-                          >
-                            <span className="text-panel-text truncate pr-4">{file.path}</span>
-                            <span className="text-panel-muted shrink-0 capitalize">
-                              {file.kind}
+                  {/* Derivation Summary */}
+                  <div className="space-y-3">
+                    <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-1.5">
+                      Derivation Results
+                    </h3>
+                    {activeRevision?.derived ? (
+                      <div className="space-y-3 bg-[#0a0f1d] border border-panel-line p-4 rounded-xl">
+                        <p className="text-sm leading-relaxed">
+                          {activeRevision.derived.profile?.summary}
+                        </p>
+                        <div className="flex gap-4 pt-2 border-t border-panel-line/35 font-mono text-xs text-panel-muted">
+                          <div>
+                            Capsules:{' '}
+                            <span className="text-panel-text font-bold">
+                              {activeRevision.derived.capsules.length}
                             </span>
                           </div>
-                        ))}
+                          <div>
+                            References:{' '}
+                            <span className="text-panel-text font-bold">
+                              {activeRevision.derived.clientManifest?.references.length || 0}
+                            </span>
+                          </div>
+                          <div>
+                            Scripts:{' '}
+                            <span className="text-panel-text font-bold">
+                              {activeRevision.derived.clientManifest?.scripts.length || 0}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <p className="text-sm text-panel-muted italic">
+                        No computed derivation outputs found for this revision.
+                      </p>
+                    )}
+                  </div>
 
-                    {/* Governance Metadata */}
-                    <div className="space-y-3">
-                      <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-1.5">
-                        Governance Metadata
-                      </h3>
-                      <div className="grid grid-cols-2 gap-4 text-xs font-mono text-panel-muted">
-                        <div>
-                          <p>Source Kind</p>
-                          <p className="text-panel-text mt-1 capitalize">
-                            {selectedArtifact.metadata.sourceKind.replace(/-/g, ' ')}
-                          </p>
+                  {/* File Manifest */}
+                  <div className="space-y-3">
+                    <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-1.5">
+                      File Manifest (v{selectedArtifact.latestRevision})
+                    </h3>
+                    <div className="space-y-2 max-h-[180px] overflow-y-auto divide-y divide-panel-line/20 pr-1">
+                      {activeRevision?.files.map((file) => (
+                        <div
+                          key={file.path}
+                          className="flex justify-between py-2 text-xs font-mono"
+                        >
+                          <span className="text-panel-text truncate pr-4">{file.path}</span>
+                          <span className="text-panel-muted shrink-0 capitalize">{file.kind}</span>
                         </div>
-                        <div>
-                          <p>Revision Count</p>
-                          <p className="text-panel-text mt-1">
-                            {selectedArtifact.metadata.revisionCount}
-                          </p>
-                        </div>
-                        <div>
-                          <p>Created At</p>
-                          <p className="text-panel-text mt-1">
-                            {new Date(selectedArtifact.createdAt).toLocaleString()}
-                          </p>
-                        </div>
-                        <div>
-                          <p>Last Reviewed At</p>
-                          <p className="text-panel-text mt-1">
-                            {selectedArtifact.metadata.latestReviewedAt
-                              ? new Date(
-                                  selectedArtifact.metadata.latestReviewedAt,
-                                ).toLocaleString()
-                              : 'n/a'}
-                          </p>
-                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Governance Metadata */}
+                  <div className="space-y-3">
+                    <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-1.5">
+                      Governance Metadata
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4 text-xs font-mono text-panel-muted">
+                      <div>
+                        <p>Source Kind</p>
+                        <p className="text-panel-text mt-1 capitalize">
+                          {selectedArtifact.metadata.sourceKind.replace(/-/g, ' ')}
+                        </p>
+                      </div>
+                      <div>
+                        <p>Revision Count</p>
+                        <p className="text-panel-text mt-1">
+                          {selectedArtifact.metadata.revisionCount}
+                        </p>
+                      </div>
+                      <div>
+                        <p>Created At</p>
+                        <p className="text-panel-text mt-1">
+                          {new Date(selectedArtifact.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p>Last Reviewed At</p>
+                        <p className="text-panel-text mt-1">
+                          {selectedArtifact.metadata.latestReviewedAt
+                            ? new Date(selectedArtifact.metadata.latestReviewedAt).toLocaleString()
+                            : 'n/a'}
+                        </p>
                       </div>
                     </div>
-                  </>
-                ) : null}
-              </DrawerBody>
-              <DrawerFooter className="border-t border-panel-line p-5 flex gap-3">
-                <Button
-                  className="flex-1"
-                  color="primary"
-                  onPress={() => {
-                    onClose();
-                    navigate(`/skill-graph?artifactId=${selectedArtifact?.id}`);
-                  }}
-                >
-                  View Skill Graph
-                </Button>
-                <Button
-                  className="flex-1"
-                  variant="flat"
-                  onPress={() => {
-                    onClose();
-                    navigate('/trap-graph');
-                  }}
-                >
-                  View Trap Graph
-                </Button>
-              </DrawerFooter>
-            </>
-          )}
-        </DrawerContent>
-      </Drawer>
+                  </div>
+                </>
+              ) : null}
+            </div>
+            <div className="flex gap-3 border-t border-panel-line p-5">
+              <Button
+                className="flex-1"
+                variant="primary"
+                onPress={() => {
+                  setDrawerOpen(false);
+                  navigate(`/skill-graph?artifactId=${selectedArtifact?.id}`);
+                }}
+              >
+                View Skill Graph
+              </Button>
+              <Button
+                className="flex-1"
+                variant="secondary"
+                onPress={() => {
+                  setDrawerOpen(false);
+                  navigate('/trap-graph');
+                }}
+              >
+                View Trap Graph
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </PageTransition>
   );
 }

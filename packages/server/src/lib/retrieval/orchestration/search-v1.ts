@@ -34,7 +34,7 @@ import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { timedStep } from './pipeline-timing.js';
 import { dispatchByMode, inferChannelsFromMerged } from './recall-coordinator.js';
 import { buildRoutingTrace } from './routing-trace.js';
-import { selectRetrievalStrategy, toRoutingTrace } from './routing.js';
+import { selectRetrievalStrategy } from './routing.js';
 
 export async function searchKnowledge(
   services: SkillShareerServices,

@@ -1,7 +1,8 @@
-import { Button, Card, Checkbox, Input, Select, SelectItem } from '@heroui/react';
+import { Button, Card } from '@heroui/react';
 import { type ReactElement, useCallback, useEffect, useState } from 'react';
 
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
+import type { G6Edge, G6Node } from '@trapmap/web-panel/shared/enum-types';
 import { PageTransition } from '@trapmap/web-panel/shared/motion';
 import { G6GraphComponent, PageContainer, SectionHeader } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
@@ -9,7 +10,7 @@ import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 export function TrapGraphPage(): ReactElement {
   const { t } = useI18nStore();
 
-  const [graphData, setGraphData] = useState<{ nodes: any[]; edges: any[] }>({
+  const [graphData, setGraphData] = useState<{ nodes: G6Node[]; edges: G6Edge[] }>({
     nodes: [],
     edges: [],
   });
@@ -17,7 +18,9 @@ export function TrapGraphPage(): ReactElement {
   const [error, setError] = useState<string | null>(null);
 
   // Inspector selected element
-  const [selectedElement, setSelectedElement] = useState<any | null>(null);
+  const [selectedElement, setSelectedElement] = useState<
+    (G6Node & { type: 'node' }) | (G6Edge & { type: 'edge' }) | null
+  >(null);
 
   // Search keyword
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -48,11 +51,11 @@ export function TrapGraphPage(): ReactElement {
     void fetchGraph();
   }, [fetchGraph]);
 
-  const handleSelectNode = (node: any) => {
+  const handleSelectNode = (node: G6Node) => {
     setSelectedElement({ type: 'node', ...node });
   };
 
-  const handleSelectEdge = (edge: any) => {
+  const handleSelectEdge = (edge: G6Edge) => {
     setSelectedElement({ type: 'edge', ...edge });
   };
 
@@ -90,7 +93,12 @@ export function TrapGraphPage(): ReactElement {
         {error ? (
           <div className="p-6 text-center border border-panel-line rounded-2xl bg-panel-surface">
             <p className="text-rose-400 font-semibold">{error}</p>
-            <Button className="mt-4" size="sm" variant="flat" onPress={() => void fetchGraph()}>
+            <Button
+              className="mt-4"
+              size="sm"
+              variant="secondary"
+              onPress={() => void fetchGraph()}
+            >
               Retry
             </Button>
           </div>
@@ -103,38 +111,26 @@ export function TrapGraphPage(): ReactElement {
                   Graph Layers
                 </h3>
                 <div className="flex flex-col gap-2.5">
-                  <Checkbox
-                    isSelected={nodeFilter.trap}
-                    onValueChange={(val) => setNodeFilter((prev) => ({ ...prev, trap: val }))}
-                  >
-                    Trap (Threat Risks)
-                  </Checkbox>
-                  <Checkbox
-                    isSelected={nodeFilter.cue}
-                    onValueChange={(val) => setNodeFilter((prev) => ({ ...prev, cue: val }))}
-                  >
-                    Cue (Signatures)
-                  </Checkbox>
-                  <Checkbox
-                    isSelected={nodeFilter.tool}
-                    onValueChange={(val) => setNodeFilter((prev) => ({ ...prev, tool: val }))}
-                  >
-                    Tool (Penetration)
-                  </Checkbox>
-                  <Checkbox
-                    isSelected={nodeFilter.environment}
-                    onValueChange={(val) =>
-                      setNodeFilter((prev) => ({ ...prev, environment: val }))
-                    }
-                  >
-                    Environment
-                  </Checkbox>
-                  <Checkbox
-                    isSelected={nodeFilter.mitigation}
-                    onValueChange={(val) => setNodeFilter((prev) => ({ ...prev, mitigation: val }))}
-                  >
-                    Mitigation
-                  </Checkbox>
+                  {(
+                    [
+                      ['trap', 'Trap (Threat Risks)'],
+                      ['cue', 'Cue (Signatures)'],
+                      ['tool', 'Tool (Penetration)'],
+                      ['environment', 'Environment'],
+                      ['mitigation', 'Mitigation'],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2 text-sm text-panel-text">
+                      <input
+                        type="checkbox"
+                        checked={nodeFilter[key]}
+                        onChange={(event) =>
+                          setNodeFilter((prev) => ({ ...prev, [key]: event.target.checked }))
+                        }
+                      />
+                      <span>{label}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 
@@ -142,11 +138,14 @@ export function TrapGraphPage(): ReactElement {
                 <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/35 pb-2 mb-3">
                   Neighborhood Depth
                 </h3>
-                <Select size="sm" defaultSelectedKeys={['1']}>
-                  <SelectItem key="1">1-Hop Neighbors</SelectItem>
-                  <SelectItem key="2">2-Hop Neighbors</SelectItem>
-                  <SelectItem key="all">Fully Connected Component</SelectItem>
-                </Select>
+                <select
+                  className="w-full rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
+                  defaultValue="1"
+                >
+                  <option value="1">1-Hop Neighbors</option>
+                  <option value="2">2-Hop Neighbors</option>
+                  <option value="all">Fully Connected Component</option>
+                </select>
               </div>
 
               <div className="mt-auto pt-4 border-t border-panel-line/35 text-xs text-panel-muted space-y-2">
@@ -163,12 +162,11 @@ export function TrapGraphPage(): ReactElement {
             {/* Center Canvas Pane */}
             <Card className="border border-panel-line bg-panel-surface flex flex-col relative overflow-hidden">
               <div className="absolute top-4 left-4 z-10 w-[240px]">
-                <Input
-                  isClearable
+                <input
                   placeholder="Search graph node..."
-                  size="sm"
+                  className="w-full rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
                   value={searchKeyword}
-                  onValueChange={setSearchKeyword}
+                  onChange={(event) => setSearchKeyword(event.target.value)}
                 />
               </div>
 

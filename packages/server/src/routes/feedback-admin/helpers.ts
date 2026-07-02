@@ -11,10 +11,7 @@ import {
   computeFeedbackRemediationState,
   getActiveEntryFeedback,
 } from '@trapmap/server/lib/feedback/remediation.js';
-import {
-  buildOperatorEntryDisplayLookup,
-  toFailureClassificationAwareFeedbackItem,
-} from '@trapmap/server/lib/operations/read-model.js';
+import { toFailureClassificationAwareFeedbackItem } from '@trapmap/server/lib/operations/read-model.js';
 import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
 
 /**

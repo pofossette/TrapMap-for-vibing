@@ -2,13 +2,7 @@ import type { OutputProfile } from '@trapmap/cli/lib/config.js';
 import { getDefaultOutputProfile as getConfigDefaultOutputProfile } from '@trapmap/cli/lib/config.js';
 
 import { registry } from './registry.js';
-import type {
-  RenderEnvelope,
-  RenderEnvelopeContext,
-  RenderKind,
-  RenderPayload,
-  Renderer,
-} from './types.js';
+import type { RenderEnvelope, RenderEnvelopeContext, RenderKind, Renderer } from './types.js';
 
 export type {
   RenderKind,

@@ -1,6 +1,7 @@
 import type {
   KnowledgeEntry,
   LoginResponse,
+  Permission,
   SessionStatusResponse,
   Team,
 } from '@trapmap/contracts';
@@ -51,6 +52,8 @@ export function createMockEntry(overrides: Partial<KnowledgeEntry> = {}): Knowle
       latestReviewedAt: null,
       latestDecision: null,
     },
+    latestSubmission: null,
+    submissionHistory: [],
     agentReview: null,
     reviewHistory: [],
     reviewNotes: [],
@@ -58,6 +61,7 @@ export function createMockEntry(overrides: Partial<KnowledgeEntry> = {}): Knowle
     boundary: null,
     evidenceMeta: null,
     maintenanceMeta: null,
+    remediation: null,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
     ...overrides,
@@ -89,7 +93,7 @@ export function createMockTeam(overrides: Partial<Team> = {}): Team {
 export interface CreateMockLoginResponseOptions {
   teamId?: string;
   securityLevel?: number;
-  effectivePermissions?: string[];
+  effectivePermissions?: Permission[];
 }
 
 export function createMockLoginResponse(
@@ -152,6 +156,6 @@ export const MOCK_BASE_STATE = {
   sessionToken: 'mock-token',
   session: {
     member: { handle: 'testuser', securityLevel: 0 },
-    effectivePermissions: ['knowledge:submit'] as string[],
+    effectivePermissions: ['knowledge:submit'] as Permission[],
   },
 };

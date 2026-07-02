@@ -1,9 +1,10 @@
-import { Button, Card, Input, Select, SelectItem, Tab, Tabs } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { type ReactElement, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import type { SkillArtifact } from '@trapmap/contracts';
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
+import type { G6Edge, G6Node } from '@trapmap/web-panel/shared/enum-types';
 import { PageTransition } from '@trapmap/web-panel/shared/motion';
 import { G6GraphComponent, PageContainer, SectionHeader } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
@@ -19,7 +20,7 @@ export function SkillGraphPage(): ReactElement {
   // View mode derivation vs semantic
   const [viewMode, setViewMode] = useState<'derivation' | 'semantic'>('derivation');
 
-  const [graphData, setGraphData] = useState<{ nodes: any[]; edges: any[] }>({
+  const [graphData, setGraphData] = useState<{ nodes: G6Node[]; edges: G6Edge[] }>({
     nodes: [],
     edges: [],
   });
@@ -27,7 +28,9 @@ export function SkillGraphPage(): ReactElement {
   const [error, setError] = useState<string | null>(null);
 
   // Inspector selected element
-  const [selectedElement, setSelectedElement] = useState<any | null>(null);
+  const [selectedElement, setSelectedElement] = useState<
+    (G6Node & { type: 'node' }) | (G6Edge & { type: 'edge' }) | null
+  >(null);
 
   // Search keyword
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -76,11 +79,11 @@ export function SkillGraphPage(): ReactElement {
     void fetchGraph();
   }, [selectedArtifactId, viewMode]);
 
-  const handleSelectNode = (node: any) => {
+  const handleSelectNode = (node: G6Node) => {
     setSelectedElement({ type: 'node', ...node });
   };
 
-  const handleSelectEdge = (edge: any) => {
+  const handleSelectEdge = (edge: G6Edge) => {
     setSelectedElement({ type: 'edge', ...edge });
   };
 
@@ -103,34 +106,36 @@ export function SkillGraphPage(): ReactElement {
             <span className="text-xs text-panel-muted font-mono uppercase tracking-wider">
               Artifact:
             </span>
-            <Select
+            <select
               aria-label="Select Skill Artifact"
-              className="flex-1"
-              size="sm"
-              selectedKeys={selectedArtifactId ? [selectedArtifactId] : []}
-              onSelectionChange={(keys) => handleArtifactChange(String(Array.from(keys)[0]))}
+              className="flex-1 rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
+              value={selectedArtifactId}
+              onChange={(event) => handleArtifactChange(event.target.value)}
             >
               {artifacts.map((a) => (
-                <SelectItem key={a.id} textValue={a.title}>
+                <option key={a.id} value={a.id}>
                   {a.title} ({a.id})
-                </SelectItem>
+                </option>
               ))}
-            </Select>
+            </select>
           </div>
 
-          <Tabs
-            selectedKey={viewMode}
-            onSelectionChange={(key) => setViewMode(key as 'derivation' | 'semantic')}
-            color="primary"
-            variant="underlined"
-            classNames={{
-              tabList: 'border-b border-panel-line/30',
-              tabContent: 'font-semibold text-sm',
-            }}
-          >
-            <Tab key="derivation" title="Derivation View (推导视角)" />
-            <Tab key="semantic" title="Semantic Graph (语义关系)" />
-          </Tabs>
+          <div className="inline-flex rounded-full border border-panel-line bg-panel-surface-strong p-1">
+            {(['derivation', 'semantic'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  viewMode === mode
+                    ? 'bg-panel-text text-[var(--panel-bg)]'
+                    : 'text-panel-muted hover:text-panel-text'
+                }`}
+                onClick={() => setViewMode(mode)}
+              >
+                {mode === 'derivation' ? 'Derivation View (推导视角)' : 'Semantic Graph (语义关系)'}
+              </button>
+            ))}
+          </div>
         </div>
 
         {error ? (
@@ -174,12 +179,11 @@ export function SkillGraphPage(): ReactElement {
             {/* Canvas Pane */}
             <Card className="border border-panel-line bg-panel-surface flex flex-col relative overflow-hidden">
               <div className="absolute top-4 left-4 z-10 w-[240px]">
-                <Input
-                  isClearable
+                <input
                   placeholder="Search graph node..."
-                  size="sm"
+                  className="w-full rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
                   value={searchKeyword}
-                  onValueChange={setSearchKeyword}
+                  onChange={(event) => setSearchKeyword(event.target.value)}
                 />
               </div>
 

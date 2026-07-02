@@ -13,7 +13,6 @@
  */
 
 import { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
-import type { IndexAdapter } from '@trapmap/server/lib/indexing/types.js';
 import type { Pool } from 'pg';
 import { graphIndexAdapter } from './graph.js';
 import { keywordIndexAdapter } from './keyword.js';

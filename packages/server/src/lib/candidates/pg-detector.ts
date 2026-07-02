@@ -247,8 +247,8 @@ export function createPgDuplicateDetector(config: PgDuplicateDetectorConfig) {
             recalledMatches,
             chat: config.chat!,
             entityContent,
-            candidateTitle: input.candidateTitle,
-            candidateBody: input.candidateBody,
+            ...(input.candidateTitle !== undefined ? { candidateTitle: input.candidateTitle } : {}),
+            ...(input.candidateBody !== undefined ? { candidateBody: input.candidateBody } : {}),
             candidateKeywords: input.candidateKeywords,
             candidateTokens: input.candidateTokens,
           })

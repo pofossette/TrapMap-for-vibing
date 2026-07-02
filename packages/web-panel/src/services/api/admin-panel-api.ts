@@ -11,7 +11,6 @@ import type {
   AdminPanelApiContract,
   AdminPanelSession,
   ArtifactListResponse,
-  ArtifactQuery,
   GraphDataResponse,
   ManualJsonEditInput,
   ReviewDetailResponse,

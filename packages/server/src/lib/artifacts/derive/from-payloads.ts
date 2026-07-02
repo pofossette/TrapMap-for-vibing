@@ -191,6 +191,7 @@ export async function deriveFromPayloads(
             .sort((a, b) => a.path.localeCompare(b.path))
             .map((p) => ({
               path: p.path,
+              sha256: p.sha256,
               capability: `Script: ${p.path}`,
               argsSchemaSummary: '',
               sideEffectSummary: '',
