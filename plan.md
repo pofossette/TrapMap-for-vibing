@@ -77,9 +77,9 @@
 
 ### Phase 1B 服务发现 MVP
 
-- [ ] 状态：`待开始`
-- [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#4-phase-1b-服务发现-mvp`](docs/todos/service-discovery-and-observability-plan.md#4-phase-1b-服务发现-mvp)
-- [ ] 目标：打通服务注册、注销、查询、缓存、故障降级
+- [x] 状态：`完成`
+- [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#4-phase-1b-服务发现-mvp`](docs/todos/service-discovery-and-observability-plan.md#4-phase-1b-服务发现-mvp)
+- [x] 目标：打通服务注册、注销、查询、缓存、故障降级
 
 ### Phase 2A Metrics 与 Dashboard MVP
 
