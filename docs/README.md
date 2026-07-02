@@ -6,11 +6,15 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 ## 当前整改主线
 
-当前根计划“微服务平台能力增强”主线已完成并归档；当前不再保留对应 active 执行细则：
+当前根计划为“服务发现与可观测性升级”，状态为 `收口中`。当前 active 执行细则与 closeout tasklist 统一维护在：
 
 - 根索引：[`../plan.md`](../plan.md)
-- closeout 归档：[`archived/archived-plans/microservice-platform-evolution-plan.md`](archived/archived-plans/microservice-platform-evolution-plan.md)
+- 活跃细则：[`todos/service-discovery-and-observability-plan.md`](todos/service-discovery-and-observability-plan.md)
 - CI/testing truth source：[`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md)
+
+上一条“微服务平台能力增强”主线已完成并归档：
+
+- closeout 归档：[`archived/archived-plans/microservice-platform-evolution-plan.md`](archived/archived-plans/microservice-platform-evolution-plan.md)
 
 以下 NestJS / 服务演进内容仅保留为历史背景输入，不再作为当前根计划执行面；其他历史 todo/closeout 文档也只能被视为 background 或 deferred reference，而不是平行 active checklist：
 

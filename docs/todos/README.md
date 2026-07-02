@@ -16,6 +16,7 @@
 
 | 文件 | 主题 | 状态 |
 |---|---|---|
+| `service-discovery-and-observability-plan.md` | 服务发现与可观测性升级主线细则与 closeout tasklist | 活跃主线（收口中） |
 | `backend-build-targets-plan.md` | 轻重后端构建目标、兼容壳清理与客户端后端形态配置计划 | 进行中 (~35%) |
 | `agent-planning-eval-benchmark-plan.md` | Agent 路径规划对比测评脚手架与数据规则计划 | 待处理 |
 | `nestjs-service-evolution-residual-tasks.md` | NestJS 服务演进 Phase 01/02/04 归档后的残余任务去重整合 | 活跃 |
@@ -25,7 +26,7 @@
 
 ## 已归档
 
-`microservice-platform-evolution-plan.md` 已于 2026-06-30 完成 Phase 4 closeout，并归档至 [`../archived/archived-plans/microservice-platform-evolution-plan.md`](../archived/archived-plans/microservice-platform-evolution-plan.md)。
+当前根计划已切换到 `service-discovery-and-observability-plan.md`，状态为“收口中”；`microservice-platform-evolution-plan.md` 已于 2026-06-30 完成 Phase 4 closeout，并归档至 [`../archived/archived-plans/microservice-platform-evolution-plan.md`](../archived/archived-plans/microservice-platform-evolution-plan.md)。
 
 NestJS 服务演进 Phase 01/02/04 已于 2026-06-30 归档，残余任务整合入 `nestjs-service-evolution-residual-tasks.md`：
 

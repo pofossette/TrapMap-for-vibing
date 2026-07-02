@@ -35,6 +35,7 @@ export class LifecycleManagerService
   private readonly hooks = new Map<LifecyclePhase, LifecycleHook[]>();
   private readonly healthChecks = new Map<string, HealthCheck>();
   private currentPhase: LifecyclePhase = 'stopped';
+  private ready = false;
 
   // ─── LifecycleManager ──────────────────────────────────────────────
 
@@ -143,10 +144,24 @@ export class LifecycleManagerService
   async onModuleInit(): Promise<void> {
     await this.runPhase('init');
     await this.runPhase('ready');
+    this.ready = true;
   }
 
   async onApplicationShutdown(): Promise<void> {
+    this.ready = false;
     await this.runPhase('shutting-down');
     await this.runPhase('stopped');
+  }
+
+  // ─── Readiness / liveness probes ────────────────────────────────────
+
+  /** Whether the application has completed its startup phases. */
+  isReady(): boolean {
+    return this.ready;
+  }
+
+  /** Whether the process is alive (always true while responding). */
+  isAlive(): boolean {
+    return true;
   }
 }

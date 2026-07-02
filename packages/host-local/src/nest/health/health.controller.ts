@@ -1,7 +1,8 @@
-import { Controller, Get, Header } from '@nestjs/common';
+import { Controller, Get, Header, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { HealthStatus } from '@trapmap/contracts';
 import type { HealthCheckResult } from '@trapmap/backend-core';
+import type { FastifyReply } from 'fastify';
 import { PrometheusService } from '../observability/prometheus.service.js';
 import { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
 
@@ -48,13 +49,19 @@ export class HealthController {
         ? 'degraded'
         : 'ok';
 
+    const readiness: HealthStatus['readiness'] = !this.lifecycle.isReady()
+      ? 'not-ready'
+      : hasUnhealthy || hasDegraded
+        ? 'degraded'
+        : 'ready';
+
     return {
       status,
       timestamp: new Date().toISOString(),
       startedAt: this.startedAt,
       uptime: process.uptime(),
-      readiness: 'ready',
-      liveness: 'alive',
+      readiness,
+      liveness: this.lifecycle.isAlive() ? 'alive' : 'dead',
       dependencies,
       deployment: {
         profile,
@@ -64,11 +71,38 @@ export class HealthController {
   }
 
   @Get('ready')
-  async ready() {
-    return {
+  async ready(@Res() reply: FastifyReply) {
+    const isReady = this.lifecycle.isReady();
+
+    if (!isReady) {
+      return reply.status(503).send({
+        status: 'not-ready',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    const results = await this.lifecycle.runHealthChecks();
+    const hasUnhealthy = results.some((r) => r.status === 'unhealthy');
+    const hasDegraded = results.some((r) => r.status === 'degraded');
+
+    if (hasUnhealthy) {
+      return reply.status(503).send({
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    if (hasDegraded) {
+      return reply.status(200).send({
+        status: 'degraded',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return reply.status(200).send({
       status: 'ready',
       timestamp: new Date().toISOString(),
-    };
+    });
   }
 
   @Get('live')

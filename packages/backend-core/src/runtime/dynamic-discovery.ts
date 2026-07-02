@@ -53,6 +53,7 @@ export class DynamicDiscovery {
   private roundRobin(serviceName: string, services: DiscoveredService[]): DiscoveredService {
     const counter = (this.roundRobinCounters.get(serviceName) ?? 0) + 1;
     this.roundRobinCounters.set(serviceName, counter);
-    return services[counter % services.length];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- modulo over non-empty array is always in bounds
+    return services[counter % services.length]!;
   }
 }

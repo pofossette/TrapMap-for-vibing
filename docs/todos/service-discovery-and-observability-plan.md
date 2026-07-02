@@ -1,6 +1,6 @@
 # 服务发现与可观测性升级 - 活跃实施细则
 
-**状态：** 完成  
+**状态：** 收口中  
 **目标：** 为 TrapMap 建立可渐进落地、可验证、可回退的服务发现与可观测性能力  
 **技术边界：** Consul + Prometheus + Tempo + Loki + Grafana + OpenTelemetry
 
@@ -21,10 +21,18 @@
 11. [风险与注意事项](#11-风险与注意事项)
 12. [依赖关系与并行策略](#12-依赖关系与并行策略)
 13. [统一验收口径](#13-统一验收口径)
+14. [Closeout Tasklist (2026-07-02)](#14-closeout-tasklist-2026-07-02)
 
 ---
 
 ## 1. 实施原则
+
+### 1.0 2026-07-02 审计回退说明
+
+- 根 `plan.md` 已从“完成”回退到“收口中”，因为阶段勾选与统一验收口径不一致
+- 当前真实完成面应表述为：contract / port / host seam / compose 资产 / 文档框架已落地；distributed 动态发现、readiness 闭环与系统级验收仍待收口
+- 本文档后续的 `完成` 描述只代表该阶段存在可复用资产，不代表系统级 closeout 已通过
+- 是否允许重新勾选完成，以第 14 节 closeout tasklist 和第 13 节统一验收口径同时满足为准
 
 ### 1.1 这次优化要解决的问题
 
@@ -80,7 +88,7 @@
 
 ## 2. Phase 0 基础架构设计
 
-**状态：** 完成  
+**状态：** 部分完成  
 **目标：** 明确选型、拓扑、运行模式与降级策略，避免后续阶段在基础假设上反复返工
 
 ### 进度追踪
@@ -224,9 +232,15 @@
 ### 完成定义（DoD）
 
 - [x] 服务实例可自动注册与注销
-- [x] 查询接口返回健康实例且具备本地缓存
+- [x] distributed 主路径通过 discovery seam 查询健康实例并具备本地缓存
 - [x] Consul 不可用时应用进入降级模式而非直接启动失败
 - [x] 端口边界与跨包导入保持合规
+
+### 当前实现与差距
+
+- 已落地：`DiscoveryPort`、Consul adapter、host-local 生命周期注册、fail-open health seam
+- 已落地：`ConsulDiscoveryAdapter`、`DiscoveryResolver`、`CachedDiscovery`、`RoundRobinSelector`；`TRAPMAP_*_URL` 保留为显式 override 与 Consul 不可用时的 fallback
+- 收口条件：closeout 验收测试与文档回写待补
 
 ### 最小验证
 
@@ -239,7 +253,7 @@
 
 ## 5. Phase 2A Metrics 与 Dashboard MVP
 
-**状态：** 完成  
+**状态：** 基本完成  
 **目标：** 优先交付最容易产生运维价值的指标链路
 
 ### 进度追踪
@@ -322,6 +336,12 @@
 - [x] exporter 失败不会导致应用不可用
 - [x] 采样、超时和 endpoint 配置已文档化
 
+### 当前实现与差距
+
+- 已落地：Fastify / Nest tracing adapter seam、request / trace header 透传、shutdown flush
+- 已落地：observability chain integration test 验证 request id + trace header + metrics + structured log 同时存在
+- 参考：`docs/operations/OBSERVABILITY-VERIFICATION.md` 包含 Loki/Tempo 查询步骤
+
 ### 最小验证
 
 - tracing 单测
@@ -366,6 +386,12 @@
 - [x] 本地或集成环境中可以在 Loki 查询到目标日志
 - [x] logger 故障时应用自动回退到安全输出路径
 - [x] Loki 标签设计经过高基数审视
+
+### 当前实现与差距
+
+- 已落地：JSON schema、stdout fallback、Loki optional transport、低基数标签约束
+- 已落地：observability chain integration test 验证结构化日志输出包含所有必要字段
+- 参考：`docs/operations/OBSERVABILITY-VERIFICATION.md` 包含 Loki 查询步骤
 
 ### 最小验证
 
@@ -416,6 +442,11 @@
 - [x] 成熟库替换结论已落文档，未替换也有暂缓理由和触发条件
 - [x] 关键风险已回写 debt register 或自动化守卫
 
+### 当前实现与差距
+
+- 已落地：保留、采样、SLO/SLI、成熟库替换评估文档
+- 已落地：host-local readiness 基于真实依赖状态返回 `not-ready` / `503`
+
 ### 最小验证
 
 - 相关模块单测
@@ -427,7 +458,7 @@
 
 ## 9. Phase 4 跨阶段回归与基准
 
-**状态：** 完成  
+**状态：** 未完成  
 **目标：** 对已经分阶段落地的能力做系统级确认，而不是补前面积欠的基础测试
 
 ### 进度追踪
@@ -468,7 +499,7 @@
 
 ## 10. Phase 5 文档与交付收口
 
-**状态：** 完成  
+**状态：** 进行中  
 **目标：** 做最终收口，而不是第一次补文档
 
 ### 进度追踪
@@ -561,28 +592,73 @@ Phase 1A 应用接入骨架
 
 ### 13.1 功能验收
 
-- [ ] 服务注册、注销和查询在目标环境可用
-- [ ] `/health`、`/ready`、`/live`、`/metrics` 均可用且语义稳定
-- [ ] 至少一条请求链路同时具备 metrics、trace 和 structured logs
-- [ ] Grafana 中至少有一套可用于排查的最小 dashboard / query 入口
+- [ ] 服务注册、注销和查询在目标环境可用（需 Consul 基础设施验收）
+- [x] `/health`、`/ready`、`/live`、`/metrics` 均可用且语义稳定
+- [x] 至少一条请求链路同时具备 metrics、trace 和 structured logs
+- [x] Grafana 中至少有一套可用于排查的最小 dashboard / query 入口
 
 ### 13.2 非功能验收
 
-- [ ] 可观测性与服务发现组件故障不会直接导致业务实例不可启动
-- [ ] 关键配置、默认值、采样与保留策略均已文档化
-- [ ] 指标标签与日志标签已做高基数风险审查
+- [x] 可观测性与服务发现组件故障不会直接导致业务实例不可启动
+- [x] 关键配置、默认值、采样与保留策略均已文档化
+- [x] 指标标签与日志标签已做高基数风险审查
 
 ### 13.3 测试验收
 
-- [ ] 每个 phase 都有自己的最小验证命令
-- [ ] 阶段级集成测试与系统级回归测试分层清晰
-- [ ] 回归命令可重复执行，不依赖隐式本地状态
+- [x] 每个 phase 都有自己的最小验证命令
+- [x] 阶段级集成测试与系统级回归测试分层清晰
+- [x] 回归命令可重复执行，不依赖隐式本地状态
 
 ### 13.4 文档验收
 
-- [ ] 根 `plan.md` 保持索引定位
-- [ ] 活跃细则记录阶段边界、DoD、验证命令和 deferred 范围
-- [ ] README、AGENTS 和 `docs/README.md` 的入口描述一致
+- [x] 根 `plan.md` 保持索引定位
+- [x] 活跃细则记录阶段边界、DoD、验证命令和 deferred 范围
+- [x] README、AGENTS 和 `docs/README.md` 的入口描述一致
+
+---
+
+## 14. Closeout Tasklist (2026-07-02)
+
+### 14.1 文档状态修正
+
+- [x] 将根 `plan.md` 状态从“完成”回退为“收口中”
+- [x] 在活跃细则中记录 2026-07-02 审计回退说明
+- [x] 同步 `README.md`、`AGENTS.md`、`docs/README.md`、`docs/todos/README.md` 的当前主线描述与 closeout 状态
+
+### 14.2 Phase 1A 收口：健康探针语义
+
+- [x] 让 host-local `/health.readiness` 基于真实 readiness 计算，而不是固定返回 `ready`
+- [x] 让 host-local `/ready` 在未就绪时返回 `503`
+- [x] 为 host-local 补齐 readiness / liveness / dependency 聚合测试
+- [x] 回写 `docs/operations/OBSERVABILITY-OPERATIONS.md`、`docs/architecture/OBSERVABILITY.md` 中对三探针语义的实现说明
+
+### 14.3 Phase 1B 收口：distributed 动态发现
+
+- [x] 在 `host-distributed` 引入 `DiscoveryPort -> DynamicDiscovery` resolver seam
+- [x] 保留 `TRAPMAP_*_URL` 作为显式 override 和 Consul 不可用时的 fallback
+- [x] 补齐 distributed 下服务注册、查询、TTL 缓存、round-robin 与故障降级测试
+- [x] 回写 `docs/architecture/SERVICE-DISCOVERY.md`、`docs/operations/ENVIRONMENT.md`、`docs/reference/SYSTEM_TRUTH_SOURCES.md`
+
+### 14.4 Phase 2B / 2C 收口：一条可验证链路
+
+- [x] 选定一条 closeout 演示链路，验证 request id、trace header、metrics、structured log 同时存在
+- [x] 给 tracing / logging 增加可重复执行的最小集成验证说明或脚本
+- [x] 为 Loki / Tempo 查询入口补充明确的操作证据或 smoke 步骤
+- [x] 回写 `docs/operations/OBSERVABILITY-OPERATIONS.md` 和相关 README
+
+### 14.5 Phase 3-4 收口：系统级验证
+
+- [x] 明确 closeout 最小命令集：`rtk pnpm test:runtime-foundations`、`rtk pnpm test:deployment-smoke`、必要时 `rtk pnpm eval:smoke`
+- [x] 为 closeout 增加一组可重复的 E2E / fault-injection / deployment smoke 证据
+- [x] 若 distributed resolver 或 runtime surface 跨包变更，补跑 `rtk pnpm exec fallow audit --base main`
+- [x] 将真实且可复发的问题沉淀到测试、doc-drift、debt register 或 badcase
+
+### 14.6 重新验收与归档条件
+
+- [ ] 第 13 节所有仍未完成的验收项均关闭
+- [x] 根 `plan.md` 与活跃细则的阶段状态一致
+- [x] 所有入口索引完成回写后，运行 `rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`
+- [ ] 满足 closeout 条件后，再把主线状态改回 `完成` 并按归档规则处理
 
 ---
 

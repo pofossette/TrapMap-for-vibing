@@ -120,6 +120,29 @@ describe('LifecycleManagerService', () => {
     });
   });
 
+  describe('readiness tracking', () => {
+    it('should report not ready initially', () => {
+      expect(manager.isReady()).toBe(false);
+    });
+
+    it('should report ready after onModuleInit completes', async () => {
+      await manager.onModuleInit();
+      expect(manager.isReady()).toBe(true);
+    });
+
+    it('should report not ready after onApplicationShutdown', async () => {
+      await manager.onModuleInit();
+      expect(manager.isReady()).toBe(true);
+
+      await manager.onApplicationShutdown();
+      expect(manager.isReady()).toBe(false);
+    });
+
+    it('should report isAlive as true', () => {
+      expect(manager.isAlive()).toBe(true);
+    });
+  });
+
   describe('health check aggregation', () => {
     it('should run all registered health checks and aggregate results', async () => {
       const dbCheck: HealthCheck = {

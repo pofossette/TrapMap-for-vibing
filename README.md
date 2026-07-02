@@ -108,11 +108,12 @@ TrapMap 有两类典型使用方式：
 - CLI 与 web-panel 继续只面向统一 gateway；HTTP / internal / event contract 分别统一收敛到 `packages/contracts`、`packages/backend-core` 和共享 async contract
 - 当前 `distributed` 定位已冻结为 `Level 2 / transitional-microservice`，第一批成熟服务样板 `knowledge-write + governance-review` 已完成 closeout
 
-Phase 4 收尾（进行中）：
+当前主线收尾（服务发现与可观测性升级，收口中）：
 
-- 冻结仓库级 owner matrix、迁移窗口关闭条件和可退役 compatibility shell 清单
-- 退役旧宿主与重复 transport/client，完成 truth source、测试矩阵与归档回写
-- 默认 `light` 入口已切到 `packages/host-local/src/nest/**`；candidate manual-result / apply-resolution / knowledge review 已由 Nest 主线通过 owner port 接管，旧 Fastify rollback/compat 写路径已删除
+- 健康探针已实现真实 readiness/liveness 语义：`/ready` 基于依赖状态返回 `503`，不再固定返回 `ready`
+- 分布式动态发现已落地：`ConsulDiscoveryAdapter` + `DiscoveryResolver` + `CachedDiscovery` + `RoundRobinSelector`，`TRAPMAP_*_URL` 保留为显式 override 和 Consul 不可用时的 fallback
+- 统一验收口径与 closeout tasklist 见 [`docs/todos/service-discovery-and-observability-plan.md`](docs/todos/service-discovery-and-observability-plan.md)
+- Phase 4 历史主线（NestJS 数据、运维与退役收尾）已完成并归档；退役旧宿主与重复 transport/client 已完成 truth source、测试矩阵与归档回写
 
 ## 快速理解
 

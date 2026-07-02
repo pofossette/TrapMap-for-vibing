@@ -5,11 +5,20 @@
 ## 当前主线
 
 - 当前主线：服务发现与可观测性升级
-- 状态：`完成`
+- 状态：`收口中`
 - 主细则：[`docs/todos/service-discovery-and-observability-plan.md`](docs/todos/service-discovery-and-observability-plan.md)
 - 背景输入：[`docs/todos/microservice-architecture-and-observability.md`](docs/todos/microservice-architecture-and-observability.md)
 - 活跃 debt register：[`docs/todos/open-debt-and-compromises.md`](docs/todos/open-debt-and-compromises.md)
 - 历史主线归档：[`docs/archived/archived-plans/microservice-platform-evolution-plan.md`](docs/archived/archived-plans/microservice-platform-evolution-plan.md)
+
+### 审计结论（2026-07-02）
+
+- 根计划与活跃细则此前把多阶段标记为 `完成`，但统一验收口径仍未关闭，状态回退为 `收口中`
+- `Phase 1A` 的 contract、port、宿主接入骨架与健康探针真实 readiness/liveness 语义已落地
+- `Phase 1B` 分布式动态发现已落地（ConsulDiscoveryAdapter、DiscoveryResolver、CachedDiscovery、RoundRobinSelector），`TRAPMAP_*_URL` 保留为显式 override 与 Consul 不可用时的 fallback
+- `Phase 2A` 已具备 `/metrics`、Prometheus 配置和最小 Grafana 资产，可按”基本完成”管理
+- `Phase 2B`、`Phase 2C` 当前冻结的是 tracing / logging seam，不应表述为 LGTM 全链路已完全落地
+- `Phase 3-5` 需要按 closeout tasklist 补齐实现、测试、事实回写与验收后，才能重新勾为完成
 
 ### 前置工作：六边形架构清理
 
@@ -73,53 +82,54 @@
 
 - [x] 状态：`完成`
 - [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#3-phase-1a-应用接入骨架`](docs/todos/service-discovery-and-observability-plan.md#3-phase-1a-应用接入骨架)
-- [x] 目标：先稳定 Nest bootstrap、配置模型、健康检查语义和统一 discovery/telemetry 接口
+- [x] 目标：Nest bootstrap、配置模型、健康探针真实 readiness/liveness 语义与统一 discovery/telemetry 接口已落地
 
 ### Phase 1B 服务发现 MVP
 
 - [x] 状态：`完成`
 - [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#4-phase-1b-服务发现-mvp`](docs/todos/service-discovery-and-observability-plan.md#4-phase-1b-服务发现-mvp)
-- [x] 目标：打通服务注册、注销、查询、缓存、故障降级
+- [x] 目标：Consul port / adapter、分布式动态发现（ConsulDiscoveryAdapter、DiscoveryResolver、CachedDiscovery、RoundRobinSelector）与 `TRAPMAP_*_URL` 静态 fallback 已落地；closeout 验收待补
 
 ### Phase 2A Metrics 与 Dashboard MVP
 
-- [x] 状态：`完成`
+- [x] 状态：`基本完成`
 - [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#5-phase-2a-metrics-与-dashboard-mvp`](docs/todos/service-discovery-and-observability-plan.md#5-phase-2a-metrics-与-dashboard-mvp)
-- [x] 目标：先交付最早产生运维价值的指标链路
+- [x] 目标：`/metrics`、Prometheus 配置与最小 Grafana 资产已具备；系统级回归待纳入 closeout
 
 ### Phase 2B Tracing MVP
 
 - [x] 状态：`完成`
 - [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#6-phase-2b-tracing-mvp`](docs/todos/service-discovery-and-observability-plan.md#6-phase-2b-tracing-mvp)
-- [x] 目标：打通请求级 trace、trace id 透传和 Tempo 查询入口
+- [x] 目标：trace header 透传、shutdown flush、observability chain integration test 已落地；Loki/Tempo 查询步骤已文档化
 
 ### Phase 2C Logging MVP
 
 - [x] 状态：`完成`
 - [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#7-phase-2c-logging-mvp`](docs/todos/service-discovery-and-observability-plan.md#7-phase-2c-logging-mvp)
-- [x] 目标：统一结构化日志 schema 与 Loki 查询入口
+- [x] 目标：JSON schema、stdout fallback、Loki optional transport、结构化日志集成验证已落地
 
 ### Phase 3 生产化增强
 
 - [x] 状态：`完成`
 - [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#8-phase-3-生产化增强`](docs/todos/service-discovery-and-observability-plan.md#8-phase-3-生产化增强)
-- [x] 目标：补齐采样、标签基数控制、资源限制、告警和成熟库替换评估
+- [x] 目标：采样/保留/资源限制策略、真实 readiness 分层、成熟库替换评估已落地；告警入口与 SLO/SLI 初版已具备
 
 ### Phase 4 跨阶段回归与基准
 
-- [x] 状态：`完成`
-- [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#9-phase-4-跨阶段回归与基准`](docs/todos/service-discovery-and-observability-plan.md#9-phase-4-跨阶段回归与基准)
-- [x] 目标：统一 E2E、故障注入、性能基准与部署 smoke
+- [ ] 状态：`未完成`
+- [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#9-phase-4-跨阶段回归与基准`](docs/todos/service-discovery-and-observability-plan.md#9-phase-4-跨阶段回归与基准)
+- [ ] 目标：需按 closeout tasklist 补齐可重复的 E2E、故障注入与部署 smoke 证据
 
 ### Phase 5 文档与交付收口
 
-- [x] 状态：`完成`
-- [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#10-phase-5-文档与交付收口`](docs/todos/service-discovery-and-observability-plan.md#10-phase-5-文档与交付收口)
-- [x] 目标：收口架构、运行、运维、故障排查和演示材料
+- [ ] 状态：`进行中`
+- [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#14-closeout-tasklist-2026-07-02`](docs/todos/service-discovery-and-observability-plan.md#14-closeout-tasklist-2026-07-02)
+- [ ] 目标：先修正文档与实现状态漂移，再完成 closeout tasklist 并重新验收
 
 ## 活跃配套文档
 
 - 主细则：[`docs/todos/service-discovery-and-observability-plan.md`](docs/todos/service-discovery-and-observability-plan.md)
+- Closeout tasklist：[`docs/todos/service-discovery-and-observability-plan.md#14-closeout-tasklist-2026-07-02`](docs/todos/service-discovery-and-observability-plan.md#14-closeout-tasklist-2026-07-02)
 - 六边形架构清理：[`docs/todos/hexagonal-architecture-cleanup.md`](docs/todos/hexagonal-architecture-cleanup.md)
 - 静态分析审计：[`docs/todos/static-analysis-audit-2026-06-29.md`](docs/todos/static-analysis-audit-2026-06-29.md)
 - 成熟库替换相关细则：[`docs/todos/nestjs-langchain-debt-cleanup.md`](docs/todos/nestjs-langchain-debt-cleanup.md)

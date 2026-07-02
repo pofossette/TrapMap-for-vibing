@@ -8,6 +8,7 @@
 
 import type { InternalServiceUrls } from '@trapmap/host-distributed/config/index.js';
 import { recordDistributedInternalHopMetric } from './internal-observability.js';
+import type { DiscoveryResolver } from './discovery-resolver.js';
 
 // ---------------------------------------------------------------------------
 // HTTP client helper
@@ -343,167 +344,253 @@ export interface InternalServiceClients {
 
 /**
  * Create HTTP clients for all internal services.
+ *
+ * When a `resolver` is provided, each call dynamically resolves the
+ * target service URL via the resolver (discovery -> static fallback).
+ * When omitted, static URLs are used directly (backward compatible).
  */
-export function createInternalServiceClients(urls: InternalServiceUrls): InternalServiceClients {
+export function createInternalServiceClients(
+  urls: InternalServiceUrls,
+  resolver?: DiscoveryResolver,
+): InternalServiceClients {
+  /**
+   * Resolve the base URL for a given service key.  If a dynamic
+   * resolver is configured, it takes precedence; otherwise we use
+   * the static URL from `urls`.
+   */
+  const baseUrl = async (serviceName: string, staticUrl: string): Promise<string> => {
+    if (!resolver) return staticUrl;
+    return resolver.resolveServiceUrl(serviceName);
+  };
+
   return {
     identityAccess: {
-      login: (body) =>
-        callInternalService(`${urls.identityAccess}/internal/auth/login`, 'POST', body),
-      logout: (body) =>
-        callInternalService(`${urls.identityAccess}/internal/auth/logout`, 'POST', body),
-      validateSession: (body) =>
-        callInternalService(`${urls.identityAccess}/internal/auth/validate`, 'POST', body),
-      selectTeam: (body) =>
-        callInternalService(`${urls.identityAccess}/internal/auth/select-team`, 'POST', body),
-      createTeam: (body) =>
-        callInternalService(`${urls.identityAccess}/internal/teams`, 'POST', body),
-      listTeams: (userId) =>
-        callInternalService(`${urls.identityAccess}/internal/teams`, 'GET', undefined, { userId }),
-      addMember: (body) =>
-        callInternalService(`${urls.identityAccess}/internal/members`, 'POST', body),
-      updateMember: (memberId, body) =>
-        callInternalService(`${urls.identityAccess}/internal/members/${memberId}`, 'PUT', body),
-      provisionAccessKey: (body) =>
-        callInternalService(`${urls.identityAccess}/internal/access-keys`, 'POST', body),
+      login: async (body) =>
+        callInternalService(
+          `${await baseUrl('identity-access', urls.identityAccess)}/internal/auth/login`,
+          'POST',
+          body,
+        ),
+      logout: async (body) =>
+        callInternalService(
+          `${await baseUrl('identity-access', urls.identityAccess)}/internal/auth/logout`,
+          'POST',
+          body,
+        ),
+      validateSession: async (body) =>
+        callInternalService(
+          `${await baseUrl('identity-access', urls.identityAccess)}/internal/auth/validate`,
+          'POST',
+          body,
+        ),
+      selectTeam: async (body) =>
+        callInternalService(
+          `${await baseUrl('identity-access', urls.identityAccess)}/internal/auth/select-team`,
+          'POST',
+          body,
+        ),
+      createTeam: async (body) =>
+        callInternalService(
+          `${await baseUrl('identity-access', urls.identityAccess)}/internal/teams`,
+          'POST',
+          body,
+        ),
+      listTeams: async (userId) =>
+        callInternalService(
+          `${await baseUrl('identity-access', urls.identityAccess)}/internal/teams`,
+          'GET',
+          undefined,
+          { userId },
+        ),
+      addMember: async (body) =>
+        callInternalService(
+          `${await baseUrl('identity-access', urls.identityAccess)}/internal/members`,
+          'POST',
+          body,
+        ),
+      updateMember: async (memberId, body) =>
+        callInternalService(
+          `${await baseUrl('identity-access', urls.identityAccess)}/internal/members/${memberId}`,
+          'PUT',
+          body,
+        ),
+      provisionAccessKey: async (body) =>
+        callInternalService(
+          `${await baseUrl('identity-access', urls.identityAccess)}/internal/access-keys`,
+          'POST',
+          body,
+        ),
     },
     knowledgeRead: {
-      getById: (entryId) =>
-        callInternalService(`${urls.knowledgeRead}/internal/knowledge/${entryId}`, 'GET'),
-      listMine: (userId, teamId) =>
-        callInternalService(`${urls.knowledgeRead}/internal/knowledge/mine`, 'GET', undefined, {
-          userId,
-          ...(teamId ? { teamId } : {}),
-        }),
-      search: (body) =>
-        callInternalService(`${urls.knowledgeRead}/internal/retrieval/search`, 'POST', body),
-      getProjectionStatus: () =>
+      getById: async (entryId) =>
         callInternalService(
-          `${urls.knowledgeRead}/internal/knowledge-read/projection-status`,
+          `${await baseUrl('knowledge-read', urls.knowledgeRead)}/internal/knowledge/${entryId}`,
+          'GET',
+        ),
+      listMine: async (userId, teamId) =>
+        callInternalService(
+          `${await baseUrl('knowledge-read', urls.knowledgeRead)}/internal/knowledge/mine`,
+          'GET',
+          undefined,
+          {
+            userId,
+            ...(teamId ? { teamId } : {}),
+          },
+        ),
+      search: async (body) =>
+        callInternalService(
+          `${await baseUrl('knowledge-read', urls.knowledgeRead)}/internal/retrieval/search`,
+          'POST',
+          body,
+        ),
+      getProjectionStatus: async () =>
+        callInternalService(
+          `${await baseUrl('knowledge-read', urls.knowledgeRead)}/internal/knowledge-read/projection-status`,
           'GET',
         ),
     },
     knowledgeWrite: {
-      submit: (body, options) =>
+      submit: async (body, options) =>
         callInternalService(
-          `${urls.knowledgeWrite}/internal/knowledge`,
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge`,
           'POST',
           body,
           undefined,
           options,
         ),
-      updateEntry: (entryId, body, options) =>
+      updateEntry: async (entryId, body, options) =>
         callInternalService(
-          `${urls.knowledgeWrite}/internal/knowledge/${entryId}`,
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge/${entryId}`,
           'PUT',
           body,
           undefined,
           options,
         ),
-      resubmit: (entryId, body, options) =>
+      resubmit: async (entryId, body, options) =>
         callInternalService(
-          `${urls.knowledgeWrite}/internal/knowledge/${entryId}/resubmit`,
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge/${entryId}/resubmit`,
           'POST',
           body,
           undefined,
           options,
         ),
-      supersede: (entryId, body, options) =>
+      supersede: async (entryId, body, options) =>
         callInternalService(
-          `${urls.knowledgeWrite}/internal/knowledge/${entryId}/supersede`,
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge/${entryId}/supersede`,
           'POST',
           body,
           undefined,
           options,
         ),
-      createTrap: (body, options) =>
+      createTrap: async (body, options) =>
         callInternalService(
-          `${urls.knowledgeWrite}/internal/traps`,
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/traps`,
           'POST',
           body,
           undefined,
           options,
         ),
-      approveReviewDecision: (body, options) =>
+      approveReviewDecision: async (body, options) =>
         callInternalService(
-          `${urls.knowledgeWrite}/internal/knowledge/review/approve`,
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge/review/approve`,
           'POST',
           body,
           undefined,
           options,
         ),
-      rejectReviewDecision: (body, options) =>
+      rejectReviewDecision: async (body, options) =>
         callInternalService(
-          `${urls.knowledgeWrite}/internal/knowledge/review/reject`,
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge/review/reject`,
           'POST',
           body,
           undefined,
           options,
         ),
-      applyMaintenanceDecision: (body, options) =>
+      applyMaintenanceDecision: async (body, options) =>
         callInternalService(
-          `${urls.knowledgeWrite}/internal/knowledge/maintenance`,
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge/maintenance`,
           'POST',
           body,
           undefined,
           options,
         ),
-      applyDecayDecision: (body, options) =>
+      applyDecayDecision: async (body, options) =>
         callInternalService(
-          `${urls.knowledgeWrite}/internal/knowledge/decay`,
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge/decay`,
           'POST',
           body,
           undefined,
           options,
         ),
-      publishCandidateResult: (body, options) =>
+      publishCandidateResult: async (body, options) =>
         callInternalService(
-          `${urls.knowledgeWrite}/internal/candidates/publish`,
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/candidates/publish`,
           'POST',
           body,
           undefined,
           options,
         ),
-      invoke: (body, options) =>
+      invoke: async (body, options) =>
         callInternalService(
-          `${urls.knowledgeWrite}/internal/rpc/knowledge-write`,
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/rpc/knowledge-write`,
           'POST',
           body,
           undefined,
           options,
         ),
-      listTraps: (teamId) =>
-        callInternalService(`${urls.knowledgeWrite}/internal/traps`, 'GET', undefined, { teamId }),
-      getTrap: (trapId) =>
-        callInternalService(`${urls.knowledgeWrite}/internal/traps/${trapId}`, 'GET'),
+      listTraps: async (teamId) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/traps`,
+          'GET',
+          undefined,
+          { teamId },
+        ),
+      getTrap: async (trapId) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/traps/${trapId}`,
+          'GET',
+        ),
     },
     candidateIngestion: {
-      submit: (body) =>
-        callInternalService(`${urls.candidateIngestion}/internal/candidates`, 'POST', body),
-      getById: (candidateId) =>
-        callInternalService(`${urls.candidateIngestion}/internal/candidates/${candidateId}`, 'GET'),
-      listByStatus: (status) =>
-        callInternalService(`${urls.candidateIngestion}/internal/candidates`, 'GET', undefined, {
-          status,
-        }),
-      applyResolution: (candidateId, body, options) =>
+      submit: async (body) =>
         callInternalService(
-          `${urls.candidateIngestion}/internal/candidates/${candidateId}/resolution`,
+          `${await baseUrl('candidate-ingestion', urls.candidateIngestion)}/internal/candidates`,
+          'POST',
+          body,
+        ),
+      getById: async (candidateId) =>
+        callInternalService(
+          `${await baseUrl('candidate-ingestion', urls.candidateIngestion)}/internal/candidates/${candidateId}`,
+          'GET',
+        ),
+      listByStatus: async (status) =>
+        callInternalService(
+          `${await baseUrl('candidate-ingestion', urls.candidateIngestion)}/internal/candidates`,
+          'GET',
+          undefined,
+          {
+            status,
+          },
+        ),
+      applyResolution: async (candidateId, body, options) =>
+        callInternalService(
+          `${await baseUrl('candidate-ingestion', urls.candidateIngestion)}/internal/candidates/${candidateId}/resolution`,
           'POST',
           body,
           undefined,
           options,
         ),
-      submitManualResult: (candidateId, body, options) =>
+      submitManualResult: async (candidateId, body, options) =>
         callInternalService(
-          `${urls.candidateIngestion}/internal/candidates/${candidateId}/manual-result`,
+          `${await baseUrl('candidate-ingestion', urls.candidateIngestion)}/internal/candidates/${candidateId}/manual-result`,
           'POST',
           body,
           undefined,
           options,
         ),
-      publishCandidateResult: (candidateId, body, options) =>
+      publishCandidateResult: async (candidateId, body, options) =>
         callInternalService(
-          `${urls.candidateIngestion}/internal/candidates/${candidateId}/publish`,
+          `${await baseUrl('candidate-ingestion', urls.candidateIngestion)}/internal/candidates/${candidateId}/publish`,
           'POST',
           body,
           undefined,
@@ -511,35 +598,98 @@ export function createInternalServiceClients(urls: InternalServiceUrls): Interna
         ),
     },
     review: {
-      approve: (body) =>
-        callInternalService(`${urls.review}/internal/review/approve`, 'POST', body),
-      reject: (body) => callInternalService(`${urls.review}/internal/review/reject`, 'POST', body),
-      applyMaintenance: (body) =>
-        callInternalService(`${urls.review}/internal/review/maintenance`, 'POST', body),
-      applyDecay: (body) =>
-        callInternalService(`${urls.review}/internal/review/decay`, 'POST', body),
-      reviewArtifact: (body) =>
-        callInternalService(`${urls.review}/internal/review/artifact`, 'POST', body),
-      submitFeedback: (body) =>
-        callInternalService(`${urls.review}/internal/feedback`, 'POST', body),
+      approve: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/review/approve`,
+          'POST',
+          body,
+        ),
+      reject: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/review/reject`,
+          'POST',
+          body,
+        ),
+      applyMaintenance: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/review/maintenance`,
+          'POST',
+          body,
+        ),
+      applyDecay: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/review/decay`,
+          'POST',
+          body,
+        ),
+      reviewArtifact: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/review/artifact`,
+          'POST',
+          body,
+        ),
+      submitFeedback: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/feedback`,
+          'POST',
+          body,
+        ),
     },
     governanceReview: {
-      approve: (body) =>
-        callInternalService(`${urls.review}/internal/review/approve`, 'POST', body),
-      reject: (body) => callInternalService(`${urls.review}/internal/review/reject`, 'POST', body),
-      applyMaintenance: (body) =>
-        callInternalService(`${urls.review}/internal/review/maintenance`, 'POST', body),
-      applyDecay: (body) =>
-        callInternalService(`${urls.review}/internal/review/decay`, 'POST', body),
-      reviewArtifact: (body) =>
-        callInternalService(`${urls.review}/internal/review/artifact`, 'POST', body),
-      submitFeedback: (body) =>
-        callInternalService(`${urls.review}/internal/feedback`, 'POST', body),
+      approve: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/review/approve`,
+          'POST',
+          body,
+        ),
+      reject: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/review/reject`,
+          'POST',
+          body,
+        ),
+      applyMaintenance: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/review/maintenance`,
+          'POST',
+          body,
+        ),
+      applyDecay: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/review/decay`,
+          'POST',
+          body,
+        ),
+      reviewArtifact: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/review/artifact`,
+          'POST',
+          body,
+        ),
+      submitFeedback: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/feedback`,
+          'POST',
+          body,
+        ),
     },
     jobRuntime: {
-      schedule: (body) => callInternalService(`${urls.jobRuntime}/internal/jobs`, 'POST', body),
-      getStatus: (jobId) => callInternalService(`${urls.jobRuntime}/internal/jobs/${jobId}`, 'GET'),
-      getQueueStatus: () => callInternalService(`${urls.jobRuntime}/internal/jobs/queue`, 'GET'),
+      schedule: async (body) =>
+        callInternalService(
+          `${await baseUrl('job-runtime', urls.jobRuntime)}/internal/jobs`,
+          'POST',
+          body,
+        ),
+      getStatus: async (jobId) =>
+        callInternalService(
+          `${await baseUrl('job-runtime', urls.jobRuntime)}/internal/jobs/${jobId}`,
+          'GET',
+        ),
+      getQueueStatus: async () =>
+        callInternalService(
+          `${await baseUrl('job-runtime', urls.jobRuntime)}/internal/jobs/queue`,
+          'GET',
+        ),
     },
   };
 }

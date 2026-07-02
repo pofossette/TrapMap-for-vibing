@@ -25,6 +25,9 @@ const ENV_JOB_RUNTIME_URL = 'TRAPMAP_JOB_RUNTIME_URL';
 const ENV_KNOWLEDGE_WRITE_TRANSPORT = 'TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT';
 const ENV_LOG_LEVEL = 'TRAPMAP_LOG_LEVEL';
 const ENV_DEPLOYMENT_PROFILE = 'TRAPMAP_DEPLOYMENT_PROFILE';
+const ENV_CONSUL_ENABLED = 'CONSUL_ENABLED';
+const ENV_CONSUL_HOST = 'CONSUL_HOST';
+const ENV_CONSUL_PORT = 'CONSUL_PORT';
 const ENV_SERVICE_POOL_SIZE = 'TRAPMAP_SERVICE_POOL_SIZE';
 
 // ---------------------------------------------------------------------------
@@ -160,6 +163,12 @@ export interface ServiceConfig {
 
   /** Transport seam for selected high-frequency internal owner hops. */
   internalTransports: InternalServiceTransports;
+
+  /** Whether Consul-backed service discovery is enabled. */
+  consulEnabled: boolean;
+
+  /** Consul HTTP API address (e.g. http://localhost:8500). */
+  consulAddress: string;
 }
 
 function envKeyForServicePoolSize(serviceName: ServiceName): string {
@@ -199,6 +208,10 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
 
   const defaults = resolveDefaultInternalUrls();
 
+  const consulHost = process.env[ENV_CONSUL_HOST] ?? 'localhost';
+  const consulPort = process.env[ENV_CONSUL_PORT] ?? '8500';
+  const consulAddress = `http://${consulHost}:${consulPort}`;
+
   return {
     serviceName: name,
     port,
@@ -219,5 +232,7 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
     internalTransports: {
       knowledgeWrite: resolveKnowledgeWriteTransport(),
     },
+    consulEnabled: process.env[ENV_CONSUL_ENABLED] === 'true',
+    consulAddress,
   };
 }

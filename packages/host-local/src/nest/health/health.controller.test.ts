@@ -16,6 +16,22 @@ function createMockConfig(values: Record<string, string> = {}) {
   } as any;
 }
 
+function createMockReply() {
+  const reply: any = {
+    statusCode: 200,
+    body: null,
+    status(code: number) {
+      reply.statusCode = code;
+      return reply;
+    },
+    send(data: unknown) {
+      reply.body = data;
+      return reply;
+    },
+  };
+  return reply;
+}
+
 describe('HealthController', () => {
   let controller: HealthController;
   let lifecycle: LifecycleManagerService;
@@ -33,117 +49,212 @@ describe('HealthController', () => {
     );
   });
 
-  it('should return contract-shaped HealthStatus', async () => {
-    const result = await controller.health();
+  describe('/health', () => {
+    it('should return contract-shaped HealthStatus', async () => {
+      const result = await controller.health();
 
-    const parsed = healthStatusSchema.safeParse(result);
-    expect(parsed.success).toBe(true);
+      const parsed = healthStatusSchema.safeParse(result);
+      expect(parsed.success).toBe(true);
 
-    expect(result.status).toBe('ok');
-    expect(result.readiness).toBe('ready');
-    expect(result.liveness).toBe('alive');
-    expect(result.dependencies).toEqual([]);
-    expect(result.deployment).toEqual({
-      profile: 'local-agent',
-      preset: 'monolith',
+      expect(result.status).toBe('ok');
+      expect(result.readiness).toBe('not-ready');
+      expect(result.liveness).toBe('alive');
+      expect(result.dependencies).toEqual([]);
+      expect(result.deployment).toEqual({
+        profile: 'local-agent',
+        preset: 'monolith',
+      });
+      expect(result.startedAt).toBeDefined();
+      expect(result.uptime).toBeGreaterThanOrEqual(0);
     });
-    expect(result.startedAt).toBeDefined();
-    expect(result.uptime).toBeGreaterThanOrEqual(0);
-  });
 
-  it('should include registered health check dependencies', async () => {
-    lifecycle.registerHealthCheck({
-      name: 'database',
-      check: async () => ({
+    it('should report readiness not-ready before onModuleInit', async () => {
+      const result = await controller.health();
+      expect(result.readiness).toBe('not-ready');
+    });
+
+    it('should report readiness ready after onModuleInit with healthy deps', async () => {
+      await lifecycle.onModuleInit();
+      const result = await controller.health();
+      expect(result.readiness).toBe('ready');
+    });
+
+    it('should report readiness degraded when lifecycle is ready but deps are unhealthy', async () => {
+      await lifecycle.onModuleInit();
+      lifecycle.registerHealthCheck({
         name: 'database',
-        status: 'healthy',
-        latencyMs: 3,
-      }),
+        check: async () => ({
+          name: 'database',
+          status: 'unhealthy',
+          message: 'Connection refused',
+        }),
+      });
+
+      const result = await controller.health();
+      expect(result.readiness).toBe('degraded');
     });
 
-    lifecycle.registerHealthCheck({
-      name: 'cache',
-      check: async () => ({
+    it('should report readiness degraded when lifecycle is ready but deps are degraded', async () => {
+      await lifecycle.onModuleInit();
+      lifecycle.registerHealthCheck({
         name: 'cache',
-        status: 'degraded',
-        latencyMs: 200,
-        message: 'Slow response',
-      }),
+        check: async () => ({
+          name: 'cache',
+          status: 'degraded',
+        }),
+      });
+
+      const result = await controller.health();
+      expect(result.readiness).toBe('degraded');
     });
 
-    const result = await controller.health();
-
-    expect(result.dependencies).toHaveLength(2);
-    expect(result.dependencies[0].name).toBe('database');
-    expect(result.dependencies[0].status).toBe('healthy');
-    expect(result.dependencies[0].latencyMs).toBe(3);
-    expect(result.dependencies[1].name).toBe('cache');
-    expect(result.dependencies[1].status).toBe('degraded');
-    expect(result.dependencies[1].message).toBe('Slow response');
-  });
-
-  it('should be unhealthy when any dependency is unhealthy', async () => {
-    lifecycle.registerHealthCheck({
-      name: 'database',
-      check: async () => ({
+    it('should include registered health check dependencies', async () => {
+      lifecycle.registerHealthCheck({
         name: 'database',
-        status: 'unhealthy',
-        message: 'Connection refused',
-      }),
-    });
+        check: async () => ({
+          name: 'database',
+          status: 'healthy',
+          latencyMs: 3,
+        }),
+      });
 
-    const result = await controller.health();
-
-    expect(result.status).toBe('unhealthy');
-  });
-
-  it('should be degraded when any dependency is degraded', async () => {
-    lifecycle.registerHealthCheck({
-      name: 'cache',
-      check: async () => ({
+      lifecycle.registerHealthCheck({
         name: 'cache',
-        status: 'degraded',
-      }),
+        check: async () => ({
+          name: 'cache',
+          status: 'degraded',
+          latencyMs: 200,
+          message: 'Slow response',
+        }),
+      });
+
+      const result = await controller.health();
+
+      expect(result.dependencies).toHaveLength(2);
+      expect(result.dependencies[0].name).toBe('database');
+      expect(result.dependencies[0].status).toBe('healthy');
+      expect(result.dependencies[0].latencyMs).toBe(3);
+      expect(result.dependencies[1].name).toBe('cache');
+      expect(result.dependencies[1].status).toBe('degraded');
+      expect(result.dependencies[1].message).toBe('Slow response');
     });
 
-    const result = await controller.health();
+    it('should be unhealthy when any dependency is unhealthy', async () => {
+      lifecycle.registerHealthCheck({
+        name: 'database',
+        check: async () => ({
+          name: 'database',
+          status: 'unhealthy',
+          message: 'Connection refused',
+        }),
+      });
 
-    expect(result.status).toBe('degraded');
-  });
+      const result = await controller.health();
 
-  it('should include lastChecked timestamp on dependencies', async () => {
-    lifecycle.registerHealthCheck({
-      name: 'test-check',
-      check: async () => ({
+      expect(result.status).toBe('unhealthy');
+    });
+
+    it('should be degraded when any dependency is degraded', async () => {
+      lifecycle.registerHealthCheck({
+        name: 'cache',
+        check: async () => ({
+          name: 'cache',
+          status: 'degraded',
+        }),
+      });
+
+      const result = await controller.health();
+
+      expect(result.status).toBe('degraded');
+    });
+
+    it('should include lastChecked timestamp on dependencies', async () => {
+      lifecycle.registerHealthCheck({
         name: 'test-check',
-        status: 'healthy',
-      }),
+        check: async () => ({
+          name: 'test-check',
+          status: 'healthy',
+        }),
+      });
+
+      const result = await controller.health();
+      const dep = result.dependencies[0];
+
+      expect(dep.lastChecked).toBeDefined();
+      expect(new Date(dep.lastChecked!).toISOString()).toBe(dep.lastChecked);
+    });
+  });
+
+  describe('/ready', () => {
+    it('should return 503 when lifecycle is not ready', async () => {
+      const reply = createMockReply();
+      await controller.ready(reply);
+
+      expect(reply.statusCode).toBe(503);
+      expect(reply.body.status).toBe('not-ready');
+      expect(reply.body.timestamp).toBeDefined();
     });
 
-    const result = await controller.health();
-    const dep = result.dependencies[0];
+    it('should return 200 with ready when lifecycle is ready and deps are healthy', async () => {
+      await lifecycle.onModuleInit();
+      const reply = createMockReply();
+      await controller.ready(reply);
 
-    expect(dep.lastChecked).toBeDefined();
-    expect(new Date(dep.lastChecked!).toISOString()).toBe(dep.lastChecked);
+      expect(reply.statusCode).toBe(200);
+      expect(reply.body.status).toBe('ready');
+      expect(reply.body.timestamp).toBeDefined();
+    });
+
+    it('should return 200 with degraded when lifecycle is ready but deps are degraded', async () => {
+      await lifecycle.onModuleInit();
+      lifecycle.registerHealthCheck({
+        name: 'cache',
+        check: async () => ({
+          name: 'cache',
+          status: 'degraded',
+        }),
+      });
+
+      const reply = createMockReply();
+      await controller.ready(reply);
+
+      expect(reply.statusCode).toBe(200);
+      expect(reply.body.status).toBe('degraded');
+    });
+
+    it('should return 503 when lifecycle is ready but deps are unhealthy', async () => {
+      await lifecycle.onModuleInit();
+      lifecycle.registerHealthCheck({
+        name: 'database',
+        check: async () => ({
+          name: 'database',
+          status: 'unhealthy',
+          message: 'Connection refused',
+        }),
+      });
+
+      const reply = createMockReply();
+      await controller.ready(reply);
+
+      expect(reply.statusCode).toBe(503);
+      expect(reply.body.status).toBe('unhealthy');
+    });
   });
 
-  it('should return ready status', async () => {
-    const result = await controller.ready();
+  describe('/live', () => {
+    it('should return alive status', async () => {
+      const result = await controller.live();
 
-    expect(result.status).toBe('ready');
-    expect(result.timestamp).toBeDefined();
+      expect(result.status).toBe('alive');
+      expect(result.timestamp).toBeDefined();
+    });
   });
 
-  it('should return alive status', async () => {
-    const result = await controller.live();
+  describe('/metrics', () => {
+    it('should return metrics', async () => {
+      const result = await controller.metrics();
 
-    expect(result.status).toBe('alive');
-    expect(result.timestamp).toBeDefined();
-  });
-
-  it('should return metrics', async () => {
-    const result = await controller.metrics();
-
-    expect(typeof result).toBe('string');
+      expect(typeof result).toBe('string');
+    });
   });
 });
