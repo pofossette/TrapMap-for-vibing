@@ -16,6 +16,7 @@ import { JobRuntimeModule } from './job-runtime/job-runtime.module.js';
 import { KnowledgeReadModule } from './knowledge-read/knowledge-read.module.js';
 import { KnowledgeWriteModule } from './knowledge-write/knowledge-write.module.js';
 import { LoggingMiddleware } from './runtime/logging.middleware.js';
+import { ConsulModule } from './service-discovery/index.js';
 import { createHostLocalRuntime, HOST_LOCAL_RUNTIME_TOKEN } from './runtime/host-runtime.js';
 import { RequestContextMiddleware } from './runtime/request-context.middleware.js';
 import { RequestContextService } from './runtime/request-context.service.js';
@@ -109,6 +110,7 @@ const candidateIngestionModule = CandidateIngestionModule.forDeps(
     candidateIngestionModule,
     jobRuntimeModule,
     GatewayModule,
+    ConsulModule,
   ],
   providers: [
     RequestContextService,

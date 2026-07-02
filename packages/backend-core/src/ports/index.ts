@@ -4,3 +4,4 @@ export * from './retrieval-ports.js';
 export * from './actor-ports.js';
 export * from './audit-ports.js';
 export * from './internal-ports.js';
+export * from './discovery-ports.js';
