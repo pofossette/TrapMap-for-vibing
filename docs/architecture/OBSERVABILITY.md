@@ -240,6 +240,80 @@ packages/host-local/src/nest/observability/
 
 Collector 自身的健康检查独立于应用进程，由 Docker/Kubernetes 的基础设施探针管理。
 
+## Phase 1A 集成骨架
+
+Phase 1A 在 `host-local` NestJS 宿主中落地了可观测性集成的最小可运行骨架，覆盖三大支柱的 port 抽象层、健康检查 contract、feature flag 配置 schema 和 host-local adapter 模式。
+
+### Telemetry Port 抽象层
+
+`packages/backend-core/src/ports/telemetry-ports.ts` 定义了三个 host-agnostic port 接口，将可观测性能力从 domain/application 层解耦：
+
+| Port | 职责 | 关键方法 |
+|------|------|---------|
+| `MetricsPort` | 计数器、gauge、直方图记录与 Prometheus 格式导出 | `incrementCounter()`, `setGauge()`, `observeHistogram()`, `renderMetrics()` |
+| `TracingPort` | 分布式追踪 span 生命周期管理 | `startSpan()`, `getCurrentTraceId()`, `shutdown()` |
+| `LoggingPort` | 结构化日志（info/warn/error/debug）与子 logger 派生 | `info()`, `warn()`, `error()`, `debug()`, `child()` |
+
+`SpanHandle` 作为 span 的生命周期句柄，暴露 `end()`、`setAttribute()`、`recordError()` 三个方法。
+
+Domain/application 层通过这些 port 声明可观测性需求，不直接依赖 `prom-client`、`@opentelemetry/api` 或任何具体日志库。
+
+### Health Check Contract
+
+`packages/contracts/src/domain/health.ts` 定义了统一的健康状态 schema：
+
+- `healthStatusSchema`：顶层 `/health` 端点响应结构，包含 `status`、`readiness`、`liveness`、`dependencies`、`deployment` 等字段
+- `dependencyStatusSchema`：单个依赖项的状态（`healthy` / `degraded` / `unhealthy` / `unknown`）
+
+`packages/backend-core/src/ports/lifecycle-ports.ts` 定义了健康检查注册与执行的 port 抽象：
+
+- `HealthCheckRegistrar`：注册健康检查探针
+- `HealthCheck`：单个探针的 `check()` 方法，返回 `HealthCheckResult`
+- `LifecycleManager`：协调生命周期阶段（`init` / `ready` / `shutting-down` / `stopped`）与健康检查执行
+
+### Feature Flags 与配置 Schema
+
+`packages/contracts/src/domain/observability-config.ts` 定义了两个 Zod schema：
+
+- `observabilityConfigSchema`：Consul 地址、OTel endpoint、Loki URL、Prometheus 开关、metrics 前缀等运行时配置
+- `featureFlagsSchema`：`metricsEnabled`、`tracingEnabled`、`loggingEnabled`、`serviceDiscoveryEnabled` 四个布尔开关
+
+这些 schema 由 host 层（`packages/host-local/src/nest/config/`）在启动时解析环境变量并注入 NestJS `ConfigService`，不进入 `backend-core` domain 层。
+
+### Host-Local Adapter 模式
+
+`packages/host-local/src/nest/observability/` 目录下提供了三个 NestJS adapter，将 backend-core port 桥接到具体实现：
+
+| Adapter | 实现的 Port | 桥接目标 |
+|---------|-----------|---------|
+| `MetricsPortAdapter` | `MetricsPort` | `PrometheusService`（`prom-client`） |
+| `TracingPortAdapter` | `TracingPort` | `OtelService`（`@opentelemetry/sdk-node`） |
+| `LoggingPortAdapter` | `LoggingPort` | NestJS 内置 `Logger` |
+
+关键设计：
+
+- **Profile 感知**：`OtelService` 根据 `TRAPMAP_DEPLOYMENT_PROFILE` 选择 exporter（`local-agent` 用 console，其他用 OTLP）
+- **优雅降级**：`TracingPortAdapter` 在 OTel SDK 不可用时返回 `NoOpSpanHandle`；`MetricsPortAdapter` 在 metric 未注册时静默跳过
+- **动态导入**：`OtelService` 和 `LokiService` 使用动态 `import()` 避免在禁用时加载大型依赖
+- **Feature flag 控制**：`OTEL_DISABLED=true` 完全跳过 SDK 初始化；`TRAPMAP_METRICS_ENABLED=false` 禁用指标收集
+
+### NestJS 模块装配
+
+可观测性相关模块在 `packages/host-local/src/nest/app.module.ts` 中装配：
+
+```
+HealthModule
+├── PrometheusModule → PrometheusService (prom-client)
+├── LifecycleModule → LifecycleManagerService (生命周期 + 健康检查聚合)
+└── HealthController → /health, /ready, /live, /metrics
+
+OtelModule → OtelService (OpenTelemetry SDK bootstrap)
+LokiModule → LokiService (winston + Loki transport)
+ConsulModule → ConsulService (服务注册/发现/KV)
+```
+
+`HealthController` 调用 `LifecycleManagerService.runHealthChecks()` 聚合所有已注册的 `HealthCheck` 探针结果，映射为 `HealthStatus` contract 返回。
+
 ## 非目标
 
 当前阶段明确不做：

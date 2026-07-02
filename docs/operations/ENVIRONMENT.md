@@ -442,6 +442,129 @@ pnpm dev:local-agent
 - `trapmap operations capsule-index health`
 - `trapmap operations capsule-index cleanup-orphans`
 
+## 可观测性配置
+
+以下变量控制 TrapMap 的可观测性三大支柱（metrics、tracing、logging）以及服务发现集成。所有可选组件在 `local-agent` 开发环境中默认关闭，不引入任何外部依赖。
+
+### 可观测性 Feature Flags
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `TRAPMAP_METRICS_ENABLED` | 是否暴露 `/metrics` Prometheus 端点并收集 `prom-client` 指标 | `true` |
+| `OTEL_DISABLED` | 是否禁用 OpenTelemetry SDK 初始化（`true` 时所有 OTel 操作为空操作） | `false` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP exporter 端点；`local-agent` 默认走 console exporter，其他 profile 走此端点 | `http://localhost:4318` |
+
+### 服务发现配置
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `TRAPMAP_CONSUL_ENABLED` | 是否启用 Consul 服务发现模块 | `false` |
+| `TRAPMAP_CONSUL_ADDRESS` | Consul agent 地址（`host:port`）；仅在 Consul 启用时必填 | 空 |
+
+### 日志聚合配置
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `TRAPMAP_LOKI_ENABLED` | 是否启用 Loki 日志传输 | `false` |
+| `TRAPMAP_LOKI_URL` | Loki push API 地址；仅在 Loki 启用时必填 | 空 |
+
+### Dev-minimal 默认值
+
+本地开发 (`local-agent`) 启动时的可选组件状态：
+
+| 组件 | 默认状态 | 说明 |
+|------|---------|------|
+| Prometheus `/metrics` | 启用 | 暴露 `trapmap_*` 前缀指标与 `prom-client` 默认 Node.js 指标 |
+| OpenTelemetry SDK | 启用（console exporter） | `OTEL_DISABLED=true` 可完全关闭 |
+| Consul 服务发现 | 关闭 | `TRAPMAP_CONSUL_ENABLED=false` 时不加载 ConsulModule |
+| Loki 日志传输 | 关闭 | `TRAPMAP_LOKI_ENABLED=false` 时只使用 NestJS 内置 Logger |
+
+生产环境建议组合：
+
+```bash
+# team-monolith：启用全部可观测性组件，OTLP 推送到 Collector
+TRAPMAP_METRICS_ENABLED=true
+OTEL_DISABLED=false
+OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+TRAPMAP_LOKI_ENABLED=true
+TRAPMAP_LOKI_URL=http://loki:3100
+
+# distributed：同上，额外启用 Consul 服务发现
+TRAPMAP_CONSUL_ENABLED=true
+TRAPMAP_CONSUL_ADDRESS=consul:8500
+```
+
+### 健康检查端点
+
+Phase 1A 新增的 NestJS 宿主（`packages/host-local/src/nest/health/health.controller.ts`）提供四个 HTTP 端点，全部兼容 Kubernetes 探针语义：
+
+| 端点 | 用途 | 响应格式 |
+|------|------|---------|
+| `GET /health` | 综合健康检查，包含依赖状态摘要 | `HealthStatus`（见下文） |
+| `GET /ready` | Readiness 探针：服务是否可以接收流量 | `{ status, timestamp }` |
+| `GET /live` | Liveness 探针：进程是否存活 | `{ status, timestamp }` |
+| `GET /metrics` | Prometheus scrape 端点（`text/plain`） | Prometheus text exposition format |
+
+### HealthStatus 响应结构
+
+`GET /health` 返回符合 `packages/contracts/src/domain/health.ts` 中 `healthStatusSchema` 定义的 JSON：
+
+```jsonc
+{
+  "status": "ok" | "degraded" | "unhealthy",
+  "timestamp": "2026-07-02T12:00:00.000Z",
+  "startedAt": "2026-07-02T11:00:00.000Z",
+  "uptime": 3600.0,
+  "version": "0.1.0",         // optional
+  "readiness": "ready" | "not-ready" | "degraded",
+  "liveness": "alive" | "dead",
+  "dependencies": [
+    {
+      "name": "database",
+      "status": "healthy" | "degraded" | "unhealthy" | "unknown",
+      "latencyMs": 2.5,       // optional
+      "message": "postgres",  // optional
+      "lastChecked": "2026-07-02T12:00:00.000Z"  // optional
+    }
+    // ... more dependencies
+  ],
+  "deployment": {             // optional
+    "profile": "local-agent",
+    "preset": "monolith"      // optional
+  }
+}
+```
+
+聚合规则：
+
+- `status = "unhealthy"` 当任一 dependency 的 `status` 为 `unhealthy`
+- `status = "degraded"` 当任一 dependency 的 `status` 为 `degraded` 且无 `unhealthy`
+- `status = "ok"` 当所有 dependency 为 `healthy` 或 `unknown`
+
+### 可观测性配置 Schema
+
+`packages/contracts/src/domain/observability-config.ts` 定义了 `observabilityConfigSchema`，供 host 层解析环境变量：
+
+| 字段 | 类型 | 默认值 | 对应环境变量 |
+|------|------|--------|------------|
+| `consulAddress` | string (optional) | — | `TRAPMAP_CONSUL_ADDRESS` |
+| `consulEnabled` | boolean | `false` | `TRAPMAP_CONSUL_ENABLED` |
+| `otelEndpoint` | string (optional) | — | `OTEL_EXPORTER_OTLP_ENDPOINT` |
+| `otelDisabled` | boolean | `false` | `OTEL_DISABLED` |
+| `lokiUrl` | string (optional) | — | `TRAPMAP_LOKI_URL` |
+| `lokiEnabled` | boolean | `false` | `TRAPMAP_LOKI_ENABLED` |
+| `prometheusEnabled` | boolean | `true` | `TRAPMAP_METRICS_ENABLED` |
+| `metricsPrefix` | string | `trapmap_` | — |
+
+Feature flags 子 schema（`featureFlagsSchema`）：
+
+| 字段 | 默认值 | 说明 |
+|------|--------|------|
+| `metricsEnabled` | `true` | 指标采集总开关 |
+| `tracingEnabled` | `true` | 链路追踪总开关 |
+| `loggingEnabled` | `true` | 结构化日志总开关 |
+| `serviceDiscoveryEnabled` | `false` | 服务发现总开关 |
+
 ## 服务器配置
 
 | 变量 | 说明 | 默认值 |
