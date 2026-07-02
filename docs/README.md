@@ -230,6 +230,7 @@ deployment flexibility 最小验证矩阵：
 - [样板实施前检查表](archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-preflight-checklist.md) — 开始迁移前先冻结边界、契约、测试入口与非目标
 - [样板代码迁移任务列表](archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md) — 直接映射到具体包和文件的迁移任务清单
 - [未完成项与阶段性妥协清单](todos/open-debt-and-compromises.md) — 当前仍未收口的占位实现、阶段性妥协与开发退路
+- [成熟库替换评估](todos/library-replacement-evaluation.md) — 手写实现 vs 成熟库的评估决策与触发条件
 
 ### 架构与 API
 - [架构概览](../architecture.md) — 根入口级架构摘要，适合先建立整体心智模型
@@ -246,12 +247,16 @@ deployment flexibility 最小验证矩阵：
 - [数据类型串联图](architecture/DATA_TYPES_PIPELINE.md) — 核心数据类型流转路径与 GraphRAG-lite 图构建详解
 - [入库预计算策略](architecture/PRECOMPUTATION.md) — 入库阶段预计算措施总览、API 请求清单与延迟对比
 - [LLM 图提取改造计划](architecture/HYBRID_GRAPH_EXTRACTION.md) — 用 LLM 替代规则引擎的图构建 + 入库智能增强（进行中）
+- [可观测性架构](architecture/OBSERVABILITY.md) — 指标、日志、链路追踪三大支柱与 LGTM 栈设计
+- [服务发现架构](architecture/SERVICE-DISCOVERY.md) — Consul 集成与 DNS 发现机制
 - [数据库表结构速查](reference/DATABASE_SCHEMA.md) — PostgreSQL 57 张表完整参考
 
 ### 部署与运维
 - [部署指南](architecture/DEPLOYMENT.md) — `local-agent` / `team-monolith` / `distributed` 三档部署入口与 `host-local` Nest 主线 / `host-distributed` 分布式展开层
 - [故障排查](architecture/TROUBLESHOOTING.md) — 常见问题及解决方案
 - [环境变量参考](operations/ENVIRONMENT.md) — 所有环境变量完整参考
+- [可观测性运维指南](operations/OBSERVABILITY-OPERATIONS.md) — 采样策略、数据保留、资源限制与 SLO/SLI 目标
+- [回归验证命令参考](operations/REGRESSION-COMMANDS.md) — PR 必跑、阶段完成验证与可观测性专项命令
 - [性能指南](reference/PERFORMANCE.md) — 性能调优与瓶颈排查
 - [安全指南](operations/SECURITY.md) — 安全架构、配置清单与最佳实践
 - [Prompt Provider](operations/PROMPT_PROVIDERS.md) — 多 Provider 提示系统

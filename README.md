@@ -142,6 +142,10 @@ TrapMap 目前处于持续演进阶段。核心方向已经比较明确：知识
 | [CHANGELOG.md](CHANGELOG.md) | 版本更新日志 |
 | [docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md) | 投稿指南 |
 | [docs/reference/GLOSSARY.md](docs/reference/GLOSSARY.md) | 项目术语表 |
+| [docs/operations/ENVIRONMENT.md](docs/operations/ENVIRONMENT.md) | 环境变量配置 |
+| [docs/operations/OBSERVABILITY-OPERATIONS.md](docs/operations/OBSERVABILITY-OPERATIONS.md) | 可观测性运维指南 |
+| [docs/architecture/OBSERVABILITY.md](docs/architecture/OBSERVABILITY.md) | 可观测性架构 |
+| [docs/architecture/SERVICE-DISCOVERY.md](docs/architecture/SERVICE-DISCOVERY.md) | 服务发现架构 |
 | [docs/reference/SYSTEM_TRUTH_SOURCES.md](docs/reference/SYSTEM_TRUTH_SOURCES.md) | 架构事实、入口文件与文档参考规则 |
 | [docs/reference/REPO_STRUCTURE.md](docs/reference/REPO_STRUCTURE.md) | 仓库目录结构、文档分层、归档位置和生成目录规则 |
 
@@ -461,6 +465,31 @@ curl http://localhost:4000/health
   "uptimeSeconds": 42
 }
 ```
+
+完整健康端点：
+
+| 端点 | 用途 |
+|------|------|
+| `GET /health` | 综合健康状态 |
+| `GET /ready` | 就绪探针（Kubernetes readiness） |
+| `GET /live` | 存活探针（Kubernetes liveness） |
+| `GET /metrics` | Prometheus 格式指标 |
+
+## 📈 可观测性与服务发现
+
+TrapMap 采用 LGTM 栈（Loki、Grafana、Tempo、Prometheus）+ OpenTelemetry 提供统一可观测性：
+
+- **指标**：Prometheus 格式，暴露于 `/metrics`
+- **日志**：结构化 JSON 日志，通过 OTel 或 Loki 采集
+- **链路追踪**：OpenTelemetry SDK 采集，推送至 Tempo
+- **Dashboard**：Grafana 预置 `config/grafana/provisioning/dashboards/trapmap-overview.json`
+- **服务发现**：`distributed` profile 支持 Consul 服务注册与 DNS 发现
+
+详细说明：
+
+- [可观测性架构](docs/architecture/OBSERVABILITY.md)
+- [服务发现架构](docs/architecture/SERVICE-DISCOVERY.md)
+- [可观测性运维指南](docs/operations/OBSERVABILITY-OPERATIONS.md)
 
 ---
 
