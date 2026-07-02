@@ -721,4 +721,70 @@ describe('app.ts live gaps — fm-agent raw report', () => {
 
     await app.close();
   });
+
+  // -----------------------------------------------------------------------
+  // Phase 2B: X-Trace-Id response header injection
+  // -----------------------------------------------------------------------
+
+  it('injects X-Trace-Id response header when traceparent is present', async () => {
+    const app = buildServer();
+    await app.ready();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: {
+        traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-trace-id']).toBe('4bf92f3577b34da6a3ce929d0e0e4736');
+
+    await app.close();
+  });
+
+  it('does not emit X-Trace-Id when no traceparent header is present and tracing is disabled', async () => {
+    const app = buildServer();
+    await app.ready();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-trace-id']).toBeUndefined();
+
+    await app.close();
+  });
+
+  it('includes traceId in structured log on request completion (Phase 2B)', async () => {
+    const app = buildServer();
+    await app.ready();
+
+    const infoSpy = vi.spyOn(app.log, 'info');
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: {
+        'x-request-id': 'req_trace_log',
+        traceparent: '00-abcdef1234567890abcdef1234567890-00f067aa0ba902b7-00',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(infoSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventCategory: 'request',
+        eventName: 'request.completed',
+        traceId: 'abcdef1234567890abcdef1234567890',
+        requestId: 'req_trace_log',
+      }),
+      'Request completed',
+    );
+
+    await app.close();
+  });
 });

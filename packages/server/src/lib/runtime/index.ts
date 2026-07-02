@@ -126,3 +126,6 @@ export {
   createTracingPortAdapter,
   createLoggingPortAdapter,
 } from './telemetry-adapters.js';
+export type { TracingPortAdapterOptions } from './tracing-port-adapter.js';
+// Re-export port interfaces for consumers that import from the barrel
+export type { TracingPort, SpanHandle } from '@trapmap/backend-core';

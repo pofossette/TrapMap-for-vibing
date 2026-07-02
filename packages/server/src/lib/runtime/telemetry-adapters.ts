@@ -9,10 +9,16 @@ import type { RequestContext } from './request-context.js';
 
 import { createLoggingPortAdapter, type PinoLikeLogger } from './logging-port-adapter.js';
 import { createMetricsPortAdapter } from './metrics-port-adapter.js';
-import { createTracingPortAdapter } from './tracing-port-adapter.js';
+import {
+  createTracingPortAdapter,
+  type TracingPortAdapterOptions,
+} from './tracing-port-adapter.js';
 
 export { createMetricsPortAdapter } from './metrics-port-adapter.js';
-export { createTracingPortAdapter } from './tracing-port-adapter.js';
+export {
+  createTracingPortAdapter,
+  type TracingPortAdapterOptions,
+} from './tracing-port-adapter.js';
 export { createLoggingPortAdapter, type PinoLikeLogger } from './logging-port-adapter.js';
 
 export interface TelemetryAdapters {
@@ -27,14 +33,16 @@ export interface TelemetryAdapters {
  * @param logger - The Fastify instance's pino logger (`app.log`).
  * @param requestContextAccessor - Optional callback that returns the current
  *   request context, used by the tracing adapter to extract trace IDs.
+ * @param tracingOptions - Optional tracing adapter options (Phase 2B).
  */
 export function createTelemetryAdapters(
   logger: PinoLikeLogger,
   requestContextAccessor?: () => RequestContext | undefined,
+  tracingOptions?: TracingPortAdapterOptions,
 ): TelemetryAdapters {
   return {
     metrics: createMetricsPortAdapter(),
-    tracing: createTracingPortAdapter(requestContextAccessor),
+    tracing: createTracingPortAdapter(requestContextAccessor, tracingOptions),
     logging: createLoggingPortAdapter(logger),
   };
 }

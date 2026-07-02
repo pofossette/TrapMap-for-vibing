@@ -20,6 +20,7 @@ import type {
   RuntimeMode,
   RuntimeWorkerHandle,
   ServiceUnit,
+  TracingPort,
 } from './runtime/index.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
 import type { MembershipRepository, TeamRepository } from './teams/index.js';
@@ -79,6 +80,8 @@ export interface SkillShareerServices {
   graphQuery: GraphQueryRuntimeState;
   /** Lifecycle event bus for domain event emission and subscription */
   eventBus: LifecycleEventBus;
+  /** TracingPort adapter for distributed tracing (Phase 2B). */
+  tracing?: TracingPort;
 }
 
 export interface ResolvedAuthContext {
