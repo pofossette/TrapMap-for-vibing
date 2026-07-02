@@ -9,6 +9,8 @@ import {
 } from '@trapmap/contracts/evals';
 
 import { coreCases, coreScenariosMap } from './core.js';
+import { skillIdentificationCoreCases } from './datasets/core/skill-identification-core.js';
+import { skillIdentificationSmokeCases } from './datasets/smoke/skill-identification-smoke.js';
 import { runActor } from './lib/actor-runner.js';
 import { renderScenarioContext } from './lib/context-renderer.js';
 import { formatReport } from './lib/format.js';
@@ -17,11 +19,9 @@ import { normalizeActorOutput } from './lib/normalizer.js';
 import { loadPromptTemplate, renderPromptTemplate } from './lib/prompt-loader.js';
 import { buildAgentPlanningReport } from './lib/report.js';
 import { evaluateDeterministicPrecheck } from './lib/scoring.js';
-import { smokeCases, smokeScenariosMap } from './smoke.js';
-import { skillIdentificationCoreCases } from './datasets/core/skill-identification-core.js';
 import { skillIdentificationCoreScenarios } from './scenarios/core/skill-identification-core-scenarios.js';
-import { skillIdentificationSmokeCases } from './datasets/smoke/skill-identification-smoke.js';
 import { skillIdentificationSmokeScenarios } from './scenarios/smoke/skill-identification-smoke-scenarios.js';
+import { smokeCases, smokeScenariosMap } from './smoke.js';
 
 export interface AgentPlanningRunOptions {
   tier: AgentPlanningEvalTier;

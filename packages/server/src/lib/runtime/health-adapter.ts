@@ -1,4 +1,4 @@
-import type { HealthStatus, DependencyStatus } from '@trapmap/contracts';
+import type { DependencyStatus, HealthStatus } from '@trapmap/contracts';
 
 import type { RuntimeStatusSnapshot } from './runtime-metadata.js';
 

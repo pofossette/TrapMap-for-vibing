@@ -35,14 +35,6 @@ import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/s
 import { nowIso } from '@trapmap/server/lib/store.js';
 
 import {
-  appendPgSkillExactMatches,
-  buildFinalDuplicateCase,
-  buildRecalledMatches,
-  collectFallbackExactMatches,
-  mergeScores,
-  refineWithLLM,
-} from './pg-detector-scorer.js';
-import {
   buildSkillEmbeddingTeamFilter,
   buildSkillKeywordTeamFilter,
   buildTrapKeywordTeamFilter,
@@ -53,6 +45,14 @@ import {
   queryTrapKeywordMatches,
   queryTrapVectorMatches,
 } from './pg-detector-queries.js';
+import {
+  appendPgSkillExactMatches,
+  buildFinalDuplicateCase,
+  buildRecalledMatches,
+  collectFallbackExactMatches,
+  mergeScores,
+  refineWithLLM,
+} from './pg-detector-scorer.js';
 import type { DuplicateDetectionResult } from './types.js';
 
 // Thresholds (match detector.ts for compatibility)

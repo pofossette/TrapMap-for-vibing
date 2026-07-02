@@ -1,5 +1,5 @@
+import { renderClaude, renderCodex, renderGeneric, renderOpenCode } from './renderers.js';
 import type { RendererRegistry } from './types.js';
-import { renderClaude, renderCodex, renderOpenCode, renderGeneric } from './renderers.js';
 
 export const registry: RendererRegistry = {
   generic: {

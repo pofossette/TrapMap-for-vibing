@@ -15,8 +15,8 @@ import type { LifecycleEventBus } from './lifecycle/index.js';
 import type { SkillShareerRepos } from './repos/index.js';
 import type { ChannelRegistry, StrategyRegistry } from './retrieval/orchestration/index.js';
 import type {
-  ResolvedRuntimeDeployment,
   RequestContext,
+  ResolvedRuntimeDeployment,
   RuntimeMode,
   RuntimeWorkerHandle,
   ServiceUnit,

@@ -8,7 +8,7 @@
  * gateway can still serve traffic when Consul is unavailable.
  */
 
-import type { DiscoveryPort, DiscoveredService, ServiceRegistration } from '@trapmap/backend-core';
+import type { DiscoveredService, DiscoveryPort, ServiceRegistration } from '@trapmap/backend-core';
 
 // ---------------------------------------------------------------------------
 // Consul HTTP API response shapes (minimal)

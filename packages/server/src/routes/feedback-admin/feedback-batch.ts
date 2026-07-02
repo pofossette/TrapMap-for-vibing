@@ -13,6 +13,7 @@ import {
   checkLifecycleTriggers,
   getLifecycleTriggerRules,
 } from '@trapmap/server/lib/feedback/lifecycle-triggers.js';
+import { saveKnowledgeEntry } from '@trapmap/server/lib/knowledge/index.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
@@ -175,21 +176,19 @@ export function registerFeedbackBatchRoute(app: FastifyInstance) {
         const entryFeedback = await feedbackRepo.listByEntry(entryId);
         const result = checkLifecycleTriggers(entryId, entryFeedback, rules, lifecycleNow);
         if (result.shouldTransition && result.targetState) {
-          // NOTE: No repo method exists for decayMeta updates.
-          // Using store.transact() for this specific mutation (deviation from plan).
-          await app.skillShareer.store.transact((data) => {
-            const entry = data.knowledgeEntries.find((e) => e.id === entryId);
-            if (entry) {
-              entry.decayMeta = {
-                lastVerifiedAt: entry.decayMeta?.lastVerifiedAt ?? entry.updatedAt,
-                decayState: result.targetState!,
-                supersededById: entry.decayMeta?.supersededById ?? null,
-                decayStateComputedAt: lifecycleNow.toISOString(),
-                freshnessType: entry.decayMeta?.freshnessType ?? 'evergreen',
-              };
-              entry.updatedAt = lifecycleNow.toISOString();
-            }
-          });
+          const entry = await app.skillShareer.repos.knowledge.getById(entryId);
+          if (entry) {
+            const updatedAt = lifecycleNow.toISOString();
+            entry.decayMeta = {
+              lastVerifiedAt: entry.decayMeta?.lastVerifiedAt ?? entry.updatedAt,
+              decayState: result.targetState,
+              supersededById: entry.decayMeta?.supersededById ?? null,
+              decayStateComputedAt: updatedAt,
+              freshnessType: entry.decayMeta?.freshnessType ?? 'evergreen',
+            };
+            entry.updatedAt = updatedAt;
+            await saveKnowledgeEntry(app.skillShareer.repos.knowledge, entry);
+          }
           lifecycleTransitions.push({
             entryId,
             toState: result.targetState,

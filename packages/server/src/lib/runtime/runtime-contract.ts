@@ -1,6 +1,6 @@
 export type RuntimeMode = 'api' | 'task-worker' | 'outbox-worker' | 'combined';
 
-interface RuntimeModeConfig {
+export interface RuntimeModeConfig {
   mode: RuntimeMode;
 }
 

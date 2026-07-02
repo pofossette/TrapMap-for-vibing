@@ -1,12 +1,12 @@
-import { Card, Input, Select, SelectItem, Tabs, Tab, Button } from '@heroui/react';
+import { Button, Card, Input, Select, SelectItem, Tab, Tabs } from '@heroui/react';
 import { type ReactElement, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import type { SkillArtifact } from '@trapmap/contracts';
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
 import { PageTransition } from '@trapmap/web-panel/shared/motion';
 import { G6GraphComponent, PageContainer, SectionHeader } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
-import type { SkillArtifact } from '@trapmap/contracts';
 
 export function SkillGraphPage(): ReactElement {
   const { t } = useI18nStore();

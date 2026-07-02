@@ -1,15 +1,15 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import { logEntrySchema, type LogEntry } from '@trapmap/contracts';
+import { type LogEntry, logEntrySchema } from '@trapmap/contracts';
 
-import type { RequestContext } from './request-context.js';
 import {
+  getRuntimeMetricsSnapshot,
   recordHttpRequestMetric,
   recordRuntimeExecution,
-  getRuntimeMetricsSnapshot,
-  resetRuntimeMetrics,
   renderPrometheusMetrics,
+  resetRuntimeMetrics,
 } from './metrics.js';
+import type { RequestContext } from './request-context.js';
 import { createTracingPortAdapter } from './tracing-port-adapter.js';
 
 // ---------------------------------------------------------------------------

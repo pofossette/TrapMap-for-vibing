@@ -6,7 +6,7 @@ import type {
   KnowledgeReviewNoteRecord,
   KnowledgeRevisionRecord,
 } from '@trapmap/server/lib/store.js';
-import { toActorRef, type UserLookupContext } from './actor-ref.js';
+import { type UserLookupContext, toActorRef } from './actor-ref.js';
 
 export function toReviewDecision(
   data: UserLookupContext,

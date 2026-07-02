@@ -13,15 +13,15 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
-  liveSnapshotMetaSchema,
-  type LiveSnapshotMeta,
   type LiveEvalServiceProfile,
+  type LiveSnapshotMeta,
+  liveSnapshotMetaSchema,
 } from '@trapmap/contracts/evals';
 
-import { loadConfig } from '../../../packages/server/src/config.js';
 import { buildServer } from '../../../packages/server/src/app.js';
-import { hashSecret, nowIso } from '../../../packages/server/src/lib/store.js';
+import { loadConfig } from '../../../packages/server/src/config.js';
 import type { SkillShareerRepos } from '../../../packages/server/src/lib/repos/index.js';
+import { hashSecret, nowIso } from '../../../packages/server/src/lib/store.js';
 
 import type { IndexHealthSummary, SnapshotOrchestratorOptions } from './types.js';
 
@@ -210,9 +210,9 @@ async function truncateRetrievalTables(repos: SkillShareerRepos): Promise<void> 
 async function importFrozenCorpus(
   repos: SkillShareerRepos,
   corpus: Record<string, unknown>,
-  actorId: string,
+  _actorId: string,
 ): Promise<void> {
-  const createdAt = nowIso();
+  const _createdAt = nowIso();
 
   // Import knowledge entries (with embedding_cache and index_state intact)
   const entries = (corpus.knowledgeEntries ?? []) as Array<Record<string, unknown>>;
@@ -256,17 +256,17 @@ async function importFrozenCorpus(
 async function importRebuildCorpus(
   repos: SkillShareerRepos,
   corpus: Record<string, unknown>,
-  actorId: string,
+  _actorId: string,
 ): Promise<void> {
-  const createdAt = nowIso();
+  const _createdAt = nowIso();
 
   // Import knowledge entries (source only - pipeline will compute embeddings)
   const entries = (corpus.knowledgeEntries ?? []) as Array<Record<string, unknown>>;
   for (const entry of entries) {
     // Strip derived fields so pipeline re-computes them
     const sourceEntry = { ...entry };
-    delete sourceEntry.embeddingCache;
-    delete sourceEntry.indexState;
+    sourceEntry.embeddingCache = undefined;
+    sourceEntry.indexState = undefined;
     await repos.knowledge.insert(sourceEntry as Parameters<typeof repos.knowledge.insert>[0]);
   }
 

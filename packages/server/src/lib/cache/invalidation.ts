@@ -173,7 +173,7 @@ export function getCacheFreshnessSnapshot(): Record<string, CacheFreshnessSnapsh
   );
 }
 
-function clearCacheInvalidationListeners(): void {
+export function clearCacheInvalidationListeners(): void {
   listeners.clear();
 }
 

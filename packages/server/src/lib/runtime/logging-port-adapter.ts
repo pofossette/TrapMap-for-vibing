@@ -7,7 +7,7 @@
  * `(message, context?)`, so this adapter translates between them.
  */
 
-import type { LoggingPort } from '@trapmap/backend-core';
+import type { LoggingPort } from './telemetry-ports.js';
 
 /**
  * Minimal interface matching the subset of FastifyBaseLogger / pino

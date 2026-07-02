@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  logEntrySchema,
-  buildLokiLabels,
-  formatLogForStdout,
   LOKI_LOW_CARDINALITY_LABELS,
   type LogEntry,
+  buildLokiLabels,
+  formatLogForStdout,
+  logEntrySchema,
 } from './log-schema.js';
 
 describe('log schema', () => {

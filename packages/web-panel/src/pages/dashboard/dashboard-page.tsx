@@ -1,4 +1,4 @@
-import { toast, Button, Card, Chip } from '@heroui/react';
+import { Button, Card, Chip, toast } from '@heroui/react';
 import type { ReactElement } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -193,7 +193,8 @@ export function DashboardPage(): ReactElement {
 
                     {/* SVG Graphic representation of Trap Graph */}
                     <div className="flex justify-center items-center py-6 bg-[#060a13] border border-panel-line/50 rounded-xl my-4">
-                      <svg width="220" height="110" viewBox="0 0 220 110">
+                      <svg width="220" height="110" viewBox="0 0 220 110" role="img">
+                        <title>Trap graph preview</title>
                         <line x1="30" y1="55" x2="110" y2="25" stroke="#242424" strokeWidth="1.5" />
                         <line x1="30" y1="55" x2="110" y2="85" stroke="#242424" strokeWidth="1.5" />
                         <line
@@ -316,7 +317,8 @@ export function DashboardPage(): ReactElement {
 
                     {/* SVG Graphic representation of Skill Graph */}
                     <div className="flex justify-center items-center py-6 bg-[#060a13] border border-panel-line/50 rounded-xl my-4">
-                      <svg width="220" height="110" viewBox="0 0 220 110">
+                      <svg width="220" height="110" viewBox="0 0 220 110" role="img">
+                        <title>Skill graph preview</title>
                         <line x1="40" y1="25" x2="110" y2="55" stroke="#242424" strokeWidth="1.5" />
                         <line x1="40" y1="85" x2="110" y2="55" stroke="#242424" strokeWidth="1.5" />
                         <line

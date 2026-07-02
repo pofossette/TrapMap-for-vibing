@@ -1,5 +1,5 @@
-import { Card, Input, Select, SelectItem, Checkbox, Button } from '@heroui/react';
-import { type ReactElement, useEffect, useState } from 'react';
+import { Button, Card, Checkbox, Input, Select, SelectItem } from '@heroui/react';
+import { type ReactElement, useCallback, useEffect, useState } from 'react';
 
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
 import { PageTransition } from '@trapmap/web-panel/shared/motion';
@@ -31,7 +31,7 @@ export function TrapGraphPage(): ReactElement {
     mitigation: true,
   });
 
-  const fetchGraph = async () => {
+  const fetchGraph = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -42,11 +42,11 @@ export function TrapGraphPage(): ReactElement {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchGraph();
-  }, []);
+  }, [fetchGraph]);
 
   const handleSelectNode = (node: any) => {
     setSelectedElement({ type: 'node', ...node });

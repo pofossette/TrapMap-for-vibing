@@ -7,12 +7,12 @@
 
 import type { Boundary } from '@trapmap/contracts';
 import type { KnowledgeRecord, MaintenanceMetaRecord } from '@trapmap/server/lib/store.js';
+import { rowToKnowledgeEntry, rowToKnowledgeRevision, rowToLifecycleEvent } from './row-mappers.js';
 import type {
   DrizzleKnowledgeEntryRow,
   DrizzleKnowledgeRevisionRow,
   DrizzleLifecycleEventRow,
 } from './row-types.js';
-import { rowToKnowledgeEntry, rowToKnowledgeRevision, rowToLifecycleEvent } from './row-mappers.js';
 
 /**
  * Reconstruct a full KnowledgeRecord from database rows.

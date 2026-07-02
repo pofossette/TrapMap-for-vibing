@@ -116,7 +116,7 @@ export interface IndexSyncResult {
 /**
  * Result of syncing a single entry across all adapters.
  */
-interface EntrySyncResult {
+export interface EntrySyncResult {
   /** Entry ID */
   entryId: string;
   /** Whether the entry was approved (only approved entries are synced) */

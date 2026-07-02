@@ -3,14 +3,13 @@
  * to the server's existing in-memory Prometheus-style metric stores.
  */
 
-import type { MetricsPort } from '@trapmap/backend-core';
-
 import {
   incrementMetric,
   observeHistogramMetric,
   renderPrometheusMetrics,
   setGaugeMetric,
 } from './metrics.js';
+import type { MetricsPort } from './telemetry-ports.js';
 
 export function createMetricsPortAdapter(): MetricsPort {
   return {

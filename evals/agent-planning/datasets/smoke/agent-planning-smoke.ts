@@ -4,9 +4,9 @@ const minimalSkillFixturePath = 'evals/ingestion/fixtures/minimal-skill/SKILL.md
 const demoSkillFixturePath = 'evals/ingestion/fixtures/demo-full/SKILL.md';
 const trapFixturePath = 'evals/fixtures/traps/testing/trap_flaky_test_timing.json';
 const trapFrontendAsyncPath = 'evals/fixtures/traps/frontend/trap_async_race_condition.json';
-const trapMonitoringBlindSpotPath =
+const _trapMonitoringBlindSpotPath =
   'evals/fixtures/traps/cross-domain/trap_monitoring_blind_spot.json';
-const trapDeployOrderPath = 'evals/fixtures/traps/cross-domain/trap_fullstack_deploy_order.json';
+const _trapDeployOrderPath = 'evals/fixtures/traps/cross-domain/trap_fullstack_deploy_order.json';
 
 export const agentPlanningSmokeCases: AgentPlanningEvalCase[] = [
   {

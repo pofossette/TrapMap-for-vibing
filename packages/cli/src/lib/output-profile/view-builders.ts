@@ -5,6 +5,14 @@ import type {
   SkillLookupResponse,
 } from '@trapmap/contracts';
 
+import {
+  buildExecutionOrder,
+  buildGraphPlanSummaryView,
+  summarizeGraphPlan,
+  summarizeRetrievalV1,
+  summarizeRetrievalV2,
+  summarizeSkillLookup,
+} from './summarizers.js';
 import type {
   CommandResultView,
   RenderEnvelope,
@@ -12,14 +20,6 @@ import type {
   RetrievalV2View,
   SkillLookupView,
 } from './types.js';
-import {
-  buildGraphPlanSummaryView,
-  buildExecutionOrder,
-  summarizeRetrievalV1,
-  summarizeRetrievalV2,
-  summarizeSkillLookup,
-  summarizeGraphPlan,
-} from './summarizers.js';
 
 export { buildGraphPlanSummaryView, buildExecutionOrder } from './summarizers.js';
 

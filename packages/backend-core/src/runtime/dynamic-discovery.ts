@@ -1,4 +1,4 @@
-import type { DiscoveryPort, DiscoveredService } from '../ports/discovery-ports.js';
+import type { DiscoveredService, DiscoveryPort } from '../ports/discovery-ports.js';
 
 /**
  * Dynamic service discovery with local caching and round-robin load balancing.

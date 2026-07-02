@@ -10,8 +10,8 @@ import {
 import type { FastifyInstance } from 'fastify';
 
 import {
-  toFailureClassificationAwareFeedbackItem,
   buildOperatorEntryDisplayLookup,
+  toFailureClassificationAwareFeedbackItem,
 } from '@trapmap/server/lib/operations/read-model.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';

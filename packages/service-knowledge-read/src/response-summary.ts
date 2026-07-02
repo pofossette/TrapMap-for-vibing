@@ -171,7 +171,7 @@ function truncateText(text: string, maxLength: number): string {
  * @param options - Summary building options for capsules
  * @returns Structured summary with citations, or null if disabled/empty
  */
-function buildCapsuleSummary(options: {
+export function buildCapsuleSummary(options: {
   /** The search query */
   query: string;
   /** Whether summary generation is enabled */
@@ -222,7 +222,7 @@ function buildCapsuleSummary(options: {
  * @param capsules - The filtered capsule matches to cite
  * @returns Array of RetrievalCitation objects
  */
-function buildCapsuleCitations(capsules: CapsuleMatch[]): RetrievalCitation[] {
+export function buildCapsuleCitations(capsules: CapsuleMatch[]): RetrievalCitation[] {
   return capsules.map((capsule) => ({
     source: {
       entryId: capsule.capsuleId,

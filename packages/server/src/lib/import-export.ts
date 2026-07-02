@@ -358,7 +358,7 @@ export function createImportedEntry(args: {
  * Migration provenance record linking artifacts to legacy entries.
  * Stored on artifact metadata to trace migration source.
  */
-interface LegacyMigrationProvenance {
+export interface LegacyMigrationProvenance {
   /** Source legacy entry ID */
   sourceEntryId: string;
   /** Original lifecycle state at migration time */

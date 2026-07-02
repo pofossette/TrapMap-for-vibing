@@ -153,8 +153,8 @@ function toCapsuleCard(skill: SkillRecord, score: number): AgentPlanningContextE
     body: [
       `- [capsule] ${skill.title}`,
       `  Skill: ${skill.id}`,
-      `  Situation: Skill identified via keyword-capsule retrieval`,
-      `  Problem: Matched based on keyword overlap with query`,
+      '  Situation: Skill identified via keyword-capsule retrieval',
+      '  Problem: Matched based on keyword overlap with query',
       `  Goal: Apply ${skill.title} to the user's task`,
       `  Content: ${skill.summary}`,
       `  Labels: ${skill.labels.join(', ')}`,

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DiscoveredService, DiscoveryPort } from '../ports/discovery-ports.js';
 import { DynamicDiscovery } from './dynamic-discovery.js';
-import type { DiscoveryPort, DiscoveredService } from '../ports/discovery-ports.js';
 
 function createMockDiscoveryPort(services: DiscoveredService[] = []): DiscoveryPort {
   return {

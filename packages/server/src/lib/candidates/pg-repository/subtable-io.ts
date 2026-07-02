@@ -9,7 +9,7 @@
 
 import type { AnalysisSnapshot, CandidateSubmission, DuplicateCase } from '@trapmap/contracts';
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import type { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool, PoolClient } from 'pg';
 
 import {

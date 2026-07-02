@@ -181,7 +181,7 @@ export function buildEmptyResponse(): RetrievalResponse {
  * @param conflicts - Optional conflict hints for the capsule
  * @returns CapsuleMatch for v2 response
  */
-function buildCapsuleMatch(
+export function buildCapsuleMatch(
   capsule: DerivedSkillCapsuleRecord,
   candidate: CapsuleCandidate,
   conflicts?: ConflictHint[],
@@ -212,7 +212,7 @@ function buildCapsuleMatch(
  * @param artifact - Skill artifact record (partial with needed fields)
  * @returns ProfileHint for v2 response
  */
-function buildProfileHint(
+export function buildProfileHint(
   artifact: Pick<SkillArtifactRecord, 'id' | 'title' | 'slug' | 'labels'>,
 ): ProfileHint {
   return profileHintSchema.parse({
@@ -237,7 +237,7 @@ function buildProfileHint(
  * @param activationHints - Optional activation hints per capsule
  * @returns v2 retrieval response
  */
-function buildV2RetrievalResponse(
+export function buildV2RetrievalResponse(
   capsules: CapsuleMatch[],
   profileHints: ProfileHint[],
   summary?: RetrievalSummary | null,
@@ -258,7 +258,7 @@ function buildV2RetrievalResponse(
 /**
  * Build an empty v2 retrieval response when no matches are found.
  */
-function buildEmptyV2Response(): RetrievalV2Response {
+export function buildEmptyV2Response(): RetrievalV2Response {
   return retrievalV2ResponseSchema.parse({
     capsules: [],
     profileHints: [],
@@ -402,7 +402,7 @@ function buildActivationHints(
  * @param artifacts - Skill artifacts with manifests
  * @returns Array of activation hints, one per capsule (empty if no manifest)
  */
-function buildAllActivationHints(
+export function buildAllActivationHints(
   capsules: CapsuleMatch[],
   artifacts: SkillArtifactRecord[],
 ): CapsuleActivationHints[] {

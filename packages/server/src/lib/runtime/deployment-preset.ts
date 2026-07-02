@@ -14,7 +14,7 @@ export interface ResolvedDeploymentPreset {
   serviceUnit: ServiceUnit;
 }
 
-function resolveDeploymentPreset(
+export function resolveDeploymentPreset(
   preset: DeploymentPreset | undefined,
 ): ResolvedDeploymentPreset | null {
   switch (preset) {

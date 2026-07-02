@@ -305,7 +305,7 @@ export function recordHttpRequestMetric(params: {
   observeHistogramMetric('trapmap_runtime_request_duration_ms', labels, params.latencyMs);
 }
 
-function recordInternalHopMetric(params: {
+export function recordInternalHopMetric(params: {
   serviceName: string;
   targetService: string;
   transport: 'http' | 'rpc';

@@ -25,25 +25,25 @@ import type { PipelineStep, RagLogEntry } from '@trapmap/server/lib/rag-log.js';
 import { generateQueryId, logRagRetrieval } from '@trapmap/server/lib/rag-log.js';
 import {
   CapsuleRecallCoordinator,
+  InMemoryIntentCache,
   buildProfileShortlist,
   createFullCapsuleChannelRegistry,
   getCapsuleRecords,
-  InMemoryIntentCache,
   parseSeedIntentWithLLM,
 } from '@trapmap/server/lib/retrieval/capsules/index.js';
 import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 import {
   buildAllActivationHints,
+  buildCapsuleCitations,
   buildCapsuleMatch,
+  buildCapsuleSummary,
   buildEmptyV2Response,
   buildProfileHint,
   buildV2RetrievalResponse,
-  buildCapsuleCitations,
-  buildCapsuleSummary,
 } from '@trapmap/server/lib/retrieval/response/index.js';
+import { timedStep } from './pipeline-timing.js';
 import { buildRoutingTrace } from './routing-trace.js';
 import { selectRetrievalStrategyV2 } from './routing.js';
-import { timedStep } from './pipeline-timing.js';
 
 const intentCache = new InMemoryIntentCache();
 

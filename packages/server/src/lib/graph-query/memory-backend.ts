@@ -1,8 +1,8 @@
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
 import {
+  type Graph,
   type GraphIndexDocumentRecord,
   type GraphNodeRecord,
-  type Graph,
   buildGraphRuntimeSnapshot,
   buildLocalExpansionView as buildGraphologyLocalExpansionView,
   calculateSourceRelationStrength,

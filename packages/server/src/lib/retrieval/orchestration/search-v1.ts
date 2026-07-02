@@ -22,19 +22,19 @@ import { generateQueryId, logRagRetrieval } from '@trapmap/server/lib/rag-log.js
 import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 import {
   assembleResponseBuckets,
+  buildCitations,
   buildEmptyResponse,
   buildRetrievalResponse,
-  buildCitations,
-  generateRefinement,
   buildSummary,
+  generateRefinement,
 } from '@trapmap/server/lib/retrieval/response/index.js';
 import type { ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord, StoreData } from '@trapmap/server/lib/store.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
-import { buildRoutingTrace } from './routing-trace.js';
-import { dispatchByMode, inferChannelsFromMerged } from './recall-coordinator.js';
-import { selectRetrievalStrategy, toRoutingTrace } from './routing.js';
 import { timedStep } from './pipeline-timing.js';
+import { dispatchByMode, inferChannelsFromMerged } from './recall-coordinator.js';
+import { buildRoutingTrace } from './routing-trace.js';
+import { selectRetrievalStrategy, toRoutingTrace } from './routing.js';
 
 export async function searchKnowledge(
   services: SkillShareerServices,

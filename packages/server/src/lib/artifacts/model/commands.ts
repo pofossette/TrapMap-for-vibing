@@ -7,16 +7,16 @@
 
 import type { AgentReviewResult } from '@trapmap/contracts';
 
+import type { ArtifactRepository } from '@trapmap/server/lib/artifacts/repository.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/index.js';
 import type {
-  SkillArtifactMetadataRecord,
   SkillArtifactRecord as ServerSkillArtifactRecord,
+  SkillArtifactMetadataRecord,
   SkillArtifactRevisionRecord,
   SkillShareerStore,
   StoreData,
   StoredScriptActivationPolicy,
 } from '@trapmap/server/lib/store.js';
-import type { ArtifactRepository } from '@trapmap/server/lib/artifacts/repository.js';
 
 import { createLifecycleEvent, toAgentReviewNotes, toAgentReviewRecord } from './helpers.js';
 

@@ -226,7 +226,7 @@ async function main() {
   for (const scenario of scenarios) {
     console.log(`\n--- ${scenario.id} (target: ${scenario.targetId}) ---`);
 
-    const targetDoc = searchByKeywords(scenario.question, 5);
+    const _targetDoc = searchByKeywords(scenario.question, 5);
     const distractorPool = getAllExcept([scenario.targetId]);
 
     for (const level of interferenceLevels) {
@@ -298,7 +298,7 @@ async function main() {
   }
 
   // ─── Report ───
-  console.log('\n' + '═'.repeat(80));
+  console.log(`\n${'═'.repeat(80)}`);
   console.log('  LIVE EVAL RESULTS v2: capsule-match vs skill-summary (Q&A paradigm)');
   console.log('═'.repeat(80));
   console.log('');
@@ -319,17 +319,17 @@ async function main() {
       const avgHits = rs.reduce((s, r) => s + r.keywordHits, 0) / rs.length;
       const avgLat = rs.reduce((s, r) => s + r.latencyMs, 0) / rs.length;
       console.log(
-        padR(level.name + '(' + level.count + ')', 16) +
+        padR(`${level.name}(${level.count})`, 16) +
           padR(strategy, 16) +
-          padR((avgScore * 100).toFixed(0) + '%', 12) +
+          padR(`${(avgScore * 100).toFixed(0)}%`, 12) +
           padR(avgHits.toFixed(1), 12) +
-          padR(avgLat.toFixed(0) + 'ms', 10),
+          padR(`${avgLat.toFixed(0)}ms`, 10),
       );
     }
   }
 
   // ─── Lift table ───
-  console.log('\n' + '═'.repeat(80));
+  console.log(`\n${'═'.repeat(80)}`);
   console.log('  CAPSULE LIFT BY INTERFERENCE LEVEL');
   console.log('═'.repeat(80));
   console.log('');
@@ -354,24 +354,24 @@ async function main() {
 
     const avg = (rs: RunResult[]) =>
       rs.length ? rs.reduce((s, r) => s + r.overallScore, 0) / rs.length : 0;
-    const capAvg = avg(cap),
-      sumAvg = avg(sum),
-      nocAvg = avg(noc);
+    const capAvg = avg(cap);
+    const sumAvg = avg(sum);
+    const nocAvg = avg(noc);
     const lift = sumAvg > 0 ? ((capAvg - sumAvg) / sumAvg) * 100 : 0;
     const absDiff = capAvg - sumAvg;
 
     console.log(
-      padR(level.name + '(' + level.count + ')', 16) +
-        padR((capAvg * 100).toFixed(0) + '%', 12) +
-        padR((sumAvg * 100).toFixed(0) + '%', 12) +
-        padR((nocAvg * 100).toFixed(0) + '%', 12) +
-        padR((lift >= 0 ? '+' : '') + lift.toFixed(0) + '%', 12) +
+      padR(`${level.name}(${level.count})`, 16) +
+        padR(`${(capAvg * 100).toFixed(0)}%`, 12) +
+        padR(`${(sumAvg * 100).toFixed(0)}%`, 12) +
+        padR(`${(nocAvg * 100).toFixed(0)}%`, 12) +
+        padR(`${(lift >= 0 ? '+' : '') + lift.toFixed(0)}%`, 12) +
         padR((absDiff >= 0 ? '+' : '') + absDiff.toFixed(2), 10),
     );
   }
 
   // ─── Per-scenario ───
-  console.log('\n' + '─'.repeat(80));
+  console.log(`\n${'─'.repeat(80)}`);
   console.log('  PER-SCENARIO KEYWORD HITS');
   console.log('─'.repeat(80));
   for (const scenario of scenarios) {

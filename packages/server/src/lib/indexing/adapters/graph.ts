@@ -18,8 +18,8 @@ import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js
 import { extractBoundaryGraphEntities } from '@trapmap/server/lib/indexing/boundary-extract.js';
 import {
   type GraphIndexDocumentRecord,
-  assertNoHardDependencyCycles,
   LlmExtractionCache,
+  assertNoHardDependencyCycles,
   extractGraphEntitiesWithLLM,
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
@@ -251,11 +251,11 @@ export const graphIndexAdapter: IndexAdapter & {
 // Backward-compatible exports (used by existing graph-assisted recall tests)
 // ---------------------------------------------------------------------------
 
-function getCachedGraphIndexDocuments(): GraphIndexDocumentRecord[] {
+export function getCachedGraphIndexDocuments(): GraphIndexDocumentRecord[] {
   return Array.from(cachedGraphDocuments.values());
 }
 
-function setCachedGraphIndexDocuments(documents: GraphIndexDocumentRecord[]): void {
+export function setCachedGraphIndexDocuments(documents: GraphIndexDocumentRecord[]): void {
   cachedGraphDocuments.clear();
   for (const document of documents) {
     cacheDocument(document);
@@ -263,7 +263,7 @@ function setCachedGraphIndexDocuments(documents: GraphIndexDocumentRecord[]): vo
 }
 
 /** @deprecated Use store-backed helpers instead */
-function clearGraphCache(): void {
+export function clearGraphCache(): void {
   graphStateCache.clear();
   cachedGraphDocuments.clear();
 }

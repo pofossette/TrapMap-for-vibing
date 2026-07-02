@@ -5,13 +5,13 @@
  * text, not just title/labels placeholders. (RETR-03, CAPS-04)
  */
 
+import { enrichCapsules } from '@trapmap/server/lib/artifacts/contextual-enrichment.js';
 import type {
   ArtifactFilePayloadRecord,
   DerivedSkillCapsuleRecord,
   DerivedSkillProfileRecord,
 } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
-import { enrichCapsules } from '@trapmap/server/lib/artifacts/contextual-enrichment.js';
 import { extractDerivationText } from './extract-files.js';
 import { buildCapsuleId, buildContentHash } from './hash.js';
 import {

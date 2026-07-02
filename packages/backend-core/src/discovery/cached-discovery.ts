@@ -12,8 +12,8 @@
  */
 
 import type {
-  DiscoveryPort,
   DiscoveredService,
+  DiscoveryPort,
   ServiceRegistration,
 } from '../ports/discovery-ports.js';
 

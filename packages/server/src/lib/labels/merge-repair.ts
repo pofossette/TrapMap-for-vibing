@@ -7,8 +7,8 @@
  */
 
 import type {
-  GraphNodeRecord,
   GraphIndexDocumentRecord,
+  GraphNodeRecord,
 } from '@trapmap/server/lib/indexing/graph-lite/index.js';
 
 import type { LabelRepository } from './repository.js';

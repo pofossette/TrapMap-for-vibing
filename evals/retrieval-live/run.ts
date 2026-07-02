@@ -10,20 +10,20 @@
  *   pnpm eval:retrieval:live --snapshot-version 2026-07-baseline --base-url http://localhost:3000 --json --json-path ./reports/live.json
  */
 
-import { writeFile, mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { type RetrievalEvalCase, retrievalEvalCaseSchema } from '@trapmap/contracts/evals';
 
-import { executeLiveRequest } from './lib/backend-client.js';
-import {
-  restoreSnapshot,
-  detectServiceProfile,
-  verifyServiceProfile,
-} from './lib/snapshot-orchestrator.js';
 import { evaluateGovernance } from '../retrieval/lib/governance.js';
 import { calculateMetrics } from '../retrieval/lib/metrics.js';
+import { executeLiveRequest } from './lib/backend-client.js';
+import {
+  detectServiceProfile,
+  restoreSnapshot,
+  verifyServiceProfile,
+} from './lib/snapshot-orchestrator.js';
 import type { LiveCaseResult, LiveEvalCase, LiveRunnerOptions } from './lib/types.js';
 
 // =============================================================================
@@ -319,7 +319,7 @@ async function main(): Promise<void> {
 
   let meta: Awaited<ReturnType<typeof restoreSnapshot>>['meta'] | undefined;
   let health: Awaited<ReturnType<typeof restoreSnapshot>>['health'] | undefined;
-  let actualProfile = detectServiceProfile();
+  const actualProfile = detectServiceProfile();
 
   if (!options.dryRun) {
     console.log(`\nRestoring snapshot from ${snapshotDir} ...`);
@@ -381,7 +381,7 @@ async function main(): Promise<void> {
       console.log('No cases found. Exiting successfully (allow-empty mode).\n');
       return;
     }
-    console.error(`No cases found. Use --allow-empty to skip.`);
+    console.error('No cases found. Use --allow-empty to skip.');
     process.exit(1);
   }
 

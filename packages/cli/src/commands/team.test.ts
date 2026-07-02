@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import * as http from '@trapmap/cli/lib/http.js';
-import { createMockTeam, createMockLoginResponse } from '@trapmap/cli/testing/cli-test-utils.js';
+import { createMockLoginResponse, createMockTeam } from '@trapmap/cli/testing/cli-test-utils.js';
 
 // Mock the dependencies
 vi.mock('../lib/http.js', () => ({

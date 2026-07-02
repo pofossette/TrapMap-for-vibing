@@ -421,7 +421,7 @@ function findEntriesByPackage(runtime: GraphRuntimeSnapshot, packageName: string
  * @param constraints - Boundary constraints to match
  * @returns Set of source entry IDs matching all constraints
  */
-function findEntriesByBoundaryConstraints(
+export function findEntriesByBoundaryConstraints(
   runtime: GraphRuntimeSnapshot,
   constraints: {
     contexts?: string[];

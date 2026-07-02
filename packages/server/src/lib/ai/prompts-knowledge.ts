@@ -2,7 +2,7 @@
  * Knowledge refinement and claim verification prompt slots and exported builders.
  */
 
-import { buildSystemPromptBlocks, type PromptBlock } from './cache/api-integration.js';
+import { type PromptBlock, buildSystemPromptBlocks } from './cache/api-integration.js';
 import { buildPrompt, buildPromptWithCacheControl } from './prompt-builder.js';
 import type { PromptSlots } from './providers/types.js';
 

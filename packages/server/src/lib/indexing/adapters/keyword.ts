@@ -248,7 +248,7 @@ export const keywordIndexAdapter: KeywordIndexAdapter = createKeywordAdapter();
  * Legacy upsert method for backward compatibility.
  * This method mutates the entry directly and is used by non-pipeline code.
  */
-async function upsertKeywordIndex(
+export async function upsertKeywordIndex(
   entry: KnowledgeRecord,
   document: NormalizedIndexDocument,
 ): Promise<IndexSyncResult> {
@@ -343,7 +343,7 @@ async function upsertKeywordIndex(
 /**
  * Legacy remove method for backward compatibility.
  */
-async function removeKeywordIndex(
+export async function removeKeywordIndex(
   entry: KnowledgeRecord,
   ref: { entryId: string; revision: number },
 ): Promise<void> {
@@ -357,7 +357,7 @@ async function removeKeywordIndex(
  * @param entry - The knowledge entry
  * @returns Persisted keyword state or null
  */
-function getIndexedKeywordTokens(entry: KnowledgeRecord): PersistedKeywordState | null {
+export function getIndexedKeywordTokens(entry: KnowledgeRecord): PersistedKeywordState | null {
   if (entry.indexState?.adapters?.keyword?.status === 'synced') {
     return (entry.indexState.adapters.keyword as IndexStateKeyword).persistedState || null;
   }
@@ -370,11 +370,11 @@ function getIndexedKeywordTokens(entry: KnowledgeRecord): PersistedKeywordState 
  * @param entry - The knowledge entry
  * @returns true if the entry has synced keyword tokens
  */
-function hasIndexedKeywordTokens(entry: KnowledgeRecord): boolean {
+export function hasIndexedKeywordTokens(entry: KnowledgeRecord): boolean {
   return entry.indexState?.adapters?.keyword?.status === 'synced';
 }
 
 /**
  * Keyword index payload type.
  */
-type KeywordIndexPayload = PersistedKeywordState;
+export type KeywordIndexPayload = PersistedKeywordState;

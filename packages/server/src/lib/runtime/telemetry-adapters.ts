@@ -3,15 +3,14 @@
  * LoggingPort adapters backed by the server's existing infrastructure.
  */
 
-import type { LoggingPort, MetricsPort, TracingPort } from '@trapmap/backend-core';
-
 import type { RequestContext } from './request-context.js';
+import type { LoggingPort, MetricsPort, TracingPort } from './telemetry-ports.js';
 
-import { createLoggingPortAdapter, type PinoLikeLogger } from './logging-port-adapter.js';
+import { type PinoLikeLogger, createLoggingPortAdapter } from './logging-port-adapter.js';
 import { createMetricsPortAdapter } from './metrics-port-adapter.js';
 import {
-  createTracingPortAdapter,
   type TracingPortAdapterOptions,
+  createTracingPortAdapter,
 } from './tracing-port-adapter.js';
 
 export { createMetricsPortAdapter } from './metrics-port-adapter.js';

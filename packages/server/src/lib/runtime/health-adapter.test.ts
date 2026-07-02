@@ -1,8 +1,8 @@
 import { healthStatusSchema } from '@trapmap/contracts';
 import { describe, expect, it } from 'vitest';
 
+import { livenessTimestamp, toHealthStatus } from './health-adapter.js';
 import type { RuntimeStatusSnapshot } from './runtime-metadata.js';
-import { toHealthStatus, livenessTimestamp } from './health-adapter.js';
 
 function baseSnapshot(overrides: Partial<RuntimeStatusSnapshot> = {}): RuntimeStatusSnapshot {
   return {

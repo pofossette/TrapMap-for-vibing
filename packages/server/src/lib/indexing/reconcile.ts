@@ -26,8 +26,8 @@ import type {
 import { buildTrapGraphDocument } from './adapters/graph-builders.js';
 import {
   type GraphIndexDocumentRecord,
-  assertNoHardDependencyCycles,
   PROMPT_VERSION,
+  assertNoHardDependencyCycles,
   getGraphIndexDocuments,
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,

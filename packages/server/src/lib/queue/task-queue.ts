@@ -14,15 +14,15 @@ import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool, PoolClient } from 'pg';
 
-import { taskQueue, rowToTask, isUniqueViolation, parseNullableInt } from './task-queue-schema.js';
+import { isUniqueViolation, parseNullableInt, rowToTask, taskQueue } from './task-queue-schema.js';
 import type {
+  DequeueOptions,
+  EnqueueOptions,
   Task,
-  TaskRow,
-  TaskStatus,
   TaskQueueConfig,
   TaskQueueStatusSnapshot,
-  EnqueueOptions,
-  DequeueOptions,
+  TaskRow,
+  TaskStatus,
 } from './task-queue-schema.js';
 
 // Re-export schema types and worker for backward compatibility.

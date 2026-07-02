@@ -1,16 +1,16 @@
-import { writeFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 
 import {
-  retrievalEvalScenarioSnapshotSchema,
-  liveSnapshotMetaSchema,
   type LiveEvalServiceProfile,
+  liveSnapshotMetaSchema,
+  retrievalEvalScenarioSnapshotSchema,
 } from '@trapmap/contracts/evals';
-import { loadConfig } from '@trapmap/server/config.js';
 import { buildServer } from '@trapmap/server/app.js';
+import { loadConfig } from '@trapmap/server/config.js';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
@@ -198,7 +198,7 @@ export async function main(): Promise<void> {
         source: {
           environment: 'local',
           exportedAt: new Date().toISOString(),
-          exportedBy: `export-retrieval-db-snapshot`,
+          exportedBy: 'export-retrieval-db-snapshot',
           teamId: options.teamId,
         },
         serviceProfile,

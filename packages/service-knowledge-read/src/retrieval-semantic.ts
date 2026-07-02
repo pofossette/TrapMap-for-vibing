@@ -82,7 +82,7 @@ export function computeScore(
   return score;
 }
 
-async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[]> {
+export async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[]> {
   const text = buildEmbeddingText(entry);
   const textHash = hashEmbeddingText(text);
 

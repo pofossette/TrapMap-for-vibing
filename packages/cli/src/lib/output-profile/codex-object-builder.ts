@@ -7,11 +7,11 @@ import type {
 
 import type { RenderEnvelope, RenderPayload } from './types.js';
 import {
+  buildCommandResultView,
   buildGraphPlanSummaryView,
   buildRetrievalV1View,
   buildRetrievalV2View,
   buildSkillLookupView,
-  buildCommandResultView,
 } from './view-builders.js';
 
 export function buildCodexObject(envelope: RenderEnvelope<RenderPayload>): Record<string, unknown> {

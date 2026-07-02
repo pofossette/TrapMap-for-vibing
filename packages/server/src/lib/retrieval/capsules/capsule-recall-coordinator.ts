@@ -121,7 +121,7 @@ export class CapsuleRecallCoordinator {
   }
 }
 
-function createDefaultCapsuleRecallCoordinator(
+export function createDefaultCapsuleRecallCoordinator(
   registry: CapsuleChannelRegistry,
 ): CapsuleRecallCoordinator {
   return new CapsuleRecallCoordinator(registry);

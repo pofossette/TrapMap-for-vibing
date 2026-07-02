@@ -1,8 +1,8 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
-  DiscoveryPort,
   DiscoveredService,
+  DiscoveryPort,
   ServiceRegistration,
 } from '../ports/discovery-ports.js';
 import { CachedDiscovery } from './cached-discovery.js';

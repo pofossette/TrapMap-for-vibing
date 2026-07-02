@@ -14,8 +14,8 @@ import {
   createSessionRepository,
 } from '@trapmap/server/lib/auth/index.js';
 import {
-  createGraphQueryRuntimeState,
   createFailOpenGraphQueryBackend,
+  createGraphQueryRuntimeState,
   createMemoryGraphQueryBackend,
   createNeo4jGraphQueryBackend,
 } from '@trapmap/server/lib/graph-query/index.js';

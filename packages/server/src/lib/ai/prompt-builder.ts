@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { buildSystemPromptBlocks, type PromptBlock } from './cache/api-integration.js';
+import { type PromptBlock, buildSystemPromptBlocks } from './cache/api-integration.js';
 import { CACHE_BOUNDARY_MARKER } from './cache/boundary-marker.js';
 import { getCachedSection } from './cache/section-cache.js';
 import { getDynamicInjections, injectDynamicContent } from './dynamic/index.js';
@@ -43,7 +43,7 @@ const DEFAULT_TEMPLATE_FILE = path.resolve(
   'docs/reference/system-prompt-slots.default.json',
 );
 
-const TASK_TITLES: Record<AiPromptTaskType, string> = {
+const _TASK_TITLES: Record<AiPromptTaskType, string> = {
   'boundary-extraction': 'Boundary Extraction',
   'knowledge-refinement': 'Knowledge Refinement',
   'claim-verification': 'Claim Verification',

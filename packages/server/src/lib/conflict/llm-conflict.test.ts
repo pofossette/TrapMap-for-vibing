@@ -13,8 +13,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { judgeConflictWithLLM, parseConflictJudgmentResponse } from './llm-conflict.js';
 import { createMockChat } from '@trapmap/server/testing/mock-factories.js';
+import { judgeConflictWithLLM, parseConflictJudgmentResponse } from './llm-conflict.js';
 
 // ---------------------------------------------------------------------------
 // Tests

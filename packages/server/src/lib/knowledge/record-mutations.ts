@@ -1,9 +1,9 @@
-import {
-  type AgentReviewResult,
-  type Boundary,
-  type EvidenceMeta,
-  type KnowledgeResubmission,
-  type KnowledgeSubmission,
+import type {
+  AgentReviewResult,
+  Boundary,
+  EvidenceMeta,
+  KnowledgeResubmission,
+  KnowledgeSubmission,
 } from '@trapmap/contracts';
 
 import { createDefaultEvidenceMeta } from '@trapmap/server/lib/evidence/model.js';
@@ -17,8 +17,8 @@ import type {
   KnowledgeRevisionRecord,
 } from '@trapmap/server/lib/store.js';
 import { toActorRef } from './actor-ref.js';
-import { nextSubId } from './next-sub-id.js';
 import type { UserLookupContext } from './actor-ref.js';
+import { nextSubId } from './next-sub-id.js';
 
 function toAgentNotes(review: AgentReviewResult): KnowledgeReviewNoteRecord[] {
   return review.notes.map((message) => ({

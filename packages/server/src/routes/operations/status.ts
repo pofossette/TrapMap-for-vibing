@@ -22,9 +22,9 @@ import {
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import {
+  getServiceUnitProfile,
   recordRuntimeBacklog,
   resolveAsyncWorkerState,
-  getServiceUnitProfile,
 } from '@trapmap/server/lib/runtime/index.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';

@@ -111,7 +111,7 @@ export function G6GraphComponent({
       nodes: data.nodes.map((node) => {
         const kind = node.kind || node.type || 'unknown';
         let strokeColor = '#242424';
-        let fillColor = '#0a0f1d';
+        const fillColor = '#0a0f1d';
 
         if (kind === 'trap') strokeColor = '#f97316';
         else if (kind === 'artifact') strokeColor = '#006fee';
@@ -144,7 +144,7 @@ export function G6GraphComponent({
       onSelectNode(model);
 
       // Selection highlighting
-      graph.getNodes().forEach((n: any) => {
+      for (const n of graph.getNodes() as any[]) {
         const m = n.getModel();
         const isSelected = m.id === model.id;
         const nKind = m.kind || m.type || '';
@@ -164,10 +164,10 @@ export function G6GraphComponent({
             opacity: isSelected ? 1 : 0.4,
           },
         });
-      });
+      }
 
       // Edge highlighting
-      graph.getEdges().forEach((e: any) => {
+      for (const e of graph.getEdges() as any[]) {
         const edgeModel = e.getModel();
         const connected = edgeModel.source === model.id || edgeModel.target === model.id;
         graph.updateItem(e, {
@@ -176,7 +176,7 @@ export function G6GraphComponent({
             opacity: connected ? 1 : 0.2,
           },
         });
-      });
+      }
     });
 
     graph.on('node:dragstart', (e: any) => {
@@ -201,7 +201,7 @@ export function G6GraphComponent({
 
     graph.on('canvas:click', () => {
       // Clear selection styling
-      graph.getNodes().forEach((n: any) => {
+      for (const n of graph.getNodes() as any[]) {
         const m = n.getModel();
         const nKind = m.kind || m.type || '';
         let baseStroke = '#242424';
@@ -220,16 +220,16 @@ export function G6GraphComponent({
             opacity: 1,
           },
         });
-      });
+      }
 
-      graph.getEdges().forEach((e: any) => {
+      for (const e of graph.getEdges() as any[]) {
         graph.updateItem(e, {
           style: {
             stroke: '#242424',
             opacity: 1,
           },
         });
-      });
+      }
     });
 
     graph.fitView(20);
@@ -239,7 +239,7 @@ export function G6GraphComponent({
         graphRef.current.destroy();
       }
     };
-  }, [data]);
+  }, [data, highlightColor, onSelectEdge, onSelectNode]);
 
   // Search filter focus
   useEffect(() => {
@@ -248,7 +248,7 @@ export function G6GraphComponent({
     const nodes = graph.getNodes();
     let matchedNode: any = null;
 
-    nodes.forEach((n: any) => {
+    for (const n of nodes as any[]) {
       const model = n.getModel();
       const match =
         model.label.toLowerCase().includes(searchKeyword.toLowerCase()) ||
@@ -263,7 +263,7 @@ export function G6GraphComponent({
           fill: match ? 'rgba(0, 111, 238, 0.2)' : '#0a0f1d',
         },
       });
-    });
+    }
 
     if (matchedNode) {
       graph.focusItem(matchedNode, true, {

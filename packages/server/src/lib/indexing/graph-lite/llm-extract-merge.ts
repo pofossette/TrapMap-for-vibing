@@ -8,7 +8,6 @@
 
 import type { LlmGraphEdge, LlmGraphExtraction, LlmGraphNode } from '@trapmap/contracts';
 
-import { buildEdgeId, buildNodeId, normalizeValue } from './llm-extract-ids.js';
 import type {
   GraphEdgeRecord,
   GraphNodeKind,
@@ -16,6 +15,7 @@ import type {
   GraphRelationStrength,
   GraphRelationType,
 } from './documents.js';
+import { buildEdgeId, buildNodeId, normalizeValue } from './llm-extract-ids.js';
 
 // ---------------------------------------------------------------------------
 // Result merging

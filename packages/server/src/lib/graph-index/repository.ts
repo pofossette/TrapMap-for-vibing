@@ -70,7 +70,7 @@ export interface GraphIndexRepository {
  * In-memory repository that uses SkillShareerStore for all graph index operations.
  * Used when no PostgreSQL pool is available (tests, local dev).
  */
-class InMemoryGraphIndexRepository implements GraphIndexRepository {
+export class InMemoryGraphIndexRepository implements GraphIndexRepository {
   constructor(private readonly store: SkillShareerStore) {}
 
   async insert(doc: GraphIndexDocumentRecord): Promise<void> {

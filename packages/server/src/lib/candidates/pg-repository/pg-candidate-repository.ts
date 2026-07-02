@@ -23,12 +23,12 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool, PoolClient } from 'pg';
 
-import { candidateAnalyses, candidates } from '@trapmap/server/lib/persistence/schema.js';
 import type { TransactionalCandidateRepository } from '@trapmap/server/lib/candidates/repository-interfaces.js';
 import type { ManualResultRecord } from '@trapmap/server/lib/candidates/store.js';
+import { candidateAnalyses, candidates } from '@trapmap/server/lib/persistence/schema.js';
 
-import type { DrizzleCandidateRow } from './row-types.js';
 import { rowToCandidateSubmission } from './row-mappers.js';
+import type { DrizzleCandidateRow } from './row-types.js';
 import {
   readAnalysisFromSubTable,
   readDuplicateCaseFromSubTables,

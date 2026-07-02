@@ -4,7 +4,7 @@ import { ZodError } from 'zod';
 import type { ServerConfig } from '@trapmap/server/config.js';
 import { isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import { toHealthStatus, livenessTimestamp } from './health-adapter.js';
+import { livenessTimestamp, toHealthStatus } from './health-adapter.js';
 import { getOrCreateRequestContext } from './request-context.js';
 import type { RouteFamilyDescriptor } from './route-surface.js';
 import { snapshotRuntimeWorker } from './runtime-contract.js';

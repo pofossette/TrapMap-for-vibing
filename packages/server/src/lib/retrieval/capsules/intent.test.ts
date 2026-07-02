@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { createMockChat } from '@trapmap/server/testing/mock-factories.js';
 import {
   extractStackPathHints,
   normalizeToken,
   parseSeedIntent,
   parseSeedIntentWithLLM,
 } from './intent.js';
-import { createMockChat } from '@trapmap/server/testing/mock-factories.js';
 
 describe('parseSeedIntent', () => {
   describe('basic parsing', () => {

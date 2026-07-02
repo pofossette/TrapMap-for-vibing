@@ -7,8 +7,8 @@
  */
 
 import type { InternalServiceUrls } from '@trapmap/host-distributed/config/index.js';
-import { recordDistributedInternalHopMetric } from './internal-observability.js';
 import type { DiscoveryResolver } from './discovery-resolver.js';
+import { recordDistributedInternalHopMetric } from './internal-observability.js';
 
 // ---------------------------------------------------------------------------
 // HTTP client helper

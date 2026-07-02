@@ -4,17 +4,17 @@ import type {
   SkillLookupResponse,
 } from '@trapmap/contracts';
 
-import type { RenderEnvelope, RenderPayload } from './types.js';
+import { formatLoadContext } from '@trapmap/cli/lib/markdown-formatter.js';
+import type { GraphPlanSearchResponse } from '@trapmap/contracts';
+import { buildCodexObject } from './codex-object-builder.js';
 import { xmlEscape } from './summarizers.js';
+import type { RenderEnvelope, RenderPayload } from './types.js';
 import {
+  buildCommandResultView,
   buildRetrievalV1View,
   buildRetrievalV2View,
   buildSkillLookupView,
-  buildCommandResultView,
 } from './view-builders.js';
-import { buildCodexObject } from './codex-object-builder.js';
-import { formatLoadContext } from '@trapmap/cli/lib/markdown-formatter.js';
-import type { GraphPlanSearchResponse } from '@trapmap/contracts';
 
 export function renderClaude(envelope: RenderEnvelope<RenderPayload>): string {
   if (envelope.kind === 'command-result') {

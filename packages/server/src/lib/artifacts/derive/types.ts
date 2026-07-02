@@ -3,12 +3,12 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ContextualEnrichmentCache } from '@trapmap/server/lib/artifacts/contextual-enrichment.js';
 import type {
+  ClientManifestRecord,
   DerivedSkillCapsuleRecord,
   DerivedSkillProfileRecord,
-  ClientManifestRecord,
 } from '@trapmap/server/lib/store.js';
-import type { ContextualEnrichmentCache } from '@trapmap/server/lib/artifacts/contextual-enrichment.js';
 
 /**
  * Result of deriving outputs from a skill artifact revision.

@@ -74,7 +74,7 @@ export type ReviewQueueRequest = {
   paging: Pick<ReviewQueueQuery, 'cursor' | 'limit'>;
 };
 
-type ReviewDetailDecisionInput = {
+export type ReviewDetailDecisionInput = {
   decision: ReviewDecisionKind;
   notes: string;
 };
@@ -95,7 +95,7 @@ export type ReviewArtifactFile = {
   size: number;
 };
 
-type ReviewQueueDto = ReviewQueueResponse;
+export type ReviewQueueDto = ReviewQueueResponse;
 export type ReviewQueueItemDto = ReviewQueueItem;
 export type ActorRefDto = ActorRef;
 

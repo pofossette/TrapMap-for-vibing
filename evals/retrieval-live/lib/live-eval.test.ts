@@ -9,26 +9,26 @@
  * - Backend client response normalization
  */
 
-import { describe, expect, it } from 'vitest';
-import { writeFile, mkdir, rm } from 'node:fs/promises';
-import path from 'node:path';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { describe, expect, it } from 'vitest';
 
 import {
-  liveSnapshotMetaSchema,
-  liveEvalServiceProfileSchema,
-  liveSnapshotDerivationContextSchema,
-  liveEvalReportMetaSchema,
   assertionStabilitySchema,
   liveEvalCaseDiffSchema,
-  liveEvalSliceDiffSchema,
   liveEvalComparisonReportSchema,
+  liveEvalReportMetaSchema,
+  liveEvalServiceProfileSchema,
+  liveEvalSliceDiffSchema,
+  liveSnapshotDerivationContextSchema,
+  liveSnapshotMetaSchema,
 } from '@trapmap/contracts/evals';
 
 import {
   detectServiceProfile,
-  verifyServiceProfile,
   loadSnapshot,
+  verifyServiceProfile,
 } from './snapshot-orchestrator.js';
 
 // =============================================================================

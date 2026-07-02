@@ -43,7 +43,7 @@ export function createSharedJobQueuePort(queue: AsyncTaskTransport): SharedJobQu
   };
 }
 
-async function scheduleSharedJobTx<TTaskType extends SharedJobTaskType>(
+export async function scheduleSharedJobTx<TTaskType extends SharedJobTaskType>(
   queue: SharedJobQueuePort | undefined,
   store: SkillShareerStore,
   client: PoolClient,

@@ -14,9 +14,8 @@
  * - Sampling strategy MUST be explicit; no unlimited collection by default.
  */
 
-import type { SpanHandle, TracingPort } from '@trapmap/backend-core';
-
 import type { RequestContext } from './request-context.js';
+import type { SpanHandle, TracingPort } from './telemetry-ports.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -184,11 +183,7 @@ export function createTracingPortAdapter(
       if (otel) {
         try {
           const spanContext = otel.trace.getActiveSpan()?.spanContext();
-          if (
-            spanContext &&
-            spanContext.traceId &&
-            spanContext.traceId !== '00000000000000000000000000000000'
-          ) {
+          if (spanContext?.traceId && spanContext.traceId !== '00000000000000000000000000000000') {
             return spanContext.traceId;
           }
         } catch {

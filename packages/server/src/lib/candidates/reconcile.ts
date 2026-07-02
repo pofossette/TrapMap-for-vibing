@@ -22,10 +22,10 @@ import type {
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { markCandidateResolved } from './store.js';
 
-import { revalidateManualResult, REVALIDATION_ERRORS } from './validate.js';
 import { getLineageByCandidate } from './lineage.js';
-import { publishTrapCandidate, publishSkillCandidate } from './publish.js';
 import { recordMergeLineage } from './lineage.js';
+import { publishSkillCandidate, publishTrapCandidate } from './publish.js';
+import { REVALIDATION_ERRORS, revalidateManualResult } from './validate.js';
 
 // Re-export everything from split modules for backward compatibility
 export { revalidateManualResult, REVALIDATION_ERRORS } from './validate.js';

@@ -10,13 +10,13 @@ import type {
   ActivityFeedResponse,
   AdminPanelApiContract,
   AdminPanelSession,
+  ArtifactListResponse,
+  ArtifactQuery,
+  GraphDataResponse,
   ManualJsonEditInput,
   ReviewDetailResponse,
   ReviewQueueRequest,
   RuntimeOverviewResponse,
-  ArtifactQuery,
-  ArtifactListResponse,
-  GraphDataResponse,
 } from '@trapmap/web-panel/shared/enum-types';
 import type { HttpClient } from './http-client';
 
@@ -149,7 +149,9 @@ export function createAdminPanelApi(client: HttpClient): AdminPanelApiContract {
   };
 }
 
-function buildReviewQueueRequest(request?: Partial<ReviewQueueRequest>): Partial<ReviewQueueQuery> {
+export function buildReviewQueueRequest(
+  request?: Partial<ReviewQueueRequest>,
+): Partial<ReviewQueueQuery> {
   if (!request) {
     return {};
   }

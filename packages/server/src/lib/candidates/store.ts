@@ -21,7 +21,7 @@ const MAX_RETRIES = 3;
 /**
  * Create a new candidate submission from an uploaded payload.
  */
-function createCandidateSubmission(args: {
+export function createCandidateSubmission(args: {
   store: SkillShareerStore;
   data: StoreData;
   sourceType: 'trap' | 'skill';
@@ -138,21 +138,24 @@ export function getCandidateById(data: StoreData, candidateId: string): Candidat
 /**
  * Get all candidates in a specific status.
  */
-function getCandidatesByStatus(data: StoreData, status: CandidateStatus): CandidateSubmission[] {
+export function getCandidatesByStatus(
+  data: StoreData,
+  status: CandidateStatus,
+): CandidateSubmission[] {
   return data.candidateSubmissions.filter((c) => c.status === status);
 }
 
 /**
  * Get candidates that need processing (received or queued).
  */
-function getPendingCandidates(data: StoreData): CandidateSubmission[] {
+export function getPendingCandidates(data: StoreData): CandidateSubmission[] {
   return data.candidateSubmissions.filter((c) => c.status === 'received' || c.status === 'queued');
 }
 
 /**
  * Get candidates in error state that can be retried.
  */
-function getRetryableCandidates(data: StoreData): CandidateSubmission[] {
+export function getRetryableCandidates(data: StoreData): CandidateSubmission[] {
   return data.candidateSubmissions.filter(
     (c) => c.status === 'error' && c.retryCount < MAX_RETRIES,
   );
@@ -162,7 +165,10 @@ function getRetryableCandidates(data: StoreData): CandidateSubmission[] {
  * Get duplicate case by candidate ID.
  * @deprecated Zero production callers. Use DuplicateRepository.listByCandidate() instead.
  */
-function getDuplicateCaseByCandidateId(data: StoreData, candidateId: string): DuplicateCase | null {
+export function getDuplicateCaseByCandidateId(
+  data: StoreData,
+  candidateId: string,
+): DuplicateCase | null {
   return data.duplicateCases.find((dc) => dc.candidateId === candidateId) ?? null;
 }
 
@@ -170,7 +176,7 @@ function getDuplicateCaseByCandidateId(data: StoreData, candidateId: string): Du
  * Get all duplicate cases.
  * @deprecated Zero production callers. Use DuplicateRepository.listAll() instead.
  */
-function getAllDuplicateCases(data: StoreData): DuplicateCase[] {
+export function getAllDuplicateCases(data: StoreData): DuplicateCase[] {
   return data.duplicateCases;
 }
 
@@ -255,7 +261,7 @@ export function attachManualResult(args: {
 /**
  * Get manual result from candidate.
  */
-function getManualResult(data: StoreData, candidateId: string): ManualResultRecord | null {
+export function getManualResult(data: StoreData, candidateId: string): ManualResultRecord | null {
   const candidate = data.candidateSubmissions.find((c) => c.id === candidateId);
   if (!candidate) {
     return null;
@@ -288,7 +294,7 @@ export function markCandidateResolved(args: {
  * Get candidates that are ready for resolution application.
  * These have duplicate_detected status and an attached manual result.
  */
-function getCandidatesReadyForResolution(data: StoreData): CandidateSubmission[] {
+export function getCandidatesReadyForResolution(data: StoreData): CandidateSubmission[] {
   return data.candidateSubmissions.filter(
     (c) => c.status === 'duplicate_detected' && c.manualResult !== null,
   );

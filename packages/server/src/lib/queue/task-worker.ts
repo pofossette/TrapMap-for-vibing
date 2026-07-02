@@ -6,8 +6,8 @@
 
 import type { Pool } from 'pg';
 
-import { createTaskQueue } from './task-queue.js';
 import type { Task, TaskHandler } from './task-queue-schema.js';
+import { createTaskQueue } from './task-queue.js';
 
 // =============================================================================
 // Task Worker Implementation

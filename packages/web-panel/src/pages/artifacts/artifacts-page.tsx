@@ -1,29 +1,29 @@
 import {
   Button,
   Chip,
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
   Input,
   Select,
   SelectItem,
   Table,
-  TableHeader,
-  TableColumn,
   TableBody,
-  TableRow,
   TableCell,
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerBody,
-  DrawerFooter,
+  TableColumn,
+  TableHeader,
+  TableRow,
 } from '@heroui/react';
-import { type ReactElement, useEffect, useState } from 'react';
+import { type ReactElement, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import type { SkillArtifact } from '@trapmap/contracts';
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
 import { PageTransition } from '@trapmap/web-panel/shared/motion';
 import { PageContainer, SectionHeader, StatusBadge } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
-import type { SkillArtifact } from '@trapmap/contracts';
 
 export function ArtifactsPage(): ReactElement {
   const { t } = useI18nStore();
@@ -43,7 +43,7 @@ export function ArtifactsPage(): ReactElement {
   const [detailLoading, setDetailLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const fetchArtifacts = async () => {
+  const fetchArtifacts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -58,11 +58,11 @@ export function ArtifactsPage(): ReactElement {
     } finally {
       setLoading(false);
     }
-  };
+  }, [lifecycleState, scope, search]);
 
   useEffect(() => {
     void fetchArtifacts();
-  }, [search, lifecycleState, scope]);
+  }, [fetchArtifacts]);
 
   const handleRowClick = async (artifact: SkillArtifact) => {
     setSelectedArtifact(artifact);

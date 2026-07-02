@@ -6,12 +6,12 @@ import {
   type KnowledgeWritePort,
   type ReviewPort,
 } from '@trapmap/backend-core';
-import { registerGovernanceReviewRoutes } from '@trapmap/service-governance-review';
-import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
-import { registerKnowledgeWriteRoutes } from '@trapmap/service-knowledge-write';
 import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
 import { registerGatewayRoutes } from '@trapmap/host-distributed/gateway/routes.js';
 import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
+import { registerGovernanceReviewRoutes } from '@trapmap/service-governance-review';
+import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
+import { registerKnowledgeWriteRoutes } from '@trapmap/service-knowledge-write';
 
 type ServiceRole =
   | 'gateway'

@@ -69,7 +69,7 @@ class StubTracing implements TracingPort {
   private traceId: string | undefined;
   shutdownCalled = false;
 
-  startSpan(name: string, attributes?: Record<string, string>): SpanHandle {
+  startSpan(_name: string, attributes?: Record<string, string>): SpanHandle {
     const span = new StubSpanHandle();
     if (attributes) {
       for (const [k, v] of Object.entries(attributes)) {

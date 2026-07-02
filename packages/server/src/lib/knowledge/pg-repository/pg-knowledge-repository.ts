@@ -14,6 +14,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
 import type { DecayMeta } from '@trapmap/contracts';
+import type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/repository.js';
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/index.js';
 import {
   knowledgeBoundaryContexts,
@@ -35,21 +36,20 @@ import type {
   KnowledgeRevisionRecord,
   SkillShareerStore,
 } from '@trapmap/server/lib/store.js';
-import type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/repository.js';
+import {
+  clearBoundarySubTables,
+  insertBoundarySubTables,
+  loadBoundaryFromSubTables,
+} from './boundary-helpers.js';
+import { mergeCompatEntry } from './compat-overlay.js';
+import { reconstructKnowledgeRecord } from './record-reconstruction.js';
+import { rowToKnowledgeEntry, rowToMaintenanceMeta } from './row-mappers.js';
 import type {
   DrizzleKnowledgeEntryRow,
   DrizzleKnowledgeRevisionRow,
   DrizzleLifecycleEventRow,
   MaintenanceAssignmentRow,
 } from './row-types.js';
-import { rowToKnowledgeEntry, rowToMaintenanceMeta } from './row-mappers.js';
-import {
-  insertBoundarySubTables,
-  clearBoundarySubTables,
-  loadBoundaryFromSubTables,
-} from './boundary-helpers.js';
-import { mergeCompatEntry } from './compat-overlay.js';
-import { reconstructKnowledgeRecord } from './record-reconstruction.js';
 
 /**
  * PostgreSQL-backed repository for knowledge entry CRUD operations.

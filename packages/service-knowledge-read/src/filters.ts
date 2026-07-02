@@ -16,7 +16,7 @@
  */
 
 import type { BoundaryContext, RetrievalQuery } from '@trapmap/contracts';
-import { loadDecayConfig, computeDecayState } from '@trapmap/server/lib/decay/index.js';
+import { computeDecayState, loadDecayConfig } from '@trapmap/server/lib/decay/index.js';
 import { isSuppressedByFeedback } from '@trapmap/server/lib/feedback/remediation.js';
 import {
   extractGovernanceContext,

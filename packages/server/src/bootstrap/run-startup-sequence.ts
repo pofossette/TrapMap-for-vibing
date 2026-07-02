@@ -38,7 +38,7 @@ export async function runStartupSequence(
   const otelDisabled = process.env.OTEL_DISABLED === 'true';
   if (!otelDisabled) {
     const profile = app.skillShareer.config.deployment.resolved.deploymentProfile ?? 'local-agent';
-    const sampleRate = parseFloat(process.env.OTEL_SAMPLE_RATE ?? '0.1');
+    const sampleRate = Number.parseFloat(process.env.OTEL_SAMPLE_RATE ?? '0.1');
     const otelResult = await bootstrapOtel({
       profile,
       otlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://localhost:4318',

@@ -9,10 +9,10 @@ import Fastify, { type FastifyInstance } from 'fastify';
 
 import { DynamicDiscovery } from '@trapmap/backend-core';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
-import { type InternalServiceClients, createInternalServiceClients } from './internal-client.js';
-import { registerGatewayRoutes } from './routes.js';
 import { ConsulDiscoveryAdapter } from './consul-discovery-adapter.js';
 import { DiscoveryResolver } from './discovery-resolver.js';
+import { type InternalServiceClients, createInternalServiceClients } from './internal-client.js';
+import { registerGatewayRoutes } from './routes.js';
 
 // ---------------------------------------------------------------------------
 // Server interface

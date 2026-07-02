@@ -7,13 +7,13 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import { applyDerivedArtifactOutputs as applyDerivedArtifactOutputsFromModel } from '@trapmap/server/lib/artifacts/model.js';
+import type { ArtifactRepository } from '@trapmap/server/lib/artifacts/repository.js';
 import type {
   ArtifactFilePayloadRecord,
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
 } from '@trapmap/server/lib/store.js';
-import { applyDerivedArtifactOutputs as applyDerivedArtifactOutputsFromModel } from '@trapmap/server/lib/artifacts/model.js';
-import type { ArtifactRepository } from '@trapmap/server/lib/artifacts/repository.js';
 import { deriveFromPayloads } from './from-payloads.js';
 import { deriveSkillArtifactOutputs } from './legacy.js';
 

@@ -42,7 +42,7 @@ async function unwrapResponse<T>(
   throw mapRemoteError(response.body, fallback);
 }
 
-type RemoteKnowledgeWriteClientOptions = InternalRequestOptions;
+export type RemoteKnowledgeWriteClientOptions = InternalRequestOptions;
 
 type RemoteKnowledgeWriteTransport = 'http' | 'rpc';
 

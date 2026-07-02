@@ -10,7 +10,7 @@ const toneClasses: Record<StatusPillProps['tone'], string> = {
   danger: 'border-rose-500/30 bg-rose-500/12 text-rose-200',
 };
 
-function StatusPill({ children, tone }: StatusPillProps): ReactElement {
+export function StatusPill({ children, tone }: StatusPillProps): ReactElement {
   return (
     <span
       className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${toneClasses[tone]}`}

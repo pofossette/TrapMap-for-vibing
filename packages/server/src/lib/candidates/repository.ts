@@ -30,7 +30,7 @@ export type {
  * Type guard to check if an object is a valid CandidateSubmission.
  * Useful for validation in repository implementations.
  */
-function isCandidateSubmission(value: unknown): value is CandidateSubmission {
+export function isCandidateSubmission(value: unknown): value is CandidateSubmission {
   if (typeof value !== 'object' || value === null) return false;
   const obj = value as Record<string, unknown>;
   return (

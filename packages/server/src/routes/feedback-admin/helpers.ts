@@ -5,6 +5,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 
 import type { QualityScore } from '@trapmap/contracts';
+import type { FeedbackListItem, FeedbackRemediationQueueItem } from '@trapmap/contracts';
 import {
   FEEDBACK_REMEDIATION_THRESHOLD,
   computeFeedbackRemediationState,
@@ -15,7 +16,6 @@ import {
   toFailureClassificationAwareFeedbackItem,
 } from '@trapmap/server/lib/operations/read-model.js';
 import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
-import type { FeedbackListItem, FeedbackRemediationQueueItem } from '@trapmap/contracts';
 
 /**
  * Compute age in days from a timestamp to now.

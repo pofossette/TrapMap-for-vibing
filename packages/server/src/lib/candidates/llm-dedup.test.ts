@@ -12,8 +12,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { judgeDuplicateWithLLM, parseDuplicateJudgmentResponse } from './llm-dedup.js';
 import { createMockChat } from '@trapmap/server/testing/mock-factories.js';
+import { judgeDuplicateWithLLM, parseDuplicateJudgmentResponse } from './llm-dedup.js';
 
 // ---------------------------------------------------------------------------
 // Tests

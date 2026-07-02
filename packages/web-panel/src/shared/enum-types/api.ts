@@ -6,7 +6,7 @@ import type {
 } from '@trapmap/contracts';
 
 import type { ActivityFeedQuery, ActivityFeedResponse } from './activity.js';
-import type { ArtifactQuery, ArtifactListResponse } from './artifact.js';
+import type { ArtifactListResponse, ArtifactQuery } from './artifact.js';
 import type { GraphDataResponse } from './graph.js';
 import type { ManualJsonEditInput, ReviewDetailResponse, ReviewQueueRequest } from './review.js';
 import type { RuntimeOverviewResponse } from './runtime.js';

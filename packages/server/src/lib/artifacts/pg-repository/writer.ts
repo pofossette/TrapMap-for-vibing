@@ -20,8 +20,8 @@ import {
   upsertArtifactMaintenanceAssignment,
   upsertArtifactMetadata,
 } from './derived-store.js';
-import { type DrizzleSkillArtifactRow } from './record-reconstruction.js';
 import { getArtifactById } from './reader.js';
+import type { DrizzleSkillArtifactRow } from './record-reconstruction.js';
 import {
   replaceStructuredDerivedRows,
   syncRevisionCount,

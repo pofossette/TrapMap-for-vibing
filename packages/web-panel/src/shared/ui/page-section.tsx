@@ -5,7 +5,7 @@ type PageSectionProps = PropsWithChildren<{
   title: string;
 }>;
 
-function PageSection({ children, description, title }: PageSectionProps): ReactElement {
+export function PageSection({ children, description, title }: PageSectionProps): ReactElement {
   return (
     <section className="space-y-5">
       <header>

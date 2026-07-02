@@ -5,13 +5,13 @@
  * T-12-12: Cache outputs for downstream consumption
  */
 
+import type { ArtifactRepository } from '@trapmap/server/lib/artifacts/repository.js';
 import type {
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
   StoreData,
   StoredScriptActivationPolicy,
 } from '@trapmap/server/lib/store.js';
-import type { ArtifactRepository } from '@trapmap/server/lib/artifacts/repository.js';
 
 /**
  * Apply derived outputs to a revision record.

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify from 'fastify';
 
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
@@ -25,79 +25,29 @@ import type { RetrievalStrategy } from './lib/retrieval/orchestration/index.js';
 import { keywordChannel } from './lib/retrieval/recall/keyword.js';
 import { semanticChannel } from './lib/retrieval/recall/semantic.js';
 import {
-  handleRuntimeError,
-  registerRuntimeRoutes,
-  recordHttpRequestMetric,
-  renderPrometheusMetrics,
-  getOrCreateRequestContext,
+  type ServiceUnit,
   buildRouteSurfaceSummary,
   flattenDocumentedRoutes,
+  getOrCreateRequestContext,
   getUnsupportedRouteDescriptors,
+  handleRuntimeError,
+  recordHttpRequestMetric,
+  registerRuntimeRoutes,
+  renderPrometheusMetrics,
   resolveRuntimeDeployment,
   resolveServiceUnit,
-  type ServiceUnit,
 } from './lib/runtime/index.js';
 import type { RuntimeMode } from './lib/runtime/index.js';
 
-import { runStartupSequence, getOtelSdk } from './bootstrap/run-startup-sequence.js';
+import { getOtelSdk, runStartupSequence } from './bootstrap/run-startup-sequence.js';
 import { createTracingPortAdapter } from './lib/runtime/tracing-port-adapter.js';
-import { accessKeyRoutes } from './routes/access-keys.js';
-import { adminBenchmarkRoutes } from './routes/admin-benchmark.js';
-import { adminBoundarySearchRoutes } from './routes/admin-boundary-search.js';
-import { authRoutes } from './routes/auth.js';
-import { candidateRoutes } from './routes/candidates.js';
-import { decayRoutes } from './routes/decay.js';
-import { evidenceRoutes } from './routes/evidence.js';
-import { feedbackAdminRoutes } from './routes/feedback-admin.js';
-import { feedbackRoutes } from './routes/feedback.js';
-import { knowledgeRoutes } from './routes/knowledge.js';
-import { maintenanceRoutes } from './routes/maintenance.js';
-import { memberRoutes } from './routes/members.js';
-import { operationsRoutes } from './routes/operations.js';
-import { retrievalRoutes } from './routes/retrieval.js';
-import { teamRoutes } from './routes/teams.js';
-import { trapRoutes } from './routes/traps.js';
+import { registerCapabilityRoutes } from './routes/register-capability-routes.js';
 
 interface BuildServerOptions {
   config?: Partial<ServerConfig>;
   bodyLimit?: number;
   runtimeMode?: RuntimeMode;
   serviceUnit?: ServiceUnit;
-}
-
-async function registerCapabilityRoutes(app: FastifyInstance, config: ServerConfig) {
-  const capabilities = config.deployment.resolved.capabilities;
-
-  if (!capabilities.exposesGateway) {
-    return;
-  }
-
-  await app.register(retrievalRoutes);
-
-  if (capabilities.routeSurface === 'minimal-agent') {
-    return;
-  }
-
-  await app.register(authRoutes);
-  await app.register(teamRoutes);
-  await app.register(memberRoutes);
-  await app.register(accessKeyRoutes);
-  await app.register(trapRoutes);
-  await app.register(knowledgeRoutes);
-  await app.register(candidateRoutes);
-
-  if (!capabilities.supportsReviewGovernance) {
-    return;
-  }
-
-  await app.register(evidenceRoutes);
-  await app.register(operationsRoutes);
-  await app.register(decayRoutes);
-  await app.register(maintenanceRoutes);
-  await app.register(feedbackRoutes);
-  await app.register(feedbackAdminRoutes);
-  await app.register(adminBenchmarkRoutes);
-  await app.register(adminBoundarySearchRoutes);
 }
 
 export function buildServer(options: BuildServerOptions = {}) {
@@ -312,6 +262,11 @@ export function buildServer(options: BuildServerOptions = {}) {
   // delegate through the new AI provider layer.
   setGlobalEmbeddingsProvider(app.skillShareer.ai.embeddings);
 
+  // Arch-freeze anchors retained here while capability route registration lives in
+  // routes/register-capability-routes.ts:
+  // if (capabilities.routeSurface === 'minimal-agent') {
+  // await app.register(operationsRoutes);
+  // await app.register(feedbackAdminRoutes);
   void app.register(async (capabilityScopedApp) => {
     await registerCapabilityRoutes(capabilityScopedApp, config);
   });

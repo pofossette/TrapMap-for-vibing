@@ -10,8 +10,8 @@ import type { RetrievalEvalEndpoint } from '@trapmap/contracts/evals';
 import { normalizeResponse } from '../../retrieval/lib/normalize.js';
 import type {
   BackendClientOptions,
-  LiveExecutionMetadata,
   LiveEvalCase,
+  LiveExecutionMetadata,
   NormalizedResult,
 } from './types.js';
 
