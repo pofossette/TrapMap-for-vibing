@@ -95,9 +95,9 @@
 
 ### Phase 2C Logging MVP
 
-- [ ] 状态：`待开始`
-- [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#7-phase-2c-logging-mvp`](docs/todos/service-discovery-and-observability-plan.md#7-phase-2c-logging-mvp)
-- [ ] 目标：统一结构化日志 schema 与 Loki 查询入口
+- [x] 状态：`完成`
+- [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#7-phase-2c-logging-mvp`](docs/todos/service-discovery-and-observability-plan.md#7-phase-2c-logging-mvp)
+- [x] 目标：统一结构化日志 schema 与 Loki 查询入口
 
 ### Phase 3 生产化增强
 
