@@ -150,7 +150,6 @@ export function createMockSessionResponse(
 // Provides the default `loadCliState` return value used across multiple tests.
 // ---------------------------------------------------------------------------
 
-// fallow-ignore-next-line unused-export — shared constant for test authors
 export const MOCK_BASE_STATE = {
   gatewayUrl: 'http://localhost:3000',
   sessionToken: 'mock-token',

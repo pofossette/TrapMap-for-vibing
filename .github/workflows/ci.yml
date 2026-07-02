@@ -173,5 +173,5 @@ jobs:
       - run: pnpm check:complexity
       - run: pnpm check:md-lint
       - run: pnpm check:links || true
-      - run: pnpm exec fallow list --boundaries --ci --fail-on-issues
+      - run: pnpm exec fallow dead-code --boundary-violations --ci --fail-on-issues
       - run: pnpm exec fallow dead-code --unused-deps --ci --fail-on-issues

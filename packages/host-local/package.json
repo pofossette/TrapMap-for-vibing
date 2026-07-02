@@ -34,7 +34,6 @@
     "@trapmap/client-core": "workspace:*",
     "@trapmap/contracts": "workspace:*",
     "@trapmap/runtime-infra": "workspace:*",
-    "@trapmap/service-identity-access": "workspace:*",
     "@trapmap/service-candidate-ingestion": "workspace:*",
     "@trapmap/service-governance-review": "workspace:*",
     "@trapmap/service-job-runtime": "workspace:*",

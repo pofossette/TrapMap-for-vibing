@@ -147,27 +147,3 @@ export function createAdminPanelApi(client: HttpClient): AdminPanelApiContract {
     },
   };
 }
-
-export function buildReviewQueueRequest(
-  request?: Partial<ReviewQueueRequest>,
-): Partial<ReviewQueueQuery> {
-  if (!request) {
-    return {};
-  }
-
-  const query: Partial<ReviewQueueQuery> = {};
-
-  if (request.paging?.cursor !== undefined) {
-    query.cursor = request.paging.cursor;
-  }
-  if (request.paging?.limit !== undefined) {
-    query.limit = request.paging.limit;
-  }
-
-  const status = request.filters?.status === 'all' ? undefined : request.filters?.status;
-  if (status !== undefined) {
-    query.status = status;
-  }
-
-  return query;
-}

@@ -28,22 +28,6 @@ export type {
 } from './repository-interfaces.js';
 
 /**
- * Type guard to check if an object is a valid CandidateSubmission.
- * Useful for validation in repository implementations.
- */
-export function isCandidateSubmission(value: unknown): value is CandidateSubmission {
-  if (typeof value !== 'object' || value === null) return false;
-  const obj = value as Record<string, unknown>;
-  return (
-    typeof obj.id === 'string' &&
-    typeof obj.sourceType === 'string' &&
-    typeof obj.submittedBy === 'string' &&
-    typeof obj.status === 'string' &&
-    typeof obj.receivedAt === 'string'
-  );
-}
-
-/**
  * Helper to construct a ManualResultRecord from a submission.
  */
 export function createManualResultRecord(
