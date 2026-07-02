@@ -1,1398 +1,589 @@
-# 服务发现和可观测性升级 - 任务细则
+# 服务发现与可观测性升级 - 活跃实施细则
 
-**状态：** 进行中
-**目标：** 为 TrapMap 引入完整的服务发现机制和可观测性三大支柱（追踪、指标、日志）
-**选型：** Consul + Tempo + Prometheus + Loki + Grafana + OpenTelemetry
+**状态：** 进行中  
+**目标：** 为 TrapMap 建立可渐进落地、可验证、可回退的服务发现与可观测性能力  
+**技术边界：** Consul + Prometheus + Tempo + Loki + Grafana + OpenTelemetry
 
 ---
 
 ## 目录
 
-1. [技术选型详细对比](#1-技术选型详细对比)
-2. [阶段 0：基础架构设计](#2-阶段-0基础架构设计)
-3. [阶段 1：服务发现集成](#3-阶段-1服务发现集成consul)
-4. [阶段 2：可观测性三大支柱](#4-阶段-2可观测性三大支柱)
-5. [阶段 3：Nest.js 深度集成](#5-阶段-3nestjs-深度集成)
-6. [阶段 4：测试和验证](#6-阶段-4测试和验证)
-7. [阶段 5：文档和交付](#7-阶段-5文档和交付)
-8. [风险和注意事项](#8-风险和注意事项)
-9. [依赖关系图](#9-依赖关系图)
-10. [验收标准](#10-验收标准)
+1. [实施原则](#1-实施原则)
+2. [Phase 0 基础架构设计](#2-phase-0-基础架构设计)
+3. [Phase 1A 应用接入骨架](#3-phase-1a-应用接入骨架)
+4. [Phase 1B 服务发现 MVP](#4-phase-1b-服务发现-mvp)
+5. [Phase 2A Metrics 与 Dashboard MVP](#5-phase-2a-metrics-与-dashboard-mvp)
+6. [Phase 2B Tracing MVP](#6-phase-2b-tracing-mvp)
+7. [Phase 2C Logging MVP](#7-phase-2c-logging-mvp)
+8. [Phase 3 生产化增强](#8-phase-3-生产化增强)
+9. [Phase 4 跨阶段回归与基准](#9-phase-4-跨阶段回归与基准)
+10. [Phase 5 文档与交付收口](#10-phase-5-文档与交付收口)
+11. [风险与注意事项](#11-风险与注意事项)
+12. [依赖关系与并行策略](#12-依赖关系与并行策略)
+13. [统一验收口径](#13-统一验收口径)
 
 ---
 
-## 1. 技术选型详细对比
+## 1. 实施原则
 
-### 1.1 服务发现：Consul vs etcd vs Docker DNS
+### 1.1 这次优化要解决的问题
 
-| 维度 | Consul | etcd | Docker DNS |
-|------|--------|------|-----------|
-| **核心定位** | 专业服务发现 + KV存储 | 通用KV存储 | 简单的容器发现 |
-| **健康检查** | ✅ 内置HTTP/TCP/Script | ❌ 需自己实现 | ⚠️ 仅容器存活检查 |
-| **服务注册** | ✅ 原生支持，开箱即用 | ❌ 需要封装 | ⚠️ 自动但有限 |
-| **DNS接口** | ✅ 内置DNS服务器 | ❌ 无 | ✅ Docker内置 |
-| **KV存储** | ✅ 强大的配置管理 | ✅ 强大的KV存储 | ❌ 无 |
-| **多数据中心** | ✅ 原生支持 | ⚠️ 需要额外配置 | ❌ 不支持 |
-| **社区成熟度** | ⭐⭐⭐⭐⭐ (10年历史) | ⭐⭐⭐⭐ (K8s存储层) | ⭐⭐⭐ (Docker内置) |
-| **Nest.js集成** | ⭐⭐⭐⭐ (consul包) | ⭐⭐⭐ (etcd3包) | ⭐⭐ (需自己实现) |
+旧版计划存在四个执行层面的缺口：
 
-**选择 Consul 的理由：**
-- 专门为服务发现设计（vs etcd 是通用KV存储）
-- 内置健康检查、DNS接口、KV存储
-- 社区最大，文档最完善
-- 与 Nest.js 生态有成熟的集成方案
+- 阶段定义偏线性，导致可并行工作被串行化
+- 测试与文档过度后置，和仓库“每次改动跑最小验证”的约束不一致
+- 计划中混入过多示例代码，约束了后续实现选择
+- 健康检查、配置注入、生命周期接入等“应用骨架问题”放得太后，前置阶段缺少真正可上线的接入面
 
-**适用场景：**
-- 需要动态服务注册和发现
-- 需要内置的健康检查机制
-- 需要配置管理和 DNS 接口
-- 团队规模中等，需要稳定的服务发现基础设施
+### 1.2 本版计划的执行原则
 
----
+- 每个 phase 必须产出一个可以独立 review 的最小可交付面
+- 每个 phase 都必须自带 `完成定义（DoD）`、最小验证命令和文档回写要求
+- 每个计划任务文档都必须包含用于追踪进度的复选框；phase、任务、验收项至少一层使用 `- [ ]` / `- [x]`
+- `Phase 4` 只做跨阶段回归、故障注入和性能基准，不再承担“补测试”职责
+- 能并行的能力拆开推进：`discovery` 与 `observability foundation` 不强行串行
+- 外部依赖默认按 `fail-open / graceful degradation` 设计，避免把基础设施不可用直接变成应用不可启动
 
-### 1.2 分布式追踪：Tempo vs Jaeger vs Zipkin
+### 1.3 运行模式矩阵
 
-| 维度 | Tempo | Jaeger | Zipkin |
-|------|-------|--------|--------|
-| **开发者** | Grafana Labs | Uber → CNCF | Twitter |
-| **CNCF状态** | ❌ 非CNCF | ✅ 毕业项目 | ❌ 非CNCF |
-| **OpenTelemetry支持** | ✅ 原生支持 | ✅ 原生支持 | ⚠️ 支持但不原生 |
-| **存储后端** | 只支持对象存储 | Cassandra/Elasticsearch/内存 | Cassandra/Elasticsearch |
-| **与Grafana集成** | ⭐⭐⭐⭐⭐ 完美 | ⭐⭐⭐⭐ 好 | ⭐⭐⭐ 一般 |
-| **部署复杂度** | ⭐⭐⭐⭐ 简单 | ⭐⭐⭐ 中等 | ⭐⭐⭐ 中等 |
-| **UI功能** | ⭐⭐⭐⭐ 好 | ⭐⭐⭐⭐⭐ 更丰富 | ⭐⭐⭐ 基础 |
-| **运维成本** | 低 | 中等 | 中等 |
+| 模式 | 目标 | 必需组件 | 可选组件 | 约束 |
+|------|------|---------|---------|------|
+| `dev-minimal` | 本地快速开发 | 应用本身、stdout 日志 | Consul、OTel、Loki、Tempo、Grafana | 外部依赖缺失时应用可启动 |
+| `dev-observability` | 本地联调 | 应用、Prometheus、Grafana、Tempo、Loki | Consul | 允许使用 docker compose 单机栈 |
+| `ci-unit` | PR 最小验证 | 单元测试、静态检查 | Testcontainers | 不依赖长期运行服务 |
+| `ci-integration` | 阶段级验证 | Testcontainers / deployment smoke | Grafana UI 人工检查 | 可接受分钟级执行时间 |
+| `prod-like` | 部署与回归 | 所有目标组件 | 高级告警、HA | 资源限制、保留策略、采样策略必须显式配置 |
 
-**选择 Tempo 的理由：**
-- 与 Grafana 完美集成（同一公司维护）
-- 部署更简单（只需对象存储，不需要Cassandra/Elasticsearch）
-- 配置最少，开箱即用
-- 对于中等规模部署更实际
+### 1.4 最小可交付面（MVP）定义
 
-**适用场景：**
-- 已经使用 Grafana 作为可视化层
-- 需要简单的部署和运维
-- 不需要复杂的追踪 UI 功能
-- 存储成本敏感（对象存储比 Cassandra 便宜）
+首个可接受里程碑不是“全套 LGTM + Consul 全功能”，而是：
+
+- 应用具备统一的 discovery / telemetry 接入骨架
+- 可以注册与发现服务，且 Consul 不可用时应用仍可降级启动
+- 可以暴露 `/health`、`/ready`、`/live`、`/metrics`
+- 可以采集核心 HTTP 指标
+- 可以将请求 trace 发送到 Tempo，并能拿到 trace id
+- 可以输出统一结构化日志，并具备进入 Loki 的明确接入路径
+
+### 1.5 默认降级策略
+
+- Consul 不可用：应用启动不失败；服务注册失败记日志、暴露状态、保留本地 fallback
+- OTel exporter 不可用：应用继续提供服务，采集器故障不阻塞主请求
+- Loki 不可用：日志回退 stdout / 默认 logger
+- Grafana / Tempo / Prometheus 不可用：不影响业务实例 `live`，仅影响聚合观测能力
+- 健康检查语义分离：
+  - `/live` 只代表进程与主循环存活
+  - `/ready` 只判断实例是否能安全接流量
+  - 依赖系统的细粒度状态放入 `/health`
 
 ---
 
-### 1.3 指标监控：Prometheus vs DataDog vs InfluxDB
+## 2. Phase 0 基础架构设计
 
-| 维度 | Prometheus | DataDog | InfluxDB |
-|------|-----------|---------|----------|
-| **类型** | 开源监控系统 | 商业SaaS | 时序数据库 |
-| **成本** | ⭐⭐⭐⭐⭐ 免费 | ⭐⭐ 按量付费 | ⭐⭐⭐⭐ 开源免费 |
-| **云厂商锁定** | ❌ 无 | ✅ 强 | ❌ 无 |
-| **数据主权** | ⭐⭐⭐⭐⭐ 完全控制 | ⭐⭐ 数据在云端 | ⭐⭐⭐⭐⭐ 完全控制 |
-| **查询语言** | PromQL (强大) | 自有查询语言 | Flux/InfluxQL |
-| **社区标准** | ⭐⭐⭐⭐⭐ 云原生事实标准 | ⭐⭐⭐ 商业产品 | ⭐⭐⭐⭐ 时序数据库标准 |
-| **与Grafana集成** | ⭐⭐⭐⭐⭐ 完美 | ⭐⭐⭐⭐ 好 | ⭐⭐⭐⭐ 好 |
-| **生态系统** | ⭐⭐⭐⭐⭐ 最广泛 | ⭐⭐⭐ 独立平台 | ⭐⭐⭐⭐ 时序数据生态 |
+**状态：** 完成  
+**目标：** 明确选型、拓扑、运行模式与降级策略，避免后续阶段在基础假设上反复返工
 
-**选择 Prometheus 的理由：**
-- 开源免费（vs DataDog 按量付费，成本高）
-- 无厂商锁定（数据完全在自己控制下）
-- 云原生事实标准（CNCF背书）
-- 与 Grafana 完美集成
+### 进度追踪
 
-**适用场景：**
-- 成本敏感，需要免费开源方案
-- 需要数据主权，不希望数据存放在第三方
-- 需要与云原生生态集成
-- 需要强大的查询语言（PromQL）
+- [x] 明确 phase 目标与边界
+- [x] 产出架构与技术选型文档
+- [x] 落地本地基础设施 compose/config
+- [x] 补齐运行模式矩阵、MVP 与降级策略
 
----
+### 范围
 
-### 1.4 日志聚合：Loki vs ELK vs Fluentd
+- 产出可观测性与服务发现架构文档
+- 产出技术选型对比和取舍边界
+- 产出本地 docker compose 栈与基础配置
+- 补齐运行模式矩阵、最小可交付面、默认降级策略
 
-| 维度 | Loki | ELK (Elasticsearch + Logstash + Kibana) | Fluentd |
-|------|------|----------------------------------------|---------|
-| **类型** | 轻量级日志聚合 | 完整的日志分析平台 | 日志收集器 |
-| **部署复杂度** | ⭐⭐⭐⭐ 简单 | ⭐⭐ 复杂（需要ES集群） | ⭐⭐⭐ 中等 |
-| **存储成本** | ⭐⭐⭐⭐⭐ 低（标签索引） | ⭐⭐ 高（全文索引） | ⭐⭐⭐ 取决于后端 |
-| **查询能力** | ⭐⭐⭐ 够用 | ⭐⭐⭐⭐⭐ 强大（全文搜索） | ⭐⭐ 取决于后端 |
-| **与Grafana集成** | ⭐⭐⭐⭐⭐ 完美 | ⭐⭐⭐ Kibana专用 | ⭐⭐⭐ 一般 |
-| **资源消耗** | ⭐⭐⭐⭐⭐ 低 | ⭐⭐ 高（ES集群） | ⭐⭐⭐⭐ 中等 |
-| **适用场景** | 中小规模日志 | 大规模日志分析 | 日志收集和转发 |
+### 产出物
 
-**选择 Loki 的理由：**
-- 部署更简单（不需要 Elasticsearch 集群）
-- 存储成本更低（标签索引，不全文索引）
-- 与 Grafana 完美集成
-- 对于中小规模日志场景足够用
+- `docs/architecture/OBSERVABILITY.md`
+- `docs/architecture/SERVICE-DISCOVERY.md`
+- `docs/architecture/TECH-SELECTION.md`
+- `docker-compose.observability.yml`
+- `config/` 下对应基础配置
 
-**适用场景：**
-- 中小规模日志聚合（GB/TB 级别）
-- 已经使用 Grafana 作为可视化层
-- 成本敏感，需要低存储成本
-- 不需要复杂的全文搜索功能
+### 仍需确认的设计出口
+
+- `dev-minimal` 与 `dev-observability` 的 profile 切换方式
+- 组件不可用时的默认行为是否全部实现为 `fail-open`
+- 是否需要把 Consul KV 明确从 MVP 排除，延后到 Phase 3
+
+### 完成定义（DoD）
+
+- [x] 技术选型、拓扑、运行模式和降级策略已文档化
+- [x] 本地可观测性基础设施拓扑已落地为 compose/config
+- [x] 根 `plan.md` 已仅保留索引，不再承载实现细节
+
+### 最小验证
+
+- `rtk pnpm check:docs-drift`
+- `rtk pnpm check:structure`
 
 ---
 
-### 1.5 可视化：Grafana vs Kibana vs Datadog
+## 3. Phase 1A 应用接入骨架
 
-| 维度 | Grafana | Kibana | Datadog |
-|------|---------|--------|---------|
-| **类型** | 开源可视化平台 | ELK栈的可视化组件 | 商业SaaS |
-| **数据源支持** | ⭐⭐⭐⭐⭐ 最广泛 | ⭐⭐ 只支持Elasticsearch | ⭐⭐⭐⭐ 多种 |
-| **指标可视化** | ⭐⭐⭐⭐⭐ 强大 | ⭐⭐ 有限 | ⭐⭐⭐⭐⭐ 强大 |
-| **日志可视化** | ⭐⭐⭐⭐ 好 | ⭐⭐⭐⭐⭐ 强大 | ⭐⭐⭐⭐⭐ 强大 |
-| **追踪可视化** | ⭐⭐⭐⭐⭐ 完美（Tempo） | ❌ 不支持 | ⭐⭐⭐⭐⭐ 强大 |
-| **告警** | ⭐⭐⭐⭐⭐ 强大 | ⭐⭐⭐ 基础 | ⭐⭐⭐⭐⭐ 强大 |
-| **成本** | ⭐⭐⭐⭐⭐ 免费 | ⭐⭐⭐⭐ 免费 | ⭐⭐ 按量付费 |
-| **社区模板** | ⭐⭐⭐⭐⭐ 最丰富 | ⭐⭐⭐⭐ 好 | ⭐⭐⭐ 有限 |
+**状态：** 进行中  
+**目标：** 先稳定所有后续能力共享的接入点，避免每条子链路重复造轮子
 
-**选择 Grafana 的理由：**
-- 与 Prometheus、Loki、Tempo 完美集成
-- 一个仪表板展示所有可观测性数据
-- 社区最大，仪表板模板丰富
-- 开源版足够用
+### 进度追踪
 
-**适用场景：**
-- 需要统一的可视化平台
-- 已经使用 Prometheus、Loki、Tempo
-- 需要丰富的仪表板模板
-- 需要强大的告警功能
+- [x] 建立统一配置入口、feature flags 与 runtime profile 映射
+- [x] 建立 discovery / telemetry 抽象接口与共享类型
+- [x] 固定 `/health`、`/ready`、`/live`、`/metrics` 的语义和输出 shape
+- [ ] 接入 Nest bootstrap 生命周期钩子
+- [ ] 完成本 phase 最小验证与文档回写
 
----
+### 范围
 
-### 1.6 采集标准：OpenTelemetry
+- 建立统一的配置入口、feature flags 和 runtime profile 映射
+- 建立 discovery / telemetry 抽象接口，避免业务包直接依赖具体实现
+- 确立 `/health`、`/ready`、`/live`、`/metrics` 的语义与输出 shape
+- 定义 Nest bootstrap 生命周期中的注册、关闭、flush、shutdown 钩子
 
-| 维度 | OpenTelemetry | 无标准（各工具自定义） |
-|------|--------------|---------------------|
-| **CNCF状态** | ✅ 孵化项目 | ❌ 无标准 |
-| **语言支持** | ⭐⭐⭐⭐⭐ 官方支持TS/Node.js | ⭐⭐ 各工具各自实现 |
-| **生态集成** | ⭐⭐⭐⭐⭐ 支持所有主流后端 | ⭐⭐ 需要为每个后端单独适配 |
-| **未来演进** | ⭐⭐⭐⭐⭐ 可观测性的未来标准 | ⭐⭐ 可能过时 |
-| **学习成本** | ⭐⭐⭐ 需要学习 | ⭐⭐⭐⭐⭐ 无额外学习 |
+### 建议文件落点
 
-**选择 OpenTelemetry 的理由：**
-- CNCF的可观测性标准（事实标准）
-- 原生支持Nest.js（@opentelemetry/sdk-node）
-- 只写一次代码，可发送到多种后端
-- 面向未来的技术选型
+- `packages/backend-core/src/domain/` 或就近 `ports/`：抽象接口与共享类型
+- `packages/server/src/config.ts` 或对应 runtime 配置入口：可观测性/服务发现开关
+- `packages/server/src/routes/` 或 `packages/host-local/src/nest/`：健康检查与 metrics surface
 
-**适用场景：**
-- 需要标准化的可观测性采集
-- 需要支持多种后端（Jaeger/Tempo/Datadog等）
-- 需要与云原生生态集成
-- 需要长期技术演进支持
+### 必做项
 
----
+- 统一配置项命名：`CONSUL_*`、`OTEL_*`、`LOKI_*`、`PROMETHEUS_*`
+- 定义“关闭某个外部依赖时，应用是否继续启动”的显式策略
+- 固定健康检查响应字段，避免后续每阶段改 shape
 
-## 2. 阶段 0：基础架构设计
+### 可延期项
 
-### 2.1 目标
+- 高级配置中心能力
+- 多实例自动分片
+- UI 级别的深度 dashboard 美化
 
-明确架构边界、技术选型理由、Docker Compose 配置方案
+### 文档回写
 
-### 2.2 任务
+- `docs/reference/SYSTEM_TRUTH_SOURCES.md`
+- `docs/operations/ENVIRONMENT.md`
+- 受影响的架构/运行时默认值文档
 
-#### 2.2.1 架构设计文档
+### 完成定义（DoD）
 
-**文件路径：**
-- `docs/architecture/OBSERVABILITY.md`（可观测性架构说明）
-- `docs/architecture/SERVICE-DISCOVERY.md`（服务发现架构说明）
-- 更新 `architecture.md`（添加概览）
+- [x] 存在统一 discovery/telemetry 接口，业务实现不直连具体 SDK
+- [x] 健康检查和 metrics surface 的语义固定并有测试保护
+- [x] 应用在 `dev-minimal` 下可在外部依赖关闭时启动
+- [ ] 配置项、默认值和 profile 已回写文档
 
-**内容要求：**
-- 架构图（Mermaid格式）
-- 技术选型对比表
-- 优缺点分析
-- 数据流图
+### 最小验证
 
-**示例 Mermaid 架构图：**
-
-```mermaid
-graph TB
-    subgraph "可视化层"
-        Grafana[Grafana 仪表板]
-    end
-    
-    subgraph "数据存储层"
-        Tempo[Tempo 追踪存储]
-        Prometheus[Prometheus 指标存储]
-        Loki[Loki 日志存储]
-    end
-    
-    subgraph "采集层"
-        OTel[OpenTelemetry SDK]
-    end
-    
-    subgraph "服务发现层"
-        Consul[Consul 集群]
-    end
-    
-    subgraph "应用层"
-        Gateway[TrapMap Gateway]
-        Candidate[Candidate Worker]
-        Governance[Governance Worker]
-        Outbox[Outbox Worker]
-    end
-    
-    Gateway --> OTel
-    Candidate --> OTel
-    Governance --> OTel
-    Outbox --> OTel
-    
-    OTel --> Tempo
-    OTel --> Prometheus
-    OTel --> Loki
-    
-    Tempo --> Grafana
-    Prometheus --> Grafana
-    Loki --> Grafana
-    
-    Gateway --> Consul
-    Candidate --> Consul
-    Governance --> Consul
-    Outbox --> Consul
-```
-
-**验收标准：**
-- [ ] 架构图清晰展示各组件关系
-- [ ] 技术选型对比表完整
-- [ ] 优缺点分析深入
+- 相关包最小单测
+- `rtk pnpm test:runtime-foundations`
+- 若触及文档入口：`rtk pnpm check:docs-drift` 和 `rtk pnpm check:structure`
 
 ---
 
-#### 2.2.2 技术选型对比文档
+## 4. Phase 1B 服务发现 MVP
 
-**文件路径：**
-- `docs/architecture/TECH-SELECTION.md`（技术选型详细对比）
+**状态：** 待开始  
+**目标：** 打通服务注册、注销、查询、缓存与故障降级，先交付够用的发现能力
 
-**内容要求：**
-- 每个选型的详细对比表
-- 选择理由
-- 与替代品的对比
-- 适用场景分析
+### 进度追踪
 
-**验收标准：**
-- [ ] 每个选型都有对比表
-- [ ] 选择理由清晰
-- [ ] 包含适用场景分析
+- [ ] 接入 Consul client / adapter
+- [ ] 完成服务注册与注销生命周期
+- [ ] 完成服务查询、实例选择、TTL/缓存
+- [ ] 实现 Consul 故障降级与状态暴露
+- [ ] 完成本 phase 最小验证与文档回写
 
----
+### 范围
 
-#### 2.2.3 Docker Compose 方案设计
+- Consul client / adapter
+- 服务注册与注销生命周期
+- 服务查询、实例选择、TTL/缓存
+- Consul 故障时的降级路径与状态暴露
 
-**文件路径：**
-- `docker-compose.observability.yml`（可观测性服务配置）
+### 明确不在本 phase 内
 
-**设计要求：**
-- 多环境配置（dev/staging/prod）
-- 网络拓扑和服务依赖关系
-- 健康检查策略
-- 资源限制
+- Consul KV 配置中心
+- Federation / 多集群
+- 复杂流量策略
 
-**示例配置：**
+### 关键设计约束
 
-```yaml
-# docker-compose.observability.yml
-version: '3.8'
+- `client-core` 不直接依赖 Nest provider；通过抽象端口消费发现能力
+- 缓存策略必须显式包含 TTL、失效和失败回退
+- 负载均衡先采用简单策略，例如 round-robin；不要在 MVP 阶段引入复杂权重算法
 
-services:
-  # 服务发现
-  consul:
-    image: hashicorp/consul:1.17
-    container_name: trapmap-consul
-    ports:
-      - "8500:8500"   # HTTP API
-      - "8600:8600/udp" # DNS
-    volumes:
-      - consul_data:/consul/data
-    command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
-    healthcheck:
-      test: ["CMD", "consul", "members"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    networks:
-      - trapmap-observability
+### 文档回写
 
-  # 追踪
-  tempo:
-    image: grafana/tempo:2.3.0
-    container_name: trapmap-tempo
-    ports:
-      - "3200:3200"   # Tempo HTTP
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-    volumes:
-      - tempo_data:/var/tempo
-    command: -config.file=/etc/tempo/tempo.yaml
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3200/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    networks:
-      - trapmap-observability
+- `docs/architecture/SERVICE-DISCOVERY.md`
+- `docs/guides/SERVICE-DISCOVERY-GUIDE.md` 或现有对等入口
+- `docs/operations/ENVIRONMENT.md` 中新增或变更的 Consul 配置项
 
-  # 指标
-  prometheus:
-    image: prom/prometheus:v2.48.0
-    container_name: trapmap-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    networks:
-      - trapmap-observability
+### 完成定义（DoD）
 
-  # 日志
-  loki:
-    image: grafana/loki:2.9.3
-    container_name: trapmap-loki
-    ports:
-      - "3100:3100"
-    volumes:
-      - ./config/loki.yml:/etc/loki/local-config.yaml
-      - loki_data:/loki
-    command: -config.file=/etc/loki/local-config.yaml
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    networks:
-      - trapmap-observability
+- [ ] 服务实例可自动注册与注销
+- [ ] 查询接口返回健康实例且具备本地缓存
+- [ ] Consul 不可用时应用进入降级模式而非直接启动失败
+- [ ] 端口边界与跨包导入保持合规
 
-  # 可视化
-  grafana:
-    image: grafana/grafana:10.2.2
-    container_name: trapmap-grafana
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./config/grafana/provisioning:/etc/grafana/provisioning
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    networks:
-      - trapmap-observability
+### 最小验证
 
-volumes:
-  consul_data:
-  tempo_data:
-  prometheus_data:
-  loki_data:
-  grafana_data:
-
-networks:
-  trapmap-observability:
-    name: trapmap-observability
-```
-
-**验收标准：**
-- [ ] 配置文件语法正确
-- [ ] 服务依赖关系正确
-- [ ] 健康检查配置完整
-- [ ] 多环境配置支持
+- Consul 相关单测
+- Consul 相关集成测试或最小 Testcontainers 验证
+- `rtk pnpm test:deployment-smoke`
+- 若触及跨包边界：`rtk pnpm exec fallow audit --base main`
 
 ---
 
-## 3. 阶段 1：服务发现集成（Consul）
+## 5. Phase 2A Metrics 与 Dashboard MVP
 
-### 3.1 目标
+**状态：** 待开始  
+**目标：** 优先交付最容易产生运维价值的指标链路
 
-引入 Consul 实现服务注册、健康检查和动态发现
+### 进度追踪
 
-### 3.2 任务
+- [ ] 暴露 `/metrics`
+- [ ] 采集核心 HTTP / 进程 / 关键业务指标
+- [ ] 打通 Prometheus 抓取配置
+- [ ] 提供 Grafana 最小 dashboard
+- [ ] 完成本 phase 最小验证与文档回写
 
-#### 3.2.1 Consul 客户端模块
+### 范围
 
-**文件路径：**
-- `packages/backend-core/src/lib/discovery/consul.module.ts`
-- `packages/backend-core/src/lib/discovery/consul.service.ts`
-- `packages/backend-core/src/lib/discovery/consul.interface.ts`
+- 暴露 `/metrics`
+- 采集核心 HTTP 指标、进程指标、关键业务计数器
+- 将 Prometheus 抓取配置与 Grafana 最小 dashboard 打通
 
-**实现要求：**
+### 指标设计要求
 
-```typescript
-// consul.module.ts
-import { Module } from '@nestjs/common';
-import { ConsulService } from './consul.service';
+- 默认只保留低基数标签
+- 所有新增标签必须说明 cardinality 风险
+- 指标命名遵循仓库既有命名规范；无规范时使用 Prometheus 社区惯例
 
-@Module({
-  providers: [ConsulService],
-  exports: [ConsulService],
-})
-export class ConsulModule {}
+### 文档回写
 
-// consul.service.ts
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import Consul from 'consul';
+- `docs/architecture/OBSERVABILITY.md`
+- `docs/guides/OBSERVABILITY-GUIDE.md`
+- 需要的话补 `docs/guides/GRAFANA-DASHBOARDS.md`
 
-@Injectable()
-export class ConsulService implements OnModuleInit, OnModuleDestroy {
-  private consul: Consul;
-  private serviceId: string;
+### 完成定义（DoD）
 
-  constructor() {
-    this.consul = new Consul({
-      host: process.env.CONSUL_HOST || 'localhost',
-      port: parseInt(process.env.CONSUL_PORT || '8500'),
-    });
-  }
+- [ ] `/metrics` 可用且输出稳定
+- [ ] Prometheus 成功抓取至少一组业务实例
+- [ ] Grafana 至少有一个可用的最小 dashboard
+- [ ] 指标标签已过一轮高基数风险检查
 
-  async onModuleInit() {
-    await this.registerService();
-  }
+### 最小验证
 
-  async onModuleDestroy() {
-    await this.deregisterService();
-  }
-
-  private async registerService() {
-    this.serviceId = `trapmap-${process.env.SERVICE_NAME}-${process.env.INSTANCE_ID}`;
-    
-    await this.consul.agent.service.register({
-      id: this.serviceId,
-      name: process.env.SERVICE_NAME || 'trapmap',
-      address: process.env.SERVICE_HOST || 'localhost',
-      port: parseInt(process.env.PORT || '4000'),
-      check: {
-        http: `http://${process.env.SERVICE_HOST || 'localhost'}:${process.env.PORT || '4000'}/health`,
-        interval: '10s',
-        timeout: '5s',
-      },
-      meta: {
-        version: process.env.npm_package_version || '0.1.0',
-        environment: process.env.NODE_ENV || 'development',
-      },
-    });
-  }
-
-  private async deregisterService() {
-    await this.consul.agent.service.deregister(this.serviceId);
-  }
-
-  async getService(serviceName: string) {
-    const services = await this.consul.health.service(serviceName, { passing: true });
-    return services.map(s => ({
-      id: s.Service.ID,
-      address: s.Service.Address,
-      port: s.Service.Port,
-      meta: s.Service.Meta,
-    }));
-  }
-
-  async getKV(key: string) {
-    const result = await this.consul.kv.get(key);
-    return result?.Value;
-  }
-
-  async setKV(key: string, value: string) {
-    await this.consul.kv.set(key, value);
-  }
-}
-```
-
-**测试要求：**
-- `packages/server/src/lib/discovery/consul.test.ts`
-- 单元测试：服务注册、健康检查、KV存储
-- 集成测试：与真实Consul交互
-
-**验收标准：**
-- [ ] Consul 客户端模块功能完整
-- [ ] 服务注册和注销逻辑正确
-- [ ] 健康检查端点可用
-- [ ] 单元测试覆盖率 > 80%
+- metrics 单测
+- `/metrics` surface 测试
+- `rtk pnpm test:runtime-foundations`
+- 如涉及部署链路：`rtk pnpm test:deployment-smoke`
 
 ---
 
-#### 3.2.2 动态服务发现
+## 6. Phase 2B Tracing MVP
 
-**文件路径：**
-- `packages/client-core/src/lib/discovery/dynamic-discovery.ts`
+**状态：** 待开始  
+**目标：** 打通请求级 tracing 链路，而不是一开始追求复杂 span 覆盖
 
-**实现要求：**
+### 进度追踪
 
-```typescript
-// dynamic-discovery.ts
-import { ConsulService } from '@trapmap/backend-core';
+- [ ] 接入 OTel SDK bootstrap
+- [ ] 覆盖关键请求链路 trace 采集
+- [ ] 打通 trace id 注入日志或响应头
+- [ ] 提供 Tempo 查询入口与最小验证流程
+- [ ] 完成本 phase 最小验证与文档回写
 
-export class DynamicDiscovery {
-  private cache: Map<string, { address: string; port: number }[]> = new Map();
-  private cacheTTL = 30000; // 30秒缓存
+### 范围
 
-  constructor(private consulService: ConsulService) {}
+- OTel SDK bootstrap
+- 关键请求链路 trace 采集
+- trace id 注入日志或响应头
+- Tempo 查询入口与最小查询流程
 
-  async getServiceAddress(serviceName: string): Promise<{ address: string; port: number }> {
-    // 检查缓存
-    const cached = this.cache.get(serviceName);
-    if (cached && cached.length > 0) {
-      return this.randomSelect(cached);
-    }
+### 关键设计约束
 
-    // 从Consul获取
-    const services = await this.consulService.getService(serviceName);
-    if (services.length === 0) {
-      throw new Error(`No healthy instances of ${serviceName} found`);
-    }
+- exporter 故障不能阻塞主请求
+- 先覆盖 HTTP / 关键 job 执行链路，再扩展细粒度 span
+- 采样策略必须显式，不能默认无限量采集
 
-    // 更新缓存
-    this.cache.set(serviceName, services);
-    setTimeout(() => this.cache.delete(serviceName), this.cacheTTL);
+### 文档回写
 
-    return this.randomSelect(services);
-  }
+- `docs/architecture/OBSERVABILITY.md`
+- 受影响的 runtime/defaults 文档
 
-  private randomSelect(services: { address: string; port: number }[]) {
-    const index = Math.floor(Math.random() * services.length);
-    return services[index];
-  }
-}
-```
+### 完成定义（DoD）
 
-**测试要求：**
-- 端到端测试验证服务发现
-- 测试缓存逻辑
-- 测试故障转移
+- [ ] 至少一条请求链路可在 Tempo 中检索到完整 trace
+- [ ] 响应头或日志中可稳定拿到 trace id
+- [ ] exporter 失败不会导致应用不可用
+- [ ] 采样、超时和 endpoint 配置已文档化
 
-**验收标准：**
-- [ ] 动态服务发现功能正常
-- [ ] 缓存机制工作
-- [ ] 负载均衡策略正确
-- [ ] 故障转移机制工作
+### 最小验证
+
+- tracing 单测
+- 最小 trace export 集成验证
+- `rtk pnpm test:runtime-foundations`
 
 ---
 
-## 4. 阶段 2：可观测性三大支柱
+## 7. Phase 2C Logging MVP
 
-### 4.1 目标
+**状态：** 待开始  
+**目标：** 统一结构化日志 schema，并明确进入 Loki 的可靠路径
 
-集成 LGTM stack（Loki + Grafana + Tempo + Prometheus）
+### 进度追踪
 
-### 4.2 任务
+- [ ] 统一 JSON 日志 schema
+- [ ] 打通 stdout 与 Loki 传输路径
+- [ ] 评审并收敛 Loki 标签设计
+- [ ] 验证 logger 故障回退路径
+- [ ] 完成本 phase 最小验证与文档回写
 
-#### 4.2.1 OpenTelemetry 集成
+### 范围
 
-**文件路径：**
-- `packages/backend-core/src/lib/tracing/otel.module.ts`
-- `packages/backend-core/src/lib/tracing/otel.service.ts`
+- 统一 JSON 日志字段
+- 关键信息包括：`timestamp`、`level`、`service`、`environment`、`traceId`、`context`
+- 明确 stdout 路径与 Loki collector / transport 路径
 
-**实现要求：**
+### 关键设计约束
 
-```typescript
-// otel.module.ts
-import { Module, Global } from '@nestjs/common';
-import { OtelService } from './otel.service';
+- 先统一 schema，再决定 transport 细节
+- Loki 不可用时必须保留 stdout 可读性
+- 禁止引入高基数标签污染 Loki 查询与成本
 
-@Global()
-@Module({
-  providers: [OtelService],
-  exports: [OtelService],
-})
-export class OtelModule {}
+### 文档回写
 
-// otel.service.ts
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
-import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import { Resource } from '@opentelemetry/resources';
-import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
+- `docs/architecture/OBSERVABILITY.md`
+- `docs/operations/OBSERVABILITY-OPERATIONS.md`
 
-@Injectable()
-export class OtelService implements OnModuleInit {
-  private sdk: NodeSDK;
+### 完成定义（DoD）
 
-  async onModuleInit() {
-    const resource = new Resource({
-      [ATTR_SERVICE_NAME]: process.env.SERVICE_NAME || 'trapmap',
-      [ATTR_SERVICE_VERSION]: process.env.npm_package_version || '0.1.0',
-    });
+- [ ] 结构化日志字段稳定且有测试保护
+- [ ] 本地或集成环境中可以在 Loki 查询到目标日志
+- [ ] logger 故障时应用自动回退到安全输出路径
+- [ ] Loki 标签设计经过高基数审视
 
-    const traceExporter = new OTLPTraceExporter({
-      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces',
-    });
+### 最小验证
 
-    const metricExporter = new OTLPMetricExporter({
-      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/metrics',
-    });
-
-    const metricReader = new PeriodicExportingMetricReader({
-      exporter: metricExporter,
-      exportIntervalMillis: 15000,
-    });
-
-    this.sdk = new NodeSDK({
-      resource,
-      traceExporter,
-      metricReader,
-    });
-
-    this.sdk.start();
-  }
-
-  async onApplicationShutdown() {
-    await this.sdk.shutdown();
-  }
-}
-```
-
-**测试要求：**
-- OpenTelemetry 初始化测试
-- 追踪导出测试
-- 指标导出测试
-
-**验收标准：**
-- [ ] OpenTelemetry SDK 正确初始化
-- [ ] 追踪数据成功导出到 Tempo
-- [ ] 指标数据成功导出到 Prometheus
-- [ ] 日志数据成功导出到 Loki
+- logging 单测
+- 结构化日志格式测试
+- Loki 最小集成验证
 
 ---
 
-#### 4.2.2 Prometheus 指标集成
+## 8. Phase 3 生产化增强
 
-**文件路径：**
-- `packages/backend-core/src/lib/metrics/prometheus.module.ts`
-- `packages/backend-core/src/lib/metrics/prometheus.service.ts`
+**状态：** 待开始  
+**目标：** 从“能跑”提升到“可长期运维”
 
-**实现要求：**
+### 进度追踪
 
-```typescript
-// prometheus.module.ts
-import { Module, Global } from '@nestjs/common';
-import { PrometheusService } from './prometheus.service';
+- [ ] 补齐采样、保留和资源限制策略
+- [ ] 细化健康检查与依赖状态分层
+- [ ] 补齐告警入口与 SLO/SLI 初版
+- [ ] 完成成熟库替换评估与结论回写
+- [ ] 完成本 phase 最小验证与文档回写
 
-@Global()
-@Module({
-  providers: [PrometheusService],
-  exports: [PrometheusService],
-})
-export class PrometheusModule {}
+### 范围
 
-// prometheus.service.ts
-import { Injectable } from '@nestjs/common';
-import { Counter, Gauge, Histogram, register } from 'prom-client';
+- 资源限制、保留策略、采样策略
+- 健康检查细化与依赖状态分层展示
+- 故障注入与恢复策略
+- 告警入口、SLO/SLI 初版
+- 对成熟库替换进行显式评估并落文档
 
-@Injectable()
-export class PrometheusService {
-  private httpRequestsTotal: Counter;
-  private httpRequestDuration: Histogram;
-  private activeConnections: Gauge;
+### 本 phase 必须显式决策的事项
 
-  constructor() {
-    // 请求计数器
-    this.httpRequestsTotal = new Counter({
-      name: 'http_requests_total',
-      help: 'Total number of HTTP requests',
-      labelNames: ['method', 'route', 'status_code'],
-    });
+- 是否以 LangChain `.withStructuredOutput()` 替换当前结构化输出解析
+- 是否以成熟 resilience 库替换 `executeWithResilience`
+- 是否将 Consul KV 纳入后续主线，还是继续 deferred
 
-    // 请求延迟直方图
-    this.httpRequestDuration = new Histogram({
-      name: 'http_request_duration_seconds',
-      help: 'Duration of HTTP requests in seconds',
-      labelNames: ['method', 'route'],
-      buckets: [0.01, 0.05, 0.1, 0.5, 1, 5],
-    });
+### 文档回写
 
-    // 活跃连接数
-    this.activeConnections = new Gauge({
-      name: 'active_connections',
-      help: 'Number of active connections',
-    });
-  }
+- `docs/operations/OBSERVABILITY-OPERATIONS.md`
+- `docs/operations/SECURITY.md`
+- `docs/architecture/components/GOVERNANCE.md`
+- 相关 debt register / replacement decision 文档
 
-  incrementRequests(method: string, route: string, statusCode: string) {
-    this.httpRequestsTotal.inc({ method, route, status_code: statusCode });
-  }
+### 完成定义（DoD）
 
-  observeDuration(method: string, route: string, duration: number) {
-    this.httpRequestDuration.observe({ method, route }, duration);
-  }
+- [ ] 采样、保留、资源限制与告警入口明确
+- [ ] 健康检查已区分实例存活、接流量能力和依赖状态
+- [ ] 成熟库替换结论已落文档，未替换也有暂缓理由和触发条件
+- [ ] 关键风险已回写 debt register 或自动化守卫
 
-  incrementConnections() {
-    this.activeConnections.inc();
-  }
+### 最小验证
 
-  decrementConnections() {
-    this.activeConnections.dec();
-  }
-
-  async getMetrics() {
-    return register.metrics();
-  }
-}
-```
-
-**测试要求：**
-- 指标采集测试
-- 指标暴露测试
-- 性能开销测试
-
-**验收标准：**
-- [ ] 指标正确采集
-- [ ] `/metrics` 端点可用
-- [ ] 指标数据与 Prometheus 集成
-- [ ] 性能开销 < 5%
+- 相关模块单测
+- 健康检查与配置回滚测试
+- `rtk pnpm test:runtime-foundations`
+- 视改动补 `rtk pnpm eval:smoke`
 
 ---
 
-#### 4.2.3 Loki 日志集成
+## 9. Phase 4 跨阶段回归与基准
 
-**文件路径：**
-- `packages/backend-core/src/lib/logging/loki.module.ts`
-- `packages/backend-core/src/lib/logging/loki.service.ts`
+**状态：** 待开始  
+**目标：** 对已经分阶段落地的能力做系统级确认，而不是补前面积欠的基础测试
 
-**实现要求：**
+### 进度追踪
 
-```typescript
-// loki.module.ts
-import { Module, Global } from '@nestjs/common';
-import { LokiService } from './loki.service';
+- [ ] 打通跨链路 E2E smoke
+- [ ] 覆盖故障转移与恢复测试
+- [ ] 建立性能基准
+- [ ] 验证部署链路
+- [ ] 沉淀可重复执行的回归命令
 
-@Global()
-@Module({
-  providers: [LokiService],
-  exports: [LokiService],
-})
-export class LokiModule {}
+### 范围
 
-// loki.service.ts
-import { Injectable, LoggerService } from '@nestjs/common';
-import { LokiTransport } from 'winston-loki';
+- 端到端 smoke
+- 故障转移 / 恢复测试
+- 性能基准
+- 部署链路验证
 
-@Injectable()
-export class LokiService implements LoggerService {
-  private logger: any;
+### 测试分层要求
 
-  constructor() {
-    this.logger = new (require('winston').createLogger)({
-      transports: [
-        new LokiTransport({
-          host: process.env.LOKI_HOST || 'http://localhost:3100',
-          labels: {
-            job: process.env.SERVICE_NAME || 'trapmap',
-            environment: process.env.NODE_ENV || 'development',
-          },
-          json: true,
-          replaceTimestamp: true,
-        }),
-      ],
-    });
-  }
+- PR 必跑：单元测试、必要的集成测试、受影响 smoke
+- 阶段完成必跑：该阶段相关的 Testcontainers / deployment smoke
+- 回归必跑：跨链路 E2E、故障注入、性能基准
 
-  log(message: string, context?: string) {
-    this.logger.info(message, { context });
-  }
+### 完成定义（DoD）
 
-  error(message: string, trace?: string, context?: string) {
-    this.logger.error(message, { trace, context });
-  }
+- [ ] 至少一条业务请求同时经过 discovery、metrics、tracing、logging 链路
+- [ ] 故障注入可验证降级与恢复路径
+- [ ] 性能开销、延迟和资源占用有基线
+- [ ] 所有验证命令可重复执行并已记录到文档
 
-  warn(message: string, context?: string) {
-    this.logger.warn(message, { context });
-  }
+### 最小验证
 
-  debug(message: string, context?: string) {
-    this.logger.debug(message, { context });
-  }
-
-  verbose(message: string, context?: string) {
-    this.logger.verbose(message, { context });
-  }
-}
-```
-
-**测试要求：**
-- 日志格式测试
-- 日志传输测试
-- 性能开销测试
-
-**验收标准：**
-- [ ] 日志正确格式化为 JSON
-- [ ] 日志成功传输到 Loki
-- [ ] 日志查询功能正常
-- [ ] 性能开销 < 3%
+- 相关 E2E 测试
+- `rtk pnpm test:deployment-smoke`
+- 如有专门回归命令，回写到文档并在此 phase 执行
 
 ---
 
-## 5. 阶段 3：Nest.js 深度集成
+## 10. Phase 5 文档与交付收口
 
-### 5.1 目标
+**状态：** 待开始  
+**目标：** 做最终收口，而不是第一次补文档
 
-将可观测性无缝集成到 TrapMap 的 Nest.js 架构中
+### 进度追踪
 
-### 5.2 任务
+- [ ] 收口架构、运行、部署、运维、故障排查文档
+- [ ] 统一 README、AGENTS、`docs/README.md` 与各入口链接
+- [ ] 收口测试命令、依赖条件和人工验收步骤
+- [ ] 验证陌生执行者可按文档走通交付路径
+- [ ] 运行最终文档与交付验证
 
-#### 5.2.1 健康检查升级
+### 范围
 
-**文件路径：**
-- `packages/backend-core/src/lib/health/health.module.ts`
-- `packages/backend-core/src/lib/health/health.controller.ts`
+- 收口架构、运行、部署、运维、故障排查和演示材料
+- 明确各入口文档索引
+- 将阶段验证命令沉淀为可重复使用的最小验证清单
 
-**实现要求：**
+### 关键原则
 
-```typescript
-// health.controller.ts
-import { Controller, Get } from '@nestjs/common';
-import { ConsulService } from '../discovery/consul.service';
-import { PrometheusService } from '../metrics/prometheus.service';
+- 每个 phase 完成时就应该同步最小文档；Phase 5 只负责统一口径和补最后的入口索引
+- 如发现重复性漂移风险，优先补守卫脚本而不是补说明文字
 
-@Controller()
-export class HealthController {
-  constructor(
-    private consulService: ConsulService,
-    private prometheusService: PrometheusService,
-  ) {}
+### 完成定义（DoD）
 
-  @Get('health')
-  async health() {
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      services: {
-        consul: await this.checkConsul(),
-        prometheus: await this.checkPrometheus(),
-        tempo: await this.checkTempo(),
-        loki: await this.checkLoki(),
-      },
-    };
-  }
+- [ ] README、AGENTS、`docs/README.md`、架构/运维/指南文档入口一致
+- [ ] 最终测试命令、依赖条件和人工验收步骤已写清楚
+- [ ] 演示或交付路径可由陌生执行者按文档走通
 
-  @Get('ready')
-  async ready() {
-    // 检查所有依赖服务是否就绪
-    const consulReady = await this.checkConsul();
-    const prometheusReady = await this.checkPrometheus();
-    
-    return {
-      status: consulReady && prometheusReady ? 'ready' : 'not_ready',
-      timestamp: new Date().toISOString(),
-    };
-  }
+### 最小验证
 
-  @Get('live')
-  async live() {
-    return {
-      status: 'alive',
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  private async checkConsul(): Promise<boolean> {
-    try {
-      await this.consulService.getService('consul');
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  private async checkPrometheus(): Promise<boolean> {
-    try {
-      await fetch('http://localhost:9090/-/healthy');
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  private async checkTempo(): Promise<boolean> {
-    try {
-      await fetch('http://localhost:3200/ready');
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  private async checkLoki(): Promise<boolean> {
-    try {
-      await fetch('http://localhost:3100/ready');
-      return true;
-    } catch {
-      return false;
-    }
-  }
-}
-```
-
-**测试要求：**
-- 健康检查端点测试
-- 就绪探针测试
-- 存活探针测试
-
-**验收标准：**
-- [ ] `/health` 端点返回所有服务状态
-- [ ] `/ready` 端点正确判断就绪状态
-- [ ] `/live` 端点正常工作
-- [ ] 健康检查逻辑正确
+- `rtk pnpm check:docs-drift`
+- `rtk pnpm check:structure`
+- 对最终交付链路补跑对应 smoke
 
 ---
 
-## 6. 阶段 4：测试和验证
+## 11. 风险与注意事项
 
-### 6.1 目标
-
-确保系统的可靠性、性能和正确性
-
-### 6.2 任务
-
-#### 6.2.1 单元测试
-
-**测试文件路径：**
-- `packages/server/src/lib/discovery/consul.test.ts`
-- `packages/server/src/lib/metrics/prometheus.test.ts`
-- `packages/server/src/lib/tracing/otel.test.ts`
-- `packages/server/src/lib/logging/loki.test.ts`
-
-**测试要求：**
-- 每个模块的单元测试
-- Mock 外部依赖
-- 覆盖率 > 80%
-
-**示例测试：**
-
-```typescript
-// consul.test.ts
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConsulService } from './consul.service';
-
-describe('ConsulService', () => {
-  let service: ConsulService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ConsulService],
-    }).compile();
-
-    service = module.get<ConsulService>(ConsulService);
-  });
-
-  it('should register service', async () => {
-    await service.onModuleInit();
-    // 验证服务注册逻辑
-  });
-
-  it('should deregister service', async () => {
-    await service.onModuleDestroy();
-    // 验证服务注销逻辑
-  });
-
-  it('should get service by name', async () => {
-    const services = await service.getService('trapmap');
-    expect(services).toBeDefined();
-  });
-});
-```
-
-**验收标准：**
-- [ ] 单元测试覆盖率 > 80%
-- [ ] 所有测试通过
-- [ ] Mock 逻辑正确
-
----
-
-#### 6.2.2 集成测试
-
-**测试文件路径：**
-- `packages/server/src/lib/discovery/consul.integration.test.ts`
-- `packages/server/src/lib/metrics/prometheus.integration.test.ts`
-- `packages/server/src/lib/tracing/tempo.integration.test.ts`
-- `packages/server/src/lib/logging/loki.integration.test.ts`
-
-**测试要求：**
-- 使用 Testcontainers 进行真实环境测试
-- 测试与真实 Consul/Prometheus/Tempo/Loki 的交互
-- 测试数据正确性
-
-**示例测试：**
-
-```typescript
-// consul.integration.test.ts
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConsulService } from './consul.service';
-import { GenericContainer, StartedTestContainer } from 'testcontainers';
-
-describe('ConsulService Integration', () => {
-  let consulContainer: StartedTestContainer;
-  let service: ConsulService;
-
-  beforeAll(async () => {
-    consulContainer = await new GenericContainer('hashicorp/consul:1.17')
-      .withExposedPorts(8500)
-      .start();
-
-    process.env.CONSUL_HOST = consulContainer.getHost();
-    process.env.CONSUL_PORT = consulContainer.getMappedPort(8500).toString();
-  });
-
-  afterAll(async () => {
-    await consulContainer.stop();
-  });
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ConsulService],
-    }).compile();
-
-    service = module.get<ConsulService>(ConsulService);
-  });
-
-  it('should register and deregister service', async () => {
-    await service.onModuleInit();
-    const services = await service.getService('trapmap');
-    expect(services.length).toBeGreaterThan(0);
-
-    await service.onModuleDestroy();
-    const servicesAfterDeregister = await service.getService('trapmap');
-    expect(servicesAfterDeregister.length).toBe(0);
-  });
-});
-```
-
-**验收标准：**
-- [ ] 集成测试通过
-- [ ] Testcontainers 正确启动和停止
-- [ ] 数据正确存储和检索
-
----
-
-#### 6.2.3 端到端测试
-
-**测试文件路径：**
-- `packages/server/src/e2e/observability.e2e.test.ts`
-
-**测试要求：**
-- 完整请求流程追踪测试
-- 服务发现和负载均衡测试
-- 故障转移和恢复测试
-- 性能基准测试
-
-**示例测试：**
-
-```typescript
-// observability.e2e.test.ts
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from '../app.module';
-
-describe('Observability E2E', () => {
-  let app: INestApplication;
-
-  beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
-  });
-
-  afterAll(async () => {
-    await app.close();
-  });
-
-  it('should track request in Tempo', async () => {
-    const response = await request(app.getHttpServer())
-      .get('/health')
-      .expect(200);
-
-    // 验证追踪数据已发送到 Tempo
-    const traceId = response.headers['x-trace-id'];
-    expect(traceId).toBeDefined();
-  });
-
-  it('should record metrics in Prometheus', async () => {
-    await request(app.getHttpServer())
-      .get('/health')
-      .expect(200);
-
-    const metricsResponse = await request(app.getHttpServer())
-      .get('/metrics')
-      .expect(200);
-
-    expect(metricsResponse.text).toContain('http_requests_total');
-  });
-
-  it('should log to Loki', async () => {
-    await request(app.getHttpServer())
-      .get('/health')
-      .expect(200);
-
-    // 验证日志已发送到 Loki（需要等待异步传输）
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  });
-});
-```
-
-**验收标准：**
-- [ ] 端到端测试通过
-- [ ] 追踪数据正确采集
-- [ ] 指标数据正确记录
-- [ ] 日志数据正确传输
-
----
-
-## 7. 阶段 5：文档和交付
-
-### 7.1 目标
-
-完善文档，确保项目可交付
-
-### 7.2 任务
-
-#### 7.2.1 架构文档
-
-**文件路径：**
-- `docs/architecture/OBSERVABILITY.md`（可观测性架构说明）
-- `docs/architecture/SERVICE-DISCOVERY.md`（服务发现架构说明）
-- 更新 `architecture.md`（添加概览）
-
-**内容要求：**
-- 架构图（Mermaid格式）
-- 技术选型对比表
-- 优缺点分析
-- 数据流图
-- 配置说明
-
-**验收标准：**
-- [ ] 架构图清晰
-- [ ] 技术选型理由完整
-- [ ] 配置说明详细
-
----
-
-#### 7.2.2 使用指南
-
-**文件路径：**
-- `docs/guides/OBSERVABILITY-GUIDE.md`（可观测性使用指南）
-- `docs/guides/SERVICE-DISCOVERY-GUIDE.md`（服务发现使用指南）
-- `docs/guides/GRAFANA-DASHBOARDS.md`（仪表板使用指南）
-
-**内容要求：**
-- 快速开始
-- 配置说明
-- 故障排查
-- 最佳实践
-- 示例代码
-
-**验收标准：**
-- [ ] 快速开始简单易懂
-- [ ] 配置说明详细
-- [ ] 故障排查实用
-
----
-
-#### 7.2.3 部署文档
-
-**文件路径：**
-- 更新 `docs/architecture/DEPLOYMENT.md`
-- 编写 `docs/operations/OBSERVABILITY-OPERATIONS.md`
-
-**内容要求：**
-- 部署步骤
-- 配置说明
-- 运维手册
-- 监控和告警配置
-
-**验收标准：**
-- [ ] 部署步骤清晰
-- [ ] 配置说明详细
-- [ ] 运维手册实用
-
----
-
-## 8. 风险和注意事项
-
-### 8.1 技术风险
+### 11.1 技术风险
 
 | 风险 | 影响 | 缓解措施 |
 |------|------|---------|
-| **Consul 集群故障** | 服务发现不可用 | 实现本地缓存和 fallback 机制 |
-| **OpenTelemetry 性能开销** | 延迟增加 | 采样策略优化，生产环境使用 head-based sampling |
-| **Prometheus 存储空间** | 磁盘占满 | 配置 retention policy，监控存储使用 |
-| **Loki 查询性能** | 日志查询慢 | 优化标签设计，避免高基数标签 |
-| **Tempo 存储成本** | 对象存储费用 | 配置采样率，调整保留策略 |
+| Consul 不可用 | 服务发现失败 | 本地缓存、降级启动、状态暴露 |
+| OTel 性能开销过高 | 请求延迟上升 | 显式采样、分 profile 配置、仅采集关键链路 |
+| Prometheus 标签高基数 | 存储与查询成本上升 | 新标签必须做 cardinality 审查 |
+| Loki 标签设计失控 | 查询性能下降、成本上升 | 先定 schema，再定 label；避免 request id 级标签 |
+| Tempo 数据量失控 | 存储和网络成本增加 | 采样率、保留期和批量导出策略前置配置 |
 
-### 8.2 运营风险
+### 11.2 过程风险
 
 | 风险 | 影响 | 缓解措施 |
 |------|------|---------|
-| **配置错误** | 服务无法启动 | 使用 Testcontainers 进行集成测试 |
-| **网络问题** | 服务间通信失败 | 实现重试和超时机制 |
-| **版本兼容性** | 组件不兼容 | 使用稳定版本，定期更新 |
-| **监控盲区** | 问题无法及时发现 | 完善健康检查和告警规则 |
+| 文档继续后置 | 事实漂移 | 每阶段强制回写 + docs guard |
+| 测试继续集中到末期 | 回归成本暴涨 | 每阶段自带最小验证出口 |
+| 过早绑定具体实现 | 后续调整成本高 | 计划只定义边界、DoD 和验证，不写实现锁定 |
+| 把外部依赖可用性等同于实例存活 | 级联不可用 | 分离 `live` / `ready` / `health` 语义 |
 
 ---
 
-## 9. 依赖关系图
+## 12. 依赖关系与并行策略
 
-```
-阶段 0（基础架构设计）
+```text
+Phase -1 六边形架构清理（已完成）
     ↓
-阶段 1（Consul 集成）
+Phase 0 基础架构设计（已完成）
     ↓
-阶段 2（可观测性三大支柱）
-    ├── 2A（Prometheus + Grafana）
-    ├── 2B（Tempo + OpenTelemetry）
-    └── 2C（Loki）
-    ↓
-阶段 3（Nest.js 深度集成）
-    ↓
-阶段 4（测试和验证）
-    ↓
-阶段 5（文档和交付）
+Phase 1A 应用接入骨架
+    ├── Phase 1B 服务发现 MVP
+    └── Phase 2A Metrics 与 Dashboard MVP
+            ├── Phase 2B Tracing MVP
+            └── Phase 2C Logging MVP
+                    ↓
+                Phase 3 生产化增强
+                    ↓
+           Phase 4 跨阶段回归与基准
+                    ↓
+           Phase 5 文档与交付收口
 ```
 
-**关键依赖：**
-- 阶段 1 依赖阶段 0（架构设计完成）
-- 阶段 2 依赖阶段 1（Consul 集成完成）
-- 阶段 3 依赖阶段 2（可观测性三大支柱集成完成）
-- 阶段 4 依赖阶段 3（Nest.js 集成完成）
-- 阶段 5 可以与阶段 4 并行进行
+### 并行策略说明
+
+- `Phase 1A` 是后续所有能力共享的接入底座，必须先完成
+- `Phase 1B` 与 `Phase 2A` 可以并行推进
+- `Phase 2B`、`Phase 2C` 依赖 `Phase 1A`，但不强依赖 `Phase 1B` 完成
+- `Phase 3` 需要前述 MVP 能力至少具备最小闭环
+- `Phase 4` 和 `Phase 5` 只做系统级收口，不替代前面阶段的最小验证与最小文档同步
 
 ---
 
-## 10. 验收标准
+## 13. 统一验收口径
 
-### 10.1 功能验收
+### 13.1 功能验收
 
-- [ ] Consul 服务注册和发现正常工作
-- [ ] OpenTelemetry 追踪数据正确采集
-- [ ] Prometheus 指标数据正确记录
-- [ ] Loki 日志数据正确传输
-- [ ] Grafana 仪表板正常显示
-- [ ] 健康检查端点正常工作
+- [ ] 服务注册、注销和查询在目标环境可用
+- [ ] `/health`、`/ready`、`/live`、`/metrics` 均可用且语义稳定
+- [ ] 至少一条请求链路同时具备 metrics、trace 和 structured logs
+- [ ] Grafana 中至少有一套可用于排查的最小 dashboard / query 入口
 
-### 10.2 性能验收
+### 13.2 非功能验收
 
-- [ ] 可观测性开销 < 10%
-- [ ] 延迟增加 < 5ms
-- [ ] CPU 使用增加 < 5%
-- [ ] 内存使用增加 < 50MB
+- [ ] 可观测性与服务发现组件故障不会直接导致业务实例不可启动
+- [ ] 关键配置、默认值、采样与保留策略均已文档化
+- [ ] 指标标签与日志标签已做高基数风险审查
 
-### 10.3 测试验收
+### 13.3 测试验收
 
-- [ ] 单元测试覆盖率 > 80%
-- [ ] 集成测试全部通过
-- [ ] 端到端测试全部通过
-- [ ] 性能测试达标
+- [ ] 每个 phase 都有自己的最小验证命令
+- [ ] 阶段级集成测试与系统级回归测试分层清晰
+- [ ] 回归命令可重复执行，不依赖隐式本地状态
 
-### 10.4 文档验收
+### 13.4 文档验收
 
-- [ ] 架构文档完整
-- [ ] 使用指南详细
-- [ ] 部署文档清晰
-- [ ] 示例代码可运行
+- [ ] 根 `plan.md` 保持索引定位
+- [ ] 活跃细则记录阶段边界、DoD、验证命令和 deferred 范围
+- [ ] README、AGENTS 和 `docs/README.md` 的入口描述一致
 
 ---
 
-## 附录：配置文件示例
-
-### A.1 Prometheus 配置
-
-```yaml
-# config/prometheus.yml
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
-
-scrape_configs:
-  - job_name: 'trapmap'
-    static_configs:
-      - targets: ['gateway:4000', 'candidate-worker:4000', 'governance-worker:4000', 'outbox-worker:4000']
-  
-  - job_name: 'consul'
-    static_configs:
-      - targets: ['consul:8500']
-  
-  - job_name: 'tempo'
-    static_configs:
-      - targets: ['tempo:3200']
-  
-  - job_name: 'loki'
-    static_configs:
-      - targets: ['loki:3100']
-```
-
-### A.2 Tempo 配置
-
-```yaml
-# config/tempo.yml
-server:
-  http_listen_port: 3200
-
-distributor:
-  receivers:
-    otlp:
-      protocols:
-        grpc:
-          endpoint: 0.0.0.0:4317
-        http:
-          endpoint: 0.0.0.0:4318
-
-storage:
-  trace:
-    backend: local
-    local:
-      path: /var/tempo/traces
-    wal:
-      path: /var/tempo/wal
-```
-
-### A.3 Loki 配置
-
-```yaml
-# config/loki.yml
-auth_enabled: false
-
-server:
-  http_listen_port: 3100
-
-common:
-  path_prefix: /loki
-  storage:
-    filesystem:
-      chunks_directory: /loki/chunks
-      rules_directory: /loki/rules
-  replication_factor: 1
-  ring:
-    kvstore:
-      store: inmemory
-
-schema_config:
-  configs:
-    - from: 2020-10-24
-      store: boltdb-shipper
-      object_store: filesystem
-      schema: v11
-      index:
-        prefix: index_
-        period: 24h
-```
-
----
-
-**文档版本：** v1.0
-**最后更新：** 2026-06-30
-**作者：** TrapMap Team
+**最后更新：** 2026-07-02
