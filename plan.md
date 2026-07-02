@@ -5,7 +5,7 @@
 ## 当前主线
 
 - 当前主线：服务发现与可观测性升级
-- 状态：`进行中`
+- 状态：`完成`
 - 主细则：[`docs/todos/service-discovery-and-observability-plan.md`](docs/todos/service-discovery-and-observability-plan.md)
 - 背景输入：[`docs/todos/microservice-architecture-and-observability.md`](docs/todos/microservice-architecture-and-observability.md)
 - 活跃 debt register：[`docs/todos/open-debt-and-compromises.md`](docs/todos/open-debt-and-compromises.md)
@@ -113,9 +113,9 @@
 
 ### Phase 5 文档与交付收口
 
-- [ ] 状态：`待开始`
-- [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#10-phase-5-文档与交付收口`](docs/todos/service-discovery-and-observability-plan.md#10-phase-5-文档与交付收口)
-- [ ] 目标：收口架构、运行、运维、故障排查和演示材料
+- [x] 状态：`完成`
+- [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#10-phase-5-文档与交付收口`](docs/todos/service-discovery-and-observability-plan.md#10-phase-5-文档与交付收口)
+- [x] 目标：收口架构、运行、运维、故障排查和演示材料
 
 ## 活跃配套文档
 
