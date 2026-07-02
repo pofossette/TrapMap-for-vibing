@@ -33,6 +33,7 @@
 - 当前真实完成面应表述为：contract / port / host seam / compose 资产 / 文档框架已落地；distributed 动态发现、readiness 闭环与系统级验收仍待收口
 - 本文档后续的 `完成` 描述只代表该阶段存在可复用资产，不代表系统级 closeout 已通过
 - 是否允许重新勾选完成，以第 14 节 closeout tasklist 和第 13 节统一验收口径同时满足为准
+- 2026-07-02 当日已确认 `rtk pnpm test:distributed-closeout` 绿灯，closeout 阻塞从“分布式测试链路不可运行”收敛为“目标环境 Consul 验收与性能基线尚未关闭”
 
 ### 1.1 这次优化要解决的问题
 
@@ -193,7 +194,7 @@
 
 ## 4. Phase 1B 服务发现 MVP
 
-**状态：** 完成  
+**状态：** 基本完成  
 **目标：** 打通服务注册、注销、查询、缓存与故障降级，先交付够用的发现能力
 
 ### 进度追踪
@@ -245,7 +246,7 @@
 ### 最小验证
 
 - Consul 相关单测
-- Consul 相关集成测试或最小 Testcontainers 验证
+- `rtk pnpm test:discovery-closeout`
 - `rtk pnpm test:deployment-smoke`
 - 若触及跨包边界：`rtk pnpm exec fallow audit --base main`
 
@@ -300,7 +301,7 @@
 
 ## 6. Phase 2B Tracing MVP
 
-**状态：** 完成  
+**状态：** 收口中  
 **目标：** 打通请求级 tracing 链路，而不是一开始追求复杂 span 覆盖
 
 ### 进度追踪
@@ -331,7 +332,7 @@
 
 ### 完成定义（DoD）
 
-- [x] 至少一条请求链路可在 Tempo 中检索到完整 trace
+- [ ] 至少一条请求链路可在 Tempo 中检索到完整 trace
 - [x] 响应头或日志中可稳定拿到 trace id
 - [x] exporter 失败不会导致应用不可用
 - [x] 采样、超时和 endpoint 配置已文档化
@@ -345,14 +346,14 @@
 ### 最小验证
 
 - tracing 单测
-- 最小 trace export 集成验证
-- `rtk pnpm test:runtime-foundations`
+- `rtk pnpm test:observability-closeout`
+- 如涉及 shared runtime seam：`rtk pnpm test:runtime-foundations`
 
 ---
 
 ## 7. Phase 2C Logging MVP
 
-**状态：** 完成  
+**状态：** 收口中  
 **目标：** 统一结构化日志 schema，并明确进入 Loki 的可靠路径
 
 ### 进度追踪
@@ -383,7 +384,7 @@
 ### 完成定义（DoD）
 
 - [x] 结构化日志字段稳定且有测试保护
-- [x] 本地或集成环境中可以在 Loki 查询到目标日志
+- [ ] 本地或集成环境中可以在 Loki 查询到目标日志
 - [x] logger 故障时应用自动回退到安全输出路径
 - [x] Loki 标签设计经过高基数审视
 
@@ -396,14 +397,14 @@
 ### 最小验证
 
 - logging 单测
-- 结构化日志格式测试
+- `rtk pnpm test:observability-closeout`
 - Loki 最小集成验证
 
 ---
 
 ## 8. Phase 3 生产化增强
 
-**状态：** 完成  
+**状态：** 收口中  
 **目标：** 从”能跑”提升到”可长期运维”
 
 ### 进度追踪
@@ -437,10 +438,10 @@
 
 ### 完成定义（DoD）
 
-- [x] 采样、保留、资源限制与告警入口明确
+- [x] 采样、保留、资源限制与告警入口文档明确
 - [x] 健康检查已区分实例存活、接流量能力和依赖状态
 - [x] 成熟库替换结论已落文档，未替换也有暂缓理由和触发条件
-- [x] 关键风险已回写 debt register 或自动化守卫
+- [ ] 关键风险已回写 debt register 或自动化守卫并纳入正式 closeout 命令
 
 ### 当前实现与差距
 
@@ -451,6 +452,7 @@
 
 - 相关模块单测
 - 健康检查与配置回滚测试
+- `rtk pnpm test:observability-closeout`
 - `rtk pnpm test:runtime-foundations`
 - 视改动补 `rtk pnpm eval:smoke`
 
@@ -458,14 +460,14 @@
 
 ## 9. Phase 4 跨阶段回归与基准
 
-**状态：** 未完成  
+**状态：** 收口中  
 **目标：** 对已经分阶段落地的能力做系统级确认，而不是补前面积欠的基础测试
 
 ### 进度追踪
 
 - [x] 打通跨链路 E2E smoke
 - [x] 覆盖故障转移与恢复测试
-- [x] 建立性能基准
+- [ ] 建立性能基准
 - [x] 验证部署链路
 - [x] 沉淀可重复执行的回归命令
 
@@ -486,12 +488,14 @@
 
 - [x] 至少一条业务请求同时经过 discovery、metrics、tracing、logging 链路
 - [x] 故障注入可验证降级与恢复路径
-- [x] 性能开销、延迟和资源占用有基线
+- [ ] 性能开销、延迟和资源占用有基线
 - [x] 所有验证命令可重复执行并已记录到文档
 
 ### 最小验证
 
-- 相关 E2E 测试
+- `rtk pnpm test:observability-closeout`
+- `rtk pnpm test:discovery-closeout`
+- `rtk pnpm test:distributed-closeout`
 - `rtk pnpm test:deployment-smoke`
 - 如有专门回归命令，回写到文档并在此 phase 执行
 
@@ -499,7 +503,7 @@
 
 ## 10. Phase 5 文档与交付收口
 
-**状态：** 进行中  
+**状态：** 收口中  
 **目标：** 做最终收口，而不是第一次补文档
 
 ### 进度追踪
@@ -507,7 +511,7 @@
 - [x] 收口架构、运行、部署、运维、故障排查文档
 - [x] 统一 README、AGENTS、`docs/README.md` 与各入口链接
 - [x] 收口测试命令、依赖条件和人工验收步骤
-- [x] 验证陌生执行者可按文档走通交付路径
+- [ ] 验证陌生执行者可按文档走通交付路径
 - [x] 运行最终文档与交付验证
 
 ### 范围
@@ -525,7 +529,7 @@
 
 - [x] README、AGENTS、`docs/README.md`、架构/运维/指南文档入口一致
 - [x] 最终测试命令、依赖条件和人工验收步骤已写清楚
-- [x] 演示或交付路径可由陌生执行者按文档走通
+- [ ] 演示或交付路径可由陌生执行者按文档走通
 
 ### 最小验证
 
@@ -648,7 +652,7 @@ Phase 1A 应用接入骨架
 
 ### 14.5 Phase 3-4 收口：系统级验证
 
-- [x] 明确 closeout 最小命令集：`rtk pnpm test:runtime-foundations`、`rtk pnpm test:deployment-smoke`、必要时 `rtk pnpm eval:smoke`
+- [x] 明确 closeout 最小命令集：`rtk pnpm test:observability-closeout`、`rtk pnpm test:discovery-closeout`、`rtk pnpm test:distributed-closeout`、`rtk pnpm test:runtime-foundations`、`rtk pnpm test:deployment-smoke`、必要时 `rtk pnpm eval:smoke`
 - [x] 为 closeout 增加一组可重复的 E2E / fault-injection / deployment smoke 证据
 - [x] 若 distributed resolver 或 runtime surface 跨包变更，补跑 `rtk pnpm exec fallow audit --base main`
 - [x] 将真实且可复发的问题沉淀到测试、doc-drift、debt register 或 badcase

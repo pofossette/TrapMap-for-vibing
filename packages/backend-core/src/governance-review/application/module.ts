@@ -7,14 +7,14 @@
  * the KnowledgeWritePort.
  */
 
-import type { AuditLogPort } from '@trapmap/backend-core/ports/audit-ports.js';
-import type { KnowledgeWritePort, ReviewPort } from '@trapmap/backend-core/ports/internal-ports.js';
-import type { FeedbackRepositoryPort } from '@trapmap/backend-core/ports/repo-ports.js';
+import type { AuditLogPort } from '../../ports/audit-ports.js';
+import type { KnowledgeWritePort, ReviewPort } from '../../ports/internal-ports.js';
+import type { FeedbackRepositoryPort } from '../../ports/repo-ports.js';
 
 import {
   GOVERNANCE_REVIEW_OWNED_CAPABILITIES,
   GOVERNANCE_REVIEW_SHORTHAND,
-} from '@trapmap/backend-core/governance-review/domain/index.js';
+} from '../domain/index.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)

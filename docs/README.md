@@ -205,6 +205,9 @@ pnpm run ci
 当前 CI/testing 命令真相以 `pnpm run ci`、`pnpm eval:smoke`、`pnpm eval:ci`、`pnpm eval:ci:core` 为准，具体语义由 `package.json` 与 `reference/SYSTEM_TRUTH_SOURCES.md` 冻结。
 
 deployment flexibility 最小验证矩阵：
+- `pnpm test:observability-closeout`
+- `pnpm test:discovery-closeout`
+- `pnpm test:distributed-closeout`
 - `pnpm test:deployment-smoke`
 - `pnpm test:runtime-foundations`
 - `pnpm typecheck`

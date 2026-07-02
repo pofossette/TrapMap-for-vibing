@@ -4,9 +4,9 @@ import {
   createStubAuditLog,
   createStubMetrics,
   createStubRepositoryPorts,
-} from '@trapmap/backend-core/testing/test-utils.js';
-import { executeCommand } from '@trapmap/backend-core/use-cases/command-handling.js';
-import type { Command } from '@trapmap/backend-core/use-cases/command-handling.js';
+} from '../testing/test-utils.js';
+import { executeCommand } from '../use-cases/command-handling.js';
+import type { Command } from '../use-cases/command-handling.js';
 import {
   getServiceUnitProfile,
   resolveAsyncWorkerState,
@@ -30,7 +30,7 @@ import {
   buildServiceTopologySnapshot,
 } from './topology.js';
 
-import { InvocationError } from '@trapmap/backend-core/invocation/invocation-model.js';
+import { InvocationError } from '../invocation/invocation-model.js';
 
 describe('runtime/capability-model', () => {
   describe('resolveRuntimeDeployment', () => {

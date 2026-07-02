@@ -327,6 +327,26 @@ export default defineConfig({
         resolve: {
           alias: [
             {
+              find: /^@trapmap\/host-distributed\/(.+)\.js$/,
+              replacement: resolve(__dirname, './packages/host-distributed/src/$1.ts'),
+            },
+            {
+              find: /^@trapmap\/host-distributed\/(.+)$/,
+              replacement: resolve(__dirname, './packages/host-distributed/src/$1'),
+            },
+            {
+              find: /^@trapmap\/host-distributed$/,
+              replacement: resolve(__dirname, './packages/host-distributed/src/index.ts'),
+            },
+            {
+              find: /^@trapmap\/backend-core\/(.+)\.js$/,
+              replacement: resolve(__dirname, './packages/backend-core/src/$1.ts'),
+            },
+            {
+              find: /^@trapmap\/backend-core\/(.+)$/,
+              replacement: resolve(__dirname, './packages/backend-core/src/$1'),
+            },
+            {
               find: '@trapmap/contracts',
               replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
             },
@@ -380,42 +400,42 @@ export default defineConfig({
         resolve: {
           alias: [
             {
-              find: '@trapmap/contracts',
+              find: /^@trapmap\/contracts$/,
               replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
             },
             {
-              find: '@trapmap/backend-core',
+              find: /^@trapmap\/backend-core$/,
               replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
             },
             {
-              find: '@trapmap/service-identity-access',
+              find: /^@trapmap\/service-identity-access$/,
               replacement: resolve(__dirname, './packages/service-identity-access/src/index.ts'),
             },
             {
-              find: '@trapmap/client-core',
+              find: /^@trapmap\/client-core$/,
               replacement: resolve(__dirname, './packages/client-core/src/index.ts'),
             },
             {
-              find: '@trapmap/service-candidate-ingestion',
+              find: /^@trapmap\/service-candidate-ingestion$/,
               replacement: resolve(
                 __dirname,
                 './packages/service-candidate-ingestion/src/index.ts',
               ),
             },
             {
-              find: '@trapmap/service-knowledge-read',
+              find: /^@trapmap\/service-knowledge-read$/,
               replacement: resolve(__dirname, './packages/service-knowledge-read/src/index.ts'),
             },
             {
-              find: '@trapmap/service-knowledge-write',
+              find: /^@trapmap\/service-knowledge-write$/,
               replacement: resolve(__dirname, './packages/service-knowledge-write/src/index.ts'),
             },
             {
-              find: '@trapmap/service-governance-review',
+              find: /^@trapmap\/service-governance-review$/,
               replacement: resolve(__dirname, './packages/service-governance-review/src/index.ts'),
             },
             {
-              find: '@trapmap/service-job-runtime',
+              find: /^@trapmap\/service-job-runtime$/,
               replacement: resolve(__dirname, './packages/service-job-runtime/src/index.ts'),
             },
             {

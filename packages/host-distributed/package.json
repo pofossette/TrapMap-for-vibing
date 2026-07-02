@@ -9,6 +9,34 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./config": {
+      "types": "./dist/config/index.d.ts",
+      "import": "./dist/config/index.js"
+    },
+    "./config/*.js": {
+      "types": "./dist/config/*.d.ts",
+      "import": "./dist/config/*.js"
+    },
+    "./config/*": {
+      "types": "./dist/config/*.d.ts",
+      "import": "./dist/config/*.js"
+    },
+    "./gateway/*.js": {
+      "types": "./dist/gateway/*.d.ts",
+      "import": "./dist/gateway/*.js"
+    },
+    "./gateway/*": {
+      "types": "./dist/gateway/*.d.ts",
+      "import": "./dist/gateway/*.js"
+    },
+    "./shared/*.js": {
+      "types": "./dist/shared/*.d.ts",
+      "import": "./dist/shared/*.js"
+    },
+    "./shared/*": {
+      "types": "./dist/shared/*.d.ts",
+      "import": "./dist/shared/*.js"
     }
   },
   "scripts": {

@@ -11,23 +11,23 @@
  * IdentityAccessPort surface.
  */
 
-import { InvocationError } from '@trapmap/backend-core/invocation/invocation-model.js';
+import { InvocationError } from '../../invocation/invocation-model.js';
 import type {
   PermissionCheckPort,
   SessionLookupPort,
   TeamLookupPort,
-} from '@trapmap/backend-core/ports/actor-ports.js';
-import type { AuditLogPort } from '@trapmap/backend-core/ports/audit-ports.js';
-import type { IdentityAccessPort } from '@trapmap/backend-core/ports/internal-ports.js';
+} from '../../ports/actor-ports.js';
+import type { AuditLogPort } from '../../ports/audit-ports.js';
+import type { IdentityAccessPort } from '../../ports/internal-ports.js';
 import type {
   AccessKeyRepositoryPort,
   MembershipRepositoryPort,
   SessionRepositoryPort,
   TeamRepositoryPort,
   UserRepositoryPort,
-} from '@trapmap/backend-core/ports/repo-ports.js';
+} from '../../ports/repo-ports.js';
 
-import { IDENTITY_ACCESS_OWNED_CAPABILITIES } from '@trapmap/backend-core/identity-access/domain/index.js';
+import { IDENTITY_ACCESS_OWNED_CAPABILITIES } from '../domain/index.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)

@@ -108,7 +108,7 @@ TrapMap 提供三个探针端点，遵循 Kubernetes 探针语义，适用于容
 - **响应**：准备好时返回 HTTP 200，未准备好时返回 HTTP 503
 - **判定逻辑**：
   - Fastify: 基于 `RuntimeStatusSnapshot.readiness` 字段；`not-ready` 时返回 503，`degraded` 和 `ready` 时返回 200
-  - NestJS: 当前始终返回 200（健康检查聚合结果反映在 `/health` 的 `status` 字段中）
+  - NestJS: `not-ready` 和 `unhealthy` 返回 `503`；`degraded` 和 `ready` 返回 `200`
 - **用途**：Kubernetes readiness probe / 负载均衡器健康检查；未就绪时从服务发现中摘除
 - **检查范围**：关键依赖（数据库连接、核心服务初始化完成度），不检查非关键依赖
 
@@ -221,3 +221,11 @@ Grafana alert rules 的具体 JSON/YAML 定义可在后续迭代中补充到 `in
 | `/metrics` 无数据 | 检查 `TRAPMAP_METRICS_ENABLED` 配置 | 指标功能未启用 |
 | Trace 数据缺失 | 检查 `OTEL_ENABLED` 和 `OTEL_SAMPLING_RATE` | OTel 未启用或采样率过低 |
 | Loki 无日志 | 检查 `OTEL_LOGS_EXPORTER` 和 `LOKI_URL` | exporter 未配置或 Loki 不可达 |
+
+### Closeout 命令
+
+当前主线收口固定使用以下入口：
+
+- `pnpm test:observability-closeout`：host-local 健康探针、request/trace/metrics/structured log 关联链路
+- `pnpm test:discovery-closeout`：Consul adapter、resolver、缓存与 round-robin fallback
+- `pnpm test:distributed-closeout`：distributed acceptance + runtime closeout 聚合入口

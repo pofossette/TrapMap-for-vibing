@@ -285,9 +285,15 @@ rtk pnpm eval:retrieval:live:compare \
 ```
 
 ```bash
+# host-local observability closeout: readiness/liveness probes + request/trace/metrics/log chain
+pnpm test:observability-closeout
+
+# service discovery closeout: consul adapter, dynamic resolver, cache, round-robin fallback
+pnpm test:discovery-closeout
+
 # distributed split acceptance: gateway forwarding, remote write delegation,
 # error semantics, auth/header propagation, runtime/job ownership
-pnpm test:distributed-acceptance
+pnpm test:distributed-closeout
 
 # profile / preset / runtime / route exposure / CLI gateway-only 关键切片
 pnpm test:deployment-smoke
@@ -376,6 +382,7 @@ Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解
 |---|---|---|
 | 包级最小测试 | `pnpm --filter @trapmap/<pkg> test --run <path>` | 各包独立测试；`host-local`、`backend-core`、`service-*`、`contracts` |
 | 类型检查 | `pnpm typecheck` | 全 workspace 类型检查 |
+| Observability closeout | `pnpm test:observability-closeout` | health/readiness probes + request/trace/metrics/log 关联链路 |
 | Deployment smoke | `pnpm test:deployment-smoke` | profile / preset / runtime / route exposure / CLI gateway-only 关键切片 |
 | Runtime foundations | `pnpm test:runtime-foundations` | runtime metadata / readiness / ownership / startup foundations |
 | 文档守卫 | `pnpm check:docs-drift` + `pnpm check:structure` | 文档叙事与命令示例一致性、目录规则 |
@@ -387,7 +394,8 @@ Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解
 
 | 验证层 | 命令 | 说明 |
 |---|---|---|
-| Distributed acceptance | `pnpm test:distributed-acceptance` | gateway 转发、remote write 委托、error/header/auth 语义、job ownership |
+| Discovery closeout | `pnpm test:discovery-closeout` | consul adapter、dynamic resolver、TTL cache、round-robin fallback |
+| Distributed acceptance | `pnpm test:distributed-closeout` | gateway 转发、remote write 委托、error/header/auth 语义、job ownership |
 | Runtime closeout | `pnpm test:runtime-closeout` | 部署级 operator closeout，async status contract，queue/outbox reclaim |
 | 全部单体验证层 | （同上） | 分布式验证不替代单体验证，两层独立运行 |
 
@@ -416,9 +424,10 @@ Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解
 2. `pnpm typecheck`
 3. `pnpm test:deployment-smoke`
 4. `pnpm test:runtime-foundations`
-5. `pnpm test:distributed-acceptance`（含 runtime closeout 层）
-6. `pnpm check:docs-drift` + `pnpm check:structure`
-7. `pnpm eval:smoke`（仅在检索/摘要/治理/feedback/eval runner 相关改动时）
+5. `pnpm test:discovery-closeout`
+6. `pnpm test:distributed-closeout`（含 runtime closeout 层）
+7. `pnpm check:docs-drift` + `pnpm check:structure`
+8. `pnpm eval:smoke`（仅在检索/摘要/治理/feedback/eval runner 相关改动时）
 
 Phase 4 最小真实落地补充：
 
@@ -432,10 +441,12 @@ Phase 4 最小真实落地补充：
 
 1. `pnpm test:file -- packages/contracts/src/domain/operations.test.ts`
 2. `pnpm test:file -- packages/server/src/routes/operations/badcases.test.ts`
-3. `pnpm test:file -- packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`
-4. `pnpm typecheck`
-5. `pnpm check:docs-drift` + `pnpm check:structure`
-6. `pnpm eval:smoke`
+3. `pnpm test:observability-closeout`
+4. `pnpm test:discovery-closeout`
+5. `pnpm test:file -- packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`
+6. `pnpm typecheck`
+7. `pnpm check:docs-drift` + `pnpm check:structure`
+8. `pnpm eval:smoke`
 
 ### 评测（Eval）
 

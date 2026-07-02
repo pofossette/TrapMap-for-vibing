@@ -18,7 +18,8 @@
 - `Phase 1B` 分布式动态发现已落地（ConsulDiscoveryAdapter、DiscoveryResolver、CachedDiscovery、RoundRobinSelector），`TRAPMAP_*_URL` 保留为显式 override 与 Consul 不可用时的 fallback
 - `Phase 2A` 已具备 `/metrics`、Prometheus 配置和最小 Grafana 资产，可按”基本完成”管理
 - `Phase 2B`、`Phase 2C` 当前冻结的是 tracing / logging seam，不应表述为 LGTM 全链路已完全落地
-- `Phase 3-5` 需要按 closeout tasklist 补齐实现、测试、事实回写与验收后，才能重新勾为完成
+- `rtk pnpm test:observability-closeout`、`rtk pnpm test:discovery-closeout`、`rtk pnpm test:distributed-closeout` 已在 2026-07-02 通过，distributed closeout 不再依赖 service prebuild 或脆弱的 `dist` 状态
+- `Phase 3-5` 当前剩余的是目标环境 Consul 验收、性能基线与最终归档条件，不再被 distributed closeout 阻塞
 
 ### 前置工作：六边形架构清理
 
@@ -58,7 +59,7 @@
 ### 测试与验证要求
 
 - [ ] 修改后优先运行与改动直接相关的最小验证集合，不默认跑根级全量 `pnpm test`
-- [ ] 涉及 runtime/profile/route surface、部署默认值、健康检查或服务发现链路时，补跑对应 smoke，例如 `rtk pnpm test:deployment-smoke`、`rtk pnpm test:runtime-foundations`
+- [ ] 涉及 runtime/profile/route surface、部署默认值、健康检查或服务发现链路时，补跑对应 smoke / closeout，例如 `rtk pnpm test:deployment-smoke`、`rtk pnpm test:runtime-foundations`、`rtk pnpm test:observability-closeout`、`rtk pnpm test:discovery-closeout`、`rtk pnpm test:distributed-closeout`
 - [ ] 涉及检索、摘要、治理、feedback、fixtures、eval runner 的改动，至少补跑 `rtk pnpm eval:smoke`
 - [ ] 文档、入口、结构规则变更完成后，至少补跑 `rtk pnpm check:docs-drift` 和 `rtk pnpm check:structure`
 - [ ] 涉及跨包导入路径变更或新增包时，补跑 `rtk pnpm exec fallow audit --base main`
@@ -86,9 +87,9 @@
 
 ### Phase 1B 服务发现 MVP
 
-- [x] 状态：`完成`
+- [x] 状态：`基本完成`
 - [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#4-phase-1b-服务发现-mvp`](docs/todos/service-discovery-and-observability-plan.md#4-phase-1b-服务发现-mvp)
-- [x] 目标：Consul port / adapter、分布式动态发现（ConsulDiscoveryAdapter、DiscoveryResolver、CachedDiscovery、RoundRobinSelector）与 `TRAPMAP_*_URL` 静态 fallback 已落地；closeout 验收待补
+- [x] 目标：Consul port / adapter、分布式动态发现（ConsulDiscoveryAdapter、DiscoveryResolver、CachedDiscovery、RoundRobinSelector）与 `TRAPMAP_*_URL` 静态 fallback 已落地；正式 closeout 命令已补齐，统一验收仍待关闭
 
 ### Phase 2A Metrics 与 Dashboard MVP
 
@@ -98,33 +99,33 @@
 
 ### Phase 2B Tracing MVP
 
-- [x] 状态：`完成`
-- [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#6-phase-2b-tracing-mvp`](docs/todos/service-discovery-and-observability-plan.md#6-phase-2b-tracing-mvp)
-- [x] 目标：trace header 透传、shutdown flush、observability chain integration test 已落地；Loki/Tempo 查询步骤已文档化
+- [ ] 状态：`收口中`
+- [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#6-phase-2b-tracing-mvp`](docs/todos/service-discovery-and-observability-plan.md#6-phase-2b-tracing-mvp)
+- [ ] 目标：trace header 透传、shutdown flush 与 observability closeout 命令已落地；系统级统一验收待关闭
 
 ### Phase 2C Logging MVP
 
-- [x] 状态：`完成`
-- [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#7-phase-2c-logging-mvp`](docs/todos/service-discovery-and-observability-plan.md#7-phase-2c-logging-mvp)
-- [x] 目标：JSON schema、stdout fallback、Loki optional transport、结构化日志集成验证已落地
+- [ ] 状态：`收口中`
+- [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#7-phase-2c-logging-mvp`](docs/todos/service-discovery-and-observability-plan.md#7-phase-2c-logging-mvp)
+- [ ] 目标：JSON schema、stdout fallback、Loki optional transport 与 observability closeout 命令已落地；系统级统一验收待关闭
 
 ### Phase 3 生产化增强
 
-- [x] 状态：`完成`
-- [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#8-phase-3-生产化增强`](docs/todos/service-discovery-and-observability-plan.md#8-phase-3-生产化增强)
-- [x] 目标：采样/保留/资源限制策略、真实 readiness 分层、成熟库替换评估已落地；告警入口与 SLO/SLI 初版已具备
+- [ ] 状态：`收口中`
+- [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#8-phase-3-生产化增强`](docs/todos/service-discovery-and-observability-plan.md#8-phase-3-生产化增强)
+- [ ] 目标：采样/保留/资源限制策略、真实 readiness 分层、成熟库替换评估与 closeout 命令已落地；生产化统一验收待关闭
 
 ### Phase 4 跨阶段回归与基准
 
-- [ ] 状态：`未完成`
+- [ ] 状态：`收口中`
 - [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#9-phase-4-跨阶段回归与基准`](docs/todos/service-discovery-and-observability-plan.md#9-phase-4-跨阶段回归与基准)
-- [ ] 目标：需按 closeout tasklist 补齐可重复的 E2E、故障注入与部署 smoke 证据
+- [ ] 目标：跨链路 E2E、恢复证据与部署 smoke 已收敛到 closeout 命令，剩余性能基线与目标环境验收
 
 ### Phase 5 文档与交付收口
 
-- [ ] 状态：`进行中`
+- [ ] 状态：`收口中`
 - [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#14-closeout-tasklist-2026-07-02`](docs/todos/service-discovery-and-observability-plan.md#14-closeout-tasklist-2026-07-02)
-- [ ] 目标：先修正文档与实现状态漂移，再完成 closeout tasklist 并重新验收
+- [ ] 目标：入口与 closeout 命令事实已回写，剩余陌生执行者交付路径与最终归档条件
 
 ## 活跃配套文档
 

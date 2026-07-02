@@ -224,6 +224,9 @@ cp .env.production.example .env
 deployment flexibility 相关改动至少回归：
 
 ```bash
+pnpm test:observability-closeout
+pnpm test:discovery-closeout
+pnpm test:distributed-closeout
 pnpm test:deployment-smoke
 pnpm test:runtime-foundations
 pnpm typecheck

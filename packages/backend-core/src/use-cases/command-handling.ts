@@ -6,7 +6,7 @@
  * modify domain state.
  */
 
-import { InvocationError } from '@trapmap/backend-core/invocation/invocation-model.js';
+import { InvocationError } from '../invocation/invocation-model.js';
 
 // ---------------------------------------------------------------------------
 // Command pattern

@@ -13,6 +13,9 @@ rtk pnpm --filter @trapmap/host-local test --run
 ## 阶段完成验证
 
 ```bash
+rtk pnpm test:observability-closeout
+rtk pnpm test:discovery-closeout
+rtk pnpm test:distributed-closeout
 rtk pnpm test:runtime-foundations
 rtk pnpm test:deployment-smoke
 rtk pnpm check:docs-drift
@@ -22,18 +25,13 @@ rtk pnpm check:structure
 ## 可观测性专项
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/lib/runtime/metrics.test.ts
-rtk pnpm --filter @trapmap/server test --run src/lib/runtime/tracing-port-adapter.test.ts
-rtk pnpm --filter @trapmap/server test --run src/lib/runtime/health-adapter.test.ts
-rtk pnpm --filter @trapmap/server test --run src/lib/runtime/observability-integration.test.ts
-rtk pnpm --filter @trapmap/contracts test --run src/domain/log-schema.test.ts
+rtk pnpm test:observability-closeout
 ```
 
 ## 服务发现专项
 
 ```bash
-rtk pnpm --filter @trapmap/backend-core test --run src/discovery/
-rtk pnpm --filter @trapmap/host-local test --run src/nest/service-discovery/
+rtk pnpm test:discovery-closeout
 ```
 
 ## 端到端验证（需要 docker compose）

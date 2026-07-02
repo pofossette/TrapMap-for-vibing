@@ -14,6 +14,10 @@
       "types": "./dist/runtime/index.d.ts",
       "import": "./dist/runtime/index.js"
     },
+    "./runtime/*.js": {
+      "types": "./dist/runtime/*.d.ts",
+      "import": "./dist/runtime/*.js"
+    },
     "./runtime/*": {
       "types": "./dist/runtime/*.d.ts",
       "import": "./dist/runtime/*.js"
@@ -21,6 +25,10 @@
     "./ports": {
       "types": "./dist/ports/index.d.ts",
       "import": "./dist/ports/index.js"
+    },
+    "./ports/*.js": {
+      "types": "./dist/ports/*.d.ts",
+      "import": "./dist/ports/*.js"
     },
     "./ports/*": {
       "types": "./dist/ports/*.d.ts",
@@ -30,6 +38,10 @@
       "types": "./dist/use-cases/index.d.ts",
       "import": "./dist/use-cases/index.js"
     },
+    "./use-cases/*.js": {
+      "types": "./dist/use-cases/*.d.ts",
+      "import": "./dist/use-cases/*.js"
+    },
     "./use-cases/*": {
       "types": "./dist/use-cases/*.d.ts",
       "import": "./dist/use-cases/*.js"
@@ -37,6 +49,10 @@
     "./modules": {
       "types": "./dist/modules/index.d.ts",
       "import": "./dist/modules/index.js"
+    },
+    "./modules/*.js": {
+      "types": "./dist/modules/*.d.ts",
+      "import": "./dist/modules/*.js"
     },
     "./modules/*": {
       "types": "./dist/modules/*.d.ts",
@@ -46,6 +62,10 @@
       "types": "./dist/identity-access/index.d.ts",
       "import": "./dist/identity-access/index.js"
     },
+    "./identity-access/*.js": {
+      "types": "./dist/identity-access/*.d.ts",
+      "import": "./dist/identity-access/*.js"
+    },
     "./identity-access/*": {
       "types": "./dist/identity-access/*.d.ts",
       "import": "./dist/identity-access/*.js"
@@ -53,6 +73,10 @@
     "./knowledge-read": {
       "types": "./dist/knowledge-read/index.d.ts",
       "import": "./dist/knowledge-read/index.js"
+    },
+    "./knowledge-read/*.js": {
+      "types": "./dist/knowledge-read/*.d.ts",
+      "import": "./dist/knowledge-read/*.js"
     },
     "./knowledge-read/*": {
       "types": "./dist/knowledge-read/*.d.ts",
@@ -62,6 +86,10 @@
       "types": "./dist/knowledge-write/index.d.ts",
       "import": "./dist/knowledge-write/index.js"
     },
+    "./knowledge-write/*.js": {
+      "types": "./dist/knowledge-write/*.d.ts",
+      "import": "./dist/knowledge-write/*.js"
+    },
     "./knowledge-write/*": {
       "types": "./dist/knowledge-write/*.d.ts",
       "import": "./dist/knowledge-write/*.js"
@@ -69,6 +97,10 @@
     "./candidate-ingestion": {
       "types": "./dist/candidate-ingestion/index.d.ts",
       "import": "./dist/candidate-ingestion/index.js"
+    },
+    "./candidate-ingestion/*.js": {
+      "types": "./dist/candidate-ingestion/*.d.ts",
+      "import": "./dist/candidate-ingestion/*.js"
     },
     "./candidate-ingestion/*": {
       "types": "./dist/candidate-ingestion/*.d.ts",
@@ -78,6 +110,10 @@
       "types": "./dist/governance-review/index.d.ts",
       "import": "./dist/governance-review/index.js"
     },
+    "./governance-review/*.js": {
+      "types": "./dist/governance-review/*.d.ts",
+      "import": "./dist/governance-review/*.js"
+    },
     "./governance-review/*": {
       "types": "./dist/governance-review/*.d.ts",
       "import": "./dist/governance-review/*.js"
@@ -85,6 +121,10 @@
     "./job-runtime": {
       "types": "./dist/job-runtime/index.d.ts",
       "import": "./dist/job-runtime/index.js"
+    },
+    "./job-runtime/*.js": {
+      "types": "./dist/job-runtime/*.d.ts",
+      "import": "./dist/job-runtime/*.js"
     },
     "./job-runtime/*": {
       "types": "./dist/job-runtime/*.d.ts",
@@ -94,6 +134,10 @@
       "types": "./dist/invocation/index.d.ts",
       "import": "./dist/invocation/index.js"
     },
+    "./invocation/*.js": {
+      "types": "./dist/invocation/*.d.ts",
+      "import": "./dist/invocation/*.js"
+    },
     "./invocation/*": {
       "types": "./dist/invocation/*.d.ts",
       "import": "./dist/invocation/*.js"
@@ -101,6 +145,10 @@
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.js"
+    },
+    "./testing/*.js": {
+      "types": "./dist/testing/*.d.ts",
+      "import": "./dist/testing/*.js"
     },
     "./testing/*": {
       "types": "./dist/testing/*.d.ts",
