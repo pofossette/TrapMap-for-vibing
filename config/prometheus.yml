@@ -1,0 +1,55 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "consul"
+    static_configs:
+      - targets: ["consul:8500"]
+    metrics_path: /v1/agent/metrics
+
+  - job_name: "tempo"
+    static_configs:
+      - targets: ["tempo:3200"]
+    metrics_path: /metrics
+
+  - job_name: "loki"
+    static_configs:
+      - targets: ["loki:3100"]
+    metrics_path: /metrics
+
+  - job_name: "trapmap-gateway"
+    static_configs:
+      - targets: ["gateway:4000"]
+    metrics_path: /metrics
+
+  # 以下为 distributed 形态下的 TrapMap 服务抓取目标
+  # 部署时根据实际服务地址调整 targets
+  - job_name: "trapmap-candidate-ingestion"
+    static_configs:
+      - targets: ["candidate-ingestion:4001"]
+    metrics_path: /metrics
+
+  - job_name: "trapmap-governance-review"
+    static_configs:
+      - targets: ["governance-review:4002"]
+    metrics_path: /metrics
+
+  - job_name: "trapmap-knowledge-read"
+    static_configs:
+      - targets: ["knowledge-read:4003"]
+    metrics_path: /metrics
+
+  - job_name: "trapmap-knowledge-write"
+    static_configs:
+      - targets: ["knowledge-write:4004"]
+    metrics_path: /metrics
+
+  - job_name: "trapmap-job-runtime"
+    static_configs:
+      - targets: ["job-runtime:4005"]
+    metrics_path: /metrics

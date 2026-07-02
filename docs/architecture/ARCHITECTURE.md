@@ -85,6 +85,26 @@ Phase 5 六服务 ownership 冻结补充事实：
 - repository 是业务路径的默认持久化入口；compatibility store 不是并行一等公民。
 - `store.snapshot()` / `store.transact()` 只允许留在已命名 compat allowlist：repository internals、bootstrap、migration/backfill、受控 admin/diagnostic、projection exceptions 与已命名迁移债务。
 
+## 可观测性与服务发现
+
+可观测性与服务发现的目标架构分别定义在专用文档中：
+
+- 可观测性架构（LGTM 栈 + OpenTelemetry）：[OBSERVABILITY.md](OBSERVABILITY.md)
+- 服务发现架构（Consul）：[SERVICE-DISCOVERY.md](SERVICE-DISCOVERY.md)
+- 技术选型对比：[TECH-SELECTION.md](TECH-SELECTION.md)
+
+核心选型：Consul（服务发现）、Prometheus（指标）、Tempo（追踪）、Loki（日志）、Grafana（可视化）、OpenTelemetry（采集标准）。
+
+Docker Compose 配置见仓库根目录 `docker-compose.observability.yml`，配套配置文件在 `config/` 目录下。
+
+三个 deployment profile 下的可观测性/服务发现行为差异：
+
+| Profile | 可观测性 | 服务发现 |
+|---|---|---|
+| `local-agent` | 可选，降级为 console/noop exporter | 不需要 |
+| `team-monolith` | 可选，连接外部后端 | 可选增强 |
+| `distributed` | 必需，全量管线 | 必需基础设施 |
+
 ## Server Layer Ownership
 
 当前 `packages/server` 采用五层 ownership 模型，对应现有目录而不是新的部署拆分：

@@ -83,11 +83,15 @@
 
 ### Phase 0 基础架构设计（服务发现）
 
-- [ ] 完成阶段目标与验收
-- [ ] 细则文档：[`docs/todos/service-discovery-and-observability-plan.md#2-阶段-0基础架构设计`](docs/todos/service-discovery-and-observability-plan.md#2-阶段-0基础架构设计)
-- [ ] 文档更新：补齐可观测性/服务发现架构说明、部署概览入口、相关 Mermaid 图和技术选型理由
-- [ ] 测试更新：如新增文档规则或结构约束，补跑 `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
-- [ ] 前置依赖：Phase -1 的 Phase 0.1（架构边界配置）必须完成
+- 状态：`完成`
+- 细则文档：[`docs/todos/service-discovery-and-observability-plan.md#2-阶段-0基础架构设计`](docs/todos/service-discovery-and-observability-plan.md#2-阶段-0基础架构设计)
+- 产出物：
+  - [`docs/architecture/OBSERVABILITY.md`](docs/architecture/OBSERVABILITY.md) — 可观测性架构说明（LGTM + OTel）
+  - [`docs/architecture/SERVICE-DISCOVERY.md`](docs/architecture/SERVICE-DISCOVERY.md) — 服务发现架构说明（Consul）
+  - [`docs/architecture/TECH-SELECTION.md`](docs/architecture/TECH-SELECTION.md) — 技术选型详细对比
+  - `docker-compose.observability.yml` + `config/` — Docker Compose 与配套配置
+  - `docs/architecture/ARCHITECTURE.md` 已更新概览入口
+- 前置依赖：Phase -1 的 Phase 0.1（架构边界配置）— `完成`
 
 ### Phase 1 服务发现集成
 
