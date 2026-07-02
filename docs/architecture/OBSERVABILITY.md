@@ -314,6 +314,49 @@ ConsulModule → ConsulService (服务注册/发现/KV)
 
 `HealthController` 调用 `LifecycleManagerService.runHealthChecks()` 聚合所有已注册的 `HealthCheck` 探针结果，映射为 `HealthStatus` contract 返回。
 
+## 标签基数（Label Cardinality）
+
+所有指标的标签均来自有限枚举或静态值，不存在用户 ID、请求 ID、带路径参数的 URL 等高基数标签。
+
+### Runtime Metrics（`packages/server/src/lib/runtime/metrics.ts`）
+
+| 指标 | 标签 | 基数来源 | 预估上限 |
+|------|------|---------|---------|
+| `trapmap_runtime_http_requests_total` | `method`, `status_class`, `route_family`, `service_name`, `owner_surface` | HTTP 方法（~7 种）、状态类（4 种：2xx/3xx/4xx/5xx）、路由族（有限枚举，由业务定义）、服务名（部署实例数）、所有者表面（当前固定 `runtime-seam`） | < 200 |
+| `trapmap_runtime_request_duration_ms` | 同上 | 同上 | < 200 |
+| `trapmap_runtime_executions_total` | `dependency_name`, `failure_classification`, `service_name`, `owner_surface`, `route_family` | 依赖名称（代码中注册的有限依赖）、失败分类（4 种：success/timeout/retryable-async-failure/permanent-failure） | < 100 |
+| `trapmap_runtime_retries_total` | `dependency_name`, `service_name`, `owner_surface` | 同上 | < 50 |
+| `trapmap_runtime_db_operations_total` | `service_name`, `operation`, `outcome`, `owner_surface` | 操作类型（有限枚举，如 insert/update/select/delete）、结果（2 种：success/failure） | < 50 |
+| `trapmap_runtime_db_operation_duration_ms` | 同上 | 同上 | < 50 |
+| `trapmap_async_queue_backlog` | `dependency_name`, `service_name` | 依赖名称（有限枚举） | < 20 |
+| `trapmap_async_outbox_backlog` | `dependency_name`, `service_name` | 同上 | < 20 |
+| `trapmap_async_stale_workers` | `dependency_name`, `service_name` | 同上 | < 20 |
+| `trapmap_async_queue_operations_total` | `service_name`, `queue_kind`, `operation`, `outcome`, `owner_surface` | 队列类型（2 种：task/outbox）、操作（4 种：enqueue/claim/complete/fail）、结果（2 种） | < 50 |
+| `trapmap_async_queue_operation_duration_ms` | 同上 | 同上 | < 50 |
+| `trapmap_runtime_internal_hops_total` | `service_name`, `target_service`, `transport`, `status_class`, `owner_surface` | 传输方式（2 种：http/rpc）、目标服务（部署实例数） | < 100 |
+| `trapmap_runtime_internal_hop_duration_ms` | 同上 | 同上 | < 100 |
+
+### Host-Local Metrics（`packages/host-local/src/nest/observability/prometheus.service.ts`）
+
+| 指标 | 标签 | 基数来源 | 预估上限 |
+|------|------|---------|---------|
+| `trapmap_http_requests_total` | `method`, `route`, `status_code` | HTTP 方法（~7 种）、路由模式（使用参数化路径如 `/candidates/:id`，非原始 URL）、状态码（有限枚举） | < 100 |
+| `trapmap_http_request_duration_seconds` | `method`, `route` | 同上（不含 status_code） | < 50 |
+| `trapmap_active_connections` | 无 | 无标签 | 1 |
+
+### 安全确认
+
+- **无高基数风险**：所有标签值均为有限枚举（HTTP 方法、状态类、服务名、依赖名、操作类型等），不存在动态生成的 ID 或原始 URL 路径
+- `route` 标签使用参数化路径模板（如 `/candidates/:id`）而非实际 URL，避免路径参数爆炸
+- `dependency_name` 来自代码中显式注册的依赖列表，不会无限增长
+- `owner_surface` 当前为固定值 `runtime-seam`，基数为 1
+
+### 注意事项
+
+- 如果未来新增指标，需在此表中登记标签定义与预估基数
+- Prometheus 默认 `max_samples_per_scrape` 为 5000 万；按当前标签设计，单实例 scrape 数据量远低于此限制
+- 如 `dependency_name` 或 `route_family` 的枚举值增长超过 100，应重新评估是否需要聚合
+
 ## 非目标
 
 当前阶段明确不做：
