@@ -30,6 +30,10 @@ function readComplexityBudgets(): ComplexityBudgets {
   ) as ComplexityBudgets;
 }
 
+function readDoc(relativePath: string): string {
+  return readFileSync(resolve(repoRoot, relativePath), 'utf-8');
+}
+
 describe('closeout surface guardrails', () => {
   it('defines dedicated closeout command entrypoints', () => {
     const pkg = readPackageJson();
@@ -38,6 +42,7 @@ describe('closeout surface guardrails', () => {
       'test:observability-closeout': expect.any(String),
       'test:discovery-closeout': expect.any(String),
       'test:distributed-closeout': expect.any(String),
+      'test:observability-benchmark': expect.any(String),
     });
   });
 
@@ -72,5 +77,24 @@ describe('closeout surface guardrails', () => {
         '状态：`收口中`',
       ]),
     );
+  });
+
+  it('guards observability verification and regression docs against stale closeout facts', () => {
+    const verificationDoc = readDoc('docs/operations/OBSERVABILITY-VERIFICATION.md');
+    const regressionDoc = readDoc('docs/operations/REGRESSION-COMMANDS.md');
+    const deploymentDoc = readDoc('docs/architecture/DEPLOYMENT.md');
+
+    expect(verificationDoc).toContain('http://127.0.0.1:4000/metrics');
+    expect(verificationDoc).toContain('TRAPMAP_LOKI_URL');
+    expect(verificationDoc).toContain('CONSUL_ENABLED=true');
+    expect(verificationDoc).toContain('CONSUL_HOST');
+    expect(verificationDoc).toContain('CONSUL_PORT');
+    expect(verificationDoc).not.toContain('http://localhost:3000/metrics');
+    expect(verificationDoc).not.toContain('LOKI_HOST');
+
+    expect(regressionDoc).toContain('grep -i traceparent');
+    expect(regressionDoc).not.toContain('grep X-Trace-Id');
+
+    expect(deploymentDoc).not.toContain('当前未内置 `/metrics` 端点');
   });
 });

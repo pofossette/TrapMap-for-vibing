@@ -1,11 +1,6 @@
-import { randomUUID } from 'node:crypto';
-
 import type {
-  AuditLogEntry,
-  AuditLogPort,
   PermissionCheckPort,
   QueuePorts,
-  ResolvedAuthContext,
   ResolvedSession,
   RetrievalQueryPort,
   SessionLookupPort,
@@ -15,10 +10,10 @@ import type { Permission } from '@trapmap/contracts';
 import { createKnowledgeReadRetrievalQuery } from '@trapmap/service-knowledge-read';
 import type { FastifyRequest } from 'fastify';
 
-import { loadHostLocalConfig } from "@trapmap/host-local/nest/config/index.js";
+import { loadHostLocalConfig } from '../config/index.js';
+import { createAuditLogPort, createQueuePorts } from './backend-core-adapters.js';
 import { createHostLocalServices, type HostLocalServices } from './host-services.js';
 import { resolveHostLocalAuthContext } from './auth-context.js';
-import { nowIso } from './now-iso.js';
 import { resolveEffectivePermissions } from './permissions.js';
 
 export const HOST_LOCAL_RUNTIME_TOKEN = 'HOST_LOCAL_RUNTIME';
@@ -29,7 +24,7 @@ export interface HostLocalRuntime {
   sessionLookup: SessionLookupPort;
   teamLookup: TeamLookupPort;
   permissionCheck: PermissionCheckPort;
-  auditLog: AuditLogPort;
+  auditLog: ReturnType<typeof createAuditLogPort>;
   queuePorts: QueuePorts;
 }
 
@@ -91,92 +86,10 @@ function createPermissionCheck(services: HostLocalServices): PermissionCheckPort
   };
 }
 
-function createAuditLog(services: HostLocalServices): AuditLogPort {
-  return {
-    async record(entry: AuditLogEntry): Promise<void> {
-      const id = await services.repos.audit.nextId();
-      await services.repos.audit.insert({
-        id,
-        teamId: entry.teamId ?? null,
-        actorId: entry.actorId,
-        action: entry.action,
-        entityId: entry.entityId ?? '',
-        payload: entry.metadata ?? {},
-        createdAt: entry.timestamp ?? nowIso(),
-        updatedAt: entry.timestamp ?? nowIso(),
-      });
-    },
-    async query(filter) {
-      const result = await services.repos.audit.listByFilter(filter);
-      return {
-        total: result.total,
-        items: result.items.map((item) => ({
-          action: item.action,
-          actorId: item.actorId,
-          entityId: item.entityId,
-          teamId: item.teamId ?? undefined,
-          metadata: item.payload,
-          timestamp: item.createdAt,
-        })),
-      };
-    },
-  };
-}
-
-function createQueuePorts(services: HostLocalServices): QueuePorts {
-  if (services.asyncTransport) {
-    return {
-      task: services.asyncTransport.task,
-      outbox: services.asyncTransport.events,
-    };
-  }
-
-  return {
-    task: {
-      kind: 'postgres-task-queue',
-      async enqueue() {
-        return `job_${randomUUID()}`;
-      },
-      async requeue() {},
-      async getStatusSnapshot() {
-        return {
-          provider: 'postgres',
-          pending: 0,
-          running: 0,
-          dead: 0,
-          staleRunning: 0,
-          reclaimCount: 0,
-        };
-      },
-    },
-    outbox: {
-      kind: 'postgres-domain-outbox',
-      async enqueue() {
-        return `evt_${randomUUID()}`;
-      },
-      async claimBatch() {
-        return [];
-      },
-      async complete() {},
-      async fail() {},
-      async getStatusSnapshot() {
-        return {
-          provider: 'postgres',
-          pending: 0,
-          processing: 0,
-          failed: 0,
-          staleProcessing: 0,
-          reclaimCount: 0,
-        };
-      },
-    },
-  };
-}
-
 function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
   return createKnowledgeReadRetrievalQuery({
-    services,
-    resolveAuthContext(params): ResolvedAuthContext {
+    services: services as unknown as Parameters<typeof createKnowledgeReadRetrievalQuery>[0]['services'],
+    resolveAuthContext(params) {
       return {
         subjectType: 'system-admin',
         actorId: 'nest-light-runtime',
@@ -203,8 +116,8 @@ export async function createHostLocalRuntime(): Promise<HostLocalRuntime> {
     sessionLookup: createSessionLookup(services),
     teamLookup: createTeamLookup(services),
     permissionCheck: createPermissionCheck(services),
-    auditLog: createAuditLog(services),
-    queuePorts: createQueuePorts(services),
+    auditLog: createAuditLogPort(services.repos),
+    queuePorts: createQueuePorts(services.asyncTransport),
   };
 
   return runtime;

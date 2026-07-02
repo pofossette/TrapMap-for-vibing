@@ -159,10 +159,10 @@ export function loadConfig(): HostLocalConfig {
     | 'governance-worker'
     | 'outbox-worker'
     | undefined;
-  const deploymentCompatibilityInput =
-    deploymentProfile === undefined
-      ? { preset: deploymentPreset }
-      : { profile: deploymentProfile, preset: deploymentPreset };
+  const deploymentCompatibilityInput = {
+    profile: deploymentProfile,
+    preset: deploymentPreset,
+  };
 
   const rawConfig = {
     dataFile: path.resolve(
@@ -234,7 +234,7 @@ export function loadConfig(): HostLocalConfig {
   return result.data as HostLocalConfig;
 }
 
-function buildConfigFingerprint(config: HostLocalConfig): string {
+export function buildConfigFingerprint(config: HostLocalConfig): string {
   return createHash('sha256')
     .update(
       JSON.stringify({

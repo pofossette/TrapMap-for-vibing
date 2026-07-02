@@ -60,6 +60,7 @@
 
 - [ ] 修改后优先运行与改动直接相关的最小验证集合，不默认跑根级全量 `pnpm test`
 - [ ] 涉及 runtime/profile/route surface、部署默认值、健康检查或服务发现链路时，补跑对应 smoke / closeout，例如 `rtk pnpm test:deployment-smoke`、`rtk pnpm test:runtime-foundations`、`rtk pnpm test:observability-closeout`、`rtk pnpm test:discovery-closeout`、`rtk pnpm test:distributed-closeout`
+- [ ] 若本轮目标涉及 Phase 4 性能基线收口，补跑 `rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000` 并记录输出
 - [ ] 涉及检索、摘要、治理、feedback、fixtures、eval runner 的改动，至少补跑 `rtk pnpm eval:smoke`
 - [ ] 文档、入口、结构规则变更完成后，至少补跑 `rtk pnpm check:docs-drift` 和 `rtk pnpm check:structure`
 - [ ] 涉及跨包导入路径变更或新增包时，补跑 `rtk pnpm exec fallow audit --base main`
@@ -119,7 +120,7 @@
 
 - [ ] 状态：`收口中`
 - [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#9-phase-4-跨阶段回归与基准`](docs/todos/service-discovery-and-observability-plan.md#9-phase-4-跨阶段回归与基准)
-- [ ] 目标：跨链路 E2E、恢复证据与部署 smoke 已收敛到 closeout 命令，剩余性能基线与目标环境验收
+- [ ] 目标：跨链路 E2E、恢复证据与部署 smoke 已收敛到 closeout 命令，剩余 `test:observability-benchmark` 性能基线与目标环境 Consul 验收
 
 ### Phase 5 文档与交付收口
 

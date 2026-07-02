@@ -1,261 +1,200 @@
 # Observability Chain Verification
 
-This document describes the four observability signals in TrapMap and provides step-by-step verification for confirming they work together on a single request.
+本文档提供 TrapMap 当前服务发现与可观测性 closeout 的最小执行路径。所有示例都以当前默认 gateway `http://127.0.0.1:4000` 为准。
 
 ---
 
-## The Four Observability Signals
+## 1. 前置条件
 
-Every HTTP request through the TrapMap NestJS gateway produces four correlated signals:
+### 本地最小路径
 
-| Signal | Key Fields | Storage / Export |
-|--------|------------|-----------------|
-| **Request ID** | `requestId` (UUID) | Response header (`x-request-id`), structured logs |
-| **Trace ID** | `traceId` (from `traceparent`) | Response header (`traceparent`), structured logs, Tempo |
-| **Metrics** | `trapmap_http_requests_total`, `trapmap_http_request_duration_seconds` | Prometheus `/metrics` endpoint |
-| **Structured Logs** | method, url, status, duration, requestId, traceId | stdout (JSON), Loki (when configured) |
-
-### How They Connect
-
+```bash
+rtk pnpm --filter @trapmap/host-local start
 ```
-Incoming Request
-  |
-  v
-RequestContextMiddleware          (request-context.middleware.ts)
-  - extracts requestId from x-request-id header (or generates UUID)
-  - extracts traceId from traceparent header
-  - stores both in AsyncLocalStorage
-  - echoes both back as response headers
-  |
-  v
-LoggingMiddleware                 (logging.middleware.ts)
-  - on response finish, reads requestId + traceId from AsyncLocalStorage
-  - logs: "GET /v1/traps 200 42ms [req-abc] [trace-xyz]"
-  |
-  v
-LokiService                       (loki.service.ts)
-  - receives log via NestJS Logger
-  - builds LogEntry with requestId, traceId in body
-  - builds Loki labels via buildLokiLabels() (low-cardinality only)
-  - sends to Loki or falls back to stdout
-  |
-  v
-PrometheusService                  (prometheus.service.ts)
-  - records trapmap_http_requests_total{method, route, status}
-  - records trapmap_http_request_duration_seconds{method, route}
-  - exposed at GET /metrics
-  |
-  v
-OtelService + TracingPortAdapter   (otel.service.ts, tracing-port.adapter.ts)
-  - OTel SDK exports spans to OTLP endpoint (Tempo)
-  - traceId links logs to traces
+
+### 本地完整可观测性路径
+
+```bash
+rtk docker compose -f docker-compose.observability.yml up -d
+rtk pnpm --filter @trapmap/host-local start
 ```
+
+启用 Loki / Consul 时，当前有效配置名为：
+
+- `TRAPMAP_LOKI_ENABLED=true`
+- `TRAPMAP_LOKI_URL=http://127.0.0.1:3100/loki/api/v1/push`
+- `CONSUL_ENABLED=true`
+- `CONSUL_HOST=127.0.0.1`
+- `CONSUL_PORT=8500`
 
 ---
 
-## Verification Steps
+## 2. 四条关联信号
 
-### Prerequisites
+单次 HTTP 请求当前至少应留下四条可关联信号：
 
-Start the TrapMap server (NestJS host-local):
+| Signal | Key Fields | Surface |
+|--------|------------|---------|
+| Request ID | `x-request-id` | 响应头、结构化日志 |
+| Trace ID | `traceparent` / `traceId` | 响应头、结构化日志、Tempo |
+| Metrics | `trapmap_http_requests_total` / `trapmap_http_request_duration_seconds` | `/metrics` |
+| Structured Logs | method / url / status / requestId / traceId | stdout，启用 Loki 时同步可查 |
+
+---
+
+## 3. 本地 closeout 演示链路
+
+### Metrics
 
 ```bash
-pnpm --filter @trapmap/host-local start
+curl -s http://127.0.0.1:4000/metrics | grep trapmap_http_requests_total
+curl -s http://127.0.0.1:4000/metrics | grep trapmap_http_request_duration_seconds
+curl -s http://127.0.0.1:4000/metrics | grep trapmap_active_connections
 ```
 
-Or with the full observability stack (Prometheus, Grafana, Loki, Tempo):
+预期：
+
+- 至少存在一条 `trapmap_http_requests_total`
+- 至少存在一组 `trapmap_http_request_duration_seconds_*`
+- 存在 `trapmap_active_connections`
+
+### Tracing / Request Correlation
 
 ```bash
-docker compose --profile dev-observability up -d
-pnpm --filter @trapmap/host-local start
-```
-
-### 1. Metrics
-
-Verify the Prometheus scrape endpoint serves request counters and histograms.
-
-```bash
-# Scrape metrics
-curl -s http://localhost:3000/metrics | grep trapmap_http_requests_total
-```
-
-**Expected**: A line like `trapmap_http_requests_total{method="GET",route="/health",status="200"} 1`.
-
-```bash
-# Verify histogram metric exists
-curl -s http://localhost:3000/metrics | grep trapmap_http_request_duration_seconds
-```
-
-**Expected**: Multiple `_bucket`, `_sum`, `_count` lines for `trapmap_http_request_duration_seconds`.
-
-```bash
-# Verify active connections gauge
-curl -s http://localhost:3000/metrics | grep trapmap_active_connections
-```
-
-**Expected**: A `trapmap_active_connections` gauge line.
-
-### 2. Tracing (Request ID + Trace ID)
-
-Send a request with a `traceparent` header and verify both IDs are echoed back.
-
-```bash
-# Send request with traceparent
 curl -s -D - \
   -H "x-request-id: test-req-001" \
   -H "traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01" \
-  http://localhost:3000/health
+  http://127.0.0.1:4000/health
 ```
 
-**Expected**: Response headers contain:
+预期响应头包含：
+
 - `x-request-id: test-req-001`
 - `traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01`
 
-```bash
-# Verify requestId is generated when header is missing
-curl -s -D - http://localhost:3000/live
-```
-
-**Expected**: Response headers contain an `x-request-id` header with a UUID value.
-
-### 3. Structured Logging
-
-Send a request and check the stdout log output for all required fields.
+### Structured Logging
 
 ```bash
-# Send a request (server stdout shows the log)
-curl -s http://localhost:3000/health > /dev/null
+curl -s http://127.0.0.1:4000/health > /dev/null
 ```
 
-**Expected** log line (in server stdout):
-```
-[INFO] GET /health 200 <N>ms [<requestId>] [<traceId>]
-```
+预期 server stdout 出现一条结构化日志，对应本次请求，并包含 `requestId` 与 `traceId`。
 
-Fields present:
-- `method` (GET, POST, etc.)
-- `url` (/health, /v1/traps, etc.)
-- `statusCode` (200, 404, 500, etc.)
-- `duration` (in ms)
-- `[requestId]` (UUID or forwarded value)
-- `[traceId]` (from traceparent header, or `-` if absent)
-
-When Loki is configured (`LOKI_HOST` env var), logs are also shipped as structured JSON with Loki labels `{service, environment, level}`.
-
-### 4. Service Discovery (Consul)
-
-When Consul is enabled (`CONSUL_ENABLED=true`, `CONSUL_HOST` / `CONSUL_PORT` set):
+### Full Chain
 
 ```bash
-# List registered services
-curl -s http://localhost:8500/v1/catalog/services | jq .
+curl -s http://127.0.0.1:4000/metrics | grep trapmap_http_requests_total > /tmp/metrics-before.txt
 
-# Get TrapMap service details
-curl -s http://localhost:8500/v1/catalog/service/trapmap | jq .
-```
-
-**Expected**: TrapMap appears in the Consul service catalog with a passing health check.
-
-When Consul is not enabled (default `local-agent` profile), service discovery is skipped. This is normal for local development.
-
-### 5. Full Chain Verification (Single Request)
-
-This is the definitive test that all four signals work together:
-
-```bash
-# Step 1: Record current metrics state
-curl -s http://localhost:3000/metrics | grep trapmap_http_requests_total > /tmp/metrics_before.txt
-
-# Step 2: Send a request with all headers
 curl -s -D /tmp/headers.txt \
   -H "x-request-id: chain-test-001" \
   -H "traceparent: 00-abcdef1234567890abcdef1234567890-1234567890abcdef-01" \
-  http://localhost:3000/health > /tmp/body.json
+  http://127.0.0.1:4000/health > /tmp/body.json
 
-# Step 3: Verify response headers
-echo "=== Response Headers ==="
 cat /tmp/headers.txt | grep -i 'x-request-id\|traceparent'
-
-# Step 4: Verify metrics incremented
-echo "=== Metrics After ==="
-curl -s http://localhost:3000/metrics | grep trapmap_http_requests_total > /tmp/metrics_after.txt
-diff /tmp/metrics_before.txt /tmp/metrics_after.txt
-
-# Step 5: Verify structured log (check server stdout)
-echo "=== Check server stdout for log line containing [chain-test-001] and [abcdef1234567890] ==="
+curl -s http://127.0.0.1:4000/metrics | grep trapmap_http_requests_total > /tmp/metrics-after.txt
+diff /tmp/metrics-before.txt /tmp/metrics-after.txt
 ```
 
-**Expected outcome**:
-1. Response headers echo back `x-request-id: chain-test-001` and the `traceparent` value
-2. Metrics show incremented counter for `method="GET",route="/health",status="200"`
-3. Server stdout contains a log line with `chain-test-001` and `abcdef1234567890`
-4. All three are correlated through the same requestId and traceId
+预期：
+
+1. 响应头回显 `x-request-id` 与 `traceparent`
+2. `trapmap_http_requests_total` 发生增量
+3. stdout 日志能用 `chain-test-001` / trace id 片段定位
 
 ---
 
-## Loki / Tempo Query Examples
+## 4. Loki / Tempo 查询
 
-### Loki: Search Logs by Trace ID
+### Loki
 
-```
+按 trace id 查询：
+
+```text
 {service="trapmap"} | json | traceId="4bf92f3577b34da6a3ce929d0e0e4736"
 ```
 
-### Loki: Search Logs by Request ID
+按 request id 查询：
 
-```
+```text
 {service="trapmap"} | json | requestId="test-req-001"
 ```
 
-### Loki: Filter by Log Level
+### Tempo
 
-```
-{service="trapmap", level="error"}
-```
+在 Grafana Explore 中选择 Tempo datasource，直接查询 trace id：
 
-### Loki: All Logs for a Route
-
-```
-{service="trapmap"} | json | context="GET /v1/traps"
-```
-
-### Tempo: Find Trace by ID
-
-In Grafana Explore, select the Tempo datasource and query:
-
-```
+```text
 4bf92f3577b34da6a3ce929d0e0e4736
 ```
 
-This returns the full trace with spans, which can be correlated to Loki logs via the traceId.
+---
+
+## 5. Consul 目标环境验收
+
+本项仍是 active plan 未关闭 blocker。当前 runbook 只冻结最小验收步骤，不把 KV、Federation、多集群纳入本轮。
+
+前置条件：
+
+- `CONSUL_ENABLED=true`
+- `CONSUL_HOST=<host>`
+- `CONSUL_PORT=<port>`
+- 目标环境中的 TrapMap 实例已启动并启用服务注册
+
+执行步骤：
+
+```bash
+curl -s http://127.0.0.1:8500/v1/catalog/services | jq .
+curl -s http://127.0.0.1:8500/v1/catalog/service/trapmap | jq .
+curl -s http://127.0.0.1:8500/v1/health/checks/trapmap | jq .
+```
+
+通过判据：
+
+1. `catalog/services` 中存在 `trapmap`
+2. `catalog/service/trapmap` 返回至少一个实例
+3. 健康检查状态为 passing
+4. 停止实例后，catalog/health 能观察到注销或失效
 
 ---
 
-## Grafana Dashboard
+## 6. 性能基线
 
-The pre-provisioned dashboard is at:
+本轮 Phase 4 只冻结最小 closeout 基线：`GET /health`、`GET /metrics` 延迟，以及 `/metrics` 中的进程内存指标。
 
+执行命令：
+
+```bash
+rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
 ```
-config/grafana/provisioning/dashboards/trapmap-overview.json
-```
 
-It is auto-loaded by Grafana when the `dev-observability` profile is running. The dashboard panels include:
+默认行为：
 
-- Request rate (from `trapmap_http_requests_total`)
-- Request latency percentiles (from `trapmap_http_request_duration_seconds`)
-- Active connections (from `trapmap_active_connections`)
-- Error rate breakdown by status code
+- warmup 5 次
+- 正式采样 15 次
+- 输出 `/health` 与 `/metrics` 的 `avg / p50 / p95 / min / max`
+- 读取 `process_resident_memory_bytes`、`nodejs_heap_size_used_bytes`、`nodejs_heap_size_total_bytes`
+
+建议收口方式：
+
+- 同一环境至少执行 3 轮，记录 p50 / p95
+- 若要对比 `dev-observability` 与目标环境，保持相同 `--iterations`
+- 本轮只要求“有固定命令与固定输出”，不要求预设硬阈值
 
 ---
 
-## Test Coverage
+## 7. 自动化入口
 
-The observability chain is verified by unit tests at multiple levels:
+当前 closeout 自动化入口：
 
-| Test File | What It Covers |
-|-----------|---------------|
-| `packages/contracts/src/domain/log-schema.test.ts` | `logEntrySchema` validation, `buildLokiLabels()` low-cardinality enforcement, `formatLogForStdout()` JSON output |
-| `packages/host-local/src/nest/runtime/request-context.test.ts` | `extractRequestContext()` header parsing, `RequestContextService` AsyncLocalStorage propagation |
-| `packages/host-local/src/nest/observability/prometheus.service.test.ts` | `PrometheusService` metric registration, counter/histogram/gauge operations |
-| `packages/host-local/src/nest/observability/metrics-port.adapter.test.ts` | `MetricsPortAdapter` bridge to prom-client |
-| `packages/host-local/src/nest/observability/observability-chain.test.ts` | End-to-end signal chain: request context extraction, ALS propagation, structured logging format, Loki label correctness, correlation of all four signals through a single request lifecycle |
+- `rtk pnpm test:observability-closeout`
+- `rtk pnpm test:observability-benchmark`
+- `rtk pnpm test:discovery-closeout`
+- `rtk pnpm test:distributed-closeout`
+- `rtk pnpm test:runtime-foundations`
+- `rtk pnpm test:deployment-smoke`
+
+其中：
+
+- `test:observability-closeout` 负责探针、header、metrics、日志关联链路
+- `test:observability-benchmark` 负责性能基线记录入口
+- 目标环境 Consul 验收仍需人工或半人工执行证据，不能用本地单测替代

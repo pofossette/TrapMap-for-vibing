@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { createRequire } from 'node:module';
 import type { TracingPort, SpanHandle } from '@trapmap/backend-core';
-import { OtelService } from './otel.service.js';
+
+const require = createRequire(import.meta.url);
 
 /**
  * No-op {@link SpanHandle} returned when OTel is not initialized.
@@ -30,8 +32,6 @@ export class TracingPortAdapter implements TracingPort {
   private otelApi: typeof import('@opentelemetry/api') | null = null;
   private loadAttempted = false;
 
-  constructor(private readonly otelService: OtelService) {}
-
   startSpan(name: string, attributes?: Record<string, string>): SpanHandle {
     const api = this.getOtelApi();
     if (!api) {
@@ -41,7 +41,14 @@ export class TracingPortAdapter implements TracingPort {
     try {
       const tracer = api.trace.getTracer('trapmap-host-local');
       const span = tracer.startSpan(name, {
-        attributes: attributes as Record<string, api.AttributeValue> | undefined,
+        ...(attributes
+          ? {
+              attributes: attributes as Record<
+                string,
+                import('@opentelemetry/api').AttributeValue
+              >,
+            }
+          : {}),
       });
 
       return {

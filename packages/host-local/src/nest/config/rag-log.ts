@@ -55,7 +55,7 @@ function formatDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-async function logRagRetrieval(config: RagLogConfig, entry: RagLogEntry): Promise<void> {
+export async function logRagRetrieval(config: RagLogConfig, entry: RagLogEntry): Promise<void> {
   if (!config.enabled) {
     return;
   }

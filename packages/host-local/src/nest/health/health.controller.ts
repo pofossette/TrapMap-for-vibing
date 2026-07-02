@@ -36,10 +36,7 @@ export class HealthController {
       'TRAPMAP_DEPLOYMENT_PROFILE',
       'local-agent',
     );
-    const preset = this.config.get<string>(
-      'TRAPMAP_DEPLOYMENT_PRESET',
-      undefined,
-    );
+    const preset = this.config.get<string | undefined>('TRAPMAP_DEPLOYMENT_PRESET');
 
     const hasUnhealthy = dependencies.some((d) => d.status === 'unhealthy');
     const hasDegraded = dependencies.some((d) => d.status === 'degraded');
@@ -137,4 +134,3 @@ export class HealthController {
     }));
   }
 }
-

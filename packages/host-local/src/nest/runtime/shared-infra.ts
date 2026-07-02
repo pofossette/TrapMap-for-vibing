@@ -3,12 +3,12 @@ import {
   type RuntimeInfraShared,
 } from '@trapmap/runtime-infra';
 
-import type { HostLocalConfig } from "@trapmap/host-local/nest/config/index.js";
+import type { HostLocalConfig } from '../config/index.js';
 
 export type HostLocalSharedInfra = RuntimeInfraShared;
 
 export type HostLocalStore = HostLocalSharedInfra['store'];
-export type HostLocalAsyncTransport = HostLocalSharedInfra['asyncTransport'];
+export type HostLocalAsyncTransport = NonNullable<HostLocalSharedInfra['asyncTransport']>;
 export type HostLocalAdapterRegistry = HostLocalSharedInfra['adapterRegistry'];
 export type HostLocalAiProviders = HostLocalSharedInfra['ai'];
 export type HostLocalRepos = HostLocalSharedInfra['repos'];

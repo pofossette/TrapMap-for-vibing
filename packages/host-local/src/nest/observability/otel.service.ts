@@ -34,13 +34,13 @@ export class OtelService implements OnModuleInit, OnApplicationShutdown {
     try {
       // Dynamic imports to avoid loading OTel when disabled
       const { NodeSDK } = await import('@opentelemetry/sdk-node');
-      const { Resource } = await import('@opentelemetry/resources');
+      const { resourceFromAttributes } = await import('@opentelemetry/resources');
       const {
         ATTR_SERVICE_NAME,
         ATTR_SERVICE_VERSION,
       } = await import('@opentelemetry/semantic-conventions');
 
-      const resource = new Resource({
+      const resource = resourceFromAttributes({
         [ATTR_SERVICE_NAME]: serviceName,
         [ATTR_SERVICE_VERSION]: serviceVersion,
       });

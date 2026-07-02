@@ -1,16 +1,22 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": ".",
+    "rootDir": "src",
     "outDir": "dist",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "include": ["src/index.ts"],
-  "exclude": ["src/**/*.test.ts", "src/nest/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "exclude": ["src/**/*.test.ts"],
   "references": [
     { "path": "../backend-core" },
     { "path": "../contracts" },
-    { "path": "../runtime-infra" }
+    { "path": "../runtime-infra" },
+    { "path": "../service-identity-access" },
+    { "path": "../service-candidate-ingestion" },
+    { "path": "../service-governance-review" },
+    { "path": "../service-job-runtime" },
+    { "path": "../service-knowledge-read" },
+    { "path": "../service-knowledge-write" }
   ]
 }

@@ -47,7 +47,7 @@ export class LokiService implements LoggerService, OnModuleInit {
 
     try {
       const winston = await import('winston');
-      const { LokiTransport } = await import('winston-loki');
+      const LokiTransport = (await import('winston-loki')).default;
 
       this.winstonLogger = winston.createLogger({
         level: this.config.get<string>('LOG_LEVEL', 'info'),

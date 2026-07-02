@@ -67,9 +67,9 @@ export class LifecycleManagerService
     }> = [];
 
     const phaseLogger: LifecycleLogger = {
-      info: (msg, ctx) => this.logger.log(`[${phase}] ${msg}`),
-      warn: (msg, ctx) => this.logger.warn(`[${phase}] ${msg}`),
-      error: (msg, ctx) => this.logger.error(`[${phase}] ${msg}`),
+      info: (msg) => this.logger.log(`[${phase}] ${msg}`),
+      warn: (msg) => this.logger.warn(`[${phase}] ${msg}`),
+      error: (msg) => this.logger.error(`[${phase}] ${msg}`),
     };
 
     const hookContext: LifecycleContext = {

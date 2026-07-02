@@ -14,6 +14,7 @@ rtk pnpm --filter @trapmap/host-local test --run
 
 ```bash
 rtk pnpm test:observability-closeout
+rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
 rtk pnpm test:discovery-closeout
 rtk pnpm test:distributed-closeout
 rtk pnpm test:runtime-foundations
@@ -52,8 +53,13 @@ curl http://localhost:4000/health | jq .status
 curl http://localhost:4000/metrics | head -20
 
 # 验证追踪（传入 traceparent header）
-curl -H "traceparent: 00-abc123-def456-01" http://localhost:4000/health
+curl -s -D /tmp/trapmap-trace-headers.txt \
+  -H "traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01" \
+  http://localhost:4000/health -o /dev/null
 
-# 检查 X-Trace-Id header
-curl -v http://localhost:4000/health 2>&1 | grep X-Trace-Id
+# 检查 traceparent header
+grep -i traceparent /tmp/trapmap-trace-headers.txt
+
+# 记录 observability 性能基线
+rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
 ```

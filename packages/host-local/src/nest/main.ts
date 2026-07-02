@@ -4,13 +4,10 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 
 import { AppModule } from './app.module.js';
+import type { NestBootstrapOptions } from './resolve-listen-options.js';
+import { resolveListenOptions } from './resolve-listen-options.js';
 import { AllExceptionFilter } from './runtime/exception.filter.js';
 import { RequestContextService } from './runtime/request-context.service.js';
-
-export interface NestBootstrapOptions {
-  host?: string;
-  port?: number;
-}
 
 export interface NestBootstrapResult {
   app: NestFastifyApplication;
@@ -37,8 +34,7 @@ export async function bootstrapNest(
 
   app.useGlobalFilters(new AllExceptionFilter(requestContext));
 
-  const port = options.port ?? Number(process.env.PORT) || 4000;
-  const host = options.host ?? process.env.HOST ?? '0.0.0.0';
+  const { port, host } = resolveListenOptions(options);
 
   await app.listen(port, host);
 

@@ -225,6 +225,7 @@ deployment flexibility 相关改动至少回归：
 
 ```bash
 pnpm test:observability-closeout
+pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
 pnpm test:discovery-closeout
 pnpm test:distributed-closeout
 pnpm test:deployment-smoke

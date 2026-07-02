@@ -288,6 +288,9 @@ rtk pnpm eval:retrieval:live:compare \
 # host-local observability closeout: readiness/liveness probes + request/trace/metrics/log chain
 pnpm test:observability-closeout
 
+# fixed latency/memory baseline for /health and /metrics
+pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
+
 # service discovery closeout: consul adapter, dynamic resolver, cache, round-robin fallback
 pnpm test:discovery-closeout
 

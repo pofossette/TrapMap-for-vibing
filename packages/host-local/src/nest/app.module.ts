@@ -2,13 +2,12 @@ import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common
 import { ConfigModule } from '@nestjs/config';
 import { createCandidateIngestionDeps } from '@trapmap/service-candidate-ingestion';
 import { createGovernanceReviewDeps } from '@trapmap/service-governance-review';
-import { createIdentityAccessDeps } from '@trapmap/service-identity-access';
 import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
-import { createKnowledgeReadDeps } from '@trapmap/service-knowledge-read';
 import { createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';
+import { createJobRuntimeModule, createKnowledgeWriteModule } from '@trapmap/backend-core';
 
 import { HOST_LOCAL_CONFIG_TOKEN, loadHostLocalConfig } from './config/index.js';
-import { GatewayModule } from './gateway/gateway.module.js';
+import { GatewayModule, GatewayRuntimeModule } from './gateway/gateway.module.js';
 import { CandidateIngestionModule } from './candidate-ingestion/candidate-ingestion.module.js';
 import { GovernanceReviewModule } from './governance-review/governance-review.module.js';
 import { IdentityAccessModule } from './identity-access/identity-access.module.js';
@@ -21,6 +20,11 @@ import { OtelModule, PrometheusModule, LokiModule } from './observability/index.
 import { HealthModule } from './health/index.js';
 import { LifecycleModule } from './lifecycle/index.js';
 import { createHostLocalRuntime, HOST_LOCAL_RUNTIME_TOKEN } from './runtime/host-runtime.js';
+import {
+  createFeedbackRepoPort,
+  createIdentityAccessRepos,
+  createKnowledgeRepoPort,
+} from './runtime/backend-core-adapters.js';
 import { RequestContextMiddleware } from './runtime/request-context.middleware.js';
 import { RequestContextService } from './runtime/request-context.service.js';
 
@@ -40,63 +44,60 @@ import { RequestContextService } from './runtime/request-context.service.js';
  *   module graph.
  */
 const hostLocalRuntime = await createHostLocalRuntime();
+const identityAccessRepos = createIdentityAccessRepos(hostLocalRuntime.services.repos);
+const knowledgeRepoPort = createKnowledgeRepoPort(hostLocalRuntime.services.repos.knowledge);
 
 const identityAccessModule = IdentityAccessModule.forDeps(
-  createIdentityAccessDeps({
-    sessionRepo: hostLocalRuntime.services.repos.session,
-    accessKeyRepo: hostLocalRuntime.services.repos.accessKey,
-    teamRepo: hostLocalRuntime.services.repos.team,
-    membershipRepo: hostLocalRuntime.services.repos.membership,
-    userRepo: hostLocalRuntime.services.repos.user,
+  {
+    sessionRepo: identityAccessRepos.sessionRepo,
+    accessKeyRepo: identityAccessRepos.accessKeyRepo,
+    teamRepo: identityAccessRepos.teamRepo,
+    membershipRepo: identityAccessRepos.membershipRepo,
+    userRepo: identityAccessRepos.userRepo,
     sessionLookup: hostLocalRuntime.sessionLookup,
     teamLookup: hostLocalRuntime.teamLookup,
     permissionCheck: hostLocalRuntime.permissionCheck,
     auditLog: hostLocalRuntime.auditLog,
-  }),
+  },
 );
 
 const knowledgeReadModule = KnowledgeReadModule.forDeps(
-  createKnowledgeReadDeps({
-    knowledgeRepo: {
-      getById: hostLocalRuntime.services.repos.knowledge.getById.bind(
-        hostLocalRuntime.services.repos.knowledge,
-      ),
-      listByFilter: hostLocalRuntime.services.repos.knowledge.listByFilter.bind(
-        hostLocalRuntime.services.repos.knowledge,
-      ),
-    },
+  {
+    knowledgeRepo: knowledgeRepoPort,
     retrievalQuery: hostLocalRuntime.retrievalQuery,
-  }),
+  },
 );
 
-const knowledgeWriteModule = KnowledgeWriteModule.forDeps(
+const knowledgeWritePort = createKnowledgeWriteModule(
   createKnowledgeWriteDeps({
-    knowledgeRepo: hostLocalRuntime.services.repos.knowledge,
+    knowledgeRepo: knowledgeRepoPort,
     auditLog: hostLocalRuntime.auditLog,
   }),
 );
+const knowledgeWriteModule = KnowledgeWriteModule.forTesting(knowledgeWritePort);
 
 const governanceReviewModule = GovernanceReviewModule.forDeps(
   createGovernanceReviewDeps({
-    knowledgeWrite: knowledgeWriteModule.providers[0].useValue,
-    feedbackRepo: hostLocalRuntime.services.repos.feedback,
+    knowledgeWrite: knowledgeWritePort,
+    feedbackRepo: createFeedbackRepoPort(hostLocalRuntime.services.repos.feedback),
     auditLog: hostLocalRuntime.auditLog,
   }),
 );
 
-const jobRuntimeModule = JobRuntimeModule.forDeps(
+const jobRuntimePort = createJobRuntimeModule(
   createJobRuntimeDeps({
     queuePorts: hostLocalRuntime.queuePorts,
     auditLog: hostLocalRuntime.auditLog,
   }),
 );
+const jobRuntimeModule = JobRuntimeModule.forTesting(jobRuntimePort);
 
 const candidateIngestionModule = CandidateIngestionModule.forDeps(
   createCandidateIngestionDeps({
     candidateRepo: hostLocalRuntime.services.repos.candidate,
     auditLog: hostLocalRuntime.auditLog,
-    knowledgeWrite: knowledgeWriteModule.providers[0].useValue,
-    jobRuntime: jobRuntimeModule.providers[0].useValue,
+    knowledgeWrite: knowledgeWritePort,
+    jobRuntime: jobRuntimePort,
   }),
 );
 
@@ -112,6 +113,7 @@ const candidateIngestionModule = CandidateIngestionModule.forDeps(
     governanceReviewModule,
     candidateIngestionModule,
     jobRuntimeModule,
+    GatewayRuntimeModule.forRuntime(hostLocalRuntime),
     GatewayModule,
     ConsulModule,
     OtelModule,

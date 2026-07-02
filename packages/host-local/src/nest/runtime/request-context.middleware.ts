@@ -2,8 +2,8 @@ import type { NestMiddleware } from '@nestjs/common';
 import { Inject, Injectable } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-import { HOST_LOCAL_CONFIG_TOKEN } from "@trapmap/host-local/nest/config/index.js";
-import type { HostLocalConfig } from "@trapmap/host-local/nest/config/index.js";
+import { HOST_LOCAL_CONFIG_TOKEN } from '../config/index.js';
+import type { HostLocalConfig } from '../config/index.js';
 import {
   RequestContextService,
   extractRequestContext,
@@ -30,9 +30,16 @@ export class RequestContextMiddleware implements NestMiddleware {
       },
     );
 
-    res.header(this.config.runtime.requestIdHeader, ctx.requestId);
-    if (ctx.traceId) {
-      res.header(ctx.traceHeaderName, ctx.traceId);
+    if ('header' in res && typeof res.header === 'function') {
+      res.header(this.config.runtime.requestIdHeader, ctx.requestId);
+      if (ctx.traceId) {
+        res.header(ctx.traceHeaderName, ctx.traceId);
+      }
+    } else if (res.raw && typeof res.raw.setHeader === 'function') {
+      res.raw.setHeader(this.config.runtime.requestIdHeader, ctx.requestId);
+      if (ctx.traceId) {
+        res.raw.setHeader(ctx.traceHeaderName, ctx.traceId);
+      }
     }
 
     this.requestContext.run(ctx, next);

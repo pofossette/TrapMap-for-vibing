@@ -60,7 +60,7 @@ function formatDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-async function logUserOperation(
+export async function logUserOperation(
   config: UserOpsLogConfig,
   entry: UserOpsLogEntry,
 ): Promise<void> {

@@ -809,11 +809,17 @@ find ${BACKUP_DIR} -name "trapmap_backup_*.sql.gz" -mtime +30 -delete
 
 ### 监控
 
-> **注意**：以下为运维建议，TrapMap 当前未内置 `/metrics` 端点或 `LOG_FORMAT` 变量。
+> 当前宿主已内置 `/metrics` Prometheus scrape surface；日志链路默认保留 stdout，启用 Loki 时再通过 `TRAPMAP_LOKI_ENABLED` / `TRAPMAP_LOKI_URL` 增强聚合能力。
 
 ```bash
 # 健康检查（内置端点）
 curl http://127.0.0.1:4000/health
+
+# 指标抓取（内置 Prometheus 端点）
+curl http://127.0.0.1:4000/metrics | head -20
+
+# 最小 observability 性能基线
+pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
 
 # 日志聚合 (ELK/Loki)
 # 应用日志输出到 ./logs 目录，可通过 LOG_RAG_ENABLED / LOG_USER_OPS_ENABLED 控制

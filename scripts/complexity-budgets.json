@@ -154,11 +154,36 @@
         "Phase 5 freeze",
         "Level 2 / transitional-microservice",
         "shared PostgreSQL",
-        "compose"
+        "compose",
+        "/metrics"
       ],
-      "mustNotContain": ["使用 JSON 文件存储", "DEBUG=false", "SESSION_SECRET"],
+      "mustNotContain": [
+        "使用 JSON 文件存储",
+        "DEBUG=false",
+        "SESSION_SECRET",
+        "当前未内置 `/metrics` 端点"
+      ],
       "mustNotContainRegex": ["gpt-4o(?!-)"],
       "mustContainCount": { "pattern": "PostgreSQL", "minOccurrences": 3 }
+    },
+    {
+      "file": "docs/operations/OBSERVABILITY-VERIFICATION.md",
+      "mustContain": [
+        "http://127.0.0.1:4000/metrics",
+        "http://127.0.0.1:4000/health",
+        "TRAPMAP_LOKI_URL",
+        "CONSUL_ENABLED=true",
+        "CONSUL_HOST",
+        "CONSUL_PORT",
+        "traceparent",
+        "pnpm test:observability-benchmark"
+      ],
+      "mustNotContain": ["http://localhost:3000/metrics", "LOKI_HOST"]
+    },
+    {
+      "file": "docs/operations/REGRESSION-COMMANDS.md",
+      "mustContain": ["rtk pnpm test:observability-benchmark", "grep -i traceparent"],
+      "mustNotContain": ["grep X-Trace-Id"]
     },
     {
       "file": "docs/reference/DATABASE_SCHEMA.md",

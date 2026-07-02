@@ -206,6 +206,7 @@ pnpm run ci
 
 deployment flexibility 最小验证矩阵：
 - `pnpm test:observability-closeout`
+- `pnpm test:observability-benchmark`
 - `pnpm test:discovery-closeout`
 - `pnpm test:distributed-closeout`
 - `pnpm test:deployment-smoke`

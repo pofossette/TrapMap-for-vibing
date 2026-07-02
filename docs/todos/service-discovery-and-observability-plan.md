@@ -488,12 +488,13 @@
 
 - [x] 至少一条业务请求同时经过 discovery、metrics、tracing、logging 链路
 - [x] 故障注入可验证降级与恢复路径
-- [ ] 性能开销、延迟和资源占用有基线
+- [ ] 性能开销、延迟和资源占用有基线（以 `rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000` 记录 `/health`、`/metrics` 与进程内存指标）
 - [x] 所有验证命令可重复执行并已记录到文档
 
 ### 最小验证
 
 - `rtk pnpm test:observability-closeout`
+- `rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
 - `rtk pnpm test:discovery-closeout`
 - `rtk pnpm test:distributed-closeout`
 - `rtk pnpm test:deployment-smoke`
@@ -596,7 +597,7 @@ Phase 1A 应用接入骨架
 
 ### 13.1 功能验收
 
-- [ ] 服务注册、注销和查询在目标环境可用（需 Consul 基础设施验收）
+- [ ] 服务注册、注销和查询在目标环境可用（需按 `docs/operations/OBSERVABILITY-VERIFICATION.md` 中的 Consul runbook 留存验收证据）
 - [x] `/health`、`/ready`、`/live`、`/metrics` 均可用且语义稳定
 - [x] 至少一条请求链路同时具备 metrics、trace 和 structured logs
 - [x] Grafana 中至少有一套可用于排查的最小 dashboard / query 入口
@@ -653,6 +654,7 @@ Phase 1A 应用接入骨架
 ### 14.5 Phase 3-4 收口：系统级验证
 
 - [x] 明确 closeout 最小命令集：`rtk pnpm test:observability-closeout`、`rtk pnpm test:discovery-closeout`、`rtk pnpm test:distributed-closeout`、`rtk pnpm test:runtime-foundations`、`rtk pnpm test:deployment-smoke`、必要时 `rtk pnpm eval:smoke`
+- [x] 为性能基线固定最小命令入口：`rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
 - [x] 为 closeout 增加一组可重复的 E2E / fault-injection / deployment smoke 证据
 - [x] 若 distributed resolver 或 runtime surface 跨包变更，补跑 `rtk pnpm exec fallow audit --base main`
 - [x] 将真实且可复发的问题沉淀到测试、doc-drift、debt register 或 badcase

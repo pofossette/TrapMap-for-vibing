@@ -19,13 +19,19 @@ import {
 import type { CandidateIngestionPort, ReviewPort } from '@trapmap/backend-core';
 import type { FastifyRequest } from 'fastify';
 import { buildReviewQueueProjection } from '@trapmap/service-governance-review';
+import { z } from 'zod';
 
-import { CANDIDATE_INGESTION_PORT } from "@trapmap/host-local/nest/candidate-ingestion/candidate-ingestion.tokens.js";
-import { GOVERNANCE_REVIEW_PORT } from "@trapmap/host-local/nest/governance-review/governance-review.tokens.js";
-import { HOST_LOCAL_RUNTIME_TOKEN } from "@trapmap/host-local/nest/runtime/host-runtime.js";
-import type { HostLocalRuntime } from "@trapmap/host-local/nest/runtime/host-runtime.js";
-import { AuthGuard } from "@trapmap/host-local/nest/runtime/auth.guard.js";
-import { ZodBodyValidationPipe } from "@trapmap/host-local/nest/runtime/validation.pipe.js";
+import { CANDIDATE_INGESTION_PORT } from '../candidate-ingestion/candidate-ingestion.tokens.js';
+import { GOVERNANCE_REVIEW_PORT } from '../governance-review/governance-review.tokens.js';
+import { HOST_LOCAL_RUNTIME_TOKEN } from '../runtime/host-runtime.js';
+import type { HostLocalRuntime } from '../runtime/host-runtime.js';
+import type { resolveHostLocalAuthContext } from '../runtime/auth-context.js';
+import { AuthGuard } from '../runtime/auth.guard.js';
+import { ZodBodyValidationPipe } from '../runtime/validation.pipe.js';
+
+type AuthenticatedRequest = FastifyRequest & {
+  authContext: Awaited<ReturnType<typeof resolveHostLocalAuthContext>>;
+};
 
 @Controller('v1')
 @UseGuards(AuthGuard)
@@ -44,8 +50,8 @@ export class CandidateReviewController {
   async submitManualResult(
     @Param('candidateId') candidateId: string,
     @Body(new ZodBodyValidationPipe(ManualResultSubmissionSchema))
-    body: typeof ManualResultSubmissionSchema._type,
-    @Req() request: FastifyRequest,
+    body: z.infer<typeof ManualResultSubmissionSchema>,
+    @Req() request: AuthenticatedRequest,
   ) {
     const auth = request.authContext!;
     await this.candidateIngestion.submitManualResult(candidateId, body, auth.actorId);
@@ -63,7 +69,7 @@ export class CandidateReviewController {
   @HttpCode(200)
   async applyCandidateResolution(
     @Param('candidateId') candidateId: string,
-    @Req() request: FastifyRequest,
+    @Req() request: AuthenticatedRequest,
   ) {
     const auth = request.authContext!;
     const candidate = await this.runtime.services.repos.candidate.getById(candidateId);
@@ -89,7 +95,7 @@ export class CandidateReviewController {
   @Get('knowledge/review-queue')
   async getReviewQueue(
     @Query('status') status: string | undefined,
-    @Req() request: FastifyRequest,
+    @Req() request: AuthenticatedRequest,
   ) {
     const auth = request.authContext!;
     const projection = await buildReviewQueueProjection(
@@ -108,8 +114,8 @@ export class CandidateReviewController {
   @HttpCode(200)
   async applyReviewDecision(
     @Body(new ZodBodyValidationPipe(reviewDecisionRequestSchema))
-    body: typeof reviewDecisionRequestSchema._type,
-    @Req() request: FastifyRequest,
+    body: z.infer<typeof reviewDecisionRequestSchema>,
+    @Req() request: AuthenticatedRequest,
   ) {
     const auth = request.authContext!;
     const result =
@@ -117,14 +123,14 @@ export class CandidateReviewController {
         ? await this.governanceReview.approve({
             entryId: body.entryId,
             actorId: auth.actorId,
-            note: body.notes,
-            evidence: body.evidence,
+            ...(body.notes ? { note: body.notes } : {}),
+            ...(body.evidence ? { evidence: body.evidence as Record<string, unknown> } : {}),
           })
         : await this.governanceReview.reject({
             entryId: body.entryId,
             actorId: auth.actorId,
-            note: body.notes,
-            evidence: body.evidence,
+            ...(body.notes ? { note: body.notes } : {}),
+            ...(body.evidence ? { evidence: body.evidence as Record<string, unknown> } : {}),
           });
 
     const entry = await this.runtime.services.repos.knowledge.getById(result.entryId);

@@ -1,6 +1,6 @@
 import type { ResolvedRuntimeDeployment } from '@trapmap/backend-core';
 
-import type { HostLocalConfig } from "@trapmap/host-local/nest/config/index.js";
+import type { HostLocalConfig } from '../config/index.js';
 import {
   createHostLocalChannelRegistry,
   createHostLocalStrategyRegistry,

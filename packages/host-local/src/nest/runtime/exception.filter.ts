@@ -63,15 +63,35 @@ export class AllExceptionFilter implements NestExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<FastifyReply>();
+    const response = ctx.getResponse<
+      FastifyReply & {
+        raw?: {
+          writableEnded?: boolean;
+          setHeader?: (name: string, value: string) => void;
+          end?: (body: string) => void;
+          statusCode?: number;
+        };
+      }
+    >();
 
     const requestId = this.requestContext.getRequestId();
     const traceId = this.requestContext.getTraceId();
 
     const envelope = this.buildEnvelope(exception, requestId, traceId);
 
-    if (!response.sent) {
+    if ('sent' in response && response.sent) {
+      return;
+    }
+
+    if ('status' in response && typeof response.status === 'function') {
       response.status(envelope.status).send(envelope.body);
+      return;
+    }
+
+    if (response.raw && !response.raw.writableEnded && typeof response.raw.end === 'function') {
+      response.raw.statusCode = envelope.status;
+      response.raw.setHeader?.('content-type', 'application/json; charset=utf-8');
+      response.raw.end(JSON.stringify(envelope.body));
     }
   }
 

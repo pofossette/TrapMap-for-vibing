@@ -6,8 +6,8 @@ import type {
   DiscoveredService,
   ServiceRegistration,
 } from '@trapmap/backend-core';
-import type { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
 import type { HealthCheck, HealthCheckResult } from '@trapmap/backend-core';
+import { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
 
 /**
  * Consul-backed implementation of {@link DiscoveryPort} with graceful
@@ -19,7 +19,7 @@ import type { HealthCheck, HealthCheckResult } from '@trapmap/backend-core';
 export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ConsulService.name);
 
-  private consul: Consul.Consul | null = null;
+  private consul: InstanceType<typeof Consul> | null = null;
   private serviceId = '';
   private registered = false;
 
@@ -55,7 +55,7 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
       this.consul = new Consul({ host, port });
 
       // Validate connectivity by listing healthy services
-      await this.consul.health.service('consul', { passing: true });
+      await (this.consul.health.service as any)('consul', { passing: true });
 
       this.consulAvailable = true;
       this.logger.log(`Consul client connected: ${host}:${port}`);
@@ -91,19 +91,21 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
     if (!this.ensureAvailable('register')) return;
 
     try {
-      await this.consul!.agent.service.register({
+      await (this.consul!.agent.service.register as any)({
         id: registration.id,
         name: registration.name,
         address: registration.address,
         port: registration.port,
-        check: registration.check
+        ...(registration.check
           ? {
-              http: registration.check.http,
-              interval: registration.check.interval,
-              timeout: registration.check.timeout,
+              check: {
+                http: registration.check.http,
+                interval: registration.check.interval,
+                timeout: registration.check.timeout,
+              },
             }
-          : undefined,
-        meta: registration.meta,
+          : {}),
+        ...(registration.meta ? { meta: registration.meta } : {}),
       });
       this.serviceId = registration.id;
       this.registered = true;
@@ -136,7 +138,7 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
     if (!this.ensureAvailable('discover')) return [];
 
     try {
-      const results: any[] = await this.consul!.health.service(serviceName, {
+      const results: any[] = await (this.consul!.health.service as any)(serviceName, {
         passing: true,
       });
       return results.map((s: any) => ({
@@ -159,7 +161,7 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
 
     try {
       const result = await this.consul!.kv.get(key);
-      return result?.Value;
+      return result?.Value ?? undefined;
     } catch (err) {
       this.consulAvailable = false;
       this.logger.warn(
@@ -173,7 +175,7 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
     if (!this.ensureAvailable('setKV')) return;
 
     try {
-      await this.consul!.kv.set(key, value);
+      await (this.consul!.kv.set as any)(key, value);
     } catch (err) {
       this.consulAvailable = false;
       this.logger.warn(
@@ -254,7 +256,7 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
         }
 
         try {
-          await this.consul!.health.service('consul', { passing: true });
+          await (this.consul!.health.service as any)('consul', { passing: true });
           return { name: 'consul', status: 'healthy' };
         } catch {
           this.consulAvailable = false;
