@@ -30,6 +30,9 @@ export type {
   RuntimeMetricsSnapshot,
 } from './metrics.js';
 export {
+  incrementMetric,
+  setGaugeMetric,
+  observeHistogramMetric,
   recordRuntimeExecution,
   recordRuntimeRetry,
   recordRuntimeReclaim,
@@ -114,3 +117,12 @@ export type {
   ServiceTopologySnapshot,
 } from './service-topology.js';
 export { buildServiceTopologySnapshot } from './service-topology.js';
+
+// Telemetry adapters
+export type { TelemetryAdapters, PinoLikeLogger } from './telemetry-adapters.js';
+export {
+  createTelemetryAdapters,
+  createMetricsPortAdapter,
+  createTracingPortAdapter,
+  createLoggingPortAdapter,
+} from './telemetry-adapters.js';

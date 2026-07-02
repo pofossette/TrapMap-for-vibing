@@ -4,3 +4,6 @@ export { OtelModule } from './otel.module.js';
 export { OtelService } from './otel.service.js';
 export { PrometheusModule } from './prometheus.module.js';
 export { PrometheusService } from './prometheus.service.js';
+export { MetricsPortAdapter } from './metrics-port.adapter.js';
+export { TracingPortAdapter } from './tracing-port.adapter.js';
+export { LoggingPortAdapter } from './logging-port.adapter.js';

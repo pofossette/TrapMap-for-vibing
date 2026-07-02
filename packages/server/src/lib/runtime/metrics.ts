@@ -139,17 +139,21 @@ function serializeLabels(labels: Record<string, string>): string {
   return `{${entries.map(([key, value]) => `${key}="${escapeLabelValue(value)}"`).join(',')}}`;
 }
 
-function incrementMetric(name: string, labels: Record<string, string>, count = 1) {
+export function incrementMetric(name: string, labels: Record<string, string>, count = 1) {
   const sample = getMetricSample(counters, name, labels, () => ({ value: 0, labels }));
   sample.value += count;
 }
 
-function setGaugeMetric(name: string, labels: Record<string, string>, value: number) {
+export function setGaugeMetric(name: string, labels: Record<string, string>, value: number) {
   const sample = getMetricSample(gauges, name, labels, () => ({ value, labels }));
   sample.value = value;
 }
 
-function observeHistogramMetric(name: string, labels: Record<string, string>, value: number) {
+export function observeHistogramMetric(
+  name: string,
+  labels: Record<string, string>,
+  value: number,
+) {
   const sample = getMetricSample(histograms, name, labels, () => ({ sum: 0, count: 0, labels }));
   sample.sum += value;
   sample.count += 1;

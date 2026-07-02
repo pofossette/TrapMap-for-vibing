@@ -4,6 +4,7 @@ import { ZodError } from 'zod';
 import type { ServerConfig } from '@trapmap/server/config.js';
 import { isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { toHealthStatus, livenessTimestamp } from './health-adapter.js';
 import { getOrCreateRequestContext } from './request-context.js';
 import type { RouteFamilyDescriptor } from './route-surface.js';
 import { snapshotRuntimeWorker } from './runtime-contract.js';
@@ -34,6 +35,46 @@ async function buildRuntimeAsyncSnapshot(app: FastifyInstance) {
   return { queueSnapshot, outboxSnapshot };
 }
 
+async function buildSharedRuntimeSnapshot(app: FastifyInstance, config: ServerConfig) {
+  const graphQuery =
+    app.skillShareer.graphQueryBackend?.getRuntimeState?.() ?? app.skillShareer.graphQuery;
+  const queueWorker = snapshotRuntimeWorker(app.taskWorker);
+  const outboxWorker = snapshotRuntimeWorker(app.outboxWorker);
+  const store = app.skillShareer.store;
+  const database = store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
+  const runtimeMode = app.skillShareer.runtimeMode;
+  const serviceUnit = app.skillShareer.serviceUnit;
+  const runtimeDeployment = app.skillShareer.runtimeDeployment;
+  const serviceUnitProfile = getServiceUnitProfile(serviceUnit, runtimeMode);
+  const { queueSnapshot, outboxSnapshot } = await buildRuntimeAsyncSnapshot(app);
+
+  return buildRuntimeStatusSnapshot({
+    config,
+    graphQuery,
+    database,
+    runtimeMode,
+    serviceUnit,
+    runtimeDeployment,
+    serviceUnitProfile,
+    queueWorkerState: resolveAsyncWorkerState({
+      database,
+      runtimeMode,
+      workerKind: 'queue',
+      owner: queueWorker.owner,
+      running: queueWorker.running,
+    }),
+    outboxWorkerState: resolveAsyncWorkerState({
+      database,
+      runtimeMode,
+      workerKind: 'outbox',
+      owner: outboxWorker.owner,
+      running: outboxWorker.running,
+    }),
+    ...(queueSnapshot ? { queueSnapshot } : {}),
+    ...(outboxSnapshot ? { outboxSnapshot } : {}),
+  });
+}
+
 export function registerRuntimeRoutes(
   app: FastifyInstance,
   config: ServerConfig,
@@ -41,92 +82,61 @@ export function registerRuntimeRoutes(
   documentedRoutes: readonly string[],
 ) {
   app.get('/health', async () => {
-    const graphQuery =
-      app.skillShareer.graphQueryBackend?.getRuntimeState?.() ?? app.skillShareer.graphQuery;
-    const queueWorker = snapshotRuntimeWorker(app.taskWorker);
-    const outboxWorker = snapshotRuntimeWorker(app.outboxWorker);
-    const store = app.skillShareer.store;
-    const database =
-      store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
-    const runtimeMode = app.skillShareer.runtimeMode;
-    const serviceUnit = app.skillShareer.serviceUnit;
-    const runtimeDeployment = app.skillShareer.runtimeDeployment;
-    const serviceUnitProfile = getServiceUnitProfile(serviceUnit, runtimeMode);
-    const { queueSnapshot, outboxSnapshot } = await buildRuntimeAsyncSnapshot(app);
-    const runtime = buildRuntimeStatusSnapshot({
-      config,
-      graphQuery,
-      database,
-      runtimeMode,
-      serviceUnit,
-      runtimeDeployment,
-      serviceUnitProfile,
-      queueWorkerState: resolveAsyncWorkerState({
-        database,
-        runtimeMode,
-        workerKind: 'queue',
-        owner: queueWorker.owner,
-        running: queueWorker.running,
-      }),
-      outboxWorkerState: resolveAsyncWorkerState({
-        database,
-        runtimeMode,
-        workerKind: 'outbox',
-        owner: outboxWorker.owner,
-        running: outboxWorker.running,
-      }),
-      ...(queueSnapshot ? { queueSnapshot } : {}),
-      ...(outboxSnapshot ? { outboxSnapshot } : {}),
-    });
+    const runtime = await buildSharedRuntimeSnapshot(app, config);
+    const contract = toHealthStatus(runtime);
 
     return {
-      status: 'ok',
-      ...runtime,
+      // HealthStatus contract fields — no clobbering
+      status: contract.status,
+      readiness: contract.readiness,
+      liveness: contract.liveness,
+      dependencies: contract.dependencies,
+      deployment: contract.deployment,
+      timestamp: contract.timestamp,
+      startedAt: contract.startedAt,
+      uptime: contract.uptime,
+      // Raw backward-compatible snapshot data nested under a dedicated key
+      snapshot: {
+        product: runtime.product,
+        packages: runtime.packages,
+        requestContext: runtime.requestContext,
+        graphQuery: runtime.graphQuery,
+        serviceUnit: runtime.serviceUnit,
+        topology: runtime.topology,
+        memory: runtime.memory,
+        uptimeSeconds: runtime.uptimeSeconds,
+        async: runtime.async,
+      },
     };
   });
 
   app.get('/ready', async (_request, reply) => {
-    const taskWorker = snapshotRuntimeWorker(app.taskWorker);
-    const outboxWorker = snapshotRuntimeWorker(app.outboxWorker);
-    const store = app.skillShareer.store;
-    const database =
-      store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
-    const runtimeMode = app.skillShareer.runtimeMode;
-    const serviceUnit = app.skillShareer.serviceUnit;
-    const runtimeDeployment = app.skillShareer.runtimeDeployment;
-    const serviceUnitProfile = getServiceUnitProfile(serviceUnit, runtimeMode);
-    const graphQuery =
-      app.skillShareer.graphQueryBackend?.getRuntimeState?.() ?? app.skillShareer.graphQuery;
-    const { queueSnapshot, outboxSnapshot } = await buildRuntimeAsyncSnapshot(app);
-    const runtime = buildRuntimeStatusSnapshot({
-      config,
-      graphQuery,
-      database,
-      runtimeMode,
-      serviceUnit,
-      runtimeDeployment,
-      serviceUnitProfile,
-      queueWorkerState: resolveAsyncWorkerState({
-        database,
-        runtimeMode,
-        workerKind: 'queue',
-        owner: taskWorker.owner,
-        running: taskWorker.running,
-      }),
-      outboxWorkerState: resolveAsyncWorkerState({
-        database,
-        runtimeMode,
-        workerKind: 'outbox',
-        owner: outboxWorker.owner,
-        running: outboxWorker.running,
-      }),
-      ...(queueSnapshot ? { queueSnapshot } : {}),
-      ...(outboxSnapshot ? { outboxSnapshot } : {}),
-    });
+    const runtime = await buildSharedRuntimeSnapshot(app, config);
+    const contract = toHealthStatus(runtime);
 
     const responseBody = {
       ok: runtime.readiness !== 'not-ready',
-      ...runtime,
+      // HealthStatus contract fields — no clobbering
+      status: contract.status,
+      readiness: contract.readiness,
+      liveness: contract.liveness,
+      dependencies: contract.dependencies,
+      deployment: contract.deployment,
+      timestamp: contract.timestamp,
+      startedAt: contract.startedAt,
+      uptime: contract.uptime,
+      // Raw backward-compatible snapshot data nested under a dedicated key
+      snapshot: {
+        product: runtime.product,
+        packages: runtime.packages,
+        requestContext: runtime.requestContext,
+        graphQuery: runtime.graphQuery,
+        serviceUnit: runtime.serviceUnit,
+        topology: runtime.topology,
+        memory: runtime.memory,
+        uptimeSeconds: runtime.uptimeSeconds,
+        async: runtime.async,
+      },
     };
 
     if (runtime.readiness === 'not-ready') {
@@ -135,6 +145,11 @@ export function registerRuntimeRoutes(
 
     return responseBody;
   });
+
+  app.get('/live', async () => ({
+    status: 'alive',
+    timestamp: livenessTimestamp(),
+  }));
 
   app.get('/meta/routes', async () => ({
     routeSurface: routeSurfaceSummary.routeSurface,

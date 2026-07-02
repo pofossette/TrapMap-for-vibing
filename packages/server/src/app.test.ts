@@ -121,24 +121,25 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     expect(response.json()).toMatchObject({
       ok: true,
       readiness: 'ready',
-      serviceUnit: {
-        name: 'full-platform',
-      },
-      requestContext: {
-        requestIdHeader: 'x-request-id',
-        traceHeader: 'traceparent',
-      },
-      dependencies: {
-        database: 'json-store',
-        queueWorker: 'not-configured',
-        outboxWorker: 'not-configured',
-        graphQuery: 'disabled',
-        runtimeMode: 'combined',
-        serviceUnit: 'full-platform',
-      },
-      graphQuery: {
-        mode: 'disabled',
-        backendKind: 'memory',
+      // Contract-shaped dependencies (array of DependencyStatus)
+      dependencies: expect.arrayContaining([
+        expect.objectContaining({ name: 'database', status: 'unknown' }),
+        expect.objectContaining({ name: 'queue-worker', status: 'unknown' }),
+        expect.objectContaining({ name: 'outbox-worker', status: 'unknown' }),
+        expect.objectContaining({ name: 'graph-query', status: 'unknown' }),
+      ]),
+      snapshot: {
+        serviceUnit: {
+          name: 'full-platform',
+        },
+        requestContext: {
+          requestIdHeader: 'x-request-id',
+          traceHeader: 'traceparent',
+        },
+        graphQuery: {
+          mode: 'disabled',
+          backendKind: 'memory',
+        },
       },
     });
 
@@ -159,32 +160,33 @@ describe('app.ts live gaps — fm-agent raw report', () => {
       status: 'ok',
       liveness: 'alive',
       readiness: 'ready',
-      serviceUnit: {
-        name: 'full-platform',
-      },
-      requestContext: {
-        requestIdHeader: 'x-request-id',
-        traceHeader: 'traceparent',
-      },
-      dependencies: {
-        database: 'json-store',
-        queueWorker: 'not-configured',
-        outboxWorker: 'not-configured',
-        graphQuery: 'disabled',
-        runtimeMode: 'combined',
-        serviceUnit: 'full-platform',
-      },
-      topology: {
-        deploymentProfile: 'team-monolith',
-        phase: 'shared-postgres-phase1',
-        currentService: {
-          name: 'gateway',
-          surface: 'gateway-public',
+      // Contract-shaped dependencies (array of DependencyStatus)
+      dependencies: expect.arrayContaining([
+        expect.objectContaining({ name: 'database', status: 'unknown' }),
+        expect.objectContaining({ name: 'queue-worker', status: 'unknown' }),
+        expect.objectContaining({ name: 'outbox-worker', status: 'unknown' }),
+        expect.objectContaining({ name: 'graph-query', status: 'unknown' }),
+      ]),
+      snapshot: {
+        serviceUnit: {
+          name: 'full-platform',
         },
-      },
-      graphQuery: {
-        mode: 'disabled',
-        backendKind: 'memory',
+        requestContext: {
+          requestIdHeader: 'x-request-id',
+          traceHeader: 'traceparent',
+        },
+        topology: {
+          deploymentProfile: 'team-monolith',
+          phase: 'shared-postgres-phase1',
+          currentService: {
+            name: 'gateway',
+            surface: 'gateway-public',
+          },
+        },
+        graphQuery: {
+          mode: 'disabled',
+          backendKind: 'memory',
+        },
       },
     });
 
@@ -253,9 +255,11 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     expect(response.headers['x-correlation-id']).toBe('corr_123');
     expect(response.headers['x-trace-id']).toBe('trace_456');
     expect(response.json()).toMatchObject({
-      requestContext: {
-        requestIdHeader: 'x-correlation-id',
-        traceHeader: 'x-trace-id',
+      snapshot: {
+        requestContext: {
+          requestIdHeader: 'x-correlation-id',
+          traceHeader: 'x-trace-id',
+        },
       },
     });
 
@@ -283,12 +287,11 @@ describe('app.ts live gaps — fm-agent raw report', () => {
       ok: true,
       liveness: 'alive',
       readiness: 'degraded',
-      dependencies: {
-        graphQuery: 'fallback',
-      },
-      graphQuery: {
-        mode: 'enabled-fallback',
-        backendKind: 'neo4j',
+      snapshot: {
+        graphQuery: {
+          mode: 'enabled-fallback',
+          backendKind: 'neo4j',
+        },
       },
     });
 
@@ -315,9 +318,6 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     expect(response.json()).toMatchObject({
       ok: false,
       readiness: 'not-ready',
-      dependencies: {
-        graphQuery: 'failed',
-      },
     });
 
     await app.close();
@@ -345,10 +345,10 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       ok: true,
-      dependencies: {
-        queueWorker: 'not-configured',
-        outboxWorker: 'not-configured',
-      },
+      dependencies: expect.arrayContaining([
+        expect.objectContaining({ name: 'queue-worker', status: 'unknown' }),
+        expect.objectContaining({ name: 'outbox-worker', status: 'unknown' }),
+      ]),
     });
 
     await app.close();
@@ -366,10 +366,10 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       ok: true,
-      dependencies: {
-        queueWorker: 'not-configured',
-        outboxWorker: 'not-configured',
-      },
+      dependencies: expect.arrayContaining([
+        expect.objectContaining({ name: 'queue-worker', status: 'unknown' }),
+        expect.objectContaining({ name: 'outbox-worker', status: 'unknown' }),
+      ]),
     });
 
     await app.close();
@@ -381,10 +381,10 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     const taskWorkerReady = await taskWorkerApp.inject({ method: 'GET', url: '/ready' });
     expect(taskWorkerReady.statusCode).toBe(200);
     expect(taskWorkerReady.json()).toMatchObject({
-      dependencies: {
-        queueWorker: 'not-configured',
-        outboxWorker: 'not-configured',
-      },
+      dependencies: expect.arrayContaining([
+        expect.objectContaining({ name: 'queue-worker', status: 'unknown' }),
+        expect.objectContaining({ name: 'outbox-worker', status: 'unknown' }),
+      ]),
     });
     await taskWorkerApp.close();
 
@@ -393,10 +393,10 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     const outboxWorkerReady = await outboxWorkerApp.inject({ method: 'GET', url: '/ready' });
     expect(outboxWorkerReady.statusCode).toBe(200);
     expect(outboxWorkerReady.json()).toMatchObject({
-      dependencies: {
-        queueWorker: 'not-configured',
-        outboxWorker: 'not-configured',
-      },
+      dependencies: expect.arrayContaining([
+        expect.objectContaining({ name: 'queue-worker', status: 'unknown' }),
+        expect.objectContaining({ name: 'outbox-worker', status: 'unknown' }),
+      ]),
     });
     await outboxWorkerApp.close();
   });
@@ -453,18 +453,13 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     expect(ready.statusCode).toBe(200);
     expect(ready.json()).toMatchObject({
       ok: true,
-      topology: {
-        deploymentProfile: 'local-agent',
-        phase: 'shared-postgres-phase1',
-        currentService: {
-          name: 'gateway',
-          surface: 'gateway-public',
-        },
-      },
-      dependencies: {
+      snapshot: {
         topology: {
+          deploymentProfile: 'local-agent',
+          phase: 'shared-postgres-phase1',
           currentService: {
             name: 'gateway',
+            surface: 'gateway-public',
           },
         },
       },
@@ -494,26 +489,23 @@ describe('app.ts live gaps — fm-agent raw report', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
-      topology: {
-        deploymentProfile: 'team-monolith',
-        phase: 'shared-postgres-phase1',
-        currentService: {
-          name: 'gateway',
-          surface: 'gateway-public',
-          ownsCandidateTaskWork: true,
-          ownsSharedJobTaskWork: true,
-          ownsOutboxWork: true,
-        },
-      },
-      dependencies: {
-        queueWorker: 'not-configured',
-        outboxWorker: 'not-configured',
+      snapshot: {
         topology: {
+          deploymentProfile: 'team-monolith',
+          phase: 'shared-postgres-phase1',
           currentService: {
             name: 'gateway',
+            surface: 'gateway-public',
+            ownsCandidateTaskWork: true,
+            ownsSharedJobTaskWork: true,
+            ownsOutboxWork: true,
           },
         },
       },
+      dependencies: expect.arrayContaining([
+        expect.objectContaining({ name: 'queue-worker', status: 'unknown' }),
+        expect.objectContaining({ name: 'outbox-worker', status: 'unknown' }),
+      ]),
     });
 
     await app.close();
@@ -582,18 +574,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     const ready = await app.inject({ method: 'GET', url: '/ready' });
     expect(ready.statusCode).toBe(200);
     expect(ready.json()).toMatchObject({
-      dependencies: {
-        deployment: {
-          routeSurface: 'worker-status',
-          publicGatewayRouteCount: 0,
-          internalRouteCount: 3,
-          routeFamilies: [
-            {
-              kind: 'worker-status',
-              audience: 'internal-status',
-            },
-          ],
-        },
+      snapshot: {
         topology: {
           currentService: {
             name: 'candidate-ingestion',
@@ -632,26 +613,16 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     expect(ready.statusCode).toBe(200);
     expect(ready.json()).toMatchObject({
       ok: true,
-      topology: {
-        deploymentProfile: 'distributed',
-        phase: 'shared-postgres-phase1',
-        currentService: {
-          name: 'gateway',
-          surface: 'gateway-public',
-          ownsCandidateTaskWork: false,
-          ownsSharedJobTaskWork: false,
-          ownsOutboxWork: false,
-        },
-      },
-      dependencies: {
-        queueWorker: 'not-configured',
-        outboxWorker: 'not-configured',
-        deployment: {
-          routeSurface: 'gateway-core',
-        },
+      snapshot: {
         topology: {
+          deploymentProfile: 'distributed',
+          phase: 'shared-postgres-phase1',
           currentService: {
             name: 'gateway',
+            surface: 'gateway-public',
+            ownsCandidateTaskWork: false,
+            ownsSharedJobTaskWork: false,
+            ownsOutboxWork: false,
           },
         },
       },
@@ -660,10 +631,12 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     const health = await app.inject({ method: 'GET', url: '/health' });
     expect(health.statusCode).toBe(200);
     expect(health.json()).toMatchObject({
-      topology: {
-        deploymentProfile: 'distributed',
-        currentService: {
-          name: 'gateway',
+      snapshot: {
+        topology: {
+          deploymentProfile: 'distributed',
+          currentService: {
+            name: 'gateway',
+          },
         },
       },
     });
@@ -683,26 +656,12 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     });
     expect(candidateIngestionReady.statusCode).toBe(200);
     expect(candidateIngestionReady.json()).toMatchObject({
-      serviceUnit: {
-        name: 'candidate-ingestion',
-        ownership: {
-          ownsCandidateTaskWork: true,
-          ownsSharedJobTaskWork: false,
-          ownsOutboxWork: false,
-        },
-      },
-      dependencies: {
-        queueWorker: 'not-configured',
-        outboxWorker: 'not-configured',
-        serviceUnit: 'candidate-ingestion',
-        ownership: {
-          queue: {
-            ownsAny: true,
+      snapshot: {
+        serviceUnit: {
+          name: 'candidate-ingestion',
+          ownership: {
             ownsCandidateTaskWork: true,
             ownsSharedJobTaskWork: false,
-          },
-          outbox: {
-            ownsAny: false,
             ownsOutboxWork: false,
           },
         },
@@ -721,26 +680,12 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     });
     expect(knowledgeGovernanceReady.statusCode).toBe(200);
     expect(knowledgeGovernanceReady.json()).toMatchObject({
-      serviceUnit: {
-        name: 'knowledge-governance',
-        ownership: {
-          ownsCandidateTaskWork: false,
-          ownsSharedJobTaskWork: true,
-          ownsOutboxWork: true,
-        },
-      },
-      dependencies: {
-        queueWorker: 'not-configured',
-        outboxWorker: 'not-configured',
-        serviceUnit: 'knowledge-governance',
-        ownership: {
-          queue: {
-            ownsAny: true,
+      snapshot: {
+        serviceUnit: {
+          name: 'knowledge-governance',
+          ownership: {
             ownsCandidateTaskWork: false,
             ownsSharedJobTaskWork: true,
-          },
-          outbox: {
-            ownsAny: true,
             ownsOutboxWork: true,
           },
         },
