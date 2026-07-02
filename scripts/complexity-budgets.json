@@ -257,12 +257,11 @@
       "file": "plan.md",
       "mustContain": [
         "执行计划索引",
-        "微服务平台能力增强",
-        "已归档",
+        "服务发现与可观测性升级",
         "docs/archived/archived-plans/microservice-platform-evolution-plan.md",
         "状态：`完成`",
         "完成",
-        "当前主线：微服务平台能力增强"
+        "当前主线：服务发现与可观测性升级"
       ],
       "mustNotContain": [
         "当前主线阶段：`Phase 1-2`",
