@@ -107,9 +107,9 @@
 
 ### Phase 4 跨阶段回归与基准
 
-- [ ] 状态：`待开始`
-- [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#9-phase-4-跨阶段回归与基准`](docs/todos/service-discovery-and-observability-plan.md#9-phase-4-跨阶段回归与基准)
-- [ ] 目标：统一 E2E、故障注入、性能基准与部署 smoke
+- [x] 状态：`完成`
+- [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#9-phase-4-跨阶段回归与基准`](docs/todos/service-discovery-and-observability-plan.md#9-phase-4-跨阶段回归与基准)
+- [x] 目标：统一 E2E、故障注入、性能基准与部署 smoke
 
 ### Phase 5 文档与交付收口
 
