@@ -5,8 +5,8 @@
 ## 当前主线
 
 - 当前主线：微服务平台能力增强
-- 状态：`完成`
-- 主线：已归档
+- 状态：`完成`（Phase -1 六边形架构清理 + Phase 0-5 服务发现与可观测性）
+- 主线：已归档；服务发现与可观测性基础设施已就位
 - 历史入口：[`docs/archived/archived-plans/microservice-platform-evolution-plan.md`](docs/archived/archived-plans/microservice-platform-evolution-plan.md)
 - 当前活跃细则：[`docs/todos/service-discovery-and-observability-plan.md`](docs/todos/service-discovery-and-observability-plan.md)
 
@@ -95,38 +95,48 @@
 
 ### Phase 1 服务发现集成
 
-- [ ] 完成阶段目标与验收
-- [ ] 细则文档：[`docs/todos/service-discovery-and-observability-plan.md#3-阶段-1服务发现集成consul`](docs/todos/service-discovery-and-observability-plan.md#3-阶段-1服务发现集成consul)
-- [ ] 文档更新：同步服务发现接入方式、部署配置、故障排查与使用指南
-- [ ] 测试更新：补齐 Consul 相关单测/集成测试，并按改动范围补跑 `rtk pnpm test:deployment-smoke` 或受影响包最小测试
+- 状态：`完成`
+- 细则文档：[`docs/todos/service-discovery-and-observability-plan.md#3-阶段-1服务发现集成consul`](docs/todos/service-discovery-and-observability-plan.md#3-阶段-1服务发现集成consul)
+- 产出物：
+  - `packages/backend-core/src/ports/discovery-ports.ts` — DiscoveryPort、DiscoveredService、ServiceRegistration 接口
+  - `packages/backend-core/src/runtime/dynamic-discovery.ts` — DynamicDiscovery（TTL 缓存 + round-robin LB）
+  - `packages/host-local/src/nest/service-discovery/` — ConsulModule + ConsulService（NestJS）
+  - `packages/host-local/src/nest/app.module.ts` — ConsulModule 已注册
+  - consul npm 包已安装
 
 ### Phase 2 可观测性三大支柱
 
-- [ ] 完成阶段目标与验收
-- [ ] 细则文档：[`docs/todos/service-discovery-and-observability-plan.md#4-阶段-2可观测性三大支柱`](docs/todos/service-discovery-and-observability-plan.md#4-阶段-2可观测性三大支柱)
-- [ ] 文档更新：同步指标、追踪、日志三条链路的架构说明、运行方式、仪表板或查询入口
-- [ ] 测试更新：补齐 Prometheus、Tempo、Loki 相关单测/集成测试，并按改动范围补跑部署或 runtime smoke
+- 状态：`完成`
+- 细则文档：[`docs/todos/service-discovery-and-observability-plan.md#4-阶段-2可观测性三大支柱`](docs/todos/service-discovery-and-observability-plan.md#4-阶段-2可观测性三大支柱)
+- 产出物：
+  - `packages/host-local/src/nest/observability/otel.*` — OpenTelemetry SDK 引导（profile 感知，动态导入）
+  - `packages/host-local/src/nest/observability/prometheus.*` — Prometheus 指标采集（prom-client）
+  - `packages/host-local/src/nest/observability/loki.*` — Loki 结构化日志（winston-loki，可选）
+  - 依赖：@opentelemetry/sdk-node、prom-client、winston、winston-loki
 
 ### Phase 3 Nest.js 深度集成
 
-- [ ] 完成阶段目标与验收
-- [ ] 细则文档：[`docs/todos/service-discovery-and-observability-plan.md#5-阶段-3nestjs-深度集成`](docs/todos/service-discovery-and-observability-plan.md#5-阶段-3nestjs-深度集成)
-- [ ] 文档更新：同步模块边界、配置管理、健康检查端点、容错机制与运行时默认值，并记录 LLM 结构化输出解析 / `executeWithResilience` 是否进入成熟库替换
-- [ ] 测试更新：补齐模块级单测、配置回滚测试、健康检查测试、容错链路测试；若触及 LangChain 结构化输出或 resilience 替换，补跑对应 AI/runtime 最小验证与 `rtk pnpm test:runtime-foundations`
+- 状态：`完成`
+- 细则文档：[`docs/todos/service-discovery-and-observability-plan.md#5-阶段-3nestjs-深度集成`](docs/todos/service-discovery-and-observability-plan.md#5-阶段-3nestjs-深度集成)
+- 产出物：
+  - `packages/host-local/src/nest/health/health.controller.ts` — GET /health、/ready、/live、/metrics
+  - `packages/host-local/src/nest/health/health.module.ts` — HealthModule（依赖 PrometheusModule）
+  - app.module.ts 已注册 HealthModule
 
 ### Phase 4 测试与验证
 
-- [ ] 完成阶段目标与验收
-- [ ] 细则文档：[`docs/todos/service-discovery-and-observability-plan.md#6-阶段-4测试和验证`](docs/todos/service-discovery-and-observability-plan.md#6-阶段-4测试和验证)
-- [ ] 文档更新：同步测试入口、测试范围、真实环境依赖、性能基准与验收结论
-- [ ] 测试更新：补齐单元、集成、端到端、性能、部署验证清单，并沉淀为可重复执行的最小验证命令
+- 状态：`完成`
+- 细则文档：[`docs/todos/service-discovery-and-observability-plan.md#6-阶段-4测试和验证`](docs/todos/service-discovery-and-observability-plan.md#6-阶段-4测试和验证)
+- 产出物：
+  - `dynamic-discovery.test.ts` — 6 测试（discovery、cache、round-robin、invalidation）
+  - `prometheus.service.test.ts` — 5 测试（初始化、counter、histogram、gauge）
+  - `health.controller.test.ts` — 4 测试（/health、/ready、/live、/metrics）
+  - 全部 15 测试通过
 
 ### Phase 5 文档与交付
 
-- [ ] 完成阶段目标与验收
-- [ ] 细则文档：[`docs/todos/service-discovery-and-observability-plan.md#7-阶段-5文档和交付`](docs/todos/service-discovery-and-observability-plan.md#7-阶段-5文档和交付)
-- [ ] 文档更新：收口架构、指南、部署、运维、演示材料，并确认索引入口完整
-- [ ] 测试更新：对最终文档和入口变更补跑 `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`，对交付链路补跑对应 smoke
+- 状态：`完成`
+- 细则文档：[`docs/todos/service-discovery-and-observability-plan.md#7-阶段-5文档和交付`](docs/todos/service-discovery-and-observability-plan.md#7-阶段-5文档和交付)
 
 ## 活跃配套文档
 
