@@ -228,6 +228,62 @@ packages/host-local/src/nest/observability/
 - `team-monolith`：`OTEL_ENABLED=true`, exporter 按实际基础设施配置
 - `distributed`：`OTEL_ENABLED=true`, 全部走 OTLP exporter，`OTEL_SAMPLING_RATE=0.1`（默认 10% 采样）
 
+## 健康检查三探针模型
+
+TrapMap 对外暴露三个探针端点，遵循 Kubernetes 探针语义。三者职责严格分离：
+
+| 端点 | 语义 | 失败时的行为 | 检查范围 |
+|------|------|------------|---------|
+| `/live` | 进程存活 | 容器应被重启 | 不检查任何外部依赖，始终返回 200 |
+| `/ready` | 可接受流量 | 从负载均衡中摘除 | 关键依赖就绪度（数据库、核心服务初始化） |
+| `/health` | 综合状态快照 | 不影响流量路由 | 所有已注册依赖的细粒度状态 |
+
+### HealthStatus Contract
+
+`/health` 端点的响应结构由 `packages/contracts/src/domain/health.ts` 中的 `healthStatusSchema` 定义：
+
+```typescript
+interface HealthStatus {
+  status: 'ok' | 'degraded' | 'unhealthy';  // 整体聚合状态
+  timestamp: string;                          // 响应时间（ISO 8601）
+  startedAt: string;                          // 实例启动时间（ISO 8601）
+  uptime: number;                             // 运行秒数
+  readiness: 'ready' | 'not-ready' | 'degraded';
+  liveness: 'alive' | 'dead';
+  dependencies: DependencyStatus[];           // 各依赖的状态数组
+  deployment?: { profile: string; preset?: string };
+}
+
+interface DependencyStatus {
+  name: string;                              // 依赖标识（如 'database', 'queue-worker'）
+  status: 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
+  latencyMs?: number;                        // 探针执行延迟
+  message?: string;                          // 可读说明
+  lastChecked?: string;                      // 最后检查时间（ISO 8601）
+}
+```
+
+### 依赖状态聚合逻辑
+
+1. **探针注册**：各依赖在 lifecycle `init` 阶段通过 `HealthCheckRegistrar.registerHealthCheck()` 注册独立探针（接口定义于 `packages/backend-core/src/ports/lifecycle-ports.ts`）
+2. **探针执行**：`HealthCheckRegistrar.runHealthChecks()` 串行执行所有已注册探针，单个探针异常不阻塞其他探针（catch 后返回 `unknown`）
+3. **状态映射**：
+   - **Fastify**（`packages/server/src/lib/runtime/health-adapter.ts`）：`toHealthStatus()` 从 `RuntimeStatusSnapshot` 提取 `database`、`queue-worker`、`outbox-worker`、`graph-query` 四个依赖状态，映射为 `DependencyStatus[]`
+   - **NestJS**（`packages/host-local/src/nest/health/health.controller.ts`）：`mapDependencies()` 将 `HealthCheckResult[]` 映射为 `DependencyStatus[]`
+4. **整体状态聚合**：
+   - 任一依赖 `unhealthy` → 整体 `unhealthy`
+   - 无 `unhealthy` 但有 `degraded` → 整体 `degraded`
+   - 全部 `healthy` 或 `unknown` → 整体 `ok`
+
+### /ready 判定逻辑
+
+- **Fastify**：基于 `RuntimeStatusSnapshot.readiness` 字段。`not-ready` 时返回 HTTP 503，`degraded` 和 `ready` 时返回 HTTP 200
+- **NestJS**：当前始终返回 HTTP 200；依赖降级信息通过 `/health` 的 `status` 字段反映
+
+### 运维参数
+
+采样率、保留期、资源限制和 SLO 目标等运维参数详见 `docs/operations/OBSERVABILITY-OPERATIONS.md`。
+
 ## 健康检查集成
 
 可观测性体系增强（不替代）现有的 health/readiness 检查：

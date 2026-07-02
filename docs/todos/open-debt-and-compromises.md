@@ -121,6 +121,30 @@ The following coupling patterns were identified during the Phase 0.6 coupling au
 - **Resolution**: Migrate to stable port interfaces that expose only the query capabilities the read-side needs
 - **Status**: Known debt, tracked. See `docs/architecture/BOUNDARIES.md` Category B.
 
+## 8. Library Replacement Decisions (Phase 3)
+
+> Full evaluation: [`docs/todos/library-replacement-evaluation.md`](library-replacement-evaluation.md)
+
+### 8.1 Resilience Library — Replace with `cockatiel`
+
+- **Decision**: Replace hand-rolled `executeWithResilience` with `cockatiel`
+- **Why**: Current `withTimeout` uses `setTimeout` without `AbortController` cancellation. On retry, the old Promise remains pending, leaking connections and risking double-execution side effects. `cockatiel` solves this natively.
+- **Status**: Planned for current hardening phase (before production traffic)
+- **Migration scope**: New `resilience-v2.ts` wrapping `cockatiel`, preserving existing `ResiliencePolicy`/`ResilienceResult` interfaces, 5 call sites to migrate
+
+### 8.2 LangChain `.withStructuredOutput()` — Keep Current Approach
+
+- **Decision**: Keep manual `stripCodeFences -> JSON.parse -> safeParse` pattern
+- **Why**: The parsing boilerplate is already minimal (~15 lines per call site, extracted into helpers). The real duplication is per-module retry loops, not parsing. `.withStructuredOutput()` does not add built-in retry-on-parse-failure and would create a split code path across the 6+ providers supported by `ChatProvider`.
+- **Trigger to re-evaluate**: Single-provider consolidation AND >5% parse failure rate in production logs, OR LangChain adds built-in retry-on-parse-failure
+- **Immediate action**: Extract the retry-loop duplication into a shared `invokeWithParseRetry` wrapper (no library change needed)
+
+### 8.3 Consul KV — Deferred
+
+- **Decision**: Defer to future phase
+- **Why**: No concrete near-term use case. Runtime config is served by env vars; shared state uses Postgres; no leader election or distributed lock patterns exist. The `DiscoveryPort` interface already defines `getKV`/`setKV` and is tested.
+- **Trigger to include**: Runtime feature flags requiring sub-minute propagation (canary rollouts, kill switches), or distributed coordination needs that Postgres advisory locks cannot serve
+
 ## 6. 证据入口
 
 - [`packages/host-local/src/nest/runtime/host-runtime.ts`](../../packages/host-local/src/nest/runtime/host-runtime.ts)
