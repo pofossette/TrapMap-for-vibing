@@ -306,11 +306,11 @@
 1. **集成 fallow 为 CI 核心工具**
    - [x] 配置 `fallow audit` 作为 PR 门禁
    - [x] 配置 `--fail-on-regression` 防止质量退化
-   - [x] 设置回归基线（`.fallow/baseline.json`）
+   - [x] 设置回归基线（`reports/baselines/fallow-health-baseline.json` + `fallow-dead-code-baseline.json`）
 
 2. **建立质量指标基线**
    - [x] 保存当前健康评分（75.5/B）、重复率（1,313 组/3,266 实例）、复杂度（296 超阈值函数）作为基线
-   - [x] 生成 `.fallow/baseline.json`（含回归基线数据 + 汇总指标）
+   - [x] 生成 `reports/baselines/fallow-health-baseline.json`（含回归基线数据 + 汇总指标）
    - [x] CI 失败于基线退化（`--fail-on-regression`）
 
 3. **建立定期审计机制**
@@ -326,7 +326,7 @@
 
 **验收标准**：
 - ✅ CI 门禁在 PR 不通过时阻止合并
-- ✅ 质量基线被保存并在 CI 中使用（`.fallow/baseline.json`）
+- ✅ 质量基线被保存并在 CI 中使用（`reports/baselines/` 下 health + dead-code 基线）
 - ✅ `--fail-on-regression` 防止质量评分退化
 - ✅ 边界检查使用 `--fail-on-issues` 阻断构建
 - [ ] 定期审计流程文档化
@@ -570,7 +570,7 @@ Phase 0.7 (自动化门禁) ← 最后完成
 - [x] CI 门禁在 PR 不通过时阻止合并（fallow audit + boundary check + unused-deps check）
 - [x] Pre-commit hook 在提交前运行 fallow 检查
 - [ ] 定期审计流程文档化
-- [x] 质量基线被保存并使用（`.fallow/baseline.json`，`--fail-on-regression`）
+- [x] 质量基线被保存并使用（`reports/baselines/` 下 health + dead-code 基线，`--health-baseline` + `--dead-code-baseline`）
 
 ### 6.3 文档指标
 

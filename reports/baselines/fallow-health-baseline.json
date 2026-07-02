@@ -1,0 +1,1332 @@
+{
+  "finding_counts": {
+    "evals/agent-planning/lib/format.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "evals/agent-planning/lib/judge-runner.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "evals/agent-planning/lib/llm-actor.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "evals/agent-planning/lib/skill-store.ts": {
+      "crap_high": {
+        "count": 2
+      }
+    },
+    "evals/agent-planning/live-eval.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "evals/agent-planning/runner.test.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "evals/graph-extraction/conflict-eval.ts": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "evals/graph-extraction/dedup-eval.ts": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "evals/graph-extraction/run.ts": {
+      "complexity_high": {
+        "count": 1
+      }
+    },
+    "evals/ingestion/assertions.ts": {
+      "crap_critical": {
+        "count": 2
+      }
+    },
+    "evals/ingestion/fixtures/index.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "evals/ingestion/metrics.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "evals/ingestion/run.ts": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "evals/retrieval-live/compare.ts": {
+      "complexity_critical": {
+        "count": 2
+      },
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "evals/retrieval-live/lib/backend-client.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "evals/retrieval-live/lib/snapshot-orchestrator.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "evals/retrieval-live/run.ts": {
+      "complexity_critical": {
+        "count": 4
+      },
+      "crap_critical": {
+        "count": 4
+      }
+    },
+    "evals/retrieval/lib/adapters.ts": {
+      "complexity_moderate": {
+        "count": 2
+      }
+    },
+    "evals/retrieval/lib/assertions.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "evals/retrieval/lib/format.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "evals/retrieval/lib/governance.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "evals/retrieval/lib/runner-api.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "evals/retrieval/run.ts": {
+      "complexity_critical": {
+        "count": 3
+      },
+      "crap_critical": {
+        "count": 4
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "evals/scripts/__tests__/eval-ci.test.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "evals/scripts/annotate-skills.ts": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "evals/scripts/eval-all.ts": {
+      "complexity_critical": {
+        "count": 3
+      },
+      "crap_critical": {
+        "count": 3
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "evals/scripts/eval-ci.ts": {
+      "complexity_critical": {
+        "count": 3
+      },
+      "crap_critical": {
+        "count": 3
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "evals/summary/lib/format.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "evals/summary/lib/judge.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "evals/summary/lib/runner-api.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "evals/summary/run.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_high": {
+        "count": 2
+      }
+    },
+    "packages/backend-core/src/candidate-ingestion/application/module.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/backend-core/src/runtime/capability-model.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/backend-core/src/runtime/topology.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/commands/audit.ts": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/commands/evidence.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/commands/feedback-admin.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/commands/feedback.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/commands/operations/activate.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/commands/operations/import.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/commands/output-profile.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/commands/policy.ts": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/commands/review.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/commands/skill/duplicate-job.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/commands/skill/formatters.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/lib/artifact-bundle.ts": {
+      "complexity_moderate": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/lib/markdown-formatter.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/lib/output-profile/codex-object-builder.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/lib/output-profile/renderers.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/lib/output-profile/summarizers.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/contracts/src/domain/evals/label-alignment.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/contracts/src/domain/parsing.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/host-distributed/src/gateway/internal-client.ts": {
+      "complexity_high": {
+        "count": 2
+      },
+      "crap_high": {
+        "count": 2
+      }
+    },
+    "packages/host-distributed/src/index.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/host-distributed/src/shared/database.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/host-distributed/src/shared/internal-knowledge-write-client.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/host-distributed/src/shared/ports.ts": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 6
+      },
+      "crap_moderate": {
+        "count": 4
+      }
+    },
+    "packages/host-distributed/src/testing/distributed-runtime-smoke-service.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "packages/host-local/src/nest/config/ai-provider-config.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/host-local/src/nest/main.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/host-local/src/nest/runtime/logging.middleware.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/runtime-infra/src/outbox.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/runtime-infra/src/task-queue.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/scripts/backfill-indexes.ts": {
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "packages/server/scripts/benchmark-graph-backend.ts": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/scripts/check-neo4j.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/app.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/bootstrap/bootstrap-lifecycle.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/bootstrap/bootstrap-repositories.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/actors/lookup.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/ai/prompt-builder.ts": {
+      "crap_high": {
+        "count": 2
+      }
+    },
+    "packages/server/src/lib/ai/provider-config.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/ai/providers.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/ai/providers/json-renderer.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/artifacts/derive.test.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/artifacts/derive/from-payloads.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/artifacts/pg-repository/revision-writer.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/artifacts/repository.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/audit/pg-repository.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/cache/metrics.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/candidates/detector.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/candidates/pg-detector-scorer.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/candidates/pg-detector.test.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/candidates/pg-detector.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/candidates/processor.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/candidates/services/resolution-service.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/candidates/validate.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/conflict/detect.ts": {
+      "complexity_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/conflict/enrich.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/decay/application-service.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/decay/batch.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/duplicates/pg-repository.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/embeddings.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/feedback/pg-repository.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/graph-query/health.test.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/graph-query/memory-backend.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/indexing/adapters/graph.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/indexing/adapters/keyword.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/server/src/lib/indexing/adapters/vector.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/indexing/graph-lite/graphology.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 2
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/indexing/graph-lite/llm-extract.ts": {
+      "complexity_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/indexing/pipeline.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/indexing/reconcile.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/indexing/skill-events.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/indexing/skill-extract.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/knowledge/pg-repository/pg-knowledge-repository.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/server/src/lib/knowledge/pg-repository/record-reconstruction.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/knowledge/repository.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/server/src/lib/knowledge/review-application-service.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/labels/backfill-runner.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/labels/backfill.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/labels/candidate-recall.ts": {
+      "complexity_critical": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/labels/graph-align.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/labels/llm-align.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/labels/merge-repair.ts": {
+      "complexity_critical": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/labels/repository/pg-repository.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/lifecycle/outbox.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/maintenance/batch.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/operations/read-model.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/operations/status-support.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/persistence/backfill-indexes.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/persistence/migrate-artifacts.test.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/persistence/migrate-artifacts.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/persistence/migrate-candidates.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/persistence/migrate-identity-audit.test.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/server/src/lib/persistence/migrate-identity-audit.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/persistence/migrate-knowledge.test.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/persistence/migrate-knowledge.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/pre-review.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/queue/task-queue.test.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/queue/task-queue.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/__fixtures__/auth-store-helpers.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 2
+      },
+      "crap_high": {
+        "count": 4
+      }
+    },
+    "packages/server/src/lib/retrieval/__fixtures__/graph-fixtures.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/capsules/channels/graph.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/capsules/scoring/rerank.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/graph-plan/execution-plan.ts": {
+      "complexity_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/graph-plan/graph-plan-search.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/graph-plan/skill-selection.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/graph-plan/trap-identification.ts": {
+      "complexity_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/graph-plan/trap-ranking.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/orchestration/recall-coordinator.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/orchestration/search-v1.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/recall/graph-assisted.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/recall/semantic.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/scoring/boundary-match.ts": {
+      "complexity_critical": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/scoring/boundary-query.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/retrieval/scoring/rerank.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/runtime/deployment-profile.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/runtime/resilience.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/runtime/service-topology.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/validation/phase70-gap5-postgres.test.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/lib/workflows/repository.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/server/src/routes/evidence.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/feedback-admin/feedback-batch.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/feedback-admin/helpers.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/feedback-admin/remediation.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/feedback.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/knowledge.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/maintenance.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/members.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/operations/artifacts-export.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/operations/capsule-index.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/operations/knowledge-legacy.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/operations/migrate.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/operations/skill-edit.ts": {
+      "complexity_high": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/operations/skill-review.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/operations/stats.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/operations/status.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/server/src/routes/teams.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/server/src/worker.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/service-governance-review/src/review-queue-projection.ts": {
+      "complexity_moderate": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/service-knowledge-read/src/retrieval-recall-coordinator.ts": {
+      "complexity_moderate": {
+        "count": 2
+      }
+    },
+    "packages/service-knowledge-read/src/retrieval-semantic.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/service-knowledge-read/src/search-knowledge.ts": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/web-panel/src/app/shell/app-shell.tsx": {
+      "complexity_high": {
+        "count": 1
+      }
+    },
+    "packages/web-panel/src/features/dashboard/use-dashboard-page-model.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/web-panel/src/features/review-queue/service.ts": {
+      "crap_high": {
+        "count": 1
+      }
+    },
+    "packages/web-panel/src/pages/activity/activity-page.tsx": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/web-panel/src/pages/review-detail/review-detail-page.tsx": {
+      "complexity_high": {
+        "count": 1
+      },
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/web-panel/src/pages/review-queue/review-queue-page.tsx": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "packages/web-panel/src/services/api/admin-panel-api.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/web-panel/src/shared/ui/json-editor-panel.tsx": {
+      "complexity_moderate": {
+        "count": 1
+      }
+    },
+    "scripts/batch-download-skills.ts": {
+      "complexity_critical": {
+        "count": 2
+      },
+      "crap_critical": {
+        "count": 3
+      },
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "scripts/check-complexity-budgets.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "scripts/check-doc-drift.ts": {
+      "complexity_critical": {
+        "count": 1
+      }
+    },
+    "scripts/check-relative-imports.mjs": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "scripts/codemods/relative-to-alias.cjs": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "scripts/export-badcase-to-eval.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "scripts/export-retrieval-db-snapshot.ts": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "scripts/run-ci.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    },
+    "scripts/runtime-closeout.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "scripts/test-skill-import-export.ts": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      }
+    }
+  },
+  "runtime_coverage_findings": [],
+  "target_keys": [
+    "packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts:dead code",
+    "packages/server/src/lib/ai/prompt-builder.ts:dead code",
+    "packages/server/src/lib/indexing/graph-lite/llm-extract.ts:circular dependency",
+    "packages/cli/src/lib/output-profile/index.ts:dead code",
+    "packages/server/src/lib/candidates/detector.ts:complexity",
+    "packages/cli/src/lib/output-profile/summarizers.ts:high impact",
+    "packages/server/src/lib/candidates/processor.ts:complexity",
+    "packages/server/src/lib/knowledge/serialization.ts:dead code",
+    "packages/server/src/lib/retrieval/scoring/boundary-match.ts:complexity",
+    "packages/runtime-infra/src/event-bus.ts:high impact",
+    "packages/server/src/routes/feedback.ts:complexity",
+    "packages/cli/src/lib/output-profile/renderers.ts:complexity",
+    "packages/server/src/lib/conflict/detect.ts:complexity",
+    "packages/server/src/routes/maintenance.ts:complexity",
+    "packages/server/src/lib/feedback/remediation.ts:high impact",
+    "packages/server/src/lib/runtime/http-surface.ts:circular dependency",
+    "packages/server/src/routes/operations/migrate.ts:complexity",
+    "packages/host-distributed/src/gateway/internal-client.ts:complexity",
+    "packages/server/src/lib/persistence/postgres-store.ts:circular dependency",
+    "packages/server/src/routes/feedback-admin/feedback-batch.ts:complexity",
+    "evals/retrieval-live/run.ts:complexity",
+    "packages/server/src/lib/labels/graph-align.ts:circular dependency",
+    "packages/server/src/lib/labels/merge-repair.ts:complexity",
+    "packages/web-panel/src/pages/review-detail/review-detail-page.tsx:complexity",
+    "packages/server/src/lib/labels/candidate-recall.ts:complexity",
+    "packages/server/src/lib/graph-query/neo4j-backend.ts:circular dependency",
+    "evals/retrieval/run.ts:complexity",
+    "packages/server/src/lib/candidates/pg-detector-scorer.ts:complexity",
+    "evals/scripts/eval-all.ts:complexity",
+    "packages/server/src/lib/ai/providers/json-renderer.ts:complexity",
+    "scripts/check-doc-drift.ts:complexity",
+    "packages/server/src/lib/indexing/skill-extract.ts:complexity",
+    "packages/server/src/lib/queue/task-queue.test.ts:complexity",
+    "evals/agent-planning/live-eval.ts:complexity",
+    "scripts/test-skill-import-export.ts:complexity"
+  ]
+}

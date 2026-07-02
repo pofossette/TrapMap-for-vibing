@@ -39,7 +39,7 @@ Runtime foundations 相关改动主要依赖以下 job 组合形成质量门：
 
 `fallow-push-audit` 在 `push` 和 `pull_request` 事件均运行：
 
-- **Push 事件**：以上次 push 的 commit SHA 为参照，执行增量审计 + 回归防护（`--fail-on-regression`）。回归基线存储在 `.fallow/baseline.json`，CI 会在质量评分退化时阻断合并。
+- **Push 事件**：以上次 push 的 commit SHA 为参照，执行增量审计 + 回归防护。回归基线存储在 `reports/baselines/` 下，CI 会在质量评分退化或死代码增加时阻断合并。
 - **PR 事件**：以 `origin/main` 为参照，执行增量审计，只阻断 PR 相对 main 新增的问题。
 
 两种场景均只检查 changed-files 范围内的新问题，不因历史存量问题直接阻断。适合作为 `typecheck` / `test` / `check` 之外的补位守卫，补充未使用导出/文件、重复代码、循环依赖和变更面健康审计。当前没有用它替代 `pnpm check:complexity` 或文档守卫；这些仓库定制规则仍由现有 jobs 负责。
@@ -61,16 +61,18 @@ Runtime foundations 相关改动主要依赖以下 job 组合形成质量门：
 
 ### Fallow 质量基线
 
-回归基线存储在 `.fallow/baseline.json`，由 `fallow health --save-baseline` 生成。Push 审计使用 `--fail-on-regression` 标志对比此基线，防止质量评分退化。基线包含：
+回归基线存储在 `reports/baselines/` 目录下，由 fallow 子命令的 `--save-baseline` 生成。Push 审计使用 `--health-baseline` 和 `--dead-code-baseline` 标志对比此基线，防止质量评分退化和死代码增加。基线包含：
 
-- **健康评分**：当前分数和等级
-- **死代码统计**：未使用文件、导出、类型、依赖数量
-- **重复代码统计**：克隆组数、实例数
-- **架构边界状态**：zone 数量和违规数
-- **复杂度统计**：分析的文件/函数数、各级别严重度计数
-- **回归基线数据**：逐文件的 finding counts，供 `--fail-on-regression` 对比使用
+- **健康评分**：当前分数和等级（`fallow-health-baseline.json`）
+- **死代码统计**：未使用文件、导出、类型、依赖数量（`fallow-dead-code-baseline.json`）
+- **回归基线数据**：逐文件的 finding counts，供回归对比使用
 
-更新基线：`pnpm exec fallow health --format json --quiet --score --save-baseline .fallow/baseline.json`
+更新基线：
+
+```bash
+pnpm exec fallow health --save-baseline reports/baselines/fallow-health-baseline.json
+pnpm exec fallow dead-code --save-baseline reports/baselines/fallow-dead-code-baseline.json
+```
 
 > 源码：`.github/workflows/ci.yml`
 

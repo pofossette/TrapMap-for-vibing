@@ -26,7 +26,7 @@ jobs:
 
       - name: Audit new static analysis issues (push)
         if: github.event_name == 'push'
-        run: pnpm exec fallow audit --base ${{ github.event.before }} --gate new-only --ci --fail-on-issues --fail-on-regression
+        run: pnpm exec fallow audit --base ${{ github.event.before }} --gate new-only --ci --fail-on-issues --health-baseline reports/baselines/fallow-health-baseline.json --dead-code-baseline reports/baselines/fallow-dead-code-baseline.json
 
       - name: PR Fallow Audit (on PR)
         if: github.event_name == 'pull_request'
