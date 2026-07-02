@@ -38,11 +38,9 @@ import {
   buildEmptyV2Response,
   buildProfileHint,
   buildV2RetrievalResponse,
-} from '@trapmap/server/lib/retrieval/response/assembly.js';
-import {
   buildCapsuleCitations,
   buildCapsuleSummary,
-} from '@trapmap/server/lib/retrieval/response/summary.js';
+} from '@trapmap/server/lib/retrieval/response/index.js';
 import { buildRoutingTrace } from './routing-trace.js';
 import { selectRetrievalStrategyV2 } from './routing.js';
 import { timedStep } from './pipeline-timing.js';

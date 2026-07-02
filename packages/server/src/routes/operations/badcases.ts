@@ -9,7 +9,7 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
-import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/metrics.js';
+import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/index.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import type { Pool } from 'pg';

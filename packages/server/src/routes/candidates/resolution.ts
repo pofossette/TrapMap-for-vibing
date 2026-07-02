@@ -10,7 +10,7 @@ import {
   attachManualResult,
 } from '@trapmap/server/lib/candidates/services/resolution-service.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
+import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/index.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 

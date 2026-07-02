@@ -1,5 +1,5 @@
 import type { Task, TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
-import type { RuntimeWorkerHandle } from '@trapmap/server/lib/runtime/runtime-contract.js';
+import type { RuntimeWorkerHandle } from '@trapmap/server/lib/runtime/index.js';
 import type { AsyncTaskTransport } from './transport.js';
 
 interface RabbitMqMessage {

@@ -15,8 +15,7 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
-import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
+import { loadDecayConfig, computeDecayState } from '@trapmap/server/lib/decay/index.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { reconcileKnowledgeIndexes } from '@trapmap/server/lib/indexing/pipeline.js';
 import {

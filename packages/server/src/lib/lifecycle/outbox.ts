@@ -20,7 +20,7 @@ import {
   recordQueueMetric,
   recordRuntimeExecution,
   recordRuntimeReclaim,
-} from '@trapmap/server/lib/runtime/metrics.js';
+} from '@trapmap/server/lib/runtime/index.js';
 import type { DomainEvent } from './types.js';
 
 export interface OutboxEvent {

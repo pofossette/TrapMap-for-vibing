@@ -13,7 +13,7 @@
 import type { LifecycleState } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
-import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/index.js';
 import type {
   SkillArtifactLifecycleEventRecord,
   SkillArtifactRecord,

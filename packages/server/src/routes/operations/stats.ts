@@ -26,7 +26,7 @@ import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import {
   getAverageLatencyMs,
   getRuntimeMetricsSnapshot,
-} from '@trapmap/server/lib/runtime/metrics.js';
+} from '@trapmap/server/lib/runtime/index.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
 export const statsRoutes: FastifyPluginAsync = async (app) => {

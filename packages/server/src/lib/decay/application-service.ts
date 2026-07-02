@@ -1,14 +1,14 @@
 import type { BatchOperationItem, BatchOperationRequest } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
-import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
+import { loadDecayConfig } from '@trapmap/server/lib/decay/index.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
 import {
   loadKnowledgeEntriesByIds,
   saveKnowledgeEntry,
 } from '@trapmap/server/lib/knowledge/repository.js';
-import type { LifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
+import type { LifecyclePublisher } from '@trapmap/server/lib/lifecycle/index.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import {
   applyBatchMutation,

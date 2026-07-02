@@ -16,7 +16,7 @@
  */
 
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import type {
   KnowledgeRecord,
   SkillArtifactRecord,
@@ -24,14 +24,14 @@ import type {
   StoreData,
 } from '@trapmap/server/lib/store.js';
 import { buildTrapGraphDocument } from './adapters/graph-builders.js';
-import type { GraphIndexDocumentRecord } from './graph-lite/documents.js';
-import { assertNoHardDependencyCycles } from './graph-lite/graphology.js';
-import { PROMPT_VERSION } from './graph-lite/llm-cache.js';
 import {
+  type GraphIndexDocumentRecord,
+  assertNoHardDependencyCycles,
+  PROMPT_VERSION,
   getGraphIndexDocuments,
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
-} from './graph-lite/store.js';
+} from './graph-lite/index.js';
 import { normalizeKnowledgeIndexDocument } from './normalize.js';
 import { buildSkillGraphDocument } from './skill-events.js';
 

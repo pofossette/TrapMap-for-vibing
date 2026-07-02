@@ -101,6 +101,26 @@ Phase 4 closeout 对剩余 deferred 的处理原则已经冻结：
 - 当前明确转 deferred 的包括：Kubernetes/Ingress/Service Mesh 平台化、service-to-service auth hardening、per-service database、MQ 全面替换、外部缓存平台、dashboard-as-code、alert rule pack、Node heap preset 与 PgBouncer introspection contract
 - 当前仍留在 active todo 的剩余 closeout 只剩两类：checked-in 资源治理默认值是否要继续最小补齐，以及 active-vs-archived 索引状态何时满足归档条件
 
+## 7. Coupling Debt Register (Phase 0.6 Audit)
+
+The following coupling patterns were identified during the Phase 0.6 coupling audit and logged as known tech debt. They are intentional but should be tracked for future resolution.
+
+### 7.1 PostgresStore `instanceof` Pattern
+
+- **Priority**: Medium
+- **Scope**: ~20 files across `packages/server/src/lib/`
+- **Pattern**: Orchestration code uses `instanceof PostgresStore` to extract `Pool` from the Store interface because `SkillShareStore` does not expose `getPool()`
+- **Resolution**: Introduce a port-level "database pool access" abstraction (e.g. `PoolProvider` interface)
+- **Status**: Known debt, deferred. See `docs/architecture/BOUNDARIES.md` Category A.
+
+### 7.2 service-knowledge-read Deep Coupling
+
+- **Priority**: High
+- **Scope**: 30+ internal imports from `packages/server/src/` in `packages/service-knowledge-read/src/`
+- **Pattern**: Despite the zone-level CQRS exception, imports have grown beyond the original read-side scope into wholesale duplication of server internals (recall, scoring, caching, decay, governance, embeddings)
+- **Resolution**: Migrate to stable port interfaces that expose only the query capabilities the read-side needs
+- **Status**: Known debt, tracked. See `docs/architecture/BOUNDARIES.md` Category B.
+
 ## 6. 证据入口
 
 - [`packages/host-local/src/nest/runtime/host-runtime.ts`](../../packages/host-local/src/nest/runtime/host-runtime.ts)

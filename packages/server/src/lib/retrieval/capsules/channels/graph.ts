@@ -17,8 +17,10 @@
  */
 
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
-import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
+import {
+  type GraphQueryBackend,
+  createMemoryGraphQueryBackend,
+} from '@trapmap/server/lib/graph-query/index.js';
 import { extractGovernedCapsules } from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
 import { normalizeQueryGraphLabels } from '@trapmap/server/lib/retrieval/recall/query-graph-labels.js';
 import type {

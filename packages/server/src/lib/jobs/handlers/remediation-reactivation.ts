@@ -4,7 +4,7 @@ import {
 } from '@trapmap/server/lib/cache/invalidation.js';
 import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
 import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import { runSkillIndexEvent } from '@trapmap/server/lib/indexing/skill-events.js';

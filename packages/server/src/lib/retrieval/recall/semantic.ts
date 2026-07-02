@@ -17,7 +17,7 @@ import {
   setCachedQueryEmbedding,
 } from '@trapmap/server/lib/cache/query-embedding-cache.js';
 import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
-import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/channel-registry.js';
+import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/index.js';
 import { normalizeQuery } from '@trapmap/server/lib/retrieval/recall/keyword.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 

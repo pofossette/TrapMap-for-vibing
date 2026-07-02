@@ -9,7 +9,7 @@
  * This file is the main entry point. Schema and worker are in separate modules.
  */
 
-import { recordQueueMetric, recordRuntimeReclaim } from '@trapmap/server/lib/runtime/metrics.js';
+import { recordQueueMetric, recordRuntimeReclaim } from '@trapmap/server/lib/runtime/index.js';
 import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool, PoolClient } from 'pg';

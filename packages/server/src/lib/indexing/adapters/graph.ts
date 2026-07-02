@@ -14,16 +14,16 @@
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import { extractBoundaryGraphEntities } from '@trapmap/server/lib/indexing/boundary-extract.js';
-import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
-import { assertNoHardDependencyCycles } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
-import { LlmExtractionCache } from '@trapmap/server/lib/indexing/graph-lite/llm-cache.js';
-import { extractGraphEntitiesWithLLM } from '@trapmap/server/lib/indexing/graph-lite/llm-extract.js';
 import {
+  type GraphIndexDocumentRecord,
+  assertNoHardDependencyCycles,
+  LlmExtractionCache,
+  extractGraphEntitiesWithLLM,
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
-} from '@trapmap/server/lib/indexing/graph-lite/store.js';
+} from '@trapmap/server/lib/indexing/graph-lite/index.js';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { IndexAdapter, IndexSyncResult } from '@trapmap/server/lib/indexing/types.js';
 import { createLabelRepository } from '@trapmap/server/lib/labels/repository.js';

@@ -18,7 +18,7 @@
  * entries, falling back to query-time tokenization for legacy entries.
  */
 
-import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/channel-registry.js';
+import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/index.js';
 import type { RecallCandidate, TokenMatchDetail } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 

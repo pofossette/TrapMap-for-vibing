@@ -7,7 +7,7 @@ import {
   normalizeBadcaseTaxonomy,
 } from '@trapmap/contracts';
 
-import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
+import { computeDecayState } from '@trapmap/server/lib/decay/index.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type { KnowledgeRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
 

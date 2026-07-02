@@ -8,17 +8,19 @@ import type { ArtifactRepository } from './artifacts/index.js';
 import type { AsyncTransport } from './async/transport.js';
 import type { AccessKeyRepository } from './auth/index.js';
 import type { SessionRepository } from './auth/index.js';
-import type { GraphQueryBackend, GraphQueryRuntimeState } from './graph-query/backend.js';
+import type { GraphQueryBackend, GraphQueryRuntimeState } from './graph-query/index.js';
 import type { AdapterRegistry } from './indexing/registry.js';
 import type { KnowledgeRepository } from './knowledge/index.js';
-import type { LifecycleEventBus } from './lifecycle/event-bus.js';
+import type { LifecycleEventBus } from './lifecycle/index.js';
 import type { SkillShareerRepos } from './repos/index.js';
-import type { ChannelRegistry } from './retrieval/orchestration/channel-registry.js';
-import type { StrategyRegistry } from './retrieval/orchestration/strategy-registry.js';
-import type { ResolvedRuntimeDeployment } from './runtime/deployment-profile.js';
-import type { RequestContext } from './runtime/request-context.js';
-import type { RuntimeMode, RuntimeWorkerHandle } from './runtime/runtime-contract.js';
-import type { ServiceUnit } from './runtime/service-unit.js';
+import type { ChannelRegistry, StrategyRegistry } from './retrieval/orchestration/index.js';
+import type {
+  ResolvedRuntimeDeployment,
+  RequestContext,
+  RuntimeMode,
+  RuntimeWorkerHandle,
+  ServiceUnit,
+} from './runtime/index.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
 import type { MembershipRepository, TeamRepository } from './teams/index.js';
 import type { UserRepository } from './users/index.js';

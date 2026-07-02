@@ -1,4 +1,4 @@
-import { detectConflicts } from '@trapmap/server/lib/conflict/detect.js';
+import { detectConflicts } from '@trapmap/server/lib/conflict/index.js';
 import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 

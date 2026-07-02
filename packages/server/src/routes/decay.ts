@@ -14,7 +14,7 @@ import {
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 
-import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
+import { loadDecayConfig } from '@trapmap/server/lib/decay/index.js';
 import { buildDecayEntriesProjection } from '@trapmap/server/lib/operations/read-model.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';

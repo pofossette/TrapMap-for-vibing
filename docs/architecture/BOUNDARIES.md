@@ -164,6 +164,56 @@ pnpm exec fallow audit --base main
 
 CI 流水线中配置了 fallow 边界检查步骤。PR 合并前会自动运行 `fallow audit`，任何边界违规都会导致 CI 失败，阻止合并。
 
+## Intentional Coupling Patterns
+
+The coupling audit (Phase 0.6) identified several patterns that violate strict layering but are accepted as intentional. These are documented below for future maintainers and for tracking against the open-debt register.
+
+### Category A: PostgresStore `instanceof` Pattern (Medium Severity)
+
+**Location**: 20+ files across `packages/server/src/lib/` (recall-coordinator.ts, search-v2.ts, skill-lookup.ts, etc.)
+
+**Pattern**: Orchestration code uses `instanceof PostgresStore` to extract a `Pool` from the Store interface.
+
+**Why intentional**: All affected files reside within the `server` zone (infrastructure code). The `SkillShareStore` abstraction does not expose `getPool()`, so callers must use an instanceof check to access the underlying connection pool. This is contained within a single architectural layer.
+
+**Tech debt**: Should be resolved by introducing a port-level "database pool access" abstraction (e.g. a `PoolProvider` interface) so that instanceof checks are no longer needed.
+
+**Status**: Known debt, deferred to future refactoring.
+
+### Category B: service-knowledge-read Deep Coupling (High Severity)
+
+**Location**: `packages/service-knowledge-read/src/` (30+ imports from server internals)
+
+**Pattern**: Despite the zone-level CQRS exception documented above, `service-knowledge-read` imports deeply into server internals spanning recall, scoring, caching, decay, governance, and embeddings modules.
+
+**Why intentional**: The CQRS read-side requires access to retrieval pipeline internals for query optimization. This exception was an explicit architectural decision.
+
+**Tech debt**: The coupling has grown far beyond the original CQRS read-side scope into wholesale duplication of server internals. This should be migrated to stable port interfaces that expose only the query capabilities the read-side needs, reducing the surface area from 30+ internal imports to a handful of well-defined ports.
+
+**Status**: Known debt, tracked in open-debt register.
+
+### Category C: Drizzle Schema Imports in Recall Channels (Low Severity)
+
+**Location**: `pg-keyword.ts`, capsule repositories
+
+**Pattern**: Recall channels import Drizzle schema directly for raw SQL queries instead of going through repository abstractions.
+
+**Why intentional**: These files are within the `server` zone. For performance-critical query paths, direct schema access is acceptable to avoid abstraction overhead on hot retrieval paths.
+
+**Status**: Acceptable, documented for awareness.
+
+### Category D: Concrete Graph Backend Factory in Recall (Low Severity)
+
+**Location**: `graph-assisted.ts`
+
+**Pattern**: Imports `createMemoryGraphQueryBackend` as a fallback when no graph backend is configured.
+
+**Why intentional**: Within the `server` zone, this provides graceful degradation -- retrieval continues to function without a graph backend rather than failing.
+
+**Status**: Acceptable.
+
+---
+
 ## 添加新 Zone 指南
 
 当项目引入新的包并需要添加架构边界保护时，按以下步骤操作：

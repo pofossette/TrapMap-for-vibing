@@ -2,7 +2,7 @@ import { pathToFileURL } from 'node:url';
 
 import { buildServer } from './app.js';
 import { loadConfig } from './config.js';
-import { resolveRuntimeDeployment } from './lib/runtime/deployment-profile.js';
+import { resolveRuntimeDeployment } from './lib/runtime/index.js';
 
 export { buildServer } from './app.js';
 

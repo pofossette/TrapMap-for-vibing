@@ -16,15 +16,14 @@
  */
 
 import type { BoundaryContext, RetrievalQuery } from '@trapmap/contracts';
-import { loadDecayConfig } from '@trapmap/server/lib/decay/config.js';
-import { computeDecayState } from '@trapmap/server/lib/decay/state-machine.js';
+import { loadDecayConfig, computeDecayState } from '@trapmap/server/lib/decay/index.js';
 import { isSuppressedByFeedback } from '@trapmap/server/lib/feedback/remediation.js';
 import {
   extractGovernanceContext,
   isGovernanceEligible,
   matchesGovernanceFilters,
 } from '@trapmap/server/lib/governance/index.js';
-import { filterByBoundary } from '@trapmap/server/lib/retrieval/scoring/boundary-match.js';
+import { filterByBoundary } from '@trapmap/server/lib/retrieval/scoring/index.js';
 import type { ResolvedAuthContext } from './context.js';
 import type { KnowledgeRecord } from './store.js';
 

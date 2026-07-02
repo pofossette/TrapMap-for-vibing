@@ -4,7 +4,7 @@
  */
 
 import type { PlanEdge, PlanSkillNode, PlanTrapNode } from '@trapmap/contracts';
-import type { Graph } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import type { Graph } from '@trapmap/server/lib/indexing/graph-lite/index.js';
 
 /**
  * Build plan edges from graph edges.

@@ -13,10 +13,12 @@ import {
   createAccessKeyRepository,
   createSessionRepository,
 } from '@trapmap/server/lib/auth/index.js';
-import { createGraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/config.js';
-import { createFailOpenGraphQueryBackend } from '@trapmap/server/lib/graph-query/health.js';
-import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
-import { createNeo4jGraphQueryBackend } from '@trapmap/server/lib/graph-query/neo4j-backend.js';
+import {
+  createGraphQueryRuntimeState,
+  createFailOpenGraphQueryBackend,
+  createMemoryGraphQueryBackend,
+  createNeo4jGraphQueryBackend,
+} from '@trapmap/server/lib/graph-query/index.js';
 import { artifactGraphIndexAdapter } from '@trapmap/server/lib/indexing/adapters/artifact-graph.js';
 import { createCapsuleIndexAdapter } from '@trapmap/server/lib/indexing/adapters/capsule-index.js';
 import { registerArtifactAdapters } from '@trapmap/server/lib/indexing/artifact-pipeline.js';
@@ -27,7 +29,7 @@ import { createAllRepos } from '@trapmap/server/lib/repos/index.js';
 import { ensureCapsuleVectorIndex } from '@trapmap/server/lib/retrieval/capsules/repositories/pg-capsule-vector.js';
 import { ensureVectorIndex } from '@trapmap/server/lib/retrieval/recall/db-search.js';
 import { createGraphChannel } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
-import { executeWithResilience } from '@trapmap/server/lib/runtime/resilience.js';
+import { executeWithResilience } from '@trapmap/server/lib/runtime/index.js';
 import {
   createMembershipRepository,
   createTeamRepository,

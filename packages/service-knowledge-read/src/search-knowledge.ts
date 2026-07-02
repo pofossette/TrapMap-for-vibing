@@ -4,13 +4,13 @@ import {
   retrievalQuerySchema,
 } from '@trapmap/contracts';
 
-import { enrichMatchesWithConflicts } from '@trapmap/server/lib/conflict/enrich.js';
+import { enrichMatchesWithConflicts } from '@trapmap/server/lib/conflict/index.js';
 import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   selectRetrievalStrategy,
   toRoutingTrace,
-} from '@trapmap/server/lib/retrieval/orchestration/routing.js';
+} from '@trapmap/server/lib/retrieval/orchestration/index.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';

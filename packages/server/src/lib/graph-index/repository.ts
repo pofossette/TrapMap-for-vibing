@@ -18,7 +18,7 @@ import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+} from '@trapmap/server/lib/indexing/graph-lite/index.js';
 import { graphIndexDocuments } from '@trapmap/server/lib/persistence/schema.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 

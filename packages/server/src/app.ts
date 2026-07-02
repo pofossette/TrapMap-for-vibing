@@ -9,33 +9,35 @@ import { createAiProviders } from './lib/ai/index.js';
 import { createAsyncTransport } from './lib/async/factory.js';
 import type { SkillShareerServices } from './lib/context.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
-import type { GraphQueryBackend } from './lib/graph-query/backend.js';
-import { createGraphQueryRuntimeState } from './lib/graph-query/config.js';
+import { type GraphQueryBackend, createGraphQueryRuntimeState } from './lib/graph-query/index.js';
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
-import { LifecycleEventBus } from './lib/lifecycle/event-bus.js';
+import { LifecycleEventBus } from './lib/lifecycle/index.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import { PostgresStore } from './lib/persistence/postgres-store.js';
-import { ChannelRegistry } from './lib/retrieval/orchestration/channel-registry.js';
 import {
+  ChannelRegistry,
+  StrategyRegistry,
   graphAssistedRecall,
   hybridRecall,
   semanticRecall,
-} from './lib/retrieval/orchestration/recall-coordinator.js';
-import type { RetrievalStrategy } from './lib/retrieval/orchestration/strategy-registry.js';
-import { StrategyRegistry } from './lib/retrieval/orchestration/strategy-registry.js';
+} from './lib/retrieval/orchestration/index.js';
+import type { RetrievalStrategy } from './lib/retrieval/orchestration/index.js';
 import { keywordChannel } from './lib/retrieval/recall/keyword.js';
 import { semanticChannel } from './lib/retrieval/recall/semantic.js';
-import { resolveRuntimeDeployment } from './lib/runtime/deployment-profile.js';
-import { handleRuntimeError, registerRuntimeRoutes } from './lib/runtime/http-surface.js';
-import { recordHttpRequestMetric, renderPrometheusMetrics } from './lib/runtime/metrics.js';
-import { getOrCreateRequestContext } from './lib/runtime/request-context.js';
 import {
+  handleRuntimeError,
+  registerRuntimeRoutes,
+  recordHttpRequestMetric,
+  renderPrometheusMetrics,
+  getOrCreateRequestContext,
   buildRouteSurfaceSummary,
   flattenDocumentedRoutes,
   getUnsupportedRouteDescriptors,
-} from './lib/runtime/route-surface.js';
-import type { RuntimeMode } from './lib/runtime/runtime-contract.js';
-import { type ServiceUnit, resolveServiceUnit } from './lib/runtime/service-unit.js';
+  resolveRuntimeDeployment,
+  resolveServiceUnit,
+  type ServiceUnit,
+} from './lib/runtime/index.js';
+import type { RuntimeMode } from './lib/runtime/index.js';
 
 import { runStartupSequence } from './bootstrap/run-startup-sequence.js';
 import { accessKeyRoutes } from './routes/access-keys.js';

@@ -1,10 +1,10 @@
 import { type AiProviders, createAiProviders } from '@trapmap/server/lib/ai/index.js';
 import { setGlobalEmbeddingsProvider } from '@trapmap/server/lib/embeddings.js';
-import type {
-  GraphQueryBackend,
-  GraphQueryRuntimeState,
-} from '@trapmap/server/lib/graph-query/backend.js';
-import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
+import {
+  type GraphQueryBackend,
+  type GraphQueryRuntimeState,
+  createMemoryGraphQueryBackend,
+} from '@trapmap/server/lib/graph-query/index.js';
 import { buildDefaultAdapterRegistry } from '@trapmap/server/lib/indexing/adapters/index.js';
 import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import { createAsyncTransport } from './async-factory.js';

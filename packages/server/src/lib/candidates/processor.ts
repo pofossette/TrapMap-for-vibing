@@ -1,7 +1,7 @@
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
-import { executeWithResilience } from '@trapmap/server/lib/runtime/resilience.js';
+import { executeWithResilience } from '@trapmap/server/lib/runtime/index.js';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 import type { Pool } from 'pg';

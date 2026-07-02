@@ -19,8 +19,10 @@ import type { UsageEventInput } from '@trapmap/server/lib/analytics/index.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { searchKnowledge, searchKnowledgeV2 } from '@trapmap/server/lib/retrieval.js';
 import { searchSkillsByContent } from '@trapmap/server/lib/retrieval/capsules/skill-lookup.js';
-import { searchKnowledgeGraphPlan } from '@trapmap/server/lib/retrieval/graph-plan/graph-plan-search.js';
-import { compileTrapFirstPlan } from '@trapmap/server/lib/retrieval/graph-plan/plan-compiler.js';
+import {
+  searchKnowledgeGraphPlan,
+  compileTrapFirstPlan,
+} from '@trapmap/server/lib/retrieval/graph-plan/index.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';

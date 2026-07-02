@@ -8,7 +8,6 @@ on:
 
 jobs:
   fallow-push-audit:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,8 +24,13 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Audit new static analysis issues in changed files
-        run: pnpm exec fallow audit --base ${{ github.event.before }} --gate new-only --ci --fail-on-issues
+      - name: Audit new static analysis issues (push)
+        if: github.event_name == 'push'
+        run: pnpm exec fallow audit --base ${{ github.event.before }} --gate new-only --ci --fail-on-issues --fail-on-regression
+
+      - name: PR Fallow Audit (on PR)
+        if: github.event_name == 'pull_request'
+        run: pnpm exec fallow audit --base origin/main --gate new-only --ci --fail-on-issues
 
   typecheck:
     runs-on: ubuntu-latest
@@ -169,5 +173,5 @@ jobs:
       - run: pnpm check:complexity
       - run: pnpm check:md-lint
       - run: pnpm check:links || true
-      - run: pnpm exec fallow list --boundaries
+      - run: pnpm exec fallow list --boundaries --ci --fail-on-issues
       - run: pnpm exec fallow dead-code --unused-deps --ci --fail-on-issues

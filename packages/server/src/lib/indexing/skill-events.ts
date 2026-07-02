@@ -22,7 +22,7 @@ import type { LifecycleState } from '@trapmap/contracts';
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import type {
   SkillArtifactRecord,
   SkillShareerStore,
@@ -34,8 +34,7 @@ import {
   runArtifactAdapterFanOut,
   runArtifactAdapterRemoval,
 } from './artifact-pipeline.js';
-import { assertNoHardDependencyCycles } from './graph-lite/graphology.js';
-import { getGraphIndexDocuments } from './graph-lite/store.js';
+import { assertNoHardDependencyCycles, getGraphIndexDocuments } from './graph-lite/index.js';
 
 // ---------------------------------------------------------------------------
 // Re-export public API from extracted modules (backward compatibility)

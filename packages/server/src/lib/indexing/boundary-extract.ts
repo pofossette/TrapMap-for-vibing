@@ -20,7 +20,7 @@ import type {
   GraphNodeKind,
   GraphRelationStrength,
   GraphRelationType,
-} from './graph-lite/documents.js';
+} from './graph-lite/index.js';
 
 /**
  * Extracted boundary graph node.

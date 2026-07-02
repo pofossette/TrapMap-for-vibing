@@ -20,14 +20,14 @@
 import type { PlanQuery, TrapFirstPlan } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
-import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
+import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import {
   isArtifactGovernanceEligible,
   rankCapsules,
 } from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
 import { InMemoryIntentCache } from '@trapmap/server/lib/retrieval/capsules/intent-cache.js';
 import { parseSeedIntentWithLLM } from '@trapmap/server/lib/retrieval/capsules/intent.js';
-import { filterEligibleEntries } from '@trapmap/server/lib/retrieval/orchestration/filters.js';
+import { filterEligibleEntries } from '@trapmap/server/lib/retrieval/orchestration/index.js';
 import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 import type { CapsuleCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';

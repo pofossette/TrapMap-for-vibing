@@ -15,7 +15,7 @@ import {
   retrievalQuerySchema,
 } from '@trapmap/contracts';
 
-import { enrichMatchesWithConflicts } from '@trapmap/server/lib/conflict/enrich.js';
+import { enrichMatchesWithConflicts } from '@trapmap/server/lib/conflict/index.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type { PipelineStep } from '@trapmap/server/lib/rag-log.js';
 import { generateQueryId, logRagRetrieval } from '@trapmap/server/lib/rag-log.js';
@@ -24,10 +24,10 @@ import {
   assembleResponseBuckets,
   buildEmptyResponse,
   buildRetrievalResponse,
-} from '@trapmap/server/lib/retrieval/response/assembly.js';
-import { buildCitations } from '@trapmap/server/lib/retrieval/response/citations.js';
-import { generateRefinement } from '@trapmap/server/lib/retrieval/response/refinement.js';
-import { buildSummary } from '@trapmap/server/lib/retrieval/response/summary.js';
+  buildCitations,
+  generateRefinement,
+  buildSummary,
+} from '@trapmap/server/lib/retrieval/response/index.js';
 import type { ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord, StoreData } from '@trapmap/server/lib/store.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';

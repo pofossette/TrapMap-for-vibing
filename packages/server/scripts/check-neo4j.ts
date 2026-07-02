@@ -2,7 +2,7 @@
 
 import neo4j from 'neo4j-driver';
 
-import { loadGraphDbConfig } from '@trapmap/server/lib/graph-query/config.js';
+import { loadGraphDbConfig } from '@trapmap/server/lib/graph-query/index.js';
 
 function maskSecret(value: string): string {
   if (value.length <= 4) {

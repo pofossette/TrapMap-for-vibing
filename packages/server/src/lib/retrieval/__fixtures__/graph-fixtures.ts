@@ -12,7 +12,7 @@ import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+} from '@trapmap/server/lib/indexing/graph-lite/index.js';
 import { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
 

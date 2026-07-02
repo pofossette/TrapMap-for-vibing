@@ -18,16 +18,14 @@ import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { createLabelRepository } from '@trapmap/server/lib/labels/repository.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { SkillArtifactRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
-import type {
-  GraphEdgeRecord,
-  GraphIndexDocumentRecord,
-  GraphNodeRecord,
-} from './graph-lite/documents.js';
 import {
+  type GraphEdgeRecord,
+  type GraphIndexDocumentRecord,
+  type GraphNodeRecord,
   type SkillGraphDocumentInput,
   buildSkillGraphDocument as buildSkillGraphDocumentRecord,
-} from './graph-lite/documents.js';
-import { extractGraphEntitiesWithLLM } from './graph-lite/llm-extract.js';
+  extractGraphEntitiesWithLLM,
+} from './graph-lite/index.js';
 import { extractSkillGraphPrimitives } from './skill-extract.js';
 
 // ---------------------------------------------------------------------------

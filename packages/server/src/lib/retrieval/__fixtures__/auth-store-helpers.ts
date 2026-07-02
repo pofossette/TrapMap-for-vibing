@@ -14,7 +14,7 @@ import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+} from '@trapmap/server/lib/indexing/graph-lite/index.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';

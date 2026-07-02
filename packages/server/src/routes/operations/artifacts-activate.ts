@@ -11,7 +11,7 @@ import { toSkillArtifact } from '@trapmap/server/lib/artifacts/model.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { scheduleSkillLifecycleFollowUp } from '@trapmap/server/lib/jobs/skill-lifecycle-follow-up.js';
-import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/index.js';
 import {
   requireHigherLevel,
   requirePermission,

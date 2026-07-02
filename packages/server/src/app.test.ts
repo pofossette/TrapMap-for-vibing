@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildServer } from './app.js';
-import { recordRuntimeExecution, resetRuntimeMetrics } from './lib/runtime/metrics.js';
+import { recordRuntimeExecution, resetRuntimeMetrics } from './lib/runtime/index.js';
 
 describe('app.ts live gaps — fm-agent raw report', () => {
   it('exports prometheus metrics with frozen trapmap namespaces and low-cardinality labels', async () => {

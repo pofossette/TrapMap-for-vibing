@@ -1,6 +1,8 @@
-import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
-import type { GraphNodeRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
-import type { Graph } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+import {
+  type GraphIndexDocumentRecord,
+  type GraphNodeRecord,
+  type Graph,
+} from '@trapmap/server/lib/indexing/graph-lite/index.js';
 
 export type GraphQueryBackendKind = 'memory' | 'neo4j';
 

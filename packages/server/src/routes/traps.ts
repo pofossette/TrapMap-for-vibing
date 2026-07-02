@@ -10,7 +10,7 @@ import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/look
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
-import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
+import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/index.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';

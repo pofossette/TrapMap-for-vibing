@@ -6,10 +6,7 @@
 
 import { buildServer } from '@trapmap/server/app.js';
 import type { UsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
-import {
-  recordRuntimeExecution,
-  resetRuntimeMetrics,
-} from '@trapmap/server/lib/runtime/metrics.js';
+import { recordRuntimeExecution, resetRuntimeMetrics } from '@trapmap/server/lib/runtime/index.js';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

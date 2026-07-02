@@ -1,20 +1,19 @@
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
-import type {
-  GraphIndexDocumentRecord,
-  GraphNodeRecord,
-} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import {
+  type GraphIndexDocumentRecord,
+  type GraphNodeRecord,
   type Graph,
   buildLocalExpansionView as buildGraphologyLocalExpansionView,
-} from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+} from '@trapmap/server/lib/indexing/graph-lite/index.js';
 
-import type {
-  GraphQueryBackend,
-  GraphQueryExpansionView,
-  GraphQueryNodeView,
-  GraphQueryRuntimeState,
-} from './backend.js';
-import { buildGraphSourceKey, projectGraphDocument } from './projector.js';
+import {
+  type GraphQueryBackend,
+  type GraphQueryExpansionView,
+  type GraphQueryNodeView,
+  type GraphQueryRuntimeState,
+  buildGraphSourceKey,
+  projectGraphDocument,
+} from './index.js';
 
 interface Neo4jRecordLike {
   get(key: string): unknown;

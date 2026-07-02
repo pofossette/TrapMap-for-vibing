@@ -13,7 +13,7 @@ import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { applyManualResultResolution } from '@trapmap/server/lib/candidates/reconcile.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import type { LifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
+import type { LifecyclePublisher } from '@trapmap/server/lib/lifecycle/index.js';
 import type { CandidateRepository, LineageRepository } from '@trapmap/server/lib/repos/index.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';

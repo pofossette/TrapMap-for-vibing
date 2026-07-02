@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { BatchAction, DecayConfig, DecayState } from '@trapmap/contracts';
 
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/index.js';
 import type {
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,

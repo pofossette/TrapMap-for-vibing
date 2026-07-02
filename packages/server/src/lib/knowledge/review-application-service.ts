@@ -15,7 +15,7 @@ import {
 } from '@trapmap/server/lib/feedback/remediation.js';
 import { applyReviewDecision, toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
-import type { LifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
+import type { LifecyclePublisher } from '@trapmap/server/lib/lifecycle/index.js';
 import { requireHigherLevel, requireTeamAccess } from '@trapmap/server/lib/rbac.js';
 import type { MembershipRepository } from '@trapmap/server/lib/teams/index.js';
 import type { UserRepository } from '@trapmap/server/lib/users/index.js';

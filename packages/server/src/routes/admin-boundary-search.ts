@@ -14,7 +14,7 @@ import {
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { findEntriesByBoundaryConstraint } from '@trapmap/server/lib/retrieval/scoring/boundary-query.js';
+import { findEntriesByBoundaryConstraint } from '@trapmap/server/lib/retrieval/scoring/index.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
 export const adminBoundarySearchRoutes: FastifyPluginAsync = async (app) => {

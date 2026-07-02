@@ -7,13 +7,14 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { createAuditSubscriber } from '@trapmap/server/lib/lifecycle/subscribers/audit.js';
-import { createConflictSubscriber } from '@trapmap/server/lib/lifecycle/subscribers/conflict.js';
-import { createIndexingSubscriber } from '@trapmap/server/lib/lifecycle/subscribers/indexing.js';
-import type { DomainEvent } from '@trapmap/server/lib/lifecycle/types.js';
-import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
+import {
+  createAuditSubscriber,
+  createConflictSubscriber,
+  createIndexingSubscriber,
+} from '@trapmap/server/lib/lifecycle/index.js';
+import type { DomainEvent, DomainEventHandler } from '@trapmap/server/lib/lifecycle/index.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/metrics.js';
+import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/index.js';
 
 const INDEXING_EVENT_NAMES = [
   'knowledge.approved',

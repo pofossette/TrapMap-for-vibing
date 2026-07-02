@@ -20,7 +20,7 @@ import type { ExtractionMetrics, LlmGraphExtraction, LlmGraphNode } from '@trapm
 import { buildGraphExtractionSlots_default, buildPrompt } from '@trapmap/server/lib/ai/prompts.js';
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
 import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
-import { executeWithResilience } from '@trapmap/server/lib/runtime/resilience.js';
+import { executeWithResilience } from '@trapmap/server/lib/runtime/index.js';
 import type { GraphEdgeRecord, GraphNodeRecord } from './documents.js';
 
 import type { LlmExtractionCache } from './llm-cache.js';

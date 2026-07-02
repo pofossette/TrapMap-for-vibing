@@ -7,7 +7,7 @@ import {
 } from '@trapmap/contracts';
 
 import { createDefaultEvidenceMeta } from '@trapmap/server/lib/evidence/model.js';
-import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/index.js';
 import type {
   AgentReviewRecord,
   KnowledgeLifecycleEventRecord,

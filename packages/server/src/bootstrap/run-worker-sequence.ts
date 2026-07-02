@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 
-import { getServiceUnitProfile } from '@trapmap/server/lib/runtime/service-unit.js';
+import { getServiceUnitProfile } from '@trapmap/server/lib/runtime/index.js';
 import { bootstrapLifecycle } from './bootstrap-lifecycle.js';
 import { bootstrapWorkers } from './bootstrap-workers.js';
 import { type RuntimeMode, shouldBootOutboxWorker, shouldBootTaskWorker } from './runtime-mode.js';

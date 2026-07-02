@@ -12,8 +12,10 @@ import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '@trapmap/server/lib/knowledge.js';
 import { upsertKnowledgeEntryShadow } from '@trapmap/server/lib/knowledge/shadow-sync.js';
-import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/emit-transition.js';
-import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
+import {
+  emitLifecycleTransition,
+  transitionLifecycleState,
+} from '@trapmap/server/lib/lifecycle/index.js';
 import {
   requireHigherLevel,
   requirePermission,

@@ -16,7 +16,7 @@ import { createKnowledgeRevision, toKnowledgeEntry } from '@trapmap/server/lib/k
 import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
 import { createReviewApplicationService } from '@trapmap/server/lib/knowledge/review-application-service.js';
 import { upsertKnowledgeEntryShadow } from '@trapmap/server/lib/knowledge/shadow-sync.js';
-import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/publisher.js';
+import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/index.js';
 import {
   requireHigherLevel,
   requirePermission,

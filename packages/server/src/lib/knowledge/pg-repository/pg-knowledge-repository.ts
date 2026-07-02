@@ -14,7 +14,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
 import type { DecayMeta } from '@trapmap/contracts';
-import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/index.js';
 import {
   knowledgeBoundaryContexts,
   knowledgeBoundaryEvidence,

@@ -1,21 +1,20 @@
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
-import type {
-  GraphIndexDocumentRecord,
-  GraphNodeRecord,
-} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import {
+  type GraphIndexDocumentRecord,
+  type GraphNodeRecord,
+  type Graph,
   buildGraphRuntimeSnapshot,
   buildLocalExpansionView as buildGraphologyLocalExpansionView,
   calculateSourceRelationStrength,
   expandSourcesOneHop,
-} from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+} from '@trapmap/server/lib/indexing/graph-lite/index.js';
 
 import type {
   GraphQueryBackend,
   GraphQueryExpansionView,
   GraphQueryNodeView,
   GraphQueryRuntimeState,
-} from './backend.js';
+} from './index.js';
 
 class MemoryGraphQueryBackend implements GraphQueryBackend {
   readonly kind = 'memory' as const;

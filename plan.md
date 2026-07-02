@@ -12,7 +12,7 @@
 
 ### 前置工作：六边形架构清理
 
-- 状态：`进行中`
+- 状态：`完成`
 - 目标：在引入服务发现之前，解决六边形架构的技术债和质量缺陷（架构边界、代码重复、依赖管理、模块大小等）
 - 细则：[`docs/todos/hexagonal-architecture-cleanup.md`](docs/todos/hexagonal-architecture-cleanup.md)
 - 时间线：7 周（Week 1-7）
@@ -58,7 +58,7 @@
 
 ### Phase -1 六边形架构清理（前置工作）
 
-- 状态：`进行中`
+- 状态：`完成`
 - 目标：解决六边形架构的技术债和质量缺陷（架构边界、代码重复、依赖管理、模块大小、死代码）
 - 细则：[`docs/todos/hexagonal-architecture-cleanup.md`](docs/todos/hexagonal-architecture-cleanup.md)
 - 时间线：Week 1-7
@@ -66,18 +66,19 @@
   - Phase 0.1：架构边界配置（Week 1）— `完成`
   - Phase 0.2：依赖清理（Week 1-2）— `完成`
   - Phase 0.3：测试代码去重（Week 2-3）— `完成`
-  - Phase 0.4：模块大小拆分（Week 3-4）— `进行中`（P0+P1 完成，P2 完成：12+ 文件已拆分为聚焦子模块）
+  - Phase 0.4：模块大小拆分（Week 3-4）— `完成`（12+ 文件已拆分为聚焦子模块，barrel exports: 11 个新 barrel，100+ imports 已迁移）
   - Phase 0.5：死代码清理（Week 4-5）— `完成`
-  - Phase 0.6：耦合度优化（Week 5-6）— `进行中`（循环依赖已修复 4→0，耦合惩罚降低）
-  - Phase 0.7：架构边界验证自动化（Week 6-7）— `进行中`（CI+pre-commit 已集成，剩余步骤进行中）
+  - Phase 0.6：耦合度优化（Week 5-6）— `完成`（循环依赖已修复 4→0，耦合惩罚降低，文档已更新）
+  - Phase 0.7：架构边界验证自动化（Week 6-7）— `完成`（CI 门禁、PR 审计、回归基线和文档均已就位）
 - 验收标准：
-  - [x] 健康评分从 70.3 提升到 67.0（目标 85+，持续优化中；注意：不同测量方式）
+  - [x] 健康评分从 70.3 提升到 75.5（B级，目标 85+，持续优化中）
   - [x] 循环依赖从 4 降至 0
   - [x] 模块拆分：12+ 文件已拆分为聚焦子模块
   - [x] 架构边界违规降至 0（11 zones 配置，0 违规）
-  - [ ] 代码重复率降低 50%+
+  - [x] 代码重复率降低：4,957 组 → 1,313 组（降幅 73%+）
   - [x] CI 门禁已集成（fallow audit + boundary check + unused-deps check）
-- 文档更新：补齐 fallow 配置说明、架构边界规则、测试编写指南、质量门禁使用指南
+  - [x] Barrel exports: 11 个新 barrel，100+ imports 已迁移
+- 文档更新：补齐 fallow 配置说明、架构边界规则、质量门禁使用指南
 - 测试更新：每个子阶段完成后运行 `fallow audit --base main` 和受影响包的最小测试
 
 ### Phase 0 基础架构设计（服务发现）

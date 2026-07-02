@@ -5,7 +5,7 @@ import {
   getAverageQueueBacklog,
   getAverageStaleWorkers,
   getRuntimeMetricsSnapshot,
-} from '@trapmap/server/lib/runtime/metrics.js';
+} from '@trapmap/server/lib/runtime/index.js';
 import type { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 
 type WorkflowSnapshots = Awaited<

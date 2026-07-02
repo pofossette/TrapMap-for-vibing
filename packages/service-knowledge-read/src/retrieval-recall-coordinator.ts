@@ -1,7 +1,7 @@
 import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
-import { DEFAULT_FRESHNESS_CONFIG } from '@trapmap/server/lib/decay/freshness.js';
+import { DEFAULT_FRESHNESS_CONFIG } from '@trapmap/server/lib/decay/index.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/backend.js';
+import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/index.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { vectorSimilaritySearch } from '@trapmap/server/lib/retrieval/recall/db-search.js';
 import { graphAssistedRecall as graphRecall } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
@@ -9,15 +9,11 @@ import { createPgKeywordRecall } from '@trapmap/server/lib/retrieval/recall/pg-k
 import {
   buildBoundaryExplanation,
   computeBoundaryScoreDelta,
-} from '@trapmap/server/lib/retrieval/scoring/boundary-match.js';
-import {
   createSemanticCandidate,
   mergeCandidates,
-} from '@trapmap/server/lib/retrieval/scoring/merge.js';
-import {
   rerankCandidates,
   toScoredEntriesFromReranked,
-} from '@trapmap/server/lib/retrieval/scoring/rerank.js';
+} from '@trapmap/server/lib/retrieval/scoring/index.js';
 import type { Pool } from 'pg';
 import type { MergedCandidate, RoutingChannel, ScoredEntry } from './retrieval-types.js';
 

@@ -16,15 +16,13 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
-import { assertNoHardDependencyCycles } from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
-// Uses sync store helpers because the adapter runs inside store.transact() callbacks.
-// PgGraphIndexRepository is available (Round 7) for async paths.
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import {
+  assertNoHardDependencyCycles,
   getGraphIndexDocuments,
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
-} from '@trapmap/server/lib/indexing/graph-lite/store.js';
+} from '@trapmap/server/lib/indexing/graph-lite/index.js';
 import { buildSkillGraphDocument } from '@trapmap/server/lib/indexing/skill-graph-build.js';
 import type { SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
 

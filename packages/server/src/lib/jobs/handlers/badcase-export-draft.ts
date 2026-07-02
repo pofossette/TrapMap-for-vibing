@@ -1,6 +1,6 @@
 import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/metrics.js';
+import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/index.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 import type { Pool } from 'pg';
 

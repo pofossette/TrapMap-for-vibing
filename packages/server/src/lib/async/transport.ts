@@ -1,6 +1,6 @@
 import type { Pool, PoolClient } from 'pg';
 
-import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/outbox.js';
+import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/index.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 import { createTaskWorker } from '@trapmap/server/lib/queue/task-worker.js';

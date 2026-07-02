@@ -1,0 +1,58 @@
+/**
+ * Lifecycle barrel -- re-exports public API from lifecycle module files.
+ *
+ * Covers domain events, event bus, state machine transitions, publisher,
+ * emission channel, outbox, and subscriber factories.
+ *
+ * Note: packages/server/src/lib/state-machines/index.ts already re-exports
+ * lifecycle state-machine symbols (isValidTransition, getValidTransitions,
+ * isTerminalState, transitionLifecycleState) and decay state-machine symbols.
+ * Consumers can import from either location; this barrel is authoritative
+ * for the full lifecycle surface.
+ */
+
+// Types
+export type {
+  DomainEvent,
+  DomainEventHandler,
+  TransitionDefinition,
+  TransitionContext,
+} from './types.js';
+
+// Event bus
+export { LifecycleEventBus } from './event-bus.js';
+
+// State machine
+export {
+  isValidTransition,
+  getValidTransitions,
+  isTerminalState,
+  transitionLifecycleState,
+  executeTransition,
+} from './state-machine.js';
+
+// Transitions
+export { findTransitionEvent } from './transitions.js';
+
+// Publisher
+export type {
+  PublishLifecycleTransitionInput,
+  LifecyclePublisher,
+} from './publisher.js';
+export { createLifecyclePublisher } from './publisher.js';
+
+// Emit transition
+export { emitLifecycleTransition } from './emit-transition.js';
+
+// Outbox
+export type {
+  OutboxEvent,
+  DomainEventOutboxConfig,
+  OutboxStatusSnapshot,
+} from './outbox.js';
+export { createDomainEventOutbox } from './outbox.js';
+
+// Subscribers
+export { createAuditSubscriber } from './subscribers/audit.js';
+export { createConflictSubscriber } from './subscribers/conflict.js';
+export { createIndexingSubscriber } from './subscribers/indexing.js';

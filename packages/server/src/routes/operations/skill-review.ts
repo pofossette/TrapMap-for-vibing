@@ -17,7 +17,7 @@ import {
   getActiveEntryFeedback,
 } from '@trapmap/server/lib/feedback/remediation.js';
 import { scheduleSkillLifecycleFollowUp } from '@trapmap/server/lib/jobs/skill-lifecycle-follow-up.js';
-import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/state-machine.js';
+import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/index.js';
 import {
   requireHigherLevel,
   requirePermission,

@@ -18,9 +18,11 @@
  */
 
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
-import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/memory-backend.js';
-import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/channel-registry.js';
+import {
+  type GraphQueryBackend,
+  createMemoryGraphQueryBackend,
+} from '@trapmap/server/lib/graph-query/index.js';
+import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/index.js';
 import type { RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { normalizeQueryGraphLabels } from './query-graph-labels.js';

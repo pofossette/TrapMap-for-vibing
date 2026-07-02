@@ -11,7 +11,7 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/backend.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { graphIndexAdapter } from './adapters/graph.js';
