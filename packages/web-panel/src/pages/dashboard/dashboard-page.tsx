@@ -1,6 +1,6 @@
-import { toast } from '@heroui/react';
+import { toast, Button, Card, Chip } from '@heroui/react';
 import type { ReactElement } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useDashboardPageModel } from '@trapmap/web-panel/features/dashboard/use-dashboard-page-model';
 import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
@@ -17,6 +17,7 @@ import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 export function DashboardPage(): ReactElement {
   const model = useDashboardPageModel();
   const { t } = useI18nStore();
+  const navigate = useNavigate();
 
   if (model.error) {
     return (
@@ -30,15 +31,44 @@ export function DashboardPage(): ReactElement {
   return (
     <PageTransition className="space-y-6">
       <PageContainer>
-        {/* Page title and refresh action */}
-        <SectionHeader
-          description={t('dashboardDesc')}
-          title={t('systemDashboard')}
-          actions={
-            <button
-              className="rounded-full border border-panel-line bg-panel-elevated px-4 py-2 text-sm font-semibold hover:bg-panel-elevated/80 transition cursor-pointer select-none"
+        {/* Topbar Summary Header */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-panel-line pb-4 select-none">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-panel-text">
+              {t('systemDashboard')}
+            </h1>
+            <p className="text-xs text-panel-muted mt-1">{t('dashboardDesc')}</p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4 text-xs font-mono bg-panel-surface border border-panel-line rounded-xl px-4 py-2">
+              <span className="text-panel-muted">
+                PROFILE:{' '}
+                <strong className="text-panel-text">
+                  {model.overview?.deploymentProfile ?? 'team-monolith'}
+                </strong>
+              </span>
+              <span className="text-panel-muted">|</span>
+              <span className="text-panel-muted">
+                BUILD:{' '}
+                <strong className="text-panel-text">{model.overview?.buildId ?? 'dev'}</strong>
+              </span>
+              <span className="text-panel-muted">|</span>
+              <span className="text-panel-muted">
+                LAST CHECK:{' '}
+                <strong className="text-panel-text">
+                  {model.overview?.lastHealthCheckAt
+                    ? new Date(model.overview.lastHealthCheckAt).toLocaleTimeString()
+                    : 'n/a'}
+                </strong>
+              </span>
+            </div>
+
+            <Button
+              size="sm"
+              variant="flat"
               disabled={model.loading}
-              onClick={async () => {
+              onPress={async () => {
                 const success = await model.refresh();
                 if (success) {
                   toast.success(t('metricsRefreshed'));
@@ -46,14 +76,13 @@ export function DashboardPage(): ReactElement {
                   toast.danger(t('metricsRefreshFailed'));
                 }
               }}
-              type="button"
             >
               {model.loading ? t('refreshing') : t('refreshMetrics')}
-            </button>
-          }
-        />
+            </Button>
+          </div>
+        </div>
 
-        {/* Loading state skeleton */}
+        {/* Loading skeleton */}
         {model.loading && model.cards.length === 0 ? (
           <div className="space-y-6">
             <SkeletonBlock count={4} variant="card" />
@@ -61,94 +90,33 @@ export function DashboardPage(): ReactElement {
           </div>
         ) : (
           <div className="space-y-6">
-            <section className="relative overflow-hidden rounded-2xl border border-panel-line bg-panel-surface p-6 shadow-panel">
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-[40%] bg-[radial-gradient(circle_at_center,#00dfd822_0%,#7928ca14_42%,#ff008010_70%,transparent_100%)]" />
-              <div className="relative grid gap-6 lg:grid-cols-[1.45fr,0.9fr]">
-                <div className="space-y-4">
-                  <span className="inline-flex rounded-full border border-panel-line bg-panel-surface px-3 py-1 font-mono text-[12px] font-medium uppercase text-panel-muted">
-                    {t('runtimeSnapshot')}
-                  </span>
-                  <div>
-                    <h3 className="text-[48px] font-semibold leading-[48px] tracking-[-2.4px] text-panel-text">
-                      {t('supervisionTitle')}
+            {/* Split layout: Left Health/Pending Tasks, Right Interactive Graph Previews */}
+            <div className="grid gap-6 lg:grid-cols-[4.5fr,7.5fr]">
+              {/* Left Column: Health and Tasks */}
+              <div className="space-y-6">
+                {/* Health integration Status */}
+                <Card className="border border-panel-line bg-panel-surface p-5 shadow-panel space-y-4">
+                  <div className="flex items-center justify-between border-b border-panel-line/30 pb-2">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-panel-muted">
+                      {t('serviceHealth')}
                     </h3>
-                    <p className="mt-3 max-w-2xl text-sm leading-6 text-panel-muted">
-                      {t('supervisionDesc')}
-                    </p>
+                    <Chip size="sm" variant="flat" color="success">
+                      Running
+                    </Chip>
                   </div>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                  <div className="rounded-xl border border-panel-line bg-panel-surface-strong p-4">
-                    <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-                      {t('buildLabel')}
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-panel-text">
-                      {model.overview?.buildId ?? 'web-panel-dev'}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-panel-line bg-panel-surface-strong p-4">
-                    <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-                      Profile
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-panel-text">
-                      {model.overview?.deploymentProfile ?? 'team-monolith'}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-panel-line bg-panel-surface-strong p-4">
-                    <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-                      {t('lastCheck')}
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-panel-text">
-                      {model.overview?.lastHealthCheckAt ?? 'n/a'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
 
-            {/* Summary metrics cards grid */}
-            <FadeIn>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {model.cards.map((card) => (
-                  <SummaryCard
-                    badge={<StatusBadge tone={card.tone}>{card.badge}</StatusBadge>}
-                    helpText={card.helpText}
-                    key={card.label}
-                    label={card.label}
-                    value={card.value}
-                  />
-                ))}
-              </div>
-            </FadeIn>
-
-            {/* Core Info panels layout */}
-            <div className="grid gap-6 lg:grid-cols-3">
-              {/* Service Health detailed panel */}
-              <div className="lg:col-span-2 rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-lg font-semibold text-panel-text">{t('serviceHealth')}</h3>
-                  <span className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-                    {model.services.length} {t('servicesCount')}
-                  </span>
-                </div>
-                <div className="divide-y divide-panel-line/40">
-                  {model.services.map((service) => (
-                    <div
-                      className="grid gap-4 py-4 first:pt-0 last:pb-0 md:grid-cols-[1.2fr,0.7fr]"
-                      key={service.name}
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm text-panel-text">
+                  <div className="divide-y divide-panel-line/30">
+                    {model.services.map((service) => (
+                      <div
+                        className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                        key={service.name}
+                      >
+                        <div>
+                          <p className="font-semibold text-sm text-panel-text capitalize">
                             {service.name}
-                          </span>
-                          <span className="rounded-full border border-panel-line bg-panel-surface px-2 py-0.5 font-mono text-[12px] text-panel-muted">
-                            v{service.version}
-                          </span>
+                          </p>
+                          <p className="text-xs text-panel-muted mt-0.5">{service.detail}</p>
                         </div>
-                        <p className="text-sm leading-6 text-panel-muted">{service.detail}</p>
-                      </div>
-                      <div className="rounded-xl border border-panel-line bg-panel-surface-strong px-4 py-3 text-left md:text-right">
                         <StatusBadge
                           tone={
                             service.status === 'healthy'
@@ -158,105 +126,370 @@ export function DashboardPage(): ReactElement {
                                 : 'danger'
                           }
                         >
-                          {(service.status === 'healthy'
-                            ? t('badgeHealthy')
-                            : service.status === 'degraded'
-                              ? t('badgeWatch')
-                              : service.status
-                          ).toUpperCase()}
+                          {service.status.toUpperCase()}
                         </StatusBadge>
-                        <p className="mt-2 text-[11px] text-panel-muted">
-                          {t('checkedAt')} {service.lastCheckedAt}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {model.services.length === 0 && (
-                    <p className="text-sm text-panel-muted py-2">{t('noServices')}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Quick links & Incident summary panel */}
-              <div className="space-y-6">
-                {/* Governance quick links */}
-                <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel space-y-4">
-                  <h3 className="text-lg font-semibold text-panel-text">{t('quickActions')}</h3>
-                  <div className="flex flex-col gap-2">
-                    <Link
-                      className="group flex items-center justify-between rounded-xl border border-panel-line bg-panel-surface-strong p-4 text-sm font-medium transition hover:border-panel-line-strong"
-                      to="/reviews"
-                    >
-                      <div>
-                        <p className="font-semibold text-panel-text">{t('reviewGovQueue')}</p>
-                        <p className="mt-1 text-xs text-panel-muted">{t('reviewGovQueueDesc')}</p>
-                      </div>
-                      <svg
-                        role="img"
-                        aria-label="Arrow"
-                        className="h-4 w-4 text-panel-muted transition group-hover:translate-x-0.5 group-hover:text-panel-text"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <title>Arrow Right</title>
-                        <path
-                          d="M9 5l7 7-7 7"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                        />
-                      </svg>
-                    </Link>
-                    <Link
-                      className="group flex items-center justify-between rounded-xl border border-panel-line bg-panel-surface-strong p-4 text-sm font-medium transition hover:border-panel-line-strong"
-                      to="/activity"
-                    >
-                      <div>
-                        <p className="font-semibold text-panel-text">{t('auditLogs')}</p>
-                        <p className="mt-1 text-xs text-panel-muted">{t('auditLogsDesc')}</p>
-                      </div>
-                      <svg
-                        role="img"
-                        aria-label="Arrow"
-                        className="h-4 w-4 text-panel-muted transition group-hover:translate-x-0.5 group-hover:text-panel-text"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <title>Arrow Right</title>
-                        <path
-                          d="M9 5l7 7-7 7"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                        />
-                      </svg>
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Warnings / Incidents summary panel */}
-                <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel space-y-4">
-                  <h3 className="text-lg font-semibold text-panel-text">{t('activeIncidents')}</h3>
-                  <div className="space-y-3">
-                    {model.incidents.map((incident) => (
-                      <div
-                        className="rounded-2xl border border-rose-500/20 bg-rose-500/8 p-4 text-sm leading-6 text-rose-100"
-                        key={incident}
-                      >
-                        {incident}
                       </div>
                     ))}
-                    {model.incidents.length === 0 && (
-                      <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                        {t('allClear')}
-                      </div>
+                    {model.services.length === 0 && (
+                      <p className="text-sm text-panel-muted py-2">{t('noServices')}</p>
                     )}
                   </div>
-                </div>
+                </Card>
+
+                {/* Pending Actions Workload */}
+                <Card className="border border-panel-line bg-panel-surface p-5 shadow-panel space-y-4">
+                  <div className="flex items-center justify-between border-b border-panel-line/30 pb-2">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-panel-muted">
+                      Pending Backlogs
+                    </h3>
+                    <Chip size="sm" variant="flat" color="warning">
+                      Action Needed
+                    </Chip>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center bg-[#0a0f1d] border border-panel-line/50 p-3.5 rounded-xl">
+                      <div>
+                        <p className="text-xs text-panel-muted">Pending Reviews</p>
+                        <p className="text-xl font-bold text-panel-text mt-1">18 items</p>
+                      </div>
+                      <Button size="sm" color="warning" onPress={() => navigate('/reviews')}>
+                        Audit Queue
+                      </Button>
+                    </div>
+
+                    <div className="flex justify-between items-center bg-[#0a0f1d] border border-panel-line/50 p-3.5 rounded-xl">
+                      <div>
+                        <p className="text-xs text-panel-muted">Failed Runtime Jobs</p>
+                        <p className="text-xl font-bold text-rose-400 mt-1">2 jobs</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        color="danger"
+                        variant="flat"
+                        onPress={() => navigate('/activity')}
+                      >
+                        Check Logs
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
               </div>
+
+              {/* Right Column: Interactive Graph Previews */}
+              <div className="grid gap-6 sm:grid-cols-2">
+                {/* Trap Graph Preview Card */}
+                <Card className="border border-panel-line bg-panel-surface p-5 shadow-panel flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start border-b border-panel-line/30 pb-3">
+                      <div>
+                        <h3 className="text-md font-bold text-panel-text">Trap Graph Overview</h3>
+                        <p className="text-xs text-panel-muted mt-1">9 nodes · 8 relationships</p>
+                      </div>
+                      <Chip size="sm" color="warning" variant="flat">
+                        Topology
+                      </Chip>
+                    </div>
+
+                    {/* SVG Graphic representation of Trap Graph */}
+                    <div className="flex justify-center items-center py-6 bg-[#060a13] border border-panel-line/50 rounded-xl my-4">
+                      <svg width="220" height="110" viewBox="0 0 220 110">
+                        <line x1="30" y1="55" x2="110" y2="25" stroke="#242424" strokeWidth="1.5" />
+                        <line x1="30" y1="55" x2="110" y2="85" stroke="#242424" strokeWidth="1.5" />
+                        <line
+                          x1="110"
+                          y1="25"
+                          x2="190"
+                          y2="55"
+                          stroke="#242424"
+                          strokeWidth="1.5"
+                        />
+                        <line
+                          x1="110"
+                          y1="85"
+                          x2="190"
+                          y2="55"
+                          stroke="#242424"
+                          strokeWidth="1.5"
+                        />
+
+                        <circle
+                          cx="30"
+                          cy="55"
+                          r="14"
+                          fill="#0a0f1d"
+                          stroke="#eab308"
+                          strokeWidth="1.5"
+                        />
+                        <circle
+                          cx="110"
+                          cy="25"
+                          r="14"
+                          fill="#0a0f1d"
+                          stroke="#f97316"
+                          strokeWidth="1.5"
+                        />
+                        <circle
+                          cx="110"
+                          cy="85"
+                          r="14"
+                          fill="#0a0f1d"
+                          stroke="#7dd3fc"
+                          strokeWidth="1.5"
+                        />
+                        <circle
+                          cx="190"
+                          cy="55"
+                          r="14"
+                          fill="#0a0f1d"
+                          stroke="#10b981"
+                          strokeWidth="1.5"
+                        />
+
+                        <text
+                          x="30"
+                          y="58"
+                          fill="#fff"
+                          fontSize="8"
+                          textAnchor="middle"
+                          fontFamily="monospace"
+                        >
+                          Cue
+                        </text>
+                        <text
+                          x="110"
+                          y="28"
+                          fill="#fff"
+                          fontSize="8"
+                          textAnchor="middle"
+                          fontFamily="monospace"
+                        >
+                          Trap
+                        </text>
+                        <text
+                          x="110"
+                          y="88"
+                          fill="#fff"
+                          fontSize="8"
+                          textAnchor="middle"
+                          fontFamily="monospace"
+                        >
+                          Tool
+                        </text>
+                        <text
+                          x="190"
+                          y="58"
+                          fill="#fff"
+                          fontSize="8"
+                          textAnchor="middle"
+                          fontFamily="monospace"
+                        >
+                          Mit
+                        </text>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1"
+                      color="primary"
+                      onPress={() => navigate('/trap-graph')}
+                    >
+                      Interactive Debug
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* Skill Graph Preview Card */}
+                <Card className="border border-panel-line bg-panel-surface p-5 shadow-panel flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start border-b border-panel-line/30 pb-3">
+                      <div>
+                        <h3 className="text-md font-bold text-panel-text">Skill Graph Overview</h3>
+                        <p className="text-xs text-panel-muted mt-1">7 nodes · 7 relationships</p>
+                      </div>
+                      <Chip size="sm" color="primary" variant="flat">
+                        Derivation
+                      </Chip>
+                    </div>
+
+                    {/* SVG Graphic representation of Skill Graph */}
+                    <div className="flex justify-center items-center py-6 bg-[#060a13] border border-panel-line/50 rounded-xl my-4">
+                      <svg width="220" height="110" viewBox="0 0 220 110">
+                        <line x1="40" y1="25" x2="110" y2="55" stroke="#242424" strokeWidth="1.5" />
+                        <line x1="40" y1="85" x2="110" y2="55" stroke="#242424" strokeWidth="1.5" />
+                        <line
+                          x1="110"
+                          y1="55"
+                          x2="180"
+                          y2="25"
+                          stroke="#242424"
+                          strokeWidth="1.5"
+                        />
+                        <line
+                          x1="110"
+                          y1="55"
+                          x2="180"
+                          y2="85"
+                          stroke="#242424"
+                          strokeWidth="1.5"
+                        />
+
+                        <circle
+                          cx="40"
+                          cy="25"
+                          r="14"
+                          fill="#0a0f1d"
+                          stroke="#006fee"
+                          strokeWidth="1.5"
+                        />
+                        <circle
+                          cx="40"
+                          cy="85"
+                          r="14"
+                          fill="#0a0f1d"
+                          stroke="#a855f7"
+                          strokeWidth="1.5"
+                        />
+                        <circle
+                          cx="110"
+                          cy="55"
+                          r="14"
+                          fill="#0a0f1d"
+                          stroke="#22c55e"
+                          strokeWidth="1.5"
+                        />
+                        <circle
+                          cx="180"
+                          cy="25"
+                          r="14"
+                          fill="#0a0f1d"
+                          stroke="#737373"
+                          strokeWidth="1.5"
+                        />
+                        <circle
+                          cx="180"
+                          cy="85"
+                          r="14"
+                          fill="#0a0f1d"
+                          stroke="#7dd3fc"
+                          strokeWidth="1.5"
+                        />
+
+                        <text
+                          x="40"
+                          y="28"
+                          fill="#fff"
+                          fontSize="8"
+                          textAnchor="middle"
+                          fontFamily="monospace"
+                        >
+                          Art
+                        </text>
+                        <text
+                          x="40"
+                          y="88"
+                          fill="#fff"
+                          fontSize="8"
+                          textAnchor="middle"
+                          fontFamily="monospace"
+                        >
+                          Prof
+                        </text>
+                        <text
+                          x="110"
+                          y="58"
+                          fill="#fff"
+                          fontSize="8"
+                          textAnchor="middle"
+                          fontFamily="monospace"
+                        >
+                          Cap
+                        </text>
+                        <text
+                          x="180"
+                          y="28"
+                          fill="#fff"
+                          fontSize="8"
+                          textAnchor="middle"
+                          fontFamily="monospace"
+                        >
+                          Ref
+                        </text>
+                        <text
+                          x="180"
+                          y="88"
+                          fill="#fff"
+                          fontSize="8"
+                          textAnchor="middle"
+                          fontFamily="monospace"
+                        >
+                          Scr
+                        </text>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1"
+                      color="primary"
+                      onPress={() => navigate('/skill-graph')}
+                    >
+                      Audit Derivation
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* Bottom Operations Area */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Summary Stats Grid */}
+              <Card className="border border-panel-line bg-panel-surface p-5 shadow-panel space-y-4">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-2">
+                  Knowledge Scale Index
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="bg-[#0a0f1d] border border-panel-line/50 p-4 rounded-xl text-center">
+                    <p className="text-xs text-panel-muted">Total Traps</p>
+                    <p className="text-2xl font-bold text-panel-text mt-1.5">1,248</p>
+                  </div>
+                  <div className="bg-[#0a0f1d] border border-panel-line/50 p-4 rounded-xl text-center">
+                    <p className="text-xs text-panel-muted">Skill Artifacts</p>
+                    <p className="text-2xl font-bold text-panel-text mt-1.5">342</p>
+                  </div>
+                  <div className="bg-[#0a0f1d] border border-panel-line/50 p-4 rounded-xl text-center">
+                    <p className="text-xs text-panel-muted">Capsules</p>
+                    <p className="text-2xl font-bold text-panel-text mt-1.5">4,892</p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Incidents / Alerts Panel */}
+              <Card className="border border-panel-line bg-panel-surface p-5 shadow-panel space-y-4">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-2">
+                  {t('activeIncidents')}
+                </h3>
+                <div className="space-y-3">
+                  {model.incidents.map((incident) => (
+                    <div
+                      className="rounded-xl border border-rose-500/20 bg-rose-500/8 p-3 text-xs leading-relaxed text-rose-100 flex items-center gap-2.5"
+                      key={incident}
+                    >
+                      <span className="h-2 w-2 rounded-full bg-rose-400 shrink-0" />
+                      <span>{incident}</span>
+                    </div>
+                  ))}
+                  {model.incidents.length === 0 && (
+                    <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium py-3">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      {t('allClear')}
+                    </div>
+                  )}
+                </div>
+              </Card>
             </div>
           </div>
         )}

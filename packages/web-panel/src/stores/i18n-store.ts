@@ -7,6 +7,9 @@ const translations = {
     // Shell & Nav
     dashboard: '控制台',
     reviewQueue: '审核队列',
+    artifacts: '工件总览',
+    trapGraph: 'Trap 图谱',
+    skillGraph: 'Skill 图谱',
     activity: '审计日志',
     environment: '当前环境',
     activeEnv: '活动环境',
@@ -231,6 +234,9 @@ const translations = {
     // Shell & Nav
     dashboard: 'Dashboard',
     reviewQueue: 'Review Queue',
+    artifacts: 'Artifacts',
+    trapGraph: 'Trap Graph',
+    skillGraph: 'Skill Graph',
     activity: 'Activity',
     environment: 'Environment',
     activeEnv: 'Active Environment',

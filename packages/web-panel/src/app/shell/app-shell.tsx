@@ -20,7 +20,7 @@ import { useThemeStore } from '@trapmap/web-panel/stores/theme-store';
 
 type NavigationItem = {
   end?: boolean;
-  labelKey: 'dashboard' | 'reviewQueue' | 'activity';
+  labelKey: 'dashboard' | 'reviewQueue' | 'artifacts' | 'trapGraph' | 'skillGraph' | 'activity';
   to: string;
   icon: () => ReactElement;
 };
@@ -56,6 +56,63 @@ const QueueIcon = () => (
     <title>Review Queue</title>
     <path
       d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2H7a2 2 0 00-2 2v2m14-4V5a2 2 0 00-2-2H7a2 2 0 00-2 2v2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const ArtifactsIcon = () => (
+  <svg
+    role="img"
+    aria-label="Artifacts"
+    className="h-4 w-4 shrink-0"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    viewBox="0 0 24 24"
+  >
+    <title>Artifacts</title>
+    <path
+      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-18L4 7m8 4L4 7m0 0v10l8 4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const TrapGraphIcon = () => (
+  <svg
+    role="img"
+    aria-label="Trap Graph"
+    className="h-4 w-4 shrink-0"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    viewBox="0 0 24 24"
+  >
+    <title>Trap Graph</title>
+    <path
+      d="M18 3a3 3 0 00-3 3c0 .3.05.58.13.85l-4.5 2.25A3 3 0 008 9a3 3 0 00-2.87 2.15L3.6 15.3a3 3 0 00-.6.7 3 3 0 105.7-.7l1.53-4.15A3 3 0 0012 11c.7 0 1.34-.24 1.84-.65l4.5 2.25c-.08.27-.13.55-.13.85a3 3 0 103-3 3 3 0 00-3 3c0-.3-.05-.58-.13-.85l-4.5-2.25A3 3 0 0016 9c.7 0 1.34-.24 1.84-.65l4.5 2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const SkillGraphIcon = () => (
+  <svg
+    role="img"
+    aria-label="Skill Graph"
+    className="h-4 w-4 shrink-0"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    viewBox="0 0 24 24"
+  >
+    <title>Skill Graph</title>
+    <path
+      d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
@@ -183,6 +240,9 @@ const ThemeIcon = ({ theme }: { theme: 'dark' | 'light' }) => (
 const navigationItems: NavigationItem[] = [
   { to: '/', labelKey: 'dashboard', end: true, icon: DashboardIcon },
   { to: '/reviews', labelKey: 'reviewQueue', icon: QueueIcon },
+  { to: '/artifacts', labelKey: 'artifacts', icon: ArtifactsIcon },
+  { to: '/trap-graph', labelKey: 'trapGraph', icon: TrapGraphIcon },
+  { to: '/skill-graph', labelKey: 'skillGraph', icon: SkillGraphIcon },
   { to: '/activity', labelKey: 'activity', icon: ActivityIcon },
 ];
 
@@ -299,6 +359,9 @@ export function AppShell(): ReactElement {
   const getPageTitle = () => {
     if (location.pathname === '/') return t('dashboard');
     if (location.pathname.startsWith('/reviews')) return t('reviewQueue');
+    if (location.pathname.startsWith('/artifacts')) return t('artifacts');
+    if (location.pathname.startsWith('/trap-graph')) return t('trapGraph');
+    if (location.pathname.startsWith('/skill-graph')) return t('skillGraph');
     if (location.pathname === '/activity') return t('activity');
     return t('dashboard');
   };

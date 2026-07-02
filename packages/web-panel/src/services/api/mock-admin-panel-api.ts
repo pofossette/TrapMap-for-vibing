@@ -1,4 +1,4 @@
-import type { ReviewDecisionRequest, ReviewQueueResponse } from '@trapmap/contracts';
+import type { ReviewDecisionRequest, ReviewQueueResponse, SkillArtifact } from '@trapmap/contracts';
 
 import type {
   ActivityFeedResponse,
@@ -9,7 +9,340 @@ import type {
   ReviewDetailResponse,
   RuntimeOverviewResponse,
   SessionAccount,
+  ArtifactQuery,
+  ArtifactListResponse,
+  GraphDataResponse,
 } from '@trapmap/web-panel/shared/enum-types';
+
+const mockArtifacts: SkillArtifact[] = [
+  {
+    id: 'art-101',
+    teamId: null,
+    scope: 'project',
+    labels: ['docker', 'security'],
+    title: 'Docker Runtime Governance Skill',
+    slug: 'docker-runtime-gov-skill',
+    requiredLevel: 3,
+    lifecycleState: 'active',
+    owner: { id: 'actor-ops', handle: 'ops-lead', securityLevel: 4 },
+    latestRevision: 1,
+    createdAt: '2026-06-19T10:00:00.000Z',
+    updatedAt: '2026-06-19T10:05:00.000Z',
+    metadata: {
+      sourceKind: 'skill-directory',
+      submissionCount: 1,
+      resubmissionCount: 0,
+      revisionCount: 1,
+      latestSubmissionId: 'sub-301',
+      latestSubmittedAt: '2026-06-19T10:00:00.000Z',
+      latestReviewedAt: '2026-06-19T10:05:00.000Z',
+      latestDecision: 'approve',
+    },
+    history: [
+      {
+        revision: 1,
+        sourceHash: 'sha-docker-rev1',
+        submittedAt: '2026-06-19T10:00:00.000Z',
+        submittedBy: { id: 'actor-ops', handle: 'ops-lead', securityLevel: 4 },
+        files: [
+          {
+            path: 'SKILL.md',
+            kind: 'skill-markdown',
+            sha256: 'sha-skill-md',
+            sizeBytes: 1200,
+            mediaType: 'text/markdown',
+            source: 'SKILL.md',
+            includeInDerivation: true,
+            activationOnly: false,
+          },
+          {
+            path: 'references/docker-best-practices.md',
+            kind: 'reference',
+            sha256: 'sha-ref-docker',
+            sizeBytes: 3400,
+            mediaType: 'text/markdown',
+            source: 'references/',
+            includeInDerivation: true,
+            activationOnly: false,
+          },
+          {
+            path: 'scripts/cleanup.sh',
+            kind: 'script',
+            sha256: 'sha-script-cleanup',
+            sizeBytes: 850,
+            mediaType: 'application/x-sh',
+            source: 'scripts/',
+            includeInDerivation: false,
+            activationOnly: true,
+          },
+        ],
+        scriptDescriptors: [
+          {
+            path: 'scripts/cleanup.sh',
+            sha256: 'sha-script-cleanup',
+            capability: 'Clean up unused docker containers and volumes',
+            argsSchemaSummary: 'None',
+            sideEffectSummary: 'Removes local Docker data',
+            defaultPolicy: 'needs-approval',
+          },
+        ],
+        derived: {
+          sourceHash: 'sha-docker-rev1',
+          derivedAt: '2026-06-19T10:04:00.000Z',
+          profile: {
+            artifactId: 'art-101',
+            revision: 1,
+            sourceHash: 'sha-docker-rev1',
+            title: 'Docker Runtime Governance Skill',
+            description: 'Governs docker runtime environments and detects security gaps.',
+            summary:
+              'A capsule-based skill to enforce container isolation and prevent privilege escalation.',
+            keywords: ['docker', 'container-security', 'isolation'],
+            labels: ['docker'],
+            prerequisites: ['Docker daemon active', 'Rootless access configured'],
+            referencePaths: ['references/docker-best-practices.md'],
+            contentHash: 'sha-profile-derived',
+          },
+          capsules: [
+            {
+              capsuleId: 'cap-101-1',
+              artifactId: 'art-101',
+              revision: 1,
+              sourcePaths: ['SKILL.md'],
+              content:
+                'Ensure all containers run with read-only root filesystems when possible to prevent write-based malware persistence.',
+              situation: 'Container runs with writable root filesystem',
+              problem: 'Malicious processes can persist files on the container root filesystem.',
+              goal: 'Mount the root filesystem as read-only and use tmpfs for temporary writes.',
+              errorText: 'container has writable root',
+              contextualPrefix: 'Docker container security configuration guidance',
+              labels: ['docker', 'hardening', 'filesystem'],
+              scope: 'project',
+              requiredLevel: 3,
+            },
+            {
+              capsuleId: 'cap-101-2',
+              artifactId: 'art-101',
+              revision: 1,
+              sourcePaths: ['references/docker-best-practices.md'],
+              content:
+                'Do not expose the Docker daemon socket /var/run/docker.sock to untrusted containers.',
+              situation: 'Docker socket mounted inside container',
+              problem:
+                'Containerized processes can control the host Docker daemon and escalate privilege to host root.',
+              goal: 'Avoid socket mounts; use remote APIs with TLS or rootless docker where socket access is required.',
+              errorText: 'docker socket exposed',
+              contextualPrefix: 'Privilege escalation risks via docker socket mount',
+              labels: ['docker', 'privilege-escalation', 'socket'],
+              scope: 'project',
+              requiredLevel: 4,
+            },
+          ],
+          clientManifest: {
+            artifactId: 'art-101',
+            revision: 1,
+            references: [
+              {
+                path: 'references/docker-best-practices.md',
+                sha256: 'sha-ref-docker',
+                sizeBytes: 3400,
+                mediaType: 'text/markdown',
+              },
+            ],
+            assets: [],
+            scripts: [
+              {
+                path: 'scripts/cleanup.sh',
+                sha256: 'sha-script-cleanup',
+                capability: 'Clean up unused docker containers and volumes',
+                argsSchemaSummary: 'None',
+                sideEffectSummary: 'Removes local Docker data',
+                defaultPolicy: 'needs-approval',
+              },
+            ],
+            sourceHash: 'sha-docker-rev1',
+          },
+        },
+      },
+    ],
+    agentReview: {
+      status: 'agent-approved',
+      duplicateRisk: 'low',
+      correctnessRisk: 'low',
+      completenessRisk: 'medium',
+      checkedAt: '2026-06-19T10:02:00.000Z',
+      notes: ['Valid Docker compliance rules.'],
+      boundary: null,
+    },
+    reviewHistory: [
+      {
+        decidedAt: '2026-06-19T10:05:00.000Z',
+        decidedBy: { id: 'actor-reviewer', handle: 'reviewer@trapmap.local', securityLevel: 4 },
+        decision: 'approve',
+        notes: 'Compliance rules look complete and follow guidelines.',
+      },
+    ],
+    reviewNotes: [],
+    lifecycleHistory: [],
+    createdBy: 'actor-ops',
+    updatedBy: 'actor-ops',
+  },
+  {
+    id: 'art-102',
+    teamId: null,
+    scope: 'global',
+    labels: ['kubernetes', 'network'],
+    title: 'Kubernetes Network Security Policies',
+    slug: 'k8s-netpol-skill',
+    requiredLevel: 4,
+    lifecycleState: 'submitted',
+    owner: { id: 'actor-net', handle: 'net-sec-eng', securityLevel: 4 },
+    latestRevision: 1,
+    createdAt: '2026-06-20T14:00:00.000Z',
+    updatedAt: '2026-06-20T14:00:00.000Z',
+    metadata: {
+      sourceKind: 'skill-directory',
+      submissionCount: 1,
+      resubmissionCount: 0,
+      revisionCount: 1,
+      latestSubmissionId: 'sub-302',
+      latestSubmittedAt: '2026-06-20T14:00:00.000Z',
+      latestReviewedAt: null,
+      latestDecision: null,
+    },
+    history: [
+      {
+        revision: 1,
+        sourceHash: 'sha-k8s-rev1',
+        submittedAt: '2026-06-20T14:00:00.000Z',
+        submittedBy: { id: 'actor-net', handle: 'net-sec-eng', securityLevel: 4 },
+        files: [
+          {
+            path: 'SKILL.md',
+            kind: 'skill-markdown',
+            sha256: 'sha-k8s-skill-md',
+            sizeBytes: 1500,
+            mediaType: 'text/markdown',
+            source: 'SKILL.md',
+            includeInDerivation: true,
+            activationOnly: false,
+          },
+        ],
+        scriptDescriptors: [],
+        derived: null,
+      },
+    ],
+    agentReview: {
+      status: 'agent-rejected',
+      duplicateRisk: 'high',
+      correctnessRisk: 'medium',
+      completenessRisk: 'low',
+      checkedAt: '2026-06-20T14:02:00.000Z',
+      notes: ['Possible overlap with global network baseline policy.'],
+      boundary: null,
+    },
+    reviewHistory: [],
+    reviewNotes: [],
+    lifecycleHistory: [],
+    createdBy: 'actor-net',
+    updatedBy: 'actor-net',
+  },
+];
+
+const mockTrapGraph: GraphDataResponse = {
+  nodes: [
+    {
+      id: 'trap-1',
+      label: 'Docker socket exposure',
+      kind: 'trap',
+      severity: 'critical',
+      scope: 'global',
+      requiredLevel: 4,
+    },
+    { id: 'cue-1', label: 'Mounting /var/run/docker.sock', kind: 'cue' },
+    { id: 'tool-1', label: 'Docker CLI', kind: 'tool' },
+    { id: 'env-1', label: 'Host environment', kind: 'environment' },
+    { id: 'mit-1', label: 'Rootless container runtimes', kind: 'mitigation' },
+    { id: 'mit-2', label: 'Restricting socket mounts in k8s', kind: 'mitigation' },
+
+    {
+      id: 'trap-2',
+      label: 'Writable root filesystem',
+      kind: 'trap',
+      severity: 'medium',
+      scope: 'project',
+      requiredLevel: 2,
+    },
+    { id: 'cue-2', label: 'Container root FS is writable', kind: 'cue' },
+    { id: 'mit-3', label: 'Read-only root filesystem flag', kind: 'mitigation' },
+  ],
+  edges: [
+    { id: 'e-1', source: 'cue-1', target: 'trap-1', kind: 'evidence' },
+    { id: 'e-2', source: 'tool-1', target: 'trap-1', kind: 'requires' },
+    { id: 'e-3', source: 'env-1', target: 'trap-1', kind: 'applies-in' },
+    { id: 'e-4', source: 'mit-1', target: 'trap-1', kind: 'mitigates' },
+    { id: 'e-5', source: 'mit-2', target: 'trap-1', kind: 'mitigates' },
+
+    { id: 'e-6', source: 'cue-2', target: 'trap-2', kind: 'evidence' },
+    { id: 'e-7', source: 'mit-3', target: 'trap-2', kind: 'mitigates' },
+    { id: 'e-8', source: 'trap-2', target: 'trap-1', kind: 'risk-blocks' },
+  ],
+};
+
+const mockSkillGraphs: Record<string, Record<'derivation' | 'semantic', GraphDataResponse>> = {
+  'art-101': {
+    derivation: {
+      nodes: [
+        { id: 'art-101', label: 'Docker Governance', kind: 'artifact' },
+        { id: 'prof-101', label: 'Docker Governance Profile', kind: 'profile' },
+        { id: 'cap-101-1', label: 'cap-101-1: Read-only root FS', kind: 'capsule' },
+        { id: 'cap-101-2', label: 'cap-101-2: Restrict Socket Exposure', kind: 'capsule' },
+        { id: 'ref-101', label: 'references/docker-best-practices.md', kind: 'reference' },
+        { id: 'script-101', label: 'scripts/cleanup.sh', kind: 'script' },
+        { id: 'man-101', label: 'Artifact Manifest', kind: 'manifest' },
+      ],
+      edges: [
+        { id: 'ed-1', source: 'art-101', target: 'prof-101', kind: 'derives' },
+        { id: 'ed-2', source: 'art-101', target: 'man-101', kind: 'contains' },
+        { id: 'ed-3', source: 'prof-101', target: 'cap-101-1', kind: 'defines-capsule' },
+        { id: 'ed-4', source: 'prof-101', target: 'cap-101-2', kind: 'defines-capsule' },
+        { id: 'ed-5', source: 'man-101', target: 'ref-101', kind: 'references-file' },
+        { id: 'ed-6', source: 'man-101', target: 'script-101', kind: 'contains-script' },
+        { id: 'ed-7', source: 'ref-101', target: 'cap-101-2', kind: 'contributes-to' },
+      ],
+    },
+    semantic: {
+      nodes: [
+        { id: 'skill-101', label: 'Docker Governance Skill', kind: 'skill' },
+        { id: 'cap-101-1', label: 'cap-101-1: Read-only root FS', kind: 'capsule' },
+        { id: 'cap-101-2', label: 'cap-101-2: Restrict Socket Exposure', kind: 'capsule' },
+        { id: 'cue-docker-sock', label: 'Mounting /var/run/docker.sock', kind: 'cue' },
+        { id: 'mit-rootless', label: 'Rootless container runtimes', kind: 'mitigation' },
+        { id: 'mit-readonly', label: 'Read-only root filesystem flag', kind: 'mitigation' },
+      ],
+      edges: [
+        { id: 'es-1', source: 'skill-101', target: 'cap-101-1', kind: 'has-capsule' },
+        { id: 'es-2', source: 'skill-101', target: 'cap-101-2', kind: 'has-capsule' },
+        { id: 'es-3', source: 'cap-101-1', target: 'mit-readonly', kind: 'maps-mitigation' },
+        { id: 'es-4', source: 'cap-101-2', target: 'cue-docker-sock', kind: 'addresses-cue' },
+        { id: 'es-5', source: 'cap-101-2', target: 'mit-rootless', kind: 'maps-mitigation' },
+      ],
+    },
+  },
+  'art-102': {
+    derivation: {
+      nodes: [
+        { id: 'art-102', label: 'K8s NetPol Policy', kind: 'artifact' },
+        { id: 'man-102', label: 'Manifest', kind: 'manifest' },
+      ],
+      edges: [{ id: 'ed2-1', source: 'art-102', target: 'man-102', kind: 'contains' }],
+    },
+    semantic: {
+      nodes: [{ id: 'skill-102', label: 'K8s Network Policies', kind: 'skill' }],
+      edges: [],
+    },
+  },
+};
 
 const mockRuntimeOverview: RuntimeOverviewResponse = {
   deploymentProfile: 'team-monolith',
@@ -376,6 +709,44 @@ export function createMockAdminPanelApi(): AdminPanelApiContract {
     },
     async loadActivityFeed() {
       return structuredClone(activityState);
+    },
+    async loadArtifacts(query) {
+      let filtered = [...mockArtifacts];
+      if (query?.lifecycleState && query.lifecycleState !== 'all') {
+        filtered = filtered.filter((a) => a.lifecycleState === query.lifecycleState);
+      }
+      if (query?.scope && query.scope !== 'all') {
+        filtered = filtered.filter((a) => a.scope === query.scope);
+      }
+      if (query?.requiredLevel) {
+        filtered = filtered.filter((a) => a.requiredLevel === query.requiredLevel);
+      }
+      if (query?.search) {
+        const s = query.search.toLowerCase();
+        filtered = filtered.filter(
+          (a) => a.title.toLowerCase().includes(s) || a.id.toLowerCase().includes(s),
+        );
+      }
+      return {
+        items: filtered,
+        total: filtered.length,
+      };
+    },
+    async loadArtifactDetail(id) {
+      const art = mockArtifacts.find((a) => a.id === id);
+      if (!art) throw new Error('Artifact not found');
+      return art;
+    },
+    async loadTrapGraph() {
+      return mockTrapGraph;
+    },
+    async loadSkillGraph(artifactId, query) {
+      const mode = query?.mode || 'derivation';
+      const graph = mockSkillGraphs[artifactId]?.[mode];
+      if (!graph) {
+        return { nodes: [], edges: [] };
+      }
+      return graph;
     },
   };
 }

@@ -12,3 +12,4 @@ export * from './json-editor-panel';
 export * from './timeline-item';
 export * from './review-action-bar';
 export * from './filter-toolbar';
+export * from './g6-graph-component';

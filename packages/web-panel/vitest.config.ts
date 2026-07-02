@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -6,5 +7,10 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     globals: true,
     setupFiles: [],
+  },
+  resolve: {
+    alias: {
+      '@trapmap/web-panel': path.resolve(__dirname, './src'),
+    },
   },
 });
