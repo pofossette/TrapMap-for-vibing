@@ -286,16 +286,16 @@
 
 ## 6. Phase 2B Tracing MVP
 
-**状态：** 待开始  
+**状态：** 完成  
 **目标：** 打通请求级 tracing 链路，而不是一开始追求复杂 span 覆盖
 
 ### 进度追踪
 
-- [ ] 接入 OTel SDK bootstrap
-- [ ] 覆盖关键请求链路 trace 采集
-- [ ] 打通 trace id 注入日志或响应头
-- [ ] 提供 Tempo 查询入口与最小验证流程
-- [ ] 完成本 phase 最小验证与文档回写
+- [x] 接入 OTel SDK bootstrap
+- [x] 覆盖关键请求链路 trace 采集
+- [x] 打通 trace id 注入日志或响应头
+- [x] 提供 Tempo 查询入口与最小验证流程
+- [x] 完成本 phase 最小验证与文档回写
 
 ### 范围
 
@@ -317,10 +317,10 @@
 
 ### 完成定义（DoD）
 
-- [ ] 至少一条请求链路可在 Tempo 中检索到完整 trace
-- [ ] 响应头或日志中可稳定拿到 trace id
-- [ ] exporter 失败不会导致应用不可用
-- [ ] 采样、超时和 endpoint 配置已文档化
+- [x] 至少一条请求链路可在 Tempo 中检索到完整 trace
+- [x] 响应头或日志中可稳定拿到 trace id
+- [x] exporter 失败不会导致应用不可用
+- [x] 采样、超时和 endpoint 配置已文档化
 
 ### 最小验证
 

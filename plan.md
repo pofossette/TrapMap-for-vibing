@@ -89,9 +89,9 @@
 
 ### Phase 2B Tracing MVP
 
-- [ ] 状态：`待开始`
-- [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#6-phase-2b-tracing-mvp`](docs/todos/service-discovery-and-observability-plan.md#6-phase-2b-tracing-mvp)
-- [ ] 目标：打通请求级 trace、trace id 透传和 Tempo 查询入口
+- [x] 状态：`完成`
+- [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#6-phase-2b-tracing-mvp`](docs/todos/service-discovery-and-observability-plan.md#6-phase-2b-tracing-mvp)
+- [x] 目标：打通请求级 trace、trace id 透传和 Tempo 查询入口
 
 ### Phase 2C Logging MVP
 
