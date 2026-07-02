@@ -17,6 +17,7 @@ import { KnowledgeReadModule } from './knowledge-read/knowledge-read.module.js';
 import { KnowledgeWriteModule } from './knowledge-write/knowledge-write.module.js';
 import { LoggingMiddleware } from './runtime/logging.middleware.js';
 import { ConsulModule } from './service-discovery/index.js';
+import { OtelModule, PrometheusModule, LokiModule } from './observability/index.js';
 import { createHostLocalRuntime, HOST_LOCAL_RUNTIME_TOKEN } from './runtime/host-runtime.js';
 import { RequestContextMiddleware } from './runtime/request-context.middleware.js';
 import { RequestContextService } from './runtime/request-context.service.js';
@@ -111,6 +112,9 @@ const candidateIngestionModule = CandidateIngestionModule.forDeps(
     jobRuntimeModule,
     GatewayModule,
     ConsulModule,
+    OtelModule,
+    PrometheusModule,
+    LokiModule,
   ],
   providers: [
     RequestContextService,
