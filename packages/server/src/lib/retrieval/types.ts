@@ -3,15 +3,7 @@
  * These types are used within the retrieval module and are not part of the public API.
  */
 
-import type {
-  BoundaryContext,
-  BoundaryExplanation,
-  RetrievalQuery,
-  RetrievalStrategy,
-  RouteFamily,
-  RoutingReason,
-} from '@trapmap/contracts';
-import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
+import type { BoundaryExplanation } from '@trapmap/contracts';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
 /**
@@ -35,23 +27,6 @@ export interface ArtifactGovernanceFilters {
 }
 
 /**
- * Internal pipeline context passed through retrieval stages.
- * Encapsulates auth, query, and data snapshot for consistent filtering and scoring.
- */
-interface RetrievalPipelineContext {
-  /** Auth context of the caller */
-  auth: ResolvedAuthContext;
-  /** Parsed and validated retrieval query */
-  query: RetrievalQuery;
-  /** Boundary context from query for boundary-aware retrieval */
-  boundaryContext: BoundaryContext;
-  /** Store data snapshot at query time */
-  dataSnapshot: {
-    knowledgeEntries: KnowledgeRecord[];
-  };
-}
-
-/**
  * Eligible entry with computed embedding and score.
  * Represents an entry that passed all filters and has been scored.
  */
@@ -62,21 +37,6 @@ export interface ScoredEntry {
   score: number;
   /** Boundary explanation for why this entry is applicable */
   boundaryExplanation?: BoundaryExplanation;
-}
-
-/**
- * Retrieval pipeline statistics.
- * Used for debugging and monitoring retrieval behavior.
- */
-interface RetrievalStats {
-  /** Total entries in the store */
-  totalEntries: number;
-  /** Entries that passed eligibility filters */
-  eligibleEntries: number;
-  /** Entries returned (limited by maxResults) */
-  returnedEntries: number;
-  /** Whether refinement was attempted */
-  refinementAttempted: boolean;
 }
 
 // =============================================================================
@@ -347,24 +307,4 @@ export interface CapsuleRecallChannel {
     filters: ArtifactGovernanceFilters,
     maxResults: number,
   ): Promise<CapsuleRecallCandidate[]>;
-}
-
-/**
- * Routing decision produced by the shared router.
- * Captures the full provenance of a mode selection so the orchestrator
- * can emit trace metadata and evaluation slices can compare behavior.
- */
-interface RoutingDecision {
-  /** The internal strategy selected by the router */
-  selectedMode: RetrievalStrategy;
-  /** Whether this retrieval follows the entry or capsule route family */
-  routeFamily: RouteFamily;
-  /** Machine-readable reason code for the routing decision */
-  routingReason: RoutingReason;
-  /** Whether a fallback strategy was applied after initial selection failed */
-  fallbackApplied: boolean;
-  /** Recall channels that the router plans to execute */
-  channelsPlanned: RoutingChannel[];
-  /** Channels that actually contributed to the final result set (populated after recall) */
-  channelsUsed: RoutingChannel[];
 }

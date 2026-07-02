@@ -1,9 +1,4 @@
-import type {
-  ReviewDecisionRequest,
-  ReviewQueueQuery,
-  ReviewQueueResponse,
-  SkillArtifact,
-} from '@trapmap/contracts';
+import type { ReviewDecisionRequest, ReviewQueueResponse, SkillArtifact } from '@trapmap/contracts';
 
 import type {
   ActivityFeedQuery,
