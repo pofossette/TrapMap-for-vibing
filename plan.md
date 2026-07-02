@@ -101,9 +101,9 @@
 
 ### Phase 3 生产化增强
 
-- [ ] 状态：`待开始`
-- [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#8-phase-3-生产化增强`](docs/todos/service-discovery-and-observability-plan.md#8-phase-3-生产化增强)
-- [ ] 目标：补齐采样、标签基数控制、资源限制、告警和成熟库替换评估
+- [x] 状态：`完成`
+- [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#8-phase-3-生产化增强`](docs/todos/service-discovery-and-observability-plan.md#8-phase-3-生产化增强)
+- [x] 目标：补齐采样、标签基数控制、资源限制、告警和成熟库替换评估
 
 ### Phase 4 跨阶段回归与基准
 
