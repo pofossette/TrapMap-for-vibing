@@ -83,9 +83,9 @@
 
 ### Phase 2A Metrics 与 Dashboard MVP
 
-- [ ] 状态：`待开始`
-- [ ] 细则：[`docs/todos/service-discovery-and-observability-plan.md#5-phase-2a-metrics-与-dashboard-mvp`](docs/todos/service-discovery-and-observability-plan.md#5-phase-2a-metrics-与-dashboard-mvp)
-- [ ] 目标：先交付最早产生运维价值的指标链路
+- [x] 状态：`完成`
+- [x] 细则：[`docs/todos/service-discovery-and-observability-plan.md#5-phase-2a-metrics-与-dashboard-mvp`](docs/todos/service-discovery-and-observability-plan.md#5-phase-2a-metrics-与-dashboard-mvp)
+- [x] 目标：先交付最早产生运维价值的指标链路
 
 ### Phase 2B Tracing MVP
 

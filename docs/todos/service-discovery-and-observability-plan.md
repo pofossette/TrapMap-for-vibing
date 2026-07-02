@@ -239,16 +239,16 @@
 
 ## 5. Phase 2A Metrics 与 Dashboard MVP
 
-**状态：** 待开始  
+**状态：** 完成  
 **目标：** 优先交付最容易产生运维价值的指标链路
 
 ### 进度追踪
 
-- [ ] 暴露 `/metrics`
-- [ ] 采集核心 HTTP / 进程 / 关键业务指标
-- [ ] 打通 Prometheus 抓取配置
-- [ ] 提供 Grafana 最小 dashboard
-- [ ] 完成本 phase 最小验证与文档回写
+- [x] 暴露 `/metrics`
+- [x] 采集核心 HTTP / 进程 / 关键业务指标
+- [x] 打通 Prometheus 抓取配置
+- [x] 提供 Grafana 最小 dashboard
+- [x] 完成本 phase 最小验证与文档回写
 
 ### 范围
 
@@ -270,10 +270,10 @@
 
 ### 完成定义（DoD）
 
-- [ ] `/metrics` 可用且输出稳定
-- [ ] Prometheus 成功抓取至少一组业务实例
-- [ ] Grafana 至少有一个可用的最小 dashboard
-- [ ] 指标标签已过一轮高基数风险检查
+- [x] `/metrics` 可用且输出稳定
+- [x] Prometheus 成功抓取至少一组业务实例
+- [x] Grafana 至少有一个可用的最小 dashboard
+- [x] 指标标签已过一轮高基数风险检查
 
 ### 最小验证
 
