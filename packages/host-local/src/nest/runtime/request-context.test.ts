@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import type { HostLocalConfig } from '../config/index.js';
+import { RequestContextMiddleware } from './request-context.middleware.js';
 import { extractRequestContext, RequestContextService } from './request-context.service.js';
 
 describe('RequestContextService', () => {
@@ -87,5 +89,59 @@ describe('extractRequestContext', () => {
     );
     expect(ctx.requestId).toBe('custom-id');
     expect(ctx.traceId).toBe('custom-trace');
+  });
+});
+
+describe('RequestContextMiddleware', () => {
+  const config = {
+    runtime: {
+      requestIdHeader: 'x-request-id',
+      traceHeaderName: 'traceparent',
+    },
+  } as HostLocalConfig;
+
+  it('sets request and trace headers through Fastify reply.header', () => {
+    const service = new RequestContextService();
+    const middleware = new RequestContextMiddleware(service, config);
+    const header = vi.fn();
+    const next = vi.fn();
+
+    middleware.use(
+      {
+        headers: { 'x-request-id': 'req-1', traceparent: 'trace-1' },
+        method: 'GET',
+        url: '/health',
+        id: 'fastify-id',
+        routeOptions: { url: '/health' },
+      } as never,
+      { header } as never,
+      next,
+    );
+
+    expect(header).toHaveBeenNthCalledWith(1, 'x-request-id', 'req-1');
+    expect(header).toHaveBeenNthCalledWith(2, 'traceparent', 'trace-1');
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to raw.setHeader when reply.header is unavailable', () => {
+    const service = new RequestContextService();
+    const middleware = new RequestContextMiddleware(service, config);
+    const setHeader = vi.fn();
+    const next = vi.fn();
+
+    middleware.use(
+      {
+        headers: {},
+        method: 'GET',
+        url: '/health',
+        id: 'fastify-id',
+        routeOptions: { url: '/health' },
+      } as never,
+      { raw: { setHeader } } as never,
+      next,
+    );
+
+    expect(setHeader).toHaveBeenCalledWith('x-request-id', 'fastify-id');
+    expect(next).toHaveBeenCalledTimes(1);
   });
 });

@@ -184,6 +184,8 @@ pnpm --filter @trapmap/host-local dev
 pnpm --filter @trapmap/host-local start
 ```
 
+`@trapmap/host-local` 的 closeout 验收路径固定为 `build -> start -> observability-benchmark`。`dev` 只保留给开发便利，不作为“本轮是否修复完成”的事实源；本轮 closeout 不包含 `@trapmap/server build` 的全量清障。
+
 另一个终端可运行 CLI：
 
 ```bash
@@ -224,6 +226,8 @@ cp .env.production.example .env
 deployment flexibility 相关改动至少回归：
 
 ```bash
+pnpm --filter @trapmap/host-local build
+pnpm --filter @trapmap/host-local start
 pnpm test:observability-closeout
 pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
 pnpm test:discovery-closeout

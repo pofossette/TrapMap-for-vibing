@@ -9,8 +9,11 @@
 ### 本地最小路径
 
 ```bash
+rtk pnpm --filter @trapmap/host-local build
 rtk pnpm --filter @trapmap/host-local start
 ```
+
+先执行 `rtk pnpm --filter @trapmap/host-local build`，再执行 `rtk pnpm --filter @trapmap/host-local start`。本轮 `host-local` closeout 只认 `build -> start -> observability-benchmark` 这条主链路，`dev` 不作为完成判据。
 
 ### 本地完整可观测性路径
 
@@ -43,6 +46,8 @@ rtk pnpm --filter @trapmap/host-local start
 ---
 
 ## 3. 本地 closeout 演示链路
+
+当前 closeout 主链路固定为 `build -> start -> observability-benchmark`。
 
 ### Metrics
 

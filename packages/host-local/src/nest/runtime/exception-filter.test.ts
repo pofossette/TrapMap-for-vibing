@@ -30,6 +30,36 @@ function createMockHost(statusCode: number, body: unknown) {
   };
 }
 
+function createRawOnlyHost() {
+  const state = {
+    statusCode: 0,
+    body: '',
+    contentType: '',
+  };
+
+  return {
+    switchToHttp: () => ({
+      getResponse: () => ({
+        raw: {
+          writableEnded: false,
+          setHeader(name: string, value: string) {
+            if (name === 'content-type') {
+              state.contentType = value;
+            }
+          },
+          end(body: string) {
+            state.body = body;
+          },
+          set statusCode(code: number) {
+            state.statusCode = code;
+          },
+        },
+      }),
+    }),
+    getState: () => state,
+  };
+}
+
 describe('AllExceptionFilter', () => {
   const requestContext = new RequestContextService();
 
@@ -147,5 +177,31 @@ describe('AllExceptionFilter', () => {
     expect(body['code']).toBe('internal_error');
     expect(body['kind']).toBe('internal');
     expect(loggerSpy).toHaveBeenCalledWith('Unhandled exception', error);
+  });
+
+  it('should serialize canonical error envelope through raw response fallback', () => {
+    const host = createRawOnlyHost();
+
+    requestContext.run(
+      {
+        requestId: 'req-raw',
+        traceId: 'trace-raw',
+        traceHeaderName: 'traceparent',
+        method: 'GET',
+        route: '/health',
+      },
+      () => {
+        filter.catch(InvocationError.notFound('Entry not found'), host as never);
+      },
+    );
+
+    expect(host.getState().statusCode).toBe(404);
+    expect(host.getState().contentType).toBe('application/json; charset=utf-8');
+    expect(JSON.parse(host.getState().body)).toMatchObject({
+      code: 'not_found',
+      kind: 'not-found',
+      requestId: 'req-raw',
+      traceId: 'trace-raw',
+    });
   });
 });

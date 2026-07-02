@@ -285,6 +285,10 @@ rtk pnpm eval:retrieval:live:compare \
 ```
 
 ```bash
+# @trapmap/host-local closeout 主链路固定为 build -> start -> observability-benchmark
+pnpm --filter @trapmap/host-local build
+pnpm --filter @trapmap/host-local start
+
 # host-local observability closeout: readiness/liveness probes + request/trace/metrics/log chain
 pnpm test:observability-closeout
 
@@ -313,6 +317,8 @@ pnpm typecheck
 # 文档叙事与命令示例一致性
 pnpm check:docs-drift
 ```
+
+`@trapmap/host-local` closeout 主链路固定为 `build -> start -> observability-benchmark`。`dev` 仅用于开发便利，不作为 closeout 完成判据；`@trapmap/server build` 的全量清障也不在本轮范围内。
 
 当改动涉及 `packages/host-distributed` 的 candidate/review/maintenance/decay authoritative write path、gateway auth 透传、internal client 失败语义、或 distributed job runtime ownership 时，`pnpm test:distributed-acceptance` 是必跑门，不应只用 `test:deployment-smoke` 代替。
 

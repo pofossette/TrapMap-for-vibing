@@ -12,15 +12,15 @@ export class LoggingMiddleware implements NestMiddleware {
 
   use(req: FastifyRequest, res: FastifyReply, next: () => void): void {
     const start = Date.now();
+    const requestContext = this.requestContext.get();
     const responseTarget = (res.raw ?? (res as unknown as { on?: (event: string, cb: () => void) => void })) as {
       on?: (event: string, cb: () => void) => void;
     };
 
     responseTarget.on?.('finish', () => {
-      const ctx = this.requestContext.get();
       const duration = Date.now() - start;
-      const requestId = ctx?.requestId ?? '-';
-      const traceId = ctx?.traceId ?? '-';
+      const requestId = requestContext?.requestId ?? '-';
+      const traceId = requestContext?.traceId ?? '-';
       const method = req.method;
       const url = req.url;
       const statusCode = (res as FastifyReply & { raw?: { statusCode?: number } }).statusCode

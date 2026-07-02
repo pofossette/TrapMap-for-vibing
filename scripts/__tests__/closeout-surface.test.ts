@@ -80,11 +80,25 @@ describe('closeout surface guardrails', () => {
   });
 
   it('guards observability verification and regression docs against stale closeout facts', () => {
+    const readme = readDoc('README.md');
+    const testingDoc = readDoc('docs/operations/TESTING.md');
     const verificationDoc = readDoc('docs/operations/OBSERVABILITY-VERIFICATION.md');
     const regressionDoc = readDoc('docs/operations/REGRESSION-COMMANDS.md');
     const deploymentDoc = readDoc('docs/architecture/DEPLOYMENT.md');
 
+    expect(readme).toContain(
+      '`@trapmap/host-local` 的 closeout 验收路径固定为 `build -> start -> observability-benchmark`',
+    );
+    expect(readme).toContain('本轮 closeout 不包含 `@trapmap/server build` 的全量清障');
+    expect(testingDoc).toContain(
+      '`@trapmap/host-local` closeout 主链路固定为 `build -> start -> observability-benchmark`',
+    );
+    expect(testingDoc).toContain('`dev` 仅用于开发便利，不作为 closeout 完成判据');
     expect(verificationDoc).toContain('http://127.0.0.1:4000/metrics');
+    expect(verificationDoc).toContain(
+      '先执行 `rtk pnpm --filter @trapmap/host-local build`，再执行 `rtk pnpm --filter @trapmap/host-local start`',
+    );
+    expect(verificationDoc).toContain('`build -> start -> observability-benchmark`');
     expect(verificationDoc).toContain('TRAPMAP_LOKI_URL');
     expect(verificationDoc).toContain('CONSUL_ENABLED=true');
     expect(verificationDoc).toContain('CONSUL_HOST');
