@@ -1,16 +1,22 @@
 import { Module } from '@nestjs/common';
 import { ConsulService } from './consul.service.js';
+import { LifecycleModule } from '../lifecycle/lifecycle.module.js';
 
 /**
  * Consul service discovery module.
  *
- * Provides ConsulService (implements DiscoveryPort) for service
- * registration, discovery, health checks, and KV store.
+ * Provides ConsulService (implements DiscoveryPort) with graceful
+ * degradation — the application starts and continues serving even
+ * if Consul is unavailable.
  *
- * In local-agent profile, set CONSUL_AUTO_REGISTER=false or
- * simply don't import this module.
+ * Imports LifecycleModule so ConsulService can register its health
+ * check with the LifecycleManager.
+ *
+ * In local-agent profile, set CONSUL_ENABLED=false or simply don't
+ * import this module.
  */
 @Module({
+  imports: [LifecycleModule],
   providers: [ConsulService],
   exports: [ConsulService],
 })
