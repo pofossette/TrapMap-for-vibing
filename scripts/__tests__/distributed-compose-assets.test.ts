@@ -32,6 +32,7 @@ describe('distributed compose assets', () => {
   it('connects Prometheus to the distributed network and targets actual service names and ports', () => {
     const observabilityCompose = readRepoFile('docker-compose.observability.yml');
     const prometheusConfig = readRepoFile('config/prometheus.yml');
+    const promtailConfig = readRepoFile('config/promtail.yml');
 
     expect(observabilityCompose).toMatch(
       /prometheus:\n[\s\S]*networks:\n[\s\S]*- trapmap-observability\n[\s\S]*- trapmap-distributed/,
@@ -39,6 +40,8 @@ describe('distributed compose assets', () => {
     expect(observabilityCompose).toMatch(
       /tempo:\n[\s\S]*networks:\n[\s\S]*- trapmap-observability\n[\s\S]*- trapmap-distributed/,
     );
+    expect(observabilityCompose).toContain('promtail:');
+    expect(observabilityCompose).toContain('./config/promtail.yml:/etc/promtail/config.yml:ro');
 
     expect(prometheusConfig).toContain('targets: ["gateway:4000"]');
     expect(prometheusConfig).toContain('targets: ["identity-access:4001"]');
@@ -47,6 +50,8 @@ describe('distributed compose assets', () => {
     expect(prometheusConfig).toContain('targets: ["candidate-worker:4004"]');
     expect(prometheusConfig).toContain('targets: ["governance-worker:4005"]');
     expect(prometheusConfig).toContain('targets: ["outbox-worker:4006"]');
+    expect(promtailConfig).toContain('service: trapmap');
+    expect(promtailConfig).toContain('__path__: /var/lib/docker/containers/*/*-json.log');
   });
 
   it('keeps consul on a single private network to avoid dual-address startup failure', () => {

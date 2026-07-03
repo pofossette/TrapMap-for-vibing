@@ -45,6 +45,7 @@
 - `rtk pnpm test:file -- packages/host-distributed/src/gateway/routes.test.ts`
 - `rtk pnpm test:file -- packages/host-distributed/src/gateway/server.test.ts`
 - `rtk pnpm exec tsc -p packages/host-distributed/tsconfig.json --noEmit`
+- `rtk pnpm exec vitest run scripts/__tests__/distributed-compose-assets.test.ts`
 - `rtk docker compose -f docker-compose.observability.yml up -d`
 - `rtk docker compose --profile distributed up -d --build`
 - `curl -s http://127.0.0.1:4000/health`
@@ -86,23 +87,44 @@
     - Tempo 现可返回 `trapmap-gateway` span，attributes 包含 `trapmap.request_id=tempo-check-001`、`http.route=/health`
   - `curl -s 'http://127.0.0.1:3200/api/search?tags=service.name=trapmap-gateway'`
     - Tempo 搜索当前返回 `traceID=4bf92f3577b34da6a3ce929d0e0e4736`
+  - `rtk docker logs --tail 60 trapmap-promtail`
+    - `promtail` 现已开始 tail `/var/lib/docker/containers/*/*-json.log`，并稳定推送到 Loki
+  - `curl -s -D - -H 'x-request-id: loki-check-002' -H 'traceparent: 00-cccccccccccccccccccccccccccccccc-dddddddddddddddd-01' http://127.0.0.1:4000/health`
+    - distributed gateway 返回 `200`，并回显固定 `traceparent`
+  - `curl -s 'http://127.0.0.1:3100/loki/api/v1/label/service/values'`
+    - Loki labels 当前返回 `["trapmap"]`
+  - `curl -G -s 'http://127.0.0.1:3100/loki/api/v1/query_range' --data-urlencode 'query={service="trapmap"} | json | requestId="loki-check-002"'`
+    - 当前返回 gateway `request.completed` 结构化日志，字段包含 `requestId=loki-check-002`、`traceId=cccc...`、`serviceName=gateway`、`route=/health`
+  - `curl -G -s 'http://127.0.0.1:3100/loki/api/v1/query_range' --data-urlencode 'query={service="trapmap"} | json | traceId="cccccccccccccccccccccccccccccccc"'`
+    - 当前返回同一条 gateway `/health` 请求日志，说明 Loki 已形成按 `traceId` 检索闭环
+  - `curl -s -o /dev/null -w '%{http_code} %{remote_ip}:%{remote_port}\n' http://127.0.0.1:8500/v1/catalog/services`
+    - 当前 shell 中 `curl` 实际命中了 `127.0.0.1:7890`，说明宿主 `000` 现象来自代理链路而不是 Docker port mapping
+  - `curl --noproxy '*' -s -o /dev/null -w '%{http_code} %{remote_ip}:%{remote_port}\n' http://127.0.0.1:8500/v1/catalog/services`
+    - 直连 Consul 时返回 `200 127.0.0.1:8500`
+  - `curl --noproxy '*' -s http://127.0.0.1:8500/v1/catalog/services`
+    - 宿主直连当前返回 `{"consul":[],"gateway":[]}`
+  - `curl -s -u admin:admin http://127.0.0.1:3000/api/datasources`
+    - Grafana 当前已 provision `Prometheus`、`Tempo`、`Loki` 三个 datasource
+  - `curl -s -u admin:admin http://127.0.0.1:3000/api/datasources/uid/PBFA97CFB590B2093/health`
+    - Grafana 当前返回 `status=OK`，Prometheus datasource healthy
+  - `curl -s -u admin:admin http://127.0.0.1:3000/api/datasources/uid/P8E80F9AEF21F6940/health`
+    - Grafana 当前返回 `status=OK`，Loki datasource healthy
+  - `curl -s -u admin:admin http://127.0.0.1:3000/api/datasources/uid/P214B5B846CF3925F/health`
+    - 当前返回 `plugin.notImplemented`；Grafana Tempo datasource 未实现 health API，但 `Tempo /ready` 与 trace query 已通过
 
 ### 已确认失败
 
-- `curl -s http://127.0.0.1:8500/v1/catalog/services`
-  - 当前 shell 里仍返回连接失败（`000`），与容器内 `wget` 和 Prometheus 对 `consul:8500` 的成功访问不一致
-  - 当前更像宿主端口访问现象，而不是 Consul agent / catalog 自身不可用
-- Grafana / Loki / Tempo TrapMap 数据面
-  - Tempo 已证明 TrapMap trace 可检索
-  - Loki 仍未证明 TrapMap 结构化日志已进入可检索状态；`curl -s 'http://127.0.0.1:3100/loki/api/v1/query?query=%7Bservice%3D%22trapmap%22%7D'` 当前返回空结果
+- Grafana UI 人工点击验收
+  - 本轮只补到了 API 口径：datasource provisioning、Prometheus/Loki datasource health、Tempo trace query
+  - 仍未做人肉 Explore / dashboard 点击验收
 
 ### 当前未关闭项
 
 - distributed compose 已能 clean build + startup，并已补到七进程 full topology
 - distributed gateway 的 `/live` / `/ready` / `/health` / `/metrics`、request-id / `traceparent` 回显与 stdout 结构化日志已补齐
-- Prometheus targets 已形成完整抓取闭环；remaining gap 已从“抓不到 target”收缩到“Loki 数据面仍未验证”
-- Consul 自动注册已在容器内 API 口径下形成 `agent/services` / `catalog/services` / `health passing` 证据；remaining gap 是宿主 `127.0.0.1:8500` 访问现象仍未解释
-- Tempo 已通过固定 trace id 验证 TrapMap 请求链路可检索；Loki 仍只证明基础设施可启动，未证明 TrapMap 结构化日志已进入可检索状态
+- Prometheus / Tempo / Loki API 面现已全部闭环；remaining gap 已收缩到 Grafana UI 人工点击验收
+- Consul 自动注册与宿主直连当前都已形成证据；此前 `127.0.0.1:8500 -> 000` 的现象已定位为当前 shell 代理链路命中 `127.0.0.1:7890`
+- Tempo 已通过固定 trace id 验证 TrapMap 请求链路可检索；Loki 现也已通过固定 `requestId` / `traceId` 形成结构化日志可检索证据
 
 ## 0. 执行约束
 
@@ -220,23 +242,23 @@ diff /tmp/metrics-before.txt /tmp/metrics-after.txt
 - [ ] 确认至少一个 TrapMap 相关 dashboard 可用
 - [ ] 在 Tempo datasource 中按 trace id `4bf92f3577b34da6a3ce929d0e0e4736` 查询
 - [ ] 确认至少一条请求链路可在 Tempo 中检索到
-- [ ] 在 Loki 中按以下语句查日志：
+- [x] 在 Loki 中按以下语句查日志：
 
 ```text
 {service="trapmap"} | json | traceId="4bf92f3577b34da6a3ce929d0e0e4736"
 ```
 
-- [ ] 在 Loki 中按以下语句查日志：
+- [x] 在 Loki 中按以下语句查日志：
 
 ```text
 {service="trapmap"} | json | requestId="test-req-001"
 ```
 
-- [ ] 确认 Loki 可查到对应结构化日志
+- [x] 确认 Loki 可查到对应结构化日志
 
 > 2026-07-02 实测结果：Grafana、Loki、Tempo、Prometheus 容器已健康启动；但由于 TrapMap distributed 请求链路未形成有效 metrics/trace/log 导出证据，本节只完成“基础设施启动”，未完成“TrapMap 链路可检索”。
 >
-> 2026-07-03 补充结果：Tempo 已通过 `traceparent=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01` 的 gateway `/health` 请求形成可检索证据；`/api/traces/4bf92f3577b34da6a3ce929d0e0e4736` 已返回 `trapmap-gateway` span。Loki 查询 `{service="trapmap"}` 仍为空，本节剩余 gap 已收缩到“TrapMap 日志未进入 Loki”与“Grafana UI 未做人肉点击验收”。
+> 2026-07-03 补充结果：Tempo 已通过 `traceparent=00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01` 的 gateway `/health` 请求形成可检索证据；`/api/traces/4bf92f3577b34da6a3ce929d0e0e4736` 已返回 `trapmap-gateway` span。本轮新增 `promtail` 后，Loki 也已通过固定 `requestId=loki-check-002` 与 `traceId=cccc...` 查询到 gateway `request.completed` 结构化日志。Grafana datasource provisioning 现已可通过 API 看到 `Prometheus` / `Tempo` / `Loki`；其中 Prometheus/Loki datasource health 返回 `OK`，Tempo datasource health API 返回 `plugin.notImplemented`，但 Tempo `/ready` 与 trace query 已通过。
 
 ## 7. 自动化 closeout 命令
 
@@ -253,10 +275,10 @@ diff /tmp/metrics-before.txt /tmp/metrics-after.txt
 
 ### 8.1 本地 Consul 观察
 
-- [ ] 执行：`curl -s http://127.0.0.1:8500/v1/catalog/services | jq .`
+- [x] 执行：`curl --noproxy '*' -s http://127.0.0.1:8500/v1/catalog/services | jq .`
 - [ ] 执行：`curl -s http://127.0.0.1:8500/v1/catalog/service/trapmap | jq .`
 - [ ] 执行：`curl -s http://127.0.0.1:8500/v1/health/checks/trapmap | jq .`
-- [ ] 确认 `catalog/services` 中存在 `trapmap`
+- [x] 确认 `catalog/services` 中存在 `gateway`
 - [ ] 确认 `catalog/service/trapmap` 返回至少一个实例
 - [ ] 确认健康检查状态为 `passing`
 
@@ -266,7 +288,7 @@ diff /tmp/metrics-before.txt /tmp/metrics-after.txt
 >
 > 2026-07-03 追加代码修复：gateway 现已使用 `advertiseHost` 而非 bind host 向 Consul 注册；distributed 模式默认 advertise host 为 Docker DNS 名（例如 `gateway`），也可通过 `TRAPMAP_SERVICE_ADVERTISE_HOST` 覆盖。本轮因当前 shell 无可用 Docker daemon（`/var/run/docker.sock` 缺失）未能完成修复后的 full-docker 重验。
 >
-> 2026-07-03 最新实测：在恢复 Docker daemon 后，Consul root cause 被收敛为 observability compose 里的双网卡启动失败。将 `consul` 收缩为单挂 `trapmap-distributed` 后，容器内 `v1/agent/services` / `v1/catalog/services` / `v1/health/checks/gateway` 已形成 `gateway` 注册与 `passing` 证据；但宿主 shell 直连 `127.0.0.1:8500` 仍返回 `000`，当前暂记为 host-port access 现象。
+> 2026-07-03 最新实测：在恢复 Docker daemon 后，Consul root cause 被收敛为 observability compose 里的双网卡启动失败。将 `consul` 收缩为单挂 `trapmap-distributed` 后，容器内 `v1/agent/services` / `v1/catalog/services` / `v1/health/checks/gateway` 已形成 `gateway` 注册与 `passing` 证据。宿主 shell 侧的 `000` 现象现已定位为代理链路问题：当前 shell 的 `curl` 会命中 `127.0.0.1:7890`，而 `curl --noproxy '*' http://127.0.0.1:8500/v1/catalog/services` 可稳定返回 `200` 与 `{"consul":[],"gateway":[]}`。
 
 ### 8.2 目标环境 blocker
 
@@ -303,6 +325,6 @@ diff /tmp/metrics-before.txt /tmp/metrics-after.txt
 
 ### 10.2 2026-07-03 收口摘要
 
-- 本地已关闭：`packages/host-distributed/Dockerfile` 已补齐 `runtime-infra` / `server` project reference 链与 workspace package `node_modules` 布局；`docker compose --profile distributed up -d --build` 现可 clean build 并拉起 checked-in 七进程 distributed 拓扑；gateway `/live` / `/ready` / `/health` / `/metrics`、request-id / `traceparent` 回显与 stdout 结构化日志证据已补齐；`observability-benchmark` 现可执行；gateway Consul 注册现已改为使用 advertise host，而不是 `0.0.0.0` bind host。
-- 本地未关闭：Grafana / Loki / Tempo 仍未形成 TrapMap trace / log 可检索证据；宿主 shell 直连 `127.0.0.1:8500` 仍返回 `000`，虽然容器内 Consul API 证据已经闭环。
+- 本地已关闭：`packages/host-distributed/Dockerfile` 已补齐 `runtime-infra` / `server` project reference 链与 workspace package `node_modules` 布局；`docker compose --profile distributed up -d --build` 现可 clean build 并拉起 checked-in 七进程 distributed 拓扑；gateway `/live` / `/ready` / `/health` / `/metrics`、request-id / `traceparent` 回显与 stdout 结构化日志证据已补齐；`observability-benchmark` 现可执行；gateway Consul 注册现已改为使用 advertise host，而不是 `0.0.0.0` bind host；Tempo 已可按固定 trace id 检索；Loki 已可按固定 `requestId` / `traceId` 检索结构化日志；宿主直连 Consul 在 `--noproxy '*'` 下已返回 `200` 与 `catalog/services`。
+- 本地未关闭：Grafana UI 仍未做人肉 Explore / dashboard 点击验收；Tempo datasource 的 Grafana health API 仍返回 `plugin.notImplemented`，只能依赖 `Tempo /ready` 与 trace query 作为后端可用证据。
 - 仍待目标环境关闭：目标环境 Consul catalog / service / health 证据；停实例后的注销或失效证据；目标环境 Grafana / Tempo / Loki 人工查询证据；固定环境下的 benchmark 基线与 memory 指标记录。

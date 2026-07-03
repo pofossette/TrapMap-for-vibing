@@ -148,7 +148,7 @@ The following coupling patterns were identified during the Phase 0.6 coupling au
 ### 8.4 2026-07-03 Distributed Local Closeout Gaps
 
 - **Status**: Active debt, observed in local deployment validation
-- **Why it is still current**: 本轮已经把 checked-in distributed compose 推进到“可 clean build 并拉起七进程 distributed 拓扑”，也补齐了 gateway `/live`、`/ready`、`/health`、`/metrics`、request-id / `traceparent` 回显与结构化日志证据；但 deployment/discovery/observability 的运行态闭环仍未达到 closeout 要求
+- **Why it is still current**: 本轮已经把 checked-in distributed compose 推进到“可 clean build 并拉起七进程 distributed 拓扑”，也补齐了 gateway `/live`、`/ready`、`/health`、`/metrics`、request-id / `traceparent` 回显与结构化日志证据；deployment/discovery/observability 的 API 面闭环已基本形成，但 Grafana UI 与目标环境 closeout 仍未完成
 
 Current confirmed gaps:
 
@@ -169,12 +169,16 @@ Current confirmed gaps:
   - checked-in targets 已对齐 `gateway:4000`、`identity-access:4001`、`knowledge-read:4002`、`knowledge-write:4003`、`candidate-worker:4004`、`governance-worker:4005`、`outbox-worker:4006`
   - 其后 checked-in 代码已为 distributed workers 补齐 `/metrics` route
   - 最新 full-docker 实测已确认 seven TrapMap targets 全部 `up`
-- Consul root cause 已从“应用未注册”收缩为“observability compose 里的 consul 双网卡启动失败”：
+- Consul root cause 已从“应用未注册”收缩为“observability compose 里的 consul 双网卡启动失败”，宿主 `000` 也已进一步定位到 shell 代理链路：
   - 去掉 `trapmap-observability` 挂载后，`consul` 本身已恢复健康，Prometheus `consul:8500` target 也转为 `up`
   - `rtk docker exec trapmap-consul wget -qO- http://127.0.0.1:8500/v1/agent/services` 已返回 `trapmap-gateway-1`
   - `rtk docker exec trapmap-consul wget -qO- http://127.0.0.1:8500/v1/catalog/services` 已返回 `{"consul":[],"gateway":[]}`
   - `rtk docker exec trapmap-consul wget -qO- http://127.0.0.1:8500/v1/health/checks/gateway` 已返回 `passing`
-  - 剩余现象是宿主 shell 对 `127.0.0.1:8500` 访问仍返回 `000`，但这已不再是 Consul agent / catalog 自身不可用
+  - 当前 shell 中 `curl http://127.0.0.1:8500/...` 会命中 `127.0.0.1:7890` 代理；`curl --noproxy '*' http://127.0.0.1:8500/v1/catalog/services` 已可返回 `200` 与 `{"consul":[],"gateway":[]}`
+- Loki root cause 已从“查询为空”收敛为“observability compose 缺少 log shipper”，并已用最小 promtail 方案补齐：
+  - checked-in `docker-compose.observability.yml` 新增 `promtail`
+  - `config/promtail.yml` 当前直接 tail `/var/lib/docker/containers/*/*-json.log` 并给流打上 `service=trapmap`
+  - `curl -G -s 'http://127.0.0.1:3100/loki/api/v1/query_range' --data-urlencode 'query={service="trapmap"} | json | requestId="loki-check-002"'` 已返回 gateway `request.completed` 结构化日志
 - benchmark 最新 full-docker 实测已闭环：
   - `process_resident_memory_bytes=76.93MB`
   - `nodejs_heap_size_used_bytes=12.86MB`
@@ -182,8 +186,6 @@ Current confirmed gaps:
 
 Remaining closeout work:
 
-- 解释宿主 shell 访问 `127.0.0.1:8500` 返回 `000` 的现象，判断这是否属于当前执行环境限制，还是仍需继续修正 compose / host networking。
-- Loki 侧仍未形成 TrapMap 结构化日志可检索证据；`{service="trapmap"}` 查询当前为空，需要继续补齐日志导出链路。
 - Grafana UI 尚未做人肉点击验收；当前只用 API 口径确认 Prometheus / Tempo / Loki datasource 后端可达。
 - 在目标环境重复执行 Consul / Grafana / Tempo / Loki / benchmark 验收，不能用本地结果替代。
 
