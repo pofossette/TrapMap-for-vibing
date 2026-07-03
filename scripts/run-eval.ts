@@ -25,6 +25,8 @@ interface ParsedEvalOptions {
   json: boolean;
   jsonPath?: string;
   mode?: EvalMode;
+  platform?: 'noop' | 'json-archive';
+  platformOutputDir?: string;
   tier?: EvalTier;
 }
 
@@ -48,6 +50,8 @@ const EVAL_USAGE = [
   '  --dry-run',
   '  --json',
   '  --json-path <path>',
+  '  --platform <noop|json-archive>',
+  '  --platform-output-dir <path>',
 ].join('\n');
 
 const SUITE_SCRIPTS = {
@@ -125,6 +129,26 @@ function parseEvalOptions(argv: readonly string[]): ParsedEvalOptions {
       continue;
     }
 
+    if (arg === '--platform') {
+      const value = argv[index + 1];
+      if (value !== 'noop' && value !== 'json-archive') {
+        throw new Error(`Invalid --platform value: ${value ?? '<missing>'}\n\n${EVAL_USAGE}`);
+      }
+      options.platform = value;
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--platform-output-dir') {
+      const value = argv[index + 1];
+      if (!value) {
+        throw new Error(`Missing --platform-output-dir value\n\n${EVAL_USAGE}`);
+      }
+      options.platformOutputDir = value;
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown eval option: ${arg}\n\n${EVAL_USAGE}`);
   }
 
@@ -141,6 +165,12 @@ function buildAggregateArgs(tier: EvalTier, options: ParsedEvalOptions): string[
   }
   if (options.jsonPath) {
     args.push('--json-path', options.jsonPath);
+  }
+  if (options.platform) {
+    args.push('--platform', options.platform);
+  }
+  if (options.platformOutputDir) {
+    args.push('--platform-output-dir', options.platformOutputDir);
   }
   return args;
 }

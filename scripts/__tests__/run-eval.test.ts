@@ -58,6 +58,10 @@ describe('resolveEvalTarget', () => {
       '--json',
       '--json-path',
       './reports/eval-report.json',
+      '--platform',
+      'json-archive',
+      '--platform-output-dir',
+      './reports/platform-events',
     ]);
 
     expect(buildEvalCommandArgs(target)).toEqual([
@@ -71,6 +75,10 @@ describe('resolveEvalTarget', () => {
       '--json',
       '--json-path',
       './reports/eval-report.json',
+      '--platform',
+      'json-archive',
+      '--platform-output-dir',
+      './reports/platform-events',
     ]);
   });
 

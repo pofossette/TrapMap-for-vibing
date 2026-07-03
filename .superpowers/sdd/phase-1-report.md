@@ -1,35 +1,98 @@
 # Phase 1 Report
 
-## What changed
+## Scope delivered
 
-- Froze the Phase 1 G1 boundary state in `docs/todos/trapmap-architecture-remediation-plan.md`, including the closure shape for `#1-#10`.
-- Added the Phase 1 server/backend-core boundary freeze truth-source row and supporting rule text in `docs/reference/SYSTEM_TRUTH_SOURCES.md`.
-- Added a Phase 1 boundary freeze section to `docs/PACKAGES.md`.
-- Updated `docs/operations/TESTING.md` so Phase 1 names concrete focused test entrypoints instead of a vague boundary/compat bucket.
-- Strengthened `packages/server/src/__tests__/docs-truth-smoke.test.ts` so the Phase 1 assertion reads the cited plan/truth/package/source files directly instead of only checking doc prose.
-- Removed the tracked scratch artifact `.superpowers/sdd/phase-1-report.md` from version control and kept the phase report as local SDD scratch only.
+Implemented the platform-neutral Phase 1 surface without changing suite-specific eval logic:
 
-## Verification commands and results
+- Added platform contracts in `packages/contracts/src/domain/evals/platform.ts`
+- Exported platform contracts from `packages/contracts/src/domain/evals/index.ts`
+- Added platform adapter layer under `evals/lib/platform/`
+- Wired aggregate eval entrypoints in `evals/scripts/eval-all.ts` and `scripts/run-eval.ts`
+- Kept adapter failures warning-only and non-fatal
+- Kept default behavior unchanged when no platform adapter is enabled
+- Implemented local `json-archive` adapter writing mirrored event archives under `reports/` by default
 
-- `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts` -> PASS
-- `rtk pnpm check:docs-drift` -> PASS
-- `rtk pnpm check:structure` -> PASS
+## TDD record
+
+### RED
+
+Wrote tests first:
+
+- `packages/contracts/src/domain/evals/platform.test.ts`
+- `evals/lib/platform/adapter.test.ts`
+- extended `scripts/__tests__/run-eval.test.ts`
+
+Observed intended failures before implementation:
+
+- missing `platform.ts` contracts module
+- missing `evals/lib/platform/*` adapter modules
+- unknown `--platform` option in `scripts/run-eval.ts`
+
+### GREEN
+
+Implemented the minimal production code needed to pass those tests:
+
+- discriminated platform event schemas and run archive schema
+- `EvalPlatformAdapter` interface and safe warning wrappers
+- `noop` adapter
+- `json-archive` adapter with per-run JSON archive output
+- aggregate CLI flag pass-through for `--platform` and `--platform-output-dir`
+- aggregate runner publish hooks for `EvalRunStarted` and `EvalRunFinished`
+
+## Validation
+
+### Required brief validations
+
+1. `rtk pnpm --filter @trapmap/contracts test --run packages/contracts/src/domain/evals/platform.test.ts`
+   - Not runnable as written for this package layout.
+   - Reason: the `@trapmap/contracts` package Vitest config includes `src/**/*.test.ts`, so passing a repo-root path causes "No test files found".
+   - Closest validation run instead:
+   - `rtk pnpm test:file -- packages/contracts/src/domain/evals/platform.test.ts`
+   - Result: pass
+
+2. `rtk pnpm test:file -- evals/scripts/__tests__/eval-ci.test.ts`
+   - Result: pass
+
+3. `rtk pnpm eval -- agent-planning --tier smoke --dry-run`
+   - Result: pass
+
+4. `rtk pnpm typecheck`
+   - Result: pass
+
+### Additional targeted validation
+
+- `rtk pnpm test:file -- evals/lib/platform/adapter.test.ts`
+  - pass
+- `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
+  - pass
+- `rtk pnpm eval -- all --tier smoke --dry-run --platform json-archive --platform-output-dir /tmp/trapmap-phase1-platform-events`
+  - pass
+  - confirmed archive files were emitted
+
+## Behavior notes
+
+- Platform adapter support is aggregate-only in Phase 1 wiring (`smoke`, `core`, `all` routes through `eval-all.ts`)
+- No adapter enabled means no extra platform I/O and no change to existing eval exit behavior
+- Adapter publish/close failures are downgraded to `console.warn(...)`
 
 ## Files changed
 
-- `docs/todos/trapmap-architecture-remediation-plan.md`
-- `docs/reference/SYSTEM_TRUTH_SOURCES.md`
-- `docs/PACKAGES.md`
-- `docs/operations/TESTING.md`
-- `packages/server/src/__tests__/docs-truth-smoke.test.ts`
+- `packages/contracts/src/domain/evals/platform.ts`
+- `packages/contracts/src/domain/evals/platform.test.ts`
+- `packages/contracts/src/domain/evals/index.ts`
+- `evals/lib/platform/types.ts`
+- `evals/lib/platform/adapter.ts`
+- `evals/lib/platform/noop-adapter.ts`
+- `evals/lib/platform/json-archive-adapter.ts`
+- `evals/lib/platform/adapter.test.ts`
+- `evals/scripts/eval-all.ts`
+- `scripts/run-eval.ts`
+- `scripts/__tests__/run-eval.test.ts`
 
-## Self-review notes
+## Review note
 
-- Scope stayed on Phase 1 boundary facts, test-entry documentation, and evidence strengthening.
-- The final smoke test now checks the authoritative source files named by the Phase 1 truth-source row, not only prose presence in secondary docs.
-- Phase 1 remains a docs-led freeze: no later-phase runtime refactor or adapter work was introduced.
-- Scratch artifacts remain local-only under `.superpowers/sdd/` and are not part of the committed deliverable.
+The `requesting-code-review` skill recommends subagent review before merge. No code-review subagent tool is exposed in this session, so I performed a manual diff review and tightened one follow-up issue: `eval-all.ts` now explicitly rejects invalid `--platform` values instead of silently ignoring them.
 
-## Concerns
+## Commit
 
-- The focused smoke test verifies the frozen source/documentation linkage for Phase 1, but it does not attempt to prove later migration work that belongs to subsequent phases.
+Commit created after staging only the Phase 1 files listed above.

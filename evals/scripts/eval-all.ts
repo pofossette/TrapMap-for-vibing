@@ -15,7 +15,15 @@
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { parseArgs } from 'node:util';
+
+import {
+  closePlatformAdapterSafely,
+  createEvalPlatformAdapter,
+  publishPlatformEventSafely,
+  type EvalPlatformAdapterKind,
+} from '../lib/platform/adapter.js';
 
 // =============================================================================
 // CLI Argument Parsing
@@ -25,6 +33,8 @@ interface EvalAllOptions {
   tier: 'smoke' | 'core';
   json: boolean;
   jsonPath?: string;
+  platform?: EvalPlatformAdapterKind;
+  platformOutputDir?: string;
   verbose: boolean;
   dryRun: boolean;
   allowEmpty: boolean;
@@ -44,6 +54,12 @@ function parseArgs_(): EvalAllOptions {
         default: false,
       },
       'json-path': {
+        type: 'string',
+      },
+      platform: {
+        type: 'string',
+      },
+      'platform-output-dir': {
         type: 'string',
       },
       verbose: {
@@ -71,10 +87,23 @@ function parseArgs_(): EvalAllOptions {
     process.exit(1);
   }
 
+  if (
+    values.platform !== undefined &&
+    values.platform !== 'noop' &&
+    values.platform !== 'json-archive'
+  ) {
+    console.error(
+      `Invalid platform: ${values.platform}. Must be 'noop' or 'json-archive'.`,
+    );
+    process.exit(1);
+  }
+
   return {
     tier,
     json: values.json,
     jsonPath: values['json-path'],
+    platform: values.platform,
+    platformOutputDir: values['platform-output-dir'],
     verbose: values.verbose,
     dryRun: values['dry-run'],
     allowEmpty: values['allow-empty'],
@@ -734,6 +763,13 @@ function writeCombinedJsonReport(path: string, report: CombinedReport): void {
 async function main(): Promise<void> {
   const startTime = Date.now();
   const options = parseArgs_();
+  const runId = randomUUID();
+  const adapter = createEvalPlatformAdapter({
+    kind: options.platform,
+    outputDir: options.platformOutputDir,
+  });
+  const runStartedAt = new Date().toISOString();
+  const runTags = ['aggregate', options.tier, options.dryRun ? 'dry-run' : 'live'];
 
   console.log('');
   console.log('╔══════════════════════════════════════════════════════════════╗');
@@ -747,7 +783,46 @@ async function main(): Promise<void> {
   if (options.jsonPath) {
     console.log(`JSON path: ${options.jsonPath}`);
   }
+  if (options.platform) {
+    console.log(`Platform adapter: ${options.platform}`);
+  }
   console.log('');
+
+  if (options.platform) {
+    await publishPlatformEventSafely(adapter, console.warn, {
+      family: 'EvalRunStarted',
+      suite: 'all',
+      tier: options.tier,
+      runId,
+      caseId: null,
+      scenarioId: null,
+      timestamp: runStartedAt,
+      tags: runTags,
+      payload: {
+        reportMeta: {
+          schemaVersion: 1,
+          timestamp: runStartedAt,
+          runner: 'eval-all',
+          json: options.json,
+          jsonPath: options.jsonPath,
+        },
+        runScope: {
+          tier: options.tier,
+          dryRun: options.dryRun,
+          allowEmpty: options.allowEmpty,
+          platform: options.platform,
+          suites: [
+            'retrieval',
+            'summary',
+            'graph-extraction',
+            'ingestion',
+            'agent-planning',
+            'label-alignment',
+          ],
+        },
+      },
+    });
+  }
 
   // Run evaluations
   console.log('Running evaluations...\n');
@@ -911,6 +986,37 @@ async function main(): Promise<void> {
   if (options.json && options.jsonPath) {
     writeCombinedJsonReport(options.jsonPath, combinedReport);
     console.log(`JSON report written to: ${options.jsonPath}\n`);
+  }
+
+  if (options.platform) {
+    await publishPlatformEventSafely(adapter, console.warn, {
+      family: 'EvalRunFinished',
+      suite: 'all',
+      tier: options.tier,
+      runId,
+      caseId: null,
+      scenarioId: null,
+      timestamp: combinedReport.timestamp,
+      tags: runTags,
+      payload: {
+        reportMeta: {
+          schemaVersion: combinedReport.schemaVersion,
+          timestamp: combinedReport.timestamp,
+          durationMs: combinedReport.durationMs,
+          runner: 'eval-all',
+        },
+        reportSummary: combinedReport.overall,
+        reportCollections: {
+          retrieval: combinedReport.retrieval?.report ?? null,
+          summary: combinedReport.summary?.report ?? null,
+          graphExtraction: combinedReport.graphExtraction,
+          ingestion: combinedReport.ingestion,
+          agentPlanning: combinedReport.agentPlanning?.report ?? null,
+          labelAlignment: combinedReport.labelAlignment?.report ?? null,
+        },
+      },
+    });
+    await closePlatformAdapterSafely(adapter, console.warn);
   }
 
   // Exit with error code if any failures
