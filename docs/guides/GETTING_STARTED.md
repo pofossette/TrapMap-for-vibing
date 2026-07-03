@@ -116,26 +116,26 @@ AI 提供商支持自动解析。设置 `OPENAI_API_KEY` 后自动使用 OpenAI�
 
 ```bash
 # 终端 1：启动 local-agent 或 team-monolith
-pnpm dev:local-agent
+pnpm dev -- local-agent
 # 或
-pnpm dev:team-monolith
+pnpm dev -- team-monolith
 
 # 终端 2：启动 CLI（可选，用于测试）
 pnpm dev:cli
 ```
 
-默认 gateway 运行在 `http://127.0.0.1:4000`。`pnpm dev:local-agent` / `pnpm dev:team-monolith` 现在由 `@trapmap/host-local` 提供；`distributed` 相关根脚本由 `@trapmap/host-distributed` 提供。
+默认 gateway 运行在 `http://127.0.0.1:4000`。`pnpm dev -- local-agent` / `pnpm dev -- team-monolith` 现在由 `@trapmap/host-local` 提供；`distributed` 相关根脚本由 `@trapmap/host-distributed` 提供。
 
 如需拆分运行时：
 
 ```bash
-pnpm dev:distributed:gateway
-pnpm dev:distributed:candidate-worker
-pnpm dev:distributed:governance-worker
-pnpm dev:distributed:outbox-worker
+pnpm dev -- gateway
+pnpm dev -- candidate-worker
+pnpm dev -- governance-worker
+pnpm dev -- outbox-worker
 ```
 
-默认推荐 `pnpm dev:local-agent`；需要完整团队能力时使用 `pnpm dev:team-monolith`。
+默认推荐 `pnpm dev -- local-agent`；需要完整团队能力时使用 `pnpm dev -- team-monolith`。兼容别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍可用。
 
 运行时说明：
 
@@ -146,10 +146,10 @@ pnpm dev:distributed:outbox-worker
 如需预演服务拆分，额外设置 `TRAPMAP_SERVICE_UNIT`：
 
 ```bash
-TRAPMAP_SERVICE_UNIT=candidate-ingestion pnpm dev:distributed:candidate-worker
-TRAPMAP_SERVICE_UNIT=knowledge-governance pnpm dev:distributed:governance-worker
-TRAPMAP_SERVICE_UNIT=knowledge-governance pnpm dev:distributed:outbox-worker
-TRAPMAP_SERVICE_UNIT=full-platform pnpm dev:team-monolith
+TRAPMAP_SERVICE_UNIT=candidate-ingestion pnpm dev -- candidate-worker
+TRAPMAP_SERVICE_UNIT=knowledge-governance pnpm dev -- governance-worker
+TRAPMAP_SERVICE_UNIT=knowledge-governance pnpm dev -- outbox-worker
+TRAPMAP_SERVICE_UNIT=full-platform pnpm dev -- team-monolith
 ```
 
 ### 方式二：Docker Compose
@@ -233,16 +233,16 @@ pnpm lint
 
 ```bash
 # 冒烟测试（快速验证检索质量）
-pnpm eval:smoke
+pnpm eval -- smoke
 
 # 完整评测
-pnpm eval:core
+pnpm eval -- core
 
 # 单独运行检索评测
-pnpm eval:retrieval:smoke
+pnpm eval -- retrieval --tier smoke
 
 # 单独运行摘要评测
-pnpm eval:summary:smoke
+pnpm eval -- summary --tier smoke
 ```
 
 > 评测系统详情参见 [`evals/README.md`](../../evals/README.md) 和 [`docs/operations/TESTING.md`](../operations/TESTING.md)。
@@ -252,16 +252,16 @@ pnpm eval:summary:smoke
 | 命令 | 说明 |
 |------|------|
 | `pnpm build` | 构建所有包 |
-| `pnpm dev:local-agent` | 通过 `@trapmap/host-local` 启动最小本地 gateway（热重载） |
-| `pnpm dev:team-monolith` | 通过 `@trapmap/host-local` 启动完整 team gateway（热重载） |
-| `pnpm dev:distributed:gateway` | 通过 `@trapmap/host-distributed` 启动 distributed gateway |
-| `pnpm dev:distributed:candidate-worker` | 通过 `@trapmap/host-distributed` 启动 candidate-ingestion service |
-| `pnpm dev:distributed:governance-worker` | 通过 `@trapmap/host-distributed` 启动 governance-review service |
-| `pnpm dev:distributed:outbox-worker` | 通过 `@trapmap/host-distributed` 启动 job-runtime service |
+| `pnpm dev -- local-agent` | 通过 `@trapmap/host-local` 启动最小本地 gateway（热重载） |
+| `pnpm dev -- team-monolith` | 通过 `@trapmap/host-local` 启动完整 team gateway（热重载） |
+| `pnpm dev -- gateway` | 通过 `@trapmap/host-distributed` 启动 distributed gateway |
+| `pnpm dev -- candidate-worker` | 通过 `@trapmap/host-distributed` 启动 candidate-ingestion service |
+| `pnpm dev -- governance-worker` | 通过 `@trapmap/host-distributed` 启动 governance-review service |
+| `pnpm dev -- outbox-worker` | 通过 `@trapmap/host-distributed` 启动 job-runtime service |
 | `pnpm dev:cli` | 开发模式启动 CLI |
 | `pnpm test` | 运行测试 |
 | `pnpm typecheck` | TypeScript 类型检查 |
-| `pnpm lint` | 代码风格检查 |
+| `pnpm check` | 代码风格检查 |
 | `pnpm format` | 自动格式化代码 |
 
 ## 6. 目录结构

@@ -112,7 +112,7 @@ TrapMap 有两类典型使用方式：
 
 - 健康探针已实现真实 readiness/liveness 语义：`/ready` 基于依赖状态返回 `503`，不再固定返回 `ready`
 - 分布式动态发现已落地：`ConsulDiscoveryAdapter` + `DiscoveryResolver` + `CachedDiscovery` + `RoundRobinSelector`，`TRAPMAP_*_URL` 保留为显式 override 和 Consul 不可用时的 fallback
-- 统一验收口径与 closeout tasklist 见 [`docs/todos/service-discovery-and-observability-plan.md`](docs/todos/service-discovery-and-observability-plan.md)
+- 当前活跃收口面与 closeout 入口见 [`docs/todos/active-closeout-and-followups.md`](docs/todos/active-closeout-and-followups.md)
 - Phase 4 历史主线（NestJS 数据、运维与退役收尾）已完成并归档；退役旧宿主与重复 transport/client 已完成 truth source、测试矩阵与归档回写
 
 ## 快速理解
@@ -159,27 +159,29 @@ pnpm install
 cp .env.example .env
 # 编辑 .env，至少填入 OPENAI_API_KEY 和 TRAPMAP_SYSTEM_ADMIN_KEY
 
-pnpm dev:local-agent
+pnpm dev -- local-agent
 ```
 
 本地默认 gateway 监听 `http://127.0.0.1:4000`，其中 `local-agent` / `team-monolith` 映射到 `light` 并由 `@trapmap/host-local` 提供，`distributed` 映射到 `heavy` 并由 `@trapmap/host-distributed` 提供。
 
-三种正式开发入口：
+推荐使用统一分发入口：
 
 ```bash
-pnpm dev:local-agent                    # 单用户、本地完整治理 gateway（Nest light mainline）
-pnpm dev:team-monolith                  # 小团队/单实例完整 gateway（Nest light mainline）
-pnpm dev:distributed:gateway            # distributed gateway
-pnpm dev:distributed:candidate-worker   # distributed candidate worker
-pnpm dev:distributed:governance-worker  # distributed governance worker
-pnpm dev:distributed:outbox-worker      # distributed outbox worker
+pnpm dev -- local-agent         # 单用户、本地完整治理 gateway（Nest light mainline）
+pnpm dev -- team-monolith       # 小团队/单实例完整 gateway（Nest light mainline）
+pnpm dev -- gateway             # distributed gateway
+pnpm dev -- candidate-worker    # distributed candidate worker
+pnpm dev -- governance-worker   # distributed governance worker
+pnpm dev -- outbox-worker       # distributed outbox worker
 ```
+
+兼容别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍可用，但后续文档和脚本维护默认以 `pnpm dev -- <target>` 为准。可用 target 列表见 `pnpm dev -- --help`。
 
 `light` 默认主入口：
 
 ```bash
-pnpm dev:local-agent
-pnpm dev:team-monolith
+pnpm dev -- local-agent
+pnpm dev -- team-monolith
 pnpm --filter @trapmap/host-local dev
 pnpm --filter @trapmap/host-local start
 ```
@@ -207,7 +209,7 @@ docker compose --profile distributed up -d
 docker compose --profile distributed --profile mq up -d
 ```
 
-`local-agent` 不推荐走 compose；直接使用 `pnpm dev:local-agent` 更符合单用户轻量模式。
+`local-agent` 不推荐走 compose；直接使用 `pnpm dev -- local-agent` 更符合单用户轻量模式。
 
 `docker-compose.yml` 中的 `server` service 现在只是 service name，实际运行的是 `packages/host-local/Dockerfile` 构建出来的 `team-monolith` light host。`distributed` profile 改为运行 `packages/host-distributed/Dockerfile` 构建的 gateway/worker 入口；CLI 仍然只连 `TRAPMAP_GATEWAY_URL`。
 
@@ -241,11 +243,13 @@ pnpm check:docs-drift
 评测脚手架入口：
 
 ```bash
-pnpm eval:smoke
-pnpm eval:core
-pnpm eval:agent-planning:dry-run
-pnpm eval:label-alignment:dry-run
+pnpm eval -- smoke
+pnpm eval -- core
+pnpm eval -- agent-planning --tier smoke --dry-run
+pnpm eval -- label-alignment --tier smoke --mode dry-run
 ```
+
+兼容别名 `pnpm eval:smoke`、`pnpm eval:core`、`pnpm eval:agent-planning:dry-run`、`pnpm eval:label-alignment:dry-run` 仍可用，但后续命令组合优先通过 `pnpm eval -- <suite> ...` 统一表达。可用 suite 与 flags 见 `pnpm eval -- --help`。
 
 ## Vitest 使用要求
 

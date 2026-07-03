@@ -119,12 +119,10 @@ export type {
 export { buildServiceTopologySnapshot } from './service-topology.js';
 
 // Telemetry adapters
-export type { TelemetryAdapters, PinoLikeLogger } from './telemetry-adapters.js';
+export { createMetricsPortAdapter } from './metrics-port-adapter.js';
+export { createLoggingPortAdapter, type PinoLikeLogger } from './logging-port-adapter.js';
 export {
-  createTelemetryAdapters,
-  createMetricsPortAdapter,
   createTracingPortAdapter,
-  createLoggingPortAdapter,
-} from './telemetry-adapters.js';
-export type { TracingPortAdapterOptions } from './tracing-port-adapter.js';
+  type TracingPortAdapterOptions,
+} from './tracing-port-adapter.js';
 export type { LoggingPort, MetricsPort, SpanHandle, TracingPort } from './telemetry-ports.js';

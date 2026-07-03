@@ -4,15 +4,10 @@ export type { AiProviderConfig } from './provider-config.js';
 export type { AiProviderType } from './provider-config.js';
 export { loadAiProviderConfig } from './provider-config.js';
 export { createAiProviders } from './providers.js';
-// fallow-ignore-next-line unused-export
 export { FallbackChat } from './providers.js';
-// fallow-ignore-next-line unused-export
 export { FallbackEmbeddings } from './providers.js';
-// fallow-ignore-next-line unused-export
 export { GoogleGenAIEmbeddings } from './providers.js';
-// fallow-ignore-next-line unused-export
 export { OpenAICompatibleChat } from './providers.js';
-// fallow-ignore-next-line unused-export
 export { OpenAICompatibleEmbeddings } from './providers.js';
 // fallow-ignore-next-line unused-export
 export { buildBoundaryExtractionSystemPrompt } from './prompts.js';
@@ -81,13 +76,9 @@ export { trackCacheHit } from './cache/index.js';
 export { trackCacheMiss } from './cache/index.js';
 
 // Dynamic injection system
-// fallow-ignore-next-line unused-export
 export { injectDynamicContent } from './dynamic/index.js';
-// fallow-ignore-next-line unused-export
 export { escapeRegExp } from './dynamic/index.js';
 // fallow-ignore-next-line unused-export
 export { getDynamicInjections } from './dynamic/index.js';
-// fallow-ignore-next-line unused-export
 export { getConditionalContent } from './dynamic/index.js';
-// fallow-ignore-next-line unused-export
 export { getDefaultConditionalRules } from './dynamic/index.js';

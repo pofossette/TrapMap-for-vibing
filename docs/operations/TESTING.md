@@ -56,13 +56,13 @@ flowchart TB
 - Requeue flow：调用 `POST /v1/operations/status/async/tasks/:taskId/requeue`，确认 dead task 回到 `pending` 且 dedupe 约束仍生效。
 
 **Phase 2 Runtime Mode Checks:**
-- `local-agent`：`pnpm dev:local-agent`，确认 `/ready` 反映最小 gateway 能力面。
-- `team-monolith`：`pnpm dev:team-monolith`，确认 `/ready` 会同时报告 gateway 进程拥有的本地 worker runtime。
-- `distributed gateway`：`pnpm dev:distributed:gateway`，确认缺少本地 worker 不会导致 `/ready` 失败。
-- `distributed task worker`：`pnpm dev:distributed:candidate-worker` 或 `pnpm dev:distributed:governance-worker`，确认该进程不对外监听业务 API，但其 runtime mode 仅要求对应 worker 健康。
-- `distributed outbox worker`：`pnpm dev:distributed:outbox-worker`，确认该进程只拥有 outbox runtime。
+- `local-agent`：`pnpm dev -- local-agent`，确认 `/ready` 反映最小 gateway 能力面。
+- `team-monolith`：`pnpm dev -- team-monolith`，确认 `/ready` 会同时报告 gateway 进程拥有的本地 worker runtime。
+- `distributed gateway`：`pnpm dev -- gateway`，确认缺少本地 worker 不会导致 `/ready` 失败。
+- `distributed task worker`：`pnpm dev -- candidate-worker` 或 `pnpm dev -- governance-worker`，确认该进程不对外监听业务 API，但其 runtime mode 仅要求对应 worker 健康。
+- `distributed outbox worker`：`pnpm dev -- outbox-worker`，确认该进程只拥有 outbox runtime。
 
-这些根脚本现在分别装配 `@trapmap/host-local` 与 `@trapmap/host-distributed`。测试命令里仍然大量引用 `packages/server/...`，是因为当前权威测试文件与核心实现仍主要驻留在该兼容层和既有代码面中。
+这些根脚本现在通过 `scripts/run-dev.ts` 分发到 `@trapmap/host-local` 与 `@trapmap/host-distributed`。兼容别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍可用。测试命令里仍然大量引用 `packages/server/...`，是因为当前权威测试文件与核心实现仍主要驻留在该兼容层和既有代码面中。
 
 **Phase 2 Store Snapshot / PG-first Freeze Checks:**
 - Snapshot allowlist：运行 `packages/server/src/__tests__/snapshot-usage-guard.test.ts`，确认新的 `store.snapshot()` / `store.transact()` 调用没有逃出 allowlist，并且 allowlist 仍只覆盖命名 compatibility buckets。

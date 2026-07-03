@@ -247,21 +247,6 @@ export const graphIndexAdapter: IndexAdapter & {
   },
 };
 
-// ---------------------------------------------------------------------------
-// Backward-compatible exports (used by existing graph-assisted recall tests)
-// ---------------------------------------------------------------------------
-
-export function getCachedGraphIndexDocuments(): GraphIndexDocumentRecord[] {
-  return Array.from(cachedGraphDocuments.values());
-}
-
-export function setCachedGraphIndexDocuments(documents: GraphIndexDocumentRecord[]): void {
-  cachedGraphDocuments.clear();
-  for (const document of documents) {
-    cacheDocument(document);
-  }
-}
-
 /** @deprecated Use store-backed helpers instead */
 export function clearGraphCache(): void {
   graphStateCache.clear();

@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-06-27-server-cleanup-three-categories-design.md`
 
-**Plan:** `docs/todos/backend-build-targets-plan.md` Phase 2
+**Plan:** `docs/archived/archived-plans/backend-build-targets-plan.md` Phase 2
 
 ---
 
@@ -642,7 +642,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 **Context:** After Waves 1-3, update documentation to reflect the new state. Per the spec's documentation requirements and `backend-build-targets-plan.md` Phase 2 doc requirements.
 
 **Files:**
-- Modify: `docs/todos/backend-build-targets-plan.md` — check off completed Phase 2 items
+- Modify: `docs/archived/archived-plans/backend-build-targets-plan.md` — historical source for completed Phase 2 items
 - Modify: `docs/reference/REPO_STRUCTURE.md` — if modules/ directory removed
 - Modify: `docs/PACKAGES.md` — update `packages/server` and `packages/backend-core` descriptions
 - Modify: `packages/server/README.md` — note removed compatibility shell
@@ -687,7 +687,7 @@ Expected: Both pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add docs/todos/backend-build-targets-plan.md docs/reference/ docs/PACKAGES.md packages/server/README.md packages/backend-core/README.md
+git add docs/archived/archived-plans/backend-build-targets-plan.md docs/reference/ docs/PACKAGES.md packages/server/README.md packages/backend-core/README.md
 git commit -m "docs: update docs to reflect Phase 2 cleanup progress
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"

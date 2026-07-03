@@ -11,7 +11,7 @@ import { join } from 'node:path';
 
 import type { ArtifactBundle, BundleFilePayload } from '@trapmap/contracts';
 
-import type { ArtifactFilePayloadRecord } from '../../../packages/server/src/lib/store.js';
+import type { ArtifactFilePayloadRecord } from '../../packages/server/src/lib/store.js';
 
 // ---------------------------------------------------------------------------
 // Types

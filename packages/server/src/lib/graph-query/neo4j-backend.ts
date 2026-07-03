@@ -6,14 +6,13 @@ import {
   buildLocalExpansionView as buildGraphologyLocalExpansionView,
 } from '@trapmap/server/lib/indexing/graph-lite/index.js';
 
-import {
-  type GraphQueryBackend,
-  type GraphQueryExpansionView,
-  type GraphQueryNodeView,
-  type GraphQueryRuntimeState,
-  buildGraphSourceKey,
-  projectGraphDocument,
-} from './index.js';
+import type {
+  GraphQueryBackend,
+  GraphQueryExpansionView,
+  GraphQueryNodeView,
+  GraphQueryRuntimeState,
+} from './backend.js';
+import { buildGraphSourceKey, projectGraphDocument } from './projector.js';
 
 interface Neo4jRecordLike {
   get(key: string): unknown;

@@ -82,7 +82,7 @@ structured output feature.
 - Integration with `recordRuntimeExecution` / `recordRuntimeRetry` metrics
 - Structured logging with requestId, traceId, dependencyName
 
-**Known limitation** (documented in `docs/todos/nestjs-langchain-debt-cleanup.md`):
+**Known limitation** (documented in `docs/archived/archived-plans/nestjs-langchain-debt-cleanup.md`):
 - `withTimeout` uses `setTimeout` to reject, but does NOT cancel the underlying
   operation via `AbortController`. On retry, the old Promise remains pending,
   which can leak connections or cause double-execution side effects.
@@ -219,5 +219,5 @@ implementation already handles degraded mode gracefully.
 - Current resilience implementation: `packages/server/src/lib/runtime/resilience.ts`
 - Current LLM parsing helpers: `packages/server/src/lib/ai/parse.ts`, `packages/server/src/lib/indexing/graph-lite/llm-extract-parsing.ts`
 - LLM call sites: `llm-dedup.ts`, `llm-conflict.ts`, `llm-align.ts`, `llm-extract.ts`
-- Existing debt analysis: `docs/todos/nestjs-langchain-debt-cleanup.md`
+- Existing debt analysis: `docs/archived/archived-plans/nestjs-langchain-debt-cleanup.md`
 - Consul KV interface: `packages/backend-core/src/ports/discovery-ports.ts`

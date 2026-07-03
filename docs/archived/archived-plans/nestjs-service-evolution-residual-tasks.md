@@ -87,7 +87,7 @@
 
 ## 5. 静态分析审计清理
 
-> 来源：`docs/todos/static-analysis-audit-2026-06-29.md`，2026-06-29 审计，382 问题零处理。
+> 来源：`docs/archived/archived-plans/static-analysis-audit-2026-06-29.md`，2026-06-29 审计，382 问题零处理。
 
 ### 5.1 高优先级删除
 
@@ -147,6 +147,6 @@
 - `packages/host-local/src/nest/app.module.ts`（六模块注册）
 - `packages/server/src/config.ts`（仍被 host-local 依赖）
 - `packages/server/src/lib/decay/freshness.ts`（versioned decay 占位）
-- `docs/todos/static-analysis-audit-2026-06-29.md`（完整审计报告）
-- `docs/todos/backend-build-targets-plan.md`（轻重后端构建目标主计划）
+- `docs/archived/archived-plans/static-analysis-audit-2026-06-29.md`（完整审计报告）
+- `docs/archived/archived-plans/backend-build-targets-plan.md`（轻重后端构建目标主计划）
 - `docs/todos/open-debt-and-compromises.md`（活跃 debt register）

@@ -8,13 +8,13 @@
 
 ```bash
 # 运行 smoke 层级（快速反馈）
-pnpm eval:smoke
+pnpm eval -- smoke
 
 # 运行 core 层级（更广泛覆盖）
-pnpm eval:core
+pnpm eval -- core
 
 # 运行完整评测，带 JSON 输出
-pnpm eval:all:json
+pnpm eval -- all --tier core --json --json-path ./reports/eval-report.json
 
 # 空跑验证，不执行
 pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
@@ -33,24 +33,26 @@ pnpm eval:ci:core
 
 ```bash
 # 仅检索
-pnpm eval:retrieval:smoke
-pnpm eval:retrieval:core
+pnpm eval -- retrieval --tier smoke
+pnpm eval -- retrieval --tier core
 
 # 仅摘要
-pnpm eval:summary:smoke
-pnpm eval:summary:core
+pnpm eval -- summary --tier smoke
+pnpm eval -- summary --tier core
 
 # 仅 agent 路径规划
-pnpm eval:agent-planning:smoke
-pnpm eval:agent-planning:core
+pnpm eval -- agent-planning --tier smoke --dry-run
+pnpm eval -- agent-planning --tier core --dry-run
 
 # 仅标签对齐
-pnpm eval:label-alignment:smoke
-pnpm eval:label-alignment:core
+pnpm eval -- label-alignment --tier smoke --mode dry-run
+pnpm eval -- label-alignment --tier core --mode dry-run
 
 # 从持久化 badcase trace 导出 eval draft
 pnpm exec tsx scripts/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
 ```
+
+兼容别名 `pnpm eval:smoke`、`pnpm eval:core`、`pnpm eval:retrieval:*`、`pnpm eval:summary:*`、`pnpm eval:agent-planning:*`、`pnpm eval:label-alignment:*` 仍可用；统一入口由 `scripts/run-eval.ts` 提供，完整选项可通过 `pnpm eval -- --help` 查看。
 
 该脚本只输出 `badcaseEvalDraftSchema` 对应的 deterministic draft。`GET /v1/operations/badcases/:feedbackId/export` 返回的 route wrapper 还会附带 operator-only `debug`，但这部分不属于 eval draft payload。
 

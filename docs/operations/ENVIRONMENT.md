@@ -404,14 +404,14 @@ pnpm dev:local-agent
 
 开发入口建议：
 
-- `pnpm dev:local-agent`
-- `pnpm dev:team-monolith`
-- `pnpm dev:distributed:gateway`
-- `pnpm dev:distributed:candidate-worker`
-- `pnpm dev:distributed:governance-worker`
-- `pnpm dev:distributed:outbox-worker`
+- `pnpm dev -- local-agent`
+- `pnpm dev -- team-monolith`
+- `pnpm dev -- gateway`
+- `pnpm dev -- candidate-worker`
+- `pnpm dev -- governance-worker`
+- `pnpm dev -- outbox-worker`
 
-兼容脚本 `pnpm dev:server:compat*` 仍可使用，但不再作为主要文档入口。正式入口优先使用 `pnpm dev:local-agent`、`pnpm dev:team-monolith` 和 `pnpm dev:distributed:*`，它们分别装配 `@trapmap/host-local` 与 `@trapmap/host-distributed`。
+兼容脚本 `pnpm dev:server:compat*` 与旧根别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍可使用，但不再作为主要文档入口。正式入口优先使用 `pnpm dev -- <target>`，由 `scripts/run-dev.ts` 统一分发到 `@trapmap/host-local` 与 `@trapmap/host-distributed`。
 
 ### PG Recall 配置 (Phase 6，多路召回已全线落地)
 

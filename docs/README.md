@@ -125,12 +125,14 @@ pnpm dev:cli
 也可按 profile 启动其他形态：
 
 ```bash
-pnpm dev:team-monolith
-pnpm dev:distributed:gateway
-pnpm dev:distributed:candidate-worker
-pnpm dev:distributed:governance-worker
-pnpm dev:distributed:outbox-worker
+pnpm dev -- team-monolith
+pnpm dev -- gateway
+pnpm dev -- candidate-worker
+pnpm dev -- governance-worker
+pnpm dev -- outbox-worker
 ```
+
+根级开发命令现在优先通过 `pnpm dev -- <target>` 分发；旧别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍保留兼容。
 
 ### Docker 部署
 
@@ -157,22 +159,22 @@ curl http://127.0.0.1:4000/health
 
 ```bash
 # 运行 smoke 层级统一评测
-pnpm eval:smoke
+pnpm eval -- smoke
 
 # 运行 CI smoke tier baseline-aware eval
 pnpm eval:ci
 
 # 运行检索评估
-pnpm eval:retrieval
+pnpm eval -- retrieval
 
 # 运行摘要评估
-pnpm eval:summary
+pnpm eval -- summary
 
 # 运行 agent 路径规划评估
-pnpm eval:agent-planning
+pnpm eval -- agent-planning --tier smoke
 
 # 运行标签对齐评估
-pnpm eval:label-alignment
+pnpm eval -- label-alignment --tier smoke --mode live
 
 # 运行所有 CI 评估（默认 smoke；core 使用独立入口）
 pnpm eval:ci
@@ -203,6 +205,8 @@ pnpm run ci
 - [CI/CD 流水线](operations/CI_CD.md) — GitHub Actions 流水线、评测质量门
 
 当前 CI/testing 命令真相以 `pnpm run ci`、`pnpm eval:smoke`、`pnpm eval:ci`、`pnpm eval:ci:core` 为准，具体语义由 `package.json` 与 `reference/SYSTEM_TRUTH_SOURCES.md` 冻结。
+
+日常本地运行推荐改用 `pnpm eval -- <suite> ...`；兼容别名继续保留给现有文档、CI 和历史工作流。
 
 deployment flexibility 最小验证矩阵：
 - `pnpm test:observability-closeout`

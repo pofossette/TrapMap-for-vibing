@@ -12,11 +12,11 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/graph-lite/documents.js';
+import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import {
   getGraphIndexDocuments,
   removeGraphIndexDocumentsForSource,
-} from '@trapmap/server/lib/graph-lite/store.js';
+} from '@trapmap/server/lib/indexing/graph-lite/store.js';
 import { JsonStore, createEmptyStoreData, nowIso } from '@trapmap/server/lib/store.js';
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 

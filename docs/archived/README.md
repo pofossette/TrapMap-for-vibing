@@ -37,6 +37,20 @@
 | `archived-plans/nestjs-service-evolution-01-host-and-contract-foundation-archived.md` | 2026-06-30 | Phase 1 工程任务全部完成（代码 + 架构 100%），剩余验证闭环和 checkbox 整理转入 `nestjs-service-evolution-residual-tasks.md` |
 | `archived-plans/nestjs-service-evolution-02-modular-monolith-cutover-archived.md` | 2026-06-30 | 六个 bounded context 目录结构完成、默认入口已切 Nest、旧 Fastify 源码已删；残余 `@trapmap/server` 依赖转入 residual tasks |
 | `archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md` | 2026-06-30 | 大部分 closeout 条件已满足（默认入口切换、compose 切换、compatibility shell 退役）；未完成项去重整合入 residual tasks |
+| `archived-plans/hexagonal-architecture-cleanup.md` | 2026-07-03 | 六边形清理已完成前置护栏职责；后续仅保留结果，不再作为活跃 checklist |
+| `archived-plans/service-discovery-and-observability-plan.md` | 2026-07-03 | 主线大部分资产已落地；剩余 closeout 抽取到 `docs/todos/active-closeout-and-followups.md` |
+| `local-deployment-observability-checklist.md` | 2026-07-03 | 本地 full-docker closeout 证据已形成；剩余目标环境/Grafana UI 验收转入统一活跃清单 |
+| `microservice-architecture-and-observability.md` | 2026-07-03 | 架构盘点文档只保留背景参考，不再承担执行面 |
+| `archived-plans/backend-build-targets-plan.md` | 2026-07-03 | `backendTarget`、build-target 术语和 host 终局已冻结；剩余边界收口转入统一活跃清单 |
+| `archived-plans/nestjs-service-evolution-residual-tasks.md` | 2026-07-03 | 残余任务已并入统一活跃清单，不再保留第二套执行入口 |
+| `archived-plans/nestjs-langchain-debt-cleanup.md` | 2026-07-03 | 技术债判断已被后续评估吸收；仅保留历史方案参考 |
+| `archived-plans/library-replacement-evaluation.md` | 2026-07-03 | 库替换结论已冻结；只剩 resilience 迁移等未完成项，转入统一活跃清单 |
+| `archived-plans/static-analysis-audit-2026-06-29.md` | 2026-07-03 | 静态分析报告改为历史审计输入；仍成立的问题转入统一活跃清单 |
+| `archived-plans/agent-planning-eval-benchmark-plan.md` | 2026-07-03 | 未来 eval 方案，当前无活跃 owner，转 deferred 参考 |
+| `archived-plans/label-alignment-eval-benchmark-plan.md` | 2026-07-03 | 未来 eval 方案，当前无活跃 owner，转 deferred 参考 |
+| `archived-plans/eval-skill-capsule-live-eval-plan.md` | 2026-07-03 | 未来 live eval 改造方案，当前无活跃 owner，转 deferred 参考 |
+| `archived-plans/eval-skill-capsule-vs-bare-skill.md` | 2026-07-03 | 未来 eval 对照方案，当前无活跃 owner，转 deferred 参考 |
+| `webui-layout-refactor-guide.md` | 2026-07-03 | WebUI 版式重构指南当前无执行 owner，转 deferred 设计参考 |
 
 ## 归档原则
 

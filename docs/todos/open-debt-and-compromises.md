@@ -123,7 +123,7 @@ The following coupling patterns were identified during the Phase 0.6 coupling au
 
 ## 8. Library Replacement Decisions (Phase 3)
 
-> Full evaluation: [`docs/todos/library-replacement-evaluation.md`](library-replacement-evaluation.md)
+> Full evaluation: [`../archived/archived-plans/library-replacement-evaluation.md`](../archived/archived-plans/library-replacement-evaluation.md)
 
 ### 8.1 Resilience Library — Replace with `cockatiel`
 

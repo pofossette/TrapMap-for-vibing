@@ -293,20 +293,13 @@
       "file": "plan.md",
       "mustContain": [
         "执行计划索引",
-        "服务发现与可观测性升级",
-        "docs/archived/archived-plans/microservice-platform-evolution-plan.md",
-        "当前主线：服务发现与可观测性升级",
+        "当前主线：待办收口与后续整合",
+        "docs/todos/active-closeout-and-followups.md",
+        "docs/todos/open-debt-and-compromises.md",
+        "docs/archived/archived-plans/service-discovery-and-observability-plan.md",
+        "docs/archived/archived-plans/backend-build-targets-plan.md",
         "状态：`收口中`",
-        "Phase 1B 服务发现 MVP",
-        "状态：`基本完成`",
-        "Phase 2B Tracing MVP",
-        "状态：`收口中`",
-        "Phase 2C Logging MVP",
-        "Phase 3 生产化增强",
-        "Phase 4 跨阶段回归与基准",
-        "状态：`收口中`",
-        "Phase 5 文档与交付收口",
-        "状态：`收口中`"
+        "旧 `docs/todos/` 中的大部分文件已不适合作为并行活跃 checklist"
       ],
       "mustNotContain": [
         "当前主线阶段：`Phase 1-2`",
@@ -314,9 +307,8 @@
         "当前主线阶段：`Phase 0-7 全部完成`",
         "docs/todos/microservice-platform-evolution-plan.md",
         "当前活跃细则中的阶段 checklist",
-        "Phase 2B Tracing MVP\n\n- [x] 状态：`完成`",
-        "Phase 2C Logging MVP\n\n- [x] 状态：`完成`",
-        "Phase 3 生产化增强\n\n- [x] 状态：`完成`"
+        "docs/todos/service-discovery-and-observability-plan.md",
+        "docs/todos/backend-build-targets-plan.md"
       ]
     },
     {
@@ -379,13 +371,14 @@
     {
       "file": "docs/todos/README.md",
       "mustContain": [
-        "背景/deferred 参考",
-        "不再描述为仍由当前根计划并行拥有的 checklist",
-        "已于 2026-06-30 完成 Phase 4 closeout，并归档",
-        "已归档"
+        "当前活跃文档",
+        "active-closeout-and-followups.md",
+        "活跃 debt register",
+        "2026-07-03 批量归档摘要",
+        "完整归档表见"
       ],
       "mustNotContain": [
-        "唯一活跃细则",
+        "service-discovery-and-observability-plan.md` | 服务发现与可观测性升级主线细则与 closeout tasklist",
         "| `microservice-platform-evolution-plan.md` | 微服务平台能力增强：服务发现、内部 RPC、可观测性与资源治理 |"
       ]
     },
@@ -466,10 +459,7 @@
     },
     {
       "file": "docs/todos/README.md",
-      "mustContain": [
-        "已于 2026-06-30 完成 Phase 4 closeout，并归档",
-        "后续新增问题应转入独立审计或独立计划"
-      ]
+      "mustContain": ["2026-07-03 批量归档摘要", "完整归档表见"]
     },
     {
       "file": "docs/reference/api-surface.md",

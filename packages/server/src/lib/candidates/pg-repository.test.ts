@@ -16,7 +16,7 @@ import type {
 } from '@trapmap/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CandidateRepository } from '@trapmap/server/lib/repository.js';
+import type { CandidateRepository } from '@trapmap/server/lib/candidates/repository.js';
 import { PgCandidateRepository } from './pg-repository.js';
 import { writeAnalysisToSubTable } from './pg-repository/subtable-io.js';
 

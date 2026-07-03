@@ -1,7 +1,7 @@
 # Server 三分类清理清单设计
 
 > 日期：2026-06-27
-> 对应计划：[`docs/todos/backend-build-targets-plan.md`](../todos/backend-build-targets-plan.md) Phase 2
+> 对应计划：[`docs/archived/archived-plans/backend-build-targets-plan.md`](../../archived/archived-plans/backend-build-targets-plan.md) Phase 2
 > 根索引：[`plan.md`](../../../plan.md)
 
 ## 背景

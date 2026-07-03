@@ -39,14 +39,6 @@ import { applySkillBudget } from './skill-selection.js';
 import { findBlockingTraps } from './trap-identification.js';
 import { selectQueryRelevantTraps } from './trap-ranking.js';
 
-// Re-export sub-modules for backward compatibility
-export { buildExecutionPlan } from './execution-plan.js';
-export { buildCitations } from './plan-citations.js';
-export { buildPlanEdges } from './plan-edges.js';
-export { buildUnifiedGraph } from './plan-graph.js';
-export { applySkillBudget, buildActivationRefs } from './skill-selection.js';
-export { findBlockingTraps } from './trap-identification.js';
-
 // Constants
 const DEFAULT_SKILL_BUDGET = 3;
 const DEFAULT_MAX_DEPTH = 2;
