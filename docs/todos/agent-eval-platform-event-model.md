@@ -141,7 +141,7 @@ run 级事件仍然要携带完整 envelope 字段；此时 `caseId` 与 `scenar
 `execution` 是 report-backed execution metadata，字段必须按 suite 固定：
 
 - `agent-planning`：`actorOutput`、`normalizedPlan`
-- `retrieval`：`selectedMode?`、`routingReason?`、`fallbackApplied`
+- `retrieval`：当前 report truth source 已把相关执行结果折叠进 `result`，Phase 0/1 不再单独写该对象
 - `summary`：当前 report truth source 不暴露 execution carrier，Phase 0/1 不写该对象
 
 ### `EvalScoreRecorded.payload`
