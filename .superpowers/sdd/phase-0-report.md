@@ -32,3 +32,11 @@ This pass repaired the review gaps called out after the first freeze:
 - Reintroduced the root `plan.md` as the current index-only root entry without changing its content.
 - Tightened `docs/todos/agent-eval-platform-event-model.md` so each of the seven event families now has a frozen payload shape.
 - Added field-level report-to-event mappings for `agent-planning`, `retrieval`, and `summary`, covering run, case, score, assertion, and trace placements.
+
+## Addendum 2
+
+Final Phase 0 cleanup:
+
+- Reduced `plan.md` to a true index-only entry with only the current mainline links and a short "follow the mainline" note.
+- Collapsed `docs/todos/README.md` into a small active-index page and moved event-model / scorecard / closeout references out of the owner list.
+- Corrected `docs/todos/agent-eval-platform-event-model.md` so every `source` mapping now points at a real report field path from `packages/contracts/src/domain/evals/report.ts`.

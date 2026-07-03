@@ -157,11 +157,17 @@ run 级事件仍然要携带完整 envelope 字段；此时 `caseId` 与 `scenar
   - `totalScore` -> `source: case.totalScore`
   - `pathScore` -> `source: case.pathScore`
   - `finalAnswerScore` -> `source: case.finalAnswerScore`
-  - `dimension:<dimensionId>` -> `source: case.judge.dimensionScores[*]`
+  - `dimension:<dimensionId>` -> `source: case.judge.dimensionScores[*].score`
 - `retrieval`：
-  - `hitAt1`、`hitAt5`、`hitAt10`、`mrr`、`ndcg`、`recallAt10` -> `source: case.metrics.*`
+  - `hitAt1` -> `source: case.hitAt1`
+  - `hitAt5` -> `source: case.hitAt5`
+  - `hitAt10` -> `source: case.hitAt10`
+  - `mrr` -> `source: case.mrr`
+  - `ndcg` -> `source: case.ndcg`
+  - `recallAt10` -> `source: case.recallAt10`
 - `summary`：
-  - `groundednessScore`、`coverageScore` -> `source: case.judgeResult.*`
+  - `groundednessScore` -> `source: case.groundednessScore`
+  - `coverageScore` -> `source: case.coverageScore`
 
 可选字段只允许：
 
@@ -233,7 +239,7 @@ Platform Model 不是新的 report schema。它是把现有 TrapMap report 重�
 | `cases[*]` 的 case schema 字段 | `EvalCaseStarted` | `case` |
 | `cases[*].passed` / `totalScore` / `pathScore` / `finalAnswerScore` / `actorOutput` / `normalizedPlan` / `deterministicPrecheck` / `judge` / `durationMs` | `EvalCaseFinished` | `result` |
 | `cases[*].totalScore` / `pathScore` / `finalAnswerScore` / `judge.dimensionScores[*]` | `EvalScoreRecorded` | `scoreId` / `score` / `source` |
-| `cases[*].deterministicPrecheck` / `cases[*].judge.matchedKeyActions` / `missingKeyActions` / `forbiddenActionHits` | `EvalAssertionRecorded` | `assertionId` / `passed` / `source` |
+| `cases[*].deterministicPrecheck` / `cases[*].judge.matchedKeyActions` / `cases[*].judge.missingKeyActions` / `cases[*].judge.forbiddenActionHits` | `EvalAssertionRecorded` | `assertionId` / `passed` / `source` |
 | `cases[*].actorOutput` / `cases[*].normalizedPlan` | `EvalTraceStepRecorded` | `text` / `kind` |
 | `groups` | `EvalRunFinished` | `reportCollections.groups` |
 | `slices` | `EvalRunFinished` | `reportCollections.slices` |
@@ -247,9 +253,9 @@ Platform Model 不是新的 report schema。它是把现有 TrapMap report 重�
 | `summary.totalCases` / `summary.passedCases` / `summary.failedCases` / `summary.passRate` / `summary.passed` | `EvalRunFinished` | `reportSummary` |
 | `cases[*]` 的 case schema 字段 | `EvalCaseStarted` | `case` |
 | `cases[*].passed` / `outcomeMatch` / `governancePassed` / `durationMs` / `hitAt1` / `hitAt5` / `hitAt10` / `mrr` / `ndcg` / `recallAt10` / `selectedMode` / `routingReason` / `fallbackApplied` | `EvalCaseFinished` | `result` |
-| `cases[*].hitAt1` / `hitAt5` / `hitAt10` / `mrr` / `ndcg` / `recallAt10` | `EvalScoreRecorded` | `scoreId` / `score` / `source` |
-| `cases[*].expected.outcome` / `expected.relevance` / `expected.governance` / `expected.shape` / `governance.failures[*]` / `graphPlanResult` | `EvalAssertionRecorded` | `assertionId` / `passed` / `source` |
-| `execution.routingTrace` / `execution.adapterType` / `execution.fallbackUsed` / `execution.fallbackReason` / `execution.selectedMode` / `execution.routingReason` / `execution.fallbackApplied` | `EvalTraceStepRecorded` | `kind` / `text` / `metadata` |
+| `cases[*].hitAt1` / `cases[*].hitAt5` / `cases[*].hitAt10` / `cases[*].mrr` / `cases[*].ndcg` / `cases[*].recallAt10` | `EvalScoreRecorded` | `scoreId` / `score` / `source` |
+| `cases[*].outcomeMatch` / `cases[*].governancePassed` / `cases[*].selectedMode` / `cases[*].routingReason` / `cases[*].fallbackApplied` / `cases[*].passed` | `EvalAssertionRecorded` | `assertionId` / `passed` / `source` |
+| `cases[*]` | `EvalTraceStepRecorded` | `kind` / `text` / `metadata` |
 | `summary` 之外的 `cases` / `slices` / `cohorts` / `modeComparisons` / `routingDistribution` / `failures` / `warnings` | `EvalRunFinished` | `reportCollections.*` |
 
 #### `summary`
@@ -261,9 +267,9 @@ Platform Model 不是新的 report schema。它是把现有 TrapMap report 重�
 | `summary.totalCases` / `summary.passedCases` / `summary.failedCases` / `summary.passRate` / `summary.passed` / `summary.avgGroundedness` / `summary.avgCoverage` / `summary.forbiddenClaimHits` | `EvalRunFinished` | `reportSummary` |
 | `cases[*]` 的 case schema 字段 | `EvalCaseStarted` | `case` |
 | `cases[*].passed` / `groundednessScore` / `coverageScore` / `claimsTotal` / `claimsSupported` / `requiredFactsCovered` / `requiredFactsMissing` / `forbiddenClaimsFound` / `durationMs` | `EvalCaseFinished` | `result` |
-| `cases[*].judgeResult.groundednessScore` / `cases[*].judgeResult.coverageScore` | `EvalScoreRecorded` | `scoreId` / `score` / `source` |
-| `cases[*].expected.requiredFacts` / `expected.forbiddenClaims` / `judgeResult` verdict arrays | `EvalAssertionRecorded` | `assertionId` / `passed` / `source` |
-| `contextTrace[*]` / `summaryText` / `rawResponse` | `EvalTraceStepRecorded` | `kind` / `text` / `metadata` |
+| `cases[*].groundednessScore` / `cases[*].coverageScore` | `EvalScoreRecorded` | `scoreId` / `score` / `source` |
+| `cases[*].requiredFactsCovered` / `cases[*].requiredFactsMissing` / `cases[*].forbiddenClaimsFound` / `cases[*].passed` | `EvalAssertionRecorded` | `assertionId` / `passed` / `source` |
+| `cases[*].requiredFactsCovered` / `cases[*].requiredFactsMissing` / `cases[*].forbiddenClaimsFound` / `cases[*].groundednessScore` / `cases[*].coverageScore` | `EvalTraceStepRecorded` | `kind` / `text` / `metadata` |
 | `cases` / `failures` | `EvalRunFinished` | `reportCollections.cases` / `reportCollections.failures` |
 
 ### Case 级映射

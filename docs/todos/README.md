@@ -1,16 +1,20 @@
 # 待办文档
 
-本目录现在只保留当前仍有 owner 的活跃执行面。
+本目录只保留当前仍有 owner 的活跃索引入口，其他主题只作为配套或背景引用。
+这里的 `当前活跃文档` 语义现在只指主线入口与 debt register，不再扩展为完整 owner 清单。
 
-## 当前活跃文档
+## 活跃索引
 
 | 文件 | 主题 | 状态 |
 |---|---|---|
-| `agent-eval-platform-event-model.md` | Agent Eval 平台事件模型冻结、三层边界与 report 映射 | Phase 0 冻结输入 |
 | `agent-eval-framework-evaluation-and-plan.md` | Agent Eval 平台长期执行主线，含阶段 checklist、文档/测试要求 | 活跃主线 |
-| `agent-eval-framework-scorecard.md` | Agent Eval 平台候选评分与路线排序依据 | 活跃配套 |
 | `open-debt-and-compromises.md` | 当前仍成立的阶段性妥协、占位实现与 deferred 事实 | 活跃 debt register |
-| `active-closeout-and-followups.md` | 2026-07-03 审计后的统一未完成事项清单 | 活跃并行清单 |
+
+## 相关入口
+
+- [`agent-eval-platform-event-model.md`](agent-eval-platform-event-model.md)：Phase 0 冻结输入，作为 Phase 1 的唯一事件设计来源。
+- [`agent-eval-framework-scorecard.md`](agent-eval-framework-scorecard.md)：主线配套评分卡，不是单独的 owner 清单。
+- [`active-closeout-and-followups.md`](active-closeout-and-followups.md)：既有 follow-up 记录，仅作背景索引。
 
 ## 目录规则
 
