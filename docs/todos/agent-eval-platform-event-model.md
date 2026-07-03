@@ -78,11 +78,11 @@ run 级事件仍然要携带完整 envelope 字段；此时 `caseId` 与 `scenar
 - `reportMeta`
 - `runScope`
 
-`reportMeta` 是开始时刻的元信息快照，字段必须按 suite 固定，且不得包含结束时才能知道的 `durationMs`：
+`reportMeta` 是开始时刻的元信息快照，字段必须是现有 report `meta` 中在 run start 已知的子集，且不得包含结束时才能知道的 `durationMs`：
 
-- `agent-planning`：`schemaVersion`、`runner`、`options`
-- `retrieval`：`schemaVersion`、`options`、`baselinePath?`、`isBaselineWrite?`
-- `summary`：`schemaVersion`、`llmProvider`、`options`
+- `agent-planning`：`schemaVersion`、`timestamp`、`runner`、`options`
+- `retrieval`：`schemaVersion`、`timestamp`、`options`、`baselinePath?`、`isBaselineWrite?`
+- `summary`：`schemaVersion`、`timestamp`、`llmProvider`、`options`
 
 `runScope` 是执行范围快照，字段必须按 suite 固定：
 
@@ -129,7 +129,8 @@ run 级事件仍然要携带完整 envelope 字段；此时 `caseId` 与 `scenar
 必须包含：
 
 - `result`
-- `execution`
+
+`execution` 只在现有 report truth source 已经暴露对应执行元数据时允许出现；不能为了统一 shape 引入 report 中不存在的字段。
 
 `result` 是最终 case 结果快照，字段必须按 suite 固定：
 
@@ -137,11 +138,11 @@ run 级事件仍然要携带完整 envelope 字段；此时 `caseId` 与 `scenar
 - `retrieval`：`caseId`、`endpoint`、`tier`、`passed`、`outcomeMatch`、`governancePassed`、`durationMs`、`hitAt1`、`hitAt5`、`hitAt10`、`mrr`、`ndcg`、`recallAt10`、`selectedMode?`、`routingReason?`、`fallbackApplied`
 - `summary`：`caseId`、`endpoint`、`tier`、`passed`、`groundednessScore`、`coverageScore`、`claimsTotal`、`claimsSupported`、`requiredFactsCovered`、`requiredFactsMissing`、`forbiddenClaimsFound`、`durationMs`
 
-`execution` 是 runner-local execution metadata 或 trace carrier，字段必须按 suite 固定：
+`execution` 是 report-backed execution metadata，字段必须按 suite 固定：
 
 - `agent-planning`：`actorOutput`、`normalizedPlan`
-- `retrieval`：`adapterType`、`fallbackUsed`、`fallbackReason?`、`endpoint`、`durationMs`、`selectedMode?`、`routingReason?`、`fallbackApplied`
-- `summary`：`summaryText?`、`contextTrace`、`rawResponse`
+- `retrieval`：`selectedMode?`、`routingReason?`、`fallbackApplied`
+- `summary`：当前 report truth source 不暴露 execution carrier，Phase 0/1 不写该对象
 
 ### `EvalScoreRecorded.payload`
 
@@ -208,8 +209,8 @@ run 级事件仍然要携带完整 envelope 字段；此时 `caseId` 与 `scenar
 `kind` 的取值必须按 suite 固定：
 
 - `agent-planning`：`actor-output`、`normalized-plan-step`
-- `retrieval`：`routing-trace`、`raw-response`、`graph-plan-structure`
-- `summary`：`context-trace`、`generated-summary`、`raw-response`
+- `retrieval`：当前 report truth source 未冻结 step-level trace，Phase 0/1 不发此类事件
+- `summary`：当前 report truth source 未冻结 step-level trace，Phase 0/1 不发此类事件
 
 可选字段只允许：
 
@@ -224,7 +225,7 @@ Platform Model 不是新的 report schema。它是把现有 TrapMap report 重�
 
 ### Run 级映射
 
-- `EvalRunStarted` 对应 report 的 `meta` 起点，`payload.reportMeta` 直接承载 suite 的 `meta` 结构，`payload.runScope` 直接承载运行选项快照
+- `EvalRunStarted` 对应 report 的 `meta` 起点，`payload.reportMeta` 承载现有 suite `meta` 中在 start 时已知的字段子集，`payload.runScope` 直接承载运行选项快照
 - `EvalRunFinished` 对应 report 的 `meta` 收口，`payload.reportSummary` 直接承载 suite 的 `summary` 结构，`payload.reportCollections` 直接承载其余顶层集合
 
 ### Suite 级字段落点
@@ -233,7 +234,7 @@ Platform Model 不是新的 report schema。它是把现有 TrapMap report 重�
 
 | Report source | Event | Payload 落点 |
 |---|---|---|
-| `meta.schemaVersion` / `meta.runner` / `meta.options` | `EvalRunStarted` | `reportMeta` |
+| `meta.schemaVersion` / `meta.timestamp` / `meta.runner` / `meta.options` | `EvalRunStarted` | `reportMeta` |
 | `meta.schemaVersion` / `meta.timestamp` / `meta.durationMs` / `meta.runner` / `meta.options` | `EvalRunFinished` | `reportMeta` |
 | `summary.totalCases` / `summary.passedCases` / `summary.failedCases` / `summary.passRate` / `summary.avgScore` | `EvalRunFinished` | `reportSummary` |
 | `cases[*]` 的 case schema 字段 | `EvalCaseStarted` | `case` |
@@ -248,28 +249,28 @@ Platform Model 不是新的 report schema。它是把现有 TrapMap report 重�
 
 | Report source | Event | Payload 落点 |
 |---|---|---|
-| `meta.schemaVersion` / `meta.options` / `meta.baselinePath?` / `meta.isBaselineWrite?` | `EvalRunStarted` | `reportMeta` |
+| `meta.schemaVersion` / `meta.timestamp` / `meta.options` / `meta.baselinePath?` / `meta.isBaselineWrite?` | `EvalRunStarted` | `reportMeta` |
 | `meta.schemaVersion` / `meta.timestamp` / `meta.durationMs` / `meta.options` / `meta.baselinePath?` / `meta.isBaselineWrite?` | `EvalRunFinished` | `reportMeta` |
 | `summary.totalCases` / `summary.passedCases` / `summary.failedCases` / `summary.passRate` / `summary.passed` | `EvalRunFinished` | `reportSummary` |
 | `cases[*]` 的 case schema 字段 | `EvalCaseStarted` | `case` |
 | `cases[*].passed` / `outcomeMatch` / `governancePassed` / `durationMs` / `hitAt1` / `hitAt5` / `hitAt10` / `mrr` / `ndcg` / `recallAt10` / `selectedMode` / `routingReason` / `fallbackApplied` | `EvalCaseFinished` | `result` |
 | `cases[*].hitAt1` / `cases[*].hitAt5` / `cases[*].hitAt10` / `cases[*].mrr` / `cases[*].ndcg` / `cases[*].recallAt10` | `EvalScoreRecorded` | `scoreId` / `score` / `source` |
 | `cases[*].outcomeMatch` / `cases[*].governancePassed` / `cases[*].selectedMode` / `cases[*].routingReason` / `cases[*].fallbackApplied` / `cases[*].passed` | `EvalAssertionRecorded` | `assertionId` / `passed` / `source` |
-| `cases[*]` | `EvalTraceStepRecorded` | `kind` / `text` / `metadata` |
+| 当前 report truth source 未冻结 step-level trace | `EvalTraceStepRecorded` | Phase 0/1 不发；后续必须先扩充 report/contracts 再启用 |
 | `summary` 之外的 `cases` / `slices` / `cohorts` / `modeComparisons` / `routingDistribution` / `failures` / `warnings` | `EvalRunFinished` | `reportCollections.*` |
 
 #### `summary`
 
 | Report source | Event | Payload 落点 |
 |---|---|---|
-| `meta.schemaVersion` / `meta.llmProvider` / `meta.options` | `EvalRunStarted` | `reportMeta` |
+| `meta.schemaVersion` / `meta.timestamp` / `meta.llmProvider` / `meta.options` | `EvalRunStarted` | `reportMeta` |
 | `meta.schemaVersion` / `meta.timestamp` / `meta.durationMs` / `meta.llmProvider` / `meta.options` | `EvalRunFinished` | `reportMeta` |
 | `summary.totalCases` / `summary.passedCases` / `summary.failedCases` / `summary.passRate` / `summary.passed` / `summary.avgGroundedness` / `summary.avgCoverage` / `summary.forbiddenClaimHits` | `EvalRunFinished` | `reportSummary` |
 | `cases[*]` 的 case schema 字段 | `EvalCaseStarted` | `case` |
 | `cases[*].passed` / `groundednessScore` / `coverageScore` / `claimsTotal` / `claimsSupported` / `requiredFactsCovered` / `requiredFactsMissing` / `forbiddenClaimsFound` / `durationMs` | `EvalCaseFinished` | `result` |
 | `cases[*].groundednessScore` / `cases[*].coverageScore` | `EvalScoreRecorded` | `scoreId` / `score` / `source` |
 | `cases[*].requiredFactsCovered` / `cases[*].requiredFactsMissing` / `cases[*].forbiddenClaimsFound` / `cases[*].passed` | `EvalAssertionRecorded` | `assertionId` / `passed` / `source` |
-| `cases[*].requiredFactsCovered` / `cases[*].requiredFactsMissing` / `cases[*].forbiddenClaimsFound` / `cases[*].groundednessScore` / `cases[*].coverageScore` | `EvalTraceStepRecorded` | `kind` / `text` / `metadata` |
+| 当前 report truth source 未冻结 step-level trace | `EvalTraceStepRecorded` | Phase 0/1 不发；后续必须先扩充 report/contracts 再启用 |
 | `cases` / `failures` | `EvalRunFinished` | `reportCollections.cases` / `reportCollections.failures` |
 
 ### Case 级映射
@@ -278,7 +279,7 @@ Platform Model 不是新的 report schema。它是把现有 TrapMap report 重�
 - `EvalCaseFinished` 对应 report 中 case 记录的生命周期结束
 - `EvalScoreRecorded` 对应 case 级分数写回，并驱动 report 的 summary 聚合
 - `EvalAssertionRecorded` 对应 case 级断言结果、失败分类和 failure 记录
-- `EvalTraceStepRecorded` 对应 case 级 trace / trajectory 细节，供平台 UI、debug 和 review 使用
+- `EvalTraceStepRecorded` 只在 suite 已经有 report-backed trace carrier 时启用；Phase 0/1 默认只要求 `agent-planning` 使用它
 
 ### 对现有 report 形状的落点
 

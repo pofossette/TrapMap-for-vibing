@@ -33,6 +33,19 @@ This pass repaired the review gaps called out after the first freeze:
 - Tightened `docs/todos/agent-eval-platform-event-model.md` so each of the seven event families now has a frozen payload shape.
 - Added field-level report-to-event mappings for `agent-planning`, `retrieval`, and `summary`, covering run, case, score, assertion, and trace placements.
 
+## Final Addendum
+
+The final closeout pass resolved the remaining document-consistency gaps:
+
+- `plan.md` now stays strictly index-oriented instead of repeating execution rules from the main plan.
+- `docs/todos/README.md` now treats the main plan and debt register as the only active owner surfaces.
+- `docs/todos/agent-eval-platform-event-model.md` now distinguishes start-time `reportMeta` subsets from finished `reportMeta`, and it no longer freezes retrieval/summary trace or execution fields that do not exist in the current report truth source.
+
+## Final Validation
+
+- `rtk pnpm check:docs-drift`
+- `rtk pnpm check:structure`
+
 ## Addendum 2
 
 Final Phase 0 cleanup:
