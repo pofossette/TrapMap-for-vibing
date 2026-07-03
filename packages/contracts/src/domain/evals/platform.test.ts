@@ -7,26 +7,35 @@ import {
 } from './platform.js';
 
 describe('platform eval contracts', () => {
-  it('accepts a run-level start event with null case and scenario ids', () => {
+  it('accepts a suite-backed retrieval run start event with frozen payload fields', () => {
     const event = evalPlatformEventSchema.parse({
       family: 'EvalRunStarted',
-      suite: 'all',
+      suite: 'retrieval',
       tier: 'smoke',
       runId: 'run-123',
       caseId: null,
       scenarioId: null,
       timestamp: '2026-07-03T00:00:00.000Z',
-      tags: ['aggregate', 'dry-run'],
+      tags: ['dry-run'],
       payload: {
         reportMeta: {
           schemaVersion: 1,
           timestamp: '2026-07-03T00:00:00.000Z',
-          runner: 'eval-all',
+          options: {
+            tier: 'smoke',
+            dryRun: true,
+            allowEmpty: false,
+            verbose: 0,
+          },
         },
         runScope: {
           tier: 'smoke',
           dryRun: true,
+          allowEmpty: false,
+          endpoint: '/v1/retrieval/search',
+          verbose: false,
           caseCount: 4,
+          scenarioIds: ['scenario-1'],
         },
       },
     });
@@ -53,7 +62,7 @@ describe('platform eval contracts', () => {
     expect(() =>
       evalPlatformEventSchema.parse({
         family: 'EvalRunFinished',
-        suite: 'all',
+        suite: 'retrieval',
         tier: 'core',
         runId: 'run-123',
         caseId: null,
@@ -69,32 +78,117 @@ describe('platform eval contracts', () => {
     ).toThrow(/reportMeta/i);
   });
 
-  it('accepts a run envelope with event history', () => {
+  it('rejects aggregate suite names that are not in the frozen event model', () => {
+    expect(() =>
+      evalPlatformEventSchema.parse({
+        family: 'EvalRunStarted',
+        suite: 'all',
+        tier: 'smoke',
+        runId: 'run-123',
+        caseId: null,
+        scenarioId: null,
+        timestamp: '2026-07-03T00:00:00.000Z',
+        tags: [],
+        payload: {
+          reportMeta: {
+            schemaVersion: 1,
+            timestamp: '2026-07-03T00:00:00.000Z',
+            options: {
+              tier: 'smoke',
+              dryRun: true,
+              allowEmpty: false,
+              verbose: 0,
+            },
+          },
+          runScope: {
+            tier: 'smoke',
+            dryRun: true,
+            allowEmpty: false,
+            endpoint: '/v1/retrieval/search',
+            verbose: false,
+            caseCount: 1,
+            scenarioIds: ['scenario-1'],
+          },
+        },
+      }),
+    ).toThrow(/suite/i);
+  });
+
+  it('rejects extra run start payload fields outside the frozen retrieval contract', () => {
+    expect(() =>
+      evalPlatformEventSchema.parse({
+        family: 'EvalRunStarted',
+        suite: 'retrieval',
+        tier: 'smoke',
+        runId: 'run-123',
+        caseId: null,
+        scenarioId: null,
+        timestamp: '2026-07-03T00:00:00.000Z',
+        tags: [],
+        payload: {
+          reportMeta: {
+            schemaVersion: 1,
+            timestamp: '2026-07-03T00:00:00.000Z',
+            durationMs: 10,
+            options: {
+              tier: 'smoke',
+              dryRun: true,
+              allowEmpty: false,
+              verbose: 0,
+            },
+          },
+          runScope: {
+            tier: 'smoke',
+            dryRun: true,
+            allowEmpty: false,
+            endpoint: '/v1/retrieval/search',
+            verbose: false,
+            caseCount: 1,
+            scenarioIds: ['scenario-1'],
+            platform: 'json-archive',
+          },
+        },
+      }),
+    ).toThrow(/durationMs|platform/i);
+  });
+
+  it('accepts a run envelope with retrieval event history', () => {
     const run = evalPlatformRunSchema.parse({
       runId: 'run-123',
-      suite: 'all',
+      suite: 'retrieval',
       tier: 'smoke',
       startedAt: '2026-07-03T00:00:00.000Z',
       finishedAt: '2026-07-03T00:00:01.000Z',
-      tags: ['aggregate'],
+      tags: ['dry-run'],
       events: [
         {
           family: 'EvalRunStarted',
-          suite: 'all',
+          suite: 'retrieval',
           tier: 'smoke',
           runId: 'run-123',
           caseId: null,
           scenarioId: null,
           timestamp: '2026-07-03T00:00:00.000Z',
-          tags: ['aggregate'],
+          tags: ['dry-run'],
           payload: {
             reportMeta: {
               schemaVersion: 1,
               timestamp: '2026-07-03T00:00:00.000Z',
+              options: {
+                tier: 'smoke',
+                dryRun: true,
+                allowEmpty: false,
+                verbose: 0,
+              },
             },
             runScope: {
               tier: 'smoke',
               dryRun: true,
+              allowEmpty: false,
+              endpoint: '/v1/retrieval/search',
+              verbose: false,
+              caseCount: 1,
+              scenarioIds: ['scenario-1'],
             },
           },
         },

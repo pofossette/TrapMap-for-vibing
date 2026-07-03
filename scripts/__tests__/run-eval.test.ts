@@ -82,6 +82,15 @@ describe('resolveEvalTarget', () => {
     ]);
   });
 
+  it('rejects platform flags for non-aggregate suites instead of silently ignoring them', () => {
+    expect(() => resolveSuite('retrieval', ['--platform', 'json-archive'])).toThrow(
+      /only supported for aggregate suites/i,
+    );
+    expect(() =>
+      resolveSuite('summary', ['--platform-output-dir', './reports/platform-events']),
+    ).toThrow(/only supported for aggregate suites/i);
+  });
+
   it('rejects unsupported suite names with a helpful error', () => {
     expect(() => resolveEvalTarget(['unknown-suite'])).toThrow('Unknown eval suite');
   });

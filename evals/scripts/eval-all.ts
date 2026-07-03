@@ -17,6 +17,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { parseArgs } from 'node:util';
+import { fileURLToPath } from 'node:url';
 
 import {
   closePlatformAdapterSafely,
@@ -29,7 +30,7 @@ import {
 // CLI Argument Parsing
 // =============================================================================
 
-interface EvalAllOptions {
+export interface EvalAllOptions {
   tier: 'smoke' | 'core';
   json: boolean;
   jsonPath?: string;
@@ -92,9 +93,7 @@ function parseArgs_(): EvalAllOptions {
     values.platform !== 'noop' &&
     values.platform !== 'json-archive'
   ) {
-    console.error(
-      `Invalid platform: ${values.platform}. Must be 'noop' or 'json-archive'.`,
-    );
+    console.error(`Invalid platform: ${values.platform}. Must be 'noop' or 'json-archive'.`);
     process.exit(1);
   }
 
@@ -213,6 +212,43 @@ interface CombinedReport {
     totalCases: number;
     passedCases: number;
     failedCases: number;
+  };
+}
+
+interface RunUnifiedEvaluationResult {
+  combinedReport: CombinedReport;
+  exitCode: number;
+}
+
+interface RunUnifiedEvaluationDeps {
+  createPlatformAdapter: typeof createEvalPlatformAdapter;
+  publishPlatformEvent: typeof publishPlatformEventSafely;
+  closePlatformAdapter: typeof closePlatformAdapterSafely;
+  warn: typeof console.warn;
+  log: typeof console.log;
+  error: typeof console.error;
+  runRetrievalEval: typeof runRetrievalEval;
+  runSummaryEval: typeof runSummaryEval;
+  runGraphExtractionEval: typeof runGraphExtractionEval;
+  runIngestionEval: typeof runIngestionEval;
+  runAgentPlanningEval: typeof runAgentPlanningEval;
+  runLabelAlignmentEval: typeof runLabelAlignmentEval;
+}
+
+function getRunUnifiedEvaluationDeps(): RunUnifiedEvaluationDeps {
+  return {
+    createPlatformAdapter: createEvalPlatformAdapter,
+    publishPlatformEvent: publishPlatformEventSafely,
+    closePlatformAdapter: closePlatformAdapterSafely,
+    warn: console.warn,
+    log: console.log,
+    error: console.error,
+    runRetrievalEval,
+    runSummaryEval,
+    runGraphExtractionEval,
+    runIngestionEval,
+    runAgentPlanningEval,
+    runLabelAlignmentEval,
   };
 }
 
@@ -760,72 +796,40 @@ function writeCombinedJsonReport(path: string, report: CombinedReport): void {
 // Main Entry Point
 // =============================================================================
 
-async function main(): Promise<void> {
+export async function runUnifiedEvaluation(
+  options: EvalAllOptions,
+  deps: RunUnifiedEvaluationDeps = getRunUnifiedEvaluationDeps(),
+): Promise<RunUnifiedEvaluationResult> {
   const startTime = Date.now();
-  const options = parseArgs_();
-  const runId = randomUUID();
-  const adapter = createEvalPlatformAdapter({
-    kind: options.platform,
-    outputDir: options.platformOutputDir,
-  });
-  const runStartedAt = new Date().toISOString();
-  const runTags = ['aggregate', options.tier, options.dryRun ? 'dry-run' : 'live'];
+  const adapter = options.platform
+    ? deps.createPlatformAdapter({
+        kind: options.platform,
+        outputDir: options.platformOutputDir,
+      })
+    : null;
 
-  console.log('');
-  console.log('╔══════════════════════════════════════════════════════════════╗');
-  console.log('║              Unified Evaluation Runner                       ║');
-  console.log('╚══════════════════════════════════════════════════════════════╝');
-  console.log('');
-  console.log(`Tier: ${options.tier}`);
-  console.log(`Dry run: ${options.dryRun}`);
-  console.log(`Allow empty: ${options.allowEmpty}`);
-  console.log(`JSON output: ${options.json}`);
+  deps.log('');
+  deps.log('╔══════════════════════════════════════════════════════════════╗');
+  deps.log('║              Unified Evaluation Runner                       ║');
+  deps.log('╚══════════════════════════════════════════════════════════════╝');
+  deps.log('');
+  deps.log(`Tier: ${options.tier}`);
+  deps.log(`Dry run: ${options.dryRun}`);
+  deps.log(`Allow empty: ${options.allowEmpty}`);
+  deps.log(`JSON output: ${options.json}`);
   if (options.jsonPath) {
-    console.log(`JSON path: ${options.jsonPath}`);
+    deps.log(`JSON path: ${options.jsonPath}`);
   }
   if (options.platform) {
-    console.log(`Platform adapter: ${options.platform}`);
+    deps.log(`Platform adapter: ${options.platform}`);
+    deps.warn(
+      '[eval-platform] Aggregate runner does not emit platform events in Phase 1; native combined reports remain the only output for this route.',
+    );
   }
-  console.log('');
-
-  if (options.platform) {
-    await publishPlatformEventSafely(adapter, console.warn, {
-      family: 'EvalRunStarted',
-      suite: 'all',
-      tier: options.tier,
-      runId,
-      caseId: null,
-      scenarioId: null,
-      timestamp: runStartedAt,
-      tags: runTags,
-      payload: {
-        reportMeta: {
-          schemaVersion: 1,
-          timestamp: runStartedAt,
-          runner: 'eval-all',
-          json: options.json,
-          jsonPath: options.jsonPath,
-        },
-        runScope: {
-          tier: options.tier,
-          dryRun: options.dryRun,
-          allowEmpty: options.allowEmpty,
-          platform: options.platform,
-          suites: [
-            'retrieval',
-            'summary',
-            'graph-extraction',
-            'ingestion',
-            'agent-planning',
-            'label-alignment',
-          ],
-        },
-      },
-    });
-  }
+  deps.log('');
 
   // Run evaluations
-  console.log('Running evaluations...\n');
+  deps.log('Running evaluations...\n');
 
   let retrievalResult: RetrievalResult | null = null;
   let summaryResult: SummaryResult | null = null;
@@ -833,108 +837,198 @@ async function main(): Promise<void> {
   let labelAlignmentResult: LabelAlignmentResult | null = null;
 
   // Run retrieval evaluation
-  console.log('--- Retrieval Evaluation ---');
+  deps.log('--- Retrieval Evaluation ---');
   try {
-    retrievalResult = await runRetrievalEval(options);
+    retrievalResult = await deps.runRetrievalEval(options);
     if (retrievalResult) {
-      console.log(
+      deps.log(
         `  Completed: ${retrievalResult.summary.passedCases}/${retrievalResult.summary.totalCases} passed`,
       );
     }
   } catch (error) {
-    console.error('  Failed:', error);
+    deps.error('  Failed:', error);
     if (!options.allowEmpty && !options.dryRun) {
-      process.exit(1);
+      return {
+        combinedReport: {
+          schemaVersion: 1,
+          timestamp: new Date().toISOString(),
+          durationMs: Date.now() - startTime,
+          tier: options.tier,
+          retrieval: null,
+          summary: null,
+          graphExtraction: null,
+          ingestion: null,
+          agentPlanning: null,
+          labelAlignment: null,
+          overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
+        },
+        exitCode: 1,
+      };
     }
   }
-  console.log('');
+  deps.log('');
 
   // Run summary evaluation
-  console.log('--- Summary Evaluation ---');
+  deps.log('--- Summary Evaluation ---');
   try {
-    summaryResult = await runSummaryEval(options);
+    summaryResult = await deps.runSummaryEval(options);
     if (summaryResult) {
-      console.log(
+      deps.log(
         `  Completed: ${summaryResult.summary.passedCases}/${summaryResult.summary.totalCases} passed`,
       );
     }
   } catch (error) {
-    console.error('  Failed:', error);
+    deps.error('  Failed:', error);
     if (!options.allowEmpty && !options.dryRun) {
-      process.exit(1);
+      return {
+        combinedReport: {
+          schemaVersion: 1,
+          timestamp: new Date().toISOString(),
+          durationMs: Date.now() - startTime,
+          tier: options.tier,
+          retrieval: retrievalResult,
+          summary: null,
+          graphExtraction: null,
+          ingestion: null,
+          agentPlanning: null,
+          labelAlignment: null,
+          overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
+        },
+        exitCode: 1,
+      };
     }
   }
-  console.log('');
+  deps.log('');
 
   // Run graph extraction evaluation
   let graphExtractionResult: GraphExtractionResult | null = null;
-  console.log('--- Graph Extraction Evaluation ---');
+  deps.log('--- Graph Extraction Evaluation ---');
   try {
-    graphExtractionResult = await runGraphExtractionEval(options);
+    graphExtractionResult = await deps.runGraphExtractionEval(options);
     if (graphExtractionResult) {
-      console.log(
+      deps.log(
         `  Completed: ${graphExtractionResult.totalFixtures} fixtures, Node F1=${graphExtractionResult.avgNodeF1.toFixed(3)}`,
       );
     }
   } catch (error) {
-    console.error('  Failed:', error);
+    deps.error('  Failed:', error);
     if (!options.allowEmpty && !options.dryRun) {
-      process.exit(1);
+      return {
+        combinedReport: {
+          schemaVersion: 1,
+          timestamp: new Date().toISOString(),
+          durationMs: Date.now() - startTime,
+          tier: options.tier,
+          retrieval: retrievalResult,
+          summary: summaryResult,
+          graphExtraction: null,
+          ingestion: null,
+          agentPlanning: null,
+          labelAlignment: null,
+          overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
+        },
+        exitCode: 1,
+      };
     }
   }
-  console.log('');
+  deps.log('');
 
   // Run ingestion/derivation evaluation
   let ingestionResult: IngestionResult | null = null;
-  console.log('--- Ingestion / Derivation Evaluation ---');
+  deps.log('--- Ingestion / Derivation Evaluation ---');
   try {
-    ingestionResult = await runIngestionEval(options);
+    ingestionResult = await deps.runIngestionEval(options);
     if (ingestionResult) {
-      console.log(
+      deps.log(
         `  Completed: ${ingestionResult.passedBundles}/${ingestionResult.totalBundles} passed`,
       );
     }
   } catch (error) {
-    console.error('  Failed:', error);
+    deps.error('  Failed:', error);
     if (!options.allowEmpty && !options.dryRun) {
-      process.exit(1);
+      return {
+        combinedReport: {
+          schemaVersion: 1,
+          timestamp: new Date().toISOString(),
+          durationMs: Date.now() - startTime,
+          tier: options.tier,
+          retrieval: retrievalResult,
+          summary: summaryResult,
+          graphExtraction: graphExtractionResult,
+          ingestion: null,
+          agentPlanning: null,
+          labelAlignment: null,
+          overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
+        },
+        exitCode: 1,
+      };
     }
   }
-  console.log('');
+  deps.log('');
 
   // Run agent planning evaluation
-  console.log('--- Agent Planning Evaluation ---');
+  deps.log('--- Agent Planning Evaluation ---');
   try {
-    agentPlanningResult = await runAgentPlanningEval(options);
+    agentPlanningResult = await deps.runAgentPlanningEval(options);
     if (agentPlanningResult) {
-      console.log(
+      deps.log(
         `  Completed: ${agentPlanningResult.summary.passedCases}/${agentPlanningResult.summary.totalCases} passed`,
       );
     }
   } catch (error) {
-    console.error('  Failed:', error);
+    deps.error('  Failed:', error);
     if (!options.allowEmpty && !options.dryRun) {
-      process.exit(1);
+      return {
+        combinedReport: {
+          schemaVersion: 1,
+          timestamp: new Date().toISOString(),
+          durationMs: Date.now() - startTime,
+          tier: options.tier,
+          retrieval: retrievalResult,
+          summary: summaryResult,
+          graphExtraction: graphExtractionResult,
+          ingestion: ingestionResult,
+          agentPlanning: null,
+          labelAlignment: null,
+          overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
+        },
+        exitCode: 1,
+      };
     }
   }
-  console.log('');
+  deps.log('');
 
   // Run label alignment evaluation
-  console.log('--- Label Alignment Evaluation ---');
+  deps.log('--- Label Alignment Evaluation ---');
   try {
-    labelAlignmentResult = await runLabelAlignmentEval(options);
+    labelAlignmentResult = await deps.runLabelAlignmentEval(options);
     if (labelAlignmentResult) {
-      console.log(
+      deps.log(
         `  Completed: ${labelAlignmentResult.summary.passedCases}/${labelAlignmentResult.summary.totalCases} passed`,
       );
     }
   } catch (error) {
-    console.error('  Failed:', error);
+    deps.error('  Failed:', error);
     if (!options.allowEmpty && !options.dryRun) {
-      process.exit(1);
+      return {
+        combinedReport: {
+          schemaVersion: 1,
+          timestamp: new Date().toISOString(),
+          durationMs: Date.now() - startTime,
+          tier: options.tier,
+          retrieval: retrievalResult,
+          summary: summaryResult,
+          graphExtraction: graphExtractionResult,
+          ingestion: ingestionResult,
+          agentPlanning: agentPlanningResult,
+          labelAlignment: null,
+          overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
+        },
+        exitCode: 1,
+      };
     }
   }
-  console.log('');
+  deps.log('');
 
   // Build combined report
   const totalCases =
@@ -980,55 +1074,49 @@ async function main(): Promise<void> {
   };
 
   // Print terminal output
-  console.log(formatCombinedReport(combinedReport, options));
+  deps.log(formatCombinedReport(combinedReport, options));
 
   // Write JSON if requested
   if (options.json && options.jsonPath) {
     writeCombinedJsonReport(options.jsonPath, combinedReport);
-    console.log(`JSON report written to: ${options.jsonPath}\n`);
+    deps.log(`JSON report written to: ${options.jsonPath}\n`);
   }
 
-  if (options.platform) {
-    await publishPlatformEventSafely(adapter, console.warn, {
-      family: 'EvalRunFinished',
-      suite: 'all',
-      tier: options.tier,
-      runId,
-      caseId: null,
-      scenarioId: null,
-      timestamp: combinedReport.timestamp,
-      tags: runTags,
-      payload: {
-        reportMeta: {
-          schemaVersion: combinedReport.schemaVersion,
-          timestamp: combinedReport.timestamp,
-          durationMs: combinedReport.durationMs,
-          runner: 'eval-all',
-        },
-        reportSummary: combinedReport.overall,
-        reportCollections: {
-          retrieval: combinedReport.retrieval?.report ?? null,
-          summary: combinedReport.summary?.report ?? null,
-          graphExtraction: combinedReport.graphExtraction,
-          ingestion: combinedReport.ingestion,
-          agentPlanning: combinedReport.agentPlanning?.report ?? null,
-          labelAlignment: combinedReport.labelAlignment?.report ?? null,
-        },
-      },
-    });
-    await closePlatformAdapterSafely(adapter, console.warn);
+  if (adapter) {
+    try {
+      await deps.closePlatformAdapter(adapter, deps.warn);
+    } catch (error) {
+      deps.warn(
+        `[eval-platform] ${adapter.kind} adapter close failed; continuing without affecting eval status.`,
+        error,
+      );
+    }
   }
 
   // Exit with error code if any failures
   if (!combinedReport.overall.passed && !options.dryRun) {
-    console.log(`Evaluation completed with ${failedCases} failure(s).\n`);
-    process.exit(1);
+    deps.log(`Evaluation completed with ${failedCases} failure(s).\n`);
+    return {
+      combinedReport,
+      exitCode: 1,
+    };
   }
 
-  console.log('Evaluation completed successfully.\n');
+  deps.log('Evaluation completed successfully.\n');
+  return {
+    combinedReport,
+    exitCode: 0,
+  };
 }
 
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+async function main(): Promise<void> {
+  const result = await runUnifiedEvaluation(parseArgs_());
+  process.exit(result.exitCode);
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}

@@ -293,13 +293,14 @@
       "file": "plan.md",
       "mustContain": [
         "执行计划索引",
-        "当前主线：待办收口与后续整合",
-        "docs/todos/active-closeout-and-followups.md",
+        "当前主线：Agent Eval 平台长期可维护架构",
+        "docs/todos/agent-eval-framework-evaluation-and-plan.md",
+        "docs/todos/agent-eval-framework-scorecard.md",
         "docs/todos/open-debt-and-compromises.md",
-        "docs/archived/archived-plans/service-discovery-and-observability-plan.md",
-        "docs/archived/archived-plans/backend-build-targets-plan.md",
-        "状态：`收口中`",
-        "旧 `docs/todos/` 中的大部分文件已不适合作为并行活跃 checklist"
+        "docs/archived/archived-plans/plan-2026-07-03-agent-eval-platform-index-archived.md",
+        "状态：`进行中`",
+        "平台无关的 event / score / trace 抽象层",
+        "所有执行进度统一回写到主细则中的复选框"
       ],
       "mustNotContain": [
         "当前主线阶段：`Phase 1-2`",
@@ -308,7 +309,9 @@
         "docs/todos/microservice-platform-evolution-plan.md",
         "当前活跃细则中的阶段 checklist",
         "docs/todos/service-discovery-and-observability-plan.md",
-        "docs/todos/backend-build-targets-plan.md"
+        "docs/todos/backend-build-targets-plan.md",
+        "当前主线：待办收口与后续整合",
+        "状态：`收口中`"
       ]
     },
     {

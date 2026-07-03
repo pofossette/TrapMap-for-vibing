@@ -1,69 +1,45 @@
-# Phase 0 Brief: 盘点冻结与计划归并
+# Phase 0 Brief: Freeze Boundaries And Event Model
 
-Source plan: `plan.md` and `docs/todos/trapmap-architecture-remediation-plan.md`
+Implement Phase 0 from `docs/todos/agent-eval-framework-evaluation-and-plan.md`.
 
-## Goal
+Requirements:
+- Add `docs/todos/agent-eval-platform-event-model.md`.
+- Define the three layers clearly: TrapMap Eval Kernel, Platform Model, Platform Adapters.
+- Define the unified event family exactly as:
+  - `EvalRunStarted`
+  - `EvalRunFinished`
+  - `EvalCaseStarted`
+  - `EvalCaseFinished`
+  - `EvalScoreRecorded`
+  - `EvalAssertionRecorded`
+  - `EvalTraceStepRecorded`
+- Define the minimum event fields exactly as:
+  - `suite`
+  - `tier`
+  - `runId`
+  - `caseId`
+  - `scenarioId`
+  - `timestamp`
+  - `tags`
+  - `payload`
+- Document how the new event model maps back to the existing TrapMap report schema.
+- Record the explicit non-goals for first-round platform integration:
+  - `retrieval-live`
+  - CI hard gate takeover
+  - `badcase export` replacement
+- Update `docs/todos/agent-eval-framework-evaluation-and-plan.md` checkboxes for Phase 0 and any directly related global checklist items.
+- Update `docs/todos/agent-eval-framework-scorecard.md` only if it needs a short note to align with the new event-model-first execution path. Do not turn it into an implementation plan.
 
-Complete Phase 0 of the TrapMap architecture remediation plan as a documentation / structure freeze phase. Do not implement runtime architecture changes in this phase.
+Constraints:
+- Keep the root `plan.md` as an index only.
+- Do not change runtime code in this task.
+- The new event-model doc must become the sole design input for Phase 1 code work.
+- Keep wording aligned with current plan terminology: kernel, platform model, platform adapters, double-write mirror, native TrapMap truth source.
 
-## Binding Global Constraints
-
-- Every checkbox can only be closed when structure conclusion or code remediation, affected tests, documentation write-back, `rtk pnpm check:docs-drift`, and `rtk pnpm check:structure` are all complete.
-- Root `plan.md` stays an index only. Execution detail, issue pool, frozen boundaries, documentation matrix, and test matrix belong in `docs/todos/trapmap-architecture-remediation-plan.md`.
-- If architecture facts conflict, prefer `docs/reference/SYSTEM_TRUTH_SOURCES.md` and source entries.
-- Do not add a new parallel Phase document for this same architecture remediation topic.
-- Documentation must not describe target/future state as current state.
-- Use `rtk` prefix for shell commands.
-
-## Phase 0 Requirements
-
-Update the active remediation detail plan and related index/truth-source docs so Phase 0 closes these items:
-
-- Wave 0A: Map the 30 issues into 5 governance themes and freeze priority so later work does not devolve into point patches.
-- Wave 0B: Mark which issues must close via code remediation, and which may close first by freezing documentation facts and deferred conditions.
-- Wave 0C: Clarify historical document roles:
-  - `docs/todos/nestjs-service-evolution-*.md` are service-evolution background inputs.
-  - `docs/todos/backend-build-targets-plan.md` is host/server-shape background input.
-  - `docs/todos/backend-engineering-optimization-plan.md` is the platform deferred issue pool.
-- Wave 0D: Freeze non-goals for this round:
-  - Do not directly introduce a full service discovery system, K8s platform, or MQ product replacement.
-  - Do not rewrite all historical designs just to clean documentation; only consolidate entry points and align truth sources.
-  - Do not rewrite all tests to PG-first in one round; first freeze priority domains and entry criteria.
-- Wave 0E: Freeze unified adapter non-goals:
-  - Do not mix repository, application service, and gateway client into a mega-adapter.
-  - Do not sacrifice current default-path clarity for provider pluggability.
-  - Do not force all domains to migrate in the first round.
-
-Also make Phase 0 satisfy the root plan's current key path for Phase 0:
-
-- Single issue pool and priorities are frozen.
-- Deferred entry is clear.
-- Current root index and only active detail plan are clear.
-- Unified adapter is written as an explicit goal of this remediation line, not an implicit store_snapshot side-effect.
-
-## Expected Documentation Work
-
-- `docs/todos/trapmap-architecture-remediation-plan.md`: add the Phase 0 issue classification / deferred table / historical input roles / non-goals; check off Phase 0 boxes only when evidence exists in this same change.
-- `plan.md`: reflect Phase 0 completion in the phase index and current key path without adding details that belong in the detail plan.
-- `docs/README.md`, `docs/todos/README.md`, `docs/archived/README.md`: ensure entry-point language matches the single active root/detail plan and the background/deferred roles.
-- `docs/reference/SYSTEM_TRUTH_SOURCES.md`: ensure the current active architecture remediation entry replaces stale active closeout entries.
-- `docs/reference/REPO_STRUCTURE.md` and `docs/PACKAGES.md`: only update if needed to remove stale “current long-term target” pointers that contradict the new active root/detail plan.
-
-## Verification
-
-Run at minimum:
-
+Required validation:
 - `rtk pnpm check:docs-drift`
 - `rtk pnpm check:structure`
 
-If you change commands, scripts, source code, shared types, runtime behavior, or eval/retrieval/governance behavior, add the relevant plan-mandated focused verification. Phase 0 should normally be documentation-only.
-
-## Report
-
-Write your report to `.superpowers/sdd/phase-0-report.md` with:
-
-- What you changed.
-- Verification commands and results.
-- Files changed.
-- Self-review notes.
-- Concerns, if any.
+Deliverables:
+- Updated docs only.
+- No unrelated doc churn.

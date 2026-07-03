@@ -215,6 +215,17 @@ export function resolveEvalTarget(argv: readonly string[]): ResolvedEvalTarget {
 
   assertEvalSuite(suiteName);
   const options = parseEvalOptions(optionArgs);
+  const isAggregateSuite = suiteName === 'smoke' || suiteName === 'core' || suiteName === 'all';
+
+  if (!isAggregateSuite && (options.platform || options.platformOutputDir)) {
+    throw new Error(
+      `--platform and --platform-output-dir are only supported for aggregate suites (smoke, core, all)\n\n${EVAL_USAGE}`,
+    );
+  }
+
+  if (isAggregateSuite && options.platformOutputDir && !options.platform) {
+    throw new Error(`--platform-output-dir requires --platform\n\n${EVAL_USAGE}`);
+  }
 
   if (suiteName === 'smoke' || suiteName === 'core') {
     return {

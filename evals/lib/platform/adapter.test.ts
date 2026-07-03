@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { publishPlatformEventSafely } from './adapter.js';
+import { closePlatformAdapterSafely, publishPlatformEventSafely } from './adapter.js';
 import { createJsonArchiveAdapter } from './json-archive-adapter.js';
 
 describe('platform adapters', () => {
@@ -21,7 +21,7 @@ describe('platform adapters', () => {
     await expect(
       publishPlatformEventSafely(adapter, warn, {
         family: 'EvalRunStarted',
-        suite: 'all',
+        suite: 'retrieval',
         tier: 'smoke',
         runId: 'run-warning',
         caseId: null,
@@ -32,10 +32,21 @@ describe('platform adapters', () => {
           reportMeta: {
             schemaVersion: 1,
             timestamp: '2026-07-03T00:00:00.000Z',
+            options: {
+              tier: 'smoke',
+              dryRun: true,
+              allowEmpty: false,
+              verbose: 0,
+            },
           },
           runScope: {
             tier: 'smoke',
             dryRun: true,
+            allowEmpty: false,
+            endpoint: '/v1/retrieval/search',
+            verbose: false,
+            caseCount: 1,
+            scenarioIds: ['scenario-1'],
           },
         },
       }),
@@ -47,52 +58,93 @@ describe('platform adapters', () => {
     );
   });
 
+  it('warns instead of throwing when adapter close fails', async () => {
+    const warn = vi.fn();
+    const adapter = {
+      kind: 'broken',
+      async publish() {},
+      async close() {
+        throw new Error('close unavailable');
+      },
+    };
+
+    await expect(closePlatformAdapterSafely(adapter, warn)).resolves.toBeUndefined();
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('broken'),
+      expect.objectContaining({ message: 'close unavailable' }),
+    );
+  });
+
   it('archives mirrored platform events under reports-compatible output', async () => {
     const outputDir = mkdtempSync(join(tmpdir(), 'trapmap-platform-'));
     const adapter = createJsonArchiveAdapter({ outputDir });
 
     await adapter.publish({
       family: 'EvalRunStarted',
-      suite: 'all',
+      suite: 'retrieval',
       tier: 'smoke',
       runId: 'run-archive',
       caseId: null,
       scenarioId: null,
       timestamp: '2026-07-03T00:00:00.000Z',
-      tags: ['aggregate'],
+      tags: ['dry-run'],
       payload: {
         reportMeta: {
           schemaVersion: 1,
           timestamp: '2026-07-03T00:00:00.000Z',
+          options: {
+            tier: 'smoke',
+            dryRun: true,
+            allowEmpty: false,
+            verbose: 0,
+          },
         },
         runScope: {
           tier: 'smoke',
           dryRun: true,
+          allowEmpty: false,
+          endpoint: '/v1/retrieval/search',
+          verbose: false,
+          caseCount: 1,
+          scenarioIds: ['scenario-1'],
         },
       },
     });
 
     await adapter.publish({
       family: 'EvalRunFinished',
-      suite: 'all',
+      suite: 'retrieval',
       tier: 'smoke',
       runId: 'run-archive',
       caseId: null,
       scenarioId: null,
       timestamp: '2026-07-03T00:00:01.000Z',
-      tags: ['aggregate'],
+      tags: ['dry-run'],
       payload: {
         reportMeta: {
           schemaVersion: 1,
           timestamp: '2026-07-03T00:00:00.000Z',
           durationMs: 1000,
+          options: {
+            tier: 'smoke',
+            dryRun: true,
+            allowEmpty: false,
+            verbose: 0,
+          },
         },
         reportSummary: {
-          passed: true,
           totalCases: 4,
+          passedCases: 4,
+          failedCases: 0,
+          passRate: 1,
+          passed: true,
         },
         reportCollections: {
-          retrieval: null,
+          cases: [],
+          slices: [],
+          failures: [],
+          warnings: [],
         },
       },
     });

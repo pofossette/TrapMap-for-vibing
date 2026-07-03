@@ -63,18 +63,18 @@ describe('closeout surface guardrails', () => {
     );
   });
 
-  it('guards the root plan closeout state wording', () => {
+  it('guards the root plan active eval-platform state wording', () => {
     const budgets = readComplexityBudgets();
     const rule = budgets.docRules.find((entry) => entry.file === 'plan.md');
 
     expect(rule).toBeDefined();
     expect(rule?.mustContain ?? []).toEqual(
       expect.arrayContaining([
-        '状态：`收口中`',
-        'Phase 4 跨阶段回归与基准',
-        '状态：`收口中`',
-        'Phase 5 文档与交付收口',
-        '状态：`收口中`',
+        '当前主线：Agent Eval 平台长期可维护架构',
+        '状态：`进行中`',
+        'docs/todos/agent-eval-framework-evaluation-and-plan.md',
+        'docs/todos/agent-eval-framework-scorecard.md',
+        '所有执行进度统一回写到主细则中的复选框',
       ]),
     );
   });

@@ -51,6 +51,7 @@
 | `archived-plans/eval-skill-capsule-live-eval-plan.md` | 2026-07-03 | 未来 live eval 改造方案，当前无活跃 owner，转 deferred 参考 |
 | `archived-plans/eval-skill-capsule-vs-bare-skill.md` | 2026-07-03 | 未来 eval 对照方案，当前无活跃 owner，转 deferred 参考 |
 | `webui-layout-refactor-guide.md` | 2026-07-03 | WebUI 版式重构指南当前无执行 owner，转 deferred 设计参考 |
+| `archived-plans/plan-2026-07-03-agent-eval-platform-index-archived.md` | 2026-07-03 | 根 `plan.md` 已切换为 Agent Eval 平台长期主线，旧 closeout/followups 索引退回历史参考 |
 
 ## 归档原则
 
