@@ -4,6 +4,7 @@
 > 日期：2026-07-03
 > 评分规则：`1` 最弱，`5` 最强
 > 说明：分数用于 PoC 排序，不等同于采购结论
+> 注：这里只服务 event-model-first 的 double-write mirror 路线选择，native TrapMap report 仍是 truth source。
 
 ## 评分维度
 

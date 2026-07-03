@@ -1,379 +1,276 @@
-# Agent Eval Framework Evaluation And Integration Plan
+# Agent Eval Platform Long-Term Execution Plan
 
-> 状态：active draft
+> 状态：active
 > 更新日期：2026-07-03
-> 结论类型：方向评估 + 接入计划，不是采购决策
+> 类型：长期主线执行细则
 
 ## 目标
 
-基于 TrapMap 当前 eval 内核与外部成熟框架的官方能力边界，判断：
+在不替换 TrapMap eval 内核的前提下，建设一套长期易于维护和扩展的三层架构：
 
-1. 是否值得把现有 eval 系统切换到成熟库或平台
-2. 哪一类框架适合“外挂式增强”而不是“替换内核”
-3. 第一轮 PoC 应该接哪一个、接到什么深度、如何验收
+1. TrapMap Eval Kernel：继续承载 case schema、runner、governance、snapshot replay、CI gate
+2. Platform Model：新增平台无关的 event / score / trace 模型
+3. Platform Adapters：先接 `Langfuse`，再验证 `MLflow`，保留后续扩展空间
 
-## 当前 TrapMap Eval 内核的真实边界
+一句话原则：
 
-以下能力已经是 TrapMap 的真相源，不应因为接入外部平台而退化：
+**接受短期工作量，换未来的可替换性、可观测性和可维护性。**
 
-- 统一入口与 tier 体系：[`evals/README.md`](../../evals/README.md)
-- retrieval 离线评测：[`evals/retrieval/README.md`](../../evals/retrieval/README.md)
-- retrieval live snapshot replay：[`evals/retrieval-live/README.md`](../../evals/retrieval-live/README.md)
-- summary judge / fallback judge：[`evals/summary/README.md`](../../evals/summary/README.md)
-- agent-planning deterministic dry-run：[`evals/agent-planning/README.md`](../../evals/agent-planning/README.md)
-- baseline-aware CI：`pnpm eval:ci`
-- badcase export -> eval draft：[`evals/README.md`](../../evals/README.md)
+## 非目标
 
-### 不可退化项
+- 不把外部平台变成首轮 CI hard gate
+- 不在首轮改写 `@trapmap/contracts` 现有 case schema
+- 不在首轮接入 `retrieval-live`
+- 不用 `Ragas` / `DeepEval` 取代当前主流程
 
-| 能力 | 当前状态 | 为什么不能丢 |
-|---|---|---|
-| governance assertion | 已具备 | 相关性与权限/策略断言分离，是 TrapMap 的产品语义 |
-| endpoint-specific contract | 已具备 | `/v1`、`/v2`、`/v3`、skill lookup 响应面不一致 |
-| offline isolated eval | 已具备 | CI 和本地快速回归依赖它 |
-| live snapshot replay | 已具备 | 可控恢复真实派生状态，是高价值回归资产 |
-| baseline compare | 已具备 | 已有回归门，不应为 UI 换掉 |
-| badcase -> eval draft | 已具备 | 真实失败样本回流已成闭环 |
+## 不可退化项
 
-结论：TrapMap 不是“缺少 eval”，而是“缺少更成熟的平台层能力”。
+- governance assertion 仍以 TrapMap 原生断言为准
+- endpoint-specific contract 不被统一成平台 shape
+- offline isolated eval 保持可本地/CI 独立运行
+- retrieval-live snapshot replay 不提前迁移
+- baseline-aware CI 继续以 TrapMap 原生 report 为准
+- badcase export 协议不变
 
-## 外部成熟框架能补什么
+## 全局文档更新要求
 
-对照官方文档，外部框架更强的基本都集中在平台层，而不是领域内核：
+- [ ] 任何新增 eval 平台接入规则，必须回写到 [`docs/operations/ENVIRONMENT.md`](../operations/ENVIRONMENT.md) 或新建对应 guide
+- [ ] 任何 eval 入口、tier、runner 行为变化，必须回写到 [`docs/operations/TESTING.md`](../operations/TESTING.md) 与相关 `evals/*/README.md`
+- [ ] 任何共享 schema / 事件模型变更，必须先更新 `packages/contracts/src/domain/evals/`，再回写文档
+- [ ] 若新增长期规则或目录落点约束，必须同步更新 [`docs/guides/DOCUMENTATION_GOVERNANCE.md`](../guides/DOCUMENTATION_GOVERNANCE.md) 或相关 reference
 
-- trace / span / trajectory 可视化
-- dataset 管理与实验对比
-- annotation、feedback、human review
-- online eval、生产流量回放、observability
-- 更标准化的 experiment report 与团队协作界面
+## 全局测试要求
 
-这意味着合理目标不是“迁移 eval 逻辑”，而是“把 TrapMap 的 case / report / trace 镜像到外部平台”。
+- [x] 文档改动至少运行 `rtk pnpm check:docs-drift`
+- [x] 文档改动至少运行 `rtk pnpm check:structure`
+- [ ] 涉及 eval runner、fixtures、judge、platform adapter 的改动，至少运行 `rtk pnpm eval:smoke`
+- [ ] 涉及 `packages/contracts`、跨包导入、共享类型变更，补跑受影响包测试与 `rtk pnpm typecheck`
 
-## 官方证据摘录
+## 执行阶段
 
-以下结论只使用候选框架官方站点、官方文档或官方仓库。
+### Phase 0: 冻结边界与事件模型
 
-### 平台型候选
+**目标**
 
-#### LangSmith
+把内核边界、平台边界、统一事件模型先写实，避免后续实现被具体平台反向绑架。
 
-- 官方 evaluation 文档明确覆盖 online evaluators、experiments、annotation queues、dataset transformations、comparative experiments。
-- 这说明 LangSmith 在 agent trace、人工 review、实验对比上成熟度高。
-- 但官方资料体现的是 hosted-first 产品形态，没有看到与 Langfuse / MLflow 同等级的 self-host 叙事。
+**文件落点**
 
-来源：
-- https://docs.smith.langchain.com/evaluation
+- 新增：`docs/todos/agent-eval-platform-event-model.md`
+- 修改：`docs/todos/agent-eval-framework-evaluation-and-plan.md`
+- 修改：`docs/todos/agent-eval-framework-scorecard.md`
 
-#### Braintrust
+**Checklist**
 
-- 官方 docs 首页明确包含 `evals`、`experiments`、`datasets`、`playground`、`proxy` 等一级能力。
-- 这说明它更偏“评测运营平台”，适合统一在线评分、实验管理与 prompt/proxy 观测。
-- 但从官方入口看，自托管不是其第一叙事，适合作 hosted 对照组，不适合作为 TrapMap 内核替代。
+- [x] 明确内核层、平台模型层、适配层的职责边界
+- [x] 定义统一事件族：`EvalRunStarted`、`EvalRunFinished`、`EvalCaseStarted`、`EvalCaseFinished`、`EvalScoreRecorded`、`EvalAssertionRecorded`、`EvalTraceStepRecorded`
+- [x] 明确每类事件的最小字段：`suite`、`tier`、`runId`、`caseId`、`scenarioId`、`timestamp`、`tags`、`payload`
+- [x] 明确事件模型与现有 `report` schema 的映射关系
+- [x] 记录哪些能力首轮不进入平台接入：`retrieval-live`、CI hard gate、badcase export 替换
+- [x] 回写文档并完成守卫验证
 
-来源：
-- https://www.braintrust.dev/docs
+**本阶段文档要求**
 
-#### Langfuse
+- [x] 新建 `agent-eval-platform-event-model.md`，作为 Phase 1 代码实现的唯一事件设计输入
 
-- 官方 evaluation 概览明确覆盖 LLM-as-a-Judge、human annotation、agent graph evaluation、production tests。
-- 官方 self-host 页面明确提供 `docker compose`、Kubernetes、Helm、CDK 等部署方式。
-- 这意味着它同时覆盖平台层能力与 self-host 诉求，和 TrapMap 当前“保留内核、外挂平台”的方向最匹配。
+**本阶段验证**
 
-来源：
-- https://langfuse.com/docs/evaluation/overview
-- https://langfuse.com/self-hosting
+- [x] `rtk pnpm check:docs-drift`
+- [x] `rtk pnpm check:structure`
 
-#### MLflow GenAI
+### Phase 1: 建立平台无关 schema 与 adapter interface
 
-- 官方 MLflow 3 文档把 tracing、prompt management、evaluation、quality observability 放在同一条 GenAI 工作流里。
-- 官方 GenAI evaluation 文档明确支持 judges、scorers、dataset-based evaluation、search-able runs。
-- 这使 MLflow 适合“平台自控优先”的团队，尤其是希望把 eval、trace、experiment 统一到一套自托管基础设施的场景。
+**目标**
 
-来源：
-- https://mlflow.org/docs/latest/genai/index.html
-- https://mlflow.org/docs/latest/genai/eval-monitor/
+先落统一类型和 adapter 接口，不接外部平台。
 
-#### Phoenix
+**建议文件**
 
-- 官方 Phoenix 仓库强调 open-source、AI observability、tracing、evaluations。
-- Phoenix 官方定位更像诊断和 observability 平台，而不是完整的评测运营系统。
-- 它更适合补 agent 中间路径诊断，不适合单独接管 TrapMap 的 eval 生命周期。
+- 新增：`packages/contracts/src/domain/evals/platform.ts`
+- 新增：`packages/contracts/src/domain/evals/platform.test.ts`
+- 新增：`evals/lib/platform/types.ts`
+- 新增：`evals/lib/platform/adapter.ts`
+- 新增：`evals/lib/platform/noop-adapter.ts`
+- 新增：`evals/lib/platform/json-archive-adapter.ts`
+- 修改：`packages/contracts/src/domain/evals/index.ts`
+- 修改：`evals/scripts/eval-all.ts`
+- 修改：`scripts/run-eval.ts`
 
-来源：
-- https://github.com/Arize-ai/phoenix
+**Checklist**
 
-### 库型候选
+- [ ] 定义平台无关 schema：run、event、score、trace step
+- [ ] 导出统一 `EvalPlatformAdapter` 接口
+- [ ] 实现默认 `noop` adapter
+- [ ] 实现本地 `json archive` adapter，先写入 `reports/`
+- [ ] 约束 adapter 失败只产出 warning，不影响 eval 退出码
+- [ ] 在不启用平台时，现有 eval 路径保持零行为变化
 
-#### DeepEval
+**本阶段文档要求**
 
-- 官方仓库强调 `unit testing LLM applications`、`evaluate LLM outputs`、pytest 风格、LLM judges、red teaming。
-- 这表明它更像“本地可编程评测库”，适合补 metric 和 test ergonomics，不适合接管 dataset / trace / replay / CI baseline 平台层。
+- [ ] 如新增事件模型公开说明，补写到 `docs/todos/agent-eval-platform-event-model.md`
+- [ ] 如 root command 或参数说明变化，回写 [`README.md`](../../README.md) 或相关 README
 
-来源：
-- https://github.com/confident-ai/deepeval
+**本阶段测试要求**
 
-#### Ragas
+- [ ] `rtk pnpm --filter @trapmap/contracts test --run packages/contracts/src/domain/evals/platform.test.ts`
+- [ ] `rtk pnpm test:file -- evals/scripts/__tests__/eval-ci.test.ts`
+- [ ] `rtk pnpm eval -- agent-planning --tier smoke --dry-run`
+- [ ] `rtk pnpm typecheck`
 
-- 官方仓库强调 RAG evaluation、agent evaluation、synthetic test generation、production monitoring。
-- 这说明它在 retrieval / summary 质量指标上成熟，但它依然主要是指标与评测库，不是 TrapMap 所缺的完整平台层。
+### Phase 2: `agent-planning` 接入统一事件模型
 
-来源：
-- https://github.com/explodinggradients/ragas
+**目标**
 
-#### OpenAI Evals
+先让最适合做 PoC 的 suite 发出稳定事件，验证平台模型是否够用。
 
-- 官方仓库提供 benchmark / regression framework，但明显围绕 OpenAI 生态和 benchmark workflow。
-- 对 TrapMap 这种跨 provider、带治理断言、带 live snapshot replay 的系统来说，适合局部借鉴 evaluator 设计，不适合作为整体演进方向。
+**建议文件**
 
-来源：
-- https://github.com/openai/evals
+- 修改：`evals/agent-planning/run.ts`
+- 修改：`evals/agent-planning/lib/report.ts`
+- 修改：`evals/agent-planning/lib/format.ts`
+- 修改：`evals/agent-planning/lib/judge-runner.ts`
+- 修改：`evals/agent-planning/lib/actor-runner.ts`
 
-## 方案形态评估
+**Checklist**
 
-### 方案 A：全量替换为单一外部框架
+- [ ] 发送 run started / finished 事件
+- [ ] 发送 case started / finished 事件
+- [ ] 发送 deterministic precheck 结果
+- [ ] 发送 dimension score、final score、failure rationale
+- [ ] 发送 group / slice 元数据
+- [ ] 必要时记录 step 级 trace，避免过度设计
+- [ ] 保持终端输出和原生 JSON report 的对外契约不变
 
-不推荐。
+**本阶段文档要求**
 
-原因：
+- [ ] 若 `agent-planning` 运行入口、输出字段或判定标准变化，回写 [`evals/agent-planning/README.md`](../../evals/agent-planning/README.md)
+- [ ] 若统一入口行为变化，回写 [`evals/README.md`](../../evals/README.md) 与 [`docs/operations/TESTING.md`](../operations/TESTING.md)
 
-- 无法证明外部框架能原生表达 TrapMap 的 governance forbidden-hit 断言
-- 无法证明外部框架能无损承接 retrieval-live snapshot replay
-- 会把 endpoint-specific case schema、badcase export、baseline compare 一起搬迁，风险高且收益不成比例
+**本阶段测试要求**
 
-### 方案 B：保留 TrapMap 内核，外挂 trace / dataset / annotation / experiment 平台
+- [ ] `rtk pnpm eval -- agent-planning --tier smoke --dry-run --json --json-path ./reports/agent-planning-smoke.json`
+- [ ] `rtk pnpm eval -- agent-planning --tier core --dry-run`
+- [ ] `rtk pnpm eval:smoke`
 
-推荐。
+### Phase 3: 接入 `LangfuseAdapter`
 
-原因：
+**目标**
 
-- 与当前系统边界最兼容
-- 可先镜像 `agent-planning` / `summary`，不碰 retrieval-live
-- 失败可回滚，且不影响 `pnpm eval` / `pnpm eval:ci`
+验证 self-host 平台能否在不侵入内核的前提下明显提升调试与 review 效率。
 
-### 方案 C：引入库型框架补局部指标或 judge
+**建议文件**
 
-可做，但优先级低于方案 B。
+- 新增：`evals/lib/platform/langfuse-adapter.ts`
+- 新增：`evals/lib/platform/langfuse-config.ts`
+- 新增：`evals/lib/platform/langfuse-adapter.test.ts`
+- 新增：`docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md`
+- 修改：`evals/scripts/eval-all.ts`
+- 修改：`scripts/run-eval.ts`
+- 修改：`docs/operations/ENVIRONMENT.md`
 
-原因：
+**Checklist**
 
-- DeepEval / Ragas 更适合补 metric，不解决 TrapMap 当前最缺的协作和可视化层
-- 若没有 trace / annotation / experiment 闭环，单纯替换 judge 库收益有限
+- [ ] 通过显式配置启用 `LangfuseAdapter`
+- [ ] 映射 case-level score、tags、tier、trace step
+- [ ] 处理网络/鉴权/超时失败为 warning
+- [ ] 保持平台关闭时零行为变化
+- [ ] 为接入、调试、禁用写清操作指南
 
-## 候选选择结论
+**本阶段文档要求**
 
-### 主推荐
+- [ ] 在 [`docs/operations/ENVIRONMENT.md`](../operations/ENVIRONMENT.md) 中增加平台环境变量说明
+- [ ] 在 [`docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md`](../guides/AGENT_EVAL_PLATFORM_INTEGRATION.md) 中记录启用方式、失败处理、回滚方式
+- [ ] 如统一入口增加平台参数，回写 [`evals/README.md`](../../evals/README.md)
 
-`Langfuse`
+**本阶段测试要求**
 
-理由：
+- [ ] `rtk pnpm eval -- agent-planning --tier smoke --dry-run`
+- [ ] `rtk pnpm eval -- agent-planning --tier core --dry-run`
+- [ ] `rtk pnpm eval:smoke`
+- [ ] `rtk pnpm check:docs-drift`
 
-- 官方能力覆盖 eval、annotation、agent graph、production tests
-- 官方自托管路径明确
-- 适合作为“外挂式平台层”，而不是迫使 TrapMap 改写内核
+### Phase 4: `summary` 复用统一模型
 
-### 第二候选
+**目标**
 
-`MLflow`
+证明统一模型不是只为 planning suite 定制。
 
-理由：
+**建议文件**
 
-- 更偏平台自控
-- 如果团队已有 MLflow / experiment 基础设施，会更容易组织长期演进
-- 但 agent-path UX 直觉上不如 Langfuse / LangSmith 明确，需要更重的实施与建模
+- 修改：`evals/summary/run.ts`
+- 修改：`evals/summary/lib/report.ts`
+- 修改：`evals/summary/lib/format.ts`
+- 修改：`evals/summary/lib/judge.ts`
+- 修改：`evals/summary/lib/assertions.ts`
 
-### Hosted 对照组
+**Checklist**
 
-`LangSmith`
+- [ ] 映射 groundedness、coverage、forbiddenClaims
+- [ ] 保留 provider / fallback judge 元数据
+- [ ] 不替换 fallback judge
+- [ ] 不引入 provider hard dependency
+- [ ] 复用同一 adapter interface，不为 summary 分叉单独平台通道
 
-理由：
+**本阶段文档要求**
 
-- 官方 evaluation / annotation / comparative experiment 能力成熟
-- 最适合作为“如果允许 hosted，平台体验到底能好多少”的对照样本
-- 但不适合作为 TrapMap 默认主线
+- [ ] 如 summary 判定标准或输出变动，回写 [`evals/summary/README.md`](../../evals/summary/README.md)
+- [ ] 如统一 testing 说明变化，回写 [`docs/operations/TESTING.md`](../operations/TESTING.md)
 
-### 专项诊断补充
+**本阶段测试要求**
 
-`Phoenix`
+- [ ] `rtk pnpm eval -- summary --tier smoke --provider fallback`
+- [ ] `rtk pnpm eval -- summary --tier core --provider fallback`
+- [ ] `rtk pnpm eval:smoke`
 
-理由：
+### Phase 5: 增加第二平台适配器，验证可替换性
 
-- 若 PoC 暴露出最大的痛点是 trajectory 诊断而不是 dataset 管理，可以补一个专项 observability 对照
+**目标**
 
-## 不推荐的首轮方向
+证明架构没有被首个平台锁死。
 
-- 不要先接 `retrieval-live`
-- 不要先改 `packages/contracts/src/domain/evals/`
-- 不要先尝试把 `pnpm eval` 直接改造成外部 SDK 原生入口
-- 不要先以“统一 UI”为理由重写已有 case schema
+**建议文件**
 
-## 首轮 PoC 选择
+- 新增：`evals/lib/platform/mlflow-adapter.ts`
+- 新增：`evals/lib/platform/mlflow-config.ts`
+- 新增：`evals/lib/platform/mlflow-adapter.test.ts`
+- 修改：`docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md`
+- 修改：`docs/operations/ENVIRONMENT.md`
 
-### PoC-1：Langfuse 镜像 `agent-planning`
+**Checklist**
 
-目标：
+- [ ] 实现 `MLflowAdapter`
+- [ ] 保持 suite 代码不因平台切换而分叉
+- [ ] 保持切换平台只改配置，不改 case schema 和 runner 协议
+- [ ] 对比 `Langfuse` 与 `MLflow` 的长期维护成本和适配摩擦
 
-- 把 `agent-planning` 的一次 run 同步成外部 trace + score + dataset record
-- 验证中间路径诊断和人工 review 是否真的提升问题定位效率
+**本阶段文档要求**
 
-为什么先做它：
+- [ ] 补充第二平台启用与切换说明
+- [ ] 记录平台选择建议和保守回退路径
 
-- 当前 `agent-planning` 仍偏 deterministic dry-run
-- 语义负担比 retrieval-live 小
-- 最容易看出外部 trace 平台的增益
+**本阶段测试要求**
 
-验收条件：
+- [ ] `rtk pnpm eval -- agent-planning --tier smoke --dry-run`
+- [ ] `rtk pnpm eval -- summary --tier smoke --provider fallback`
+- [ ] `rtk pnpm eval:smoke`
 
-- 不改现有 `agent-planning` case schema
-- 不改现有 CLI 契约
-- 可以从同一 run 产出 TrapMap 原生 report 与 Langfuse trace
-- 至少能表达 case-level score、group-level metadata、step-level event
+## 进度门槛
 
-### PoC-2：Langfuse 或 MLflow 镜像 `summary`
+### 进入下一阶段前必须满足
 
-目标：
+- [ ] 当前阶段的文档更新已完成
+- [ ] 当前阶段的最小测试已完成
+- [ ] 未完成项已写回 checklist 或 debt register
 
-- 验证 judge 结果、groundedness / coverage / forbiddenClaims 是否能映射到外部 score model
-- 验证 annotation 与人工复核流程是否优于当前 JSON report
+### 停止扩张条件
 
-验收条件：
+- [ ] 如果 adapter 侵入 runner 过深，暂停新增平台
+- [ ] 如果平台只改善图表、不改善 triage / review / experiment 效率，暂停新增平台
+- [ ] 如果平台稳定性影响本地/CI，暂停扩大接入范围
 
-- 不替换 fallback judge
-- 不引入 provider hard dependency
-- 能保留 case ID、tier、endpoint、scenario ID、judge provider 等关键信息
+## 现阶段推荐起手动作
 
-### Hosted 对照 PoC：LangSmith 镜像 `agent-planning`
-
-目的不是上生产，而是回答一个问题：
-
-“Hosted-first 平台在 trace UX、annotation、comparative experiments 上，相比自托管候选到底领先多少？”
-
-如果优势只是 UI 更顺滑，但无法降低 TrapMap 的维护成本，则终止 hosted 方向。
-
-## 接入架构建议
-
-建议采用“双写镜像”而不是“入口替换”：
-
-1. TrapMap runner 继续生成原生 report
-2. 新增可选 adapter，把 case/run/report 事件投影到外部平台
-3. adapter 失败不能影响原生 eval exit code
-4. CI 默认仍以 TrapMap 原生 report 为门禁
-
-### 推荐接入层次
-
-| 层次 | 是否接入外部平台 | 备注 |
-|---|---|---|
-| case schema | 否 | 继续以 `@trapmap/contracts` 为准 |
-| runner orchestration | 否 | `scripts/run-eval.ts` 继续是真相入口 |
-| report export adapter | 是 | 第一阶段主战场 |
-| trace / annotation / experiment UI | 是 | 外部平台核心价值 |
-| CI hard gate | 暂不 | 等 PoC 证明稳定后再看 |
-
-## 决策门槛
-
-### 继续保持“仅自建内核”
-
-满足任一条件即停止外部接入扩张：
-
-- 外部平台不能表达 TrapMap 关键治理断言
-- 外部平台接入明显侵入现有 case schema 或 runner
-- 外部平台只改善图表，不改善 triage / annotation / experiment 工作流
-
-### 升级为“正式外挂平台”
-
-只有全部满足才继续：
-
-- 原生 eval CLI、case schema、CI gate 无破坏
-- 外部平台能稳定接收 case/run/score 映射
-- 工程师确认排障效率有可感知提升
-- 文档化后的接入成本低于未来 6-12 个月继续纯自建平台层的成本
-
-## 实施计划
-
-### Phase 0：冻结比较基线
-
-输出：
-
-- 一份能力矩阵：哪些能力是 TrapMap 内核，哪些能力允许外挂
-- 一份 scorecard：平台型候选与库型候选的同口径比较
-
-交付：
-
-- 本文档
-- [`agent-eval-framework-scorecard.md`](./agent-eval-framework-scorecard.md)
-
-### Phase 1：定义外部平台映射协议
-
-工作项：
-
-- 为 eval run 明确最小映射字段：`suite`、`tier`、`caseId`、`scenarioId`、`endpoint`、`status`、`scores`、`tags`
-- 为 step / judge / assertion 事件定义可选 trace payload
-- 设计 adapter 为“可插拔、可关闭、失败不阻塞”
-
-退出条件：
-
-- 有一份明确的 adapter payload 草图
-- 不需要修改 `@trapmap/contracts` 的公开 case schema
-
-### Phase 2：实现 Langfuse PoC
-
-范围：
-
-- 仅 `agent-planning`
-- 仅本地与手动 smoke
-- 不上 CI hard gate
-
-记录指标：
-
-- 接入工作量
-- trace 可读性
-- score 映射摩擦
-- annotation 流程是否明显优于原生 JSON report
-
-### Phase 3：实现第二候选 PoC
-
-优先顺序：
-
-1. `MLflow`，如果团队偏自托管平台
-2. `LangSmith`，如果需要 hosted UX 对照
-
-目标：
-
-- 用同一套 `agent-planning` 或 `summary` case 做对照
-- 比较 UI 价值、接入侵入性、长期维护成本
-
-### Phase 4：做 go / no-go 决策
-
-只回答三个问题：
-
-1. 外部平台是否降低调试成本？
-2. 外部平台是否改善 annotation / experiment 协作？
-3. 外部平台是否能在不侵入内核的前提下长期维护？
-
-若三者中少于两项成立，停止接入。
-
-## 推荐结论
-
-一句话结论：
-
-**TrapMap 现在不该切换掉自建 eval 内核；应该优先做 `Langfuse` 外挂式 PoC，并用 `MLflow` 或 `LangSmith` 做一轮对照。**
-
-更具体地说：
-
-- 内核保留：case schema、runner、governance、snapshot replay、CI baseline
-- 平台外挂：trace、annotation、dataset projection、experiment 对比
-- 首轮切入：`agent-planning`
-- 第二轮验证：`summary`
-- 暂缓触碰：`retrieval-live`
-
-## 证据链接
-
-- LangSmith Evaluation: https://docs.smith.langchain.com/evaluation
-- Braintrust Docs: https://www.braintrust.dev/docs
-- Langfuse Evaluation Overview: https://langfuse.com/docs/evaluation/overview
-- Langfuse Self-Hosting: https://langfuse.com/self-hosting
-- MLflow GenAI: https://mlflow.org/docs/latest/genai/index.html
-- MLflow GenAI Evaluation: https://mlflow.org/docs/latest/genai/eval-monitor/
-- Phoenix GitHub: https://github.com/Arize-ai/phoenix
-- DeepEval GitHub: https://github.com/confident-ai/deepeval
-- Ragas GitHub: https://github.com/explodinggradients/ragas
-- OpenAI Evals GitHub: https://github.com/openai/evals
+- [ ] 新建 `docs/todos/agent-eval-platform-event-model.md`
+- [ ] 为 `packages/contracts/src/domain/evals/` 新增 `platform.ts`
+- [ ] 为 `evals/lib/platform/` 新增 `types.ts`、`adapter.ts`、`noop-adapter.ts`、`json-archive-adapter.ts`
+- [ ] 只让 `agent-planning` 做第一轮 JSON 双写，不直接上外部平台
