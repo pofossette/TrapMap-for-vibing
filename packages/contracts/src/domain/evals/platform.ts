@@ -320,6 +320,8 @@ const retrievalAssertionPayloadSchema = evalAssertionBaseSchema.extend({
     'case.governancePassed',
     'case.selectedMode',
     'case.routingReason',
+    'case.fallbackApplied',
+    'case.passed',
   ]),
 });
 

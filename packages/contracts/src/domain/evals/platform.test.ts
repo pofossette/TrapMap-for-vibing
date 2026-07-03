@@ -58,6 +58,26 @@ describe('platform eval contracts', () => {
     expect(payload.weight).toBe(0.5);
   });
 
+  it('accepts retrieval assertion payloads that trace shape checks back to the frozen case result', () => {
+    const event = evalPlatformEventSchema.parse({
+      family: 'EvalAssertionRecorded',
+      suite: 'retrieval',
+      tier: 'smoke',
+      runId: 'run-123:retrieval',
+      caseId: 'v2-capsule-positive-smoke',
+      scenarioId: 'retrieval-capsule-positive',
+      timestamp: '2026-07-03T00:00:01.000Z',
+      tags: ['capsule', 'smoke'],
+      payload: {
+        assertionId: 'shape',
+        passed: true,
+        source: 'case.passed',
+      },
+    });
+
+    expect(event.payload.assertionId).toBe('shape');
+  });
+
   it('rejects mismatched payloads for the declared event family', () => {
     expect(() =>
       evalPlatformEventSchema.parse({

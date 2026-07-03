@@ -339,4 +339,194 @@ describe('runUnifiedEvaluation', () => {
 
     expect(closePlatformAdapter).toHaveBeenCalledTimes(1);
   });
+
+  it('mirrors retrieval case, score, and assertion events without enabling retrieval trace events', async () => {
+    const publishPlatformEvent = vi.fn();
+
+    await runUnifiedEvaluation(
+      {
+        ...baseOptions,
+        platform: 'json-archive' as const,
+        platformOutputDir: './reports/platform-events',
+      },
+      {
+        createPlatformAdapter: vi.fn(() => ({
+          kind: 'json-archive',
+          publish: vi.fn(),
+          close: vi.fn(),
+        })),
+        publishPlatformEvent,
+        closePlatformAdapter: vi.fn(),
+        warn: vi.fn(),
+        log: vi.fn(),
+        error: vi.fn(),
+        runRetrievalEval: vi.fn(async () => ({
+          passed: false,
+          report: {
+            meta: {
+              schemaVersion: 1,
+              timestamp: '2026-07-03T00:00:05.000Z',
+              durationMs: 5000,
+              options: {
+                tier: 'smoke',
+                dryRun: false,
+                allowEmpty: false,
+                verbose: 0,
+              },
+            },
+            summary: {
+              totalCases: 2,
+              passedCases: 1,
+              failedCases: 1,
+              passRate: 0.5,
+              passed: false,
+            },
+            slices: [],
+            cohorts: [],
+            modeComparisons: [],
+            routingDistribution: [],
+            cases: [
+              {
+                caseId: 'v2-capsule-positive-smoke',
+                endpoint: '/v2/retrieval/search',
+                tier: 'smoke',
+                passed: true,
+                outcomeMatch: true,
+                governancePassed: true,
+                durationMs: 120,
+                hitAt1: 1,
+                hitAt5: 1,
+                hitAt10: 1,
+                mrr: 1,
+                ndcg: 1,
+                recallAt10: 1,
+                selectedMode: 'hybrid',
+                routingReason: 'v2-default-capsule',
+                fallbackApplied: false,
+              },
+              {
+                caseId: 'v3-graph-plan-selected-smoke',
+                endpoint: '/v3/retrieval/search',
+                tier: 'smoke',
+                passed: false,
+                outcomeMatch: true,
+                governancePassed: true,
+                durationMs: 180,
+                hitAt1: 0,
+                hitAt5: 1,
+                hitAt10: 1,
+                mrr: 0.5,
+                ndcg: 0.7,
+                recallAt10: 1,
+                selectedMode: 'hybrid',
+                routingReason: 'graph-plan-selected',
+                fallbackApplied: false,
+              },
+            ],
+            failures: [
+              {
+                caseId: 'v3-graph-plan-selected-smoke',
+                kind: 'graph-plan-mismatch',
+                description: 'Expected edge trap->skill not found',
+                ids: ['trap->skill'],
+                endpoint: '/v3/retrieval/search',
+                tier: 'smoke',
+              },
+            ],
+            warnings: [],
+          },
+          durationMs: 5000,
+          summary: {
+            totalCases: 2,
+            passedCases: 1,
+            failedCases: 1,
+            passRate: 0.5,
+            slices: [],
+          },
+        })),
+        runSummaryEval: vi.fn(async () => null),
+        runGraphExtractionEval: vi.fn(async () => null),
+        runIngestionEval: vi.fn(async () => null),
+        runAgentPlanningEval: vi.fn(async () => null),
+        runLabelAlignmentEval: vi.fn(async () => null),
+      },
+    );
+
+    const publishedEvents = publishPlatformEvent.mock.calls.map(([_, __, event]) => event);
+    const retrievalEvents = publishedEvents.filter((event) => event.suite === 'retrieval');
+
+    expect(retrievalEvents.map((event) => event.family)).toEqual([
+      'EvalRunStarted',
+      'EvalCaseStarted',
+      'EvalCaseFinished',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalCaseStarted',
+      'EvalCaseFinished',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalRunFinished',
+    ]);
+
+    expect(
+      retrievalEvents.filter((event) => event.family === 'EvalTraceStepRecorded'),
+    ).toHaveLength(0);
+
+    expect(
+      retrievalEvents
+        .filter((event) => event.family === 'EvalCaseStarted')
+        .map((event) => event.payload.case.caseId),
+    ).toEqual(['v2-capsule-positive-smoke', 'v3-graph-plan-selected-smoke']);
+
+    expect(
+      retrievalEvents
+        .filter(
+          (event) =>
+            event.family === 'EvalScoreRecorded' && event.caseId === 'v2-capsule-positive-smoke',
+        )
+        .map((event) => event.payload.scoreId),
+    ).toEqual(['hitAt1', 'hitAt5', 'hitAt10', 'mrr', 'ndcg', 'recallAt10']);
+
+    expect(
+      retrievalEvents
+        .filter(
+          (event) =>
+            event.family === 'EvalAssertionRecorded' &&
+            event.caseId === 'v2-capsule-positive-smoke',
+        )
+        .map((event) => [event.payload.assertionId, event.payload.passed, event.payload.source]),
+    ).toEqual([
+      ['outcome', true, 'case.outcomeMatch'],
+      ['governance', true, 'case.governancePassed'],
+      ['shape', true, 'case.passed'],
+    ]);
+
+    expect(
+      retrievalEvents
+        .filter(
+          (event) =>
+            event.family === 'EvalAssertionRecorded' &&
+            event.caseId === 'v3-graph-plan-selected-smoke',
+        )
+        .map((event) => [event.payload.assertionId, event.payload.passed, event.payload.source]),
+    ).toEqual([
+      ['outcome', true, 'case.outcomeMatch'],
+      ['governance', true, 'case.governancePassed'],
+      ['graph-plan', false, 'case.passed'],
+    ]);
+  });
 });

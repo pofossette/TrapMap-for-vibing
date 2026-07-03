@@ -8,14 +8,7 @@
  * instead of writing directly to stdout.
  */
 
-import {
-  type RetrievalEvalCase,
-  type RetrievalEvalTier,
-  retrievalEvalCaseSchema,
-} from '@trapmap/contracts/evals';
-
-import { coreCases } from '../core.js';
-import { smokeCases } from '../smoke.js';
+import { type RetrievalEvalCase, type RetrievalEvalTier } from '@trapmap/contracts/evals';
 
 import {
   closeExecutionContext,
@@ -67,6 +60,14 @@ export interface RunRetrievalResult {
   durationMs: number;
 }
 
+export function getRetrievalEvaluationCases(
+  tier: RetrievalEvalTier,
+  endpoint?: RunRetrievalOptions['endpoint'],
+): RetrievalEvalCase[] {
+  const cases_ = loadCases(tier);
+  return filterByEndpoint(cases_, endpoint);
+}
+
 // =============================================================================
 // Programmatic Runner
 // =============================================================================
@@ -86,8 +87,7 @@ export async function runRetrievalEvaluation(
   const allowEmpty = options.allowEmpty ?? false;
 
   // Load and validate cases
-  const cases_ = loadCases(tier);
-  const filtered = filterByEndpoint(cases_, options.endpoint);
+  const filtered = getRetrievalEvaluationCases(tier, options.endpoint);
 
   if (filtered.length === 0) {
     if (allowEmpty) {
