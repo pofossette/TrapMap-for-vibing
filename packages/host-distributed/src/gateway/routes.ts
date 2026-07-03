@@ -18,6 +18,9 @@ import type { InternalServiceClients } from './internal-client.js';
 /** Paths that are publicly accessible without a session token. */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
   '/health',
+  '/live',
+  '/ready',
+  '/metrics',
   '/v1/auth/login',
   '/v1/auth/register',
 ]);
@@ -121,6 +124,21 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     return reply.status(200).send({
       service: 'gateway',
       status: 'ok',
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  app.get('/live', async (_request: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(200).send({
+      status: 'alive',
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  app.get('/ready', async (_request: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(200).send({
+      service: 'gateway',
+      status: 'ready',
       timestamp: new Date().toISOString(),
     });
   });

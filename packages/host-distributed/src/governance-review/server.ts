@@ -1,6 +1,8 @@
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
+import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
+import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import {
   type GovernanceReviewServer,
   createGovernanceReviewServer as createServiceGovernanceReviewServer,
@@ -13,5 +15,8 @@ export async function createServer(
 ): Promise<GovernanceReviewServer> {
   const ports = createServicePorts(db.pool);
   const deps = createGovernanceReviewDeps(ports, config);
-  return createServiceGovernanceReviewServer(config, deps);
+  const server = await createServiceGovernanceReviewServer(config, deps);
+  attachRuntimeMetricsRoute(server.app);
+  await attachRuntimeTelemetry(server.app, 'governance-review');
+  return server;
 }

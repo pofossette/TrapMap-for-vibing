@@ -4,6 +4,9 @@ networks:
   trapmap-observability:
     name: trapmap-observability
     driver: bridge
+  trapmap-distributed:
+    name: trapmap-distributed
+    driver: bridge
 
 volumes:
   consul_data:
@@ -28,7 +31,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - trapmap-observability
+      - trapmap-distributed
 
   tempo:
     image: grafana/tempo:2.3.0
@@ -48,6 +51,7 @@ services:
       retries: 5
     networks:
       - trapmap-observability
+      - trapmap-distributed
 
   prometheus:
     image: prom/prometheus:v2.48.0
@@ -68,6 +72,7 @@ services:
       retries: 5
     networks:
       - trapmap-observability
+      - trapmap-distributed
 
   loki:
     image: grafana/loki:2.9.3

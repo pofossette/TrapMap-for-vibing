@@ -7,7 +7,9 @@
 
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
+import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
+import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import {
   type KnowledgeWriteServer,
   createKnowledgeWriteServer as createServiceKnowledgeWriteServer,
@@ -20,5 +22,8 @@ export async function createServer(
 ): Promise<KnowledgeWriteServer> {
   const ports = createServicePorts(db.pool);
   const deps = createKnowledgeWriteDeps(ports);
-  return createServiceKnowledgeWriteServer(config, deps);
+  const server = await createServiceKnowledgeWriteServer(config, deps);
+  attachRuntimeMetricsRoute(server.app);
+  await attachRuntimeTelemetry(server.app, 'knowledge-write');
+  return server;
 }

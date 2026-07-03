@@ -1,7 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
-import Fastify from 'fastify';
+import Fastify, { type FastifyRequest } from 'fastify';
+import {
+  context as otelContext,
+  type Span,
+  SpanKind,
+  SpanStatusCode,
+  propagation,
+  trace,
+} from '@opentelemetry/api';
 
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
@@ -50,6 +58,25 @@ interface BuildServerOptions {
   serviceUnit?: ServiceUnit;
 }
 
+const requestSpanSymbol = Symbol('trapmap.request.span');
+type RequestWithSpan = FastifyRequest & { [requestSpanSymbol]?: Span };
+
+function resolveRuntimeServiceName(runtimeMode: RuntimeMode, serviceUnit: ServiceUnit): string {
+  if (runtimeMode === 'outbox-worker') {
+    return 'outbox-runtime';
+  }
+  if (runtimeMode === 'task-worker') {
+    return serviceUnit === 'candidate-ingestion' ? 'candidate-ingestion' : 'governance';
+  }
+  if (serviceUnit === 'candidate-ingestion') {
+    return 'candidate-ingestion';
+  }
+  if (serviceUnit === 'knowledge-governance') {
+    return runtimeMode === 'api' ? 'governance' : 'outbox-runtime';
+  }
+  return 'gateway';
+}
+
 export function buildServer(options: BuildServerOptions = {}) {
   const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
   const defaultTestDataFile =
@@ -88,6 +115,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   config.deployment.resolved = runtimeDeployment;
   const runtimeMode = runtimeDeployment.runtimeMode;
   const serviceUnit = runtimeDeployment.serviceUnit;
+  const runtimeServiceName = resolveRuntimeServiceName(runtimeMode, serviceUnit);
   const app = Fastify({
     logger: isTestEnv
       ? false
@@ -100,6 +128,23 @@ export function buildServer(options: BuildServerOptions = {}) {
 
   app.addHook('onRequest', async (request, reply) => {
     const context = getOrCreateRequestContext(request, config);
+    if (context.traceParent) {
+      const parentContext = propagation.extract(otelContext.active(), request.headers);
+      const span = trace.getTracer('trapmap-http').startSpan(
+        `${request.method} ${request.routeOptions.url || request.url}`,
+        {
+          kind: SpanKind.SERVER,
+          attributes: {
+            'http.request.method': request.method,
+            'url.path': request.routeOptions.url || request.url,
+            'trapmap.request_id': context.requestId,
+            'trapmap.service_name': runtimeServiceName,
+          },
+        },
+        parentContext,
+      );
+      (request as RequestWithSpan)[requestSpanSymbol] = span;
+    }
     reply.header(config.runtime.requestIdHeader, context.requestId);
     if (context.traceParent) {
       reply.header(config.runtime.traceHeaderName, context.traceParent);
@@ -139,11 +184,23 @@ export function buildServer(options: BuildServerOptions = {}) {
 
     recordHttpRequestMetric({
       routeFamily,
-      serviceName: 'gateway',
+      serviceName: runtimeServiceName,
       latencyMs: responseTime,
       statusCode: reply.statusCode,
       method: request.method,
     });
+
+    const requestSpan = (request as RequestWithSpan)[requestSpanSymbol];
+    if (requestSpan) {
+      requestSpan.setAttribute('http.response.status_code', reply.statusCode);
+      requestSpan.setAttribute('http.route', route);
+      if (reply.statusCode >= 500) {
+        requestSpan.setStatus({
+          code: SpanStatusCode.ERROR,
+        });
+      }
+      requestSpan.end();
+    }
 
     app.log.info(
       {
@@ -151,8 +208,8 @@ export function buildServer(options: BuildServerOptions = {}) {
         eventName: 'request.completed',
         requestId: context?.requestId ?? null,
         traceId: responseTraceId,
-        service: 'gateway',
-        serviceName: 'gateway',
+        service: runtimeServiceName,
+        serviceName: runtimeServiceName,
         ownerSurface: 'runtime-seam',
         routeFamily,
         method: request.method,

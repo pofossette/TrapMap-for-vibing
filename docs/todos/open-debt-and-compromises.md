@@ -145,26 +145,46 @@ The following coupling patterns were identified during the Phase 0.6 coupling au
 - **Why**: No concrete near-term use case. Runtime config is served by env vars; shared state uses Postgres; no leader election or distributed lock patterns exist. The `DiscoveryPort` interface already defines `getKV`/`setKV` and is tested.
 - **Trigger to include**: Runtime feature flags requiring sub-minute propagation (canary rollouts, kill switches), or distributed coordination needs that Postgres advisory locks cannot serve
 
-### 8.4 2026-07-02 Distributed Local Closeout Gaps
+### 8.4 2026-07-03 Distributed Local Closeout Gaps
 
 - **Status**: Active debt, observed in local deployment validation
-- **Why it is still current**: 本轮已经证明 distributed 七进程拓扑可以通过挂载本地工作区的容器手工跑起来，但 checked-in deployment/discovery/observability 闭环仍未达到 closeout 要求
+- **Why it is still current**: 本轮已经把 checked-in distributed compose 推进到“可 clean build 并拉起七进程 distributed 拓扑”，也补齐了 gateway `/live`、`/ready`、`/health`、`/metrics`、request-id / `traceparent` 回显与结构化日志证据；但 deployment/discovery/observability 的运行态闭环仍未达到 closeout 要求
 
 Current confirmed gaps:
 
-- `packages/host-distributed/Dockerfile` 无法完成 checked-in distributed 镜像构建：构建过程未复制 `packages/runtime-infra`，`docker compose --profile distributed up -d --build` 因 `tsc -b` 失败而中断。
-- distributed gateway 当前不提供符合 closeout 口径的 `/metrics` surface：`GET /metrics` 被 gateway auth hook 拦成 `401`，导致 `rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000` 无法通过。
-- request correlation 证据未闭环：`GET /health` 不回显 `x-request-id` / `traceparent`；stdout 只有 Fastify `reqId`，缺少 `requestId` / `traceId` 结构化日志证据。
-- Prometheus checked-in targets 与 distributed 实际监听端口不一致，当前无法形成有效抓取。
-- Consul agent 本身可达，手工注册 probe service 可成功；但应用自动注册后 `v1/agent/services` / `v1/catalog/services` 未出现 TrapMap 实例，说明“代码存在注册 seam”与“本地可验收注册证据”之间仍有缺口。
-- 分布式业务路径只证明了 gateway 到内部服务的 HTTP hop 可达；`identity-access` 登录链路当前仍返回 `500`，尚不能作为“业务面已健康”的 closeout 证据。
+- `packages/host-distributed/Dockerfile` 的两处硬阻塞已修复：
+  - 已补齐 `packages/runtime-infra` / `packages/server` project reference 链
+  - 已补齐 workspace package `node_modules` 布局，distributed 镜像现可成功构建并启动
+- distributed gateway 的 observability surface 已补齐到“最小可验证”：
+  - `GET /live` 现返回 `200`
+  - `GET /ready` 现返回 `200`
+  - `GET /metrics` 现返回 `200`
+  - `GET /health` 现回显 `x-request-id` / `traceparent`
+  - stdout 现出现 `request.completed` 结构化日志，包含 `requestId` / `traceId`
+  - `rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000` 现可执行
+- checked-in compose 资产已补齐到 closeout 预期的七进程拓扑：
+  - `docker-compose.yml` distributed profile 现已定义 `gateway`、`identity-access`、`knowledge-read`、`knowledge-write`、`candidate-worker`、`governance-worker`、`outbox-worker`、`postgres`
+- Prometheus checked-in assets 已基本对齐：
+  - `prometheus` 现同时接入 `trapmap-observability` 与 `trapmap-distributed`
+  - checked-in targets 已对齐 `gateway:4000`、`identity-access:4001`、`knowledge-read:4002`、`knowledge-write:4003`、`candidate-worker:4004`、`governance-worker:4005`、`outbox-worker:4006`
+  - 其后 checked-in 代码已为 distributed workers 补齐 `/metrics` route
+  - 最新 full-docker 实测已确认 seven TrapMap targets 全部 `up`
+- Consul root cause 已从“应用未注册”收缩为“observability compose 里的 consul 双网卡启动失败”：
+  - 去掉 `trapmap-observability` 挂载后，`consul` 本身已恢复健康，Prometheus `consul:8500` target 也转为 `up`
+  - `rtk docker exec trapmap-consul wget -qO- http://127.0.0.1:8500/v1/agent/services` 已返回 `trapmap-gateway-1`
+  - `rtk docker exec trapmap-consul wget -qO- http://127.0.0.1:8500/v1/catalog/services` 已返回 `{"consul":[],"gateway":[]}`
+  - `rtk docker exec trapmap-consul wget -qO- http://127.0.0.1:8500/v1/health/checks/gateway` 已返回 `passing`
+  - 剩余现象是宿主 shell 对 `127.0.0.1:8500` 访问仍返回 `000`，但这已不再是 Consul agent / catalog 自身不可用
+- benchmark 最新 full-docker 实测已闭环：
+  - `process_resident_memory_bytes=76.93MB`
+  - `nodejs_heap_size_used_bytes=12.86MB`
+  - `nodejs_heap_size_total_bytes=14.5MB`
 
 Remaining closeout work:
 
-- 修复 distributed Docker build/compose 资产，使 checked-in compose 可以直接构建并起全量服务。
-- 为 distributed gateway 补齐或显式开放可观测性 surface：`/metrics`、request-id / trace header 回显、结构化日志字段。
-- 对齐 Prometheus scrape targets 与 distributed 实际端口或统一其 runtime 端口约定。
-- 查清并修复 Consul 自动注册未落地的原因，补齐本地 catalog / health passing 证据。
+- 解释宿主 shell 访问 `127.0.0.1:8500` 返回 `000` 的现象，判断这是否属于当前执行环境限制，还是仍需继续修正 compose / host networking。
+- Loki 侧仍未形成 TrapMap 结构化日志可检索证据；`{service="trapmap"}` 查询当前为空，需要继续补齐日志导出链路。
+- Grafana UI 尚未做人肉点击验收；当前只用 API 口径确认 Prometheus / Tempo / Loki datasource 后端可达。
 - 在目标环境重复执行 Consul / Grafana / Tempo / Loki / benchmark 验收，不能用本地结果替代。
 
 ## 6. 证据入口

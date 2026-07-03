@@ -108,6 +108,10 @@ services:
       - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
       - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
       - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+      - CONSUL_HOST=${CONSUL_HOST:-consul}
+      - CONSUL_PORT=${CONSUL_PORT:-8500}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
       - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
       - LOG_USER_OPS_DIR=${LOG_USER_OPS_DIR:-/app/logs/user-ops}
       - LOG_RAG_ENABLED=${LOG_RAG_ENABLED:-false}
@@ -127,6 +131,114 @@ services:
     networks:
       - trapmap-distributed
 
+  identity-access:
+    image: trap-map-host-distributed:latest
+    profiles: ["distributed"]
+    build:
+      context: .
+      dockerfile: packages/host-distributed/Dockerfile
+    command: ["node", "dist/index.js", "--service", "identity-access"]
+    working_dir: /app/packages/host-distributed
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=4001
+      - TRAPMAP_SERVICE_PORT=4001
+      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+      - TRAPMAP_DEPLOYMENT_PRESET=identity-access
+      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+      - CONSUL_HOST=${CONSUL_HOST:-consul}
+      - CONSUL_PORT=${CONSUL_PORT:-8500}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+    networks:
+      - trapmap-distributed
+
+  knowledge-read:
+    image: trap-map-host-distributed:latest
+    profiles: ["distributed"]
+    build:
+      context: .
+      dockerfile: packages/host-distributed/Dockerfile
+    command: ["node", "dist/index.js", "--service", "knowledge-read"]
+    working_dir: /app/packages/host-distributed
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=4002
+      - TRAPMAP_SERVICE_PORT=4002
+      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+      - TRAPMAP_DEPLOYMENT_PRESET=knowledge-read
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AI_PROVIDER=${AI_PROVIDER:-}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+      - CONSUL_HOST=${CONSUL_HOST:-consul}
+      - CONSUL_PORT=${CONSUL_PORT:-8500}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+    networks:
+      - trapmap-distributed
+
+  knowledge-write:
+    image: trap-map-host-distributed:latest
+    profiles: ["distributed"]
+    build:
+      context: .
+      dockerfile: packages/host-distributed/Dockerfile
+    command: ["node", "dist/index.js", "--service", "knowledge-write"]
+    working_dir: /app/packages/host-distributed
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=4003
+      - TRAPMAP_SERVICE_PORT=4003
+      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+      - TRAPMAP_DEPLOYMENT_PRESET=knowledge-write
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AI_PROVIDER=${AI_PROVIDER:-}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+      - CONSUL_HOST=${CONSUL_HOST:-consul}
+      - CONSUL_PORT=${CONSUL_PORT:-8500}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+    networks:
+      - trapmap-distributed
+
   candidate-worker:
     image: trap-map-host-distributed:latest
     profiles: ["distributed"]
@@ -138,7 +250,8 @@ services:
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
-      - PORT=4000
+      - PORT=4004
+      - TRAPMAP_SERVICE_PORT=4004
       - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
       - TRAPMAP_DEPLOYMENT_PROFILE=distributed
       - TRAPMAP_DEPLOYMENT_PRESET=candidate-worker
@@ -164,6 +277,10 @@ services:
       - TRAPMAP_GRAPH_DB_DATABASE=${TRAPMAP_GRAPH_DB_DATABASE:-neo4j}
       - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
       - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
+      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+      - CONSUL_HOST=${CONSUL_HOST:-consul}
+      - CONSUL_PORT=${CONSUL_PORT:-8500}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
       postgres:
@@ -188,7 +305,8 @@ services:
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
-      - PORT=4000
+      - PORT=4005
+      - TRAPMAP_SERVICE_PORT=4005
       - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
       - TRAPMAP_DEPLOYMENT_PROFILE=distributed
       - TRAPMAP_DEPLOYMENT_PRESET=governance-worker
@@ -214,6 +332,10 @@ services:
       - TRAPMAP_GRAPH_DB_DATABASE=${TRAPMAP_GRAPH_DB_DATABASE:-neo4j}
       - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
       - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
+      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+      - CONSUL_HOST=${CONSUL_HOST:-consul}
+      - CONSUL_PORT=${CONSUL_PORT:-8500}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
       postgres:
@@ -238,7 +360,8 @@ services:
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
-      - PORT=4000
+      - PORT=4006
+      - TRAPMAP_SERVICE_PORT=4006
       - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
       - TRAPMAP_DEPLOYMENT_PROFILE=distributed
       - TRAPMAP_DEPLOYMENT_PRESET=outbox-worker
@@ -260,6 +383,10 @@ services:
       - TRAPMAP_GRAPH_DB_DATABASE=${TRAPMAP_GRAPH_DB_DATABASE:-neo4j}
       - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
       - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
+      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+      - CONSUL_HOST=${CONSUL_HOST:-consul}
+      - CONSUL_PORT=${CONSUL_PORT:-8500}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
       postgres:
@@ -305,4 +432,5 @@ volumes:
 
 networks:
   trapmap-distributed:
+    external: true
     name: trapmap-distributed

@@ -94,6 +94,65 @@ async function buildApp(clients: InternalServiceClients) {
 }
 
 describe('registerGatewayRoutes', () => {
+  it('allows anonymous metrics access for runtime observability', async () => {
+    const clients = createClients();
+    const app = Fastify();
+    registerGatewayRoutes(app, clients);
+    app.get('/metrics', async () => 'trapmap_runtime_http_requests_total 1\n');
+    await app.ready();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/metrics',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toContain('trapmap_runtime_http_requests_total');
+    expect(clients.identityAccess.validateSession).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it('allows anonymous liveness access', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/live',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual(
+      expect.objectContaining({
+        status: 'alive',
+        timestamp: expect.any(String),
+      }),
+    );
+    expect(clients.identityAccess.validateSession).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it('allows anonymous readiness access', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/ready',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual(
+      expect.objectContaining({
+        service: 'gateway',
+        status: 'ready',
+        timestamp: expect.any(String),
+      }),
+    );
+    expect(clients.identityAccess.validateSession).not.toHaveBeenCalled();
+    await app.close();
+  });
+
   it('forwards member updates to identity-access', async () => {
     const clients = createClients();
     const app = await buildApp(clients);

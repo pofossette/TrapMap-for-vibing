@@ -2,7 +2,7 @@ import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
 import Fastify from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
+import { loadServiceConfig } from '../config/index.js';
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -26,6 +26,7 @@ describe('distributed job-runtime ownership acceptance', () => {
     expect(config.internalUrls.governanceReview).toBe('http://governance-worker:4005');
     expect(config.internalUrls.review).toBe('http://governance-worker:4005');
     expect(config.internalUrls.jobRuntime).toBe('http://outbox-worker:4006');
+    expect(config.advertiseHost).toBe('outbox-worker');
   });
 
   it('keeps localhost defaults outside distributed profile', () => {
@@ -35,6 +36,7 @@ describe('distributed job-runtime ownership acceptance', () => {
 
     expect(config.internalUrls.gateway).toBe('http://localhost:4000');
     expect(config.internalUrls.jobRuntime).toBe('http://localhost:4006');
+    expect(config.advertiseHost).toBe('localhost');
   });
 
   it('keeps gateway and candidate-worker ownership separated by service config defaults', () => {
@@ -53,11 +55,13 @@ describe('distributed job-runtime ownership acceptance', () => {
     process.env.TRAPMAP_DEPLOYMENT_PROFILE = 'distributed';
     process.env.TRAPMAP_KNOWLEDGE_WRITE_URL = 'http://custom-knowledge-write:4403';
     process.env.TRAPMAP_JOB_RUNTIME_URL = 'http://custom-job-runtime:4406';
+    process.env.TRAPMAP_SERVICE_ADVERTISE_HOST = 'custom-gateway';
 
     const config = loadServiceConfig('gateway');
 
     expect(config.internalUrls.knowledgeWrite).toBe('http://custom-knowledge-write:4403');
     expect(config.internalUrls.jobRuntime).toBe('http://custom-job-runtime:4406');
+    expect(config.advertiseHost).toBe('custom-gateway');
   });
 
   it('defaults knowledge-write internal transport to http and allows rpc override', () => {

@@ -28,6 +28,7 @@ const ENV_DEPLOYMENT_PROFILE = 'TRAPMAP_DEPLOYMENT_PROFILE';
 const ENV_CONSUL_ENABLED = 'CONSUL_ENABLED';
 const ENV_CONSUL_HOST = 'CONSUL_HOST';
 const ENV_CONSUL_PORT = 'CONSUL_PORT';
+const ENV_SERVICE_ADVERTISE_HOST = 'TRAPMAP_SERVICE_ADVERTISE_HOST';
 const ENV_SERVICE_POOL_SIZE = 'TRAPMAP_SERVICE_POOL_SIZE';
 
 // ---------------------------------------------------------------------------
@@ -142,6 +143,15 @@ function resolveDefaultInternalUrls(mode = resolveServiceDiscoveryMode()): Inter
   return mode === 'docker-dns' ? distributedInternalUrls() : defaultInternalUrls();
 }
 
+function resolveDefaultAdvertiseHost(
+  serviceName: ServiceName,
+  mode = resolveServiceDiscoveryMode(),
+): string {
+  return mode === 'docker-dns'
+    ? DISTRIBUTED_INTERNAL_HOSTS[serviceName]
+    : DEFAULT_INTERNAL_HOSTS[serviceName];
+}
+
 // ---------------------------------------------------------------------------
 // Service configuration
 // ---------------------------------------------------------------------------
@@ -150,6 +160,7 @@ export interface ServiceConfig {
   serviceName: ServiceName;
   port: number;
   host: string;
+  advertiseHost: string;
   logLevel: string;
 
   /** Database URL for this specific service (falls back to DATABASE_URL). */
@@ -211,11 +222,14 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
   const consulHost = process.env[ENV_CONSUL_HOST] ?? 'localhost';
   const consulPort = process.env[ENV_CONSUL_PORT] ?? '8500';
   const consulAddress = `http://${consulHost}:${consulPort}`;
+  const advertiseHost =
+    process.env[ENV_SERVICE_ADVERTISE_HOST] ?? resolveDefaultAdvertiseHost(name);
 
   return {
     serviceName: name,
     port,
     host: '0.0.0.0',
+    advertiseHost,
     logLevel: process.env[ENV_LOG_LEVEL] ?? 'info',
     databaseUrl,
     poolSize: resolvePoolSize(name),

@@ -2,7 +2,9 @@ import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
+import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
+import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import {
   createCandidateIngestionDeps,
   createCandidateIngestionServer,
@@ -31,5 +33,8 @@ export async function createServer(
         String(await ports.queuePorts.task.enqueue(type, payload, options)),
     },
   });
-  return createCandidateIngestionServer(config, deps);
+  const server = await createCandidateIngestionServer(config, deps);
+  attachRuntimeMetricsRoute(server.app);
+  await attachRuntimeTelemetry(server.app, 'candidate-ingestion');
+  return server;
 }

@@ -27,29 +27,33 @@ scrape_configs:
       - targets: ["gateway:4000"]
     metrics_path: /metrics
 
-  # 以下为 distributed 形态下的 TrapMap 服务抓取目标
-  # 部署时根据实际服务地址调整 targets
-  - job_name: "trapmap-candidate-ingestion"
+  # Distributed compose targets align with host-distributed service DNS and ports.
+  - job_name: "trapmap-identity-access"
     static_configs:
-      - targets: ["candidate-ingestion:4001"]
-    metrics_path: /metrics
-
-  - job_name: "trapmap-governance-review"
-    static_configs:
-      - targets: ["governance-review:4002"]
+      - targets: ["identity-access:4001"]
     metrics_path: /metrics
 
   - job_name: "trapmap-knowledge-read"
     static_configs:
-      - targets: ["knowledge-read:4003"]
+      - targets: ["knowledge-read:4002"]
     metrics_path: /metrics
 
   - job_name: "trapmap-knowledge-write"
     static_configs:
-      - targets: ["knowledge-write:4004"]
+      - targets: ["knowledge-write:4003"]
+    metrics_path: /metrics
+
+  - job_name: "trapmap-candidate-ingestion"
+    static_configs:
+      - targets: ["candidate-worker:4004"]
+    metrics_path: /metrics
+
+  - job_name: "trapmap-governance-review"
+    static_configs:
+      - targets: ["governance-worker:4005"]
     metrics_path: /metrics
 
   - job_name: "trapmap-job-runtime"
     static_configs:
-      - targets: ["job-runtime:4005"]
+      - targets: ["outbox-worker:4006"]
     metrics_path: /metrics

@@ -10,6 +10,7 @@ import {
   recordRuntimeExecution,
   recordRuntimeReclaim,
   recordRuntimeRetry,
+  renderPrometheusMetrics,
   resetRuntimeMetrics,
 } from './metrics.js';
 
@@ -125,5 +126,18 @@ describe('runtime metrics', () => {
     expect(getAverageQueueBacklog(snapshot.dependencies['async-operator-status'])).toBe(2);
     expect(getAverageOutboxBacklog(snapshot.dependencies['async-operator-status'])).toBe(3);
     expect(getAverageStaleWorkers(snapshot.dependencies['async-operator-status'])).toBe(0.5);
+  });
+
+  it('renders process and heap gauges alongside runtime metrics', () => {
+    resetRuntimeMetrics();
+
+    const output = renderPrometheusMetrics();
+
+    expect(output).toMatch(/# TYPE trapmap_process_resident_memory_bytes gauge/);
+    expect(output).toMatch(/trapmap_process_resident_memory_bytes \d+/);
+    expect(output).toMatch(/# TYPE trapmap_nodejs_heap_size_used_bytes gauge/);
+    expect(output).toMatch(/trapmap_nodejs_heap_size_used_bytes \d+/);
+    expect(output).toMatch(/# TYPE trapmap_nodejs_heap_size_total_bytes gauge/);
+    expect(output).toMatch(/trapmap_nodejs_heap_size_total_bytes \d+/);
   });
 });

@@ -1,6 +1,8 @@
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
+import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
+import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import {
   type IdentityAccessServer,
   createIdentityAccessDeps,
@@ -23,5 +25,8 @@ export async function createServer(
     permissionCheck: ports.permissionCheck,
     auditLog: ports.auditLog,
   });
-  return createServiceIdentityAccessServer(config, deps);
+  const server = await createServiceIdentityAccessServer(config, deps);
+  attachRuntimeMetricsRoute(server.app);
+  await attachRuntimeTelemetry(server.app, 'identity-access');
+  return server;
 }

@@ -390,6 +390,7 @@ export function getAverageStaleWorkers(counter: RuntimeMetricsCounter): number {
 
 export function renderPrometheusMetrics(): string {
   const lines: string[] = [];
+  const memoryUsage = process.memoryUsage();
 
   const appendCounter = (metricName: string, samples: Map<string, CounterMetricSample>) => {
     lines.push(`# TYPE ${metricName} counter`);
@@ -423,6 +424,13 @@ export function renderPrometheusMetrics(): string {
   for (const [metricName, samples] of histograms.entries()) {
     appendHistogram(metricName, samples);
   }
+
+  lines.push('# TYPE trapmap_process_resident_memory_bytes gauge');
+  lines.push(`trapmap_process_resident_memory_bytes ${memoryUsage.rss}`);
+  lines.push('# TYPE trapmap_nodejs_heap_size_used_bytes gauge');
+  lines.push(`trapmap_nodejs_heap_size_used_bytes ${memoryUsage.heapUsed}`);
+  lines.push('# TYPE trapmap_nodejs_heap_size_total_bytes gauge');
+  lines.push(`trapmap_nodejs_heap_size_total_bytes ${memoryUsage.heapTotal}`);
 
   return `${lines.join('\n')}\n`;
 }

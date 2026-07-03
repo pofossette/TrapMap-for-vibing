@@ -5,14 +5,190 @@
  * public API requests and forwards them to internal services via HTTP.
  */
 
-import Fastify, { type FastifyInstance } from 'fastify';
+import { randomUUID } from 'node:crypto';
+
+import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 
 import { DynamicDiscovery } from '@trapmap/backend-core';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
+import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import { ConsulDiscoveryAdapter } from './consul-discovery-adapter.js';
 import { DiscoveryResolver } from './discovery-resolver.js';
 import { type InternalServiceClients, createInternalServiceClients } from './internal-client.js';
 import { registerGatewayRoutes } from './routes.js';
+
+interface RequestContext {
+  requestId: string;
+  traceHeaderName: string;
+  traceId: string | null;
+  traceParent: string | null;
+  method: string;
+  route: string;
+}
+
+interface CounterSample {
+  value: number;
+  labels: Record<string, string>;
+}
+
+interface HistogramSample {
+  sum: number;
+  count: number;
+  labels: Record<string, string>;
+}
+
+const counters = new Map<string, Map<string, CounterSample>>();
+const histograms = new Map<string, Map<string, HistogramSample>>();
+
+function normalizeLabels(labels: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(labels).sort(([a], [b]) => a.localeCompare(b)));
+}
+
+function labelKey(labels: Record<string, string>): string {
+  return JSON.stringify(normalizeLabels(labels));
+}
+
+function getCounter(name: string, labels: Record<string, string>): CounterSample {
+  let samples = counters.get(name);
+  if (!samples) {
+    samples = new Map();
+    counters.set(name, samples);
+  }
+
+  const key = labelKey(labels);
+  const existing = samples.get(key);
+  if (existing) {
+    return existing;
+  }
+
+  const next = { value: 0, labels };
+  samples.set(key, next);
+  return next;
+}
+
+function getHistogram(name: string, labels: Record<string, string>): HistogramSample {
+  let samples = histograms.get(name);
+  if (!samples) {
+    samples = new Map();
+    histograms.set(name, samples);
+  }
+
+  const key = labelKey(labels);
+  const existing = samples.get(key);
+  if (existing) {
+    return existing;
+  }
+
+  const next = { sum: 0, count: 0, labels };
+  samples.set(key, next);
+  return next;
+}
+
+function serializeLabels(labels: Record<string, string>): string {
+  const entries = Object.entries(normalizeLabels(labels));
+  if (entries.length === 0) {
+    return '';
+  }
+  return `{${entries.map(([key, value]) => `${key}="${value}"`).join(',')}}`;
+}
+
+function extractTraceId(traceParent: string): string {
+  const trimmed = traceParent.trim();
+  const traceParentMatch = /^00-([0-9a-f]{32})-[0-9a-f]{16}-[0-9a-f]{2}$/i.exec(trimmed);
+  return traceParentMatch?.[1] ?? trimmed;
+}
+
+function getOrCreateRequestContext(request: FastifyRequest): RequestContext {
+  const contextCarrier = request as FastifyRequest & {
+    requestContext?: RequestContext;
+  };
+  if (contextCarrier.requestContext) {
+    return contextCarrier.requestContext;
+  }
+
+  const requestIdHeader = request.headers['x-request-id'];
+  const traceParentHeader = request.headers.traceparent;
+  const requestId =
+    typeof requestIdHeader === 'string' && requestIdHeader.trim().length > 0
+      ? requestIdHeader.trim()
+      : request.id || randomUUID();
+  const traceParent =
+    typeof traceParentHeader === 'string' && traceParentHeader.trim().length > 0
+      ? traceParentHeader.trim()
+      : null;
+
+  const context: RequestContext = {
+    requestId,
+    traceHeaderName: 'traceparent',
+    traceId: traceParent ? extractTraceId(traceParent) : null,
+    traceParent,
+    method: request.method,
+    route: request.routeOptions.url || request.url,
+  };
+
+  contextCarrier.requestContext = context;
+  return context;
+}
+
+function recordHttpRequestMetric(params: {
+  routeFamily: string;
+  serviceName: string;
+  latencyMs: number;
+  statusCode: number;
+  method: string;
+}) {
+  const labels = {
+    route_family: params.routeFamily,
+    service_name: params.serviceName,
+    method: params.method.toUpperCase(),
+    status_class: `${Math.floor(params.statusCode / 100)}xx`,
+    owner_surface: 'runtime-seam',
+  };
+
+  getCounter('trapmap_runtime_http_requests_total', labels).value += 1;
+  const histogram = getHistogram('trapmap_runtime_request_duration_ms', labels);
+  histogram.count += 1;
+  histogram.sum += params.latencyMs;
+}
+
+function renderPrometheusMetrics(): string {
+  const lines: string[] = [];
+  const memoryUsage = process.memoryUsage();
+
+  for (const [metricName, samples] of counters.entries()) {
+    lines.push(`# TYPE ${metricName} counter`);
+    for (const sample of samples.values()) {
+      lines.push(`${metricName}${serializeLabels(sample.labels)} ${sample.value}`);
+    }
+  }
+
+  for (const [metricName, samples] of histograms.entries()) {
+    lines.push(`# TYPE ${metricName} histogram`);
+    for (const sample of samples.values()) {
+      lines.push(`${metricName}_count${serializeLabels(sample.labels)} ${sample.count}`);
+      lines.push(`${metricName}_sum${serializeLabels(sample.labels)} ${sample.sum}`);
+    }
+  }
+
+  lines.push('# TYPE trapmap_process_resident_memory_bytes gauge');
+  lines.push(`trapmap_process_resident_memory_bytes ${memoryUsage.rss}`);
+  lines.push('# TYPE trapmap_nodejs_heap_size_used_bytes gauge');
+  lines.push(`trapmap_nodejs_heap_size_used_bytes ${memoryUsage.heapUsed}`);
+  lines.push('# TYPE trapmap_nodejs_heap_size_total_bytes gauge');
+  lines.push(`trapmap_nodejs_heap_size_total_bytes ${memoryUsage.heapTotal}`);
+
+  return `${lines.join('\n')}\n`;
+}
+
+function resolveRouteFamily(route: string): string {
+  if (route.startsWith('/health') || route === '/metrics') {
+    return 'runtime';
+  }
+  if (route.startsWith('/v1/')) {
+    return 'gateway';
+  }
+  return 'runtime';
+}
 
 // ---------------------------------------------------------------------------
 // Server interface
@@ -40,7 +216,55 @@ export interface GatewayServer {
  * Otherwise only static env-var-based URLs are used.
  */
 export async function createServer(config: ServiceConfig): Promise<GatewayServer> {
-  const app = Fastify({ logger: { level: config.logLevel } });
+  const app = Fastify({
+    logger: { level: config.logLevel },
+    requestIdHeader: 'x-request-id',
+  });
+  await attachRuntimeTelemetry(app, 'gateway');
+
+  app.addHook('onRequest', async (request, reply) => {
+    const context = getOrCreateRequestContext(request);
+    reply.header('x-request-id', context.requestId);
+    if (context.traceParent) {
+      reply.header('traceparent', context.traceParent);
+    }
+  });
+
+  app.addHook('onResponse', async (request, reply) => {
+    const context = getOrCreateRequestContext(request);
+    const route = context.route;
+    const routeFamily = resolveRouteFamily(route);
+    const responseTime =
+      typeof reply.elapsedTime === 'number' && Number.isFinite(reply.elapsedTime)
+        ? reply.elapsedTime
+        : 0;
+
+    recordHttpRequestMetric({
+      routeFamily,
+      serviceName: 'gateway',
+      latencyMs: responseTime,
+      statusCode: reply.statusCode,
+      method: request.method,
+    });
+
+    app.log.info(
+      {
+        eventCategory: 'request',
+        eventName: 'request.completed',
+        requestId: context.requestId,
+        traceId: context.traceId,
+        service: 'gateway',
+        serviceName: 'gateway',
+        ownerSurface: 'runtime-seam',
+        routeFamily,
+        method: request.method,
+        route,
+        statusCode: reply.statusCode,
+        latencyMs: responseTime,
+      },
+      'Request completed',
+    );
+  });
 
   // Optional: set up dynamic discovery via Consul
   let resolver: DiscoveryResolver | undefined;
@@ -72,10 +296,10 @@ export async function createServer(config: ServiceConfig): Promise<GatewayServer
     await adapter.register({
       id: `trapmap-gateway-${process.pid}`,
       name: 'gateway',
-      address: config.host,
+      address: config.advertiseHost,
       port: config.port,
       check: {
-        http: `http://${config.host}:${config.port}/health`,
+        http: `http://${config.advertiseHost}:${config.port}/health`,
         interval: '10s',
         timeout: '5s',
       },
@@ -91,6 +315,11 @@ export async function createServer(config: ServiceConfig): Promise<GatewayServer
 
   // Register gateway routes (external API surface)
   registerGatewayRoutes(app, clients);
+  app.get('/metrics', async (_request, reply) => {
+    return reply
+      .header('content-type', 'text/plain; version=0.0.4; charset=utf-8')
+      .send(renderPrometheusMetrics());
+  });
 
   return {
     app,
