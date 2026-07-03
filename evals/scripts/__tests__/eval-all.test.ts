@@ -529,4 +529,215 @@ describe('runUnifiedEvaluation', () => {
       ['graph-plan', false, 'case.passed'],
     ]);
   });
+
+  it('mirrors summary case, score, and assertion events without enabling summary trace events', async () => {
+    const publishPlatformEvent = vi.fn();
+
+    await runUnifiedEvaluation(
+      {
+        ...baseOptions,
+        platform: 'json-archive' as const,
+        platformOutputDir: './reports/platform-events',
+      },
+      {
+        createPlatformAdapter: vi.fn(() => ({
+          kind: 'json-archive',
+          publish: vi.fn(),
+          close: vi.fn(),
+        })),
+        publishPlatformEvent,
+        closePlatformAdapter: vi.fn(),
+        warn: vi.fn(),
+        log: vi.fn(),
+        error: vi.fn(),
+        runRetrievalEval: vi.fn(async () => null),
+        runSummaryEval: vi.fn(async () => ({
+          passed: false,
+          report: {
+            meta: {
+              schemaVersion: 1,
+              timestamp: '2026-07-03T00:00:08.000Z',
+              durationMs: 3000,
+              llmProvider: 'fallback',
+              options: {
+                tier: 'smoke',
+                endpoint: '/v2/retrieval/search',
+                dryRun: false,
+                allowEmpty: false,
+                verbose: 0,
+              },
+            },
+            summary: {
+              totalCases: 2,
+              passedCases: 1,
+              failedCases: 1,
+              passRate: 0.5,
+              passed: false,
+              avgGroundedness: 0.6,
+              avgCoverage: 1,
+              forbiddenClaimHits: 1,
+            },
+            cases: [
+              {
+                caseId: 'summary-grounded-smoke',
+                endpoint: '/v2/retrieval/search',
+                tier: 'smoke',
+                passed: true,
+                groundednessScore: 0.95,
+                coverageScore: 1,
+                claimsTotal: 2,
+                claimsSupported: 2,
+                requiredFactsCovered: ['docker-compose', 'multi-container'],
+                requiredFactsMissing: [],
+                forbiddenClaimsFound: [],
+                durationMs: 111,
+              },
+              {
+                caseId: 'summary-hallucination-smoke',
+                endpoint: '/v2/retrieval/search',
+                tier: 'smoke',
+                passed: false,
+                groundednessScore: 0.25,
+                coverageScore: 1,
+                claimsTotal: 1,
+                claimsSupported: 0,
+                requiredFactsCovered: [],
+                requiredFactsMissing: [],
+                forbiddenClaimsFound: ['Einstein'],
+                durationMs: 222,
+              },
+            ],
+            failures: [
+              {
+                caseId: 'summary-hallucination-smoke',
+                kind: 'groundedness-below-threshold',
+                description: 'Groundedness score 0.25 below minimum 0.50',
+              },
+              {
+                caseId: 'summary-hallucination-smoke',
+                kind: 'forbidden-claim-found',
+                description: 'Forbidden claim found: "Einstein"',
+              },
+            ],
+          },
+          durationMs: 3000,
+          summary: {
+            totalCases: 2,
+            passedCases: 1,
+            failedCases: 1,
+            passRate: 0.5,
+            avgGroundedness: 0.6,
+            avgCoverage: 1,
+            forbiddenClaimHits: 1,
+          },
+        })),
+        runGraphExtractionEval: vi.fn(async () => null),
+        runIngestionEval: vi.fn(async () => null),
+        runAgentPlanningEval: vi.fn(async () => null),
+        runLabelAlignmentEval: vi.fn(async () => null),
+      },
+    );
+
+    const publishedEvents = publishPlatformEvent.mock.calls.map(([_, __, event]) => event);
+    const summaryEvents = publishedEvents.filter((event) => event.suite === 'summary');
+
+    expect(summaryEvents.map((event) => event.family)).toEqual([
+      'EvalRunStarted',
+      'EvalCaseStarted',
+      'EvalCaseFinished',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalCaseStarted',
+      'EvalCaseFinished',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalRunFinished',
+    ]);
+
+    expect(summaryEvents.filter((event) => event.family === 'EvalTraceStepRecorded')).toHaveLength(
+      0,
+    );
+
+    expect(
+      summaryEvents
+        .filter((event) => event.family === 'EvalCaseStarted')
+        .map((event) => event.payload.case.caseId),
+    ).toEqual(['summary-grounded-smoke', 'summary-hallucination-smoke']);
+
+    expect(
+      summaryEvents
+        .filter(
+          (event) =>
+            event.family === 'EvalScoreRecorded' && event.caseId === 'summary-grounded-smoke',
+        )
+        .map((event) => [event.payload.scoreId, event.payload.score, event.payload.source]),
+    ).toEqual([
+      ['groundednessScore', 0.95, 'case.groundednessScore'],
+      ['coverageScore', 1, 'case.coverageScore'],
+    ]);
+
+    expect(
+      summaryEvents
+        .filter(
+          (event) =>
+            event.family === 'EvalAssertionRecorded' && event.caseId === 'summary-grounded-smoke',
+        )
+        .map((event) => [
+          event.payload.assertionId,
+          event.payload.passed,
+          event.payload.source,
+          event.payload.expected ?? null,
+          event.payload.actual ?? null,
+        ]),
+    ).toEqual([
+      ['summary-present', true, 'case.claimsTotal', true, true],
+      ['groundedness', true, 'case.groundednessScore', 0.8, 0.95],
+      ['coverage', true, 'case.coverageScore', 0.7, 1],
+      ['forbidden-claims', true, 'case.forbiddenClaimsFound', [], []],
+    ]);
+
+    expect(
+      summaryEvents
+        .filter(
+          (event) =>
+            event.family === 'EvalAssertionRecorded' &&
+            event.caseId === 'summary-hallucination-smoke',
+        )
+        .map((event) => [
+          event.payload.assertionId,
+          event.payload.passed,
+          event.payload.source,
+          event.payload.expected ?? null,
+          event.payload.actual ?? null,
+          event.payload.reason ?? null,
+        ]),
+    ).toEqual([
+      ['summary-present', true, 'case.claimsTotal', true, true, null],
+      [
+        'groundedness',
+        false,
+        'case.groundednessScore',
+        0.5,
+        0.25,
+        'Groundedness score 0.25 below minimum 0.50',
+      ],
+      ['coverage', true, 'case.coverageScore', 0, 1, null],
+      [
+        'forbidden-claims',
+        false,
+        'case.forbiddenClaimsFound',
+        [],
+        ['Einstein'],
+        'Forbidden claim found: "Einstein"',
+      ],
+    ]);
+  });
 });

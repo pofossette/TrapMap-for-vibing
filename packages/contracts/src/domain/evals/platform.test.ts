@@ -78,6 +78,28 @@ describe('platform eval contracts', () => {
     expect(event.payload.assertionId).toBe('shape');
   });
 
+  it('accepts summary assertion payloads that stay within the frozen event model', () => {
+    const event = evalPlatformEventSchema.parse({
+      family: 'EvalAssertionRecorded',
+      suite: 'summary',
+      tier: 'smoke',
+      runId: 'run-123:summary',
+      caseId: 'summary-grounded-smoke',
+      scenarioId: 'summary-smoke-grounded',
+      timestamp: '2026-07-03T00:00:01.000Z',
+      tags: ['grounded', 'smoke', 'v2'],
+      payload: {
+        assertionId: 'groundedness',
+        passed: true,
+        source: 'case.groundednessScore',
+        expected: 0.8,
+        actual: 0.95,
+      },
+    });
+
+    expect(event.payload.assertionId).toBe('groundedness');
+  });
+
   it('rejects mismatched payloads for the declared event family', () => {
     expect(() =>
       evalPlatformEventSchema.parse({
@@ -170,6 +192,27 @@ describe('platform eval contracts', () => {
         },
       }),
     ).toThrow(/durationMs|platform/i);
+  });
+
+  it('rejects summary trace events because Phase 0 only permits them for agent-planning', () => {
+    expect(() =>
+      evalPlatformEventSchema.parse({
+        family: 'EvalTraceStepRecorded',
+        suite: 'summary',
+        tier: 'smoke',
+        runId: 'run-123:summary',
+        caseId: 'summary-grounded-smoke',
+        scenarioId: 'summary-smoke-grounded',
+        timestamp: '2026-07-03T00:00:02.000Z',
+        tags: ['grounded', 'smoke'],
+        payload: {
+          stepIndex: 0,
+          kind: 'actor-output',
+          text: 'generated summary text',
+          source: 'case.actorOutput',
+        },
+      }),
+    ).toThrow(/summary|agent-planning|suite/i);
   });
 
   it('accepts a run envelope with retrieval event history', () => {

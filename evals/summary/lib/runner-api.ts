@@ -14,6 +14,7 @@ import {
   type SummaryEvalTier,
   summaryEvalCaseSchema,
 } from '@trapmap/contracts/evals';
+import type { SummaryEvalReport } from '../../../packages/contracts/src/domain/evals/report.js';
 
 import { summaryCoreCases } from '../core.js';
 import { summaryCoreScenariosMap } from '../scenarios/core/summary-core-scenarios.js';
@@ -52,7 +53,7 @@ export interface RunSummaryOptions {
 
 export interface RunSummaryResult {
   passed: boolean;
-  report: unknown;
+  report: SummaryEvalReport | null;
   summary: {
     totalCases: number;
     passedCases: number;
@@ -98,6 +99,13 @@ function filterCasesByEndpoint(
 ): SummaryEvalCase[] {
   if (!endpoint) return cases_;
   return cases_.filter((c) => c.endpoint === endpoint);
+}
+
+export function getSummaryEvaluationCases(
+  tier: SummaryEvalTier,
+  endpoint?: SummaryEvalEndpoint,
+): SummaryEvalCase[] {
+  return filterCasesByEndpoint(loadCasesForTier(tier), endpoint);
 }
 
 // =============================================================================
@@ -149,8 +157,7 @@ export async function runSummaryEvaluation(options: RunSummaryOptions): Promise<
   const provider = options.provider ?? 'fallback';
 
   // Load and validate cases
-  let cases_ = loadCasesForTier(tier);
-  cases_ = filterCasesByEndpoint(cases_, options.endpoint);
+  const cases_ = getSummaryEvaluationCases(tier, options.endpoint);
 
   if (cases_.length === 0) {
     if (allowEmpty) {
