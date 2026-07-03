@@ -8,6 +8,8 @@
 |---|---|---|
 | `active-closeout-and-followups.md` | 2026-07-03 审计后的统一未完成事项清单 | 活跃主线 |
 | `open-debt-and-compromises.md` | 当前仍成立的阶段性妥协、占位实现与 deferred 事实 | 活跃 debt register |
+| `agent-eval-framework-evaluation-and-plan.md` | Agent 评测框架调研、初步评估与 PoC 计划 | 活跃专项评估 |
+| `agent-eval-framework-scorecard.md` | Agent 评测框架第一轮评分表 | 活跃专项评估 |
 
 ## 目录规则
 
