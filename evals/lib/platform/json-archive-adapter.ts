@@ -22,7 +22,10 @@ function writeArchive(outputDir: string, runId: string, state: RunArchiveState):
     suite: state.suite,
     tier: state.tier,
     startedAt: state.events[0]?.timestamp,
-    finishedAt: state.events.at(-1)?.family === 'EvalRunFinished' ? state.events.at(-1)?.timestamp : undefined,
+    finishedAt:
+      state.events.at(-1)?.family === 'EvalRunFinished'
+        ? state.events.at(-1)?.timestamp
+        : undefined,
     tags: [...state.tags],
     events: state.events,
   });
