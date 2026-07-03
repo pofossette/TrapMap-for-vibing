@@ -19,11 +19,17 @@ import { randomUUID } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
+import type { AgentPlanningEvalReport } from '../../packages/contracts/src/domain/evals/agent-planning.js';
+import type {
+  RetrievalEvalReport,
+  SummaryEvalReport,
+} from '../../packages/contracts/src/domain/evals/report.js';
 import {
   closePlatformAdapterSafely,
   createEvalPlatformAdapter,
   publishPlatformEventSafely,
   type EvalPlatformAdapterKind,
+  type EvalPlatformEvent,
 } from '../lib/platform/adapter.js';
 
 // =============================================================================
@@ -115,7 +121,7 @@ function parseArgs_(): EvalAllOptions {
 
 interface RetrievalResult {
   passed: boolean;
-  report: unknown;
+  report: RetrievalEvalReport | null;
   durationMs: number;
   summary: {
     totalCases: number;
@@ -137,7 +143,7 @@ interface RetrievalResult {
 
 interface SummaryResult {
   passed: boolean;
-  report: unknown;
+  report: SummaryEvalReport | null;
   durationMs: number;
   summary: {
     totalCases: number;
@@ -170,7 +176,7 @@ interface IngestionResult {
 
 interface AgentPlanningResult {
   passed: boolean;
-  report: unknown;
+  report: AgentPlanningEvalReport | null;
   durationMs: number;
   summary: {
     totalCases: number;
@@ -250,6 +256,230 @@ function getRunUnifiedEvaluationDeps(): RunUnifiedEvaluationDeps {
     runAgentPlanningEval,
     runLabelAlignmentEval,
   };
+}
+
+function deriveStartedAt(timestamp: string, durationMs: number): string {
+  return new Date(new Date(timestamp).getTime() - durationMs).toISOString();
+}
+
+function buildPlatformTags(options: EvalAllOptions): string[] {
+  const tags: string[] = [];
+  if (options.dryRun) {
+    tags.push('dry-run');
+  }
+  if (options.allowEmpty) {
+    tags.push('allow-empty');
+  }
+  return tags;
+}
+
+async function loadRetrievalScenarioIds(options: EvalAllOptions): Promise<string[]> {
+  const [{ coreCases }, { smokeCases }] = await Promise.all([
+    import('../retrieval/core.js'),
+    import('../retrieval/smoke.js'),
+  ]);
+  const cases = options.tier === 'smoke' ? smokeCases : coreCases;
+  return [...new Set(cases.map((case_) => case_.scenarioId))].sort();
+}
+
+async function loadSummaryScenarioIds(options: EvalAllOptions): Promise<string[]> {
+  const [{ summaryCoreCases }, { summarySmokeCases }] = await Promise.all([
+    import('../summary/core.js'),
+    import('../summary/smoke.js'),
+  ]);
+  const cases = options.tier === 'smoke' ? summarySmokeCases : summaryCoreCases;
+  return [...new Set(cases.map((case_) => case_.scenarioId))].sort();
+}
+
+async function loadAgentPlanningScenarioIds(options: EvalAllOptions): Promise<string[]> {
+  const [
+    { coreCases },
+    { smokeCases },
+    { skillIdentificationCoreCases },
+    { skillIdentificationSmokeCases },
+  ] = await Promise.all([
+    import('../agent-planning/core.js'),
+    import('../agent-planning/smoke.js'),
+    import('../agent-planning/datasets/core/skill-identification-core.js'),
+    import('../agent-planning/datasets/smoke/skill-identification-smoke.js'),
+  ]);
+  const baseCases = options.tier === 'smoke' ? smokeCases : coreCases;
+  const skillCases =
+    options.tier === 'smoke' ? skillIdentificationSmokeCases : skillIdentificationCoreCases;
+  return [...new Set([...baseCases, ...skillCases].map((case_) => case_.scenarioId))].sort();
+}
+
+async function buildSuitePlatformEvents(
+  options: EvalAllOptions,
+  suiteRunId: string,
+  retrievalResult: RetrievalResult | null,
+  summaryResult: SummaryResult | null,
+  agentPlanningResult: AgentPlanningResult | null,
+): Promise<EvalPlatformEvent[]> {
+  const tags = buildPlatformTags(options);
+  const events: EvalPlatformEvent[] = [];
+
+  if (retrievalResult?.report) {
+    const report = retrievalResult.report;
+    const startedAt = deriveStartedAt(report.meta.timestamp, report.meta.durationMs);
+    const scenarioIds = await loadRetrievalScenarioIds(options);
+    events.push({
+      family: 'EvalRunStarted',
+      suite: 'retrieval',
+      tier: report.meta.options.tier,
+      runId: `${suiteRunId}:retrieval`,
+      caseId: null,
+      scenarioId: null,
+      timestamp: startedAt,
+      tags,
+      payload: {
+        reportMeta: {
+          schemaVersion: report.meta.schemaVersion,
+          timestamp: report.meta.timestamp,
+          options: report.meta.options,
+          baselinePath: report.meta.baselinePath,
+          isBaselineWrite: report.meta.isBaselineWrite,
+        },
+        runScope: {
+          tier: report.meta.options.tier,
+          dryRun: report.meta.options.dryRun,
+          allowEmpty: report.meta.options.allowEmpty,
+          endpoint: report.meta.options.endpoint,
+          verbose: report.meta.options.verbose > 0,
+          caseCount: report.summary.totalCases,
+          scenarioIds,
+        },
+      },
+    });
+    events.push({
+      family: 'EvalRunFinished',
+      suite: 'retrieval',
+      tier: report.meta.options.tier,
+      runId: `${suiteRunId}:retrieval`,
+      caseId: null,
+      scenarioId: null,
+      timestamp: report.meta.timestamp,
+      tags,
+      payload: {
+        reportMeta: report.meta,
+        reportSummary: report.summary,
+        reportCollections: {
+          cases: report.cases,
+          slices: report.slices,
+          cohorts: report.cohorts,
+          modeComparisons: report.modeComparisons,
+          routingDistribution: report.routingDistribution,
+          failures: report.failures,
+          warnings: report.warnings,
+        },
+      },
+    });
+  }
+
+  if (summaryResult?.report) {
+    const report = summaryResult.report;
+    const startedAt = deriveStartedAt(report.meta.timestamp, report.meta.durationMs);
+    const scenarioIds = await loadSummaryScenarioIds(options);
+    events.push({
+      family: 'EvalRunStarted',
+      suite: 'summary',
+      tier: report.meta.options.tier,
+      runId: `${suiteRunId}:summary`,
+      caseId: null,
+      scenarioId: null,
+      timestamp: startedAt,
+      tags,
+      payload: {
+        reportMeta: {
+          schemaVersion: report.meta.schemaVersion,
+          timestamp: report.meta.timestamp,
+          llmProvider: report.meta.llmProvider,
+          options: report.meta.options,
+        },
+        runScope: {
+          tier: report.meta.options.tier,
+          dryRun: report.meta.options.dryRun,
+          allowEmpty: report.meta.options.allowEmpty,
+          endpoint: report.meta.options.endpoint,
+          verbose: report.meta.options.verbose > 0,
+          provider: report.meta.llmProvider,
+          caseCount: report.summary.totalCases,
+          scenarioIds,
+        },
+      },
+    });
+    events.push({
+      family: 'EvalRunFinished',
+      suite: 'summary',
+      tier: report.meta.options.tier,
+      runId: `${suiteRunId}:summary`,
+      caseId: null,
+      scenarioId: null,
+      timestamp: report.meta.timestamp,
+      tags,
+      payload: {
+        reportMeta: report.meta,
+        reportSummary: report.summary,
+        reportCollections: {
+          cases: report.cases,
+          failures: report.failures,
+        },
+      },
+    });
+  }
+
+  if (agentPlanningResult?.report) {
+    const report = agentPlanningResult.report;
+    const startedAt = deriveStartedAt(report.meta.timestamp, report.meta.durationMs);
+    const scenarioIds = await loadAgentPlanningScenarioIds(options);
+    events.push({
+      family: 'EvalRunStarted',
+      suite: 'agent-planning',
+      tier: report.meta.options.tier,
+      runId: `${suiteRunId}:agent-planning`,
+      caseId: null,
+      scenarioId: null,
+      timestamp: startedAt,
+      tags,
+      payload: {
+        reportMeta: {
+          schemaVersion: report.meta.schemaVersion,
+          timestamp: report.meta.timestamp,
+          runner: report.meta.runner,
+          options: report.meta.options,
+        },
+        runScope: {
+          tier: report.meta.options.tier,
+          dryRun: report.meta.options.dryRun,
+          provider: report.meta.options.provider,
+          promptTemplateId: report.meta.options.promptTemplateId,
+          caseCount: report.summary.totalCases,
+          scenarioIds,
+        },
+      },
+    });
+    events.push({
+      family: 'EvalRunFinished',
+      suite: 'agent-planning',
+      tier: report.meta.options.tier,
+      runId: `${suiteRunId}:agent-planning`,
+      caseId: null,
+      scenarioId: null,
+      timestamp: report.meta.timestamp,
+      tags,
+      payload: {
+        reportMeta: report.meta,
+        reportSummary: report.summary,
+        reportCollections: {
+          cases: report.cases,
+          groups: report.groups,
+          slices: report.slices,
+        },
+      },
+    });
+  }
+
+  return events;
 }
 
 // =============================================================================
@@ -801,6 +1031,7 @@ export async function runUnifiedEvaluation(
   deps: RunUnifiedEvaluationDeps = getRunUnifiedEvaluationDeps(),
 ): Promise<RunUnifiedEvaluationResult> {
   const startTime = Date.now();
+  const platformRunSeed = randomUUID();
   const adapter = options.platform
     ? deps.createPlatformAdapter({
         kind: options.platform,
@@ -822,9 +1053,6 @@ export async function runUnifiedEvaluation(
   }
   if (options.platform) {
     deps.log(`Platform adapter: ${options.platform}`);
-    deps.warn(
-      '[eval-platform] Aggregate runner does not emit platform events in Phase 1; native combined reports remain the only output for this route.',
-    );
   }
   deps.log('');
 
@@ -1083,6 +1311,17 @@ export async function runUnifiedEvaluation(
   }
 
   if (adapter) {
+    const suiteEvents = await buildSuitePlatformEvents(
+      options,
+      platformRunSeed,
+      retrievalResult,
+      summaryResult,
+      agentPlanningResult,
+    );
+    for (const event of suiteEvents) {
+      await deps.publishPlatformEvent(adapter, deps.warn, event);
+    }
+
     try {
       await deps.closePlatformAdapter(adapter, deps.warn);
     } catch (error) {
