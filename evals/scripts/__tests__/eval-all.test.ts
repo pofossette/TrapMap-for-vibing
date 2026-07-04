@@ -740,4 +740,253 @@ describe('runUnifiedEvaluation', () => {
       ],
     ]);
   });
+
+  it('mirrors agent-planning case, score, assertion, and trace events from the native report truth source', async () => {
+    const publishPlatformEvent = vi.fn();
+
+    await runUnifiedEvaluation(
+      {
+        ...baseOptions,
+        platform: 'json-archive' as const,
+        platformOutputDir: './reports/platform-events',
+      },
+      {
+        createPlatformAdapter: vi.fn(() => ({
+          kind: 'json-archive',
+          publish: vi.fn(),
+          close: vi.fn(),
+        })),
+        publishPlatformEvent,
+        closePlatformAdapter: vi.fn(),
+        warn: vi.fn(),
+        log: vi.fn(),
+        error: vi.fn(),
+        runRetrievalEval: vi.fn(async () => null),
+        runSummaryEval: vi.fn(async () => null),
+        runGraphExtractionEval: vi.fn(async () => null),
+        runIngestionEval: vi.fn(async () => null),
+        runAgentPlanningEval: vi.fn(async () => ({
+          passed: false,
+          report: {
+            meta: {
+              schemaVersion: 1,
+              timestamp: '2026-07-03T00:00:10.000Z',
+              durationMs: 2000,
+              runner: 'agent-planning',
+              options: {
+                tier: 'smoke',
+                dryRun: false,
+                provider: 'fallback',
+                promptTemplateId: 'default-agent-planning',
+              },
+            },
+            summary: {
+              totalCases: 1,
+              passedCases: 0,
+              failedCases: 1,
+              passRate: 0,
+              avgScore: 0.4,
+            },
+            cases: [
+              {
+                taskId: 'task-identify-cli-workflow',
+                variantId: 'task-identify-cli-workflow-skill-summary',
+                variantGroupId: 'group-identify-cli-workflow',
+                tier: 'smoke',
+                taskType: 'selection',
+                taskComplexity: 'medium',
+                contextSetKind: 'skill-summary-set',
+                interferenceLevel: 'low',
+                passed: false,
+                totalScore: 0.4,
+                pathScore: 0.25,
+                finalAnswerScore: 0.55,
+                actorOutput: 'Plan:\n1. Inspect the CLI entrypoint\n2. Read the workflow skill',
+                normalizedPlan: ['Inspect the CLI entrypoint', 'Read the workflow skill'],
+                deterministicPrecheck: {
+                  passed: false,
+                  missingRequiredSteps: ['verify command flags'],
+                  missingKeyActions: ['inspect command dispatcher'],
+                  forbiddenActionHits: ['edit unrelated files'],
+                  emptyOutput: false,
+                  parseFailed: false,
+                  expectedSkillHitCount: 2,
+                  distractorHitCount: 1,
+                  capsuleSignalCount: 1,
+                },
+                judge: {
+                  totalScore: 0.4,
+                  pathScore: 0.25,
+                  finalAnswerScore: 0.55,
+                  dimensionScores: [
+                    {
+                      dimensionId: 'plan-correctness',
+                      score: 0.3,
+                      rationale: 'Missed the dispatcher verification step',
+                    },
+                    {
+                      dimensionId: 'tool-selection',
+                      score: 0.5,
+                      rationale: 'Selected one correct skill and one distractor',
+                    },
+                  ],
+                  matchedKeyActions: ['read workflow skill'],
+                  missingKeyActions: ['inspect command dispatcher'],
+                  forbiddenActionHits: ['edit unrelated files'],
+                  summary: 'Partially correct plan with one distractor action.',
+                },
+                durationMs: 333,
+                matchStrategy: 'direct-summary',
+                sourceQualityMix: 'repo-only',
+              },
+            ],
+            groups: [],
+            slices: [],
+          },
+          durationMs: 2000,
+          summary: {
+            totalCases: 1,
+            passedCases: 0,
+            failedCases: 1,
+            passRate: 0,
+            avgScore: 0.4,
+          },
+        })),
+        runLabelAlignmentEval: vi.fn(async () => null),
+      },
+    );
+
+    const publishedEvents = publishPlatformEvent.mock.calls.map(([_, __, event]) => event);
+    const agentPlanningEvents = publishedEvents.filter((event) => event.suite === 'agent-planning');
+
+    expect(agentPlanningEvents.map((event) => event.family)).toEqual([
+      'EvalRunStarted',
+      'EvalCaseStarted',
+      'EvalCaseFinished',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalScoreRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalAssertionRecorded',
+      'EvalTraceStepRecorded',
+      'EvalTraceStepRecorded',
+      'EvalTraceStepRecorded',
+      'EvalRunFinished',
+    ]);
+
+    expect(
+      agentPlanningEvents
+        .filter((event) => event.family === 'EvalCaseStarted')
+        .map((event) => [
+          event.caseId,
+          event.scenarioId,
+          event.payload.case.variantId,
+          event.payload.case.matchStrategy,
+        ]),
+    ).toEqual([
+      [
+        'task-identify-cli-workflow-skill-summary',
+        'scenario-identify-cli-workflow',
+        'task-identify-cli-workflow-skill-summary',
+        'direct-summary',
+      ],
+    ]);
+
+    expect(
+      agentPlanningEvents
+        .filter((event) => event.family === 'EvalScoreRecorded')
+        .map((event) => [event.payload.scoreId, event.payload.score, event.payload.source]),
+    ).toEqual([
+      ['totalScore', 0.4, 'case.totalScore'],
+      ['pathScore', 0.25, 'case.pathScore'],
+      ['finalAnswerScore', 0.55, 'case.finalAnswerScore'],
+      ['dimension:plan-correctness', 0.3, 'case.judge.dimensionScores[*].score'],
+      ['dimension:tool-selection', 0.5, 'case.judge.dimensionScores[*].score'],
+    ]);
+
+    expect(
+      agentPlanningEvents
+        .filter((event) => event.family === 'EvalAssertionRecorded')
+        .map((event) => [
+          event.payload.assertionId,
+          event.payload.passed,
+          event.payload.source,
+          event.payload.expected ?? null,
+          event.payload.actual ?? null,
+        ]),
+    ).toEqual([
+      [
+        'precheck.required-steps',
+        false,
+        'case.deterministicPrecheck.missingRequiredSteps',
+        [],
+        ['verify command flags'],
+      ],
+      [
+        'precheck.key-actions',
+        false,
+        'case.deterministicPrecheck.missingKeyActions',
+        [],
+        ['inspect command dispatcher'],
+      ],
+      [
+        'precheck.forbidden-actions',
+        false,
+        'case.deterministicPrecheck.forbiddenActionHits',
+        [],
+        ['edit unrelated files'],
+      ],
+      ['precheck.empty-output', true, 'case.deterministicPrecheck.emptyOutput', false, false],
+      ['precheck.parse-failed', true, 'case.deterministicPrecheck.parseFailed', false, false],
+      [
+        'judge.matched-key-actions',
+        true,
+        'case.judge.matchedKeyActions',
+        ['read workflow skill'],
+        ['read workflow skill'],
+      ],
+      [
+        'judge.missing-key-actions',
+        false,
+        'case.judge.missingKeyActions',
+        [],
+        ['inspect command dispatcher'],
+      ],
+      [
+        'judge.forbidden-action-hits',
+        false,
+        'case.judge.forbiddenActionHits',
+        [],
+        ['edit unrelated files'],
+      ],
+    ]);
+
+    expect(
+      agentPlanningEvents
+        .filter((event) => event.family === 'EvalTraceStepRecorded')
+        .map((event) => [
+          event.payload.stepIndex,
+          event.payload.kind,
+          event.payload.text,
+          event.payload.source,
+        ]),
+    ).toEqual([
+      [
+        0,
+        'actor-output',
+        'Plan:\n1. Inspect the CLI entrypoint\n2. Read the workflow skill',
+        'case.actorOutput',
+      ],
+      [0, 'normalized-plan-step', 'Inspect the CLI entrypoint', 'case.normalizedPlan[*]'],
+      [1, 'normalized-plan-step', 'Read the workflow skill', 'case.normalizedPlan[*]'],
+    ]);
+  });
 });

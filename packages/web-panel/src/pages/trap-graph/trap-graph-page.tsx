@@ -1,4 +1,4 @@
-import { Button, Card } from '@heroui/react';
+import { Button, Card, ListBox, Select } from '@heroui/react';
 import { type ReactElement, useCallback, useEffect, useState } from 'react';
 
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
@@ -9,6 +9,7 @@ import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 
 export function TrapGraphPage(): ReactElement {
   const { t } = useI18nStore();
+  const [neighborhoodDepth, setNeighborhoodDepth] = useState<'1' | '2' | 'all'>('1');
 
   const [graphData, setGraphData] = useState<{ nodes: G6Node[]; edges: G6Edge[] }>({
     nodes: [],
@@ -138,14 +139,55 @@ export function TrapGraphPage(): ReactElement {
                 <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/35 pb-2 mb-3">
                   Neighborhood Depth
                 </h3>
-                <select
-                  className="w-full rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
-                  defaultValue="1"
+                <Select
+                  aria-label="Neighborhood Depth"
+                  className="w-full"
+                  value={neighborhoodDepth}
+                  onChange={(value) =>
+                    setNeighborhoodDepth((value ? String(value) : '1') as '1' | '2' | 'all')
+                  }
                 >
-                  <option value="1">1-Hop Neighbors</option>
-                  <option value="2">2-Hop Neighbors</option>
-                  <option value="all">Fully Connected Component</option>
-                </select>
+                  <Select.Trigger className="relative w-full flex items-center justify-between rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none transition duration-200 focus:ring-1 focus:ring-panel-accent cursor-pointer">
+                    <Select.Value />
+                    <Select.Indicator className="text-panel-muted transition-transform duration-200" />
+                  </Select.Trigger>
+                  <Select.Popover className="min-w-[220px] rounded-xl border border-panel-line bg-panel-surface p-1.5 shadow-panel">
+                    <ListBox className="outline-none">
+                      {[
+                        { id: '1', label: '1-Hop Neighbors' },
+                        { id: '2', label: '2-Hop Neighbors' },
+                        { id: 'all', label: 'Fully Connected Component' },
+                      ].map((option) => (
+                        <ListBox.Item
+                          key={option.id}
+                          id={option.id}
+                          textValue={option.label}
+                          className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-panel-text transition duration-150 hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium"
+                        >
+                          {option.label}
+                          <ListBox.ItemIndicator>
+                            <svg
+                              role="img"
+                              aria-label="Selected"
+                              className="h-4 w-4 shrink-0 text-panel-accent"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2.5}
+                              viewBox="0 0 24 24"
+                            >
+                              <title>Selected</title>
+                              <path
+                                d="M5 13l4 4L19 7"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </ListBox.ItemIndicator>
+                        </ListBox.Item>
+                      ))}
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
               </div>
 
               <div className="mt-auto pt-4 border-t border-panel-line/35 text-xs text-panel-muted space-y-2">

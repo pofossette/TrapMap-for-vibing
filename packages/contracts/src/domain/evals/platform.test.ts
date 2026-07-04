@@ -100,6 +100,27 @@ describe('platform eval contracts', () => {
     expect(event.payload.assertionId).toBe('groundedness');
   });
 
+  it('accepts agent-planning trace events only for the frozen actor output and normalized plan sources', () => {
+    const event = evalPlatformEventSchema.parse({
+      family: 'EvalTraceStepRecorded',
+      suite: 'agent-planning',
+      tier: 'smoke',
+      runId: 'run-123:agent-planning',
+      caseId: 'task-identify-cli-workflow-skill-summary',
+      scenarioId: 'scenario-identify-cli-workflow',
+      timestamp: '2026-07-03T00:00:02.000Z',
+      tags: ['smoke', 'skill-identification'],
+      payload: {
+        stepIndex: 1,
+        kind: 'normalized-plan-step',
+        text: 'Read the workflow skill',
+        source: 'case.normalizedPlan[*]',
+      },
+    });
+
+    expect(event.payload.kind).toBe('normalized-plan-step');
+  });
+
   it('rejects mismatched payloads for the declared event family', () => {
     expect(() =>
       evalPlatformEventSchema.parse({

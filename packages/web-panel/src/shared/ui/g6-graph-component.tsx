@@ -1,6 +1,5 @@
+import { Graph } from '@antv/g6';
 import { type ReactElement, useEffect, useRef } from 'react';
-
-declare const G6: any;
 
 interface G6GraphComponentProps {
   data: {
@@ -25,6 +24,17 @@ interface G6GraphComponentProps {
   highlightColor?: string;
 }
 
+function getNodeStrokeColor(kind?: string): string {
+  if (kind === 'trap') return '#f97316';
+  if (kind === 'artifact') return '#006fee';
+  if (kind === 'capsule') return '#22c55e';
+  if (kind === 'profile') return '#a855f7';
+  if (kind === 'cue') return '#eab308';
+  if (kind === 'tool') return '#7dd3fc';
+  if (kind === 'mitigation') return '#10b981';
+  return '#242424';
+}
+
 export function G6GraphComponent({
   data,
   onSelectNode,
@@ -33,240 +43,186 @@ export function G6GraphComponent({
   highlightColor = '#006fee',
 }: G6GraphComponentProps): ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
-  const graphRef = useRef<any>(null);
+  const graphRef = useRef<Graph | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const g6Instance = typeof G6 !== 'undefined' ? G6 : (window as any).G6;
-    if (!g6Instance) {
-      console.error('AntV G6 engine not loaded.');
-      return;
-    }
-
-    containerRef.current.innerHTML = '';
-
     const width = containerRef.current.clientWidth || 600;
     const height = containerRef.current.clientHeight || 500;
 
-    const graph = new g6Instance.Graph({
-      container: containerRef.current,
-      width,
-      height,
-      modes: {
-        default: ['drag-canvas', 'zoom-canvas', 'drag-node'],
-      },
-      layout: {
-        type: 'force',
-        preventOverlap: true,
-        nodeSize: 42,
-        linkDistance: 120,
-        nodeStrength: -60,
-      },
-      defaultNode: {
-        size: 42,
-        style: {
-          fill: '#0a0f1d',
-          stroke: '#242424',
-          lineWidth: 1.5,
-          cursor: 'pointer',
-        },
-        labelCfg: {
-          position: 'bottom',
-          style: {
-            fill: '#ffffff',
-            fontSize: 11,
-            fontFamily: 'Inter',
-          },
-        },
-      },
-      defaultEdge: {
-        style: {
-          stroke: '#242424',
-          lineWidth: 1.5,
-          lineDash: [0],
-          endArrow: {
-            path: g6Instance.Arrow.triangle(5, 5, 4),
-            d: 4,
-            fill: '#242424',
-          },
-        },
-        labelCfg: {
-          style: {
-            fill: '#737373',
-            fontSize: 9,
-            fontFamily: 'Inter',
-            background: {
-              fill: '#0a0a0a',
-              padding: [2, 4],
-              radius: 2,
-            },
-          },
-        },
-      },
-    });
-
-    // Color schema based on Node kind
     const formattedData = {
       nodes: data.nodes.map((node) => {
         const kind = node.kind || node.type || 'unknown';
-        let strokeColor = '#242424';
-        const fillColor = '#0a0f1d';
-
-        if (kind === 'trap') strokeColor = '#f97316';
-        else if (kind === 'artifact') strokeColor = '#006fee';
-        else if (kind === 'capsule') strokeColor = '#22c55e';
-        else if (kind === 'profile') strokeColor = '#a855f7';
-        else if (kind === 'cue') strokeColor = '#eab308';
-        else if (kind === 'tool') strokeColor = '#7dd3fc';
-        else if (kind === 'mitigation') strokeColor = '#10b981';
-
         return {
           ...node,
           style: {
             ...node.style,
-            stroke: strokeColor,
-            fill: fillColor,
+            fill: '#0a0f1d',
+            stroke: getNodeStrokeColor(kind),
           },
         };
       }),
       edges: data.edges,
     };
 
-    graph.data(formattedData);
-    graph.render();
+    const graph = new Graph({
+      container: containerRef.current,
+      width,
+      height,
+      autoResize: true,
+      data: formattedData,
+      padding: 20,
+      autoFit: 'view',
+      behaviors: [
+        'drag-canvas',
+        'zoom-canvas',
+        {
+          type: 'drag-element-force',
+          fixed: true,
+        },
+        {
+          type: 'click-select',
+          degree: 1,
+          animation: false,
+          state: 'selected',
+          neighborState: 'neighbor',
+          unselectedState: 'dimmed',
+          onClick: (event: any) => {
+            const targetId = event.target?.id;
+            if (!targetId) return;
+
+            if (event.targetType === 'node') {
+              onSelectNode(graph.getNodeData(targetId));
+              return;
+            }
+
+            if (event.targetType === 'edge') {
+              onSelectEdge(graph.getEdgeData(targetId));
+            }
+          },
+        },
+      ],
+      layout: {
+        type: 'd3-force',
+        link: {
+          distance: 120,
+          strength: 1.5,
+        },
+        collide: {
+          radius: 42,
+        },
+      },
+      node: {
+        type: 'circle',
+        style: {
+          size: 42,
+          lineWidth: 1.5,
+          cursor: 'pointer',
+          label: true,
+          labelPlacement: 'bottom',
+          labelText: (datum: any) => datum.label,
+          labelFill: '#ffffff',
+          labelFontSize: 11,
+          labelFontFamily: 'Inter',
+        },
+        state: {
+          selected: {
+            lineWidth: 3.5,
+            stroke: highlightColor,
+            opacity: 1,
+          },
+          neighbor: {
+            lineWidth: 2.5,
+            stroke: highlightColor,
+            opacity: 1,
+          },
+          dimmed: {
+            opacity: 0.4,
+          },
+        },
+      },
+      edge: {
+        type: 'line',
+        style: {
+          stroke: '#242424',
+          lineWidth: 1.5,
+          endArrow: true,
+          endArrowFill: '#242424',
+          label: true,
+          labelText: (datum: any) => datum.label ?? '',
+          labelFill: '#737373',
+          labelFontSize: 9,
+          labelFontFamily: 'Inter',
+          labelBackground: true,
+          labelBackgroundFill: '#0a0a0a',
+          labelBackgroundPadding: [2, 4, 2, 4],
+          labelBackgroundRadius: 2,
+        },
+        state: {
+          selected: {
+            stroke: highlightColor,
+            endArrowFill: highlightColor,
+            opacity: 1,
+          },
+          neighbor: {
+            stroke: highlightColor,
+            endArrowFill: highlightColor,
+            opacity: 1,
+          },
+          dimmed: {
+            opacity: 0.2,
+          },
+        },
+      },
+    });
+
     graphRef.current = graph;
 
-    // Listeners
-    graph.on('node:click', (evt: any) => {
-      const item = evt.item;
-      const model = item.getModel();
-      onSelectNode(model);
-
-      // Selection highlighting
-      for (const n of graph.getNodes() as any[]) {
-        const m = n.getModel();
-        const isSelected = m.id === model.id;
-        const nKind = m.kind || m.type || '';
-        let baseStroke = '#242424';
-        if (nKind === 'trap') baseStroke = '#f97316';
-        else if (nKind === 'artifact') baseStroke = '#006fee';
-        else if (nKind === 'capsule') baseStroke = '#22c55e';
-        else if (nKind === 'profile') baseStroke = '#a855f7';
-        else if (nKind === 'cue') baseStroke = '#eab308';
-        else if (nKind === 'tool') baseStroke = '#7dd3fc';
-        else if (nKind === 'mitigation') baseStroke = '#10b981';
-
-        graph.updateItem(n, {
-          style: {
-            lineWidth: isSelected ? 3.5 : 1.5,
-            stroke: isSelected ? highlightColor : baseStroke,
-            opacity: isSelected ? 1 : 0.4,
-          },
-        });
-      }
-
-      // Edge highlighting
-      for (const e of graph.getEdges() as any[]) {
-        const edgeModel = e.getModel();
-        const connected = edgeModel.source === model.id || edgeModel.target === model.id;
-        graph.updateItem(e, {
-          style: {
-            stroke: connected ? highlightColor : '#242424',
-            opacity: connected ? 1 : 0.2,
-          },
-        });
-      }
-    });
-
-    graph.on('node:dragstart', (e: any) => {
-      graph.layout();
-      refreshDraggedNodePosition(e);
-    });
-
-    graph.on('node:drag', (e: any) => {
-      refreshDraggedNodePosition(e);
-    });
-
-    function refreshDraggedNodePosition(e: any) {
-      const model = e.item.get('model');
-      model.fx = e.x;
-      model.fy = e.y;
-    }
-
-    graph.on('edge:click', (evt: any) => {
-      const model = evt.item.getModel();
-      onSelectEdge(model);
-    });
-
-    graph.on('canvas:click', () => {
-      // Clear selection styling
-      for (const n of graph.getNodes() as any[]) {
-        const m = n.getModel();
-        const nKind = m.kind || m.type || '';
-        let baseStroke = '#242424';
-        if (nKind === 'trap') baseStroke = '#f97316';
-        else if (nKind === 'artifact') baseStroke = '#006fee';
-        else if (nKind === 'capsule') baseStroke = '#22c55e';
-        else if (nKind === 'profile') baseStroke = '#a855f7';
-        else if (nKind === 'cue') baseStroke = '#eab308';
-        else if (nKind === 'tool') baseStroke = '#7dd3fc';
-        else if (nKind === 'mitigation') baseStroke = '#10b981';
-
-        graph.updateItem(n, {
-          style: {
-            lineWidth: 1.5,
-            stroke: baseStroke,
-            opacity: 1,
-          },
-        });
-      }
-
-      for (const e of graph.getEdges() as any[]) {
-        graph.updateItem(e, {
-          style: {
-            stroke: '#242424',
-            opacity: 1,
-          },
-        });
-      }
-    });
-
-    graph.fitView(20);
+    void graph.render();
 
     return () => {
-      if (graphRef.current) {
-        graphRef.current.destroy();
-      }
+      graph.destroy();
+      graphRef.current = null;
     };
   }, [data, highlightColor, onSelectEdge, onSelectNode]);
 
-  // Search filter focus
   useEffect(() => {
-    if (!graphRef.current || !searchKeyword) return;
+    if (!graphRef.current) return;
+
     const graph = graphRef.current;
-    const nodes = graph.getNodes();
-    let matchedNode: any = null;
+    const keyword = searchKeyword.trim().toLowerCase();
+    const nodes = graph.getNodeData();
 
-    for (const n of nodes as any[]) {
-      const model = n.getModel();
-      const match =
-        model.label.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-        model.id.toLowerCase().includes(searchKeyword.toLowerCase());
+    let matchedNodeId: string | null = null;
 
-      if (match && !matchedNode) matchedNode = n;
+    graph.updateNodeData(
+      nodes.map((node: any) => {
+        const kind = node.kind || node.type || 'unknown';
+        const matches =
+          keyword.length > 0 &&
+          (String(node.label || '')
+            .toLowerCase()
+            .includes(keyword) ||
+            String(node.id).toLowerCase().includes(keyword));
 
-      graph.updateItem(n, {
-        style: {
-          lineWidth: match ? 3 : 1.5,
-          stroke: match ? highlightColor : '#242424',
-          fill: match ? 'rgba(0, 111, 238, 0.2)' : '#0a0f1d',
-        },
-      });
-    }
+        if (matches && !matchedNodeId) matchedNodeId = node.id;
 
-    if (matchedNode) {
-      graph.focusItem(matchedNode, true, {
+        return {
+          id: node.id,
+          style: {
+            fill: matches ? 'rgba(0, 111, 238, 0.2)' : '#0a0f1d',
+            stroke: matches ? highlightColor : getNodeStrokeColor(kind),
+            lineWidth: matches ? 3 : 1.5,
+          },
+        };
+      }),
+    );
+
+    void graph.draw();
+
+    if (matchedNodeId) {
+      void graph.focusElement(matchedNodeId, {
         easing: 'easeCubic',
         duration: 500,
       });

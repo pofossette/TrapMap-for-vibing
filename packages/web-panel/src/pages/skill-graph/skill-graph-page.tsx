@@ -1,4 +1,4 @@
-import { Card } from '@heroui/react';
+import { Card, ListBox, Select } from '@heroui/react';
 import { type ReactElement, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -106,18 +106,48 @@ export function SkillGraphPage(): ReactElement {
             <span className="text-xs text-panel-muted font-mono uppercase tracking-wider">
               Artifact:
             </span>
-            <select
+            <Select
               aria-label="Select Skill Artifact"
-              className="flex-1 rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
+              className="flex-1"
               value={selectedArtifactId}
-              onChange={(event) => handleArtifactChange(event.target.value)}
+              onChange={(value) => handleArtifactChange(value ? String(value) : '')}
             >
-              {artifacts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.title} ({a.id})
-                </option>
-              ))}
-            </select>
+              <Select.Trigger className="relative w-full flex items-center justify-between rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none transition duration-200 focus:ring-1 focus:ring-panel-accent cursor-pointer">
+                <Select.Value />
+                <Select.Indicator className="text-panel-muted transition-transform duration-200" />
+              </Select.Trigger>
+              <Select.Popover className="min-w-[280px] rounded-xl border border-panel-line bg-panel-surface p-1.5 shadow-panel">
+                <ListBox className="outline-none">
+                  {artifacts.map((artifact) => (
+                    <ListBox.Item
+                      key={artifact.id}
+                      id={artifact.id}
+                      textValue={`${artifact.title} (${artifact.id})`}
+                      className="flex items-center justify-between gap-4 rounded-lg px-3 py-2 text-sm text-panel-text transition duration-150 hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium"
+                    >
+                      <span className="truncate">{artifact.title}</span>
+                      <span className="shrink-0 font-mono text-[11px] text-panel-muted">
+                        {artifact.id}
+                      </span>
+                      <ListBox.ItemIndicator>
+                        <svg
+                          role="img"
+                          aria-label="Selected"
+                          className="h-4 w-4 shrink-0 text-panel-accent"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2.5}
+                          viewBox="0 0 24 24"
+                        >
+                          <title>Selected</title>
+                          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </ListBox.ItemIndicator>
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+            </Select>
           </div>
 
           <div className="inline-flex rounded-full border border-panel-line bg-panel-surface-strong p-1">
