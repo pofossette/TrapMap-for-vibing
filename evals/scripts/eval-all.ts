@@ -36,6 +36,7 @@ import {
   type EvalPlatformAdapterKind,
   type EvalPlatformEvent,
 } from '../lib/platform/adapter.js';
+import { buildAgentPlanningPlatformEvents } from '../agent-planning/lib/platform-events.js';
 
 // =============================================================================
 // CLI Argument Parsing
@@ -233,6 +234,7 @@ interface RunUnifiedEvaluationResult {
 
 interface RunUnifiedEvaluationDeps {
   createPlatformAdapter: typeof createEvalPlatformAdapter;
+  buildAgentPlanningPlatformEvents: typeof buildAgentPlanningPlatformEvents;
   publishPlatformEvent: typeof publishPlatformEventSafely;
   closePlatformAdapter: typeof closePlatformAdapterSafely;
   warn: typeof console.warn;
@@ -249,6 +251,7 @@ interface RunUnifiedEvaluationDeps {
 function getRunUnifiedEvaluationDeps(): RunUnifiedEvaluationDeps {
   return {
     createPlatformAdapter: createEvalPlatformAdapter,
+    buildAgentPlanningPlatformEvents,
     publishPlatformEvent: publishPlatformEventSafely,
     closePlatformAdapter: closePlatformAdapterSafely,
     warn: console.warn,
@@ -312,49 +315,13 @@ async function loadSummaryCases(
   return getSummaryEvaluationCases(options.tier, endpoint);
 }
 
-async function loadAgentPlanningScenarioIds(options: EvalAllOptions): Promise<string[]> {
-  const [
-    { coreCases },
-    { smokeCases },
-    { skillIdentificationCoreCases },
-    { skillIdentificationSmokeCases },
-  ] = await Promise.all([
-    import('../agent-planning/core.js'),
-    import('../agent-planning/smoke.js'),
-    import('../agent-planning/datasets/core/skill-identification-core.js'),
-    import('../agent-planning/datasets/smoke/skill-identification-smoke.js'),
-  ]);
-  const baseCases = options.tier === 'smoke' ? smokeCases : coreCases;
-  const skillCases =
-    options.tier === 'smoke' ? skillIdentificationSmokeCases : skillIdentificationCoreCases;
-  return [...new Set([...baseCases, ...skillCases].map((case_) => case_.scenarioId))].sort();
-}
-
-async function loadAgentPlanningCases(options: EvalAllOptions): Promise<AgentPlanningEvalCase[]> {
-  const [
-    { coreCases },
-    { smokeCases },
-    { skillIdentificationCoreCases },
-    { skillIdentificationSmokeCases },
-  ] = await Promise.all([
-    import('../agent-planning/core.js'),
-    import('../agent-planning/smoke.js'),
-    import('../agent-planning/datasets/core/skill-identification-core.js'),
-    import('../agent-planning/datasets/smoke/skill-identification-smoke.js'),
-  ]);
-  const baseCases = options.tier === 'smoke' ? smokeCases : coreCases;
-  const skillCases =
-    options.tier === 'smoke' ? skillIdentificationSmokeCases : skillIdentificationCoreCases;
-
-  return [...baseCases, ...skillCases];
-}
-
 async function buildSuitePlatformEvents(
   options: EvalAllOptions,
   suiteRunId: string,
   retrievalResult: RetrievalResult | null,
   summaryResult: SummaryResult | null,
   agentPlanningResult: AgentPlanningResult | null,
+  deps: Pick<RunUnifiedEvaluationDeps, 'buildAgentPlanningPlatformEvents'>,
 ): Promise<EvalPlatformEvent[]> {
   const tags = buildPlatformTags(options);
   const events: EvalPlatformEvent[] = [];
@@ -499,69 +466,13 @@ async function buildSuitePlatformEvents(
   }
 
   if (agentPlanningResult?.report) {
-    const report = agentPlanningResult.report;
-    const startedAt = deriveStartedAt(report.meta.timestamp, report.meta.durationMs);
-    const scenarioIds = await loadAgentPlanningScenarioIds(options);
-    const suiteRunIdWithSuffix = `${suiteRunId}:agent-planning`;
-    const agentPlanningCases = await loadAgentPlanningCases(options);
-    const agentPlanningCaseMap = new Map(
-      agentPlanningCases.map((case_) => [`${case_.taskId}:${case_.variantId}`, case_]),
-    );
-    events.push({
-      family: 'EvalRunStarted',
-      suite: 'agent-planning',
-      tier: report.meta.options.tier,
-      runId: suiteRunIdWithSuffix,
-      caseId: null,
-      scenarioId: null,
-      timestamp: startedAt,
-      tags,
-      payload: {
-        reportMeta: {
-          schemaVersion: report.meta.schemaVersion,
-          timestamp: report.meta.timestamp,
-          runner: report.meta.runner,
-          options: report.meta.options,
-        },
-        runScope: {
-          tier: report.meta.options.tier,
-          dryRun: report.meta.options.dryRun,
-          provider: report.meta.options.provider,
-          promptTemplateId: report.meta.options.promptTemplateId,
-          caseCount: report.summary.totalCases,
-          scenarioIds,
-        },
-      },
-    });
     events.push(
-      ...buildAgentPlanningCasePlatformEvents({
-        suiteRunId: suiteRunIdWithSuffix,
-        startedAt,
-        finishedAt: report.meta.timestamp,
+      ...(await deps.buildAgentPlanningPlatformEvents({
+        suiteRunId: `${suiteRunId}:agent-planning`,
         baseTags: tags,
-        report,
-        caseMap: agentPlanningCaseMap,
-      }),
+        report: agentPlanningResult.report,
+      })),
     );
-    events.push({
-      family: 'EvalRunFinished',
-      suite: 'agent-planning',
-      tier: report.meta.options.tier,
-      runId: suiteRunIdWithSuffix,
-      caseId: null,
-      scenarioId: null,
-      timestamp: report.meta.timestamp,
-      tags,
-      payload: {
-        reportMeta: report.meta,
-        reportSummary: report.summary,
-        reportCollections: {
-          cases: report.cases,
-          groups: report.groups,
-          slices: report.slices,
-        },
-      },
-    });
   }
 
   return events;
@@ -1060,334 +971,6 @@ function buildSummaryCasePlatformEvents(params: {
         expected: [],
         actual: caseResult.forbiddenClaimsFound,
         reason: forbiddenReason,
-      }),
-    );
-  }
-
-  return events;
-}
-
-function buildAgentPlanningScoreEvents(params: {
-  suiteRunId: string;
-  timestamp: string;
-  caseDefinition: AgentPlanningEvalCase;
-  caseResult: AgentPlanningEvalReport['cases'][number];
-  tags: string[];
-}): EvalPlatformEvent[] {
-  const { suiteRunId, timestamp, caseDefinition, caseResult, tags } = params;
-
-  return [
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'agent-planning',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'totalScore', score: caseResult.totalScore, source: 'case.totalScore' },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'agent-planning',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'pathScore', score: caseResult.pathScore, source: 'case.pathScore' },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'agent-planning',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: {
-        scoreId: 'finalAnswerScore',
-        score: caseResult.finalAnswerScore,
-        source: 'case.finalAnswerScore',
-      },
-    },
-    ...caseResult.judge.dimensionScores.map((dimensionScore) => ({
-      family: 'EvalScoreRecorded' as const,
-      suite: 'agent-planning' as const,
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: {
-        scoreId: `dimension:${dimensionScore.dimensionId}`,
-        score: dimensionScore.score,
-        source: 'case.judge.dimensionScores[*].score' as const,
-        rationale: dimensionScore.rationale,
-      },
-    })),
-  ];
-}
-
-function buildAgentPlanningAssertionEvent(params: {
-  suiteRunId: string;
-  timestamp: string;
-  caseDefinition: AgentPlanningEvalCase;
-  caseResult: AgentPlanningEvalReport['cases'][number];
-  tags: string[];
-  assertionId:
-    | 'precheck.required-steps'
-    | 'precheck.key-actions'
-    | 'precheck.forbidden-actions'
-    | 'precheck.empty-output'
-    | 'precheck.parse-failed'
-    | 'judge.matched-key-actions'
-    | 'judge.missing-key-actions'
-    | 'judge.forbidden-action-hits';
-  passed: boolean;
-  source:
-    | 'case.deterministicPrecheck.missingRequiredSteps'
-    | 'case.deterministicPrecheck.missingKeyActions'
-    | 'case.deterministicPrecheck.forbiddenActionHits'
-    | 'case.deterministicPrecheck.emptyOutput'
-    | 'case.deterministicPrecheck.parseFailed'
-    | 'case.judge.matchedKeyActions'
-    | 'case.judge.missingKeyActions'
-    | 'case.judge.forbiddenActionHits';
-  expected?: unknown;
-  actual?: unknown;
-}): EvalPlatformEvent {
-  const { suiteRunId, timestamp, caseDefinition, caseResult, tags, assertionId, passed, source } =
-    params;
-
-  return {
-    family: 'EvalAssertionRecorded',
-    suite: 'agent-planning',
-    tier: caseResult.tier,
-    runId: suiteRunId,
-    caseId: caseResult.variantId,
-    scenarioId: caseDefinition.scenarioId,
-    timestamp,
-    tags,
-    payload: {
-      assertionId,
-      passed,
-      source,
-      ...(params.expected !== undefined ? { expected: params.expected } : {}),
-      ...(params.actual !== undefined ? { actual: params.actual } : {}),
-    },
-  };
-}
-
-function buildAgentPlanningTraceEvents(params: {
-  suiteRunId: string;
-  timestamp: string;
-  caseDefinition: AgentPlanningEvalCase;
-  caseResult: AgentPlanningEvalReport['cases'][number];
-  tags: string[];
-}): EvalPlatformEvent[] {
-  const { suiteRunId, timestamp, caseDefinition, caseResult, tags } = params;
-
-  return [
-    {
-      family: 'EvalTraceStepRecorded',
-      suite: 'agent-planning',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: {
-        stepIndex: 0,
-        kind: 'actor-output',
-        text: caseResult.actorOutput,
-        source: 'case.actorOutput',
-      },
-    },
-    ...caseResult.normalizedPlan.map((step, index) => ({
-      family: 'EvalTraceStepRecorded' as const,
-      suite: 'agent-planning' as const,
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: {
-        stepIndex: index,
-        kind: 'normalized-plan-step' as const,
-        text: step,
-        source: 'case.normalizedPlan[*]' as const,
-      },
-    })),
-  ];
-}
-
-function buildAgentPlanningCasePlatformEvents(params: {
-  suiteRunId: string;
-  startedAt: string;
-  finishedAt: string;
-  baseTags: string[];
-  report: AgentPlanningEvalReport;
-  caseMap: Map<string, AgentPlanningEvalCase>;
-}): EvalPlatformEvent[] {
-  const { suiteRunId, startedAt, finishedAt, baseTags, report, caseMap } = params;
-  const events: EvalPlatformEvent[] = [];
-
-  for (const caseResult of report.cases) {
-    const caseDefinition = caseMap.get(`${caseResult.taskId}:${caseResult.variantId}`);
-    if (!caseDefinition) {
-      continue;
-    }
-
-    const tags = getEventTags(baseTags, caseDefinition.tags);
-    events.push({
-      family: 'EvalCaseStarted',
-      suite: 'agent-planning',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp: startedAt,
-      tags,
-      payload: {
-        case: caseDefinition,
-      },
-    });
-    events.push({
-      family: 'EvalCaseFinished',
-      suite: 'agent-planning',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp: finishedAt,
-      tags,
-      payload: {
-        result: caseResult,
-        execution: {
-          actorOutput: caseResult.actorOutput,
-          normalizedPlan: caseResult.normalizedPlan,
-        },
-      },
-    });
-    events.push(
-      ...buildAgentPlanningScoreEvents({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-      }),
-    );
-    events.push(
-      buildAgentPlanningAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'precheck.required-steps',
-        passed: caseResult.deterministicPrecheck.missingRequiredSteps.length === 0,
-        source: 'case.deterministicPrecheck.missingRequiredSteps',
-        expected: [],
-        actual: caseResult.deterministicPrecheck.missingRequiredSteps,
-      }),
-      buildAgentPlanningAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'precheck.key-actions',
-        passed: caseResult.deterministicPrecheck.missingKeyActions.length === 0,
-        source: 'case.deterministicPrecheck.missingKeyActions',
-        expected: [],
-        actual: caseResult.deterministicPrecheck.missingKeyActions,
-      }),
-      buildAgentPlanningAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'precheck.forbidden-actions',
-        passed: caseResult.deterministicPrecheck.forbiddenActionHits.length === 0,
-        source: 'case.deterministicPrecheck.forbiddenActionHits',
-        expected: [],
-        actual: caseResult.deterministicPrecheck.forbiddenActionHits,
-      }),
-      buildAgentPlanningAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'precheck.empty-output',
-        passed: !caseResult.deterministicPrecheck.emptyOutput,
-        source: 'case.deterministicPrecheck.emptyOutput',
-        expected: false,
-        actual: caseResult.deterministicPrecheck.emptyOutput,
-      }),
-      buildAgentPlanningAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'precheck.parse-failed',
-        passed: !caseResult.deterministicPrecheck.parseFailed,
-        source: 'case.deterministicPrecheck.parseFailed',
-        expected: false,
-        actual: caseResult.deterministicPrecheck.parseFailed,
-      }),
-      buildAgentPlanningAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'judge.matched-key-actions',
-        passed: caseResult.judge.matchedKeyActions.length > 0,
-        source: 'case.judge.matchedKeyActions',
-        expected: caseResult.judge.matchedKeyActions,
-        actual: caseResult.judge.matchedKeyActions,
-      }),
-      buildAgentPlanningAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'judge.missing-key-actions',
-        passed: caseResult.judge.missingKeyActions.length === 0,
-        source: 'case.judge.missingKeyActions',
-        expected: [],
-        actual: caseResult.judge.missingKeyActions,
-      }),
-      buildAgentPlanningAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'judge.forbidden-action-hits',
-        passed: caseResult.judge.forbiddenActionHits.length === 0,
-        source: 'case.judge.forbiddenActionHits',
-        expected: [],
-        actual: caseResult.judge.forbiddenActionHits,
-      }),
-      ...buildAgentPlanningTraceEvents({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
       }),
     );
   }
@@ -1941,36 +1524,40 @@ function writeCombinedJsonReport(path: string, report: CombinedReport): void {
 
 export async function runUnifiedEvaluation(
   options: EvalAllOptions,
-  deps: RunUnifiedEvaluationDeps = getRunUnifiedEvaluationDeps(),
+  deps: Partial<RunUnifiedEvaluationDeps> = {},
 ): Promise<RunUnifiedEvaluationResult> {
+  const resolvedDeps: RunUnifiedEvaluationDeps = {
+    ...getRunUnifiedEvaluationDeps(),
+    ...deps,
+  };
   const startTime = Date.now();
   const platformRunSeed = randomUUID();
   const adapter = options.platform
-    ? deps.createPlatformAdapter({
+    ? resolvedDeps.createPlatformAdapter({
         kind: options.platform,
         outputDir: options.platformOutputDir,
       })
     : null;
 
-  deps.log('');
-  deps.log('╔══════════════════════════════════════════════════════════════╗');
-  deps.log('║              Unified Evaluation Runner                       ║');
-  deps.log('╚══════════════════════════════════════════════════════════════╝');
-  deps.log('');
-  deps.log(`Tier: ${options.tier}`);
-  deps.log(`Dry run: ${options.dryRun}`);
-  deps.log(`Allow empty: ${options.allowEmpty}`);
-  deps.log(`JSON output: ${options.json}`);
+  resolvedDeps.log('');
+  resolvedDeps.log('╔══════════════════════════════════════════════════════════════╗');
+  resolvedDeps.log('║              Unified Evaluation Runner                       ║');
+  resolvedDeps.log('╚══════════════════════════════════════════════════════════════╝');
+  resolvedDeps.log('');
+  resolvedDeps.log(`Tier: ${options.tier}`);
+  resolvedDeps.log(`Dry run: ${options.dryRun}`);
+  resolvedDeps.log(`Allow empty: ${options.allowEmpty}`);
+  resolvedDeps.log(`JSON output: ${options.json}`);
   if (options.jsonPath) {
-    deps.log(`JSON path: ${options.jsonPath}`);
+    resolvedDeps.log(`JSON path: ${options.jsonPath}`);
   }
   if (options.platform) {
-    deps.log(`Platform adapter: ${options.platform}`);
+    resolvedDeps.log(`Platform adapter: ${options.platform}`);
   }
-  deps.log('');
+  resolvedDeps.log('');
 
   // Run evaluations
-  deps.log('Running evaluations...\n');
+  resolvedDeps.log('Running evaluations...\n');
 
   let retrievalResult: RetrievalResult | null = null;
   let summaryResult: SummaryResult | null = null;
@@ -1978,16 +1565,16 @@ export async function runUnifiedEvaluation(
   let labelAlignmentResult: LabelAlignmentResult | null = null;
 
   // Run retrieval evaluation
-  deps.log('--- Retrieval Evaluation ---');
+  resolvedDeps.log('--- Retrieval Evaluation ---');
   try {
-    retrievalResult = await deps.runRetrievalEval(options);
+    retrievalResult = await resolvedDeps.runRetrievalEval(options);
     if (retrievalResult) {
-      deps.log(
+      resolvedDeps.log(
         `  Completed: ${retrievalResult.summary.passedCases}/${retrievalResult.summary.totalCases} passed`,
       );
     }
   } catch (error) {
-    deps.error('  Failed:', error);
+    resolvedDeps.error('  Failed:', error);
     if (!options.allowEmpty && !options.dryRun) {
       return {
         combinedReport: {
@@ -2007,19 +1594,19 @@ export async function runUnifiedEvaluation(
       };
     }
   }
-  deps.log('');
+  resolvedDeps.log('');
 
   // Run summary evaluation
-  deps.log('--- Summary Evaluation ---');
+  resolvedDeps.log('--- Summary Evaluation ---');
   try {
-    summaryResult = await deps.runSummaryEval(options);
+    summaryResult = await resolvedDeps.runSummaryEval(options);
     if (summaryResult) {
-      deps.log(
+      resolvedDeps.log(
         `  Completed: ${summaryResult.summary.passedCases}/${summaryResult.summary.totalCases} passed`,
       );
     }
   } catch (error) {
-    deps.error('  Failed:', error);
+    resolvedDeps.error('  Failed:', error);
     if (!options.allowEmpty && !options.dryRun) {
       return {
         combinedReport: {
@@ -2039,20 +1626,20 @@ export async function runUnifiedEvaluation(
       };
     }
   }
-  deps.log('');
+  resolvedDeps.log('');
 
   // Run graph extraction evaluation
   let graphExtractionResult: GraphExtractionResult | null = null;
-  deps.log('--- Graph Extraction Evaluation ---');
+  resolvedDeps.log('--- Graph Extraction Evaluation ---');
   try {
-    graphExtractionResult = await deps.runGraphExtractionEval(options);
+    graphExtractionResult = await resolvedDeps.runGraphExtractionEval(options);
     if (graphExtractionResult) {
-      deps.log(
+      resolvedDeps.log(
         `  Completed: ${graphExtractionResult.totalFixtures} fixtures, Node F1=${graphExtractionResult.avgNodeF1.toFixed(3)}`,
       );
     }
   } catch (error) {
-    deps.error('  Failed:', error);
+    resolvedDeps.error('  Failed:', error);
     if (!options.allowEmpty && !options.dryRun) {
       return {
         combinedReport: {
@@ -2072,20 +1659,20 @@ export async function runUnifiedEvaluation(
       };
     }
   }
-  deps.log('');
+  resolvedDeps.log('');
 
   // Run ingestion/derivation evaluation
   let ingestionResult: IngestionResult | null = null;
-  deps.log('--- Ingestion / Derivation Evaluation ---');
+  resolvedDeps.log('--- Ingestion / Derivation Evaluation ---');
   try {
-    ingestionResult = await deps.runIngestionEval(options);
+    ingestionResult = await resolvedDeps.runIngestionEval(options);
     if (ingestionResult) {
-      deps.log(
+      resolvedDeps.log(
         `  Completed: ${ingestionResult.passedBundles}/${ingestionResult.totalBundles} passed`,
       );
     }
   } catch (error) {
-    deps.error('  Failed:', error);
+    resolvedDeps.error('  Failed:', error);
     if (!options.allowEmpty && !options.dryRun) {
       return {
         combinedReport: {
@@ -2105,19 +1692,19 @@ export async function runUnifiedEvaluation(
       };
     }
   }
-  deps.log('');
+  resolvedDeps.log('');
 
   // Run agent planning evaluation
-  deps.log('--- Agent Planning Evaluation ---');
+  resolvedDeps.log('--- Agent Planning Evaluation ---');
   try {
-    agentPlanningResult = await deps.runAgentPlanningEval(options);
+    agentPlanningResult = await resolvedDeps.runAgentPlanningEval(options);
     if (agentPlanningResult) {
-      deps.log(
+      resolvedDeps.log(
         `  Completed: ${agentPlanningResult.summary.passedCases}/${agentPlanningResult.summary.totalCases} passed`,
       );
     }
   } catch (error) {
-    deps.error('  Failed:', error);
+    resolvedDeps.error('  Failed:', error);
     if (!options.allowEmpty && !options.dryRun) {
       return {
         combinedReport: {
@@ -2137,19 +1724,19 @@ export async function runUnifiedEvaluation(
       };
     }
   }
-  deps.log('');
+  resolvedDeps.log('');
 
   // Run label alignment evaluation
-  deps.log('--- Label Alignment Evaluation ---');
+  resolvedDeps.log('--- Label Alignment Evaluation ---');
   try {
-    labelAlignmentResult = await deps.runLabelAlignmentEval(options);
+    labelAlignmentResult = await resolvedDeps.runLabelAlignmentEval(options);
     if (labelAlignmentResult) {
-      deps.log(
+      resolvedDeps.log(
         `  Completed: ${labelAlignmentResult.summary.passedCases}/${labelAlignmentResult.summary.totalCases} passed`,
       );
     }
   } catch (error) {
-    deps.error('  Failed:', error);
+    resolvedDeps.error('  Failed:', error);
     if (!options.allowEmpty && !options.dryRun) {
       return {
         combinedReport: {
@@ -2169,7 +1756,7 @@ export async function runUnifiedEvaluation(
       };
     }
   }
-  deps.log('');
+  resolvedDeps.log('');
 
   // Build combined report
   const totalCases =
@@ -2215,12 +1802,12 @@ export async function runUnifiedEvaluation(
   };
 
   // Print terminal output
-  deps.log(formatCombinedReport(combinedReport, options));
+  resolvedDeps.log(formatCombinedReport(combinedReport, options));
 
   // Write JSON if requested
   if (options.json && options.jsonPath) {
     writeCombinedJsonReport(options.jsonPath, combinedReport);
-    deps.log(`JSON report written to: ${options.jsonPath}\n`);
+    resolvedDeps.log(`JSON report written to: ${options.jsonPath}\n`);
   }
 
   if (adapter) {
@@ -2230,15 +1817,16 @@ export async function runUnifiedEvaluation(
       retrievalResult,
       summaryResult,
       agentPlanningResult,
+      resolvedDeps,
     );
     for (const event of suiteEvents) {
-      await deps.publishPlatformEvent(adapter, deps.warn, event);
+      await resolvedDeps.publishPlatformEvent(adapter, resolvedDeps.warn, event);
     }
 
     try {
-      await deps.closePlatformAdapter(adapter, deps.warn);
+      await resolvedDeps.closePlatformAdapter(adapter, resolvedDeps.warn);
     } catch (error) {
-      deps.warn(
+      resolvedDeps.warn(
         `[eval-platform] ${adapter.kind} adapter close failed; continuing without affecting eval status.`,
         error,
       );
@@ -2247,14 +1835,14 @@ export async function runUnifiedEvaluation(
 
   // Exit with error code if any failures
   if (!combinedReport.overall.passed && !options.dryRun) {
-    deps.log(`Evaluation completed with ${failedCases} failure(s).\n`);
+    resolvedDeps.log(`Evaluation completed with ${failedCases} failure(s).\n`);
     return {
       combinedReport,
       exitCode: 1,
     };
   }
 
-  deps.log('Evaluation completed successfully.\n');
+  resolvedDeps.log('Evaluation completed successfully.\n');
   return {
     combinedReport,
     exitCode: 0,

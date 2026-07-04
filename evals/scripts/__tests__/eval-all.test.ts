@@ -989,4 +989,109 @@ describe('runUnifiedEvaluation', () => {
       [1, 'normalized-plan-step', 'Read the workflow skill', 'case.normalizedPlan[*]'],
     ]);
   });
+
+  it('delegates agent-planning platform event construction to the suite layer', async () => {
+    const publishPlatformEvent = vi.fn();
+    const buildAgentPlanningPlatformEvents = vi.fn(async () => [
+      {
+        family: 'EvalRunStarted' as const,
+        suite: 'agent-planning' as const,
+        tier: 'smoke' as const,
+        runId: 'seed:agent-planning',
+        caseId: null,
+        scenarioId: null,
+        timestamp: '2026-07-03T00:00:08.000Z',
+        tags: ['dry-run'],
+        payload: {
+          reportMeta: {
+            schemaVersion: 1,
+            timestamp: '2026-07-03T00:00:10.000Z',
+            runner: 'agent-planning' as const,
+            options: {
+              tier: 'smoke' as const,
+              dryRun: true,
+              provider: 'fallback' as const,
+              promptTemplateId: 'default-agent-planning',
+            },
+          },
+          runScope: {
+            tier: 'smoke' as const,
+            dryRun: true,
+            provider: 'fallback' as const,
+            promptTemplateId: 'default-agent-planning',
+            caseCount: 1,
+            scenarioIds: ['scenario-1'],
+          },
+        },
+      },
+    ]);
+
+    await runUnifiedEvaluation(
+      {
+        ...baseOptions,
+        platform: 'json-archive' as const,
+        platformOutputDir: './reports/platform-events',
+      },
+      {
+        createPlatformAdapter: vi.fn(() => ({
+          kind: 'json-archive',
+          publish: vi.fn(),
+          close: vi.fn(),
+        })),
+        buildAgentPlanningPlatformEvents,
+        publishPlatformEvent,
+        closePlatformAdapter: vi.fn(),
+        warn: vi.fn(),
+        log: vi.fn(),
+        error: vi.fn(),
+        runRetrievalEval: vi.fn(async () => null),
+        runSummaryEval: vi.fn(async () => null),
+        runGraphExtractionEval: vi.fn(async () => null),
+        runIngestionEval: vi.fn(async () => null),
+        runAgentPlanningEval: vi.fn(async () => ({
+          passed: true,
+          report: {
+            meta: {
+              schemaVersion: 1,
+              timestamp: '2026-07-03T00:00:10.000Z',
+              durationMs: 2000,
+              runner: 'agent-planning',
+              options: {
+                tier: 'smoke',
+                dryRun: true,
+                provider: 'fallback',
+                promptTemplateId: 'default-agent-planning',
+              },
+            },
+            summary: {
+              totalCases: 1,
+              passedCases: 1,
+              failedCases: 0,
+              passRate: 1,
+              avgScore: 1,
+            },
+            cases: [],
+            groups: [],
+            slices: [],
+          },
+          durationMs: 2000,
+          summary: {
+            totalCases: 1,
+            passedCases: 1,
+            failedCases: 0,
+            passRate: 1,
+            avgScore: 1,
+          },
+        })),
+        runLabelAlignmentEval: vi.fn(async () => null),
+      },
+    );
+
+    expect(buildAgentPlanningPlatformEvents).toHaveBeenCalledTimes(1);
+    expect(publishPlatformEvent).toHaveBeenCalledTimes(1);
+    expect(publishPlatformEvent.mock.calls[0]?.[2]).toMatchObject({
+      suite: 'agent-planning',
+      runId: 'seed:agent-planning',
+    });
+  });
 });

@@ -98,12 +98,12 @@
 
 **Checklist**
 
-- [ ] 定义平台无关 schema：run、event、score、trace step
-- [ ] 导出统一 `EvalPlatformAdapter` 接口
-- [ ] 实现默认 `noop` adapter
-- [ ] 实现本地 `json archive` adapter，先写入 `reports/`
-- [ ] 约束 adapter 失败只产出 warning，不影响 eval 退出码
-- [ ] 在不启用平台时，现有 eval 路径保持零行为变化
+- [x] 定义平台无关 schema：run、event、score、trace step
+- [x] 导出统一 `EvalPlatformAdapter` 接口
+- [x] 实现默认 `noop` adapter
+- [x] 实现本地 `json archive` adapter，先写入 `reports/`
+- [x] 约束 adapter 失败只产出 warning，不影响 eval 退出码
+- [x] 在不启用平台时，现有 eval 路径保持零行为变化
 
 **本阶段文档要求**
 
@@ -133,13 +133,19 @@
 
 **Checklist**
 
-- [ ] 发送 run started / finished 事件
-- [ ] 发送 case started / finished 事件
-- [ ] 发送 deterministic precheck 结果
-- [ ] 发送 dimension score、final score、failure rationale
-- [ ] 发送 group / slice 元数据
-- [ ] 必要时记录 step 级 trace，避免过度设计
+- [x] 发送 run started / finished 事件
+- [x] 发送 case started / finished 事件
+- [x] 发送 deterministic precheck 结果
+- [x] 发送 dimension score、final score、failure rationale
+- [x] 发送 group / slice 元数据
+- [x] 必要时记录 step 级 trace，避免过度设计
 - [ ] 保持终端输出和原生 JSON report 的对外契约不变
+
+**当前实现说明**
+
+- `agent-planning` 的平台事件构建已下沉到 suite 侧，由 `evals/agent-planning/lib/platform-events.ts` 基于 native report truth source 生成事件
+- `evals/scripts/eval-all.ts` 只负责 adapter 选择、运行编排、事件发布和 warning-only 失败处理，不再重建 `agent-planning` 内部事件细节
+- retrieval / summary 仍保留现有 unified runner 内联镜像逻辑，后续如需统一边界再单独推进
 
 **本阶段文档要求**
 

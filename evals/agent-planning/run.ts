@@ -18,6 +18,7 @@ import { runJudge } from './lib/judge-runner.js';
 import { normalizeActorOutput } from './lib/normalizer.js';
 import { loadPromptTemplate, renderPromptTemplate } from './lib/prompt-loader.js';
 import { buildAgentPlanningReport } from './lib/report.js';
+import { getAgentPlanningEvaluationCases } from './lib/runner-api.js';
 import { evaluateDeterministicPrecheck } from './lib/scoring.js';
 import { skillIdentificationCoreScenarios } from './scenarios/core/skill-identification-core-scenarios.js';
 import { skillIdentificationSmokeScenarios } from './scenarios/smoke/skill-identification-smoke-scenarios.js';
@@ -42,10 +43,9 @@ for (const s of skillIdentificationCoreScenarios) {
 }
 
 function loadCases(tier: AgentPlanningEvalTier): AgentPlanningEvalCase[] {
-  const base = tier === 'smoke' ? smokeCases : coreCases;
-  const sidCases = tier === 'smoke' ? skillIdentificationSmokeCases : skillIdentificationCoreCases;
-  const cases = [...base, ...sidCases];
-  return cases.map((caseDefinition) => agentPlanningEvalCaseSchema.parse(caseDefinition));
+  return getAgentPlanningEvaluationCases(tier).map((caseDefinition) =>
+    agentPlanningEvalCaseSchema.parse(caseDefinition),
+  );
 }
 
 function loadScenario(tier: AgentPlanningEvalTier, scenarioId: string): AgentPlanningEvalScenario {
