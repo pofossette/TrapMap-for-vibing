@@ -68,6 +68,13 @@ export function getRetrievalEvaluationCases(
   return filterByEndpoint(cases_, endpoint);
 }
 
+export function getRetrievalScenarioIds(
+  tier: RetrievalEvalTier,
+  endpoint?: RunRetrievalOptions['endpoint'],
+): string[] {
+  return [...new Set(getRetrievalEvaluationCases(tier, endpoint).map((case_) => case_.scenarioId))].sort();
+}
+
 // =============================================================================
 // Programmatic Runner
 // =============================================================================

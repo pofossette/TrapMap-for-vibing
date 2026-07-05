@@ -21,9 +21,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { AgentPlanningEvalReport } from '../../packages/contracts/src/domain/evals/agent-planning.js';
 import type { AgentPlanningEvalCase } from '../../packages/contracts/src/domain/evals/agent-planning.js';
-import type { RetrievalEvalCase } from '../../packages/contracts/src/domain/evals/retrieval.js';
 import type {
-  RetrievalEvalFailureRecord,
   RetrievalEvalReport,
   SummaryEvalReport,
 } from '../../packages/contracts/src/domain/evals/report.js';
@@ -36,6 +34,7 @@ import {
 } from '../lib/platform/adapter.js';
 import { resolveLangfuseAdapterConfigFromEnv } from '../lib/platform/langfuse-config.js';
 import { buildAgentPlanningPlatformEvents } from '../agent-planning/lib/platform-events.js';
+import { buildRetrievalPlatformEvents } from '../retrieval/lib/platform-events.js';
 import { buildSummaryPlatformEvents } from '../summary/lib/platform-events.js';
 
 // =============================================================================
@@ -238,6 +237,7 @@ interface RunUnifiedEvaluationResult {
 interface RunUnifiedEvaluationDeps {
   createPlatformAdapter: typeof createEvalPlatformAdapter;
   buildAgentPlanningPlatformEvents: typeof buildAgentPlanningPlatformEvents;
+  buildRetrievalPlatformEvents: typeof buildRetrievalPlatformEvents;
   buildSummaryPlatformEvents: typeof buildSummaryPlatformEvents;
   publishPlatformEvent: typeof publishPlatformEventSafely;
   closePlatformAdapter: typeof closePlatformAdapterSafely;
@@ -257,6 +257,7 @@ function getRunUnifiedEvaluationDeps(): RunUnifiedEvaluationDeps {
   return {
     createPlatformAdapter: createEvalPlatformAdapter,
     buildAgentPlanningPlatformEvents,
+    buildRetrievalPlatformEvents,
     buildSummaryPlatformEvents,
     publishPlatformEvent: publishPlatformEventSafely,
     closePlatformAdapter: closePlatformAdapterSafely,
@@ -273,10 +274,6 @@ function getRunUnifiedEvaluationDeps(): RunUnifiedEvaluationDeps {
   };
 }
 
-function deriveStartedAt(timestamp: string, durationMs: number): string {
-  return new Date(new Date(timestamp).getTime() - durationMs).toISOString();
-}
-
 function buildPlatformTags(options: EvalAllOptions): string[] {
   const tags: string[] = [];
   if (options.dryRun) {
@@ -288,23 +285,6 @@ function buildPlatformTags(options: EvalAllOptions): string[] {
   return tags;
 }
 
-async function loadRetrievalScenarioIds(options: EvalAllOptions): Promise<string[]> {
-  const [{ coreCases }, { smokeCases }] = await Promise.all([
-    import('../retrieval/core.js'),
-    import('../retrieval/smoke.js'),
-  ]);
-  const cases = options.tier === 'smoke' ? smokeCases : coreCases;
-  return [...new Set(cases.map((case_) => case_.scenarioId))].sort();
-}
-
-async function loadRetrievalCases(
-  options: EvalAllOptions,
-  endpoint?: RetrievalEvalCase['endpoint'],
-): Promise<RetrievalEvalCase[]> {
-  const { getRetrievalEvaluationCases } = await import('../retrieval/lib/runner-api.js');
-  return getRetrievalEvaluationCases(options.tier, endpoint);
-}
-
 async function buildSuitePlatformEvents(
   options: EvalAllOptions,
   suiteRunId: string,
@@ -313,82 +293,22 @@ async function buildSuitePlatformEvents(
   agentPlanningResult: AgentPlanningResult | null,
   deps: Pick<
     RunUnifiedEvaluationDeps,
-    'buildAgentPlanningPlatformEvents' | 'buildSummaryPlatformEvents'
+    | 'buildAgentPlanningPlatformEvents'
+    | 'buildRetrievalPlatformEvents'
+    | 'buildSummaryPlatformEvents'
   >,
 ): Promise<EvalPlatformEvent[]> {
   const tags = buildPlatformTags(options);
   const events: EvalPlatformEvent[] = [];
 
   if (retrievalResult?.report) {
-    const report = retrievalResult.report;
-    const startedAt = deriveStartedAt(report.meta.timestamp, report.meta.durationMs);
-    const scenarioIds = await loadRetrievalScenarioIds(options);
-    const suiteRunIdWithSuffix = `${suiteRunId}:retrieval`;
-    const retrievalCases = await loadRetrievalCases(options, report.meta.options.endpoint);
-    const retrievalCaseMap = new Map(retrievalCases.map((case_) => [case_.caseId, case_]));
-    const retrievalFailuresByCase = groupRetrievalFailuresByCase(report.failures);
-    events.push({
-      family: 'EvalRunStarted',
-      suite: 'retrieval',
-      tier: report.meta.options.tier,
-      runId: suiteRunIdWithSuffix,
-      caseId: null,
-      scenarioId: null,
-      timestamp: startedAt,
-      tags,
-      payload: {
-        reportMeta: {
-          schemaVersion: report.meta.schemaVersion,
-          timestamp: report.meta.timestamp,
-          options: report.meta.options,
-          baselinePath: report.meta.baselinePath,
-          isBaselineWrite: report.meta.isBaselineWrite,
-        },
-        runScope: {
-          tier: report.meta.options.tier,
-          dryRun: report.meta.options.dryRun,
-          allowEmpty: report.meta.options.allowEmpty,
-          endpoint: report.meta.options.endpoint,
-          verbose: report.meta.options.verbose > 0,
-          caseCount: report.summary.totalCases,
-          scenarioIds,
-        },
-      },
-    });
     events.push(
-      ...buildRetrievalCasePlatformEvents({
-        suiteRunId: suiteRunIdWithSuffix,
-        startedAt,
-        finishedAt: report.meta.timestamp,
+      ...(await deps.buildRetrievalPlatformEvents({
+        suiteRunId: `${suiteRunId}:retrieval`,
         baseTags: tags,
-        report,
-        caseMap: retrievalCaseMap,
-        failuresByCase: retrievalFailuresByCase,
-      }),
+        report: retrievalResult.report,
+      })),
     );
-    events.push({
-      family: 'EvalRunFinished',
-      suite: 'retrieval',
-      tier: report.meta.options.tier,
-      runId: suiteRunIdWithSuffix,
-      caseId: null,
-      scenarioId: null,
-      timestamp: report.meta.timestamp,
-      tags,
-      payload: {
-        reportMeta: report.meta,
-        reportSummary: report.summary,
-        reportCollections: {
-          cases: report.cases,
-          slices: report.slices,
-          cohorts: report.cohorts,
-          modeComparisons: report.modeComparisons,
-          routingDistribution: report.routingDistribution,
-          failures: report.failures,
-          warnings: report.warnings,
-        },
-      },
-    });
   }
 
   if (summaryResult?.report) {
@@ -408,268 +328,6 @@ async function buildSuitePlatformEvents(
         baseTags: tags,
         report: agentPlanningResult.report,
       })),
-    );
-  }
-
-  return events;
-}
-
-function groupRetrievalFailuresByCase(
-  failures: RetrievalEvalFailureRecord[],
-): Map<string, RetrievalEvalFailureRecord[]> {
-  const grouped = new Map<string, RetrievalEvalFailureRecord[]>();
-
-  for (const failure of failures) {
-    const existing = grouped.get(failure.caseId) ?? [];
-    existing.push(failure);
-    grouped.set(failure.caseId, existing);
-  }
-
-  return grouped;
-}
-
-function getEventTags(baseTags: string[], caseTags: string[]): string[] {
-  return [...new Set([...baseTags, ...caseTags])];
-}
-
-function buildRetrievalScoreEvents(params: {
-  suiteRunId: string;
-  timestamp: string;
-  caseDefinition: RetrievalEvalCase;
-  caseResult: RetrievalEvalReport['cases'][number];
-  tags: string[];
-}): EvalPlatformEvent[] {
-  const { suiteRunId, timestamp, caseDefinition, caseResult, tags } = params;
-
-  return [
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'hitAt1', score: caseResult.hitAt1, source: 'case.hitAt1' },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'hitAt5', score: caseResult.hitAt5, source: 'case.hitAt5' },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'hitAt10', score: caseResult.hitAt10, source: 'case.hitAt10' },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'mrr', score: caseResult.mrr, source: 'case.mrr' },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'ndcg', score: caseResult.ndcg, source: 'case.ndcg' },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'recallAt10', score: caseResult.recallAt10, source: 'case.recallAt10' },
-    },
-  ];
-}
-
-function buildRetrievalAssertionEvent(params: {
-  suiteRunId: string;
-  timestamp: string;
-  caseDefinition: RetrievalEvalCase;
-  caseResult: RetrievalEvalReport['cases'][number];
-  tags: string[];
-  assertionId: 'outcome' | 'governance' | 'shape' | 'graph-plan';
-  passed: boolean;
-  source:
-    | 'case.outcomeMatch'
-    | 'case.governancePassed'
-    | 'case.selectedMode'
-    | 'case.routingReason'
-    | 'case.fallbackApplied'
-    | 'case.passed';
-  reason?: string;
-}): EvalPlatformEvent {
-  const {
-    suiteRunId,
-    timestamp,
-    caseDefinition,
-    caseResult,
-    tags,
-    assertionId,
-    passed,
-    source,
-    reason,
-  } = params;
-
-  return {
-    family: 'EvalAssertionRecorded',
-    suite: 'retrieval',
-    tier: caseResult.tier,
-    runId: suiteRunId,
-    caseId: caseResult.caseId,
-    scenarioId: caseDefinition.scenarioId,
-    timestamp,
-    tags,
-    payload: {
-      assertionId,
-      passed,
-      source,
-      ...(reason ? { reason } : {}),
-    },
-  };
-}
-
-function buildRetrievalCasePlatformEvents(params: {
-  suiteRunId: string;
-  startedAt: string;
-  finishedAt: string;
-  baseTags: string[];
-  report: RetrievalEvalReport;
-  caseMap: Map<string, RetrievalEvalCase>;
-  failuresByCase: Map<string, RetrievalEvalFailureRecord[]>;
-}): EvalPlatformEvent[] {
-  const { suiteRunId, startedAt, finishedAt, baseTags, report, caseMap, failuresByCase } = params;
-  const events: EvalPlatformEvent[] = [];
-
-  for (const caseResult of report.cases) {
-    const caseDefinition = caseMap.get(caseResult.caseId);
-    if (!caseDefinition) {
-      continue;
-    }
-
-    const tags = getEventTags(baseTags, caseDefinition.tags);
-    const caseFailures = failuresByCase.get(caseResult.caseId) ?? [];
-    const shapeFailures = caseFailures.filter((failure) => failure.kind === 'shape-mismatch');
-    const graphPlanFailures = caseFailures.filter(
-      (failure) => failure.kind === 'graph-plan-mismatch',
-    );
-
-    events.push({
-      family: 'EvalCaseStarted',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp: startedAt,
-      tags,
-      payload: {
-        case: caseDefinition,
-      },
-    });
-    events.push({
-      family: 'EvalCaseFinished',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp: finishedAt,
-      tags,
-      payload: {
-        result: caseResult,
-      },
-    });
-    events.push(
-      ...buildRetrievalScoreEvents({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-      }),
-    );
-    events.push(
-      buildRetrievalAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'outcome',
-        passed: caseResult.outcomeMatch,
-        source: 'case.outcomeMatch',
-      }),
-      buildRetrievalAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'governance',
-        passed: caseResult.governancePassed,
-        source: 'case.governancePassed',
-      }),
-    );
-
-    if (caseDefinition.endpoint === '/v3/retrieval/search') {
-      events.push(
-        buildRetrievalAssertionEvent({
-          suiteRunId,
-          timestamp: finishedAt,
-          caseDefinition,
-          caseResult,
-          tags,
-          assertionId: 'graph-plan',
-          passed: graphPlanFailures.length === 0,
-          source: 'case.passed',
-          reason: graphPlanFailures.map((failure) => failure.description).join('; ') || undefined,
-        }),
-      );
-      continue;
-    }
-
-    events.push(
-      buildRetrievalAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'shape',
-        passed: shapeFailures.length === 0,
-        source: 'case.passed',
-        reason: shapeFailures.map((failure) => failure.description).join('; ') || undefined,
-      }),
     );
   }
 

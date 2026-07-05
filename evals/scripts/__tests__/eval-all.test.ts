@@ -913,6 +913,121 @@ describe('runUnifiedEvaluation', () => {
     ]);
   });
 
+  it('delegates retrieval platform event construction to the retrieval suite builder', async () => {
+    const publishPlatformEvent = vi.fn();
+    const buildRetrievalPlatformEvents = vi.fn(async () => [
+      {
+        family: 'EvalRunStarted' as const,
+        suite: 'retrieval' as const,
+        tier: 'smoke' as const,
+        runId: 'seed:retrieval',
+        caseId: null,
+        scenarioId: null,
+        timestamp: '2026-07-03T00:00:00.000Z',
+        tags: ['dry-run'],
+        payload: {
+          reportMeta: {
+            schemaVersion: 1,
+            timestamp: '2026-07-03T00:00:05.000Z',
+            options: {
+              tier: 'smoke' as const,
+              dryRun: true,
+              allowEmpty: false,
+              verbose: 0,
+            },
+          },
+          runScope: {
+            tier: 'smoke' as const,
+            dryRun: true,
+            allowEmpty: false,
+            verbose: false,
+            caseCount: 1,
+            scenarioIds: ['scenario-1'],
+          },
+        },
+      },
+    ]);
+    const retrievalReport = {
+      meta: {
+        schemaVersion: 1 as const,
+        timestamp: '2026-07-03T00:00:05.000Z',
+        durationMs: 5000,
+        options: {
+          tier: 'smoke' as const,
+          dryRun: true,
+          allowEmpty: false,
+          verbose: 0,
+        },
+      },
+      summary: {
+        totalCases: 1,
+        passedCases: 1,
+        failedCases: 0,
+        passRate: 1,
+        passed: true,
+      },
+      slices: [],
+      cohorts: [],
+      modeComparisons: [],
+      routingDistribution: [],
+      cases: [],
+      failures: [],
+      warnings: [],
+    };
+
+    const result = await runUnifiedEvaluation(
+      {
+        ...baseOptions,
+        platform: 'json-archive' as const,
+        platformOutputDir: './reports/platform-events',
+      },
+      {
+        createPlatformAdapter: vi.fn(() => ({
+          kind: 'json-archive',
+          publish: vi.fn(),
+          close: vi.fn(),
+        })),
+        buildRetrievalPlatformEvents,
+        publishPlatformEvent,
+        closePlatformAdapter: vi.fn(),
+        warn: vi.fn(),
+        log: vi.fn(),
+        error: vi.fn(),
+        runRetrievalEval: vi.fn(async () => ({
+          passed: true,
+          report: retrievalReport,
+          durationMs: 5000,
+          summary: {
+            totalCases: 1,
+            passedCases: 1,
+            failedCases: 0,
+            passRate: 1,
+            slices: [],
+          },
+        })),
+        runSummaryEval: vi.fn(async () => null),
+        runGraphExtractionEval: vi.fn(async () => null),
+        runIngestionEval: vi.fn(async () => null),
+        runAgentPlanningEval: vi.fn(async () => null),
+        runLabelAlignmentEval: vi.fn(async () => null),
+      },
+    );
+
+    expect(result.combinedReport.retrieval?.report).toEqual(retrievalReport);
+    expect(buildRetrievalPlatformEvents).toHaveBeenCalledWith({
+      suiteRunId: expect.stringMatching(/:retrieval$/),
+      baseTags: ['dry-run'],
+      report: retrievalReport,
+    });
+    expect(publishPlatformEvent.mock.calls.map(([_, __, event]) => event)).toEqual([
+      expect.objectContaining({
+        family: 'EvalRunStarted',
+        suite: 'retrieval',
+        runId: 'seed:retrieval',
+      }),
+    ]);
+  });
+
   it('mirrors agent-planning case, score, assertion, and trace events from the native report truth source', async () => {
     const publishPlatformEvent = vi.fn();
 
