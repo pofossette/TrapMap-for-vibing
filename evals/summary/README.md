@@ -4,6 +4,11 @@
 
 摘要评测使用基于法官验证的方式，对检索上下文中 LLM 生成摘要的质量进行评分。
 
+当前能力补充：
+
+- suite 侧 platform event 构建：基于 native report 镜像 `run` / `case` / `score` / `assertion` 事件
+- aggregate runner 只消费这些 events 并交给 adapter 发布；TrapMap native JSON report 继续是 truth source
+
 ## 快速开始
 
 从根目录的 pnpm 脚本运行摘要评测：
@@ -30,6 +35,12 @@ pnpm eval:summary --tier smoke --provider fallback
 # 从 badcase trace 导出 draft（当前统一先导出 retrieval-shaped draft）
 pnpm exec tsx scripts/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
 ```
+
+平台集成边界：
+
+- `evals/summary/lib/platform-events.ts` 负责把 `SummaryEvalReport` 投影成统一 platform events
+- `evals/scripts/eval-all.ts` 只负责 aggregate 编排、adapter 选择、warning-only 发布与统一输出
+- `--platform` 参数仍只对 aggregate suite（`pnpm eval -- smoke|core|all`）生效，不改变 summary suite 自身的 native report contract
 
 ## 摘要评测概念
 

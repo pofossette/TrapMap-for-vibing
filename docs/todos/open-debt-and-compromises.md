@@ -96,10 +96,10 @@ badcase 回流链路已全面闭环，包括分类标准：
 
 ## 5.1 Agent Eval Platform 当前残留
 
-- **Status**: Active debt, not a regression introduced by the 2026-07-04 Langfuse adapter pass
+- **Status**: Deferred/platform residue only; the remaining live Langfuse closeout stays in the active owner plan, not in this debt register
 - retrieval / summary / agent-planning 现都已切到 suite-owned platform event builder；此前 aggregate runner 内联镜像这项 debt 已闭环，不再继续登记为 active debt
 - `LangfuseAdapter` 已以 warning-only mirror 方式接入 aggregate runner，并完成 mock/fake client 自动化验证
-- 真实 Langfuse 服务联通尚未形成 checked-in closeout 证据；截至 2026-07-05 12:11:22 CST，本次执行 shell 中 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 均为空，且仓库内没有 checked-in Langfuse deployment/config 可对接，因此当前只验证了缺配置 warning 路径和本地测试 double 映射
+- 真实 Langfuse 服务联通尚未形成 checked-in closeout 证据；截至 2026-07-05 12:11:22 CST，本次执行 shell 中 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 均为空，且仓库内没有 checked-in Langfuse deployment/config 可对接，因此当前 active owner plan 只保留这一个 environment-blocked closeout
 - `rtk pnpm eval -- core --dry-run --platform langfuse` 当前仍暴露既有 suite 结果：
   - ingestion failed bundles: `1`
   - agent-planning failed cases: `3`
@@ -111,7 +111,7 @@ Phase 4 closeout 对剩余 deferred 的处理原则已经冻结：
 - 能用现有 truth source 明确写成“当前不承诺”的事项，不再继续保留为 active checklist，而是直接留在 debt register / deferred 落点
 - 只有仍然阻塞当前 active plan 完成定义、且能够在保持 `gateway only` 与既有 truth boundary 不变的前提下做最小真实落地的项，才继续留在 active todo
 - 当前明确转 deferred 的包括：Kubernetes/Ingress/Service Mesh 平台化、service-to-service auth hardening、per-service database、MQ 全面替换、外部缓存平台、dashboard-as-code、alert rule pack、Node heap preset 与 PgBouncer introspection contract
-- 当前仍留在 active todo 的剩余 closeout 只剩真实 Langfuse 目标验证这一个 environment-blocked 项；第二平台与更宽的平台化工作继续走 deferred 落点
+- 当前仍留在 active todo 的剩余 closeout 只剩真实 Langfuse 目标验证这一个 environment-blocked 项；第二平台与更宽的平台化工作继续走 debt register / deferred 落点
 
 ## 7. Coupling Debt Register (Phase 0.6 Audit)
 
