@@ -2,11 +2,11 @@ import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
-import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import {
   createKnowledgeReadDeps,
   createKnowledgeReadServer,
 } from '@trapmap/service-knowledge-read';
+import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 
 /**
  * Bootstrap the knowledge-read service as a standalone process.

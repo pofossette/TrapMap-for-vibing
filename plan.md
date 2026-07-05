@@ -7,7 +7,7 @@
 - 当前主线：Agent Eval 平台长期可维护架构
 - 状态：`进行中`
 - 主细则：[`docs/todos/agent-eval-framework-evaluation-and-plan.md`](docs/todos/agent-eval-framework-evaluation-and-plan.md)
-- 配套评分：[`docs/archived/agent-eval-framework-scorecard.md`](docs/archived/agent-eval-framework-scorecard.md)
+- 配套评分：[`docs/todos/agent-eval-framework-scorecard.md`](docs/todos/agent-eval-framework-scorecard.md)
 - 活跃 debt register：[`docs/todos/open-debt-and-compromises.md`](docs/todos/open-debt-and-compromises.md)
 
 ## 说明

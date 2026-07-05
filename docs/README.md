@@ -9,7 +9,7 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 当前根计划为“服务发现与可观测性升级”，状态为 `收口中`。当前 active 执行细则与 closeout tasklist 统一维护在：
 
 - 根索引：[`../plan.md`](../plan.md)
-- 活跃细则：[`todos/service-discovery-and-observability-plan.md`](todos/service-discovery-and-observability-plan.md)
+- 活跃细则：[`todos/active-closeout-and-followups.md`](todos/active-closeout-and-followups.md)
 - CI/testing truth source：[`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md)
 
 上一条“微服务平台能力增强”主线已完成并归档：
@@ -227,8 +227,7 @@ deployment flexibility 最小验证矩阵：
 - [健壮性与可扩展性收尾细则](archived/archived-plans/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](archived/archived-plans/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪
-- [微服务架构与可观测性全景](todos/microservice-architecture-and-observability.md) — 当前微服务增强主线的架构盘点与问题输入，不承担执行 checklist
-- [轻重后端构建目标细则](todos/backend-build-targets-plan.md) — 轻重后端构建目标、兼容壳清理与客户端后端形态配置的细则；现退回背景参考
+- [轻重后端构建目标细则](archived/archived-plans/backend-build-targets-plan.md) — 轻重后端构建目标、兼容壳清理与客户端后端形态配置的冻结结论，已归档为背景参考
 - [组件替换细则](archived/archived-plans/component-replacement-plan.md) — 成熟包替换的独立细则；根计划已切换，不再是当前主线
 - [Badcase 回流待办](archived/archived-plans/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
 - [后端工程化优化计划](archived/archived-plans/backend-engineering-optimization-plan.md) — 平台化 deferred 问题池；承接 MQ 产品化、监控平台、长期服务化与更重的平台工程议题
@@ -243,7 +242,7 @@ deployment flexibility 最小验证矩阵：
 - [样板实施前检查表](archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-preflight-checklist.md) — 开始迁移前先冻结边界、契约、测试入口与非目标
 - [样板代码迁移任务列表](archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md) — 直接映射到具体包和文件的迁移任务清单
 - [未完成项与阶段性妥协清单](todos/open-debt-and-compromises.md) — 当前仍未收口的占位实现、阶段性妥协与开发退路
-- [成熟库替换评估](todos/library-replacement-evaluation.md) — 手写实现 vs 成熟库的评估决策与触发条件
+- [成熟库替换评估](archived/archived-plans/library-replacement-evaluation.md) — 手写实现 vs 成熟库的评估决策与触发条件，已归档为背景参考
 
 ### 架构与 API
 - [架构概览](../architecture.md) — 根入口级架构摘要，适合先建立整体心智模型

@@ -1,12 +1,12 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
 import {
-  context as otelContext,
   type Span,
   SpanKind,
   SpanStatusCode,
+  context as otelContext,
   propagation,
   trace,
 } from '@opentelemetry/api';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 const requestSpanSymbol = Symbol('trapmap.distributed.request.span');
 

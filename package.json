@@ -67,7 +67,7 @@
     "eval:label-alignment:smoke": "pnpm run eval -- label-alignment --tier smoke --mode dry-run",
     "eval:label-alignment:core": "pnpm run eval -- label-alignment --tier core --mode dry-run",
     "eval:label-alignment:dry-run": "pnpm run eval -- label-alignment --tier smoke --mode dry-run",
-    "eval:smoke": "pnpm run eval -- smoke",
+    "eval:smoke": "pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier smoke",
     "eval:graph-extraction": "pnpm run eval -- graph-extraction",
     "eval:graph-extraction:smoke": "pnpm run eval -- graph-extraction --tier smoke",
     "eval:graph-extraction:dry-run": "pnpm run eval -- graph-extraction --tier smoke --dry-run",

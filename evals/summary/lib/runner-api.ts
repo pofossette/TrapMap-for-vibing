@@ -112,7 +112,9 @@ export function getSummaryScenarioIds(
   tier: SummaryEvalTier,
   endpoint?: SummaryEvalEndpoint,
 ): string[] {
-  return [...new Set(getSummaryEvaluationCases(tier, endpoint).map((case_) => case_.scenarioId))].sort();
+  return [
+    ...new Set(getSummaryEvaluationCases(tier, endpoint).map((case_) => case_.scenarioId)),
+  ].sort();
 }
 
 // =============================================================================

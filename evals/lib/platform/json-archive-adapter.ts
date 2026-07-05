@@ -2,9 +2,9 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import {
+  type EvalPlatformEvent,
   evalPlatformEventSchema,
   evalPlatformRunSchema,
-  type EvalPlatformEvent,
 } from '../../../packages/contracts/src/domain/evals/platform.js';
 
 import type { EvalPlatformAdapter, EvalPlatformAdapterConfig } from './types.js';

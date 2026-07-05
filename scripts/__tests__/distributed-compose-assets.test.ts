@@ -56,7 +56,7 @@ describe('distributed compose assets', () => {
 
   it('keeps consul on a single private network to avoid dual-address startup failure', () => {
     const observabilityCompose = readRepoFile('docker-compose.observability.yml');
-    const consulBlock = observabilityCompose.match(/consul:\n[\s\S]*?\n\n  tempo:/)?.[0] ?? '';
+    const consulBlock = observabilityCompose.match(/consul:\n[\s\S]*?\n\n {2}tempo:/)?.[0] ?? '';
 
     expect(consulBlock).toContain('networks:');
     expect(consulBlock).toContain('- trapmap-distributed');

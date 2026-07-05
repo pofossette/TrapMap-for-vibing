@@ -67,6 +67,10 @@ export { getOrCreateRequestContext } from './request-context.js';
 // HTTP surface
 export { registerRuntimeRoutes, handleRuntimeError } from './http-surface.js';
 
+// HTTP request hooks (observability: trace propagation + request logging)
+export type { HttpRequestHooksArgs } from './http-hooks.js';
+export { registerHttpRequestHooks } from './http-hooks.js';
+
 // Route surface
 export type {
   RouteAudience,

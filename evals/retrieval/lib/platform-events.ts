@@ -17,14 +17,8 @@ export interface BuildRetrievalPlatformEventsInput {
 }
 
 interface RetrievalPlatformEventDeps {
-  loadCases(
-    tier: RetrievalEvalTier,
-    endpoint?: RetrievalEvalCase['endpoint'],
-  ): RetrievalEvalCase[];
-  loadScenarioIds(
-    tier: RetrievalEvalTier,
-    endpoint?: RetrievalEvalCase['endpoint'],
-  ): string[];
+  loadCases(tier: RetrievalEvalTier, endpoint?: RetrievalEvalCase['endpoint']): RetrievalEvalCase[];
+  loadScenarioIds(tier: RetrievalEvalTier, endpoint?: RetrievalEvalCase['endpoint']): string[];
 }
 
 const defaultDeps: RetrievalPlatformEventDeps = {

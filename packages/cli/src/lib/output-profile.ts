@@ -3,17 +3,10 @@ import { getDefaultOutputProfile as getConfigDefaultOutputProfile } from '@trapm
 
 import { registry } from './output-profile/registry.js';
 import type {
-  CommandResultView,
-  GraphPlanSummaryView,
   RenderEnvelope,
   RenderEnvelopeContext,
   RenderKind,
-  RenderPayload,
   Renderer,
-  RendererRegistry,
-  RetrievalV1View,
-  RetrievalV2View,
-  SkillLookupView,
 } from './output-profile/types.js';
 
 export type {

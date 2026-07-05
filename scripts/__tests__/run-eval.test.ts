@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildEvalCommandArgs, resolveEvalTarget, type EvalSuite } from '../run-eval';
+import { type EvalSuite, buildEvalCommandArgs, resolveEvalTarget } from '../run-eval';
 
 function resolveSuite(
   suite: EvalSuite,

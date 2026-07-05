@@ -1,8 +1,4 @@
-import type {
-  EvalPlatformEvent,
-  SummaryEvalCase,
-  SummaryEvalTier,
-} from '@trapmap/contracts/evals';
+import type { EvalPlatformEvent, SummaryEvalCase, SummaryEvalTier } from '@trapmap/contracts/evals';
 
 import type {
   SummaryEvalFailureRecord,
@@ -275,8 +271,14 @@ export async function buildSummaryPlatformEvents(
 ): Promise<EvalPlatformEvent[]> {
   const { suiteRunId, baseTags, report } = input;
   const startedAt = deriveStartedAt(report.meta.timestamp, report.meta.durationMs);
-  const scenarioIds = defaultDeps.loadScenarioIds(report.meta.options.tier, report.meta.options.endpoint);
-  const summaryCases = defaultDeps.loadCases(report.meta.options.tier, report.meta.options.endpoint);
+  const scenarioIds = defaultDeps.loadScenarioIds(
+    report.meta.options.tier,
+    report.meta.options.endpoint,
+  );
+  const summaryCases = defaultDeps.loadCases(
+    report.meta.options.tier,
+    report.meta.options.endpoint,
+  );
   const caseMap = new Map(summaryCases.map((case_) => [case_.caseId, case_]));
   const failuresByCase = groupSummaryFailuresByCase(report.failures);
 

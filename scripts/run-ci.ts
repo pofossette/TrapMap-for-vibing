@@ -60,7 +60,7 @@ const STEPS: StepDefinition[] = [
     name: 'test:coverage',
     command: 'pnpm',
     args: ['run', 'test:coverage'],
-    env: { NODE_ENV: 'test' },
+    env: { NODE_ENV: 'test', OTEL_DISABLED: 'true' },
   },
   {
     name: 'check:docs-drift',
@@ -150,12 +150,40 @@ function stepHeader(name: string, index: number, total: number): void {
 // Step runner
 // ---------------------------------------------------------------------------
 
+// Env-var families that must never leak into CI steps — they carry
+// user-specific credentials, DB connections, or provider overrides that would
+// make the test run non-deterministic.
+const CI_ENV_STRIP_PREFIXES = [
+  'TRAPMAP_',
+  'AI_',
+  'OPENAI_',
+  'EMBEDDING_',
+  'ANTHROPIC_',
+  'AURSCAN_',
+] as const;
+const CI_ENV_STRIP_EXACT = new Set(['DATABASE_URL', 'POSTGRES_PASSWORD']);
+
+function sanitizeCiEnv(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const out: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(base)) {
+    if (value === undefined) continue;
+    if (CI_ENV_STRIP_EXACT.has(key)) continue;
+    if (CI_ENV_STRIP_PREFIXES.some((prefix) => key.startsWith(prefix))) continue;
+    out[key] = value;
+  }
+  return out;
+}
+
 function runStep(step: StepDefinition, label: string): Promise<StepResult> {
   return new Promise((resolve) => {
     const start = Date.now();
     const options: SpawnOptions = {
       stdio: ['ignore', 'inherit', 'pipe'],
-      env: { ...process.env, CI: process.env.CI ?? 'true', ...step.env },
+      env: {
+        ...sanitizeCiEnv(process.env),
+        CI: process.env.CI ?? 'true',
+        ...step.env,
+      },
     };
 
     const child: ChildProcess = spawn(step.command, step.args, options);

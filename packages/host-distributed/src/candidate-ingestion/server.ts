@@ -4,11 +4,11 @@ import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.
 import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
-import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import {
   createCandidateIngestionDeps,
   createCandidateIngestionServer,
 } from '@trapmap/service-candidate-ingestion';
+import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 
 export interface CandidateIngestionServer {
   app: Awaited<ReturnType<typeof createCandidateIngestionServer>>['app'];

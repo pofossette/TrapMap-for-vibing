@@ -8,7 +8,7 @@
  * instead of writing directly to stdout.
  */
 
-import { type RetrievalEvalCase, type RetrievalEvalTier } from '@trapmap/contracts/evals';
+import type { RetrievalEvalCase, RetrievalEvalTier } from '@trapmap/contracts/evals';
 
 import {
   closeExecutionContext,
@@ -72,7 +72,9 @@ export function getRetrievalScenarioIds(
   tier: RetrievalEvalTier,
   endpoint?: RunRetrievalOptions['endpoint'],
 ): string[] {
-  return [...new Set(getRetrievalEvaluationCases(tier, endpoint).map((case_) => case_.scenarioId))].sort();
+  return [
+    ...new Set(getRetrievalEvaluationCases(tier, endpoint).map((case_) => case_.scenarioId)),
+  ].sort();
 }
 
 // =============================================================================
