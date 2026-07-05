@@ -16,7 +16,7 @@
 - `LangfuseAdapter` 已覆盖 run / case / score / assertion / trace 映射
 - `evals/retrieval/lib/platform-events.ts` 与 `evals/summary/lib/platform-events.ts` 已落地；aggregate runner 现消费三条 suite-owned 事件流
 - 缺配置、发布失败、网络/鉴权错误、close/shutdown flush 超时都保持 warning-only，不影响 eval 退出码
-- `docs/operations/ENVIRONMENT.md`、`docs/operations/TESTING.md`、`evals/README.md`、`docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md` 已回写
+- `docs/operations/ENVIRONMENT.md`、`docs/operations/TESTING.md`、`evals/README.md`、`evals/summary/README.md`、`docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md` 已回写
 - native TrapMap report 继续是唯一 truth source；aggregate runner 不再维护 retrieval / summary / agent-planning 的内联 mirror 细节
 
 本轮已验证：
