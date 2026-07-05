@@ -166,6 +166,52 @@ describe('report building', () => {
     expect(report.failures[1]?.kind).toBe('forbidden-hit');
     expect(report.failures[2]?.kind).toBe('shape-mismatch');
   });
+
+  it('preserves graph-plan mismatch as a canonical retrieval report failure kind', () => {
+    const caseResults = [
+      makeCaseResult({
+        case: {
+          ...makeCaseResult().case,
+          caseId: 'v3-graph-plan-selected-smoke',
+          endpoint: '/v3/retrieval/search',
+        },
+        governance: {
+          passed: false,
+          failures: [
+            {
+              kind: 'graph-plan-mismatch',
+              description: 'Expected edge trap->skill not found',
+              ids: ['trap->skill'],
+            },
+          ],
+          forbiddenHits: [],
+        },
+        passed: false,
+        graphPlanResult: {
+          passed: false,
+          failures: [
+            {
+              kind: 'missing-edge',
+              description: 'Expected edge trap->skill not found',
+              expected: ['trap->skill'],
+              actual: [],
+            },
+          ],
+        },
+      }),
+    ];
+
+    const report = buildReport(caseResults, makeOptions(), 100);
+
+    expect(report.failures).toEqual([
+      expect.objectContaining({
+        caseId: 'v3-graph-plan-selected-smoke',
+        kind: 'graph-plan-mismatch',
+        description: 'Expected edge trap->skill not found',
+        ids: ['trap->skill'],
+      }),
+    ]);
+  });
 });
 
 // =============================================================================

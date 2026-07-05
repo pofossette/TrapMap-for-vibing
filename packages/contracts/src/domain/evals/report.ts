@@ -112,6 +112,7 @@ export const retrievalEvalFailureKindSchema = z.enum([
   'unexpected-empty',
   'unexpected-non-empty',
   'shape-mismatch',
+  'graph-plan-mismatch',
   'execution-error',
 ]);
 

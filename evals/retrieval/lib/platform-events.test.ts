@@ -205,7 +205,7 @@ describe('buildRetrievalPlatformEvents', () => {
     ]);
   });
 
-  it('marks v3 graph-plan assertions failed from canonical case truth even when failure kinds normalize', async () => {
+  it('does not falsely fail v3 graph-plan assertions for governance-only failures', async () => {
     const report: RetrievalEvalReport = {
       meta: {
         schemaVersion: 1,
@@ -236,7 +236,7 @@ describe('buildRetrievalPlatformEvents', () => {
           tier: 'smoke',
           passed: false,
           outcomeMatch: true,
-          governancePassed: true,
+          governancePassed: false,
           durationMs: 180,
           hitAt1: 0,
           hitAt5: 1,
@@ -252,8 +252,9 @@ describe('buildRetrievalPlatformEvents', () => {
       failures: [
         {
           caseId: 'v3-graph-plan-selected-smoke',
-          kind: 'execution-error',
-          description: 'Graph plan edge trap->skill missing after report normalization',
+          kind: 'forbidden-hit',
+          description: 'Forbidden skill leaked into retrieval hits',
+          ids: ['skill-forbidden-1'],
           endpoint: '/v3/retrieval/search',
           tier: 'smoke',
         },
@@ -277,9 +278,8 @@ describe('buildRetrievalPlatformEvents', () => {
       expect.objectContaining({
         payload: expect.objectContaining({
           assertionId: 'graph-plan',
-          passed: false,
+          passed: true,
           source: 'case.passed',
-          reason: 'Graph plan edge trap->skill missing after report normalization',
         }),
       }),
     );

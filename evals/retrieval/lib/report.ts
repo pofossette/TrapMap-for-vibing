@@ -443,6 +443,7 @@ function mapFailureKind(kind: string): RetrievalEvalFailureKind {
     'unexpected-empty',
     'unexpected-non-empty',
     'shape-mismatch',
+    'graph-plan-mismatch',
     'execution-error',
   ];
 
