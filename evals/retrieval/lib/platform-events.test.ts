@@ -204,4 +204,84 @@ describe('buildRetrievalPlatformEvents', () => {
       ['graph-plan', false, 'case.passed', 'Expected edge trap->skill not found'],
     ]);
   });
+
+  it('marks v3 graph-plan assertions failed from canonical case truth even when failure kinds normalize', async () => {
+    const report: RetrievalEvalReport = {
+      meta: {
+        schemaVersion: 1,
+        timestamp: '2026-07-03T00:00:05.000Z',
+        durationMs: 5000,
+        options: {
+          tier: 'smoke',
+          dryRun: false,
+          allowEmpty: false,
+          verbose: 0,
+        },
+      },
+      summary: {
+        totalCases: 1,
+        passedCases: 0,
+        failedCases: 1,
+        passRate: 0,
+        passed: false,
+      },
+      slices: [],
+      cohorts: [],
+      modeComparisons: [],
+      routingDistribution: [],
+      cases: [
+        {
+          caseId: 'v3-graph-plan-selected-smoke',
+          endpoint: '/v3/retrieval/search',
+          tier: 'smoke',
+          passed: false,
+          outcomeMatch: true,
+          governancePassed: true,
+          durationMs: 180,
+          hitAt1: 0,
+          hitAt5: 1,
+          hitAt10: 1,
+          mrr: 0.5,
+          ndcg: 0.7,
+          recallAt10: 1,
+          selectedMode: 'hybrid',
+          routingReason: 'graph-plan-selected',
+          fallbackApplied: false,
+        },
+      ],
+      failures: [
+        {
+          caseId: 'v3-graph-plan-selected-smoke',
+          kind: 'execution-error',
+          description: 'Graph plan edge trap->skill missing after report normalization',
+          endpoint: '/v3/retrieval/search',
+          tier: 'smoke',
+        },
+      ],
+      warnings: [],
+    };
+
+    const events = await buildRetrievalPlatformEvents({
+      suiteRunId: 'platform-run-2:retrieval',
+      baseTags: [],
+      report,
+    });
+
+    expect(
+      events.filter(
+        (event) =>
+          event.family === 'EvalAssertionRecorded' &&
+          event.caseId === 'v3-graph-plan-selected-smoke',
+      ),
+    ).toContainEqual(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          assertionId: 'graph-plan',
+          passed: false,
+          source: 'case.passed',
+          reason: 'Graph plan edge trap->skill missing after report normalization',
+        }),
+      }),
+    );
+  });
 });

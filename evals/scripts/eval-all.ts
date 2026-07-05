@@ -1178,16 +1178,23 @@ export async function runUnifiedEvaluation(
   }
 
   if (adapter) {
-    const suiteEvents = await buildSuitePlatformEvents(
-      options,
-      platformRunSeed,
-      retrievalResult,
-      summaryResult,
-      agentPlanningResult,
-      resolvedDeps,
-    );
-    for (const event of suiteEvents) {
-      await resolvedDeps.publishPlatformEvent(adapter, resolvedDeps.warn, event);
+    try {
+      const suiteEvents = await buildSuitePlatformEvents(
+        options,
+        platformRunSeed,
+        retrievalResult,
+        summaryResult,
+        agentPlanningResult,
+        resolvedDeps,
+      );
+      for (const event of suiteEvents) {
+        await resolvedDeps.publishPlatformEvent(adapter, resolvedDeps.warn, event);
+      }
+    } catch (error) {
+      resolvedDeps.warn(
+        `[eval-platform] ${adapter.kind} suite event mirroring failed; continuing without affecting eval status.`,
+        error,
+      );
     }
 
     try {

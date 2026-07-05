@@ -201,9 +201,6 @@ function buildRetrievalCasePlatformEvents(params: {
     const tags = getEventTags(baseTags, caseDefinition.tags);
     const caseFailures = failuresByCase.get(caseResult.caseId) ?? [];
     const shapeFailures = caseFailures.filter((failure) => failure.kind === 'shape-mismatch');
-    const graphPlanFailures = caseFailures.filter(
-      (failure) => failure.kind === 'graph-plan-mismatch',
-    );
 
     events.push({
       family: 'EvalCaseStarted',
@@ -270,9 +267,12 @@ function buildRetrievalCasePlatformEvents(params: {
           caseResult,
           tags,
           assertionId: 'graph-plan',
-          passed: graphPlanFailures.length === 0,
+          passed: caseResult.passed,
           source: 'case.passed',
-          reason: graphPlanFailures.map((failure) => failure.description).join('; ') || undefined,
+          reason:
+            !caseResult.passed
+              ? caseFailures.map((failure) => failure.description).join('; ') || undefined
+              : undefined,
         }),
       );
       continue;

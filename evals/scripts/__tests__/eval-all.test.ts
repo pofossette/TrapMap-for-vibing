@@ -1028,6 +1028,88 @@ describe('runUnifiedEvaluation', () => {
     ]);
   });
 
+  it('treats suite platform builder throws as warnings after native eval completion', async () => {
+    const publishPlatformEvent = vi.fn();
+    const closePlatformAdapter = vi.fn();
+    const warn = vi.fn();
+    const buildRetrievalPlatformEvents = vi.fn(async () => {
+      throw new Error('suite builder failed');
+    });
+
+    const result = await runUnifiedEvaluation(
+      {
+        ...baseOptions,
+        platform: 'json-archive' as const,
+        platformOutputDir: './reports/platform-events',
+      },
+      {
+        createPlatformAdapter: vi.fn(() => ({
+          kind: 'json-archive',
+          publish: vi.fn(),
+          close: vi.fn(),
+        })),
+        buildRetrievalPlatformEvents,
+        publishPlatformEvent,
+        closePlatformAdapter,
+        warn,
+        log: vi.fn(),
+        error: vi.fn(),
+        runRetrievalEval: vi.fn(async () => ({
+          passed: true,
+          report: {
+            meta: {
+              schemaVersion: 1,
+              timestamp: '2026-07-03T00:00:05.000Z',
+              durationMs: 5000,
+              options: {
+                tier: 'smoke',
+                dryRun: true,
+                allowEmpty: false,
+                verbose: 0,
+              },
+            },
+            summary: {
+              totalCases: 1,
+              passedCases: 1,
+              failedCases: 0,
+              passRate: 1,
+              passed: true,
+            },
+            slices: [],
+            cohorts: [],
+            modeComparisons: [],
+            routingDistribution: [],
+            cases: [],
+            failures: [],
+            warnings: [],
+          },
+          durationMs: 5000,
+          summary: {
+            totalCases: 1,
+            passedCases: 1,
+            failedCases: 0,
+            passRate: 1,
+            slices: [],
+          },
+        })),
+        runSummaryEval: vi.fn(async () => null),
+        runGraphExtractionEval: vi.fn(async () => null),
+        runIngestionEval: vi.fn(async () => null),
+        runAgentPlanningEval: vi.fn(async () => null),
+        runLabelAlignmentEval: vi.fn(async () => null),
+      },
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(buildRetrievalPlatformEvents).toHaveBeenCalledTimes(1);
+    expect(publishPlatformEvent).not.toHaveBeenCalled();
+    expect(closePlatformAdapter).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('json-archive'),
+      expect.objectContaining({ message: 'suite builder failed' }),
+    );
+  });
+
   it('mirrors agent-planning case, score, assertion, and trace events from the native report truth source', async () => {
     const publishPlatformEvent = vi.fn();
 
