@@ -52,6 +52,8 @@
 | `archived-plans/eval-skill-capsule-vs-bare-skill.md` | 2026-07-03 | 未来 eval 对照方案，当前无活跃 owner，转 deferred 参考 |
 | `webui-layout-refactor-guide.md` | 2026-07-03 | WebUI 版式重构指南当前无执行 owner，转 deferred 设计参考 |
 | `archived-plans/plan-2026-07-03-agent-eval-platform-index-archived.md` | 2026-07-03 | 根 `plan.md` 已切换为 Agent Eval 平台长期主线，旧 closeout/followups 索引退回历史参考 |
+| `agent-eval-framework-scorecard.md` | 2026-07-05 | 冻结评分卡，非活跃 todo；已整合入 eval 主线执行计划 |
+| `agent-eval-platform-event-model.md` | 2026-07-05 | Phase 0 冻结事件设计文档，已作为 Phase 1 输入完成使命 |
 
 ## 归档原则
 

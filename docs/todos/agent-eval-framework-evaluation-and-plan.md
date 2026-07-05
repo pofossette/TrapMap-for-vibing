@@ -90,9 +90,9 @@
 
 **文件落点**
 
-- 新增：`docs/todos/agent-eval-platform-event-model.md`
+- 新增：`docs/archived/agent-eval-platform-event-model.md`（已归档）
 - 修改：`docs/todos/agent-eval-framework-evaluation-and-plan.md`
-- 修改：`docs/todos/agent-eval-framework-scorecard.md`
+- 修改：`docs/archived/agent-eval-framework-scorecard.md`（已归档）
 
 **Checklist**
 
@@ -105,7 +105,7 @@
 
 **本阶段文档要求**
 
-- [x] 新建 `agent-eval-platform-event-model.md`，作为 Phase 1 代码实现的唯一事件设计输入
+- [x] 新建 `agent-eval-platform-event-model.md`，作为 Phase 1 代码实现的唯一事件设计输入（已归档至 `docs/archived/`）
 
 **本阶段验证**
 
@@ -141,7 +141,7 @@
 
 **本阶段文档要求**
 
-- [x] 如新增事件模型公开说明，补写到 `docs/todos/agent-eval-platform-event-model.md`
+- [x] 如新增事件模型公开说明，补写到 `docs/archived/agent-eval-platform-event-model.md`
 - [x] 如 root command 或参数说明变化，回写 [`README.md`](../../README.md) 或相关 README
 
 **本阶段测试要求**
@@ -289,7 +289,7 @@
 
 ## 现阶段推荐起手动作
 
-- [ ] 新建 `docs/todos/agent-eval-platform-event-model.md`
+- [x] 新建 `docs/archived/agent-eval-platform-event-model.md`（已完成并归档）
 - [ ] 为 `packages/contracts/src/domain/evals/` 新增 `platform.ts`
 - [ ] 为 `evals/lib/platform/` 新增 `types.ts`、`adapter.ts`、`noop-adapter.ts`、`json-archive-adapter.ts`
 - [ ] 只让 `agent-planning` 做第一轮 JSON 双写，不直接上外部平台
