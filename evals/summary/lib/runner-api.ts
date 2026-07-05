@@ -108,6 +108,13 @@ export function getSummaryEvaluationCases(
   return filterCasesByEndpoint(loadCasesForTier(tier), endpoint);
 }
 
+export function getSummaryScenarioIds(
+  tier: SummaryEvalTier,
+  endpoint?: SummaryEvalEndpoint,
+): string[] {
+  return [...new Set(getSummaryEvaluationCases(tier, endpoint).map((case_) => case_.scenarioId))].sort();
+}
+
 // =============================================================================
 // Mock Execution (for dry-run and testing)
 // =============================================================================

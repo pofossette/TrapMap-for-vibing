@@ -777,6 +777,142 @@ describe('runUnifiedEvaluation', () => {
     ]);
   });
 
+  it('delegates summary platform event construction to the summary suite builder', async () => {
+    const publishPlatformEvent = vi.fn();
+    const buildSummaryPlatformEvents = vi.fn(async () => [
+      {
+        family: 'EvalRunStarted' as const,
+        suite: 'summary' as const,
+        tier: 'smoke' as const,
+        runId: 'delegated-suite-run',
+        caseId: null,
+        scenarioId: null,
+        timestamp: '2026-07-03T00:00:05.000Z',
+        tags: ['dry-run'],
+        payload: {
+          reportMeta: {
+            schemaVersion: 1 as const,
+            timestamp: '2026-07-03T00:00:08.000Z',
+            llmProvider: 'fallback' as const,
+            options: {
+              tier: 'smoke' as const,
+              endpoint: '/v2/retrieval/search' as const,
+              dryRun: true,
+              allowEmpty: false,
+              verbose: 0,
+            },
+          },
+          runScope: {
+            tier: 'smoke' as const,
+            dryRun: true,
+            allowEmpty: false,
+            endpoint: '/v2/retrieval/search' as const,
+            verbose: false,
+            provider: 'fallback' as const,
+            caseCount: 1,
+            scenarioIds: ['scenario-1'],
+          },
+        },
+      },
+    ]);
+    const summaryReport = {
+      meta: {
+        schemaVersion: 1 as const,
+        timestamp: '2026-07-03T00:00:08.000Z',
+        durationMs: 3000,
+        llmProvider: 'fallback' as const,
+        options: {
+          tier: 'smoke' as const,
+          endpoint: '/v2/retrieval/search' as const,
+          dryRun: true,
+          allowEmpty: false,
+          verbose: 0,
+        },
+      },
+      summary: {
+        totalCases: 1,
+        passedCases: 1,
+        failedCases: 0,
+        passRate: 1,
+        passed: true,
+        avgGroundedness: 1,
+        avgCoverage: 1,
+        forbiddenClaimHits: 0,
+      },
+      cases: [
+        {
+          caseId: 'summary-case-1',
+          endpoint: '/v2/retrieval/search' as const,
+          tier: 'smoke' as const,
+          passed: true,
+          groundednessScore: 1,
+          coverageScore: 1,
+          claimsTotal: 1,
+          claimsSupported: 1,
+          requiredFactsCovered: ['fact-1'],
+          requiredFactsMissing: [],
+          forbiddenClaimsFound: [],
+          durationMs: 222,
+        },
+      ],
+      failures: [],
+    };
+
+    const result = await runUnifiedEvaluation(
+      {
+        ...baseOptions,
+        platform: 'json-archive' as const,
+        platformOutputDir: './reports/platform-events',
+      },
+      {
+        createPlatformAdapter: vi.fn(() => ({
+          kind: 'json-archive',
+          publish: vi.fn(),
+          close: vi.fn(),
+        })),
+        buildSummaryPlatformEvents,
+        publishPlatformEvent,
+        closePlatformAdapter: vi.fn(),
+        warn: vi.fn(),
+        log: vi.fn(),
+        error: vi.fn(),
+        runRetrievalEval: vi.fn(async () => null),
+        runSummaryEval: vi.fn(async () => ({
+          passed: true,
+          report: summaryReport,
+          durationMs: 3000,
+          summary: {
+            totalCases: 1,
+            passedCases: 1,
+            failedCases: 0,
+            passRate: 1,
+            avgGroundedness: 1,
+            avgCoverage: 1,
+            forbiddenClaimHits: 0,
+          },
+        })),
+        runGraphExtractionEval: vi.fn(async () => null),
+        runIngestionEval: vi.fn(async () => null),
+        runAgentPlanningEval: vi.fn(async () => null),
+        runLabelAlignmentEval: vi.fn(async () => null),
+      },
+    );
+
+    expect(result.combinedReport.summary?.report).toEqual(summaryReport);
+    expect(buildSummaryPlatformEvents).toHaveBeenCalledWith({
+      suiteRunId: expect.stringMatching(/:summary$/),
+      baseTags: ['dry-run'],
+      report: summaryReport,
+    });
+    expect(publishPlatformEvent.mock.calls.map(([_, __, event]) => event)).toEqual([
+      expect.objectContaining({
+        family: 'EvalRunStarted',
+        suite: 'summary',
+        runId: 'delegated-suite-run',
+      }),
+    ]);
+  });
+
   it('mirrors agent-planning case, score, assertion, and trace events from the native report truth source', async () => {
     const publishPlatformEvent = vi.fn();
 
