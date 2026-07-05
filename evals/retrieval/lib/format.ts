@@ -51,7 +51,10 @@ export function formatReport(report: RetrievalEvalReport): string {
 
   // Governance failures
   const govFailures = report.failures.filter(
-    (f) => f.kind === 'forbidden-hit' || f.kind === 'shape-mismatch',
+    (f) =>
+      f.kind === 'forbidden-hit' ||
+      f.kind === 'shape-mismatch' ||
+      f.kind === 'graph-plan-mismatch',
   );
   if (govFailures.length > 0) {
     lines.push('');

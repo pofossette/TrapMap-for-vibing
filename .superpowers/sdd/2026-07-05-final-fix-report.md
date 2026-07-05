@@ -75,3 +75,36 @@ Follow-up TDD evidence:
 Concerns:
 
 - None beyond the pre-existing unrelated dirty worktree files outside the scoped edits and this report file.
+
+## Final follow-through wave
+
+Date: 2026-07-05
+
+Scope:
+- `evals/retrieval/lib/format.ts`
+- `evals/retrieval/lib/report.test.ts`
+- `evals/README.md`
+
+Remaining findings addressed:
+
+1. Human-facing retrieval terminal formatting did not render the newly canonical `graph-plan-mismatch` failure kind anywhere.
+2. `evals/README.md` still documented only the older retrieval failure kinds.
+
+Changes made:
+
+1. Updated `evals/retrieval/lib/format.ts` so `graph-plan-mismatch` is rendered under `=== Governance Failures ===` alongside other governance-facing retrieval failures.
+2. Added a focused formatter regression in `evals/retrieval/lib/report.test.ts` proving terminal output includes `graph-plan-mismatch` and its description.
+3. Updated `evals/README.md` failure-kind documentation to include `graph-plan-mismatch` and clarify that it represents `/v3/retrieval/search` graph-plan structural mismatches.
+
+TDD evidence:
+
+- Added the formatter regression first.
+- Verified RED with:
+  - `rtk pnpm test:file -- evals/retrieval/lib/report.test.ts`
+  - Failure observed because terminal output did not contain the governance-failure section or `graph-plan-mismatch`.
+- Verified GREEN with:
+  - `rtk pnpm test:file -- evals/retrieval/lib/report.test.ts`
+
+Concerns:
+
+- None beyond the pre-existing unrelated dirty worktree files outside the scoped edits and this report file.

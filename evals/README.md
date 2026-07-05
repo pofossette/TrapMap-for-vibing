@@ -235,6 +235,7 @@ export const mySummaryCase = summaryEvalCaseSchema.parse({
 | `unexpected-empty` | 期望有结果但得到空（可能过度过滤） |
 | `unexpected-non-empty` | 期望无结果但得到一些（可能过滤不足） |
 | `shape-mismatch` | 响应结构与端点契约不匹配 |
+| `graph-plan-mismatch` | `/v3/retrieval/search` 返回的 graph-plan 结构与预期 trap/skill node、edge 或 blocking/recommended 关系不匹配 |
 
 **操作**：检查受影响条目的 RBAC 配置、安全等级和生命周期状态。
 

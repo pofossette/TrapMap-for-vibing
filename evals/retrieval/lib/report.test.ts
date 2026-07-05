@@ -264,6 +264,37 @@ describe('terminal formatting', () => {
     expect(output).toContain('Warnings');
   });
 
+  it('shows graph-plan mismatches in terminal output', () => {
+    const caseResults = [
+      makeCaseResult({
+        case: {
+          ...makeCaseResult().case,
+          caseId: 'graph-plan-format-case',
+          endpoint: '/v3/retrieval/search',
+        },
+        governance: {
+          passed: false,
+          failures: [
+            {
+              kind: 'graph-plan-mismatch',
+              description: 'Expected edge trap->skill not found',
+              ids: ['trap->skill'],
+            },
+          ],
+          forbiddenHits: [],
+        },
+        passed: false,
+      }),
+    ];
+
+    const report = buildReport(caseResults, makeOptions(), 100);
+    const output = formatReport(report);
+
+    expect(output).toContain('Governance Failures');
+    expect(output).toContain('graph-plan-mismatch');
+    expect(output).toContain('Expected edge trap->skill not found');
+  });
+
   it('generates compact summary for CI', () => {
     const caseResults = [
       makeCaseResult({
