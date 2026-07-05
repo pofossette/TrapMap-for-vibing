@@ -311,7 +311,10 @@ async function buildSuitePlatformEvents(
   retrievalResult: RetrievalResult | null,
   summaryResult: SummaryResult | null,
   agentPlanningResult: AgentPlanningResult | null,
-  deps: Pick<RunUnifiedEvaluationDeps, 'buildAgentPlanningPlatformEvents'>,
+  deps: Pick<
+    RunUnifiedEvaluationDeps,
+    'buildAgentPlanningPlatformEvents' | 'buildSummaryPlatformEvents'
+  >,
 ): Promise<EvalPlatformEvent[]> {
   const tags = buildPlatformTags(options);
   const events: EvalPlatformEvent[] = [];
