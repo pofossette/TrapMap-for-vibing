@@ -26,7 +26,14 @@ export LANGFUSE_SECRET_KEY=sk-...
 export TRAPMAP_EVAL_PLATFORM_FLUSH_TIMEOUT_MS=5000
 ```
 
-当前 `agent-planning` 是首条 closeout 过的 suite-owned 事件流。aggregate runner 会消费 suite 导出的 platform events，并把它们 mirror 到 Langfuse；TrapMap native JSON report 继续是唯一 truth source。
+当前 `retrieval`、`summary`、`agent-planning` 都已改为 suite-owned platform event builder。aggregate runner 只消费 suite 导出的 platform events 并把它们 mirror 到 Langfuse；TrapMap native JSON report 继续是唯一 truth source。
+
+## 当前 closeout 状态
+
+- 代码侧 closeout 已完成到“三个 suite 都由 owner 产出 platform events，aggregate runner 只负责发布”。
+- live Langfuse closeout 仍未完成。2026-07-05 12:11:22 CST 这次执行中，`LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 全为空，且仓库内没有 checked-in Langfuse deployment/config 可供对接。
+- 因此当前只能把 `--platform langfuse` 的缺配置 warning 路径视为已验证；不能把本轮文档回写解释成真实平台联通已收口。
+- `MLflow` 与第二平台切换验证仍属 deferred，不在当前 active closeout 范围内。
 
 ## 失败语义
 

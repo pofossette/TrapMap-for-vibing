@@ -60,7 +60,9 @@ pnpm exec tsx scripts/export-badcase-to-eval.ts feedback_example ./reports/badca
 
 兼容别名 `pnpm eval:smoke`、`pnpm eval:core`、`pnpm eval:retrieval:*`、`pnpm eval:summary:*`、`pnpm eval:agent-planning:*`、`pnpm eval:label-alignment:*` 仍可用；统一入口由 `scripts/run-eval.ts` 提供，完整选项可通过 `pnpm eval -- --help` 查看。
 
-`--platform` 与 `--platform-output-dir` 只对 aggregate suite（`smoke`、`core`、`all`）生效。当前 unified runner 的 platform mirror 验证入口也是 aggregate runner；其中 `agent-planning` 事件已由 suite 侧导出，aggregate runner 只做发布。
+`--platform` 与 `--platform-output-dir` 只对 aggregate suite（`smoke`、`core`、`all`）生效。当前 unified runner 的 platform mirror 验证入口也是 aggregate runner；其中 `retrieval`、`summary`、`agent-planning` 事件都已由 suite 侧导出，aggregate runner 只做发布。
+
+截至 2026-07-05，这条平台 mirror 主线剩余的 active closeout 只有真实 Langfuse 目标验证；若当前环境缺少 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY`，则只能验证 warning 路径。`MLflow` 与第二平台切换验证继续属于 deferred work。
 
 该脚本只输出 `badcaseEvalDraftSchema` 对应的 deterministic draft。`GET /v1/operations/badcases/:feedbackId/export` 返回的 route wrapper 还会附带 operator-only `debug`，但这部分不属于 eval draft payload。
 

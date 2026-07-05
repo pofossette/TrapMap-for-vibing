@@ -31,8 +31,9 @@ flowchart TB
 当前 platform mirror 入口约定：
 
 - unified aggregate runner（`pnpm eval -- smoke|core|all`）是当前唯一的 platform mirror 验证入口。
-- `agent-planning` 平台事件已经从 suite 侧 `evals/agent-planning/lib/platform-events.ts` 导出。
+- `retrieval`、`summary`、`agent-planning` 平台事件都已从 suite 侧各自的 `lib/platform-events.ts` 导出。
 - aggregate runner 只负责 adapter 选择、事件发布和 warning-only 失败处理；native TrapMap report 仍是 truth source。
+- dry-run 或缺配置 warning 只能证明 mirror 通道与失败语义不漂移，不能替代真实 Langfuse 目标的 live closeout。
 
 **Graph Extraction Eval Reporting:**
 - `pnpm eval:graph-extraction` — live mode, requires chat provider config

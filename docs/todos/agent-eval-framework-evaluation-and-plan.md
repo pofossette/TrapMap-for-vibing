@@ -1,12 +1,12 @@
 # Agent Eval Platform Long-Term Execution Plan
 
 > 状态：active
-> 更新日期：2026-07-04
+> 更新日期：2026-07-05
 > 类型：长期主线执行细则
 
-## 当前进度（2026-07-04）
+## 当前进度（2026-07-05）
 
-当前主线已完成 `Phase 1` / `Phase 2` closeout，并完成 `Phase 3` 的最小可用 `LangfuseAdapter` 首轮接入。
+当前主线已完成 `Phase 1` / `Phase 2` closeout，并完成 `Phase 3` 的最小可用 `LangfuseAdapter` 首轮接入。`retrieval`、`summary`、`agent-planning` 现都已切到 suite-owned platform event builder。
 
 本轮已完成：
 
@@ -14,9 +14,10 @@
 - 新增 `evals/lib/platform/langfuse-config.ts`，只从 env 解析 Langfuse 显式配置
 - 新增 `evals/lib/platform/langfuse-adapter.ts`，按现有 `EvalPlatformEvent` 做 mirror，不改 event schema
 - `LangfuseAdapter` 已覆盖 run / case / score / assertion / trace 映射
+- `evals/retrieval/lib/platform-events.ts` 与 `evals/summary/lib/platform-events.ts` 已落地；aggregate runner 现消费三条 suite-owned 事件流
 - 缺配置、发布失败、网络/鉴权错误、close/shutdown flush 超时都保持 warning-only，不影响 eval 退出码
 - `docs/operations/ENVIRONMENT.md`、`docs/operations/TESTING.md`、`evals/README.md`、`docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md` 已回写
-- `agent-planning` 继续作为当前唯一完成 closeout 的 suite-owned 平台事件流；native TrapMap report 仍是唯一 truth source
+- native TrapMap report 继续是唯一 truth source；aggregate runner 不再维护 retrieval / summary / agent-planning 的内联 mirror 细节
 
 本轮已验证：
 
@@ -33,10 +34,9 @@
 
 当前仍未完成：
 
-- 真实 Langfuse 服务联通验证仍未做；本轮自动化验证只覆盖 mock/fake client 与缺配置 warning 路径
-- `Phase 3` closeout 仍只对 `agent-planning` 做了收口说明，retrieval / summary 还未迁到 suite-owned platform event builder
+- 真实 Langfuse 服务联通验证仍未做；截至 2026-07-05 12:11:22 CST，本次 shell 中 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 均为空，且仓库内没有 checked-in Langfuse deployment/config 可作为 closeout 目标，因此当前只验证到缺配置 warning 路径
 - `rtk pnpm eval -- core --dry-run --platform langfuse` 当前仍暴露既有 core dry-run 失败项：ingestion 1 个、agent-planning 3 个；该结果来自现有 suite 基线，不是本轮 `langfuse` 接入引入的新回归
-- 第二平台适配器（`MLflow`）与 `summary` 复用统一模型尚未开始
+- 第二平台适配器（`MLflow`）仍明确留在 deferred，不作为当前 active closeout 的完成条件
 
 ## 目标
 
@@ -177,9 +177,8 @@
 
 **当前实现说明**
 
-- `agent-planning` 的平台事件构建已下沉到 suite 侧，由 `evals/agent-planning/lib/platform-events.ts` 基于 native report truth source 生成事件
-- `evals/scripts/eval-all.ts` 只负责 adapter 选择、运行编排、事件发布和 warning-only 失败处理，不再重建 `agent-planning` 内部事件细节
-- retrieval / summary 仍保留现有 unified runner 内联镜像逻辑，后续如需统一边界再单独推进
+- `agent-planning`、`retrieval`、`summary` 的平台事件构建都已下沉到 suite 侧，分别由各自的 `lib/platform-events.ts` 基于 native report truth source 生成事件
+- `evals/scripts/eval-all.ts` 只负责 adapter 选择、运行编排、事件发布和 warning-only 失败处理，不再重建 suite 内部事件细节
 
 **本阶段文档要求**
 
@@ -222,7 +221,7 @@
 - `langfuse` 只在 aggregate suite 且显式传入 `--platform langfuse` 时启用；不会自动探测
 - 缺少 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 时，不会创建 adapter，只打印 warning
 - 首轮 adapter 只承担 mirror 职责，不依赖 Langfuse 返回值驱动任何 TrapMap 内部逻辑
-- 当前 closeout 范围仍收敛在 `agent-planning`；retrieval / summary 虽可被 aggregate runner 事件流消费，但本轮不把它们定义为 Phase 3 的完成标准
+- retrieval / summary / agent-planning 三个 suite 的 platform events 现都由 suite owner 生成；当前剩余 closeout 只差真实 Langfuse 目标验证
 
 **本阶段文档要求**
 
@@ -240,46 +239,13 @@
 **本阶段剩余 closeout**
 
 - [ ] 用真实 Langfuse 服务做一次手动联通验证，并把结果回写到本节或对应 closeout 记录
-- [ ] 明确是否要把 retrieval / summary 也推进到 suite-owned platform event builder；若不在当前主线继续推进，应显式标记 deferred
+- [ ] 当前阻塞说明：2026-07-05 12:11:22 CST 这次执行中 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 均为空；仓库也没有 checked-in Langfuse deployment/config 可供对接，因此 live closeout 仍属 environment-blocked，而不是代码未完成
 
-### Phase 4: `summary` 复用统一模型
-
-**目标**
-
-证明统一模型不是只为 planning suite 定制。
-
-**建议文件**
-
-- 修改：`evals/summary/run.ts`
-- 修改：`evals/summary/lib/report.ts`
-- 修改：`evals/summary/lib/format.ts`
-- 修改：`evals/summary/lib/judge.ts`
-- 修改：`evals/summary/lib/assertions.ts`
-
-**Checklist**
-
-- [ ] 映射 groundedness、coverage、forbiddenClaims
-- [ ] 保留 provider / fallback judge 元数据
-- [ ] 不替换 fallback judge
-- [ ] 不引入 provider hard dependency
-- [ ] 复用同一 adapter interface，不为 summary 分叉单独平台通道
-
-**本阶段文档要求**
-
-- [ ] 如 summary 判定标准或输出变动，回写 [`evals/summary/README.md`](../../evals/summary/README.md)
-- [ ] 如统一 testing 说明变化，回写 [`docs/operations/TESTING.md`](../operations/TESTING.md)
-
-**本阶段测试要求**
-
-- [ ] `rtk pnpm eval -- summary --tier smoke --provider fallback`
-- [ ] `rtk pnpm eval -- summary --tier core --provider fallback`
-- [ ] `rtk pnpm eval:smoke`
-
-### Phase 5: 增加第二平台适配器，验证可替换性
+### Phase 4: Deferred Follow-up - 第二平台可替换性验证
 
 **目标**
 
-证明架构没有被首个平台锁死。
+把第二平台验证明确收敛为 deferred work，避免与当前 active closeout 混淆。
 
 **建议文件**
 
@@ -303,7 +269,7 @@
 
 **本阶段测试要求**
 
-- [ ] `rtk pnpm eval -- agent-planning --tier smoke --dry-run`
+- [ ] `rtk pnpm eval -- retrieval --tier smoke --dry-run`
 - [ ] `rtk pnpm eval -- summary --tier smoke --provider fallback`
 - [ ] `rtk pnpm eval:smoke`
 
