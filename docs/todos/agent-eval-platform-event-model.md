@@ -25,6 +25,8 @@
 
 Kernel 继续作为 native TrapMap truth source。Platform Model 只负责把 kernel 产物投射成统一事件。Platform Adapters 只做双写镜像，不接管主流程。
 
+当前事实补充：`agent-planning` 事件构建已由 suite 侧 `evals/agent-planning/lib/platform-events.ts` owner 持有；`evals/scripts/eval-all.ts` 只负责 aggregate runner 的编排、adapter 选择与事件发布。
+
 ## 统一事件族
 
 统一事件 family 必须只包含下面七个名字：

@@ -5,11 +5,15 @@ import type {
 
 export type { EvalPlatformEvent, EvalPlatformRun };
 
-export type EvalPlatformAdapterKind = 'noop' | 'json-archive';
+export type EvalPlatformAdapterKind = 'noop' | 'json-archive' | 'langfuse';
 
 export interface EvalPlatformAdapterConfig {
   kind?: EvalPlatformAdapterKind | null;
   outputDir?: string;
+  baseUrl?: string;
+  publicKey?: string;
+  secretKey?: string;
+  flushTimeoutMs?: number;
 }
 
 export interface EvalPlatformAdapter {

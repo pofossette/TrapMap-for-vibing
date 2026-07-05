@@ -25,7 +25,7 @@ interface ParsedEvalOptions {
   json: boolean;
   jsonPath?: string;
   mode?: EvalMode;
-  platform?: 'noop' | 'json-archive';
+  platform?: 'noop' | 'json-archive' | 'langfuse';
   platformOutputDir?: string;
   tier?: EvalTier;
 }
@@ -50,7 +50,7 @@ const EVAL_USAGE = [
   '  --dry-run',
   '  --json',
   '  --json-path <path>',
-  '  --platform <noop|json-archive>',
+  '  --platform <noop|json-archive|langfuse>',
   '  --platform-output-dir <path>',
 ].join('\n');
 
@@ -131,7 +131,7 @@ function parseEvalOptions(argv: readonly string[]): ParsedEvalOptions {
 
     if (arg === '--platform') {
       const value = argv[index + 1];
-      if (value !== 'noop' && value !== 'json-archive') {
+      if (value !== 'noop' && value !== 'json-archive' && value !== 'langfuse') {
         throw new Error(`Invalid --platform value: ${value ?? '<missing>'}\n\n${EVAL_USAGE}`);
       }
       options.platform = value;

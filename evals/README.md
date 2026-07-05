@@ -22,6 +22,12 @@ pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
 # 带 JSON 输出到文件
 pnpm exec tsx evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json
 
+# aggregate runner 启用 Langfuse mirror
+pnpm eval -- smoke --platform langfuse
+
+# aggregate runner 落本地平台事件 archive
+pnpm eval -- all --tier core --platform json-archive --platform-output-dir ./reports/platform-events
+
 # CI 模式（带基线对比）
 pnpm eval:ci
 
@@ -53,6 +59,8 @@ pnpm exec tsx scripts/export-badcase-to-eval.ts feedback_example ./reports/badca
 ```
 
 兼容别名 `pnpm eval:smoke`、`pnpm eval:core`、`pnpm eval:retrieval:*`、`pnpm eval:summary:*`、`pnpm eval:agent-planning:*`、`pnpm eval:label-alignment:*` 仍可用；统一入口由 `scripts/run-eval.ts` 提供，完整选项可通过 `pnpm eval -- --help` 查看。
+
+`--platform` 与 `--platform-output-dir` 只对 aggregate suite（`smoke`、`core`、`all`）生效。当前 unified runner 的 platform mirror 验证入口也是 aggregate runner；其中 `agent-planning` 事件已由 suite 侧导出，aggregate runner 只做发布。
 
 该脚本只输出 `badcaseEvalDraftSchema` 对应的 deterministic draft。`GET /v1/operations/badcases/:feedbackId/export` 返回的 route wrapper 还会附带 operator-only `debug`，但这部分不属于 eval draft payload。
 

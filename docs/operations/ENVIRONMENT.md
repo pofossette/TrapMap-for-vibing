@@ -10,6 +10,22 @@
 | `OPENAI_API_KEY` | OpenAI API 密钥；未配置时 AI provider 会回退到 `fallback` | `sk-...` |
 | `GEMINI_API_KEY` | Google GenAI 密钥；设置后 provider 可自动切到 `google-genai` | `AIza...` |
 
+## Eval Platform Mirror
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `TRAPMAP_EVAL_PLATFORM` | 推荐记录当前准备使用的平台类型；当前实际启用仍要求显式传入 `--platform` | 空 |
+| `LANGFUSE_BASE_URL` | `langfuse` mirror 的 base URL；仅在 `--platform langfuse` 时读取 | 空 |
+| `LANGFUSE_PUBLIC_KEY` | `langfuse` public key；仅在 `--platform langfuse` 时读取 | 空 |
+| `LANGFUSE_SECRET_KEY` | `langfuse` secret key；仅在 `--platform langfuse` 时读取 | 空 |
+| `TRAPMAP_EVAL_PLATFORM_FLUSH_TIMEOUT_MS` | platform adapter close/shutdown flush 超时 | `5000` |
+
+约定：
+
+- 当前不会自动探测或自动启用外部平台；只有 aggregate runner 显式传入 `--platform langfuse` 才会创建 `LangfuseAdapter`。
+- 若缺少 Langfuse 配置、鉴权失败、超时或网络错误，runner 只产出 warning，不改变 eval 退出码。
+- 回退到本地 archive mirror 时，改用 `--platform json-archive [--platform-output-dir <path>]`。
+
 ## 数据库配置
 
 | 变量 | 说明 | 默认值 |

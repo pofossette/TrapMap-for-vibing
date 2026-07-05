@@ -36,6 +36,7 @@ import {
   type EvalPlatformAdapterKind,
   type EvalPlatformEvent,
 } from '../lib/platform/adapter.js';
+import { resolveLangfuseAdapterConfigFromEnv } from '../lib/platform/langfuse-config.js';
 import { buildAgentPlanningPlatformEvents } from '../agent-planning/lib/platform-events.js';
 
 // =============================================================================
@@ -103,9 +104,12 @@ function parseArgs_(): EvalAllOptions {
   if (
     values.platform !== undefined &&
     values.platform !== 'noop' &&
-    values.platform !== 'json-archive'
+    values.platform !== 'json-archive' &&
+    values.platform !== 'langfuse'
   ) {
-    console.error(`Invalid platform: ${values.platform}. Must be 'noop' or 'json-archive'.`);
+    console.error(
+      `Invalid platform: ${values.platform}. Must be 'noop', 'json-archive', or 'langfuse'.`,
+    );
     process.exit(1);
   }
 
@@ -246,6 +250,7 @@ interface RunUnifiedEvaluationDeps {
   runIngestionEval: typeof runIngestionEval;
   runAgentPlanningEval: typeof runAgentPlanningEval;
   runLabelAlignmentEval: typeof runLabelAlignmentEval;
+  resolveLangfuseConfigFromEnv: typeof resolveLangfuseAdapterConfigFromEnv;
 }
 
 function getRunUnifiedEvaluationDeps(): RunUnifiedEvaluationDeps {
@@ -263,6 +268,7 @@ function getRunUnifiedEvaluationDeps(): RunUnifiedEvaluationDeps {
     runIngestionEval,
     runAgentPlanningEval,
     runLabelAlignmentEval,
+    resolveLangfuseConfigFromEnv: resolveLangfuseAdapterConfigFromEnv,
   };
 }
 
@@ -1532,12 +1538,23 @@ export async function runUnifiedEvaluation(
   };
   const startTime = Date.now();
   const platformRunSeed = randomUUID();
-  const adapter = options.platform
-    ? resolvedDeps.createPlatformAdapter({
-        kind: options.platform,
-        outputDir: options.platformOutputDir,
-      })
-    : null;
+  let adapter = null;
+  if (options.platform === 'langfuse') {
+    const langfuseConfig = resolvedDeps.resolveLangfuseConfigFromEnv(process.env);
+    if (!langfuseConfig.ok) {
+      resolvedDeps.warn(langfuseConfig.warning);
+    } else {
+      adapter = resolvedDeps.createPlatformAdapter({
+        kind: 'langfuse',
+        ...langfuseConfig.config,
+      });
+    }
+  } else if (options.platform) {
+    adapter = resolvedDeps.createPlatformAdapter({
+      kind: options.platform,
+      outputDir: options.platformOutputDir,
+    });
+  }
 
   resolvedDeps.log('');
   resolvedDeps.log('╔══════════════════════════════════════════════════════════════╗');

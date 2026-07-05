@@ -59,7 +59,7 @@ describe('resolveEvalTarget', () => {
       '--json-path',
       './reports/eval-report.json',
       '--platform',
-      'json-archive',
+      'langfuse',
       '--platform-output-dir',
       './reports/platform-events',
     ]);
@@ -76,7 +76,7 @@ describe('resolveEvalTarget', () => {
       '--json-path',
       './reports/eval-report.json',
       '--platform',
-      'json-archive',
+      'langfuse',
       '--platform-output-dir',
       './reports/platform-events',
     ]);

@@ -28,6 +28,12 @@ flowchart TB
 | 摄取评估 (Ingestion) | 验证 Skill 目录摄取的正确性 | `evals/ingestion/run.ts` |
 | 治理评估 (Governance) | 验证 RBAC 和安全等级过滤 | 内嵌于检索评估 |
 
+当前 platform mirror 入口约定：
+
+- unified aggregate runner（`pnpm eval -- smoke|core|all`）是当前唯一的 platform mirror 验证入口。
+- `agent-planning` 平台事件已经从 suite 侧 `evals/agent-planning/lib/platform-events.ts` 导出。
+- aggregate runner 只负责 adapter 选择、事件发布和 warning-only 失败处理；native TrapMap report 仍是 truth source。
+
 **Graph Extraction Eval Reporting:**
 - `pnpm eval:graph-extraction` — live mode, requires chat provider config
 - `pnpm eval:graph-extraction --dry-run` — runner validation only, no baseline extraction

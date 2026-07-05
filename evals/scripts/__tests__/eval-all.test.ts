@@ -115,6 +115,42 @@ describe('runUnifiedEvaluation', () => {
     );
   });
 
+  it('warns and skips langfuse mirroring when required config is missing', async () => {
+    const createPlatformAdapter = vi.fn();
+    const publishPlatformEvent = vi.fn();
+    const warn = vi.fn();
+
+    const result = await runUnifiedEvaluation(
+      {
+        ...baseOptions,
+        platform: 'langfuse' as const,
+      },
+      {
+        createPlatformAdapter,
+        resolveLangfuseConfigFromEnv: vi.fn(() => ({
+          ok: false as const,
+          warning: 'Missing LANGFUSE_SECRET_KEY',
+        })),
+        publishPlatformEvent,
+        closePlatformAdapter: vi.fn(),
+        warn,
+        log: vi.fn(),
+        error: vi.fn(),
+        runRetrievalEval: vi.fn(async () => null),
+        runSummaryEval: vi.fn(async () => null),
+        runGraphExtractionEval: vi.fn(async () => null),
+        runIngestionEval: vi.fn(async () => null),
+        runAgentPlanningEval: vi.fn(async () => null),
+        runLabelAlignmentEval: vi.fn(async () => null),
+      },
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(createPlatformAdapter).not.toHaveBeenCalled();
+    expect(publishPlatformEvent).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Missing LANGFUSE_SECRET_KEY'));
+  });
+
   it('publishes suite-backed run start and finish events when a platform adapter is enabled', async () => {
     const publishPlatformEvent = vi.fn();
     const closePlatformAdapter = vi.fn();

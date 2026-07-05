@@ -1,6 +1,7 @@
 import type { EvalPlatformEvent } from '../../../packages/contracts/src/domain/evals/platform.js';
 
 import { createJsonArchiveAdapter } from './json-archive-adapter.js';
+import { createLangfuseAdapter } from './langfuse-adapter.js';
 import { createNoopAdapter } from './noop-adapter.js';
 import type {
   EvalPlatformAdapter,
@@ -22,6 +23,10 @@ export function createEvalPlatformAdapter(
 ): EvalPlatformAdapter {
   if (config.kind === 'json-archive') {
     return createJsonArchiveAdapter({ outputDir: config.outputDir });
+  }
+
+  if (config.kind === 'langfuse') {
+    return createLangfuseAdapter(config);
   }
 
   return createNoopAdapter();

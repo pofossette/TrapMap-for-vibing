@@ -94,6 +94,17 @@ badcase 回流链路已全面闭环，包括分类标准：
 5. 平台级 distributed 运维成熟度（service discovery、独立扩缩容、独立故障域）：明确 deferred，在真实吞吐出现后再评估
 6. Phase 3/4 closeout deferred：OTEL collector deployment asset、Prometheus/Grafana dashboard-as-code、alert rule pack、service-to-service auth hardening、container CPU/memory checked-in defaults、Node heap presets、PgBouncer / pool introspection contract 仍未落地。本轮只补到 `/metrics`、trace/span propagation、structured logging、distributed pool-budget env seam，以及基于 `/health`、`/ready`、`/metrics`、`/v1/operations/status/async` 的 operator runbook 与 task queue / internal hop latency / error rate 首批 dashboard/alert/SLO 文档面，不扩成新的 monitoring platform。
 
+## 5.1 Agent Eval Platform 当前残留
+
+- **Status**: Active debt, not a regression introduced by the 2026-07-04 Langfuse adapter pass
+- `LangfuseAdapter` 已以 warning-only mirror 方式接入 aggregate runner，并完成 mock/fake client 自动化验证
+- 真实 Langfuse 服务联通尚未形成 checked-in closeout 证据；当前只验证了缺配置 warning 路径和本地测试 double 映射
+- `rtk pnpm eval -- core --dry-run --platform langfuse` 当前仍暴露既有 suite 结果：
+  - ingestion failed bundles: `1`
+  - agent-planning failed cases: `3`
+- 这组失败来自当前 core dry-run 基线，不应被解释为 `langfuse` mirror 接入引入的新行为漂移
+- retrieval / summary 目前仍主要依赖 unified runner 内联镜像逻辑，尚未迁到和 `agent-planning` 一样的 suite-owned platform event builder
+
 Phase 4 closeout 对剩余 deferred 的处理原则已经冻结：
 
 - 能用现有 truth source 明确写成“当前不承诺”的事项，不再继续保留为 active checklist，而是直接留在 debt register / deferred 落点

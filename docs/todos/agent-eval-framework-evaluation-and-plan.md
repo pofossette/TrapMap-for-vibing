@@ -1,8 +1,42 @@
 # Agent Eval Platform Long-Term Execution Plan
 
 > 状态：active
-> 更新日期：2026-07-03
+> 更新日期：2026-07-04
 > 类型：长期主线执行细则
+
+## 当前进度（2026-07-04）
+
+当前主线已完成 `Phase 1` / `Phase 2` closeout，并完成 `Phase 3` 的最小可用 `LangfuseAdapter` 首轮接入。
+
+本轮已完成：
+
+- aggregate runner 与统一 CLI 已支持显式 `--platform langfuse`
+- 新增 `evals/lib/platform/langfuse-config.ts`，只从 env 解析 Langfuse 显式配置
+- 新增 `evals/lib/platform/langfuse-adapter.ts`，按现有 `EvalPlatformEvent` 做 mirror，不改 event schema
+- `LangfuseAdapter` 已覆盖 run / case / score / assertion / trace 映射
+- 缺配置、发布失败、网络/鉴权错误、close/shutdown flush 超时都保持 warning-only，不影响 eval 退出码
+- `docs/operations/ENVIRONMENT.md`、`docs/operations/TESTING.md`、`evals/README.md`、`docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md` 已回写
+- `agent-planning` 继续作为当前唯一完成 closeout 的 suite-owned 平台事件流；native TrapMap report 仍是唯一 truth source
+
+本轮已验证：
+
+- `rtk pnpm test:file -- evals/lib/platform/langfuse-config.test.ts`
+- `rtk pnpm test:file -- evals/lib/platform/langfuse-adapter.test.ts`
+- `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
+- `rtk pnpm test:file -- evals/scripts/__tests__/eval-all.test.ts`
+- `rtk pnpm eval -- smoke --dry-run --platform langfuse`
+- `rtk pnpm eval -- core --dry-run --platform langfuse`
+- `rtk pnpm eval:smoke`
+- `rtk pnpm check:docs-drift`
+- `rtk pnpm check:structure`
+- `rtk pnpm typecheck`
+
+当前仍未完成：
+
+- 真实 Langfuse 服务联通验证仍未做；本轮自动化验证只覆盖 mock/fake client 与缺配置 warning 路径
+- `Phase 3` closeout 仍只对 `agent-planning` 做了收口说明，retrieval / summary 还未迁到 suite-owned platform event builder
+- `rtk pnpm eval -- core --dry-run --platform langfuse` 当前仍暴露既有 core dry-run 失败项：ingestion 1 个、agent-planning 3 个；该结果来自现有 suite 基线，不是本轮 `langfuse` 接入引入的新回归
+- 第二平台适配器（`MLflow`）与 `summary` 复用统一模型尚未开始
 
 ## 目标
 
@@ -34,8 +68,8 @@
 
 ## 全局文档更新要求
 
-- [ ] 任何新增 eval 平台接入规则，必须回写到 [`docs/operations/ENVIRONMENT.md`](../operations/ENVIRONMENT.md) 或新建对应 guide
-- [ ] 任何 eval 入口、tier、runner 行为变化，必须回写到 [`docs/operations/TESTING.md`](../operations/TESTING.md) 与相关 `evals/*/README.md`
+- [x] 任何新增 eval 平台接入规则，必须回写到 [`docs/operations/ENVIRONMENT.md`](../operations/ENVIRONMENT.md) 或新建对应 guide
+- [x] 任何 eval 入口、tier、runner 行为变化，必须回写到 [`docs/operations/TESTING.md`](../operations/TESTING.md) 与相关 `evals/*/README.md`
 - [ ] 任何共享 schema / 事件模型变更，必须先更新 `packages/contracts/src/domain/evals/`，再回写文档
 - [ ] 若新增长期规则或目录落点约束，必须同步更新 [`docs/guides/DOCUMENTATION_GOVERNANCE.md`](../guides/DOCUMENTATION_GOVERNANCE.md) 或相关 reference
 
@@ -43,8 +77,8 @@
 
 - [x] 文档改动至少运行 `rtk pnpm check:docs-drift`
 - [x] 文档改动至少运行 `rtk pnpm check:structure`
-- [ ] 涉及 eval runner、fixtures、judge、platform adapter 的改动，至少运行 `rtk pnpm eval:smoke`
-- [ ] 涉及 `packages/contracts`、跨包导入、共享类型变更，补跑受影响包测试与 `rtk pnpm typecheck`
+- [x] 涉及 eval runner、fixtures、judge、platform adapter 的改动，至少运行 `rtk pnpm eval:smoke`
+- [x] 涉及 `packages/contracts`、跨包导入、共享类型变更，补跑受影响包测试与 `rtk pnpm typecheck`
 
 ## 执行阶段
 
@@ -107,12 +141,12 @@
 
 **本阶段文档要求**
 
-- [ ] 如新增事件模型公开说明，补写到 `docs/todos/agent-eval-platform-event-model.md`
-- [ ] 如 root command 或参数说明变化，回写 [`README.md`](../../README.md) 或相关 README
+- [x] 如新增事件模型公开说明，补写到 `docs/todos/agent-eval-platform-event-model.md`
+- [x] 如 root command 或参数说明变化，回写 [`README.md`](../../README.md) 或相关 README
 
 **本阶段测试要求**
 
-- [ ] `rtk pnpm --filter @trapmap/contracts test --run packages/contracts/src/domain/evals/platform.test.ts`
+- [x] `rtk pnpm --filter @trapmap/contracts test --run packages/contracts/src/domain/evals/platform.test.ts`
 - [ ] `rtk pnpm test:file -- evals/scripts/__tests__/eval-ci.test.ts`
 - [ ] `rtk pnpm eval -- agent-planning --tier smoke --dry-run`
 - [ ] `rtk pnpm typecheck`
@@ -139,7 +173,7 @@
 - [x] 发送 dimension score、final score、failure rationale
 - [x] 发送 group / slice 元数据
 - [x] 必要时记录 step 级 trace，避免过度设计
-- [ ] 保持终端输出和原生 JSON report 的对外契约不变
+- [x] 保持终端输出和原生 JSON report 的对外契约不变
 
 **当前实现说明**
 
@@ -149,8 +183,8 @@
 
 **本阶段文档要求**
 
-- [ ] 若 `agent-planning` 运行入口、输出字段或判定标准变化，回写 [`evals/agent-planning/README.md`](../../evals/agent-planning/README.md)
-- [ ] 若统一入口行为变化，回写 [`evals/README.md`](../../evals/README.md) 与 [`docs/operations/TESTING.md`](../operations/TESTING.md)
+- [x] 若 `agent-planning` 运行入口、输出字段或判定标准变化，回写 [`evals/agent-planning/README.md`](../../evals/agent-planning/README.md)
+- [x] 若统一入口行为变化，回写 [`evals/README.md`](../../evals/README.md) 与 [`docs/operations/TESTING.md`](../operations/TESTING.md)
 
 **本阶段测试要求**
 
@@ -176,24 +210,37 @@
 
 **Checklist**
 
-- [ ] 通过显式配置启用 `LangfuseAdapter`
-- [ ] 映射 case-level score、tags、tier、trace step
-- [ ] 处理网络/鉴权/超时失败为 warning
-- [ ] 保持平台关闭时零行为变化
-- [ ] 为接入、调试、禁用写清操作指南
+- [x] 通过显式配置启用 `LangfuseAdapter`
+- [x] 映射 case-level score、tags、tier、trace step
+- [x] 处理网络/鉴权/超时失败为 warning
+- [x] 保持平台关闭时零行为变化
+- [x] 为接入、调试、禁用写清操作指南
+
+**当前实现说明**
+
+- `scripts/run-eval.ts` 与 `evals/scripts/eval-all.ts` 已接受 `--platform langfuse`
+- `langfuse` 只在 aggregate suite 且显式传入 `--platform langfuse` 时启用；不会自动探测
+- 缺少 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 时，不会创建 adapter，只打印 warning
+- 首轮 adapter 只承担 mirror 职责，不依赖 Langfuse 返回值驱动任何 TrapMap 内部逻辑
+- 当前 closeout 范围仍收敛在 `agent-planning`；retrieval / summary 虽可被 aggregate runner 事件流消费，但本轮不把它们定义为 Phase 3 的完成标准
 
 **本阶段文档要求**
 
-- [ ] 在 [`docs/operations/ENVIRONMENT.md`](../operations/ENVIRONMENT.md) 中增加平台环境变量说明
-- [ ] 在 [`docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md`](../guides/AGENT_EVAL_PLATFORM_INTEGRATION.md) 中记录启用方式、失败处理、回滚方式
-- [ ] 如统一入口增加平台参数，回写 [`evals/README.md`](../../evals/README.md)
+- [x] 在 [`docs/operations/ENVIRONMENT.md`](../operations/ENVIRONMENT.md) 中增加平台环境变量说明
+- [x] 在 [`docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md`](../guides/AGENT_EVAL_PLATFORM_INTEGRATION.md) 中记录启用方式、失败处理、回滚方式
+- [x] 如统一入口增加平台参数，回写 [`evals/README.md`](../../evals/README.md)
 
 **本阶段测试要求**
 
-- [ ] `rtk pnpm eval -- agent-planning --tier smoke --dry-run`
-- [ ] `rtk pnpm eval -- agent-planning --tier core --dry-run`
-- [ ] `rtk pnpm eval:smoke`
-- [ ] `rtk pnpm check:docs-drift`
+- [x] `rtk pnpm eval -- agent-planning --tier smoke --dry-run`
+- [x] `rtk pnpm eval -- agent-planning --tier core --dry-run`
+- [x] `rtk pnpm eval:smoke`
+- [x] `rtk pnpm check:docs-drift`
+
+**本阶段剩余 closeout**
+
+- [ ] 用真实 Langfuse 服务做一次手动联通验证，并把结果回写到本节或对应 closeout 记录
+- [ ] 明确是否要把 retrieval / summary 也推进到 suite-owned platform event builder；若不在当前主线继续推进，应显式标记 deferred
 
 ### Phase 4: `summary` 复用统一模型
 
