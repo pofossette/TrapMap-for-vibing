@@ -15,8 +15,14 @@
  * - `llm-extract-merge.ts`   — merging + record conversion
  */
 
-import type { ExtractionMetrics, LlmGraphExtraction, LlmGraphNode } from '@trapmap/contracts';
+import {
+  llmGraphExtractionSchema,
+  type ExtractionMetrics,
+  type LlmGraphExtraction,
+  type LlmGraphNode,
+} from '@trapmap/contracts';
 
+import { invokeWithParseRetry } from '@trapmap/server/lib/ai/parse.js';
 import { buildGraphExtractionSlots_default, buildPrompt } from '@trapmap/server/lib/ai/prompts.js';
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
 import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
@@ -25,7 +31,6 @@ import type { GraphEdgeRecord, GraphNodeRecord } from './documents.js';
 
 import type { LlmExtractionCache } from './llm-cache.js';
 import { dedupeGraphRecords, mergeExtractions, toGraphRecords } from './llm-extract-merge.js';
-import { parseLlmExtraction } from './llm-extract-parsing.js';
 import { planExtraction } from './llm-extract-planning.js';
 
 // ---------------------------------------------------------------------------
@@ -107,8 +112,12 @@ export async function extractSegmentEntities(
       failureMode: 'fail-open',
     },
     operation: async (_signal) => {
-      const response = await chat.invoke(systemPrompt, segment);
-      return parseLlmExtraction(response);
+      return invokeWithParseRetry({
+        invoke: () => chat.invoke(systemPrompt, segment),
+        schema: llmGraphExtractionSchema,
+        maxRetries,
+        backoffMs: (attempt) => BACKOFF_BASE_MS * 2 ** (attempt * 2),
+      });
     },
     isSuccessfulResult: (value) => value !== null,
     fallbackValue: null,
@@ -153,8 +162,12 @@ async function gleaningExtraction(
 
   try {
     const systemPrompt = buildPrompt('graph-extraction', buildGraphExtractionSlots_default());
-    const response = await chat.invoke(systemPrompt, gleaningUserMsg);
-    const gleaningResult = parseLlmExtraction(response);
+    const gleaningResult = await invokeWithParseRetry({
+      invoke: () => chat.invoke(systemPrompt, gleaningUserMsg),
+      schema: llmGraphExtractionSchema,
+      maxRetries: MAX_RETRIES,
+      backoffMs: (attempt) => BACKOFF_BASE_MS * 2 ** (attempt * 2),
+    });
     if (!gleaningResult) return null;
     return mergeExtractions([existing, gleaningResult]);
   } catch {

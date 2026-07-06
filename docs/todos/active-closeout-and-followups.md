@@ -37,6 +37,13 @@
 - [ ] 在目标环境重复执行 Consul / Prometheus / Tempo / Loki / benchmark 验收，不能只引用本地 full-docker 结果
 - [ ] 完成后把服务发现与可观测性主线标记为真正 closeout，并只保留归档入口
 
+2026-07-06 closeout 进展：
+
+- [x] 本地 Docker daemon 已恢复可用，`rtk docker compose -f docker-compose.observability.yml up -d` 可成功拉起 `consul`、`prometheus`、`tempo`、`loki`、`promtail`、`grafana`
+- [x] 自动化 closeout 已通过：`rtk pnpm test:observability-closeout`、`rtk pnpm test:discovery-closeout`、`rtk pnpm test:distributed-closeout`、`rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
+- [ ] 当前 live Consul catalog 仍未收口：`curl --noproxy '*' http://127.0.0.1:8500/v1/catalog/services` 只返回 `{"consul":[]}`，`/v1/health/checks/gateway` 为空，说明现有 gateway 进程未完成服务注册
+- [ ] Grafana datasource 已通过 API 确认 provisioned；Prometheus / Loki health API 为 `OK`，Tempo 容器 `/ready` 为 `ready`，但人工 UI 点击验收仍未补齐
+
 证据入口：
 
 - `docker-compose.observability.yml`
@@ -49,6 +56,7 @@
 ### B. `host-local` / `packages/server` 边界收口
 
 - [x] `host-local` 受测 runtime 文件已把共享基础设施收口到命名 seam：`@trapmap/runtime-infra` + `@trapmap/service-knowledge-read`，`import-boundary` 禁止名单里的 `@trapmap/server/lib/*` 深导入未再出现
+- [x] `service-knowledge-read` 第一批轻量 seam 已落地：`context.ts`、`retrieval-types.ts`、`store.ts`、`rag-log.ts` 不再转接 `@trapmap/server/lib/{context,retrieval/types,store,ids,log-rotation}`，`search-knowledge.ts` 也已移除 `@trapmap/server/lib/store.js`
 - [ ] 继续压缩 `service-knowledge-read` 对 `@trapmap/server` 的深层导入
 - [x] `packages/host-local/src/nest/gateway/gateway.schemas.ts` 已改为直接复用 `packages/contracts/src/domain/retrieval.ts` 导出的 `retrievalSearchBodySchema`，保留 `query` / `teamId` / `limit` 兼容面
 - [ ] 收敛 `packages/server` 的最终身份，只保留被明确命名的 compatibility / shared runtime seam
@@ -66,8 +74,15 @@
 ### C. 静态分析与占位实现清理
 
 - [ ] 清理已确认未注册或无人引用的迁移脚本、barrel、codemod 与旧 application-service
-- [ ] 收口 host-local queue/outbox stub、CLI entry fallback、versioned decay placeholder 等显式占位实现
+- [x] 收口 host-local queue/outbox stub、CLI entry fallback、versioned decay placeholder 等显式占位实现
 - [ ] 继续裁剪 contracts / server 内的死导出与无效兼容面
+
+2026-07-06 已完成：
+
+- `packages/host-local/src/nest/runtime/backend-core-adapters.ts` 在缺少 `asyncTransport` 时已改为 fail-fast，不再返回 `job_local_stub` / `evt_local_stub`
+- `packages/cli/src/lib/markdown-formatter.ts` 已补齐 entry fallback 的真实 markdown 渲染
+- `packages/server/src/lib/decay/freshness.ts` 已支持“提供 version context 时按 `matchMultiplier` / `mismatchMultiplier` 执行 step decay；未提供时保持兼容返回 1.0”
+- 已删除高置信未引用文件：`packages/web-panel/src/shared/hooks/use-debounced-value.ts`、`packages/server/src/lib/artifacts/derive/index.ts`
 
 证据入口：
 
@@ -79,8 +94,14 @@
 ### D. Resilience 与 LLM 调用硬化
 
 - [x] 把手搓 `executeWithResilience` 迁到 `cockatiel` 方案，补齐 `AbortController` 超时取消、retry/backoff 与可选 circuit breaker，并保持 `ResiliencePolicy` / `ResilienceResult` 兼容面
-- [ ] 保持“手动 parse + Zod 校验”的现有结论，但抽出共享的 parse-retry 包装，避免各模块重复实现 retry 循环
+- [x] 保持“手动 parse + Zod 校验”的现有结论，但抽出共享的 parse-retry 包装，避免各模块重复实现 retry 循环
 - [ ] 若未来满足单 provider + 明显 parse failure 的触发条件，再重新评估 `.withStructuredOutput()`
+
+2026-07-06 已落地：
+
+- `packages/server/src/lib/ai/parse.ts` 新增共享 `invokeWithParseRetry` / `parseJsonWithSchema`
+- `graph-lite` 的 extraction / planning、`labels/llm-align.ts`、`boundary-extract.ts` 已迁到共享 parse-retry 包装
+- 现阶段仍明确不引入 `.withStructuredOutput()`，也不改变现有输出 schema / 错误语义
 
 证据入口：
 

@@ -643,13 +643,18 @@ export function createQueuePorts(asyncTransport?: HostLocalAsyncTransport): Queu
     };
   }
 
+  const missingTransportError = () =>
+    new Error('Host-local async transport is not configured; queue ports cannot be used');
+
   return {
     task: {
       kind: 'postgres-task-queue',
       async enqueue() {
-        return 'job_local_stub';
+        throw missingTransportError();
       },
-      async requeue() {},
+      async requeue() {
+        throw missingTransportError();
+      },
       async getStatusSnapshot() {
         return {
           provider: 'postgres',
@@ -664,13 +669,17 @@ export function createQueuePorts(asyncTransport?: HostLocalAsyncTransport): Queu
     outbox: {
       kind: 'postgres-domain-outbox',
       async enqueue() {
-        return 'evt_local_stub';
+        throw missingTransportError();
       },
       async claimBatch() {
-        return [];
+        throw missingTransportError();
       },
-      async complete() {},
-      async fail() {},
+      async complete() {
+        throw missingTransportError();
+      },
+      async fail() {
+        throw missingTransportError();
+      },
       async getStatusSnapshot() {
         return {
           provider: 'postgres',

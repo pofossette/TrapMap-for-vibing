@@ -16,7 +16,7 @@ import type {
 } from '@trapmap/contracts';
 import { labelAlignmentDecisionSchema } from '@trapmap/contracts';
 
-import { stripCodeFences } from '@trapmap/server/lib/ai/parse.js';
+import { invokeWithParseRetry, parseJsonWithSchema } from '@trapmap/server/lib/ai/parse.js';
 import { buildLabelAlignmentSlots_default, buildPrompt } from '@trapmap/server/lib/ai/prompts.js';
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
 
@@ -215,22 +215,12 @@ async function callLlmAlignment(
 ): Promise<LabelAlignmentDecision | null> {
   const systemPrompt = buildPrompt('label-alignment', buildLabelAlignmentSlots_default());
   const userMessage = buildAlignmentUserMessage(input);
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const response = await chat.invoke(systemPrompt, userMessage);
-      const parsed = parseAlignmentDecision(response);
-      if (parsed) return parsed;
-      // Zod validation failed — retry
-    } catch {
-      // LLM call failed — retry with backoff
-    }
-    if (attempt < MAX_RETRIES) {
-      await new Promise((r) => setTimeout(r, BACKOFF_BASE_MS * 2 ** (attempt * 2)));
-    }
-  }
-
-  return null;
+  return invokeWithParseRetry({
+    invoke: () => chat.invoke(systemPrompt, userMessage),
+    schema: labelAlignmentDecisionSchema,
+    maxRetries: MAX_RETRIES,
+    backoffMs: (attempt) => BACKOFF_BASE_MS * 2 ** (attempt * 2),
+  });
 }
 
 /**
@@ -238,14 +228,7 @@ async function callLlmAlignment(
  * Returns null if parsing or Zod validation fails.
  */
 function parseAlignmentDecision(raw: string): LabelAlignmentDecision | null {
-  try {
-    const cleaned = stripCodeFences(raw);
-    const parsed: unknown = JSON.parse(cleaned);
-    const result = labelAlignmentDecisionSchema.safeParse(parsed);
-    return result.success ? result.data : null;
-  } catch {
-    return null;
-  }
+  return parseJsonWithSchema(raw, labelAlignmentDecisionSchema);
 }
 
 /**

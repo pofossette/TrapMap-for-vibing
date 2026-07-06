@@ -79,6 +79,10 @@ interface FreshnessEntry {
   decayMeta: DecayMeta | null;
 }
 
+export interface FreshnessComputationContext {
+  versionMatches?: boolean;
+}
+
 /**
  * Default freshness decay configuration.
  * Matches freshnessDecayConfigSchema defaults.
@@ -106,6 +110,7 @@ export function computeFreshnessMultiplier(
   entry: FreshnessEntry,
   config: FreshnessDecayConfig,
   now: Date = new Date(),
+  context?: FreshnessComputationContext,
 ): number {
   // Null decayMeta defaults to evergreen behavior
   if (entry.decayMeta === null) {
@@ -120,9 +125,7 @@ export function computeFreshnessMultiplier(
       return computeEvergreenMultiplier(config.evergreen);
 
     case 'versioned':
-      // Versioned decay requires version context (Phase 51+)
-      // For now, return 1.0 (no penalty) since we can't detect version mismatch
-      return computeVersionedMultiplier(config.versioned);
+      return computeVersionedMultiplier(config.versioned, context);
 
     case 'volatile':
       return computeVolatileMultiplier(entry.decayMeta.lastVerifiedAt, config.volatile, now);
@@ -148,13 +151,17 @@ function computeEvergreenMultiplier(_config: FreshnessDecayConfig['evergreen']):
  * Compute multiplier for versioned content.
  * Currently returns 1.0 since version context is not yet available.
  */
-function computeVersionedMultiplier(config: FreshnessDecayConfig['versioned']): number {
-  // Version mismatch detection requires boundary context (Phase 51+)
-  // For now, assume match (no penalty)
+function computeVersionedMultiplier(
+  config: FreshnessDecayConfig['versioned'],
+  context?: FreshnessComputationContext,
+): number {
   if (!config.enabled) {
     return 1.0;
   }
-  return stepDecay(true, config.matchMultiplier, config.mismatchMultiplier);
+  if (context?.versionMatches === undefined) {
+    return 1.0;
+  }
+  return stepDecay(context.versionMatches, config.matchMultiplier, config.mismatchMultiplier);
 }
 
 /**

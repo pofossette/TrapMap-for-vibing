@@ -6,12 +6,35 @@
 
 ## 1. 前置条件
 
-### 当前环境阻塞（2026-07-06）
+### 当前 closeout 快照（2026-07-06）
 
-在本次 closeout 执行环境里，`rtk docker compose -f docker-compose.observability.yml up -d`
-当前直接失败，错误为 `Cannot connect to the Docker daemon at unix:///var/run/docker.sock`。
-这意味着本轮无法在当前 shell 中完成本地 Grafana / Consul / Tempo / Loki 的 live 验收；
-相关 UI / target-environment closeout 仍需在 Docker daemon 可用的环境中重复执行。
+本次 closeout 执行环境里，Docker daemon 已恢复可用，`rtk docker compose -f docker-compose.observability.yml up -d`
+可成功拉起 `consul`、`prometheus`、`tempo`、`loki`、`promtail`、`grafana`。
+
+当前已完成的 live 证据：
+
+- 自动化 closeout 通过：
+  - `rtk pnpm test:observability-closeout`
+  - `rtk pnpm test:discovery-closeout`
+  - `rtk pnpm test:distributed-closeout`
+  - `rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
+- `GET /health` 响应头已确认回显 `X-Request-Id: closeout-req-001` 与 `Traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01`
+- Grafana API 已确认 datasource provisioning：
+  - Prometheus datasource health: `OK`
+  - Loki datasource health: `OK`
+  - Tempo container `/ready`: `ready`
+- benchmark 摘要：
+  - `GET /health avg=0.86ms p50=0.8ms p95=1.4ms`
+  - `GET /metrics avg=0.78ms p50=0.61ms p95=1.35ms`
+  - `process_resident_memory_bytes=85.53MB`
+  - `nodejs_heap_size_used_bytes=20.19MB`
+  - `nodejs_heap_size_total_bytes=22.73MB`
+
+当前仍未完成的项：
+
+- Grafana UI 人工点击验收尚未执行；本轮只有 API 级验证，没有实际在 Explore / dashboard 中点击确认
+- 当前 live Consul catalog 仍未收口：`curl --noproxy '*' http://127.0.0.1:8500/v1/catalog/services` 只返回 `{"consul":[]}`，`/v1/health/checks/gateway` 返回空数组，说明现有 gateway/runtime 尚未形成当前目标的服务注册证据
+- Loki 对 `requestId=closeout-req-001` 的查询本轮未查到结果，说明 log shipper / label / runtime 关联仍需在 UI 或目标环境继续复核
 
 ### 本地最小路径
 

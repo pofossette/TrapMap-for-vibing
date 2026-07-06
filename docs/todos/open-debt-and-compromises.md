@@ -99,7 +99,7 @@ badcase 回流链路已全面闭环，包括分类标准：
 - **Status**: Deferred/platform residue only; the remaining live Langfuse closeout stays in the active owner plan, not in this debt register
 - retrieval / summary / agent-planning 现都已切到 suite-owned platform event builder；此前 aggregate runner 内联镜像这项 debt 已闭环，不再继续登记为 active debt
 - `LangfuseAdapter` 已以 warning-only mirror 方式接入 aggregate runner，并完成 mock/fake client 自动化验证
-- 真实 Langfuse 服务联通尚未形成 checked-in closeout 证据；截至 2026-07-05 12:11:22 CST，本次执行 shell 中 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 均为空，且仓库内没有 checked-in Langfuse deployment/config 可对接，因此当前 active owner plan 只保留这一个 environment-blocked closeout
+- 真实 Langfuse 服务联通尚未形成 checked-in closeout 证据；截至 2026-07-06 11:35:08 CST，本次执行 shell 中 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 仍均为空，且仓库内没有 checked-in Langfuse deployment/config 可对接，因此当前 active owner plan 只保留这一个 environment-blocked closeout
 - `rtk pnpm eval -- core --dry-run --platform langfuse` 当前仍暴露既有 suite 结果：
   - ingestion failed bundles: `1`
   - agent-planning failed cases: `3`
@@ -118,15 +118,16 @@ Phase 4 closeout 对剩余 deferred 的处理原则已经冻结：
 - `rtk pnpm exec fallow dead-code --unused-files --unused-exports --duplicate-exports --re-export-cycles --format json --quiet` 当前返回 `244` 个死代码类问题：`9` 个 unused files、`227` 个 unused exports、`8` 个 duplicate exports、`0` 个 re-export cycles
 - `rtk pnpm knip --reporter json` 与 fallow 对 `packages/host-distributed/src/testing/distributed-runtime-smoke-service.ts`、`packages/host-local/src/nest/config/config-bridge.ts`、`packages/host-local/src/nest/main.ts`、`packages/web-panel/src/shared/hooks/use-debounced-value.ts` 的“孤立/未被引用”判断形成交叉印证
 - 显式占位实现仍然存在：
-  - `packages/host-local/src/nest/runtime/backend-core-adapters.ts` 在无 async transport 配置时仍返回 `job_local_stub` / `evt_local_stub`
-  - `packages/cli/src/lib/markdown-formatter.ts` 仍保留 `_Entry fallback rendering not implemented yet._`
-  - `packages/server/src/lib/decay/freshness.ts` 的 versioned freshness 分支仍注明 “version context not yet implemented”
+- 本轮已闭环的显式占位实现：
+  - `packages/host-local/src/nest/runtime/backend-core-adapters.ts` 已在无 async transport 时 fail-fast，不再返回 `job_local_stub` / `evt_local_stub`
+  - `packages/cli/src/lib/markdown-formatter.ts` 已移除 `_Entry fallback rendering not implemented yet._`
+  - `packages/server/src/lib/decay/freshness.ts` 已支持显式 version context
 - `packages/contracts/src/domain/retrieval.ts` 现已补出 `retrievalSearchBodySchema`，`packages/host-local/src/nest/gateway/gateway.schemas.ts` 也已直接复用这个共享 contract；gateway body 兼容面仍保持 `query` / `teamId` / `limit`
 - 边界测试限定的 server 深导入名单已固化在：
   - `packages/host-local/src/nest/runtime/import-boundary.test.ts`
   - `packages/service-knowledge-read/src/import-boundary.test.ts`
 - 本轮直接扫描这些受测文件时，`host-local` 受测 runtime 文件未命中测试中列出的 forbidden imports；`service-knowledge-read` 受测文件未命中测试所禁的 retrieval seam，但仍存在多处其他 `@trapmap/server/lib/*` 深导入，说明“host-local/runtime 一侧的 seam 已命名化，但读侧耦合尚未完成收口”
-- `packages/host-local/src/nest/runtime/host-runtime.ts` 已改为消费 `KnowledgeReadRetrievalQueryOptions['services']` 这个显式 seam type，而不是继续从 `createKnowledgeReadRetrievalQuery` 的函数参数签名反推服务形状；但 `service-knowledge-read` 自身仍通过 `context.ts` 别名 `@trapmap/server/lib/context.js` 的 `SkillShareerServices` / `ResolvedAuthContext`，这是当前剩余的主要边界债务
+- `packages/host-local/src/nest/runtime/host-runtime.ts` 已改为消费 `KnowledgeReadRetrievalQueryOptions['services']` 这个显式 seam type，而 `service-knowledge-read/src/context.ts` / `retrieval-types.ts` / `store.ts` / `rag-log.ts` 也已落到 package-local seam；当前剩余主要债务已收缩为第二批重耦合文件：`search-knowledge.ts`、`filters.ts`、`read-model.ts`、`retrieval-semantic.ts`、`retrieval-recall-coordinator.ts`、`response-citations.ts`、`response-assembly.ts`
 - `rtk pnpm exec fallow audit --base main` 本轮未能作为 clean pass 证据使用，阻塞项是仓库现存的 `packages/server/src/lib/runtime/resilience-v2.test.ts -> ./resilience-v2.js` unresolved import，与本次 Stage 2B 改动无直接关系
 
 ## 7. Coupling Debt Register (Phase 0.6 Audit)
@@ -214,7 +215,8 @@ Current confirmed gaps:
 
 Remaining closeout work:
 
-- Grafana UI 尚未做人肉点击验收；当前只用 API 口径确认 Prometheus / Tempo / Loki datasource 后端可达。
+- Grafana UI 尚未做人肉点击验收；2026-07-06 这一轮只补到了 Grafana `/api/datasources`、Prometheus health API、Loki health API、Tempo `/ready` 与 benchmark/API 验证。
+- 当前 live Consul catalog 仍未收口：`/v1/catalog/services` 只返回 `consul`，`/v1/health/checks/gateway` 为空，说明本地现有 gateway/runtime 还未以当前 compose 方式完成注册。
 - 在目标环境重复执行 Consul / Grafana / Tempo / Loki / benchmark 验收，不能用本地结果替代。
 
 ## 6. 证据入口

@@ -8,7 +8,7 @@
 import type { ExtractionPlan, LlmGraphExtraction } from '@trapmap/contracts';
 import { extractionPlanSchema, llmGraphExtractionSchema } from '@trapmap/contracts';
 
-import { stripCodeFences } from '@trapmap/server/lib/ai/parse.js';
+import { parseJsonWithSchema } from '@trapmap/server/lib/ai/parse.js';
 
 // ---------------------------------------------------------------------------
 // JSON parsing helpers
@@ -16,24 +16,10 @@ import { stripCodeFences } from '@trapmap/server/lib/ai/parse.js';
 
 /** Parse LLM JSON response and validate with Zod. Returns null on failure. */
 export function parseLlmExtraction(raw: string): LlmGraphExtraction | null {
-  try {
-    const cleaned = stripCodeFences(raw);
-    const parsed: unknown = JSON.parse(cleaned);
-    const result = llmGraphExtractionSchema.safeParse(parsed);
-    return result.success ? result.data : null;
-  } catch {
-    return null;
-  }
+  return parseJsonWithSchema(raw, llmGraphExtractionSchema);
 }
 
 /** Parse LLM JSON response as an extraction plan. Returns null on failure. */
 export function parseExtractionPlan(raw: string): ExtractionPlan | null {
-  try {
-    const cleaned = stripCodeFences(raw);
-    const parsed: unknown = JSON.parse(cleaned);
-    const result = extractionPlanSchema.safeParse(parsed);
-    return result.success ? result.data : null;
-  } catch {
-    return null;
-  }
+  return parseJsonWithSchema(raw, extractionPlanSchema);
 }

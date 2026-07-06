@@ -4,6 +4,7 @@ import {
   createAuditLogPort,
   createIdentityAccessRepos,
   createKnowledgeRepoPort,
+  createQueuePorts,
 } from './backend-core-adapters.js';
 
 describe('backend-core adapters', () => {
@@ -223,5 +224,14 @@ describe('backend-core adapters', () => {
         },
       ],
     });
+  });
+
+  it('fails fast when queue ports are used without async transport', async () => {
+    const ports = createQueuePorts();
+
+    await expect(ports.task.enqueue('candidate.process', {})).rejects.toThrow(/async transport/i);
+    await expect(ports.outbox.enqueue({ type: 'knowledge.created', payload: {} })).rejects.toThrow(
+      /async transport/i,
+    );
   });
 });

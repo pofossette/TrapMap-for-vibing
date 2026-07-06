@@ -26,7 +26,7 @@
 - `retrieval`、`summary`、`agent-planning` 现都由 suite owner 自行导出 platform events；aggregate runner 只负责消费并发布这些事件。
 - 若缺少 Langfuse 配置、鉴权失败、超时或网络错误，runner 只产出 warning，不改变 eval 退出码。
 - 回退到本地 archive mirror 时，改用 `--platform json-archive [--platform-output-dir <path>]`。
-- 截至 2026-07-05，仓库没有 checked-in Langfuse deployment/config truth source；若当前 shell 也未设置三项 `LANGFUSE_*` 变量，则 live Langfuse closeout 应明确标记为 environment-blocked，而不是代码未接完。
+- 截至 2026-07-06 11:35:08 CST，仓库仍没有 checked-in Langfuse deployment/config truth source；若当前 shell 也未设置三项 `LANGFUSE_*` 变量，则 live Langfuse closeout 应明确标记为 environment-blocked，而不是代码未接完。
 
 ## 数据库配置
 

@@ -3,6 +3,7 @@ import type {
   GraphPlanSearchResponse,
   PlanSkillNode,
   PlanTrapNode,
+  RetrievalMatch,
 } from '@trapmap/contracts';
 
 /** Configuration for markdown formatting */
@@ -158,6 +159,52 @@ function formatCapsuleFallback(
   return lines.join('\n\n');
 }
 
+function formatEntryFallback(
+  fallback: {
+    routeFamily: 'entry';
+    response: {
+      globalConstraints: RetrievalMatch[];
+      projectKnowledge: RetrievalMatch[];
+    };
+  },
+  maxLen: number,
+  maxEntries: number,
+): string {
+  const entries = [
+    ...fallback.response.globalConstraints.map((entry) => ({
+      ...entry,
+      bucket: 'Global Constraint',
+    })),
+    ...fallback.response.projectKnowledge.map((entry) => ({
+      ...entry,
+      bucket: 'Project Knowledge',
+    })),
+  ].slice(0, maxEntries);
+
+  if (entries.length === 0) {
+    return 'No entries found.';
+  }
+
+  const lines = entries.map((entry, index) => {
+    const detail = truncateText(escapeMarkdown(entry.detail), maxLen);
+    const labels = entry.labels.length > 0 ? entry.labels.join(', ') : 'none';
+    return [
+      `${index + 1}. **${escapeMarkdown(entry.shortcut)}** (${entry.bucket}, score: ${entry.score.toFixed(2)})`,
+      `   - Detail: ${detail}`,
+      `   - Labels: ${labels}`,
+      `   - Source: \`${entry.entryId}\``,
+    ].join('\n');
+  });
+
+  const totalEntries =
+    fallback.response.globalConstraints.length + fallback.response.projectKnowledge.length;
+  if (totalEntries > maxEntries) {
+    lines.push(`_...and ${Math.max(0, totalEntries - maxEntries)} more entries_`);
+  }
+
+  return lines.join('\n\n');
+}
+
 /**
  * Format GraphPlanSearchResponse as markdown context block.
  * This is the main entry point for `trapmap load` output formatting.
@@ -213,7 +260,7 @@ export function formatLoadContext(
       );
     } else {
       sections.push('### Entries (from fallback)');
-      sections.push('_Entry fallback rendering not implemented yet._');
+      sections.push(formatEntryFallback(response.fallback, opts.maxContentLength, opts.maxTraps));
     }
   }
 

@@ -2,7 +2,7 @@ import type { Boundary } from '@trapmap/contracts';
 import { boundarySchema } from '@trapmap/contracts';
 import { z } from 'zod';
 
-import { stripCodeFences } from './ai/parse.js';
+import { invokeWithParseRetry, parseJsonWithSchema } from './ai/parse.js';
 import {
   buildBoundaryExtractionSystemPrompt,
   buildBoundaryExtractionSystemPromptBlocks,
@@ -42,17 +42,18 @@ ${input.detail}
 Labels: ${input.labels.join(', ')}`;
 
   try {
-    const response = chat.invokeWithBlocks
-      ? await chat.invokeWithBlocks(buildBoundaryExtractionSystemPromptBlocks(), userMessage)
-      : await chat.invoke(buildBoundaryExtractionSystemPrompt(), userMessage);
-
-    // Parse JSON response
-    const parsed = JSON.parse(response);
-
-    // Validate with boundary schema
-    const boundary = boundarySchema.parse(parsed);
-
-    return boundary;
+    return chat.invokeWithBlocks
+      ? await invokeWithParseRetry({
+          invoke: () =>
+            chat.invokeWithBlocks!(buildBoundaryExtractionSystemPromptBlocks(), userMessage),
+          schema: boundarySchema,
+          maxRetries: 0,
+        })
+      : await invokeWithParseRetry({
+          invoke: () => chat.invoke(buildBoundaryExtractionSystemPrompt(), userMessage),
+          schema: boundarySchema,
+          maxRetries: 0,
+        });
   } catch {
     // Return null on any failure (LLM error, parse error, validation error)
     return null;
@@ -210,35 +211,25 @@ export function buildBoundaryWithQualitySystemPrompt(): string {
  * Returns null on any failure (parse error, validation error).
  */
 export function parseBoundaryWithQualityResponse(raw: string): BoundaryWithQuality | null {
-  try {
-    const cleaned = stripCodeFences(raw);
-    const parsed: unknown = JSON.parse(cleaned);
-    const result = boundaryWithQualityLlmSchema.safeParse(parsed);
-
-    if (!result.success) {
-      return null;
-    }
-
-    const data = result.data;
-
-    // Construct the Boundary object from the validated fields
-    const boundary = boundarySchema.parse({
-      context: data.context,
-      versions: data.versions,
-      prerequisites: data.prerequisites,
-      signals: data.signals,
-      exclusions: data.exclusions,
-      evidence: data.evidence,
-    });
-
-    return {
-      boundary,
-      correctness: data.correctness,
-      completeness: data.completeness,
-    };
-  } catch {
+  const data = parseJsonWithSchema(raw, boundaryWithQualityLlmSchema);
+  if (!data) {
     return null;
   }
+
+  const boundary = boundarySchema.parse({
+    context: data.context,
+    versions: data.versions,
+    prerequisites: data.prerequisites,
+    signals: data.signals,
+    exclusions: data.exclusions,
+    evidence: data.evidence,
+  });
+
+  return {
+    boundary,
+    correctness: data.correctness,
+    completeness: data.completeness,
+  };
 }
 
 /**
@@ -271,23 +262,26 @@ Labels: ${input.labels.join(', ')}`;
 
   const systemPrompt = buildBoundaryWithQualitySystemPrompt();
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const response = await chat.invoke(systemPrompt, userMessage);
-
-      const result = parseBoundaryWithQualityResponse(response);
-      if (result) {
-        return result;
-      }
-      // If parsing failed, retry
-    } catch {
-      // On failure, retry with exponential backoff
+  return invokeWithParseRetry({
+    invoke: () => chat.invoke(systemPrompt, userMessage),
+    schema: boundaryWithQualityLlmSchema,
+    maxRetries,
+    backoffMs: (attempt) => 100 * 2 ** (attempt * 2),
+  }).then((data) => {
+    if (!data) {
+      return null;
     }
-
-    if (attempt < maxRetries) {
-      await new Promise((r) => setTimeout(r, 100 * 2 ** (attempt * 2)));
-    }
-  }
-
-  return null;
+    return {
+      boundary: boundarySchema.parse({
+        context: data.context,
+        versions: data.versions,
+        prerequisites: data.prerequisites,
+        signals: data.signals,
+        exclusions: data.exclusions,
+        evidence: data.evidence,
+      }),
+      correctness: data.correctness,
+      completeness: data.completeness,
+    };
+  });
 }

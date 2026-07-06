@@ -6,8 +6,9 @@
  * Falls back to fixed-size chunking when LLM is unavailable or returns invalid output.
  */
 
-import type { ExtractionPlan } from '@trapmap/contracts';
+import { extractionPlanSchema, type ExtractionPlan } from '@trapmap/contracts';
 
+import { invokeWithParseRetry } from '@trapmap/server/lib/ai/parse.js';
 import {
   buildGraphExtractionPlannerSlots_default,
   buildPrompt,
@@ -15,7 +16,6 @@ import {
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 
 import type { LlmExtractionCache } from './llm-cache.js';
-import { parseExtractionPlan } from './llm-extract-parsing.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -58,8 +58,10 @@ export async function planExtraction(
       'graph-extraction-planner',
       buildGraphExtractionPlannerSlots_default(),
     );
-    const response = await chat.invoke(systemPrompt, text);
-    const plan = parseExtractionPlan(response);
+    const plan = await invokeWithParseRetry({
+      invoke: () => chat.invoke(systemPrompt, text),
+      schema: extractionPlanSchema,
+    });
     if (plan && plan.segments.length > 0) {
       if (cache) cache.setPhase1(text, plan);
       return plan;

@@ -434,4 +434,52 @@ describe('formatLoadContext', () => {
     expect(result).not.toContain('Scripts:');
     expect(result).not.toContain('References:');
   });
+
+  it('formats entry fallback with real retrieval matches', () => {
+    const response: GraphPlanSearchResponse = {
+      routingTrace: {
+        ...mockTrace,
+        routeFamily: 'entry',
+      },
+      plan: null,
+      fallback: {
+        routeFamily: 'entry',
+        response: {
+          globalConstraints: [
+            {
+              entryId: 'entry-1',
+              scope: 'global',
+              requiredLevel: 1,
+              shortcut: 'Pin Docker base image',
+              detail: 'Avoid floating tags in production builds.',
+              labels: ['docker', 'supply-chain'],
+              score: 0.91,
+              reason: 'semantic similarity',
+            },
+          ],
+          projectKnowledge: [
+            {
+              entryId: 'entry-2',
+              scope: 'project',
+              requiredLevel: 1,
+              shortcut: 'Use staging registry',
+              detail: 'Publish release candidates to the staging registry first.',
+              labels: ['release'],
+              score: 0.76,
+              reason: 'keyword match',
+            },
+          ],
+          refinementSummary: null,
+          summary: null,
+        },
+      },
+    };
+
+    const result = formatLoadContext(response);
+
+    expect(result).toContain('### Entries (from fallback)');
+    expect(result).toContain('Pin Docker base image');
+    expect(result).toContain('Use staging registry');
+    expect(result).not.toContain('fallback rendering not implemented');
+  });
 });

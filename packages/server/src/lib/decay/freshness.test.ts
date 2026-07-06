@@ -148,6 +148,27 @@ describe('computeFreshnessMultiplier', () => {
     expect(result).toBe(1.0);
   });
 
+  it('applies versioned decay when version context is provided', () => {
+    const meta: DecayMeta = {
+      lastVerifiedAt: '2025-05-02T00:00:00Z',
+      decayState: 'active',
+      supersededById: null,
+      decayStateComputedAt: '2026-05-02T00:00:00Z',
+      freshnessType: 'versioned',
+    };
+
+    expect(
+      computeFreshnessMultiplier({ decayMeta: meta }, DEFAULT_FRESHNESS_CONFIG, now, {
+        versionMatches: true,
+      }),
+    ).toBe(1.0);
+    expect(
+      computeFreshnessMultiplier({ decayMeta: meta }, DEFAULT_FRESHNESS_CONFIG, now, {
+        versionMatches: false,
+      }),
+    ).toBe(0.5);
+  });
+
   it('applies exponential decay correctly for volatile entries', () => {
     // 30 days old with halfLife=30 should give ~0.65
     const meta: DecayMeta = {

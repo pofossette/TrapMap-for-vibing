@@ -1,10 +1,8 @@
-import { mkdir } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, rename, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 import type { RoutingTrace } from '@trapmap/contracts';
-
-import { createQueryId } from '@trapmap/server/lib/ids.js';
-import { appendWithRotation, loadRotationConfig } from '@trapmap/server/lib/log-rotation.js';
 
 /**
  * Configuration for RAG retrieval logging.
@@ -64,8 +62,16 @@ export interface RagLogEntry {
 export function loadRagLogConfig(): RagLogConfig {
   const enabled = process.env.LOG_RAG_ENABLED === 'true';
   const logDir = process.env.LOG_RAG_DIR ?? 'logs/rag';
-  const rotation = loadRotationConfig();
-  return { enabled, logDir, ...rotation };
+  const maxFileSizeMb = Number(process.env.LOG_MAX_FILE_SIZE_MB ?? '10');
+  const maxBackupFiles = Number(process.env.LOG_MAX_BACKUP_FILES ?? '5');
+  return {
+    enabled,
+    logDir,
+    maxFileSizeBytes: Number.isFinite(maxFileSizeMb)
+      ? maxFileSizeMb * 1024 * 1024
+      : 10 * 1024 * 1024,
+    maxBackupFiles: Number.isFinite(maxBackupFiles) ? maxBackupFiles : 5,
+  };
 }
 
 /**
@@ -83,7 +89,57 @@ function formatDate(date: Date): string {
  * Format: qry_{id_segment}
  */
 export function generateQueryId(): string {
-  return createQueryId();
+  return `qry_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+}
+
+async function rotateBackups(logFile: string, maxBackupFiles: number): Promise<void> {
+  if (maxBackupFiles <= 0) {
+    await rm(logFile, { force: true });
+    return;
+  }
+
+  await rm(`${logFile}.${maxBackupFiles}`, { force: true });
+  for (let index = maxBackupFiles - 1; index >= 1; index -= 1) {
+    const source = `${logFile}.${index}`;
+    const target = `${logFile}.${index + 1}`;
+    try {
+      await rename(source, target);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
+      }
+    }
+  }
+
+  try {
+    await rename(logFile, `${logFile}.1`);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
+
+async function appendWithRotation(
+  logFile: string,
+  line: string,
+  config: Pick<RagLogConfig, 'maxFileSizeBytes' | 'maxBackupFiles'>,
+): Promise<void> {
+  let shouldRotate = false;
+  try {
+    const info = await stat(logFile);
+    shouldRotate = info.size + Buffer.byteLength(line) > config.maxFileSizeBytes;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
+
+  if (shouldRotate) {
+    await rotateBackups(logFile, config.maxBackupFiles);
+  }
+
+  await appendFile(logFile, line, 'utf-8');
 }
 
 /**
@@ -111,10 +167,7 @@ export async function logRagRetrieval(config: RagLogConfig, entry: RagLogEntry):
     const line = `${JSON.stringify(entry)}\n`;
 
     // Use rotation-aware append
-    await appendWithRotation(logFile, line, {
-      maxFileSizeBytes: config.maxFileSizeBytes,
-      maxBackupFiles: config.maxBackupFiles,
-    });
+    await appendWithRotation(logFile, line, config);
   } catch (error) {
     // Log error but don't throw - logging should not break the request
     console.error('[rag-log] Failed to write log entry:', error);
