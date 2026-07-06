@@ -6,6 +6,13 @@
 
 ## 1. 前置条件
 
+### 当前环境阻塞（2026-07-06）
+
+在本次 closeout 执行环境里，`rtk docker compose -f docker-compose.observability.yml up -d`
+当前直接失败，错误为 `Cannot connect to the Docker daemon at unix:///var/run/docker.sock`。
+这意味着本轮无法在当前 shell 中完成本地 Grafana / Consul / Tempo / Loki 的 live 验收；
+相关 UI / target-environment closeout 仍需在 Docker daemon 可用的环境中重复执行。
+
 ### 本地最小路径
 
 ```bash

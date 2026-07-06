@@ -362,7 +362,7 @@ export async function processCandidateWithRetry(
             ...(services.logger ? { logger: services.logger } : {}),
             workItemId: candidateId,
           },
-          operation: async () => {
+          operation: async (_signal) => {
             const delayMs = CANDIDATE_RETRY_BASE_DELAY_MS * 2 ** retryCount;
             await queue.enqueue<CandidateProcessingPayload>(
               CANDIDATE_PROCESSING_TASK_TYPE,

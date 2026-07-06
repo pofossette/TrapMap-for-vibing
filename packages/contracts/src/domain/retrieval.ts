@@ -250,6 +250,22 @@ export const retrievalRequestSchema = z.object({
 
 export type RetrievalRequest = z.infer<typeof retrievalRequestSchema>;
 
+/**
+ * Shared request body used by the gateway pilot `/v1/retrieval/search` route.
+ * Preserves the existing host-local `limit` option while reusing canonical
+ * retrieval field validation from the broader request contract.
+ */
+export const retrievalSearchBodySchema = retrievalRequestSchema
+  .pick({
+    query: true,
+    teamId: true,
+  })
+  .extend({
+    limit: z.number().int().positive().optional(),
+  });
+
+export type RetrievalSearchBody = z.infer<typeof retrievalSearchBodySchema>;
+
 // =============================================================================
 // Phase 14: Seed-Only Retrieval v2 Contracts (RETR-01, RETR-02, RETR-04, COMP-01)
 // Capsule-native retrieval schemas that keep seed as the only required client input

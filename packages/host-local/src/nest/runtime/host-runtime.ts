@@ -7,7 +7,10 @@ import type {
   TeamLookupPort,
 } from '@trapmap/backend-core';
 import type { Permission } from '@trapmap/contracts';
-import { createKnowledgeReadRetrievalQuery } from '@trapmap/service-knowledge-read';
+import {
+  createKnowledgeReadRetrievalQuery,
+  type KnowledgeReadRetrievalQueryOptions,
+} from '@trapmap/service-knowledge-read';
 import type { FastifyRequest } from 'fastify';
 
 import { loadHostLocalConfig } from '../config/index.js';
@@ -27,6 +30,8 @@ export interface HostLocalRuntime {
   auditLog: ReturnType<typeof createAuditLogPort>;
   queuePorts: QueuePorts;
 }
+
+type HostLocalKnowledgeReadServices = KnowledgeReadRetrievalQueryOptions['services'];
 
 function createSessionLookup(services: HostLocalServices): SessionLookupPort {
   return {
@@ -87,8 +92,10 @@ function createPermissionCheck(services: HostLocalServices): PermissionCheckPort
 }
 
 function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
+  const retrievalServices = services as unknown as HostLocalKnowledgeReadServices;
+
   return createKnowledgeReadRetrievalQuery({
-    services: services as unknown as Parameters<typeof createKnowledgeReadRetrievalQuery>[0]['services'],
+    services: retrievalServices,
     resolveAuthContext(params) {
       return {
         subjectType: 'system-admin',

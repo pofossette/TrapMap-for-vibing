@@ -25,7 +25,7 @@
 
 - `backendTarget` 已在 `packages/cli/src/lib/config.ts`、`packages/cli/README.md`、`docs/architecture/components/CLIENT.md` 落地
 - Consul discovery、Prometheus `/metrics`、`traceparent` / `x-request-id` 透传、Promtail/Loki/Tempo/Grafana 资产已落地到代码和运维文档
-- `@trapmap/server` 依赖收口、host-local/shared seam 脱钩、若干静态分析问题、`cockatiel` 替换仍未完成
+- `@trapmap/server` 依赖收口、host-local/shared seam 脱钩、若干静态分析问题仍有收尾；`cockatiel` 替换已完成
 
 ---
 
@@ -48,16 +48,18 @@
 
 ### B. `host-local` / `packages/server` 边界收口
 
-- [ ] 把 `host-local` 仍依赖的 `@trapmap/server/lib/*` 共享基础设施继续迁到 host-owned 或明确 shared seam
+- [x] `host-local` 受测 runtime 文件已把共享基础设施收口到命名 seam：`@trapmap/runtime-infra` + `@trapmap/service-knowledge-read`，`import-boundary` 禁止名单里的 `@trapmap/server/lib/*` 深导入未再出现
 - [ ] 继续压缩 `service-knowledge-read` 对 `@trapmap/server` 的深层导入
-- [ ] 用共享 contract 替换 `packages/host-local/src/nest/gateway/gateway.schemas.ts` 的本地 `searchBodySchema`
+- [x] `packages/host-local/src/nest/gateway/gateway.schemas.ts` 已改为直接复用 `packages/contracts/src/domain/retrieval.ts` 导出的 `retrievalSearchBodySchema`，保留 `query` / `teamId` / `limit` 兼容面
 - [ ] 收敛 `packages/server` 的最终身份，只保留被明确命名的 compatibility / shared runtime seam
 
 证据入口：
 
+- `packages/contracts/src/domain/retrieval.ts`
 - `packages/host-local/src/nest/runtime/import-boundary.test.ts`
 - `packages/service-knowledge-read/src/import-boundary.test.ts`
 - `packages/host-local/src/nest/gateway/gateway.schemas.ts`
+- `packages/host-local/src/nest/gateway/gateway.schemas.test.ts`
 - [`../archived/archived-plans/backend-build-targets-plan.md`](../archived/archived-plans/backend-build-targets-plan.md)
 - [`../archived/archived-plans/nestjs-service-evolution-residual-tasks.md`](../archived/archived-plans/nestjs-service-evolution-residual-tasks.md)
 
@@ -76,12 +78,13 @@
 
 ### D. Resilience 与 LLM 调用硬化
 
-- [ ] 把手搓 `executeWithResilience` 迁到 `cockatiel` 方案，修掉 timeout/retry 不取消底层 Promise 的已知风险
+- [x] 把手搓 `executeWithResilience` 迁到 `cockatiel` 方案，补齐 `AbortController` 超时取消、retry/backoff 与可选 circuit breaker，并保持 `ResiliencePolicy` / `ResilienceResult` 兼容面
 - [ ] 保持“手动 parse + Zod 校验”的现有结论，但抽出共享的 parse-retry 包装，避免各模块重复实现 retry 循环
 - [ ] 若未来满足单 provider + 明显 parse failure 的触发条件，再重新评估 `.withStructuredOutput()`
 
 证据入口：
 
+- `packages/server/src/lib/runtime/resilience-v2.ts`
 - `packages/server/src/lib/runtime/resilience.ts`
 - `packages/server/src/lib/ai/parse.ts`
 - `packages/server/src/lib/indexing/graph-lite/llm-extract.ts`

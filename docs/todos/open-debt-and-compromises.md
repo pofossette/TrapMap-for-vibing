@@ -113,6 +113,22 @@ Phase 4 closeout 对剩余 deferred 的处理原则已经冻结：
 - 当前明确转 deferred 的包括：Kubernetes/Ingress/Service Mesh 平台化、service-to-service auth hardening、per-service database、MQ 全面替换、外部缓存平台、dashboard-as-code、alert rule pack、Node heap preset 与 PgBouncer introspection contract
 - 当前仍留在 active todo 的剩余 closeout 只剩真实 Langfuse 目标验证这一个 environment-blocked 项；第二平台与更宽的平台化工作继续走 debt register / deferred 落点
 
+## 5.2 2026-07-06 Stage 1B 静态盘点快照
+
+- `rtk pnpm exec fallow dead-code --unused-files --unused-exports --duplicate-exports --re-export-cycles --format json --quiet` 当前返回 `244` 个死代码类问题：`9` 个 unused files、`227` 个 unused exports、`8` 个 duplicate exports、`0` 个 re-export cycles
+- `rtk pnpm knip --reporter json` 与 fallow 对 `packages/host-distributed/src/testing/distributed-runtime-smoke-service.ts`、`packages/host-local/src/nest/config/config-bridge.ts`、`packages/host-local/src/nest/main.ts`、`packages/web-panel/src/shared/hooks/use-debounced-value.ts` 的“孤立/未被引用”判断形成交叉印证
+- 显式占位实现仍然存在：
+  - `packages/host-local/src/nest/runtime/backend-core-adapters.ts` 在无 async transport 配置时仍返回 `job_local_stub` / `evt_local_stub`
+  - `packages/cli/src/lib/markdown-formatter.ts` 仍保留 `_Entry fallback rendering not implemented yet._`
+  - `packages/server/src/lib/decay/freshness.ts` 的 versioned freshness 分支仍注明 “version context not yet implemented”
+- `packages/contracts/src/domain/retrieval.ts` 现已补出 `retrievalSearchBodySchema`，`packages/host-local/src/nest/gateway/gateway.schemas.ts` 也已直接复用这个共享 contract；gateway body 兼容面仍保持 `query` / `teamId` / `limit`
+- 边界测试限定的 server 深导入名单已固化在：
+  - `packages/host-local/src/nest/runtime/import-boundary.test.ts`
+  - `packages/service-knowledge-read/src/import-boundary.test.ts`
+- 本轮直接扫描这些受测文件时，`host-local` 受测 runtime 文件未命中测试中列出的 forbidden imports；`service-knowledge-read` 受测文件未命中测试所禁的 retrieval seam，但仍存在多处其他 `@trapmap/server/lib/*` 深导入，说明“host-local/runtime 一侧的 seam 已命名化，但读侧耦合尚未完成收口”
+- `packages/host-local/src/nest/runtime/host-runtime.ts` 已改为消费 `KnowledgeReadRetrievalQueryOptions['services']` 这个显式 seam type，而不是继续从 `createKnowledgeReadRetrievalQuery` 的函数参数签名反推服务形状；但 `service-knowledge-read` 自身仍通过 `context.ts` 别名 `@trapmap/server/lib/context.js` 的 `SkillShareerServices` / `ResolvedAuthContext`，这是当前剩余的主要边界债务
+- `rtk pnpm exec fallow audit --base main` 本轮未能作为 clean pass 证据使用，阻塞项是仓库现存的 `packages/server/src/lib/runtime/resilience-v2.test.ts -> ./resilience-v2.js` unresolved import，与本次 Stage 2B 改动无直接关系
+
 ## 7. Coupling Debt Register (Phase 0.6 Audit)
 
 The following coupling patterns were identified during the Phase 0.6 coupling audit and logged as known tech debt. They are intentional but should be tracked for future resolution.
@@ -141,8 +157,8 @@ The following coupling patterns were identified during the Phase 0.6 coupling au
 
 - **Decision**: Replace hand-rolled `executeWithResilience` with `cockatiel`
 - **Why**: Current `withTimeout` uses `setTimeout` without `AbortController` cancellation. On retry, the old Promise remains pending, leaking connections and risking double-execution side effects. `cockatiel` solves this natively.
-- **Status**: Planned for current hardening phase (before production traffic)
-- **Migration scope**: New `resilience-v2.ts` wrapping `cockatiel`, preserving existing `ResiliencePolicy`/`ResilienceResult` interfaces, 5 call sites to migrate
+- **Status**: Completed on 2026-07-06 in Stage 2A hardening
+- **Closeout**: `packages/server/src/lib/runtime/resilience-v2.ts` now wraps `cockatiel` with aggressive timeout cancellation, retry/backoff, optional circuit breaker, compatibility re-export via `resilience.ts`, and all 5 server call sites migrated
 
 ### 8.2 LangChain `.withStructuredOutput()` — Keep Current Approach
 

@@ -34,7 +34,7 @@
 
 当前仍未完成：
 
-- 真实 Langfuse 服务联通验证仍未做；截至 2026-07-05 12:11:22 CST，本次 shell 中 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 均为空，且仓库内没有 checked-in Langfuse deployment/config 可作为 closeout 目标，因此当前只验证到缺配置 warning 路径
+- 真实 Langfuse 服务联通验证仍未做；截至 2026-07-06 10:49:42 CST，本次 shell 中 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 仍均为空，且仓库内没有 checked-in Langfuse deployment/config 可作为 closeout 目标，因此当前只验证到缺配置 warning 路径
 - `rtk pnpm eval -- core --dry-run --platform langfuse` 当前仍暴露既有 core dry-run 失败项：ingestion 1 个、agent-planning 3 个；该结果来自现有 suite 基线，不是本轮 `langfuse` 接入引入的新回归
 - 第二平台适配器（`MLflow`）仍明确留在 deferred，不作为当前 active closeout 的完成条件
 
@@ -147,9 +147,9 @@
 **本阶段测试要求**
 
 - [x] `rtk pnpm --filter @trapmap/contracts test --run packages/contracts/src/domain/evals/platform.test.ts`
-- [ ] `rtk pnpm test:file -- evals/scripts/__tests__/eval-ci.test.ts`
-- [ ] `rtk pnpm eval -- agent-planning --tier smoke --dry-run`
-- [ ] `rtk pnpm typecheck`
+- [x] `rtk pnpm test:file -- evals/scripts/__tests__/eval-ci.test.ts`（2026-07-06 Stage 1A baseline：10 tests passed）
+- [x] `rtk pnpm eval -- agent-planning --tier smoke --dry-run`（2026-07-06 Stage 1A baseline：33/33 passed，Avg score 0.97）
+- [x] `rtk pnpm typecheck`（2026-07-06 Stage 1A baseline：TypeScript: No errors found）
 
 ### Phase 2: `agent-planning` 接入统一事件模型
 
@@ -239,7 +239,7 @@
 **本阶段剩余 closeout**
 
 - [ ] 用真实 Langfuse 服务做一次手动联通验证，并把结果回写到本节或对应 closeout 记录
-- [ ] 当前阻塞说明：2026-07-05 12:11:22 CST 这次执行中 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 均为空；仓库也没有 checked-in Langfuse deployment/config 可供对接，因此 live closeout 仍属 environment-blocked，而不是代码未完成
+- [ ] 当前阻塞说明：2026-07-06 10:49:42 CST 这次执行中 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 仍均为空；仓库也没有 checked-in Langfuse deployment/config 可供对接，因此 live closeout 仍属 environment-blocked，而不是代码未完成
 
 ### Phase 4: Deferred Follow-up - 第二平台可替换性验证
 

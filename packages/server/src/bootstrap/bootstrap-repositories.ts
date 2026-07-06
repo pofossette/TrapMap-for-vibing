@@ -76,7 +76,7 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
         failureMode: 'fail-open',
       },
       context: startupContext,
-      operation: async () => {
+      operation: async (_signal) => {
         await ensureVectorIndex(pool);
         return 'ok';
       },
@@ -96,7 +96,7 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
         failureMode: 'fail-open',
       },
       context: startupContext,
-      operation: async () => {
+      operation: async (_signal) => {
         return (await ensureCapsuleVectorIndex(pool)) ? 'ok' : 'skipped';
       },
       fallbackValue: 'degraded',
@@ -150,7 +150,7 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
         failureMode: app.skillShareer.config.graphDb.failOpen ? 'fail-open' : 'fail-closed',
       },
       context: startupContext,
-      operation: async () => graphBackend.healthcheck(),
+      operation: async (_signal) => graphBackend.healthcheck(),
       isSuccessfulResult: (health) => health.ok,
       fallbackValue: {
         ok: false,

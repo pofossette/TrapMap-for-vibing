@@ -13,6 +13,9 @@ const FILES = [
   'src/filters.ts',
   'src/read-model.ts',
   'src/rag-log.ts',
+  'src/context.ts',
+  'src/retrieval-types.ts',
+  'src/store.ts',
 ];
 
 const FORBIDDEN_IMPORTS = [
@@ -26,6 +29,10 @@ const FORBIDDEN_IMPORTS = [
   '@trapmap/server/lib/retrieval/orchestration/filters',
   '@trapmap/server/lib/retrieval/read-model',
   '@trapmap/server/lib/rag-log',
+  '@trapmap/server/lib/context',
+  '@trapmap/server/lib/ids',
+  '@trapmap/server/lib/log-rotation',
+  '@trapmap/server/lib/store',
 ];
 
 describe('knowledge-read import boundary', () => {

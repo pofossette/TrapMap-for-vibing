@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   capsuleMatchSchema,
   graphPlanSearchResponseSchema,
+  retrievalRequestSchema,
   retrievalCitationSchema,
   retrievalFiltersSchema,
   retrievalMatchSchema,
@@ -15,6 +16,7 @@ import {
   routingTraceSchema,
   skillLookupResponseSchema,
 } from './retrieval.js';
+import * as retrievalContracts from './retrieval.js';
 
 describe('retrieval schema contracts', () => {
   describe('retrievalQueryModeSchema', () => {
@@ -217,6 +219,38 @@ describe('retrieval schema contracts', () => {
         },
       });
       expect(query.boundaryContext?.contexts).toEqual(['frontend', 'production']);
+    });
+  });
+
+  describe('retrievalSearchBodySchema', () => {
+    it('exports a shared search body contract with host-local limit support', () => {
+      const sharedSchema = (retrievalContracts as Record<string, unknown>)
+        .retrievalSearchBodySchema;
+
+      expect(sharedSchema).toBeDefined();
+      expect(
+        (sharedSchema as typeof retrievalRequestSchema).parse({
+          query: 'find traps',
+          teamId: 'team-1',
+          limit: 25,
+        }),
+      ).toEqual({
+        query: 'find traps',
+        teamId: 'team-1',
+        limit: 25,
+      });
+    });
+
+    it('rejects empty query values', () => {
+      const sharedSchema = (retrievalContracts as Record<string, unknown>)
+        .retrievalSearchBodySchema as typeof retrievalRequestSchema;
+
+      expect(() =>
+        sharedSchema.parse({
+          query: '',
+          limit: 10,
+        }),
+      ).toThrow();
     });
   });
 

@@ -57,8 +57,8 @@ export type {
   ResilienceContext,
   ResilienceResult,
   ExecuteWithResilienceOptions,
-} from './resilience.js';
-export { executeWithResilience } from './resilience.js';
+} from './resilience-v2.js';
+export { executeWithResilience } from './resilience-v2.js';
 
 // Request context
 export type { RequestContext } from './request-context.js';
