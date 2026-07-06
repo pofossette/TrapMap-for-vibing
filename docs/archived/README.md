@@ -38,7 +38,7 @@
 | `archived-plans/nestjs-service-evolution-02-modular-monolith-cutover-archived.md` | 2026-06-30 | 六个 bounded context 目录结构完成、默认入口已切 Nest、旧 Fastify 源码已删；残余 `@trapmap/server` 依赖转入 residual tasks |
 | `archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md` | 2026-06-30 | 大部分 closeout 条件已满足（默认入口切换、compose 切换、compatibility shell 退役）；未完成项去重整合入 residual tasks |
 | `archived-plans/hexagonal-architecture-cleanup.md` | 2026-07-03 | 六边形清理已完成前置护栏职责；后续仅保留结果，不再作为活跃 checklist |
-| `archived-plans/service-discovery-and-observability-plan.md` | 2026-07-03 | 主线大部分资产已落地；剩余 closeout 抽取到 `docs/todos/active-closeout-and-followups.md` |
+| `archived-plans/service-discovery-and-observability-plan.md` | 2026-07-03 | 主线大部分资产已落地；历史残留 closeout 已于 2026-07-06 并入 debt register 并归档 |
 | `local-deployment-observability-checklist.md` | 2026-07-03 | 本地 full-docker closeout 证据已形成；剩余目标环境/Grafana UI 验收转入统一活跃清单 |
 | `microservice-architecture-and-observability.md` | 2026-07-03 | 架构盘点文档只保留背景参考，不再承担执行面 |
 | `archived-plans/backend-build-targets-plan.md` | 2026-07-03 | `backendTarget`、build-target 术语和 host 终局已冻结；剩余边界收口转入统一活跃清单 |
@@ -54,6 +54,7 @@
 | `archived-plans/plan-2026-07-03-agent-eval-platform-index-archived.md` | 2026-07-03 | 根 `plan.md` 已切换为 Agent Eval 平台长期主线，旧 closeout/followups 索引退回历史参考 |
 | `agent-eval-framework-scorecard.md` | 2026-07-05 | 冻结评分卡，非活跃 todo；已整合入 eval 主线执行计划 |
 | `agent-eval-platform-event-model.md` | 2026-07-05 | Phase 0 冻结事件设计文档，已作为 Phase 1 输入完成使命 |
+| `archived-plans/active-closeout-and-followups.md` | 2026-07-06 | 集中审计后的收口细则已完成职责；剩余有效事项已并入活跃主线或 debt register |
 
 ## 归档原则
 

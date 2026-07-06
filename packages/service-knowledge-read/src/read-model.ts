@@ -13,11 +13,11 @@ import type { SkillShareerRepos } from '@trapmap/runtime-infra';
 import {
   getCachedRetrievalReadModel,
   setCachedRetrievalReadModel,
-} from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
+} from './retrieval-read-model-cache.js';
 import {
   attachRemediationToArtifacts,
   attachRemediationToKnowledgeEntries,
-} from '@trapmap/server/lib/feedback/remediation.js';
+} from './feedback-remediation.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from './store.js';
 
 /**

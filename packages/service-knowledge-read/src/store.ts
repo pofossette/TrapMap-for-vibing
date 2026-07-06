@@ -109,10 +109,16 @@ export interface SkillArtifactRecord {
 }
 
 export interface FeedbackQueueRecord {
+  id: string;
   entryId: string;
   entryType: 'trap' | 'skill';
   status: 'new' | 'triaged' | 'resolved' | 'dismissed';
+  submittedAt: string;
   remediationStatus?: 'pending-human-review' | 'in-remediation' | 'ready-to-reindex' | null;
+  remediationOpenedAt?: string | null;
+  remediationOpenedByUserId?: string | null;
+  remediationResolvedAt?: string | null;
+  remediationResolvedByUserId?: string | null;
 }
 
 export interface StoreData {

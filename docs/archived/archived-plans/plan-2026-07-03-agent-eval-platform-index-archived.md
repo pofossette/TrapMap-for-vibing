@@ -6,7 +6,7 @@
 
 - 当前主线：待办收口与后续整合
 - 状态：`收口中`
-- 主细则：[`docs/todos/active-closeout-and-followups.md`](docs/todos/active-closeout-and-followups.md)
+- 主细则：[`docs/archived/archived-plans/active-closeout-and-followups.md`](docs/archived/archived-plans/active-closeout-and-followups.md)
 - 活跃 debt register：[`docs/todos/open-debt-and-compromises.md`](docs/todos/open-debt-and-compromises.md)
 
 ### 审计结论（2026-07-03）
@@ -17,7 +17,7 @@
 
 ## 当前活跃要求
 
-- 新发现的问题、风险和 deferred，优先回写到 [`docs/todos/active-closeout-and-followups.md`](docs/todos/active-closeout-and-followups.md) 或 [`docs/todos/open-debt-and-compromises.md`](docs/todos/open-debt-and-compromises.md)
+- 新发现的问题、风险和 deferred，现统一回写到 [`docs/todos/open-debt-and-compromises.md`](docs/todos/open-debt-and-compromises.md)；旧 closeout 细则仅保留历史参考：[`docs/archived/archived-plans/active-closeout-and-followups.md`](docs/archived/archived-plans/active-closeout-and-followups.md)
 - 任何 API surface、运行时默认值、部署行为、服务发现或可观测性语义变化，先更新权威事实页，再更新二级说明文档
 - 文档或目录规则改动完成后，至少运行 `rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`
 - 涉及 runtime/profile/route surface、部署默认值、健康检查或服务发现链路时，补跑对应最小验证

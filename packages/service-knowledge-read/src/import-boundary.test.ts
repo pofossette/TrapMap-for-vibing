@@ -33,6 +33,10 @@ const FORBIDDEN_IMPORTS = [
   '@trapmap/server/lib/ids',
   '@trapmap/server/lib/log-rotation',
   '@trapmap/server/lib/store',
+  '@trapmap/server/lib/retrieval/types.js',
+  '@trapmap/server/lib/activation-policy.js',
+  '@trapmap/server/lib/cache/retrieval-read-model-cache.js',
+  '@trapmap/server/lib/feedback/remediation.js',
 ];
 
 describe('knowledge-read import boundary', () => {

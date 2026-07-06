@@ -99,7 +99,7 @@ badcase 回流链路已全面闭环，包括分类标准：
 - **Status**: Deferred/platform residue only; the remaining live Langfuse closeout stays in the active owner plan, not in this debt register
 - retrieval / summary / agent-planning 现都已切到 suite-owned platform event builder；此前 aggregate runner 内联镜像这项 debt 已闭环，不再继续登记为 active debt
 - `LangfuseAdapter` 已以 warning-only mirror 方式接入 aggregate runner，并完成 mock/fake client 自动化验证
-- 真实 Langfuse 服务联通尚未形成 checked-in closeout 证据；截至 2026-07-06 11:35:08 CST，本次执行 shell 中 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 仍均为空，且仓库内没有 checked-in Langfuse deployment/config 可对接，因此当前 active owner plan 只保留这一个 environment-blocked closeout
+- 真实 Langfuse 服务联通尚未形成 checked-in closeout 证据；截至 2026-07-06 22:29:56 CST，本次执行 shell 中重新执行 `rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY` 仍为空结果，且仓库内没有 checked-in Langfuse deployment/config 可对接，因此当前 active owner plan 只保留这一个 environment-blocked closeout
 - `rtk pnpm eval -- core --dry-run --platform langfuse` 当前仍暴露既有 suite 结果：
   - ingestion failed bundles: `1`
   - agent-planning failed cases: `3`
@@ -129,7 +129,10 @@ Phase 4 closeout 对剩余 deferred 的处理原则已经冻结：
   - `packages/host-local/src/nest/runtime/import-boundary.test.ts`
   - `packages/service-knowledge-read/src/import-boundary.test.ts`
 - 本轮直接扫描这些受测文件时，`host-local` 受测 runtime 文件未命中测试中列出的 forbidden imports；`service-knowledge-read` 受测文件未命中测试所禁的 retrieval seam，但仍存在多处其他 `@trapmap/server/lib/*` 深导入，说明“host-local/runtime 一侧的 seam 已命名化，但读侧耦合尚未完成收口”
-- `packages/host-local/src/nest/runtime/host-runtime.ts` 已改为消费 `KnowledgeReadRetrievalQueryOptions['services']` 这个显式 seam type，而 `service-knowledge-read/src/context.ts` / `retrieval-types.ts` / `store.ts` / `rag-log.ts` 也已落到 package-local seam；当前剩余主要债务已收缩为第二批重耦合文件：`search-knowledge.ts`、`filters.ts`、`read-model.ts`、`retrieval-semantic.ts`、`retrieval-recall-coordinator.ts`、`response-citations.ts`、`response-assembly.ts`
+- `packages/host-local/src/nest/runtime/host-runtime.ts` 已改为消费 `KnowledgeReadRetrievalQueryOptions['services']` 这个显式 seam type，而 `service-knowledge-read/src/context.ts` / `retrieval-types.ts` / `store.ts` / `rag-log.ts` 也已落到 package-local seam
+- 2026-07-06 本轮继续把第二批重耦合文件中的 `filters.ts`、`read-model.ts`、`response-citations.ts`、`response-assembly.ts` 切到 package-local seam：新增 `activation-policy.ts`、`feedback-remediation.ts`、`retrieval-read-model-cache.ts`，并把 `CapsuleCandidate` / `MergedCandidate` 统一收口到本包 `retrieval-types.ts`
+- `packages/service-knowledge-read/src/import-boundary.test.ts` 现已把 `@trapmap/server/lib/retrieval/types.js`、`@trapmap/server/lib/activation-policy.js`、`@trapmap/server/lib/cache/retrieval-read-model-cache.js`、`@trapmap/server/lib/feedback/remediation.js` 固化为 forbidden imports，避免回归
+- 当前剩余主要债务已继续收缩为：`search-knowledge.ts`、`retrieval-semantic.ts`、`retrieval-recall-coordinator.ts`，以及 `filters.ts` 里仍保留的治理/decay/scoring server seam
 - `rtk pnpm exec fallow audit --base main` 本轮未能作为 clean pass 证据使用，阻塞项是仓库现存的 `packages/server/src/lib/runtime/resilience-v2.test.ts -> ./resilience-v2.js` unresolved import，与本次 Stage 2B 改动无直接关系
 
 ## 7. Coupling Debt Register (Phase 0.6 Audit)

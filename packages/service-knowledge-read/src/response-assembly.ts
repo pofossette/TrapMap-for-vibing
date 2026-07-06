@@ -40,8 +40,8 @@ import {
   retrievalResponseSchema,
   retrievalV2ResponseSchema,
 } from '@trapmap/contracts';
-import { getDefaultActivationPolicy } from '@trapmap/server/lib/activation-policy.js';
-import type { CapsuleCandidate, ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
+import { getDefaultActivationPolicy } from './activation-policy.js';
+import type { CapsuleCandidate, ScoredEntry } from './retrieval-types.js';
 import type {
   ClientManifestRecord,
   DerivedSkillCapsuleRecord,

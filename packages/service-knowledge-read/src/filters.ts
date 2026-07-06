@@ -17,7 +17,6 @@
 
 import type { BoundaryContext, RetrievalQuery } from '@trapmap/contracts';
 import { computeDecayState, loadDecayConfig } from '@trapmap/server/lib/decay/index.js';
-import { isSuppressedByFeedback } from '@trapmap/server/lib/feedback/remediation.js';
 import {
   extractGovernanceContext,
   isGovernanceEligible,
@@ -25,6 +24,7 @@ import {
 } from '@trapmap/server/lib/governance/index.js';
 import { filterByBoundary } from '@trapmap/server/lib/retrieval/scoring/index.js';
 import type { ResolvedAuthContext } from './context.js';
+import { isSuppressedByFeedback } from './feedback-remediation.js';
 import type { KnowledgeRecord } from './store.js';
 
 /**

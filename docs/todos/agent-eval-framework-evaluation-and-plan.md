@@ -34,7 +34,7 @@
 
 当前仍未完成：
 
-- 真实 Langfuse 服务联通验证仍未做；截至 2026-07-06 11:35:08 CST，本次 shell 中 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 仍均为空，且仓库内没有 checked-in Langfuse deployment/config 可作为 closeout 目标，因此当前只验证到缺配置 warning 路径
+- 真实 Langfuse 服务联通验证仍未做；截至 2026-07-06 22:29:56 CST，本次 shell 中重新执行 `rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY` 仍为空结果，且仓库内仍没有 checked-in Langfuse deployment/config 可作为 closeout 目标，因此当前只验证到缺配置 warning 路径
 - `rtk pnpm eval -- core --dry-run --platform langfuse` 当前仍暴露既有 core dry-run 失败项：ingestion 1 个、agent-planning 3 个；该结果来自现有 suite 基线，不是本轮 `langfuse` 接入引入的新回归
 - 第二平台适配器（`MLflow`）仍明确留在 deferred，不作为当前 active closeout 的完成条件
 
@@ -70,8 +70,8 @@
 
 - [x] 任何新增 eval 平台接入规则，必须回写到 [`docs/operations/ENVIRONMENT.md`](../operations/ENVIRONMENT.md) 或新建对应 guide
 - [x] 任何 eval 入口、tier、runner 行为变化，必须回写到 [`docs/operations/TESTING.md`](../operations/TESTING.md) 与相关 `evals/*/README.md`
-- [ ] 任何共享 schema / 事件模型变更，必须先更新 `packages/contracts/src/domain/evals/`，再回写文档
-- [ ] 若新增长期规则或目录落点约束，必须同步更新 [`docs/guides/DOCUMENTATION_GOVERNANCE.md`](../guides/DOCUMENTATION_GOVERNANCE.md) 或相关 reference
+- 任何共享 schema / 事件模型变更，必须先更新 `packages/contracts/src/domain/evals/`，再回写文档
+- 若新增长期规则或目录落点约束，必须同步更新 [`docs/guides/DOCUMENTATION_GOVERNANCE.md`](../guides/DOCUMENTATION_GOVERNANCE.md) 或相关 reference
 
 ## 全局测试要求
 
@@ -187,9 +187,9 @@
 
 **本阶段测试要求**
 
-- [ ] `rtk pnpm eval -- agent-planning --tier smoke --dry-run --json --json-path ./reports/agent-planning-smoke.json`
-- [ ] `rtk pnpm eval -- agent-planning --tier core --dry-run`
-- [ ] `rtk pnpm eval:smoke`
+- [x] `rtk pnpm eval -- agent-planning --tier smoke --dry-run --json --json-path ./reports/agent-planning-smoke.json`
+- [x] `rtk pnpm eval -- agent-planning --tier core --dry-run`
+- [x] `rtk pnpm eval:smoke`
 
 ### Phase 3: 接入 `LangfuseAdapter`
 
@@ -239,9 +239,11 @@
 **本阶段剩余 closeout**
 
 - [ ] 用真实 Langfuse 服务做一次手动联通验证，并把结果回写到本节或对应 closeout 记录
-- [ ] 当前阻塞说明：2026-07-06 11:35:08 CST 这次执行中 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 仍均为空；仓库也没有 checked-in Langfuse deployment/config 可供对接，因此 live closeout 仍属 environment-blocked，而不是代码未完成
+- [ ] 当前阻塞说明：2026-07-06 22:29:56 CST 这次执行中重新执行 `rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY` 仍为空结果；仓库也没有 checked-in Langfuse deployment/config 可供对接。要关闭这项 active closeout，至少还需要二者之一：1) 提供可访问的 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY`；2) 在仓库中补入团队认可的 checked-in Langfuse deployment/config truth source。否则 live closeout 继续属于 environment-blocked，而不是代码未完成
 
 ### Phase 4: Deferred Follow-up - 第二平台可替换性验证
+
+> 状态：deferred，不属于当前 active closeout 完成条件。
 
 **目标**
 
@@ -277,19 +279,19 @@
 
 ### 进入下一阶段前必须满足
 
-- [ ] 当前阶段的文档更新已完成
-- [ ] 当前阶段的最小测试已完成
-- [ ] 未完成项已写回 checklist 或 debt register
+- [x] 当前阶段的文档更新已完成
+- [x] 当前阶段的最小测试已完成
+- [x] 未完成项已写回 checklist 或 debt register
 
 ### 停止扩张条件
 
-- [ ] 如果 adapter 侵入 runner 过深，暂停新增平台
-- [ ] 如果平台只改善图表、不改善 triage / review / experiment 效率，暂停新增平台
-- [ ] 如果平台稳定性影响本地/CI，暂停扩大接入范围
+- 如果 adapter 侵入 runner 过深，暂停新增平台
+- 如果平台只改善图表、不改善 triage / review / experiment 效率，暂停新增平台
+- 如果平台稳定性影响本地/CI，暂停扩大接入范围
 
-## 现阶段推荐起手动作
+## 历史起手动作（已完成）
 
 - [x] 新建 `docs/archived/agent-eval-platform-event-model.md`（已完成并归档）
-- [ ] 为 `packages/contracts/src/domain/evals/` 新增 `platform.ts`
-- [ ] 为 `evals/lib/platform/` 新增 `types.ts`、`adapter.ts`、`noop-adapter.ts`、`json-archive-adapter.ts`
-- [ ] 只让 `agent-planning` 做第一轮 JSON 双写，不直接上外部平台
+- [x] 为 `packages/contracts/src/domain/evals/` 新增 `platform.ts`
+- [x] 为 `evals/lib/platform/` 新增 `types.ts`、`adapter.ts`、`noop-adapter.ts`、`json-archive-adapter.ts`
+- [x] 只让 `agent-planning` 做第一轮 JSON 双写，不直接上外部平台
