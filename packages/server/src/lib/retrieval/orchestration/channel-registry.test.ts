@@ -1,9 +1,9 @@
 import type { RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { describe, expect, it, vi } from 'vitest';
-import { ChannelRegistry, type RecallChannel } from './channel-registry.js';
+import { ChannelRegistry, type RetrievalRecallChannel } from './channel-registry.js';
 
-function makeMockChannel(name: string): RecallChannel {
+function makeMockChannel(name: string): RetrievalRecallChannel {
   return {
     name,
     recall: vi.fn(async (): Promise<RecallCandidate[]> => []),

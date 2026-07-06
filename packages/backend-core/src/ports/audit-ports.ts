@@ -1,5 +1,5 @@
 /**
- * Audit and metrics port interfaces.
+ * Audit and audit-specific metrics port interfaces.
  *
  * These ports define the contract for cross-cutting concerns that
  * all bounded-context modules may use: audit logging and metrics collection.
@@ -39,14 +39,15 @@ export interface AuditLogPort {
 }
 
 // ---------------------------------------------------------------------------
-// Metrics port
+// Audit metrics port
 // ---------------------------------------------------------------------------
 
 /**
- * A host-agnostic metrics port. Implementations may wire to Prometheus,
- * OpenTelemetry, StatsD, or simple in-memory counters.
+ * Audit/write-path specific metrics hooks used by legacy backend-core tests.
+ *
+ * General telemetry metrics belong to `telemetry-ports.ts`.
  */
-export interface MetricsPort {
+export interface AuditMetricsPort {
   /**
    * Increment a counter.
    */

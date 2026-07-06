@@ -34,14 +34,11 @@ export type {
   LocalExpansionParams,
 } from './graphology.js';
 export {
-  buildGraphFromDocuments,
   buildGraphRuntimeSnapshot,
   expandSourcesOneHop,
   calculateSourceRelationStrength,
-  projectHardDependencyGraph,
   assertNoHardDependencyCycles,
   buildLocalExpansionView,
-  findEntriesByContext,
 } from './graphology.js';
 
 // ---------------------------------------------------------------------------
@@ -52,7 +49,6 @@ export {
   upsertGraphIndexDocument,
   removeGraphIndexDocumentsForSource,
   getGraphIndexDocuments,
-  getGraphIndexDocumentsForSource,
 } from './store.js';
 
 // ---------------------------------------------------------------------------
@@ -70,15 +66,9 @@ export type {
   ExtractGraphOptions,
 } from './llm-extract.js';
 export {
-  buildEdgeId,
-  buildNodeId,
   normalizeValue,
-  dedupeGraphRecords,
   mergeExtractions,
   toGraphRecords,
-  parseExtractionPlan,
-  parseLlmExtraction,
   planExtraction,
-  extractSegmentEntities,
   extractGraphEntitiesWithLLM,
 } from './llm-extract.js';

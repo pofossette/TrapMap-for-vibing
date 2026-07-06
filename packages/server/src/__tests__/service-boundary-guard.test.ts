@@ -11,7 +11,6 @@ describe('service boundary guard', () => {
       'candidates/services/submission-service.ts',
       'candidates/services/resolution-service.ts',
       'knowledge/review-application-service.ts',
-      'decay/application-service.ts',
       'jobs/handlers/remediation-reactivation.ts',
     ];
 

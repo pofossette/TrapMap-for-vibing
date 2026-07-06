@@ -15,7 +15,7 @@ import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
  * Each channel implements a single recall strategy (semantic, keyword, graph, etc.).
  * Implementations must output scores normalized to [0, 1].
  */
-export interface RecallChannel {
+export interface RetrievalRecallChannel {
   readonly name: string;
   recall(queryText: string, entries: KnowledgeRecord[]): Promise<RecallCandidate[]>;
 }
@@ -26,20 +26,20 @@ export interface RecallChannel {
  * Duplicate registration throws to catch startup misconfiguration.
  */
 export class ChannelRegistry {
-  private readonly channels = new Map<string, RecallChannel>();
+  private readonly channels = new Map<string, RetrievalRecallChannel>();
 
-  register(channel: RecallChannel): void {
+  register(channel: RetrievalRecallChannel): void {
     if (this.channels.has(channel.name)) {
       throw new Error(`Channel '${channel.name}' is already registered`);
     }
     this.channels.set(channel.name, channel);
   }
 
-  get(name: string): RecallChannel | undefined {
+  get(name: string): RetrievalRecallChannel | undefined {
     return this.channels.get(name);
   }
 
-  all(): RecallChannel[] {
+  all(): RetrievalRecallChannel[] {
     return Array.from(this.channels.values());
   }
 }

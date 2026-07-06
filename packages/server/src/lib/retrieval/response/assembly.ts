@@ -354,7 +354,7 @@ export function buildScriptHint(
  * @param manifest - Client manifest from artifact's latest revision (may be null)
  * @returns CapsuleActivationHints for the capsule
  */
-export function buildActivationHints(
+export function buildCapsuleActivationHints(
   capsule: CapsuleMatch,
   manifest: ClientManifestRecord | null,
 ): CapsuleActivationHints {
@@ -413,6 +413,6 @@ export function buildAllActivationHints(
   return capsules.map((capsule) => {
     const artifact = artifactMap.get(capsule.artifactId);
     const manifest = artifact?.latestRevision.derived?.clientManifest ?? null;
-    return buildActivationHints(capsule, manifest);
+    return buildCapsuleActivationHints(capsule, manifest);
   });
 }

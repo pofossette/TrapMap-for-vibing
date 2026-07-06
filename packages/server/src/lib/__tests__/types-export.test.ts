@@ -1,17 +1,5 @@
-/**
- * Compile verification test for type exports.
- *
- * This test verifies that all types exported from lib/types.ts
- * are correctly importable. The test passes if TypeScript compiles
- * without errors -- runtime assertions are not needed since this
- * is a compile-time verification.
- *
- * Phase: 87 (Type & State Machine Centralization)
- */
-
 import { describe, expect, it } from 'vitest';
 
-// Import all types from the unified entry point
 import type {
   AccessKeyRecord,
   AuditEventRecord,
@@ -29,46 +17,45 @@ import type {
   SkillShareerStore,
   StoreData,
   TeamRecord,
-  // Store record types
   UserRecord,
-} from '@trapmap/server/lib/types.js';
+} from '@trapmap/server/lib/store/index.js';
 
-// Import state machine functions
 import {
   computeDecayState,
   getValidTransitions,
   isTerminalDecayState,
   isTerminalState,
   isValidTransition,
-} from '@trapmap/server/lib/types.js';
+} from '@trapmap/server/lib/state-machines/index.js';
 
-// Import utility functions
-import { createOpaqueToken, createSlug, hashSecret, nowIso } from '@trapmap/server/lib/types.js';
+import {
+  createOpaqueToken,
+  createSlug,
+  hashSecret,
+  JsonStore,
+  nowIso,
+} from '@trapmap/server/lib/store/index.js';
 
-// Import JsonStore class
-import { JsonStore } from '@trapmap/server/lib/types.js';
+import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
 
-// Import sub-module types
-import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/types.js';
-
-import type { GovernanceContext, GovernedEntity } from '@trapmap/server/lib/types.js';
+import type { GovernanceContext, GovernedEntity } from '@trapmap/server/lib/governance/types.js';
 
 import type {
   AdapterSyncState,
   KnowledgeIndexStateRecord,
   NormalizedIndexDocument,
-} from '@trapmap/server/lib/types.js';
+} from '@trapmap/server/lib/indexing/types.js';
 
-import type { MergedCandidate, RecallCandidate } from '@trapmap/server/lib/types.js';
+import type { MergedCandidate, RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
 
 import type {
   CandidateFingerprintInput,
   DuplicateDetectionInput,
-} from '@trapmap/server/lib/types.js';
+} from '@trapmap/server/lib/candidates/types.js';
 
-import type { ResolvedAuthContext } from '@trapmap/server/lib/types.js';
+import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
 
-describe('Type Export Verification', () => {
+describe('Direct Type Export Verification', () => {
   it('verifies record types are importable', () => {
     // Type assertions -- these compile if imports are valid
     const _user: UserRecord = {} as UserRecord;

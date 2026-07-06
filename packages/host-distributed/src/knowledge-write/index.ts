@@ -1,7 +1,7 @@
 /**
  * Knowledge-write service entry point.
  *
- * Exports the server factory and a convenience `start()` function
+ * Exports the server factory and a convenience bootstrap function
  * that loads config, connects to the database, and boots the server.
  */
 
@@ -15,7 +15,7 @@ import { createServer } from './server.js';
  * Loads configuration from environment variables, creates a database
  * pool, assembles the Fastify server, and starts listening.
  */
-export async function start() {
+export async function startKnowledgeWriteService() {
   const config = loadServiceConfig('knowledge-write');
   const db = createServiceDatabase(config);
   const server = await createServer(config, db);

@@ -1,4 +1,4 @@
-import type { RecallChannel } from './retrieval-orchestration.js';
+import type { KnowledgeReadRecallChannel } from './retrieval-orchestration.js';
 import type { RecallCandidate, TokenMatchDetail } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 
@@ -132,7 +132,7 @@ export async function keywordRecall(
   return candidates;
 }
 
-export const keywordChannel: RecallChannel = {
+export const keywordChannel: KnowledgeReadRecallChannel = {
   name: 'keyword',
   async recall(queryText: string, entries: KnowledgeRecord[]) {
     return keywordRecall(queryText, entries);

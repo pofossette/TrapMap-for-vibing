@@ -6,7 +6,7 @@ import {
 import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
 
 import { normalizeQuery } from './retrieval-keyword.js';
-import type { RecallChannel } from './retrieval-orchestration.js';
+import type { KnowledgeReadRecallChannel } from './retrieval-orchestration.js';
 import type { KnowledgeRecord } from './store.js';
 
 export function buildEmbeddingText(entry: KnowledgeRecord): string {
@@ -234,7 +234,7 @@ export async function optimizedSemanticRecall(
   return { scoredEntries, cacheStats: stats };
 }
 
-export const semanticChannel: RecallChannel = {
+export const semanticChannel: KnowledgeReadRecallChannel = {
   name: 'semantic',
   async recall(queryText: string, entries: KnowledgeRecord[]) {
     const queryVector = await getQueryEmbedding(queryText);

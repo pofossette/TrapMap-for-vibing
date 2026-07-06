@@ -4,13 +4,13 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   ChannelRegistry,
-  type RecallChannel,
+  type KnowledgeReadRecallChannel,
   type RetrievalStrategy,
   StrategyRegistry,
 } from './retrieval-orchestration.js';
 import type { KnowledgeRecord } from './store.js';
 
-function makeMockChannel(name: string): RecallChannel {
+function makeMockChannel(name: string): KnowledgeReadRecallChannel {
   return {
     name,
     recall: vi.fn(async () => []),

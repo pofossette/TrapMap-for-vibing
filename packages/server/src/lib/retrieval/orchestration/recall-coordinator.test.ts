@@ -15,7 +15,7 @@ import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/
 import type { MergedCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { createMockEntry as _createMockEntry } from '@trapmap/server/testing/mock-factories.js';
-import type { RecallChannel } from './channel-registry.js';
+import type { RetrievalRecallChannel } from './channel-registry.js';
 import { ChannelRegistry } from './channel-registry.js';
 import type { RetrievalStrategy } from './strategy-registry.js';
 import { StrategyRegistry } from './strategy-registry.js';
@@ -92,7 +92,7 @@ import {
   computeSemanticCandidates,
   dispatchByMode,
   getDbSearchConfig,
-  graphAssistedRecall,
+  orchestrateGraphAssistedRecall,
   hybridRecall,
   inferChannelsFromMerged,
   mergeCandidatesWithGraph,
@@ -200,7 +200,7 @@ function buildTestStrategyRegistry(): StrategyRegistry {
   const graphAssistedStrategy: RetrievalStrategy = {
     version: 'graph-assisted',
     async execute(query, _channels, eligibleEntries) {
-      return graphAssistedRecall(query.seed, eligibleEntries, query);
+      return orchestrateGraphAssistedRecall(query.seed, eligibleEntries, query);
     },
   };
 
@@ -508,7 +508,7 @@ describe('graphAssistedRecall', () => {
     vi.mocked(keywordRecall).mockResolvedValue([]);
     vi.mocked(graphRecall).mockResolvedValue([]);
 
-    await graphAssistedRecall('test query', [entry], parsed);
+    await orchestrateGraphAssistedRecall('test query', [entry], parsed);
 
     expect(getQueryEmbedding).toHaveBeenCalled();
     expect(keywordRecall).toHaveBeenCalledWith('test query', [entry]);
@@ -557,7 +557,7 @@ describe('graphAssistedRecall', () => {
       candidates.map((c) => ({ entry: c.entry, score: c.finalScore })),
     );
 
-    const result = await graphAssistedRecall('test query', [entry1, entry2], parsed);
+    const result = await orchestrateGraphAssistedRecall('test query', [entry1, entry2], parsed);
 
     expect(result.scoredEntries).toBeDefined();
     expect(result.mergedCandidates).toBeDefined();
@@ -594,7 +594,7 @@ describe('graphAssistedRecall', () => {
       candidates.map((candidate) => ({ entry: candidate.entry, score: candidate.finalScore })),
     );
 
-    const result = await graphAssistedRecall('test query', [allowedEntry], parsed);
+    const result = await orchestrateGraphAssistedRecall('test query', [allowedEntry], parsed);
 
     expect(result.mergedCandidates?.map((candidate) => candidate.entry.id)).toEqual([
       'entry_allowed',
@@ -624,7 +624,7 @@ describe('graphAssistedRecall', () => {
     vi.mocked(rerankCandidates).mockReturnValue([]);
     vi.mocked(toScoredEntriesFromReranked).mockReturnValue([]);
 
-    const result = await graphAssistedRecall('test query', [entry], parsed, services);
+    const result = await orchestrateGraphAssistedRecall('test query', [entry], parsed, services);
 
     expect(result.trace?.graph).toEqual({
       mergeMode: 'mixed',

@@ -17,7 +17,7 @@ import { PostgresStore } from './lib/persistence/postgres-store.js';
 import {
   ChannelRegistry,
   StrategyRegistry,
-  graphAssistedRecall,
+  orchestrateGraphAssistedRecall,
   hybridRecall,
   semanticRecall,
 } from './lib/retrieval/orchestration/index.js';
@@ -163,7 +163,7 @@ export function buildServer(options: BuildServerOptions = {}) {
       const graphAssistedStrategy: RetrievalStrategy = {
         version: 'graph-assisted',
         async execute(query, _channels, eligibleEntries, services) {
-          return graphAssistedRecall(query.seed, eligibleEntries, query, services);
+          return orchestrateGraphAssistedRecall(query.seed, eligibleEntries, query, services);
         },
       };
       sr.register(semanticStrategy);

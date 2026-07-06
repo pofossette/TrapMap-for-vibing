@@ -29,9 +29,6 @@ export interface NestBootstrapResult {
  * Start the default Nest light host.
  */
 export async function start(options: NestBootstrapOptions = {}): Promise<NestBootstrapResult> {
-  const { bootstrapNest } = (await import(`./nest/${'main'}.js`)) as {
-    bootstrapNest: (options?: NestBootstrapOptions) => Promise<NestBootstrapResult>;
-  };
   return bootstrapNest(options);
 }
 
@@ -67,3 +64,4 @@ if (isDirectExecution) {
       process.exit(1);
     });
 }
+import { bootstrapNest } from './nest/main.js';

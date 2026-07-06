@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { DISTRIBUTED_RUNTIME_SMOKE_SERVICE_ENTRY } from '../testing/distributed-runtime-smoke-service.js';
+
 interface ServiceProcess {
   name: string;
   port: number;
@@ -156,6 +158,12 @@ afterEach(async () => {
 });
 
 describe('distributed runtime closeout', () => {
+  it('retains the checked-in smoke harness entry file', () => {
+    expect(DISTRIBUTED_RUNTIME_SMOKE_SERVICE_ENTRY).toContain(
+      'distributed-runtime-smoke-service.ts',
+    );
+  });
+
   it('proves multi-process gateway to internal services to knowledge-write closeout with recovery evidence', async () => {
     const ports = {
       gateway: await allocatePort(),

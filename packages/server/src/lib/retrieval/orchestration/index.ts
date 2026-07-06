@@ -8,7 +8,7 @@
 
 // Registries
 export { ChannelRegistry } from './channel-registry.js';
-export type { RecallChannel } from './channel-registry.js';
+export type { RetrievalRecallChannel } from './channel-registry.js';
 export { StrategyRegistry } from './strategy-registry.js';
 export type { RetrievalStrategy } from './strategy-registry.js';
 
@@ -17,7 +17,7 @@ export {
   dispatchByMode,
   semanticRecall,
   hybridRecall,
-  graphAssistedRecall,
+  orchestrateGraphAssistedRecall,
   computeSemanticCandidates,
   mergeCandidatesWithGraph,
   inferChannelsFromMerged,

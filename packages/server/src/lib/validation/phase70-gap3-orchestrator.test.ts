@@ -284,10 +284,10 @@ function makeServices(overrides: Partial<SkillShareerServices> = {}): SkillShare
       sr.register({
         version: 'graph-assisted',
         async execute(query, _channels, eligibleEntries) {
-          const { graphAssistedRecall } = await import(
+          const { orchestrateGraphAssistedRecall } = await import(
             '@trapmap/server/lib/retrieval/orchestration/recall-coordinator.js'
           );
-          return graphAssistedRecall(query.seed, eligibleEntries, query);
+          return orchestrateGraphAssistedRecall(query.seed, eligibleEntries, query);
         },
       });
       return sr;

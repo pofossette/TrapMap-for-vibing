@@ -21,6 +21,9 @@ type ServiceRole =
   | 'governance-review'
   | 'job-runtime';
 
+export const DISTRIBUTED_RUNTIME_SMOKE_SERVICE_ENTRY =
+  'packages/host-distributed/src/testing/distributed-runtime-smoke-service.ts';
+
 interface DiagnosticsState {
   hits: string[];
   headers: Array<Record<string, string | undefined>>;
@@ -423,7 +426,7 @@ function createGatewayService(_state: DiagnosticsState) {
   return app;
 }
 
-async function main() {
+export async function main() {
   const role = env('TRAPMAP_TEST_SERVICE_ROLE') as ServiceRole;
   const port = Number.parseInt(env('TRAPMAP_SERVICE_PORT'), 10);
   const state: DiagnosticsState = {
@@ -457,7 +460,14 @@ async function main() {
   process.on('SIGTERM', shutdown);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+const isDirectRun =
+  typeof process !== 'undefined' &&
+  process.argv[1] !== undefined &&
+  process.argv[1].endsWith('/distributed-runtime-smoke-service.ts');
+
+if (isDirectRun) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

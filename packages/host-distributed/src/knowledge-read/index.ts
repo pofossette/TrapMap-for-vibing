@@ -14,7 +14,7 @@ import { attachRuntimeTelemetry } from '../shared/telemetry.js';
  * Loads configuration from environment variables, creates the
  * database pool, assembles the Fastify server, and starts listening.
  */
-export async function start() {
+export async function startKnowledgeReadService() {
   const config = loadServiceConfig('knowledge-read');
   const db = createServiceDatabase(config);
   const ports = createServicePorts(db.pool);

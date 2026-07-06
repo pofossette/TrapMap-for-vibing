@@ -19,7 +19,7 @@ export {
 export {
   ChannelRegistry,
   StrategyRegistry,
-  type RecallChannel,
+  type KnowledgeReadRecallChannel,
   type RetrievalStrategy,
 } from './retrieval-orchestration.js';
 export {
@@ -32,7 +32,7 @@ export { semanticChannel } from './retrieval-semantic.js';
 export {
   dispatchByMode,
   getDbSearchConfig,
-  graphAssistedRecall,
+  graphAssistedHybridRecall,
   hybridRecall,
   inferChannelsFromMerged,
   semanticRecall,

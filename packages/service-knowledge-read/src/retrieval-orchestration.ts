@@ -4,26 +4,26 @@ import type { RecallExecutionResult } from './retrieval-recall-coordinator.js';
 import type { RecallCandidate } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 
-export interface RecallChannel {
+export interface KnowledgeReadRecallChannel {
   readonly name: string;
   recall(queryText: string, entries: KnowledgeRecord[]): Promise<RecallCandidate[]>;
 }
 
 export class ChannelRegistry {
-  private readonly channels = new Map<string, RecallChannel>();
+  private readonly channels = new Map<string, KnowledgeReadRecallChannel>();
 
-  register(channel: RecallChannel): void {
+  register(channel: KnowledgeReadRecallChannel): void {
     if (this.channels.has(channel.name)) {
       throw new Error(`Channel '${channel.name}' is already registered`);
     }
     this.channels.set(channel.name, channel);
   }
 
-  get(name: string): RecallChannel | undefined {
+  get(name: string): KnowledgeReadRecallChannel | undefined {
     return this.channels.get(name);
   }
 
-  all(): RecallChannel[] {
+  all(): KnowledgeReadRecallChannel[] {
     return Array.from(this.channels.values());
   }
 }

@@ -2,7 +2,7 @@ import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { createServer } from './server.js';
 
-export async function start() {
+export async function startIdentityAccessService() {
   const config = loadServiceConfig('identity-access');
   const db = createServiceDatabase(config);
   const server = await createServer(config, db);

@@ -8,7 +8,7 @@ import {
   StrategyRegistry,
 } from './retrieval-orchestration.js';
 import {
-  graphAssistedRecall,
+  graphAssistedHybridRecall,
   hybridRecall,
   semanticRecall,
 } from './retrieval-recall-coordinator.js';
@@ -48,7 +48,7 @@ export function createKnowledgeReadStrategyRegistry(): StrategyRegistry {
   const graphAssistedStrategy: RetrievalStrategy = {
     version: 'graph-assisted',
     async execute(query, _channels, eligibleEntries, services) {
-      return graphAssistedRecall(query.seed, eligibleEntries, query, services);
+      return graphAssistedHybridRecall(query.seed, eligibleEntries, query, services);
     },
   };
   registry.register(semanticStrategy);

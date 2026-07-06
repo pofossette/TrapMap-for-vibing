@@ -59,4 +59,21 @@ describe('knowledge-read import boundary', () => {
     expect(source).toContain("from './response-summary.js'");
     expect(source).toContain("from './response-refinement.js'");
   });
+
+  it('uses local seam names that do not mirror server duplicate export names', async () => {
+    const root = path.resolve(import.meta.dirname, '..');
+    const orchestration = await readFile(
+      path.join(root, 'src/retrieval-orchestration.ts'),
+      'utf-8',
+    );
+    const coordinator = await readFile(
+      path.join(root, 'src/retrieval-recall-coordinator.ts'),
+      'utf-8',
+    );
+
+    expect(orchestration).toContain('export interface KnowledgeReadRecallChannel');
+    expect(orchestration).not.toContain('export interface RecallChannel');
+    expect(coordinator).toContain('export async function graphAssistedHybridRecall');
+    expect(coordinator).not.toContain('export async function graphAssistedRecall');
+  });
 });

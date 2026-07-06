@@ -14,10 +14,10 @@ import type { AsyncTaskTransport } from '@trapmap/server/lib/async/transport.js'
 import { buildNormalizedDuplicateInput } from '@trapmap/server/lib/candidates/fingerprint.js';
 import {
   CANDIDATE_PROCESSING_TASK_TYPE,
-  type CandidateProcessingPayload,
   type CandidateProcessorServices,
   scheduleCandidateProcessing,
 } from '@trapmap/server/lib/candidates/processor.js';
+import type { CandidateProcessingPayload } from '@trapmap/server/lib/jobs/types.js';
 import type {
   CandidateRepository,
   TransactionalCandidateRepository,

@@ -19,7 +19,7 @@ import { capsuleMatchSchema, profileHintSchema } from '@trapmap/contracts';
 import type { CapsuleCandidate, ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
 import type { ClientManifestRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import {
-  buildActivationHints,
+  buildCapsuleActivationHints,
   buildAllActivationHints,
   buildAssetHint,
   buildCapsuleMatch,
@@ -521,7 +521,7 @@ describe('Phase 15: Activation hints', () => {
 
   describe('buildActivationHints', () => {
     it('builds activation hints from capsule and manifest (Task 2, Test 1)', () => {
-      const hints = buildActivationHints(mockCapsule, mockManifest);
+      const hints = buildCapsuleActivationHints(mockCapsule, mockManifest);
 
       expect(hints.capsuleId).toBe('capsule_1');
       expect(hints.readNext).toHaveLength(1);
@@ -530,7 +530,7 @@ describe('Phase 15: Activation hints', () => {
     });
 
     it('returns empty hints when manifest is null', () => {
-      const hints = buildActivationHints(mockCapsule, null);
+      const hints = buildCapsuleActivationHints(mockCapsule, null);
 
       expect(hints.capsuleId).toBe('capsule_1');
       expect(hints.readNext).toEqual([]);
@@ -539,7 +539,7 @@ describe('Phase 15: Activation hints', () => {
     });
 
     it('all hints are metadata-only without file bodies (Task 2, Test 2)', () => {
-      const hints = buildActivationHints(mockCapsule, mockManifest);
+      const hints = buildCapsuleActivationHints(mockCapsule, mockManifest);
 
       // Check read-next hints have no content
       expect(hints.readNext[0]).not.toHaveProperty('content');
@@ -662,7 +662,7 @@ describe('Phase 15: Activation hints', () => {
 
     it('sources hints only from governed clientManifest (T-15-02)', () => {
       // This test verifies that hints come from manifest, not from ad-hoc sources
-      const hints = buildActivationHints(mockCapsule, mockManifest);
+      const hints = buildCapsuleActivationHints(mockCapsule, mockManifest);
 
       // All hints should reference the manifest's artifact and revision
       for (const ref of hints.readNext) {
@@ -682,7 +682,7 @@ describe('Phase 15: Activation hints', () => {
 
   describe('T-15-01: No file bodies in activation hints', () => {
     it('activation hints never include file content', () => {
-      const hints = buildActivationHints(mockCapsule, mockManifest);
+      const hints = buildCapsuleActivationHints(mockCapsule, mockManifest);
 
       // Validate JSON serialization doesn't include content fields
       const serialized = JSON.stringify(hints);

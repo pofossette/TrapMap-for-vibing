@@ -5,7 +5,7 @@ export * from './actor-ports.js';
 export type {
   AuditLogEntry,
   AuditLogPort,
-  MetricsPort as AuditMetricsPort,
+  AuditMetricsPort,
 } from './audit-ports.js';
 export * from './internal-ports.js';
 export * from './discovery-ports.js';

@@ -18,7 +18,7 @@
  * entries, falling back to query-time tokenization for legacy entries.
  */
 
-import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/index.js';
+import type { RetrievalRecallChannel } from '@trapmap/server/lib/retrieval/orchestration/index.js';
 import type { RecallCandidate, TokenMatchDetail } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
@@ -228,7 +228,7 @@ export async function keywordRecall(
  * Keyword recall channel implementation.
  * Wraps keywordRecall as a RecallChannel.
  */
-export const keywordChannel: RecallChannel = {
+export const keywordChannel: RetrievalRecallChannel = {
   name: 'keyword',
   async recall(queryText: string, entries: KnowledgeRecord[]) {
     return keywordRecall(queryText, entries);

@@ -115,8 +115,10 @@ Phase 4 closeout 对剩余 deferred 的处理原则已经冻结：
 
 ## 5.2 2026-07-06 Stage 1B 静态盘点快照
 
-- `rtk pnpm exec fallow dead-code --unused-files --unused-exports --duplicate-exports --re-export-cycles --format json --quiet` 当前返回 `244` 个死代码类问题：`9` 个 unused files、`227` 个 unused exports、`8` 个 duplicate exports、`0` 个 re-export cycles
-- `rtk pnpm knip --reporter json` 与 fallow 对 `packages/host-distributed/src/testing/distributed-runtime-smoke-service.ts`、`packages/host-local/src/nest/config/config-bridge.ts`、`packages/host-local/src/nest/main.ts`、`packages/web-panel/src/shared/hooks/use-debounced-value.ts` 的“孤立/未被引用”判断形成交叉印证
+- 本轮先按“真实 owner + 高置信删除”收口，已移除 `packages/server/src/lib/types.ts`、`packages/server/src/lib/retrieval/recall/index.ts`、`packages/server/src/lib/decay/application-service.ts`
+- `packages/backend-core/src/ports/audit-ports.ts` 与 `packages/backend-core/src/ports/telemetry-ports.ts` 之间原先重复导出的 `MetricsPort` 已拆分为 audit 侧专用 `AuditMetricsPort` 与 telemetry 侧唯一 `MetricsPort`
+- `packages/host-local/src/nest/main.ts` 现由 `packages/host-local/src/index.ts` 静态导入，`packages/host-distributed/src/testing/distributed-runtime-smoke-service.ts` 现由 closeout test 直接导入显式入口常量；这两项不再按“可直接删除的 unused file”处理
+- `scripts/codemods/relative-to-alias.cjs` 仍被 `scripts/codemod-batch.sh` 实际引用，因此不属于高置信死文件；此前静态盘点把它列入删除候选，现已回退为“保留并等待后续脚本治理”
 - 显式占位实现仍然存在：
 - 本轮已闭环的显式占位实现：
   - `packages/host-local/src/nest/runtime/backend-core-adapters.ts` 已在无 async transport 时 fail-fast，不再返回 `job_local_stub` / `evt_local_stub`

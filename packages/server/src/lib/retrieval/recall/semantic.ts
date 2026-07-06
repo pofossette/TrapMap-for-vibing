@@ -17,7 +17,7 @@ import {
   setCachedQueryEmbedding,
 } from '@trapmap/server/lib/cache/query-embedding-cache.js';
 import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
-import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/index.js';
+import type { RetrievalRecallChannel } from '@trapmap/server/lib/retrieval/orchestration/index.js';
 import { normalizeQuery } from '@trapmap/server/lib/retrieval/recall/keyword.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
@@ -346,7 +346,7 @@ export async function optimizedSemanticRecall(
  * Semantic recall channel implementation.
  * Wraps optimizedSemanticRecall as a RecallChannel.
  */
-export const semanticChannel: RecallChannel = {
+export const semanticChannel: RetrievalRecallChannel = {
   name: 'semantic',
   async recall(queryText: string, entries: KnowledgeRecord[]) {
     const queryVector = await getQueryEmbedding(queryText);

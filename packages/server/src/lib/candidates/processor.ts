@@ -1,4 +1,5 @@
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { CandidateProcessingPayload } from '@trapmap/server/lib/jobs/types.js';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import { executeWithResilience } from '@trapmap/server/lib/runtime/index.js';
@@ -24,14 +25,6 @@ const CANDIDATE_RETRY_BASE_DELAY_MS = 5000;
 
 /** Task type for candidate processing */
 export const CANDIDATE_PROCESSING_TASK_TYPE = 'candidate_processing';
-
-/**
- * Payload for candidate processing tasks.
- */
-export interface CandidateProcessingPayload {
-  candidateId: string;
-  retryCount: number;
-}
 
 /**
  * Services needed for candidate processing.

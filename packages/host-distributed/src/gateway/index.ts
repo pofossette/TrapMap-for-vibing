@@ -11,7 +11,7 @@ import { createServer } from './server.js';
 /**
  * Start the gateway service.
  */
-export async function start() {
+export async function startGatewayService() {
   const config = loadServiceConfig('gateway');
   const server = await createServer(config);
   await server.start();

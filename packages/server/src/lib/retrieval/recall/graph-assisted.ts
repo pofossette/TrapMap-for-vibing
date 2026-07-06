@@ -22,7 +22,7 @@ import {
   type GraphQueryBackend,
   createMemoryGraphQueryBackend,
 } from '@trapmap/server/lib/graph-query/index.js';
-import type { RecallChannel } from '@trapmap/server/lib/retrieval/orchestration/index.js';
+import type { RetrievalRecallChannel } from '@trapmap/server/lib/retrieval/orchestration/index.js';
 import type { RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { normalizeQueryGraphLabels } from './query-graph-labels.js';
@@ -160,7 +160,7 @@ function resolveGraphBackend(config?: GraphAssistedRecallConfig): GraphQueryBack
   return undefined;
 }
 
-export function createGraphChannel(graphQueryBackend: GraphQueryBackend): RecallChannel {
+export function createGraphChannel(graphQueryBackend: GraphQueryBackend): RetrievalRecallChannel {
   return {
     name: 'graph',
     async recall(queryText: string, entries: KnowledgeRecord[]) {

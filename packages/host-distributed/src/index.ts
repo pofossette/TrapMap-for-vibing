@@ -20,32 +20,32 @@ import { ALL_SERVICES } from './config/index.js';
 async function startService(name: ServiceName) {
   switch (name) {
     case 'gateway': {
-      const { start } = await import('./gateway/index.js');
-      return start();
+      const { startGatewayService } = await import('./gateway/index.js');
+      return startGatewayService();
     }
     case 'identity-access': {
-      const { start } = await import('./identity-access/index.js');
-      return start();
+      const { startIdentityAccessService } = await import('./identity-access/index.js');
+      return startIdentityAccessService();
     }
     case 'knowledge-read': {
-      const { start } = await import('./knowledge-read/index.js');
-      return start();
+      const { startKnowledgeReadService } = await import('./knowledge-read/index.js');
+      return startKnowledgeReadService();
     }
     case 'knowledge-write': {
-      const { start } = await import('./knowledge-write/index.js');
-      return start();
+      const { startKnowledgeWriteService } = await import('./knowledge-write/index.js');
+      return startKnowledgeWriteService();
     }
     case 'candidate-ingestion': {
-      const { start } = await import('./candidate-ingestion/index.js');
-      return start();
+      const { startCandidateIngestionService } = await import('./candidate-ingestion/index.js');
+      return startCandidateIngestionService();
     }
     case 'governance-review': {
-      const { start } = await import('./governance-review/index.js');
-      return start();
+      const { startGovernanceReviewService } = await import('./governance-review/index.js');
+      return startGovernanceReviewService();
     }
     case 'job-runtime': {
-      const { start } = await import('./job-runtime/index.js');
-      return start();
+      const { startJobRuntimeService } = await import('./job-runtime/index.js');
+      return startJobRuntimeService();
     }
     default: {
       throw new Error(`Unknown service: ${name}`);

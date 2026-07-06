@@ -12,7 +12,7 @@ import type {
   TeamLookupPort,
 } from '../ports/actor-ports.js';
 import type { AuditLogPort } from '../ports/audit-ports.js';
-import type { MetricsPort } from '../ports/audit-ports.js';
+import type { AuditMetricsPort } from '../ports/audit-ports.js';
 import type {
   OutboxPort,
   OutboxStatusSnapshot,
@@ -53,7 +53,7 @@ export function createStubAuditLog(): AuditLogPort {
 // Stub: MetricsPort
 // ---------------------------------------------------------------------------
 
-export function createStubMetrics(): MetricsPort & {
+export function createStubMetrics(): AuditMetricsPort & {
   getCounters(): Map<string, number>;
   getDurations(): Array<{ name: string; durationMs: number }>;
   getGauges(): Map<string, number>;

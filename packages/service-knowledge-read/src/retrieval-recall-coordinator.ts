@@ -317,7 +317,7 @@ async function computeSemanticCandidates(
 
 const GRAPH_SCORE_BOOST_FACTOR = 0.2;
 
-export async function graphAssistedRecall(
+export async function graphAssistedHybridRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,

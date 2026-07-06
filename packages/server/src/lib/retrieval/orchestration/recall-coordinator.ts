@@ -365,7 +365,7 @@ export const GRAPH_SCORE_BOOST_FACTOR = 0.2;
  * local-neighborhood candidates. Graph structure augments recall but does not
  * replace semantic/keyword retrieval as the primary decision surface.
  */
-export async function graphAssistedRecall(
+export async function orchestrateGraphAssistedRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
