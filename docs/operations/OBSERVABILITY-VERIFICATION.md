@@ -54,8 +54,7 @@ rtk pnpm --filter @trapmap/host-local start
 
 启用 Loki / Consul 时，当前有效配置名为：
 
-- `TRAPMAP_LOKI_ENABLED=true`
-- `TRAPMAP_LOKI_URL=http://127.0.0.1:3100/loki/api/v1/push`
+- `LOKI_HOST=http://127.0.0.1:3100`
 - `CONSUL_ENABLED=true`
 - `CONSUL_HOST=127.0.0.1`
 - `CONSUL_PORT=8500`

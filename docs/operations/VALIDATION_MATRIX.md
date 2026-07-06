@@ -1,208 +1,208 @@
-# Runtime Recomposition Validation Matrix
+# 运行时重组验证矩阵
 
-## Status
+## 状态
 
-- Status: `active`
-- Created: 2026-06-18
-- Purpose: Comprehensive validation checklist for the runtime recomposition
+- 状态：`active`
+- 创建时间：2026-06-18
+- 目的：运行时重组的综合验证清单
 
-> This matrix is a migration-era checklist. Package creation and root script rewiring are already complete; unchecked items below mostly represent manual parity, runtime smoke, and operational hardening work that still remains.
+> 此矩阵是迁移时代的清单。包创建和根脚本重写已完成；下面未勾选的项目主要代表仍需完成的手动对等、运行时冒烟和运维加固工作。
 
-## Package-Level Validation
+## 包级验证
 
 ### @trapmap/client-core
 
-- [x] TypeScript compiles without errors
-- [x] All tests pass (21/21)
-- [x] Package.json properly configured
-- [x] README is complete
-- [x] No CLI dependencies
-- [x] Browser-compatible (standard fetch only)
-- [x] SessionProvider contract is clear
+- [x] TypeScript 编译无错误
+- [x] 所有测试通过（21/21）
+- [x] Package.json 配置正确
+- [x] README 完整
+- [x] 无 CLI 依赖
+- [x] 浏览器兼容（仅使用标准 fetch）
+- [x] SessionProvider 契约清晰
 
 ### @trapmap/backend-core
 
-- [x] TypeScript compiles without errors
-- [x] All tests pass (33/33)
-- [x] Package.json properly configured
-- [x] README is complete
-- [x] No Fastify dependencies
-- [x] No process startup code
-- [x] All ports are abstract interfaces
-- [x] All modules are independent
-- [x] Runtime capability model is complete
-- [x] Invocation model is defined
+- [x] TypeScript 编译无错误
+- [x] 所有测试通过（33/33）
+- [x] Package.json 配置正确
+- [x] README 完整
+- [x] 无 Fastify 依赖
+- [x] 无进程启动代码
+- [x] 所有端口均为抽象接口
+- [x] 所有模块相互独立
+- [x] 运行时能力模型完整
+- [x] 调用模型已定义
 
 ### @trapmap/host-local
 
-- [x] TypeScript compiles without errors
-- [x] Package.json properly configured
-- [x] README is complete
-- [x] Uses backend-core ports
-- [x] No business logic in host
-- [x] Profile-based assembly works
-- [x] Gateway-only model maintained
-- [x] Health checks implemented
+- [x] TypeScript 编译无错误
+- [x] Package.json 配置正确
+- [x] README 完整
+- [x] 使用 backend-core 端口
+- [x] 宿主中无业务逻辑
+- [x] 基于 Profile 的组装正常工作
+- [x] Gateway-only 模型已维护
+- [x] 健康检查已实现
 
 ### @trapmap/host-distributed
 
-- [x] TypeScript compiles without errors
-- [x] Package.json properly configured
-- [x] README is complete
-- [x] All 7 services implemented
-- [x] Gateway is only external service
-- [x] Internal services have internal endpoints
-- [x] Inter-service HTTP communication works
-- [x] Database connections are per-service
-- [x] Configuration is per-service
-- [x] Authentication middleware in place
-- [x] Fetch timeouts implemented
-- [x] ID generation uses crypto.randomUUID()
-- [x] SQL injection prevention in place
+- [x] TypeScript 编译无错误
+- [x] Package.json 配置正确
+- [x] README 完整
+- [x] 全部 7 个服务已实现
+- [x] Gateway 是唯一对外服务
+- [x] 内部服务拥有内部端点
+- [x] 服务间 HTTP 通信正常工作
+- [x] 数据库连接按服务隔离
+- [x] 配置按服务隔离
+- [x] 认证中间件已就位
+- [x] Fetch 超时已实现
+- [x] ID 生成使用 crypto.randomUUID()
+- [x] SQL 注入防护已就位
 
-## Runtime Form Validation
+## 运行时形态验证
 
 ### local-agent Profile
 
-- [ ] Can start via host-local
-- [ ] Health checks respond
-- [ ] Minimal route surface works
-- [ ] Retrieval search functions
-- [ ] CLI can connect to local-agent
+- [ ] 可通过 host-local 启动
+- [ ] 健康检查正常响应
+- [ ] 最小路由面正常工作
+- [ ] 检索搜索功能正常
+- [ ] CLI 可连接到 local-agent
 
 ### team-monolith Profile
 
-- [ ] Can start via host-local
-- [ ] Health checks respond
-- [ ] Full gateway surface works
-- [ ] Auth/login functions
-- [ ] Knowledge CRUD functions
-- [ ] Candidate submission works
-- [ ] Governance review works
-- [ ] CLI can connect to team-monolith
+- [ ] 可通过 host-local 启动
+- [ ] 健康检查正常响应
+- [ ] 完整 gateway 面正常工作
+- [ ] 认证/登录功能正常
+- [ ] 知识 CRUD 功能正常
+- [ ] 候选提交正常工作
+- [ ] 治理审核正常工作
+- [ ] CLI 可连接到 team-monolith
 
 ### distributed Profile
 
-- [ ] All 7 services can start independently
-- [ ] Gateway is accessible externally
-- [ ] Internal services are not externally accessible
-- [ ] Gateway forwards to internal services
-- [ ] Auth works through gateway
-- [ ] Knowledge operations work through gateway
-- [ ] Candidate operations work through gateway
-- [ ] Governance operations work through gateway
-- [ ] Job runtime operations work through gateway
+- [ ] 全部 7 个服务可独立启动
+- [ ] Gateway 可从外部访问
+- [ ] 内部服务不可从外部访问
+- [ ] Gateway 转发到内部服务
+- [ ] 认证通过 gateway 正常工作
+- [ ] 知识操作通过 gateway 正常工作
+- [ ] 候选操作通过 gateway 正常工作
+- [ ] 治理操作通过 gateway 正常工作
+- [ ] 作业运行时操作通过 gateway 正常工作
 
-## Critical Regression Tests
+## 关键回归测试
 
-### Authentication & Session
+### 认证与会话
 
-- [ ] Login works
-- [ ] Session token is generated
-- [ ] Session token can be used for authenticated requests
-- [ ] Logout works
-- [ ] Session expiration is handled
+- [ ] 登录正常工作
+- [ ] 会话令牌已生成
+- [ ] 会话令牌可用于已认证请求
+- [ ] 登出正常工作
+- [ ] 会话过期已处理
 
-### Knowledge Operations
+### 知识操作
 
-- [ ] Knowledge entry can be created
-- [ ] Knowledge entry can be read
-- [ ] Knowledge entry can be updated
-- [ ] Knowledge entry can be superseded
-- [ ] Knowledge entry can be resubmitted
-- [ ] Lifecycle transitions work correctly
+- [ ] 知识条目可创建
+- [ ] 知识条目可读取
+- [ ] 知识条目可更新
+- [ ] 知识条目可被取代
+- [ ] 知识条目可重新提交
+- [ ] 生命周期状态转换正确工作
 
-### Candidate Operations
+### 候选操作
 
-- [ ] Candidate can be submitted
-- [ ] Candidate can be listed
-- [ ] Candidate can be reviewed
-- [ ] Candidate can be resolved
-- [ ] Duplicate detection works
+- [ ] 候选可提交
+- [ ] 候选可列出
+- [ ] 候选可审核
+- [ ] 候选可解析
+- [ ] 重复检测正常工作
 
-### Governance Operations
+### 治理操作
 
-- [ ] Review queue is accessible
-- [ ] Review decision can be submitted
-- [ ] Conflict resolution works
-- [ ] Remediation queue works
+- [ ] 审核队列可访问
+- [ ] 审核决策可提交
+- [ ] 冲突解决正常工作
+- [ ] 修复队列正常工作
 
-### Retrieval Operations
+### 检索操作
 
-- [ ] Search works
-- [ ] Search results are relevant
-- [ ] Query tracing works
-- [ ] Read-model projections work
+- [ ] 搜索正常工作
+- [ ] 搜索结果相关
+- [ ] 查询追踪正常工作
+- [ ] 读模型投影正常工作
 
-## Database Ownership Validation
+## 数据库所有权验证
 
-### Table Ownership
+### 表所有权
 
-- [ ] Identity-access owns auth/session tables (writes only)
-- [ ] Knowledge-write owns knowledge/trap/skill tables (writes only)
-- [ ] Candidate-ingestion owns candidate tables (writes only)
-- [ ] Governance-review owns governance tables (writes only)
-- [ ] Job-runtime owns task/queue tables (writes only)
-- [ ] Knowledge-read owns projection tables (reads only)
-- [ ] No table has more than one owning service
+- [ ] Identity-access 拥有 auth/session 表（仅写入）
+- [ ] Knowledge-write 拥有 knowledge/trap/skill 表（仅写入）
+- [ ] Candidate-ingestion 拥有 candidate 表（仅写入）
+- [ ] Governance-review 拥有 governance 表（仅写入）
+- [ ] Job-runtime 拥有 task/queue 表（仅写入）
+- [ ] Knowledge-read 拥有投影表（仅读取）
+- [ ] 没有任何表拥有超过一个所属服务
 
-### Transaction Boundaries
+### 事务边界
 
-- [ ] Single-service transactions are atomic
-- [ ] Cross-service flows use outbox pattern
-- [ ] No cross-service database transactions
-- [ ] Authoritative writes and outbox appends are in same transaction
+- [ ] 单服务事务是原子的
+- [ ] 跨服务流程使用 outbox 模式
+- [ ] 无跨服务数据库事务
+- [ ] 权威写入和 outbox 追加在同一事务中
 
-## Cache & Performance Validation
+## 缓存与性能验证
 
-### Cache Layering
+### 缓存分层
 
-- [ ] Process-local compute cache works
-- [ ] Retrieval filter cache works
-- [ ] Query result cache works
-- [ ] Revision object cache works
-- [ ] Invalidation events propagate correctly
+- [ ] 进程本地计算缓存正常工作
+- [ ] 检索过滤缓存正常工作
+- [ ] 查询结果缓存正常工作
+- [ ] 修订对象缓存正常工作
+- [ ] 失效事件正确传播
 
-### Bulk Ingestion
+### 批量摄取
 
-- [ ] Batch commits work
-- [ ] Idempotency works
-- [ ] Resume from offset works
-- [ ] Backpressure control works
+- [ ] 批量提交正常工作
+- [ ] 幂等性正常工作
+- [ ] 从偏移量恢复正常工作
+- [ ] 背压控制正常工作
 
-## Exit Conditions
+## 退出条件
 
-### Migration Completion
+### 迁移完成
 
-- [x] CLI no longer depends on old http.ts implementation
-- [x] CLI uses @trapmap/client-core through adapter
-- [x] New hosts can replace packages/server
-- [x] Core runtime semantics have one authoritative implementation
-- [x] Internal config surface is documented
-- [x] Database ownership is documented
-- [x] Transaction boundaries are documented
-- [x] Cache strategies are documented
-- [x] Root `dev:local-agent` / `dev:team-monolith` / `dev:distributed:*` scripts now prefer the new hosts
+- [x] CLI 不再依赖旧的 http.ts 实现
+- [x] CLI 通过适配器使用 @trapmap/client-core
+- [x] 新宿主可替代 packages/server
+- [x] 核心运行时语义有一个权威实现
+- [x] 内部配置面已文档化
+- [x] 数据库所有权已文档化
+- [x] 事务边界已文档化
+- [x] 缓存策略已文档化
+- [x] 根 `dev:local-agent` / `dev:team-monolith` / `dev:distributed:*` 脚本现在优先使用新宿主
 
-### Validation Completion
+### 验证完成
 
-- [x] All package-level validations pass
-- [ ] All runtime form validations pass (pending manual testing)
-- [ ] All critical regression tests pass (pending manual testing)
-- [ ] All database ownership validations pass (pending manual testing)
-- [ ] All cache validations pass (pending manual testing)
+- [x] 所有包级验证通过
+- [ ] 所有运行时形态验证通过（待手动测试）
+- [ ] 所有关键回归测试通过（待手动测试）
+- [ ] 所有数据库所有权验证通过（待手动测试）
+- [ ] 所有缓存验证通过（待手动测试）
 
-### Documentation Completion
+### 文档完成
 
-- [x] Package READMEs are complete
-- [x] Architecture docs are updated
-- [x] Deployment guides are created
-- [x] Environment variable reference is complete
-- [x] Migration guide is created
+- [x] 包 README 完整
+- [x] 架构文档已更新
+- [x] 部署指南已创建
+- [x] 环境变量参考完整
+- [x] 迁移指南已创建
 
-## Notes
+## 说明
 
-- Phase 1 validation focuses on package correctness and compilation
-- Phase 2 validation (manual testing) should be done after deployment
-- Phase 3 validation (performance testing) should be done under load
-- `packages/server` still being present is not by itself a failure; the relevant question is whether the new hosts have become the preferred runtime entrypoints and whether parity/hardening work is complete.
+- 阶段 1 验证聚焦于包正确性和编译
+- 阶段 2 验证（手动测试）应在部署后执行
+- 阶段 3 验证（性能测试）应在负载下执行
+- `packages/server` 仍然存在本身不是失败；相关问题是新宿主是否已成为首选运行时入口，以及对等/加固工作是否完成。

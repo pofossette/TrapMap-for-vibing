@@ -1,12 +1,12 @@
 # TrapMap Host-Distributed
 
-Distributed deployment assembly for TrapMap. Each bounded-context module runs as an independent service.
+TrapMap 的分布式部署装配层。每个限界上下文模块作为独立服务运行。
 
-## Architecture
+## 架构
 
 ```
 ┌─────────────┐
-│   Gateway    │  ← External API surface
+│   Gateway    │  ← 外部 API 入口
 │  (port 4000) │
 └──────┬───────┘
        │ HTTP
@@ -26,37 +26,37 @@ Distributed deployment assembly for TrapMap. Each bounded-context module runs as
 └──────────────────┘  └──────────────────┘  └──────────────────┘
 ```
 
-## Services
+## 服务列表
 
-| Service | Port | Owns |
+| 服务 | 端口 | 职责 |
 |---------|------|------|
-| gateway | 4000 | External API, request routing |
-| identity-access | 4001 | Auth, sessions, permissions, membership |
-| knowledge-read | 4002 | Retrieval queries, read-model access |
-| knowledge-write | 4003 | Knowledge/trap lifecycle commands |
-| candidate-ingestion | 4004 | Candidate intake, dedup, processing |
-| governance-review | 4005 | `review` service deploy dir; review workflows, feedback queues, governance commands |
-| job-runtime | 4006 | Task queue, workflow runs, outbox |
+| gateway | 4000 | 外部 API、请求路由 |
+| identity-access | 4001 | 认证、会话、权限、成员管理 |
+| knowledge-read | 4002 | 检索查询、读模型访问 |
+| knowledge-write | 4003 | 知识/陷阱生命周期命令 |
+| candidate-ingestion | 4004 | 候选接收入口、去重、处理 |
+| governance-review | 4005 | `review` 服务部署目录；评审工作流、反馈队列、治理命令 |
+| job-runtime | 4006 | 任务队列、工作流运行、outbox |
 
-## Quick Start
+## 快速开始
 
-### Start all services
+### 启动全部服务
 
 ```bash
-# Requires PostgreSQL with DATABASE_URL or TRAPMAP_DATABASE_URL set
+# 需要 PostgreSQL，并设置 DATABASE_URL 或 TRAPMAP_DATABASE_URL
 pnpm start
 ```
 
-### Start individual services
+### 启动单个服务
 
 ```bash
 pnpm start:gateway
 pnpm start:identity-access
 pnpm start:knowledge-read
-# ... etc
+# ... 等等
 ```
 
-### Development
+### 开发模式
 
 ```bash
 pnpm dev
@@ -64,95 +64,95 @@ pnpm dev:gateway
 pnpm dev:candidate-ingestion
 ```
 
-## Configuration
+## 配置
 
-Environment variables:
+环境变量：
 
-| Variable | Default | Description |
+| 变量 | 默认值 | 说明 |
 |----------|---------|-------------|
-| `DATABASE_URL` | - | PostgreSQL connection URL |
-| `TRAPMAP_DATABASE_URL` | - | Legacy-compatible shared PostgreSQL URL |
-| `TRAPMAP_SERVICE_DATABASE_URL` | - | Per-service database URL (overrides DATABASE_URL) |
-| `TRAPMAP_SERVICE_NAME` | - | Service name (when running single service) |
-| `TRAPMAP_SERVICE_PORT` | - | Service port (overrides default) |
-| `TRAPMAP_LOG_LEVEL` | `info` | Log level |
-| `TRAPMAP_SERVICE_POOL_SIZE` | `5` | Shared PostgreSQL pool budget for distributed services |
-| `TRAPMAP_<SERVICE>_POOL_SIZE` | unset | Per-service pool budget override, e.g. `TRAPMAP_JOB_RUNTIME_POOL_SIZE=12` |
-| `TRAPMAP_GATEWAY_URL` | `http://localhost:4000` locally, `http://gateway:4000` in `distributed` | Gateway internal URL |
-| `TRAPMAP_IDENTITY_ACCESS_URL` | `http://localhost:4001` locally, `http://identity-access:4001` in `distributed` | Identity-access internal URL |
-| `TRAPMAP_KNOWLEDGE_READ_URL` | `http://localhost:4002` locally, `http://knowledge-read:4002` in `distributed` | Knowledge-read internal URL |
-| `TRAPMAP_KNOWLEDGE_WRITE_URL` | `http://localhost:4003` locally, `http://knowledge-write:4003` in `distributed` | Knowledge-write internal URL |
-| `TRAPMAP_CANDIDATE_INGESTION_URL` | `http://localhost:4004` locally, `http://candidate-worker:4004` in `distributed` | Candidate-ingestion internal URL |
-| `TRAPMAP_GOVERNANCE_REVIEW_URL` | `http://localhost:4005` locally, `http://governance-worker:4005` in `distributed` | Review service internal URL (deploy dir remains `governance-review`) |
-| `TRAPMAP_JOB_RUNTIME_URL` | `http://localhost:4006` locally, `http://outbox-worker:4006` in `distributed` | Job-runtime internal URL |
+| `DATABASE_URL` | - | PostgreSQL 连接 URL |
+| `TRAPMAP_DATABASE_URL` | - | 兼容旧版的共享 PostgreSQL URL |
+| `TRAPMAP_SERVICE_DATABASE_URL` | - | 每服务独立数据库 URL（覆盖 DATABASE_URL） |
+| `TRAPMAP_SERVICE_NAME` | - | 服务名称（运行单个服务时使用） |
+| `TRAPMAP_SERVICE_PORT` | - | 服务端口（覆盖默认值） |
+| `TRAPMAP_LOG_LEVEL` | `info` | 日志级别 |
+| `TRAPMAP_SERVICE_POOL_SIZE` | `5` | 分布式服务共享 PostgreSQL 连接池预算 |
+| `TRAPMAP_<SERVICE>_POOL_SIZE` | 未设置 | 每服务连接池预算覆盖，例如 `TRAPMAP_JOB_RUNTIME_POOL_SIZE=12` |
+| `TRAPMAP_GATEWAY_URL` | 本地 `http://localhost:4000`，`distributed` 模式下 `http://gateway:4000` | Gateway 内部 URL |
+| `TRAPMAP_IDENTITY_ACCESS_URL` | 本地 `http://localhost:4001`，`distributed` 模式下 `http://identity-access:4001` | Identity-access 内部 URL |
+| `TRAPMAP_KNOWLEDGE_READ_URL` | 本地 `http://localhost:4002`，`distributed` 模式下 `http://knowledge-read:4002` | Knowledge-read 内部 URL |
+| `TRAPMAP_KNOWLEDGE_WRITE_URL` | 本地 `http://localhost:4003`，`distributed` 模式下 `http://knowledge-write:4003` | Knowledge-write 内部 URL |
+| `TRAPMAP_CANDIDATE_INGESTION_URL` | 本地 `http://localhost:4004`，`distributed` 模式下 `http://candidate-worker:4004` | Candidate-ingestion 内部 URL |
+| `TRAPMAP_GOVERNANCE_REVIEW_URL` | 本地 `http://localhost:4005`，`distributed` 模式下 `http://governance-worker:4005` | Review 服务内部 URL（部署目录仍为 `governance-review`） |
+| `TRAPMAP_JOB_RUNTIME_URL` | 本地 `http://localhost:4006`，`distributed` 模式下 `http://outbox-worker:4006` | Job-runtime 内部 URL |
 
-`packages/host-distributed/src/config/service-config.ts` is the owner seam for these defaults. It resolves:
+`packages/host-distributed/src/config/service-config.ts` 是这些默认值的拥有方，负责解析：
 
-- `distributed` profile -> Docker DNS defaults on the shared compose network
-- other profiles / local dev -> `localhost` defaults
-- explicit `TRAPMAP_*_URL` env -> highest priority override
-- distributed DB pool budget by `TRAPMAP_SERVICE_POOL_SIZE`, with per-service override via `TRAPMAP_<SERVICE>_POOL_SIZE`
+- `distributed` profile -> 共享 compose 网络上的 Docker DNS 默认值
+- 其他 profile / 本地开发 -> `localhost` 默认值
+- 显式 `TRAPMAP_*_URL` 环境变量 -> 最高优先级覆盖
+- 分布式数据库连接池预算由 `TRAPMAP_SERVICE_POOL_SIZE` 控制，可通过 `TRAPMAP_<SERVICE>_POOL_SIZE` 按服务覆盖
 
-## Design Principles
+## 设计原则
 
-1. **Service isolation**: Each service runs independently with its own database connection pool
-2. **Gateway-only external access**: Only the gateway exposes public API endpoints
-3. **HTTP-based inter-service communication**: Services communicate via internal HTTP endpoints
-4. **Backend-core reuse**: All services use `@trapmap/backend-core` modules
-5. **Ownership by business truth**: `review` decides, `knowledge-write` applies final knowledge writes, `candidate-ingestion` publishes through `knowledge-write`, and `job-runtime` only owns transport/runtime orchestration
+1. **服务隔离**：每个服务独立运行，拥有自己的数据库连接池
+2. **仅 Gateway 暴露外部访问**：只有 gateway 对外暴露公共 API 端点
+3. **基于 HTTP 的服务间通信**：服务通过内部 HTTP 端点相互调用
+4. **复用 backend-core**：所有服务使用 `@trapmap/backend-core` 模块
+5. **按业务事实归属**：`review` 负责决策，`knowledge-write` 负责最终知识写入，`candidate-ingestion` 通过 `knowledge-write` 发布，`job-runtime` 仅负责传输/运行时编排
 
-## Readiness Notes
+## 就绪状态说明
 
-- `test:acceptance` now includes both real internal HTTP hop coverage and a multi-process runtime closeout for gateway -> candidate-ingestion -> knowledge-write, gateway -> governance-review -> knowledge-write, and gateway -> job-runtime.
-- `knowledge-read` now exposes an explicit projection/freshness contract at `/internal/knowledge-read/projection-status`, and the gateway forwards it on `/v1/knowledge/projection-status`.
-- `packages/host-distributed` is now only the thin process host for `knowledge-read`; the authoritative read-service assembly and route contract live in `packages/service-knowledge-read`.
-- The current `knowledge-read` backing model still uses shared authoritative PostgreSQL for the temporary direct-backed entry reads exposed by the projection status contract. Retrieval/search/query-trace surfaces remain derived read-side state. This is sufficient for boundary clarity, not yet for independent derived-store isolation.
-- Physical microservice split is no longer blocked on missing multi-process write-path proof; it is still blocked on `eval:smoke` closeout and read-side Phase 2 maturity, not on route ownership declarations alone.
+- `test:acceptance` 现已涵盖真实内部 HTTP 跳转测试和多进程运行时收尾，包括 gateway -> candidate-ingestion -> knowledge-write、gateway -> governance-review -> knowledge-write、以及 gateway -> job-runtime。
+- `knowledge-read` 现已在 `/internal/knowledge-read/projection-status` 暴露显式的投影/新鲜度契约，gateway 在 `/v1/knowledge/projection-status` 上转发。
+- `packages/host-distributed` 现在仅是 `knowledge-read` 的薄进程宿主；权威的读服务装配和路由契约位于 `packages/service-knowledge-read`。
+- 当前 `knowledge-read` 的底层模型仍使用共享的权威 PostgreSQL 存储投影状态契约暴露的临时直读条目。检索/搜索/查询追踪仍为派生的读侧状态。这足以满足边界清晰度要求，但尚未实现独立的派生存储隔离。
+- 物理微服务拆分不再受阻于缺失的多进程写路径证明；目前仍受阻于 `eval:smoke` 收尾和读侧 Phase 2 成熟度，而非路由归属声明本身。
 
-## Phase 3 Maturity Closeout: `knowledge-write + governance-review`
+## Phase 3 成熟度收尾：`knowledge-write + governance-review`
 
-`knowledge-write` and `governance-review` are the first mature service sample in this host. They serve as the reference template for subsequent services.
+`knowledge-write` 和 `governance-review` 是本 host 中首个成熟的服务样本，作为后续服务的参考模板。
 
-### Frozen Owner Boundary
+### 冻结的归属边界
 
-- `governance-review` owns governance commands, feedback, and remediation/maintenance/decay workbench flow. It does **not** own final knowledge aggregate mutation.
-- `knowledge-write` owns final knowledge aggregate mutation, lifecycle rules, and authoritative write truth. It accepts delegation from `governance-review` and `candidate-ingestion`.
-- `gateway` only performs external transport, auth, request/trace propagation, and canonical error mapping.
+- `governance-review` 负责治理命令、反馈以及修复/维护/衰减工作台流程。它**不**负责最终知识聚合变更。
+- `knowledge-write` 负责最终知识聚合变更、生命周期规则和权威写入事实。它接受来自 `governance-review` 和 `candidate-ingestion` 的委托。
+- `gateway` 仅负责外部传输、认证、请求/追踪传播和规范错误映射。
 
-### Sync / Async Boundary
+### 同步/异步边界
 
-- **Sync**: governance command receipt, eligibility check, flow interpretation, audit (`governance-review`); final aggregate mutation (`knowledge-write`).
-- **Async**: follow-up actions (projection refresh, artifact follow-up, remediation draft, outbox dispatch) enter outbox/queue/workflow and never return to the synchronous path.
+- **同步**：治理命令接收、资格检查、流程解析、审计（`governance-review`）；最终聚合变更（`knowledge-write`）。
+- **异步**：后续操作（投影刷新、工件跟进、修复草稿、outbox 分发）进入 outbox/队列/工作流，不再返回同步路径。
 
-### Command / Event Contract
+### 命令/事件契约
 
-- `governance-review -> knowledge-write`: `approveReviewDecision`, `rejectReviewDecision`, `applyMaintenanceDecision`, `applyDecayDecision`.
-- `candidate-ingestion -> knowledge-write`: `publishCandidateResult`.
-- Post-mutation events use the canonical event catalog in `packages/contracts/src/domain/async.ts`.
+- `governance-review -> knowledge-write`：`approveReviewDecision`、`rejectReviewDecision`、`applyMaintenanceDecision`、`applyDecayDecision`。
+- `candidate-ingestion -> knowledge-write`：`publishCandidateResult`。
+- 变更后事件使用 `packages/contracts/src/domain/async.ts` 中的规范事件目录。
 
-### Failure Semantics
+### 失败语义
 
-- `403 forbidden` / `404 not-found` / `409 conflict` / `503 unavailable` / `504 timeout` maintain the same meaning across gateway, `governance-review`, and `knowledge-write`.
-- `401` remains a gateway/auth transport concern and does not enter inter-owner failure semantics.
-- Idempotent retry replays the same command contract; outbox retry replays the same canonical event.
+- `403 forbidden` / `404 not-found` / `409 conflict` / `503 unavailable` / `504 timeout` 在 gateway、`governance-review` 和 `knowledge-write` 之间保持相同含义。
+- `401` 仍属于 gateway/认证传输层关注点，不进入跨归属的失败语义。
+- 幂等重放重放相同的命令契约；outbox 重放相同的规范事件。
 
-### Health / Readiness / Ownership
+### 健康检查 / 就绪检查 / 归属声明
 
-- `GET /internal/health` - liveness with owner declaration (both services)
-- `GET /internal/readiness` - dependency reachability with operator-facing follow-up disposition (both services)
-- `GET /internal/ownership` - full static owner declaration (both services)
+- `GET /internal/health` - 存活检查，包含归属声明（两个服务均有）
+- `GET /internal/readiness` - 依赖可达性检查，附带运维面向的后续处置（两个服务均有）
+- `GET /internal/ownership` - 完整的静态归属声明（两个服务均有）
 
-### Shared PostgreSQL (Transitional)
+### 共享 PostgreSQL（过渡期）
 
-Both services continue to share a PostgreSQL instance but with explicit table owner. `governance-review` does not treat knowledge aggregate tables as its default write surface, and `knowledge-write` does not treat review-queue/feedback tables as its write surface.
+两个服务继续共享同一个 PostgreSQL 实例，但使用显式的表归属。`governance-review` 不将知识聚合表作为其默认写入面，`knowledge-write` 也不将评审队列/反馈表作为其写入面。
 
-### Retained Exceptions
+### 保留的例外
 
-- **Named query seam**: `governance-review` may read knowledge summaries only through a documented query seam or read-only projection.
-- **Shared instance**: the shared PostgreSQL instance continues; closing condition is documented in [`docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`](../../docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md).
+- **命名查询接缝**：`governance-review` 仅能通过文档化的查询接缝或只读投影读取知识摘要。
+- **共享实例**：共享 PostgreSQL 实例继续存在；关闭条件记录在 [`docs/archived/archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md`](../../docs/archived/archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md) 中。
 
-### Verification
+### 验证
 
-- `rtk pnpm test:distributed-acceptance` - multi-process delegation, error taxonomy, request/trace propagation, idempotent retry
-- `rtk pnpm test:deployment-smoke` - service startup, health/readiness, ownership endpoints
+- `rtk pnpm test:distributed-acceptance` - 多进程委托、错误分类、请求/追踪传播、幂等重放
+- `rtk pnpm test:deployment-smoke` - 服务启动、健康/就绪检查、归属端点
 - `rtk pnpm typecheck`

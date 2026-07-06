@@ -15,7 +15,7 @@
 
 - `plan.md`（根）：只做索引，链接当前活跃细则，不承载执行细节
 - `docs/todos/`：存放当前活跃的计划细则和 debt register；已完成或 deferred 的文档归档至 `docs/archived/archived-plans/`
-- 活跃文档只有当前主线计划和 `open-debt-and-compromises.md`；NestJS 服务演进 01/02/04 作为背景参考保留
+- 活跃文档包括当前主细则、`open-debt-and-compromises.md`、`active-closeout-and-followups.md` 及其他当前收口文档；详见 `docs/todos/README.md`
 - 新增问题优先进入当前活跃细则的问题池或其显式声明的 deferred 落点，不回写已归档文档
 - 归档操作：`git mv` 到 `docs/archived/archived-plans/`，同步更新 `docs/archived/README.md` 归档表和 `docs/todos/README.md` 索引
 

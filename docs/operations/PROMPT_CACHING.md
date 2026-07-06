@@ -1,22 +1,22 @@
-# Prompt Caching Guide
+# 提示缓存指南
 
-The prompt caching system decomposes system prompts into **static** (cacheable) and **dynamic** (per-request) sections, enabling provider-level prompt caching to reduce cost and latency.
+提示缓存系统将系统提示分解为**静态**（可缓存）和**动态**（按请求变化）两部分，从而利用提供商级别的提示缓存来降低成本和延迟。
 
-## Architecture Overview
+## 架构概览
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                    CacheSection[]                             │
 │                                                              │
 │  ┌─────────────────────────────────┐  cacheScope: 'global'   │
-│  │ role, core_principles,          │  (static — cacheable)   │
+│  │ role, core_principles,          │  （静态 — 可缓存）        │
 │  │ security, tool_usage_rules      │                         │
 │  └─────────────────────────────────┘                         │
 │  ┌─────────────────────────────────┐                         │
-│  │ __CACHE_BOUNDARY__              │  (sentinel marker)      │
+│  │ __CACHE_BOUNDARY__              │  （哨兵标记）             │
 │  └─────────────────────────────────┘                         │
 │  ┌─────────────────────────────────┐  cacheScope: null       │
-│  │ code_context, current_env,      │  (dynamic — per-request)│
+│  │ code_context, current_env,      │  （动态 — 按请求变化）    │
 │  │ examples, metadata              │                         │
 │  └─────────────────────────────────┘                         │
 └──────────────────────────────────────────────────────────────┘
@@ -26,37 +26,37 @@ The prompt caching system decomposes system prompts into **static** (cacheable) 
 │                    PromptBlock[]                              │
 │                                                              │
 │  ┌─────────────────────────────────┐  cache_control:         │
-│  │ (static sections concatenated)  │  { type: 'ephemeral',   │
+│  │ （静态部分拼接）                │  { type: 'ephemeral',   │
 │  │                                 │    scope: 'global' }    │
 │  └─────────────────────────────────┘                         │
-│  ┌─────────────────────────────────┐  (no cache_control)     │
-│  │ dynamic section 1               │                         │
+│  ┌─────────────────────────────────┐  （无 cache_control）    │
+│  │ 动态部分 1                      │                         │
 │  └─────────────────────────────────┘                         │
-│  ┌─────────────────────────────────┐  (no cache_control)     │
-│  │ dynamic section 2               │                         │
+│  ┌─────────────────────────────────┐  （无 cache_control）    │
+│  │ 动态部分 2                      │                         │
 │  └─────────────────────────────────┘                         │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-The pipeline:
-1. `buildPromptWithCacheControl()` produces `CacheSection[]` with static/dynamic classification
-2. A `__CACHE_BOUNDARY__` sentinel is inserted between the two groups
-3. `buildSystemPromptBlocks()` converts sections into API-compatible `PromptBlock[]` with `cache_control` headers
+管线流程：
+1. `buildPromptWithCacheControl()` 生成带有静态/动态分类的 `CacheSection[]`
+2. 在两组之间插入 `__CACHE_BOUNDARY__` 哨兵标记
+3. `buildSystemPromptBlocks()` 将各部分转换为带有 `cache_control` 头的 API 兼容 `PromptBlock[]`
 
-## Core Types
+## 核心类型
 
 ### `CacheSection`
 
 ```typescript
 interface CacheSection {
-  readonly name: string;       // Section identifier (e.g. "role", "core_principles")
-  readonly content: string;    // Rendered content
+  readonly name: string;       // 部分标识符（如 "role"、"core_principles"）
+  readonly content: string;    // 渲染后的内容
   readonly cacheScope: 'global' | 'org' | null;
-  // 'global' = system-wide caching, 'org' = org-level, null = do not cache
+  // 'global' = 系统级缓存，'org' = 组织级，null = 不缓存
 }
 ```
 
-### `CacheControlHeader` and `PromptBlock`
+### `CacheControlHeader` 和 `PromptBlock`
 
 ```typescript
 interface CacheControlHeader {
@@ -66,28 +66,28 @@ interface CacheControlHeader {
 
 interface PromptBlock {
   content: string;
-  cache_control?: CacheControlHeader;  // Present only for static sections
+  cache_control?: CacheControlHeader;  // 仅静态部分存在此字段
 }
 ```
 
-## Provider Cache Strategies
+## 提供商缓存策略
 
-Each provider defines which sections are static (cacheable) and which are dynamic (per-request):
+每个提供商定义哪些部分是静态的（可缓存）、哪些是动态的（按请求变化）：
 
-| Provider    | Static Sections                                          | Dynamic Sections                             |
-|-------------|----------------------------------------------------------|----------------------------------------------|
-| `anthropic` | `role`, `core_principles`, `security`, `tool_usage_rules` | `code_context`, `current_environment`, `examples` |
-| `openai`    | `role`, `task`, `constraints`                            | `code_context`, `current_environment`        |
-| `deepseek`  | `role`, `core_principles`, `constraints`                 | `code_context`, `current_environment`, `examples` |
-| `kimi`      | `role`, `task`, `constraints`                            | `code_context`, `current_environment`        |
-| `gemini`    | `role`, `core_principles`, `constraints`                 | `code_context`, `current_environment`, `examples` |
-| `default`   | `role`, `core_principles`, `constraints`                 | `code_context`, `current_environment`, `examples` |
+| 提供商      | 静态部分                                               | 动态部分                                  |
+|-------------|--------------------------------------------------------|-------------------------------------------|
+| `anthropic` | `role`、`core_principles`、`security`、`tool_usage_rules` | `code_context`、`current_environment`、`examples` |
+| `openai`    | `role`、`task`、`constraints`                          | `code_context`、`current_environment`     |
+| `deepseek`  | `role`、`core_principles`、`constraints`               | `code_context`、`current_environment`、`examples` |
+| `kimi`      | `role`、`task`、`constraints`                          | `code_context`、`current_environment`     |
+| `gemini`    | `role`、`core_principles`、`constraints`               | `code_context`、`current_environment`、`examples` |
+| `default`   | `role`、`core_principles`、`constraints`               | `code_context`、`current_environment`、`examples` |
 
-## API Reference
+## API 参考
 
 ### `buildPromptWithCacheControl(taskType, slots, modelId?): CacheSection[]`
 
-Build a prompt decomposed into cache-classified sections. A `__CACHE_BOUNDARY__` marker section is automatically inserted between the last static section and the first dynamic section.
+构建分解为缓存分类部分的提示。`__CACHE_BOUNDARY__` 标记部分会自动插入到最后一个静态部分和第一个动态部分之间。
 
 ```typescript
 import { buildPromptWithCacheControl } from './lib/ai/prompts.js';
@@ -98,41 +98,41 @@ const sections = buildPromptWithCacheControl(
   'claude-opus-4-6',
 );
 
-// sections[0..n]  — static sections with cacheScope: 'global'
-// sections[n+1]   — __boundary__ marker with cacheScope: null
-// sections[n+2..] — dynamic sections with cacheScope: null
+// sections[0..n]  — cacheScope: 'global' 的静态部分
+// sections[n+1]   — cacheScope: null 的 __boundary__ 标记
+// sections[n+2..] — cacheScope: null 的动态部分
 ```
 
 ### `splitPromptByBoundary(sections): BoundarySplit`
 
-Split a `CacheSection[]` array into static prefix and dynamic suffix based on the `__CACHE_BOUNDARY__` sentinel. Used internally by `buildSystemPromptBlocks()` and available for custom cache strategies.
+根据 `__CACHE_BOUNDARY__` 哨兵标记将 `CacheSection[]` 数组拆分为静态前缀和动态后缀。由 `buildSystemPromptBlocks()` 内部使用，也可用于自定义缓存策略。
 
 ```typescript
 import { splitPromptByBoundary } from './lib/ai/cache/index.js';
 
 const { staticPrefix, dynamicSuffix } = splitPromptByBoundary(sections);
-// staticPrefix: sections before the boundary marker (all cacheScope: 'global')
-// dynamicSuffix: sections after the boundary marker (cacheScope: null)
+// staticPrefix: 边界标记之前的所有部分（均为 cacheScope: 'global'）
+// dynamicSuffix: 边界标记之后的所有部分（cacheScope: null）
 ```
 
-If no boundary marker is found, `staticPrefix` is empty and `dynamicSuffix` contains all sections.
+如果未找到边界标记，`staticPrefix` 为空，`dynamicSuffix` 包含所有部分。
 
 ### `buildSystemPromptBlocks(sections): PromptBlock[]`
 
-Convert `CacheSection[]` into API-compatible blocks with `cache_control` headers. Static sections are concatenated into a single block with an `ephemeral` / `global` cache control header. Each dynamic section becomes its own block without caching.
+将 `CacheSection[]` 转换为带有 `cache_control` 头的 API 兼容块。静态部分被拼接为单个带有 `ephemeral` / `global` 缓存控制头的块。每个动态部分成为独立的块，不带缓存。
 
 ```typescript
 import { buildSystemPromptBlocks } from './lib/ai/cache/index.js';
 
 const blocks = buildSystemPromptBlocks(sections);
-// blocks[0] = { content: "static content...", cache_control: { type: 'ephemeral', scope: 'global' } }
-// blocks[1] = { content: "dynamic content 1..." }
-// blocks[2] = { content: "dynamic content 2..." }
+// blocks[0] = { content: "静态内容...", cache_control: { type: 'ephemeral', scope: 'global' } }
+// blocks[1] = { content: "动态内容 1..." }
+// blocks[2] = { content: "动态内容 2..." }
 ```
 
 ### `buildCacheControlForSection(section): CacheControlHeader | null`
 
-Build a `CacheControlHeader` for a single section. Returns `null` when `cacheScope` is `null` (dynamic sections).
+为单个部分构建 `CacheControlHeader`。当 `cacheScope` 为 `null`（动态部分）时返回 `null`。
 
 ```typescript
 import { buildCacheControlForSection } from './lib/ai/cache/index.js';
@@ -144,77 +144,77 @@ const header = buildCacheControlForSection(dynamicSection);
 // null
 ```
 
-## Section-Level LRU Cache
+## 部分级 LRU 缓存
 
-An in-memory LRU cache stores rendered section content to avoid recomputation.
+内存中的 LRU 缓存存储渲染后的部分内容，避免重复计算。
 
-### Cache Configuration
+### 缓存配置
 
-| Parameter | Default   | Description                     |
-|-----------|-----------|---------------------------------|
-| `max`     | `1000`    | Maximum number of cache entries |
-| `ttlMs`   | `3600000` | TTL in milliseconds (1 hour)   |
+| 参数      | 默认值    | 说明                   |
+|-----------|-----------|------------------------|
+| `max`     | `1000`    | 最大缓存条目数         |
+| `ttlMs`   | `3600000` | 毫秒级 TTL（1 小时）   |
 
-### Cache API
+### 缓存 API
 
 ```typescript
 import {
-  getCachedSection,    // Get or compute a cached section
-  invalidateSection,   // Remove a specific section from cache
-  clearAllSections,    // Clear the entire cache
-  getSectionCacheSize, // Get current entry count
-  resetSectionCache,   // Reset cache with new options (for testing)
-  computeHash,         // SHA-256 hash of content
+  getCachedSection,    // 获取或计算缓存部分
+  invalidateSection,   // 从缓存中移除特定部分
+  clearAllSections,    // 清空整个缓存
+  getSectionCacheSize, // 获取当前条目数
+  resetSectionCache,   // 重置缓存（用于测试）
+  computeHash,         // 内容的 SHA-256 哈希
 } from './lib/ai/cache/index.js';
 
-// Retrieve from cache, or compute and cache
+// 从缓存获取，或计算并缓存
 const content = getCachedSection('role', () => renderRoleSection());
 
-// Invalidate when template changes
+// 模板变更时失效
 invalidateSection('role');
 
-// Check cache utilization
+// 检查缓存利用率
 const size = getSectionCacheSize();
 ```
 
-When a cached entry expires (TTL), the cache records a miss with reason `ttl_expired`. When content is newly computed, a miss with reason `content_changed` is recorded.
+当缓存条目过期（TTL）时，缓存记录一次未命中，原因为 `ttl_expired`。当内容被重新计算时，记录原因为 `content_changed` 的未命中。
 
-## Cache Metrics
+## 缓存指标
 
-Metrics track cache effectiveness for monitoring and tuning.
+指标跟踪缓存有效性，用于监控和调优。
 
-### Metrics Interface
+### 指标接口
 
 ```typescript
 interface CacheMetrics {
-  hitRate: number;        // Cache hits / total requests (0 to 1)
-  totalRequests: number;  // Total cache lookups
-  cacheHits: number;      // Number of cache hits
-  cacheMisses: number;    // Number of cache misses
+  hitRate: number;        // 缓存命中数 / 总请求数（0 到 1）
+  totalRequests: number;  // 缓存查找总次数
+  cacheHits: number;      // 缓存命中次数
+  cacheMisses: number;    // 缓存未命中次数
   breakReasons: {
-    contentChanged: number; // Misses due to new content
-    modelChanged: number;   // Misses due to model switch
-    ttlExpired: number;     // Misses due to TTL expiration
+    contentChanged: number; // 因新内容导致的未命中
+    modelChanged: number;   // 因模型切换导致的未命中
+    ttlExpired: number;     // 因 TTL 过期导致的未命中
   };
 }
 ```
 
-### Metrics API
+### 指标 API
 
 ```typescript
 import {
-  getCacheMetrics,    // Get current metrics snapshot
-  resetCacheMetrics,  // Reset all metrics (for testing)
-  trackCacheHit,      // Manually record a hit (normally handled by getCachedSection)
-  trackCacheMiss,     // Manually record a miss with reason
+  getCacheMetrics,    // 获取当前指标快照
+  resetCacheMetrics,  // 重置所有指标（用于测试）
+  trackCacheHit,      // 手动记录命中（通常由 getCachedSection 处理）
+  trackCacheMiss,     // 手动记录未命中及原因
 } from './lib/ai/cache/index.js';
 
 const metrics = getCacheMetrics();
-console.log(`Cache hit rate: ${(metrics.hitRate * 100).toFixed(1)}%`);
-console.log(`TTL expired misses: ${metrics.breakReasons.ttlExpired}`);
+console.log(`缓存命中率: ${(metrics.hitRate * 100).toFixed(1)}%`);
+console.log(`TTL 过期未命中: ${metrics.breakReasons.ttlExpired}`);
 ```
 
-## End-to-End Example
+## 端到端示例
 
 ```typescript
 import {
@@ -223,21 +223,21 @@ import {
   getCacheMetrics,
 } from './lib/ai/index.js';
 
-// 1. Build cache-aware prompt
+// 1. 构建缓存感知提示
 const sections = buildPromptWithCacheControl(
   'boundary-extraction',
   {
-    role: 'a boundary extraction assistant',
-    task: 'Extract boundary constraints from the input.',
-    constraints: ['Return valid JSON.'],
+    role: '边界提取助手',
+    task: '从输入中提取边界约束。',
+    constraints: ['返回有效的 JSON。'],
   },
   'claude-opus-4-6',
 );
 
-// 2. Convert to API blocks with cache control headers
+// 2. 转换为带有缓存控制头的 API 块
 const blocks = buildSystemPromptBlocks(sections);
 
-// 3. Send to API (example with Anthropic Messages API)
+// 3. 发送到 API（以 Anthropic Messages API 为例）
 const response = await anthropic.messages.create({
   model: 'claude-opus-4-6',
   max_tokens: 4096,
@@ -249,28 +249,28 @@ const response = await anthropic.messages.create({
   messages: [{ role: 'user', content: userInput }],
 });
 
-// 4. Monitor cache performance
+// 4. 监控缓存性能
 const metrics = getCacheMetrics();
-console.log(`Hit rate: ${(metrics.hitRate * 100).toFixed(1)}%`);
+console.log(`命中率: ${(metrics.hitRate * 100).toFixed(1)}%`);
 ```
 
-## Boundary Marker
+## 边界标记
 
-The `__CACHE_BOUNDARY__` sentinel is a plain string constant inserted as its own `CacheSection` between static and dynamic content:
+`__CACHE_BOUNDARY__` 哨兵是一个纯字符串常量，作为独立的 `CacheSection` 插入在静态和动态内容之间：
 
 ```typescript
 import { CACHE_BOUNDARY_MARKER } from './lib/ai/cache/index.js';
 // CACHE_BOUNDARY_MARKER === '__CACHE_BOUNDARY__'
 ```
 
-The marker is used by `splitPromptByBoundary()` to find the split point. It is **not** included in either the static prefix or the dynamic suffix — it is consumed during splitting.
+该标记被 `splitPromptByBoundary()` 用于查找拆分点。它**不**包含在静态前缀或动态后缀中 -- 在拆分过程中被消费。
 
-## Best Practices
+## 最佳实践
 
-1. **Cache the static prefix**: Static sections rarely change between requests. Group them into a single cached block via `buildSystemPromptBlocks()`.
+1. **缓存静态前缀**：静态部分在请求之间很少变化。通过 `buildSystemPromptBlocks()` 将它们合并为单个缓存块。
 
-2. **Keep dynamic sections lean**: Dynamic sections (examples, context, metadata) are re-sent on every request. Minimize their size to reduce cost.
+2. **保持动态部分精简**：动态部分（示例、上下文、元数据）在每次请求时都会重新发送。最小化它们的大小以降低成本。
 
-3. **Monitor hit rate**: Use `getCacheMetrics()` to verify caching is effective. A hit rate below 50% may indicate that too much content is classified as static and is changing frequently.
+3. **监控命中率**：使用 `getCacheMetrics()` 验证缓存是否有效。命中率低于 50% 可能表明过多内容被分类为静态但频繁变化。
 
-4. **Invalidate on template updates**: When modifying template files or override files, call `clearAllSections()` to prevent stale cached content.
+4. **模板更新时失效**：修改模板文件或覆盖文件时，调用 `clearAllSections()` 以防止过时的缓存内容。

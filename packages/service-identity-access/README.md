@@ -1,3 +1,3 @@
 # @trapmap/service-identity-access
 
-Shared identity and access service module for host assemblies.
+宿主组装体的共享身份与访问服务模块。

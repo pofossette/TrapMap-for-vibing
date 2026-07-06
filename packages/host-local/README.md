@@ -1,21 +1,21 @@
 # @trapmap/host-local
 
-Light-host assembly for TrapMap's `local-agent` and `team-monolith` deployment profiles. The frozen default light mainline is `src/nest/**`.
+TrapMap `local-agent` 与 `team-monolith` 部署配置的轻量主机组装包。冻结的默认轻量主线为 `src/nest/**`。
 
-## Purpose
+## 用途
 
-This package is the real `light` host implementation for single-machine TrapMap deployments. `src/nest/**` is the default and only host mainline.
+本包是 TrapMap 单机部署的真实 `light` 主机实现。`src/nest/**` 是默认且唯一支持的主机入口。
 
-## Deployment Profiles
+## 部署配置
 
-| Profile | Route Surface | Worker | Database | Auth |
+| 配置 | 路由面 | Worker | 数据库 | 认证 |
 |---|---|---|---|---|
-| `local-agent` | Full gateway + governance | In-process when runtime mode owns work | JSON store OK | Single-user full-governance |
-| `team-monolith` | Full gateway | In-process task + outbox | PostgreSQL required | Team auth |
+| `local-agent` | 完整网关 + 治理 | 运行时模式拥有任务时进程内执行 | JSON 存储可用 | 单用户完整治理 |
+| `team-monolith` | 完整网关 | 进程内任务 + outbox | 需要 PostgreSQL | 团队认证 |
 
-## Usage
+## 使用方式
 
-### Programmatic (via `start()`)
+### 编程式调用（通过 `start()`）
 
 下方 `start()` 示例对应默认 Nest 主线。
 
@@ -26,28 +26,45 @@ const handle = await start({
   port: 3000,
 });
 
-// handle.close() to shut down
+// handle.close() 以关闭
 ```
 
-### Environment variables
+#### 接口定义
 
-| Variable | Default | Description |
+包导出以下 TypeScript 接口：
+
+```typescript
+interface NestBootstrapOptions {
+  host?: string;   // 监听地址，默认 '0.0.0.0'
+  port?: number;   // 监听端口，默认 4000
+}
+
+interface NestBootstrapResult {
+  app: unknown;               // NestFastifyApplication 实例
+  close: () => Promise<void>; // 优雅关闭函数
+}
+```
+
+### 环境变量
+
+| 变量 | 默认值 | 说明 |
 |---|---|---|
-| `TRAPMAP_DEPLOYMENT_PROFILE` | `team-monolith` | `local-agent` or `team-monolith` |
-| `TRAPMAP_DEPLOYMENT_PRESET` | `monolith` | Deployment preset |
-| `RUNTIME_MODE` | `combined` | `api`, `task-worker`, `outbox-worker`, `combined` |
-| `PORT` | `4000` | HTTP listen port |
-| `DATABASE_URL` | (none) | PostgreSQL connection string |
+| `TRAPMAP_DEPLOYMENT_PROFILE` | `(null，运行时推断)` | `local-agent` 或 `team-monolith` |
+| `TRAPMAP_DEPLOYMENT_PRESET` | `monolith` | 部署预设 |
+| `PORT` | `4000` | HTTP 监听端口 |
+| `TRAPMAP_DATABASE_URL` | (无) | PostgreSQL 连接字符串 |
 
-## Architecture
+> **注意**：`RUNTIME_MODE`（`api`、`task-worker`、`outbox-worker`、`combined`）不由环境变量读取，而是由运行时根据部署配置和预设程序化推断得出。
 
-The host-local package owns `light` host assembly. The Nest path is the frozen default mainline and the only supported local host entry.
+## 架构
+
+host-local 包负责 `light` 主机组装。Nest 路径是冻结的默认主线，也是唯一支持的本地主机入口。
 
 ```
-host-local (HTTP, middleware, lifecycle)
+host-local (HTTP, 中间件, 生命周期)
   -> backend-core ports (repo, queue, retrieval, actor, audit)
   -> backend-core modules (identity, knowledge, candidates, governance, jobs)
-  -> backend-core invocation model (sync/async, error taxonomy)
+  -> backend-core 调用模型 (sync/async, 错误分类)
 ```
 
-The host reads the deployment profile from configuration and uses backend-core's `resolveRuntimeDeployment()` to determine which routes to register, which workers to start, and which capabilities to expose.
+主机从配置中读取部署配置，并使用 backend-core 的 `resolveRuntimeDeployment()` 来决定注册哪些路由、启动哪些 worker 以及暴露哪些能力。

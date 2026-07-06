@@ -1,344 +1,344 @@
-# Service Boundaries
+# 服务边界
 
-> Frozen by Task 00 of the runtime recomposition plan. This document defines the service role definitions, their authoritative ownership, internal communication contracts, and the rules governing interaction between services.
+> 由运行时重组计划 Task 00 冻结。本文档定义服务角色、权威所有权、内部通信契约以及服务间交互的规则。
 
-## Status
+## 状态
 
-- Phase: 1 (logical boundaries defined; physical process separation incremental)
-- Execution milestone: `packages/service-knowledge-write`, `packages/service-governance-review`, `packages/service-candidate-ingestion`, `packages/service-identity-access`, and `packages/service-job-runtime` are the first five physical `service-*` splits now implemented in-repo.
+- 阶段：Phase 1（逻辑边界已定义；物理进程分离渐进推进）
+- 执行里程碑：`packages/service-knowledge-write`、`packages/service-governance-review`、`packages/service-candidate-ingestion`、`packages/service-identity-access` 和 `packages/service-job-runtime` 是仓库中已实现的前五个物理 `service-*` 拆分。
 
-## Service Inventory
+## 服务清单
 
-| Service | Package | Bounded context |
+| 服务 | 包 | 限界上下文 |
 |---|---|---|
-| `gateway` | `packages/service-gateway` | External API surface, request aggregation |
-| `identity-access` | `packages/service-identity-access` | Auth, session, access-keys, membership, team, RBAC |
-| `knowledge-read` | `packages/service-knowledge-read` | Retrieval, read projections, query trace, read cache |
-| `knowledge-write` | `packages/service-knowledge-write` | Knowledge/trap/skill/lifecycle/maintenance/decay writes |
-| `candidate-ingestion` | `packages/service-candidate-ingestion` | Candidate intake, normalization, dedup, status advancement |
-| `governance-review` | `packages/service-governance-review` | Review queues, workbench, conflict resolution, remediation |
-| `job-runtime` | `packages/service-job-runtime` | Task queue, workflow runs, outbox dispatch, shared jobs |
+| `gateway` | 由 `host-local` / `host-distributed` 组装，无独立包 | 外部 API 表面、请求聚合 |
+| `identity-access` | `packages/service-identity-access` | 认证、会话、访问密钥、成员关系、团队、RBAC |
+| `knowledge-read` | `packages/service-knowledge-read` | 检索、读投影、查询追踪、读缓存 |
+| `knowledge-write` | `packages/service-knowledge-write` | 知识/陷阱/技能/生命周期/维护/衰减写入 |
+| `candidate-ingestion` | `packages/service-candidate-ingestion` | 候选接收、规范化、去重、状态推进 |
+| `governance-review` | `packages/service-governance-review` | 审查队列、工作台、冲突解决、补救 |
+| `job-runtime` | `packages/service-job-runtime` | 任务队列、工作流运行、outbox 调度、共享任务 |
 
-## Service Definitions
+## 服务定义
 
 ### gateway
 
-**Purpose**: The single external entry point for all clients (CLI, web, external integrations).
+**用途**：所有客户端（CLI、Web、外部集成）的唯一外部入口。
 
-**Responsibilities**:
-- API surface stability (versioned endpoints, backward compatibility)
-- Request routing to appropriate backend-core application services
-- Request aggregation (combining results from multiple internal calls into a single response when needed)
-- Rate limiting and throttling
-- External auth boundary enforcement (token validation, session resolution)
-- Unified error response format
-- Health and readiness endpoints
+**职责**：
+- API 表面稳定性（版本化端点、向后兼容）
+- 将请求路由到适当的 backend-core 应用服务
+- 请求聚合（在需要时将多个内部调用的结果合并为单一响应）
+- 限流和节流
+- 外部认证边界执行（令牌验证、会话解析）
+- 统一错误响应格式
+- 健康检查和就绪端点
 
-**Does NOT**:
-- Hold any business domain state
-- Implement business logic (retrieval scoring, RBAC decision computation, lifecycle state machine)
-- Own any authoritative database tables
-- Perform writes to any domain tables
+**不包含**：
+- 不持有任何业务领域状态
+- 不实现业务逻辑（检索评分、RBAC 决策计算、生命周期状态机）
+- 不拥有任何权威数据库表
+- 不对任何领域表执行写入
 
-**Internal ports consumed**: `IdentityAccessPort` (auth middleware), `KnowledgeReadPort` (retrieval queries), `KnowledgeWritePort` (lifecycle commands), `CandidateIngestionPort` (candidate submission), `GovernanceReviewPort` (review queue queries), `JobRuntimePort` (status queries)
+**消费的内部端口**：`IdentityAccessPort`（认证中间件）、`KnowledgeReadPort`（检索查询）、`KnowledgeWritePort`（生命周期命令）、`CandidateIngestionPort`（候选提交）、`GovernanceReviewPort`（审查队列查询）、`JobRuntimePort`（状态查询）
 
-**External boundary**: This is the only service reachable from outside the system. All external traffic enters here.
+**外部边界**：这是系统外部唯一可达的服务。所有外部流量从此处进入。
 
 ### identity-access
 
-**Purpose**: Centralized auth, identity, and access control.
+**用途**：集中式认证、身份和访问控制。
 
-**Implementation status**: Implemented as `packages/service-identity-access`. `packages/host-distributed` now acts only as the thin host adapter for the identity service process, and `packages/server` remains a compatibility shell rather than the authoritative identity assembly owner.
+**实现状态**：已实现为 `packages/service-identity-access`。`packages/host-distributed` 现在仅作为身份服务进程的薄宿主适配器，`packages/server` 仍是兼容性外壳而非权威的身份组装所有者。
 
-**Responsibilities**:
-- User authentication (login, session creation, session validation)
-- Session lifecycle management (refresh, expiry, revocation)
-- Access-key generation, validation, and revocation
-- Team CRUD operations
-- Membership management (add/remove members, role assignment)
-- RBAC decision computation (permission checks, role template resolution, security level enforcement)
-- Actor lookup (resolving actor references for audit and authorization)
+**职责**：
+- 用户认证（登录、会话创建、会话验证）
+- 会话生命周期管理（刷新、过期、撤销）
+- 访问密钥生成、验证和撤销
+- 团队 CRUD 操作
+- 成员关系管理（添加/移除成员、角色分配）
+- RBAC 决策计算（权限检查、角色模板解析、安全级别执行）
+- Actor 查找（为审计和授权解析 actor 引用）
 
-**Authoritative tables**: auth, session, access-key, user, team, membership tables
+**权威表**：认证、会话、访问密钥、用户、团队、成员关系表
 
-**Provides to other services**:
-- `IdentityAccessPort`: permission checks, actor resolution, team validation
-- Other services call this port rather than querying identity tables directly
+**向其他服务提供**：
+- `IdentityAccessPort`：权限检查、actor 解析、团队验证
+- 其他服务调用此端口，而非直接查询身份表
 
-**Consumers**: gateway (every authenticated request), all other services (authorization before writes)
+**消费者**：gateway（每个认证请求）、所有其他服务（写入前的授权）
 
 ### knowledge-read
 
-**Purpose**: Optimized read path for retrieval, search, and query analytics.
+**用途**：优化的读取路径，用于检索、搜索和查询分析。
 
-**Implementation status**: Implemented as `packages/service-knowledge-read`. `packages/host-distributed` is now only the thin host adapter for the knowledge-read service process, and `packages/server` remains a compatibility shell rather than the authoritative read assembly owner.
+**实现状态**：已实现为 `packages/service-knowledge-read`。`packages/host-distributed` 现在仅作为知识读取服务进程的薄宿主适配器，`packages/server` 仍是兼容性外壳而非权威的读取组装所有者。
 
-**Responsibilities**:
-- Retrieval query execution (v1 semantic/hybrid/graph-assisted, v2 capsule, v3 graph-plan)
-- Query tracing and analytics (queryId generation, badcase trace recording)
-- Read-only projection maintenance (denormalized read models, materialized views)
-- Status read model (operator-facing status queries for knowledge, artifacts, decay, maintenance)
-- Read-side cache management (retrieval read-model cache, intent cache, embedding cache)
-- Search index management (knowledge_embeddings, knowledge_keywords, knowledge_search_documents, graph_index_documents)
+**职责**：
+- 检索查询执行（v1 语义/混合/图辅助、v2 胶囊、v3 图计划）
+- 查询追踪和分析（queryId 生成、坏案例追踪记录）
+- 只读投影维护（反规范化读模型、物化视图）
+- 状态读模型（面向操作员的知识、制品、衰减、维护状态查询）
+- 读侧缓存管理（检索读模型缓存、意图缓存、嵌入缓存）
+- 搜索索引管理（knowledge_embeddings、knowledge_keywords、knowledge_search_documents、graph_index_documents）
 
-**Phase 2 boundary contract**:
-- `GET /internal/knowledge-read/projection-status` is the single status surface for read-side maturity, freshness, fallback, and consistency reporting.
-- The gateway also forwards this contract at `GET /v1/knowledge/projection-status` for external operator visibility.
-- `knowledge-entry:getById` and `knowledge-entry:listMine` are still temporary direct-backed projections owned by `knowledge-read`. They are explicitly allowed to read shared authoritative tables until a derived entry projection replaces them.
-- `retrieval-search`, retrieval query trace, search indexes, and cache metadata are derived read-side surfaces owned by `knowledge-read`; they are not route-local direct SQL assembly.
-- `review-queue` remains owned and served by `governance-review`, not by `knowledge-read`.
-- `maintenance entries` remain governance/operator-facing read surfaces. If they still read shared authoritative state in Phase 2, they are treated as temporary direct-backed operator projections owned by `governance-review`.
-- `decay entries/search` stay with `governance-review` when they serve the decay workbench. Only retrieval-facing derived search belongs in `knowledge-read`.
+**Phase 2 边界契约**：
+- `GET /internal/knowledge-read/projection-status` 是读侧成熟度、新鲜度、回退和一致性报告的唯一状态表面。
+- 网关也在 `GET /v1/knowledge/projection-status` 转发此契约，供外部操作员可见。
+- `knowledge-entry:getById` 和 `knowledge-entry:listMine` 仍是 `knowledge-read` 拥有的临时直接支持投影。它们被显式允许读取共享权威表，直到派生条目投影替代它们。
+- `retrieval-search`、检索查询追踪、搜索索引和缓存元数据是 `knowledge-read` 拥有的派生读侧表面，而非路由本地的直接 SQL 组装。
+- `review-queue` 仍由 `governance-review` 拥有和提供，而非 `knowledge-read`。
+- `maintenance entries` 仍是面向治理/操作员的读表面。如果它们在 Phase 2 仍读取共享权威状态，则被视为 `governance-review` 拥有的临时直接支持操作员投影。
+- `decay entries/search` 在服务于衰减工作台时保留在 `governance-review` 中。仅面向检索的派生搜索属于 `knowledge-read`。
 
-**Authoritative tables**: None (all tables this service writes to are derived projections)
+**权威表**：无（此服务写入的所有表均为派生投影）
 
-**Derived tables it writes**:
-- Search index tables (embeddings, keywords, search documents, graph index)
-- Query trace read-side tables (retrieval_badcase_traces)
-- Projection cache metadata
+**写入的派生表**：
+- 搜索索引表（嵌入、关键词、搜索文档、图索引）
+- 查询追踪读侧表（retrieval_badcase_traces）
+- 投影缓存元数据
 
-**Projection responsibility**: Rebuilds read-side state from events emitted by `knowledge-write`. The write side is responsible for invalidation triggers; the read side consumes them.
+**投影职责**：从 `knowledge-write` 发出的事件重建读侧状态。写入侧负责失效触发器；读取侧负责消费它们。
 
-**Does NOT own**: Any authoritative write path for knowledge, trap, skill, lifecycle, maintenance, or decay
+**不拥有**：知识、陷阱、技能、生命周期、维护或衰减的任何权威写入路径
 
 ### knowledge-write
 
-**Purpose**: Authoritative write path for the knowledge domain.
+**用途**：知识领域的权威写入路径。
 
-**Implementation status**: Implemented as `packages/service-knowledge-write`. `packages/host-distributed` is now a thin host adapter for this service, and `packages/server` remains a compatibility shell rather than the authoritative assembly owner.
+**实现状态**：已实现为 `packages/service-knowledge-write`。`packages/host-distributed` 现在是此服务的薄宿主适配器，`packages/server` 仍是兼容性外壳而非权威的组装所有者。
 
-**Responsibilities**:
-- Knowledge entry creation, update, resubmission, and supersession
-- Trap lifecycle management (submit, approve, reject, deactivate)
-- Skill artifact lifecycle management (import, edit, review, activate)
-- Lifecycle state machine enforcement (draft -> submitted -> agent-pass/rejected -> approved/rejected -> deactivated)
-- Maintenance assignment and verification
-- Decay state computation and management
-- Evidence metadata management
-- Feedback recording and processing
-- Lifecycle transition event emission (to outbox for projection invalidation)
+**职责**：
+- 知识条目创建、更新、重新提交和取代
+- 陷阱生命周期管理（提交、批准、拒绝、停用）
+- 技能制品生命周期管理（导入、编辑、审查、激活）
+- 生命周期状态机执行（草稿 -> 已提交 -> Agent 通过/已拒绝 -> 已批准/已拒绝 -> 已停用）
+- 维护分配和验证
+- 衰减状态计算和管理
+- 证据元数据管理
+- 反馈记录和处理
+- 生命周期转换事件发出（到 outbox 以进行投影失效）
 
-**Authoritative tables**: knowledge entries, knowledge labels, knowledge boundary tables, knowledge revisions, lifecycle events, skill artifacts, artifact revisions, skill_artifact_* structural tables, decay metadata, evidence metadata, feedback tables
+**权威表**：知识条目、知识标签、知识边界表、知识修订、生命周期事件、技能制品、制品修订、skill_artifact_* 结构表、衰减元数据、证据元数据、反馈表
 
-**Emits**:
-- Lifecycle transition events (via outbox)
-- Invalidation events (for cache and projection refresh)
-- Projection refresh triggers
+**发出**：
+- 生命周期转换事件（通过 outbox）
+- 失效事件（用于缓存和投影刷新）
+- 投影刷新触发器
 
-**Does NOT own**: Retrieval read model, search index writes (those are projections owned by `knowledge-read`)
+**不拥有**：检索读模型、搜索索引写入（这些是 `knowledge-read` 拥有的投影）
 
 ### candidate-ingestion
 
-- Current implementation fact: `packages/service-candidate-ingestion` is now the third real `service-*` package. `packages/host-distributed` consumes it as a thin host adapter, and `packages/server` remains a compatibility shell rather than the authoritative candidate assembly owner.
+- 当前实现事实：`packages/service-candidate-ingestion` 现在是第三个真实的 `service-*` 包。`packages/host-distributed` 作为薄宿主适配器消费它，`packages/server` 仍是兼容性外壳而非权威的候选组装所有者。
 
-**Purpose**: Async intake and processing pipeline for new knowledge candidates.
+**用途**：新知识候选项的异步接收和处理管道。
 
-**Responsibilities**:
-- Candidate intake (receiving trap and skill submissions)
-- Payload normalization (standardizing candidate data)
-- Duplicate detection preprocessing (fingerprint computation, semantic similarity, exact lane matching)
-- Candidate status advancement (received -> queued -> analyzing -> duplicate_detected / ready_for_review / resolved / error)
-- Duplicate case creation and match recording
-- Resolution outcome recording (independent publish or merge)
-- Entity lineage tracking
+**职责**：
+- 候选接收（接收陷阱和技能提交）
+- 载荷规范化（标准化候选数据）
+- 重复检测预处理（指纹计算、语义相似度、精确通道匹配）
+- 候选状态推进（已接收 -> 已排队 -> 分析中 -> 检测到重复 / 准备审查 / 已解决 / 错误）
+- 重复案例创建和匹配记录
+- 解决结果记录（独立发布或合并）
+- 实体谱系追踪
 
-**Authoritative tables**: candidates, candidate_analyses, candidate_manual_results, candidate_resolution_outcomes, candidate_duplicate_cases, candidate_duplicate_matches, entity_lineage
+**权威表**：candidates、candidate_analyses、candidate_manual_results、candidate_resolution_outcomes、candidate_duplicate_cases、candidate_duplicate_matches、entity_lineage
 
-**Does NOT own**: Knowledge authoritative tables. When a candidate is resolved as "independent", the actual knowledge/skill entry creation is dispatched via the remote `KnowledgeWritePort` command to `knowledge-write`. In the distributed host, `candidate-ingestion` must not mark a candidate resolved before that remote publish succeeds, and it must not keep a local fallback write path to knowledge truth.
+**不拥有**：知识权威表。当候选项解析为"独立"时，实际的知识/技能条目创建通过远程 `KnowledgeWritePort` 命令分派给 `knowledge-write`。在分布式宿主中，`candidate-ingestion` 不得在远程发布成功之前将候选项标记为已解决，且不得保留到知识事实的本地回退写入路径。
 
-**Load profile**: Bursty, async-heavy. Receives submissions, then processes them through a multi-step pipeline. Suitable for independent scaling separate from the synchronous API path.
+**负载特征**：突发性、重度异步。接收提交后通过多步管道处理。适合独立于同步 API 路径的独立扩展。
 
 ### governance-review
 
-**Purpose**: Human-in-the-loop review workflows and conflict resolution.
+**用途**：人在回路的审查工作流和冲突解决。
 
-**Implementation status**: Implemented as `packages/service-governance-review`. `packages/host-distributed` is now a thin host adapter for review decision / feedback service assembly, and `packages/server` remains a compatibility shell rather than the authoritative review assembly owner.
+**实现状态**：已实现为 `packages/service-governance-review`。`packages/host-distributed` 现在是审查决策/反馈服务组装的薄宿主适配器，`packages/server` 仍是兼容性外壳而非权威的审查组装所有者。
 
-**Responsibilities**:
-- Review queue management (knowledge review queue, skill artifact review queue)
-- Review workbench state (assigning reviewers, tracking review sessions)
-- Conflict resolution workflows (when duplicate candidates require human judgment)
-- Remediation queue management (feedback-driven remediation tasks)
-- Suppression and reactivation state for knowledge entries (driven by feedback aggregation)
+**职责**：
+- 审查队列管理（知识审查队列、技能制品审查队列）
+- 审查工作台状态（分配审查员、追踪审查会话）
+- 冲突解决工作流（当重复候选项需要人工判断时）
+- 补救队列管理（反馈驱动的补救任务）
+- 知识条目的抑制和重新激活状态（由反馈聚合驱动）
 
-**Authoritative tables**: human intervention queues, review workbench state, conflict resolution state, remediation queue state tables
+**权威表**：人工干预队列、审查工作台状态、冲突解决状态、补救队列状态表
 
-**Does NOT own**: Knowledge lifecycle truth tables. Review decisions (approve, reject, maintenance, decay) flow through the remote `KnowledgeWritePort` command; `knowledge-write` performs the authoritative lifecycle or aggregate mutation. `governance-review` must not keep direct repository writes to knowledge truth tables, even in the shared-PostgreSQL Phase 1 posture.
+**不拥有**：知识生命周期事实表。审查决策（批准、拒绝、维护、衰减）通过远程 `KnowledgeWritePort` 命令流转；`knowledge-write` 执行权威的生命周期或聚合变更。`governance-review` 不得对知识事实表保留直接仓库写入，即使在共享 PostgreSQL 的 Phase 1 姿态下也是如此。
 
-**Key constraint**: This service is more than a simple worker. It manages governance state machines and human workflow orchestration.
+**关键约束**：此服务不仅仅是简单的工作器。它管理治理状态机和人工工作流编排。
 
 ### job-runtime
 
-**Purpose**: Shared async execution substrate.
+**用途**：共享的异步执行基底。
 
-**Responsibilities**:
-- Task queue management (enqueue, dequeue, lease, reclaim, dead-letter)
-- Workflow run tracking (long-running task snapshots, progress, completion)
-- Outbox event dispatch (picking up outbox events and delivering to target services)
-- Shared job execution (lifecycle index follow-up, remediation reactivation, badcase export draft generation, capsule index rebuild)
-- Task retry, backoff, and failure handling
+**职责**：
+- 任务队列管理（入队、出队、租约、回收、死信）
+- 工作流运行追踪（长期运行任务快照、进度、完成）
+- Outbox 事件调度（拾取 outbox 事件并投递给目标服务）
+- 共享任务执行（生命周期索引后续、补救重新激活、坏案例导出草稿生成、胶囊索引重建）
+- 任务重试、退避和失败处理
 
-**Authoritative tables**: task_queue, workflow_runs, domain_event_outbox, outbox processing state, lease/reclaim metadata
+**权威表**：task_queue、workflow_runs、domain_event_outbox、outbox 处理状态、租约/回收元数据
 
-**Does NOT own**: Any business domain truth tables. It only executes work dispatched by other services.
+**不拥有**：任何业务领域事实表。它仅执行由其他服务分派的工作。
 
-**Role clarification**: `job-runtime` is an infrastructure service. It provides the execution substrate that other services use to achieve eventual consistency. It does not make business decisions.
+**角色说明**：`job-runtime` 是基础设施服务。它提供其他服务用来实现最终一致性的执行基底。它不做业务决策。
 
-**Implementation status**: Implemented as `packages/service-job-runtime`. `packages/host-distributed` is now only the thin host adapter for the runtime process, and `packages/server` remains a compatibility shell rather than the authoritative runtime assembly owner.
+**实现状态**：已实现为 `packages/service-job-runtime`。`packages/host-distributed` 现在仅作为运行时进程的薄宿主适配器，`packages/server` 仍是兼容性外壳而非权威的运行时组装所有者。
 
-## Internal Communication
+## 内部通信
 
-### Port-first design
+### 端口优先设计
 
-All cross-service communication goes through internal ports defined in `backend-core`. Each port specifies:
+所有跨服务通信通过 `backend-core` 中定义的内部端口进行。每个端口规定：
 
-- Request / response shape (typed, in `backend-core`)
-- Timeout / cancellation expectation
-- Idempotency expectation
-- Error taxonomy
-- Tracing / correlation ID propagation
+- 请求/响应形状（在 `backend-core` 中类型化）
+- 超时/取消预期
+- 幂等性预期
+- 错误分类
+- 追踪/关联 ID 传播
 
-### Port inventory
+### 端口清单
 
-| Port | Provided by | Consumers |
+| 端口 | 提供者 | 消费者 |
 |---|---|---|
-| `IdentityAccessPort` | `identity-access` | gateway, all other services |
+| `IdentityAccessPort` | `identity-access` | gateway、所有其他服务 |
 | `KnowledgeReadPort` | `knowledge-read` | gateway |
-| `KnowledgeWritePort` | `knowledge-write` | gateway, candidate-ingestion (publish), governance-review (decisions) |
+| `KnowledgeWritePort` | `knowledge-write` | gateway、candidate-ingestion（发布）、governance-review（决策） |
 | `CandidateIngestionPort` | `candidate-ingestion` | gateway |
 | `GovernanceReviewPort` | `governance-review` | gateway |
-| `JobRuntimePort` | `job-runtime` | gateway (status), all services (dispatch) |
+| `JobRuntimePort` | `job-runtime` | gateway（状态）、所有服务（分派） |
 
-### Communication modes by service pair
+### 按服务对的通信模式
 
-#### Synchronous (query/decision)
+#### 同步（查询/决策）
 
-- `gateway` -> `identity-access` (auth check on every request)
-- `gateway` -> `knowledge-read` (retrieval queries)
-- `gateway` -> `knowledge-write` (lifecycle commands)
-- `gateway` -> `candidate-ingestion` (candidate submission)
-- `gateway` -> `governance-review` (review queue queries)
-- `governance-review` -> `knowledge-write` (review decisions)
-- `candidate-ingestion` -> `knowledge-write` (publish resolved candidate)
-- `governance-review` -> `knowledge-write` (maintenance / decay aggregate mutation)
+- `gateway` -> `identity-access`（每个请求的认证检查）
+- `gateway` -> `knowledge-read`（检索查询）
+- `gateway` -> `knowledge-write`（生命周期命令）
+- `gateway` -> `candidate-ingestion`（候选提交）
+- `gateway` -> `governance-review`（审查队列查询）
+- `governance-review` -> `knowledge-write`（审查决策）
+- `candidate-ingestion` -> `knowledge-write`（发布已解析候选）
+- `governance-review` -> `knowledge-write`（维护/衰减聚合变更）
 
-**Light-host mode**: in-process direct call through port interfaces.
+**轻量宿主模式**：通过端口接口的进程内直接调用。
 
-**Heavy-host mode**: internal HTTP/JSON adapter by default. The current Phase 2 pilot adds an optional RPC seam only for the frozen `knowledge-write` owner hop, while keeping the same `KnowledgeWritePort` contract and failure taxonomy.
+**重量宿主模式**：默认使用内部 HTTP/JSON 适配器。当前 Phase 2 试点仅为冻结的 `knowledge-write` 所有者跳转添加可选 RPC 接缝，同时保持相同的 `KnowledgeWritePort` 契约和失败分类。
 
-Current RPC pilot scope:
+当前 RPC 试点范围：
 
 - `governance-review` -> `knowledge-write`
 - `candidate-ingestion` -> `knowledge-write`
 
-Current pilot constraints:
+当前试点约束：
 
-- The transport selector is host-owned; service packages still depend only on `backend-core` ports.
-- The RPC envelope route is limited to the existing authoritative command set already delegated through `KnowledgeWritePort`.
-- Review/candidate owners must preserve the same timeout, trace propagation, and canonical `InvocationError` mapping whether the host picks `http` or `rpc`.
-- The pilot does not introduce Protobuf, Buf, Connect RPC, or gRPC as new repository truth surfaces. Until that changes explicitly, formal protocol stacks remain deferred and the current seam stays on the repo-owned envelope RPC.
+- 传输选择器由宿主拥有；服务包仍仅依赖 `backend-core` 端口。
+- RPC 信封路由限于已通过 `KnowledgeWritePort` 委派的现有权威命令集。
+- 审查/候选所有者必须保持相同的超时、追踪传播和规范 `InvocationError` 映射，无论宿主选择 `http` 还是 `rpc`。
+- 试点不引入 Protobuf、Buf、Connect RPC 或 gRPC 作为新的仓库事实表面。在明确变更之前，正式协议栈保持延迟，当前接缝保持在仓库拥有的信封 RPC 上。
 
-#### Asynchronous (event/queue)
+#### 异步（事件/队列）
 
-- `knowledge-write` -> outbox -> `job-runtime` -> `knowledge-read` (projection refresh, cache invalidation)
-- `knowledge-write` -> outbox -> `job-runtime` -> `governance-review` (lifecycle side effects)
-- `candidate-ingestion` -> queue -> `job-runtime` (candidate processing pipeline)
-- `governance-review` -> outbox -> `job-runtime` (remediation follow-up)
-- `job-runtime` -> any service (shared job execution)
+- `knowledge-write` -> outbox -> `job-runtime` -> `knowledge-read`（投影刷新、缓存失效）
+- `knowledge-write` -> outbox -> `job-runtime` -> `governance-review`（生命周期副作用）
+- `candidate-ingestion` -> queue -> `job-runtime`（候选处理管道）
+- `governance-review` -> outbox -> `job-runtime`（补救后续）
+- `job-runtime` -> 任意服务（共享任务执行）
 
-**Transport**: PostgreSQL-backed task_queue + domain_event_outbox (Phase 1). RabbitMQ optional for `distributed` profile.
+**传输**：PostgreSQL 支持的 task_queue + domain_event_outbox（Phase 1）。`distributed` 配置可选使用 RabbitMQ。
 
-### Communication rules
+### 通信规则
 
-1. **No direct service-to-service database writes.** Service A must never write to Service B's authoritative tables. All cross-service state changes go through ports.
-2. **No local fallback writes across the candidate/review -> knowledge boundary.** If a remote `KnowledgeWritePort` call fails with `404`, `409`, `403`, `503`, or `timeout`, the caller must surface the failure semantics instead of silently mutating knowledge tables locally.
-3. **No circular synchronous calls.** If Service A calls Service B synchronously, Service B must not call Service A synchronously. Use async event propagation for the reverse direction.
-4. **Sync calls are bounded.** Every synchronous internal call must have a timeout and a failure strategy (fail-fast, fallback, retry with backoff).
-5. **Async events are ordered per aggregate.** Outbox events for the same aggregate (e.g., same knowledge entry ID) must be delivered in order.
+1. **禁止直接服务间数据库写入。** Service A 不得写入 Service B 的权威表。所有跨服务状态变更通过端口进行。
+2. **禁止候选/审查到知识边界的本地回退写入。** 如果远程 `KnowledgeWritePort` 调用返回 `404`、`409`、`403`、`503` 或 `timeout`，调用方必须暴露失败语义，而非静默本地修改知识表。
+3. **禁止循环同步调用。** 如果 Service A 同步调用 Service B，Service B 不得同步调用 Service A。反向通信使用异步事件传播。
+4. **同步调用有界。** 每个同步内部调用必须有超时和失败策略（快速失败、回退、带退避的重试）。
+5. **异步事件按聚合有序。** 同一聚合（例如，同一知识条目 ID）的 outbox 事件必须按序投递。
 
-## Ownership Model
+## 所有权模型
 
-### Authoritative ownership
+### 权威所有权
 
-Each service has exclusive write authority over its tables. This is the primary service boundary definition.
+每个服务对其表拥有独占写入权限。这是主要的服务边界定义。
 
-| Domain | Owner | Boundary rule |
+| 领域 | 所有者 | 边界规则 |
 |---|---|---|
-| Auth / session / access-key | `identity-access` | Only `identity-access` writes auth state |
-| User / team / membership | `identity-access` | Only `identity-access` writes identity state |
-| Knowledge / trap / skill | `knowledge-write` | Only `knowledge-write` writes knowledge domain state |
-| Lifecycle / decay / maintenance | `knowledge-write` | Only `knowledge-write` writes lifecycle state |
-| Candidate / duplicate / lineage | `candidate-ingestion` | Only `candidate-ingestion` writes candidate pipeline state |
-| Review queue / remediation | `governance-review` | Only `governance-review` writes governance state |
-| Task queue / workflow / outbox | `job-runtime` | Only `job-runtime` writes runtime infrastructure state |
-| Projections / search indexes | `knowledge-read` | `knowledge-read` writes derived state only |
+| 认证/会话/访问密钥 | `identity-access` | 仅 `identity-access` 写入认证状态 |
+| 用户/团队/成员关系 | `identity-access` | 仅 `identity-access` 写入身份状态 |
+| 知识/陷阱/技能 | `knowledge-write` | 仅 `knowledge-write` 写入知识领域状态 |
+| 生命周期/衰减/维护 | `knowledge-write` | 仅 `knowledge-write` 写入生命周期状态 |
+| 候选/重复/谱系 | `candidate-ingestion` | 仅 `candidate-ingestion` 写入候选管道状态 |
+| 审查队列/补救 | `governance-review` | 仅 `governance-review` 写入治理状态 |
+| 任务队列/工作流/outbox | `job-runtime` | 仅 `job-runtime` 写入运行时基础设施状态 |
+| 投影/搜索索引 | `knowledge-read` | `knowledge-read` 仅写入派生状态 |
 
-### Projection ownership
+### 投影所有权
 
-| Projection | Writer | Source of truth | Invalidation trigger |
+| 投影 | 写入者 | 事实来源 | 失效触发器 |
 |---|---|---|---|
-| Retrieval read model | `knowledge-read` | `knowledge-write` authoritative tables | Lifecycle transition events |
-| Search indexes | `knowledge-read` | `knowledge-write` authoritative tables | Entry creation/update/deactivation events |
-| Query traces | `knowledge-read` | Retrieval queries | Self-generated |
-| Review queue | `governance-review` | `governance-review` queue/workbench tables | Governance state transitions |
-| Maintenance operator projection | `governance-review` | `knowledge-write` maintenance truth + governance operator read model | Maintenance decision events |
-| Decay workbench search | `governance-review` | `governance-review` decay workbench state | Decay decision events |
-| Permission cache | `identity-access` | User/team/membership tables | Membership/role change events |
+| 检索读模型 | `knowledge-read` | `knowledge-write` 权威表 | 生命周期转换事件 |
+| 搜索索引 | `knowledge-read` | `knowledge-write` 权威表 | 条目创建/更新/停用事件 |
+| 查询追踪 | `knowledge-read` | 检索查询 | 自生成 |
+| 审查队列 | `governance-review` | `governance-review` 队列/工作台表 | 治理状态转换 |
+| 维护操作员投影 | `governance-review` | `knowledge-write` 维护事实 + 治理操作员读模型 | 维护决策事件 |
+| 衰减工作台搜索 | `governance-review` | `governance-review` 衰减工作台状态 | 衰减决策事件 |
+| 权限缓存 | `identity-access` | 用户/团队/成员关系表 | 成员关系/角色变更事件 |
 
-### Fault domain isolation
+### 故障域隔离
 
-| Service | Failure impact | Degradation strategy |
+| 服务 | 失败影响 | 降级策略 |
 |---|---|---|
-| `gateway` | All external traffic affected | No fallback; gateway is the single entry point |
-| `identity-access` | Auth fails for all services | Fail-closed: deny access on timeout |
-| `knowledge-read` | Retrieval unavailable | Gateway returns 503 for retrieval endpoints; write path unaffected |
-| `knowledge-write` | Write commands fail | Gateway returns 503 for write endpoints; retrieval continues with stale data |
-| `candidate-ingestion` | New candidates cannot be submitted | Existing knowledge unaffected; candidates queue in backlog |
-| `governance-review` | Review workflows stall | Existing approved knowledge unaffected; pending reviews delayed |
-| `job-runtime` | Async processing halts | Authoritative writes still succeed (they commit locally); projections fall behind |
+| `gateway` | 所有外部流量受影响 | 无回退；网关是唯一入口 |
+| `identity-access` | 所有服务认证失败 | 快速关闭：超时时拒绝访问 |
+| `knowledge-read` | 检索不可用 | 网关对检索端点返回 503；写入路径不受影响 |
+| `knowledge-write` | 写入命令失败 | 网关对写入端点返回 503；检索继续使用过期数据 |
+| `candidate-ingestion` | 新候选无法提交 | 现有知识不受影响；候选在积压中排队 |
+| `governance-review` | 审查工作流停滞 | 现有已批准知识不受影响；待审查延迟 |
+| `job-runtime` | 异步处理停止 | 权威写入仍然成功（本地提交）；投影落后 |
 
-## Phase 1 Physical Process Mapping
+## Phase 1 物理进程映射
 
-During Phase 1, logical services may be combined into fewer physical processes:
+在 Phase 1 期间，逻辑服务可能合并到更少的物理进程中：
 
-### light-host (local-agent / team-monolith)
+### 轻量宿主（local-agent / team-monolith）
 
-All seven logical services run in a single process. Port calls are in-process direct calls. This is the current `packages/server` behavior, formalized.
+所有七个逻辑服务在单一进程中运行。端口调用为进程内直接调用。这是当前 `packages/server` 行为的形式化。
 
-### heavy-host (distributed) -- initial topology
+### 重量宿主（分布式）-- 初始拓扑
 
-| Physical host | Logical services |
+| 物理宿主 | 逻辑服务 |
 |---|---|
 | `gateway-host` | `gateway` |
 | `core-api-host` | `identity-access` + `knowledge-write` |
 | `read-host` | `knowledge-read` |
 | `worker-host` | `candidate-ingestion` + `governance-review` + `job-runtime` |
 
-This 4-process topology is the initial Phase 1 target for `distributed`. It provides read-write isolation and worker separation without requiring 7 independent processes.
+此 4 进程拓扑是 `distributed` 的初始 Phase 1 目标。它提供读写隔离和工作器分离，而无需 7 个独立进程。
 
-Note: Co-locating identity-access and knowledge-write means a knowledge-write crash will also take down auth for all services. This trade-off is acceptable in Phase 1 for operational simplicity; in Phase 2, evaluate splitting identity-access into its own process if auth availability becomes critical.
+注意：将 identity-access 和 knowledge-write 共置意味着 knowledge-write 崩溃也会导致所有服务的认证中断。此权衡在 Phase 1 为运维简洁性而可接受；在 Phase 2 中，如果认证可用性变得关键，应评估将 identity-access 拆分为独立进程。
 
-### Future physical separation
+### 未来物理分离
 
-As load patterns, fault domain requirements, and operational maturity evolve, the following services are candidates for independent physical processes:
+随着负载模式、故障域要求和运维成熟度的演进，以下服务是独立物理进程的候选：
 
-1. `identity-access` (high-frequency auth checks, benefits from independent scaling)
-2. `knowledge-read` (read-heavy, benefits from independent cache and connection pool)
-3. `candidate-ingestion` (bursty load, different scaling profile from write path)
-4. `governance-review` (human workflow, different availability requirements)
+1. `identity-access`（高频认证检查，受益于独立扩展）
+2. `knowledge-read`（读密集，受益于独立缓存和连接池）
+3. `candidate-ingestion`（突发负载，与写入路径的扩展特征不同）
+4. `governance-review`（人工工作流，不同的可用性要求）
 
-## Rules of Engagement
+## 交互规则
 
-1. A service must not import code from another `service-*` package directly. This can be verified in CI by checking that no `service-*` package appears in another `service-*` package's `dependencies` in `package.json`. All cross-service interaction goes through `backend-core` ports.
-2. A host package must not embed business logic. It only wires ports to implementations and starts processes.
-3. A service's repository layer must only write to its owned tables. Reads of other services' tables must go through ports (with Phase 1 temporary exceptions documented).
-4. New domain tables must be assigned to exactly one owning service before the table is created.
-5. Cross-service events must be routed through the outbox pattern, not direct function calls across service boundaries (for async flows).
-6. The `gateway` API surface is the contract with external clients. Internal service boundaries are implementation details that must not leak to the API surface.
+1. 服务不得直接从另一个 `service-*` 包导入代码。可通过 CI 检查没有任何 `service-*` 包出现在另一个 `service-*` 包的 `package.json` 的 `dependencies` 中来验证。所有跨服务交互通过 `backend-core` 端口进行。
+2. 宿主包不得嵌入业务逻辑。它仅将端口连接到实现并启动进程。
+3. 服务的仓库层只能写入其拥有的表。读取其他服务的表必须通过端口（Phase 1 临时例外有文档记录）。
+4. 新领域表必须在创建前分配给恰好一个所属服务。
+5. 跨服务事件必须通过 outbox 模式路由，而非跨服务边界的直接函数调用（异步流）。
+6. `gateway` API 表面是与外部客户端的契约。内部服务边界是实现细节，不得泄露到 API 表面。
 
-## References
+## 参考资料
 
-- [Target Architecture](TARGET_ARCHITECTURE.md) -- package roles, deployment roles, architecture principles
-- [Database Ownership](DATABASE_OWNERSHIP.md) -- table-level ownership and transaction rules
-- [Runtime Recomposition Plan 00](../plans/runtime-recomposition/00-baseline-and-target-architecture.md) -- plan origin, service role definitions
-- [Runtime Recomposition Plan 04](../plans/runtime-recomposition/04-heavy-microservice-assembly.md) -- heavy microservice assembly, internal ports, communication strategy
+- [目标架构](TARGET_ARCHITECTURE.md) — 包角色、部署角色、架构原则
+- [数据库所有权](DATABASE_OWNERSHIP.md) — 表级所有权和事务规则
+- [运行时重组计划 00](../plans/runtime-recomposition/00-baseline-and-target-architecture.md) — 计划起源、服务角色定义
+- [运行时重组计划 04](../plans/runtime-recomposition/04-heavy-microservice-assembly.md) — 重量微服务组装、内部端口、通信策略

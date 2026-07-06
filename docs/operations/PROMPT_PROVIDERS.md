@@ -1,41 +1,41 @@
-# Prompt Providers Configuration Guide
+# 提示提供商配置指南
 
-The prompt system uses a **provider-based template architecture** that renders format-specific prompts (XML or JSON) for different AI model families. This guide covers provider selection, template customization, and environment variable configuration.
+提示系统使用**基于提供商的模板架构**，为不同的 AI 模型系列渲染特定格式的提示（XML 或 JSON）。本指南涵盖提供商选择、模板自定义和环境变量配置。
 
-## Architecture Overview
+## 架构概览
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  PromptSlots │ ──> │ Provider     │ ──> │ Template     │ ──> │ Renderer     │
-│  (task data) │     │ Selection    │     │ Override     │     │ (XML / JSON) │
+│  PromptSlots │ ──> │ 提供商选择   │ ──> │ 模板覆盖     │ ──> │ 渲染器       │
+│  （任务数据）│     │              │     │              │     │ （XML / JSON）│
 └─────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
                      ↑                     ↑
-                     │ modelId or          │ AI_PROMPT_TEMPLATE_FILE
-                     │ AI_PROMPT_PROVIDER  │ (JSON slot overrides)
+                     │ modelId 或          │ AI_PROMPT_TEMPLATE_FILE
+                     │ AI_PROMPT_PROVIDER  │ （JSON slot 覆盖）
 ```
 
-The pipeline:
-1. **PromptSlots** define task content (role, task, constraints, etc.)
-2. **Provider selection** picks the optimal format based on model ID or env var
-3. **Template override** merges slot-level customizations from a JSON file
-4. **Renderer** produces the final prompt string (XML or JSON)
+管线流程：
+1. **PromptSlots** 定义任务内容（role、task、constraints 等）
+2. **提供商选择** 根据模型 ID 或环境变量选择最优格式
+3. **模板覆盖** 从 JSON 文件合并 slot 级自定义
+4. **渲染器** 生成最终提示字符串（XML 或 JSON）
 
-## Supported Providers
+## 支持的提供商
 
-| Provider    | Format | Recommended For     | Performance Notes                              |
-|-------------|--------|---------------------|------------------------------------------------|
-| `anthropic` | XML    | Claude models       | XML-native processing, optimized for caching   |
-| `openai`    | JSON   | GPT / o1 / o3       | JSON structured output, function calling        |
-| `deepseek`  | XML    | DeepSeek models     | Needs explicit format instructions              |
-| `kimi`      | JSON   | Kimi / Moonshot     | Avoids XML; prefers JSON or plain text          |
-| `gemini`    | XML    | Gemini models       | XML with JSON fallback efficiency               |
-| `default`   | XML    | Any other model     | Generic compatibility                           |
+| 提供商      | 格式  | 推荐用于            | 性能说明                                   |
+|-------------|-------|---------------------|--------------------------------------------|
+| `anthropic` | XML   | Claude 模型         | 原生 XML 处理，针对缓存优化                |
+| `openai`    | JSON  | GPT / o1 / o3       | JSON 结构化输出，函数调用                  |
+| `deepseek`  | XML   | DeepSeek 模型       | 需要显式格式说明                           |
+| `kimi`      | JSON  | Kimi / Moonshot     | 避免 XML；偏好 JSON 或纯文本               |
+| `gemini`    | XML   | Gemini 模型         | XML 加 JSON 回退效率                       |
+| `default`   | XML   | 任何其他模型        | 通用兼容                                   |
 
-## Provider Selection
+## 提供商选择
 
-### Automatic Selection (by Model ID)
+### 自动选择（按模型 ID）
 
-When a `modelId` is provided, `selectProvider()` matches it against known patterns:
+提供 `modelId` 时，`selectProvider()` 会与已知模式匹配：
 
 ```typescript
 import { selectProvider } from './lib/ai/providers/index.js';
@@ -47,47 +47,47 @@ const provider = selectProvider('gpt-4o');
 // => { name: 'openai', format: 'json', ... }
 ```
 
-**Pattern matching rules:**
+**模式匹配规则：**
 
-| Model ID contains | Selected provider |
-|-------------------|-------------------|
-| `claude`          | `anthropic`       |
-| `gpt`, `o1`, `o3`, `chatgpt` | `openai`  |
-| `deepseek`        | `deepseek`        |
-| `kimi`, `moonshot` | `kimi`           |
-| `gemini`          | `gemini`          |
-| (no match)        | `default`         |
+| 模型 ID 包含                | 选择的提供商    |
+|-----------------------------|-----------------|
+| `claude`                    | `anthropic`     |
+| `gpt`、`o1`、`o3`、`chatgpt` | `openai`        |
+| `deepseek`                  | `deepseek`      |
+| `kimi`、`moonshot`          | `kimi`          |
+| `gemini`                    | `gemini`        |
+| （无匹配）                  | `default`       |
 
-### Explicit Provider (via Environment Variable)
+### 显式提供商（通过环境变量）
 
-Set `AI_PROMPT_PROVIDER` to force a specific provider regardless of model ID:
+设置 `AI_PROMPT_PROVIDER` 可强制使用特定提供商，忽略模型 ID：
 
 ```bash
 AI_PROMPT_PROVIDER=anthropic
 ```
 
-Valid values: `anthropic`, `openai`, `deepseek`, `kimi`, `gemini`, `default`.
+有效值：`anthropic`、`openai`、`deepseek`、`kimi`、`gemini`、`default`。
 
-### Resolution Priority
+### 解析优先级
 
-`resolveProvider()` uses this fallback chain:
+`resolveProvider()` 使用以下回退链：
 
-1. Explicit `provider` argument (highest priority)
-2. `AI_PROMPT_PROVIDER` environment variable
-3. `'default'` (lowest priority)
+1. 显式 `provider` 参数（最高优先级）
+2. `AI_PROMPT_PROVIDER` 环境变量
+3. `'default'`（最低优先级）
 
-## Prompt Slots
+## 提示 Slots
 
-All providers share the same `PromptSlots` interface. Slots are the content "variables" that get filled into provider templates.
+所有提供商共享相同的 `PromptSlots` 接口。Slots 是填入提供商模板的内容"变量"。
 
 ```typescript
 interface PromptSlots {
-  role?: string;              // Assistant role description
-  task?: string;              // Task instruction
-  corePrinciples?: string[];  // Core operating principles
-  outputInstructions?: string[]; // Output format specifications
-  constraints?: string[];     // Behavioral constraints
-  examples?: string[];        // Usage examples
+  role?: string;              // 助手角色描述
+  task?: string;              // 任务指令
+  corePrinciples?: string[];  // 核心操作原则
+  outputInstructions?: string[]; // 输出格式规范
+  constraints?: string[];     // 行为约束
+  examples?: string[];        // 使用示例
   metadata?: {
     taskType: AiPromptTaskType;
     title: string;
@@ -96,46 +96,46 @@ interface PromptSlots {
 }
 ```
 
-### Task Types
+### 任务类型
 
-The system supports five task types:
+系统支持五种任务类型：
 
-| Task Type                  | Description                                        |
-|----------------------------|----------------------------------------------------|
-| `boundary-extraction`      | Extract structured boundary constraints from text  |
-| `knowledge-refinement`     | Summarize search results into concise knowledge    |
-| `claim-verification`       | Verify claims against provided context             |
-| `graph-extraction`         | Extract graph entities (nodes + edges) from text   |
-| `graph-extraction-planner` | Segment input text for parallel entity extraction  |
+| 任务类型                    | 说明                                     |
+|-----------------------------|------------------------------------------|
+| `boundary-extraction`       | 从文本中提取结构化边界约束               |
+| `knowledge-refinement`      | 将搜索结果总结为简洁知识                 |
+| `claim-verification`        | 根据提供的上下文验证声明                 |
+| `graph-extraction`          | 从文本中提取图实体（节点 + 边）          |
+| `graph-extraction-planner`  | 为并行实体提取分割输入文本               |
 
-### Dynamic Injections by Task Type
+### 按任务类型的动态注入
 
-Prompt construction injects runtime context based on task type:
+提示构建根据任务类型注入运行时上下文：
 
-| Task Type                | Base Injections                               | MCP Status |
-|--------------------------|-----------------------------------------------|------------|
-| `boundary-extraction`    | WORKING_DIR, DATE, GIT_STATUS, SESSION_ID     | No         |
-| `knowledge-refinement`   | WORKING_DIR, DATE, GIT_STATUS, SESSION_ID     | **Yes**    |
-| `claim-verification`     | WORKING_DIR, DATE, GIT_STATUS, SESSION_ID     | No         |
-| `graph-extraction`       | WORKING_DIR, DATE, GIT_STATUS, SESSION_ID     | No         |
-| `graph-extraction-planner`| WORKING_DIR, DATE, GIT_STATUS, SESSION_ID     | No         |
+| 任务类型                    | 基础注入                                  | MCP 状态 |
+|-----------------------------|-------------------------------------------|----------|
+| `boundary-extraction`       | WORKING_DIR、DATE、GIT_STATUS、SESSION_ID | 否       |
+| `knowledge-refinement`      | WORKING_DIR、DATE、GIT_STATUS、SESSION_ID | **是**   |
+| `claim-verification`        | WORKING_DIR、DATE、GIT_STATUS、SESSION_ID | 否       |
+| `graph-extraction`          | WORKING_DIR、DATE、GIT_STATUS、SESSION_ID | 否       |
+| `graph-extraction-planner`  | WORKING_DIR、DATE、GIT_STATUS、SESSION_ID | 否       |
 
-Only `knowledge-refinement` tasks receive MCP server status (`${MCP_SERVERS}`).
-The MCP status is returned as a JSON array and is pending integration with the MCP server manager.
+只有 `knowledge-refinement` 任务会接收 MCP 服务器状态（`${MCP_SERVERS}`）。
+MCP 状态以 JSON 数组形式返回，待与 MCP 服务器管理器集成。
 
-## Template Format
+## 模板格式
 
-### XML Templates (anthropic, deepseek, gemini, default)
+### XML 模板（anthropic、deepseek、gemini、default）
 
-XML templates use a mustache-like syntax with three directives:
+XML 模板使用 mustache 风格语法，包含三个指令：
 
 ```
-{{var}}                   — Scalar substitution (XML-escaped)
-{{#if var}}...{{/if}}     — Conditional block (removed when slot is falsy)
-{{#list var}}...{{/list}} — Array iteration ({{item}} replaced per element)
+{{var}}                   — 标量替换（XML 转义）
+{{#if var}}...{{/if}}     — 条件块（slot 为 falsy 时移除）
+{{#list var}}...{{/list}} — 数组迭代（每个元素替换 {{item}}）
 ```
 
-Example template (`anthropic.xml`):
+示例模板（`anthropic.xml`）：
 
 ```xml
 <system_instructions>
@@ -161,16 +161,16 @@ Example template (`anthropic.xml`):
 </system_instructions>
 ```
 
-HTML comments (`<!-- ... -->`) are stripped before rendering. Empty lines from removed blocks are collapsed.
+HTML 注释（`<!-- ... -->`）在渲染前被剥离。被移除块产生的空行会被折叠。
 
-### JSON Templates (openai, kimi)
+### JSON 模板（openai、kimi）
 
-JSON templates use the same placeholder syntax, with additional metadata conventions:
+JSON 模板使用相同的占位符语法，附加元数据约定：
 
-- `_template`, `_doc`, `_format` — Documentation keys, stripped from output
-- `_if_slotName` — When the preceding key's slot is falsy, removes the sibling data key
+- `_template`、`_doc`、`_format` -- 文档键，从输出中剥离
+- `_if_slotName` -- 当前一个键的 slot 为 falsy 时，移除相邻的数据键
 
-Example template (`openai.json`):
+示例模板（`openai.json`）：
 
 ```json
 {
@@ -193,63 +193,63 @@ Example template (`openai.json`):
 }
 ```
 
-After rendering, metadata keys and empty arrays are removed from the output.
+渲染后，元数据键和空数组从输出中移除。
 
-## Customizing Templates
+## 自定义模板
 
-### Slot Overrides via JSON File
+### 通过 JSON 文件覆盖 Slot
 
-Use `AI_PROMPT_TEMPLATE_FILE` to override specific slot values per task type without modifying template files.
+使用 `AI_PROMPT_TEMPLATE_FILE` 按任务类型覆盖特定 slot 值，无需修改模板文件。
 
-The override file format:
+覆盖文件格式：
 
 ```json
 {
   "boundary-extraction": {
-    "role": "a custom boundary extraction assistant",
-    "constraints": ["All fields are optional.", "Return valid JSON only."]
+    "role": "自定义边界提取助手",
+    "constraints": ["所有字段均为可选。", "仅返回有效 JSON。"]
   },
   "knowledge-refinement": {
-    "corePrinciples": ["Prioritize actionable facts."]
+    "corePrinciples": ["优先考虑可操作的事实。"]
   }
 }
 ```
 
-Override fields: `role`, `task`, `corePrinciples`, `outputInstructions`, `constraints`, `examples`. All are optional — only specified fields override the defaults.
+可覆盖字段：`role`、`task`、`corePrinciples`、`outputInstructions`、`constraints`、`examples`。均为可选 -- 仅指定的字段会覆盖默认值。
 
-**Resolution order** for slot values:
+**Slot 值解析顺序**：
 
-1. Slots passed programmatically to `buildPrompt()`
-2. Template override file (`AI_PROMPT_TEMPLATE_FILE`)
-3. Task-specific built-in defaults
+1. 通过 `buildPrompt()` 编程传入的 slots
+2. 模板覆盖文件（`AI_PROMPT_TEMPLATE_FILE`）
+3. 任务特定的内置默认值
 
-### Custom Template Files
+### 自定义模板文件
 
-To use a completely custom template, place a template file (XML or JSON) in `packages/server/src/lib/ai/providers/templates/` and register it in `defaults.ts`.
+要使用完全自定义的模板，请将模板文件（XML 或 JSON）放在 `packages/server/src/lib/ai/providers/templates/` 中，并在 `defaults.ts` 中注册。
 
-## API Reference
+## API 参考
 
 ### `buildPrompt(taskType, slots, modelId?): string`
 
-Build a complete system prompt string. This is the primary API for most use cases.
+构建完整的系统提示字符串。这是大多数用例的主要 API。
 
 ```typescript
 import { buildPrompt } from './lib/ai/prompts.js';
 
-// With automatic provider selection from model ID
+// 从模型 ID 自动选择提供商
 const prompt = buildPrompt('boundary-extraction', mySlots, 'claude-opus-4-6');
 
-// With provider from environment variable
+// 使用环境变量中的提供商
 const prompt = buildPrompt('knowledge-refinement', mySlots);
 ```
 
 ### `buildPromptWithCacheControl(taskType, slots, modelId?): CacheSection[]`
 
-Build a prompt decomposed into `CacheSection[]` for fine-grained cache control. See [PROMPT_CACHING.md](./PROMPT_CACHING.md) for details.
+构建分解为 `CacheSection[]` 的提示，用于细粒度缓存控制。详见 [PROMPT_CACHING.md](./PROMPT_CACHING.md)。
 
-### Backward-Compatible Builders
+### 向后兼容的构建器
 
-These functions use built-in slot definitions and the default provider:
+这些函数使用内置 slot 定义和默认提供商：
 
 ```typescript
 import {
@@ -263,36 +263,36 @@ const refinementPrompt = buildKnowledgeRefinementSystemPrompt({ maxSentences: 5 
 const verificationPrompt = buildClaimVerificationSystemPrompt({ strict: false });
 ```
 
-### Provider Utilities
+### 提供商工具
 
 ```typescript
 import {
-  selectProvider,      // Select by model ID
-  resolveProvider,     // Select by name / env var
-  loadProviderTemplate,// Load raw template string
-  getProviderConfig,   // Get full ProviderConfig object
-  listProviders,       // List all provider names
-  isAiPromptProvider,  // Type guard
+  selectProvider,      // 按模型 ID 选择
+  resolveProvider,     // 按名称 / 环境变量选择
+  loadProviderTemplate,// 加载原始模板字符串
+  getProviderConfig,   // 获取完整的 ProviderConfig 对象
+  listProviders,       // 列出所有提供商名称
+  isAiPromptProvider,  // 类型守卫
 } from './lib/ai/providers/index.js';
 ```
 
-## Environment Variables
+## 环境变量
 
-| Variable                   | Description                                    | Default                          |
-|----------------------------|------------------------------------------------|----------------------------------|
-| `AI_PROMPT_PROVIDER`       | Force a specific provider name                 | `'default'` (auto-detect from model) |
-| `AI_PROMPT_TEMPLATE_FILE`  | Path to JSON slot override file                | `docs/reference/system-prompt-slots.default.json` |
+| 变量                        | 说明                                       | 默认值                               |
+|-----------------------------|--------------------------------------------|--------------------------------------|
+| `AI_PROMPT_PROVIDER`        | 强制指定提供商名称                         | `'default'`（从模型自动检测）        |
+| `AI_PROMPT_TEMPLATE_FILE`   | JSON slot 覆盖文件路径                     | `docs/reference/system-prompt-slots.default.json` |
 
-**Important:** Empty string env vars are treated as unset:
-- `AI_PROMPT_TEMPLATE_FILE=""` → falls back to default file
-- `AI_PROMPT_PROVIDER=""` → falls back to `'default'`
+**注意：** 空字符串环境变量视为未设置：
+- `AI_PROMPT_TEMPLATE_FILE=""` → 回退到默认文件
+- `AI_PROMPT_PROVIDER=""` → 回退到 `'default'`
 
-### AI Provider API Key Precedence
+### AI 提供商 API 密钥优先级
 
-For the AI provider config (used by `loadAiProviderConfig()`), provider-specific keys take precedence over generic `AI_API_KEY`:
+对于 AI 提供商配置（由 `loadAiProviderConfig()` 使用），提供商特定密钥优先于通用 `AI_API_KEY`：
 
-1. `OPENAI_API_KEY` / `GEMINI_API_KEY` — provider-specific (highest priority)
-2. `AI_API_KEY` — generic fallback
-3. Provider defaults — built-in defaults (lowest priority)
+1. `OPENAI_API_KEY` / `GEMINI_API_KEY` -- 提供商特定（最高优先级）
+2. `AI_API_KEY` -- 通用回退
+3. 提供商默认值 -- 内置默认值（最低优先级）
 
-Example: If both `OPENAI_API_KEY=sk-old` and `AI_API_KEY=sk-new` are set, `sk-old` is used because provider-specific keys are preferred.
+示例：如果同时设置了 `OPENAI_API_KEY=sk-old` 和 `AI_API_KEY=sk-new`，则使用 `sk-old`，因为提供商特定密钥优先。

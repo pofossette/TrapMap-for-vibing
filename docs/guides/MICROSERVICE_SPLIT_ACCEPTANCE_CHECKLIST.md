@@ -302,10 +302,10 @@ Evidence:
 - `rtk pnpm eval:smoke`
 - local `/ready` and `/v1/operations/status/async` now report `deploymentProfile=distributed`, `preset=api`, `routeSurface=gateway-core`
 
-Blocking gaps:
+Gate 5 blocking gaps:
 - 无 Gate 5 阻塞：本地 Docker `distributed` 运行环境已可复现 operator closeout，`/v1/operations/status/async` 可稳定暴露 queue/outbox reclaim、recent dead letters、recent failures、retry/dead-letter policy。
 - Remaining engineering work is follow-up hardening, not a split blocker: MQ transport rollout、deployed environment recheck、以及更细粒度恢复矩阵仍可继续演进。
 
-Blocking gaps:
+Gate 4 blocking gaps:
 - 无 Gate 4 阻塞：Phase 2 boundary-close 已把 direct-backed allowance 限定到 entry read surfaces，并把 retrieval/search/query trace 与 governance read surfaces 的 owner/backing source 固定到单一契约面。
 - Remaining engineering work is follow-up hardening, not a split blocker: 独立 read-store、projection-only entry reads、outbox/retry/dead-letter 生产级恢复矩阵仍可继续演进。

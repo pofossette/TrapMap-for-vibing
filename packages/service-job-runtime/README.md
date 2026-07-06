@@ -1,3 +1,3 @@
 # @trapmap/service-job-runtime
 
-Shared job runtime service module for host assemblies.
+宿主组装体的共享作业运行时服务模块。

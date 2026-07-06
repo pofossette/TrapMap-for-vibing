@@ -1,14 +1,12 @@
 # @trapmap/web-panel
 
-Administrative web panel for TrapMap.
+TrapMap 的管理后台 Web 面板。
 
-## Purpose
+## 用途
 
-This package hosts the browser-based operations console used by administrators
-to inspect runtime health, review pending governance work, and perform manual
-interventions that should not be exposed through the CLI.
+本包提供基于浏览器的运维控制台，供管理员用于检查运行时健康状态、审查待处理的治理任务，以及执行不应通过 CLI 暴露的手动干预操作。
 
-## Commands
+## 命令
 
 ```bash
 rtk pnpm --filter @trapmap/web-panel dev
@@ -17,27 +15,27 @@ rtk pnpm --filter @trapmap/web-panel test
 rtk pnpm --filter @trapmap/web-panel typecheck
 ```
 
-## Runtime API
+## 运行时 API
 
-- Default mode uses the real gateway API.
-- `VITE_ADMIN_PANEL_API_MODE=mock` is only supported for local development and tests.
-- Production builds reject `VITE_ADMIN_PANEL_API_MODE=mock`.
-- Set `VITE_ADMIN_PANEL_API_BASE_URL` to override the gateway origin when needed.
+- 默认模式使用真实网关 API。
+- `VITE_ADMIN_PANEL_API_MODE=mock` 仅支持本地开发和测试。
+- 生产构建会拒绝 `VITE_ADMIN_PANEL_API_MODE=mock`。
+- 如需覆盖网关来源，请设置 `VITE_ADMIN_PANEL_API_BASE_URL`。
 
-## Structure
+## 目录结构
 
-- `src/app`: bootstrap, providers, router, shell
-- `src/pages`: route-bound page composition
-- `src/features`: workflow/controller boundaries
-- `src/services`: API adapter boundary
-- `src/stores`: Zustand slices
-- `src/shared`: reusable UI helpers
-- `src/styles`: global styles and design tokens
+- `src/app`：引导程序、Providers、路由、Shell
+- `src/pages`：路由绑定的页面组合
+- `src/features`：工作流/控制器边界
+- `src/services`：API 适配层
+- `src/stores`：Zustand 切片
+- `src/shared`：可复用的 UI 辅助工具
+- `src/styles`：全局样式与设计令牌
 
-## Planned Capabilities
+## 规划能力
 
-- Service and deployment status dashboard
-- Pending manual review queue
-- Review detail workspace with approval and rejection actions
-- Inline JSON editing tools for manual correction scenarios
-- Operational audit visibility for administrator actions
+- 服务与部署状态仪表盘
+- 待人工审核队列
+- 审核详情工作区，支持批准和驳回操作
+- 内联 JSON 编辑工具，用于手动修正场景
+- 管理员操作的运维审计可见性

@@ -1,12 +1,12 @@
-# Repository Structure
+# 仓库结构
 
-This document is the authoritative source for TrapMap repository layout.
+本文档是 TrapMap 仓库布局的权威来源。
 
-## Root
+## 根目录
 
-The root directory is for stable entry points and workspace configuration.
+根目录用于稳定的入口点和工作区配置。
 
-Allowed root Markdown files:
+允许的根目录 Markdown 文件：
 
 - `AGENTS.md`
 - `CLAUDE.md`
@@ -15,56 +15,56 @@ Allowed root Markdown files:
 - `architecture.md`
 - `plan.md`
 
-Historical plans, temporary notes, audits, and human-authored reports must live under `docs/archived/`.
+历史计划、临时笔记、审计报告和人工撰写的报告必须放在 `docs/archived/` 下。
 
-## Product Packages
+## 产品包
 
-- `packages/cli/`: Commander CLI and CLI tests.
-- `packages/server/`: Fastify compatibility shell and shared runtime/status seam. It no longer serves as any default `light` host entry or local rollback host.
-- `packages/contracts/`: shared Zod schemas and TypeScript types.
-- `packages/skills/`: project-level Skill artifacts.
-- `packages/client-core/`: Browser-compatible shared gateway transport layer (HTTP SDK, session contract, error model). Used by CLI and future web panel.
-- `packages/web-panel/`: Browser-based administrator operations panel. It remains a gateway-only client surface.
-- `packages/backend-core/`: Host-agnostic backend core kernel (runtime capability model, port interfaces, use-case patterns, bounded-context modules, invocation model). Phase 2 keeps it framework-free and reorganizes each bounded context into internal `domain/application/module` seams under `src/identity-access/`, `src/knowledge-read/`, `src/knowledge-write/`, `src/candidate-ingestion/`, `src/governance-review/`, `src/job-runtime/`; the old `src/modules/*.ts` compatibility facade has been removed, and consumers use the package root or context entrypoints. Used by all hosts.
-- `packages/runtime-infra/`: Shared runtime infrastructure seam for store/repo assembly, async transport wiring, AI provider bootstrap, adapter registry bootstrap, and in-memory graph-query bootstrap reused by hosts while these foundations are still shared.
-- `packages/service-identity-access/`: Owns identity-access service assembly, internal route registration, and bounded-context auth/session/team/member/access-key wiring.
-- `packages/service-knowledge-read/`: Knowledge-read service assembly. Owns retrieval, read-model, and projection-status route wiring.
-- `packages/service-knowledge-write/`: Owns knowledge-write service assembly, internal route registration, and bounded-context write wiring for knowledge/trap/skill/lifecycle/maintenance/decay.
-- `packages/service-governance-review/`: Owns governance-review service assembly, internal route registration, and bounded-context review/feedback wiring while delegating lifecycle mutations to knowledge-write.
-- `packages/service-candidate-ingestion/`: Owns candidate-ingestion service assembly, internal route registration, and bounded-context candidate wiring while delegating result publication to knowledge-write.
-- `packages/service-job-runtime/`: Owns job-runtime service assembly, internal route registration, queue/runtime deps wiring, and runtime server bootstrap surface.
-- `packages/host-local/`: Light host assembly for `local-agent` and `team-monolith`. The frozen default light mainline is `src/nest/**`, exposed through the package default entry (`src/index.ts`) and default `dev` / `start` scripts.
-  `packages/host-local/src/nest/adapters/` is the authoritative placement for host-owned port adapter selection (`in-process` vs `remote`) in the light host. These files are adapter seams for internal ports, not repository adapters and not a catch-all directory for host composition.
-  `packages/runtime-infra/src/shared-infra.ts` is the authoritative placement for the current transitional shared infrastructure seam that borrows server-owned infra helpers without changing host ownership.
-- `packages/host-distributed/`: Heavy host assembly for the `distributed` profile. It is the real heavy-host implementation, consumes the same backend-core/service-package main implementation as `light`, and its maturity baseline remains `Level 2 / transitional-microservice`.
-  `packages/host-distributed/src/gateway/` is the authoritative placement for gateway transport helpers and forwarding seams, including `internal-client.ts` as the thin internal HTTP / canonical error normalization helper.
-  `packages/host-distributed/src/config/service-config.ts` is the authoritative placement for service discovery defaults and URL resolver seams. It owns the profile-aware mapping between explicit `TRAPMAP_*_URL` overrides, Docker DNS defaults in `distributed`, and `localhost` defaults in local/dev contexts.
-  `packages/host-distributed/src/shared/` is the authoritative placement for shared distributed-host wrappers around internal ports, such as `internal-knowledge-write-client.ts`; these wrappers map transport semantics back to backend-core port semantics and are not repository adapters.
+- `packages/cli/`：Commander CLI 及 CLI 测试。
+- `packages/server/`：Fastify 兼容壳和共享运行时/状态接缝。不再充当默认的 `light` 主机入口或本地回退主机。
+- `packages/contracts/`：共享 Zod schema 和 TypeScript 类型。
+- `packages/skills/`：项目级 Skill 工件。
+- `packages/client-core/`：浏览器兼容的共享网关传输层（HTTP SDK、会话契约、错误模型）。供 CLI 和未来 Web 面板使用。
+- `packages/web-panel/`：基于浏览器的管理员运维面板，仅作为网关客户端表面。
+- `packages/backend-core/`：主机无关的后端核心内核（运行时能力模型、端口接口、用例模式、有界上下文模块、调用模型）。Phase 2 保持无框架，将每个有界上下文重组为内部 `domain/application/module` 接缝，位于 `src/identity-access/`、`src/knowledge-read/`、`src/knowledge-write/`、`src/candidate-ingestion/`、`src/governance-review/`、`src/job-runtime/`；旧的 `src/modules/*.ts` 兼容外观已移除，消费者使用包入口或上下文入口。所有主机共用。
+- `packages/runtime-infra/`：共享运行时基础设施接缝，用于 store/repo 组装、异步传输接线、AI 提供者引导、适配器注册表引导和内存图查询引导，在基础设施仍为共享阶段由各主机复用。
+- `packages/service-identity-access/`：拥有身份访问服务组装、内部路由注册和有界上下文 auth/session/team/member/access-key 接线。
+- `packages/service-knowledge-read/`：知识读取服务组装。拥有检索、读模型和投影视图状态路由接线。
+- `packages/service-knowledge-write/`：拥有知识写入服务组装、内部路由注册和有界上下文写入接线（knowledge/trap/skill/lifecycle/maintenance/decay）。
+- `packages/service-governance-review/`：拥有治理审核服务组装、内部路由注册和有界上下文 review/feedback 接线，同时将生命周期变更委托给 knowledge-write。
+- `packages/service-candidate-ingestion/`：拥有候选摄取服务组装、内部路由注册和有界上下文 candidate 接线，同时将结果发布委托给 knowledge-write。
+- `packages/service-job-runtime/`：拥有作业运行时服务组装、内部路由注册、队列/运行时依赖接线和运行时服务器引导表面。
+- `packages/host-local/`：轻量主机组装，服务于 `local-agent` 和 `team-monolith`。冻结的默认轻量主线为 `src/nest/**`，通过包默认入口（`src/index.ts`）和默认 `dev` / `start` 脚本暴露。
+  `packages/host-local/src/nest/adapters/` 是轻量主机中主机拥有的端口适配器选择（`in-process` vs `remote`）的权威放置位置。这些文件是内部端口的适配器接缝，不是仓库适配器，也不是主机组装的万能目录。
+  `packages/runtime-infra/src/shared-infra.ts` 是当前过渡性共享基础设施接缝的权威放置位置，它借用 server 拥有的基础设施助手而不改变主机归属。
+- `packages/host-distributed/`：重量级主机组装，服务于 `distributed` 配置文件。它是真正的重量级主机实现，与 `light` 共用相同的 backend-core/service-package 主实现，成熟度基线仍为 `Level 2 / transitional-microservice`。
+  `packages/host-distributed/src/gateway/` 是网关传输助手和转发接缝的权威放置位置，包括 `internal-client.ts`（薄内部 HTTP / 规范错误归一化助手）。
+  `packages/host-distributed/src/config/service-config.ts` 是服务发现默认值和 URL 解析器接缝的权威放置位置。它拥有显式 `TRAPMAP_*_URL` 覆盖、`distributed` 中的 Docker DNS 默认值和 local/dev 上下文中的 `localhost` 默认值之间的配置感知映射。
+  `packages/host-distributed/src/shared/` 是分布式主机中内部端口共享包装器（如 `internal-knowledge-write-client.ts`）的权威放置位置；这些包装器将传输语义映射回 backend-core 端口语义，不是仓库适配器。
 
-## Documentation
+## 文档
 
-- `docs/guides/`: onboarding and contributor workflows.
-- `docs/operations/`: runtime, CI, security, testing, deployment-adjacent operations.
-- `docs/architecture/`: architecture overview and component docs.
-- `docs/reference/`: truth sources, schemas, glossary, API surface, and repository structure.
-- `docs/plans/`: historical design references and only active again when a current root plan explicitly re-links them. They are not parallel active execution surfaces by default.
-- `docs/todos/`: pending work plus the phase detail docs linked from the current root `plan.md`. Under the current remediation root, only the linked detail doc is active; other todo docs remain background or deferred references.
-- `docs/archived/`: obsolete plans, historical reports, and retired decisions.
-- `docs/superpowers/`: plans and specs generated by Superpowers workflows.
+- `docs/guides/`：入门和贡献者工作流。
+- `docs/operations/`：运行时、CI、安全、测试、部署相关的运维内容。
+- `docs/architecture/`：架构概览和组件文档。
+- `docs/reference/`：真相源、Schema、术语表、API 表面和仓库结构。
+- `docs/plans/`：历史设计参考，仅在当前根 plan.md 显式重新链接时才重新激活。默认不是并行的活跃执行表面。
+- `docs/todos/`：待办工作以及从当前根 `plan.md` 链接的阶段详细文档。在当前补救根下，只有链接的详细文档是活跃的；其他 todo 文档为背景或延迟参考。
+- `docs/archived/`：过时的计划、历史报告和退役的决策。
+- `docs/superpowers/`：由 Superpowers 工作流生成的计划和规范。
 
-## Evaluations
+## 评估
 
-- `evals/retrieval/`: retrieval datasets, scenarios, runner, metrics, and reports.
-- `evals/summary/`: summary datasets, scenarios, judge logic, runner, and reports.
-- `evals/agent-planning/`: agent planning comparison datasets, scenarios, and runner.
-- `evals/label-alignment/`: label alignment fixtures, recall/decision evaluation, and runner.
-- `evals/graph-extraction/`: graph extraction, conflict, and dedup evals.
-- `evals/ingestion/`: Skill ingestion fixtures and runner.
-- `evals/fixtures/`: shared trap fixtures.
+- `evals/retrieval/`：检索数据集、场景、运行器、指标和报告。
+- `evals/summary/`：摘要数据集、场景、评判逻辑、运行器和报告。
+- `evals/agent-planning/`：Agent 规划对比数据集、场景和运行器。
+- `evals/label-alignment/`：标签对齐 fixtures、recall/decision 评估和运行器。
+- `evals/graph-extraction/`：图提取、冲突和去重评估。
+- `evals/ingestion/`：Skill 摄取 fixtures 和运行器。
+- `evals/fixtures/`：共享 trap fixtures。
 
-## Generated Or Local-Only Directories
+## 生成或仅本地目录
 
-These directories are local artifacts and must not become tracked content:
+以下目录为本地工件，不得成为被追踪内容：
 
 - `.data/`
 - `.tmp/`
@@ -75,12 +75,12 @@ These directories are local artifacts and must not become tracked content:
 - `packages/*/dist/`
 - `packages/*/node_modules/`
 
-## Archive Policy
+## 归档策略
 
-`docs/archived/` is the only archive root for human-authored historical material. Do not create `docs/archive/`.
+`docs/archived/` 是人工撰写的历史材料的唯一归档根。不要创建 `docs/archive/`。
 
-- Obsolete implementation plans: `docs/archived/archived-plans/`
-- Historical audits and reports: `docs/archived/reports/`
-- Retired standalone docs: `docs/archived/`
+- 过时的实施计划：`docs/archived/archived-plans/`
+- 历史审计和报告：`docs/archived/reports/`
+- 退役的独立文档：`docs/archived/`
 
-The root `reports/` directory is reserved for generated evaluation JSON and similar local outputs. Do not put narrative docs or archived Markdown reports there.
+根目录 `reports/` 保留给生成的评估 JSON 和类似本地输出。不要在那里放置叙述性文档或归档的 Markdown 报告。

@@ -317,7 +317,7 @@ pnpm --filter @trapmap/cli dev -- audit --limit 50
 ## 相关文档
 
 - [安全指南](SECURITY.md) — 认证流程、RBAC 和安全等级实现（本文档）
-- [API 参考 — 认证端点](../architecture/API.md#认证端点) — 认证 API 详情
+- [API 参考 — 认证](../architecture/API.md#认证) — 认证 API 详情
 - [环境变量参考](ENVIRONMENT.md) — 完整环境变量列表
 - [部署指南](../architecture/DEPLOYMENT.md) — 生产环境部署步骤
 

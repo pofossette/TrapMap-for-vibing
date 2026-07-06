@@ -1,56 +1,63 @@
 # @trapmap/backend-core
 
-Backend core kernel for TrapMap. This package provides host-agnostic application logic, port interfaces, and the runtime capability model.
+TrapMap 后端核心内核。本包提供与宿主无关的应用逻辑、端口接口和运行时能力模型。
 
-## Purpose
+## 用途
 
-`backend-core` is the foundation that both light-host (`local-agent`, `team-monolith`) and heavy-host (`distributed`) assemblies share. It contains:
+`backend-core` 是轻量宿主（`local-agent`、`team-monolith`）和重量宿主（`distributed`）共享的基础层，包含：
 
-- **Runtime capability model** -- deployment profiles, runtime modes, service units, topology
-- **Port interfaces** -- abstract contracts for repositories, queues, retrieval, auth, audit
-- **Use-case patterns** -- command handling, review flows, retrieval orchestration, job scheduling
-- **Bounded-context modules** -- identity-access, knowledge-read/write, candidate-ingestion, review, job-runtime
-- **Invocation model** -- transport-agnostic sync/async contracts with error taxonomy
-- **Testing utilities** -- stub implementations of all ports for unit testing
+- **运行时能力模型** -- 部署配置、运行时模式、服务单元、拓扑
+- **端口接口** -- 仓储、队列、检索、认证、审计等抽象契约
+- **用例模式** -- 命令处理、评审流程、检索编排、任务调度
+- **限界上下文模块** -- identity-access、knowledge-read/write、candidate-ingestion、governance-review、job-runtime
+- **调用模型** -- 传输无关的同步/异步契约及错误分类
+- **测试工具** -- 所有端口的桩实现，用于单元测试
 
-## What this package does NOT contain
+## 本包不包含的内容
 
-- No Fastify or HTTP framework dependencies
-- No process startup or server bootstrap
-- No concrete infrastructure implementations (PostgreSQL, RabbitMQ, Neo4j)
-- No config loading or environment variable parsing
+- 无 Fastify 或 HTTP 框架依赖
+- 无进程启动或服务器引导
+- 无具体基础设施实现（PostgreSQL、RabbitMQ、Neo4j）
+- 无配置加载或环境变量解析
 
-## Structure
+## 目录结构
 
 ```
 src/
-  index.ts              Main barrel export
+  index.ts              主桶导出
   runtime/
     capability-model.ts DeploymentProfile, RuntimeMode, ServiceUnit, capabilities, resolution
-    route-surface.ts    Route families, unsupported routes, surface summary
-    topology.ts         Service topology descriptors and snapshots
+    route-surface.ts    路由族、不支持的路由、表面摘要
+    topology.ts         服务拓扑描述符和快照
+    dynamic-discovery.ts DynamicDiscovery, 本地缓存与轮询负载均衡
+    status.ts           运行时依赖状态与服务状态构建
   ports/
-    repo-ports.ts       Repository port interfaces (knowledge, candidate, auth, team, etc.)
-    queue-ports.ts      Task queue and outbox port interfaces
-    retrieval-ports.ts  Retrieval query and read-model ports
-    actor-ports.ts      Session lookup, team lookup, permission check ports
-    audit-ports.ts      Audit log and metrics ports
-    internal-ports.ts   Internal service invocation ports (identity, knowledge, candidates, etc.)
+    repo-ports.ts       仓储端口接口（knowledge, candidate, auth, team 等）
+    queue-ports.ts      任务队列和 outbox 端口接口
+    retrieval-ports.ts  检索查询和读模型端口
+    actor-ports.ts      会话查找、团队查找、权限检查端口
+    audit-ports.ts      审计日志和指标端口
+    internal-ports.ts   内部服务调用端口（identity, knowledge, candidates 等）
+    discovery-ports.ts  服务发现端口接口
+    lifecycle-ports.ts  生命周期钩子抽象（init, ready, shutdown, health-check）
+    telemetry-ports.ts  遥测端口接口（metrics, tracing, structured logging）
+  discovery/
+    index.ts            CachedDiscovery, RoundRobinSelector, cache options
   use-cases/
-    command-handling.ts  Command pattern with result type
-    review-flows.ts     Review decision and queue orchestration
-    retrieval-orchestration.ts  Retrieval search orchestration
-    job-scheduling.ts   Async job scheduling patterns
+    command-handling.ts  命令模式与结果类型
+    review-flows.ts     评审决策与队列编排
+    retrieval-orchestration.ts  检索搜索编排
+    job-scheduling.ts   异步任务调度模式
   invocation/
-    invocation-model.ts  Sync/async invocation contracts and error taxonomy
-    invocation-config.ts Internal service routing configuration
+    invocation-model.ts  同步/异步调用契约和错误分类
+    invocation-config.ts 内部服务路由配置
   testing/
-    test-utils.ts       Stub implementations of all ports
+    test-utils.ts       所有端口的桩实现
 ```
 
-## Usage
+## 使用
 
-### Import everything from the main entry:
+### 从主入口导入所有内容：
 
 ```typescript
 import {
@@ -61,7 +68,7 @@ import {
 } from '@trapmap/backend-core';
 ```
 
-### Import from subpaths:
+### 从子路径导入：
 
 ```typescript
 import { resolveRuntimeDeployment } from '@trapmap/backend-core/runtime';
@@ -72,7 +79,7 @@ import { InvocationError } from '@trapmap/backend-core/invocation';
 import { createStubRepositoryPorts } from '@trapmap/backend-core/testing';
 ```
 
-### Resolve deployment configuration:
+### 解析部署配置：
 
 ```typescript
 const deployment = resolveRuntimeDeployment({
@@ -83,7 +90,7 @@ const deployment = resolveRuntimeDeployment({
 // deployment.capabilities.routeSurface === 'gateway-core'
 ```
 
-### Wire a module with stubs for testing:
+### 使用桩实现组装模块进行测试：
 
 ```typescript
 import { createStubAuditLog, createStubKnowledgeRepository } from '@trapmap/backend-core/testing';

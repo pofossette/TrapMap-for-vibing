@@ -1369,6 +1369,6 @@ trapmap operations capsule-index cleanup-orphans --json | jq .removed
 ## 相关文档
 
 - [模块详解](../architecture/MODULES.md) — 系统模块架构和设计
-- [API 参考 — 检索端点](../architecture/API.md#检索端点) — 检索算法和模式
+- [API 参考 — 候选重复检索](../architecture/API.md#候选重复检索) — 检索算法和模式
 - [安全指南](SECURITY.md) — RBAC 和安全等级
 - [环境变量参考](ENVIRONMENT.md) — 测试相关环境变量

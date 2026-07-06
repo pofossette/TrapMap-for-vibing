@@ -86,7 +86,7 @@ fm-agent 原始报告（391 已确认发现）经过当前 HEAD 审计回写后�
 | `src/config.ts` | `src/config.test.ts` | 已修复：`CORS_ORIGINS=\"\"` 解析为空数组 |
 | `src/lib/ai/dynamic/context-resolver.ts` | `src/lib/ai/dynamic/context-resolver.test.ts` | 已文档化边界：当前返回显式 `unavailable` MCP 状态，而不是伪装为已接通 |
 | `src/lib/ai/provider-config.ts` | `src/lib/ai/provider-config.test.ts` | 已修复：provider-specific API key 优先于通用 `AI_API_KEY` |
-| `src/lib/artifacts/pg-repository/index.ts` | `src/lib/artifacts/pg-repository/*.test.ts` | 已修复：`updateLifecycle()` 返回值会追加最新 lifecycle event |
+| `src/lib/artifacts/pg-repository/index.ts` | `src/lib/artifacts/pg-repository.round4.*.test.ts` | 已修复：`updateLifecycle()` 返回值会追加最新 lifecycle event |
 | `src/lib/lifecycle/subscribers/audit.ts` | `src/lib/lifecycle/subscribers/subscribers.test.ts` | 已修复：审计日志记录整个 event 对象 |
 
 > 完整回写见 `docs/plans/fm-agent-scan/server-live-gap-matrix.md`。2026-05-29 审计后，该矩阵不再记录 current-live finding。

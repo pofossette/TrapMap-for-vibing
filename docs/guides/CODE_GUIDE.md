@@ -351,7 +351,7 @@ CLI retrieval search "如何处理 N+1"
 
 ---
 
-For package-local navigation, read:
+如需查阅包内导航，请参阅：
 
 - `packages/server/src/lib/README.md`
 - `packages/server/src/routes/README.md`

@@ -1,39 +1,31 @@
 # @trapmap/client-core
 
-Shared gateway transport layer for TrapMap clients.
+TrapMap 客户端共享的网关传输层。
 
-## Purpose
+## 目的
 
-This package contains the HTTP gateway SDK extracted from `packages/cli` so that
-multiple clients (CLI, future web panel) can share the same request, error, and
-session contract without depending on CLI-specific state management or Node.js
-APIs.
+本包包含从 `packages/cli` 中提取的 HTTP 网关 SDK，使多个客户端（CLI、未来的 Web 面板）可以共享相同的请求、错误和会话契约，而无需依赖 CLI 特定的状态管理或 Node.js API。
 
-## Design Principles
+## 设计原则
 
-1. **Browser-compatible** -- uses only the standard `fetch` API.
-2. **No CLI dependencies** -- does not import from `@trapmap/cli` or
-   reference `CliState`.
-3. **Explicit injection** -- all dependencies (base URL, session token)
-   are supplied via the `SessionProvider` interface.
-4. **Minimal surface** -- exports only what is needed for gateway
-   communication.
-5. **Gateway-only contract** -- client-side backend shape hints such as
-   `backendTarget` stay above this package; `client-core` never grows
-   internal-service discovery or a second URL model.
+1. **兼容浏览器** -- 仅使用标准 `fetch` API。
+2. **无 CLI 依赖** -- 不从 `@trapmap/cli` 导入，也不引用 `CliState`。
+3. **显式注入** -- 所有依赖项（基础 URL、会话令牌）均通过 `SessionProvider` 接口提供。
+4. **最小接口** -- 仅导出网关通信所需的内容。
+5. **仅网关契约** -- 客户端后端形状提示（如 `backendTarget`）保留在本包之上；`client-core` 不会扩展内部服务发现或第二种 URL 模型。
 
-## Exports
+## 导出
 
-| Export | Kind | Description |
-|--------|------|-------------|
-| `apiRequest` | function | Execute a typed HTTP request against the gateway |
-| `ApiError` | class | Unified gateway error with status code and payload |
-| `SessionProvider` | interface | Contract for resolving URL and credentials |
-| `ApiResponse<T>` | type | Wrapper returned on success |
-| `RequestOptions` | type | Per-request options (path, method, body, overrides) |
-| `HttpMethod` | type | `'GET' \| 'POST' \| 'PATCH'` -- supported HTTP verbs |
+| 导出 | 类型 | 描述 |
+|------|------|------|
+| `apiRequest` | function | 对网关执行类型化的 HTTP 请求 |
+| `ApiError` | class | 统一的网关错误，包含状态码和响应体 |
+| `SessionProvider` | interface | 用于解析 URL 和凭据的契约 |
+| `ApiResponse<T>` | type | 成功时返回的包装类型 |
+| `RequestOptions` | type | 每次请求的选项（路径、方法、请求体、覆盖项） |
+| `HttpMethod` | type | `'GET' \| 'POST' \| 'PATCH'` -- 支持的 HTTP 方法 |
 
-## Usage
+## 用法
 
 ```typescript
 import type { SessionProvider } from '@trapmap/client-core';
@@ -41,7 +33,7 @@ import { apiRequest } from '@trapmap/client-core';
 
 const provider: SessionProvider = {
   getBaseUrl: () => 'http://127.0.0.1:4000',
-  getSessionToken: () => storedToken,       // null when unauthenticated
+  getSessionToken: () => storedToken,       // null 表示未认证
 };
 
 const { data, sessionToken } = await apiRequest(provider, {
@@ -50,11 +42,9 @@ const { data, sessionToken } = await apiRequest(provider, {
 });
 ```
 
-### Error handling
+### 错误处理
 
-`apiRequest` throws `ApiError` for non-OK responses and for invalid JSON. The
-error carries the HTTP status code, a payload (parsed body or raw text), and a
-human-readable message.
+`apiRequest` 在收到非 OK 响应或 JSON 无效时抛出 `ApiError`。错误携带 HTTP 状态码、响应体（已解析的 body 或原始文本）以及可读的消息。
 
 ```typescript
 import { ApiError, apiRequest } from '@trapmap/client-core';
@@ -63,10 +53,10 @@ try {
   const { data } = await apiRequest(provider, { path: '/v1/knowledge' });
 } catch (error) {
   if (error instanceof ApiError) {
-    console.error(`Gateway error ${error.statusCode}: ${error.message}`);
-    // error.payload contains the parsed response body (or { rawBody } on 502)
+    console.error(`网关错误 ${error.statusCode}: ${error.message}`);
+    // error.payload 包含已解析的响应体（502 时为 { rawBody }）
   } else {
-    throw error; // network failure or unexpected error
+    throw error; // 网络故障或意外错误
   }
 }
 ```

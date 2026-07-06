@@ -1,74 +1,74 @@
 # @trapmap/service-governance-review
 
-Shared governance review service module for host assemblies.
+用于 host 组装的共享治理审查服务模块。
 
-## Owner Boundary
+## 边界归属
 
-`governance-review` owns the governance command pipeline: review decisions, feedback, remediation, and maintenance/decay workbench flow. It **does not** own final knowledge aggregate mutation.
+`governance-review` 拥有治理命令管线：审查决策、反馈、修复以及维护/衰减工作台流程。它**不**拥有最终知识聚合体的变更操作。
 
-- **Data owner**: `review-queue`, `feedback-record`, `remediation-workbench`, `maintenance-decay-workbench`, `governance-audit`
-- **Projection owner**: `review-queue-projection`, `feedback-operator-projection`, `maintenance-decay-operator-projection`
-- **Does not own**: `knowledge-aggregate-final-mutation`, `knowledge-lifecycle-authoritative-tables`, `retrieval-read-projection`
+- **数据归属**: `review-queue`, `feedback-record`, `remediation-workbench`, `maintenance-decay-workbench`, `governance-audit`
+- **投影归属**: `review-queue-projection`, `feedback-operator-projection`, `maintenance-decay-operator-projection`
+- **不归属**: `knowledge-aggregate-final-mutation`, `knowledge-lifecycle-authoritative-tables`, `retrieval-read-projection`
 
-### Sync Boundary
+### 同步边界
 
-`governance-review` only owns governance command receipt, eligibility checks, flow interpretation, and audit logging. Any final knowledge aggregate mutation must be delegated through `KnowledgeWritePort`. A local fallback that writes knowledge aggregates directly is **not allowed**.
+`governance-review` 仅拥有治理命令接收、资格检查、流程解释和审计日志。任何最终知识聚合体变更必须通过 `KnowledgeWritePort` 委托执行。**不允许**本地回退直接写入知识聚合体。
 
-### Async Boundary
+### 异步边界
 
-Follow-up actions after approve/reject/maintenance/decay (retrieval projection refresh, artifact follow-up, remediation draft, badcase export draft) enter the outbox/queue/workflow as async follow-up and never return to the synchronous command path. `job-runtime` owns queue/outbox/workflow transport, lease, reclaim, and dead-letter runtime.
+批准/拒绝/维护/衰减之后的后续操作（检索投影刷新、制品跟进、修复草案、坏用例导出草案）进入 outbox/queue/workflow 作为异步后续处理，不再返回同步命令路径。`job-runtime` 拥有队列/outbox/workflow 的传输、租约、回收和死信运行时。
 
-## Command Surface
+## 命令接口
 
-The frozen delegation command surface that `governance-review` invokes against `knowledge-write`:
+`governance-review` 对 `knowledge-write` 调用的冻结委托命令接口：
 
 - `approve` -> `KnowledgeWritePort.approveReviewDecision`
 - `reject` -> `KnowledgeWritePort.rejectReviewDecision`
 - `applyMaintenance` -> `KnowledgeWritePort.applyMaintenanceDecision`
 - `applyDecay` -> `KnowledgeWritePort.applyDecayDecision`
-- `reviewArtifact` (local artifact review)
-- `submitFeedback` (local feedback record creation)
+- `reviewArtifact`（本地制品审查）
+- `submitFeedback`（本地反馈记录创建）
 
-Candidate publish is owned by `candidate-ingestion` but also flows through `KnowledgeWritePort.publishCandidateResult`; `governance-review` does not own this path.
+候选发布由 `candidate-ingestion` 拥有，但也通过 `KnowledgeWritePort.publishCandidateResult` 流转；`governance-review` 不拥有此路径。
 
-## Failure Semantics
+## 故障语义
 
-`governance-review` and `knowledge-write` share a single `InvocationError` taxonomy. HTTP status codes are mapped consistently across gateway, governance-review, and knowledge-write:
+`governance-review` 和 `knowledge-write` 共享统一的 `InvocationError` 分类体系。HTTP 状态码在 gateway、governance-review 和 knowledge-write 之间保持一致映射：
 
-- `403 forbidden` - actor lacks governance eligibility or permission for this command
-- `404 not-found` - target entry/candidate/artifact does not exist, or owner cannot locate canonical aggregate
-- `409 conflict` - state conflict, duplicate application, or lifecycle precondition not met
-- `503 unavailable` - owner service or a critical dependency is currently unavailable; preserves `unavailable` semantics
-- `504 timeout` - cross-owner call timed out; preserves `timeout` semantics
-- `401` remains a gateway/auth transport concern and does not enter the inter-owner failure taxonomy
+- `403 forbidden` - 行为主体缺乏治理资格或该命令的权限
+- `404 not-found` - 目标条目/候选/制品不存在，或归属方无法定位规范聚合体
+- `409 conflict` - 状态冲突、重复应用或生命周期前置条件未满足
+- `503 unavailable` - 归属服务或关键依赖当前不可用；保持 `unavailable` 语义
+- `504 timeout` - 跨归属方调用超时；保持 `timeout` 语义
+- `401` 仍属于 gateway/认证传输层关注点，不进入跨归属方故障分类
 
-Idempotency keys use `teamId + commandName + clientRequestId` (or equivalent canonical key). Retry replays the same command contract without rewriting the business payload. Dead-letter operator action is either requeue/replay or declaring the event expired; "retry-and-hope" is not allowed.
+幂等键使用 `teamId + commandName + clientRequestId`（或等效的规范键）。重放操作重复相同的命令契约而不重写业务负载。死信操作员的动作只能是重新排队/重放或声明事件过期；不允许"重试并祈祷"。
 
-## Health / Readiness / Ownership Endpoints
+## 健康检查 / 就绪性 / 归属端点
 
-- `GET /internal/health` - basic liveness with owner declaration
-- `GET /internal/readiness` - dependency reachability (optionally checks delegation target), reports `finalAggregateMutation: 'delegated-to-knowledge-write'` and `followUpDisposition: 'outbox-queue-workflow-async'`
-- `GET /internal/ownership` - full static owner declaration (data/projection ownership, doesNotOwn list, command surface, delegateTo target)
+- `GET /internal/health` - 带归属声明的基本存活检查
+- `GET /internal/readiness` - 依赖可达性（可选检查委托目标），报告 `finalAggregateMutation: 'delegated-to-knowledge-write'` 和 `followUpDisposition: 'outbox-queue-workflow-async'`
+- `GET /internal/ownership` - 完整的静态归属声明（数据/投影归属、doesNotOwn 列表、命令接口、delegateTo 目标）
 
-Operator visibility targets:
+操作员可见性目标：
 
-- **Command-received but final apply not complete**: visible through the governance-review readiness surface and governance-audit log
-- **Final apply complete but follow-up not converged**: visible through knowledge-write readiness surface and job-runtime queue/outbox snapshots
+- **命令已收到但最终应用未完成**: 通过 governance-review 就绪性接口和 governance-audit 日志可见
+- **最终应用已完成但后续未收敛**: 通过 knowledge-write 就绪性接口和 job-runtime 队列/outbox 快照可见
 
-## Compatibility / Delegation Exceptions
+## 兼容性 / 委托例外
 
-- **Shared PostgreSQL (transitional)**: continues to share the PostgreSQL instance with `knowledge-write` and other services, but with explicit schema/table owner. `governance-review` does not treat knowledge aggregate tables as its default write surface.
-- **Named query seam**: if `governance-review` reads knowledge summaries, it does so only through a documented query seam or read-only projection.
+- **共享 PostgreSQL（过渡期）**: 继续与 `knowledge-write` 和其他服务共享 PostgreSQL 实例，但使用显式的 schema/表归属方。`governance-review` 不将知识聚合体表视为其默认写入表面。
+- **命名查询接缝**: 如果 `governance-review` 读取知识摘要，仅通过文档化的查询接缝或只读投影进行。
 
-## Verification
+## 验证
 
-- `rtk pnpm test:distributed-acceptance` - proves multi-process delegation, error mapping, and request/trace propagation
-- `rtk pnpm --filter @trapmap/service-governance-review test --run` - route-level governance and failure semantics
+- `rtk pnpm test:distributed-acceptance` - 验证多进程委托、错误映射和请求/链路传播
+- `rtk pnpm --filter @trapmap/service-governance-review test --run` - 路由级治理和故障语义
 - `rtk pnpm typecheck`
 
-## Related Documentation
+## 相关文档
 
-- Pilot plan: [`docs/todos/nestjs-service-evolution-knowledge-write-governance-review-pilot.md`](../../docs/todos/nestjs-service-evolution-knowledge-write-governance-review-pilot.md)
-- Migration task list: [`docs/todos/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md`](../../docs/todos/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md)
-- Maturity assessment: [`docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md`](../../docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md)
-- Truth sources: [`docs/reference/SYSTEM_TRUTH_SOURCES.md`](../../docs/reference/SYSTEM_TRUTH_SOURCES.md)
+- 试点计划: [`docs/archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-pilot.md`](../../docs/archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-pilot.md)
+- 迁移任务清单: [`docs/archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md`](../../docs/archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md)
+- 成熟度评估: [`docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md`](../../docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md)
+- 真相源: [`docs/reference/SYSTEM_TRUTH_SOURCES.md`](../../docs/reference/SYSTEM_TRUTH_SOURCES.md)

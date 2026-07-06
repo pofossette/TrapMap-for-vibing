@@ -3,7 +3,7 @@
 > **源码真实来源**: `packages/server/src/lib/persistence/schema.ts`
 > **表定义目录**: `packages/server/src/lib/persistence/schema/`
 > **数据模型详情**: `docs/reference/DATA_MODEL.md`
-> **迁移历史**: `packages/server/drizzle/`（当前包含 `0015_phase0_atomic_delivery_and_leases.sql`）
+> **迁移历史**: `packages/server/drizzle/`（当前包含 `0019_phase5_shared_jobs_feedback_remediation.sql`）
 
 ## 技术栈
 
@@ -14,7 +14,7 @@
 | 向量搜索 | pgvector (384 维 HNSW 索引) |
 | 全文搜索 | tsvector + GIN 索引 |
 
-## 表总览 (57 张表)
+## 表总览 (63 张表)
 
 ### 兼容层 (1 表)
 
@@ -121,13 +121,26 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 | `usage_events` | 使用事件 | `id` (text) |
 | `usage_events_daily_rollup` | 日聚合分析 | `id` (identity) |
 
-### 跨域 (3 表)
+### 标签目录域 (4 表) — 规范标签 catalog
+
+> **事实源规则**：`canonical_labels` 为标签身份权威来源；`label_aliases` 记录原始变体映射；`canonical_label_embeddings` 提供向量召回；`label_alignment_events` 为 LLM 对齐审计轨迹。
+
+| 表名 | 用途 | 主键 |
+|------|------|------|
+| `canonical_labels` | 规范标签主表（合并状态 + 可逆合并） | `id` (text) |
+| `label_aliases` | 原始标签变体 → 规范标签映射 | `normalizedAlias` (unique index) |
+| `canonical_label_embeddings` | 规范标签向量嵌入 (pgvector) | `canonical_label_id` (text) |
+| `label_alignment_events` | LLM/手动对齐决策审计 | `id` (text) |
+
+### 跨域 (5 表)
 
 | 表名 | 用途 | 主键 |
 |------|------|------|
 | `task_queue` | 后台任务队列（写路径主入口） | `id` (text) |
 | `domain_event_outbox` | 领域事件 outbox（生命周期事件发布） | `id` (text) |
 | `graph_index_documents` | GraphRAG-lite 图索引文档 | `id` (text) |
+| `workflow_runs` | 工作流运行快照（Phase 3 持久化） | `run_id` (text) |
+| `retrieval_badcase_traces` | 检索坏例 trace（Phase 4 可复现性） | `id` (text) |
 
 ### task_queue 关键索引
 
@@ -407,6 +420,13 @@ feedback_records (1) ──→ (N) feedback_custom_answers       [CASCADE]
 | 10 | `0010_round10_lifecycle_outbox.sql` | 生命周期 outbox 事件表 |
 | 11 | `0011_round10_identity_audit_structural.sql` | 身份域和审计域结构化表（Phase 3） |
 | 12 | `0012_round10_read_model_cleanup.sql` | 相似度精度修复（integer→real）+ skill_artifacts 唯一索引对齐（Phase 4） |
+| 13 | `0013_round10_candidate_analysis_trace.sql` | 候选人 duplicate trace 可观测性（`candidate_analyses.duplicate_trace` JSONB 列） |
+| 14 | `0014_round11_dive_log_columns.sql` | knowledge_entries DiveLog 结构化列（dive_log_id, dive_site, raw_content, parsed_blocks 等） |
+| 15 | `0015_phase0_atomic_delivery_and_leases.sql` | Phase 0: task_queue/domain_event_outbox lease 列（worker_id, started_at, heartbeat_at, lease_until） |
+| 16 | `0016_phase1_async_operator_semantics.sql` | Phase 1: operator read-model 预留槽位（no-op，无额外 schema 对象） |
+| 17 | `0017_phase3_workflow_runs.sql` | Phase 3: workflow_runs 持久化表 + 索引 |
+| 18 | `0018_phase4_query_traceability_and_badcase_capture.sql` | Phase 4: feedback_records 追溯列 + retrieval_badcase_traces 表 |
+| 19 | `0019_phase5_shared_jobs_feedback_remediation.sql` | Phase 5: feedback_records remediation 状态列 + CHECK 约束 |
 
 ## 相关文档
 

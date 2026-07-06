@@ -1,123 +1,123 @@
-# Database Ownership Rules
+# 数据库所有权规则
 
-> Frozen by Task 00 of the runtime recomposition plan. This document defines table-level ownership, transaction boundary rules, and Phase 1 constraints for the shared PostgreSQL database.
+> 由运行时重组计划 Task 00 冻结。本文档定义表级所有权、事务边界规则以及共享 PostgreSQL 数据库在 Phase 1 的约束。
 
-## Status
+## 状态
 
-- Phase: 1 (shared PostgreSQL, explicit ownership)
-- Supersedes any implicit "everyone writes everything" convention
+- 阶段：Phase 1（共享 PostgreSQL，显式所有权）
+- 取代任何隐式的"所有服务均可写入所有表"的惯例
 
-## Guiding Principles
+## 指导原则
 
-1. **One authoritative writer per table.** No authoritative table should have more than one owning service responsible for writes.
-2. **Shared database is not shared write permission.** Even though all services connect to the same PostgreSQL instance, table-level write ownership is strictly enforced at the module boundary.
-3. **Cross-service consistency via outbox, not distributed transactions.** Phase 1 does not introduce cross-database distributed transactions or two-phase commit.
-4. **Read-side state is derived.** Projections, caches, and search indexes are derived from events emitted by write-side services. They can be rebuilt.
+1. **每张表只有一个权威写入者。** 任何权威表不应拥有超过一个负责写入的所属服务。
+2. **共享数据库不等于共享写权限。** 即使所有服务连接到同一个 PostgreSQL 实例，表级写入所有权在模块边界处被严格执行。
+3. **跨服务一致性通过 outbox 实现，而非分布式事务。** Phase 1 不引入跨数据库的分布式事务或两阶段提交。
+4. **读侧状态是派生的。** 投影、缓存和搜索索引由写侧服务发出的事件派生而来，可以被重建。
 
-## Table-Level Ownership
+## 表级所有权
 
-### identity-access (write-only)
+### identity-access（仅写入）
 
-The `identity-access` service owns the following tables for all authoritative writes:
+`identity-access` 服务拥有以下表的所有权威写入权限：
 
-| Table family | Examples | Ownership |
+| 表族 | 示例 | 所有权 |
 |---|---|---|
-| Auth / session | `sessions`, session-related tables | `identity-access` write |
-| Access keys | `access_keys`, `pg_access_keys` | `identity-access` write |
-| Users | `users`, `pg_users` | `identity-access` write |
-| Teams | `teams`, `pg_teams` | `identity-access` write |
-| Memberships | `memberships`, `pg_memberships` | `identity-access` write |
+| 认证/会话 | `sessions` 及会话相关表 | `identity-access` 写入 |
+| 访问密钥 | `access_keys`、`pg_access_keys` | `identity-access` 写入 |
+| 用户 | `users`、`pg_users` | `identity-access` 写入 |
+| 团队 | `teams`、`pg_teams` | `identity-access` 写入 |
+| 成员关系 | `memberships`、`pg_memberships` | `identity-access` 写入 |
 
-Other services may read these tables through the `IdentityAccessPort` defined in `backend-core`. No other service writes to these tables directly.
+其他服务可通过 `backend-core` 中定义的 `IdentityAccessPort` 读取这些表。其他任何服务不得直接写入这些表。
 
-### knowledge-write (write-only)
+### knowledge-write（仅写入）
 
-The `knowledge-write` service owns the following tables for all authoritative writes:
+`knowledge-write` 服务拥有以下表的所有权威写入权限：
 
-| Table family | Examples | Ownership |
+| 表族 | 示例 | 所有权 |
 |---|---|---|
-| Knowledge entries | `knowledge_entries`, `knowledge_labels`, `knowledge_boundary_*`, `knowledge_maintenance_assignments` | `knowledge-write` write |
-| Knowledge revisions | `knowledge_revisions` | `knowledge-write` write |
-| Lifecycle events | `lifecycle_events` | `knowledge-write` write |
-| Skill artifacts | `skill_artifacts`, `artifact_revisions`, `skill_artifact_*` (metadata, files, script descriptors, profiles, capsules, client manifests, boundary, maintenance, agent reviews) | `knowledge-write` write |
-| Artifact lifecycle events | `artifact_lifecycle_events` | `knowledge-write` write |
-| Decay metadata | decay state columns, decay config | `knowledge-write` write |
-| Evidence | evidence metadata tables | `knowledge-write` write |
-| Feedback | `feedback` tables | `knowledge-write` write |
+| 知识条目 | `knowledge_entries`、`knowledge_labels`、`knowledge_boundary_*`、`knowledge_maintenance_assignments` | `knowledge-write` 写入 |
+| 知识修订 | `knowledge_revisions` | `knowledge-write` 写入 |
+| 生命周期事件 | `lifecycle_events` | `knowledge-write` 写入 |
+| 技能制品 | `skill_artifacts`、`artifact_revisions`、`skill_artifact_*`（元数据、文件、脚本描述符、配置文件、胶囊、客户端清单、边界、维护、Agent 审查） | `knowledge-write` 写入 |
+| 制品生命周期事件 | `artifact_lifecycle_events` | `knowledge-write` 写入 |
+| 衰减元数据 | 衰减状态列、衰减配置 | `knowledge-write` 写入 |
+| 证据 | 证据元数据表 | `knowledge-write` 写入 |
+| 反馈 | `feedback` 表 | `knowledge-write` 写入 |
 
-Other services may read these tables through internal ports. If `candidate-ingestion` needs to publish a new knowledge entry, or `governance-review` needs to approve/reject/apply maintenance/apply decay, they do so via the remote `KnowledgeWritePort` command surface. They do not write `knowledge_entries`, lifecycle tables, or maintenance/decay truth tables directly.
+其他服务可通过内部端口读取这些表。如果 `candidate-ingestion` 需要发布新的知识条目，或 `governance-review` 需要批准/拒绝/应用维护/应用衰减，它们通过远程 `KnowledgeWritePort` 命令表面执行。它们不会直接写入 `knowledge_entries`、生命周期表或维护/衰减事实表。
 
-### candidate-ingestion (write-only)
+### candidate-ingestion（仅写入）
 
-The `candidate-ingestion` service owns the following tables for all authoritative writes:
+`candidate-ingestion` 服务拥有以下表的所有权威写入权限：
 
-| Table family | Examples | Ownership |
+| 表族 | 示例 | 所有权 |
 |---|---|---|
-| Candidates | `candidates` | `candidate-ingestion` write |
-| Candidate analyses | `candidate_analyses` | `candidate-ingestion` write |
-| Candidate manual results | `candidate_manual_results` | `candidate-ingestion` write |
-| Candidate resolution outcomes | `candidate_resolution_outcomes` | `candidate-ingestion` write |
-| Duplicate cases | `candidate_duplicate_cases`, `candidate_duplicate_matches` | `candidate-ingestion` write |
-| Entity lineage | `entity_lineage` | `candidate-ingestion` write |
+| 候选项 | `candidates` | `candidate-ingestion` 写入 |
+| 候选分析 | `candidate_analyses` | `candidate-ingestion` 写入 |
+| 候选手动结果 | `candidate_manual_results` | `candidate-ingestion` 写入 |
+| 候选解决结果 | `candidate_resolution_outcomes` | `candidate-ingestion` 写入 |
+| 重复案例 | `candidate_duplicate_cases`、`candidate_duplicate_matches` | `candidate-ingestion` 写入 |
+| 实体谱系 | `entity_lineage` | `candidate-ingestion` 写入 |
 
-When candidate resolution produces a published entity (knowledge entry or skill artifact), the write to the target domain table is performed by the owning service (`knowledge-write`), not by `candidate-ingestion`.
+当候选项解析产生已发布实体（知识条目或技能制品）时，对目标领域表的写入由所属服务（`knowledge-write`）执行，而非 `candidate-ingestion`。
 
-### governance-review (write-only)
+### governance-review（仅写入）
 
-The `governance-review` service owns the following tables for all authoritative writes:
+`governance-review` 服务拥有以下表的所有权威写入权限：
 
-| Table family | Examples | Ownership |
+| 表族 | 示例 | 所有权 |
 |---|---|---|
-| Human intervention queues | review queue state tables | `governance-review` write |
-| Review workbench state | workbench session tables | `governance-review` write |
-| Conflict resolution state | conflict detection and resolution tables | `governance-review` write |
-| Remediation queue state | remediation task tables, suppression state | `governance-review` write |
+| 人工干预队列 | 审查队列状态表 | `governance-review` 写入 |
+| 审查工作台状态 | 工作台会话表 | `governance-review` 写入 |
+| 冲突解决状态 | 冲突检测和解决表 | `governance-review` 写入 |
+| 补救队列状态 | 补救任务表、抑制状态 | `governance-review` 写入 |
 
-`governance-review` does not directly modify knowledge lifecycle truth tables. When a review decision changes a knowledge entry's lifecycle state, or when maintenance / decay changes the final knowledge aggregate state, the decision flows through the remote `KnowledgeWritePort` command, and `knowledge-write` performs the authoritative mutation.
+`governance-review` 不直接修改知识生命周期事实表。当审查决策改变知识条目的生命周期状态，或当维护/衰减改变最终知识聚合状态时，决策通过远程 `KnowledgeWritePort` 命令流转，由 `knowledge-write` 执行权威变更。
 
-### job-runtime (write-only)
+### job-runtime（仅写入）
 
-The `job-runtime` service owns the following tables for all authoritative writes:
+`job-runtime` 服务拥有以下表的所有权威写入权限：
 
-| Table family | Examples | Ownership |
+| 表族 | 示例 | 所有权 |
 |---|---|---|
-| Task queue | `task_queue` | `job-runtime` write |
-| Workflow runs | `workflow_runs` | `job-runtime` write |
-| Outbox dispatch runtime | `domain_event_outbox`, outbox processing state | `job-runtime` write |
-| Lease / reclaim metadata | task lease, reclaim counters, dead-letter state | `job-runtime` write |
+| 任务队列 | `task_queue` | `job-runtime` 写入 |
+| 工作流运行 | `workflow_runs` | `job-runtime` 写入 |
+| Outbox 调度运行时 | `domain_event_outbox`、outbox 处理状态 | `job-runtime` 写入 |
+| 租约/回收元数据 | 任务租约、回收计数器、死信状态 | `job-runtime` 写入 |
 
-`job-runtime` does not own any business domain truth tables. It only executes work dispatched by other services and manages the runtime machinery for task lifecycle, retries, and dead-letter handling.
+`job-runtime` 不拥有任何业务领域事实表。它仅执行由其他服务分派的工作，并管理任务生命周期、重试和死信处理的运行时机制。
 
-### knowledge-read (read-only projections)
+### knowledge-read（只读投影）
 
-The `knowledge-read` service does NOT own any authoritative truth tables. It may own:
+`knowledge-read` 服务不拥有任何权威事实表。它可能拥有：
 
-| Table family | Examples | Ownership |
+| 表族 | 示例 | 所有权 |
 |---|---|---|
-| Read-only projections | materialized views, denormalized read models | `knowledge-read` write (derived only) |
-| Cache tables | external cache index metadata | `knowledge-read` write (derived only) |
-| Search index tables | `knowledge_embeddings`, `knowledge_keywords`, `knowledge_search_documents`, `graph_index_documents` | `knowledge-read` write (derived only) |
-| Query trace read-side | `retrieval_badcase_traces`, query analytics | `knowledge-read` write (derived only) |
+| 只读投影 | 物化视图、反规范化读模型 | `knowledge-read` 写入（仅派生） |
+| 缓存表 | 外部缓存索引元数据 | `knowledge-read` 写入（仅派生） |
+| 搜索索引表 | `knowledge_embeddings`、`knowledge_keywords`、`knowledge_search_documents`、`graph_index_documents` | `knowledge-read` 写入（仅派生） |
+| 查询追踪读侧 | `retrieval_badcase_traces`、查询分析 | `knowledge-read` 写入（仅派生） |
 
-These tables are derived from events emitted by `knowledge-write` and other authoritative services. They can be rebuilt from the authoritative source at any time.
+这些表由 `knowledge-write` 和其他权威服务发出的事件派生而来，可随时从权威来源重建。
 
-## Read Access Rules
+## 读取访问规则
 
-- Any service may read tables it owns.
-- For tables owned by another service, reading must go through the appropriate internal port (defined in `backend-core`) rather than direct table access. Exception: during Phase 1, while services still share a single `packages/server` codebase, direct reads are permitted but must be documented at the call site with a comment: `// PHASE-1-TEMPORARY: direct read from <table>; replace with projection read after Phase 2`
-- `knowledge-read` may read directly from authoritative tables during Phase 1 and the Phase 2 boundary-close posture, but only for explicitly declared temporary direct-backed projections surfaced by `GET /internal/knowledge-read/projection-status` or its gateway-forwarded mirror at `GET /v1/knowledge/projection-status`. Retrieval/search/query-trace surfaces are not covered by this allowance.
-- `governance-review` owns review queue, maintenance operator views, and decay workbench reads. If a governance-facing read still needs shared authoritative state in Phase 2, it must be documented as a temporary direct-backed operator projection rather than being folded into `knowledge-read`.
+- 任何服务可以读取其自身拥有的表。
+- 对于其他服务拥有的表，读取必须通过适当的内部端口（在 `backend-core` 中定义），而非直接访问表。例外：在 Phase 1 期间，当服务仍共享单一 `packages/server` 代码库时，允许直接读取，但必须在调用处添加注释记录：`// PHASE-1-TEMPORARY: direct read from <table>; replace with projection read after Phase 2`
+- `knowledge-read` 在 Phase 1 和 Phase 2 边界关闭姿态期间可以直接读取权威表，但仅限于通过 `GET /internal/knowledge-read/projection-status` 或其网关转发镜像 `GET /v1/knowledge/projection-status` 声明的临时直接支持投影。检索/搜索/查询追踪表面不在此许可范围内。
+- `governance-review` 拥有审查队列、维护操作员视图和衰减工作台读取。如果治理侧读取在 Phase 2 仍需要共享权威状态，必须记录为临时直接支持的操作员投影，而非并入 `knowledge-read`。
 
-## Transaction Boundary Rules
+## 事务边界规则
 
-### Single-service transaction
+### 单服务事务
 
-Each owning service may use a local PostgreSQL transaction to guarantee atomicity of:
+每个所属服务可使用本地 PostgreSQL 事务保证以下操作的原子性：
 
-- Authoritative write (e.g., insert a new knowledge entry)
-- Local outbox write (e.g., append a lifecycle transition event to `domain_event_outbox`)
+- 权威写入（例如，插入新的知识条目）
+- 本地 outbox 写入（例如，向 `domain_event_outbox` 追加生命周期转换事件）
 
-Both operations commit or roll back together. This is the primary consistency mechanism.
+两个操作一起提交或回滚。这是主要的一致性机制。
 
 ```
 BEGIN;
@@ -126,14 +126,14 @@ BEGIN;
 COMMIT;
 ```
 
-### Cross-service flow
+### 跨服务流程
 
-Multiple services' writes MUST NOT be wrapped in a single cross-service database transaction. Cross-service flows follow this pattern:
+多个服务的写入不得包装在单一的跨服务数据库事务中。跨服务流程遵循以下模式：
 
-1. **Authoritative write**: the owning service writes to its authoritative table and appends to its local outbox in a single transaction.
-2. **Outbox append**: the outbox event is committed atomically with the authoritative write.
-3. **Async delivery**: `job-runtime` picks up the outbox event and delivers it to the target service.
-4. **Projection / follow-up**: the target service processes the event and updates its own state (projection table, cache invalidation, command dispatch to another owning service).
+1. **权威写入**：所属服务写入其权威表，并在单一事务中追加到其本地 outbox。
+2. **Outbox 追加**：outbox 事件与权威写入原子提交。
+3. **异步投递**：`job-runtime` 拾取 outbox 事件并投递给目标服务。
+4. **投影/后续处理**：目标服务处理事件并更新自身状态（投影表、缓存失效、向另一个所属服务分派命令）。
 
 ```
 Service A:  BEGIN; write_authoritative; append_outbox; COMMIT;
@@ -143,78 +143,78 @@ job-runtime:     pick up outbox event → deliver to Service B
 Service B:  BEGIN; update_projection; append_own_outbox; COMMIT;
 ```
 
-### Sync query + async follow-up
+### 同步查询 + 异步后续
 
-Gateway or sync callers receive an immediate response indicating "received / authorized / written" after the authoritative write commits. Callers MUST NOT assume that:
+网关或同步调用方在权威写入提交后收到"已接收/已授权/已写入"的即时响应。调用方不得假设：
 
-- Projections have been updated
-- Cache invalidation has completed
-- Governance side effects have been processed
-- Read-side indexes reflect the latest write
+- 投影已更新
+- 缓存失效已完成
+- 治理副作用已处理
+- 读侧索引反映最新写入
 
-This is by design. The sync response guarantees durability of the authoritative write; the async follow-up guarantees eventual consistency of derived state.
+这是设计如此。同步响应保证权威写入的持久性；异步后续保证派生状态的最终一致性。
 
-### Prohibited patterns
+### 禁止的模式
 
-| Pattern | Why prohibited |
+| 模式 | 禁止原因 |
 |---|---|
-| Cross-service BEGIN/COMMIT spanning multiple services | Violates service ownership boundary; creates hidden coupling |
-| Service A directly writing to Service B's authoritative table | Violates single-writer ownership rule |
-| Assuming projection is up-to-date after sync write returns | Violates async follow-up contract |
-| Using shared database connection as implicit distributed transaction | No isolation between services; rollback semantics are undefined |
+| 跨服务 BEGIN/COMMIT 跨越多个服务 | 违反服务所有权边界；产生隐式耦合 |
+| Service A 直接写入 Service B 的权威表 | 违反单一写入者所有权规则 |
+| 假设同步写入返回后投影已是最新 | 违反异步后续契约 |
+| 使用共享数据库连接作为隐式分布式事务 | 服务间无隔离；回滚语义未定义 |
 
-## Phase 1 Constraints
+## Phase 1 约束
 
-1. **Shared PostgreSQL**: all services connect to the same `TRAPMAP_DATABASE_URL`. This is a temporary arrangement; it does not imply shared write permission.
-2. **No distributed transactions**: no two-phase commit, no XA transactions, no cross-service `BEGIN`/`COMMIT`.
-3. **Outbox is the cross-service consistency mechanism**: all cross-service state propagation goes through outbox + queue + async delivery.
-4. **Ownership enforced at module boundary**: even though services share a database connection, each service's repository layer must only access its owned tables for writes.
-5. **Projection rebuild is permitted**: `knowledge-read` can rebuild its projection tables from authoritative events at any time. This is the recovery mechanism for derived state.
+1. **共享 PostgreSQL**：所有服务连接到同一个 `TRAPMAP_DATABASE_URL`。这是临时安排，不意味着共享写权限。
+2. **无分布式事务**：无两阶段提交、无 XA 事务、无跨服务 `BEGIN`/`COMMIT`。
+3. **Outbox 是跨服务一致性机制**：所有跨服务状态传播通过 outbox + 队列 + 异步投递实现。
+4. **所有权在模块边界执行**：即使服务共享数据库连接，每个服务的仓库层在写入时只能访问其拥有的表。
+5. **允许投影重建**：`knowledge-read` 可随时从权威事件重建其投影表。这是派生状态的恢复机制。
 
-## Database Access Pattern Summary
+## 数据库访问模式总结
 
-| Service | Authoritative writes | Reads own tables | Reads other services' tables |
+| 服务 | 权威写入 | 读取自身表 | 读取其他服务的表 |
 |---|---|---|---|
-| `identity-access` | auth, session, access-key, user, team, membership | Yes | Via `IdentityAccessPort` |
-| `knowledge-write` | knowledge, artifact, lifecycle, decay, maintenance, evidence, feedback | Yes | Via internal ports |
-| `candidate-ingestion` | candidate, duplicate case, lineage | Yes | Via remote `KnowledgeWritePort` for publishing |
-| `governance-review` | review queue, workbench, conflict, remediation | Yes | Via remote `KnowledgeWritePort` for approve/reject/maintenance/decay |
-| `job-runtime` | task queue, workflow runs, outbox | Yes | Via internal ports (for event delivery) |
-| `knowledge-read` | projections, search indexes, query traces (derived only) | Yes | Phase 2: only explicitly declared temporary direct-backed entry projections may direct-read; retrieval/search/query-trace stay derived |
+| `identity-access` | 认证、会话、访问密钥、用户、团队、成员关系 | 是 | 通过 `IdentityAccessPort` |
+| `knowledge-write` | 知识、制品、生命周期、衰减、维护、证据、反馈 | 是 | 通过内部端口 |
+| `candidate-ingestion` | 候选、重复案例、谱系 | 是 | 通过远程 `KnowledgeWritePort` 发布 |
+| `governance-review` | 审查队列、工作台、冲突、补救 | 是 | 通过远程 `KnowledgeWritePort` 批准/拒绝/维护/衰减 |
+| `job-runtime` | 任务队列、工作流运行、outbox | 是 | 通过内部端口（事件投递） |
+| `knowledge-read` | 投影、搜索索引、查询追踪（仅派生） | 是 | Phase 2：仅显式声明的临时直接支持条目投影可直接读取；检索/搜索/查询追踪保持派生 |
 
-## Future Database Evolution
+## 未来数据库演进
 
-### Phase 2: Shared schema hygiene
+### Phase 2：共享模式卫生
 
-- Clear table grouping and naming conventions per owning service
-- Explicit documentation of which service may write to which table
-- Schema migration ownership: each service's migrations only touch its owned tables
+- 按所属服务进行清晰的表分组和命名规范
+- 明确记录哪个服务可写入哪张表
+- 模式迁移所有权：每个服务的迁移仅涉及其拥有的表
 
-### Phase 3: Projection hardening
+### Phase 3：投影加固
 
-- Read-side projections, governance queue state, and async runtime state converge to owning services
-- Route-local ad-hoc queries replaced by explicit projection tables
+- 读侧投影、治理队列状态和异步运行时状态收敛到所属服务
+- 路由本地的临时查询被显式投影表替代
 
-### Phase 4: Selective split evaluation
+### Phase 4：选择性拆分评估
 
-Database splitting is evaluated only when one or more of these conditions are met:
+数据库拆分仅在满足以下一个或多个条件时评估：
 
-- A single service requires independent scaling and database hotspots concentrate in that domain
-- A domain requires independent backup / restore / retention policies
-- A domain's access pattern causes stable interference with the main database
-- Security or compliance requirements mandate independent data boundaries
+- 单个服务需要独立扩展，且数据库热点集中在该领域
+- 某领域需要独立的备份/恢复/保留策略
+- 某领域的访问模式对主数据库造成稳定干扰
+- 安全或合规要求强制独立数据边界
 
-Until these thresholds are met, table-level ownership, transaction boundaries, and projection governance are sufficient.
+在达到这些阈值之前，表级所有权、事务边界和投影治理已足够。
 
-## Connection and Capacity Planning
+## 连接与容量规划
 
-- Each service MUST support independent pool size, idle timeout, and statement timeout configuration.
-- `knowledge-read` and `job-runtime` are the highest connection-usage services; monitor first.
-- Do not default to single-connection-pool-per-process values from the monolith era.
+- 每个服务必须支持独立的连接池大小、空闲超时和语句超时配置。
+- `knowledge-read` 和 `job-runtime` 是连接使用量最高的服务；优先监控。
+- 不要默认使用单体时代的单连接池每进程值。
 
-## References
+## 参考资料
 
-- [Target Architecture](TARGET_ARCHITECTURE.md) -- package roles, deployment roles, service roles
-- [Service Boundaries](SERVICE_BOUNDARIES.md) -- service role definitions and ownership model
-- [Runtime Recomposition Plan 00](../plans/runtime-recomposition/00-baseline-and-target-architecture.md) -- plan origin, database principles
-- [Runtime Recomposition Plan 04](../plans/runtime-recomposition/04-heavy-microservice-assembly.md) -- database processing strategy, table-level ownership, transaction boundaries
+- [目标架构](TARGET_ARCHITECTURE.md) — 包角色、部署角色、服务角色
+- [服务边界](SERVICE_BOUNDARIES.md) — 服务角色定义和所有权模型
+- [运行时重组计划 00](../plans/runtime-recomposition/00-baseline-and-target-architecture.md) — 计划起源、数据库原则
+- [运行时重组计划 04](../plans/runtime-recomposition/04-heavy-microservice-assembly.md) — 数据库处理策略、表级所有权、事务边界

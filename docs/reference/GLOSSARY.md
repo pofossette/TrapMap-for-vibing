@@ -67,7 +67,6 @@
 | `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_boundary_*` x6, `knowledge_maintenance_assignments`) | 边界六子表 + 维护分配表（Round 3） |
 | `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_revisions`) | 版本历史，`unique(entry_id, revision_no)` |
 | `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`lifecycle_events`) | 生命周期事件，`type` 受 `CHECK` 约束 |
-| `packages/server/src/lib/store/types/knowledge-records.ts` | TS 接口 | JSON Store 的内存记录形态 |
 | `packages/server/src/routes/knowledge.ts:39` | Route | `POST /v1/knowledge` — 提交新条目 |
 | `packages/server/src/routes/knowledge.ts:115` | Route | `GET /v1/knowledge/mine` — 列出当前用户条目 |
 | `packages/server/src/routes/knowledge.ts:129` | Route | `GET /v1/knowledge/:entryId` — 获取单条 |
@@ -99,6 +98,7 @@
 | `packages/server/src/lib/retrieval/recall/semantic.ts` | Impl | 语义召回 — 基于嵌入相似度 |
 | `packages/server/src/lib/retrieval/recall/keyword.ts` | Impl | 关键词召回 — 词法重叠 |
 | `packages/server/src/lib/retrieval/recall/graph-assisted.ts` | Impl | 图增强召回 — 知识图谱扩展 |
+| `packages/server/src/lib/retrieval/orchestration/index.ts` | Impl | 检索编排入口 — 召回通道注册、策略路由、结果聚合 |
 | `packages/server/src/lib/retrieval/recall/pg-keyword.ts` | Impl | PostgreSQL 关键词召回 |
 | `packages/server/src/lib/retrieval/scoring/rerank.ts` | Impl | 结果重排序 |
 | `packages/server/src/routes/retrieval.ts:71` | Route | `POST /v1/retrieval/search` — v1 检索（接受 `mode` 参数） |
@@ -284,7 +284,8 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/knowledge.ts:21-29` | Zod schema (`agentReviewResultSchema`) | 完整结果：status, duplicateRisk, correctnessRisk, completenessRisk（各 `low/medium/high`）, checkedAt, notes, boundary |
 | `packages/contracts/src/domain/knowledge.ts:185` | TS 类型 (`AgentReviewResult`) | 推断类型 |
 | `packages/server/src/lib/pre-review.ts` | Impl | `runPreReview()` — 基于 LangChain 的 AI 预审实现 |
-| `packages/server/src/routes/review.ts` | Route | `GET /v1/knowledge/review-queue` — 审核队列；`POST /v1/knowledge/review` — 审核决定 |
+| `packages/host-local/src/nest/gateway/candidate-review.controller.ts` | Route | `GET /v1/knowledge/review-queue` — 审核队列；`POST /v1/knowledge/review` — 审核决定 |
+| `packages/service-governance-review/src/routes.ts` | Route | 治理审核服务的路由注册 |
 | `packages/server/src/routes/operations/skill-review.ts` | Route | `GET /v1/operations/artifacts/review-queue` — Skill 审核队列；`POST /v1/operations/artifacts/:artifactId/review` — Skill 审核决定 |
 
 ### Resubmit（重新提交）

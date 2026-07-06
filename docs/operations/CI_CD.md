@@ -25,7 +25,7 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 | `test` | `pnpm test` | 全量单元测试 |
 | `coverage` | `pnpm test:coverage` | 测试覆盖率（产物上传 7 天） |
 | `postgres-integration` | PG 集成测试 | 真实 PostgreSQL/pgvector 校验（任务队列、outbox subscriber） |
-| `doc-guardrails` | `pnpm check:docs-drift` + `pnpm check:arch-freeze` + `pnpm check:deps` + `pnpm check:mermaid` + `pnpm check:structure` + `pnpm check:complexity` + `pnpm check:md-lint` + `pnpm check:links` + `fallow list --boundaries --ci --fail-on-issues` | 文档漂移、架构冻结、依赖分析、Mermaid、仓库结构、复杂度预算、Markdown lint、链接守卫和架构边界守卫 |
+| `doc-guardrails` | `pnpm check:docs-drift` + `pnpm check:arch-freeze` + `pnpm check:deps` + `pnpm check:mermaid` + `pnpm check:structure` + `pnpm check:complexity` + `pnpm check:md-lint` + `pnpm check:links` + `fallow dead-code --boundary-violations --ci --fail-on-issues` | 文档漂移、架构冻结、依赖分析、Mermaid、仓库结构、复杂度预算、Markdown lint、链接守卫和架构边界守卫 |
 
 `postgres-integration` job 使用 `pgvector/pgvector:pg16` 作为 service container，运行需要真实数据库的集成测试。确保异步基础设施（TaskQueue、OutboxWorker、Lifecycle subscribers）在 PostgreSQL 环境下正确工作。
 
@@ -44,7 +44,7 @@ Runtime foundations 相关改动主要依赖以下 job 组合形成质量门：
 
 两种场景均只检查 changed-files 范围内的新问题，不因历史存量问题直接阻断。适合作为 `typecheck` / `test` / `check` 之外的补位守卫，补充未使用导出/文件、重复代码、循环依赖和变更面健康审计。当前没有用它替代 `pnpm check:complexity` 或文档守卫；这些仓库定制规则仍由现有 jobs 负责。
 
-`doc-guardrails` job 运行文档漂移守卫（`pnpm check:docs-drift`）、架构冻结守卫（`pnpm check:arch-freeze`）、依赖分析守卫（`pnpm check:deps`）、Mermaid 守卫（`pnpm check:mermaid`）、仓库结构守卫（`pnpm check:structure`）、复杂度预算守卫（`pnpm check:complexity`）、Markdown lint 守卫（`pnpm check:md-lint`）、链接守卫（`pnpm check:links`）、架构边界守卫（`fallow list --boundaries --ci --fail-on-issues`）和未使用依赖守卫（`fallow dead-code --unused-deps --ci --fail-on-issues`），确保关键文档不含过时内容、架构边界未被违反且违规会阻断构建、依赖关系无循环、图示可解析、仓库结构完整、热点文件未超出行数预算、Markdown 格式一致且链接有效。漂移规则覆盖以下类别：
+`doc-guardrails` job 运行文档漂移守卫（`pnpm check:docs-drift`）、架构冻结守卫（`pnpm check:arch-freeze`）、依赖分析守卫（`pnpm check:deps`）、Mermaid 守卫（`pnpm check:mermaid`）、仓库结构守卫（`pnpm check:structure`）、复杂度预算守卫（`pnpm check:complexity`）、Markdown lint 守卫（`pnpm check:md-lint`）、链接守卫（`pnpm check:links`）、架构边界守卫（`fallow dead-code --boundary-violations --ci --fail-on-issues`）和未使用依赖守卫（`fallow dead-code --unused-deps --ci --fail-on-issues`），确保关键文档不含过时内容、架构边界未被违反且违规会阻断构建、依赖关系无循环、图示可解析、仓库结构完整、热点文件未超出行数预算、Markdown 格式一致且链接有效。漂移规则覆盖以下类别：
 
 - **命令范围漂移**：包级 DB 命令（`pnpm --filter @trapmap/server db:migrate`）和 JSON 回退路径（`.data/skill-shareer.json`）
 - **环境默认值漂移**：`ARCHITECTURE.md` 中的 `HOST`（`127.0.0.1`）和 `AI_CHAT_MODEL`（`gpt-4o-mini`）默认值

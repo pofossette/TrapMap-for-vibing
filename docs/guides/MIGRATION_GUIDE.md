@@ -1,44 +1,44 @@
-# Runtime Recomposition Migration Guide
+# 运行时重组迁移指南
 
-## Status
+## 状态
 
-- Status: `active`
-- Created: `2026-06-18`
-- Purpose: migrate from the legacy `cli + server` shape to `client-core + backend-core + hosts`
+- 状态：`active`
+- 创建日期：`2026-06-18`
+- 目标：从遗留的 `cli + server` 形态迁移到 `client-core + backend-core + hosts` 架构
 
-## Overview
+## 概述
 
-Runtime recomposition turns TrapMap from a monolithic `CLI + Server` layout into a modular assembly:
+运行时重组将 TrapMap 从单体的 `CLI + Server` 布局转变为模块化组装：
 
 ```text
 packages/
-├── client-core/       shared gateway transport layer
-├── backend-core/      host-agnostic backend kernel
-├── service-knowledge-write/ first implemented service package for authoritative knowledge writes
-├── service-governance-review/ second implemented service package for review and feedback assembly
-├── service-candidate-ingestion/ third implemented service package for candidate authoritative assembly
-├── service-identity-access/ fourth implemented service package for identity/access assembly
-├── service-job-runtime/ fifth implemented service package for runtime queue/status assembly
-├── host-local/        light host for local-agent / team-monolith
-├── host-distributed/  heavy host for distributed profile
-├── cli/               CLI logic only, consumes client-core
-├── server/            compatibility shell / legacy implementation surface
-├── contracts/         shared types and schemas
-└── skills/            skill artifacts
+├── client-core/       共享网关传输层
+├── backend-core/      宿主无关的后端内核
+├── service-knowledge-write/ 第一个已实现的服务包，负责权威知识写入
+├── service-governance-review/ 第二个已实现的服务包，负责审查与反馈组装
+├── service-candidate-ingestion/ 第三个已实现的服务包，负责候选权威组装
+├── service-identity-access/ 第四个已实现的服务包，负责身份/访问组装
+├── service-job-runtime/ 第五个已实现的服务包，负责运行时队列/状态组装
+├── host-local/        轻量宿主，用于 local-agent / team-monolith
+├── host-distributed/  重量宿主，用于 distributed 部署模式
+├── cli/               仅包含 CLI 逻辑，消费 client-core
+├── server/            兼容外壳 / 遗留实现层
+├── contracts/         共享类型与 schema
+└── skills/            技能制品
 ```
 
-## Completion Audit
+## 完成度审计
 
-- Phase 1 `client-core`: done. CLI transport has been extracted and CLI now talks to gateway through `@trapmap/client-core`.
-- Phase 2 `backend-core`: done. Runtime capability model, ports, invocation seams, and bounded-context modules exist in `@trapmap/backend-core`.
-- Phase 3 `host-local`: done. Root `pnpm dev:local-agent` and `pnpm dev:team-monolith` now target `@trapmap/host-local`.
-- Phase 4 `host-distributed`: done. Root distributed dev scripts now target `@trapmap/host-distributed`.
-- Phase 5 legacy收口: partial. `packages/server` still exists as a compatibility shell and verification surface. In distributed mode, candidate/review/maintenance/decay authoritative writes have moved to `@trapmap/host-distributed`; on the `light` side, default `@trapmap/host-local` Nest mainline now owns candidate/review writes, while the explicit rollback path keeps only retired compatibility behavior plus runtime/status seam.
-- Phase 6 physical split execution: in progress. `@trapmap/service-knowledge-write` is the first real `service-*` package, `@trapmap/service-governance-review` is the second, `@trapmap/service-candidate-ingestion` is the third, `@trapmap/service-identity-access` is the fourth, and `@trapmap/service-job-runtime` is the fifth; `@trapmap/host-distributed` consumes all five as thin host adapters, and `packages/server` no longer holds the authoritative `knowledge-write`, `governance-review`, `candidate-ingestion`, `identity-access`, or `job-runtime` assembly facts.
+- 阶段 1 `client-core`：已完成。CLI 传输层已抽取，CLI 现在通过 `@trapmap/client-core` 与网关通信。
+- 阶段 2 `backend-core`：已完成。运行时能力模型、端口、调用接缝以及有界上下文模块均存在于 `@trapmap/backend-core`。
+- 阶段 3 `host-local`：已完成。根目录的 `pnpm dev:local-agent` 和 `pnpm dev:team-monolith` 现在指向 `@trapmap/host-local`。
+- 阶段 4 `host-distributed`：已完成。根目录的分布式开发脚本现在指向 `@trapmap/host-distributed`。
+- 阶段 5 遗留收口：部分完成。`packages/server` 仍作为兼容外壳和验证层存在。在分布式模式下，candidate/review/maintenance/decay 的权威写入已迁移到 `@trapmap/host-distributed`；在 `light` 侧，默认的 `@trapmap/host-local` Nest 主线现在拥有 candidate/review 写入，而显式回滚路径仅保留已退役的兼容行为以及运行时/状态接缝。
+- 阶段 6 物理拆分执行：进行中。`@trapmap/service-knowledge-write` 是第一个真实的 `service-*` 包，`@trapmap/service-governance-review` 是第二个，`@trapmap/service-candidate-ingestion` 是第三个，`@trapmap/service-identity-access` 是第四个，`@trapmap/service-job-runtime` 是第五个；`@trapmap/host-distributed` 以薄宿主适配器的方式消费全部五个服务包，`packages/server` 不再持有 `knowledge-write`、`governance-review`、`candidate-ingestion`、`identity-access` 或 `job-runtime` 组装的权威事实。
 
-## Current Official Entrypoints
+## 当前官方入口点
 
-Use these root scripts first:
+请优先使用以下根目录脚本：
 
 ```bash
 pnpm dev:local-agent
@@ -50,47 +50,47 @@ pnpm dev:distributed:outbox-worker
 pnpm dev:cli
 ```
 
-Compatibility scripts such as `pnpm dev:server:compat*` still exist, but they are no longer the primary migration target.
-The explicit `local-agent` / `team-monolith` rollback path also still exists, but it is rollback-only and no longer the default light entry.
+兼容脚本（如 `pnpm dev:server:compat*`）仍然存在，但它们不再是首要的迁移目标。
+显式的 `local-agent` / `team-monolith` 回滚路径也仍然存在，但仅限回滚使用，不再是默认的轻量入口。
 
-## Environment Compatibility
+## 环境兼容性
 
-### Gateway
+### 网关
 
-- Default local gateway URL remains `http://127.0.0.1:4000`
-- `@trapmap/host-local` now defaults to `PORT=4000`
-- `@trapmap/host-distributed` service ports default to `4000-4006`
+- 默认本地网关 URL 仍为 `http://127.0.0.1:4000`
+- `@trapmap/host-local` 现在默认 `PORT=4000`
+- `@trapmap/host-distributed` 服务端口默认为 `4000-4006`
 
-### Database URL
+### 数据库 URL
 
-New hosts accept both:
+新宿主同时接受以下两种变量：
 
 - `DATABASE_URL`
 - `TRAPMAP_DATABASE_URL`
 
-Per-service distributed override remains:
+每个服务的分布式覆盖变量仍为：
 
 - `TRAPMAP_SERVICE_DATABASE_URL`
 
-This keeps existing `.env` files and most current docs working during migration.
+这保证了现有 `.env` 文件和大部分当前文档在迁移期间继续正常工作。
 
 ## Host-Local
 
-Minimal local usage:
+最小本地用法：
 
 ```bash
 TRAPMAP_DEPLOYMENT_PROFILE=local-agent pnpm --filter @trapmap/host-local dev
 TRAPMAP_DEPLOYMENT_PROFILE=team-monolith pnpm --filter @trapmap/host-local dev
 ```
 
-Verification:
+验证：
 
 ```bash
 curl http://127.0.0.1:4000/health
 curl http://127.0.0.1:4000/ready
 ```
 
-Relevant env:
+相关环境变量：
 
 ```bash
 TRAPMAP_DEPLOYMENT_PROFILE=local-agent|team-monolith
@@ -98,14 +98,14 @@ PORT=4000
 HOST=0.0.0.0
 LOG_LEVEL=info
 TRAPMAP_DATABASE_URL=postgresql://...
-# or DATABASE_URL=postgresql://...
+# 或 DATABASE_URL=postgresql://...
 TRAPMAP_DEPLOYMENT_PRESET=monolith
 TRAPMAP_SERVICE_UNIT=full-platform
 ```
 
 ## Host-Distributed
 
-Development commands:
+开发命令：
 
 ```bash
 pnpm --filter @trapmap/host-distributed dev:gateway
@@ -117,9 +117,9 @@ pnpm --filter @trapmap/host-distributed dev:governance-review
 pnpm --filter @trapmap/host-distributed dev:job-runtime
 ```
 
-Acceptance note: `@trapmap/host-distributed` now consumes built outputs from all five implemented service packages in multi-process acceptance flows. Run `pnpm --filter @trapmap/service-identity-access build`, `pnpm --filter @trapmap/service-knowledge-write build`, `pnpm --filter @trapmap/service-governance-review build`, `pnpm --filter @trapmap/service-candidate-ingestion build`, and `pnpm --filter @trapmap/service-job-runtime build` before standalone `tsx`-driven distributed acceptance if you are not using the packaged `test:distributed-acceptance` entrypoint.
+验收说明：`@trapmap/host-distributed` 现在在多进程验收流程中消费全部五个已实现服务包的构建产物。如果你不使用打包好的 `test:distributed-acceptance` 入口，请在独立 `tsx` 驱动的分布式验收之前依次运行 `pnpm --filter @trapmap/service-identity-access build`、`pnpm --filter @trapmap/service-knowledge-write build`、`pnpm --filter @trapmap/service-governance-review build`、`pnpm --filter @trapmap/service-candidate-ingestion build` 和 `pnpm --filter @trapmap/service-job-runtime build`。
 
-Verification:
+验证：
 
 ```bash
 curl http://127.0.0.1:4000/health
@@ -131,7 +131,7 @@ curl http://127.0.0.1:4005/health
 curl http://127.0.0.1:4006/health
 ```
 
-Relevant env:
+相关环境变量：
 
 ```bash
 TRAPMAP_SERVICE_NAME=gateway|identity-access|knowledge-read|knowledge-write|candidate-ingestion|governance-review|job-runtime
@@ -146,9 +146,9 @@ TRAPMAP_GOVERNANCE_REVIEW_URL=http://127.0.0.1:4005
 TRAPMAP_JOB_RUNTIME_URL=http://127.0.0.1:4006
 ```
 
-## Validation
+## 验证
 
-Minimum checks for this migration line:
+此迁移线路的最小检查项：
 
 ```bash
 pnpm test:distributed-acceptance
@@ -160,44 +160,31 @@ pnpm test:runtime-foundations
 pnpm check:docs-drift
 ```
 
-Microservice-split readiness uses a stricter operational gate. Before starting a physical split, run the checklist in [MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md](./MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md).
+微服务拆分就绪度采用更严格的运维门控。在启动物理拆分之前，请运行 [MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md](./MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md) 中的检查清单。
 
-For distributed split readiness, treat `pnpm test:distributed-acceptance` as the default automation gate for Gate 2 / Gate 3 / Gate 5. It is the canonical automated proof that `@trapmap/host-distributed` owns the write forwarding path, preserves auth/error semantics across real internal HTTP hops, and exposes job-runtime ownership through the gateway surface.
+对于分布式拆分就绪度，将 `pnpm test:distributed-acceptance` 视为 Gate 2 / Gate 3 / Gate 5 的默认自动化门控。它是 `@trapmap/host-distributed` 拥有写入转发路径、在真实内部 HTTP 跨进程中保留认证/错误语义、以及通过网关表面暴露 job-runtime 所有权的权威自动化证明。
 
-Readiness has now moved into execution for the first five physical splits: `knowledge-write` is the first bounded context extracted into a dedicated `service-*` package, `governance-review` is the second, `candidate-ingestion` is the third, `identity-access` is the fourth, and `job-runtime` is the fifth. All five preserve the existing gateway-only external access model and shared PostgreSQL posture.
+就绪度现已进入前五个物理拆分的执行阶段：`knowledge-write` 是第一个被抽取到专用 `service-*` 包的有界上下文，`governance-review` 是第二个，`candidate-ingestion` 是第三个，`identity-access` 是第四个，`job-runtime` 是第五个。全部五个均保留了现有的仅网关外部访问模型和共享 PostgreSQL 部署方式。
 
-This gate now includes `packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`, which starts multiple independent Node processes for gateway, identity-access, candidate-ingestion, governance-review, knowledge-write, and job-runtime. That closeout covers:
+此门控现在包含 `packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`，它启动多个独立的 Node 进程分别运行 gateway、identity-access、candidate-ingestion、governance-review、knowledge-write 和 job-runtime。该 closeout 覆盖：
 
-- `gateway -> internal service -> knowledge-write` multi-process authoritative write closure
-- cross-process `x-request-id` / `x-trace-id` propagation and gateway-only auth validation
-- stable `403 / 404 / 409 / 503 / 504` failure mapping without CLI awareness of internal topology
-- focused job-runtime stale-running reclaim evidence through the distributed gateway path
-- focused outbox retryable failure, dead-letter, and stale-processing reclaim evidence on the same runtime surface
+- `gateway -> 内部服务 -> knowledge-write` 多进程权威写入闭环
+- 跨进程 `x-request-id` / `x-trace-id` 传播及仅网关认证验证
+- 稳定的 `403 / 404 / 409 / 503 / 504` 故障映射，CLI 不感知内部拓扑
+- 针对 job-runtime stale-running reclaim 的聚焦验证，通过分布式网关路径
+- 针对同一运行时表面的 outbox 可重试失败、死信队列及 stale-processing reclaim 的聚焦验证
 
-Deployment-level operator closeout now has a separate fixed entrypoint:
+运维级 closeout 现在有独立的固定入口：
 
 ```bash
 pnpm test:runtime-closeout
 ```
 
-Run it against a live distributed gateway after `docker compose --profile distributed up -d` or an equivalent deployed runtime. It validates the existing `/v1/operations/status/async` contract rather than introducing a parallel debug surface.
+在 `docker compose --profile distributed up -d` 或等效的已部署运行时之后针对实时分布式网关运行。它验证现有的 `/v1/operations/status/async` 契约，而非引入并行的调试表面。
 
-## Remaining Gaps
+## 剩余差距
 
-- `packages/server` is still present for retrieval, runtime status/readiness, and legacy compatibility. It no longer owns distributed-mode maintenance/decay authoritative writes, but candidate/review legacy write orchestration is still present on the current default Fastify path.
-- `packages/server` also no longer owns the `knowledge-write` or `governance-review` service assembly. Those assemblies now live in `packages/service-knowledge-write` and `packages/service-governance-review`, with `host-distributed` consuming them directly.
-- System truth docs still need continued tightening so host-local / host-distributed become the first-class runtime facts everywhere, not only in this guide.
-- Distributed host now has stronger acceptance evidence for remote write ownership and request semantics. Any remaining Gate 5 gap must now be stated only as a specific docker/deployed operator closeout issue, not as read-side immaturity or distributed write-path ambiguity.
-
-## Rollback
-
-If a migration issue blocks progress, fall back to compatibility entrypoints:
-
-```bash
-pnpm dev:server:compat
-pnpm dev:server:compat:api
-pnpm dev:server:compat:task-worker
-pnpm dev:server:compat:outbox-worker
-```
-
-That is a temporary escape hatch, not the target architecture.
+- `packages/server` 仍存在，用于检索、运行时状态/就绪检查以及遗留兼容。它不再拥有分布式模式下 maintenance/decay 的权威写入，但 candidate/review 遗留写入编排仍在当前默认的 Fastify 路径上。
+- `packages/server` 也不再拥有 `knowledge-write` 或 `governance-review` 服务组装。这些组装现在位于 `packages/service-knowledge-write` 和 `packages/service-governance-review`，由 `host-distributed` 直接消费。
+- 系统真相文档仍需持续收紧，使 host-local / host-distributed 在所有地方成为一等运行时事实，而不仅仅在本指南中。
+- 分布式宿主现在在远程写入所有权和请求语义方面拥有更强的验收证据。任何剩余的 Gate 5 差距现在必须仅作为具体的 docker/已部署运维 closeout 问题来表述，而非读侧不成熟或分布式写入路径歧义。

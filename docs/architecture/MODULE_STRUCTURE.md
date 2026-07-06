@@ -5,7 +5,7 @@
 
 ## Overview
 
-The server package (`packages/server/src/lib/`) underwent module splitting in Phase 0.4 to reduce file complexity and enforce single-responsibility. Each split module directory received a barrel `index.ts` to provide a stable import surface. This documents the 11 barrel exports created.
+The server package (`packages/server/src/lib/`) underwent module splitting in Phase 0.4 to reduce file complexity and enforce single-responsibility. Each split module directory received a barrel `index.ts` to provide a stable import surface. This documents the 10 barrel exports created.
 
 ## Barrel Exports
 
@@ -88,19 +88,7 @@ Lightweight graph indexing pipeline (GraphRAG Lite).
   - `parsing` — LLM response parsing
   - `planning` — extraction planning
 
-### 7. `lib/retrieval/recall/index.ts`
-
-Retrieval recall strategies.
-
-**Re-exports**:
-- `keyword` — keyword/BM25 recall
-- `semantic` — embedding-based semantic recall
-- `db-search` — database-backed search
-- `graph-assisted` — graph traversal-assisted recall
-- `pg-keyword` — PostgreSQL full-text keyword recall
-- `query-graph-labels` — graph label query utilities
-
-### 8. `lib/retrieval/scoring/index.ts`
+### 7. `lib/retrieval/scoring/index.ts`
 
 Retrieval scoring and reranking.
 
@@ -110,7 +98,7 @@ Retrieval scoring and reranking.
 - `merge` — multi-source result merging
 - `rerank` — result reranking
 
-### 9. `lib/retrieval/orchestration/index.ts`
+### 8. `lib/retrieval/orchestration/index.ts`
 
 Retrieval pipeline orchestration.
 
@@ -127,7 +115,7 @@ Retrieval pipeline orchestration.
 - `pipeline-timing` — pipeline timing instrumentation
 - `routing-trace` — routing decision tracing
 
-### 10. `lib/retrieval/response/index.ts`
+### 9. `lib/retrieval/response/index.ts`
 
 Retrieval response assembly.
 
@@ -137,7 +125,7 @@ Retrieval response assembly.
 - `refinement` — response refinement and filtering
 - `summary` — response summary generation
 
-### 11. `lib/retrieval/graph-plan/index.ts`
+### 10. `lib/retrieval/graph-plan/index.ts`
 
 Trap-first graph plan compilation (v3 retrieval).
 

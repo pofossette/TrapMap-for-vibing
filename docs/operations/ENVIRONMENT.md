@@ -476,15 +476,15 @@ pnpm dev:local-agent
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `TRAPMAP_CONSUL_ENABLED` | 是否启用 Consul 服务发现模块 | `false` |
-| `TRAPMAP_CONSUL_ADDRESS` | Consul agent 地址（`host:port`）；仅在 Consul 启用时必填 | 空 |
+| `CONSUL_ENABLED` | 是否启用 Consul 服务发现模块 | `false` |
+| `CONSUL_HOST` | Consul agent 主机地址；仅在 Consul 启用时必填 | 空 |
+| `CONSUL_PORT` | Consul agent 端口；仅在 Consul 启用时必填 | 空 |
 
 ### 日志聚合配置
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `TRAPMAP_LOKI_ENABLED` | 是否启用 Loki 日志传输 | `false` |
-| `TRAPMAP_LOKI_URL` | Loki push API 地址；仅在 Loki 启用时必填 | 空 |
+| `LOKI_HOST` | Loki push API 地址；为空时 Loki 日志传输禁用 | 空 |
 
 ### Dev-minimal 默认值
 
@@ -494,8 +494,8 @@ pnpm dev:local-agent
 |------|---------|------|
 | Prometheus `/metrics` | 启用 | 暴露 `trapmap_*` 前缀指标与 `prom-client` 默认 Node.js 指标 |
 | OpenTelemetry SDK | 启用（console exporter） | `OTEL_DISABLED=true` 可完全关闭 |
-| Consul 服务发现 | 关闭 | `TRAPMAP_CONSUL_ENABLED=false` 时不加载 ConsulModule |
-| Loki 日志传输 | 关闭 | `TRAPMAP_LOKI_ENABLED=false` 时只使用 NestJS 内置 Logger |
+| Consul 服务发现 | 关闭 | `CONSUL_ENABLED` 未设置或为 `false` 时不加载 ConsulModule |
+| Loki 日志传输 | 关闭 | `LOKI_HOST` 为空时只使用 NestJS 内置 Logger |
 
 生产环境建议组合：
 
@@ -504,12 +504,12 @@ pnpm dev:local-agent
 TRAPMAP_METRICS_ENABLED=true
 OTEL_DISABLED=false
 OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-TRAPMAP_LOKI_ENABLED=true
-TRAPMAP_LOKI_URL=http://loki:3100
+LOKI_HOST=http://loki:3100
 
 # distributed：同上，额外启用 Consul 服务发现
-TRAPMAP_CONSUL_ENABLED=true
-TRAPMAP_CONSUL_ADDRESS=consul:8500
+CONSUL_ENABLED=true
+CONSUL_HOST=consul
+CONSUL_PORT=8500
 ```
 
 ### 健康检查端点
@@ -565,12 +565,12 @@ Phase 1A 新增的 NestJS 宿主（`packages/host-local/src/nest/health/health.c
 
 | 字段 | 类型 | 默认值 | 对应环境变量 |
 |------|------|--------|------------|
-| `consulAddress` | string (optional) | — | `TRAPMAP_CONSUL_ADDRESS` |
-| `consulEnabled` | boolean | `false` | `TRAPMAP_CONSUL_ENABLED` |
+| `consulHost` | string (optional) | — | `CONSUL_HOST` |
+| `consulPort` | string (optional) | — | `CONSUL_PORT` |
+| `consulEnabled` | boolean | `false` | `CONSUL_ENABLED` |
 | `otelEndpoint` | string (optional) | — | `OTEL_EXPORTER_OTLP_ENDPOINT` |
 | `otelDisabled` | boolean | `false` | `OTEL_DISABLED` |
-| `lokiUrl` | string (optional) | — | `TRAPMAP_LOKI_URL` |
-| `lokiEnabled` | boolean | `false` | `TRAPMAP_LOKI_ENABLED` |
+| `lokiUrl` | string (optional) | — | `LOKI_HOST` |
 | `prometheusEnabled` | boolean | `true` | `TRAPMAP_METRICS_ENABLED` |
 | `metricsPrefix` | string | `trapmap_` | — |
 

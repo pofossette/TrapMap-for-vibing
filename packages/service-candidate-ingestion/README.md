@@ -1,3 +1,3 @@
 # @trapmap/service-candidate-ingestion
 
-Shared candidate ingestion service module for host assemblies.
+宿主组装体的共享候选摄取服务模块。

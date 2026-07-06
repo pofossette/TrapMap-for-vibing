@@ -11,23 +11,23 @@
 - `src/domain/` — 按领域组织的 Zod schema
 - `src/types/` — TypeScript 类型声明
 
-## Shared Validation Helpers
+## 共享验证辅助函数
 
-The following reusable helpers are defined in `src/domain/` and serve as the single source of truth for all schema files:
+以下可复用的辅助函数定义在 `src/domain/` 中，作为所有 schema 文件的唯一校验来源：
 
-| Helper | File | Usage |
-|--------|------|-------|
-| `canonicalPathSchema` | `path-validation.ts` | Relative path with security refinement (rejects absolute paths, parent traversal, Windows drive letters) |
-| `sha256HexSchema` | `common.ts` | 64-character lowercase hex string |
-| `mediaTypeSchema` | `common.ts` | IANA media type with regex validation |
+| 辅助函数 | 文件 | 用途 |
+|----------|------|------|
+| `canonicalPathSchema` | `path-validation.ts` | 相对路径安全校验（拒绝绝对路径、父目录遍历、Windows 盘符） |
+| `sha256HexSchema` | `common.ts` | 64 字符小写十六进制字符串 |
+| `mediaTypeSchema` | `common.ts` | 带正则校验的 IANA 媒体类型 |
 
-All domain files (artifacts, candidates, operations, retrieval) import these helpers instead of repeating inline validations.
+所有领域文件（artifacts、candidates、operations、retrieval）均导入这些辅助函数，避免重复内联校验逻辑。
 
-## Cross-Field Invariant Constraints
+## 跨字段不变量约束
 
-The following `.refine()` / `.superRefine()` constraints enforce relationships between fields that are beyond single-field validation:
+以下 `.refine()` / `.superRefine()` 约束用于维护单字段校验无法覆盖的字段间关系：
 
-| Schema | File | Invariant |
+| Schema | 文件 | 不变量 |
 |--------|------|-----------|
 | `knowledgeMetadataSchema` | `knowledge.ts` | `submissionCount >= resubmissionCount` |
 | `skillArtifactMetadataSchema` | `artifacts.ts` | `submissionCount >= resubmissionCount` |
@@ -36,37 +36,39 @@ The following `.refine()` / `.superRefine()` constraints enforce relationships b
 | `statsSummaryQuerySchema` | `operations.ts` | `from <= to` when both timestamps are present |
 | `skillArtifactRevisionSchema` | `artifacts.ts` | `derived.sourceHash === sourceHash` when derived is present |
 | `sessionStatusResponseSchema` | `auth.ts` | `session !== null` when `authenticated === true` |
-| `decayResultSchema` | `decay.ts` | `!eligible` → `ineligibilityReason === null` and reverse |
-| `decayApplicationResultSchema` | `decay.ts` | `dryRun === false` → `appliedAt === null` |
-| `maintenanceMetaSchema` | `maintenance.ts` | `!staleVerification` → `staleDays === undefined` |
-| `importResultItemSchema` | `operations.ts` | `!success` → `entry === null` |
+| `batchOperationItemSchema` | `decay.ts` | `eligible` → `ineligibilityReason === null` and `!eligible` → `ineligibilityReason !== null` |
+| `batchOperationResponseSchema` | `decay.ts` | `dryRun === true` → `appliedAt === null` |
+| `maintenanceEntryListRequestSchema` | `maintenance.ts` | `staleVerification` → `staleDays !== undefined` |
+| `importResultItemSchema` | `operations.ts` | `success` → `entry !== null` |
+| `maintenanceBatchOperationItemSchema` | `maintenance.ts` | Same invariants as `batchOperationItemSchema` (decay) |
+| `maintenanceBatchOperationResponseSchema` | `maintenance.ts` | Same invariants as `batchOperationResponseSchema` (decay) |
 | `evals/report.ts` schemas | `evals/report.ts` | `passRate === passedCases / totalCases` |
 | `retrievalEvalGovernanceExpectationsSchema` | `evals/retrieval.ts` | `forbiddenIds.length === forbiddenReasons.length` |
 
-## Contract Conventions
+## 契约约定
 
-### Retrieval Contracts
-- Source paths (`sourcePaths`, `path`) use `canonicalPathSchema` — relative-only, no absolute paths, no parent traversal
-- Capsule-first responses (`retrievalV2ResponseWithHintsSchema`) are distilled content only, no raw source code
-- Activation hints are metadata-only — no file bodies or script content (T-15-01)
-- All hashes use `sha256HexSchema` (64 lowercase hex chars)
+### 检索契约
+- 源路径（`sourcePaths`、`path`）使用 `canonicalPathSchema`——仅允许相对路径，禁止绝对路径和父目录遍历
+- 胶囊优先响应（`retrievalV2ResponseWithHintsSchema`）仅包含蒸馏内容，不含原始源代码
+- 激活提示仅为元数据——不含文件正文或脚本内容（T-15-01）
+- 所有哈希值使用 `sha256HexSchema`（64 位小写十六进制字符）
 
-### Artifact Contracts
-- `skillArtifactRevisionSchema`: `derived.sourceHash` must match top-level `sourceHash` when derived is present
-- `skillArtifactMetadataSchema`: `submissionCount >= resubmissionCount`
-- File paths within artifacts use `canonicalPathSchema` for consistent relative-path security
+### 工件契约
+- `skillArtifactRevisionSchema`：`derived.sourceHash` 存在时必须与顶层 `sourceHash` 一致
+- `skillArtifactMetadataSchema`：`submissionCount >= resubmissionCount`
+- 工件内文件路径使用 `canonicalPathSchema`，确保相对路径安全
 
-### Eval Contracts
-- `retrievalEvalGovernanceExpectationsSchema`: `forbiddenIds.length === forbiddenReasons.length`
-- `retrievalEvalRelevanceExpectationsSchema`: `idealOrder` entries must be subset of `relevantIds`
-- Report schemas: `passRate === passedCases / totalCases` when `totalCases > 0`
-- All timestamps use `z.string().datetime({ offset: true })`
+### 评测契约
+- `retrievalEvalGovernanceExpectationsSchema`：`forbiddenIds.length === forbiddenReasons.length`
+- `retrievalEvalRelevanceExpectationsSchema`：`idealOrder` 条目必须为 `relevantIds` 的子集
+- 报告 schema：当 `totalCases > 0` 时 `passRate === passedCases / totalCases`
+- 所有时间戳使用 `z.string().datetime({ offset: true })`
 
-### Running Validation
+### 运行验证
 ```bash
-rtk pnpm --filter @trapmap/contracts test -- --run   # unit tests
-rtk pnpm --filter @trapmap/contracts typecheck         # type check
-rtk pnpm eval:smoke                                    # runtime integration
+rtk pnpm --filter @trapmap/contracts test -- --run   # 单元测试
+rtk pnpm --filter @trapmap/contracts typecheck         # 类型检查
+rtk pnpm eval:smoke                                    # 运行时集成测试
 ```
 
 ## 内部导航
