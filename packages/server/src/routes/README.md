@@ -27,7 +27,7 @@
 
 ## 当前路由组
 
-| Path | Responsibility |
+| 路径 | 职责 |
 |---|---|
 | `routes/candidates/` | 候选提交、查询、重复项查找与 resolution |
 | `routes/feedback-admin/` | 反馈后台列表、批量处理、统计与 remediation 管理 |
