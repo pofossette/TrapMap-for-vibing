@@ -5,7 +5,7 @@
 ## 状态
 
 - 阶段：Phase 1（逻辑边界已定义；物理进程分离渐进推进）
-- 执行里程碑：`packages/service-knowledge-write`、`packages/service-governance-review`、`packages/service-candidate-ingestion`、`packages/service-identity-access` 和 `packages/service-job-runtime` 是仓库中已实现的前五个物理 `service-*` 拆分。
+- 执行里程碑：仓库中已实现 6 个物理 `service-*` 拆分：`packages/service-identity-access`、`packages/service-knowledge-read`、`packages/service-knowledge-write`、`packages/service-candidate-ingestion`、`packages/service-governance-review`、`packages/service-job-runtime`。
 
 ## 服务清单
 
@@ -71,7 +71,7 @@
 
 **用途**：优化的读取路径，用于检索、搜索和查询分析。
 
-**实现状态**：已实现为 `packages/service-knowledge-read`。`packages/host-distributed` 现在仅作为知识读取服务进程的薄宿主适配器，`packages/server` 仍是兼容性外壳而非权威的读取组装所有者。
+**实现状态**：已实现为 `packages/service-knowledge-read`。`packages/host-distributed` 当前承载 `gateway + 六个服务入口` 的分布式宿主装配，其中 `knowledge-read` 的权威读取组装仍位于 `packages/service-knowledge-read`；`packages/server` 仍是兼容性外壳而非权威读取组装所有者。
 
 **职责**：
 - 检索查询执行（v1 语义/混合/图辅助、v2 胶囊、v3 图计划）

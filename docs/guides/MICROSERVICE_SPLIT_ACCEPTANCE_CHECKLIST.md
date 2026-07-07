@@ -255,7 +255,7 @@ Evidence:
 - focused route/host tests
 - docs guard results
 
-Blocking gaps:
+剩余阻塞项:
 - ...
 ```
 
@@ -278,7 +278,7 @@ Evidence:
 - `rtk pnpm eval:smoke`
 - focused `distributed-runtime-closeout` / `job-runtime ownership` tests
 
-Blocking gaps:
+剩余阻塞项:
 - Gate 5 只剩 operator closeout 收口：需要在 docker 或 deployed runtime 中，用现有 `/v1/operations/status/async` contract 复现 queue/outbox reclaim、retryable failure、dead-letter、recent failure visibility；不再把阻塞描述成 read-side 未成熟或 distributed write-path 未接管。
 
 ### Assessment 2026-06-23 (Operator Closeout)

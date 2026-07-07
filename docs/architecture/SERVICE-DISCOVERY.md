@@ -148,22 +148,20 @@ DNS 接口主要供外部工具或不支持 Consul API 的系统使用。TrapMap
 
 ### 注册时机（Module Init）
 
-服务在 NestJS 模块初始化完成后向 Consul 注册。注册逻辑放在 `ServiceDiscoveryModule` 的 `onModuleInit` 钩子中：
+服务在 NestJS 模块初始化完成后向 Consul 注册。当前注册逻辑位于 `packages/host-local/src/nest/service-discovery/`，由 `ConsulModule` / `ConsulService` 负责：
 
 ```
-packages/host-distributed/src/
+packages/host-local/src/nest/
 ├── service-discovery/
-│   ├── service-discovery.module.ts    # NestJS module 定义
-│   ├── consul.provider.ts            # Consul 客户端初始化
-│   ├── service-registry.ts           # 注册/注销逻辑
-│   ├── health-check.factory.ts       # 健康检查配置工厂
-│   └── service-resolver.ts           # 服务发现与负载均衡
+│   ├── consul.module.ts     # NestJS module 定义
+│   ├── consul.service.ts    # 注册、注销、发现与健康检查逻辑
+│   └── index.ts
 ```
 
 注册流程：
 
 1. 进程启动，NestJS module graph 初始化
-2. `ServiceDiscoveryModule.onModuleInit()` 被调用
+2. `ConsulService.onModuleInit()` 被调用
 3. 读取当前进程的 `serviceName`、`address`、`port`、`tags`
 4. 向 Consul 发送注册请求（HTTP API: `PUT /v1/agent/service/register`）
 5. Consul 开始对该实例执行健康检查
@@ -175,7 +173,7 @@ packages/host-distributed/src/
 
 1. NestJS 收到 `SIGTERM` / `SIGINT` 信号
 2. 触发 graceful shutdown：停止接收新请求，等待进行中的请求完成
-3. `ServiceDiscoveryModule.onModuleDestroy()` 被调用
+3. `ConsulService.onModuleDestroy()` 被调用
 4. 向 Consul 发送注销请求（HTTP API: `PUT /v1/agent/service/deregister/:serviceId`）
 5. 进程退出
 

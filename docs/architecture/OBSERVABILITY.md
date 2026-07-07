@@ -203,7 +203,7 @@ packages/host-local/src/nest/observability/
 | Collector | 不要求 | 可选 | 必需基础设施 |
 | Grafana | 不要求 | 可选 | 标准部署组件 |
 
-`local-agent` 场景下，开发者可通过 `OTEL_TRACES_EXPORTER=console` 在终端直接查看 span 输出，无需任何后端基础设施。`team-monolith` 在 Docker Compose 部署中可选择性加入 Grafana + Prometheus + Loki 的 compose profile。`distributed` 将这些作为标准基础设施组件包含在 compose 中。
+`local-agent` 场景下，开发者可通过 console exporter 在终端直接查看 span 输出，无需任何后端基础设施。`team-monolith` 在 Docker Compose 部署中可选择性加入 Grafana + Prometheus + Loki 的 compose profile。`distributed` 将这些作为标准基础设施组件包含在 compose 中。
 
 ## 配置策略
 
@@ -211,22 +211,19 @@ packages/host-local/src/nest/observability/
 
 | 环境变量 | 默认值 | 说明 |
 |---------|-------|------|
-| `OTEL_ENABLED` | `false` | 总开关，关闭时所有 SDK 组件为 noop |
+| `OTEL_DISABLED` | `false` | 总开关；设为 `true` 时跳过 SDK 初始化，所有 OTel 操作为 noop |
 | `OTEL_SERVICE_NAME` | `trapmap` | 服务名称，注册到 OTel resource |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | OTLP exporter 端点 |
-| `OTEL_TRACES_EXPORTER` | `otlp` | traces 导出方式：`otlp` / `console` / `none` |
-| `OTEL_METRICS_EXPORTER` | `otlp` | metrics 导出方式：`otlp` / `prometheus` / `console` / `none` |
-| `OTEL_LOGS_EXPORTER` | `otlp` | logs 导出方式：`otlp` / `console` / `none` |
-| `OTEL_SAMPLING_RATE` | `1.0` | traces 采样率（0.0 ~ 1.0） |
+| `OTEL_SAMPLE_RATE` | `1.0` | traces 采样率（0.0 ~ 1.0） |
 | `OTEL_RESOURCE_ATTRIBUTES` | (无) | 额外 resource 属性，如 `deployment.environment=staging` |
 | `TRAPMAP_METRICS_ENABLED` | `false` | 是否暴露 `/metrics` Prometheus 端点 |
 | `TRAPMAP_METRICS_PATH` | `/metrics` | Prometheus scrape 端点路径 |
 
 部署 profile 自动设置推荐默认值：
 
-- `local-agent`：`OTEL_ENABLED=true`, `OTEL_TRACES_EXPORTER=console`, 其余 `none`
-- `team-monolith`：`OTEL_ENABLED=true`, exporter 按实际基础设施配置
-- `distributed`：`OTEL_ENABLED=true`, 全部走 OTLP exporter，`OTEL_SAMPLING_RATE=0.1`（默认 10% 采样）
+- `local-agent`：保持 `OTEL_DISABLED=false`，以 console/本地默认 exporter 为主，无需外部 collector
+- `team-monolith`：保持 `OTEL_DISABLED=false`，exporter 按实际基础设施配置
+- `distributed`：保持 `OTEL_DISABLED=false`，默认使用 `OTEL_EXPORTER_OTLP_ENDPOINT`，并将 `OTEL_SAMPLE_RATE=0.1` 作为推荐采样起点
 
 ## 健康检查三探针模型
 
