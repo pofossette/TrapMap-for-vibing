@@ -9,6 +9,7 @@
 |---|---|---|
 | `agent-eval-framework-evaluation-and-plan.md` | Agent Eval 平台长期执行主线，含阶段 checklist、文档/测试要求 | 活跃主线 |
 | `open-debt-and-compromises.md` | 当前仍成立的阶段性妥协、占位实现与 deferred 事实 | 活跃 debt register |
+| `doc-drift-fix-list.md` | 本轮文档漂移、事实偏差与中文化修复清单 | 活跃配套清单 |
 
 ## 目录规则
 
