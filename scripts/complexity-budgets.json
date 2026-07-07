@@ -226,7 +226,7 @@
     {
       "file": "docs/architecture/components/PERSISTENCE.md",
       "mustContain": [
-        "57 张表",
+        "docs/reference/DATABASE_SCHEMA.md",
         ".data/skill-shareer.json",
         "PostgreSQL 是主要且权威的生产存储后端",
         "PG-first + InMemory fallback/testing posture",

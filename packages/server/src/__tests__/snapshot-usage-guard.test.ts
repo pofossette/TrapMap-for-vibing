@@ -62,7 +62,7 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   // Knowledge review application service (named compatibility debt: local audit seam)
   'lib/knowledge/review-application-service.ts',
 
-  // Retrieval read-model (parallel read, tracked for migration)
+  // Retrieval read-model: repo-backed assembly; retained only for cache-backed read-model ownership
   'lib/retrieval/read-model.ts',
 
   // Indexing pipeline

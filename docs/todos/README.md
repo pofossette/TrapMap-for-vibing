@@ -1,21 +1,30 @@
 # 待办文档
 
-本目录只保留当前仍有 owner 的活跃索引入口，其他主题只作为配套或背景引用。
-这里的 `当前活跃文档` 只指主线入口与 debt register。
+本目录只保留当前仍有 owner 的活跃入口文档，其他主题只作为配套或背景引用。
+这里的“活跃”包括：主线入口、debt register，以及仍被当前 owner 持续维护的配套清单。
+这里的 `当前活跃文档` 包括主线入口、debt register 和活跃配套清单。
 
 ## 活跃索引
 
 | 文件 | 主题 | 状态 |
 |---|---|---|
 | `agent-eval-framework-evaluation-and-plan.md` | Agent Eval 平台长期执行主线，含阶段 checklist、文档/测试要求 | 活跃主线 |
-| `open-debt-and-compromises.md` | 当前仍成立的阶段性妥协、占位实现与 deferred 事实 | 活跃 debt register |
-| `doc-drift-fix-list.md` | 本轮文档漂移、事实偏差与中文化修复清单 | 活跃配套清单 |
+| `open-debt-and-compromises.md` | 当前仍成立的工程债务、阶段性妥协与 deferred 平台级事项 | 活跃 debt register |
+| `doc-drift-fix-list.md` | 已复核的当前文档漂移清单，仅保留仍成立的问题 | 活跃配套清单 |
 
 ## 目录规则
 
 - 已完成内容、历史 closeout 证据、背景输入和 future proposal 不再保留在 `docs/todos/`
 - 这类文档统一转入 `docs/archived/` 或 `docs/archived/archived-plans/`
 - 需要重新启动某个归档主题时，新建活跃细则，不直接把归档文档重新当 checklist 使用
+- 若活跃文档中某一段只剩历史说明而不再承担当前 owner 的执行职责，应优先裁剪或转归档，而不是继续挂在活跃入口里
+
+## 2026-07-07 活跃面整理
+
+本轮未新增可直接归档的 todo 文档，但已完成以下整理：
+
+- `open-debt-and-compromises.md`：移除已完成 closeout 与历史背景，收缩为真正仍成立的 debt register
+- `doc-drift-fix-list.md`：移除已闭环条目，只保留已复核仍成立的问题
 
 ## 2026-07-05 归档更新
 

@@ -1,10 +1,10 @@
 # Agent Eval Platform Long-Term Execution Plan
 
 > 状态：active
-> 更新日期：2026-07-06
+> 更新日期：2026-07-07
 > 类型：长期主线执行细则
 
-## 当前进度（2026-07-05）
+## 当前进度（2026-07-07）
 
 当前主线已完成 `Phase 1` / `Phase 2` closeout，并完成 `Phase 3` 的最小可用 `LangfuseAdapter` 首轮接入。`retrieval`、`summary`、`agent-planning` 现都已切到 suite-owned platform event builder。
 
@@ -34,9 +34,11 @@
 
 当前仍未完成：
 
-- 真实 Langfuse 服务联通验证仍未做；截至 2026-07-06 22:29:56 CST，本次 shell 中重新执行 `rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY` 仍为空结果，且仓库内仍没有 checked-in Langfuse deployment/config 可作为 closeout 目标，因此当前只验证到缺配置 warning 路径
+- 真实 Langfuse 服务联通验证仍未做；截至 2026-07-07 22:05 CST，本次 shell 中重新执行 `rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY` 仍无输出，且仓库内仍没有 checked-in Langfuse deployment/config 可作为 closeout 目标。同轮执行 `rtk pnpm eval -- smoke --dry-run --platform langfuse` 时，runner 输出缺失 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 的 warning，因此当前仍只验证到缺配置 warning 路径
 - `rtk pnpm eval -- core --dry-run --platform langfuse` 当前仍暴露既有 core dry-run 失败项：ingestion 1 个、agent-planning 3 个；该结果来自现有 suite 基线，不是本轮 `langfuse` 接入引入的新回归
 - 第二平台适配器（`MLflow`）仍明确留在 deferred，不作为当前 active closeout 的完成条件
+
+截至 2026-07-07，对 `docs/todos/` 活跃面重新整理后的结论保持不变：本主线仍是当前唯一 active owner plan，且唯一剩余 active closeout 仍是 environment-blocked 的真实 Langfuse 联通验证，因此当前不具备归档条件。
 
 ## 目标
 
@@ -239,7 +241,7 @@
 **本阶段剩余 closeout**
 
 - [ ] 用真实 Langfuse 服务做一次手动联通验证，并把结果回写到本节或对应 closeout 记录
-- [ ] 当前阻塞说明：2026-07-06 22:29:56 CST 这次执行中重新执行 `rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY` 仍为空结果；仓库也没有 checked-in Langfuse deployment/config 可供对接。要关闭这项 active closeout，至少还需要二者之一：1) 提供可访问的 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY`；2) 在仓库中补入团队认可的 checked-in Langfuse deployment/config truth source。否则 live closeout 继续属于 environment-blocked，而不是代码未完成
+- [ ] 当前阻塞说明：2026-07-07 22:05 CST 这次执行中重新执行 `rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY` 仍无输出；仓库也没有 checked-in Langfuse deployment/config 可供对接。同轮 `rtk pnpm eval -- smoke --dry-run --platform langfuse` 输出 `[eval-platform] langfuse adapter disabled: missing LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY.`。要关闭这项 active closeout，至少还需要二者之一：1) 提供可访问的 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY`；2) 在仓库中补入团队认可的 checked-in Langfuse deployment/config truth source。否则 live closeout 继续属于 environment-blocked，而不是代码未完成
 
 ### Phase 4: Deferred Follow-up - 第二平台可替换性验证
 

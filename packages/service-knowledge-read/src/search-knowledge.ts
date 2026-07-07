@@ -4,18 +4,13 @@ import {
   retrievalQuerySchema,
 } from '@trapmap/contracts';
 
-import { enrichMatchesWithConflicts } from '@trapmap/server/lib/conflict/index.js';
-import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import {
-  selectRetrievalStrategy,
-  toRoutingTrace,
-} from '@trapmap/server/lib/retrieval/orchestration/index.js';
 
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { type PipelineStep, generateQueryId, logRagRetrieval } from './rag-log.js';
 import { buildRetrievalReadModel } from './read-model.js';
+import { getRetrievalInfra } from './retrieval-infra.js';
 import {
   assembleResponseBuckets,
   buildEmptyResponse,
@@ -34,11 +29,13 @@ function nowIso(): string {
 }
 
 function buildRoutingTrace(
-  routingDecision: ReturnType<typeof selectRetrievalStrategy>,
+  services: SkillShareerServices,
+  routingDecision: ReturnType<ReturnType<typeof getRetrievalInfra>['routing']['selectStrategy']>,
   recallTrace?: { graph?: unknown },
 ) {
+  const infra = getRetrievalInfra(services);
   return {
-    ...toRoutingTrace(routingDecision),
+    ...infra.routing.toRoutingTrace(routingDecision),
     ...(recallTrace?.graph ? { graphRetrieval: recallTrace.graph } : {}),
   };
 }
@@ -77,6 +74,7 @@ export async function searchKnowledge(
   const startMs = Date.now();
   const queryId = generateQueryId();
   const steps: PipelineStep[] = [];
+  const infra = getRetrievalInfra(services);
 
   try {
     const parsed = await timedStep(
@@ -114,8 +112,8 @@ export async function searchKnowledge(
     );
 
     if (boundaryFiltered.length === 0) {
-      const emptyRouting = selectRetrievalStrategy(parsed.mode, parsed.seed);
-      const routingTrace = buildRoutingTrace(emptyRouting);
+      const emptyRouting = infra.routing.selectStrategy(parsed.mode, parsed.seed);
+      const routingTrace = buildRoutingTrace(services, emptyRouting);
       void logRagRetrieval(services.config.ragLog, {
         timestamp: new Date(startMs).toISOString(),
         queryId,
@@ -142,7 +140,7 @@ export async function searchKnowledge(
 
     const routingDecision = await timedStep(
       'routing',
-      () => Promise.resolve(selectRetrievalStrategy(parsed.mode, parsed.seed)),
+      () => Promise.resolve(infra.routing.selectStrategy(parsed.mode, parsed.seed)),
       steps,
     );
 
@@ -176,9 +174,9 @@ export async function searchKnowledge(
       conflicts: readModel.conflicts,
       knowledgeEntries: readModel.knowledgeEntries,
     };
-    const conflictHints = enrichMatchesWithConflicts(
+    const conflictHints = infra.conflicts.enrichMatches(
       scoredEntries.map((e) => ({ entryId: e.entry.id })),
-      conflictData as unknown as Parameters<typeof enrichMatchesWithConflicts>[1],
+      conflictData,
       { teamId: auth.activeTeamId, requiredLevel: auth.securityLevel },
     );
 
@@ -251,16 +249,16 @@ export async function searchKnowledge(
         maxResults: parsed.maxResults,
         includeSummary: parsed.includeSummary ?? false,
         includeRefinement: parsed.includeRefinement ?? false,
-        routingTrace: buildRoutingTrace(routingDecision, trace),
+        routingTrace: buildRoutingTrace(services, routingDecision, trace),
       },
     });
 
     return {
       ...result,
-      routingTrace: buildRoutingTrace(routingDecision, trace),
+      routingTrace: buildRoutingTrace(services, routingDecision, trace),
     };
   } catch (error) {
-    const failRouting = selectRetrievalStrategy(query.mode ?? 'semantic', query.seed ?? '');
+    const failRouting = infra.routing.selectStrategy(query.mode ?? 'semantic', query.seed ?? '');
     void logRagRetrieval(services.config.ragLog, {
       timestamp: new Date(startMs).toISOString(),
       queryId,
@@ -276,7 +274,7 @@ export async function searchKnowledge(
         maxResults: query.maxResults ?? 10,
         includeSummary: query.includeSummary ?? false,
         includeRefinement: query.includeRefinement ?? false,
-        routingTrace: buildRoutingTrace(failRouting),
+        routingTrace: buildRoutingTrace(services, failRouting),
       },
     });
     throw error;
@@ -293,8 +291,8 @@ export async function updateEntryEmbeddingCache(
   }
 
   const text = buildEmbeddingText(entry);
-  const textHash = hashEmbeddingText(text);
-  const vector = await generateEmbedding(text);
+  const textHash = infra.embeddings.hashText(text);
+  const vector = await infra.embeddings.generate(text);
 
   await services.repos.knowledge.updateEmbeddingCache(entryId, {
     textHash,

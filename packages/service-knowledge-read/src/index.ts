@@ -12,6 +12,7 @@ export {
 } from './server.js';
 export {
   createKnowledgeReadChannelRegistry,
+  createKnowledgeReadRetrievalInfra,
   createKnowledgeReadRetrievalQuery,
   createKnowledgeReadStrategyRegistry,
   type KnowledgeReadRetrievalQueryOptions,

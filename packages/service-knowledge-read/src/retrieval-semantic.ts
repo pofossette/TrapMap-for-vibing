@@ -1,10 +1,7 @@
 import type { RetrievalQuery } from '@trapmap/contracts';
-import {
-  getCachedQueryEmbedding,
-  setCachedQueryEmbedding,
-} from '@trapmap/server/lib/cache/query-embedding-cache.js';
-import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
 
+import type { SkillShareerServices } from './context.js';
+import { getDefaultRetrievalInfra, getRetrievalInfra } from './retrieval-infra.js';
 import { normalizeQuery } from './retrieval-keyword.js';
 import type { KnowledgeReadRecallChannel } from './retrieval-orchestration.js';
 import type { KnowledgeRecord } from './store.js';
@@ -82,9 +79,13 @@ export function computeScore(
   return score;
 }
 
-export async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[]> {
+export async function getEntryEmbedding(
+  services: SkillShareerServices,
+  entry: KnowledgeRecord,
+): Promise<number[]> {
+  const infra = getRetrievalInfra(services);
   const text = buildEmbeddingText(entry);
-  const textHash = hashEmbeddingText(text);
+  const textHash = infra.embeddings.hashText(text);
 
   if (
     entry.indexState?.vector?.status === 'synced' &&
@@ -104,18 +105,22 @@ export async function getEntryEmbedding(entry: KnowledgeRecord): Promise<number[
     return entry.embeddingCache.vector;
   }
 
-  const vector = await generateEmbedding(text);
+  const vector = await infra.embeddings.generate(text);
   return vector;
 }
 
-export async function getQueryEmbedding(queryText: string): Promise<number[]> {
-  const cached = getCachedQueryEmbedding(queryText);
+export async function getQueryEmbedding(
+  services: SkillShareerServices,
+  queryText: string,
+): Promise<number[]> {
+  const infra = getRetrievalInfra(services);
+  const cached = infra.embeddings.getCachedQuery(queryText);
   if (cached) {
     return cached;
   }
 
-  const vector = await generateEmbedding(queryText);
-  setCachedQueryEmbedding(queryText, vector);
+  const vector = await infra.embeddings.generate(queryText);
+  infra.embeddings.setCachedQuery(queryText, vector);
   return vector;
 }
 
@@ -136,9 +141,13 @@ interface OptimizedSemanticRecallResult {
   cacheStats: BatchCacheStats;
 }
 
-function getCachedEmbedding(entry: KnowledgeRecord): number[] | null {
+function getCachedEmbedding(
+  services: SkillShareerServices,
+  entry: KnowledgeRecord,
+): number[] | null {
+  const infra = getRetrievalInfra(services);
   const text = buildEmbeddingText(entry);
-  const textHash = hashEmbeddingText(text);
+  const textHash = infra.embeddings.hashText(text);
 
   if (
     entry.indexState?.vector?.status === 'synced' &&
@@ -162,13 +171,14 @@ function getCachedEmbedding(entry: KnowledgeRecord): number[] | null {
 }
 
 async function getBatchEmbeddings(
+  services: SkillShareerServices,
   entries: KnowledgeRecord[],
 ): Promise<{ embeddings: Map<string, BatchEmbeddingResult>; stats: BatchCacheStats }> {
   const embeddings = new Map<string, BatchEmbeddingResult>();
   const misses: KnowledgeRecord[] = [];
 
   for (const entry of entries) {
-    const cached = getCachedEmbedding(entry);
+    const cached = getCachedEmbedding(services, entry);
     if (cached) {
       embeddings.set(entry.id, { vector: cached, fromCache: true });
     } else {
@@ -181,7 +191,7 @@ async function getBatchEmbeddings(
       misses.map(async (entry) => {
         try {
           const text = buildEmbeddingText(entry);
-          const vector = await generateEmbedding(text);
+          const vector = await getRetrievalInfra(services).embeddings.generate(text);
           return { entryId: entry.id, vector };
         } catch (_error) {
           return { entryId: entry.id, vector: null };
@@ -209,12 +219,13 @@ async function getBatchEmbeddings(
 }
 
 export async function optimizedSemanticRecall(
+  services: SkillShareerServices,
   queryVector: number[],
   entries: KnowledgeRecord[],
   filters: RetrievalQuery['filters'],
   seed?: string,
 ): Promise<OptimizedSemanticRecallResult> {
-  const { embeddings, stats } = await getBatchEmbeddings(entries);
+  const { embeddings, stats } = await getBatchEmbeddings(services, entries);
 
   const scoredEntries: Array<{ entry: KnowledgeRecord; score: number }> = [];
 
@@ -237,8 +248,10 @@ export async function optimizedSemanticRecall(
 export const semanticChannel: KnowledgeReadRecallChannel = {
   name: 'semantic',
   async recall(queryText: string, entries: KnowledgeRecord[]) {
-    const queryVector = await getQueryEmbedding(queryText);
+    const services = { retrievalInfra: getDefaultRetrievalInfra() } as SkillShareerServices;
+    const queryVector = await getQueryEmbedding(services, queryText);
     const { scoredEntries } = await optimizedSemanticRecall(
+      services,
       queryVector,
       entries,
       undefined as unknown as RetrievalQuery['filters'],

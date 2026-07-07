@@ -809,7 +809,7 @@ find ${BACKUP_DIR} -name "trapmap_backup_*.sql.gz" -mtime +30 -delete
 
 ### 监控
 
-> 当前宿主已内置 `/metrics` Prometheus scrape surface；日志链路默认保留 stdout，启用 Loki 时再通过 `TRAPMAP_LOKI_ENABLED` / `TRAPMAP_LOKI_URL` 增强聚合能力。
+> 当前宿主已内置 `/metrics` Prometheus scrape surface；日志链路默认保留 stdout。需要把结构化日志送入 Loki 时，使用当前 `LOKI_HOST` 配置接入外部聚合链路。
 
 ```bash
 # 健康检查（内置端点）

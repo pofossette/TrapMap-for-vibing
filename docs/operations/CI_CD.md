@@ -15,7 +15,7 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 
 ## CI 流水线（ci.yml）
 
-默认有七个 job，其中 `fallow-push-audit` 在 push 和 pull_request 事件均触发，无依赖关系：
+当前 job 集合以 `.github/workflows/ci.yml` 中定义为准；截至 2026-07-07，该 workflow 包含以下 job，其中 `fallow-push-audit` 在 push 和 pull_request 事件均触发、且无依赖关系：
 
 | Job | 命令 | 说明 |
 |-----|------|------|
@@ -48,7 +48,7 @@ Runtime foundations 相关改动主要依赖以下 job 组合形成质量门：
 
 - **命令范围漂移**：包级 DB 命令（`pnpm --filter @trapmap/server db:migrate`）和 JSON 回退路径（`.data/skill-shareer.json`）
 - **环境默认值漂移**：`ARCHITECTURE.md` 中的 `HOST`（`127.0.0.1`）和 `AI_CHAT_MODEL`（`gpt-4o-mini`）默认值
-- **深层架构参考漂移**：`PERSISTENCE.md` 表计数（56 张表）、`ENVIRONMENT.md` 数据文件路径
+- **深层架构参考漂移**：`PERSISTENCE.md` 表总览若写死数量、`ENVIRONMENT.md` 数据文件路径
 - **PostgreSQL-first 姿态漂移**：禁止过时的 JSON 存储描述和旧表计数
 - **评测命令表面漂移**：`EVALUATION.md` 和 `TESTING.md` 中的 eval 入口命令（`pnpm eval:smoke`、`pnpm eval:ci`、`pnpm eval:ci:core`）
 - **当前 remediation 入口漂移**：active root execution surface、todos/archived index truth、以及 deferred landing spot 口径

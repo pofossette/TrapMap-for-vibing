@@ -1,23 +1,11 @@
 import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
-import { DEFAULT_FRESHNESS_CONFIG } from '@trapmap/server/lib/decay/index.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/index.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import { vectorSimilaritySearch } from '@trapmap/server/lib/retrieval/recall/db-search.js';
-import { graphAssistedRecall as graphRecall } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
-import { createPgKeywordRecall } from '@trapmap/server/lib/retrieval/recall/pg-keyword.js';
-import {
-  buildBoundaryExplanation,
-  computeBoundaryScoreDelta,
-  createSemanticCandidate,
-  mergeCandidates,
-  rerankCandidates,
-  toScoredEntriesFromReranked,
-} from '@trapmap/server/lib/retrieval/scoring/index.js';
 import type { Pool } from 'pg';
 import type { MergedCandidate, RoutingChannel, ScoredEntry } from './retrieval-types.js';
 
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
+import { getRetrievalInfra } from './retrieval-infra.js';
 import { keywordRecall, normalizeQuery } from './retrieval-keyword.js';
 import { computeScore, getQueryEmbedding, optimizedSemanticRecall } from './retrieval-semantic.js';
 import type { KnowledgeRecord } from './store.js';
@@ -67,8 +55,9 @@ export interface RecallExecutionResult {
 }
 
 export function getDbSearchConfig(services: SkillShareerServices): DbSearchConfig {
-  const enabled = process.env.USE_DB_SEARCH === 'true';
-  const pool = services.store instanceof PostgresStore ? services.store.getPool() : null;
+  const infra = getRetrievalInfra(services);
+  const enabled = infra.pgRecall.isEnabled();
+  const pool = infra.pgRecall.getPool(services.store);
   return { enabled: enabled && pool !== null, pool };
 }
 
@@ -116,14 +105,15 @@ export async function semanticRecall(
   services?: SkillShareerServices,
   auth?: ResolvedAuthContext,
 ): Promise<RecallExecutionResult> {
+  const infra = services ? getRetrievalInfra(services) : null;
   const dbConfig = services ? getDbSearchConfig(services) : { enabled: false, pool: null };
 
   if (dbConfig.enabled && dbConfig.pool && auth) {
     try {
-      const queryVector = await getQueryEmbedding(seed);
+      const queryVector = await getQueryEmbedding(services, seed);
       const scopeFilter =
         parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
-      const dbResults = await vectorSimilaritySearch(dbConfig.pool, {
+      const dbResults = await infra!.pgRecall.vectorSimilaritySearch(dbConfig.pool, {
         queryVector,
         limit: parsed.maxResults * 2,
         teamId: auth.activeTeamId,
@@ -140,11 +130,11 @@ export async function semanticRecall(
         const entry = entryMap.get(result.entryId);
         if (!entry) continue;
 
-        const boundaryDelta = computeBoundaryScoreDelta(entry, parsed.boundaryContext);
+        const boundaryDelta = infra!.scoring.computeBoundaryScoreDelta(entry, parsed.boundaryContext);
         const boostedScore = computeScore(result.similarity, entry, parsed.filters, seed);
         const finalScore = Math.min(1, Math.max(0, boostedScore + boundaryDelta));
         const boundaryExplanation = parsed.boundaryContext
-          ? buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
+          ? infra!.scoring.buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
           : undefined;
 
         const scoredEntry: ScoredEntry = { entry, score: finalScore };
@@ -156,8 +146,8 @@ export async function semanticRecall(
 
       scoredEntries.sort((a, b) => b.score - a.score);
       const sliced = scoredEntries.slice(0, parsed.maxResults);
-      const mergedCandidates = mergeCandidates(
-        sliced.map(({ entry, score }) => createSemanticCandidate(entry, score)),
+      const mergedCandidates = infra!.scoring.mergeCandidates(
+        sliced.map(({ entry, score }) => infra!.scoring.createSemanticCandidate(entry, score)),
         [],
       );
       return { scoredEntries: sliced, mergedCandidates };
@@ -166,8 +156,9 @@ export async function semanticRecall(
     }
   }
 
-  const queryVector = await getQueryEmbedding(seed);
+  const queryVector = await getQueryEmbedding(services!, seed);
   const { scoredEntries: rawScoredEntries } = await optimizedSemanticRecall(
+    services!,
     queryVector,
     eligibleEntries,
     parsed.filters,
@@ -175,10 +166,10 @@ export async function semanticRecall(
   );
 
   const scoredEntries: ScoredEntry[] = rawScoredEntries.map(({ entry, score }) => {
-    const boundaryDelta = computeBoundaryScoreDelta(entry, parsed.boundaryContext);
+    const boundaryDelta = infra!.scoring.computeBoundaryScoreDelta(entry, parsed.boundaryContext);
     const finalScore = Math.min(1, Math.max(0, score + boundaryDelta));
     const boundaryExplanation = parsed.boundaryContext
-      ? buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
+      ? infra!.scoring.buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
       : undefined;
     const result: ScoredEntry = { entry, score: finalScore };
     if (boundaryExplanation !== undefined) {
@@ -189,8 +180,8 @@ export async function semanticRecall(
 
   scoredEntries.sort((a, b) => b.score - a.score);
   const sliced = scoredEntries.slice(0, parsed.maxResults);
-  const mergedCandidates = mergeCandidates(
-    sliced.map(({ entry, score }) => createSemanticCandidate(entry, score)),
+  const mergedCandidates = infra!.scoring.mergeCandidates(
+    sliced.map(({ entry, score }) => infra!.scoring.createSemanticCandidate(entry, score)),
     [],
   );
   return { scoredEntries: sliced, mergedCandidates };
@@ -204,6 +195,7 @@ export async function hybridRecall(
   auth?: ResolvedAuthContext,
 ): Promise<RecallExecutionResult> {
   const queryTokens = normalizeQuery(seed);
+  const infra = services ? getRetrievalInfra(services) : null;
   const dbConfig = services ? getDbSearchConfig(services) : { enabled: false, pool: null };
 
   if (dbConfig.enabled && dbConfig.pool && auth) {
@@ -211,14 +203,10 @@ export async function hybridRecall(
       const eligibleIds = new Set(eligibleEntries.map((e) => e.id));
       const entryMap = new Map(eligibleEntries.map((e) => [e.id, e]));
 
-      const pgKeywordRecall = createPgKeywordRecall({
-        pool: dbConfig.pool,
-        featureFlag: () => true,
-      });
-
       const [queryVector, keywordResults] = await Promise.all([
-        getQueryEmbedding(seed),
-        pgKeywordRecall(
+        getQueryEmbedding(services, seed),
+        infra!.pgRecall.keywordRecall(
+          dbConfig.pool,
           seed,
           {
             teamId: auth.activeTeamId,
@@ -232,7 +220,7 @@ export async function hybridRecall(
 
       const dbScopeFilter =
         parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
-      const dbVectorResults = await vectorSimilaritySearch(dbConfig.pool, {
+      const dbVectorResults = await infra!.pgRecall.vectorSimilaritySearch(dbConfig.pool, {
         queryVector,
         limit: parsed.maxResults * 2,
         teamId: auth.activeTeamId,
@@ -245,9 +233,9 @@ export async function hybridRecall(
         .map((r: (typeof dbVectorResults)[number]) => {
           const entry = entryMap.get(r.entryId);
           if (!entry) return null;
-          return createSemanticCandidate(entry, r.similarity);
+          return infra!.scoring.createSemanticCandidate(entry, r.similarity);
         })
-        .filter((c): c is NonNullable<ReturnType<typeof createSemanticCandidate>> => c !== null);
+        .filter((c): c is NonNullable<ReturnType<typeof infra!.scoring.createSemanticCandidate>> => c !== null);
 
       const keywordCandidates: Awaited<ReturnType<typeof keywordRecall>> = [];
       for (const result of keywordResults) {
@@ -266,15 +254,15 @@ export async function hybridRecall(
         });
       }
 
-      const mergedCandidates = mergeCandidates(semanticCandidates, keywordCandidates);
-      const rerankedCandidates = rerankCandidates(mergedCandidates, queryTokens, {
+      const mergedCandidates = infra!.scoring.mergeCandidates(semanticCandidates, keywordCandidates);
+      const rerankedCandidates = infra!.scoring.rerankCandidates(mergedCandidates, queryTokens, {
         maxCandidates: parsed.maxResults,
         ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
-        freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
+        freshnessConfig: infra!.scoring.freshnessConfig,
         earlyTerminationThreshold: 0.3,
       });
 
-      const scoredEntries = toScoredEntriesFromReranked(rerankedCandidates);
+      const scoredEntries = infra!.scoring.toScoredEntriesFromReranked(rerankedCandidates);
       return { scoredEntries, mergedCandidates: rerankedCandidates };
     } catch (error) {
       console.error('[hybridRecall] DB search failed, falling back to in-memory:', error);
@@ -282,35 +270,40 @@ export async function hybridRecall(
   }
 
   const [semanticCandidates, keywordCandidates] = await Promise.all([
-    computeSemanticCandidates(seed, eligibleEntries, parsed.filters),
+    computeSemanticCandidates(services!, seed, eligibleEntries, parsed.filters),
     keywordRecall(seed, eligibleEntries),
   ]);
 
-  const mergedCandidates = mergeCandidates(semanticCandidates, keywordCandidates);
-  const rerankedCandidates = rerankCandidates(mergedCandidates, queryTokens, {
+  const mergedCandidates = infra!.scoring.mergeCandidates(semanticCandidates, keywordCandidates);
+  const rerankedCandidates = infra!.scoring.rerankCandidates(mergedCandidates, queryTokens, {
     maxCandidates: parsed.maxResults,
     ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
-    freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
+    freshnessConfig: infra!.scoring.freshnessConfig,
     earlyTerminationThreshold: 0.3,
   });
 
-  const scoredEntries = toScoredEntriesFromReranked(rerankedCandidates);
+  const scoredEntries = infra!.scoring.toScoredEntriesFromReranked(rerankedCandidates);
   return { scoredEntries, mergedCandidates: rerankedCandidates };
 }
 
 async function computeSemanticCandidates(
+  services: SkillShareerServices,
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   filters: RetrievalQuery['filters'],
-): Promise<ReturnType<typeof createSemanticCandidate>[]> {
-  const queryVector = await getQueryEmbedding(seed);
+): Promise<ReturnType<ReturnType<typeof getRetrievalInfra>['scoring']['createSemanticCandidate']>[]> {
+  const infra = getRetrievalInfra(services);
+  const queryVector = await getQueryEmbedding(services, seed);
   const { scoredEntries } = await optimizedSemanticRecall(
+    services,
     queryVector,
     eligibleEntries,
     filters,
     seed,
   );
-  const candidates = scoredEntries.map(({ entry, score }) => createSemanticCandidate(entry, score));
+  const candidates = scoredEntries.map(({ entry, score }) =>
+    infra.scoring.createSemanticCandidate(entry, score),
+  );
   candidates.sort((a, b) => b.score - a.score);
   return candidates;
 }
@@ -324,15 +317,16 @@ export async function graphAssistedHybridRecall(
   services?: SkillShareerServices,
 ): Promise<RecallExecutionResult> {
   const queryTokens = normalizeQuery(seed);
+  const infra = services ? getRetrievalInfra(services) : null;
   const eligibleEntriesMap = new Map<string, KnowledgeRecord>();
   for (const entry of eligibleEntries) {
     eligibleEntriesMap.set(entry.id, entry);
   }
 
   const [semanticCandidates, keywordCandidates, graphCandidates] = await Promise.all([
-    computeSemanticCandidates(seed, eligibleEntries, parsed.filters),
+    computeSemanticCandidates(services!, seed, eligibleEntries, parsed.filters),
     keywordRecall(seed, eligibleEntries),
-    graphRecall(
+    infra!.pgRecall.graphAssistedRecall(
       seed,
       eligibleEntriesMap,
       services?.graphQueryBackend ? { graphQueryBackend: services.graphQueryBackend } : undefined,
@@ -348,21 +342,21 @@ export async function graphAssistedHybridRecall(
       return candidate.entry === eligibleEntry ? candidate : { ...candidate, entry: eligibleEntry };
     })
     .filter(
-      (candidate): candidate is Awaited<ReturnType<typeof graphRecall>>[number] =>
+      (candidate): candidate is Awaited<ReturnType<ReturnType<typeof getRetrievalInfra>['pgRecall']['graphAssistedRecall']>>[number] =>
         candidate !== null,
     );
 
-  const hybridMerged = mergeCandidates(semanticCandidates, keywordCandidates);
+  const hybridMerged = infra!.scoring.mergeCandidates(semanticCandidates, keywordCandidates);
   const finalMerged = mergeCandidatesWithGraph(hybridMerged, governedGraphCandidates);
 
-  const rerankedCandidates = rerankCandidates(finalMerged, queryTokens, {
+  const rerankedCandidates = infra!.scoring.rerankCandidates(finalMerged, queryTokens, {
     maxCandidates: parsed.maxResults,
     ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
-    freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
+    freshnessConfig: infra!.scoring.freshnessConfig,
     earlyTerminationThreshold: 0.3,
   });
 
-  const scoredEntries = toScoredEntriesFromReranked(rerankedCandidates);
+  const scoredEntries = infra!.scoring.toScoredEntriesFromReranked(rerankedCandidates);
   return {
     scoredEntries,
     mergedCandidates: rerankedCandidates,

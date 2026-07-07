@@ -31,8 +31,9 @@ export TRAPMAP_EVAL_PLATFORM_FLUSH_TIMEOUT_MS=5000
 ## 当前 closeout 状态
 
 - 代码侧 closeout 已完成到“三个 suite 都由 owner 产出 platform events，aggregate runner 只负责发布”。
-- live Langfuse closeout 仍未完成。2026-07-06 11:35:08 CST 这次执行中，`LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 仍全为空，且仓库内没有 checked-in Langfuse deployment/config 可供对接。
-- 因此当前只能把 `--platform langfuse` 的缺配置 warning 路径视为已验证；不能把本轮文档回写解释成真实平台联通已收口。
+- live Langfuse closeout 仍未完成。2026-07-07 22:05 CST 这次执行中，`rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY` 仍无输出，且仓库内仍没有 checked-in Langfuse deployment/config 可供对接。
+- 同一轮还执行了 `rtk pnpm eval -- smoke --dry-run --platform langfuse`；runner 输出 `[eval-platform] langfuse adapter disabled: missing LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY.`，说明当前只验证到 warning-only fallback 路径。
+- 因此不能把本轮文档回写解释成真实平台联通已收口；active closeout 仍是 environment-blocked。
 - `MLflow` 与第二平台切换验证仍属 deferred，不在当前 active closeout 范围内。
 
 ## 失败语义

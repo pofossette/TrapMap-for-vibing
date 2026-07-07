@@ -63,6 +63,23 @@ describe('closeout surface guardrails', () => {
     );
   });
 
+  it('guards persistence doc rules against hard-coded stale schema counts', () => {
+    const budgets = readComplexityBudgets();
+    const rule = budgets.docRules.find(
+      (entry) => entry.file === 'docs/architecture/components/PERSISTENCE.md',
+    );
+
+    expect(rule).toBeDefined();
+    expect(rule?.mustContain ?? []).toEqual(
+      expect.arrayContaining([
+        'docs/reference/DATABASE_SCHEMA.md',
+        'PostgreSQL 是主要且权威的生产存储后端',
+      ]),
+    );
+    expect(rule?.mustContain ?? []).not.toContain('57 张表');
+    expect(rule?.mustNotContain ?? []).toEqual(expect.arrayContaining(['48 张表', '56 张表']));
+  });
+
   it('guards the root plan active eval-platform state wording', () => {
     const budgets = readComplexityBudgets();
     const rule = budgets.docRules.find((entry) => entry.file === 'plan.md');
