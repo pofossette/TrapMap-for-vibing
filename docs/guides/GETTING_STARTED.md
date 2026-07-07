@@ -44,12 +44,12 @@ cp .env.example .env
 | `TRAPMAP_SYSTEM_ADMIN_KEY` | 管理员密钥（可选；仅在你要创建/使用 system-admin 能力时需要） | `openssl rand -hex 32` 生成 |
 | `OPENAI_API_KEY` | OpenAI API 密钥（可选；未配置时回退到 fallback provider） | `sk-...` |
 | `TRAPMAP_DATABASE_URL` | PostgreSQL 连接字符串（推荐；兼容主文档口径） | `postgresql://localhost:5432/trapmap` |
-| `DATABASE_URL` | PostgreSQL 连接字符串（新宿主同样支持） | `postgresql://localhost:5432/trapmap` |
+| `DATABASE_URL` | PostgreSQL 连接字符串（当前主要用于 distributed 宿主 fallback） | `postgresql://localhost:5432/trapmap` |
 | `TRAPMAP_DATA_FILE` | JSON 存储路径（兼容回退，可选） | `.data/skill-shareer.json` |
 
 ### PostgreSQL 设置（推荐）
 
-当前开发主线推荐使用 PostgreSQL。设置 `TRAPMAP_DATABASE_URL` 或 `DATABASE_URL` 后即可启动；Drizzle 数据库迁移仍由 `packages/server/drizzle/` 作为权威迁移目录提供。若未设置数据库 URL，部分本地姿态仍会回退到 JSON 文件存储。
+当前开发主线推荐使用 PostgreSQL。本地 `host-local` / `server` 兼容壳以 `TRAPMAP_DATABASE_URL` 为准；`distributed` 宿主额外兼容 `DATABASE_URL` fallback。Drizzle 数据库迁移仍由 `packages/server/drizzle/` 作为权威迁移目录提供。若未设置数据库 URL，部分本地姿态仍会回退到 JSON 文件存储。
 
 ```bash
 # 创建数据库

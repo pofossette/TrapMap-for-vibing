@@ -33,10 +33,10 @@
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `TRAPMAP_DATABASE_URL` | PostgreSQL 连接字符串（设置后启用 PostgresStore） | 空（使用 JsonStore） |
-| `DATABASE_URL` | PostgreSQL 连接字符串（`host-local` / `host-distributed` 同样接受） | 空 |
+| `DATABASE_URL` | PostgreSQL 连接字符串（当前主要用于 `host-distributed` fallback） | 空 |
 | `TRAPMAP_DATA_FILE` | JSON 文件存储路径（兼容回退，可选） | `.data/skill-shareer.json` |
 
-> 设置 `TRAPMAP_DATABASE_URL` 或 `DATABASE_URL` 后，宿主启动时会连接 PostgreSQL。Drizzle migration runner 的权威迁移目录仍是 `packages/server/drizzle/`。
+> 本地 `host-local` / `server` 兼容壳以 `TRAPMAP_DATABASE_URL` 为主；`host-distributed` 额外兼容 `DATABASE_URL` fallback。Drizzle migration runner 的权威迁移目录仍是 `packages/server/drizzle/`。
 
 ### 可选部署拆分与任务传输
 

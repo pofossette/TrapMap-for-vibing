@@ -11,10 +11,10 @@
 
 | 参数 | 默认值 | 配置方式 | 说明 |
 |------|--------|---------|------|
-| `OTEL_SAMPLE_RATE` | `1.0`（开发）/ `0.1`（生产） | 环境变量 | 0.0 ~ 1.0，控制 head-based 采样率 |
+| `OTEL_SAMPLE_RATE` | 运行时默认值因宿主而异 | 环境变量 | 0.0 ~ 1.0，控制 head-based 采样率；不要把 profile 推荐值写成统一运行时默认值 |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | 环境变量 | OTLP exporter 端点；未接 collector 时可回退本地 console 调试 |
 
-采样率按 deployment profile 自动设置推荐默认值：
+采样率按 deployment profile 的推荐值如下，但当前代码并不存在一套统一的自动 profile 默认值：
 
 - `local-agent`：1.0（全量采集，开发调试用）
 - `team-monolith`：按实际需求配置，建议 0.5
@@ -100,7 +100,7 @@ TrapMap 提供三个探针端点，遵循 Kubernetes 探针语义，适用于容
 - **不检查**：不检查任何外部依赖（数据库、Consul、OTel 等）
 - **实现**：
   - Fastify: `packages/server/src/lib/runtime/http-surface.ts` 第 149-152 行
-  - NestJS: `packages/host-local/src/nest/health/health.controller.ts` 第 74-79 行
+  - NestJS: `packages/host-local/src/nest/health/health.controller.ts` 第 105-110 行
 
 ### `/ready` — Readiness Probe
 

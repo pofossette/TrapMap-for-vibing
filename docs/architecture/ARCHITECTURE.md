@@ -24,8 +24,8 @@ Phase 1 边界收敛补充事实：
 
 Phase 1 Nest 宿主试点补充事实：
 
-- 首个 Nest 试点固定为 `gateway + knowledge-read`；`identity-access` 因 auth contract drift 延后到后续阶段。
-- Nest 代码落点固定在 `packages/host-local/src/nest/`，目录职责：`bootstrap/main`（NestFactory + FastifyAdapter）、`app.module`（根 module graph）、`gateway/`（外部 controller）、`knowledge-read/`（首个 bounded-context module）、`adapters/`（in-process / remote provider factory）、`config/`（ConfigModule bridge）、`runtime/`（request context、exception filter、validation pipe、auth guard、logging middleware）。
+- 当前默认 `light` 主线已经固定为 `gateway + 六个 bounded-context module`，统一注册在 `packages/host-local/src/nest/app.module.ts`。
+- Nest 代码落点固定在 `packages/host-local/src/nest/`，目录职责包括：`gateway/`（外部 controller）、六个 bounded-context module、`adapters/`（in-process / remote provider factory）、`config/`（ConfigModule bridge）、`runtime/`（request context、exception filter、validation pipe、auth guard、logging middleware）。
 - Nest controller 不重写业务逻辑，只注入 `backend-core` Port 或 service-assembly factory。
 - 异常映射统一为 canonical envelope：`code`、`message`、`kind`、`requestId`、`traceId?`、`details?`；兼容窗口内保留 `error` 作为 `message` 别名。
 - `401` 停留在 guard 层，不扩写进 `InvocationErrorKind`。

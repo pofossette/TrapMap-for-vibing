@@ -25,7 +25,7 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 | `test` | `pnpm test` | 全量单元测试 |
 | `coverage` | `pnpm test:coverage` | 测试覆盖率（当前 workflow 未显式设置 artifact 保留期） |
 | `postgres-integration` | PG 集成测试 | 真实 PostgreSQL/pgvector 校验（任务队列、outbox subscriber） |
-| `doc-guardrails` | `pnpm check:docs-drift` + `pnpm check:arch-freeze` + `pnpm check:deps` + `pnpm check:mermaid` + `pnpm check:structure` + `pnpm check:complexity` + `pnpm check:md-lint` + `pnpm check:links` + `fallow dead-code --boundary-violations --ci --fail-on-issues` | 文档漂移、架构冻结、依赖分析、Mermaid、仓库结构、复杂度预算、Markdown lint、链接守卫和架构边界守卫 |
+| `doc-guardrails` | `pnpm check:docs-drift` + `pnpm check:arch-freeze` + `pnpm check:deps` + `pnpm check:mermaid` + `pnpm check:structure` + `pnpm check:complexity` + `pnpm check:md-lint` + `pnpm check:links` + `fallow dead-code --boundary-violations --ci --fail-on-issues` + `fallow dead-code --unused-deps --ci --fail-on-issues` | 文档漂移、架构冻结、依赖分析、Mermaid、仓库结构、复杂度预算、Markdown lint、链接守卫、架构边界守卫与未使用依赖守卫 |
 
 `postgres-integration` job 使用 `pgvector/pgvector:pg16` 作为 service container，运行需要真实数据库的集成测试。确保异步基础设施（TaskQueue、OutboxWorker、Lifecycle subscribers）在 PostgreSQL 环境下正确工作。
 
