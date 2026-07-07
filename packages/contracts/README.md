@@ -9,7 +9,8 @@
 ## 目录结构
 
 - `src/domain/` — 按领域组织的 Zod schema
-- `src/types/` — TypeScript 类型声明
+- `src/index.ts` — 共享导出入口，聚合 `src/domain/` 与 `enum-types/`
+- `enum-types/` — 共享枚举与字面量联合的聚合导出目录
 
 ## 共享验证辅助函数
 
@@ -31,17 +32,17 @@
 |--------|------|-----------|
 | `knowledgeMetadataSchema` | `knowledge.ts` | `submissionCount >= resubmissionCount` |
 | `skillArtifactMetadataSchema` | `artifacts.ts` | `submissionCount >= resubmissionCount` |
-| `conflictRelationSchema` | `conflict.ts` | `entryIdA !== entryIdB` and `entryIdA < entryIdB` (canonical ordering) |
-| `retrievalEvalRelevanceExpectationsSchema` | `evals/retrieval.ts` | `idealOrder` entries must all be in `relevantIds` |
-| `statsSummaryQuerySchema` | `operations.ts` | `from <= to` when both timestamps are present |
-| `skillArtifactRevisionSchema` | `artifacts.ts` | `derived.sourceHash === sourceHash` when derived is present |
-| `sessionStatusResponseSchema` | `auth.ts` | `session !== null` when `authenticated === true` |
-| `batchOperationItemSchema` | `decay.ts` | `eligible` → `ineligibilityReason === null` and `!eligible` → `ineligibilityReason !== null` |
-| `batchOperationResponseSchema` | `decay.ts` | `dryRun === true` → `appliedAt === null` |
-| `maintenanceEntryListRequestSchema` | `maintenance.ts` | `staleVerification` → `staleDays !== undefined` |
-| `importResultItemSchema` | `operations.ts` | `success` → `entry !== null` |
-| `maintenanceBatchOperationItemSchema` | `maintenance.ts` | Same invariants as `batchOperationItemSchema` (decay) |
-| `maintenanceBatchOperationResponseSchema` | `maintenance.ts` | Same invariants as `batchOperationResponseSchema` (decay) |
+| `conflictRelationSchema` | `conflict.ts` | `entryIdA !== entryIdB` 且 `entryIdA < entryIdB`（规范排序） |
+| `retrievalEvalRelevanceExpectationsSchema` | `evals/retrieval.ts` | `idealOrder` 中的条目必须全部属于 `relevantIds` |
+| `statsSummaryQuerySchema` | `operations.ts` | 当两个时间戳都存在时必须满足 `from <= to` |
+| `skillArtifactRevisionSchema` | `artifacts.ts` | 当 `derived` 存在时，`derived.sourceHash === sourceHash` |
+| `sessionStatusResponseSchema` | `auth.ts` | 当 `authenticated === true` 时，`session !== null` |
+| `batchOperationItemSchema` | `decay.ts` | `eligible` 时 `ineligibilityReason === null`，否则 `ineligibilityReason !== null` |
+| `batchOperationResponseSchema` | `decay.ts` | `dryRun === true` 时 `appliedAt === null` |
+| `maintenanceEntryListRequestSchema` | `maintenance.ts` | `staleVerification` 为真时必须提供 `staleDays` |
+| `importResultItemSchema` | `operations.ts` | `success` 为真时 `entry !== null` |
+| `maintenanceBatchOperationItemSchema` | `maintenance.ts` | 与 `batchOperationItemSchema` 保持相同不变量 |
+| `maintenanceBatchOperationResponseSchema` | `maintenance.ts` | 与 `batchOperationResponseSchema` 保持相同不变量 |
 | `evals/report.ts` schemas | `evals/report.ts` | `passRate === passedCases / totalCases` |
 | `retrievalEvalGovernanceExpectationsSchema` | `evals/retrieval.ts` | `forbiddenIds.length === forbiddenReasons.length` |
 
@@ -74,4 +75,5 @@ rtk pnpm eval:smoke                                    # 运行时集成测试
 ## 内部导航
 
 - Schema 入口：[`src/domain/`](src/domain/)
-- 类型定义：[`src/types/`](src/types/)
+- 聚合导出入口：[`src/index.ts`](src/index.ts)
+- 枚举聚合入口：[`enum-types/`](enum-types/)

@@ -1,43 +1,44 @@
-# Server Route Layout
+# Server 路由布局
 
-Routes are the server's `interfaces/http` layer. They are thin Fastify modules that parse requests, check auth/permissions, and delegate to `lib/`.
+路由是 server 的 `interfaces/http` 层。它们是轻量 Fastify 模块，负责解析请求、检查认证与权限，并把工作委托给 `lib/`。
 
-## Ownership Rule
+## 归属规则
 
-Routes may do only these things:
+路由只允许做这些事情：
 
-- parse transport input and map it to command/query payloads
-- run schema validation and auth/permission gates
-- resolve actor/request context needed by downstream services
-- delegate to application services, read-side assemblers, or operator helpers
-- map results/errors back to HTTP responses
+- 解析传输层输入，并映射成命令/查询 payload
+- 执行 schema 校验，以及认证/权限 gate
+- 解析下游服务所需的 actor/request 上下文
+- 委托给应用服务、读侧组装器或 operator helper
+- 把结果或错误映射回 HTTP 响应
 
-Routes do not own:
+路由不拥有这些职责：
 
-- multi-step write orchestration
-- bootstrap/runtime/process supervision
-- queue recovery or worker lifecycle
-- read-model assembly for write-side workflows
+- 多步骤写入编排
+- bootstrap、runtime 或进程监管
+- 队列恢复或 worker 生命周期
+- 写侧工作流的读模型组装
 
-## Directory Rule
+## 目录规则
 
-- Single-file routes stay as `routes/<domain>.ts`.
-- A route group with multiple sub-operations becomes `routes/<domain>/`.
-- Route tests are colocated with the route file unless the test is a cross-route smoke test.
+- 单文件路由保留为 `routes/<domain>.ts`
+- 带多个子操作的路由组使用 `routes/<domain>/`
+- 路由测试默认与路由文件同目录，跨路由冒烟测试除外
 
-## Current Route Groups
+## 当前路由组
 
 | Path | Responsibility |
 |---|---|
-| `routes/candidates/` | Candidate submit, query, duplicate lookup, and resolution |
-| `routes/operations/` | Operator/admin operations such as status, migrate, audit, artifact import/export/activate |
-| `routes/*.ts` | Flat route modules for domains that do not need sub-operation files |
+| `routes/candidates/` | 候选提交、查询、重复项查找与 resolution |
+| `routes/feedback-admin/` | 反馈后台列表、批量处理、统计与 remediation 管理 |
+| `routes/operations/` | status、migrate、audit、artifact import/export/activate 等 operator/admin 操作 |
+| `routes/*.ts` | 不需要子操作拆分的扁平路由模块 |
 
-## Layer Mapping By Heavy Context
+## 按重点上下文的分层映射
 
-| Context | Route responsibility |
+| 上下文 | 路由职责 |
 |---|---|
-| `knowledge` | validate knowledge/trap/review/decay requests, authorize, delegate to shared application services |
-| `candidate ingestion` | accept submissions and operator decisions, then delegate to candidate services; recovery/re-enqueue is not an HTTP concern |
-| `feedback/remediation` | expose command/query endpoints without embedding remediation workflow logic in handlers |
-| `operations/runtime` | surface runtime/admin interfaces, but runtime state calculation still comes from infrastructure modules |
+| `knowledge` | 校验 knowledge/trap/review/decay 请求、执行授权，并委托共享应用服务 |
+| `candidate ingestion` | 接收提交与 operator 决策后委托给 candidate 服务；recovery/re-enqueue 不属于 HTTP 职责 |
+| `feedback/remediation` | 暴露命令与查询端点，但不在 handler 中嵌入 remediation 工作流逻辑 |
+| `operations/runtime` | 暴露 runtime/admin 接口，但 runtime 状态计算仍来自基础设施模块 |

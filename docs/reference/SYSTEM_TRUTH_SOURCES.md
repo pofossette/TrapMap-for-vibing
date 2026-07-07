@@ -29,7 +29,7 @@
 | 后端构建目标映射（`light` / `heavy`） | `plan.md` + `docs/archived/archived-plans/backend-build-targets-plan.md` | `README.md`、`docs/README.md`、`architecture.md`、`docs/PACKAGES.md`、`docs/architecture/DEPLOYMENT.md`、`packages/backend-core/README.md`、`packages/host-local/README.md`、`packages/host-distributed/README.md` |
 | 持久化姿态 | `README.md` + `packages/server/src/lib/persistence/schema/*.ts` | `docs/README.md`、`docs/guides/GETTING_STARTED.md`、`docs/architecture/DEPLOYMENT.md` |
 | CI 任务 | `.github/workflows/ci.yml` | `docs/operations/CI_CD.md`、`docs/operations/TESTING.md` |
-| Schema 数量 | `packages/server/src/lib/persistence/schema/*.ts`（artifacts.ts、knowledge.ts、candidates.ts、auth.ts、retrieval.ts、queue.ts、index.ts） | `docs/reference/DATABASE_SCHEMA.md`、`docs/README.md` |
+| Schema 数量 | `packages/server/src/lib/persistence/schema/*.ts`（artifacts.ts、knowledge.ts、candidates.ts、auth.ts、labels.ts、retrieval.ts、queue.ts、index.ts） | `docs/reference/DATABASE_SCHEMA.md`、`docs/README.md` |
 | 护栏命令 | `scripts/complexity-budgets.json` + `.github/workflows/ci.yml` | `docs/reference/SYSTEM_TRUTH_SOURCES.md`、`docs/operations/TESTING.md`、`docs/operations/CI_CD.md` |
 | 启动命令 | `package.json` scripts 部分 + `scripts/run-dev.ts` | `docs/README.md`、`docs/guides/GETTING_STARTED.md`、`docs/guides/MIGRATION_GUIDE.md` |
 | 评估入口 | `package.json` scripts 部分 + `scripts/run-eval.ts` | `docs/operations/TESTING.md`、`docs/operations/CI_CD.md` |
