@@ -1,6 +1,6 @@
 # TrapMap Host-Distributed
 
-TrapMap 的分布式部署装配层。每个限界上下文模块作为独立服务运行。
+TrapMap 的分布式宿主装配层，负责 `gateway` 与六个服务入口的进程启动、运行时装配和内部传输接线。每个限界上下文模块都可以作为独立服务运行。
 
 ## 架构
 
@@ -105,7 +105,7 @@ pnpm dev:candidate-ingestion
 
 - `test:acceptance` 现已涵盖真实内部 HTTP 跳转测试和多进程运行时收尾，包括 gateway -> candidate-ingestion -> knowledge-write、gateway -> governance-review -> knowledge-write、以及 gateway -> job-runtime。
 - `knowledge-read` 现已在 `/internal/knowledge-read/projection-status` 暴露显式的投影/新鲜度契约，gateway 在 `/v1/knowledge/projection-status` 上转发。
-- `packages/host-distributed` 现在仅是 `knowledge-read` 的薄进程宿主；权威的读服务装配和路由契约位于 `packages/service-knowledge-read`。
+- `packages/host-distributed` 当前覆盖 `gateway + 六个服务入口` 的分布式宿主装配；其中 `knowledge-read` 的权威读服务装配和路由契约位于 `packages/service-knowledge-read`。
 - 当前 `knowledge-read` 的底层模型仍使用共享的权威 PostgreSQL 存储投影状态契约暴露的临时直读条目。检索/搜索/查询追踪仍为派生的读侧状态。这足以满足边界清晰度要求，但尚未实现独立的派生存储隔离。
 - 物理微服务拆分不再受阻于缺失的多进程写路径证明；目前仍受阻于 `eval:smoke` 收尾和读侧 Phase 2 成熟度，而非路由归属声明本身。
 

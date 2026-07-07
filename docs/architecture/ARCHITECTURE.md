@@ -9,7 +9,7 @@
 Phase 0 目标架构冻结补充事实：
 
 - 唯一长期后端主线固定为 `Nest host + framework-free domain core + gradual service extraction`。
-- 当前实现仍以 Fastify 宿主为主；后续引入 NestJS 时，替换的是 host/transport/DI，而不是 `backend-core`、`contracts` 或 service owner contract。
+- 当前默认实现已经切到 `packages/host-local/src/nest/**`；`packages/server` 只保留 Fastify compatibility shell 与 shared runtime/status seam，不再是默认宿主主线。宿主替换的是 host/transport/DI，而不是 `backend-core`、`contracts` 或 service owner contract。
 - 运行模型固定为 `embedded/local-agent -> team-monolith -> distributed` 三档；`embedded` 是当前 `local-agent` 的长期产品语义，不新增第四种 profile。
 - gateway 继续是宿主拥有的统一外部适配层，而不是当前主线里的 `service-gateway` package 前提。
 - 当前 `distributed` 成熟度冻结为 `Level 2 / transitional-microservice`。

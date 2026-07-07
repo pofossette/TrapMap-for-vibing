@@ -12,7 +12,7 @@
 | 数据库 Schema | `packages/server/src/lib/persistence/schema/index.ts`（barrel，重新导出所有领域表模块） | `docs/reference/DATABASE_SCHEMA.md` | 描述性 |
 | Schema 数量 | `packages/server/src/lib/persistence/schema/*.ts`（artifacts.ts, knowledge.ts, candidates.ts, auth.ts, retrieval.ts, queue.ts, index.ts） | `docs/reference/DATABASE_SCHEMA.md`, `docs/README.md` | 描述性 |
 | 持久化迁移状态 | `docs/reference/DATA_MODEL.md` | `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md` | 描述性 |
-| Phase 2 store-snapshot / PG-first 策略冻结 | `docs/todos/trapmap-architecture-remediation-plan.md` + `docs/reference/SYSTEM_TRUTH_SOURCES.md` + `packages/server/src/__tests__/snapshot-usage-guard.test.ts` + `packages/server/src/__tests__/pg-first-compat.test.ts` | `docs/PACKAGES.md`, `docs/architecture/components/PERSISTENCE.md`, `docs/operations/TESTING.md` | 描述性 |
+| Phase 2 store-snapshot / PG-first 策略冻结 | `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md` + `docs/reference/SYSTEM_TRUTH_SOURCES.md` + `packages/server/src/__tests__/snapshot-usage-guard.test.ts` + `packages/server/src/__tests__/pg-first-compat.test.ts` | `docs/PACKAGES.md`, `docs/architecture/components/PERSISTENCE.md`, `docs/operations/TESTING.md` | 描述性 |
 | 服务器数据访问边界 | `packages/server/src/lib/actors/lookup.ts`（actor 查找）, `packages/server/src/lib/repos/index.ts` (`SkillShareerRepos`) | `docs/PACKAGES.md`, `docs/reference/DATA_MODEL.md` | 描述性 |
 | CI 作业 | `.github/workflows/ci.yml` | `docs/operations/CI_CD.md`, `docs/operations/TESTING.md` | 描述性 |
 | 护栏命令 | `scripts/complexity-budgets.json` + `.github/workflows/ci.yml` | `docs/reference/SYSTEM_TRUTH_SOURCES.md`, `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` | 描述性 |

@@ -166,8 +166,8 @@ Phase 5 freeze 固定 distributed baseline / runtime-isolation 的当前叙事�
 
 ### 前置条件
 
-- Node.js 20+
-- pnpm 10+
+- Node.js 24
+- pnpm 10.33.0
 - OpenAI API Key（可选；未配置时服务会回退到 fallback provider）
 
 ### 快速开始
