@@ -13,3 +13,7 @@ Task 2: complete (commits 76ca3ba2..45037b7e, review clean after fix subagent ad
 Task 3: complete (commits 45037b7e..1c50a8c5, review clean — markdownlint + link-check configs verified)
 Task 4: complete (commits 1c50a8c5..c3cd2fad, review clean — CI merged, run-ci updated, pre-commit updated)
 Task 5: complete (commits c3cd2fad..849d7f2a, review clean — smoke test deleted, all docs updated, all checks pass, final whole-branch review approved)
+Task 1: complete (commits 42ccc5b0..3590ed2, review clean after scope-fix)
+Task 2: complete (commits 3590ed2..33b5129, review clean after zh-cn fix)
+Task 3: complete (commits 33b5129..443a2a7, review clean)
+Task 4: complete (commits 443a2a7..16f28a8, review clean)

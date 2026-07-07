@@ -1,106 +1,42 @@
-# Task 1: Foundation Tools — dependency-cruiser + TypeDoc + mustMatchRegex
+### Task 1: 修复入口与事实源批次
 
-## Task Description
+**Files:**
+- Modify: `packages/host-distributed/README.md`
+- Modify: `docs/architecture/ARCHITECTURE.md`
+- Modify: `docs/architecture/DEPLOYMENT.md`
+- Modify: `docs/reference/DOCS_TRUTH_MATRIX.md`
 
-Install and configure three foundational tools that other tasks depend on.
+**Interfaces:**
+- Consumes: `docs/todos/doc-drift-fix-list.md` 中 H-01 至 H-04 的问题定义；`packages/host-distributed/src/index.ts`、`packages/host-distributed/package.json`、`packages/host-local/src/nest/**`、`package.json`、`.github/workflows/ci.yml`
+- Produces: 已修正的入口职责描述、默认宿主事实、Node/pnpm 基线和 truth-matrix 链接
 
-### 1A: dependency-cruiser
+- [ ] **Step 1: 逐文件核对权威源**
 
-Install `dependency-cruiser` and create `.dependency-cruiser.cjs` at the repo root with the following rules:
+Run: `rtk rg -n "knowledge-read|Fastify 宿主|Node.js 20\\+|docs/todos/trapmap-architecture-remediation-plan.md" packages/host-distributed/README.md docs/architecture/ARCHITECTURE.md docs/architecture/DEPLOYMENT.md docs/reference/DOCS_TRUTH_MATRIX.md`
+Expected: 命中当前待修表述，便于逐项替换
 
-**Forbidden rules** (enforce package layer boundaries):
-1. `contracts-is-foundation`: `packages/contracts` must NOT depend on any workspace package
-2. `backend-core-only-depends-contracts`: `packages/backend-core` must only depend on `packages/contracts` (NOT server, host-*, service-*, web-panel, cli)
-3. `server-no-host-deps`: `packages/server` must NOT depend on `packages/host-*`
-4. `services-must-not-cross-dep`: `packages/service-*` must NOT depend on each other
-5. `web-panel-server-isolation`: `packages/web-panel` must NOT import from `packages/server`, `packages/backend-core`, or `packages/host-*`
+- [ ] **Step 2: 更新文档事实**
 
-**Options**:
-- `tsPreCompilationDeps: true`
-- `tsConfig: { fileName: 'tsconfig.base.json' }`
-- `enhancedResolveOptions: { exportsFields: ['exports'], conditionNames: ['import', 'require', 'default'] }`
+要求：
+- `packages/host-distributed/README.md` 明确写成分布式宿主装配层，覆盖 `gateway + 六个服务入口`
+- `docs/architecture/ARCHITECTURE.md` 把默认主线改为 `packages/host-local/src/nest/**`，Fastify 收口为 compatibility shell
+- `docs/architecture/DEPLOYMENT.md` 统一写成 Node `24` + pnpm `10.33.0`
+- `docs/reference/DOCS_TRUTH_MATRIX.md` 改成真实存在的路径
 
-Add script to `package.json`: `"check:deps": "depcruise --config .dependency-cruiser.cjs packages/*/src"`
+- [ ] **Step 3: 校验改动结果**
 
-### 1B: TypeDoc
+Run: `rtk pnpm check:structure`
+Expected: PASS
 
-Install `typedoc` and create `typedoc.json` at the repo root:
+- [ ] **Step 4: 校验文档守卫**
 
-```json
-{
-  "$schema": "https://typedoc.org/schema.json",
-  "entryPointStrategy": "packages",
-  "entryPoints": ["packages/contracts", "packages/backend-core"],
-  "out": "docs/api",
-  "excludePrivate": true,
-  "excludeInternal": true,
-  "categorizeByGroup": true
-}
+Run: `rtk pnpm check:docs-drift`
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/host-distributed/README.md docs/architecture/ARCHITECTURE.md docs/architecture/DEPLOYMENT.md docs/reference/DOCS_TRUTH_MATRIX.md
+git commit -m "docs: fix doc truth entry batch"
 ```
 
-Add script to `package.json`: `"docs:api": "typedoc"`
-
-### 1C: mustMatchRegex in check-doc-drift.ts
-
-Add `mustMatchRegex` field to the `DocRule` interface in `scripts/check-doc-drift.ts`:
-
-```typescript
-mustMatchRegex?: string[];  // Content must match at least one of these regex patterns
-```
-
-Add implementation in `checkRule()`:
-```typescript
-if (rule.mustMatchRegex) {
-  for (const patternStr of rule.mustMatchRegex) {
-    try {
-      const re = new RegExp(patternStr, 's');
-      if (!re.test(content)) {
-        msgs.push(`[doc-drift] FAIL: ${rule.file} must match regex /${patternStr}/ but no match found`);
-      }
-    } catch (err) {
-      msgs.push(`[doc-drift] ERROR: invalid regex "${patternStr}" in mustMatchRegex for ${rule.file}: ${err}`);
-    }
-  }
-}
-```
-
-Add unit tests to `scripts/__tests__/check-doc-drift.test.ts`:
-- Passes when regex matches content
-- Fails when regex does not match
-- Reports invalid regex as an error
-- Supports multiline matching with 's' flag
-- Returns empty array when mustMatchRegex is empty
-
-## Context
-
-This project is a TypeScript pnpm monorepo with 15 packages. The architecture is layered:
-- `contracts`: foundation, shared types (no workspace deps)
-- `backend-core`: host-agnostic kernel, ports + use-cases (only depends on contracts)
-- `server`: infrastructure implementation (Fastify, pg, drizzle)
-- `host-local`, `host-distributed`: host assemblies
-- `service-*`: distributed service modules
-- `web-panel`, `cli`: client-side packages
-
-The tsconfig.base.json has `composite: true`, `declaration: true`, `declarationMap: true` and path aliases for all `@trapmap/*` packages.
-
-Existing tools: biome, knip, fallow, vitest. No dependency-cruiser, TypeDoc, or markdownlint currently installed.
-
-## Key Files
-
-- `scripts/check-doc-drift.ts` — doc rules engine
-- `scripts/__tests__/check-doc-drift.test.ts` — unit tests
-- `package.json` — scripts and devDependencies
-- `tsconfig.base.json` — TypeScript config
-- `pnpm-workspace.yaml` — workspace config
-
-## Your Job
-
-1. Install `dependency-cruiser` and `typedoc` as root devDependencies
-2. Create `.dependency-cruiser.cjs` with the forbidden rules described above
-3. Create `typedoc.json` with the config described above
-4. Add `mustMatchRegex` to DocRule interface and checkRule() in check-doc-drift.ts
-5. Add unit tests for mustMatchRegex in check-doc-drift.test.ts
-6. Add the 3 new scripts to package.json (`check:deps`, `docs:api`)
-7. Run `pnpm check:deps` to verify dependency-cruiser works (should pass on current codebase)
-8. Run `pnpm exec vitest run scripts/__tests__/check-doc-drift.test.ts` to verify unit tests pass
-9. Commit your work
