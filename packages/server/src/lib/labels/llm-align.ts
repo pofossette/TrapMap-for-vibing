@@ -16,7 +16,7 @@ import type {
 } from '@trapmap/contracts';
 import { labelAlignmentDecisionSchema } from '@trapmap/contracts';
 
-import { invokeWithParseRetry, parseJsonWithSchema } from '@trapmap/server/lib/ai/parse.js';
+import { invokeWithParseRetry } from '@trapmap/server/lib/ai/parse.js';
 import { buildLabelAlignmentSlots_default, buildPrompt } from '@trapmap/server/lib/ai/prompts.js';
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
 
@@ -221,14 +221,6 @@ async function callLlmAlignment(
     maxRetries: MAX_RETRIES,
     backoffMs: (attempt) => BACKOFF_BASE_MS * 2 ** (attempt * 2),
   });
-}
-
-/**
- * Parse and validate the LLM's alignment response.
- * Returns null if parsing or Zod validation fails.
- */
-function parseAlignmentDecision(raw: string): LabelAlignmentDecision | null {
-  return parseJsonWithSchema(raw, labelAlignmentDecisionSchema);
 }
 
 /**

@@ -16,10 +16,10 @@
  */
 
 import {
-  llmGraphExtractionSchema,
   type ExtractionMetrics,
   type LlmGraphExtraction,
   type LlmGraphNode,
+  llmGraphExtractionSchema,
 } from '@trapmap/contracts';
 
 import { invokeWithParseRetry } from '@trapmap/server/lib/ai/parse.js';

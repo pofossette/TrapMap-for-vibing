@@ -106,6 +106,8 @@ export const retrievalMatchSchema = z
   })
   .strict();
 
+export type RetrievalMatch = z.infer<typeof retrievalMatchSchema>;
+
 // =============================================================================
 // Routing Strategy & Trace Schemas (moved before response schemas for declaration order)
 // =============================================================================

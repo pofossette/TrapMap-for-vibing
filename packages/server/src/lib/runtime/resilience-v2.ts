@@ -1,7 +1,9 @@
 import {
   BrokenCircuitError,
+  type CircuitBreakerPolicy,
   ConsecutiveBreaker,
   DelegateBackoff,
+  type IRetryBackoffContext,
   TaskCancelledError,
   TimeoutStrategy,
   circuitBreaker,
@@ -9,8 +11,6 @@ import {
   retry,
   timeout,
   wrap,
-  type CircuitBreakerPolicy,
-  type IRetryBackoffContext,
 } from 'cockatiel';
 
 import {
@@ -138,20 +138,25 @@ function createRetryPolicy(
 }
 
 function getCircuitBreakerCacheKey(policy: ResiliencePolicy): string | null {
-  if (!policy.circuitBreaker) {
+  const breakerPolicy = policy.circuitBreaker;
+  if (!breakerPolicy) {
     return null;
   }
 
   return JSON.stringify({
     dependencyName: policy.dependencyName,
-    failureThreshold: policy.circuitBreaker.failureThreshold ?? 5,
-    halfOpenAfterMs: policy.circuitBreaker.halfOpenAfterMs ?? 30_000,
+    failureThreshold: breakerPolicy.failureThreshold ?? 5,
+    halfOpenAfterMs: breakerPolicy.halfOpenAfterMs ?? 30_000,
   });
 }
 
 function getCircuitBreakerPolicy(policy: ResiliencePolicy): CircuitBreakerPolicy | null {
   const cacheKey = getCircuitBreakerCacheKey(policy);
   if (!cacheKey) {
+    return null;
+  }
+  const breakerPolicy = policy.circuitBreaker;
+  if (!breakerPolicy) {
     return null;
   }
 
@@ -163,8 +168,8 @@ function getCircuitBreakerPolicy(policy: ResiliencePolicy): CircuitBreakerPolicy
   const next = circuitBreaker(
     handleWhen(() => true),
     {
-      breaker: new ConsecutiveBreaker(policy.circuitBreaker?.failureThreshold ?? 5),
-      halfOpenAfter: policy.circuitBreaker?.halfOpenAfterMs ?? 30_000,
+      breaker: new ConsecutiveBreaker(breakerPolicy.failureThreshold ?? 5),
+      halfOpenAfter: breakerPolicy.halfOpenAfterMs ?? 30_000,
     },
   );
   circuitBreakerCache.set(cacheKey, next);
@@ -245,9 +250,10 @@ export async function executeWithResilience<T>(
     ? wrap(retryPolicy, breakerPolicy, timeoutPolicy)
     : wrap(retryPolicy, timeoutPolicy);
 
-  const retryListener = retryPolicy.onRetry(({ attempt, error }) => {
-    lastError = error;
-    logRetry(policy.dependencyName, context, attempt, error);
+  const retryListener = retryPolicy.onRetry((event) => {
+    const retryError = 'error' in event ? event.error : lastError;
+    lastError = retryError;
+    logRetry(policy.dependencyName, context, event.attempt, retryError);
   });
   const timeoutListener = timeoutPolicy.onTimeout(() => {
     timedOut = true;

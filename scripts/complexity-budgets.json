@@ -17,30 +17,30 @@
     {
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
       "mustContain": [
-        "Six-service ownership boundary",
-        "review` owns governance queue/decision/feedback/maintenance/decay commands but must delegate final aggregate mutation through `KnowledgeWritePort`",
-        "candidate-ingestion` owns candidate workflow facts but must publish resolved results through `KnowledgeWritePort`",
-        "Root workspace commands",
-        "Server-only DB commands",
-        "Runtime env defaults",
-        "AI provider/model defaults",
-        "Eval workflow",
-        "Deep architecture persistence docs",
-        "Deployment defaults",
-        "Health/readiness endpoints",
-        "Deep architecture component docs",
-        "Operator-only internal APIs",
-        "Runtime request/trace headers",
-        "Runtime status/readiness contract",
-        "Shared resilience policy",
-        "Runtime metrics snapshot semantics",
-        "Queue / outbox reliability policy",
+        "六服务边界冻结",
+        "review` 拥有治理 queue/decision/feedback/maintenance/decay 命令，但必须通过远程 `KnowledgeWritePort` 调用委托最终聚合变更",
+        "candidate-ingestion` 拥有 candidate 工作流事实，但必须通过远程 `KnowledgeWritePort` 发布已解析结果",
+        "根工作区命令",
+        "Server 专属 DB 命令",
+        "运行时环境默认值",
+        "AI 提供者/模型默认值",
+        "评估入口",
+        "深层架构持久化文档",
+        "部署默认值",
+        "健康检查契约（Phase 1A）",
+        "深层架构组件文档",
+        "操作者专属内部 API",
+        "运行时请求/追踪 headers",
+        "运行时状态/就绪契约",
+        "共享弹性策略",
+        "运行时指标快照语义",
+        "队列 / outbox 可靠性策略",
         "Phase 1 server/backend-core boundary freeze",
         "packages/server/src/lib/persistence/schema/index.ts",
         "packages/server/src/lib/persistence/migration-runner.ts",
         "packages/service-*",
         "thin assembly",
-        "Phase 2 store-snapshot / PG-first posture freeze",
+        "Phase 2 store-snapshot / PG-first 姿态冻结",
         "InMemory 继续是 repo-backed fallback/testing posture",
         "live no-PG / InMemory fallback",
         "artifactFilePayloads hydration",
@@ -63,7 +63,7 @@
         "packages/server/src/lib/runtime/metrics.ts",
         "packages/server/src/lib/cache/invalidation.ts",
         "packages/server/src/lib/graph-query/config.ts",
-        "not current built-in runtime default",
+        "不是当前内置运行时默认值",
         "Node `24`",
         "DOCS_TRUTH_MATRIX.md"
       ]
@@ -79,11 +79,7 @@
     },
     {
       "file": "docs/guides/MIGRATION_GUIDE.md",
-      "mustContain": [
-        "compatibility shell",
-        "distributed mode",
-        "explicit `local-agent` / `team-monolith` rollback path"
-      ]
+      "mustContain": ["兼容外壳", "分布式模式下", "显式回滚路径仅保留已退役的兼容行为"]
     },
     {
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
@@ -94,8 +90,8 @@
     {
       "file": "docs/reference/REPO_STRUCTURE.md",
       "mustContain": [
-        "`docs/plans/`: historical design references and only active again when a current root plan explicitly re-links them.",
-        "`docs/todos/`: pending work plus the phase detail docs linked from the current root `plan.md`.",
+        "`docs/plans/`：历史设计参考，仅在当前根 plan.md 显式重新链接时才重新激活。",
+        "`docs/todos/`：待办工作以及从当前根 `plan.md` 链接的阶段详细文档。",
         "packages/host-local/src/nest/adapters/",
         "packages/host-distributed/src/gateway/",
         "packages/host-distributed/src/shared/"
@@ -125,7 +121,7 @@
     {
       "file": "docs/guides/GETTING_STARTED.md",
       "mustContain": [
-        "PostgreSQL 设置（默认）",
+        "PostgreSQL 设置（推荐）",
         ".data/skill-shareer.json",
         "pnpm --filter @trapmap/server db:migrate"
       ],
@@ -171,14 +167,14 @@
       "mustContain": [
         "http://127.0.0.1:4000/metrics",
         "http://127.0.0.1:4000/health",
-        "TRAPMAP_LOKI_URL",
+        "LOKI_HOST",
         "CONSUL_ENABLED=true",
         "CONSUL_HOST",
         "CONSUL_PORT",
         "traceparent",
         "pnpm test:observability-benchmark"
       ],
-      "mustNotContain": ["http://localhost:3000/metrics", "LOKI_HOST"]
+      "mustNotContain": ["http://localhost:3000/metrics", "TRAPMAP_LOKI_URL"]
     },
     {
       "file": "docs/operations/REGRESSION-COMMANDS.md",
@@ -187,7 +183,7 @@
     },
     {
       "file": "docs/reference/DATABASE_SCHEMA.md",
-      "mustContain": ["57 张表", "packages/server/src/lib/persistence/schema"],
+      "mustContain": ["63 张表", "packages/server/src/lib/persistence/schema"],
       "mustNotContain": ["48 张表", "54 张表", "56 张表"]
     },
     {
@@ -367,8 +363,8 @@
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
       "mustContain": [
         "Phase 7 maintainability / CI-testing truth / docs closeout freeze",
-        "current active execution surface remains only `plan.md` + `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md`",
-        "`doc-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:arch-freeze`, `pnpm check:deps`, `pnpm check:mermaid`, `pnpm check:structure`, `pnpm check:complexity`, `pnpm check:md-lint`, and `pnpm check:links`"
+        "当前活跃执行面仅剩 `plan.md` + `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md`",
+        "`doc-guardrails` job runs `pnpm check:docs-drift`、`pnpm check:arch-freeze`、`pnpm check:deps`、`pnpm check:mermaid`、`pnpm check:structure`、`pnpm check:complexity`、`pnpm check:md-lint` 和 `pnpm check:links`"
       ]
     },
     {
@@ -549,9 +545,9 @@
     {
       "file": "docs/architecture/TARGET_ARCHITECTURE.md",
       "mustContain": [
-        "Phase 2 microservice-platform evolution update",
+        "Phase 2 微服务平台演进更新",
         "knowledge-write",
-        "http` or `rpc` transport",
+        "`http` 或 `rpc` 传输",
         "governance-review -> knowledge-write",
         "candidate-ingestion -> knowledge-write",
         "Connect RPC",

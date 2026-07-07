@@ -17,8 +17,8 @@ import { PostgresStore } from './lib/persistence/postgres-store.js';
 import {
   ChannelRegistry,
   StrategyRegistry,
-  orchestrateGraphAssistedRecall,
   hybridRecall,
+  orchestrateGraphAssistedRecall,
   semanticRecall,
 } from './lib/retrieval/orchestration/index.js';
 import type { RetrievalStrategy } from './lib/retrieval/orchestration/index.js';

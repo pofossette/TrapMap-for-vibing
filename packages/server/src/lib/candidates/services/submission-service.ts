@@ -17,13 +17,13 @@ import {
   type CandidateProcessorServices,
   scheduleCandidateProcessing,
 } from '@trapmap/server/lib/candidates/processor.js';
-import type { CandidateProcessingPayload } from '@trapmap/server/lib/jobs/types.js';
 import type {
   CandidateRepository,
   TransactionalCandidateRepository,
 } from '@trapmap/server/lib/candidates/repository.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { createDuplicateCaseId } from '@trapmap/server/lib/ids.js';
+import type { CandidateProcessingPayload } from '@trapmap/server/lib/jobs/types.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { DuplicateRepository } from '@trapmap/server/lib/repos/index.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';

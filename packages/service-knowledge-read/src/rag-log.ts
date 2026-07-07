@@ -1,6 +1,6 @@
-import { appendFile, mkdir, readFile, rename, rm, stat } from 'node:fs/promises';
-import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { appendFile, mkdir, rename, rm, stat } from 'node:fs/promises';
+import path from 'node:path';
 
 import type { RoutingTrace } from '@trapmap/contracts';
 

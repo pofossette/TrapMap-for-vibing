@@ -6,7 +6,7 @@
  * Falls back to fixed-size chunking when LLM is unavailable or returns invalid output.
  */
 
-import { extractionPlanSchema, type ExtractionPlan } from '@trapmap/contracts';
+import { type ExtractionPlan, extractionPlanSchema } from '@trapmap/contracts';
 
 import { invokeWithParseRetry } from '@trapmap/server/lib/ai/parse.js';
 import {

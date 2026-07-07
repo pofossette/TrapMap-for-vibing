@@ -19,9 +19,9 @@ import { capsuleMatchSchema, profileHintSchema } from '@trapmap/contracts';
 import type { CapsuleCandidate, ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
 import type { ClientManifestRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import {
-  buildCapsuleActivationHints,
   buildAllActivationHints,
   buildAssetHint,
+  buildCapsuleActivationHints,
   buildCapsuleMatch,
   buildProfileHint,
   buildReadNextHint,

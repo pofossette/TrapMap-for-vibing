@@ -1,7 +1,16 @@
+import type { Permission } from '@trapmap/contracts';
 import type { SkillShareerRepos } from '@trapmap/runtime-infra';
+import type {
+  GraphQueryBackend,
+  GraphQueryRuntimeState,
+} from '@trapmap/server/lib/graph-query/index.js';
 import type { Pool } from 'pg';
 
 import type { RagLogConfig } from './rag-log.js';
+import type {
+  ChannelRegistry as KnowledgeReadChannelRegistry,
+  RetrievalStrategy as KnowledgeReadStrategy,
+} from './retrieval-orchestration.js';
 
 export interface ResolvedAuthContext {
   subjectType: 'user' | 'system-admin';
@@ -9,8 +18,11 @@ export interface ResolvedAuthContext {
   handle: string;
   activeTeamId: string | null;
   securityLevel: number;
-  effectivePermissions: string[];
+  effectivePermissions: Permission[];
   localSingleUserMode?: boolean;
+  user: null;
+  membership: null;
+  team: null;
 }
 
 export interface KnowledgeReadChatProvider {
@@ -33,18 +45,12 @@ export interface SkillShareerServices {
   };
   repos: SkillShareerRepos;
   strategyRegistry: {
-    get(version: string): unknown;
-    all(): unknown[];
+    get(version: string): KnowledgeReadStrategy | undefined;
+    all(): KnowledgeReadStrategy[];
   };
-  channelRegistry: {
-    get(name: string): unknown;
-    all(): unknown[];
-  };
+  channelRegistry: Pick<KnowledgeReadChannelRegistry, 'get' | 'all'>;
   ai: KnowledgeReadAiServices;
   store: KnowledgeReadStoreSeam;
-  graphQueryBackend?: unknown;
-  graphQuery: {
-    backendKind: string;
-    mode: string;
-  };
+  graphQueryBackend?: GraphQueryBackend;
+  graphQuery: GraphQueryRuntimeState;
 }

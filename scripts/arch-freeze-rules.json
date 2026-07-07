@@ -116,9 +116,9 @@
       "files": {
         "packages/host-distributed/README.md": {
           "mustContain": [
-            "Gateway-only external access",
-            "HTTP-based inter-service communication",
-            "Shared PostgreSQL (Transitional)"
+            "仅 Gateway 暴露外部访问",
+            "基于 HTTP 的服务间通信",
+            "共享 PostgreSQL（过渡期）"
           ]
         },
         "docker-compose.yml": {
@@ -135,7 +135,7 @@
       "id": "phase6-mature-capability-boundary",
       "description": "Phase 6 mature-capability boundaries without overstating platform maturity: source-code invariants",
       "files": {
-        "packages/server/src/lib/runtime/resilience.ts": {
+        "packages/server/src/lib/runtime/resilience-v2.ts": {
           "mustContain": [
             "export interface ResiliencePolicy",
             "export type ResilienceFailureMode = 'fail-closed' | 'fail-open'"

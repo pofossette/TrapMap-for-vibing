@@ -92,10 +92,10 @@ import {
   computeSemanticCandidates,
   dispatchByMode,
   getDbSearchConfig,
-  orchestrateGraphAssistedRecall,
   hybridRecall,
   inferChannelsFromMerged,
   mergeCandidatesWithGraph,
+  orchestrateGraphAssistedRecall,
   semanticRecall,
 } from './recall-coordinator.js';
 

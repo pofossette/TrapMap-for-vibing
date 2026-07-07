@@ -73,7 +73,7 @@ describe('closeout surface guardrails', () => {
         '当前主线：Agent Eval 平台长期可维护架构',
         '状态：`进行中`',
         'docs/todos/agent-eval-framework-evaluation-and-plan.md',
-        'docs/todos/agent-eval-framework-scorecard.md',
+        'docs/archived/agent-eval-framework-scorecard.md',
         '所有执行进度统一回写到主细则中的复选框',
       ]),
     );
@@ -99,12 +99,12 @@ describe('closeout surface guardrails', () => {
       '先执行 `rtk pnpm --filter @trapmap/host-local build`，再执行 `rtk pnpm --filter @trapmap/host-local start`',
     );
     expect(verificationDoc).toContain('`build -> start -> observability-benchmark`');
-    expect(verificationDoc).toContain('TRAPMAP_LOKI_URL');
+    expect(verificationDoc).toContain('LOKI_HOST');
     expect(verificationDoc).toContain('CONSUL_ENABLED=true');
     expect(verificationDoc).toContain('CONSUL_HOST');
     expect(verificationDoc).toContain('CONSUL_PORT');
     expect(verificationDoc).not.toContain('http://localhost:3000/metrics');
-    expect(verificationDoc).not.toContain('LOKI_HOST');
+    expect(verificationDoc).not.toContain('TRAPMAP_LOKI_URL');
 
     expect(regressionDoc).toContain('grep -i traceparent');
     expect(regressionDoc).not.toContain('grep X-Trace-Id');

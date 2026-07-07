@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   capsuleMatchSchema,
   graphPlanSearchResponseSchema,
-  retrievalRequestSchema,
   retrievalCitationSchema,
   retrievalFiltersSchema,
   retrievalMatchSchema,
   retrievalQueryModeSchema,
   retrievalQuerySchema,
+  type retrievalRequestSchema,
   retrievalResponseSchema,
   retrievalStrategySchema,
   retrievalV2QuerySchema,

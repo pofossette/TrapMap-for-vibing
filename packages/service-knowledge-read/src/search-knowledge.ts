@@ -27,7 +27,7 @@ import { buildSummary } from './response-summary.js';
 import { dispatchByMode, inferChannelsFromMerged } from './retrieval-recall-coordinator.js';
 import { buildEmbeddingText } from './retrieval-semantic.js';
 import type { ScoredEntry } from './retrieval-types.js';
-import type { KnowledgeRecord, StoreData } from './store.js';
+import type { KnowledgeRecord } from './store.js';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -175,10 +175,10 @@ export async function searchKnowledge(
     const conflictData = {
       conflicts: readModel.conflicts,
       knowledgeEntries: readModel.knowledgeEntries,
-    } as StoreData;
+    };
     const conflictHints = enrichMatchesWithConflicts(
       scoredEntries.map((e) => ({ entryId: e.entry.id })),
-      conflictData,
+      conflictData as unknown as Parameters<typeof enrichMatchesWithConflicts>[1],
       { teamId: auth.activeTeamId, requiredLevel: auth.securityLevel },
     );
 

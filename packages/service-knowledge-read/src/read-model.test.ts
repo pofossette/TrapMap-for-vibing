@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ConflictRelation } from '@trapmap/contracts';
 import type { SkillShareerRepos } from '@trapmap/runtime-infra';
-import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 
 import { buildRetrievalReadModel } from './read-model.js';
+import { resetRetrievalReadModelCacheForTests } from './retrieval-read-model-cache.js';
 import type { FeedbackQueueRecord, KnowledgeRecord, SkillArtifactRecord } from './store.js';
 
 function makeKnowledgeRecord(id: string): KnowledgeRecord {

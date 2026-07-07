@@ -18,7 +18,7 @@ export {
   buildReadNextHint,
   buildAssetHint,
   buildScriptHint,
-  buildActivationHints,
+  buildCapsuleActivationHints,
   buildAllActivationHints,
 } from './assembly.js';
 
