@@ -19,11 +19,11 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 
 | Job | 命令 | 说明 |
 |-----|------|------|
-| `fallow-push-audit` | push: `pnpm exec fallow audit --base <previous-push-sha> --gate new-only --ci --fail-on-issues --fail-on-regression`<br>PR: `pnpm exec fallow audit --base origin/main --gate new-only --ci --fail-on-issues` | push 增量静态质量门（含回归防护），PR 增量静态质量门（对比 main） |
+| `fallow-push-audit` | push: `pnpm exec fallow audit --base <previous-push-sha> --gate new-only --ci --fail-on-issues --health-baseline reports/baselines/fallow-health-baseline.json --dead-code-baseline reports/baselines/fallow-dead-code-baseline.json`<br>PR: `pnpm exec fallow audit --base origin/main --gate new-only --ci --fail-on-issues` | push 增量静态质量门（含基线对比），PR 增量静态质量门（对比 main） |
 | `typecheck` | `pnpm typecheck` | TypeScript 类型检查 |
 | `check` | `pnpm check` | Biome 代码检查（lint + format） |
 | `test` | `pnpm test` | 全量单元测试 |
-| `coverage` | `pnpm test:coverage` | 测试覆盖率（产物上传 7 天） |
+| `coverage` | `pnpm test:coverage` | 测试覆盖率（当前 workflow 未显式设置 artifact 保留期） |
 | `postgres-integration` | PG 集成测试 | 真实 PostgreSQL/pgvector 校验（任务队列、outbox subscriber） |
 | `doc-guardrails` | `pnpm check:docs-drift` + `pnpm check:arch-freeze` + `pnpm check:deps` + `pnpm check:mermaid` + `pnpm check:structure` + `pnpm check:complexity` + `pnpm check:md-lint` + `pnpm check:links` + `fallow dead-code --boundary-violations --ci --fail-on-issues` | 文档漂移、架构冻结、依赖分析、Mermaid、仓库结构、复杂度预算、Markdown lint、链接守卫和架构边界守卫 |
 
@@ -57,7 +57,7 @@ Runtime foundations 相关改动主要依赖以下 job 组合形成质量门：
 
 详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`。
 
-所有 job 使用 Node.js 24 + pnpm 10.33.0。
+`ci.yml` 中所有 job 使用 Node.js 24 + pnpm 10.33.0；独立的 `eval.yml` 当前仍使用 Node.js 20，并为评测产物显式设置了 7/30/90 天保留期。
 
 ### Fallow 质量基线
 

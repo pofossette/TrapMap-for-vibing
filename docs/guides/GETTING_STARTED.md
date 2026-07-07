@@ -6,7 +6,7 @@
 
 | 工具 | 版本要求 | 说明 |
 |------|----------|------|
-| Node.js | ≥ 20 | 推荐使用 Node.js 20 LTS |
+| Node.js | 24 | 与当前 CI / workspace 基线一致 |
 | pnpm | 10.33.0 | **必须使用 pnpm，禁止使用 npm 或 yarn** |
 | Docker | ≥ 24 | 仅在使用 Docker 部署时需要 |
 | Docker Compose | ≥ 2 | 仅在使用 Docker 部署时需要 |
@@ -47,9 +47,9 @@ cp .env.example .env
 | `DATABASE_URL` | PostgreSQL 连接字符串（新宿主同样支持） | `postgresql://localhost:5432/trapmap` |
 | `TRAPMAP_DATA_FILE` | JSON 存储路径（兼容回退，可选） | `.data/skill-shareer.json` |
 
-### PostgreSQL 设置（默认）
+### PostgreSQL 设置（推荐）
 
-宿主默认优先使用 PostgreSQL。设置 `TRAPMAP_DATABASE_URL` 或 `DATABASE_URL` 后即可启动；Drizzle 数据库迁移仍由 `packages/server/drizzle/` 作为权威迁移目录提供。
+当前开发主线推荐使用 PostgreSQL。设置 `TRAPMAP_DATABASE_URL` 或 `DATABASE_URL` 后即可启动；Drizzle 数据库迁移仍由 `packages/server/drizzle/` 作为权威迁移目录提供。若未设置数据库 URL，部分本地姿态仍会回退到 JSON 文件存储。
 
 ```bash
 # 创建数据库

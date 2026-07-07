@@ -14,6 +14,7 @@
 packages/
 ├── client-core/       共享网关传输层
 ├── backend-core/      宿主无关的后端内核
+├── service-knowledge-read/ 第一个读侧服务包，负责检索与读投影组装
 ├── service-knowledge-write/ 第一个已实现的服务包，负责权威知识写入
 ├── service-governance-review/ 第二个已实现的服务包，负责审查与反馈组装
 ├── service-candidate-ingestion/ 第三个已实现的服务包，负责候选权威组装
@@ -34,7 +35,7 @@ packages/
 - 阶段 3 `host-local`：已完成。根目录的 `pnpm dev:local-agent` 和 `pnpm dev:team-monolith` 现在指向 `@trapmap/host-local`。
 - 阶段 4 `host-distributed`：已完成。根目录的分布式开发脚本现在指向 `@trapmap/host-distributed`。
 - 阶段 5 遗留收口：部分完成。`packages/server` 仍作为兼容外壳和验证层存在。在分布式模式下，candidate/review/maintenance/decay 的权威写入已迁移到 `@trapmap/host-distributed`；在 `light` 侧，默认的 `@trapmap/host-local` Nest 主线现在拥有 candidate/review 写入，而显式回滚路径仅保留已退役的兼容行为以及运行时/状态接缝。
-- 阶段 6 物理拆分执行：进行中。`@trapmap/service-knowledge-write` 是第一个真实的 `service-*` 包，`@trapmap/service-governance-review` 是第二个，`@trapmap/service-candidate-ingestion` 是第三个，`@trapmap/service-identity-access` 是第四个，`@trapmap/service-job-runtime` 是第五个；`@trapmap/host-distributed` 以薄宿主适配器的方式消费全部五个服务包，`packages/server` 不再持有 `knowledge-write`、`governance-review`、`candidate-ingestion`、`identity-access` 或 `job-runtime` 组装的权威事实。
+- 阶段 6 物理拆分执行：进行中。当前仓库已落地 6 个 `service-*` 包：`@trapmap/service-knowledge-read`、`@trapmap/service-knowledge-write`、`@trapmap/service-governance-review`、`@trapmap/service-candidate-ingestion`、`@trapmap/service-identity-access`、`@trapmap/service-job-runtime`；`@trapmap/host-distributed` 以宿主装配层的方式消费这些服务包，`packages/server` 不再持有 `knowledge-write`、`governance-review`、`candidate-ingestion`、`identity-access` 或 `job-runtime` 组装的权威事实。
 
 ## 当前官方入口点
 
@@ -50,8 +51,8 @@ pnpm dev:distributed:outbox-worker
 pnpm dev:cli
 ```
 
-兼容脚本（如 `pnpm dev:server:compat*`）仍然存在，但它们不再是首要的迁移目标。
-显式的 `local-agent` / `team-monolith` 回滚路径也仍然存在，但仅限回滚使用，不再是默认的轻量入口。
+旧的 `pnpm dev:server:compat*` 入口已经不再存在；兼容壳相关验证应改看当前 `packages/server` 的运行时/状态接缝与现有根命令表面。
+显式的 `local-agent` / `team-monolith` 根脚本仍存在，但它们已经转发到当前 `@trapmap/host-local` 主线，而不是旧兼容宿主。
 
 ## 环境兼容性
 
@@ -117,7 +118,7 @@ pnpm --filter @trapmap/host-distributed dev:governance-review
 pnpm --filter @trapmap/host-distributed dev:job-runtime
 ```
 
-验收说明：`@trapmap/host-distributed` 现在在多进程验收流程中消费全部五个已实现服务包的构建产物。如果你不使用打包好的 `test:distributed-acceptance` 入口，请在独立 `tsx` 驱动的分布式验收之前依次运行 `pnpm --filter @trapmap/service-identity-access build`、`pnpm --filter @trapmap/service-knowledge-write build`、`pnpm --filter @trapmap/service-governance-review build`、`pnpm --filter @trapmap/service-candidate-ingestion build` 和 `pnpm --filter @trapmap/service-job-runtime build`。
+验收说明：`@trapmap/host-distributed` 现在在多进程验收流程中消费全部 6 个已实现服务包的构建产物。如果你不使用打包好的 `test:distributed-acceptance` 入口，请在独立 `tsx` 驱动的分布式验收之前依次运行 `pnpm --filter @trapmap/service-identity-access build`、`pnpm --filter @trapmap/service-knowledge-read build`、`pnpm --filter @trapmap/service-knowledge-write build`、`pnpm --filter @trapmap/service-governance-review build`、`pnpm --filter @trapmap/service-candidate-ingestion build` 和 `pnpm --filter @trapmap/service-job-runtime build`。
 
 验证：
 
@@ -164,7 +165,7 @@ pnpm check:docs-drift
 
 对于分布式拆分就绪度，将 `pnpm test:distributed-acceptance` 视为 Gate 2 / Gate 3 / Gate 5 的默认自动化门控。它是 `@trapmap/host-distributed` 拥有写入转发路径、在真实内部 HTTP 跨进程中保留认证/错误语义、以及通过网关表面暴露 job-runtime 所有权的权威自动化证明。
 
-就绪度现已进入前五个物理拆分的执行阶段：`knowledge-write` 是第一个被抽取到专用 `service-*` 包的有界上下文，`governance-review` 是第二个，`candidate-ingestion` 是第三个，`identity-access` 是第四个，`job-runtime` 是第五个。全部五个均保留了现有的仅网关外部访问模型和共享 PostgreSQL 部署方式。
+就绪度现已进入 6 个物理拆分的执行阶段：`knowledge-read`、`knowledge-write`、`governance-review`、`candidate-ingestion`、`identity-access`、`job-runtime` 都已经拥有专用 `service-*` 包，并继续保留仅网关外部访问模型和共享 PostgreSQL 部署方式。
 
 此门控现在包含 `packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`，它启动多个独立的 Node 进程分别运行 gateway、identity-access、candidate-ingestion、governance-review、knowledge-write 和 job-runtime。该 closeout 覆盖：
 

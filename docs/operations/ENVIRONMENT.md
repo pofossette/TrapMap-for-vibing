@@ -14,7 +14,7 @@
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `TRAPMAP_EVAL_PLATFORM` | 推荐记录当前准备使用的平台类型；当前实际启用仍要求显式传入 `--platform` | 空 |
+| `TRAPMAP_EVAL_PLATFORM` | 仅作记录/占位；当前实际启用仍要求显式传入 `--platform`，代码不会自动读取并启用它 | 空 |
 | `LANGFUSE_BASE_URL` | `langfuse` mirror 的 base URL；仅在 `--platform langfuse` 时读取 | 空 |
 | `LANGFUSE_PUBLIC_KEY` | `langfuse` public key；仅在 `--platform langfuse` 时读取 | 空 |
 | `LANGFUSE_SECRET_KEY` | `langfuse` secret key；仅在 `--platform langfuse` 时读取 | 空 |
@@ -429,7 +429,7 @@ pnpm dev:local-agent
 - `pnpm dev -- governance-worker`
 - `pnpm dev -- outbox-worker`
 
-兼容脚本 `pnpm dev:server:compat*` 与旧根别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍可使用，但不再作为主要文档入口。正式入口优先使用 `pnpm dev -- <target>`，由 `scripts/run-dev.ts` 统一分发到 `@trapmap/host-local` 与 `@trapmap/host-distributed`。
+旧根别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍可使用，但不再作为主要文档入口。`pnpm dev:server:compat*` 这类兼容脚本已经不存在；正式入口优先使用 `pnpm dev -- <target>`，由 `scripts/run-dev.ts` 统一分发到 `@trapmap/host-local` 与 `@trapmap/host-distributed`。
 
 ### PG Recall 配置 (Phase 6，多路召回已全线落地)
 

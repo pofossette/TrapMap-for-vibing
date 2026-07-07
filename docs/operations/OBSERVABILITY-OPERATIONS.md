@@ -11,8 +11,8 @@
 
 | 参数 | 默认值 | 配置方式 | 说明 |
 |------|--------|---------|------|
-| `OTEL_SAMPLING_RATE` | `1.0`（开发）/ `0.1`（生产） | 环境变量 | 0.0 ~ 1.0，控制 head-based 采样率 |
-| `OTEL_TRACES_EXPORTER` | `otlp` | 环境变量 | `otlp` / `console` / `none` |
+| `OTEL_SAMPLE_RATE` | `1.0`（开发）/ `0.1`（生产） | 环境变量 | 0.0 ~ 1.0，控制 head-based 采样率 |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | 环境变量 | OTLP exporter 端点；未接 collector 时可回退本地 console 调试 |
 
 采样率按 deployment profile 自动设置推荐默认值：
 
@@ -22,7 +22,7 @@
 
 调整建议：
 
-- 高流量场景可将 `OTEL_SAMPLING_RATE` 降至 0.05（5%），但不应低于 0.01，否则故障排查时可用 trace 不足
+- 高流量场景可将 `OTEL_SAMPLE_RATE` 降至 0.05（5%），但不应低于 0.01，否则故障排查时可用 trace 不足
 - 对关键链路（如 `candidate.submit`、`knowledge.review`）可通过 Collector 的 tail-based 采样策略保留异常 trace，不受 head-based 采样率限制
 - `local-agent` 开发环境使用 `console` exporter 时无需关注采样率，输出仅供本地查看
 
@@ -39,11 +39,11 @@ Metrics 不需要采样——指标在进程内聚合为计数器、gauge 和直
 
 | 参数 | 默认值 | 配置方式 | 说明 |
 |------|--------|---------|------|
-| `OTEL_LOGS_EXPORTER` | `otlp` | 环境变量 | `otlp` / `console` / `none` |
+| `LOKI_HOST` | — | 环境变量 | Loki push API 地址；为空时仅保留 stdout / NestJS logger |
 | `LOG_RAG_ENABLED` | — | 环境变量 | 控制 RAG 领域日志采集范围 |
 | `LOG_USER_OPS_ENABLED` | — | 环境变量 | 控制用户操作日志采集范围 |
 
-日志不做进程内采样——所有结构化日志条目均输出，由 Loki 端控制保留和查询。在高吞吐场景下，可通过 Loki 的 `limits_config` 限制每租户日志速率。
+日志不做进程内采样——所有结构化日志条目均输出；当前仓库内只有 `LOKI_HOST` 这一侧写入口事实。若未配置 Loki，日志仍会输出到 stdout / NestJS logger。
 
 ---
 
@@ -51,9 +51,9 @@ Metrics 不需要采样——指标在进程内聚合为计数器、gauge 和直
 
 | 组件 | 默认保留期 | 配置位置 | 说明 |
 |------|-----------|---------|------|
-| Prometheus | 15 天 | docker-compose `--storage.tsdb.retention.time=15d` | 可通过 `PROMETHEUS_RETENTION` 环境变量覆盖 |
-| Tempo | 7 天 | docker-compose Tempo `retention` 配置 | 可通过 Tempo 配置文件 `compactor.compaction.block_retention` 调整 |
-| Loki | 7 天 | docker-compose Loki `limits_config.retention_period` | 可通过 `LOKI_RETENTION_PERIOD` 环境变量覆盖 |
+| Prometheus | 当前仓库未冻结保留期 | 外部部署/compose 自行配置 | 当前文档只冻结接入边界，不冻结 retention 默认值 |
+| Tempo | 当前仓库未冻结保留期 | 外部部署/compose 自行配置 | 当前文档只冻结接入边界，不冻结 retention 默认值 |
+| Loki | 当前仓库未冻结保留期 | 外部部署/compose 自行配置 | 当前文档只冻结接入边界，不冻结 retention 默认值 |
 
 保留期调整建议：
 
@@ -219,8 +219,8 @@ Grafana alert rules 的具体 JSON/YAML 定义可在后续迭代中补充到 `in
 | `/health` 显示 `unhealthy` | 检查 `dependencies` 中 `status=unhealthy` 的条目 | 对应依赖故障 |
 | `/health` 显示 `degraded` | 检查 `dependencies` 中 `status=degraded` 的条目 | 非关键依赖降级（如 graph-query fallback） |
 | `/metrics` 无数据 | 检查 `TRAPMAP_METRICS_ENABLED` 配置 | 指标功能未启用 |
-| Trace 数据缺失 | 检查 `OTEL_ENABLED` 和 `OTEL_SAMPLING_RATE` | OTel 未启用或采样率过低 |
-| Loki 无日志 | 检查 `OTEL_LOGS_EXPORTER` 和 `LOKI_URL` | exporter 未配置或 Loki 不可达 |
+| Trace 数据缺失 | 检查 `OTEL_DISABLED`、`OTEL_SAMPLE_RATE` 和 `OTEL_EXPORTER_OTLP_ENDPOINT` | OTel 被禁用、采样率过低或 OTLP 端点不可达 |
+| Loki 无日志 | 检查 `LOKI_HOST` | Loki 未配置或 Loki 不可达 |
 
 ### Closeout 命令
 
