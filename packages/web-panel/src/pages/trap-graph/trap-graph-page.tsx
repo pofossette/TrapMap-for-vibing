@@ -86,10 +86,7 @@ export function TrapGraphPage(): ReactElement {
   return (
     <PageTransition className="space-y-6">
       <PageContainer>
-        <SectionHeader
-          title={t('trapGraph')}
-          description="Topology mapping and dependency analysis for threat vectors, triggers, environments, and mitigations."
-        />
+        <SectionHeader title={t('trapGraph')} description={t('trapGraphDesc')} />
 
         {error ? (
           <div className="p-6 text-center border border-panel-line rounded-2xl bg-panel-surface">
@@ -100,7 +97,7 @@ export function TrapGraphPage(): ReactElement {
               variant="secondary"
               onPress={() => void fetchGraph()}
             >
-              Retry
+              {t('retry')}
             </Button>
           </div>
         ) : (
@@ -109,16 +106,16 @@ export function TrapGraphPage(): ReactElement {
             <Card className="border border-panel-line bg-panel-surface p-5 flex flex-col gap-6 overflow-y-auto">
               <div>
                 <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/35 pb-2 mb-3">
-                  Graph Layers
+                  {t('graphLayers')}
                 </h3>
                 <div className="flex flex-col gap-2.5">
                   {(
                     [
-                      ['trap', 'Trap (Threat Risks)'],
-                      ['cue', 'Cue (Signatures)'],
-                      ['tool', 'Tool (Penetration)'],
-                      ['environment', 'Environment'],
-                      ['mitigation', 'Mitigation'],
+                      ['trap', t('graphLayerTrap')],
+                      ['cue', t('graphLayerCue')],
+                      ['tool', t('graphLayerTool')],
+                      ['environment', t('graphLayerEnvironment')],
+                      ['mitigation', t('graphLayerMitigation')],
                     ] as const
                   ).map(([key, label]) => (
                     <label key={key} className="flex items-center gap-2 text-sm text-panel-text">
@@ -137,10 +134,10 @@ export function TrapGraphPage(): ReactElement {
 
               <div>
                 <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/35 pb-2 mb-3">
-                  Neighborhood Depth
+                  {t('neighborhoodDepth')}
                 </h3>
                 <Select
-                  aria-label="Neighborhood Depth"
+                  aria-label={t('neighborhoodDepth')}
                   className="w-full"
                   value={neighborhoodDepth}
                   onChange={(value) =>
@@ -154,9 +151,9 @@ export function TrapGraphPage(): ReactElement {
                   <Select.Popover className="min-w-[220px] rounded-xl border border-panel-line bg-panel-surface p-1.5 shadow-panel">
                     <ListBox className="outline-none">
                       {[
-                        { id: '1', label: '1-Hop Neighbors' },
-                        { id: '2', label: '2-Hop Neighbors' },
-                        { id: 'all', label: 'Fully Connected Component' },
+                        { id: '1', label: t('oneHopNeighbors') },
+                        { id: '2', label: t('twoHopNeighbors') },
+                        { id: 'all', label: t('fullyConnectedComponent') },
                       ].map((option) => (
                         <ListBox.Item
                           key={option.id}
@@ -191,11 +188,11 @@ export function TrapGraphPage(): ReactElement {
               </div>
 
               <div className="mt-auto pt-4 border-t border-panel-line/35 text-xs text-panel-muted space-y-2">
-                <p className="font-semibold uppercase tracking-wider">Graph Stats</p>
+                <p className="font-semibold uppercase tracking-wider">{t('graphStats')}</p>
                 <div className="grid grid-cols-2 gap-y-1 text-[11px] font-mono">
-                  <span>Nodes:</span>
+                  <span>{t('nodes')}:</span>
                   <span className="text-panel-text text-right">{filteredNodes.length}</span>
-                  <span>Edges:</span>
+                  <span>{t('edges')}:</span>
                   <span className="text-panel-text text-right">{filteredEdges.length}</span>
                 </div>
               </div>
@@ -205,7 +202,7 @@ export function TrapGraphPage(): ReactElement {
             <Card className="border border-panel-line bg-panel-surface flex flex-col relative overflow-hidden">
               <div className="absolute top-4 left-4 z-10 w-[240px]">
                 <input
-                  placeholder="Search graph node..."
+                  placeholder={t('searchGraphNode')}
                   className="w-full rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
                   value={searchKeyword}
                   onChange={(event) => setSearchKeyword(event.target.value)}
@@ -214,7 +211,7 @@ export function TrapGraphPage(): ReactElement {
 
               <div className="flex-1 flex items-center justify-center bg-[#060a13]">
                 {loading ? (
-                  <p className="text-panel-muted animate-pulse">Initializing Graph Engine...</p>
+                  <p className="text-panel-muted animate-pulse">{t('initializingGraphEngine')}</p>
                 ) : (
                   <G6GraphComponent
                     data={displayData}
@@ -230,7 +227,7 @@ export function TrapGraphPage(): ReactElement {
             {/* Right Inspector Panel */}
             <Card className="border border-panel-line bg-panel-surface p-5 flex flex-col gap-6 overflow-y-auto">
               <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/35 pb-2">
-                Graph Inspector
+                {t('graphInspector')}
               </h3>
 
               {selectedElement ? (
@@ -248,20 +245,20 @@ export function TrapGraphPage(): ReactElement {
                   {selectedElement.type === 'node' ? (
                     <div className="space-y-3 font-mono text-xs">
                       <div className="grid grid-cols-2">
-                        <span className="text-panel-muted">Node ID:</span>
+                        <span className="text-panel-muted">{t('nodeId')}:</span>
                         <span className="text-panel-text text-right truncate">
                           {selectedElement.id}
                         </span>
                       </div>
                       <div className="grid grid-cols-2">
-                        <span className="text-panel-muted">Model Type:</span>
+                        <span className="text-panel-muted">{t('modelType')}:</span>
                         <span className="text-panel-text text-right capitalize">
                           {selectedElement.kind}
                         </span>
                       </div>
                       {selectedElement.severity && (
                         <div className="grid grid-cols-2">
-                          <span className="text-panel-muted">Severity:</span>
+                          <span className="text-panel-muted">{t('severity')}:</span>
                           <span className="text-rose-400 font-bold text-right capitalize">
                             {selectedElement.severity}
                           </span>
@@ -269,7 +266,7 @@ export function TrapGraphPage(): ReactElement {
                       )}
                       {selectedElement.scope && (
                         <div className="grid grid-cols-2">
-                          <span className="text-panel-muted">Scope:</span>
+                          <span className="text-panel-muted">{t('scope')}:</span>
                           <span className="text-panel-text text-right capitalize">
                             {selectedElement.scope}
                           </span>
@@ -277,7 +274,7 @@ export function TrapGraphPage(): ReactElement {
                       )}
                       {selectedElement.requiredLevel !== undefined && (
                         <div className="grid grid-cols-2">
-                          <span className="text-panel-muted">Required Level:</span>
+                          <span className="text-panel-muted">{t('requiredLevel')}:</span>
                           <span className="text-panel-text text-right">
                             {selectedElement.requiredLevel}
                           </span>
@@ -287,39 +284,39 @@ export function TrapGraphPage(): ReactElement {
                   ) : (
                     <div className="space-y-3 font-mono text-xs">
                       <div className="grid grid-cols-2">
-                        <span className="text-panel-muted">Source:</span>
+                        <span className="text-panel-muted">{t('source')}:</span>
                         <span className="text-panel-text text-right truncate">
                           {selectedElement.source}
                         </span>
                       </div>
                       <div className="grid grid-cols-2">
-                        <span className="text-panel-muted">Target:</span>
+                        <span className="text-panel-muted">{t('target')}:</span>
                         <span className="text-panel-text text-right truncate">
                           {selectedElement.target}
                         </span>
                       </div>
                       <div className="grid grid-cols-2">
-                        <span className="text-panel-muted">Relation:</span>
+                        <span className="text-panel-muted">{t('relation')}:</span>
                         <span className="text-panel-text text-right capitalize">
-                          {selectedElement.kind || 'Connected'}
+                          {selectedElement.kind || t('connected')}
                         </span>
                       </div>
                     </div>
                   )}
 
                   <div className="pt-4 border-t border-panel-line/35">
-                    <span className="text-xs text-panel-muted block mb-1">Evidence / Notes</span>
+                    <span className="text-xs text-panel-muted block mb-1">
+                      {t('evidenceNotes')}
+                    </span>
                     <p className="text-xs leading-relaxed text-panel-muted">
-                      {selectedElement.evidence ||
-                        selectedElement.details ||
-                        'No evidence linked to this topology item.'}
+                      {selectedElement.evidence || selectedElement.details || t('noEvidenceLinked')}
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-center py-10">
                   <p className="text-xs text-panel-muted max-w-[200px]">
-                    Click any node or link in the graph to view context and metadata.
+                    {t('selectGraphElementTip')}
                   </p>
                 </div>
               )}

@@ -5,6 +5,11 @@ import { Link } from 'react-router-dom';
 import { useReviewQueuePageModel } from '@trapmap/web-panel/features/review-queue/use-review-queue-page-model';
 import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
+  localizeLifecycleState,
+  localizeReviewRiskLabel,
+  localizeReviewSource,
+} from '@trapmap/web-panel/shared/lib/display-labels';
+import {
   EmptyState,
   ErrorPanel,
   FilterItem,
@@ -49,13 +54,7 @@ export function ReviewQueuePage(): ReactElement {
               {t('highestRisk')}
             </p>
             <p className="mt-3 text-lg font-semibold text-panel-text">
-              {model.items[0]
-                ? model.items[0].riskLabel === 'High Risk'
-                  ? t('highRisk')
-                  : model.items[0].riskLabel === 'Needs Review'
-                    ? t('mediumRisk')
-                    : t('lowRisk')
-                : t('noItems')}
+              {model.items[0] ? localizeReviewRiskLabel(t, model.items[0].riskLabel) : t('noItems')}
             </p>
             <p className="mt-2 text-sm leading-6 text-panel-muted">{t('highestRiskDesc')}</p>
           </div>
@@ -98,9 +97,9 @@ export function ReviewQueuePage(): ReactElement {
                 <ListBox className="outline-none">
                   {[
                     { id: 'all', label: t('allStatus') },
-                    { id: 'submitted', label: 'Submitted' },
-                    { id: 'approved', label: 'Approved' },
-                    { id: 'rejected', label: 'Rejected' },
+                    { id: 'submitted', label: t('submitted') },
+                    { id: 'approved', label: t('approved') },
+                    { id: 'rejected', label: t('rejected') },
                   ].map((opt) => (
                     <ListBox.Item
                       key={opt.id}
@@ -255,10 +254,7 @@ export function ReviewQueuePage(): ReactElement {
         {model.loading && model.items.length === 0 ? (
           <SkeletonBlock count={5} variant="table" />
         ) : model.items.length === 0 ? (
-          <EmptyState
-            description="No pending items match your filter preferences. Change selection or check later."
-            title={t('noReviewsFound')}
-          />
+          <EmptyState description={t('noMatchingReviewsDesc')} title={t('noReviewsFound')} />
         ) : (
           <FadeIn>
             <div className="space-y-3">
@@ -274,11 +270,7 @@ export function ReviewQueuePage(): ReactElement {
                           {item.title}
                         </h3>
                         <StatusBadge tone={item.riskTone === 'neutral' ? 'success' : item.riskTone}>
-                          {item.riskLabel === 'High Risk'
-                            ? t('highRisk')
-                            : item.riskLabel === 'Needs Review'
-                              ? t('mediumRisk')
-                              : t('lowRisk')}
+                          {localizeReviewRiskLabel(t, item.riskLabel)}
                         </StatusBadge>
                       </div>
                       <p className="text-sm leading-6 text-panel-muted/95">{item.subtitle}</p>
@@ -289,25 +281,21 @@ export function ReviewQueuePage(): ReactElement {
                         <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
                           {t('sourceLabel')}
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-panel-text">{item.source}</p>
+                        <p className="mt-1 text-sm font-semibold text-panel-text">
+                          {localizeReviewSource(t, item.source)}
+                        </p>
                       </div>
                       <div className="rounded-xl border border-panel-line bg-panel-surface-strong px-4 py-3">
                         <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
                           {t('statusLabel')}
                         </p>
                         <p className="mt-1 text-sm font-semibold text-panel-text">
-                          {item.status === 'submitted'
-                            ? t('submitted')
-                            : item.status === 'approved'
-                              ? t('approved')
-                              : item.status === 'rejected'
-                                ? t('rejected')
-                                : item.status}
+                          {localizeLifecycleState(t, item.status)}
                         </p>
                       </div>
                       <div className="rounded-xl border border-panel-line bg-panel-surface-strong px-4 py-3">
                         <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-                          Created
+                          {t('createdAt')}
                         </p>
                         <p className="mt-1 text-sm font-semibold text-panel-text">
                           {item.createdAt}

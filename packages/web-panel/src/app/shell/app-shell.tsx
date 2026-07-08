@@ -210,17 +210,25 @@ const TranslateIcon = () => (
   </svg>
 );
 
-const ThemeIcon = ({ theme }: { theme: 'dark' | 'light' }) => (
+const ThemeIcon = ({
+  darkLabel,
+  lightLabel,
+  theme,
+}: {
+  darkLabel: string;
+  lightLabel: string;
+  theme: 'dark' | 'light';
+}) => (
   <svg
     role="img"
-    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+    aria-label={theme === 'dark' ? lightLabel : darkLabel}
     className="h-4 w-4 shrink-0"
     fill="none"
     stroke="currentColor"
     strokeWidth={2}
     viewBox="0 0 24 24"
   >
-    <title>{theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}</title>
+    <title>{theme === 'dark' ? lightLabel : darkLabel}</title>
     {theme === 'dark' ? (
       <path
         d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364 6.364l-1.414-1.414M7.05 7.05 5.636 5.636m12.728 0L16.95 7.05M7.05 16.95l-1.414 1.414M16 12a4 4 0 11-8 0 4 4 0 018 0z"
@@ -395,7 +403,7 @@ export function AppShell(): ReactElement {
                 TrapMap
               </span>
               <span className="block font-mono text-[12px] font-medium uppercase text-panel-muted">
-                Admin Workspace
+                {t('adminWorkspace')}
               </span>
             </div>
           </div>
@@ -457,13 +465,13 @@ export function AppShell(): ReactElement {
             >
               <svg
                 role="img"
-                aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                aria-label={mobileMenuOpen ? t('closeMenu') : t('openMenu')}
                 className="h-5 w-5 text-panel-muted"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <title>{mobileMenuOpen ? 'Close menu' : 'Open menu'}</title>
+                <title>{mobileMenuOpen ? t('closeMenu') : t('openMenu')}</title>
                 {mobileMenuOpen ? (
                   <path
                     d="M6 18L18 6M6 6l12 12"
@@ -496,8 +504,12 @@ export function AppShell(): ReactElement {
               onPress={toggleTheme}
               className="flex h-[32px] min-w-[40px] items-center gap-1.5 rounded-md border border-panel-line bg-panel-surface px-2.5 text-xs font-medium text-panel-muted transition hover:text-panel-text"
             >
-              <ThemeIcon theme={theme} />
-              <span>{theme === 'dark' ? 'Dark' : 'Light'}</span>
+              <ThemeIcon
+                darkLabel={t('switchToDarkMode')}
+                lightLabel={t('switchToLightMode')}
+                theme={theme}
+              />
+              <span>{theme === 'dark' ? t('darkMode') : t('lightMode')}</span>
             </Button>
 
             <Button
@@ -553,14 +565,14 @@ export function AppShell(): ReactElement {
                       <Dropdown.Item id="switch-account" textValue={t('switchAccount')}>
                         <svg
                           role="img"
-                          aria-label="Switch account"
+                          aria-label={t('switchAccount')}
                           className="h-4 w-4 shrink-0"
                           fill="none"
                           stroke="currentColor"
                           strokeWidth={2}
                           viewBox="0 0 24 24"
                         >
-                          <title>Switch account</title>
+                          <title>{t('switchAccount')}</title>
                           <path
                             d="M17 20h5V4h-5M7 4H2v16h5m10-8H7m0 0l3-3m-3 3l3 3"
                             strokeLinecap="round"
@@ -581,14 +593,14 @@ export function AppShell(): ReactElement {
                       <Dropdown.Item id="logout" textValue={t('logOut')} variant="danger">
                         <svg
                           role="img"
-                          aria-label="Log Out"
+                          aria-label={t('logOut')}
                           className="h-4 w-4 text-rose-400 shrink-0"
                           fill="none"
                           stroke="currentColor"
                           strokeWidth={2}
                           viewBox="0 0 24 24"
                         >
-                          <title>Log Out</title>
+                          <title>{t('logOut')}</title>
                           <path
                             d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                             strokeLinecap="round"
@@ -661,13 +673,13 @@ export function AppShell(): ReactElement {
                   >
                     <svg
                       role="img"
-                      aria-label="Close menu"
+                      aria-label={t('closeMenu')}
                       className="h-5 w-5 text-panel-muted"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
-                      <title>Close Menu</title>
+                      <title>{t('closeMenu')}</title>
                       <path
                         d="M6 18L18 6M6 6l12 12"
                         strokeLinecap="round"
@@ -818,7 +830,7 @@ export function AppShell(): ReactElement {
                   </h4>
                   <p className="text-xs text-panel-muted leading-relaxed">{t('tokenDesc')}</p>
                   <div className="flex gap-2 items-center mt-3 bg-[#0a0f1d] border border-panel-line rounded-lg px-3 py-2 text-xs font-mono text-panel-accent">
-                    <span className="flex-1 truncate">{token || 'No active token'}</span>
+                    <span className="flex-1 truncate">{token || t('noActiveToken')}</span>
                     {token && (
                       <Button
                         size="sm"
@@ -832,13 +844,13 @@ export function AppShell(): ReactElement {
                       >
                         <svg
                           role="img"
-                          aria-label="Copy token"
+                          aria-label={t('copyToken')}
                           className="h-3.5 w-3.5"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
-                          <title>Copy token</title>
+                          <title>{t('copyToken')}</title>
                           <path
                             d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
                             strokeLinecap="round"

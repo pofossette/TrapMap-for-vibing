@@ -5,6 +5,12 @@ import { Link, useParams } from 'react-router-dom';
 import { useReviewDetailController } from '@trapmap/web-panel/features/review-detail/use-review-detail-controller';
 import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
+  localizeActivityType,
+  localizeLifecycleState,
+  localizeReviewSource,
+  localizeReviewWarningKind,
+} from '@trapmap/web-panel/shared/lib/display-labels';
+import {
   ConfirmationDialog,
   ErrorPanel,
   JsonEditorPanel,
@@ -143,13 +149,7 @@ export function ReviewDetailPage(): ReactElement {
                               : 'danger'
                         }
                       >
-                        {item.status === 'submitted'
-                          ? t('submitted')
-                          : item.status === 'approved'
-                            ? t('approved')
-                            : item.status === 'rejected'
-                              ? t('rejected')
-                              : item.status}
+                        {localizeLifecycleState(t, item.status)}
                       </StatusBadge>
                     )}
                   </div>
@@ -170,26 +170,16 @@ export function ReviewDetailPage(): ReactElement {
                       key={card.label}
                     >
                       <span className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-                        {card.label === 'Source'
-                          ? t('sourceLabel')
-                          : card.label === 'Status'
-                            ? t('statusLabel')
-                            : card.label === 'Assigned Reviewer'
-                              ? t('assignedReviewer')
-                              : card.label === 'Created At'
-                                ? t('createdAt')
-                                : card.label}
+                        {t(card.label)}
                       </span>
                       <p className="mt-2 break-all text-sm font-medium leading-6 text-panel-text">
-                        {card.value === 'submitted'
-                          ? t('submitted')
-                          : card.value === 'approved'
-                            ? t('approved')
-                            : card.value === 'rejected'
-                              ? t('rejected')
-                              : card.value === 'Unassigned'
-                                ? t('unassigned')
-                                : card.value}
+                        {card.label === 'statusLabel'
+                          ? localizeLifecycleState(t, card.value)
+                          : card.label === 'sourceLabel'
+                            ? localizeReviewSource(t, card.value)
+                            : card.value === 'Unassigned'
+                              ? t('unassigned')
+                              : card.value}
                       </p>
                     </div>
                   ))}
@@ -220,7 +210,7 @@ export function ReviewDetailPage(): ReactElement {
                             key={`${warning.kind}-${warning.message}`}
                           >
                             <span className="inline-flex rounded-full border border-panel-line bg-panel-surface px-1.5 py-0.5 font-mono text-[12px] font-medium uppercase text-panel-muted">
-                              {warning.kind}
+                              {localizeReviewWarningKind(t, warning.kind)}
                             </span>
                             <p className="mt-0.5">{warning.message}</p>
                           </div>
@@ -244,7 +234,7 @@ export function ReviewDetailPage(): ReactElement {
                         timestamp={event.timestamp}
                         title={event.title}
                         tone={event.tone}
-                        typeLabel={event.typeLabel}
+                        typeLabel={localizeActivityType(t, event.typeLabel)}
                       />
                     ))}
                     {(!item?.activity || item.activity.length === 0) && (

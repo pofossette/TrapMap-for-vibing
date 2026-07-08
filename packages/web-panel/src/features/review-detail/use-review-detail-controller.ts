@@ -2,17 +2,19 @@ import { useEffect, useMemo } from 'react';
 
 import { useJsonEditorController } from '@trapmap/web-panel/features/json-editor/use-json-editor-controller';
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
+import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import { useJsonEditorStore } from '@trapmap/web-panel/stores/json-editor-store';
 import { useReviewDetailStore } from '@trapmap/web-panel/stores/review-detail-store';
 import { loadReviewDetail, submitReviewDecision } from './service';
 
 type ContextCard = {
-  label: string;
+  label: 'assignedReviewer' | 'createdAt' | 'sourceLabel' | 'statusLabel';
   value: string;
 };
 
 export function useReviewDetailController(reviewId: string) {
   const api = getAdminPanelApi();
+  const { t } = useI18nStore();
   const request = useReviewDetailStore((state) => state.request);
   const decisionRationale = useReviewDetailStore((state) => state.decisionRationale);
   const setLoading = useReviewDetailStore((state) => state.setLoading);
@@ -47,10 +49,10 @@ export function useReviewDetailController(reviewId: string) {
     () =>
       detail
         ? [
-            { label: 'Source', value: detail.source },
-            { label: 'Status', value: detail.status },
-            { label: 'Assigned Reviewer', value: detail.assignedReviewer ?? 'Unassigned' },
-            { label: 'Created At', value: detail.createdAt },
+            { label: 'sourceLabel', value: detail.source },
+            { label: 'statusLabel', value: detail.status },
+            { label: 'assignedReviewer', value: detail.assignedReviewer ?? 'Unassigned' },
+            { label: 'createdAt', value: detail.createdAt },
           ]
         : [],
     [detail],
@@ -78,7 +80,7 @@ export function useReviewDetailController(reviewId: string) {
       const notes =
         decision === 'return-for-correction'
           ? `[return-for-correction] ${decisionRationale.trim()}`
-          : decisionRationale.trim() || 'Approved in web panel.';
+          : decisionRationale.trim() || t('approvedInWebPanel');
       const mappedDecision = decision === 'return-for-correction' ? 'reject' : decision;
 
       try {

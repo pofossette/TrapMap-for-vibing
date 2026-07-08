@@ -10,12 +10,14 @@ import type {
 import type { ActivityEventViewModel } from './activity.js';
 
 export type ReviewRiskTone = 'danger' | 'neutral' | 'warning';
+export type ReviewRiskLabel = 'high' | 'medium' | 'low';
+export type ReviewMetadataLabelKey = 'scope' | 'required-level' | 'owner' | 'last-updated';
 
 export type ReviewItemViewModel = {
   assignedReviewer: string | null;
   createdAt: string;
   id: string;
-  riskLabel: string;
+  riskLabel: ReviewRiskLabel;
   riskScore: number;
   riskTone: ReviewRiskTone;
   source: string;
@@ -46,7 +48,7 @@ export type ReviewDetailViewModel = {
   files: ReviewArtifactFile[];
   id: string;
   jsonPayload: string;
-  metadata: Array<{ label: string; value: string }>;
+  metadata: Array<{ label: ReviewMetadataLabelKey; value: string }>;
   rawEntry: KnowledgeEntry;
   reviewHistory: ReviewHistoryEntry[];
   source: string;

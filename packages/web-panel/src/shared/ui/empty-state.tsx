@@ -16,6 +16,7 @@ export function EmptyState({ action, description, icon, title }: EmptyStateProps
   const { t } = useI18nStore();
   const finalTitle = title ?? t('noDataAvailable');
   const finalDescription = description ?? t('noItemsMatched');
+  const iconLabel = t('noDataAvailable');
 
   return (
     <div className="flex flex-col items-center justify-center rounded-panel border border-dashed border-panel-line bg-panel-surface/40 px-6 py-12 text-center">
@@ -28,9 +29,9 @@ export function EmptyState({ action, description, icon, title }: EmptyStateProps
           stroke="currentColor"
           viewBox="0 0 24 24"
           role="img"
-          aria-label="No Data"
+          aria-label={iconLabel}
         >
-          <title>No Data</title>
+          <title>{iconLabel}</title>
           <path
             d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             strokeLinecap="round"

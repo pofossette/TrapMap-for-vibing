@@ -45,16 +45,16 @@ function riskToneFromScore(score: number): ReviewItemViewModel['riskTone'] {
   return 'neutral';
 }
 
-function riskLabelFromScore(score: number): string {
+function riskLabelFromScore(score: number): ReviewItemViewModel['riskLabel'] {
   if (score >= 8) {
-    return 'High Risk';
+    return 'high';
   }
 
   if (score >= 4) {
-    return 'Needs Review';
+    return 'medium';
   }
 
-  return 'Low Risk';
+  return 'low';
 }
 
 function mapReviewHistoryItem(item: ReviewDecision): ReviewHistoryEntry {
@@ -104,10 +104,10 @@ export function mapReviewDetail(entry: KnowledgeEntry): ReviewDetailViewModel {
     rawEntry: entry,
     jsonPayload: JSON.stringify(entry, null, 2),
     metadata: [
-      { label: 'Scope', value: entry.scope },
-      { label: 'Required Level', value: String(entry.requiredLevel) },
-      { label: 'Owner', value: entry.owner.handle },
-      { label: 'Last Updated', value: entry.updatedAt },
+      { label: 'scope', value: entry.scope },
+      { label: 'required-level', value: String(entry.requiredLevel) },
+      { label: 'owner', value: entry.owner.handle },
+      { label: 'last-updated', value: entry.updatedAt },
     ],
     warnings,
     reviewHistory: entry.reviewHistory.map(mapReviewHistoryItem),

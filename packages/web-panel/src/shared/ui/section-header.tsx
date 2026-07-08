@@ -1,3 +1,4 @@
+import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import type { ReactElement, ReactNode } from 'react';
 
 type SectionHeaderProps = {
@@ -7,11 +8,13 @@ type SectionHeaderProps = {
 };
 
 export function SectionHeader({ actions, description, title }: SectionHeaderProps): ReactElement {
+  const { t } = useI18nStore();
+
   return (
     <div className="mb-5 flex flex-col gap-4 border-b border-panel-line pb-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-2">
         <span className="inline-flex rounded-full border border-panel-line bg-panel-surface px-3 py-1 font-mono text-[12px] font-medium uppercase tracking-normal text-panel-muted">
-          TrapMap Console
+          {t('workspace')}
         </span>
         <div>
           <h2 className="text-[32px] font-semibold leading-10 tracking-[-1.28px] text-panel-text">

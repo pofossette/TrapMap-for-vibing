@@ -2,6 +2,10 @@ import { ListBox, Select } from '@heroui/react';
 import { useActivityPageModel } from '@trapmap/web-panel/features/activity/use-activity-page-model';
 import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
+  localizeActivityType,
+  normalizeActivityType,
+} from '@trapmap/web-panel/shared/lib/display-labels';
+import {
   EmptyState,
   ErrorPanel,
   FilterItem,
@@ -29,7 +33,7 @@ export function ActivityPage(): ReactElement {
         event.description.toLowerCase().includes(search.toLowerCase());
 
       const matchesType =
-        typeFilter === 'all' || event.typeLabel.toLowerCase() === typeFilter.toLowerCase();
+        typeFilter === 'all' || normalizeActivityType(event.typeLabel) === typeFilter;
 
       return matchesSearch && matchesType;
     });
@@ -75,13 +79,13 @@ export function ActivityPage(): ReactElement {
             <p className="mt-3 text-lg font-semibold text-panel-text">
               {typeFilter === 'all'
                 ? t('allTypes')
-                : typeFilter === 'Review Decision'
+                : typeFilter === 'decision'
                   ? t('decisions')
-                  : typeFilter === 'Manual Intervention'
+                  : typeFilter === 'intervention'
                     ? t('interventions')
-                    : typeFilter === 'System Ingestion'
+                    : typeFilter === 'system-ingestion'
                       ? t('systemIngestion')
-                      : typeFilter}
+                      : t('unknownType')}
             </p>
             <p className="mt-2 text-sm leading-6 text-panel-muted">{t('typeSliceDesc')}</p>
           </div>
@@ -132,7 +136,7 @@ export function ActivityPage(): ReactElement {
                     </ListBox.ItemIndicator>
                   </ListBox.Item>
                   <ListBox.Item
-                    id="Review Decision"
+                    id="decision"
                     textValue={t('decisions')}
                     className="flex items-center justify-between px-3 py-2 text-sm rounded-lg text-panel-text hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium transition duration-150"
                   >
@@ -153,7 +157,7 @@ export function ActivityPage(): ReactElement {
                     </ListBox.ItemIndicator>
                   </ListBox.Item>
                   <ListBox.Item
-                    id="Manual Intervention"
+                    id="intervention"
                     textValue={t('interventions')}
                     className="flex items-center justify-between px-3 py-2 text-sm rounded-lg text-panel-text hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium transition duration-150"
                   >
@@ -174,7 +178,7 @@ export function ActivityPage(): ReactElement {
                     </ListBox.ItemIndicator>
                   </ListBox.Item>
                   <ListBox.Item
-                    id="System Ingestion"
+                    id="system-ingestion"
                     textValue={t('systemIngestion')}
                     className="flex items-center justify-between px-3 py-2 text-sm rounded-lg text-panel-text hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium transition duration-150"
                   >
@@ -231,7 +235,7 @@ export function ActivityPage(): ReactElement {
                     timestamp={event.timestamp}
                     title={event.title}
                     tone={event.tone}
-                    typeLabel={event.typeLabel}
+                    typeLabel={localizeActivityType(t, event.typeLabel)}
                   />
                 ))}
               </div>

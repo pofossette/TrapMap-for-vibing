@@ -45,7 +45,7 @@ describe('review-queue-store', () => {
           createdAt: '2026-06-19T10:20:00.000Z',
           assignedReviewer: null,
           riskScore: 8,
-          riskLabel: 'High Risk',
+          riskLabel: 'high',
           riskTone: 'danger',
         },
       ],

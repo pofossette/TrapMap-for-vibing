@@ -3,6 +3,7 @@ import type { ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useDashboardPageModel } from '@trapmap/web-panel/features/dashboard/use-dashboard-page-model';
+import { localizeServiceHealth } from '@trapmap/web-panel/shared/lib/display-labels';
 import { PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
   ErrorPanel,
@@ -42,23 +43,23 @@ export function DashboardPage(): ReactElement {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-4 text-xs font-mono bg-panel-surface border border-panel-line rounded-xl px-4 py-2">
               <span className="text-panel-muted">
-                PROFILE:{' '}
+                {t('dashboardProfile')}:{' '}
                 <strong className="text-panel-text">
                   {model.overview?.deploymentProfile ?? 'team-monolith'}
                 </strong>
               </span>
               <span className="text-panel-muted">|</span>
               <span className="text-panel-muted">
-                BUILD:{' '}
+                {t('dashboardBuild')}:{' '}
                 <strong className="text-panel-text">{model.overview?.buildId ?? 'dev'}</strong>
               </span>
               <span className="text-panel-muted">|</span>
               <span className="text-panel-muted">
-                LAST CHECK:{' '}
+                {t('dashboardLastCheck')}:{' '}
                 <strong className="text-panel-text">
                   {model.overview?.lastHealthCheckAt
                     ? new Date(model.overview.lastHealthCheckAt).toLocaleTimeString()
-                    : 'n/a'}
+                    : t('notAvailableShort')}
                 </strong>
               </span>
             </div>
@@ -100,7 +101,7 @@ export function DashboardPage(): ReactElement {
                       {t('serviceHealth')}
                     </h3>
                     <Chip size="sm" variant="soft" color="success">
-                      Running
+                      {t('runtimeActive')}
                     </Chip>
                   </div>
 
@@ -125,7 +126,7 @@ export function DashboardPage(): ReactElement {
                                 : 'danger'
                           }
                         >
-                          {service.status.toUpperCase()}
+                          {localizeServiceHealth(t, service.status)}
                         </StatusBadge>
                       </div>
                     ))}
@@ -139,31 +140,33 @@ export function DashboardPage(): ReactElement {
                 <Card className="border border-panel-line bg-panel-surface p-5 shadow-panel space-y-4">
                   <div className="flex items-center justify-between border-b border-panel-line/30 pb-2">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-panel-muted">
-                      Pending Backlogs
+                      {t('pendingBacklogs')}
                     </h3>
                     <Chip size="sm" variant="soft" color="warning">
-                      Action Needed
+                      {t('actionRequired')}
                     </Chip>
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex justify-between items-center bg-[#0a0f1d] border border-panel-line/50 p-3.5 rounded-xl">
                       <div>
-                        <p className="text-xs text-panel-muted">Pending Reviews</p>
-                        <p className="text-xl font-bold text-panel-text mt-1">18 items</p>
+                        <p className="text-xs text-panel-muted">{t('pendingReviewsShort')}</p>
+                        <p className="text-xl font-bold text-panel-text mt-1">
+                          18 {t('itemsUnit')}
+                        </p>
                       </div>
                       <Button size="sm" variant="secondary" onPress={() => navigate('/reviews')}>
-                        Audit Queue
+                        {t('auditQueue')}
                       </Button>
                     </div>
 
                     <div className="flex justify-between items-center bg-[#0a0f1d] border border-panel-line/50 p-3.5 rounded-xl">
                       <div>
-                        <p className="text-xs text-panel-muted">Failed Runtime Jobs</p>
-                        <p className="text-xl font-bold text-rose-400 mt-1">2 jobs</p>
+                        <p className="text-xs text-panel-muted">{t('failedRuntimeJobs')}</p>
+                        <p className="text-xl font-bold text-rose-400 mt-1">2 {t('jobsUnit')}</p>
                       </div>
                       <Button size="sm" variant="danger" onPress={() => navigate('/activity')}>
-                        Check Logs
+                        {t('checkLogs')}
                       </Button>
                     </div>
                   </div>
@@ -177,11 +180,15 @@ export function DashboardPage(): ReactElement {
                   <div>
                     <div className="flex justify-between items-start border-b border-panel-line/30 pb-3">
                       <div>
-                        <h3 className="text-md font-bold text-panel-text">Trap Graph Overview</h3>
-                        <p className="text-xs text-panel-muted mt-1">9 nodes · 8 relationships</p>
+                        <h3 className="text-md font-bold text-panel-text">
+                          {t('trapGraphOverview')}
+                        </h3>
+                        <p className="text-xs text-panel-muted mt-1">
+                          9 {t('nodes')} · 8 {t('graphRelationships')}
+                        </p>
                       </div>
                       <Chip size="sm" color="warning" variant="soft">
-                        Topology
+                        {t('topology')}
                       </Chip>
                     </div>
 
@@ -291,7 +298,7 @@ export function DashboardPage(): ReactElement {
                       variant="primary"
                       onPress={() => navigate('/trap-graph')}
                     >
-                      Interactive Debug
+                      {t('interactiveDebug')}
                     </Button>
                   </div>
                 </Card>
@@ -301,11 +308,15 @@ export function DashboardPage(): ReactElement {
                   <div>
                     <div className="flex justify-between items-start border-b border-panel-line/30 pb-3">
                       <div>
-                        <h3 className="text-md font-bold text-panel-text">Skill Graph Overview</h3>
-                        <p className="text-xs text-panel-muted mt-1">7 nodes · 7 relationships</p>
+                        <h3 className="text-md font-bold text-panel-text">
+                          {t('skillGraphOverview')}
+                        </h3>
+                        <p className="text-xs text-panel-muted mt-1">
+                          7 {t('nodes')} · 7 {t('graphRelationships')}
+                        </p>
                       </div>
                       <Chip size="sm" color="accent" variant="soft">
-                        Derivation
+                        {t('derivation')}
                       </Chip>
                     </div>
 
@@ -433,7 +444,7 @@ export function DashboardPage(): ReactElement {
                       variant="primary"
                       onPress={() => navigate('/skill-graph')}
                     >
-                      Audit Derivation
+                      {t('auditDerivation')}
                     </Button>
                   </div>
                 </Card>
@@ -445,15 +456,15 @@ export function DashboardPage(): ReactElement {
               {/* Summary Stats Grid */}
               <Card className="border border-panel-line bg-panel-surface p-5 shadow-panel space-y-4">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-2">
-                  Knowledge Scale Index
+                  {t('knowledgeScaleIndex')}
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="bg-[#0a0f1d] border border-panel-line/50 p-4 rounded-xl text-center">
-                    <p className="text-xs text-panel-muted">Total Traps</p>
+                    <p className="text-xs text-panel-muted">{t('totalTraps')}</p>
                     <p className="text-2xl font-bold text-panel-text mt-1.5">1,248</p>
                   </div>
                   <div className="bg-[#0a0f1d] border border-panel-line/50 p-4 rounded-xl text-center">
-                    <p className="text-xs text-panel-muted">Skill Artifacts</p>
+                    <p className="text-xs text-panel-muted">{t('skillArtifactsCount')}</p>
                     <p className="text-2xl font-bold text-panel-text mt-1.5">342</p>
                   </div>
                   <div className="bg-[#0a0f1d] border border-panel-line/50 p-4 rounded-xl text-center">

@@ -57,6 +57,7 @@
 | `archived-plans/active-closeout-and-followups.md` | 2026-07-06 | 集中审计后的收口细则已完成职责；剩余有效事项已并入活跃主线或 debt register |
 | `archived-plans/agent-eval-framework-evaluation-and-plan.md` | 2026-07-08 | Agent Eval 主线 active closeout 已完成，根 `plan.md` 与 `docs/todos/` 不再保留并行 eval workstream |
 | `archived-plans/doc-drift-fix-list.md` | 2026-07-08 | 当前已无未闭环 doc-drift 项，不再承担 active todo 职责 |
+| `reports/web-panel-cn-localization-audit-2026-07-08.md` | 2026-07-08 | Web Panel 中文本地化残留审计报告，记录中文界面英文残留与术语不一致问题 |
 
 ## 归档原则
 

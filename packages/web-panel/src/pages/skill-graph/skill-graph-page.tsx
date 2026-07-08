@@ -95,19 +95,16 @@ export function SkillGraphPage(): ReactElement {
   return (
     <PageTransition className="space-y-6">
       <PageContainer>
-        <SectionHeader
-          title={t('skillGraph')}
-          description="Analyze compile-time structural derivations and runtime semantic graph mapping for capsules, assets, and script tools."
-        />
+        <SectionHeader title={t('skillGraph')} description={t('skillGraphDesc')} />
 
         {/* View Mode & Artifact Selection Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 bg-panel-surface border border-panel-line rounded-2xl p-4">
           <div className="flex items-center gap-3 min-w-[280px]">
             <span className="text-xs text-panel-muted font-mono uppercase tracking-wider">
-              Artifact:
+              {t('artifactSelector')}:
             </span>
             <Select
-              aria-label="Select Skill Artifact"
+              aria-label={t('selectSkillArtifact')}
               className="flex-1"
               value={selectedArtifactId}
               onChange={(value) => handleArtifactChange(value ? String(value) : '')}
@@ -162,7 +159,7 @@ export function SkillGraphPage(): ReactElement {
                 }`}
                 onClick={() => setViewMode(mode)}
               >
-                {mode === 'derivation' ? 'Derivation View (推导视角)' : 'Semantic Graph (语义关系)'}
+                {mode === 'derivation' ? t('derivationView') : t('semanticGraph')}
               </button>
             ))}
           </div>
@@ -178,29 +175,23 @@ export function SkillGraphPage(): ReactElement {
             <Card className="border border-panel-line bg-panel-surface p-5 flex flex-col gap-6 overflow-y-auto">
               <div>
                 <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/35 pb-2 mb-3">
-                  View Controls
+                  {t('viewControls')}
                 </h3>
                 <div className="text-xs text-panel-muted leading-relaxed space-y-3">
                   {viewMode === 'derivation' ? (
-                    <p>
-                      <strong>Derivation mode</strong> maps how source code (SKILL.md, references)
-                      compile into profiles, capsules, and manifest script configurations.
-                    </p>
+                    <p>{t('derivationModeDesc')}</p>
                   ) : (
-                    <p>
-                      <strong>Semantic mode</strong> maps how runtime capsules resolve against
-                      external cues, tools, environments, and mitigations.
-                    </p>
+                    <p>{t('semanticModeDesc')}</p>
                   )}
                 </div>
               </div>
 
               <div className="mt-auto pt-4 border-t border-panel-line/35 text-xs text-panel-muted space-y-2">
-                <p className="font-semibold uppercase tracking-wider">Graph Stats</p>
+                <p className="font-semibold uppercase tracking-wider">{t('graphStats')}</p>
                 <div className="grid grid-cols-2 gap-y-1 text-[11px] font-mono">
-                  <span>Nodes:</span>
+                  <span>{t('nodes')}:</span>
                   <span className="text-panel-text text-right">{graphData.nodes.length}</span>
-                  <span>Edges:</span>
+                  <span>{t('edges')}:</span>
                   <span className="text-panel-text text-right">{graphData.edges.length}</span>
                 </div>
               </div>
@@ -210,7 +201,7 @@ export function SkillGraphPage(): ReactElement {
             <Card className="border border-panel-line bg-panel-surface flex flex-col relative overflow-hidden">
               <div className="absolute top-4 left-4 z-10 w-[240px]">
                 <input
-                  placeholder="Search graph node..."
+                  placeholder={t('searchGraphNode')}
                   className="w-full rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
                   value={searchKeyword}
                   onChange={(event) => setSearchKeyword(event.target.value)}
@@ -219,7 +210,7 @@ export function SkillGraphPage(): ReactElement {
 
               <div className="flex-1 flex items-center justify-center bg-[#060a13]">
                 {loading ? (
-                  <p className="text-panel-muted animate-pulse">Rebuilding Layout...</p>
+                  <p className="text-panel-muted animate-pulse">{t('rebuildingLayout')}</p>
                 ) : (
                   <G6GraphComponent
                     data={graphData}
@@ -235,7 +226,7 @@ export function SkillGraphPage(): ReactElement {
             {/* Right Inspector Panel */}
             <Card className="border border-panel-line bg-panel-surface p-5 flex flex-col gap-6 overflow-y-auto">
               <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/35 pb-2">
-                Derivation Inspector
+                {t('derivationInspector')}
               </h3>
 
               {selectedElement ? (
@@ -255,7 +246,7 @@ export function SkillGraphPage(): ReactElement {
                       {/* Common fields */}
                       <div className="space-y-2 font-mono text-xs">
                         <div className="grid grid-cols-2">
-                          <span className="text-panel-muted">ID:</span>
+                          <span className="text-panel-muted">{t('idLabel')}:</span>
                           <span className="text-panel-text text-right truncate">
                             {selectedElement.id}
                           </span>
@@ -267,14 +258,16 @@ export function SkillGraphPage(): ReactElement {
                         <div className="space-y-3 pt-3 border-t border-panel-line/20 text-xs">
                           <div>
                             <span className="font-mono text-panel-muted block">
-                              Situation context:
+                              {t('situationContext')}:
                             </span>
                             <p className="mt-1 text-panel-text font-medium leading-relaxed bg-[#0a0f1d] p-3 rounded-lg border border-panel-line/30">
                               {selectedElement.situation || 'JWT validation expiration checks'}
                             </p>
                           </div>
                           <div>
-                            <span className="font-mono text-panel-muted block">Goal state:</span>
+                            <span className="font-mono text-panel-muted block">
+                              {t('goalState')}:
+                            </span>
                             <p className="mt-1 text-panel-text leading-relaxed">
                               {selectedElement.goal || 'Enforce token expiry validation'}
                             </p>
@@ -285,12 +278,14 @@ export function SkillGraphPage(): ReactElement {
                       {selectedElement.kind === 'script' && (
                         <div className="space-y-3 pt-3 border-t border-panel-line/20 text-xs font-mono text-panel-muted">
                           <div className="grid grid-cols-2">
-                            <span>Policy:</span>
-                            <span className="text-panel-text text-right">Needs Approval</span>
+                            <span>{t('policy')}:</span>
+                            <span className="text-panel-text text-right">{t('needsApproval')}</span>
                           </div>
                           <div className="grid grid-cols-2">
-                            <span>Side Effect:</span>
-                            <span className="text-panel-text text-right">Removes Docker data</span>
+                            <span>{t('sideEffect')}:</span>
+                            <span className="text-panel-text text-right">
+                              {t('removesDockerData')}
+                            </span>
                           </div>
                         </div>
                       )}
@@ -298,11 +293,11 @@ export function SkillGraphPage(): ReactElement {
                       {selectedElement.kind === 'artifact' && (
                         <div className="space-y-3 pt-3 border-t border-panel-line/20 text-xs font-mono text-panel-muted">
                           <div className="grid grid-cols-2">
-                            <span>Submitter:</span>
+                            <span>{t('submitter')}:</span>
                             <span className="text-panel-text text-right">ops-lead</span>
                           </div>
                           <div className="grid grid-cols-2">
-                            <span>Hash:</span>
+                            <span>{t('hash')}:</span>
                             <span className="text-panel-text text-right text-xs truncate">
                               sha-docker-rev1
                             </span>
@@ -313,7 +308,9 @@ export function SkillGraphPage(): ReactElement {
                       {/* Fallback details */}
                       {selectedElement.details && (
                         <div className="pt-2">
-                          <span className="text-xs text-panel-muted font-mono block">Details:</span>
+                          <span className="text-xs text-panel-muted font-mono block">
+                            {t('details')}:
+                          </span>
                           <p className="text-xs leading-relaxed mt-1">{selectedElement.details}</p>
                         </div>
                       )}
@@ -321,21 +318,21 @@ export function SkillGraphPage(): ReactElement {
                   ) : (
                     <div className="space-y-3 font-mono text-xs">
                       <div className="grid grid-cols-2">
-                        <span className="text-panel-muted">Source ID:</span>
+                        <span className="text-panel-muted">{t('source')} ID:</span>
                         <span className="text-panel-text text-right truncate">
                           {selectedElement.source}
                         </span>
                       </div>
                       <div className="grid grid-cols-2">
-                        <span className="text-panel-muted">Target ID:</span>
+                        <span className="text-panel-muted">{t('target')} ID:</span>
                         <span className="text-panel-text text-right truncate">
                           {selectedElement.target}
                         </span>
                       </div>
                       <div className="grid grid-cols-2">
-                        <span className="text-panel-muted">Relation:</span>
+                        <span className="text-panel-muted">{t('relation')}:</span>
                         <span className="text-panel-text text-right capitalize">
-                          {selectedElement.kind || 'Connected'}
+                          {selectedElement.kind || t('connected')}
                         </span>
                       </div>
                     </div>
@@ -344,8 +341,7 @@ export function SkillGraphPage(): ReactElement {
               ) : (
                 <div className="flex-1 flex items-center justify-center text-center py-10">
                   <p className="text-xs text-panel-muted max-w-[200px]">
-                    Click any derivation node to audit compile-time relationships and verification
-                    hashes.
+                    {t('selectDerivationElement')}
                   </p>
                 </div>
               )}

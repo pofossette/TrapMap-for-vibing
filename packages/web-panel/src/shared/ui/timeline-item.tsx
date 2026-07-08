@@ -34,7 +34,7 @@ export function TimelineItem({
           <StatusBadge tone={tone}>{typeLabel}</StatusBadge>
         </div>
         <p className="mt-1.5 text-xs text-panel-muted">
-          By <span className="font-medium text-panel-text">{actor}</span> · {timestamp}
+          <span className="font-medium text-panel-text">{actor}</span> · {timestamp}
         </p>
         <p className="mt-3 text-sm leading-6 text-panel-muted/95">{description}</p>
 
@@ -51,9 +51,9 @@ export function TimelineItem({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
                 role="img"
-                aria-label="Link"
+                aria-label={t('viewRelatedEntry')}
               >
-                <title>Link</title>
+                <title>{t('viewRelatedEntry')}</title>
                 <path
                   d="M9 5l7 7-7 7"
                   strokeLinecap="round"

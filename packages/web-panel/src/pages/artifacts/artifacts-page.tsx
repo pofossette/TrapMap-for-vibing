@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import type { SkillArtifact } from '@trapmap/contracts';
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
+import { localizeLifecycleState } from '@trapmap/web-panel/shared/lib/display-labels';
 import { PageTransition } from '@trapmap/web-panel/shared/motion';
 import { PageContainer, SectionHeader, StatusBadge } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
@@ -76,16 +77,13 @@ export function ArtifactsPage(): ReactElement {
   return (
     <PageTransition className="space-y-6">
       <PageContainer>
-        <SectionHeader
-          title={t('artifacts')}
-          description="View and inspect governed skill artifacts, knowledge revisions, and derived capsules."
-        />
+        <SectionHeader title={t('artifacts')} description={t('artifactsDesc')} />
 
         {/* Filters bar */}
         <div className="grid gap-4 md:grid-cols-3 bg-panel-surface border border-panel-line rounded-2xl p-4">
           <input
             className="w-full rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
-            placeholder="Search by ID or title..."
+            placeholder={t('artifactSearchPlaceholder')}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -95,10 +93,10 @@ export function ArtifactsPage(): ReactElement {
             value={lifecycleState}
             onChange={(event) => setLifecycleState(event.target.value)}
           >
-            <option value="all">All States</option>
-            <option value="approved">Approved</option>
-            <option value="submitted">Submitted</option>
-            <option value="draft">Draft</option>
+            <option value="all">{t('allStates')}</option>
+            <option value="approved">{t('approved')}</option>
+            <option value="submitted">{t('submitted')}</option>
+            <option value="draft">{t('draft')}</option>
           </select>
 
           <select
@@ -106,9 +104,9 @@ export function ArtifactsPage(): ReactElement {
             value={scope}
             onChange={(event) => setScope(event.target.value)}
           >
-            <option value="all">All Scopes</option>
-            <option value="global">Global</option>
-            <option value="project">Project</option>
+            <option value="all">{t('allScopes')}</option>
+            <option value="global">{t('globalScope')}</option>
+            <option value="project">{t('projectScope')}</option>
           </select>
         </div>
 
@@ -122,26 +120,34 @@ export function ArtifactsPage(): ReactElement {
               variant="secondary"
               onPress={() => void fetchArtifacts()}
             >
-              Retry
+              {t('retry')}
             </Button>
           </div>
         ) : (
           <div className="border border-panel-line rounded-2xl bg-panel-surface overflow-hidden">
             {loading ? (
-              <div className="p-6 text-sm text-panel-muted">Loading artifacts...</div>
+              <div className="p-6 text-sm text-panel-muted">{t('loadingArtifacts')}</div>
             ) : artifacts.length === 0 ? (
-              <div className="p-6 text-sm text-panel-muted">No governed artifacts found.</div>
+              <div className="p-6 text-sm text-panel-muted">{t('noGovernedArtifacts')}</div>
             ) : (
               <table className="w-full border-collapse text-sm">
                 <thead className="bg-panel-surface-strong text-panel-muted font-mono text-[11px] uppercase tracking-wider">
                   <tr>
                     <th className="border-b border-panel-line px-4 py-3 text-left">ID</th>
-                    <th className="border-b border-panel-line px-4 py-3 text-left">TITLE</th>
-                    <th className="border-b border-panel-line px-4 py-3 text-left">SCOPE</th>
-                    <th className="border-b border-panel-line px-4 py-3 text-left">REQ LEVEL</th>
-                    <th className="border-b border-panel-line px-4 py-3 text-left">STATE</th>
-                    <th className="border-b border-panel-line px-4 py-3 text-left">REVISION</th>
-                    <th className="border-b border-panel-line px-4 py-3 text-left">UPDATED AT</th>
+                    <th className="border-b border-panel-line px-4 py-3 text-left">
+                      {t('titleLabel')}
+                    </th>
+                    <th className="border-b border-panel-line px-4 py-3 text-left">{t('scope')}</th>
+                    <th className="border-b border-panel-line px-4 py-3 text-left">
+                      {t('requiredLevel')}
+                    </th>
+                    <th className="border-b border-panel-line px-4 py-3 text-left">{t('state')}</th>
+                    <th className="border-b border-panel-line px-4 py-3 text-left">
+                      {t('revision')}
+                    </th>
+                    <th className="border-b border-panel-line px-4 py-3 text-left">
+                      {t('updatedAt')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -170,13 +176,13 @@ export function ArtifactsPage(): ReactElement {
                       </td>
                       <td className="px-4 py-3">
                         <Chip size="sm" variant="soft" className="capitalize">
-                          {art.scope}
+                          {art.scope === 'global' ? t('globalScope') : t('projectScope')}
                         </Chip>
                       </td>
                       <td className="px-4 py-3 text-center font-mono">{art.requiredLevel}</td>
                       <td className="px-4 py-3">
                         <StatusBadge tone={lifecycleTone(art.lifecycleState)}>
-                          {art.lifecycleState.toUpperCase()}
+                          {localizeLifecycleState(t, art.lifecycleState)}
                         </StatusBadge>
                       </td>
                       <td className="px-4 py-3 font-mono">v{art.latestRevision}</td>
@@ -197,7 +203,7 @@ export function ArtifactsPage(): ReactElement {
         <div className="fixed inset-0 z-50 flex justify-end bg-black/20 backdrop-blur-sm">
           <button
             type="button"
-            aria-label="Close artifact details"
+            aria-label={t('closeArtifactDetails')}
             className="flex-1"
             onClick={() => setDrawerOpen(false)}
           />
@@ -211,41 +217,47 @@ export function ArtifactsPage(): ReactElement {
                   <h2 className="text-xl font-bold">{selectedArtifact?.title}</h2>
                 </div>
                 <Button variant="tertiary" onPress={() => setDrawerOpen(false)}>
-                  Close
+                  {t('artifactDetailsClose')}
                 </Button>
               </div>
             </div>
             <div className="flex-1 space-y-6 overflow-y-auto p-5">
               {detailLoading ? (
                 <div className="space-y-4 py-8 text-center text-panel-muted animate-pulse">
-                  Loading detailed metadata...
+                  {t('loadingDetailedMetadata')}
                 </div>
               ) : selectedArtifact ? (
                 <>
                   {/* Basic Info */}
                   <div className="space-y-3">
                     <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-1.5">
-                      Base Information
+                      {t('baseInformation')}
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs text-panel-muted font-medium">Lifecycle State</p>
+                        <p className="text-xs text-panel-muted font-medium">
+                          {t('lifecycleState')}
+                        </p>
                         <div className="mt-1">
                           <StatusBadge tone={lifecycleTone(selectedArtifact.lifecycleState)}>
-                            {selectedArtifact.lifecycleState.toUpperCase()}
+                            {localizeLifecycleState(t, selectedArtifact.lifecycleState)}
                           </StatusBadge>
                         </div>
                       </div>
                       <div>
-                        <p className="text-xs text-panel-muted font-medium">Required Level</p>
+                        <p className="text-xs text-panel-muted font-medium">{t('requiredLevel')}</p>
                         <p className="mt-1 font-mono text-sm">{selectedArtifact.requiredLevel}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-panel-muted font-medium">Scope</p>
-                        <p className="mt-1 text-sm capitalize">{selectedArtifact.scope}</p>
+                        <p className="text-xs text-panel-muted font-medium">{t('scope')}</p>
+                        <p className="mt-1 text-sm capitalize">
+                          {selectedArtifact.scope === 'global'
+                            ? t('globalScope')
+                            : t('projectScope')}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-xs text-panel-muted font-medium">Owner</p>
+                        <p className="text-xs text-panel-muted font-medium">{t('owner')}</p>
                         <p className="mt-1 text-sm font-mono text-panel-accent">
                           @{selectedArtifact.owner.handle}
                         </p>
@@ -256,7 +268,7 @@ export function ArtifactsPage(): ReactElement {
                   {/* Derivation Summary */}
                   <div className="space-y-3">
                     <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-1.5">
-                      Derivation Results
+                      {t('derivationResults')}
                     </h3>
                     {activeRevision?.derived ? (
                       <div className="space-y-3 bg-[#0a0f1d] border border-panel-line p-4 rounded-xl">
@@ -265,19 +277,19 @@ export function ArtifactsPage(): ReactElement {
                         </p>
                         <div className="flex gap-4 pt-2 border-t border-panel-line/35 font-mono text-xs text-panel-muted">
                           <div>
-                            Capsules:{' '}
+                            {t('capsulesLabel')}:{' '}
                             <span className="text-panel-text font-bold">
                               {activeRevision.derived.capsules.length}
                             </span>
                           </div>
                           <div>
-                            References:{' '}
+                            {t('referencesLabel')}:{' '}
                             <span className="text-panel-text font-bold">
                               {activeRevision.derived.clientManifest?.references.length || 0}
                             </span>
                           </div>
                           <div>
-                            Scripts:{' '}
+                            {t('scriptsLabel')}:{' '}
                             <span className="text-panel-text font-bold">
                               {activeRevision.derived.clientManifest?.scripts.length || 0}
                             </span>
@@ -285,16 +297,14 @@ export function ArtifactsPage(): ReactElement {
                         </div>
                       </div>
                     ) : (
-                      <p className="text-sm text-panel-muted italic">
-                        No computed derivation outputs found for this revision.
-                      </p>
+                      <p className="text-sm text-panel-muted italic">{t('noDerivationOutputs')}</p>
                     )}
                   </div>
 
                   {/* File Manifest */}
                   <div className="space-y-3">
                     <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-1.5">
-                      File Manifest (v{selectedArtifact.latestRevision})
+                      {t('fileManifest')} (v{selectedArtifact.latestRevision})
                     </h3>
                     <div className="space-y-2 max-h-[180px] overflow-y-auto divide-y divide-panel-line/20 pr-1">
                       {activeRevision?.files.map((file) => (
@@ -312,33 +322,33 @@ export function ArtifactsPage(): ReactElement {
                   {/* Governance Metadata */}
                   <div className="space-y-3">
                     <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/30 pb-1.5">
-                      Governance Metadata
+                      {t('governanceMetadata')}
                     </h3>
                     <div className="grid grid-cols-2 gap-4 text-xs font-mono text-panel-muted">
                       <div>
-                        <p>Source Kind</p>
+                        <p>{t('sourceKind')}</p>
                         <p className="text-panel-text mt-1 capitalize">
                           {selectedArtifact.metadata.sourceKind.replace(/-/g, ' ')}
                         </p>
                       </div>
                       <div>
-                        <p>Revision Count</p>
+                        <p>{t('revisionCount')}</p>
                         <p className="text-panel-text mt-1">
                           {selectedArtifact.metadata.revisionCount}
                         </p>
                       </div>
                       <div>
-                        <p>Created At</p>
+                        <p>{t('createdAt')}</p>
                         <p className="text-panel-text mt-1">
                           {new Date(selectedArtifact.createdAt).toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p>Last Reviewed At</p>
+                        <p>{t('lastReviewedAt')}</p>
                         <p className="text-panel-text mt-1">
                           {selectedArtifact.metadata.latestReviewedAt
                             ? new Date(selectedArtifact.metadata.latestReviewedAt).toLocaleString()
-                            : 'n/a'}
+                            : t('notReviewedYet')}
                         </p>
                       </div>
                     </div>
@@ -355,7 +365,7 @@ export function ArtifactsPage(): ReactElement {
                   navigate(`/skill-graph?artifactId=${selectedArtifact?.id}`);
                 }}
               >
-                View Skill Graph
+                {t('skillGraph')}
               </Button>
               <Button
                 className="flex-1"
@@ -365,7 +375,7 @@ export function ArtifactsPage(): ReactElement {
                   navigate('/trap-graph');
                 }}
               >
-                View Trap Graph
+                {t('trapGraph')}
               </Button>
             </div>
           </div>
