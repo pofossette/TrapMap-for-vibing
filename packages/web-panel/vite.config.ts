@@ -1,17 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, normalizePath } from 'vite';
 
-const getPackageRoot = () => {
-  const cwd = process.cwd();
-  if (cwd.endsWith('packages/web-panel')) {
-    return cwd;
-  }
-  return path.resolve(cwd, 'packages/web-panel');
-};
-
-const packageRoot = getPackageRoot();
+const packageRoot = path.dirname(fileURLToPath(import.meta.url));
+const packageSrc = normalizePath(path.resolve(packageRoot, 'src'));
+const clientCoreSrc = normalizePath(path.resolve(packageRoot, '../client-core/src/index.ts'));
+const contractsSrc = normalizePath(path.resolve(packageRoot, '../contracts/src/index.ts'));
+const contractsEvalsSrc = normalizePath(
+  path.resolve(packageRoot, '../contracts/src/domain/evals/index.ts'),
+);
 
 export default defineConfig({
   plugins: [
@@ -57,11 +56,11 @@ export default defineConfig({
           ]) {
             const testPath = target.endsWith('/') ? target.slice(0, -1) + ext : target + ext;
             if (fs.existsSync(testPath)) {
-              return testPath;
+              return normalizePath(testPath);
             }
           }
           if (fs.existsSync(target)) {
-            return target;
+            return normalizePath(target);
           }
         }
         return null;
@@ -69,15 +68,28 @@ export default defineConfig({
     },
   ],
   resolve: {
-    alias: {
-      '@trapmap/web-panel/app': path.resolve(packageRoot, 'src/app'),
-      '@trapmap/web-panel/pages': path.resolve(packageRoot, 'src/pages'),
-      '@trapmap/web-panel/shared': path.resolve(packageRoot, 'src/shared'),
-      '@trapmap/web-panel/stores': path.resolve(packageRoot, 'src/stores'),
-      '@trapmap/web-panel/services': path.resolve(packageRoot, 'src/services'),
-      '@trapmap/web-panel/features': path.resolve(packageRoot, 'src/features'),
-      '@trapmap/web-panel': path.resolve(packageRoot, 'src'),
-    },
+    alias: [
+      {
+        find: /^@trapmap\/web-panel\/(.*)$/,
+        replacement: `${packageSrc}/$1`,
+      },
+      {
+        find: '@trapmap/web-panel',
+        replacement: packageSrc,
+      },
+      {
+        find: '@trapmap/client-core',
+        replacement: clientCoreSrc,
+      },
+      {
+        find: '@trapmap/contracts/evals',
+        replacement: contractsEvalsSrc,
+      },
+      {
+        find: '@trapmap/contracts',
+        replacement: contractsSrc,
+      },
+    ],
   },
   optimizeDeps: {
     exclude: ['@trapmap/web-panel'],

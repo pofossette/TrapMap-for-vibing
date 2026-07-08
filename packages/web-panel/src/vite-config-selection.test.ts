@@ -3,7 +3,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { resolveConfig } from 'vite';
+import { normalizePath, resolveConfig } from 'vite';
 import { describe, expect, it } from 'vitest';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -16,9 +16,13 @@ describe('vite config selection', () => {
     expect(config.configFile).not.toBe(path.resolve(packageRoot, 'vite.config.js'));
 
     const aliasReplacements = config.resolve.alias.map((entry) => entry.replacement);
+    const packageSrc = normalizePath(path.resolve(packageRoot, 'src'));
+    const clientCoreSrc = normalizePath(path.resolve(packageRoot, '../client-core/src/index.ts'));
+    const contractsSrc = normalizePath(path.resolve(packageRoot, '../contracts/src/index.ts'));
 
-    expect(aliasReplacements).toContain(path.resolve(packageRoot, 'src'));
-    expect(aliasReplacements).toContain(path.resolve(packageRoot, 'src/app'));
-    expect(aliasReplacements).toContain(path.resolve(packageRoot, 'src/stores'));
+    expect(aliasReplacements).toContain(packageSrc);
+    expect(aliasReplacements).toContain(`${packageSrc}/$1`);
+    expect(aliasReplacements).toContain(clientCoreSrc);
+    expect(aliasReplacements).toContain(contractsSrc);
   });
 });
