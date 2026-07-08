@@ -1,51 +1,26 @@
 # 待办文档
 
-本目录只保留当前仍有 owner 的活跃入口文档，其他主题只作为配套或背景引用。
-这里的“活跃”包括：主线入口、debt register，以及仍被当前 owner 持续维护的配套清单。
-这里的 `当前活跃文档` 包括主线入口、debt register 和活跃配套清单。
+本目录只保留明确承担当前执行责任的 active 文档。这里的“活跃”不等于“仍有参考价值”，而是指当前 owner 正在回写、推进、验收的执行面。
 
 ## 活跃索引
 
 | 文件 | 主题 | 状态 |
 |---|---|---|
-| `agent-eval-framework-evaluation-and-plan.md` | Agent Eval 平台长期执行主线，含阶段 checklist、文档/测试要求 | 活跃主线 |
-| `open-debt-and-compromises.md` | 当前仍成立的工程债务、阶段性妥协与 deferred 平台级事项 | 活跃 debt register |
-| `doc-drift-fix-list.md` | 已复核的当前文档漂移清单，仅保留仍成立的问题 | 活跃配套清单 |
+| `open-debt-and-compromises.md` | engineering debt and platform maturity closeout 的唯一主细则，含当前 tranche、queued tranche、deferred 决策与 issue intake 规则 | 唯一 active mainline detail |
 
 ## 目录规则
 
-- 已完成内容、历史 closeout 证据、背景输入和 future proposal 不再保留在 `docs/todos/`
-- 这类文档统一转入 `docs/archived/` 或 `docs/archived/archived-plans/`
-- 需要重新启动某个归档主题时，新建活跃细则，不直接把归档文档重新当 checklist 使用
-- 若活跃文档中某一段只剩历史说明而不再承担当前 owner 的执行职责，应优先裁剪或转归档，而不是继续挂在活跃入口里
+- 未被当前根 `plan.md` 明确链接、且不承担当前 owner 执行职责的文档，不属于 active surface
+- 已完成主线、空白清单、历史 closeout 证据和背景输入统一转入 `docs/archived/` 或 `docs/archived/archived-plans/`
+- 需要重启某个归档主题时，新建新的 active 细则，不直接把归档文档重新当 checklist 使用
+- 如果某份 todo 文档只剩“仍可参考”而不再承担执行责任，应优先归档，而不是继续留在本目录
 
-## 2026-07-07 活跃面整理
+## 2026-07-08 活跃面整理
 
-本轮未新增可直接归档的 todo 文档，但已完成以下整理：
+本轮 active surface 调整如下：
 
-- `open-debt-and-compromises.md`：移除已完成 closeout 与历史背景，收缩为真正仍成立的 debt register
-- `doc-drift-fix-list.md`：移除已闭环条目，只保留已复核仍成立的问题
-
-## 2026-07-05 归档更新
-
-本轮从 `docs/todos/` 归档的文档：
-
-- `agent-eval-framework-scorecard.md`：冻结评分卡，已整合入 eval 主线执行计划
-- `agent-eval-platform-event-model.md`：Phase 0 冻结事件设计文档，已作为 Phase 1 输入完成使命
-
-## 2026-07-06 归档更新
-
-本轮从 `docs/todos/` 归档的文档：
-
-- `active-closeout-and-followups.md`：集中审计后的收口细则，剩余事项已并入活跃主线或 debt register，不再保留并行执行入口
-
-## 2026-07-03 批量归档摘要
-
-本轮已从 `docs/todos/` 移出的内容包括：
-
-- 服务发现 / 可观测性主线细则与本地 closeout checklist
-- 轻重后端构建目标、Nest residual、六边形清理、静态分析审计、库替换评估
-- Agent planning / label alignment / skill capsule eval 方案
-- WebUI layout 重构指南与微服务架构背景盘点
+- `open-debt-and-compromises.md`：从 debt register 升级为唯一 active mainline detail
+- `agent-eval-framework-evaluation-and-plan.md`：Agent Eval closeout 已完成，归档为历史主线
+- `doc-drift-fix-list.md`：当前无未闭环问题，不再保留为 active 配套清单
 
 完整归档表见 [`../archived/README.md`](../archived/README.md)。

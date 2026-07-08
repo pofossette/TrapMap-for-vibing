@@ -108,11 +108,11 @@ TrapMap 有两类典型使用方式：
 - CLI 与 web-panel 继续只面向统一 gateway；HTTP / internal / event contract 分别统一收敛到 `packages/contracts`、`packages/backend-core` 和共享 async contract
 - 当前 `distributed` 定位已冻结为 `Level 2 / transitional-microservice`，第一批成熟服务样板 `knowledge-write + governance-review` 已完成 closeout
 
-当前主线（Agent Eval 平台长期可维护架构，进行中）：
+当前主线（engineering debt and platform maturity closeout，进行中）：
 
-- 主线入口见 [`plan.md`](plan.md) 与 [`docs/todos/agent-eval-framework-evaluation-and-plan.md`](docs/todos/agent-eval-framework-evaluation-and-plan.md)
-- 当前唯一 active closeout 是真实 `Langfuse` 目标验证；当前 shell 仍缺 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY`，因此该项仍属 environment-blocked
-- 第二平台适配、平台化扩张和其余长期残留统一归入 [`docs/todos/open-debt-and-compromises.md`](docs/todos/open-debt-and-compromises.md)
+- 主线入口见 [`plan.md`](plan.md) 与 [`docs/todos/open-debt-and-compromises.md`](docs/todos/open-debt-and-compromises.md)
+- 当前唯一 active tranche 是 read-side coupling / `service-knowledge-read` deep coupling closeout
+- 已完成的 Agent Eval 主线转入 [`docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md`](docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md) 作为历史参考
 
 服务发现与可观测性主线已完成代码与文档面收口，剩余 Grafana UI / 目标环境验证等历史残留已转入 debt register 跟踪：
 

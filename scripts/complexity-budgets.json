@@ -90,8 +90,8 @@
     {
       "file": "docs/reference/REPO_STRUCTURE.md",
       "mustContain": [
-        "`docs/plans/`：历史设计参考，仅在当前根 plan.md 显式重新链接时才重新激活。",
-        "`docs/todos/`：待办工作以及从当前根 `plan.md` 链接的阶段详细文档。",
+        "`docs/plans/`：历史设计参考，仅在当前根 `plan.md` 显式重新链接时才重新激活。",
+        "`docs/todos/`：当前执行文档目录。只有被根 `plan.md` 显式链接、且明确承担当前 owner 执行责任的文档才属于 active surface；“仍有参考价值”不足以继续留在这里。",
         "packages/host-local/src/nest/adapters/",
         "packages/host-distributed/src/gateway/",
         "packages/host-distributed/src/shared/"
@@ -289,14 +289,13 @@
       "file": "plan.md",
       "mustContain": [
         "执行计划索引",
-        "当前主线：Agent Eval 平台长期可维护架构",
-        "docs/todos/agent-eval-framework-evaluation-and-plan.md",
-        "docs/archived/agent-eval-framework-scorecard.md",
+        "当前主线：engineering debt and platform maturity closeout",
         "docs/todos/open-debt-and-compromises.md",
+        "docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md",
         "docs/archived/archived-plans/plan-2026-07-03-agent-eval-platform-index-archived.md",
         "状态：`进行中`",
-        "平台无关的 event / score / trace 抽象层",
-        "所有执行进度统一回写到主细则中的复选框"
+        "只保留一个当前执行入口",
+        "不承载 tranche checklist 或实施细节"
       ],
       "mustNotContain": [
         "当前主线阶段：`Phase 1-2`",
@@ -307,7 +306,8 @@
         "docs/todos/service-discovery-and-observability-plan.md",
         "docs/todos/backend-build-targets-plan.md",
         "当前主线：待办收口与后续整合",
-        "状态：`收口中`"
+        "状态：`收口中`",
+        "docs/todos/agent-eval-framework-evaluation-and-plan.md"
       ]
     },
     {
@@ -370,10 +370,10 @@
     {
       "file": "docs/todos/README.md",
       "mustContain": [
-        "当前活跃文档",
-        "active-closeout-and-followups.md",
-        "活跃 debt register",
-        "2026-07-03 批量归档摘要",
+        "活跃索引",
+        "唯一 active mainline detail",
+        "明确承担当前执行责任的 active 文档",
+        "2026-07-08 活跃面整理",
         "完整归档表见"
       ],
       "mustNotContain": [
@@ -384,11 +384,11 @@
     {
       "file": "docs/archived/README.md",
       "mustContain": [
-        "不承担当前执行面",
-        "当前根 `plan.md` 的微服务平台能力增强主线已完成 closeout",
+        "不应被其他文档当作当前执行入口引用",
+        "当前根 `plan.md` 只链接一个 active mainline detail",
         "microservice-platform-evolution-plan.md",
         "微服务平台能力增强",
-        "应新开独立计划或直接转入 `docs/todos/open-debt-and-compromises.md` 等显式 deferred 落点"
+        "应新建 active 细则"
       ]
     },
     {
@@ -458,7 +458,7 @@
     },
     {
       "file": "docs/todos/README.md",
-      "mustContain": ["2026-07-03 批量归档摘要", "完整归档表见"]
+      "mustContain": ["2026-07-08 活跃面整理", "完整归档表见"]
     },
     {
       "file": "docs/reference/api-surface.md",
@@ -577,16 +577,18 @@
     {
       "file": "docs/todos/open-debt-and-compromises.md",
       "mustContain": [
-        "canonical taxonomy",
+        "debt pool 说明：当前池子仍不完整",
+        "Tranche A - read-side coupling / `service-knowledge-read` deep coupling closeout",
+        "fallow` Baseline Review",
         "service-to-service auth hardening",
         "dashboard-as-code",
         "alert rule pack",
         "PgBouncer",
         "Node heap presets",
         "PgBouncer / pool introspection contract",
-        "不扩成新的 monitoring platform",
+        "new debt to add",
         "container CPU/memory checked-in defaults",
-        "当前仍留在 active todo 的剩余 closeout 只剩"
+        "Eval platform follow-up"
       ],
       "mustNotContain": [
         "packages/host-local/src/bootstrap/stubs.ts",

@@ -55,9 +55,11 @@
 | `agent-eval-framework-scorecard.md` | 2026-07-05 | 冻结评分卡，非活跃 todo；已整合入 eval 主线执行计划 |
 | `agent-eval-platform-event-model.md` | 2026-07-05 | Phase 0 冻结事件设计文档，已作为 Phase 1 输入完成使命 |
 | `archived-plans/active-closeout-and-followups.md` | 2026-07-06 | 集中审计后的收口细则已完成职责；剩余有效事项已并入活跃主线或 debt register |
+| `archived-plans/agent-eval-framework-evaluation-and-plan.md` | 2026-07-08 | Agent Eval 主线 active closeout 已完成，根 `plan.md` 与 `docs/todos/` 不再保留并行 eval workstream |
+| `archived-plans/doc-drift-fix-list.md` | 2026-07-08 | 当前已无未闭环 doc-drift 项，不再承担 active todo 职责 |
 
 ## 归档原则
 
-文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档引用。
+文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档当作当前执行入口引用。
 
-当前根 `plan.md` 的微服务平台能力增强主线已完成 closeout，并归档到 `archived-plans/microservice-platform-evolution-plan.md`。旧轻重后端构建目标根索引与更早的健壮性/架构整改/组件替换等主线也都保留在归档计划与 `docs/todos/` 背景文档中，供后续审计或 deferred 议题参考，但不承担当前执行面，也不再由根 `plan.md` 跟踪。若后续继续深入这些旧主线主题，应新开独立计划或直接转入 `docs/todos/open-debt-and-compromises.md` 等显式 deferred 落点。
+当前根 `plan.md` 只链接一个 active mainline detail：`docs/todos/open-debt-and-compromises.md`。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。

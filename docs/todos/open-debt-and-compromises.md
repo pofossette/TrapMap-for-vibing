@@ -1,132 +1,155 @@
-# 未完成项与阶段性妥协清单
+# Engineering Debt And Platform Maturity Closeout
 
-本文档只记录“当前仍成立”的工程债务、阶段性妥协和明确 deferred 事项。
+> 状态：active mainline
+> 更新日期：2026-07-08
+> 当前 tranche：Tranche A - read-side coupling / `service-knowledge-read` deep coupling closeout
 
-与 [`docs/archived/reports/DEBT_AND_PLACEHOLDER_REPORT.md`](../archived/reports/DEBT_AND_PLACEHOLDER_REPORT.md) 的区别：
+本文档现为仓库唯一 active mainline detail。它同时承担当前执行主线、debt pool、queued tranche、deferred 冻结决策和问题回写入口。
 
-- 本文档只保留当前仍有 owner 的活跃 debt
-- 已完成的 closeout、历史背景和冻结决策不再在这里重复保留
-- 需要历史上下文时，回看归档计划和归档报告，而不是把已完成事项继续挂在 active debt register
+## 当前主线状态
 
-> 更新于 2026-07-07。已清理此前混入本文件的“已完成说明”和历史 closeout 叙述；这些内容不再作为活跃 debt 保留。
+- 根入口：[`plan.md`](../../plan.md)
+- 当前判断：Agent Eval 主线已完成归档条件，当前 repo 的 active execution surface 已收敛到 engineering debt 和 platform maturity closeout
+- 主线目标：按 tranche 收口仍然成立的结构性债务，优先处理会持续放大维护成本、边界耦合或默认运行面复杂度的事项
+- debt pool 说明：当前池子仍不完整，可以继续补录；但任何新条目都必须带上来源、影响、分类和证据
 
-## 1. 高频异步任务仍未完全迁移到持久化任务队列
+## Active Focus Tranche
 
-- **状态**：活跃 debt
-- **来源**：[`docs/archived/archived-plans/backend-engineering-optimization-plan.md`](../archived/archived-plans/backend-engineering-optimization-plan.md)
+### Tranche A - read-side coupling / `service-knowledge-read` deep coupling closeout
 
-当前已存在的事实：
+- **状态**：进行中
+- **优先级理由**：2026-07-08 的 `fallow` baseline 没有发现相对 `main` 的新增 changed-code 风险，但 repo 级 maintenance 信号仍集中在 server/read-side 复杂度、循环依赖和深耦合残留；该 tranche 继续是最直接的结构性收口点
+- **目标**：
+  - 压缩 `service-knowledge-read` 对 `packages/server/src/**` 的剩余深导入
+  - 把仍依赖 server internals 的默认 infra 装配、graph runtime 类型和少量 read runtime 接线迁移到稳定 port/query seam
+  - 继续收缩 temporary direct-backed projection / compatibility JSONB store 直读例外
+- **完成条件**：
+  - `service-knowledge-read` 的剩余 server deep import 残留面有显式清单并持续下降
+  - 与 retrieval / read-model 相关的循环依赖有实际关闭路径，而不是只记录为背景
+  - 边界例外、读侧例外与 evidence 回写到相应 architecture/reference 文档，而不是只停留在 debt 描述
 
-- [`packages/server/src/lib/persistence/schema/queue.ts`](../../packages/server/src/lib/persistence/schema/queue.ts) 已定义 PG 持久队列 schema
-- [`packages/server/src/lib/lifecycle/outbox.ts`](../../packages/server/src/lib/lifecycle/outbox.ts) 已实现 outbox dispatcher 与投递循环
-- badcase export、remediation 等异步工作流已走 PG-backed job runtime
+### 当前 tranche 已确认的 issue pool
 
-当前仍未完成：
+#### 1. `service-knowledge-read` deep coupling
 
-- 仍有部分高频异步路径（如部分索引重建、批量派生）尚未完全迁移到持久化队列调度，而是作为进程内副作用执行
+- **分类**：existing debt confirmed
+- **影响**：读侧包边界失真，server internals 变更持续放大 blast radius
+- **来源**：[`docs/architecture/BOUNDARIES.md`](../architecture/BOUNDARIES.md)、`rtk pnpm exec fallow list --boundaries`
+- **证据**：
+  - `service-knowledge-read` 当前仍被允许导入 `backend-core`、`contracts`、`server`、`runtime-infra`
+  - `fallow` targets 继续把 `packages/service-knowledge-read/src/retrieval-semantic.ts` 与 `packages/service-knowledge-read/src/retrieval-recall-coordinator.ts` 标成 `break_circular_dependency`
 
-## 2. 读侧例外与耦合收口尚未完成
+#### 2. 读侧 temporary direct-backed / projection exception
 
-- **状态**：活跃 debt
+- **分类**：existing debt confirmed
+- **影响**：读写边界不稳，projection/query seam 难以收敛
+- **来源**：[`docs/architecture/SERVICE_BOUNDARIES.md`](../architecture/SERVICE_BOUNDARIES.md)、[`docs/architecture/DATABASE_OWNERSHIP.md`](../architecture/DATABASE_OWNERSHIP.md)
+- **证据**：
+  - 当前权威文档仍承认 temporary direct-backed projections 与 Phase 1/2 直读例外
+  - 与 read-side coupling 同属一个收口面，不宜拆成并行主线
 
-当前仍成立的结构性妥协：
+#### 3. `PostgresStore instanceof` / pool access 模式
 
-- [`docs/architecture/SERVICE_BOUNDARIES.md`](../architecture/SERVICE_BOUNDARIES.md) 仍允许 temporary direct-backed projections
-- [`docs/architecture/DATABASE_OWNERSHIP.md`](../architecture/DATABASE_OWNERSHIP.md) 仍保留 Phase 1/2 的临时直读例外
-- [`docs/architecture/RECOMPOSITION_SUMMARY.md`](../architecture/RECOMPOSITION_SUMMARY.md) 仍承认 distributed 组件存在 seam / stub 残留
+- **分类**：existing debt confirmed
+- **影响**：port abstraction 不完整，调用方被迫依赖具体实现判断
+- **来源**：[`docs/architecture/BOUNDARIES.md`](../architecture/BOUNDARIES.md)
+- **证据**：当前 debt 判断仍成立，且与读侧/运行时基础设施收口直接相关
 
-按影响面排序，当前这条债务的主要收口方向是：
+## Queued Tranches
 
-1. `store_snapshot` allowlist 继续收缩，把 `compatibility JSONB store` 的剩余直读调用迁移到 repo-backed 路径
-2. 读侧 temporary direct-backed / projection exception 继续压缩
-3. `packages/server` Fastify compatibility shell 的进一步瘦身
+### Tranche B - async queue migration completion
 
-### Coupling debt
+- **状态**：queued
+- **保留原因**：仍有高频异步路径未完全迁移到持久化任务队列，但当前 baseline 没显示它比 read-side coupling 更应先占用唯一 active tranche
+- **核心证据**：
+  - [`packages/server/src/lib/persistence/schema/queue.ts`](../../packages/server/src/lib/persistence/schema/queue.ts)
+  - [`packages/server/src/lib/lifecycle/outbox.ts`](../../packages/server/src/lib/lifecycle/outbox.ts)
+  - 历史主线：[`docs/archived/archived-plans/backend-engineering-optimization-plan.md`](../archived/archived-plans/backend-engineering-optimization-plan.md)
 
-#### PostgresStore `instanceof` pattern
+### Tranche C - dead export / complexity quick wins
 
-- **优先级**：中
-- **范围**：约 20 个 `packages/server/src/lib/` 文件
-- **模式**：编排代码通过 `instanceof PostgresStore` 提取 `Pool`，因为 `SkillShareStore` 接口没有暴露 `getPool()`
-- **建议方向**：补一个 port-level 的 database pool access abstraction，例如 `PoolProvider`
-- **状态**：known debt，deferred；见 `docs/architecture/BOUNDARIES.md` Category A
+- **状态**：queued
+- **保留原因**：`fallow health` 给出稳定 repo-level 信号，但这些项目目前更适合作为 tranche A/B 过程中的 opportunistic cleanup，而不是独立主线
+- **核心信号**：
+  - dead exports 占比 `7.4%`
+  - circular dependencies `9`
+  - 代表性 targets 包括 `packages/cli/src/lib/output-profile.ts`、`packages/server/src/lib/ai/prompt-builder.ts`、`packages/server/src/lib/indexing/graph-lite/llm-extract.ts`
 
-#### `service-knowledge-read` deep coupling
+## Deferred / Frozen Decisions
 
-- **优先级**：高
-- **范围**：`packages/service-knowledge-read/src/` 仍存在多处对 `packages/server/src/` 的深导入
-- **模式**：读侧例外从原始 CQRS seam 扩大成 recall / scoring / caching / decay / governance / embeddings 等内部实现耦合
-- **当前已收口的事实**：`search-knowledge.ts`、`retrieval-semantic.ts`、`retrieval-recall-coordinator.ts` 已收口到 package-local `retrievalInfra` seam；`filters.ts`、`response-refinement.ts`、`retrieval-read-model-cache.ts` 也已改走 package-local `knowledgeReadSupportInfra` / cache seam，不再直接深导入 server 治理、衰减、prompt、cache internals
-- **当前真实残留面**：剩余 server 依赖主要集中在 default infra 装配文件、graph runtime 类型、宿主 assembly，以及少量仍未抽成稳定 query/port seam 的 read-side runtime 接线
-- **建议方向**：迁移到稳定 port/query seam，只暴露读侧真正需要的 query capabilities
-- **状态**：known debt，tracked；见 `docs/architecture/BOUNDARIES.md` Category B
-
-## 3. 分布式运行时成熟度仍是 deferred 平台级事项
+### 分布式运行时成熟度
 
 - **状态**：deferred / platform maturity
-
-当前已经完成的 closeout 证据不再在本文件重复展开；这里只保留仍成立的残留判断：
-
-- service discovery、独立扩缩容、独立故障域仍未提升为当前默认能力面
-- Grafana UI 人肉点击验收和目标环境复验仍未形成 checked-in closeout 证据
-- 这类事项属于平台成熟度 follow-up，而不是当前仓库主线的代码未实现
-
-当前明确继续留在 deferred 的平台化事项包括：
-
-- Kubernetes / Ingress / Service Mesh 平台化
-- service-to-service auth hardening
-- per-service database
-- MQ 全面替换
-- 外部缓存平台
-- dashboard-as-code
-- alert rule pack
-- container CPU/memory checked-in defaults
-- Node heap presets
-- PgBouncer / pool introspection contract
-
-与此前 closeout 冻结口径保持一致：这些 deferred 项仍属于“只补到 `/metrics`、trace/span propagation、structured logging、distributed pool-budget env seam，以及基于 `/health`、`/ready`、`/metrics`、`/v1/operations/status/async` 的 operator runbook 与 task queue / internal hop latency / error rate 首批 dashboard/alert/SLO 文档面，**不扩成新的 monitoring platform**”之后明确留下的残留面。
-
-## 4. Eval platform 当前不再保留 active debt，只剩 deferred follow-up
-
-- **状态**：closeout complete / deferred follow-up only
-
-当前判断冻结如下：
-
-- 历史对照：此前“当前仍留在 active todo 的剩余 closeout 只剩真实 Langfuse 目标验证”这句曾经成立；截至 2026-07-07 23:25 CST，该句已不再成立，因为 live closeout 已完成
-- retrieval / summary / agent-planning 已全部切到 suite-owned platform event builder，这部分 debt 已闭环
-- `LangfuseAdapter` 已以 warning-only mirror 方式接入 aggregate runner，并已于 2026-07-07 用本地 Docker Compose Langfuse v3 完成真实目标验证
-- 当前没有仍需保留在 active debt register 的 eval platform closeout；相关 checked-in 证据留在 [`agent-eval-framework-evaluation-and-plan.md`](./agent-eval-framework-evaluation-and-plan.md)
-- `MLflow` 与第二平台可替换性验证继续留在 deferred，不作为当前 active closeout 的剩余项
-
-## 5. 当前仍保留的显式开发退路
-
-### `packages/web-panel/src/services/admin-panel-service-context.ts`
-
-- `VITE_ADMIN_PANEL_API_MODE=mock` 的 mock 分支仍然存在
-- 这不是默认假实现，但它意味着前端链路仍允许绕开真实后端推进局部开发或演示
-- 已归档的 badcase 回流闭环与 canonical taxonomy 事实仍成立，但因为已经闭环，不再继续保留为 active debt
-
-## 6. 已冻结为 deferred 的设计决策
+- **保留范围**：
+  - Kubernetes / Ingress / Service Mesh 平台化
+  - service-to-service auth hardening
+  - per-service database
+  - MQ 全面替换
+  - 外部缓存平台
+  - dashboard-as-code / alert rule pack
+  - container CPU/memory checked-in defaults
+  - Node heap presets
+  - PgBouncer / pool introspection contract
+- **判断**：除非 baseline 或运行面事故表明这些项已成为当前 structural blocker，否则继续保持 deferred，不挤占 Tranche A
 
 ### LangChain `.withStructuredOutput()`
 
+- **状态**：frozen decision
 - **决策**：继续保留当前 `stripCodeFences -> JSON.parse -> safeParse` 路径
-- **原因**：当前重复更多来自 per-module retry loop，而不是结构化解析本身；`.withStructuredOutput()` 也没有解决 parse-failure retry
 - **重新评估触发条件**：单 provider 收敛且生产 parse failure rate > 5%，或 LangChain 提供内建 retry-on-parse-failure
 
 ### Consul KV
 
-- **决策**：deferred
-- **原因**：当前没有明确近期开启场景；runtime config 仍由 env 管理，共享状态由 Postgres 承载，`DiscoveryPort` 已定义 `getKV`/`setKV` seam
-- **触发条件**：需要亚分钟级 runtime feature flag 传播，或出现 Postgres advisory locks 无法覆盖的分布式协调需求
+- **状态**：frozen decision
+- **决策**：继续 deferred
+- **重新评估触发条件**：需要亚分钟级 runtime feature flag 传播，或出现 Postgres advisory locks 无法覆盖的分布式协调需求
+
+### Eval platform follow-up
+
+- **状态**：deferred only
+- **判断**：Agent Eval 当前不再保留 active debt；若未来继续推进，只剩 `MLflow` 等第二平台可替换性验证，见 [`docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md`](../archived/archived-plans/agent-eval-framework-evaluation-and-plan.md)
+
+## Issue Intake / Backfill Rules
+
+- 新问题优先回写到本文档，不新开并行 active 主线，除非它已经明确取代当前 tranche
+- 每个新条目必须至少包含：
+  - 来源：哪份文档、哪个命令、哪段代码或哪次事故
+  - 影响：为何它是当前工程债，而不是纯背景信息
+  - 分类：`existing debt confirmed`、`new debt to add`、`noise / not entering current mainline`
+  - 证据：最小可复核文件、命令或数据点
+- `noise / not entering current mainline` 不写成 active issue，只能在本节或提交说明中解释为何不入池
+- 已完成 closeout 直接转归档，不继续留在 active mainline 里占位
+
+## `fallow` Baseline Review
+
+> Baseline date: 2026-07-08
+
+本轮先执行：
+
+- `rtk pnpm exec fallow audit --base main --format json --quiet --explain || true`
+- `rtk pnpm exec fallow health --hotspots --targets --format json --quiet --explain || true`
+- `rtk pnpm exec fallow list --boundaries || true`
+
+### Stable conclusions
+
+- **existing debt confirmed**
+  - 相对 `main` 的 changed-code audit 为 clean；当前需要处理的是 repo 已存在的维护债，而不是本轮新增回归
+  - read-side / server 复杂度仍是主要维护风险聚集面，`packages/server/src/app.ts`、`packages/server/src/routes/knowledge.ts` 等 hotspot 继续存在
+  - `service-knowledge-read` 相关循环依赖和边界耦合仍是稳定信号，支持把 read-side coupling 保持为唯一 active tranche
+- **new debt to add**
+  - repo 级 dead export 比例为 `7.4%`
+  - 当前检测到 `9` 个 circular dependencies
+  - `packages/web-panel/src/services/api/admin-panel-api.ts` 进入 accelerating hotspot，可作为后续 tranche 的候选项
+- **noise / not entering current mainline**
+  - 单次 health 输出中的大量复杂度 targets 不直接等于 mainline 排序；只有跨文档、边界和维护风险都稳定的项才进入当前 tranche
+  - changed-files audit 为 `0`，因此没有把“本轮改动引入的新债务”写入 active pool
 
 ## 证据入口
 
-- [`packages/server/src/lib/persistence/schema/queue.ts`](../../packages/server/src/lib/persistence/schema/queue.ts)
-- [`packages/server/src/lib/lifecycle/outbox.ts`](../../packages/server/src/lib/lifecycle/outbox.ts)
-- [`packages/web-panel/src/services/admin-panel-service-context.ts`](../../packages/web-panel/src/services/admin-panel-service-context.ts)
-- [`docs/architecture/SERVICE_BOUNDARIES.md`](../architecture/SERVICE_BOUNDARIES.md)
+- [`docs/architecture/BOUNDARIES.md`](../architecture/BOUNDARIES.md)
 - [`docs/architecture/DATABASE_OWNERSHIP.md`](../architecture/DATABASE_OWNERSHIP.md)
+- [`docs/architecture/SERVICE_BOUNDARIES.md`](../architecture/SERVICE_BOUNDARIES.md)
 - [`docs/architecture/RECOMPOSITION_SUMMARY.md`](../architecture/RECOMPOSITION_SUMMARY.md)
 - [`docs/archived/archived-plans/backend-engineering-optimization-plan.md`](../archived/archived-plans/backend-engineering-optimization-plan.md)
+- [`docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md`](../archived/archived-plans/agent-eval-framework-evaluation-and-plan.md)
 - [`docs/archived/reports/DEBT_AND_PLACEHOLDER_REPORT.md`](../archived/reports/DEBT_AND_PLACEHOLDER_REPORT.md)

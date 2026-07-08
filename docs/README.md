@@ -6,12 +6,15 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 ## 当前整改主线
 
-当前根计划为“Agent Eval 平台长期可维护架构”，状态为 `进行中`。当前 active 执行入口统一维护在：
+当前根计划为“engineering debt and platform maturity closeout”，状态为 `进行中`。当前 active 执行入口统一维护在：
 
 - 根索引：[`../plan.md`](../plan.md)
-- 活跃主线：[`todos/agent-eval-framework-evaluation-and-plan.md`](todos/agent-eval-framework-evaluation-and-plan.md)
-- 活跃 debt register：[`todos/open-debt-and-compromises.md`](todos/open-debt-and-compromises.md)
+- 唯一 active mainline detail：[`todos/open-debt-and-compromises.md`](todos/open-debt-and-compromises.md)
 - CI/testing truth source：[`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md)
+
+已完成的 Agent Eval 主线现只保留为历史背景参考：
+
+- 归档主线：[`archived/archived-plans/agent-eval-framework-evaluation-and-plan.md`](archived/archived-plans/agent-eval-framework-evaluation-and-plan.md)
 
 上一轮“服务发现与可观测性升级”收口细则已完成并归档：
 

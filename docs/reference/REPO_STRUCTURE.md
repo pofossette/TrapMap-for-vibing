@@ -47,8 +47,8 @@
 - `docs/operations/`：运行时、CI、安全、测试、部署相关的运维内容。
 - `docs/architecture/`：架构概览和组件文档。
 - `docs/reference/`：真相源、Schema、术语表、API 表面和仓库结构。
-- `docs/plans/`：历史设计参考，仅在当前根 plan.md 显式重新链接时才重新激活。默认不是并行的活跃执行表面。
-- `docs/todos/`：待办工作以及从当前根 `plan.md` 链接的阶段详细文档。在当前补救根下，只有链接的详细文档是活跃的；其他 todo 文档为背景或延迟参考。
+- `docs/plans/`：历史设计参考，仅在当前根 `plan.md` 显式重新链接时才重新激活。默认不是并行的 active execution surface。
+- `docs/todos/`：当前执行文档目录。只有被根 `plan.md` 显式链接、且明确承担当前 owner 执行责任的文档才属于 active surface；“仍有参考价值”不足以继续留在这里。
 - `docs/archived/`：过时的计划、历史报告和退役的决策。
 - `docs/superpowers/`：由 Superpowers 工作流生成的计划和规范。
 
