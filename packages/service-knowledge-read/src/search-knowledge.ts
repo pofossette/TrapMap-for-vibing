@@ -96,7 +96,9 @@ export async function searchKnowledge(
     const eligibleEntries = await timedStep(
       'eligibility',
       () =>
-        Promise.resolve(filterEligibleEntries(readModel.knowledgeEntries, auth, parsed.filters)),
+        Promise.resolve(
+          filterEligibleEntries(readModel.knowledgeEntries, auth, parsed.filters, services),
+        ),
       steps,
       {
         inputSize: readModel.knowledgeEntries.length,
@@ -106,7 +108,8 @@ export async function searchKnowledge(
 
     const boundaryFiltered = await timedStep(
       'boundary-filter',
-      () => Promise.resolve(filterByBoundaryContext(eligibleEntries, parsed.boundaryContext)),
+      () =>
+        Promise.resolve(filterByBoundaryContext(eligibleEntries, parsed.boundaryContext, services)),
       steps,
       { inputSize: eligibleEntries.length, outputSize: (r) => (r as KnowledgeRecord[]).length },
     );

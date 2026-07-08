@@ -182,13 +182,13 @@ The coupling audit (Phase 0.6) identified several patterns that violate strict l
 
 ### Category B: service-knowledge-read Deep Coupling (High Severity)
 
-**Location**: `packages/service-knowledge-read/src/` (remaining server internals concentrated behind local read-side seams)
+**Location**: `packages/service-knowledge-read/src/` (server internals now mostly concentrated behind local read-side seam default assembly and a small set of runtime types)
 
-**Pattern**: Despite the zone-level CQRS exception documented above, `service-knowledge-read` still depends on server internals for parts of the read path. The highest-risk retrieval core files now consume a package-local `retrievalInfra` seam instead of importing recall/scoring/caching internals directly, but default infra assembly and a few non-core files still depend on server-owned modules.
+**Pattern**: Despite the zone-level CQRS exception documented above, `service-knowledge-read` still depends on server internals for parts of the read path. Retrieval-core business files now consume package-local `retrievalInfra` and `knowledgeReadSupportInfra` seams instead of importing recall/scoring/governance/cache/prompt internals directly, but default seam assembly and a few host/runtime types still depend on server-owned modules.
 
 **Why intentional**: The CQRS read-side requires access to retrieval pipeline internals for query optimization. This exception was an explicit architectural decision.
 
-**Tech debt**: The coupling grew beyond the original CQRS read-side scope into wholesale duplication of server internals. The first closeout batch reduced the deepest retrieval-core imports to a local seam, but the remaining server-backed assembly should still be migrated to stable port interfaces that expose only the query capabilities the read-side needs.
+**Tech debt**: The coupling grew beyond the original CQRS read-side scope into wholesale duplication of server internals. The first two closeout batches reduced the deepest retrieval-core and read-side helper imports to local seams, but the remaining server-backed default assembly should still be migrated to stable port interfaces that expose only the query capabilities the read-side needs.
 
 **Status**: Known debt, tracked in open-debt register.
 

@@ -253,6 +253,22 @@ interface RunUnifiedEvaluationDeps {
   resolveLangfuseConfigFromEnv: typeof resolveLangfuseAdapterConfigFromEnv;
 }
 
+function logLangfuseAdapterEnabled(
+  log: typeof console.log,
+  config: NonNullable<
+    Awaited<ReturnType<typeof resolveLangfuseAdapterConfigFromEnv>> extends {
+      ok: true;
+      config: infer T;
+    }
+      ? T
+      : never
+  >,
+): void {
+  log(
+    `[eval-platform] langfuse adapter enabled: baseUrl=${config.baseUrl} flushTimeoutMs=${config.flushTimeoutMs}.`,
+  );
+}
+
 function getRunUnifiedEvaluationDeps(): RunUnifiedEvaluationDeps {
   return {
     createPlatformAdapter: createEvalPlatformAdapter,
@@ -894,6 +910,7 @@ export async function runUnifiedEvaluation(
     if (!langfuseConfig.ok) {
       resolvedDeps.warn(langfuseConfig.warning);
     } else {
+      logLangfuseAdapterEnabled(resolvedDeps.log, langfuseConfig.config);
       adapter = resolvedDeps.createPlatformAdapter({
         kind: 'langfuse',
         ...langfuseConfig.config,
@@ -1187,8 +1204,25 @@ export async function runUnifiedEvaluation(
         agentPlanningResult,
         resolvedDeps,
       );
+      let publishWarnings = 0;
       for (const event of suiteEvents) {
-        await resolvedDeps.publishPlatformEvent(adapter, resolvedDeps.warn, event);
+        const publishResult = await resolvedDeps.publishPlatformEvent(
+          adapter,
+          resolvedDeps.warn,
+          event,
+        );
+        if (publishResult?.ok === false) {
+          publishWarnings += 1;
+        }
+      }
+      if (publishWarnings === 0) {
+        resolvedDeps.log(
+          `[eval-platform] ${adapter.kind} adapter mirrored ${suiteEvents.length} suite events without publish warnings.`,
+        );
+      } else {
+        resolvedDeps.warn(
+          `[eval-platform] ${adapter.kind} adapter mirrored ${suiteEvents.length} suite events with ${publishWarnings} publish warning(s).`,
+        );
       }
     } catch (error) {
       resolvedDeps.warn(
@@ -1198,7 +1232,12 @@ export async function runUnifiedEvaluation(
     }
 
     try {
-      await resolvedDeps.closePlatformAdapter(adapter, resolvedDeps.warn);
+      const closeResult = await resolvedDeps.closePlatformAdapter(adapter, resolvedDeps.warn);
+      if (closeResult?.ok !== false) {
+        resolvedDeps.log(
+          `[eval-platform] ${adapter.kind} adapter flush completed without close warnings.`,
+        );
+      }
     } catch (error) {
       resolvedDeps.warn(
         `[eval-platform] ${adapter.kind} adapter close failed; continuing without affecting eval status.`,

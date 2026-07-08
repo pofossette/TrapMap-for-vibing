@@ -11,10 +11,13 @@ const FILES = [
   'src/retrieval-recall-coordinator.ts',
   'src/search-knowledge.ts',
   'src/filters.ts',
+  'src/response-refinement.ts',
+  'src/retrieval-read-model-cache.ts',
   'src/read-model.ts',
   'src/rag-log.ts',
   'src/context.ts',
   'src/retrieval-infra.ts',
+  'src/knowledge-read-support-infra.ts',
   'src/retrieval-types.ts',
   'src/store.ts',
 ];
@@ -111,6 +114,29 @@ describe('knowledge-read import boundary', () => {
     expect(source).toContain("from './response-refinement.js'");
   });
 
+  it('routes second-batch support internals through package-local seams', async () => {
+    const root = path.resolve(import.meta.dirname, '..');
+    const filtersSource = await readFile(path.join(root, 'src/filters.ts'), 'utf-8');
+    const refinementSource = await readFile(path.join(root, 'src/response-refinement.ts'), 'utf-8');
+    const cacheSource = await readFile(
+      path.join(root, 'src/retrieval-read-model-cache.ts'),
+      'utf-8',
+    );
+
+    expect(filtersSource).not.toContain('@trapmap/server/lib/decay/index.js');
+    expect(filtersSource).not.toContain('@trapmap/server/lib/governance/index.js');
+    expect(filtersSource).not.toContain('@trapmap/server/lib/retrieval/scoring/index.js');
+    expect(filtersSource).toContain("from './knowledge-read-support-infra.js'");
+    expect(filtersSource).toContain("from './retrieval-infra.js'");
+
+    expect(refinementSource).not.toContain('@trapmap/server/lib/ai/prompts.js');
+    expect(refinementSource).toContain("from './knowledge-read-support-infra.js'");
+
+    expect(cacheSource).not.toContain('@trapmap/server/lib/cache/invalidation.js');
+    expect(cacheSource).not.toContain('@trapmap/server/lib/cache/retrieval-cache.js');
+    expect(cacheSource).toContain("from './knowledge-read-support-infra.js'");
+  });
+
   it('uses local seam names that do not mirror server duplicate export names', async () => {
     const root = path.resolve(import.meta.dirname, '..');
     const orchestration = await readFile(
@@ -142,5 +168,23 @@ describe('knowledge-read import boundary', () => {
     expect(seamSource).not.toContain('vectorSimilaritySearch');
     expect(defaultInfraSource).toContain('createPgKeywordRecall');
     expect(defaultInfraSource).toContain('vectorSimilaritySearch');
+  });
+
+  it('keeps support seam assembly separate from business-file call sites', async () => {
+    const root = path.resolve(import.meta.dirname, '..');
+    const supportSource = await readFile(
+      path.join(root, 'src/knowledge-read-support-infra.ts'),
+      'utf-8',
+    );
+    const defaultSupportSource = await readFile(
+      path.join(root, 'src/knowledge-read-support-infra-default.ts'),
+      'utf-8',
+    );
+
+    expect(supportSource).toContain('getKnowledgeReadSupportInfra');
+    expect(defaultSupportSource).toContain('createDefaultKnowledgeReadSupportInfra');
+    expect(defaultSupportSource).toContain('@trapmap/server/lib/governance/index.js');
+    expect(defaultSupportSource).toContain('@trapmap/server/lib/ai/prompts.js');
+    expect(defaultSupportSource).toContain('@trapmap/server/lib/cache/invalidation.js');
   });
 });

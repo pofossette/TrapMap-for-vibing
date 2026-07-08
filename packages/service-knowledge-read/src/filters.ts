@@ -16,40 +16,11 @@
  */
 
 import type { BoundaryContext, RetrievalQuery } from '@trapmap/contracts';
-import { computeDecayState, loadDecayConfig } from '@trapmap/server/lib/decay/index.js';
-import {
-  extractGovernanceContext,
-  isGovernanceEligible,
-  matchesGovernanceFilters,
-} from '@trapmap/server/lib/governance/index.js';
-import { filterByBoundary } from '@trapmap/server/lib/retrieval/scoring/index.js';
-import type { ResolvedAuthContext } from './context.js';
+import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { isSuppressedByFeedback } from './feedback-remediation.js';
+import { getKnowledgeReadSupportInfra } from './knowledge-read-support-infra.js';
+import { getRetrievalInfra } from './retrieval-infra.js';
 import type { KnowledgeRecord } from './store.js';
-
-/**
- * Adapt a KnowledgeRecord to the GovernedEntity interface.
- * KnowledgeRecord has: lifecycleState, requiredLevel, teamId, scope, labels.
- * Computes decay state from decayMeta when decay is enabled.
- */
-function toGovernedEntity(entry: KnowledgeRecord) {
-  const config = loadDecayConfig();
-  const decayResult = config.enabled ? computeDecayState(entry.decayMeta, config) : null;
-
-  const base = {
-    teamId: entry.teamId,
-    scope: entry.scope,
-    requiredLevel: entry.requiredLevel,
-    lifecycleState: entry.lifecycleState,
-    labels: entry.labels,
-  };
-
-  // Only include decayState when computed (avoids exactOptionalPropertyTypes issue)
-  if (decayResult !== null) {
-    return { ...base, decayState: decayResult.decayState };
-  }
-  return base;
-}
 
 /**
  * Check if an entry is eligible for retrieval given auth context and filters.
@@ -65,21 +36,13 @@ export function isEntryEligible(
   entry: KnowledgeRecord,
   auth: ResolvedAuthContext,
   filters: RetrievalQuery['filters'],
+  services?: Pick<SkillShareerServices, 'knowledgeReadSupportInfra'>,
 ): boolean {
   if (isSuppressedByFeedback(entry)) {
     return false;
   }
 
-  const context = extractGovernanceContext(auth);
-  const entity = toGovernedEntity(entry);
-  const governanceFilters = {
-    scopes: filters.scopes,
-    labels: filters.labels,
-  };
-
-  return (
-    isGovernanceEligible(entity, context) && matchesGovernanceFilters(entity, governanceFilters)
-  );
+  return getKnowledgeReadSupportInfra(services).governance.isEntryEligible(entry, auth, filters);
 }
 
 /**
@@ -94,8 +57,9 @@ export function filterEligibleEntries(
   entries: KnowledgeRecord[],
   auth: ResolvedAuthContext,
   filters: RetrievalQuery['filters'],
+  services?: Pick<SkillShareerServices, 'knowledgeReadSupportInfra'>,
 ): KnowledgeRecord[] {
-  return entries.filter((entry) => isEntryEligible(entry, auth, filters));
+  return entries.filter((entry) => isEntryEligible(entry, auth, filters, services));
 }
 
 /**
@@ -110,9 +74,10 @@ export function filterEligibleEntries(
 export function filterByBoundaryContext(
   entries: KnowledgeRecord[],
   boundaryContext: BoundaryContext | undefined,
+  services?: Pick<SkillShareerServices, 'retrievalInfra'>,
 ): KnowledgeRecord[] {
   if (!boundaryContext) {
     return entries;
   }
-  return filterByBoundary(entries, boundaryContext);
+  return getRetrievalInfra(services).scoring.filterByBoundary(entries, boundaryContext);
 }

@@ -1,32 +1,37 @@
-import {
-  type CacheInvalidationEvent,
-  createCacheInvalidationEvent,
-  emitCacheInvalidation,
-  recordCacheStaleRecovery,
-  registerCacheInvalidationListener,
-} from '@trapmap/server/lib/cache/invalidation.js';
-import { RetrievalCache } from '@trapmap/server/lib/cache/retrieval-cache.js';
-
+import type {
+  KnowledgeReadCacheInvalidationReason,
+  KnowledgeReadProjectionCache,
+} from './context.js';
+import { getDefaultKnowledgeReadSupportInfra } from './knowledge-read-support-infra.js';
 import type { RetrievalReadModel } from './read-model.js';
 
 const READ_MODEL_CACHE_KEY = 'retrieval-read-model:global';
 const READ_MODEL_CACHE_NAMESPACE = 'retrieval-read-model';
-const readModelCache = new RetrievalCache<RetrievalReadModel>({
-  maxSize: 1,
-  ttlMs: 60_000,
-  namespace: READ_MODEL_CACHE_NAMESPACE,
-});
 
 let listenerRegistered = false;
+let readModelCache: KnowledgeReadProjectionCache<RetrievalReadModel> | null = null;
+
+function getReadModelCache() {
+  if (!readModelCache) {
+    readModelCache = getDefaultKnowledgeReadSupportInfra().cache.createRetrievalReadModelCache({
+      maxSize: 1,
+      ttlMs: 60_000,
+      namespace: READ_MODEL_CACHE_NAMESPACE,
+    });
+  }
+
+  return readModelCache;
+}
 
 function ensureInvalidationHook(): void {
   if (listenerRegistered) {
     return;
   }
-  registerCacheInvalidationListener({
+
+  getDefaultKnowledgeReadSupportInfra().cache.registerInvalidationListener({
     namespaces: [READ_MODEL_CACHE_NAMESPACE],
-    invalidate(_event: CacheInvalidationEvent) {
-      readModelCache.clear();
+    invalidate() {
+      getReadModelCache().clear();
     },
   });
   listenerRegistered = true;
@@ -34,31 +39,23 @@ function ensureInvalidationHook(): void {
 
 export function getCachedRetrievalReadModel(): RetrievalReadModel | null {
   ensureInvalidationHook();
-  return readModelCache.get(READ_MODEL_CACHE_KEY);
+  return getReadModelCache().get(READ_MODEL_CACHE_KEY);
 }
 
 export function setCachedRetrievalReadModel(model: RetrievalReadModel): void {
   ensureInvalidationHook();
-  readModelCache.set(READ_MODEL_CACHE_KEY, model);
-  recordCacheStaleRecovery(READ_MODEL_CACHE_NAMESPACE);
+  getReadModelCache().set(READ_MODEL_CACHE_KEY, model);
+  getDefaultKnowledgeReadSupportInfra().cache.recordStaleRecovery(READ_MODEL_CACHE_NAMESPACE);
 }
 
-export function invalidateRetrievalReadModel(reason: CacheInvalidationEvent['reason']): void {
-  emitCacheInvalidation(
-    createCacheInvalidationEvent({
-      sourceType: 'trap',
-      sourceId: 'global',
-      reason,
-      owner: 'knowledge-lifecycle-projection',
-      trigger: 'operator-request',
-    }),
-  );
+export function invalidateRetrievalReadModel(reason: KnowledgeReadCacheInvalidationReason): void {
+  getDefaultKnowledgeReadSupportInfra().cache.emitInvalidation(reason);
 }
 
 export function clearRetrievalReadModelCache(): void {
-  readModelCache.clear();
+  getReadModelCache().clear();
 }
 
 export function resetRetrievalReadModelCacheForTests(): void {
-  readModelCache.clear();
+  getReadModelCache().clear();
 }

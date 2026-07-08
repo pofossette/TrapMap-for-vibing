@@ -129,6 +129,10 @@ export interface KnowledgeReadRetrievalInfra {
       boundaryContext: BoundaryContext | undefined,
       boundaryDelta: number,
     ): BoundaryExplanation | undefined;
+    filterByBoundary(
+      entries: KnowledgeRecord[],
+      boundaryContext: BoundaryContext | undefined,
+    ): KnowledgeRecord[];
     createSemanticCandidate(entry: KnowledgeRecord, score: number): RecallCandidate;
     mergeCandidates(
       semanticCandidates: RecallCandidate[],
@@ -167,6 +171,45 @@ export interface KnowledgeReadRetrievalInfra {
   };
 }
 
+export type KnowledgeReadCacheInvalidationReason =
+  | 'approved'
+  | 'deactivated'
+  | 'remediation-suppressed'
+  | 'remediation-reactivated';
+
+export interface KnowledgeReadProjectionCache<V> {
+  get(key: string): V | null;
+  set(key: string, value: V): void;
+  clear(): void;
+}
+
+export interface KnowledgeReadSupportInfra {
+  governance: {
+    isEntryEligible(
+      entry: KnowledgeRecord,
+      auth: ResolvedAuthContext,
+      filters: RetrievalQuery['filters'],
+    ): boolean;
+  };
+  cache: {
+    createRetrievalReadModelCache<V>(options: {
+      maxSize: number;
+      ttlMs: number;
+      namespace: string;
+    }): KnowledgeReadProjectionCache<V>;
+    registerInvalidationListener(options: {
+      namespaces: readonly string[];
+      invalidate(reason: KnowledgeReadCacheInvalidationReason): void;
+    }): void;
+    emitInvalidation(reason: KnowledgeReadCacheInvalidationReason): void;
+    recordStaleRecovery(namespace: string): void;
+  };
+  refinement: {
+    buildSystemPrompt(maxSentences: number): string;
+    buildSystemPromptBlocks(maxSentences: number): unknown[];
+  };
+}
+
 export interface SkillShareerServices {
   config: {
     ragLog: RagLogConfig;
@@ -180,6 +223,7 @@ export interface SkillShareerServices {
   ai: KnowledgeReadAiServices;
   store: KnowledgeReadStoreSeam;
   retrievalInfra?: KnowledgeReadRetrievalInfra;
+  knowledgeReadSupportInfra?: KnowledgeReadSupportInfra;
   graphQueryBackend?: GraphQueryBackend;
   graphQuery: GraphQueryRuntimeState;
 }

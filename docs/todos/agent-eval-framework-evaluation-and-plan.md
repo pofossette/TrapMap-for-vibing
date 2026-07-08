@@ -4,7 +4,7 @@
 > 更新日期：2026-07-07
 > 类型：长期主线执行细则
 
-## 当前进度（2026-07-07）
+## 当前进度（2026-07-07 23:25 CST）
 
 当前主线已完成 `Phase 1` / `Phase 2` closeout，并完成 `Phase 3` 的最小可用 `LangfuseAdapter` 首轮接入。`retrieval`、`summary`、`agent-planning` 现都已切到 suite-owned platform event builder。
 
@@ -14,6 +14,7 @@
 - 新增 `evals/lib/platform/langfuse-config.ts`，只从 env 解析 Langfuse 显式配置
 - 新增 `evals/lib/platform/langfuse-adapter.ts`，按现有 `EvalPlatformEvent` 做 mirror，不改 event schema
 - `LangfuseAdapter` 已覆盖 run / case / score / assertion / trace 映射
+- aggregate runner 成功路径现会输出 `enabled` / `mirrored without publish warnings` / `flush completed without close warnings` 三条 Langfuse live evidence
 - `evals/retrieval/lib/platform-events.ts` 与 `evals/summary/lib/platform-events.ts` 已落地；aggregate runner 现消费三条 suite-owned 事件流
 - 缺配置、发布失败、网络/鉴权错误、close/shutdown flush 超时都保持 warning-only，不影响 eval 退出码
 - `docs/operations/ENVIRONMENT.md`、`docs/operations/TESTING.md`、`evals/README.md`、`evals/summary/README.md`、`docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md` 已回写
@@ -22,23 +23,29 @@
 本轮已验证：
 
 - `rtk pnpm test:file -- evals/lib/platform/langfuse-config.test.ts`
+- `rtk pnpm test:file -- evals/lib/platform/adapter.test.ts`
 - `rtk pnpm test:file -- evals/lib/platform/langfuse-adapter.test.ts`
 - `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
 - `rtk pnpm test:file -- evals/scripts/__tests__/eval-all.test.ts`
-- `rtk pnpm eval -- smoke --dry-run --platform langfuse`
-- `rtk pnpm eval -- core --dry-run --platform langfuse`
+- `rtk pnpm eval -- smoke --platform langfuse`
 - `rtk pnpm eval:smoke`
 - `rtk pnpm check:docs-drift`
 - `rtk pnpm check:structure`
-- `rtk pnpm typecheck`
 
-当前仍未完成：
+当前 active closeout 已完成：
 
-- 真实 Langfuse 服务联通验证仍未做；截至 2026-07-07 22:05 CST，本次 shell 中重新执行 `rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY` 仍无输出，且仓库内仍没有 checked-in Langfuse deployment/config 可作为 closeout 目标。同轮执行 `rtk pnpm eval -- smoke --dry-run --platform langfuse` 时，runner 输出缺失 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 的 warning，因此当前仍只验证到缺配置 warning 路径
-- `rtk pnpm eval -- core --dry-run --platform langfuse` 当前仍暴露既有 core dry-run 失败项：ingestion 1 个、agent-planning 3 个；该结果来自现有 suite 基线，不是本轮 `langfuse` 接入引入的新回归
+- 2026-07-07 23:24-23:25 CST 已用本地 Docker Compose 启动的官方 Langfuse v3 实例完成真实目标验证，目标地址为 `http://127.0.0.1:3000`。project keys 通过 `LANGFUSE_INIT_*` headless init 生成，仅用于本次本地 closeout，未入库。
+- 本轮先执行 `rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY TRAPMAP_EVAL_PLATFORM_FLUSH_TIMEOUT_MS`，确认当前 shell 中 `LANGFUSE_BASE_URL=http://127.0.0.1:3000`、`LANGFUSE_PUBLIC_KEY=pk-lf-...`、`LANGFUSE_SECRET_KEY=sk-lf-...`、`TRAPMAP_EVAL_PLATFORM_FLUSH_TIMEOUT_MS=5000` 均非空。
+- 随后执行 `rtk pnpm eval -- smoke --platform langfuse`；成功证据为：
+  - `[eval-platform] langfuse adapter enabled: baseUrl=http://127.0.0.1:3000 flushTimeoutMs=5000.`
+  - `[eval-platform] langfuse adapter mirrored 1041 suite events without publish warnings.`
+  - `[eval-platform] langfuse adapter flush completed without close warnings.`
+- 同一轮 native TrapMap smoke 仍以 `81/81 passed` 结束；之后补跑 `rtk pnpm eval:smoke`，native aggregate smoke 仍以 `81/81 passed` 结束，说明启用 `langfuse` mirror 没有改变 TrapMap truth-source/exit-code 语义。
+- 额外读取验证：`curl -u pk-lf-...:sk-lf-... "http://127.0.0.1:3000/api/public/traces?limit=1"` 返回了 `projectId=48f99810-b6b7-4409-9455-cecbc09af545` 的 trace 数据，证明这次不是仅有 runner 侧日志、服务端未落地。
+- 本轮中途曾暴露一次本地 self-host 配置错误：随机化 `MINIO_ROOT_PASSWORD` 后未同步 `LANGFUSE_S3_*_SECRET_ACCESS_KEY`，导致 Langfuse 服务端日志报 `SignatureDoesNotMatch`。修正 secret 对齐并重启官方 compose 后，live smoke 成功且该错误消失。该问题归类为“本地目标环境配置错误”，不是 TrapMap adapter 缺陷。
 - 第二平台适配器（`MLflow`）仍明确留在 deferred，不作为当前 active closeout 的完成条件
 
-截至 2026-07-07，对 `docs/todos/` 活跃面重新整理后的结论保持不变：本主线仍是当前唯一 active owner plan，且唯一剩余 active closeout 仍是 environment-blocked 的真实 Langfuse 联通验证，因此当前不具备归档条件。
+截至 2026-07-07 23:25 CST，对 `docs/todos/` 活跃面的结论已更新为：本主线最后一个 active closeout 已完成，当前主线具备归档条件；后续若继续推进，仅剩 `MLflow` 等明确 deferred 的第二平台验证，不再保留模糊 blocked 状态。
 
 ## 目标
 
@@ -222,8 +229,12 @@
 - `scripts/run-eval.ts` 与 `evals/scripts/eval-all.ts` 已接受 `--platform langfuse`
 - `langfuse` 只在 aggregate suite 且显式传入 `--platform langfuse` 时启用；不会自动探测
 - 缺少 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 时，不会创建 adapter，只打印 warning
+- 配置齐全且 publish/close 全成功时，runner 会打印：
+  - `[eval-platform] langfuse adapter enabled: baseUrl=... flushTimeoutMs=...`
+  - `[eval-platform] langfuse adapter mirrored <N> suite events without publish warnings.`
+  - `[eval-platform] langfuse adapter flush completed without close warnings.`
 - 首轮 adapter 只承担 mirror 职责，不依赖 Langfuse 返回值驱动任何 TrapMap 内部逻辑
-- retrieval / summary / agent-planning 三个 suite 的 platform events 现都由 suite owner 生成；当前剩余 closeout 只差真实 Langfuse 目标验证
+- retrieval / summary / agent-planning 三个 suite 的 platform events 现都由 suite owner 生成；真实 Langfuse 目标验证也已完成
 
 **本阶段文档要求**
 
@@ -237,11 +248,16 @@
 - [x] `rtk pnpm eval -- agent-planning --tier core --dry-run`
 - [x] `rtk pnpm eval:smoke`
 - [x] `rtk pnpm check:docs-drift`
+- [x] `rtk pnpm test:file -- evals/lib/platform/adapter.test.ts`
+- [x] `rtk pnpm test:file -- evals/lib/platform/langfuse-adapter.test.ts`
+- [x] `rtk pnpm test:file -- evals/scripts/__tests__/eval-all.test.ts`
+- [x] `rtk pnpm eval -- smoke --platform langfuse`
 
-**本阶段剩余 closeout**
+**本阶段 closeout 结果**
 
-- [ ] 用真实 Langfuse 服务做一次手动联通验证，并把结果回写到本节或对应 closeout 记录
-- [ ] 当前阻塞说明：2026-07-07 22:05 CST 这次执行中重新执行 `rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY` 仍无输出；仓库也没有 checked-in Langfuse deployment/config 可供对接。同轮 `rtk pnpm eval -- smoke --dry-run --platform langfuse` 输出 `[eval-platform] langfuse adapter disabled: missing LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY.`。要关闭这项 active closeout，至少还需要二者之一：1) 提供可访问的 `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY`；2) 在仓库中补入团队认可的 checked-in Langfuse deployment/config truth source。否则 live closeout 继续属于 environment-blocked，而不是代码未完成
+- [x] 用真实 Langfuse 服务完成一次 non-dry-run 联通验证，并将结果回写到本节
+- [x] 2026-07-07 23:24-23:25 CST 的本地 closeout 证据已齐备：官方 Docker Compose Langfuse v3、`rtk printenv` 非空、`rtk pnpm eval -- smoke --platform langfuse` 三条 success evidence、native smoke `81/81 passed`、`GET /api/public/traces?limit=1` 可读回 project trace
+- [x] 当前 active closeout 已关闭；此细则只剩 deferred Phase 4，不再保留 `environment-blocked / config-missing`
 
 ### Phase 4: Deferred Follow-up - 第二平台可替换性验证
 

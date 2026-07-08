@@ -35,14 +35,15 @@
 | `retrieval-keyword.ts` | 关键词召回通道：分词 (`tokenize`)、归一化 (`normalizeQuery`)、字段权重匹配 |
 | `retrieval-semantic.ts` | 语义召回通道：embedding 文本构建、cosine 相似度计算、词法意图加成 |
 | `retrieval-recall-coordinator.ts` | 召回协调器：按模式分发 (`dispatchByMode`)、语义 / 混合 / 图辅助三种召回策略实现、候选合并与 rerank |
-| `filters.ts` | 检索前置过滤：审批状态、安全等级、团队访问、标签/范围过滤、衰减状态与边界约束 |
+| `filters.ts` | 检索前置过滤：通过 package-local seam 执行治理 eligibility、衰减判断与边界约束 |
 | `search-knowledge.ts` | 检索流水线主入口 (`searchKnowledge`)：编排快照 -> 路由 -> 召回 -> 组装 -> 日志的完整流程 |
-| `read-model.ts` | 从仓库构建检索读模型 (`RetrievalReadModel`)：知识条目 + 技能制品 + 冲突关系 |
+| `read-model.ts` | 从仓库构建检索读模型 (`RetrievalReadModel`)：知识条目 + 技能制品 + 冲突关系，并通过 package-local cache seam 复用缓存 |
 | `response-assembly.ts` | 响应组装：分桶、v2 capsule-first 组装、激活提示 (activation hints) 构建 |
 | `response-citations.ts` | 引用构建：从合并候选生成结构化引用，保留审计分数与通道信息 |
 | `response-summary.ts` | 摘要构建：基于命中结果的确定性抽取式摘要，支持 v1 和 v2 capsule 摘要 |
-| `response-refinement.ts` | LLM refinement 生成：通过 AI chat provider 对检索结果进行 3 句话精炼 |
+| `response-refinement.ts` | LLM refinement 生成：通过 package-local support seam 获取 prompt blocks / prompt string，再由 AI chat provider 生成 3 句话精炼 |
 | `rag-log.ts` | RAG 日志：配置加载、查询 ID 生成、JSON Lines 写入与文件轮转 |
+| `retrieval-infra.ts` / `knowledge-read-support-infra.ts` | package-local read-side seam getter：前者承载 retrieval/query-time 能力，后者承载治理、缓存失效与 refinement prompt 能力 |
 
 ## 依赖关系
 
@@ -51,9 +52,11 @@
 | `@trapmap/backend-core` | 核心端口定义 (`KnowledgeReadPort`、`KnowledgeReadDeps`) 与模块工厂 |
 | `@trapmap/contracts` | 检索查询 / 响应 / 引用 / 摘要等契约 schema (Zod) |
 | `@trapmap/runtime-infra` | 运行时仓库接口 (`SkillShareerRepos`) |
-| `@trapmap/server` | 服务端共享库：衰减配置、治理过滤、冲突关联、embedding、图查询、检索评分、pg keyword recall 等 |
+| `@trapmap/server` | 服务端共享库；默认只在 package-local seam/default assembly 中被消费，用于冲突关联、embedding、图查询、检索评分、治理、缓存失效与 refinement prompt 默认实现 |
 | `fastify` | HTTP 框架 |
 | `pg` | PostgreSQL 客户端 (用于 pgvector 语义搜索与 pg keyword recall) |
+
+普通业务文件默认不直接认识 `@trapmap/server` 的治理、衰减、cache invalidation、prompt builder 模块布局；这些 server internals 集中在 `retrieval-infra-default.ts`、`knowledge-read-support-infra-default.ts` 和宿主装配位点，通过本地 seam 类型暴露给检索编排使用。
 
 ## 环境变量
 

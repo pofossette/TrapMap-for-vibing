@@ -10,6 +10,11 @@ export {
   type KnowledgeReadServer,
   type KnowledgeReadServiceConfig,
 } from './server.js';
+export { createDefaultKnowledgeReadSupportInfra } from './knowledge-read-support-infra-default.js';
+export {
+  getDefaultKnowledgeReadSupportInfra,
+  getKnowledgeReadSupportInfra,
+} from './knowledge-read-support-infra.js';
 export {
   createKnowledgeReadChannelRegistry,
   createKnowledgeReadRetrievalInfra,

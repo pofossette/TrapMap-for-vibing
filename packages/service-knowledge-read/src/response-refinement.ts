@@ -4,11 +4,8 @@
  * Extracted from orchestrator.ts to isolate refinement from recall and routing.
  */
 
-import {
-  buildKnowledgeRefinementSystemPrompt,
-  buildKnowledgeRefinementSystemPromptBlocks,
-} from '@trapmap/server/lib/ai/prompts.js';
 import type { SkillShareerServices } from './context.js';
+import { getKnowledgeReadSupportInfra } from './knowledge-read-support-infra.js';
 
 /**
  * Check if a refinement provider is configured.
@@ -64,14 +61,12 @@ export async function generateRefinement(
 
   try {
     const userMessage = buildRefinementPrompt(query, globalConstraints, projectKnowledge);
+    const supportInfra = getKnowledgeReadSupportInfra(services);
     if (services.ai.chat.invokeWithBlocks) {
-      const blocks = buildKnowledgeRefinementSystemPromptBlocks({ maxSentences: 3 });
+      const blocks = supportInfra.refinement.buildSystemPromptBlocks(3);
       return await services.ai.chat.invokeWithBlocks(blocks, userMessage);
     }
-    return await services.ai.chat.invoke(
-      buildKnowledgeRefinementSystemPrompt({ maxSentences: 3 }),
-      userMessage,
-    );
+    return await services.ai.chat.invoke(supportInfra.refinement.buildSystemPrompt(3), userMessage);
   } catch {
     return null;
   }

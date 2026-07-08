@@ -56,7 +56,8 @@
 - **优先级**：高
 - **范围**：`packages/service-knowledge-read/src/` 仍存在多处对 `packages/server/src/` 的深导入
 - **模式**：读侧例外从原始 CQRS seam 扩大成 recall / scoring / caching / decay / governance / embeddings 等内部实现耦合
-- **当前已收口的事实**：`search-knowledge.ts`、`retrieval-semantic.ts`、`retrieval-recall-coordinator.ts` 已收口到 package-local `retrievalInfra` seam，不再直接深导入 server retrieval internals；剩余 server 依赖主要留在 default infra 装配与非本批范围文件（如 `filters.ts`、`read-model.ts`、`response-refinement.ts`）
+- **当前已收口的事实**：`search-knowledge.ts`、`retrieval-semantic.ts`、`retrieval-recall-coordinator.ts` 已收口到 package-local `retrievalInfra` seam；`filters.ts`、`response-refinement.ts`、`retrieval-read-model-cache.ts` 也已改走 package-local `knowledgeReadSupportInfra` / cache seam，不再直接深导入 server 治理、衰减、prompt、cache internals
+- **当前真实残留面**：剩余 server 依赖主要集中在 default infra 装配文件、graph runtime 类型、宿主 assembly，以及少量仍未抽成稳定 query/port seam 的 read-side runtime 接线
 - **建议方向**：迁移到稳定 port/query seam，只暴露读侧真正需要的 query capabilities
 - **状态**：known debt，tracked；见 `docs/architecture/BOUNDARIES.md` Category B
 
@@ -85,15 +86,16 @@
 
 与此前 closeout 冻结口径保持一致：这些 deferred 项仍属于“只补到 `/metrics`、trace/span propagation、structured logging、distributed pool-budget env seam，以及基于 `/health`、`/ready`、`/metrics`、`/v1/operations/status/async` 的 operator runbook 与 task queue / internal hop latency / error rate 首批 dashboard/alert/SLO 文档面，**不扩成新的 monitoring platform**”之后明确留下的残留面。
 
-## 4. Eval platform 的活跃剩余项不在 debt register 收口
+## 4. Eval platform 当前不再保留 active debt，只剩 deferred follow-up
 
-- **状态**：active owner plan owns the live closeout
+- **状态**：closeout complete / deferred follow-up only
 
 当前判断冻结如下：
 
+- 历史对照：此前“当前仍留在 active todo 的剩余 closeout 只剩真实 Langfuse 目标验证”这句曾经成立；截至 2026-07-07 23:25 CST，该句已不再成立，因为 live closeout 已完成
 - retrieval / summary / agent-planning 已全部切到 suite-owned platform event builder，这部分 debt 已闭环
-- `LangfuseAdapter` 已以 warning-only mirror 方式接入 aggregate runner，并完成自动化验证
-- 当前仍留在 active todo 的剩余 closeout 只剩真实 Langfuse 目标验证；它属于 [`agent-eval-framework-evaluation-and-plan.md`](./agent-eval-framework-evaluation-and-plan.md) 中的 active owner plan，而不是本 debt register
+- `LangfuseAdapter` 已以 warning-only mirror 方式接入 aggregate runner，并已于 2026-07-07 用本地 Docker Compose Langfuse v3 完成真实目标验证
+- 当前没有仍需保留在 active debt register 的 eval platform closeout；相关 checked-in 证据留在 [`agent-eval-framework-evaluation-and-plan.md`](./agent-eval-framework-evaluation-and-plan.md)
 - `MLflow` 与第二平台可替换性验证继续留在 deferred，不作为当前 active closeout 的剩余项
 
 ## 5. 当前仍保留的显式开发退路

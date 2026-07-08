@@ -8,5 +8,6 @@ describe('knowledge-read server retrieval seam', () => {
     expect(knowledgeRead).toHaveProperty('createKnowledgeReadStrategyRegistry');
     expect(knowledgeRead).toHaveProperty('createKnowledgeReadRetrievalQuery');
     expect(knowledgeRead).toHaveProperty('createKnowledgeReadRetrievalInfra');
+    expect(knowledgeRead).toHaveProperty('createDefaultKnowledgeReadSupportInfra');
   });
 });

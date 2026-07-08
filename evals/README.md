@@ -62,7 +62,11 @@ pnpm exec tsx scripts/export-badcase-to-eval.ts feedback_example ./reports/badca
 
 `--platform` 与 `--platform-output-dir` 只对 aggregate suite（`smoke`、`core`、`all`）生效。当前 unified runner 的 platform mirror 验证入口也是 aggregate runner；其中 `retrieval`、`summary`、`agent-planning` 事件都已由 suite 侧导出，aggregate runner 只做发布。
 
-截至 2026-07-07 22:05 CST，这条平台 mirror 主线剩余的 active closeout 仍只有真实 Langfuse 目标验证；本次重新执行 `rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY` 仍无输出，随后执行 `rtk pnpm eval -- smoke --dry-run --platform langfuse` 只验证到 missing-config warning 路径。`MLflow` 与第二平台切换验证继续属于 deferred work。
+配置齐全并成功发送时，aggregate runner 会打印三条 live evidence：adapter enabled、suite event mirrored without publish warnings、flush completed without close warnings。若缺少配置或外部平台失败，则继续走 warning-only fallback，不改变 TrapMap native report 或退出码。
+
+截至 2026-07-07 23:25 CST，这条平台 mirror 主线的真实 Langfuse 目标验证已经完成：目标为本地 Docker Compose 启动的官方 Langfuse v3 实例 `http://127.0.0.1:3000`，同轮 `rtk pnpm eval -- smoke --platform langfuse` 输出了 adapter enabled、`mirrored 1041 suite events without publish warnings`、flush completed 三条 success evidence，且 native smoke eval 仍以 81/81 passed 成功结束。`MLflow` 与第二平台切换验证继续属于 deferred work。
+
+复跑这条 closeout 时，若本地 self-host 覆盖了 `MINIO_ROOT_PASSWORD`，记得同步对齐 `LANGFUSE_S3_*_SECRET_ACCESS_KEY`；否则 Langfuse 可能在 API health 正常时仍因 blob upload `SignatureDoesNotMatch` 失败。
 
 该脚本只输出 `badcaseEvalDraftSchema` 对应的 deterministic draft。`GET /v1/operations/badcases/:feedbackId/export` 返回的 route wrapper 还会附带 operator-only `debug`，但这部分不属于 eval draft payload。
 

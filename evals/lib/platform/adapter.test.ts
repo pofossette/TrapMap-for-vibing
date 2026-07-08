@@ -50,7 +50,7 @@ describe('platform adapters', () => {
           },
         },
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ ok: false });
 
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('broken'),
@@ -68,7 +68,7 @@ describe('platform adapters', () => {
       },
     };
 
-    await expect(closePlatformAdapterSafely(adapter, warn)).resolves.toBeUndefined();
+    await expect(closePlatformAdapterSafely(adapter, warn)).resolves.toEqual({ ok: false });
 
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('broken'),

@@ -12,6 +12,8 @@ export function getDefaultRetrievalInfra(): KnowledgeReadRetrievalInfra {
   return defaultRetrievalInfra;
 }
 
-export function getRetrievalInfra(services: SkillShareerServices): KnowledgeReadRetrievalInfra {
-  return services.retrievalInfra ?? getDefaultRetrievalInfra();
+export function getRetrievalInfra(
+  services?: Pick<SkillShareerServices, 'retrievalInfra'>,
+): KnowledgeReadRetrievalInfra {
+  return services?.retrievalInfra ?? getDefaultRetrievalInfra();
 }

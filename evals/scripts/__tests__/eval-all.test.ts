@@ -151,6 +151,100 @@ describe('runUnifiedEvaluation', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('Missing LANGFUSE_SECRET_KEY'));
   });
 
+  it('logs live langfuse evidence when adapter enablement, publish, and close all succeed', async () => {
+    const publishPlatformEvent = vi.fn(async () => ({ ok: true as const }));
+    const closePlatformAdapter = vi.fn(async () => ({ ok: true as const }));
+    const log = vi.fn();
+
+    await runUnifiedEvaluation(
+      {
+        ...baseOptions,
+        platform: 'langfuse' as const,
+      },
+      {
+        createPlatformAdapter: vi.fn(() => ({
+          kind: 'langfuse',
+          publish: vi.fn(),
+          close: vi.fn(),
+        })),
+        resolveLangfuseConfigFromEnv: vi.fn(() => ({
+          ok: true as const,
+          config: {
+            baseUrl: 'https://langfuse.example',
+            publicKey: 'pk-test',
+            secretKey: 'sk-test',
+            flushTimeoutMs: 2500,
+          },
+        })),
+        publishPlatformEvent,
+        closePlatformAdapter,
+        warn: vi.fn(),
+        log,
+        error: vi.fn(),
+        runRetrievalEval: vi.fn(async () => ({
+          passed: true,
+          report: {
+            meta: {
+              schemaVersion: 1,
+              timestamp: '2026-07-03T00:00:05.000Z',
+              durationMs: 5000,
+              options: {
+                tier: 'smoke',
+                endpoint: '/v1/retrieval/search',
+                dryRun: true,
+                allowEmpty: false,
+                verbose: 0,
+              },
+            },
+            summary: {
+              totalCases: 1,
+              passedCases: 1,
+              failedCases: 0,
+              passRate: 1,
+              passed: true,
+            },
+            slices: [],
+            cohorts: [],
+            modeComparisons: [],
+            routingDistribution: [],
+            cases: [],
+            failures: [],
+            warnings: [],
+          },
+          durationMs: 5000,
+          summary: {
+            totalCases: 1,
+            passedCases: 1,
+            failedCases: 0,
+            passRate: 1,
+            slices: [],
+          },
+        })),
+        runSummaryEval: vi.fn(async () => null),
+        runGraphExtractionEval: vi.fn(async () => null),
+        runIngestionEval: vi.fn(async () => null),
+        runAgentPlanningEval: vi.fn(async () => null),
+        runLabelAlignmentEval: vi.fn(async () => null),
+      },
+    );
+
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining(
+        '[eval-platform] langfuse adapter enabled: baseUrl=https://langfuse.example flushTimeoutMs=2500.',
+      ),
+    );
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining(
+        '[eval-platform] langfuse adapter mirrored 2 suite events without publish warnings.',
+      ),
+    );
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining(
+        '[eval-platform] langfuse adapter flush completed without close warnings.',
+      ),
+    );
+  });
+
   it('publishes suite-backed run start and finish events when a platform adapter is enabled', async () => {
     const publishPlatformEvent = vi.fn();
     const closePlatformAdapter = vi.fn();
