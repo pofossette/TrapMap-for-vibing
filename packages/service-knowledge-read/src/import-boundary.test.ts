@@ -164,10 +164,53 @@ describe('knowledge-read import boundary', () => {
 
     expect(seamSource).toContain('createKnowledgeReadRetrievalInfra');
     expect(seamSource).toContain('KnowledgeReadRetrievalInfra');
+    expect(seamSource).toContain('@trapmap/runtime-infra');
     expect(seamSource).not.toContain('createPgKeywordRecall');
     expect(seamSource).not.toContain('vectorSimilaritySearch');
-    expect(defaultInfraSource).toContain('createPgKeywordRecall');
-    expect(defaultInfraSource).toContain('vectorSimilaritySearch');
+    expect(defaultInfraSource).not.toContain('@trapmap/server/lib/cache/query-embedding-cache.js');
+    expect(defaultInfraSource).not.toContain('@trapmap/server/lib/conflict/index.js');
+    expect(defaultInfraSource).not.toContain('@trapmap/server/lib/decay/index.js');
+    expect(defaultInfraSource).not.toContain('@trapmap/server/lib/embeddings.js');
+    expect(defaultInfraSource).not.toContain(
+      '@trapmap/server/lib/retrieval/orchestration/index.js',
+    );
+    expect(defaultInfraSource).not.toContain('@trapmap/server/lib/retrieval/recall/db-search.js');
+    expect(defaultInfraSource).not.toContain(
+      '@trapmap/server/lib/retrieval/recall/graph-assisted.js',
+    );
+    expect(defaultInfraSource).not.toContain('@trapmap/server/lib/retrieval/recall/pg-keyword.js');
+    expect(defaultInfraSource).not.toContain('@trapmap/server/lib/retrieval/scoring/index.js');
+    expect(defaultInfraSource).toContain('@trapmap/runtime-infra');
+  });
+
+  it('keeps runtime graph types on stable seams instead of server internals', async () => {
+    const root = path.resolve(import.meta.dirname, '..');
+    const contextSource = await readFile(path.join(root, 'src/context.ts'), 'utf-8');
+    const coordinatorSource = await readFile(
+      path.join(root, 'src/retrieval-recall-coordinator.ts'),
+      'utf-8',
+    );
+
+    expect(contextSource).not.toContain('@trapmap/server/lib/graph-query/index.js');
+    expect(coordinatorSource).not.toContain('@trapmap/server/lib/graph-query/index.js');
+    expect(contextSource).toContain('@trapmap/runtime-infra');
+  });
+
+  it('uses backend-core invocation errors instead of server AppError in read-side flows', async () => {
+    const root = path.resolve(import.meta.dirname, '..');
+    const searchKnowledgeSource = await readFile(
+      path.join(root, 'src/search-knowledge.ts'),
+      'utf-8',
+    );
+    const coordinatorSource = await readFile(
+      path.join(root, 'src/retrieval-recall-coordinator.ts'),
+      'utf-8',
+    );
+
+    expect(searchKnowledgeSource).not.toContain('@trapmap/server/lib/errors.js');
+    expect(coordinatorSource).not.toContain('@trapmap/server/lib/errors.js');
+    expect(searchKnowledgeSource).toContain('InvocationError');
+    expect(coordinatorSource).toContain('InvocationError');
   });
 
   it('keeps support seam assembly separate from business-file call sites', async () => {
@@ -183,8 +226,11 @@ describe('knowledge-read import boundary', () => {
 
     expect(supportSource).toContain('getKnowledgeReadSupportInfra');
     expect(defaultSupportSource).toContain('createDefaultKnowledgeReadSupportInfra');
-    expect(defaultSupportSource).toContain('@trapmap/server/lib/governance/index.js');
-    expect(defaultSupportSource).toContain('@trapmap/server/lib/ai/prompts.js');
-    expect(defaultSupportSource).toContain('@trapmap/server/lib/cache/invalidation.js');
+    expect(defaultSupportSource).toContain('@trapmap/runtime-infra');
+    expect(defaultSupportSource).not.toContain('@trapmap/server/lib/governance/index.js');
+    expect(defaultSupportSource).not.toContain('@trapmap/server/lib/ai/prompts.js');
+    expect(defaultSupportSource).not.toContain('@trapmap/server/lib/cache/invalidation.js');
+    expect(defaultSupportSource).not.toContain('@trapmap/server/lib/cache/retrieval-cache.js');
+    expect(defaultSupportSource).not.toContain('@trapmap/server/lib/decay/index.js');
   });
 });

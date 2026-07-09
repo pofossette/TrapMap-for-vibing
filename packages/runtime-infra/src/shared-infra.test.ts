@@ -9,4 +9,8 @@ describe('runtime-infra shared infra exports', () => {
     expect(runtimeInfra).toHaveProperty('JsonStore');
     expect(runtimeInfra).toHaveProperty('createRuntimeInfraRepos');
   });
+
+  it('exports the default knowledge-read retrieval assembly seam', () => {
+    expect(runtimeInfra).toHaveProperty('createDefaultKnowledgeReadRetrievalInfra');
+  });
 });

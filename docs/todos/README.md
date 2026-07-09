@@ -14,13 +14,13 @@
 - 已完成主线、空白清单、历史 closeout 证据和背景输入统一转入 `docs/archived/` 或 `docs/archived/archived-plans/`
 - 需要重启某个归档主题时，新建新的 active 细则，不直接把归档文档重新当 checklist 使用
 - 如果某份 todo 文档只剩“仍可参考”而不再承担执行责任，应优先归档，而不是继续留在本目录
+- 若未来新增辅助清单，只有在根 `plan.md` 或当前主细则显式赋予执行责任时才能留在本目录；否则应直接进入归档或背景目录
 
-## 2026-07-08 活跃面整理
+## 当前状态说明
 
-本轮 active surface 调整如下：
+当前 `docs/todos/` 只保留真正承担执行责任的文档：
 
-- `open-debt-and-compromises.md`：从 debt register 升级为唯一 active mainline detail
-- `agent-eval-framework-evaluation-and-plan.md`：Agent Eval closeout 已完成，归档为历史主线
-- `doc-drift-fix-list.md`：当前无未闭环问题，不再保留为 active 配套清单
+- `open-debt-and-compromises.md`：唯一 active mainline detail，同时内联承载 backlog、deferred 与 frozen decision reference
+- 其余只剩历史证据、冻结决策或背景价值的材料，应通过 `docs/archived/` 查找，不继续占用 active 目录
 
 完整归档表见 [`../archived/README.md`](../archived/README.md)。

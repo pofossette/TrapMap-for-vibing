@@ -126,7 +126,7 @@ web-panel → client-core → (none)
 
 ### service-knowledge-read 对 server 和 runtime-infra 的依赖
 
-`service-knowledge-read` zone 额外允许依赖 `server` 和 `runtime-infra`，这是一个 **有意为之（intentional）** 的设计决定。
+`service-knowledge-read` zone 额外允许依赖 `server` 和 `runtime-infra`，这是一个 **有意为之（intentional）但应持续收缩** 的迁移期决定。
 
 **原因**：知识读取服务（retrieval read model）需要基础设施层的检索/查询能力，包括：
 
@@ -135,6 +135,8 @@ web-panel → client-core → (none)
 - Graph query backend 的适配连接
 
 这是 CQRS 模式中读侧的典型特征：读侧服务需要直接访问基础设施层的查询优化能力，而写侧服务只需要通过端口抽象与基础设施交互。此例外已在 `.fallowrc.json` 的 `service-knowledge-read` zone 规则中显式声明。
+
+2026-07-09 baseline：该例外已不再覆盖 read-side 业务文件对 `server` error taxonomy、graph runtime types 或 retrieval / support default assembly 的直接依赖；这些已分别迁回 `backend-core` `InvocationError`、`runtime-infra` graph seam types 与 `runtime-infra` read-side default seams。当前如再出现 `server` 直接依赖，应视为新的边界回退信号而不是既有默认装配例外。
 
 ## 使用指南
 
@@ -182,15 +184,19 @@ The coupling audit (Phase 0.6) identified several patterns that violate strict l
 
 ### Category B: service-knowledge-read Deep Coupling (High Severity)
 
-**Location**: `packages/service-knowledge-read/src/` (server internals now mostly concentrated behind local read-side seam default assembly and a small set of runtime types)
+**Location**: `packages/service-knowledge-read/src/` (historically concentrated behind local read-side seam default assembly; now expected to stay on stable seams)
 
-**Pattern**: Despite the zone-level CQRS exception documented above, `service-knowledge-read` still depends on server internals for parts of the read path. Retrieval-core business files now consume package-local `retrievalInfra` and `knowledgeReadSupportInfra` seams instead of importing recall/scoring/governance/cache/prompt internals directly, but default seam assembly and a few host/runtime types still depend on server-owned modules.
+**Pattern**: Despite the zone-level CQRS exception documented above, `service-knowledge-read` historically depended on server internals for parts of the read path. Retrieval-core business files now consume package-local `retrievalInfra` and `knowledgeReadSupportInfra` seams instead of importing recall/scoring/governance/cache/prompt internals directly, and both retrieval/support default assemblies now resolve through `runtime-infra`.
 
 **Why intentional**: The CQRS read-side requires access to retrieval pipeline internals for query optimization. This exception was an explicit architectural decision.
 
-**Tech debt**: The coupling grew beyond the original CQRS read-side scope into wholesale duplication of server internals. The first two closeout batches reduced the deepest retrieval-core and read-side helper imports to local seams, but the remaining server-backed default assembly should still be migrated to stable port interfaces that expose only the query capabilities the read-side needs.
+**Tech debt**: The coupling grew beyond the original CQRS read-side scope into wholesale duplication of server internals. Earlier closeout batches reduced the deepest retrieval-core and read-side helper imports to local seams, the 2026-07-09 Wave 1 cut removed direct `server` runtime-type/error imports from read-side business files, Wave 2 moved retrieval default assembly to `runtime-infra`, and Wave 3 moved support default assembly there as well. Remaining debt in this category should now be treated as regression monitoring and any non-assembly residuals, not legacy default assembly location.
 
 **Status**: Known debt, tracked in open-debt register.
+Remaining exception evidence:
+- Why retained now: zone 级 CQRS 例外仍允许 read-side 依赖 `runtime-infra`，并为 direct-read / projection 类残留保留审计空间
+- Next trigger to re-evaluate: when a new `fallow` baseline shows non-assembly files reintroducing `server` imports or the direct-read / projection exception can be fully收口
+- Minimum evidence to keep the exception: `rtk rg "@trapmap/server" packages/service-knowledge-read/src` 不应再返回默认装配文件命中；若出现命中，应先作为边界回退处理
 
 ### Category C: Drizzle Schema Imports in Recall Channels (Low Severity)
 

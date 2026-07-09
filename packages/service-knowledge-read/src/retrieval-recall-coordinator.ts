@@ -1,6 +1,6 @@
+import { InvocationError } from '@trapmap/backend-core';
 import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
-import { AppError } from '@trapmap/server/lib/errors.js';
-import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/index.js';
+import type { RuntimeInfraGraphQueryRuntimeState } from '@trapmap/runtime-infra';
 import type { Pool } from 'pg';
 import type { MergedCandidate, RoutingChannel, ScoredEntry } from './retrieval-types.js';
 
@@ -39,8 +39,8 @@ export interface DbSearchConfig {
 export interface GraphRecallTrace {
   mergeMode: 'mixed';
   graphExpansion: 'local-neighborhood';
-  backendKind: GraphQueryRuntimeState['backendKind'];
-  backendMode: GraphQueryRuntimeState['mode'];
+  backendKind: RuntimeInfraGraphQueryRuntimeState['backendKind'];
+  backendMode: RuntimeInfraGraphQueryRuntimeState['mode'];
   graphCandidateCount: number;
 }
 
@@ -86,9 +86,7 @@ export async function dispatchByMode(
 ): Promise<RecallExecutionResult> {
   const strategy = strategyRegistry.get(mode);
   if (!strategy) {
-    throw new AppError(
-      400,
-      'invalid_mode',
+    throw InvocationError.validation(
       `Invalid query mode: ${mode}. Must be one of: ${strategyRegistry
         .all()
         .map((s) => s.version)
@@ -423,7 +421,7 @@ function mergeCandidatesWithGraph(
 }
 
 function createGraphRecallTrace(
-  runtimeState: GraphQueryRuntimeState | undefined,
+  runtimeState: RuntimeInfraGraphQueryRuntimeState | undefined,
   graphCandidateCount: number,
 ): GraphRecallTrace {
   return {

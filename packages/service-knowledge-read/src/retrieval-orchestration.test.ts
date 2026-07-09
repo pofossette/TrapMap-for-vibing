@@ -1,13 +1,15 @@
 import type { RetrievalQuery } from '@trapmap/contracts';
-import type { MergedCandidate, ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
+import { InvocationError } from '@trapmap/backend-core';
 import { describe, expect, it, vi } from 'vitest';
 
+import { dispatchByMode } from './retrieval-recall-coordinator.js';
 import {
   ChannelRegistry,
   type KnowledgeReadRecallChannel,
   type RetrievalStrategy,
   StrategyRegistry,
 } from './retrieval-orchestration.js';
+import type { MergedCandidate, ScoredEntry } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 
 function makeMockChannel(name: string): KnowledgeReadRecallChannel {
@@ -61,5 +63,43 @@ describe('knowledge-read retrieval orchestration', () => {
 
     expect(registry.get('hybrid')).toBe(second);
     expect(registry.all()).toEqual([second]);
+  });
+
+  it('raises a validation invocation error when the requested mode is unknown', async () => {
+    const strategyRegistry = new StrategyRegistry();
+    const channelRegistry = new ChannelRegistry();
+
+    await expect(
+      dispatchByMode(
+        'unknown-mode',
+        'seed',
+        [] satisfies KnowledgeRecord[],
+        {
+          seed: 'seed',
+          mode: 'semantic',
+          maxResults: 5,
+        } as never,
+        strategyRegistry,
+        channelRegistry,
+      ),
+    ).rejects.toMatchObject({
+      name: 'InvocationError',
+      kind: 'validation',
+      message: expect.stringContaining('Invalid query mode: unknown-mode'),
+    });
+    await expect(
+      dispatchByMode(
+        'unknown-mode',
+        'seed',
+        [] satisfies KnowledgeRecord[],
+        {
+          seed: 'seed',
+          mode: 'semantic',
+          maxResults: 5,
+        } as never,
+        strategyRegistry,
+        channelRegistry,
+      ),
+    ).rejects.toBeInstanceOf(InvocationError);
   });
 });

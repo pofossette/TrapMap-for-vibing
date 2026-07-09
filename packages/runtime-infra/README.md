@@ -5,6 +5,7 @@ TrapMap 宿主与服务的共享运行时基础设施层。提供存储、异步
 ## 职责
 
 - **运行时组装** -- 通过 `createRuntimeSharedInfra` 一次性构建完整的共享基础设施对象（store、repos、async transport、AI providers、graph query、event bus）
+- **read-side retrieval 默认装配** -- 暴露 `createDefaultKnowledgeReadRetrievalInfra`，把知识读取服务所需的 embedding、routing、recall、scoring 默认实现收口到稳定 owner seam
 - **存储抽象** -- 提供 JSON 文件存储和 PostgreSQL 存储两种实现，由配置自动选择
 - **异步任务队列** -- 基于 PostgreSQL `SKIP LOCKED` 的持久化任务队列，支持优先级、指数退避重试、死信队列和租约回收；可选 RabbitMQ 后端
 - **领域事件 Outbox** -- 将写路径事务中的事件持久化到 PostgreSQL，由后台 worker 异步处理，解耦 HTTP 请求生命周期与重副作用（索引、冲突检测等）
@@ -29,6 +30,7 @@ TrapMap 宿主与服务的共享运行时基础设施层。提供存储、异步
 | `lifecycle-types.ts` | 生命周期事件类型定义：`DomainEvent`、`DomainEventHandler`、`TransitionDefinition`、`TransitionContext` |
 | `metrics.ts` | 运行时指标模块 -- 计数器、直方图、Gauge 的内存采集，`renderPrometheusMetrics` 导出 Prometheus 文本格式 |
 | `runtime-contract.ts` | 运行时模式与 worker 快照：`RuntimeMode` 类型、`shouldBoot*` 决策函数、`snapshotRuntimeWorker` |
+| `knowledge-read-retrieval-infra.ts` | `service-knowledge-read` retrieval seam 的默认实现 owner，封装 embedding/cache、routing、conflict enrichment、recall 和 scoring 默认装配 |
 
 ### 关于类型级 seam 接口
 
@@ -38,6 +40,7 @@ TrapMap 宿主与服务的共享运行时基础设施层。提供存储、异步
 
 **组装入口：**
 - `createRuntimeSharedInfra(config)` -- 返回 `Promise<RuntimeInfraShared>`
+- `createDefaultKnowledgeReadRetrievalInfra()` -- 返回 read-side retrieval 默认基础设施对象
 
 **存储：**
 - `JsonStore`、`PostgresStore`、`createSkillShareerStore`

@@ -13,6 +13,8 @@ const FILES = [
   'src/outbox.ts',
   'src/event-bus.ts',
   'src/rabbitmq-task-queue.ts',
+  'src/knowledge-read-support-infra.ts',
+  'src/knowledge-read-retrieval-infra.ts',
 ];
 
 const FORBIDDEN_IMPORTS = [

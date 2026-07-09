@@ -7,11 +7,11 @@ import type {
   Permission,
   RetrievalQuery,
 } from '@trapmap/contracts';
-import type { SkillShareerRepos } from '@trapmap/runtime-infra';
 import type {
-  GraphQueryBackend,
-  GraphQueryRuntimeState,
-} from '@trapmap/server/lib/graph-query/index.js';
+  RuntimeInfraGraphQueryBackend,
+  RuntimeInfraGraphQueryRuntimeState,
+  SkillShareerRepos,
+} from '@trapmap/runtime-infra';
 import type { Pool } from 'pg';
 
 import type { RagLogConfig } from './rag-log.js';
@@ -166,7 +166,7 @@ export interface KnowledgeReadRetrievalInfra {
     graphAssistedRecall(
       queryText: string,
       eligibleEntries: Map<string, KnowledgeRecord>,
-      options?: { graphQueryBackend?: GraphQueryBackend },
+      options?: { graphQueryBackend?: RuntimeInfraGraphQueryBackend },
     ): Promise<RecallCandidate[]>;
   };
 }
@@ -224,6 +224,6 @@ export interface SkillShareerServices {
   store: KnowledgeReadStoreSeam;
   retrievalInfra?: KnowledgeReadRetrievalInfra;
   knowledgeReadSupportInfra?: KnowledgeReadSupportInfra;
-  graphQueryBackend?: GraphQueryBackend;
-  graphQuery: GraphQueryRuntimeState;
+  graphQueryBackend?: RuntimeInfraGraphQueryBackend;
+  graphQuery: RuntimeInfraGraphQueryRuntimeState;
 }

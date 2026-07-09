@@ -373,7 +373,7 @@
         "活跃索引",
         "唯一 active mainline detail",
         "明确承担当前执行责任的 active 文档",
-        "2026-07-08 活跃面整理",
+        "当前状态说明",
         "完整归档表见"
       ],
       "mustNotContain": [
@@ -458,7 +458,7 @@
     },
     {
       "file": "docs/todos/README.md",
-      "mustContain": ["2026-07-08 活跃面整理", "完整归档表见"]
+      "mustContain": ["当前状态说明", "唯一 active mainline detail", "完整归档表见"]
     },
     {
       "file": "docs/reference/api-surface.md",
@@ -579,15 +579,12 @@
       "mustContain": [
         "debt pool 说明：当前池子仍不完整",
         "Tranche A - read-side coupling / `service-knowledge-read` deep coupling closeout",
-        "fallow` Baseline Review",
-        "service-to-service auth hardening",
-        "dashboard-as-code",
-        "alert rule pack",
-        "PgBouncer",
-        "Node heap presets",
-        "PgBouncer / pool introspection contract",
-        "new debt to add",
-        "container CPU/memory checked-in defaults",
+        "成功条件",
+        "问题回写规则",
+        "最新基线摘要",
+        "deferred / platform maturity",
+        "第二平台可替换性验证参考",
+        "backlog signal retained",
         "Eval platform follow-up"
       ],
       "mustNotContain": [

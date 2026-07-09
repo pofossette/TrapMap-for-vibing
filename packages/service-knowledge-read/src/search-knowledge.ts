@@ -1,10 +1,9 @@
+import { InvocationError } from '@trapmap/backend-core';
 import {
   type RetrievalQuery,
   type RetrievalResponse,
   retrievalQuerySchema,
 } from '@trapmap/contracts';
-
-import { AppError } from '@trapmap/server/lib/errors.js';
 
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
@@ -288,9 +287,10 @@ export async function updateEntryEmbeddingCache(
   services: SkillShareerServices,
   entryId: string,
 ): Promise<void> {
+  const infra = getRetrievalInfra(services);
   const entry = await services.repos.knowledge.getById(entryId);
   if (!entry) {
-    throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
+    throw InvocationError.notFound('Knowledge entry not found');
   }
 
   const text = buildEmbeddingText(entry);

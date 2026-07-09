@@ -12,6 +12,8 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 - 唯一 active mainline detail：[`todos/open-debt-and-compromises.md`](todos/open-debt-and-compromises.md)
 - CI/testing truth source：[`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md)
 
+除上列入口外，其余历史主线、closeout 细则和背景材料都不再构成并行 active workstream，只能作为 archived/background reference 使用。
+
 已完成的 Agent Eval 主线现只保留为历史背景参考：
 
 - 归档主线：[`archived/archived-plans/agent-eval-framework-evaluation-and-plan.md`](archived/archived-plans/agent-eval-framework-evaluation-and-plan.md)
@@ -21,7 +23,7 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 - closeout 归档：[`archived/archived-plans/active-closeout-and-followups.md`](archived/archived-plans/active-closeout-and-followups.md)
 - 更早一轮“微服务平台能力增强细则”也已完成并归档：[`archived/archived-plans/microservice-platform-evolution-plan.md`](archived/archived-plans/microservice-platform-evolution-plan.md)
 
-以下 NestJS / 服务演进内容仅保留为历史背景输入，不再作为当前根计划执行面；其他历史 todo/closeout 文档也只能被视为 background 或 deferred reference，而不是平行 active checklist：
+以下 NestJS / 服务演进内容仅保留为历史背景输入，不再作为当前根计划执行面；其他历史 todo/closeout 文档也只能被视为 background 或 deferred reference：
 
 - 长期后端主线已冻结为 `Nest host + framework-free domain core + gradual service extraction`，Phases 1–3 已按此主线完成宿主、contract、模块化单体和服务拆分落地。
 - `light` / `heavy` 只表示后端构建目标：`local-agent`、`team-monolith` -> `light`，`distributed` -> `heavy`。
@@ -226,9 +228,9 @@ deployment flexibility 最小验证矩阵：
 
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
-- [微服务平台增强根计划](../plan.md) — 当前根级 closeout 索引；只保留归档状态、deferred 落点与背景入口
+- [微服务平台增强根计划](../plan.md) — 当前根级 closeout 索引；只链接唯一 active mainline detail，并保留归档/背景入口
 - [微服务平台能力增强细则](archived/archived-plans/microservice-platform-evolution-plan.md) — 已归档的 Phase 0-4 closeout 细则；保留服务发现、内部 RPC、可观测性与资源治理的完成证据
-- 当前 active execution surface 不再包含该细则；其余 todo 文档只能写成背景输入、deferred 落点或已完成 closeout 参考
+- 当前 active execution surface 只承认 `todos/open-debt-and-compromises.md`；其余 todo 文档只能写成背景输入、deferred 落点或已完成 closeout 参考
 - [健壮性与可扩展性收尾细则](archived/archived-plans/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](archived/archived-plans/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪
@@ -236,7 +238,7 @@ deployment flexibility 最小验证矩阵：
 - [组件替换细则](archived/archived-plans/component-replacement-plan.md) — 成熟包替换的独立细则；根计划已切换，不再是当前主线
 - [Badcase 回流待办](archived/archived-plans/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
 - [后端工程化优化计划](archived/archived-plans/backend-engineering-optimization-plan.md) — 平台化 deferred 问题池；承接 MQ 产品化、监控平台、长期服务化与更重的平台工程议题
-- 当前主线不再接受新的平行整改索引；若后续继续深入历史主题或平台化议题，必须转入当前细则显式链接的 deferred 落点
+- 当前主线不再接受新的平行整改索引；若后续继续深入历史主题或平台化议题，必须转入当前 active mainline 显式链接的 deferred 落点
 - [NestJS 目标架构冻结](archived/archived-plans/nestjs-service-evolution-00-target-architecture.md) — 长期目标、边界、保留与退役决策
 - [NestJS 宿主与 contract 基础](archived/archived-plans/nestjs-service-evolution-01-host-and-contract-foundation-archived.md) — 首条 Nest 宿主主线与共享 contract 收口
 - [NestJS 模块化单体切换](archived/archived-plans/nestjs-service-evolution-02-modular-monolith-cutover-archived.md) — 六个 bounded context、compatibility boundary 与机械迁移提示词

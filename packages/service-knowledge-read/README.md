@@ -43,7 +43,7 @@
 | `response-summary.ts` | 摘要构建：基于命中结果的确定性抽取式摘要，支持 v1 和 v2 capsule 摘要 |
 | `response-refinement.ts` | LLM refinement 生成：通过 package-local support seam 获取 prompt blocks / prompt string，再由 AI chat provider 生成 3 句话精炼 |
 | `rag-log.ts` | RAG 日志：配置加载、查询 ID 生成、JSON Lines 写入与文件轮转 |
-| `retrieval-infra.ts` / `knowledge-read-support-infra.ts` | package-local read-side seam getter：前者承载 retrieval/query-time 能力，后者承载治理、缓存失效与 refinement prompt 能力 |
+| `retrieval-infra.ts` / `knowledge-read-support-infra.ts` | package-local read-side seam getter：前者承载 retrieval/query-time 能力并接到 `runtime-infra` 默认装配，后者承载治理、缓存失效与 refinement prompt 能力 |
 
 ## 依赖关系
 
@@ -51,12 +51,12 @@
 |---|---|
 | `@trapmap/backend-core` | 核心端口定义 (`KnowledgeReadPort`、`KnowledgeReadDeps`) 与模块工厂 |
 | `@trapmap/contracts` | 检索查询 / 响应 / 引用 / 摘要等契约 schema (Zod) |
-| `@trapmap/runtime-infra` | 运行时仓库接口 (`SkillShareerRepos`) |
-| `@trapmap/server` | 服务端共享库；默认只在 package-local seam/default assembly 中被消费，用于冲突关联、embedding、图查询、检索评分、治理、缓存失效与 refinement prompt 默认实现 |
+| `@trapmap/runtime-infra` | 运行时仓库接口 (`SkillShareerRepos`) 与 read-side runtime seams（graph types、retrieval default assembly、support default assembly） |
+| `@trapmap/server` | 无常规运行时依赖；仅测试 alias/历史迁移说明中提及 |
 | `fastify` | HTTP 框架 |
 | `pg` | PostgreSQL 客户端 (用于 pgvector 语义搜索与 pg keyword recall) |
 
-普通业务文件默认不直接认识 `@trapmap/server` 的治理、衰减、cache invalidation、prompt builder 模块布局；这些 server internals 集中在 `retrieval-infra-default.ts`、`knowledge-read-support-infra-default.ts` 和宿主装配位点，通过本地 seam 类型暴露给检索编排使用。
+普通业务文件默认不直接认识 `@trapmap/server` 的治理、cache invalidation、prompt builder 模块布局。retrieval 默认装配与 support 默认装配均已迁到 `@trapmap/runtime-infra`，检索编排只通过 package-local seam 类型消费这些能力。
 
 ## 环境变量
 

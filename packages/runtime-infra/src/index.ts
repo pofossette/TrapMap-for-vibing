@@ -1,4 +1,14 @@
 export {
+  createDefaultKnowledgeReadSupportInfra,
+  type RuntimeInfraKnowledgeReadSupportInfra,
+  type RuntimeInfraKnowledgeReadSupportRecord,
+} from './knowledge-read-support-infra.js';
+export {
+  createDefaultKnowledgeReadRetrievalInfra,
+  type RuntimeInfraKnowledgeReadRetrievalInfra,
+  type RuntimeInfraKnowledgeReadStoreSeam,
+} from './knowledge-read-retrieval-infra.js';
+export {
   createRuntimeSharedInfra,
   type RuntimeInfraAiProviders,
   type RuntimeInfraAsyncTransport,

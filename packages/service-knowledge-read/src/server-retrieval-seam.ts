@@ -1,7 +1,7 @@
 import type { RetrievalQueryPort } from '@trapmap/backend-core';
 import type { RetrievalQuery } from '@trapmap/contracts';
+import { createDefaultKnowledgeReadRetrievalInfra } from '@trapmap/runtime-infra';
 import type { KnowledgeReadRetrievalInfra, ResolvedAuthContext } from './context.js';
-import { createDefaultKnowledgeReadRetrievalInfra } from './retrieval-infra-default.js';
 import { keywordChannel } from './retrieval-keyword.js';
 import {
   ChannelRegistry,
@@ -26,7 +26,7 @@ export interface KnowledgeReadRetrievalQueryOptions {
 }
 
 export function createKnowledgeReadRetrievalInfra(): KnowledgeReadRetrievalInfra {
-  return createDefaultKnowledgeReadRetrievalInfra();
+  return createDefaultKnowledgeReadRetrievalInfra() as unknown as KnowledgeReadRetrievalInfra;
 }
 
 export function createKnowledgeReadChannelRegistry(): ChannelRegistry {

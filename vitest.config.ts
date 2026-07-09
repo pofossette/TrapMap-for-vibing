@@ -180,6 +180,10 @@ export default defineConfig({
               replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
             },
             {
+              find: '@trapmap/runtime-infra',
+              replacement: resolve(__dirname, './packages/runtime-infra/src/index.ts'),
+            },
+            {
               find: 'fastify',
               replacement: fastifyEntry,
             },
@@ -213,6 +217,10 @@ export default defineConfig({
             {
               find: '@trapmap/backend-core',
               replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
+            },
+            {
+              find: '@trapmap/runtime-infra',
+              replacement: resolve(__dirname, './packages/runtime-infra/src/index.ts'),
             },
             {
               find: 'fastify',
@@ -283,6 +291,10 @@ export default defineConfig({
             {
               find: '@trapmap/backend-core',
               replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
+            },
+            {
+              find: '@trapmap/runtime-infra',
+              replacement: resolve(__dirname, './packages/runtime-infra/src/index.ts'),
             },
             {
               find: 'fastify',
