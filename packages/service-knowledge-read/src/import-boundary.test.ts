@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -58,7 +58,38 @@ const FORBIDDEN_IMPORTS = [
   '@trapmap/server/lib/feedback/remediation.js',
 ];
 
+async function collectTypeScriptFiles(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const files = await Promise.all(
+    entries.map(async (entry) => {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        return collectTypeScriptFiles(fullPath);
+      }
+
+      return fullPath.endsWith('.ts') ? [fullPath] : [];
+    }),
+  );
+
+  return files.flat();
+}
+
 describe('knowledge-read import boundary', () => {
+  it('keeps all business source files free of direct @trapmap/server imports', async () => {
+    const root = path.resolve(import.meta.dirname);
+    const files = await collectTypeScriptFiles(root);
+
+    for (const file of files) {
+      if (path.basename(file) === 'import-boundary.test.ts') {
+        continue;
+      }
+
+      const source = await readFile(file, 'utf-8');
+      expect(source).not.toMatch(/from\s+['"]@trapmap\/server(?:\/[^'"]*)?['"]/);
+      expect(source).not.toMatch(/import\s*\(\s*['"]@trapmap\/server(?:\/[^'"]*)?['"]\s*\)/);
+    }
+  });
+
   it('keeps retrieval core files free of direct server retrieval internals', async () => {
     const root = path.resolve(import.meta.dirname, '..');
 

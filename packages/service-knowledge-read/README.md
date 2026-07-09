@@ -30,6 +30,7 @@
 | `server.ts` | 创建 Fastify 服务实例，注入依赖并注册路由 |
 | `routes.ts` | HTTP 路由注册与 `InvocationError` 到 HTTP 状态码的映射 |
 | `deps.ts` | 依赖适配层，将端口层接口桥接到 `@trapmap/backend-core` 的 `KnowledgeReadDeps` |
+| `entry-projection.ts` | `knowledge-read` 自有 entry projection：从仓库刷新完整 snapshot，并为 `getById` / `listMine` 提供缓存读模型 |
 | `server-retrieval-seam.ts` | 构建通道注册表 (semantic / keyword) 与策略注册表 (semantic / hybrid / graph-assisted)，并暴露 `RetrievalQueryPort` 实现 |
 | `retrieval-orchestration.ts` | `ChannelRegistry` 与 `StrategyRegistry` 的注册表类定义 |
 | `retrieval-keyword.ts` | 关键词召回通道：分词 (`tokenize`)、归一化 (`normalizeQuery`)、字段权重匹配 |
@@ -52,11 +53,10 @@
 | `@trapmap/backend-core` | 核心端口定义 (`KnowledgeReadPort`、`KnowledgeReadDeps`) 与模块工厂 |
 | `@trapmap/contracts` | 检索查询 / 响应 / 引用 / 摘要等契约 schema (Zod) |
 | `@trapmap/runtime-infra` | 运行时仓库接口 (`SkillShareerRepos`) 与 read-side runtime seams（graph types、retrieval default assembly、support default assembly） |
-| `@trapmap/server` | 无常规运行时依赖；仅测试 alias/历史迁移说明中提及 |
 | `fastify` | HTTP 框架 |
 | `pg` | PostgreSQL 客户端 (用于 pgvector 语义搜索与 pg keyword recall) |
 
-普通业务文件默认不直接认识 `@trapmap/server` 的治理、cache invalidation、prompt builder 模块布局。retrieval 默认装配与 support 默认装配均已迁到 `@trapmap/runtime-infra`，检索编排只通过 package-local seam 类型消费这些能力。
+普通业务文件不得直接导入 `@trapmap/server`。retrieval 默认装配与 support 默认装配均已迁到 `@trapmap/runtime-infra`，检索编排只通过 package-local seam 类型消费这些能力；若再次出现 `server` 直接导入，应视为边界回退。
 
 ## 环境变量
 

@@ -4,15 +4,15 @@ import {
   createKnowledgeReadModule,
 } from '@trapmap/backend-core';
 
+import { createKnowledgeEntryProjection } from './entry-projection.js';
+
 export type { KnowledgeReadDeps } from '@trapmap/backend-core';
 
 export interface KnowledgeReadPortDeps {
   knowledgeRepo: {
-    getById: KnowledgeReadDeps['knowledgeProjection']['getById'];
-    listByFilter(filter: {
-      ownerUserId?: string;
-      teamId?: string;
-    }): Promise<Awaited<ReturnType<KnowledgeReadDeps['knowledgeProjection']['listMine']>>>;
+    listByFilter(
+      filter: Record<string, never>,
+    ): Promise<Awaited<ReturnType<KnowledgeReadDeps['knowledgeProjection']['listMine']>>>;
   };
   retrievalQuery: KnowledgeReadDeps['retrievalQuery'];
 }
@@ -31,25 +31,23 @@ function createProjectionStatus(): ReadModelProjectionStatus {
         surface: 'knowledge-entry:getById',
         owner: 'knowledge-read',
         providedBy: 'knowledge-read',
-        source: 'temporary-direct-backed-projection',
+        source: 'derived-projection',
         authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
-        consistency: 'strong',
+        consistency: 'eventual',
         freshness: 'current',
-        fallback: 'direct-authoritative-read',
-        notes: 'Entry lookup is a temporary direct-backed read surface owned by knowledge-read.',
-        exitCriteria: 'replace with a derived entry projection owned by knowledge-read',
+        fallback: 'none',
+        notes: 'Entry lookup is served from the knowledge-read owned entry projection snapshot.',
       },
       {
         surface: 'knowledge-entry:listMine',
         owner: 'knowledge-read',
         providedBy: 'knowledge-read',
-        source: 'temporary-direct-backed-projection',
+        source: 'derived-projection',
         authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
-        consistency: 'strong',
+        consistency: 'eventual',
         freshness: 'current',
-        fallback: 'direct-authoritative-read',
-        notes: 'List queries are a temporary direct-backed read surface owned by knowledge-read.',
-        exitCriteria: 'replace with a derived entry projection owned by knowledge-read',
+        fallback: 'none',
+        notes: 'List queries are served from the knowledge-read owned entry projection snapshot.',
       },
       {
         surface: 'retrieval-search',
@@ -126,16 +124,15 @@ function createProjectionStatus(): ReadModelProjectionStatus {
 }
 
 export function createKnowledgeReadDeps(deps: KnowledgeReadPortDeps): KnowledgeReadDeps {
+  const entryProjection = createKnowledgeEntryProjection({ knowledgeRepo: deps.knowledgeRepo });
+
   return {
     knowledgeProjection: {
       async getById(entryId) {
-        return deps.knowledgeRepo.getById(entryId);
+        return entryProjection.getById(entryId);
       },
       async listMine(params) {
-        return deps.knowledgeRepo.listByFilter({
-          ownerUserId: params.userId,
-          ...(params.teamId ? { teamId: params.teamId } : {}),
-        });
+        return entryProjection.listMine(params);
       },
       async getStatus() {
         return createProjectionStatus();

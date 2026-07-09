@@ -126,7 +126,7 @@ rtk pnpm eval:smoke
 
 - 不再需要把 `knowledge-read` 的现状描述为“还不能拆的临时债务”
 - read projection contract、freshness contract、fallback 语义都有代码和文档证据
-- `GET /internal/knowledge-read/projection-status` 与 gateway 的 `GET /v1/knowledge/projection-status` 能区分 temporary direct-backed entry projections、derived retrieval / search / query-trace surfaces，以及不属于 `knowledge-read` 的 governance read surfaces
+- `GET /internal/knowledge-read/projection-status` 与 gateway 的 `GET /v1/knowledge/projection-status` 能区分 knowledge-read owned derived entry projections、derived retrieval / search / query-trace surfaces，以及不属于 `knowledge-read` 的 governance read surfaces
 
 ## 关卡 5：Job Runtime 已被证明能承接跨服务主路径
 

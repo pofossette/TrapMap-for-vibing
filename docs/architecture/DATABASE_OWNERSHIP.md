@@ -105,7 +105,7 @@
 
 - 任何服务可以读取其自身拥有的表。
 - 对于其他服务拥有的表，读取必须通过适当的内部端口（在 `backend-core` 中定义），而非直接访问表。例外：在 Phase 1 期间，当服务仍共享单一 `packages/server` 代码库时，允许直接读取，但必须在调用处添加注释记录：`// PHASE-1-TEMPORARY: direct read from <table>; replace with projection read after Phase 2`
-- `knowledge-read` 在 Phase 1 和 Phase 2 边界关闭姿态期间可以直接读取权威表，但仅限于通过 `GET /internal/knowledge-read/projection-status` 或其网关转发镜像 `GET /v1/knowledge/projection-status` 声明的临时直接支持投影。检索/搜索/查询追踪表面不在此许可范围内。
+- `knowledge-read` 的 `knowledge-entry:getById` 与 `knowledge-entry:listMine` 已由 `knowledge-read` 自有派生 entry projection 承载；请求路径不得直接读取 `knowledge-write` 权威表。projection refresh 可以通过仓库端口读取权威来源并在失效后重建快照。
 - `governance-review` 拥有审查队列、维护操作员视图和衰减工作台读取。如果治理侧读取在 Phase 2 仍需要共享权威状态，必须记录为临时直接支持的操作员投影，而非并入 `knowledge-read`。
 
 ## 事务边界规则

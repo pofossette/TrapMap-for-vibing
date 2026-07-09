@@ -33,11 +33,11 @@
 - **状态**：进行中
 - **优先级理由**：2026-07-08 的 `fallow` baseline 没有发现相对 `main` 的新增 changed-code 风险，但 repo 级 maintenance 信号仍集中在 server/read-side 复杂度、循环依赖和深耦合残留；该 tranche 继续是最直接的结构性收口点
 - **目标**：
-  - 压缩 `service-knowledge-read` 对 `packages/server/src/**` 的剩余深导入
-  - 把仍依赖 server internals 的默认 infra 装配、graph runtime 类型和少量 read runtime 接线迁移到稳定 port/query seam
-  - 继续收缩 temporary direct-backed projection / compatibility JSONB store 直读例外
+  - 收紧 `service-knowledge-read` zone 例外，只保留 `runtime-infra` 读侧 seam，不再允许直接依赖 `server`
+  - 继续收缩 `runtime-infra` 过渡 seam、compatibility JSONB store 直读例外和非 projection residual；`knowledge-read` entry read temporary direct-backed 例外已关闭
+  - 为 repo 级 `PostgresStore instanceof` / pool access 与循环依赖 residual 保持明确收口路径
 - **完成条件**：
-  - `service-knowledge-read` 的剩余 server deep import 残留面有显式清单并持续下降
+  - `service-knowledge-read` 的 `@trapmap/server` 直接导入保持归零，边界测试与 zone 规则同步证明其不再是允许例外
   - 与 retrieval / read-model 相关的循环依赖有实际关闭路径，而不是只记录为背景
   - 边界例外、读侧例外与 evidence 回写到相应 architecture/reference 文档，而不是只停留在 debt 描述
 
@@ -50,7 +50,7 @@
 - **来源**：[`docs/architecture/BOUNDARIES.md`](../architecture/BOUNDARIES.md)、`rtk pnpm exec fallow list --boundaries`
 - **证据**：
   - 2026-07-09 Wave 1 已移除 read-side 业务文件对 `server` error taxonomy 和 graph runtime types 的直接依赖，`search-knowledge.ts` / `retrieval-recall-coordinator.ts` 改用 `InvocationError`，`context.ts` / `retrieval-recall-coordinator.ts` 改用 `runtime-infra` graph seam types
-  - `service-knowledge-read` 当前仍被允许导入 `backend-core`、`contracts`、`server`、`runtime-infra`
+  - 2026-07-09 Wave 5 已将 `service-knowledge-read` zone 允许依赖收紧为 `backend-core`、`contracts`、`runtime-infra`，`server` 直接导入改为边界回退
   - 2026-07-09 Wave 2/3 已将 retrieval 与 support default assembly 迁到 `runtime-infra`
   - 剩余 `runtime-infra` 依赖目前主要承载 repo 与 graph runtime seam 类型：`read-model.ts`、`context.ts`
   - `fallow` targets 继续把 `packages/service-knowledge-read/src/retrieval-semantic.ts` 与 `packages/service-knowledge-read/src/retrieval-recall-coordinator.ts` 标成 `break_circular_dependency`
@@ -60,6 +60,8 @@
 - **infra assembly residual**
   - `retrieval-infra-default.ts`：已降级为兼容 re-export / typed adapter，默认 recall/scoring/query assembly owner 已迁到 `packages/runtime-infra/src/knowledge-read-retrieval-infra.ts`
   - `knowledge-read-support-infra-default.ts`：已降级为兼容 adapter，默认 prompt/cache/governance/decay assembly owner 已迁到 `packages/runtime-infra/src/knowledge-read-support-infra.ts`
+- **runtime-infra seam exception**
+  - `service-knowledge-read` 已不再保留 zone 级 `server` 依赖；当前唯一架构例外是 `runtime-infra` query-time seam，后续目标是继续缩小其 owner surface
 - **graph/runtime seam**
   - Wave 1 已完成首轮收口：graph runtime state/backend 类型不再直接从 `server` 暴露到 read-side 业务文件，现通过 `runtime-infra` 类型 seam 承载
 - **query / error seam**
@@ -67,13 +69,14 @@
 - **compatibility direct-read exception**
   - 仍保留在 architecture/reference truth surface 中；本波未扩展，也未把其重新写回并行主线
 
-#### 2. 读侧 temporary direct-backed / projection exception
+#### 2. 读侧 projection exception residual
 
 - **分类**：existing debt confirmed
 - **影响**：读写边界不稳，projection/query seam 难以收敛
 - **来源**：[`docs/architecture/SERVICE_BOUNDARIES.md`](../architecture/SERVICE_BOUNDARIES.md)、[`docs/architecture/DATABASE_OWNERSHIP.md`](../architecture/DATABASE_OWNERSHIP.md)
 - **证据**：
-  - 当前权威文档仍承认 temporary direct-backed projections 与 Phase 1/2 直读例外
+  - 2026-07-09 Wave 4 已关闭 `knowledge-entry:getById` / `knowledge-entry:listMine` 的 temporary direct-backed 例外，二者改由 `service-knowledge-read` 自有 entry projection 提供
+  - Tranche A 剩余项转为 compatibility JSONB store 直读、repo 级 `PostgresStore instanceof` / pool access、以及非 entry projection residual，不再把这两个 entry read surface 记为 active exception
   - 与 read-side coupling 同属一个收口面，不宜拆成并行主线
 
 #### 3. `PostgresStore instanceof` / pool access 模式

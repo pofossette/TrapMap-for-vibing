@@ -65,6 +65,7 @@
 - 查询追踪和分析
 - 读投影与搜索索引维护
 - 读侧缓存管理
+- 通过自有派生 entry projection 提供 `knowledge-entry:getById` / `knowledge-entry:listMine`
 
 **权威表**：无。该服务只写派生读模型和索引状态。
 

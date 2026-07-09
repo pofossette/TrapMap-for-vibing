@@ -20,7 +20,7 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 | `server` | `packages/server/src/**` | Fastify 兼容层和基础设施适配器（persistence/repos/cache/AI/indexing），承载迁移期兼容壳与既有实现面 |
 | `runtime-infra` | `packages/runtime-infra/src/**` | 运行时基础设施桥接层（Drizzle/PG 适配器），提供共享的 store/repo 组装、异步传输接线、AI provider 引导等 |
 | `service-standard` | `packages/service-identity-access/src/**`、`packages/service-candidate-ingestion/src/**`、`packages/service-governance-review/src/**`、`packages/service-job-runtime/src/**`、`packages/service-knowledge-write/src/**` | 标准服务装配包（identity-access、candidate-ingestion、governance-review、job-runtime、knowledge-write），只依赖 `backend-core` + `contracts` |
-| `service-knowledge-read` | `packages/service-knowledge-read/src/**` | 知识读取服务（特殊：额外依赖 `server` + `runtime-infra`），见下方已知例外说明 |
+| `service-knowledge-read` | `packages/service-knowledge-read/src/**` | 知识读取服务（特殊：保留 `runtime-infra` 读侧 seam 例外），见下方已知例外说明 |
 | `host-local` | `packages/host-local/src/**` | 本地宿主组合根（NestJS 光主机），为 `local-agent` 和 `team-monolith` profile 装配所有服务 |
 | `host-distributed` | `packages/host-distributed/src/**` | 分布式宿主组合根（完整微服务宿主），为 `distributed` profile 装配所有服务 |
 | `cli` | `packages/cli/src/**` | CLI 客户端界面（Commander.js），消费 `client-core` |
@@ -82,7 +82,6 @@ flowchart TB
 
     service-knowledge-read --> backend-core
     service-knowledge-read --> contracts
-    service-knowledge_read --> server
     service-knowledge-read --> runtime-infra
 
     runtime-infra --> server
@@ -124,9 +123,9 @@ web-panel → client-core → (none)
 
 ## 已知例外
 
-### service-knowledge-read 对 server 和 runtime-infra 的依赖
+### service-knowledge-read 仅保留 runtime-infra 读侧 seam 例外
 
-`service-knowledge-read` zone 额外允许依赖 `server` 和 `runtime-infra`，这是一个 **有意为之（intentional）但应持续收缩** 的迁移期决定。
+`service-knowledge-read` zone 当前只额外允许依赖 `runtime-infra`，这是一个 **有意为之（intentional）但应持续收缩** 的迁移期决定。
 
 **原因**：知识读取服务（retrieval read model）需要基础设施层的检索/查询能力，包括：
 
@@ -134,9 +133,9 @@ web-panel → client-core → (none)
 - 读取侧缓存和投影查询的存储实现
 - Graph query backend 的适配连接
 
-这是 CQRS 模式中读侧的典型特征：读侧服务需要直接访问基础设施层的查询优化能力，而写侧服务只需要通过端口抽象与基础设施交互。此例外已在 `.fallowrc.json` 的 `service-knowledge-read` zone 规则中显式声明。
+这是 CQRS 模式中读侧的典型特征：读侧服务需要访问基础设施层的查询优化能力，而写侧服务只需要通过端口抽象与基础设施交互。当前约束要求这些能力经由 `runtime-infra` 暴露的稳定 seam 进入读侧，而不是由业务源码直接导入 `server` internals。此例外已在 `.fallowrc.json` 的 `service-knowledge-read` zone 规则中显式声明。
 
-2026-07-09 baseline：该例外已不再覆盖 read-side 业务文件对 `server` error taxonomy、graph runtime types 或 retrieval / support default assembly 的直接依赖；这些已分别迁回 `backend-core` `InvocationError`、`runtime-infra` graph seam types 与 `runtime-infra` read-side default seams。当前如再出现 `server` 直接依赖，应视为新的边界回退信号而不是既有默认装配例外。
+2026-07-09 baseline：该例外已不再覆盖 read-side 业务文件对 `server` error taxonomy、graph runtime types 或 retrieval / support default assembly 的直接依赖；这些已分别迁回 `backend-core` `InvocationError`、`runtime-infra` graph seam types 与 `runtime-infra` read-side default seams。`server` 直接导入现在属于回归信号，不再是 zone 级允许项。
 
 ## 使用指南
 
@@ -186,17 +185,17 @@ The coupling audit (Phase 0.6) identified several patterns that violate strict l
 
 **Location**: `packages/service-knowledge-read/src/` (historically concentrated behind local read-side seam default assembly; now expected to stay on stable seams)
 
-**Pattern**: Despite the zone-level CQRS exception documented above, `service-knowledge-read` historically depended on server internals for parts of the read path. Retrieval-core business files now consume package-local `retrievalInfra` and `knowledgeReadSupportInfra` seams instead of importing recall/scoring/governance/cache/prompt internals directly, and both retrieval/support default assemblies now resolve through `runtime-infra`.
+**Pattern**: `service-knowledge-read` historically depended on server internals for parts of the read path. Retrieval-core business files now consume package-local `retrievalInfra` and `knowledgeReadSupportInfra` seams instead of importing recall/scoring/governance/cache/prompt internals directly, and both retrieval/support default assemblies now resolve through `runtime-infra`.
 
-**Why intentional**: The CQRS read-side requires access to retrieval pipeline internals for query optimization. This exception was an explicit architectural decision.
+**Why intentional**: The CQRS read-side still requires query-time infrastructure seams for retrieval optimization, but that allowance is now limited to `runtime-infra` as the transitional bridge.
 
-**Tech debt**: The coupling grew beyond the original CQRS read-side scope into wholesale duplication of server internals. Earlier closeout batches reduced the deepest retrieval-core and read-side helper imports to local seams, the 2026-07-09 Wave 1 cut removed direct `server` runtime-type/error imports from read-side business files, Wave 2 moved retrieval default assembly to `runtime-infra`, and Wave 3 moved support default assembly there as well. Remaining debt in this category should now be treated as regression monitoring and any non-assembly residuals, not legacy default assembly location.
+**Tech debt**: The coupling grew beyond the original CQRS read-side scope into wholesale duplication of server internals. Earlier closeout batches reduced the deepest retrieval-core and read-side helper imports to local seams, the 2026-07-09 Wave 1 cut removed direct `server` runtime-type/error imports from read-side business files, Wave 2 moved retrieval default assembly to `runtime-infra`, Wave 3 moved support default assembly there, and Wave 5 removed the zone-level `server` allowance. Remaining debt in this category should now be treated as `runtime-infra` seam shrinkage, repo-level `PostgresStore instanceof` / pool-access removal, and circular dependency residuals.
 
 **Status**: Known debt, tracked in open-debt register.
 Remaining exception evidence:
-- Why retained now: zone 级 CQRS 例外仍允许 read-side 依赖 `runtime-infra`，并为 direct-read / projection 类残留保留审计空间
-- Next trigger to re-evaluate: when a new `fallow` baseline shows non-assembly files reintroducing `server` imports or the direct-read / projection exception can be fully收口
-- Minimum evidence to keep the exception: `rtk rg "@trapmap/server" packages/service-knowledge-read/src` 不应再返回默认装配文件命中；若出现命中，应先作为边界回退处理
+- Why retained now: zone 级 CQRS 例外仍允许 read-side 依赖 `runtime-infra`，以承载 retrieval/support/query-time seams 与 direct-read / projection 类残留的过渡装配
+- Next trigger to re-evaluate: when a new `fallow` baseline shows `runtime-infra` seam 可继续下沉，或 repo-level `PostgresStore instanceof` / pool-access 收口完成
+- Minimum evidence to keep the exception: `rtk rg "@trapmap/server" packages/service-knowledge-read/src -n` 只应命中 `import-boundary.test.ts` 的禁止清单字符串；若出现其他命中，应先作为边界回退处理
 
 ### Category C: Drizzle Schema Imports in Recall Channels (Low Severity)
 

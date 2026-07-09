@@ -110,7 +110,7 @@
       },
       {
         "from": "service-knowledge-read",
-        "allow": ["backend-core", "contracts", "server", "runtime-infra"]
+        "allow": ["backend-core", "contracts", "runtime-infra"]
       },
       {
         "from": "host-local",

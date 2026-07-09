@@ -2,14 +2,18 @@ import type {
   KnowledgeReadDeps as BackendKnowledgeReadDeps,
   KnowledgeReadPort,
 } from '@trapmap/backend-core';
-import { describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import { createKnowledgeReadDeps, createKnowledgeReadServiceModule } from './deps.js';
+import { resetKnowledgeEntryProjectionCacheForTests } from './entry-projection.js';
 
 describe('knowledge-read deps', () => {
+  beforeEach(() => {
+    resetKnowledgeEntryProjectionCacheForTests();
+  });
+
   it('exports backend-core aligned deps and module contract', () => {
     const knowledgeRepo = {
-      getById: vi.fn(async () => null),
       listByFilter: vi.fn(async () => []),
     };
     const retrievalQuery = {
@@ -25,19 +29,22 @@ describe('knowledge-read deps', () => {
     expectTypeOf<KnowledgeReadPort>().toMatchTypeOf(module);
   });
 
-  it('routes knowledge reads through temporary direct-backed projections while search stays on retrievalQuery', async () => {
+  it('routes knowledge reads through the derived entry projection while search stays on retrievalQuery', async () => {
     const knowledgeRepo = {
-      getById: vi.fn(async (entryId: string) => ({
-        id: entryId,
-        content: 'hello',
-        lifecycleState: 'approved' as const,
-        ownerUserId: 'user-1',
-        teamId: 'team-1',
-      })),
+      getById: vi.fn(async () => {
+        throw new Error('direct getById must not be used by knowledge-read');
+      }),
       listByFilter: vi.fn(async () => [
         {
+          id: 'entry-1',
+          content: 'hello',
+          lifecycleState: 'approved' as const,
+          ownerUserId: 'user-1',
+          teamId: 'team-1',
+        },
+        {
           id: 'entry-2',
-          content: 'mine',
+          content: 'team filtered',
           lifecycleState: 'approved' as const,
           ownerUserId: 'user-1',
           teamId: 'team-2',
@@ -63,11 +70,9 @@ describe('knowledge-read deps', () => {
       channel: 'derived-index',
     });
 
-    expect(knowledgeRepo.getById).toHaveBeenCalledWith('entry-1');
-    expect(knowledgeRepo.listByFilter).toHaveBeenCalledWith({
-      ownerUserId: 'user-1',
-      teamId: 'team-2',
-    });
+    expect(knowledgeRepo.getById).not.toHaveBeenCalled();
+    expect(knowledgeRepo.listByFilter).toHaveBeenCalledTimes(1);
+    expect(knowledgeRepo.listByFilter).toHaveBeenCalledWith({});
     expect(retrievalQuery.search).toHaveBeenCalledWith({
       query: 'hello',
       teamId: 'team-1',
@@ -78,7 +83,6 @@ describe('knowledge-read deps', () => {
   it('keeps the phase-2 projection status contract closed over derived surfaces', async () => {
     const deps = createKnowledgeReadDeps({
       knowledgeRepo: {
-        getById: vi.fn(async () => null),
         listByFilter: vi.fn(async () => []),
       },
       retrievalQuery: {
@@ -93,15 +97,17 @@ describe('knowledge-read deps', () => {
       status.surfaces.find((surface) => surface.surface === 'knowledge-entry:getById'),
     ).toMatchObject({
       owner: 'knowledge-read',
-      source: 'temporary-direct-backed-projection',
-      fallback: 'direct-authoritative-read',
+      source: 'derived-projection',
+      consistency: 'eventual',
+      fallback: 'none',
     });
     expect(
       status.surfaces.find((surface) => surface.surface === 'knowledge-entry:listMine'),
     ).toMatchObject({
       owner: 'knowledge-read',
-      source: 'temporary-direct-backed-projection',
-      fallback: 'direct-authoritative-read',
+      source: 'derived-projection',
+      consistency: 'eventual',
+      fallback: 'none',
     });
     expect(status.surfaces.find((surface) => surface.surface === 'retrieval-search')).toMatchObject(
       {
