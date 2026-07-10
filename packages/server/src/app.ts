@@ -13,7 +13,6 @@ import { type GraphQueryBackend, createGraphQueryRuntimeState } from './lib/grap
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
 import { LifecycleEventBus } from './lib/lifecycle/index.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
-import { PostgresStore } from './lib/persistence/postgres-store.js';
 import {
   ChannelRegistry,
   StrategyRegistry,
@@ -37,6 +36,7 @@ import {
   resolveServiceUnit,
 } from './lib/runtime/index.js';
 import type { RuntimeMode } from './lib/runtime/index.js';
+import { getStorePool } from './lib/store.js';
 
 import { getOtelSdk, runStartupSequence } from './bootstrap/run-startup-sequence.js';
 import { createTracingPortAdapter } from './lib/runtime/tracing-port-adapter.js';
@@ -203,10 +203,11 @@ export function buildServer(options: BuildServerOptions = {}) {
 
   app.decorate('skillShareer', skillShareer);
 
-  if (app.skillShareer.store instanceof PostgresStore) {
+  const storePool = getStorePool(app.skillShareer.store);
+  if (storePool) {
     app.skillShareer.asyncTransport = createAsyncTransport({
       config: app.skillShareer.config,
-      pool: app.skillShareer.store.getPool(),
+      pool: storePool,
     });
   }
 
@@ -285,8 +286,9 @@ export function buildServer(options: BuildServerOptions = {}) {
       }
     }
 
-    if (store instanceof PostgresStore) {
-      await store.close();
+    const closeStore = (store as { close?: () => Promise<void> | void }).close;
+    if (typeof closeStore === 'function') {
+      await closeStore.call(store);
     }
   });
 

@@ -16,8 +16,11 @@ import { createHash } from 'node:crypto';
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { createLabelRepository } from '@trapmap/server/lib/labels/repository.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import type { SkillArtifactRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
+import {
+  getStorePool,
+  type SkillArtifactRecord,
+  type SkillShareerStore,
+} from '@trapmap/server/lib/store.js';
 import {
   type GraphEdgeRecord,
   type GraphIndexDocumentRecord,
@@ -87,17 +90,17 @@ export async function buildSkillGraphDocument(
   let edges: GraphEdgeRecord[];
 
   if (chat?.isConfigured) {
+    const pool = getStorePool(store);
     // LLM extraction path
     const llmResult = await extractGraphEntitiesWithLLM(chat, canonicalText, {
       llmEnabled: true,
-      alignmentService:
-        store instanceof PostgresStore
-          ? {
-              chat,
-              repository: createLabelRepository({ pool: store.getPool() }),
-              sourceContext: 'skill-extraction',
-            }
-          : null,
+      alignmentService: pool
+        ? {
+            chat,
+            repository: createLabelRepository({ pool }),
+            sourceContext: 'skill-extraction',
+          }
+        : null,
     });
     nodes = llmResult.nodes;
     edges = llmResult.edges;

@@ -1,6 +1,6 @@
 import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/index.js';
+import { getStorePool } from '@trapmap/server/lib/store.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 import type { Pool } from 'pg';
 
@@ -50,8 +50,9 @@ export function createBadcaseExportDraftHandler(args: {
         updatedAt: now,
       });
 
-      if (args.services.store instanceof PostgresStore) {
-        await args.services.store.getPool().query(
+      const storePool = getStorePool(args.services.store);
+      if (storePool) {
+        await storePool.query(
           `UPDATE retrieval_badcase_traces
            SET updated_at = NOW()
            WHERE feedback_id = $1`,

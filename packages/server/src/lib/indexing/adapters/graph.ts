@@ -27,9 +27,12 @@ import {
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { IndexAdapter, IndexSyncResult } from '@trapmap/server/lib/indexing/types.js';
 import { createLabelRepository } from '@trapmap/server/lib/labels/repository.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
-import { nowIso } from '@trapmap/server/lib/store.js';
+import {
+  getStorePool,
+  nowIso,
+  type SkillShareerStore,
+  type StoreData,
+} from '@trapmap/server/lib/store.js';
 import { buildTrapGraphDocument } from './graph-builders.js';
 
 // ---------------------------------------------------------------------------
@@ -121,6 +124,7 @@ export const graphIndexAdapter: IndexAdapter & {
     }
 
     try {
+      const pool = getStorePool(store);
       // Extract graph entities and relations through the LLM pipeline only.
       const llmResult = await extractGraphEntitiesWithLLM(
         chat ?? { provider: 'none', isConfigured: false, invoke: async () => '' },
@@ -129,10 +133,10 @@ export const graphIndexAdapter: IndexAdapter & {
           llmEnabled: !!chat?.isConfigured,
           cache: llmCache,
           alignmentService:
-            chat?.isConfigured && store instanceof PostgresStore
+            chat?.isConfigured && pool
               ? {
                   chat,
-                  repository: createLabelRepository({ pool: store.getPool() }),
+                  repository: createLabelRepository({ pool }),
                   sourceContext: 'trap-extraction',
                 }
               : null,

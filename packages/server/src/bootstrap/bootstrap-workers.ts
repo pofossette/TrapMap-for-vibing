@@ -6,12 +6,13 @@
  */
 
 import type { FastifyInstance } from 'fastify';
+import type { Pool } from 'pg';
 
 import { createCandidateProcessingHandler } from '@trapmap/server/lib/candidates/index.js';
 import { buildSharedJobHandlersContract } from '@trapmap/server/lib/jobs/index.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 import { createTaskWorker } from '@trapmap/server/lib/queue/task-worker.js';
+import { getStorePool, type SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 export interface BootstrapWorkersOptions {
   enabled?: boolean;
@@ -21,13 +22,14 @@ export interface BootstrapWorkersOptions {
 
 function buildSharedJobWorkerHandlers(
   app: FastifyInstance,
-  store: PostgresStore,
+  store: SkillShareerStore,
+  pool: Pool,
 ): TaskHandler<unknown>[] {
   const contract = buildSharedJobHandlersContract({
     knowledgeIndexFollowUp: {
       store,
       registry: app.skillShareer.adapterRegistry,
-      pool: store.getPool(),
+      pool,
       graphQueryBackend: app.skillShareer.graphQueryBackend,
     },
     skillIndexFollowUp: {
@@ -36,7 +38,7 @@ function buildSharedJobWorkerHandlers(
         ai: app.skillShareer.ai,
         graphQueryBackend: app.skillShareer.graphQueryBackend,
       },
-      pool: store.getPool(),
+      pool,
     },
     remediationReactivation: {
       services: {
@@ -49,13 +51,13 @@ function buildSharedJobWorkerHandlers(
         ai: app.skillShareer.ai,
         graphQueryBackend: app.skillShareer.graphQueryBackend,
       },
-      pool: store.getPool(),
+      pool,
     },
     badcaseExportDraft: {
       services: {
         store,
       },
-      pool: store.getPool(),
+      pool,
     },
   });
 
@@ -78,10 +80,10 @@ export async function bootstrapWorkers(
     ownSharedJobTaskWork = enabled,
   } = options;
 
-  // Only runs when using PostgresStore (databaseUrl configured)
-  if (!(store instanceof PostgresStore)) return;
+  // Only runs when the store exposes PostgreSQL pool access (databaseUrl configured).
+  const pool = getStorePool(store);
+  if (!pool) return;
 
-  const pool = store.getPool();
   const taskTransport = app.skillShareer.asyncTransport?.task;
 
   const handler = createCandidateProcessingHandler({
@@ -98,7 +100,10 @@ export async function bootstrapWorkers(
 
   if (taskTransport?.kind === 'rabbitmq-task-queue' && taskTransport.createConsumer) {
     const consumer = await taskTransport.createConsumer({
-      handlers: [handler as TaskHandler<unknown>, ...buildSharedJobWorkerHandlers(app, store)],
+      handlers: [
+        handler as TaskHandler<unknown>,
+        ...buildSharedJobWorkerHandlers(app, store, pool),
+      ],
       ownsWork: enabled,
     });
 
@@ -135,7 +140,7 @@ export async function bootstrapWorkers(
       shouldOwn: ownSharedJobTaskWork,
       worker: createTaskWorker({
         pool,
-        handlers: buildSharedJobWorkerHandlers(app, store),
+        handlers: buildSharedJobWorkerHandlers(app, store, pool),
         pollIntervalMs: 1000,
         concurrency: 1,
         ownsWork: ownSharedJobTaskWork,

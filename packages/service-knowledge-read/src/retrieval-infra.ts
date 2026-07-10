@@ -1,13 +1,13 @@
 import type { SkillShareerServices } from './context.js';
 import type { KnowledgeReadRetrievalInfra } from './context.js';
 
-import { createKnowledgeReadRetrievalInfra } from './server-retrieval-seam.js';
+import { createDefaultKnowledgeReadRetrievalInfra } from './retrieval-infra-default.js';
 
 let defaultRetrievalInfra: KnowledgeReadRetrievalInfra | null = null;
 
 export function getDefaultRetrievalInfra(): KnowledgeReadRetrievalInfra {
   if (!defaultRetrievalInfra) {
-    defaultRetrievalInfra = createKnowledgeReadRetrievalInfra();
+    defaultRetrievalInfra = createDefaultKnowledgeReadRetrievalInfra();
   }
   return defaultRetrievalInfra;
 }

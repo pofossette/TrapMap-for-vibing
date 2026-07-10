@@ -31,11 +31,11 @@
 ### Tranche A - read-side coupling / `service-knowledge-read` deep coupling closeout
 
 - **状态**：进行中
-- **优先级理由**：2026-07-08 的 `fallow` baseline 没有发现相对 `main` 的新增 changed-code 风险，但 repo 级 maintenance 信号仍集中在 server/read-side 复杂度、循环依赖和深耦合残留；该 tranche 继续是最直接的结构性收口点
+- **优先级理由**：2026-07-09 的 `fallow` baseline 没有发现相对 `main` 的新增 changed-code 风险，但 repo 级 maintenance 信号仍集中在 server/read-side 复杂度、循环依赖和深耦合残留；该 tranche 继续是最直接的结构性收口点
 - **目标**：
   - 收紧 `service-knowledge-read` zone 例外，只保留 `runtime-infra` 读侧 seam，不再允许直接依赖 `server`
   - 继续收缩 `runtime-infra` 过渡 seam、compatibility JSONB store 直读例外和非 projection residual；`knowledge-read` entry read temporary direct-backed 例外已关闭
-  - 为 repo 级 `PostgresStore instanceof` / pool access 与循环依赖 residual 保持明确收口路径
+  - 为 repo 级 `PostgresStore instanceof` / pool access 保持明确收口路径
 - **完成条件**：
   - `service-knowledge-read` 的 `@trapmap/server` 直接导入保持归零，边界测试与 zone 规则同步证明其不再是允许例外
   - 与 retrieval / read-model 相关的循环依赖有实际关闭路径，而不是只记录为背景
@@ -52,13 +52,16 @@
   - 2026-07-09 Wave 1 已移除 read-side 业务文件对 `server` error taxonomy 和 graph runtime types 的直接依赖，`search-knowledge.ts` / `retrieval-recall-coordinator.ts` 改用 `InvocationError`，`context.ts` / `retrieval-recall-coordinator.ts` 改用 `runtime-infra` graph seam types
   - 2026-07-09 Wave 5 已将 `service-knowledge-read` zone 允许依赖收紧为 `backend-core`、`contracts`、`runtime-infra`，`server` 直接导入改为边界回退
   - 2026-07-09 Wave 2/3 已将 retrieval 与 support default assembly 迁到 `runtime-infra`
+  - 2026-07-09 Wave 6 已让 `retrieval-infra.ts` 直接依赖 `retrieval-infra-default.ts`，不再通过同时承载 query-port adapter 的 `server-retrieval-seam.ts` 获取默认 infra，关闭 `search-knowledge -> retrieval-infra -> server-retrieval-seam -> search-knowledge` 循环路径
+  - 2026-07-09 Wave 7 已让 `http-hooks.ts` 改用 `metrics.ts`、`request-context.ts`、`runtime-contract.ts` 直接导入，关闭 `server/src/lib/runtime/http-hooks.ts` <-> `server/src/lib/runtime/index.ts` 的 runtime barrel cycle
   - 剩余 `runtime-infra` 依赖目前主要承载 repo 与 graph runtime seam 类型：`read-model.ts`、`context.ts`
-  - `fallow` targets 继续把 `packages/service-knowledge-read/src/retrieval-semantic.ts` 与 `packages/service-knowledge-read/src/retrieval-recall-coordinator.ts` 标成 `break_circular_dependency`
+  - `rtk pnpm exec fallow dead-code --circular-deps --format json --quiet --top 10` 当前显示 `total_issues=0` / `circular_dependencies=0`
+  - `rtk pnpm exec fallow --format json --quiet --summary` 当前显示 `unused_files=0`，`retrieval-infra-default.ts` 已由 `retrieval-infra.ts` 显式引用，不再是 unused compatibility file
 
 #### Tranche A 当前残留分类（2026-07-09 baseline）
 
 - **infra assembly residual**
-  - `retrieval-infra-default.ts`：已降级为兼容 re-export / typed adapter，默认 recall/scoring/query assembly owner 已迁到 `packages/runtime-infra/src/knowledge-read-retrieval-infra.ts`
+  - `retrieval-infra-default.ts`：已降级为兼容 re-export / typed adapter，默认 recall/scoring/query assembly owner 已迁到 `packages/runtime-infra/src/knowledge-read-retrieval-infra.ts`，且 `retrieval-infra.ts` 直接使用该 adapter，避免 query-port seam 重新进入默认 infra 路径
   - `knowledge-read-support-infra-default.ts`：已降级为兼容 adapter，默认 prompt/cache/governance/decay assembly owner 已迁到 `packages/runtime-infra/src/knowledge-read-support-infra.ts`
 - **runtime-infra seam exception**
   - `service-knowledge-read` 已不再保留 zone 级 `server` 依赖；当前唯一架构例外是 `runtime-infra` query-time seam，后续目标是继续缩小其 owner surface
@@ -102,9 +105,19 @@
 - **状态**：queued
 - **进入条件**：当 repo-level maintenance 信号开始转化为当前主线之外的明确回归风险，或 tranche A/B 结束后需要独立收口
 - **最小证据**：
-  - dead exports 占比 `7.4%`
-  - circular dependencies `9`
-  - 代表性 targets：`packages/cli/src/lib/output-profile.ts`、`packages/server/src/lib/ai/prompt-builder.ts`、`packages/server/src/lib/indexing/graph-lite/llm-extract.ts`
+  - repo 级 `fallow` cleanup summary：`394` total issues，其中 `unused_files=0`、`unused_exports=230`、`unused_types=113`、`unused_class_members=50`、`unused_dependencies=1`、`circular_dependencies=0`
+  - health summary：`302` functions above threshold，其中 critical `57`、high `83`、moderate `162`；dead export 占比仍为 `7.4%`
+  - duplication summary：top 50 clone groups 统计为 `19.16%` duplicated lines / `54040` duplicated lines；top clone 大多集中在 CLI/server 测试 helper，但也包含 `service-governance-review` 与 `service-knowledge-write` route error wrapper 重复
+  - 代表性 targets：`packages/cli/src/lib/output-profile.ts`、`packages/cli/src/lib/output-profile/renderers.ts`、`packages/server/src/lib/ai/prompt-builder.ts`、`packages/server/src/lib/indexing/graph-lite/llm-extract.ts`、`packages/server/src/lib/retrieval/scoring/boundary-match.ts`
+
+### Tranche D - security candidate verification
+
+- **状态**：queued / verify-before-action
+- **进入条件**：当 security candidate 被人工验证为真实风险，或 security rules 从 advisory/off 转为 CI gate
+- **最小证据**：
+  - `rtk pnpm exec fallow security --format json --quiet --summary` 报告 `99` 个 security candidates：high `2`、medium `96`、low `1`
+  - category 分布：`sql-injection=41`、`path-traversal=32`、`ssrf=10`、`dynamic-regex=6`、`code-injection=3`、`command-injection=2`、`header-injection=2`、`secret-pii-log=2`、`insecure-randomness=1`
+  - 当前 security config 中 `security_client_server_leak` 与 `security_sink` 均为 configured `off` / effective `warn`，因此这些是待验证候选，不直接作为 confirmed vulnerability 或 active mainline issue
 
 ## Deferred / Frozen Decisions
 
@@ -117,25 +130,34 @@
 
 ## 最新基线摘要
 
-> Baseline date: 2026-07-08
+> Baseline date: 2026-07-09
 
 本轮基线证据来自以下命令：
 
-- `rtk pnpm exec fallow audit --base main --format json --quiet --explain || true`
-- `rtk pnpm exec fallow health --hotspots --targets --format json --quiet --explain || true`
-- `rtk pnpm exec fallow list --boundaries || true`
+- `rtk pnpm exec fallow audit --base main --gate new-only --format json --quiet --explain || true`
+- `rtk pnpm exec fallow --format json --quiet --summary || true`
+- `rtk pnpm exec fallow health --hotspots --targets --format json --quiet --top 20 || true`
+- `rtk pnpm exec fallow dupes --format json --quiet --top 10 || true`
+- `rtk pnpm exec fallow flags --format json --quiet --top 20 || true`
+- `rtk pnpm exec fallow security --format json --quiet --summary || true`
+- `rtk pnpm exec fallow list --boundaries --format json --quiet || true`
 
 - **existing debt confirmed**
-  - 相对 `main` 的 changed-code audit 为 clean；当前需要处理的是 repo 已存在的维护债，而不是本轮新增回归
-  - read-side / server 复杂度仍是主要维护风险聚集面
-  - `service-knowledge-read` 相关循环依赖和边界耦合仍是稳定信号，支持把 read-side coupling 保持为唯一 active tranche
+  - 相对 `main` 的 changed-code audit 为 pass，`changed_files_count=6`，`dead_code_introduced=0`，`complexity_introduced=0`；当前分支未引入新的 fallow gate regression
+  - boundary report 显示 `11` 个 zones / `11` 条 rules 且当前 `boundary_violations=0`；`service-knowledge-read` 允许依赖仍为 `backend-core`、`contracts`、`runtime-infra`
+  - read-side / server 复杂度仍是主要维护风险聚集面；`service-knowledge-read` 直接 server import、unused default infra file 和 read-side cycle 已关闭，剩余 Tranche A 聚焦 `runtime-infra` seam shrinkage 与 `PostgresStore instanceof` / pool-access 收口
 - **backlog signal retained**
-  - repo 级 dead export 比例为 `7.4%`
-  - 当前检测到 `9` 个 circular dependencies
+  - repo 级 dead export 比例为 `7.4%`，当前检测到 `0` 个 circular dependencies
+  - cleanup summary 当前为 `394` total issues，主要由 unused exports/types/class members 构成
+  - health summary 当前为 `302` functions above threshold，critical/high/moderate 分别为 `57` / `83` / `162`
+  - duplication top signal 仍主要是测试 helper 重复，但跨 service route wrapper 重复可作为后续低风险抽象候选
   - `packages/web-panel/src/services/api/admin-panel-api.ts` 进入 accelerating hotspot，可作为后续 tranche 的候选项
+  - security candidates 当前保留为 verify backlog：`99` candidates，但规则 configured `off` 且需要人工确认 trace/reachability 后才能进入 active remediation
 - **not entering current mainline**
   - 单次 health 输出中的大量复杂度 targets 不直接等于 mainline 排序
-  - changed-files audit 为 `0`，因此没有把“本轮改动引入的新债务”写入 active pool
+  - feature flag scan 为 `0`，不形成新的 flag cleanup tranche
+  - changed-files audit 的 introduced issue 计数为 `0`，因此没有把“本轮改动引入的新债务”写入 active pool
+  - security 输出是 candidate/advisory 级别，未验证前不写成 confirmed vulnerability
 
 ## 证据入口
 

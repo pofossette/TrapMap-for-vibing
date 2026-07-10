@@ -10,7 +10,6 @@ import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/
 import { DEFAULT_FRESHNESS_CONFIG } from '@trapmap/server/lib/decay/index.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/index.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { vectorSimilaritySearch } from '@trapmap/server/lib/retrieval/recall/db-search.js';
 import { graphAssistedRecall as graphRecall } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
 import { keywordRecall, normalizeQuery } from '@trapmap/server/lib/retrieval/recall/keyword.js';
@@ -33,7 +32,7 @@ import type {
   RoutingChannel,
   ScoredEntry,
 } from '@trapmap/server/lib/retrieval/types.js';
-import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import { getStorePool, type KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import type { Pool } from 'pg';
 import type { ChannelRegistry } from './channel-registry.js';
 import type { StrategyRegistry } from './strategy-registry.js';
@@ -71,7 +70,7 @@ export interface RecallExecutionResult {
  */
 export function getDbSearchConfig(services: SkillShareerServices): DbSearchConfig {
   const enabled = process.env.USE_DB_SEARCH === 'true';
-  const pool = services.store instanceof PostgresStore ? services.store.getPool() : null;
+  const pool = getStorePool(services.store);
   return { enabled: enabled && pool !== null, pool };
 }
 

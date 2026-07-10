@@ -9,7 +9,9 @@ import {
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type { ServerConfig } from '../../config.js';
-import { type RuntimeMode, getOrCreateRequestContext, recordHttpRequestMetric } from './index.js';
+import { recordHttpRequestMetric } from './metrics.js';
+import { getOrCreateRequestContext } from './request-context.js';
+import type { RuntimeMode } from './runtime-contract.js';
 
 const requestSpanSymbol = Symbol('trapmap.request.span');
 

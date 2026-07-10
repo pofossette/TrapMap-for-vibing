@@ -24,12 +24,12 @@ import { createCapsuleIndexAdapter } from '@trapmap/server/lib/indexing/adapters
 import { registerArtifactAdapters } from '@trapmap/server/lib/indexing/artifact-pipeline.js';
 import { createKnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
 import { runMigrations } from '@trapmap/server/lib/persistence/migration-runner.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { createAllRepos } from '@trapmap/server/lib/repos/index.js';
 import { ensureCapsuleVectorIndex } from '@trapmap/server/lib/retrieval/capsules/repositories/pg-capsule-vector.js';
 import { ensureVectorIndex } from '@trapmap/server/lib/retrieval/recall/db-search.js';
 import { createGraphChannel } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
 import { executeWithResilience } from '@trapmap/server/lib/runtime/index.js';
+import { getStorePool } from '@trapmap/server/lib/store.js';
 import {
   createMembershipRepository,
   createTeamRepository,
@@ -38,15 +38,14 @@ import { createUserRepository } from '@trapmap/server/lib/users/index.js';
 
 export async function bootstrapRepositories(app: FastifyInstance): Promise<void> {
   const store = app.skillShareer.store;
+  const pool = getStorePool(store);
 
   const startupContext = {
     logger: app.log,
     route: 'startup:bootstrap-repositories',
   } as const;
 
-  if (store instanceof PostgresStore) {
-    const pool = store.getPool();
-
+  if (pool) {
     // Run Drizzle migrations before any repository access
     try {
       await runMigrations(pool);
@@ -115,8 +114,7 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
   }
 
   // Create unified repos object (both JSON and PG modes)
-  if (store instanceof PostgresStore) {
-    const pool = store.getPool();
+  if (pool) {
     app.skillShareer.repos = await createAllRepos({ store, pool });
   } else {
     app.skillShareer.repos = await createAllRepos({ store });

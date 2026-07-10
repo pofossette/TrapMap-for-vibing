@@ -12,7 +12,7 @@ import {
   findInterruptedCandidates,
   resetInterruptedCandidates,
 } from '@trapmap/server/lib/candidates/index.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { getStorePool } from '@trapmap/server/lib/store.js';
 
 export async function bootstrapCandidateRecovery(app: FastifyInstance): Promise<void> {
   try {
@@ -58,8 +58,8 @@ export async function bootstrapCandidateRecovery(app: FastifyInstance): Promise<
 
       // Re-enqueue all interrupted candidates to the task queue
       const store = app.skillShareer.store;
-      const isPostgres = store instanceof PostgresStore;
-      const queue = isPostgres ? app.skillShareer.asyncTransport?.task : undefined;
+      const isPoolBacked = getStorePool(store) !== null;
+      const queue = isPoolBacked ? app.skillShareer.asyncTransport?.task : undefined;
       for (const candidate of allInterrupted) {
         if (queue) {
           await queue
@@ -74,7 +74,7 @@ export async function bootstrapCandidateRecovery(app: FastifyInstance): Promise<
                 'Failed to re-enqueue interrupted candidate',
               );
             });
-        } else if (isPostgres) {
+        } else if (isPoolBacked) {
           app.log.error(
             { candidateId: candidate.id },
             'Postgres runtime missing async transport queue during candidate recovery',

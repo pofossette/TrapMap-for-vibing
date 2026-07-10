@@ -19,7 +19,6 @@ import {
   buildRetryResumeContract,
   buildRuntimeContract,
 } from '@trapmap/server/lib/operations/status-support.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import {
   getServiceUnitProfile,
@@ -27,7 +26,7 @@ import {
   resolveAsyncWorkerState,
 } from '@trapmap/server/lib/runtime/index.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
-import { nowIso } from '@trapmap/server/lib/store.js';
+import { getStorePool, nowIso } from '@trapmap/server/lib/store.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 import {
   buildCapacityModel,
@@ -43,6 +42,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:export');
 
     const store = app.skillShareer.store;
+    const pool = getStorePool(store);
     const runtimeMode = app.skillShareer.runtimeMode;
     const serviceUnit = app.skillShareer.serviceUnit;
     const runtimeDeployment = app.skillShareer.runtimeDeployment;
@@ -57,7 +57,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
 
     const cacheMetrics = getCacheMetricsSnapshot();
 
-    if (!(store instanceof PostgresStore)) {
+    if (!pool) {
       const bulkOperations: ReturnType<typeof buildWorkflowOperatorSummary> = [];
       const capacityModel = buildCapacityModel({
         queuePending: 0,
@@ -161,13 +161,13 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
     if (!transport) {
       throw new Error('Postgres runtime requires skillShareer.asyncTransport for async status');
     }
-    const workflowRepo = createWorkflowRepository(store.getPool());
+    const workflowRepo = createWorkflowRepository(pool);
     const [queueSnapshot, outboxSnapshot, workflows] = await Promise.all([
       transport.task.getStatusSnapshot(),
       transport.events.getStatusSnapshot(),
       workflowRepo.listRecent(25),
     ]);
-    const badcaseRows = await store.getPool().query<{ failure_classification: string | null }>(
+    const badcaseRows = await pool.query<{ failure_classification: string | null }>(
       `SELECT failure_classification
        FROM retrieval_badcase_traces
        ORDER BY created_at DESC
@@ -292,7 +292,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'knowledge:export');
 
     const store = app.skillShareer.store;
-    if (!(store instanceof PostgresStore)) {
+    if (!getStorePool(store)) {
       return asyncTaskRequeueResponseSchema.parse({
         taskId: (request.params as { taskId: string }).taskId,
         requeued: false,

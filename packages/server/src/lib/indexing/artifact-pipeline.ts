@@ -12,11 +12,11 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import type {
-  SkillArtifactRecord,
-  SkillShareerStore,
-  StoreData,
+import {
+  getStorePool,
+  type SkillArtifactRecord,
+  type SkillShareerStore,
+  type StoreData,
 } from '@trapmap/server/lib/store.js';
 import { artifactGraphIndexAdapter } from './adapters/artifact-graph.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
@@ -67,8 +67,9 @@ export function resolveArtifactAdapters(store: SkillShareerStore): ArtifactGraph
   }
 
   const adapters: ArtifactGraphAdapter[] = [artifactGraphIndexAdapter];
-  if (store instanceof PostgresStore) {
-    adapters.push(createCapsuleIndexAdapter({ pool: store.getPool() }));
+  const pool = getStorePool(store);
+  if (pool) {
+    adapters.push(createCapsuleIndexAdapter({ pool }));
   }
 
   storeArtifactAdapterCache.set(store, adapters);

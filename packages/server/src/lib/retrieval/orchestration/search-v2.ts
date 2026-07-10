@@ -20,7 +20,6 @@ import {
 } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { PipelineStep, RagLogEntry } from '@trapmap/server/lib/rag-log.js';
 import { generateQueryId, logRagRetrieval } from '@trapmap/server/lib/rag-log.js';
 import {
@@ -44,6 +43,7 @@ import {
 import { timedStep } from './pipeline-timing.js';
 import { buildRoutingTrace } from './routing-trace.js';
 import { selectRetrievalStrategyV2 } from './routing.js';
+import { getStorePool } from '@trapmap/server/lib/store.js';
 
 const intentCache = new InMemoryIntentCache();
 
@@ -97,7 +97,7 @@ export async function searchKnowledgeV2(
 
     // Phase 5: Create coordinator with heuristic + keyword + semantic + graph channels.
     // Uses shared factory to register all channels with PG feature flags.
-    const pgPool = services.store instanceof PostgresStore ? services.store.getPool() : null;
+    const pgPool = getStorePool(services.store);
 
     const channelRegistry = await createFullCapsuleChannelRegistry({
       pgPool,

@@ -2,7 +2,7 @@
  * Single emission point for lifecycle transition events.
  *
  * Chooses the correct channel based on store backend:
- * - PG mode (PostgresStore): enqueue to domain_event_outbox for async worker processing
+ * - PG mode: enqueue to domain_event_outbox for async worker processing
  * - JSON mode (InMemory/JsonStore): synchronous eventBus for lightweight local development
  *
  * Routes should call this after their store transaction commits.
@@ -13,9 +13,7 @@
 import type { LifecycleState } from '@trapmap/contracts';
 import type { PoolClient } from 'pg';
 
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
-import { nowIso } from '@trapmap/server/lib/store.js';
+import { getStorePool, nowIso, type SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 import type { LifecycleEventBus } from './event-bus.js';
 import { findTransitionEvent } from './transitions.js';
@@ -76,7 +74,7 @@ export async function emitLifecycleTransition(params: {
     timestamp: nowIso(),
   };
 
-  if (store instanceof PostgresStore) {
+  if (getStorePool(store)) {
     const transport = params.asyncTransport;
     if (!transport) {
       throw new Error('Postgres lifecycle transition requires async transport');

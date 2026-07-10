@@ -13,8 +13,8 @@ import {
   createIndexingSubscriber,
 } from '@trapmap/server/lib/lifecycle/index.js';
 import type { DomainEvent, DomainEventHandler } from '@trapmap/server/lib/lifecycle/index.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/index.js';
+import { getStorePool } from '@trapmap/server/lib/store.js';
 
 const INDEXING_EVENT_NAMES = [
   'knowledge.approved',
@@ -93,7 +93,7 @@ export async function bootstrapLifecycle(
 
   // Start outbox event worker for PG mode
   // Processes domain events asynchronously — indexing, conflict detection, audit
-  if (store instanceof PostgresStore) {
+  if (getStorePool(store)) {
     const eventTransport = app.skillShareer.asyncTransport?.events;
     if (!eventTransport) {
       throw new Error('Postgres runtime requires postgres-backed async event transport');

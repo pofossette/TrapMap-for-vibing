@@ -214,6 +214,14 @@ describe('knowledge-read import boundary', () => {
     expect(defaultInfraSource).toContain('@trapmap/runtime-infra');
   });
 
+  it('keeps default retrieval infra independent from the query-port seam', async () => {
+    const root = path.resolve(import.meta.dirname, '..');
+    const retrievalInfraSource = await readFile(path.join(root, 'src/retrieval-infra.ts'), 'utf-8');
+
+    expect(retrievalInfraSource).toContain("from './retrieval-infra-default.js'");
+    expect(retrievalInfraSource).not.toContain("from './server-retrieval-seam.js'");
+  });
+
   it('keeps runtime graph types on stable seams instead of server internals', async () => {
     const root = path.resolve(import.meta.dirname, '..');
     const contextSource = await readFile(path.join(root, 'src/context.ts'), 'utf-8');

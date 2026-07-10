@@ -1,8 +1,7 @@
 import type { PoolClient } from 'pg';
 
 import type { AsyncTaskTransport } from '@trapmap/server/lib/async/transport.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { getStorePool, type SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 import {
   type SharedJobPayloadByType,
@@ -51,7 +50,7 @@ export async function scheduleSharedJobTx<TTaskType extends SharedJobTaskType>(
   payload: SharedJobPayloadByType[TTaskType],
   dedupeKey: string,
 ): Promise<void> {
-  if (!(store instanceof PostgresStore) || !queue) {
+  if (!getStorePool(store) || !queue) {
     return;
   }
 
@@ -65,7 +64,7 @@ export async function scheduleSharedJob<TTaskType extends SharedJobTaskType>(
   payload: SharedJobPayloadByType[TTaskType],
   dedupeKey: string,
 ): Promise<void> {
-  if (!(store instanceof PostgresStore) || !queue) {
+  if (!getStorePool(store) || !queue) {
     return;
   }
 

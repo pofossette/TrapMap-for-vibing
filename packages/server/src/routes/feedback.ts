@@ -7,9 +7,8 @@ import {
   BADCASE_EXPORT_DRAFT_TASK_TYPE,
   getSharedJobWorkflowRunId,
 } from '@trapmap/server/lib/jobs/types.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
-import { nowIso } from '@trapmap/server/lib/store.js';
+import { getStorePool, nowIso } from '@trapmap/server/lib/store.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 /**
@@ -36,9 +35,10 @@ async function persistBadcaseTrace(
   },
 ) {
   const store = app.skillShareer.store;
-  if (!(store instanceof PostgresStore)) return;
+  const pool = getStorePool(store);
+  if (!pool) return;
   try {
-    await store.getPool().query(
+    await pool.query(
       `INSERT INTO retrieval_badcase_traces
        (id, feedback_id, query_id, query_seed, route_family, entry_id, entry_type, failure_classification, expected_correction, selected_result_snapshot, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, NOW(), NOW())`,

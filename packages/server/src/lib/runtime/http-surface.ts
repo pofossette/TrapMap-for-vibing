@@ -3,7 +3,7 @@ import { ZodError } from 'zod';
 
 import type { ServerConfig } from '@trapmap/server/config.js';
 import { isAppError, toErrorMetadata } from '@trapmap/server/lib/errors.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { getStorePool } from '@trapmap/server/lib/store.js';
 import { livenessTimestamp, toHealthStatus } from './health-adapter.js';
 import { getOrCreateRequestContext } from './request-context.js';
 import type { RouteFamilyDescriptor } from './route-surface.js';
@@ -21,7 +21,7 @@ interface RouteSurfaceSummary {
 
 async function buildRuntimeAsyncSnapshot(app: FastifyInstance) {
   const store = app.skillShareer.store;
-  if (!(store instanceof PostgresStore)) {
+  if (!getStorePool(store)) {
     return {};
   }
   const transport = app.skillShareer.asyncTransport;
@@ -41,7 +41,7 @@ async function buildSharedRuntimeSnapshot(app: FastifyInstance, config: ServerCo
   const queueWorker = snapshotRuntimeWorker(app.taskWorker);
   const outboxWorker = snapshotRuntimeWorker(app.outboxWorker);
   const store = app.skillShareer.store;
-  const database = store instanceof PostgresStore ? ('postgres' as const) : ('json-store' as const);
+  const database = getStorePool(store) ? ('postgres' as const) : ('json-store' as const);
   const runtimeMode = app.skillShareer.runtimeMode;
   const serviceUnit = app.skillShareer.serviceUnit;
   const runtimeDeployment = app.skillShareer.runtimeDeployment;

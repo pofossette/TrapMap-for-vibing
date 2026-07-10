@@ -15,10 +15,9 @@ import type {
 import { skillLookupQuerySchema } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 import type { CapsuleCandidate } from '@trapmap/server/lib/retrieval/types.js';
-import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { getStorePool, type SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import { createFullCapsuleChannelRegistry } from './capsule-channel-registry.js';
 import { CapsuleRecallCoordinator } from './capsule-recall-coordinator.js';
 import { isArtifactGovernanceEligible } from './capsule-recall.js';
@@ -143,7 +142,7 @@ export async function searchSkillsByContent(
   // Rank capsules using shared CapsuleRecallCoordinator (multi-channel recall + merge + rerank)
   // This replaces the standalone rankCapsules() path to reuse the same indexed recall,
   // governance, and observability as v2 capsule retrieval.
-  const pgPool = services.store instanceof PostgresStore ? services.store.getPool() : null;
+  const pgPool = getStorePool(services.store);
   const channelRegistry = await createFullCapsuleChannelRegistry({
     pgPool,
     pgKeywordFlag: () => process.env.RETRIEVAL_CAPSULE_PG_KEYWORD === 'true',
