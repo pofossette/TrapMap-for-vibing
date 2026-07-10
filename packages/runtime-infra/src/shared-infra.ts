@@ -10,10 +10,9 @@ import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import { createAsyncTransport } from './async-factory.js';
 import type { AsyncTransport } from './async-transport.js';
 import { LifecycleEventBus } from './event-bus.js';
-import { PostgresStore } from './postgres-store.js';
 import { type SkillShareerRepos, createRuntimeInfraRepos } from './repos.js';
 import { createSkillShareerStore } from './store-factory.js';
-import type { SkillShareerStore } from './store.js';
+import { getStorePool, type SkillShareerStore } from './store.js';
 
 type AiProviderConfig = Parameters<typeof createAiProviders>[0];
 
@@ -59,7 +58,7 @@ export async function createRuntimeSharedInfra(
     dataFile: config.dataFile,
     databaseUrl: config.databaseUrl,
   });
-  const pool = store instanceof PostgresStore ? store.getPool() : undefined;
+  const pool = getStorePool(store) ?? undefined;
   const repos = await createRuntimeInfraRepos(pool ? { store, pool } : { store });
   const asyncTransport = pool
     ? createAsyncTransport({

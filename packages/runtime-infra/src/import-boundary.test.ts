@@ -44,4 +44,12 @@ describe('runtime-infra import boundary', () => {
       }
     }
   });
+
+  it('keeps shared infra on structural store seams', async () => {
+    const root = path.resolve(import.meta.dirname, '..');
+    const source = await readFile(path.join(root, 'src/shared-infra.ts'), 'utf-8');
+
+    expect(source).not.toContain('./postgres-store.js');
+    expect(source).not.toContain('instanceof PostgresStore');
+  });
 });

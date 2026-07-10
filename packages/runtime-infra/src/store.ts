@@ -1,3 +1,5 @@
+import type { Pool } from 'pg';
+
 export {
   JsonStore,
   createEmptyStoreData,
@@ -16,3 +18,7 @@ export type {
   SkillShareerStore,
   StoreData,
 } from '@trapmap/server/lib/store.js';
+
+export function getStorePool(store: SkillShareerStore): Pool | null {
+  return typeof store.getPool === 'function' ? store.getPool() : null;
+}

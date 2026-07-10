@@ -169,17 +169,17 @@ CI 流水线中配置了 fallow 边界检查步骤。PR 合并前会自动运行
 
 The coupling audit (Phase 0.6) identified several patterns that violate strict layering but are accepted as intentional. These are documented below for future maintainers and for tracking against the open-debt register.
 
-### Category A: PostgresStore `instanceof` Pattern (Medium Severity)
+### Category A: Structural Store Pool Seam (Medium Severity)
 
-**Location**: 20+ files across `packages/server/src/lib/` (recall-coordinator.ts, search-v2.ts, skill-lookup.ts, etc.)
+**Location**: `packages/server/src/lib/store/store-pool.ts`, `packages/runtime-infra/src/store.ts`, `packages/runtime-infra/src/knowledge-read-retrieval-infra.ts`, and the orchestration/runtime callers that consume those seams
 
-**Pattern**: Orchestration code uses `instanceof PostgresStore` to extract a `Pool` from the Store interface.
+**Pattern**: Orchestration/runtime code now uses structural `getStorePool(...)` or `typeof store.getPool === 'function'` seams to extract a `Pool` from the Store interface instead of checking `instanceof PostgresStore`.
 
-**Why intentional**: All affected files reside within the `server` zone (infrastructure code). The `SkillShareStore` abstraction does not expose `getPool()`, so callers must use an instanceof check to access the underlying connection pool. This is contained within a single architectural layer.
+**Why intentional**: The concrete-class checks on active production paths were closed in the 2026-07-10 targeted cleanup, but the store abstraction still does not model pool access as a first-class port. A narrow structural seam is currently the least-coupled way to let infrastructure/runtime code reach PostgreSQL-only capabilities while keeping read-side and route code off concrete `PostgresStore` imports.
 
-**Tech debt**: Should be resolved by introducing a port-level "database pool access" abstraction (e.g. a `PoolProvider` interface) so that instanceof checks are no longer needed.
+**Tech debt**: Should still converge on a port-level pool capability abstraction so that even structural `getPool` probing can shrink or disappear from higher-level orchestration code.
 
-**Status**: Known debt, deferred to future refactoring.
+**Status**: Concrete `instanceof PostgresStore` checks are no longer expected on active production paths. Remaining debt is the intentional structural seam, tracked in the open-debt register.
 
 ### Category B: service-knowledge-read Deep Coupling (High Severity)
 
@@ -189,7 +189,7 @@ The coupling audit (Phase 0.6) identified several patterns that violate strict l
 
 **Why intentional**: The CQRS read-side still requires query-time infrastructure seams for retrieval optimization, but that allowance is now limited to `runtime-infra` as the transitional bridge.
 
-**Tech debt**: The coupling grew beyond the original CQRS read-side scope into wholesale duplication of server internals. Earlier closeout batches reduced the deepest retrieval-core and read-side helper imports to local seams, the 2026-07-09 Wave 1 cut removed direct `server` runtime-type/error imports from read-side business files, Wave 2 moved retrieval default assembly to `runtime-infra`, Wave 3 moved support default assembly there, Wave 5 removed the zone-level `server` allowance, Wave 6 made the default retrieval infra getter depend on the compatibility adapter directly instead of the mixed query-port seam, and Wave 7 removed the remaining server runtime barrel cycle. Remaining debt in this category should now be treated as `runtime-infra` seam shrinkage and repo-level `PostgresStore instanceof` / pool-access removal.
+**Tech debt**: The coupling grew beyond the original CQRS read-side scope into wholesale duplication of server internals. Earlier closeout batches reduced the deepest retrieval-core and read-side helper imports to local seams, the 2026-07-09 Wave 1 cut removed direct `server` runtime-type/error imports from read-side business files, Wave 2 moved retrieval default assembly to `runtime-infra`, Wave 3 moved support default assembly there, Wave 5 removed the zone-level `server` allowance, Wave 6 made the default retrieval infra getter depend on the compatibility adapter directly instead of the mixed query-port seam, and Wave 7 removed the remaining server runtime barrel cycle. Remaining debt in this category should now be treated as `runtime-infra` seam shrinkage plus the narrower structural pool seam residual.
 
 **Status**: Known debt, tracked in open-debt register.
 Remaining exception evidence:

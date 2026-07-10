@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { SkillShareerStore } from './store-interface.js';
-import { getStorePool, isPoolBackedStore, isPostgresTransactionalStore } from './store-pool.js';
+import type { SkillShareerStore } from './store.js';
+import { getStorePool } from './store.js';
 
 function createStore(overrides: Partial<SkillShareerStore> = {}): SkillShareerStore {
   return {
@@ -18,29 +18,19 @@ function createStore(overrides: Partial<SkillShareerStore> = {}): SkillShareerSt
   };
 }
 
-describe('store pool seam', () => {
+describe('runtime-infra store seam', () => {
   it('returns a pool from stores that expose getPool structurally', () => {
     const pool = { query: async () => ({ rows: [] }) };
     const store = createStore({
       getPool: () => pool as never,
     });
 
-    expect(isPoolBackedStore(store)).toBe(true);
     expect(getStorePool(store)).toBe(pool);
   });
 
   it('returns null for stores without pool access', () => {
     const store = createStore();
 
-    expect(isPoolBackedStore(store)).toBe(false);
     expect(getStorePool(store)).toBeNull();
-  });
-
-  it('detects stores that expose transactWithPgClient structurally', () => {
-    const store = createStore({
-      transactWithPgClient: async () => undefined,
-    });
-
-    expect(isPostgresTransactionalStore(store)).toBe(true);
   });
 });

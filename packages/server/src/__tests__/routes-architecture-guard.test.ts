@@ -16,7 +16,6 @@ const ALLOWLIST = new Set<string>([
   'admin-boundary-search.ts',
   'feedback.ts',
   'feedback-admin.ts',
-  'feedback-admin/remediation.ts',
   'maintenance.ts',
   'operations/artifacts-activate.ts',
   'operations/migrate.ts',

@@ -22,10 +22,9 @@ import { createSharedJobQueuePort, scheduleSharedJob } from '@trapmap/server/lib
 import { REMEDIATION_REACTIVATION_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import { getSharedJobWorkflowRunId } from '@trapmap/server/lib/jobs/types.js';
 import { summarizeFailureClassifications } from '@trapmap/server/lib/operations/read-model.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
-import { nowIso } from '@trapmap/server/lib/store.js';
+import { getStorePool, nowIso } from '@trapmap/server/lib/store.js';
 
 import { buildRemediationQueueItems } from './helpers.js';
 
@@ -80,6 +79,16 @@ export function registerRemediationRoutes(app: FastifyInstance) {
     }
 
     const entryType = unresolved[0]!.entryType;
+    const store = app.skillShareer.store;
+    const pool = getStorePool(store);
+    const jobInput = {
+      entryId,
+      entryType,
+      feedbackIds: unresolved.map((feedback) => feedback.id),
+      resolvedAt: appliedAt,
+      resolvedByUserId: auth.user?.id ?? null,
+      notes: body.notes ?? null,
+    };
 
     for (const feedback of unresolved) {
       await feedbackRepo.update(feedback.id, {
@@ -93,19 +102,12 @@ export function registerRemediationRoutes(app: FastifyInstance) {
       });
     }
 
-    if (app.skillShareer.store instanceof PostgresStore) {
+    if (pool) {
       await scheduleSharedJob(
         sharedJobQueue,
-        app.skillShareer.store,
+        store,
         REMEDIATION_REACTIVATION_TASK_TYPE,
-        {
-          entryId,
-          entryType,
-          feedbackIds: unresolved.map((feedback) => feedback.id),
-          resolvedAt: appliedAt,
-          resolvedByUserId: auth.user?.id ?? null,
-          notes: body.notes ?? null,
-        },
+        jobInput,
         `${REMEDIATION_REACTIVATION_TASK_TYPE}:${entryId}:${appliedAt}`,
       );
     }
@@ -116,15 +118,10 @@ export function registerRemediationRoutes(app: FastifyInstance) {
       resolvedFeedbackIds: unresolved.map((feedback) => feedback.id),
       resolvedCount: unresolved.length,
       resolvedAt: appliedAt,
-      ...(app.skillShareer.store instanceof PostgresStore
+      ...(pool
         ? {
             asyncJobId: getSharedJobWorkflowRunId(REMEDIATION_REACTIVATION_TASK_TYPE, {
-              entryId,
-              entryType,
-              feedbackIds: unresolved.map((feedback) => feedback.id),
-              resolvedAt: appliedAt,
-              resolvedByUserId: auth.user?.id ?? null,
-              notes: body.notes ?? null,
+              ...jobInput,
             }),
           }
         : {}),

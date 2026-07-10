@@ -11,7 +11,7 @@ import {
   verifyCapsuleIndexHealth,
 } from '@trapmap/server/lib/retrieval/capsules/repositories/index-rebuild.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
-import { nowIso } from '@trapmap/server/lib/store.js';
+import { getStorePool, nowIso } from '@trapmap/server/lib/store.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 
 const capsuleIndexRebuildRequestSchema = z
@@ -37,10 +37,6 @@ const capsuleIndexRebuildRequestSchema = z
     }
   });
 
-type PoolBackedStore = {
-  getPool(): Pool;
-};
-
 function requireSystemAdmin(subjectType: 'user' | 'system-admin'): void {
   if (subjectType !== 'system-admin') {
     throw new AppError(403, 'forbidden', 'Capsule index operations require system-admin access');
@@ -48,8 +44,8 @@ function requireSystemAdmin(subjectType: 'user' | 'system-admin'): void {
 }
 
 function getCapsuleIndexPool(app: FastifyInstance): Pool {
-  const store = app.skillShareer.store as Partial<PoolBackedStore>;
-  if (typeof store.getPool !== 'function') {
+  const pool = getStorePool(app.skillShareer.store);
+  if (!pool) {
     throw new AppError(
       409,
       'capsule_pg_unavailable',
@@ -57,7 +53,7 @@ function getCapsuleIndexPool(app: FastifyInstance): Pool {
     );
   }
 
-  return store.getPool();
+  return pool;
 }
 
 function summarizeSyncResult(result: {

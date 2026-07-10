@@ -24,10 +24,10 @@ import type {
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { createDuplicateCaseId } from '@trapmap/server/lib/ids.js';
 import type { CandidateProcessingPayload } from '@trapmap/server/lib/jobs/types.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { DuplicateRepository } from '@trapmap/server/lib/repos/index.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
+import { isPostgresTransactionalStore } from '@trapmap/server/lib/store/store-pool.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 export interface CandidateQueuePort {
@@ -230,8 +230,7 @@ export async function createAndEnqueueCandidate(
   let initialStatus: 'duplicate_detected' | 'queued' = 'queued';
 
   if (
-    store instanceof PostgresStore &&
-    'transactWithPgClient' in store &&
+    isPostgresTransactionalStore(store) &&
     'insertTx' in candidateRepo &&
     'updateStatusTx' in candidateRepo &&
     'attachDuplicateCaseTx' in candidateRepo &&

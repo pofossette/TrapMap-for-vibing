@@ -1,7 +1,7 @@
 # Engineering Debt And Platform Maturity Closeout
 
 > 状态：active mainline
-> 更新日期：2026-07-09
+> 更新日期：2026-07-10
 > 当前 tranche：Tranche A - read-side coupling / `service-knowledge-read` deep coupling closeout
 
 本文档现为仓库唯一 active mainline detail。它只保留当前执行所需状态，并内联承载 backlog、deferred/frozen decision reference 与问题回写规则；历史快照和已完成 closeout 不再在此扩展成并行执行面。
@@ -35,10 +35,11 @@
 - **目标**：
   - 收紧 `service-knowledge-read` zone 例外，只保留 `runtime-infra` 读侧 seam，不再允许直接依赖 `server`
   - 继续收缩 `runtime-infra` 过渡 seam、compatibility JSONB store 直读例外和非 projection residual；`knowledge-read` entry read temporary direct-backed 例外已关闭
-  - 为 repo 级 `PostgresStore instanceof` / pool access 保持明确收口路径
+  - 将 repo 级生产路径上的 `PostgresStore instanceof` 判断收口为结构化 pool seam，并继续缩小该 seam surface
 - **完成条件**：
   - `service-knowledge-read` 的 `@trapmap/server` 直接导入保持归零，边界测试与 zone 规则同步证明其不再是允许例外
   - 与 retrieval / read-model 相关的循环依赖有实际关闭路径，而不是只记录为背景
+  - repo 级生产路径不再依赖 `instanceof PostgresStore`；剩余 pool access debt 只保留为明确记录的结构化 seam / compatibility residual
   - 边界例外、读侧例外与 evidence 回写到相应 architecture/reference 文档，而不是只停留在 debt 描述
 
 ### 当前 tranche 已确认的 issue pool
@@ -65,6 +66,8 @@
   - `knowledge-read-support-infra-default.ts`：已降级为兼容 adapter，默认 prompt/cache/governance/decay assembly owner 已迁到 `packages/runtime-infra/src/knowledge-read-support-infra.ts`
 - **runtime-infra seam exception**
   - `service-knowledge-read` 已不再保留 zone 级 `server` 依赖；当前唯一架构例外是 `runtime-infra` query-time seam，后续目标是继续缩小其 owner surface
+- **structural pool seam residual**
+  - 2026-07-10 targeted cleanup 已关闭当前 active production paths 上的 `instanceof PostgresStore` 判断；剩余 debt 收敛为 `packages/runtime-infra/src/store.ts`、`packages/runtime-infra/src/knowledge-read-retrieval-infra.ts` 与 `packages/server/src/lib/store/store-pool.ts` 这类结构化 `getPool` seam，以及调用方对该 seam 的有限依赖
 - **graph/runtime seam**
   - Wave 1 已完成首轮收口：graph runtime state/backend 类型不再直接从 `server` 暴露到 read-side 业务文件，现通过 `runtime-infra` 类型 seam 承载
 - **query / error seam**
@@ -82,12 +85,15 @@
   - Tranche A 剩余项转为 compatibility JSONB store 直读、repo 级 `PostgresStore instanceof` / pool access、以及非 entry projection residual，不再把这两个 entry read surface 记为 active exception
   - 与 read-side coupling 同属一个收口面，不宜拆成并行主线
 
-#### 3. `PostgresStore instanceof` / pool access 模式
+#### 3. Structural pool seam / compatibility residual
 
 - **分类**：existing debt confirmed
-- **影响**：port abstraction 不完整，调用方被迫依赖具体实现判断
+- **影响**：port abstraction 仍未完整承载数据库能力，调用方仍需通过结构化 seam 探测 pool access
 - **来源**：[`docs/architecture/BOUNDARIES.md`](../architecture/BOUNDARIES.md)
-- **证据**：当前 debt 判断仍成立，且与读侧/运行时基础设施收口直接相关
+- **证据**：
+  - 2026-07-10 targeted cleanup 已将 `packages/runtime-infra/src/shared-infra.ts` 从 `instanceof PostgresStore` 切换到本地 `getStorePool(store)` 结构化 seam；对应新增 `packages/runtime-infra/src/store.test.ts` 与 import-boundary 守护
+  - `rtk rg "instanceof PostgresStore|new PostgresStore|getPool\\(" packages/runtime-infra/src packages/server/src -g '!**/*.test.ts' -g '!**/__tests__/**' -g '!**/__fixtures__/**'` 当前不再命中生产路径上的 `instanceof PostgresStore`；剩余命中集中在结构化 `getPool` seam、本地 `PostgresStore` 构造和 compatibility store 实现
+  - 与 read-side coupling 同属一个收口面，后续重点转为结构化 pool seam shrinkage 与 compatibility JSONB direct-read residual，而不是继续保留 concrete-class 判断
 
 ## Queued Tranches
 
@@ -130,10 +136,17 @@
 
 ## 最新基线摘要
 
-> Baseline date: 2026-07-09
+> Baseline date: 2026-07-10
 
 本轮基线证据来自以下命令：
 
+- `rtk pnpm exec vitest run packages/server/src/__tests__/routes-architecture-guard.test.ts`
+- `rtk pnpm exec vitest run packages/server/src/routes/operations/badcases.test.ts packages/server/src/routes/operations/capsule-index.test.ts`
+- `rtk pnpm exec vitest run packages/server/src/lib/store/store-pool.test.ts`
+- `rtk pnpm exec vitest run --project runtime-infra packages/runtime-infra/src/store.test.ts packages/runtime-infra/src/shared-infra.test.ts packages/runtime-infra/src/import-boundary.test.ts`
+- `rtk rg "instanceof PostgresStore|new PostgresStore|getPool\\(" packages/runtime-infra/src packages/server/src -g '!**/*.test.ts' -g '!**/__tests__/**' -g '!**/__fixtures__/**'`
+- `rtk rg "@trapmap/server" packages/service-knowledge-read/src -n`
+- `rtk pnpm exec fallow list --boundaries --format json --quiet`
 - `rtk pnpm exec fallow audit --base main --gate new-only --format json --quiet --explain || true`
 - `rtk pnpm exec fallow --format json --quiet --summary || true`
 - `rtk pnpm exec fallow health --hotspots --targets --format json --quiet --top 20 || true`
@@ -143,6 +156,8 @@
 - `rtk pnpm exec fallow list --boundaries --format json --quiet || true`
 
 - **existing debt confirmed**
+  - 2026-07-10 targeted verification 全绿：route architecture guard、badcases / capsule-index、server store-pool seam，以及 runtime-infra store/shared-infra/import-boundary tests 均通过
+  - repo 级生产路径上的 `instanceof PostgresStore` 判断已从当前 tranche 的 active paths 关闭；剩余 Tranche A debt 收敛为结构化 pool seams、compatibility JSONB direct-read residual、以及 `runtime-infra` seam shrinkage
   - 相对 `main` 的 changed-code audit 为 pass，`changed_files_count=6`，`dead_code_introduced=0`，`complexity_introduced=0`；当前分支未引入新的 fallow gate regression
   - boundary report 显示 `11` 个 zones / `11` 条 rules 且当前 `boundary_violations=0`；`service-knowledge-read` 允许依赖仍为 `backend-core`、`contracts`、`runtime-infra`
   - read-side / server 复杂度仍是主要维护风险聚集面；`service-knowledge-read` 直接 server import、unused default infra file 和 read-side cycle 已关闭，剩余 Tranche A 聚焦 `runtime-infra` seam shrinkage 与 `PostgresStore instanceof` / pool-access 收口
