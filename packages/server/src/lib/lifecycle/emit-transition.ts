@@ -13,7 +13,7 @@
 import type { LifecycleState } from '@trapmap/contracts';
 import type { PoolClient } from 'pg';
 
-import { getStorePool, nowIso, type SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { type SkillShareerStore, getStorePool, nowIso } from '@trapmap/server/lib/store.js';
 
 import type { LifecycleEventBus } from './event-bus.js';
 import { findTransitionEvent } from './transitions.js';

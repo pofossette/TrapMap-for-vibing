@@ -2,7 +2,12 @@ import { InvocationError } from '@trapmap/backend-core';
 import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
 import type { RuntimeInfraGraphQueryRuntimeState } from '@trapmap/runtime-infra';
 import type { Pool } from 'pg';
-import type { MergedCandidate, RoutingChannel, ScoredEntry } from './retrieval-types.js';
+import type {
+  MergedCandidate,
+  RecallCandidate,
+  RoutingChannel,
+  ScoredEntry,
+} from './retrieval-types.js';
 
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { getRetrievalInfra } from './retrieval-infra.js';
@@ -108,7 +113,7 @@ export async function semanticRecall(
 
   if (dbConfig.enabled && dbConfig.pool && auth) {
     try {
-      const queryVector = await getQueryEmbedding(services, seed);
+      const queryVector = await getQueryEmbedding(services!, seed);
       const scopeFilter =
         parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
       const dbResults = await infra!.pgRecall.vectorSimilaritySearch(dbConfig.pool, {
@@ -205,7 +210,7 @@ export async function hybridRecall(
       const entryMap = new Map(eligibleEntries.map((e) => [e.id, e]));
 
       const [queryVector, keywordResults] = await Promise.all([
-        getQueryEmbedding(services, seed),
+        getQueryEmbedding(services!, seed),
         infra!.pgRecall.keywordRecall(
           dbConfig.pool,
           seed,
@@ -380,8 +385,8 @@ export async function graphAssistedHybridRecall(
 }
 
 function mergeCandidatesWithGraph(
-  hybridMerged: ReturnType<typeof mergeCandidates>,
-  graphCandidates: Awaited<ReturnType<typeof graphRecall>>,
+  hybridMerged: MergedCandidate[],
+  graphCandidates: RecallCandidate[],
 ): MergedCandidate[] {
   const result = [...hybridMerged];
 

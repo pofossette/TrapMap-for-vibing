@@ -31,7 +31,7 @@ export interface RuntimeInfraKnowledgeReadSupportRecord {
   scope: RuntimeInfraKnowledgeGovernedEntity['scope'];
   requiredLevel: RuntimeInfraKnowledgeGovernedEntity['requiredLevel'];
   lifecycleState: RuntimeInfraKnowledgeGovernedEntity['lifecycleState'];
-  labels: RuntimeInfraKnowledgeGovernedEntity['labels'];
+  labels: string[];
   decayMeta: Parameters<typeof computeDecayState>[0] | null;
 }
 
@@ -72,7 +72,7 @@ export interface RuntimeInfraKnowledgeReadSupportInfra {
 
 function toGovernedEntity(
   entry: RuntimeInfraKnowledgeReadSupportRecord,
-): RuntimeInfraKnowledgeGovernedEntity {
+): RuntimeInfraKnowledgeGovernedEntity & { labels: string[] } {
   const config = loadDecayConfig();
   const decayResult = config.enabled ? computeDecayState(entry.decayMeta, config) : null;
 

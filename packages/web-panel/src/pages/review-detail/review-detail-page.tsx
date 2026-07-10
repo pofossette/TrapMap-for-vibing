@@ -3,13 +3,13 @@ import { type ReactElement, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { useReviewDetailController } from '@trapmap/web-panel/features/review-detail/use-review-detail-controller';
-import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
   localizeActivityType,
   localizeLifecycleState,
   localizeReviewSource,
   localizeReviewWarningKind,
 } from '@trapmap/web-panel/shared/lib/display-labels';
+import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
   ConfirmationDialog,
   ErrorPanel,

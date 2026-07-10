@@ -32,7 +32,7 @@ import type {
   RoutingChannel,
   ScoredEntry,
 } from '@trapmap/server/lib/retrieval/types.js';
-import { getStorePool, type KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import { type KnowledgeRecord, getStorePool } from '@trapmap/server/lib/store.js';
 import type { Pool } from 'pg';
 import type { ChannelRegistry } from './channel-registry.js';
 import type { StrategyRegistry } from './strategy-registry.js';

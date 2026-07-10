@@ -1,5 +1,5 @@
-import { normalizeActivityType } from '@trapmap/web-panel/shared/lib/display-labels';
 import type { ActivityEventViewModel } from '@trapmap/web-panel/shared/enum-types';
+import { normalizeActivityType } from '@trapmap/web-panel/shared/lib/display-labels';
 
 function mapActivityEvent(event: ActivityEventViewModel): ActivityEventViewModel {
   return {

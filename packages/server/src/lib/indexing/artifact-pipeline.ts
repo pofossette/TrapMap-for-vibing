@@ -13,10 +13,10 @@
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import {
-  getStorePool,
   type SkillArtifactRecord,
   type SkillShareerStore,
   type StoreData,
+  getStorePool,
 } from '@trapmap/server/lib/store.js';
 import { artifactGraphIndexAdapter } from './adapters/artifact-graph.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';

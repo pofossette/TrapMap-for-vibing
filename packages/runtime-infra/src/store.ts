@@ -1,5 +1,7 @@
 import type { Pool } from 'pg';
 
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+
 export {
   JsonStore,
   createEmptyStoreData,

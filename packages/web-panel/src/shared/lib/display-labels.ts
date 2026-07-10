@@ -1,5 +1,5 @@
 import type { LifecycleState } from '@trapmap/contracts';
-import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
+import type { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 
 import type {
   ActivityEventViewModel,

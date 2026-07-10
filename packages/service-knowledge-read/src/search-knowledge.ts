@@ -2,6 +2,7 @@ import { InvocationError } from '@trapmap/backend-core';
 import {
   type RetrievalQuery,
   type RetrievalResponse,
+  type RoutingTrace,
   retrievalQuerySchema,
 } from '@trapmap/contracts';
 
@@ -9,7 +10,6 @@ import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { type PipelineStep, generateQueryId, logRagRetrieval } from './rag-log.js';
 import { buildRetrievalReadModel } from './read-model.js';
-import { getRetrievalInfra } from './retrieval-infra.js';
 import {
   assembleResponseBuckets,
   buildEmptyResponse,
@@ -18,6 +18,7 @@ import {
 import { buildCitations } from './response-citations.js';
 import { generateRefinement } from './response-refinement.js';
 import { buildSummary } from './response-summary.js';
+import { getRetrievalInfra } from './retrieval-infra.js';
 import { dispatchByMode, inferChannelsFromMerged } from './retrieval-recall-coordinator.js';
 import { buildEmbeddingText } from './retrieval-semantic.js';
 import type { ScoredEntry } from './retrieval-types.js';
@@ -31,12 +32,12 @@ function buildRoutingTrace(
   services: SkillShareerServices,
   routingDecision: ReturnType<ReturnType<typeof getRetrievalInfra>['routing']['selectStrategy']>,
   recallTrace?: { graph?: unknown },
-) {
+): RoutingTrace {
   const infra = getRetrievalInfra(services);
   return {
     ...infra.routing.toRoutingTrace(routingDecision),
     ...(recallTrace?.graph ? { graphRetrieval: recallTrace.graph } : {}),
-  };
+  } as RoutingTrace;
 }
 
 interface TimedStepOptions {

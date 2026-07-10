@@ -9,7 +9,7 @@ import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import { createSharedJobQueuePort, scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
 import { KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
-import { getStorePool, type SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { type SkillShareerStore, getStorePool } from '@trapmap/server/lib/store.js';
 
 /**
  * Create an event subscriber that syncs knowledge indexes on lifecycle transitions.

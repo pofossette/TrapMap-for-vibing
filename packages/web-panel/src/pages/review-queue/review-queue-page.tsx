@@ -3,12 +3,12 @@ import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useReviewQueuePageModel } from '@trapmap/web-panel/features/review-queue/use-review-queue-page-model';
-import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
   localizeLifecycleState,
   localizeReviewRiskLabel,
   localizeReviewSource,
 } from '@trapmap/web-panel/shared/lib/display-labels';
+import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
   EmptyState,
   ErrorPanel,

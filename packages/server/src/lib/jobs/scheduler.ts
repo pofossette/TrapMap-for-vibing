@@ -1,7 +1,7 @@
 import type { PoolClient } from 'pg';
 
 import type { AsyncTaskTransport } from '@trapmap/server/lib/async/transport.js';
-import { getStorePool, type SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { type SkillShareerStore, getStorePool } from '@trapmap/server/lib/store.js';
 
 import {
   type SharedJobPayloadByType,

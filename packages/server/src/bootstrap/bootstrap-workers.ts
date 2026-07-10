@@ -12,7 +12,7 @@ import { createCandidateProcessingHandler } from '@trapmap/server/lib/candidates
 import { buildSharedJobHandlersContract } from '@trapmap/server/lib/jobs/index.js';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 import { createTaskWorker } from '@trapmap/server/lib/queue/task-worker.js';
-import { getStorePool, type SkillShareerStore } from '@trapmap/server/lib/store.js';
+import { type SkillShareerStore, getStorePool } from '@trapmap/server/lib/store.js';
 
 export interface BootstrapWorkersOptions {
   enabled?: boolean;

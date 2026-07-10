@@ -17,7 +17,7 @@ import { skillLookupQuerySchema } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { buildRetrievalReadModel } from '@trapmap/server/lib/retrieval/read-model.js';
 import type { CapsuleCandidate } from '@trapmap/server/lib/retrieval/types.js';
-import { getStorePool, type SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { type SkillArtifactRecord, getStorePool } from '@trapmap/server/lib/store.js';
 import { createFullCapsuleChannelRegistry } from './capsule-channel-registry.js';
 import { CapsuleRecallCoordinator } from './capsule-recall-coordinator.js';
 import { isArtifactGovernanceEligible } from './capsule-recall.js';

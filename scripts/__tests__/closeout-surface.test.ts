@@ -87,11 +87,11 @@ describe('closeout surface guardrails', () => {
     expect(rule).toBeDefined();
     expect(rule?.mustContain ?? []).toEqual(
       expect.arrayContaining([
-        '当前主线：Agent Eval 平台长期可维护架构',
+        '当前主线：engineering debt and platform maturity closeout',
         '状态：`进行中`',
-        'docs/todos/agent-eval-framework-evaluation-and-plan.md',
-        'docs/archived/agent-eval-framework-scorecard.md',
-        '所有执行进度统一回写到主细则中的复选框',
+        'docs/todos/open-debt-and-compromises.md',
+        'docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md',
+        '只保留一个当前执行入口',
       ]),
     );
   });

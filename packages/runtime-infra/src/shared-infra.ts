@@ -12,7 +12,7 @@ import type { AsyncTransport } from './async-transport.js';
 import { LifecycleEventBus } from './event-bus.js';
 import { type SkillShareerRepos, createRuntimeInfraRepos } from './repos.js';
 import { createSkillShareerStore } from './store-factory.js';
-import { getStorePool, type SkillShareerStore } from './store.js';
+import { type SkillShareerStore, getStorePool } from './store.js';
 
 type AiProviderConfig = Parameters<typeof createAiProviders>[0];
 

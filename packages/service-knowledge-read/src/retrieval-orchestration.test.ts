@@ -1,14 +1,14 @@
-import type { RetrievalQuery } from '@trapmap/contracts';
 import { InvocationError } from '@trapmap/backend-core';
+import type { RetrievalQuery } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-import { dispatchByMode } from './retrieval-recall-coordinator.js';
 import {
   ChannelRegistry,
   type KnowledgeReadRecallChannel,
   type RetrievalStrategy,
   StrategyRegistry,
 } from './retrieval-orchestration.js';
+import { dispatchByMode } from './retrieval-recall-coordinator.js';
 import type { MergedCandidate, ScoredEntry } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 

@@ -28,10 +28,10 @@ import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types
 import type { IndexAdapter, IndexSyncResult } from '@trapmap/server/lib/indexing/types.js';
 import { createLabelRepository } from '@trapmap/server/lib/labels/repository.js';
 import {
-  getStorePool,
-  nowIso,
   type SkillShareerStore,
   type StoreData,
+  getStorePool,
+  nowIso,
 } from '@trapmap/server/lib/store.js';
 import { buildTrapGraphDocument } from './graph-builders.js';
 
@@ -124,7 +124,7 @@ export const graphIndexAdapter: IndexAdapter & {
     }
 
     try {
-      const pool = getStorePool(store);
+      const pool = store ? getStorePool(store) : null;
       // Extract graph entities and relations through the LLM pipeline only.
       const llmResult = await extractGraphEntitiesWithLLM(
         chat ?? { provider: 'none', isConfigured: false, invoke: async () => '' },

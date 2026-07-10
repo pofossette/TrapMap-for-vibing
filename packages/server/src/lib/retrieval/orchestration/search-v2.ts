@@ -40,10 +40,10 @@ import {
   buildProfileHint,
   buildV2RetrievalResponse,
 } from '@trapmap/server/lib/retrieval/response/index.js';
+import { getStorePool } from '@trapmap/server/lib/store.js';
 import { timedStep } from './pipeline-timing.js';
 import { buildRoutingTrace } from './routing-trace.js';
 import { selectRetrievalStrategyV2 } from './routing.js';
-import { getStorePool } from '@trapmap/server/lib/store.js';
 
 const intentCache = new InMemoryIntentCache();
 

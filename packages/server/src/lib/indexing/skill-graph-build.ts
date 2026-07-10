@@ -17,9 +17,9 @@ import { createHash } from 'node:crypto';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { createLabelRepository } from '@trapmap/server/lib/labels/repository.js';
 import {
-  getStorePool,
   type SkillArtifactRecord,
   type SkillShareerStore,
+  getStorePool,
 } from '@trapmap/server/lib/store.js';
 import {
   type GraphEdgeRecord,
@@ -90,7 +90,7 @@ export async function buildSkillGraphDocument(
   let edges: GraphEdgeRecord[];
 
   if (chat?.isConfigured) {
-    const pool = getStorePool(store);
+    const pool = store ? getStorePool(store) : null;
     // LLM extraction path
     const llmResult = await extractGraphEntitiesWithLLM(chat, canonicalText, {
       llmEnabled: true,
