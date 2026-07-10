@@ -18,6 +18,37 @@
     "evals/**/*.ts"
   ],
   "ignoreDependencies": ["amqplib", "markdown-link-check"],
+  "duplicates": {
+    "enabled": true,
+    "mode": "mild",
+    "minTokens": 50,
+    "minLines": 5,
+    "minOccurrences": 2,
+    "threshold": 0,
+    "ignore": [],
+    "ignoreDefaults": true,
+    "skipLocal": false,
+    "crossLanguage": false,
+    "ignoreImports": true
+  },
+  "health": {
+    "maxCyclomatic": 20,
+    "maxCognitive": 15,
+    "maxCrap": 30,
+    "crapRefactorBand": 5,
+    "ignore": [],
+    "suggestInlineSuppression": true
+  },
+  "rules": {
+    "unused-files": "error",
+    "unused-exports": "error",
+    "unused-types": "error",
+    "unused-class-members": "error",
+    "circular-dependencies": "error",
+    "boundary-violation": "error",
+    "stale-suppressions": "error",
+    "require-suppression-reason": "error"
+  },
   "ignorePatterns": [
     "**/node_modules/**",
     "**/dist/**",

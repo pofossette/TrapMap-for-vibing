@@ -32,6 +32,7 @@
     "knip": "knip",
     "knip:fix": "knip --fix",
     "fallow": "fallow",
+    "check:fallow": "pnpm exec fallow --ci --fail-on-issues",
     "check": "biome check .",
     "check:docs-drift": "pnpm exec tsx scripts/check-doc-drift.ts",
     "check:mermaid": "pnpm exec tsx scripts/check-mermaid.ts",

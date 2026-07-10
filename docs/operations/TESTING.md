@@ -593,13 +593,13 @@ pnpm check:complexity
 
 CI 中由 `doc-guardrails` job 自动执行。本地开发时可在改动 Mermaid 图、热点文件或架构文档后手动运行。
 
-push CI 还会运行一层增量 `fallow` 守卫，只检查相对上一次 push 新增的静态问题：
+push CI 还会运行全仓 `fallow` 质量门：
 
 ```bash
-pnpm exec fallow audit --base origin/main --gate new-only --ci --fail-on-issues
+pnpm check:fallow
 ```
 
-它用于补充未使用导出/文件、重复代码、循环依赖和 changed-files 健康审计，不替代 `pnpm check:complexity`。
+它要求未使用导出/文件、重复代码、循环依赖和复杂度问题为零，不替代 `pnpm check:complexity`。
 
 ### Runtime Foundations Verification
 

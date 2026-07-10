@@ -24,13 +24,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Audit new static analysis issues (push)
-        if: github.event_name == 'push'
-        run: pnpm exec fallow audit --base ${{ github.event.before }} --gate new-only --ci --fail-on-issues --health-baseline reports/baselines/fallow-health-baseline.json --dead-code-baseline reports/baselines/fallow-dead-code-baseline.json
-
-      - name: PR Fallow Audit (on PR)
-        if: github.event_name == 'pull_request'
-        run: pnpm exec fallow audit --base origin/main --gate new-only --ci --fail-on-issues
+      - name: Enforce repository static quality
+        run: pnpm check:fallow
 
   typecheck:
     runs-on: ubuntu-latest

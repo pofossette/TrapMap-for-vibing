@@ -1,5 +1,5 @@
 import type { KnowledgeWritePort } from '@trapmap/backend-core';
-import { InvocationError } from '@trapmap/backend-core';
+import { toInvocationErrorResponse } from '@trapmap/backend-core/invocation/invocation-model.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 export interface KnowledgeWriteReadinessOptions {
@@ -45,31 +45,6 @@ const KNOWLEDGE_WRITE_OWNERSHIP = {
   ],
   acceptsDelegationFrom: ['governance-review', 'candidate-ingestion'],
 } as const;
-
-function translateInvocationError(error: unknown): {
-  status: number;
-  body: { error: string; kind: string };
-} {
-  if (error instanceof InvocationError) {
-    const statusMap: Record<string, number> = {
-      validation: 400,
-      'not-found': 404,
-      conflict: 409,
-      forbidden: 403,
-      timeout: 504,
-      unavailable: 503,
-      internal: 500,
-    };
-    return {
-      status: statusMap[error.kind] ?? 500,
-      body: { error: error.message, kind: error.kind },
-    };
-  }
-  return {
-    status: 500,
-    body: { error: 'Internal server error', kind: 'internal' },
-  };
-}
 
 type KnowledgeWriteRpcMethod =
   | 'approveReviewDecision'
@@ -124,7 +99,7 @@ export function registerKnowledgeWriteRoutes(
       const result = await module.submit(body);
       return reply.status(201).send(result);
     } catch (err) {
-      const { status, body } = translateInvocationError(err);
+      const { status, body } = toInvocationErrorResponse(err);
       return reply.status(status).send(body);
     }
   });
@@ -136,7 +111,7 @@ export function registerKnowledgeWriteRoutes(
       await module.updateEntry(entryId, body.updates, body.actorId);
       return reply.status(200).send({ ok: true });
     } catch (err) {
-      const { status, body } = translateInvocationError(err);
+      const { status, body } = toInvocationErrorResponse(err);
       return reply.status(status).send(body);
     }
   });
@@ -150,7 +125,7 @@ export function registerKnowledgeWriteRoutes(
         await module.resubmit(entryId, body.updates, body.actorId);
         return reply.status(200).send({ ok: true });
       } catch (err) {
-        const { status, body } = translateInvocationError(err);
+        const { status, body } = toInvocationErrorResponse(err);
         return reply.status(status).send(body);
       }
     },
@@ -165,7 +140,7 @@ export function registerKnowledgeWriteRoutes(
         await module.supersede(entryId, body.replacementId, body.actorId);
         return reply.status(200).send({ ok: true });
       } catch (err) {
-        const { status, body } = translateInvocationError(err);
+        const { status, body } = toInvocationErrorResponse(err);
         return reply.status(status).send(body);
       }
     },
@@ -182,7 +157,7 @@ export function registerKnowledgeWriteRoutes(
       const result = await module.createTrap(body);
       return reply.status(201).send(result);
     } catch (err) {
-      const { status, body } = translateInvocationError(err);
+      const { status, body } = toInvocationErrorResponse(err);
       return reply.status(status).send(body);
     }
   });
@@ -193,7 +168,7 @@ export function registerKnowledgeWriteRoutes(
       const result = await module.listTraps(teamId ?? '');
       return reply.status(200).send(result);
     } catch (err) {
-      const { status, body } = translateInvocationError(err);
+      const { status, body } = toInvocationErrorResponse(err);
       return reply.status(status).send(body);
     }
   });
@@ -207,7 +182,7 @@ export function registerKnowledgeWriteRoutes(
       }
       return reply.status(200).send(result);
     } catch (err) {
-      const { status, body } = translateInvocationError(err);
+      const { status, body } = toInvocationErrorResponse(err);
       return reply.status(status).send(body);
     }
   });
@@ -225,7 +200,7 @@ export function registerKnowledgeWriteRoutes(
         const result = await module.approveReviewDecision(body);
         return reply.status(200).send(result);
       } catch (err) {
-        const { status, body } = translateInvocationError(err);
+        const { status, body } = toInvocationErrorResponse(err);
         return reply.status(status).send(body);
       }
     },
@@ -244,7 +219,7 @@ export function registerKnowledgeWriteRoutes(
         const result = await module.rejectReviewDecision(body);
         return reply.status(200).send(result);
       } catch (err) {
-        const { status, body } = translateInvocationError(err);
+        const { status, body } = toInvocationErrorResponse(err);
         return reply.status(status).send(body);
       }
     },
@@ -262,7 +237,7 @@ export function registerKnowledgeWriteRoutes(
       const result = await module.applyMaintenanceDecision(body);
       return reply.status(200).send(result);
     } catch (err) {
-      const { status, body } = translateInvocationError(err);
+      const { status, body } = toInvocationErrorResponse(err);
       return reply.status(status).send(body);
     }
   });
@@ -279,7 +254,7 @@ export function registerKnowledgeWriteRoutes(
       const result = await module.applyDecayDecision(body);
       return reply.status(200).send(result);
     } catch (err) {
-      const { status, body } = translateInvocationError(err);
+      const { status, body } = toInvocationErrorResponse(err);
       return reply.status(status).send(body);
     }
   });
@@ -294,7 +269,7 @@ export function registerKnowledgeWriteRoutes(
       const result = await module.publishCandidateResult(body);
       return reply.status(200).send(result);
     } catch (err) {
-      const { status, body } = translateInvocationError(err);
+      const { status, body } = toInvocationErrorResponse(err);
       return reply.status(status).send(body);
     }
   });
@@ -305,7 +280,7 @@ export function registerKnowledgeWriteRoutes(
       const result = await invokeKnowledgeWriteRpc(module, body.method, body.input);
       return reply.status(200).send({ ok: true, result });
     } catch (err) {
-      const { status, body } = translateInvocationError(err);
+      const { status, body } = toInvocationErrorResponse(err);
       return reply.status(status).send(body);
     }
   });

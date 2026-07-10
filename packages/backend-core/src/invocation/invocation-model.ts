@@ -101,3 +101,43 @@ export class InvocationError extends Error {
     return new InvocationError('internal', message, cause);
   }
 }
+
+export interface InvocationErrorResponse {
+  status: number;
+  body: { error: string; kind: InvocationErrorKind };
+}
+
+const INVOCATION_ERROR_STATUS: Record<InvocationErrorKind, number> = {
+  validation: 400,
+  'not-found': 404,
+  conflict: 409,
+  forbidden: 403,
+  timeout: 504,
+  unavailable: 503,
+  internal: 500,
+};
+
+export function toInvocationErrorResponse(error: unknown): InvocationErrorResponse {
+  if (isInvocationError(error)) {
+    return {
+      status: INVOCATION_ERROR_STATUS[error.kind],
+      body: { error: error.message, kind: error.kind },
+    };
+  }
+
+  return {
+    status: 500,
+    body: { error: 'Internal server error', kind: 'internal' },
+  };
+}
+
+function isInvocationError(error: unknown): error is Pick<InvocationError, 'kind' | 'message'> {
+  const candidate = error as { kind?: unknown; message?: unknown } | undefined;
+  return (
+    candidate !== null &&
+    typeof candidate === 'object' &&
+    typeof candidate.kind === 'string' &&
+    typeof candidate.message === 'string' &&
+    candidate.kind in INVOCATION_ERROR_STATUS
+  );
+}

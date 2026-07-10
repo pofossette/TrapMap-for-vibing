@@ -15,11 +15,11 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 
 ## CI 流水线（ci.yml）
 
-当前 job 集合以 `.github/workflows/ci.yml` 中定义为准；截至 2026-07-07，该 workflow 包含以下 job，其中 `fallow-push-audit` 在 push 和 pull_request 事件均触发、且无依赖关系：
+当前 job 集合以 `.github/workflows/ci.yml` 中定义为准；截至 2026-07-10，该 workflow 包含以下 job，其中 `fallow-push-audit` 在 push 和 pull_request 事件均触发、且无依赖关系：
 
 | Job | 命令 | 说明 |
 |-----|------|------|
-| `fallow-push-audit` | push: `pnpm exec fallow audit --base <previous-push-sha> --gate new-only --ci --fail-on-issues --health-baseline reports/baselines/fallow-health-baseline.json --dead-code-baseline reports/baselines/fallow-dead-code-baseline.json`<br>PR: `pnpm exec fallow audit --base origin/main --gate new-only --ci --fail-on-issues` | push 增量静态质量门（含基线对比），PR 增量静态质量门（对比 main） |
+| `fallow-push-audit` | `pnpm check:fallow` | 全仓静态质量门：死代码、重复、复杂度、循环依赖、架构边界与失效抑制均须为零 |
 | `typecheck` | `pnpm typecheck` | TypeScript 类型检查 |
 | `check` | `pnpm check` | Biome 代码检查（lint + format） |
 | `test` | `pnpm test` | 全量单元测试 |
@@ -31,18 +31,13 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 
 Runtime foundations 相关改动主要依赖以下 job 组合形成质量门：
 
-- `fallow-push-audit`: changed-files 级别的静态质量回归守卫（dead code / dupes / circular deps / health audit）
+- `fallow-push-audit`: 全仓静态质量守卫（dead code / dupes / circular deps / health audit）
 - `typecheck`: runtime config / shared resilience 类型面
 - `test`: request context、runtime snapshot、shared resilience 单测
 - `postgres-integration`: queue + outbox + lifecycle subscriber 真实 PG 可靠性链路
 - `doc-guardrails`: runtime 文档契约、架构冻结、依赖分析、复杂度与文档结构守卫
 
-`fallow-push-audit` 在 `push` 和 `pull_request` 事件均运行：
-
-- **Push 事件**：以上次 push 的 commit SHA 为参照，执行增量审计 + 回归防护。回归基线存储在 `reports/baselines/` 下，CI 会在质量评分退化或死代码增加时阻断合并。
-- **PR 事件**：以 `origin/main` 为参照，执行增量审计，只阻断 PR 相对 main 新增的问题。
-
-两种场景均只检查 changed-files 范围内的新问题，不因历史存量问题直接阻断。适合作为 `typecheck` / `test` / `check` 之外的补位守卫，补充未使用导出/文件、重复代码、循环依赖和变更面健康审计。当前没有用它替代 `pnpm check:complexity` 或文档守卫；这些仓库定制规则仍由现有 jobs 负责。
+`fallow-push-audit` 在 `push` 和 `pull_request` 事件均执行 `pnpm check:fallow`。该命令不使用回归基线；任何死代码、重复、复杂度、循环依赖、架构边界或失效抑制问题都会阻断构建。保留 API、框架入口或动态加载符号必须采用带 `-- <reason>` 的相邻行级抑制；`stale-suppressions` 会在理由不再适用时阻断构建。
 
 `doc-guardrails` job 运行文档漂移守卫（`pnpm check:docs-drift`）、架构冻结守卫（`pnpm check:arch-freeze`）、依赖分析守卫（`pnpm check:deps`）、Mermaid 守卫（`pnpm check:mermaid`）、仓库结构守卫（`pnpm check:structure`）、复杂度预算守卫（`pnpm check:complexity`）、Markdown lint 守卫（`pnpm check:md-lint`）、链接守卫（`pnpm check:links`）、架构边界守卫（`fallow dead-code --boundary-violations --ci --fail-on-issues`）和未使用依赖守卫（`fallow dead-code --unused-deps --ci --fail-on-issues`），确保关键文档不含过时内容、架构边界未被违反且违规会阻断构建、依赖关系无循环、图示可解析、仓库结构完整、热点文件未超出行数预算、Markdown 格式一致且链接有效。漂移规则覆盖以下类别：
 
@@ -59,20 +54,15 @@ Runtime foundations 相关改动主要依赖以下 job 组合形成质量门：
 
 `ci.yml` 中所有 job 使用 Node.js 24 + pnpm 10.33.0；独立的 `eval.yml` 当前仍使用 Node.js 20，并为评测产物显式设置了 7/30/90 天保留期。
 
-### Fallow 质量基线
+### Fallow 质量门
 
-回归基线存储在 `reports/baselines/` 目录下，由 fallow 子命令的 `--save-baseline` 生成。Push 审计使用 `--health-baseline` 和 `--dead-code-baseline` 标志对比此基线，防止质量评分退化和死代码增加。基线包含：
-
-- **健康评分**：当前分数和等级（`fallow-health-baseline.json`）
-- **死代码统计**：未使用文件、导出、类型、依赖数量（`fallow-dead-code-baseline.json`）
-- **回归基线数据**：逐文件的 finding counts，供回归对比使用
-
-更新基线：
+全仓 Fallow 不再维护历史豁免基线。开发与 CI 统一运行：
 
 ```bash
-pnpm exec fallow health --save-baseline reports/baselines/fallow-health-baseline.json
-pnpm exec fallow dead-code --save-baseline reports/baselines/fallow-dead-code-baseline.json
+pnpm check:fallow
 ```
+
+该命令的规则和阈值由 [`.fallowrc.json`](../../.fallowrc.json) 定义。
 
 > 源码：`.github/workflows/ci.yml`
 

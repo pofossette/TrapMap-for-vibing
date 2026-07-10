@@ -205,8 +205,8 @@ pnpm check:mermaid
 # 检查复杂度预算
 pnpm check:complexity
 
-# 增量 fallow 守卫（按当前分支相对 main 的新增问题）
-pnpm exec fallow audit --base origin/main --gate new-only --ci --fail-on-issues
+# 全仓 fallow 质量门
+pnpm check:fallow
 
 # 运行文档漂移守卫
 pnpm check:docs-drift

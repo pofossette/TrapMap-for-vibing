@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { toInvocationErrorResponse } from '@trapmap/backend-core';
 
 import {
   createStubAuditLog,
@@ -7,6 +8,7 @@ import {
 } from '../testing/test-utils.js';
 import { executeCommand } from '../use-cases/command-handling.js';
 import type { Command } from '../use-cases/command-handling.js';
+import { InvocationError } from '../invocation/invocation-model.js';
 import {
   getServiceUnitProfile,
   resolveAsyncWorkerState,
@@ -29,8 +31,6 @@ import {
   SHARED_INFRASTRUCTURE,
   buildServiceTopologySnapshot,
 } from './topology.js';
-
-import { InvocationError } from '../invocation/invocation-model.js';
 
 describe('runtime/capability-model', () => {
   describe('resolveRuntimeDeployment', () => {
@@ -266,6 +266,17 @@ describe('invocation/invocation-model', () => {
     expect(InvocationError.timeout('t').kind).toBe('timeout');
     expect(InvocationError.unavailable('u').kind).toBe('unavailable');
     expect(InvocationError.internal('i').kind).toBe('internal');
+  });
+
+  it('maps invocation errors and unknown failures to transport responses', () => {
+    expect(toInvocationErrorResponse(InvocationError.timeout('slow dependency'))).toEqual({
+      status: 504,
+      body: { error: 'slow dependency', kind: 'timeout' },
+    });
+    expect(toInvocationErrorResponse(new Error('unexpected'))).toEqual({
+      status: 500,
+      body: { error: 'Internal server error', kind: 'internal' },
+    });
   });
 });
 
