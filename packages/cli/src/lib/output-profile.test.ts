@@ -924,7 +924,7 @@ describe('output profile helpers', () => {
       ],
       previousState: 'pending_review',
       transition: { from: 'pending_review', to: 'active' },
-      nextSteps: [],
+      nextSteps: ['Publish the approved skill.'],
     };
 
     const renderer = resolveRenderer(
@@ -945,6 +945,7 @@ describe('output profile helpers', () => {
     expect(rendered).toContain('Approved artifact.db.');
     expect(rendered).toContain('<artifacts>');
     expect(rendered).toContain('Database Skill');
+    expect(rendered).toContain('<step>Publish the approved skill.</step>');
   });
 
   it('renders opencode command-result as Markdown', () => {

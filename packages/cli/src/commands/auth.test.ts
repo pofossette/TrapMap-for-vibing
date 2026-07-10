@@ -6,6 +6,7 @@ import * as http from '@trapmap/cli/lib/http.js';
 import {
   createMockLoginResponse,
   createMockSessionResponse,
+  executeCommandForResult,
 } from '@trapmap/cli/testing/cli-test-utils.js';
 
 // Mock dependencies
@@ -390,10 +391,11 @@ describe('auth commands', () => {
       const program = new Command();
       registerAuthCommands(program);
 
-      await program.parseAsync(['login', '--access-key', 'ak_test-key-12345678'], { from: 'user' });
-
-      const output = String(consoleSpy.mock.calls[0]?.[0]);
-      const parsed = JSON.parse(output);
+      const parsed = await executeCommandForResult(
+        program,
+        ['login', '--access-key', 'ak_test-key-12345678'],
+        consoleSpy,
+      );
       expect(parsed.type).toBe('command-result');
       expect(parsed.action).toBe('login');
       expect(parsed.success).toBe(true);
@@ -415,10 +417,7 @@ describe('auth commands', () => {
       const program = new Command();
       registerAuthCommands(program);
 
-      await program.parseAsync(['logout'], { from: 'user' });
-
-      const output = String(consoleSpy.mock.calls[0]?.[0]);
-      const parsed = JSON.parse(output);
+      const parsed = await executeCommandForResult(program, ['logout'], consoleSpy);
       expect(parsed.type).toBe('command-result');
       expect(parsed.action).toBe('logout');
       expect(parsed.success).toBe(true);
@@ -442,10 +441,7 @@ describe('auth commands', () => {
       const program = new Command();
       registerAuthCommands(program);
 
-      await program.parseAsync(['session'], { from: 'user' });
-
-      const output = String(consoleSpy.mock.calls[0]?.[0]);
-      const parsed = JSON.parse(output);
+      const parsed = await executeCommandForResult(program, ['session'], consoleSpy);
       expect(parsed.type).toBe('command-result');
       expect(parsed.action).toBe('session');
       expect(parsed.success).toBe(true);

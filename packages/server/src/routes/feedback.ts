@@ -1,4 +1,8 @@
-import { feedbackResponseSchema, feedbackSubmissionSchema } from '@trapmap/contracts';
+import {
+  type FeedbackProblemType,
+  feedbackResponseSchema,
+  feedbackSubmissionSchema,
+} from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '@trapmap/server/lib/errors.js';
@@ -19,6 +23,36 @@ const TRANSITION_TRIGGERS = {
   outdated: { threshold: 3, targetState: 'stale', timeWindowDays: 30 },
   incorrect: { threshold: 5, targetState: 'review-due', timeWindowDays: 30 },
 } as const;
+
+function isTransitionProblemType(
+  problemType: FeedbackProblemType,
+): problemType is keyof typeof TRANSITION_TRIGGERS {
+  return problemType === 'outdated' || problemType === 'incorrect';
+}
+
+async function resolveAutomaticTransition(
+  entryId: string,
+  problemType: FeedbackProblemType,
+  listByFilter: (filter: {
+    entryId: string;
+    problemType: FeedbackProblemType[];
+  }) => Promise<Array<{ submittedAt: string }>>,
+  currentTime = Date.now(),
+): Promise<string | null> {
+  if (!isTransitionProblemType(problemType)) return null;
+
+  const trigger = TRANSITION_TRIGGERS[problemType];
+  const cutoffDate = new Date(currentTime - trigger.timeWindowDays * 24 * 60 * 60 * 1000);
+  const recentSimilarFeedback = await listByFilter({
+    entryId,
+    problemType: [problemType],
+  });
+  const recentCount = recentSimilarFeedback.filter(
+    (feedback) => new Date(feedback.submittedAt) >= cutoffDate,
+  ).length;
+
+  return recentCount + 1 >= trigger.threshold ? trigger.targetState : null;
+}
 
 async function persistBadcaseTrace(
   app: Parameters<FastifyPluginAsync>[0],
@@ -82,24 +116,11 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
     const now = nowIso();
 
     // Check for automatic transition trigger
-    let flaggedForTransition: string | null = null;
-    if (payload.problemType === 'outdated' || payload.problemType === 'incorrect') {
-      const trigger = TRANSITION_TRIGGERS[payload.problemType];
-      const cutoffDate = new Date(Date.now() - trigger.timeWindowDays * 24 * 60 * 60 * 1000);
-
-      const recentSimilarFeedback = await feedbackRepo.listByFilter({
-        entryId: payload.entryId,
-        problemType: [payload.problemType],
-      });
-      const recentCount = recentSimilarFeedback.filter(
-        (f) => new Date(f.submittedAt) >= cutoffDate,
-      ).length;
-
-      // Including this new feedback, check if threshold is met
-      if (recentCount + 1 >= trigger.threshold) {
-        flaggedForTransition = trigger.targetState;
-      }
-    }
+    const flaggedForTransition = await resolveAutomaticTransition(
+      payload.entryId,
+      payload.problemType,
+      feedbackRepo.listByFilter.bind(feedbackRepo),
+    );
 
     const feedbackRecord = {
       id,

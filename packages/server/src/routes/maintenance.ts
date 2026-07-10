@@ -26,6 +26,7 @@ import {
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { loadUserOpsLogConfig, logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 
 /**
@@ -66,6 +67,29 @@ function filterEntriesByPermission(
     if (entry.teamId === null) return true;
     return entry.teamId === auth.activeTeamId;
   });
+}
+
+function matchesMaintenanceFilters(
+  entry: KnowledgeRecord,
+  query: ReturnType<typeof maintenanceEntryListRequestSchema.parse>,
+  lastVerifiedAt: string | null,
+  reviewBy: string | null,
+  now: Date,
+): boolean {
+  if (query.missingOwner && entry.maintenanceMeta?.maintainerUserId != null) return false;
+  if (query.reviewOverdue && !isReviewOverdue(reviewBy, now)) return false;
+  if (
+    query.staleVerification &&
+    !isStaleVerification(lastVerifiedAt, query.staleDays ?? 180, now)
+  ) {
+    return false;
+  }
+  if (query.scope && entry.scope !== query.scope) return false;
+  return (
+    !query.labels ||
+    query.labels.length === 0 ||
+    query.labels.every((label) => entry.labels.includes(label))
+  );
 }
 
 export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
@@ -141,26 +165,7 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
       const maintainer = entry.maintenanceMeta ? toActorRefFromRecord(entry.maintenanceMeta) : null;
       const reviewBy = entry.maintenanceMeta?.reviewBy ?? null;
 
-      // Apply filters
-      if (query.missingOwner) {
-        if (entry.maintenanceMeta?.maintainerUserId != null) continue;
-      }
-
-      if (query.reviewOverdue) {
-        if (!isReviewOverdue(reviewBy, now)) continue;
-      }
-
-      if (query.staleVerification) {
-        const staleDays = query.staleDays ?? 180;
-        if (!isStaleVerification(lastVerifiedAt, staleDays, now)) continue;
-      }
-
-      if (query.scope && entry.scope !== query.scope) continue;
-
-      if (query.labels && query.labels.length > 0) {
-        const hasAllLabels = query.labels.every((label) => entry.labels.includes(label));
-        if (!hasAllLabels) continue;
-      }
+      if (!matchesMaintenanceFilters(entry, query, lastVerifiedAt, reviewBy, now)) continue;
 
       // Build item
       items.push(

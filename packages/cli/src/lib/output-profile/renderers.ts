@@ -16,6 +16,42 @@ import {
   buildSkillLookupView,
 } from './view-builders.js';
 
+function buildClaudeJsonSection(sectionName: string, itemName: string, items: unknown[]): string[] {
+  if (items.length === 0) return [];
+  return [
+    `  <${sectionName}>`,
+    ...items.map((item) => `    <${itemName}>${xmlEscape(JSON.stringify(item))}</${itemName}>`),
+    `  </${sectionName}>`,
+  ];
+}
+
+function buildClaudeTextSection(sectionName: string, itemName: string, items: string[]): string[] {
+  if (items.length === 0) return [];
+  return [
+    `  <${sectionName}>`,
+    ...items.map((item) => `    <${itemName}>${xmlEscape(item)}</${itemName}>`),
+    `  </${sectionName}>`,
+  ];
+}
+
+function buildClaudeNextStepsSection(nextSteps: unknown[]): string[] {
+  return [
+    '  <next_steps>',
+    ...nextSteps.map(
+      (step, index) => `    <step>${xmlEscape(`${index + 1}. ${String(step)}`)}</step>`,
+    ),
+    '  </next_steps>',
+  ];
+}
+
+function buildMarkdownListSection(title: string, values: unknown[], emptyValue: string): string[] {
+  return [
+    title,
+    ...(values.length > 0 ? values.map((value) => `- ${JSON.stringify(value)}`) : [emptyValue]),
+    '',
+  ];
+}
+
 export function renderClaude(envelope: RenderEnvelope<RenderPayload>): string {
   if (envelope.kind === 'command-result') {
     const view = buildCommandResultView(envelope.payload as Record<string, unknown>);
@@ -25,23 +61,11 @@ export function renderClaude(envelope: RenderEnvelope<RenderPayload>): string {
       `  <success>${String(view.success)}</success>`,
       `  <summary>${xmlEscape(view.summary)}</summary>`,
     ];
-    if (view.artifacts.length > 0) {
-      lines.push('  <artifacts>');
-      for (const artifact of view.artifacts) {
-        lines.push(`    <artifact>${xmlEscape(JSON.stringify(artifact))}</artifact>`);
-      }
-      lines.push('  </artifacts>');
-    }
+    lines.push(...buildClaudeJsonSection('artifacts', 'artifact', view.artifacts));
     if (view.transition) {
       lines.push(`  <transition>${xmlEscape(JSON.stringify(view.transition))}</transition>`);
     }
-    if (view.nextSteps.length > 0) {
-      lines.push('  <next_steps>');
-      for (const step of view.nextSteps) {
-        lines.push(`    <step>${xmlEscape(step)}</step>`);
-      }
-      lines.push('  </next_steps>');
-    }
+    lines.push(...buildClaudeTextSection('next_steps', 'step', view.nextSteps));
     lines.push('</trapmap_command_result>');
     return lines.join('\n');
   }
@@ -69,72 +93,32 @@ export function renderClaude(envelope: RenderEnvelope<RenderPayload>): string {
     `  <confidence>${xmlEscape(String(codexObject.confidence ?? 'unknown'))}</confidence>`,
   ];
 
-  if (capsules.length > 0) {
-    lines.push('  <capsule_matches>');
-    lines.push(
-      ...capsules.map((capsule) => `    <capsule>${xmlEscape(JSON.stringify(capsule))}</capsule>`),
-    );
-    lines.push('  </capsule_matches>');
-  }
+  lines.push(...buildClaudeJsonSection('capsule_matches', 'capsule', capsules));
 
-  if (profileHints.length > 0) {
-    lines.push('  <profile_hints>');
-    lines.push(
-      ...profileHints.map((hint) => `    <hint>${xmlEscape(JSON.stringify(hint))}</hint>`),
-    );
-    lines.push('  </profile_hints>');
-  }
+  lines.push(...buildClaudeJsonSection('profile_hints', 'hint', profileHints));
 
   if (constraints.length > 0 || projectKnowledge.length > 0) {
-    lines.push('  <retrieval_matches>');
     lines.push(
+      '  <retrieval_matches>',
       ...constraints.map(
         (item) => `    <constraint>${xmlEscape(JSON.stringify(item))}</constraint>`,
       ),
-    );
-    lines.push(
       ...projectKnowledge.map(
         (item) => `    <project_item>${xmlEscape(JSON.stringify(item))}</project_item>`,
       ),
+      '  </retrieval_matches>',
     );
-    lines.push('  </retrieval_matches>');
   }
 
-  if (skillMatches.length > 0) {
-    lines.push('  <skill_matches>');
-    lines.push(
-      ...skillMatches.map((skill) => `    <match>${xmlEscape(JSON.stringify(skill))}</match>`),
-    );
-    lines.push('  </skill_matches>');
-  }
+  lines.push(...buildClaudeJsonSection('skill_matches', 'match', skillMatches));
 
-  if (skills.length > 0) {
-    lines.push('  <recommended_skills>');
-    lines.push(...skills.map((skill) => `    <skill>${xmlEscape(JSON.stringify(skill))}</skill>`));
-    lines.push('  </recommended_skills>');
-  }
+  lines.push(...buildClaudeJsonSection('recommended_skills', 'skill', skills));
 
-  if (traps.length > 0) {
-    lines.push('  <blocking_traps>');
-    lines.push(...traps.map((trap) => `    <trap>${xmlEscape(JSON.stringify(trap))}</trap>`));
-    lines.push('  </blocking_traps>');
-  }
+  lines.push(...buildClaudeJsonSection('blocking_traps', 'trap', traps));
 
-  if (activationHints.length > 0) {
-    lines.push('  <activation_hints>');
-    lines.push(
-      ...activationHints.map((hint) => `    <hint>${xmlEscape(JSON.stringify(hint))}</hint>`),
-    );
-    lines.push('  </activation_hints>');
-  }
+  lines.push(...buildClaudeJsonSection('activation_hints', 'hint', activationHints));
 
-  lines.push(
-    '  <next_steps>',
-    ...nextSteps.map(
-      (step, index) => `    <step>${xmlEscape(`${index + 1}. ${String(step)}`)}</step>`,
-    ),
-    '  </next_steps>',
-  );
+  lines.push(...buildClaudeNextStepsSection(nextSteps));
 
   if (codexObject.fallback_notice) {
     lines.push(
@@ -142,18 +126,10 @@ export function renderClaude(envelope: RenderEnvelope<RenderPayload>): string {
     );
   }
 
-  if (planEdges.length > 0) {
-    lines.push('  <plan_edges>');
-    lines.push(...planEdges.map((edge) => `    <edge>${xmlEscape(JSON.stringify(edge))}</edge>`));
-    lines.push('  </plan_edges>');
-  }
+  lines.push(...buildClaudeJsonSection('plan_edges', 'edge', planEdges));
 
-  if (envelope.context.includeRawHints && activationHints.length > 0) {
-    lines.push('  <raw_hints>');
-    lines.push(
-      ...activationHints.map((hint) => `    <hint>${xmlEscape(JSON.stringify(hint))}</hint>`),
-    );
-    lines.push('  </raw_hints>');
+  if (envelope.context.includeRawHints) {
+    lines.push(...buildClaudeJsonSection('raw_hints', 'hint', activationHints));
   }
 
   lines.push('</trapmap_skill_pack>');
@@ -191,17 +167,9 @@ export function renderOpenCode(envelope: RenderEnvelope<RenderPayload>): string 
     }
 
     lines.push(
-      '## Recommended Skills',
-      ...(skills.length > 0 ? skills.map((skill) => `- ${JSON.stringify(skill)}`) : ['- None']),
-      '',
-      '## Blocking Traps',
-      ...(traps.length > 0 ? traps.map((trap) => `- ${JSON.stringify(trap)}`) : ['- None']),
-      '',
-      '## Activation Hints',
-      ...(activationHints.length > 0
-        ? activationHints.map((hint) => `- ${JSON.stringify(hint)}`)
-        : ['- None']),
-      '',
+      ...buildMarkdownListSection('## Recommended Skills', skills, '- None'),
+      ...buildMarkdownListSection('## Blocking Traps', traps, '- None'),
+      ...buildMarkdownListSection('## Activation Hints', activationHints, '- None'),
       '## Suggested Execution Order',
       ...(steps.length > 0 ? steps.map((step) => `1. ${String(step)}`) : ['1. No suggested steps']),
     );

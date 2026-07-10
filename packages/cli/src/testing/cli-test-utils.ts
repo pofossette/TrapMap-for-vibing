@@ -5,6 +5,23 @@ import type {
   SessionStatusResponse,
   Team,
 } from '@trapmap/contracts';
+import type { Command } from 'commander';
+
+type ConsoleLogSpy = {
+  mock: {
+    calls: unknown[][];
+  };
+};
+
+export async function executeCommandForResult(
+  program: Command,
+  arguments_: string[],
+  consoleLogSpy: ConsoleLogSpy,
+): Promise<Record<string, unknown>> {
+  await program.parseAsync(arguments_, { from: 'user' });
+  const output = consoleLogSpy.mock.calls.map(([message]) => String(message)).join('\n');
+  return JSON.parse(output) as Record<string, unknown>;
+}
 
 // ---------------------------------------------------------------------------
 // createMockEntry — canonical KnowledgeEntry factory
