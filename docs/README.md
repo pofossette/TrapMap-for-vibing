@@ -6,13 +6,9 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 ## 当前整改主线
 
-当前根计划为“light / heavy 后端构建目标与客户端选择”，状态为 `planned`。当前 active 执行入口统一维护在：
+当前 active 执行主线是[可观测性与可追溯性闭环](todos/observability-traceability-closure.md)。根索引 [`../plan.md`](../plan.md) 只链接这一份主细则；CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。
 
-- 根索引：[`../plan.md`](../plan.md)
-- 唯一 active mainline detail：[`todos/backend-build-targets-and-client-selection.md`](todos/backend-build-targets-and-client-selection.md)
-- CI/testing truth source：[`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md)
-
-除上列入口外，其余历史主线、closeout 细则和背景材料都不再构成并行 active workstream，只能作为 archived/background reference 使用。
+light / heavy 后端构建目标与客户端选择已完成并归档，包含其未执行的部署级 runtime closeout 前置条件。其余历史主线、closeout 细则和背景材料同样不构成并行 active workstream，只能作为 archived/background reference 使用。
 
 已完成的 Agent Eval 主线现只保留为历史背景参考：
 
@@ -228,9 +224,9 @@ deployment flexibility 最小验证矩阵：
 
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
-- [微服务平台增强根计划](../plan.md) — 当前根级 closeout 索引；只链接唯一 active mainline detail，并保留归档/背景入口
+- [根计划索引](../plan.md) — 当前链接唯一 active mainline“可观测性与可追溯性闭环”，并保留归档/背景入口
 - [微服务平台能力增强细则](archived/archived-plans/microservice-platform-evolution-plan.md) — 已归档的 Phase 0-4 closeout 细则；保留服务发现、内部 RPC、可观测性与资源治理的完成证据
-- 当前 active execution surface 只承认 `todos/backend-build-targets-and-client-selection.md`；其余 todo 文档只能写成背景输入、deferred 落点或已完成 closeout 参考
+- 当前唯一 active execution surface 是“可观测性与可追溯性闭环”；新的 todo 文档必须先由根 `plan.md` 显式赋予执行责任，其余材料只能作为背景输入、deferred 落点或已完成 closeout 参考
 - [健壮性与可扩展性收尾细则](archived/archived-plans/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](archived/archived-plans/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪
@@ -238,7 +234,7 @@ deployment flexibility 最小验证矩阵：
 - [组件替换细则](archived/archived-plans/component-replacement-plan.md) — 成熟包替换的独立细则；根计划已切换，不再是当前主线
 - [Badcase 回流待办](archived/archived-plans/badcase-feedback-loop.md) — 线上失败样本如何沉淀为回归题
 - [后端工程化优化计划](archived/archived-plans/backend-engineering-optimization-plan.md) — 平台化 deferred 问题池；承接 MQ 产品化、监控平台、长期服务化与更重的平台工程议题
-- 当前主线不再接受新的平行整改索引；若后续继续深入历史主题或平台化议题，必须转入当前 active mainline 显式链接的 deferred 落点
+- 新工作不得创建平行整改索引；若后续继续深入历史主题或平台化议题，必须先建立新的 active mainline 并定义其 deferred 落点
 - [NestJS 目标架构冻结](archived/archived-plans/nestjs-service-evolution-00-target-architecture.md) — 长期目标、边界、保留与退役决策
 - [NestJS 宿主与 contract 基础](archived/archived-plans/nestjs-service-evolution-01-host-and-contract-foundation-archived.md) — 首条 Nest 宿主主线与共享 contract 收口
 - [NestJS 模块化单体切换](archived/archived-plans/nestjs-service-evolution-02-modular-monolith-cutover-archived.md) — 六个 bounded context、compatibility boundary 与机械迁移提示词
@@ -248,7 +244,7 @@ deployment flexibility 最小验证矩阵：
 - [成熟服务样板：Knowledge-Write + Governance-Review](archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-pilot.md) — 第一批成熟服务样板的 owner、contract、测试门与 closeout
 - [样板实施前检查表](archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-preflight-checklist.md) — 开始迁移前先冻结边界、契约、测试入口与非目标
 - [样板代码迁移任务列表](archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md) — 直接映射到具体包和文件的迁移任务清单
-- [light / heavy 后端构建目标与客户端选择](todos/backend-build-targets-and-client-selection.md) — 当前后端构建目标、入口、验证与客户端配置主细则
+- [light / heavy 后端构建目标与客户端选择](archived/archived-plans/backend-build-targets-and-client-selection-archived.md) — 已完成的后端构建目标、入口、验证与客户端配置细则；保留部署级 runtime closeout 前置条件
 - [成熟库替换评估](archived/archived-plans/library-replacement-evaluation.md) — 手写实现 vs 成熟库的评估决策与触发条件，已归档为背景参考
 
 ### 架构与 API

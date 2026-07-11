@@ -108,11 +108,9 @@ TrapMap 有两类典型使用方式：
 - CLI 与 web-panel 继续只面向统一 gateway；HTTP / internal / event contract 分别统一收敛到 `packages/contracts`、`packages/backend-core` 和共享 async contract
 - 当前 `distributed` 定位已冻结为 `Level 2 / transitional-microservice`，第一批成熟服务样板 `knowledge-write + governance-review` 已完成 closeout
 
-当前主线（light / heavy 后端构建目标与客户端选择，planned）：
+当前没有 active mainline。两档后端构建目标已由共享 contract 与 repository-owned registry 收敛，客户端以 gateway-only `backendTarget` 配置表达目标偏好；该完成细则及其部署级 runtime closeout 前置条件已归档至 [`docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md`](docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md)。
 
-- 主线入口见 [`plan.md`](plan.md) 与 [`docs/todos/backend-build-targets-and-client-selection.md`](docs/todos/backend-build-targets-and-client-selection.md)
-- 两档后端构建目标已由共享 contract 与 repository-owned registry 收敛；客户端以 gateway-only `backendTarget` 配置表达目标偏好
-- 已完成的 Agent Eval 主线转入 [`docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md`](docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md) 作为历史参考
+新的执行工作必须从 [`plan.md`](plan.md) 显式链接的主细则开始；已完成的 Agent Eval 主线同样仅在 [`docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md`](docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md) 保留历史参考。
 
 服务发现与可观测性主线已完成代码与文档面收口，剩余 Grafana UI / 目标环境验证等历史残留已转入 debt register 跟踪：
 

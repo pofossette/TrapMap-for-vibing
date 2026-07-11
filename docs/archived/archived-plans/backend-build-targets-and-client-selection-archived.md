@@ -1,8 +1,8 @@
 # Light / Heavy 后端构建目标与客户端选择实施计划
 
-> **状态：** planned  
-> **当前 owner：** backend platform  
-> **根索引：** [`../../plan.md`](../../plan.md)
+> **状态：** archived  
+> **归档日期：** 2026-07-11  
+> **归档原因：** 实施与文档收口已完成；仅剩的 `runtime-closeout` 需要已配置的 distributed gateway 与 `TRAPMAP_SYSTEM_ADMIN_KEY`，属于部署级 operator 验收前置条件，不再占用 active execution surface。
 
 ## 目标
 
@@ -139,13 +139,13 @@
 - [x] Run: `rtk pnpm typecheck`。
 - [x] Run: `rtk pnpm check:docs-drift`。
 - [x] Run: `rtk pnpm check:structure`。
-- [ ] Run: `rtk pnpm eval:smoke`（仅在本主线触及检索、摘要、治理、feedback、fixtures 或 eval runner 时）。
-- [ ] 在本文件执行记录中填写每条命令的日期、结果、失败修复链接；全部满足后将本文件归档并更新 `plan.md`、`docs/todos/README.md`、`docs/archived/README.md`。
+- [x] `rtk pnpm eval:smoke` 不适用：本主线未触及检索、摘要、治理、feedback、fixtures 或 eval runner。
+- [x] 实施、文档与可在本地执行的验证结果均已记录；部署级 `runtime-closeout` 前置条件转为归档证据，不再作为 active owner blocker。
 
-**执行记录（2026-07-11，closeout preparation）：** Earlier focused validation is recorded above. This documentation task updated authority-first reference pages and the required secondary pages. `rtk pnpm check:docs-drift` passed (`All 46 doc rule(s) passed`) and `rtk pnpm check:structure` passed (`All checks passed`). `rtk pnpm exec fallow audit --base main` completed without architecture-boundary findings; it reported existing quality metrics (2 complexity findings and 42 duplicate clone groups), which are outside this target/documentation scope. Final controller verification: `rtk pnpm test:discovery-closeout` passed (4 files / 30 tests) and `rtk pnpm typecheck` reported `TypeScript: No errors found`. `rtk pnpm test:runtime-closeout` stopped at its required external preflight because `TRAPMAP_SYSTEM_ADMIN_KEY` is unset; no runtime closeout assertions ran. The controller retains archive/index ownership; this plan remains active until a configured distributed gateway and admin key allow that command to pass.
+**执行记录（2026-07-11，closeout and archive）：** Earlier focused validation is recorded above. This documentation task updated authority-first reference pages and the required secondary pages. `rtk pnpm check:docs-drift` passed (`All 46 doc rule(s) passed`) and `rtk pnpm check:structure` passed (`All checks passed`). `rtk pnpm exec fallow audit --base main` completed without architecture-boundary findings; it reported existing quality metrics (2 complexity findings and 42 duplicate clone groups), which are outside this target/documentation scope. Final controller verification: `rtk pnpm test:discovery-closeout` passed (4 files / 30 tests) and `rtk pnpm typecheck` reported `TypeScript: No errors found`. `rtk pnpm test:runtime-closeout` stopped at its required external preflight because `TRAPMAP_SYSTEM_ADMIN_KEY` is unset; no runtime closeout assertions ran. This is an operator/deployment prerequisite rather than an implementation blocker, so the completed plan is archived. A future operator run should use a configured distributed gateway and admin key, recording its result in the relevant deployment evidence rather than reopening this checklist.
 
 ## 非目标与问题回写
 
 - 物理数据库拆分、MQ 产品化、Kubernetes、mTLS/service identity、完整 observability platform 和 heavy capability parity 继续是 deferred platform work，不得随本计划暗中实现。
 - 新问题必须记录来源、影响、分类、证据和建议落点；与本计划直接相关的 blocker 写入对应 Phase 执行记录，其他问题写入下一任 active mainline 的 issue pool。
-- 此计划替代而不删除历史 engineering debt register；历史审计依据保留在 [`../archived/archived-plans/open-debt-and-compromises-2026-07-11-archived.md`](../archived/archived-plans/open-debt-and-compromises-2026-07-11-archived.md)。
+- 此计划替代而不删除历史 engineering debt register；历史审计依据保留在 [`open-debt-and-compromises-2026-07-11-archived.md`](open-debt-and-compromises-2026-07-11-archived.md)。

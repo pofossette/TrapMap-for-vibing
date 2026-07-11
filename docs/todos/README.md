@@ -6,7 +6,7 @@
 
 | 文件 | 主题 | 状态 |
 |---|---|---|
-| `backend-build-targets-and-client-selection.md` | light / heavy 后端构建目标与客户端 `backendTarget` 统一主细则，含阶段、文档与测试关闭条件 | 唯一 active mainline detail |
+| [observability-traceability-closure.md](observability-traceability-closure.md) | 可观测性与可追溯性闭环 | 进行中 |
 
 ## 目录规则
 
@@ -18,9 +18,6 @@
 
 ## 当前状态说明
 
-当前 `docs/todos/` 只保留真正承担执行责任的文档：
-
-- `backend-build-targets-and-client-selection.md`：唯一 active mainline detail，按共享 target registry、构建入口、客户端配置与 closeout 推进
-- 其余只剩历史证据、冻结决策或背景价值的材料，应通过 `docs/archived/` 查找，不继续占用 active 目录
+当前唯一 active mainline 是“可观测性与可追溯性闭环”。light / heavy 后端构建目标主线及其余历史证据、冻结决策或背景材料应通过 `docs/archived/` 查找，不继续占用 active 目录。
 
 完整归档表见 [`../archived/README.md`](../archived/README.md)。

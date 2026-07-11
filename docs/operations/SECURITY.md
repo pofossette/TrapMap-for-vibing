@@ -75,7 +75,7 @@ flowchart TB
 
 - `gateway only`：外部调用方只通过 gateway 进入，不直连内部 service
 - internal service hop 当前主要依赖现有 runtime trust boundary、canonical error normalization、request/trace propagation 和部署隔离
-- `service-to-service auth hardening` 仍是 deferred platform topic；当前构建目标主线的非目标与问题回写规则见 `docs/todos/backend-build-targets-and-client-selection.md`
+- `service-to-service auth hardening` 仍是 deferred platform topic；构建目标主线的非目标与问题回写规则保留在 `docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md` 供历史参考
 
 因此当前文档只能把 internal hop 写成“已有最小运行边界”，不能写成“已具备独立 service identity、mTLS 或零信任策略默认值”。
 

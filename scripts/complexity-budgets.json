@@ -289,11 +289,9 @@
       "file": "plan.md",
       "mustContain": [
         "执行计划索引",
-        "当前主线：light / heavy 后端构建目标与客户端选择",
-        "docs/todos/backend-build-targets-and-client-selection.md",
-        "docs/archived/archived-plans/open-debt-and-compromises-2026-07-11-archived.md",
-        "状态：`planned`",
-        "只保留一个当前执行入口",
+        "可观测性与可追溯性闭环",
+        "docs/todos/observability-traceability-closure.md",
+        "统一关联上下文",
         "不承载 tranche checklist 或实施细节"
       ],
       "mustNotContain": [
@@ -362,7 +360,7 @@
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
       "mustContain": [
         "Phase 7 maintainability / CI-testing truth / docs closeout freeze",
-        "当前活跃执行面仅剩 `plan.md` + `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md`",
+        "可观测性与可追溯性闭环",
         "`doc-guardrails` job runs `pnpm check:docs-drift`、`pnpm check:arch-freeze`、`pnpm check:deps`、`pnpm check:mermaid`、`pnpm check:structure`、`pnpm check:complexity`、`pnpm check:md-lint` 和 `pnpm check:links`"
       ]
     },
@@ -370,7 +368,7 @@
       "file": "docs/todos/README.md",
       "mustContain": [
         "活跃索引",
-        "唯一 active mainline detail",
+        "observability-traceability-closure.md",
         "明确承担当前执行责任的 active 文档",
         "当前状态说明",
         "完整归档表见"
@@ -384,7 +382,8 @@
       "file": "docs/archived/README.md",
       "mustContain": [
         "不应被其他文档当作当前执行入口引用",
-        "当前根 `plan.md` 只链接一个 active mainline detail",
+        "当前根 `plan.md` 指向“可观测性与可追溯性闭环”",
+        "backend-build-targets-and-client-selection-archived.md",
         "microservice-platform-evolution-plan.md",
         "微服务平台能力增强",
         "应新建 active 细则"
@@ -457,7 +456,7 @@
     },
     {
       "file": "docs/todos/README.md",
-      "mustContain": ["当前状态说明", "唯一 active mainline detail", "完整归档表见"]
+      "mustContain": ["当前状态说明", "observability-traceability-closure.md", "完整归档表见"]
     },
     {
       "file": "docs/reference/api-surface.md",
@@ -574,7 +573,7 @@
       "mustContain": ["SYSTEM_TRUTH_SOURCES.md"]
     },
     {
-      "file": "docs/todos/backend-build-targets-and-client-selection.md",
+      "file": "docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md",
       "mustContain": [
         "共享 target contract 与 registry",
         "迁移客户端 `backendTarget` 配置",

@@ -1,15 +1,15 @@
 # Engineering Debt And Platform Maturity Closeout
 
-> 状态：active mainline
-> 更新日期：2026-07-10
-> 当前 tranche：Tranche A - read-side coupling / `service-knowledge-read` deep coupling closeout
+> 状态：archived
+> 归档日期：2026-07-11
+> 历史执行状态：Tranche A - read-side coupling / `service-knowledge-read` deep coupling closeout
 
-本文档现为仓库唯一 active mainline detail。它只保留当前执行所需状态，并内联承载 backlog、deferred/frozen decision reference 与问题回写规则；历史快照和已完成 closeout 不再在此扩展成并行执行面。
+本文档曾是仓库唯一 active mainline detail，现仅保留当时的 backlog、deferred/frozen decision reference 与问题回写规则作为历史审计材料；不得将其恢复为当前执行面。
 
-## 当前主线状态
+## 历史主线状态
 
-- 根入口：[`plan.md`](../../plan.md)
-- 当前判断：Agent Eval 主线已完成归档条件，当前 repo 的 active execution surface 已收敛到 engineering debt 和 platform maturity closeout
+- 历史根入口：[`plan-2026-07-11-engineering-debt-closeout-index-archived.md`](plan-2026-07-11-engineering-debt-closeout-index-archived.md)
+- 历史判断：Agent Eval 主线已完成归档条件，当时 repo 的 active execution surface 收敛到 engineering debt 和 platform maturity closeout
 - 主线目标：按 tranche 收口仍然成立的结构性债务，优先处理会持续放大维护成本、边界耦合或默认运行面复杂度的事项
 - debt pool 说明：当前池子仍不完整，可以继续补录；但任何新条目都必须带上来源、影响、分类和证据
 

@@ -1,23 +1,30 @@
 # TrapMap 执行计划索引
 
-根 `plan.md` 只保留一个当前执行入口，作目录性质的索引，不承载 tranche checklist 或实施细节。
+根 `plan.md` 只作为当前主线的目录索引：说明目标、总体要求和验收边界；执行步骤、复选框、证据和回写记录统一维护在链接的主细则中，不承载 tranche checklist 或实施细节。
 
 ## 当前主线
 
-- 当前主线：light / heavy 后端构建目标与客户端选择
-- 状态：`planned`
-- 目标：以一个可验证的 target registry 管理两种后端构建目标；保持三档 deployment profile 的既有语义，并让客户端以单一、兼容的配置项表达目标偏好。
-- 主细则：[`docs/todos/backend-build-targets-and-client-selection.md`](docs/todos/backend-build-targets-and-client-selection.md)
+- **主题**：可观测性与可追溯性闭环
+- **目标**：让一次业务操作能够通过统一关联上下文，在请求日志、分布式 trace、指标、异步处理和持久化审计之间可靠联查。
+- **状态**：`进行中`
+- **主细则**：[可观测性与可追溯性闭环计划](docs/todos/observability-traceability-closure.md)
 
 ## 总体要求
 
-- `light` 仅归并 `local-agent` 与 `team-monolith`，`heavy` 仅归并 `distributed`；不得新增第四种 deployment profile。
-- 所有外部客户端继续采用 gateway-only：`backendTarget` 不得创建第二个 URL、认证模型或内部服务发现路径。
-- 共享枚举、schema 与 API shape 由 `packages/contracts` 定义并通过既有 `enum-types/` 聚合导出；host、CLI 与脚本只能消费该事实源。
-- 每个阶段完成前，勾选主细则中的进度项，执行其中的最小测试、类型检查和文档守卫，并回写实际结果。
-- 主细则关闭后，将其归档到 `docs/archived/archived-plans/`，同步更新 `docs/archived/README.md` 与 `docs/todos/README.md`。
+- 根索引只保留一个 active mainline，不承载 tranche checklist 或实现细节。
+- 关联字段、日志 schema、健康 contract 与 API shape 必须优先由 `packages/contracts` 和既有权威源码定义，不在宿主中另建同义模型。
+- 不得把 request ID、trace ID、用户 ID、实体 ID 等动态值作为 Prometheus 标签；路由指标必须使用参数化 route family。
+- 审计、日志与遥测必须做最小必要数据记录，并遵循既有安全、权限与脱敏要求。
+- 每个完成的 tranche 必须勾选细则中的实现、测试、文档回写与验证项；已完成主线归档到 `docs/archived/archived-plans/`。
+
+## 验收边界
+
+- 外部请求和内部/异步后续动作可共享或显式关联 `requestId`、W3C `traceparent`、`operationId` 与因果关系。
+- 日志、trace 与审计事件可通过稳定字段联查；审计记录仍独立于运行日志保存。
+- 指标命名、单位和标签符合低基数规则，健康、队列与遥测导出失败具有可诊断信号。
+- 文档、测试与运维告警配置反映已落地事实，不把外部 LGTM 基础设施描述为仓库内默认部署资产。
 
 ## 历史入口
 
-- [已归档的 engineering debt 根索引](docs/archived/archived-plans/plan-2026-07-11-engineering-debt-closeout-index-archived.md)
-- [已归档的 engineering debt 主细则](docs/archived/archived-plans/open-debt-and-compromises-2026-07-11-archived.md)
+- [已归档的上一版无 active mainline 索引](docs/archived/archived-plans/plan-2026-07-11-no-active-mainline-index-archived.md)
+- [历史归档总表](docs/archived/README.md)
