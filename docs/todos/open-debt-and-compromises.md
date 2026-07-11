@@ -95,6 +95,27 @@
   - `rtk rg "instanceof PostgresStore|new PostgresStore|getPool\\(" packages/runtime-infra/src packages/server/src -g '!**/*.test.ts' -g '!**/__tests__/**' -g '!**/__fixtures__/**'` 当前不再命中生产路径上的 `instanceof PostgresStore`；剩余命中集中在结构化 `getPool` seam、本地 `PostgresStore` 构造和 compatibility store 实现
   - 与 read-side coupling 同属一个收口面，后续重点转为结构化 pool seam shrinkage 与 compatibility JSONB direct-read residual，而不是继续保留 concrete-class 判断
 
+### 新近补录的问题池（2026-07-11）
+
+#### 4. Distributed runtime platform-maturity gaps
+
+- **分类**：deferred / platform maturity
+- **影响**：当前 `distributed` 已有真实多进程与内部 HTTP hop，但共享 PostgreSQL、有限的 readiness 覆盖和粗粒度容量视图会限制故障隔离与独立扩缩容。
+- **来源**：[`docs/architecture/SERVICE_BOUNDARIES.md`](../architecture/SERVICE_BOUNDARIES.md)、[`docs/architecture/DATABASE_OWNERSHIP.md`](../architecture/DATABASE_OWNERSHIP.md)、[`docs/architecture/ARCHITECTURE.md`](../architecture/ARCHITECTURE.md)
+- **证据**：
+  - `distributed` 当前明确是 `Level 2 / transitional-microservice`，所有服务仍连接同一 `TRAPMAP_DATABASE_URL`；表级 ownership 已受约束，但尚未形成物理存储隔离。
+  - runtime snapshot 当前重点覆盖 graph query backend 与 candidate task worker；更广义后台依赖健康仍是后续工作。
+  - operator 默认表面只提供高层容量摘要，按服务、队列积压和投影延迟的深度诊断尚未形成默认能力。
+- **后续入口**：保持 deferred，待 read-side coupling tranche 收口或运行面事故表明其成为结构性阻塞时，单独设计数据库隔离、服务级 readiness SLO 和 capacity drill-down。
+
+#### 5. Service-discovery documentation fact alignment
+
+- **分类**：documentation integrity backlog
+- **影响**：`distributed` 的服务发现前提在架构说明中出现不一致表述，可能使部署者把可选 Consul overlay 误解为启动硬依赖。
+- **来源**：[`docs/architecture/ARCHITECTURE.md`](../architecture/ARCHITECTURE.md)、[`docs/architecture/SERVICE-DISCOVERY.md`](../architecture/SERVICE-DISCOVERY.md)
+- **证据**：前者的 profile 表将 `distributed` 服务发现描述为“必需基础设施”，后者的权威接缝说明则定义为“Docker DNS / 显式 URL + 可选 dynamic discovery overlay”，且 discovery 失败时 gateway 必须静态 URL 回退。
+- **后续入口**：在下一轮架构文档事实校准中，以 `SERVICE-DISCOVERY.md` 和 `packages/host-distributed/src/config/service-config.ts` 为准，统一 profile 表、部署文档和运行时图的措辞；不改变当前运行时行为。
+
 ## Queued Tranches
 
 ### Tranche B - async queue migration completion

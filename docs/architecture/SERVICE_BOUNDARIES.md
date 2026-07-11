@@ -168,6 +168,94 @@
 - `candidate-ingestion` -> queue -> `job-runtime`
 - `governance-review` -> outbox -> `job-runtime`
 
+## 架构总览
+
+### `distributed` 运行时部署拓扑
+
+下图描述当前 `distributed` profile 的运行时基线，而不是已经完成独立数据库、强制注册中心或自治编排的平台目标。gateway 始终保留静态 URL 回退；Consul 仅为可选的动态发现增强层。
+
+```mermaid
+flowchart TB
+    Client["CLI / Web panel / HTTP client"] --> Gateway["gateway\n唯一外部入口"]
+
+    subgraph Runtime["distributed runtime"]
+        Gateway
+        Identity["identity-access"]
+        Read["knowledge-read"]
+        Write["knowledge-write"]
+        Candidate["candidate-worker\ncandidate-ingestion"]
+        Review["governance-worker\ngovernance-review"]
+        Jobs["outbox-worker\njob-runtime"]
+    end
+
+    Gateway -->|"internal HTTP / JSON"| Identity
+    Gateway -->|"internal HTTP / JSON"| Read
+    Gateway -->|"internal HTTP / JSON"| Write
+    Gateway -->|"internal HTTP / JSON"| Candidate
+    Gateway -->|"internal HTTP / JSON"| Review
+    Gateway -->|"internal HTTP / JSON"| Jobs
+
+    Candidate -->|"remote owner command"| Write
+    Review -->|"remote owner command"| Write
+    Write -->|"outbox"| Jobs
+    Candidate -->|"queue work"| Jobs
+    Review -->|"outbox"| Jobs
+    Jobs -->|"projection / follow-up"| Read
+
+    Database[("PostgreSQL\nPhase 1 shared instance\ntable ownership enforced")]
+    Queue["PostgreSQL queue / outbox\noptional RabbitMQ transport"]
+    Discovery["Consul\noptional dynamic discovery"]
+    Telemetry["OTel / metrics / logs\nobservability backend"]
+
+    Identity --> Database
+    Read --> Database
+    Write --> Database
+    Candidate --> Database
+    Review --> Database
+    Jobs --> Database
+    Jobs --> Queue
+    Gateway -. "resolve, then static URL fallback" .-> Discovery
+    Gateway -. "traces / metrics" .-> Telemetry
+    Identity -. "traces / metrics" .-> Telemetry
+    Read -. "traces / metrics" .-> Telemetry
+    Write -. "traces / metrics" .-> Telemetry
+    Candidate -. "traces / metrics" .-> Telemetry
+    Review -. "traces / metrics" .-> Telemetry
+    Jobs -. "traces / metrics" .-> Telemetry
+```
+
+### 逻辑调用与领域所有权
+
+实线表示同步端口调用；虚线表示通过 outbox、队列或工作流传递的异步工作。每个服务只能写入自己拥有的状态，跨边界写入必须委托给 owner。
+
+```mermaid
+flowchart LR
+    Gateway["gateway\n外部 API、认证与响应聚合"]
+
+    Identity["identity-access\n拥有：身份、会话、访问密钥、团队"]
+    Read["knowledge-read\n拥有：投影、索引、缓存、查询追踪"]
+    Write["knowledge-write\n拥有：知识、技能、生命周期、证据"]
+    Candidate["candidate-ingestion\n拥有：候选、去重、谱系"]
+    Review["governance-review\n拥有：审查队列、补救、冲突状态"]
+    Jobs["job-runtime\n拥有：队列、工作流、outbox、死信"]
+
+    Gateway -->|"IdentityAccessPort"| Identity
+    Gateway -->|"KnowledgeReadPort"| Read
+    Gateway -->|"KnowledgeWritePort"| Write
+    Gateway -->|"CandidateIngestionPort"| Candidate
+    Gateway -->|"GovernanceReviewPort"| Review
+    Gateway -->|"JobRuntimePort"| Jobs
+
+    Candidate -->|"KnowledgeWritePort\n发布最终领域事实"| Write
+    Review -->|"KnowledgeWritePort\n应用治理决策"| Write
+
+    Write -. "outbox event" .-> Jobs
+    Candidate -. "queued work" .-> Jobs
+    Review -. "outbox event" .-> Jobs
+    Jobs -. "refresh projection" .-> Read
+    Jobs -. "governance follow-up" .-> Review
+```
+
 ### 传输接缝
 
 默认同步传输是内部 HTTP / JSON。当前 Phase 2 只对 `knowledge-write` owner hop 冻结了可选 RPC 接缝。

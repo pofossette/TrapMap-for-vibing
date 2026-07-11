@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import { toInvocationErrorResponse } from '@trapmap/backend-core';
+import { describe, expect, it } from 'vitest';
 
+import { InvocationError } from '../invocation/invocation-model.js';
 import {
   createStubAuditLog,
   createStubMetrics,
@@ -8,7 +9,6 @@ import {
 } from '../testing/test-utils.js';
 import { executeCommand } from '../use-cases/command-handling.js';
 import type { Command } from '../use-cases/command-handling.js';
-import { InvocationError } from '../invocation/invocation-model.js';
 import {
   getServiceUnitProfile,
   resolveAsyncWorkerState,
