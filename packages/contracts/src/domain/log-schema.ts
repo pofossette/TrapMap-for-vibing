@@ -20,6 +20,9 @@ export const logEntrySchema = z
     environment: z.string(),
     traceId: z.string().optional(),
     requestId: z.string().optional(),
+    operationId: z.string().optional(),
+    causationId: z.string().optional(),
+    ownerSurface: z.string().optional(),
     context: z.string().optional(),
     message: z.string(),
   })

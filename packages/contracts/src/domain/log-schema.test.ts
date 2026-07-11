@@ -33,11 +33,17 @@ describe('log schema', () => {
         environment: 'staging',
         traceId: 'abc123',
         requestId: 'req-456',
+        operationId: 'operation-789',
+        causationId: 'event-012',
+        ownerSurface: 'runtime-seam',
         context: 'GET /v1/traps',
         message: 'Something failed',
       });
       expect(result.traceId).toBe('abc123');
       expect(result.requestId).toBe('req-456');
+      expect(result.operationId).toBe('operation-789');
+      expect(result.causationId).toBe('event-012');
+      expect(result.ownerSurface).toBe('runtime-seam');
       expect(result.context).toBe('GET /v1/traps');
     });
 
@@ -120,6 +126,9 @@ describe('log schema', () => {
         environment: 'staging',
         traceId: 'abc123',
         requestId: 'req-456',
+        operationId: 'operation-789',
+        causationId: 'event-012',
+        ownerSurface: 'runtime-seam',
         context: 'GET /v1/traps',
         message: 'Slow query',
       };
@@ -131,7 +140,7 @@ describe('log schema', () => {
       });
     });
 
-    it('does not include traceId, requestId, or context', () => {
+    it('does not include correlation IDs or owner surface', () => {
       const entry: LogEntry = {
         timestamp: '2026-07-02T10:00:00.000Z',
         level: 'info',
@@ -139,12 +148,18 @@ describe('log schema', () => {
         environment: 'production',
         traceId: 'abc',
         requestId: 'def',
+        operationId: 'operation-ghi',
+        causationId: 'event-jkl',
+        ownerSurface: 'runtime-seam',
         context: 'ghi',
         message: 'test',
       };
       const labels = buildLokiLabels(entry);
       expect(labels).not.toHaveProperty('traceId');
       expect(labels).not.toHaveProperty('requestId');
+      expect(labels).not.toHaveProperty('operationId');
+      expect(labels).not.toHaveProperty('causationId');
+      expect(labels).not.toHaveProperty('ownerSurface');
       expect(labels).not.toHaveProperty('context');
     });
   });

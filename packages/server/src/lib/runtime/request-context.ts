@@ -3,23 +3,25 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyRequest } from 'fastify';
 
 import type { ServerConfig } from '@trapmap/server/config.js';
+import {
+  CAUSATION_ID_HEADER,
+  extractTraceIdFromTraceparent,
+  OPERATION_ID_HEADER,
+} from '@trapmap/contracts';
 
 export interface RequestContext {
   requestId: string;
   traceHeaderName: string;
   traceId: string | null;
   traceParent: string | null;
+  operationId?: string;
+  causationId?: string;
   method: string;
   route: string;
 }
 
-function extractTraceId(existingTraceId: string): string {
-  const trimmed = existingTraceId.trim();
-  const traceParentMatch = /^00-([0-9a-f]{32})-[0-9a-f]{16}-[0-9a-f]{2}$/i.exec(trimmed);
-  if (traceParentMatch) {
-    return traceParentMatch[1] ?? trimmed;
-  }
-  return trimmed;
+function readOptionalHeader(header: string | string[] | undefined): string | undefined {
+  return typeof header === 'string' && header.trim().length > 0 ? header.trim() : undefined;
 }
 
 export function getOrCreateRequestContext(
@@ -30,25 +32,22 @@ export function getOrCreateRequestContext(
   const traceHeaderName = config.runtime.traceHeaderName.toLowerCase();
   const existingRequestId = request.headers[requestIdHeader];
   const existingTraceId = request.headers[traceHeaderName];
+  const traceParent = readOptionalHeader(existingTraceId);
+  const traceId = traceParent ? extractTraceIdFromTraceparent(traceParent) : null;
+  const operationId = readOptionalHeader(request.headers[OPERATION_ID_HEADER]);
+  const causationId = readOptionalHeader(request.headers[CAUSATION_ID_HEADER]);
 
   const requestId =
     typeof existingRequestId === 'string' && existingRequestId.trim().length > 0
       ? existingRequestId.trim()
       : request.id || randomUUID();
-  const traceId =
-    typeof existingTraceId === 'string' && existingTraceId.trim().length > 0
-      ? extractTraceId(existingTraceId)
-      : null;
-  const traceParent =
-    typeof existingTraceId === 'string' && existingTraceId.trim().length > 0
-      ? existingTraceId.trim()
-      : null;
-
   const context: RequestContext = {
     requestId,
     traceHeaderName,
     traceId,
-    traceParent,
+    traceParent: traceId ? traceParent : null,
+    ...(operationId && { operationId }),
+    ...(causationId && { causationId }),
     method: request.method,
     route: request.routeOptions.url || request.url,
   };

@@ -42,12 +42,12 @@ describe('observability chain: request context extraction', () => {
     );
 
     expect(ctx.requestId).toBe('req-abc-123');
-    expect(ctx.traceId).toBe('00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01');
+    expect(ctx.traceId).toBe('4bf92f3577b34da6a3ce929d0e0e4736');
     expect(ctx.method).toBe('GET');
     expect(ctx.route).toBe('/v1/traps');
   });
 
-  it('generates requestId when header is missing but preserves traceId', () => {
+  it('generates requestId and rejects an invalid traceparent', () => {
     const ctx = extractRequestContext(
       { traceparent: 'trace-xyz' },
       config,
@@ -56,7 +56,7 @@ describe('observability chain: request context extraction', () => {
 
     expect(ctx.requestId).toBeDefined();
     expect(ctx.requestId.length).toBeGreaterThan(0);
-    expect(ctx.traceId).toBe('trace-xyz');
+    expect(ctx.traceId).toBeNull();
   });
 
   it('sets traceId to null when trace header is absent', () => {
@@ -313,7 +313,7 @@ describe('observability chain: end-to-end signal chain', () => {
       expect(stored.requestId).toBe('req-e2e-001');
 
       // Signal 2: Trace ID (propagated from traceparent header)
-      expect(stored.traceId).toBe('00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01');
+      expect(stored.traceId).toBe('4bf92f3577b34da6a3ce929d0e0e4736');
 
       // Signal 3: Metrics (simulated - PrometheusService would record these)
       const metricsLabels = {
@@ -327,7 +327,7 @@ describe('observability chain: end-to-end signal chain', () => {
       // Signal 4: Structured log (what LoggingMiddleware would produce)
       const logMessage = `${stored.method} ${stored.route} 200 35ms [${stored.requestId}] [${stored.traceId}]`;
       expect(logMessage).toBe(
-        'GET /v1/traps 200 35ms [req-e2e-001] [00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01]',
+        'GET /v1/traps 200 35ms [req-e2e-001] [4bf92f3577b34da6a3ce929d0e0e4736]',
       );
 
       // Also verify the Loki label path produces correct low-cardinality labels
@@ -351,7 +351,7 @@ describe('observability chain: end-to-end signal chain', () => {
       // And stdout format includes correlation IDs
       const stdout = formatLogForStdout(logEntry);
       expect(stdout).toContain('[req-e2e-001]');
-      expect(stdout).toContain('00-4bf92f3577b34da6a3ce929d0e0e4736');
+      expect(stdout).toContain('4bf92f3577b34da6a3ce929d0e0e4736');
     });
   });
 
@@ -361,7 +361,7 @@ describe('observability chain: end-to-end signal chain', () => {
     const ctx = extractRequestContext(
       {
         'x-request-id': 'req-echo-test',
-        traceparent: 'trace-echo-test',
+        traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
       },
       { requestIdHeader: 'x-request-id', traceHeaderName: 'traceparent' },
       { method: 'POST', route: '/v1/candidates' },
@@ -369,11 +369,13 @@ describe('observability chain: end-to-end signal chain', () => {
 
     // Middleware sets these on response
     responseHeaders['x-request-id'] = ctx.requestId;
-    if (ctx.traceId) {
-      responseHeaders[ctx.traceHeaderName] = ctx.traceId;
+    if (ctx.traceParent) {
+      responseHeaders[ctx.traceHeaderName] = ctx.traceParent;
     }
 
     expect(responseHeaders['x-request-id']).toBe('req-echo-test');
-    expect(responseHeaders['traceparent']).toBe('trace-echo-test');
+    expect(responseHeaders['traceparent']).toBe(
+      '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+    );
   });
 });

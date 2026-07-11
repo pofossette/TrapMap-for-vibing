@@ -1,11 +1,19 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
+import {
+  CAUSATION_ID_HEADER,
+  extractTraceIdFromTraceparent,
+  OPERATION_ID_HEADER,
+} from '@trapmap/contracts';
 
 export interface NestRequestContext {
   requestId: string;
   traceId: string | null;
+  traceParent: string | null;
   traceHeaderName: string;
+  operationId?: string;
+  causationId?: string;
   method: string;
   route: string;
 }
@@ -52,23 +60,28 @@ export function extractRequestContext(
   const traceHeader = config.traceHeaderName.toLowerCase();
 
   const existingRequestId = headers[reqIdHeader];
-  const existingTraceId = headers[traceHeader];
+  const traceParent = readOptionalHeader(headers[traceHeader]);
+  const traceId = traceParent ? extractTraceIdFromTraceparent(traceParent) : null;
+  const operationId = readOptionalHeader(headers[OPERATION_ID_HEADER]);
+  const causationId = readOptionalHeader(headers[CAUSATION_ID_HEADER]);
 
   const requestId =
     typeof existingRequestId === 'string' && existingRequestId.trim().length > 0
       ? existingRequestId.trim()
       : fallback.existingId || randomUUID();
 
-  const traceId =
-    typeof existingTraceId === 'string' && existingTraceId.trim().length > 0
-      ? existingTraceId.trim()
-      : null;
-
   return {
     requestId,
     traceId,
+    traceParent: traceId ? traceParent : null,
     traceHeaderName: traceHeader,
+    ...(operationId && { operationId }),
+    ...(causationId && { causationId }),
     method: fallback.method,
     route: fallback.route,
   };
+}
+
+function readOptionalHeader(header: string | string[] | undefined): string | undefined {
+  return typeof header === 'string' && header.trim().length > 0 ? header.trim() : undefined;
 }

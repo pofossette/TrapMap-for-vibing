@@ -165,12 +165,12 @@
 
 **目的：** 在改动行为前统一术语、字段归属和测试基线，避免各宿主再次发明不同的关联模型。
 
-- [ ] 在 `packages/contracts/src/domain/` 定义并导出关联上下文 schema：`requestId`、`traceparent`、`traceId`、`operationId`、`causationId`、`service`、`ownerSurface`。
-- [ ] 明确字段语义：`requestId` 标识单个入口请求，`traceparent` 遵循 W3C，`operationId` 标识可跨同步/异步边界的业务操作，`causationId` 标识直接起因事件或操作。
+- [x] 在 `packages/contracts/src/domain/` 定义并导出关联上下文 schema：`requestId`、`traceparent`、`traceId`、`operationId`、`causationId`、`service`、`ownerSurface`。
+- [x] 明确字段语义：`requestId` 标识单个入口请求，`traceparent` 遵循 W3C，`operationId` 标识可跨同步/异步边界的业务操作，`causationId` 标识直接起因事件或操作。
 - [ ] 盘点 `packages/server`、`packages/host-local`、`packages/host-distributed` 的入口、中间件、内部 client、异步消息和审计写入点，记录采用新 contract 的迁移顺序。
-- [ ] 为 contract schema 和各宿主的现有 request-context 行为补齐最小测试，覆盖：上游字段存在、缺失时生成、非法 traceparent、异步上下文缺失。
-- [ ] 更新 `docs/architecture/OBSERVABILITY.md`、`docs/reference/SYSTEM_TRUTH_SOURCES.md` 和本文档，明确关联字段的权威来源与兼容边界。
-- [ ] 验证：`rtk pnpm --filter @trapmap/contracts test --run src/domain/observability.test.ts src/domain/log-schema.test.ts`、受影响 host 包的单文件测试、`rtk pnpm typecheck`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。
+- [x] 为 server 与 host-local 的 request-context 补齐最小测试，覆盖：上游字段存在、缺失 fallback、非法 traceparent、AsyncLocalStorage 保留，以及 operation/causation headers。
+- [x] 更新 `docs/architecture/OBSERVABILITY.md` 和本文档，明确关联字段的权威来源与兼容边界；`SYSTEM_TRUTH_SOURCES.md` 未新增或变更权威条目，保持不变。
+- [x] 验证（2026-07-11）：`rtk pnpm --filter @trapmap/contracts test --run src/domain/observability.test.ts src/domain/log-schema.test.ts`（20 passed）、`rtk pnpm test:file -- packages/server/src/lib/runtime/request-context.test.ts`（3 passed）、`rtk pnpm --filter @trapmap/host-local test --run src/nest/runtime/request-context.test.ts src/nest/observability/observability-chain.test.ts`（30 passed）、`rtk pnpm typecheck`（No errors found）、`rtk pnpm check:docs-drift`（46 rules passed）及 `rtk pnpm check:structure`（passed）。
 
 ## Tranche 1：完成端到端 trace 与上下文传播
 

@@ -5,6 +5,8 @@ import { entityIdSchema } from './common.js';
 export const OBSERVABILITY_CORRELATION_KEYS = [
   'requestId',
   'traceId',
+  'operationId',
+  'causationId',
   'queryId',
   'feedbackId',
   'asyncJobId',
@@ -17,6 +19,25 @@ export const OBSERVABILITY_CORRELATION_KEYS = [
 export const observabilityCorrelationKeySchema = z.enum(OBSERVABILITY_CORRELATION_KEYS);
 
 export type ObservabilityCorrelationKey = z.infer<typeof observabilityCorrelationKeySchema>;
+
+export const TRACEPARENT_HEADER = 'traceparent';
+export const OPERATION_ID_HEADER = 'x-trapmap-operation-id';
+export const CAUSATION_ID_HEADER = 'x-trapmap-causation-id';
+
+const nonZeroTraceIdPattern = '(?!0{32})[0-9a-f]{32}';
+const nonZeroSpanIdPattern = '(?!0{16})[0-9a-f]{16}';
+
+export const traceparentSchema = z
+  .string()
+  .regex(
+    new RegExp(`^00-(${nonZeroTraceIdPattern})-(${nonZeroSpanIdPattern})-[0-9a-f]{2}$`),
+    'traceparent must use the W3C version 00 format',
+  );
+
+export function extractTraceIdFromTraceparent(traceparent: string): string | null {
+  const parsed = traceparentSchema.safeParse(traceparent.trim());
+  return parsed.success ? parsed.data.slice(3, 35) : null;
+}
 
 export const observabilityEventCategorySchema = z.enum([
   'request',
@@ -57,6 +78,29 @@ export const observabilitySurfaceOwnerSchema = z.enum([
 
 export type ObservabilitySurfaceOwner = z.infer<typeof observabilitySurfaceOwnerSchema>;
 
+export const correlationContextSchema = z
+  .object({
+    requestId: entityIdSchema,
+    traceparent: traceparentSchema,
+    traceId: z.string().regex(/^[0-9a-f]{32}$/),
+    operationId: entityIdSchema.optional(),
+    causationId: entityIdSchema.optional(),
+    service: z.string().min(1).max(256),
+    ownerSurface: observabilitySurfaceOwnerSchema,
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (extractTraceIdFromTraceparent(value.traceparent) !== value.traceId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['traceId'],
+        message: 'traceId must match the trace ID encoded in traceparent',
+      });
+    }
+  });
+
+export type CorrelationContext = z.infer<typeof correlationContextSchema>;
+
 export const OBSERVABILITY_FAILURE_CLASSIFICATIONS = [
   'user-error',
   'auth-policy-error',
@@ -80,6 +124,8 @@ export const observabilityLogFieldSchema = z.enum([
   'eventName',
   'requestId',
   'traceId',
+  'operationId',
+  'causationId',
   'queryId',
   'feedbackId',
   'asyncJobId',
@@ -105,6 +151,8 @@ export const OBSERVABILITY_PUBLIC_ADDITIVE_FIELDS = [
 ] as const satisfies ReadonlyArray<ObservabilityCorrelationKey>;
 
 export const OBSERVABILITY_INTERNAL_ONLY_CORRELATION_KEYS = [
+  'operationId',
+  'causationId',
   'workflowRunId',
   'candidateId',
   'entryId',
@@ -286,6 +334,8 @@ export const defaultObservabilityContract = observabilityContractSchema.parse({
   correlationKeys: [
     'requestId',
     'traceId',
+    'operationId',
+    'causationId',
     'queryId',
     'feedbackId',
     'asyncJobId',
@@ -328,6 +378,8 @@ export const defaultObservabilityContract = observabilityContractSchema.parse({
   highCardinalityEventFields: [
     'requestId',
     'traceId',
+    'operationId',
+    'causationId',
     'queryId',
     'feedbackId',
     'asyncJobId',
@@ -337,7 +389,15 @@ export const defaultObservabilityContract = observabilityContractSchema.parse({
     'artifactId',
   ],
   publicAdditiveFields: [...OBSERVABILITY_PUBLIC_ADDITIVE_FIELDS],
-  internalOnlyFields: ['workflowRunId', 'candidateId', 'entryId', 'artifactId', 'ownerSurface'],
+  internalOnlyFields: [
+    'operationId',
+    'causationId',
+    'workflowRunId',
+    'candidateId',
+    'entryId',
+    'artifactId',
+    'ownerSurface',
+  ],
   surfaceOwners: [
     {
       surface: 'contracts',

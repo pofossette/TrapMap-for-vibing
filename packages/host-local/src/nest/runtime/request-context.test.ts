@@ -14,7 +14,8 @@ describe('RequestContextService', () => {
     const service = new RequestContextService();
     const ctx = {
       requestId: 'req-123',
-      traceId: 'trace-456',
+      traceId: '4bf92f3577b34da6a3ce929d0e0e4736',
+      traceParent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
       traceHeaderName: 'traceparent',
       method: 'GET',
       route: '/v1/knowledge/test',
@@ -24,7 +25,7 @@ describe('RequestContextService', () => {
       const result = service.get();
       expect(result).toEqual(ctx);
       expect(service.getRequestId()).toBe('req-123');
-      expect(service.getTraceId()).toBe('trace-456');
+      expect(service.getTraceId()).toBe('4bf92f3577b34da6a3ce929d0e0e4736');
     });
   });
 
@@ -64,12 +65,41 @@ describe('extractRequestContext', () => {
     expect(ctx.requestId).toBe('fastify-id');
   });
 
-  it('should extract traceId from traceparent header', () => {
-    const ctx = extractRequestContext({ traceparent: '00-trace-abc' }, config, {
+  it('should extract traceId from a valid traceparent header', () => {
+    const ctx = extractRequestContext(
+      { traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01' },
+      config,
+      {
+      method: 'POST',
+      route: '/test',
+      },
+    );
+    expect(ctx.traceId).toBe('4bf92f3577b34da6a3ce929d0e0e4736');
+    expect(ctx.traceParent).toBe('00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01');
+  });
+
+  it('treats an invalid traceparent as absent', () => {
+    const ctx = extractRequestContext({ traceparent: 'trace-abc' }, config, {
       method: 'POST',
       route: '/test',
     });
-    expect(ctx.traceId).toBe('00-trace-abc');
+
+    expect(ctx.traceId).toBeNull();
+    expect(ctx.traceParent).toBeNull();
+  });
+
+  it('extracts internal operation and causation headers', () => {
+    const ctx = extractRequestContext(
+      {
+        'x-trapmap-operation-id': 'operation_1',
+        'x-trapmap-causation-id': 'event_1',
+      },
+      config,
+      { method: 'POST', route: '/test' },
+    );
+
+    expect(ctx.operationId).toBe('operation_1');
+    expect(ctx.causationId).toBe('event_1');
   });
 
   it('should set traceId to null when trace header is absent', () => {
@@ -83,12 +113,12 @@ describe('extractRequestContext', () => {
       traceHeaderName: 'x-trace',
     };
     const ctx = extractRequestContext(
-      { 'x-custom-id': 'custom-id', 'x-trace': 'custom-trace' },
+      { 'x-custom-id': 'custom-id', 'x-trace': '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01' },
       customConfig,
       { method: 'GET', route: '/test' },
     );
     expect(ctx.requestId).toBe('custom-id');
-    expect(ctx.traceId).toBe('custom-trace');
+    expect(ctx.traceId).toBe('4bf92f3577b34da6a3ce929d0e0e4736');
   });
 });
 
@@ -108,7 +138,10 @@ describe('RequestContextMiddleware', () => {
 
     middleware.use(
       {
-        headers: { 'x-request-id': 'req-1', traceparent: 'trace-1' },
+        headers: {
+          'x-request-id': 'req-1',
+          traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+        },
         method: 'GET',
         url: '/health',
         id: 'fastify-id',
@@ -119,7 +152,11 @@ describe('RequestContextMiddleware', () => {
     );
 
     expect(header).toHaveBeenNthCalledWith(1, 'x-request-id', 'req-1');
-    expect(header).toHaveBeenNthCalledWith(2, 'traceparent', 'trace-1');
+    expect(header).toHaveBeenNthCalledWith(
+      2,
+      'traceparent',
+      '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+    );
     expect(next).toHaveBeenCalledTimes(1);
   });
 

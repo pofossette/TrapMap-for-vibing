@@ -105,6 +105,24 @@ Tempo、Prometheus、Loki、Grafana 和 Collector 在当前仓库里只冻结为
 
 `packages/server/src/lib/runtime/request-context.ts` 和 distributed gateway/internal-client 继续承担 request / trace header 的传播职责，不在文档中发明第二套 header 命名。
 
+### 关联上下文 contract
+
+`packages/contracts/src/domain/observability.ts` 是关联字段、W3C `traceparent` 校验和字段可见性的唯一来源；`packages/contracts/src/domain/log-schema.ts` 是结构化日志字段与 Loki label 白名单的唯一来源。两者均通过 `packages/contracts/src/index.ts` 聚合导出。
+
+| 字段 | 语义 | 可见性 |
+|---|---|---|
+| `requestId` | 单个入口请求的稳定标识；保留有效 `x-request-id`，缺失时由宿主已有 fallback 生成 | public-additive |
+| `traceparent` | 仅接受 W3C version `00` 的有效 trace context | internal-only transport |
+| `traceId` | 从有效 `traceparent` 提取的 32 位 trace ID，不接受独立输入 | public-additive |
+| `operationId` | 可跨同步和异步边界延续的稳定业务操作标识 | internal-only |
+| `causationId` | 直接触发当前操作的事件或操作标识 | internal-only |
+| `service` | 产生记录或操作的服务名 | internal-only |
+| `ownerSurface` | 对该 observability surface 负责的已注册边界 | internal-only |
+
+`operationId` 与 `causationId` 不属于公开 API 的 additive fields，当前阶段也不会写入新的响应 header。它们只从已定义的内部 header `x-trapmap-operation-id` 和 `x-trapmap-causation-id` 读取，缺失时保持 `undefined`。所有关联 ID 只可进入 JSON 日志 body；Loki labels 始终严格限于 `service`、`environment`、`level`。
+
+server compatibility shell 与 host-local Nest 宿主按相同规则解析 request context：有效 request ID 原样保留，非法或不完整 `traceparent` 按缺失处理；server 使用 Fastify `request.id`，host-local 使用传入的 Fastify ID 作为各自的既有 fallback。两者均不在本阶段创建 trace/span 或改变 OTel 导出。
+
 ## 与现有架构的集成
 
 ### 分层归属

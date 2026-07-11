@@ -32,13 +32,13 @@ export class RequestContextMiddleware implements NestMiddleware {
 
     if ('header' in res && typeof res.header === 'function') {
       res.header(this.config.runtime.requestIdHeader, ctx.requestId);
-      if (ctx.traceId) {
-        res.header(ctx.traceHeaderName, ctx.traceId);
+      if (ctx.traceParent) {
+        res.header(ctx.traceHeaderName, ctx.traceParent);
       }
     } else if (res.raw && typeof res.raw.setHeader === 'function') {
       res.raw.setHeader(this.config.runtime.requestIdHeader, ctx.requestId);
-      if (ctx.traceId) {
-        res.raw.setHeader(ctx.traceHeaderName, ctx.traceId);
+      if (ctx.traceParent) {
+        res.raw.setHeader(ctx.traceHeaderName, ctx.traceParent);
       }
     }
 
