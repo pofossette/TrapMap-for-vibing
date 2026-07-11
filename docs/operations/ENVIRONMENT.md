@@ -44,6 +44,12 @@
 
 以下变量用于“按部署拆分进程”和“可选切换 task transport”。默认值保持当前模块化单体 + PostgreSQL task queue，不需要 MQ。
 
+`light` / `heavy` are build targets, not environment-variable values or extra runtime
+profiles. Their authoritative mapping is `local-agent` / `team-monolith` -> `light`
+and `distributed` -> `heavy`; the registry owns their host and command mapping.
+Use `pnpm build:light`, `pnpm build:heavy`, `pnpm test:light-target`, and
+`pnpm test:heavy-target` rather than setting a new target environment variable.
+
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `TRAPMAP_DEPLOYMENT_PROFILE` | 目标部署形态：`local-agent`、`team-monolith`、`distributed`。这是产品/部署叙事层，不直接替代 runtime/preset | 未设置（按 `TRAPMAP_DEPLOYMENT_PRESET` 推断） |
@@ -123,6 +129,7 @@ Phase 4 freeze 只冻结当前 selector env / provider-specific env / fail-fast 
 - 推荐组合冻结为：`local-agent` -> `light` + in-process/internal defaults + `json-store-ok`；`team-monolith` -> `light` + `postgres-required` + `gateway-core` + `split-owned`；`distributed` -> `heavy` + service/gateway split + `remote-expected`。
 - fail-fast / fallback 规则冻结为：`TRAPMAP_TASK_TRANSPORT=rabbitmq` 时必须同时提供 RabbitMQ config；`distributed` profile 需要 PostgreSQL；`local-agent` 仍允许 `.data/skill-shareer.json` 这类 JSON store fallback；internal service URLs 在 `in-process` mode 下继续视为 ignored config，而不是必填值。
 - target-pruning 仅是文档边界。`light` / `heavy` 不是新的 env value，也不是新的 runtime profile；optional dependency / tree-shaking 规则只表达当前 intent 与 non-goal，不表示仓库已经实现自动化 package pruning。
+- `heavy` 只描述当前 gateway + worker/service-unit 的 transitional distributed posture。它不表示 physical database isolation、Kubernetes、mTLS、independent control plane 或 `light` capability parity 已落地；external client 仍只使用 `TRAPMAP_GATEWAY_URL`。
 
 Phase 2 runtime / failure contract 补充约定：
 

@@ -65,6 +65,18 @@ describe('apiRequest', () => {
       expect(mockFetch).toHaveBeenCalledWith('http://localhost:4000/api/test', expect.any(Object));
     });
 
+    it('uses the same gateway URL for a heavy backend target', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        text: () => Promise.resolve(JSON.stringify({ success: true })),
+      });
+
+      await apiRequest({ ...defaultState, backendTarget: 'heavy' }, { path: '/api/test' });
+
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:4000/api/test', expect.any(Object));
+    });
+
     it('should use options.gatewayUrl when provided (override)', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,

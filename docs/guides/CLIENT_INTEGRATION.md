@@ -9,6 +9,20 @@ TrapMap 中的 Skill 有两种消费方式：
 
 > 源码：`packages/cli/src/lib/activation-policy.ts`、`packages/cli/src/lib/artifact-bundle.ts`
 
+## Backend Connection Model
+
+Every external client uses one gateway URL. The optional client configuration
+`backendTarget` uses the shared `@trapmap/contracts` values: `light` for
+`local-agent` / `team-monolith`, and `heavy` for `distributed`. Missing or invalid
+persisted values normalize to `light`.
+
+The setting is only a target preference for diagnostics and defaults. It does not
+introduce worker URLs, internal service discovery, separate authentication, or
+request routing. The CLI currently persists this setting; the web-panel has no
+persisted connection configuration and therefore has no selector. `heavy` remains a
+transitional distributed topology, not a claim of database isolation, Kubernetes,
+mTLS, independent control-plane ownership, or capability parity.
+
 ---
 
 ## Skill 工件结构

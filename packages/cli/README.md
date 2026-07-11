@@ -31,6 +31,19 @@ CLI 状态文件存储在 `~/.trapmap/cli.json`。若 `os.homedir()` 不可用�
 - 旧配置缺省 `backendTarget` 时按 `"light"` 解释。
 - 非法值会被规范化回 `"light"`。
 - 该字段不改变单一 `gatewayUrl`、认证模型或任何内部服务发现逻辑。
+- `gatewayUrl` is the only connection address, including for `heavy`; never add a worker or service-unit URL to CLI state.
+
+最小配置示例：
+
+```json
+{
+  "gatewayUrl": "http://127.0.0.1:4000",
+  "backendTarget": "heavy"
+}
+```
+
+`heavy` maps to the `distributed` profile and `light` maps to `local-agent` /
+`team-monolith`. The setting is a target preference, not a request-routing switch.
 
 | 字段 | 类型 | 默认值 | 说明 |
 |---|---|---|---|

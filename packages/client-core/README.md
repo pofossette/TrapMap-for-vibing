@@ -14,6 +14,11 @@ TrapMap 客户端共享的网关传输层。
 4. **最小接口** -- 仅导出网关通信所需的内容。
 5. **仅网关契约** -- 客户端后端形状提示（如 `backendTarget`）保留在本包之上；`client-core` 不会扩展内部服务发现或第二种 URL 模型。
 
+`BackendTarget` is defined by `@trapmap/contracts`, not by this transport package:
+`light` maps to `local-agent` / `team-monolith`, while `heavy` maps to `distributed`.
+Persisted-value fallback belongs to the owning client configuration layer (currently
+the CLI); `client-core` always receives one already-resolved gateway base URL.
+
 ## 导出
 
 | 导出 | 类型 | 描述 |

@@ -108,10 +108,10 @@ TrapMap 有两类典型使用方式：
 - CLI 与 web-panel 继续只面向统一 gateway；HTTP / internal / event contract 分别统一收敛到 `packages/contracts`、`packages/backend-core` 和共享 async contract
 - 当前 `distributed` 定位已冻结为 `Level 2 / transitional-microservice`，第一批成熟服务样板 `knowledge-write + governance-review` 已完成 closeout
 
-当前主线（engineering debt and platform maturity closeout，进行中）：
+当前主线（light / heavy 后端构建目标与客户端选择，planned）：
 
-- 主线入口见 [`plan.md`](plan.md) 与 [`docs/todos/open-debt-and-compromises.md`](docs/todos/open-debt-and-compromises.md)
-- 当前唯一 active tranche 是 read-side coupling / `service-knowledge-read` deep coupling closeout
+- 主线入口见 [`plan.md`](plan.md) 与 [`docs/todos/backend-build-targets-and-client-selection.md`](docs/todos/backend-build-targets-and-client-selection.md)
+- 两档后端构建目标已由共享 contract 与 repository-owned registry 收敛；客户端以 gateway-only `backendTarget` 配置表达目标偏好
 - 已完成的 Agent Eval 主线转入 [`docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md`](docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md) 作为历史参考
 
 服务发现与可观测性主线已完成代码与文档面收口，剩余 Grafana UI / 目标环境验证等历史残留已转入 debt register 跟踪：
@@ -190,6 +190,17 @@ pnpm --filter @trapmap/host-local dev
 pnpm --filter @trapmap/host-local start
 ```
 
+构建和验证使用四个 root target commands；它们从 registry 派生，不复制 host build 逻辑：
+
+```bash
+pnpm build:light        # @trapmap/host-local
+pnpm build:heavy        # @trapmap/host-distributed
+pnpm test:light-target  # deployment smoke + runtime foundations
+pnpm test:heavy-target  # light checks + discovery/distributed/runtime closeout
+```
+
+`heavy` 是 gateway + worker/service-unit 的过渡性分布式拓扑，而不是物理数据库隔离、Kubernetes、mTLS、独立控制面或与 `light` 的能力对等承诺。无论选择哪个 target，CLI 和 web-panel 都只访问唯一 gateway；web-panel 没有持久化连接配置，因此不提供 target selector。
+
 `@trapmap/host-local` 的 closeout 验收路径固定为 `build -> start -> observability-benchmark`。`dev` 只保留给开发便利，不作为“本轮是否修复完成”的事实源；本轮 closeout 不包含 `@trapmap/server build` 的全量清障。
 
 另一个终端可运行 CLI：
@@ -240,6 +251,8 @@ pnpm test:discovery-closeout
 pnpm test:distributed-closeout
 pnpm test:deployment-smoke
 pnpm test:runtime-foundations
+pnpm test:light-target
+pnpm test:heavy-target
 pnpm typecheck
 pnpm check:docs-drift
 ```

@@ -12,6 +12,20 @@
 
 ---
 
+## Shared Client Configuration Contract
+
+`@trapmap/contracts` exports `BackendTarget` and `backendTargetSchema` for client-side
+configuration. The only values are `light` and `heavy`: `local-agent` and
+`team-monolith` resolve to `light`; `distributed` resolves to `heavy`.
+`normalizeBackendTarget()` treats missing or invalid persisted values as `light`.
+
+This is not an HTTP route parameter and does not select an internal service. Clients
+continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
+
+> Source: `packages/contracts/src/enum-types/backend-target.ts`, `packages/cli/src/lib/config.ts`
+
+---
+
 ## Runtime / Health
 
 | 方法 | 路由 | 请求契约 | 响应契约 | 用途 |

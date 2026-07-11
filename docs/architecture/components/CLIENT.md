@@ -60,7 +60,7 @@ flowchart TB
 ```typescript
 interface CliState {
   gatewayUrl: string;             // 统一 gateway URL
-  backendTarget: 'light' | 'heavy'; // 目标后端构建形态偏好
+  backendTarget: BackendTarget;   // 从 @trapmap/contracts 导入的目标形态偏好
   sessionToken: string | null;    // 会话令牌
   session: ActiveSession | null;  // 活动会话
   outputProfile?: OutputProfile;  // 输出配置
@@ -95,6 +95,8 @@ interface OutputProfile {
 - `light` 对应 `local-agent` / `team-monolith`；`heavy` 对应 `distributed`。
 - 旧配置缺省该字段时按 `light` 解释；未知值也回退到 `light`。
 - 客户端继续遵守 `gateway only`：`backendTarget` 只影响提示、诊断和默认行为选择，不改变 `gatewayUrl` 的单 URL 模型。
+- `BackendTarget`、schema、normalization 与 profile mapping 由 `@trapmap/contracts` 所有；target 的 host、dev/build/verification command 由 `scripts/backend-target-registry.ts` 所有，client 不得维护平行映射。
+- web-panel 当前没有持久化 connection configuration；因此不新增 selector，也不把 target 透传为内部 service URL。
 
 ### 状态管理 API
 

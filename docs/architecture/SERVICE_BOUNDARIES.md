@@ -176,36 +176,36 @@
 
 ```mermaid
 flowchart TB
-    Client["CLI / Web panel / HTTP client"] --> Gateway["gateway\n唯一外部入口"]
+    Client["CLI / Web panel / HTTP client"] --> Gateway["gateway: external entry"]
 
-    subgraph Runtime["distributed runtime"]
+    subgraph Runtime["distributed deployment"]
         Gateway
         Identity["identity-access"]
         Read["knowledge-read"]
         Write["knowledge-write"]
-        Candidate["candidate-worker\ncandidate-ingestion"]
-        Review["governance-worker\ngovernance-review"]
-        Jobs["outbox-worker\njob-runtime"]
+        Candidate["candidate-worker: candidate-ingestion"]
+        Review["governance-worker: governance-review"]
+        Jobs["outbox-worker: job-runtime"]
     end
 
-    Gateway -->|"internal HTTP / JSON"| Identity
-    Gateway -->|"internal HTTP / JSON"| Read
-    Gateway -->|"internal HTTP / JSON"| Write
-    Gateway -->|"internal HTTP / JSON"| Candidate
-    Gateway -->|"internal HTTP / JSON"| Review
-    Gateway -->|"internal HTTP / JSON"| Jobs
+    Gateway -->|internal HTTP / JSON| Identity
+    Gateway -->|internal HTTP / JSON| Read
+    Gateway -->|internal HTTP / JSON| Write
+    Gateway -->|internal HTTP / JSON| Candidate
+    Gateway -->|internal HTTP / JSON| Review
+    Gateway -->|internal HTTP / JSON| Jobs
 
-    Candidate -->|"remote owner command"| Write
-    Review -->|"remote owner command"| Write
-    Write -->|"outbox"| Jobs
-    Candidate -->|"queue work"| Jobs
-    Review -->|"outbox"| Jobs
-    Jobs -->|"projection / follow-up"| Read
+    Candidate -->|remote owner command| Write
+    Review -->|remote owner command| Write
+    Write -->|outbox| Jobs
+    Candidate -->|queue work| Jobs
+    Review -->|outbox| Jobs
+    Jobs -->|projection and follow-up| Read
 
-    Database[("PostgreSQL\nPhase 1 shared instance\ntable ownership enforced")]
-    Queue["PostgreSQL queue / outbox\noptional RabbitMQ transport"]
-    Discovery["Consul\noptional dynamic discovery"]
-    Telemetry["OTel / metrics / logs\nobservability backend"]
+    Database[("PostgreSQL: Phase 1 shared instance")]
+    Queue["PostgreSQL queue and outbox; optional RabbitMQ"]
+    Discovery["Consul: optional dynamic discovery"]
+    Telemetry["OTel, metrics, logs, observability backend"]
 
     Identity --> Database
     Read --> Database
@@ -214,14 +214,14 @@ flowchart TB
     Review --> Database
     Jobs --> Database
     Jobs --> Queue
-    Gateway -. "resolve, then static URL fallback" .-> Discovery
-    Gateway -. "traces / metrics" .-> Telemetry
-    Identity -. "traces / metrics" .-> Telemetry
-    Read -. "traces / metrics" .-> Telemetry
-    Write -. "traces / metrics" .-> Telemetry
-    Candidate -. "traces / metrics" .-> Telemetry
-    Review -. "traces / metrics" .-> Telemetry
-    Jobs -. "traces / metrics" .-> Telemetry
+    Gateway -.->|resolve, then static URL fallback| Discovery
+    Gateway -.->|traces and metrics| Telemetry
+    Identity -.->|traces and metrics| Telemetry
+    Read -.->|traces and metrics| Telemetry
+    Write -.->|traces and metrics| Telemetry
+    Candidate -.->|traces and metrics| Telemetry
+    Review -.->|traces and metrics| Telemetry
+    Jobs -.->|traces and metrics| Telemetry
 ```
 
 ### 逻辑调用与领域所有权
@@ -230,31 +230,69 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    Gateway["gateway\n外部 API、认证与响应聚合"]
+    Gateway["gateway: external API, auth, response aggregation"]
 
-    Identity["identity-access\n拥有：身份、会话、访问密钥、团队"]
-    Read["knowledge-read\n拥有：投影、索引、缓存、查询追踪"]
-    Write["knowledge-write\n拥有：知识、技能、生命周期、证据"]
-    Candidate["candidate-ingestion\n拥有：候选、去重、谱系"]
-    Review["governance-review\n拥有：审查队列、补救、冲突状态"]
-    Jobs["job-runtime\n拥有：队列、工作流、outbox、死信"]
+    Identity["identity-access: identity, sessions, access keys, teams"]
+    Read["knowledge-read: projections, indexes, cache, query traces"]
+    Write["knowledge-write: knowledge, skills, lifecycle, evidence"]
+    Candidate["candidate-ingestion: candidates, dedupe, lineage"]
+    Review["governance-review: review queues, remediation, conflicts"]
+    Jobs["job-runtime: queues, workflows, outbox, dead letters"]
 
-    Gateway -->|"IdentityAccessPort"| Identity
-    Gateway -->|"KnowledgeReadPort"| Read
-    Gateway -->|"KnowledgeWritePort"| Write
-    Gateway -->|"CandidateIngestionPort"| Candidate
-    Gateway -->|"GovernanceReviewPort"| Review
-    Gateway -->|"JobRuntimePort"| Jobs
+    Gateway -->|IdentityAccessPort| Identity
+    Gateway -->|KnowledgeReadPort| Read
+    Gateway -->|KnowledgeWritePort| Write
+    Gateway -->|CandidateIngestionPort| Candidate
+    Gateway -->|GovernanceReviewPort| Review
+    Gateway -->|JobRuntimePort| Jobs
 
-    Candidate -->|"KnowledgeWritePort\n发布最终领域事实"| Write
-    Review -->|"KnowledgeWritePort\n应用治理决策"| Write
+    Candidate -->|KnowledgeWritePort: publish final facts| Write
+    Review -->|KnowledgeWritePort: apply governance decisions| Write
 
-    Write -. "outbox event" .-> Jobs
-    Candidate -. "queued work" .-> Jobs
-    Review -. "outbox event" .-> Jobs
-    Jobs -. "refresh projection" .-> Read
-    Jobs -. "governance follow-up" .-> Review
+    Write -.->|outbox event| Jobs
+    Candidate -.->|queued work| Jobs
+    Review -.->|outbox event| Jobs
+    Jobs -.->|refresh projection| Read
+    Jobs -.->|governance follow-up| Review
 ```
+
+### 六边形架构：端口与适配器
+
+当前后端采用“端口优先”的六边形架构：`backend-core` 保持框架无关的领域规则、应用用例与端口契约；宿主和服务包只负责把 HTTP、worker、数据库、消息与远程调用等具体适配器接到这些端口。换言之，业务内核不依赖 Nest、Fastify、PostgreSQL 或 RabbitMQ，部署 profile 只改变适配器选择，不改变领域所有权。
+
+```mermaid
+flowchart LR
+    subgraph Inbound["inbound adapters"]
+        Http["gateway HTTP controllers"]
+        Worker["worker and outbox handlers"]
+        Internal["internal HTTP or RPC handlers"]
+    end
+
+    subgraph Core["backend-core: framework-free hexagon"]
+        Application{{"application use cases"}}
+        Domain["domain rules and bounded contexts"]
+        Ports["typed ports: repositories, providers, internal calls"]
+        Application --> Domain
+        Application --> Ports
+    end
+
+    subgraph Outbound["outbound adapters selected by host"]
+        Persistence["PostgreSQL and repository adapters"]
+        Transport["in-process, internal HTTP, or RPC adapters"]
+        Async["PostgreSQL queue, outbox, or RabbitMQ adapters"]
+        Providers["AI, graph, cache, telemetry adapters"]
+    end
+
+    Http --> Application
+    Worker --> Application
+    Internal --> Application
+    Ports --> Persistence
+    Ports --> Transport
+    Ports --> Async
+    Ports --> Providers
+```
+
+`host-local` 与 `host-distributed` 拥有适配器组装和进程启动；`service-*` 包是 distributed transport/process entry 的薄组装层。跨服务调用继续通过 `backend-core` 中的 typed port 表达，不能由 adapter 绕过 owner 直接写入对方领域状态。
 
 ### 传输接缝
 

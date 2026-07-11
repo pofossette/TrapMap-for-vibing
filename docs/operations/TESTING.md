@@ -318,6 +318,10 @@ pnpm test:runtime-closeout
 # runtime metadata / readiness / ownership / startup foundations
 pnpm test:runtime-foundations
 
+# target registry-derived verification entrypoints
+pnpm test:light-target
+pnpm test:heavy-target
+
 # 全局类型检查
 pnpm typecheck
 
@@ -391,6 +395,18 @@ pnpm test:runtime-closeout
 ### Phase 4 验证归属矩阵
 
 Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解释成功路径。当前默认本地入口已经是 `packages/host-local/src/nest/**`；distributed 主线仍由 `host-distributed` 承担。
+
+#### Backend target commands
+
+| Target | Profile | Host owner | Build | Verification |
+|---|---|---|---|---|
+| `light` | `local-agent`、`team-monolith` | `@trapmap/host-local` | `pnpm build:light` | `pnpm test:light-target`（deployment smoke、runtime foundations） |
+| `heavy` | `distributed` | `@trapmap/host-distributed` | `pnpm build:heavy` | `pnpm test:heavy-target`（light checks 加 discovery、distributed、runtime closeout） |
+
+The registry at `scripts/backend-target-registry.ts` is the command mapping owner.
+`heavy` proves the current transitional distributed topology only; it does not prove
+physical database isolation, Kubernetes, mTLS, an independent control plane, or
+capability parity with `light`.
 
 #### 单体验证（`host-local` 默认轻宿主）
 

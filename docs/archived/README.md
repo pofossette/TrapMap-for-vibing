@@ -58,9 +58,11 @@
 | `archived-plans/agent-eval-framework-evaluation-and-plan.md` | 2026-07-08 | Agent Eval 主线 active closeout 已完成，根 `plan.md` 与 `docs/todos/` 不再保留并行 eval workstream |
 | `archived-plans/doc-drift-fix-list.md` | 2026-07-08 | 当前已无未闭环 doc-drift 项，不再承担 active todo 职责 |
 | `reports/web-panel-cn-localization-audit-2026-07-08.md` | 2026-07-08 | Web Panel 中文本地化残留审计报告，记录中文界面英文残留与术语不一致问题 |
+| `archived-plans/plan-2026-07-11-engineering-debt-closeout-index-archived.md` | 2026-07-11 | 根 `plan.md` 已切换为 light / heavy 后端构建目标与客户端选择索引 |
+| `archived-plans/open-debt-and-compromises-2026-07-11-archived.md` | 2026-07-11 | engineering debt 主线已退为历史输入；新的构建目标主线承担当前执行责任 |
 
 ## 归档原则
 
 文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档当作当前执行入口引用。
 
-当前根 `plan.md` 只链接一个 active mainline detail：`docs/todos/open-debt-and-compromises.md`。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。
+当前根 `plan.md` 只链接一个 active mainline detail：`docs/todos/backend-build-targets-and-client-selection.md`。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。

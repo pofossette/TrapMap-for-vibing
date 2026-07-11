@@ -2,7 +2,12 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os, { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type { ActiveSession, ScriptActivationPolicy } from '@trapmap/contracts';
+import {
+  normalizeBackendTarget,
+  type ActiveSession,
+  type BackendTarget,
+  type ScriptActivationPolicy,
+} from '@trapmap/contracts';
 
 /**
  * Script policy override for local activation control.
@@ -35,7 +40,6 @@ export type OutputModelHint = 'claude' | 'gpt' | 'qwen' | 'generic';
 export type OutputRenderMode = 'text' | 'json';
 export type OutputGraphPlanMode = 'summary' | 'full' | 'skill-list';
 export type OutputVerbosity = 'compact' | 'balanced' | 'detailed';
-export type BackendTarget = 'light' | 'heavy';
 
 export interface OutputProfile {
   tool: OutputToolProfile;
@@ -78,10 +82,6 @@ function normalizeGatewayUrl(parsed: Partial<CliState>): string {
   }
 
   return DEFAULT_GATEWAY_URL;
-}
-
-function normalizeBackendTarget(parsed: Partial<CliState>): BackendTarget {
-  return parsed.backendTarget === 'heavy' ? 'heavy' : 'light';
 }
 
 export function resolveCliGatewayUrl(state: Pick<CliState, 'gatewayUrl' | 'serverUrl'>): string {
@@ -147,7 +147,7 @@ export async function loadCliState(): Promise<CliState> {
       ...getDefaultState(),
       ...parsedWithoutLegacyServerUrl,
       gatewayUrl: normalizeGatewayUrl(parsed),
-      backendTarget: normalizeBackendTarget(parsed),
+      backendTarget: normalizeBackendTarget(parsed.backendTarget),
       ...(outputProfile != null
         ? { outputProfile }
         : configHadOutputProfile

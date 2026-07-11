@@ -6,6 +6,8 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "build": "tsc -b",
+    "build:light": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-backend-target.ts build light",
+    "build:heavy": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-backend-target.ts build heavy",
     "ci": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-ci.ts",
     "prepare": "husky",
     "dev": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-dev.ts",
@@ -40,6 +42,8 @@
     "check:complexity": "pnpm exec tsx scripts/check-complexity-budgets.ts",
     "check:arch-freeze": "pnpm exec tsx scripts/check-arch-freeze.ts",
     "test:distributed-acceptance": "pnpm --filter @trapmap/host-distributed test:acceptance",
+    "test:light-target": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-backend-target.ts test light",
+    "test:heavy-target": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-backend-target.ts test heavy",
     "test:observability-closeout": "vitest run packages/host-local/src/nest/health/health.controller.test.ts packages/host-local/src/nest/observability/observability-chain.test.ts packages/host-local/src/nest/observability/prometheus.service.test.ts packages/contracts/src/domain/log-schema.test.ts",
     "test:observability-benchmark": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/observability-benchmark.ts",
     "test:discovery-closeout": "vitest run packages/host-distributed/src/gateway/consul-discovery-adapter.test.ts packages/host-distributed/src/gateway/discovery-resolver.test.ts packages/backend-core/src/discovery/cached-discovery.test.ts packages/backend-core/src/discovery/round-robin-selector.test.ts",

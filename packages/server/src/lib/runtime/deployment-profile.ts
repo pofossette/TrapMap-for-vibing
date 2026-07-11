@@ -1,8 +1,9 @@
+import type { DeploymentProfile } from '@trapmap/contracts';
 import type { DeploymentPreset } from './deployment-preset.js';
 import type { RuntimeMode } from './runtime-contract.js';
 import type { ServiceUnit } from './service-unit.js';
 
-export type DeploymentProfile = 'local-agent' | 'team-monolith' | 'distributed';
+export type { DeploymentProfile } from '@trapmap/contracts';
 
 export type DeploymentProfileSource = 'explicit' | 'inferred';
 

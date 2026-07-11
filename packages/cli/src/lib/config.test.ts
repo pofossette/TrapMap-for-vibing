@@ -6,9 +6,18 @@ vi.mock('node:fs/promises', () => ({
   writeFile: vi.fn(),
 }));
 
+vi.mock('@trapmap/contracts', async (importOriginal) => {
+  const contracts = await importOriginal<typeof import('@trapmap/contracts')>();
+  return {
+    ...contracts,
+    normalizeBackendTarget: vi.fn(contracts.normalizeBackendTarget),
+  };
+});
+
 describe('cli config', () => {
   beforeEach(() => {
     vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it('hydrates output profile defaults when config omits new fields', async () => {
@@ -165,5 +174,41 @@ describe('cli config', () => {
     const state = await loadCliState();
 
     expect(state.backendTarget).toBe('light');
+  });
+
+  it('normalizes backendTarget through the shared contracts helper', async () => {
+    const fs = await import('node:fs/promises');
+    const { normalizeBackendTarget } = await import('@trapmap/contracts');
+    vi.mocked(fs.readFile).mockResolvedValue(
+      JSON.stringify({
+        gatewayUrl: 'http://gateway:4000',
+        backendTarget: 'unknown',
+      }) as never,
+    );
+
+    const { loadCliState } = await import('./config.js');
+    const state = await loadCliState();
+
+    expect(state.backendTarget).toBe('light');
+    expect(normalizeBackendTarget).toHaveBeenCalledWith('unknown');
+  });
+
+  it('persists only canonical gateway and backend target fields after legacy migration', async () => {
+    const fs = await import('node:fs/promises');
+    vi.mocked(fs.readFile).mockResolvedValue(
+      JSON.stringify({
+        serverUrl: 'http://legacy-server:9999',
+      }) as never,
+    );
+
+    const { updateCliState } = await import('./config.js');
+    await updateCliState({ backendTarget: 'heavy' });
+
+    const persistedState = JSON.parse(vi.mocked(fs.writeFile).mock.calls[0][1] as string);
+    expect(persistedState).toMatchObject({
+      gatewayUrl: 'http://legacy-server:9999',
+      backendTarget: 'heavy',
+    });
+    expect(persistedState).not.toHaveProperty('serverUrl');
   });
 });

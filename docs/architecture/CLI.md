@@ -39,6 +39,9 @@
 - CLI 的正式接入模型是 `gateway only`
 - CLI 只在 `login` 上支持 `--server <gateway-url>`，并把值写入本地状态文件中的单一 gateway URL
 - CLI 不支持按命令或按后端 service unit 配置多个远端地址
+- 本地状态可保存 `backendTarget: "light" | "heavy"`：`light` 对应 `local-agent` / `team-monolith`，`heavy` 对应 `distributed`
+- 缺省或非法的旧 `backendTarget` 会回退为 `light`；该偏好只用于提示、诊断和 registry 定义的默认行为，不能改变 `gatewayUrl`、认证或内部服务发现
+- web-panel 没有持久化连接配置，因而没有对应的 selector；CLI 是当前唯一持久化此偏好的客户端
 - 认证缺失时，CLI 会提示 `trapmap login`
 - `logout` 会始终清理本地 session；远端不可达时仍会清本地状态
 

@@ -32,6 +32,11 @@ describe('resolveDevTarget', () => {
     });
   });
 
+  it('lists registry-derived target names in usage output', () => {
+    expect(() => resolveDevTarget(['--help'])).toThrow('candidate-worker');
+    expect(() => resolveDevTarget(['--help'])).toThrow('distributed:gateway');
+  });
+
   it('builds a pnpm filter invocation for the resolved target', () => {
     const target = resolveDevTarget(['team-monolith']);
 
@@ -40,6 +45,10 @@ describe('resolveDevTarget', () => {
 
   it('rejects unknown startup targets with a helpful error', () => {
     expect(() => resolveDevTarget(['unknown-host'])).toThrow('Unknown dev target');
+  });
+
+  it('rejects inherited object keys as unknown startup targets', () => {
+    expect(() => resolveDevTarget(['toString'])).toThrow('Unknown dev target: toString');
   });
 
   it('ignores the pnpm argument separator before help flags', () => {

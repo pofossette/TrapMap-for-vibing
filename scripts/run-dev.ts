@@ -1,74 +1,25 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import {
+  listDevTargetNames,
+  resolveDevTargetFromRegistry,
+  type DevTargetDefinition,
+} from './backend-target-registry';
 
-export interface ResolvedDevTarget {
-  env?: Record<string, string>;
-  packageName: string;
-  scriptName: string;
-}
-
-const DEV_TARGETS = {
-  'local-agent': {
-    env: { TRAPMAP_DEPLOYMENT_PROFILE: 'local-agent' },
-    packageName: '@trapmap/host-local',
-    scriptName: 'dev',
-  },
-  'team-monolith': {
-    env: { TRAPMAP_DEPLOYMENT_PROFILE: 'team-monolith' },
-    packageName: '@trapmap/host-local',
-    scriptName: 'dev',
-  },
-  gateway: {
-    packageName: '@trapmap/host-distributed',
-    scriptName: 'dev:gateway',
-  },
-  'candidate-worker': {
-    packageName: '@trapmap/host-distributed',
-    scriptName: 'dev:candidate-ingestion',
-  },
-  'governance-worker': {
-    packageName: '@trapmap/host-distributed',
-    scriptName: 'dev:governance-review',
-  },
-  'outbox-worker': {
-    packageName: '@trapmap/host-distributed',
-    scriptName: 'dev:job-runtime',
-  },
-  // Keep the older distributed:* shape working while docs and operators move to pnpm dev -- <target>.
-  'distributed:gateway': {
-    packageName: '@trapmap/host-distributed',
-    scriptName: 'dev:gateway',
-  },
-  'distributed:candidate-worker': {
-    packageName: '@trapmap/host-distributed',
-    scriptName: 'dev:candidate-ingestion',
-  },
-  'distributed:governance-worker': {
-    packageName: '@trapmap/host-distributed',
-    scriptName: 'dev:governance-review',
-  },
-  'distributed:outbox-worker': {
-    packageName: '@trapmap/host-distributed',
-    scriptName: 'dev:job-runtime',
-  },
-} as const satisfies Record<string, ResolvedDevTarget>;
+export type ResolvedDevTarget = DevTargetDefinition;
 
 const DEV_USAGE = [
   'Usage: pnpm dev -- <target>',
   '',
   'Targets:',
-  '  local-agent',
-  '  team-monolith',
-  '  gateway',
-  '  candidate-worker',
-  '  governance-worker',
-  '  outbox-worker',
+  ...listDevTargetNames()
+    .filter((targetName) => !targetName.startsWith('distributed:'))
+    .map((targetName) => `  ${targetName}`),
   '',
   'Compatibility targets:',
-  '  distributed:gateway',
-  '  distributed:candidate-worker',
-  '  distributed:governance-worker',
-  '  distributed:outbox-worker',
+  ...listDevTargetNames()
+    .filter((targetName) => targetName.startsWith('distributed:'))
+    .map((targetName) => `  ${targetName}`),
 ].join('\n');
 
 export function resolveDevTarget(argv: readonly string[]): ResolvedDevTarget {
@@ -79,7 +30,7 @@ export function resolveDevTarget(argv: readonly string[]): ResolvedDevTarget {
     throw new Error(DEV_USAGE);
   }
 
-  const target = DEV_TARGETS[targetName];
+  const target = resolveDevTargetFromRegistry(targetName);
   if (!target) {
     throw new Error(`Unknown dev target: ${targetName}\n\n${DEV_USAGE}`);
   }

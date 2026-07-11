@@ -289,11 +289,10 @@
       "file": "plan.md",
       "mustContain": [
         "执行计划索引",
-        "当前主线：engineering debt and platform maturity closeout",
-        "docs/todos/open-debt-and-compromises.md",
-        "docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md",
-        "docs/archived/archived-plans/plan-2026-07-03-agent-eval-platform-index-archived.md",
-        "状态：`进行中`",
+        "当前主线：light / heavy 后端构建目标与客户端选择",
+        "docs/todos/backend-build-targets-and-client-selection.md",
+        "docs/archived/archived-plans/open-debt-and-compromises-2026-07-11-archived.md",
+        "状态：`planned`",
         "只保留一个当前执行入口",
         "不承载 tranche checklist 或实施细节"
       ],
@@ -575,26 +574,17 @@
       "mustContain": ["SYSTEM_TRUTH_SOURCES.md"]
     },
     {
-      "file": "docs/todos/open-debt-and-compromises.md",
+      "file": "docs/todos/backend-build-targets-and-client-selection.md",
       "mustContain": [
-        "debt pool 说明：当前池子仍不完整",
-        "Tranche A - read-side coupling / `service-knowledge-read` deep coupling closeout",
-        "成功条件",
-        "问题回写规则",
-        "最新基线摘要",
-        "deferred / platform maturity",
-        "第二平台可替换性验证参考",
-        "backlog signal retained",
-        "Eval platform follow-up"
+        "共享 target contract 与 registry",
+        "迁移客户端 `backendTarget` 配置",
+        "gateway-only",
+        "全局完成条件",
+        "非目标与问题回写",
+        "rtk pnpm check:docs-drift",
+        "rtk pnpm check:structure"
       ],
-      "mustNotContain": [
-        "packages/host-local/src/bootstrap/stubs.ts",
-        "packages/host-local/src/runtime/worker.ts",
-        "packages/host-local/src/runtime/outbox.ts",
-        "badcase 分类标准仍未统一定义",
-        "待定分类",
-        "模糊 later"
-      ]
+      "mustNotContain": ["第二个 URL", "第四种 deployment profile"]
     },
     {
       "file": "docs/archived/archived-plans/badcase-feedback-loop.md",

@@ -2,13 +2,13 @@
 
 > 日期：2026-07-08
 > 根入口：[`plan.md`](../../../plan.md)
-> 当前活跃细则：[`docs/todos/open-debt-and-compromises.md`](../../todos/open-debt-and-compromises.md)
+> 当时活跃细则（已归档）：[`docs/todos/open-debt-and-compromises.md`](../../archived/archived-plans/open-debt-and-compromises-2026-07-11-archived.md)
 
 ## 背景
 
 当前 [`docs/todos/agent-eval-framework-evaluation-and-plan.md`](../../todos/agent-eval-framework-evaluation-and-plan.md) 已明确写明 Agent Eval 主线 active closeout 完成并具备归档条件，但根 [`plan.md`](../../../plan.md) 仍指向它作为当前主线。
 
-同时，[`docs/todos/open-debt-and-compromises.md`](../../todos/open-debt-and-compromises.md) 当前仍只是 debt register，不是可执行主线：它记录了真实残留问题，但没有当前批次、入口优先级、补录规则和主线切批机制。用户要求：
+同时，当时的 [`docs/todos/open-debt-and-compromises.md`](../../archived/archived-plans/open-debt-and-compromises-2026-07-11-archived.md) 仍只是 debt register，不是可执行主线：它记录了真实残留问题，但没有当前批次、入口优先级、补录规则和主线切批机制。用户要求：
 
 1. 归档当前 Agent Eval 主线
 2. 同步清理 `docs/todos/` 活跃面

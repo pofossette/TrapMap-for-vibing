@@ -6,7 +6,7 @@
 
 | 文件 | 主题 | 状态 |
 |---|---|---|
-| `open-debt-and-compromises.md` | engineering debt and platform maturity closeout 的唯一主细则，含当前 tranche、queued tranche、deferred 决策与 issue intake 规则 | 唯一 active mainline detail |
+| `backend-build-targets-and-client-selection.md` | light / heavy 后端构建目标与客户端 `backendTarget` 统一主细则，含阶段、文档与测试关闭条件 | 唯一 active mainline detail |
 
 ## 目录规则
 
@@ -20,7 +20,7 @@
 
 当前 `docs/todos/` 只保留真正承担执行责任的文档：
 
-- `open-debt-and-compromises.md`：唯一 active mainline detail，同时内联承载 backlog、deferred 与 frozen decision reference
+- `backend-build-targets-and-client-selection.md`：唯一 active mainline detail，按共享 target registry、构建入口、客户端配置与 closeout 推进
 - 其余只剩历史证据、冻结决策或背景价值的材料，应通过 `docs/archived/` 查找，不继续占用 active 目录
 
 完整归档表见 [`../archived/README.md`](../archived/README.md)。

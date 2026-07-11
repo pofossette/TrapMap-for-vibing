@@ -13,7 +13,9 @@
 // Primitive enum types
 // ---------------------------------------------------------------------------
 
-export type DeploymentProfile = 'local-agent' | 'team-monolith' | 'distributed';
+import type { DeploymentProfile } from '@trapmap/contracts';
+
+export type { DeploymentProfile } from '@trapmap/contracts';
 
 export type DeploymentProfileSource = 'explicit' | 'inferred';
 

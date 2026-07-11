@@ -6,10 +6,10 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 ## 当前整改主线
 
-当前根计划为“engineering debt and platform maturity closeout”，状态为 `进行中`。当前 active 执行入口统一维护在：
+当前根计划为“light / heavy 后端构建目标与客户端选择”，状态为 `planned`。当前 active 执行入口统一维护在：
 
 - 根索引：[`../plan.md`](../plan.md)
-- 唯一 active mainline detail：[`todos/open-debt-and-compromises.md`](todos/open-debt-and-compromises.md)
+- 唯一 active mainline detail：[`todos/backend-build-targets-and-client-selection.md`](todos/backend-build-targets-and-client-selection.md)
 - CI/testing truth source：[`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md)
 
 除上列入口外，其余历史主线、closeout 细则和背景材料都不再构成并行 active workstream，只能作为 archived/background reference 使用。
@@ -230,7 +230,7 @@ deployment flexibility 最小验证矩阵：
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
 - [微服务平台增强根计划](../plan.md) — 当前根级 closeout 索引；只链接唯一 active mainline detail，并保留归档/背景入口
 - [微服务平台能力增强细则](archived/archived-plans/microservice-platform-evolution-plan.md) — 已归档的 Phase 0-4 closeout 细则；保留服务发现、内部 RPC、可观测性与资源治理的完成证据
-- 当前 active execution surface 只承认 `todos/open-debt-and-compromises.md`；其余 todo 文档只能写成背景输入、deferred 落点或已完成 closeout 参考
+- 当前 active execution surface 只承认 `todos/backend-build-targets-and-client-selection.md`；其余 todo 文档只能写成背景输入、deferred 落点或已完成 closeout 参考
 - [健壮性与可扩展性收尾细则](archived/archived-plans/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](archived/archived-plans/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪
@@ -248,7 +248,7 @@ deployment flexibility 最小验证矩阵：
 - [成熟服务样板：Knowledge-Write + Governance-Review](archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-pilot.md) — 第一批成熟服务样板的 owner、contract、测试门与 closeout
 - [样板实施前检查表](archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-preflight-checklist.md) — 开始迁移前先冻结边界、契约、测试入口与非目标
 - [样板代码迁移任务列表](archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md) — 直接映射到具体包和文件的迁移任务清单
-- [未完成项与阶段性妥协清单](todos/open-debt-and-compromises.md) — 当前仍未收口的占位实现、阶段性妥协与开发退路
+- [light / heavy 后端构建目标与客户端选择](todos/backend-build-targets-and-client-selection.md) — 当前后端构建目标、入口、验证与客户端配置主细则
 - [成熟库替换评估](archived/archived-plans/library-replacement-evaluation.md) — 手写实现 vs 成熟库的评估决策与触发条件，已归档为背景参考
 
 ### 架构与 API

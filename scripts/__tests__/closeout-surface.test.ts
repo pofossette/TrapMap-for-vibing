@@ -80,17 +80,17 @@ describe('closeout surface guardrails', () => {
     expect(rule?.mustNotContain ?? []).toEqual(expect.arrayContaining(['48 张表', '56 张表']));
   });
 
-  it('guards the root plan active eval-platform state wording', () => {
+  it('guards the root plan backend-target state wording', () => {
     const budgets = readComplexityBudgets();
     const rule = budgets.docRules.find((entry) => entry.file === 'plan.md');
 
     expect(rule).toBeDefined();
     expect(rule?.mustContain ?? []).toEqual(
       expect.arrayContaining([
-        '当前主线：engineering debt and platform maturity closeout',
-        '状态：`进行中`',
-        'docs/todos/open-debt-and-compromises.md',
-        'docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md',
+        '当前主线：light / heavy 后端构建目标与客户端选择',
+        '状态：`planned`',
+        'docs/todos/backend-build-targets-and-client-selection.md',
+        'docs/archived/archived-plans/open-debt-and-compromises-2026-07-11-archived.md',
         '只保留一个当前执行入口',
       ]),
     );
