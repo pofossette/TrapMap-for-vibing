@@ -28,6 +28,7 @@ export interface ErrorEnvelope {
 
 type InvocationErrorKind =
   | 'validation'
+  | 'unauthorized'
   | 'not-found'
   | 'conflict'
   | 'forbidden'
@@ -37,6 +38,7 @@ type InvocationErrorKind =
 
 const KIND_TO_STATUS: Record<InvocationErrorKind, number> = {
   validation: HttpStatus.BAD_REQUEST,
+  unauthorized: HttpStatus.UNAUTHORIZED,
   'not-found': HttpStatus.NOT_FOUND,
   conflict: HttpStatus.CONFLICT,
   forbidden: HttpStatus.FORBIDDEN,
@@ -47,6 +49,7 @@ const KIND_TO_STATUS: Record<InvocationErrorKind, number> = {
 
 const KIND_TO_CODE: Record<InvocationErrorKind, string> = {
   validation: 'validation_error',
+  unauthorized: 'unauthorized',
   'not-found': 'not_found',
   conflict: 'conflict',
   forbidden: 'forbidden',

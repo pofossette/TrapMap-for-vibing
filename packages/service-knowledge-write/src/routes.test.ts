@@ -177,4 +177,20 @@ describe('service-knowledge-write routes', () => {
     });
     await app.close();
   });
+
+  it('reports a healthy dependency without an optional detail value', async () => {
+    const app = Fastify();
+    registerKnowledgeWriteRoutes(app, createModule(), {
+      checkDependency: vi.fn(async () => ({ reachable: true })),
+    });
+    await app.ready();
+
+    const response = await app.inject({ method: 'GET', url: '/internal/ready' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      checks: { persistence: { status: 'ok', detail: null } },
+    });
+    await app.close();
+  });
 });

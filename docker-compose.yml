@@ -121,6 +121,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4000/health"]
       interval: 30s
@@ -147,6 +149,7 @@ services:
       - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
       - TRAPMAP_DEPLOYMENT_PROFILE=distributed
       - TRAPMAP_DEPLOYMENT_PRESET=identity-access
+      - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
       - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
       - CONSUL_HOST=${CONSUL_HOST:-consul}
       - CONSUL_PORT=${CONSUL_PORT:-8500}
@@ -155,6 +158,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
     healthcheck:
       disable: true
     restart: unless-stopped
@@ -194,6 +199,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
     healthcheck:
       disable: true
     restart: unless-stopped
@@ -233,6 +240,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
     healthcheck:
       disable: true
     restart: unless-stopped
@@ -285,6 +294,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_started
         required: false
@@ -340,6 +351,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_started
         required: false
@@ -391,6 +404,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
     healthcheck:
       disable: true
     restart: unless-stopped
@@ -424,6 +439,24 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - trapmap-distributed
+
+  migration:
+    image: trap-map-host-distributed:latest
+    profiles: ["distributed"]
+    build:
+      context: .
+      dockerfile: packages/host-distributed/Dockerfile
+    command: ["node", "dist/migrate.js"]
+    working_dir: /app/packages/host-distributed
+    environment:
+      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
     networks:
       - trapmap-distributed
 

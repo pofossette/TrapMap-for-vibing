@@ -154,5 +154,6 @@ pnpm dev:candidate-ingestion
 ### 验证
 
 - `rtk pnpm test:distributed-acceptance` - 多进程委托、错误分类、请求/追踪传播、幂等重放
+- `rtk pnpm test:runtime-closeout:compose` - 临时 Compose 内只启动 PostgreSQL、gateway 和六个内部服务；自动生成管理员密钥和 gateway 空闲端口，重启单个 `knowledge-write`，要求 job-runtime operator surface 持续可用且 gateway 委托在 60 秒内恢复。脚本总会清理容器与 volumes；该本地隔离证据不改变 `Level 2 / transitional-microservice` 成熟度。
 - `rtk pnpm test:deployment-smoke` - 服务启动、健康/就绪检查、归属端点
 - `rtk pnpm typecheck`

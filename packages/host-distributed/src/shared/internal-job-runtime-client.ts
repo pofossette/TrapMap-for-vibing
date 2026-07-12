@@ -12,6 +12,7 @@ function toInvocationError(body: unknown, fallback: string): InvocationError {
 
   const factoryByKind: Record<InvocationErrorKind, typeof InvocationError.internal> = {
     validation: InvocationError.validation,
+    unauthorized: InvocationError.unauthorized,
     'not-found': InvocationError.notFound,
     conflict: InvocationError.conflict,
     forbidden: InvocationError.forbidden,

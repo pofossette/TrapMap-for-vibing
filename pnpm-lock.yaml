@@ -160,6 +160,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/server':
+        specifier: workspace:*
+        version: link:../server
       '@trapmap/service-candidate-ingestion':
         specifier: workspace:*
         version: link:../service-candidate-ingestion

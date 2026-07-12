@@ -146,13 +146,29 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
   // ---- Auth routes (identity-access) ----
 
   app.post('/v1/auth/login', async (request: FastifyRequest, reply: FastifyReply) => {
-    const validationError = validateBody(request.body, ['handle', 'password']);
+    const loginBody = request.body as Record<string, unknown> | null;
+    const isSystemAdminLogin = Boolean(loginBody && typeof loginBody.systemAdminKey === 'string');
+    const validationError = validateBody(
+      request.body,
+      isSystemAdminLogin ? ['systemAdminKey'] : ['handle', 'password'],
+    );
     if (validationError) {
       return reply.status(400).send(validationError);
     }
-    const body = request.body as { handle: string; password: string };
     try {
-      const result = await clients.identityAccess.login(body);
+      if (isSystemAdminLogin) {
+        const result = await clients.identityAccess.loginSystemAdmin({
+          systemAdminKey: loginBody?.systemAdminKey as string,
+        });
+        const sessionToken = (result.body as { sessionToken?: unknown } | null)?.sessionToken;
+        if (result.status >= 200 && result.status < 300 && typeof sessionToken === 'string') {
+          reply.header('x-session-token', sessionToken);
+        }
+        return forwardResponse(reply, result);
+      }
+      const result = await clients.identityAccess.login(
+        request.body as { handle: string; password: string },
+      );
       return forwardResponse(reply, result);
     } catch (err: unknown) {
       request.log.error({ err }, 'identity-access login failed');
@@ -705,6 +721,45 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       return forwardResponse(reply, result);
     } catch (err: unknown) {
       request.log.error({ err }, 'job-runtime getQueueStatus failed');
+      return reply.status(502).send({ error: 'Job service unavailable', kind: 'upstream' });
+    }
+  });
+
+  app.get('/v1/operations/status/async', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const result = await clients.jobRuntime.getQueueStatus();
+      if (
+        result.status < 200 ||
+        result.status >= 300 ||
+        !result.body ||
+        typeof result.body !== 'object'
+      ) {
+        return forwardResponse(reply, result);
+      }
+      const queue = result.body as Record<string, unknown>;
+      return reply.status(200).send({
+        asyncRuntimeEnabled: true,
+        deploymentProfile: 'distributed',
+        routeSurface: 'gateway-core',
+        asyncOwnershipExpectation: 'remote-expected',
+        queue: {
+          ...queue,
+          reclaimCount: 0,
+          recentDeadLetters: [],
+          staleRunning: 0,
+        },
+        outbox: {
+          pending: 0,
+          processing: 0,
+          failed: 0,
+          staleProcessing: 0,
+          reclaimCount: 0,
+          recentFailures: [],
+        },
+        retryResumeContract: { deadLetterPolicy: 'job-runtime owned' },
+      });
+    } catch (err: unknown) {
+      request.log.error({ err }, 'job-runtime async status failed');
       return reply.status(502).send({ error: 'Job service unavailable', kind: 'upstream' });
     }
   });

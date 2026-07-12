@@ -54,6 +54,17 @@ describe('createServer observability surface', () => {
     await server.close();
   });
 
+  it('does not emit a trace header when the gateway receives none', async () => {
+    const server = await createServer(createConfig());
+    await server.app.ready();
+
+    const response = await server.app.inject({ method: 'GET', url: '/health' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers.traceparent).toBeUndefined();
+    await server.close();
+  });
+
   it('serves prometheus metrics anonymously from /metrics', async () => {
     const server = await createServer(createConfig());
     await server.app.ready();

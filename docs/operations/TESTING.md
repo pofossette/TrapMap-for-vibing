@@ -392,6 +392,14 @@ pnpm test:runtime-closeout
 - `queue.reclaimCount`、`queue.recentDeadLetters`、`outbox.staleProcessing`、`outbox.reclaimCount`、`outbox.recentFailures` 对 operator 可见
 - retry / dead-letter policy 继续以 `retryResumeContract` 为唯一事实源
 
+真实 Compose distributed 验收使用：
+
+```bash
+rtk pnpm test:runtime-closeout:compose
+```
+
+该脚本只拉起 PostgreSQL、gateway 和六个内部服务，生成一次性管理员密钥与空闲 gateway 端口。它在重启一个 `knowledge-write` 容器时要求 gateway `/health` 和经认证的 `/v1/operations/status/async` 持续成功，并测量 gateway → governance-review → knowledge-write 的恢复时间（必须少于 60 秒）。失败时输出 gateway、knowledge-write、governance-worker、outbox-worker 日志，所有路径都会执行 `docker compose down --volumes --remove-orphans`。该验收证明本地故障隔离，不是生产 SLO 或 Level 3 声明。
+
 ### Phase 4 验证归属矩阵
 
 Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解释成功路径。当前默认本地入口已经是 `packages/host-local/src/nest/**`；distributed 主线仍由 `host-distributed` 承担。

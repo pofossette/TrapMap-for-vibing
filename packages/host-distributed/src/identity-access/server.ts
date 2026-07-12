@@ -24,6 +24,7 @@ export async function createServer(
     teamLookup: ports.teamLookup,
     permissionCheck: ports.permissionCheck,
     auditLog: ports.auditLog,
+    systemAdminKey: config.systemAdminKey,
   });
   const server = await createServiceIdentityAccessServer(config, deps);
   attachRuntimeMetricsRoute(server.app);

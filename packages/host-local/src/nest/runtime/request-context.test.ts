@@ -106,6 +106,7 @@ describe('extractRequestContext', () => {
   it('should set traceId to null when trace header is absent', () => {
     const ctx = extractRequestContext({}, config, { method: 'GET', route: '/test' });
     expect(ctx.traceId).toBeNull();
+    expect(ctx.traceParent).toBeNull();
   });
 
   it('should use configured header names', () => {

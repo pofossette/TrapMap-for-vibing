@@ -14,6 +14,7 @@ COPY packages/contracts/src ./packages/contracts/src
 COPY packages/server/package.json ./packages/server/
 COPY packages/server/tsconfig.json ./packages/server/
 COPY packages/server/src ./packages/server/src
+COPY packages/server/drizzle ./packages/server/drizzle
 
 COPY packages/backend-core/package.json ./packages/backend-core/
 COPY packages/backend-core/tsconfig.json ./packages/backend-core/
@@ -90,6 +91,7 @@ COPY --from=build /app/packages/contracts/dist ./packages/contracts/dist
 
 COPY packages/server/package.json ./packages/server/
 COPY packages/server/tsconfig.json ./packages/server/
+COPY --from=deps /app/packages/server/drizzle ./packages/server/drizzle
 COPY --from=deps /app/packages/server/node_modules ./packages/server/node_modules
 COPY --from=build /app/packages/server/dist ./packages/server/dist
 

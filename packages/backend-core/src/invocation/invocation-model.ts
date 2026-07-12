@@ -56,6 +56,7 @@ export interface InvocationAck {
  */
 export type InvocationErrorKind =
   | 'validation' // Input failed validation
+  | 'unauthorized' // Authentication credentials are invalid
   | 'not-found' // Requested resource does not exist
   | 'conflict' // State conflict (e.g. invalid lifecycle transition)
   | 'forbidden' // Actor lacks required permission
@@ -75,6 +76,10 @@ export class InvocationError extends Error {
 
   static validation(message: string, cause?: unknown): InvocationError {
     return new InvocationError('validation', message, cause);
+  }
+
+  static unauthorized(message: string, cause?: unknown): InvocationError {
+    return new InvocationError('unauthorized', message, cause);
   }
 
   static notFound(message: string, cause?: unknown): InvocationError {
@@ -109,6 +114,7 @@ export interface InvocationErrorResponse {
 
 const INVOCATION_ERROR_STATUS: Record<InvocationErrorKind, number> = {
   validation: 400,
+  unauthorized: 401,
   'not-found': 404,
   conflict: 409,
   forbidden: 403,

@@ -14,6 +14,7 @@
     { "path": "../service-governance-review" },
     { "path": "../service-job-runtime" },
     { "path": "../service-knowledge-read" },
-    { "path": "../service-knowledge-write" }
+    { "path": "../service-knowledge-write" },
+    { "path": "../server" }
   ]
 }

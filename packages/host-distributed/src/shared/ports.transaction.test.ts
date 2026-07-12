@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { AuditRepositoryPort } from '@trapmap/backend-core';
+
 import { createServicePorts } from './ports.js';
 
 describe('knowledge-write lifecycle persistence', () => {
@@ -110,5 +112,53 @@ describe('knowledge-write lifecycle persistence', () => {
     expect(calls.some((sql) => sql.includes('INSERT INTO domain_event_outbox'))).toBe(false);
     expect(calls).toContain('ROLLBACK');
     expect(client.release).toHaveBeenCalledOnce();
+  });
+
+  it('omits an absent lifecycle note from the outbox write input', async () => {
+    const client = {
+      query: vi.fn(async (sql: string) => {
+        if (sql.includes('SELECT lifecycle_state')) {
+          return { rows: [{ lifecycle_state: 'agent-pass' }] };
+        }
+        if (sql.includes('RETURNING *')) {
+          return { rows: [{ id: 'entry-1', lifecycle_state: 'approved' }] };
+        }
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    };
+    const pool = { connect: vi.fn(async () => client) };
+    const ports = createServicePorts(pool as never, 'knowledge-write');
+
+    await ports.repos.knowledge.updateLifecycle('entry-1', 'approved', { actorId: 'reviewer-1' });
+
+    const outboxCall = client.query.mock.calls.find(([sql]) =>
+      sql.includes('INSERT INTO domain_event_outbox'),
+    );
+    expect(outboxCall?.[1]).toEqual(
+      expect.arrayContaining([expect.stringContaining('distributed lifecycle update')]),
+    );
+  });
+
+  it('queries audit records by correlation fields', async () => {
+    const query = vi.fn(async (sql: string) =>
+      sql.includes('COUNT(*)') ? { rows: [{ total: '0' }] } : { rows: [] },
+    );
+    const ports = createServicePorts({ query } as never);
+    const filter: Parameters<AuditRepositoryPort['listByFilter']>[0] = {
+      requestId: 'request-1',
+      traceId: 'trace-1',
+      operationId: 'operation-1',
+      causationId: 'event-1',
+    };
+
+    await ports.auditLog.query(filter);
+
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('request_id = $1'), [
+      'request-1',
+      'trace-1',
+      'operation-1',
+      'event-1',
+    ]);
   });
 });

@@ -12,6 +12,7 @@ export interface IdentityAccessPortDeps {
   teamLookup: IdentityAccessDeps['teamLookup'];
   permissionCheck: IdentityAccessDeps['permissionCheck'];
   auditLog: IdentityAccessDeps['auditLog'];
+  systemAdminKey?: IdentityAccessDeps['systemAdminKey'];
 }
 
 export function createIdentityAccessDeps(deps: IdentityAccessPortDeps): IdentityAccessDeps {
@@ -25,6 +26,7 @@ export function createIdentityAccessDeps(deps: IdentityAccessPortDeps): Identity
     teamLookup: deps.teamLookup,
     permissionCheck: deps.permissionCheck,
     auditLog: deps.auditLog,
+    ...(deps.systemAdminKey !== undefined ? { systemAdminKey: deps.systemAdminKey } : {}),
   };
 }
 

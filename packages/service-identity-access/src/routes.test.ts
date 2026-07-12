@@ -1,11 +1,12 @@
 import { type IdentityAccessPort, InvocationError } from '@trapmap/backend-core';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
-import { registerIdentityAccessRoutes } from './routes.js';
+import { registerIdentityAccessRoutes } from './routes.ts';
 
 function createModule(overrides: Partial<IdentityAccessPort> = {}): IdentityAccessPort {
   return {
     login: vi.fn(async () => ({ sessionToken: 'session-1', userId: 'user-1', handle: 'alice' })),
+    loginSystemAdmin: vi.fn(async () => ({ sessionToken: 'system-session-1' })),
     logout: vi.fn(async () => undefined),
     validateSession: vi.fn(async () => ({
       sessionId: 'session-1',
@@ -32,6 +33,22 @@ async function buildApp(module: IdentityAccessPort) {
 }
 
 describe('service-identity-access routes', () => {
+  it('issues a system-admin session only through the dedicated internal route', async () => {
+    const module = createModule();
+    const app = await buildApp(module);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/auth/system-admin-login',
+      payload: { systemAdminKey: 'correct-key' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ sessionToken: 'system-session-1' });
+    expect(module.loginSystemAdmin).toHaveBeenCalledWith('correct-key');
+    await app.close();
+  });
+
   it('exposes auth, team, member, and access-key flows through the service module', async () => {
     const module = createModule();
     const app = await buildApp(module);

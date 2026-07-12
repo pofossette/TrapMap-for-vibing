@@ -1,0 +1,65 @@
+services:
+  migration:
+    container_name: !reset null
+    restart: "no"
+
+  gateway:
+    container_name: !reset null
+    ports: !override
+      - "${TRAPMAP_CLOSEOUT_GATEWAY_PORT}:4000"
+    environment:
+      CONSUL_ENABLED: "false"
+      TRAPMAP_TASK_TRANSPORT: postgres
+    restart: "no"
+
+  identity-access:
+    container_name: !reset null
+    environment:
+      CONSUL_ENABLED: "false"
+    restart: "no"
+
+  knowledge-read:
+    container_name: !reset null
+    environment:
+      CONSUL_ENABLED: "false"
+    restart: "no"
+
+  knowledge-write:
+    container_name: !reset null
+    environment:
+      CONSUL_ENABLED: "false"
+    restart: "no"
+
+  candidate-worker:
+    container_name: !reset null
+    environment:
+      CONSUL_ENABLED: "false"
+      TRAPMAP_TASK_TRANSPORT: postgres
+    depends_on:
+      rabbitmq: !reset null
+    restart: "no"
+
+  governance-worker:
+    container_name: !reset null
+    environment:
+      CONSUL_ENABLED: "false"
+      TRAPMAP_TASK_TRANSPORT: postgres
+    depends_on:
+      rabbitmq: !reset null
+    restart: "no"
+
+  outbox-worker:
+    container_name: !reset null
+    environment:
+      CONSUL_ENABLED: "false"
+    restart: "no"
+
+  postgres:
+    container_name: !reset null
+    ports: !reset []
+    restart: "no"
+
+networks:
+  trapmap-distributed:
+    external: false
+    name: !reset null

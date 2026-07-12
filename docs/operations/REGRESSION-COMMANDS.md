@@ -21,6 +21,7 @@ rtk pnpm test:runtime-foundations
 rtk pnpm test:deployment-smoke
 rtk pnpm test:distributed-acceptance
 rtk pnpm test:runtime-closeout
+rtk pnpm test:runtime-closeout:compose
 rtk pnpm check:docs-drift
 rtk pnpm check:structure
 ```
@@ -36,6 +37,14 @@ rtk pnpm test:observability-closeout
 ```bash
 rtk pnpm test:discovery-closeout
 ```
+
+## 临时 Compose runtime closeout
+
+```bash
+rtk pnpm test:runtime-closeout:compose
+```
+
+该命令不使用固定 `4000`、不读取持久管理员密钥，并始终清理临时 Compose containers 与 volumes。它量化单个 `knowledge-write` 重启的 gateway 委托恢复时间（阈值 60 秒），同时要求 job-runtime status surface 持续成功；这是本地隔离证据，不是生产 SLO。
 
 ## 端到端验证（需要 docker compose）
 

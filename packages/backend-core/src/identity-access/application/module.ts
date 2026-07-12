@@ -12,6 +12,7 @@
  */
 
 import { InvocationError } from '../../invocation/invocation-model.js';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type {
   PermissionCheckPort,
   SessionLookupPort,
@@ -43,6 +44,12 @@ export interface IdentityAccessDeps {
   teamLookup: TeamLookupPort;
   permissionCheck: PermissionCheckPort;
   auditLog: AuditLogPort;
+  systemAdminKey?: string | null;
+}
+
+function hasMatchingSystemAdminKey(suppliedKey: string, configuredKey: string): boolean {
+  const digest = (value: string) => createHash('sha256').update(value).digest();
+  return timingSafeEqual(digest(suppliedKey), digest(configuredKey));
 }
 
 // ---------------------------------------------------------------------------
@@ -81,6 +88,24 @@ export function createIdentityAccessModule(deps: IdentityAccessDeps): IdentityAc
         userId: user.id,
         handle: user.handle,
       };
+    },
+
+    async loginSystemAdmin(systemAdminKey: string) {
+      if (!deps.systemAdminKey) {
+        throw InvocationError.internal('System administrator login is not configured');
+      }
+      if (!hasMatchingSystemAdminKey(systemAdminKey, deps.systemAdminKey)) {
+        throw InvocationError.unauthorized('Invalid system administrator key');
+      }
+      const sessionToken = `ssr_sess_${randomBytes(32).toString('base64url')}`;
+      await deps.sessionRepo.create({
+        subjectType: 'system-admin',
+        userId: null,
+        tokenHash: sessionToken,
+        activeTeamId: null,
+        expiresAt: null,
+      } as Parameters<SessionRepositoryPort['create']>[0]);
+      return { sessionToken };
     },
 
     async logout(sessionToken: string) {

@@ -26,6 +26,7 @@ export interface LoginResult {
 
 export interface IdentityAccessPort {
   login(handle: string, password: string): Promise<LoginResult>;
+  loginSystemAdmin(systemAdminKey: string): Promise<{ sessionToken: string }>;
   logout(sessionToken: string): Promise<void>;
   validateSession(sessionToken: string): Promise<{
     sessionId: string;

@@ -25,7 +25,10 @@ export async function createServer(
   const server = await createServiceKnowledgeWriteServer(config, deps, {
     checkDependency: async () => {
       const health = await db.healthCheck();
-      return { reachable: health.status === 'healthy', detail: health.error };
+      return {
+        reachable: health.status === 'healthy',
+        ...(health.error ? { detail: health.error } : {}),
+      };
     },
     getOperatorStatus: async () => {
       const [persistence, queue, outbox] = await Promise.all([

@@ -73,7 +73,7 @@ export function extractRequestContext(
   return {
     requestId,
     traceId,
-    traceParent: traceId ? traceParent : null,
+    traceParent: traceId ? (traceParent ?? null) : null,
     traceHeaderName: traceHeader,
     operationId,
     ...(causationId && { causationId }),

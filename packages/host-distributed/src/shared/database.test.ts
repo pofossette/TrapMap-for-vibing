@@ -8,6 +8,16 @@ import {
 import { createServiceDatabase, getServicePoolConfig, getServicePoolSnapshot } from './database.js';
 
 describe('distributed database pool configuration', () => {
+  it('loads the system admin key only from the distributed environment', () => {
+    const previous = process.env.TRAPMAP_SYSTEM_ADMIN_KEY;
+    process.env.TRAPMAP_SYSTEM_ADMIN_KEY = 'distributed-admin-key';
+
+    expect(loadServiceConfig('identity-access').systemAdminKey).toBe('distributed-admin-key');
+
+    if (previous === undefined) delete process.env.TRAPMAP_SYSTEM_ADMIN_KEY;
+    else process.env.TRAPMAP_SYSTEM_ADMIN_KEY = previous;
+  });
+
   it('maps service config into bounded PostgreSQL pool timeouts', () => {
     const config = loadServiceConfig('knowledge-read');
     const poolConfig = getServicePoolConfig(config);

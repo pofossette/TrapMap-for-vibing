@@ -435,6 +435,14 @@ TRAPMAP_SYSTEM_ADMIN_KEY=<your-admin-key> pnpm test:runtime-closeout
 - queue/outbox 的 reclaim、recent dead letters、recent failures、stale processing 在 operator status 中可见
 - retry / dead-letter policy 与 status contract 保持一致
 
+无需占用开发机 `4000` 或准备持久管理员密钥的完整临时验收使用：
+
+```bash
+rtk pnpm test:runtime-closeout:compose
+```
+
+该命令为单次运行分配空闲 loopback gateway 端口和 `TRAPMAP_SYSTEM_ADMIN_KEY`，只启动 PostgreSQL、gateway 和六个内部服务；重启单个 `knowledge-write` 时持续验证 gateway 健康与 job-runtime operator status，并要求 gateway → governance-review → knowledge-write 委托在 60 秒内恢复。无论结果如何都会移除该 Compose project 的容器、volumes 和孤儿容器。60 秒仅是本地可重复隔离验收阈值，不是生产 SLO，也不表示已经具备独立扩缩容或 Level 3 成熟度。
+
 可选 RabbitMQ task transport：
 
 ```bash

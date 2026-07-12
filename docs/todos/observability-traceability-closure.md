@@ -240,12 +240,12 @@
 **目的：** 将既有“共享实例 + 明确 table owner + outbox”的架构规则变成可执行的 migration、访问、连接与投影治理，而不以物理拆库为当前关闭条件。
 
 - [x] 盘点每个 authoritative table、Drizzle migration 和 repository 的唯一 owner；将跨 owner 的读取分类为 owner port、派生 projection 或带退出条件的临时例外。
-- [ ] 使 migration runner 和 migration review 只能变更所属服务的表；新增表、索引或 schema 变更必须同时更新 owner matrix 和 `DATABASE_OWNERSHIP.md`。
+- [x] 使 migration runner 和 migration review 只能变更所属服务的表；新增表、索引或 schema 变更必须同时更新 owner matrix 和 `DATABASE_OWNERSHIP.md`。
 - [x] 为 `knowledge-read` 冻结 projection source、refresh trigger、freshness/lag、invalidation、rebuild 与 direct-read fallback 的退出条件；写服务不得直接拼装读侧 projection 响应。
 - [x] 为 `knowledge-read`、`job-runtime` 与其他 distributed service 明确 pool size、idle timeout、connection timeout、statement timeout 和总连接预算；pool saturation、连接超时和 DB health 需可按服务诊断。
-- [ ] 补齐测试：跨 owner 写入被 owner port/route guard 拦截；同事务 authoritative write + outbox 原子性；projection lag 与 rebuild 语义；per-service pool override、timeout 和 health failure。
-- [ ] 更新 `docs/architecture/DATABASE_OWNERSHIP.md`、`docs/architecture/components/PERSISTENCE.md`、`docs/architecture/components/ASYNC_MODEL.md`、`docs/operations/ENVIRONMENT.md`、`docs/operations/OBSERVABILITY-OPERATIONS.md`、`docs/reference/DATA_MODEL.md` 与受影响 service README。
-- [ ] 验证：相关 `packages/server`、`packages/runtime-infra`、`packages/host-distributed` 和 `packages/service-knowledge-read` 包级测试，`rtk pnpm test:runtime-foundations`、`rtk pnpm test:distributed-closeout`、`rtk pnpm typecheck`；有跨包导入时运行 `rtk pnpm exec fallow audit --base main`。
+- [x] 补齐测试：跨 owner 写入被 owner port/route guard 拦截；同事务 authoritative write + outbox 原子性；projection lag 与 rebuild 语义；per-service pool override、timeout 和 health failure。
+- [x] 更新 `docs/architecture/DATABASE_OWNERSHIP.md`、`docs/architecture/components/PERSISTENCE.md`、`docs/architecture/components/ASYNC_MODEL.md`、`docs/operations/ENVIRONMENT.md`、`docs/operations/OBSERVABILITY-OPERATIONS.md`、`docs/reference/DATA_MODEL.md` 与受影响 service README。
+- [x] 验证：相关 `packages/server`、`packages/runtime-infra`、`packages/host-distributed` 和 `packages/service-knowledge-read` 包级测试，`rtk pnpm test:runtime-foundations`、`rtk pnpm test:distributed-closeout`、`rtk pnpm typecheck`；有跨包导入时运行 `rtk pnpm exec fallow audit --base main`。
 
 ## Tranche 7：交付服务级运维面与 Level 3 样板证据
 
@@ -257,7 +257,7 @@
 - [ ] 记录并验证 distributed 是否获得可量化的隔离、扩缩容或运维收益；仅有多进程和 shared DB 不得作为 Level 3 证据。
 - [ ] 补齐服务 README、health/readiness/ownership 测试、distributed acceptance、runtime closeout 和 operator runbook；外部基础设施依赖仅记录为验收前置条件。
 - [ ] 更新 `docs/architecture/SERVICE_BOUNDARIES.md`、`docs/architecture/DEPLOYMENT.md`、`docs/architecture/OBSERVABILITY.md`、`docs/operations/TESTING.md`、`docs/operations/REGRESSION-COMMANDS.md` 与对应 service README。
-- [ ] 验证：受影响包级测试、`rtk pnpm test:distributed-acceptance`、`rtk pnpm test:distributed-closeout`、`rtk pnpm test:observability-closeout`、`rtk pnpm test:runtime-closeout`、`rtk pnpm test:deployment-smoke`、`rtk pnpm typecheck`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。
+- [ ] 验证：受影响包级测试、`rtk pnpm test:distributed-acceptance`、`rtk pnpm test:distributed-closeout`、`rtk pnpm test:observability-closeout`、`rtk pnpm test:runtime-closeout:compose`、`rtk pnpm test:deployment-smoke`、`rtk pnpm typecheck`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。
 
 ## 完成与归档
 
@@ -266,7 +266,9 @@
 - Implemented: distributed ports now separate owner-scoped repositories, read-only `asyncDiagnostics`, and a `jobRuntime` capability available only to `job-runtime`; non-audit services no longer receive `repos.audit`. Candidate follow-up scheduling now uses the remote `job-runtime` owner and preserves canonical `InvocationError` failures. Pool saturation is derived as `total / max`; absent pool counters report `unknown`.
 - Implemented: the multi-process closeout restarts `knowledge-write`, verifies a subsequent gateway → governance-review → knowledge-write command recovers, and verifies the independent job-runtime queue surface remains available. The maturity claim remains `Level 2 / transitional-microservice`; no Level 3 claim or checkbox is made.
 - Passed: `rtk pnpm exec vitest run packages/host-distributed/src/shared/database-ownership.test.ts packages/host-distributed/src/shared/internal-job-runtime-client.test.ts packages/host-distributed/src/shared/database.test.ts packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts` (17 tests), `rtk pnpm test:runtime-foundations` (175 passed, 10 skipped), `rtk pnpm test:distributed-acceptance` (41 passed), `rtk pnpm test:distributed-closeout` (30 passed), `rtk pnpm test:observability-closeout` (52 passed), `rtk pnpm test:deployment-smoke` (171 passed, 4 skipped), `rtk pnpm typecheck`, `rtk pnpm eval:smoke` (81 passed), `rtk pnpm check:docs-drift`, `rtk pnpm check:structure`, and `rtk pnpm exec fallow audit --base main`.
-- Not closed: `rtk pnpm test:runtime-closeout` requires a running distributed gateway at `TRAPMAP_CLOSEOUT_BASE_URL` and `TRAPMAP_SYSTEM_ADMIN_KEY`. This workspace supplied neither; its initial run stopped at the required key check. Tranche 6 items 2/5/6/7 and Tranche 7's remaining four items therefore stay unchecked pending that external runtime evidence.
+- Tranche 6 closure correction: its items 2/5/6/7 are complete based on the implementation, targeted tests, `runtime-foundations`, `distributed-closeout`, typecheck, eval smoke, documentation guards, and Fallow audit listed above. `runtime-closeout` was never a Tranche 6 gate.
+- Tranche 7 pending real runtime evidence: `rtk pnpm test:runtime-closeout:compose` creates a disposable Compose project with PostgreSQL, gateway, and six internal services; it generates an in-memory admin key and free gateway port, restarts only `knowledge-write`, requires uninterrupted gateway health and job-runtime operator status, then requires gateway → governance-review → knowledge-write recovery within 60 seconds. Its measured value and full acceptance matrix are recorded here only after a successful run. This demonstrates local restart isolation, not a production SLO, autonomous scaling, or Level 3 maturity.
+- Blocked (2026-07-12): the isolated Compose gate now completes empty-database migration, distributed system-admin login, and job-runtime operator status. Its latest run then fails before restart when `POST /v1/knowledge` tries to create the probe record as `system-admin` with no active team; knowledge-write returns `500`. No recovery value was produced and the deferred matrix has not run. Leave all four Tranche 7 items unchecked.
 
 - [ ] 每个 tranche 完成后，在本文件记录实际变更、验证命令和未覆盖的外部前置条件。
 - [ ] 主线完成时，确认根 `plan.md`、`docs/todos/README.md`、`docs/archived/README.md` 只有一个 active execution surface。

@@ -79,10 +79,13 @@ export function withDatabaseWriteGuard<T extends object>(
       if (typeof property !== 'string' || !MUTATING_REPOSITORY_METHODS.has(property)) {
         return value;
       }
+      if (typeof value !== 'function') {
+        return value;
+      }
 
       return (...args: unknown[]) => {
         assertDatabaseWriteOwner(serviceName, tableFamily);
-        return value.apply(target, args);
+        return Reflect.apply(value, target, args);
       };
     },
   });

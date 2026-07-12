@@ -20,6 +20,9 @@ describe('distributed compose assets', () => {
     expect(compose).toContain('candidate-worker:');
     expect(compose).toContain('governance-worker:');
     expect(compose).toContain('outbox-worker:');
+    expect(compose).toContain('migration:');
+    expect(compose).toContain('command: ["node", "dist/migrate.js"]');
+    expect(compose).toContain('TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}');
 
     expect(compose).toContain('CONSUL_ENABLED=${CONSUL_ENABLED:-true}');
     expect(compose).toContain('CONSUL_HOST=${CONSUL_HOST:-consul}');
@@ -61,5 +64,26 @@ describe('distributed compose assets', () => {
     expect(consulBlock).toContain('networks:');
     expect(consulBlock).toContain('- trapmap-distributed');
     expect(consulBlock).not.toContain('- trapmap-observability');
+  });
+
+  it('provides an isolated runtime-closeout override with a parameterized gateway port', () => {
+    const closeoutCompose = readRepoFile('docker-compose.closeout.yml');
+    const compose = readRepoFile('docker-compose.yml');
+
+    expect(closeoutCompose).toContain('TRAPMAP_CLOSEOUT_GATEWAY_PORT');
+    expect(closeoutCompose).toMatch(/ports:\s*!override/);
+    expect(closeoutCompose).toContain('gateway:');
+    expect(closeoutCompose).toContain('identity-access:');
+    expect(closeoutCompose).toContain('knowledge-read:');
+    expect(closeoutCompose).toContain('knowledge-write:');
+    expect(closeoutCompose).toContain('candidate-worker:');
+    expect(closeoutCompose).toContain('governance-worker:');
+    expect(closeoutCompose).toContain('outbox-worker:');
+    expect(closeoutCompose).toContain('postgres:');
+    expect(closeoutCompose).toContain('migration:');
+    expect(compose).toMatch(/gateway:[\s\S]*migration:[\s\S]*service_completed_successfully/);
+    expect(closeoutCompose).toMatch(/TRAPMAP_TASK_TRANSPORT:\s*postgres/);
+    expect(closeoutCompose).toMatch(/rabbitmq:\s*!reset null/);
+    expect(closeoutCompose).toMatch(/trapmap-distributed:\n\s+external: false/);
   });
 });

@@ -36,6 +36,7 @@ const ENV_SERVICE_STATEMENT_TIMEOUT_MS = 'TRAPMAP_SERVICE_STATEMENT_TIMEOUT_MS';
 const ENV_SERVICE_QUERY_TIMEOUT_MS = 'TRAPMAP_SERVICE_QUERY_TIMEOUT_MS';
 const ENV_SERVICE_IDLE_IN_TRANSACTION_TIMEOUT_MS = 'TRAPMAP_SERVICE_IDLE_IN_TRANSACTION_TIMEOUT_MS';
 const ENV_DATABASE_CONNECTION_BUDGET = 'TRAPMAP_DATABASE_CONNECTION_BUDGET';
+const ENV_SYSTEM_ADMIN_KEY = 'TRAPMAP_SYSTEM_ADMIN_KEY';
 
 // ---------------------------------------------------------------------------
 // Service names
@@ -168,6 +169,7 @@ export interface ServiceConfig {
   host: string;
   advertiseHost: string;
   logLevel: string;
+  systemAdminKey: string | null;
 
   /** Database URL for this specific service (falls back to DATABASE_URL). */
   databaseUrl: string | null;
@@ -285,6 +287,7 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
     host: '0.0.0.0',
     advertiseHost,
     logLevel: process.env[ENV_LOG_LEVEL] ?? 'info',
+    systemAdminKey: process.env[ENV_SYSTEM_ADMIN_KEY] ?? null,
     databaseUrl,
     poolSize: resolvePoolSize(name),
     idleTimeoutMs: resolveTimeout(name, 'IDLE_TIMEOUT_MS', ENV_SERVICE_IDLE_TIMEOUT_MS, 30_000),

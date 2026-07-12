@@ -34,6 +34,10 @@ function readDoc(relativePath: string): string {
   return readFileSync(resolve(repoRoot, relativePath), 'utf-8');
 }
 
+function readRepoFile(relativePath: string): string {
+  return readFileSync(resolve(repoRoot, relativePath), 'utf-8');
+}
+
 describe('closeout surface guardrails', () => {
   it('defines dedicated closeout command entrypoints', () => {
     const pkg = readPackageJson();
@@ -43,7 +47,19 @@ describe('closeout surface guardrails', () => {
       'test:discovery-closeout': expect.any(String),
       'test:distributed-closeout': expect.any(String),
       'test:observability-benchmark': expect.any(String),
+      'test:runtime-closeout:compose': 'bash scripts/run-compose-runtime-closeout.sh',
     });
+  });
+
+  it('keeps the Compose runtime closeout isolated, measured, and self-cleaning', () => {
+    const script = readRepoFile('scripts/run-compose-runtime-closeout.sh');
+
+    expect(script).toContain('TRAPMAP_CLOSEOUT_BASE_URL');
+    expect(script).toContain('TRAPMAP_SYSTEM_ADMIN_KEY');
+    expect(script).toContain('knowledge-write');
+    expect(script).toContain('60000');
+    expect(script).toContain('down --volumes --remove-orphans');
+    expect(script).toContain('gateway knowledge-write governance-worker outbox-worker');
   });
 
   it('guards the corrected NestJS readiness wording in observability operations docs', () => {

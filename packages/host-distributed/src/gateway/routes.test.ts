@@ -8,6 +8,10 @@ function createClients(): InternalServiceClients {
   return {
     identityAccess: {
       login: vi.fn(async () => ({ status: 200, body: { token: 'session' } })),
+      loginSystemAdmin: vi.fn(async () => ({
+        status: 200,
+        body: { sessionToken: 'system-session' },
+      })),
       logout: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       validateSession: vi.fn(async () => ({
         status: 200,
@@ -94,6 +98,60 @@ async function buildApp(clients: InternalServiceClients) {
 }
 
 describe('registerGatewayRoutes', () => {
+  it('forwards a system admin login and emits the issued session header', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: { systemAdminKey: 'correct-key' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-session-token']).toBe('system-session');
+    expect(clients.identityAccess.loginSystemAdmin).toHaveBeenCalledWith({
+      systemAdminKey: 'correct-key',
+    });
+    expect(clients.identityAccess.login).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it('preserves ordinary handle and password login forwarding', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: { handle: 'alice', password: 'secret' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(clients.identityAccess.login).toHaveBeenCalledWith({
+      handle: 'alice',
+      password: 'secret',
+    });
+    await app.close();
+  });
+
+  it('exposes the job-runtime operator status through the compatibility route', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/operations/status/async',
+      headers: { authorization: 'Bearer session' },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      asyncRuntimeEnabled: true,
+      deploymentProfile: 'distributed',
+      queue: { pending: 1, reclaimCount: 0 },
+    });
+    await app.close();
+  });
+
   it('allows anonymous metrics access for runtime observability', async () => {
     const clients = createClients();
     const app = Fastify();

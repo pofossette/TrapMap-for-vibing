@@ -216,7 +216,7 @@ function createPgKnowledgeRepo(pool: Pool): KnowledgeRepositoryPort {
           previousState,
           nextState: newState,
           actorId: context.actorId,
-          note: context.note,
+          ...(context.note ? { note: context.note } : {}),
         });
         await client.query('COMMIT');
         return mapKnowledgeRow(rows[0] as Record<string, unknown>) as never;
@@ -525,13 +525,14 @@ function createPgSessionRepo(pool: Pool): SessionRepositoryPort {
       const id = generateId('s');
       const now = new Date().toISOString();
       await pool.query(
-        `INSERT INTO sessions (id, user_id, token_hash, active_team_id, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO sessions (id, user_id, token_hash, active_team_id, subject_type, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           id,
           (session as Record<string, unknown>).userId,
           session.tokenHash,
           session.activeTeamId,
+          (session as Record<string, unknown>).subjectType ?? 'user',
           now,
           now,
         ],
@@ -920,7 +921,7 @@ function createPgAuditRepo(pool: Pool): AuditRepositoryPort {
           : never) ?? null
       );
     },
-    async listByFilter(filter) {
+    async listByFilter(filter: Parameters<AuditRepositoryPort['listByFilter']>[0]) {
       const conditions: string[] = [];
       const params: unknown[] = [];
       let paramIndex = 1;
@@ -994,16 +995,32 @@ function createPgSessionLookup(pool: Pool): SessionLookupPort {
   return {
     async resolveSession(sessionToken) {
       const { rows } = await pool.query(
-        `SELECT s.id as session_id, u.id as user_id, u.handle, s.active_team_id
+        `SELECT s.id as session_id, s.subject_type, u.id as user_id, u.handle, s.active_team_id
          FROM sessions s
-         JOIN users u ON s.user_id = u.id
+         LEFT JOIN users u ON s.user_id = u.id
          WHERE s.token_hash = $1`,
         [sessionToken],
       );
       const row = rows[0] as
-        | { session_id: string; user_id: string; handle: string; active_team_id: string | null }
+        | {
+            session_id: string;
+            subject_type: string;
+            user_id: string | null;
+            handle: string | null;
+            active_team_id: string | null;
+          }
         | undefined;
       if (!row) return null;
+      if (row.subject_type === 'system-admin') {
+        return {
+          sessionId: row.session_id,
+          userId: 'system-admin',
+          handle: 'system-admin',
+          activeTeamId: null,
+          securityLevel: 10,
+        };
+      }
+      if (!row.user_id || !row.handle) return null;
       return {
         sessionId: row.session_id,
         userId: row.user_id,

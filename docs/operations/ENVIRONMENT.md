@@ -6,7 +6,7 @@
 
 | 变量 | 说明 | 示例 |
 |------|------|------|
-| `TRAPMAP_SYSTEM_ADMIN_KEY` | 管理员密钥；仅在需要 system-admin 能力时配置 | `openssl rand -hex 32` 生成 |
+| `TRAPMAP_SYSTEM_ADMIN_KEY` | 管理员密钥；distributed public gateway login 会由 identity-access 校验并签发 system-admin session | `openssl rand -hex 32` 生成 |
 | `OPENAI_API_KEY` | OpenAI API 密钥；未配置时 AI provider 会回退到 `fallback` | `sk-...` |
 | `GEMINI_API_KEY` | Google GenAI 密钥；设置后 provider 可自动切到 `google-genai` | `AIza...` |
 

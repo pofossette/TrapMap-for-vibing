@@ -183,6 +183,7 @@ async function callInternalService(
 export interface InternalServiceClients {
   identityAccess: {
     login(body: { handle: string; password: string }): Promise<ServiceResponse>;
+    loginSystemAdmin(body: { systemAdminKey: string }): Promise<ServiceResponse>;
     logout(body: { sessionToken: string }): Promise<ServiceResponse>;
     validateSession(body: { sessionToken: string }): Promise<ServiceResponse>;
     selectTeam(body: { sessionToken: string; teamId: string }): Promise<ServiceResponse>;
@@ -381,6 +382,12 @@ export function createInternalServiceClients(
       login: async (body) =>
         callInternalService(
           `${await baseUrl('identity-access', urls.identityAccess)}/internal/auth/login`,
+          'POST',
+          body,
+        ),
+      loginSystemAdmin: async (body) =>
+        callInternalService(
+          `${await baseUrl('identity-access', urls.identityAccess)}/internal/auth/system-admin-login`,
           'POST',
           body,
         ),

@@ -11,20 +11,12 @@ import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 
 import { DynamicDiscovery } from '@trapmap/backend-core';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
+import type { RequestContext } from '@trapmap/server/lib/runtime/index.js';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import { ConsulDiscoveryAdapter } from './consul-discovery-adapter.js';
 import { DiscoveryResolver } from './discovery-resolver.js';
 import { type InternalServiceClients, createInternalServiceClients } from './internal-client.js';
 import { registerGatewayRoutes } from './routes.js';
-
-interface RequestContext {
-  requestId: string;
-  traceHeaderName: string;
-  traceId: string | null;
-  traceParent: string | null;
-  method: string;
-  route: string;
-}
 
 interface CounterSample {
   value: number;
@@ -120,6 +112,7 @@ function getOrCreateRequestContext(request: FastifyRequest): RequestContext {
   const context: RequestContext = {
     requestId,
     traceHeaderName: 'traceparent',
+    traceHeaderValue: traceParent,
     traceId: traceParent ? extractTraceId(traceParent) : null,
     traceParent,
     method: request.method,

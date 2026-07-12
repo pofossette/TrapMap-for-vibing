@@ -17,6 +17,7 @@ function translateInvocationError(error: unknown): {
   if (error instanceof InvocationError) {
     const statusMap: Record<string, number> = {
       validation: 400,
+      unauthorized: 401,
       'not-found': 404,
       conflict: 409,
       forbidden: 403,
@@ -73,6 +74,22 @@ export function registerIdentityAccessRoutes(
       return reply.status(status).send(body);
     }
   });
+
+  app.post(
+    '/internal/auth/system-admin-login',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const validationError = validateBody(request.body, ['systemAdminKey']);
+        if (validationError) return reply.status(400).send(validationError);
+        const body = request.body as { systemAdminKey: string };
+        const result = await module.loginSystemAdmin(body.systemAdminKey);
+        return reply.status(200).send(result);
+      } catch (error) {
+        const { status, body } = translateInvocationError(error);
+        return reply.status(status).send(body);
+      }
+    },
+  );
 
   app.post('/internal/auth/logout', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
