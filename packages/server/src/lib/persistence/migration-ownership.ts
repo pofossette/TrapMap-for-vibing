@@ -162,8 +162,45 @@ export class MigrationOwnershipError extends Error {
   }
 }
 
-export function assertMigrationManifestComplete(migrations: readonly string[]): void {
-  const manifestMigrations = new Set(migrationOwnershipManifest.map((entry) => entry.migration));
+function assertMigrationManifestEntry(entry: MigrationOwnershipManifestEntry): void {
+  if (entry.tableFamilies.length === 0) {
+    throw new MigrationOwnershipError(
+      `Migration '${entry.migration}' must declare at least one table family`,
+    );
+  }
+  if (entry.allowedRunners.length === 0) {
+    throw new MigrationOwnershipError(
+      `Migration '${entry.migration}' must declare at least one allowed runner`,
+    );
+  }
+  if (
+    entry.logicalOwner !== 'historical-cross-domain' &&
+    !entry.allowedRunners.includes(entry.logicalOwner)
+  ) {
+    throw new MigrationOwnershipError(
+      `Migration '${entry.migration}' must authorize its logical owner '${entry.logicalOwner}'`,
+    );
+  }
+  if (
+    entry.logicalOwner === 'historical-cross-domain' &&
+    entry.allowedRunners.some((runner) => runner !== 'server-compatibility-seam')
+  ) {
+    throw new MigrationOwnershipError(
+      `Historical cross-domain migration '${entry.migration}' is restricted to server-compatibility-seam`,
+    );
+  }
+}
+
+export function assertMigrationManifestComplete(
+  migrations: readonly string[],
+  manifest: readonly MigrationOwnershipManifestEntry[] = migrationOwnershipManifest,
+): void {
+  const manifestMigrations = new Set(manifest.map((entry) => entry.migration));
+  if (manifestMigrations.size !== manifest.length) {
+    throw new MigrationOwnershipError('Migration manifest contains duplicate migration entries');
+  }
+  manifest.forEach(assertMigrationManifestEntry);
+
   const missing = migrations.filter((migration) => !manifestMigrations.has(migration));
   if (missing.length > 0) {
     throw new MigrationOwnershipError(
@@ -172,7 +209,7 @@ export function assertMigrationManifestComplete(migrations: readonly string[]): 
   }
 
   const discoveredMigrations = new Set(migrations);
-  const stale = migrationOwnershipManifest
+  const stale = manifest
     .map((entry) => entry.migration)
     .filter((migration) => !discoveredMigrations.has(migration));
   if (stale.length > 0) {
@@ -190,6 +227,32 @@ export function assertMigrationRunnerAuthorized(
   if (denied.length > 0) {
     throw new MigrationOwnershipError(
       `Migration runner '${runner}' is not authorized for: ${denied.map((entry) => entry.migration).join(', ')}`,
+    );
+  }
+}
+
+export function assertMigrationRequestAuthorized(
+  runner: MigrationRunner,
+  requestedMigrationNames: readonly string[],
+  manifest: readonly MigrationOwnershipManifestEntry[] = migrationOwnershipManifest,
+): void {
+  const requested = requestedMigrationNames.map((migration) => {
+    const entry = manifest.find((candidate) => candidate.migration === migration);
+    if (!entry) {
+      throw new MigrationOwnershipError(`Migration '${migration}' is not declared in the manifest`);
+    }
+    return entry;
+  });
+
+  assertMigrationRunnerAuthorized(runner, requested);
+  const foreignOwner = requested.find(
+    (entry) =>
+      runner !== 'server-compatibility-seam' &&
+      (entry.logicalOwner === 'historical-cross-domain' || entry.logicalOwner !== runner),
+  );
+  if (foreignOwner) {
+    throw new MigrationOwnershipError(
+      `Migration runner '${runner}' cannot request migration '${foreignOwner.migration}' owned by '${foreignOwner.logicalOwner}'`,
     );
   }
 }

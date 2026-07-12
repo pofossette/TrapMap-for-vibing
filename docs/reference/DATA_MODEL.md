@@ -38,7 +38,7 @@ Round 0 的目标不是立即改完所有表，而是冻结后续数据库现代
 - `candidates` 与 `task_queue`：
   PostgreSQL 模式下，候选创建、初始状态写入以及 `candidate_processing` 任务注册必须在同一个 DB 事务中提交。系统不允许出现持久化 `queued` 候选但没有对应活动 queue row 的状态。
 - `knowledge` 生命周期变更与 `domain_event_outbox`：
-  distributed `knowledge-write` 生命周期更新已与 outbox 注册共用同一事务 client；其他无法共享事务的调用点仍被视为待收敛债务，而不是目标状态。
+  distributed `knowledge-write` 生命周期更新已在同一事务 client 中锁定记录、验证状态转换、写 lifecycle event 并注册 outbox；其他无法共享事务的调用点仍被视为待收敛债务，而不是目标状态。
 - `task_queue` 与 `domain_event_outbox` 都携带 lease 元数据：
   `workerId`、`startedAt`、`heartbeatAt`、`leaseUntil`。
 - worker 崩溃恢复：

@@ -346,7 +346,7 @@ export function createSkillShareerStore(config: StoreConfig): SkillShareerStore 
 
 ### Drizzle 迁移
 
-迁移文件与 `packages/server/src/lib/persistence/migration-ownership.ts` 的 manifest 必须一一对应。每项声明 table family、logical owner 和 allowed runner；启动时同时拒绝未登记的 SQL 文件与已失效的 manifest 项。`server-compatibility-seam` 是历史跨域迁移和 compatibility DDL/DML 的唯一 runner，业务服务不得借此获得跨 owner 写权限。
+迁移文件与 `packages/server/src/lib/persistence/migration-ownership.ts` 的 manifest 必须一一对应。每项声明 table family、logical owner 和 allowed runner；启动时同时拒绝未登记 SQL、已失效项、重复项、空 family/runner 和 owner/runner 不一致。服务可以为 review/startup 校验自己请求的 migration 子集，但只有 `server-compatibility-seam` 能执行完整 Drizzle migration 与 compatibility DDL/DML，业务服务不得借此获得跨 owner 写权限。
 
 ```bash
 # Generate migration

@@ -8,6 +8,9 @@ describe('knowledge-write lifecycle persistence', () => {
     const client = {
       query: vi.fn(async (sql: string) => {
         calls.push({ sql, client });
+        if (sql.includes('SELECT lifecycle_state')) {
+          return { rows: [{ lifecycle_state: 'agent-pass' }] };
+        }
         if (sql.includes('RETURNING *')) {
           return { rows: [{ id: 'entry-1', lifecycle_state: 'approved' }] };
         }
@@ -38,6 +41,9 @@ describe('knowledge-write lifecycle persistence', () => {
     const client = {
       query: vi.fn(async (sql: string) => {
         calls.push(sql);
+        if (sql.includes('SELECT lifecycle_state')) {
+          return { rows: [{ lifecycle_state: 'agent-pass' }] };
+        }
         if (sql.includes('RETURNING *')) {
           return { rows: [{ id: 'entry-1', lifecycle_state: 'approved' }] };
         }
@@ -78,6 +84,31 @@ describe('knowledge-write lifecycle persistence', () => {
 
     expect(calls).toContain('ROLLBACK');
     expect(calls.some((sql) => sql.includes('INSERT INTO domain_event_outbox'))).toBe(false);
+    expect(client.release).toHaveBeenCalledOnce();
+  });
+
+  it('rejects an invalid locked-state transition before the authoritative write', async () => {
+    const calls: string[] = [];
+    const client = {
+      query: vi.fn(async (sql: string) => {
+        calls.push(sql);
+        if (sql.includes('SELECT lifecycle_state')) {
+          return { rows: [{ lifecycle_state: 'approved' }] };
+        }
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    };
+    const pool = { connect: vi.fn(async () => client) };
+    const ports = createServicePorts(pool as never, 'knowledge-write');
+
+    await expect(
+      ports.repos.knowledge.updateLifecycle('entry-1', 'submitted', { actorId: 'reviewer-1' }),
+    ).rejects.toThrow(/invalid lifecycle transition/i);
+
+    expect(calls.some((sql) => sql.includes('UPDATE knowledge_entries'))).toBe(false);
+    expect(calls.some((sql) => sql.includes('INSERT INTO domain_event_outbox'))).toBe(false);
+    expect(calls).toContain('ROLLBACK');
     expect(client.release).toHaveBeenCalledOnce();
   });
 });

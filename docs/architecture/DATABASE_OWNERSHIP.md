@@ -212,10 +212,11 @@ Service B:  BEGIN; update_projection; append_own_outbox; COMMIT;
 - `knowledge-read` 和 `job-runtime` 是连接使用量最高的服务；优先监控。
 - 不要默认使用单体时代的单连接池每进程值。
 - distributed host 通过 `TRAPMAP_<SERVICE>_POOL_SIZE`、`TRAPMAP_<SERVICE>_IDLE_TIMEOUT_MS`、`TRAPMAP_<SERVICE>_CONNECTION_TIMEOUT_MS`、`TRAPMAP_<SERVICE>_STATEMENT_TIMEOUT_MS` 和 `TRAPMAP_DATABASE_CONNECTION_BUDGET` 冻结 pool 与总连接预算；启动时超过预算会拒绝启动。
+- pool 诊断只使用 `pg.Pool` 已提供的 `totalCount`、`idleCount` 与 `waitingCount`，并以 `total / max` 表示 saturation；任何缺失的诊断数据在 health/operator surface 上必须表示为 `unknown`，不得伪造驱动指标。
 
 ## 迁移与投影运行约束
 
-- 当前 Drizzle migration runner 仍由 `server-compatibility-seam` 统一执行。`packages/server/src/lib/persistence/migration-ownership.ts` 是可审计 manifest：每份 Drizzle migration 都声明 table family、logical owner 和 allowed runner；启动时双向校验目录与 manifest，拒绝缺少 metadata 或指向已不存在文件的 manifest 项，也会拒绝请求不属于自身 owner 的 runner。历史跨域 migration 以及 startup compatibility DDL/DML 仅允许 `server-compatibility-seam` 执行；这不是 distributed 服务获得跨 owner 写权限的例外。迁移评审仍必须在同一变更中更新本 owner matrix、对应 repository 和数据模型文档。
+- 当前 Drizzle migration runner 仍由 `server-compatibility-seam` 统一执行。`packages/server/src/lib/persistence/migration-ownership.ts` 是可审计 manifest：每份 Drizzle migration 都声明 table family、logical owner 和 allowed runner；启动时双向校验目录与 manifest，拒绝重复项、空 table family、空 allowed runner、owner/runner 不一致、缺少 metadata 或指向已不存在文件的 manifest 项。review/startup 可按“runner + 请求 migration 名称”校验子集；这不授予服务执行完整 Drizzle 目录的权限。历史跨域 migration 以及 startup compatibility DDL/DML 仅允许 `server-compatibility-seam` 执行；这不是 distributed 服务获得跨 owner 写权限的例外。迁移评审仍必须在同一变更中更新本 owner matrix、对应 repository 和数据模型文档。
 - distributed host 的 `repos.audit` 也受 owner guard 保护；业务服务只能通过注入的 append-only `auditLog` capability 记录审计事实，不能把 audit repository 当作跨 owner 的通用写入口。
 - `knowledge-read` 的 entry snapshot 当前是 `temporary-direct-backed-projection`：由 knowledge-write 生命周期失效触发、可从 `/internal/knowledge-read/projection-status` 查看 freshness/lag，并由 `/internal/knowledge-read/projection-rebuild` 重建。
 - 该临时 direct-read 的退出条件是：由 `domain_event_outbox` 消费者维护独立、可重建的 persisted projection；在此之前，写服务不得直接组装 read-side 响应。

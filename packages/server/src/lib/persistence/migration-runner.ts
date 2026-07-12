@@ -8,22 +8,16 @@ import type { Pool } from 'pg';
 
 import {
   assertMigrationManifestComplete,
-  assertMigrationRunnerAuthorized,
-  type MigrationRunner,
   migrationOwnershipManifest,
 } from './migration-ownership.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATION_LOCK_KEY = 42187319;
 
-export async function runMigrations(
-  pool: Pool,
-  runner: MigrationRunner = 'server-compatibility-seam',
-): Promise<void> {
+export async function runMigrations(pool: Pool): Promise<void> {
   const migrationsFolder = path.resolve(__dirname, '../../../drizzle');
   const migrationFiles = (await readdir(migrationsFolder)).filter((file) => file.endsWith('.sql'));
   assertMigrationManifestComplete(migrationFiles);
-  assertMigrationRunnerAuthorized(runner, migrationOwnershipManifest);
 
   try {
     await pool.query('CREATE EXTENSION IF NOT EXISTS vector');
@@ -37,19 +31,13 @@ export async function runMigrations(
   await withMigrationLock(pool, async () => {
     const db = drizzle(pool);
     await migrate(db, { migrationsFolder });
-    await runCompatibilityOperations(pool, runner);
+    await runCompatibilityOperations(pool);
   });
 
   console.log('[MigrationRunner] Migrations applied successfully');
 }
 
-async function runCompatibilityOperations(pool: Pool, runner: MigrationRunner): Promise<void> {
-  if (runner !== 'server-compatibility-seam') {
-    throw new Error(
-      `Compatibility DDL/DML is restricted to server-compatibility-seam, not ${runner}`,
-    );
-  }
-
+async function runCompatibilityOperations(pool: Pool): Promise<void> {
   await ensureLeaseColumns(pool);
   await ensureSystemAdminUser(pool);
 }

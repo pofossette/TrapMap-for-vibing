@@ -633,6 +633,7 @@ TrapMap 现在通过共享 runtime resilience 层统一处理部分 timeout / re
 
 - `TRAPMAP_GRAPH_DB_FAIL_OPEN=true` 时，graph backend healthcheck 失败会进入 degraded fallback，而不是直接阻断启动
 - `/ready` 会把 `queueWorker`、`outboxWorker`、`graphQuery` 的当前状态汇总到 `dependencies.*`
+- 分布式服务的 pool 诊断来自 `pg` 的 `totalCount`、`idleCount`、`waitingCount`；operator/health 无法取得这些值时返回 `unknown`，而非推测饱和度。
 - `readiness === "not-ready"` 时，`GET /ready` 返回 HTTP `503`
 - runtime metrics 目前同时承担内部/test-visible snapshot 与 `/metrics` Prometheus export 的最小 owner seam
 - `/v1/operations/status/async` 现在会以 internal/operator additive `runtimeMetrics` 汇总这些 snapshot，统一包含 `executions`、`degraded`、`reclaims`、`timeouts`、`retryableFailures`、`permanentFailures`、`retries` 以及 queue/outbox/stale-worker 的平均 backlog 统计

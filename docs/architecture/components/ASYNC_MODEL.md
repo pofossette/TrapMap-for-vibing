@@ -175,7 +175,7 @@ flowchart LR
 ### Outbox
 
 - 表：`domain_event_outbox`
-- `knowledge-write` 的 distributed lifecycle 更新在同一 `PoolClient` 事务中锁定权威记录、写入 lifecycle event、追加 outbox，再提交；任一写入失败都会回滚，compatibility shadow 或响应不得先于提交更新。
+- `knowledge-write` 的 distributed lifecycle 更新在同一 `PoolClient` 事务中锁定权威记录、验证状态转换、写入 lifecycle event、追加 outbox，再提交；任一写入失败都会回滚，compatibility shadow 或响应不得先于提交更新。
 - 关键能力：
   - async subscriber fanout
   - retry/backoff

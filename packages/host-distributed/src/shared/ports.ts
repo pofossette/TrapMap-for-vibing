@@ -65,6 +65,25 @@ function lifecycleOutboxEventName(state: LifecycleState): string {
   return 'knowledge.lifecycle-updated';
 }
 
+const lifecycleTransitions: Readonly<Record<LifecycleState, readonly LifecycleState[]>> = {
+  draft: ['submitted'],
+  submitted: ['agent-pass', 'agent-rejected'],
+  'agent-pass': ['approved', 'rejected', 'deactivated', 'agent-pass'],
+  'agent-rejected': ['agent-pass', 'rejected', 'approved', 'deactivated', 'agent-rejected'],
+  approved: ['deactivated', 'agent-pass', 'agent-rejected'],
+  rejected: ['agent-pass', 'agent-rejected', 'deactivated'],
+  deactivated: [],
+};
+
+function assertValidLifecycleTransition(
+  previousState: LifecycleState,
+  nextState: LifecycleState,
+): void {
+  if (!lifecycleTransitions[previousState].includes(nextState)) {
+    throw new Error(`Invalid lifecycle transition: ${previousState} → ${nextState}`);
+  }
+}
+
 async function enqueueLifecycleOutboxTx(
   client: Pick<PoolClient, 'query'>,
   input: {
@@ -161,6 +180,10 @@ function createPgKnowledgeRepo(pool: Pool): KnowledgeRepositoryPort {
         );
         const previousState = (current.rows[0] as { lifecycle_state?: LifecycleState } | undefined)
           ?.lifecycle_state;
+        if (!previousState) {
+          throw new Error(`Knowledge entry not found: ${entryId}`);
+        }
+        assertValidLifecycleTransition(previousState, newState);
         const { rows } = await client.query(
           `UPDATE knowledge_entries SET lifecycle_state = $2, updated_at = NOW()
            WHERE id = $1 RETURNING *`,
