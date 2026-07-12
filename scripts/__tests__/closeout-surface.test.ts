@@ -80,17 +80,40 @@ describe('closeout surface guardrails', () => {
     expect(rule?.mustNotContain ?? []).toEqual(expect.arrayContaining(['48 张表', '56 张表']));
   });
 
-  it('guards the root plan active observability and traceability wording', () => {
+  it('guards the root plan active observability, shared PG, and maturity wording', () => {
     const budgets = readComplexityBudgets();
     const rule = budgets.docRules.find((entry) => entry.file === 'plan.md');
 
     expect(rule).toBeDefined();
     expect(rule?.mustContain ?? []).toEqual(
       expect.arrayContaining([
-        '可观测性与可追溯性闭环',
+        '可观测性、共享 PG 治理与分布式成熟度闭环',
         'docs/todos/observability-traceability-closure.md',
-        '统一关联上下文',
+        '共享 PostgreSQL',
+        'Level 2 -> Level 3',
+        'open-debt-and-compromises.md',
       ]),
+    );
+  });
+
+  it('guards active-mainline wording in truth and archive indexes', () => {
+    const budgets = readComplexityBudgets();
+    const rules = budgets.docRules;
+
+    const truthRule = rules.find(
+      (entry) =>
+        entry.file === 'docs/reference/SYSTEM_TRUTH_SOURCES.md' &&
+        entry.mustContain?.includes(
+          'Phase 7 maintainability / CI-testing truth / docs closeout freeze',
+        ),
+    );
+    const archiveRule = rules.find((entry) => entry.file === 'docs/archived/README.md');
+
+    expect(truthRule?.mustContain ?? []).toEqual(
+      expect.arrayContaining(['可观测性、共享 PG 治理与分布式成熟度闭环']),
+    );
+    expect(archiveRule?.mustContain ?? []).toEqual(
+      expect.arrayContaining(['当前根 `plan.md` 指向“可观测性、共享 PG 治理与分布式成熟度闭环”']),
     );
   });
 

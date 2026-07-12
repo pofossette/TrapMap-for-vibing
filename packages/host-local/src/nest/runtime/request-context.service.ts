@@ -62,7 +62,7 @@ export function extractRequestContext(
   const existingRequestId = headers[reqIdHeader];
   const traceParent = readOptionalHeader(headers[traceHeader]);
   const traceId = traceParent ? extractTraceIdFromTraceparent(traceParent) : null;
-  const operationId = readOptionalHeader(headers[OPERATION_ID_HEADER]);
+  const operationId = readOptionalHeader(headers[OPERATION_ID_HEADER]) ?? randomUUID();
   const causationId = readOptionalHeader(headers[CAUSATION_ID_HEADER]);
 
   const requestId =
@@ -75,7 +75,7 @@ export function extractRequestContext(
     traceId,
     traceParent: traceId ? traceParent : null,
     traceHeaderName: traceHeader,
-    ...(operationId && { operationId }),
+    operationId,
     ...(causationId && { causationId }),
     method: fallback.method,
     route: fallback.route,

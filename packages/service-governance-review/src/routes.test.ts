@@ -1,7 +1,7 @@
 import { InvocationError, type ReviewPort } from '@trapmap/backend-core';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
-import { registerGovernanceReviewRoutes } from './routes.js';
+import { registerGovernanceReviewRoutes } from './routes.ts';
 
 function createModule(overrides: Partial<ReviewPort> = {}): ReviewPort {
   return {
@@ -112,6 +112,34 @@ describe('service-governance-review routes', () => {
       delegateTo: 'knowledge-write',
     });
 
+    await app.close();
+  });
+
+  it('keeps operator diagnostics available when the delegated owner is unhealthy', async () => {
+    const app = Fastify();
+    registerGovernanceReviewRoutes(app, createModule(), {
+      checkDependency: vi.fn(async () => ({ reachable: false, detail: 'knowledge-write timeout' })),
+      getOperatorStatus: vi.fn(async () => ({
+        persistence: { status: 'healthy' },
+        delegatedOwner: { service: 'knowledge-write', status: 'unhealthy' },
+        asyncFollowUp: { owner: 'job-runtime', queue: { pending: 1, dead: 0 } },
+      })),
+    });
+    await app.ready();
+
+    const [live, ready, operator] = await Promise.all([
+      app.inject({ method: 'GET', url: '/internal/live' }),
+      app.inject({ method: 'GET', url: '/internal/ready' }),
+      app.inject({ method: 'GET', url: '/internal/operator-status' }),
+    ]);
+
+    expect(live.statusCode).toBe(200);
+    expect(ready.statusCode).toBe(503);
+    expect(operator.statusCode).toBe(200);
+    expect(operator.json()).toMatchObject({
+      service: 'governance-review',
+      delegatedOwner: { status: 'unhealthy' },
+    });
     await app.close();
   });
 });

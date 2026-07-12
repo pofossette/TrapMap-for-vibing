@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Counter, Gauge, Histogram, register, collectDefaultMetrics } from 'prom-client';
+import { normalizeObservabilityRouteFamily } from '@trapmap/contracts';
 
 @Injectable()
 export class PrometheusService {
@@ -21,13 +22,13 @@ export class PrometheusService {
     this.httpRequestsTotal = new Counter({
       name: 'trapmap_http_requests_total',
       help: 'Total number of HTTP requests',
-      labelNames: ['method', 'route', 'status_code'] as const,
+      labelNames: ['method', 'route_family', 'status_class'] as const,
     });
 
     this.httpRequestDuration = new Histogram({
       name: 'trapmap_http_request_duration_seconds',
       help: 'Duration of HTTP requests in seconds',
-      labelNames: ['method', 'route'] as const,
+      labelNames: ['method', 'route_family', 'status_class'] as const,
       buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
     });
 
@@ -40,11 +41,22 @@ export class PrometheusService {
   }
 
   incrementRequests(method: string, route: string, statusCode: string) {
-    this.httpRequestsTotal.inc({ method, route, status_code: statusCode });
+    this.httpRequestsTotal.inc({
+      method: method.toUpperCase(),
+      route_family: normalizeObservabilityRouteFamily(route),
+      status_class: `${statusCode.slice(0, 1)}xx`,
+    });
   }
 
   observeDuration(method: string, route: string, duration: number) {
-    this.httpRequestDuration.observe({ method, route }, duration);
+    this.httpRequestDuration.observe(
+      {
+        method: method.toUpperCase(),
+        route_family: normalizeObservabilityRouteFamily(route),
+        status_class: '2xx',
+      },
+      duration,
+    );
   }
 
   incrementConnections() {

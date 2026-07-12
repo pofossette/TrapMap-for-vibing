@@ -1,3 +1,5 @@
+import { normalizeObservabilityRouteFamily } from '@trapmap/contracts';
+
 export type RuntimeFailureKind = 'timeout' | 'retryable' | 'permanent';
 
 export interface RuntimeMetricsCounter {
@@ -295,7 +297,7 @@ export function recordHttpRequestMetric(params: {
   method: string;
 }) {
   const labels = {
-    route_family: params.routeFamily,
+    route_family: normalizeObservabilityRouteFamily(params.routeFamily),
     service_name: params.serviceName,
     method: params.method.toUpperCase(),
     status_class: `${Math.floor(params.statusCode / 100)}xx`,

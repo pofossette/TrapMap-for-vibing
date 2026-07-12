@@ -55,6 +55,8 @@ export interface KnowledgeReadPort {
     limit?: number;
   }): Promise<RetrievalSearchResponse>;
   getProjectionStatus(): Promise<ReadModelProjectionStatus>;
+  /** Rebuild the owner projection; available only on operator-facing hosts. */
+  rebuildProjection?(): Promise<ReadModelProjectionStatus>;
 }
 
 // ---------------------------------------------------------------------------

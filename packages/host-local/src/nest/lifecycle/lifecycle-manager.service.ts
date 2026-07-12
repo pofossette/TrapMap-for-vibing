@@ -126,7 +126,12 @@ export class LifecycleManagerService
     for (const [name, check] of this.healthChecks) {
       try {
         const result = await check.check();
-        results.push(result);
+        results.push({
+          ...result,
+          ...(check.critical !== undefined && result.critical === undefined
+            ? { critical: check.critical }
+            : {}),
+        });
       } catch (err) {
         results.push({
           name,

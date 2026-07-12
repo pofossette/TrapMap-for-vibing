@@ -239,6 +239,28 @@ describe('HealthController', () => {
       expect(reply.statusCode).toBe(503);
       expect(reply.body.status).toBe('unhealthy');
     });
+
+    it('keeps readiness available when an optional telemetry dependency is unhealthy', async () => {
+      await lifecycle.onModuleInit();
+      lifecycle.registerHealthCheck({
+        name: 'otlp-exporter',
+        critical: false,
+        check: async () => ({
+          name: 'otlp-exporter',
+          status: 'unhealthy',
+          message: 'Collector unavailable',
+        }),
+      });
+
+      const reply = createMockReply();
+      await controller.ready(reply);
+      const health = await controller.health();
+
+      expect(reply.statusCode).toBe(200);
+      expect(reply.body.status).toBe('degraded');
+      expect(health.status).toBe('unhealthy');
+      expect(health.readiness).toBe('degraded');
+    });
   });
 
   describe('/live', () => {

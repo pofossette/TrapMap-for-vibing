@@ -22,6 +22,7 @@
 | `POST` | `/internal/retrieval/search` | 执行检索搜索，body 参数：`query`（必填）、`teamId`、`limit` |
 | `GET` | `/internal/health` | 健康检查，返回 `{ status: "ok", service: "knowledge-read" }` |
 | `GET` | `/internal/knowledge-read/projection-status` | 读模型投影状态诊断，包含各 surface 的一致性、新鲜度与降级策略 |
+| `POST` | `/internal/knowledge-read/projection-rebuild` | 由 read-side owner 重建 entry snapshot，返回 `202` 和最新 projection status |
 
 ## 核心模块
 
@@ -57,6 +58,8 @@
 | `pg` | PostgreSQL 客户端 (用于 pgvector 语义搜索与 pg keyword recall) |
 
 普通业务文件不得直接导入 `@trapmap/server`。retrieval 默认装配与 support 默认装配均已迁到 `@trapmap/runtime-infra`，检索编排只通过 package-local seam 类型消费这些能力；若再次出现 `server` 直接导入，应视为边界回退。
+
+entry snapshot 当前是 `temporary-direct-backed-projection`：生命周期失效后 status 会显示 `refresh-pending` 和 lag，operator 可显式 rebuild。它的退出条件是由 outbox 维护独立的 persisted projection；这不是新的默认跨 owner direct-read 路径。
 
 ## 环境变量
 

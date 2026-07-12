@@ -135,4 +135,18 @@ describe('LoggingPort adapter', () => {
 
     childSpy.mockRestore();
   });
+
+  it('preserves inherited context when a child emits a log', () => {
+    const childLogger = createMockLogger();
+    const root = createMockLogger();
+    vi.spyOn(root, 'child').mockReturnValue(childLogger);
+
+    const childAdapter = createLoggingPortAdapter(root).child({ requestId: 'req-1' });
+    childAdapter.info('request handled', { operationId: 'operation-1' });
+
+    expect(childLogger.calls[0]).toMatchObject({
+      method: 'info',
+      args: [{ requestId: 'req-1', operationId: 'operation-1' }, 'request handled'],
+    });
+  });
 });

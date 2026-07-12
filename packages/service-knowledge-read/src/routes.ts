@@ -103,4 +103,23 @@ export function registerKnowledgeReadRoutes(app: FastifyInstance, module: Knowle
       }
     },
   );
+
+  app.post(
+    '/internal/knowledge-read/projection-rebuild',
+    async (_req: FastifyRequest, reply: FastifyReply) => {
+      if (!module.rebuildProjection) {
+        return reply.status(501).send({
+          error: 'not-implemented',
+          message: 'Projection rebuild is not configured for this knowledge-read host',
+        });
+      }
+      try {
+        const status = await module.rebuildProjection();
+        return reply.status(202).send(status);
+      } catch (err) {
+        const { status, body } = translateInvocationError(err);
+        return reply.status(status).send(body);
+      }
+    },
+  );
 }

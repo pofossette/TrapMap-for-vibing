@@ -8,6 +8,7 @@
  */
 
 import type { LoggingPort } from './telemetry-ports.js';
+import { redactLogContext } from '@trapmap/contracts';
 
 /**
  * Minimal interface matching the subset of FastifyBaseLogger / pino
@@ -26,42 +27,43 @@ export interface PinoLikeLogger {
   child(bindings: Record<string, unknown>): PinoLikeLogger;
 }
 
-export function createLoggingPortAdapter(logger: PinoLikeLogger): LoggingPort {
+export function createLoggingPortAdapter(
+  logger: PinoLikeLogger,
+  inheritedContext: Record<string, unknown> = {},
+): LoggingPort {
+  const emit = (
+    level: 'info' | 'warn' | 'error' | 'debug',
+    message: string,
+    context?: Record<string, unknown>,
+  ): void => {
+    const mergedContext = redactLogContext({ ...inheritedContext, ...(context ?? {}) });
+    if (Object.keys(mergedContext).length > 0) {
+      logger[level](mergedContext, message);
+    } else {
+      logger[level](message);
+    }
+  };
+
   return {
     info(message: string, context?: Record<string, unknown>): void {
-      if (context && Object.keys(context).length > 0) {
-        logger.info(context, message);
-      } else {
-        logger.info(message);
-      }
+      emit('info', message, context);
     },
 
     warn(message: string, context?: Record<string, unknown>): void {
-      if (context && Object.keys(context).length > 0) {
-        logger.warn(context, message);
-      } else {
-        logger.warn(message);
-      }
+      emit('warn', message, context);
     },
 
     error(message: string, context?: Record<string, unknown>): void {
-      if (context && Object.keys(context).length > 0) {
-        logger.error(context, message);
-      } else {
-        logger.error(message);
-      }
+      emit('error', message, context);
     },
 
     debug(message: string, context?: Record<string, unknown>): void {
-      if (context && Object.keys(context).length > 0) {
-        logger.debug(context, message);
-      } else {
-        logger.debug(message);
-      }
+      emit('debug', message, context);
     },
 
     child(context: Record<string, unknown>): LoggingPort {
-      return createLoggingPortAdapter(logger.child(context));
+      const mergedContext = redactLogContext({ ...inheritedContext, ...context });
+      return createLoggingPortAdapter(logger.child(mergedContext), mergedContext);
     },
   };
 }

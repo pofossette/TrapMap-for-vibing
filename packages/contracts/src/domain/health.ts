@@ -4,6 +4,7 @@ export const dependencyStatusSchema = z
   .object({
     name: z.string().min(1),
     status: z.enum(['healthy', 'degraded', 'unhealthy', 'unknown']),
+    critical: z.boolean().optional(),
     latencyMs: z.number().nonnegative().optional(),
     message: z.string().optional(),
     lastChecked: z.string().datetime().optional(),

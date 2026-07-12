@@ -42,30 +42,31 @@ function resolveResponseTraceId(app: FastifyInstance, request: FastifyRequest): 
 function onRequestHook(config: ServerConfig, runtimeServiceName: string) {
   return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
     const context = getOrCreateRequestContext(request, config);
-    if (context.traceParent) {
-      const parentContext = propagation.extract(otelContext.active(), request.headers);
-      const span = trace.getTracer('trapmap-http').startSpan(
-        `${request.method} ${request.routeOptions.url || request.url}`,
-        {
-          kind: SpanKind.SERVER,
-          attributes: {
-            'http.request.method': request.method,
-            'url.path': request.routeOptions.url || request.url,
-            'trapmap.request_id': context.requestId,
-            'trapmap.service_name': runtimeServiceName,
-          },
+    const parentContext = propagation.extract(otelContext.active(), request.headers);
+    const span = trace.getTracer('trapmap-http').startSpan(
+      `${request.method} ${request.routeOptions.url || request.url}`,
+      {
+        kind: SpanKind.SERVER,
+        attributes: {
+          'http.request.method': request.method,
+          'url.path': request.routeOptions.url || request.url,
+          'trapmap.request_id': context.requestId,
+          'trapmap.operation_id': context.operationId ?? '',
+          'trapmap.service_name': runtimeServiceName,
         },
-        parentContext,
-      );
-      (request as RequestWithSpan)[requestSpanSymbol] = span;
+      },
+      parentContext,
+    );
+    (request as RequestWithSpan)[requestSpanSymbol] = span;
+    const spanTraceId = span.spanContext().traceId;
+    if (spanTraceId && !/^0+$/.test(spanTraceId)) {
+      context.traceId = spanTraceId;
     }
     reply.header(config.runtime.requestIdHeader, context.requestId);
-    if (context.traceParent) {
-      reply.header(config.runtime.traceHeaderName, context.traceParent);
+    if (context.traceHeaderValue) {
+      reply.header(config.runtime.traceHeaderName, context.traceHeaderValue);
     }
-    // Inject X-Trace-Id header when a trace ID is available — either from an
-    // incoming traceparent header or from the OTel SDK later in the lifecycle.
-    if (context.traceId) {
+    if (context.traceParent && context.traceId) {
       reply.header('X-Trace-Id', context.traceId);
     }
   };
@@ -82,7 +83,7 @@ function onResponseHook(runtimeServiceName: string, app: FastifyInstance) {
         : 0;
 
     const responseTraceId = resolveResponseTraceId(app, request);
-    if (responseTraceId) {
+    if (context?.traceParent && responseTraceId) {
       reply.header('X-Trace-Id', responseTraceId);
     }
 
@@ -110,6 +111,8 @@ function onResponseHook(runtimeServiceName: string, app: FastifyInstance) {
         eventName: 'request.completed',
         requestId: context?.requestId ?? null,
         traceId: responseTraceId,
+        operationId: context?.operationId ?? null,
+        causationId: context?.causationId ?? null,
         service: runtimeServiceName,
         serviceName: runtimeServiceName,
         ownerSurface: 'runtime-seam',

@@ -6,6 +6,7 @@ import {
   buildLokiLabels,
   formatLogForStdout,
   logEntrySchema,
+  redactLogContext,
 } from './log-schema.js';
 
 describe('log schema', () => {
@@ -174,7 +175,7 @@ describe('log schema', () => {
         message: 'Server started',
       };
       const output = formatLogForStdout(entry);
-      expect(output).toBe('[INFO ] Server started');
+      expect(JSON.parse(output)).toEqual(entry);
     });
 
     it('includes extra passthrough fields as JSON', () => {
@@ -188,13 +189,14 @@ describe('log schema', () => {
         statusCode: 500,
       };
       const output = formatLogForStdout(entry);
-      expect(output).toContain('[ERROR]');
-      expect(output).toContain('Request failed');
-      expect(output).toContain('"traceId":"abc"');
-      expect(output).toContain('"statusCode":500');
+      expect(JSON.parse(output)).toMatchObject({
+        traceId: 'abc',
+        message: 'Request failed',
+        statusCode: 500,
+      });
     });
 
-    it('pads the level to 5 characters for alignment', () => {
+    it('keeps the structured level intact', () => {
       const warnEntry: LogEntry = {
         timestamp: '2026-07-02T10:00:00.000Z',
         level: 'warn',
@@ -203,7 +205,27 @@ describe('log schema', () => {
         message: 'warn test',
       };
       const output = formatLogForStdout(warnEntry);
-      expect(output).toBe('[WARN ] warn test');
+      expect(JSON.parse(output)).toMatchObject({ level: 'warn', message: 'warn test' });
+    });
+
+    it('redacts sensitive fields before serializing stdout fallback', () => {
+      const output = formatLogForStdout({
+        timestamp: '2026-07-02T10:00:00.000Z',
+        level: 'error',
+        service: 'trapmap',
+        environment: 'production',
+        message: 'Request failed',
+        authorization: 'Bearer secret',
+        nested: { sessionToken: 'session-secret', safe: 'kept' },
+      });
+      const parsed = JSON.parse(output);
+
+      expect(parsed.authorization).toBe('[REDACTED]');
+      expect(parsed.nested).toEqual({ sessionToken: '[REDACTED]', safe: 'kept' });
+      expect(redactLogContext({ accessToken: 'secret', value: 'kept' })).toEqual({
+        accessToken: '[REDACTED]',
+        value: 'kept',
+      });
     });
   });
 });

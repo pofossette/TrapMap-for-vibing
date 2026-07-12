@@ -65,6 +65,33 @@ describe('knowledge entry projection', () => {
     expect(knowledgeRepo.listByFilter).toHaveBeenCalledTimes(2);
   });
 
+  it('reports refresh-pending lag and exposes an explicit rebuild after invalidation', async () => {
+    const knowledgeRepo = {
+      listByFilter: vi
+        .fn()
+        .mockResolvedValueOnce([createEntry('entry-1', { content: 'before' })])
+        .mockResolvedValueOnce([createEntry('entry-1', { content: 'after' })]),
+    };
+    const projection = createKnowledgeEntryProjection({ knowledgeRepo });
+
+    await projection.getById('entry-1');
+    invalidateKnowledgeEntryProjection('approved');
+
+    expect(await projection.getStatus()).toMatchObject({
+      freshness: 'refresh-pending',
+      source: 'temporary-direct-backed-projection',
+      fallback: 'direct-authoritative-read',
+    });
+
+    await projection.rebuild();
+
+    expect(await projection.getStatus()).toMatchObject({
+      freshness: 'current',
+      fallback: 'direct-authoritative-read',
+    });
+    await expect(projection.getById('entry-1')).resolves.toMatchObject({ content: 'after' });
+  });
+
   it('preserves user and optional team filtering for listMine', async () => {
     const entries = [
       createEntry('entry-user-team-1', { ownerUserId: 'user-1', teamId: 'team-1' }),

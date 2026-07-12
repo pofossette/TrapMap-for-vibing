@@ -2,7 +2,7 @@ import { auditListResponseSchema, auditQuerySchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { buildAuditEventProjection } from '@trapmap/server/lib/operations/read-model.js';
-import { requirePermission } from '@trapmap/server/lib/rbac.js';
+import { requirePermission, requireTeamAccess } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
 export const auditRoutes: FastifyPluginAsync = async (app) => {
@@ -11,6 +11,12 @@ export const auditRoutes: FastifyPluginAsync = async (app) => {
     requirePermission(auth, 'audit:read');
 
     const query = auditQuerySchema.parse(request.query as Record<string, unknown>);
+    const scopedTeamId =
+      query.teamId ??
+      (auth.subjectType === 'system-admin' ? undefined : (auth.activeTeamId ?? undefined));
+    if (query.teamId !== undefined) {
+      requireTeamAccess(auth, query.teamId);
+    }
 
     // Use repository for querying audit events (replaces store.snapshot() + queryAuditEvents())
     const { audit: auditRepo } = app.skillShareer.repos;
@@ -18,7 +24,11 @@ export const auditRoutes: FastifyPluginAsync = async (app) => {
       ...(query.action !== undefined && { action: query.action }),
       ...(query.actorId !== undefined && { actorId: query.actorId }),
       ...(query.entityId !== undefined && { entityId: query.entityId }),
-      ...(query.teamId !== undefined && { teamId: query.teamId }),
+      ...(scopedTeamId !== undefined && { teamId: scopedTeamId }),
+      ...(query.requestId !== undefined && { requestId: query.requestId }),
+      ...(query.traceId !== undefined && { traceId: query.traceId }),
+      ...(query.operationId !== undefined && { operationId: query.operationId }),
+      ...(query.causationId !== undefined && { causationId: query.causationId }),
       ...(query.from !== undefined && { from: query.from }),
       ...(query.to !== undefined && { to: query.to }),
       limit: query.limit,

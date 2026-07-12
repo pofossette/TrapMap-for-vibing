@@ -60,5 +60,13 @@ export function createKnowledgeReadModule(deps: KnowledgeReadDeps): KnowledgeRea
     async getProjectionStatus() {
       return deps.knowledgeProjection.getStatus();
     },
+
+    async rebuildProjection() {
+      if (!deps.knowledgeProjection.rebuild) {
+        throw new Error('knowledge-read projection rebuild is not configured');
+      }
+      await deps.knowledgeProjection.rebuild();
+      return deps.knowledgeProjection.getStatus();
+    },
   };
 }

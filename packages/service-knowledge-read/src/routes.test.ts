@@ -7,7 +7,7 @@ import { registerKnowledgeReadRoutes } from './routes.js';
 function createProjectionStatus() {
   return {
     phase: 'phase-2-boundary-closed' as const,
-    source: 'mixed-phase-2-read-side-contract',
+    source: 'temporary-direct-backed-projection',
     consistency: 'eventual' as const,
     freshness: 'current' as const,
     fallback: 'none' as const,
@@ -18,23 +18,25 @@ function createProjectionStatus() {
         surface: 'knowledge-entry:getById',
         owner: 'knowledge-read' as const,
         providedBy: 'knowledge-read' as const,
-        source: 'derived-projection' as const,
+        source: 'temporary-direct-backed-projection' as const,
         authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
         consistency: 'eventual' as const,
         freshness: 'current' as const,
-        fallback: 'none' as const,
-        notes: 'Entry lookup is served from the knowledge-read owned entry projection snapshot.',
+        fallback: 'direct-authoritative-read' as const,
+        notes:
+          'Entry lookup is served from the knowledge-read owned temporary direct-backed snapshot.',
       },
       {
         surface: 'knowledge-entry:listMine',
         owner: 'knowledge-read' as const,
         providedBy: 'knowledge-read' as const,
-        source: 'derived-projection' as const,
+        source: 'temporary-direct-backed-projection' as const,
         authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
         consistency: 'eventual' as const,
         freshness: 'current' as const,
-        fallback: 'none' as const,
-        notes: 'List queries are served from the knowledge-read owned entry projection snapshot.',
+        fallback: 'direct-authoritative-read' as const,
+        notes:
+          'List queries are served from the knowledge-read owned temporary direct-backed snapshot.',
       },
       {
         surface: 'retrieval-search',
@@ -122,6 +124,7 @@ function createModule(): KnowledgeReadPort {
     listMine: vi.fn(async () => []),
     search: vi.fn(async () => ({ results: [], totalEstimate: 0, channel: 'derived-index' })),
     getProjectionStatus: vi.fn(async () => createProjectionStatus()),
+    rebuildProjection: vi.fn(async () => createProjectionStatus()),
   };
 }
 
@@ -266,6 +269,23 @@ describe('knowledge-read routes', () => {
     await app.close();
   });
 
+  it('rebuilds the projection only through the knowledge-read operator surface', async () => {
+    const app = Fastify();
+    const module = createModule();
+    registerKnowledgeReadRoutes(app, module);
+    await app.ready();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/knowledge-read/projection-rebuild',
+    });
+
+    expect(response.statusCode).toBe(202);
+    expect(response.json()).toEqual(createProjectionStatus());
+    expect(module.rebuildProjection).toHaveBeenCalledTimes(1);
+    await app.close();
+  });
+
   it('keeps derived entry reads distinct from retrieval and governance surfaces', async () => {
     const module = createModule();
     const status = await module.getProjectionStatus();
@@ -291,15 +311,15 @@ describe('knowledge-read routes', () => {
     );
 
     expect(entryGetById).toMatchObject({
-      source: 'derived-projection',
+      source: 'temporary-direct-backed-projection',
       consistency: 'eventual',
-      fallback: 'none',
+      fallback: 'direct-authoritative-read',
       owner: 'knowledge-read',
     });
     expect(entryListMine).toMatchObject({
-      source: 'derived-projection',
+      source: 'temporary-direct-backed-projection',
       consistency: 'eventual',
-      fallback: 'none',
+      fallback: 'direct-authoritative-read',
       owner: 'knowledge-read',
     });
     expect(retrievalSurface).toMatchObject({

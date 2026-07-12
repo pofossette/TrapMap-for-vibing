@@ -20,7 +20,7 @@ export async function createServer(
   config: ServiceConfig,
   db: ServiceDatabase,
 ): Promise<CandidateIngestionServer> {
-  const ports = createServicePorts(db.pool);
+  const ports = createServicePorts(db.pool, config.serviceName);
   const internalClients = createInternalServiceClients(config.internalUrls);
   const deps = createCandidateIngestionDeps({
     candidateRepo: ports.repos.candidate,

@@ -54,6 +54,7 @@ describe('extractRequestContext', () => {
     const ctx = extractRequestContext({}, config, { method: 'GET', route: '/test' });
     expect(ctx.requestId).toBeDefined();
     expect(ctx.requestId.length).toBeGreaterThan(0);
+    expect(ctx.operationId).toEqual(expect.any(String));
   });
 
   it('should use fallback existingId when header is missing', () => {

@@ -19,11 +19,6 @@ export async function attachRuntimeTelemetry(
   const sdk = await bootstrapOtel(serviceName);
 
   app.addHook('onRequest', async (request) => {
-    const traceParentHeader = request.headers.traceparent;
-    if (typeof traceParentHeader !== 'string' || traceParentHeader.trim().length === 0) {
-      return;
-    }
-
     const parentContext = propagation.extract(otelContext.active(), request.headers);
     const span = trace.getTracer('trapmap-distributed-http').startSpan(
       `${request.method} ${request.routeOptions.url || request.url}`,

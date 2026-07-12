@@ -10,6 +10,7 @@ import {
   recordRuntimeExecution,
   recordRuntimeReclaim,
   recordRuntimeRetry,
+  recordHttpRequestMetric,
   renderPrometheusMetrics,
   resetRuntimeMetrics,
 } from './metrics.js';
@@ -139,5 +140,21 @@ describe('runtime metrics', () => {
     expect(output).toMatch(/trapmap_nodejs_heap_size_used_bytes \d+/);
     expect(output).toMatch(/# TYPE trapmap_nodejs_heap_size_total_bytes gauge/);
     expect(output).toMatch(/trapmap_nodejs_heap_size_total_bytes \d+/);
+  });
+
+  it('keeps HTTP metric labels bounded to route families and status classes', () => {
+    resetRuntimeMetrics();
+    recordHttpRequestMetric({
+      routeFamily: '/v1/knowledge/entry-123',
+      serviceName: 'gateway',
+      latencyMs: 10,
+      statusCode: 503,
+      method: 'GET',
+    });
+
+    const output = renderPrometheusMetrics();
+    expect(output).toContain('route_family="gateway"');
+    expect(output).toContain('status_class="5xx"');
+    expect(output).not.toContain('entry-123');
   });
 });

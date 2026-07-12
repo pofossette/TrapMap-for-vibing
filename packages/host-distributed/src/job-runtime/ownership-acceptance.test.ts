@@ -79,12 +79,18 @@ describe('distributed job-runtime ownership acceptance', () => {
     process.env.TRAPMAP_DEPLOYMENT_PROFILE = 'distributed';
     process.env.TRAPMAP_SERVICE_POOL_SIZE = '11';
     process.env.TRAPMAP_JOB_RUNTIME_POOL_SIZE = '17';
+    process.env.TRAPMAP_SERVICE_IDLE_TIMEOUT_MS = '12000';
+    process.env.TRAPMAP_JOB_RUNTIME_STATEMENT_TIMEOUT_MS = '45000';
+    process.env.TRAPMAP_DATABASE_CONNECTION_BUDGET = '40';
 
     const gatewayConfig = loadServiceConfig('gateway');
     const jobRuntimeConfig = loadServiceConfig('job-runtime');
 
     expect(gatewayConfig.poolSize).toBe(11);
     expect(jobRuntimeConfig.poolSize).toBe(17);
+    expect(gatewayConfig.idleTimeoutMs).toBe(12000);
+    expect(jobRuntimeConfig.statementTimeoutMs).toBe(45000);
+    expect(jobRuntimeConfig.connectionBudget).toBe(40);
   });
 
   it('serves schedule, status, and queue semantics from the dedicated job-runtime surface', async () => {

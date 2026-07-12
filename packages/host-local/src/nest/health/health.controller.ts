@@ -79,8 +79,10 @@ export class HealthController {
     }
 
     const results = await this.lifecycle.runHealthChecks();
-    const hasUnhealthy = results.some((r) => r.status === 'unhealthy');
-    const hasDegraded = results.some((r) => r.status === 'degraded');
+    const hasUnhealthy = results.some((r) => r.status === 'unhealthy' && r.critical !== false);
+    const hasDegraded = results.some(
+      (r) => r.status === 'degraded' || (r.status === 'unhealthy' && r.critical === false),
+    );
 
     if (hasUnhealthy) {
       return reply.status(503).send({
@@ -128,6 +130,7 @@ export class HealthController {
     return results.map((r) => ({
       name: r.name,
       status: r.status === 'unknown' ? ('unknown' as const) : r.status,
+      ...(r.critical !== undefined ? { critical: r.critical } : {}),
       ...(r.latencyMs !== undefined ? { latencyMs: r.latencyMs } : {}),
       ...(r.message ? { message: r.message } : {}),
       lastChecked: new Date().toISOString(),

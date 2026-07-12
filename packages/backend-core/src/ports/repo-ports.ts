@@ -123,6 +123,13 @@ export interface AuditEventRecord {
   entityId?: string;
   teamId?: string;
   createdAt: string;
+  eventVersion?: number;
+  sourceService?: string;
+  requestId?: string;
+  traceId?: string;
+  operationId?: string;
+  causationId?: string;
+  outcome?: 'success' | 'rejected' | 'failed';
   [key: string]: unknown;
 }
 

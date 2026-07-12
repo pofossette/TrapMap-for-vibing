@@ -61,6 +61,13 @@ export interface AuditEventRecord {
   action: string;
   entityId: string;
   payload: Record<string, unknown>;
+  eventVersion?: number;
+  sourceService?: string;
+  requestId?: string;
+  traceId?: string;
+  operationId?: string;
+  causationId?: string;
+  outcome?: 'success' | 'rejected' | 'failed';
   createdAt: string;
   updatedAt: string;
 }

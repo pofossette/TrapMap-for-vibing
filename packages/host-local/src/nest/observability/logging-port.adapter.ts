@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { LoggingPort } from '@trapmap/backend-core';
+import { redactLogContext } from '@trapmap/contracts';
 
 /**
  * NestJS adapter that implements the shared {@link LoggingPort}
@@ -9,7 +10,10 @@ import type { LoggingPort } from '@trapmap/backend-core';
 export class LoggingPortAdapter implements LoggingPort {
   private readonly logger: Logger;
 
-  constructor(context?: string) {
+  constructor(
+    context?: string,
+    private readonly inheritedContext: Record<string, unknown> = {},
+  ) {
     this.logger = new Logger(context ?? 'TrapMap');
   }
 
@@ -36,16 +40,20 @@ export class LoggingPortAdapter implements LoggingPort {
   child(context: Record<string, unknown>): LoggingPort {
     const childContext = context['name'] ?? context['context'] ?? context['module'];
     const contextStr = typeof childContext === 'string' ? childContext : JSON.stringify(context);
-    return new LoggingPortAdapter(contextStr);
+    return new LoggingPortAdapter(
+      contextStr,
+      redactLogContext({ ...this.inheritedContext, ...context }),
+    );
   }
 
   private formatMessage(
     message: string,
     context?: Record<string, unknown>,
   ): string {
-    if (!context || Object.keys(context).length === 0) {
+    const mergedContext = redactLogContext({ ...this.inheritedContext, ...(context ?? {}) });
+    if (Object.keys(mergedContext).length === 0) {
       return message;
     }
-    return `${message} ${JSON.stringify(context)}`;
+    return `${message} ${JSON.stringify(mergedContext)}`;
   }
 }

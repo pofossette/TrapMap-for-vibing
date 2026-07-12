@@ -44,6 +44,10 @@ export interface AuditRepository {
     actorId?: string;
     entityId?: string;
     teamId?: string;
+    requestId?: string;
+    traceId?: string;
+    operationId?: string;
+    causationId?: string;
     from?: string;
     to?: string;
     limit?: number;
@@ -97,6 +101,18 @@ export class InMemoryAuditRepository implements AuditRepository {
     }
     if (filter.teamId !== undefined) {
       events = events.filter((e) => e.teamId === filter.teamId);
+    }
+    if (filter.requestId) {
+      events = events.filter((e) => e.requestId === filter.requestId);
+    }
+    if (filter.traceId) {
+      events = events.filter((e) => e.traceId === filter.traceId);
+    }
+    if (filter.operationId) {
+      events = events.filter((e) => e.operationId === filter.operationId);
+    }
+    if (filter.causationId) {
+      events = events.filter((e) => e.causationId === filter.causationId);
     }
     if (filter.from) {
       events = events.filter((e) => e.createdAt >= filter.from!);

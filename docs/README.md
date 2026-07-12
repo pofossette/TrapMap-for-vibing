@@ -6,7 +6,7 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 ## 当前整改主线
 
-当前 active 执行主线是[可观测性与可追溯性闭环](todos/observability-traceability-closure.md)。根索引 [`../plan.md`](../plan.md) 只链接这一份主细则；CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。
+当前 active 执行主线是[可观测性、共享 PG 治理与分布式成熟度闭环](todos/observability-traceability-closure.md)。根索引 [`../plan.md`](../plan.md) 只链接这一份主细则；CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。
 
 light / heavy 后端构建目标与客户端选择已完成并归档，包含其未执行的部署级 runtime closeout 前置条件。其余历史主线、closeout 细则和背景材料同样不构成并行 active workstream，只能作为 archived/background reference 使用。
 
@@ -224,9 +224,9 @@ deployment flexibility 最小验证矩阵：
 
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
-- [根计划索引](../plan.md) — 当前链接唯一 active mainline“可观测性与可追溯性闭环”，并保留归档/背景入口
+- [根计划索引](../plan.md) — 当前链接唯一 active mainline“可观测性、共享 PG 治理与分布式成熟度闭环”，并保留归档/背景入口
 - [微服务平台能力增强细则](archived/archived-plans/microservice-platform-evolution-plan.md) — 已归档的 Phase 0-4 closeout 细则；保留服务发现、内部 RPC、可观测性与资源治理的完成证据
-- 当前唯一 active execution surface 是“可观测性与可追溯性闭环”；新的 todo 文档必须先由根 `plan.md` 显式赋予执行责任，其余材料只能作为背景输入、deferred 落点或已完成 closeout 参考
+- 当前唯一 active execution surface 是“可观测性、共享 PG 治理与分布式成熟度闭环”；新的 todo 文档必须先由根 `plan.md` 显式赋予执行责任，其余材料只能作为背景输入、deferred 落点或已完成 closeout 参考
 - [健壮性与可扩展性收尾细则](archived/archived-plans/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](archived/archived-plans/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪

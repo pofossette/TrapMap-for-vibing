@@ -62,6 +62,28 @@ export const observabilityMetricNamespaceSchema = z.enum([
 
 export type ObservabilityMetricNamespace = z.infer<typeof observabilityMetricNamespaceSchema>;
 
+export const observabilityRouteFamilySchema = z.enum(['runtime', 'operator', 'gateway']);
+
+export type ObservabilityRouteFamily = z.infer<typeof observabilityRouteFamilySchema>;
+
+export function normalizeObservabilityRouteFamily(route: string): ObservabilityRouteFamily {
+  if (
+    route === 'runtime' ||
+    route.startsWith('/health') ||
+    route.startsWith('/ready') ||
+    route === '/metrics'
+  ) {
+    return 'runtime';
+  }
+  if (route === 'operator' || route.startsWith('/v1/operations')) {
+    return 'operator';
+  }
+  if (route === 'gateway' || route.startsWith('/v1/')) {
+    return 'gateway';
+  }
+  return 'runtime';
+}
+
 export const observabilityFieldVisibilitySchema = z.enum(['public-additive', 'internal-only']);
 
 export type ObservabilityFieldVisibility = z.infer<typeof observabilityFieldVisibilitySchema>;

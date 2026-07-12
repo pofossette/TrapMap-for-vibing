@@ -25,11 +25,14 @@ describe('PrometheusService', () => {
   it('should increment request counter', async () => {
     const service = new PrometheusService(createMockConfig());
 
-    service.incrementRequests('GET', '/health', '200');
-    service.incrementRequests('GET', '/health', '200');
+    service.incrementRequests('GET', '/v1/knowledge/entry-123', '200');
+    service.incrementRequests('GET', '/v1/knowledge/entry-123', '200');
 
     const metrics = await service.getMetrics();
     expect(metrics).toContain('trapmap_http_requests_total');
+    expect(metrics).toContain('route_family="gateway"');
+    expect(metrics).toContain('status_class="2xx"');
+    expect(metrics).not.toContain('entry-123');
   });
 
   it('should observe request duration', async () => {

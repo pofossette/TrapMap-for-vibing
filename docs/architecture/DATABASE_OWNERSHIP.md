@@ -211,6 +211,13 @@ Service B:  BEGIN; update_projection; append_own_outbox; COMMIT;
 - 每个服务必须支持独立的连接池大小、空闲超时和语句超时配置。
 - `knowledge-read` 和 `job-runtime` 是连接使用量最高的服务；优先监控。
 - 不要默认使用单体时代的单连接池每进程值。
+- distributed host 通过 `TRAPMAP_<SERVICE>_POOL_SIZE`、`TRAPMAP_<SERVICE>_IDLE_TIMEOUT_MS`、`TRAPMAP_<SERVICE>_CONNECTION_TIMEOUT_MS`、`TRAPMAP_<SERVICE>_STATEMENT_TIMEOUT_MS` 和 `TRAPMAP_DATABASE_CONNECTION_BUDGET` 冻结 pool 与总连接预算；启动时超过预算会拒绝启动。
+
+## 迁移与投影运行约束
+
+- 当前 Drizzle migration runner 仍由 `server-compatibility-seam` 统一执行；迁移评审必须在同一变更中更新本 owner matrix、对应 repository 和数据模型文档。它不是 distributed 服务获得跨 owner 写权限的例外。
+- `knowledge-read` 的 entry snapshot 当前是 `temporary-direct-backed-projection`：由 knowledge-write 生命周期失效触发、可从 `/internal/knowledge-read/projection-status` 查看 freshness/lag，并由 `/internal/knowledge-read/projection-rebuild` 重建。
+- 该临时 direct-read 的退出条件是：由 `domain_event_outbox` 消费者维护独立、可重建的 persisted projection；在此之前，写服务不得直接组装 read-side 响应。
 
 ## 参考资料
 

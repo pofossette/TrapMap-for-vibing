@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
+import { logEntrySchema } from '@trapmap/contracts';
 
 import { LoggingMiddleware } from './logging.middleware.js';
 import { RequestContextService } from './request-context.service.js';
@@ -40,8 +41,15 @@ describe('LoggingMiddleware', () => {
     expect(finishHandler).toBeTypeOf('function');
     finishHandler?.();
 
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('GET /health 204'));
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('[req-1] [trace-1]'));
+    const [serialized] = logSpy.mock.calls[0] ?? [];
+    const entry = logEntrySchema.parse(JSON.parse(String(serialized)));
+    expect(entry).toMatchObject({
+      eventName: 'request.completed',
+      requestId: 'req-1',
+      traceId: 'trace-1',
+      method: 'GET',
+      statusCode: 204,
+    });
   });
 
   it('does not depend on raw when reply itself exposes on', () => {
@@ -66,6 +74,11 @@ describe('LoggingMiddleware', () => {
     expect(finishHandler).toBeTypeOf('function');
     finishHandler?.();
 
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('GET /metrics 200'));
+    const [serialized] = logSpy.mock.calls[0] ?? [];
+    expect(logEntrySchema.parse(JSON.parse(String(serialized)))).toMatchObject({
+      eventName: 'request.completed',
+      method: 'GET',
+      statusCode: 200,
+    });
   });
 });

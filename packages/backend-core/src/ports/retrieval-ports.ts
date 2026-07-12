@@ -62,6 +62,12 @@ export interface ReadModelProjectionStatus {
   consistency: ReadModelConsistency;
   freshness: ReadModelFreshness;
   fallback: ReadModelFallback;
+  /** Most recent successful rebuild of the owner projection. */
+  lastRefreshedAt?: string;
+  /** Time since an invalidation that has not yet been rebuilt. */
+  lagMs?: number;
+  /** Stable source that tells operators how refreshes are initiated. */
+  refreshTrigger?: string;
   notes?: string;
   surfaces: ReadModelSurfaceStatus[];
 }
@@ -104,4 +110,5 @@ export interface KnowledgeReadProjectionPort<TEntry> {
   getById(entryId: string): Promise<TEntry | null>;
   listMine(params: { userId: string; teamId?: string }): Promise<TEntry[]>;
   getStatus(): Promise<ReadModelProjectionStatus>;
+  rebuild?(): Promise<void>;
 }

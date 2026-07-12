@@ -117,6 +117,33 @@ describe('InMemoryAuditRepository', () => {
     expect(results.items.map((e) => e.id).sort()).toEqual(['audit_1', 'audit_3']);
   });
 
+  it('listByFilter() filters by operation, trace, and causation ids', async () => {
+    await repo.insert(
+      createTestAuditEvent({
+        id: 'audit-correlation',
+        operationId: 'operation-1',
+        traceId: '4bf92f3577b34da6a3ce929d0e0e4736',
+        causationId: 'event-1',
+      }),
+    );
+    await repo.insert(
+      createTestAuditEvent({
+        id: 'audit-other',
+        operationId: 'operation-2',
+        traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        causationId: 'event-2',
+      }),
+    );
+
+    const results = await repo.listByFilter({
+      operationId: 'operation-1',
+      traceId: '4bf92f3577b34da6a3ce929d0e0e4736',
+      causationId: 'event-1',
+    });
+
+    expect(results.items.map((event) => event.id)).toEqual(['audit-correlation']);
+  });
+
   it('listByFilter() filters by date range', async () => {
     const event1 = createTestAuditEvent({
       id: 'audit_1',

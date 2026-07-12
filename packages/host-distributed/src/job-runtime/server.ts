@@ -13,7 +13,7 @@ export async function createServer(
   config: ServiceConfig,
   db: ServiceDatabase,
 ): Promise<JobRuntimeServer> {
-  const ports = createServicePorts(db.pool);
+  const ports = createServicePorts(db.pool, config.serviceName);
   const deps = createJobRuntimeDeps(ports);
   const server = await createJobRuntimeServer(config, deps);
   attachRuntimeMetricsRoute(server.app);

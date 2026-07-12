@@ -24,6 +24,13 @@ interface AuditEventsRow {
   payload: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
+  eventVersion: number;
+  sourceService: string;
+  requestId: string | null;
+  traceId: string | null;
+  operationId: string | null;
+  causationId: string | null;
+  outcome: string;
 }
 
 export class PgAuditRepository implements AuditRepository {
@@ -48,6 +55,13 @@ export class PgAuditRepository implements AuditRepository {
       action: event.action,
       entityId: event.entityId,
       payload: event.payload,
+      eventVersion: event.eventVersion ?? 1,
+      sourceService: event.sourceService ?? 'server-compatibility-seam',
+      requestId: event.requestId ?? null,
+      traceId: event.traceId ?? null,
+      operationId: event.operationId ?? null,
+      causationId: event.causationId ?? null,
+      outcome: event.outcome ?? 'success',
       createdAt: new Date(event.createdAt),
       updatedAt: new Date(event.updatedAt),
     });
@@ -87,6 +101,18 @@ export class PgAuditRepository implements AuditRepository {
     if (filter.teamId !== undefined) {
       conditions.push(eq(auditEventsTable.teamId, filter.teamId));
     }
+    if (filter.requestId) {
+      conditions.push(eq(auditEventsTable.requestId, filter.requestId));
+    }
+    if (filter.traceId) {
+      conditions.push(eq(auditEventsTable.traceId, filter.traceId));
+    }
+    if (filter.operationId) {
+      conditions.push(eq(auditEventsTable.operationId, filter.operationId));
+    }
+    if (filter.causationId) {
+      conditions.push(eq(auditEventsTable.causationId, filter.causationId));
+    }
     if (filter.from) {
       conditions.push(gte(auditEventsTable.createdAt, new Date(filter.from)));
     }
@@ -124,6 +150,13 @@ function rowToAuditEventRecord(row: AuditEventsRow): AuditEventRecord {
     action: row.action,
     entityId: row.entityId,
     payload: row.payload ?? {},
+    eventVersion: row.eventVersion ?? 1,
+    sourceService: row.sourceService ?? 'server-compatibility-seam',
+    ...(row.requestId ? { requestId: row.requestId } : {}),
+    ...(row.traceId ? { traceId: row.traceId } : {}),
+    ...(row.operationId ? { operationId: row.operationId } : {}),
+    ...(row.causationId ? { causationId: row.causationId } : {}),
+    outcome: (row.outcome as 'success' | 'rejected' | 'failed' | undefined) ?? 'success',
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

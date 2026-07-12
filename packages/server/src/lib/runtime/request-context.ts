@@ -12,6 +12,7 @@ import {
 export interface RequestContext {
   requestId: string;
   traceHeaderName: string;
+  traceHeaderValue: string | null;
   traceId: string | null;
   traceParent: string | null;
   operationId?: string;
@@ -34,7 +35,7 @@ export function getOrCreateRequestContext(
   const existingTraceId = request.headers[traceHeaderName];
   const traceParent = readOptionalHeader(existingTraceId);
   const traceId = traceParent ? extractTraceIdFromTraceparent(traceParent) : null;
-  const operationId = readOptionalHeader(request.headers[OPERATION_ID_HEADER]);
+  const operationId = readOptionalHeader(request.headers[OPERATION_ID_HEADER]) ?? randomUUID();
   const causationId = readOptionalHeader(request.headers[CAUSATION_ID_HEADER]);
 
   const requestId =
@@ -44,9 +45,10 @@ export function getOrCreateRequestContext(
   const context: RequestContext = {
     requestId,
     traceHeaderName,
+    traceHeaderValue: traceParent ?? null,
     traceId,
     traceParent: traceId ? traceParent : null,
-    ...(operationId && { operationId }),
+    operationId,
     ...(causationId && { causationId }),
     method: request.method,
     route: request.routeOptions.url || request.url,

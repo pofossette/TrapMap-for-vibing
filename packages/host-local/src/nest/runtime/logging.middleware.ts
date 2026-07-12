@@ -1,6 +1,7 @@
 import type { NestMiddleware } from '@nestjs/common';
 import { Injectable, Logger } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import { formatLogForStdout, type LogEntry } from '@trapmap/contracts';
 
 import { RequestContextService } from './request-context.service.js';
 
@@ -19,15 +20,34 @@ export class LoggingMiddleware implements NestMiddleware {
 
     responseTarget.on?.('finish', () => {
       const duration = Date.now() - start;
-      const requestId = requestContext?.requestId ?? '-';
-      const traceId = requestContext?.traceId ?? '-';
+      const requestId = requestContext?.requestId ?? 'unknown';
+      const traceId = requestContext?.traceId ?? undefined;
       const method = req.method;
       const url = req.url;
       const statusCode = (res as FastifyReply & { raw?: { statusCode?: number } }).statusCode
         ?? (res as FastifyReply & { raw?: { statusCode?: number } }).raw?.statusCode
         ?? 0;
 
-      this.logger.log(`${method} ${url} ${statusCode} ${duration}ms [${requestId}] [${traceId}]`);
+      const entry: LogEntry = {
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        service: 'host-local',
+        environment: process.env.NODE_ENV ?? 'development',
+        eventCategory: 'request',
+        eventName: 'request.completed',
+        requestId,
+        ...(traceId ? { traceId } : {}),
+        ...(requestContext?.operationId ? { operationId: requestContext.operationId } : {}),
+        ...(requestContext?.causationId ? { causationId: requestContext.causationId } : {}),
+        ownerSurface: 'runtime-seam',
+        method,
+        route: requestContext?.route ?? url,
+        statusCode,
+        latencyMs: duration,
+        message: 'Request completed',
+      };
+
+      this.logger.log(formatLogForStdout(entry));
     });
 
     next();

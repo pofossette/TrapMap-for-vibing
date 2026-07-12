@@ -42,13 +42,13 @@ describe('getOrCreateRequestContext', () => {
     });
   });
 
-  it('uses the Fastify fallback and leaves absent correlation fields undefined', () => {
+  it('uses the Fastify fallback and generates an operation id', () => {
     const context = getOrCreateRequestContext(request(), config);
 
     expect(context.requestId).toBe('fastify-request-id');
     expect(context.traceParent).toBeNull();
     expect(context.traceId).toBeNull();
-    expect(context.operationId).toBeUndefined();
+    expect(context.operationId).toEqual(expect.any(String));
     expect(context.causationId).toBeUndefined();
   });
 

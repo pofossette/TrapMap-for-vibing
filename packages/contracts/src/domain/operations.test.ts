@@ -8,6 +8,8 @@ import {
 import {
   activationFilePayloadSchema,
   artifactExportResponseSchema,
+  auditEventSchema,
+  auditQuerySchema,
   asyncFailureCategorySchema,
   asyncFailureTaxonomyItemSchema,
   badcaseEvalDraftSchema,
@@ -84,6 +86,34 @@ const validKnowledgeEntry = {
 };
 
 describe('operations schema fixes', () => {
+  it('accepts audit correlation fields and query filters', () => {
+    const event = auditEventSchema.parse({
+      id: 'audit_1',
+      teamId: 'team_1',
+      actor: validActorRef,
+      action: 'knowledge-reviewed',
+      entityId: 'entry_1',
+      payload: {},
+      eventVersion: 1,
+      sourceService: 'knowledge-write',
+      requestId: 'request_1',
+      traceId: '4bf92f3577b34da6a3ce929d0e0e4736',
+      operationId: 'operation_1',
+      causationId: 'event_1',
+      outcome: 'success',
+      createdAt: validTimestamp,
+      updatedAt: validTimestamp,
+    });
+    const query = auditQuerySchema.parse({
+      operationId: 'operation_1',
+      traceId: '4bf92f3577b34da6a3ce929d0e0e4736',
+      causationId: 'event_1',
+    });
+
+    expect(event.operationId).toBe('operation_1');
+    expect(query.causationId).toBe('event_1');
+  });
+
   describe('phase 1 truth-source reuse', () => {
     it('reuses the shared observability failure taxonomy categories', () => {
       expect(asyncFailureCategorySchema.options).toEqual([

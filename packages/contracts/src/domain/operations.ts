@@ -281,6 +281,16 @@ export const auditEventSchema = z
     ]),
     entityId: entityIdSchema,
     payload: z.record(z.string(), z.unknown()),
+    eventVersion: z.number().int().positive().optional(),
+    sourceService: z.string().min(1).max(128).optional(),
+    requestId: entityIdSchema.optional(),
+    traceId: z
+      .string()
+      .regex(/^[0-9a-f]{32}$/)
+      .optional(),
+    operationId: entityIdSchema.optional(),
+    causationId: entityIdSchema.optional(),
+    outcome: z.enum(['success', 'rejected', 'failed']).optional(),
   })
   .merge(auditMetadataSchema);
 
@@ -302,6 +312,13 @@ export const auditQuerySchema = z.object({
   actorId: entityIdSchema.optional(),
   entityId: entityIdSchema.optional(),
   teamId: entityIdSchema.optional(),
+  requestId: entityIdSchema.optional(),
+  traceId: z
+    .string()
+    .regex(/^[0-9a-f]{32}$/)
+    .optional(),
+  operationId: entityIdSchema.optional(),
+  causationId: entityIdSchema.optional(),
   from: z.iso.datetime({ offset: true }).optional(),
   to: z.iso.datetime({ offset: true }).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(25),

@@ -1,8 +1,4 @@
-import {
-  type KnowledgeReadDeps,
-  type ReadModelProjectionStatus,
-  createKnowledgeReadModule,
-} from '@trapmap/backend-core';
+import { type KnowledgeReadDeps, createKnowledgeReadModule } from '@trapmap/backend-core';
 
 import { createKnowledgeEntryProjection } from './entry-projection.js';
 
@@ -17,13 +13,19 @@ export interface KnowledgeReadPortDeps {
   retrievalQuery: KnowledgeReadDeps['retrievalQuery'];
 }
 
-function createProjectionStatus(): ReadModelProjectionStatus {
+async function createProjectionStatus(
+  entryProjection: ReturnType<typeof createKnowledgeEntryProjection>,
+) {
+  const entryStatus = await entryProjection.getStatus();
   return {
     phase: 'phase-2-boundary-closed',
-    source: 'derived-phase-2-read-side-contract',
+    source: entryStatus.source,
     consistency: 'eventual',
-    freshness: 'current',
-    fallback: 'none',
+    freshness: entryStatus.freshness,
+    fallback: entryStatus.fallback,
+    ...(entryStatus.lastRefreshedAt ? { lastRefreshedAt: entryStatus.lastRefreshedAt } : {}),
+    ...(entryStatus.lagMs !== undefined ? { lagMs: entryStatus.lagMs } : {}),
+    refreshTrigger: entryStatus.refreshTrigger,
     notes:
       'Phase 2 closes the read-side boundary by making each surface declare its owner, backing source, consistency, freshness, and fallback explicitly.',
     surfaces: [
@@ -31,23 +33,29 @@ function createProjectionStatus(): ReadModelProjectionStatus {
         surface: 'knowledge-entry:getById',
         owner: 'knowledge-read',
         providedBy: 'knowledge-read',
-        source: 'derived-projection',
+        source: 'temporary-direct-backed-projection',
         authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
         consistency: 'eventual',
-        freshness: 'current',
-        fallback: 'none',
-        notes: 'Entry lookup is served from the knowledge-read owned entry projection snapshot.',
+        freshness: entryStatus.freshness,
+        fallback: 'direct-authoritative-read',
+        notes:
+          'Entry lookup is served from the knowledge-read owned temporary direct-backed snapshot.',
+        exitCriteria:
+          'replace the direct-backed rebuild with an outbox-driven persisted projection.',
       },
       {
         surface: 'knowledge-entry:listMine',
         owner: 'knowledge-read',
         providedBy: 'knowledge-read',
-        source: 'derived-projection',
+        source: 'temporary-direct-backed-projection',
         authoritativeSource: 'knowledge-write authoritative PostgreSQL tables',
         consistency: 'eventual',
-        freshness: 'current',
-        fallback: 'none',
-        notes: 'List queries are served from the knowledge-read owned entry projection snapshot.',
+        freshness: entryStatus.freshness,
+        fallback: 'direct-authoritative-read',
+        notes:
+          'List queries are served from the knowledge-read owned temporary direct-backed snapshot.',
+        exitCriteria:
+          'replace the direct-backed rebuild with an outbox-driven persisted projection.',
       },
       {
         surface: 'retrieval-search',
@@ -135,8 +143,9 @@ export function createKnowledgeReadDeps(deps: KnowledgeReadPortDeps): KnowledgeR
         return entryProjection.listMine(params);
       },
       async getStatus() {
-        return createProjectionStatus();
+        return createProjectionStatus(entryProjection);
       },
+      rebuild: () => entryProjection.rebuild(),
     },
     retrievalQuery: deps.retrievalQuery,
   };

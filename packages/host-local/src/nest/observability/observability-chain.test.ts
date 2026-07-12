@@ -206,29 +206,13 @@ describe('observability chain: log schema contract', () => {
 
   it('formatLogForStdout produces parseable JSON context', () => {
     const output = formatLogForStdout(fullEntry);
-
-    // Should contain the level prefix
-    expect(output).toContain('[INFO ]');
-    expect(output).toContain('Request completed');
-
-    // Should contain a JSON blob with high-cardinality fields
-    expect(output).toContain('"traceId":"trace-contract-test"');
-    expect(output).toContain('"requestId":"req-contract-test"');
-    expect(output).toContain('"context":"GET /v1/traps"');
-
-    // Extract the JSON portion and verify it parses
-    const jsonStart = output.indexOf('{');
-    const jsonEnd = output.lastIndexOf('}');
-    expect(jsonStart).toBeGreaterThan(-1);
-    expect(jsonEnd).toBeGreaterThan(jsonStart);
-
-    const jsonStr = output.slice(jsonStart, jsonEnd + 1);
-    const parsed = JSON.parse(jsonStr);
+    const parsed = JSON.parse(output);
     expect(parsed.traceId).toBe('trace-contract-test');
     expect(parsed.requestId).toBe('req-contract-test');
+    expect(parsed.context).toBe('GET /v1/traps');
   });
 
-  it('formatLogForStdout omits JSON blob when no extra fields', () => {
+  it('formatLogForStdout emits a complete JSON entry without extra fields', () => {
     const minimal: LogEntry = {
       timestamp: '2026-07-02T10:00:00.000Z',
       level: 'info',
@@ -238,8 +222,7 @@ describe('observability chain: log schema contract', () => {
     };
     const output = formatLogForStdout(minimal);
 
-    expect(output).toBe('[INFO ] Server started');
-    expect(output).not.toContain('{');
+    expect(JSON.parse(output)).toEqual(minimal);
   });
 
   it('logEntrySchema validates a complete entry with trace correlation fields', () => {
@@ -350,8 +333,10 @@ describe('observability chain: end-to-end signal chain', () => {
 
       // And stdout format includes correlation IDs
       const stdout = formatLogForStdout(logEntry);
-      expect(stdout).toContain('[req-e2e-001]');
-      expect(stdout).toContain('4bf92f3577b34da6a3ce929d0e0e4736');
+      expect(JSON.parse(stdout)).toMatchObject({
+        requestId: 'req-e2e-001',
+        traceId: '4bf92f3577b34da6a3ce929d0e0e4736',
+      });
     });
   });
 

@@ -1,9 +1,37 @@
 import type { ReviewPort } from '@trapmap/backend-core';
-import { toInvocationErrorResponse } from '@trapmap/backend-core/invocation/invocation-model.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 export interface GovernanceReviewReadinessOptions {
   checkDependency?: () => Promise<{ reachable: boolean; detail?: string }>;
+  getOperatorStatus?: () => Promise<Record<string, unknown>>;
+}
+
+function toInvocationErrorResponse(error: unknown): {
+  status: number;
+  body: { error: string; kind: string };
+} {
+  const candidate = error as { kind?: unknown; message?: unknown } | undefined;
+  const statusByKind: Record<string, number> = {
+    validation: 400,
+    forbidden: 403,
+    'not-found': 404,
+    conflict: 409,
+    unavailable: 503,
+    timeout: 504,
+    internal: 500,
+  };
+  if (
+    candidate &&
+    typeof candidate.kind === 'string' &&
+    typeof candidate.message === 'string' &&
+    candidate.kind in statusByKind
+  ) {
+    return {
+      status: statusByKind[candidate.kind] ?? 500,
+      body: { error: candidate.message, kind: candidate.kind },
+    };
+  }
+  return { status: 500, body: { error: 'Internal server error', kind: 'internal' } };
 }
 
 const GOVERNANCE_REVIEW_OWNERSHIP = {
@@ -46,6 +74,31 @@ export function registerGovernanceReviewRoutes(
   module: ReviewPort,
   options?: GovernanceReviewReadinessOptions,
 ): void {
+  const readinessHandler = async (_request: FastifyRequest, reply: FastifyReply) => {
+    let dependencyStatus: { reachable: boolean; detail?: string } = { reachable: true };
+    if (options?.checkDependency) {
+      try {
+        dependencyStatus = await options.checkDependency();
+      } catch {
+        dependencyStatus = { reachable: false, detail: 'dependency check threw' };
+      }
+    }
+    const ready = dependencyStatus.reachable;
+    return reply.status(ready ? 200 : 503).send({
+      ready,
+      service: 'governance-review',
+      checks: {
+        self: { status: 'ok' },
+        'delegate-to-knowledge-write': {
+          status: dependencyStatus.reachable ? 'ok' : 'degraded',
+          detail: dependencyStatus.detail ?? null,
+        },
+      },
+      commandSurfaceReceived: true,
+      finalAggregateMutation: 'delegated-to-knowledge-write',
+      followUpDisposition: 'outbox-queue-workflow-async',
+    });
+  };
   app.post('/internal/review/approve', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = request.body as {
@@ -153,33 +206,31 @@ export function registerGovernanceReviewRoutes(
     });
   });
 
-  app.get('/internal/readiness', async (_request: FastifyRequest, reply: FastifyReply) => {
-    let dependencyStatus: { reachable: boolean; detail?: string } = { reachable: true };
-    if (options?.checkDependency) {
-      try {
-        dependencyStatus = await options.checkDependency();
-      } catch {
-        dependencyStatus = { reachable: false, detail: 'dependency check threw' };
-      }
-    }
-    const ready = dependencyStatus.reachable;
-    return reply.status(ready ? 200 : 503).send({
-      ready,
-      service: 'governance-review',
-      checks: {
-        self: { status: 'ok' },
-        'delegate-to-knowledge-write': {
-          status: dependencyStatus.reachable ? 'ok' : 'degraded',
-          detail: dependencyStatus.detail ?? null,
-        },
-      },
-      commandSurfaceReceived: true,
-      finalAggregateMutation: 'delegated-to-knowledge-write',
-      followUpDisposition: 'outbox-queue-workflow-async',
-    });
+  app.get('/internal/live', async (_request: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(200).send({ status: 'alive', service: 'governance-review' });
   });
+
+  app.get('/internal/readiness', readinessHandler);
+  app.get('/internal/ready', readinessHandler);
 
   app.get('/internal/ownership', async (_request: FastifyRequest, reply: FastifyReply) => {
     return reply.status(200).send(GOVERNANCE_REVIEW_OWNERSHIP);
+  });
+
+  app.get('/internal/operator-status', async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const details = (await options?.getOperatorStatus?.()) ?? {};
+      return reply.status(200).send({
+        service: 'governance-review',
+        owner: GOVERNANCE_REVIEW_OWNERSHIP.boundedContext,
+        ...details,
+      });
+    } catch (error) {
+      return reply.status(503).send({
+        service: 'governance-review',
+        owner: GOVERNANCE_REVIEW_OWNERSHIP.boundedContext,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   });
 }

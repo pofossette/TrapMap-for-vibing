@@ -14,25 +14,57 @@ import pg from 'pg';
 
 export interface ServiceDatabase {
   pool: pg.Pool;
-  healthCheck(): Promise<boolean>;
+  healthCheck(): Promise<ServiceDatabaseHealth>;
+  getPoolSnapshot(): ServicePoolSnapshot;
   close(): Promise<void>;
+}
+
+export interface ServicePoolSnapshot {
+  total: number;
+  idle: number;
+  waiting: number;
+  max: number;
+}
+
+export interface ServiceDatabaseHealth {
+  status: 'healthy' | 'unhealthy';
+  latencyMs: number;
+  pool: ServicePoolSnapshot;
+  error?: string;
 }
 
 // ---------------------------------------------------------------------------
 // Pool configuration
 // ---------------------------------------------------------------------------
 
-interface PoolConfig {
+export interface PoolConfig {
   max: number;
   idleTimeoutMillis: number;
   connectionTimeoutMillis: number;
+  statement_timeout: number;
+  query_timeout: number;
+  idle_in_transaction_session_timeout: number;
 }
 
-const DEFAULT_POOL_CONFIG: PoolConfig = {
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-};
+export function getServicePoolConfig(config: ServiceConfig): PoolConfig {
+  return {
+    max: config.poolSize,
+    idleTimeoutMillis: config.idleTimeoutMs,
+    connectionTimeoutMillis: config.connectionTimeoutMs,
+    statement_timeout: config.statementTimeoutMs,
+    query_timeout: config.queryTimeoutMs,
+    idle_in_transaction_session_timeout: config.idleInTransactionTimeoutMs,
+  };
+}
+
+export function getServicePoolSnapshot(pool: pg.Pool, max: number): ServicePoolSnapshot {
+  return {
+    total: pool.totalCount,
+    idle: pool.idleCount,
+    waiting: pool.waitingCount,
+    max,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Factory
@@ -55,16 +87,11 @@ export function createServiceDatabase(config: ServiceConfig): ServiceDatabase {
     );
   }
 
-  const poolConfig: PoolConfig = {
-    ...DEFAULT_POOL_CONFIG,
-    max: config.poolSize ?? DEFAULT_POOL_CONFIG.max,
-  };
+  const poolConfig = getServicePoolConfig(config);
 
   const pool = new pg.Pool({
     connectionString: databaseUrl,
-    max: poolConfig.max,
-    idleTimeoutMillis: poolConfig.idleTimeoutMillis,
-    connectionTimeoutMillis: poolConfig.connectionTimeoutMillis,
+    ...poolConfig,
   });
 
   // Log pool errors
@@ -75,18 +102,32 @@ export function createServiceDatabase(config: ServiceConfig): ServiceDatabase {
   return {
     pool,
 
-    async healthCheck(): Promise<boolean> {
+    getPoolSnapshot() {
+      return getServicePoolSnapshot(pool, poolConfig.max);
+    },
+
+    async healthCheck(): Promise<ServiceDatabaseHealth> {
+      const startedAt = Date.now();
       try {
         const client = await pool.connect();
         try {
           await client.query('SELECT 1');
-          return true;
+          return {
+            status: 'healthy',
+            latencyMs: Date.now() - startedAt,
+            pool: getServicePoolSnapshot(pool, poolConfig.max),
+          };
         } finally {
           client.release();
         }
       } catch (error) {
         console.error(`[${config.serviceName}] Database health check failed:`, error);
-        return false;
+        return {
+          status: 'unhealthy',
+          latencyMs: Date.now() - startedAt,
+          pool: getServicePoolSnapshot(pool, poolConfig.max),
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
     },
 

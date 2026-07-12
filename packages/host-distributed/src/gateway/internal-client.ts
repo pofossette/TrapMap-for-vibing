@@ -6,6 +6,14 @@
  * service configuration.
  */
 
+import {
+  SpanKind,
+  SpanStatusCode,
+  context as otelContext,
+  propagation,
+  trace,
+} from '@opentelemetry/api';
+
 import type { InternalServiceUrls } from '@trapmap/host-distributed/config/index.js';
 import type { DiscoveryResolver } from './discovery-resolver.js';
 import { recordDistributedInternalHopMetric } from './internal-observability.js';
@@ -30,25 +38,6 @@ export interface InternalRequestOptions {
 }
 
 const DEFAULT_INTERNAL_TIMEOUT_MS = 10_000;
-
-function randomHex(size: number): string {
-  let output = '';
-  while (output.length < size) {
-    output += Math.random().toString(16).slice(2);
-  }
-  return output.slice(0, size);
-}
-
-function deriveSpanHeaders(headers: Record<string, string>): Record<string, string> {
-  const nextHeaders = { ...headers };
-  const traceParent = headers.traceparent;
-  const parentSpanId = /^00-[0-9a-f]{32}-([0-9a-f]{16})-[0-9a-f]{2}$/i.exec(traceParent ?? '')?.[1];
-  nextHeaders['x-trapmap-span-id'] = randomHex(16);
-  if (parentSpanId) {
-    nextHeaders['x-trapmap-parent-span-id'] = parentSpanId;
-  }
-  return nextHeaders;
-}
 
 function normalizeCanonicalErrorBody(status: number, body: unknown): unknown {
   if (body && typeof body === 'object') {
@@ -100,13 +89,28 @@ async function callInternalService(
   const timeoutMs = options?.timeoutMs ?? DEFAULT_INTERNAL_TIMEOUT_MS;
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  const headers: Record<string, string> = deriveSpanHeaders({
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options?.headers ?? {}),
-  });
-
+  };
   const serviceName = 'gateway';
   const targetService = urlObj.hostname;
+  const parentContext = propagation.extract(otelContext.active(), headers);
+  const span = trace.getTracer('trapmap-distributed-http').startSpan(
+    `${method} ${urlObj.pathname}`,
+    {
+      kind: SpanKind.CLIENT,
+      attributes: {
+        'http.request.method': method,
+        'url.path': urlObj.pathname,
+        'trapmap.service_name': serviceName,
+        'trapmap.target_service': targetService,
+      },
+    },
+    parentContext,
+  );
+  const spanContext = trace.setSpan(parentContext, span);
+  propagation.inject(spanContext, headers);
 
   const init: RequestInit = {
     method,
@@ -128,6 +132,11 @@ async function callInternalService(
       latencyMs: Date.now() - startedAt,
       statusCode: response.status,
     });
+    span.setAttribute('http.response.status_code', response.status);
+    if (response.status >= 500) {
+      span.setStatus({ code: SpanStatusCode.ERROR });
+    }
+    span.end();
 
     return {
       status: response.status,
@@ -145,6 +154,8 @@ async function callInternalService(
         latencyMs: Date.now() - startedAt,
         statusCode: 504,
       });
+      span.setStatus({ code: SpanStatusCode.ERROR, message: 'Internal service timeout' });
+      span.end();
       return { status: 504, body: { error: 'Internal service timeout', kind: 'timeout' } };
     }
     recordDistributedInternalHopMetric({
@@ -154,6 +165,8 @@ async function callInternalService(
       latencyMs: Date.now() - startedAt,
       statusCode: 503,
     });
+    span.setStatus({ code: SpanStatusCode.ERROR, message: 'Internal service unavailable' });
+    span.end();
     return {
       status: 503,
       body: { error: 'Internal service unavailable', kind: 'unavailable' },

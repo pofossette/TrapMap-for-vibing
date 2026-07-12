@@ -11,13 +11,14 @@
  */
 
 import type { ServiceName } from './config/index.js';
-import { ALL_SERVICES } from './config/index.js';
+import { ALL_SERVICES, assertDistributedConnectionBudget } from './config/index.js';
 
 // ---------------------------------------------------------------------------
 // Service starters (lazy-imported to avoid loading unnecessary modules)
 // ---------------------------------------------------------------------------
 
 async function startService(name: ServiceName) {
+  assertDistributedConnectionBudget();
   switch (name) {
     case 'gateway': {
       const { startGatewayService } = await import('./gateway/index.js');

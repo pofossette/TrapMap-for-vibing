@@ -30,6 +30,28 @@ export const logEntrySchema = z
 
 export type LogEntry = z.infer<typeof logEntrySchema>;
 
+const SENSITIVE_LOG_KEY_PATTERN =
+  /authorization|access[-_]?token|session[-_]?token|password|secret|cookie/i;
+
+function redactValue(key: string, value: unknown): unknown {
+  if (SENSITIVE_LOG_KEY_PATTERN.test(key)) {
+    return '[REDACTED]';
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactValue('', item));
+  }
+  if (value && typeof value === 'object') {
+    return redactLogContext(value as Record<string, unknown>);
+  }
+  return value;
+}
+
+export function redactLogContext(context: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(context).map(([key, value]) => [key, redactValue(key, value)]),
+  );
+}
+
 /**
  * Low-cardinality Loki label keys.  Only these fields may be used as
  * Loki labels; all other fields go inside the log line body.
@@ -60,9 +82,5 @@ export function buildLokiLabels(entry: LogEntry): Record<string, string> {
  * unavailable.  The format is: `[LEVEL] message {json-context}`.
  */
 export function formatLogForStdout(entry: LogEntry): string {
-  const level = entry.level.toUpperCase().padEnd(5);
-  const prefix = `[${level}]`;
-  const { timestamp, level: _lvl, service, environment, message, ...rest } = entry;
-  const hasExtra = Object.keys(rest).length > 0;
-  return hasExtra ? `${prefix} ${message} ${JSON.stringify(rest)}` : `${prefix} ${message}`;
+  return JSON.stringify(redactLogContext(entry));
 }

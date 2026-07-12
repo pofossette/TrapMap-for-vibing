@@ -13,7 +13,7 @@ export async function createServer(
   config: ServiceConfig,
   db: ServiceDatabase,
 ): Promise<IdentityAccessServer> {
-  const ports = createServicePorts(db.pool);
+  const ports = createServicePorts(db.pool, config.serviceName);
   const deps = createIdentityAccessDeps({
     sessionRepo: ports.repos.session,
     accessKeyRepo: ports.repos.accessKey,

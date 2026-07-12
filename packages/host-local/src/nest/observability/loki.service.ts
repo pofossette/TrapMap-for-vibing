@@ -5,6 +5,7 @@ import {
   type LogEntry,
   buildLokiLabels,
   formatLogForStdout,
+  redactLogContext,
 } from '@trapmap/contracts';
 
 /**
@@ -116,9 +117,10 @@ export class LokiService implements LoggerService, OnModuleInit {
     if (this.winstonLogger) {
       try {
         const labels = buildLokiLabels(entry);
-        const meta: Record<string, unknown> = { ...labels };
-        if (context) meta.context = context;
-        if (trace) meta.trace = trace;
+        const meta: Record<string, unknown> = {
+          ...labels,
+          ...redactLogContext(entry),
+        };
         this.winstonLogger.log(level, message, meta);
         return;
       } catch {

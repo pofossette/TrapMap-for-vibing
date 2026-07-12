@@ -8,5 +8,7 @@ export {
   type InternalServiceUrls,
   type InternalTransportKind,
   ALL_SERVICES,
+  assertDistributedConnectionBudget,
+  getDistributedConnectionBudgetSnapshot,
   loadServiceConfig,
 } from './service-config.js';

@@ -105,6 +105,8 @@ export interface HealthCheckResult {
 
   /** Aggregated status. */
   status: 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
+  /** Optional dependencies degrade health but do not block readiness. */
+  critical?: boolean;
 
   /** Wall-clock latency of the check in milliseconds. */
   latencyMs?: number;
@@ -117,6 +119,8 @@ export interface HealthCheckResult {
 export interface HealthCheck {
   /** Unique identifier for the check. */
   name: string;
+  /** Optional dependencies degrade health but do not block readiness. */
+  critical?: boolean;
 
   /** Execute the probe and return a result. */
   check(): Promise<HealthCheckResult>;

@@ -119,6 +119,13 @@ export async function buildAuditEventProjection(
     action: string;
     entityId: string;
     payload: Record<string, unknown>;
+    eventVersion?: number;
+    sourceService?: string;
+    requestId?: string;
+    traceId?: string;
+    operationId?: string;
+    causationId?: string;
+    outcome?: 'success' | 'rejected' | 'failed';
     createdAt: string;
     updatedAt: string;
   }>,
@@ -142,6 +149,13 @@ export async function buildAuditEventProjection(
     action: record.action as AuditEvent['action'],
     entityId: record.entityId,
     payload: record.payload,
+    eventVersion: record.eventVersion ?? 1,
+    sourceService: record.sourceService ?? 'server-compatibility-seam',
+    ...(record.requestId ? { requestId: record.requestId } : {}),
+    ...(record.traceId ? { traceId: record.traceId } : {}),
+    ...(record.operationId ? { operationId: record.operationId } : {}),
+    ...(record.causationId ? { causationId: record.causationId } : {}),
+    outcome: record.outcome ?? 'success',
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   }));

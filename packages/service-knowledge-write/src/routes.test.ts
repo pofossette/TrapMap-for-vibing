@@ -147,4 +147,34 @@ describe('service-knowledge-write routes', () => {
 
     await app.close();
   });
+
+  it('exposes independent liveness, readiness, ownership, and operator diagnostics', async () => {
+    const app = Fastify();
+    registerKnowledgeWriteRoutes(app, createModule(), {
+      checkDependency: vi.fn(async () => ({ reachable: true })),
+      getOperatorStatus: vi.fn(async () => ({
+        persistence: { status: 'healthy' },
+        asyncFollowUp: { owner: 'job-runtime', outbox: { pending: 2, failed: 0 } },
+        idempotency: { mechanism: 'task_queue.dedupe_key' },
+      })),
+    });
+    await app.ready();
+
+    const [live, ready, ownership, operator] = await Promise.all([
+      app.inject({ method: 'GET', url: '/internal/live' }),
+      app.inject({ method: 'GET', url: '/internal/ready' }),
+      app.inject({ method: 'GET', url: '/internal/ownership' }),
+      app.inject({ method: 'GET', url: '/internal/operator-status' }),
+    ]);
+
+    expect(live.statusCode).toBe(200);
+    expect(ready.statusCode).toBe(200);
+    expect(ownership.json()).toMatchObject({ service: 'knowledge-write' });
+    expect(operator.json()).toMatchObject({
+      service: 'knowledge-write',
+      asyncFollowUp: { owner: 'job-runtime' },
+      idempotency: { mechanism: 'task_queue.dedupe_key' },
+    });
+    await app.close();
+  });
 });

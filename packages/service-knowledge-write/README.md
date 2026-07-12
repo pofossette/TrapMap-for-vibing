@@ -87,7 +87,9 @@
 
 - `GET /internal/health` - 基本存活性，包含所有者声明和委托来源列表
 - `GET /internal/readiness` - 持久化可达性，报告 `aggregateMutationAuthority: true`、`lifecycleRuleAuthority: true` 和 `followUpDisposition: 'outbox-queue-workflow-async'`
+- `GET /internal/live` / `GET /internal/ready` - 分别为无依赖 liveness 与 persistence readiness 的 service-level probe
 - `GET /internal/ownership` - 完整静态所有者声明（数据/投影归属、不拥有列表、命令表、接受委托来源列表）
+- `GET /internal/operator-status` - pool health、queue/outbox follow-up、timeout 与 idempotency 诊断；异步运行时仍由 `job-runtime` 解释
 
 操作可见性目标：
 

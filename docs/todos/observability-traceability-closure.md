@@ -1,16 +1,16 @@
-# 可观测性与可追溯性闭环实施计划
+# 可观测性、共享 PG 治理与分布式成熟度实施计划
 
 > **For agentic workers:** 按任务顺序执行；每个任务使用复选框追踪，先运行失败测试，再完成最小实现和文档回写。未经用户明确要求，不创建 git commit。
 
-**Goal:** 让一次业务操作通过稳定关联字段，在请求日志、OTel trace、低基数指标、异步处理和持久化审计事件之间可联查。
+**Goal:** 让一次业务操作通过稳定关联字段，在请求日志、OTel trace、低基数指标、异步处理和持久化审计事件之间可联查，并将 shared PostgreSQL 的所有权和服务级运维能力推进为可验证的 distributed 成熟度证据。
 
-**Architecture:** 在 `packages/contracts` 扩展唯一的关联和日志 schema；server、host-local 与 host-distributed 只消费该 contract。W3C `traceparent` 负责同步调用的父子关系，`operationId` 与 `causationId` 负责跨异步边界的业务因果；审计仍作为独立持久化事实，不以日志替代。
+**Architecture:** 在 `packages/contracts` 扩展唯一的关联和日志 schema；server、host-local 与 host-distributed 只消费该 contract。W3C `traceparent` 负责同步调用的父子关系，`operationId` 与 `causationId` 负责跨异步边界的业务因果；审计仍作为独立持久化事实，不以日志替代。shared PostgreSQL 保持“共享实例 + 明确 schema/table owner”，权威写入与本地 outbox 同事务提交，读侧通过可重建投影提供跨 owner 查询。
 
 **Tech Stack:** TypeScript、Zod、Vitest、Fastify、NestJS、OpenTelemetry、Prometheus `prom-client`、PostgreSQL、Loki（可选 transport）。
 
 > **状态：** active  
 > **根入口：** [`../../plan.md`](../../plan.md)  
-> **目标：** 将日志、指标、追踪、异步执行和业务审计收敛为可联查、可验证、低基数且可运维的闭环。
+> **目标：** 将日志、指标、追踪、异步执行、业务审计和 shared PG owner 收敛为可联查、可验证、低基数且可运维的闭环；为 `Level 2 -> Level 3` 服务成熟度提供证据，而非宣称已完成物理拆库或平台化。
 
 ## 问题基线
 
@@ -20,6 +20,8 @@
 - 审计事件能记录操作者和业务动作，但未标准化记录 request/trace/operation/causation 关联字段，无法稳定关联运行排障证据。
 - host-local 指标仍有原始 `route` 标签；不同宿主的指标名、单位与标签语义需要收敛。
 - SLO、告警、保留期和 LGTM 组件目前主要是外部接入建议，尚未形成版本化的仓库内运维闭环。
+- shared PostgreSQL 已有表级 owner 和 outbox 规则，但 migration owner、投影 freshness/lag、按服务连接预算和 owner 级故障解释尚未形成统一执行证据。
+- `distributed` 已有真实进程与内部 HTTP hop，但仍是 `Level 2 / transitional-microservice`；当前主线只关闭可由 observability、数据治理和服务级 acceptance 共同验证的缺口。
 
 ## 全局约束
 
@@ -28,6 +30,8 @@
 - [ ] 所有 Prometheus 标签保持低基数；禁止使用 request ID、trace ID、用户 ID、实体 ID 和原始 URL。
 - [ ] 日志、trace attribute 与审计 metadata 不记录 access token、会话密钥、完整敏感 payload 或未经审查的用户内容。
 - [ ] 每个涉及 runtime/env/API surface 的 tranche 都更新权威文档，并运行 `rtk pnpm typecheck` 与对应最小测试。
+- [ ] 不新增 shared DB direct-read、`store_snapshot` 或 compatibility route 作为业务默认路径；必须先以 owner port、投影或明确记录的临时例外表达跨服务访问。
+- [ ] 不将 PgBouncer、物理 database-per-service、Kubernetes、service mesh、MQ 产品化或动态服务发现写成当前已交付资产；长期进入条件见 [`open-debt-and-compromises.md`](open-debt-and-compromises.md)。
 
 ## 实施任务
 
@@ -230,6 +234,30 @@
 - [ ] 补齐 deploy/config 验证与文档测试；不将无法在仓库内验证的 Grafana UI 操作伪装为自动化通过。
 - [ ] 更新 `docs/operations/OBSERVABILITY-OPERATIONS.md`、`docs/operations/ENVIRONMENT.md`、`docs/operations/SECURITY.md`、`docs/architecture/OBSERVABILITY.md` 与 README / 部署入口（仅在用户可见接入方式变化时）。
 - [ ] 验证：`rtk pnpm test:deployment-smoke`、`rtk pnpm test:observability-closeout`、`rtk pnpm test:runtime-foundations`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。
+
+## Tranche 6：落实 shared PG 所有权、迁移和容量治理
+
+**目的：** 将既有“共享实例 + 明确 table owner + outbox”的架构规则变成可执行的 migration、访问、连接与投影治理，而不以物理拆库为当前关闭条件。
+
+- [x] 盘点每个 authoritative table、Drizzle migration 和 repository 的唯一 owner；将跨 owner 的读取分类为 owner port、派生 projection 或带退出条件的临时例外。
+- [ ] 使 migration runner 和 migration review 只能变更所属服务的表；新增表、索引或 schema 变更必须同时更新 owner matrix 和 `DATABASE_OWNERSHIP.md`。
+- [x] 为 `knowledge-read` 冻结 projection source、refresh trigger、freshness/lag、invalidation、rebuild 与 direct-read fallback 的退出条件；写服务不得直接拼装读侧 projection 响应。
+- [x] 为 `knowledge-read`、`job-runtime` 与其他 distributed service 明确 pool size、idle timeout、connection timeout、statement timeout 和总连接预算；pool saturation、连接超时和 DB health 需可按服务诊断。
+- [ ] 补齐测试：跨 owner 写入被 owner port/route guard 拦截；同事务 authoritative write + outbox 原子性；projection lag 与 rebuild 语义；per-service pool override、timeout 和 health failure。
+- [ ] 更新 `docs/architecture/DATABASE_OWNERSHIP.md`、`docs/architecture/components/PERSISTENCE.md`、`docs/architecture/components/ASYNC_MODEL.md`、`docs/operations/ENVIRONMENT.md`、`docs/operations/OBSERVABILITY-OPERATIONS.md`、`docs/reference/DATA_MODEL.md` 与受影响 service README。
+- [ ] 验证：相关 `packages/server`、`packages/runtime-infra`、`packages/host-distributed` 和 `packages/service-knowledge-read` 包级测试，`rtk pnpm test:runtime-foundations`、`rtk pnpm test:distributed-closeout`、`rtk pnpm typecheck`；有跨包导入时运行 `rtk pnpm exec fallow audit --base main`。
+
+## Tranche 7：交付服务级运维面与 Level 3 样板证据
+
+**目的：** 以 `knowledge-write + governance-review` 为首个样板，使业务 owner 与 `job-runtime` 的 runtime owner 能分别解释健康、异步后续和局部故障；未满足全部条件时保持 Level 2。
+
+- [x] 为样板服务定义独立 `/live`、`/ready`、ownership、依赖 degraded 与 not-ready 语义；可选 telemetry sink 不得错误阻断 readiness。
+- [x] 将 queue/outbox/workflow backlog、lease、reclaim、retry、dead-letter、projection lag、timeout、idempotency 和最终写入后的 follow-up 状态按 service owner 暴露到统一 operator surface。
+- [ ] 为 gateway -> governance-review -> knowledge-write 路径补齐 correlation、错误分类、超时、重试和幂等 acceptance；局部服务重启或下游不可用不得退化为不可解释的整套系统失败。
+- [ ] 记录并验证 distributed 是否获得可量化的隔离、扩缩容或运维收益；仅有多进程和 shared DB 不得作为 Level 3 证据。
+- [ ] 补齐服务 README、health/readiness/ownership 测试、distributed acceptance、runtime closeout 和 operator runbook；外部基础设施依赖仅记录为验收前置条件。
+- [ ] 更新 `docs/architecture/SERVICE_BOUNDARIES.md`、`docs/architecture/DEPLOYMENT.md`、`docs/architecture/OBSERVABILITY.md`、`docs/operations/TESTING.md`、`docs/operations/REGRESSION-COMMANDS.md` 与对应 service README。
+- [ ] 验证：受影响包级测试、`rtk pnpm test:distributed-acceptance`、`rtk pnpm test:distributed-closeout`、`rtk pnpm test:observability-closeout`、`rtk pnpm test:runtime-closeout`、`rtk pnpm test:deployment-smoke`、`rtk pnpm typecheck`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。
 
 ## 完成与归档
 

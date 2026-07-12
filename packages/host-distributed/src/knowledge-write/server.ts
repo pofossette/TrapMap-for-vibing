@@ -20,9 +20,30 @@ export async function createServer(
   config: ServiceConfig,
   db: ServiceDatabase,
 ): Promise<KnowledgeWriteServer> {
-  const ports = createServicePorts(db.pool);
+  const ports = createServicePorts(db.pool, config.serviceName);
   const deps = createKnowledgeWriteDeps(ports);
-  const server = await createServiceKnowledgeWriteServer(config, deps);
+  const server = await createServiceKnowledgeWriteServer(config, deps, {
+    checkDependency: async () => {
+      const health = await db.healthCheck();
+      return { reachable: health.status === 'healthy', detail: health.error };
+    },
+    getOperatorStatus: async () => {
+      const [persistence, queue, outbox] = await Promise.all([
+        db.healthCheck(),
+        ports.queuePorts.task.getStatusSnapshot(),
+        ports.queuePorts.outbox.getStatusSnapshot(),
+      ]);
+      return {
+        persistence,
+        asyncFollowUp: { owner: 'job-runtime', queue, outbox },
+        timeouts: {
+          connectionMs: config.connectionTimeoutMs,
+          statementMs: config.statementTimeoutMs,
+        },
+        idempotency: { mechanism: 'task_queue.dedupe_key' },
+      };
+    },
+  });
   attachRuntimeMetricsRoute(server.app);
   await attachRuntimeTelemetry(server.app, 'knowledge-write');
   return server;

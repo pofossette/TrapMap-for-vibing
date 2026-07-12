@@ -158,15 +158,15 @@ describe('createInternalServiceClients', () => {
     });
   });
 
-  it('propagates traceparent and internal hop span headers for distributed tracing', async () => {
+  it('keeps W3C trace propagation and removes custom span headers', async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       expect(init?.headers).toMatchObject({
         'Content-Type': 'application/json',
         traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00',
         'x-trace-id': 'trace-hop-2',
       });
-      expect(init?.headers).toHaveProperty('x-trapmap-span-id');
-      expect(init?.headers).toHaveProperty('x-trapmap-parent-span-id');
+      expect(init?.headers).not.toHaveProperty('x-trapmap-span-id');
+      expect(init?.headers).not.toHaveProperty('x-trapmap-parent-span-id');
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
         headers: { 'content-type': 'application/json' },

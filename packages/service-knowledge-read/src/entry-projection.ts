@@ -1,4 +1,4 @@
-import type { KnowledgeEntryRecord } from '@trapmap/backend-core';
+import type { KnowledgeEntryRecord, ReadModelProjectionStatus } from '@trapmap/backend-core';
 
 import type {
   KnowledgeReadCacheInvalidationReason,
@@ -21,11 +21,15 @@ export interface KnowledgeEntryProjectionRepo {
 export interface KnowledgeEntryProjection {
   getById(entryId: string): Promise<KnowledgeEntryRecord | null>;
   listMine(params: { userId: string; teamId?: string }): Promise<KnowledgeEntryRecord[]>;
+  getStatus(): Promise<ReadModelProjectionStatus>;
+  rebuild(): Promise<void>;
 }
 
 let listenerRegistered = false;
 let entryProjectionCache: KnowledgeReadProjectionCache<KnowledgeEntryProjectionSnapshot> | null =
   null;
+let lastRefreshedAt: string | null = null;
+let invalidatedAt: number | null = null;
 
 function getEntryProjectionCache() {
   if (!entryProjectionCache) {
@@ -79,8 +83,28 @@ async function getOrBuildSnapshot(
   const entries = await knowledgeRepo.listByFilter({});
   const snapshot = buildSnapshot(entries);
   getEntryProjectionCache().set(ENTRY_PROJECTION_CACHE_KEY, snapshot);
+  lastRefreshedAt = new Date().toISOString();
+  invalidatedAt = null;
   getDefaultKnowledgeReadSupportInfra().cache.recordStaleRecovery(ENTRY_PROJECTION_CACHE_NAMESPACE);
   return snapshot;
+}
+
+function projectionStatus(): ReadModelProjectionStatus {
+  const hasSnapshot = getEntryProjectionCache().get(ENTRY_PROJECTION_CACHE_KEY) !== null;
+  const refreshPending = !hasSnapshot || invalidatedAt !== null;
+  return {
+    phase: 'phase-2-boundary-closed',
+    source: 'temporary-direct-backed-projection',
+    consistency: 'eventual',
+    freshness: refreshPending ? 'refresh-pending' : 'current',
+    fallback: 'direct-authoritative-read',
+    ...(lastRefreshedAt ? { lastRefreshedAt } : {}),
+    ...(invalidatedAt !== null ? { lagMs: Date.now() - invalidatedAt } : {}),
+    refreshTrigger: 'knowledge-write lifecycle invalidation',
+    notes:
+      'knowledge-read owns the snapshot cache; its current source is a temporary direct-backed projection until the outbox consumer persists an independent projection.',
+    surfaces: [],
+  };
 }
 
 export function createKnowledgeEntryProjection(deps: {
@@ -101,15 +125,25 @@ export function createKnowledgeEntryProjection(deps: {
         return params.teamId === undefined || entry.teamId === params.teamId;
       });
     },
+    async getStatus() {
+      return projectionStatus();
+    },
+    async rebuild() {
+      getEntryProjectionCache().clear();
+      await getOrBuildSnapshot(deps.knowledgeRepo);
+    },
   };
 }
 
 export function invalidateKnowledgeEntryProjection(
   reason: KnowledgeReadCacheInvalidationReason,
 ): void {
+  invalidatedAt = Date.now();
   getDefaultKnowledgeReadSupportInfra().cache.emitInvalidation(reason);
 }
 
 export function resetKnowledgeEntryProjectionCacheForTests(): void {
   getEntryProjectionCache().clear();
+  lastRefreshedAt = null;
+  invalidatedAt = null;
 }

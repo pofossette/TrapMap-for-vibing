@@ -30,6 +30,12 @@ const ENV_CONSUL_HOST = 'CONSUL_HOST';
 const ENV_CONSUL_PORT = 'CONSUL_PORT';
 const ENV_SERVICE_ADVERTISE_HOST = 'TRAPMAP_SERVICE_ADVERTISE_HOST';
 const ENV_SERVICE_POOL_SIZE = 'TRAPMAP_SERVICE_POOL_SIZE';
+const ENV_SERVICE_IDLE_TIMEOUT_MS = 'TRAPMAP_SERVICE_IDLE_TIMEOUT_MS';
+const ENV_SERVICE_CONNECTION_TIMEOUT_MS = 'TRAPMAP_SERVICE_CONNECTION_TIMEOUT_MS';
+const ENV_SERVICE_STATEMENT_TIMEOUT_MS = 'TRAPMAP_SERVICE_STATEMENT_TIMEOUT_MS';
+const ENV_SERVICE_QUERY_TIMEOUT_MS = 'TRAPMAP_SERVICE_QUERY_TIMEOUT_MS';
+const ENV_SERVICE_IDLE_IN_TRANSACTION_TIMEOUT_MS = 'TRAPMAP_SERVICE_IDLE_IN_TRANSACTION_TIMEOUT_MS';
+const ENV_DATABASE_CONNECTION_BUDGET = 'TRAPMAP_DATABASE_CONNECTION_BUDGET';
 
 // ---------------------------------------------------------------------------
 // Service names
@@ -169,6 +175,13 @@ export interface ServiceConfig {
   /** Pool size for this service's connection pool. */
   poolSize: number;
 
+  idleTimeoutMs: number;
+  connectionTimeoutMs: number;
+  statementTimeoutMs: number;
+  queryTimeoutMs: number;
+  idleInTransactionTimeoutMs: number;
+  connectionBudget: number;
+
   /** Internal URLs for inter-service communication. */
   internalUrls: InternalServiceUrls;
 
@@ -197,6 +210,47 @@ function resolvePoolSize(serviceName: ServiceName): number {
   }
 
   return 5;
+}
+
+function resolveTimeout(
+  serviceName: ServiceName,
+  suffix: string,
+  sharedKey: string,
+  fallback: number,
+): number {
+  const specific = process.env[`TRAPMAP_${serviceName.replace(/-/g, '_').toUpperCase()}_${suffix}`];
+  const shared = process.env[sharedKey];
+  const parsed = Number.parseInt(specific ?? shared ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function resolveConnectionBudget(): number {
+  const parsed = Number.parseInt(process.env[ENV_DATABASE_CONNECTION_BUDGET] ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 30;
+}
+
+export interface DistributedConnectionBudgetSnapshot {
+  configured: number;
+  budget: number;
+  withinBudget: boolean;
+}
+
+export function getDistributedConnectionBudgetSnapshot(): DistributedConnectionBudgetSnapshot {
+  const configured = ALL_SERVICES.filter((serviceName) => serviceName !== 'gateway').reduce(
+    (total, serviceName) => total + resolvePoolSize(serviceName),
+    0,
+  );
+  const budget = resolveConnectionBudget();
+  return { configured, budget, withinBudget: configured <= budget };
+}
+
+export function assertDistributedConnectionBudget(): void {
+  const snapshot = getDistributedConnectionBudgetSnapshot();
+  if (!snapshot.withinBudget) {
+    throw new Error(
+      `Configured distributed PostgreSQL pools (${snapshot.configured}) exceed connection budget (${snapshot.budget})`,
+    );
+  }
 }
 
 function resolveKnowledgeWriteTransport(): InternalTransportKind {
@@ -233,6 +287,27 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
     logLevel: process.env[ENV_LOG_LEVEL] ?? 'info',
     databaseUrl,
     poolSize: resolvePoolSize(name),
+    idleTimeoutMs: resolveTimeout(name, 'IDLE_TIMEOUT_MS', ENV_SERVICE_IDLE_TIMEOUT_MS, 30_000),
+    connectionTimeoutMs: resolveTimeout(
+      name,
+      'CONNECTION_TIMEOUT_MS',
+      ENV_SERVICE_CONNECTION_TIMEOUT_MS,
+      5_000,
+    ),
+    statementTimeoutMs: resolveTimeout(
+      name,
+      'STATEMENT_TIMEOUT_MS',
+      ENV_SERVICE_STATEMENT_TIMEOUT_MS,
+      30_000,
+    ),
+    queryTimeoutMs: resolveTimeout(name, 'QUERY_TIMEOUT_MS', ENV_SERVICE_QUERY_TIMEOUT_MS, 30_000),
+    idleInTransactionTimeoutMs: resolveTimeout(
+      name,
+      'IDLE_IN_TRANSACTION_TIMEOUT_MS',
+      ENV_SERVICE_IDLE_IN_TRANSACTION_TIMEOUT_MS,
+      30_000,
+    ),
+    connectionBudget: resolveConnectionBudget(),
     internalUrls: {
       gateway: process.env[ENV_GATEWAY_URL] ?? defaults.gateway,
       identityAccess: process.env[ENV_IDENTITY_ACCESS_URL] ?? defaults.identityAccess,

@@ -35,6 +35,8 @@ import type {
   LifecycleState,
   ManualResultSubmission,
 } from '@trapmap/contracts';
+import type { DatabaseWriteService } from './database-ownership.js';
+import { withDatabaseWriteGuard } from './database-ownership.js';
 
 // ---------------------------------------------------------------------------
 // ID generation helper
@@ -801,15 +803,24 @@ function createPgAuditRepo(pool: Pool): AuditRepositoryPort {
     },
     async insert(event) {
       await pool.query(
-        `INSERT INTO audit_events (id, action, actor_id, entity_id, team_id, metadata, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        `INSERT INTO audit_events (
+           id, action, actor_id, entity_id, team_id, payload, event_version,
+           source_service, request_id, trace_id, operation_id, causation_id, outcome, created_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
         [
           event.id,
           event.action,
           event.actorId,
           event.entityId ?? null,
           event.teamId ?? null,
-          JSON.stringify((event as Record<string, unknown>).metadata ?? {}),
+          JSON.stringify((event as Record<string, unknown>).payload ?? event.metadata ?? {}),
+          event.eventVersion ?? 1,
+          event.sourceService ?? 'distributed',
+          event.requestId ?? null,
+          event.traceId ?? null,
+          event.operationId ?? null,
+          event.causationId ?? null,
+          event.outcome ?? 'success',
           event.createdAt,
         ],
       );
@@ -842,6 +853,22 @@ function createPgAuditRepo(pool: Pool): AuditRepositoryPort {
       if (filter.teamId) {
         conditions.push(`team_id = $${paramIndex++}`);
         params.push(filter.teamId);
+      }
+      if (filter.requestId) {
+        conditions.push(`request_id = $${paramIndex++}`);
+        params.push(filter.requestId);
+      }
+      if (filter.traceId) {
+        conditions.push(`trace_id = $${paramIndex++}`);
+        params.push(filter.traceId);
+      }
+      if (filter.operationId) {
+        conditions.push(`operation_id = $${paramIndex++}`);
+        params.push(filter.operationId);
+      }
+      if (filter.causationId) {
+        conditions.push(`causation_id = $${paramIndex++}`);
+        params.push(filter.causationId);
       }
       if (filter.from) {
         conditions.push(`created_at >= $${paramIndex++}`);
@@ -957,7 +984,14 @@ function createPgAuditLog(pool: Pool): AuditLogPort {
         entityId: entry.entityId,
         teamId: entry.teamId,
         createdAt: entry.timestamp ?? new Date().toISOString(),
-        metadata: entry.metadata,
+        payload: entry.metadata,
+        eventVersion: entry.eventVersion,
+        sourceService: entry.sourceService ?? 'distributed',
+        requestId: entry.requestId,
+        traceId: entry.traceId,
+        operationId: entry.operationId,
+        causationId: entry.causationId,
+        outcome: entry.outcome,
       } as never);
     },
     async query(filter) {
@@ -1015,7 +1049,7 @@ function createPgTaskQueue(pool: Pool): TaskQueuePort {
     async enqueue(type, payload, options) {
       const id = generateId('task');
       await pool.query(
-        `INSERT INTO task_queue (id, type, payload, priority, max_attempts, run_after, status, created_at)
+        `INSERT INTO task_queue (id, type, payload, priority, max_attempts, process_after, status, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, 'pending', NOW())`,
         [
           id,
@@ -1032,7 +1066,7 @@ function createPgTaskQueue(pool: Pool): TaskQueuePort {
     },
     async requeue(taskId) {
       await pool.query(
-        `UPDATE task_queue SET status = 'pending', run_after = NOW(), attempt_count = 0 WHERE id = $1`,
+        `UPDATE task_queue SET status = 'pending', process_after = NOW(), attempts = 0 WHERE id = $1`,
         [taskId],
       );
     },
@@ -1064,8 +1098,9 @@ function createPgOutbox(pool: Pool): OutboxPort {
     async enqueue(params) {
       const id = generateId('evt');
       await pool.query(
-        `INSERT INTO domain_outbox (id, aggregate_type, aggregate_id, event_name, payload, status, created_at)
-         VALUES ($1, $2, $3, $4, $5, 'pending', NOW())`,
+        `INSERT INTO domain_event_outbox (
+           id, aggregate_type, aggregate_id, event_name, payload, status, available_at, attempts, created_at
+         ) VALUES ($1, $2, $3, $4, $5, 'pending', NOW(), 0, NOW())`,
         [
           id,
           params.aggregateType,
@@ -1078,10 +1113,10 @@ function createPgOutbox(pool: Pool): OutboxPort {
     },
     async claimBatch(limit = 10, workerId = 'default') {
       const { rows } = await pool.query(
-        `UPDATE domain_outbox
-         SET status = 'processing', claimed_by = $2, claimed_at = NOW()
+        `UPDATE domain_event_outbox
+         SET status = 'processing', worker_id = $2, started_at = NOW(), heartbeat_at = NOW(), lease_until = NOW() + INTERVAL '30 seconds'
          WHERE id IN (
-           SELECT id FROM domain_outbox
+           SELECT id FROM domain_event_outbox
            WHERE status = 'pending'
            ORDER BY created_at
            LIMIT $1
@@ -1096,25 +1131,25 @@ function createPgOutbox(pool: Pool): OutboxPort {
     },
     async complete(eventId) {
       await pool.query(
-        "UPDATE domain_outbox SET status = 'completed', completed_at = NOW() WHERE id = $1",
+        "UPDATE domain_event_outbox SET status = 'completed', published_at = NOW(), worker_id = NULL, heartbeat_at = NULL, lease_until = NULL WHERE id = $1",
         [eventId],
       );
     },
     async fail(eventId, error) {
       await pool.query(
-        "UPDATE domain_outbox SET status = 'failed', error = $2, failed_at = NOW() WHERE id = $1",
+        "UPDATE domain_event_outbox SET status = 'failed', last_error = $2, worker_id = NULL, heartbeat_at = NULL, lease_until = NULL WHERE id = $1",
         [eventId, error],
       );
     },
     async getStatusSnapshot() {
       const pendingResult = await pool.query(
-        "SELECT COUNT(*) as count FROM domain_outbox WHERE status = 'pending'",
+        "SELECT COUNT(*) as count FROM domain_event_outbox WHERE status = 'pending'",
       );
       const processingResult = await pool.query(
-        "SELECT COUNT(*) as count FROM domain_outbox WHERE status = 'processing'",
+        "SELECT COUNT(*) as count FROM domain_event_outbox WHERE status = 'processing'",
       );
       const failedResult = await pool.query(
-        "SELECT COUNT(*) as count FROM domain_outbox WHERE status = 'failed'",
+        "SELECT COUNT(*) as count FROM domain_event_outbox WHERE status = 'failed'",
       );
       return {
         provider: 'postgres' as const,
@@ -1145,15 +1180,34 @@ export interface ServicePortImplementations {
 /**
  * Create all port implementations backed by a PostgreSQL pool.
  */
-export function createServicePorts(pool: Pool): ServicePortImplementations {
-  const knowledgeRepo = createPgKnowledgeRepo(pool);
-  const candidateRepo = createPgCandidateRepo(pool);
-  const sessionRepo = createPgSessionRepo(pool);
-  const accessKeyRepo = createPgAccessKeyRepo(pool);
-  const teamRepo = createPgTeamRepo(pool);
-  const membershipRepo = createPgMembershipRepo(pool);
-  const userRepo = createPgUserRepo(pool);
-  const feedbackRepo = createPgFeedbackRepo(pool);
+export function createServicePorts(
+  pool: Pool,
+  serviceName: DatabaseWriteService = 'server-compatibility-seam',
+): ServicePortImplementations {
+  const knowledgeRepo = withDatabaseWriteGuard(
+    createPgKnowledgeRepo(pool),
+    serviceName,
+    'knowledge',
+  );
+  const candidateRepo = withDatabaseWriteGuard(
+    createPgCandidateRepo(pool),
+    serviceName,
+    'candidate',
+  );
+  const sessionRepo = withDatabaseWriteGuard(createPgSessionRepo(pool), serviceName, 'identity');
+  const accessKeyRepo = withDatabaseWriteGuard(
+    createPgAccessKeyRepo(pool),
+    serviceName,
+    'identity',
+  );
+  const teamRepo = withDatabaseWriteGuard(createPgTeamRepo(pool), serviceName, 'identity');
+  const membershipRepo = withDatabaseWriteGuard(
+    createPgMembershipRepo(pool),
+    serviceName,
+    'identity',
+  );
+  const userRepo = withDatabaseWriteGuard(createPgUserRepo(pool), serviceName, 'identity');
+  const feedbackRepo = withDatabaseWriteGuard(createPgFeedbackRepo(pool), serviceName, 'knowledge');
   const auditRepo = createPgAuditRepo(pool);
 
   return {

@@ -1,7 +1,7 @@
 import type { KnowledgeWritePort } from '@trapmap/backend-core';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { type KnowledgeWriteDeps, createKnowledgeWriteServiceModule } from './deps.js';
-import { registerKnowledgeWriteRoutes } from './routes.js';
+import { type KnowledgeWriteReadinessOptions, registerKnowledgeWriteRoutes } from './routes.js';
 
 export interface KnowledgeWriteServiceConfig {
   host: string;
@@ -19,10 +19,11 @@ export interface KnowledgeWriteServer {
 export async function createKnowledgeWriteServer(
   config: KnowledgeWriteServiceConfig,
   deps: KnowledgeWriteDeps,
+  readinessOptions?: KnowledgeWriteReadinessOptions,
 ): Promise<KnowledgeWriteServer> {
   const app = Fastify({ logger: { level: config.logLevel } });
   const module = createKnowledgeWriteServiceModule(deps);
-  registerKnowledgeWriteRoutes(app, module);
+  registerKnowledgeWriteRoutes(app, module, readinessOptions);
 
   return {
     app,

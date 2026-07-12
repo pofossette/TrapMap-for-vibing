@@ -5,7 +5,10 @@ import type {
 import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import { createKnowledgeReadDeps, createKnowledgeReadServiceModule } from './deps.js';
-import { resetKnowledgeEntryProjectionCacheForTests } from './entry-projection.js';
+import {
+  invalidateKnowledgeEntryProjection,
+  resetKnowledgeEntryProjectionCacheForTests,
+} from './entry-projection.js';
 
 describe('knowledge-read deps', () => {
   beforeEach(() => {
@@ -97,17 +100,17 @@ describe('knowledge-read deps', () => {
       status.surfaces.find((surface) => surface.surface === 'knowledge-entry:getById'),
     ).toMatchObject({
       owner: 'knowledge-read',
-      source: 'derived-projection',
+      source: 'temporary-direct-backed-projection',
       consistency: 'eventual',
-      fallback: 'none',
+      fallback: 'direct-authoritative-read',
     });
     expect(
       status.surfaces.find((surface) => surface.surface === 'knowledge-entry:listMine'),
     ).toMatchObject({
       owner: 'knowledge-read',
-      source: 'derived-projection',
+      source: 'temporary-direct-backed-projection',
       consistency: 'eventual',
-      fallback: 'none',
+      fallback: 'direct-authoritative-read',
     });
     expect(status.surfaces.find((surface) => surface.surface === 'retrieval-search')).toMatchObject(
       {
@@ -140,5 +143,40 @@ describe('knowledge-read deps', () => {
       source: 'derived-projection',
       fallback: 'none',
     });
+  });
+
+  it('rebuilds the entry projection through the knowledge-read owner port', async () => {
+    const deps = createKnowledgeReadDeps({
+      knowledgeRepo: {
+        listByFilter: vi
+          .fn()
+          .mockResolvedValueOnce([
+            {
+              id: 'entry-1',
+              content: 'before',
+              lifecycleState: 'approved',
+              ownerUserId: 'u',
+              teamId: 't',
+            },
+          ])
+          .mockResolvedValueOnce([
+            {
+              id: 'entry-1',
+              content: 'after',
+              lifecycleState: 'approved',
+              ownerUserId: 'u',
+              teamId: 't',
+            },
+          ]),
+      },
+      retrievalQuery: { search: vi.fn(async () => ({ results: [] })) },
+    });
+    const module = createKnowledgeReadServiceModule(deps);
+
+    await module.getById('entry-1');
+    invalidateKnowledgeEntryProjection('approved');
+    await module.rebuildProjection?.();
+
+    await expect(module.getById('entry-1')).resolves.toMatchObject({ content: 'after' });
   });
 });

@@ -4,6 +4,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 export interface KnowledgeWriteReadinessOptions {
   checkDependency?: () => Promise<{ reachable: boolean; detail?: string }>;
+  getOperatorStatus?: () => Promise<Record<string, unknown>>;
 }
 
 const KNOWLEDGE_WRITE_OWNERSHIP = {
@@ -87,6 +88,31 @@ export function registerKnowledgeWriteRoutes(
   module: KnowledgeWritePort,
   options?: KnowledgeWriteReadinessOptions,
 ): void {
+  const readinessHandler = async (_req: FastifyRequest, reply: FastifyReply) => {
+    let dependencyStatus: { reachable: boolean; detail?: string } = { reachable: true };
+    if (options?.checkDependency) {
+      try {
+        dependencyStatus = await options.checkDependency();
+      } catch {
+        dependencyStatus = { reachable: false, detail: 'dependency check threw' };
+      }
+    }
+    const ready = dependencyStatus.reachable;
+    return reply.status(ready ? 200 : 503).send({
+      ready,
+      service: 'knowledge-write',
+      checks: {
+        self: { status: 'ok' },
+        persistence: {
+          status: dependencyStatus.reachable ? 'ok' : 'degraded',
+          detail: dependencyStatus.detail ?? null,
+        },
+      },
+      aggregateMutationAuthority: true,
+      lifecycleRuleAuthority: true,
+      followUpDisposition: 'outbox-queue-workflow-async',
+    });
+  };
   app.post('/internal/knowledge', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = req.body as {
@@ -294,33 +320,31 @@ export function registerKnowledgeWriteRoutes(
     });
   });
 
-  app.get('/internal/readiness', async (_req: FastifyRequest, reply: FastifyReply) => {
-    let dependencyStatus: { reachable: boolean; detail?: string } = { reachable: true };
-    if (options?.checkDependency) {
-      try {
-        dependencyStatus = await options.checkDependency();
-      } catch {
-        dependencyStatus = { reachable: false, detail: 'dependency check threw' };
-      }
-    }
-    const ready = dependencyStatus.reachable;
-    return reply.status(ready ? 200 : 503).send({
-      ready,
-      service: 'knowledge-write',
-      checks: {
-        self: { status: 'ok' },
-        persistence: {
-          status: dependencyStatus.reachable ? 'ok' : 'degraded',
-          detail: dependencyStatus.detail ?? null,
-        },
-      },
-      aggregateMutationAuthority: true,
-      lifecycleRuleAuthority: true,
-      followUpDisposition: 'outbox-queue-workflow-async',
-    });
+  app.get('/internal/live', async (_req: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(200).send({ status: 'alive', service: 'knowledge-write' });
   });
+
+  app.get('/internal/readiness', readinessHandler);
+  app.get('/internal/ready', readinessHandler);
 
   app.get('/internal/ownership', async (_req: FastifyRequest, reply: FastifyReply) => {
     return reply.status(200).send(KNOWLEDGE_WRITE_OWNERSHIP);
+  });
+
+  app.get('/internal/operator-status', async (_req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const details = (await options?.getOperatorStatus?.()) ?? {};
+      return reply.status(200).send({
+        service: 'knowledge-write',
+        owner: KNOWLEDGE_WRITE_OWNERSHIP.boundedContext,
+        ...details,
+      });
+    } catch (error) {
+      return reply.status(503).send({
+        service: 'knowledge-write',
+        owner: KNOWLEDGE_WRITE_OWNERSHIP.boundedContext,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   });
 }

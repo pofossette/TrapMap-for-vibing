@@ -48,7 +48,9 @@
 
 - `GET /internal/health` - 带归属声明的基本存活检查
 - `GET /internal/readiness` - 依赖可达性（可选检查委托目标），报告 `finalAggregateMutation: 'delegated-to-knowledge-write'` 和 `followUpDisposition: 'outbox-queue-workflow-async'`
+- `GET /internal/live` / `GET /internal/ready` - 分别用于不检查依赖的 liveness 与检查 database/knowledge-write 的 readiness
 - `GET /internal/ownership` - 完整的静态归属声明（数据/投影归属、doesNotOwn 列表、命令接口、delegateTo 目标）
+- `GET /internal/operator-status` - database、delegated owner、job-runtime queue/outbox、timeout 与 idempotency 诊断
 
 操作员可见性目标：
 

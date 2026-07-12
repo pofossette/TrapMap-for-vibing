@@ -16,6 +16,13 @@ export interface AuditLogEntry {
   teamId?: string;
   metadata?: Record<string, unknown>;
   timestamp?: string;
+  eventVersion?: number;
+  sourceService?: string;
+  requestId?: string;
+  traceId?: string;
+  operationId?: string;
+  causationId?: string;
+  outcome?: 'success' | 'rejected' | 'failed';
 }
 
 export interface AuditLogPort {
@@ -32,6 +39,10 @@ export interface AuditLogPort {
     actorId?: string;
     entityId?: string;
     teamId?: string;
+    requestId?: string;
+    traceId?: string;
+    operationId?: string;
+    causationId?: string;
     from?: string;
     to?: string;
     limit?: number;
