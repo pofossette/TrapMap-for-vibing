@@ -6,6 +6,7 @@ import {
   getDatabaseWriteOwner,
   withDatabaseWriteGuard,
 } from './database-ownership.js';
+import { createServicePorts } from './ports.js';
 
 describe('distributed database ownership guard', () => {
   it('accepts the declared owner for an authoritative table family', () => {
@@ -26,10 +27,20 @@ describe('distributed database ownership guard', () => {
     const repository = {
       getById: async () => ({ id: 'entry-1' }),
       insert: async () => undefined,
+      updateStatus: async () => undefined,
     };
     const guarded = withDatabaseWriteGuard(repository, 'governance-review', 'knowledge');
 
     await expect(guarded.getById()).resolves.toEqual({ id: 'entry-1' });
     expect(() => guarded.insert()).toThrow(/knowledge-write owns knowledge/i);
+    expect(() => guarded.updateStatus()).toThrow(/knowledge-write owns knowledge/i);
+  });
+
+  it('keeps cross-owner audit repository writes behind the audit capability', () => {
+    const ports = createServicePorts({} as never, 'knowledge-write');
+
+    expect(() => ports.repos.audit.insert({} as never)).toThrow(
+      /server-compatibility-seam owns audit/i,
+    );
   });
 });

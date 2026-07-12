@@ -1,14 +1,30 @@
 import path from 'node:path';
+import { readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import type { Pool } from 'pg';
 
+import {
+  assertMigrationManifestComplete,
+  assertMigrationRunnerAuthorized,
+  type MigrationRunner,
+  migrationOwnershipManifest,
+} from './migration-ownership.js';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATION_LOCK_KEY = 42187319;
 
-export async function runMigrations(pool: Pool): Promise<void> {
+export async function runMigrations(
+  pool: Pool,
+  runner: MigrationRunner = 'server-compatibility-seam',
+): Promise<void> {
+  const migrationsFolder = path.resolve(__dirname, '../../../drizzle');
+  const migrationFiles = (await readdir(migrationsFolder)).filter((file) => file.endsWith('.sql'));
+  assertMigrationManifestComplete(migrationFiles);
+  assertMigrationRunnerAuthorized(runner, migrationOwnershipManifest);
+
   try {
     await pool.query('CREATE EXTENSION IF NOT EXISTS vector');
   } catch (error) {
@@ -20,13 +36,22 @@ export async function runMigrations(pool: Pool): Promise<void> {
 
   await withMigrationLock(pool, async () => {
     const db = drizzle(pool);
-    const migrationsFolder = path.resolve(__dirname, '../../../drizzle');
     await migrate(db, { migrationsFolder });
-    await ensureLeaseColumns(pool);
-    await ensureSystemAdminUser(pool);
+    await runCompatibilityOperations(pool, runner);
   });
 
   console.log('[MigrationRunner] Migrations applied successfully');
+}
+
+async function runCompatibilityOperations(pool: Pool, runner: MigrationRunner): Promise<void> {
+  if (runner !== 'server-compatibility-seam') {
+    throw new Error(
+      `Compatibility DDL/DML is restricted to server-compatibility-seam, not ${runner}`,
+    );
+  }
+
+  await ensureLeaseColumns(pool);
+  await ensureSystemAdminUser(pool);
 }
 
 async function withMigrationLock(pool: Pool, operation: () => Promise<void>): Promise<void> {

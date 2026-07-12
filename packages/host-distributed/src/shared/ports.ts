@@ -7,7 +7,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 import type {
   AccessKeyRepositoryPort,
@@ -56,6 +56,44 @@ function mapKnowledgeRow(row: Record<string, unknown>) {
     teamId: (row.team_id as string | null) ?? (row.teamId as string | null) ?? null,
     lifecycleState: row.lifecycle_state as LifecycleState,
   };
+}
+
+function lifecycleOutboxEventName(state: LifecycleState): string {
+  if (state === 'approved') return 'knowledge.approved';
+  if (state === 'rejected') return 'knowledge.rejected';
+  if (state === 'submitted') return 'knowledge.submitted';
+  return 'knowledge.lifecycle-updated';
+}
+
+async function enqueueLifecycleOutboxTx(
+  client: Pick<PoolClient, 'query'>,
+  input: {
+    entryId: string;
+    previousState: LifecycleState | undefined;
+    nextState: LifecycleState;
+    actorId: string;
+    note?: string;
+  },
+): Promise<void> {
+  await client.query(
+    `INSERT INTO domain_event_outbox (
+       id, aggregate_type, aggregate_id, event_name, payload, status, available_at, attempts, created_at
+     ) VALUES ($1, 'knowledge', $2, $3, $4, 'pending', NOW(), 0, NOW())`,
+    [
+      generateId('evt'),
+      input.entryId,
+      lifecycleOutboxEventName(input.nextState),
+      JSON.stringify({
+        name: lifecycleOutboxEventName(input.nextState),
+        entryId: input.entryId,
+        previousState: input.previousState ?? null,
+        nextState: input.nextState,
+        actorId: input.actorId,
+        reason: input.note ?? 'distributed lifecycle update',
+        timestamp: new Date().toISOString(),
+      }),
+    ],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -114,31 +152,57 @@ function createPgKnowledgeRepo(pool: Pool): KnowledgeRepositoryPort {
       return rows[0] ? (mapKnowledgeRow(rows[0] as Record<string, unknown>) as never) : null;
     },
     async updateLifecycle(entryId, newState: LifecycleState, context) {
-      const { rows } = await pool.query(
-        `UPDATE knowledge_entries SET lifecycle_state = $2, updated_at = NOW()
-         WHERE id = $1 RETURNING *`,
-        [entryId, newState],
-      );
-      await pool.query(
-        `INSERT INTO lifecycle_events (id, entry_id, type, actor_user_id, submission_id, state, note, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-        [
-          generateId('le'),
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const current = await client.query(
+          'SELECT lifecycle_state FROM knowledge_entries WHERE id = $1 FOR UPDATE',
+          [entryId],
+        );
+        const previousState = (current.rows[0] as { lifecycle_state?: LifecycleState } | undefined)
+          ?.lifecycle_state;
+        const { rows } = await client.query(
+          `UPDATE knowledge_entries SET lifecycle_state = $2, updated_at = NOW()
+           WHERE id = $1 RETURNING *`,
+          [entryId, newState],
+        );
+        if (!rows[0]) {
+          throw new Error(`Knowledge entry not found: ${entryId}`);
+        }
+        await client.query(
+          `INSERT INTO lifecycle_events (id, entry_id, type, actor_user_id, submission_id, state, note, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+          [
+            generateId('le'),
+            entryId,
+            newState === 'approved'
+              ? 'reviewer-approved'
+              : newState === 'rejected'
+                ? 'reviewer-rejected'
+                : newState === 'submitted'
+                  ? 'resubmitted'
+                  : 'updated',
+            context.actorId,
+            null,
+            newState,
+            context.note ?? null,
+          ],
+        );
+        await enqueueLifecycleOutboxTx(client, {
           entryId,
-          newState === 'approved'
-            ? 'reviewer-approved'
-            : newState === 'rejected'
-              ? 'reviewer-rejected'
-              : newState === 'submitted'
-                ? 'resubmitted'
-                : 'updated',
-          context.actorId,
-          null,
-          newState,
-          context.note ?? null,
-        ],
-      );
-      return mapKnowledgeRow(rows[0] as Record<string, unknown>) as never;
+          previousState,
+          nextState: newState,
+          actorId: context.actorId,
+          note: context.note,
+        });
+        await client.query('COMMIT');
+        return mapKnowledgeRow(rows[0] as Record<string, unknown>) as never;
+      } catch (error) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw error;
+      } finally {
+        client.release();
+      }
     },
     async appendRevision(entryId, revision) {
       await pool.query(
@@ -1208,7 +1272,7 @@ export function createServicePorts(
   );
   const userRepo = withDatabaseWriteGuard(createPgUserRepo(pool), serviceName, 'identity');
   const feedbackRepo = withDatabaseWriteGuard(createPgFeedbackRepo(pool), serviceName, 'knowledge');
-  const auditRepo = createPgAuditRepo(pool);
+  const auditRepo = withDatabaseWriteGuard(createPgAuditRepo(pool), serviceName, 'audit');
 
   return {
     repos: {
