@@ -14,7 +14,13 @@ export async function createServer(
   db: ServiceDatabase,
 ): Promise<JobRuntimeServer> {
   const ports = createServicePorts(db.pool, config.serviceName);
-  const deps = createJobRuntimeDeps(ports);
+  if (!ports.jobRuntime) {
+    throw new Error('job-runtime capability unavailable for job-runtime service');
+  }
+  const deps = createJobRuntimeDeps({
+    queuePorts: ports.jobRuntime,
+    auditLog: ports.auditLog,
+  });
   const server = await createJobRuntimeServer(config, deps);
   attachRuntimeMetricsRoute(server.app);
   await attachRuntimeTelemetry(server.app, 'job-runtime');

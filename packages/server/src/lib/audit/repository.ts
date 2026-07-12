@@ -82,6 +82,10 @@ export class InMemoryAuditRepository implements AuditRepository {
     actorId?: string;
     entityId?: string;
     teamId?: string;
+    requestId?: string;
+    traceId?: string;
+    operationId?: string;
+    causationId?: string;
     from?: string;
     to?: string;
     limit?: number;

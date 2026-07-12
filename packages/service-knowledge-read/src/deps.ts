@@ -1,4 +1,8 @@
-import { type KnowledgeReadDeps, createKnowledgeReadModule } from '@trapmap/backend-core';
+import {
+  type KnowledgeReadDeps,
+  type ReadModelProjectionStatus,
+  createKnowledgeReadModule,
+} from '@trapmap/backend-core';
 
 import { createKnowledgeEntryProjection } from './entry-projection.js';
 
@@ -15,7 +19,7 @@ export interface KnowledgeReadPortDeps {
 
 async function createProjectionStatus(
   entryProjection: ReturnType<typeof createKnowledgeEntryProjection>,
-) {
+): Promise<ReadModelProjectionStatus> {
   const entryStatus = await entryProjection.getStatus();
   return {
     phase: 'phase-2-boundary-closed',
@@ -25,7 +29,7 @@ async function createProjectionStatus(
     fallback: entryStatus.fallback,
     ...(entryStatus.lastRefreshedAt ? { lastRefreshedAt: entryStatus.lastRefreshedAt } : {}),
     ...(entryStatus.lagMs !== undefined ? { lagMs: entryStatus.lagMs } : {}),
-    refreshTrigger: entryStatus.refreshTrigger,
+    ...(entryStatus.refreshTrigger ? { refreshTrigger: entryStatus.refreshTrigger } : {}),
     notes:
       'Phase 2 closes the read-side boundary by making each surface declare its owner, backing source, consistency, freshness, and fallback explicitly.',
     surfaces: [

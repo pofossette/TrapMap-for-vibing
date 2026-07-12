@@ -2,6 +2,7 @@ import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
+import { createRemoteJobRuntimeClient } from '@trapmap/host-distributed/shared/internal-job-runtime-client.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
 import {
@@ -28,10 +29,7 @@ export async function createServer(
     knowledgeWrite: createRemoteKnowledgeWriteClient(internalClients, {
       transport: config.internalTransports.knowledgeWrite,
     }),
-    jobRuntime: {
-      schedule: async (type, payload, options) =>
-        String(await ports.queuePorts.task.enqueue(type, payload, options)),
-    },
+    jobRuntime: createRemoteJobRuntimeClient(internalClients),
   });
   const server = await createCandidateIngestionServer(config, deps);
   attachRuntimeMetricsRoute(server.app);

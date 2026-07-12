@@ -6,10 +6,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import type { Pool } from 'pg';
 
-import {
-  assertMigrationManifestComplete,
-  migrationOwnershipManifest,
-} from './migration-ownership.js';
+import { assertMigrationManifestComplete } from './migration-ownership.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATION_LOCK_KEY = 42187319;

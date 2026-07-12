@@ -39,8 +39,29 @@ describe('distributed database ownership guard', () => {
   it('keeps cross-owner audit repository writes behind the audit capability', () => {
     const ports = createServicePorts({} as never, 'knowledge-write');
 
-    expect(() => ports.repos.audit.insert({} as never)).toThrow(
-      /server-compatibility-seam owns audit/i,
-    );
+    expect(ports.repos.audit).toBeUndefined();
+  });
+
+  it('does not expose job runtime mutation capabilities to business owners', () => {
+    const ports = createServicePorts({} as never, 'knowledge-write');
+
+    expect(ports.jobRuntime).toBeUndefined();
+    expect(ports.asyncDiagnostics).toEqual({
+      task: expect.any(Object),
+      outbox: expect.any(Object),
+    });
+    expect(ports.asyncDiagnostics.task).not.toHaveProperty('enqueue');
+    expect(ports.asyncDiagnostics.outbox).not.toHaveProperty('enqueue');
+  });
+
+  it('exposes queue and outbox mutation capabilities only to job-runtime', () => {
+    const ports = createServicePorts({} as never, 'job-runtime');
+
+    expect(ports.jobRuntime).toEqual({
+      task: expect.any(Object),
+      outbox: expect.any(Object),
+    });
+    expect(ports.jobRuntime?.task).toHaveProperty('enqueue');
+    expect(ports.jobRuntime?.outbox).toHaveProperty('enqueue');
   });
 });

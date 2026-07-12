@@ -485,6 +485,10 @@ flowchart TB
 
 ### 乐观锁机制
 
+## Distributed persistence capabilities
+
+`createServicePorts()` does not provide a shared mutable persistence bundle. A distributed business service receives its owner-scoped repositories, append-only audit logging, and read-only async diagnostics; `job-runtime` alone receives queue/outbox runtime mutation capability. Pool diagnostics are derived only from `totalCount`、`idleCount`、`waitingCount` and `total / max`; unavailable counters remain `unknown`.
+
 ```mermaid
 flowchart TB
     A[更新请求] --> B[读取当前版本]

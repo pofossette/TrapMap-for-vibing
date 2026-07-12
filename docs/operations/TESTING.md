@@ -1384,6 +1384,10 @@ trapmap operations capsule-index cleanup-orphans --json | jq .removed
 
 ## 相关文档
 
+## Distributed acceptance closeout
+
+运行 `rtk pnpm test:distributed-acceptance` 验证真实 HTTP owner hop、correlation、错误分类、deadline/retry 与 idempotent replay；运行 `rtk pnpm test:distributed-closeout` 验证 multi-process recovery，包括 `knowledge-write` 局部重启后 gateway delegation 恢复且 job-runtime 状态面独立可用。该证据仅支持 `Level 2 / transitional-microservice`，不宣称 Level 3。
+
 - [模块详解](../architecture/MODULES.md) — 系统模块架构和设计
 - [API 参考 — 候选重复检索](../architecture/API.md#候选重复检索) — 检索算法和模式
 - [安全指南](SECURITY.md) — RBAC 和安全等级

@@ -809,6 +809,10 @@ TrapMap 的服务端 AI 提示词支持“插槽式”覆盖。你可以提供�
 
 ## 快速配置
 
+## Distributed pool diagnostics
+
+`TRAPMAP_<SERVICE>_POOL_SIZE`、`TRAPMAP_<SERVICE>_IDLE_TIMEOUT_MS`、`TRAPMAP_<SERVICE>_CONNECTION_TIMEOUT_MS`、`TRAPMAP_<SERVICE>_STATEMENT_TIMEOUT_MS` 与 `TRAPMAP_DATABASE_CONNECTION_BUDGET` 控制独立服务池及共享预算。operator 输出的 saturation 是 `total / max`，不会推测驱动未提供的计数；缺失值显示 `unknown`。
+
 ```bash
 # 复制环境变量模板
 cp .env.example .env

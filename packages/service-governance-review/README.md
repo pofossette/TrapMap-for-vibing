@@ -20,6 +20,10 @@
 
 ## 命令接口
 
+## Runtime boundary
+
+本服务可读取 job-runtime queue/outbox operator snapshot，但不具备 enqueue、claim、retry 或 dead-letter capability。对 knowledge aggregate 的最终写入始终委托给 remote `knowledge-write`；局部 `knowledge-write` 重启后重试相同幂等命令，不使用 local direct-write fallback。
+
 `governance-review` 对 `knowledge-write` 调用的冻结委托命令接口：
 
 - `approve` -> `KnowledgeWritePort.approveReviewDecision`

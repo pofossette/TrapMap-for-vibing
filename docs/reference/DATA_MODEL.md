@@ -743,6 +743,10 @@ active → review-due → stale → expired
 
 ### 已删除的兼容层
 
+### Shared PG ownership and migration review
+
+shared PostgreSQL 仍按 table family owner 管理。migration manifest 与 runner review 约束 migration 只能修改声明的 owner family；新增表、索引或 schema 变更必须同时更新 `DATABASE_OWNERSHIP.md`、repository owner 和本文档。`domain_event_outbox` 的运行时处理归 `job-runtime`，而 aggregate owner 只能在同一 authoritative transaction 内追加自己的事件。
+
 - `DualWriteKnowledgeRepository` — Round 2 删除，知识写入仅走 PG
 - `DualWriteCandidateRepository` — Round 2 删除，候选写入仅走 PG
 - `DualWriteArtifactRepository` — 已为死代码，Round 2 清理

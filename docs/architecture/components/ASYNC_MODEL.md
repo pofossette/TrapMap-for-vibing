@@ -99,6 +99,10 @@ flowchart TB
 
 ## 1. Authoritative write 与异步注册
 
+### Distributed runtime capability
+
+在 distributed assembly 中，业务服务只取得 `asyncDiagnostics.task/outbox.getStatusSnapshot()`。只有 `job-runtime` 取得 runtime capability，可 enqueue、claim、complete、fail、requeue 或处理 dead-letter。`candidate-ingestion` 通过内部 HTTP `job-runtime.schedule` 获取 `jobId`；下游 `conflict`、`unavailable` 与 `timeout` 映射为现有 `InvocationError`，没有本地 queue fallback。
+
 当前 PG 运行时通过 `app.skillShareer.asyncTransport` 暴露唯一异步基础设施边界：
 
 - `asyncTransport.queue`：`task_queue` 的注册/状态端口

@@ -38,8 +38,8 @@ export async function createServer(
     getOperatorStatus: async () => {
       const [persistence, queue, outbox] = await Promise.all([
         db.healthCheck(),
-        ports.queuePorts.task.getStatusSnapshot(),
-        ports.queuePorts.outbox.getStatusSnapshot(),
+        ports.asyncDiagnostics.task.getStatusSnapshot(),
+        ports.asyncDiagnostics.outbox.getStatusSnapshot(),
       ]);
       return {
         persistence,

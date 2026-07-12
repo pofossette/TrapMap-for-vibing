@@ -47,7 +47,7 @@ export function getOrCreateRequestContext(
     traceHeaderName,
     traceHeaderValue: traceParent ?? null,
     traceId,
-    traceParent: traceId ? traceParent : null,
+    traceParent: traceId ? (traceParent ?? null) : null,
     operationId,
     ...(causationId && { causationId }),
     method: request.method,

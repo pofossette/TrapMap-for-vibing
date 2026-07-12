@@ -72,6 +72,10 @@
 
 ## 失败语义
 
+## Async capability boundary
+
+`knowledge-write` 在 authoritative transaction 内追加本地 outbox event，但 queue/outbox 的 claim、complete、fail、requeue、retry 与 dead-letter runtime 操作归 `job-runtime`。operator status 只暴露只读 snapshot；服务不得从该诊断能力获得 runtime mutation capability。
+
 `knowledge-write` 与所有其他所有者共享相同的 `InvocationError` 分类体系。HTTP 状态码映射如下：
 
 - `403 forbidden` - 执行者缺少此写入权限

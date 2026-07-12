@@ -5,7 +5,7 @@ import {
   getDistributedConnectionBudgetSnapshot,
   loadServiceConfig,
 } from '../config/index.js';
-import { createServiceDatabase, getServicePoolConfig } from './database.js';
+import { createServiceDatabase, getServicePoolConfig, getServicePoolSnapshot } from './database.js';
 
 describe('distributed database pool configuration', () => {
   it('maps service config into bounded PostgreSQL pool timeouts', () => {
@@ -31,14 +31,30 @@ describe('distributed database pool configuration', () => {
       options: { max: config.poolSize },
     } as never;
 
-    const snapshot = {
-      total: pool.totalCount,
-      idle: pool.idleCount,
-      waiting: pool.waitingCount,
-      max: pool.options.max,
-    };
+    const snapshot = getServicePoolSnapshot(pool, pool.options.max);
 
-    expect(snapshot).toEqual({ total: 3, idle: 1, waiting: 2, max: config.poolSize });
+    expect(snapshot).toEqual({
+      total: 3,
+      idle: 1,
+      waiting: 2,
+      max: config.poolSize,
+      saturation: 3 / config.poolSize,
+    });
+  });
+
+  it('returns unknown diagnostics when a pool counter is unavailable', () => {
+    const snapshot = getServicePoolSnapshot(
+      { totalCount: undefined, idleCount: 1, waitingCount: undefined } as never,
+      5,
+    );
+
+    expect(snapshot).toEqual({
+      total: 'unknown',
+      idle: 1,
+      waiting: 'unknown',
+      max: 5,
+      saturation: 'unknown',
+    });
   });
 
   it('reports total configured service pools against the shared budget', () => {

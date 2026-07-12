@@ -132,6 +132,21 @@ async function startService(
   services.push({ name, port, url, process: child, stdoutTail, stderrTail });
 }
 
+async function restartService(
+  name: ServiceProcess['name'],
+  role: string,
+  env: Record<string, string>,
+) {
+  const serviceIndex = services.findIndex((service) => service.name === name);
+  if (serviceIndex < 0) throw new Error(`Service ${name} is not running`);
+  const [service] = services.splice(serviceIndex, 1);
+  await new Promise<void>((resolve) => {
+    service.process.once('exit', () => resolve());
+    service.process.kill('SIGTERM');
+  });
+  await startService(name, role, service.port, env);
+}
+
 async function diagnostics(url: string) {
   const response = await fetch(`${url}/__diagnostics`);
   expect(response.status).toBe(200);
@@ -234,6 +249,25 @@ describe('distributed runtime closeout', () => {
     expect(status.status).toBe(200);
     expect(queue.status).toBe(200);
 
+    const knowledgeWriteBeforeRestart = await diagnostics(env.TRAPMAP_KNOWLEDGE_WRITE_URL);
+
+    await restartService('knowledge-write', 'knowledge-write', env);
+    const recoveredReview = await fetch(`${env.TRAPMAP_GATEWAY_URL}/v1/knowledge/review`, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        entryId: 'entry-after-restart',
+        actorId: 'user-1',
+        decision: 'approve',
+      }),
+    });
+    expect(recoveredReview.status).toBe(200);
+
+    const jobRuntimeAfterRestart = await fetch(`${env.TRAPMAP_GATEWAY_URL}/v1/jobs/queue`, {
+      headers: { authorization: 'Bearer session' },
+    });
+    expect(jobRuntimeAfterRestart.status).toBe(200);
+
     const errorCases = [
       ['missing-entry', 404, 'not-found'],
       ['conflict-entry', 409, 'conflict'],
@@ -298,16 +332,17 @@ describe('distributed runtime closeout', () => {
     expect(identity.headers[0]).not.toHaveProperty('x-trace-id');
     expect(candidate.hits).toContain('candidate:resolution:candidate-1');
     expect(governance.hits).toContain('review:approve:entry-1');
-    expect(knowledgeWrite.hits).toEqual(
+    expect(knowledgeWriteBeforeRestart.hits).toEqual(
       expect.arrayContaining([
         'knowledge-write:candidate:candidate-1',
         'knowledge-write:approve:entry-1',
       ]),
     );
-    expect(knowledgeWrite.headers).toContainEqual({
+    expect(knowledgeWriteBeforeRestart.headers).toContainEqual({
       'x-request-id': 'req-closeout',
       'x-trace-id': 'trace-closeout',
     });
+    expect(knowledgeWrite.hits).toContain('knowledge-write:approve:entry-after-restart');
     expect(jobRuntime.reclaimCount).toBe(2);
     expect(jobRuntime.queueSnapshots).toEqual(
       expect.arrayContaining([

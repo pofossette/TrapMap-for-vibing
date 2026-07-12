@@ -341,6 +341,8 @@ Current RPC pilot scope（当前 RPC 试点范围）：
 
 ### `distributed` 当前基线
 
+gateway → governance-review → knowledge-write 和 candidate-ingestion → job-runtime 都通过内部 HTTP owner hop 运行。gateway、governance-review 与 knowledge-write 不允许 local direct-write fallback；`409`、`503`、`504` 必须保留 canonical `InvocationError` 分类，并可用 request/trace/operation 关联字段与 operator surface 联查。多进程、shared PG 与局部重启恢复只是 Level 2 的过渡性证据，未达到独立扩缩容或平台化门槛前成熟度固定为 `Level 2 / transitional-microservice`。
+
 `packages/host-distributed/src/config/service-config.ts` 是默认地址和 Docker DNS 名称的事实源：
 
 | 物理进程 / DNS 名 | 逻辑服务 |

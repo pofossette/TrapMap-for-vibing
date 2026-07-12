@@ -1255,13 +1255,17 @@ function createPgOutbox(pool: Pool): OutboxPort {
 // ---------------------------------------------------------------------------
 
 export interface ServicePortImplementations {
-  repos: RepositoryPorts;
+  repos: Omit<RepositoryPorts, 'audit'> & { audit?: AuditRepositoryPort };
   sessionLookup: SessionLookupPort;
   teamLookup: TeamLookupPort;
   permissionCheck: PermissionCheckPort;
   auditLog: AuditLogPort;
   retrievalQuery: RetrievalQueryPort;
-  queuePorts: QueuePorts;
+  asyncDiagnostics: {
+    task: Pick<TaskQueuePort, 'kind' | 'getStatusSnapshot'>;
+    outbox: Pick<OutboxPort, 'kind' | 'getStatusSnapshot'>;
+  };
+  jobRuntime?: QueuePorts;
 }
 
 /**
@@ -1295,7 +1299,12 @@ export function createServicePorts(
   );
   const userRepo = withDatabaseWriteGuard(createPgUserRepo(pool), serviceName, 'identity');
   const feedbackRepo = withDatabaseWriteGuard(createPgFeedbackRepo(pool), serviceName, 'knowledge');
-  const auditRepo = withDatabaseWriteGuard(createPgAuditRepo(pool), serviceName, 'audit');
+  const auditRepo =
+    serviceName === 'server-compatibility-seam'
+      ? withDatabaseWriteGuard(createPgAuditRepo(pool), serviceName, 'audit')
+      : undefined;
+  const taskQueue = createPgTaskQueue(pool);
+  const outbox = createPgOutbox(pool);
 
   return {
     repos: {
@@ -1307,16 +1316,23 @@ export function createServicePorts(
       membership: membershipRepo,
       user: userRepo,
       feedback: feedbackRepo,
-      audit: auditRepo,
+      ...(auditRepo ? { audit: auditRepo } : {}),
     },
     sessionLookup: createPgSessionLookup(pool),
     teamLookup: createPgTeamLookup(pool),
     permissionCheck: createPgPermissionCheck(pool),
     auditLog: createPgAuditLog(pool),
     retrievalQuery: createPgRetrievalQuery(pool),
-    queuePorts: {
-      task: createPgTaskQueue(pool),
-      outbox: createPgOutbox(pool),
+    asyncDiagnostics: {
+      task: {
+        kind: taskQueue.kind,
+        getStatusSnapshot: () => taskQueue.getStatusSnapshot(),
+      },
+      outbox: {
+        kind: outbox.kind,
+        getStatusSnapshot: () => outbox.getStatusSnapshot(),
+      },
     },
+    ...(serviceName === 'job-runtime' ? { jobRuntime: { task: taskQueue, outbox } } : {}),
   };
 }

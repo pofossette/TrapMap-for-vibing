@@ -221,6 +221,10 @@ Phase 1A 已经在代码中冻结了以下内容：
 
 ## 非目标
 
+## Distributed acceptance correlation
+
+distributed acceptance 使用真实 HTTP hop 验证 request/trace correlation、canonical `409`/`503`/`504`、deadline、有限 retry 与幂等 replay。operator 排障以 request、W3C `traceparent`、operation/causation 与 owner surface 为关联键；没有数据的 pool、queue/outbox、projection 或 follow-up 字段必须输出 `unknown`，不可使用零值伪装健康状态。
+
 当前阶段明确不做：
 
 - 不把 `OTEL_ENABLED`、`OTEL_SAMPLING_RATE` 一类旧变量重新写回文档

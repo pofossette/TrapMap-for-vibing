@@ -223,6 +223,12 @@ Service B:  BEGIN; update_projection; append_own_outbox; COMMIT;
 
 ## 参考资料
 
+## Distributed capability boundary
+
+`createServicePorts()` 将能力分为 repository、只读 `asyncDiagnostics` 与仅 `job-runtime` 可取得的 runtime capability。业务 owner 只能读取 queue/outbox 快照；`enqueue`、claim、complete、fail、requeue 与 dead-letter 运行时操作不向其组装。业务异步后续通过远程 `job-runtime` scheduling surface 请求，并将 `409`、`503`、`504` 保持为 canonical `InvocationError`。
+
+`repos.audit` 只提供给 audit owner（当前为 `server-compatibility-seam`）；其他服务仅取得带 `sourceService` 的 append-only `auditLog`。aggregate owner 在自己的 authoritative transaction 内追加本地 outbox event，不能借此取得 job-runtime 的 claim/retry 能力。
+
 - [目标架构](TARGET_ARCHITECTURE.md) — 包角色、部署角色、服务角色
 - [服务边界](SERVICE_BOUNDARIES.md) — 服务角色定义和所有权模型
 - [运行时重组计划 00](../plans/runtime-recomposition/00-baseline-and-target-architecture.md) — 计划起源、数据库原则

@@ -19,6 +19,8 @@ rtk pnpm test:discovery-closeout
 rtk pnpm test:distributed-closeout
 rtk pnpm test:runtime-foundations
 rtk pnpm test:deployment-smoke
+rtk pnpm test:distributed-acceptance
+rtk pnpm test:runtime-closeout
 rtk pnpm check:docs-drift
 rtk pnpm check:structure
 ```

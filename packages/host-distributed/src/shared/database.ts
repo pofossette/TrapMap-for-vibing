@@ -20,10 +20,11 @@ export interface ServiceDatabase {
 }
 
 export interface ServicePoolSnapshot {
-  total: number;
-  idle: number;
-  waiting: number;
+  total: number | 'unknown';
+  idle: number | 'unknown';
+  waiting: number | 'unknown';
   max: number;
+  saturation: number | 'unknown';
 }
 
 export interface ServiceDatabaseHealth {
@@ -58,11 +59,15 @@ export function getServicePoolConfig(config: ServiceConfig): PoolConfig {
 }
 
 export function getServicePoolSnapshot(pool: pg.Pool, max: number): ServicePoolSnapshot {
+  const total = typeof pool.totalCount === 'number' ? pool.totalCount : 'unknown';
+  const idle = typeof pool.idleCount === 'number' ? pool.idleCount : 'unknown';
+  const waiting = typeof pool.waitingCount === 'number' ? pool.waitingCount : 'unknown';
   return {
-    total: pool.totalCount,
-    idle: pool.idleCount,
-    waiting: pool.waitingCount,
+    total,
+    idle,
+    waiting,
     max,
+    saturation: typeof total === 'number' && max > 0 ? total / max : 'unknown',
   };
 }
 

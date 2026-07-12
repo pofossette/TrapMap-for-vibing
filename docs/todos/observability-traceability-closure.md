@@ -261,6 +261,13 @@
 
 ## 完成与归档
 
+## 2026-07-12 Tranche 6 / 7 implementation evidence
+
+- Implemented: distributed ports now separate owner-scoped repositories, read-only `asyncDiagnostics`, and a `jobRuntime` capability available only to `job-runtime`; non-audit services no longer receive `repos.audit`. Candidate follow-up scheduling now uses the remote `job-runtime` owner and preserves canonical `InvocationError` failures. Pool saturation is derived as `total / max`; absent pool counters report `unknown`.
+- Implemented: the multi-process closeout restarts `knowledge-write`, verifies a subsequent gateway → governance-review → knowledge-write command recovers, and verifies the independent job-runtime queue surface remains available. The maturity claim remains `Level 2 / transitional-microservice`; no Level 3 claim or checkbox is made.
+- Passed: `rtk pnpm exec vitest run packages/host-distributed/src/shared/database-ownership.test.ts packages/host-distributed/src/shared/internal-job-runtime-client.test.ts packages/host-distributed/src/shared/database.test.ts packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts` (17 tests), `rtk pnpm test:runtime-foundations` (175 passed, 10 skipped), `rtk pnpm test:distributed-acceptance` (41 passed), `rtk pnpm test:distributed-closeout` (30 passed), `rtk pnpm test:observability-closeout` (52 passed), `rtk pnpm test:deployment-smoke` (171 passed, 4 skipped), `rtk pnpm typecheck`, `rtk pnpm eval:smoke` (81 passed), `rtk pnpm check:docs-drift`, `rtk pnpm check:structure`, and `rtk pnpm exec fallow audit --base main`.
+- Not closed: `rtk pnpm test:runtime-closeout` requires a running distributed gateway at `TRAPMAP_CLOSEOUT_BASE_URL` and `TRAPMAP_SYSTEM_ADMIN_KEY`. This workspace supplied neither; its initial run stopped at the required key check. Tranche 6 items 2/5/6/7 and Tranche 7's remaining four items therefore stay unchecked pending that external runtime evidence.
+
 - [ ] 每个 tranche 完成后，在本文件记录实际变更、验证命令和未覆盖的外部前置条件。
 - [ ] 主线完成时，确认根 `plan.md`、`docs/todos/README.md`、`docs/archived/README.md` 只有一个 active execution surface。
 - [ ] 使用 `git mv` 将本文件归档到 `docs/archived/archived-plans/`，更新归档表，并将根 `plan.md` 切换为下一个主线或“当前无 active mainline”。

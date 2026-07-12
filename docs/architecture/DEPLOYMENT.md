@@ -872,6 +872,10 @@ kubectl logs -f statefulset/postgres
 
 ### 健康检查
 
+### Distributed recovery acceptance
+
+部署验证应单独重启 `knowledge-write`，确认 gateway 的后续 governance delegation 恢复，同时 `job-runtime` queue status 仍可访问。该验证证明局部进程故障不会要求整套进程重启，但不构成 Level 3 或独立扩缩容声明；当前部署成熟度保持 `Level 2 / transitional-microservice`。
+
 ```bash
 # API 健康
 curl http://127.0.0.1:4000/health

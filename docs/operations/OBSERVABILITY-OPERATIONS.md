@@ -89,6 +89,12 @@ Metrics 不需要采样——指标在进程内聚合为计数器、gauge 和直
 
 ## 健康检查语义
 
+### Shared PG 与 async operator diagnostics
+
+distributed operator surface 报告 pool 的 `total`、`idle`、`waiting`、`max` 和由 `total / max` 导出的 `saturation`；只使用 `pg.Pool` 的三个原始计数。任一原始计数缺失时，对应值及 saturation 固定为 `unknown`。连接、statement timeout 或 DB health failure 应与 service owner、queue/outbox snapshot、lease/reclaim、retry/dead-letter 和 projection lag 一并诊断，而不是把缺失计数当作零。
+
+`knowledge-write`、`governance-review` 与 `job-runtime` 的 `/internal/operator-status` 是 owner-level 入口。业务 owner 可查看 async snapshot，但只有 `job-runtime` 操作运行时队列；先确认 owner 和 `InvocationError` 分类，再决定重启、reclaim 或 replay。
+
 TrapMap 提供三个探针端点，遵循 Kubernetes 探针语义，适用于容器编排和负载均衡决策。
 
 ### `/live` — Liveness Probe
