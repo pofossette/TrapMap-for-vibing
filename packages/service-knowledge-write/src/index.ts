@@ -4,6 +4,7 @@ export {
   type KnowledgeWriteDeps,
   type KnowledgeWritePortDeps,
 } from './deps.js';
+export { assertKnowledgeWriteMigrationSet, runKnowledgeWriteMigrations } from './migrations.js';
 export {
   registerKnowledgeWriteRoutes,
   type KnowledgeWriteReadinessOptions,

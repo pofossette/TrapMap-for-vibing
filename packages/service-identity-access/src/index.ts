@@ -5,6 +5,7 @@ export {
   type IdentityAccessPortDeps,
 } from './deps.js';
 export { registerIdentityAccessRoutes } from './routes.js';
+export { assertIdentityAccessMigrationSet, runIdentityAccessMigrations } from './migrations.js';
 export {
   createIdentityAccessServer,
   type IdentityAccessServer,

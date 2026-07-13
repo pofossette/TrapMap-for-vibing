@@ -51,7 +51,6 @@ COPY --from=build /app/packages/contracts/dist ./packages/contracts/dist
 COPY packages/server/package.json ./packages/server/
 COPY packages/server/tsconfig.json ./packages/server/
 COPY --from=deps /app/packages/server/node_modules ./packages/server/node_modules
-COPY packages/server/drizzle ./packages/server/drizzle
 COPY --from=build /app/packages/server/dist ./packages/server/dist
 
 # Create self-reference symlink so @trapmap/server resolves to dist/

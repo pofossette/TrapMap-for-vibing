@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS "users" ("id" text PRIMARY KEY, "handle" text NOT NULL UNIQUE, "notes" text, "created_at" timestamptz NOT NULL DEFAULT now(), "updated_at" timestamptz NOT NULL DEFAULT now());
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "teams" ("id" text PRIMARY KEY, "slug" text NOT NULL UNIQUE, "name" text NOT NULL, "description" text, "created_at" timestamptz NOT NULL DEFAULT now(), "updated_at" timestamptz NOT NULL DEFAULT now());
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "memberships" ("id" text PRIMARY KEY, "user_id" text NOT NULL REFERENCES "users"("id") ON DELETE CASCADE, "team_id" text NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE, "role_template" text NOT NULL, "security_level" integer NOT NULL, "permissions" jsonb NOT NULL, "notes" text, "created_at" timestamptz NOT NULL DEFAULT now(), "updated_at" timestamptz NOT NULL DEFAULT now(), UNIQUE ("user_id", "team_id"));
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "sessions" ("id" text PRIMARY KEY, "token_hash" text NOT NULL UNIQUE, "user_id" text REFERENCES "users"("id"), "active_team_id" text REFERENCES "teams"("id"), "subject_type" text NOT NULL, "expires_at" timestamptz, "created_at" timestamptz NOT NULL DEFAULT now(), "updated_at" timestamptz NOT NULL DEFAULT now());
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "access_keys" ("id" text PRIMARY KEY, "member_id" text NOT NULL REFERENCES "memberships"("id"), "token_hash" text NOT NULL UNIQUE, "token_preview" text NOT NULL, "issued_by_user_id" text NOT NULL REFERENCES "users"("id"), "team_id" text NOT NULL REFERENCES "teams"("id"), "level" integer NOT NULL, "notes" text, "revoked_at" timestamptz, "created_at" timestamptz NOT NULL DEFAULT now(), "updated_at" timestamptz NOT NULL DEFAULT now());
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "audit_events" ("id" text PRIMARY KEY, "team_id" text, "actor_id" text NOT NULL, "action" text NOT NULL, "entity_id" text NOT NULL, "payload" jsonb NOT NULL, "event_version" integer NOT NULL DEFAULT 1, "source_service" text NOT NULL DEFAULT 'identity-access', "request_id" text, "trace_id" text, "operation_id" text, "causation_id" text, "outcome" text NOT NULL DEFAULT 'success', "created_at" timestamptz NOT NULL DEFAULT now(), "updated_at" timestamptz NOT NULL DEFAULT now());

@@ -49,7 +49,7 @@ cp .env.example .env
 
 ### PostgreSQL 设置（推荐）
 
-当前开发主线推荐使用 PostgreSQL。本地 `host-local` / `server` 兼容壳以 `TRAPMAP_DATABASE_URL` 为准；`distributed` 宿主额外兼容 `DATABASE_URL` fallback。Drizzle 数据库迁移仍由 `packages/server/drizzle/` 作为权威迁移目录提供。若未设置数据库 URL，部分本地姿态仍会回退到 JSON 文件存储。
+当前开发主线推荐使用 PostgreSQL。本地 `host-local` / `server` 兼容壳以 `TRAPMAP_DATABASE_URL` 为准；`distributed` 宿主额外兼容 `DATABASE_URL` fallback。Drizzle baseline 由六个 `packages/service-*/drizzle/` 目录分别拥有，distributed host 按固定依赖顺序执行。迁移从空库开始；已有开发数据库需重建。若未设置数据库 URL，部分本地姿态仍会回退到 JSON 文件存储。
 
 ```bash
 # 创建数据库

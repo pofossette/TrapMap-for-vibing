@@ -34,4 +34,27 @@ describe('runDistributedMigrations', () => {
     if (previous === undefined) delete process.env.TRAPMAP_DATABASE_URL;
     else process.env.TRAPMAP_DATABASE_URL = previous;
   });
+
+  it('runs owner migrations in dependency order and stops at the first failure', async () => {
+    const end = vi.fn(async () => undefined);
+    const calls: string[] = [];
+    const previous = process.env.TRAPMAP_DATABASE_URL;
+    process.env.TRAPMAP_DATABASE_URL = 'postgres://trapmap:test@localhost/trapmap';
+
+    await expect(
+      runDistributedMigrations(() => ({ end, query: vi.fn() }), undefined, [
+        async () => calls.push('identity-access'),
+        async () => {
+          calls.push('knowledge-write');
+          throw new Error('owner failed');
+        },
+        async () => calls.push('candidate-ingestion'),
+      ]),
+    ).rejects.toThrow('owner failed');
+
+    expect(calls).toEqual(['identity-access', 'knowledge-write']);
+    expect(end).toHaveBeenCalledOnce();
+    if (previous === undefined) delete process.env.TRAPMAP_DATABASE_URL;
+    else process.env.TRAPMAP_DATABASE_URL = previous;
+  });
 });

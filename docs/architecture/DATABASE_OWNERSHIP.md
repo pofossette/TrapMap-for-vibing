@@ -216,7 +216,7 @@ Service B:  BEGIN; update_projection; append_own_outbox; COMMIT;
 
 ## 迁移与投影运行约束
 
-- 当前 Drizzle migration runner 仍由 `server-compatibility-seam` 统一执行。`packages/server/src/lib/persistence/migration-ownership.ts` 是可审计 manifest：每份 Drizzle migration 都声明 table family、logical owner 和 allowed runner；启动时双向校验目录与 manifest，拒绝重复项、空 table family、空 allowed runner、owner/runner 不一致、缺少 metadata 或指向已不存在文件的 manifest 项。review/startup 可按“runner + 请求 migration 名称”校验子集；这不授予服务执行完整 Drizzle 目录的权限。历史跨域 migration 以及 startup compatibility DDL/DML 仅允许 `server-compatibility-seam` 执行；这不是 distributed 服务获得跨 owner 写权限的例外。迁移评审仍必须在同一变更中更新本 owner matrix、对应 repository 和数据模型文档。
+- 每个 service owner 在自己的 `drizzle/` 目录维护空库 baseline 与 journal，并在运行前双向校验 SQL/journal。runner 不接受其他 owner 的目录或 migration；distributed host 只按 `identity-access → knowledge-write → candidate-ingestion → governance-review → job-runtime → knowledge-read` 共享同一 pool 协调执行。旧迁移历史与 startup compatibility DDL/DML 已删除，已有开发数据库必须重建。
 - distributed host 的 `repos.audit` 也受 owner guard 保护；业务服务只能通过注入的 append-only `auditLog` capability 记录审计事实，不能把 audit repository 当作跨 owner 的通用写入口。
 - `knowledge-read` 的 entry snapshot 当前是 `temporary-direct-backed-projection`：由 knowledge-write 生命周期失效触发、可从 `/internal/knowledge-read/projection-status` 查看 freshness/lag，并由 `/internal/knowledge-read/projection-rebuild` 重建。
 - 该临时 direct-read 的退出条件是：由 `domain_event_outbox` 消费者维护独立、可重建的 persisted projection；在此之前，写服务不得直接组装 read-side 响应。

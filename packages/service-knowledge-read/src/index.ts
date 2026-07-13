@@ -4,6 +4,7 @@ export {
   type KnowledgeReadDeps,
   type KnowledgeReadPortDeps,
 } from './deps.js';
+export { assertKnowledgeReadMigrationSet, runKnowledgeReadMigrations } from './migrations.js';
 export { registerKnowledgeReadRoutes } from './routes.js';
 export {
   createKnowledgeReadServer,

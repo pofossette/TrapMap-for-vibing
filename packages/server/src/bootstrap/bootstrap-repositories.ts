@@ -1,5 +1,5 @@
 /**
- * Bootstrap repositories — run migrations, create all repos, ensure vector index.
+ * Bootstrap repositories — create all repos and ensure vector index.
  *
  * This must run BEFORE any other startup step that depends on repositories
  * (candidate recovery, task workers, lifecycle subscribers).
@@ -23,7 +23,6 @@ import { artifactGraphIndexAdapter } from '@trapmap/server/lib/indexing/adapters
 import { createCapsuleIndexAdapter } from '@trapmap/server/lib/indexing/adapters/capsule-index.js';
 import { registerArtifactAdapters } from '@trapmap/server/lib/indexing/artifact-pipeline.js';
 import { createKnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
-import { runMigrations } from '@trapmap/server/lib/persistence/migration-runner.js';
 import { createAllRepos } from '@trapmap/server/lib/repos/index.js';
 import { ensureCapsuleVectorIndex } from '@trapmap/server/lib/retrieval/capsules/repositories/pg-capsule-vector.js';
 import { ensureVectorIndex } from '@trapmap/server/lib/retrieval/recall/db-search.js';
@@ -46,15 +45,6 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
   } as const;
 
   if (pool) {
-    // Run Drizzle migrations before any repository access
-    try {
-      await runMigrations(pool);
-      app.log.info('Database migrations applied');
-    } catch (error) {
-      app.log.error({ error }, 'Failed to apply database migrations');
-      throw error;
-    }
-
     // Legacy flat repo properties — compatibility-only, prefer `repos.*` for new code
     app.skillShareer.knowledgeRepo = createKnowledgeRepository({ pool, store });
     app.skillShareer.artifactRepo = createArtifactRepository({ pool, store });

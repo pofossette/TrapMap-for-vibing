@@ -3,7 +3,11 @@
 > **源码真实来源**: `packages/server/src/lib/persistence/schema.ts`
 > **表定义目录**: `packages/server/src/lib/persistence/schema/`
 > **数据模型详情**: `docs/reference/DATA_MODEL.md`
-> **迁移历史**: `packages/server/drizzle/`（当前包含 `0019_phase5_shared_jobs_feedback_remediation.sql`）
+> **迁移基线**: 六个 `packages/service-*/drizzle/` 目录各自拥有一个空库 baseline；distributed host 按 `identity-access → knowledge-write → candidate-ingestion → governance-review → job-runtime → knowledge-read` 协调执行。
+
+## 迁移操作
+
+迁移只支持从空数据库建立当前 schema。已有开发数据库必须重建；不支持旧 `0000–0020` 历史的原地升级。`store_snapshot` 中的遗留数据不由 migration 搬运，后续 Task 9 会通过显式 export/backfill 处理。
 
 ## 技术栈
 

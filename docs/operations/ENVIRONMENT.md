@@ -38,7 +38,7 @@
 | `DATABASE_URL` | PostgreSQL 连接字符串（当前主要用于 `host-distributed` fallback） | 空 |
 | `TRAPMAP_DATA_FILE` | JSON 文件存储路径（兼容回退，可选） | `.data/skill-shareer.json` |
 
-> 本地 `host-local` / `server` 兼容壳以 `TRAPMAP_DATABASE_URL` 为主；`host-distributed` 额外兼容 `DATABASE_URL` fallback。Drizzle migration runner 的权威迁移目录仍是 `packages/server/drizzle/`。
+> 本地 `host-local` / `server` 兼容壳以 `TRAPMAP_DATABASE_URL` 为主；`host-distributed` 额外兼容 `DATABASE_URL` fallback。Drizzle migration 由六个 service owner 的本地 `drizzle/` 目录提供，且只支持空库 baseline；已有开发数据库需重建。
 
 ### 可选部署拆分与任务传输
 

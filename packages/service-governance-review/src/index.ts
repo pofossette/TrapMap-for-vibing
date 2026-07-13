@@ -4,6 +4,7 @@ export {
   type GovernanceReviewDeps,
   type GovernanceReviewPortDeps,
 } from './deps.js';
+export { assertGovernanceReviewMigrationSet, runGovernanceReviewMigrations } from './migrations.js';
 export {
   registerGovernanceReviewRoutes,
   type GovernanceReviewReadinessOptions,

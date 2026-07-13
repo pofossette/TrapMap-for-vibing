@@ -4,6 +4,10 @@ export {
   type CandidateIngestionDeps,
   type CandidateIngestionPortDeps,
 } from './deps.js';
+export {
+  assertCandidateIngestionMigrationSet,
+  runCandidateIngestionMigrations,
+} from './migrations.js';
 export { registerCandidateIngestionRoutes } from './routes.js';
 export {
   createCandidateIngestionServer,

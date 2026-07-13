@@ -32,9 +32,6 @@
         },
         "packages/server/src/lib/persistence/schema/index.ts": {
           "mustContain": ["export const storeSnapshot = pgTable", "export * from './queue.js';"]
-        },
-        "packages/server/src/lib/persistence/migration-runner.ts": {
-          "mustContain": ["ADD COLUMN IF NOT EXISTS \"worker_id\" TEXT", "INSERT INTO \"users\""]
         }
       }
     },

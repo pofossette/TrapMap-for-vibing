@@ -37,7 +37,7 @@
         "队列 / outbox 可靠性策略",
         "Phase 1 server/backend-core boundary freeze",
         "packages/server/src/lib/persistence/schema/index.ts",
-        "packages/server/src/lib/persistence/migration-runner.ts",
+        "packages/service-*/src/migrations.ts",
         "packages/service-*",
         "thin assembly",
         "Phase 2 store-snapshot / PG-first 姿态冻结",
@@ -237,10 +237,7 @@
     },
     {
       "file": "docs/guides/CONTRIBUTING.md",
-      "mustContain": [
-        "pnpm --filter @trapmap/server db:generate",
-        "pnpm --filter @trapmap/server db:migrate"
-      ],
+      "mustContain": ["packages/service-*/drizzle/", "已有开发数据库需重建"],
       "mustNotContain": ["pnpm run db:generate", "pnpm run db:migrate"]
     },
     {

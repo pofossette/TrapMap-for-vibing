@@ -34,7 +34,7 @@
 
 ## Phase 1 Server / Backend-Core boundary freeze
 
-- `packages/server` 保留 Fastify compatibility shell 与 shared runtime/status seam；当前仍负责 `packages/server/src/app.ts`、`packages/server/src/config.ts`、`packages/server/src/lib/repos/index.ts`、`packages/server/src/lib/persistence/schema/index.ts`、`packages/server/src/lib/persistence/migration-runner.ts`，但不再被描述为默认 `light` 主应用主体。
+- `packages/server` 保留 Fastify compatibility shell 与 shared runtime/status seam；当前仍负责 `packages/server/src/app.ts`、`packages/server/src/config.ts`、`packages/server/src/lib/repos/index.ts`、`packages/server/src/lib/persistence/schema/index.ts`，但不再被描述为默认 `light` 主应用主体。迁移 baseline 由各 service owner 本地维护。
 - `packages/backend-core` 不是“仅接口”空壳。它继续承载 runtime capability model、internal ports、invocation contract、bounded-context module factory 与 testing utilities，作为 host-agnostic 内核被 `host-local`、`host-distributed` 和 `service-*` 复用。
 - `packages/service-*` 只承载 owner-aligned thin assembly：`deps.ts`、`routes.ts`、`server.ts`、`index.ts`。它们暴露 backend-core owner module，但不定义自己的 schema/migration owner。
 - `packages/host-local` 与 `packages/host-distributed` 负责 transport/DI/process composition；shared runtime seam 当前收敛到 `packages/runtime-infra`，底层仍可暂时复用 `packages/server` 的实现面，但宿主装配 owner 不再留在 `host-local` 文件内。

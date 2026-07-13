@@ -96,15 +96,13 @@ cases because the graph index wasn't populated.
 数据库表结构通过 Drizzle ORM 管理，所有 DDL 变更必须通过迁移文件交付：
 
 ```bash
-# 生成迁移（修改 packages/server/src/lib/persistence/schema.ts 后）
-pnpm --filter @trapmap/server db:generate
-
-# 手动运行迁移
-pnpm --filter @trapmap/server db:migrate
+# 每个 service owner 在自己的 drizzle/ 目录维护 baseline
+# distributed host 负责按依赖顺序执行六个 owner runner
 ```
 
-- 迁移文件位于 `packages/server/drizzle/`
-- 服务器启动时会通过 migration runner 自动运行迁移
+- 迁移文件位于各 `packages/service-*/drizzle/` 目录
+- migration runner 只接受自身 owner 的目录；服务器启动不会隐式迁移数据库
+- baseline 只支持空数据库；已有开发数据库需重建
 - 禁止在 repository 中通过 `ensureSchema()` 等运行时方法建表
 
 ## Gitignore 与构建产物
