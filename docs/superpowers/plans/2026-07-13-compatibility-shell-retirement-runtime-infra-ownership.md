@@ -1,6 +1,6 @@
 # Compatibility Shell Retirement and Owner-Local Infrastructure Implementation Roadmap
 
-> **For agentic workers:** This is a deferred master roadmap. Do not execute it while `docs/todos/observability-traceability-closure.md` remains the root-linked active detail. When activated, execute one owner wave at a time with TDD; do not retain compatibility re-exports, dual reads, or runtime fallbacks.
+> **For agentic workers:** This is a deferred master roadmap. Do not execute it until root `plan.md` explicitly links a new compatibility-retirement detail. When activated, execute one owner wave at a time with TDD; do not retain compatibility re-exports, dual reads, or runtime fallbacks.
 
 **Goal:** Retire `@trapmap/server`, `@trapmap/runtime-infra`, Fastify compatibility routes, `store_snapshot`, `JsonStore`, and `PostgresStore` by moving each concrete implementation to the service that owns its domain.
 

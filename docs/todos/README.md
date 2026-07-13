@@ -6,7 +6,7 @@
 
 | 文件 | 主题 | 状态 |
 |---|---|---|
-| [observability-traceability-closure.md](observability-traceability-closure.md) | 可观测性、共享 PG 治理与分布式成熟度闭环 | 进行中（唯一 active mainline） |
+| [compatibility-shell-retirement-runtime-infra-ownership.md](compatibility-shell-retirement-runtime-infra-ownership.md) | Compatibility shell 退役与 owner-local infrastructure 收口 | 进行中（唯一 active mainline） |
 | [open-debt-and-compromises.md](open-debt-and-compromises.md) | 长期工程债务与平台成熟度登记 | 受根索引管理；非第二条 active mainline |
 
 ## 目录规则
@@ -19,6 +19,6 @@
 
 ## 当前状态说明
 
-当前唯一 active mainline 是“可观测性、共享 PG 治理与分布式成熟度闭环”。`open-debt-and-compromises.md` 仅承担长期问题的来源、影响、触发条件和后续落点登记；它不允许形成并行 tranche 或抢占当前验收顺序。light / heavy 后端构建目标主线及其余历史证据、冻结决策或背景材料应通过 `docs/archived/` 查找，不继续占用 active 目录。
+当前唯一 active mainline 是 [Compatibility Shell Retirement and Owner-Local Infrastructure 收口](compatibility-shell-retirement-runtime-infra-ownership.md)。已完成的可观测性、shared PG 治理与分布式成熟度主线见 [`../archived/archived-plans/observability-traceability-closure.md`](../archived/archived-plans/observability-traceability-closure.md)。`open-debt-and-compromises.md` 仅承担长期问题的来源、影响、触发条件和后续落点登记；它不允许形成并行 tranche。平台化与其余历史证据、冻结决策或背景材料应通过 `docs/archived/` 查找，只有根 `plan.md` 显式切换后才能成为新的执行面。
 
 完整归档表见 [`../archived/README.md`](../archived/README.md)。

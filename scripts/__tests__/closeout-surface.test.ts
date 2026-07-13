@@ -96,17 +96,16 @@ describe('closeout surface guardrails', () => {
     expect(rule?.mustNotContain ?? []).toEqual(expect.arrayContaining(['48 张表', '56 张表']));
   });
 
-  it('guards the root plan active observability, shared PG, and maturity wording', () => {
+  it('guards the active compatibility-retirement mainline', () => {
     const budgets = readComplexityBudgets();
     const rule = budgets.docRules.find((entry) => entry.file === 'plan.md');
 
     expect(rule).toBeDefined();
     expect(rule?.mustContain ?? []).toEqual(
       expect.arrayContaining([
-        '可观测性、共享 PG 治理与分布式成熟度闭环',
-        'docs/todos/observability-traceability-closure.md',
+        'Compatibility Shell Retirement and Owner-Local Infrastructure 收口',
+        'docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md',
         '共享 PostgreSQL',
-        'Level 2 -> Level 3',
         'open-debt-and-compromises.md',
       ]),
     );
@@ -126,11 +125,29 @@ describe('closeout surface guardrails', () => {
     const archiveRule = rules.find((entry) => entry.file === 'docs/archived/README.md');
 
     expect(truthRule?.mustContain ?? []).toEqual(
-      expect.arrayContaining(['可观测性、共享 PG 治理与分布式成熟度闭环']),
+      expect.arrayContaining([
+        'Compatibility Shell Retirement and Owner-Local Infrastructure 收口',
+      ]),
     );
     expect(archiveRule?.mustContain ?? []).toEqual(
-      expect.arrayContaining(['当前根 `plan.md` 指向“可观测性、共享 PG 治理与分布式成熟度闭环”']),
+      expect.arrayContaining([
+        '当前根 `plan.md` 指向“Compatibility Shell Retirement and Owner-Local Infrastructure 收口”',
+      ]),
     );
+  });
+
+  it('freezes the compatibility deletion contract and archived observability status', () => {
+    const guard = readRepoFile('scripts/__tests__/compatibility-retirement-guard.test.ts');
+    const archivedObservabilityDetail = readRepoFile(
+      'docs/archived/archived-plans/observability-traceability-closure.md',
+    );
+
+    expect(guard).toContain('const COMPATIBILITY_SYMBOLS');
+    expect(guard).toContain('const allowlist');
+    expect(guard).toContain('ownerWave');
+    expect(guard).toContain('unregistered compatibility dependency');
+    expect(guard).toContain('belongs to completed');
+    expect(archivedObservabilityDetail).toContain('状态：** 已归档');
   });
 
   it('guards observability verification and regression docs against stale closeout facts', () => {

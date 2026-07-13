@@ -1,0 +1,583 @@
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
+import { join, relative, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+
+import { describe, expect, it } from 'vitest';
+
+const repoRoot = resolve(import.meta.dirname, '../..');
+
+const COMPATIBILITY_SYMBOLS = [
+  '@trapmap/server',
+  '@trapmap/runtime-infra',
+  'store_snapshot',
+  'JsonStore',
+  'PostgresStore',
+] as const;
+
+type CompatibilitySymbol = (typeof COMPATIBILITY_SYMBOLS)[number];
+type OwnerWave =
+  | 'wave-1'
+  | 'wave-2'
+  | 'wave-3'
+  | 'wave-4'
+  | 'wave-5'
+  | 'wave-6'
+  | 'wave-7'
+  | 'wave-8'
+  | 'wave-9'
+  | 'wave-10';
+const OWNER_WAVES: OwnerWave[] = [
+  'wave-1',
+  'wave-2',
+  'wave-3',
+  'wave-4',
+  'wave-5',
+  'wave-6',
+  'wave-7',
+  'wave-8',
+  'wave-9',
+  'wave-10',
+];
+
+interface AllowlistEntry {
+  file: string;
+  symbol: CompatibilitySymbol;
+  ownerWave: OwnerWave;
+  rationale: string;
+}
+
+const completedOwnerWaves: OwnerWave[] = [];
+const allowlist: AllowlistEntry[] = [
+  ['package.json', '@trapmap/server', 'wave-10', 'root development dependency'],
+  [
+    'packages/backend-core/src/runtime/capability-model.ts',
+    'JsonStore',
+    'wave-9',
+    'legacy capability taxonomy',
+  ],
+  [
+    'packages/host-distributed/package.json',
+    '@trapmap/server',
+    'wave-8',
+    'gateway composition dependency',
+  ],
+  [
+    'packages/host-distributed/src/gateway/server.ts',
+    '@trapmap/server',
+    'wave-8',
+    'gateway request context',
+  ],
+  [
+    'packages/host-distributed/src/migrate.ts',
+    '@trapmap/server',
+    'wave-8',
+    'host migration entrypoint',
+  ],
+  [
+    'packages/host-local/package.json',
+    '@trapmap/runtime-infra',
+    'wave-8',
+    'local host composition dependency',
+  ],
+  [
+    'packages/host-local/src/nest/config/config.ts',
+    'JsonStore',
+    'wave-8',
+    'local host capability config',
+  ],
+  [
+    'packages/host-local/src/nest/runtime/shared-infra.ts',
+    '@trapmap/runtime-infra',
+    'wave-8',
+    'local host shared infrastructure',
+  ],
+  [
+    'packages/runtime-infra/package.json',
+    '@trapmap/server',
+    'wave-10',
+    'compatibility package dependency',
+  ],
+  ['packages/runtime-infra/src/index.ts', 'JsonStore', 'wave-9', 'legacy store export'],
+  ['packages/runtime-infra/src/index.ts', 'PostgresStore', 'wave-9', 'legacy store export'],
+  [
+    'packages/runtime-infra/src/knowledge-read-retrieval-infra.ts',
+    '@trapmap/server',
+    'wave-7',
+    'knowledge-read infrastructure',
+  ],
+  [
+    'packages/runtime-infra/src/knowledge-read-support-infra.ts',
+    '@trapmap/server',
+    'wave-7',
+    'knowledge-read infrastructure',
+  ],
+  [
+    'packages/runtime-infra/src/outbox.ts',
+    '@trapmap/server',
+    'wave-6',
+    'job runtime outbox infrastructure',
+  ],
+  [
+    'packages/runtime-infra/src/postgres-store.ts',
+    'store_snapshot',
+    'wave-9',
+    'legacy snapshot persistence',
+  ],
+  [
+    'packages/runtime-infra/src/postgres-store.ts',
+    'PostgresStore',
+    'wave-9',
+    'legacy snapshot persistence',
+  ],
+  [
+    'packages/runtime-infra/src/repos.ts',
+    '@trapmap/server',
+    'wave-10',
+    'compatibility repository aggregate',
+  ],
+  [
+    'packages/runtime-infra/src/shared-infra.ts',
+    '@trapmap/server',
+    'wave-10',
+    'compatibility shared infrastructure',
+  ],
+  ['packages/runtime-infra/src/store-factory.ts', 'JsonStore', 'wave-9', 'legacy store factory'],
+  [
+    'packages/runtime-infra/src/store-factory.ts',
+    'PostgresStore',
+    'wave-9',
+    'legacy store factory',
+  ],
+  [
+    'packages/runtime-infra/src/store.ts',
+    '@trapmap/server',
+    'wave-9',
+    'legacy store contract bridge',
+  ],
+  ['packages/runtime-infra/src/store.ts', 'JsonStore', 'wave-9', 'legacy JSON store export'],
+  [
+    'packages/server/Dockerfile',
+    '@trapmap/server',
+    'wave-10',
+    'compatibility image self-reference',
+  ],
+  ['packages/server/src/config.ts', 'JsonStore', 'wave-8', 'compatibility runtime capability'],
+  [
+    'packages/server/src/lib/artifacts/model/commands.ts',
+    'JsonStore',
+    'wave-2',
+    'artifact JSON fallback',
+  ],
+  [
+    'packages/server/src/lib/artifacts/repository.ts',
+    'store_snapshot',
+    'wave-2',
+    'artifact snapshot fallback',
+  ],
+  [
+    'packages/server/src/lib/artifacts/repository.ts',
+    'JsonStore',
+    'wave-2',
+    'artifact JSON fallback',
+  ],
+  [
+    'packages/server/src/lib/audit/pg-repository.ts',
+    'store_snapshot',
+    'wave-1',
+    'identity audit snapshot note',
+  ],
+  [
+    'packages/server/src/lib/auth/pg-repository.ts',
+    'store_snapshot',
+    'wave-1',
+    'identity snapshot note',
+  ],
+  [
+    'packages/server/src/lib/candidates/pg-repository/pg-candidate-repository.ts',
+    'store_snapshot',
+    'wave-3',
+    'candidate snapshot note',
+  ],
+  [
+    'packages/server/src/lib/candidates/processor.ts',
+    'JsonStore',
+    'wave-3',
+    'candidate JSON fallback',
+  ],
+  [
+    'packages/server/src/lib/candidates/repository.ts',
+    'store_snapshot',
+    'wave-3',
+    'candidate snapshot fallback',
+  ],
+  [
+    'packages/server/src/lib/candidates/repository.ts',
+    'JsonStore',
+    'wave-3',
+    'candidate JSON fallback',
+  ],
+  [
+    'packages/server/src/lib/feedback/pg-repository.ts',
+    'store_snapshot',
+    'wave-4',
+    'governance snapshot note',
+  ],
+  [
+    'packages/server/src/lib/knowledge/repository.ts',
+    'store_snapshot',
+    'wave-2',
+    'knowledge snapshot fallback',
+  ],
+  [
+    'packages/server/src/lib/knowledge/repository.ts',
+    'JsonStore',
+    'wave-2',
+    'knowledge JSON fallback',
+  ],
+  [
+    'packages/server/src/lib/labels/backfill-runner.ts',
+    'PostgresStore',
+    'wave-9',
+    'migration export fixture',
+  ],
+  [
+    'packages/server/src/lib/labels/merge-repair-runner.ts',
+    'PostgresStore',
+    'wave-9',
+    'migration export fixture',
+  ],
+  [
+    'packages/server/src/lib/lifecycle/emit-transition.ts',
+    'JsonStore',
+    'wave-2',
+    'lifecycle JSON fallback',
+  ],
+  [
+    'packages/server/src/lib/lineage/pg-repository.ts',
+    'store_snapshot',
+    'wave-3',
+    'lineage snapshot note',
+  ],
+  [
+    'packages/server/src/lib/persistence/backfill-indexes.ts',
+    'PostgresStore',
+    'wave-9',
+    'migration export fixture',
+  ],
+  [
+    'packages/server/src/lib/persistence/create-store.ts',
+    'JsonStore',
+    'wave-9',
+    'legacy store assembly',
+  ],
+  [
+    'packages/server/src/lib/persistence/create-store.ts',
+    'PostgresStore',
+    'wave-9',
+    'legacy store assembly',
+  ],
+  [
+    'packages/server/src/lib/persistence/migrate-identity-audit.ts',
+    'store_snapshot',
+    'wave-1',
+    'identity migration fixture',
+  ],
+  [
+    'packages/server/src/lib/persistence/postgres-store.ts',
+    'store_snapshot',
+    'wave-9',
+    'legacy snapshot persistence',
+  ],
+  [
+    'packages/server/src/lib/persistence/postgres-store.ts',
+    'JsonStore',
+    'wave-9',
+    'legacy store fallback',
+  ],
+  [
+    'packages/server/src/lib/persistence/postgres-store.ts',
+    'PostgresStore',
+    'wave-9',
+    'legacy snapshot persistence',
+  ],
+  [
+    'packages/server/src/lib/persistence/schema/candidates.ts',
+    'store_snapshot',
+    'wave-3',
+    'candidate snapshot schema',
+  ],
+  [
+    'packages/server/src/lib/persistence/schema/index.ts',
+    'store_snapshot',
+    'wave-9',
+    'legacy snapshot schema export',
+  ],
+  [
+    'packages/server/src/lib/persistence/schema/knowledge.ts',
+    'store_snapshot',
+    'wave-2',
+    'knowledge snapshot schema',
+  ],
+  [
+    'packages/server/src/lib/persistence/schema/retrieval.ts',
+    'store_snapshot',
+    'wave-7',
+    'retrieval snapshot schema',
+  ],
+  [
+    'packages/server/src/lib/runtime/deployment-profile.ts',
+    'JsonStore',
+    'wave-8',
+    'compatibility profile capability',
+  ],
+  ['packages/server/src/lib/store/index.ts', 'JsonStore', 'wave-9', 'legacy JSON store export'],
+  [
+    'packages/server/src/lib/store/json-store.ts',
+    'JsonStore',
+    'wave-9',
+    'legacy JSON store implementation',
+  ],
+  [
+    'packages/server/src/lib/teams/pg-repository.ts',
+    'store_snapshot',
+    'wave-1',
+    'identity team snapshot note',
+  ],
+  [
+    'packages/server/src/lib/users/pg-repository.ts',
+    'store_snapshot',
+    'wave-1',
+    'identity user snapshot note',
+  ],
+  [
+    'packages/service-knowledge-read/package.json',
+    '@trapmap/server',
+    'wave-7',
+    'read service compatibility dependency',
+  ],
+  [
+    'packages/service-knowledge-read/package.json',
+    '@trapmap/runtime-infra',
+    'wave-7',
+    'read service compatibility dependency',
+  ],
+  [
+    'packages/service-knowledge-read/src/context.ts',
+    '@trapmap/runtime-infra',
+    'wave-7',
+    'read service context bridge',
+  ],
+  [
+    'packages/service-knowledge-read/src/knowledge-read-support-infra-default.ts',
+    '@trapmap/runtime-infra',
+    'wave-7',
+    'read support infrastructure',
+  ],
+  [
+    'packages/service-knowledge-read/src/read-model.ts',
+    '@trapmap/runtime-infra',
+    'wave-7',
+    'read model infrastructure',
+  ],
+  [
+    'packages/service-knowledge-read/src/retrieval-infra-default.ts',
+    '@trapmap/runtime-infra',
+    'wave-7',
+    'retrieval infrastructure',
+  ],
+  [
+    'packages/service-knowledge-read/src/retrieval-recall-coordinator.ts',
+    '@trapmap/runtime-infra',
+    'wave-7',
+    'recall coordinator infrastructure',
+  ],
+  [
+    'packages/service-knowledge-read/src/server-retrieval-seam.ts',
+    '@trapmap/runtime-infra',
+    'wave-7',
+    'server retrieval seam',
+  ],
+  ['scripts/bench-store.ts', 'JsonStore', 'wave-9', 'legacy store benchmark'],
+  ['scripts/bench-store.ts', 'PostgresStore', 'wave-9', 'legacy store benchmark'],
+  ['scripts/export-badcase-to-eval.ts', '@trapmap/server', 'wave-4', 'governance export fixture'],
+  [
+    'scripts/export-retrieval-db-snapshot.ts',
+    '@trapmap/server',
+    'wave-9',
+    'legacy snapshot export fixture',
+  ],
+].map(([file, symbol, ownerWave, rationale]) => ({
+  file,
+  symbol: symbol as CompatibilitySymbol,
+  ownerWave: ownerWave as OwnerWave,
+  rationale,
+}));
+
+function listFiles(directory: string): string[] {
+  if (!existsSync(directory)) return [];
+
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(directory, entry.name);
+    return entry.isDirectory() ? listFiles(path) : [path];
+  });
+}
+
+function isProductionFile(root: string, file: string): boolean {
+  const path = relative(root, file);
+  if (/(^|\/)(__fixtures__|fixtures)(\/|$)/.test(path)) return false;
+  if (/\.(test|spec)\.[cm]?tsx?$/.test(path)) return false;
+
+  return /^(packages\/[^/]+\/src\/.*\.[cm]?tsx?|scripts\/.*\.[cm]?tsx?|packages\/[^/]+\/Dockerfile[^/]*|package\.json|packages\/[^/]+\/package\.json)$/.test(
+    path,
+  );
+}
+
+function hasSymbol(content: string, symbol: CompatibilitySymbol): boolean {
+  return content.includes(symbol);
+}
+
+function symbolsInFile(root: string, file: string): CompatibilitySymbol[] {
+  const relativeFile = relative(root, file);
+  if (relativeFile.endsWith('.d.ts')) return [];
+
+  const content = readFileSync(file, 'utf8');
+  if (relativeFile.endsWith('package.json')) {
+    const manifest = JSON.parse(content) as Record<string, Record<string, string> | undefined>;
+    const dependencyNames = [
+      ...Object.keys(manifest.dependencies ?? {}),
+      ...Object.keys(manifest.devDependencies ?? {}),
+      ...Object.keys(manifest.optionalDependencies ?? {}),
+      ...Object.keys(manifest.peerDependencies ?? {}),
+    ];
+    return COMPATIBILITY_SYMBOLS.filter((symbol) => dependencyNames.includes(symbol));
+  }
+
+  return COMPATIBILITY_SYMBOLS.filter((symbol) => {
+    if (symbol === '@trapmap/server' && relativeFile.startsWith('packages/server/src/')) {
+      return false;
+    }
+    if (
+      symbol === '@trapmap/runtime-infra' &&
+      relativeFile.startsWith('packages/runtime-infra/src/')
+    ) {
+      return false;
+    }
+    return hasSymbol(content, symbol);
+  });
+}
+
+function findCompatibilityDependencies(root: string): AllowlistEntry[] {
+  return [
+    join(root, 'package.json'),
+    ...listFiles(join(root, 'packages')),
+    ...listFiles(join(root, 'scripts')),
+  ]
+    .filter((file) => existsSync(file) && isProductionFile(root, file))
+    .flatMap((file) => {
+      const relativeFile = relative(root, file);
+
+      return symbolsInFile(root, file).map((symbol) => ({
+        file: relativeFile,
+        symbol,
+        ownerWave: 'wave-10' as const,
+        rationale: '',
+      }));
+    });
+}
+
+function validateAllowlistEntry(entry: AllowlistEntry, actualKeys: Set<string>): string[] {
+  const key = `${entry.file}:${entry.symbol}`;
+  const checks: Array<[boolean, string]> = [
+    [
+      !COMPATIBILITY_SYMBOLS.includes(entry.symbol),
+      `allowlist entry ${key} uses an unsupported symbol`,
+    ],
+    [
+      !OWNER_WAVES.includes(entry.ownerWave),
+      `allowlist entry ${key} has an unsupported owner wave`,
+    ],
+    [!entry.ownerWave, `allowlist entry ${key} has no owner wave`],
+    [!entry.rationale, `allowlist entry ${key} has no rationale`],
+    [!actualKeys.has(key), `allowlist entry ${key} no longer matches a production dependency`],
+    [
+      completedOwnerWaves.includes(entry.ownerWave),
+      `allowlist entry ${key} belongs to completed ${entry.ownerWave}`,
+    ],
+  ];
+
+  return checks.filter(([failed]) => failed).map(([, message]) => message);
+}
+
+function validateAllowlist(root: string, entries: AllowlistEntry[]): string[] {
+  const actualKeys = new Set(
+    findCompatibilityDependencies(root).map((entry) => `${entry.file}:${entry.symbol}`),
+  );
+  const allowedKeys = new Set(entries.map((entry) => `${entry.file}:${entry.symbol}`));
+  const invalidEntries = entries.flatMap((entry) => validateAllowlistEntry(entry, actualKeys));
+  const unregistered = [...actualKeys]
+    .filter((key) => !allowedKeys.has(key))
+    .map((key) => `unregistered compatibility dependency: ${key}`);
+
+  return [...invalidEntries, ...unregistered];
+}
+
+describe('compatibility retirement guard', () => {
+  function writeProductionFile(root: string, relativePath: string, content: string): void {
+    const file = join(root, relativePath);
+    mkdirSync(resolve(file, '..'), { recursive: true });
+    writeFileSync(file, content);
+  }
+
+  it('rejects an unregistered production compatibility dependency', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trapmap-compatibility-guard-'));
+    writeProductionFile(root, 'packages/example/src/runtime.ts', "import '@trapmap/server';");
+
+    expect(validateAllowlist(root, [])).toEqual([
+      'unregistered compatibility dependency: packages/example/src/runtime.ts:@trapmap/server',
+    ]);
+  });
+
+  it('ignores compatibility references in tests and fixtures', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trapmap-compatibility-guard-'));
+    writeProductionFile(root, 'packages/example/src/runtime.test.ts', "import '@trapmap/server';");
+    writeProductionFile(
+      root,
+      'packages/example/src/fixtures/legacy.ts',
+      'const store = new JsonStore();',
+    );
+
+    expect(validateAllowlist(root, [])).toEqual([]);
+  });
+
+  it('requires a real file, supported symbol, owner wave, and rationale for each exception', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trapmap-compatibility-guard-'));
+    writeProductionFile(root, 'packages/example/src/runtime.ts', "import '@trapmap/server';");
+    const invalid = {
+      file: 'packages/example/src/missing.ts',
+      symbol: 'UnknownStore',
+      ownerWave: 'wave-11',
+      rationale: '',
+    } as unknown as AllowlistEntry;
+
+    expect(validateAllowlist(root, [invalid])).toEqual(
+      expect.arrayContaining([
+        'allowlist entry packages/example/src/missing.ts:UnknownStore uses an unsupported symbol',
+        'allowlist entry packages/example/src/missing.ts:UnknownStore has an unsupported owner wave',
+        'allowlist entry packages/example/src/missing.ts:UnknownStore has no rationale',
+        'allowlist entry packages/example/src/missing.ts:UnknownStore no longer matches a production dependency',
+        'unregistered compatibility dependency: packages/example/src/runtime.ts:@trapmap/server',
+      ]),
+    );
+  });
+
+  it('registers every current production compatibility dependency for deletion', () => {
+    expect(validateAllowlist(repoRoot, allowlist)).toEqual([]);
+  });
+});

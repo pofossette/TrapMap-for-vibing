@@ -6,17 +6,18 @@
 ## 使用规则
 
 - 每项记录必须包含来源、影响、当前边界、进入条件和后续落点；未验证的扫描信号不得描述为已确认缺陷。
-- 当前主线只处理与可观测性、shared PG owner、投影和服务级运维直接相关且可在本轮验证的事项。
-- 任一项满足进入条件时，创建新的 active detail 并由根 `plan.md` 替换当前主线链接；不得在本文件直接启动并行实施。
+- 当前 active mainline 只处理 compatibility shell retirement and owner-local infrastructure；本登记册不能自行授权任何其他实施。
+- 任一项满足进入条件时，创建新的 active detail 并由根 `plan.md` 显式链接；不得在本文件直接启动并行实施。
 - 关闭一项时记录实际变更、最小验证和权威文档回写；只剩历史价值时归档到 `docs/archived/archived-plans/`。
 
 ## 长期问题池
 
 ### 兼容层债务持续存在
 
+- [x] **当前状态：** 已由 [`compatibility-shell-retirement-runtime-infra-ownership.md`](compatibility-shell-retirement-runtime-infra-ownership.md) 承担 active 执行责任；本节只保留其来源、边界与历史设计输入。
 - [ ] **来源：** `packages/server` 仍是 Fastify compatibility shell 与大量 shared implementation surface；`packages/runtime-infra` 仍通过 shared store/repository/async seam 复用 server 基础设施。
-- [ ] **设计输入：** [`../superpowers/specs/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership-design.md`](../superpowers/specs/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership-design.md) 定义一次性移除 compatibility shell、`runtime-infra` 和 `store_snapshot` 的 owner-local 目标架构；在本主线归档前它仅是 deferred 参考，不构成 active 执行授权。
-- [ ] **实施参考：** [`../superpowers/plans/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership.md`](../superpowers/plans/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership.md) 将该退役拆分为 owner migration、六个领域迁移、host cutover、snapshot backfill 与最终删除 wave；在根 `plan.md` 切换前不得执行。
+- [ ] **设计输入：** [`../superpowers/specs/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership-design.md`](../superpowers/specs/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership-design.md) 定义一次性移除 compatibility shell、`runtime-infra` 和 `store_snapshot` 的 owner-local 目标架构；在根 `plan.md` 显式激活前它仅是 deferred 参考，不构成 active 执行授权。
+- [ ] **实施参考：** [`../superpowers/plans/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership.md`](../superpowers/plans/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership.md) 将该退役拆分为 owner migration、六个领域迁移、host cutover、snapshot backfill 与最终删除 wave；执行 evidence 仅回写 active detail。
 - [ ] **影响：** host 和 service 对迁移期实现面的依赖会扩大改动影响范围，`server-compatibility-seam` 指标归因也无法代表最终服务 owner。
 - [ ] **当前边界：** 不重开旧 Fastify authoritative write path；不新增 `store_snapshot`、shared DB direct-read 或 runtime-infra -> server 依赖作为默认业务路径。
 - [ ] **进入条件：** 当前主线的 Tranche 6/7 已完成，或 runtime-infra/server seam 导致明确的故障归因、边界违规或重复实现回归。
@@ -35,6 +36,7 @@
 ### 平台化与服务自治尚未成熟
 
 - [ ] **来源：** `distributed` 有真实服务进程和内部 HTTP hop，但当前成熟度仍为 `Level 2 / transitional-microservice`；服务发现默认值是显式 URL + Docker DNS，资源/autoscaling 示例未成为 checked-in 默认资产。
+- [ ] **已验证边界（2026-07-13）：** `rtk pnpm test:runtime-closeout:compose` 在 `11431ms` 内恢复单个 `knowledge-write` 重启后的 gateway → governance-review → knowledge-write 委托，同时 gateway health 与 job-runtime status 持续可用。这仅证明本地重启隔离；未量化独立扩缩容、生产运维收益或 Level 3 成熟度。
 - [ ] **影响：** 还不能可靠宣称独立扩缩容、局部故障隔离、滚动升级和服务自治的实际收益。
 - [ ] **当前边界：** 不将 Kubernetes、service mesh、动态注册中心、MQ 产品化、mTLS 或完整监控平台写为当前默认部署能力。
 - [ ] **进入条件：** Tranche 7 的服务级健康、异步诊断与样板 acceptance 完成后，已有容量/隔离需求或真实运行事故证明静态 DNS 与现有 compose 运行面不足。

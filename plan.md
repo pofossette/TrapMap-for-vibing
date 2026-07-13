@@ -4,10 +4,10 @@
 
 ## 当前主线
 
-- **主题**：可观测性、共享 PG 治理与分布式成熟度闭环
-- **目标**：让一次业务操作能在日志、分布式 trace、指标、异步处理与审计间可靠联查，并将共享 PostgreSQL 的表 owner、迁移、投影、连接预算和服务级运维面推进为可验证的 `Level 2 -> Level 3` 成熟度证据。
-- **状态**：`进行中`
-- **主细则**：[可观测性、共享 PG 治理与分布式成熟度计划](docs/todos/observability-traceability-closure.md)
+- **主题：** Compatibility Shell Retirement and Owner-Local Infrastructure 收口
+- **目标：** 将 compatibility shell 与共享 runtime infrastructure 按领域迁移到真实 service owner，完成一次性 PG-first cutover。
+- **状态：** `进行中`
+- **主细则：** [Compatibility Shell Retirement and Owner-Local Infrastructure 收口](docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md)
 
 ## 总体要求
 
@@ -31,9 +31,10 @@
 
 ## 长期债务登记
 
-- [长期 open debt 与触发条件](docs/todos/open-debt-and-compromises.md)：记录不属于当前交付范围的兼容层退役、工程维护信号、平台化、物理数据隔离和待验证安全候选。它不构成第二条 active mainline；只有满足其中记录的进入条件时，才新建细则并替换当前主线。
+- [长期 open debt 与触发条件](docs/todos/open-debt-and-compromises.md)：记录不属于当前交付范围的工程维护信号、平台化、物理数据隔离和待验证安全候选。它不构成第二条 active mainline；只有满足其中记录的进入条件时，才新建细则并替换当前主线。
 
 ## 历史入口
 
 - [已归档的上一版无 active mainline 索引](docs/archived/archived-plans/plan-2026-07-11-no-active-mainline-index-archived.md)
+- [已归档的可观测性、共享 PG 治理与分布式成熟度主细则](docs/archived/archived-plans/observability-traceability-closure.md)
 - [历史归档总表](docs/archived/README.md)

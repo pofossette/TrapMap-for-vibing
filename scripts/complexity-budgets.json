@@ -289,10 +289,9 @@
       "file": "plan.md",
       "mustContain": [
         "执行计划索引",
-        "可观测性、共享 PG 治理与分布式成熟度闭环",
-        "docs/todos/observability-traceability-closure.md",
+        "Compatibility Shell Retirement and Owner-Local Infrastructure 收口",
+        "docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md",
         "共享 PostgreSQL",
-        "Level 2 -> Level 3",
         "open-debt-and-compromises.md",
         "不承载 tranche checklist 或实施细节"
       ],
@@ -306,7 +305,8 @@
         "docs/todos/backend-build-targets-plan.md",
         "当前主线：待办收口与后续整合",
         "状态：`收口中`",
-        "docs/todos/agent-eval-framework-evaluation-and-plan.md"
+        "docs/todos/agent-eval-framework-evaluation-and-plan.md",
+        "docs/todos/observability-traceability-closure.md"
       ]
     },
     {
@@ -362,7 +362,8 @@
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
       "mustContain": [
         "Phase 7 maintainability / CI-testing truth / docs closeout freeze",
-        "可观测性、共享 PG 治理与分布式成熟度闭环",
+        "Compatibility Shell Retirement and Owner-Local Infrastructure 收口",
+        "docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md",
         "`doc-guardrails` job runs `pnpm check:docs-drift`、`pnpm check:arch-freeze`、`pnpm check:deps`、`pnpm check:mermaid`、`pnpm check:structure`、`pnpm check:complexity`、`pnpm check:md-lint` 和 `pnpm check:links`"
       ]
     },
@@ -370,8 +371,8 @@
       "file": "docs/todos/README.md",
       "mustContain": [
         "活跃索引",
-        "observability-traceability-closure.md",
-        "明确承担当前执行责任的 active 文档",
+        "Compatibility Shell Retirement and Owner-Local Infrastructure 收口",
+        "compatibility-shell-retirement-runtime-infra-ownership.md",
         "当前状态说明",
         "完整归档表见"
       ],
@@ -384,7 +385,8 @@
       "file": "docs/archived/README.md",
       "mustContain": [
         "不应被其他文档当作当前执行入口引用",
-        "当前根 `plan.md` 指向“可观测性、共享 PG 治理与分布式成熟度闭环”",
+        "当前根 `plan.md` 指向“Compatibility Shell Retirement and Owner-Local Infrastructure 收口”",
+        "observability-traceability-closure.md",
         "backend-build-targets-and-client-selection-archived.md",
         "microservice-platform-evolution-plan.md",
         "微服务平台能力增强",
@@ -458,7 +460,11 @@
     },
     {
       "file": "docs/todos/README.md",
-      "mustContain": ["当前状态说明", "observability-traceability-closure.md", "完整归档表见"]
+      "mustContain": [
+        "当前状态说明",
+        "Compatibility Shell Retirement and Owner-Local Infrastructure 收口",
+        "完整归档表见"
+      ]
     },
     {
       "file": "docs/reference/api-surface.md",

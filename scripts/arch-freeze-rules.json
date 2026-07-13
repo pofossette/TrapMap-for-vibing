@@ -187,6 +187,28 @@
       }
     },
     {
+      "id": "compatibility-retirement-deletion-contract",
+      "description": "Compatibility retirement guard remains an exact, wave-owned deletion contract",
+      "files": {
+        "scripts/__tests__/compatibility-retirement-guard.test.ts": {
+          "mustExist": true,
+          "mustContain": [
+            "const COMPATIBILITY_SYMBOLS",
+            "const OWNER_WAVES",
+            "const completedOwnerWaves",
+            "const allowlist",
+            "isProductionFile",
+            "unregistered compatibility dependency",
+            "belongs to completed"
+          ]
+        },
+        "docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md": {
+          "mustExist": true,
+          "mustContain": ["Deletion contract", "compatibility-retirement-guard.test.ts", "Task 1"]
+        }
+      }
+    },
+    {
       "id": "existence-checks",
       "description": "File existence checks from the smoke test",
       "files": {

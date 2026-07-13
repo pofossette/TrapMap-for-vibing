@@ -62,9 +62,10 @@
 | `archived-plans/open-debt-and-compromises-2026-07-11-archived.md` | 2026-07-11 | engineering debt 主线已退为历史输入；后续构建目标主线现也已完成归档 |
 | `archived-plans/backend-build-targets-and-client-selection-archived.md` | 2026-07-11 | light / heavy 后端构建目标与客户端配置实施已完成；未执行的 runtime closeout 依赖配置好的 distributed gateway 与管理员密钥，保留为 operator 验收前置条件 |
 | `archived-plans/plan-2026-07-11-no-active-mainline-index-archived.md` | 2026-07-11 | 根 `plan.md` 已从无 active mainline 的收尾索引切换为可观测性与可追溯性闭环主线 |
+| `archived-plans/observability-traceability-closure.md` | 2026-07-13 | 可观测性、shared PG 治理与分布式成熟度主线完成；Compose 本地重启隔离已验证，未量化的 Level 3 收益转入 deferred debt register |
 
 ## 归档原则
 
 文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档当作当前执行入口引用。
 
-当前根 `plan.md` 指向“可观测性、共享 PG 治理与分布式成熟度闭环”这一唯一 active mainline detail。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。
+当前根 `plan.md` 指向“Compatibility Shell Retirement and Owner-Local Infrastructure 收口”这一唯一 active mainline detail。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。

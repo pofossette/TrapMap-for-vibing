@@ -1,20 +1,36 @@
 import path from 'node:path';
-import { readdir } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import type { Pool } from 'pg';
 
-import { assertMigrationManifestComplete } from './migration-ownership.js';
+import {
+  assertDrizzleJournalComplete,
+  assertMigrationManifestComplete,
+} from './migration-ownership.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATION_LOCK_KEY = 42187319;
+
+interface DrizzleJournal {
+  entries: Array<{
+    tag: string;
+  }>;
+}
 
 export async function runMigrations(pool: Pool): Promise<void> {
   const migrationsFolder = path.resolve(__dirname, '../../../drizzle');
   const migrationFiles = (await readdir(migrationsFolder)).filter((file) => file.endsWith('.sql'));
   assertMigrationManifestComplete(migrationFiles);
+  const journal = JSON.parse(
+    await readFile(path.join(migrationsFolder, 'meta', '_journal.json'), 'utf8'),
+  ) as DrizzleJournal;
+  assertDrizzleJournalComplete(
+    migrationFiles,
+    journal.entries.map((entry) => entry.tag),
+  );
 
   try {
     await pool.query('CREATE EXTENSION IF NOT EXISTS vector');

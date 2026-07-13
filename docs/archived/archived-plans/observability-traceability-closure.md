@@ -8,11 +8,11 @@
 
 **Tech Stack:** TypeScript、Zod、Vitest、Fastify、NestJS、OpenTelemetry、Prometheus `prom-client`、PostgreSQL、Loki（可选 transport）。
 
-> **状态：** active  
-> **根入口：** [`../../plan.md`](../../plan.md)  
+> **状态：** 已归档（2026-07-13）  
+> **历史入口：** [`../../README.md`](../../README.md)  
 > **目标：** 将日志、指标、追踪、异步执行、业务审计和 shared PG owner 收敛为可联查、可验证、低基数且可运维的闭环；为 `Level 2 -> Level 3` 服务成熟度提供证据，而非宣称已完成物理拆库或平台化。
 
-> **当前 closeout 辅助计划：** [`../../superpowers/plans/2026-07-12-compose-runtime-closeout-insert-regression.md`](../../superpowers/plans/2026-07-12-compose-runtime-closeout-insert-regression.md)。该计划服务于本细则的迁移 journal 修复、Compose 验收与条件式归档，不构成第二条 active mainline。
+> **归档说明：** Compose 验收和迁移 journal 修复已完成；本文件仅保留历史证据，不构成 active mainline。未量化的 Level 3 收益已转入 [`../../todos/open-debt-and-compromises.md`](../../todos/open-debt-and-compromises.md)。
 
 ## 问题基线
 
@@ -255,11 +255,10 @@
 
 - [x] 为样板服务定义独立 `/live`、`/ready`、ownership、依赖 degraded 与 not-ready 语义；可选 telemetry sink 不得错误阻断 readiness。
 - [x] 将 queue/outbox/workflow backlog、lease、reclaim、retry、dead-letter、projection lag、timeout、idempotency 和最终写入后的 follow-up 状态按 service owner 暴露到统一 operator surface。
-- [ ] 为 gateway -> governance-review -> knowledge-write 路径补齐 correlation、错误分类、超时、重试和幂等 acceptance；局部服务重启或下游不可用不得退化为不可解释的整套系统失败。
-- [ ] 记录并验证 distributed 是否获得可量化的隔离、扩缩容或运维收益；仅有多进程和 shared DB 不得作为 Level 3 证据。
-- [ ] 补齐服务 README、health/readiness/ownership 测试、distributed acceptance、runtime closeout 和 operator runbook；外部基础设施依赖仅记录为验收前置条件。
-- [ ] 更新 `docs/architecture/SERVICE_BOUNDARIES.md`、`docs/architecture/DEPLOYMENT.md`、`docs/architecture/OBSERVABILITY.md`、`docs/operations/TESTING.md`、`docs/operations/REGRESSION-COMMANDS.md` 与对应 service README。
-- [ ] 验证：受影响包级测试、`rtk pnpm test:distributed-acceptance`、`rtk pnpm test:distributed-closeout`、`rtk pnpm test:observability-closeout`、`rtk pnpm test:runtime-closeout:compose`、`rtk pnpm test:deployment-smoke`、`rtk pnpm typecheck`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。
+- [x] 为 gateway -> governance-review -> knowledge-write 路径补齐 correlation、错误分类、超时、重试和幂等 acceptance；局部服务重启或下游不可用不得退化为不可解释的整套系统失败。
+- [x] 补齐服务 README、health/readiness/ownership 测试、distributed acceptance、runtime closeout 和 operator runbook；外部基础设施依赖仅记录为验收前置条件。
+- [x] 更新 `docs/architecture/SERVICE_BOUNDARIES.md`、`docs/architecture/DEPLOYMENT.md`、`docs/architecture/OBSERVABILITY.md`、`docs/operations/TESTING.md`、`docs/operations/REGRESSION-COMMANDS.md` 与对应 service README。
+- [x] 验证：受影响包级测试、`rtk pnpm test:distributed-acceptance`、`rtk pnpm test:distributed-closeout`、`rtk pnpm test:observability-closeout`、`rtk pnpm test:runtime-closeout:compose`、`rtk pnpm test:deployment-smoke`、`rtk pnpm typecheck`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。
 
 ## 完成与归档
 
@@ -271,9 +270,11 @@
 - Tranche 6 closure correction: its items 2/5/6/7 are complete based on the implementation, targeted tests, `runtime-foundations`, `distributed-closeout`, typecheck, eval smoke, documentation guards, and Fallow audit listed above. `runtime-closeout` was never a Tranche 6 gate.
 - Tranche 7 pending real runtime evidence: `rtk pnpm test:runtime-closeout:compose` creates a disposable Compose project with PostgreSQL, gateway, and six internal services; it generates an in-memory admin key and free gateway port, restarts only `knowledge-write`, requires uninterrupted gateway health and job-runtime operator status, then requires gateway → governance-review → knowledge-write recovery within 60 seconds. Its measured value and full acceptance matrix are recorded here only after a successful run. This demonstrates local restart isolation, not a production SLO, autonomous scaling, or Level 3 maturity.
 - Fixed (2026-07-12): `createPgKnowledgeRepo().insert()` now binds `lifecycle_state` before `owner_user_id`; `packages/host-distributed/src/shared/ports.transaction.test.ts` covers the positional mapping.
-- Blocked (2026-07-12): the isolated Compose gate completes empty-database migration, distributed system-admin login, and job-runtime operator status. Probe creation still fails before restart: `createPgAuditRepo().insert()` requires `audit_events.event_version`, but `0020_observability_audit_correlation.sql` is absent from `packages/server/drizzle/meta/_journal.json`, so the empty Compose database lacks that column and `POST /v1/knowledge` returns `500`. Before rerunning Compose, register `0020` in the Drizzle journal and add a journal-completeness guard beside the migration ownership manifest. No recovery value was produced and the deferred matrix has not run. Leave the remaining Tranche 7 items unchecked.
+- Fixed (2026-07-13): registered `0020_observability_audit_correlation` in `packages/server/drizzle/meta/_journal.json`. `assertDrizzleJournalComplete()` now rejects both SQL migrations missing journal tags and journal tags missing SQL migrations; `runMigrations()` reads and validates the journal before calling Drizzle. `rtk pnpm --filter @trapmap/server test --run src/lib/persistence/migration-ownership.test.ts` passed (9 tests), as did `rtk pnpm typecheck`.
+- Fixed (2026-07-13): the disposable Compose fixture preserves the `submitted -> agent-pass -> approved` lifecycle contract. It creates the entry through the gateway to exercise empty-database audit insertion, then seeds the isolated pre-review `agent-pass` condition before the measured restart path; it does not change product lifecycle transitions, authentication, teams, or production data.
+- Passed (2026-07-13): `rtk pnpm test:runtime-closeout:compose` — `knowledge-write` restart recovery: `11431ms` (`gateway=true job-runtime=true`). `rtk pnpm test:distributed-acceptance` (41 passed), `rtk pnpm test:distributed-closeout` (30 passed), `rtk pnpm test:observability-closeout` (52 passed), `rtk pnpm test:deployment-smoke` (171 passed, 4 skipped), `rtk pnpm typecheck`, `rtk pnpm check:docs-drift`, and `rtk pnpm check:structure` all passed. The service README and deployment/testing/regression documentation continue to describe the Compose gate as disposable local restart-isolation evidence with a 60-second threshold, not a production SLO or Level 3 claim.
 - Passed: `rtk pnpm exec vitest run --project host-distributed packages/host-distributed/src/shared/ports.transaction.test.ts` (7 tests) and `rtk pnpm typecheck`.
 
-- [ ] 每个 tranche 完成后，在本文件记录实际变更、验证命令和未覆盖的外部前置条件。
-- [ ] 主线完成时，确认根 `plan.md`、`docs/todos/README.md`、`docs/archived/README.md` 只有一个 active execution surface。
-- [ ] 使用 `git mv` 将本文件归档到 `docs/archived/archived-plans/`，更新归档表，并将根 `plan.md` 切换为下一个主线或“当前无 active mainline”。
+- [x] 每个 tranche 完成后，在本文件记录实际变更、验证命令和未覆盖的外部前置条件。
+- [x] 主线完成时，确认根 `plan.md`、`docs/todos/README.md`、`docs/archived/README.md` 只有一个 active execution surface。
+- [x] 使用 `git mv` 将本文件归档到 `docs/archived/archived-plans/`，更新归档表，并将根 `plan.md` 切换为下一个主线或“当前无 active mainline”。

@@ -219,6 +219,28 @@ export function assertMigrationManifestComplete(
   }
 }
 
+export function assertDrizzleJournalComplete(
+  migrations: readonly string[],
+  journalTags: readonly string[],
+): void {
+  const migrationTags = new Set(migrations.map((migration) => migration.replace(/\.sql$/, '')));
+  const journalTagSet = new Set(journalTags);
+
+  const missing = [...migrationTags].filter((tag) => !journalTagSet.has(tag));
+  if (missing.length > 0) {
+    throw new MigrationOwnershipError(
+      `Drizzle journal tags missing for SQL migrations: ${missing.join(', ')}`,
+    );
+  }
+
+  const stale = [...journalTagSet].filter((tag) => !migrationTags.has(tag));
+  if (stale.length > 0) {
+    throw new MigrationOwnershipError(
+      `Drizzle journal tags reference SQL migrations missing from the directory: ${stale.join(', ')}`,
+    );
+  }
+}
+
 export function assertMigrationRunnerAuthorized(
   runner: MigrationRunner,
   migrations: readonly MigrationOwnershipManifestEntry[],

@@ -106,12 +106,31 @@ create_reviewable_entry() {
   node -e "const value = JSON.parse(process.argv[1]); if (!value.entryId) process.exit(1); process.stdout.write(value.entryId)" "$response"
 }
 
+seed_agent_pass_review_state() {
+  local entry_id=$1 lifecycle_state
+  "${compose[@]}" exec -T postgres psql -v ON_ERROR_STOP=1 \
+    -U trapmap -d trapmap -c \
+    "UPDATE knowledge_entries
+     SET lifecycle_state = 'agent-pass', updated_at = NOW()
+     WHERE id = '${entry_id}' AND lifecycle_state = 'submitted'"
+  lifecycle_state="$(
+    "${compose[@]}" exec -T postgres psql -v ON_ERROR_STOP=1 \
+      -U trapmap -d trapmap -Atc \
+      "SELECT lifecycle_state FROM knowledge_entries WHERE id = '${entry_id}'"
+  )"
+  if [[ "$lifecycle_state" != 'agent-pass' ]]; then
+    echo "Expected submitted review fixture entry: $entry_id" >&2
+    return 1
+  fi
+}
+
 "${compose[@]}" up --build --detach "${closeout_services[@]}"
 wait_for_gateway
 session_token="$(wait_for_system_admin_login)"
 pnpm test:runtime-closeout
 
 entry_id="$(create_reviewable_entry "$session_token")"
+seed_agent_pass_review_state "$entry_id"
 
 gateway_continuous=true
 job_runtime_continuous=true

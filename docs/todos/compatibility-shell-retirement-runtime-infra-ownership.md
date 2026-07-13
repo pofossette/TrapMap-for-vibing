@@ -1,0 +1,50 @@
+# Compatibility Shell Retirement and Owner-Local Infrastructure 收口
+
+> **状态：** active  
+> **根入口：** [`../../plan.md`](../../plan.md)  
+> **实施路线图：** [`../superpowers/plans/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership.md`](../superpowers/plans/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership.md)
+
+## 目标
+
+将 `@trapmap/server`、`@trapmap/runtime-infra`、Fastify compatibility routes 与 `store_snapshot` 的具体实现按领域迁移至其真实 service owner；`packages/contracts` 与 `packages/backend-core` 保持唯一共享 domain/port 层。
+
+## 已满足的启动条件
+
+- [x] 可观测性、shared PG 治理与 distributed maturity 主线已归档；Compose restart closeout 已通过。
+- [x] 根 `plan.md` 将本文件指定为唯一 active mainline detail。
+- [x] 既有路线图冻结了 owner wave、PG-first cutover、empty database 与 legacy snapshot backfill 的验收边界。
+
+## 执行约束
+
+- 不保留 compatibility re-export、dual read 或 runtime fallback；每个 wave 完成后立即移除其运行时 import。
+- service 之间不得导入其他 service 的具体实现；跨 owner 行为仅经 `backend-core` ports、内部 HTTP adapter 或 outbox delivery。
+- 不新增 `store_snapshot`、shared DB direct-read 或 `runtime-infra -> server` 依赖作为默认业务路径。
+- 每个 wave 遵循路线图中的 TDD、最小验证、文档回写和 evidence checklist；本文件记录实际命令结果与外部前置条件。
+
+## 当前执行入口
+
+- [x] 建立 Task 1 deletion contract：[`compatibility-retirement-guard.test.ts`](../../scripts/__tests__/compatibility-retirement-guard.test.ts) 扫描生产 TypeScript、Dockerfile、根脚本与 workspace manifest；测试、spec 和 fixture 不构成新增阻断面。
+- [ ] 每完成一个 owner wave，回写迁移范围、已删除 compatibility surface、focused tests、Fallow boundary audit 与 typecheck 结果。
+- [ ] 所有 wave 完成后执行 empty-database migration、legacy snapshot backfill、distributed acceptance 与 closeout，并归档本文件。
+
+## Task 1 — Deletion contract evidence
+
+`scripts/__tests__/compatibility-retirement-guard.test.ts` 是临时 allowlist 的权威记录。每个对象均为精确的 `{ file, symbol, ownerWave, rationale }` 删除契约；guard 拒绝未登记的生产命中、过期文件、未知标识符、缺失 owner/rationale，以及已完成 wave 遗留的条目。不得使用目录、包或 glob 级豁免。
+
+| Owner wave | 当前例外与删除条件 |
+| --- | --- |
+| wave-1 identity-access | auth/users/teams/audit 的 `store_snapshot` 注记与 identity migration fixture；迁移完成即删除。 |
+| wave-2 knowledge-write | artifact/knowledge/lifecycle 的 `JsonStore` 与 snapshot fallback；PG-first write path 落地即删除。 |
+| wave-3 candidate-ingestion | candidate/lineage snapshot fallback；candidate owner 完成即删除。 |
+| wave-4 governance-review | feedback snapshot 注记与 badcase export；governance owner 完成即删除。 |
+| wave-6 job-runtime | runtime-infra outbox bridge；job runtime 接管后删除。 |
+| wave-7 knowledge-read | retrieval schema 和 service knowledge-read 对 runtime-infra/server 的依赖；read owner 完成即删除。 |
+| wave-8 host surfaces | host composition、migration entrypoint、capability config；host-owned runtime surface 完成即删除。 |
+| wave-9 backfill/delete state | `store_snapshot`、`JsonStore`、`PostgresStore` 与明确的 migration/export/benchmark fixture；完成一次性 backfill 后删除。 |
+| wave-10 package retirement | root/runtime-infra dependency、repository aggregate、Docker compatibility self-reference；删除 packages 后移除。 |
+
+已执行：guard 先以空 allowlist 运行，基线报出 68 个未登记生产依赖（预期 RED）；加入精确条目后 `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts` 通过（4 tests，GREEN）。同轮通过 `rtk pnpm test:file -- scripts/__tests__/closeout-surface.test.ts`（8 tests）、`rtk pnpm check:arch-freeze`（9 rules）、`rtk pnpm exec fallow list --boundaries`、`rtk pnpm exec fallow audit --base main`（18 changed files, no issues）、`rtk pnpm check:docs-drift`（46 rules）及 `rtk pnpm check:structure`。Fallow 保留一个既有 `../../tsconfig.base.json` entry-point 警告，但审计成功。
+
+## Deferred 边界
+
+平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。

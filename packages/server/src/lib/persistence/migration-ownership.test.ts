@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   MigrationOwnershipError,
+  assertDrizzleJournalComplete,
   assertMigrationManifestComplete,
   assertMigrationRequestAuthorized,
   assertMigrationRunnerAuthorized,
@@ -9,6 +10,24 @@ import {
 } from './migration-ownership.js';
 
 describe('migration ownership manifest', () => {
+  it('rejects SQL migrations missing from the Drizzle journal', () => {
+    expect(() =>
+      assertDrizzleJournalComplete(
+        ['0000_bent_nightmare.sql', '0020_observability_audit_correlation.sql'],
+        ['0000_bent_nightmare'],
+      ),
+    ).toThrow(/0020_observability_audit_correlation/);
+  });
+
+  it('rejects Drizzle journal tags without a SQL migration', () => {
+    expect(() =>
+      assertDrizzleJournalComplete(
+        ['0000_bent_nightmare.sql'],
+        ['0000_bent_nightmare', '9999_stale'],
+      ),
+    ).toThrow(/9999_stale/);
+  });
+
   it('requires owner metadata for every discovered migration', () => {
     expect(() =>
       assertMigrationManifestComplete(['0000_bent_nightmare.sql', '9999_missing_owner.sql']),
