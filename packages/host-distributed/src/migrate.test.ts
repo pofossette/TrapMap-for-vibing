@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { runDistributedMigrations } from './migrate.js';
+import { createDistributedMigrationRunner, runDistributedMigrations } from './migrate.js';
 
 describe('runDistributedMigrations', () => {
   it('closes its migration pool after a successful run', async () => {
@@ -9,7 +9,11 @@ describe('runDistributedMigrations', () => {
     const previous = process.env.TRAPMAP_DATABASE_URL;
     process.env.TRAPMAP_DATABASE_URL = 'postgres://trapmap:test@localhost/trapmap';
 
-    await runDistributedMigrations(() => ({ end, query: vi.fn() }), migrate);
+    const run = createDistributedMigrationRunner({
+      createPool: () => ({ end, query: vi.fn() }),
+      runners: [migrate],
+    });
+    await run();
 
     expect(migrate).toHaveBeenCalledOnce();
     expect(end).toHaveBeenCalledOnce();
@@ -23,12 +27,14 @@ describe('runDistributedMigrations', () => {
     process.env.TRAPMAP_DATABASE_URL = 'postgres://trapmap:test@localhost/trapmap';
 
     await expect(
-      runDistributedMigrations(
-        () => ({ end, query: vi.fn() }),
-        async () => {
-          throw new Error('migration failed');
-        },
-      ),
+      createDistributedMigrationRunner({
+        createPool: () => ({ end, query: vi.fn() }),
+        runners: [
+          async () => {
+            throw new Error('migration failed');
+          },
+        ],
+      })(),
     ).rejects.toThrow('migration failed');
     expect(end).toHaveBeenCalledOnce();
     if (previous === undefined) delete process.env.TRAPMAP_DATABASE_URL;
@@ -42,14 +48,17 @@ describe('runDistributedMigrations', () => {
     process.env.TRAPMAP_DATABASE_URL = 'postgres://trapmap:test@localhost/trapmap';
 
     await expect(
-      runDistributedMigrations(() => ({ end, query: vi.fn() }), undefined, [
-        async () => calls.push('identity-access'),
-        async () => {
-          calls.push('knowledge-write');
-          throw new Error('owner failed');
-        },
-        async () => calls.push('candidate-ingestion'),
-      ]),
+      createDistributedMigrationRunner({
+        createPool: () => ({ end, query: vi.fn() }),
+        runners: [
+          async () => calls.push('identity-access'),
+          async () => {
+            calls.push('knowledge-write');
+            throw new Error('owner failed');
+          },
+          async () => calls.push('candidate-ingestion'),
+        ],
+      })(),
     ).rejects.toThrow('owner failed');
 
     expect(calls).toEqual(['identity-access', 'knowledge-write']);

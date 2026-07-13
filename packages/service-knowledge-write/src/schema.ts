@@ -1,0 +1,43 @@
+// fallow-ignore-file boundary-violation -- Drizzle-only local baseline entry mirrors the frozen schema.
+export {
+  knowledgeBoundaryContexts,
+  knowledgeBoundaryEvidence,
+  knowledgeBoundaryExclusions,
+  knowledgeBoundaryPrerequisites,
+  knowledgeBoundarySignals,
+  knowledgeBoundaryVersions,
+  knowledgeEntryIdSeq,
+  knowledgeEntries,
+  knowledgeLabels,
+  knowledgeMaintenanceAssignments,
+  knowledgeRevisions,
+  lifecycleEvents,
+} from '../../server/src/lib/persistence/schema/knowledge.js';
+export {
+  artifactLifecycleEvents,
+  artifactRevisions,
+  skillArtifactIdSeq,
+  skillArtifactAgentReviews,
+  skillArtifactBoundaryContexts,
+  skillArtifactBoundaryEvidence,
+  skillArtifactBoundaryExclusions,
+  skillArtifactBoundaryPrerequisites,
+  skillArtifactBoundarySignals,
+  skillArtifactBoundaryVersions,
+  skillArtifactCapsules,
+  skillArtifactClientManifests,
+  skillArtifactFiles,
+  skillArtifactMaintenanceAssignments,
+  skillArtifactManifestAssets,
+  skillArtifactManifestReferences,
+  skillArtifactManifestScripts,
+  skillArtifactMetadataTable,
+  skillArtifactProfiles,
+  skillArtifactScriptDescriptors,
+  skillArtifacts,
+} from '../../server/src/lib/persistence/schema/artifacts.js';
+export {
+  canonicalLabels,
+  labelAliases,
+  labelAlignmentEvents,
+} from '../../server/src/lib/persistence/schema/labels.js';

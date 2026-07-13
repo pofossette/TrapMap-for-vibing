@@ -24,6 +24,7 @@
 ## 当前执行入口
 
 - [x] 建立 Task 1 deletion contract：[`compatibility-retirement-guard.test.ts`](../../scripts/__tests__/compatibility-retirement-guard.test.ts) 扫描生产 TypeScript、Dockerfile、根脚本与 workspace manifest；测试、spec 和 fixture 不构成新增阻断面。
+- [ ] Task 2 migration baseline：六个 owner-local baseline 仅支持空数据库；旧 `0000–0020` 数据库须重建，不提供原地升级。`identity-access` 暂管 `store_snapshot`，仅作为 Task 9 一次性 backfill 输入；Task 9 完成导出、回填与核对后必须删除该表及其迁移资产。
 - [ ] 每完成一个 owner wave，回写迁移范围、已删除 compatibility surface、focused tests、Fallow boundary audit 与 typecheck 结果。
 - [ ] 所有 wave 完成后执行 empty-database migration、legacy snapshot backfill、distributed acceptance 与 closeout，并归档本文件。
 

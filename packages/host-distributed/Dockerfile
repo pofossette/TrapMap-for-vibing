@@ -112,31 +112,37 @@ COPY packages/service-identity-access/package.json ./packages/service-identity-a
 COPY packages/service-identity-access/tsconfig.json ./packages/service-identity-access/
 COPY --from=deps /app/packages/service-identity-access/node_modules ./packages/service-identity-access/node_modules
 COPY --from=build /app/packages/service-identity-access/dist ./packages/service-identity-access/dist
+COPY packages/service-identity-access/drizzle ./packages/service-identity-access/drizzle
 
 COPY packages/service-knowledge-read/package.json ./packages/service-knowledge-read/
 COPY packages/service-knowledge-read/tsconfig.json ./packages/service-knowledge-read/
 COPY --from=deps /app/packages/service-knowledge-read/node_modules ./packages/service-knowledge-read/node_modules
 COPY --from=build /app/packages/service-knowledge-read/dist ./packages/service-knowledge-read/dist
+COPY packages/service-knowledge-read/drizzle ./packages/service-knowledge-read/drizzle
 
 COPY packages/service-knowledge-write/package.json ./packages/service-knowledge-write/
 COPY packages/service-knowledge-write/tsconfig.json ./packages/service-knowledge-write/
 COPY --from=deps /app/packages/service-knowledge-write/node_modules ./packages/service-knowledge-write/node_modules
 COPY --from=build /app/packages/service-knowledge-write/dist ./packages/service-knowledge-write/dist
+COPY packages/service-knowledge-write/drizzle ./packages/service-knowledge-write/drizzle
 
 COPY packages/service-candidate-ingestion/package.json ./packages/service-candidate-ingestion/
 COPY packages/service-candidate-ingestion/tsconfig.json ./packages/service-candidate-ingestion/
 COPY --from=deps /app/packages/service-candidate-ingestion/node_modules ./packages/service-candidate-ingestion/node_modules
 COPY --from=build /app/packages/service-candidate-ingestion/dist ./packages/service-candidate-ingestion/dist
+COPY packages/service-candidate-ingestion/drizzle ./packages/service-candidate-ingestion/drizzle
 
 COPY packages/service-governance-review/package.json ./packages/service-governance-review/
 COPY packages/service-governance-review/tsconfig.json ./packages/service-governance-review/
 COPY --from=deps /app/packages/service-governance-review/node_modules ./packages/service-governance-review/node_modules
 COPY --from=build /app/packages/service-governance-review/dist ./packages/service-governance-review/dist
+COPY packages/service-governance-review/drizzle ./packages/service-governance-review/drizzle
 
 COPY packages/service-job-runtime/package.json ./packages/service-job-runtime/
 COPY packages/service-job-runtime/tsconfig.json ./packages/service-job-runtime/
 COPY --from=deps /app/packages/service-job-runtime/node_modules ./packages/service-job-runtime/node_modules
 COPY --from=build /app/packages/service-job-runtime/dist ./packages/service-job-runtime/dist
+COPY packages/service-job-runtime/drizzle ./packages/service-job-runtime/drizzle
 
 COPY packages/host-distributed/package.json ./packages/host-distributed/
 COPY packages/host-distributed/tsconfig.json ./packages/host-distributed/

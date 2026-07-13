@@ -17,23 +17,32 @@ export const distributedMigrationRunners = [
   runKnowledgeReadMigrations,
 ] as const;
 
-export async function runDistributedMigrations(
-  createPool: (connectionString: string) => Pick<pg.Pool, 'end' | 'query'> = (connectionString) =>
-    new pg.Pool({ connectionString }),
-  migrate?: (pool: pg.Pool) => Promise<void>,
-  runners: readonly ((pool: pg.Pool) => Promise<void>)[] = distributedMigrationRunners,
-): Promise<void> {
-  const config = loadServiceConfig('identity-access');
-  if (!config.databaseUrl) {
-    throw new Error('Database URL required for distributed migrations');
-  }
-  const pool = createPool(config.databaseUrl);
-  try {
-    if (migrate) await migrate(pool as pg.Pool);
-    else for (const runner of runners) await runner(pool as pg.Pool);
-  } finally {
-    await pool.end();
-  }
+type MigrationRunner = (pool: pg.Pool) => Promise<void>;
+type MigrationPool = Pick<pg.Pool, 'end' | 'query'>;
+
+export function createDistributedMigrationRunner({
+  createPool = (connectionString: string): MigrationPool => new pg.Pool({ connectionString }),
+  runners = distributedMigrationRunners,
+}: {
+  createPool?: (connectionString: string) => MigrationPool;
+  runners?: readonly MigrationRunner[];
+} = {}): () => Promise<void> {
+  return async () => {
+    const config = loadServiceConfig('identity-access');
+    if (!config.databaseUrl) {
+      throw new Error('Database URL required for distributed migrations');
+    }
+    const pool = createPool(config.databaseUrl);
+    try {
+      for (const runner of runners) await runner(pool as pg.Pool);
+    } finally {
+      await pool.end();
+    }
+  };
+}
+
+export async function runDistributedMigrations(): Promise<void> {
+  await createDistributedMigrationRunner()();
 }
 
 const isDirectExecution = process.argv[1]?.endsWith('/dist/migrate.js');

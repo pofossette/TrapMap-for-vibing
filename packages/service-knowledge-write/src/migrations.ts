@@ -12,8 +12,12 @@ export async function assertKnowledgeWriteMigrationSet(): Promise<void> {
   ) as { entries: Array<{ tag: string }> };
   const names = new Set(files.map((file) => file.slice(0, -4)));
   const tags = new Set(journal.entries.map(({ tag }) => tag));
-  if ([...names].some((name) => !tags.has(name)) || [...tags].some((tag) => !names.has(tag)))
-    throw new Error('knowledge-write migration journal mismatch');
+  const missing = [...names].filter((name) => !tags.has(name));
+  const stale = [...tags].filter((tag) => !names.has(tag));
+  if (missing.length || stale.length)
+    throw new Error(
+      `knowledge-write migration journal mismatch: missing=${missing.join(',')} stale=${stale.join(',')}`,
+    );
 }
 export async function runKnowledgeWriteMigrations(pool: Pool): Promise<void> {
   await assertKnowledgeWriteMigrationSet();

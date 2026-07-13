@@ -2,7 +2,7 @@
 
 本文档描述 TrapMap 系统的核心数据实体及其关系。所有 Schema 定义位于 `packages/contracts/src/domain/`。
 
-> **权威迁移状态**：本文档是 `store_snapshot` 持久化迁移状态的权威记录。`store_snapshot` 仅作为尚未迁移辅助域的兼容层，不再是 PG 主读路径用于身份/审计域。参见 [System Truth Sources](SYSTEM_TRUTH_SOURCES.md)。
+> **权威迁移状态**：本文档是 `store_snapshot` 持久化迁移状态的权威记录。空库基线中该表由 `identity-access` 暂管，只作为 Task 9 一次性 backfill 输入；Task 9 完成导出、回填和核对后必须删除该表及其迁移资产。它不是长期 table owner，也不再是 PG 主读路径用于身份/审计域。旧 `0000–0020` 数据库须重建，不支持原地升级。参见 [System Truth Sources](SYSTEM_TRUTH_SOURCES.md)。
 
 > **Round 10 Phase 3 更新**：身份域（Team/User/Member/Session/AccessKey）和审计域（Audit）已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表。这些域在 PG 模式下不再通过 `store.snapshot()` 读取，`store_snapshot` 仅保留为未迁移辅助域的兼容层。
 >

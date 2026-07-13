@@ -1,7 +1,7 @@
 import { defineConfig } from 'drizzle-kit';
 export default defineConfig({
   dialect: 'postgresql',
-  schema: '../server/src/lib/persistence/schema.ts',
-  out: './drizzle',
+  schema: './packages/service-governance-review/src/schema.ts',
+  out: './packages/service-governance-review/drizzle',
   dbCredentials: { url: process.env.TRAPMAP_DATABASE_URL ?? '' },
 });
