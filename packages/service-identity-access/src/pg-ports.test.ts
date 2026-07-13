@@ -58,11 +58,45 @@ describe('identity PostgreSQL ports', () => {
   it('exposes the temporary snapshot port without leaking a server store type', async () => {
     const snapshot = createIdentityAccessSnapshotPort({
       async read() {
-        return { users: [] };
+        return {
+          users: [],
+          teams: [],
+          memberships: [],
+          sessions: [],
+          accessKeys: [],
+          auditEvents: [],
+        };
+      },
+      async transact(work) {
+        return work({
+          users: [],
+          teams: [],
+          memberships: [],
+          sessions: [],
+          accessKeys: [],
+          auditEvents: [],
+        });
+      },
+      nextId(_snapshot, prefix) {
+        return `${prefix}_1`;
       },
     });
 
-    await expect(snapshot.read()).resolves.toEqual({ users: [] });
+    await expect(snapshot.read()).resolves.toEqual({
+      users: [],
+      teams: [],
+      memberships: [],
+      sessions: [],
+      accessKeys: [],
+      auditEvents: [],
+    });
+    await expect(snapshot.transact((data) => data.users.length)).resolves.toBe(0);
+    expect(
+      snapshot.nextId(
+        { users: [], teams: [], memberships: [], sessions: [], accessKeys: [], auditEvents: [] },
+        'user',
+      ),
+    ).toBe('user_1');
   });
 
   it('deduplicates actor lookup inputs across knowledge records', async () => {

@@ -2,7 +2,7 @@
  * PostgreSQL-backed implementations of TeamRepository and MembershipRepository.
  *
  * Uses dedicated tables (teams, memberships) for team and membership CRUD operations.
- * Does not read from or write to store_snapshot JSONB.
+ * Uses only dedicated relational identity tables.
  *
  * Phase: 3 (Round 10)
  */

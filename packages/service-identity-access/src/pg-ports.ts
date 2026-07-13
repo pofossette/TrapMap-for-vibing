@@ -31,11 +31,32 @@ async function listMemberships(pool: Queryable, column: 'user_id' | 'team_id', v
  * shape deliberately prevents a server store implementation from becoming a
  * service API dependency.
  */
-export interface IdentityAccessSnapshotPort<TSnapshot = Record<string, unknown>> {
+export interface IdentityAccessSnapshotPort<
+  TSnapshot extends IdentityAccessSnapshotData = IdentityAccessSnapshotData,
+> {
   read(): Promise<TSnapshot>;
+  transact<TResult>(work: (snapshot: TSnapshot) => TResult | Promise<TResult>): Promise<TResult>;
+  nextId(snapshot: TSnapshot, kind: IdentitySnapshotIdKind): string;
 }
 
-export function createIdentityAccessSnapshotPort<TSnapshot>(
+export type IdentitySnapshotIdKind =
+  | 'user'
+  | 'team'
+  | 'member'
+  | 'session'
+  | 'access_key'
+  | 'audit';
+
+export interface IdentityAccessSnapshotData {
+  users: unknown[];
+  teams: unknown[];
+  memberships: unknown[];
+  sessions: unknown[];
+  accessKeys: unknown[];
+  auditEvents: unknown[];
+}
+
+export function createIdentityAccessSnapshotPort<TSnapshot extends IdentityAccessSnapshotData>(
   port: IdentityAccessSnapshotPort<TSnapshot>,
 ): IdentityAccessSnapshotPort<TSnapshot> {
   return port;

@@ -2,7 +2,7 @@
  * PostgreSQL-backed implementation of AuditRepository.
  *
  * Uses the dedicated audit_events table for audit CRUD operations.
- * Does not read from or write to store_snapshot JSONB.
+ * Uses only the dedicated relational audit table.
  *
  * Phase: 3 (Round 10)
  */

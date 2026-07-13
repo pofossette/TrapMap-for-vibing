@@ -1,6 +1,6 @@
 /**
- * Migration script to backfill identity and audit data from JSONB store_snapshot
- * to structured PostgreSQL tables.
+ * Task 9 migration script to backfill identity and audit data from the
+ * legacy snapshot store to structured PostgreSQL tables.
  *
  * Run after deploying Phase 3 identity/audit structural tables:
  * 1. Ensure identity/audit tables exist (created via Drizzle migration 0011)

@@ -19,8 +19,9 @@ export {
   createIdentityAccessActorLookupSource,
   createIdentityAccessPgDeps,
   createIdentityAccessSnapshotPort,
-  type IdentityAccessActorLookupSource,
   type IdentityAccessSnapshotPort,
+  type IdentityAccessSnapshotData,
+  type IdentitySnapshotIdKind,
 } from './pg-ports.js';
 export {
   createIdentityAccessServer,

@@ -176,18 +176,6 @@ const allowlist: AllowlistEntry[] = [
     'artifact JSON fallback',
   ],
   [
-    'packages/server/src/lib/audit/pg-repository.ts',
-    'store_snapshot',
-    'wave-1',
-    'identity audit snapshot note',
-  ],
-  [
-    'packages/server/src/lib/auth/pg-repository.ts',
-    'store_snapshot',
-    'wave-1',
-    'identity snapshot note',
-  ],
-  [
     'packages/server/src/lib/candidates/pg-repository/pg-candidate-repository.ts',
     'store_snapshot',
     'wave-3',
@@ -272,12 +260,6 @@ const allowlist: AllowlistEntry[] = [
     'legacy store assembly',
   ],
   [
-    'packages/server/src/lib/persistence/migrate-identity-audit.ts',
-    'store_snapshot',
-    'wave-1',
-    'identity migration fixture',
-  ],
-  [
     'packages/server/src/lib/persistence/postgres-store.ts',
     'store_snapshot',
     'wave-9',
@@ -331,18 +313,6 @@ const allowlist: AllowlistEntry[] = [
     'JsonStore',
     'wave-9',
     'legacy JSON store implementation',
-  ],
-  [
-    'packages/server/src/lib/teams/pg-repository.ts',
-    'store_snapshot',
-    'wave-1',
-    'identity team snapshot note',
-  ],
-  [
-    'packages/server/src/lib/users/pg-repository.ts',
-    'store_snapshot',
-    'wave-1',
-    'identity user snapshot note',
   ],
   [
     'packages/service-knowledge-read/package.json',

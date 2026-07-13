@@ -2,7 +2,7 @@
  * PostgreSQL-backed implementations of SessionRepository and AccessKeyRepository.
  *
  * Uses dedicated tables (sessions, access_keys) for auth operations.
- * Does not read from or write to store_snapshot JSONB.
+ * Uses only dedicated relational identity tables.
  *
  * Phase: 3 (Round 10)
  */

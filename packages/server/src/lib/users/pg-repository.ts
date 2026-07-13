@@ -2,7 +2,7 @@
  * PostgreSQL-backed implementation of UserRepository.
  *
  * Uses the dedicated users table for user CRUD operations.
- * Does not read from or write to store_snapshot JSONB.
+ * Uses only the dedicated relational identity table.
  *
  * Phase: 3 (Round 10)
  */
