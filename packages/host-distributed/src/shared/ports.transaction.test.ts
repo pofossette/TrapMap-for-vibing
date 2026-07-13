@@ -5,6 +5,37 @@ import type { AuditRepositoryPort } from '@trapmap/backend-core';
 import { createServicePorts } from './ports.js';
 
 describe('knowledge-write lifecycle persistence', () => {
+  it('binds lifecycle state before owner user ID when inserting knowledge', async () => {
+    const query = vi.fn(async () => ({ rows: [] }));
+    const ports = createServicePorts({ query } as never, 'knowledge-write');
+
+    await ports.repos.knowledge.insert({
+      id: 'entry-system-admin',
+      teamId: null,
+      content: 'compose closeout recovery probe',
+      title: 'Compose closeout probe',
+      labels: ['closeout'],
+      lifecycleState: 'submitted',
+      ownerUserId: 'system-admin',
+      createdAt: '2026-07-12T00:00:00.000Z',
+      updatedAt: '2026-07-12T00:00:00.000Z',
+    } as never);
+
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO knowledge_entries'), [
+      'entry-system-admin',
+      null,
+      'global',
+      JSON.stringify(['closeout']),
+      'Compose closeout probe',
+      'compose closeout recovery probe',
+      0,
+      'submitted',
+      'system-admin',
+      '2026-07-12T00:00:00.000Z',
+      '2026-07-12T00:00:00.000Z',
+    ]);
+  });
+
   it('commits the authoritative lifecycle write and its outbox event on one client', async () => {
     const calls: Array<{ sql: string; client: object }> = [];
     const client = {

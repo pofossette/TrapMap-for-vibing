@@ -15,6 +15,8 @@
 ### 兼容层债务持续存在
 
 - [ ] **来源：** `packages/server` 仍是 Fastify compatibility shell 与大量 shared implementation surface；`packages/runtime-infra` 仍通过 shared store/repository/async seam 复用 server 基础设施。
+- [ ] **设计输入：** [`../superpowers/specs/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership-design.md`](../superpowers/specs/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership-design.md) 定义一次性移除 compatibility shell、`runtime-infra` 和 `store_snapshot` 的 owner-local 目标架构；在本主线归档前它仅是 deferred 参考，不构成 active 执行授权。
+- [ ] **实施参考：** [`../superpowers/plans/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership.md`](../superpowers/plans/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership.md) 将该退役拆分为 owner migration、六个领域迁移、host cutover、snapshot backfill 与最终删除 wave；在根 `plan.md` 切换前不得执行。
 - [ ] **影响：** host 和 service 对迁移期实现面的依赖会扩大改动影响范围，`server-compatibility-seam` 指标归因也无法代表最终服务 owner。
 - [ ] **当前边界：** 不重开旧 Fastify authoritative write path；不新增 `store_snapshot`、shared DB direct-read 或 runtime-infra -> server 依赖作为默认业务路径。
 - [ ] **进入条件：** 当前主线的 Tranche 6/7 已完成，或 runtime-infra/server seam 导致明确的故障归因、边界违规或重复实现回归。
@@ -37,7 +39,7 @@
 - [ ] **当前边界：** 不将 Kubernetes、service mesh、动态注册中心、MQ 产品化、mTLS 或完整监控平台写为当前默认部署能力。
 - [ ] **进入条件：** Tranche 7 的服务级健康、异步诊断与样板 acceptance 完成后，已有容量/隔离需求或真实运行事故证明静态 DNS 与现有 compose 运行面不足。
 - [ ] **后续落点：** 新建 platformization 细则，先冻结一个具体部署目标和 operator SLO，再选择服务发现、队列、资源限制或编排能力。
-- [ ] **要求的文档与测试：** 更新 `docs/architecture/DEPLOYMENT.md`、`docs/architecture/SERVICE_DISCOVERY.md`、`docs/operations/ENVIRONMENT.md`、`docs/operations/TESTING.md`；运行 deployment/distributed closeout、配置解析测试和文档守卫。
+- [ ] **要求的文档与测试：** 更新 `docs/architecture/DEPLOYMENT.md`、`docs/architecture/SERVICE-DISCOVERY.md`、`docs/operations/ENVIRONMENT.md`、`docs/operations/TESTING.md`；运行 deployment/distributed closeout、配置解析测试和文档守卫。
 
 ### 物理数据隔离与 PgBouncer 采用条件
 

@@ -12,6 +12,8 @@
 > **根入口：** [`../../plan.md`](../../plan.md)  
 > **目标：** 将日志、指标、追踪、异步执行、业务审计和 shared PG owner 收敛为可联查、可验证、低基数且可运维的闭环；为 `Level 2 -> Level 3` 服务成熟度提供证据，而非宣称已完成物理拆库或平台化。
 
+> **当前 closeout 辅助计划：** [`../../superpowers/plans/2026-07-12-compose-runtime-closeout-insert-regression.md`](../../superpowers/plans/2026-07-12-compose-runtime-closeout-insert-regression.md)。该计划服务于本细则的迁移 journal 修复、Compose 验收与条件式归档，不构成第二条 active mainline。
+
 ## 问题基线
 
 - 当前存在 Fastify compatibility shell、host-local 和 host-distributed 三套遥测接线；日志、指标和 tracing 的实现与字段并未完全统一。
@@ -268,7 +270,9 @@
 - Passed: `rtk pnpm exec vitest run packages/host-distributed/src/shared/database-ownership.test.ts packages/host-distributed/src/shared/internal-job-runtime-client.test.ts packages/host-distributed/src/shared/database.test.ts packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts` (17 tests), `rtk pnpm test:runtime-foundations` (175 passed, 10 skipped), `rtk pnpm test:distributed-acceptance` (41 passed), `rtk pnpm test:distributed-closeout` (30 passed), `rtk pnpm test:observability-closeout` (52 passed), `rtk pnpm test:deployment-smoke` (171 passed, 4 skipped), `rtk pnpm typecheck`, `rtk pnpm eval:smoke` (81 passed), `rtk pnpm check:docs-drift`, `rtk pnpm check:structure`, and `rtk pnpm exec fallow audit --base main`.
 - Tranche 6 closure correction: its items 2/5/6/7 are complete based on the implementation, targeted tests, `runtime-foundations`, `distributed-closeout`, typecheck, eval smoke, documentation guards, and Fallow audit listed above. `runtime-closeout` was never a Tranche 6 gate.
 - Tranche 7 pending real runtime evidence: `rtk pnpm test:runtime-closeout:compose` creates a disposable Compose project with PostgreSQL, gateway, and six internal services; it generates an in-memory admin key and free gateway port, restarts only `knowledge-write`, requires uninterrupted gateway health and job-runtime operator status, then requires gateway → governance-review → knowledge-write recovery within 60 seconds. Its measured value and full acceptance matrix are recorded here only after a successful run. This demonstrates local restart isolation, not a production SLO, autonomous scaling, or Level 3 maturity.
-- Blocked (2026-07-12): the isolated Compose gate now completes empty-database migration, distributed system-admin login, and job-runtime operator status. Its latest run then fails before restart when `POST /v1/knowledge` tries to create the probe record as `system-admin` with no active team; knowledge-write returns `500`. No recovery value was produced and the deferred matrix has not run. Leave all four Tranche 7 items unchecked.
+- Fixed (2026-07-12): `createPgKnowledgeRepo().insert()` now binds `lifecycle_state` before `owner_user_id`; `packages/host-distributed/src/shared/ports.transaction.test.ts` covers the positional mapping.
+- Blocked (2026-07-12): the isolated Compose gate completes empty-database migration, distributed system-admin login, and job-runtime operator status. Probe creation still fails before restart: `createPgAuditRepo().insert()` requires `audit_events.event_version`, but `0020_observability_audit_correlation.sql` is absent from `packages/server/drizzle/meta/_journal.json`, so the empty Compose database lacks that column and `POST /v1/knowledge` returns `500`. Before rerunning Compose, register `0020` in the Drizzle journal and add a journal-completeness guard beside the migration ownership manifest. No recovery value was produced and the deferred matrix has not run. Leave the remaining Tranche 7 items unchecked.
+- Passed: `rtk pnpm exec vitest run --project host-distributed packages/host-distributed/src/shared/ports.transaction.test.ts` (7 tests) and `rtk pnpm typecheck`.
 
 - [ ] 每个 tranche 完成后，在本文件记录实际变更、验证命令和未覆盖的外部前置条件。
 - [ ] 主线完成时，确认根 `plan.md`、`docs/todos/README.md`、`docs/archived/README.md` 只有一个 active execution surface。
