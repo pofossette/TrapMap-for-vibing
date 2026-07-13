@@ -15,8 +15,58 @@ import type { Permission } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
 import type { IdentityAccessPortDeps } from './deps.js';
+import type { IdentityActorLookupSource } from './actor-lookup.js';
 
 type Queryable = Pick<Pool, 'query'>;
+
+async function listMemberships(pool: Queryable, column: 'user_id' | 'team_id', value: string) {
+  const { rows } = await pool.query(`SELECT * FROM memberships WHERE ${column} = $1`, [value]);
+  return rows as never[];
+}
+
+/**
+ * Temporary compatibility input for the identity backfill only.
+ *
+ * Task 9 removes this port with the legacy snapshot table.  Its structural
+ * shape deliberately prevents a server store implementation from becoming a
+ * service API dependency.
+ */
+export interface IdentityAccessSnapshotPort<TSnapshot = Record<string, unknown>> {
+  read(): Promise<TSnapshot>;
+}
+
+export function createIdentityAccessSnapshotPort<TSnapshot>(
+  port: IdentityAccessSnapshotPort<TSnapshot>,
+): IdentityAccessSnapshotPort<TSnapshot> {
+  return port;
+}
+
+export function createIdentityAccessActorLookupSource(pool: Queryable): IdentityActorLookupSource {
+  return {
+    async getUsersByIds(userIds) {
+      if (userIds.length === 0) return [];
+      const { rows } = await pool.query('SELECT id, handle FROM users WHERE id = ANY($1::text[])', [
+        userIds,
+      ]);
+      return rows.map((row) => ({ id: String(row.id), handle: String(row.handle) }));
+    },
+    async getMembershipLevels(pairs) {
+      const levels = new Map<string, number>();
+      await Promise.all(
+        pairs.map(async ({ userId, teamId }) => {
+          const { rows } = await pool.query(
+            'SELECT user_id, team_id, security_level FROM memberships WHERE user_id = $1 AND team_id = $2',
+            [userId, teamId],
+          );
+          const row = rows[0];
+          if (row)
+            levels.set(`${String(row.user_id)}:${String(row.team_id)}`, Number(row.security_level));
+        }),
+      );
+      return levels;
+    },
+  };
+}
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -211,12 +261,10 @@ export function createIdentityAccessPgDeps(
       return (rows[0] as never) ?? null;
     },
     async listByUser(userId) {
-      const { rows } = await pool.query('SELECT * FROM memberships WHERE user_id = $1', [userId]);
-      return rows as never[];
+      return listMemberships(pool, 'user_id', userId);
     },
     async listByTeam(teamId) {
-      const { rows } = await pool.query('SELECT * FROM memberships WHERE team_id = $1', [teamId]);
-      return rows as never[];
+      return listMemberships(pool, 'team_id', teamId);
     },
     async update(memberId, updates) {
       await pool.query(
@@ -335,8 +383,41 @@ export function createIdentityAccessPgDeps(
         ],
       );
     },
-    async query() {
-      return { items: [], total: 0 };
+    async query(filter) {
+      const conditions: string[] = [];
+      const values: unknown[] = [];
+      const add = (column: string, value: string | undefined) => {
+        if (value === undefined) return;
+        values.push(value);
+        conditions.push(`${column} = $${values.length}`);
+      };
+      add('actor_id', filter.actorId);
+      add('entity_id', filter.entityId);
+      add('team_id', filter.teamId);
+      add('request_id', filter.requestId);
+      add('trace_id', filter.traceId);
+      add('operation_id', filter.operationId);
+      add('causation_id', filter.causationId);
+      if (filter.action?.length) {
+        values.push(filter.action);
+        conditions.push(`action = ANY($${values.length}::text[])`);
+      }
+      const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
+      const { rows } = await pool.query(
+        `SELECT id, action, actor_id, entity_id, team_id, payload, created_at FROM audit_events${where} ORDER BY created_at DESC LIMIT ${Math.max(1, filter.limit ?? 25)}`,
+        values,
+      );
+      return {
+        items: rows.map((row) => ({
+          action: String(row.action),
+          actorId: String(row.actor_id),
+          entityId: typeof row.entity_id === 'string' ? row.entity_id : undefined,
+          teamId: typeof row.team_id === 'string' ? row.team_id : undefined,
+          metadata: (row.payload as Record<string, unknown>) ?? {},
+          timestamp: row.created_at instanceof Date ? row.created_at.toISOString() : undefined,
+        })),
+        total: rows.length,
+      };
     },
   };
   return {

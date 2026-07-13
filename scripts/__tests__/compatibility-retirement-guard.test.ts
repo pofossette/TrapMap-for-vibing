@@ -63,22 +63,10 @@ const allowlist: AllowlistEntry[] = [
     'legacy capability taxonomy',
   ],
   [
-    'packages/host-distributed/package.json',
-    '@trapmap/server',
-    'wave-8',
-    'gateway composition dependency',
-  ],
-  [
     'packages/host-distributed/src/gateway/server.ts',
     '@trapmap/server',
     'wave-8',
     'gateway request context',
-  ],
-  [
-    'packages/host-distributed/src/migrate.ts',
-    '@trapmap/server',
-    'wave-8',
-    'host migration entrypoint',
   ],
   [
     'packages/host-local/package.json',

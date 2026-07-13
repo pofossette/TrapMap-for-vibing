@@ -51,6 +51,8 @@
 - Task 2：`rtk pnpm --filter @trapmap/service-identity-access test --run src/migrations.test.ts`，以及 candidate-ingestion、governance-review、job-runtime、knowledge-read、knowledge-write 的同名 focused test 全部通过（15 tests）。迁移集合校验已共享到 `@trapmap/backend-core`，每个 owner 仅声明自己的唯一 tag。
 - Task 3：`service-identity-access` 新增 owner-local PostgreSQL identity port factory 和本地 Drizzle schema；它不再导入 `@trapmap/server`。distributed identity host 直接使用该 factory；host-local 仅接收由 identity service package 构造的 `IdentityAccessPort`。`rtk pnpm --filter @trapmap/service-identity-access test --run src/pg-ports.test.ts src/routes.test.ts src/migrations.test.ts`（7 tests）、`rtk pnpm --filter @trapmap/host-local test --run src/nest/app.test.ts`（7 tests）和 `rtk pnpm typecheck` 均通过。
 - `rtk pnpm exec fallow audit --base main` 成功，无 boundary violation；报告 server 与新的 owner-local identity schema 之间的迁移期重复，待 compatibility server 在后续 owner waves 删除时一并消除。
+- Wave-1 follow-up：identity service 的 PG factory 现在提供 audit query、actor lookup 和唯一的结构化 `IdentityAccessSnapshotPort` 兼容输入；该 port 不引用 server store 类型，并明确只服务 Task 9 前的 backfill。`buildUserLookupContextFromRepos` 与 `createAuditEvent` 也已作为 identity-owned API 准备给迁移后的 knowledge owner 使用。兼容 server 当前不能直接导入 service implementation（Fallow `server → service-standard` boundary）；因此既有 server call sites 保持原边界，随 knowledge owner wave 经 port 完成切换。
+- Follow-up evidence：`rtk pnpm --filter @trapmap/service-identity-access test --run src/pg-ports.test.ts src/routes.test.ts src/migrations.test.ts`（11 tests）、`rtk pnpm typecheck`、`rtk pnpm exec fallow audit --base main`、`rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure` 均通过。deletion guard 还移除了两条已不命中的 distributed-host Wave-8 allowlist 条目；Wave-1 的 repository aggregate 例外尚未删除，不能将完整 wave 标记为完成。
 
 ## Deferred 边界
 
