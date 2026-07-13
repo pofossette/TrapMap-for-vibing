@@ -3,6 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { createCandidateIngestionDeps } from '@trapmap/service-candidate-ingestion';
 import { createGovernanceReviewDeps } from '@trapmap/service-governance-review';
 import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
+import {
+  createIdentityAccessDeps,
+  createIdentityAccessServiceModule,
+} from '@trapmap/service-identity-access';
 import { createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';
 import { createJobRuntimeModule, createKnowledgeWriteModule } from '@trapmap/backend-core';
 
@@ -47,8 +51,9 @@ const hostLocalRuntime = await createHostLocalRuntime();
 const identityAccessRepos = createIdentityAccessRepos(hostLocalRuntime.services.repos);
 const knowledgeRepoPort = createKnowledgeRepoPort(hostLocalRuntime.services.repos.knowledge);
 
-const identityAccessModule = IdentityAccessModule.forDeps(
-  {
+const identityAccessModule = IdentityAccessModule.forPort(
+  createIdentityAccessServiceModule(
+    createIdentityAccessDeps({
     sessionRepo: identityAccessRepos.sessionRepo,
     accessKeyRepo: identityAccessRepos.accessKeyRepo,
     teamRepo: identityAccessRepos.teamRepo,
@@ -58,7 +63,8 @@ const identityAccessModule = IdentityAccessModule.forDeps(
     teamLookup: hostLocalRuntime.teamLookup,
     permissionCheck: hostLocalRuntime.permissionCheck,
     auditLog: hostLocalRuntime.auditLog,
-  },
+    }),
+  ),
 );
 
 const knowledgeReadModule = KnowledgeReadModule.forDeps(

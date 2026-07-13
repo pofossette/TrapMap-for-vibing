@@ -55,3 +55,8 @@ export * from './discovery/index.js';
 // Testing utilities
 // ---------------------------------------------------------------------------
 export * from './testing/index.js';
+
+// ---------------------------------------------------------------------------
+// Owner-local migration validation
+// ---------------------------------------------------------------------------
+export { assertOwnerMigrationSet } from './migrations/owner-migration-set.js';

@@ -24,7 +24,7 @@
 ## 当前执行入口
 
 - [x] 建立 Task 1 deletion contract：[`compatibility-retirement-guard.test.ts`](../../scripts/__tests__/compatibility-retirement-guard.test.ts) 扫描生产 TypeScript、Dockerfile、根脚本与 workspace manifest；测试、spec 和 fixture 不构成新增阻断面。
-- [ ] Task 2 migration baseline：六个 owner-local baseline 仅支持空数据库；旧 `0000–0020` 数据库须重建，不提供原地升级。`identity-access` 暂管 `store_snapshot`，仅作为 Task 9 一次性 backfill 输入；Task 9 完成导出、回填与核对后必须删除该表及其迁移资产。
+- [x] Task 2 migration baseline：六个 owner-local baseline 仅支持空数据库；旧 `0000–0020` 数据库须重建，不提供原地升级。`identity-access` 暂管 `store_snapshot`，仅作为 Task 9 一次性 backfill 输入；Task 9 完成导出、回填与核对后必须删除该表及其迁移资产。已通过六个 service 的 `src/migrations.test.ts`：每个 runner 均拒绝 owner-external SQL 和缺失 journal tag；host coordinator 的顺序、失败停止与 pool close 覆盖保留在 `packages/host-distributed/src/migrate.test.ts`。
 - [ ] 每完成一个 owner wave，回写迁移范围、已删除 compatibility surface、focused tests、Fallow boundary audit 与 typecheck 结果。
 - [ ] 所有 wave 完成后执行 empty-database migration、legacy snapshot backfill、distributed acceptance 与 closeout，并归档本文件。
 
@@ -45,6 +45,12 @@
 | wave-10 package retirement | root/runtime-infra dependency、repository aggregate、Docker compatibility self-reference；删除 packages 后移除。 |
 
 已执行：guard 先以空 allowlist 运行，基线报出 68 个未登记生产依赖（预期 RED）；加入精确条目后 `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts` 通过（4 tests，GREEN）。同轮通过 `rtk pnpm test:file -- scripts/__tests__/closeout-surface.test.ts`（8 tests）、`rtk pnpm check:arch-freeze`（9 rules）、`rtk pnpm exec fallow list --boundaries`、`rtk pnpm exec fallow audit --base main`（18 changed files, no issues）、`rtk pnpm check:docs-drift`（46 rules）及 `rtk pnpm check:structure`。Fallow 保留一个既有 `../../tsconfig.base.json` entry-point 警告，但审计成功。
+
+## Task 2 / Task 3 evidence
+
+- Task 2：`rtk pnpm --filter @trapmap/service-identity-access test --run src/migrations.test.ts`，以及 candidate-ingestion、governance-review、job-runtime、knowledge-read、knowledge-write 的同名 focused test 全部通过（15 tests）。迁移集合校验已共享到 `@trapmap/backend-core`，每个 owner 仅声明自己的唯一 tag。
+- Task 3：`service-identity-access` 新增 owner-local PostgreSQL identity port factory 和本地 Drizzle schema；它不再导入 `@trapmap/server`。distributed identity host 直接使用该 factory；host-local 仅接收由 identity service package 构造的 `IdentityAccessPort`。`rtk pnpm --filter @trapmap/service-identity-access test --run src/pg-ports.test.ts src/routes.test.ts src/migrations.test.ts`（7 tests）、`rtk pnpm --filter @trapmap/host-local test --run src/nest/app.test.ts`（7 tests）和 `rtk pnpm typecheck` 均通过。
+- `rtk pnpm exec fallow audit --base main` 成功，无 boundary violation；报告 server 与新的 owner-local identity schema 之间的迁移期重复，待 compatibility server 在后续 owner waves 删除时一并消除。
 
 ## Deferred 边界
 
