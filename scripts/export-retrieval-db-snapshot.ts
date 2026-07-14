@@ -5,14 +5,15 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import {
-  type LiveEvalServiceProfile,
   liveSnapshotMetaSchema,
   retrievalEvalScenarioSnapshotSchema,
 } from '@trapmap/contracts/evals';
-import { buildServer } from '@trapmap/server/app.js';
 import { loadConfig } from '@trapmap/server/config.js';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { detectServiceProfile } from '../evals/retrieval-live/lib/snapshot-support.js';
+import { reportEntrypointFailure } from './testing/entrypoint.js';
+import { buildPostgresComposedServer } from './testing/postgres-server-composition.js';
 
 interface CliOptions {
   output: string;
@@ -28,7 +29,53 @@ interface CliOptions {
 }
 
 function parseCliArgs(): CliOptions {
-  const { values } = parseArgs({
+  const values = parseCliValues();
+  requireSnapshotDestination(values.output, values.version);
+  return composeCliOptions(values);
+}
+
+function composeCliOptions(values: ReturnType<typeof parseCliValues>): CliOptions {
+  return {
+    ...destinationOptions(values),
+    ...actorOptions(values),
+  };
+}
+
+function destinationOptions(values: ReturnType<typeof parseCliValues>) {
+  return {
+    output: values.output ?? '',
+    version: values.version ?? null,
+    derivedMode: parseDerivedMode(values['derived-mode']),
+  };
+}
+
+function actorOptions(values: ReturnType<typeof parseCliValues>) {
+  return {
+    teamId: values.teamId ?? null,
+    actorTeamId: values.actorTeamId ?? values.teamId ?? null,
+    securityLevel: parseSecurityLevel(values.securityLevel),
+    subjectType: parseSubjectType(values.subjectType),
+    permissions: parsePermissions(values.permissions),
+  };
+}
+
+function parseSubjectType(value: string): 'user' | 'system-admin' {
+  return value === 'system-admin' ? 'system-admin' : 'user';
+}
+
+function parsePermissions(value: string): string[] {
+  return value
+    .split(',')
+    .map((permission) => permission.trim())
+    .filter(Boolean);
+}
+
+function parseDerivedMode(value: string): 'frozen' | 'rebuild' {
+  return value === 'rebuild' ? 'rebuild' : 'frozen';
+}
+
+function parseCliValues() {
+  return parseArgs({
     options: {
       output: { type: 'string', short: 'o' },
       teamId: { type: 'string' },
@@ -40,35 +87,23 @@ function parseCliArgs(): CliOptions {
       'derived-mode': { type: 'string', default: 'frozen' },
     },
     strict: true,
-  });
+  }).values;
+}
 
-  if (!values.output && !values.version) {
+function requireSnapshotDestination(output: string | undefined, version: string | undefined): void {
+  if (!output && !version) {
     throw new Error(
       'Usage: pnpm exec tsx scripts/export-retrieval-db-snapshot.ts --output <path> [--teamId <team>] [--actorTeamId <team>] [--securityLevel <0-10>] [--subjectType user|system-admin] [--permissions p1,p2] [--version <name>] [--derived-mode frozen|rebuild]',
     );
   }
+}
 
-  const subjectType = values.subjectType === 'system-admin' ? 'system-admin' : 'user';
-  const securityLevel = Number.parseInt(values.securityLevel, 10);
+function parseSecurityLevel(value: string): number {
+  const securityLevel = Number.parseInt(value, 10);
   if (Number.isNaN(securityLevel) || securityLevel < 0 || securityLevel > 10) {
-    throw new Error(`Invalid --securityLevel: ${values.securityLevel}`);
+    throw new Error(`Invalid --securityLevel: ${value}`);
   }
-
-  const derivedMode = values['derived-mode'] === 'rebuild' ? 'rebuild' : 'frozen';
-
-  return {
-    output: values.output ?? '',
-    teamId: values.teamId ?? null,
-    actorTeamId: values.actorTeamId ?? values.teamId ?? null,
-    securityLevel,
-    subjectType,
-    permissions: values.permissions
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean),
-    version: values.version ?? null,
-    derivedMode,
-  };
+  return securityLevel;
 }
 
 function toSnapshotKnowledgeEntry(entry: KnowledgeRecord) {
@@ -118,137 +153,138 @@ function filterGraphDocs(
   return documents.filter((doc) => doc.teamId === teamId || doc.teamId === null);
 }
 
-function detectServiceProfile(): LiveEvalServiceProfile {
-  return {
-    embeddingModel: process.env.OPENAI_API_KEY
-      ? 'text-embedding-3-small'
-      : (process.env.AI_EMBEDDING_MODEL ?? 'fallback-hash'),
-    useDbSearch: process.env.USE_DB_SEARCH === 'true',
-    capsulePgKeyword: process.env.RETRIEVAL_CAPSULE_PG_KEYWORD === 'true',
-    capsulePgSemantic: process.env.RETRIEVAL_CAPSULE_PG_SEMANTIC === 'true',
-    graphDbEnabled: process.env.TRAPMAP_GRAPH_DB_ENABLED === 'true',
-    graphDbProvider:
-      process.env.TRAPMAP_GRAPH_DB_ENABLED === 'true'
-        ? (process.env.TRAPMAP_GRAPH_DB_PROVIDER ?? 'neo4j')
-        : null,
-    decayEnabled: process.env.TRAPMAP_DECAY_ENABLED === 'true',
-  };
-}
-
 export async function main(): Promise<void> {
   const options = parseCliArgs();
   const config = loadConfig();
   if (!config.databaseUrl) {
-    throw new Error('TRAPMAP_DATABASE_URL is required');
+    throw new Error(
+      'retrieval snapshot export requires TRAPMAP_DATABASE_URL and PostgreSQL host composition',
+    );
   }
 
-  const app = buildServer({ config: { databaseUrl: config.databaseUrl } });
+  const composed = buildPostgresComposedServer(config.databaseUrl);
+  const app = composed.app;
 
   try {
     await app.ready();
-    const repos = app.skillShareer.repos;
-
-    const [knowledgeEntries, skillArtifacts, graphIndexDocuments] = await Promise.all([
-      repos.knowledge.listByFilter(options.teamId ? { teamId: options.teamId } : {}),
-      repos.artifact.listForRetrieval(options.teamId ? { teamId: options.teamId } : {}),
-      repos.graphIndex.listAll(),
-    ]);
-
-    const snapshotPayload = retrievalEvalScenarioSnapshotSchema.parse({
-      actor: {
-        subjectType: options.subjectType,
-        activeTeamId: options.actorTeamId,
-        securityLevel: options.securityLevel,
-        permissions: options.permissions,
-      },
-      fixtures: {
-        knowledgeEntries: knowledgeEntries.map(toSnapshotKnowledgeEntry),
-        skillArtifacts: skillArtifacts.map(toSnapshotSkillArtifact),
-        graphIndexDocuments: filterGraphDocs(graphIndexDocuments, options.teamId),
-      },
-    });
-
-    // Versioned export mode (--version): outputs to evals/retrieval-live/snapshots/<version>/
-    if (options.version) {
-      const snapshotDir = path.resolve('evals/retrieval-live/snapshots', options.version);
-      await mkdir(snapshotDir, { recursive: true });
-
-      // Compute fingerprint of corpus data
-      const corpusJson = JSON.stringify(snapshotPayload.fixtures);
-      const fingerprint = createHash('sha256').update(corpusJson).digest('hex');
-
-      // Write corpus.json
-      const corpusPath = path.join(snapshotDir, 'corpus.json');
-      await writeFile(corpusPath, JSON.stringify(snapshotPayload.fixtures, null, 2), 'utf8');
-
-      // Detect service profile
-      const serviceProfile = detectServiceProfile();
-
-      // Count capsule embeddings/keywords for summary
-      const capsuleEmbeddingCount = skillArtifacts.reduce(
-        (sum, a) => sum + (a.latestRevision.derived?.capsules?.length ?? 0),
-        0,
-      );
-
-      // Build and write meta.json
-      const meta = liveSnapshotMetaSchema.parse({
-        schemaVersion: 1,
-        version: options.version,
-        description: `Retrieval snapshot exported from ${options.teamId ?? 'all teams'}`,
-        source: {
-          environment: 'local',
-          exportedAt: new Date().toISOString(),
-          exportedBy: 'export-retrieval-db-snapshot',
-          teamId: options.teamId,
-        },
-        serviceProfile,
-        derivationContext: {
-          mode: options.derivedMode,
-          pipelineVersion: null,
-          embeddingModelUsed: serviceProfile.embeddingModel,
-        },
-        corpusSummary: {
-          knowledgeEntryCount: knowledgeEntries.length,
-          skillArtifactCount: skillArtifacts.length,
-          graphIndexDocumentCount: graphIndexDocuments.length,
-          capsuleEmbeddingCount: options.derivedMode === 'frozen' ? capsuleEmbeddingCount : 0,
-          capsuleKeywordCount: options.derivedMode === 'frozen' ? capsuleEmbeddingCount : 0,
-        },
-        fingerprint,
-        compatibleEndpoints: ['/v2/retrieval/search', '/v3/retrieval/search'],
-        knownLimitations: [],
-      });
-
-      const metaPath = path.join(snapshotDir, 'meta.json');
-      await writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf8');
-
-      console.log(
-        `Wrote versioned snapshot "${options.version}" to ${snapshotDir}/` +
-          ` (fingerprint: ${fingerprint.slice(0, 12)}..., ` +
-          `${meta.corpusSummary.knowledgeEntryCount} knowledge, ` +
-          `${meta.corpusSummary.skillArtifactCount} artifacts, ` +
-          `${meta.corpusSummary.graphIndexDocumentCount} graph docs)`,
-      );
-      return;
-    }
-
-    // Legacy single-file output mode (--output)
-    const outputPath = path.resolve(options.output);
-    await writeFile(outputPath, JSON.stringify(snapshotPayload, null, 2), 'utf8');
-
-    console.log(
-      `Wrote retrieval snapshot to ${outputPath} (${snapshotPayload.fixtures.knowledgeEntries.length} knowledge, ${snapshotPayload.fixtures.skillArtifacts.length} artifacts, ${snapshotPayload.fixtures.graphIndexDocuments.length} graph docs)`,
-    );
+    const exported = await createSnapshotExport(app.skillShareer.repos, options);
+    await writeSnapshotExport(options, exported);
   } finally {
-    await app.close();
+    await composed.close();
   }
+}
+
+async function createSnapshotExport(
+  repos: ReturnType<typeof buildPostgresComposedServer>['app']['skillShareer']['repos'],
+  options: CliOptions,
+) {
+  const filter = options.teamId ? { teamId: options.teamId } : {};
+  const [knowledgeEntries, skillArtifacts, graphIndexDocuments] = await Promise.all([
+    repos.knowledge.listByFilter(filter),
+    repos.artifact.listForRetrieval(filter),
+    repos.graphIndex.listAll(),
+  ]);
+  const payload = retrievalEvalScenarioSnapshotSchema.parse({
+    actor: {
+      subjectType: options.subjectType,
+      activeTeamId: options.actorTeamId,
+      securityLevel: options.securityLevel,
+      permissions: options.permissions,
+    },
+    fixtures: {
+      knowledgeEntries: knowledgeEntries.map(toSnapshotKnowledgeEntry),
+      skillArtifacts: skillArtifacts.map(toSnapshotSkillArtifact),
+      graphIndexDocuments: filterGraphDocs(graphIndexDocuments, options.teamId),
+    },
+  });
+  return { payload, knowledgeEntries, skillArtifacts, graphIndexDocuments };
+}
+
+async function writeSnapshotExport(
+  options: CliOptions,
+  exported: Awaited<ReturnType<typeof createSnapshotExport>>,
+): Promise<void> {
+  if (options.version) {
+    await writeVersionedSnapshot(options, exported);
+    return;
+  }
+  await writeLegacySnapshot(options.output, exported.payload);
+}
+
+async function writeLegacySnapshot(
+  output: string,
+  payload: Awaited<ReturnType<typeof createSnapshotExport>>['payload'],
+): Promise<void> {
+  const outputPath = path.resolve(output);
+  await writeFile(outputPath, JSON.stringify(payload, null, 2), 'utf8');
+  console.log(
+    `Wrote retrieval snapshot to ${outputPath} (${payload.fixtures.knowledgeEntries.length} knowledge, ${payload.fixtures.skillArtifacts.length} artifacts, ${payload.fixtures.graphIndexDocuments.length} graph docs)`,
+  );
+}
+
+async function writeVersionedSnapshot(
+  options: CliOptions,
+  exported: Awaited<ReturnType<typeof createSnapshotExport>>,
+): Promise<void> {
+  const snapshotDir = path.resolve('evals/retrieval-live/snapshots', options.version!);
+  await mkdir(snapshotDir, { recursive: true });
+  const fingerprint = createHash('sha256')
+    .update(JSON.stringify(exported.payload.fixtures))
+    .digest('hex');
+  await writeFile(
+    path.join(snapshotDir, 'corpus.json'),
+    JSON.stringify(exported.payload.fixtures, null, 2),
+    'utf8',
+  );
+  const serviceProfile = detectServiceProfile();
+  const capsuleCount = exported.skillArtifacts.reduce(
+    (sum, artifact) => sum + (artifact.latestRevision.derived?.capsules?.length ?? 0),
+    0,
+  );
+  const meta = liveSnapshotMetaSchema.parse({
+    schemaVersion: 1,
+    version: options.version!,
+    description: `Retrieval snapshot exported from ${options.teamId ?? 'all teams'}`,
+    source: {
+      environment: 'local',
+      exportedAt: new Date().toISOString(),
+      exportedBy: 'export-retrieval-db-snapshot',
+      teamId: options.teamId,
+    },
+    serviceProfile,
+    derivationContext: {
+      mode: options.derivedMode,
+      pipelineVersion: null,
+      embeddingModelUsed: serviceProfile.embeddingModel,
+    },
+    corpusSummary: snapshotSummary(options, exported, capsuleCount),
+    fingerprint,
+    compatibleEndpoints: ['/v2/retrieval/search', '/v3/retrieval/search'],
+    knownLimitations: [],
+  });
+  await writeFile(path.join(snapshotDir, 'meta.json'), JSON.stringify(meta, null, 2), 'utf8');
+  console.log(
+    `Wrote versioned snapshot "${options.version}" to ${snapshotDir}/ (fingerprint: ${fingerprint.slice(0, 12)}..., ${meta.corpusSummary.knowledgeEntryCount} knowledge, ${meta.corpusSummary.skillArtifactCount} artifacts, ${meta.corpusSummary.graphIndexDocumentCount} graph docs)`,
+  );
+}
+
+function snapshotSummary(
+  options: CliOptions,
+  exported: Awaited<ReturnType<typeof createSnapshotExport>>,
+  capsuleCount: number,
+) {
+  const derivedCount = options.derivedMode === 'frozen' ? capsuleCount : 0;
+  return {
+    knowledgeEntryCount: exported.knowledgeEntries.length,
+    skillArtifactCount: exported.skillArtifacts.length,
+    graphIndexDocumentCount: exported.graphIndexDocuments.length,
+    capsuleEmbeddingCount: derivedCount,
+    capsuleKeywordCount: derivedCount,
+  };
 }
 
 const isEntrypoint = process.argv[1] === fileURLToPath(import.meta.url);
 
 if (isEntrypoint) {
-  main().catch((error) => {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
-  });
+  main().catch(reportEntrypointFailure);
 }

@@ -28,6 +28,7 @@ import {
 import {
   detectServiceProfile,
   loadSnapshot,
+  materializeCorpusRecords,
   verifyServiceProfile,
 } from './snapshot-orchestrator.js';
 
@@ -274,6 +275,31 @@ describe('detectServiceProfile', () => {
     const profile = detectServiceProfile();
     const parsed = liveEvalServiceProfileSchema.parse(profile);
     expect(parsed.embeddingModel).toBeTruthy();
+  });
+});
+
+describe('materializeCorpusRecords', () => {
+  it('writes knowledge, artifacts, and graph records through one flow', async () => {
+    const writes: string[] = [];
+    const repos = {
+      knowledge: {
+        insert: async (record: Record<string, unknown>) => writes.push(`knowledge:${record.id}`),
+      },
+      artifact: {
+        insert: async (record: Record<string, unknown>) => writes.push(`artifact:${record.id}`),
+      },
+      graphIndex: {
+        upsert: async (record: Record<string, unknown>) => writes.push(`graph:${record.id}`),
+      },
+    };
+
+    await materializeCorpusRecords(repos, {
+      knowledgeEntries: [{ id: 'knowledge-1', embeddingCache: 'cached', indexState: 'ready' }],
+      skillArtifacts: [{ id: 'artifact-1' }],
+      graphIndexDocuments: [{ id: 'graph-1' }],
+    });
+
+    expect(writes).toEqual(['knowledge:knowledge-1', 'artifact:artifact-1', 'graph:graph-1']);
   });
 });
 

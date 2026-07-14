@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 
-import { randomUUID } from 'node:crypto';
-import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 
-import { buildServer } from '@trapmap/server/app.js';
+import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
 
 interface ScenarioResult {
   name: string;
@@ -20,13 +18,20 @@ type EnvOverrides = Record<string, string | undefined>;
 const DEFAULT_ITERATIONS = Number.parseInt(process.env.TRAPMAP_GRAPH_BENCH_ITERATIONS ?? '5', 10);
 
 async function main(): Promise<void> {
-  const iterations =
-    Number.isFinite(DEFAULT_ITERATIONS) && DEFAULT_ITERATIONS > 0 ? DEFAULT_ITERATIONS : 5;
-  const currentNeo4jReady =
-    !!process.env.TRAPMAP_GRAPH_DB_URI &&
-    !!process.env.TRAPMAP_GRAPH_DB_USERNAME &&
-    !!process.env.TRAPMAP_GRAPH_DB_PASSWORD;
+  const databaseUrl = process.env.TRAPMAP_DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error(
+      'graph benchmark requires TRAPMAP_DATABASE_URL and PostgreSQL host composition',
+    );
+  }
+  await runBenchmark(databaseUrl, benchmarkIterations(), createScenarios());
+}
 
+function benchmarkIterations(): number {
+  return Number.isFinite(DEFAULT_ITERATIONS) && DEFAULT_ITERATIONS > 0 ? DEFAULT_ITERATIONS : 5;
+}
+
+function createScenarios(): Array<{ name: string; env: EnvOverrides }> {
   const scenarios: Array<{ name: string; env: EnvOverrides }> = [
     {
       name: 'disabled-memory',
@@ -43,7 +48,7 @@ async function main(): Promise<void> {
     },
   ];
 
-  if (currentNeo4jReady) {
+  if (hasNeo4jCredentials()) {
     scenarios.push({
       name: 'enabled-current-env',
       env: {
@@ -63,34 +68,53 @@ async function main(): Promise<void> {
     });
   }
 
+  return scenarios;
+}
+
+function hasNeo4jCredentials(): boolean {
+  return Boolean(
+    process.env.TRAPMAP_GRAPH_DB_URI &&
+      process.env.TRAPMAP_GRAPH_DB_USERNAME &&
+      process.env.TRAPMAP_GRAPH_DB_PASSWORD,
+  );
+}
+
+async function runBenchmark(
+  databaseUrl: string,
+  iterations: number,
+  scenarios: Array<{ name: string; env: EnvOverrides }>,
+): Promise<void> {
   console.log('TrapMap graph backend startup benchmark');
   console.log(`Iterations per scenario: ${iterations}`);
   console.log('');
 
   const results: ScenarioResult[] = [];
   for (const scenario of scenarios) {
-    results.push(await runScenario(scenario.name, scenario.env, iterations));
+    results.push(await runScenario(scenario.name, scenario.env, iterations, databaseUrl));
   }
 
-  for (const result of results) {
-    if (result.error) {
-      console.log(`${result.name}: ERROR`);
-      console.log(`  ${result.error}`);
-      continue;
-    }
+  results.forEach(reportScenario);
+}
 
-    console.log(`${result.name}:`);
-    console.log(`  avg: ${result.averageMs.toFixed(2)}ms`);
-    console.log(`  min: ${result.minMs.toFixed(2)}ms`);
-    console.log(`  max: ${result.maxMs.toFixed(2)}ms`);
-    console.log(`  samples: ${result.samplesMs.map((value) => value.toFixed(2)).join(', ')}`);
+function reportScenario(result: ScenarioResult): void {
+  if (result.error) {
+    console.log(`${result.name}: ERROR`);
+    console.log(`  ${result.error}`);
+    return;
   }
+
+  console.log(`${result.name}:`);
+  console.log(`  avg: ${result.averageMs.toFixed(2)}ms`);
+  console.log(`  min: ${result.minMs.toFixed(2)}ms`);
+  console.log(`  max: ${result.maxMs.toFixed(2)}ms`);
+  console.log(`  samples: ${result.samplesMs.map((value) => value.toFixed(2)).join(', ')}`);
 }
 
 async function runScenario(
   name: string,
   env: EnvOverrides,
   iterations: number,
+  databaseUrl: string,
 ): Promise<ScenarioResult> {
   const samplesMs: number[] = [];
 
@@ -98,21 +122,13 @@ async function runScenario(
     for (let index = 0; index < iterations; index += 1) {
       const durationMs = await withEnv(env, async () => {
         const start = performance.now();
-        const app = buildServer({
-          config: {
-            dataFile: path.resolve(
-              process.cwd(),
-              '.tmp',
-              'graph-benchmark',
-              `${name}-${index}-${randomUUID()}.json`,
-            ),
-          },
-        });
+        const composed = buildPostgresComposedServer(databaseUrl);
+        const app = composed.app;
 
         try {
           await app.ready();
         } finally {
-          await app.close();
+          await composed.close();
         }
 
         return performance.now() - start;
@@ -141,28 +157,24 @@ async function runScenario(
 }
 
 async function withEnv<T>(overrides: EnvOverrides, fn: () => Promise<T>): Promise<T> {
-  const snapshot = new Map<string, string | undefined>();
-
-  for (const key of Object.keys(overrides)) {
-    snapshot.set(key, process.env[key]);
-    const value = overrides[key];
-    if (value === undefined) {
-      delete process.env[key];
-    } else {
-      process.env[key] = value;
-    }
-  }
+  const snapshot = snapshotEnvironment(overrides);
+  applyEnvironment(overrides);
 
   try {
     return await fn();
   } finally {
-    for (const [key, value] of snapshot) {
-      if (value === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = value;
-      }
-    }
+    applyEnvironment(Object.fromEntries(snapshot));
+  }
+}
+
+function snapshotEnvironment(overrides: EnvOverrides): Map<string, string | undefined> {
+  return new Map(Object.keys(overrides).map((key) => [key, process.env[key]]));
+}
+
+function applyEnvironment(overrides: EnvOverrides): void {
+  for (const [key, value] of Object.entries(overrides)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
   }
 }
 

@@ -4,24 +4,42 @@ import { fileURLToPath } from 'node:url';
 
 import { loadConfig } from '@trapmap/server/config.js';
 import { type BadcaseTraceExportRow, serializeBadcaseEvalDraft } from './lib/badcase-eval-draft.js';
+import { reportEntrypointFailure } from './testing/entrypoint.js';
 
 export async function main() {
-  const feedbackId = process.argv[2];
-  const outputPath = process.argv[3];
+  const { feedbackId, outputPath } = parseArguments();
+  const databaseUrl = requireDatabaseUrl();
 
+  const row = await readBadcaseTrace(databaseUrl, feedbackId);
+  if (!row) {
+    throw new Error(`Badcase trace not found for ${feedbackId}`);
+  }
+
+  writeFileSync(resolve(outputPath), serializeBadcaseEvalDraft(row), 'utf8');
+}
+
+function parseArguments(): { feedbackId: string; outputPath: string } {
+  const [feedbackId, outputPath] = process.argv.slice(2);
   if (!feedbackId || !outputPath) {
     throw new Error(
       'Usage: pnpm exec tsx scripts/export-badcase-to-eval.ts <feedbackId> <outputPath>',
     );
   }
+  return { feedbackId, outputPath };
+}
 
-  const config = loadConfig();
-  if (!config.databaseUrl) {
-    throw new Error('TRAPMAP_DATABASE_URL is required');
-  }
+function requireDatabaseUrl(): string {
+  const databaseUrl = loadConfig().databaseUrl;
+  if (!databaseUrl) throw new Error('TRAPMAP_DATABASE_URL is required');
+  return databaseUrl;
+}
 
+async function readBadcaseTrace(
+  databaseUrl: string,
+  feedbackId: string,
+): Promise<BadcaseTraceExportRow | undefined> {
   const { Pool } = await import('pg');
-  const pool = new Pool({ connectionString: config.databaseUrl });
+  const pool = new Pool({ connectionString: databaseUrl });
   try {
     const result = await pool.query(
       `SELECT feedback_id, query_id, query_seed, route_family, entry_id, entry_type,
@@ -31,13 +49,7 @@ export async function main() {
        LIMIT 1`,
       [feedbackId],
     );
-
-    const row = result.rows[0] as BadcaseTraceExportRow | undefined;
-    if (!row) {
-      throw new Error(`Badcase trace not found for ${feedbackId}`);
-    }
-
-    writeFileSync(resolve(outputPath), serializeBadcaseEvalDraft(row), 'utf8');
+    return result.rows[0] as BadcaseTraceExportRow | undefined;
   } finally {
     await pool.end();
   }
@@ -46,8 +58,5 @@ export async function main() {
 const isEntrypoint = process.argv[1] === fileURLToPath(import.meta.url);
 
 if (isEntrypoint) {
-  main().catch((error) => {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
-  });
+  main().catch(reportEntrypointFailure);
 }

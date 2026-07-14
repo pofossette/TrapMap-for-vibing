@@ -54,6 +54,12 @@ interface AllowlistEntry {
 }
 
 const completedOwnerWaves: OwnerWave[] = ['wave-1'];
+const POSTGRES_COMPOSITION_ENTRYPOINTS = [
+  'scripts/export-retrieval-db-snapshot.ts',
+  'evals/retrieval-live/lib/snapshot-orchestrator.ts',
+  'packages/server/scripts/benchmark-graph-backend.ts',
+  'scripts/test-skill-import-export.ts',
+] as const;
 const RETIRED_WAVE_1_OWNER_SYMBOLS = [
   'createSessionRepository',
   'createAccessKeyRepository',
@@ -537,6 +543,14 @@ function findRetiredWaveOneOwners(root: string): string[] {
 }
 
 describe('compatibility retirement guard', () => {
+  it('keeps Wave-8 host composition as the sole server factory path for migrated entrypoints', () => {
+    for (const file of POSTGRES_COMPOSITION_ENTRYPOINTS) {
+      const source = readFileSync(join(repoRoot, file), 'utf8');
+      expect(source).toContain('buildPostgresComposedServer');
+      expect(source).not.toMatch(/\bbuildServer\s*\(/);
+    }
+  });
+
   function writeProductionFile(root: string, relativePath: string, content: string): void {
     const file = join(root, relativePath);
     mkdirSync(resolve(file, '..'), { recursive: true });
