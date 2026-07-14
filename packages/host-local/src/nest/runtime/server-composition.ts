@@ -16,7 +16,7 @@ export interface HostLocalServer {
  */
 export async function buildHostLocalServer(
   config: HostLocalConfig,
-  options: Pick<BuildServerOptions, 'bodyLimit' | 'runtimeMode' | 'serviceUnit'> = {},
+  options: Pick<BuildServerOptions, 'bodyLimit' | 'config' | 'runtimeMode' | 'serviceUnit'> = {},
 ): Promise<HostLocalServer> {
   const services = await createHostLocalServices(config);
   const pool = getStorePool(services.store);
@@ -25,16 +25,23 @@ export async function buildHostLocalServer(
   }
 
   const app = buildServer({
-    config,
     ...options,
+    config: {
+      ...config,
+      ...options.config,
+      runtime: { ...config.runtime, ...options.config?.runtime },
+      deployment: { ...config.deployment, ...options.config?.deployment },
+    },
     identityBundle: services.identity,
     store: services.store,
+    ownsStore: false,
   });
+  const closeApp = app.close.bind(app);
 
   return {
     app,
     async close() {
-      await app.close();
+      await closeApp();
       await pool.end();
     },
   };

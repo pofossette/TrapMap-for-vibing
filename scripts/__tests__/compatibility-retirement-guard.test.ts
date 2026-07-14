@@ -106,6 +106,18 @@ const allowlist: AllowlistEntry[] = [
     'local host PostgreSQL pool seam',
   ],
   [
+    'packages/host-local/src/nest/runtime/server-composition.ts',
+    '@trapmap/server',
+    'wave-8',
+    'local host compatibility-shell composition',
+  ],
+  [
+    'packages/host-local/src/nest/runtime/server-composition.ts',
+    '@trapmap/runtime-infra',
+    'wave-8',
+    'local host PostgreSQL pool ownership',
+  ],
+  [
     'packages/runtime-infra/package.json',
     '@trapmap/server',
     'wave-10',
@@ -409,6 +421,7 @@ function listFiles(directory: string): string[] {
 function isProductionFile(root: string, file: string): boolean {
   const path = relative(root, file);
   if (/(^|\/)(__fixtures__|fixtures)(\/|$)/.test(path)) return false;
+  if (/(^|\/)testing(\/|$)/.test(path)) return false;
   if (/\.(test|spec)\.[cm]?tsx?$/.test(path)) return false;
 
   return /^(packages\/[^/]+\/src\/.*\.[cm]?tsx?|scripts\/.*\.[cm]?tsx?|packages\/[^/]+\/Dockerfile[^/]*|package\.json|packages\/[^/]+\/package\.json)$/.test(

@@ -49,6 +49,7 @@ export interface BuildServerOptions {
   serviceUnit?: ServiceUnit;
   identityBundle?: IdentityCompatibilityBundle;
   store?: SkillShareerStore;
+  ownsStore?: boolean;
 }
 
 function resolveRuntimeServiceName(runtimeMode: RuntimeMode, serviceUnit: ServiceUnit): string {
@@ -286,7 +287,7 @@ export function buildServer(options: BuildServerOptions = {}) {
     }
 
     const closeStore = (store as { close?: () => Promise<void> | void }).close;
-    if (typeof closeStore === 'function') {
+    if (options.ownsStore !== false && typeof closeStore === 'function') {
       await closeStore.call(store);
     }
   });

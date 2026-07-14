@@ -67,6 +67,14 @@ export default defineConfig({
               replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
             },
             {
+              find: '@trapmap/backend-core',
+              replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
+            },
+            {
+              find: '@trapmap/runtime-infra',
+              replacement: resolve(__dirname, './packages/runtime-infra/src/index.ts'),
+            },
+            {
               find: /^@trapmap\/server\/(.+)$/,
               replacement: resolve(__dirname, './packages/server/src/$1'),
             },

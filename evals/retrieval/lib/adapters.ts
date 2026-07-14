@@ -10,11 +10,10 @@ import type { FastifyInstance } from 'fastify';
 
 import type { RetrievalQuery, RetrievalV2Query, SkillLookupQuery } from '@trapmap/contracts';
 import type { RetrievalEvalCase, RetrievalEvalScenario } from '@trapmap/contracts/evals';
-import { buildServer } from '../../../packages/server/src/app.js';
+import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
 import { resetRetrievalReadModelCacheForTests } from '../../../packages/server/src/lib/cache/retrieval-read-model-cache.js';
 import type { GraphIndexDocumentRecord } from '../../../packages/server/src/lib/indexing/graph-lite/documents.js';
 import { createKnowledgeEntryRecord } from '../../../packages/server/src/lib/knowledge.js';
-import type { SkillShareerRepos } from '../../../packages/server/src/lib/repos/index.js';
 import { hashSecret, nowIso } from '../../../packages/server/src/lib/store.js';
 import type {
   DerivedSkillCapsuleRecord,
@@ -65,6 +64,8 @@ export interface ExecutionContext {
   sessionToken: string;
   /** Actor ID for the session */
   actorId: string;
+  /** Closes the host-composed app and its owner pool. */
+  close(): Promise<void>;
 }
 
 // =============================================================================
@@ -91,100 +92,65 @@ export interface AdapterResult {
  * Create an execution context for running eval cases.
  * Seeds the store with fixture data and creates a session for the actor.
  *
- * Uses repository layer when PostgreSQL is active (repos available),
- * falls back to store.transact() for JSON mode.
+ * Requires a PostgreSQL URL and writes identity fixtures through owner ports.
  *
  * @param config - Configuration options
  * @returns Execution context with app, store, and session token
  */
 export async function createExecutionContext(options?: {
-  dataFile?: string;
+  databaseUrl?: string;
 }): Promise<ExecutionContext> {
   resetRetrievalReadModelCacheForTests();
 
-  const dataFile =
-    options?.dataFile ??
-    `/tmp/trapmap-eval-${Date.now()}-${Math.random().toString(36).slice(2)}.json`;
-
-  const app = buildServer({ config: { dataFile } });
+  const databaseUrl = options?.databaseUrl ?? process.env.TRAPMAP_DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error('retrieval eval requires TRAPMAP_DATABASE_URL and PostgreSQL host composition');
+  }
+  const composed = buildPostgresComposedServer(databaseUrl);
+  const app = composed.app;
   await app.ready();
 
-  const store = app.skillShareer.store;
-  const repos = app.skillShareer.repos;
+  const store = composed.store;
+  const identity = app.skillShareer.identity;
 
   // Create a system admin user and session for the eval runner
   const actorId = 'user_eval_runner';
 
-  if (repos) {
-    // PostgreSQL mode: use repository layer
-    const existingUser = await repos.user.getById(actorId);
-    if (!existingUser) {
-      await repos.user.insert({
-        id: actorId,
-        handle: 'eval-runner',
-        notes: null,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      });
-    }
-  } else {
-    // JSON mode: use store.transact()
-    await store.transact(async (data) => {
-      if (!data.counters) data.counters = {};
-      data.counters.user = 1;
-
-      data.users.push({
-        id: actorId,
-        handle: 'eval-runner',
-        notes: null,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      });
+  const existingUser = await identity.userRepo.getById(actorId);
+  if (!existingUser) {
+    await identity.userRepo.insert({
+      id: actorId,
+      handle: 'eval-runner',
+      notes: null,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
     });
   }
 
-  const sessionToken = await createSession(store, actorId, null, 'system-admin', repos);
+  const sessionToken = await createSession(actorId, null, 'system-admin', identity.sessionRepo);
 
-  return { app, store, sessionToken, actorId };
+  return { app, store, sessionToken, actorId, close: composed.close };
 }
 
 /**
  * Create a session for an actor.
- * Uses repository layer when PostgreSQL is active, falls back to store.transact().
+ * Uses the host-owned identity session port.
  */
 async function createSession(
-  store: SkillShareerStore,
   userId: string,
   activeTeamId: string | null,
   subjectType: 'user' | 'system-admin',
-  repos?: SkillShareerRepos,
+  sessionRepo: NonNullable<FastifyInstance['skillShareer']['identity']>['sessionRepo'],
 ): Promise<string> {
   const token = `session_eval_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
-  if (repos) {
-    // PostgreSQL mode: use session repository
-    await repos.session.create({
-      userId,
-      tokenHash: hashSecret(token),
-      activeTeamId,
-      subjectType,
-      expiresAt: new Date(Date.now() + 3600000).toISOString(),
-    });
-  } else {
-    // JSON mode: use store.transact()
-    await store.transact(async (data) => {
-      data.sessions.push({
-        id: `session_${Date.now()}`,
-        userId,
-        tokenHash: hashSecret(token),
-        activeTeamId,
-        subjectType,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-        expiresAt: new Date(Date.now() + 3600000).toISOString(), // 1 hour
-      });
-    });
-  }
+  await sessionRepo.create({
+    userId,
+    tokenHash: hashSecret(token),
+    activeTeamId,
+    subjectType,
+    expiresAt: new Date(Date.now() + 3600000).toISOString(),
+  });
 
   return token;
 }
@@ -207,46 +173,15 @@ export async function closeExecutionContext(ctx: ExecutionContext): Promise<void
     }
   }
 
-  const { PostgresStore } = await import(
-    '../../../packages/server/src/lib/persistence/postgres-store.js'
+  const pool = ctx.store.getPool();
+  const { rows } = await pool.query<{ tablename: string }>(
+    "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE '%migration%'",
   );
-  if (ctx.store instanceof PostgresStore) {
-    try {
-      const pool = ctx.store.getPool();
-      await pool.query(`
-        TRUNCATE TABLE
-          knowledge_entries, knowledge_labels, knowledge_keywords,
-          knowledge_embeddings, knowledge_revisions, knowledge_search_documents,
-          knowledge_boundary_contexts, knowledge_boundary_evidence,
-          knowledge_boundary_exclusions, knowledge_boundary_prerequisites,
-          knowledge_boundary_signals, knowledge_boundary_versions,
-          knowledge_maintenance_assignments,
-          skill_artifacts, skill_artifact_capsules, skill_artifact_files,
-          skill_artifact_profiles, skill_artifact_client_manifests,
-          skill_artifact_script_descriptors, skill_artifact_metadata,
-          skill_artifact_agent_reviews, skill_artifact_maintenance_assignments,
-          skill_artifact_manifest_assets, skill_artifact_manifest_references,
-          skill_artifact_manifest_scripts,
-          skill_artifact_boundary_contexts, skill_artifact_boundary_evidence,
-          skill_artifact_boundary_exclusions, skill_artifact_boundary_prerequisites,
-          skill_artifact_boundary_signals, skill_artifact_boundary_versions,
-          artifact_revisions, artifact_lifecycle_events,
-          candidates, candidate_analyses, candidate_duplicate_cases,
-          candidate_duplicate_matches, candidate_manual_results,
-          candidate_resolution_outcomes,
-          sessions, users, teams, memberships, access_keys,
-          feedback_records, feedback_custom_answers,
-          graph_index_documents, entity_lineage,
-          lifecycle_events, usage_events, usage_events_daily_rollup,
-          store_snapshot, task_queue
-        CASCADE
-      `);
-    } catch {
-      // Ignore cleanup errors
-    }
-    await ctx.store.close();
+  if (rows.length > 0) {
+    const tables = rows.map(({ tablename }) => `"${tablename.replaceAll('"', '""')}"`).join(', ');
+    await pool.query(`TRUNCATE TABLE ${tables} CASCADE`);
   }
-  await ctx.app.close();
+  await ctx.close();
 }
 
 // =============================================================================
@@ -587,99 +522,44 @@ export async function createActorSession(
     permissions: string[];
   },
 ): Promise<string> {
-  const repos = ctx.app.skillShareer.repos;
-
-  if (repos) {
-    if (actor.activeTeamId) {
-      const existing = await repos.team.getById(actor.activeTeamId);
-      if (!existing) {
-        await repos.team.insert({
-          id: actor.activeTeamId,
-          name: `Team ${actor.activeTeamId}`,
-          slug: `team-${actor.activeTeamId}`,
-          description: null,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-      }
-    }
-
-    if (actor.activeTeamId) {
-      const membershipId = `membership_${ctx.actorId}_${actor.activeTeamId}`;
-      const existingMembership = await repos.membership.getById(membershipId);
-      if (!existingMembership) {
-        await repos.membership.insert({
-          id: membershipId,
-          userId: ctx.actorId,
-          teamId: actor.activeTeamId,
-          roleTemplate: actor.subjectType === 'system-admin' ? 'admin' : 'user',
-          securityLevel: actor.securityLevel,
-          permissions: actor.permissions,
-          notes: null,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-      }
-    }
-
-    if (ctx.sessionToken) {
-      await repos.session.deleteByTokenHash(hashSecret(ctx.sessionToken));
-    }
-
-    ctx.sessionToken = await createSession(
-      ctx.store,
-      ctx.actorId,
-      actor.activeTeamId,
-      actor.subjectType,
-      repos,
-    );
-  } else {
-    // JSON mode: use store.transact()
-    if (actor.activeTeamId) {
-      await ctx.store.transact(async (data) => {
-        const teamExists = data.teams.some((t) => t.id === actor.activeTeamId);
-        if (!teamExists) {
-          data.teams.push({
-            id: actor.activeTeamId,
-            name: `Team ${actor.activeTeamId}`,
-            slug: `team-${actor.activeTeamId}`,
-            description: null,
-            createdAt: nowIso(),
-            updatedAt: nowIso(),
-          });
-        }
+  const identity = ctx.app.skillShareer.identity;
+  if (actor.activeTeamId) {
+    const existing = await identity.teamRepo.getById(actor.activeTeamId);
+    if (!existing) {
+      await identity.teamRepo.insert({
+        id: actor.activeTeamId,
+        name: `Team ${actor.activeTeamId}`,
+        slug: `team-${actor.activeTeamId}`,
+        description: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
     }
 
-    if (actor.activeTeamId) {
-      await ctx.store.transact(async (data) => {
-        const membershipId = `membership_${ctx.actorId}_${actor.activeTeamId}`;
-        const membershipExists = data.memberships.some((m) => m.id === membershipId);
-
-        if (!membershipExists) {
-          data.memberships.push({
-            id: membershipId,
-            userId: ctx.actorId,
-            teamId: actor.activeTeamId,
-            roleTemplate: actor.subjectType === 'system-admin' ? 'admin' : 'user',
-            securityLevel: actor.securityLevel,
-            permissions: actor.permissions,
-            notes: null,
-            createdAt: nowIso(),
-            updatedAt: nowIso(),
-          });
-        }
+    const membershipId = `membership_${ctx.actorId}_${actor.activeTeamId}`;
+    const existingMembership = await identity.membershipRepo.getById(membershipId);
+    if (!existingMembership) {
+      await identity.membershipRepo.insert({
+        id: membershipId,
+        userId: ctx.actorId,
+        teamId: actor.activeTeamId,
+        roleTemplate: actor.subjectType === 'system-admin' ? 'admin' : 'user',
+        securityLevel: actor.securityLevel,
+        permissions: actor.permissions,
+        notes: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
       });
     }
-
-    await ctx.store.transact(async (data) => {
-      const session = data.sessions.find((s) => s.userId === ctx.actorId);
-      if (session) {
-        session.activeTeamId = actor.activeTeamId;
-        session.subjectType = actor.subjectType;
-      }
-    });
   }
+
+  await identity.sessionRepo.deleteByTokenHash(hashSecret(ctx.sessionToken));
+  ctx.sessionToken = await createSession(
+    ctx.actorId,
+    actor.activeTeamId,
+    actor.subjectType,
+    identity.sessionRepo,
+  );
 
   return ctx.sessionToken;
 }

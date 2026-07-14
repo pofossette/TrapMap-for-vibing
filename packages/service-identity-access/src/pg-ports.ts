@@ -21,7 +21,21 @@ type Queryable = Pick<Pool, 'query'>;
 
 async function listMemberships(pool: Queryable, column: 'user_id' | 'team_id', value: string) {
   const { rows } = await pool.query(`SELECT * FROM memberships WHERE ${column} = $1`, [value]);
-  return rows as never[];
+  return rows.map(rowToMembership) as never[];
+}
+
+function rowToMembership(row: Record<string, unknown>) {
+  return {
+    id: String(row.id),
+    userId: String(row.user_id),
+    teamId: String(row.team_id),
+    roleTemplate: String(row.role_template),
+    securityLevel: Number(row.security_level),
+    permissions: Array.isArray(row.permissions) ? row.permissions : [],
+    notes: typeof row.notes === 'string' ? row.notes : null,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : nowIso(),
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : nowIso(),
+  };
 }
 
 /**
@@ -231,11 +245,11 @@ export function createIdentityAccessPgDeps(
       const { rows } = await pool.query('SELECT * FROM access_keys WHERE token_hash = $1', [
         tokenHash,
       ]);
-      return (rows[0] as never) ?? null;
+      return rows[0] ? (rowToMembership(rows[0] as Record<string, unknown>) as never) : null;
     },
     async getById(keyId) {
       const { rows } = await pool.query('SELECT * FROM access_keys WHERE id = $1', [keyId]);
-      return (rows[0] as never) ?? null;
+      return rows[0] ? (rowToMembership(rows[0] as Record<string, unknown>) as never) : null;
     },
     async revoke(keyId) {
       await pool.query(

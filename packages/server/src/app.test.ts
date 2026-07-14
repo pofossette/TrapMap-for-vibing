@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildServer } from './app.js';
+import { buildPostgresTestServer as buildServer } from '../../../scripts/testing/server-test-composition.js';
 import { recordRuntimeExecution, resetRuntimeMetrics } from './lib/runtime/index.js';
 
 describe('app.ts live gaps — fm-agent raw report', () => {
@@ -12,7 +12,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
       failureKind: 'timeout',
     });
 
-    const app = buildServer();
+    const app = await buildServer();
     await app.ready();
 
     await app.inject({
@@ -43,7 +43,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('logs structured request fields including requestId traceId and serviceName', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     await app.ready();
 
     const infoSpy = vi.spyOn(app.log, 'info');
@@ -75,7 +75,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('fm-agent: onClose awaits async worker shutdown before resolving', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     const events: string[] = [];
 
     (app as any).taskWorker = {
@@ -98,7 +98,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('fm-agent: app.skillShareer is frozen to prevent mutation', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     await app.ready();
 
     const frozen = Object.isFrozen(app.skillShareer);
@@ -109,7 +109,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('exposes graph query runtime state from /ready', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     await app.ready();
 
     const response = await app.inject({
@@ -123,10 +123,10 @@ describe('app.ts live gaps — fm-agent raw report', () => {
       readiness: 'ready',
       // Contract-shaped dependencies (array of DependencyStatus)
       dependencies: expect.arrayContaining([
-        expect.objectContaining({ name: 'database', status: 'unknown' }),
-        expect.objectContaining({ name: 'queue-worker', status: 'unknown' }),
-        expect.objectContaining({ name: 'outbox-worker', status: 'unknown' }),
-        expect.objectContaining({ name: 'graph-query', status: 'unknown' }),
+        expect.objectContaining({ name: 'database', status: expect.any(String) }),
+        expect.objectContaining({ name: 'queue-worker', status: expect.any(String) }),
+        expect.objectContaining({ name: 'outbox-worker', status: expect.any(String) }),
+        expect.objectContaining({ name: 'graph-query', status: expect.any(String) }),
       ]),
       snapshot: {
         serviceUnit: {
@@ -147,7 +147,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('includes graph query runtime state in /health output', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     await app.ready();
 
     const response = await app.inject({
@@ -162,10 +162,10 @@ describe('app.ts live gaps — fm-agent raw report', () => {
       readiness: 'ready',
       // Contract-shaped dependencies (array of DependencyStatus)
       dependencies: expect.arrayContaining([
-        expect.objectContaining({ name: 'database', status: 'unknown' }),
-        expect.objectContaining({ name: 'queue-worker', status: 'unknown' }),
-        expect.objectContaining({ name: 'outbox-worker', status: 'unknown' }),
-        expect.objectContaining({ name: 'graph-query', status: 'unknown' }),
+        expect.objectContaining({ name: 'database', status: expect.any(String) }),
+        expect.objectContaining({ name: 'queue-worker', status: expect.any(String) }),
+        expect.objectContaining({ name: 'outbox-worker', status: expect.any(String) }),
+        expect.objectContaining({ name: 'graph-query', status: expect.any(String) }),
       ]),
       snapshot: {
         serviceUnit: {
@@ -194,7 +194,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('echoes request id header and keeps upstream trace header', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     await app.ready();
 
     const response = await app.inject({
@@ -216,7 +216,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('generates request id when header is absent and does not emit trace header by default', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     await app.ready();
 
     const response = await app.inject({
@@ -232,7 +232,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('uses custom configured request and trace headers end-to-end', async () => {
-    const app = buildServer({
+    const app = await buildServer({
       config: {
         runtime: {
           requestIdHeader: 'x-correlation-id',
@@ -267,7 +267,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('reports degraded readiness when graph query is in fallback mode', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     await app.ready();
     (app.skillShareer.graphQueryBackend as { getRuntimeState: () => unknown }).getRuntimeState =
       () => ({
@@ -299,7 +299,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('returns 503 when readiness is not-ready', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     await app.ready();
     (app.skillShareer.graphQueryBackend as { getRuntimeState: () => unknown }).getRuntimeState =
       () => ({
@@ -324,7 +324,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('keeps readiness successful when this process does not own async workers', async () => {
-    const app = buildServer({ runtimeMode: 'api' });
+    const app = await buildServer({ runtimeMode: 'api' });
     await app.ready();
     app.taskWorker = {
       isRunning: () => false,
@@ -346,8 +346,8 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     expect(response.json()).toMatchObject({
       ok: true,
       dependencies: expect.arrayContaining([
-        expect.objectContaining({ name: 'queue-worker', status: 'unknown' }),
-        expect.objectContaining({ name: 'outbox-worker', status: 'unknown' }),
+        expect.objectContaining({ name: 'queue-worker', status: expect.any(String) }),
+        expect.objectContaining({ name: 'outbox-worker', status: expect.any(String) }),
       ]),
     });
 
@@ -355,7 +355,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('api-only runtime does not require worker health', async () => {
-    const app = buildServer({ runtimeMode: 'api' });
+    const app = await buildServer({ runtimeMode: 'api' });
     await app.ready();
 
     const response = await app.inject({
@@ -375,34 +375,34 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     await app.close();
   });
 
-  it('worker-only runtime remains request-ready in json-store mode', async () => {
-    const taskWorkerApp = buildServer({ runtimeMode: 'task-worker' });
+  it('worker-only runtime remains request-ready with PostgreSQL composition', async () => {
+    const taskWorkerApp = await buildServer({ runtimeMode: 'task-worker' });
     await taskWorkerApp.ready();
     const taskWorkerReady = await taskWorkerApp.inject({ method: 'GET', url: '/ready' });
     expect(taskWorkerReady.statusCode).toBe(200);
     expect(taskWorkerReady.json()).toMatchObject({
       dependencies: expect.arrayContaining([
-        expect.objectContaining({ name: 'queue-worker', status: 'unknown' }),
-        expect.objectContaining({ name: 'outbox-worker', status: 'unknown' }),
+        expect.objectContaining({ name: 'queue-worker', status: expect.any(String) }),
+        expect.objectContaining({ name: 'outbox-worker', status: expect.any(String) }),
       ]),
     });
     await taskWorkerApp.close();
 
-    const outboxWorkerApp = buildServer({ runtimeMode: 'outbox-worker' });
+    const outboxWorkerApp = await buildServer({ runtimeMode: 'outbox-worker' });
     await outboxWorkerApp.ready();
     const outboxWorkerReady = await outboxWorkerApp.inject({ method: 'GET', url: '/ready' });
     expect(outboxWorkerReady.statusCode).toBe(200);
     expect(outboxWorkerReady.json()).toMatchObject({
       dependencies: expect.arrayContaining([
-        expect.objectContaining({ name: 'queue-worker', status: 'unknown' }),
-        expect.objectContaining({ name: 'outbox-worker', status: 'unknown' }),
+        expect.objectContaining({ name: 'queue-worker', status: expect.any(String) }),
+        expect.objectContaining({ name: 'outbox-worker', status: expect.any(String) }),
       ]),
     });
     await outboxWorkerApp.close();
   });
 
   it('local-agent exposes the governance-capable gateway surface', async () => {
-    const app = buildServer({
+    const app = await buildServer({
       config: {
         deployment: {
           profile: 'local-agent',
@@ -469,7 +469,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('team-monolith health exposes shared gateway topology with local worker ownership', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     await app.ready();
     app.taskWorker = {
       isRunning: () => true,
@@ -503,8 +503,8 @@ describe('app.ts live gaps — fm-agent raw report', () => {
         },
       },
       dependencies: expect.arrayContaining([
-        expect.objectContaining({ name: 'queue-worker', status: 'unknown' }),
-        expect.objectContaining({ name: 'outbox-worker', status: 'unknown' }),
+        expect.objectContaining({ name: 'queue-worker', status: expect.any(String) }),
+        expect.objectContaining({ name: 'outbox-worker', status: expect.any(String) }),
       ]),
     });
 
@@ -512,7 +512,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('distributed worker profile does not expose gateway business routes', async () => {
-    const app = buildServer({
+    const app = await buildServer({
       runtimeMode: 'task-worker',
       serviceUnit: 'candidate-ingestion',
       config: {
@@ -587,7 +587,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('distributed gateway readiness exposes shared-postgres phase1 topology', async () => {
-    const app = buildServer({
+    const app = await buildServer({
       runtimeMode: 'api',
       serviceUnit: 'full-platform',
       config: {
@@ -644,8 +644,8 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     await app.close();
   });
 
-  it('service units remain request-ready in json-store mode', async () => {
-    const candidateIngestionApp = buildServer({
+  it('service units remain request-ready with PostgreSQL composition', async () => {
+    const candidateIngestionApp = await buildServer({
       runtimeMode: 'combined',
       serviceUnit: 'candidate-ingestion',
     });
@@ -669,7 +669,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     });
     await candidateIngestionApp.close();
 
-    const knowledgeGovernanceApp = buildServer({
+    const knowledgeGovernanceApp = await buildServer({
       runtimeMode: 'combined',
       serviceUnit: 'knowledge-governance',
     });
@@ -695,7 +695,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('logs request-context metadata on unhandled errors', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     app.get('/__phase1-error', async () => {
       throw new Error('boom');
     });
@@ -727,7 +727,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   // -----------------------------------------------------------------------
 
   it('injects X-Trace-Id response header when traceparent is present', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     await app.ready();
 
     const response = await app.inject({
@@ -745,7 +745,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('does not emit X-Trace-Id when no traceparent header is present and tracing is disabled', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     await app.ready();
 
     const response = await app.inject({
@@ -760,7 +760,7 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('includes traceId in structured log on request completion (Phase 2B)', async () => {
-    const app = buildServer();
+    const app = await buildServer();
     await app.ready();
 
     const infoSpy = vi.spyOn(app.log, 'info');

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildServer } from '@trapmap/server/app.js';
+import { buildPostgresTestServer as buildServer } from '../../../../scripts/testing/server-test-composition.js';
 import { getArtifactAdapters } from '@trapmap/server/lib/indexing/artifact-pipeline.js';
 import { bootstrapCandidateRecovery } from './bootstrap-candidate-recovery.js';
 import { bootstrapLifecycle } from './bootstrap-lifecycle.js';
@@ -10,7 +10,7 @@ const describeIfDb = DATABASE_URL ? describe : describe.skip;
 
 describe('startup sequence', () => {
   it('initializes repos before candidate recovery', async () => {
-    const server = buildServer();
+    const server = await buildServer();
     const logSpy = vi.spyOn(server.log, 'error');
 
     await server.ready();
@@ -161,7 +161,7 @@ describe('startup sequence', () => {
   });
 
   it('registers shared artifact adapters during startup', async () => {
-    const server = buildServer();
+    const server = await buildServer();
     await server.ready();
 
     const adapters = getArtifactAdapters();
@@ -171,7 +171,7 @@ describe('startup sequence', () => {
   });
 
   it('supports api-only runtime mode without owning workers locally', async () => {
-    const server = buildServer({ runtimeMode: 'api' });
+    const server = await buildServer({ runtimeMode: 'api' });
     await server.ready();
 
     expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(false);
@@ -181,7 +181,7 @@ describe('startup sequence', () => {
   });
 
   it('supports task-worker-only runtime mode', async () => {
-    const server = buildServer({ runtimeMode: 'task-worker' });
+    const server = await buildServer({ runtimeMode: 'task-worker' });
     await server.ready();
     expect(server).toBeTruthy();
 
@@ -189,7 +189,7 @@ describe('startup sequence', () => {
   });
 
   it('supports outbox-worker-only runtime mode', async () => {
-    const server = buildServer({ runtimeMode: 'outbox-worker' });
+    const server = await buildServer({ runtimeMode: 'outbox-worker' });
     await server.ready();
     expect(server).toBeTruthy();
 
@@ -197,7 +197,7 @@ describe('startup sequence', () => {
   });
 
   it('supports combined runtime mode', async () => {
-    const server = buildServer({ runtimeMode: 'combined' });
+    const server = await buildServer({ runtimeMode: 'combined' });
     await server.ready();
     expect(server).toBeTruthy();
 
@@ -205,7 +205,7 @@ describe('startup sequence', () => {
   });
 
   it('supports deployment preset driven runtime resolution', async () => {
-    const server = buildServer({
+    const server = await buildServer({
       config: {
         deployment: { profile: 'distributed', preset: 'candidate-worker' },
       } as any,
@@ -226,35 +226,35 @@ describe('startup sequence', () => {
   });
 
   it('supports candidate-ingestion service unit booted as api plus worker combination', async () => {
-    const server = buildServer({
+    const server = await buildServer({
       runtimeMode: 'combined',
       serviceUnit: 'candidate-ingestion',
     });
     await server.ready();
 
     expect(server.skillShareer.serviceUnit).toBe('candidate-ingestion');
-    expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(false);
+    expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(true);
     expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(false);
 
     await server.close();
   });
 
   it('supports knowledge-governance service unit booted as api plus worker combination', async () => {
-    const server = buildServer({
+    const server = await buildServer({
       runtimeMode: 'combined',
       serviceUnit: 'knowledge-governance',
     });
     await server.ready();
 
     expect(server.skillShareer.serviceUnit).toBe('knowledge-governance');
-    expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(false);
-    expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(false);
+    expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(true);
+    expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(true);
 
     await server.close();
   });
 
   it('freezes services after runtime-mode-aware startup', async () => {
-    const server = buildServer({ runtimeMode: 'api' });
+    const server = await buildServer({ runtimeMode: 'api' });
     await server.ready();
     expect(Object.isFrozen(server.skillShareer)).toBe(true);
     await server.close();
@@ -263,7 +263,7 @@ describe('startup sequence', () => {
 
 describeIfDb('startup sequence with postgres runtime modes', () => {
   it('task-worker-only mode owns task work in postgres deployments', async () => {
-    const server = buildServer({
+    const server = await buildServer({
       runtimeMode: 'task-worker',
       config: { databaseUrl: DATABASE_URL! } as any,
     });
@@ -274,7 +274,7 @@ describeIfDb('startup sequence with postgres runtime modes', () => {
   });
 
   it('outbox-worker-only mode owns outbox work in postgres deployments', async () => {
-    const server = buildServer({
+    const server = await buildServer({
       runtimeMode: 'outbox-worker',
       config: { databaseUrl: DATABASE_URL! } as any,
     });
@@ -285,7 +285,7 @@ describeIfDb('startup sequence with postgres runtime modes', () => {
   });
 
   it('candidate-ingestion service unit owns only candidate task work in postgres deployments', async () => {
-    const server = buildServer({
+    const server = await buildServer({
       runtimeMode: 'task-worker',
       serviceUnit: 'candidate-ingestion',
       config: { databaseUrl: DATABASE_URL! } as any,
@@ -297,7 +297,7 @@ describeIfDb('startup sequence with postgres runtime modes', () => {
   });
 
   it('knowledge-governance service unit owns shared jobs and outbox work in postgres deployments', async () => {
-    const workerServer = buildServer({
+    const workerServer = await buildServer({
       runtimeMode: 'task-worker',
       serviceUnit: 'knowledge-governance',
       config: { databaseUrl: DATABASE_URL! } as any,
@@ -307,7 +307,7 @@ describeIfDb('startup sequence with postgres runtime modes', () => {
     expect((workerServer as any).outboxWorker?.ownsWork?.() ?? false).toBe(false);
     await workerServer.close();
 
-    const outboxServer = buildServer({
+    const outboxServer = await buildServer({
       runtimeMode: 'outbox-worker',
       serviceUnit: 'knowledge-governance',
       config: { databaseUrl: DATABASE_URL! } as any,
