@@ -1,5 +1,9 @@
 import type { ResolvedRuntimeDeployment } from '@trapmap/backend-core';
 import { createIdentityAccessPgDeps, type IdentityAccessPortDeps } from '@trapmap/service-identity-access';
+import {
+  createKnowledgeWriteOwnerBundle,
+  type KnowledgeWriteOwnerBundle,
+} from '@trapmap/service-knowledge-write';
 import { getStorePool } from '@trapmap/runtime-infra';
 
 import type { HostLocalConfig } from '../config/index.js';
@@ -34,6 +38,7 @@ export interface HostLocalServices {
   strategyRegistry: HostLocalStrategyRegistry;
   ai: HostLocalAiProviders;
   identity: IdentityAccessPortDeps;
+  knowledgeWrite: KnowledgeWriteOwnerBundle;
   knowledgeRepo: HostLocalRepos['knowledge'];
   artifactRepo: HostLocalRepos['artifact'];
   usageAnalyticsRepo: HostLocalRepos['usageAnalytics'];
@@ -53,6 +58,7 @@ export async function createHostLocalServices(
     throw new Error('host-local identity runtime requires PostgreSQL');
   }
   const identity = createIdentityAccessPgDeps(pool, { systemAdminKey: config.systemAdminKey });
+  const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
 
   const services: HostLocalServices = {
     config,
@@ -66,6 +72,7 @@ export async function createHostLocalServices(
     strategyRegistry: createHostLocalStrategyRegistry(),
     ai: infra.ai,
     identity,
+    knowledgeWrite,
     knowledgeRepo: infra.repos.knowledge,
     artifactRepo: infra.repos.artifact,
     usageAnalyticsRepo: infra.repos.usageAnalytics,

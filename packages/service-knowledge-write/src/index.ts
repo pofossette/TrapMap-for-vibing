@@ -14,3 +14,9 @@ export {
   type KnowledgeWriteServer,
   type KnowledgeWriteServiceConfig,
 } from './server.js';
+export {
+  createKnowledgeWriteOutboxDiagnostics,
+  createKnowledgeWriteOwnerBundle,
+  type KnowledgeWriteOutboxDiagnostics,
+  type KnowledgeWriteOwnerBundle,
+} from './pg-ports.js';

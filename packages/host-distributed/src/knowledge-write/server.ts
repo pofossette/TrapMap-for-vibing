@@ -8,22 +8,26 @@
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
-import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
 import {
   type KnowledgeWriteServer,
+  createKnowledgeWriteOutboxDiagnostics,
+  createKnowledgeWriteOwnerBundle,
   createKnowledgeWriteServer as createServiceKnowledgeWriteServer,
 } from '@trapmap/service-knowledge-write';
 import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
-import { createKnowledgeWriteDeps } from './ports.js';
 
 export async function createServer(
   config: ServiceConfig,
   db: ServiceDatabase,
 ): Promise<KnowledgeWriteServer> {
   const identity = createIdentityAccessPgDeps(db.pool, { systemAdminKey: config.systemAdminKey });
-  const ports = createServicePorts(db.pool, config.serviceName, identity);
-  const deps = createKnowledgeWriteDeps(ports);
+  const owner = createKnowledgeWriteOwnerBundle(db.pool);
+  const outbox = createKnowledgeWriteOutboxDiagnostics(db.pool);
+  const deps = createKnowledgeWriteDeps({
+    knowledgeRepo: owner.knowledgeRepo,
+    auditLog: identity.auditLog,
+  });
   const server = await createServiceKnowledgeWriteServer(config, deps, {
     checkDependency: async () => {
       const health = await db.healthCheck();
@@ -33,14 +37,13 @@ export async function createServer(
       };
     },
     getOperatorStatus: async () => {
-      const [persistence, queue, outbox] = await Promise.all([
+      const [persistence, outboxStatus] = await Promise.all([
         db.healthCheck(),
-        ports.asyncDiagnostics.task.getStatusSnapshot(),
-        ports.asyncDiagnostics.outbox.getStatusSnapshot(),
+        outbox.getStatusSnapshot(),
       ]);
       return {
         persistence,
-        asyncFollowUp: { owner: 'job-runtime', queue, outbox },
+        asyncFollowUp: { owner: 'job-runtime', outbox: outboxStatus },
         timeouts: {
           connectionMs: config.connectionTimeoutMs,
           statementMs: config.statementTimeoutMs,

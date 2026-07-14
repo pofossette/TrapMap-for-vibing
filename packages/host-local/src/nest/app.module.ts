@@ -67,7 +67,7 @@ const knowledgeReadModule = KnowledgeReadModule.forDeps(
 
 const knowledgeWritePort = createKnowledgeWriteModule(
   createKnowledgeWriteDeps({
-    knowledgeRepo: knowledgeRepoPort,
+    knowledgeRepo: hostLocalRuntime.services.knowledgeWrite.knowledgeRepo,
     auditLog: hostLocalRuntime.auditLog,
   }),
 );

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   DatabaseOwnershipError,
@@ -38,6 +38,18 @@ describe('distributed database ownership guard', () => {
     await expect(guarded.getById()).resolves.toEqual({ id: 'entry-1' });
     expect(() => guarded.insert()).toThrow(/knowledge-write owns knowledge/i);
     expect(() => guarded.updateStatus()).toThrow(/knowledge-write owns knowledge/i);
+  });
+
+  it('does not expose knowledge mutation through the distributed shared bundle', async () => {
+    const ports = createServicePorts(
+      { query: vi.fn(async () => ({ rows: [] })) } as never,
+      'knowledge-write',
+      identity,
+    );
+
+    await expect(ports.repos.knowledge.insert({ id: 'entry-1' } as never)).rejects.toThrow(
+      /knowledge-write owner/i,
+    );
   });
 
   it('keeps cross-owner audit repository writes behind the audit capability', () => {

@@ -7,7 +7,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { Pool, PoolClient } from 'pg';
+import type { Pool } from 'pg';
 
 import type {
   CandidateRepositoryPort,
@@ -30,72 +30,26 @@ import type { DatabaseWriteService } from './database-ownership.js';
 import { withDatabaseWriteGuard } from './database-ownership.js';
 
 function mapKnowledgeRow(row: Record<string, unknown>) {
+  const {
+    detail,
+    shortcut,
+    labels,
+    owner_user_id: ownerUserId,
+    ownerUserId: legacyOwnerUserId,
+    team_id: teamId,
+    teamId: legacyTeamId,
+    lifecycle_state: lifecycleState,
+    ...entry
+  } = row;
   return {
-    ...row,
-    content: String(row.detail ?? ''),
-    title: String(row.shortcut ?? ''),
-    labels: Array.isArray(row.labels) ? (row.labels as string[]) : [],
-    ownerUserId: String(row.owner_user_id ?? row.ownerUserId ?? ''),
-    teamId: (row.team_id as string | null) ?? (row.teamId as string | null) ?? null,
-    lifecycleState: row.lifecycle_state as LifecycleState,
+    ...entry,
+    content: String(detail ?? ''),
+    title: String(shortcut ?? ''),
+    labels: Array.isArray(labels) ? labels : [],
+    ownerUserId: String(ownerUserId ?? legacyOwnerUserId ?? ''),
+    teamId: (teamId as string | null) ?? (legacyTeamId as string | null) ?? null,
+    lifecycleState: lifecycleState as LifecycleState,
   };
-}
-
-function lifecycleOutboxEventName(state: LifecycleState): string {
-  if (state === 'approved') return 'knowledge.approved';
-  if (state === 'rejected') return 'knowledge.rejected';
-  if (state === 'submitted') return 'knowledge.submitted';
-  return 'knowledge.lifecycle-updated';
-}
-
-const lifecycleTransitions: Readonly<Record<LifecycleState, readonly LifecycleState[]>> = {
-  draft: ['submitted'],
-  submitted: ['agent-pass', 'agent-rejected'],
-  'agent-pass': ['approved', 'rejected', 'deactivated', 'agent-pass'],
-  'agent-rejected': ['agent-pass', 'rejected', 'approved', 'deactivated', 'agent-rejected'],
-  approved: ['deactivated', 'agent-pass', 'agent-rejected'],
-  rejected: ['agent-pass', 'agent-rejected', 'deactivated'],
-  deactivated: [],
-};
-
-function assertValidLifecycleTransition(
-  previousState: LifecycleState,
-  nextState: LifecycleState,
-): void {
-  if (!lifecycleTransitions[previousState].includes(nextState)) {
-    throw new Error(`Invalid lifecycle transition: ${previousState} → ${nextState}`);
-  }
-}
-
-async function enqueueLifecycleOutboxTx(
-  client: Pick<PoolClient, 'query'>,
-  input: {
-    entryId: string;
-    previousState: LifecycleState | undefined;
-    nextState: LifecycleState;
-    actorId: string;
-    note?: string;
-  },
-): Promise<void> {
-  await client.query(
-    `INSERT INTO domain_event_outbox (
-       id, aggregate_type, aggregate_id, event_name, payload, status, available_at, attempts, created_at
-     ) VALUES ($1, 'knowledge', $2, $3, $4, 'pending', NOW(), 0, NOW())`,
-    [
-      generateId('evt'),
-      input.entryId,
-      lifecycleOutboxEventName(input.nextState),
-      JSON.stringify({
-        name: lifecycleOutboxEventName(input.nextState),
-        entryId: input.entryId,
-        previousState: input.previousState ?? null,
-        nextState: input.nextState,
-        actorId: input.actorId,
-        reason: input.note ?? 'distributed lifecycle update',
-        timestamp: new Date().toISOString(),
-      }),
-    ],
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -123,131 +77,30 @@ function buildSetClauses(
 // Knowledge repository
 // ---------------------------------------------------------------------------
 
-function createPgKnowledgeRepo(pool: Pool): KnowledgeRepositoryPort {
+function rejectKnowledgeMutation(): never {
+  throw new Error('Knowledge mutation is only available through the knowledge-write owner');
+}
+
+function createPgKnowledgeReadRepo(pool: Pool): KnowledgeRepositoryPort {
   return {
     async nextId() {
-      return generateId('k');
+      return rejectKnowledgeMutation();
     },
-    async insert(entry) {
-      await pool.query(
-        `INSERT INTO knowledge_entries (
-           id, team_id, scope, labels, shortcut, detail, required_level, lifecycle_state, owner_user_id, created_at, updated_at
-         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-        [
-          entry.id,
-          entry.teamId,
-          (entry as Record<string, unknown>).scope ?? 'global',
-          JSON.stringify(entry.labels ?? []),
-          (entry as Record<string, unknown>).title ?? '',
-          entry.content,
-          (entry as Record<string, unknown>).requiredLevel ?? 0,
-          entry.lifecycleState,
-          entry.ownerUserId,
-          (entry as Record<string, unknown>).createdAt ?? new Date().toISOString(),
-          (entry as Record<string, unknown>).updatedAt ?? new Date().toISOString(),
-        ],
-      );
+    async insert() {
+      return rejectKnowledgeMutation();
     },
     async getById(entryId) {
       const { rows } = await pool.query('SELECT * FROM knowledge_entries WHERE id = $1', [entryId]);
       return rows[0] ? (mapKnowledgeRow(rows[0] as Record<string, unknown>) as never) : null;
     },
-    async updateLifecycle(entryId, newState: LifecycleState, context) {
-      const client = await pool.connect();
-      try {
-        await client.query('BEGIN');
-        const current = await client.query(
-          'SELECT lifecycle_state FROM knowledge_entries WHERE id = $1 FOR UPDATE',
-          [entryId],
-        );
-        const previousState = (current.rows[0] as { lifecycle_state?: LifecycleState } | undefined)
-          ?.lifecycle_state;
-        if (!previousState) {
-          throw new Error(`Knowledge entry not found: ${entryId}`);
-        }
-        assertValidLifecycleTransition(previousState, newState);
-        const { rows } = await client.query(
-          `UPDATE knowledge_entries SET lifecycle_state = $2, updated_at = NOW()
-           WHERE id = $1 RETURNING *`,
-          [entryId, newState],
-        );
-        if (!rows[0]) {
-          throw new Error(`Knowledge entry not found: ${entryId}`);
-        }
-        await client.query(
-          `INSERT INTO lifecycle_events (id, entry_id, type, actor_user_id, submission_id, state, note, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-          [
-            generateId('le'),
-            entryId,
-            newState === 'approved'
-              ? 'reviewer-approved'
-              : newState === 'rejected'
-                ? 'reviewer-rejected'
-                : newState === 'submitted'
-                  ? 'resubmitted'
-                  : 'updated',
-            context.actorId,
-            null,
-            newState,
-            context.note ?? null,
-          ],
-        );
-        await enqueueLifecycleOutboxTx(client, {
-          entryId,
-          previousState,
-          nextState: newState,
-          actorId: context.actorId,
-          ...(context.note ? { note: context.note } : {}),
-        });
-        await client.query('COMMIT');
-        return mapKnowledgeRow(rows[0] as Record<string, unknown>) as never;
-      } catch (error) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw error;
-      } finally {
-        client.release();
-      }
+    async updateLifecycle() {
+      return rejectKnowledgeMutation();
     },
-    async appendRevision(entryId, revision) {
-      await pool.query(
-        `INSERT INTO knowledge_revisions (
-           id, entry_id, revision_no, submitted_at, submitted_by_user_id, shortcut, detail, labels, review_notes
-         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [
-          revision.id,
-          entryId,
-          (revision as Record<string, unknown>).revisionNo ?? 1,
-          (revision as Record<string, unknown>).submittedAt ?? new Date().toISOString(),
-          (revision as Record<string, unknown>).submittedByUserId ?? 'system',
-          (revision as Record<string, unknown>).shortcut ?? '',
-          (revision as Record<string, unknown>).detail ?? '',
-          JSON.stringify((revision as Record<string, unknown>).labels ?? []),
-          JSON.stringify((revision as Record<string, unknown>).reviewNotes ?? []),
-        ],
-      );
+    async appendRevision() {
+      return rejectKnowledgeMutation();
     },
-    async appendLifecycleEvent(entryId, event) {
-      await pool.query(
-        `INSERT INTO lifecycle_events (
-           id, entry_id, type, created_at, actor_user_id, submission_id, revision_no, state, note
-         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [
-          event.id,
-          entryId,
-          event.type,
-          event.createdAt,
-          event.actorUserId ?? null,
-          event.submissionId ?? null,
-          ((event as unknown as Record<string, unknown>).revisionNo as number | null | undefined) ??
-            null,
-          event.state,
-          event.note,
-        ],
-      );
+    async appendLifecycleEvent() {
+      return rejectKnowledgeMutation();
     },
     async listByFilter(filter) {
       const conditions: string[] = [];
@@ -274,53 +127,17 @@ function createPgKnowledgeRepo(pool: Pool): KnowledgeRepositoryPort {
       );
       return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>)) as never[];
     },
-    async updateGovernance(entryId, governance) {
-      if (governance.requiredLevel !== undefined) {
-        await pool.query(
-          'UPDATE knowledge_entries SET required_level = $2, updated_at = NOW() WHERE id = $1',
-          [entryId, governance.requiredLevel],
-        );
-      }
-      if (governance.labels !== undefined) {
-        await pool.query(
-          'UPDATE knowledge_entries SET labels = $2, updated_at = NOW() WHERE id = $1',
-          [entryId, JSON.stringify(governance.labels)],
-        );
-        await pool.query('DELETE FROM knowledge_labels WHERE entry_id = $1', [entryId]);
-        for (const label of governance.labels) {
-          await pool.query(
-            'INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-            [entryId, label],
-          );
-        }
-      }
+    async updateGovernance() {
+      return rejectKnowledgeMutation();
     },
-    async updateEmbeddingCache(entryId, cache) {
-      await pool.query(
-        'UPDATE knowledge_entries SET embedding_cache = $2, updated_at = NOW() WHERE id = $1',
-        [entryId, JSON.stringify(cache)],
-      );
+    async updateEmbeddingCache() {
+      return rejectKnowledgeMutation();
     },
-    async supersede(entryId, input) {
-      const { rows } = await pool.query(
-        `UPDATE knowledge_entries SET lifecycle_state = 'superseded', superseded_by = $2, updated_at = NOW()
-         WHERE id = $1 RETURNING *`,
-        [entryId, input.replacementId],
-      );
-      return mapKnowledgeRow(rows[0] as Record<string, unknown>) as never;
+    async supersede() {
+      return rejectKnowledgeMutation();
     },
-    async save(entry) {
-      await pool.query(
-        `UPDATE knowledge_entries SET detail = $2, shortcut = $3, labels = $4, team_id = $5, updated_at = NOW()
-         WHERE id = $1`,
-        [
-          entry.id,
-          entry.content,
-          (entry as Record<string, unknown>).title ?? null,
-          JSON.stringify(entry.labels ?? []),
-          entry.teamId,
-        ],
-      );
+    async save() {
+      return rejectKnowledgeMutation();
     },
   };
 }
@@ -782,11 +599,7 @@ export function createServicePorts(
   serviceName: DatabaseWriteService = 'server-compatibility-seam',
   identity: Pick<ServicePortImplementations, 'auditLog'>,
 ): ServicePortImplementations {
-  const knowledgeRepo = withDatabaseWriteGuard(
-    createPgKnowledgeRepo(pool),
-    serviceName,
-    'knowledge',
-  );
+  const knowledgeRepo = createPgKnowledgeReadRepo(pool);
   const candidateRepo = withDatabaseWriteGuard(
     createPgCandidateRepo(pool),
     serviceName,
