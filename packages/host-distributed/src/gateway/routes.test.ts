@@ -47,11 +47,20 @@ function createClients(): InternalServiceClients {
       })),
     },
     knowledgeWrite: {
+      importArtifact: vi.fn(async () => ({ status: 201, body: { id: 'artifact-1' } })),
+      editArtifact: vi.fn(async () => ({ status: 200, body: { id: 'artifact-1' } })),
+      artifactHistory: vi.fn(async () => ({ status: 200, body: [] })),
+      exportArtifacts: vi.fn(async () => ({ status: 200, body: [] })),
+      artifactReviewQueue: vi.fn(async () => ({ status: 200, body: [] })),
+      reviewArtifact: vi.fn(async () => ({ status: 200, body: { id: 'artifact-1' } })),
+      activateArtifact: vi.fn(async () => ({ status: 200, body: { id: 'artifact-1' } })),
+      deactivateArtifact: vi.fn(async () => ({ status: 200, body: { id: 'artifact-1' } })),
       submit: vi.fn(async () => ({ status: 201, body: { id: 'entry-1' } })),
       updateEntry: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       resubmit: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       supersede: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       createTrap: vi.fn(async () => ({ status: 201, body: { id: 'trap-1' } })),
+      applyMaintenanceDecision: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       listTraps: vi.fn(async () => ({ status: 200, body: [{ id: 'trap-1' }] })),
       getTrap: vi.fn(async () => ({ status: 200, body: { id: 'trap-1' } })),
     },
@@ -98,6 +107,27 @@ async function buildApp(clients: InternalServiceClients) {
 }
 
 describe('registerGatewayRoutes', () => {
+  it('forwards maintenance commands to the knowledge-write owner', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/knowledge/maintenance',
+      headers: { authorization: 'Bearer session-token' },
+      payload: { entryId: 'entry-1', actorId: 'user-1', action: 'refresh' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(clients.knowledgeWrite.applyMaintenanceDecision).toHaveBeenCalledWith({
+      entryId: 'entry-1',
+      actorId: 'user-1',
+      action: 'refresh',
+    });
+    expect(clients.review.applyMaintenance).not.toHaveBeenCalled();
+    await app.close();
+  });
+
   it('forwards a system admin login and emits the issued session header', async () => {
     const clients = createClients();
     const app = await buildApp(clients);

@@ -66,6 +66,14 @@
 
 `service-knowledge-write` 现拥有 `createKnowledgeWriteOwnerBundle`：生命周期状态、`lifecycle_events` 与 `domain_event_outbox` 使用同一 PostgreSQL transaction，失败时回滚；outbox 仅暴露只读诊断，调度、重试、租约与 dead-letter 仍由 `job-runtime` 持有。distributed 与 host-local 均直接从其 host pool 组合该 bundle，已删除 distributed `knowledge-write/ports.ts` 适配层及 shared transaction 测试。`createServicePorts()` 中的 knowledge repository 已收缩为临时只读投影适配器，任何 mutation 均明确拒绝，避免形成第二个写入口；其 direct-read 退出仍属于 Wave-7。
 
+`service-knowledge-write` 的 Drizzle schema 已改为 owner-local 定义，并由 focused migration test 阻止重新导入 `@trapmap/server` 或 server 相对路径；冻结 SQL baseline 继续是 Wave-2 migration truth。
+
+本轮进一步将冻结 baseline 的 artifact/knowledge/label schema 拆入 owner-local schema modules，并新增 `ArtifactWritePort`、PG transaction lifecycle 写入与 service internal artifact read/lifecycle routes；host-local 与 distributed 的 knowledge-write owner bundle 均暴露同一 artifact writer。当前公开 operations artifact 路由及 server compatibility repository 尚未删除，故 Wave-2 仍保持未完成状态。
+
+`/v1/knowledge/maintenance` 已由 gateway 直接转发至 `knowledge-write` 的 canonical command；artifact lifecycle 写入同步追加 owner-local outbox event，并由 focused owner/gateway/compatibility tests 覆盖。其余 artifact operations 仍在 server compatibility shell，不能据此宣告 Wave‑2 完成。
+
+本轮继续收口：gateway 已为 `/v1/operations/artifacts/{import,export,activate,review-queue,:artifactId/edit,:artifactId/history,:artifactId/review,:artifactId/deactivate}` 建立 knowledge-write 转发，内部 owner 提供对应 command handlers；认证 hook 注入 session actor，artifact mutation 忽略请求体伪造的 actor。server operations registration 与 bootstrap 不再注册 artifact routes 或创建 artifact repository。`rtk pnpm typecheck`、gateway routes、knowledge-write owner routes/ports 与 compatibility guard 均通过。
+
 本轮通过 `rtk pnpm --filter @trapmap/service-knowledge-write test --run src/pg-ports.test.ts src/routes.test.ts`（11 tests）、`rtk pnpm --filter @trapmap/host-local test --run src/nest/runtime/host-services.test.ts`（1 test）、`rtk pnpm exec vitest run --project host-distributed packages/host-distributed/src/shared/database-ownership.test.ts packages/host-distributed/src/knowledge-write/routes.test.ts`（10 tests）、`rtk pnpm eval:smoke`、`rtk pnpm typecheck`、compatibility guard、doc-drift 与 structure guard。`rtk pnpm exec fallow audit --base wave1-fallow-base --format json --quiet --explain` 无 dead-code 或 boundary issue，保留迁移期 clone warning。Wave-2 尚未完成：`packages/server/src/lib/artifacts/`、`labels/`、`lifecycle/` 与其 snapshot/JSON fallback 仍待迁移和删除，故不勾选 owner wave 完成项。
 
 ## Deferred 边界

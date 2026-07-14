@@ -74,7 +74,7 @@ export async function createHostLocalServices(
     identity,
     knowledgeWrite,
     knowledgeRepo: infra.repos.knowledge,
-    artifactRepo: infra.repos.artifact,
+    artifactRepo: knowledgeWrite.artifactRepo as HostLocalRepos['artifact'],
     usageAnalyticsRepo: infra.repos.usageAnalytics,
     repos: infra.repos,
     graphQueryBackend: infra.graphQueryBackend,

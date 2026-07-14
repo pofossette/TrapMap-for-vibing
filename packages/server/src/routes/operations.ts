@@ -1,16 +1,11 @@
 import type { FastifyPluginAsync } from 'fastify';
 
 import {
-  artifactsActivateRoutes,
-  artifactsExportRoutes,
-  artifactsImportRoutes,
   auditRoutes,
   badcaseRoutes,
   capsuleIndexRoutes,
   knowledgeLegacyRoutes,
   migrateRoutes,
-  skillEditRoutes,
-  skillReviewRoutes,
   statsRoutes,
   statusRoutes,
 } from './operations/index.js';
@@ -21,13 +16,8 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
   await app.register(auditRoutes);
   await app.register(badcaseRoutes);
   await app.register(knowledgeLegacyRoutes);
-  await app.register(artifactsExportRoutes);
-  await app.register(artifactsImportRoutes);
-  await app.register(artifactsActivateRoutes);
   await app.register(capsuleIndexRoutes);
   await app.register(migrateRoutes);
   await app.register(statusRoutes);
-  await app.register(skillEditRoutes);
-  await app.register(skillReviewRoutes);
   await app.register(statsRoutes);
 };

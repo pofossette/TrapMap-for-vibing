@@ -8,7 +8,6 @@
 import type { FastifyInstance } from 'fastify';
 
 import { createUsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
-import { createArtifactRepository } from '@trapmap/server/lib/artifacts/index.js';
 import {
   createFailOpenGraphQueryBackend,
   createGraphQueryRuntimeState,
@@ -38,7 +37,6 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
   if (pool) {
     // Legacy flat repo properties — compatibility-only, prefer `repos.*` for new code
     app.skillShareer.knowledgeRepo = createKnowledgeRepository({ pool, store });
-    app.skillShareer.artifactRepo = createArtifactRepository({ pool, store });
     app.skillShareer.usageAnalyticsRepo = await createUsageAnalyticsRepository({ pool });
 
     // Ensure HNSW vector index exists for O(log n) similarity search

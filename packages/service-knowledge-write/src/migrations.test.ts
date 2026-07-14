@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
@@ -25,6 +26,13 @@ afterEach(async () => {
 
 it('uses its complete owner-local migration set', async () => {
   await expect(assertKnowledgeWriteMigrationSet()).resolves.toBeUndefined();
+});
+
+it('keeps its Drizzle schema owner-local', () => {
+  const source = readFileSync(new URL('./schema.ts', import.meta.url), 'utf8');
+
+  expect(source).not.toContain('@trapmap/server');
+  expect(source).not.toContain('../../server/');
 });
 
 it('rejects external files and missing journal tags', async () => {

@@ -156,4 +156,36 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     });
     expect(query).toHaveBeenCalledTimes(3);
   });
+
+  it('keeps artifact lifecycle and its outbox event in one transaction', async () => {
+    const calls: string[] = [];
+    const client = {
+      query: vi.fn(async (sql: string) => {
+        calls.push(sql);
+        if (sql.includes('SELECT lifecycle_state')) {
+          return { rows: [{ lifecycle_state: 'agent-pass' }] };
+        }
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    };
+    const owner = createKnowledgeWriteOwnerBundle({
+      connect: vi.fn(async () => client),
+      query: vi.fn(async () => ({ rows: [] })),
+    } as never);
+
+    await expect(
+      owner.artifactRepo.updateLifecycle('artifact-1', 'approved', { actorId: 'reviewer-1' }),
+    ).rejects.toThrow(/artifact .* not found/i);
+
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        'BEGIN',
+        expect.stringContaining('UPDATE skill_artifacts'),
+        expect.stringContaining('INSERT INTO artifact_lifecycle_events'),
+        expect.stringContaining('INSERT INTO domain_event_outbox'),
+        'COMMIT',
+      ]),
+    );
+  });
 });

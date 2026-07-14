@@ -208,6 +208,35 @@ export interface InternalServiceClients {
     getProjectionStatus(): Promise<ServiceResponse>;
   };
   knowledgeWrite: {
+    importArtifact(
+      body: Record<string, unknown>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    editArtifact(
+      artifactId: string,
+      body: Record<string, unknown>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    artifactHistory(artifactId: string, options?: InternalRequestOptions): Promise<ServiceResponse>;
+    exportArtifacts(
+      body: Record<string, unknown>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    artifactReviewQueue(options?: InternalRequestOptions): Promise<ServiceResponse>;
+    reviewArtifact(
+      artifactId: string,
+      body: Record<string, unknown>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    activateArtifact(
+      body: Record<string, unknown>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    deactivateArtifact(
+      artifactId: string,
+      body: Record<string, unknown>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
     submit(
       body: {
         content: string;
@@ -470,6 +499,70 @@ export function createInternalServiceClients(
         ),
     },
     knowledgeWrite: {
+      importArtifact: async (body, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/artifacts/import`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      editArtifact: async (artifactId, body, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/artifacts/${artifactId}/edit`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      artifactHistory: async (artifactId, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/artifacts/${artifactId}/history`,
+          'GET',
+          undefined,
+          undefined,
+          options,
+        ),
+      exportArtifacts: async (body, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/artifacts/export`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      artifactReviewQueue: async (options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/artifacts/review-queue`,
+          'GET',
+          undefined,
+          undefined,
+          options,
+        ),
+      reviewArtifact: async (artifactId, body, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/artifacts/${artifactId}/review`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      activateArtifact: async (body, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/artifacts/activate`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      deactivateArtifact: async (artifactId, body, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/artifacts/${artifactId}/deactivate`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
       submit: async (body, options) =>
         callInternalService(
           `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge`,

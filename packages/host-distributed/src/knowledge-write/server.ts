@@ -10,6 +10,7 @@ import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import {
   type KnowledgeWriteServer,
+  createKnowledgeWriteDeps,
   createKnowledgeWriteOutboxDiagnostics,
   createKnowledgeWriteOwnerBundle,
   createKnowledgeWriteServer as createServiceKnowledgeWriteServer,
@@ -27,6 +28,7 @@ export async function createServer(
   const deps = createKnowledgeWriteDeps({
     knowledgeRepo: owner.knowledgeRepo,
     auditLog: identity.auditLog,
+    artifactRepo: owner.artifactRepo,
   });
   const server = await createServiceKnowledgeWriteServer(config, deps, {
     checkDependency: async () => {

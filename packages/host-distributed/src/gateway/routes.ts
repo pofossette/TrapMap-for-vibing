@@ -101,6 +101,9 @@ function registerAuthHook(app: FastifyInstance, clients: InternalServiceClients)
     if (!result || result.status === 401) {
       return reply.status(401).send({ error: 'Invalid or expired session', kind: 'auth' });
     }
+    const identity = result.body as { userId?: string };
+    if (identity.userId)
+      (request as FastifyRequest & { actorId?: string }).actorId = identity.userId;
   });
 }
 
@@ -117,6 +120,121 @@ function registerAuthHook(app: FastifyInstance, clients: InternalServiceClients)
 export function registerGatewayRoutes(app: FastifyInstance, clients: InternalServiceClients): void {
   // Apply authentication middleware (skips public paths)
   registerAuthHook(app, clients);
+
+  const artifactForward = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    call: () => Promise<{ status: number; body: unknown }>,
+    label: string,
+  ) => {
+    try {
+      return forwardResponse(reply, await call());
+    } catch (err: unknown) {
+      request.log.error({ err }, `${label} failed`);
+      return reply
+        .status(502)
+        .send({ error: 'Knowledge-write service unavailable', kind: 'upstream' });
+    }
+  };
+
+  const actorBody = (request: FastifyRequest) => ({
+    ...((request.body ?? {}) as Record<string, unknown>),
+    ...((request as FastifyRequest & { actorId?: string }).actorId
+      ? { actorId: (request as FastifyRequest & { actorId?: string }).actorId }
+      : {}),
+  });
+  app.post('/v1/operations/artifacts/import', async (request, reply) =>
+    artifactForward(
+      request,
+      reply,
+      () =>
+        clients.knowledgeWrite.importArtifact(actorBody(request), {
+          headers: internalHeaders(request),
+        }),
+      'artifact import',
+    ),
+  );
+  app.post('/v1/operations/artifacts/export', async (request, reply) =>
+    artifactForward(
+      request,
+      reply,
+      () =>
+        clients.knowledgeWrite.exportArtifacts((request.body ?? {}) as Record<string, unknown>, {
+          headers: internalHeaders(request),
+        }),
+      'artifact export',
+    ),
+  );
+  app.post('/v1/operations/artifacts/activate', async (request, reply) =>
+    artifactForward(
+      request,
+      reply,
+      () =>
+        clients.knowledgeWrite.activateArtifact(actorBody(request), {
+          headers: internalHeaders(request),
+        }),
+      'artifact activate',
+    ),
+  );
+  app.get('/v1/operations/artifacts/review-queue', async (request, reply) =>
+    artifactForward(
+      request,
+      reply,
+      () => clients.knowledgeWrite.artifactReviewQueue({ headers: internalHeaders(request) }),
+      'artifact review queue',
+    ),
+  );
+  app.post('/v1/operations/artifacts/:artifactId/edit', async (request, reply) =>
+    artifactForward(
+      request,
+      reply,
+      () =>
+        clients.knowledgeWrite.editArtifact(
+          (request.params as { artifactId: string }).artifactId,
+          actorBody(request),
+          { headers: internalHeaders(request) },
+        ),
+      'artifact edit',
+    ),
+  );
+  app.get('/v1/operations/artifacts/:artifactId/history', async (request, reply) =>
+    artifactForward(
+      request,
+      reply,
+      () =>
+        clients.knowledgeWrite.artifactHistory(
+          (request.params as { artifactId: string }).artifactId,
+          { headers: internalHeaders(request) },
+        ),
+      'artifact history',
+    ),
+  );
+  app.post('/v1/operations/artifacts/:artifactId/review', async (request, reply) =>
+    artifactForward(
+      request,
+      reply,
+      () =>
+        clients.knowledgeWrite.reviewArtifact(
+          (request.params as { artifactId: string }).artifactId,
+          actorBody(request),
+          { headers: internalHeaders(request) },
+        ),
+      'artifact review',
+    ),
+  );
+  app.post('/v1/operations/artifacts/:artifactId/deactivate', async (request, reply) =>
+    artifactForward(
+      request,
+      reply,
+      () =>
+        clients.knowledgeWrite.deactivateArtifact(
+          (request.params as { artifactId: string }).artifactId,
+          actorBody(request),
+          { headers: internalHeaders(request) },
+        ),
+      'artifact deactivate',
+    ),
+  );
 
   // ---- Health ----
 
@@ -618,11 +736,13 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       evidence?: Record<string, unknown>;
     };
     try {
-      const result = await clients.review.applyMaintenance(body);
+      const result = await clients.knowledgeWrite.applyMaintenanceDecision(body);
       return forwardResponse(reply, result);
     } catch (err: unknown) {
-      request.log.error({ err }, 'governance-review maintenance failed');
-      return reply.status(502).send({ error: 'Governance service unavailable', kind: 'upstream' });
+      request.log.error({ err }, 'knowledge-write maintenance failed');
+      return reply
+        .status(502)
+        .send({ error: 'Knowledge-write service unavailable', kind: 'upstream' });
     }
   });
 
