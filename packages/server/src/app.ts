@@ -36,18 +36,19 @@ import {
   resolveServiceUnit,
 } from './lib/runtime/index.js';
 import type { RuntimeMode } from './lib/runtime/index.js';
-import { getStorePool } from './lib/store.js';
+import { getStorePool, type SkillShareerStore } from './lib/store.js';
 
 import { getOtelSdk, runStartupSequence } from './bootstrap/run-startup-sequence.js';
 import { createTracingPortAdapter } from './lib/runtime/tracing-port-adapter.js';
 import { registerCapabilityRoutes } from './routes/register-capability-routes.js';
 
-interface BuildServerOptions {
+export interface BuildServerOptions {
   config?: Partial<ServerConfig>;
   bodyLimit?: number;
   runtimeMode?: RuntimeMode;
   serviceUnit?: ServiceUnit;
   identityBundle?: IdentityCompatibilityBundle;
+  store?: SkillShareerStore;
 }
 
 function resolveRuntimeServiceName(runtimeMode: RuntimeMode, serviceUnit: ServiceUnit): string {
@@ -141,7 +142,7 @@ export function buildServer(options: BuildServerOptions = {}) {
     runtimeDeployment,
     runtimeMode,
     serviceUnit,
-    store: createSkillShareerStore(config),
+    store: options.store ?? createSkillShareerStore(config),
     adapterRegistry: buildDefaultAdapterRegistry(),
     channelRegistry: (() => {
       const cr = new ChannelRegistry();

@@ -6,7 +6,7 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
+import { buildUserLookupContextFromActorLookup } from '@trapmap/server/lib/actors/lookup.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
 import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
@@ -68,7 +68,10 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       boundary: payload.boundary,
     });
 
-    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entry]);
+    const lookup = await buildUserLookupContextFromActorLookup(
+      app.skillShareer.identity.actorLookup,
+      [entry],
+    );
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
@@ -92,7 +95,10 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
 
     const { knowledge: knowledgeRepo } = app.skillShareer.repos;
     const entries = await knowledgeRepo.listByFilter({ ownerUserId });
-    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, entries);
+    const lookup = await buildUserLookupContextFromActorLookup(
+      app.skillShareer.identity.actorLookup,
+      entries,
+    );
     const items = entries.map((entry) => toKnowledgeEntry(lookup, entry));
 
     return knowledgeHistoryResponseSchema.parse({ items });
@@ -117,7 +123,10 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(403, 'forbidden', 'You do not have access to this trap entry');
     }
 
-    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entry]);
+    const lookup = await buildUserLookupContextFromActorLookup(
+      app.skillShareer.identity.actorLookup,
+      [entry],
+    );
     return knowledgeEntryResponseSchema.parse({
       entry: toKnowledgeEntry(lookup, entry),
     });
@@ -140,7 +149,10 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       payload,
     });
 
-    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entry]);
+    const lookup = await buildUserLookupContextFromActorLookup(
+      app.skillShareer.identity.actorLookup,
+      [entry],
+    );
 
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
@@ -205,7 +217,10 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       metadata: { replacementId: body.replacementId },
     });
 
-    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [entry]);
+    const lookup = await buildUserLookupContextFromActorLookup(
+      app.skillShareer.identity.actorLookup,
+      [entry],
+    );
     return knowledgeEntryResponseSchema.parse({
       entry: toKnowledgeEntry(lookup, entry),
     });

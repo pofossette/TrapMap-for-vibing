@@ -1,7 +1,10 @@
 import type { Boundary, LifecycleState, ReviewDecisionRequest } from '@trapmap/contracts';
 import type { ActorBatchLookupPort, AuditLogPort } from '@trapmap/backend-core';
 
-import { buildUserLookupContext } from '@trapmap/server/lib/actors/lookup.js';
+import {
+  buildUserLookupContext,
+  buildUserLookupContextForKnowledge,
+} from '@trapmap/server/lib/actors/lookup.js';
 import {
   createCacheInvalidationEvent,
   emitCacheInvalidation,
@@ -100,7 +103,7 @@ async function applyDecision(deps: ReviewApplicationServiceDeps, input: ApplyRev
       lookup.memberships.push({
         userId: reviewerUserId,
         teamId: existingEntry.teamId,
-        securityLevel: reviewerMembership.securityLevel,
+        securityLevel: reviewerMembership,
       });
     }
   }
@@ -191,7 +194,9 @@ async function applyDecision(deps: ReviewApplicationServiceDeps, input: ApplyRev
     reason: `reviewer-${input.decision}`,
   });
 
-  const responseLookup = await buildUserLookupContextFromRepos(repos, [existingEntry]);
+  const responseLookup = await buildUserLookupContextForKnowledge(identity.actorLookup, [
+    existingEntry,
+  ]);
   return {
     entry: toKnowledgeEntry(responseLookup, existingEntry),
     previousState,

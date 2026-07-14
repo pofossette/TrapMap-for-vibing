@@ -34,25 +34,25 @@ describe('createAllRepos', () => {
     }
   });
 
-  it('returns object with all 15 expected keys', async () => {
+  it('excludes identity and audit repositories owned by the injected host bundle', async () => {
     const repos = await createAllRepos({ store });
 
     expect(repos).toHaveProperty('knowledge');
     expect(repos).toHaveProperty('artifact');
-    expect(repos).toHaveProperty('session');
-    expect(repos).toHaveProperty('accessKey');
-    expect(repos).toHaveProperty('team');
-    expect(repos).toHaveProperty('membership');
-    expect(repos).toHaveProperty('user');
     expect(repos).toHaveProperty('candidate');
     expect(repos).toHaveProperty('usageAnalytics');
     expect(repos).toHaveProperty('feedback');
-    expect(repos).toHaveProperty('audit');
     expect(repos).toHaveProperty('duplicate');
     expect(repos).toHaveProperty('lineage');
     expect(repos).toHaveProperty('graphIndex');
 
-    expect(Object.keys(repos)).toHaveLength(15);
+    expect(repos).not.toHaveProperty('session');
+    expect(repos).not.toHaveProperty('accessKey');
+    expect(repos).not.toHaveProperty('team');
+    expect(repos).not.toHaveProperty('membership');
+    expect(repos).not.toHaveProperty('user');
+    expect(repos).not.toHaveProperty('audit');
+    expect(Object.keys(repos)).toHaveLength(9);
   });
 
   it('each property is an object with expected methods', async () => {
@@ -66,8 +66,6 @@ describe('createAllRepos', () => {
     expect(typeof repos.lineage.listBySource).toBe('function');
     // Spot-check: graphIndex has upsert
     expect(typeof repos.graphIndex.upsert).toBe('function');
-    // Spot-check: audit has listByFilter
-    expect(typeof repos.audit.listByFilter).toBe('function');
     // Spot-check: duplicate has listByCandidate
     expect(typeof repos.duplicate.listByCandidate).toBe('function');
   });

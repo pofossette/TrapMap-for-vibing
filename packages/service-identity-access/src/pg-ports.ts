@@ -122,10 +122,28 @@ function rowToSession(row: Record<string, unknown>) {
 }
 
 function rolePermissions(role: string): Permission[] {
-  if (role === 'admin' || role === 'system-admin')
-    return ['admin', 'write', 'read'] as Permission[];
-  if (role === 'editor') return ['write', 'read'] as Permission[];
-  return ['read'] as Permission[];
+  const read: Permission[] = ['session:read', 'team:list', 'knowledge:search'];
+  if (role === 'admin' || role === 'system-admin') {
+    return [
+      ...read,
+      'team:create',
+      'team:select',
+      'member:create',
+      'member:update',
+      'member:key:create',
+      'knowledge:submit',
+      'knowledge:review',
+      'knowledge:update',
+      'knowledge:export',
+      'knowledge:import',
+      'audit:read',
+      'stats:read',
+    ];
+  }
+  if (role === 'editor') {
+    return [...read, 'team:select', 'knowledge:submit', 'knowledge:update', 'knowledge:export'];
+  }
+  return read;
 }
 
 export function createIdentityAccessPgDeps(

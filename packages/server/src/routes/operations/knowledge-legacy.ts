@@ -7,7 +7,7 @@ import {
 import type { LifecycleState } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
+import { buildUserLookupContextFromActorLookup } from '@trapmap/server/lib/actors/lookup.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { toKnowledgeEntry, toKnowledgeListItem } from '@trapmap/server/lib/knowledge.js';
@@ -178,7 +178,10 @@ export const knowledgeLegacyRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found after update');
     }
 
-    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, [updatedEntry]);
+    const lookup = await buildUserLookupContextFromActorLookup(
+      app.skillShareer.identity.actorLookup,
+      [updatedEntry],
+    );
     return knowledgeDeactivateResponseSchema.parse({
       entry: toKnowledgeEntry(lookup, updatedEntry),
     });

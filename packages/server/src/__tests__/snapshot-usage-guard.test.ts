@@ -25,11 +25,7 @@ const SERVER_SRC = resolve(process.cwd(), 'packages/server/src');
 const SNAPSHOT_ALLOWLIST: string[] = [
   // Repository implementations — wrap store.snapshot()/transact() internally
   'lib/artifacts/repository.ts',
-  'lib/auth/repository.ts',
   'lib/knowledge/repository.ts',
-  'lib/users/repository.ts',
-  'lib/teams/repository.ts',
-  'lib/audit/repository.ts',
   'lib/lineage/repository.ts',
   'lib/feedback/repository.ts',
   'lib/candidates/repository.ts',
@@ -79,9 +75,6 @@ const SNAPSHOT_ALLOWLIST: string[] = [
 
   // Conflict detection
   'lib/conflict/detect.ts',
-
-  // Session fallback
-  'lib/session.ts',
 
   // Diagnostic/admin mutations — controlled operator writes and migration tools
   'routes/operations/artifacts-export.ts',
@@ -195,7 +188,6 @@ describe('snapshot usage guard', () => {
         'lib/jobs/handlers/knowledge-index-follow-up.ts',
         'lib/jobs/handlers/skill-index-follow-up.ts',
         'lib/jobs/handlers/remediation-reactivation.ts',
-        'lib/session.ts',
         'lib/knowledge/review-application-service.ts',
       ]),
     );

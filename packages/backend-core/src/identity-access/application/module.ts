@@ -158,7 +158,7 @@ export function createIdentityAccessModule(deps: IdentityAccessDeps): IdentityAc
         userId,
         teamId,
         role,
-      } as Parameters<MembershipRepositoryPort['insert']>[0]);
+      } as unknown as Parameters<MembershipRepositoryPort['insert']>[0]);
       await deps.auditLog.record({
         action: 'member.add',
         actorId,

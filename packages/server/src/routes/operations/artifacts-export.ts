@@ -6,7 +6,7 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
+import { buildUserLookupContextFromActorLookup } from '@trapmap/server/lib/actors/lookup.js';
 import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import { toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
@@ -43,7 +43,10 @@ export const artifactsExportRoutes: FastifyPluginAsync = async (app) => {
       entries = entries.filter((entry) => auth.securityLevel >= entry.requiredLevel);
     }
 
-    const lookup = await buildUserLookupContextFromRepos(app.skillShareer.repos, entries);
+    const lookup = await buildUserLookupContextFromActorLookup(
+      app.skillShareer.identity.actorLookup,
+      entries,
+    );
     const items = entries.map((entry) => toKnowledgeEntry(lookup, entry));
 
     const actorRef = {

@@ -29,7 +29,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       requireSystemAdminKey(app.skillShareer.config, payload.systemAdminKey);
 
       const { record, token } = await createSession(
-        app.skillShareer.identity.sessionRepo as never,
+        app.skillShareer.identity.sessionRepo,
         'system-admin',
         null,
         null,
@@ -40,7 +40,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const accessKey = await findAccessKeyByToken(
-      app.skillShareer.identity.accessKeyRepo as never,
+      app.skillShareer.identity.accessKeyRepo,
       payload.accessKey,
     );
 
@@ -52,7 +52,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const userId = membership?.userId ?? null;
 
     const { record, token } = await createSession(
-      app.skillShareer.identity.sessionRepo as never,
+      app.skillShareer.identity.sessionRepo,
       'user',
       userId,
       accessKey.teamId,
@@ -80,7 +80,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const token = getSessionToken(request);
 
     if (token) {
-      await deleteSession(app.skillShareer.identity.sessionRepo as never, token);
+      await deleteSession(app.skillShareer.identity.sessionRepo, token);
     }
 
     return logoutResponseSchema.parse({ ok: true });
@@ -105,7 +105,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       throw new AppError(401, 'unauthorized', 'A valid session token is required');
     }
 
-    const session = await findSessionByToken(app.skillShareer.identity.sessionRepo as never, token);
+    const session = await findSessionByToken(app.skillShareer.identity.sessionRepo, token);
     if (!session) {
       throw new AppError(401, 'unauthorized', 'Session not found or expired');
     }

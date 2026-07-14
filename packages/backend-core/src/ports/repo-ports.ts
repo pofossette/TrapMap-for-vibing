@@ -114,9 +114,6 @@ export interface UserRecord {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
-  id: string;
-  handle: string;
-  updatedAt?: string;
   [key: string]: unknown;
 }
 

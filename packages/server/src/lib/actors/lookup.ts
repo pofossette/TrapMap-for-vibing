@@ -11,8 +11,7 @@
 
 import type { UserLookupContext } from '@trapmap/server/lib/knowledge.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
-import type { MembershipRepository } from '@trapmap/server/lib/teams/index.js';
-import type { UserRepository } from '@trapmap/server/lib/users/index.js';
+import type { ActorBatchLookupPort } from '@trapmap/backend-core';
 
 /**
  * Source interface for actor data lookups.
@@ -158,45 +157,10 @@ export async function buildUserLookupContextForKnowledge(
   return { users, memberships };
 }
 
-/**
- * Build an ActorLookupSource from the unified repository object.
- */
-function createActorLookupSource(repos: {
-  user: UserRepository;
-  membership: MembershipRepository;
-}): ActorLookupSource {
-  return {
-    async getUsersByIds(userIds) {
-      const users = await Promise.all(userIds.map((id) => repos.user.getById(id)));
-      return users
-        .filter((u): u is NonNullable<typeof u> => u !== null)
-        .map((u) => ({ id: u.id, handle: u.handle }));
-    },
-
-    async getMembershipLevels(pairs) {
-      const result = new Map<string, number>();
-      const levels = await Promise.all(
-        pairs.map(async ({ userId, teamId }) => {
-          const membership = await repos.membership.findByUserAndTeam(userId, teamId);
-          return { key: `${userId}:${teamId}`, level: membership?.securityLevel };
-        }),
-      );
-      for (const { key, level } of levels) {
-        if (level !== undefined) {
-          result.set(key, level);
-        }
-      }
-      return result;
-    },
-  };
-}
-
-/**
- * Convenience: build a UserLookupContext from repos for a batch of entries.
- */
-export async function buildUserLookupContextFromRepos(
-  repos: { user: UserRepository; membership: MembershipRepository },
+/** Build a UserLookupContext through the host-owned batched actor lookup port. */
+export async function buildUserLookupContextFromActorLookup(
+  actorLookup: ActorBatchLookupPort,
   entries: KnowledgeRecord[],
 ): Promise<UserLookupContext> {
-  return buildUserLookupContextForKnowledge(createActorLookupSource(repos), entries);
+  return buildUserLookupContextForKnowledge(actorLookup, entries);
 }

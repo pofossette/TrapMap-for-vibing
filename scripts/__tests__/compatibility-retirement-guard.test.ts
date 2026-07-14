@@ -53,7 +53,20 @@ interface AllowlistEntry {
   rationale: string;
 }
 
-const completedOwnerWaves: OwnerWave[] = [];
+const completedOwnerWaves: OwnerWave[] = ['wave-1'];
+const RETIRED_WAVE_1_OWNER_SYMBOLS = [
+  'createSessionRepository',
+  'createAccessKeyRepository',
+  'createTeamRepository',
+  'createMembershipRepository',
+  'createUserRepository',
+  'createAuditRepository',
+  'createPgAccessKeyRepo',
+  'createPgTeamRepo',
+  'createPgMembershipRepo',
+  'createPgUserRepo',
+  'createPgAuditRepo',
+] as const;
 const allowlist: AllowlistEntry[] = [
   ['package.json', '@trapmap/server', 'wave-10', 'root development dependency'],
   [
@@ -492,6 +505,24 @@ function validateAllowlist(root: string, entries: AllowlistEntry[]): string[] {
   return [...invalidEntries, ...unregistered];
 }
 
+function findRetiredWaveOneOwners(root: string): string[] {
+  const ownerRoots = [
+    'packages/server/src',
+    'packages/runtime-infra/src',
+    'packages/host-distributed/src/shared',
+  ];
+
+  return ownerRoots.flatMap((ownerRoot) =>
+    listFiles(join(root, ownerRoot)).flatMap((file) => {
+      if (!isProductionFile(root, file)) return [];
+      const content = readFileSync(file, 'utf8');
+      return RETIRED_WAVE_1_OWNER_SYMBOLS.filter((symbol) => content.includes(symbol)).map(
+        (symbol) => `retired wave-1 identity owner: ${relative(root, file)}:${symbol}`,
+      );
+    }),
+  );
+}
+
 describe('compatibility retirement guard', () => {
   function writeProductionFile(root: string, relativePath: string, content: string): void {
     const file = join(root, relativePath);
@@ -518,6 +549,23 @@ describe('compatibility retirement guard', () => {
     );
 
     expect(validateAllowlist(root, [])).toEqual([]);
+  });
+
+  it('rejects retired Wave-1 identity owners in compatibility surfaces', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trapmap-compatibility-guard-'));
+    writeProductionFile(
+      root,
+      'packages/runtime-infra/src/repos.ts',
+      'export const createSessionRepository = () => ({});',
+    );
+
+    expect(findRetiredWaveOneOwners(root)).toEqual([
+      'retired wave-1 identity owner: packages/runtime-infra/src/repos.ts:createSessionRepository',
+    ]);
+  });
+
+  it('has no retired Wave-1 identity owners in production code', () => {
+    expect(findRetiredWaveOneOwners(repoRoot)).toEqual([]);
   });
 
   it('requires a real file, supported symbol, owner wave, and rationale for each exception', () => {

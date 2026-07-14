@@ -7,10 +7,10 @@ import type {
   Team,
 } from '@trapmap/contracts';
 import { accessKeySchema, activeSessionSchema, memberSchema, teamSchema } from '@trapmap/contracts';
+import type { AccessKeyRepositoryPort, SessionRepositoryPort } from '@trapmap/backend-core';
 import type { FastifyRequest } from 'fastify';
 
 import type { ServerConfig } from '@trapmap/server/config.js';
-import type { AccessKeyRepository, SessionRepository } from './auth/index.js';
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { getSessionToken } from './context.js';
 import { AppError } from './errors.js';
@@ -27,23 +27,6 @@ import {
   hashSecret,
   nowIso,
 } from './store.js';
-
-/**
- * Type guard: identifies SkillShareerStore by its unique `snapshot` method.
- * More robust than checking for repository methods (e.g. 'create') which
- * could theoretically be added to the store interface later.
- */
-function isSessionStore(obj: SessionRepository | SkillShareerStore): obj is SkillShareerStore {
-  return 'snapshot' in obj;
-}
-
-/**
- * Type guard: identifies StoreData by its `accessKeys` property.
- * More robust than checking for repository methods which could collide.
- */
-function isStoreData(obj: AccessKeyRepository | StoreData): obj is StoreData {
-  return 'accessKeys' in obj;
-}
 
 function toActorRef(
   user: UserRecord,
@@ -101,11 +84,10 @@ function findMembershipForTeamFromList(
 }
 
 /**
- * Create a new session using the repository pattern.
- * Uses SessionRepository if provided, falls back to store.transact() for backward compatibility.
+ * Create a new session through the host-owned identity port.
  */
 export async function createSession(
-  repoOrStore: SessionRepository | SkillShareerStore,
+  sessionRepo: SessionRepositoryPort,
   subjectType: SessionRecord['subjectType'],
   userId: string | null,
   activeTeamId: string | null,
@@ -113,80 +95,38 @@ export async function createSession(
   const token = createOpaqueToken('ssr_sess');
   const tokenHash = hashSecret(token);
 
-  // Repository path: identified by NOT having store's snapshot method
-  if (!isSessionStore(repoOrStore)) {
-    const record = await repoOrStore.create({
-      subjectType,
-      userId,
-      activeTeamId,
-      tokenHash,
-      expiresAt: null,
-    });
-    return { record, token };
-  }
-
-  // Fallback: use store.transact() for backward compatibility
-  const createdAt = nowIso();
-  const record = await repoOrStore.transact((data) => {
-    const sessionRecord: SessionRecord = {
-      id: repoOrStore.nextId(data, 'session'),
-      subjectType,
-      userId,
-      activeTeamId,
-      tokenHash,
-      expiresAt: null,
-      createdAt,
-      updatedAt: createdAt,
-    };
-
-    data.sessions.push(sessionRecord);
-
-    return sessionRecord;
+  const record = await sessionRepo.create({
+    subjectType,
+    userId,
+    activeTeamId,
+    tokenHash,
+    expiresAt: null,
   });
-
-  return { record, token };
+  return { record: record as SessionRecord, token };
 }
 
 /**
- * Delete a session using the repository pattern.
- * Uses SessionRepository if provided, falls back to store.transact() for backward compatibility.
+ * Delete a session through the host-owned identity port.
  */
 export async function deleteSession(
-  repoOrStore: SessionRepository | SkillShareerStore,
+  sessionRepo: SessionRepositoryPort,
   token: string,
 ): Promise<void> {
   const tokenHash = hashSecret(token);
 
-  // Repository path: identified by NOT having store's snapshot method
-  if (!isSessionStore(repoOrStore)) {
-    await repoOrStore.deleteByTokenHash(tokenHash);
-    return;
-  }
-
-  // Fallback: use store.transact() for backward compatibility
-  await repoOrStore.transact((data) => {
-    data.sessions = data.sessions.filter((session) => session.tokenHash !== tokenHash);
-  });
+  await sessionRepo.deleteByTokenHash(tokenHash);
 }
 
 /**
- * Find a session by token using the repository pattern.
- * Uses SessionRepository if provided, falls back to store snapshot for backward compatibility.
+ * Find a session through the host-owned identity port.
  */
 export async function findSessionByToken(
-  repoOrStore: SessionRepository | SkillShareerStore,
+  sessionRepo: SessionRepositoryPort,
   token: string,
 ): Promise<SessionRecord | null> {
   const tokenHash = hashSecret(token);
 
-  // Repository path: identified by NOT having store's snapshot method
-  if (!isSessionStore(repoOrStore)) {
-    return repoOrStore.getByTokenHash(tokenHash);
-  }
-
-  // Fallback: use store snapshot for backward compatibility
-  const data = await repoOrStore.snapshot();
-  return data.sessions.find((candidate) => candidate.tokenHash === tokenHash) ?? null;
+  return (await sessionRepo.getByTokenHash(tokenHash)) as SessionRecord | null;
 }
 
 export function issueAccessKeyPayload(
@@ -233,7 +173,7 @@ export async function resolveAuthContext(
 
   if (session.subjectType === 'system-admin') {
     const team = session.activeTeamId
-      ? await identity.teamRepo.getById(session.activeTeamId)
+      ? ((await identity.teamRepo.getById(session.activeTeamId)) as unknown as TeamRecord | null)
       : null;
 
     return {
@@ -249,18 +189,22 @@ export async function resolveAuthContext(
     };
   }
 
-  const user = await identity.userRepo.getById(session.userId ?? '');
+  const user = (await identity.userRepo.getById(
+    session.userId ?? '',
+  )) as unknown as UserRecord | null;
 
   if (!user) {
     throw new AppError(401, 'unauthorized', 'Session user no longer exists');
   }
 
-  const memberships = await identity.membershipRepo.listByUser(user.id);
+  const memberships = (await identity.membershipRepo.listByUser(
+    user.id,
+  )) as unknown as MembershipRecord[];
   const membership = findMembershipForTeamFromList(memberships, session.activeTeamId);
 
   if (!membership && services.runtimeDeployment.capabilities.supportsLocalSingleUserMode) {
     const team = session.activeTeamId
-      ? await identity.teamRepo.getById(session.activeTeamId)
+      ? ((await identity.teamRepo.getById(session.activeTeamId)) as unknown as TeamRecord | null)
       : null;
 
     return {
@@ -285,7 +229,7 @@ export async function resolveAuthContext(
     );
   }
 
-  const team = await identity.teamRepo.getById(membership.teamId);
+  const team = (await identity.teamRepo.getById(membership.teamId)) as unknown as TeamRecord | null;
   const effectivePermissions = resolveEffectivePermissions(
     membership.roleTemplate,
     membership.permissions,
@@ -313,7 +257,7 @@ export async function getSessionResponse(
 
   if (session.subjectType === 'system-admin') {
     const activeTeam = session.activeTeamId
-      ? await identity.teamRepo.getById(session.activeTeamId)
+      ? ((await identity.teamRepo.getById(session.activeTeamId)) as unknown as TeamRecord | null)
       : null;
     const issuedAt = session.createdAt;
 
@@ -338,20 +282,26 @@ export async function getSessionResponse(
     });
   }
 
-  const user = await identity.userRepo.getById(session.userId ?? '');
+  const user = (await identity.userRepo.getById(
+    session.userId ?? '',
+  )) as unknown as UserRecord | null;
 
   if (!user) {
     throw new AppError(401, 'unauthorized', 'Session user no longer exists');
   }
 
-  const memberships = await identity.membershipRepo.listByUser(user.id);
+  const memberships = (await identity.membershipRepo.listByUser(
+    user.id,
+  )) as unknown as MembershipRecord[];
   const membership = findMembershipForTeamFromList(memberships, session.activeTeamId);
 
   if (!membership) {
     throw new AppError(403, 'membership_missing', 'No membership available for session');
   }
 
-  const activeTeam = await identity.teamRepo.getById(membership.teamId);
+  const activeTeam = (await identity.teamRepo.getById(
+    membership.teamId,
+  )) as unknown as TeamRecord | null;
   const effectivePermissions = resolveEffectivePermissions(
     membership.roleTemplate,
     membership.permissions,
@@ -398,26 +348,14 @@ export function requireSystemAdminKey(config: ServerConfig, providedKey: string)
 }
 
 /**
- * Find an access key by token using either repository or store data.
- * Uses AccessKeyRepository if provided, falls back to StoreData for backward compatibility.
+ * Find an active access key through the host-owned identity port.
  */
 export async function findAccessKeyByToken(
-  repoOrData: AccessKeyRepository | StoreData,
+  accessKeyRepo: AccessKeyRepositoryPort,
   providedToken: string,
 ): Promise<AccessKeyRecord | null> {
   const tokenHash = hashSecret(providedToken);
 
-  // Repository path: identified by NOT having StoreData's accessKeys property
-  if (!isStoreData(repoOrData)) {
-    const key = await repoOrData.getByTokenHash(tokenHash);
-    // Return null if revoked
-    return key?.revokedAt === null ? key : null;
-  }
-
-  // Fallback: use StoreData for backward compatibility
-  return (
-    repoOrData.accessKeys.find(
-      (record) => record.revokedAt === null && record.tokenHash === tokenHash,
-    ) ?? null
-  );
+  const key = await accessKeyRepo.getByTokenHash(tokenHash);
+  return key?.revokedAt === null ? (key as unknown as AccessKeyRecord) : null;
 }
