@@ -84,17 +84,21 @@ export function createIdentityAccessActorLookupSource(pool: Queryable): Identity
     },
     async getMembershipLevels(pairs) {
       const levels = new Map<string, number>();
-      await Promise.all(
-        pairs.map(async ({ userId, teamId }) => {
-          const { rows } = await pool.query(
-            'SELECT user_id, team_id, security_level FROM memberships WHERE user_id = $1 AND team_id = $2',
-            [userId, teamId],
-          );
-          const row = rows[0];
-          if (row)
-            levels.set(`${String(row.user_id)}:${String(row.team_id)}`, Number(row.security_level));
-        }),
+      const uniquePairs = [
+        ...new Map(pairs.map((pair) => [`${pair.userId}:${pair.teamId}`, pair])).values(),
+      ];
+      if (uniquePairs.length === 0) return levels;
+      const { rows } = await pool.query(
+        `SELECT user_id, team_id, security_level
+         FROM memberships
+         WHERE (user_id, team_id) IN (
+           SELECT * FROM UNNEST($1::text[], $2::text[])
+         )`,
+        [uniquePairs.map((pair) => pair.userId), uniquePairs.map((pair) => pair.teamId)],
       );
+      for (const row of rows) {
+        levels.set(`${String(row.user_id)}:${String(row.team_id)}`, Number(row.security_level));
+      }
       return levels;
     },
   };
@@ -402,7 +406,7 @@ export function createIdentityAccessPgDeps(
   const auditLog: AuditLogPort = {
     async record(entry) {
       await pool.query(
-        'INSERT INTO audit_events (id, action, actor_id, entity_id, team_id, payload, event_version, source_service, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+        'INSERT INTO audit_events (id, action, actor_id, entity_id, team_id, payload, event_version, source_service, request_id, trace_id, operation_id, causation_id, outcome, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$14)',
         [
           randomUUID(),
           entry.action,
@@ -412,6 +416,11 @@ export function createIdentityAccessPgDeps(
           JSON.stringify(entry.metadata ?? {}),
           entry.eventVersion ?? 1,
           entry.sourceService ?? 'identity-access',
+          entry.requestId ?? null,
+          entry.traceId ?? null,
+          entry.operationId ?? null,
+          entry.causationId ?? null,
+          entry.outcome ?? 'success',
           entry.timestamp ?? nowIso(),
         ],
       );
@@ -431,15 +440,26 @@ export function createIdentityAccessPgDeps(
       add('trace_id', filter.traceId);
       add('operation_id', filter.operationId);
       add('causation_id', filter.causationId);
+      if (filter.from) {
+        values.push(filter.from);
+        conditions.push(`created_at >= $${values.length}`);
+      }
+      if (filter.to) {
+        values.push(filter.to);
+        conditions.push(`created_at <= $${values.length}`);
+      }
       if (filter.action?.length) {
         values.push(filter.action);
         conditions.push(`action = ANY($${values.length}::text[])`);
       }
       const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
-      const { rows } = await pool.query(
-        `SELECT id, action, actor_id, entity_id, team_id, payload, event_version, source_service, outcome, created_at, updated_at FROM audit_events${where} ORDER BY created_at DESC LIMIT ${Math.max(1, filter.limit ?? 25)}`,
-        values,
-      );
+      const [{ rows: countRows }, { rows }] = await Promise.all([
+        pool.query(`SELECT COUNT(*) AS total FROM audit_events${where}`, values),
+        pool.query(
+          `SELECT id, action, actor_id, entity_id, team_id, payload, event_version, source_service, request_id, trace_id, operation_id, causation_id, outcome, created_at, updated_at FROM audit_events${where} ORDER BY created_at DESC LIMIT ${Math.max(1, filter.limit ?? 25)}`,
+          values,
+        ),
+      ]);
       return {
         items: rows.map((row) => ({
           id: String(row.id),
@@ -450,11 +470,15 @@ export function createIdentityAccessPgDeps(
           metadata: (row.payload as Record<string, unknown>) ?? {},
           eventVersion: Number(row.event_version ?? 1),
           sourceService: String(row.source_service ?? 'identity-access'),
+          requestId: typeof row.request_id === 'string' ? row.request_id : undefined,
+          traceId: typeof row.trace_id === 'string' ? row.trace_id : undefined,
+          operationId: typeof row.operation_id === 'string' ? row.operation_id : undefined,
+          causationId: typeof row.causation_id === 'string' ? row.causation_id : undefined,
           outcome: row.outcome === 'rejected' || row.outcome === 'failed' ? row.outcome : 'success',
           updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : undefined,
           timestamp: row.created_at instanceof Date ? row.created_at.toISOString() : undefined,
         })),
-        total: rows.length,
+        total: Number(countRows[0]?.total ?? 0),
       };
     },
   };

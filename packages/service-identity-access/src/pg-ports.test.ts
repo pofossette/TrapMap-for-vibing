@@ -50,27 +50,40 @@ describe('identity PostgreSQL ports', () => {
     );
   });
 
-  it('owns audit queries and actor lookup without server repositories', async () => {
+  it('returns an unbounded audit total and performs actor membership lookup in one query', async () => {
     const query = vi.fn(async (sql: string) => {
+      if (sql.includes('COUNT(*)')) {
+        return { rows: [{ total: '3' }] };
+      }
       if (sql.includes('FROM audit_events')) {
         return { rows: [{ id: 'audit_1', action: 'team:create', actor_id: 'user_1' }] };
       }
       if (sql.includes('FROM users WHERE id = ANY')) {
         return { rows: [{ id: 'user_1', handle: 'alice' }] };
       }
-      if (sql.includes('FROM memberships WHERE')) {
+      if (sql.includes('FROM memberships')) {
         return { rows: [{ user_id: 'user_1', team_id: 'team_1', security_level: 4 }] };
       }
       return { rows: [] };
     });
     const deps = createIdentityAccessPgDeps({ query } as never);
-    const audit = await deps.auditLog.query({ actorId: 'user_1' });
+    const audit = await deps.auditLog.query({ actorId: 'user_1', limit: 1 });
     const actors = await createIdentityAccessActorLookupSource({ query } as never).getUsersByIds([
       'user_1',
     ]);
+    const memberships = await createIdentityAccessActorLookupSource({
+      query,
+    } as never).getMembershipLevels([
+      { userId: 'user_1', teamId: 'team_1' },
+      { userId: 'user_2', teamId: 'team_2' },
+    ]);
 
-    expect(audit.total).toBe(1);
+    expect(audit.total).toBe(3);
     expect(actors).toEqual([{ id: 'user_1', handle: 'alice' }]);
+    expect(memberships).toEqual(new Map([['user_1:team_1', 4]]));
+    expect(
+      query.mock.calls.filter(([sql]) => String(sql).includes('FROM memberships')),
+    ).toHaveLength(1);
   });
 
   it('exposes the temporary snapshot port without leaking a server store type', async () => {

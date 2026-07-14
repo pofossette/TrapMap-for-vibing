@@ -10,9 +10,7 @@ import {
   createKnowledgeReadRetrievalQuery,
   type KnowledgeReadRetrievalQueryOptions,
 } from '@trapmap/service-knowledge-read';
-import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
-import { getStorePool } from '@trapmap/runtime-infra';
 
 import { loadHostLocalConfig } from '../config/index.js';
 import { createQueuePorts } from './backend-core-adapters.js';
@@ -59,11 +57,7 @@ function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
 export async function createHostLocalRuntime(): Promise<HostLocalRuntime> {
   const config = loadHostLocalConfig();
   const services = await createHostLocalServices(config);
-  const pool = getStorePool(services.store);
-  if (!pool) {
-    throw new Error('host-local identity runtime requires PostgreSQL');
-  }
-  const identity = createIdentityAccessPgDeps(pool, { systemAdminKey: config.systemAdminKey });
+  const identity = services.identity;
   const runtime: HostLocalRuntime = {
     services,
     identity,

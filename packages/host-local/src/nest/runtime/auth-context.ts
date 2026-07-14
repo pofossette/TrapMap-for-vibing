@@ -29,13 +29,13 @@ export async function resolveHostLocalAuthContext(
     throw new Error('A valid session token is required');
   }
 
-  const session = await services.repos.session.getByTokenHash(hashSecret(token));
+  const session = await services.identity.sessionRepo.getByTokenHash(hashSecret(token));
   if (!session) {
     throw new Error('Session not found or expired');
   }
 
   if (session.subjectType === 'system-admin') {
-    const team = session.activeTeamId ? await services.repos.team.getById(session.activeTeamId) : null;
+    const team = session.activeTeamId ? await services.identity.teamRepo.getById(session.activeTeamId) : null;
 
     return {
       subjectType: 'system-admin' as const,
@@ -50,12 +50,12 @@ export async function resolveHostLocalAuthContext(
     };
   }
 
-  const user = await services.repos.user.getById(session.userId ?? '');
+  const user = await services.identity.userRepo.getById(session.userId ?? '');
   if (!user) {
     throw new Error('Session user no longer exists');
   }
 
-  const memberships = await services.repos.membership.listByUser(user.id);
+  const memberships = await services.identity.membershipRepo.listByUser(user.id);
   const membership =
     (session.activeTeamId
       ? memberships.find((candidate) => candidate.teamId === session.activeTeamId)
@@ -64,7 +64,7 @@ export async function resolveHostLocalAuthContext(
     null;
 
   if (!membership && services.runtimeDeployment.capabilities.supportsLocalSingleUserMode) {
-    const team = session.activeTeamId ? await services.repos.team.getById(session.activeTeamId) : null;
+    const team = session.activeTeamId ? await services.identity.teamRepo.getById(session.activeTeamId) : null;
 
     return {
       subjectType: 'user' as const,
@@ -84,7 +84,7 @@ export async function resolveHostLocalAuthContext(
     throw new Error('No team membership is available for this session');
   }
 
-  const team = await services.repos.team.getById(membership.teamId);
+  const team = await services.identity.teamRepo.getById(membership.teamId);
   return {
     subjectType: 'user' as const,
     actorId: user.id,

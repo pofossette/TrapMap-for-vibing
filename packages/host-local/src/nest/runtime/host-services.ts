@@ -1,4 +1,6 @@
 import type { ResolvedRuntimeDeployment } from '@trapmap/backend-core';
+import { createIdentityAccessPgDeps, type IdentityAccessPortDeps } from '@trapmap/service-identity-access';
+import { getStorePool } from '@trapmap/runtime-infra';
 
 import type { HostLocalConfig } from '../config/index.js';
 import {
@@ -31,13 +33,9 @@ export interface HostLocalServices {
   channelRegistry: HostLocalChannelRegistry;
   strategyRegistry: HostLocalStrategyRegistry;
   ai: HostLocalAiProviders;
+  identity: IdentityAccessPortDeps;
   knowledgeRepo: HostLocalRepos['knowledge'];
   artifactRepo: HostLocalRepos['artifact'];
-  sessionRepo: HostLocalRepos['session'];
-  accessKeyRepo: HostLocalRepos['accessKey'];
-  userRepo: HostLocalRepos['user'];
-  teamRepo: HostLocalRepos['team'];
-  membershipRepo: HostLocalRepos['membership'];
   usageAnalyticsRepo: HostLocalRepos['usageAnalytics'];
   repos: HostLocalRepos;
   graphQueryBackend: HostLocalGraphQueryBackend;
@@ -50,6 +48,11 @@ export async function createHostLocalServices(
 ): Promise<HostLocalServices> {
   const runtimeDeployment = resolveHostLocalDeployment(config);
   const infra = await createHostLocalSharedInfra(config);
+  const pool = getStorePool(infra.store);
+  if (!pool) {
+    throw new Error('host-local identity runtime requires PostgreSQL');
+  }
+  const identity = createIdentityAccessPgDeps(pool, { systemAdminKey: config.systemAdminKey });
 
   const services: HostLocalServices = {
     config,
@@ -62,13 +65,9 @@ export async function createHostLocalServices(
     channelRegistry: createHostLocalChannelRegistry(),
     strategyRegistry: createHostLocalStrategyRegistry(),
     ai: infra.ai,
+    identity,
     knowledgeRepo: infra.repos.knowledge,
     artifactRepo: infra.repos.artifact,
-    sessionRepo: infra.repos.session,
-    accessKeyRepo: infra.repos.accessKey,
-    userRepo: infra.repos.user,
-    teamRepo: infra.repos.team,
-    membershipRepo: infra.repos.membership,
     usageAnalyticsRepo: infra.repos.usageAnalytics,
     repos: infra.repos,
     graphQueryBackend: infra.graphQueryBackend,
