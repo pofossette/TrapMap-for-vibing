@@ -223,16 +223,18 @@ export async function resolveAuthContext(
     throw new AppError(401, 'unauthorized', 'A valid session token is required');
   }
 
-  const { repos } = services;
+  const { identity } = services;
 
-  const session = await repos.session.getByTokenHash(hashSecret(token));
+  const session = await identity.sessionRepo.getByTokenHash(hashSecret(token));
 
   if (!session) {
     throw new AppError(401, 'unauthorized', 'Session not found or expired');
   }
 
   if (session.subjectType === 'system-admin') {
-    const team = session.activeTeamId ? await repos.team.getById(session.activeTeamId) : null;
+    const team = session.activeTeamId
+      ? await identity.teamRepo.getById(session.activeTeamId)
+      : null;
 
     return {
       subjectType: 'system-admin',
@@ -247,17 +249,19 @@ export async function resolveAuthContext(
     };
   }
 
-  const user = await repos.user.getById(session.userId ?? '');
+  const user = await identity.userRepo.getById(session.userId ?? '');
 
   if (!user) {
     throw new AppError(401, 'unauthorized', 'Session user no longer exists');
   }
 
-  const memberships = await repos.membership.listByUser(user.id);
+  const memberships = await identity.membershipRepo.listByUser(user.id);
   const membership = findMembershipForTeamFromList(memberships, session.activeTeamId);
 
   if (!membership && services.runtimeDeployment.capabilities.supportsLocalSingleUserMode) {
-    const team = session.activeTeamId ? await repos.team.getById(session.activeTeamId) : null;
+    const team = session.activeTeamId
+      ? await identity.teamRepo.getById(session.activeTeamId)
+      : null;
 
     return {
       subjectType: 'user',
@@ -281,7 +285,7 @@ export async function resolveAuthContext(
     );
   }
 
-  const team = await repos.team.getById(membership.teamId);
+  const team = await identity.teamRepo.getById(membership.teamId);
   const effectivePermissions = resolveEffectivePermissions(
     membership.roleTemplate,
     membership.permissions,
@@ -305,10 +309,12 @@ export async function getSessionResponse(
   services: SkillShareerServices,
   session: SessionRecord,
 ): Promise<ActiveSession> {
-  const { repos } = services;
+  const { identity } = services;
 
   if (session.subjectType === 'system-admin') {
-    const activeTeam = session.activeTeamId ? await repos.team.getById(session.activeTeamId) : null;
+    const activeTeam = session.activeTeamId
+      ? await identity.teamRepo.getById(session.activeTeamId)
+      : null;
     const issuedAt = session.createdAt;
 
     return activeSessionSchema.parse({
@@ -332,20 +338,20 @@ export async function getSessionResponse(
     });
   }
 
-  const user = await repos.user.getById(session.userId ?? '');
+  const user = await identity.userRepo.getById(session.userId ?? '');
 
   if (!user) {
     throw new AppError(401, 'unauthorized', 'Session user no longer exists');
   }
 
-  const memberships = await repos.membership.listByUser(user.id);
+  const memberships = await identity.membershipRepo.listByUser(user.id);
   const membership = findMembershipForTeamFromList(memberships, session.activeTeamId);
 
   if (!membership) {
     throw new AppError(403, 'membership_missing', 'No membership available for session');
   }
 
-  const activeTeam = await repos.team.getById(membership.teamId);
+  const activeTeam = await identity.teamRepo.getById(membership.teamId);
   const effectivePermissions = resolveEffectivePermissions(
     membership.roleTemplate,
     membership.permissions,
@@ -371,9 +377,9 @@ export async function getSessionStatus(
     return null;
   }
 
-  const { repos } = services;
+  const { identity } = services;
 
-  const session = await repos.session.getByTokenHash(hashSecret(token));
+  const session = await identity.sessionRepo.getByTokenHash(hashSecret(token));
   return session ? getSessionResponse(services, session) : null;
 }
 

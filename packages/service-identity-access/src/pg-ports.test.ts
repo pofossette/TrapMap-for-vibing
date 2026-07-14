@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   createIdentityAccessActorLookupSource,
+  createIdentityAccessOwnerBundle,
   createIdentityAccessPgDeps,
   createIdentityAccessSnapshotPort,
 } from './pg-ports.js';
@@ -10,6 +11,23 @@ import { createAuditEvent } from './audit.js';
 import { createIdentityAccessServiceModule } from './deps.js';
 
 describe('identity PostgreSQL ports', () => {
+  it('keeps all identity capabilities in a structural owner bundle', () => {
+    const deps = createIdentityAccessPgDeps({ query: vi.fn(async () => ({ rows: [] })) } as never);
+
+    expect(createIdentityAccessOwnerBundle(deps)).toMatchObject({
+      sessionRepo: deps.sessionRepo,
+      accessKeyRepo: deps.accessKeyRepo,
+      teamRepo: deps.teamRepo,
+      membershipRepo: deps.membershipRepo,
+      userRepo: deps.userRepo,
+      sessionLookup: deps.sessionLookup,
+      teamLookup: deps.teamLookup,
+      permissionCheck: deps.permissionCheck,
+      auditLog: deps.auditLog,
+      actorLookup: deps.actorLookup,
+    });
+  });
+
   it('builds a login-capable identity module from an owner-local pool', async () => {
     const query = vi.fn(async (sql: string) => {
       if (sql.includes('FROM users WHERE handle')) {

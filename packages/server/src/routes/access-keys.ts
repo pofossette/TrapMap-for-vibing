@@ -39,7 +39,8 @@ export const accessKeyRoutes: FastifyPluginAsync = async (app) => {
       updatedAt: createdAt,
     };
 
-    const { membershipRepo, accessKeyRepo, store } = app.skillShareer;
+    const { identity, store } = app.skillShareer;
+    const { membershipRepo, accessKeyRepo } = identity;
 
     // Use repositories if available
     if (membershipRepo && accessKeyRepo) {

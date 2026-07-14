@@ -7,7 +7,7 @@ import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
 import { createAiProviders } from './lib/ai/index.js';
 import { createAsyncTransport } from './lib/async/factory.js';
-import type { SkillShareerServices } from './lib/context.js';
+import type { IdentityCompatibilityBundle, SkillShareerServices } from './lib/context.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
 import { type GraphQueryBackend, createGraphQueryRuntimeState } from './lib/graph-query/index.js';
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
@@ -47,6 +47,7 @@ interface BuildServerOptions {
   bodyLimit?: number;
   runtimeMode?: RuntimeMode;
   serviceUnit?: ServiceUnit;
+  identityBundle?: IdentityCompatibilityBundle;
 }
 
 function resolveRuntimeServiceName(runtimeMode: RuntimeMode, serviceUnit: ServiceUnit): string {
@@ -66,6 +67,9 @@ function resolveRuntimeServiceName(runtimeMode: RuntimeMode, serviceUnit: Servic
 }
 
 export function buildServer(options: BuildServerOptions = {}) {
+  if (!options.identityBundle) {
+    throw new Error('server identity compatibility bundle must be injected by its host');
+  }
   const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
   const defaultTestDataFile =
     isTestEnv &&
@@ -176,16 +180,7 @@ export function buildServer(options: BuildServerOptions = {}) {
     knowledgeRepo: undefined,
     // artifactRepo is set in bootstrapRepositories when PostgreSQL pool is available
     artifactRepo: undefined,
-    // sessionRepo is set in bootstrapRepositories when PostgreSQL pool is available
-    sessionRepo: undefined,
-    // accessKeyRepo is set in bootstrapRepositories when PostgreSQL pool is available
-    accessKeyRepo: undefined,
-    // userRepo is set in bootstrapRepositories when PostgreSQL pool is available
-    userRepo: undefined,
-    // teamRepo is set in bootstrapRepositories when PostgreSQL pool is available
-    teamRepo: undefined,
-    // membershipRepo is set in bootstrapRepositories when PostgreSQL pool is available
-    membershipRepo: undefined,
+    identity: options.identityBundle,
     // usageAnalyticsRepo is set in bootstrapRepositories when PostgreSQL pool is available
     usageAnalyticsRepo: undefined,
     repos: {} as SkillShareerServices['repos'],
@@ -204,6 +199,9 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.decorate('skillShareer', skillShareer);
 
   const storePool = getStorePool(app.skillShareer.store);
+  if (!storePool) {
+    throw new Error('server identity compatibility bridge requires PostgreSQL');
+  }
   if (storePool) {
     app.skillShareer.asyncTransport = createAsyncTransport({
       config: app.skillShareer.config,

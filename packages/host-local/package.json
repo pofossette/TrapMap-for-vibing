@@ -36,6 +36,7 @@
     "@trapmap/runtime-infra": "workspace:*",
     "@trapmap/service-candidate-ingestion": "workspace:*",
     "@trapmap/service-governance-review": "workspace:*",
+    "@trapmap/service-identity-access": "workspace:*",
     "@trapmap/service-job-runtime": "workspace:*",
     "@trapmap/service-knowledge-read": "workspace:*",
     "@trapmap/service-knowledge-write": "workspace:*",

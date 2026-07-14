@@ -11,7 +11,8 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'team:list');
 
-    const { teamRepo, membershipRepo, store } = app.skillShareer;
+    const { identity, store } = app.skillShareer;
+    const { teamRepo, membershipRepo } = identity;
 
     // Use repositories if available
     if (teamRepo && membershipRepo) {
@@ -57,7 +58,8 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
     const createdAt = nowIso();
     const slug = createSlug(payload.name);
 
-    const { teamRepo, membershipRepo, store } = app.skillShareer;
+    const { identity, store } = app.skillShareer;
+    const { teamRepo, membershipRepo } = identity;
 
     // Use repositories if available
     if (teamRepo && membershipRepo) {

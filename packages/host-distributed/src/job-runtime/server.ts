@@ -7,13 +7,15 @@ import {
   createJobRuntimeDeps,
   createJobRuntimeServer,
 } from '@trapmap/service-job-runtime';
+import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 
 export async function createServer(
   config: ServiceConfig,
   db: ServiceDatabase,
 ): Promise<JobRuntimeServer> {
-  const ports = createServicePorts(db.pool, config.serviceName);
+  const identity = createIdentityAccessPgDeps(db.pool, { systemAdminKey: config.systemAdminKey });
+  const ports = createServicePorts(db.pool, config.serviceName, identity);
   if (!ports.jobRuntime) {
     throw new Error('job-runtime capability unavailable for job-runtime service');
   }

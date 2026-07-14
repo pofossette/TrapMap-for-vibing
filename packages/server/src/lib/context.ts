@@ -1,4 +1,16 @@
 import type { Permission } from '@trapmap/contracts';
+import type {
+  AccessKeyRepositoryPort,
+  ActorBatchLookupPort,
+  AuditLogPort,
+  MembershipRepositoryPort,
+  PermissionCheckPort,
+  SessionLookupPort,
+  SessionRepositoryPort,
+  TeamLookupPort,
+  TeamRepositoryPort,
+  UserRepositoryPort,
+} from '@trapmap/backend-core';
 import type { FastifyRequest } from 'fastify';
 
 import type { ServerConfig } from '@trapmap/server/config.js';
@@ -6,8 +18,6 @@ import type { AiProviders } from './ai/types.js';
 import type { UsageAnalyticsRepository } from './analytics/index.js';
 import type { ArtifactRepository } from './artifacts/index.js';
 import type { AsyncTransport } from './async/transport.js';
-import type { AccessKeyRepository } from './auth/index.js';
-import type { SessionRepository } from './auth/index.js';
 import type { GraphQueryBackend, GraphQueryRuntimeState } from './graph-query/index.js';
 import type { AdapterRegistry } from './indexing/registry.js';
 import type { KnowledgeRepository } from './knowledge/index.js';
@@ -23,8 +33,23 @@ import type {
   TracingPort,
 } from './runtime/index.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
-import type { MembershipRepository, TeamRepository } from './teams/index.js';
-import type { UserRepository } from './users/index.js';
+
+/**
+ * Structural compatibility bridge injected by a host that owns identity.
+ * `server` deliberately imports only backend-core port contracts here.
+ */
+export interface IdentityCompatibilityBundle {
+  sessionRepo: SessionRepositoryPort;
+  accessKeyRepo: AccessKeyRepositoryPort;
+  teamRepo: TeamRepositoryPort;
+  membershipRepo: MembershipRepositoryPort;
+  userRepo: UserRepositoryPort;
+  sessionLookup: SessionLookupPort;
+  teamLookup: TeamLookupPort;
+  permissionCheck: PermissionCheckPort;
+  auditLog: AuditLogPort;
+  actorLookup: ActorBatchLookupPort;
+}
 
 export interface SkillShareerServices {
   config: ServerConfig;
@@ -48,26 +73,8 @@ export interface SkillShareerServices {
    * @deprecated Use `repos.artifact` instead. Retained for backward compatibility only.
    */
   artifactRepo: ArtifactRepository | undefined;
-  /**
-   * @deprecated Use `repos.session` instead. Retained for backward compatibility only.
-   */
-  sessionRepo: SessionRepository | undefined;
-  /**
-   * @deprecated Use `repos.accessKey` instead. Retained for backward compatibility only.
-   */
-  accessKeyRepo: AccessKeyRepository | undefined;
-  /**
-   * @deprecated Use `repos.user` instead. Retained for backward compatibility only.
-   */
-  userRepo: UserRepository | undefined;
-  /**
-   * @deprecated Use `repos.team` instead. Retained for backward compatibility only.
-   */
-  teamRepo: TeamRepository | undefined;
-  /**
-   * @deprecated Use `repos.membership` instead. Retained for backward compatibility only.
-   */
-  membershipRepo: MembershipRepository | undefined;
+  /** Identity/audit capabilities injected by the owning host. */
+  identity: IdentityCompatibilityBundle;
   /**
    * @deprecated Use `repos.usageAnalytics` instead. Retained for backward compatibility only.
    */

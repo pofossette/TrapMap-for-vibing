@@ -10,10 +10,6 @@ import type { FastifyInstance } from 'fastify';
 import { createUsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
 import { createArtifactRepository } from '@trapmap/server/lib/artifacts/index.js';
 import {
-  createAccessKeyRepository,
-  createSessionRepository,
-} from '@trapmap/server/lib/auth/index.js';
-import {
   createFailOpenGraphQueryBackend,
   createGraphQueryRuntimeState,
   createMemoryGraphQueryBackend,
@@ -29,11 +25,6 @@ import { ensureVectorIndex } from '@trapmap/server/lib/retrieval/recall/db-searc
 import { createGraphChannel } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
 import { executeWithResilience } from '@trapmap/server/lib/runtime/index.js';
 import { getStorePool } from '@trapmap/server/lib/store.js';
-import {
-  createMembershipRepository,
-  createTeamRepository,
-} from '@trapmap/server/lib/teams/index.js';
-import { createUserRepository } from '@trapmap/server/lib/users/index.js';
 
 export async function bootstrapRepositories(app: FastifyInstance): Promise<void> {
   const store = app.skillShareer.store;
@@ -48,11 +39,6 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
     // Legacy flat repo properties — compatibility-only, prefer `repos.*` for new code
     app.skillShareer.knowledgeRepo = createKnowledgeRepository({ pool, store });
     app.skillShareer.artifactRepo = createArtifactRepository({ pool, store });
-    app.skillShareer.sessionRepo = createSessionRepository({ pool, store });
-    app.skillShareer.accessKeyRepo = createAccessKeyRepository({ pool, store });
-    app.skillShareer.userRepo = createUserRepository({ pool, store });
-    app.skillShareer.teamRepo = createTeamRepository({ pool, store });
-    app.skillShareer.membershipRepo = createMembershipRepository({ pool, store });
     app.skillShareer.usageAnalyticsRepo = await createUsageAnalyticsRepository({ pool });
 
     // Ensure HNSW vector index exists for O(log n) similarity search

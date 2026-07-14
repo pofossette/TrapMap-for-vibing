@@ -62,8 +62,11 @@ export interface EmbeddingCacheRecord {
 /** Minimal shape of a session record. */
 export interface SessionRecord {
   id: string;
+  subjectType: 'user' | 'system-admin';
+  userId: string | null;
   tokenHash: string;
   activeTeamId: string | null;
+  expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
   [key: string]: unknown;
@@ -83,6 +86,9 @@ export interface AccessKeyRecord {
 export interface TeamRecord {
   id: string;
   slug: string;
+  name: string;
+  description: string | null;
+  createdAt: string;
   updatedAt?: string;
   [key: string]: unknown;
 }
@@ -92,12 +98,22 @@ export interface MembershipRecord {
   id: string;
   userId: string;
   teamId: string;
+  roleTemplate: 'admin' | 'editor' | 'viewer' | 'system-admin';
+  securityLevel: number;
+  permissions: string[];
+  notes: string | null;
+  createdAt: string;
   updatedAt?: string;
   [key: string]: unknown;
 }
 
 /** Minimal shape of a user record. */
 export interface UserRecord {
+  id: string;
+  handle: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
   id: string;
   handle: string;
   updatedAt?: string;

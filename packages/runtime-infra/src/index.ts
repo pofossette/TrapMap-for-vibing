@@ -88,5 +88,5 @@ export {
   type RuntimeWorkerHandle,
   type RuntimeWorkerSnapshot,
 } from './runtime-contract.js';
-export { JsonStore, type SkillShareerStore, type StoreData } from './store.js';
+export { getStorePool, JsonStore, type SkillShareerStore, type StoreData } from './store.js';
 export { createSkillShareerStore, type StoreConfig } from './store-factory.js';

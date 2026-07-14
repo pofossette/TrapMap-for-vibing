@@ -41,7 +41,6 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   'lib/persistence/migrate-artifacts.ts',
   'lib/persistence/migrate-candidates.ts',
   'lib/persistence/migrate-knowledge.ts',
-  'lib/persistence/migrate-identity-audit.ts',
   'lib/persistence/backfill-indexes.ts',
 
   // Bootstrap and startup

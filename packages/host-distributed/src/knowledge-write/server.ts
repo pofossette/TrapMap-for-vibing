@@ -13,6 +13,7 @@ import {
   type KnowledgeWriteServer,
   createKnowledgeWriteServer as createServiceKnowledgeWriteServer,
 } from '@trapmap/service-knowledge-write';
+import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import { createKnowledgeWriteDeps } from './ports.js';
 
@@ -20,7 +21,8 @@ export async function createServer(
   config: ServiceConfig,
   db: ServiceDatabase,
 ): Promise<KnowledgeWriteServer> {
-  const ports = createServicePorts(db.pool, config.serviceName);
+  const identity = createIdentityAccessPgDeps(db.pool, { systemAdminKey: config.systemAdminKey });
+  const ports = createServicePorts(db.pool, config.serviceName, identity);
   const deps = createKnowledgeWriteDeps(ports);
   const server = await createServiceKnowledgeWriteServer(config, deps, {
     checkDependency: async () => {

@@ -4,10 +4,14 @@ import type { AuditRepositoryPort } from '@trapmap/backend-core';
 
 import { createServicePorts } from './ports.js';
 
+const identity = {
+  auditLog: { record: async () => undefined, query: async () => ({ items: [], total: 0 }) },
+};
+
 describe('knowledge-write lifecycle persistence', () => {
   it('binds lifecycle state before owner user ID when inserting knowledge', async () => {
     const query = vi.fn(async () => ({ rows: [] }));
-    const ports = createServicePorts({ query } as never, 'knowledge-write');
+    const ports = createServicePorts({ query } as never, 'knowledge-write', identity);
 
     await ports.repos.knowledge.insert({
       id: 'entry-system-admin',
@@ -52,7 +56,7 @@ describe('knowledge-write lifecycle persistence', () => {
       release: vi.fn(),
     };
     const pool = { connect: vi.fn(async () => client) };
-    const ports = createServicePorts(pool as never, 'knowledge-write');
+    const ports = createServicePorts(pool as never, 'knowledge-write', identity);
 
     await ports.repos.knowledge.updateLifecycle('entry-1', 'approved', { actorId: 'reviewer-1' });
 
@@ -88,7 +92,7 @@ describe('knowledge-write lifecycle persistence', () => {
       release: vi.fn(),
     };
     const pool = { connect: vi.fn(async () => client) };
-    const ports = createServicePorts(pool as never, 'knowledge-write');
+    const ports = createServicePorts(pool as never, 'knowledge-write', identity);
 
     await expect(
       ports.repos.knowledge.updateLifecycle('entry-1', 'approved', { actorId: 'reviewer-1' }),
@@ -109,7 +113,7 @@ describe('knowledge-write lifecycle persistence', () => {
       release: vi.fn(),
     };
     const pool = { connect: vi.fn(async () => client) };
-    const ports = createServicePorts(pool as never, 'knowledge-write');
+    const ports = createServicePorts(pool as never, 'knowledge-write', identity);
 
     await expect(
       ports.repos.knowledge.updateLifecycle('missing-entry', 'approved', { actorId: 'reviewer-1' }),
@@ -133,7 +137,7 @@ describe('knowledge-write lifecycle persistence', () => {
       release: vi.fn(),
     };
     const pool = { connect: vi.fn(async () => client) };
-    const ports = createServicePorts(pool as never, 'knowledge-write');
+    const ports = createServicePorts(pool as never, 'knowledge-write', identity);
 
     await expect(
       ports.repos.knowledge.updateLifecycle('entry-1', 'submitted', { actorId: 'reviewer-1' }),
@@ -159,7 +163,7 @@ describe('knowledge-write lifecycle persistence', () => {
       release: vi.fn(),
     };
     const pool = { connect: vi.fn(async () => client) };
-    const ports = createServicePorts(pool as never, 'knowledge-write');
+    const ports = createServicePorts(pool as never, 'knowledge-write', identity);
 
     await ports.repos.knowledge.updateLifecycle('entry-1', 'approved', { actorId: 'reviewer-1' });
 
@@ -171,11 +175,11 @@ describe('knowledge-write lifecycle persistence', () => {
     );
   });
 
-  it('queries audit records by correlation fields', async () => {
-    const query = vi.fn(async (sql: string) =>
-      sql.includes('COUNT(*)') ? { rows: [{ total: '0' }] } : { rows: [] },
-    );
-    const ports = createServicePorts({ query } as never);
+  it('uses the host-injected identity audit capability', async () => {
+    const query = vi.fn(async () => ({ items: [], total: 0 }));
+    const ports = createServicePorts({ query: vi.fn() } as never, 'knowledge-write', {
+      auditLog: { record: async () => undefined, query },
+    });
     const filter: Parameters<AuditRepositoryPort['listByFilter']>[0] = {
       requestId: 'request-1',
       traceId: 'trace-1',
@@ -185,11 +189,6 @@ describe('knowledge-write lifecycle persistence', () => {
 
     await ports.auditLog.query(filter);
 
-    expect(query).toHaveBeenCalledWith(expect.stringContaining('request_id = $1'), [
-      'request-1',
-      'trace-1',
-      'operation-1',
-      'event-1',
-    ]);
+    expect(query).toHaveBeenCalledWith(filter);
   });
 });

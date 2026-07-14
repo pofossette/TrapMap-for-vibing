@@ -87,6 +87,12 @@ const allowlist: AllowlistEntry[] = [
     'local host shared infrastructure',
   ],
   [
+    'packages/host-local/src/nest/runtime/host-runtime.ts',
+    '@trapmap/runtime-infra',
+    'wave-8',
+    'local host PostgreSQL pool seam',
+  ],
+  [
     'packages/runtime-infra/package.json',
     '@trapmap/server',
     'wave-10',

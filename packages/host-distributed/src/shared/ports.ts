@@ -10,24 +10,15 @@ import { randomUUID } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 
 import type {
-  AccessKeyRepositoryPort,
-  AuditLogPort,
-  AuditRepositoryPort,
   CandidateRepositoryPort,
   FeedbackRepositoryPort,
   KnowledgeRepositoryPort,
-  MembershipRepositoryPort,
   OutboxPort,
-  PermissionCheckPort,
   QueuePorts,
   RepositoryPorts,
   RetrievalQueryPort,
-  SessionLookupPort,
-  SessionRepositoryPort,
   TaskQueuePort,
-  TeamLookupPort,
-  TeamRepositoryPort,
-  UserRepositoryPort,
+  AuditLogPort,
 } from '@trapmap/backend-core';
 import type {
   AnalysisSnapshot,
@@ -37,14 +28,6 @@ import type {
 } from '@trapmap/contracts';
 import type { DatabaseWriteService } from './database-ownership.js';
 import { withDatabaseWriteGuard } from './database-ownership.js';
-
-// ---------------------------------------------------------------------------
-// ID generation helper
-// ---------------------------------------------------------------------------
-
-function generateId(prefix: string): string {
-  return `${prefix}_${randomUUID()}`;
-}
 
 function mapKnowledgeRow(row: Record<string, unknown>) {
   return {
@@ -512,11 +495,11 @@ function createPgCandidateRepo(pool: Pool): CandidateRepositoryPort {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Session repository
-// ---------------------------------------------------------------------------
-
-function createPgSessionRepo(pool: Pool): SessionRepositoryPort {
+// Identity, access-key, team, membership, user, and audit persistence are
+// owned by service-identity-access.  Hosts inject its append-only audit
+// capability below; distributed shared ports must not construct those owners.
+/*
+function removedIdentityOwnership(pool: Pool): never {
   return {
     async nextId() {
       return generateId('s');
@@ -783,6 +766,8 @@ function createPgUserRepo(pool: Pool): UserRepositoryPort {
   };
 }
 
+*/
+
 // ---------------------------------------------------------------------------
 // Feedback repository
 // ---------------------------------------------------------------------------
@@ -880,6 +865,7 @@ function createPgFeedbackRepo(pool: Pool): FeedbackRepositoryPort {
   };
 }
 
+/*
 // ---------------------------------------------------------------------------
 // Audit repository
 // ---------------------------------------------------------------------------
@@ -1104,6 +1090,8 @@ function createPgAuditLog(pool: Pool): AuditLogPort {
   };
 }
 
+*/
+
 function createPgRetrievalQuery(pool: Pool): RetrievalQueryPort {
   return {
     async search(params) {
@@ -1272,10 +1260,7 @@ function createPgOutbox(pool: Pool): OutboxPort {
 // ---------------------------------------------------------------------------
 
 export interface ServicePortImplementations {
-  repos: Omit<RepositoryPorts, 'audit'> & { audit?: AuditRepositoryPort };
-  sessionLookup: SessionLookupPort;
-  teamLookup: TeamLookupPort;
-  permissionCheck: PermissionCheckPort;
+  repos: Omit<RepositoryPorts, 'audit' | 'session' | 'accessKey' | 'team' | 'membership' | 'user'>;
   auditLog: AuditLogPort;
   retrievalQuery: RetrievalQueryPort;
   asyncDiagnostics: {
@@ -1291,6 +1276,7 @@ export interface ServicePortImplementations {
 export function createServicePorts(
   pool: Pool,
   serviceName: DatabaseWriteService = 'server-compatibility-seam',
+  identity: Pick<ServicePortImplementations, 'auditLog'>,
 ): ServicePortImplementations {
   const knowledgeRepo = withDatabaseWriteGuard(
     createPgKnowledgeRepo(pool),
@@ -1302,24 +1288,7 @@ export function createServicePorts(
     serviceName,
     'candidate',
   );
-  const sessionRepo = withDatabaseWriteGuard(createPgSessionRepo(pool), serviceName, 'identity');
-  const accessKeyRepo = withDatabaseWriteGuard(
-    createPgAccessKeyRepo(pool),
-    serviceName,
-    'identity',
-  );
-  const teamRepo = withDatabaseWriteGuard(createPgTeamRepo(pool), serviceName, 'identity');
-  const membershipRepo = withDatabaseWriteGuard(
-    createPgMembershipRepo(pool),
-    serviceName,
-    'identity',
-  );
-  const userRepo = withDatabaseWriteGuard(createPgUserRepo(pool), serviceName, 'identity');
   const feedbackRepo = withDatabaseWriteGuard(createPgFeedbackRepo(pool), serviceName, 'knowledge');
-  const auditRepo =
-    serviceName === 'server-compatibility-seam'
-      ? withDatabaseWriteGuard(createPgAuditRepo(pool), serviceName, 'audit')
-      : undefined;
   const taskQueue = createPgTaskQueue(pool);
   const outbox = createPgOutbox(pool);
 
@@ -1327,18 +1296,9 @@ export function createServicePorts(
     repos: {
       knowledge: knowledgeRepo,
       candidate: candidateRepo,
-      session: sessionRepo,
-      accessKey: accessKeyRepo,
-      team: teamRepo,
-      membership: membershipRepo,
-      user: userRepo,
       feedback: feedbackRepo,
-      ...(auditRepo ? { audit: auditRepo } : {}),
     },
-    sessionLookup: createPgSessionLookup(pool),
-    teamLookup: createPgTeamLookup(pool),
-    permissionCheck: createPgPermissionCheck(pool),
-    auditLog: createPgAuditLog(pool),
+    auditLog: identity.auditLog,
     retrievalQuery: createPgRetrievalQuery(pool),
     asyncDiagnostics: {
       task: {

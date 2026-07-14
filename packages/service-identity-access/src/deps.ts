@@ -1,5 +1,7 @@
 import { type IdentityAccessDeps, createIdentityAccessModule } from '@trapmap/backend-core';
 
+import type { IdentityActorLookupSource } from './actor-lookup.js';
+
 export type { IdentityAccessDeps } from '@trapmap/backend-core';
 
 export interface IdentityAccessPortDeps {
@@ -12,6 +14,7 @@ export interface IdentityAccessPortDeps {
   teamLookup: IdentityAccessDeps['teamLookup'];
   permissionCheck: IdentityAccessDeps['permissionCheck'];
   auditLog: IdentityAccessDeps['auditLog'];
+  actorLookup: IdentityActorLookupSource;
   systemAdminKey?: IdentityAccessDeps['systemAdminKey'];
 }
 

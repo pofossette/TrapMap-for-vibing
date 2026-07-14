@@ -5,6 +5,7 @@ import { createGovernanceReviewDeps } from '@trapmap/service-governance-review';
 import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
 import {
   createIdentityAccessDeps,
+  createIdentityAccessOwnerBundle,
   createIdentityAccessServiceModule,
 } from '@trapmap/service-identity-access';
 import { createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';
@@ -26,7 +27,6 @@ import { LifecycleModule } from './lifecycle/index.js';
 import { createHostLocalRuntime, HOST_LOCAL_RUNTIME_TOKEN } from './runtime/host-runtime.js';
 import {
   createFeedbackRepoPort,
-  createIdentityAccessRepos,
   createKnowledgeRepoPort,
 } from './runtime/backend-core-adapters.js';
 import { RequestContextMiddleware } from './runtime/request-context.middleware.js';
@@ -48,22 +48,13 @@ import { RequestContextService } from './runtime/request-context.service.js';
  *   module graph.
  */
 const hostLocalRuntime = await createHostLocalRuntime();
-const identityAccessRepos = createIdentityAccessRepos(hostLocalRuntime.services.repos);
 const knowledgeRepoPort = createKnowledgeRepoPort(hostLocalRuntime.services.repos.knowledge);
 
 const identityAccessModule = IdentityAccessModule.forPort(
   createIdentityAccessServiceModule(
-    createIdentityAccessDeps({
-    sessionRepo: identityAccessRepos.sessionRepo,
-    accessKeyRepo: identityAccessRepos.accessKeyRepo,
-    teamRepo: identityAccessRepos.teamRepo,
-    membershipRepo: identityAccessRepos.membershipRepo,
-    userRepo: identityAccessRepos.userRepo,
-    sessionLookup: hostLocalRuntime.sessionLookup,
-    teamLookup: hostLocalRuntime.teamLookup,
-    permissionCheck: hostLocalRuntime.permissionCheck,
-    auditLog: hostLocalRuntime.auditLog,
-    }),
+    createIdentityAccessDeps(createIdentityAccessOwnerBundle({
+    ...hostLocalRuntime.identity,
+    })),
   ),
 );
 

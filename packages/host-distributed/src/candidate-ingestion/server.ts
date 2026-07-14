@@ -9,6 +9,7 @@ import {
   createCandidateIngestionDeps,
   createCandidateIngestionServer,
 } from '@trapmap/service-candidate-ingestion';
+import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 
 export interface CandidateIngestionServer {
@@ -21,7 +22,8 @@ export async function createServer(
   config: ServiceConfig,
   db: ServiceDatabase,
 ): Promise<CandidateIngestionServer> {
-  const ports = createServicePorts(db.pool, config.serviceName);
+  const identity = createIdentityAccessPgDeps(db.pool, { systemAdminKey: config.systemAdminKey });
+  const ports = createServicePorts(db.pool, config.serviceName, identity);
   const internalClients = createInternalServiceClients(config.internalUrls);
   const deps = createCandidateIngestionDeps({
     candidateRepo: ports.repos.candidate,

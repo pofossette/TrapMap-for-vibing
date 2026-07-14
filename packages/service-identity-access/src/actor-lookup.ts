@@ -1,9 +1,6 @@
-export interface IdentityActorLookupSource {
-  getUsersByIds(userIds: string[]): Promise<Array<{ id: string; handle: string }>>;
-  getMembershipLevels(
-    pairs: Array<{ userId: string; teamId: string }>,
-  ): Promise<Map<string, number>>;
-}
+import type { ActorBatchLookupPort } from '@trapmap/backend-core';
+
+export type IdentityActorLookupSource = ActorBatchLookupPort;
 
 export interface ActorReferencedKnowledge {
   ownerUserId: string;

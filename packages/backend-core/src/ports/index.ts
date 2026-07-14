@@ -2,6 +2,7 @@ export * from './repo-ports.js';
 export * from './queue-ports.js';
 export * from './retrieval-ports.js';
 export * from './actor-ports.js';
+export * from './actor-lookup-port.js';
 export type {
   AuditLogEntry,
   AuditLogPort,

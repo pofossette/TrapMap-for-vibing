@@ -62,6 +62,17 @@ export function createIdentityAccessSnapshotPort<TSnapshot extends IdentityAcces
   return port;
 }
 
+/**
+ * Deliberately structural composition boundary for identity capabilities.
+ * Hosts may inject this bundle into a consumer, but consumers must not
+ * construct identity repositories or reach into an owner implementation.
+ */
+export function createIdentityAccessOwnerBundle(
+  deps: IdentityAccessPortDeps,
+): IdentityAccessPortDeps {
+  return deps;
+}
+
 export function createIdentityAccessActorLookupSource(pool: Queryable): IdentityActorLookupSource {
   return {
     async getUsersByIds(userIds) {
@@ -217,6 +228,7 @@ export function createIdentityAccessPgDeps(
       return rows as never[];
     },
   };
+  const actorLookup = createIdentityAccessActorLookupSource(pool);
   const teamRepo: TeamRepositoryPort = {
     async nextId() {
       const { rows } = await pool.query<{ nextval: string }>(
@@ -451,6 +463,7 @@ export function createIdentityAccessPgDeps(
     teamLookup,
     permissionCheck,
     auditLog,
+    actorLookup,
     ...(options.systemAdminKey !== undefined ? { systemAdminKey: options.systemAdminKey } : {}),
   };
 }

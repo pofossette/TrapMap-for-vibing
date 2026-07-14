@@ -245,6 +245,9 @@ importers:
       '@trapmap/service-governance-review':
         specifier: workspace:*
         version: link:../service-governance-review
+      '@trapmap/service-identity-access':
+        specifier: workspace:*
+        version: link:../service-identity-access
       '@trapmap/service-job-runtime':
         specifier: workspace:*
         version: link:../service-job-runtime
