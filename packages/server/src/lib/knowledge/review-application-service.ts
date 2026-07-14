@@ -1,7 +1,7 @@
 import type { Boundary, LifecycleState, ReviewDecisionRequest } from '@trapmap/contracts';
+import type { ActorBatchLookupPort, AuditLogPort } from '@trapmap/backend-core';
 
-import { buildUserLookupContextFromRepos } from '@trapmap/server/lib/actors/lookup.js';
-import type { AuditRepository } from '@trapmap/server/lib/audit/index.js';
+import { buildUserLookupContext } from '@trapmap/server/lib/actors/lookup.js';
 import {
   createCacheInvalidationEvent,
   emitCacheInvalidation,
@@ -17,8 +17,6 @@ import { applyReviewDecision, toKnowledgeEntry } from '@trapmap/server/lib/knowl
 import type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
 import type { LifecyclePublisher } from '@trapmap/server/lib/lifecycle/index.js';
 import { requireHigherLevel, requireTeamAccess } from '@trapmap/server/lib/rbac.js';
-import type { MembershipRepository } from '@trapmap/server/lib/teams/index.js';
-import type { UserRepository } from '@trapmap/server/lib/users/index.js';
 import { saveKnowledgeEntry } from './repository.js';
 
 export interface ApplyReviewDecisionInput {
@@ -43,10 +41,8 @@ export interface ReviewApplicationService {
 export interface ReviewApplicationServiceDeps {
   repos: {
     knowledge: KnowledgeRepository;
-    audit: AuditRepository;
-    user: UserRepository;
-    membership: MembershipRepository;
   };
+  identity: { auditLog: AuditLogPort; actorLookup: ActorBatchLookupPort };
   lifecyclePublisher: LifecyclePublisher;
   feedbackRepo: FeedbackRepository;
 }
@@ -60,7 +56,7 @@ export function createReviewApplicationService(
 }
 
 async function applyDecision(deps: ReviewApplicationServiceDeps, input: ApplyReviewDecisionInput) {
-  const { repos, lifecyclePublisher, feedbackRepo } = deps;
+  const { repos, identity, lifecyclePublisher, feedbackRepo } = deps;
   const existingEntry = await repos.knowledge.getById(input.entryId);
   if (!existingEntry) {
     throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
@@ -78,10 +74,10 @@ async function applyDecision(deps: ReviewApplicationServiceDeps, input: ApplyRev
     })();
 
   const previousState = existingEntry.lifecycleState;
-  const lookup = await buildUserLookupContextFromRepos(repos, [existingEntry]);
+  const lookup = await buildUserLookupContext(identity.actorLookup, existingEntry);
 
   if (!lookup.users.some((user) => user.id === reviewerUserId)) {
-    const reviewerUser = await repos.user.getById(reviewerUserId);
+    const reviewerUser = (await identity.actorLookup.getUsersByIds([reviewerUserId]))[0] ?? null;
     if (!reviewerUser) {
       throw new AppError(404, 'user_not_found', 'User record not found');
     }
@@ -89,10 +85,11 @@ async function applyDecision(deps: ReviewApplicationServiceDeps, input: ApplyRev
   }
 
   if (existingEntry.teamId) {
-    const reviewerMembership = await repos.membership.findByUserAndTeam(
-      reviewerUserId,
-      existingEntry.teamId,
-    );
+    const reviewerMembership = (
+      await identity.actorLookup.getMembershipLevels([
+        { userId: reviewerUserId, teamId: existingEntry.teamId },
+      ])
+    ).get(`${reviewerUserId}:${existingEntry.teamId}`);
     if (
       reviewerMembership &&
       !lookup.memberships.some(
@@ -147,21 +144,18 @@ async function applyDecision(deps: ReviewApplicationServiceDeps, input: ApplyRev
 
   await saveKnowledgeEntry(repos.knowledge, existingEntry);
 
-  const auditEventId = await repos.audit.nextId();
-  await repos.audit.insert({
-    id: auditEventId,
+  await identity.auditLog.record({
     teamId: existingEntry.teamId,
     actorId: input.authContext.actorId,
     action: 'knowledge-reviewed',
     entityId: existingEntry.id,
-    payload: {
+    metadata: {
       decision: input.decision,
       notes: input.notes,
       previousState,
       ...(input.evidence !== undefined && { evidence: input.evidence }),
     },
-    createdAt: input.appliedAt,
-    updatedAt: input.appliedAt,
+    timestamp: input.appliedAt,
   });
 
   if (input.decision === 'approve') {

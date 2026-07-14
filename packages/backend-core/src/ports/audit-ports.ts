@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------
 
 export interface AuditLogEntry {
+  id?: string;
   action: string;
   actorId: string;
   entityId?: string;
@@ -23,6 +24,7 @@ export interface AuditLogEntry {
   operationId?: string;
   causationId?: string;
   outcome?: 'success' | 'rejected' | 'failed';
+  updatedAt?: string;
 }
 
 export interface AuditLogPort {

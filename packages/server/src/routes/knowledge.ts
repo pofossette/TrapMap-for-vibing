@@ -125,10 +125,8 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
     const reviewService = createReviewApplicationService({
       repos: {
         knowledge: app.skillShareer.repos.knowledge,
-        audit: app.skillShareer.repos.audit,
-        user: app.skillShareer.repos.user,
-        membership: app.skillShareer.repos.membership,
       },
+      identity: app.skillShareer.identity,
       lifecyclePublisher,
       feedbackRepo: app.skillShareer.repos.feedback,
     });

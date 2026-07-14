@@ -19,8 +19,7 @@ export const auditRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Use repository for querying audit events (replaces store.snapshot() + queryAuditEvents())
-    const { audit: auditRepo } = app.skillShareer.repos;
-    const result = await auditRepo.listByFilter({
+    const result = await app.skillShareer.identity.auditLog.query({
       ...(query.action !== undefined && { action: query.action }),
       ...(query.actorId !== undefined && { actorId: query.actorId }),
       ...(query.entityId !== undefined && { entityId: query.entityId }),
@@ -34,7 +33,10 @@ export const auditRoutes: FastifyPluginAsync = async (app) => {
       limit: query.limit,
     });
 
-    const items = await buildAuditEventProjection(app.skillShareer.repos, result.items);
+    const items = await buildAuditEventProjection(
+      app.skillShareer.identity.actorLookup,
+      result.items,
+    );
 
     return auditListResponseSchema.parse({
       items,

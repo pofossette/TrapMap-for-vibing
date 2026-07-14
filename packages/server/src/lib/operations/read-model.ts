@@ -10,6 +10,7 @@ import {
 import { computeDecayState } from '@trapmap/server/lib/decay/index.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type { KnowledgeRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type { ActorBatchLookupPort } from '@trapmap/backend-core';
 
 type FeedbackEntryType = 'trap' | 'skill';
 type FailureClassification = FeedbackFailureClassification;
@@ -111,9 +112,9 @@ export async function buildCompatibilityStatusProjection(
 }
 
 export async function buildAuditEventProjection(
-  repos: Pick<SkillShareerRepos, 'user'>,
+  actorLookup: ActorBatchLookupPort,
   records: Array<{
-    id: string;
+    id?: string;
     teamId: string | null;
     actorId: string;
     action: string;
@@ -131,7 +132,7 @@ export async function buildAuditEventProjection(
   }>,
 ): Promise<AuditEvent[]> {
   const actorIds = [...new Set(records.map((record) => record.actorId))];
-  const users = await Promise.all(actorIds.map((actorId) => repos.user.getById(actorId)));
+  const users = await actorLookup.getUsersByIds(actorIds);
   const userHandles = new Map(
     users
       .filter((user): user is NonNullable<typeof user> => user !== null)
@@ -139,7 +140,7 @@ export async function buildAuditEventProjection(
   );
 
   return records.map((record) => ({
-    id: record.id,
+    id: record.id ?? `${record.actorId}:${record.createdAt}`,
     teamId: record.teamId,
     actor: {
       id: record.actorId,
@@ -157,7 +158,7 @@ export async function buildAuditEventProjection(
     ...(record.causationId ? { causationId: record.causationId } : {}),
     outcome: record.outcome ?? 'success',
     createdAt: record.createdAt,
-    updatedAt: record.updatedAt,
+    updatedAt: record.updatedAt ?? record.createdAt,
   }));
 }
 

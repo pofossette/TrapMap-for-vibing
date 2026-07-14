@@ -437,16 +437,21 @@ export function createIdentityAccessPgDeps(
       }
       const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
       const { rows } = await pool.query(
-        `SELECT id, action, actor_id, entity_id, team_id, payload, created_at FROM audit_events${where} ORDER BY created_at DESC LIMIT ${Math.max(1, filter.limit ?? 25)}`,
+        `SELECT id, action, actor_id, entity_id, team_id, payload, event_version, source_service, outcome, created_at, updated_at FROM audit_events${where} ORDER BY created_at DESC LIMIT ${Math.max(1, filter.limit ?? 25)}`,
         values,
       );
       return {
         items: rows.map((row) => ({
+          id: String(row.id),
           action: String(row.action),
           actorId: String(row.actor_id),
           entityId: typeof row.entity_id === 'string' ? row.entity_id : undefined,
           teamId: typeof row.team_id === 'string' ? row.team_id : undefined,
           metadata: (row.payload as Record<string, unknown>) ?? {},
+          eventVersion: Number(row.event_version ?? 1),
+          sourceService: String(row.source_service ?? 'identity-access'),
+          outcome: row.outcome === 'rejected' || row.outcome === 'failed' ? row.outcome : 'success',
+          updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : undefined,
           timestamp: row.created_at instanceof Date ? row.created_at.toISOString() : undefined,
         })),
         total: rows.length,
