@@ -20,6 +20,69 @@ import {
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 
+function normalizeArtifactRevision(revision: SkillArtifact['history'][number]) {
+  return {
+    ...revision,
+    submittedByUserId: revision.submittedBy.id,
+  };
+}
+
+function normalizeAgentReview(artifact: SkillArtifact) {
+  return artifact.agentReview
+    ? {
+        status: artifact.agentReview.status,
+        duplicateRisk: artifact.agentReview.duplicateRisk,
+        correctnessRisk: artifact.agentReview.correctnessRisk,
+        completenessRisk: artifact.agentReview.completenessRisk,
+        checkedAt: artifact.agentReview.checkedAt,
+        notes: artifact.agentReview.notes,
+      }
+    : null;
+}
+
+function normalizeReviewHistory(artifact: SkillArtifact) {
+  return (artifact.reviewHistory ?? []).map((decision) => ({
+    decidedAt: decision.decidedAt,
+    decidedByUserId: decision.decidedBy.id,
+    decision: decision.decision,
+    notes: decision.notes,
+  }));
+}
+
+function normalizeReviewNotes(artifact: SkillArtifact) {
+  return (artifact.reviewNotes ?? []).map((note) => ({
+    id: note.id,
+    createdAt: note.createdAt,
+    authorType: note.authorType,
+    authorUserId: note.author?.id ?? null,
+    message: note.message,
+  }));
+}
+
+function normalizeLifecycleHistory(artifact: SkillArtifact) {
+  return (artifact.lifecycleHistory ?? []).map((event) => ({
+    id: event.id,
+    type: event.type,
+    createdAt: event.createdAt,
+    actorUserId: event.actor?.id ?? null,
+    submissionId: event.submissionId,
+    revision: event.revision,
+    state: event.state,
+    note: event.note,
+  }));
+}
+
+function normalizeMaintenanceMeta(artifact: SkillArtifact) {
+  return artifact.maintenanceMeta
+    ? {
+        maintainerUserId: artifact.maintenanceMeta.maintainer?.id ?? null,
+        maintainerHandle: artifact.maintenanceMeta.maintainer?.handle ?? null,
+        maintainerLevel: artifact.maintenanceMeta.maintainer?.securityLevel ?? null,
+        reviewBy: artifact.maintenanceMeta.reviewBy,
+      }
+    : null;
+}
+
 function normalizeArtifactForRetrieval(
   artifact: SkillArtifact | SkillArtifactRecord,
 ): SkillArtifactRecord {
@@ -46,59 +109,17 @@ function normalizeArtifactForRetrieval(
     requiredLevel: artifact.requiredLevel,
     lifecycleState: artifact.lifecycleState,
     ownerUserId: artifact.owner.id,
-    latestRevision: {
-      ...latestRevision,
-      submittedByUserId: latestRevision.submittedBy.id,
-    },
-    history: artifact.history.map((revision) => ({
-      ...revision,
-      submittedByUserId: revision.submittedBy.id,
-    })),
+    latestRevision: normalizeArtifactRevision(latestRevision),
+    history: artifact.history.map(normalizeArtifactRevision),
     metadata: artifact.metadata,
-    agentReview: artifact.agentReview
-      ? {
-          status: artifact.agentReview.status,
-          duplicateRisk: artifact.agentReview.duplicateRisk,
-          correctnessRisk: artifact.agentReview.correctnessRisk,
-          completenessRisk: artifact.agentReview.completenessRisk,
-          checkedAt: artifact.agentReview.checkedAt,
-          notes: artifact.agentReview.notes,
-        }
-      : null,
-    reviewHistory: (artifact.reviewHistory ?? []).map((decision) => ({
-      decidedAt: decision.decidedAt,
-      decidedByUserId: decision.decidedBy.id,
-      decision: decision.decision,
-      notes: decision.notes,
-    })),
-    reviewNotes: (artifact.reviewNotes ?? []).map((note) => ({
-      id: note.id,
-      createdAt: note.createdAt,
-      authorType: note.authorType,
-      authorUserId: note.author?.id ?? null,
-      message: note.message,
-    })),
-    lifecycleHistory: (artifact.lifecycleHistory ?? []).map((event) => ({
-      id: event.id,
-      type: event.type,
-      createdAt: event.createdAt,
-      actorUserId: event.actor?.id ?? null,
-      submissionId: event.submissionId,
-      revision: event.revision,
-      state: event.state,
-      note: event.note,
-    })),
+    agentReview: normalizeAgentReview(artifact),
+    reviewHistory: normalizeReviewHistory(artifact),
+    reviewNotes: normalizeReviewNotes(artifact),
+    lifecycleHistory: normalizeLifecycleHistory(artifact),
     boundary: artifact.boundaryMeta ?? null,
     decayMeta: null,
     evidenceMeta: artifact.evidenceMeta ?? null,
-    maintenanceMeta: artifact.maintenanceMeta
-      ? {
-          maintainerUserId: artifact.maintenanceMeta.maintainer?.id ?? null,
-          maintainerHandle: artifact.maintenanceMeta.maintainer?.handle ?? null,
-          maintainerLevel: artifact.maintenanceMeta.maintainer?.securityLevel ?? null,
-          reviewBy: artifact.maintenanceMeta.reviewBy,
-        }
-      : null,
+    maintenanceMeta: normalizeMaintenanceMeta(artifact),
     remediation: artifact.remediation ?? null,
     createdAt: artifact.createdAt,
     updatedAt: artifact.updatedAt,

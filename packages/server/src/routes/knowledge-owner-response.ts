@@ -24,43 +24,66 @@ function actor(value: unknown, fallbackId: string, level: number) {
   return { id: fallbackId, handle: fallbackId, securityLevel: level };
 }
 
-export function normalizeKnowledgeOwnerEntry(entry: KnowledgeEntry): KnowledgeEntry {
-  const parsed = knowledgeEntrySchema.safeParse(entry);
-  if (parsed.success) return parsed.data;
+function ownerIdFromRaw(raw: OwnerEntry & Record<string, unknown>): string {
+  if (typeof raw.ownerUserId === 'string') return raw.ownerUserId;
+  const owner = raw.owner as { id?: unknown } | undefined;
+  return typeof owner?.id === 'string' ? owner.id : 'unknown-owner';
+}
 
-  const raw = entry as OwnerEntry & Record<string, unknown>;
-  const requiredLevel = typeof raw.requiredLevel === 'number' ? raw.requiredLevel : 0;
-  const ownerId = raw.ownerUserId ?? raw.owner?.id ?? 'unknown-owner';
-  const createdAt = timestamp(raw.createdAt);
-  const updatedAt = timestamp(raw.updatedAt ?? createdAt);
-  const labels = Array.isArray(raw.labels) && raw.labels.length > 0 ? raw.labels : ['unlabeled'];
-  const scope = raw.scope === 'project' ? 'project' : 'global';
-  const lifecycleState = raw.lifecycleState ?? 'submitted';
-  const shortcut = typeof raw.shortcut === 'string' ? raw.shortcut : String(raw.title ?? raw.id);
-  const detail = typeof raw.detail === 'string' ? raw.detail : String(raw.content ?? '');
-  const latestRevision = {
-    revision: 1,
-    submittedAt: createdAt,
-    submittedBy: actor(ownerId, ownerId, requiredLevel),
-    shortcut: shortcut || String(raw.id),
-    detail: detail || 'Knowledge entry',
-    labels,
-    reviewNotes: [],
-  };
+function labelsFromRaw(raw: Record<string, unknown>): string[] {
+  return Array.isArray(raw.labels) && raw.labels.length > 0 ? raw.labels : ['unlabeled'];
+}
 
-  return knowledgeEntrySchema.parse({
-    id: String(raw.id),
-    teamId: typeof raw.teamId === 'string' ? raw.teamId : null,
-    scope,
-    labels,
-    shortcut: shortcut || String(raw.id),
-    detail: detail || 'Knowledge entry',
-    requiredLevel,
-    lifecycleState,
-    owner: actor(raw.owner, String(ownerId), requiredLevel),
-    latestRevision: raw.latestRevision ?? latestRevision,
-    history: Array.isArray(raw.history) && raw.history.length > 0 ? raw.history : [latestRevision],
-    metadata: raw.metadata ?? {
+function scopeFromRaw(raw: Record<string, unknown>): 'project' | 'global' {
+  return raw.scope === 'project' ? 'project' : 'global';
+}
+
+function textFromRaw(raw: Record<string, unknown>, key: 'shortcut' | 'detail'): string {
+  const fallback = key === 'shortcut' ? (raw.title ?? raw.id) : (raw.content ?? '');
+  return typeof raw[key] === 'string' ? raw[key] : String(fallback);
+}
+
+function optionalValue<T>(value: T | null | undefined): T | null {
+  return value ?? null;
+}
+
+function arrayValue(value: unknown, fallback: unknown[]): unknown {
+  return value ?? fallback;
+}
+
+function textValue(value: string, fallback: string): string {
+  return value || fallback;
+}
+
+function latestRevisionFromRaw(
+  raw: OwnerEntry & Record<string, unknown>,
+  ownerId: string,
+  requiredLevel: number,
+  createdAt: string,
+  labels: string[],
+  shortcut: string,
+  detail: string,
+) {
+  return (
+    raw.latestRevision ?? {
+      revision: 1,
+      submittedAt: createdAt,
+      submittedBy: actor(ownerId, ownerId, requiredLevel),
+      shortcut: shortcut || String(raw.id),
+      detail: detail || 'Knowledge entry',
+      labels,
+      reviewNotes: [],
+    }
+  );
+}
+
+function metadataFromRaw(
+  raw: Record<string, unknown>,
+  scope: 'project' | 'global',
+  createdAt: string,
+) {
+  return (
+    raw.metadata ?? {
       scopeLabel: scope === 'global' ? 'global-constraint' : 'project-knowledge',
       submissionCount: 1,
       resubmissionCount: 0,
@@ -69,20 +92,62 @@ export function normalizeKnowledgeOwnerEntry(entry: KnowledgeEntry): KnowledgeEn
       latestSubmittedAt: createdAt,
       latestReviewedAt: null,
       latestDecision: null,
-    },
-    latestSubmission: raw.latestSubmission ?? null,
-    submissionHistory: raw.submissionHistory ?? [],
-    agentReview: raw.agentReview ?? null,
-    reviewHistory: raw.reviewHistory ?? [],
-    reviewNotes: raw.reviewNotes ?? [],
-    lifecycleHistory: raw.lifecycleHistory ?? [],
-    boundary: raw.boundary ?? null,
-    evidenceMeta: raw.evidenceMeta ?? null,
-    maintenanceMeta: raw.maintenanceMeta ?? null,
-    remediation: raw.remediation ?? null,
+    }
+  );
+}
+
+function normalizeFallbackEntry(raw: OwnerEntry & Record<string, unknown>): KnowledgeEntry {
+  const requiredLevel = typeof raw.requiredLevel === 'number' ? raw.requiredLevel : 0;
+  const ownerId = ownerIdFromRaw(raw);
+  const createdAt = timestamp(raw.createdAt);
+  const updatedAt = timestamp(optionalValue(raw.updatedAt) ?? createdAt);
+  const labels = labelsFromRaw(raw);
+  const scope = scopeFromRaw(raw);
+  const lifecycleState = raw.lifecycleState ?? 'submitted';
+  const shortcut = textFromRaw(raw, 'shortcut');
+  const detail = textFromRaw(raw, 'detail');
+  const latestRevision = latestRevisionFromRaw(
+    raw,
+    ownerId,
+    requiredLevel,
+    createdAt,
+    labels,
+    shortcut,
+    detail,
+  );
+
+  return knowledgeEntrySchema.parse({
+    id: String(raw.id),
+    teamId: typeof raw.teamId === 'string' ? raw.teamId : optionalValue(null),
+    scope,
+    labels,
+    shortcut: textValue(shortcut, String(raw.id)),
+    detail: textValue(detail, 'Knowledge entry'),
+    requiredLevel,
+    lifecycleState,
+    owner: actor(raw.owner, ownerId, requiredLevel),
+    latestRevision,
+    history: Array.isArray(raw.history) && raw.history.length > 0 ? raw.history : [latestRevision],
+    metadata: metadataFromRaw(raw, scope, createdAt),
+    latestSubmission: optionalValue(raw.latestSubmission),
+    submissionHistory: arrayValue(raw.submissionHistory, []),
+    agentReview: optionalValue(raw.agentReview),
+    reviewHistory: arrayValue(raw.reviewHistory, []),
+    reviewNotes: arrayValue(raw.reviewNotes, []),
+    lifecycleHistory: arrayValue(raw.lifecycleHistory, []),
+    boundary: optionalValue(raw.boundary),
+    evidenceMeta: optionalValue(raw.evidenceMeta),
+    maintenanceMeta: optionalValue(raw.maintenanceMeta),
+    remediation: optionalValue(raw.remediation),
     createdAt,
     updatedAt,
   });
+}
+
+export function normalizeKnowledgeOwnerEntry(entry: KnowledgeEntry): KnowledgeEntry {
+  const parsed = knowledgeEntrySchema.safeParse(entry);
+  if (parsed.success) return parsed.data;
+  return normalizeFallbackEntry(entry as OwnerEntry & Record<string, unknown>);
 }
 
 export function ownerId(entry: KnowledgeEntry): string {
