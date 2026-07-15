@@ -84,6 +84,8 @@
 
 本轮未完成收尾：server 已取消注册 `/v1/operations/migrate`，并以 host 注入的 `ArtifactReadProjection` 替换 compatibility aggregate 中的 artifact 写 repository；静态 guard 禁止 server/runtime-infra/host/worker 导入、实例化 legacy artifact writer 或保留 `artifactRepo` 注入（仅 `lib/persistence/migrate-artifacts.ts` 仍为 Wave-9 helper allowlist）。`rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`（9 tests）、`rtk pnpm test:file -- packages/server/src/routes/operations/index.test.ts`（8 tests）与 `rtk pnpm typecheck` 通过。`rtk pnpm --filter @trapmap/server test --run` 失败（328 failures）：该包命令从 `packages/server` 执行，多个 guard/fixture 使用仓库根相对路径，且大量既有测试直接调用未注入 identity bundle；未运行 deployment smoke、eval、docs/structure 或 Fallow gate。因此 Wave-2 保持未完成。
 
+本轮最终收口：`ArtifactReadProjection` 已提升到 `@trapmap/backend-core` 共享 port，server candidate/remediation 只消费该 PG-only 读面；server 的 legacy artifact repository、PG writer/reader、JSON fallback 与 migrate helper 均已删除。不可注册的 Wave-9 backfill helper 位于 `service-knowledge-write/src/wave9-artifact-backfill.ts`，只接受 owner 的 read/write ports，覆盖幂等跳过和逐项失败记录。gateway 的八条 artifact URL 传递 correlation/trace headers，并将认证 actor 置于 `x-trapmap-actor-id`；owner internal routes 从该受信头派生 actor，拒绝 body actor 伪造。focused guards、owner routes、gateway routes、deployment smoke、eval smoke、`rtk pnpm typecheck`、doc-drift 与 structure guard 通过。`rtk pnpm exec fallow audit --base wave1-fallow-base --format json --quiet --explain` 仍失败：3 个本轮 server→backend-core boundary violation 与 `internalHeaders` complexity finding 尚需收敛；因此 Wave-2 不勾选完成。
+
 ## Deferred 边界
 
 平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。

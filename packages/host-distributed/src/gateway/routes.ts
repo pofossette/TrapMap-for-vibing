@@ -47,7 +47,10 @@ function validateBody(
   return null;
 }
 
-function internalHeaders(request: FastifyRequest): Record<string, string> | undefined {
+function internalHeaders(
+  request: FastifyRequest,
+  includeTrustedActor = false,
+): Record<string, string> | undefined {
   const requestId = request.headers['x-request-id'];
   const traceId = request.headers['x-trace-id'];
   const traceParent = request.headers.traceparent;
@@ -60,6 +63,10 @@ function internalHeaders(request: FastifyRequest): Record<string, string> | unde
   }
   if (typeof traceParent === 'string' && traceParent.length > 0) {
     headers.traceparent = traceParent;
+  }
+  const actorId = (request as FastifyRequest & { actorId?: string }).actorId;
+  if (includeTrustedActor && actorId) {
+    headers['x-trapmap-actor-id'] = actorId;
   }
   return Object.keys(headers).length > 0 ? headers : undefined;
 }
@@ -137,12 +144,10 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     }
   };
 
-  const actorBody = (request: FastifyRequest) => ({
-    ...((request.body ?? {}) as Record<string, unknown>),
-    ...((request as FastifyRequest & { actorId?: string }).actorId
-      ? { actorId: (request as FastifyRequest & { actorId?: string }).actorId }
-      : {}),
-  });
+  const actorBody = (request: FastifyRequest) => {
+    const { actorId: _untrustedActorId, ...body } = (request.body ?? {}) as Record<string, unknown>;
+    return body;
+  };
   app.post('/v1/operations/artifacts/import', async (request, reply) => {
     const validationError = validateBody(request.body, ['bundles']);
     if (validationError) return reply.status(400).send(validationError);
@@ -151,7 +156,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       reply,
       () =>
         clients.knowledgeWrite.importArtifact(actorBody(request), {
-          headers: internalHeaders(request),
+          headers: internalHeaders(request, true),
         }),
       'artifact import',
     );
@@ -164,7 +169,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       reply,
       () =>
         clients.knowledgeWrite.exportArtifacts((request.body ?? {}) as Record<string, unknown>, {
-          headers: internalHeaders(request),
+          headers: internalHeaders(request, true),
         }),
       'artifact export',
     );
@@ -177,7 +182,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       reply,
       () =>
         clients.knowledgeWrite.activateArtifact(actorBody(request), {
-          headers: internalHeaders(request),
+          headers: internalHeaders(request, true),
         }),
       'artifact activate',
     );
@@ -186,7 +191,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     artifactForward(
       request,
       reply,
-      () => clients.knowledgeWrite.artifactReviewQueue({ headers: internalHeaders(request) }),
+      () => clients.knowledgeWrite.artifactReviewQueue({ headers: internalHeaders(request, true) }),
       'artifact review queue',
     ),
   );
@@ -198,7 +203,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
         clients.knowledgeWrite.editArtifact(
           (request.params as { artifactId: string }).artifactId,
           actorBody(request),
-          { headers: internalHeaders(request) },
+          { headers: internalHeaders(request, true) },
         ),
       'artifact edit',
     ),
@@ -210,7 +215,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       () =>
         clients.knowledgeWrite.artifactHistory(
           (request.params as { artifactId: string }).artifactId,
-          { headers: internalHeaders(request) },
+          { headers: internalHeaders(request, true) },
         ),
       'artifact history',
     ),
@@ -225,7 +230,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
         clients.knowledgeWrite.reviewArtifact(
           (request.params as { artifactId: string }).artifactId,
           actorBody(request),
-          { headers: internalHeaders(request) },
+          { headers: internalHeaders(request, true) },
         ),
       'artifact review',
     );
@@ -238,7 +243,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
         clients.knowledgeWrite.deactivateArtifact(
           (request.params as { artifactId: string }).artifactId,
           actorBody(request),
-          { headers: internalHeaders(request) },
+          { headers: internalHeaders(request, true) },
         ),
       'artifact deactivate',
     ),

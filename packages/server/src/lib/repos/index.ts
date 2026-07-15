@@ -11,6 +11,7 @@
  * Phase: 100-02 (Store Repository Pattern)
  */
 
+import type { ArtifactReadProjection } from '@trapmap/backend-core';
 import type { Pool } from 'pg';
 
 import type { UsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
@@ -89,23 +90,7 @@ export async function createAllRepos(config: {
   };
 }
 
-export interface ArtifactReadProjection {
-  getById(
-    artifactId: string,
-  ): Promise<import('@trapmap/server/lib/store.js').SkillArtifactRecord | null>;
-  listByFilter(filter: {
-    lifecycleState?: import('@trapmap/contracts').LifecycleState;
-    teamId?: string;
-    ownerUserId?: string;
-    maintainerUserId?: string;
-  }): Promise<import('@trapmap/server/lib/store.js').SkillArtifactRecord[]>;
-  listForRetrieval(filter: {
-    lifecycleState?: import('@trapmap/contracts').LifecycleState;
-    teamId?: string;
-    ownerUserId?: string;
-    maintainerUserId?: string;
-  }): Promise<import('@trapmap/server/lib/store.js').SkillArtifactRecord[]>;
-}
+export type { ArtifactReadProjection } from '@trapmap/backend-core';
 
 /**
  * InMemory UsageAnalyticsRepository for JSON mode (no pool).

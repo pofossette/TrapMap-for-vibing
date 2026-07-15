@@ -7,7 +7,10 @@ import type {
   SkillArtifactLifecycleEvent,
   SkillArtifactRevision,
 } from '@trapmap/contracts';
+import type { ArtifactReadProjection } from '@trapmap/backend-core';
 import type { Pool } from 'pg';
+
+export type { ArtifactReadProjection } from '@trapmap/backend-core';
 
 export interface ArtifactWritePort {
   nextId(): Promise<string>;
@@ -33,26 +36,6 @@ export interface ArtifactWritePort {
     note?: string,
   ): Promise<SkillArtifact>;
   activate(input: Record<string, unknown>): Promise<SkillArtifact>;
-}
-
-/** Wave-7 temporary PostgreSQL-only projection. It deliberately has no mutations. */
-export interface ArtifactReadProjection {
-  getById(artifactId: string): Promise<SkillArtifact | null>;
-  listByFilter(filter: {
-    lifecycleState?: LifecycleState;
-    teamId?: string;
-    ownerUserId?: string;
-    maintainerUserId?: string;
-  }): Promise<SkillArtifact[]>;
-  listForRetrieval(filter: {
-    lifecycleState?: LifecycleState;
-    teamId?: string;
-    ownerUserId?: string;
-    maintainerUserId?: string;
-  }): Promise<SkillArtifact[]>;
-  history(artifactId: string): Promise<SkillArtifactRevision[]>;
-  exportArtifacts(input: Record<string, unknown>): Promise<SkillArtifact[]>;
-  reviewQueue(): Promise<SkillArtifact[]>;
 }
 
 type Queryable = Pick<Pool, 'query' | 'connect'>;

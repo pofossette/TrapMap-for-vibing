@@ -3,10 +3,15 @@ import pg from 'pg';
 import { buildServer, type BuildServerOptions } from '../../packages/server/src/app.js';
 import { PostgresStore } from '../../packages/server/src/lib/persistence/postgres-store.js';
 import { createIdentityAccessPgDeps } from '../../packages/service-identity-access/src/pg-ports.js';
+import {
+  createKnowledgeWriteOwnerBundle,
+  type ArtifactWritePort,
+} from '../../packages/service-knowledge-write/src/pg-ports.js';
 
 export interface PostgresComposedServer {
   app: ReturnType<typeof buildServer>;
   store: PostgresStore;
+  artifactWriter: ArtifactWritePort;
   close(): Promise<void>;
 }
 
@@ -17,10 +22,12 @@ export function buildPostgresComposedServer(
 ): PostgresComposedServer {
   const pool = new pg.Pool({ connectionString: databaseUrl });
   const store = new PostgresStore(pool);
+  const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
   const app = buildServer({
     ...options,
     config: { ...options.config, databaseUrl },
     identityBundle: createIdentityAccessPgDeps(pool),
+    artifactReadProjection: knowledgeWrite.artifactReadProjection,
     ownsStore: false,
     store,
   });
@@ -29,6 +36,7 @@ export function buildPostgresComposedServer(
   return {
     app,
     store,
+    artifactWriter: knowledgeWrite.artifactWriter,
     async close() {
       await closeApp();
       await pool.end();

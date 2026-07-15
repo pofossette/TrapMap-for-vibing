@@ -8,9 +8,15 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import type { RetrievalQuery, RetrievalV2Query, SkillLookupQuery } from '@trapmap/contracts';
+import type {
+  RetrievalQuery,
+  RetrievalV2Query,
+  SkillArtifact,
+  SkillLookupQuery,
+} from '@trapmap/contracts';
 import type { RetrievalEvalCase, RetrievalEvalScenario } from '@trapmap/contracts/evals';
 import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
+import type { ArtifactWritePort } from '../../../packages/service-knowledge-write/src/artifact-ports.js';
 import { resetRetrievalReadModelCacheForTests } from '../../../packages/server/src/lib/cache/retrieval-read-model-cache.js';
 import type { GraphIndexDocumentRecord } from '../../../packages/server/src/lib/indexing/graph-lite/documents.js';
 import { createKnowledgeEntryRecord } from '../../../packages/server/src/lib/knowledge.js';
@@ -64,6 +70,7 @@ export interface ExecutionContext {
   sessionToken: string;
   /** Actor ID for the session */
   actorId: string;
+  artifactWriter: ArtifactWritePort;
   /** Closes the host-composed app and its owner pool. */
   close(): Promise<void>;
 }
@@ -129,7 +136,14 @@ export async function createExecutionContext(options?: {
 
   const sessionToken = await createSession(actorId, null, 'system-admin', identity.sessionRepo);
 
-  return { app, store, sessionToken, actorId, close: composed.close };
+  return {
+    app,
+    store,
+    sessionToken,
+    actorId,
+    artifactWriter: composed.artifactWriter,
+    close: composed.close,
+  };
 }
 
 /**
@@ -303,38 +317,15 @@ export async function seedScenarioFixtures(
         slug: artifact.slug,
         requiredLevel: artifact.requiredLevel,
         lifecycleState: mapLifecycleState(artifact.lifecycleState),
-        ownerUserId: ctx.actorId,
-        latestRevision: {
-          revision: 1,
-          sourceHash: '',
-          files: [],
-          submittedAt: createdAt,
-          submittedByUserId: ctx.actorId,
-          scriptDescriptors: [],
-          derived: {
-            profile: {
-              artifactId: artifact.id,
-              revision: 1,
-              sourceHash: '',
-              title: artifact.title,
-              summary: artifact.capsules.map((c: { content: string }) => c.content).join('. '),
-              keywords: artifact.labels,
-              referencePaths: [],
-              contentHash: '',
-            },
-            capsules,
-            clientManifest: null,
-            sourceHash: '',
-            derivedAt: createdAt,
-          },
-        },
+        owner: { id: ctx.actorId, handle: ctx.actorId, securityLevel: 0 },
+        latestRevision: 1,
         history: [
           {
             revision: 1,
             sourceHash: '',
             files: [],
             submittedAt: createdAt,
-            submittedByUserId: ctx.actorId,
+            submittedBy: { id: ctx.actorId, handle: ctx.actorId, securityLevel: 0 },
             scriptDescriptors: [],
             derived: {
               profile: {
@@ -368,15 +359,15 @@ export async function seedScenarioFixtures(
         reviewHistory: [],
         reviewNotes: [],
         lifecycleHistory: [],
-        boundary: null,
-        decayMeta: null,
+        boundaryMeta: null,
         evidenceMeta: null,
         maintenanceMeta: null,
         createdAt,
         updatedAt: createdAt,
-      } satisfies SkillArtifactRecord;
+        remediation: null,
+      } satisfies SkillArtifact;
 
-      await repos.artifact.insert(record);
+      await ctx.artifactWriter.insert(record);
     }
 
     for (const graphDoc of fixtureGraphDocs) {

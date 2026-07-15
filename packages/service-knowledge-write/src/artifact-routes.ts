@@ -1,6 +1,21 @@
-import { toInvocationErrorResponse } from '@trapmap/backend-core';
+import { InvocationError, toInvocationErrorResponse } from '@trapmap/backend-core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ArtifactReadProjection, ArtifactWritePort } from './artifact-ports.js';
+
+function trustedActor(
+  request: FastifyRequest,
+  body: Record<string, unknown>,
+): Record<string, unknown> {
+  const actorId = request.headers['x-trapmap-actor-id'];
+  if (typeof actorId !== 'string' || actorId.length === 0) {
+    throw InvocationError.unauthorized('Missing trusted actor identity');
+  }
+  if (typeof body.actorId === 'string' && body.actorId !== actorId) {
+    throw InvocationError.forbidden('Body actor does not match trusted actor identity');
+  }
+  const { actorId: _bodyActorId, ...input } = body;
+  return { ...input, actorId };
+}
 
 export function registerArtifactRoutes(
   app: FastifyInstance,
@@ -9,9 +24,8 @@ export function registerArtifactRoutes(
 ): void {
   app.post('/internal/artifacts/import', async (request, reply) => {
     try {
-      return reply
-        .status(201)
-        .send(await artifacts.importArtifact((request.body ?? {}) as Record<string, unknown>));
+      const body = trustedActor(request, (request.body ?? {}) as Record<string, unknown>);
+      return reply.status(201).send(await artifacts.importArtifact(body));
     } catch (error) {
       const response = toInvocationErrorResponse(error);
       return reply.status(response.status).send(response.body);
@@ -57,7 +71,7 @@ export function registerArtifactRoutes(
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const { artifactId } = request.params as { artifactId: string };
-        const body = request.body as {
+        const body = trustedActor(request, (request.body ?? {}) as Record<string, unknown>) as {
           state: Parameters<ArtifactWritePort['updateLifecycle']>[1];
           actorId: string;
           note?: string;
@@ -75,13 +89,11 @@ export function registerArtifactRoutes(
   );
   app.post('/internal/artifacts/:artifactId/edit', async (request, reply) => {
     try {
+      const body = trustedActor(request, (request.body ?? {}) as Record<string, unknown>);
       return reply
         .status(200)
         .send(
-          await artifacts.editArtifact(
-            (request.params as { artifactId: string }).artifactId,
-            (request.body ?? {}) as Record<string, unknown>,
-          ),
+          await artifacts.editArtifact((request.params as { artifactId: string }).artifactId, body),
         );
     } catch (error) {
       const response = toInvocationErrorResponse(error);
@@ -100,7 +112,7 @@ export function registerArtifactRoutes(
   });
   app.post('/internal/artifacts/:artifactId/review', async (request, reply) => {
     try {
-      const body = (request.body ?? {}) as {
+      const body = trustedActor(request, (request.body ?? {}) as Record<string, unknown>) as {
         decision?: 'approve' | 'reject';
         actorId?: string;
         note?: string;
@@ -122,9 +134,8 @@ export function registerArtifactRoutes(
   });
   app.post('/internal/artifacts/activate', async (request, reply) => {
     try {
-      return reply
-        .status(200)
-        .send(await artifacts.activate((request.body ?? {}) as Record<string, unknown>));
+      const body = trustedActor(request, (request.body ?? {}) as Record<string, unknown>);
+      return reply.status(200).send(await artifacts.activate(body));
     } catch (error) {
       const response = toInvocationErrorResponse(error);
       return reply.status(response.status).send(response.body);
@@ -132,14 +143,17 @@ export function registerArtifactRoutes(
   });
   app.post('/internal/artifacts/:artifactId/deactivate', async (request, reply) => {
     try {
-      const body = (request.body ?? {}) as { actorId?: string; note?: string };
+      const body = trustedActor(request, (request.body ?? {}) as Record<string, unknown>) as {
+        actorId: string;
+        note?: string;
+      };
       return reply
         .status(200)
         .send(
           await artifacts.updateLifecycle(
             (request.params as { artifactId: string }).artifactId,
             'deactivated',
-            { actorId: body.actorId ?? 'system', ...(body.note ? { note: body.note } : {}) },
+            { actorId: body.actorId, ...(body.note ? { note: body.note } : {}) },
           ),
         );
     } catch (error) {

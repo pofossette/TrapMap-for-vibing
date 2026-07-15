@@ -32,6 +32,24 @@ function createReadProjection(): ArtifactReadProjection {
 }
 
 describe('artifact owner routes', () => {
+  it('uses the trusted actor header and rejects a spoofed body actor', async () => {
+    const artifacts = createArtifacts();
+    const app = Fastify();
+    registerArtifactRoutes(app, artifacts, createReadProjection());
+    await app.ready();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/artifacts/artifact-1/deactivate',
+      headers: { 'x-trapmap-actor-id': 'trusted-user' },
+      payload: { actorId: 'spoofed-user' },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(artifacts.updateLifecycle).not.toHaveBeenCalled();
+    await app.close();
+  });
+
   it('preserves canonical unavailable invocation errors', async () => {
     const artifacts = createArtifacts();
     artifacts.importArtifact = vi.fn(async () => {
@@ -44,6 +62,7 @@ describe('artifact owner routes', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/internal/artifacts/import',
+      headers: { 'x-trapmap-actor-id': 'trusted-user' },
       payload: {},
     });
 

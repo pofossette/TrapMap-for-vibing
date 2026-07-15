@@ -107,6 +107,25 @@ async function buildApp(clients: InternalServiceClients) {
 }
 
 describe('registerGatewayRoutes', () => {
+  it('forwards the authenticated actor in a trusted header instead of the body', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/operations/artifacts/activate',
+      headers: { authorization: 'Bearer session-token', 'x-request-id': 'request-1' },
+      payload: { artifactId: 'artifact-1', selectedPaths: [], actorId: 'spoofed-user' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(clients.knowledgeWrite.activateArtifact).toHaveBeenCalledWith(
+      { artifactId: 'artifact-1', selectedPaths: [] },
+      { headers: { 'x-request-id': 'request-1', 'x-trapmap-actor-id': 'user-1' } },
+    );
+    await app.close();
+  });
+
   it('forwards maintenance commands to the knowledge-write owner', async () => {
     const clients = createClients();
     const app = await buildApp(clients);
@@ -509,18 +528,18 @@ describe('registerGatewayRoutes', () => {
       201, 200, 200, 200, 200, 200, 200, 200,
     ]);
     expect(clients.knowledgeWrite.importArtifact).toHaveBeenCalledWith(
-      { bundles: [], actorId: 'user-1' },
-      { headers: { 'x-request-id': 'artifact-hop' } },
+      { bundles: [] },
+      { headers: { 'x-request-id': 'artifact-hop', 'x-trapmap-actor-id': 'user-1' } },
     );
     expect(clients.knowledgeWrite.reviewArtifact).toHaveBeenCalledWith(
       'artifact-1',
-      { decision: 'approve', actorId: 'user-1' },
-      { headers: { 'x-request-id': 'artifact-hop' } },
+      { decision: 'approve' },
+      { headers: { 'x-request-id': 'artifact-hop', 'x-trapmap-actor-id': 'user-1' } },
     );
     expect(clients.knowledgeWrite.deactivateArtifact).toHaveBeenCalledWith(
       'artifact-1',
-      { actorId: 'user-1' },
-      { headers: { 'x-request-id': 'artifact-hop' } },
+      {},
+      { headers: { 'x-request-id': 'artifact-hop', 'x-trapmap-actor-id': 'user-1' } },
     );
     await app.close();
   });

@@ -156,7 +156,6 @@ pnpm check:complexity
 | `packages/server/src/app.ts` | 350 行 | ~307 |
 | `packages/server/src/routes/candidates.ts` | 150 行 | ~15 |
 | `packages/server/src/lib/persistence/schema.ts` | 200 行 | ~16 |
-| `packages/server/src/lib/artifacts/pg-repository.ts` | 250 行 | ~17 |
 
 **调整预算：** 编辑 `scripts/complexity-budgets.json` 并更新相关文件的 `maxLines` 值。预算应设置在文件变得不可管理之前触发警告的水平，而非当前大小。
 

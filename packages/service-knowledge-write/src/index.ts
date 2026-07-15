@@ -27,3 +27,9 @@ export {
   type ArtifactWritePort,
 } from './artifact-ports.js';
 export { registerArtifactRoutes } from './artifact-routes.js';
+export {
+  migrateSkillArtifacts,
+  type ArtifactMigrationError,
+  type ArtifactMigrationResult,
+  type Wave9ArtifactBackfillConfig,
+} from './wave9-artifact-backfill.js';

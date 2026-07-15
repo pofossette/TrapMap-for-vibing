@@ -168,7 +168,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `POST` | `/v1/operations/artifacts/import` | `artifactImportRequestSchema` | `artifactImportResponseSchema` | 导入工件目录 |
 | `GET` | `/v1/operations/artifacts/review-queue` | 无 | `skillReviewQueueResponseSchema` | 获取待审核的工件队列 |
 
-> 源码：`packages/server/src/routes/operations/artifacts-activate.ts`、`packages/server/src/routes/operations/skill-edit.ts`、`packages/server/src/routes/operations/skill-review.ts`、`packages/server/src/routes/operations/artifacts-export.ts`、`packages/server/src/routes/operations/artifacts-import.ts`
+> 源码：`packages/host-distributed/src/gateway/routes.ts`、`packages/service-knowledge-write/src/artifact-routes.ts`
 
 ## 操作端点
 

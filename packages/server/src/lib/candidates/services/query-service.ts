@@ -8,9 +8,9 @@
  */
 
 import type { DuplicateJobBundleResponse, DuplicateJobMatchEntity } from '@trapmap/contracts';
+import type { ArtifactReadProjection } from '@trapmap/backend-core';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import type {
-  ArtifactRepository,
   CandidateRepository,
   DuplicateRepository,
   KnowledgeRepository,
@@ -22,7 +22,7 @@ export interface QueryDeps {
     candidate: CandidateRepository;
     duplicate: DuplicateRepository;
     knowledge: KnowledgeRepository;
-    artifact: ArtifactRepository;
+    artifact: ArtifactReadProjection;
   };
 }
 

@@ -210,18 +210,6 @@ const allowlist: AllowlistEntry[] = [
   ],
   ['packages/server/src/config.ts', 'JsonStore', 'wave-8', 'compatibility runtime capability'],
   [
-    'packages/server/src/lib/artifacts/repository.ts',
-    'store_snapshot',
-    'wave-2',
-    'artifact snapshot fallback',
-  ],
-  [
-    'packages/server/src/lib/artifacts/repository.ts',
-    'JsonStore',
-    'wave-2',
-    'artifact JSON fallback',
-  ],
-  [
     'packages/server/src/lib/candidates/pg-repository/pg-candidate-repository.ts',
     'store_snapshot',
     'wave-3',
@@ -637,6 +625,21 @@ describe('compatibility retirement guard', () => {
 
   it('has no retired Wave-2 artifact owners in production code', () => {
     expect(findRetiredWaveTwoArtifactOwners(repoRoot)).toEqual([]);
+  });
+
+  it('keeps legacy artifact persistence outside the server compatibility shell', () => {
+    expect(existsSync(join(repoRoot, 'packages/server/src/lib/artifacts/repository.ts'))).toBe(
+      false,
+    );
+    expect(existsSync(join(repoRoot, 'packages/server/src/lib/artifacts/pg-repository.ts'))).toBe(
+      false,
+    );
+    expect(
+      existsSync(join(repoRoot, 'packages/server/src/lib/persistence/migrate-artifacts.ts')),
+    ).toBe(false);
+    expect(
+      existsSync(join(repoRoot, 'packages/service-knowledge-write/src/wave9-artifact-backfill.ts')),
+    ).toBe(true);
   });
 
   it('requires a real file, supported symbol, owner wave, and rationale for each exception', () => {
