@@ -115,6 +115,198 @@ async function enqueueLifecycleOutboxTx(
   );
 }
 
+async function persistSubmissionTx(
+  pool: Queryable & Pick<Pool, 'connect'>,
+  input: KnowledgeOwnerCommandInput,
+  options: { entryType: 'knowledge' | 'trap' },
+): Promise<string> {
+  const entryId = generateId(options.entryType === 'trap' ? 'trap' : 'k');
+  const now = new Date().toISOString();
+  const content = String(input.detail ?? input.content ?? '');
+  const title = String(input.shortcut ?? input.title ?? '');
+  const labels = Array.isArray(input.labels)
+    ? input.labels.filter((label): label is string => typeof label === 'string')
+    : [];
+  const teamId = typeof input.teamId === 'string' ? input.teamId : null;
+  const lifecycleState: LifecycleState = options.entryType === 'trap' ? 'approved' : 'submitted';
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `INSERT INTO knowledge_entries (
+         id, team_id, scope, labels, shortcut, detail, required_level, lifecycle_state, owner_user_id, created_at, updated_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)`,
+      [
+        entryId,
+        teamId,
+        typeof input.scope === 'string' ? input.scope : 'global',
+        JSON.stringify(labels),
+        title,
+        content,
+        typeof input.requiredLevel === 'number' ? input.requiredLevel : 0,
+        lifecycleState,
+        input.actorId,
+        now,
+      ],
+    );
+    await client.query(
+      `INSERT INTO knowledge_revisions (
+         id, entry_id, revision_no, submitted_at, submitted_by_user_id, shortcut, detail, labels, review_notes
+       ) VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8)`,
+      [
+        generateId('rev'),
+        entryId,
+        now,
+        input.actorId,
+        title,
+        content,
+        JSON.stringify(labels),
+        JSON.stringify([]),
+      ],
+    );
+    await client.query(
+      `INSERT INTO lifecycle_events (id, entry_id, type, actor_user_id, submission_id, state, note, created_at)
+       VALUES ($1, $2, $3, $4, NULL, $5, $6, $7)`,
+      [
+        generateId('le'),
+        entryId,
+        options.entryType === 'trap' ? 'reviewer-approved' : 'submitted',
+        input.actorId,
+        lifecycleState,
+        `${options.entryType} submitted by owner`,
+        now,
+      ],
+    );
+    await enqueueLifecycleOutboxTx(client, {
+      entryId,
+      previousState: 'draft',
+      nextState: lifecycleState,
+      actorId: input.actorId,
+      note: `${options.entryType} submitted by owner`,
+    });
+    await client.query('COMMIT');
+    return entryId;
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function persistOperationalDecisionTx(
+  pool: Queryable & Pick<Pool, 'connect'>,
+  input: KnowledgeOwnerCommandInput,
+  kind: 'maintenance' | 'decay',
+): Promise<{ entryId: string; action: string }> {
+  const entryId = String(input.entryId);
+  const action = String(input.action);
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    const current = await client.query(
+      'SELECT lifecycle_state FROM knowledge_entries WHERE id = $1 FOR UPDATE',
+      [entryId],
+    );
+    const lifecycleState = (current.rows[0] as { lifecycle_state?: LifecycleState } | undefined)
+      ?.lifecycle_state;
+    if (!lifecycleState) throw new Error(`Knowledge entry ${entryId} not found`);
+    if (kind === 'maintenance') {
+      await client.query(
+        `UPDATE knowledge_entries SET maintenance_meta = $2, updated_at = NOW()
+         WHERE id = $1`,
+        [
+          entryId,
+          JSON.stringify({
+            maintainerUserId: input.actorId,
+            maintainerHandle:
+              typeof input.maintainerHandle === 'string' ? input.maintainerHandle : null,
+            maintainerLevel:
+              typeof input.maintainerLevel === 'number' ? input.maintainerLevel : null,
+            reviewBy: typeof input.reviewBy === 'string' ? input.reviewBy : null,
+            action,
+          }),
+        ],
+      );
+    } else {
+      await client.query(
+        `UPDATE knowledge_entries SET updated_at = NOW(), embedding_cache = embedding_cache
+         WHERE id = $1`,
+        [entryId],
+      );
+    }
+    await enqueueLifecycleOutboxTx(client, {
+      entryId,
+      previousState: lifecycleState,
+      nextState: lifecycleState,
+      actorId: input.actorId,
+      note: `${kind}:${action}`,
+    });
+    await client.query('COMMIT');
+    return { entryId, action };
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function persistEntryUpdateTx(
+  pool: Queryable & Pick<Pool, 'connect'>,
+  entryId: string,
+  updates: Record<string, unknown>,
+  actorId: string,
+): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const current = await client.query(
+      'SELECT lifecycle_state FROM knowledge_entries WHERE id = $1 FOR UPDATE',
+      [entryId],
+    );
+    const lifecycleState = (current.rows[0] as { lifecycle_state?: LifecycleState } | undefined)
+      ?.lifecycle_state;
+    if (!lifecycleState) throw new Error(`Knowledge entry ${entryId} not found`);
+    const detail = typeof updates.detail === 'string' ? updates.detail : null;
+    const shortcut = typeof updates.shortcut === 'string' ? updates.shortcut : null;
+    const labels = Array.isArray(updates.labels)
+      ? updates.labels.filter((label): label is string => typeof label === 'string')
+      : null;
+    const requiredLevel = typeof updates.requiredLevel === 'number' ? updates.requiredLevel : null;
+    await client.query(
+      `UPDATE knowledge_entries SET detail = COALESCE($2, detail), shortcut = COALESCE($3, shortcut),
+         labels = COALESCE($4, labels), required_level = COALESCE($5, required_level), updated_at = NOW()
+       WHERE id = $1`,
+      [entryId, detail, shortcut, labels === null ? null : JSON.stringify(labels), requiredLevel],
+    );
+    await client.query(
+      `INSERT INTO knowledge_revisions (
+         id, entry_id, revision_no, submitted_at, submitted_by_user_id, shortcut, detail, labels, review_notes
+       ) SELECT $2, id,
+         COALESCE((SELECT MAX(revision_no) + 1 FROM knowledge_revisions WHERE entry_id = $1), 1),
+         NOW(), $3, shortcut, detail, labels, '[]'::jsonb
+         FROM knowledge_entries WHERE id = $1`,
+      [entryId, generateId('rev'), actorId],
+    );
+    await enqueueLifecycleOutboxTx(client, {
+      entryId,
+      previousState: lifecycleState,
+      nextState: lifecycleState,
+      actorId,
+      note: 'knowledge entry updated',
+    });
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 function createKnowledgeWritePgRepository(
   pool: Queryable & Pick<Pool, 'connect'>,
 ): KnowledgeRepositoryPort {
@@ -309,26 +501,14 @@ export function createKnowledgeWriteOwnerBundle(
   const knowledgeRepo = createKnowledgeWritePgRepository(pool);
   const knowledgeOwner: KnowledgeOwnerPort = {
     async submit(input) {
-      const entryId = await knowledgeRepo.nextId();
-      const now = new Date().toISOString();
-      await knowledgeRepo.insert({
-        id: entryId,
-        content: String(input.detail ?? input.content ?? ''),
-        title: String(input.shortcut ?? input.title ?? ''),
-        labels: Array.isArray(input.labels) ? input.labels : [],
-        teamId: typeof input.teamId === 'string' ? input.teamId : null,
-        ownerUserId: input.actorId,
-        lifecycleState: 'submitted',
-        createdAt: now,
-        updatedAt: now,
-      } as Parameters<KnowledgeRepositoryPort['insert']>[0]);
-      return { entryId };
+      return {
+        entryId: await persistSubmissionTx(pool, input, {
+          entryType: 'knowledge',
+        }),
+      };
     },
     async updateEntry(entryId, updates, actorId) {
-      const entry = await knowledgeRepo.getById(entryId);
-      if (!entry) throw new Error(`Knowledge entry ${entryId} not found`);
-      if (!knowledgeRepo.save) throw new Error('Knowledge owner cannot save entries');
-      await knowledgeRepo.save({ ...entry, ...updates, ownerUserId: entry.ownerUserId ?? actorId });
+      await persistEntryUpdateTx(pool, entryId, updates, actorId);
     },
     async resubmit(entryId, updates, actorId) {
       await this.updateEntry(entryId, updates, actorId);
@@ -341,21 +521,9 @@ export function createKnowledgeWriteOwnerBundle(
       await knowledgeRepo.supersede(entryId, { replacementId, actorId });
     },
     async createTrap(input) {
-      const trapId = await knowledgeRepo.nextId();
-      const now = new Date().toISOString();
-      await knowledgeRepo.insert({
-        id: trapId,
-        content: String(input.detail ?? input.content ?? ''),
-        title: String(input.shortcut ?? input.title ?? ''),
-        labels: Array.isArray(input.labels) ? input.labels : [],
-        teamId: typeof input.teamId === 'string' ? input.teamId : null,
-        ownerUserId: input.actorId,
-        lifecycleState: 'approved',
-        entryType: 'trap',
-        createdAt: now,
-        updatedAt: now,
-      } as Parameters<KnowledgeRepositoryPort['insert']>[0]);
-      return { trapId };
+      return {
+        trapId: await persistSubmissionTx(pool, input, { entryType: 'trap' }),
+      };
     },
     async approveReviewDecision(input) {
       const entryId = String(input.entryId);
@@ -374,10 +542,10 @@ export function createKnowledgeWriteOwnerBundle(
       return { entryId, lifecycleState: 'rejected' };
     },
     async applyMaintenanceDecision(input) {
-      return { entryId: String(input.entryId), action: String(input.action) };
+      return persistOperationalDecisionTx(pool, input, 'maintenance');
     },
     async applyDecayDecision(input) {
-      return { entryId: String(input.entryId), action: String(input.action) };
+      return persistOperationalDecisionTx(pool, input, 'decay');
     },
     async getById(entryId) {
       return (await knowledgeRepo.getById(entryId)) as KnowledgeOwnerRecord | null;

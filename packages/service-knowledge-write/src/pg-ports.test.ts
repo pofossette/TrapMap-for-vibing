@@ -7,6 +7,96 @@ import {
 import { createTransactionPool } from './test-helpers.js';
 
 describe('knowledge-write PostgreSQL owner bundle', () => {
+  it('persists a submission aggregate and its outbox event in one transaction', async () => {
+    const { calls, client, pool } = createTransactionPool(() => ({ rows: [] }));
+    const owner = createKnowledgeWriteOwnerBundle(pool as never);
+
+    await owner.knowledgeOwner.submit({
+      actorId: 'author-1',
+      content: 'owner-local content',
+      title: 'Owner-local title',
+      labels: ['wave-2'],
+      teamId: 'team-1',
+    });
+
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        'BEGIN',
+        expect.stringContaining('INSERT INTO knowledge_entries'),
+        expect.stringContaining('INSERT INTO knowledge_revisions'),
+        expect.stringContaining('INSERT INTO lifecycle_events'),
+        expect.stringContaining('INSERT INTO domain_event_outbox'),
+        'COMMIT',
+      ]),
+    );
+    expect(calls).not.toContain('ROLLBACK');
+    expect(client.release).toHaveBeenCalledOnce();
+  });
+
+  it('rolls back a maintenance decision when its outbox event cannot persist', async () => {
+    const { calls, client, pool } = createTransactionPool((sql) => {
+      if (sql.includes('SELECT lifecycle_state')) {
+        return { rows: [{ lifecycle_state: 'approved' }] };
+      }
+      if (sql.includes('INSERT INTO domain_event_outbox')) {
+        throw new Error('outbox unavailable');
+      }
+      return { rows: [] };
+    });
+    const owner = createKnowledgeWriteOwnerBundle(pool as never);
+
+    await expect(
+      owner.knowledgeOwner.applyMaintenanceDecision({
+        entryId: 'entry-1',
+        actorId: 'maintainer-1',
+        action: 'refresh',
+      }),
+    ).rejects.toThrow('outbox unavailable');
+
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        'BEGIN',
+        expect.stringContaining('UPDATE knowledge_entries SET maintenance_meta'),
+        expect.stringContaining('INSERT INTO domain_event_outbox'),
+        'ROLLBACK',
+      ]),
+    );
+    expect(calls).not.toContain('COMMIT');
+    expect(client.release).toHaveBeenCalledOnce();
+  });
+
+  it('writes entry edits, revisions, and their outbox event atomically', async () => {
+    const { calls, client, pool } = createTransactionPool((sql) => {
+      if (sql.includes('SELECT lifecycle_state')) {
+        return { rows: [{ lifecycle_state: 'approved' }] };
+      }
+      return { rows: [] };
+    });
+    const owner = createKnowledgeWriteOwnerBundle(pool as never);
+
+    await owner.knowledgeOwner.updateEntry(
+      'entry-1',
+      {
+        detail: 'revised detail',
+        shortcut: 'Revised title',
+        labels: ['revision'],
+      },
+      'editor-1',
+    );
+
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        'BEGIN',
+        expect.stringContaining('UPDATE knowledge_entries SET detail'),
+        expect.stringContaining('INSERT INTO knowledge_revisions'),
+        expect.stringContaining('INSERT INTO domain_event_outbox'),
+        'COMMIT',
+      ]),
+    );
+    expect(calls).not.toContain('ROLLBACK');
+    expect(client.release).toHaveBeenCalledOnce();
+  });
+
   it('keeps lifecycle state, lifecycle event, and outbox event in one transaction', async () => {
     const calls: Array<{ sql: string; client: object }> = [];
     const client = {
@@ -22,9 +112,13 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
       }),
       release: vi.fn(),
     };
-    const owner = createKnowledgeWriteOwnerBundle({ connect: vi.fn(async () => client) } as never);
+    const owner = createKnowledgeWriteOwnerBundle({
+      connect: vi.fn(async () => client),
+    } as never);
 
-    await owner.knowledgeRepo.updateLifecycle('entry-1', 'approved', { actorId: 'reviewer-1' });
+    await owner.knowledgeRepo.updateLifecycle('entry-1', 'approved', {
+      actorId: 'reviewer-1',
+    });
 
     expect(calls.map(({ sql }) => sql)).toEqual(
       expect.arrayContaining([
@@ -51,7 +145,9 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     const owner = createKnowledgeWriteOwnerBundle(pool as never);
 
     await expect(
-      owner.knowledgeRepo.updateLifecycle('entry-1', 'approved', { actorId: 'reviewer-1' }),
+      owner.knowledgeRepo.updateLifecycle('entry-1', 'approved', {
+        actorId: 'reviewer-1',
+      }),
     ).rejects.toThrow('outbox unavailable');
 
     expect(calls).toContain('ROLLBACK');
@@ -68,7 +164,9 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     const owner = createKnowledgeWriteOwnerBundle(pool as never);
 
     await expect(
-      owner.knowledgeRepo.updateLifecycle('entry-1', 'submitted', { actorId: 'reviewer-1' }),
+      owner.knowledgeRepo.updateLifecycle('entry-1', 'submitted', {
+        actorId: 'reviewer-1',
+      }),
     ).rejects.toThrow(/invalid lifecycle transition/i);
 
     expect(calls.some((sql) => sql.includes('UPDATE knowledge_entries'))).toBe(false);
@@ -82,7 +180,9 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     const owner = createKnowledgeWriteOwnerBundle(pool as never);
 
     await expect(
-      owner.knowledgeRepo.updateLifecycle('missing-entry', 'approved', { actorId: 'reviewer-1' }),
+      owner.knowledgeRepo.updateLifecycle('missing-entry', 'approved', {
+        actorId: 'reviewer-1',
+      }),
     ).rejects.toThrow(/knowledge entry .* not found/i);
 
     expect(calls).toContain('ROLLBACK');
@@ -142,7 +242,9 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
 
   it('reads outbox diagnostics without acquiring job-runtime mutation capabilities', async () => {
     const query = vi.fn(async () => ({ rows: [{ count: '2' }] }));
-    const diagnostics = createKnowledgeWriteOutboxDiagnostics({ query } as never);
+    const diagnostics = createKnowledgeWriteOutboxDiagnostics({
+      query,
+    } as never);
 
     await expect(diagnostics.getStatusSnapshot()).resolves.toEqual({
       provider: 'postgres',
@@ -164,7 +266,9 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     const owner = createKnowledgeWriteOwnerBundle(pool as never);
 
     await expect(
-      owner.artifactWriter.updateLifecycle('artifact-1', 'approved', { actorId: 'reviewer-1' }),
+      owner.artifactWriter.updateLifecycle('artifact-1', 'approved', {
+        actorId: 'reviewer-1',
+      }),
     ).rejects.toThrow(/artifact .* not found/i);
 
     expect(calls).toEqual(
