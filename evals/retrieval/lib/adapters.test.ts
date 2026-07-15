@@ -24,8 +24,9 @@ describe('adapters', () => {
 
         await createActorSession(ctx, actor);
 
-        const repos = ctx.app.skillShareer.repos;
-        const session = await repos.session.getByTokenHash(hashSecret(ctx.sessionToken));
+        const session = await ctx.app.skillShareer.identity.sessionRepo.getByTokenHash(
+          hashSecret(ctx.sessionToken),
+        );
 
         expect(session).not.toBeNull();
         expect(session!.subjectType).toBe('user');
@@ -49,13 +50,13 @@ describe('adapters', () => {
 
         await createActorSession(ctx, actor);
 
-        const repos = ctx.app.skillShareer.repos;
-        const team = await repos.team.getById('team_governance');
+        const identity = ctx.app.skillShareer.identity;
+        const team = await identity.teamRepo.getById('team_governance');
         expect(team).not.toBeNull();
         expect(team!.id).toBe('team_governance');
 
         const membershipId = `membership_${ctx.actorId}_team_governance`;
-        const membership = await repos.membership.getById(membershipId);
+        const membership = await identity.membershipRepo.getById(membershipId);
         expect(membership).not.toBeNull();
         expect(membership!.securityLevel).toBe(3);
         expect(membership!.permissions).toEqual(['read:knowledge']);
@@ -77,8 +78,9 @@ describe('adapters', () => {
 
         await createActorSession(ctx, actor);
 
-        const repos = ctx.app.skillShareer.repos;
-        const session = await repos.session.getByTokenHash(hashSecret(ctx.sessionToken));
+        const session = await ctx.app.skillShareer.identity.sessionRepo.getByTokenHash(
+          hashSecret(ctx.sessionToken),
+        );
 
         expect(session).not.toBeNull();
         expect(session!.subjectType).toBe('system-admin');
@@ -189,14 +191,13 @@ describe('adapters', () => {
 
         await seedScenarioFixtures(ctx, { scenarioId: scenario.scenarioId }, scenario);
 
-        const repos = ctx.app.skillShareer.repos;
-        const artifacts = await repos.artifact.listForRetrieval({ teamId: 'team_capsule' });
+        const artifacts = await ctx.app.skillShareer.artifactReadProjection.listForRetrieval({
+          teamId: 'team_capsule',
+        });
 
         expect(artifacts).toHaveLength(1);
-        expect(artifacts[0]!.latestRevision.derived?.capsules).toHaveLength(1);
-        expect(artifacts[0]!.latestRevision.derived?.capsules[0]?.content).toContain(
-          'GitHub Actions',
-        );
+        expect(artifacts[0]!.history[0]?.derived?.capsules).toHaveLength(1);
+        expect(artifacts[0]!.history[0]?.derived?.capsules[0]?.content).toContain('GitHub Actions');
       } finally {
         await closeExecutionContext(ctx);
       }
@@ -228,8 +229,9 @@ describe('adapters', () => {
 
         await seedScenarioFixtures(ctx, mockCase, scenario);
 
-        const repos = ctx.app.skillShareer.repos;
-        const session = await repos.session.getByTokenHash(hashSecret(ctx.sessionToken));
+        const session = await ctx.app.skillShareer.identity.sessionRepo.getByTokenHash(
+          hashSecret(ctx.sessionToken),
+        );
 
         expect(session).not.toBeNull();
         expect(session!.subjectType).toBe('user');
@@ -265,10 +267,15 @@ describe('adapters', () => {
 
         await seedScenarioFixtures(ctx, { scenarioId: scenario.scenarioId }, scenario);
 
-        const repos = ctx.app.skillShareer.repos;
-        const entries = await repos.knowledge.listByFilter({ teamId: 'team_snapshot' });
-        const artifacts = await repos.artifact.listForRetrieval({ teamId: 'team_snapshot' });
-        const session = await repos.session.getByTokenHash(hashSecret(ctx.sessionToken));
+        const entries = await ctx.app.skillShareer.repos.knowledge.listByFilter({
+          teamId: 'team_snapshot',
+        });
+        const artifacts = await ctx.app.skillShareer.artifactReadProjection.listForRetrieval({
+          teamId: 'team_snapshot',
+        });
+        const session = await ctx.app.skillShareer.identity.sessionRepo.getByTokenHash(
+          hashSecret(ctx.sessionToken),
+        );
 
         expect(entries).toHaveLength(1);
         expect(entries[0]?.id).toBe('entry_snapshot_1');

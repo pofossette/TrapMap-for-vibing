@@ -28,6 +28,30 @@ describe('identity PostgreSQL ports', () => {
     });
   });
 
+  it('maps membership reads to the shared repository contract', async () => {
+    const deps = createIdentityAccessPgDeps({
+      query: vi.fn(async () => ({
+        rows: [
+          {
+            id: 'member_1',
+            user_id: 'user_1',
+            team_id: 'team_1',
+            role_template: 'reviewer',
+            security_level: 3,
+            permissions: ['read:knowledge'],
+            notes: null,
+          },
+        ],
+      })),
+    } as never);
+
+    await expect(deps.membershipRepo.getById('member_1')).resolves.toMatchObject({
+      userId: 'user_1',
+      teamId: 'team_1',
+      securityLevel: 3,
+    });
+  });
+
   it('builds a login-capable identity module from an owner-local pool', async () => {
     const query = vi.fn(async (sql: string) => {
       if (sql.includes('FROM users WHERE handle')) {

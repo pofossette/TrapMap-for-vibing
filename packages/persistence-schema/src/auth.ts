@@ -13,6 +13,7 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { auditTimestamps } from './column-factories.js';
 
 // =============================================================================
 // Sequences
@@ -56,8 +57,7 @@ export const usersTable = pgTable('users', {
   id: text('id').primaryKey(),
   handle: text('handle').notNull().unique(),
   notes: text('notes'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  ...auditTimestamps(),
 });
 
 export const teamsTable = pgTable(
@@ -67,8 +67,7 @@ export const teamsTable = pgTable(
     slug: text('slug').notNull(),
     name: text('name').notNull(),
     description: text('description'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [uniqueIndex('teams_slug_uidx').on(table.slug)],
 );
@@ -87,8 +86,7 @@ export const membershipsTable = pgTable(
     securityLevel: integer('security_level').notNull(),
     permissions: jsonb('permissions').notNull().$type<string[]>().default([]),
     notes: text('notes'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     uniqueIndex('memberships_user_team_uidx').on(table.userId, table.teamId),
@@ -106,8 +104,7 @@ export const sessionsTable = pgTable(
     activeTeamId: text('active_team_id').references(() => teamsTable.id),
     subjectType: text('subject_type').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     index('sessions_token_hash_idx').on(table.tokenHash),
@@ -133,8 +130,7 @@ export const accessKeysTable = pgTable(
     level: integer('level').notNull(),
     notes: text('notes'),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     index('access_keys_token_hash_idx').on(table.tokenHash),
@@ -160,8 +156,7 @@ export const auditEventsTable = pgTable(
     operationId: text('operation_id'),
     causationId: text('causation_id'),
     outcome: text('outcome').notNull().default('success'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     index('audit_events_team_id_idx').on(table.teamId),

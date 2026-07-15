@@ -9,61 +9,11 @@
 
 import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { taskQueue } from '@trapmap/persistence-schema';
 import type { Pool, PoolClient } from 'pg';
 import { recordQueueMetric, recordRuntimeReclaim } from './metrics.js';
 
-// =============================================================================
-// Schema Definition
-// =============================================================================
-
-/**
- * Task queue table using PostgreSQL SKIP LOCKED for concurrent processing.
- */
-export const taskQueue = pgTable(
-  'task_queue',
-  {
-    id: text('id').primaryKey(),
-    /** Task type for routing to handlers */
-    type: text('type').notNull(),
-    /** JSON payload for the task */
-    payload: text('payload').notNull(),
-    /** Current status */
-    status: text('status').notNull().default('pending'), // pending | running | completed | failed | dead
-    /** Priority (higher = more urgent) */
-    priority: integer('priority').notNull().default(0),
-    /** Number of retry attempts */
-    attempts: integer('attempts').notNull().default(0),
-    /** Maximum retry attempts before dead letter */
-    maxAttempts: integer('max_attempts').notNull().default(3),
-    /** Last error message */
-    lastError: text('last_error'),
-    /** Opaque key for idempotent enqueue — prevents duplicate (type, key) pairs */
-    dedupeKey: text('dedupe_key'),
-    /** When to process next (for delayed retry) */
-    processAfter: timestamp('process_after', { withTimezone: true }).notNull().defaultNow(),
-    /** Worker that currently owns the task lease */
-    workerId: text('worker_id'),
-    /** When processing first started */
-    startedAt: timestamp('started_at', { withTimezone: true }),
-    /** Last worker heartbeat timestamp */
-    heartbeatAt: timestamp('heartbeat_at', { withTimezone: true }),
-    /** Lease expiry timestamp used for reclaiming stuck work */
-    leaseUntil: timestamp('lease_until', { withTimezone: true }),
-    /** When task was created */
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    /** When task was last updated */
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-    /** When task was completed */
-    completedAt: timestamp('completed_at', { withTimezone: true }),
-  },
-  (table) => [
-    index('task_queue_type_dedupe_idx').on(table.type, table.dedupeKey),
-    uniqueIndex('task_queue_dedupe_pending_idx')
-      .on(table.type, table.dedupeKey)
-      .where(sql`${table.status} IN ('pending', 'running')`),
-  ],
-);
+export { taskQueue };
 
 // =============================================================================
 // Types

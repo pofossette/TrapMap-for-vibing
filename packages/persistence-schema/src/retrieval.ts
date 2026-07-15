@@ -14,6 +14,7 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { auditTimestamps } from './column-factories.js';
 
 /**
  * Graph index documents for GraphRAG-lite persistence.
@@ -106,8 +107,7 @@ export const retrievalBadcaseTraces = pgTable(
     failureClassification: text('failure_classification'),
     expectedCorrection: text('expected_correction'),
     selectedResultSnapshot: jsonb('selected_result_snapshot'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     index('idx_retrieval_badcase_query').on(table.queryId),

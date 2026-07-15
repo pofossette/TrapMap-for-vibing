@@ -1,3 +1,4 @@
+export * from './column-factories.js';
 export * from './auth.js';
 export * from './candidates.js';
 export * from './knowledge.js';

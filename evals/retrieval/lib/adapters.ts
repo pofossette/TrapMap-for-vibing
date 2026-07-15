@@ -54,6 +54,121 @@ function mapLifecycleState(state: string): KnowledgeRecord['lifecycleState'] {
   return mapping[state] ?? 'submitted';
 }
 
+type ArtifactFixture = {
+  id: string;
+  teamId: string | null;
+  scope: 'global' | 'project';
+  labels: string[];
+  title: string;
+  slug: string;
+  requiredLevel: number;
+  lifecycleState: string;
+  capsules: Array<{
+    capsuleId: string;
+    content: string;
+    situation: string;
+    problem: string;
+    goal: string;
+    labels: string[];
+    scope: 'global' | 'project';
+    requiredLevel: number;
+  }>;
+};
+
+type KnowledgeFixture = {
+  id: string;
+  teamId: string | null;
+  scope: 'global' | 'project';
+  labels: string[];
+  shortcut: string;
+  detail: string;
+  requiredLevel: number;
+  lifecycleState: string;
+};
+
+function createKnowledgeFixtureRecord(entry: KnowledgeFixture, actorId: string, createdAt: string) {
+  const preReview = {
+    status: (entry.lifecycleState === 'approved' || entry.lifecycleState === 'pending'
+      ? 'agent-pass'
+      : 'agent-rejected') as 'agent-pass' | 'agent-rejected',
+    duplicateRisk: 'low' as const,
+    correctnessRisk: 'low' as const,
+    completenessRisk: 'low' as const,
+    checkedAt: createdAt,
+    notes: [] as string[],
+    issues: [],
+    suggestions: [],
+    duplicateCandidates: [],
+  };
+
+  return createKnowledgeEntryRecord({
+    ownerUserId: actorId,
+    teamId: entry.teamId,
+    payload: {
+      scope: entry.scope,
+      labels: entry.labels,
+      shortcut: entry.shortcut,
+      detail: entry.detail,
+    },
+    requiredLevel: entry.requiredLevel,
+    createdAt,
+    preReview,
+    entryId: entry.id,
+  });
+}
+
+function buildDerivedCapsules(artifact: ArtifactFixture): DerivedSkillCapsuleRecord[] {
+  return artifact.capsules.map((capsule) => ({
+    capsuleId: capsule.capsuleId,
+    artifactId: artifact.id,
+    revision: 1,
+    sourcePaths: ['mock-source.md'],
+    content: capsule.content,
+    situation: capsule.situation,
+    problem: capsule.problem,
+    goal: capsule.goal,
+    errorText: '',
+    labels: capsule.labels,
+    scope: capsule.scope,
+    requiredLevel: capsule.requiredLevel,
+  }));
+}
+
+function buildDerivedPayload(
+  artifact: ArtifactFixture,
+  capsules: DerivedSkillCapsuleRecord[],
+  createdAt: string,
+) {
+  return {
+    profile: {
+      artifactId: artifact.id,
+      revision: 1,
+      sourceHash: '',
+      title: artifact.title,
+      summary: artifact.capsules.map((capsule) => capsule.content).join('. '),
+      keywords: artifact.labels,
+      referencePaths: [],
+      contentHash: '',
+    },
+    capsules,
+    clientManifest: null,
+    sourceHash: '',
+    derivedAt: createdAt,
+  };
+}
+
+function buildArtifactFixtureFields(artifact: ArtifactFixture) {
+  return {
+    id: artifact.id,
+    teamId: artifact.teamId,
+    scope: artifact.scope,
+    labels: artifact.labels,
+    title: artifact.title,
+    slug: artifact.slug,
+    requiredLevel: artifact.requiredLevel,
+  };
+}
+
 // =============================================================================
 // Execution Context
 // =============================================================================
@@ -220,37 +335,9 @@ export async function seedScenarioFixtures(
   const scenario = loadedScenario ? await hydrateScenarioSnapshot(loadedScenario) : undefined;
   if (!scenario) return;
 
-  const fixtureEntries = scenario.fixtures.knowledgeEntries as Array<{
-    id: string;
-    teamId: string | null;
-    scope: 'global' | 'project';
-    labels: string[];
-    shortcut: string;
-    detail: string;
-    requiredLevel: number;
-    lifecycleState: string;
-  }>;
+  const fixtureEntries = scenario.fixtures.knowledgeEntries as KnowledgeFixture[];
 
-  const fixtureArtifacts = scenario.fixtures.skillArtifacts as Array<{
-    id: string;
-    teamId: string | null;
-    scope: 'global' | 'project';
-    labels: string[];
-    title: string;
-    slug: string;
-    requiredLevel: number;
-    lifecycleState: string;
-    capsules: Array<{
-      capsuleId: string;
-      content: string;
-      situation: string;
-      problem: string;
-      goal: string;
-      labels: string[];
-      scope: 'global' | 'project';
-      requiredLevel: number;
-    }>;
-  }>;
+  const fixtureArtifacts = scenario.fixtures.skillArtifacts as ArtifactFixture[];
   const fixtureGraphDocs = (scenario.fixtures.graphIndexDocuments ??
     []) as GraphIndexDocumentRecord[];
 
@@ -260,62 +347,16 @@ export async function seedScenarioFixtures(
   if (repos) {
     // PostgreSQL mode: use repository layer
     for (const entry of fixtureEntries) {
-      const preReview = {
-        status: (entry.lifecycleState === 'approved' || entry.lifecycleState === 'pending'
-          ? 'agent-pass'
-          : 'agent-rejected') as 'agent-pass' | 'agent-rejected',
-        duplicateRisk: 'low' as const,
-        correctnessRisk: 'low' as const,
-        completenessRisk: 'low' as const,
-        checkedAt: createdAt,
-        notes: [] as string[],
-        issues: [],
-        suggestions: [],
-        duplicateCandidates: [],
-      };
-
-      const record = createKnowledgeEntryRecord({
-        ownerUserId: ctx.actorId,
-        teamId: entry.teamId,
-        payload: {
-          scope: entry.scope,
-          labels: entry.labels,
-          shortcut: entry.shortcut,
-          detail: entry.detail,
-        },
-        requiredLevel: entry.requiredLevel,
-        createdAt,
-        preReview,
-        entryId: entry.id,
-      });
+      const record = createKnowledgeFixtureRecord(entry, ctx.actorId, createdAt);
       record.lifecycleState = mapLifecycleState(entry.lifecycleState);
       await repos.knowledge.insert(record);
     }
 
     for (const artifact of fixtureArtifacts) {
-      const capsules: DerivedSkillCapsuleRecord[] = artifact.capsules.map((c) => ({
-        capsuleId: c.capsuleId,
-        artifactId: artifact.id,
-        revision: 1,
-        sourcePaths: ['mock-source.md'],
-        content: c.content,
-        situation: c.situation,
-        problem: c.problem,
-        goal: c.goal,
-        errorText: '',
-        labels: c.labels,
-        scope: c.scope,
-        requiredLevel: c.requiredLevel,
-      }));
+      const capsules = buildDerivedCapsules(artifact);
 
       const record = {
-        id: artifact.id,
-        teamId: artifact.teamId,
-        scope: artifact.scope,
-        labels: artifact.labels,
-        title: artifact.title,
-        slug: artifact.slug,
-        requiredLevel: artifact.requiredLevel,
+        ...buildArtifactFixtureFields(artifact),
         lifecycleState: mapLifecycleState(artifact.lifecycleState),
         owner: { id: ctx.actorId, handle: ctx.actorId, securityLevel: 0 },
         latestRevision: 1,
@@ -327,22 +368,7 @@ export async function seedScenarioFixtures(
             submittedAt: createdAt,
             submittedBy: { id: ctx.actorId, handle: ctx.actorId, securityLevel: 0 },
             scriptDescriptors: [],
-            derived: {
-              profile: {
-                artifactId: artifact.id,
-                revision: 1,
-                sourceHash: '',
-                title: artifact.title,
-                summary: artifact.capsules.map((c: { content: string }) => c.content).join('. '),
-                keywords: artifact.labels,
-                referencePaths: [],
-                contentHash: '',
-              },
-              capsules,
-              clientManifest: null,
-              sourceHash: '',
-              derivedAt: createdAt,
-            },
+            derived: buildDerivedPayload(artifact, capsules, createdAt),
           },
         ],
         metadata: {
@@ -376,34 +402,7 @@ export async function seedScenarioFixtures(
   } else {
     await ctx.store.transact(async (data) => {
       for (const entry of fixtureEntries) {
-        const preReview = {
-          status: (entry.lifecycleState === 'approved' || entry.lifecycleState === 'pending'
-            ? 'agent-pass'
-            : 'agent-rejected') as 'agent-pass' | 'agent-rejected',
-          duplicateRisk: 'low' as const,
-          correctnessRisk: 'low' as const,
-          completenessRisk: 'low' as const,
-          checkedAt: createdAt,
-          notes: [] as string[],
-          issues: [],
-          suggestions: [],
-          duplicateCandidates: [],
-        };
-
-        const record = createKnowledgeEntryRecord({
-          ownerUserId: ctx.actorId,
-          teamId: entry.teamId,
-          payload: {
-            scope: entry.scope,
-            labels: entry.labels,
-            shortcut: entry.shortcut,
-            detail: entry.detail,
-          },
-          requiredLevel: entry.requiredLevel,
-          createdAt,
-          preReview,
-          entryId: entry.id,
-        });
+        const record = createKnowledgeFixtureRecord(entry, ctx.actorId, createdAt);
 
         record.lifecycleState = entry.lifecycleState as KnowledgeRecord['lifecycleState'];
 
@@ -411,29 +410,10 @@ export async function seedScenarioFixtures(
       }
 
       for (const artifact of fixtureArtifacts) {
-        const capsules: DerivedSkillCapsuleRecord[] = artifact.capsules.map((c) => ({
-          capsuleId: c.capsuleId,
-          artifactId: artifact.id,
-          revision: 1,
-          sourcePaths: ['mock-source.md'],
-          content: c.content,
-          situation: c.situation,
-          problem: c.problem,
-          goal: c.goal,
-          errorText: '',
-          labels: c.labels,
-          scope: c.scope,
-          requiredLevel: c.requiredLevel,
-        }));
+        const capsules = buildDerivedCapsules(artifact);
 
         const record: SkillArtifactRecord = {
-          id: artifact.id,
-          teamId: artifact.teamId,
-          scope: artifact.scope,
-          labels: artifact.labels,
-          title: artifact.title,
-          slug: artifact.slug,
-          requiredLevel: artifact.requiredLevel,
+          ...buildArtifactFixtureFields(artifact),
           lifecycleState: artifact.lifecycleState as SkillArtifactRecord['lifecycleState'],
           ownerUserId: ctx.actorId,
           latestRevision: {
@@ -443,22 +423,7 @@ export async function seedScenarioFixtures(
             submittedAt: createdAt,
             submittedByUserId: ctx.actorId,
             scriptDescriptors: [],
-            derived: {
-              profile: {
-                artifactId: artifact.id,
-                revision: 1,
-                sourceHash: '',
-                title: artifact.title,
-                summary: artifact.capsules.map((c: { content: string }) => c.content).join('. '),
-                keywords: artifact.labels,
-                referencePaths: [],
-                contentHash: '',
-              },
-              capsules,
-              clientManifest: null,
-              sourceHash: '',
-              derivedAt: createdAt,
-            },
+            derived: buildDerivedPayload(artifact, capsules, createdAt),
           },
           history: [],
           metadata: {

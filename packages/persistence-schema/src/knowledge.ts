@@ -21,6 +21,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import type { Boundary, LifecycleState } from '@trapmap/contracts';
+import { auditTimestamps } from './column-factories.js';
 
 // =============================================================================
 // Sequences
@@ -82,9 +83,7 @@ export const knowledgeEmbeddings = pgTable(
     /** Last error message if sync failed */
     lastError: text('last_error'),
     /** Record creation timestamp */
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    /** Record update timestamp */
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     uniqueIndex('knowledge_embeddings_entry_revision_no_idx').on(table.entryId, table.revisionNo),
@@ -126,9 +125,7 @@ export const knowledgeKeywords = pgTable(
     /** Last error message if sync failed */
     lastError: text('last_error'),
     /** Record creation timestamp */
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    /** Record update timestamp */
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     uniqueIndex('knowledge_keywords_entry_revision_no_idx').on(table.entryId, table.revisionNo),
@@ -238,9 +235,7 @@ export const knowledgeEntries = pgTable(
     archived: integer('archived').notNull().default(0),
 
     /** Record creation timestamp */
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    /** Record update timestamp */
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     index('idx_knowledge_entries_lifecycle_state').on(table.lifecycleState),
@@ -518,9 +513,7 @@ export const knowledgeMaintenanceAssignments = pgTable(
     /** Review deadline (null if not set) */
     reviewBy: timestamp('review_by', { withTimezone: true }),
     /** Record creation timestamp */
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    /** Record update timestamp */
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     index('idx_knowledge_maintenance_assignments_maintainer').on(table.maintainerUserId),

@@ -21,6 +21,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import type { Boundary, LifecycleState, Scope } from '@trapmap/contracts';
+import { auditTimestamps } from './column-factories.js';
 
 // =============================================================================
 // Sequences
@@ -95,9 +96,7 @@ export const skillArtifacts = pgTable(
     /** Boundary constraints for artifact applicability */
     boundary: jsonb('boundary').$type<Boundary | null>(),
     /** Record creation timestamp */
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    /** Record update timestamp */
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     index('idx_skill_artifacts_lifecycle_state').on(table.lifecycleState),
@@ -349,8 +348,7 @@ export const skillArtifactCapsuleKeywords = pgTable(
       .default([]),
     contentHash: text('content_hash').notNull(),
     lastError: text('last_error'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     index('idx_capsule_keywords_artifact_revision').on(table.artifactId, table.revisionNo),
@@ -385,8 +383,7 @@ export const skillArtifactCapsuleEmbeddings = pgTable(
     embedding: vector('embedding', { dimensions: 384 }).notNull(),
     contentHash: text('content_hash').notNull(),
     lastError: text('last_error'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     index('idx_capsule_embeddings_artifact_revision').on(table.artifactId, table.revisionNo),
@@ -564,8 +561,7 @@ export const skillArtifactMaintenanceAssignments = pgTable(
     maintainerHandle: text('maintainer_handle'),
     maintainerLevel: integer('maintainer_level'),
     reviewBy: timestamp('review_by', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     index('idx_skill_artifact_maintenance_assignments_maintainer').on(table.maintainerUserId),
@@ -583,8 +579,7 @@ export const skillArtifactAgentReviews = pgTable(
     completenessRisk: text('completeness_risk').notNull(),
     checkedAt: timestamp('checked_at', { withTimezone: true }).notNull(),
     notes: jsonb('notes').notNull().$type<string[]>().default([]),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     index('idx_skill_artifact_agent_reviews_status').on(table.status),

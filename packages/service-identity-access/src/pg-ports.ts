@@ -320,14 +320,14 @@ export function createIdentityAccessPgDeps(
     },
     async getById(memberId) {
       const { rows } = await pool.query('SELECT * FROM memberships WHERE id = $1', [memberId]);
-      return (rows[0] as never) ?? null;
+      return rows[0] ? (rowToMembership(rows[0] as Record<string, unknown>) as never) : null;
     },
     async findByUserAndTeam(userId, teamId) {
       const { rows } = await pool.query(
         'SELECT * FROM memberships WHERE user_id = $1 AND team_id = $2',
         [userId, teamId],
       );
-      return (rows[0] as never) ?? null;
+      return rows[0] ? (rowToMembership(rows[0] as Record<string, unknown>) as never) : null;
     },
     async listByUser(userId) {
       return listMemberships(pool, 'user_id', userId);

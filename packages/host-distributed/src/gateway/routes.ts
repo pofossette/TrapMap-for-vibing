@@ -78,6 +78,49 @@ function artifactTrustedActorHeaders(request: FastifyRequest): Record<string, st
   return Object.keys(headers).length > 0 ? headers : undefined;
 }
 
+type ReviewDecisionBody = {
+  entryId: string;
+  decision: 'approve' | 'reject';
+  actorId: string;
+  note?: string;
+};
+
+function forwardReviewDecision(clients: InternalServiceClients, body: ReviewDecisionBody) {
+  const command = {
+    entryId: body.entryId,
+    actorId: body.actorId,
+    ...(body.note !== undefined ? { note: body.note } : {}),
+  };
+  return body.decision === 'approve'
+    ? clients.review.approve(command)
+    : clients.review.reject(command);
+}
+
+type KnowledgeActionBody = {
+  entryId: string;
+  actorId: string;
+  action: string;
+  note?: string;
+  evidence?: Record<string, unknown>;
+};
+
+async function forwardKnowledgeAction(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  call: (body: KnowledgeActionBody) => Promise<{ status: number; body: unknown }>,
+  unavailableLabel: string,
+  unavailableError: string,
+) {
+  const validationError = validateBody(request.body, ['entryId', 'actorId', 'action']);
+  if (validationError) return reply.status(400).send(validationError);
+  try {
+    return forwardResponse(reply, await call(request.body as KnowledgeActionBody));
+  } catch (err: unknown) {
+    request.log.error({ err }, `${unavailableLabel} failed`);
+    return reply.status(502).send({ error: unavailableError, kind: 'upstream' });
+  }
+}
+
 /**
  * Extract the session token from the Authorization header.
  * Expects the format: `Bearer <token>`.
@@ -718,28 +761,9 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     if (validationError) {
       return reply.status(400).send(validationError);
     }
-    const body = request.body as {
-      entryId: string;
-      decision: 'approve' | 'reject';
-      actorId: string;
-      note?: string;
-    };
+    const body = request.body as ReviewDecisionBody;
     try {
-      let result: { status: number; body: unknown };
-      if (body.decision === 'approve') {
-        result = await clients.review.approve({
-          entryId: body.entryId,
-          actorId: body.actorId,
-          ...(body.note !== undefined ? { note: body.note } : {}),
-        });
-      } else {
-        result = await clients.review.reject({
-          entryId: body.entryId,
-          actorId: body.actorId,
-          ...(body.note !== undefined ? { note: body.note } : {}),
-        });
-      }
-      return forwardResponse(reply, result);
+      return forwardResponse(reply, await forwardReviewDecision(clients, body));
     } catch (err: unknown) {
       request.log.error({ err }, 'governance-review approve/reject failed');
       return reply.status(502).send({ error: 'Governance service unavailable', kind: 'upstream' });
@@ -747,47 +771,23 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
   });
 
   app.post('/v1/knowledge/maintenance', async (request: FastifyRequest, reply: FastifyReply) => {
-    const validationError = validateBody(request.body, ['entryId', 'actorId', 'action']);
-    if (validationError) {
-      return reply.status(400).send(validationError);
-    }
-    const body = request.body as {
-      entryId: string;
-      actorId: string;
-      action: string;
-      note?: string;
-      evidence?: Record<string, unknown>;
-    };
-    try {
-      const result = await clients.knowledgeWrite.applyMaintenanceDecision(body);
-      return forwardResponse(reply, result);
-    } catch (err: unknown) {
-      request.log.error({ err }, 'knowledge-write maintenance failed');
-      return reply
-        .status(502)
-        .send({ error: 'Knowledge-write service unavailable', kind: 'upstream' });
-    }
+    return forwardKnowledgeAction(
+      request,
+      reply,
+      (body) => clients.knowledgeWrite.applyMaintenanceDecision(body),
+      'knowledge-write maintenance',
+      'Knowledge-write service unavailable',
+    );
   });
 
   app.post('/v1/knowledge/decay', async (request: FastifyRequest, reply: FastifyReply) => {
-    const validationError = validateBody(request.body, ['entryId', 'actorId', 'action']);
-    if (validationError) {
-      return reply.status(400).send(validationError);
-    }
-    const body = request.body as {
-      entryId: string;
-      actorId: string;
-      action: string;
-      note?: string;
-      evidence?: Record<string, unknown>;
-    };
-    try {
-      const result = await clients.review.applyDecay(body);
-      return forwardResponse(reply, result);
-    } catch (err: unknown) {
-      request.log.error({ err }, 'governance-review decay failed');
-      return reply.status(502).send({ error: 'Governance service unavailable', kind: 'upstream' });
-    }
+    return forwardKnowledgeAction(
+      request,
+      reply,
+      (body) => clients.review.applyDecay(body),
+      'governance-review decay',
+      'Governance service unavailable',
+    );
   });
 
   app.post('/v1/feedback', async (request: FastifyRequest, reply: FastifyReply) => {

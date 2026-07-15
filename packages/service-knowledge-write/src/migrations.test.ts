@@ -4,6 +4,7 @@ import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, expect, it } from 'vitest';
 
+import { taskQueueColumns } from '@trapmap/persistence-schema';
 import { assertKnowledgeWriteMigrationSet } from './migrations.js';
 
 const temporaryDirectories: string[] = [];
@@ -43,6 +44,28 @@ it('consumes the shared persistence schema instead of local table definitions', 
   expect(schema.knowledgeEntries).toBeDefined();
   expect(schema.canonicalLabels).toBeDefined();
   expect(source).toContain('@trapmap/persistence-schema');
+});
+
+it('uses the frozen shared task queue column shape', () => {
+  expect(Object.keys(taskQueueColumns())).toEqual([
+    'id',
+    'type',
+    'payload',
+    'status',
+    'priority',
+    'attempts',
+    'maxAttempts',
+    'lastError',
+    'dedupeKey',
+    'processAfter',
+    'workerId',
+    'startedAt',
+    'heartbeatAt',
+    'leaseUntil',
+    'createdAt',
+    'updatedAt',
+    'completedAt',
+  ]);
 });
 
 it('freezes artifact roundtrip columns and lookup indexes in the owner migration', () => {

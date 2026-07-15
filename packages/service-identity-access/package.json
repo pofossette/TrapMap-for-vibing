@@ -19,6 +19,7 @@
   "dependencies": {
     "@trapmap/backend-core": "workspace:*",
     "@trapmap/contracts": "workspace:*",
+    "@trapmap/persistence-schema": "workspace:*",
     "fastify": "^5.6.1",
     "drizzle-orm": "^0.45.2",
     "pg": "8.20.0"

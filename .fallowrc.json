@@ -5,6 +5,7 @@
     "packages/cli/src/index.ts",
     "packages/client-core/src/index.ts",
     "packages/contracts/src/index.ts",
+    "packages/persistence-schema/src/index.ts",
     "packages/host-distributed/src/index.ts",
     "packages/host-local/src/index.ts",
     "packages/server/src/index.ts",
@@ -137,7 +138,7 @@
       },
       {
         "from": "server",
-        "allow": ["contracts"]
+        "allow": ["contracts", "persistence-schema"]
       },
       {
         "from": "runtime-infra",
