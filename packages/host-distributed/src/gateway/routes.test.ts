@@ -459,6 +459,92 @@ describe('registerGatewayRoutes', () => {
     await app.close();
   });
 
+  it('forwards every compatibility artifact operation with the authenticated actor', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+    const headers = { authorization: 'Bearer session', 'x-request-id': 'artifact-hop' };
+
+    const responses = await Promise.all([
+      app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/import',
+        headers,
+        payload: { bundles: [], actorId: 'spoofed-user' },
+      }),
+      app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/export',
+        headers,
+        payload: { artifactId: 'artifact-1', format: 'bundle-json' },
+      }),
+      app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/activate',
+        headers,
+        payload: { artifactId: 'artifact-1', selectedPaths: [], actorId: 'spoofed-user' },
+      }),
+      app.inject({ method: 'GET', url: '/v1/operations/artifacts/review-queue', headers }),
+      app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/artifact-1/edit',
+        headers,
+        payload: { title: 'Edited', actorId: 'spoofed-user' },
+      }),
+      app.inject({ method: 'GET', url: '/v1/operations/artifacts/artifact-1/history', headers }),
+      app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/artifact-1/review',
+        headers,
+        payload: { decision: 'approve', actorId: 'spoofed-user' },
+      }),
+      app.inject({
+        method: 'POST',
+        url: '/v1/operations/artifacts/artifact-1/deactivate',
+        headers,
+        payload: { actorId: 'spoofed-user' },
+      }),
+    ]);
+
+    expect(responses.map((response) => response.statusCode)).toEqual([
+      201, 200, 200, 200, 200, 200, 200, 200,
+    ]);
+    expect(clients.knowledgeWrite.importArtifact).toHaveBeenCalledWith(
+      { bundles: [], actorId: 'user-1' },
+      { headers: { 'x-request-id': 'artifact-hop' } },
+    );
+    expect(clients.knowledgeWrite.reviewArtifact).toHaveBeenCalledWith(
+      'artifact-1',
+      { decision: 'approve', actorId: 'user-1' },
+      { headers: { 'x-request-id': 'artifact-hop' } },
+    );
+    expect(clients.knowledgeWrite.deactivateArtifact).toHaveBeenCalledWith(
+      'artifact-1',
+      { actorId: 'user-1' },
+      { headers: { 'x-request-id': 'artifact-hop' } },
+    );
+    await app.close();
+  });
+
+  it('rejects invalid artifact command bodies before forwarding', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/operations/artifacts/artifact-1/review',
+      headers: { authorization: 'Bearer session' },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      error: 'Missing required fields: decision',
+      kind: 'validation',
+    });
+    expect(clients.knowledgeWrite.reviewArtifact).not.toHaveBeenCalled();
+    await app.close();
+  });
+
   it('preserves upstream status and body', async () => {
     const clients = createClients();
     clients.identityAccess.provisionAccessKey = vi.fn(async () => ({

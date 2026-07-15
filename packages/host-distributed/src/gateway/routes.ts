@@ -143,8 +143,10 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       ? { actorId: (request as FastifyRequest & { actorId?: string }).actorId }
       : {}),
   });
-  app.post('/v1/operations/artifacts/import', async (request, reply) =>
-    artifactForward(
+  app.post('/v1/operations/artifacts/import', async (request, reply) => {
+    const validationError = validateBody(request.body, ['bundles']);
+    if (validationError) return reply.status(400).send(validationError);
+    return artifactForward(
       request,
       reply,
       () =>
@@ -152,10 +154,12 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
           headers: internalHeaders(request),
         }),
       'artifact import',
-    ),
-  );
-  app.post('/v1/operations/artifacts/export', async (request, reply) =>
-    artifactForward(
+    );
+  });
+  app.post('/v1/operations/artifacts/export', async (request, reply) => {
+    const validationError = validateBody(request.body, ['artifactId', 'format']);
+    if (validationError) return reply.status(400).send(validationError);
+    return artifactForward(
       request,
       reply,
       () =>
@@ -163,10 +167,12 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
           headers: internalHeaders(request),
         }),
       'artifact export',
-    ),
-  );
-  app.post('/v1/operations/artifacts/activate', async (request, reply) =>
-    artifactForward(
+    );
+  });
+  app.post('/v1/operations/artifacts/activate', async (request, reply) => {
+    const validationError = validateBody(request.body, ['artifactId', 'selectedPaths']);
+    if (validationError) return reply.status(400).send(validationError);
+    return artifactForward(
       request,
       reply,
       () =>
@@ -174,8 +180,8 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
           headers: internalHeaders(request),
         }),
       'artifact activate',
-    ),
-  );
+    );
+  });
   app.get('/v1/operations/artifacts/review-queue', async (request, reply) =>
     artifactForward(
       request,
@@ -209,8 +215,10 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       'artifact history',
     ),
   );
-  app.post('/v1/operations/artifacts/:artifactId/review', async (request, reply) =>
-    artifactForward(
+  app.post('/v1/operations/artifacts/:artifactId/review', async (request, reply) => {
+    const validationError = validateBody(request.body, ['decision']);
+    if (validationError) return reply.status(400).send(validationError);
+    return artifactForward(
       request,
       reply,
       () =>
@@ -220,8 +228,8 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
           { headers: internalHeaders(request) },
         ),
       'artifact review',
-    ),
-  );
+    );
+  });
   app.post('/v1/operations/artifacts/:artifactId/deactivate', async (request, reply) =>
     artifactForward(
       request,

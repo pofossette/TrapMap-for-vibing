@@ -18,34 +18,28 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { FastifyPluginAsync } from 'fastify';
+import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
-
-import { buildServer } from '@trapmap/server/app.js';
 
 // Import all route modules via barrel export
 import {
-  artifactsActivateRoutes,
-  artifactsExportRoutes,
-  artifactsImportRoutes,
   auditRoutes,
   badcaseRoutes,
   capsuleIndexRoutes,
   knowledgeLegacyRoutes,
   migrateRoutes,
-  skillEditRoutes,
-  skillReviewRoutes,
   statusRoutes,
 } from './index.js';
 
 // Import thin router
-import { operationsRoutes } from '@trapmap/server/routes/operations.js';
+import { operationsRoutes } from '../operations.js';
 
 /**
  * Helper to verify a route exists by making a minimal request.
  * Returns true if the route responds (even with 401), false if 404.
  */
 async function routeExists(
-  app: Awaited<ReturnType<typeof buildServer>>,
+  app: ReturnType<typeof Fastify>,
   method: string,
   url: string,
 ): Promise<boolean> {
@@ -60,8 +54,9 @@ async function routeExists(
 
 describe('Phase 80 Nyquist Validation', () => {
   describe('structural validation', () => {
-    it('registers all 19 operation routes', async () => {
-      const app = buildServer();
+    it('registers the remaining compatibility operation routes', async () => {
+      const app = Fastify();
+      await app.register(operationsRoutes);
       await app.ready();
 
       // All 19 routes that must be registered
@@ -73,18 +68,8 @@ describe('Phase 80 Nyquist Validation', () => {
         { method: 'POST', path: '/v1/operations/capsule-index/cleanup-orphans' },
         { method: 'GET', path: '/v1/operations/knowledge' },
         { method: 'POST', path: '/v1/operations/knowledge/test-entry/deactivate' },
-        { method: 'POST', path: '/v1/operations/export' },
-        { method: 'POST', path: '/v1/operations/artifacts/export' },
-        { method: 'POST', path: '/v1/operations/import' },
-        { method: 'POST', path: '/v1/operations/artifacts/import' },
-        { method: 'POST', path: '/v1/operations/artifacts/activate' },
-        { method: 'POST', path: '/v1/operations/artifacts/test-artifact/deactivate' },
         { method: 'POST', path: '/v1/operations/migrate' },
         { method: 'GET', path: '/v1/operations/status' },
-        { method: 'POST', path: '/v1/operations/artifacts/test-artifact/edit' },
-        { method: 'GET', path: '/v1/operations/artifacts/test-artifact/history' },
-        { method: 'GET', path: '/v1/operations/artifacts/review-queue' },
-        { method: 'POST', path: '/v1/operations/artifacts/test-artifact/review' },
       ];
 
       for (const route of requiredRoutes) {
@@ -95,7 +80,7 @@ describe('Phase 80 Nyquist Validation', () => {
       await app.close();
     });
 
-    it('barrel export provides all 11 route modules', () => {
+    it('barrel export provides the remaining compatibility route modules', () => {
       // Verify all 11 exports exist and are functions
       expect(auditRoutes).toBeDefined();
       expect(typeof auditRoutes).toBe('function');
@@ -109,26 +94,11 @@ describe('Phase 80 Nyquist Validation', () => {
       expect(knowledgeLegacyRoutes).toBeDefined();
       expect(typeof knowledgeLegacyRoutes).toBe('function');
 
-      expect(artifactsImportRoutes).toBeDefined();
-      expect(typeof artifactsImportRoutes).toBe('function');
-
-      expect(artifactsExportRoutes).toBeDefined();
-      expect(typeof artifactsExportRoutes).toBe('function');
-
-      expect(artifactsActivateRoutes).toBeDefined();
-      expect(typeof artifactsActivateRoutes).toBe('function');
-
       expect(migrateRoutes).toBeDefined();
       expect(typeof migrateRoutes).toBe('function');
 
       expect(statusRoutes).toBeDefined();
       expect(typeof statusRoutes).toBe('function');
-
-      expect(skillEditRoutes).toBeDefined();
-      expect(typeof skillEditRoutes).toBe('function');
-
-      expect(skillReviewRoutes).toBeDefined();
-      expect(typeof skillReviewRoutes).toBe('function');
     });
 
     it('each route module exports FastifyPluginAsync function', () => {
@@ -139,13 +109,8 @@ describe('Phase 80 Nyquist Validation', () => {
         { name: 'badcaseRoutes', fn: badcaseRoutes },
         { name: 'capsuleIndexRoutes', fn: capsuleIndexRoutes },
         { name: 'knowledgeLegacyRoutes', fn: knowledgeLegacyRoutes },
-        { name: 'artifactsImportRoutes', fn: artifactsImportRoutes },
-        { name: 'artifactsExportRoutes', fn: artifactsExportRoutes },
-        { name: 'artifactsActivateRoutes', fn: artifactsActivateRoutes },
         { name: 'migrateRoutes', fn: migrateRoutes },
         { name: 'statusRoutes', fn: statusRoutes },
-        { name: 'skillEditRoutes', fn: skillEditRoutes },
-        { name: 'skillReviewRoutes', fn: skillReviewRoutes },
       ];
 
       for (const module of routeModules) {
@@ -176,13 +141,8 @@ describe('Phase 80 Nyquist Validation', () => {
         'audit.ts',
         'capsule-index.ts',
         'knowledge-legacy.ts',
-        'artifacts-import.ts',
-        'artifacts-export.ts',
-        'artifacts-activate.ts',
         'migrate.ts',
         'status.ts',
-        'skill-edit.ts',
-        'skill-review.ts',
       ];
 
       for (const moduleFile of sourceModules) {
@@ -201,9 +161,9 @@ describe('Phase 80 Nyquist Validation', () => {
       const hasRouteHandlers = /app\.(get|post)\s*\(/.test(content);
       expect(hasRouteHandlers, 'Thin router should have no app.get/app.post handlers').toBe(false);
 
-      // Should have exactly 12 app.register calls
+      // Artifact commands now belong to service-knowledge-write.
       const registerMatches = content.match(/app\.register\s*\(/g);
-      expect(registerMatches, 'Thin router should have 12 app.register calls').toHaveLength(12);
+      expect(registerMatches, 'Thin router should have 7 app.register calls').toHaveLength(7);
     });
   });
 
@@ -216,8 +176,8 @@ describe('Phase 80 Nyquist Validation', () => {
       // Should be under 30 lines
       expect(lines).toBeLessThan(30);
 
-      // Should verify route registration via /meta/routes
-      expect(content).toContain('/meta/routes');
+      // Route plugin tests avoid constructing the host-owned compatibility server.
+      expect(content).toContain('app.register(operationsRoutes)');
     });
   });
 });

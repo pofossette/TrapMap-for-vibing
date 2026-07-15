@@ -1,4 +1,4 @@
-import { toInvocationErrorResponse } from '@trapmap/backend-core/invocation/invocation-model.js';
+import { toInvocationErrorResponse } from '@trapmap/backend-core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ArtifactWritePort } from './artifact-ports.js';
 

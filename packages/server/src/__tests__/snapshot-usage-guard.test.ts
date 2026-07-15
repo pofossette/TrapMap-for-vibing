@@ -77,12 +77,7 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   'lib/conflict/detect.ts',
 
   // Diagnostic/admin mutations — controlled operator writes and migration tools
-  'routes/operations/artifacts-export.ts',
-  'routes/operations/artifacts-activate.ts',
-  'routes/operations/artifacts-import.ts',
   'routes/operations/migrate.ts',
-  'routes/operations/skill-edit.ts',
-  'routes/operations/skill-review.ts',
   'routes/operations/knowledge-legacy.ts',
   'routes/feedback-admin.ts',
   'routes/admin-benchmark.ts',
@@ -180,9 +175,6 @@ describe('snapshot usage guard', () => {
         'routes/access-keys.ts',
         'routes/maintenance.ts',
         'routes/feedback-admin.ts',
-        'routes/operations/artifacts-activate.ts',
-        'routes/operations/skill-edit.ts',
-        'routes/operations/skill-review.ts',
         'bootstrap/bootstrap-candidate-recovery.ts',
         'lib/operations/read-model.ts',
         'lib/jobs/handlers/knowledge-index-follow-up.ts',
