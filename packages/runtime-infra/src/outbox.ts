@@ -15,7 +15,7 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool, PoolClient } from 'pg';
 
-import { domainEventOutbox } from '@trapmap/server/lib/persistence/schema.js';
+import { domainEventOutbox } from '@trapmap/persistence-schema';
 import type { DomainEvent } from './lifecycle-types.js';
 import { recordQueueMetric, recordRuntimeExecution, recordRuntimeReclaim } from './metrics.js';
 

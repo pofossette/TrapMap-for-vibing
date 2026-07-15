@@ -68,6 +68,10 @@
         "patterns": ["packages/contracts/src/**"]
       },
       {
+        "name": "persistence-schema",
+        "patterns": ["packages/persistence-schema/src/**"]
+      },
+      {
         "name": "client-core",
         "patterns": ["packages/client-core/src/**"]
       },
@@ -120,12 +124,16 @@
         "allow": []
       },
       {
+        "from": "persistence-schema",
+        "allow": ["contracts"]
+      },
+      {
         "from": "client-core",
         "allow": []
       },
       {
         "from": "backend-core",
-        "allow": ["contracts"]
+        "allow": ["contracts", "persistence-schema"]
       },
       {
         "from": "server",
@@ -133,15 +141,15 @@
       },
       {
         "from": "runtime-infra",
-        "allow": ["contracts", "server"]
+        "allow": ["contracts", "server", "persistence-schema"]
       },
       {
         "from": "service-standard",
-        "allow": ["backend-core", "contracts"]
+        "allow": ["backend-core", "contracts", "persistence-schema"]
       },
       {
         "from": "service-knowledge-read",
-        "allow": ["backend-core", "contracts", "runtime-infra"]
+        "allow": ["backend-core", "contracts", "runtime-infra", "persistence-schema"]
       },
       {
         "from": "host-local",
@@ -152,7 +160,8 @@
           "server",
           "runtime-infra",
           "service-standard",
-          "service-knowledge-read"
+          "service-knowledge-read",
+          "persistence-schema"
         ]
       },
       {
@@ -164,7 +173,8 @@
           "server",
           "runtime-infra",
           "service-standard",
-          "service-knowledge-read"
+          "service-knowledge-read",
+          "persistence-schema"
         ]
       },
       {

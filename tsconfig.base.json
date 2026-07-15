@@ -25,6 +25,8 @@
       "@trapmap/contracts": ["./packages/contracts/src/index.ts"],
       "@trapmap/contracts/evals": ["./packages/contracts/src/domain/evals/index.ts"],
       "@trapmap/contracts/*": ["./packages/contracts/src/*"],
+      "@trapmap/persistence-schema": ["./packages/persistence-schema/src/index.ts"],
+      "@trapmap/persistence-schema/*": ["./packages/persistence-schema/src/*"],
       "@trapmap/runtime-infra": ["./packages/runtime-infra/src/index.ts"],
       "@trapmap/runtime-infra/*": ["./packages/runtime-infra/src/*"],
       "@trapmap/service-identity-access": ["./packages/service-identity-access/src/index.ts"],

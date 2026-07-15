@@ -1,5 +1,5 @@
 /**
- * Knowledge domain tables.
+ * Shared knowledge domain tables.
  *
  * Covers: knowledge entries, revisions, lifecycle events, boundary sub-tables,
  * maintenance assignments, embeddings, keywords, search documents,
@@ -534,7 +534,7 @@ export const knowledgeMaintenanceAssignments = pgTable(
 
 /**
  * Feedback records table for structured feedback persistence.
- * Replaces the legacy feedback queue projection.
+ * Replaces the feedbackQueue array inside store_snapshot JSONB.
  * Each row represents a single user feedback submission against
  * a knowledge entry or skill artifact.
  */

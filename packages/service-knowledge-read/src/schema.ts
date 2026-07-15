@@ -1,15 +1,14 @@
-// fallow-ignore-file boundary-violation -- Drizzle-only local baseline entry mirrors the frozen schema.
 export {
   knowledgeEmbeddings,
   knowledgeKeywords,
   knowledgeSearchDocuments,
-} from '../../server/src/lib/persistence/schema/knowledge.js';
-export { canonicalLabelEmbeddings } from '../../server/src/lib/persistence/schema/labels.js';
+} from '@trapmap/persistence-schema';
+export { canonicalLabelEmbeddings } from '@trapmap/persistence-schema';
 export {
   skillArtifactCapsuleEmbeddings,
   skillArtifactCapsuleKeywords,
-} from '../../server/src/lib/persistence/schema/artifacts.js';
+} from '@trapmap/persistence-schema';
 export {
   graphIndexDocuments,
   retrievalBadcaseTraces,
-} from '../../server/src/lib/persistence/schema/retrieval.js';
+} from '@trapmap/persistence-schema';

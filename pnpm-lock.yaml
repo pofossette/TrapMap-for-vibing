@@ -289,8 +289,24 @@ importers:
         specifier: ^25.6.0
         version: 25.6.0
 
+  packages/persistence-schema:
+    dependencies:
+      '@trapmap/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(pg@8.20.0)
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/runtime-infra:
     dependencies:
+      '@trapmap/persistence-schema':
+        specifier: workspace:*
+        version: link:../persistence-schema
       '@trapmap/server':
         specifier: workspace:*
         version: link:../server
@@ -346,6 +362,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/persistence-schema':
+        specifier: workspace:*
+        version: link:../persistence-schema
       amqplib:
         specifier: ^0.10.8
         version: 0.10.9
@@ -404,6 +423,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/persistence-schema':
+        specifier: workspace:*
+        version: link:../persistence-schema
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(pg@8.20.0)
@@ -435,6 +457,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/persistence-schema':
+        specifier: workspace:*
+        version: link:../persistence-schema
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(pg@8.20.0)
@@ -497,6 +522,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/persistence-schema':
+        specifier: workspace:*
+        version: link:../persistence-schema
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(pg@8.20.0)
@@ -528,6 +556,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/persistence-schema':
+        specifier: workspace:*
+        version: link:../persistence-schema
       '@trapmap/runtime-infra':
         specifier: workspace:*
         version: link:../runtime-infra
@@ -565,6 +596,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/persistence-schema':
+        specifier: workspace:*
+        version: link:../persistence-schema
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(pg@8.20.0)

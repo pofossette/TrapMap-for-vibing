@@ -22,6 +22,7 @@
 - `packages/cli/`：Commander CLI 及 CLI 测试。
 - `packages/server/`：Fastify 兼容壳和共享运行时/状态接缝。不再充当默认的 `light` 主机入口或本地回退主机。
 - `packages/contracts/`：共享 Zod schema 和 TypeScript 类型。
+- `packages/persistence-schema/`：中立的 Drizzle PostgreSQL 表、关系与无状态 schema 辅助；不承载路由、repository 或服务行为。
 - `packages/skills/`：项目级 Skill 工件。
 - `packages/client-core/`：浏览器兼容的共享网关传输层（HTTP SDK、会话契约、错误模型）。供 CLI 和未来 Web 面板使用。
 - `packages/web-panel/`：基于浏览器的管理员运维面板，仅作为网关客户端表面。

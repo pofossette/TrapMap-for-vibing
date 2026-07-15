@@ -26,10 +26,4 @@ export const storeSnapshot = pgTable('store_snapshot', {
 });
 
 // Domain re-exports
-export * from './auth.js';
-export * from './candidates.js';
-export * from './knowledge.js';
-export * from './artifacts.js';
-export * from './labels.js';
-export * from './retrieval.js';
-export * from './queue.js';
+export * from '@trapmap/persistence-schema';

@@ -1,4 +1,3 @@
-// fallow-ignore-file boundary-violation -- Drizzle-only local baseline entry mirrors the frozen schema.
 export {
   candidateAnalyses,
   candidateDuplicateCases,
@@ -7,4 +6,4 @@ export {
   candidateResolutionOutcomes,
   candidates,
   entityLineage,
-} from '../../server/src/lib/persistence/schema/candidates.js';
+} from '@trapmap/persistence-schema';

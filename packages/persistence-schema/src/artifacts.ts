@@ -1,5 +1,5 @@
 /**
- * Skill Artifact domain tables.
+ * Shared skill artifact domain tables.
  *
  * Covers: skill artifacts, revisions, files, script descriptors,
  * derived outputs (profiles, capsules, embeddings, keywords,

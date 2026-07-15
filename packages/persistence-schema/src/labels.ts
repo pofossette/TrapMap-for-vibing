@@ -1,5 +1,5 @@
 /**
- * Canonical label catalog domain tables.
+ * Shared canonical label catalog domain tables.
  *
  * Covers: canonical labels, label aliases, label embeddings,
  * and label alignment events for the semantic merge pipeline.

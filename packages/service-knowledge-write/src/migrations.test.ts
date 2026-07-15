@@ -35,6 +35,16 @@ it('keeps its Drizzle schema owner-local', () => {
   expect(source).not.toContain('../../server/');
 });
 
+it('consumes the shared persistence schema instead of local table definitions', async () => {
+  const schema = await import('@trapmap/persistence-schema');
+  const source = readFileSync(new URL('./schema.ts', import.meta.url), 'utf8');
+
+  expect(schema.skillArtifacts).toBeDefined();
+  expect(schema.knowledgeEntries).toBeDefined();
+  expect(schema.canonicalLabels).toBeDefined();
+  expect(source).toContain('@trapmap/persistence-schema');
+});
+
 it('freezes artifact roundtrip columns and lookup indexes in the owner migration', () => {
   const migration = readFileSync(
     new URL('../drizzle/0000_youthful_gargoyle.sql', import.meta.url),
