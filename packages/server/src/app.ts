@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
 import Fastify from 'fastify';
-import type { ArtifactReadProjection } from '@trapmap/contracts';
+import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
 
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
@@ -50,6 +50,7 @@ export interface BuildServerOptions {
   serviceUnit?: ServiceUnit;
   identityBundle?: IdentityCompatibilityBundle;
   artifactReadProjection?: ArtifactReadProjection;
+  knowledgeOwner?: KnowledgeOwnerPort;
   store?: SkillShareerStore;
   ownsStore?: boolean;
 }
@@ -183,6 +184,7 @@ export function buildServer(options: BuildServerOptions = {}) {
     // knowledgeRepo is set in bootstrapRepositories when PostgreSQL pool is available
     knowledgeRepo: undefined,
     artifactReadProjection: options.artifactReadProjection as ArtifactReadProjection,
+    knowledgeOwner: options.knowledgeOwner as KnowledgeOwnerPort,
     identity: options.identityBundle,
     // usageAnalyticsRepo is set in bootstrapRepositories when PostgreSQL pool is available
     usageAnalyticsRepo: undefined,

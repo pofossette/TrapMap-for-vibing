@@ -1,5 +1,5 @@
 import type { ResolvedRuntimeDeployment } from '@trapmap/backend-core';
-import type { ArtifactReadProjection } from '@trapmap/contracts';
+import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
 import { createIdentityAccessPgDeps, type IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 import {
   createKnowledgeWriteOwnerBundle,
@@ -41,6 +41,7 @@ export interface HostLocalServices {
   ai: HostLocalAiProviders;
   identity: IdentityAccessPortDeps;
   knowledgeWrite: KnowledgeWriteOwnerBundle;
+  knowledgeOwner: KnowledgeOwnerPort;
   knowledgeRepo: HostLocalRepos['knowledge'];
   artifactWriter: ArtifactWritePort;
   artifactReadProjection: ArtifactReadProjection;
@@ -76,6 +77,7 @@ export async function createHostLocalServices(
     ai: infra.ai,
     identity,
     knowledgeWrite,
+    knowledgeOwner: knowledgeWrite.knowledgeOwner,
     knowledgeRepo: infra.repos.knowledge,
     artifactWriter: knowledgeWrite.artifactWriter,
     artifactReadProjection: knowledgeWrite.artifactReadProjection,

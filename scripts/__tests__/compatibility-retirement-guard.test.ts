@@ -88,6 +88,21 @@ const WAVE_2_ARTIFACT_SCAN_ROOTS = [
 const WAVE_2_ARTIFACT_ALLOWLIST = new Set([
   'packages/server/src/lib/persistence/migrate-artifacts.ts',
 ]);
+const RETIRED_WAVE_2_KNOWLEDGE_SYMBOLS = [
+  'createKnowledgeRepository',
+  'PgKnowledgeRepository',
+  'KnowledgeRepository',
+  'emitLifecycleTransition',
+  'createLifecyclePublisher',
+  'createLabelRepository',
+] as const;
+const WAVE_2_KNOWLEDGE_SCAN_ROOTS = [
+  'packages/server/src',
+  'packages/runtime-infra/src',
+  'packages/host-local/src',
+  'packages/host-distributed/src',
+  'packages/worker/src',
+] as const;
 const allowlist: AllowlistEntry[] = [
   ['package.json', '@trapmap/server', 'wave-10', 'root development dependency'],
   [
@@ -541,6 +556,18 @@ function findRetiredWaveTwoArtifactOwners(root: string): string[] {
   );
 }
 
+function findRetiredWaveTwoKnowledgeOwners(root: string): string[] {
+  return WAVE_2_KNOWLEDGE_SCAN_ROOTS.flatMap((ownerRoot) =>
+    listFiles(join(root, ownerRoot)).flatMap((file) => {
+      if (!isProductionFile(root, file)) return [];
+      const content = readFileSync(file, 'utf8');
+      return RETIRED_WAVE_2_KNOWLEDGE_SYMBOLS.filter((symbol) => content.includes(symbol)).map(
+        (symbol) => `retired wave-2 knowledge owner: ${relative(root, file)}:${symbol}`,
+      );
+    }),
+  );
+}
+
 function findArtifactReadProjectionBoundaryViolations(root: string): string[] {
   const violations: string[] = [];
   const contractPort = 'packages/contracts/src/domain/artifact-ports.ts';
@@ -637,6 +664,24 @@ describe('compatibility retirement guard', () => {
 
   it('has no retired Wave-2 artifact owners in production code', () => {
     expect(findRetiredWaveTwoArtifactOwners(repoRoot)).toEqual([]);
+  });
+
+  it('rejects retired Wave-2 knowledge owners in compatibility surfaces', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trapmap-compatibility-guard-'));
+    writeProductionFile(
+      root,
+      'packages/server/src/routes/knowledge.ts',
+      "import { createKnowledgeRepository } from '@trapmap/server/lib/knowledge';",
+    );
+
+    expect(findRetiredWaveTwoKnowledgeOwners(root)).toEqual([
+      'retired wave-2 knowledge owner: packages/server/src/routes/knowledge.ts:createKnowledgeRepository',
+      'retired wave-2 knowledge owner: packages/server/src/routes/knowledge.ts:KnowledgeRepository',
+    ]);
+  });
+
+  it('has no retired Wave-2 knowledge owners in production code', () => {
+    expect(findRetiredWaveTwoKnowledgeOwners(repoRoot)).toEqual([]);
   });
 
   it('keeps the artifact read projection in shared contracts', () => {

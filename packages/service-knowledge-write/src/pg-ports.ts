@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
 
 import type { KnowledgeRepositoryPort } from '@trapmap/backend-core';
-import type { ArtifactReadProjection, LifecycleState } from '@trapmap/contracts';
+import type {
+  ArtifactReadProjection,
+  KnowledgeOwnerRecord,
+  KnowledgeOwnerPort,
+  LifecycleState,
+} from '@trapmap/contracts';
 import type { Pool, PoolClient } from 'pg';
 import {
   createArtifactReadProjection,
@@ -13,6 +18,7 @@ type Queryable = Pick<Pool, 'query'>;
 
 export interface KnowledgeWriteOwnerBundle {
   knowledgeRepo: KnowledgeRepositoryPort;
+  knowledgeOwner: KnowledgeOwnerPort;
   artifactWriter: ArtifactWritePort;
   artifactReadProjection: ArtifactReadProjection;
 }
@@ -300,8 +306,100 @@ function createKnowledgeWritePgRepository(
 export function createKnowledgeWriteOwnerBundle(
   pool: Queryable & Pick<Pool, 'connect'>,
 ): KnowledgeWriteOwnerBundle {
+  const knowledgeRepo = createKnowledgeWritePgRepository(pool);
+  const knowledgeOwner: KnowledgeOwnerPort = {
+    async submit(input) {
+      const entryId = await knowledgeRepo.nextId();
+      const now = new Date().toISOString();
+      await knowledgeRepo.insert({
+        id: entryId,
+        content: String(input.detail ?? input.content ?? ''),
+        title: String(input.shortcut ?? input.title ?? ''),
+        labels: Array.isArray(input.labels) ? input.labels : [],
+        teamId: typeof input.teamId === 'string' ? input.teamId : null,
+        ownerUserId: input.actorId,
+        lifecycleState: 'submitted',
+        createdAt: now,
+        updatedAt: now,
+      } as Parameters<KnowledgeRepositoryPort['insert']>[0]);
+      return { entryId };
+    },
+    async updateEntry(entryId, updates, actorId) {
+      const entry = await knowledgeRepo.getById(entryId);
+      if (!entry) throw new Error(`Knowledge entry ${entryId} not found`);
+      if (!knowledgeRepo.save) throw new Error('Knowledge owner cannot save entries');
+      await knowledgeRepo.save({ ...entry, ...updates, ownerUserId: entry.ownerUserId ?? actorId });
+    },
+    async resubmit(entryId, updates, actorId) {
+      await this.updateEntry(entryId, updates, actorId);
+      await knowledgeRepo.updateLifecycle(entryId, 'submitted', {
+        actorId,
+        note: 'Resubmitted for review',
+      });
+    },
+    async supersede(entryId, replacementId, actorId) {
+      await knowledgeRepo.supersede(entryId, { replacementId, actorId });
+    },
+    async createTrap(input) {
+      const trapId = await knowledgeRepo.nextId();
+      const now = new Date().toISOString();
+      await knowledgeRepo.insert({
+        id: trapId,
+        content: String(input.detail ?? input.content ?? ''),
+        title: String(input.shortcut ?? input.title ?? ''),
+        labels: Array.isArray(input.labels) ? input.labels : [],
+        teamId: typeof input.teamId === 'string' ? input.teamId : null,
+        ownerUserId: input.actorId,
+        lifecycleState: 'approved',
+        entryType: 'trap',
+        createdAt: now,
+        updatedAt: now,
+      } as Parameters<KnowledgeRepositoryPort['insert']>[0]);
+      return { trapId };
+    },
+    async approveReviewDecision(input) {
+      const entryId = String(input.entryId);
+      await knowledgeRepo.updateLifecycle(entryId, 'approved', {
+        actorId: input.actorId,
+        note: typeof input.note === 'string' ? input.note : 'Approved',
+      });
+      return { entryId, lifecycleState: 'approved' };
+    },
+    async rejectReviewDecision(input) {
+      const entryId = String(input.entryId);
+      await knowledgeRepo.updateLifecycle(entryId, 'rejected', {
+        actorId: input.actorId,
+        note: typeof input.note === 'string' ? input.note : 'Rejected',
+      });
+      return { entryId, lifecycleState: 'rejected' };
+    },
+    async applyMaintenanceDecision(input) {
+      return { entryId: String(input.entryId), action: String(input.action) };
+    },
+    async applyDecayDecision(input) {
+      return { entryId: String(input.entryId), action: String(input.action) };
+    },
+    async getById(entryId) {
+      return (await knowledgeRepo.getById(entryId)) as KnowledgeOwnerRecord | null;
+    },
+    async getByIds(entryIds) {
+      if (!knowledgeRepo.getByIds) {
+        const entries = await Promise.all(
+          entryIds.map((entryId) => knowledgeRepo.getById(entryId)),
+        );
+        return entries.filter(
+          (entry): entry is NonNullable<typeof entry> => entry !== null,
+        ) as never;
+      }
+      return (await knowledgeRepo.getByIds(entryIds)) as never;
+    },
+    async listByFilter(filter) {
+      return (await knowledgeRepo.listByFilter(filter)) as never;
+    },
+  };
   return {
-    knowledgeRepo: createKnowledgeWritePgRepository(pool),
+    knowledgeRepo,
+    knowledgeOwner,
     artifactWriter: createArtifactWritePort(pool),
     artifactReadProjection: createArtifactReadProjection(pool),
   };

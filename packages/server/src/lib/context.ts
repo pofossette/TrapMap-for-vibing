@@ -1,4 +1,4 @@
-import type { ArtifactReadProjection, Permission } from '@trapmap/contracts';
+import type { ArtifactReadProjection, KnowledgeOwnerPort, Permission } from '@trapmap/contracts';
 import type {
   AccessKeyRepositoryPort,
   ActorBatchLookupPort,
@@ -70,6 +70,8 @@ export interface SkillShareerServices {
   knowledgeRepo: KnowledgeRepository | undefined;
   /** Wave-7 temporary PG-only artifact read projection. */
   artifactReadProjection: ArtifactReadProjection;
+  /** Wave-2 owner-injected command and operational projection compatibility port. */
+  knowledgeOwner: KnowledgeOwnerPort;
   /** Identity/audit capabilities injected by the owning host. */
   identity: IdentityCompatibilityBundle;
   /**

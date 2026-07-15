@@ -121,6 +121,25 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     ]);
   });
 
+  it('exposes the contracts-only knowledge owner compatibility port', () => {
+    const owner = createKnowledgeWriteOwnerBundle({ query: vi.fn() } as never);
+
+    expect(owner.knowledgeOwner).toEqual(
+      expect.objectContaining({
+        submit: expect.any(Function),
+        updateEntry: expect.any(Function),
+        resubmit: expect.any(Function),
+        supersede: expect.any(Function),
+        approveReviewDecision: expect.any(Function),
+        rejectReviewDecision: expect.any(Function),
+        applyMaintenanceDecision: expect.any(Function),
+        applyDecayDecision: expect.any(Function),
+        getById: expect.any(Function),
+        listByFilter: expect.any(Function),
+      }),
+    );
+  });
+
   it('reads outbox diagnostics without acquiring job-runtime mutation capabilities', async () => {
     const query = vi.fn(async () => ({ rows: [{ count: '2' }] }));
     const diagnostics = createKnowledgeWriteOutboxDiagnostics({ query } as never);

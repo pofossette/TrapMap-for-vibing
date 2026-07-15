@@ -44,50 +44,75 @@ async function buildApp(module: KnowledgeWritePort) {
 }
 
 describe('service-knowledge-write routes', () => {
-  it('exposes candidate publish and review lifecycle commands', async () => {
+  it('uses the trusted actor header for candidate publish and review lifecycle commands', async () => {
     const module = createModule();
     const app = await buildApp(module);
 
     const publish = await app.inject({
       method: 'POST',
       url: '/internal/candidates/publish',
+      headers: { 'x-trapmap-actor-id': 'trusted-user' },
       payload: {
         candidateId: 'candidate-1',
-        actorId: 'user-1',
+        actorId: 'trusted-user',
         result: { decision: 'publish' },
       },
     });
     expect(publish.statusCode).toBe(200);
     expect(module.publishCandidateResult).toHaveBeenCalledWith({
       candidateId: 'candidate-1',
-      actorId: 'user-1',
+      actorId: 'trusted-user',
       result: { decision: 'publish' },
     });
 
     const maintenance = await app.inject({
       method: 'POST',
       url: '/internal/knowledge/maintenance',
-      payload: { entryId: 'entry-1', actorId: 'user-1', action: 'refresh' },
+      headers: { 'x-trapmap-actor-id': 'trusted-user' },
+      payload: { entryId: 'entry-1', actorId: 'trusted-user', action: 'refresh' },
     });
     expect(maintenance.statusCode).toBe(200);
     expect(module.applyMaintenanceDecision).toHaveBeenCalledWith({
       entryId: 'entry-1',
-      actorId: 'user-1',
+      actorId: 'trusted-user',
       action: 'refresh',
     });
 
     const decay = await app.inject({
       method: 'POST',
       url: '/internal/knowledge/decay',
-      payload: { entryId: 'entry-1', actorId: 'user-1', action: 'suppress' },
+      headers: { 'x-trapmap-actor-id': 'trusted-user' },
+      payload: { entryId: 'entry-1', actorId: 'trusted-user', action: 'suppress' },
     });
     expect(decay.statusCode).toBe(200);
     expect(module.applyDecayDecision).toHaveBeenCalledWith({
       entryId: 'entry-1',
-      actorId: 'user-1',
+      actorId: 'trusted-user',
       action: 'suppress',
     });
 
+    await app.close();
+  });
+
+  it('rejects missing or spoofed body actors on command routes', async () => {
+    const module = createModule();
+    const app = await buildApp(module);
+
+    const missing = await app.inject({
+      method: 'POST',
+      url: '/internal/knowledge/maintenance',
+      payload: { entryId: 'entry-1', action: 'refresh' },
+    });
+    const spoofed = await app.inject({
+      method: 'POST',
+      url: '/internal/knowledge/maintenance',
+      headers: { 'x-trapmap-actor-id': 'trusted-user' },
+      payload: { entryId: 'entry-1', actorId: 'spoofed-user', action: 'refresh' },
+    });
+
+    expect(missing.statusCode).toBe(401);
+    expect(spoofed.statusCode).toBe(403);
+    expect(module.applyMaintenanceDecision).not.toHaveBeenCalled();
     await app.close();
   });
 
@@ -102,6 +127,7 @@ describe('service-knowledge-write routes', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/internal/candidates/publish',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
       payload: {
         candidateId: 'candidate-1',
         actorId: 'user-1',
@@ -124,6 +150,7 @@ describe('service-knowledge-write routes', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/internal/rpc/knowledge-write',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
       payload: {
         method: 'publishCandidateResult',
         input: {
