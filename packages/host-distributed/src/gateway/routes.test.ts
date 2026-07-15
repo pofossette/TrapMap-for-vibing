@@ -544,6 +544,26 @@ describe('registerGatewayRoutes', () => {
     await app.close();
   });
 
+  it('does not attach an artifact trusted actor header to other internal calls', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/candidates/candidate-1/resolution',
+      headers: { authorization: 'Bearer session', 'x-request-id': 'candidate-hop' },
+      payload: { resolution: { action: 'accept' }, actorId: 'user-1' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(clients.candidateIngestion.applyResolution).toHaveBeenCalledWith(
+      'candidate-1',
+      { resolution: { action: 'accept' }, actorId: 'user-1' },
+      { headers: { 'x-request-id': 'candidate-hop' } },
+    );
+    await app.close();
+  });
+
   it('rejects invalid artifact command bodies before forwarding', async () => {
     const clients = createClients();
     const app = await buildApp(clients);

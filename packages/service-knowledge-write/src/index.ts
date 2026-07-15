@@ -23,7 +23,6 @@ export {
 export {
   createArtifactReadProjection,
   createArtifactWritePort,
-  type ArtifactReadProjection,
   type ArtifactWritePort,
 } from './artifact-ports.js';
 export { registerArtifactRoutes } from './artifact-routes.js';

@@ -3,6 +3,7 @@ import {
   emitCacheInvalidation,
 } from '@trapmap/server/lib/cache/invalidation.js';
 import type { SkillShareerServices } from '@trapmap/server/lib/context.js';
+import type { ArtifactReadProjection } from '@trapmap/contracts';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
@@ -14,7 +15,6 @@ import {
   type SharedJobHandler,
   getSharedJobContract,
 } from '@trapmap/server/lib/jobs/types.js';
-import type { ArtifactReadProjection } from '@trapmap/backend-core';
 import type { KnowledgeRepository } from '@trapmap/server/lib/repos/index.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 import type { Pool } from 'pg';

@@ -1,4 +1,5 @@
-import type { LifecycleState, SkillArtifact, SkillArtifactRevision } from '@trapmap/contracts';
+import type { LifecycleState } from './common.js';
+import type { SkillArtifact, SkillArtifactRevision } from './artifacts.js';
 
 export interface ArtifactReadProjection {
   getById(artifactId: string): Promise<SkillArtifact | null>;

@@ -1,8 +1,9 @@
 import { InvocationError } from '@trapmap/backend-core';
+import type { ArtifactReadProjection } from '@trapmap/contracts';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ArtifactReadProjection, ArtifactWritePort } from './artifact-ports.js';
+import type { ArtifactWritePort } from './artifact-ports.js';
 import { registerArtifactRoutes } from './artifact-routes.js';
 
 function createArtifacts(): ArtifactWritePort {
@@ -32,6 +33,23 @@ function createReadProjection(): ArtifactReadProjection {
 }
 
 describe('artifact owner routes', () => {
+  it('rejects mutations without a trusted actor header', async () => {
+    const artifacts = createArtifacts();
+    const app = Fastify();
+    registerArtifactRoutes(app, artifacts, createReadProjection());
+    await app.ready();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/artifacts/artifact-1/deactivate',
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(artifacts.updateLifecycle).not.toHaveBeenCalled();
+    await app.close();
+  });
+
   it('uses the trusted actor header and rejects a spoofed body actor', async () => {
     const artifacts = createArtifacts();
     const app = Fastify();

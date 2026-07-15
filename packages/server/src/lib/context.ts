@@ -1,4 +1,4 @@
-import type { Permission } from '@trapmap/contracts';
+import type { ArtifactReadProjection, Permission } from '@trapmap/contracts';
 import type {
   AccessKeyRepositoryPort,
   ActorBatchLookupPort,
@@ -21,7 +21,7 @@ import type { GraphQueryBackend, GraphQueryRuntimeState } from './graph-query/in
 import type { AdapterRegistry } from './indexing/registry.js';
 import type { KnowledgeRepository } from './knowledge/index.js';
 import type { LifecycleEventBus } from './lifecycle/index.js';
-import type { ArtifactReadProjection, SkillShareerRepos } from './repos/index.js';
+import type { SkillShareerRepos } from './repos/index.js';
 import type { ChannelRegistry, StrategyRegistry } from './retrieval/orchestration/index.js';
 import type {
   RequestContext,

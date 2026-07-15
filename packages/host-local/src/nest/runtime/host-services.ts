@@ -1,8 +1,8 @@
 import type { ResolvedRuntimeDeployment } from '@trapmap/backend-core';
+import type { ArtifactReadProjection } from '@trapmap/contracts';
 import { createIdentityAccessPgDeps, type IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 import {
   createKnowledgeWriteOwnerBundle,
-  type ArtifactReadProjection,
   type ArtifactWritePort,
   type KnowledgeWriteOwnerBundle,
 } from '@trapmap/service-knowledge-write';

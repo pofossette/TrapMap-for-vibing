@@ -1,5 +1,5 @@
-import type { SkillArtifact } from '@trapmap/contracts';
-import type { ArtifactReadProjection, ArtifactWritePort } from './artifact-ports.js';
+import type { ArtifactReadProjection, SkillArtifact } from '@trapmap/contracts';
+import type { ArtifactWritePort } from './artifact-ports.js';
 
 export interface ArtifactMigrationError {
   artifactId: string;

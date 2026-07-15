@@ -2,13 +2,13 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
 import Fastify from 'fastify';
+import type { ArtifactReadProjection } from '@trapmap/contracts';
 
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
 import { createAiProviders } from './lib/ai/index.js';
 import { createAsyncTransport } from './lib/async/factory.js';
 import type { IdentityCompatibilityBundle, SkillShareerServices } from './lib/context.js';
-import type { ArtifactReadProjection } from './lib/repos/index.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
 import { type GraphQueryBackend, createGraphQueryRuntimeState } from './lib/graph-query/index.js';
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';

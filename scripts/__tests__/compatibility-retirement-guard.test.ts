@@ -559,6 +559,36 @@ function findRetiredWaveTwoArtifactOwners(root: string): string[] {
   );
 }
 
+function findArtifactReadProjectionBoundaryViolations(root: string): string[] {
+  const violations: string[] = [];
+  const contractPort = 'packages/contracts/src/domain/artifact-ports.ts';
+  const contractsIndex = 'packages/contracts/src/index.ts';
+  const backendPort = 'packages/backend-core/src/ports/artifact-ports.ts';
+
+  if (!existsSync(join(root, contractPort))) {
+    violations.push(`missing shared artifact read port: ${contractPort}`);
+  }
+  if (!readFileSync(join(root, contractsIndex), 'utf8').includes('./domain/artifact-ports.js')) {
+    violations.push(`contracts root does not export artifact read port: ${contractsIndex}`);
+  }
+  if (existsSync(join(root, backendPort))) {
+    violations.push(`backend-core retains artifact read port: ${backendPort}`);
+  }
+
+  for (const ownerRoot of WAVE_2_ARTIFACT_SCAN_ROOTS) {
+    for (const file of listFiles(join(root, ownerRoot))) {
+      if (!isProductionFile(root, file)) continue;
+      const content = readFileSync(file, 'utf8');
+      if (content.includes("ArtifactReadProjection } from '@trapmap/backend-core'")) {
+        violations.push(
+          `artifact read projection crosses backend-core boundary: ${relative(root, file)}`,
+        );
+      }
+    }
+  }
+  return violations;
+}
+
 describe('compatibility retirement guard', () => {
   it('keeps Wave-8 host composition as the sole server factory path for migrated entrypoints', () => {
     for (const file of POSTGRES_COMPOSITION_ENTRYPOINTS) {
@@ -625,6 +655,10 @@ describe('compatibility retirement guard', () => {
 
   it('has no retired Wave-2 artifact owners in production code', () => {
     expect(findRetiredWaveTwoArtifactOwners(repoRoot)).toEqual([]);
+  });
+
+  it('keeps the artifact read projection in shared contracts', () => {
+    expect(findArtifactReadProjectionBoundaryViolations(repoRoot)).toEqual([]);
   });
 
   it('keeps legacy artifact persistence outside the server compatibility shell', () => {

@@ -1,6 +1,7 @@
 import { InvocationError, toInvocationErrorResponse } from '@trapmap/backend-core';
+import type { ArtifactReadProjection } from '@trapmap/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { ArtifactReadProjection, ArtifactWritePort } from './artifact-ports.js';
+import type { ArtifactWritePort } from './artifact-ports.js';
 
 function trustedActor(
   request: FastifyRequest,

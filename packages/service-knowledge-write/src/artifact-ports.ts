@@ -1,16 +1,14 @@
 // fallow-ignore-file complexity -- artifact row mapping mirrors the frozen contract shape.
 import { randomUUID } from 'node:crypto';
 import type {
+  ArtifactReadProjection,
   LifecycleState,
   SkillArtifact,
   SkillArtifactDerived,
   SkillArtifactLifecycleEvent,
   SkillArtifactRevision,
 } from '@trapmap/contracts';
-import type { ArtifactReadProjection } from '@trapmap/backend-core';
 import type { Pool } from 'pg';
-
-export type { ArtifactReadProjection } from '@trapmap/backend-core';
 
 export interface ArtifactWritePort {
   nextId(): Promise<string>;

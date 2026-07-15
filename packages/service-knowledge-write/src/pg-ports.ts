@@ -1,12 +1,11 @@
 import { randomUUID } from 'node:crypto';
 
 import type { KnowledgeRepositoryPort } from '@trapmap/backend-core';
-import type { LifecycleState } from '@trapmap/contracts';
+import type { ArtifactReadProjection, LifecycleState } from '@trapmap/contracts';
 import type { Pool, PoolClient } from 'pg';
 import {
   createArtifactReadProjection,
   createArtifactWritePort,
-  type ArtifactReadProjection,
   type ArtifactWritePort,
 } from './artifact-ports.js';
 

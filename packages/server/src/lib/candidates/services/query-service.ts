@@ -7,8 +7,11 @@
  * @module candidates/services/query
  */
 
-import type { DuplicateJobBundleResponse, DuplicateJobMatchEntity } from '@trapmap/contracts';
-import type { ArtifactReadProjection } from '@trapmap/backend-core';
+import type {
+  ArtifactReadProjection,
+  DuplicateJobBundleResponse,
+  DuplicateJobMatchEntity,
+} from '@trapmap/contracts';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import type {
   CandidateRepository,

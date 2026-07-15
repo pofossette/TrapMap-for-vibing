@@ -11,7 +11,7 @@
  * Phase: 100-02 (Store Repository Pattern)
  */
 
-import type { ArtifactReadProjection } from '@trapmap/backend-core';
+import type { ArtifactReadProjection } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
 import type { UsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
@@ -90,7 +90,7 @@ export async function createAllRepos(config: {
   };
 }
 
-export type { ArtifactReadProjection } from '@trapmap/backend-core';
+export type { ArtifactReadProjection } from '@trapmap/contracts';
 
 /**
  * InMemory UsageAnalyticsRepository for JSON mode (no pool).

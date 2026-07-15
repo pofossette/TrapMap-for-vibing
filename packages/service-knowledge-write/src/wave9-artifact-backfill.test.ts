@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { ArtifactReadProjection } from '@trapmap/contracts';
 
-import type { ArtifactReadProjection, ArtifactWritePort } from './artifact-ports.js';
+import type { ArtifactWritePort } from './artifact-ports.js';
 import { migrateSkillArtifacts } from './wave9-artifact-backfill.js';
 
 const artifact = { id: 'artifact_1' } as never;

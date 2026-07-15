@@ -1,9 +1,10 @@
 import type { KnowledgeWritePort } from '@trapmap/backend-core';
+import type { ArtifactReadProjection } from '@trapmap/contracts';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { type KnowledgeWriteDeps, createKnowledgeWriteServiceModule } from './deps.js';
 import { type KnowledgeWriteReadinessOptions, registerKnowledgeWriteRoutes } from './routes.js';
 import { registerArtifactRoutes } from './artifact-routes.js';
-import type { ArtifactReadProjection, ArtifactWritePort } from './artifact-ports.js';
+import type { ArtifactWritePort } from './artifact-ports.js';
 
 export interface KnowledgeWriteServiceConfig {
   host: string;

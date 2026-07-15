@@ -1,5 +1,4 @@
 export * from './repo-ports.js';
-export * from './artifact-ports.js';
 export * from './queue-ports.js';
 export * from './retrieval-ports.js';
 export * from './actor-ports.js';
