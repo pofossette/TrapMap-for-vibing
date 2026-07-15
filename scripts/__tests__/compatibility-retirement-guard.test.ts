@@ -73,6 +73,21 @@ const RETIRED_WAVE_1_OWNER_SYMBOLS = [
   'createPgUserRepo',
   'createPgAuditRepo',
 ] as const;
+const RETIRED_WAVE_2_ARTIFACT_SYMBOLS = [
+  'createArtifactRepository',
+  'PgArtifactRepository',
+  'artifactRepo',
+] as const;
+const WAVE_2_ARTIFACT_SCAN_ROOTS = [
+  'packages/server/src',
+  'packages/runtime-infra/src',
+  'packages/host-local/src',
+  'packages/host-distributed/src',
+  'packages/worker/src',
+] as const;
+const WAVE_2_ARTIFACT_ALLOWLIST = new Set([
+  'packages/server/src/lib/persistence/migrate-artifacts.ts',
+]);
 const allowlist: AllowlistEntry[] = [
   ['package.json', '@trapmap/server', 'wave-10', 'root development dependency'],
   [
@@ -194,12 +209,6 @@ const allowlist: AllowlistEntry[] = [
     'compatibility image self-reference',
   ],
   ['packages/server/src/config.ts', 'JsonStore', 'wave-8', 'compatibility runtime capability'],
-  [
-    'packages/server/src/lib/artifacts/model/commands.ts',
-    'JsonStore',
-    'wave-2',
-    'artifact JSON fallback',
-  ],
   [
     'packages/server/src/lib/artifacts/repository.ts',
     'store_snapshot',
@@ -542,6 +551,26 @@ function findRetiredWaveOneOwners(root: string): string[] {
   );
 }
 
+function findRetiredWaveTwoArtifactOwners(root: string): string[] {
+  return WAVE_2_ARTIFACT_SCAN_ROOTS.flatMap((ownerRoot) =>
+    listFiles(join(root, ownerRoot)).flatMap((file) => {
+      if (!isProductionFile(root, file)) return [];
+      const relativeFile = relative(root, file);
+      if (WAVE_2_ARTIFACT_ALLOWLIST.has(relativeFile)) return [];
+      const content = readFileSync(file, 'utf8');
+      const patterns = [
+        /\bimport\s+[^;]*\bcreateArtifactRepository\b/,
+        /\bimport\s+[^;]*\bPgArtifactRepository\b/,
+        /\bnew\s+PgArtifactRepository\b/,
+        /\bartifactRepo\s*[:?]/,
+      ];
+      return patterns
+        .filter((pattern) => pattern.test(content))
+        .map((pattern) => `retired wave-2 artifact owner: ${relativeFile}:${pattern}`);
+    }),
+  );
+}
+
 describe('compatibility retirement guard', () => {
   it('keeps Wave-8 host composition as the sole server factory path for migrated entrypoints', () => {
     for (const file of POSTGRES_COMPOSITION_ENTRYPOINTS) {
@@ -593,6 +622,21 @@ describe('compatibility retirement guard', () => {
 
   it('has no retired Wave-1 identity owners in production code', () => {
     expect(findRetiredWaveOneOwners(repoRoot)).toEqual([]);
+  });
+
+  it('rejects retired Wave-2 artifact owners in compatibility surfaces', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trapmap-compatibility-guard-'));
+    writeProductionFile(
+      root,
+      'packages/runtime-infra/src/repos.ts',
+      "import { createArtifactRepository } from './legacy.js'; export const artifactRepo: unknown = createArtifactRepository();",
+    );
+
+    expect(findRetiredWaveTwoArtifactOwners(root)).toHaveLength(2);
+  });
+
+  it('has no retired Wave-2 artifact owners in production code', () => {
+    expect(findRetiredWaveTwoArtifactOwners(repoRoot)).toEqual([]);
   });
 
   it('requires a real file, supported symbol, owner wave, and rationale for each exception', () => {

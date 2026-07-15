@@ -77,7 +77,6 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   'lib/conflict/detect.ts',
 
   // Diagnostic/admin mutations — controlled operator writes and migration tools
-  'routes/operations/migrate.ts',
   'routes/operations/knowledge-legacy.ts',
   'routes/feedback-admin.ts',
   'routes/admin-benchmark.ts',

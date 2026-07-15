@@ -17,7 +17,6 @@ const ALLOWLIST = new Set<string>([
   'feedback.ts',
   'feedback-admin.ts',
   'maintenance.ts',
-  'operations/migrate.ts',
   'operations/status.ts',
   'teams.ts',
 ]);

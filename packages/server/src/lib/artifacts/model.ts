@@ -11,9 +11,4 @@
  * - applyDerivedArtifactOutputs(): Apply derived outputs to a revision
  */
 
-export {
-  createSkillArtifactRecord,
-  appendSkillArtifactRevision,
-  toSkillArtifact,
-  applyDerivedArtifactOutputs,
-} from './model/index.js';
+export { toSkillArtifact } from './model/index.js';

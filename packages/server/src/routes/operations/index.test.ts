@@ -27,7 +27,6 @@ import {
   badcaseRoutes,
   capsuleIndexRoutes,
   knowledgeLegacyRoutes,
-  migrateRoutes,
   statusRoutes,
 } from './index.js';
 
@@ -68,7 +67,6 @@ describe('Phase 80 Nyquist Validation', () => {
         { method: 'POST', path: '/v1/operations/capsule-index/cleanup-orphans' },
         { method: 'GET', path: '/v1/operations/knowledge' },
         { method: 'POST', path: '/v1/operations/knowledge/test-entry/deactivate' },
-        { method: 'POST', path: '/v1/operations/migrate' },
         { method: 'GET', path: '/v1/operations/status' },
       ];
 
@@ -94,9 +92,6 @@ describe('Phase 80 Nyquist Validation', () => {
       expect(knowledgeLegacyRoutes).toBeDefined();
       expect(typeof knowledgeLegacyRoutes).toBe('function');
 
-      expect(migrateRoutes).toBeDefined();
-      expect(typeof migrateRoutes).toBe('function');
-
       expect(statusRoutes).toBeDefined();
       expect(typeof statusRoutes).toBe('function');
     });
@@ -109,7 +104,6 @@ describe('Phase 80 Nyquist Validation', () => {
         { name: 'badcaseRoutes', fn: badcaseRoutes },
         { name: 'capsuleIndexRoutes', fn: capsuleIndexRoutes },
         { name: 'knowledgeLegacyRoutes', fn: knowledgeLegacyRoutes },
-        { name: 'migrateRoutes', fn: migrateRoutes },
         { name: 'statusRoutes', fn: statusRoutes },
       ];
 
@@ -137,13 +131,7 @@ describe('Phase 80 Nyquist Validation', () => {
     });
 
     it('each source module under 400 lines', () => {
-      const sourceModules = [
-        'audit.ts',
-        'capsule-index.ts',
-        'knowledge-legacy.ts',
-        'migrate.ts',
-        'status.ts',
-      ];
+      const sourceModules = ['audit.ts', 'capsule-index.ts', 'knowledge-legacy.ts', 'status.ts'];
 
       for (const moduleFile of sourceModules) {
         const filePath = path.join(operationsDir, moduleFile);
@@ -163,7 +151,7 @@ describe('Phase 80 Nyquist Validation', () => {
 
       // Artifact commands now belong to service-knowledge-write.
       const registerMatches = content.match(/app\.register\s*\(/g);
-      expect(registerMatches, 'Thin router should have 7 app.register calls').toHaveLength(7);
+      expect(registerMatches, 'Thin router should have 6 app.register calls').toHaveLength(6);
     });
   });
 

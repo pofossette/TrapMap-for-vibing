@@ -8,6 +8,4 @@
  * - derive.ts    : applyDerivedArtifactOutputs
  */
 
-export { createSkillArtifactRecord, appendSkillArtifactRevision } from './commands.js';
 export { toSkillArtifact } from './serialize.js';
-export { applyDerivedArtifactOutputs } from './derive.js';

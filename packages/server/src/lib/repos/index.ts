@@ -14,7 +14,6 @@
 import type { Pool } from 'pg';
 
 import type { UsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
-import type { ArtifactRepository } from '@trapmap/server/lib/artifacts/index.js';
 import type { CandidateRepository } from '@trapmap/server/lib/candidates/index.js';
 import type { ConflictRepository } from '@trapmap/server/lib/conflict/repository.js';
 import type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
@@ -25,7 +24,6 @@ import type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 import { createUsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
-import { createArtifactRepository } from '@trapmap/server/lib/artifacts/index.js';
 import { createCandidateRepository } from '@trapmap/server/lib/candidates/index.js';
 import { createConflictRepository } from '@trapmap/server/lib/conflict/repository.js';
 import { createDuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
@@ -34,7 +32,6 @@ import { createGraphIndexRepository } from '@trapmap/server/lib/graph-index/inde
 import { createKnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
 import { createLineageRepository } from '@trapmap/server/lib/lineage/index.js';
 
-export type { ArtifactRepository } from '@trapmap/server/lib/artifacts/index.js';
 export type { CandidateRepository } from '@trapmap/server/lib/candidates/index.js';
 export type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
 export type { FeedbackRepository } from '@trapmap/server/lib/feedback/index.js';
@@ -47,7 +44,7 @@ export type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
  */
 export interface SkillShareerRepos {
   knowledge: KnowledgeRepository;
-  artifact: ArtifactRepository;
+  artifact: ArtifactReadProjection;
   candidate: CandidateRepository;
   conflict: ConflictRepository;
   usageAnalytics: UsageAnalyticsRepository;
@@ -67,6 +64,7 @@ export interface SkillShareerRepos {
 export async function createAllRepos(config: {
   pool?: Pool;
   store: SkillShareerStore;
+  artifactReadProjection: ArtifactReadProjection;
 }): Promise<SkillShareerRepos> {
   let usageAnalytics: UsageAnalyticsRepository;
   if (config.pool) {
@@ -80,7 +78,7 @@ export async function createAllRepos(config: {
 
   return {
     knowledge: createKnowledgeRepository(config),
-    artifact: createArtifactRepository(config),
+    artifact: config.artifactReadProjection,
     candidate: createCandidateRepository({ ...config, duplicateRepo: duplicate }),
     conflict: createConflictRepository(config),
     usageAnalytics,
@@ -89,6 +87,24 @@ export async function createAllRepos(config: {
     lineage: createLineageRepository(config),
     graphIndex: createGraphIndexRepository(config),
   };
+}
+
+export interface ArtifactReadProjection {
+  getById(
+    artifactId: string,
+  ): Promise<import('@trapmap/server/lib/store.js').SkillArtifactRecord | null>;
+  listByFilter(filter: {
+    lifecycleState?: import('@trapmap/contracts').LifecycleState;
+    teamId?: string;
+    ownerUserId?: string;
+    maintainerUserId?: string;
+  }): Promise<import('@trapmap/server/lib/store.js').SkillArtifactRecord[]>;
+  listForRetrieval(filter: {
+    lifecycleState?: import('@trapmap/contracts').LifecycleState;
+    teamId?: string;
+    ownerUserId?: string;
+    maintainerUserId?: string;
+  }): Promise<import('@trapmap/server/lib/store.js').SkillArtifactRecord[]>;
 }
 
 /**

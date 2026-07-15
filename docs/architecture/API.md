@@ -291,7 +291,6 @@
 - `GET /v1/operations/artifacts/:artifactId/history`
 - `GET /v1/operations/artifacts/review-queue`
 - `POST /v1/operations/artifacts/:artifactId/review`
-- `POST /v1/operations/migrate`
 - `GET /v1/operations/status`
 - `GET /v1/operations/status/async`
 - `POST /v1/operations/status/async/tasks/:taskId/requeue`

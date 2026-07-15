@@ -36,4 +36,3 @@ export {
 export { buildClientManifest } from './derive/client-manifest.js';
 export { deriveSkillArtifactOutputs, applyDerivedArtifactOutputs } from './derive/legacy.js';
 export { deriveFromPayloads } from './derive/from-payloads.js';
-export { deriveAndApplyOutputs } from './derive/apply.js';

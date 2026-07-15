@@ -8,6 +8,7 @@ import { loadConfig } from './config.js';
 import { createAiProviders } from './lib/ai/index.js';
 import { createAsyncTransport } from './lib/async/factory.js';
 import type { IdentityCompatibilityBundle, SkillShareerServices } from './lib/context.js';
+import type { ArtifactReadProjection } from './lib/repos/index.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
 import { type GraphQueryBackend, createGraphQueryRuntimeState } from './lib/graph-query/index.js';
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
@@ -48,6 +49,7 @@ export interface BuildServerOptions {
   runtimeMode?: RuntimeMode;
   serviceUnit?: ServiceUnit;
   identityBundle?: IdentityCompatibilityBundle;
+  artifactReadProjection?: ArtifactReadProjection;
   store?: SkillShareerStore;
   ownsStore?: boolean;
 }
@@ -180,8 +182,7 @@ export function buildServer(options: BuildServerOptions = {}) {
     ai: createAiProviders(config.ai),
     // knowledgeRepo is set in bootstrapRepositories when PostgreSQL pool is available
     knowledgeRepo: undefined,
-    // artifactRepo is set in bootstrapRepositories when PostgreSQL pool is available
-    artifactRepo: undefined,
+    artifactReadProjection: options.artifactReadProjection as ArtifactReadProjection,
     identity: options.identityBundle,
     // usageAnalyticsRepo is set in bootstrapRepositories when PostgreSQL pool is available
     usageAnalyticsRepo: undefined,

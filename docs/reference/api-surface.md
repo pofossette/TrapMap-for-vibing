@@ -178,7 +178,6 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `POST` | `/v1/operations/import` | `importRequestSchema` | `importResponseSchema` | 导入 JSON 或兼容 Claude 的技能内容 |
 | `GET` | `/v1/operations/knowledge` | `knowledgeListRequestSchema` | `knowledgeListResponseSchema` | 列出所有知识条目（旧版，用于迁移） |
 | `GET` | `/v1/operations/audit` | `auditQuerySchema` | `auditListResponseSchema` | 查看操作审计事件 |
-| `POST` | `/v1/operations/migrate` | `legacyMigrationRequestSchema` | `legacyMigrationResponseSchema` | 迁移旧版知识条目到工件格式 |
 | `GET` | `/v1/operations/status` | `compatibilityStatusRequestSchema` | `compatibilityStatusResponseSchema` | 获取系统兼容性状态 |
 | `GET` | `/v1/operations/status/async` | 无 | `asyncOperationsStatusResponseSchema` | 获取 Phase 2 async contract，以及 Phase 3 的 `operatorHome`、`configGovernance`、`capacityModel`、`bulkOperations`、queue/outbox/cache/workflow drill-down |
 | `POST` | `/v1/operations/status/async/tasks/:taskId/requeue` | 无 | `asyncTaskRequeueResponseSchema` | 通过统一 operator flow 重新入队 dead task |

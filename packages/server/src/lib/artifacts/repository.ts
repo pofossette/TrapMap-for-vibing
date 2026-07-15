@@ -11,7 +11,6 @@
  */
 
 import type { LifecycleState } from '@trapmap/contracts';
-import type { Pool } from 'pg';
 
 import { transitionLifecycleState } from '@trapmap/server/lib/lifecycle/index.js';
 import type {
@@ -20,7 +19,6 @@ import type {
   SkillArtifactRevisionRecord,
   SkillShareerStore,
 } from '@trapmap/server/lib/store.js';
-import { PgArtifactRepository } from './pg-repository.js';
 
 /**
  * Repository interface for skill artifact CRUD operations.
@@ -282,22 +280,4 @@ class InMemoryArtifactRepository implements ArtifactRepository {
       artifact.updatedAt = new Date().toISOString();
     });
   }
-}
-
-/**
- * Factory function to create the appropriate ArtifactRepository.
- * Returns PgArtifactRepository when pool is available,
- * InMemoryArtifactRepository otherwise.
- *
- * Phase 63: PostgreSQL-only, no JSONB shadow writes.
- */
-export function createArtifactRepository(config: {
-  pool?: Pool;
-  store: SkillShareerStore;
-}): ArtifactRepository {
-  if (config.pool) {
-    // Phase 63: PostgreSQL-only, no JSONB shadow writes
-    return new PgArtifactRepository(config.pool);
-  }
-  return new InMemoryArtifactRepository(config.store);
 }

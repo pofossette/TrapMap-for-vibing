@@ -20,16 +20,13 @@ export function registerFeedbackStatsRoute(app: FastifyInstance) {
     const params = request.params as { entryId: string };
     const entryId = params.entryId;
 
-    const {
-      feedback: feedbackRepo,
-      knowledge: knowledgeRepo,
-      artifact: artifactRepo,
-    } = app.skillShareer.repos;
+    const { feedback: feedbackRepo, knowledge: knowledgeRepo } = app.skillShareer.repos;
+    const artifactReadProjection = app.skillShareer.artifactReadProjection;
     const now = new Date();
 
     // Find entry to determine type using repositories
     const knowledgeEntry = await knowledgeRepo.getById(entryId);
-    const skillArtifact = knowledgeEntry ? null : await artifactRepo.getById(entryId);
+    const skillArtifact = knowledgeEntry ? null : await artifactReadProjection.getById(entryId);
 
     if (!knowledgeEntry && !skillArtifact) {
       throw new AppError(404, 'not_found', 'Entry not found');

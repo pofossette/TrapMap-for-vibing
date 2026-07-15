@@ -33,6 +33,7 @@ export async function buildHostLocalServer(
       deployment: { ...config.deployment, ...options.config?.deployment },
     },
     identityBundle: services.identity,
+    artifactReadProjection: services.artifactReadProjection,
     store: services.store,
     ownsStore: false,
   });

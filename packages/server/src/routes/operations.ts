@@ -5,7 +5,6 @@ import {
   badcaseRoutes,
   capsuleIndexRoutes,
   knowledgeLegacyRoutes,
-  migrateRoutes,
   statsRoutes,
   statusRoutes,
 } from './operations/index.js';
@@ -17,7 +16,6 @@ export const operationsRoutes: FastifyPluginAsync = async (app) => {
   await app.register(badcaseRoutes);
   await app.register(knowledgeLegacyRoutes);
   await app.register(capsuleIndexRoutes);
-  await app.register(migrateRoutes);
   await app.register(statusRoutes);
   await app.register(statsRoutes);
 };

@@ -94,7 +94,7 @@
    - **引导文件**（`bootstrap/*.ts`）：启动接线和恢复
    - **生命周期订阅者**（`lib/lifecycle/subscribers/*.ts`）：事件驱动副作用
    - **Candidate 处理**（`lib/candidates/processor.ts`、`lib/candidates/services/*.ts`）：管道变更
-   - **诊断/管理变更**（`routes/operations/artifacts-export.ts`、`routes/operations/artifacts-import.ts`、`routes/operations/migrate.ts`、`routes/feedback-admin.ts`、`routes/admin-*.ts`、`routes/maintenance.ts` 等）：受控的操作者写入或迁移流，仍通过 `store.transact()` 追加审计/历史记录。此类别不是对读侧快照组装的空白批准。
+   - **诊断/管理变更**（`routes/feedback-admin.ts`、`routes/admin-*.ts`、`routes/maintenance.ts` 等）：受控的操作者写入仍通过 `store.transact()` 追加审计/历史记录。artifact 迁移仅允许 Wave-9 helper，不注册为 server HTTP route。此类别不是对读侧快照组装的空白批准。
    - **投影例外**（`lib/operations/read-model.ts`）：具有命名 repo 能力缺口的显式读侧辅助器。`lib/operations/read-model.ts` 是 Stage 1 操作者投影 seam；其剩余的 `store.snapshot()` 仅限于导出用的 artifact revision payload 填充，因为没有仓库方法暴露 revision 文件体。
   - **应用服务兼容层 seam**（`lib/knowledge/review-application-service.ts`）：仅限历史迁移债务。活跃的 server 路径不再使用此文件进行权威 review 写入；当前写归属位于分布式宿主服务之后。
    - **剩余迁移目标**：retrieval 读模型组装无剩余；现在通过仓库 seam 读取而非兼容快照输入。

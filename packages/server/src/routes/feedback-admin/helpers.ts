@@ -62,11 +62,8 @@ export function computeQualityScore(feedback: FeedbackQueueRecord[]): QualitySco
 }
 
 export async function buildRemediationQueueItems(app: Parameters<FastifyPluginAsync>[0]) {
-  const {
-    feedback: feedbackRepo,
-    knowledge: knowledgeRepo,
-    artifact: artifactRepo,
-  } = app.skillShareer.repos;
+  const { feedback: feedbackRepo, knowledge: knowledgeRepo } = app.skillShareer.repos;
+  const artifactReadProjection = app.skillShareer.artifactReadProjection;
   const now = new Date();
   const allFeedback = await feedbackRepo.listByFilter({});
   const grouped = new Map<string, FeedbackQueueRecord[]>();
@@ -88,7 +85,7 @@ export async function buildRemediationQueueItems(app: Parameters<FastifyPluginAs
     if (!remediation) continue;
 
     const knowledgeEntry = await knowledgeRepo.getById(entryId);
-    const skillArtifact = knowledgeEntry ? null : await artifactRepo.getById(entryId);
+    const skillArtifact = knowledgeEntry ? null : await artifactReadProjection.getById(entryId);
     if (!knowledgeEntry && !skillArtifact) continue;
 
     const entryType = knowledgeEntry ? 'trap' : 'skill';

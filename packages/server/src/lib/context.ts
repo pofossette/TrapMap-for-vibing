@@ -16,13 +16,12 @@ import type { FastifyRequest } from 'fastify';
 import type { ServerConfig } from '@trapmap/server/config.js';
 import type { AiProviders } from './ai/types.js';
 import type { UsageAnalyticsRepository } from './analytics/index.js';
-import type { ArtifactRepository } from './artifacts/index.js';
 import type { AsyncTransport } from './async/transport.js';
 import type { GraphQueryBackend, GraphQueryRuntimeState } from './graph-query/index.js';
 import type { AdapterRegistry } from './indexing/registry.js';
 import type { KnowledgeRepository } from './knowledge/index.js';
 import type { LifecycleEventBus } from './lifecycle/index.js';
-import type { SkillShareerRepos } from './repos/index.js';
+import type { ArtifactReadProjection, SkillShareerRepos } from './repos/index.js';
 import type { ChannelRegistry, StrategyRegistry } from './retrieval/orchestration/index.js';
 import type {
   RequestContext,
@@ -69,10 +68,8 @@ export interface SkillShareerServices {
    * @deprecated Use `repos.knowledge` instead. Retained for backward compatibility only.
    */
   knowledgeRepo: KnowledgeRepository | undefined;
-  /**
-   * @deprecated Use `repos.artifact` instead. Retained for backward compatibility only.
-   */
-  artifactRepo: ArtifactRepository | undefined;
+  /** Wave-7 temporary PG-only artifact read projection. */
+  artifactReadProjection: ArtifactReadProjection;
   /** Identity/audit capabilities injected by the owning host. */
   identity: IdentityCompatibilityBundle;
   /**

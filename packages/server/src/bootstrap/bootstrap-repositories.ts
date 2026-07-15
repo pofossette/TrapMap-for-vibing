@@ -89,9 +89,16 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
 
   // Create unified repos object (both JSON and PG modes)
   if (pool) {
-    app.skillShareer.repos = await createAllRepos({ store, pool });
+    app.skillShareer.repos = await createAllRepos({
+      store,
+      pool,
+      artifactReadProjection: app.skillShareer.artifactReadProjection,
+    });
   } else {
-    app.skillShareer.repos = await createAllRepos({ store });
+    app.skillShareer.repos = await createAllRepos({
+      store,
+      artifactReadProjection: app.skillShareer.artifactReadProjection,
+    });
   }
 
   const memoryBackend = createMemoryGraphQueryBackend(app.skillShareer.repos.graphIndex);
