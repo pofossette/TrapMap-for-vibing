@@ -1,9 +1,4 @@
-import {
-  knowledgeEntryResponseSchema,
-  knowledgeHistoryResponseSchema,
-  knowledgeResubmissionSchema,
-  knowledgeSubmissionSchema,
-} from '@trapmap/contracts';
+import { knowledgeEntryResponseSchema, knowledgeResubmissionSchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
 import { AppError } from '@trapmap/server/lib/errors.js';
@@ -12,38 +7,15 @@ import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 import { normalizeKnowledgeOwnerEntry, ownerId } from './knowledge-owner-response.js';
-
-function requireRealUser(userId: string | undefined): string {
-  if (!userId) {
-    throw new AppError(
-      403,
-      'user_required',
-      'This workflow requires a real member account instead of the virtual system admin',
-    );
-  }
-  return userId;
-}
+import {
+  listOwnedKnowledgeHistory,
+  requireRealUser,
+  resolveOwnerSubmission,
+} from './knowledge-owner-route-helpers.js';
 
 export const trapRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/traps', async (request) => {
-    const auth = await resolveAuthContext(app.skillShareer, request);
-    requirePermission(auth, 'knowledge:submit');
-    const payload = knowledgeSubmissionSchema.parse(request.body);
-    const ownerUserId = requireRealUser(auth.user?.id);
-    if (payload.scope === 'project' && !auth.activeTeamId) {
-      throw new AppError(
-        400,
-        'active_team_required',
-        'Project-scoped trap requires an active team',
-      );
-    }
-    if (payload.requiredLevel !== undefined && payload.requiredLevel > auth.securityLevel) {
-      throw new AppError(
-        403,
-        'required_level_too_high',
-        'requiredLevel cannot exceed the submitter security level',
-      );
-    }
+    const { auth, payload, ownerUserId } = await resolveOwnerSubmission(app, request, 'trap');
 
     const result = await app.skillShareer.knowledgeOwner.createTrap({
       actorId: ownerUserId,
@@ -70,13 +42,7 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.get('/v1/traps', async (request) => {
-    const auth = await resolveAuthContext(app.skillShareer, request);
-    const entries = await app.skillShareer.knowledgeOwner.listByFilter({
-      ownerUserId: requireRealUser(auth.user?.id),
-    });
-    return knowledgeHistoryResponseSchema.parse({
-      items: entries.map((entry) => normalizeKnowledgeOwnerEntry(entry)),
-    });
+    return listOwnedKnowledgeHistory(app, request);
   });
 
   app.get('/v1/traps/:trapId', async (request) => {

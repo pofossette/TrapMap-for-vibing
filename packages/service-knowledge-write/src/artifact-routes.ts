@@ -1,22 +1,7 @@
-import { InvocationError, toInvocationErrorResponse } from '@trapmap/backend-core';
 import type { ArtifactReadProjection } from '@trapmap/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ArtifactWritePort } from './artifact-ports.js';
-
-function trustedActor(
-  request: FastifyRequest,
-  body: Record<string, unknown>,
-): Record<string, unknown> {
-  const actorId = request.headers['x-trapmap-actor-id'];
-  if (typeof actorId !== 'string' || actorId.length === 0) {
-    throw InvocationError.unauthorized('Missing trusted actor identity');
-  }
-  if (typeof body.actorId === 'string' && body.actorId !== actorId) {
-    throw InvocationError.forbidden('Body actor does not match trusted actor identity');
-  }
-  const { actorId: _bodyActorId, ...input } = body;
-  return { ...input, actorId };
-}
+import { sendInvocationError, trustedActor } from './route-helpers.js';
 
 export function registerArtifactRoutes(
   app: FastifyInstance,
@@ -28,8 +13,7 @@ export function registerArtifactRoutes(
       const body = trustedActor(request, (request.body ?? {}) as Record<string, unknown>);
       return reply.status(201).send(await artifacts.importArtifact(body));
     } catch (error) {
-      const response = toInvocationErrorResponse(error);
-      return reply.status(response.status).send(response.body);
+      return sendInvocationError(reply, error);
     }
   });
   app.post('/internal/artifacts/export', async (request, reply) => {
@@ -40,16 +24,14 @@ export function registerArtifactRoutes(
           await readProjection.exportArtifacts((request.body ?? {}) as Record<string, unknown>),
         );
     } catch (error) {
-      const response = toInvocationErrorResponse(error);
-      return reply.status(response.status).send(response.body);
+      return sendInvocationError(reply, error);
     }
   });
   app.get('/internal/artifacts/review-queue', async (_request, reply) => {
     try {
       return reply.status(200).send(await readProjection.reviewQueue());
     } catch (error) {
-      const response = toInvocationErrorResponse(error);
-      return reply.status(response.status).send(response.body);
+      return sendInvocationError(reply, error);
     }
   });
   app.get(
@@ -62,8 +44,7 @@ export function registerArtifactRoutes(
           .status(artifact ? 200 : 404)
           .send(artifact ?? { error: 'Artifact not found', kind: 'not-found' });
       } catch (error) {
-        const response = toInvocationErrorResponse(error);
-        return reply.status(response.status).send(response.body);
+        return sendInvocationError(reply, error);
       }
     },
   );
@@ -83,8 +64,7 @@ export function registerArtifactRoutes(
         });
         return reply.status(200).send(artifact);
       } catch (error) {
-        const response = toInvocationErrorResponse(error);
-        return reply.status(response.status).send(response.body);
+        return sendInvocationError(reply, error);
       }
     },
   );
@@ -97,8 +77,7 @@ export function registerArtifactRoutes(
           await artifacts.editArtifact((request.params as { artifactId: string }).artifactId, body),
         );
     } catch (error) {
-      const response = toInvocationErrorResponse(error);
-      return reply.status(response.status).send(response.body);
+      return sendInvocationError(reply, error);
     }
   });
   app.get('/internal/artifacts/:artifactId/history', async (request, reply) => {
@@ -107,8 +86,7 @@ export function registerArtifactRoutes(
         .status(200)
         .send(await readProjection.history((request.params as { artifactId: string }).artifactId));
     } catch (error) {
-      const response = toInvocationErrorResponse(error);
-      return reply.status(response.status).send(response.body);
+      return sendInvocationError(reply, error);
     }
   });
   app.post('/internal/artifacts/:artifactId/review', async (request, reply) => {
@@ -129,8 +107,7 @@ export function registerArtifactRoutes(
           ),
         );
     } catch (error) {
-      const response = toInvocationErrorResponse(error);
-      return reply.status(response.status).send(response.body);
+      return sendInvocationError(reply, error);
     }
   });
   app.post('/internal/artifacts/activate', async (request, reply) => {
@@ -138,8 +115,7 @@ export function registerArtifactRoutes(
       const body = trustedActor(request, (request.body ?? {}) as Record<string, unknown>);
       return reply.status(200).send(await artifacts.activate(body));
     } catch (error) {
-      const response = toInvocationErrorResponse(error);
-      return reply.status(response.status).send(response.body);
+      return sendInvocationError(reply, error);
     }
   });
   app.post('/internal/artifacts/:artifactId/deactivate', async (request, reply) => {
@@ -158,8 +134,7 @@ export function registerArtifactRoutes(
           ),
         );
     } catch (error) {
-      const response = toInvocationErrorResponse(error);
-      return reply.status(response.status).send(response.body);
+      return sendInvocationError(reply, error);
     }
   });
 }

@@ -1,6 +1,6 @@
 import type { KnowledgeWritePort } from '@trapmap/backend-core';
-import { InvocationError, toInvocationErrorResponse } from '@trapmap/backend-core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { sendInvocation, sendInvocationError, trustedActor } from './route-helpers.js';
 
 export interface KnowledgeWriteReadinessOptions {
   checkDependency?: () => Promise<{ reachable: boolean; detail?: string }>;
@@ -54,21 +54,6 @@ type KnowledgeWriteRpcMethod =
   | 'applyDecayDecision'
   | 'publishCandidateResult';
 
-function trustedActor<T extends Record<string, unknown>>(
-  request: FastifyRequest,
-  body: T,
-): Omit<T, 'actorId'> & { actorId: string } {
-  const actorId = request.headers['x-trapmap-actor-id'];
-  if (typeof actorId !== 'string' || actorId.length === 0) {
-    throw InvocationError.unauthorized('Missing trusted actor identity');
-  }
-  if (typeof body.actorId === 'string' && body.actorId !== actorId) {
-    throw InvocationError.forbidden('Body actor does not match trusted actor identity');
-  }
-  const { actorId: _bodyActorId, ...input } = body;
-  return { ...input, actorId };
-}
-
 async function invokeKnowledgeWriteRpc(
   module: KnowledgeWritePort,
   method: KnowledgeWriteRpcMethod,
@@ -96,6 +81,69 @@ async function invokeKnowledgeWriteRpc(
         input as Parameters<KnowledgeWritePort['publishCandidateResult']>[0],
       );
   }
+}
+
+type EntryUpdateBody = { updates: Record<string, unknown>; actorId?: string };
+type SupersedeBody = { replacementId: string; actorId?: string };
+type ReviewDecisionBody = {
+  entryId: string;
+  actorId?: string;
+  note?: string;
+  evidence?: Record<string, unknown>;
+};
+type MaintenanceDecisionBody = {
+  entryId: string;
+  actorId?: string;
+  action: string;
+  note?: string;
+  evidence?: Record<string, unknown>;
+};
+
+function readEntryUpdateBody(req: FastifyRequest): EntryUpdateBody & { actorId: string } {
+  return trustedActor(req, (req.body ?? {}) as EntryUpdateBody);
+}
+
+function readSupersedeBody(req: FastifyRequest): SupersedeBody & { actorId: string } {
+  return trustedActor(req, (req.body ?? {}) as SupersedeBody);
+}
+
+function readReviewDecisionBody(req: FastifyRequest): ReviewDecisionBody & { actorId: string } {
+  return trustedActor(req, (req.body ?? {}) as ReviewDecisionBody);
+}
+
+function readMaintenanceDecisionBody(
+  req: FastifyRequest,
+): MaintenanceDecisionBody & { actorId: string } {
+  return trustedActor(req, (req.body ?? {}) as MaintenanceDecisionBody);
+}
+
+function runEntryMutation<T>(
+  req: FastifyRequest,
+  reply: FastifyReply,
+  readBody: (req: FastifyRequest) => T,
+  operation: (entryId: string, body: T) => Promise<void>,
+) {
+  return sendInvocation(reply, 200, async () => {
+    const { entryId } = req.params as { entryId: string };
+    await operation(entryId, readBody(req));
+    return { ok: true };
+  });
+}
+
+function runReviewDecision(
+  req: FastifyRequest,
+  reply: FastifyReply,
+  operation: (body: ReviewDecisionBody & { actorId: string }) => Promise<unknown>,
+) {
+  return sendInvocation(reply, 200, () => operation(readReviewDecisionBody(req)));
+}
+
+function runMaintenanceDecision(
+  req: FastifyRequest,
+  reply: FastifyReply,
+  operation: (body: MaintenanceDecisionBody & { actorId: string }) => Promise<unknown>,
+) {
+  return sendInvocation(reply, 200, () => operation(readMaintenanceDecisionBody(req)));
 }
 
 export function registerKnowledgeWriteRoutes(
@@ -128,8 +176,8 @@ export function registerKnowledgeWriteRoutes(
       followUpDisposition: 'outbox-queue-workflow-async',
     });
   };
-  app.post('/internal/knowledge', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
+  app.post('/internal/knowledge', async (req: FastifyRequest, reply: FastifyReply) =>
+    sendInvocation(reply, 201, async () => {
       const body = trustedActor(
         req,
         (req.body ?? {}) as {
@@ -140,67 +188,34 @@ export function registerKnowledgeWriteRoutes(
           teamId?: string;
         },
       );
-      const result = await module.submit(body);
-      return reply.status(201).send(result);
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
+      return module.submit(body);
+    }),
+  );
 
-  app.put('/internal/knowledge/:entryId', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const { entryId } = req.params as { entryId: string };
-      const body = trustedActor(
-        req,
-        (req.body ?? {}) as { updates: Record<string, unknown>; actorId?: string },
-      );
-      await module.updateEntry(entryId, body.updates, body.actorId);
-      return reply.status(200).send({ ok: true });
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
+  app.put('/internal/knowledge/:entryId', async (req: FastifyRequest, reply: FastifyReply) =>
+    runEntryMutation(req, reply, readEntryUpdateBody, (entryId, body) =>
+      module.updateEntry(entryId, body.updates, body.actorId),
+    ),
+  );
 
   app.post(
     '/internal/knowledge/:entryId/resubmit',
-    async (req: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const { entryId } = req.params as { entryId: string };
-        const body = trustedActor(
-          req,
-          (req.body ?? {}) as { updates: Record<string, unknown>; actorId?: string },
-        );
-        await module.resubmit(entryId, body.updates, body.actorId);
-        return reply.status(200).send({ ok: true });
-      } catch (err) {
-        const { status, body } = toInvocationErrorResponse(err);
-        return reply.status(status).send(body);
-      }
-    },
+    async (req: FastifyRequest, reply: FastifyReply) =>
+      runEntryMutation(req, reply, readEntryUpdateBody, (entryId, body) =>
+        module.resubmit(entryId, body.updates, body.actorId),
+      ),
   );
 
   app.post(
     '/internal/knowledge/:entryId/supersede',
-    async (req: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const { entryId } = req.params as { entryId: string };
-        const body = trustedActor(
-          req,
-          (req.body ?? {}) as { replacementId: string; actorId?: string },
-        );
-        await module.supersede(entryId, body.replacementId, body.actorId);
-        return reply.status(200).send({ ok: true });
-      } catch (err) {
-        const { status, body } = toInvocationErrorResponse(err);
-        return reply.status(status).send(body);
-      }
-    },
+    async (req: FastifyRequest, reply: FastifyReply) =>
+      runEntryMutation(req, reply, readSupersedeBody, (entryId, body) =>
+        module.supersede(entryId, body.replacementId, body.actorId),
+      ),
   );
 
-  app.post('/internal/traps', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
+  app.post('/internal/traps', async (req: FastifyRequest, reply: FastifyReply) =>
+    sendInvocation(reply, 201, async () => {
       const body = trustedActor(
         req,
         (req.body ?? {}) as {
@@ -210,24 +225,16 @@ export function registerKnowledgeWriteRoutes(
           title?: string;
         },
       );
-      const result = await module.createTrap(body);
-      return reply.status(201).send(result);
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
+      return module.createTrap(body);
+    }),
+  );
 
-  app.get('/internal/traps', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
+  app.get('/internal/traps', async (req: FastifyRequest, reply: FastifyReply) =>
+    sendInvocation(reply, 200, async () => {
       const { teamId } = req.query as { teamId?: string };
-      const result = await module.listTraps(teamId ?? '');
-      return reply.status(200).send(result);
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
+      return module.listTraps(teamId ?? '');
+    }),
+  );
 
   app.get('/internal/traps/:trapId', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -243,92 +250,24 @@ export function registerKnowledgeWriteRoutes(
     }
   });
 
-  app.post(
-    '/internal/knowledge/review/approve',
-    async (req: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const body = trustedActor(
-          req,
-          (req.body ?? {}) as {
-            entryId: string;
-            actorId?: string;
-            note?: string;
-            evidence?: Record<string, unknown>;
-          },
-        );
-        const result = await module.approveReviewDecision(body);
-        return reply.status(200).send(result);
-      } catch (err) {
-        const { status, body } = toInvocationErrorResponse(err);
-        return reply.status(status).send(body);
-      }
-    },
+  app.post('/internal/knowledge/review/approve', async (req: FastifyRequest, reply: FastifyReply) =>
+    runReviewDecision(req, reply, (body) => module.approveReviewDecision(body)),
   );
 
-  app.post(
-    '/internal/knowledge/review/reject',
-    async (req: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const body = trustedActor(
-          req,
-          (req.body ?? {}) as {
-            entryId: string;
-            actorId?: string;
-            note?: string;
-            evidence?: Record<string, unknown>;
-          },
-        );
-        const result = await module.rejectReviewDecision(body);
-        return reply.status(200).send(result);
-      } catch (err) {
-        const { status, body } = toInvocationErrorResponse(err);
-        return reply.status(status).send(body);
-      }
-    },
+  app.post('/internal/knowledge/review/reject', async (req: FastifyRequest, reply: FastifyReply) =>
+    runReviewDecision(req, reply, (body) => module.rejectReviewDecision(body)),
   );
 
-  app.post('/internal/knowledge/maintenance', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const body = trustedActor(
-        req,
-        (req.body ?? {}) as {
-          entryId: string;
-          actorId?: string;
-          action: string;
-          note?: string;
-          evidence?: Record<string, unknown>;
-        },
-      );
-      const result = await module.applyMaintenanceDecision(body);
-      return reply.status(200).send(result);
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
+  app.post('/internal/knowledge/maintenance', async (req: FastifyRequest, reply: FastifyReply) =>
+    runMaintenanceDecision(req, reply, (body) => module.applyMaintenanceDecision(body)),
+  );
 
-  app.post('/internal/knowledge/decay', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const body = trustedActor(
-        req,
-        (req.body ?? {}) as {
-          entryId: string;
-          actorId?: string;
-          action: string;
-          note?: string;
-          evidence?: Record<string, unknown>;
-        },
-      );
-      const result = await module.applyDecayDecision(body);
-      return reply.status(200).send(result);
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
+  app.post('/internal/knowledge/decay', async (req: FastifyRequest, reply: FastifyReply) =>
+    runMaintenanceDecision(req, reply, (body) => module.applyDecayDecision(body)),
+  );
 
-  app.post('/internal/candidates/publish', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
+  app.post('/internal/candidates/publish', async (req: FastifyRequest, reply: FastifyReply) =>
+    sendInvocation(reply, 200, async () => {
       const body = trustedActor(
         req,
         (req.body ?? {}) as {
@@ -337,13 +276,9 @@ export function registerKnowledgeWriteRoutes(
           result: Record<string, unknown>;
         },
       );
-      const result = await module.publishCandidateResult(body);
-      return reply.status(200).send(result);
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
+      return module.publishCandidateResult(body);
+    }),
+  );
 
   app.post('/internal/rpc/knowledge-write', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -352,8 +287,7 @@ export function registerKnowledgeWriteRoutes(
       const result = await invokeKnowledgeWriteRpc(module, body.method, input);
       return reply.status(200).send({ ok: true, result });
     } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
+      return sendInvocationError(reply, err);
     }
   });
 

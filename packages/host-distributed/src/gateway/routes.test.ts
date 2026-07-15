@@ -107,7 +107,7 @@ async function buildApp(clients: InternalServiceClients) {
 }
 
 describe('registerGatewayRoutes', () => {
-  it('forwards the authenticated actor in a trusted header instead of the body', async () => {
+  it('rejects an artifact mutation when the body actor spoofs the authenticated actor', async () => {
     const clients = createClients();
     const app = await buildApp(clients);
 
@@ -118,11 +118,50 @@ describe('registerGatewayRoutes', () => {
       payload: { artifactId: 'artifact-1', selectedPaths: [], actorId: 'spoofed-user' },
     });
 
-    expect(response.statusCode).toBe(200);
-    expect(clients.knowledgeWrite.activateArtifact).toHaveBeenCalledWith(
-      { artifactId: 'artifact-1', selectedPaths: [] },
-      { headers: { 'x-request-id': 'request-1', 'x-trapmap-actor-id': 'user-1' } },
-    );
+    expect(response.statusCode).toBe(403);
+    expect(clients.knowledgeWrite.activateArtifact).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it.each([
+    { description: 'with a body actor', payload: { content: 'content', actorId: 'user-1' } },
+    { description: 'before body validation', payload: { content: 'content' } },
+  ])(
+    'rejects a mutation when the authenticated identity has no actor $description',
+    async ({ payload }) => {
+      const clients = createClients();
+      clients.identityAccess.validateSession = vi.fn(async () => ({
+        status: 200,
+        body: { sessionId: 'session-1' },
+      }));
+      const app = await buildApp(clients);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/knowledge',
+        headers: { authorization: 'Bearer session-token' },
+        payload,
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(clients.knowledgeWrite.submit).not.toHaveBeenCalled();
+      await app.close();
+    },
+  );
+
+  it('rejects a mutation when the body actor spoofs the authenticated actor', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/knowledge',
+      headers: { authorization: 'Bearer session-token' },
+      payload: { content: 'content', actorId: 'spoofed-user' },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(clients.knowledgeWrite.submit).not.toHaveBeenCalled();
     await app.close();
   });
 
@@ -494,7 +533,7 @@ describe('registerGatewayRoutes', () => {
         method: 'POST',
         url: '/v1/operations/artifacts/import',
         headers,
-        payload: { bundles: [], actorId: 'spoofed-user' },
+        payload: { bundles: [], actorId: 'user-1' },
       }),
       app.inject({
         method: 'POST',
@@ -506,27 +545,27 @@ describe('registerGatewayRoutes', () => {
         method: 'POST',
         url: '/v1/operations/artifacts/activate',
         headers,
-        payload: { artifactId: 'artifact-1', selectedPaths: [], actorId: 'spoofed-user' },
+        payload: { artifactId: 'artifact-1', selectedPaths: [], actorId: 'user-1' },
       }),
       app.inject({ method: 'GET', url: '/v1/operations/artifacts/review-queue', headers }),
       app.inject({
         method: 'POST',
         url: '/v1/operations/artifacts/artifact-1/edit',
         headers,
-        payload: { title: 'Edited', actorId: 'spoofed-user' },
+        payload: { title: 'Edited', actorId: 'user-1' },
       }),
       app.inject({ method: 'GET', url: '/v1/operations/artifacts/artifact-1/history', headers }),
       app.inject({
         method: 'POST',
         url: '/v1/operations/artifacts/artifact-1/review',
         headers,
-        payload: { decision: 'approve', actorId: 'spoofed-user' },
+        payload: { decision: 'approve', actorId: 'user-1' },
       }),
       app.inject({
         method: 'POST',
         url: '/v1/operations/artifacts/artifact-1/deactivate',
         headers,
-        payload: { actorId: 'spoofed-user' },
+        payload: { actorId: 'user-1' },
       }),
     ]);
 

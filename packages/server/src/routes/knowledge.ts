@@ -1,15 +1,12 @@
 import {
   knowledgeEntryResponseSchema,
-  knowledgeHistoryResponseSchema,
   knowledgeResubmissionSchema,
-  knowledgeSubmissionSchema,
   knowledgeUpdateSchema,
   reviewDecisionRequestSchema,
   reviewerDecisionOutputSchema,
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   requireHigherLevel,
   requirePermission,
@@ -19,17 +16,11 @@ import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
 import { normalizeKnowledgeOwnerEntry, ownerId } from './knowledge-owner-response.js';
-
-function requireRealUser(userId: string | undefined): string {
-  if (!userId) {
-    throw new AppError(
-      403,
-      'user_required',
-      'This workflow requires a real member account instead of the virtual system admin',
-    );
-  }
-  return userId;
-}
+import {
+  listOwnedKnowledgeHistory,
+  requireRealUser,
+  resolveOwnerSubmission,
+} from './knowledge-owner-route-helpers.js';
 
 async function loadEntry(
   app: Parameters<FastifyPluginAsync>[0],
@@ -40,27 +31,26 @@ async function loadEntry(
   return normalizeKnowledgeOwnerEntry(entry);
 }
 
+function logKnowledgeEdit(
+  app: Parameters<FastifyPluginAsync>[0],
+  auth: { actorId: string; handle: string; activeTeamId: string | null },
+  entryId: string,
+  metadata: { endpoint: 'resubmit' | 'update'; labels?: string[] },
+): void {
+  void logUserOperation(app.skillShareer.config.userOpsLog, {
+    timestamp: nowIso(),
+    actorId: auth.actorId,
+    actorHandle: auth.handle,
+    action: 'edit',
+    targetId: entryId,
+    teamId: auth.activeTeamId,
+    metadata,
+  });
+}
+
 export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
   app.post('/v1/knowledge', async (request) => {
-    const auth = await resolveAuthContext(app.skillShareer, request);
-    requirePermission(auth, 'knowledge:submit');
-    const payload = knowledgeSubmissionSchema.parse(request.body);
-    const ownerUserId = requireRealUser(auth.user?.id);
-
-    if (payload.scope === 'project' && !auth.activeTeamId) {
-      throw new AppError(
-        400,
-        'active_team_required',
-        'Project-scoped knowledge requires an active team',
-      );
-    }
-    if (payload.requiredLevel !== undefined && payload.requiredLevel > auth.securityLevel) {
-      throw new AppError(
-        403,
-        'required_level_too_high',
-        'requiredLevel cannot exceed the submitter security level',
-      );
-    }
+    const { auth, payload, ownerUserId } = await resolveOwnerSubmission(app, request, 'knowledge');
 
     const result = await app.skillShareer.knowledgeOwner.submit({
       actorId: ownerUserId,
@@ -112,13 +102,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.get('/v1/knowledge/mine', async (request) => {
-    const auth = await resolveAuthContext(app.skillShareer, request);
-    const entries = await app.skillShareer.knowledgeOwner.listByFilter({
-      ownerUserId: requireRealUser(auth.user?.id),
-    });
-    return knowledgeHistoryResponseSchema.parse({
-      items: entries.map((entry) => normalizeKnowledgeOwnerEntry(entry)),
-    });
+    return listOwnedKnowledgeHistory(app, request);
   });
 
   app.get('/v1/knowledge/:entryId', async (request) => {
@@ -151,15 +135,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       ownerUserId,
     );
     const entry = await loadEntry(app, entryId);
-    void logUserOperation(app.skillShareer.config.userOpsLog, {
-      timestamp: nowIso(),
-      actorId: auth.actorId,
-      actorHandle: auth.handle,
-      action: 'edit',
-      targetId: entryId,
-      teamId: auth.activeTeamId,
-      metadata: { endpoint: 'resubmit', labels: payload.labels },
-    });
+    logKnowledgeEdit(app, auth, entryId, { endpoint: 'resubmit', labels: payload.labels });
     return knowledgeEntryResponseSchema.parse({ entry });
   });
 
@@ -190,15 +166,7 @@ export const knowledgeRoutes: FastifyPluginAsync = async (app) => {
       actorId,
     );
     const entry = await loadEntry(app, entryId);
-    void logUserOperation(app.skillShareer.config.userOpsLog, {
-      timestamp: nowIso(),
-      actorId: auth.actorId,
-      actorHandle: auth.handle,
-      action: 'edit',
-      targetId: entryId,
-      teamId: auth.activeTeamId,
-      metadata: { endpoint: 'update', labels: payload.labels },
-    });
+    logKnowledgeEdit(app, auth, entryId, { endpoint: 'update', labels: payload.labels });
     return knowledgeEntryResponseSchema.parse({ entry });
   });
 

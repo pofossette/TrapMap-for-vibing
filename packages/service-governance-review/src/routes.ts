@@ -34,6 +34,38 @@ function toInvocationErrorResponse(error: unknown): {
   return { status: 500, body: { error: 'Internal server error', kind: 'internal' } };
 }
 
+function sendGovernanceInvocation<T>(
+  reply: FastifyReply,
+  status: number,
+  operation: () => Promise<T>,
+): Promise<FastifyReply> {
+  return operation()
+    .then((result) => reply.status(status).send(result))
+    .catch((error: unknown) => {
+      const response = toInvocationErrorResponse(error);
+      return reply.status(response.status).send(response.body);
+    });
+}
+
+type ReviewCommandBody = {
+  entryId: string;
+  actorId: string;
+  note?: string;
+  evidence?: Record<string, unknown>;
+};
+
+type MaintenanceCommandBody = ReviewCommandBody & {
+  action: string;
+};
+
+function runGovernanceCommand<T>(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  operation: (body: T) => Promise<unknown>,
+) {
+  return sendGovernanceInvocation(reply, 200, () => operation(request.body as T));
+}
+
 const GOVERNANCE_REVIEW_OWNERSHIP = {
   service: 'governance-review',
   boundedContext: 'governance-review',
@@ -99,74 +131,26 @@ export function registerGovernanceReviewRoutes(
       followUpDisposition: 'outbox-queue-workflow-async',
     });
   };
-  app.post('/internal/review/approve', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const body = request.body as {
-        entryId: string;
-        actorId: string;
-        note?: string;
-        evidence?: Record<string, unknown>;
-      };
-      const result = await module.approve(body);
-      return reply.status(200).send(result);
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
+  app.post('/internal/review/approve', (request: FastifyRequest, reply: FastifyReply) =>
+    runGovernanceCommand<ReviewCommandBody>(request, reply, (body) => module.approve(body)),
+  );
 
-  app.post('/internal/review/reject', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const body = request.body as {
-        entryId: string;
-        actorId: string;
-        note?: string;
-        evidence?: Record<string, unknown>;
-      };
-      const result = await module.reject(body);
-      return reply.status(200).send(result);
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
+  app.post('/internal/review/reject', (request: FastifyRequest, reply: FastifyReply) =>
+    runGovernanceCommand<ReviewCommandBody>(request, reply, (body) => module.reject(body)),
+  );
 
-  app.post('/internal/review/maintenance', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const body = request.body as {
-        entryId: string;
-        actorId: string;
-        action: string;
-        note?: string;
-        evidence?: Record<string, unknown>;
-      };
-      const result = await module.applyMaintenance(body);
-      return reply.status(200).send(result);
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
+  app.post('/internal/review/maintenance', (request: FastifyRequest, reply: FastifyReply) =>
+    runGovernanceCommand<MaintenanceCommandBody>(request, reply, (body) =>
+      module.applyMaintenance(body),
+    ),
+  );
 
-  app.post('/internal/review/decay', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const body = request.body as {
-        entryId: string;
-        actorId: string;
-        action: string;
-        note?: string;
-        evidence?: Record<string, unknown>;
-      };
-      const result = await module.applyDecay(body);
-      return reply.status(200).send(result);
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
+  app.post('/internal/review/decay', (request: FastifyRequest, reply: FastifyReply) =>
+    runGovernanceCommand<MaintenanceCommandBody>(request, reply, (body) => module.applyDecay(body)),
+  );
 
-  app.post('/internal/review/artifact', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
+  app.post('/internal/review/artifact', (request: FastifyRequest, reply: FastifyReply) =>
+    sendGovernanceInvocation(reply, 200, async () => {
       const body = request.body as {
         artifactId: string;
         decision: 'approve' | 'reject';
@@ -174,28 +158,21 @@ export function registerGovernanceReviewRoutes(
         note?: string;
       };
       await module.reviewArtifact(body.artifactId, body.decision, body.actorId, body.note);
-      return reply.status(200).send({ ok: true });
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
+      return { ok: true };
+    }),
+  );
 
-  app.post('/internal/feedback', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
+  app.post('/internal/feedback', (request: FastifyRequest, reply: FastifyReply) =>
+    sendGovernanceInvocation(reply, 201, async () => {
       const body = request.body as {
         entryId: string;
         problemType: string;
         description: string;
         actorId: string;
       };
-      const result = await module.submitFeedback(body);
-      return reply.status(201).send(result);
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
+      return module.submitFeedback(body);
+    }),
+  );
 
   app.get('/internal/health', async (_request: FastifyRequest, reply: FastifyReply) => {
     return reply.status(200).send({
