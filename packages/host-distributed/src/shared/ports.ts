@@ -90,8 +90,9 @@ function createPgKnowledgeReadRepo(pool: Pool): KnowledgeRepositoryPort {
       return rejectKnowledgeMutation();
     },
     async getById(entryId) {
-      const { rows } = await pool.query('SELECT * FROM knowledge_entries WHERE id = $1', [entryId]);
-      return rows[0] ? (mapKnowledgeRow(rows[0] as Record<string, unknown>) as never) : null;
+      const result = await pool.query('SELECT * FROM knowledge_entries WHERE id = $1', [entryId]);
+      const row = result.rows.at(0) as Record<string, unknown> | undefined;
+      return row ? (mapKnowledgeRow(row) as never) : null;
     },
     async updateLifecycle() {
       return rejectKnowledgeMutation();

@@ -20,6 +20,7 @@ import {
   uniqueIndex,
   vector,
 } from 'drizzle-orm/pg-core';
+import { auditTimestamps } from './column-factories.js';
 
 // =============================================================================
 // Canonical Label Catalog Tables
@@ -47,10 +48,7 @@ export const canonicalLabels = pgTable(
     status: text('status').notNull().default('active'),
     /** If merged, the target canonical label ID */
     mergedIntoLabelId: text('merged_into_label_id'),
-    /** Record creation timestamp */
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    /** Record update timestamp */
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     uniqueIndex('idx_canonical_labels_normalized_kind').on(table.normalizedName, table.kind),

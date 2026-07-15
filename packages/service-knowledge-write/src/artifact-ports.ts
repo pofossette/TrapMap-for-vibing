@@ -106,6 +106,16 @@ function mapEvent(row: Record<string, unknown>): SkillArtifactLifecycleEvent {
   };
 }
 
+async function resolveArtifacts(
+  rows: unknown[],
+  getById: (artifactId: string) => Promise<SkillArtifact | null>,
+): Promise<SkillArtifact[]> {
+  const artifacts = await Promise.all(
+    rows.map((row) => getById(String((row as Record<string, unknown>).id))),
+  );
+  return artifacts.filter((artifact): artifact is SkillArtifact => Boolean(artifact));
+}
+
 export function createArtifactReadProjection(pool: Pick<Pool, 'query'>): ArtifactReadProjection {
   const getById = async (artifactId: string): Promise<SkillArtifact | null> => {
     const result = await pool.query('SELECT * FROM skill_artifacts WHERE id = $1', [artifactId]);
@@ -139,11 +149,7 @@ export function createArtifactReadProjection(pool: Pick<Pool, 'query'>): Artifac
         filter.maintainerUserId ?? null,
       ],
     );
-    return (
-      await Promise.all(
-        result.rows.map((row) => getById(String((row as Record<string, unknown>).id))),
-      )
-    ).filter((artifact): artifact is SkillArtifact => Boolean(artifact));
+    return resolveArtifacts(result.rows, getById);
   };
   return {
     getById,
@@ -161,11 +167,7 @@ export function createArtifactReadProjection(pool: Pick<Pool, 'query'>): Artifac
         'SELECT id FROM skill_artifacts WHERE ($1::text IS NULL OR id = $1) ORDER BY created_at',
         [typeof input.artifactId === 'string' ? input.artifactId : null],
       );
-      return (
-        await Promise.all(
-          result.rows.map((row) => getById(String((row as Record<string, unknown>).id))),
-        )
-      ).filter((artifact): artifact is SkillArtifact => Boolean(artifact));
+      return resolveArtifacts(result.rows, getById);
     },
     async reviewQueue() {
       return listByFilter({ lifecycleState: 'submitted' });

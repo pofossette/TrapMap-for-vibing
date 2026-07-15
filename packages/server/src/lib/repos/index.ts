@@ -67,17 +67,13 @@ export async function createAllRepos(config: {
   store: SkillShareerStore;
   artifactReadProjection: ArtifactReadProjection;
 }): Promise<SkillShareerRepos> {
-  let usageAnalytics: UsageAnalyticsRepository;
-  if (config.pool) {
-    usageAnalytics = await createUsageAnalyticsRepository({ pool: config.pool });
-  } else {
-    // InMemory fallback for JSON mode — no-op for writes, empty results for queries.
-    usageAnalytics = createInMemoryUsageAnalyticsRepository();
-  }
+  const usageAnalytics = config.pool
+    ? await createUsageAnalyticsRepository({ pool: config.pool })
+    : createInMemoryUsageAnalyticsRepository();
 
   const duplicate = createDuplicateRepository(config);
 
-  return {
+  const repositories: SkillShareerRepos = {
     knowledge: createKnowledgeRepository(config),
     artifact: config.artifactReadProjection,
     candidate: createCandidateRepository({ ...config, duplicateRepo: duplicate }),
@@ -88,6 +84,7 @@ export async function createAllRepos(config: {
     lineage: createLineageRepository(config),
     graphIndex: createGraphIndexRepository(config),
   };
+  return repositories;
 }
 
 export type { ArtifactReadProjection } from '@trapmap/contracts';
@@ -96,33 +93,21 @@ export type { ArtifactReadProjection } from '@trapmap/contracts';
  * InMemory UsageAnalyticsRepository for JSON mode (no pool).
  * All methods are no-ops or return empty results.
  */
+const emptyUsageAnalytics: UsageAnalyticsRepository = {
+  recordEvent: async () => undefined,
+  recordEvents: async () => undefined,
+  hasQueryId: async () => false,
+  queryUsageTimeSeries: async () => [],
+  queryHitRanking: async () => [],
+  querySystemSummary: async () => ({
+    totalEvents: 0,
+    uniqueQueries: 0,
+    uniqueTeams: 0,
+    uniqueAccounts: 0,
+  }),
+  archiveOldEvents: async () => ({ archivedCount: 0 }),
+};
+
 function createInMemoryUsageAnalyticsRepository(): UsageAnalyticsRepository {
-  return {
-    async recordEvent() {
-      /* no-op in JSON mode */
-    },
-    async recordEvents() {
-      /* no-op in JSON mode */
-    },
-    async hasQueryId() {
-      return false;
-    },
-    async queryUsageTimeSeries() {
-      return [];
-    },
-    async queryHitRanking() {
-      return [];
-    },
-    async querySystemSummary() {
-      return {
-        totalEvents: 0,
-        uniqueQueries: 0,
-        uniqueTeams: 0,
-        uniqueAccounts: 0,
-      };
-    },
-    async archiveOldEvents() {
-      return { archivedCount: 0 };
-    },
-  };
+  return { ...emptyUsageAnalytics };
 }

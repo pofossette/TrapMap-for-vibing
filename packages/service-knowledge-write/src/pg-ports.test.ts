@@ -4,6 +4,7 @@ import {
   createKnowledgeWriteOutboxDiagnostics,
   createKnowledgeWriteOwnerBundle,
 } from './pg-ports.js';
+import { createTransactionPool } from './test-helpers.js';
 
 describe('knowledge-write PostgreSQL owner bundle', () => {
   it('keeps lifecycle state, lifecycle event, and outbox event in one transaction', async () => {
@@ -39,24 +40,15 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
   });
 
   it('rolls back the authoritative write when outbox persistence fails', async () => {
-    const calls: string[] = [];
-    const client = {
-      query: vi.fn(async (sql: string) => {
-        calls.push(sql);
-        if (sql.includes('SELECT lifecycle_state')) {
-          return { rows: [{ lifecycle_state: 'agent-pass' }] };
-        }
-        if (sql.includes('RETURNING *')) {
-          return { rows: [{ id: 'entry-1', lifecycle_state: 'approved' }] };
-        }
-        if (sql.includes('INSERT INTO domain_event_outbox')) {
-          throw new Error('outbox unavailable');
-        }
-        return { rows: [] };
-      }),
-      release: vi.fn(),
-    };
-    const owner = createKnowledgeWriteOwnerBundle({ connect: vi.fn(async () => client) } as never);
+    const { calls, client, pool } = createTransactionPool((sql) => {
+      if (sql.includes('SELECT lifecycle_state'))
+        return { rows: [{ lifecycle_state: 'agent-pass' }] };
+      if (sql.includes('RETURNING *'))
+        return { rows: [{ id: 'entry-1', lifecycle_state: 'approved' }] };
+      if (sql.includes('INSERT INTO domain_event_outbox')) throw new Error('outbox unavailable');
+      return { rows: [] };
+    });
+    const owner = createKnowledgeWriteOwnerBundle(pool as never);
 
     await expect(
       owner.knowledgeRepo.updateLifecycle('entry-1', 'approved', { actorId: 'reviewer-1' }),
@@ -68,18 +60,12 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
   });
 
   it('rejects an invalid lifecycle transition before persisting an outbox event', async () => {
-    const calls: string[] = [];
-    const client = {
-      query: vi.fn(async (sql: string) => {
-        calls.push(sql);
-        if (sql.includes('SELECT lifecycle_state')) {
-          return { rows: [{ lifecycle_state: 'approved' }] };
-        }
-        return { rows: [] };
-      }),
-      release: vi.fn(),
-    };
-    const owner = createKnowledgeWriteOwnerBundle({ connect: vi.fn(async () => client) } as never);
+    const { calls, client, pool } = createTransactionPool((sql) =>
+      sql.includes('SELECT lifecycle_state')
+        ? { rows: [{ lifecycle_state: 'approved' }] }
+        : { rows: [] },
+    );
+    const owner = createKnowledgeWriteOwnerBundle(pool as never);
 
     await expect(
       owner.knowledgeRepo.updateLifecycle('entry-1', 'submitted', { actorId: 'reviewer-1' }),
@@ -92,15 +78,8 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
   });
 
   it('rolls back without producing an outbox event for an unknown entry', async () => {
-    const calls: string[] = [];
-    const client = {
-      query: vi.fn(async (sql: string) => {
-        calls.push(sql);
-        return { rows: [] };
-      }),
-      release: vi.fn(),
-    };
-    const owner = createKnowledgeWriteOwnerBundle({ connect: vi.fn(async () => client) } as never);
+    const { calls, client, pool } = createTransactionPool(() => ({ rows: [] }));
+    const owner = createKnowledgeWriteOwnerBundle(pool as never);
 
     await expect(
       owner.knowledgeRepo.updateLifecycle('missing-entry', 'approved', { actorId: 'reviewer-1' }),
@@ -158,21 +137,12 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
   });
 
   it('keeps artifact lifecycle and its outbox event in one transaction', async () => {
-    const calls: string[] = [];
-    const client = {
-      query: vi.fn(async (sql: string) => {
-        calls.push(sql);
-        if (sql.includes('SELECT lifecycle_state')) {
-          return { rows: [{ lifecycle_state: 'agent-pass' }] };
-        }
-        return { rows: [] };
-      }),
-      release: vi.fn(),
-    };
-    const owner = createKnowledgeWriteOwnerBundle({
-      connect: vi.fn(async () => client),
-      query: vi.fn(async () => ({ rows: [] })),
-    } as never);
+    const { calls, pool } = createTransactionPool((sql) =>
+      sql.includes('SELECT lifecycle_state')
+        ? { rows: [{ lifecycle_state: 'agent-pass' }] }
+        : { rows: [] },
+    );
+    const owner = createKnowledgeWriteOwnerBundle(pool as never);
 
     await expect(
       owner.artifactWriter.updateLifecycle('artifact-1', 'approved', { actorId: 'reviewer-1' }),

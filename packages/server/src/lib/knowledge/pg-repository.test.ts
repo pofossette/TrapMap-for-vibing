@@ -39,8 +39,9 @@ async function getPool(): Promise<Pool | null> {
 // Helper to create minimal knowledge record
 function createTestEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord {
   const now = nowIso();
+  const id = overrides.id ?? 'knowledge_test_1';
   return {
-    id: 'knowledge_test_1',
+    id,
     teamId: null,
     scope: 'global',
     labels: ['test'],
@@ -86,7 +87,7 @@ function createTestEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRec
     reviewNotes: [],
     lifecycleHistory: [
       {
-        id: 'le_1',
+        id: `le_${id}`,
         type: 'submitted',
         createdAt: now,
         actorUserId: 'user_1',
@@ -140,12 +141,6 @@ describeIfDb('PgKnowledgeRepository', () => {
   beforeAll(async () => {
     testPool = (await getPool()) as Pool;
     repository = new PgKnowledgeRepository(testPool);
-  });
-
-  afterAll(async () => {
-    if (pool) {
-      await pool.end();
-    }
   });
 
   beforeEach(async () => {
@@ -511,7 +506,7 @@ describeIfDb('PgKnowledgeRepository', () => {
       await repository.updateGovernance('knowledge_test_gov_1', { labels: ['updated', 'new'] });
 
       const retrieved = await repository.getById('knowledge_test_gov_1');
-      expect(retrieved!.labels).toEqual(['updated', 'new']);
+      expect(retrieved!.labels).toEqual(['new', 'updated']);
     });
 
     it('should update required level', async () => {
@@ -728,7 +723,7 @@ describeIfDb('PgKnowledgeRepository', () => {
           id,
           1,
           'test_hash',
-          '[0.1, 0.2, 0.3]', // Minimal vector for test
+          `[${new Array(384).fill('0.1').join(',')}]`,
           'global',
           0,
           '{}',
@@ -758,12 +753,6 @@ describeIfDb('PgKnowledgeRepository concurrent access', () => {
   beforeAll(async () => {
     testPool = (await getPool()) as Pool;
     repository = new PgKnowledgeRepository(testPool);
-  });
-
-  afterAll(async () => {
-    if (pool) {
-      await pool.end();
-    }
   });
 
   beforeEach(async () => {

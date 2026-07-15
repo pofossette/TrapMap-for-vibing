@@ -24,8 +24,6 @@ const SERVER_SRC = resolve(process.cwd(), 'packages/server/src');
  */
 const SNAPSHOT_ALLOWLIST: string[] = [
   // Repository implementations — wrap store.snapshot()/transact() internally
-  'lib/artifacts/repository.ts',
-  'lib/knowledge/repository.ts',
   'lib/lineage/repository.ts',
   'lib/feedback/repository.ts',
   'lib/candidates/repository.ts',
@@ -34,7 +32,6 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   'lib/graph-index/repository.ts',
 
   // Migration and backfill scripts
-  'lib/persistence/migrate-artifacts.ts',
   'lib/persistence/migrate-candidates.ts',
   'lib/persistence/migrate-knowledge.ts',
   'lib/persistence/backfill-indexes.ts',

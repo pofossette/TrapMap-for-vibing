@@ -159,12 +159,6 @@ const allowlist: AllowlistEntry[] = [
     'knowledge-read infrastructure',
   ],
   [
-    'packages/runtime-infra/src/outbox.ts',
-    '@trapmap/server',
-    'wave-6',
-    'job runtime outbox infrastructure',
-  ],
-  [
     'packages/runtime-infra/src/postgres-store.ts',
     'store_snapshot',
     'wave-9',
@@ -246,12 +240,6 @@ const allowlist: AllowlistEntry[] = [
     'knowledge snapshot fallback',
   ],
   [
-    'packages/server/src/lib/knowledge/repository.ts',
-    'JsonStore',
-    'wave-2',
-    'knowledge JSON fallback',
-  ],
-  [
     'packages/server/src/lib/labels/backfill-runner.ts',
     'PostgresStore',
     'wave-9',
@@ -262,12 +250,6 @@ const allowlist: AllowlistEntry[] = [
     'PostgresStore',
     'wave-9',
     'migration export fixture',
-  ],
-  [
-    'packages/server/src/lib/lifecycle/emit-transition.ts',
-    'JsonStore',
-    'wave-2',
-    'lifecycle JSON fallback',
   ],
   [
     'packages/server/src/lib/lineage/pg-repository.ts',
@@ -312,25 +294,25 @@ const allowlist: AllowlistEntry[] = [
     'legacy snapshot persistence',
   ],
   [
-    'packages/server/src/lib/persistence/schema/candidates.ts',
-    'store_snapshot',
-    'wave-3',
-    'candidate snapshot schema',
-  ],
-  [
     'packages/server/src/lib/persistence/schema/index.ts',
     'store_snapshot',
     'wave-9',
     'legacy snapshot schema export',
   ],
   [
-    'packages/server/src/lib/persistence/schema/knowledge.ts',
+    'packages/persistence-schema/src/candidates.ts',
+    'store_snapshot',
+    'wave-3',
+    'candidate snapshot schema',
+  ],
+  [
+    'packages/persistence-schema/src/knowledge.ts',
     'store_snapshot',
     'wave-2',
     'knowledge snapshot schema',
   ],
   [
-    'packages/server/src/lib/persistence/schema/retrieval.ts',
+    'packages/persistence-schema/src/retrieval.ts',
     'store_snapshot',
     'wave-7',
     'retrieval snapshot schema',

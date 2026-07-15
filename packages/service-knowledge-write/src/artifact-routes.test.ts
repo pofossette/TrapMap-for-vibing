@@ -1,10 +1,10 @@
 import { InvocationError } from '@trapmap/backend-core';
-import type { ArtifactReadProjection } from '@trapmap/contracts';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ArtifactWritePort } from './artifact-ports.js';
 import { registerArtifactRoutes } from './artifact-routes.js';
+import { createArtifactReadProjectionFixture } from './test-helpers.js';
 
 function createArtifacts(): ArtifactWritePort {
   return {
@@ -21,23 +21,17 @@ function createArtifacts(): ArtifactWritePort {
   };
 }
 
-function createReadProjection(): ArtifactReadProjection {
-  return {
-    getById: vi.fn(async () => null),
-    listByFilter: vi.fn(async () => []),
-    listForRetrieval: vi.fn(async () => []),
-    history: vi.fn(async () => []),
-    exportArtifacts: vi.fn(async () => []),
-    reviewQueue: vi.fn(async () => []),
-  };
+async function createArtifactRouteApp() {
+  const artifacts = createArtifacts();
+  const app = Fastify();
+  registerArtifactRoutes(app, artifacts, createArtifactReadProjectionFixture());
+  await app.ready();
+  return { app, artifacts };
 }
 
 describe('artifact owner routes', () => {
   it('rejects mutations without a trusted actor header', async () => {
-    const artifacts = createArtifacts();
-    const app = Fastify();
-    registerArtifactRoutes(app, artifacts, createReadProjection());
-    await app.ready();
+    const { app, artifacts } = await createArtifactRouteApp();
 
     const response = await app.inject({
       method: 'POST',
@@ -51,10 +45,7 @@ describe('artifact owner routes', () => {
   });
 
   it('uses the trusted actor header and rejects a spoofed body actor', async () => {
-    const artifacts = createArtifacts();
-    const app = Fastify();
-    registerArtifactRoutes(app, artifacts, createReadProjection());
-    await app.ready();
+    const { app, artifacts } = await createArtifactRouteApp();
 
     const response = await app.inject({
       method: 'POST',
@@ -74,7 +65,7 @@ describe('artifact owner routes', () => {
       throw InvocationError.unavailable('artifact owner unavailable');
     });
     const app = Fastify();
-    registerArtifactRoutes(app, artifacts, createReadProjection());
+    registerArtifactRoutes(app, artifacts, createArtifactReadProjectionFixture());
     await app.ready();
 
     const response = await app.inject({

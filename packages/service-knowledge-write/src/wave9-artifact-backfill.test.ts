@@ -1,21 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ArtifactReadProjection } from '@trapmap/contracts';
 
 import type { ArtifactWritePort } from './artifact-ports.js';
 import { migrateSkillArtifacts } from './wave9-artifact-backfill.js';
+import { createArtifactReadProjectionFixture } from './test-helpers.js';
 
 const artifact = { id: 'artifact_1' } as never;
 
-function readProjection(existing: boolean): ArtifactReadProjection {
-  return {
-    getById: vi.fn(async () => (existing ? artifact : null)),
-    listByFilter: vi.fn(async () => []),
-    listForRetrieval: vi.fn(async () => []),
-    history: vi.fn(async () => []),
-    exportArtifacts: vi.fn(async () => []),
-    reviewQueue: vi.fn(async () => []),
-  };
-}
+const readProjection = (existing: boolean) =>
+  createArtifactReadProjectionFixture(vi.fn(async () => (existing ? artifact : null)));
 
 function writer(): ArtifactWritePort {
   return {

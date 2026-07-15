@@ -1,9 +1,7 @@
 /**
  * Single emission point for lifecycle transition events.
  *
- * Chooses the correct channel based on store backend:
- * - PG mode: enqueue to domain_event_outbox for async worker processing
- * - JSON mode (InMemory/JsonStore): synchronous eventBus for lightweight local development
+ * Enqueues domain events to the PostgreSQL outbox after authoritative writes.
  *
  * Routes should call this after their store transaction commits.
  *
@@ -56,8 +54,7 @@ export async function emitLifecycleTransition(params: {
   reason: string;
   txClient?: PoolClient;
 }): Promise<void> {
-  const { store, eventBus, aggregateType, aggregateId, previousState, nextState, actorId, reason } =
-    params;
+  const { store, aggregateType, aggregateId, previousState, nextState, actorId, reason } = params;
 
   if (previousState === nextState) return;
 
@@ -74,22 +71,20 @@ export async function emitLifecycleTransition(params: {
     timestamp: nowIso(),
   };
 
-  if (getStorePool(store)) {
-    const transport = params.asyncTransport;
-    if (!transport) {
-      throw new Error('Postgres lifecycle transition requires async transport');
-    }
-    const enqueue = params.txClient
-      ? transport.events.enqueueTx.bind(transport.events, params.txClient)
-      : transport.events.enqueue;
-    await enqueue({
-      aggregateType,
-      aggregateId,
-      eventName,
-      payload: eventPayload,
-    });
-  } else {
-    // JSON mode: keep synchronous eventBus for lightweight local runs
-    await eventBus.emitDomainEventAsync(eventPayload);
+  if (!getStorePool(store)) {
+    throw new Error('lifecycle transitions require a PostgreSQL outbox');
   }
+  const transport = params.asyncTransport;
+  if (!transport) {
+    throw new Error('Postgres lifecycle transition requires async transport');
+  }
+  const enqueue = params.txClient
+    ? transport.events.enqueueTx.bind(transport.events, params.txClient)
+    : transport.events.enqueue;
+  await enqueue({
+    aggregateType,
+    aggregateId,
+    eventName,
+    payload: eventPayload,
+  });
 }

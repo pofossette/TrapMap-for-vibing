@@ -8,6 +8,7 @@ import { sql } from 'drizzle-orm';
 import { check, index, integer, jsonb, pgTable, real, text, timestamp } from 'drizzle-orm/pg-core';
 
 import type { AnalysisSnapshot, CandidatePayload, DuplicateCase } from '@trapmap/contracts';
+import { auditTimestamps } from './column-factories.js';
 
 // =============================================================================
 // Candidate Pipeline Tables (Phase 61: WRITE-01)
@@ -54,10 +55,7 @@ export const candidates = pgTable(
     retryCount: integer('retry_count').notNull().default(0),
     /** Manual result from reviewer (null if no manual review yet) */
     manualResult: jsonb('manual_result'),
-    /** Record creation timestamp */
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    /** Record update timestamp */
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     index('idx_candidates_status').on(table.status),

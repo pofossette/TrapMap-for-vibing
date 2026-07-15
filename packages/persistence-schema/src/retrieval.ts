@@ -4,16 +4,7 @@
  * Covers: graph index documents for GraphRAG-lite persistence.
  */
 import { sql } from 'drizzle-orm';
-import {
-  check,
-  index,
-  integer,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-} from 'drizzle-orm/pg-core';
+import { check, index, integer, jsonb, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { auditTimestamps } from './column-factories.js';
 
 /**
@@ -71,10 +62,7 @@ export const graphIndexDocuments = pgTable(
       .default([]),
     /** Human-readable evidence description */
     evidence: text('evidence').notNull().default(''),
-    /** Record creation timestamp */
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    /** Record update timestamp */
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...auditTimestamps(),
   },
   (table) => [
     index('idx_graph_index_documents_source').on(table.sourceType, table.sourceId),

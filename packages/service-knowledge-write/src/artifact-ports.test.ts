@@ -2,6 +2,7 @@ import type { SkillArtifact } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createArtifactWritePort } from './artifact-ports.js';
+import { createTransactionPool } from './test-helpers.js';
 
 function artifactFixture(): SkillArtifact {
   return {
@@ -85,18 +86,8 @@ describe('ArtifactWritePort', () => {
   });
 
   it('persists an imported artifact and its revision in one owner transaction', async () => {
-    const calls: string[] = [];
-    const client = {
-      query: vi.fn(async (sql: string) => {
-        calls.push(sql);
-        return { rows: [] };
-      }),
-      release: vi.fn(),
-    };
-    const port = createArtifactWritePort({
-      connect: vi.fn(async () => client),
-      query: vi.fn(async () => ({ rows: [] })),
-    } as never);
+    const { calls, client, pool } = createTransactionPool(() => ({ rows: [] }));
+    const port = createArtifactWritePort(pool as never);
 
     await port.insert(artifactFixture());
 
@@ -113,19 +104,11 @@ describe('ArtifactWritePort', () => {
   });
 
   it('rolls back an artifact import when revision persistence fails', async () => {
-    const calls: string[] = [];
-    const client = {
-      query: vi.fn(async (sql: string) => {
-        calls.push(sql);
-        if (sql.includes('INSERT INTO artifact_revisions')) throw new Error('revision unavailable');
-        return { rows: [] };
-      }),
-      release: vi.fn(),
-    };
-    const port = createArtifactWritePort({
-      connect: vi.fn(async () => client),
-      query: vi.fn(async () => ({ rows: [] })),
-    } as never);
+    const { calls, client, pool } = createTransactionPool((sql) => {
+      if (sql.includes('INSERT INTO artifact_revisions')) throw new Error('revision unavailable');
+      return { rows: [] };
+    });
+    const port = createArtifactWritePort(pool as never);
 
     await expect(port.insert(artifactFixture())).rejects.toThrow('revision unavailable');
 

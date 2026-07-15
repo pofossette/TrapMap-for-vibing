@@ -8,6 +8,23 @@ import {
   createExecutionContext,
   seedScenarioFixtures,
 } from './adapters.js';
+import type { ExecutionContext } from './adapters.js';
+
+async function expectSession(
+  ctx: ExecutionContext,
+  expected: { subjectType: 'system-admin' | 'user'; activeTeamId?: string | null },
+) {
+  const session = await ctx.app.skillShareer.identity.sessionRepo.getByTokenHash(
+    hashSecret(ctx.sessionToken),
+  );
+
+  expect(session).not.toBeNull();
+  expect(session!.subjectType).toBe(expected.subjectType);
+  if ('activeTeamId' in expected) {
+    expect(session!.activeTeamId).toBe(expected.activeTeamId);
+  }
+  return session!;
+}
 
 describe('adapters', () => {
   describe('createActorSession', () => {
@@ -24,13 +41,10 @@ describe('adapters', () => {
 
         await createActorSession(ctx, actor);
 
-        const session = await ctx.app.skillShareer.identity.sessionRepo.getByTokenHash(
-          hashSecret(ctx.sessionToken),
-        );
-
-        expect(session).not.toBeNull();
-        expect(session!.subjectType).toBe('user');
-        expect(session!.activeTeamId).toBe('team_test');
+        const session = await expectSession(ctx, {
+          subjectType: 'user',
+          activeTeamId: 'team_test',
+        });
         expect(session!.userId).toBe(ctx.actorId);
       } finally {
         await closeExecutionContext(ctx);
@@ -78,12 +92,7 @@ describe('adapters', () => {
 
         await createActorSession(ctx, actor);
 
-        const session = await ctx.app.skillShareer.identity.sessionRepo.getByTokenHash(
-          hashSecret(ctx.sessionToken),
-        );
-
-        expect(session).not.toBeNull();
-        expect(session!.subjectType).toBe('system-admin');
+        await expectSession(ctx, { subjectType: 'system-admin' });
       } finally {
         await closeExecutionContext(ctx);
       }
@@ -229,13 +238,7 @@ describe('adapters', () => {
 
         await seedScenarioFixtures(ctx, mockCase, scenario);
 
-        const session = await ctx.app.skillShareer.identity.sessionRepo.getByTokenHash(
-          hashSecret(ctx.sessionToken),
-        );
-
-        expect(session).not.toBeNull();
-        expect(session!.subjectType).toBe('user');
-        expect(session!.activeTeamId).toBe('team_actor');
+        await expectSession(ctx, { subjectType: 'user', activeTeamId: 'team_actor' });
       } finally {
         await closeExecutionContext(ctx);
       }
@@ -273,16 +276,16 @@ describe('adapters', () => {
         const artifacts = await ctx.app.skillShareer.artifactReadProjection.listForRetrieval({
           teamId: 'team_snapshot',
         });
-        const session = await ctx.app.skillShareer.identity.sessionRepo.getByTokenHash(
-          hashSecret(ctx.sessionToken),
-        );
+        const session = await expectSession(ctx, {
+          subjectType: 'user',
+          activeTeamId: 'team_snapshot_override',
+        });
 
         expect(entries).toHaveLength(1);
         expect(entries[0]?.id).toBe('entry_snapshot_1');
         expect(artifacts).toHaveLength(1);
         expect(artifacts[0]?.id).toBe('artifact_snapshot_1');
-        expect(session?.activeTeamId).toBe('team_snapshot_override');
-        expect(session?.subjectType).toBe('user');
+        expect(session).not.toBeNull();
       } finally {
         await closeExecutionContext(ctx);
       }
