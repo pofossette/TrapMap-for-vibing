@@ -5,6 +5,21 @@
  */
 
 export { taskQueue } from '@trapmap/persistence-schema';
+import type {
+  DequeueOptions,
+  Task,
+  TaskHandler,
+  TaskQueueStatusSnapshot,
+  TaskStatus,
+} from '@trapmap/contracts';
+
+export type {
+  DequeueOptions,
+  Task,
+  TaskHandler,
+  TaskQueueStatusSnapshot,
+  TaskStatus,
+} from '@trapmap/contracts';
 
 // =============================================================================
 // Schema Definition
@@ -17,28 +32,6 @@ export { taskQueue } from '@trapmap/persistence-schema';
 // =============================================================================
 // Types
 // =============================================================================
-
-export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'dead';
-
-export interface Task<T = unknown> {
-  id: string;
-  type: string;
-  payload: T;
-  status: TaskStatus;
-  priority: number;
-  attempts: number;
-  maxAttempts: number;
-  lastError: string | null;
-  dedupeKey: string | null;
-  processAfter: Date;
-  workerId: string | null;
-  startedAt: Date | null;
-  heartbeatAt: Date | null;
-  leaseUntil: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-  completedAt: Date | null;
-}
 
 export interface TaskQueueConfig {
   pool: import('pg').Pool;
@@ -61,38 +54,6 @@ export interface EnqueueOptions {
   delayMs?: number;
   /** Opaque deduplication key — prevents duplicate (type, key) pairs */
   dedupeKey?: string;
-}
-
-interface LeaseSnapshot {
-  workerId: string | null;
-  startedAt: string | null;
-  heartbeatAt: string | null;
-  leaseUntil: string | null;
-}
-
-export interface DequeueOptions {
-  workerId?: string;
-}
-
-export interface TaskQueueStatusSnapshot {
-  pending: number;
-  running: number;
-  dead: number;
-  staleRunning: number;
-  backlogOldestAgeSeconds: number | null;
-  runningOldestAgeSeconds: number | null;
-  deadOldestAgeSeconds: number | null;
-  reclaimCount: number;
-  recentDeadLetters: Task[];
-}
-
-export interface TaskHandler<T = unknown> {
-  /** Handler name for task type */
-  type: string;
-  /** Process the task, throw on error for retry */
-  handle: (task: Task<T>, signal: AbortSignal) => Promise<void>;
-  /** Optional: called when task exceeds max attempts */
-  onDead?: (task: Task<T>) => Promise<void> | void;
 }
 
 // =============================================================================

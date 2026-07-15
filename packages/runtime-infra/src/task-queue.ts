@@ -9,37 +9,30 @@
 
 import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
+import {
+  createTaskWorkerFromQueue,
+  type DequeueOptions,
+  type Task,
+  type TaskWorkerConfig as ContractTaskWorkerConfig,
+  type TaskQueueStatusSnapshot,
+  type TaskStatus,
+} from '@trapmap/contracts';
 import { taskQueue } from '@trapmap/persistence-schema';
 import type { Pool, PoolClient } from 'pg';
 import { recordQueueMetric, recordRuntimeReclaim } from './metrics.js';
 
 export { taskQueue };
+export type {
+  DequeueOptions,
+  Task,
+  TaskHandler,
+  TaskQueueStatusSnapshot,
+  TaskStatus,
+} from '@trapmap/contracts';
 
 // =============================================================================
 // Types
 // =============================================================================
-
-export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'dead';
-
-export interface Task<T = unknown> {
-  id: string;
-  type: string;
-  payload: T;
-  status: TaskStatus;
-  priority: number;
-  attempts: number;
-  maxAttempts: number;
-  lastError: string | null;
-  dedupeKey: string | null;
-  processAfter: Date;
-  workerId: string | null;
-  startedAt: Date | null;
-  heartbeatAt: Date | null;
-  leaseUntil: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-  completedAt: Date | null;
-}
 
 export interface TaskQueueConfig {
   pool: Pool;
@@ -62,38 +55,6 @@ export interface EnqueueOptions {
   delayMs?: number;
   /** Opaque deduplication key — prevents duplicate (type, key) pairs */
   dedupeKey?: string;
-}
-
-export interface LeaseSnapshot {
-  workerId: string | null;
-  startedAt: string | null;
-  heartbeatAt: string | null;
-  leaseUntil: string | null;
-}
-
-export interface DequeueOptions {
-  workerId?: string;
-}
-
-export interface TaskQueueStatusSnapshot {
-  pending: number;
-  running: number;
-  dead: number;
-  staleRunning: number;
-  backlogOldestAgeSeconds: number | null;
-  runningOldestAgeSeconds: number | null;
-  deadOldestAgeSeconds: number | null;
-  reclaimCount: number;
-  recentDeadLetters: Task[];
-}
-
-export interface TaskHandler<T = unknown> {
-  /** Handler name for task type */
-  type: string;
-  /** Process the task, throw on error for retry */
-  handle: (task: Task<T>, signal: AbortSignal) => Promise<void>;
-  /** Optional: called when task exceeds max attempts */
-  onDead?: (task: Task<T>) => Promise<void> | void;
 }
 
 // =============================================================================
@@ -598,117 +559,10 @@ export function createTaskQueue(config: TaskQueueConfig) {
   };
 }
 
-// =============================================================================
-// Worker Implementation
-// =============================================================================
+export type TaskWorkerConfig = ContractTaskWorkerConfig<Pool>;
 
-export interface TaskWorkerConfig {
-  pool: Pool;
-  handlers: TaskHandler[];
-  /** Polling interval in ms */
-  pollIntervalMs?: number;
-  /** Maximum concurrent tasks */
-  concurrency?: number;
-  ownsWork?: boolean;
-}
-
-/**
- * Create a task worker that processes tasks from the queue.
- */
 export function createTaskWorker(config: TaskWorkerConfig) {
-  const { pool, handlers, pollIntervalMs = 1000, concurrency = 1, ownsWork = true } = config;
-
-  const queue = createTaskQueue({ pool });
-  const handlerMap = new Map(handlers.map((h) => [h.type, h]));
-  let running = false;
-  const activeTasks = new Set<Promise<void>>();
-  let runPromise: Promise<void> | null = null;
-
-  async function processOneTask(): Promise<boolean> {
-    for (const [type, handler] of handlerMap) {
-      const task = await queue.dequeue(type);
-      if (task) {
-        const controller = new AbortController();
-        // Use a wrapper promise to allow self-reference for cleanup
-        const taskPromise = new Promise<void>((resolve) => {
-          (async () => {
-            try {
-              await handler.handle(task, controller.signal);
-              await queue.complete(task.id);
-              resolve();
-            } catch (error) {
-              const errorMessage = error instanceof Error ? error.message : String(error);
-              await queue.fail(task.id, errorMessage);
-
-              // Check if dead
-              const deadTasks = await queue.getDeadTasks(1);
-              const deadTask = deadTasks.find((t) => t.id === task.id);
-              if (deadTask && handler.onDead) {
-                await handler.onDead(deadTask);
-              }
-              resolve(); // Resolve even on error (error handled via queue.fail)
-            } finally {
-              activeTasks.delete(taskPromise);
-            }
-          })();
-        });
-
-        activeTasks.add(taskPromise);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  async function run(): Promise<void> {
-    if (runPromise) {
-      return runPromise;
-    }
-
-    runPromise = (async () => {
-      running = true;
-
-      while (running) {
-        // Process tasks up to concurrency limit
-        while (activeTasks.size < concurrency) {
-          const processed = await processOneTask();
-          if (!processed) break;
-        }
-
-        // Wait for poll interval or any task to complete
-        if (activeTasks.size >= concurrency || !(await processOneTask())) {
-          await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-        }
-      }
-
-      // Wait for all active tasks to complete
-      await Promise.all(activeTasks);
-    })();
-
-    try {
-      await runPromise;
-    } finally {
-      runPromise = null;
-      running = false;
-    }
-  }
-
-  async function stop(): Promise<void> {
-    running = false;
-    if (runPromise) {
-      await runPromise;
-    }
-  }
-
-  function isRunning(): boolean {
-    return running;
-  }
-
-  function workerOwnsWork(): boolean {
-    return ownsWork;
-  }
-
-  return { run, stop, isRunning, ownsWork: workerOwnsWork };
+  return createTaskWorkerFromQueue(config, (pool) => createTaskQueue({ pool }));
 }
 
 // =============================================================================
