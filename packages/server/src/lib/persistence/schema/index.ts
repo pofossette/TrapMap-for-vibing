@@ -16,6 +16,7 @@ import { jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
  * This is the compatibility layer that lets existing services keep their
  * snapshot/transact/nextId mutation model while moving durability to PostgreSQL.
  */
+// fallow-ignore-next-line unused-export -- retained for the frozen PG snapshot schema contract
 export const storeSnapshot = pgTable('store_snapshot', {
   /** Singleton key - always 'main' */
   key: text('key').primaryKey().default('main'),

@@ -1,5 +1,6 @@
 import type { ArtifactReadProjection, KnowledgeOwnerPort, Permission } from '@trapmap/contracts';
 import type {
+  // fallow-ignore-next-line boundary-violation -- server compatibility bundle consumes host-owned identity port types
   AccessKeyRepositoryPort,
   ActorBatchLookupPort,
   AuditLogPort,
@@ -32,10 +33,7 @@ import type {
 } from './runtime/index.js';
 import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
 
-/**
- * Structural compatibility bridge injected by a host that owns identity.
- * `server` deliberately imports only backend-core port contracts here.
- */
+/** Structural compatibility bridge injected by a host that owns identity. */
 export interface IdentityCompatibilityBundle {
   sessionRepo: SessionRepositoryPort;
   accessKeyRepo: AccessKeyRepositoryPort;

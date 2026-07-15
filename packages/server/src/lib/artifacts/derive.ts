@@ -19,20 +19,5 @@
  * T-12-12: Keep derivation deterministic and revision-scoped with cached outputs
  */
 
-export type { DerivedArtifactOutputs, PayloadDerivationContext } from './derive/types.js';
-export { buildContentHash, buildCapsuleId } from './derive/hash.js';
-export {
-  getDerivationEligibleFiles,
-  getFilesBySource,
-  extractDerivationText,
-} from './derive/extract-files.js';
-export {
-  parseFrontmatter,
-  extractSections,
-  buildSummaryFromText,
-  extractKeywords,
-  hasStructuredCapsuleSemantics,
-} from './derive/parse-content.js';
-export { buildClientManifest } from './derive/client-manifest.js';
-export { deriveSkillArtifactOutputs, applyDerivedArtifactOutputs } from './derive/legacy.js';
+export { deriveSkillArtifactOutputs } from './derive/legacy.js';
 export { deriveFromPayloads } from './derive/from-payloads.js';

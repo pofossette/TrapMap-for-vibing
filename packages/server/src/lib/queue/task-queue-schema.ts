@@ -63,7 +63,7 @@ export interface EnqueueOptions {
   dedupeKey?: string;
 }
 
-export interface LeaseSnapshot {
+interface LeaseSnapshot {
   workerId: string | null;
   startedAt: string | null;
   heartbeatAt: string | null;

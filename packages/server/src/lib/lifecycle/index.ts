@@ -15,31 +15,16 @@
 export type {
   DomainEvent,
   DomainEventHandler,
-  TransitionDefinition,
-  TransitionContext,
 } from './types.js';
 
 // Event bus
 export { LifecycleEventBus } from './event-bus.js';
 
 // State machine
-export {
-  isValidTransition,
-  getValidTransitions,
-  isTerminalState,
-  transitionLifecycleState,
-  executeTransition,
-} from './state-machine.js';
-
-// Transitions
-export { findTransitionEvent } from './transitions.js';
+export { transitionLifecycleState } from './state-machine.js';
 
 // Outbox
-export type {
-  OutboxEvent,
-  DomainEventOutboxConfig,
-  OutboxStatusSnapshot,
-} from './outbox.js';
+export type { OutboxStatusSnapshot } from './outbox.js';
 export { createDomainEventOutbox } from './outbox.js';
 
 // Subscribers
