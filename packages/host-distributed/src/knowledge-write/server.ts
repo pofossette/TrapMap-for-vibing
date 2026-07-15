@@ -28,7 +28,8 @@ export async function createServer(
   const deps = createKnowledgeWriteDeps({
     knowledgeRepo: owner.knowledgeRepo,
     auditLog: identity.auditLog,
-    artifactRepo: owner.artifactRepo,
+    artifactWriter: owner.artifactWriter,
+    artifactReadProjection: owner.artifactReadProjection,
   });
   const server = await createServiceKnowledgeWriteServer(config, deps, {
     checkDependency: async () => {

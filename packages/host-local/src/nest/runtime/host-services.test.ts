@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pool = { query: vi.fn() };
-const ownerBundle = { knowledgeRepo: { nextId: vi.fn() } };
+const ownerBundle = {
+  knowledgeRepo: { nextId: vi.fn() },
+  artifactWriter: { insert: vi.fn() },
+  artifactReadProjection: { getById: vi.fn() },
+};
 const sharedInfra = {
   store: { kind: 'postgres' },
   adapterRegistry: {},
@@ -51,5 +55,8 @@ describe('host-local service composition', () => {
     expect(createKnowledgeWriteOwnerBundle).toHaveBeenCalledWith(pool);
     expect(services.knowledgeWrite).toBe(ownerBundle);
     expect(services.knowledgeWrite.knowledgeRepo).not.toBe(sharedInfra.repos.knowledge);
+    expect(services.artifactWriter).toBe(ownerBundle.artifactWriter);
+    expect(services.artifactReadProjection).toBe(ownerBundle.artifactReadProjection);
+    expect(services).not.toHaveProperty('artifactRepo');
   });
 });

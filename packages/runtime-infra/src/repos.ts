@@ -1,7 +1,6 @@
 import type { Pool } from 'pg';
 
 import type { UsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
-import type { ArtifactRepository } from '@trapmap/server/lib/artifacts/index.js';
 import type { CandidateRepository } from '@trapmap/server/lib/candidates/index.js';
 import type { ConflictRepository } from '@trapmap/server/lib/conflict/index.js';
 import type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
@@ -11,7 +10,6 @@ import type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js
 import type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
 
 import { createUsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
-import { createArtifactRepository } from '@trapmap/server/lib/artifacts/index.js';
 import { createCandidateRepository } from '@trapmap/server/lib/candidates/index.js';
 import { createConflictRepository } from '@trapmap/server/lib/conflict/index.js';
 import { createDuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
@@ -24,7 +22,6 @@ import type { SkillShareerStore } from './store.js';
 
 export interface SkillShareerRepos {
   knowledge: KnowledgeRepository;
-  artifact: ArtifactRepository;
   candidate: CandidateRepository;
   conflict: ConflictRepository;
   usageAnalytics: UsageAnalyticsRepository;
@@ -49,7 +46,6 @@ export async function createRuntimeInfraRepos(config: {
 
   return {
     knowledge: createKnowledgeRepository(config),
-    artifact: createArtifactRepository(config),
     candidate: createCandidateRepository({ ...config, duplicateRepo: duplicate }),
     conflict: createConflictRepository(config),
     usageAnalytics,

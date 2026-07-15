@@ -35,6 +35,32 @@ it('keeps its Drizzle schema owner-local', () => {
   expect(source).not.toContain('../../server/');
 });
 
+it('freezes artifact roundtrip columns and lookup indexes in the owner migration', () => {
+  const migration = readFileSync(
+    new URL('../drizzle/0000_youthful_gargoyle.sql', import.meta.url),
+    'utf8',
+  );
+
+  for (const column of [
+    '"labels" jsonb',
+    '"metadata" jsonb',
+    '"agent_review" jsonb',
+    '"maintenance_meta" jsonb',
+    '"derived" jsonb',
+    '"state" text',
+  ]) {
+    expect(migration).toContain(column);
+  }
+  for (const index of [
+    'idx_artifact_lifecycle_events_artifact',
+    'idx_artifact_revisions_artifact_revision_no',
+    'idx_skill_artifacts_lifecycle_state',
+    'idx_skill_artifacts_scope_team_slug',
+  ]) {
+    expect(migration).toContain(index);
+  }
+});
+
 it('rejects external files and missing journal tags', async () => {
   const external = await createMigrationSet(
     ['0000_youthful_gargoyle.sql', '0000_identity_access_baseline.sql'],

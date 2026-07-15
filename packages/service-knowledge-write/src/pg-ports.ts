@@ -3,13 +3,19 @@ import { randomUUID } from 'node:crypto';
 import type { KnowledgeRepositoryPort } from '@trapmap/backend-core';
 import type { LifecycleState } from '@trapmap/contracts';
 import type { Pool, PoolClient } from 'pg';
-import { createArtifactWritePort, type ArtifactWritePort } from './artifact-ports.js';
+import {
+  createArtifactReadProjection,
+  createArtifactWritePort,
+  type ArtifactReadProjection,
+  type ArtifactWritePort,
+} from './artifact-ports.js';
 
 type Queryable = Pick<Pool, 'query'>;
 
 export interface KnowledgeWriteOwnerBundle {
   knowledgeRepo: KnowledgeRepositoryPort;
-  artifactRepo: ArtifactWritePort;
+  artifactWriter: ArtifactWritePort;
+  artifactReadProjection: ArtifactReadProjection;
 }
 
 export interface KnowledgeWriteOutboxDiagnostics {
@@ -297,7 +303,8 @@ export function createKnowledgeWriteOwnerBundle(
 ): KnowledgeWriteOwnerBundle {
   return {
     knowledgeRepo: createKnowledgeWritePgRepository(pool),
-    artifactRepo: createArtifactWritePort(pool),
+    artifactWriter: createArtifactWritePort(pool),
+    artifactReadProjection: createArtifactReadProjection(pool),
   };
 }
 

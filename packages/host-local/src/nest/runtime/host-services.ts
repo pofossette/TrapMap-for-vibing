@@ -2,6 +2,8 @@ import type { ResolvedRuntimeDeployment } from '@trapmap/backend-core';
 import { createIdentityAccessPgDeps, type IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 import {
   createKnowledgeWriteOwnerBundle,
+  type ArtifactReadProjection,
+  type ArtifactWritePort,
   type KnowledgeWriteOwnerBundle,
 } from '@trapmap/service-knowledge-write';
 import { getStorePool } from '@trapmap/runtime-infra';
@@ -40,7 +42,8 @@ export interface HostLocalServices {
   identity: IdentityAccessPortDeps;
   knowledgeWrite: KnowledgeWriteOwnerBundle;
   knowledgeRepo: HostLocalRepos['knowledge'];
-  artifactRepo: HostLocalRepos['artifact'];
+  artifactWriter: ArtifactWritePort;
+  artifactReadProjection: ArtifactReadProjection;
   usageAnalyticsRepo: HostLocalRepos['usageAnalytics'];
   repos: HostLocalRepos;
   graphQueryBackend: HostLocalGraphQueryBackend;
@@ -74,7 +77,8 @@ export async function createHostLocalServices(
     identity,
     knowledgeWrite,
     knowledgeRepo: infra.repos.knowledge,
-    artifactRepo: knowledgeWrite.artifactRepo as HostLocalRepos['artifact'],
+    artifactWriter: knowledgeWrite.artifactWriter,
+    artifactReadProjection: knowledgeWrite.artifactReadProjection,
     usageAnalyticsRepo: infra.repos.usageAnalytics,
     repos: infra.repos,
     graphQueryBackend: infra.graphQueryBackend,

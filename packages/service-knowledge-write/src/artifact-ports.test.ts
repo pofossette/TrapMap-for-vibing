@@ -26,7 +26,18 @@ function artifactFixture(): SkillArtifact {
         submittedBy: { id: 'owner-1', handle: 'owner', securityLevel: 1 },
       },
     ],
-    lifecycleHistory: [],
+    lifecycleHistory: [
+      {
+        id: 'artifact-event-1',
+        type: 'submitted',
+        createdAt: '2026-07-14T00:00:00.000Z',
+        actor: { id: 'owner-1', handle: 'owner', securityLevel: 1 },
+        submissionId: 'submission-1',
+        revision: 1,
+        state: 'submitted',
+        note: 'ready for review',
+      },
+    ],
     metadata: {
       sourceKind: 'skill-directory',
       submissionCount: 1,
@@ -51,6 +62,28 @@ function artifactFixture(): SkillArtifact {
 }
 
 describe('ArtifactWritePort', () => {
+  it('exposes only artifact mutation operations', () => {
+    const port = createArtifactWritePort({
+      connect: vi.fn(),
+      query: vi.fn(),
+    } as never);
+
+    expect(Object.keys(port).sort()).toEqual(
+      [
+        'activate',
+        'appendLifecycleEvent',
+        'appendRevision',
+        'editArtifact',
+        'importArtifact',
+        'insert',
+        'nextId',
+        'review',
+        'updateLifecycle',
+        'updateRevisionDerived',
+      ].sort(),
+    );
+  });
+
   it('persists an imported artifact and its revision in one owner transaction', async () => {
     const calls: string[] = [];
     const client = {
@@ -72,6 +105,7 @@ describe('ArtifactWritePort', () => {
         'BEGIN',
         expect.stringContaining('INSERT INTO skill_artifacts'),
         expect.stringContaining('INSERT INTO artifact_revisions'),
+        expect.stringContaining('INSERT INTO artifact_lifecycle_events'),
         'COMMIT',
       ]),
     );

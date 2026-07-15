@@ -12,7 +12,6 @@ import type { Pool } from 'pg';
 export interface ArtifactWritePort {
   nextId(): Promise<string>;
   insert(artifact: SkillArtifact): Promise<void>;
-  getById(artifactId: string): Promise<SkillArtifact | null>;
   updateLifecycle(
     artifactId: string,
     newState: LifecycleState,
@@ -27,9 +26,6 @@ export interface ArtifactWritePort {
   appendLifecycleEvent(artifactId: string, event: SkillArtifactLifecycleEvent): Promise<void>;
   importArtifact(input: Record<string, unknown>): Promise<SkillArtifact>;
   editArtifact(artifactId: string, input: Record<string, unknown>): Promise<SkillArtifact>;
-  history(artifactId: string): Promise<SkillArtifactRevision[]>;
-  exportArtifacts(input: Record<string, unknown>): Promise<SkillArtifact[]>;
-  reviewQueue(): Promise<SkillArtifact[]>;
   review(
     artifactId: string,
     decision: 'approve' | 'reject',
@@ -37,6 +33,26 @@ export interface ArtifactWritePort {
     note?: string,
   ): Promise<SkillArtifact>;
   activate(input: Record<string, unknown>): Promise<SkillArtifact>;
+}
+
+/** Wave-7 temporary PostgreSQL-only projection. It deliberately has no mutations. */
+export interface ArtifactReadProjection {
+  getById(artifactId: string): Promise<SkillArtifact | null>;
+  listByFilter(filter: {
+    lifecycleState?: LifecycleState;
+    teamId?: string;
+    ownerUserId?: string;
+    maintainerUserId?: string;
+  }): Promise<SkillArtifact[]>;
+  listForRetrieval(filter: {
+    lifecycleState?: LifecycleState;
+    teamId?: string;
+    ownerUserId?: string;
+    maintainerUserId?: string;
+  }): Promise<SkillArtifact[]>;
+  history(artifactId: string): Promise<SkillArtifactRevision[]>;
+  exportArtifacts(input: Record<string, unknown>): Promise<SkillArtifact[]>;
+  reviewQueue(): Promise<SkillArtifact[]>;
 }
 
 type Queryable = Pick<Pool, 'query' | 'connect'>;
@@ -109,7 +125,75 @@ function mapEvent(row: Record<string, unknown>): SkillArtifactLifecycleEvent {
   };
 }
 
+export function createArtifactReadProjection(pool: Pick<Pool, 'query'>): ArtifactReadProjection {
+  const getById = async (artifactId: string): Promise<SkillArtifact | null> => {
+    const result = await pool.query('SELECT * FROM skill_artifacts WHERE id = $1', [artifactId]);
+    if (!result.rows[0]) return null;
+    const revisions = await pool.query(
+      'SELECT * FROM artifact_revisions WHERE artifact_id = $1 ORDER BY revision_no',
+      [artifactId],
+    );
+    const events = await pool.query(
+      'SELECT * FROM artifact_lifecycle_events WHERE artifact_id = $1 ORDER BY created_at',
+      [artifactId],
+    );
+    return rowToArtifact(
+      result.rows[0] as Record<string, unknown>,
+      revisions.rows.map((row) => mapRevision(row as Record<string, unknown>)),
+      events.rows.map((row) => mapEvent(row as Record<string, unknown>)),
+    );
+  };
+  const listByFilter = async (filter: Parameters<ArtifactReadProjection['listByFilter']>[0]) => {
+    const result = await pool.query(
+      `SELECT id FROM skill_artifacts
+       WHERE ($1::text IS NULL OR lifecycle_state = $1)
+         AND ($2::text IS NULL OR team_id = $2)
+         AND ($3::text IS NULL OR owner_user_id = $3)
+         AND ($4::text IS NULL OR maintenance_meta->>'maintainerUserId' = $4)
+       ORDER BY created_at`,
+      [
+        filter.lifecycleState ?? null,
+        filter.teamId ?? null,
+        filter.ownerUserId ?? null,
+        filter.maintainerUserId ?? null,
+      ],
+    );
+    return (
+      await Promise.all(
+        result.rows.map((row) => getById(String((row as Record<string, unknown>).id))),
+      )
+    ).filter((artifact): artifact is SkillArtifact => Boolean(artifact));
+  };
+  return {
+    getById,
+    listByFilter,
+    listForRetrieval: listByFilter,
+    async history(artifactId) {
+      const result = await pool.query(
+        'SELECT * FROM artifact_revisions WHERE artifact_id = $1 ORDER BY revision_no',
+        [artifactId],
+      );
+      return result.rows.map((row) => mapRevision(row as Record<string, unknown>));
+    },
+    async exportArtifacts(input) {
+      const result = await pool.query(
+        'SELECT id FROM skill_artifacts WHERE ($1::text IS NULL OR id = $1) ORDER BY created_at',
+        [typeof input.artifactId === 'string' ? input.artifactId : null],
+      );
+      return (
+        await Promise.all(
+          result.rows.map((row) => getById(String((row as Record<string, unknown>).id))),
+        )
+      ).filter((artifact): artifact is SkillArtifact => Boolean(artifact));
+    },
+    async reviewQueue() {
+      return listByFilter({ lifecycleState: 'submitted' });
+    },
+  };
+}
+
 export function createArtifactWritePort(pool: Queryable): ArtifactWritePort {
+  const read = createArtifactReadProjection(pool);
   return {
     async nextId() {
       return id('artifact');
@@ -180,23 +264,6 @@ export function createArtifactWritePort(pool: Queryable): ArtifactWritePort {
         client.release();
       }
     },
-    async getById(artifactId) {
-      const result = await pool.query('SELECT * FROM skill_artifacts WHERE id = $1', [artifactId]);
-      if (!result.rows[0]) return null;
-      const revisions = await pool.query(
-        'SELECT * FROM artifact_revisions WHERE artifact_id = $1 ORDER BY revision_no',
-        [artifactId],
-      );
-      const events = await pool.query(
-        'SELECT * FROM artifact_lifecycle_events WHERE artifact_id = $1 ORDER BY created_at',
-        [artifactId],
-      );
-      return rowToArtifact(
-        result.rows[0],
-        revisions.rows.map((row) => mapRevision(row as Record<string, unknown>)),
-        events.rows.map((row) => mapEvent(row as Record<string, unknown>)),
-      );
-    },
     async updateLifecycle(artifactId, newState, context) {
       const client = await pool.connect();
       try {
@@ -248,7 +315,7 @@ export function createArtifactWritePort(pool: Queryable): ArtifactWritePort {
       } finally {
         client.release();
       }
-      const updated = await this.getById(artifactId);
+      const updated = await read.getById(artifactId);
       if (!updated) throw new Error(`Artifact ${artifactId} not found`);
       return updated;
     },
@@ -295,10 +362,10 @@ export function createArtifactWritePort(pool: Queryable): ArtifactWritePort {
       const artifact = input as unknown as SkillArtifact;
       if (!artifact.id) artifact.id = await this.nextId();
       await this.insert(artifact);
-      return (await this.getById(artifact.id)) ?? artifact;
+      return (await read.getById(artifact.id)) ?? artifact;
     },
     async editArtifact(artifactId, input) {
-      const current = await this.getById(artifactId);
+      const current = await read.getById(artifactId);
       if (!current) throw new Error(`Artifact ${artifactId} not found`);
       const updates =
         input.updates && typeof input.updates === 'object'
@@ -313,31 +380,7 @@ export function createArtifactWritePort(pool: Queryable): ArtifactWritePort {
           updates.metadata ? JSON.stringify(updates.metadata) : null,
         ],
       );
-      return (await this.getById(artifactId)) ?? current;
-    },
-    async history(artifactId) {
-      const result = await pool.query(
-        'SELECT * FROM artifact_revisions WHERE artifact_id = $1 ORDER BY revision_no',
-        [artifactId],
-      );
-      return result.rows.map((row) => mapRevision(row as Record<string, unknown>));
-    },
-    async exportArtifacts(input) {
-      const result = await pool.query(
-        'SELECT * FROM skill_artifacts WHERE ($1::text IS NULL OR id = $1) ORDER BY created_at',
-        [typeof input.artifactId === 'string' ? input.artifactId : null],
-      );
-      return Promise.all(
-        result.rows.map((row) => this.getById(String((row as Record<string, unknown>).id))),
-      ).then((items) => items.filter((item): item is SkillArtifact => Boolean(item)));
-    },
-    async reviewQueue() {
-      const result = await pool.query(
-        "SELECT * FROM skill_artifacts WHERE lifecycle_state IN ('submitted','under-review') ORDER BY updated_at",
-      );
-      return Promise.all(
-        result.rows.map((row) => this.getById(String((row as Record<string, unknown>).id))),
-      ).then((items) => items.filter((item): item is SkillArtifact => Boolean(item)));
+      return (await read.getById(artifactId)) ?? current;
     },
     async review(artifactId, decision, actorId, note) {
       return this.updateLifecycle(artifactId, decision === 'approve' ? 'approved' : 'rejected', {

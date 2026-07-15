@@ -1,8 +1,12 @@
 import { toInvocationErrorResponse } from '@trapmap/backend-core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { ArtifactWritePort } from './artifact-ports.js';
+import type { ArtifactReadProjection, ArtifactWritePort } from './artifact-ports.js';
 
-export function registerArtifactRoutes(app: FastifyInstance, artifacts: ArtifactWritePort): void {
+export function registerArtifactRoutes(
+  app: FastifyInstance,
+  artifacts: ArtifactWritePort,
+  readProjection: ArtifactReadProjection,
+): void {
   app.post('/internal/artifacts/import', async (request, reply) => {
     try {
       return reply
@@ -17,7 +21,9 @@ export function registerArtifactRoutes(app: FastifyInstance, artifacts: Artifact
     try {
       return reply
         .status(200)
-        .send(await artifacts.exportArtifacts((request.body ?? {}) as Record<string, unknown>));
+        .send(
+          await readProjection.exportArtifacts((request.body ?? {}) as Record<string, unknown>),
+        );
     } catch (error) {
       const response = toInvocationErrorResponse(error);
       return reply.status(response.status).send(response.body);
@@ -25,7 +31,7 @@ export function registerArtifactRoutes(app: FastifyInstance, artifacts: Artifact
   });
   app.get('/internal/artifacts/review-queue', async (_request, reply) => {
     try {
-      return reply.status(200).send(await artifacts.reviewQueue());
+      return reply.status(200).send(await readProjection.reviewQueue());
     } catch (error) {
       const response = toInvocationErrorResponse(error);
       return reply.status(response.status).send(response.body);
@@ -36,7 +42,7 @@ export function registerArtifactRoutes(app: FastifyInstance, artifacts: Artifact
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const { artifactId } = request.params as { artifactId: string };
-        const artifact = await artifacts.getById(artifactId);
+        const artifact = await readProjection.getById(artifactId);
         return reply
           .status(artifact ? 200 : 404)
           .send(artifact ?? { error: 'Artifact not found', kind: 'not-found' });
@@ -86,7 +92,7 @@ export function registerArtifactRoutes(app: FastifyInstance, artifacts: Artifact
     try {
       return reply
         .status(200)
-        .send(await artifacts.history((request.params as { artifactId: string }).artifactId));
+        .send(await readProjection.history((request.params as { artifactId: string }).artifactId));
     } catch (error) {
       const response = toInvocationErrorResponse(error);
       return reply.status(response.status).send(response.body);

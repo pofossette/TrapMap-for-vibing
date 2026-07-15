@@ -175,7 +175,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     } as never);
 
     await expect(
-      owner.artifactRepo.updateLifecycle('artifact-1', 'approved', { actorId: 'reviewer-1' }),
+      owner.artifactWriter.updateLifecycle('artifact-1', 'approved', { actorId: 'reviewer-1' }),
     ).rejects.toThrow(/artifact .* not found/i);
 
     expect(calls).toEqual(

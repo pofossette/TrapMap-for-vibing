@@ -20,5 +20,10 @@ export {
   type KnowledgeWriteOutboxDiagnostics,
   type KnowledgeWriteOwnerBundle,
 } from './pg-ports.js';
-export { createArtifactWritePort, type ArtifactWritePort } from './artifact-ports.js';
+export {
+  createArtifactReadProjection,
+  createArtifactWritePort,
+  type ArtifactReadProjection,
+  type ArtifactWritePort,
+} from './artifact-ports.js';
 export { registerArtifactRoutes } from './artifact-routes.js';

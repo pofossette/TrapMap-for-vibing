@@ -2,25 +2,32 @@ import { InvocationError } from '@trapmap/backend-core';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ArtifactWritePort } from './artifact-ports.js';
+import type { ArtifactReadProjection, ArtifactWritePort } from './artifact-ports.js';
 import { registerArtifactRoutes } from './artifact-routes.js';
 
 function createArtifacts(): ArtifactWritePort {
   return {
     nextId: vi.fn(),
     insert: vi.fn(),
-    getById: vi.fn(async () => null),
     updateLifecycle: vi.fn(),
     appendRevision: vi.fn(),
     updateRevisionDerived: vi.fn(),
     appendLifecycleEvent: vi.fn(),
     importArtifact: vi.fn(async () => ({ id: 'artifact-1' }) as never),
     editArtifact: vi.fn(async () => ({ id: 'artifact-1' }) as never),
+    review: vi.fn(async () => ({ id: 'artifact-1' }) as never),
+    activate: vi.fn(async () => ({ id: 'artifact-1' }) as never),
+  };
+}
+
+function createReadProjection(): ArtifactReadProjection {
+  return {
+    getById: vi.fn(async () => null),
+    listByFilter: vi.fn(async () => []),
+    listForRetrieval: vi.fn(async () => []),
     history: vi.fn(async () => []),
     exportArtifacts: vi.fn(async () => []),
     reviewQueue: vi.fn(async () => []),
-    review: vi.fn(async () => ({ id: 'artifact-1' }) as never),
-    activate: vi.fn(async () => ({ id: 'artifact-1' }) as never),
   };
 }
 
@@ -31,7 +38,7 @@ describe('artifact owner routes', () => {
       throw InvocationError.unavailable('artifact owner unavailable');
     });
     const app = Fastify();
-    registerArtifactRoutes(app, artifacts);
+    registerArtifactRoutes(app, artifacts, createReadProjection());
     await app.ready();
 
     const response = await app.inject({
