@@ -6,15 +6,12 @@ import {
 } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { buildUserLookupContextFromActorLookup } from '@trapmap/server/lib/actors/lookup.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { toKnowledgeEntry } from '@trapmap/server/lib/knowledge.js';
-import { createKnowledgeApplicationService } from '@trapmap/server/lib/knowledge/application-service.js';
-import { emitLifecycleTransition } from '@trapmap/server/lib/lifecycle/index.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
+import { normalizeKnowledgeOwnerEntry, ownerId } from './knowledge-owner-response.js';
 
 function requireRealUser(userId: string | undefined): string {
   if (!userId) {
@@ -28,21 +25,11 @@ function requireRealUser(userId: string | undefined): string {
 }
 
 export const trapRoutes: FastifyPluginAsync = async (app) => {
-  function getKnowledgeService() {
-    return createKnowledgeApplicationService({
-      knowledgeRepo: app.skillShareer.repos.knowledge,
-      chatProvider: app.skillShareer.ai.chat,
-    });
-  }
-
-  // POST /v1/traps - Submit new trap
   app.post('/v1/traps', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:submit');
-
     const payload = knowledgeSubmissionSchema.parse(request.body);
     const ownerUserId = requireRealUser(auth.user?.id);
-
     if (payload.scope === 'project' && !auth.activeTeamId) {
       throw new AppError(
         400,
@@ -50,7 +37,6 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
         'Project-scoped trap requires an active team',
       );
     }
-
     if (payload.requiredLevel !== undefined && payload.requiredLevel > auth.securityLevel) {
       throw new AppError(
         403,
@@ -59,80 +45,54 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       );
     }
 
-    const { entry } = await getKnowledgeService().submit({
-      kind: 'trap',
-      ownerUserId,
+    const result = await app.skillShareer.knowledgeOwner.createTrap({
+      actorId: ownerUserId,
+      content: payload.detail,
+      title: payload.shortcut,
+      labels: payload.labels,
       teamId: payload.scope === 'project' ? auth.activeTeamId : null,
-      payload,
+      scope: payload.scope,
       requiredLevel: payload.requiredLevel ?? auth.securityLevel,
-      boundary: payload.boundary,
     });
-
-    const lookup = await buildUserLookupContextFromActorLookup(
-      app.skillShareer.identity.actorLookup,
-      [entry],
-    );
-
+    const entry = await app.skillShareer.knowledgeOwner.getById(result.trapId);
+    if (!entry) throw new AppError(404, 'trap_not_found', 'Trap entry not found after creation');
+    const normalized = normalizeKnowledgeOwnerEntry(entry);
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
       actorId: auth.actorId,
       actorHandle: auth.handle,
       action: 'trap-submit',
-      targetId: entry.id,
+      targetId: normalized.id,
       teamId: auth.activeTeamId,
       metadata: { scope: payload.scope, labels: payload.labels },
     });
+    return knowledgeEntryResponseSchema.parse({ entry: normalized });
+  });
 
-    return knowledgeEntryResponseSchema.parse({
-      entry: toKnowledgeEntry(lookup, entry),
+  app.get('/v1/traps', async (request) => {
+    const auth = await resolveAuthContext(app.skillShareer, request);
+    const entries = await app.skillShareer.knowledgeOwner.listByFilter({
+      ownerUserId: requireRealUser(auth.user?.id),
+    });
+    return knowledgeHistoryResponseSchema.parse({
+      items: entries.map((entry) => normalizeKnowledgeOwnerEntry(entry)),
     });
   });
 
-  // GET /v1/traps - List own traps
-  app.get('/v1/traps', async (request) => {
-    const auth = await resolveAuthContext(app.skillShareer, request);
-    const ownerUserId = requireRealUser(auth.user?.id);
-
-    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
-    const entries = await knowledgeRepo.listByFilter({ ownerUserId });
-    const lookup = await buildUserLookupContextFromActorLookup(
-      app.skillShareer.identity.actorLookup,
-      entries,
-    );
-    const items = entries.map((entry) => toKnowledgeEntry(lookup, entry));
-
-    return knowledgeHistoryResponseSchema.parse({ items });
-  });
-
-  // GET /v1/traps/:trapId - Get trap details
   app.get('/v1/traps/:trapId', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     const trapId = (request.params as { trapId: string }).trapId;
-    const { knowledge: knowledgeRepo } = app.skillShareer.repos;
-    const entry = await knowledgeRepo.getById(trapId);
-
-    if (!entry) {
-      throw new AppError(404, 'trap_not_found', 'Trap entry not found');
-    }
-
-    const isOwner = auth.user?.id === entry.ownerUserId;
+    const entry = await app.skillShareer.knowledgeOwner.getById(trapId);
+    if (!entry) throw new AppError(404, 'trap_not_found', 'Trap entry not found');
+    const normalized = normalizeKnowledgeOwnerEntry(entry);
+    const isOwner = auth.user?.id === ownerId(normalized);
     const canReview =
-      auth.subjectType === 'system-admin' || auth.securityLevel > entry.requiredLevel;
-
-    if (!isOwner && !canReview) {
+      auth.subjectType === 'system-admin' || auth.securityLevel > normalized.requiredLevel;
+    if (!isOwner && !canReview)
       throw new AppError(403, 'forbidden', 'You do not have access to this trap entry');
-    }
-
-    const lookup = await buildUserLookupContextFromActorLookup(
-      app.skillShareer.identity.actorLookup,
-      [entry],
-    );
-    return knowledgeEntryResponseSchema.parse({
-      entry: toKnowledgeEntry(lookup, entry),
-    });
+    return knowledgeEntryResponseSchema.parse({ entry: normalized });
   });
 
-  // POST /v1/traps/:trapId/resubmit - Resubmit rejected trap
   app.post('/v1/traps/:trapId/resubmit', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     const ownerUserId = requireRealUser(auth.user?.id);
@@ -141,19 +101,19 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       ...((request.body as Record<string, unknown>) ?? {}),
       entryId: trapId,
     });
-
-    const { entry } = await getKnowledgeService().resubmit({
-      kind: 'trap',
-      entryId: trapId,
+    await app.skillShareer.knowledgeOwner.resubmit(
+      trapId,
+      {
+        detail: payload.detail,
+        shortcut: payload.shortcut,
+        labels: payload.labels,
+        boundary: payload.boundary,
+      },
       ownerUserId,
-      payload,
-    });
-
-    const lookup = await buildUserLookupContextFromActorLookup(
-      app.skillShareer.identity.actorLookup,
-      [entry],
     );
-
+    const entry = await app.skillShareer.knowledgeOwner.getById(trapId);
+    if (!entry) throw new AppError(404, 'trap_not_found', 'Trap entry not found after resubmit');
+    const normalized = normalizeKnowledgeOwnerEntry(entry);
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
       actorId: auth.actorId,
@@ -163,50 +123,20 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       teamId: auth.activeTeamId,
       metadata: { labels: payload.labels },
     });
-
-    return knowledgeEntryResponseSchema.parse({
-      entry: toKnowledgeEntry(lookup, entry),
-    });
+    return knowledgeEntryResponseSchema.parse({ entry: normalized });
   });
 
-  // POST /v1/traps/:trapId/supersede - Supersede a trap with a replacement
   app.post('/v1/traps/:trapId/supersede', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:update');
-
     const trapId = (request.params as { trapId: string }).trapId;
     const body = (request.body as { replacementId?: string }) ?? {};
-    if (!body.replacementId || typeof body.replacementId !== 'string') {
+    if (!body.replacementId)
       throw new AppError(400, 'replacement_required', 'replacementId is required');
-    }
-
-    const entry = (
-      await getKnowledgeService().supersede({
-        kind: 'trap',
-        entryId: trapId,
-        replacementId: body.replacementId,
-        actorId: auth.actorId,
-      })
-    ).entry;
-
-    await emitLifecycleTransition({
-      store: app.skillShareer.store,
-      eventBus: app.skillShareer.eventBus,
-      ...(app.skillShareer.asyncTransport
-        ? {
-            asyncTransport: {
-              events: app.skillShareer.asyncTransport.events,
-            },
-          }
-        : {}),
-      aggregateType: 'knowledge',
-      aggregateId: trapId,
-      previousState: 'approved',
-      nextState: 'deactivated',
-      actorId: auth.actorId,
-      reason: 'superseded',
-    });
-
+    await app.skillShareer.knowledgeOwner.supersede(trapId, body.replacementId, auth.actorId);
+    const entry = await app.skillShareer.knowledgeOwner.getById(trapId);
+    if (!entry) throw new AppError(404, 'trap_not_found', 'Trap entry not found after supersede');
+    const normalized = normalizeKnowledgeOwnerEntry(entry);
     void logUserOperation(app.skillShareer.config.userOpsLog, {
       timestamp: nowIso(),
       actorId: auth.actorId,
@@ -216,13 +146,6 @@ export const trapRoutes: FastifyPluginAsync = async (app) => {
       teamId: auth.activeTeamId,
       metadata: { replacementId: body.replacementId },
     });
-
-    const lookup = await buildUserLookupContextFromActorLookup(
-      app.skillShareer.identity.actorLookup,
-      [entry],
-    );
-    return knowledgeEntryResponseSchema.parse({
-      entry: toKnowledgeEntry(lookup, entry),
-    });
+    return knowledgeEntryResponseSchema.parse({ entry: normalized });
   });
 };

@@ -62,7 +62,7 @@ export function computeQualityScore(feedback: FeedbackQueueRecord[]): QualitySco
 }
 
 export async function buildRemediationQueueItems(app: Parameters<FastifyPluginAsync>[0]) {
-  const { feedback: feedbackRepo, knowledge: knowledgeRepo } = app.skillShareer.repos;
+  const { feedback: feedbackRepo } = app.skillShareer.repos;
   const artifactReadProjection = app.skillShareer.artifactReadProjection;
   const now = new Date();
   const allFeedback = await feedbackRepo.listByFilter({});
@@ -84,7 +84,7 @@ export async function buildRemediationQueueItems(app: Parameters<FastifyPluginAs
     );
     if (!remediation) continue;
 
-    const knowledgeEntry = await knowledgeRepo.getById(entryId);
+    const knowledgeEntry = await app.skillShareer.knowledgeOwner.getById(entryId);
     const skillArtifact = knowledgeEntry ? null : await artifactReadProjection.getById(entryId);
     if (!knowledgeEntry && !skillArtifact) continue;
 

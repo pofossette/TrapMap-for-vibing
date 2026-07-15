@@ -7,11 +7,13 @@ import {
   createKnowledgeWriteOwnerBundle,
   type ArtifactWritePort,
 } from '../../packages/service-knowledge-write/src/pg-ports.js';
+import type { KnowledgeOwnerPort } from '../../packages/contracts/src/index.js';
 
 export interface PostgresComposedServer {
   app: ReturnType<typeof buildServer>;
   store: PostgresStore;
   artifactWriter: ArtifactWritePort;
+  knowledgeOwner: KnowledgeOwnerPort;
   close(): Promise<void>;
 }
 
@@ -28,6 +30,7 @@ export function buildPostgresComposedServer(
     config: { ...options.config, databaseUrl },
     identityBundle: createIdentityAccessPgDeps(pool),
     artifactReadProjection: knowledgeWrite.artifactReadProjection,
+    knowledgeOwner: knowledgeWrite.knowledgeOwner,
     ownsStore: false,
     store,
   });
@@ -37,6 +40,7 @@ export function buildPostgresComposedServer(
     app,
     store,
     artifactWriter: knowledgeWrite.artifactWriter,
+    knowledgeOwner: knowledgeWrite.knowledgeOwner,
     async close() {
       await closeApp();
       await pool.end();

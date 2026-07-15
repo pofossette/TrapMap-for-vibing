@@ -471,15 +471,21 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   it('team-monolith health exposes shared gateway topology with local worker ownership', async () => {
     const app = await buildServer();
     await app.ready();
+    const taskWorker = app.taskWorker;
+    const outboxWorker = app.outboxWorker;
     app.taskWorker = {
       isRunning: () => true,
       ownsWork: () => true,
-      stop: async () => {},
+      stop: async () => {
+        await taskWorker?.stop?.();
+      },
     };
     app.outboxWorker = {
       isRunning: () => true,
       ownsWork: () => true,
-      stop: async () => {},
+      stop: async () => {
+        await outboxWorker?.stop?.();
+      },
     };
 
     const response = await app.inject({

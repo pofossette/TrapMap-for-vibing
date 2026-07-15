@@ -17,6 +17,7 @@ import type {
 import type { RetrievalEvalCase, RetrievalEvalScenario } from '@trapmap/contracts/evals';
 import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
 import type { ArtifactWritePort } from '../../../packages/service-knowledge-write/src/artifact-ports.js';
+import type { KnowledgeOwnerPort } from '../../../packages/contracts/src/index.js';
 import { resetRetrievalReadModelCacheForTests } from '../../../packages/server/src/lib/cache/retrieval-read-model-cache.js';
 import type { GraphIndexDocumentRecord } from '../../../packages/server/src/lib/indexing/graph-lite/documents.js';
 import { createKnowledgeEntryRecord } from '../../../packages/server/src/lib/knowledge.js';
@@ -186,6 +187,7 @@ export interface ExecutionContext {
   /** Actor ID for the session */
   actorId: string;
   artifactWriter: ArtifactWritePort;
+  knowledgeOwner: KnowledgeOwnerPort;
   /** Closes the host-composed app and its owner pool. */
   close(): Promise<void>;
 }
@@ -257,6 +259,7 @@ export async function createExecutionContext(options?: {
     sessionToken,
     actorId,
     artifactWriter: composed.artifactWriter,
+    knowledgeOwner: composed.knowledgeOwner,
     close: composed.close,
   };
 }
@@ -345,11 +348,22 @@ export async function seedScenarioFixtures(
   const repos = ctx.app.skillShareer.repos;
 
   if (repos) {
-    // PostgreSQL mode: use repository layer
+    // PostgreSQL mode: seed through the knowledge-write owner so fixtures
+    // exercise the same aggregate/revision/lifecycle transaction as commands.
     for (const entry of fixtureEntries) {
       const record = createKnowledgeFixtureRecord(entry, ctx.actorId, createdAt);
-      record.lifecycleState = mapLifecycleState(entry.lifecycleState);
-      await repos.knowledge.insert(record);
+      const lifecycleState = mapLifecycleState(entry.lifecycleState);
+      await ctx.knowledgeOwner.submit({
+        actorId: ctx.actorId,
+        entryId: record.id,
+        lifecycleState,
+        content: record.detail,
+        title: record.shortcut,
+        labels: record.labels,
+        teamId: record.teamId,
+        scope: record.scope,
+        requiredLevel: record.requiredLevel,
+      });
     }
 
     for (const artifact of fixtureArtifacts) {

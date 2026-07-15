@@ -15,7 +15,7 @@ import { createGraphIndexRepository } from '@trapmap/server/lib/graph-index/repo
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 
 import { backfillLabels } from './backfill.js';
-import { createLabelRepository } from './repository.js';
+import { createLabelReadProjection } from './repository.js';
 
 interface RawLabelSource {
   label: string;
@@ -91,7 +91,7 @@ export async function main() {
   const pool = new Pool({ connectionString: databaseUrl });
 
   try {
-    const repository = createLabelRepository({ pool });
+    const repository = createLabelReadProjection({ pool });
     const rawLabelSources = await loadRawLabelSources(pool);
     const ai = createAiProviders(loadAiProviderConfig());
 

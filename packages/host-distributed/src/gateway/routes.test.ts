@@ -138,11 +138,14 @@ describe('registerGatewayRoutes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(clients.knowledgeWrite.applyMaintenanceDecision).toHaveBeenCalledWith({
-      entryId: 'entry-1',
-      actorId: 'user-1',
-      action: 'refresh',
-    });
+    expect(clients.knowledgeWrite.applyMaintenanceDecision).toHaveBeenCalledWith(
+      {
+        entryId: 'entry-1',
+        actorId: 'user-1',
+        action: 'refresh',
+      },
+      { headers: { 'x-trapmap-actor-id': 'user-1' } },
+    );
     expect(clients.review.applyMaintenance).not.toHaveBeenCalled();
     await app.close();
   });
@@ -290,12 +293,15 @@ describe('registerGatewayRoutes', () => {
       payload: { content: 'trap', teamId: 'team-1', actorId: 'user-1', title: 'Trap' },
     });
     expect(createResponse.statusCode).toBe(201);
-    expect(clients.knowledgeWrite.createTrap).toHaveBeenCalledWith({
-      content: 'trap',
-      teamId: 'team-1',
-      actorId: 'user-1',
-      title: 'Trap',
-    });
+    expect(clients.knowledgeWrite.createTrap).toHaveBeenCalledWith(
+      {
+        content: 'trap',
+        teamId: 'team-1',
+        actorId: 'user-1',
+        title: 'Trap',
+      },
+      { headers: { 'x-trapmap-actor-id': 'user-1' } },
+    );
 
     const listResponse = await app.inject({
       method: 'GET',

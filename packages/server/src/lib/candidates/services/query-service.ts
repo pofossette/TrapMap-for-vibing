@@ -11,20 +11,17 @@ import type {
   ArtifactReadProjection,
   DuplicateJobBundleResponse,
   DuplicateJobMatchEntity,
+  KnowledgeOwnerPort,
 } from '@trapmap/contracts';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import type {
-  CandidateRepository,
-  DuplicateRepository,
-  KnowledgeRepository,
-} from '@trapmap/server/lib/repos/index.js';
+import type { CandidateRepository, DuplicateRepository } from '@trapmap/server/lib/repos/index.js';
 
 /** Dependencies required by the query service. */
 export interface QueryDeps {
   repos: {
     candidate: CandidateRepository;
     duplicate: DuplicateRepository;
-    knowledge: KnowledgeRepository;
+    knowledge: KnowledgeOwnerPort;
     artifact: ArtifactReadProjection;
   };
 }

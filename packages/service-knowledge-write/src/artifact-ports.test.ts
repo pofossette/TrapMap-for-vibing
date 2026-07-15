@@ -1,7 +1,7 @@
 import type { SkillArtifact } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createArtifactWritePort } from './artifact-ports.js';
+import { createArtifactReadProjection, createArtifactWritePort } from './artifact-ports.js';
 import { createTransactionPool } from './test-helpers.js';
 
 function artifactFixture(): SkillArtifact {
@@ -115,5 +115,51 @@ describe('ArtifactWritePort', () => {
     expect(calls).toContain('ROLLBACK');
     expect(calls).not.toContain('COMMIT');
     expect(client.release).toHaveBeenCalledOnce();
+  });
+});
+
+describe('ArtifactReadProjection', () => {
+  it('maps PostgreSQL required_level into the public artifact contract', async () => {
+    const query = vi.fn(async (sql: string) => {
+      if (sql.includes('FROM skill_artifacts')) {
+        return {
+          rows: [
+            {
+              id: 'artifact-1',
+              team_id: null,
+              required_level: 8,
+              lifecycle_state: 'approved',
+              owner_user_id: 'owner-1',
+              labels: ['security'],
+              metadata: artifactFixture().metadata,
+              created_at: artifactFixture().createdAt,
+              updated_at: artifactFixture().updatedAt,
+            },
+          ],
+        };
+      }
+      if (sql.includes('FROM artifact_revisions')) {
+        return {
+          rows: [
+            {
+              revision_no: 1,
+              source_hash: 'source-hash',
+              files: [],
+              script_descriptors: [],
+              derived: null,
+              submitted_at: artifactFixture().createdAt,
+              submitted_by_user_id: 'owner-1',
+            },
+          ],
+        };
+      }
+      return { rows: [] };
+    });
+
+    const projection = createArtifactReadProjection({ query } as never);
+
+    await expect(projection.getById('artifact-1')).resolves.toEqual(
+      expect.objectContaining({ requiredLevel: 8 }),
+    );
   });
 });

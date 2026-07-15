@@ -10,27 +10,10 @@ import {
   attachManualResult,
 } from '@trapmap/server/lib/candidates/services/resolution-service.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { createLifecyclePublisher } from '@trapmap/server/lib/lifecycle/index.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 
 export const candidateResolutionRoutes: FastifyPluginAsync = async (app) => {
-  const { store, eventBus, asyncTransport } = app.skillShareer;
-  const lifecyclePublisher = createLifecyclePublisher(
-    asyncTransport
-      ? {
-          store,
-          eventBus,
-          asyncTransport: {
-            events: asyncTransport.events,
-          },
-        }
-      : {
-          store,
-          eventBus,
-        },
-  );
-
   app.post('/v1/candidates/:candidateId/manual-result', async (request) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:review');
@@ -39,12 +22,11 @@ export const candidateResolutionRoutes: FastifyPluginAsync = async (app) => {
     const body = ManualResultSubmissionSchema.parse(request.body);
     const result = await attachManualResult(
       {
-        store,
+        store: app.skillShareer.store,
         repos: {
           candidate: app.skillShareer.repos.candidate,
           lineage: app.skillShareer.repos.lineage,
         },
-        lifecyclePublisher,
         config: app.skillShareer.config,
       },
       auth,
@@ -63,12 +45,11 @@ export const candidateResolutionRoutes: FastifyPluginAsync = async (app) => {
     try {
       const result = await applyResolution(
         {
-          store,
+          store: app.skillShareer.store,
           repos: {
             candidate: app.skillShareer.repos.candidate,
             lineage: app.skillShareer.repos.lineage,
           },
-          lifecyclePublisher,
           config: app.skillShareer.config,
         },
         auth,

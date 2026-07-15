@@ -13,7 +13,6 @@ import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { applyManualResultResolution } from '@trapmap/server/lib/candidates/reconcile.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import type { LifecyclePublisher } from '@trapmap/server/lib/lifecycle/index.js';
 import type { CandidateRepository, LineageRepository } from '@trapmap/server/lib/repos/index.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
@@ -26,7 +25,16 @@ export interface ResolutionDeps {
     candidate: CandidateRepository;
     lineage: LineageRepository;
   };
-  lifecyclePublisher: LifecyclePublisher;
+  lifecyclePublisher?: {
+    publishTransition(input: {
+      aggregateType: 'knowledge';
+      aggregateId: string;
+      previousState: string;
+      nextState: string;
+      actorId: string;
+      reason: string;
+    }): Promise<void>;
+  };
   config: SkillShareerServices['config'];
 }
 
@@ -169,7 +177,7 @@ export async function applyResolution(
   }
 
   // Post-commit: emit event for newly published entities
-  if (publishedEntityId && publishedEntityType === 'trap') {
+  if (publishedEntityId && publishedEntityType === 'trap' && lifecyclePublisher) {
     await lifecyclePublisher.publishTransition({
       aggregateType: 'knowledge',
       aggregateId: publishedEntityId,

@@ -181,8 +181,6 @@ export function buildServer(options: BuildServerOptions = {}) {
       return sr;
     })(),
     ai: createAiProviders(config.ai),
-    // knowledgeRepo is set in bootstrapRepositories when PostgreSQL pool is available
-    knowledgeRepo: undefined,
     artifactReadProjection: options.artifactReadProjection as ArtifactReadProjection,
     knowledgeOwner: options.knowledgeOwner as KnowledgeOwnerPort,
     identity: options.identityBundle,

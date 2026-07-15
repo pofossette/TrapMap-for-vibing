@@ -92,6 +92,8 @@ Wave-2 Fallow closeout：retrieval actor-session assertions、knowledge-write tr
 
 Wave-2 PG-first follow-up：`createKnowledgeRepository()` 现缺少 PostgreSQL pool 即 fail-fast，删除 `InMemoryKnowledgeRepository` 的 snapshot mutation/read fallback；`emitLifecycleTransition()` 也拒绝 JSON event-bus dispatch，只能经 PostgreSQL outbox。snapshot usage guard 已去除 knowledge 与已删除 artifact migration 的陈旧豁免；retirement guard 将 schema 的 `store_snapshot` 登记迁至 `persistence-schema` 并删除失效 outbox 条目。协调 PostgreSQL 下 `PgKnowledgeRepository` 契约修正为唯一 lifecycle fixture ID、384 维向量和单次 pool close，29 tests 通过；deployment smoke、eval smoke、typecheck、doc-drift、structure、diff check 与 Wave-1 baseline 的 new-only Fallow audit 均通过，新增 dead-code/complexity/duplication 仍为 `0`。Wave-2 仍未完成：server/runtime-infra 继续构造 legacy knowledge repository，且 server 路由、labels、maintenance/decay、lifecycle subscribers 与 write-side service 尚未完成 owner-local port/internal HTTP 切换。
 
+本轮收尾验证：knowledge-write PG/routes focused tests 为 18/18；`rtk pnpm test:deployment-smoke` 通过 175 tests，`rtk pnpm eval:smoke` 通过 81/81，`rtk pnpm typecheck`、retirement guard（13/13）、doc-drift（46 rules）、structure guard 与 `rtk git diff --check` 均通过。新增 task-worker shutdown 回归覆盖停止竞态，runtime-infra knowledge projection 改为本地读投影类型以清除新增 boundary violation；app smoke 不再出现 pool teardown unhandled rejection。当前 `rtk pnpm exec fallow audit --base wave1-fallow-base --gate new-only --format json --quiet --explain` 仍未通过：基线遗留 28 个 dead-code，且本轮报告 7 个 complexity 与 28 个 duplication groups；因此 `completedOwnerWaves` 仍只含 `wave-1`，尚未回写 `BOUNDARIES.md`/`REPO_STRUCTURE.md` 的 Wave-2 完成记录，待 Fallow 收敛后再执行最终 allowlist/doc closeout。
+
 ## Deferred 边界
 
 平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。

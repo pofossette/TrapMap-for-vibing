@@ -42,7 +42,6 @@ export interface HostLocalServices {
   identity: IdentityAccessPortDeps;
   knowledgeWrite: KnowledgeWriteOwnerBundle;
   knowledgeOwner: KnowledgeOwnerPort;
-  knowledgeRepo: HostLocalRepos['knowledge'];
   artifactWriter: ArtifactWritePort;
   artifactReadProjection: ArtifactReadProjection;
   usageAnalyticsRepo: HostLocalRepos['usageAnalytics'];
@@ -78,7 +77,6 @@ export async function createHostLocalServices(
     identity,
     knowledgeWrite,
     knowledgeOwner: knowledgeWrite.knowledgeOwner,
-    knowledgeRepo: infra.repos.knowledge,
     artifactWriter: knowledgeWrite.artifactWriter,
     artifactReadProjection: knowledgeWrite.artifactReadProjection,
     usageAnalyticsRepo: infra.repos.usageAnalytics,

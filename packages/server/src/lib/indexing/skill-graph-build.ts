@@ -15,7 +15,7 @@
 import { createHash } from 'node:crypto';
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
-import { createLabelRepository } from '@trapmap/server/lib/labels/repository.js';
+import { createLabelReadProjection } from '@trapmap/server/lib/labels/repository.js';
 import {
   type SkillArtifactRecord,
   type SkillShareerStore,
@@ -97,7 +97,7 @@ export async function buildSkillGraphDocument(
       alignmentService: pool
         ? {
             chat,
-            repository: createLabelRepository({ pool }),
+            repository: createLabelReadProjection({ pool }),
             sourceContext: 'skill-extraction',
           }
         : null,

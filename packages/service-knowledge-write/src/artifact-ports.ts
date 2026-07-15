@@ -56,6 +56,7 @@ function rowToArtifact(
     ...(row as unknown as SkillArtifact),
     id: String(row.id),
     teamId: (row.team_id as string | null) ?? null,
+    requiredLevel: Number(row.required_level ?? 0),
     lifecycleState: row.lifecycle_state as LifecycleState,
     owner: {
       id: String(row.owner_user_id),

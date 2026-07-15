@@ -105,6 +105,7 @@ export async function bootstrapLifecycle(
 
     const pollIntervalMs = 2000;
     let running = false;
+    let runPromise: Promise<void> | null = null;
 
     async function run(): Promise<void> {
       running = true;
@@ -149,8 +150,19 @@ export async function bootstrapLifecycle(
       }
     }
 
+    async function start(): Promise<void> {
+      if (runPromise) return runPromise;
+      runPromise = run();
+      try {
+        await runPromise;
+      } finally {
+        runPromise = null;
+        running = false;
+      }
+    }
+
     if (startOutboxWorker) {
-      void run();
+      void start();
       app.log.info('Outbox event worker started');
     } else {
       app.log.info('Outbox event worker ownership registered without starting local processing');
@@ -159,8 +171,9 @@ export async function bootstrapLifecycle(
     app.decorate('outboxWorker', {
       isRunning: () => running,
       ownsWork: () => ownsOutboxWork,
-      stop: () => {
+      stop: async () => {
         running = false;
+        if (runPromise) await runPromise;
       },
     });
   }

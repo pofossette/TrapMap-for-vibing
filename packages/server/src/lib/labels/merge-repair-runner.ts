@@ -14,7 +14,7 @@ import { createGraphIndexRepository } from '@trapmap/server/lib/graph-index/repo
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 
 import { repairGraphDocuments } from './merge-repair.js';
-import { createLabelRepository } from './repository.js';
+import { createLabelReadProjection } from './repository.js';
 
 export async function main() {
   const dryRun = process.argv.includes('--dry-run');
@@ -28,7 +28,7 @@ export async function main() {
   const pool = new Pool({ connectionString: databaseUrl });
 
   try {
-    const repository = createLabelRepository({ pool });
+    const repository = createLabelReadProjection({ pool });
     const graphRepo = createGraphIndexRepository({
       pool,
       store: new PostgresStore(pool),

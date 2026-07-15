@@ -27,7 +27,6 @@ import { LifecycleModule } from './lifecycle/index.js';
 import { createHostLocalRuntime, HOST_LOCAL_RUNTIME_TOKEN } from './runtime/host-runtime.js';
 import {
   createFeedbackRepoPort,
-  createKnowledgeRepoPort,
 } from './runtime/backend-core-adapters.js';
 import { RequestContextMiddleware } from './runtime/request-context.middleware.js';
 import { RequestContextService } from './runtime/request-context.service.js';
@@ -48,7 +47,18 @@ import { RequestContextService } from './runtime/request-context.service.js';
  *   module graph.
  */
 const hostLocalRuntime = await createHostLocalRuntime();
-const knowledgeRepoPort = createKnowledgeRepoPort(hostLocalRuntime.services.repos.knowledge);
+const knowledgeProjection = {
+  getById: hostLocalRuntime.services.knowledgeOwner.getById,
+  async listMine(input: { userId: string; teamId?: string }) {
+    return hostLocalRuntime.services.knowledgeOwner.listByFilter({
+      ownerUserId: input.userId,
+      ...(input.teamId ? { teamId: input.teamId } : {}),
+    }) as never;
+  },
+  async getStatus() {
+    return { status: 'ready', provider: 'knowledge-write-owner' } as never;
+  },
+};
 
 const identityAccessModule = IdentityAccessModule.forPort(
   createIdentityAccessServiceModule(
@@ -60,14 +70,14 @@ const identityAccessModule = IdentityAccessModule.forPort(
 
 const knowledgeReadModule = KnowledgeReadModule.forDeps(
   {
-    knowledgeRepo: knowledgeRepoPort,
+    knowledgeRepo: knowledgeProjection as never,
     retrievalQuery: hostLocalRuntime.retrievalQuery,
   },
 );
 
 const knowledgeWritePort = createKnowledgeWriteModule(
   createKnowledgeWriteDeps({
-    knowledgeRepo: hostLocalRuntime.services.knowledgeWrite.knowledgeRepo,
+    knowledgeOwner: hostLocalRuntime.services.knowledgeOwner,
     auditLog: hostLocalRuntime.auditLog,
   }),
 );

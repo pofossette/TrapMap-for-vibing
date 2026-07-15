@@ -7,9 +7,3 @@
 
 // Export existing functions from knowledge.ts for backward compatibility
 export * from '@trapmap/server/lib/knowledge.js';
-
-// Export new repository types and functions
-export * from './repository.js';
-
-// Export PostgreSQL repository implementation
-export * from './pg-repository.js';

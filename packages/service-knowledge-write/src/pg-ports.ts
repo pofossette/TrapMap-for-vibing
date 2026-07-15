@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 
-import type { KnowledgeRepositoryPort } from '@trapmap/backend-core';
 import type {
   ArtifactReadProjection,
-  KnowledgeOwnerRecord,
+  KnowledgeEntry,
+  KnowledgeOwnerCommandInput,
   KnowledgeOwnerPort,
   LifecycleState,
 } from '@trapmap/contracts';
@@ -17,7 +17,6 @@ import {
 type Queryable = Pick<Pool, 'query'>;
 
 export interface KnowledgeWriteOwnerBundle {
-  knowledgeRepo: KnowledgeRepositoryPort;
   knowledgeOwner: KnowledgeOwnerPort;
   artifactWriter: ArtifactWritePort;
   artifactReadProjection: ArtifactReadProjection;
@@ -35,12 +34,12 @@ export interface KnowledgeWriteOutboxDiagnostics {
 }
 
 const lifecycleTransitions: Readonly<Record<LifecycleState, readonly LifecycleState[]>> = {
-  draft: ['submitted'],
+  draft: ['submitted', 'approved'],
   submitted: ['agent-pass', 'agent-rejected'],
   'agent-pass': ['approved', 'rejected', 'deactivated', 'agent-pass'],
   'agent-rejected': ['agent-pass', 'rejected', 'approved', 'deactivated', 'agent-rejected'],
   approved: ['deactivated', 'agent-pass', 'agent-rejected'],
-  rejected: ['agent-pass', 'agent-rejected', 'deactivated'],
+  rejected: ['submitted', 'agent-pass', 'agent-rejected', 'deactivated'],
   deactivated: [],
 };
 
@@ -56,7 +55,88 @@ function mapKnowledgeRow(row: Record<string, unknown>) {
     labels: Array.isArray(row.labels) ? (row.labels as string[]) : [],
     ownerUserId: String(row.owner_user_id ?? row.ownerUserId ?? ''),
     teamId: (row.team_id as string | null) ?? (row.teamId as string | null) ?? null,
+    requiredLevel: Number(row.required_level ?? row.requiredLevel ?? 0),
     lifecycleState: row.lifecycle_state as LifecycleState,
+    boundary: row.boundary ?? null,
+    maintenanceMeta: row.maintenance_meta ?? row.maintenanceMeta ?? null,
+    embeddingCache: row.embedding_cache ?? row.embeddingCache ?? null,
+    decayMeta: row.decay_meta ?? row.decayMeta ?? null,
+  };
+}
+
+function toKnowledgeEntryProjection(row: Record<string, unknown>): KnowledgeEntry {
+  return mapKnowledgeRow(row) as unknown as KnowledgeEntry;
+}
+
+function buildKnowledgeProjectionWhere(filter: {
+  entryIds?: string[];
+  lifecycleState?: LifecycleState;
+  teamId?: string;
+  ownerUserId?: string;
+  labels?: string[];
+  requiredLevelMax?: number;
+  operation?: string;
+}): { where: string; values: unknown[] } {
+  const conditions: string[] = [];
+  const values: unknown[] = [];
+  const add = (condition: string, value: unknown) => {
+    conditions.push(condition.replace('?', `$${values.length + 1}`));
+    values.push(value);
+  };
+
+  if (filter.entryIds?.length) add('ke.id = ANY(?::text[])', filter.entryIds);
+  if (filter.lifecycleState) add('ke.lifecycle_state = ?', filter.lifecycleState);
+  if (filter.teamId) add('ke.team_id = ?', filter.teamId);
+  if (filter.ownerUserId) add('ke.owner_user_id = ?', filter.ownerUserId);
+  if (filter.requiredLevelMax !== undefined) add('ke.required_level <= ?', filter.requiredLevelMax);
+  if (filter.labels?.length) {
+    add(
+      `ke.id IN (
+        SELECT kl.entry_id FROM knowledge_labels kl
+        WHERE kl.label = ANY(?::text[])
+        GROUP BY kl.entry_id
+        HAVING COUNT(DISTINCT kl.label) = ${filter.labels.length}
+      )`,
+      filter.labels,
+    );
+  }
+  if (filter.operation === 'maintenance-due') {
+    conditions.push("(ke.maintenance_meta->>'reviewBy')::timestamptz <= NOW()");
+  } else if (filter.operation === 'decay-eligible') {
+    conditions.push("ke.lifecycle_state = 'approved'");
+  }
+
+  return {
+    where: conditions.length ? `WHERE ${conditions.join(' AND ')}` : '',
+    values,
+  };
+}
+
+function createKnowledgeOwnerProjection(
+  pool: Queryable,
+): Pick<KnowledgeOwnerPort, 'getById' | 'getByIds' | 'listByFilter'> {
+  return {
+    async getById(entryId) {
+      const result = await pool.query('SELECT * FROM knowledge_entries WHERE id = $1', [entryId]);
+      const row = result.rows[0] as Record<string, unknown> | undefined;
+      return row ? toKnowledgeEntryProjection(row) : null;
+    },
+    async getByIds(entryIds) {
+      if (entryIds.length === 0) return [];
+      const result = await pool.query(
+        'SELECT * FROM knowledge_entries WHERE id = ANY($1::text[]) ORDER BY created_at DESC',
+        [entryIds],
+      );
+      return result.rows.map((row) => toKnowledgeEntryProjection(row as Record<string, unknown>));
+    },
+    async listByFilter(filter) {
+      const { where, values } = buildKnowledgeProjectionWhere(filter);
+      const result = await pool.query(
+        `SELECT ke.* FROM knowledge_entries ke ${where} ORDER BY ke.updated_at DESC LIMIT 100`,
+        values,
+      );
+      return result.rows.map((row) => toKnowledgeEntryProjection(row as Record<string, unknown>));
+    },
   };
 }
 
@@ -115,12 +195,27 @@ async function enqueueLifecycleOutboxTx(
   );
 }
 
+async function replaceKnowledgeLabelsTx(
+  client: Pick<PoolClient, 'query'>,
+  entryId: string,
+  labels: string[],
+): Promise<void> {
+  await client.query('DELETE FROM knowledge_labels WHERE entry_id = $1', [entryId]);
+  for (const label of labels) {
+    await client.query(
+      'INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [entryId, label],
+    );
+  }
+}
+
 async function persistSubmissionTx(
   pool: Queryable & Pick<Pool, 'connect'>,
   input: KnowledgeOwnerCommandInput,
   options: { entryType: 'knowledge' | 'trap' },
 ): Promise<string> {
-  const entryId = generateId(options.entryType === 'trap' ? 'trap' : 'k');
+  const requestedEntryId = typeof input.entryId === 'string' ? input.entryId : null;
+  const entryId = requestedEntryId ?? generateId(options.entryType === 'trap' ? 'trap' : 'k');
   const now = new Date().toISOString();
   const content = String(input.detail ?? input.content ?? '');
   const title = String(input.shortcut ?? input.title ?? '');
@@ -128,7 +223,13 @@ async function persistSubmissionTx(
     ? input.labels.filter((label): label is string => typeof label === 'string')
     : [];
   const teamId = typeof input.teamId === 'string' ? input.teamId : null;
-  const lifecycleState: LifecycleState = options.entryType === 'trap' ? 'approved' : 'submitted';
+  const requestedLifecycleState = input.lifecycleState;
+  const lifecycleState: LifecycleState =
+    options.entryType === 'trap'
+      ? 'approved'
+      : requestedLifecycleState === 'approved'
+        ? 'approved'
+        : 'submitted';
   const client = await pool.connect();
 
   try {
@@ -150,6 +251,7 @@ async function persistSubmissionTx(
         now,
       ],
     );
+    await replaceKnowledgeLabelsTx(client, entryId, labels);
     await client.query(
       `INSERT INTO knowledge_revisions (
          id, entry_id, revision_no, submitted_at, submitted_by_user_id, shortcut, detail, labels, review_notes
@@ -230,6 +332,19 @@ async function persistOperationalDecisionTx(
           }),
         ],
       );
+      if (action === 'deactivate') {
+        assertValidLifecycleTransition(lifecycleState, 'deactivated');
+        await client.query(
+          `UPDATE knowledge_entries SET lifecycle_state = 'deactivated', updated_at = NOW()
+           WHERE id = $1`,
+          [entryId],
+        );
+        await client.query(
+          `INSERT INTO lifecycle_events (id, entry_id, type, actor_user_id, submission_id, state, note, created_at)
+           VALUES ($1, $2, 'deactivated', $3, NULL, 'deactivated', $4, NOW())`,
+          [generateId('le'), entryId, input.actorId, String(input.note ?? action)],
+        );
+      }
     } else {
       await client.query(
         `UPDATE knowledge_entries SET updated_at = NOW(), embedding_cache = embedding_cache
@@ -240,7 +355,7 @@ async function persistOperationalDecisionTx(
     await enqueueLifecycleOutboxTx(client, {
       entryId,
       previousState: lifecycleState,
-      nextState: lifecycleState,
+      nextState: action === 'deactivate' ? 'deactivated' : lifecycleState,
       actorId: input.actorId,
       note: `${kind}:${action}`,
     });
@@ -259,6 +374,8 @@ async function persistEntryUpdateTx(
   entryId: string,
   updates: Record<string, unknown>,
   actorId: string,
+  nextLifecycleState?: LifecycleState,
+  lifecycleNote?: string,
 ): Promise<void> {
   const client = await pool.connect();
   try {
@@ -282,6 +399,9 @@ async function persistEntryUpdateTx(
        WHERE id = $1`,
       [entryId, detail, shortcut, labels === null ? null : JSON.stringify(labels), requiredLevel],
     );
+    if (labels) {
+      await replaceKnowledgeLabelsTx(client, entryId, labels);
+    }
     await client.query(
       `INSERT INTO knowledge_revisions (
          id, entry_id, revision_no, submitted_at, submitted_by_user_id, shortcut, detail, labels, review_notes
@@ -291,12 +411,34 @@ async function persistEntryUpdateTx(
          FROM knowledge_entries WHERE id = $1`,
       [entryId, generateId('rev'), actorId],
     );
+    if (nextLifecycleState) {
+      assertValidLifecycleTransition(lifecycleState, nextLifecycleState);
+      await client.query(
+        `UPDATE knowledge_entries SET lifecycle_state = $2, updated_at = NOW()
+         WHERE id = $1`,
+        [entryId, nextLifecycleState],
+      );
+      await client.query(
+        `INSERT INTO lifecycle_events (id, entry_id, type, actor_user_id, submission_id, state, note, created_at)
+         VALUES ($1, $2, $3, $4, NULL, $5, $6, NOW())`,
+        [
+          generateId('le'),
+          entryId,
+          lifecycleEventType(nextLifecycleState),
+          actorId,
+          nextLifecycleState,
+          lifecycleNote ?? 'Resubmitted for review',
+        ],
+      );
+    }
     await enqueueLifecycleOutboxTx(client, {
       entryId,
       previousState: lifecycleState,
-      nextState: lifecycleState,
+      nextState: nextLifecycleState ?? lifecycleState,
       actorId,
-      note: 'knowledge entry updated',
+      note:
+        lifecycleNote ??
+        (nextLifecycleState ? 'Resubmitted for review' : 'knowledge entry updated'),
     });
     await client.query('COMMIT');
   } catch (error) {
@@ -307,198 +449,62 @@ async function persistEntryUpdateTx(
   }
 }
 
-function createKnowledgeWritePgRepository(
+async function persistSupersedeTx(
   pool: Queryable & Pick<Pool, 'connect'>,
-): KnowledgeRepositoryPort {
-  return {
-    async nextId() {
-      return generateId('k');
-    },
-    async insert(entry) {
-      await pool.query(
-        `INSERT INTO knowledge_entries (
-           id, team_id, scope, labels, shortcut, detail, required_level, lifecycle_state, owner_user_id, created_at, updated_at
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-        [
-          entry.id,
-          entry.teamId,
-          (entry as Record<string, unknown>).scope ?? 'global',
-          JSON.stringify(entry.labels ?? []),
-          (entry as Record<string, unknown>).title ?? '',
-          entry.content,
-          (entry as Record<string, unknown>).requiredLevel ?? 0,
-          entry.lifecycleState,
-          entry.ownerUserId,
-          (entry as Record<string, unknown>).createdAt ?? new Date().toISOString(),
-          (entry as Record<string, unknown>).updatedAt ?? new Date().toISOString(),
-        ],
-      );
-    },
-    async getById(entryId) {
-      const { rows } = await pool.query('SELECT * FROM knowledge_entries WHERE id = $1', [entryId]);
-      return rows[0] ? (mapKnowledgeRow(rows[0] as Record<string, unknown>) as never) : null;
-    },
-    async updateLifecycle(entryId, newState, context) {
-      const client = await pool.connect();
-      try {
-        await client.query('BEGIN');
-        const current = await client.query(
-          'SELECT lifecycle_state FROM knowledge_entries WHERE id = $1 FOR UPDATE',
-          [entryId],
-        );
-        const previousState = (current.rows[0] as { lifecycle_state?: LifecycleState } | undefined)
-          ?.lifecycle_state;
-        if (!previousState) throw new Error(`Knowledge entry ${entryId} not found`);
-        assertValidLifecycleTransition(previousState, newState);
-        const { rows } = await client.query(
-          `UPDATE knowledge_entries SET lifecycle_state = $2, updated_at = NOW()
-           WHERE id = $1 RETURNING *`,
-          [entryId, newState],
-        );
-        if (!rows[0]) throw new Error(`Knowledge entry ${entryId} not found`);
-        await client.query(
-          `INSERT INTO lifecycle_events (id, entry_id, type, actor_user_id, submission_id, state, note, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-          [
-            generateId('le'),
-            entryId,
-            lifecycleEventType(newState),
-            context.actorId,
-            null,
-            newState,
-            context.note ?? null,
-          ],
-        );
-        await enqueueLifecycleOutboxTx(client, {
-          entryId,
-          previousState,
-          nextState: newState,
-          actorId: context.actorId,
-          ...(context.note ? { note: context.note } : {}),
-        });
-        await client.query('COMMIT');
-        return mapKnowledgeRow(rows[0] as Record<string, unknown>) as never;
-      } catch (error) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw error;
-      } finally {
-        client.release();
-      }
-    },
-    async appendRevision(entryId, revision) {
-      await pool.query(
-        `INSERT INTO knowledge_revisions (
-           id, entry_id, revision_no, submitted_at, submitted_by_user_id, shortcut, detail, labels, review_notes
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [
-          revision.id,
-          entryId,
-          (revision as Record<string, unknown>).revisionNo ?? 1,
-          (revision as Record<string, unknown>).submittedAt ?? new Date().toISOString(),
-          (revision as Record<string, unknown>).submittedByUserId ?? 'system',
-          (revision as Record<string, unknown>).shortcut ?? '',
-          (revision as Record<string, unknown>).detail ?? '',
-          JSON.stringify((revision as Record<string, unknown>).labels ?? []),
-          JSON.stringify((revision as Record<string, unknown>).reviewNotes ?? []),
-        ],
-      );
-    },
-    async appendLifecycleEvent(entryId, event) {
-      await pool.query(
-        `INSERT INTO lifecycle_events (
-           id, entry_id, type, created_at, actor_user_id, submission_id, revision_no, state, note
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [
-          event.id,
-          entryId,
-          event.type,
-          event.createdAt,
-          event.actorUserId ?? null,
-          event.submissionId ?? null,
-          ((event as unknown as Record<string, unknown>).revisionNo as number | null | undefined) ??
-            null,
-          event.state,
-          event.note,
-        ],
-      );
-    },
-    async listByFilter(filter) {
-      const conditions: string[] = [];
-      const values: unknown[] = [];
-      if (filter.lifecycleState) {
-        conditions.push(`lifecycle_state = $${values.length + 1}`);
-        values.push(filter.lifecycleState);
-      }
-      if (filter.teamId) {
-        conditions.push(`team_id = $${values.length + 1}`);
-        values.push(filter.teamId);
-      }
-      if (filter.ownerUserId) {
-        conditions.push(`owner_user_id = $${values.length + 1}`);
-        values.push(filter.ownerUserId);
-      }
-      const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-      const { rows } = await pool.query(
-        `SELECT * FROM knowledge_entries ${where} ORDER BY created_at DESC LIMIT 100`,
-        values,
-      );
-      return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>)) as never[];
-    },
-    async updateGovernance(entryId, governance) {
-      if (governance.requiredLevel !== undefined) {
-        await pool.query(
-          'UPDATE knowledge_entries SET required_level = $2, updated_at = NOW() WHERE id = $1',
-          [entryId, governance.requiredLevel],
-        );
-      }
-      if (governance.labels !== undefined) {
-        await pool.query(
-          'UPDATE knowledge_entries SET labels = $2, updated_at = NOW() WHERE id = $1',
-          [entryId, JSON.stringify(governance.labels)],
-        );
-        await pool.query('DELETE FROM knowledge_labels WHERE entry_id = $1', [entryId]);
-        for (const label of governance.labels) {
-          await pool.query(
-            'INSERT INTO knowledge_labels (entry_id, label) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-            [entryId, label],
-          );
-        }
-      }
-    },
-    async updateEmbeddingCache(entryId, cache) {
-      await pool.query(
-        'UPDATE knowledge_entries SET embedding_cache = $2, updated_at = NOW() WHERE id = $1',
-        [entryId, JSON.stringify(cache)],
-      );
-    },
-    async supersede(entryId, input) {
-      const { rows } = await pool.query(
-        `UPDATE knowledge_entries SET lifecycle_state = 'superseded', superseded_by = $2, updated_at = NOW()
-         WHERE id = $1 RETURNING *`,
-        [entryId, input.replacementId],
-      );
-      return mapKnowledgeRow(rows[0] as Record<string, unknown>) as never;
-    },
-    async save(entry) {
-      await pool.query(
-        `UPDATE knowledge_entries SET detail = $2, shortcut = $3, labels = $4, team_id = $5, updated_at = NOW()
-         WHERE id = $1`,
-        [
-          entry.id,
-          entry.content,
-          (entry as Record<string, unknown>).title ?? null,
-          JSON.stringify(entry.labels ?? []),
-          entry.teamId,
-        ],
-      );
-    },
-  };
+  entryId: string,
+  replacementId: string,
+  actorId: string,
+): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const current = await client.query(
+      'SELECT lifecycle_state FROM knowledge_entries WHERE id = $1 FOR UPDATE',
+      [entryId],
+    );
+    const lifecycleState = (current.rows[0] as { lifecycle_state?: LifecycleState } | undefined)
+      ?.lifecycle_state;
+    if (!lifecycleState) throw new Error(`Knowledge entry ${entryId} not found`);
+    assertValidLifecycleTransition(lifecycleState, 'deactivated');
+    await client.query(
+      `UPDATE knowledge_entries SET lifecycle_state = 'deactivated', updated_at = NOW()
+       WHERE id = $1`,
+      [entryId],
+    );
+    await client.query(
+      `INSERT INTO knowledge_revisions (
+         id, entry_id, revision_no, submitted_at, submitted_by_user_id, shortcut, detail, labels, review_notes
+       ) SELECT $2, id,
+         COALESCE((SELECT MAX(revision_no) + 1 FROM knowledge_revisions WHERE entry_id = $1), 1),
+         NOW(), $3, shortcut, detail, labels, '[]'::jsonb
+         FROM knowledge_entries WHERE id = $1`,
+      [entryId, generateId('rev'), actorId],
+    );
+    await client.query(
+      `INSERT INTO lifecycle_events (id, entry_id, type, actor_user_id, submission_id, state, note, created_at)
+       VALUES ($1, $2, 'deactivated', $3, NULL, 'deactivated', $4, NOW())`,
+      [generateId('le'), entryId, actorId, `Superseded by ${replacementId}`],
+    );
+    await enqueueLifecycleOutboxTx(client, {
+      entryId,
+      previousState: lifecycleState,
+      nextState: 'deactivated',
+      actorId,
+      note: `Superseded by ${replacementId}`,
+    });
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export function createKnowledgeWriteOwnerBundle(
   pool: Queryable & Pick<Pool, 'connect'>,
 ): KnowledgeWriteOwnerBundle {
-  const knowledgeRepo = createKnowledgeWritePgRepository(pool);
+  const projection = createKnowledgeOwnerProjection(pool);
   const knowledgeOwner: KnowledgeOwnerPort = {
     async submit(input) {
       return {
@@ -511,14 +517,10 @@ export function createKnowledgeWriteOwnerBundle(
       await persistEntryUpdateTx(pool, entryId, updates, actorId);
     },
     async resubmit(entryId, updates, actorId) {
-      await this.updateEntry(entryId, updates, actorId);
-      await knowledgeRepo.updateLifecycle(entryId, 'submitted', {
-        actorId,
-        note: 'Resubmitted for review',
-      });
+      await persistEntryUpdateTx(pool, entryId, updates, actorId, 'submitted');
     },
     async supersede(entryId, replacementId, actorId) {
-      await knowledgeRepo.supersede(entryId, { replacementId, actorId });
+      await persistSupersedeTx(pool, entryId, replacementId, actorId);
     },
     async createTrap(input) {
       return {
@@ -527,18 +529,26 @@ export function createKnowledgeWriteOwnerBundle(
     },
     async approveReviewDecision(input) {
       const entryId = String(input.entryId);
-      await knowledgeRepo.updateLifecycle(entryId, 'approved', {
-        actorId: input.actorId,
-        note: typeof input.note === 'string' ? input.note : 'Approved',
-      });
+      await persistEntryUpdateTx(
+        pool,
+        entryId,
+        {},
+        input.actorId,
+        'approved',
+        typeof input.note === 'string' ? input.note : 'Approved',
+      );
       return { entryId, lifecycleState: 'approved' };
     },
     async rejectReviewDecision(input) {
       const entryId = String(input.entryId);
-      await knowledgeRepo.updateLifecycle(entryId, 'rejected', {
-        actorId: input.actorId,
-        note: typeof input.note === 'string' ? input.note : 'Rejected',
-      });
+      await persistEntryUpdateTx(
+        pool,
+        entryId,
+        {},
+        input.actorId,
+        'rejected',
+        typeof input.note === 'string' ? input.note : 'Rejected',
+      );
       return { entryId, lifecycleState: 'rejected' };
     },
     async applyMaintenanceDecision(input) {
@@ -547,26 +557,11 @@ export function createKnowledgeWriteOwnerBundle(
     async applyDecayDecision(input) {
       return persistOperationalDecisionTx(pool, input, 'decay');
     },
-    async getById(entryId) {
-      return (await knowledgeRepo.getById(entryId)) as KnowledgeOwnerRecord | null;
-    },
-    async getByIds(entryIds) {
-      if (!knowledgeRepo.getByIds) {
-        const entries = await Promise.all(
-          entryIds.map((entryId) => knowledgeRepo.getById(entryId)),
-        );
-        return entries.filter(
-          (entry): entry is NonNullable<typeof entry> => entry !== null,
-        ) as never;
-      }
-      return (await knowledgeRepo.getByIds(entryIds)) as never;
-    },
-    async listByFilter(filter) {
-      return (await knowledgeRepo.listByFilter(filter)) as never;
-    },
+    getById: projection.getById,
+    getByIds: projection.getByIds,
+    listByFilter: projection.listByFilter,
   };
   return {
-    knowledgeRepo,
     knowledgeOwner,
     artifactWriter: createArtifactWritePort(pool),
     artifactReadProjection: createArtifactReadProjection(pool),

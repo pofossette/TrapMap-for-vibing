@@ -249,12 +249,6 @@ const allowlist: AllowlistEntry[] = [
     'governance snapshot note',
   ],
   [
-    'packages/server/src/lib/knowledge/repository.ts',
-    'store_snapshot',
-    'wave-2',
-    'knowledge snapshot fallback',
-  ],
-  [
     'packages/server/src/lib/labels/backfill-runner.ts',
     'PostgresStore',
     'wave-9',

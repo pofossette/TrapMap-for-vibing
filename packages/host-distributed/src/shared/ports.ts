@@ -12,7 +12,8 @@ import type { Pool } from 'pg';
 import type {
   CandidateRepositoryPort,
   FeedbackRepositoryPort,
-  KnowledgeRepositoryPort,
+  KnowledgeEntryRecord,
+  KnowledgeReadProjectionPort,
   OutboxPort,
   QueuePorts,
   RepositoryPorts,
@@ -81,44 +82,24 @@ function rejectKnowledgeMutation(): never {
   throw new Error('Knowledge mutation is only available through the knowledge-write owner');
 }
 
-function createPgKnowledgeReadRepo(pool: Pool): KnowledgeRepositoryPort {
+function createPgKnowledgeReadProjection(
+  pool: Pool,
+): KnowledgeReadProjectionPort<KnowledgeEntryRecord> {
   return {
-    async nextId() {
-      return rejectKnowledgeMutation();
-    },
-    async insert() {
-      return rejectKnowledgeMutation();
-    },
     async getById(entryId) {
       const result = await pool.query('SELECT * FROM knowledge_entries WHERE id = $1', [entryId]);
       const row = result.rows.at(0) as Record<string, unknown> | undefined;
       return row ? (mapKnowledgeRow(row) as never) : null;
     },
-    async updateLifecycle() {
-      return rejectKnowledgeMutation();
-    },
-    async appendRevision() {
-      return rejectKnowledgeMutation();
-    },
-    async appendLifecycleEvent() {
-      return rejectKnowledgeMutation();
-    },
-    async listByFilter(filter) {
+    async listMine({ userId, teamId }) {
       const conditions: string[] = [];
       const params: unknown[] = [];
       let paramIndex = 1;
-
-      if (filter.lifecycleState) {
-        conditions.push(`lifecycle_state = $${paramIndex++}`);
-        params.push(filter.lifecycleState);
-      }
-      if (filter.teamId) {
+      conditions.push(`owner_user_id = $${paramIndex++}`);
+      params.push(userId);
+      if (teamId) {
         conditions.push(`team_id = $${paramIndex++}`);
-        params.push(filter.teamId);
-      }
-      if (filter.ownerUserId) {
-        conditions.push(`owner_user_id = $${paramIndex++}`);
-        params.push(filter.ownerUserId);
+        params.push(teamId);
       }
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -128,17 +109,15 @@ function createPgKnowledgeReadRepo(pool: Pool): KnowledgeRepositoryPort {
       );
       return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>)) as never[];
     },
-    async updateGovernance() {
-      return rejectKnowledgeMutation();
-    },
-    async updateEmbeddingCache() {
-      return rejectKnowledgeMutation();
-    },
-    async supersede() {
-      return rejectKnowledgeMutation();
-    },
-    async save() {
-      return rejectKnowledgeMutation();
+    async getStatus() {
+      return {
+        phase: 'phase-2-boundary-closed',
+        source: 'knowledge-write-owner',
+        consistency: 'strong',
+        freshness: 'current',
+        fallback: 'none',
+        surfaces: [],
+      };
     },
   };
 }
@@ -600,7 +579,7 @@ export function createServicePorts(
   serviceName: DatabaseWriteService = 'server-compatibility-seam',
   identity: Pick<ServicePortImplementations, 'auditLog'>,
 ): ServicePortImplementations {
-  const knowledgeRepo = createPgKnowledgeReadRepo(pool);
+  const knowledgeProjection = createPgKnowledgeReadProjection(pool);
   const candidateRepo = withDatabaseWriteGuard(
     createPgCandidateRepo(pool),
     serviceName,
@@ -612,7 +591,7 @@ export function createServicePorts(
 
   return {
     repos: {
-      knowledge: knowledgeRepo,
+      knowledge: knowledgeProjection,
       candidate: candidateRepo,
       feedback: feedbackRepo,
     },

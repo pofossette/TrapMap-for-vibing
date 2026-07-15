@@ -78,6 +78,20 @@ function artifactTrustedActorHeaders(request: FastifyRequest): Record<string, st
   return Object.keys(headers).length > 0 ? headers : undefined;
 }
 
+function knowledgeTrustedActorOptions(request: FastifyRequest): {
+  headers?: Record<string, string>;
+} {
+  const headers = forwardedTraceHeaders(request) ?? {};
+  const actorId = (request as FastifyRequest & { actorId?: string }).actorId;
+  if (actorId) headers['x-trapmap-actor-id'] = actorId;
+  return Object.keys(headers).length > 0 ? { headers } : {};
+}
+
+function actorBody(request: FastifyRequest): Record<string, unknown> {
+  const { actorId: _untrustedActorId, ...body } = (request.body ?? {}) as Record<string, unknown>;
+  return body;
+}
+
 type ReviewDecisionBody = {
   entryId: string;
   decision: 'approve' | 'reject';
@@ -107,14 +121,24 @@ type KnowledgeActionBody = {
 async function forwardKnowledgeAction(
   request: FastifyRequest,
   reply: FastifyReply,
-  call: (body: KnowledgeActionBody) => Promise<{ status: number; body: unknown }>,
+  call: (
+    body: KnowledgeActionBody,
+    options: { headers?: Record<string, string> },
+  ) => Promise<{ status: number; body: unknown }>,
   unavailableLabel: string,
   unavailableError: string,
 ) {
   const validationError = validateBody(request.body, ['entryId', 'actorId', 'action']);
   if (validationError) return reply.status(400).send(validationError);
   try {
-    return forwardResponse(reply, await call(request.body as KnowledgeActionBody));
+    const actorId = (request as FastifyRequest & { actorId?: string }).actorId;
+    if (!actorId)
+      return reply.status(401).send({ error: 'Missing authenticated actor', kind: 'auth' });
+    const body = actorBody(request) as Omit<KnowledgeActionBody, 'actorId'>;
+    return forwardResponse(
+      reply,
+      await call({ ...body, actorId }, knowledgeTrustedActorOptions(request)),
+    );
   } catch (err: unknown) {
     request.log.error({ err }, `${unavailableLabel} failed`);
     return reply.status(502).send({ error: unavailableError, kind: 'upstream' });
@@ -194,10 +218,6 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     }
   };
 
-  const actorBody = (request: FastifyRequest) => {
-    const { actorId: _untrustedActorId, ...body } = (request.body ?? {}) as Record<string, unknown>;
-    return body;
-  };
   app.post('/v1/operations/artifacts/import', async (request, reply) => {
     const validationError = validateBody(request.body, ['bundles']);
     if (validationError) return reply.status(400).send(validationError);
@@ -529,7 +549,12 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       actorId: string;
     };
     try {
-      const result = await clients.knowledgeWrite.submit(body);
+      const actorId = (request as FastifyRequest & { actorId?: string }).actorId;
+      if (!actorId)
+        return reply.status(401).send({ error: 'Missing authenticated actor', kind: 'auth' });
+      const result = await clients.knowledgeWrite.submit(actorBody(request) as typeof body, {
+        headers: { ...(knowledgeTrustedActorOptions(request).headers ?? {}) },
+      });
       return forwardResponse(reply, result);
     } catch (err: unknown) {
       request.log.error({ err }, 'knowledge-write submit failed');
@@ -545,10 +570,14 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     }
     const body = request.body as { updates?: Record<string, unknown>; actorId: string };
     try {
-      const result = await clients.knowledgeWrite.updateEntry(params.entryId, {
-        updates: body.updates ?? {},
-        actorId: body.actorId,
-      });
+      const actorId = (request as FastifyRequest & { actorId?: string }).actorId;
+      if (!actorId)
+        return reply.status(401).send({ error: 'Missing authenticated actor', kind: 'auth' });
+      const result = await clients.knowledgeWrite.updateEntry(
+        params.entryId,
+        { updates: body.updates ?? {}, actorId },
+        knowledgeTrustedActorOptions(request),
+      );
       return forwardResponse(reply, result);
     } catch (err: unknown) {
       request.log.error({ err }, 'knowledge-write updateEntry failed');
@@ -566,7 +595,14 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       }
       const body = request.body as { actorId: string; note?: string };
       try {
-        const result = await clients.knowledgeWrite.resubmit(params.entryId, body);
+        const actorId = (request as FastifyRequest & { actorId?: string }).actorId;
+        if (!actorId)
+          return reply.status(401).send({ error: 'Missing authenticated actor', kind: 'auth' });
+        const result = await clients.knowledgeWrite.resubmit(
+          params.entryId,
+          { ...actorBody(request), actorId } as typeof body,
+          knowledgeTrustedActorOptions(request),
+        );
         return forwardResponse(reply, result);
       } catch (err: unknown) {
         request.log.error({ err }, 'knowledge-write resubmit failed');
@@ -585,7 +621,14 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       }
       const body = request.body as { replacementId: string; actorId: string };
       try {
-        const result = await clients.knowledgeWrite.supersede(params.entryId, body);
+        const actorId = (request as FastifyRequest & { actorId?: string }).actorId;
+        if (!actorId)
+          return reply.status(401).send({ error: 'Missing authenticated actor', kind: 'auth' });
+        const result = await clients.knowledgeWrite.supersede(
+          params.entryId,
+          { ...actorBody(request), actorId } as typeof body,
+          knowledgeTrustedActorOptions(request),
+        );
         return forwardResponse(reply, result);
       } catch (err: unknown) {
         request.log.error({ err }, 'knowledge-write supersede failed');
@@ -606,7 +649,13 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       title?: string;
     };
     try {
-      const result = await clients.knowledgeWrite.createTrap(body);
+      const actorId = (request as FastifyRequest & { actorId?: string }).actorId;
+      if (!actorId)
+        return reply.status(401).send({ error: 'Missing authenticated actor', kind: 'auth' });
+      const result = await clients.knowledgeWrite.createTrap(
+        { ...actorBody(request), actorId } as typeof body,
+        knowledgeTrustedActorOptions(request),
+      );
       return forwardResponse(reply, result);
     } catch (err: unknown) {
       request.log.error({ err }, 'knowledge-write createTrap failed');
@@ -774,7 +823,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     return forwardKnowledgeAction(
       request,
       reply,
-      (body) => clients.knowledgeWrite.applyMaintenanceDecision(body),
+      (body, options) => clients.knowledgeWrite.applyMaintenanceDecision(body, options),
       'knowledge-write maintenance',
       'Knowledge-write service unavailable',
     );
@@ -784,9 +833,9 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     return forwardKnowledgeAction(
       request,
       reply,
-      (body) => clients.review.applyDecay(body),
-      'governance-review decay',
-      'Governance service unavailable',
+      (body, options) => clients.knowledgeWrite.applyDecayDecision(body, options),
+      'knowledge-write decay',
+      'Knowledge-write service unavailable',
     );
   });
 

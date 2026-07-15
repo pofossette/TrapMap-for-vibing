@@ -1,3 +1,4 @@
+import type { KnowledgeEntry } from './knowledge.js';
 import type { LifecycleState } from './common.js';
 
 /**
@@ -11,23 +12,18 @@ export interface KnowledgeOwnerCommandInput {
   [key: string]: unknown;
 }
 
-export interface KnowledgeOwnerRecord {
-  id: string;
-  ownerUserId: string;
-  teamId: string | null;
-  lifecycleState: LifecycleState;
-  [key: string]: unknown;
-}
-
 export interface KnowledgeOperationsProjection {
-  getById(entryId: string): Promise<KnowledgeOwnerRecord | null>;
-  getByIds(entryIds: string[]): Promise<KnowledgeOwnerRecord[]>;
+  getById(entryId: string): Promise<KnowledgeEntry | null>;
+  getByIds(entryIds: string[]): Promise<KnowledgeEntry[]>;
   listByFilter(filter: {
+    entryIds?: string[];
     lifecycleState?: LifecycleState;
     teamId?: string;
     ownerUserId?: string;
     labels?: string[];
-  }): Promise<KnowledgeOwnerRecord[]>;
+    requiredLevelMax?: number;
+    operation?: string;
+  }): Promise<KnowledgeEntry[]>;
 }
 
 export interface KnowledgeCommandPort {

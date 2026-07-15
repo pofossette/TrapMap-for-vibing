@@ -37,6 +37,7 @@ export function createTaskWorker(config: TaskWorkerConfig) {
 
   async function processOneTask(): Promise<boolean> {
     for (const [type, handler] of handlerMap) {
+      if (!running) return false;
       const task = await queue.dequeue(type);
       if (task) {
         const controller = new AbortController();
@@ -81,10 +82,12 @@ export function createTaskWorker(config: TaskWorkerConfig) {
 
       while (running) {
         // Process tasks up to concurrency limit
-        while (activeTasks.size < concurrency) {
+        while (running && activeTasks.size < concurrency) {
           const processed = await processOneTask();
           if (!processed) break;
         }
+
+        if (!running) break;
 
         // Wait for poll interval or any task to complete
         if (activeTasks.size >= concurrency || !(await processOneTask())) {

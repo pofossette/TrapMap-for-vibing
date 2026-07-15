@@ -23,7 +23,7 @@ export interface StoreData {
   memberships: MembershipRecord[];
   accessKeys: AccessKeyRecord[];
   sessions: SessionRecord[];
-  /** @deprecated Phase 62: Use knowledge_entries table via KnowledgeRepository. */
+  /** @deprecated Knowledge entries now belong to the knowledge-write owner. */
   knowledgeEntries: KnowledgeRecord[];
   auditEvents: AuditEventRecord[];
   /** @deprecated Phase 63: Use skill_artifacts table via ArtifactRepository. */

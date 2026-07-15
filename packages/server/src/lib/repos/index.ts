@@ -11,7 +11,7 @@
  * Phase: 100-02 (Store Repository Pattern)
  */
 
-import type { ArtifactReadProjection } from '@trapmap/contracts';
+import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
 import type { UsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
@@ -20,7 +20,6 @@ import type { ConflictRepository } from '@trapmap/server/lib/conflict/repository
 import type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
 import type { FeedbackRepository } from '@trapmap/server/lib/feedback/index.js';
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/index.js';
-import type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
 import type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
@@ -30,13 +29,11 @@ import { createConflictRepository } from '@trapmap/server/lib/conflict/repositor
 import { createDuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
 import { createFeedbackRepository } from '@trapmap/server/lib/feedback/index.js';
 import { createGraphIndexRepository } from '@trapmap/server/lib/graph-index/index.js';
-import { createKnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
 import { createLineageRepository } from '@trapmap/server/lib/lineage/index.js';
 
 export type { CandidateRepository } from '@trapmap/server/lib/candidates/index.js';
 export type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
 export type { FeedbackRepository } from '@trapmap/server/lib/feedback/index.js';
-export type { KnowledgeRepository } from '@trapmap/server/lib/knowledge/index.js';
 export type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
 
 /**
@@ -44,7 +41,7 @@ export type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
  * Always populated in both JSON and PG modes.
  */
 export interface SkillShareerRepos {
-  knowledge: KnowledgeRepository;
+  knowledge: KnowledgeOwnerPort;
   artifact: ArtifactReadProjection;
   candidate: CandidateRepository;
   conflict: ConflictRepository;
@@ -66,6 +63,7 @@ export async function createAllRepos(config: {
   pool?: Pool;
   store: SkillShareerStore;
   artifactReadProjection: ArtifactReadProjection;
+  knowledgeOwner: KnowledgeOwnerPort;
 }): Promise<SkillShareerRepos> {
   const usageAnalytics = config.pool
     ? await createUsageAnalyticsRepository({ pool: config.pool })
@@ -74,7 +72,7 @@ export async function createAllRepos(config: {
   const duplicate = createDuplicateRepository(config);
 
   const repositories: SkillShareerRepos = {
-    knowledge: createKnowledgeRepository(config),
+    knowledge: config.knowledgeOwner,
     artifact: config.artifactReadProjection,
     candidate: createCandidateRepository({ ...config, duplicateRepo: duplicate }),
     conflict: createConflictRepository(config),

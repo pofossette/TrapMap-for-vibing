@@ -9,7 +9,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ConflictRelation } from '@trapmap/contracts';
+import type { ConflictRelation, SkillArtifact } from '@trapmap/contracts';
 import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type {
@@ -222,6 +222,50 @@ describe('buildRetrievalReadModel', () => {
     expect(result.skillArtifacts).toEqual(hydratedArtifacts);
     expect(listForRetrieval).toHaveBeenCalledWith({});
     expect(listByFilter).not.toHaveBeenCalled();
+  });
+
+  it('normalizes public artifact projections into hydrated retrieval records', async () => {
+    const internalArtifact = makeArtifactRecord('a_public');
+    const revision = internalArtifact.latestRevision;
+    const publicArtifact = {
+      id: internalArtifact.id,
+      teamId: internalArtifact.teamId,
+      scope: internalArtifact.scope,
+      labels: internalArtifact.labels,
+      title: 'Artifact a_public',
+      slug: internalArtifact.slug,
+      requiredLevel: internalArtifact.requiredLevel,
+      lifecycleState: internalArtifact.lifecycleState,
+      owner: { id: internalArtifact.ownerUserId, handle: 'owner', securityLevel: 0 },
+      latestRevision: revision.revision,
+      history: [
+        {
+          ...revision,
+          submittedBy: { id: revision.submittedByUserId, handle: 'owner', securityLevel: 0 },
+        },
+      ],
+      metadata: internalArtifact.metadata,
+      agentReview: null,
+      reviewHistory: [],
+      reviewNotes: [],
+      lifecycleHistory: [],
+      boundaryMeta: null,
+      evidenceMeta: null,
+      maintenanceMeta: null,
+      createdAt: internalArtifact.createdAt,
+      updatedAt: internalArtifact.createdAt,
+    } as unknown as SkillArtifact;
+    const repos = createMockRepos({
+      artifact: {
+        listByFilter: vi.fn().mockResolvedValue([]),
+        listForRetrieval: vi.fn().mockResolvedValue([publicArtifact]),
+      },
+    } as never);
+
+    const result = await buildRetrievalReadModel(repos);
+
+    expect(result.skillArtifacts[0]?.latestRevision.revision).toBe(1);
+    expect(result.skillArtifacts[0]?.latestRevision.derived?.profile?.artifactId).toBe('a_public');
   });
 
   it('returns conflicts from the conflict repository', async () => {

@@ -26,7 +26,7 @@ export async function createServer(
   const owner = createKnowledgeWriteOwnerBundle(db.pool);
   const outbox = createKnowledgeWriteOutboxDiagnostics(db.pool);
   const deps = createKnowledgeWriteDeps({
-    knowledgeRepo: owner.knowledgeRepo,
+    knowledgeOwner: owner.knowledgeOwner,
     auditLog: identity.auditLog,
     artifactWriter: owner.artifactWriter,
     artifactReadProjection: owner.artifactReadProjection,

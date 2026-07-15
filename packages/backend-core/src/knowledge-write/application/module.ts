@@ -9,7 +9,7 @@
 import { InvocationError } from '../../invocation/invocation-model.js';
 import type { AuditLogPort } from '../../ports/audit-ports.js';
 import type { KnowledgeWritePort } from '../../ports/internal-ports.js';
-import type { KnowledgeRepositoryPort } from '../../ports/repo-ports.js';
+import type { KnowledgeOwnerPort } from '@trapmap/contracts';
 
 import { KNOWLEDGE_WRITE_OWNED_CAPABILITIES } from '../domain/index.js';
 
@@ -18,7 +18,8 @@ import { KNOWLEDGE_WRITE_OWNED_CAPABILITIES } from '../domain/index.js';
 // ---------------------------------------------------------------------------
 
 export interface KnowledgeWriteDeps {
-  knowledgeRepo: KnowledgeRepositoryPort;
+  /** Authoritative aggregate owner. All commands delegate here atomically. */
+  knowledgeOwner: KnowledgeOwnerPort;
   auditLog: AuditLogPort;
 }
 
@@ -36,21 +37,17 @@ export const KNOWLEDGE_WRITE_MODULE = {
  * Create a KnowledgeWritePort backed by the given dependencies.
  */
 export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeWritePort {
+  const ownerEntry = async (entryId: string) => {
+    const entry = await deps.knowledgeOwner.getById(entryId);
+    if (!entry) {
+      throw InvocationError.notFound(`Knowledge entry not found: ${entryId}`);
+    }
+    return entry;
+  };
+
   return {
     async submit(input) {
-      const entryId = await deps.knowledgeRepo.nextId();
-      const now = new Date().toISOString();
-      await deps.knowledgeRepo.insert({
-        id: entryId,
-        content: input.content,
-        title: input.title,
-        labels: input.labels ?? [],
-        teamId: input.teamId ?? null,
-        ownerUserId: input.actorId,
-        lifecycleState: 'submitted' as const,
-        createdAt: now,
-        updatedAt: now,
-      } as Parameters<KnowledgeRepositoryPort['insert']>[0]);
+      const { entryId } = await deps.knowledgeOwner.submit(input);
 
       await deps.auditLog.record({
         action: 'knowledge.submit',
@@ -63,14 +60,8 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
     },
 
     async updateEntry(entryId, updates, actorId) {
-      const entry = await deps.knowledgeRepo.getById(entryId);
-      if (!entry) {
-        throw InvocationError.notFound(`Knowledge entry not found: ${entryId}`);
-      }
-      if (!deps.knowledgeRepo.save) {
-        throw InvocationError.internal('Repository does not support save operations');
-      }
-      await deps.knowledgeRepo.save({ ...entry, ...updates });
+      await ownerEntry(entryId);
+      await deps.knowledgeOwner.updateEntry(entryId, updates, actorId);
       await deps.auditLog.record({
         action: 'knowledge.update',
         actorId,
@@ -78,15 +69,9 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
       });
     },
 
-    async resubmit(entryId, _input, actorId) {
-      const entry = await deps.knowledgeRepo.getById(entryId);
-      if (!entry) {
-        throw InvocationError.notFound(`Knowledge entry not found: ${entryId}`);
-      }
-      await deps.knowledgeRepo.updateLifecycle(entryId, 'submitted', {
-        actorId,
-        note: 'Resubmitted for review',
-      });
+    async resubmit(entryId, input, actorId) {
+      await ownerEntry(entryId);
+      await deps.knowledgeOwner.resubmit(entryId, input, actorId);
       await deps.auditLog.record({
         action: 'knowledge.resubmit',
         actorId,
@@ -95,10 +80,8 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
     },
 
     async supersede(entryId, replacementId, actorId) {
-      await deps.knowledgeRepo.supersede(entryId, {
-        replacementId,
-        actorId,
-      });
+      await ownerEntry(entryId);
+      await deps.knowledgeOwner.supersede(entryId, replacementId, actorId);
       await deps.auditLog.record({
         action: 'knowledge.supersede',
         actorId,
@@ -108,20 +91,7 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
     },
 
     async createTrap(input) {
-      const trapId = await deps.knowledgeRepo.nextId();
-      const now = new Date().toISOString();
-      await deps.knowledgeRepo.insert({
-        id: trapId,
-        content: input.content,
-        title: input.title,
-        labels: input.labels ?? [],
-        teamId: input.teamId,
-        ownerUserId: input.actorId,
-        lifecycleState: 'approved',
-        entryType: 'trap',
-        createdAt: now,
-        updatedAt: now,
-      } as Parameters<KnowledgeRepositoryPort['insert']>[0]);
+      const { trapId } = await deps.knowledgeOwner.createTrap(input);
 
       await deps.auditLog.record({
         action: 'trap.create',
@@ -134,15 +104,8 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
     },
 
     async approveReviewDecision(input) {
-      const entry = await deps.knowledgeRepo.getById(input.entryId);
-      if (!entry) {
-        throw InvocationError.notFound(`Knowledge entry not found: ${input.entryId}`);
-      }
-
-      await deps.knowledgeRepo.updateLifecycle(input.entryId, 'approved', {
-        actorId: input.actorId,
-        note: input.note ?? 'Approved',
-      });
+      await ownerEntry(input.entryId);
+      const result = await deps.knowledgeOwner.approveReviewDecision(input);
 
       await deps.auditLog.record({
         action: 'knowledge.review-approved',
@@ -151,19 +114,12 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
         metadata: { evidence: input.evidence ?? null, note: input.note ?? null },
       });
 
-      return { entryId: input.entryId, lifecycleState: 'approved' };
+      return result;
     },
 
     async rejectReviewDecision(input) {
-      const entry = await deps.knowledgeRepo.getById(input.entryId);
-      if (!entry) {
-        throw InvocationError.notFound(`Knowledge entry not found: ${input.entryId}`);
-      }
-
-      await deps.knowledgeRepo.updateLifecycle(input.entryId, 'rejected', {
-        actorId: input.actorId,
-        note: input.note ?? 'Rejected',
-      });
+      await ownerEntry(input.entryId);
+      const result = await deps.knowledgeOwner.rejectReviewDecision(input);
 
       await deps.auditLog.record({
         action: 'knowledge.review-rejected',
@@ -172,14 +128,12 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
         metadata: { evidence: input.evidence ?? null, note: input.note ?? null },
       });
 
-      return { entryId: input.entryId, lifecycleState: 'rejected' };
+      return result;
     },
 
     async applyMaintenanceDecision(input) {
-      const entry = await deps.knowledgeRepo.getById(input.entryId);
-      if (!entry) {
-        throw InvocationError.notFound(`Knowledge entry not found: ${input.entryId}`);
-      }
+      await ownerEntry(input.entryId);
+      const result = await deps.knowledgeOwner.applyMaintenanceDecision(input);
 
       await deps.auditLog.record({
         action: 'knowledge.maintenance-applied',
@@ -192,14 +146,12 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
         },
       });
 
-      return { entryId: input.entryId, action: input.action };
+      return result;
     },
 
     async applyDecayDecision(input) {
-      const entry = await deps.knowledgeRepo.getById(input.entryId);
-      if (!entry) {
-        throw InvocationError.notFound(`Knowledge entry not found: ${input.entryId}`);
-      }
+      await ownerEntry(input.entryId);
+      const result = await deps.knowledgeOwner.applyDecayDecision(input);
 
       await deps.auditLog.record({
         action: 'knowledge.decay-applied',
@@ -212,7 +164,7 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
         },
       });
 
-      return { entryId: input.entryId, action: input.action };
+      return result;
     },
 
     async publishCandidateResult(input) {
@@ -227,11 +179,11 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
     },
 
     async listTraps(teamId: string) {
-      return deps.knowledgeRepo.listByFilter({ teamId });
+      return (await deps.knowledgeOwner.listByFilter({ teamId })) as never;
     },
 
     async getTrap(trapId: string) {
-      return deps.knowledgeRepo.getById(trapId);
+      return (await deps.knowledgeOwner.getById(trapId)) as never;
     },
   };
 }

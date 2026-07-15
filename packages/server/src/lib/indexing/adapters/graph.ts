@@ -26,7 +26,7 @@ import {
 } from '@trapmap/server/lib/indexing/graph-lite/index.js';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { IndexAdapter, IndexSyncResult } from '@trapmap/server/lib/indexing/types.js';
-import { createLabelRepository } from '@trapmap/server/lib/labels/repository.js';
+import { createLabelReadProjection } from '@trapmap/server/lib/labels/repository.js';
 import {
   type SkillShareerStore,
   type StoreData,
@@ -136,7 +136,7 @@ export const graphIndexAdapter: IndexAdapter & {
             chat?.isConfigured && pool
               ? {
                   chat,
-                  repository: createLabelRepository({ pool }),
+                  repository: createLabelReadProjection({ pool }),
                   sourceContext: 'trap-extraction',
                 }
               : null,

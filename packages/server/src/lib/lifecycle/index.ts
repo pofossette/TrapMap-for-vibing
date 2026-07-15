@@ -34,16 +34,6 @@ export {
 // Transitions
 export { findTransitionEvent } from './transitions.js';
 
-// Publisher
-export type {
-  PublishLifecycleTransitionInput,
-  LifecyclePublisher,
-} from './publisher.js';
-export { createLifecyclePublisher } from './publisher.js';
-
-// Emit transition
-export { emitLifecycleTransition } from './emit-transition.js';
-
 // Outbox
 export type {
   OutboxEvent,
