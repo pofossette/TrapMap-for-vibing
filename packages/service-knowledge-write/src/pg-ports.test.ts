@@ -149,6 +149,64 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     );
   });
 
+  it('supports empty projection filters and decay eligibility filters', async () => {
+    const query = vi.fn(async (sql: string) => ({
+      rows: sql.includes('knowledge_entries') ? [{ id: 'entry-1' }] : [],
+    }));
+    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() } as never);
+
+    await owner.knowledgeOwner.listByFilter({});
+    await owner.knowledgeOwner.listByFilter({ operation: 'decay-eligible' });
+
+    expect(query).toHaveBeenNthCalledWith(1, expect.not.stringContaining('WHERE'), []);
+    expect(query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("ke.lifecycle_state = 'approved'"),
+      [],
+    );
+  });
+
+  it.each([
+    ['revision', 'INSERT INTO knowledge_revisions'],
+    ['lifecycle', 'INSERT INTO lifecycle_events'],
+    ['outbox', 'INSERT INTO domain_event_outbox'],
+  ])('rolls back a submission when %s persistence fails', async (_phase, sqlFragment) => {
+    const { calls, client, pool } = createTransactionPool((sql) => {
+      if (sql.includes(sqlFragment)) throw new Error(`${_phase} unavailable`);
+      return { rows: [] };
+    });
+    const owner = createKnowledgeWriteOwnerBundle(pool as never);
+
+    await expect(
+      owner.knowledgeOwner.submit({ actorId: 'author-1', content: 'content' }),
+    ).rejects.toThrow(`${_phase} unavailable`);
+
+    expect(calls[0]).toBe('BEGIN');
+    expect(calls).toContain('ROLLBACK');
+    expect(calls).not.toContain('COMMIT');
+    expect(client.release).toHaveBeenCalledOnce();
+  });
+
+  it('rolls back a decision when the entry does not exist', async () => {
+    const { calls, client, pool } = createTransactionPool(() => ({ rows: [] }));
+    const owner = createKnowledgeWriteOwnerBundle(pool as never);
+
+    await expect(
+      owner.knowledgeOwner.applyMaintenanceDecision({
+        entryId: 'missing-entry',
+        actorId: 'maintainer-1',
+        action: 'refresh',
+      }),
+    ).rejects.toThrow('Knowledge entry missing-entry not found');
+
+    expect(calls).toEqual([
+      'BEGIN',
+      'SELECT lifecycle_state FROM knowledge_entries WHERE id = $1 FOR UPDATE',
+      'ROLLBACK',
+    ]);
+    expect(client.release).toHaveBeenCalledOnce();
+  });
+
   it('normalizes nullable read metadata for retrieval consumers', async () => {
     const owner = createKnowledgeWriteOwnerBundle({
       query: vi.fn(async () => ({
