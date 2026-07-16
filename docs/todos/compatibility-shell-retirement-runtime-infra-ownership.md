@@ -94,6 +94,12 @@ Wave-2 PG-first follow-up：`createKnowledgeRepository()` 现缺少 PostgreSQL p
 
 本轮收尾验证：knowledge-write PG/routes focused tests 为 18/18；`rtk pnpm test:deployment-smoke` 通过 175 tests，`rtk pnpm eval:smoke` 通过 81/81，`rtk pnpm typecheck`、retirement guard（13/13）、doc-drift（46 rules）、structure guard 与 `rtk git diff --check` 均通过。新增 task-worker shutdown 回归覆盖停止竞态，runtime-infra knowledge projection 改为本地读投影类型以清除新增 boundary violation；app smoke 不再出现 pool teardown unhandled rejection。当前 `rtk pnpm exec fallow audit --base wave1-fallow-base --gate new-only --format json --quiet --explain` 仍未通过：基线遗留 28 个 dead-code，且本轮报告 7 个 complexity 与 28 个 duplication groups；因此 `completedOwnerWaves` 仍只含 `wave-1`，尚未回写 `BOUNDARIES.md`/`REPO_STRUCTURE.md` 的 Wave-2 完成记录，待 Fallow 收敛后再执行最终 allowlist/doc closeout。
 
+Wave-2 owner closeout（2026-07-16）：`service-knowledge-write` 的事务、生命周期、outbox 与 artifact owner surface 保持 PG-first；retrieval projection、确定性 fixture builders 与 repository read-model wrapper 下沉到 `packages/contracts`，server 与 `service-knowledge-read` 只保留各自的 normalization/remediation 行为。candidate、labels、graph、queue、compatibility guard 测试复用无副作用 helper，未新增跨 service implementation import。Wave-2 代码收口提交为 `3b2e16b5`、`7a19fc71`、`e8c3c5e7`、`b3374307`；`completedOwnerWaves` 已加入 `wave-2`，遗留 `persistence-schema` knowledge `store_snapshot` 注记归入 wave-9。
+
+本轮证据：focused retrieval/contracts tests 为 3、server read-model 为 9、knowledge-read read-model 为 1、labels backfill 为 1、compatibility retirement guard 为 13，另有此前 candidate detector（24）、PG detector（10）、reconcile（39）与 labels runner（1）通过；`rtk pnpm typecheck`、`rtk pnpm check:docs-drift`（46 rules）、`rtk pnpm check:structure` 与 `rtk git diff --check` 均通过。`rtk pnpm exec fallow audit --base wave1-fallow-base --gate new-only --format json --quiet --explain` 在 `b3374307` 报告 verdict `pass`：新增 dead-code、boundary、complexity、duplication 均为 `0`；总量中的 complexity `23` 与 duplication `66` 明确标记为 inherited。
+
+最终部署证据受环境前置条件限制：`rtk pnpm test:deployment-smoke` 的 135 个非 PG tests 通过，但 app/startup PostgreSQL 阶段因 `/var/run/docker.sock` 不存在而未执行；`rtk pnpm eval:smoke` 因同一 Docker daemon 缺失退出。恢复 Docker daemon 后需重跑这两项，不能将本轮记录解释为 PG/eval 通过。
+
 ## Deferred 边界
 
 平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。

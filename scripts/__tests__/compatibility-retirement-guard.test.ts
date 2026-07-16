@@ -53,7 +53,7 @@ interface AllowlistEntry {
   rationale: string;
 }
 
-const completedOwnerWaves: OwnerWave[] = ['wave-1'];
+const completedOwnerWaves: OwnerWave[] = ['wave-1', 'wave-2'];
 const POSTGRES_COMPOSITION_ENTRYPOINTS = [
   'scripts/export-retrieval-db-snapshot.ts',
   'evals/retrieval-live/lib/snapshot-orchestrator.ts',
@@ -317,8 +317,8 @@ const allowlist: AllowlistEntry[] = [
   [
     'packages/persistence-schema/src/knowledge.ts',
     'store_snapshot',
-    'wave-2',
-    'knowledge snapshot schema',
+    'wave-9',
+    'legacy knowledge snapshot schema',
   ],
   [
     'packages/persistence-schema/src/retrieval.ts',

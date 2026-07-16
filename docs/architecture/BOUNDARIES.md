@@ -218,6 +218,12 @@ Remaining exception evidence:
 
 **Status**: Acceptable.
 
+## Wave-2 boundary closeout
+
+The 2026-07-16 Wave-2 closeout keeps the dependency direction above unchanged. `packages/contracts/src/domain/retrieval-projection.ts` contains the pure retrieval projection/read-model helpers, while `packages/contracts/src/domain/retrieval-fixtures.ts` contains deterministic fixture builders. The server and `service-knowledge-read` packages consume those contracts helpers without importing one another's implementation zones; service-specific normalization and remediation remain local.
+
+The new-only audit at commit `b3374307` reports zero introduced boundary violations, dead-code findings, complexity findings, or duplication groups. The audit still reports inherited complexity and duplication separately; those inherited totals are not new Wave-2 regressions.
+
 ---
 
 ## 添加新 Zone 指南

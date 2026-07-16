@@ -21,7 +21,7 @@
 
 - `packages/cli/`：Commander CLI 及 CLI 测试。
 - `packages/server/`：Fastify 兼容壳和共享运行时/状态接缝。不再充当默认的 `light` 主机入口或本地回退主机。
-- `packages/contracts/`：共享 Zod schema 和 TypeScript 类型。
+- `packages/contracts/`：共享 Zod schema 和 TypeScript 类型；`src/domain/retrieval-projection.ts` 放置无副作用的 retrieval projection/read-model helper，`src/domain/retrieval-fixtures.ts` 放置确定性的跨包 retrieval fixture builder。
 - `packages/persistence-schema/`：中立的 Drizzle PostgreSQL 表、关系与可复用无状态列工厂；不承载路由、repository 或服务行为。
 - `packages/skills/`：项目级 Skill 工件。
 - `packages/client-core/`：浏览器兼容的共享网关传输层（HTTP SDK、会话契约、错误模型）。供 CLI 和未来 Web 面板使用。
@@ -29,7 +29,7 @@
 - `packages/backend-core/`：主机无关的后端核心内核（运行时能力模型、端口接口、用例模式、有界上下文模块、调用模型）。Phase 2 保持无框架，将每个有界上下文重组为内部 `domain/application/module` 接缝，位于 `src/identity-access/`、`src/knowledge-read/`、`src/knowledge-write/`、`src/candidate-ingestion/`、`src/governance-review/`、`src/job-runtime/`；旧的 `src/modules/*.ts` 兼容外观已移除，消费者使用包入口或上下文入口。所有主机共用。
 - `packages/runtime-infra/`：共享运行时基础设施接缝，用于 store/repo 组装、异步传输接线、AI 提供者引导、适配器注册表引导和内存图查询引导，在基础设施仍为共享阶段由各主机复用。
 - `packages/service-identity-access/`：拥有身份访问服务组装、内部路由注册和有界上下文 auth/session/team/member/access-key 接线。
-- `packages/service-knowledge-read/`：知识读取服务组装。拥有检索、读模型和投影视图状态路由接线。
+- `packages/service-knowledge-read/`：知识读取服务组装。拥有检索、读模型和投影视图状态路由接线；read model 经 `packages/contracts` 的 projection helper 读取共享契约，不反向导入 server implementation。
 - `packages/service-knowledge-write/`：拥有知识写入服务组装、内部路由注册和有界上下文写入接线（knowledge/trap/skill/lifecycle/maintenance/decay）。
 - `packages/service-governance-review/`：拥有治理审核服务组装、内部路由注册和有界上下文 review/feedback 接线，同时将生命周期变更委托给 knowledge-write。
 - `packages/service-candidate-ingestion/`：拥有候选摄取服务组装、内部路由注册和有界上下文 candidate 接线，同时将结果发布委托给 knowledge-write。
@@ -41,6 +41,8 @@
   `packages/host-distributed/src/gateway/` 是网关传输助手和转发接缝的权威放置位置，包括 `internal-client.ts`（薄内部 HTTP / 规范错误归一化助手）。
   `packages/host-distributed/src/config/service-config.ts` 是服务发现默认值和 URL 解析器接缝的权威放置位置。它拥有显式 `TRAPMAP_*_URL` 覆盖、`distributed` 中的 Docker DNS 默认值和 local/dev 上下文中的 `localhost` 默认值之间的配置感知映射。
   `packages/host-distributed/src/shared/` 是分布式主机中内部端口共享包装器（如 `internal-knowledge-write-client.ts`）的权威放置位置；这些包装器将传输语义映射回 backend-core 端口语义，不是仓库适配器。
+
+Wave-2 closeout（commit `b3374307`）：contracts projection/fixture helpers remain pure shared code; candidate fixture helpers stay under `packages/server/src/lib/candidates/`, labels runner helpers stay under `packages/server/src/lib/labels/`, and SQL/PG/worker runtime code remains in its owning zone.
 
 ## 文档
 

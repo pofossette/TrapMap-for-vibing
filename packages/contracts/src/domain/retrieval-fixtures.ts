@@ -1,6 +1,8 @@
 import type { LifecycleState, Scope } from './common.js';
 import { createRetrievalKnowledgeFixtureParts } from './retrieval-projection.js';
 
+const DEFAULT_RETRIEVAL_FIXTURE_NOW = '2026-01-01T00:00:00.000Z';
+
 export function createRetrievalKnowledgeFixture(
   id: string,
   options: {
@@ -16,7 +18,7 @@ export function createRetrievalKnowledgeFixture(
     submittedByUserId?: string;
   } = {},
 ) {
-  const now = options.now ?? new Date().toISOString();
+  const now = options.now ?? DEFAULT_RETRIEVAL_FIXTURE_NOW;
   const shortcut = options.shortcut ?? `Shortcut ${id}`;
   const detail = options.detail ?? `Detail ${id}`;
   const labels = options.labels ?? ['test'];
@@ -49,7 +51,7 @@ export function createRetrievalKnowledgeFixture(
   };
 }
 
-export function createRetrievalArtifactFixture(id: string, now = new Date().toISOString()) {
+export function createRetrievalArtifactFixture(id: string, now = DEFAULT_RETRIEVAL_FIXTURE_NOW) {
   return {
     id,
     slug: `artifact-${id}`,
@@ -106,7 +108,7 @@ export function createRetrievalConflictFixture(
   id: string,
   entryIdA: string,
   entryIdB: string,
-  detectedAt = new Date().toISOString(),
+  detectedAt = DEFAULT_RETRIEVAL_FIXTURE_NOW,
 ) {
   return {
     id,

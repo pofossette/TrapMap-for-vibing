@@ -11,6 +11,7 @@
 import { createAiProviders, loadAiProviderConfig } from '@trapmap/server/lib/ai/index.js';
 import { createGraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import type { Pool } from 'pg';
 
 import { backfillLabels } from './backfill.js';
 import { createLabelReadProjection } from './repository.js';
