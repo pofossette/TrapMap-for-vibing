@@ -1,7 +1,7 @@
 import { type CandidateIngestionPort, InvocationError } from '@trapmap/backend-core';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
-import { registerCandidateIngestionRoutes } from './routes.js';
+import { registerCandidateIngestionRoutes } from './routes.ts';
 
 function createModule(overrides: Partial<CandidateIngestionPort> = {}): CandidateIngestionPort {
   return {
@@ -26,13 +26,14 @@ async function buildApp(module: CandidateIngestionPort) {
 }
 
 describe('service-candidate-ingestion routes', () => {
-  it('routes candidate resolution and publish commands through the module', async () => {
+  it('routes candidate resolution and publish commands through the trusted actor header', async () => {
     const module = createModule();
     const app = await buildApp(module);
 
     const resolution = await app.inject({
       method: 'POST',
       url: '/internal/candidates/candidate-1/resolution',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
       payload: { resolution: { decision: 'merge' }, actorId: 'user-1' },
     });
     expect(resolution.statusCode).toBe(200);
@@ -45,6 +46,7 @@ describe('service-candidate-ingestion routes', () => {
     const publish = await app.inject({
       method: 'POST',
       url: '/internal/candidates/candidate-1/publish',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
       payload: { result: { decision: 'publish' }, actorId: 'user-1' },
     });
     expect(publish.statusCode).toBe(200);
@@ -53,6 +55,34 @@ describe('service-candidate-ingestion routes', () => {
       { decision: 'publish' },
       'user-1',
     );
+
+    await app.close();
+  });
+
+  it('rejects missing or spoofed actors for candidate mutations', async () => {
+    const module = createModule();
+    const app = await buildApp(module);
+
+    const missingActor = await app.inject({
+      method: 'POST',
+      url: '/internal/candidates/candidate-1/manual-result',
+      payload: { result: { decision: 'independent' } },
+    });
+    expect(missingActor.statusCode).toBe(401);
+    expect(missingActor.json()).toEqual({ error: 'Trusted actor is required', kind: 'forbidden' });
+
+    const spoofedActor = await app.inject({
+      method: 'POST',
+      url: '/internal/candidates/candidate-1/manual-result',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
+      payload: { result: { decision: 'independent' }, actorId: 'user-2' },
+    });
+    expect(spoofedActor.statusCode).toBe(403);
+    expect(spoofedActor.json()).toEqual({
+      error: 'Actor does not match trusted identity',
+      kind: 'forbidden',
+    });
+    expect(module.submitManualResult).not.toHaveBeenCalled();
 
     await app.close();
   });
@@ -86,6 +116,7 @@ describe('service-candidate-ingestion routes', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/internal/candidates/candidate-1/publish',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
       payload: { result: { decision: 'publish' }, actorId: 'user-1' },
     });
 

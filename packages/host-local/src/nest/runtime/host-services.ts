@@ -2,6 +2,10 @@ import type { ResolvedRuntimeDeployment } from '@trapmap/backend-core';
 import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
 import { createIdentityAccessPgDeps, type IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 import {
+  createCandidateIngestionPgOwnerBundle,
+  type CandidateIngestionPgOwnerBundle,
+} from '@trapmap/service-candidate-ingestion';
+import {
   createKnowledgeWriteOwnerBundle,
   type ArtifactWritePort,
   type KnowledgeWriteOwnerBundle,
@@ -40,6 +44,7 @@ export interface HostLocalServices {
   strategyRegistry: HostLocalStrategyRegistry;
   ai: HostLocalAiProviders;
   identity: IdentityAccessPortDeps;
+  candidateIngestion: CandidateIngestionPgOwnerBundle;
   knowledgeWrite: KnowledgeWriteOwnerBundle;
   knowledgeOwner: KnowledgeOwnerPort;
   artifactWriter: ArtifactWritePort;
@@ -61,6 +66,7 @@ export async function createHostLocalServices(
     throw new Error('host-local identity runtime requires PostgreSQL');
   }
   const identity = createIdentityAccessPgDeps(pool, { systemAdminKey: config.systemAdminKey });
+  const candidateIngestion = createCandidateIngestionPgOwnerBundle(pool);
   const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
 
   const services: HostLocalServices = {
@@ -75,6 +81,7 @@ export async function createHostLocalServices(
     strategyRegistry: createHostLocalStrategyRegistry(),
     ai: infra.ai,
     identity,
+    candidateIngestion,
     knowledgeWrite,
     knowledgeOwner: knowledgeWrite.knowledgeOwner,
     artifactWriter: knowledgeWrite.artifactWriter,

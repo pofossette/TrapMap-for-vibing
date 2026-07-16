@@ -6,6 +6,12 @@ const ownerBundle = {
   artifactWriter: { insert: vi.fn() },
   artifactReadProjection: { getById: vi.fn() },
 };
+const candidateIngestionBundle = {
+  candidateRepo: { getById: vi.fn() },
+  duplicateCases: {},
+  resolutionOutcomes: {},
+  lineage: {},
+};
 const sharedInfra = {
   store: { kind: 'postgres' },
   adapterRegistry: {},
@@ -26,6 +32,9 @@ vi.mock('@trapmap/runtime-infra', () => ({
 vi.mock('@trapmap/service-identity-access', () => ({
   createIdentityAccessPgDeps: vi.fn(() => ({ auditLog: {} })),
 }));
+vi.mock('@trapmap/service-candidate-ingestion', () => ({
+  createCandidateIngestionPgOwnerBundle: vi.fn(() => candidateIngestionBundle),
+}));
 vi.mock('@trapmap/service-knowledge-write', () => ({
   createKnowledgeWriteOwnerBundle: vi.fn(() => ownerBundle),
 }));
@@ -41,6 +50,7 @@ vi.mock('./retrieval-assembly.js', () => ({
 }));
 
 import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
+import { createCandidateIngestionPgOwnerBundle } from '@trapmap/service-candidate-ingestion';
 
 import { createHostLocalServices } from './host-services.js';
 
@@ -53,6 +63,8 @@ describe('host-local service composition', () => {
     const services = await createHostLocalServices({ systemAdminKey: 'test-key' } as never);
 
     expect(createKnowledgeWriteOwnerBundle).toHaveBeenCalledWith(pool);
+    expect(createCandidateIngestionPgOwnerBundle).toHaveBeenCalledWith(pool);
+    expect(services.candidateIngestion).toBe(candidateIngestionBundle);
     expect(services.knowledgeWrite).toBe(ownerBundle);
     expect(services.knowledgeOwner).toBe(ownerBundle.knowledgeOwner);
     expect(services.artifactWriter).toBe(ownerBundle.artifactWriter);

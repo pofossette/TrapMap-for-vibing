@@ -4,9 +4,9 @@ import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.
 import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
 import { createRemoteJobRuntimeClient } from '@trapmap/host-distributed/shared/internal-job-runtime-client.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
-import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
 import {
   createCandidateIngestionDeps,
+  createCandidateIngestionPgOwnerBundle,
   createCandidateIngestionServer,
 } from '@trapmap/service-candidate-ingestion';
 import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
@@ -23,11 +23,11 @@ export async function createServer(
   db: ServiceDatabase,
 ): Promise<CandidateIngestionServer> {
   const identity = createIdentityAccessPgDeps(db.pool, { systemAdminKey: config.systemAdminKey });
-  const ports = createServicePorts(db.pool, config.serviceName, identity);
+  const candidateIngestion = createCandidateIngestionPgOwnerBundle(db.pool);
   const internalClients = createInternalServiceClients(config.internalUrls);
   const deps = createCandidateIngestionDeps({
-    candidateRepo: ports.repos.candidate,
-    auditLog: ports.auditLog,
+    candidateRepo: candidateIngestion.candidateRepo,
+    auditLog: identity.auditLog,
     knowledgeWrite: createRemoteKnowledgeWriteClient(internalClients, {
       transport: config.internalTransports.knowledgeWrite,
     }),

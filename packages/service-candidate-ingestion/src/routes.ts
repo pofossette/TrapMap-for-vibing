@@ -28,6 +28,23 @@ function translateInvocationError(error: unknown): {
   };
 }
 
+function trustedActor(
+  request: FastifyRequest,
+  body: { actorId?: unknown },
+): { actorId: string } | { status: number; body: { error: string; kind: string } } {
+  const actorId = request.headers['x-trapmap-actor-id'];
+  if (typeof actorId !== 'string' || !actorId) {
+    return { status: 401, body: { error: 'Trusted actor is required', kind: 'forbidden' } };
+  }
+  if (typeof body.actorId === 'string' && body.actorId !== actorId) {
+    return {
+      status: 403,
+      body: { error: 'Actor does not match trusted identity', kind: 'forbidden' },
+    };
+  }
+  return { actorId };
+}
+
 export function registerCandidateIngestionRoutes(
   app: FastifyInstance,
   module: CandidateIngestionPort,
@@ -73,8 +90,10 @@ export function registerCandidateIngestionRoutes(
     async (req: FastifyRequest, reply: FastifyReply) => {
       try {
         const { candidateId } = req.params as { candidateId: string };
-        const body = req.body as { resolution: Record<string, unknown>; actorId: string };
-        await module.applyResolution(candidateId, body.resolution, body.actorId);
+        const body = req.body as { resolution: Record<string, unknown>; actorId?: unknown };
+        const actor = trustedActor(req, body);
+        if ('status' in actor) return reply.status(actor.status).send(actor.body);
+        await module.applyResolution(candidateId, body.resolution, actor.actorId);
         return reply.status(200).send({ ok: true });
       } catch (err) {
         const { status, body } = translateInvocationError(err);
@@ -88,8 +107,10 @@ export function registerCandidateIngestionRoutes(
     async (req: FastifyRequest, reply: FastifyReply) => {
       try {
         const { candidateId } = req.params as { candidateId: string };
-        const body = req.body as { result: Record<string, unknown>; actorId: string };
-        await module.submitManualResult(candidateId, body.result, body.actorId);
+        const body = req.body as { result: Record<string, unknown>; actorId?: unknown };
+        const actor = trustedActor(req, body);
+        if ('status' in actor) return reply.status(actor.status).send(actor.body);
+        await module.submitManualResult(candidateId, body.result, actor.actorId);
         return reply.status(200).send({ ok: true });
       } catch (err) {
         const { status, body } = translateInvocationError(err);
@@ -103,8 +124,10 @@ export function registerCandidateIngestionRoutes(
     async (req: FastifyRequest, reply: FastifyReply) => {
       try {
         const { candidateId } = req.params as { candidateId: string };
-        const body = req.body as { result: Record<string, unknown>; actorId: string };
-        const result = await module.publishCandidateResult(candidateId, body.result, body.actorId);
+        const body = req.body as { result: Record<string, unknown>; actorId?: unknown };
+        const actor = trustedActor(req, body);
+        if ('status' in actor) return reply.status(actor.status).send(actor.body);
+        const result = await module.publishCandidateResult(candidateId, body.result, actor.actorId);
         return reply.status(200).send(result);
       } catch (err) {
         const { status, body } = translateInvocationError(err);

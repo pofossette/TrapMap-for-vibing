@@ -803,12 +803,14 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       if (validationError) {
         return reply.status(400).send(validationError);
       }
-      const body = request.body as { resolution: Record<string, unknown>; actorId: string };
+      const trusted = resolveTrustedActor(request);
+      if (isTrustedActorFailure(trusted)) return sendTrustedActorFailure(reply, trusted);
+      const body = trusted.body as { resolution: Record<string, unknown> };
       try {
         const result = await clients.candidateIngestion.applyResolution(
           params.candidateId,
-          body,
-          forwardedTraceOptions(request),
+          { ...body, actorId: trusted.actorId },
+          trustedActorOptions(request),
         );
         return forwardResponse(reply, result);
       } catch (err: unknown) {
@@ -826,12 +828,14 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       if (validationError) {
         return reply.status(400).send(validationError);
       }
-      const body = request.body as { result: Record<string, unknown>; actorId: string };
+      const trusted = resolveTrustedActor(request);
+      if (isTrustedActorFailure(trusted)) return sendTrustedActorFailure(reply, trusted);
+      const body = trusted.body as { result: Record<string, unknown> };
       try {
         const result = await clients.candidateIngestion.submitManualResult(
           params.candidateId,
-          body,
-          forwardedTraceOptions(request),
+          { ...body, actorId: trusted.actorId },
+          trustedActorOptions(request),
         );
         return forwardResponse(reply, result);
       } catch (err: unknown) {

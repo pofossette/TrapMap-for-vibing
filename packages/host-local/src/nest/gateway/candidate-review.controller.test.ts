@@ -38,6 +38,12 @@ function createRuntime(): HostLocalRuntime {
       store: {},
       eventBus: {},
       asyncTransport: undefined,
+      candidateIngestion: {
+        candidateRepo: {},
+        duplicateCases: {},
+        resolutionOutcomes: {},
+        lineage: {},
+      },
       repos: {
         candidate: {},
         lineage: {},
@@ -89,7 +95,7 @@ describe('CandidateReviewController', () => {
           },
         }),
     };
-    runtime.services.repos.candidate = candidateRepo as any;
+    runtime.services.candidateIngestion.candidateRepo = candidateRepo as any;
     vi.mocked(candidateIngestionMock.applyResolution).mockResolvedValueOnce(undefined);
     const controller = new CandidateReviewController(
       candidateIngestionMock,

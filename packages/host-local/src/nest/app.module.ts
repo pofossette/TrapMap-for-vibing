@@ -101,7 +101,7 @@ const jobRuntimeModule = JobRuntimeModule.forTesting(jobRuntimePort);
 
 const candidateIngestionModule = CandidateIngestionModule.forDeps(
   createCandidateIngestionDeps({
-    candidateRepo: hostLocalRuntime.services.repos.candidate,
+    candidateRepo: hostLocalRuntime.services.candidateIngestion.candidateRepo,
     auditLog: hostLocalRuntime.auditLog,
     knowledgeWrite: knowledgeWritePort,
     jobRuntime: jobRuntimePort,

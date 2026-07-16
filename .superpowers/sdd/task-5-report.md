@@ -1,69 +1,32 @@
-# Task 5: Delete Smoke Test + Update Documentation
+# Task 5 — Wave-3 foundation review report
 
-## Status: DONE
+## Scope
 
-## What Was Done
+Reviewed the dirty Wave-3 candidate-ingestion foundation: owner-local Drizzle schema and migration guard, PostgreSQL owner bundle, host-local and distributed composition, trusted-actor forwarding, duplicate domain, source-first test resolution, and retirement guard coverage. This package does not close Wave-3; compatibility repositories, worker/recovery, and public API ownership remain for later packages.
 
-### 1. Deleted the smoke test file
+## RED → GREEN
 
-Removed `packages/server/src/__tests__/docs-truth-smoke.test.ts` (880 lines, ~49 test cases). All its assertions have been fully migrated to:
-- `scripts/complexity-budgets.json` (docRules, 43 rules)
-- `scripts/arch-freeze-rules.json` (source-code assertions, 8 rule groups)
+1. Added `does not retain the deprecated persistence-schema project reference` to `pg-ports.test.ts`.
+2. RED: the focused `pg-ports` suite failed because `packages/service-candidate-ingestion/tsconfig.json` still referenced `../persistence-schema`.
+3. GREEN: removed that obsolete project reference. The full candidate-ingestion focused suite now passes (25 tests).
+4. Refactored the PG row timestamp mapping and candidate status transaction to remove the two new Fallow complexity findings without changing status or idempotency behavior. The PG owner suite remains green (17 tests).
 
-### 2. Updated all documentation references
+## Verification
 
-**`package.json`**: Removed `docs-truth-smoke.test.ts` from the `test:runtime-foundations` script.
+- `rtk pnpm --filter @trapmap/service-candidate-ingestion test --run src/pg-ports.test.ts src/migrations.test.ts src/routes.test.ts` — 25 passed.
+- `rtk pnpm --filter @trapmap/service-candidate-ingestion typecheck` — passed.
+- `rtk pnpm --filter @trapmap/host-local test --run src/nest/runtime/host-services.test.ts src/nest/gateway/candidate-review.controller.test.ts` — 4 passed.
+- `rtk pnpm exec vitest run --project host-distributed packages/host-distributed/src/gateway/routes.test.ts` — 23 passed.
+- `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts` — 16 passed.
+- `rtk pnpm typecheck` — passed.
+- `rtk pnpm check:docs-drift` — 46 rules passed.
+- `rtk pnpm check:structure` — passed.
+- `rtk git diff --check` — passed.
 
-**`scripts/complexity-budgets.json`**: Removed 3 entries from the TESTING.md docRule that referenced the smoke test file path and `rtk pnpm test:file` commands.
+## Fallow
 
-**`docs/operations/TESTING.md`**: Updated all Phase freeze check sections:
-- Phase 2 Truth freeze: now uses `pnpm check:docs-drift` instead of smoke test
-- Phase 3 Unified Adapter Freeze Checks: removed smoke test from verification matrix
-- Phase 4 Closeout Matrix: removed smoke test from Phase 0 and Phase 1 entries
-- Phase 4 Adapter Env / Target Freeze Checks: removed smoke test from matrix
-- Phase 5 Distributed Baseline Freeze Checks: removed smoke test from matrix
-- Phase 6 Mature Capability Freeze Checks: removed smoke test from matrix
-- Phase 7 Maintainability / CI-Testing Truth / Documentation Closeout Checks: replaced smoke test with `check:deps`, `check:md-lint`, `check:links`
-- Backend Engineering Master Plan Phase 4 Closeout Matrix: removed smoke test from Phase 0
-- Runtime Foundations Verification: replaced smoke test with `check:docs-drift`, `check:deps`, `check:md-lint`, `check:links`
-- Documentation maintenance workflow: removed step 5 that ran smoke test
-- Verification matrix by change type: replaced smoke test with `check:deps` + `check:md-lint`
-- Master phase minimum verification matrix: updated Phase 0, 1, 3 entries
-- Server Raw Report Revalidation section: removed smoke test from regression frozen tests and replaced the standalone run command with `pnpm check:docs-drift`
-- Updated note about "runtime doc contract" to reference `scripts/complexity-budgets.json` instead of the smoke test
+`rtk pnpm exec fallow audit --base main --gate new-only --format json --quiet` completes with verdict `warn`: zero new dead-code issues, zero boundary violations, and zero new complexity findings after the refactor. It retains 12 introduced duplication groups, chiefly the intentional owner-local schema/PG port parity with legacy candidate persistence and repeated route templates. No suppression was added; this remains closeout evidence for the later deletion/migration packages rather than a Wave-3 completion claim.
 
-**`docs/reference/SYSTEM_TRUTH_SOURCES.md`**: 
-- Phase 7 entry: replaced `packages/server/src/__tests__/docs-truth-smoke.test.ts` with `scripts/check-arch-freeze.ts` + `scripts/check-deps.ts` in the authoritative source list
-- Maintenance section: removed the step that ran the smoke test
+## Remaining Wave-3 work
 
-**`docs/guides/CONTRIBUTING.md`**: Replaced the "run docs truth smoke test" command with "run docs drift guard" (`pnpm check:docs-drift`).
-
-**`docs/todos/backend-build-targets-plan.md`**: Removed the smoke test from the modified files list and minimum test section.
-
-### 3. Verification files left untouched (correctly)
-
-- `docs/operations/CI_CD.md` - Already current, references correct doc-guardrails commands
-- `docs/PACKAGES.md` - No smoke test references, already current
-- Archived plans under `docs/archived/` - Correctly left as historical references
-
-## Check Suite Results
-
-| Command | Result |
-|---------|--------|
-| `pnpm check:docs-drift` | All 43 doc rule(s) passed |
-| `pnpm check:arch-freeze` | All 8 rule(s) passed |
-| `pnpm check:deps` | No dependency violations found |
-| `pnpm check:mermaid` | All 136 mermaid block(s) passed |
-| `pnpm check:structure` | All checks passed |
-| `pnpm check:md-lint` | 0 error(s) across 212 files |
-| `pnpm exec vitest run scripts/__tests__/check-doc-drift.test.ts` | PASS (28) |
-| `pnpm exec vitest run scripts/__tests__/check-arch-freeze.test.ts` | PASS (22) |
-| `pnpm check:links` | Pre-existing dead links only (not related to this change) |
-
-## Commits
-
-To be created after this report.
-
-## Concerns
-
-None. All 880 lines of the old smoke test have been replaced by config-driven assertion systems, and all active documentation references have been updated to point to the new check scripts.
+Server/runtime-infra candidate, duplicate, and lineage compatibility implementations; candidate processor/worker/recovery; public host API compatibility; and retirement allowlist removal remain out of scope for this foundation baseline.

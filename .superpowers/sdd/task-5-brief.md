@@ -1,69 +1,11 @@
-# Task 5: Delete Smoke Test + Update Documentation
+## Task 5 — Wave-3 in-progress evidence
 
-## Task Description
+`service-candidate-ingestion` 现拥有 owner-local Drizzle candidate schema 和 `createCandidateIngestionPgOwnerBundle`。该 bundle 在单个 PostgreSQL transaction 中处理 candidate 状态、analysis、duplicate case/matches 和 manual result，并为 resolution outcome、lineage 提供幂等写入；重试不会重写既有状态或子表记录。distributed candidate host 与 host-local Nest composition 都直接注入该 bundle，candidate review 的读取也使用同一个 owner port，而不再经 shared `createServicePorts()` 或 host-local compatibility candidate repository。owner package production sources 与 candidate host scan 均禁止导入 `@trapmap/server` 或 `@trapmap/runtime-infra`。
 
-Delete the old `docs-truth-smoke.test.ts` (now fully replaced by docRules + arch-freeze) and update all documentation references.
+本轮 focused 验证：`rtk pnpm --filter @trapmap/service-candidate-ingestion test --run src/pg-ports.test.ts src/migrations.test.ts src/routes.test.ts`（23 tests）、host-local owner composition/review tests（4 tests）、distributed candidate route test、`rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`（16 tests）、`rtk pnpm typecheck` 与 `rtk git diff --check` 均通过。Wave-3 仍未完成：server/runtime-infra compatibility candidate repositories、duplicate/lineage services 和 candidate worker 尚待迁移或删除；Docker daemon 缺失时也不能宣告 deployment/eval acceptance 已完成。
 
-### Part 1: Delete the smoke test
+本轮 owner-domain 增量：candidate duplicate detector 现通过 service-local `CandidateCorpusReadPort` 读取获批 corpus，不导入 knowledge/artifact service 实现或直读其表；exact duplicate 的 fingerprint、analysis snapshot 与 case 都由 candidate owner 生成。candidate resolution、manual-result 与 publish internal routes 仅接受 gateway 的 `x-trapmap-actor-id`，缺失 trusted actor 返回 401，body actor 与该身份不一致返回 403；distributed gateway 以认证 actor 覆盖 body 值并转发该 header。TDD RED 为未传身份时 route 返回 200；修复后 candidate owner focused suite（26 tests）、gateway routes（23 tests）和 package typecheck 通过。`rtk pnpm exec fallow audit --base wave1-fallow-base --gate new-only --format json --quiet` 无新增 dead-code 或 boundary violation，但仍报告 2 个新增 complexity 与 12 个新增 duplication group，因此不通过且不可作为 Wave-3 closeout evidence。该增量不改变 Wave-3 未完成判断：legacy worker、公开 gateway compatibility、server/runtime-infra 删除与 distributed/host-local acceptance 仍待完成。
 
-Delete `packages/server/src/__tests__/docs-truth-smoke.test.ts`.
+## Deferred 边界
 
-This file was the original 880-line smoke test. All its assertions have been migrated to:
-- `scripts/complexity-budgets.json` (doc-only assertions, ~43 rules)
-- `scripts/arch-freeze-rules.json` (source-code assertions, 8 rule groups)
-
-The smoke test should no longer be needed. However, verify that no other test files or scripts import from it before deleting.
-
-### Part 2: Update documentation references
-
-The following docs may still reference the smoke test or need updates:
-
-1. **`docs/operations/TESTING.md`** — Update the Phase freeze checks section to reference the new tools instead of the smoke test file. The smoke test was mentioned in the "Phase 3/4/5/6/7 Unified Adapter Freeze Checks" sections.
-
-2. **`docs/reference/SYSTEM_TRUTH_SOURCES.md`** — Verify the Phase 7 entry references the new scripts (`check:deps`, `check:arch-freeze`, `check:docs-drift`, `check:md-lint`). Task 4 already updated this, but verify it's current.
-
-3. **`docs/PACKAGES.md`** — Verify the Phase 1-6 boundary descriptions are current with the new check scripts.
-
-4. **`docs/operations/CI_CD.md`** — Task 4 already updated this, but verify the `doc-guardrails` job description is accurate.
-
-### Part 3: Verify everything still works
-
-After deleting the smoke test, run the full check suite to confirm nothing breaks:
-
-1. `pnpm check:docs-drift` — should pass
-2. `pnpm check:arch-freeze` — should pass
-3. `pnpm check:deps` — should pass
-4. `pnpm check:mermaid` — should pass
-5. `pnpm check:structure` — should pass
-6. `pnpm check:md-lint` — should pass
-7. `pnpm exec vitest run scripts/__tests__/check-doc-drift.test.ts` — should pass
-8. `pnpm exec vitest run scripts/__tests__/check-arch-freeze.test.ts` — should pass
-
-## Context
-
-- The smoke test was already updated in Task 4 to reference the new `doc-guardrails` job name
-- All its assertions have been migrated to config-driven systems
-- The `docs-truth-smoke.test.ts` file is 880 lines and should be completely removed
-
-## Key Files
-
-- `packages/server/src/__tests__/docs-truth-smoke.test.ts` — DELETE this file
-- `docs/operations/TESTING.md` — update references
-- `docs/reference/SYSTEM_TRUTH_SOURCES.md` — verify/update
-- `docs/PACKAGES.md` — verify/update
-- `docs/operations/CI_CD.md` — verify/update
-
-## Your Job
-
-1. Check if anything imports from the smoke test file (grep for the filename)
-2. Delete `packages/server/src/__tests__/docs-truth-smoke.test.ts`
-3. Update `docs/operations/TESTING.md` to remove smoke test references and add new script references
-4. Verify `docs/reference/SYSTEM_TRUTH_SOURCES.md` is current (Task 4 already updated it)
-5. Verify `docs/PACKAGES.md` is current
-6. Verify `docs/operations/CI_CD.md` is current (Task 4 already updated it)
-7. Run the full check suite listed in Part 3 to verify everything works
-8. Commit your work
-
-## Work From
-
-/home/wunai/Disks/Data/my-project/Trap-Map
+平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。

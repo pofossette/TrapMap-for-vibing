@@ -392,7 +392,7 @@ describe('registerGatewayRoutes', () => {
         resolution: { decision: 'merge' },
         actorId: 'user-1',
       },
-      {},
+      { headers: { 'x-trapmap-actor-id': 'user-1' } },
     );
 
     const manualResultResponse = await app.inject({
@@ -408,7 +408,7 @@ describe('registerGatewayRoutes', () => {
         result: { score: 1 },
         actorId: 'user-1',
       },
-      {},
+      { headers: { 'x-trapmap-actor-id': 'user-1' } },
     );
     await app.close();
   });
@@ -438,6 +438,7 @@ describe('registerGatewayRoutes', () => {
         headers: {
           'x-request-id': 'req-candidate-hop',
           'x-trace-id': 'trace-candidate-hop',
+          'x-trapmap-actor-id': 'user-1',
         },
       },
     );
@@ -471,6 +472,7 @@ describe('registerGatewayRoutes', () => {
           'x-request-id': 'req-candidate-hop-2',
           'x-trace-id': 'trace-candidate-hop-2',
           traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00',
+          'x-trapmap-actor-id': 'user-1',
         },
       },
     );
@@ -589,7 +591,7 @@ describe('registerGatewayRoutes', () => {
     await app.close();
   });
 
-  it('does not attach an artifact trusted actor header to other internal calls', async () => {
+  it('attaches a candidate trusted actor header to candidate mutations', async () => {
     const clients = createClients();
     const app = await buildApp(clients);
 
@@ -604,7 +606,7 @@ describe('registerGatewayRoutes', () => {
     expect(clients.candidateIngestion.applyResolution).toHaveBeenCalledWith(
       'candidate-1',
       { resolution: { action: 'accept' }, actorId: 'user-1' },
-      { headers: { 'x-request-id': 'candidate-hop' } },
+      { headers: { 'x-request-id': 'candidate-hop', 'x-trapmap-actor-id': 'user-1' } },
     );
     await app.close();
   });
