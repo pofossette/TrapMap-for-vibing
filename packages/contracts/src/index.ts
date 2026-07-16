@@ -23,6 +23,8 @@ export * from './domain/operations.js';
 export * from './domain/path-validation.js';
 export * from './domain/parsing.js';
 export * from './domain/retrieval.js';
+export * from './domain/retrieval-fixtures.js';
+export * from './domain/retrieval-projection.js';
 export * from './domain/review.js';
 export * from './domain/admin.js';
 export * from './domain/async.js';

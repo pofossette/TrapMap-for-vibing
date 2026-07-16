@@ -18,7 +18,6 @@ export type {
   Task,
   TaskHandler,
   TaskQueueStatusSnapshot,
-  TaskStatus,
 } from '@trapmap/contracts';
 
 // =============================================================================

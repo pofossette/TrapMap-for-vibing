@@ -512,21 +512,29 @@ function validateAllowlist(root: string, entries: AllowlistEntry[]): string[] {
   return [...invalidEntries, ...unregistered];
 }
 
-function findRetiredWaveOneOwners(root: string): string[] {
-  const ownerRoots = [
-    'packages/server/src',
-    'packages/runtime-infra/src',
-    'packages/host-distributed/src/shared',
-  ];
-
+function findRetiredOwnerSymbols(
+  root: string,
+  ownerRoots: readonly string[],
+  symbols: readonly string[],
+  messagePrefix: string,
+): string[] {
   return ownerRoots.flatMap((ownerRoot) =>
     listFiles(join(root, ownerRoot)).flatMap((file) => {
       if (!isProductionFile(root, file)) return [];
       const content = readFileSync(file, 'utf8');
-      return RETIRED_WAVE_1_OWNER_SYMBOLS.filter((symbol) => content.includes(symbol)).map(
-        (symbol) => `retired wave-1 identity owner: ${relative(root, file)}:${symbol}`,
-      );
+      return symbols
+        .filter((symbol) => content.includes(symbol))
+        .map((symbol) => `${messagePrefix}: ${relative(root, file)}:${symbol}`);
     }),
+  );
+}
+
+function findRetiredWaveOneOwners(root: string): string[] {
+  return findRetiredOwnerSymbols(
+    root,
+    ['packages/server/src', 'packages/runtime-infra/src', 'packages/host-distributed/src/shared'],
+    RETIRED_WAVE_1_OWNER_SYMBOLS,
+    'retired wave-1 identity owner',
   );
 }
 
@@ -551,14 +559,11 @@ function findRetiredWaveTwoArtifactOwners(root: string): string[] {
 }
 
 function findRetiredWaveTwoKnowledgeOwners(root: string): string[] {
-  return WAVE_2_KNOWLEDGE_SCAN_ROOTS.flatMap((ownerRoot) =>
-    listFiles(join(root, ownerRoot)).flatMap((file) => {
-      if (!isProductionFile(root, file)) return [];
-      const content = readFileSync(file, 'utf8');
-      return RETIRED_WAVE_2_KNOWLEDGE_SYMBOLS.filter((symbol) => content.includes(symbol)).map(
-        (symbol) => `retired wave-2 knowledge owner: ${relative(root, file)}:${symbol}`,
-      );
-    }),
+  return findRetiredOwnerSymbols(
+    root,
+    WAVE_2_KNOWLEDGE_SCAN_ROOTS,
+    RETIRED_WAVE_2_KNOWLEDGE_SYMBOLS,
+    'retired wave-2 knowledge owner',
   );
 }
 

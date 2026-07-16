@@ -6,6 +6,105 @@ import {
 } from './pg-ports.js';
 import { createTransactionPool } from './test-helpers.js';
 
+type KnowledgeOwner = ReturnType<typeof createKnowledgeWriteOwnerBundle>['knowledgeOwner'];
+type KnowledgeOperation = (owner: KnowledgeOwner) => Promise<unknown>;
+
+function expectSuccessfulTransaction(calls: string[], sqlFragments: string[]): void {
+  expect(calls).toEqual(
+    expect.arrayContaining([
+      'BEGIN',
+      ...sqlFragments.map((fragment) => expect.stringContaining(fragment)),
+      'COMMIT',
+    ]),
+  );
+  expect(calls).not.toContain('ROLLBACK');
+}
+
+function createOutboxFailurePool(lifecycleState: string) {
+  return createTransactionPool((sql) => {
+    if (sql.includes('SELECT lifecycle_state')) {
+      return { rows: [{ lifecycle_state: lifecycleState }] };
+    }
+    if (sql.includes('RETURNING *')) {
+      return { rows: [{ id: 'entry-1', lifecycle_state: 'approved' }] };
+    }
+    if (sql.includes('INSERT INTO domain_event_outbox')) {
+      throw new Error('outbox unavailable');
+    }
+    return { rows: [] };
+  });
+}
+
+async function expectOutboxRollback(
+  operation: KnowledgeOperation,
+  lifecycleState: string,
+  sqlFragments: string[] = [],
+): Promise<void> {
+  const { calls, client, pool } = createOutboxFailurePool(lifecycleState);
+  const owner = createKnowledgeWriteOwnerBundle(pool as never);
+
+  await expect(operation(owner.knowledgeOwner)).rejects.toThrow('outbox unavailable');
+
+  expect(calls).toEqual(
+    expect.arrayContaining([
+      'BEGIN',
+      ...sqlFragments.map((fragment) => expect.stringContaining(fragment)),
+      'ROLLBACK',
+    ]),
+  );
+  expect(calls).not.toContain('COMMIT');
+  expect(client.release).toHaveBeenCalledOnce();
+}
+
+const outboxRollbackCases: Array<{
+  name: string;
+  lifecycleState: string;
+  operation: KnowledgeOperation;
+  sqlFragments?: string[];
+}> = [
+  {
+    name: 'maintenance decision',
+    lifecycleState: 'approved',
+    operation: (owner) =>
+      owner.applyMaintenanceDecision({
+        entryId: 'entry-1',
+        actorId: 'maintainer-1',
+        action: 'refresh',
+      }),
+    sqlFragments: ['UPDATE knowledge_entries SET maintenance_meta'],
+  },
+  {
+    name: 'decay decision',
+    lifecycleState: 'approved',
+    operation: (owner) =>
+      owner.applyDecayDecision({
+        entryId: 'entry-1',
+        actorId: 'decay-worker',
+        action: 'suppress',
+      }),
+  },
+  {
+    name: 'review decision',
+    lifecycleState: 'agent-pass',
+    operation: (owner) =>
+      owner.approveReviewDecision({
+        entryId: 'entry-1',
+        actorId: 'reviewer-1',
+        note: 'approved',
+      }),
+  },
+  {
+    name: 'supersede decision',
+    lifecycleState: 'approved',
+    operation: (owner) => owner.supersede('entry-1', 'replacement-1', 'editor-1'),
+    sqlFragments: [
+      "UPDATE knowledge_entries SET lifecycle_state = 'deactivated'",
+      'INSERT INTO knowledge_revisions',
+      'INSERT INTO lifecycle_events',
+    ],
+  },
+];
+
 describe('knowledge-write PostgreSQL owner bundle', () => {
   it('persists a submission aggregate and its outbox event in one transaction', async () => {
     const { calls, client, pool } = createTransactionPool(() => ({ rows: [] }));
@@ -19,105 +118,26 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
       teamId: 'team-1',
     });
 
-    expect(calls).toEqual(
-      expect.arrayContaining([
-        'BEGIN',
-        expect.stringContaining('INSERT INTO knowledge_entries'),
-        expect.stringContaining('INSERT INTO knowledge_revisions'),
-        expect.stringContaining('INSERT INTO knowledge_labels'),
-        expect.stringContaining('INSERT INTO lifecycle_events'),
-        expect.stringContaining('INSERT INTO domain_event_outbox'),
-        'COMMIT',
-      ]),
-    );
-    expect(calls).not.toContain('ROLLBACK');
+    expectSuccessfulTransaction(calls, [
+      'INSERT INTO knowledge_entries',
+      'INSERT INTO knowledge_revisions',
+      'INSERT INTO knowledge_labels',
+      'INSERT INTO lifecycle_events',
+      'INSERT INTO domain_event_outbox',
+    ]);
     expect(client.release).toHaveBeenCalledOnce();
   });
 
-  it('rolls back a maintenance decision when its outbox event cannot persist', async () => {
-    const { calls, client, pool } = createTransactionPool((sql) => {
-      if (sql.includes('SELECT lifecycle_state')) {
-        return { rows: [{ lifecycle_state: 'approved' }] };
-      }
-      if (sql.includes('INSERT INTO domain_event_outbox')) {
-        throw new Error('outbox unavailable');
-      }
-      return { rows: [] };
-    });
-    const owner = createKnowledgeWriteOwnerBundle(pool as never);
-
-    await expect(
-      owner.knowledgeOwner.applyMaintenanceDecision({
-        entryId: 'entry-1',
-        actorId: 'maintainer-1',
-        action: 'refresh',
-      }),
-    ).rejects.toThrow('outbox unavailable');
-
-    expect(calls).toEqual(
-      expect.arrayContaining([
-        'BEGIN',
-        expect.stringContaining('UPDATE knowledge_entries SET maintenance_meta'),
-        expect.stringContaining('INSERT INTO domain_event_outbox'),
-        'ROLLBACK',
-      ]),
-    );
-    expect(calls).not.toContain('COMMIT');
-    expect(client.release).toHaveBeenCalledOnce();
-  });
-
-  it('rolls back a decay decision when its outbox event cannot persist', async () => {
-    const { calls, client, pool } = createTransactionPool((sql) => {
-      if (sql.includes('SELECT lifecycle_state')) {
-        return { rows: [{ lifecycle_state: 'approved' }] };
-      }
-      if (sql.includes('INSERT INTO domain_event_outbox')) {
-        throw new Error('outbox unavailable');
-      }
-      return { rows: [] };
-    });
-    const owner = createKnowledgeWriteOwnerBundle(pool as never);
-
-    await expect(
-      owner.knowledgeOwner.applyDecayDecision({
-        entryId: 'entry-1',
-        actorId: 'decay-worker',
-        action: 'suppress',
-      }),
-    ).rejects.toThrow('outbox unavailable');
-
-    expect(calls).toContain('ROLLBACK');
-    expect(calls).not.toContain('COMMIT');
-    expect(client.release).toHaveBeenCalledOnce();
-  });
-
-  it('rolls back review decisions when the lifecycle outbox cannot persist', async () => {
-    const { calls, client, pool } = createTransactionPool((sql) => {
-      if (sql.includes('SELECT lifecycle_state')) {
-        return { rows: [{ lifecycle_state: 'agent-pass' }] };
-      }
-      if (sql.includes('RETURNING *')) {
-        return { rows: [{ id: 'entry-1', lifecycle_state: 'approved' }] };
-      }
-      if (sql.includes('INSERT INTO domain_event_outbox')) {
-        throw new Error('outbox unavailable');
-      }
-      return { rows: [] };
-    });
-    const owner = createKnowledgeWriteOwnerBundle(pool as never);
-
-    await expect(
-      owner.knowledgeOwner.approveReviewDecision({
-        entryId: 'entry-1',
-        actorId: 'reviewer-1',
-        note: 'approved',
-      }),
-    ).rejects.toThrow('outbox unavailable');
-
-    expect(calls).toContain('ROLLBACK');
-    expect(calls).not.toContain('COMMIT');
-    expect(client.release).toHaveBeenCalledOnce();
-  });
+  it.each(outboxRollbackCases)(
+    'rolls back a $name when its outbox event cannot persist',
+    async (testCase) => {
+      await expectOutboxRollback(
+        testCase.operation,
+        testCase.lifecycleState,
+        testCase.sqlFragments,
+      );
+    },
+  );
 
   it('queries owner projections with ids, ownership, lifecycle, team, labels, and operation filters', async () => {
     const query = vi.fn(async (sql: string) => ({
@@ -250,18 +270,13 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
       'editor-1',
     );
 
-    expect(calls).toEqual(
-      expect.arrayContaining([
-        'BEGIN',
-        expect.stringContaining('UPDATE knowledge_entries SET detail'),
-        expect.stringContaining('INSERT INTO knowledge_revisions'),
-        expect.stringContaining('DELETE FROM knowledge_labels'),
-        expect.stringContaining('INSERT INTO knowledge_labels'),
-        expect.stringContaining('INSERT INTO domain_event_outbox'),
-        'COMMIT',
-      ]),
-    );
-    expect(calls).not.toContain('ROLLBACK');
+    expectSuccessfulTransaction(calls, [
+      'UPDATE knowledge_entries SET detail',
+      'INSERT INTO knowledge_revisions',
+      'DELETE FROM knowledge_labels',
+      'INSERT INTO knowledge_labels',
+      'INSERT INTO domain_event_outbox',
+    ]);
     expect(client.release).toHaveBeenCalledOnce();
   });
 
@@ -295,36 +310,6 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
       ]),
     );
     expect(calls).not.toContain('ROLLBACK');
-    expect(client.release).toHaveBeenCalledOnce();
-  });
-
-  it('rolls back a supersede when its lifecycle outbox event cannot persist', async () => {
-    const { calls, client, pool } = createTransactionPool((sql) => {
-      if (sql.includes('SELECT lifecycle_state')) {
-        return { rows: [{ lifecycle_state: 'approved' }] };
-      }
-      if (sql.includes('INSERT INTO domain_event_outbox')) {
-        throw new Error('outbox unavailable');
-      }
-      return { rows: [] };
-    });
-    const owner = createKnowledgeWriteOwnerBundle(pool as never);
-
-    await expect(
-      owner.knowledgeOwner.supersede('entry-1', 'replacement-1', 'editor-1'),
-    ).rejects.toThrow('outbox unavailable');
-
-    expect(calls).toEqual(
-      expect.arrayContaining([
-        'BEGIN',
-        expect.stringContaining("UPDATE knowledge_entries SET lifecycle_state = 'deactivated'"),
-        expect.stringContaining('INSERT INTO knowledge_revisions'),
-        expect.stringContaining('INSERT INTO lifecycle_events'),
-        expect.stringContaining('INSERT INTO domain_event_outbox'),
-        'ROLLBACK',
-      ]),
-    );
-    expect(calls).not.toContain('COMMIT');
     expect(client.release).toHaveBeenCalledOnce();
   });
 

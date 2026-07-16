@@ -10,116 +10,22 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { detectDuplicates, getDetectionVersion } from './detector.js';
+import {
+  createDetectorInput,
+  createDetectorSkill,
+  createDetectorTrap,
+} from './detector.test-helpers.js';
 import { computeTrapFingerprint, tokenize } from './fingerprint.js';
-import type { DuplicateDetectionInput } from './types.js';
+
+const createTestTrap = createDetectorTrap;
+const createTestSkill = createDetectorSkill;
+const createTestInput = createDetectorInput;
 
 // ---------------------------------------------------------------------------
 // Factory helpers (adapted from reconcile.test.ts pattern)
 // ---------------------------------------------------------------------------
-
-function createTestTrap(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord {
-  return {
-    id: 'trap_1',
-    teamId: null,
-    scope: 'global',
-    labels: ['test'],
-    shortcut: 'Test trap',
-    detail: 'Test detail',
-    requiredLevel: 0,
-    lifecycleState: 'approved',
-    ownerUserId: 'user_1',
-    latestRevision: {
-      revision: 1,
-      submittedAt: nowIso(),
-      submittedByUserId: 'user_1',
-      shortcut: 'Test trap',
-      detail: 'Test detail',
-      labels: ['test'],
-      reviewNotes: [],
-    },
-    history: [],
-    metadata: {
-      scopeLabel: 'global-constraint',
-      submissionCount: 1,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: null,
-      latestSubmittedAt: null,
-      latestReviewedAt: null,
-      latestDecision: null,
-    },
-    latestSubmissionId: null,
-    submissionHistory: [],
-    agentReview: null,
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    embeddingCache: null,
-    indexState: null,
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-    ...overrides,
-  };
-}
-
-function createTestSkill(overrides: Partial<SkillArtifactRecord> = {}): SkillArtifactRecord {
-  return {
-    id: 'skill_1',
-    teamId: null,
-    scope: 'global',
-    labels: ['test'],
-    title: 'Test Skill',
-    slug: 'test-skill',
-    requiredLevel: 0,
-    lifecycleState: 'approved',
-    ownerUserId: 'user_1',
-    latestRevision: {
-      revision: 1,
-      sourceHash: 'hash',
-      files: [],
-      submittedAt: nowIso(),
-      submittedByUserId: 'user_1',
-      scriptDescriptors: [],
-      derived: null,
-    },
-    history: [],
-    metadata: {
-      sourceKind: 'skill-directory',
-      submissionCount: 1,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: null,
-      latestSubmittedAt: null,
-      latestReviewedAt: null,
-      latestDecision: null,
-    },
-    agentReview: null,
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-    ...overrides,
-  };
-}
-
-function createTestInput(
-  overrides: Partial<DuplicateDetectionInput> = {},
-): DuplicateDetectionInput {
-  return {
-    candidateId: 'cand_1',
-    candidateFingerprint: 'abc123hash',
-    candidateKeywords: ['test'],
-    candidateTokens: ['test'],
-    trapEntries: [],
-    skillArtifacts: [],
-    threshold: 0.3,
-    ...overrides,
-  };
-}
 
 // ---------------------------------------------------------------------------
 // getDetectionVersion

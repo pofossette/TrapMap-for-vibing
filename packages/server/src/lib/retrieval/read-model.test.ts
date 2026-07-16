@@ -9,169 +9,19 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ConflictRelation, SkillArtifact } from '@trapmap/contracts';
+import {
+  createRetrievalArtifactFixture,
+  createRetrievalConflictFixture,
+  createRetrievalKnowledgeFixture,
+  createRetrievalMockRepos,
+  type ConflictRelation,
+  type SkillArtifact,
+} from '@trapmap/contracts';
 import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
-import type {
-  FeedbackQueueRecord,
-  KnowledgeRecord,
-  SkillArtifactRecord,
-} from '@trapmap/server/lib/store.js';
+import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
 
 import { buildRetrievalReadModel } from './read-model.js';
-
-// ---------------------------------------------------------------------------
-// Test fixtures
-// ---------------------------------------------------------------------------
-
-function makeKnowledgeRecord(id: string): KnowledgeRecord {
-  const now = new Date().toISOString();
-  return {
-    id,
-    teamId: null,
-    scope: 'global',
-    labels: ['test'],
-    shortcut: `Shortcut ${id}`,
-    detail: `Detail ${id}`,
-    requiredLevel: 0,
-    lifecycleState: 'approved',
-    ownerUserId: 'user_1',
-    latestRevision: {
-      revision: 1,
-      submittedAt: now,
-      submittedByUserId: 'user_1',
-      shortcut: `Shortcut ${id}`,
-      detail: `Detail ${id}`,
-      labels: ['test'],
-      reviewNotes: [],
-    },
-    history: [],
-    metadata: {
-      scopeLabel: 'global-constraint',
-      submissionCount: 1,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: null,
-      latestSubmittedAt: null,
-      latestReviewedAt: null,
-      latestDecision: null,
-    },
-    latestSubmissionId: null,
-    submissionHistory: [],
-    agentReview: null,
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    embeddingCache: null,
-    indexState: null,
-    boundary: null,
-    decayMeta: null,
-    evidenceMeta: null,
-    maintenanceMeta: null,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function makeArtifactRecord(id: string): SkillArtifactRecord {
-  const now = new Date().toISOString();
-  return {
-    id,
-    slug: `artifact-${id}`,
-    labels: ['test'],
-    scope: 'global',
-    requiredLevel: 0,
-    teamId: null,
-    lifecycleState: 'approved',
-    ownerUserId: 'user1',
-    latestRevision: {
-      revision: 1,
-      sourceHash: 'test-hash',
-      submittedAt: now,
-      submittedByUserId: 'user1',
-      files: [],
-      scriptDescriptors: [],
-      derived: {
-        profile: {
-          artifactId: id,
-          revision: 1,
-          sourceHash: 'test-hash',
-          title: `Artifact ${id}`,
-          summary: 'Test summary',
-          keywords: ['test'],
-          referencePaths: [],
-          contentHash: 'content-hash',
-        },
-        capsules: [],
-        clientManifest: null,
-        sourceHash: 'test-hash',
-        derivedAt: now,
-      },
-    },
-    history: [],
-    metadata: {
-      sourceKind: 'single-skill-md',
-      submissionCount: 1,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: null,
-      latestSubmittedAt: null,
-      latestReviewedAt: null,
-      latestDecision: null,
-    },
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    agentReview: null,
-    createdAt: now,
-  };
-}
-
-function makeConflict(id: string, entryIdA: string, entryIdB: string): ConflictRelation {
-  return {
-    id,
-    entryIdA,
-    entryIdB,
-    conflictType: 'alternative',
-    context: `Conflict between ${entryIdA} and ${entryIdB}`,
-    problemOverlapScore: 0.8,
-    solutionDiffScore: 0.6,
-    detectedAt: new Date().toISOString(),
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Mock factories
-// ---------------------------------------------------------------------------
-
-function createMockRepos(overrides: Partial<SkillShareerRepos> = {}): SkillShareerRepos {
-  return {
-    knowledge: {
-      listByFilter: vi.fn().mockResolvedValue([]),
-    },
-    artifact: {
-      listByFilter: vi.fn().mockResolvedValue([]),
-    },
-    session: {} as never,
-    accessKey: {} as never,
-    team: {} as never,
-    membership: {} as never,
-    user: {} as never,
-    candidate: {} as never,
-    conflict: {
-      listAll: vi.fn().mockResolvedValue([]),
-    } as never,
-    usageAnalytics: {} as never,
-    feedback: {
-      listByFilter: vi.fn().mockResolvedValue([]),
-    } as never,
-    audit: {} as never,
-    duplicate: {} as never,
-    lineage: {} as never,
-    graphIndex: {} as never,
-    ...overrides,
-  } as SkillShareerRepos;
-}
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -183,10 +33,13 @@ describe('buildRetrievalReadModel', () => {
   });
 
   it('returns knowledge entries from the knowledge repository', async () => {
-    const entries = [makeKnowledgeRecord('k_1'), makeKnowledgeRecord('k_2')];
-    const repos = createMockRepos({
+    const entries = [
+      createRetrievalKnowledgeFixture('k_1'),
+      createRetrievalKnowledgeFixture('k_2'),
+    ];
+    const repos = createRetrievalMockRepos({
       knowledge: { listByFilter: vi.fn().mockResolvedValue(entries) },
-    } as never);
+    }) as unknown as SkillShareerRepos;
 
     const result = await buildRetrievalReadModel(repos);
 
@@ -195,10 +48,10 @@ describe('buildRetrievalReadModel', () => {
   });
 
   it('returns skill artifacts from the artifact repository', async () => {
-    const artifacts = [makeArtifactRecord('a_1')];
-    const repos = createMockRepos({
+    const artifacts = [createRetrievalArtifactFixture('a_1')];
+    const repos = createRetrievalMockRepos({
       artifact: { listByFilter: vi.fn().mockResolvedValue(artifacts) },
-    } as never);
+    }) as unknown as SkillShareerRepos;
 
     const result = await buildRetrievalReadModel(repos);
 
@@ -207,15 +60,17 @@ describe('buildRetrievalReadModel', () => {
   });
 
   it('prefers listForRetrieval when the artifact repository provides hydrated reads', async () => {
-    const hydratedArtifacts = [makeArtifactRecord('a_hydrated')];
+    const hydratedArtifacts = [createRetrievalArtifactFixture('a_hydrated')];
     const listForRetrieval = vi.fn().mockResolvedValue(hydratedArtifacts);
-    const listByFilter = vi.fn().mockResolvedValue([makeArtifactRecord('a_lightweight')]);
-    const repos = createMockRepos({
+    const listByFilter = vi
+      .fn()
+      .mockResolvedValue([createRetrievalArtifactFixture('a_lightweight')]);
+    const repos = createRetrievalMockRepos({
       artifact: {
         listByFilter,
         listForRetrieval,
       },
-    } as never);
+    }) as unknown as SkillShareerRepos;
 
     const result = await buildRetrievalReadModel(repos);
 
@@ -225,7 +80,7 @@ describe('buildRetrievalReadModel', () => {
   });
 
   it('normalizes public artifact projections into hydrated retrieval records', async () => {
-    const internalArtifact = makeArtifactRecord('a_public');
+    const internalArtifact = createRetrievalArtifactFixture('a_public');
     const revision = internalArtifact.latestRevision;
     const publicArtifact = {
       id: internalArtifact.id,
@@ -255,12 +110,12 @@ describe('buildRetrievalReadModel', () => {
       createdAt: internalArtifact.createdAt,
       updatedAt: internalArtifact.createdAt,
     } as unknown as SkillArtifact;
-    const repos = createMockRepos({
+    const repos = createRetrievalMockRepos({
       artifact: {
         listByFilter: vi.fn().mockResolvedValue([]),
         listForRetrieval: vi.fn().mockResolvedValue([publicArtifact]),
       },
-    } as never);
+    }) as unknown as SkillShareerRepos;
 
     const result = await buildRetrievalReadModel(repos);
 
@@ -269,10 +124,13 @@ describe('buildRetrievalReadModel', () => {
   });
 
   it('returns conflicts from the conflict repository', async () => {
-    const conflicts = [makeConflict('c_1', 'k_1', 'k_2'), makeConflict('c_2', 'k_3', 'k_4')];
-    const repos = createMockRepos({
+    const conflicts = [
+      createRetrievalConflictFixture('c_1', 'k_1', 'k_2'),
+      createRetrievalConflictFixture('c_2', 'k_3', 'k_4'),
+    ];
+    const repos = createRetrievalMockRepos({
       conflict: { listAll: vi.fn().mockResolvedValue(conflicts) },
-    } as never);
+    }) as unknown as SkillShareerRepos;
 
     const result = await buildRetrievalReadModel(repos);
 
@@ -280,15 +138,15 @@ describe('buildRetrievalReadModel', () => {
   });
 
   it('assembles all three data shapes together', async () => {
-    const entries = [makeKnowledgeRecord('k_1')];
-    const artifacts = [makeArtifactRecord('a_1')];
-    const conflicts = [makeConflict('c_1', 'k_1', 'k_2')];
+    const entries = [createRetrievalKnowledgeFixture('k_1')];
+    const artifacts = [createRetrievalArtifactFixture('a_1')];
+    const conflicts = [createRetrievalConflictFixture('c_1', 'k_1', 'k_2')];
 
-    const repos = createMockRepos({
+    const repos = createRetrievalMockRepos({
       knowledge: { listByFilter: vi.fn().mockResolvedValue(entries) },
       artifact: { listByFilter: vi.fn().mockResolvedValue(artifacts) },
       conflict: { listAll: vi.fn().mockResolvedValue(conflicts) },
-    } as never);
+    }) as unknown as SkillShareerRepos;
 
     const result = await buildRetrievalReadModel(repos);
 
@@ -300,7 +158,7 @@ describe('buildRetrievalReadModel', () => {
   it('reads knowledge and artifacts in parallel (Promise.all)', async () => {
     const callOrder: string[] = [];
 
-    const repos = createMockRepos({
+    const repos = createRetrievalMockRepos({
       knowledge: {
         listByFilter: vi.fn().mockImplementation(async () => {
           callOrder.push('knowledge:start');
@@ -317,7 +175,7 @@ describe('buildRetrievalReadModel', () => {
           return [];
         }),
       },
-    } as never);
+    }) as unknown as SkillShareerRepos;
     await buildRetrievalReadModel(repos);
 
     // Both calls should start before either finishes (parallel execution).
@@ -330,7 +188,7 @@ describe('buildRetrievalReadModel', () => {
   it('includes feedback and conflict repositories in the parallel read', async () => {
     const callOrder: string[] = [];
 
-    const repos = createMockRepos({
+    const repos = createRetrievalMockRepos({
       knowledge: {
         listByFilter: vi.fn().mockImplementation(async () => {
           callOrder.push('knowledge');
@@ -355,7 +213,7 @@ describe('buildRetrievalReadModel', () => {
           return [] as ConflictRelation[];
         }),
       } as never,
-    } as never);
+    }) as unknown as SkillShareerRepos;
 
     await buildRetrievalReadModel(repos);
 
@@ -366,7 +224,7 @@ describe('buildRetrievalReadModel', () => {
   });
 
   it('returns empty arrays when repositories return empty results', async () => {
-    const repos = createMockRepos();
+    const repos = createRetrievalMockRepos() as unknown as SkillShareerRepos;
 
     const result = await buildRetrievalReadModel(repos);
 

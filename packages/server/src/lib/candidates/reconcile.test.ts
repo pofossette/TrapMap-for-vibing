@@ -11,10 +11,11 @@
 
 import type { CandidateSubmission, ManualResultSubmission } from '@trapmap/contracts';
 import type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
-import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
+import type { StoreData } from '@trapmap/server/lib/store.js';
 import { JsonStore, type SkillShareerStore, nowIso } from '@trapmap/server/lib/store.js';
 import type { EntityLineageRecord } from '@trapmap/server/lib/store.js';
 import { describe, expect, it } from 'vitest';
+import { createDetectorSkill, createDetectorTrap } from './detector.test-helpers.js';
 import {
   REVALIDATION_ERRORS,
   getLineageByCandidate,
@@ -26,6 +27,9 @@ import {
   recordMergeLineage,
   revalidateManualResult,
 } from './reconcile.js';
+
+const createTestTrap = createDetectorTrap;
+const createTestSkill = createDetectorSkill;
 
 // Helper to create minimal candidate
 function createTestCandidate(overrides: Partial<CandidateSubmission> = {}): CandidateSubmission {
@@ -57,94 +61,6 @@ function createTestCandidate(overrides: Partial<CandidateSubmission> = {}): Cand
       submittedAt: nowIso(),
       submittedBy: 'user_1',
     },
-    ...overrides,
-  };
-}
-
-// Helper to create minimal knowledge entry (trap)
-function createTestTrap(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord {
-  return {
-    id: 'trap_1',
-    teamId: null,
-    scope: 'global',
-    labels: ['test'],
-    shortcut: 'Test trap',
-    detail: 'Test detail',
-    requiredLevel: 0,
-    lifecycleState: 'approved',
-    ownerUserId: 'user_1',
-    latestRevision: {
-      revision: 1,
-      submittedAt: nowIso(),
-      submittedByUserId: 'user_1',
-      shortcut: 'Test trap',
-      detail: 'Test detail',
-      labels: ['test'],
-      reviewNotes: [],
-    },
-    history: [],
-    metadata: {
-      scopeLabel: 'global-constraint',
-      submissionCount: 1,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: null,
-      latestSubmittedAt: null,
-      latestReviewedAt: null,
-      latestDecision: null,
-    },
-    latestSubmissionId: null,
-    submissionHistory: [],
-    agentReview: null,
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    embeddingCache: null,
-    indexState: null,
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-    ...overrides,
-  };
-}
-
-// Helper to create minimal skill artifact
-function createTestSkill(overrides: Partial<SkillArtifactRecord> = {}): SkillArtifactRecord {
-  return {
-    id: 'skill_1',
-    teamId: null,
-    scope: 'global',
-    labels: ['test'],
-    title: 'Test Skill',
-    slug: 'test-skill',
-    requiredLevel: 0,
-    lifecycleState: 'approved',
-    ownerUserId: 'user_1',
-    latestRevision: {
-      revision: 1,
-      sourceHash: 'hash',
-      files: [],
-      submittedAt: nowIso(),
-      submittedByUserId: 'user_1',
-      scriptDescriptors: [],
-      derived: null,
-    },
-    history: [],
-    metadata: {
-      sourceKind: 'skill-directory',
-      submissionCount: 1,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: null,
-      latestSubmittedAt: null,
-      latestReviewedAt: null,
-      latestDecision: null,
-    },
-    agentReview: null,
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
     ...overrides,
   };
 }

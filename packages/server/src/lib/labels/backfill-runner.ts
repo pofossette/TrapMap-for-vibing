@@ -8,14 +8,17 @@
  * Requires DATABASE_URL environment variable.
  */
 
-import { Pool } from 'pg';
-
 import { createAiProviders, loadAiProviderConfig } from '@trapmap/server/lib/ai/index.js';
 import { createGraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 
 import { backfillLabels } from './backfill.js';
 import { createLabelReadProjection } from './repository.js';
+import {
+  logLabelRunnerCompletion,
+  runLabelRunnerMain,
+  withLabelRunnerPool,
+} from './runner-helpers.js';
 
 interface RawLabelSource {
   label: string;
@@ -82,15 +85,7 @@ export async function loadRawLabelSources(
 export async function main() {
   const dryRun = process.argv.includes('--dry-run');
 
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    console.error('Error: DATABASE_URL environment variable is required');
-    process.exit(1);
-  }
-
-  const pool = new Pool({ connectionString: databaseUrl });
-
-  try {
+  await withLabelRunnerPool(async (pool) => {
     const repository = createLabelReadProjection({ pool });
     const rawLabelSources = await loadRawLabelSources(pool);
     const ai = createAiProviders(loadAiProviderConfig());
@@ -114,19 +109,8 @@ export async function main() {
     console.log(`Matched existing: ${report.matchedExisting}`);
     console.log(`Unsure: ${report.unsure}`);
     console.log(`Skipped: ${report.skipped}`);
-    if (report.warnings.length > 0) {
-      console.log(`Warnings: ${report.warnings.join(', ')}`);
-    }
-
-    console.log('\nDone.');
-  } finally {
-    await pool.end();
-  }
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((err) => {
-    console.error('Backfill failed:', err);
-    process.exit(1);
+    logLabelRunnerCompletion(report.warnings);
   });
 }
+
+runLabelRunnerMain(import.meta.url, process.argv[1], main, 'Backfill');

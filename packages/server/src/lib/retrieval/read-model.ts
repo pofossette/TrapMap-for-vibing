@@ -8,7 +8,12 @@
  * Phase 4.1: Introduce a repository-backed retrieval read model.
  */
 
-import type { ConflictRelation, SkillArtifact } from '@trapmap/contracts';
+import {
+  buildCachedRetrievalReadModelFromRepositories,
+  type ConflictRelation,
+  type RetrievalReadProjection,
+  type SkillArtifact,
+} from '@trapmap/contracts';
 import {
   getCachedRetrievalReadModel,
   setCachedRetrievalReadModel,
@@ -126,55 +131,23 @@ function normalizeArtifactForRetrieval(
   };
 }
 
-/**
- * Assembled read model for retrieval flows.
- * Provides the three data shapes that retrieval consumers need:
- * knowledge entries, skill artifacts, and conflict relations.
- */
-export interface RetrievalReadModel {
-  knowledgeEntries: KnowledgeRecord[];
-  skillArtifacts: SkillArtifactRecord[];
-  conflicts: ConflictRelation[];
-}
+export type RetrievalReadModel = RetrievalReadProjection<
+  KnowledgeRecord,
+  SkillArtifactRecord,
+  ConflictRelation
+>;
 
-/**
- * Build a retrieval read model from repositories.
- *
- * Knowledge, artifact, feedback, and conflict data are read from their
- * dedicated repository seams in parallel.
- *
- * @param repos - Unified repository object
- * @returns Assembled read model with all retrieval-relevant data
- */
 export async function buildRetrievalReadModel(
   repos: SkillShareerRepos,
 ): Promise<RetrievalReadModel> {
-  const cached = getCachedRetrievalReadModel();
-  if (cached) {
-    return cached;
-  }
-
-  const artifactLister =
-    typeof repos.artifact.listForRetrieval === 'function'
-      ? repos.artifact.listForRetrieval.bind(repos.artifact)
-      : repos.artifact.listByFilter.bind(repos.artifact);
-
-  const [knowledgeEntries, skillArtifacts, feedbackQueue, conflicts] = await Promise.all([
-    repos.knowledge.listByFilter({}),
-    artifactLister({}),
-    repos.feedback.listByFilter({}),
-    repos.conflict.listAll(),
-  ]);
-
-  const model = {
-    knowledgeEntries: attachRemediationToKnowledgeEntries(knowledgeEntries, feedbackQueue),
-    skillArtifacts: attachRemediationToArtifacts(
-      skillArtifacts.map(normalizeArtifactForRetrieval),
-      feedbackQueue,
-    ),
-    conflicts,
-  };
-
-  setCachedRetrievalReadModel(model);
-  return model;
+  return buildCachedRetrievalReadModelFromRepositories(
+    {
+      get: getCachedRetrievalReadModel,
+      set: setCachedRetrievalReadModel,
+    },
+    repos,
+    normalizeArtifactForRetrieval,
+    attachRemediationToKnowledgeEntries,
+    attachRemediationToArtifacts,
+  );
 }

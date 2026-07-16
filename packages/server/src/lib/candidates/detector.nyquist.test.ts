@@ -11,111 +11,23 @@
  * - similarityScore has 3-decimal precision
  */
 
-import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
-import { nowIso } from '@trapmap/server/lib/store.js';
 import { describe, expect, it } from 'vitest';
+
+import { nowIso } from '@trapmap/server/lib/store.js';
+import {
+  createDetectorInput,
+  createDetectorSkill,
+  createDetectorTrap,
+} from './detector.test-helpers.js';
 import { detectDuplicates, getDetectionVersion } from './detector.js';
 import { tokenize } from './fingerprint.js';
-import type { DuplicateDetectionInput } from './types.js';
 
-function makeTrap(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord {
-  return {
-    id: 'trap_nyq',
-    teamId: null,
-    scope: 'global',
-    labels: ['test'],
-    shortcut: 'Test trap',
-    detail: 'Test detail',
-    requiredLevel: 0,
-    lifecycleState: 'approved',
-    ownerUserId: 'user_1',
-    latestRevision: {
-      revision: 1,
-      submittedAt: nowIso(),
-      submittedByUserId: 'user_1',
-      shortcut: 'Test trap',
-      detail: 'Test detail',
-      labels: ['test'],
-      reviewNotes: [],
-    },
-    history: [],
-    metadata: {
-      scopeLabel: 'global-constraint',
-      submissionCount: 1,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: null,
-      latestSubmittedAt: null,
-      latestReviewedAt: null,
-      latestDecision: null,
-    },
-    latestSubmissionId: null,
-    submissionHistory: [],
-    agentReview: null,
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    embeddingCache: null,
-    indexState: null,
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-    ...overrides,
-  };
-}
-
-function makeSkill(overrides: Partial<SkillArtifactRecord> = {}): SkillArtifactRecord {
-  return {
-    id: 'skill_nyq',
-    teamId: null,
-    scope: 'global',
-    labels: ['test'],
-    title: 'Test Skill',
-    slug: 'test-skill',
-    requiredLevel: 0,
-    lifecycleState: 'approved',
-    ownerUserId: 'user_1',
-    latestRevision: {
-      revision: 1,
-      sourceHash: 'hash',
-      files: [],
-      submittedAt: nowIso(),
-      submittedByUserId: 'user_1',
-      scriptDescriptors: [],
-      derived: null,
-    },
-    history: [],
-    metadata: {
-      sourceKind: 'skill-directory',
-      submissionCount: 1,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: null,
-      latestSubmittedAt: null,
-      latestReviewedAt: null,
-      latestDecision: null,
-    },
-    agentReview: null,
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-    ...overrides,
-  };
-}
-
-function makeInput(overrides: Partial<DuplicateDetectionInput> = {}): DuplicateDetectionInput {
-  return {
-    candidateId: 'cand_nyq',
-    candidateFingerprint: 'fp_nyq',
-    candidateKeywords: ['test'],
-    candidateTokens: ['test'],
-    trapEntries: [],
-    skillArtifacts: [],
-    threshold: 0.3,
-    ...overrides,
-  };
-}
+const makeTrap = (overrides: Parameters<typeof createDetectorTrap>[0] = {}) =>
+  createDetectorTrap(overrides, 'trap_nyq');
+const makeSkill = (overrides: Parameters<typeof createDetectorSkill>[0] = {}) =>
+  createDetectorSkill(overrides, 'skill_nyq');
+const makeInput = (overrides: Parameters<typeof createDetectorInput>[0] = {}) =>
+  createDetectorInput({ candidateFingerprint: 'fp_nyq', ...overrides }, 'cand_nyq');
 
 describe('Nyquist: detectDuplicates returns null for empty corpus', () => {
   it('returns null duplicateCase when no trapEntries and no skillArtifacts', async () => {

@@ -5,7 +5,7 @@
  * pre-built datasets for testing graph-skill orchestration at realistic scale.
  */
 
-import type { Scope } from '@trapmap/contracts';
+import { createRetrievalKnowledgeFixture, type Scope } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type {
@@ -207,51 +207,14 @@ export function makeKnowledgeEntry(
   options: { requiredLevel?: number; scope?: Scope; teamId?: string | null } = {},
 ): KnowledgeRecord {
   const { requiredLevel = 0, scope = 'global', teamId = null } = options;
-  return {
-    id,
+  return createRetrievalKnowledgeFixture(id, {
+    now: '2026-01-01T00:00:00Z',
     teamId,
     scope,
-    labels: ['test'],
     shortcut: `Shortcut for ${id}`,
     detail: `Detail for ${id}`,
     requiredLevel,
-    lifecycleState: 'approved',
-    ownerUserId: 'user_1',
-    latestRevision: {
-      revision: 1,
-      submittedAt: '2026-01-01T00:00:00Z',
-      submittedByUserId: 'user_1',
-      shortcut: `Shortcut for ${id}`,
-      detail: `Detail for ${id}`,
-      labels: ['test'],
-      reviewNotes: [],
-    },
-    history: [],
-    metadata: {
-      scopeLabel: 'global-constraint',
-      submissionCount: 1,
-      resubmissionCount: 0,
-      revisionCount: 1,
-      latestSubmissionId: null,
-      latestSubmittedAt: null,
-      latestReviewedAt: null,
-      latestDecision: null,
-    },
-    latestSubmissionId: null,
-    submissionHistory: [],
-    agentReview: null,
-    reviewHistory: [],
-    reviewNotes: [],
-    lifecycleHistory: [],
-    embeddingCache: null,
-    indexState: null,
-    boundary: null,
-    decayMeta: null,
-    evidenceMeta: null,
-    maintenanceMeta: null,
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-  };
+  });
 }
 
 export function makeSkillArtifact(
@@ -543,6 +506,34 @@ export interface DeployClusterDataset {
   graphDocs: GraphIndexDocumentRecord[];
 }
 
+function buildGraphDocsForNodes(
+  sourceNodes: GraphNodeRecord[],
+  sourceType: 'trap' | 'skill',
+  allNodes: GraphNodeRecord[],
+  edges: GraphEdgeRecord[],
+  governanceLevels: number[],
+): GraphIndexDocumentRecord[] {
+  return sourceNodes.map((sourceNode, index) => {
+    const relatedEdges = edges.filter(
+      (edge) => edge.sourceNodeId === sourceNode.id || edge.targetNodeId === sourceNode.id,
+    );
+    const relatedNodeIds = new Set([
+      sourceNode.id,
+      ...relatedEdges.flatMap((edge) => [edge.sourceNodeId, edge.targetNodeId]),
+    ]);
+    const nodesInDoc = allNodes.filter((node) => relatedNodeIds.has(node.id));
+
+    return makeGraphDoc(
+      sourceNode.id.replace(`${sourceType}:`, ''),
+      sourceType,
+      nodesInDoc,
+      relatedEdges,
+      'global',
+      governanceLevels[index % governanceLevels.length] ?? 0,
+    );
+  });
+}
+
 /**
  * Build a realistic "Deploy Cluster" dataset with 25+ nodes and 35+ edges.
  * Covers 8 traps, 10 skills, 4 cues, 3 prerequisites.
@@ -679,59 +670,10 @@ export function buildDeployClusterDataset(): DeployClusterDataset {
   });
 
   // -- Graph documents: one per trap, one per skill --
-  const graphDocs: GraphIndexDocumentRecord[] = [];
-
-  for (let i = 0; i < trapNodes.length; i++) {
-    const trapNode = trapNodes[i]!;
-    const rawId = trapNode.id.replace('trap:', '');
-    const relatedEdges = edges.filter(
-      (e) => e.sourceNodeId === trapNode.id || e.targetNodeId === trapNode.id,
-    );
-    const relatedNodeIds = new Set<string>();
-    for (const e of relatedEdges) {
-      relatedNodeIds.add(e.sourceNodeId);
-      relatedNodeIds.add(e.targetNodeId);
-    }
-    relatedNodeIds.add(trapNode.id);
-    const nodesInDoc = allNodes.filter((n) => relatedNodeIds.has(n.id));
-
-    graphDocs.push(
-      makeGraphDoc(
-        rawId,
-        'trap',
-        nodesInDoc,
-        relatedEdges,
-        'global',
-        governanceLevels[i % governanceLevels.length] ?? 0,
-      ),
-    );
-  }
-
-  for (let i = 0; i < skillNodes.length; i++) {
-    const skillNode = skillNodes[i]!;
-    const rawId = skillNode.id.replace('skill:', '');
-    const relatedEdges = edges.filter(
-      (e) => e.sourceNodeId === skillNode.id || e.targetNodeId === skillNode.id,
-    );
-    const relatedNodeIds = new Set<string>();
-    for (const e of relatedEdges) {
-      relatedNodeIds.add(e.sourceNodeId);
-      relatedNodeIds.add(e.targetNodeId);
-    }
-    relatedNodeIds.add(skillNode.id);
-    const nodesInDoc = allNodes.filter((n) => relatedNodeIds.has(n.id));
-
-    graphDocs.push(
-      makeGraphDoc(
-        rawId,
-        'skill',
-        nodesInDoc,
-        relatedEdges,
-        'global',
-        governanceLevels[i % governanceLevels.length] ?? 0,
-      ),
-    );
-  }
+  const graphDocs = [
+    ...buildGraphDocsForNodes(trapNodes, 'trap', allNodes, edges, governanceLevels),
+    ...buildGraphDocsForNodes(skillNodes, 'skill', allNodes, edges, governanceLevels),
+  ];
 
   return {
     trapNodes,
