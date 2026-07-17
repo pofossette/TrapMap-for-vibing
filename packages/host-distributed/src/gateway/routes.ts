@@ -175,6 +175,31 @@ async function forwardTrustedEntryMutation(
   }
 }
 
+async function forwardTrustedCandidateMutation(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  requiredFields: string[],
+  invoke: (
+    candidateId: string,
+    trusted: { actorId: string; body: Record<string, unknown> },
+    options: { headers?: Record<string, string> },
+  ) => Promise<{ status: number; body: unknown }>,
+  logLabel: string,
+) {
+  const params = request.params as { candidateId: string };
+  const trusted = readTrustedBody<Record<string, unknown>>(request, reply, requiredFields);
+  if (!trusted) return;
+  try {
+    return forwardResponse(
+      reply,
+      await invoke(params.candidateId, trusted, trustedActorOptions(request)),
+    );
+  } catch (err: unknown) {
+    request.log.error({ err }, `${logLabel} failed`);
+    return reply.status(502).send({ error: 'Candidate service unavailable', kind: 'upstream' });
+  }
+}
+
 type ReviewDecisionBody = {
   entryId: string;
   decision: 'approve' | 'reject';
@@ -795,54 +820,34 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     }
   });
 
-  app.post(
-    '/v1/candidates/:candidateId/resolution',
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const params = request.params as { candidateId: string };
-      const validationError = validateBody(request.body, ['resolution', 'actorId']);
-      if (validationError) {
-        return reply.status(400).send(validationError);
-      }
-      const trusted = resolveTrustedActor(request);
-      if (isTrustedActorFailure(trusted)) return sendTrustedActorFailure(reply, trusted);
-      const body = trusted.body as { resolution: Record<string, unknown> };
-      try {
-        const result = await clients.candidateIngestion.applyResolution(
-          params.candidateId,
-          { ...body, actorId: trusted.actorId },
-          trustedActorOptions(request),
-        );
-        return forwardResponse(reply, result);
-      } catch (err: unknown) {
-        request.log.error({ err }, 'candidate-ingestion applyResolution failed');
-        return reply.status(502).send({ error: 'Candidate service unavailable', kind: 'upstream' });
-      }
-    },
+  app.post('/v1/candidates/:candidateId/resolution', (request, reply) =>
+    forwardTrustedCandidateMutation(
+      request,
+      reply,
+      ['resolution', 'actorId'],
+      (candidateId, trusted, options) =>
+        clients.candidateIngestion.applyResolution(
+          candidateId,
+          { ...trusted.body, actorId: trusted.actorId },
+          options,
+        ),
+      'candidate-ingestion applyResolution',
+    ),
   );
 
-  app.post(
-    '/v1/candidates/:candidateId/manual-result',
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const params = request.params as { candidateId: string };
-      const validationError = validateBody(request.body, ['result', 'actorId']);
-      if (validationError) {
-        return reply.status(400).send(validationError);
-      }
-      const trusted = resolveTrustedActor(request);
-      if (isTrustedActorFailure(trusted)) return sendTrustedActorFailure(reply, trusted);
-      const body = trusted.body as { result: Record<string, unknown> };
-      try {
-        const result = await clients.candidateIngestion.submitManualResult(
-          params.candidateId,
-          { ...body, actorId: trusted.actorId },
-          trustedActorOptions(request),
-        );
-        return forwardResponse(reply, result);
-      } catch (err: unknown) {
-        request.log.error({ err }, 'candidate-ingestion submitManualResult failed');
-        return reply.status(502).send({ error: 'Candidate service unavailable', kind: 'upstream' });
-      }
-    },
+  app.post('/v1/candidates/:candidateId/manual-result', (request, reply) =>
+    forwardTrustedCandidateMutation(
+      request,
+      reply,
+      ['result', 'actorId'],
+      (candidateId, trusted, options) =>
+        clients.candidateIngestion.submitManualResult(
+          candidateId,
+          { ...trusted.body, actorId: trusted.actorId },
+          options,
+        ),
+      'candidate-ingestion submitManualResult',
+    ),
   );
 
   // ---- Governance routes (governance-review) ----

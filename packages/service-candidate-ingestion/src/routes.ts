@@ -1,31 +1,10 @@
 import type { CandidateIngestionPort } from '@trapmap/backend-core';
-import { InvocationError } from '@trapmap/backend-core';
+import { InvocationError, toInvocationErrorResponse } from '@trapmap/backend-core';
 import type { CandidateStatus } from '@trapmap/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-function translateInvocationError(error: unknown): {
-  status: number;
-  body: { error: string; kind: string };
-} {
-  if (error instanceof InvocationError) {
-    const statusMap: Record<string, number> = {
-      validation: 400,
-      'not-found': 404,
-      conflict: 409,
-      forbidden: 403,
-      timeout: 504,
-      unavailable: 503,
-      internal: 500,
-    };
-    return {
-      status: statusMap[error.kind] ?? 500,
-      body: { error: error.message, kind: error.kind },
-    };
-  }
-  return {
-    status: 500,
-    body: { error: 'Internal server error', kind: 'internal' },
-  };
+function translateInvocationError(error: unknown) {
+  return toInvocationErrorResponse(error);
 }
 
 function trustedActor(
@@ -49,90 +28,86 @@ export function registerCandidateIngestionRoutes(
   app: FastifyInstance,
   module: CandidateIngestionPort,
 ): void {
-  app.post('/internal/candidates', async (req: FastifyRequest, reply: FastifyReply) => {
+  const invoke = async <T>(reply: FastifyReply, operation: () => Promise<T>, status = 200) => {
     try {
-      const body = req.body as Parameters<CandidateIngestionPort['submit']>[0];
-      const result = await module.submit(body);
-      return reply.status(201).send(result);
+      return reply.status(status).send(await operation());
     } catch (err) {
-      const { status, body } = translateInvocationError(err);
-      return reply.status(status).send(body);
+      const response = translateInvocationError(err);
+      return reply.status(response.status).send(response.body);
     }
+  };
+  const invokeTrusted = async <T>(
+    req: FastifyRequest,
+    reply: FastifyReply,
+    body: { actorId?: unknown },
+    operation: (actorId: string) => Promise<T>,
+  ) => {
+    const actor = trustedActor(req, body);
+    if ('status' in actor) return reply.status(actor.status).send(actor.body);
+    return invoke(reply, () => operation(actor.actorId));
+  };
+  const registerTrustedMutation = (
+    path: string,
+    field: 'resolution' | 'result',
+    operation: (
+      candidateId: string,
+      value: Record<string, unknown>,
+      actorId: string,
+    ) => Promise<unknown>,
+  ) => {
+    app.post(path, async (req: FastifyRequest, reply: FastifyReply) => {
+      const { candidateId } = req.params as { candidateId: string };
+      const body = req.body as {
+        actorId?: unknown;
+        resolution?: Record<string, unknown>;
+        result?: Record<string, unknown>;
+      };
+      return invokeTrusted(req, reply, body, (actorId) =>
+        operation(candidateId, body[field]!, actorId),
+      );
+    });
+  };
+
+  app.post('/internal/candidates', async (req: FastifyRequest, reply: FastifyReply) => {
+    const body = req.body as Parameters<CandidateIngestionPort['submit']>[0];
+    return invoke(reply, () => module.submit(body), 201);
   });
 
   app.get('/internal/candidates/:candidateId', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const { candidateId } = req.params as { candidateId: string };
+    const { candidateId } = req.params as { candidateId: string };
+    return invoke(reply, async () => {
       const result = await module.getById(candidateId);
-      if (!result) {
-        return reply.status(404).send({ error: 'Candidate not found', kind: 'not-found' });
-      }
-      return reply.status(200).send(result);
-    } catch (err) {
-      const { status, body } = translateInvocationError(err);
-      return reply.status(status).send(body);
-    }
+      if (!result) throw InvocationError.notFound('Candidate not found');
+      return result;
+    });
   });
 
   app.get('/internal/candidates', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const { status } = req.query as { status?: string };
-      const result = await module.listByStatus((status ?? 'received') as CandidateStatus);
-      return reply.status(200).send(result);
-    } catch (err) {
-      const { status, body } = translateInvocationError(err);
-      return reply.status(status).send(body);
-    }
+    const { status } = req.query as { status?: string };
+    return invoke(reply, () => module.listByStatus((status ?? 'received') as CandidateStatus));
   });
 
-  app.post(
+  registerTrustedMutation(
     '/internal/candidates/:candidateId/resolution',
-    async (req: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const { candidateId } = req.params as { candidateId: string };
-        const body = req.body as { resolution: Record<string, unknown>; actorId?: unknown };
-        const actor = trustedActor(req, body);
-        if ('status' in actor) return reply.status(actor.status).send(actor.body);
-        await module.applyResolution(candidateId, body.resolution, actor.actorId);
-        return reply.status(200).send({ ok: true });
-      } catch (err) {
-        const { status, body } = translateInvocationError(err);
-        return reply.status(status).send(body);
-      }
-    },
+    'resolution',
+    (candidateId, value, actorId) =>
+      module.applyResolution(candidateId, value, actorId).then(() => ({ ok: true })),
   );
-
-  app.post(
+  registerTrustedMutation(
     '/internal/candidates/:candidateId/manual-result',
-    async (req: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const { candidateId } = req.params as { candidateId: string };
-        const body = req.body as { result: Record<string, unknown>; actorId?: unknown };
-        const actor = trustedActor(req, body);
-        if ('status' in actor) return reply.status(actor.status).send(actor.body);
-        await module.submitManualResult(candidateId, body.result, actor.actorId);
-        return reply.status(200).send({ ok: true });
-      } catch (err) {
-        const { status, body } = translateInvocationError(err);
-        return reply.status(status).send(body);
-      }
-    },
+    'result',
+    (candidateId, value, actorId) =>
+      module.submitManualResult(candidateId, value, actorId).then(() => ({ ok: true })),
   );
 
   app.post(
     '/internal/candidates/:candidateId/publish',
     async (req: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const { candidateId } = req.params as { candidateId: string };
-        const body = req.body as { result: Record<string, unknown>; actorId?: unknown };
-        const actor = trustedActor(req, body);
-        if ('status' in actor) return reply.status(actor.status).send(actor.body);
-        const result = await module.publishCandidateResult(candidateId, body.result, actor.actorId);
-        return reply.status(200).send(result);
-      } catch (err) {
-        const { status, body } = translateInvocationError(err);
-        return reply.status(status).send(body);
-      }
+      const { candidateId } = req.params as { candidateId: string };
+      const body = req.body as { result: Record<string, unknown>; actorId?: unknown };
+      return invokeTrusted(req, reply, body, (actorId) =>
+        module.publishCandidateResult(candidateId, body.result, actorId),
+      );
     },
   );
 
