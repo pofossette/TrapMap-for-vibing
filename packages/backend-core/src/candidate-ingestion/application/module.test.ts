@@ -28,6 +28,26 @@ function createDeps(overrides: Partial<CandidateIngestionDeps> = {}): CandidateI
 }
 
 describe('createCandidateIngestionModule', () => {
+  it('schedules candidate processing with the canonical task contract', async () => {
+    const jobRuntime = { schedule: vi.fn() };
+    const deps = createDeps({ jobRuntime });
+    const module = createCandidateIngestionModule(deps);
+
+    await module.submit({
+      id: 'candidate-1',
+      sourceType: 'trap',
+      submittedBy: 'user-1',
+      teamId: 'team-1',
+      originalPayload: { trap: { shortcut: 'shortcut', detail: 'detail', labels: [] } },
+      receivedAt: '2026-07-17T00:00:00.000Z',
+    });
+
+    expect(jobRuntime.schedule).toHaveBeenCalledWith('candidate_processing', {
+      candidateId: 'candidate-1',
+      retryCount: 0,
+    });
+  });
+
   it('routes applyResolution through candidate-ingestion and knowledge-write ownership', async () => {
     const deps = createDeps();
     vi.mocked(deps.candidateRepo.getById).mockResolvedValue({

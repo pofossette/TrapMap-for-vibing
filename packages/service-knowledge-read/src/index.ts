@@ -65,3 +65,4 @@ export { buildCitations } from './response-citations.js';
 export { generateRefinement, isRefinementAvailable } from './response-refinement.js';
 export { buildSummary } from './response-summary.js';
 export { searchKnowledge, updateEntryEmbeddingCache } from './search-knowledge.js';
+export { createCandidateCorpusPgReadPort } from './candidate-corpus-pg.js';

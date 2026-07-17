@@ -115,8 +115,9 @@ export function createCandidateIngestionModule(
       });
 
       if (deps.jobRuntime) {
-        await deps.jobRuntime.schedule('candidate-processing', {
+        await deps.jobRuntime.schedule('candidate_processing', {
           candidateId: candidate.id,
+          retryCount: 0,
         });
       }
 

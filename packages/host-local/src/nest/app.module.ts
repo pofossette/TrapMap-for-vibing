@@ -14,6 +14,7 @@ import { createJobRuntimeModule, createKnowledgeWriteModule } from '@trapmap/bac
 import { HOST_LOCAL_CONFIG_TOKEN, loadHostLocalConfig } from './config/index.js';
 import { GatewayModule, GatewayRuntimeModule } from './gateway/gateway.module.js';
 import { CandidateIngestionModule } from './candidate-ingestion/candidate-ingestion.module.js';
+import { CandidateProcessingService } from './candidate-ingestion/candidate-processing.service.js';
 import { GovernanceReviewModule } from './governance-review/governance-review.module.js';
 import { IdentityAccessModule } from './identity-access/identity-access.module.js';
 import { JobRuntimeModule } from './job-runtime/job-runtime.module.js';
@@ -131,6 +132,7 @@ const candidateIngestionModule = CandidateIngestionModule.forDeps(
   ],
   providers: [
     RequestContextService,
+    CandidateProcessingService,
     {
       provide: HOST_LOCAL_RUNTIME_TOKEN,
       useValue: hostLocalRuntime,

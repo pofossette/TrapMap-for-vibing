@@ -10,6 +10,10 @@ import {
   createKnowledgeReadRetrievalQuery,
   type KnowledgeReadRetrievalQueryOptions,
 } from '@trapmap/service-knowledge-read';
+import {
+  createCandidateProcessingRuntime,
+  type CandidateProcessingRuntime,
+} from '@trapmap/service-candidate-ingestion';
 import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 
 import { loadHostLocalConfig } from '../config/index.js';
@@ -28,6 +32,7 @@ export interface HostLocalRuntime {
   permissionCheck: PermissionCheckPort;
   auditLog: AuditLogPort;
   queuePorts: QueuePorts;
+  processing: CandidateProcessingRuntime;
 }
 
 type HostLocalKnowledgeReadServices = KnowledgeReadRetrievalQueryOptions['services'];
@@ -58,6 +63,7 @@ export async function createHostLocalRuntime(): Promise<HostLocalRuntime> {
   const config = loadHostLocalConfig();
   const services = await createHostLocalServices(config);
   const identity = services.identity;
+  const queuePorts = createQueuePorts(services.asyncTransport);
   const runtime: HostLocalRuntime = {
     services,
     identity,
@@ -66,7 +72,14 @@ export async function createHostLocalRuntime(): Promise<HostLocalRuntime> {
     teamLookup: identity.teamLookup,
     permissionCheck: identity.permissionCheck,
     auditLog: identity.auditLog,
-    queuePorts: createQueuePorts(services.asyncTransport),
+    queuePorts,
+    processing: createCandidateProcessingRuntime({
+      candidateRepo: services.candidateIngestion.candidateRepo,
+      corpus: services.candidateCorpus,
+      now: () => new Date().toISOString(),
+      createId: crypto.randomUUID,
+      queue: queuePorts.task,
+    }),
   };
 
   return runtime;

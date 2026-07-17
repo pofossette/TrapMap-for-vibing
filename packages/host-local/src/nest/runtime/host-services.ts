@@ -1,10 +1,11 @@
 import type { ResolvedRuntimeDeployment } from '@trapmap/backend-core';
-import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
+import type { ArtifactReadProjection, CandidateCorpusReadPort, KnowledgeOwnerPort } from '@trapmap/contracts';
 import { createIdentityAccessPgDeps, type IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 import {
   createCandidateIngestionPgOwnerBundle,
   type CandidateIngestionPgOwnerBundle,
 } from '@trapmap/service-candidate-ingestion';
+import { createCandidateCorpusPgReadPort } from '@trapmap/service-knowledge-read';
 import {
   createKnowledgeWriteOwnerBundle,
   type ArtifactWritePort,
@@ -45,6 +46,7 @@ export interface HostLocalServices {
   ai: HostLocalAiProviders;
   identity: IdentityAccessPortDeps;
   candidateIngestion: CandidateIngestionPgOwnerBundle;
+  candidateCorpus: CandidateCorpusReadPort;
   knowledgeWrite: KnowledgeWriteOwnerBundle;
   knowledgeOwner: KnowledgeOwnerPort;
   artifactWriter: ArtifactWritePort;
@@ -67,6 +69,7 @@ export async function createHostLocalServices(
   }
   const identity = createIdentityAccessPgDeps(pool, { systemAdminKey: config.systemAdminKey });
   const candidateIngestion = createCandidateIngestionPgOwnerBundle(pool);
+  const candidateCorpus: CandidateCorpusReadPort = createCandidateCorpusPgReadPort(pool);
   const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
 
   const services: HostLocalServices = {
@@ -82,6 +85,7 @@ export async function createHostLocalServices(
     ai: infra.ai,
     identity,
     candidateIngestion,
+    candidateCorpus,
     knowledgeWrite,
     knowledgeOwner: knowledgeWrite.knowledgeOwner,
     artifactWriter: knowledgeWrite.artifactWriter,

@@ -21,6 +21,17 @@ export {
   type CandidateCorpusReadPort,
   type NormalizedDuplicateInput,
 } from './domain/index.js';
+export {
+  CANDIDATE_PROCESSING_TASK_TYPE,
+  createCandidateProcessingHandler,
+  createCandidateProcessingRuntime,
+  processCandidate,
+  recoverInterruptedCandidates,
+  type CandidateProcessingDeps,
+  type CandidateProcessingRuntime,
+  type CandidateProcessingRuntimeDeps,
+  type CandidateRecoveryDeps,
+} from './processing.js';
 export { registerCandidateIngestionRoutes } from './routes.js';
 export {
   createCandidateIngestionServer,
