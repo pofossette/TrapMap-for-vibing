@@ -88,7 +88,7 @@ function buildMatch(
 ): DuplicateMatch | null {
   const corpusTokens = tokens(corpusText);
   const score = exact ? 1 : similarity(candidate.tokens, corpusTokens);
-  if (!exact && score < 0.3) return null;
+  if (!exact && score < 0.38) return null;
   return {
     entityType,
     entityId,
@@ -143,7 +143,13 @@ export function createCandidateDuplicateDetector(
         ),
       ),
     ].filter((match): match is DuplicateMatch => match !== null);
-    matches.sort((left, right) => right.similarityScore - left.similarityScore);
+    matches.sort(
+      (left, right) =>
+        right.similarityScore - left.similarityScore ||
+        left.entityType.localeCompare(right.entityType) ||
+        left.entityId.localeCompare(right.entityId),
+    );
+    const hasExactMatch = matches.some((match) => match.matchType === 'exact');
     const duplicateCase =
       matches.length === 0
         ? null
@@ -155,9 +161,7 @@ export function createCandidateDuplicateDetector(
             matches,
             highestSimilarity: matches[0]?.similarityScore ?? 0,
             hasExactDuplicate: matches.some((match) => match.matchType === 'exact'),
-            duplicateType: matches.some((match) => match.matchType === 'exact')
-              ? 'exact'
-              : 'semantic',
+            duplicateType: hasExactMatch ? 'exact' : 'semantic',
           };
     return {
       analysisSnapshot: {
@@ -165,7 +169,10 @@ export function createCandidateDuplicateDetector(
         fingerprint: normalized.fingerprint,
         keywords: normalized.keywords,
         tokens: normalized.tokens,
-        duplicateTrace: { detector: 'postgresql', matchedLane: matches.length ? 'exact' : 'none' },
+        duplicateTrace: {
+          detector: 'postgresql',
+          matchedLane: hasExactMatch ? 'exact' : matches.length ? 'indexed-recall' : 'none',
+        },
       },
       duplicateCase,
     };

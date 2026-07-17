@@ -6,6 +6,34 @@ import {
   type CandidateCorpusReadPort,
 } from './index.js';
 import type { CandidateCorpusReadPort as ContractCandidateCorpusReadPort } from '@trapmap/contracts';
+import type { CandidateSubmission } from '@trapmap/contracts';
+
+function makeTrapCandidate(
+  id: string,
+  teamId: string | null,
+  shortcut: string,
+  detail: string,
+): CandidateSubmission {
+  return {
+    id,
+    sourceType: 'trap',
+    submittedBy: 'user-1',
+    teamId,
+    status: 'received',
+    originalPayload: {
+      trap: { scope: 'project', labels: ['performance'], shortcut, detail },
+    },
+    analysisSnapshot: null,
+    duplicateCase: null,
+    receivedAt: '2026-07-16T00:00:00.000Z',
+    queuedAt: null,
+    analyzingAt: null,
+    completedAt: null,
+    lastError: null,
+    retryCount: 0,
+    manualResult: null,
+  };
+}
 
 describe('candidate-ingestion fingerprint and duplicate domain', () => {
   it('uses the shared contracts corpus port for semantic and isolated matching', async () => {
@@ -65,6 +93,7 @@ describe('candidate-ingestion fingerprint and duplicate domain', () => {
         }),
       ],
     });
+    expect(result.analysisSnapshot.duplicateTrace?.matchedLane).toBe('indexed-recall');
     expect(corpus.listApprovedTraps).toHaveBeenCalledWith('team-1');
   });
 
@@ -169,5 +198,66 @@ describe('candidate-ingestion fingerprint and duplicate domain', () => {
       detector: 'postgresql',
       matchedLane: 'none',
     });
+  });
+
+  it('rejects semantic matches below the documented cutoff', async () => {
+    const corpus: CandidateCorpusReadPort = {
+      listApprovedTraps: vi.fn(async () => [
+        {
+          id: 'trap-low-score',
+          teamId: null,
+          shortcut: 'alpha beta zeta',
+          detail: 'theta',
+          labels: ['performance'],
+        },
+      ]),
+      listApprovedSkills: vi.fn(async () => []),
+    };
+    const candidate = makeTrapCandidate(
+      'candidate-low-score',
+      null,
+      'alpha beta gamma delta epsilon',
+      'omega',
+    );
+    const result = await createCandidateDuplicateDetector(corpus, {
+      now: () => '2026-07-16T00:01:00.000Z',
+      createId: () => 'duplicate-low-score',
+    })(candidate, buildNormalizedDuplicateInput(candidate));
+
+    expect(result.duplicateCase).toBeNull();
+    expect(result.analysisSnapshot.duplicateTrace?.matchedLane).toBe('none');
+  });
+
+  it('orders equal-score matches deterministically and marks recall lane', async () => {
+    const corpus: CandidateCorpusReadPort = {
+      listApprovedTraps: vi.fn(async () => [
+        {
+          id: 'trap-b',
+          teamId: null,
+          shortcut: 'Shared phrase',
+          detail: 'common token',
+          labels: ['x'],
+        },
+        {
+          id: 'trap-a',
+          teamId: null,
+          shortcut: 'Shared phrase',
+          detail: 'common token',
+          labels: ['y'],
+        },
+      ]),
+      listApprovedSkills: vi.fn(async () => []),
+    };
+    const candidate = makeTrapCandidate('candidate-tie', null, 'Shared phrase', 'common detail');
+    const result = await createCandidateDuplicateDetector(corpus, {
+      now: () => '2026-07-16T00:01:00.000Z',
+      createId: () => 'duplicate-tie',
+    })(candidate, buildNormalizedDuplicateInput(candidate));
+
+    expect(result.analysisSnapshot.duplicateTrace?.matchedLane).toBe('indexed-recall');
+    expect(result.duplicateCase?.matches.map((match) => match.entityId)).toEqual([
+      'trap-a',
+      'trap-b',
+    ]);
   });
 });
