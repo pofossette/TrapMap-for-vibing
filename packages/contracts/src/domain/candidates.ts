@@ -93,6 +93,28 @@ export const CandidatePayloadSchema = z.object({
   skill: SkillCandidatePayloadSchema.optional(),
 });
 
+/** Approved corpus records exposed to candidate duplicate detection. */
+export interface CandidateCorpusReadPort {
+  listApprovedTraps(teamId: string | null): Promise<
+    ReadonlyArray<{
+      id: string;
+      teamId: string | null;
+      shortcut: string;
+      detail: string;
+      labels: string[];
+    }>
+  >;
+  listApprovedSkills(teamId: string | null): Promise<
+    ReadonlyArray<{
+      id: string;
+      teamId: string | null;
+      title: string;
+      summary: string;
+      keywords: string[];
+    }>
+  >;
+}
+
 /**
  * Analysis snapshot captured during candidate processing.
  * Stores normalized content fingerprint and extracted features.

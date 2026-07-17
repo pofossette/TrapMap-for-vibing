@@ -2,31 +2,13 @@ import { createHash } from 'node:crypto';
 
 import type {
   AnalysisSnapshot,
+  CandidateCorpusReadPort,
   CandidateSubmission,
   DuplicateCase,
   DuplicateMatch,
 } from '@trapmap/contracts';
 
-export interface CandidateCorpusReadPort {
-  listApprovedTraps(teamId: string | null): Promise<
-    ReadonlyArray<{
-      id: string;
-      teamId: string | null;
-      shortcut: string;
-      detail: string;
-      labels: string[];
-    }>
-  >;
-  listApprovedSkills(teamId: string | null): Promise<
-    ReadonlyArray<{
-      id: string;
-      teamId: string | null;
-      title: string;
-      summary: string;
-      keywords: string[];
-    }>
-  >;
-}
+export type { CandidateCorpusReadPort } from '@trapmap/contracts';
 
 export interface NormalizedDuplicateInput {
   fingerprint: string;
@@ -87,6 +69,40 @@ function overlap(left: string[], right: string[]): string[] {
   return left.filter((term) => rightTerms.has(term.toLowerCase()));
 }
 
+function similarity(left: string[], right: string[]): number {
+  const leftSet = new Set(left);
+  const rightSet = new Set(right);
+  if (leftSet.size === 0 || rightSet.size === 0) return 0;
+  const shared = [...leftSet].filter((term) => rightSet.has(term)).length;
+  return shared / new Set([...leftSet, ...rightSet]).size;
+}
+
+function buildMatch(
+  entityType: 'trap' | 'skill',
+  entityId: string,
+  entityTitle: string,
+  candidate: NormalizedDuplicateInput,
+  corpusText: string,
+  keywords: string[],
+  exact: boolean,
+): DuplicateMatch | null {
+  const corpusTokens = tokens(corpusText);
+  const score = exact ? 1 : similarity(candidate.tokens, corpusTokens);
+  if (!exact && score < 0.3) return null;
+  return {
+    entityType,
+    entityId,
+    entityTitle,
+    similarityScore: exact ? 1 : Math.round(score * 1000) / 1000,
+    matchType: exact ? 'exact' : score >= 0.72 ? 'high-overlap' : 'semantic-similar',
+    overlapDetails: {
+      sharedKeywords: overlap(candidate.keywords, keywords),
+      sharedTokens: overlap(candidate.tokens, corpusTokens),
+      textOverlapPercent: exact ? 100 : Math.round(score * 1000) / 10,
+    },
+  };
+}
+
 export function createCandidateDuplicateDetector(
   corpus: CandidateCorpusReadPort,
   deps: { now(): string; createId(): string },
@@ -102,43 +118,32 @@ export function createCandidateDuplicateDetector(
       corpus.listApprovedTraps(candidate.teamId),
       corpus.listApprovedSkills(candidate.teamId),
     ]);
-    const exactTrap = traps.find(
-      (trap) =>
-        trap.shortcut.trim() === normalized.title.trim() &&
-        trap.detail.trim() === normalized.detail.trim(),
-    );
-    const matches: DuplicateMatch[] = exactTrap
-      ? [
-          {
-            entityType: 'trap',
-            entityId: exactTrap.id,
-            entityTitle: exactTrap.shortcut,
-            similarityScore: 1,
-            matchType: 'exact',
-            overlapDetails: {
-              sharedKeywords: overlap(normalized.keywords, exactTrap.labels),
-              sharedTokens: overlap(
-                normalized.tokens,
-                tokens(`${exactTrap.shortcut}\n${exactTrap.detail}`),
-              ),
-              textOverlapPercent: 100,
-            },
-          },
-        ]
-      : skills
-          .filter((skill) => skill.title.trim() === normalized.title.trim())
-          .map((skill) => ({
-            entityType: 'skill' as const,
-            entityId: skill.id,
-            entityTitle: skill.title,
-            similarityScore: 1,
-            matchType: 'exact' as const,
-            overlapDetails: {
-              sharedKeywords: overlap(normalized.keywords, skill.keywords),
-              sharedTokens: overlap(normalized.tokens, tokens(`${skill.title}\n${skill.summary}`)),
-              textOverlapPercent: 100,
-            },
-          }));
+    const matches: DuplicateMatch[] = [
+      ...traps.map((trap) =>
+        buildMatch(
+          'trap',
+          trap.id,
+          trap.shortcut,
+          normalized,
+          `${trap.shortcut}\n${trap.detail}`,
+          trap.labels,
+          fingerprint([trap.shortcut.trim(), trap.detail.trim(), ...[...trap.labels].sort()]) ===
+            normalized.fingerprint,
+        ),
+      ),
+      ...skills.map((skill) =>
+        buildMatch(
+          'skill',
+          skill.id,
+          skill.title,
+          normalized,
+          `${skill.title}\n${skill.summary}`,
+          skill.keywords,
+          skill.title.trim() === normalized.title.trim(),
+        ),
+      ),
+    ].filter((match): match is DuplicateMatch => match !== null);
+    matches.sort((left, right) => right.similarityScore - left.similarityScore);
     const duplicateCase =
       matches.length === 0
         ? null
@@ -148,9 +153,11 @@ export function createCandidateDuplicateDetector(
             detectedAt: deps.now(),
             detectionVersion: 'owner-v1',
             matches,
-            highestSimilarity: 1,
-            hasExactDuplicate: true,
-            duplicateType: 'exact' as const,
+            highestSimilarity: matches[0]?.similarityScore ?? 0,
+            hasExactDuplicate: matches.some((match) => match.matchType === 'exact'),
+            duplicateType: matches.some((match) => match.matchType === 'exact')
+              ? 'exact'
+              : 'semantic',
           };
     return {
       analysisSnapshot: {

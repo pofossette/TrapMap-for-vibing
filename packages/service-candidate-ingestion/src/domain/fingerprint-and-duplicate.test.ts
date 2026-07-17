@@ -5,8 +5,69 @@ import {
   createCandidateDuplicateDetector,
   type CandidateCorpusReadPort,
 } from './index.js';
+import type { CandidateCorpusReadPort as ContractCandidateCorpusReadPort } from '@trapmap/contracts';
 
 describe('candidate-ingestion fingerprint and duplicate domain', () => {
+  it('uses the shared contracts corpus port for semantic and isolated matching', async () => {
+    const corpus: ContractCandidateCorpusReadPort = {
+      listApprovedTraps: vi.fn(async (teamId) =>
+        teamId === 'team-1'
+          ? [
+              {
+                id: 'trap-semantic',
+                teamId: 'team-1',
+                shortcut: 'Avoid deeply nested loops',
+                detail: 'Prefer map operations for collection transforms.',
+                labels: ['performance'],
+              },
+            ]
+          : [],
+      ),
+      listApprovedSkills: vi.fn(async () => []),
+    };
+    const candidate = {
+      id: 'candidate-semantic',
+      sourceType: 'trap' as const,
+      submittedBy: 'user-1',
+      teamId: 'team-1',
+      status: 'received' as const,
+      originalPayload: {
+        trap: {
+          scope: 'project' as const,
+          labels: ['performance'],
+          shortcut: 'Avoid nested loops',
+          detail: 'Prefer map operations for collection transforms.',
+        },
+      },
+      analysisSnapshot: null,
+      duplicateCase: null,
+      receivedAt: '2026-07-16T00:00:00.000Z',
+      queuedAt: null,
+      analyzingAt: null,
+      completedAt: null,
+      lastError: null,
+      retryCount: 0,
+      manualResult: null,
+    };
+    const detect = createCandidateDuplicateDetector(corpus, {
+      now: () => '2026-07-16T00:01:00.000Z',
+      createId: () => 'duplicate-semantic',
+    });
+
+    const result = await detect(candidate, buildNormalizedDuplicateInput(candidate));
+
+    expect(result.duplicateCase).toMatchObject({
+      duplicateType: 'semantic',
+      hasExactDuplicate: false,
+      matches: [
+        expect.objectContaining({
+          matchType: expect.stringMatching(/high-overlap|semantic-similar/),
+        }),
+      ],
+    });
+    expect(corpus.listApprovedTraps).toHaveBeenCalledWith('team-1');
+  });
+
   it('uses the injected corpus reader and identifies an exact approved trap', async () => {
     const candidate = {
       id: 'candidate-1',
