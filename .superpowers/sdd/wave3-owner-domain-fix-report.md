@@ -2,8 +2,8 @@
 
 Addressed the three Important review findings from `8173e912`:
 
-- restored the semantic duplicate cutoff to `0.38` and added a below-cutoff
-  boundary test;
+- restored the semantic duplicate cutoff to `0.38` and added adjacent boundary
+  fixtures: a `7/19` (`~0.368`) rejection and an `8/21` (`~0.381`) recall match;
 - added deterministic entity-type/id tie-breakers after similarity sorting;
 - set duplicate trace lanes to `exact`, `indexed-recall`, or `none` based on
   the actual match path and added assertions for recall and exact lanes.

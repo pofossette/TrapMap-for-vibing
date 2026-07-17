@@ -200,14 +200,15 @@ describe('candidate-ingestion fingerprint and duplicate domain', () => {
     });
   });
 
-  it('rejects semantic matches below the documented cutoff', async () => {
+  it('enforces the documented 0.38 semantic cutoff at its boundary', async () => {
     const corpus: CandidateCorpusReadPort = {
       listApprovedTraps: vi.fn(async () => [
         {
           id: 'trap-low-score',
           teamId: null,
-          shortcut: 'alpha beta zeta',
-          detail: 'theta',
+          shortcut:
+            'alpha beta gamma delta epsilon zeta theta uniquea uniqueb uniquec uniqued uniquee uniquef uniqueg uniqueh uniquei uniquej uniquek uniquel',
+          detail: '',
           labels: ['performance'],
         },
       ]),
@@ -216,8 +217,8 @@ describe('candidate-ingestion fingerprint and duplicate domain', () => {
     const candidate = makeTrapCandidate(
       'candidate-low-score',
       null,
-      'alpha beta gamma delta epsilon',
-      'omega',
+      'alpha beta gamma delta epsilon zeta',
+      'theta',
     );
     const result = await createCandidateDuplicateDetector(corpus, {
       now: () => '2026-07-16T00:01:00.000Z',
@@ -226,6 +227,33 @@ describe('candidate-ingestion fingerprint and duplicate domain', () => {
 
     expect(result.duplicateCase).toBeNull();
     expect(result.analysisSnapshot.duplicateTrace?.matchedLane).toBe('none');
+
+    const aboveCorpus: CandidateCorpusReadPort = {
+      listApprovedTraps: vi.fn(async () => [
+        {
+          id: 'trap-above-cutoff',
+          teamId: null,
+          shortcut:
+            'alpha beta gamma delta epsilon zeta eta theta uniquea uniqueb uniquec uniqued uniquee uniquef uniqueg uniqueh uniquei uniquej uniquek uniquel uniquem',
+          detail: '',
+          labels: ['performance'],
+        },
+      ]),
+      listApprovedSkills: vi.fn(async () => []),
+    };
+    const aboveCandidate = makeTrapCandidate(
+      'candidate-above-cutoff',
+      null,
+      'alpha beta gamma delta epsilon zeta eta',
+      'theta',
+    );
+    const aboveResult = await createCandidateDuplicateDetector(aboveCorpus, {
+      now: () => '2026-07-16T00:01:00.000Z',
+      createId: () => 'duplicate-above-cutoff',
+    })(aboveCandidate, buildNormalizedDuplicateInput(aboveCandidate));
+
+    expect(aboveResult.duplicateCase?.highestSimilarity).toBeGreaterThanOrEqual(0.38);
+    expect(aboveResult.analysisSnapshot.duplicateTrace?.matchedLane).toBe('indexed-recall');
   });
 
   it('orders equal-score matches deterministically and marks recall lane', async () => {
