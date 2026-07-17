@@ -142,4 +142,26 @@ describe('service-candidate-ingestion routes', () => {
     });
     await app.close();
   });
+
+  it('preserves the legacy unauthorized invocation status', async () => {
+    const module = createModule({
+      submit: vi.fn(async () => {
+        throw new InvocationError('unauthorized', 'upstream identity is unavailable');
+      }),
+    });
+    const app = await buildApp(module);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/candidates',
+      payload: { source: 'test' },
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual({
+      error: 'upstream identity is unavailable',
+      kind: 'unauthorized',
+    });
+    await app.close();
+  });
 });

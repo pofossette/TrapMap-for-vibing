@@ -4,7 +4,10 @@ import type { CandidateStatus } from '@trapmap/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 function translateInvocationError(error: unknown) {
-  return toInvocationErrorResponse(error);
+  const response = toInvocationErrorResponse(error);
+  return error instanceof InvocationError && error.kind === 'unauthorized'
+    ? { ...response, status: 500 }
+    : response;
 }
 
 function trustedActor(
