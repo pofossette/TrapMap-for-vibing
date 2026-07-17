@@ -87,6 +87,21 @@ describe('service-candidate-ingestion routes', () => {
     await app.close();
   });
 
+  it('preserves the canonical internal error response for a null mutation body', async () => {
+    const app = await buildApp(createModule());
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/candidates/candidate-1/manual-result',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
+      payload: null,
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual({ error: 'Internal server error', kind: 'internal' });
+    await app.close();
+  });
+
   it('exposes candidate-ingestion as the owner of resolution command receipt', async () => {
     const module = createModule();
     const app = await buildApp(module);

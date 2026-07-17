@@ -9,13 +9,17 @@ function translateInvocationError(error: unknown) {
 
 function trustedActor(
   request: FastifyRequest,
-  body: { actorId?: unknown },
+  body: unknown,
 ): { actorId: string } | { status: number; body: { error: string; kind: string } } {
   const actorId = request.headers['x-trapmap-actor-id'];
   if (typeof actorId !== 'string' || !actorId) {
     return { status: 401, body: { error: 'Trusted actor is required', kind: 'forbidden' } };
   }
-  if (typeof body.actorId === 'string' && body.actorId !== actorId) {
+  const bodyActorId =
+    typeof body === 'object' && body !== null && 'actorId' in body
+      ? (body as { actorId?: unknown }).actorId
+      : undefined;
+  if (typeof bodyActorId === 'string' && bodyActorId !== actorId) {
     return {
       status: 403,
       body: { error: 'Actor does not match trusted identity', kind: 'forbidden' },
@@ -39,7 +43,7 @@ export function registerCandidateIngestionRoutes(
   const invokeTrusted = async <T>(
     req: FastifyRequest,
     reply: FastifyReply,
-    body: { actorId?: unknown },
+    body: unknown,
     operation: (actorId: string) => Promise<T>,
   ) => {
     const actor = trustedActor(req, body);
