@@ -122,6 +122,10 @@ export default defineConfig({
               replacement: resolve(__dirname, './packages/service-governance-review/src/index.ts'),
             },
             {
+              find: '@trapmap/service-job-runtime',
+              replacement: resolve(__dirname, './packages/service-job-runtime/src/index.ts'),
+            },
+            {
               find: 'fastify',
               replacement: fastifyEntry,
             },

@@ -3,7 +3,8 @@ import { Module } from '@nestjs/common';
 import type { JobRuntimeDeps, JobRuntimePort } from '@trapmap/backend-core';
 import { createJobRuntimeModule } from '@trapmap/backend-core';
 
-import { JOB_RUNTIME_PORT } from './job-runtime.tokens.js';
+import { JobRuntimeWorkerService } from './job-runtime-worker.service.js';
+import { JOB_RUNTIME_PORT, JOB_RUNTIME_WORKER_CONFIG } from './job-runtime.tokens.js';
 
 /**
  * Nest module for the job-runtime bounded context.
@@ -25,6 +26,15 @@ export class JobRuntimeModule {
           provide: JOB_RUNTIME_PORT,
           useValue: port,
         },
+        {
+          provide: JOB_RUNTIME_WORKER_CONFIG,
+          useValue: {
+            queuePorts: deps.queuePorts,
+            taskHandlers: deps.taskHandlers ?? [],
+            ownsWork: deps.ownsWork ?? true,
+          },
+        },
+        JobRuntimeWorkerService,
       ],
       exports: [JOB_RUNTIME_PORT],
       global: true,

@@ -9,7 +9,7 @@ import {
   createIdentityAccessServiceModule,
 } from '@trapmap/service-identity-access';
 import { createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';
-import { createJobRuntimeModule, createKnowledgeWriteModule } from '@trapmap/backend-core';
+import { createKnowledgeWriteModule } from '@trapmap/backend-core';
 
 import { HOST_LOCAL_CONFIG_TOKEN, loadHostLocalConfig } from './config/index.js';
 import { GatewayModule, GatewayRuntimeModule } from './gateway/gateway.module.js';
@@ -26,6 +26,10 @@ import { OtelModule, PrometheusModule, LokiModule } from './observability/index.
 import { HealthModule } from './health/index.js';
 import { LifecycleModule } from './lifecycle/index.js';
 import { createHostLocalRuntime, HOST_LOCAL_RUNTIME_TOKEN } from './runtime/host-runtime.js';
+import {
+  createHostLocalGovernanceConflictTaskHandlers,
+  createHostLocalGovernanceConflictWorkflow,
+} from './runtime/governance-composition.js';
 import { RequestContextMiddleware } from './runtime/request-context.middleware.js';
 import { RequestContextService } from './runtime/request-context.service.js';
 
@@ -81,21 +85,27 @@ const knowledgeWritePort = createKnowledgeWriteModule(
 );
 const knowledgeWriteModule = KnowledgeWriteModule.forTesting(knowledgeWritePort);
 
+const governanceConflictWorkflow = createHostLocalGovernanceConflictWorkflow({
+  knowledgeOwner: hostLocalRuntime.services.knowledgeOwner,
+  conflictProjection: hostLocalRuntime.services.governanceReview.conflictProjection,
+});
+
 const governanceReviewModule = GovernanceReviewModule.forDeps(
   createGovernanceReviewDeps({
     knowledgeWrite: knowledgeWritePort,
     feedbackRepo: hostLocalRuntime.services.governanceReview.feedbackRepo,
     auditLog: hostLocalRuntime.auditLog,
+    conflictWorkflow: governanceConflictWorkflow,
   }),
 );
 
-const jobRuntimePort = createJobRuntimeModule(
-  createJobRuntimeDeps({
-    queuePorts: hostLocalRuntime.queuePorts,
-    auditLog: hostLocalRuntime.auditLog,
-  }),
-);
-const jobRuntimeModule = JobRuntimeModule.forTesting(jobRuntimePort);
+const jobRuntimeDeps = createJobRuntimeDeps({
+  queuePorts: hostLocalRuntime.queuePorts,
+  auditLog: hostLocalRuntime.auditLog,
+  taskHandlers: createHostLocalGovernanceConflictTaskHandlers(governanceConflictWorkflow),
+  ownsWork: true,
+});
+const jobRuntimeModule = JobRuntimeModule.forDeps(jobRuntimeDeps);
 
 const candidateIngestionModule = CandidateIngestionModule.forDeps(
   createCandidateIngestionDeps({
