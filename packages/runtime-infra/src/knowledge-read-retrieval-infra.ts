@@ -1,10 +1,11 @@
 import type { Pool } from 'pg';
 
+import { enrichConflictHints } from '@trapmap/contracts';
+
 import {
   getCachedQueryEmbedding,
   setCachedQueryEmbedding,
 } from '@trapmap/server/lib/cache/query-embedding-cache.js';
-import { enrichMatchesWithConflicts } from '@trapmap/server/lib/conflict/index.js';
 import { DEFAULT_FRESHNESS_CONFIG } from '@trapmap/server/lib/decay/index.js';
 import { generateEmbedding, hashEmbeddingText } from '@trapmap/server/lib/embeddings.js';
 import {
@@ -40,7 +41,7 @@ export interface RuntimeInfraKnowledgeReadRetrievalInfra {
     toRoutingTrace: typeof toRoutingTrace;
   };
   conflicts: {
-    enrichMatches: typeof enrichMatchesWithConflicts;
+    enrichMatches: typeof enrichConflictHints;
   };
   scoring: {
     freshnessConfig: typeof DEFAULT_FRESHNESS_CONFIG;
@@ -79,7 +80,11 @@ export function createDefaultKnowledgeReadRetrievalInfra(): RuntimeInfraKnowledg
       toRoutingTrace,
     },
     conflicts: {
-      enrichMatches: enrichMatchesWithConflicts,
+      enrichMatches: (matches, data, governance) =>
+        enrichConflictHints(matches, data.conflicts, data.knowledgeEntries, governance ?? {
+          teamId: null,
+          requiredLevel: 0,
+        }),
     },
     scoring: {
       freshnessConfig: DEFAULT_FRESHNESS_CONFIG,
