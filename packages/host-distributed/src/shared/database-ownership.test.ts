@@ -66,6 +66,7 @@ describe('distributed database ownership guard', () => {
     expect(ports.repos).not.toHaveProperty('team');
     expect(ports.repos).not.toHaveProperty('membership');
     expect(ports.repos).not.toHaveProperty('user');
+    expect(ports.repos).not.toHaveProperty('feedback');
   });
 
   it('does not expose job runtime mutation capabilities to business owners', () => {

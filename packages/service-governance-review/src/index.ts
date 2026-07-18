@@ -6,6 +6,10 @@ export {
 } from './deps.js';
 export { assertGovernanceReviewMigrationSet, runGovernanceReviewMigrations } from './migrations.js';
 export {
+  createGovernanceReviewPgOwnerBundle,
+  type GovernanceReviewPgOwnerBundle,
+} from './pg-ports.js';
+export {
   registerGovernanceReviewRoutes,
   type GovernanceReviewReadinessOptions,
 } from './routes.js';

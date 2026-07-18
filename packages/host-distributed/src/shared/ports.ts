@@ -10,7 +10,6 @@ import { randomUUID } from 'node:crypto';
 import type { Pool } from 'pg';
 
 import type {
-  FeedbackRepositoryPort,
   KnowledgeEntryRecord,
   KnowledgeReadProjectionPort,
   OutboxPort,
@@ -22,7 +21,6 @@ import type {
 } from '@trapmap/backend-core';
 import type { LifecycleState } from '@trapmap/contracts';
 import type { DatabaseWriteService } from './database-ownership.js';
-import { withDatabaseWriteGuard } from './database-ownership.js';
 
 function mapKnowledgeRow(row: Record<string, unknown>) {
   const {
@@ -45,27 +43,6 @@ function mapKnowledgeRow(row: Record<string, unknown>) {
     teamId: (teamId as string | null) ?? (legacyTeamId as string | null) ?? null,
     lifecycleState: lifecycleState as LifecycleState,
   };
-}
-
-// ---------------------------------------------------------------------------
-// Column-allowlist helper for dynamic UPDATE builders
-// ---------------------------------------------------------------------------
-
-function buildSetClauses(
-  updates: Record<string, unknown>,
-  allowlist: ReadonlySet<string>,
-): { clauses: string[]; values: unknown[]; nextParamIndex: number } {
-  const clauses: string[] = [];
-  const values: unknown[] = [];
-  let paramIndex = 1;
-
-  for (const [key, value] of Object.entries(updates)) {
-    if (!allowlist.has(key)) continue;
-    clauses.push(`${key} = $${paramIndex++}`);
-    values.push(value);
-  }
-
-  return { clauses, values, nextParamIndex: paramIndex };
 }
 
 // ---------------------------------------------------------------------------
@@ -119,103 +96,6 @@ function createPgKnowledgeReadProjection(
 // Identity, access-key, team, membership, user, and audit persistence are
 // owned by service-identity-access.  Hosts inject its append-only audit
 // capability below; distributed shared ports must not construct those owners.
-
-// ---------------------------------------------------------------------------
-// Feedback repository
-// ---------------------------------------------------------------------------
-
-function createPgFeedbackRepo(pool: Pool): FeedbackRepositoryPort {
-  return {
-    async nextId() {
-      return generateId('f');
-    },
-    async insert(feedback) {
-      await pool.query(
-        `INSERT INTO feedback_queue (id, entry_id, problem_type, description, status, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
-        [
-          feedback.id,
-          feedback.entryId,
-          feedback.problemType,
-          (feedback as Record<string, unknown>).description,
-          feedback.status ?? 'open',
-        ],
-      );
-    },
-    async getById(feedbackId) {
-      const { rows } = await pool.query('SELECT * FROM feedback_queue WHERE id = $1', [feedbackId]);
-      return (
-        (rows[0] as FeedbackRepositoryPort extends { getById(id: string): Promise<infer R> }
-          ? R
-          : never) ?? null
-      );
-    },
-    async listByEntry(entryId) {
-      const { rows } = await pool.query('SELECT * FROM feedback_queue WHERE entry_id = $1', [
-        entryId,
-      ]);
-      return rows as never[];
-    },
-    async listByStatus(status) {
-      const { rows } = await pool.query('SELECT * FROM feedback_queue WHERE status = $1', [status]);
-      return rows as never[];
-    },
-    async listByFilter(filter) {
-      const conditions: string[] = [];
-      const params: unknown[] = [];
-      let paramIndex = 1;
-
-      if (filter.status?.length) {
-        conditions.push(`status = ANY($${paramIndex++})`);
-        params.push(filter.status);
-      }
-      if (filter.problemType?.length) {
-        conditions.push(`problem_type = ANY($${paramIndex++})`);
-        params.push(filter.problemType);
-      }
-      if (filter.entryId) {
-        conditions.push(`entry_id = $${paramIndex++}`);
-        params.push(filter.entryId);
-      }
-
-      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-      const { rows } = await pool.query(
-        `SELECT * FROM feedback_queue ${whereClause} ORDER BY created_at DESC LIMIT 100`,
-        params,
-      );
-      return rows as never[];
-    },
-    async update(feedbackId, updates) {
-      const FEEDBACK_ALLOWED_COLUMNS: ReadonlySet<string> = new Set([
-        'status',
-        'description',
-        'context',
-        'entry_type',
-        'problem_type',
-        'admin_notes',
-        'resolved_at',
-        'resolved_by_user_id',
-        'triggered_transition',
-        'remediation_status',
-        'remediation_opened_at',
-        'remediation_opened_by_user_id',
-        'remediation_resolved_at',
-        'remediation_resolved_by_user_id',
-      ]);
-      const { clauses, values } = buildSetClauses(
-        updates as Record<string, unknown>,
-        FEEDBACK_ALLOWED_COLUMNS,
-      );
-      if (clauses.length > 0) {
-        clauses.push('updated_at = NOW()');
-        await pool.query(
-          `UPDATE feedback_queue SET ${clauses.join(', ')} WHERE id = $${clauses.length + 1}`,
-          [...values, feedbackId],
-        );
-      }
-    },
-  };
-}
 
 function createPgRetrievalQuery(pool: Pool): RetrievalQueryPort {
   return {
@@ -385,7 +265,7 @@ function createPgOutbox(pool: Pool): OutboxPort {
 // ---------------------------------------------------------------------------
 
 export interface ServicePortImplementations {
-  repos: Omit<RepositoryPorts, 'audit' | 'session' | 'accessKey' | 'team' | 'membership' | 'user'>;
+  repos: Pick<RepositoryPorts, 'knowledge'>;
   auditLog: AuditLogPort;
   retrievalQuery: RetrievalQueryPort;
   asyncDiagnostics: {
@@ -404,14 +284,12 @@ export function createServicePorts(
   identity: Pick<ServicePortImplementations, 'auditLog'>,
 ): ServicePortImplementations {
   const knowledgeProjection = createPgKnowledgeReadProjection(pool);
-  const feedbackRepo = withDatabaseWriteGuard(createPgFeedbackRepo(pool), serviceName, 'knowledge');
   const taskQueue = createPgTaskQueue(pool);
   const outbox = createPgOutbox(pool);
 
   return {
     repos: {
       knowledge: knowledgeProjection,
-      feedback: feedbackRepo,
     },
     auditLog: identity.auditLog,
     retrievalQuery: createPgRetrievalQuery(pool),
