@@ -121,15 +121,38 @@ export function createGovernanceReviewModule(deps: GovernanceReviewDeps): Review
 
     async submitFeedback(input) {
       const feedbackId = await deps.feedbackRepo.nextId();
+      const submittedAt = new Date().toISOString();
+      const record = input as typeof input & Record<string, unknown>;
       await deps.feedbackRepo.insert({
         id: feedbackId,
         entryId: input.entryId,
+        entryType: record.entryType === 'skill' ? 'skill' : 'trap',
         problemType: input.problemType,
         description: input.description,
-        status: 'open',
-        submittedBy: input.actorId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        context: record.context ?? null,
+        querySeed: record.querySeed ?? null,
+        queryId: record.queryId ?? null,
+        routeFamily: record.routeFamily ?? null,
+        failureClassification: record.failureClassification ?? null,
+        expectedCorrection: record.expectedCorrection ?? null,
+        selectedResultSnapshot: record.selectedResultSnapshot ?? null,
+        customAnswers: record.customAnswers ?? null,
+        submittedAt,
+        submittedByUserId: input.actorId,
+        submittedByHandle:
+          typeof record.submittedByHandle === 'string' ? record.submittedByHandle : input.actorId,
+        status: 'new',
+        adminNotes: null,
+        resolvedAt: null,
+        resolvedByUserId: null,
+        triggeredTransition: null,
+        remediationStatus: null,
+        remediationOpenedAt: null,
+        remediationOpenedByUserId: null,
+        remediationResolvedAt: null,
+        remediationResolvedByUserId: null,
+        createdAt: submittedAt,
+        updatedAt: submittedAt,
       } as Parameters<FeedbackRepositoryPort['insert']>[0]);
 
       await deps.auditLog.record({
