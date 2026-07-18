@@ -6,6 +6,7 @@ import {
   type GovernanceReviewServer,
   createGovernanceReviewServer as createServiceGovernanceReviewServer,
 } from '@trapmap/service-governance-review';
+import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import { createGovernanceReviewDeps } from './ports.js';
 
@@ -14,7 +15,8 @@ export async function createServer(
   db: ServiceDatabase,
 ): Promise<GovernanceReviewServer> {
   const owner = createGovernanceReviewPgOwnerBundle(db.pool);
-  const deps = createGovernanceReviewDeps(owner, config);
+  const identity = createIdentityAccessPgDeps(db.pool, { systemAdminKey: config.systemAdminKey });
+  const deps = createGovernanceReviewDeps(owner, config, identity);
   const server = await createServiceGovernanceReviewServer(config, deps, {
     checkDependency: async () => {
       const health = await db.healthCheck();

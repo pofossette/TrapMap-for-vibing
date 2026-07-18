@@ -6,10 +6,12 @@ import {
   createGovernanceReviewDeps as createServiceGovernanceReviewDeps,
   type GovernanceReviewPgOwnerBundle,
 } from '@trapmap/service-governance-review';
+import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 
 export function createGovernanceReviewDeps(
   owner: GovernanceReviewPgOwnerBundle,
   config: ServiceConfig,
+  identity: Pick<IdentityAccessPortDeps, 'auditLog'>,
 ): GovernanceReviewDeps {
   const internalClients = createInternalServiceClients(config.internalUrls);
 
@@ -18,6 +20,6 @@ export function createGovernanceReviewDeps(
       transport: config.internalTransports.knowledgeWrite,
     }),
     feedbackRepo: owner.feedbackRepo,
-    auditLog: ports.auditLog,
+    auditLog: identity.auditLog,
   });
 }
