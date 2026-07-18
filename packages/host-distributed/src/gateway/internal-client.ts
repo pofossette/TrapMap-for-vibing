@@ -247,6 +247,7 @@ export interface InternalServiceClients {
       },
       options?: InternalRequestOptions,
     ): Promise<ServiceResponse>;
+    getConflictCandidates(entryId: string): Promise<ServiceResponse>;
     updateEntry(
       entryId: string,
       body: { updates: Record<string, unknown>; actorId: string },
@@ -342,6 +343,7 @@ export interface InternalServiceClients {
     ): Promise<ServiceResponse>;
   };
   review: {
+    detectConflicts(body: { entryId: string }): Promise<ServiceResponse>;
     approve(body: { entryId: string; actorId: string; note?: string }): Promise<ServiceResponse>;
     reject(body: { entryId: string; actorId: string; note?: string }): Promise<ServiceResponse>;
     applyMaintenance(body: {
@@ -364,13 +366,16 @@ export interface InternalServiceClients {
       actorId: string;
       note?: string;
     }): Promise<ServiceResponse>;
-    submitFeedback(body: {
-      entryId: string;
-      problemType: string;
-      description: string;
-      actorId: string;
-      [key: string]: unknown;
-    }, options?: InternalRequestOptions): Promise<ServiceResponse>;
+    submitFeedback(
+      body: {
+        entryId: string;
+        problemType: string;
+        description: string;
+        actorId: string;
+        [key: string]: unknown;
+      },
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
   };
   governanceReview: InternalServiceClients['review'];
   jobRuntime: {
@@ -380,6 +385,7 @@ export interface InternalServiceClients {
       delayMs?: number;
       priority?: number;
       maxAttempts?: number;
+      dedupeKey?: string;
     }): Promise<ServiceResponse>;
     getStatus(jobId: string): Promise<ServiceResponse>;
     getQueueStatus(): Promise<ServiceResponse>;
@@ -572,6 +578,11 @@ export function createInternalServiceClients(
           undefined,
           options,
         ),
+      getConflictCandidates: async (entryId) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge/${entryId}/conflict-candidates`,
+          'GET',
+        ),
       updateEntry: async (entryId, body, options) =>
         callInternalService(
           `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge/${entryId}`,
@@ -712,6 +723,12 @@ export function createInternalServiceClients(
         ),
     },
     review: {
+      detectConflicts: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/conflicts/detect`,
+          'POST',
+          body,
+        ),
       approve: async (body) =>
         callInternalService(
           `${await baseUrl('governance-review', urls.review)}/internal/review/approve`,
@@ -752,6 +769,12 @@ export function createInternalServiceClients(
         ),
     },
     governanceReview: {
+      detectConflicts: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/conflicts/detect`,
+          'POST',
+          body,
+        ),
       approve: async (body) =>
         callInternalService(
           `${await baseUrl('governance-review', urls.review)}/internal/review/approve`,

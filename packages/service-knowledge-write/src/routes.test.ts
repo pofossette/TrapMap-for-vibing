@@ -175,6 +175,55 @@ describe('service-knowledge-write routes', () => {
     await app.close();
   });
 
+  it('exposes approved conflict candidates through the knowledge owner read projection', async () => {
+    const app = Fastify();
+    const conflictCandidateRead = {
+      getById: vi.fn(async () => ({
+        id: 'entry-new',
+        shortcut: 'Postgres query timeout',
+        detail: 'avoid table scan',
+        lifecycleState: 'approved' as const,
+      })),
+      listByFilter: vi.fn(async () => [
+        {
+          id: 'entry-old',
+          shortcut: 'Postgres query timeout',
+          detail: 'use index planner',
+          lifecycleState: 'approved' as const,
+        },
+      ]),
+    };
+    registerKnowledgeWriteRoutes(app, createModule(), { conflictCandidateRead });
+    await app.ready();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/internal/knowledge/entry-new/conflict-candidates',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      entry: {
+        id: 'entry-new',
+        shortcut: 'Postgres query timeout',
+        detail: 'avoid table scan',
+        lifecycleState: 'approved',
+      },
+      candidates: [
+        {
+          id: 'entry-old',
+          shortcut: 'Postgres query timeout',
+          detail: 'use index planner',
+          lifecycleState: 'approved',
+        },
+      ],
+    });
+    expect(conflictCandidateRead.getById).toHaveBeenCalledWith('entry-new');
+    expect(conflictCandidateRead.listByFilter).toHaveBeenCalledWith({ lifecycleState: 'approved' });
+
+    await app.close();
+  });
+
   it('exposes independent liveness, readiness, ownership, and operator diagnostics', async () => {
     const app = Fastify();
     registerKnowledgeWriteRoutes(app, createModule(), {

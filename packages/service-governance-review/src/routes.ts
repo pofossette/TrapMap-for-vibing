@@ -1,5 +1,9 @@
-import type { ReviewPort } from '@trapmap/backend-core';
+import type { GovernanceConflictWorkflowPort, ReviewPort } from '@trapmap/backend-core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+
+export type GovernanceReviewRouteModule = ReviewPort & {
+  conflictWorkflow?: GovernanceConflictWorkflowPort;
+};
 
 export interface GovernanceReviewReadinessOptions {
   checkDependency?: () => Promise<{ reachable: boolean; detail?: string }>;
@@ -103,7 +107,7 @@ const GOVERNANCE_REVIEW_OWNERSHIP = {
 
 export function registerGovernanceReviewRoutes(
   app: FastifyInstance,
-  module: ReviewPort,
+  module: GovernanceReviewRouteModule,
   options?: GovernanceReviewReadinessOptions,
 ): void {
   const readinessHandler = async (_request: FastifyRequest, reply: FastifyReply) => {
@@ -149,6 +153,21 @@ export function registerGovernanceReviewRoutes(
     runGovernanceCommand<MaintenanceCommandBody>(request, reply, (body) => module.applyDecay(body)),
   );
 
+  app.post('/internal/conflicts/detect', (request: FastifyRequest, reply: FastifyReply) => {
+    const entryId = (request.body as { entryId?: unknown } | undefined)?.entryId;
+    if (typeof entryId !== 'string' || entryId.length === 0) {
+      return reply.status(400).send({ error: 'entryId is required', kind: 'validation' });
+    }
+    if (!module.conflictWorkflow) {
+      return reply
+        .status(503)
+        .send({ error: 'Conflict workflow unavailable', kind: 'unavailable' });
+    }
+    return sendGovernanceInvocation(reply, 200, () =>
+      module.conflictWorkflow!.detectConflicts({ entryId }),
+    );
+  });
+
   app.post('/internal/review/artifact', (request: FastifyRequest, reply: FastifyReply) =>
     sendGovernanceInvocation(reply, 200, async () => {
       const body = request.body as {
@@ -175,7 +194,9 @@ export function registerGovernanceReviewRoutes(
       [key: string]: unknown;
     };
     if (body.actorId !== undefined && body.actorId !== requestActorId) {
-      return reply.status(403).send({ error: 'Body actor does not match authenticated actor', kind: 'forbidden' });
+      return reply
+        .status(403)
+        .send({ error: 'Body actor does not match authenticated actor', kind: 'forbidden' });
     }
     return sendGovernanceInvocation(reply, 201, () =>
       module.submitFeedback({ ...body, actorId: requestActorId }),

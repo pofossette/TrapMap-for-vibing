@@ -1,10 +1,12 @@
 import type { KnowledgeWritePort } from '@trapmap/backend-core';
+import type { KnowledgeOwnerPort } from '@trapmap/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { sendInvocation, sendInvocationError, trustedActor } from './route-helpers.js';
 
 export interface KnowledgeWriteReadinessOptions {
   checkDependency?: () => Promise<{ reachable: boolean; detail?: string }>;
   getOperatorStatus?: () => Promise<Record<string, unknown>>;
+  conflictCandidateRead?: Pick<KnowledgeOwnerPort, 'getById' | 'listByFilter'>;
 }
 
 const KNOWLEDGE_WRITE_OWNERSHIP = {
@@ -117,6 +119,20 @@ function readMaintenanceDecisionBody(
   return trustedActor(req, (req.body ?? {}) as MaintenanceDecisionBody);
 }
 
+function toConflictCandidate(entry: {
+  id: string;
+  shortcut: string;
+  detail: string;
+  lifecycleState: string;
+}) {
+  return {
+    id: entry.id,
+    shortcut: entry.shortcut,
+    detail: entry.detail,
+    lifecycleState: entry.lifecycleState,
+  };
+}
+
 function runEntryMutation<T>(
   req: FastifyRequest,
   reply: FastifyReply,
@@ -190,6 +206,32 @@ export function registerKnowledgeWriteRoutes(
       );
       return module.submit(body);
     }),
+  );
+
+  app.get(
+    '/internal/knowledge/:entryId/conflict-candidates',
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      if (!options?.conflictCandidateRead) {
+        return reply.status(503).send({
+          error: 'knowledge-write conflict candidate read projection unavailable',
+          kind: 'unavailable',
+        });
+      }
+      return sendInvocation(reply, 200, async () => {
+        const { entryId } = req.params as { entryId: string };
+        const entry = await options.conflictCandidateRead!.getById(entryId);
+        if (!entry || entry.lifecycleState !== 'approved') return null;
+        const candidates = await options.conflictCandidateRead!.listByFilter({
+          lifecycleState: 'approved',
+        });
+        return {
+          entry: toConflictCandidate(entry),
+          candidates: candidates
+            .filter((candidate) => candidate.lifecycleState === 'approved')
+            .map(toConflictCandidate),
+        };
+      });
+    },
   );
 
   app.put('/internal/knowledge/:entryId', async (req: FastifyRequest, reply: FastifyReply) =>

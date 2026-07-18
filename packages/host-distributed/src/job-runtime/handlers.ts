@@ -1,15 +1,15 @@
 import {
   InvocationError,
+  type GovernanceConflictWorkflowPort,
   type InvocationErrorKind,
-  type JobRuntimePort,
-  type TaskEnqueueOptions,
+  type TaskHandler,
 } from '@trapmap/backend-core';
 import type { InternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
+import { createGovernanceConflictTaskHandler } from '@trapmap/service-job-runtime';
 
 function toInvocationError(body: unknown, fallback: string): InvocationError {
   const payload = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
   const message = typeof payload.error === 'string' ? payload.error : fallback;
-
   const factoryByKind: Record<InvocationErrorKind, typeof InvocationError.internal> = {
     validation: InvocationError.validation,
     unauthorized: InvocationError.unauthorized,
@@ -24,38 +24,34 @@ function toInvocationError(body: unknown, fallback: string): InvocationError {
   return factory(message, body);
 }
 
-export function createRemoteJobRuntimeClient(
-  clients: Pick<InternalServiceClients, 'jobRuntime'>,
-): Pick<JobRuntimePort, 'schedule'> {
+export function createRemoteGovernanceConflictWorkflowClient(
+  clients: Pick<InternalServiceClients, 'governanceReview'>,
+): GovernanceConflictWorkflowPort {
   return {
-    async schedule(type: string, payload: unknown, options?: TaskEnqueueOptions): Promise<string> {
-      const runtimeOptions = Object.fromEntries(
-        Object.entries({
-          delayMs: options?.delayMs,
-          priority: options?.priority,
-          maxAttempts: options?.maxAttempts,
-          dedupeKey: options?.dedupeKey,
-        }).filter(([, value]) => value !== undefined),
-      );
-      const response = await clients.jobRuntime.schedule({
-        type,
-        payload,
-        ...runtimeOptions,
-      });
+    async detectConflicts({ entryId }) {
+      const response = await clients.governanceReview.detectConflicts({ entryId });
       if (response.status < 200 || response.status >= 300) {
-        throw toInvocationError(response.body, `job-runtime scheduling failed for task: ${type}`);
+        throw toInvocationError(response.body, 'governance conflict detection failed');
       }
-      const jobId =
+      const detectedCount =
         response.body && typeof response.body === 'object'
-          ? (response.body as Record<string, unknown>).jobId
+          ? (response.body as Record<string, unknown>).detectedCount
           : undefined;
-      if (typeof jobId !== 'string' || jobId.length === 0) {
+      if (typeof detectedCount !== 'number' || !Number.isInteger(detectedCount)) {
         throw InvocationError.internal(
-          `job-runtime returned no jobId for task: ${type}`,
+          'governance-review returned an invalid conflict detection result',
           response.body,
         );
       }
-      return jobId;
+      return { detectedCount };
     },
   };
+}
+
+export function createJobRuntimeTaskHandlers(
+  clients: Pick<InternalServiceClients, 'governanceReview'>,
+): TaskHandler<unknown>[] {
+  return [
+    createGovernanceConflictTaskHandler(createRemoteGovernanceConflictWorkflowClient(clients)),
+  ];
 }

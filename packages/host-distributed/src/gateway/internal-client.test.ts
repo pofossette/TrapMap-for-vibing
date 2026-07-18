@@ -52,6 +52,51 @@ describe('createInternalServiceClients', () => {
     });
   });
 
+  it('reads approved conflict candidates from the knowledge-write owner', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      expect(String(input)).toBe(
+        'http://write.test/internal/knowledge/entry-1/conflict-candidates',
+      );
+      return new Response(
+        JSON.stringify({
+          entry: {
+            id: 'entry-1',
+            shortcut: 'Postgres query timeout',
+            detail: 'avoid table scan',
+            lifecycleState: 'approved',
+          },
+          candidates: [],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    const clients = createInternalServiceClients({
+      gateway: 'http://gateway.test',
+      identityAccess: 'http://identity.test',
+      knowledgeRead: 'http://read.test',
+      knowledgeWrite: 'http://write.test',
+      candidateIngestion: 'http://candidate.test',
+      review: 'http://review.test',
+      governanceReview: 'http://review.test',
+      jobRuntime: 'http://job.test',
+    });
+
+    await expect(clients.knowledgeWrite.getConflictCandidates('entry-1')).resolves.toEqual({
+      status: 200,
+      body: {
+        entry: {
+          id: 'entry-1',
+          shortcut: 'Postgres query timeout',
+          detail: 'avoid table scan',
+          lifecycleState: 'approved',
+        },
+        candidates: [],
+      },
+    });
+  });
+
   it('maps aborted internal calls to timeout responses', async () => {
     globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const signal = init?.signal as AbortSignal | undefined;

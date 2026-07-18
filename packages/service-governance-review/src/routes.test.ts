@@ -61,6 +61,27 @@ describe('service-governance-review routes', () => {
     await app.close();
   });
 
+  it('executes conflict detection through the governance owner workflow', async () => {
+    const detectConflicts = vi.fn(async () => ({ detectedCount: 1 }));
+    const module = {
+      ...createModule(),
+      conflictWorkflow: { detectConflicts },
+    };
+    const app = await buildApp(module as never);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/conflicts/detect',
+      payload: { entryId: 'entry-1', sourceEventId: 'event-1' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ detectedCount: 1 });
+    expect(detectConflicts).toHaveBeenCalledWith({ entryId: 'entry-1' });
+
+    await app.close();
+  });
+
   it('rejects an untrusted feedback actor before invoking the governance module', async () => {
     const module = createModule();
     const app = await buildApp(module);

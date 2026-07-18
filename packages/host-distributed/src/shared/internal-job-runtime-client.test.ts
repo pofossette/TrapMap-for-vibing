@@ -16,6 +16,24 @@ describe('remote job-runtime client', () => {
     });
   });
 
+  it('forwards task dedupe keys to the remote job-runtime', async () => {
+    const schedule = vi.fn(async () => ({ status: 201, body: { jobId: 'job-remote-2' } }));
+    const client = createRemoteJobRuntimeClient({ jobRuntime: { schedule } } as never);
+
+    await expect(
+      client.schedule(
+        'governance.conflict-detection',
+        { entryId: 'entry-1', sourceEventId: 'event-1' },
+        { dedupeKey: 'governance.conflict-detection:entry-1:event-1' },
+      ),
+    ).resolves.toBe('job-remote-2');
+    expect(schedule).toHaveBeenCalledWith({
+      type: 'governance.conflict-detection',
+      payload: { entryId: 'entry-1', sourceEventId: 'event-1' },
+      dedupeKey: 'governance.conflict-detection:entry-1:event-1',
+    });
+  });
+
   it('maps remote scheduling failures to canonical invocation errors', async () => {
     const client = createRemoteJobRuntimeClient({
       jobRuntime: {

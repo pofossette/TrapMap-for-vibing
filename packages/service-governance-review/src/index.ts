@@ -3,6 +3,8 @@ export {
   createGovernanceReviewServiceModule,
   type GovernanceReviewDeps,
   type GovernanceReviewPortDeps,
+  type GovernanceReviewServiceDeps,
+  type GovernanceReviewServiceModule,
 } from './deps.js';
 export { assertGovernanceReviewMigrationSet, runGovernanceReviewMigrations } from './migrations.js';
 export {
@@ -20,6 +22,7 @@ export {
   type GovernanceConflictProjection,
   type GovernanceConflictWorkflowDeps,
 } from './conflict-workflow.js';
+export { createGovernanceConflictReadPort } from './conflict-read.js';
 export {
   registerGovernanceReviewRoutes,
   type GovernanceReviewReadinessOptions,

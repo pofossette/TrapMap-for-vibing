@@ -10,6 +10,8 @@ import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import {
   type KnowledgeWriteServer,
+  type KnowledgeWriteOwnerBundle,
+  type KnowledgeWriteReadinessOptions,
   createKnowledgeWriteDeps,
   createKnowledgeWriteOutboxDiagnostics,
   createKnowledgeWriteOwnerBundle,
@@ -17,6 +19,16 @@ import {
 } from '@trapmap/service-knowledge-write';
 import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
+
+export function createKnowledgeWriteReadinessOptions(
+  owner: Pick<KnowledgeWriteOwnerBundle, 'knowledgeOwner'>,
+  options: Omit<KnowledgeWriteReadinessOptions, 'conflictCandidateRead'>,
+): KnowledgeWriteReadinessOptions {
+  return {
+    ...options,
+    conflictCandidateRead: owner.knowledgeOwner,
+  };
+}
 
 export async function createServer(
   config: ServiceConfig,
@@ -31,30 +43,34 @@ export async function createServer(
     artifactWriter: owner.artifactWriter,
     artifactReadProjection: owner.artifactReadProjection,
   });
-  const server = await createServiceKnowledgeWriteServer(config, deps, {
-    checkDependency: async () => {
-      const health = await db.healthCheck();
-      return {
-        reachable: health.status === 'healthy',
-        ...(health.error ? { detail: health.error } : {}),
-      };
-    },
-    getOperatorStatus: async () => {
-      const [persistence, outboxStatus] = await Promise.all([
-        db.healthCheck(),
-        outbox.getStatusSnapshot(),
-      ]);
-      return {
-        persistence,
-        asyncFollowUp: { owner: 'job-runtime', outbox: outboxStatus },
-        timeouts: {
-          connectionMs: config.connectionTimeoutMs,
-          statementMs: config.statementTimeoutMs,
-        },
-        idempotency: { mechanism: 'task_queue.dedupe_key' },
-      };
-    },
-  });
+  const server = await createServiceKnowledgeWriteServer(
+    config,
+    deps,
+    createKnowledgeWriteReadinessOptions(owner, {
+      checkDependency: async () => {
+        const health = await db.healthCheck();
+        return {
+          reachable: health.status === 'healthy',
+          ...(health.error ? { detail: health.error } : {}),
+        };
+      },
+      getOperatorStatus: async () => {
+        const [persistence, outboxStatus] = await Promise.all([
+          db.healthCheck(),
+          outbox.getStatusSnapshot(),
+        ]);
+        return {
+          persistence,
+          asyncFollowUp: { owner: 'job-runtime', outbox: outboxStatus },
+          timeouts: {
+            connectionMs: config.connectionTimeoutMs,
+            statementMs: config.statementTimeoutMs,
+          },
+          idempotency: { mechanism: 'task_queue.dedupe_key' },
+        };
+      },
+    }),
+  );
   attachRuntimeMetricsRoute(server.app);
   await attachRuntimeTelemetry(server.app, 'knowledge-write');
   return server;
