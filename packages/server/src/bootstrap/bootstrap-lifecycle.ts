@@ -43,7 +43,11 @@ export interface BootstrapLifecycleOptions {
 }
 
 function buildLifecycleSubscriberContract(app: FastifyInstance): LifecycleSubscriberContract {
-  const { store, adapterRegistry, graphQueryBackend, asyncTransport } = app.skillShareer;
+  const { store, adapterRegistry, graphQueryBackend, asyncTransport, jobRuntime } =
+    app.skillShareer;
+  if (!jobRuntime) {
+    throw new Error('server lifecycle requires an injected job-runtime port');
+  }
   const indexingHandler = createIndexingSubscriber(
     store,
     adapterRegistry,
@@ -51,7 +55,7 @@ function buildLifecycleSubscriberContract(app: FastifyInstance): LifecycleSubscr
     asyncTransport?.task,
   );
   const auditHandler = createAuditSubscriber(store, app.log);
-  const conflictHandler = createConflictSubscriber(store);
+  const conflictHandler = createConflictSubscriber(jobRuntime);
 
   const registrations = INDEXING_EVENT_NAMES.map((eventName) => ({
     eventName,

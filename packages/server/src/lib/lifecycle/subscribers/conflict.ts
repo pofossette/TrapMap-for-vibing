@@ -1,20 +1,26 @@
-import { detectConflicts } from '@trapmap/server/lib/conflict/index.js';
+import type { JobRuntimePort } from '@trapmap/backend-core';
 import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 /**
- * Create an event subscriber that runs conflict detection after approval.
+ * Create an event subscriber that schedules governance conflict detection after approval.
  * Only triggers when nextState is 'approved'.
  */
-export function createConflictSubscriber(store: SkillShareerStore): DomainEventHandler {
+export function createConflictSubscriber(
+  jobRuntime: Pick<JobRuntimePort, 'schedule'>,
+): DomainEventHandler {
   return async (event) => {
-    // Only run conflict detection on approval
     if (event.nextState !== 'approved') return;
 
-    const data = await store.snapshot();
-    await detectConflicts({
-      services: { store, data },
-      entryId: event.entryId,
-    });
+    const sourceEventId =
+      typeof event.metadata?.sourceEventId === 'string'
+        ? event.metadata.sourceEventId
+        : `${event.name}:${event.entryId}:${event.timestamp}`;
+    await jobRuntime.schedule(
+      'governance.conflict-detection',
+      { entryId: event.entryId, sourceEventId },
+      {
+        dedupeKey: `governance.conflict-detection:${event.entryId}:${sourceEventId}`,
+      },
+    );
   };
 }

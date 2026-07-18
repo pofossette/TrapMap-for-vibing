@@ -1,8 +1,11 @@
 import { buildServer, type BuildServerOptions } from '@trapmap/server/app.js';
 import { getStorePool } from '@trapmap/runtime-infra';
+import { createJobRuntimeModule } from '@trapmap/backend-core';
+import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
 
 import type { HostLocalConfig } from '../config/index.js';
 import { createHostLocalServices } from './host-services.js';
+import { createQueuePorts } from './backend-core-adapters.js';
 
 export interface HostLocalServer {
   app: ReturnType<typeof buildServer>;
@@ -36,6 +39,12 @@ export async function buildHostLocalServer(
     knowledgeOwner: services.knowledgeOwner,
     artifactReadProjection: services.artifactReadProjection,
     store: services.store,
+    jobRuntime: createJobRuntimeModule(
+      createJobRuntimeDeps({
+        queuePorts: createQueuePorts(services.asyncTransport),
+        auditLog: services.identity.auditLog,
+      }),
+    ),
     ownsStore: false,
   });
   const closeApp = app.close.bind(app);

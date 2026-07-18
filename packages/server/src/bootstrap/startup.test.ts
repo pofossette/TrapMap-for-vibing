@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildPostgresTestServer as buildServer } from '../../../../scripts/testing/server-test-composition.js';
 import { getArtifactAdapters } from '@trapmap/server/lib/indexing/artifact-pipeline.js';
@@ -22,6 +22,7 @@ describe('startup sequence', () => {
         eventBus: mockEventBus,
         store: {} as any,
         adapterRegistry: {} as any,
+        jobRuntime: { schedule: vi.fn() },
       },
       log: { info: () => {}, error: () => {} },
       decorate: () => {},
@@ -48,6 +49,7 @@ describe('startup sequence', () => {
         store: {} as any,
         adapterRegistry: {} as any,
         graphQueryBackend: {} as any,
+        jobRuntime: { schedule: vi.fn() },
       },
       log: { info: () => {}, error: () => {} },
       decorate: () => {},
@@ -58,6 +60,45 @@ describe('startup sequence', () => {
     expect(registrations.get('knowledge.approved')).toBe(3);
     expect(registrations.get('knowledge.deactivated')).toBe(2);
     expect(registrations.get('knowledge.resubmitted')).toBe(2);
+  });
+
+  it('wires approved lifecycle events to the job-runtime conflict command', async () => {
+    const handlers: Array<(event: any) => void | Promise<void>> = [];
+    const schedule = vi.fn().mockResolvedValue('job-1');
+    const mockApp = {
+      skillShareer: {
+        eventBus: {
+          onDomainEvent: (event: string, handler: (event: any) => void | Promise<void>) => {
+            if (event === 'knowledge.approved') handlers.push(handler);
+          },
+          on: () => {},
+        },
+        store: {} as any,
+        adapterRegistry: {} as any,
+        graphQueryBackend: {} as any,
+        jobRuntime: { schedule },
+      },
+      log: { info: () => {}, error: () => {} },
+      decorate: () => {},
+    } as any;
+
+    await bootstrapLifecycle(mockApp);
+    await handlers.at(-1)?.({
+      name: 'knowledge.approved',
+      entryId: 'entry-1',
+      previousState: 'agent-pass',
+      nextState: 'approved',
+      actorId: 'user-1',
+      reason: 'test',
+      timestamp: '2026-05-07T00:00:00.000Z',
+      metadata: { sourceEventId: 'event-1' },
+    });
+
+    expect(schedule).toHaveBeenCalledWith(
+      'governance.conflict-detection',
+      { entryId: 'entry-1', sourceEventId: 'event-1' },
+      { dedupeKey: 'governance.conflict-detection:entry-1:event-1' },
+    );
   });
 
   it('registers shared artifact adapters during startup', async () => {

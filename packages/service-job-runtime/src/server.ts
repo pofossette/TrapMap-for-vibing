@@ -24,6 +24,16 @@ export async function createJobRuntimeServer(
   const app = Fastify({ logger: { level: config.logLevel } });
   const module = createJobRuntimeServiceModule(deps);
   registerJobRuntimeRoutes(app, module);
+  const taskConsumer = deps.queuePorts.task.createConsumer
+    ? await deps.queuePorts.task.createConsumer({
+        handlers: deps.taskHandlers ?? [],
+        ownsWork: deps.ownsWork ?? true,
+      })
+    : null;
+
+  if (taskConsumer && (deps.ownsWork ?? true)) {
+    void taskConsumer.run();
+  }
 
   return {
     app,
@@ -32,6 +42,7 @@ export async function createJobRuntimeServer(
       await app.listen({ port: config.port, host: config.host });
     },
     async close() {
+      await taskConsumer?.stop();
       await app.close();
     },
   };

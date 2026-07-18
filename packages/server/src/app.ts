@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import Fastify from 'fastify';
 import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
+import type { JobRuntimePort } from '@trapmap/backend-core';
 
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
@@ -51,6 +52,7 @@ export interface BuildServerOptions {
   identityBundle?: IdentityCompatibilityBundle;
   artifactReadProjection?: ArtifactReadProjection;
   knowledgeOwner?: KnowledgeOwnerPort;
+  jobRuntime?: Pick<JobRuntimePort, 'schedule'>;
   store?: SkillShareerStore;
   ownsStore?: boolean;
 }
@@ -190,6 +192,7 @@ export function buildServer(options: BuildServerOptions = {}) {
     graphQueryBackend: {} as GraphQueryBackend,
     graphQuery: createGraphQueryRuntimeState(config.graphDb),
     eventBus: new LifecycleEventBus(),
+    ...(options.jobRuntime ? { jobRuntime: options.jobRuntime } : {}),
     // Phase 2B: tracing adapter -- disabled by default (OTEL_DISABLED=true).
     // The startup sequence will initialise the OTel SDK if enabled.
     tracing: createTracingPortAdapter(undefined, {

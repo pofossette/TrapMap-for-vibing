@@ -11,8 +11,6 @@ import { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import { KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
 import type { DomainEvent } from '@trapmap/server/lib/lifecycle/types.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import {
   buildTestServer,
   seedApprovedKnowledgeEntry,
@@ -25,11 +23,6 @@ vi.mock('../../indexing/events.js', () => ({
   runKnowledgeIndexEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../../conflict/detect.js', () => ({
-  detectConflicts: vi.fn().mockResolvedValue([]),
-}));
-
-import { detectConflicts } from '@trapmap/server/lib/conflict/detect.js';
 import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
 
 beforeEach(() => {
@@ -45,6 +38,7 @@ function makeEvent(overrides?: Partial<DomainEvent>): DomainEvent {
     actorId: 'user-1',
     reason: 'test',
     timestamp: '2026-05-07T00:00:00.000Z',
+    metadata: { sourceEventId: 'event-1' },
     ...overrides,
   };
 }
@@ -55,6 +49,12 @@ function mockStore() {
       knowledgeEntries: [],
       auditEvents: [],
     }),
+  };
+}
+
+function mockJobRuntime() {
+  return {
+    schedule: vi.fn().mockResolvedValue('job-1'),
   };
 }
 
@@ -135,27 +135,30 @@ describe('indexing subscriber via event bus', () => {
 describe('conflict subscriber via event bus', () => {
   it('approval triggers conflict detection', async () => {
     const bus = new LifecycleEventBus();
-    const store = mockStore();
+    const jobRuntime = mockJobRuntime();
 
-    bus.onDomainEvent('knowledge.approved', createConflictSubscriber(store as any));
+    bus.onDomainEvent('knowledge.approved', createConflictSubscriber(jobRuntime as any));
 
     await bus.emitDomainEventAsync(makeEvent());
 
-    expect(detectConflicts).toHaveBeenCalledTimes(1);
-    expect(detectConflicts).toHaveBeenCalledWith(expect.objectContaining({ entryId: 'entry-1' }));
+    expect(jobRuntime.schedule).toHaveBeenCalledWith(
+      'governance.conflict-detection',
+      { entryId: 'entry-1', sourceEventId: 'event-1' },
+      { dedupeKey: 'governance.conflict-detection:entry-1:event-1' },
+    );
   });
 
   it('non-approval does not trigger conflict detection', async () => {
     const bus = new LifecycleEventBus();
-    const store = mockStore();
+    const jobRuntime = mockJobRuntime();
 
-    bus.onDomainEvent('knowledge.deactivated', createConflictSubscriber(store as any));
+    bus.onDomainEvent('knowledge.deactivated', createConflictSubscriber(jobRuntime as any));
 
     await bus.emitDomainEventAsync(
       makeEvent({ name: 'knowledge.deactivated', nextState: 'deactivated' }),
     );
 
-    expect(detectConflicts).not.toHaveBeenCalled();
+    expect(jobRuntime.schedule).not.toHaveBeenCalled();
   });
 });
 
@@ -199,15 +202,16 @@ describe('event bus async waiting', () => {
   it('multiple subscribers on same event all fire', async () => {
     const bus = new LifecycleEventBus();
     const store = mockStore();
+    const jobRuntime = mockJobRuntime();
     const registry = new AdapterRegistry();
 
     bus.onDomainEvent('knowledge.approved', createIndexingSubscriber(store as any, registry));
-    bus.onDomainEvent('knowledge.approved', createConflictSubscriber(store as any));
+    bus.onDomainEvent('knowledge.approved', createConflictSubscriber(jobRuntime as any));
 
     await bus.emitDomainEventAsync(makeEvent());
 
     expect(runKnowledgeIndexEvent).toHaveBeenCalledTimes(1);
-    expect(detectConflicts).toHaveBeenCalledTimes(1);
+    expect(jobRuntime.schedule).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -225,14 +229,14 @@ describe('subscriber idempotency and retry safety (Phase 2)', () => {
   });
 
   it('conflict subscriber is safe to call repeatedly for the same entry', async () => {
-    const store = mockStore();
-    const subscriber = createConflictSubscriber(store as any);
+    const jobRuntime = mockJobRuntime();
+    const subscriber = createConflictSubscriber(jobRuntime as any);
     const event = makeEvent();
 
     await subscriber(event);
     await subscriber(event); // Second identical call
 
-    expect(detectConflicts).toHaveBeenCalledTimes(2);
+    expect(jobRuntime.schedule).toHaveBeenCalledTimes(2);
   });
 
   it('indexing subscriber skips self-transitions on retries', async () => {
@@ -249,13 +253,13 @@ describe('subscriber idempotency and retry safety (Phase 2)', () => {
   });
 
   it('conflict subscriber skips non-approval on retries', async () => {
-    const store = mockStore();
-    const subscriber = createConflictSubscriber(store as any);
+    const jobRuntime = mockJobRuntime();
+    const subscriber = createConflictSubscriber(jobRuntime as any);
 
     // Non-approval should be no-op
     await subscriber(makeEvent({ nextState: 'rejected' }));
 
-    expect(detectConflicts).not.toHaveBeenCalled();
+    expect(jobRuntime.schedule).not.toHaveBeenCalled();
   });
 });
 

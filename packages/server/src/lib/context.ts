@@ -4,6 +4,7 @@ import type {
   AccessKeyRepositoryPort,
   ActorBatchLookupPort,
   AuditLogPort,
+  JobRuntimePort,
   MembershipRepositoryPort,
   PermissionCheckPort,
   SessionLookupPort,
@@ -79,6 +80,8 @@ export interface SkillShareerServices {
   graphQuery: GraphQueryRuntimeState;
   /** Lifecycle event bus for domain event emission and subscription */
   eventBus: LifecycleEventBus;
+  /** Job-runtime port injected by the owning host for async commands. */
+  jobRuntime?: Pick<JobRuntimePort, 'schedule'>;
   /** TracingPort adapter for distributed tracing (Phase 2B). */
   tracing?: TracingPort;
 }

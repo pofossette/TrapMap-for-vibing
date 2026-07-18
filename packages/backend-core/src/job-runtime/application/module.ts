@@ -9,7 +9,7 @@
 
 import type { AuditLogPort } from '../../ports/audit-ports.js';
 import type { JobRuntimePort } from '../../ports/internal-ports.js';
-import type { QueuePorts } from '../../ports/queue-ports.js';
+import type { QueuePorts, TaskHandler } from '../../ports/queue-ports.js';
 
 import { JOB_RUNTIME_OWNED_CAPABILITIES } from '../domain/index.js';
 
@@ -20,6 +20,8 @@ import { JOB_RUNTIME_OWNED_CAPABILITIES } from '../domain/index.js';
 export interface JobRuntimeDeps {
   queuePorts: QueuePorts;
   auditLog: AuditLogPort;
+  taskHandlers?: TaskHandler<unknown>[];
+  ownsWork?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -42,6 +44,7 @@ export function createJobRuntimeModule(deps: JobRuntimeDeps): JobRuntimePort {
         ...(options?.delayMs !== undefined ? { delayMs: options.delayMs } : {}),
         ...(options?.priority !== undefined ? { priority: options.priority } : {}),
         ...(options?.maxAttempts !== undefined ? { maxAttempts: options.maxAttempts } : {}),
+        ...(options?.dedupeKey !== undefined ? { dedupeKey: options.dedupeKey } : {}),
       });
       return String(result ?? `job_${Date.now()}`);
     },

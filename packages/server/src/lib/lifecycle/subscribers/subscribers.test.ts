@@ -10,11 +10,6 @@ vi.mock('../../indexing/events.js', () => ({
   runKnowledgeIndexEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../../conflict/detect.js', () => ({
-  detectConflicts: vi.fn().mockResolvedValue([]),
-}));
-
-import { detectConflicts } from '@trapmap/server/lib/conflict/detect.js';
 import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
 
 beforeEach(() => {
@@ -45,6 +40,12 @@ function mockStore() {
       return fn(data);
     }),
     nextId: vi.fn().mockReturnValue('id-1'),
+  };
+}
+
+function mockJobRuntime() {
+  return {
+    schedule: vi.fn().mockResolvedValue('job-1'),
   };
 }
 
@@ -114,23 +115,30 @@ describe('createAuditSubscriber', () => {
 });
 
 describe('createConflictSubscriber', () => {
-  it('calls detectConflicts when nextState is approved', async () => {
-    const store = mockStore();
-    const subscriber = createConflictSubscriber(store as any);
-    const event = makeEvent({ nextState: 'approved' });
+  it('schedules governance conflict detection for approved events', async () => {
+    const jobRuntime = mockJobRuntime();
+    const subscriber = createConflictSubscriber(jobRuntime as any);
+    const event = makeEvent({
+      nextState: 'approved',
+      metadata: { sourceEventId: 'event-1' },
+    });
 
     await subscriber(event);
 
-    expect(detectConflicts).toHaveBeenCalledWith(expect.objectContaining({ entryId: 'entry-1' }));
+    expect(jobRuntime.schedule).toHaveBeenCalledWith(
+      'governance.conflict-detection',
+      { entryId: 'entry-1', sourceEventId: 'event-1' },
+      { dedupeKey: 'governance.conflict-detection:entry-1:event-1' },
+    );
   });
 
-  it('skips when nextState is not approved', async () => {
-    const store = mockStore();
-    const subscriber = createConflictSubscriber(store as any);
+  it('does not schedule conflict detection for non-approved events', async () => {
+    const jobRuntime = mockJobRuntime();
+    const subscriber = createConflictSubscriber(jobRuntime as any);
     const event = makeEvent({ nextState: 'deactivated' });
 
     await subscriber(event);
 
-    expect(detectConflicts).not.toHaveBeenCalled();
+    expect(jobRuntime.schedule).not.toHaveBeenCalled();
   });
 });
