@@ -24,32 +24,22 @@ const SERVER_SRC = resolve(process.cwd(), 'packages/server/src');
  */
 const SNAPSHOT_ALLOWLIST: string[] = [
   // Repository implementations — wrap store.snapshot()/transact() internally
-  'lib/lineage/repository.ts',
   'lib/feedback/repository.ts',
-  'lib/candidates/repository.ts',
-  'lib/duplicates/repository.ts',
   'lib/conflict/repository.ts',
   'lib/graph-index/repository.ts',
 
   // Migration and backfill scripts
-  'lib/persistence/migrate-candidates.ts',
   'lib/persistence/migrate-knowledge.ts',
   'lib/persistence/backfill-indexes.ts',
 
   // Bootstrap and startup
   'bootstrap/bootstrap-repositories.ts',
   'bootstrap/bootstrap-workers.ts',
-  'bootstrap/bootstrap-candidate-recovery.ts',
 
   // Lifecycle subscribers
   'lib/lifecycle/subscribers/indexing.ts',
   'lib/lifecycle/subscribers/conflict.ts',
   'lib/lifecycle/subscribers/audit.ts',
-
-  // Candidate processing pipeline
-  'lib/candidates/processor.ts',
-  'lib/candidates/services/submission-service.ts',
-  'lib/candidates/services/resolution-service.ts',
 
   // Knowledge review application service (named compatibility debt: local audit seam)
   'lib/knowledge/review-application-service.ts',

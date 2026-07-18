@@ -38,12 +38,6 @@ function createRuntime(): HostLocalRuntime {
       store: {},
       eventBus: {},
       asyncTransport: undefined,
-      candidateIngestion: {
-        candidateRepo: {},
-        duplicateCases: {},
-        resolutionOutcomes: {},
-        lineage: {},
-      },
       repos: {
         candidate: {},
         lineage: {},
@@ -75,9 +69,7 @@ describe('CandidateReviewController', () => {
 
   it('routes apply-resolution through the Nest light mainline runtime', async () => {
     const runtime = createRuntime();
-    const candidateRepo = {
-      getById: vi
-        .fn()
+    vi.mocked(candidateIngestionMock.getById)
         .mockResolvedValueOnce({
           id: 'candidate-1',
           status: 'duplicate_detected',
@@ -93,9 +85,7 @@ describe('CandidateReviewController', () => {
             decision: 'independent',
             notes: 'publish it',
           },
-        }),
-    };
-    runtime.services.candidateIngestion.candidateRepo = candidateRepo as any;
+        });
     vi.mocked(candidateIngestionMock.applyResolution).mockResolvedValueOnce(undefined);
     const controller = new CandidateReviewController(
       candidateIngestionMock,

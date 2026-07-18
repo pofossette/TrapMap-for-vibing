@@ -15,7 +15,6 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { bootstrapCandidateRecovery } from './bootstrap-candidate-recovery.js';
 import { bootstrapGraphReconciliation } from './bootstrap-graph-reconciliation.js';
 import { bootstrapOtel } from './bootstrap-otel.js';
 import { bootstrapRepositories } from './bootstrap-repositories.js';
@@ -61,10 +60,7 @@ export async function runStartupSequence(
 
   await bootstrapRepositories(app);
 
-  if (shouldBootApiRuntime(mode)) {
-    await bootstrapCandidateRecovery(app);
-    await bootstrapGraphReconciliation(app);
-  }
+  if (shouldBootApiRuntime(mode)) await bootstrapGraphReconciliation(app);
 
   await runWorkerSequence(app, mode);
   Object.freeze(app.skillShareer);

@@ -79,7 +79,6 @@
     "@trapmap/service-job-runtime": "workspace:*",
     "@trapmap/service-knowledge-read": "workspace:*",
     "@trapmap/service-knowledge-write": "workspace:*",
-    "@trapmap/runtime-infra": "workspace:*",
     "fastify": "^5.6.1",
     "pg": "8.20.0"
   },

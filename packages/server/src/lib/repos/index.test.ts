@@ -39,11 +39,8 @@ describe('createAllRepos', () => {
 
     expect(repos).toHaveProperty('knowledge');
     expect(repos).toHaveProperty('artifact');
-    expect(repos).toHaveProperty('candidate');
     expect(repos).toHaveProperty('usageAnalytics');
     expect(repos).toHaveProperty('feedback');
-    expect(repos).toHaveProperty('duplicate');
-    expect(repos).toHaveProperty('lineage');
     expect(repos).toHaveProperty('graphIndex');
 
     expect(repos).not.toHaveProperty('session');
@@ -52,7 +49,7 @@ describe('createAllRepos', () => {
     expect(repos).not.toHaveProperty('membership');
     expect(repos).not.toHaveProperty('user');
     expect(repos).not.toHaveProperty('audit');
-    expect(Object.keys(repos)).toHaveLength(9);
+    expect(Object.keys(repos)).toHaveLength(6);
   });
 
   it('each property is an object with expected methods', async () => {
@@ -62,12 +59,8 @@ describe('createAllRepos', () => {
     expect(typeof repos.knowledge.getById).toBe('function');
     // Spot-check: feedback has insert
     expect(typeof repos.feedback.insert).toBe('function');
-    // Spot-check: lineage has listBySource
-    expect(typeof repos.lineage.listBySource).toBe('function');
     // Spot-check: graphIndex has upsert
     expect(typeof repos.graphIndex.upsert).toBe('function');
-    // Spot-check: duplicate has listByCandidate
-    expect(typeof repos.duplicate.listByCandidate).toBe('function');
   });
 
   it('works without pool (JSON mode) — usageAnalytics is populated', async () => {

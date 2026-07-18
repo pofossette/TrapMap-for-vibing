@@ -15,26 +15,17 @@ import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contra
 import type { Pool } from 'pg';
 
 import type { UsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
-import type { CandidateRepository } from '@trapmap/server/lib/candidates/index.js';
 import type { ConflictRepository } from '@trapmap/server/lib/conflict/repository.js';
-import type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
 import type { FeedbackRepository } from '@trapmap/server/lib/feedback/index.js';
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/index.js';
-import type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 import { createUsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
-import { createCandidateRepository } from '@trapmap/server/lib/candidates/index.js';
 import { createConflictRepository } from '@trapmap/server/lib/conflict/repository.js';
-import { createDuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
 import { createFeedbackRepository } from '@trapmap/server/lib/feedback/index.js';
 import { createGraphIndexRepository } from '@trapmap/server/lib/graph-index/index.js';
-import { createLineageRepository } from '@trapmap/server/lib/lineage/index.js';
 
-export type { CandidateRepository } from '@trapmap/server/lib/candidates/index.js';
-export type { DuplicateRepository } from '@trapmap/server/lib/duplicates/index.js';
 export type { FeedbackRepository } from '@trapmap/server/lib/feedback/index.js';
-export type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
 
 /**
  * Unified repository object containing all domain repositories.
@@ -43,12 +34,9 @@ export type { LineageRepository } from '@trapmap/server/lib/lineage/index.js';
 export interface SkillShareerRepos {
   knowledge: KnowledgeOwnerPort;
   artifact: ArtifactReadProjection;
-  candidate: CandidateRepository;
   conflict: ConflictRepository;
   usageAnalytics: UsageAnalyticsRepository;
   feedback: FeedbackRepository;
-  duplicate: DuplicateRepository;
-  lineage: LineageRepository;
   graphIndex: GraphIndexRepository;
 }
 
@@ -69,17 +57,12 @@ export async function createAllRepos(config: {
     ? await createUsageAnalyticsRepository({ pool: config.pool })
     : createInMemoryUsageAnalyticsRepository();
 
-  const duplicate = createDuplicateRepository(config);
-
   const repositories: SkillShareerRepos = {
     knowledge: config.knowledgeOwner,
     artifact: config.artifactReadProjection,
-    candidate: createCandidateRepository({ ...config, duplicateRepo: duplicate }),
     conflict: createConflictRepository(config),
     usageAnalytics,
     feedback: createFeedbackRepository(config),
-    duplicate,
-    lineage: createLineageRepository(config),
     graphIndex: createGraphIndexRepository(config),
   };
   return repositories;

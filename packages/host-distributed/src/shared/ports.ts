@@ -10,7 +10,6 @@ import { randomUUID } from 'node:crypto';
 import type { Pool } from 'pg';
 
 import type {
-  CandidateRepositoryPort,
   FeedbackRepositoryPort,
   KnowledgeEntryRecord,
   KnowledgeReadProjectionPort,
@@ -21,12 +20,7 @@ import type {
   TaskQueuePort,
   AuditLogPort,
 } from '@trapmap/backend-core';
-import type {
-  AnalysisSnapshot,
-  DuplicateCase,
-  LifecycleState,
-  ManualResultSubmission,
-} from '@trapmap/contracts';
+import type { LifecycleState } from '@trapmap/contracts';
 import type { DatabaseWriteService } from './database-ownership.js';
 import { withDatabaseWriteGuard } from './database-ownership.js';
 
@@ -118,176 +112,6 @@ function createPgKnowledgeReadProjection(
         fallback: 'none',
         surfaces: [],
       };
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Candidate repository
-// ---------------------------------------------------------------------------
-
-function createPgCandidateRepo(pool: Pool): CandidateRepositoryPort {
-  return {
-    async insert(candidate) {
-      await pool.query(
-        `INSERT INTO candidates (id, source_type, submitted_by, team_id, status, original_payload, received_at, retry_count)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [
-          candidate.id,
-          candidate.sourceType,
-          candidate.submittedBy,
-          candidate.teamId ?? null,
-          candidate.status ?? 'received',
-          JSON.stringify(candidate.originalPayload),
-          candidate.receivedAt ?? new Date().toISOString(),
-          candidate.retryCount ?? 0,
-        ],
-      );
-    },
-    async getById(candidateId) {
-      const { rows } = await pool.query('SELECT * FROM candidates WHERE id = $1', [candidateId]);
-      return (
-        (rows[0] as CandidateRepositoryPort extends { getById(id: string): Promise<infer R> }
-          ? R
-          : never) ?? null
-      );
-    },
-    async updateStatus(candidateId, status, error) {
-      await pool.query(
-        'UPDATE candidates SET status = $2, error = $3, updated_at = NOW() WHERE id = $1',
-        [candidateId, status, error ?? null],
-      );
-    },
-    async attachAnalysis(candidateId, snapshot: AnalysisSnapshot) {
-      await pool.query(
-        'UPDATE candidates SET analysis_snapshot = $2, updated_at = NOW() WHERE id = $1',
-        [candidateId, JSON.stringify(snapshot)],
-      );
-      await pool.query(
-        `INSERT INTO candidate_analyses (
-           candidate_id, normalized_at, fingerprint, keywords, tokens, duplicate_trace
-         )
-         VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT (candidate_id) DO UPDATE SET
-           normalized_at = EXCLUDED.normalized_at,
-           fingerprint = EXCLUDED.fingerprint,
-           keywords = EXCLUDED.keywords,
-           tokens = EXCLUDED.tokens,
-           duplicate_trace = EXCLUDED.duplicate_trace`,
-        [
-          candidateId,
-          snapshot.normalizedAt,
-          snapshot.fingerprint,
-          JSON.stringify(snapshot.keywords),
-          JSON.stringify(snapshot.tokens),
-          snapshot.duplicateTrace ? JSON.stringify(snapshot.duplicateTrace) : null,
-        ],
-      );
-    },
-    async attachDuplicateCase(candidateId, duplicateCase: DuplicateCase) {
-      await pool.query(
-        'UPDATE candidates SET duplicate_case = $2, updated_at = NOW() WHERE id = $1',
-        [candidateId, JSON.stringify(duplicateCase)],
-      );
-      await pool.query(
-        `INSERT INTO candidate_duplicate_cases (
-           id, candidate_id, detected_at, detection_version, highest_similarity, has_exact_duplicate, duplicate_type
-         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (id) DO UPDATE SET
-           candidate_id = EXCLUDED.candidate_id,
-           detected_at = EXCLUDED.detected_at,
-           detection_version = EXCLUDED.detection_version,
-           highest_similarity = EXCLUDED.highest_similarity,
-           has_exact_duplicate = EXCLUDED.has_exact_duplicate,
-           duplicate_type = EXCLUDED.duplicate_type`,
-        [
-          duplicateCase.id,
-          candidateId,
-          duplicateCase.detectedAt,
-          duplicateCase.detectionVersion,
-          duplicateCase.highestSimilarity,
-          duplicateCase.hasExactDuplicate ? 1 : 0,
-          duplicateCase.duplicateType,
-        ],
-      );
-      await pool.query('DELETE FROM candidate_duplicate_matches WHERE duplicate_case_id = $1', [
-        duplicateCase.id,
-      ]);
-      for (const match of duplicateCase.matches) {
-        await pool.query(
-          `INSERT INTO candidate_duplicate_matches (
-             duplicate_case_id, entity_type, entity_id, entity_title, similarity_score, match_type, shared_keywords, shared_tokens, text_overlap_percent
-           )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-          [
-            duplicateCase.id,
-            match.entityType,
-            match.entityId,
-            match.entityTitle,
-            match.similarityScore,
-            match.matchType,
-            JSON.stringify(match.overlapDetails.sharedKeywords),
-            JSON.stringify(match.overlapDetails.sharedTokens),
-            match.overlapDetails.textOverlapPercent,
-          ],
-        );
-      }
-    },
-    async attachManualResult(candidateId, result: ManualResultSubmission, reviewedBy) {
-      const manualResult = {
-        ...result,
-        submittedBy: reviewedBy,
-        submittedAt: new Date().toISOString(),
-      };
-      await pool.query(
-        'UPDATE candidates SET manual_result = $2, updated_at = NOW() WHERE id = $1',
-        [candidateId, JSON.stringify(manualResult)],
-      );
-      await pool.query(
-        `INSERT INTO candidate_manual_results (
-           candidate_id, decision, notes, merged_with_entity_type, merged_with_entity_id, merged_with_entity_title, submitted_at, submitted_by_user_id
-         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         ON CONFLICT (candidate_id) DO UPDATE SET
-           decision = EXCLUDED.decision,
-           notes = EXCLUDED.notes,
-           merged_with_entity_type = EXCLUDED.merged_with_entity_type,
-           merged_with_entity_id = EXCLUDED.merged_with_entity_id,
-           merged_with_entity_title = EXCLUDED.merged_with_entity_title,
-           submitted_at = EXCLUDED.submitted_at,
-           submitted_by_user_id = EXCLUDED.submitted_by_user_id`,
-        [
-          candidateId,
-          result.decision,
-          result.notes,
-          result.mergedWith?.entityType ?? null,
-          result.mergedWith?.entityId ?? null,
-          result.mergedWith?.entityTitle ?? null,
-          manualResult.submittedAt,
-          reviewedBy,
-        ],
-      );
-    },
-    async listByStatus(status) {
-      const { rows } = await pool.query(
-        'SELECT * FROM candidates WHERE status = $1 ORDER BY created_at DESC LIMIT 100',
-        [status],
-      );
-      return rows as never[];
-    },
-    async markResolved(candidateId, resolvedBy) {
-      await pool.query(
-        'UPDATE candidates SET status = $2, resolved_by = $3, resolved_at = NOW() WHERE id = $1',
-        [candidateId, 'resolved', resolvedBy],
-      );
-    },
-    async findByFingerprint(fingerprint) {
-      const { rows } = await pool.query(
-        'SELECT id FROM candidates WHERE fingerprint = $1 LIMIT 1',
-        [fingerprint],
-      );
-      return (rows[0] as { id: string } | undefined)?.id ?? null;
     },
   };
 }
@@ -580,11 +404,6 @@ export function createServicePorts(
   identity: Pick<ServicePortImplementations, 'auditLog'>,
 ): ServicePortImplementations {
   const knowledgeProjection = createPgKnowledgeReadProjection(pool);
-  const candidateRepo = withDatabaseWriteGuard(
-    createPgCandidateRepo(pool),
-    serviceName,
-    'candidate',
-  );
   const feedbackRepo = withDatabaseWriteGuard(createPgFeedbackRepo(pool), serviceName, 'knowledge');
   const taskQueue = createPgTaskQueue(pool);
   const outbox = createPgOutbox(pool);
@@ -592,7 +411,6 @@ export function createServicePorts(
   return {
     repos: {
       knowledge: knowledgeProjection,
-      candidate: candidateRepo,
       feedback: feedbackRepo,
     },
     auditLog: identity.auditLog,

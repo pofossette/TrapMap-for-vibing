@@ -32,6 +32,7 @@ export {
   type CandidateProcessingRuntimeDeps,
   type CandidateRecoveryDeps,
 } from './processing.js';
+export { createCandidateProcessingTaskQueue } from './processing-task-queue.js';
 export { registerCandidateIngestionRoutes } from './routes.js';
 export {
   createCandidateIngestionServer,
