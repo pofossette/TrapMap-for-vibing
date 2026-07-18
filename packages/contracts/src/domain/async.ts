@@ -26,6 +26,7 @@ export const asyncJobTaskTypeSchema = z.enum([
   'skill.index-follow-up',
   'feedback.remediation-reactivation',
   'feedback.badcase-export-draft',
+  'governance.conflict-detection',
 ]);
 
 export const asyncContractOrderingRequirementSchema = z.enum([
@@ -274,12 +275,20 @@ export const badcaseExportDraftPayloadSchema = z
   })
   .strict();
 
+export const governanceConflictDetectionPayloadSchema = z
+  .object({
+    entryId: entityIdSchema,
+    sourceEventId: entityIdSchema,
+  })
+  .strict();
+
 export const sharedJobPayloadSchemaMap = {
   candidate_processing: candidateProcessingPayloadSchema,
   'knowledge.index-follow-up': knowledgeIndexFollowUpPayloadSchema,
   'skill.index-follow-up': skillIndexFollowUpPayloadSchema,
   'feedback.remediation-reactivation': remediationReactivationPayloadSchema,
   'feedback.badcase-export-draft': badcaseExportDraftPayloadSchema,
+  'governance.conflict-detection': governanceConflictDetectionPayloadSchema,
 } satisfies Record<z.infer<typeof asyncJobTaskTypeSchema>, z.ZodTypeAny>;
 
 export const asyncEventContractSchema = z
@@ -306,9 +315,17 @@ export const sharedJobContractSchema = z
           'feedback-remediation',
           'skill-artifact',
           'feedback-badcase',
+          'conflict-relation',
         ]),
         subjectIdField: z.string().min(1).max(120),
-        subjectType: z.enum(['candidate', 'trap', 'skill', 'feedback', 'trap-or-skill']),
+        subjectType: z.enum([
+          'candidate',
+          'trap',
+          'skill',
+          'feedback',
+          'trap-or-skill',
+          'knowledge-entry',
+        ]),
       })
       .strict(),
     idempotencyKey: asyncIdempotencyKeySchema,
@@ -755,6 +772,43 @@ export const sharedJobContracts = {
     ],
     crossesServiceBoundaryLater: false,
   }),
+  'governance.conflict-detection': defineSharedJobContract({
+    taskType: 'governance.conflict-detection',
+    payloadSchema: governanceConflictDetectionPayloadSchema,
+    owner: {
+      owner: 'conflict-relation',
+      subjectIdField: 'entryId',
+      subjectType: 'knowledge-entry',
+    },
+    idempotencyKey: {
+      description:
+        'One conflict detection task per approved entry and source event; duplicate delivery is safe.',
+      format: 'governance.conflict-detection:<entryId>:<sourceEventId>',
+    },
+    payloadDescription:
+      'Governance-owned conflict detection input for one approved knowledge entry.',
+    ordering: 'per-transition',
+    retryPolicy: {
+      maxAttempts: 5,
+      backoff: 'exponential',
+      deadLetterStepName: 'dead-letter',
+      deadLetterMeaning:
+        'Conflict detection exhausted retries and the governance conflict projection may be stale.',
+      operatorAction:
+        'Inspect the governance workflow and queue dead letter, repair the dependency, then replay the task.',
+    },
+    downstreamConsumers: [
+      {
+        name: 'governance-review-conflict-worker',
+        purpose: 'Detect and persist canonical conflict relations',
+      },
+      {
+        name: 'knowledge-read-projection',
+        purpose: 'Expose conflict hints to retrieval after owner projection convergence',
+      },
+    ],
+    crossesServiceBoundaryLater: true,
+  }),
 } satisfies { [TTaskType in AsyncJobTaskType]: SharedJobContract<TTaskType> };
 
 export function getAsyncEventContract<TEventName extends AsyncEventName>(
@@ -798,6 +852,9 @@ export type KnowledgeIndexFollowUpPayload = z.infer<typeof knowledgeIndexFollowU
 export type RemediationReactivationPayload = z.infer<typeof remediationReactivationPayloadSchema>;
 export type SkillIndexFollowUpPayload = z.infer<typeof skillIndexFollowUpPayloadSchema>;
 export type BadcaseExportDraftPayload = z.infer<typeof badcaseExportDraftPayloadSchema>;
+export type GovernanceConflictDetectionPayload = z.infer<
+  typeof governanceConflictDetectionPayloadSchema
+>;
 export type AsyncEventContract<TEventName extends AsyncEventName = AsyncEventName> = {
   eventName: TEventName;
   payloadSchema: (typeof asyncEventPayloadSchemaMap)[TEventName];

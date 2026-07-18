@@ -9,6 +9,7 @@ import {
   feedbackRemediationTriggeredEventPayloadSchema,
   getAsyncEventContract,
   getSharedJobContract,
+  governanceConflictDetectionPayloadSchema,
   knowledgeApprovedEventPayloadSchema,
   readModelRefreshRequestedEventPayloadSchema,
   remediationReactivationPayloadSchema,
@@ -53,6 +54,7 @@ describe('async contract catalog', () => {
       'skill.index-follow-up',
       'feedback.remediation-reactivation',
       'feedback.badcase-export-draft',
+      'governance.conflict-detection',
     ] as const;
 
     expect(Object.keys(sharedJobContracts).sort()).toEqual([...taskTypes].sort());
@@ -63,6 +65,15 @@ describe('async contract catalog', () => {
         sharedJobContracts[taskType].payloadSchema,
       );
     }
+
+    const conflictContract = getSharedJobContract('governance.conflict-detection');
+    expect(conflictContract.owner.owner).toBe('conflict-relation');
+    expect(conflictContract.ordering).toBe('per-transition');
+    expect(conflictContract.retryPolicy).toMatchObject({
+      maxAttempts: 5,
+      backoff: 'exponential',
+      deadLetterStepName: 'dead-letter',
+    });
   });
 
   it('returns typed event contracts by name', () => {
@@ -123,6 +134,18 @@ describe('async event payload schemas', () => {
 });
 
 describe('shared job payload schemas', () => {
+  it('accepts and requires a governance conflict detection payload', () => {
+    const payload = governanceConflictDetectionPayloadSchema.parse({
+      entryId: 'entry-1',
+      sourceEventId: 'event-1',
+    });
+
+    expect(payload).toEqual({ entryId: 'entry-1', sourceEventId: 'event-1' });
+    expect(() =>
+      governanceConflictDetectionPayloadSchema.parse({ sourceEventId: 'event-1' }),
+    ).toThrow();
+  });
+
   it('accepts candidate processing payloads with retry metadata', () => {
     const result = candidateProcessingPayloadSchema.parse({
       candidateId: 'candidate-1',

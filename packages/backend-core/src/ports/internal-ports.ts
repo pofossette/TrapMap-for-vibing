@@ -9,9 +9,14 @@
  * and remote RPC invocation (distributed host) through the same interface.
  */
 
-import type { CandidateStatus, CandidateSubmission } from '@trapmap/contracts';
+import type {
+  CandidateStatus,
+  CandidateSubmission,
+  ConflictRelation,
+  GovernanceConflictDetectionPayload,
+} from '@trapmap/contracts';
 
-import type { KnowledgeEntryRecord } from './repo-ports.js';
+import type { FeedbackQueueRecord, KnowledgeEntryRecord } from './repo-ports.js';
 import type { ReadModelProjectionStatus, RetrievalSearchResponse } from './retrieval-ports.js';
 
 // ---------------------------------------------------------------------------
@@ -208,6 +213,33 @@ export interface ReviewPort {
 
 export type GovernanceReviewPort = ReviewPort;
 
+export interface GovernanceConflictEntry {
+  id: string;
+  shortcut: string;
+  detail: string;
+  lifecycleState: 'approved';
+}
+
+export interface GovernanceConflictCandidateSet {
+  entry: GovernanceConflictEntry;
+  candidates: GovernanceConflictEntry[];
+}
+
+export interface GovernanceConflictReadPort {
+  getApprovedConflictCandidates(entryId: string): Promise<GovernanceConflictCandidateSet | null>;
+}
+
+export interface GovernanceConflictWorkflowPort {
+  detectConflicts(input: {
+    entryId: GovernanceConflictDetectionPayload['entryId'];
+  }): Promise<{ detectedCount: number }>;
+}
+
+export interface GovernanceRetrievalProjection {
+  listFeedback(): Promise<FeedbackQueueRecord[]>;
+  listConflicts(entryIds: string[]): Promise<ConflictRelation[]>;
+}
+
 // ---------------------------------------------------------------------------
 // Job Runtime port
 // ---------------------------------------------------------------------------
@@ -224,6 +256,7 @@ export interface JobRuntimePort {
       delayMs?: number;
       priority?: number;
       maxAttempts?: number;
+      dedupeKey?: string;
     },
   ): Promise<string>;
 
