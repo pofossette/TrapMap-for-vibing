@@ -108,6 +108,12 @@ Wave-2 owner closeout（2026-07-16）：`service-knowledge-write` 的事务、�
 
 本轮 owner-domain 增量：candidate duplicate detector 现通过 service-local `CandidateCorpusReadPort` 读取获批 corpus，不导入 knowledge/artifact service 实现或直读其表；exact duplicate 的 fingerprint、analysis snapshot 与 case 都由 candidate owner 生成。candidate resolution、manual-result 与 publish internal routes 仅接受 gateway 的 `x-trapmap-actor-id`，缺失 trusted actor 返回 401，body actor 与该身份不一致返回 403；distributed gateway 以认证 actor 覆盖 body 值并转发该 header。TDD RED 为未传身份时 route 返回 200；修复后 candidate owner focused suite（26 tests）、gateway routes（23 tests）和 package typecheck 通过。Fallow 的增量缓存偶发 `unable to open database file`；使用 `rtk pnpm exec fallow audit --base wave1-fallow-base --gate new-only --format json --quiet --explain --no-cache --output-file /tmp/wave3-foundation-fallow.json` 可稳定完成，报告新增 dead-code、boundary、complexity 均为 `0`，仍有 12 个新增 duplication group。这些重复来自 owner-local schema/PG subtable mapping 与尚未删除的 Wave-3 compatibility 实现并存，因此不通过且不可作为 Wave-3 closeout evidence。该增量不改变 Wave-3 未完成判断：legacy worker、公开 gateway compatibility、server/runtime-infra 删除与 distributed/host-local acceptance 仍待完成。
 
+## Task 5 — Wave-4 in-progress evidence
+
+`service-governance-review` 现提供 owner-local `createGovernanceReviewPgOwnerBundle()`；feedback queue 的 PostgreSQL port 由 service package 创建，distributed governance host 与 host-local Nest composition 均只注入该 owner bundle。`host-distributed/shared/ports.ts` 不再构造或暴露 feedback repository，host-local 也已删除将 compatibility `HostLocalRepos['feedback']` 适配为 backend-core port 的实现。最终知识 mutation 仍仅由既有 `KnowledgeWritePort` delegation 执行。
+
+本轮以 owner-local PG bundle test 作为 RED，但当前 worktree 缺少 `node_modules`，`rtk pnpm --filter @trapmap/service-governance-review test --run src/pg-ports.test.ts` 与 `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts` 都在 Vitest 启动前报 `Command "vitest" not found`，不可计为产品失败。`rtk pnpm typecheck`、`rtk pnpm check:docs-drift`（46 rules）、`rtk pnpm check:structure` 与 `rtk git diff --check` 通过；Fallow 命令退出成功但明确警告无 `node_modules`，因此不能作为 boundary closeout evidence。Wave-4 仍未完成：server feedback/conflict/admin/remediation compatibility route、runtime-infra aggregate、snapshot/badcase allowlist 和 production retirement guard 仍待迁移/删除；不得将 `wave-4` 加入 `completedOwnerWaves`。
+
 ## Deferred 边界
 
 平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。
