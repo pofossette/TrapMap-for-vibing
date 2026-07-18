@@ -11,6 +11,10 @@ import {
   type ArtifactWritePort,
   type KnowledgeWriteOwnerBundle,
 } from '@trapmap/service-knowledge-write';
+import {
+  createGovernanceReviewPgOwnerBundle,
+  type GovernanceReviewPgOwnerBundle,
+} from '@trapmap/service-governance-review';
 import { getStorePool } from '@trapmap/runtime-infra';
 
 import type { HostLocalConfig } from '../config/index.js';
@@ -48,6 +52,7 @@ export interface HostLocalServices {
   candidateIngestion: CandidateIngestionPgOwnerBundle;
   candidateCorpus: CandidateCorpusReadPort;
   knowledgeWrite: KnowledgeWriteOwnerBundle;
+  governanceReview: GovernanceReviewPgOwnerBundle;
   knowledgeOwner: KnowledgeOwnerPort;
   artifactWriter: ArtifactWritePort;
   artifactReadProjection: ArtifactReadProjection;
@@ -71,6 +76,7 @@ export async function createHostLocalServices(
   const candidateIngestion = createCandidateIngestionPgOwnerBundle(pool);
   const candidateCorpus: CandidateCorpusReadPort = createCandidateCorpusPgReadPort(pool);
   const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
+  const governanceReview = createGovernanceReviewPgOwnerBundle(pool);
 
   const services: HostLocalServices = {
     config,
@@ -87,6 +93,7 @@ export async function createHostLocalServices(
     candidateIngestion,
     candidateCorpus,
     knowledgeWrite,
+    governanceReview,
     knowledgeOwner: knowledgeWrite.knowledgeOwner,
     artifactWriter: knowledgeWrite.artifactWriter,
     artifactReadProjection: knowledgeWrite.artifactReadProjection,

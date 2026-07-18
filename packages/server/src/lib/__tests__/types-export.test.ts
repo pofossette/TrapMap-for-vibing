@@ -48,10 +48,6 @@ import type {
 
 import type { MergedCandidate, RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
 
-import type {
-  CandidateFingerprintInput,
-  DuplicateDetectionInput,
-} from '@trapmap/server/lib/candidates/types.js';
 
 import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
 
@@ -97,7 +93,6 @@ describe('Direct Type Export Verification', () => {
     const _governance: GovernanceContext = {} as GovernanceContext;
     const _index: NormalizedIndexDocument = {} as NormalizedIndexDocument;
     const _recall: RecallCandidate = {} as RecallCandidate;
-    const _candidateInput: CandidateFingerprintInput = {} as CandidateFingerprintInput;
     const _auth: ResolvedAuthContext = {} as ResolvedAuthContext;
 
     expect(true).toBe(true);

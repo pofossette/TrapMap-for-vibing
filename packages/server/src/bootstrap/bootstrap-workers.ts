@@ -1,14 +1,10 @@
 /**
- * Bootstrap workers — create and start the task worker for candidate processing.
- *
- * Runs AFTER repositories are initialized so that repos.candidate is available
- * for the candidate processing handler.
+ * Bootstrap workers for compatibility-shell shared jobs.
  */
 
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 
-import { createCandidateProcessingHandler } from '@trapmap/server/lib/candidates/index.js';
 import { buildSharedJobHandlersContract } from '@trapmap/server/lib/jobs/index.js';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
 import { createTaskWorker } from '@trapmap/server/lib/queue/task-worker.js';
@@ -16,7 +12,6 @@ import { type SkillShareerStore, getStorePool } from '@trapmap/server/lib/store.
 
 export interface BootstrapWorkersOptions {
   enabled?: boolean;
-  ownCandidateTaskWork?: boolean;
   ownSharedJobTaskWork?: boolean;
 }
 
@@ -76,7 +71,6 @@ export async function bootstrapWorkers(
   const store = app.skillShareer.store;
   const {
     enabled = true,
-    ownCandidateTaskWork = enabled,
     ownSharedJobTaskWork = enabled,
   } = options;
 
@@ -86,24 +80,9 @@ export async function bootstrapWorkers(
 
   const taskTransport = app.skillShareer.asyncTransport?.task;
 
-  const handler = createCandidateProcessingHandler({
-    store,
-    getSnapshot: () => store.snapshot(),
-    pool,
-    // Use PG-based duplicate detection if embeddings are configured
-    usePgDuplicateDetection: () => app.skillShareer.ai.embeddings.isConfigured,
-    // candidate processing via PG repository
-    candidateRepo: app.skillShareer.repos.candidate,
-    // LLM-based duplicate adjudication
-    chat: app.skillShareer.ai.chat,
-  });
-
   if (taskTransport?.kind === 'rabbitmq-task-queue' && taskTransport.createConsumer) {
     const consumer = await taskTransport.createConsumer({
-      handlers: [
-        handler as TaskHandler<unknown>,
-        ...buildSharedJobWorkerHandlers(app, store, pool),
-      ],
+      handlers: buildSharedJobWorkerHandlers(app, store, pool),
       ownsWork: enabled,
     });
 
@@ -122,18 +101,6 @@ export async function bootstrapWorkers(
   }
 
   const taskWorkers = [
-    {
-      key: 'candidateTaskWorker',
-      label: 'candidate',
-      shouldOwn: ownCandidateTaskWork,
-      worker: createTaskWorker({
-        pool,
-        handlers: [handler as TaskHandler<unknown>],
-        pollIntervalMs: 1000,
-        concurrency: 1,
-        ownsWork: ownCandidateTaskWork,
-      }),
-    },
     {
       key: 'sharedJobTaskWorker',
       label: 'shared-async-job',

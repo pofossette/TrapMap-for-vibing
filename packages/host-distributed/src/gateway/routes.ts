@@ -887,14 +887,18 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
   });
 
   app.post('/v1/feedback', async (request: FastifyRequest, reply: FastifyReply) => {
-    const body = request.body as {
+    const trusted = readTrustedBody<{
       entryId: string;
       problemType: string;
       description: string;
-      actorId: string;
-    };
+      [key: string]: unknown;
+    }>(request, reply, ['entryId', 'problemType', 'description']);
+    if (!trusted) return;
     try {
-      const result = await clients.review.submitFeedback(body);
+      const result = await clients.review.submitFeedback(
+        { ...trusted.body, actorId: trusted.actorId },
+        trustedActorOptions(request),
+      );
       return forwardResponse(reply, result);
     } catch (err: unknown) {
       request.log.error({ err }, 'governance-review submitFeedback failed');

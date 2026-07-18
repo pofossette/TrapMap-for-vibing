@@ -72,7 +72,7 @@ export class CandidateReviewController {
     @Req() request: AuthenticatedRequest,
   ) {
     const auth = request.authContext!;
-    const candidate = await this.runtime.services.candidateIngestion.candidateRepo.getById(candidateId);
+    const candidate = await this.candidateIngestion.getById(candidateId);
     if (!candidate?.manualResult) {
       return {
         candidateId,
@@ -83,7 +83,7 @@ export class CandidateReviewController {
 
     await this.candidateIngestion.applyResolution(candidateId, candidate.manualResult, auth.actorId);
 
-    const resolvedCandidate = await this.runtime.services.candidateIngestion.candidateRepo.getById(candidateId);
+    const resolvedCandidate = await this.candidateIngestion.getById(candidateId);
 
     return {
       candidateId,

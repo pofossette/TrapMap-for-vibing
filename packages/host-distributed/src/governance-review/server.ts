@@ -1,8 +1,8 @@
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
-import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
 import {
+  createGovernanceReviewPgOwnerBundle,
   type GovernanceReviewServer,
   createGovernanceReviewServer as createServiceGovernanceReviewServer,
 } from '@trapmap/service-governance-review';
@@ -14,9 +14,9 @@ export async function createServer(
   config: ServiceConfig,
   db: ServiceDatabase,
 ): Promise<GovernanceReviewServer> {
+  const owner = createGovernanceReviewPgOwnerBundle(db.pool);
   const identity = createIdentityAccessPgDeps(db.pool, { systemAdminKey: config.systemAdminKey });
-  const ports = createServicePorts(db.pool, config.serviceName, identity);
-  const deps = createGovernanceReviewDeps(ports, config);
+  const deps = createGovernanceReviewDeps(owner, config, identity);
   const server = await createServiceGovernanceReviewServer(config, deps, {
     checkDependency: async () => {
       const health = await db.healthCheck();
@@ -40,8 +40,8 @@ export async function createServer(
     getOperatorStatus: async () => {
       const [persistence, queue, outbox] = await Promise.all([
         db.healthCheck(),
-        ports.asyncDiagnostics.task.getStatusSnapshot(),
-        ports.asyncDiagnostics.outbox.getStatusSnapshot(),
+        Promise.resolve({ provider: 'job-runtime', pending: null, running: null, dead: null }),
+        Promise.resolve({ provider: 'job-runtime', pending: null, processing: null, failed: null }),
       ]);
       return {
         persistence,

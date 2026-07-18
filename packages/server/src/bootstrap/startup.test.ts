@@ -1,113 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { buildPostgresTestServer as buildServer } from '../../../../scripts/testing/server-test-composition.js';
 import { getArtifactAdapters } from '@trapmap/server/lib/indexing/artifact-pipeline.js';
-import { bootstrapCandidateRecovery } from './bootstrap-candidate-recovery.js';
 import { bootstrapLifecycle } from './bootstrap-lifecycle.js';
 
 const DATABASE_URL = process.env.TRAPMAP_DATABASE_URL || process.env.DATABASE_URL;
 const describeIfDb = DATABASE_URL ? describe : describe.skip;
 
 describe('startup sequence', () => {
-  it('initializes repos before candidate recovery', async () => {
-    const server = await buildServer();
-    const logSpy = vi.spyOn(server.log, 'error');
-
-    await server.ready();
-
-    expect(logSpy).not.toHaveBeenCalledWith(
-      expect.anything(),
-      'Failed to check for interrupted candidates',
-    );
-
-    await server.close();
-  });
-
-  it('fm-agent: bootstrapCandidateRecovery handles non-PostgresStore without PG task queue', async () => {
-    const mockStore = {
-      snapshot: async () =>
-        ({
-          candidateSubmissions: [
-            {
-              id: 'candidate_json_1',
-              sourceType: 'trap',
-              submittedBy: 'user_1',
-              teamId: null,
-              status: 'queued',
-              originalPayload: {
-                sourceType: 'trap',
-                payload: { scope: 'global', labels: ['test'], shortcut: 'Test', detail: 'Test' },
-              },
-              analysisSnapshot: null,
-              duplicateCase: null,
-              receivedAt: new Date().toISOString(),
-              queuedAt: new Date().toISOString(),
-              analyzingAt: null,
-              completedAt: null,
-              lastError: null,
-              retryCount: 0,
-              manualResult: null,
-            },
-          ],
-          /* eslint-disable @typescript-eslint/no-explicit-any */
-        }) as any,
-      transact: async <T>(mutator: (data: any) => Promise<T> | T): Promise<T> =>
-        mutator({
-          candidateSubmissions: [
-            {
-              id: 'candidate_json_1',
-              sourceType: 'trap',
-              submittedBy: 'user_1',
-              teamId: null,
-              status: 'queued',
-              originalPayload: {
-                sourceType: 'trap',
-                payload: { scope: 'global', labels: ['test'], shortcut: 'Test', detail: 'Test' },
-              },
-              analysisSnapshot: null,
-              duplicateCase: null,
-              receivedAt: new Date().toISOString(),
-              queuedAt: new Date().toISOString(),
-              analyzingAt: null,
-              completedAt: null,
-              lastError: null,
-              retryCount: 0,
-              manualResult: null,
-            },
-          ],
-        } as any),
-    };
-    /* eslint-enable @typescript-eslint/no-explicit-any */
-
-    const warnLogs: string[] = [];
-    const mockApp = {
-      skillShareer: {
-        store: mockStore,
-        repos: {
-          candidate: {
-            listByStatus: async () => [],
-            updateStatus: async () => {},
-          },
-        },
-      },
-      log: {
-        info: () => {},
-        warn: (msg: string) => {
-          warnLogs.push(msg);
-        },
-        error: () => {},
-      },
-    } as any;
-
-    await bootstrapCandidateRecovery(mockApp);
-
-    // Non-PG stores (JSON) reset candidates but re-enqueue is unavailable
-    // without PostgreSQL backend. This is intentional — JSON store mode
-    // is for development/testing and does not have task queue infrastructure.
-    // The warning log confirms the boundary is explicitly handled.
-    expect(warnLogs.length).toBeGreaterThan(0);
-  });
-
   it('fm-agent: bootstrapLifecycle registers audit subscribers for all lifecycle events', () => {
     const registeredEvents: string[] = [];
     const mockEventBus = {
@@ -225,20 +125,6 @@ describe('startup sequence', () => {
     await server.close();
   });
 
-  it('supports candidate-ingestion service unit booted as api plus worker combination', async () => {
-    const server = await buildServer({
-      runtimeMode: 'combined',
-      serviceUnit: 'candidate-ingestion',
-    });
-    await server.ready();
-
-    expect(server.skillShareer.serviceUnit).toBe('candidate-ingestion');
-    expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(true);
-    expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(false);
-
-    await server.close();
-  });
-
   it('supports knowledge-governance service unit booted as api plus worker combination', async () => {
     const server = await buildServer({
       runtimeMode: 'combined',
@@ -281,18 +167,6 @@ describeIfDb('startup sequence with postgres runtime modes', () => {
     await server.ready();
     expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(false);
     expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(true);
-    await server.close();
-  });
-
-  it('candidate-ingestion service unit owns only candidate task work in postgres deployments', async () => {
-    const server = await buildServer({
-      runtimeMode: 'task-worker',
-      serviceUnit: 'candidate-ingestion',
-      config: { databaseUrl: DATABASE_URL! } as any,
-    });
-    await server.ready();
-    expect((server as any).taskWorker?.ownsWork?.() ?? false).toBe(true);
-    expect((server as any).outboxWorker?.ownsWork?.() ?? false).toBe(false);
     await server.close();
   });
 

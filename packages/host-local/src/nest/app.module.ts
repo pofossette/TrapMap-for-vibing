@@ -26,9 +26,6 @@ import { OtelModule, PrometheusModule, LokiModule } from './observability/index.
 import { HealthModule } from './health/index.js';
 import { LifecycleModule } from './lifecycle/index.js';
 import { createHostLocalRuntime, HOST_LOCAL_RUNTIME_TOKEN } from './runtime/host-runtime.js';
-import {
-  createFeedbackRepoPort,
-} from './runtime/backend-core-adapters.js';
 import { RequestContextMiddleware } from './runtime/request-context.middleware.js';
 import { RequestContextService } from './runtime/request-context.service.js';
 
@@ -87,7 +84,7 @@ const knowledgeWriteModule = KnowledgeWriteModule.forTesting(knowledgeWritePort)
 const governanceReviewModule = GovernanceReviewModule.forDeps(
   createGovernanceReviewDeps({
     knowledgeWrite: knowledgeWritePort,
-    feedbackRepo: createFeedbackRepoPort(hostLocalRuntime.services.repos.feedback),
+    feedbackRepo: hostLocalRuntime.services.governanceReview.feedbackRepo,
     auditLog: hostLocalRuntime.auditLog,
   }),
 );

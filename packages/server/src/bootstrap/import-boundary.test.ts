@@ -7,7 +7,6 @@ const BOOTSTRAP_FILES = [
   'bootstrap-repositories.ts',
   'bootstrap-lifecycle.ts',
   'bootstrap-workers.ts',
-  'bootstrap-candidate-recovery.ts',
 ];
 
 describe('bootstrap import boundary', () => {

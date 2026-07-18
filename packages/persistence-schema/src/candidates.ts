@@ -7,7 +7,7 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, jsonb, pgTable, real, text, timestamp } from 'drizzle-orm/pg-core';
 
-import type { AnalysisSnapshot, CandidatePayload, DuplicateCase } from '@trapmap/contracts';
+import type { AnalysisSnapshot, CandidatePayload } from '@trapmap/contracts';
 import { auditTimestamps } from './column-factories.js';
 
 // =============================================================================
@@ -37,10 +37,6 @@ export const candidates = pgTable(
     status: text('status').notNull(),
     /** Original payload before any transformation */
     originalPayload: jsonb('original_payload').notNull().$type<CandidatePayload>(),
-    /** Analysis snapshot (null until analysis completes) */
-    analysisSnapshot: jsonb('analysis_snapshot').$type<AnalysisSnapshot | null>(),
-    /** Duplicate case (null if no duplicates detected) */
-    duplicateCase: jsonb('duplicate_case').$type<DuplicateCase | null>(),
     /** When the candidate was received */
     receivedAt: timestamp('received_at', { withTimezone: true }).notNull(),
     /** When the candidate was queued for processing */
@@ -53,8 +49,6 @@ export const candidates = pgTable(
     lastError: text('last_error'),
     /** Number of retry attempts */
     retryCount: integer('retry_count').notNull().default(0),
-    /** Manual result from reviewer (null if no manual review yet) */
-    manualResult: jsonb('manual_result'),
     ...auditTimestamps(),
   },
   (table) => [
@@ -247,7 +241,7 @@ export const candidateResolutionOutcomes = pgTable(
 /**
  * Entity lineage records for tracking provenance.
  * Links candidates to their final published or merged outcomes.
- * Replaces in-memory-only entityLineage array in store_snapshot.
+ * Replaces the legacy in-memory entity-lineage collection.
  */
 export const entityLineage = pgTable(
   'entity_lineage',

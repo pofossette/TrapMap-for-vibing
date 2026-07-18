@@ -5,7 +5,6 @@ import { accessKeyRoutes } from './access-keys.js';
 import { adminBenchmarkRoutes } from './admin-benchmark.js';
 import { adminBoundarySearchRoutes } from './admin-boundary-search.js';
 import { authRoutes } from './auth.js';
-import { candidateRoutes } from './candidates.js';
 import { decayRoutes } from './decay.js';
 import { evidenceRoutes } from './evidence.js';
 import { feedbackAdminRoutes } from './feedback-admin.js';
@@ -37,7 +36,6 @@ export async function registerCapabilityRoutes(app: FastifyInstance, config: Ser
   await app.register(accessKeyRoutes);
   await app.register(trapRoutes);
   await app.register(knowledgeRoutes);
-  await app.register(candidateRoutes);
 
   if (!capabilities.supportsReviewGovernance) {
     return;

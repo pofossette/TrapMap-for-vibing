@@ -16,6 +16,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@trapmap/contracts": "workspace:*",
     "@trapmap/server": "workspace:*",
     "@trapmap/persistence-schema": "workspace:*",
     "drizzle-orm": "^0.45.2",

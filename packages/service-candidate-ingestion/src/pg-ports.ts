@@ -73,15 +73,15 @@ function rowToCandidate(row: Row): CandidateSubmission {
     teamId: (row.team_id as string | null) ?? null,
     status: row.status as CandidateStatus,
     originalPayload: row.original_payload as CandidateSubmission['originalPayload'],
-    analysisSnapshot: (row.analysis_snapshot as AnalysisSnapshot | null) ?? null,
-    duplicateCase: (row.duplicate_case as DuplicateCase | null) ?? null,
+    analysisSnapshot: null,
+    duplicateCase: null,
     receivedAt: toIso(row.received_at),
     queuedAt: nullableIso(row.queued_at),
     analyzingAt: nullableIso(row.analyzing_at),
     completedAt: nullableIso(row.completed_at),
     lastError: (row.last_error as string | null) ?? null,
     retryCount: Number(row.retry_count ?? 0),
-    manualResult: (row.manual_result as CandidateSubmission['manualResult']) ?? null,
+    manualResult: null,
   };
 }
 
@@ -372,9 +372,9 @@ export function createCandidateIngestionPgOwnerBundle(pool: Pool): CandidateInge
       await withTransaction(pool, async (client) => {
         await client.query(
           `INSERT INTO candidates (
-             id, source_type, submitted_by_user_id, team_id, status, original_payload, analysis_snapshot,
-             duplicate_case, received_at, queued_at, analyzing_at, completed_at, last_error, retry_count, manual_result
-           ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb, $9, $10, $11, $12, $13, $14, $15::jsonb)
+             id, source_type, submitted_by_user_id, team_id, status, original_payload,
+             received_at, queued_at, analyzing_at, completed_at, last_error, retry_count
+           ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12)
            ON CONFLICT (id) DO NOTHING`,
           [
             candidate.id,
@@ -383,15 +383,12 @@ export function createCandidateIngestionPgOwnerBundle(pool: Pool): CandidateInge
             candidate.teamId,
             candidate.status,
             JSON.stringify(candidate.originalPayload),
-            candidate.analysisSnapshot ? JSON.stringify(candidate.analysisSnapshot) : null,
-            candidate.duplicateCase ? JSON.stringify(candidate.duplicateCase) : null,
             candidate.receivedAt,
             candidate.queuedAt,
             candidate.analyzingAt,
             candidate.completedAt,
             candidate.lastError,
             candidate.retryCount,
-            candidate.manualResult ? JSON.stringify(candidate.manualResult) : null,
           ],
         );
         if (candidate.analysisSnapshot)
@@ -438,10 +435,6 @@ export function createCandidateIngestionPgOwnerBundle(pool: Pool): CandidateInge
           [candidateId],
         );
         if (rows[0] && sameAnalysis(rowToAnalysis(rows[0] as Row), snapshot)) return;
-        await client.query(
-          'UPDATE candidates SET analysis_snapshot = $1::jsonb, updated_at = $2 WHERE id = $3',
-          [JSON.stringify(snapshot), new Date().toISOString(), candidateId],
-        );
         await writeAnalysis(client, candidateId, snapshot);
       });
     },
@@ -450,10 +443,6 @@ export function createCandidateIngestionPgOwnerBundle(pool: Pool): CandidateInge
         await lockCandidate(client, candidateId);
         const existing = await readDuplicateCaseFromClient(client, duplicateCase.id);
         if (existing && sameDuplicateCase(existing, duplicateCase)) return;
-        await client.query(
-          'UPDATE candidates SET duplicate_case = $1::jsonb, updated_at = $2 WHERE id = $3',
-          [JSON.stringify(duplicateCase), new Date().toISOString(), candidateId],
-        );
         await writeDuplicateCase(client, duplicateCase);
       });
     },
@@ -467,11 +456,6 @@ export function createCandidateIngestionPgOwnerBundle(pool: Pool): CandidateInge
         if (rows[0] && sameManualResult(rowToManualResult(rows[0] as Row), result, reviewedBy))
           return;
         const submittedAt = new Date().toISOString();
-        const manualResult = { ...result, submittedAt, submittedBy: reviewedBy };
-        await client.query(
-          'UPDATE candidates SET manual_result = $1::jsonb, updated_at = $2 WHERE id = $3',
-          [JSON.stringify(manualResult), submittedAt, candidateId],
-        );
         await writeManualResult(client, candidateId, result, reviewedBy, submittedAt);
       });
     },
