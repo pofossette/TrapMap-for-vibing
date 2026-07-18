@@ -53,7 +53,7 @@ interface AllowlistEntry {
   rationale: string;
 }
 
-const completedOwnerWaves: OwnerWave[] = ['wave-1', 'wave-2'];
+const completedOwnerWaves: OwnerWave[] = ['wave-1', 'wave-2', 'wave-3'];
 const POSTGRES_COMPOSITION_ENTRYPOINTS = [
   'scripts/export-retrieval-db-snapshot.ts',
   'evals/retrieval-live/lib/snapshot-orchestrator.ts',
@@ -219,30 +219,6 @@ const allowlist: AllowlistEntry[] = [
   ],
   ['packages/server/src/config.ts', 'JsonStore', 'wave-8', 'compatibility runtime capability'],
   [
-    'packages/server/src/lib/candidates/pg-repository/pg-candidate-repository.ts',
-    'store_snapshot',
-    'wave-3',
-    'candidate owner cutover removes the duplicate snapshot compatibility path',
-  ],
-  [
-    'packages/server/src/lib/candidates/processor.ts',
-    'JsonStore',
-    'wave-3',
-    'candidate worker cutover removes the JSON processing fallback',
-  ],
-  [
-    'packages/server/src/lib/candidates/repository.ts',
-    'store_snapshot',
-    'wave-3',
-    'candidate owner cutover removes the JSON compatibility repository',
-  ],
-  [
-    'packages/server/src/lib/candidates/repository.ts',
-    'JsonStore',
-    'wave-3',
-    'candidate owner cutover removes the JSON compatibility repository',
-  ],
-  [
     'packages/server/src/lib/feedback/pg-repository.ts',
     'store_snapshot',
     'wave-4',
@@ -259,12 +235,6 @@ const allowlist: AllowlistEntry[] = [
     'PostgresStore',
     'wave-9',
     'migration export fixture',
-  ],
-  [
-    'packages/server/src/lib/lineage/pg-repository.ts',
-    'store_snapshot',
-    'wave-3',
-    'candidate owner cutover removes the lineage snapshot compatibility path',
   ],
   [
     'packages/server/src/lib/persistence/backfill-indexes.ts',
@@ -307,12 +277,6 @@ const allowlist: AllowlistEntry[] = [
     'store_snapshot',
     'wave-9',
     'legacy snapshot schema export',
-  ],
-  [
-    'packages/persistence-schema/src/candidates.ts',
-    'store_snapshot',
-    'wave-3',
-    'candidate snapshot schema',
   ],
   [
     'packages/persistence-schema/src/knowledge.ts',
@@ -403,38 +367,6 @@ const allowlist: AllowlistEntry[] = [
   rationale,
 }));
 
-const WAVE_3_DELETION_CONTRACT = [
-  [
-    'candidate',
-    'packages/server/src/lib/candidates/repository.ts',
-    'JsonStore',
-    'candidate owner cutover removes the JSON compatibility repository',
-  ],
-  [
-    'candidate snapshot',
-    'packages/server/src/lib/candidates/repository.ts',
-    'store_snapshot',
-    'candidate owner cutover removes the JSON compatibility repository',
-  ],
-  [
-    'duplicate',
-    'packages/server/src/lib/candidates/pg-repository/pg-candidate-repository.ts',
-    'store_snapshot',
-    'candidate owner cutover removes the duplicate snapshot compatibility path',
-  ],
-  [
-    'lineage',
-    'packages/server/src/lib/lineage/pg-repository.ts',
-    'store_snapshot',
-    'candidate owner cutover removes the lineage snapshot compatibility path',
-  ],
-  [
-    'candidate worker',
-    'packages/server/src/lib/candidates/processor.ts',
-    'JsonStore',
-    'candidate worker cutover removes the JSON processing fallback',
-  ],
-] as const;
 const CANDIDATE_INGESTION_SCAN_ROOTS = [
   'packages/service-candidate-ingestion/src',
   'packages/host-distributed/src/candidate-ingestion',
@@ -729,15 +661,19 @@ describe('compatibility retirement guard', () => {
     ]);
   });
 
-  it('registers exact Wave-3 deletion contracts for candidate ownership', () => {
-    const entries = new Set(allowlist.map((entry) => `${entry.file}:${entry.symbol}`));
+  it('has no Wave-3 candidate ownership exceptions', () => {
+    expect(allowlist.filter((entry) => entry.ownerWave === 'wave-3')).toEqual([]);
+  });
 
-    for (const [, file, symbol, rationale] of WAVE_3_DELETION_CONTRACT) {
-      const entry = allowlist.find(
-        (candidate) => candidate.file === file && candidate.symbol === symbol,
-      );
-      expect(entry).toEqual({ file, symbol, ownerWave: 'wave-3', rationale });
-      expect(entries.has(`${file}:${symbol}`)).toBe(true);
+  it('has retired the server candidate, duplicate, and lineage implementations', () => {
+    for (const path of [
+      'packages/server/src/lib/candidates',
+      'packages/server/src/lib/duplicates',
+      'packages/server/src/lib/lineage',
+      'packages/server/src/routes/candidates',
+      'packages/server/src/bootstrap/bootstrap-candidate-recovery.ts',
+    ]) {
+      expect(existsSync(join(repoRoot, path))).toBe(false);
     }
   });
 

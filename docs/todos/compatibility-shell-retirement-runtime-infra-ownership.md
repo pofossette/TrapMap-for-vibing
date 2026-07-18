@@ -36,7 +36,7 @@
 | --- | --- |
 | wave-1 identity-access | `auth/users/teams/audit` 的旧 snapshot 注记与 identity migration fixture 已不再是 guard 例外；唯一允许的 snapshot 输入是 service-local `IdentityAccessSnapshotPort`，仅供 Task 9 backfill 使用。完整 repository aggregate 迁移仍未完成。 |
 | wave-2 knowledge-write | artifact/knowledge/lifecycle 的 `JsonStore` 与 snapshot fallback；PG-first write path 落地即删除。 |
-| wave-3 candidate-ingestion | candidate/lineage snapshot fallback；candidate owner 完成即删除。 |
+| wave-3 candidate-ingestion | 已完成：candidate/duplicate/lineage/processing 已完全归属 owner；无 guard allowlist、server/runtime-infra concrete implementation 或 snapshot fallback。 |
 | wave-4 governance-review | feedback snapshot 注记与 badcase export；governance owner 完成即删除。 |
 | wave-6 job-runtime | runtime-infra outbox bridge；job runtime 接管后删除。 |
 | wave-7 knowledge-read | retrieval schema 和 service knowledge-read 对 runtime-infra/server 的依赖；read owner 完成即删除。 |
@@ -100,11 +100,11 @@ Wave-2 owner closeout（2026-07-16）：`service-knowledge-write` 的事务、�
 
 最终部署证据受环境前置条件限制：`rtk pnpm test:deployment-smoke` 的 135 个非 PG tests 通过，但 app/startup PostgreSQL 阶段因 `/var/run/docker.sock` 不存在而未执行；`rtk pnpm eval:smoke` 因同一 Docker daemon 缺失退出。恢复 Docker daemon 后需重跑这两项，不能将本轮记录解释为 PG/eval 通过。
 
-## Task 5 — Wave-3 in-progress evidence
+## Task 5 — Wave-3 closeout evidence
 
-`service-candidate-ingestion` 现拥有 owner-local Drizzle candidate schema 和 `createCandidateIngestionPgOwnerBundle`。该 bundle 在单个 PostgreSQL transaction 中处理 candidate 状态、analysis、duplicate case/matches 和 manual result，并为 resolution outcome、lineage 提供幂等写入；重试不会重写既有状态或子表记录。distributed candidate host 与 host-local Nest composition 都直接注入该 bundle，candidate review 的读取也使用同一个 owner port，而不再经 shared `createServicePorts()` 或 host-local compatibility candidate repository。owner package production sources 与 candidate host scan 均禁止导入 `@trapmap/server` 或 `@trapmap/runtime-infra`。
+`service-candidate-ingestion` 现拥有 owner-local candidate/duplicate/lineage PostgreSQL bundle 和 processing runtime。candidate 状态、analysis、duplicate case/matches 与 manual result 仅写 owner-local 关系表；`candidates` 行不再保存 analysis、duplicate 或 manual-result JSON 镜像。distributed candidate host 使用 owner-local processing queue adapter，host-local review controller 仅通过公开 `CandidateIngestionPort` 读取和写入；shared distributed ports 不再创建 candidate repository。server compatibility candidate routes、repositories、recovery/worker 和 runtime-infra repository aggregate 均已删除。
 
-本轮 focused 验证：`rtk pnpm --filter @trapmap/service-candidate-ingestion test --run src/pg-ports.test.ts src/migrations.test.ts src/routes.test.ts`（23 tests）、host-local owner composition/review tests（4 tests）、distributed candidate route test、`rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`（16 tests）、`rtk pnpm typecheck` 与 `rtk git diff --check` 均通过。Wave-3 仍未完成：server/runtime-infra compatibility candidate repositories、duplicate/lineage services 和 candidate worker 尚待迁移或删除；Docker daemon 缺失时也不能宣告 deployment/eval acceptance 已完成。
+收口验证：`rtk pnpm --filter @trapmap/service-candidate-ingestion test --run src/pg-ports.test.ts src/processing.test.ts` 通过（21 tests）；`rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts` 通过（17 tests）；`rtk pnpm typecheck` 通过。Docker daemon 可用（`rtk docker info` 成功），但此 worktree 无法 materialize package-local links：`src/migrations.test.ts`、host-local controller focused test、deployment smoke 与 eval smoke 分别在解析 `drizzle-orm/node-postgres`、`@nestjs/common`、`graphology`/CLI `zod.iso` 前置时中止；未将其误记为产品失败。恢复完整 workspace install 后仍须补跑 `rtk pnpm test:deployment-smoke` 与 `rtk pnpm eval:smoke` 的 PostgreSQL acceptance；该环境前置不改变 Wave-3 已删除的 runtime ownership surface。
 
 本轮 owner-domain 增量：candidate duplicate detector 现通过 service-local `CandidateCorpusReadPort` 读取获批 corpus，不导入 knowledge/artifact service 实现或直读其表；exact duplicate 的 fingerprint、analysis snapshot 与 case 都由 candidate owner 生成。candidate resolution、manual-result 与 publish internal routes 仅接受 gateway 的 `x-trapmap-actor-id`，缺失 trusted actor 返回 401，body actor 与该身份不一致返回 403；distributed gateway 以认证 actor 覆盖 body 值并转发该 header。TDD RED 为未传身份时 route 返回 200；修复后 candidate owner focused suite（26 tests）、gateway routes（23 tests）和 package typecheck 通过。Fallow 的增量缓存偶发 `unable to open database file`；使用 `rtk pnpm exec fallow audit --base wave1-fallow-base --gate new-only --format json --quiet --explain --no-cache --output-file /tmp/wave3-foundation-fallow.json` 可稳定完成，报告新增 dead-code、boundary、complexity 均为 `0`，仍有 12 个新增 duplication group。这些重复来自 owner-local schema/PG subtable mapping 与尚未删除的 Wave-3 compatibility 实现并存，因此不通过且不可作为 Wave-3 closeout evidence。该增量不改变 Wave-3 未完成判断：legacy worker、公开 gateway compatibility、server/runtime-infra 删除与 distributed/host-local acceptance 仍待完成。
 
