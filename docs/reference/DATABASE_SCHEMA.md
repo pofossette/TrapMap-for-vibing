@@ -122,6 +122,7 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 |------|------|------|
 | `feedback_records` | 用户反馈 | `id` (text) |
 | `feedback_custom_answers` | 反馈自定义问答 | `id` (identity) |
+| `conflict_relations` | 治理冲突关系 | `id` (text) |
 | `usage_events` | 使用事件 | `id` (text) |
 | `usage_events_daily_rollup` | 日聚合分析 | `id` (identity) |
 

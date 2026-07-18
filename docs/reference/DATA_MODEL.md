@@ -8,7 +8,7 @@
 >
 > **Phase 1 (PG-First Convergence) 更新**：路由层的 actor 查找（用户 handle、成员安全等级）已从 `store.snapshot()` 迁移到仓库-backed 的 `lib/actors/lookup.ts`。核心路由（knowledge、traps）不再调用 `store.snapshot()` 进行序列化。剩余的 `store.snapshot()` / `store.transact()` 使用限于：(1) supersede 工作流（Phase 3 迁移），(2) 未迁移辅助域，(3) 启动/诊断路径。
 >
-> **Round 6 更新**：反馈（feedback）已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表（`feedback_records` + `feedback_custom_answers`）。`PgFeedbackRepository` 替代 `InMemoryFeedbackRepository` 成为主路径。用法统计新增 `usage_events_daily_rollup` 预聚合表。
+> **Round 6 更新**：反馈（feedback）已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表（`feedback_records` + `feedback_custom_answers`）。`PgFeedbackRepository` 替代 `InMemoryFeedbackRepository` 成为主路径。用法统计新增 `usage_events_daily_rollup` 预聚合表。治理冲突关系由 `conflict_relations` 持久化，知识读侧仅通过 `ConflictReadProjection` 查询。
 >
 > **Round 7 更新**：检索索引模型完成结构化改造。`knowledge_keywords.tokens` 和 `field_tokens` 从 JSONB 迁移为原生 `text[]` 类型，使用 `&&`（数组重叠）替代 `?|`（JSONB 包含）进行 token 匹配。`knowledge_embeddings.labels` 从 JSONB 迁移为 `text[]`。新增 `knowledge_search_documents` 表（tsvector 全文检索）和 `graph_index_documents` 表（GraphRAG-lite 持久化，替代 `store_snapshot.graphIndexDocuments` 内存存储）。
 >
@@ -29,6 +29,7 @@ Round 0 的目标不是立即改完所有表，而是冻结后续数据库现代
 | Team / User / Member / Session / AccessKey / Audit | PostgreSQL 结构化表 | 主读写路径已切换为 PG repo，通过 `repos.team/user/membership/session/accessKey/audit` 访问 |
 | Duplicates / Lineage / Graph Index 等辅助域 | PostgreSQL 结构化表 | `candidate_duplicate_cases` / `candidate_duplicate_matches` / `entity_lineage`（Round 5）、`graph_index_documents`（Round 7）均已迁移为 PG 结构化表 |
 | Feedback | PostgreSQL 结构化表 | `feedback_records` + `feedback_custom_answers`，Round 6 迁移 |
+| Conflict | PostgreSQL 结构化表 | `conflict_relations`；governance-review 写入，knowledge-read 只读投影 |
 | Usage Analytics | PostgreSQL 结构化表 | `usage_events` + `usage_events_daily_rollup`，Rollup 为派生表 |
 | Server 路由 actor 查找 | 仓库-backed（`lib/actors/lookup.ts`） | 用户 handle 和成员安全等级通过 `repos.user` / `repos.membership` 解析；检索数据通过 `buildRetrievalReadModel()` 从 `repos.knowledge` / `repos.artifact` 组装，冲突关系暂从 `store.snapshot()` 获取 |
 | 检索读模型 | 仓库-backed（`lib/retrieval/read-model.ts`） | 知识条目和技能工件通过 `repos.knowledge` / `repos.artifact` 读取，冲突关系暂从 `store.snapshot()` 获取 |
