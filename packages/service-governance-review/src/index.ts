@@ -10,6 +10,17 @@ export {
   type GovernanceReviewPgOwnerBundle,
 } from './pg-ports.js';
 export {
+  classifyConflict,
+  createGovernanceConflictWorkflow,
+  generateConflictContext,
+  overlapScore,
+  tokenize,
+  type GovernanceConflictChat,
+  type GovernanceConflictJudgment,
+  type GovernanceConflictProjection,
+  type GovernanceConflictWorkflowDeps,
+} from './conflict-workflow.js';
+export {
   registerGovernanceReviewRoutes,
   type GovernanceReviewReadinessOptions,
 } from './routes.js';
