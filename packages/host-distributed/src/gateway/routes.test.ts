@@ -107,6 +107,28 @@ async function buildApp(clients: InternalServiceClients) {
 }
 
 describe('registerGatewayRoutes', () => {
+  it('forwards feedback using the authenticated actor instead of a spoofed body actor', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/feedback',
+      headers: { authorization: 'Bearer session-token' },
+      payload: {
+        entryId: 'entry-1',
+        entryType: 'trap',
+        problemType: 'incorrect',
+        description: 'This result contains an incorrect remediation.',
+        actorId: 'spoofed-user',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(clients.review.submitFeedback).not.toHaveBeenCalled();
+    await app.close();
+  });
+
   it('rejects an artifact mutation when the body actor spoofs the authenticated actor', async () => {
     const clients = createClients();
     const app = await buildApp(clients);

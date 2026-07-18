@@ -162,17 +162,25 @@ export function registerGovernanceReviewRoutes(
     }),
   );
 
-  app.post('/internal/feedback', (request: FastifyRequest, reply: FastifyReply) =>
-    sendGovernanceInvocation(reply, 201, async () => {
-      const body = request.body as {
-        entryId: string;
-        problemType: string;
-        description: string;
-        actorId: string;
-      };
-      return module.submitFeedback(body);
-    }),
-  );
+  app.post('/internal/feedback', async (request: FastifyRequest, reply: FastifyReply) => {
+    const requestActorId = request.headers['x-trapmap-actor-id'];
+    if (typeof requestActorId !== 'string' || requestActorId.length === 0) {
+      return reply.status(401).send({ error: 'Missing authenticated actor', kind: 'auth' });
+    }
+    const body = request.body as {
+      entryId: string;
+      problemType: string;
+      description: string;
+      actorId?: string;
+      [key: string]: unknown;
+    };
+    if (body.actorId !== undefined && body.actorId !== requestActorId) {
+      return reply.status(403).send({ error: 'Body actor does not match authenticated actor', kind: 'forbidden' });
+    }
+    return sendGovernanceInvocation(reply, 201, () =>
+      module.submitFeedback({ ...body, actorId: requestActorId }),
+    );
+  });
 
   app.get('/internal/health', async (_request: FastifyRequest, reply: FastifyReply) => {
     return reply.status(200).send({

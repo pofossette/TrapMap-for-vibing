@@ -42,6 +42,7 @@ describe('service-governance-review routes', () => {
     const feedback = await app.inject({
       method: 'POST',
       url: '/internal/feedback',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
       payload: {
         entryId: 'entry-1',
         problemType: 'accuracy',
@@ -57,6 +58,27 @@ describe('service-governance-review routes', () => {
       actorId: 'user-1',
     });
 
+    await app.close();
+  });
+
+  it('rejects an untrusted feedback actor before invoking the governance module', async () => {
+    const module = createModule();
+    const app = await buildApp(module);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/feedback',
+      payload: {
+        entryId: 'entry-1',
+        entryType: 'trap',
+        problemType: 'incorrect',
+        description: 'This result contains an incorrect remediation.',
+        actorId: 'spoofed-user',
+      },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(module.submitFeedback).not.toHaveBeenCalled();
     await app.close();
   });
 

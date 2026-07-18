@@ -369,7 +369,8 @@ export interface InternalServiceClients {
       problemType: string;
       description: string;
       actorId: string;
-    }): Promise<ServiceResponse>;
+      [key: string]: unknown;
+    }, options?: InternalRequestOptions): Promise<ServiceResponse>;
   };
   governanceReview: InternalServiceClients['review'];
   jobRuntime: {
@@ -741,11 +742,13 @@ export function createInternalServiceClients(
           'POST',
           body,
         ),
-      submitFeedback: async (body) =>
+      submitFeedback: async (body, options) =>
         callInternalService(
           `${await baseUrl('governance-review', urls.review)}/internal/feedback`,
           'POST',
           body,
+          undefined,
+          options,
         ),
     },
     governanceReview: {
@@ -779,11 +782,13 @@ export function createInternalServiceClients(
           'POST',
           body,
         ),
-      submitFeedback: async (body) =>
+      submitFeedback: async (body, options) =>
         callInternalService(
           `${await baseUrl('governance-review', urls.review)}/internal/feedback`,
           'POST',
           body,
+          undefined,
+          options,
         ),
     },
     jobRuntime: {
