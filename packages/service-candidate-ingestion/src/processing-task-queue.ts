@@ -11,6 +11,8 @@ type QueueTask = {
   max_attempts: number;
 };
 
+const POLL_INTERVAL_MS = 100;
+
 export function createCandidateProcessingTaskQueue(
   pool: Pool,
 ): Pick<TaskQueuePort, 'enqueue' | 'createConsumer'> {
@@ -39,7 +41,22 @@ export function createCandidateProcessingTaskQueue(
     async createConsumer({ handlers, ownsWork }) {
       let stopped = false;
       let running = false;
+      let cancelPollWait: (() => void) | null = null;
       const byType = new Map(handlers.map((handler) => [handler.type, handler]));
+
+      function waitForNextPoll(): Promise<void> {
+        return new Promise((resolve) => {
+          const timeout = setTimeout(() => {
+            cancelPollWait = null;
+            resolve();
+          }, POLL_INTERVAL_MS);
+          cancelPollWait = () => {
+            clearTimeout(timeout);
+            cancelPollWait = null;
+            resolve();
+          };
+        });
+      }
 
       async function claim(): Promise<QueueTask | null> {
         const result = await pool.query<QueueTask>(
@@ -63,7 +80,10 @@ export function createCandidateProcessingTaskQueue(
         try {
           while (!stopped) {
             const task = await claim();
-            if (!task) break;
+            if (!task) {
+              await waitForNextPoll();
+              continue;
+            }
             const handler = byType.get(task.type);
             if (!handler) continue;
             try {
@@ -97,6 +117,7 @@ export function createCandidateProcessingTaskQueue(
         run,
         async stop() {
           stopped = true;
+          cancelPollWait?.();
         },
         isRunning: () => running,
         ownsWork: () => ownsWork,
