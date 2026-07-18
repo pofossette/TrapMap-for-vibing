@@ -1,12 +1,16 @@
 import { randomUUID } from 'node:crypto';
 
 import type { FeedbackQueueRecord, FeedbackRepositoryPort } from '@trapmap/backend-core';
+import type { ConflictReadProjection, ConflictRelation } from '@trapmap/contracts';
 import { getTableName } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import { feedbackCustomAnswers, feedbackRecords } from '@trapmap/persistence-schema';
 
 export interface GovernanceReviewPgOwnerBundle {
   feedbackRepo: FeedbackRepositoryPort;
+  conflictProjection: ConflictReadProjection & {
+    upsert(conflict: ConflictRelation): Promise<void>;
+  };
 }
 
 type Queryable = Pick<Pool, 'query'>;
@@ -77,7 +81,57 @@ async function getCustomAnswers(
   }));
 }
 
-export function createGovernanceReviewPgOwnerBundle(pool: Queryable): GovernanceReviewPgOwnerBundle {
+export function createGovernanceReviewPgOwnerBundle(
+  pool: Queryable,
+): GovernanceReviewPgOwnerBundle {
+  const conflictProjection: GovernanceReviewPgOwnerBundle['conflictProjection'] = {
+    async upsert(conflict) {
+      await pool.query(
+        `INSERT INTO conflict_relations
+          (id, entry_id_a, entry_id_b, conflict_type, context, problem_overlap_score, solution_diff_score, detected_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (entry_id_a, entry_id_b) DO UPDATE SET
+           conflict_type = EXCLUDED.conflict_type,
+           context = EXCLUDED.context,
+           problem_overlap_score = EXCLUDED.problem_overlap_score,
+           solution_diff_score = EXCLUDED.solution_diff_score,
+           detected_at = EXCLUDED.detected_at`,
+        [
+          conflict.id,
+          conflict.entryIdA,
+          conflict.entryIdB,
+          conflict.conflictType,
+          conflict.context,
+          conflict.problemOverlapScore,
+          conflict.solutionDiffScore,
+          conflict.detectedAt,
+        ],
+      );
+    },
+    async listByEntryIds(entryIds) {
+      if (entryIds.length === 0) return [];
+      const { rows } = await pool.query(
+        `SELECT id, entry_id_a, entry_id_b, conflict_type, context,
+                problem_overlap_score, solution_diff_score, detected_at
+           FROM conflict_relations
+          WHERE entry_id_a = ANY($1) OR entry_id_b = ANY($1)`,
+        [entryIds],
+      );
+      return rows.map((row) => {
+        const record = row as FeedbackRow;
+        return {
+          id: String(record.id),
+          entryIdA: String(record.entry_id_a),
+          entryIdB: String(record.entry_id_b),
+          conflictType: String(record.conflict_type) as ConflictRelation['conflictType'],
+          context: String(record.context),
+          problemOverlapScore: Number(record.problem_overlap_score),
+          solutionDiffScore: Number(record.solution_diff_score),
+          detectedAt: asIso(record.detected_at) ?? new Date().toISOString(),
+        };
+      });
+    },
+  };
   const feedbackRepo: FeedbackRepositoryPort = {
     async nextId() {
       return `feedback_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
@@ -89,19 +143,39 @@ export function createGovernanceReviewPgOwnerBundle(pool: Queryable): Governance
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
                  $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)`,
         [
-          feedback.id, feedback.entryId, record.entryType, feedback.problemType, record.description,
-          record.context ?? null, record.querySeed ?? null, record.queryId ?? null,
-          record.routeFamily ?? null, record.failureClassification ?? null,
-          record.expectedCorrection ?? null, record.selectedResultSnapshot ?? null,
-          record.submittedAt, record.submittedByUserId, record.submittedByHandle, feedback.status,
-          record.adminNotes ?? null, record.resolvedAt ?? null, record.resolvedByUserId ?? null,
-          record.triggeredTransition ?? null, record.remediationStatus ?? null,
-          record.remediationOpenedAt ?? null, record.remediationOpenedByUserId ?? null,
-          record.remediationResolvedAt ?? null, record.remediationResolvedByUserId ?? null,
-          record.createdAt, record.updatedAt,
+          feedback.id,
+          feedback.entryId,
+          record.entryType,
+          feedback.problemType,
+          record.description,
+          record.context ?? null,
+          record.querySeed ?? null,
+          record.queryId ?? null,
+          record.routeFamily ?? null,
+          record.failureClassification ?? null,
+          record.expectedCorrection ?? null,
+          record.selectedResultSnapshot ?? null,
+          record.submittedAt,
+          record.submittedByUserId,
+          record.submittedByHandle,
+          feedback.status,
+          record.adminNotes ?? null,
+          record.resolvedAt ?? null,
+          record.resolvedByUserId ?? null,
+          record.triggeredTransition ?? null,
+          record.remediationStatus ?? null,
+          record.remediationOpenedAt ?? null,
+          record.remediationOpenedByUserId ?? null,
+          record.remediationResolvedAt ?? null,
+          record.remediationResolvedByUserId ?? null,
+          record.createdAt,
+          record.updatedAt,
         ],
       );
-      const customAnswers = record.customAnswers as Array<{ prompt: string; answer: string }> | null;
+      const customAnswers = record.customAnswers as Array<{
+        prompt: string;
+        answer: string;
+      }> | null;
       for (const answer of customAnswers ?? []) {
         await pool.query(
           `INSERT INTO ${feedbackCustomAnswersTable} (feedback_id, question_key, answer_text)
@@ -123,14 +197,28 @@ export function createGovernanceReviewPgOwnerBundle(pool: Queryable): Governance
         `SELECT ${feedbackRecordColumns} FROM ${feedbackRecordsTable} WHERE entry_id = $1`,
         [entryId],
       );
-      return Promise.all(rows.map(async (row) => rowToFeedbackRecord(row as FeedbackRow, await getCustomAnswers(pool, String((row as FeedbackRow).id)))));
+      return Promise.all(
+        rows.map(async (row) =>
+          rowToFeedbackRecord(
+            row as FeedbackRow,
+            await getCustomAnswers(pool, String((row as FeedbackRow).id)),
+          ),
+        ),
+      );
     },
     async listByStatus(status) {
       const { rows } = await pool.query(
         `SELECT ${feedbackRecordColumns} FROM ${feedbackRecordsTable} WHERE status = $1`,
         [status],
       );
-      return Promise.all(rows.map(async (row) => rowToFeedbackRecord(row as FeedbackRow, await getCustomAnswers(pool, String((row as FeedbackRow).id)))));
+      return Promise.all(
+        rows.map(async (row) =>
+          rowToFeedbackRecord(
+            row as FeedbackRow,
+            await getCustomAnswers(pool, String((row as FeedbackRow).id)),
+          ),
+        ),
+      );
     },
     async listByFilter(filter) {
       const conditions: string[] = [];
@@ -147,16 +235,32 @@ export function createGovernanceReviewPgOwnerBundle(pool: Queryable): Governance
         `SELECT ${feedbackRecordColumns} FROM ${feedbackRecordsTable}${conditions.length ? ` WHERE ${conditions.join(' AND ')}` : ''}`,
         values,
       );
-      return Promise.all(rows.map(async (row) => rowToFeedbackRecord(row as FeedbackRow, await getCustomAnswers(pool, String((row as FeedbackRow).id)))));
+      return Promise.all(
+        rows.map(async (row) =>
+          rowToFeedbackRecord(
+            row as FeedbackRow,
+            await getCustomAnswers(pool, String((row as FeedbackRow).id)),
+          ),
+        ),
+      );
     },
     async update(feedbackId, updates) {
       const updateColumns: Record<string, string> = {
-        status: 'status', adminNotes: 'admin_notes', resolvedAt: 'resolved_at',
-        resolvedByUserId: 'resolved_by_user_id', triggeredTransition: 'triggered_transition',
-        description: 'description', context: 'context', querySeed: 'query_seed', queryId: 'query_id',
-        routeFamily: 'route_family', failureClassification: 'failure_classification',
-        expectedCorrection: 'expected_correction', selectedResultSnapshot: 'selected_result_snapshot',
-        remediationStatus: 'remediation_status', remediationOpenedAt: 'remediation_opened_at',
+        status: 'status',
+        adminNotes: 'admin_notes',
+        resolvedAt: 'resolved_at',
+        resolvedByUserId: 'resolved_by_user_id',
+        triggeredTransition: 'triggered_transition',
+        description: 'description',
+        context: 'context',
+        querySeed: 'query_seed',
+        queryId: 'query_id',
+        routeFamily: 'route_family',
+        failureClassification: 'failure_classification',
+        expectedCorrection: 'expected_correction',
+        selectedResultSnapshot: 'selected_result_snapshot',
+        remediationStatus: 'remediation_status',
+        remediationOpenedAt: 'remediation_opened_at',
         remediationOpenedByUserId: 'remediation_opened_by_user_id',
         remediationResolvedAt: 'remediation_resolved_at',
         remediationResolvedByUserId: 'remediation_resolved_by_user_id',
@@ -177,5 +281,5 @@ export function createGovernanceReviewPgOwnerBundle(pool: Queryable): Governance
       );
     },
   };
-  return { feedbackRepo };
+  return { feedbackRepo, conflictProjection };
 }

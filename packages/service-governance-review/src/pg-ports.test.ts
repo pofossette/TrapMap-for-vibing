@@ -56,7 +56,13 @@ describe('governance-review PostgreSQL owner bundle', () => {
     expect(calls[0]?.sql).toContain('submitted_by_user_id');
     expect(calls[0]?.sql).toContain('remediation_opened_by_user_id');
     expect(calls[0]?.values).toEqual(
-      expect.arrayContaining(['feedback_abc123', 'trap', 'user-1', 'alice', 'pending-human-review']),
+      expect.arrayContaining([
+        'feedback_abc123',
+        'trap',
+        'user-1',
+        'alice',
+        'pending-human-review',
+      ]),
     );
     expect(calls[1]?.sql).toContain('INSERT INTO feedback_custom_answers');
     expect(calls[1]?.values).toEqual(['feedback_abc123', 'What happened?', 'Wrong result']);
@@ -69,15 +75,32 @@ describe('governance-review PostgreSQL owner bundle', () => {
         return {
           rows: [
             {
-              id: 'feedback_abc123', entry_id: 'entry-1', entry_type: 'trap',
-              problem_type: 'incorrect', description: 'owner-local feedback', context: null,
-              query_seed: null, query_id: 'query-1', route_family: null, failure_classification: null,
-              expected_correction: null, selected_result_snapshot: { rank: 1 },
-              submitted_at: new Date('2026-07-18T00:00:00.000Z'), submitted_by_user_id: 'user-1',
-              submitted_by_handle: 'alice', status: 'new', admin_notes: null, resolved_at: null,
-              resolved_by_user_id: null, triggered_transition: null, remediation_status: null,
-              remediation_opened_at: null, remediation_opened_by_user_id: null, remediation_resolved_at: null,
-              remediation_resolved_by_user_id: null, created_at: new Date('2026-07-18T00:00:00.000Z'),
+              id: 'feedback_abc123',
+              entry_id: 'entry-1',
+              entry_type: 'trap',
+              problem_type: 'incorrect',
+              description: 'owner-local feedback',
+              context: null,
+              query_seed: null,
+              query_id: 'query-1',
+              route_family: null,
+              failure_classification: null,
+              expected_correction: null,
+              selected_result_snapshot: { rank: 1 },
+              submitted_at: new Date('2026-07-18T00:00:00.000Z'),
+              submitted_by_user_id: 'user-1',
+              submitted_by_handle: 'alice',
+              status: 'new',
+              admin_notes: null,
+              resolved_at: null,
+              resolved_by_user_id: null,
+              triggered_transition: null,
+              remediation_status: null,
+              remediation_opened_at: null,
+              remediation_opened_by_user_id: null,
+              remediation_resolved_at: null,
+              remediation_resolved_by_user_id: null,
+              created_at: new Date('2026-07-18T00:00:00.000Z'),
               updated_at: new Date('2026-07-18T00:00:00.000Z'),
             },
           ],
@@ -97,11 +120,12 @@ describe('governance-review PostgreSQL owner bundle', () => {
       submittedByUserId: 'user-1',
       customAnswers: [{ prompt: 'What happened?', answer: 'Wrong result' }],
     });
-    expect(query).toHaveBeenCalledWith(expect.stringContaining('feedback_records'), ['feedback_abc123']);
-    expect(query).toHaveBeenCalledWith(
-      expect.stringContaining('feedback_custom_answers'),
-      ['feedback_abc123'],
-    );
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('feedback_records'), [
+      'feedback_abc123',
+    ]);
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('feedback_custom_answers'), [
+      'feedback_abc123',
+    ]);
   });
 
   it('filters and updates feedback records without losing remediation fields', async () => {
@@ -121,12 +145,42 @@ describe('governance-review PostgreSQL owner bundle', () => {
     });
 
     expect(calls[0]).toMatchObject({
-      sql: expect.stringContaining('FROM feedback_records WHERE status = ANY($1) AND problem_type = ANY($2) AND entry_id = $3 AND entry_type = $4'),
+      sql: expect.stringContaining(
+        'FROM feedback_records WHERE status = ANY($1) AND problem_type = ANY($2) AND entry_id = $3 AND entry_type = $4',
+      ),
       values: [['triaged'], ['outdated'], 'entry-1', 'skill'],
     });
     expect(calls[1]).toMatchObject({
-      sql: expect.stringContaining('UPDATE feedback_records SET status = $1, remediation_status = $2, remediation_resolved_by_user_id = $3, updated_at = NOW()'),
+      sql: expect.stringContaining(
+        'UPDATE feedback_records SET status = $1, remediation_status = $2, remediation_resolved_by_user_id = $3, updated_at = NOW()',
+      ),
       values: ['resolved', 'ready-to-reindex', 'admin-1', 'feedback_abc123'],
+    });
+  });
+
+  it('owns conflict persistence behind the shared knowledge-read projection', async () => {
+    const { calls, pool } = createPool();
+    const owner = createGovernanceReviewPgOwnerBundle(pool as never);
+
+    await owner.conflictProjection.upsert({
+      id: 'conflict_abc123',
+      entryIdA: 'entry-a',
+      entryIdB: 'entry-b',
+      conflictType: 'contradictory',
+      context: 'Opposite instructions',
+      problemOverlapScore: 0.9,
+      solutionDiffScore: 0.9,
+      detectedAt: '2026-07-18T00:00:00.000Z',
+    });
+    await owner.conflictProjection.listByEntryIds(['entry-a', 'entry-b']);
+
+    expect(calls[0]).toMatchObject({
+      sql: expect.stringContaining('INSERT INTO conflict_relations'),
+      values: expect.arrayContaining(['conflict_abc123', 'entry-a', 'entry-b', 'contradictory']),
+    });
+    expect(calls[1]).toMatchObject({
+      sql: expect.stringContaining('FROM conflict_relations'),
+      values: [['entry-a', 'entry-b']],
     });
   });
 });

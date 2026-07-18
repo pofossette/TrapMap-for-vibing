@@ -1,5 +1,14 @@
 import type { ConflictHint, ConflictRelation } from './conflict.js';
 
+/**
+ * Read-only conflict projection consumed by knowledge-read. Governance owns
+ * persistence and mutation; consumers can only request relations for entries
+ * already selected by their own read model.
+ */
+export interface ConflictReadProjection {
+  listByEntryIds(entryIds: string[]): Promise<ConflictRelation[]>;
+}
+
 export interface ConflictProjectionEntry {
   id: string;
   shortcut: string;
@@ -14,8 +23,7 @@ export interface ConflictProjectionActor {
 
 function isVisibleToActor(entry: ConflictProjectionEntry, actor: ConflictProjectionActor): boolean {
   return (
-    (!entry.teamId || entry.teamId === actor.teamId) &&
-    entry.requiredLevel <= actor.requiredLevel
+    (!entry.teamId || entry.teamId === actor.teamId) && entry.requiredLevel <= actor.requiredLevel
   );
 }
 
@@ -42,12 +50,14 @@ export function enrichConflictHints(
       const relatedEntryId = conflict.entryIdA === entryId ? conflict.entryIdB : conflict.entryIdA;
       const relatedEntry = entriesById.get(relatedEntryId);
       if (!relatedEntry || !isVisibleToActor(relatedEntry, actor)) return [];
-      return [{
-        entryId: relatedEntry.id,
-        shortcut: relatedEntry.shortcut,
-        conflictType: conflict.conflictType,
-        context: conflict.context,
-      }];
+      return [
+        {
+          entryId: relatedEntry.id,
+          shortcut: relatedEntry.shortcut,
+          conflictType: conflict.conflictType,
+          context: conflict.context,
+        },
+      ];
     });
     if (hints.length > 0) result.set(entryId, hints);
   }

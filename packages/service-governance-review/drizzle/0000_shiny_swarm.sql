@@ -6,6 +6,19 @@ CREATE TABLE "feedback_custom_answers" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "conflict_relations" (
+	"id" text PRIMARY KEY NOT NULL,
+	"entry_id_a" text NOT NULL,
+	"entry_id_b" text NOT NULL,
+	"conflict_type" text NOT NULL,
+	"context" text NOT NULL,
+	"problem_overlap_score" double precision NOT NULL,
+	"solution_diff_score" double precision NOT NULL,
+	"detected_at" timestamp with time zone NOT NULL,
+	CONSTRAINT "ck_conflict_relations_canonical_order" CHECK ("conflict_relations"."entry_id_a" < "conflict_relations"."entry_id_b"),
+	CONSTRAINT "ck_conflict_relations_type" CHECK ("conflict_relations"."conflict_type" IN ('alternative', 'contradictory', 'superseded'))
+);
+--> statement-breakpoint
 CREATE TABLE "feedback_records" (
 	"id" text PRIMARY KEY NOT NULL,
 	"entry_id" text NOT NULL,
@@ -64,6 +77,9 @@ CREATE TABLE "usage_events_daily_rollup" (
 );
 --> statement-breakpoint
 CREATE INDEX "idx_feedback_custom_answers_feedback" ON "feedback_custom_answers" USING btree ("feedback_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "idx_conflict_relations_entry_pair" ON "conflict_relations" USING btree ("entry_id_a","entry_id_b");--> statement-breakpoint
+CREATE INDEX "idx_conflict_relations_entry_a" ON "conflict_relations" USING btree ("entry_id_a");--> statement-breakpoint
+CREATE INDEX "idx_conflict_relations_entry_b" ON "conflict_relations" USING btree ("entry_id_b");--> statement-breakpoint
 CREATE INDEX "idx_feedback_records_entry" ON "feedback_records" USING btree ("entry_id");--> statement-breakpoint
 CREATE INDEX "idx_feedback_records_entry_type" ON "feedback_records" USING btree ("entry_type");--> statement-breakpoint
 CREATE INDEX "idx_feedback_records_status" ON "feedback_records" USING btree ("status");--> statement-breakpoint
