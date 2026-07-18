@@ -137,12 +137,12 @@ export function createGovernanceReviewPgOwnerBundle(pool: Queryable): Governance
       const values: unknown[] = [];
       const add = (condition: string, value: unknown) => {
         values.push(value);
-        conditions.push(`${condition} $${values.length}`);
+        conditions.push(condition.replace('?', `$${values.length}`));
       };
-      if (filter.status?.length) add('status = ANY', filter.status);
-      if (filter.problemType?.length) add('problem_type = ANY', filter.problemType);
-      if (filter.entryId) add('entry_id =', filter.entryId);
-      if (filter.entryType) add('entry_type =', filter.entryType);
+      if (filter.status?.length) add('status = ANY(?)', filter.status);
+      if (filter.problemType?.length) add('problem_type = ANY(?)', filter.problemType);
+      if (filter.entryId) add('entry_id = ?', filter.entryId);
+      if (filter.entryType) add('entry_type = ?', filter.entryType);
       const { rows } = await pool.query(
         `SELECT ${feedbackRecordColumns} FROM ${feedbackRecordsTable}${conditions.length ? ` WHERE ${conditions.join(' AND ')}` : ''}`,
         values,
