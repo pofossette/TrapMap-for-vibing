@@ -1,4 +1,8 @@
-import { InvocationError, type ReviewPort } from '@trapmap/backend-core';
+import {
+  InvocationError,
+  type GovernanceReviewAdminPort,
+  type ReviewPort,
+} from '@trapmap/backend-core';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 import { registerGovernanceReviewRoutes } from './routes.ts';
@@ -182,6 +186,31 @@ describe('service-governance-review routes', () => {
     expect(operator.json()).toMatchObject({
       service: 'governance-review',
       delegatedOwner: { status: 'unhealthy' },
+    });
+    await app.close();
+  });
+
+  it('forwards the feedback admin list query with the trusted actor', async () => {
+    const admin: GovernanceReviewAdminPort = {
+      list: vi.fn(async () => ({ items: [], total: 0 })),
+      stats: vi.fn(),
+      batch: vi.fn(),
+      listRemediation: vi.fn(),
+      getRemediation: vi.fn(),
+      completeRemediation: vi.fn(),
+    };
+    const app = await buildApp({ ...createModule(), admin } as never);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/internal/feedback/admin?status=new&limit=10',
+      headers: { 'x-trapmap-actor-id': 'admin-1' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(admin.list).toHaveBeenCalledWith({
+      actorId: 'admin-1',
+      query: { status: ['new'], limit: 10 },
     });
     await app.close();
   });

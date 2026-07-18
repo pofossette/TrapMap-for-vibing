@@ -1,5 +1,6 @@
 import {
   type GovernanceConflictWorkflowPort,
+  type GovernanceReviewAdminPort,
   type GovernanceReviewDeps,
   type ReviewPort,
   createGovernanceReviewModule,
@@ -12,14 +13,17 @@ export interface GovernanceReviewPortDeps {
   feedbackRepo: GovernanceReviewDeps['feedbackRepo'];
   auditLog: GovernanceReviewDeps['auditLog'];
   conflictWorkflow?: GovernanceConflictWorkflowPort;
+  admin?: GovernanceReviewAdminPort;
 }
 
 export type GovernanceReviewServiceDeps = GovernanceReviewDeps & {
   conflictWorkflow?: GovernanceConflictWorkflowPort;
+  admin?: GovernanceReviewAdminPort;
 };
 
 export interface GovernanceReviewServiceModule extends ReviewPort {
   conflictWorkflow?: GovernanceConflictWorkflowPort;
+  admin?: GovernanceReviewAdminPort;
 }
 
 export function createGovernanceReviewDeps(
@@ -30,6 +34,7 @@ export function createGovernanceReviewDeps(
     feedbackRepo: deps.feedbackRepo,
     auditLog: deps.auditLog,
     ...(deps.conflictWorkflow ? { conflictWorkflow: deps.conflictWorkflow } : {}),
+    ...(deps.admin ? { admin: deps.admin } : {}),
   };
 }
 
@@ -40,5 +45,6 @@ export function createGovernanceReviewServiceModule(
   return {
     ...review,
     ...(deps.conflictWorkflow ? { conflictWorkflow: deps.conflictWorkflow } : {}),
+    ...(deps.admin ? { admin: deps.admin } : {}),
   };
 }

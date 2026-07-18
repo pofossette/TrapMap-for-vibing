@@ -24,6 +24,11 @@ export {
 } from './conflict-workflow.js';
 export { createGovernanceConflictReadPort } from './conflict-read.js';
 export {
+  createGovernanceReviewAdminModule,
+  type GovernanceReviewAdminDeps,
+  type GovernanceReviewAdminModule,
+} from './admin.js';
+export {
   registerGovernanceReviewRoutes,
   type GovernanceReviewReadinessOptions,
 } from './routes.js';

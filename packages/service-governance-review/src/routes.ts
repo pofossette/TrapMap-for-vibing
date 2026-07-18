@@ -1,8 +1,18 @@
-import type { GovernanceConflictWorkflowPort, ReviewPort } from '@trapmap/backend-core';
+import type {
+  GovernanceConflictWorkflowPort,
+  GovernanceReviewAdminPort,
+  ReviewPort,
+} from '@trapmap/backend-core';
+import {
+  feedbackBatchRequestSchema,
+  feedbackListRequestSchema,
+  feedbackRemediationCompleteRequestSchema,
+} from '@trapmap/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 export type GovernanceReviewRouteModule = ReviewPort & {
   conflictWorkflow?: GovernanceConflictWorkflowPort;
+  admin?: GovernanceReviewAdminPort;
 };
 
 export interface GovernanceReviewReadinessOptions {
@@ -68,6 +78,31 @@ function runGovernanceCommand<T>(
   operation: (body: T) => Promise<unknown>,
 ) {
   return sendGovernanceInvocation(reply, 200, () => operation(request.body as T));
+}
+
+function readAdminActor(request: FastifyRequest, reply: FastifyReply): string | null {
+  const actorId = request.headers['x-trapmap-actor-id'];
+  if (typeof actorId !== 'string' || actorId.length === 0) {
+    void reply.status(401).send({ error: 'Missing authenticated actor', kind: 'auth' });
+    return null;
+  }
+  const body = request.body as { actorId?: unknown } | undefined;
+  if (body?.actorId !== undefined && body.actorId !== actorId) {
+    void reply
+      .status(403)
+      .send({ error: 'Body actor does not match authenticated actor', kind: 'forbidden' });
+    return null;
+  }
+  return actorId;
+}
+
+function parseAdminRequest<T>(reply: FastifyReply, parse: () => T): T | null {
+  try {
+    return parse();
+  } catch {
+    void reply.status(400).send({ error: 'Invalid feedback admin request', kind: 'validation' });
+    return null;
+  }
 }
 
 const GOVERNANCE_REVIEW_OWNERSHIP = {
@@ -200,6 +235,79 @@ export function registerGovernanceReviewRoutes(
     }
     return sendGovernanceInvocation(reply, 201, () =>
       module.submitFeedback({ ...body, actorId: requestActorId }),
+    );
+  });
+
+  app.get('/internal/feedback/admin', async (request, reply) => {
+    const actorId = readAdminActor(request, reply);
+    if (!actorId) return;
+    if (!module.admin) {
+      return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
+    }
+    const query = parseAdminRequest(reply, () => feedbackListRequestSchema.parse(request.query));
+    if (!query) return;
+    return sendGovernanceInvocation(reply, 200, () => module.admin!.list({ actorId, query }));
+  });
+
+  app.post('/internal/feedback/admin/batch', async (request, reply) => {
+    const actorId = readAdminActor(request, reply);
+    if (!actorId) return;
+    if (!module.admin) {
+      return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
+    }
+    const body = { ...((request.body ?? {}) as Record<string, unknown>) };
+    delete body.actorId;
+    const command = parseAdminRequest(reply, () => feedbackBatchRequestSchema.parse(body));
+    if (!command) return;
+    return sendGovernanceInvocation(reply, 200, () => module.admin!.batch({ actorId, command }));
+  });
+
+  app.get('/internal/feedback/admin/stats/:entryId', async (request, reply) => {
+    const actorId = readAdminActor(request, reply);
+    if (!actorId) return;
+    if (!module.admin) {
+      return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
+    }
+    const { entryId } = request.params as { entryId: string };
+    return sendGovernanceInvocation(reply, 200, () => module.admin!.stats({ actorId, entryId }));
+  });
+
+  app.get('/internal/feedback/admin/remediation', async (request, reply) => {
+    const actorId = readAdminActor(request, reply);
+    if (!actorId) return;
+    if (!module.admin) {
+      return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
+    }
+    return sendGovernanceInvocation(reply, 200, () => module.admin!.listRemediation({ actorId }));
+  });
+
+  app.get('/internal/feedback/admin/remediation/:entryId', async (request, reply) => {
+    const actorId = readAdminActor(request, reply);
+    if (!actorId) return;
+    if (!module.admin) {
+      return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
+    }
+    const { entryId } = request.params as { entryId: string };
+    return sendGovernanceInvocation(reply, 200, () =>
+      module.admin!.getRemediation({ actorId, entryId }),
+    );
+  });
+
+  app.post('/internal/feedback/admin/remediation/:entryId/complete', async (request, reply) => {
+    const actorId = readAdminActor(request, reply);
+    if (!actorId) return;
+    if (!module.admin) {
+      return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
+    }
+    const body = { ...((request.body ?? {}) as Record<string, unknown>) };
+    delete body.actorId;
+    const command = parseAdminRequest(reply, () =>
+      feedbackRemediationCompleteRequestSchema.parse(body),
+    );
+    if (!command) return;
+    const { entryId } = request.params as { entryId: string };
+    return sendGovernanceInvocation(reply, 200, () =>
+      module.admin!.completeRemediation({ actorId, entryId, command }),
     );
   });
 

@@ -13,6 +13,15 @@ import type {
   CandidateStatus,
   CandidateSubmission,
   ConflictRelation,
+  FeedbackBatchRequest,
+  FeedbackBatchResponse,
+  FeedbackListRequest,
+  FeedbackListResponse,
+  FeedbackRemediationCompleteRequest,
+  FeedbackRemediationCompleteResponse,
+  FeedbackRemediationDetailResponse,
+  FeedbackRemediationQueueResponse,
+  FeedbackStatsResponse,
   GovernanceConflictDetectionPayload,
 } from '@trapmap/contracts';
 
@@ -212,6 +221,28 @@ export interface ReviewPort {
 }
 
 export type GovernanceReviewPort = ReviewPort;
+
+export interface GovernanceReviewAdminPort {
+  list(input: {
+    actorId: string;
+    query: FeedbackListRequest;
+  }): Promise<FeedbackListResponse>;
+  stats(input: { actorId: string; entryId: string }): Promise<FeedbackStatsResponse>;
+  batch(input: {
+    actorId: string;
+    command: FeedbackBatchRequest;
+  }): Promise<FeedbackBatchResponse>;
+  listRemediation(input: { actorId: string }): Promise<FeedbackRemediationQueueResponse>;
+  getRemediation(input: {
+    actorId: string;
+    entryId: string;
+  }): Promise<FeedbackRemediationDetailResponse>;
+  completeRemediation(input: {
+    actorId: string;
+    entryId: string;
+    command: FeedbackRemediationCompleteRequest;
+  }): Promise<FeedbackRemediationCompleteResponse>;
+}
 
 export interface GovernanceConflictEntry {
   id: string;
