@@ -11,14 +11,19 @@
  * Phase: 100-02 (Store Repository Pattern)
  */
 
-import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
+import type {
+  ArtifactReadProjection,
+  ConflictRelation,
+  KnowledgeOwnerPort,
+  RetrievalGovernanceProjection,
+} from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
 import type { UsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
 import type { ConflictRepository } from '@trapmap/server/lib/conflict/repository.js';
 import type { FeedbackRepository } from '@trapmap/server/lib/feedback/index.js';
 import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/index.js';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type { FeedbackQueueRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 import { createUsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
 import { createConflictRepository } from '@trapmap/server/lib/conflict/repository.js';
@@ -38,6 +43,10 @@ export interface SkillShareerRepos {
   usageAnalytics: UsageAnalyticsRepository;
   feedback: FeedbackRepository;
   graphIndex: GraphIndexRepository;
+  governanceRetrievalProjection?: RetrievalGovernanceProjection<
+    FeedbackQueueRecord,
+    ConflictRelation
+  >;
 }
 
 /**
@@ -52,6 +61,10 @@ export async function createAllRepos(config: {
   store: SkillShareerStore;
   artifactReadProjection: ArtifactReadProjection;
   knowledgeOwner: KnowledgeOwnerPort;
+  governanceRetrievalProjection?: RetrievalGovernanceProjection<
+    FeedbackQueueRecord,
+    ConflictRelation
+  >;
 }): Promise<SkillShareerRepos> {
   const usageAnalytics = config.pool
     ? await createUsageAnalyticsRepository({ pool: config.pool })
@@ -64,6 +77,9 @@ export async function createAllRepos(config: {
     usageAnalytics,
     feedback: createFeedbackRepository(config),
     graphIndex: createGraphIndexRepository(config),
+    ...(config.governanceRetrievalProjection
+      ? { governanceRetrievalProjection: config.governanceRetrievalProjection }
+      : {}),
   };
   return repositories;
 }

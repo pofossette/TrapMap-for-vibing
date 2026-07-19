@@ -77,6 +77,7 @@ export async function createHostLocalServices(
   const candidateCorpus: CandidateCorpusReadPort = createCandidateCorpusPgReadPort(pool);
   const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
   const governanceReview = createGovernanceReviewPgOwnerBundle(pool);
+  infra.repos.governanceRetrievalProjection = governanceReview.retrievalProjection;
 
   const services: HostLocalServices = {
     config,

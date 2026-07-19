@@ -2,7 +2,12 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
 import Fastify from 'fastify';
-import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
+import type {
+  ArtifactReadProjection,
+  ConflictRelation,
+  KnowledgeOwnerPort,
+  RetrievalGovernanceProjection,
+} from '@trapmap/contracts';
 import type { JobRuntimePort } from '@trapmap/backend-core';
 
 import type { ServerConfig } from './config.js';
@@ -38,7 +43,7 @@ import {
   resolveServiceUnit,
 } from './lib/runtime/index.js';
 import type { RuntimeMode } from './lib/runtime/index.js';
-import { getStorePool, type SkillShareerStore } from './lib/store.js';
+import { getStorePool, type FeedbackQueueRecord, type SkillShareerStore } from './lib/store.js';
 
 import { getOtelSdk, runStartupSequence } from './bootstrap/run-startup-sequence.js';
 import { createTracingPortAdapter } from './lib/runtime/tracing-port-adapter.js';
@@ -52,6 +57,10 @@ export interface BuildServerOptions {
   identityBundle?: IdentityCompatibilityBundle;
   artifactReadProjection?: ArtifactReadProjection;
   knowledgeOwner?: KnowledgeOwnerPort;
+  governanceRetrievalProjection?: RetrievalGovernanceProjection<
+    FeedbackQueueRecord,
+    ConflictRelation
+  >;
   jobRuntime?: Pick<JobRuntimePort, 'schedule'>;
   store?: SkillShareerStore;
   ownsStore?: boolean;
@@ -185,6 +194,9 @@ export function buildServer(options: BuildServerOptions = {}) {
     ai: createAiProviders(config.ai),
     artifactReadProjection: options.artifactReadProjection as ArtifactReadProjection,
     knowledgeOwner: options.knowledgeOwner as KnowledgeOwnerPort,
+    ...(options.governanceRetrievalProjection
+      ? { governanceRetrievalProjection: options.governanceRetrievalProjection }
+      : {}),
     identity: options.identityBundle,
     // usageAnalyticsRepo is set in bootstrapRepositories when PostgreSQL pool is available
     usageAnalyticsRepo: undefined,

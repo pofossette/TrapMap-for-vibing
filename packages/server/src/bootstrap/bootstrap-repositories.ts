@@ -91,12 +91,14 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
       pool,
       artifactReadProjection: app.skillShareer.artifactReadProjection,
       knowledgeOwner: app.skillShareer.knowledgeOwner,
+      governanceRetrievalProjection: app.skillShareer.governanceRetrievalProjection,
     });
   } else {
     app.skillShareer.repos = await createAllRepos({
       store,
       artifactReadProjection: app.skillShareer.artifactReadProjection,
       knowledgeOwner: app.skillShareer.knowledgeOwner,
+      governanceRetrievalProjection: app.skillShareer.governanceRetrievalProjection,
     });
   }
 

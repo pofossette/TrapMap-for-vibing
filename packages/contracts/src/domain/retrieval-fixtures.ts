@@ -128,7 +128,7 @@ export function createRetrievalMockRepos<RepositoryOverrides extends object = ob
   const listByFilter = async () => [];
   const listAll = async () => [];
 
-  return {
+  const repositories = {
     knowledge: { listByFilter },
     artifact: { listByFilter },
     session: {},
@@ -146,4 +146,13 @@ export function createRetrievalMockRepos<RepositoryOverrides extends object = ob
     graphIndex: {},
     ...overrides,
   };
+  const governanceRetrievalProjection =
+    'governanceRetrievalProjection' in repositories && repositories.governanceRetrievalProjection
+      ? repositories.governanceRetrievalProjection
+      : {
+          listFeedback: () => repositories.feedback.listByFilter({}),
+          listConflicts: () => repositories.conflict.listAll(),
+        };
+
+  return { ...repositories, governanceRetrievalProjection };
 }

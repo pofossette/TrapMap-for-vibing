@@ -12,6 +12,7 @@ import {
   buildCachedRetrievalReadModelFromRepositories,
   type ConflictRelation,
   type RetrievalReadProjection,
+  type RetrievalGovernanceProjection,
   type SkillArtifact,
 } from '@trapmap/contracts';
 import {
@@ -24,6 +25,7 @@ import {
 } from '@trapmap/server/lib/feedback/remediation.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
 
 function normalizeArtifactRevision(revision: SkillArtifact['history'][number]) {
   return {
@@ -140,12 +142,20 @@ export type RetrievalReadModel = RetrievalReadProjection<
 export async function buildRetrievalReadModel(
   repos: SkillShareerRepos,
 ): Promise<RetrievalReadModel> {
+  const governanceRetrievalProjection = repos.governanceRetrievalProjection;
+  if (!governanceRetrievalProjection) {
+    throw new Error('server retrieval requires the governance retrieval projection owner port');
+  }
   return buildCachedRetrievalReadModelFromRepositories(
     {
       get: getCachedRetrievalReadModel,
       set: setCachedRetrievalReadModel,
     },
     repos,
+    governanceRetrievalProjection as RetrievalGovernanceProjection<
+      FeedbackQueueRecord,
+      ConflictRelation
+    >,
     normalizeArtifactForRetrieval,
     attachRemediationToKnowledgeEntries,
     attachRemediationToArtifacts,

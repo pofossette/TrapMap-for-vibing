@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { vi } from 'vitest';
 
 import { createRetrievalArtifactFixture, createRetrievalMockRepos } from '@trapmap/contracts';
 import type { SkillShareerRepos } from '@trapmap/runtime-infra';
@@ -24,5 +25,37 @@ describe('buildRetrievalReadModel', () => {
 
     expect(result.skillArtifacts).toEqual([artifact]);
     expect(result.skillArtifacts[0]).toBe(artifact);
+  });
+
+  it('reads retrieval feedback and scoped conflicts through the governance projection seam', async () => {
+    const listFeedback = vi.fn().mockResolvedValue([]);
+    const listConflicts = vi.fn().mockResolvedValue([]);
+    const repos = createRetrievalMockRepos({
+      knowledge: {
+        listByFilter: vi.fn().mockResolvedValue([{ id: 'entry-1' }]),
+      },
+      artifact: {
+        listByFilter: vi.fn().mockResolvedValue([]),
+      },
+      feedback: {
+        listByFilter: vi.fn(async () => {
+          throw new Error('legacy feedback repository should not be used');
+        }),
+      },
+      conflict: {
+        listAll: vi.fn(async () => {
+          throw new Error('legacy conflict repository should not be used');
+        }),
+      },
+      governanceRetrievalProjection: {
+        listFeedback,
+        listConflicts,
+      },
+    }) as unknown as SkillShareerRepos;
+
+    await buildRetrievalReadModel(repos);
+
+    expect(listFeedback).toHaveBeenCalledWith();
+    expect(listConflicts).toHaveBeenCalledWith(['entry-1']);
   });
 });

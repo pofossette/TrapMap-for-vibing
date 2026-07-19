@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   buildCachedRetrievalReadModel,
   buildRetrievalReadProjection,
+  buildCachedRetrievalReadModelFromRepositories,
   createRetrievalKnowledgeFixtureParts,
 } from './retrieval-projection.js';
 
@@ -55,6 +56,45 @@ describe('buildRetrievalReadProjection', () => {
     expect(sources.listArtifacts).not.toHaveBeenCalled();
     expect(sources.listFeedback).not.toHaveBeenCalled();
     expect(sources.listConflicts).not.toHaveBeenCalled();
+  });
+
+  it('loads feedback and entry-scoped conflicts through the governance retrieval projection seam', async () => {
+    const listFeedback = vi.fn().mockResolvedValue(['feedback']);
+    const listConflicts = vi.fn().mockResolvedValue(['conflict']);
+    const repositories = {
+      knowledge: {
+        listByFilter: vi.fn().mockResolvedValue([{ id: 'entry-1' }, { id: 'entry-2' }]),
+      },
+      artifact: {
+        listByFilter: vi.fn().mockResolvedValue(['artifact']),
+      },
+      feedback: {
+        listByFilter: vi.fn(async () => {
+          throw new Error('legacy feedback repository should not be used');
+        }),
+      },
+      conflict: {
+        listAll: vi.fn(async () => {
+          throw new Error('legacy conflict repository should not be used');
+        }),
+      },
+    };
+
+    const result = await buildCachedRetrievalReadModelFromRepositories(
+      { get: () => null, set: vi.fn() },
+      repositories,
+      {
+        listFeedback,
+        listConflicts,
+      },
+      (artifact) => artifact,
+      (entries) => entries,
+      (artifacts) => artifacts,
+    );
+
+    expect(result.conflicts).toEqual(['conflict']);
+    expect(listFeedback).toHaveBeenCalledWith();
+    expect(listConflicts).toHaveBeenCalledWith(['entry-1', 'entry-2']);
   });
 
   it('builds reusable knowledge fixture parts from caller-owned values', () => {

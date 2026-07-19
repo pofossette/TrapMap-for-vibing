@@ -125,4 +125,14 @@ describe('createAllRepos', () => {
       },
     ]);
   });
+
+  it('preserves the host-injected governance retrieval projection', async () => {
+    const governanceRetrievalProjection = {
+      listFeedback: async () => [],
+      listConflicts: async () => [],
+    };
+    const repos = await createAllRepos({ store, governanceRetrievalProjection });
+
+    expect(repos.governanceRetrievalProjection).toBe(governanceRetrievalProjection);
+  });
 });

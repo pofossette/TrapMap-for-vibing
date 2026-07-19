@@ -1,4 +1,10 @@
-import type { ArtifactReadProjection, KnowledgeOwnerPort, Permission } from '@trapmap/contracts';
+import type {
+  ArtifactReadProjection,
+  ConflictRelation,
+  KnowledgeOwnerPort,
+  Permission,
+  RetrievalGovernanceProjection,
+} from '@trapmap/contracts';
 import type {
   // fallow-ignore-next-line boundary-violation -- server compatibility bundle consumes host-owned identity port types
   AccessKeyRepositoryPort,
@@ -66,6 +72,10 @@ export interface SkillShareerServices {
   artifactReadProjection: ArtifactReadProjection;
   /** Wave-2 owner-injected command and operational projection compatibility port. */
   knowledgeOwner: KnowledgeOwnerPort;
+  governanceRetrievalProjection?: RetrievalGovernanceProjection<
+    import('./store.js').FeedbackQueueRecord,
+    ConflictRelation
+  >;
   /** Identity/audit capabilities injected by the owning host. */
   identity: IdentityCompatibilityBundle;
   /**

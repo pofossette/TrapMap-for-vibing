@@ -38,6 +38,7 @@ export async function buildHostLocalServer(
     identityBundle: services.identity,
     knowledgeOwner: services.knowledgeOwner,
     artifactReadProjection: services.artifactReadProjection,
+    governanceRetrievalProjection: services.governanceReview.retrievalProjection,
     store: services.store,
     jobRuntime: createJobRuntimeModule(
       createJobRuntimeDeps({

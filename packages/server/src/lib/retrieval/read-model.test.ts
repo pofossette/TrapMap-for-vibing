@@ -137,6 +137,41 @@ describe('buildRetrievalReadModel', () => {
     expect(result.conflicts).toEqual(conflicts);
   });
 
+  it('reads feedback and entry-scoped conflicts from the governance retrieval projection seam', async () => {
+    const entries = [
+      createRetrievalKnowledgeFixture('k_1'),
+      createRetrievalKnowledgeFixture('k_2'),
+    ];
+    const artifacts = [createRetrievalArtifactFixture('a_1')];
+    const conflicts = [createRetrievalConflictFixture('c_1', 'k_1', 'k_2')];
+    const listFeedback = vi.fn().mockResolvedValue([]);
+    const listConflicts = vi.fn().mockResolvedValue(conflicts);
+    const repos = createRetrievalMockRepos({
+      knowledge: { listByFilter: vi.fn().mockResolvedValue(entries) },
+      artifact: { listByFilter: vi.fn().mockResolvedValue(artifacts) },
+      feedback: {
+        listByFilter: vi.fn(async () => {
+          throw new Error('legacy feedback repository should not be used');
+        }),
+      } as never,
+      conflict: {
+        listAll: vi.fn(async () => {
+          throw new Error('legacy conflict repository should not be used');
+        }),
+      } as never,
+      governanceRetrievalProjection: {
+        listFeedback,
+        listConflicts,
+      },
+    }) as unknown as SkillShareerRepos;
+
+    const result = await buildRetrievalReadModel(repos);
+
+    expect(result.conflicts).toEqual(conflicts);
+    expect(listFeedback).toHaveBeenCalledWith();
+    expect(listConflicts).toHaveBeenCalledWith(['k_1', 'k_2']);
+  });
+
   it('assembles all three data shapes together', async () => {
     const entries = [createRetrievalKnowledgeFixture('k_1')];
     const artifacts = [createRetrievalArtifactFixture('a_1')];

@@ -71,4 +71,12 @@ describe('host-local service composition', () => {
     expect(services.artifactReadProjection).toBe(ownerBundle.artifactReadProjection);
     expect(services).not.toHaveProperty('artifactRepo');
   });
+
+  it('injects the governance retrieval projection into read-side services', async () => {
+    const services = await createHostLocalServices({ systemAdminKey: 'test-key' } as never);
+
+    expect(services.repos.governanceRetrievalProjection).toBe(
+      services.governanceReview.retrievalProjection,
+    );
+  });
 });

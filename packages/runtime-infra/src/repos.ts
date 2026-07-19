@@ -1,4 +1,5 @@
 import type { Pool } from 'pg';
+import type { ConflictRelation, RetrievalGovernanceProjection } from '@trapmap/contracts';
 
 import type { UsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
 import type { ConflictRepository } from '@trapmap/server/lib/conflict/index.js';
@@ -18,6 +19,18 @@ export interface SkillShareerRepos {
   usageAnalytics: UsageAnalyticsRepository;
   feedback: FeedbackRepository;
   graphIndex: GraphIndexRepository;
+  governanceRetrievalProjection?: RetrievalGovernanceProjection<
+    GovernanceFeedbackProjectionRecord,
+    ConflictRelation
+  >;
+}
+
+export interface GovernanceFeedbackProjectionRecord {
+  id: string;
+  entryId: string;
+  status: string;
+  problemType: string;
+  [key: string]: unknown;
 }
 
 export interface KnowledgeReadProjection {
