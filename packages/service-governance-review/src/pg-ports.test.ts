@@ -91,13 +91,13 @@ describe('governance-review PostgreSQL owner bundle', () => {
               submitted_by_user_id: 'user-1',
               submitted_by_handle: 'alice',
               status: 'new',
-              admin_notes: null,
-              resolved_at: null,
-              resolved_by_user_id: null,
-              triggered_transition: null,
-              remediation_status: null,
-              remediation_opened_at: null,
-              remediation_opened_by_user_id: null,
+              admin_notes: 'reviewed',
+              resolved_at: new Date('2026-07-18T02:00:00.000Z'),
+              resolved_by_user_id: 'admin-2',
+              triggered_transition: 'reindex',
+              remediation_status: 'ready-to-reindex',
+              remediation_opened_at: new Date('2026-07-18T01:00:00.000Z'),
+              remediation_opened_by_user_id: 'admin-1',
               remediation_resolved_at: null,
               remediation_resolved_by_user_id: null,
               created_at: new Date('2026-07-18T00:00:00.000Z'),
@@ -182,5 +182,96 @@ describe('governance-review PostgreSQL owner bundle', () => {
       sql: expect.stringContaining('FROM conflict_relations'),
       values: [['entry-a', 'entry-b']],
     });
+  });
+
+  it('exposes a governance retrieval projection for retrieval consumers', async () => {
+    const query = vi.fn(async (sql: string, values?: unknown[]) => {
+      if (sql.includes('FROM feedback_records')) {
+        return {
+          rows: [
+            {
+              id: 'feedback_abc123',
+              entry_id: 'entry-a',
+              entry_type: 'trap',
+              problem_type: 'incorrect',
+              description: 'owner-local feedback',
+              context: null,
+              query_seed: null,
+              query_id: null,
+              route_family: null,
+              failure_classification: null,
+              expected_correction: null,
+              selected_result_snapshot: null,
+              submitted_at: new Date('2026-07-18T00:00:00.000Z'),
+              submitted_by_user_id: 'user-1',
+              submitted_by_handle: 'alice',
+              status: 'new',
+              admin_notes: 'reviewed',
+              resolved_at: new Date('2026-07-18T02:00:00.000Z'),
+              resolved_by_user_id: 'admin-2',
+              triggered_transition: 'reindex',
+              remediation_status: 'ready-to-reindex',
+              remediation_opened_at: new Date('2026-07-18T01:00:00.000Z'),
+              remediation_opened_by_user_id: 'admin-1',
+              remediation_resolved_at: null,
+              remediation_resolved_by_user_id: null,
+              created_at: new Date('2026-07-18T00:00:00.000Z'),
+              updated_at: new Date('2026-07-18T00:00:00.000Z'),
+            },
+          ],
+        };
+      }
+      if (sql.includes('FROM feedback_custom_answers')) {
+        return { rows: [{ question_key: 'What happened?', answer_text: 'Wrong result' }] };
+      }
+      if (sql.includes('FROM conflict_relations')) {
+        return {
+          rows: [
+            {
+              id: 'conflict_abc123',
+              entry_id_a: 'entry-a',
+              entry_id_b: 'entry-b',
+              conflict_type: 'contradictory',
+              context: 'Opposite instructions',
+              problem_overlap_score: 0.9,
+              solution_diff_score: 0.9,
+              detected_at: new Date('2026-07-18T00:00:00.000Z'),
+            },
+          ],
+        };
+      }
+      return { rows: [] };
+    });
+    const owner = createGovernanceReviewPgOwnerBundle({ query } as never);
+
+    await expect(owner.retrievalProjection.listFeedback()).resolves.toEqual([
+      expect.objectContaining({
+        id: 'feedback_abc123',
+        entryId: 'entry-a',
+        customAnswers: [{ prompt: 'What happened?', answer: 'Wrong result' }],
+        adminNotes: 'reviewed',
+        resolvedAt: '2026-07-18T02:00:00.000Z',
+        resolvedByUserId: 'admin-2',
+        triggeredTransition: 'reindex',
+        remediationStatus: 'ready-to-reindex',
+        remediationOpenedAt: '2026-07-18T01:00:00.000Z',
+        remediationOpenedByUserId: 'admin-1',
+      }),
+    ]);
+    await expect(owner.retrievalProjection.listConflicts(['entry-a'])).resolves.toEqual([
+      {
+        id: 'conflict_abc123',
+        entryIdA: 'entry-a',
+        entryIdB: 'entry-b',
+        conflictType: 'contradictory',
+        context: 'Opposite instructions',
+        problemOverlapScore: 0.9,
+        solutionDiffScore: 0.9,
+        detectedAt: '2026-07-18T00:00:00.000Z',
+      },
+    ]);
+    const queryCount = query.mock.calls.length;
+    await expect(owner.retrievalProjection.listConflicts([])).resolves.toEqual([]);
+    expect(query).toHaveBeenCalledTimes(queryCount);
   });
 });

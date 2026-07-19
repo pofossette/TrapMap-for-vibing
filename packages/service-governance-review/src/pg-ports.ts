@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
-import type { FeedbackQueueRecord, FeedbackRepositoryPort } from '@trapmap/backend-core';
+import type {
+  FeedbackQueueRecord,
+  FeedbackRepositoryPort,
+  GovernanceRetrievalProjection,
+} from '@trapmap/backend-core';
 import type { ConflictReadProjection, ConflictRelation } from '@trapmap/contracts';
 import { getTableName } from 'drizzle-orm';
 import type { Pool } from 'pg';
@@ -11,6 +15,7 @@ export interface GovernanceReviewPgOwnerBundle {
   conflictProjection: ConflictReadProjection & {
     upsert(conflict: ConflictRelation): Promise<void>;
   };
+  retrievalProjection: GovernanceRetrievalProjection;
 }
 
 type Queryable = Pick<Pool, 'query'>;
@@ -281,5 +286,23 @@ export function createGovernanceReviewPgOwnerBundle(
       );
     },
   };
-  return { feedbackRepo, conflictProjection };
+  const retrievalProjection: GovernanceRetrievalProjection = {
+    async listFeedback() {
+      const { rows } = await pool.query(
+        `SELECT ${feedbackRecordColumns} FROM ${feedbackRecordsTable}`,
+      );
+      return Promise.all(
+        rows.map(async (row) =>
+          rowToFeedbackRecord(
+            row as FeedbackRow,
+            await getCustomAnswers(pool, String((row as FeedbackRow).id)),
+          ),
+        ),
+      );
+    },
+    async listConflicts(entryIds) {
+      return conflictProjection.listByEntryIds(entryIds);
+    },
+  };
+  return { feedbackRepo, conflictProjection, retrievalProjection };
 }

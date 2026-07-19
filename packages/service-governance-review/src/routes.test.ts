@@ -214,4 +214,72 @@ describe('service-governance-review routes', () => {
     });
     await app.close();
   });
+
+  it('serves the retrieval projection through an internal governance-review route', async () => {
+    const governanceRetrievalProjection = {
+      listFeedback: vi.fn(async () => [
+        {
+          id: 'feedback-1',
+          entryId: 'entry-1',
+          entryType: 'trap',
+          problemType: 'incorrect',
+          description: 'wrong answer',
+          context: null,
+          querySeed: null,
+          queryId: null,
+          routeFamily: null,
+          failureClassification: null,
+          expectedCorrection: null,
+          selectedResultSnapshot: null,
+          submittedAt: '2026-07-18T00:00:00.000Z',
+          submittedByUserId: 'user-1',
+          submittedByHandle: 'alice',
+          status: 'new',
+          adminNotes: null,
+          resolvedAt: null,
+          resolvedByUserId: null,
+          triggeredTransition: null,
+          remediationStatus: null,
+          remediationOpenedAt: null,
+          remediationOpenedByUserId: null,
+          remediationResolvedAt: null,
+          remediationResolvedByUserId: null,
+          customAnswers: null,
+          createdAt: '2026-07-18T00:00:00.000Z',
+          updatedAt: '2026-07-18T00:00:00.000Z',
+        },
+      ]),
+      listConflicts: vi.fn(async () => [
+        {
+          id: 'conflict-1',
+          entryIdA: 'entry-1',
+          entryIdB: 'entry-2',
+          conflictType: 'contradictory' as const,
+          context: 'Opposite instructions',
+          problemOverlapScore: 0.9,
+          solutionDiffScore: 0.9,
+          detectedAt: '2026-07-18T00:00:00.000Z',
+        },
+      ]),
+    };
+    const app = await buildApp({
+      ...createModule(),
+      governanceRetrievalProjection,
+    } as never);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/governance-review/retrieval-projection',
+      payload: { entryIds: ['entry-1'] },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      feedback: [{ id: 'feedback-1' }],
+      conflicts: [{ id: 'conflict-1' }],
+    });
+    expect(governanceRetrievalProjection.listFeedback).toHaveBeenCalledWith();
+    expect(governanceRetrievalProjection.listConflicts).toHaveBeenCalledWith(['entry-1']);
+    await app.close();
+  });
 });

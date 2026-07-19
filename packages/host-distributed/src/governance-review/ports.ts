@@ -31,5 +31,6 @@ export function createGovernanceReviewDeps(
     feedbackRepo: owner.feedbackRepo,
     auditLog: identity.auditLog,
     conflictWorkflow,
+    governanceRetrievalProjection: owner.retrievalProjection,
   });
 }

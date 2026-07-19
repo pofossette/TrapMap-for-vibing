@@ -2,6 +2,7 @@ import {
   type GovernanceConflictWorkflowPort,
   type GovernanceReviewAdminPort,
   type GovernanceReviewDeps,
+  type GovernanceRetrievalProjection,
   type ReviewPort,
   createGovernanceReviewModule,
 } from '@trapmap/backend-core';
@@ -14,16 +15,19 @@ export interface GovernanceReviewPortDeps {
   auditLog: GovernanceReviewDeps['auditLog'];
   conflictWorkflow?: GovernanceConflictWorkflowPort;
   admin?: GovernanceReviewAdminPort;
+  governanceRetrievalProjection?: GovernanceRetrievalProjection;
 }
 
 export type GovernanceReviewServiceDeps = GovernanceReviewDeps & {
   conflictWorkflow?: GovernanceConflictWorkflowPort;
   admin?: GovernanceReviewAdminPort;
+  governanceRetrievalProjection?: GovernanceRetrievalProjection;
 };
 
 export interface GovernanceReviewServiceModule extends ReviewPort {
   conflictWorkflow?: GovernanceConflictWorkflowPort;
   admin?: GovernanceReviewAdminPort;
+  governanceRetrievalProjection?: GovernanceRetrievalProjection;
 }
 
 export function createGovernanceReviewDeps(
@@ -35,6 +39,9 @@ export function createGovernanceReviewDeps(
     auditLog: deps.auditLog,
     ...(deps.conflictWorkflow ? { conflictWorkflow: deps.conflictWorkflow } : {}),
     ...(deps.admin ? { admin: deps.admin } : {}),
+    ...(deps.governanceRetrievalProjection
+      ? { governanceRetrievalProjection: deps.governanceRetrievalProjection }
+      : {}),
   };
 }
 
@@ -46,5 +53,8 @@ export function createGovernanceReviewServiceModule(
     ...review,
     ...(deps.conflictWorkflow ? { conflictWorkflow: deps.conflictWorkflow } : {}),
     ...(deps.admin ? { admin: deps.admin } : {}),
+    ...(deps.governanceRetrievalProjection
+      ? { governanceRetrievalProjection: deps.governanceRetrievalProjection }
+      : {}),
   };
 }

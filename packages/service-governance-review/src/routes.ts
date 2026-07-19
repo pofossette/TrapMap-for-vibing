@@ -1,6 +1,7 @@
 import type {
   GovernanceConflictWorkflowPort,
   GovernanceReviewAdminPort,
+  GovernanceRetrievalProjection,
   ReviewPort,
 } from '@trapmap/backend-core';
 import {
@@ -13,6 +14,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 export type GovernanceReviewRouteModule = ReviewPort & {
   conflictWorkflow?: GovernanceConflictWorkflowPort;
   admin?: GovernanceReviewAdminPort;
+  governanceRetrievalProjection?: GovernanceRetrievalProjection;
 };
 
 export interface GovernanceReviewReadinessOptions {
@@ -237,6 +239,35 @@ export function registerGovernanceReviewRoutes(
       module.submitFeedback({ ...body, actorId: requestActorId }),
     );
   });
+
+  app.post(
+    '/internal/governance-review/retrieval-projection',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const body = request.body as { entryIds?: unknown } | undefined;
+      if (!module.governanceRetrievalProjection) {
+        return reply
+          .status(503)
+          .send({ error: 'Governance retrieval projection unavailable', kind: 'unavailable' });
+      }
+      if (
+        !Array.isArray(body?.entryIds) ||
+        body.entryIds.some((entryId) => typeof entryId !== 'string')
+      ) {
+        return reply.status(400).send({
+          error: 'entryIds must be an array of strings',
+          kind: 'validation',
+        });
+      }
+      const entryIds = body.entryIds as string[];
+      return sendGovernanceInvocation(reply, 200, async () => {
+        const [feedback, conflicts] = await Promise.all([
+          module.governanceRetrievalProjection!.listFeedback(),
+          module.governanceRetrievalProjection!.listConflicts(entryIds),
+        ]);
+        return { feedback, conflicts };
+      });
+    },
+  );
 
   app.get('/internal/feedback/admin', async (request, reply) => {
     const actorId = readAdminActor(request, reply);

@@ -150,6 +150,47 @@ describe('createInternalServiceClients', () => {
     });
   });
 
+  it('calls the governance-review retrieval projection route with scoped entry ids', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe(
+        'http://review.test/internal/governance-review/retrieval-projection',
+      );
+      expect(init?.method).toBe('POST');
+      expect(init?.body).toBe(JSON.stringify({ entryIds: ['entry-1', 'entry-2'] }));
+      return new Response(JSON.stringify({ feedback: [], conflicts: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    const clients = createInternalServiceClients({
+      gateway: 'http://gateway.test',
+      identityAccess: 'http://identity.test',
+      knowledgeRead: 'http://read.test',
+      knowledgeWrite: 'http://write.test',
+      candidateIngestion: 'http://candidate.test',
+      review: 'http://review.test',
+      governanceReview: 'http://review.test',
+      jobRuntime: 'http://job.test',
+    });
+
+    await expect(
+      (
+        clients as typeof clients & {
+          governanceReview: {
+            getRetrievalProjection(body: {
+              entryIds: string[];
+            }): Promise<{ status: number; body: unknown }>;
+          };
+        }
+      ).governanceReview.getRetrievalProjection({ entryIds: ['entry-1', 'entry-2'] }),
+    ).resolves.toEqual({
+      status: 200,
+      body: { feedback: [], conflicts: [] },
+    });
+  });
+
   it('maps aborted internal calls to timeout responses', async () => {
     globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const signal = init?.signal as AbortSignal | undefined;

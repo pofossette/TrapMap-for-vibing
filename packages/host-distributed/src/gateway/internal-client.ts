@@ -377,7 +377,9 @@ export interface InternalServiceClients {
       options?: InternalRequestOptions,
     ): Promise<ServiceResponse>;
   };
-  governanceReview: InternalServiceClients['review'];
+  governanceReview: InternalServiceClients['review'] & {
+    getRetrievalProjection(body: { entryIds: string[] }): Promise<ServiceResponse>;
+  };
   feedbackAdmin: {
     list(query: Record<string, string>, options?: InternalRequestOptions): Promise<ServiceResponse>;
     batch(
@@ -827,6 +829,12 @@ export function createInternalServiceClients(
           body,
           undefined,
           options,
+        ),
+      getRetrievalProjection: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/governance-review/retrieval-projection`,
+          'POST',
+          body,
         ),
     },
     feedbackAdmin: {
