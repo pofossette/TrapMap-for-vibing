@@ -14,6 +14,59 @@ afterEach(() => {
 });
 
 describe('createInternalServiceClients', () => {
+  it('exposes governance feedback admin calls with query, path, body, and headers', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe('http://review.test/internal/feedback/admin?status=new&limit=10');
+      expect(init?.headers).toMatchObject({
+        'Content-Type': 'application/json',
+        'x-request-id': 'feedback-admin-request',
+        'x-correlation-id': 'feedback-admin-correlation',
+        'x-trapmap-actor-id': 'user-1',
+      });
+      return new Response(JSON.stringify({ items: [], total: 0 }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    const clients = createInternalServiceClients({
+      gateway: 'http://gateway.test',
+      identityAccess: 'http://identity.test',
+      knowledgeRead: 'http://read.test',
+      knowledgeWrite: 'http://write.test',
+      candidateIngestion: 'http://candidate.test',
+      review: 'http://review.test',
+      governanceReview: 'http://review.test',
+      jobRuntime: 'http://job.test',
+    });
+
+    await expect(
+      (
+        clients as typeof clients & {
+          feedbackAdmin: {
+            list(
+              query: Record<string, string>,
+              options: { headers: Record<string, string> },
+            ): Promise<unknown>;
+          };
+        }
+      ).feedbackAdmin.list(
+        { status: 'new', limit: '10' },
+        {
+          headers: {
+            'x-request-id': 'feedback-admin-request',
+            'x-correlation-id': 'feedback-admin-correlation',
+            'x-trapmap-actor-id': 'user-1',
+          },
+        },
+      ),
+    ).resolves.toEqual({
+      status: 200,
+      body: { items: [], total: 0 },
+    });
+  });
+
   it('preserves non-2xx body and forwards custom headers', async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       expect(init?.headers).toMatchObject({

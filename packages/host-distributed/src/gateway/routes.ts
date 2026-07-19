@@ -9,7 +9,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import type { InternalServiceClients } from './internal-client.js';
+import type { InternalRequestOptions, InternalServiceClients } from './internal-client.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -51,6 +51,7 @@ function forwardedTraceHeaders(request: FastifyRequest): Record<string, string> 
   const requestId = request.headers['x-request-id'];
   const traceId = request.headers['x-trace-id'];
   const traceParent = request.headers.traceparent;
+  const correlationId = request.headers['x-correlation-id'];
   const headers: Record<string, string> = {};
   if (typeof requestId === 'string' && requestId.length > 0) {
     headers['x-request-id'] = requestId;
@@ -60,6 +61,9 @@ function forwardedTraceHeaders(request: FastifyRequest): Record<string, string> 
   }
   if (typeof traceParent === 'string' && traceParent.length > 0) {
     headers.traceparent = traceParent;
+  }
+  if (typeof correlationId === 'string' && correlationId.length > 0) {
+    headers['x-correlation-id'] = correlationId;
   }
   return Object.keys(headers).length > 0 ? headers : undefined;
 }
@@ -249,6 +253,35 @@ async function forwardKnowledgeAction(
   } catch (err: unknown) {
     request.log.error({ err }, `${unavailableLabel} failed`);
     return reply.status(502).send({ error: unavailableError, kind: 'upstream' });
+  }
+}
+
+function queryStringValues(request: FastifyRequest): Record<string, string> {
+  const query = (request.query ?? {}) as Record<string, unknown>;
+  return Object.fromEntries(
+    Object.entries(query).flatMap(([key, value]) => {
+      if (Array.isArray(value)) return [[key, value.map(String).join(',')]];
+      if (value === undefined || value === null) return [];
+      return [[key, String(value)]];
+    }),
+  );
+}
+
+async function forwardGovernanceFeedbackAdmin(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  invoke: (
+    trusted: { actorId: string; body: Record<string, unknown> },
+    options: InternalRequestOptions,
+  ) => Promise<{ status: number; body: unknown }>,
+) {
+  const trusted = resolveTrustedActor(request);
+  if (isTrustedActorFailure(trusted)) return sendTrustedActorFailure(reply, trusted);
+  try {
+    return forwardResponse(reply, await invoke(trusted, trustedActorOptions(request)));
+  } catch (err: unknown) {
+    request.log.error({ err }, 'governance-review feedback admin failed');
+    return reply.status(502).send({ error: 'Governance service unavailable', kind: 'upstream' });
   }
 }
 
@@ -904,6 +937,45 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       request.log.error({ err }, 'governance-review submitFeedback failed');
       return reply.status(502).send({ error: 'Governance service unavailable', kind: 'upstream' });
     }
+  });
+
+  app.get('/v1/operations/feedback', async (request, reply) =>
+    forwardGovernanceFeedbackAdmin(request, reply, (_trusted, options) =>
+      clients.feedbackAdmin.list(queryStringValues(request), options),
+    ),
+  );
+
+  app.post('/v1/operations/feedback/batch', async (request, reply) =>
+    forwardGovernanceFeedbackAdmin(request, reply, (trusted, options) =>
+      clients.feedbackAdmin.batch(trusted.body, options),
+    ),
+  );
+
+  app.get('/v1/operations/feedback/stats/:entryId', async (request, reply) => {
+    const { entryId } = request.params as { entryId: string };
+    return forwardGovernanceFeedbackAdmin(request, reply, (_trusted, options) =>
+      clients.feedbackAdmin.stats(entryId, options),
+    );
+  });
+
+  app.get('/v1/operations/feedback/remediation', async (request, reply) =>
+    forwardGovernanceFeedbackAdmin(request, reply, (_trusted, options) =>
+      clients.feedbackAdmin.listRemediation(options),
+    ),
+  );
+
+  app.get('/v1/operations/feedback/remediation/:entryId', async (request, reply) => {
+    const { entryId } = request.params as { entryId: string };
+    return forwardGovernanceFeedbackAdmin(request, reply, (_trusted, options) =>
+      clients.feedbackAdmin.getRemediation(entryId, options),
+    );
+  });
+
+  app.post('/v1/operations/feedback/remediation/:entryId/complete', async (request, reply) => {
+    const { entryId } = request.params as { entryId: string };
+    return forwardGovernanceFeedbackAdmin(request, reply, (trusted, options) =>
+      clients.feedbackAdmin.completeRemediation(entryId, trusted.body, options),
+    );
   });
 
   app.post('/v1/artifacts/review', async (request: FastifyRequest, reply: FastifyReply) => {

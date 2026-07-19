@@ -4,7 +4,21 @@ import { describe, expect, it, vi } from 'vitest';
 import type { InternalServiceClients } from './internal-client.js';
 import { registerGatewayRoutes } from './routes.js';
 
-function createClients(): InternalServiceClients {
+type FeedbackAdminRequestOptions = { headers?: Record<string, string> };
+type FeedbackAdminTestClient = {
+  list(query: Record<string, string>, options?: FeedbackAdminRequestOptions): Promise<unknown>;
+  batch(body: Record<string, unknown>, options?: FeedbackAdminRequestOptions): Promise<unknown>;
+  stats(entryId: string, options?: FeedbackAdminRequestOptions): Promise<unknown>;
+  listRemediation(options?: FeedbackAdminRequestOptions): Promise<unknown>;
+  getRemediation(entryId: string, options?: FeedbackAdminRequestOptions): Promise<unknown>;
+  completeRemediation(
+    entryId: string,
+    body: Record<string, unknown>,
+    options?: FeedbackAdminRequestOptions,
+  ): Promise<unknown>;
+};
+
+function createClients(): InternalServiceClients & { feedbackAdmin: FeedbackAdminTestClient } {
   return {
     identityAccess: {
       login: vi.fn(async () => ({ status: 200, body: { token: 'session' } })),
@@ -91,6 +105,14 @@ function createClients(): InternalServiceClients {
       reviewArtifact: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       submitFeedback: vi.fn(async () => ({ status: 201, body: { id: 'feedback-1' } })),
     },
+    feedbackAdmin: {
+      list: vi.fn(async () => ({ status: 200, body: { items: [], total: 0 } })),
+      batch: vi.fn(async () => ({ status: 200, body: { action: 'triage' } })),
+      stats: vi.fn(async () => ({ status: 200, body: { entryId: 'entry-1' } })),
+      listRemediation: vi.fn(async () => ({ status: 200, body: { items: [], total: 0 } })),
+      getRemediation: vi.fn(async () => ({ status: 200, body: { item: { entryId: 'entry-1' } } })),
+      completeRemediation: vi.fn(async () => ({ status: 200, body: { entryId: 'entry-1' } })),
+    },
     jobRuntime: {
       schedule: vi.fn(async () => ({ status: 201, body: { jobId: 'job-1' } })),
       getStatus: vi.fn(async () => ({ status: 200, body: { id: 'job-1', status: 'pending' } })),
@@ -107,6 +129,123 @@ async function buildApp(clients: InternalServiceClients) {
 }
 
 describe('registerGatewayRoutes', () => {
+  it('forwards every feedback admin URL through the governance owner', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+    const headers = {
+      authorization: 'Bearer session-token',
+      'x-request-id': 'feedback-admin-request',
+      'x-trace-id': 'feedback-admin-trace',
+      'x-correlation-id': 'feedback-admin-correlation',
+      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+    };
+    const internalOptions = {
+      headers: {
+        'x-request-id': 'feedback-admin-request',
+        'x-trace-id': 'feedback-admin-trace',
+        'x-correlation-id': 'feedback-admin-correlation',
+        traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+        'x-trapmap-actor-id': 'user-1',
+      },
+    };
+
+    const responses = await Promise.all([
+      app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback?status=new&limit=10',
+        headers,
+      }),
+      app.inject({
+        method: 'POST',
+        url: '/v1/operations/feedback/batch',
+        headers,
+        payload: {
+          feedbackIds: ['feedback-1'],
+          action: 'triage',
+          dryRun: true,
+          actorId: 'user-1',
+        },
+      }),
+      app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback/stats/entry-1',
+        headers,
+      }),
+      app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback/remediation',
+        headers,
+      }),
+      app.inject({
+        method: 'GET',
+        url: '/v1/operations/feedback/remediation/entry-1',
+        headers,
+      }),
+      app.inject({
+        method: 'POST',
+        url: '/v1/operations/feedback/remediation/entry-1/complete',
+        headers,
+        payload: { notes: 'reindexed', actorId: 'user-1' },
+      }),
+    ]);
+
+    expect(responses.map((response) => response.statusCode)).toEqual([
+      200, 200, 200, 200, 200, 200,
+    ]);
+    expect(clients.feedbackAdmin.list).toHaveBeenCalledWith(
+      { status: 'new', limit: '10' },
+      internalOptions,
+    );
+    expect(clients.feedbackAdmin.batch).toHaveBeenCalledWith(
+      { feedbackIds: ['feedback-1'], action: 'triage', dryRun: true },
+      internalOptions,
+    );
+    expect(clients.feedbackAdmin.stats).toHaveBeenCalledWith('entry-1', internalOptions);
+    expect(clients.feedbackAdmin.listRemediation).toHaveBeenCalledWith(internalOptions);
+    expect(clients.feedbackAdmin.getRemediation).toHaveBeenCalledWith('entry-1', internalOptions);
+    expect(clients.feedbackAdmin.completeRemediation).toHaveBeenCalledWith(
+      'entry-1',
+      { notes: 'reindexed' },
+      internalOptions,
+    );
+    await app.close();
+  });
+
+  it('preserves governance admin status and canonical error bodies', async () => {
+    const clients = createClients();
+    clients.feedbackAdmin.list = vi.fn(async () => ({
+      status: 409,
+      body: { error: 'admin conflict', kind: 'conflict' },
+    }));
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/operations/feedback',
+      headers: { authorization: 'Bearer session-token' },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({ error: 'admin conflict', kind: 'conflict' });
+    await app.close();
+  });
+
+  it('rejects an admin body actor that spoofs the authenticated actor', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/operations/feedback/remediation/entry-1/complete',
+      headers: { authorization: 'Bearer session-token' },
+      payload: { notes: 'reindexed', actorId: 'spoofed-user' },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(clients.feedbackAdmin.completeRemediation).not.toHaveBeenCalled();
+    await app.close();
+  });
+
   it('forwards feedback using the authenticated actor instead of a spoofed body actor', async () => {
     const clients = createClients();
     const app = await buildApp(clients);

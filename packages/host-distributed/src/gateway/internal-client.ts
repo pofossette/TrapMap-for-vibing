@@ -378,6 +378,21 @@ export interface InternalServiceClients {
     ): Promise<ServiceResponse>;
   };
   governanceReview: InternalServiceClients['review'];
+  feedbackAdmin: {
+    list(query: Record<string, string>, options?: InternalRequestOptions): Promise<ServiceResponse>;
+    batch(
+      body: Record<string, unknown>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    stats(entryId: string, options?: InternalRequestOptions): Promise<ServiceResponse>;
+    listRemediation(options?: InternalRequestOptions): Promise<ServiceResponse>;
+    getRemediation(entryId: string, options?: InternalRequestOptions): Promise<ServiceResponse>;
+    completeRemediation(
+      entryId: string,
+      body: Record<string, unknown>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+  };
   jobRuntime: {
     schedule(body: {
       type: string;
@@ -808,6 +823,56 @@ export function createInternalServiceClients(
       submitFeedback: async (body, options) =>
         callInternalService(
           `${await baseUrl('governance-review', urls.review)}/internal/feedback`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+    },
+    feedbackAdmin: {
+      list: async (query, options) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/feedback/admin`,
+          'GET',
+          undefined,
+          query,
+          options,
+        ),
+      batch: async (body, options) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/feedback/admin/batch`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      stats: async (entryId, options) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/feedback/admin/stats/${entryId}`,
+          'GET',
+          undefined,
+          undefined,
+          options,
+        ),
+      listRemediation: async (options) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/feedback/admin/remediation`,
+          'GET',
+          undefined,
+          undefined,
+          options,
+        ),
+      getRemediation: async (entryId, options) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/feedback/admin/remediation/${entryId}`,
+          'GET',
+          undefined,
+          undefined,
+          options,
+        ),
+      completeRemediation: async (entryId, body, options) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.review)}/internal/feedback/admin/remediation/${entryId}/complete`,
           'POST',
           body,
           undefined,
