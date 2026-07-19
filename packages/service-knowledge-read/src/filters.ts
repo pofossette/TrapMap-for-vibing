@@ -15,9 +15,12 @@
  * Delegates to the shared governance module for unified eligibility logic.
  */
 
-import type { BoundaryContext, RetrievalQuery } from '@trapmap/contracts';
+import {
+  type BoundaryContext,
+  type RetrievalQuery,
+  isRemediationSuppressed,
+} from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
-import { isSuppressedByFeedback } from './feedback-remediation.js';
 import { getKnowledgeReadSupportInfra } from './knowledge-read-support-infra.js';
 import { getRetrievalInfra } from './retrieval-infra.js';
 import type { KnowledgeRecord } from './store.js';
@@ -38,7 +41,7 @@ export function isEntryEligible(
   filters: RetrievalQuery['filters'],
   services?: Pick<SkillShareerServices, 'knowledgeReadSupportInfra'>,
 ): boolean {
-  if (isSuppressedByFeedback(entry)) {
+  if (isRemediationSuppressed(entry)) {
     return false;
   }
 

@@ -274,4 +274,57 @@ describe('governance-review PostgreSQL owner bundle', () => {
     await expect(owner.retrievalProjection.listConflicts([])).resolves.toEqual([]);
     expect(query).toHaveBeenCalledTimes(queryCount);
   });
+
+  it('returns owner-computed remediation projections for selected entries', async () => {
+    const query = vi.fn(async (sql: string) => {
+      if (sql.includes('FROM feedback_records')) {
+        return {
+          rows: Array.from({ length: 10 }, (_, index) => ({
+            id: `feedback-${index + 1}`,
+            entry_id: 'entry-a',
+            entry_type: 'trap',
+            problem_type: 'incorrect',
+            description: 'wrong answer',
+            context: null,
+            query_seed: null,
+            query_id: null,
+            route_family: null,
+            failure_classification: null,
+            expected_correction: null,
+            selected_result_snapshot: null,
+            submitted_at: new Date(`2026-07-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`),
+            submitted_by_user_id: 'user-1',
+            submitted_by_handle: 'alice',
+            status: 'new',
+            admin_notes: null,
+            resolved_at: null,
+            resolved_by_user_id: null,
+            triggered_transition: null,
+            remediation_status: null,
+            remediation_opened_at: null,
+            remediation_opened_by_user_id: null,
+            remediation_resolved_at: null,
+            remediation_resolved_by_user_id: null,
+            created_at: new Date('2026-07-01T00:00:00.000Z'),
+            updated_at: new Date('2026-07-01T00:00:00.000Z'),
+          })),
+        };
+      }
+      return { rows: [] };
+    });
+    const owner = createGovernanceReviewPgOwnerBundle({ query } as never);
+
+    await expect(
+      owner.retrievalProjection.listRemediation(['entry-a', 'entry-missing']),
+    ).resolves.toEqual([
+      {
+        entryId: 'entry-a',
+        remediation: expect.objectContaining({
+          status: 'pending-human-review',
+          triggeredByFeedbackCount: 10,
+          suppressedFromRetrieval: true,
+        }),
+      },
+    ]);
+  });
 });

@@ -9,7 +9,7 @@
  * T-14-06: Rank only distilled profile/capsule text, not raw payloads
  */
 
-import { isSuppressedByFeedback } from '@trapmap/server/lib/feedback/remediation.js';
+import { isRemediationSuppressed } from '@trapmap/contracts';
 import { isGovernanceEligible } from '@trapmap/server/lib/governance/index.js';
 import { normalizeQuery } from '@trapmap/server/lib/retrieval/recall/keyword.js';
 import type {
@@ -38,7 +38,7 @@ export function isArtifactGovernanceEligible(
   artifact: SkillArtifactRecord,
   filters: ArtifactGovernanceFilters,
 ): boolean {
-  if (isSuppressedByFeedback(artifact)) {
+  if (isRemediationSuppressed(artifact)) {
     return false;
   }
 

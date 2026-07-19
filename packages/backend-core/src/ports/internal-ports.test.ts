@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
-import type { ConflictRelation } from '@trapmap/contracts';
+import type { ConflictRelation, FeedbackRemediationState } from '@trapmap/contracts';
 
 import type {
   GovernanceConflictEntry,
@@ -27,6 +27,9 @@ describe('governance owner ports', () => {
     >();
     expectTypeOf<GovernanceRetrievalProjection['listConflicts']>().returns.resolves.toEqualTypeOf<
       ConflictRelation[]
+    >();
+    expectTypeOf<GovernanceRetrievalProjection['listRemediation']>().returns.resolves.toEqualTypeOf<
+      Array<{ entryId: string; remediation: FeedbackRemediationState }>
     >();
   });
 });

@@ -9,6 +9,7 @@
  */
 
 import {
+  attachRemediationProjection,
   buildCachedRetrievalReadModelFromRepositories,
   type ConflictRelation,
   type RetrievalReadProjection,
@@ -19,10 +20,6 @@ import {
   getCachedRetrievalReadModel,
   setCachedRetrievalReadModel,
 } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
-import {
-  attachRemediationToArtifacts,
-  attachRemediationToKnowledgeEntries,
-} from '@trapmap/server/lib/feedback/remediation.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import type { FeedbackQueueRecord } from '@trapmap/server/lib/store.js';
@@ -157,7 +154,7 @@ export async function buildRetrievalReadModel(
       ConflictRelation
     >,
     normalizeArtifactForRetrieval,
-    attachRemediationToKnowledgeEntries,
-    attachRemediationToArtifacts,
+    (entries, _feedback, remediation) => attachRemediationProjection(entries, remediation),
+    (artifacts, _feedback, remediation) => attachRemediationProjection(artifacts, remediation),
   );
 }

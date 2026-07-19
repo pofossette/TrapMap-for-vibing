@@ -3,12 +3,15 @@ import { randomUUID } from 'node:crypto';
 import type {
   FeedbackQueueRecord,
   FeedbackRepositoryPort,
+  GovernanceRemediationProjection,
   GovernanceRetrievalProjection,
 } from '@trapmap/backend-core';
 import type { ConflictReadProjection, ConflictRelation } from '@trapmap/contracts';
 import { getTableName } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import { feedbackCustomAnswers, feedbackRecords } from '@trapmap/persistence-schema';
+
+import { remediationState } from './admin.js';
 
 export interface GovernanceReviewPgOwnerBundle {
   feedbackRepo: FeedbackRepositoryPort;
@@ -302,6 +305,22 @@ export function createGovernanceReviewPgOwnerBundle(
     },
     async listConflicts(entryIds) {
       return conflictProjection.listByEntryIds(entryIds);
+    },
+    async listRemediation(entryIds): Promise<GovernanceRemediationProjection[]> {
+      if (entryIds.length === 0) return [];
+      const allowedEntryIds = new Set(entryIds);
+      const records = (await feedbackRepo.listByFilter({})) as FeedbackQueueRecord[];
+      const grouped = new Map<string, FeedbackQueueRecord[]>();
+      for (const record of records) {
+        if (!allowedEntryIds.has(record.entryId)) continue;
+        const group = grouped.get(record.entryId) ?? [];
+        group.push(record);
+        grouped.set(record.entryId, group);
+      }
+      return [...grouped.entries()].flatMap(([entryId, entryRecords]) => {
+        const remediation = remediationState(entryRecords as never, entryId);
+        return remediation ? [{ entryId, remediation }] : [];
+      });
     },
   };
   return { feedbackRepo, conflictProjection, retrievalProjection };

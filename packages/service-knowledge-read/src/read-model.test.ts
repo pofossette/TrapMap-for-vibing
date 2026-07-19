@@ -58,4 +58,45 @@ describe('buildRetrievalReadModel', () => {
     expect(listFeedback).toHaveBeenCalledWith();
     expect(listConflicts).toHaveBeenCalledWith(['entry-1']);
   });
+
+  it('attaches remediation state from the governance projection owner', async () => {
+    const listRemediation = vi.fn().mockResolvedValue([
+      {
+        entryId: 'entry-1',
+        remediation: {
+          status: 'pending-human-review',
+          triggeredByFeedbackCount: 10,
+          threshold: 10,
+          suppressedFromRetrieval: true,
+          suppressedFromIndex: true,
+          activeFeedbackIds: ['feedback-1'],
+          openedAt: '2026-07-18T00:00:00.000Z',
+          openedByUserId: 'admin-1',
+          resolvedAt: null,
+          resolvedByUserId: null,
+        },
+      },
+    ]);
+    const repos = createRetrievalMockRepos({
+      knowledge: {
+        listByFilter: vi.fn().mockResolvedValue([{ id: 'entry-1' }]),
+      },
+      artifact: { listByFilter: vi.fn().mockResolvedValue([]) },
+      governanceRetrievalProjection: {
+        listFeedback: vi.fn(async () => {
+          throw new Error('retrieval must not compute remediation from raw feedback');
+        }),
+        listConflicts: vi.fn().mockResolvedValue([]),
+        listRemediation,
+      },
+    }) as unknown as SkillShareerRepos;
+
+    const result = await buildRetrievalReadModel(repos);
+
+    expect(result.knowledgeEntries[0]?.remediation).toMatchObject({
+      status: 'pending-human-review',
+      triggeredByFeedbackCount: 10,
+    });
+    expect(listRemediation).toHaveBeenCalledWith(['entry-1']);
+  });
 });

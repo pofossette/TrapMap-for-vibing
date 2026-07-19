@@ -304,6 +304,12 @@ importers:
 
   packages/runtime-infra:
     dependencies:
+      '@trapmap/backend-core':
+        specifier: workspace:*
+        version: link:../backend-core
+      '@trapmap/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@trapmap/persistence-schema':
         specifier: workspace:*
         version: link:../persistence-schema

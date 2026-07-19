@@ -1,8 +1,11 @@
+import type { FeedbackRemediationState } from './feedback.js';
+
 export interface RetrievalProjectionSources<KnowledgeEntry, Artifact, Feedback, Conflict> {
   listKnowledge(): Promise<KnowledgeEntry[]>;
   listArtifacts(): Promise<Artifact[]>;
   listFeedback(): Promise<Feedback[]>;
   listConflicts(entryIds: string[]): Promise<Conflict[]>;
+  listRemediation?(entryIds: string[]): Promise<RetrievalRemediationProjection[]>;
 }
 
 export interface RetrievalReadModelRepositories<KnowledgeEntry, Artifact, Feedback, Conflict> {
@@ -18,6 +21,25 @@ export interface RetrievalReadModelRepositories<KnowledgeEntry, Artifact, Feedba
 export interface RetrievalGovernanceProjection<Feedback, Conflict> {
   listFeedback(): Promise<Feedback[]>;
   listConflicts(entryIds: string[]): Promise<Conflict[]>;
+  listRemediation?(entryIds: string[]): Promise<RetrievalRemediationProjection[]>;
+}
+
+export interface RetrievalRemediationProjection {
+  entryId: string;
+  remediation: FeedbackRemediationState;
+}
+
+export function attachRemediationProjection<Record extends { id: string }>(
+  records: Record[],
+  projections: readonly RetrievalRemediationProjection[] = [],
+): Record[] {
+  const remediationByEntryId = new Map(
+    projections.map((projection) => [projection.entryId, projection.remediation]),
+  );
+  return records.map((record) => {
+    const remediation = remediationByEntryId.get(record.id);
+    return remediation ? ({ ...record, remediation } as Record) : record;
+  });
 }
 
 export interface RetrievalReadProjection<KnowledgeEntry, Artifact, Conflict> {
@@ -85,15 +107,19 @@ export async function buildRetrievalReadProjection<
   attachFeedbackToKnowledge: (
     entries: KnowledgeEntry[],
     feedback: Feedback[],
+    remediation?: RetrievalRemediationProjection[],
   ) => ProjectedKnowledgeEntry[],
   attachFeedbackToArtifacts: (
     artifacts: ProjectedArtifact[],
     feedback: Feedback[],
+    remediation?: RetrievalRemediationProjection[],
   ) => ProjectedArtifact[],
 ): Promise<RetrievalReadProjection<ProjectedKnowledgeEntry, ProjectedArtifact, Conflict>> {
   const knowledgeEntriesPromise = sources.listKnowledge();
   const artifactsPromise = sources.listArtifacts();
-  const feedbackPromise = sources.listFeedback();
+  const feedbackPromise = sources.listRemediation
+    ? Promise.resolve([] as Feedback[])
+    : sources.listFeedback();
   const knowledgeEntries = await knowledgeEntriesPromise;
   const entryIds = knowledgeEntries.flatMap((entry) => {
     const id = (entry as { id?: unknown }).id;
@@ -104,10 +130,21 @@ export async function buildRetrievalReadProjection<
     feedbackPromise,
     sources.listConflicts(entryIds),
   ]);
+  const artifactIds = artifacts.flatMap((artifact) => {
+    const id = (artifact as { id?: unknown }).id;
+    return typeof id === 'string' ? [id] : [];
+  });
+  const remediation = sources.listRemediation
+    ? await sources.listRemediation([...new Set([...entryIds, ...artifactIds])])
+    : [];
 
   return {
-    knowledgeEntries: attachFeedbackToKnowledge(knowledgeEntries, feedback),
-    skillArtifacts: attachFeedbackToArtifacts(artifacts.map(normalizeArtifact), feedback),
+    knowledgeEntries: attachFeedbackToKnowledge(knowledgeEntries, feedback, remediation),
+    skillArtifacts: attachFeedbackToArtifacts(
+      artifacts.map(normalizeArtifact),
+      feedback,
+      remediation,
+    ),
     conflicts,
   };
 }
@@ -128,10 +165,12 @@ export async function buildCachedRetrievalReadModel<
   attachFeedbackToKnowledge: (
     entries: KnowledgeEntry[],
     feedback: Feedback[],
+    remediation?: RetrievalRemediationProjection[],
   ) => ProjectedKnowledgeEntry[],
   attachFeedbackToArtifacts: (
     artifacts: ProjectedArtifact[],
     feedback: Feedback[],
+    remediation?: RetrievalRemediationProjection[],
   ) => ProjectedArtifact[],
 ): Promise<RetrievalReadProjection<ProjectedKnowledgeEntry, ProjectedArtifact, Conflict>> {
   const cached = cache.get();
@@ -166,10 +205,12 @@ export function buildCachedRetrievalReadModelFromRepositories<
   attachFeedbackToKnowledge: (
     entries: KnowledgeEntry[],
     feedback: Feedback[],
+    remediation?: RetrievalRemediationProjection[],
   ) => ProjectedKnowledgeEntry[],
   attachFeedbackToArtifacts: (
     artifacts: ProjectedArtifact[],
     feedback: Feedback[],
+    remediation?: RetrievalRemediationProjection[],
   ) => ProjectedArtifact[],
 ): Promise<RetrievalReadProjection<ProjectedKnowledgeEntry, ProjectedArtifact, Conflict>> {
   const listArtifacts = repositories.artifact.listForRetrieval
@@ -183,6 +224,12 @@ export function buildCachedRetrievalReadModelFromRepositories<
       listArtifacts: () => listArtifacts({}),
       listFeedback: () => governanceRetrievalProjection.listFeedback(),
       listConflicts: (entryIds) => governanceRetrievalProjection.listConflicts(entryIds),
+      ...(governanceRetrievalProjection.listRemediation
+        ? {
+            listRemediation: (entryIds: string[]) =>
+              governanceRetrievalProjection.listRemediation!(entryIds),
+          }
+        : {}),
     },
     normalizeArtifact,
     attachFeedbackToKnowledge,

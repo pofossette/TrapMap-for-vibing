@@ -21,4 +21,13 @@ describe('runtime-infra shared infra exports', () => {
     expect(source).not.toContain('createArtifactRepository');
     expect(source).not.toContain('ArtifactRepository');
   });
+
+  it('does not compose governance feedback or conflict repositories', () => {
+    const source = readFileSync(new URL('./repos.ts', import.meta.url), 'utf8');
+
+    expect(source).not.toContain('createFeedbackRepository');
+    expect(source).not.toContain('createConflictRepository');
+    expect(source).not.toContain('FeedbackRepository');
+    expect(source).not.toContain('ConflictRepository');
+  });
 });

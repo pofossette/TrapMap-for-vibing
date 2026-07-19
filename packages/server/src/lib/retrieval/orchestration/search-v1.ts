@@ -12,10 +12,10 @@
 import {
   type RetrievalQuery,
   type RetrievalResponse,
+  enrichConflictHints,
   retrievalQuerySchema,
 } from '@trapmap/contracts';
 
-import { enrichMatchesWithConflicts } from '@trapmap/server/lib/conflict/index.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import type { PipelineStep } from '@trapmap/server/lib/rag-log.js';
 import { generateQueryId, logRagRetrieval } from '@trapmap/server/lib/rag-log.js';
@@ -29,7 +29,7 @@ import {
   generateRefinement,
 } from '@trapmap/server/lib/retrieval/response/index.js';
 import type { ScoredEntry } from '@trapmap/server/lib/retrieval/types.js';
-import type { KnowledgeRecord, StoreData } from '@trapmap/server/lib/store.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { timedStep } from './pipeline-timing.js';
 import { dispatchByMode, inferChannelsFromMerged } from './recall-coordinator.js';
@@ -139,13 +139,10 @@ export async function searchKnowledge(
       ? new Map(buildCitations(mergedCandidates).map((c) => [c.source.entryId, c]))
       : undefined;
 
-    const conflictData = {
-      conflicts: readModel.conflicts,
-      knowledgeEntries: readModel.knowledgeEntries,
-    } as StoreData;
-    const conflictHints = enrichMatchesWithConflicts(
+    const conflictHints = enrichConflictHints(
       scoredEntries.map((e) => ({ entryId: e.entry.id })),
-      conflictData,
+      readModel.conflicts,
+      readModel.knowledgeEntries,
       { teamId: auth.activeTeamId, requiredLevel: auth.securityLevel },
     );
 

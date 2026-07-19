@@ -21,6 +21,7 @@ import type {
   FeedbackRemediationCompleteResponse,
   FeedbackRemediationDetailResponse,
   FeedbackRemediationQueueResponse,
+  FeedbackRemediationState,
   FeedbackStatsResponse,
   GovernanceConflictDetectionPayload,
 } from '@trapmap/contracts';
@@ -266,9 +267,15 @@ export interface GovernanceConflictWorkflowPort {
   }): Promise<{ detectedCount: number }>;
 }
 
+export interface GovernanceRemediationProjection {
+  entryId: string;
+  remediation: FeedbackRemediationState;
+}
+
 export interface GovernanceRetrievalProjection {
   listFeedback(): Promise<FeedbackQueueRecord[]>;
   listConflicts(entryIds: string[]): Promise<ConflictRelation[]>;
+  listRemediation(entryIds: string[]): Promise<GovernanceRemediationProjection[]>;
 }
 
 // ---------------------------------------------------------------------------

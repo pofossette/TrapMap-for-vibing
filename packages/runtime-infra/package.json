@@ -16,6 +16,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@trapmap/backend-core": "workspace:*",
     "@trapmap/contracts": "workspace:*",
     "@trapmap/server": "workspace:*",
     "@trapmap/persistence-schema": "workspace:*",

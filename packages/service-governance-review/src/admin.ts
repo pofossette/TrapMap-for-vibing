@@ -101,7 +101,7 @@ function activeFeedback(records: AdminFeedbackRecord[], entryId: string): AdminF
   );
 }
 
-function remediationState(
+export function remediationState(
   records: AdminFeedbackRecord[],
   entryId: string,
 ): FeedbackRemediationState | null {

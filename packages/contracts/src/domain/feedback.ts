@@ -140,6 +140,15 @@ export const feedbackRemediationStateSchema = z
   })
   .strict();
 
+export function isRemediationSuppressed(
+  record: { remediation?: FeedbackRemediationState | null } | null | undefined,
+): boolean {
+  return (
+    record?.remediation?.suppressedFromRetrieval === true ||
+    record?.remediation?.suppressedFromIndex === true
+  );
+}
+
 /**
  * Response schema for feedback submission endpoint.
  */

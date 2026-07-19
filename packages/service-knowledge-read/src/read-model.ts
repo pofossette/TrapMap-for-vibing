@@ -9,16 +9,13 @@
  */
 
 import {
+  attachRemediationProjection,
   buildCachedRetrievalReadModelFromRepositories,
   type RetrievalReadProjection,
   type ConflictRelation,
   type RetrievalGovernanceProjection,
 } from '@trapmap/contracts';
 import type { SkillShareerRepos } from '@trapmap/runtime-infra';
-import {
-  attachRemediationToArtifacts,
-  attachRemediationToKnowledgeEntries,
-} from './feedback-remediation.js';
 import {
   getCachedRetrievalReadModel,
   setCachedRetrievalReadModel,
@@ -48,7 +45,7 @@ export async function buildRetrievalReadModel(
     repos,
     governanceRetrievalProjection,
     (artifact) => artifact,
-    attachRemediationToKnowledgeEntries,
-    attachRemediationToArtifacts,
+    (entries, _feedback, remediation) => attachRemediationProjection(entries, remediation),
+    (artifacts, _feedback, remediation) => attachRemediationProjection(artifacts, remediation),
   );
 }

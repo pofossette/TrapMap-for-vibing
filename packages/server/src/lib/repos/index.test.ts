@@ -15,6 +15,15 @@ function getUniqueStorePath(name: string): string {
   return join(tempDir, `${name}-${Date.now()}.json`);
 }
 
+function createRepos(store: JsonStore, extra: Record<string, unknown> = {}) {
+  return createAllRepos({
+    store,
+    artifactReadProjection: { getById: async () => null } as never,
+    knowledgeOwner: { getById: async () => null } as never,
+    ...extra,
+  } as never);
+}
+
 describe('createAllRepos', () => {
   let store: JsonStore;
   let storePath: string;
@@ -35,13 +44,14 @@ describe('createAllRepos', () => {
   });
 
   it('excludes identity and audit repositories owned by the injected host bundle', async () => {
-    const repos = await createAllRepos({ store });
+    const repos = await createRepos(store);
 
     expect(repos).toHaveProperty('knowledge');
     expect(repos).toHaveProperty('artifact');
     expect(repos).toHaveProperty('usageAnalytics');
-    expect(repos).toHaveProperty('feedback');
     expect(repos).toHaveProperty('graphIndex');
+    expect(repos).not.toHaveProperty('feedback');
+    expect(repos).not.toHaveProperty('conflict');
 
     expect(repos).not.toHaveProperty('session');
     expect(repos).not.toHaveProperty('accessKey');
@@ -49,23 +59,21 @@ describe('createAllRepos', () => {
     expect(repos).not.toHaveProperty('membership');
     expect(repos).not.toHaveProperty('user');
     expect(repos).not.toHaveProperty('audit');
-    expect(Object.keys(repos)).toHaveLength(6);
+    expect(Object.keys(repos)).toHaveLength(4);
   });
 
   it('each property is an object with expected methods', async () => {
-    const repos = await createAllRepos({ store });
+    const repos = await createRepos(store);
 
     // Spot-check: knowledge has getById
     expect(typeof repos.knowledge.getById).toBe('function');
-    // Spot-check: feedback has insert
-    expect(typeof repos.feedback.insert).toBe('function');
     // Spot-check: graphIndex has upsert
     expect(typeof repos.graphIndex.upsert).toBe('function');
   });
 
   it('works without pool (JSON mode) — usageAnalytics is populated', async () => {
     // Should NOT throw
-    const repos = await createAllRepos({ store });
+    const repos = await createRepos(store);
 
     expect(repos.usageAnalytics).toBeDefined();
     expect(typeof repos.usageAnalytics.recordEvent).toBe('function');
@@ -77,7 +85,7 @@ describe('createAllRepos', () => {
   });
 
   it('usageAnalytics InMemory fallback returns empty results for queries', async () => {
-    const repos = await createAllRepos({ store });
+    const repos = await createRepos(store);
 
     const timeSeries = await repos.usageAnalytics.queryUsageTimeSeries({
       from: new Date('2026-01-01'),
@@ -104,7 +112,7 @@ describe('createAllRepos', () => {
   });
 
   it('usageAnalytics InMemory fallback recordEvent is a no-op', async () => {
-    const repos = await createAllRepos({ store });
+    const repos = await createRepos(store);
 
     // Should not throw
     await repos.usageAnalytics.recordEvent({
@@ -131,7 +139,7 @@ describe('createAllRepos', () => {
       listFeedback: async () => [],
       listConflicts: async () => [],
     };
-    const repos = await createAllRepos({ store, governanceRetrievalProjection });
+    const repos = await createRepos(store, { governanceRetrievalProjection });
 
     expect(repos.governanceRetrievalProjection).toBe(governanceRetrievalProjection);
   });

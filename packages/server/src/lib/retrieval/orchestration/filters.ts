@@ -15,10 +15,13 @@
  * Delegates to the shared governance module for unified eligibility logic.
  */
 
-import type { BoundaryContext, RetrievalQuery } from '@trapmap/contracts';
+import {
+  type BoundaryContext,
+  type RetrievalQuery,
+  isRemediationSuppressed,
+} from '@trapmap/contracts';
 import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
 import { computeDecayState, loadDecayConfig } from '@trapmap/server/lib/decay/index.js';
-import { isSuppressedByFeedback } from '@trapmap/server/lib/feedback/remediation.js';
 import {
   extractGovernanceContext,
   isGovernanceEligible,
@@ -66,7 +69,7 @@ function isEntryEligible(
   auth: ResolvedAuthContext,
   filters: RetrievalQuery['filters'],
 ): boolean {
-  if (isSuppressedByFeedback(entry)) {
+  if (isRemediationSuppressed(entry)) {
     return false;
   }
 
