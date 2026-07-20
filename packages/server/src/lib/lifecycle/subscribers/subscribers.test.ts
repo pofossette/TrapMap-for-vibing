@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createGovernanceConflictTaskScheduler } from '@trapmap/backend-core';
 import { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import type { DomainEvent } from '@trapmap/server/lib/lifecycle/types.js';
 import { createAuditSubscriber } from './audit.js';
-import { createConflictSubscriber } from './conflict.js';
 import { createIndexingSubscriber } from './indexing.js';
 
 vi.mock('../../indexing/events.js', () => ({
@@ -114,10 +114,10 @@ describe('createAuditSubscriber', () => {
   });
 });
 
-describe('createConflictSubscriber', () => {
+describe('createGovernanceConflictTaskScheduler', () => {
   it('schedules governance conflict detection for approved events', async () => {
     const jobRuntime = mockJobRuntime();
-    const subscriber = createConflictSubscriber(jobRuntime as any);
+    const subscriber = createGovernanceConflictTaskScheduler(jobRuntime as any);
     const event = makeEvent({
       nextState: 'approved',
       metadata: { sourceEventId: 'event-1' },
@@ -134,7 +134,7 @@ describe('createConflictSubscriber', () => {
 
   it('does not schedule conflict detection for non-approved events', async () => {
     const jobRuntime = mockJobRuntime();
-    const subscriber = createConflictSubscriber(jobRuntime as any);
+    const subscriber = createGovernanceConflictTaskScheduler(jobRuntime as any);
     const event = makeEvent({ nextState: 'deactivated' });
 
     await subscriber(event);

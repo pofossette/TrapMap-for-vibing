@@ -7,9 +7,9 @@
 
 import type { FastifyInstance } from 'fastify';
 
+import { createGovernanceConflictTaskScheduler } from '@trapmap/backend-core';
 import {
   createAuditSubscriber,
-  createConflictSubscriber,
   createIndexingSubscriber,
 } from '@trapmap/server/lib/lifecycle/index.js';
 import type { DomainEvent, DomainEventHandler } from '@trapmap/server/lib/lifecycle/index.js';
@@ -55,7 +55,7 @@ function buildLifecycleSubscriberContract(app: FastifyInstance): LifecycleSubscr
     asyncTransport?.task,
   );
   const auditHandler = createAuditSubscriber(store, app.log);
-  const conflictHandler = createConflictSubscriber(jobRuntime);
+  const conflictHandler = createGovernanceConflictTaskScheduler(jobRuntime);
 
   const registrations = INDEXING_EVENT_NAMES.map((eventName) => ({
     eventName,

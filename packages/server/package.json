@@ -47,7 +47,8 @@
     "nanoid": "^5.1.6",
     "neo4j-driver": "^5.28.2",
     "pg": "8.20.0",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "@trapmap/backend-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

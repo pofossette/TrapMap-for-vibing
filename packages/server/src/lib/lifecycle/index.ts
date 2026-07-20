@@ -29,5 +29,4 @@ export { createDomainEventOutbox } from './outbox.js';
 
 // Subscribers
 export { createAuditSubscriber } from './subscribers/audit.js';
-export { createConflictSubscriber } from './subscribers/conflict.js';
 export { createIndexingSubscriber } from './subscribers/indexing.js';

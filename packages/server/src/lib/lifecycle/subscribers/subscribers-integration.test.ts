@@ -7,6 +7,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createGovernanceConflictTaskScheduler } from '@trapmap/backend-core';
 import { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import { KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
@@ -15,7 +16,6 @@ import {
   buildTestServer,
   seedApprovedKnowledgeEntry,
 } from '@trapmap/server/lib/retrieval/__fixtures__/auth-store-helpers.js';
-import { createConflictSubscriber } from './conflict.js';
 import { createIndexingSubscriber } from './indexing.js';
 
 // Mock the heavy dependencies
@@ -132,12 +132,12 @@ describe('indexing subscriber via event bus', () => {
   });
 });
 
-describe('conflict subscriber via event bus', () => {
+describe('governance conflict scheduler via event bus', () => {
   it('approval triggers conflict detection', async () => {
     const bus = new LifecycleEventBus();
     const jobRuntime = mockJobRuntime();
 
-    bus.onDomainEvent('knowledge.approved', createConflictSubscriber(jobRuntime as any));
+    bus.onDomainEvent('knowledge.approved', createGovernanceConflictTaskScheduler(jobRuntime));
 
     await bus.emitDomainEventAsync(makeEvent());
 
@@ -152,7 +152,7 @@ describe('conflict subscriber via event bus', () => {
     const bus = new LifecycleEventBus();
     const jobRuntime = mockJobRuntime();
 
-    bus.onDomainEvent('knowledge.deactivated', createConflictSubscriber(jobRuntime as any));
+    bus.onDomainEvent('knowledge.deactivated', createGovernanceConflictTaskScheduler(jobRuntime));
 
     await bus.emitDomainEventAsync(
       makeEvent({ name: 'knowledge.deactivated', nextState: 'deactivated' }),
@@ -206,7 +206,7 @@ describe('event bus async waiting', () => {
     const registry = new AdapterRegistry();
 
     bus.onDomainEvent('knowledge.approved', createIndexingSubscriber(store as any, registry));
-    bus.onDomainEvent('knowledge.approved', createConflictSubscriber(jobRuntime as any));
+    bus.onDomainEvent('knowledge.approved', createGovernanceConflictTaskScheduler(jobRuntime));
 
     await bus.emitDomainEventAsync(makeEvent());
 
@@ -230,7 +230,7 @@ describe('subscriber idempotency and retry safety (Phase 2)', () => {
 
   it('conflict subscriber is safe to call repeatedly for the same entry', async () => {
     const jobRuntime = mockJobRuntime();
-    const subscriber = createConflictSubscriber(jobRuntime as any);
+    const subscriber = createGovernanceConflictTaskScheduler(jobRuntime);
     const event = makeEvent();
 
     await subscriber(event);
@@ -254,7 +254,7 @@ describe('subscriber idempotency and retry safety (Phase 2)', () => {
 
   it('conflict subscriber skips non-approval on retries', async () => {
     const jobRuntime = mockJobRuntime();
-    const subscriber = createConflictSubscriber(jobRuntime as any);
+    const subscriber = createGovernanceConflictTaskScheduler(jobRuntime);
 
     // Non-approval should be no-op
     await subscriber(makeEvent({ nextState: 'rejected' }));
