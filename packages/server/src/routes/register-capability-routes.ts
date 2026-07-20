@@ -7,8 +7,6 @@ import { adminBoundarySearchRoutes } from './admin-boundary-search.js';
 import { authRoutes } from './auth.js';
 import { decayRoutes } from './decay.js';
 import { evidenceRoutes } from './evidence.js';
-import { feedbackAdminRoutes } from './feedback-admin.js';
-import { feedbackRoutes } from './feedback.js';
 import { knowledgeRoutes } from './knowledge.js';
 import { maintenanceRoutes } from './maintenance.js';
 import { memberRoutes } from './members.js';
@@ -45,8 +43,6 @@ export async function registerCapabilityRoutes(app: FastifyInstance, config: Ser
   await app.register(operationsRoutes);
   await app.register(decayRoutes);
   await app.register(maintenanceRoutes);
-  await app.register(feedbackRoutes);
-  await app.register(feedbackAdminRoutes);
   await app.register(adminBenchmarkRoutes);
   await app.register(adminBoundarySearchRoutes);
 }

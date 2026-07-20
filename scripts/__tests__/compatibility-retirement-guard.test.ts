@@ -103,6 +103,26 @@ const WAVE_2_KNOWLEDGE_SCAN_ROOTS = [
   'packages/host-distributed/src',
   'packages/worker/src',
 ] as const;
+const RETIRED_WAVE_4_PATHS = [
+  'packages/server/src/routes/feedback.ts',
+  'packages/server/src/routes/feedback-admin.ts',
+  'packages/server/src/routes/feedback-admin',
+  'packages/server/src/lib/feedback',
+  'packages/server/src/lib/conflict',
+  'packages/server/src/lib/lifecycle/subscribers/conflict.ts',
+] as const;
+const RETIRED_WAVE_4_SYMBOLS = [
+  'createConflictRepository',
+  'createFeedbackRepository',
+  'createConflictSubscriber',
+  'createRemediationReactivationHandler',
+  'createBadcaseExportDraftHandler',
+  'feedbackRoutes',
+  'feedbackAdminRoutes',
+  'ConflictRepository',
+  'FeedbackRepository',
+] as const;
+const RETIRED_WAVE_4_BADCASE_EXPORT = 'scripts/export-badcase-to-eval.ts';
 const allowlist: AllowlistEntry[] = [
   ['package.json', '@trapmap/server', 'wave-10', 'root development dependency'],
   [
@@ -218,12 +238,6 @@ const allowlist: AllowlistEntry[] = [
     'compatibility image self-reference',
   ],
   ['packages/server/src/config.ts', 'JsonStore', 'wave-8', 'compatibility runtime capability'],
-  [
-    'packages/server/src/lib/feedback/pg-repository.ts',
-    'store_snapshot',
-    'wave-4',
-    'governance snapshot note',
-  ],
   [
     'packages/server/src/lib/labels/backfill-runner.ts',
     'PostgresStore',
@@ -353,7 +367,6 @@ const allowlist: AllowlistEntry[] = [
   ],
   ['scripts/bench-store.ts', 'JsonStore', 'wave-9', 'legacy store benchmark'],
   ['scripts/bench-store.ts', 'PostgresStore', 'wave-9', 'legacy store benchmark'],
-  ['scripts/export-badcase-to-eval.ts', '@trapmap/server', 'wave-4', 'governance export fixture'],
   [
     'scripts/export-retrieval-db-snapshot.ts',
     '@trapmap/server',
@@ -549,6 +562,41 @@ function findRetiredWaveTwoKnowledgeOwners(root: string): string[] {
   );
 }
 
+function findRetiredWaveFourCompatibilitySurfaces(root: string): string[] {
+  const pathViolations = RETIRED_WAVE_4_PATHS.filter((path) => existsSync(join(root, path))).map(
+    (path) => `retired wave-4 compatibility path: ${path}`,
+  );
+  const symbolViolations = listFiles(join(root, 'packages/server/src')).flatMap((file) => {
+    if (!isProductionFile(root, file)) return [];
+    const content = readFileSync(file, 'utf8');
+    return RETIRED_WAVE_4_SYMBOLS.filter((symbol) => content.includes(symbol)).map(
+      (symbol) => `retired wave-4 compatibility symbol: ${relative(root, file)}:${symbol}`,
+    );
+  });
+  return [...pathViolations, ...symbolViolations];
+}
+
+function findRetiredWaveFourRuntimeAggregateMembers(root: string): string[] {
+  const file = join(root, 'packages/runtime-infra/src/repos.ts');
+  if (!existsSync(file)) return [];
+  const content = readFileSync(file, 'utf8');
+  return [
+    [/createConflictRepository/, 'retired wave-4 runtime aggregate member: conflict'],
+    [/createFeedbackRepository/, 'retired wave-4 runtime aggregate member: feedback'],
+  ]
+    .filter(([pattern]) => (pattern as RegExp).test(content))
+    .map(([, message]) => message as string);
+}
+
+function findRetiredWaveFourBadcaseBoundaryViolations(root: string): string[] {
+  const file = join(root, RETIRED_WAVE_4_BADCASE_EXPORT);
+  if (!existsSync(file)) return [];
+  const content = readFileSync(file, 'utf8');
+  return content.includes('@trapmap/server')
+    ? [`retired wave-4 badcase boundary: ${RETIRED_WAVE_4_BADCASE_EXPORT}:@trapmap/server`]
+    : [];
+}
+
 function findArtifactReadProjectionBoundaryViolations(root: string): string[] {
   const violations: string[] = [];
   const contractPort = 'packages/contracts/src/domain/artifact-ports.ts';
@@ -716,6 +764,84 @@ describe('compatibility retirement guard', () => {
     expect(
       existsSync(join(repoRoot, 'packages/service-knowledge-write/src/wave9-artifact-backfill.ts')),
     ).toBe(true);
+  });
+
+  it('rejects retired Wave-4 server compatibility surfaces', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trapmap-compatibility-guard-'));
+    writeProductionFile(
+      root,
+      'packages/server/src/routes/feedback.ts',
+      'export const route = true;',
+    );
+    writeProductionFile(
+      root,
+      'packages/server/src/lib/feedback/repository.ts',
+      'export function createFeedbackRepository() {}',
+    );
+
+    expect(findRetiredWaveFourCompatibilitySurfaces(root)).toEqual([
+      'retired wave-4 compatibility path: packages/server/src/routes/feedback.ts',
+      'retired wave-4 compatibility path: packages/server/src/lib/feedback',
+      'retired wave-4 compatibility symbol: packages/server/src/lib/feedback/repository.ts:createFeedbackRepository',
+      'retired wave-4 compatibility symbol: packages/server/src/lib/feedback/repository.ts:FeedbackRepository',
+    ]);
+  });
+
+  it('has no retired Wave-4 server compatibility surfaces', () => {
+    expect(findRetiredWaveFourCompatibilitySurfaces(repoRoot)).toEqual([]);
+  });
+
+  it('rejects Wave-4 members from the runtime-infra repository aggregate', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trapmap-compatibility-guard-'));
+    writeProductionFile(
+      root,
+      'packages/runtime-infra/src/repos.ts',
+      'import { createConflictRepository, createFeedbackRepository } from "legacy";',
+    );
+
+    expect(findRetiredWaveFourRuntimeAggregateMembers(root)).toEqual([
+      'retired wave-4 runtime aggregate member: conflict',
+      'retired wave-4 runtime aggregate member: feedback',
+    ]);
+  });
+
+  it('has no Wave-4 members in the runtime-infra repository aggregate', () => {
+    expect(findRetiredWaveFourRuntimeAggregateMembers(repoRoot)).toEqual([]);
+  });
+
+  it('rejects server-owned remediation and badcase handlers', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trapmap-compatibility-guard-'));
+    writeProductionFile(
+      root,
+      'packages/server/src/lib/jobs/index.ts',
+      'export { createRemediationReactivationHandler, createBadcaseExportDraftHandler };',
+    );
+
+    expect(findRetiredWaveFourCompatibilitySurfaces(root)).toEqual([
+      'retired wave-4 compatibility symbol: packages/server/src/lib/jobs/index.ts:createRemediationReactivationHandler',
+      'retired wave-4 compatibility symbol: packages/server/src/lib/jobs/index.ts:createBadcaseExportDraftHandler',
+    ]);
+  });
+
+  it('rejects the server boundary from badcase export', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trapmap-compatibility-guard-'));
+    writeProductionFile(
+      root,
+      RETIRED_WAVE_4_BADCASE_EXPORT,
+      "import { loadConfig } from '@trapmap/server/config.js';",
+    );
+
+    expect(findRetiredWaveFourBadcaseBoundaryViolations(root)).toEqual([
+      'retired wave-4 badcase boundary: scripts/export-badcase-to-eval.ts:@trapmap/server',
+    ]);
+  });
+
+  it('has no server-owned remediation or badcase handlers', () => {
+    expect(findRetiredWaveFourCompatibilitySurfaces(repoRoot)).toEqual([]);
+  });
+
+  it('has no server boundary from badcase export', () => {
+    expect(findRetiredWaveFourBadcaseBoundaryViolations(repoRoot)).toEqual([]);
   });
 
   it('requires a real file, supported symbol, owner wave, and rationale for each exception', () => {

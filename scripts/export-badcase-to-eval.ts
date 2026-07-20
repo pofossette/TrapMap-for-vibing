@@ -2,7 +2,6 @@ import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { loadConfig } from '@trapmap/server/config.js';
 import { type BadcaseTraceExportRow, serializeBadcaseEvalDraft } from './lib/badcase-eval-draft.js';
 import { reportEntrypointFailure } from './testing/entrypoint.js';
 
@@ -29,7 +28,7 @@ function parseArguments(): { feedbackId: string; outputPath: string } {
 }
 
 function requireDatabaseUrl(): string {
-  const databaseUrl = loadConfig().databaseUrl;
+  const databaseUrl = process.env.TRAPMAP_DATABASE_URL;
   if (!databaseUrl) throw new Error('TRAPMAP_DATABASE_URL is required');
   return databaseUrl;
 }

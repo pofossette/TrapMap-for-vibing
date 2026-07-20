@@ -8,8 +8,7 @@
           "mustContain": [
             "await registerCapabilityRoutes(capabilityScopedApp, config);",
             "if (capabilities.routeSurface === 'minimal-agent') {",
-            "await app.register(operationsRoutes);",
-            "await app.register(feedbackAdminRoutes);"
+            "await app.register(operationsRoutes);"
           ]
         },
         "packages/server/src/config.ts": {

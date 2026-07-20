@@ -24,8 +24,6 @@ const SERVER_SRC = resolve(process.cwd(), 'packages/server/src');
  */
 const SNAPSHOT_ALLOWLIST: string[] = [
   // Repository implementations — wrap store.snapshot()/transact() internally
-  'lib/feedback/repository.ts',
-  'lib/conflict/repository.ts',
   'lib/graph-index/repository.ts',
 
   // Migration and backfill scripts
@@ -38,7 +36,6 @@ const SNAPSHOT_ALLOWLIST: string[] = [
 
   // Lifecycle subscribers
   'lib/lifecycle/subscribers/indexing.ts',
-  'lib/lifecycle/subscribers/conflict.ts',
   'lib/lifecycle/subscribers/audit.ts',
 
   // Knowledge review application service (named compatibility debt: local audit seam)
@@ -57,15 +54,10 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   'lib/indexing/adapters/graph.ts',
   'lib/jobs/handlers/knowledge-index-follow-up.ts',
   'lib/jobs/handlers/skill-index-follow-up.ts',
-  'lib/jobs/handlers/remediation-reactivation.ts',
   'lib/jobs/skill-index-follow-up.ts',
-
-  // Conflict detection
-  'lib/conflict/detect.ts',
 
   // Diagnostic/admin mutations — controlled operator writes and migration tools
   'routes/operations/knowledge-legacy.ts',
-  'routes/feedback-admin.ts',
   'routes/admin-benchmark.ts',
   'routes/knowledge.ts',
   'routes/teams.ts',
@@ -160,12 +152,10 @@ describe('snapshot usage guard', () => {
         'routes/members.ts',
         'routes/access-keys.ts',
         'routes/maintenance.ts',
-        'routes/feedback-admin.ts',
         'bootstrap/bootstrap-candidate-recovery.ts',
         'lib/operations/read-model.ts',
         'lib/jobs/handlers/knowledge-index-follow-up.ts',
         'lib/jobs/handlers/skill-index-follow-up.ts',
-        'lib/jobs/handlers/remediation-reactivation.ts',
         'lib/knowledge/review-application-service.ts',
       ]),
     );

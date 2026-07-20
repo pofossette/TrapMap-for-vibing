@@ -235,7 +235,6 @@ export function buildServer(options: BuildServerOptions = {}) {
   // routes/register-capability-routes.ts:
   // if (capabilities.routeSurface === 'minimal-agent') {
   // await app.register(operationsRoutes);
-  // await app.register(feedbackAdminRoutes);
   void app.register(async (capabilityScopedApp) => {
     await registerCapabilityRoutes(capabilityScopedApp, config);
   });

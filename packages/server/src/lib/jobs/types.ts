@@ -5,15 +5,11 @@ import type { WorkflowType } from '@trapmap/server/lib/workflows/types.js';
 const CANDIDATE_PROCESSING_TASK_TYPE = 'candidate_processing';
 export const KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE = 'knowledge.index-follow-up';
 export const SKILL_INDEX_FOLLOW_UP_TASK_TYPE = 'skill.index-follow-up';
-export const REMEDIATION_REACTIVATION_TASK_TYPE = 'feedback.remediation-reactivation';
-export const BADCASE_EXPORT_DRAFT_TASK_TYPE = 'feedback.badcase-export-draft';
 
 export type SharedJobTaskType =
   | typeof CANDIDATE_PROCESSING_TASK_TYPE
   | typeof KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE
-  | typeof SKILL_INDEX_FOLLOW_UP_TASK_TYPE
-  | typeof REMEDIATION_REACTIVATION_TASK_TYPE
-  | typeof BADCASE_EXPORT_DRAFT_TASK_TYPE;
+  | typeof SKILL_INDEX_FOLLOW_UP_TASK_TYPE;
 
 export interface KnowledgeIndexFollowUpPayload {
   entryId: string;
@@ -22,29 +18,11 @@ export interface KnowledgeIndexFollowUpPayload {
   reason: string;
 }
 
-export interface RemediationReactivationPayload {
-  entryId: string;
-  entryType: 'trap' | 'skill';
-  feedbackIds: string[];
-  resolvedAt: string;
-  resolvedByUserId: string | null;
-  notes: string | null;
-}
-
 export interface SkillIndexFollowUpPayload {
   artifactId: string;
   previousState: LifecycleState;
   nextState: LifecycleState;
   reason: string;
-}
-
-export interface BadcaseExportDraftPayload {
-  feedbackId: string;
-  entryId: string;
-  entryType: 'trap' | 'skill';
-  queryId: string | null;
-  requestId: string | null;
-  traceId: string | null;
 }
 
 export interface CandidateProcessingPayload {
@@ -56,8 +34,6 @@ export type SharedJobPayloadByType = {
   [CANDIDATE_PROCESSING_TASK_TYPE]: CandidateProcessingPayload;
   [KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE]: KnowledgeIndexFollowUpPayload;
   [SKILL_INDEX_FOLLOW_UP_TASK_TYPE]: SkillIndexFollowUpPayload;
-  [REMEDIATION_REACTIVATION_TASK_TYPE]: RemediationReactivationPayload;
-  [BADCASE_EXPORT_DRAFT_TASK_TYPE]: BadcaseExportDraftPayload;
 };
 
 export type SharedJobOwnerContext =
@@ -72,19 +48,9 @@ export type SharedJobOwnerContext =
       subjectType: 'trap';
     }
   | {
-      owner: 'feedback-remediation';
-      subjectId: string;
-      subjectType: 'trap' | 'skill';
-    }
-  | {
       owner: 'skill-artifact';
       subjectId: string;
       subjectType: 'skill';
-    }
-  | {
-      owner: 'feedback-badcase';
-      subjectId: string;
-      subjectType: 'feedback';
     };
 
 export interface SharedJobWorkflowBinding<TPayload> {
@@ -123,12 +89,6 @@ function workflowRunIdForKnowledgeIndexFollowUp(payload: KnowledgeIndexFollowUpP
     .join('_');
 }
 
-function workflowRunIdForRemediationReactivation(payload: RemediationReactivationPayload): string {
-  return ['wf', 'remediation', payload.entryId, payload.resolvedAt]
-    .map((part) => part.replace(/[^a-zA-Z0-9_-]+/g, '_'))
-    .join('_');
-}
-
 function workflowRunIdForSkillIndexFollowUp(payload: SkillIndexFollowUpPayload): string {
   return [
     'wf',
@@ -140,10 +100,6 @@ function workflowRunIdForSkillIndexFollowUp(payload: SkillIndexFollowUpPayload):
   ]
     .map((part) => part.replace(/[^a-zA-Z0-9_-]+/g, '_'))
     .join('_');
-}
-
-function workflowRunIdForBadcaseExportDraft(payload: BadcaseExportDraftPayload): string {
-  return `wf_badcase_${payload.feedbackId}`;
 }
 
 function defineSharedJobContract<TTaskType extends SharedJobTaskType>(
@@ -209,34 +165,6 @@ export const sharedJobContracts = {
       subjectId: (payload: KnowledgeIndexFollowUpPayload) => payload.entryId,
     },
   }),
-  [REMEDIATION_REACTIVATION_TASK_TYPE]: defineSharedJobContract({
-    taskType: REMEDIATION_REACTIVATION_TASK_TYPE,
-    owner: (payload: RemediationReactivationPayload) => ({
-      owner: 'feedback-remediation',
-      subjectId: payload.entryId,
-      subjectType: payload.entryType,
-    }),
-    idempotencyKey: {
-      description:
-        'One remediation reactivation per entry and remediation completion timestamp while work is pending/running.',
-      format: 'feedback.remediation-reactivation:<entryId>:<resolvedAt>',
-    },
-    payloadDescription:
-      'Resolved feedback bundle that reactivates one trap or skill entry after remediation and refreshes its index state.',
-    maxAttempts: 5,
-    deadLetter: {
-      stepName: 'dead-letter',
-      meaning:
-        'Remediation was marked complete, but reactivation/index refresh never finished after retries; the entry may remain stale for operators.',
-      operatorAction:
-        'Review the remediation workflow run, verify the target entry still exists, resolve indexing errors, then requeue if reactivation is still required.',
-    },
-    workflow: {
-      workflowType: 'feedback-remediation-reactivation',
-      runId: workflowRunIdForRemediationReactivation,
-      subjectId: (payload: RemediationReactivationPayload) => payload.entryId,
-    },
-  }),
   [SKILL_INDEX_FOLLOW_UP_TASK_TYPE]: defineSharedJobContract({
     taskType: SKILL_INDEX_FOLLOW_UP_TASK_TYPE,
     owner: (payload: SkillIndexFollowUpPayload) => ({
@@ -263,33 +191,6 @@ export const sharedJobContracts = {
       workflowType: 'skill-index-follow-up',
       runId: workflowRunIdForSkillIndexFollowUp,
       subjectId: (payload: SkillIndexFollowUpPayload) => payload.artifactId,
-    },
-  }),
-  [BADCASE_EXPORT_DRAFT_TASK_TYPE]: defineSharedJobContract({
-    taskType: BADCASE_EXPORT_DRAFT_TASK_TYPE,
-    owner: (payload: BadcaseExportDraftPayload) => ({
-      owner: 'feedback-badcase',
-      subjectId: payload.feedbackId,
-      subjectType: 'feedback',
-    }),
-    idempotencyKey: {
-      description: 'One export-draft task per feedback record while work is pending/running.',
-      format: 'feedback.badcase-export-draft:<feedbackId>',
-    },
-    payloadDescription:
-      'Feedback-derived badcase export draft request bound to one feedback record and its originating entry/query context.',
-    maxAttempts: 3,
-    deadLetter: {
-      stepName: 'dead-letter',
-      meaning:
-        'The badcase draft export follow-up did not finalize after retries; the feedback record remains without completed async export bookkeeping.',
-      operatorAction:
-        'Check the queue dead letter and related feedback trace, fix the export/storage issue, then requeue if the draft is still needed.',
-    },
-    workflow: {
-      workflowType: 'badcase-export-draft',
-      runId: workflowRunIdForBadcaseExportDraft,
-      subjectId: (payload: BadcaseExportDraftPayload) => payload.feedbackId,
     },
   }),
 } satisfies { [TTaskType in SharedJobTaskType]: SharedJobContract<TTaskType> };

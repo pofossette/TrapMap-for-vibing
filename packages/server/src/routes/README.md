@@ -30,7 +30,6 @@
 | 路径 | 职责 |
 |---|---|
 | `routes/candidates/` | 候选提交、查询、重复项查找与 resolution |
-| `routes/feedback-admin/` | 反馈后台列表、批量处理、统计与 remediation 管理 |
 | `routes/operations/` | status、migrate、audit、artifact import/export/activate 等 operator/admin 操作 |
 | `routes/*.ts` | 不需要子操作拆分的扁平路由模块 |
 
@@ -40,5 +39,4 @@
 |---|---|
 | `knowledge` | 校验 knowledge/trap/review/decay 请求、执行授权，并委托共享应用服务 |
 | `candidate ingestion` | 接收提交与 operator 决策后委托给 candidate 服务；recovery/re-enqueue 不属于 HTTP 职责 |
-| `feedback/remediation` | 暴露命令与查询端点，但不在 handler 中嵌入 remediation 工作流逻辑 |
 | `operations/runtime` | 暴露 runtime/admin 接口，但 runtime 状态计算仍来自基础设施模块 |
