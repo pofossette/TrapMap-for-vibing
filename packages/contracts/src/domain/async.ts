@@ -272,6 +272,8 @@ export const badcaseExportDraftPayloadSchema = z
     entryId: entityIdSchema,
     entryType: z.enum(['trap', 'skill']),
     queryId: z.string().min(1).nullable(),
+    requestId: entityIdSchema.nullable().default(null),
+    traceId: entityIdSchema.nullable().default(null),
   })
   .strict();
 

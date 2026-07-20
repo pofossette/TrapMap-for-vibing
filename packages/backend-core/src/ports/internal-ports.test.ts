@@ -6,6 +6,7 @@ import type {
   GovernanceConflictEntry,
   GovernanceConflictReadPort,
   GovernanceConflictWorkflowPort,
+  GovernanceAsyncCommandPort,
   GovernanceRetrievalProjection,
 } from './internal-ports.js';
 import type { FeedbackQueueRecord } from './repo-ports.js';
@@ -31,5 +32,17 @@ describe('governance owner ports', () => {
     expectTypeOf<GovernanceRetrievalProjection['listRemediation']>().returns.resolves.toEqualTypeOf<
       Array<{ entryId: string; remediation: FeedbackRemediationState }>
     >();
+  });
+
+  it('exposes governance-owned async command payloads', () => {
+    expectTypeOf<GovernanceAsyncCommandPort['reactivateRemediation']>().parameter(0).toMatchTypeOf<{
+      entryId: string;
+      feedbackIds: string[];
+    }>();
+    expectTypeOf<GovernanceAsyncCommandPort['exportBadcaseDraft']>().parameter(0).toMatchTypeOf<{
+      feedbackId: string;
+      requestId: string | null;
+      traceId: string | null;
+    }>();
   });
 });

@@ -8,6 +8,10 @@ export { assertJobRuntimeMigrationSet, runJobRuntimeMigrations } from './migrati
 export { registerJobRuntimeRoutes } from './routes.js';
 export { createGovernanceConflictTaskHandler } from './handlers/governance-conflict.js';
 export {
+  createGovernanceBadcaseExportDraftTaskHandler,
+  createGovernanceRemediationTaskHandler,
+} from './handlers/governance-feedback.js';
+export {
   createJobRuntimeServer,
   type JobRuntimeServer,
   type JobRuntimeServiceConfig,

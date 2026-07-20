@@ -200,4 +200,21 @@ describe('shared job payload schemas', () => {
 
     expect(result.queryId).toBeNull();
   });
+
+  it('preserves request and trace correlation on badcase export jobs', () => {
+    expect(
+      badcaseExportDraftPayloadSchema.parse({
+        feedbackId: 'feedback-1',
+        entryId: 'entry-1',
+        entryType: 'trap',
+        queryId: 'query-1',
+        requestId: 'request-1',
+        traceId: 'trace-1',
+      }),
+    ).toMatchObject({
+      queryId: 'query-1',
+      requestId: 'request-1',
+      traceId: 'trace-1',
+    });
+  });
 });

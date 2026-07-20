@@ -23,7 +23,9 @@ import type {
   FeedbackRemediationQueueResponse,
   FeedbackRemediationState,
   FeedbackStatsResponse,
+  BadcaseExportDraftPayload,
   GovernanceConflictDetectionPayload,
+  RemediationReactivationPayload,
 } from '@trapmap/contracts';
 
 import type { FeedbackQueueRecord, KnowledgeEntryRecord } from './repo-ports.js';
@@ -243,6 +245,11 @@ export interface GovernanceReviewAdminPort {
     entryId: string;
     command: FeedbackRemediationCompleteRequest;
   }): Promise<FeedbackRemediationCompleteResponse>;
+}
+
+export interface GovernanceAsyncCommandPort {
+  reactivateRemediation(payload: RemediationReactivationPayload): Promise<void>;
+  exportBadcaseDraft(payload: BadcaseExportDraftPayload): Promise<void>;
 }
 
 export interface GovernanceConflictEntry {
