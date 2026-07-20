@@ -191,6 +191,144 @@ describe('createInternalServiceClients', () => {
     });
   });
 
+  it('posts governance feedback async payloads to the governance-review owner routes', async () => {
+    const fetchMock = vi
+      .fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        expect(String(input)).toBe(
+          'http://governance.test/internal/feedback/async/remediation-reactivation',
+        );
+        expect(init?.method).toBe('POST');
+        expect(init?.body).toBe(
+          JSON.stringify({
+            entryId: 'entry-1',
+            entryType: 'trap',
+            feedbackIds: ['feedback-1'],
+            resolvedAt: '2026-07-19T00:00:00.000Z',
+            resolvedByUserId: 'admin-1',
+            notes: 'reactivate retrieval',
+          }),
+        );
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      })
+      .mockImplementationOnce(async (input: RequestInfo | URL, init?: RequestInit) => {
+        expect(String(input)).toBe(
+          'http://governance.test/internal/feedback/async/remediation-reactivation',
+        );
+        expect(init?.method).toBe('POST');
+        expect(init?.body).toBe(
+          JSON.stringify({
+            entryId: 'entry-1',
+            entryType: 'trap',
+            feedbackIds: ['feedback-1'],
+            resolvedAt: '2026-07-19T00:00:00.000Z',
+            resolvedByUserId: 'admin-1',
+            notes: 'reactivate retrieval',
+          }),
+        );
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      })
+      .mockImplementationOnce(async (input: RequestInfo | URL, init?: RequestInit) => {
+        expect(String(input)).toBe(
+          'http://governance.test/internal/feedback/async/badcase-export-draft',
+        );
+        expect(init?.method).toBe('POST');
+        expect(init?.body).toBe(
+          JSON.stringify({
+            feedbackId: 'feedback-1',
+            entryId: 'entry-1',
+            entryType: 'trap',
+            queryId: 'query-1',
+            requestId: 'request-1',
+            traceId: 'trace-1',
+          }),
+        );
+        return new Response(JSON.stringify({ accepted: true }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    const clients = createInternalServiceClients({
+      gateway: 'http://gateway.test',
+      identityAccess: 'http://identity.test',
+      knowledgeRead: 'http://read.test',
+      knowledgeWrite: 'http://write.test',
+      candidateIngestion: 'http://candidate.test',
+      review: 'http://review.test',
+      governanceReview: 'http://governance.test',
+      jobRuntime: 'http://job.test',
+    });
+
+    await expect(
+      (
+        clients as typeof clients & {
+          governanceReview: {
+            reactivateRemediation(body: {
+              entryId: string;
+              entryType: 'trap';
+              feedbackIds: string[];
+              resolvedAt: string;
+              resolvedByUserId: string;
+              notes: string;
+            }): Promise<{ status: number; body: unknown }>;
+            exportBadcaseDraft(body: {
+              feedbackId: string;
+              entryId: string;
+              entryType: 'trap';
+              queryId: string;
+              requestId: string;
+              traceId: string;
+            }): Promise<{ status: number; body: unknown }>;
+          };
+        }
+      ).governanceReview.reactivateRemediation({
+        entryId: 'entry-1',
+        entryType: 'trap',
+        feedbackIds: ['feedback-1'],
+        resolvedAt: '2026-07-19T00:00:00.000Z',
+        resolvedByUserId: 'admin-1',
+        notes: 'reactivate retrieval',
+      }),
+    ).resolves.toEqual({
+      status: 200,
+      body: { ok: true },
+    });
+
+    await expect(
+      (
+        clients as typeof clients & {
+          governanceReview: {
+            exportBadcaseDraft(body: {
+              feedbackId: string;
+              entryId: string;
+              entryType: 'trap';
+              queryId: string;
+              requestId: string;
+              traceId: string;
+            }): Promise<{ status: number; body: unknown }>;
+          };
+        }
+      ).governanceReview.exportBadcaseDraft({
+        feedbackId: 'feedback-1',
+        entryId: 'entry-1',
+        entryType: 'trap',
+        queryId: 'query-1',
+        requestId: 'request-1',
+        traceId: 'trace-1',
+      }),
+    ).resolves.toEqual({
+      status: 200,
+      body: { accepted: true },
+    });
+  });
+
   it('maps aborted internal calls to timeout responses', async () => {
     globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const signal = init?.signal as AbortSignal | undefined;

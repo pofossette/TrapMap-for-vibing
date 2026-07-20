@@ -1,11 +1,16 @@
 import {
   InvocationError,
+  type GovernanceAsyncCommandPort,
   type GovernanceConflictWorkflowPort,
   type InvocationErrorKind,
   type TaskHandler,
 } from '@trapmap/backend-core';
 import type { InternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
-import { createGovernanceConflictTaskHandler } from '@trapmap/service-job-runtime';
+import {
+  createGovernanceBadcaseExportDraftTaskHandler,
+  createGovernanceConflictTaskHandler,
+  createGovernanceRemediationTaskHandler,
+} from '@trapmap/service-job-runtime';
 
 function toInvocationError(body: unknown, fallback: string): InvocationError {
   const payload = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
@@ -48,10 +53,32 @@ export function createRemoteGovernanceConflictWorkflowClient(
   };
 }
 
+export function createRemoteGovernanceAsyncCommandClient(
+  clients: Pick<InternalServiceClients, 'governanceReview'>,
+): GovernanceAsyncCommandPort {
+  return {
+    async reactivateRemediation(payload) {
+      const response = await clients.governanceReview.reactivateRemediation(payload);
+      if (response.status < 200 || response.status >= 300) {
+        throw toInvocationError(response.body, 'governance remediation reactivation failed');
+      }
+    },
+    async exportBadcaseDraft(payload) {
+      const response = await clients.governanceReview.exportBadcaseDraft(payload);
+      if (response.status < 200 || response.status >= 300) {
+        throw toInvocationError(response.body, 'governance badcase export draft failed');
+      }
+    },
+  };
+}
+
 export function createJobRuntimeTaskHandlers(
   clients: Pick<InternalServiceClients, 'governanceReview'>,
 ): TaskHandler<unknown>[] {
+  const governanceAsyncCommands = createRemoteGovernanceAsyncCommandClient(clients);
   return [
     createGovernanceConflictTaskHandler(createRemoteGovernanceConflictWorkflowClient(clients)),
+    createGovernanceRemediationTaskHandler(governanceAsyncCommands),
+    createGovernanceBadcaseExportDraftTaskHandler(governanceAsyncCommands),
   ];
 }

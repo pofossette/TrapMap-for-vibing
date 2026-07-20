@@ -14,6 +14,10 @@ import {
   trace,
 } from '@opentelemetry/api';
 
+import type {
+  BadcaseExportDraftPayload,
+  RemediationReactivationPayload,
+} from '@trapmap/contracts';
 import type { InternalServiceUrls } from '@trapmap/host-distributed/config/index.js';
 import type { DiscoveryResolver } from './discovery-resolver.js';
 import { recordDistributedInternalHopMetric } from './internal-observability.js';
@@ -379,6 +383,8 @@ export interface InternalServiceClients {
   };
   governanceReview: InternalServiceClients['review'] & {
     getRetrievalProjection(body: { entryIds: string[] }): Promise<ServiceResponse>;
+    reactivateRemediation(payload: RemediationReactivationPayload): Promise<ServiceResponse>;
+    exportBadcaseDraft(payload: BadcaseExportDraftPayload): Promise<ServiceResponse>;
   };
   feedbackAdmin: {
     list(query: Record<string, string>, options?: InternalRequestOptions): Promise<ServiceResponse>;
@@ -788,43 +794,43 @@ export function createInternalServiceClients(
     governanceReview: {
       detectConflicts: async (body) =>
         callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/conflicts/detect`,
+          `${await baseUrl('governance-review', urls.governanceReview)}/internal/conflicts/detect`,
           'POST',
           body,
         ),
       approve: async (body) =>
         callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/review/approve`,
+          `${await baseUrl('governance-review', urls.governanceReview)}/internal/review/approve`,
           'POST',
           body,
         ),
       reject: async (body) =>
         callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/review/reject`,
+          `${await baseUrl('governance-review', urls.governanceReview)}/internal/review/reject`,
           'POST',
           body,
         ),
       applyMaintenance: async (body) =>
         callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/review/maintenance`,
+          `${await baseUrl('governance-review', urls.governanceReview)}/internal/review/maintenance`,
           'POST',
           body,
         ),
       applyDecay: async (body) =>
         callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/review/decay`,
+          `${await baseUrl('governance-review', urls.governanceReview)}/internal/review/decay`,
           'POST',
           body,
         ),
       reviewArtifact: async (body) =>
         callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/review/artifact`,
+          `${await baseUrl('governance-review', urls.governanceReview)}/internal/review/artifact`,
           'POST',
           body,
         ),
       submitFeedback: async (body, options) =>
         callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/feedback`,
+          `${await baseUrl('governance-review', urls.governanceReview)}/internal/feedback`,
           'POST',
           body,
           undefined,
@@ -832,7 +838,19 @@ export function createInternalServiceClients(
         ),
       getRetrievalProjection: async (body) =>
         callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/governance-review/retrieval-projection`,
+          `${await baseUrl('governance-review', urls.governanceReview)}/internal/governance-review/retrieval-projection`,
+          'POST',
+          body,
+        ),
+      reactivateRemediation: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.governanceReview)}/internal/feedback/async/remediation-reactivation`,
+          'POST',
+          body,
+        ),
+      exportBadcaseDraft: async (body) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.governanceReview)}/internal/feedback/async/badcase-export-draft`,
           'POST',
           body,
         ),
