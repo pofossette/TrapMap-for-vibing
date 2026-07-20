@@ -1,12 +1,18 @@
 import pg from 'pg';
 
+import { createJobRuntimeModule } from '../../packages/backend-core/src/index.js';
 import { buildServer, type BuildServerOptions } from '../../packages/server/src/app.js';
+import {
+  createPostgresEventTransport,
+  createPostgresTaskTransport,
+} from '../../packages/server/src/lib/async/transport.js';
 import { PostgresStore } from '../../packages/server/src/lib/persistence/postgres-store.js';
 import { createIdentityAccessPgDeps } from '../../packages/service-identity-access/src/pg-ports.js';
 import {
   createKnowledgeWriteOwnerBundle,
   type ArtifactWritePort,
 } from '../../packages/service-knowledge-write/src/pg-ports.js';
+import { createGovernanceReviewPgOwnerBundle } from '../../packages/service-governance-review/src/pg-ports.js';
 import type { KnowledgeOwnerPort } from '../../packages/contracts/src/index.js';
 
 export interface PostgresComposedServer {
@@ -24,13 +30,23 @@ export function buildPostgresComposedServer(
 ): PostgresComposedServer {
   const pool = new pg.Pool({ connectionString: databaseUrl });
   const store = new PostgresStore(pool);
+  const identity = createIdentityAccessPgDeps(pool);
   const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
+  const governanceReview = createGovernanceReviewPgOwnerBundle(pool);
   const app = buildServer({
     ...options,
     config: { ...options.config, databaseUrl },
     identityBundle: createIdentityAccessPgDeps(pool),
     artifactReadProjection: knowledgeWrite.artifactReadProjection,
     knowledgeOwner: knowledgeWrite.knowledgeOwner,
+    governanceRetrievalProjection: governanceReview.retrievalProjection,
+    jobRuntime: createJobRuntimeModule({
+      queuePorts: {
+        task: createPostgresTaskTransport(pool),
+        outbox: createPostgresEventTransport(pool),
+      },
+      auditLog: identity.auditLog,
+    }),
     ownsStore: false,
     store,
   });

@@ -16,6 +16,22 @@ const cleanupProtectedEntrypoints = [
 ];
 
 describe('PostgreSQL composition entrypoints', () => {
+  it('injects the job-runtime port into the compatibility composition', async () => {
+    const source = await readFile('scripts/testing/postgres-server-composition.ts', 'utf8');
+
+    expect(source).toContain('createJobRuntimeModule');
+    expect(source).toMatch(/jobRuntime:\s*createJobRuntimeModule\(/);
+  });
+
+  it('injects the governance retrieval projection into the compatibility composition', async () => {
+    const source = await readFile('scripts/testing/postgres-server-composition.ts', 'utf8');
+
+    expect(source).toContain('createGovernanceReviewPgOwnerBundle');
+    expect(source).toMatch(
+      /governanceRetrievalProjection:\s*governanceReview\.retrievalProjection/,
+    );
+  });
+
   it.each(entrypoints)('%s uses host PostgreSQL composition', async (entrypoint) => {
     const source = await readFile(path.resolve(entrypoint), 'utf8');
 
