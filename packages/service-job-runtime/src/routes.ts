@@ -37,11 +37,13 @@ export function registerJobRuntimeRoutes(app: FastifyInstance, module: JobRuntim
         delayMs?: number;
         priority?: number;
         maxAttempts?: number;
+        dedupeKey?: string;
       };
       const jobId = await module.schedule(body.type, body.payload, {
         ...(body.delayMs !== undefined ? { delayMs: body.delayMs } : {}),
         ...(body.priority !== undefined ? { priority: body.priority } : {}),
         ...(body.maxAttempts !== undefined ? { maxAttempts: body.maxAttempts } : {}),
+        ...(body.dedupeKey !== undefined ? { dedupeKey: body.dedupeKey } : {}),
       });
       return reply.status(201).send({ jobId });
     } catch (error) {

@@ -52,6 +52,30 @@ describe('service-job-runtime routes', () => {
     await app.close();
   });
 
+  it('preserves the dedupe key for queue-level idempotency', async () => {
+    const module = createModule();
+    const app = await buildApp(module);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/jobs',
+      payload: {
+        type: 'governance.conflict-detection',
+        payload: { entryId: 'entry-1', sourceEventId: 'event-1' },
+        dedupeKey: 'governance.conflict-detection:entry-1:event-1',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(module.schedule).toHaveBeenCalledWith(
+      'governance.conflict-detection',
+      { entryId: 'entry-1', sourceEventId: 'event-1' },
+      { dedupeKey: 'governance.conflict-detection:entry-1:event-1' },
+    );
+
+    await app.close();
+  });
+
   it('preserves job status path param and queue status response shape', async () => {
     const module = createModule();
     const app = await buildApp(module);
