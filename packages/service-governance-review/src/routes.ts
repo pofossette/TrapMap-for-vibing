@@ -1,17 +1,21 @@
 import type {
+  GovernanceAsyncCommandPort,
   GovernanceConflictWorkflowPort,
   GovernanceReviewAdminPort,
   GovernanceRetrievalProjection,
   ReviewPort,
 } from '@trapmap/backend-core';
 import {
+  badcaseExportDraftPayloadSchema,
   feedbackBatchRequestSchema,
   feedbackListRequestSchema,
   feedbackRemediationCompleteRequestSchema,
+  remediationReactivationPayloadSchema,
 } from '@trapmap/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 export type GovernanceReviewRouteModule = ReviewPort & {
+  asyncCommands?: GovernanceAsyncCommandPort;
   conflictWorkflow?: GovernanceConflictWorkflowPort;
   admin?: GovernanceReviewAdminPort;
   governanceRetrievalProjection?: GovernanceRetrievalProjection;
@@ -103,6 +107,17 @@ function parseAdminRequest<T>(reply: FastifyReply, parse: () => T): T | null {
     return parse();
   } catch {
     void reply.status(400).send({ error: 'Invalid feedback admin request', kind: 'validation' });
+    return null;
+  }
+}
+
+function parseAsyncCommandRequest<T>(reply: FastifyReply, parse: () => T): T | null {
+  try {
+    return parse();
+  } catch {
+    void reply
+      .status(400)
+      .send({ error: 'Invalid governance async command request', kind: 'validation' });
     return null;
   }
 }
@@ -238,6 +253,38 @@ export function registerGovernanceReviewRoutes(
     return sendGovernanceInvocation(reply, 201, () =>
       module.submitFeedback({ ...body, actorId: requestActorId }),
     );
+  });
+
+  app.post('/internal/feedback/async/remediation-reactivation', async (request, reply) => {
+    if (!module.asyncCommands) {
+      return reply
+        .status(503)
+        .send({ error: 'Governance async commands unavailable', kind: 'unavailable' });
+    }
+    const payload = parseAsyncCommandRequest(reply, () =>
+      remediationReactivationPayloadSchema.parse(request.body),
+    );
+    if (!payload) return;
+    return sendGovernanceInvocation(reply, 200, async () => {
+      await module.asyncCommands!.reactivateRemediation(payload);
+      return { ok: true };
+    });
+  });
+
+  app.post('/internal/feedback/async/badcase-export-draft', async (request, reply) => {
+    if (!module.asyncCommands) {
+      return reply
+        .status(503)
+        .send({ error: 'Governance async commands unavailable', kind: 'unavailable' });
+    }
+    const payload = parseAsyncCommandRequest(reply, () =>
+      badcaseExportDraftPayloadSchema.parse(request.body),
+    );
+    if (!payload) return;
+    return sendGovernanceInvocation(reply, 200, async () => {
+      await module.asyncCommands!.exportBadcaseDraft(payload);
+      return { ok: true };
+    });
   });
 
   app.post(

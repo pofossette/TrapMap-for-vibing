@@ -1,4 +1,9 @@
 export {
+  createGovernanceAsyncCommandModule,
+  type GovernanceAsyncCommandDeps,
+  type GovernanceAsyncCommandModule,
+} from './async-commands.js';
+export {
   createGovernanceReviewDeps,
   createGovernanceReviewServiceModule,
   type GovernanceReviewDeps,

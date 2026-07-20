@@ -1,13 +1,16 @@
 import {
   InvocationError,
+  type GovernanceAsyncCommandPort,
   type GovernanceReviewAdminPort,
   type ReviewPort,
 } from '@trapmap/backend-core';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
-import { registerGovernanceReviewRoutes } from './routes.ts';
+import { registerGovernanceReviewRoutes, type GovernanceReviewRouteModule } from './routes.ts';
 
-function createModule(overrides: Partial<ReviewPort> = {}): ReviewPort {
+function createModule(
+  overrides: Partial<GovernanceReviewRouteModule> = {},
+): GovernanceReviewRouteModule {
   return {
     approve: vi.fn(async () => ({ entryId: 'entry-1', lifecycleState: 'approved' as const })),
     reject: vi.fn(async () => ({ entryId: 'entry-1', lifecycleState: 'rejected' as const })),
@@ -19,7 +22,7 @@ function createModule(overrides: Partial<ReviewPort> = {}): ReviewPort {
   };
 }
 
-async function buildApp(module: ReviewPort) {
+async function buildApp(module: GovernanceReviewRouteModule) {
   const app = Fastify();
   registerGovernanceReviewRoutes(app, module);
   await app.ready();
@@ -125,6 +128,92 @@ describe('service-governance-review routes', () => {
     expect(response.json()).toEqual({
       error: 'knowledge-write timed out',
       kind: 'timeout',
+    });
+    await app.close();
+  });
+
+  it('delegates trusted remediation reactivation jobs to the async command owner', async () => {
+    const asyncCommands: GovernanceAsyncCommandPort = {
+      reactivateRemediation: vi.fn(async () => undefined),
+      exportBadcaseDraft: vi.fn(async () => undefined),
+    };
+    const app = await buildApp(createModule({ asyncCommands }));
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/feedback/async/remediation-reactivation',
+      payload: {
+        entryId: 'entry-1',
+        entryType: 'trap',
+        feedbackIds: ['feedback-1'],
+        resolvedAt: '2026-07-19T00:00:00.000Z',
+        resolvedByUserId: 'admin-1',
+        notes: 'reactivate retrieval',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(asyncCommands.reactivateRemediation).toHaveBeenCalledWith({
+      entryId: 'entry-1',
+      entryType: 'trap',
+      feedbackIds: ['feedback-1'],
+      resolvedAt: '2026-07-19T00:00:00.000Z',
+      resolvedByUserId: 'admin-1',
+      notes: 'reactivate retrieval',
+    });
+    await app.close();
+  });
+
+  it('rejects async feedback routes when command wiring is unavailable', async () => {
+    const app = await buildApp(createModule());
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/feedback/async/badcase-export-draft',
+      payload: {
+        feedbackId: 'feedback-1',
+        entryId: 'entry-1',
+        entryType: 'trap',
+        queryId: 'query-1',
+        requestId: 'request-1',
+        traceId: 'trace-1',
+      },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: 'Governance async commands unavailable',
+      kind: 'unavailable',
+    });
+    await app.close();
+  });
+
+  it('preserves invocation failure semantics for badcase export async routes', async () => {
+    const asyncCommands: GovernanceAsyncCommandPort = {
+      reactivateRemediation: vi.fn(async () => undefined),
+      exportBadcaseDraft: vi.fn(async () => {
+        throw InvocationError.conflict('Feedback does not match badcase export request');
+      }),
+    };
+    const app = await buildApp(createModule({ asyncCommands }));
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/feedback/async/badcase-export-draft',
+      payload: {
+        feedbackId: 'feedback-1',
+        entryId: 'entry-1',
+        entryType: 'trap',
+        queryId: 'query-1',
+        requestId: null,
+        traceId: null,
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({
+      error: 'Feedback does not match badcase export request',
+      kind: 'conflict',
     });
     await app.close();
   });
