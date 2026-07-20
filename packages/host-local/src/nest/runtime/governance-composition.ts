@@ -1,4 +1,5 @@
 import type {
+  GovernanceAsyncCommandPort,
   GovernanceConflictChat,
   GovernanceConflictProjection,
 } from '@trapmap/service-governance-review';
@@ -8,7 +9,11 @@ import {
 } from '@trapmap/service-governance-review';
 import type { KnowledgeOwnerPort } from '@trapmap/contracts';
 import type { GovernanceConflictWorkflowPort, TaskHandler } from '@trapmap/backend-core';
-import { createGovernanceConflictTaskHandler } from '@trapmap/service-job-runtime';
+import {
+  createGovernanceBadcaseExportDraftTaskHandler,
+  createGovernanceConflictTaskHandler,
+  createGovernanceRemediationTaskHandler,
+} from '@trapmap/service-job-runtime';
 
 export interface HostLocalGovernanceConflictComposition {
   knowledgeOwner: Pick<KnowledgeOwnerPort, 'getById' | 'listByFilter'>;
@@ -34,4 +39,15 @@ export function createHostLocalGovernanceConflictTaskHandlers(
   workflow: GovernanceConflictWorkflowPort,
 ): TaskHandler<unknown>[] {
   return [createGovernanceConflictTaskHandler(workflow) as TaskHandler<unknown>];
+}
+
+export function createHostLocalGovernanceTaskHandlers(
+  workflow: GovernanceConflictWorkflowPort,
+  asyncCommands: GovernanceAsyncCommandPort,
+): TaskHandler<unknown>[] {
+  return [
+    createGovernanceConflictTaskHandler(workflow) as TaskHandler<unknown>,
+    createGovernanceRemediationTaskHandler(asyncCommands),
+    createGovernanceBadcaseExportDraftTaskHandler(asyncCommands),
+  ];
 }

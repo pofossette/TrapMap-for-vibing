@@ -1,7 +1,12 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { createJobRuntimeModule } from '@trapmap/backend-core';
 import { createCandidateIngestionDeps } from '@trapmap/service-candidate-ingestion';
-import { createGovernanceReviewDeps } from '@trapmap/service-governance-review';
+import {
+  createGovernanceAsyncCommandModule,
+  createGovernanceReviewAdminModule,
+  createGovernanceReviewDeps,
+} from '@trapmap/service-governance-review';
 import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
 import {
   createIdentityAccessDeps,
@@ -27,7 +32,7 @@ import { HealthModule } from './health/index.js';
 import { LifecycleModule } from './lifecycle/index.js';
 import { createHostLocalRuntime, HOST_LOCAL_RUNTIME_TOKEN } from './runtime/host-runtime.js';
 import {
-  createHostLocalGovernanceConflictTaskHandlers,
+  createHostLocalGovernanceTaskHandlers,
   createHostLocalGovernanceConflictWorkflow,
 } from './runtime/governance-composition.js';
 import { RequestContextMiddleware } from './runtime/request-context.middleware.js';
@@ -90,21 +95,44 @@ const governanceConflictWorkflow = createHostLocalGovernanceConflictWorkflow({
   conflictProjection: hostLocalRuntime.services.governanceReview.conflictProjection,
 });
 
+const governanceAsyncCommands = createGovernanceAsyncCommandModule({
+  feedbackRepo: hostLocalRuntime.services.governanceReview.feedbackRepo,
+  auditLog: hostLocalRuntime.auditLog,
+});
+
+const jobRuntimeDeps = createJobRuntimeDeps({
+  queuePorts: hostLocalRuntime.queuePorts,
+  auditLog: hostLocalRuntime.auditLog,
+  taskHandlers: createHostLocalGovernanceTaskHandlers(
+    governanceConflictWorkflow,
+    governanceAsyncCommands,
+  ),
+  ownsWork: true,
+});
+const jobRuntimePort = createJobRuntimeModule(jobRuntimeDeps);
+
+const governanceAdmin = createGovernanceReviewAdminModule({
+  feedbackRepo: hostLocalRuntime.services.governanceReview.feedbackRepo,
+  knowledgeRead: hostLocalRuntime.services.knowledgeOwner,
+  artifactReadProjection: hostLocalRuntime.services.artifactReadProjection,
+  knowledgeWrite: knowledgeWritePort,
+  jobRuntime: jobRuntimePort,
+  auditLog: hostLocalRuntime.auditLog,
+});
+
 const governanceReviewModule = GovernanceReviewModule.forDeps(
   createGovernanceReviewDeps({
     knowledgeWrite: knowledgeWritePort,
     feedbackRepo: hostLocalRuntime.services.governanceReview.feedbackRepo,
     auditLog: hostLocalRuntime.auditLog,
+    asyncCommands: governanceAsyncCommands,
+    admin: governanceAdmin,
     conflictWorkflow: governanceConflictWorkflow,
+    governanceRetrievalProjection:
+      hostLocalRuntime.services.governanceReview.retrievalProjection,
   }),
 );
 
-const jobRuntimeDeps = createJobRuntimeDeps({
-  queuePorts: hostLocalRuntime.queuePorts,
-  auditLog: hostLocalRuntime.auditLog,
-  taskHandlers: createHostLocalGovernanceConflictTaskHandlers(governanceConflictWorkflow),
-  ownsWork: true,
-});
 const jobRuntimeModule = JobRuntimeModule.forDeps(jobRuntimeDeps);
 
 const candidateIngestionModule = CandidateIngestionModule.forDeps(

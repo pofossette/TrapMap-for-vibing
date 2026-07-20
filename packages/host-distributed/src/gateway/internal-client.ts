@@ -14,10 +14,7 @@ import {
   trace,
 } from '@opentelemetry/api';
 
-import type {
-  BadcaseExportDraftPayload,
-  RemediationReactivationPayload,
-} from '@trapmap/contracts';
+import type { BadcaseExportDraftPayload, RemediationReactivationPayload } from '@trapmap/contracts';
 import type { InternalServiceUrls } from '@trapmap/host-distributed/config/index.js';
 import type { DiscoveryResolver } from './discovery-resolver.js';
 import { recordDistributedInternalHopMetric } from './internal-observability.js';
@@ -252,6 +249,7 @@ export interface InternalServiceClients {
       options?: InternalRequestOptions,
     ): Promise<ServiceResponse>;
     getConflictCandidates(entryId: string): Promise<ServiceResponse>;
+    getArtifactById(artifactId: string, options?: InternalRequestOptions): Promise<ServiceResponse>;
     updateEntry(
       entryId: string,
       body: { updates: Record<string, unknown>; actorId: string },
@@ -605,6 +603,14 @@ export function createInternalServiceClients(
         callInternalService(
           `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge/${entryId}/conflict-candidates`,
           'GET',
+        ),
+      getArtifactById: async (artifactId, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/artifacts/${artifactId}`,
+          'GET',
+          undefined,
+          undefined,
+          options,
         ),
       updateEntry: async (entryId, body, options) =>
         callInternalService(

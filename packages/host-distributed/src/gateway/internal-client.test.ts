@@ -150,6 +150,33 @@ describe('createInternalServiceClients', () => {
     });
   });
 
+  it('reads artifacts from the knowledge-write owner with the exact owner URL', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      expect(String(input)).toBe('http://write.test/internal/artifacts/artifact-1');
+      return new Response(JSON.stringify({ error: 'artifact missing', kind: 'not-found' }), {
+        status: 404,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    const clients = createInternalServiceClients({
+      gateway: 'http://gateway.test',
+      identityAccess: 'http://identity.test',
+      knowledgeRead: 'http://read.test',
+      knowledgeWrite: 'http://write.test',
+      candidateIngestion: 'http://candidate.test',
+      review: 'http://review.test',
+      governanceReview: 'http://review.test',
+      jobRuntime: 'http://job.test',
+    });
+
+    await expect(clients.knowledgeWrite.getArtifactById('artifact-1')).resolves.toEqual({
+      status: 404,
+      body: { error: 'artifact missing', kind: 'not-found' },
+    });
+  });
+
   it('calls the governance-review retrieval projection route with scoped entry ids', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(String(input)).toBe(

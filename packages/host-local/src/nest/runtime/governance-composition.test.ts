@@ -5,6 +5,7 @@ import type { GovernanceReviewPgOwnerBundle } from '@trapmap/service-governance-
 
 import {
   createHostLocalGovernanceConflictTaskHandlers,
+  createHostLocalGovernanceTaskHandlers,
   createHostLocalGovernanceConflictWorkflow,
 } from './governance-composition.js';
 
@@ -67,5 +68,58 @@ describe('host-local governance composition', () => {
     );
 
     expect(detectConflicts).toHaveBeenCalledWith({ entryId: 'entry-1' });
+  });
+
+  it('combines conflict and governance feedback handlers without creating a queue', async () => {
+    const asyncCommands = {
+      reactivateRemediation: vi.fn().mockResolvedValue(undefined),
+      exportBadcaseDraft: vi.fn().mockResolvedValue(undefined),
+    };
+    const handlers = createHostLocalGovernanceTaskHandlers(
+      { detectConflicts: vi.fn().mockResolvedValue({ detectedCount: 0 }) },
+      asyncCommands,
+    );
+
+    expect(handlers.map((handler) => handler.type)).toEqual([
+      'governance.conflict-detection',
+      'feedback.remediation-reactivation',
+      'feedback.badcase-export-draft',
+    ]);
+
+    await handlers[1]!.handle(
+      {
+        id: 'task-2',
+        type: 'feedback.remediation-reactivation',
+        payload: {
+          entryId: 'entry-1',
+          entryType: 'trap',
+          feedbackIds: ['feedback-1'],
+          resolvedAt: '2026-07-19T00:00:00.000Z',
+          resolvedByUserId: 'admin-1',
+          notes: 'reactivate retrieval',
+        },
+        attempt: 1,
+      },
+      new AbortController().signal,
+    );
+    await handlers[2]!.handle(
+      {
+        id: 'task-3',
+        type: 'feedback.badcase-export-draft',
+        payload: {
+          feedbackId: 'feedback-1',
+          entryId: 'entry-1',
+          entryType: 'trap',
+          queryId: 'query-1',
+          requestId: 'request-1',
+          traceId: 'trace-1',
+        },
+        attempt: 1,
+      },
+      new AbortController().signal,
+    );
+
+    expect(asyncCommands.reactivateRemediation).toHaveBeenCalledOnce();
+    expect(asyncCommands.exportBadcaseDraft).toHaveBeenCalledOnce();
   });
 });

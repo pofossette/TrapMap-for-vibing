@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 
-import type {
-  GovernanceReviewDeps,
-  ReviewPort,
-} from '@trapmap/backend-core';
-import { createGovernanceReviewModule } from '@trapmap/backend-core';
+import type { ReviewPort } from '@trapmap/backend-core';
+import {
+  createGovernanceReviewServiceModule,
+  type GovernanceReviewServiceDeps,
+} from '@trapmap/service-governance-review';
 
 import { GOVERNANCE_REVIEW_PORT } from './governance-review.tokens.js';
 
@@ -18,8 +18,8 @@ import { GOVERNANCE_REVIEW_PORT } from './governance-review.tokens.js';
  */
 @Module({})
 export class GovernanceReviewModule {
-  static forDeps(deps: GovernanceReviewDeps) {
-    const port: ReviewPort = createGovernanceReviewModule(deps);
+  static forDeps(deps: GovernanceReviewServiceDeps) {
+    const port: ReviewPort = createGovernanceReviewServiceModule(deps);
 
     return {
       module: GovernanceReviewModule,
