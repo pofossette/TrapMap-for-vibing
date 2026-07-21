@@ -14,8 +14,8 @@
 | `packages/service-knowledge-read` | `src/index.ts` | knowledge-read service assembly 与检索读侧路由 |
 | `packages/service-knowledge-write` | `src/index.ts` | knowledge-write service assembly 与 authoritative 写路径 |
 | `packages/service-candidate-ingestion` | `src/index.ts` | candidate-ingestion service assembly 与候选处理路由 |
-| `packages/service-governance-review` | `src/index.ts` | governance-review service assembly 与治理/反馈路由 |
-| `packages/service-job-runtime` | `src/index.ts` | job-runtime service assembly、内部 route 与 runtime server |
+| `packages/service-governance-review` | `src/index.ts` | governance-review service assembly 与 review/feedback/conflict/remediation/operator routes |
+| `packages/service-job-runtime` | `src/index.ts` | job-runtime service assembly、内部 route、typed handlers 与 queue/runtime server |
 | `packages/host-local` | `src/index.ts` | `local-agent` / `team-monolith` 的 `light` 宿主装配；默认 `main` / `dev` / `start` 只进入 `src/nest/**` 主线，旧 Fastify 轻宿主路径已删除。 |
 | `packages/host-distributed` | `src/index.ts` | `distributed` 的 `heavy` 重宿主装配 |
 | `packages/server` | `src/index.ts` | `packages/server` 是 Fastify compatibility shell + shared runtime/status seam，不再承担默认 light 宿主职责，也不是共享业务内核。 |
@@ -54,7 +54,7 @@
 - `store_snapshot` 继续只扮演 compatibility JSONB store：它是 InMemory repository fallback、migration/backfill、startup recovery、部分 operator/admin mutation、以及少量 payload/projection seam 的载体，不是新的聚合 owner。
 - PG-first 的当前真相是“生产主事实走 PostgreSQL 结构化表 + `repos.*`；兼容缓存/兼容快照按命名例外保留”。身份/审计、knowledge、artifact、candidate、feedback、usage、queue/outbox 已冻结为 PG-first domain，不得再在文档中写成依赖 `store_snapshot` 才能成立。对 `teams`、`members`、`access-keys` 这几条路由，PG-primary 事实已经成立，但它们当前仍保留 live no-PG / InMemory fallback，所以这里不能被写成“回退已完全删除”。
 - InMemory 不是与 PG 对等的长期生产轨道。它只是在无 PG 场景和测试里，通过 `InMemory*Repository -> SkillShareerStore` 维持相同 repo/route contract 的 fallback posture。对仍保留 fallback 的 teams / members / access-keys 入口，这一姿态仍在运行中。
-- direct `store.snapshot()` / `store.transact()` 入口当前仍集中在 compatibility shell 与 operator/admin seam：`teams`、`members`、`access-keys`、`knowledge`、`evidence`、`maintenance`、`feedback-admin`、`admin-*`、`operations/artifacts-*`、`operations/skill-*`、`operations/migrate`、`operations/knowledge-legacy`，以及 startup recovery、index follow-up/remediation handlers、`lib/operations/read-model.ts`、`lib/session.ts`、`lib/knowledge/review-application-service.ts`。Phase 2 把这些入口从“模糊遗留”冻结为明确 inventory，其中 teams / members / access-keys 还是 PG-primary 与兼容 fallback 并存的当前状态。
+- direct `store.snapshot()` / `store.transact()` 入口当前仍集中在 compatibility shell 与 operator/admin seam：`teams`、`members`、`access-keys`、`knowledge`、`evidence`、`maintenance`、`admin-*`、`operations/artifacts-*`、`operations/skill-*`、`operations/migrate`、`operations/knowledge-legacy`，以及 startup recovery、index follow-up handlers、`lib/operations/read-model.ts`、`lib/session.ts`、`lib/knowledge/review-application-service.ts`。Wave-4 feedback-admin、remediation、conflict 和 badcase handler 已移出 server；Wave-9 的 `store_snapshot` 删除范围仍保持未执行。
 - 当前 compatibility-cache 边界也已冻结：artifact / knowledge 等结构化真表优先，JSONB 只在 `artifactFilePayloads`、skill history full-data read、maintenance/operator projection helper 等命名 seam 中兜底；后续 phase 只能通过补 repo/projection capability 来缩小这条边界。
 
 ## Phase 3 Unified adapter boundary freeze
@@ -249,9 +249,9 @@ P3 起，`topology` 会把 distributed 第一阶段的正式服务词汇固化�
 >
 > **Phase 3 更新**：`lib/workflows/` 持有长任务运行快照的持久化与类型。当前由 candidate processing 和 capsule-index rebuild 写入 `workflow_runs`，而 `routes/operations/status.ts` 负责把最近 workflow runs 暴露到 operator status family。
 >
-> **Phase 4 更新**：retrieval 路由负责生成并公开 `queryId`；feedback 路由负责接收最小 badcase envelope，并在 PostgreSQL 模式下把可复现快照写入 `retrieval_badcase_traces`。usage analytics 仍可复用 `queryId` 做关联，但不再是 badcase reconstruction 的唯一事实源。
+> **Phase 4 更新**：retrieval 路由负责生成并公开 `queryId`；gateway 将 feedback 请求转发给 `governance-review`，由 owner 接收最小 badcase envelope，并在 PostgreSQL 模式下把可复现快照写入 `retrieval_badcase_traces`。usage analytics 仍可复用 `queryId` 做关联，但不再是 badcase reconstruction 的唯一事实源。
 >
-> **Phase 5 更新**：`lib/jobs/` 成为共享派生重活的统一入口。候选处理之外，生命周期索引 follow-up、feedback remediation 完成后的 reactivation/reindex follow-up、以及 badcase export draft generation 都通过 `asyncTransport.queue` 背后的 `task_queue` + `workflow_runs` 进入统一 worker substrate；路由和订阅器负责 authoritative write / outbox commit 后经窄 queue port 入队，不再在本地同步执行重活。
+> **Phase 5 更新**：`service-job-runtime` 是共享派生重活的统一执行入口。候选处理之外，生命周期索引 follow-up、governance-review 的 conflict detection、feedback remediation 完成后的 reactivation/reindex follow-up、以及 badcase export draft generation 都通过 typed task contract 进入 `task_queue` + `workflow_runs`；job-runtime 保留 queue、retry、lease、dead-letter，治理 owner 只提供业务 handler/command。
 >
 > **Phase 6 更新**：retrieval-side process-local caches 现在被显式视为 derived artifacts，而不是“透明优化”。`lib/cache/retrieval-read-model-cache.ts` 持有 read-model 缓存，`lib/retrieval/capsules/intent-cache.ts` 持有意图缓存；两者都通过 `lib/cache/invalidation.ts` 接受 shared invalidation events。生命周期 approval/deactivation、remediation suppression、remediation reactivation 都会清理 retrieval caches，operator 可在 `/v1/operations/status/async` 查看 cache hit/miss/eviction/invalidation 指标。
 | `UsageAnalyticsRepository` | `lib/analytics/repository.ts` | PG (`PgUsageAnalyticsRepository`) 或 InMemory (no-op) |
@@ -278,8 +278,8 @@ P3 起，`topology` 会把 distributed 第一阶段的正式服务词汇固化�
 | `routes/operations.ts` | `/v1/operations` | 导入/导出（注册子路由：audit、knowledge-legacy、artifacts-export/import/activate、migrate、status、skill-edit、skill-review、stats） |
 | `routes/candidates.ts` | `/v1/candidates`、`/v1/duplicates` | 异步摄取与重复检测 |
 | `routes/traps.ts` | `/v1/traps` | Trap 管理（与 knowledge 共享同一 `KnowledgeApplicationService` 工作流） |
-| `routes/feedback.ts` | `/v1/feedback` | 用户反馈提交 |
-| `routes/feedback-admin.ts` | `/v1/operations/feedback` | 反馈管理（列表、批量处理、统计）以及 remediation 工作队列（列表、详情、完成） |
+| `host-distributed/src/gateway/routes.ts` + `service-governance-review/src/routes.ts` | `/v1/feedback` | gateway 保留 public URL，governance-review owner 写入用户反馈 |
+| `host-distributed/src/gateway/routes.ts` + `service-governance-review/src/admin.ts` | `/v1/operations/feedback*` | gateway 保留 feedback admin/remediation public URLs，governance-review owner 提供内部 API |
 | `routes/decay.ts` | `/v1/operations/decay` | Decay 管理 |
 | `routes/maintenance.ts` | `/v1/operations/maintenance` | 维护管理 |
 | `routes/admin-boundary-search.ts` | `/admin/boundary-search` | 管理员边界搜索 |
@@ -289,9 +289,9 @@ P3 起，`topology` 会把 distributed 第一阶段的正式服务词汇固化�
 
 | 模块 | 文件 | 说明 |
 |------|------|------|
-| shared jobs | `lib/jobs/index.ts` | 统一导出 shared task types、scheduler 与 handlers |
-| job handlers | `lib/jobs/handlers/*.ts` | 生命周期索引 follow-up、remediation reactivation、badcase export draft |
-| worker bootstrap | `bootstrap/bootstrap-workers.ts` | 把 candidate handler 与 shared job handlers 注册到同一 `task_queue` worker |
+| shared jobs | `service-job-runtime/src/` | 统一 task contracts、scheduler、typed handlers 与运行时状态 |
+| governance handlers | `service-governance-review/src/async-commands.ts`、`service-job-runtime/src/handlers/` | remediation reactivation、badcase export draft、conflict detection 的 owner command 与 job-runtime consumer |
+| worker bootstrap | `service-job-runtime` + host composition | job-runtime 注册 queue/lease/retry/dead-letter worker；governance 只注入业务 handlers |
 
 > **Wiring debt convergence 更新**：知识生命周期的 PG 投影发布统一走 `emitLifecycleTransition()` / `createLifecyclePublisher()`，异步底座统一从 `app.skillShareer.asyncTransport` 暴露。业务写路径不再直接拼装 `task_queue` / `domain_event_outbox`；JSON 模式仅保留同步 event bus 兼容回退。
 

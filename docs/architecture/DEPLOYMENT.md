@@ -136,8 +136,8 @@ Phase 5 freeze 固定 distributed baseline / runtime-isolation 的当前叙事�
 - `gateway`：对外唯一入口，负责 CLI / 外部 HTTP API、auth、session，不拥有 candidate/shared-job/outbox worker ownership。
 - `retrieval`：负责 search、read-model、capsule recall 等读侧编排；不承载 review / governance 写路径。
 - `candidate-ingestion`：负责 candidate submit 后续处理、去重和 resolution follow-up，拥有 candidate task work。
-- `governance`：负责 review、maintenance、decay、feedback remediation 等治理写路径，拥有 shared-job task work。
-- `outbox-runtime`：负责 PostgreSQL outbox 消费、派生刷新和 follow-up dispatch，作为独立 worker runtime 暴露 status-only surface。
+- `governance`：负责 review、maintenance、decay、feedback、conflict、remediation 等治理写路径和 operator projections；通过 `JobRuntimePort` 提交/消费治理命令，不拥有 queue substrate。
+- `job-runtime` / `outbox-runtime`：负责 PostgreSQL outbox 消费、task queue、重试、租约、dead-letter、派生刷新和 follow-up dispatch，作为独立 worker runtime 暴露 status surface。
 
 第一阶段共享基础设施固定为：
 

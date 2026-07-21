@@ -25,6 +25,7 @@
 
 - [x] 建立 Task 1 deletion contract：[`compatibility-retirement-guard.test.ts`](../../scripts/__tests__/compatibility-retirement-guard.test.ts) 扫描生产 TypeScript、Dockerfile、根脚本与 workspace manifest；测试、spec 和 fixture 不构成新增阻断面。
 - [x] Task 2 migration baseline：六个 owner-local baseline 仅支持空数据库；旧 `0000–0020` 数据库须重建，不提供原地升级。`identity-access` 暂管 `store_snapshot`，仅作为 Task 9 一次性 backfill 输入；Task 9 完成导出、回填与核对后必须删除该表及其迁移资产。已通过六个 service 的 `src/migrations.test.ts`：每个 runner 均拒绝 owner-external SQL 和缺失 journal tag；host coordinator 的顺序、失败停止与 pool close 覆盖保留在 `packages/host-distributed/src/migrate.test.ts`。
+- [x] Wave-4 governance-review closeout（2026-07-21）：feedback、conflict、remediation、operator projection 的 production compatibility surface 已清空；server route/repository/subscriber 与 runtime-infra aggregate 成员已删除，`completedOwnerWaves` 已包含 `wave-4`，且未改变 Wave-5+ 或 Wave-9 条目。
 - [ ] 每完成一个 owner wave，回写迁移范围、已删除 compatibility surface、focused tests、Fallow boundary audit 与 typecheck 结果。
 - [ ] 所有 wave 完成后执行 empty-database migration、legacy snapshot backfill、distributed acceptance 与 closeout，并归档本文件。
 
@@ -37,7 +38,7 @@
 | wave-1 identity-access | `auth/users/teams/audit` 的旧 snapshot 注记与 identity migration fixture 已不再是 guard 例外；唯一允许的 snapshot 输入是 service-local `IdentityAccessSnapshotPort`，仅供 Task 9 backfill 使用。完整 repository aggregate 迁移仍未完成。 |
 | wave-2 knowledge-write | artifact/knowledge/lifecycle 的 `JsonStore` 与 snapshot fallback；PG-first write path 落地即删除。 |
 | wave-3 candidate-ingestion | 已完成：candidate/duplicate/lineage/processing 已完全归属 owner；无 guard allowlist、server/runtime-infra concrete implementation 或 snapshot fallback。 |
-| wave-4 governance-review | feedback snapshot 注记与 badcase export；governance owner 完成即删除。 |
+| wave-4 governance-review | 已完成：feedback、conflict、remediation、operator projection 归属 `service-governance-review`；server compatibility routes/repositories/subscribers 与 runtime-infra aggregate 成员已删除，guard 无 Wave-4 allowlist 条目。 |
 | wave-6 job-runtime | runtime-infra outbox bridge；job runtime 接管后删除。 |
 | wave-7 knowledge-read | retrieval schema 和 service knowledge-read 对 runtime-infra/server 的依赖；read owner 完成即删除。 |
 | wave-8 host surfaces | host composition、migration entrypoint、capability config；host-owned runtime surface 完成即删除。 |
@@ -108,7 +109,7 @@ Wave-2 owner closeout（2026-07-16）：`service-knowledge-write` 的事务、�
 
 本轮 owner-domain 增量：candidate duplicate detector 现通过 service-local `CandidateCorpusReadPort` 读取获批 corpus，不导入 knowledge/artifact service 实现或直读其表；exact duplicate 的 fingerprint、analysis snapshot 与 case 都由 candidate owner 生成。candidate resolution、manual-result 与 publish internal routes 仅接受 gateway 的 `x-trapmap-actor-id`，缺失 trusted actor 返回 401，body actor 与该身份不一致返回 403；distributed gateway 以认证 actor 覆盖 body 值并转发该 header。TDD RED 为未传身份时 route 返回 200；修复后 candidate owner focused suite（26 tests）、gateway routes（23 tests）和 package typecheck 通过。Fallow 的增量缓存偶发 `unable to open database file`；使用 `rtk pnpm exec fallow audit --base wave1-fallow-base --gate new-only --format json --quiet --explain --no-cache --output-file /tmp/wave3-foundation-fallow.json` 可稳定完成，报告新增 dead-code、boundary、complexity 均为 `0`，仍有 12 个新增 duplication group。这些重复来自 owner-local schema/PG subtable mapping 与尚未删除的 Wave-3 compatibility 实现并存，因此不通过且不可作为 Wave-3 closeout evidence。该增量不改变 Wave-3 未完成判断：legacy worker、公开 gateway compatibility、server/runtime-infra 删除与 distributed/host-local acceptance 仍待完成。
 
-## Task 5 — Wave-4 in-progress evidence
+## Task 5 — Wave-4 implementation evidence (intermediate)
 
 `service-governance-review` 现提供 owner-local `createGovernanceReviewPgOwnerBundle()`；feedback queue 的 PostgreSQL port 由 service package 创建，distributed governance host 与 host-local Nest composition 均只注入该 owner bundle。`host-distributed/shared/ports.ts` 不再构造或暴露 feedback repository，host-local 也已删除将 compatibility `HostLocalRepos['feedback']` 适配为 backend-core port 的实现。最终知识 mutation 仍仅由既有 `KnowledgeWritePort` delegation 执行。
 
@@ -116,7 +117,16 @@ Conflict owner increment：governance baseline 现拥有 `conflict_relations` �
 
 Review correction：最初 owner bundle 的简化 SQL 错误指向不存在的 `feedback_queue`，且 distributed governance composition 遗留已删除的 shared `ports.auditLog` 引用。修正后 bundle 从 persistence schema 的 `feedback_records` 与 `feedback_custom_answers` 表名派生 SQL，覆盖完整 feedback record、custom-answer hydration、filter/update 与 remediation 字段；governance host 直接组合 identity owner 的 `auditLog`。
 
-本轮以 owner-local PG bundle test 作为 RED，但当前 worktree 缺少 `node_modules`，`rtk pnpm --filter @trapmap/service-governance-review test --run src/pg-ports.test.ts` 与 `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts` 都在 Vitest 启动前报 `Command "vitest" not found`，不可计为产品失败。`rtk pnpm typecheck`、`rtk pnpm check:docs-drift`（46 rules）、`rtk pnpm check:structure` 与 `rtk git diff --check` 通过；Fallow 命令退出成功但明确警告无 `node_modules`，因此不能作为 boundary closeout evidence。Wave-4 仍未完成：server feedback/conflict/admin/remediation compatibility route、runtime-infra aggregate、snapshot/badcase allowlist 和 production retirement guard 仍待迁移/删除；不得将 `wave-4` 加入 `completedOwnerWaves`。
+本轮以 owner-local PG bundle test 作为 RED，但当前 worktree 缺少 `node_modules`，`rtk pnpm --filter @trapmap/service-governance-review test --run src/pg-ports.test.ts` 与 `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts` 都在 Vitest 启动前报 `Command "vitest" not found`，不可计为产品失败。`rtk pnpm typecheck`、`rtk pnpm check:docs-drift`（46 rules）、`rtk pnpm check:structure` 与 `rtk git diff --check` 通过；Fallow 命令退出成功但明确警告无 `node_modules`，因此不能作为 boundary closeout evidence。以上记录为切换前中间状态；最终 Wave-4 closeout 见下文。
+
+## Wave-4 closeout evidence（2026-07-21）
+
+- `service-governance-review` 现在是 feedback record/admin、conflict detection and relations、remediation、badcase async commands、operator projections 的唯一 owner。最终知识 aggregate mutation 继续通过 `KnowledgeWritePort` 委托；`service-job-runtime` 只消费 typed governance handlers，并继续拥有 task queue、retry/backoff、lease/reclaim、workflow 与 dead-letter。
+- `packages/server` 已删除 Wave-4 feedback/conflict/admin/remediation routes、repositories、lifecycle subscriber 与 remediation/badcase handlers；`packages/runtime-infra/src/repos.ts` 不再暴露 feedback/conflict aggregate 成员。badcase export 通过 governance owner boundary，未保留 `@trapmap/server` concrete import。
+- `packages/host-distributed` 保留既有 `/v1/feedback`、`/v1/operations/feedback*` public URLs，认证 actor、trace/correlation headers、upstream/error semantics 由 gateway 转发；governance owner 内部 API 仅作为 private service surface。host-local 通过同一 owner ports 组合，不新增跨 service concrete implementation import。
+- TDD closeout：新增 guard completion assertion 先以 `completedOwnerWaves = ['wave-1', 'wave-2', 'wave-3']` RED（25 passed, 1 failed），加入 `wave-4` 后 guard GREEN（26/26）；production scan、runtime aggregate scan 与 badcase boundary scan 均为空。
+- Full closeout evidence：`rtk pnpm eval:smoke` 81/81；`rtk pnpm test:deployment-smoke` 静态 135/135、PostgreSQL app/startup 37/37；`rtk pnpm check:docs-drift` 46/46；`rtk pnpm check:structure`、`rtk pnpm typecheck`、`rtk git diff --check` 均通过。
+- Fallow new-only boundary audit verdict 为 `pass`；本轮新增 dead-code、boundary、duplication、complexity 均为 0，仅保留 inherited complexity。Wave-5+ 与 `store_snapshot` 的 Wave-9 删除范围未在本轮修改。
 
 ## Deferred 边界
 

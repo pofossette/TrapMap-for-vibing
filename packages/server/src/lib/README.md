@@ -1,6 +1,6 @@
 # `packages/server/src/lib/` 目录布局
 
-`packages/server/src/lib/` 按限界上下文与共享基础设施组织。`lib/` 不是单一的“服务层”，而是承载 server 在 `domain`、`application` 与 `infrastructure` 三层中的实际归属。
+`packages/server/src/lib/` 按限界上下文与共享基础设施组织。`lib/` 不是单一的“服务层”，而是承载 server 在 `domain`、`application` 与 `infrastructure` 三层中的兼容壳与共享运行时接缝。Wave-4 的 feedback、conflict、remediation 与 operator projection 已迁至 `packages/service-governance-review`，不再在本目录保留实现、repository 或 subscriber。
 
 ## `lib/` 内部的层级归属
 
@@ -27,7 +27,7 @@
 | `indexing/` | 派生索引流水线、适配器、graph-lite、向量、关键词与归一化 |
 | `governance/` | 供接口层和应用流复用的权限与资格策略 |
 | `auth/`、`users/`、`teams/` | 身份与访问控制领域，以及基于 repo 的应用辅助模块 |
-| `feedback/`、`decay/`、`maintenance/` | 反馈 / 补救，以及贴近生命周期的操作员用例 |
+| `decay/`、`maintenance/` | 贴近生命周期的操作员用例；feedback / remediation 实现归 `service-governance-review` |
 
 ## 共享基础设施
 
@@ -47,7 +47,7 @@
 |---|---|---|
 | `knowledge` | submit / resubmit / supersede / review / decay 命令、生命周期变更、具名兼容债务 | repo 实现、索引适配器、生命周期订阅器、启动接线 |
 | `candidate ingestion` | 提交、重复 / 审查决策、补救命令、处理策略 | 队列传输、候选恢复、worker 启动、PG / JSON 存储细节 |
-| `feedback/remediation` | 反馈命令处理、badcase / remediation 状态变更、reactivation 决策 | 持久化适配器、异步订阅器 / 钩子、worker 执行、操作员传输 |
+| `governance-review`（包外 owner） | 反馈命令、badcase / remediation 状态、reactivation、conflict 与 operator projection | `packages/service-governance-review` 持有持久化、owner routes 与 async command；`packages/service-job-runtime` 持有 queue/worker substrate |
 | `operations/runtime` | 仅限明确命名的管理类用例 | `/health` 与 `/ready`、启动时序、运行时快照、迁移执行、worker 监管 |
 
 ## 测试放置规则

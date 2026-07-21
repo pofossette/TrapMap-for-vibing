@@ -4,6 +4,12 @@
 
 TrapMap 的治理模型基于 RBAC (基于角色的访问控制) 和多层级安全模型，确保知识条目在正确的权限级别下被访问和操作。
 
+## Owner Boundary
+
+`service-governance-review` 是 feedback、conflict、remediation 与 operator projection 的唯一业务 owner。它通过 owner-local PostgreSQL ports 和 internal routes 提供 feedback admin、统计、批处理、remediation 与冲突工作流；最终知识生命周期变更仍经 `KnowledgeWritePort` 委托给 `knowledge-write`。
+
+`service-job-runtime` 只负责 typed governance commands 的排队与执行底座，包括 queue、retry/backoff、lease/reclaim、workflow 和 dead-letter；治理业务规则不回流到 queue owner。distributed gateway 保留既有 public URLs、认证 actor、trace/correlation headers 和 canonical error semantics，并将请求转发到 governance owner。相关实现入口为 [`service-governance-review/src/routes.ts`](../../../packages/service-governance-review/src/routes.ts)、[`service-governance-review/src/admin.ts`](../../../packages/service-governance-review/src/admin.ts)、[`service-governance-review/src/conflict-workflow.ts`](../../../packages/service-governance-review/src/conflict-workflow.ts) 与 [`host-distributed/src/gateway/routes.ts`](../../../packages/host-distributed/src/gateway/routes.ts)。
+
 > **Round 3 更新**：知识域治理约束已从纯应用层校验升级为数据库级约束。`knowledge_entries` 表补齐 `CHECK` 约束（`scope`、`lifecycle_state`、`required_level`），`lifecycle_events` 表补齐 `type` CHECK 约束。标签、边界、维护分配已从 JSONB 拆为结构化子表（见 [数据库级治理约束](#数据库级治理约束round-3)），支持按治理维度直接查询、过滤和索引。
 
 ## 安全等级 (Security Levels)

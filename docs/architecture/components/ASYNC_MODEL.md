@@ -2,6 +2,8 @@
 
 本文是当前 TrapMap 异步模型的详细说明，覆盖 authoritative write、outbox、task queue、worker modes、shared jobs、workflow snapshots、cache invalidation 与 badcase export。
 
+> **Wave-4 closeout（2026-07-21）**：`governance-review` 是 feedback、conflict、remediation 和 operator projection 的唯一业务 owner；`job-runtime` 只拥有 queue、retry、lease、workflow 与 dead-letter，并消费治理 owner 提供的 typed handlers。distributed gateway 继续保留既有 feedback public URLs 和 transport semantics。
+
 ## Phase 1 observability seam
 
 - 统一命名与可见性 contract 以 `packages/contracts/src/domain/observability.ts` 为准
@@ -53,7 +55,7 @@ flowchart TB
     subgraph DerivedWork["4. Derived Work"]
         Lifecycle["Lifecycle subscribers"]
         Candidate["candidate-processing"]
-        SharedJobs["shared jobs\nknowledge.index-follow-up\nfeedback.remediation-reactivation\nfeedback.badcase-export-draft"]
+        SharedJobs["shared jobs\nknowledge.index-follow-up\nfeedback.remediation-reactivation\nfeedback.badcase-export-draft\ngovernance.conflict-detection"]
     end
 
     subgraph ReadSide["5. Read Side"]
@@ -245,6 +247,7 @@ flowchart TB
     Worker --> K["knowledge.index-follow-up"]
     Worker --> R["feedback.remediation-reactivation"]
     Worker --> B["feedback.badcase-export-draft"]
+    Worker --> C["governance.conflict-detection"]
     K --> WF1["workflow_runs"]
     R --> WF2["workflow_runs"]
     B --> WF3["workflow_runs"]
@@ -262,6 +265,7 @@ flowchart TB
 - `skill.index-follow-up`
 - `feedback.remediation-reactivation`
 - `feedback.badcase-export-draft`
+- `governance.conflict-detection`
 
 这些任务都：
 
@@ -302,7 +306,7 @@ flowchart LR
   - owner scope: skill graph / retrieval 可见性派生面
 - `feedback-remediation-projection`
   - trigger: `shared-job` 或 `write-through-fallback`
-  - owner scope: remediation suppression / reactivation 对 retrieval 可见性的派生面
+  - owner scope: `governance-review` 持有 remediation suppression / reactivation 对 retrieval 可见性的派生面
 
 ### Freshness 语义
 

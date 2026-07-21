@@ -2,7 +2,7 @@
 
 > 当前更完整、包含 Phase 5-7 shared jobs / cache invalidation / badcase export / runtime modes 的异步模型说明见 [`ASYNC_MODEL.md`](ASYNC_MODEL.md)。
 
-> 当前组合层边界补充：PG 模式下，路由/服务不应直接构造 `TaskQueue` 或直接写 outbox。统一入口是 `app.skillShareer.asyncTransport`，其中 `asyncTransport.queue` 用于 candidate processing / shared jobs，`LifecyclePublisher` 用于 lifecycle event 注册。
+> 当前组合层边界补充：PG 模式下，路由/服务不应直接构造 `TaskQueue` 或直接写 outbox。`job-runtime` 是 queue、retry、lease、workflow 和 dead-letter 的 owner；业务 owner 通过 typed command/handler 与 `JobRuntimePort` 接入，`LifecyclePublisher` 只负责 lifecycle event 注册。
 
 ## 概述
 
@@ -18,7 +18,7 @@ flowchart TB
         OutboxWorker["OutboxWorker\n(poll-based)"]
         IndexSub["IndexingSubscriber"]
         AuditSub["AuditSubscriber"]
-        ConflictSub["ConflictSubscriber"]
+        ConflictSchedule["Governance conflict scheduler"]
     end
 
     subgraph 任务队列层["任务队列层 (PostgreSQL-backed)"]
@@ -166,7 +166,7 @@ WHERE status = 'pending';
 
 ### OutboxWorker
 
-PG 模式下启动一个后台 worker，轮询 outbox 表领取 pending 事件，按 eventName 分发到对应的 subscriber（indexing/conflict/audit），失败自动重试并记录错误。
+PG 模式下启动一个后台 worker，轮询 outbox 表领取 pending 事件，按 eventName 分发到 indexing/audit subscriber，并将 approved lifecycle 的 conflict follow-up 交给 `job-runtime` 调度到 `governance-review` owner；失败自动重试并记录错误。
 
 ```typescript
 // app.ts: 在 PG 模式下启动 outbox worker
@@ -399,7 +399,7 @@ flowchart TB
 | 事件异步发射 | `lifecycle/event-bus.ts:59` | `emitDomainEventAsync` 并行等待所有 handler |
 | HTTP 路由批处理 | `routes/review.ts:38` | 并行处理审核请求 |
 | 候选批量处理 | `routes/candidates.ts:232` | 并行处理候选提交 |
-| 反馈批量处理 | `routes/feedback-admin.ts:336` | 并行处理反馈批次 |
+| 反馈批量处理 | `service-governance-review/src/admin.ts` | 并行处理反馈批次 |
 | Worker 优雅关闭 | `queue/task-queue.ts:438` | `stop()` 时 `Promise.all` 等待活跃任务排空 |
 
 ### 并发限制

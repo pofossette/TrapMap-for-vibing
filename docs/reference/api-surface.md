@@ -122,7 +122,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 
 | 方法 | 路由 | 请求契约 | 响应契约 | 用途 |
 |------|------|----------|----------|------|
-| `POST` | `/v1/feedback` | `feedbackSubmissionSchema` | `feedbackResponseSchema` | 提交知识条目反馈，支持 additive badcase reproducibility envelope；PG 模式下会返回 additive `asyncJobId` 用于 badcase export draft follow-up |
+| `POST` | `/v1/feedback` | `feedbackSubmissionSchema` | `feedbackResponseSchema` | gateway 保留的 public feedback 提交 URL；由 `governance-review` owner 写入，支持 additive badcase reproducibility envelope 和 `asyncJobId` follow-up |
 | `GET` | `/v1/operations/feedback` | `feedbackListRequestSchema` | `feedbackListResponseSchema` | 管理员获取反馈列表 |
 | `GET` | `/v1/operations/feedback/remediation` | 无 | `feedbackRemediationQueueResponseSchema` | 获取达到阈值的 remediation 工作队列 |
 | `GET` | `/v1/operations/feedback/remediation/:entryId` | 无 | `feedbackRemediationDetailResponseSchema` | 获取单个 trap/skill remediation 详情与内容快照 |
@@ -134,7 +134,9 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 
 > **2026-06-09 更新**：当同一 `trap` 或 `skill` 的未解决反馈数达到阈值（当前为 `10`）时，系统会在读取时聚合出 remediation/suppression 状态，并通过 `/v1/operations/feedback/remediation*` 暴露人工处理队列。当前 suppression 先通过检索时硬过滤生效；索引摘除/重建仍是后续增强项。
 
-> 源码：`packages/server/src/routes/feedback.ts`、`packages/server/src/routes/feedback-admin.ts`
+> 源码：`packages/host-distributed/src/gateway/routes.ts`、`packages/service-governance-review/src/routes.ts`、`packages/service-governance-review/src/admin.ts`
+
+> **Wave-4 ownership**：public `/v1/feedback` 与 `/v1/operations/feedback*` URL、认证 actor、trace/correlation headers 和 canonical error semantics 由 gateway 保留；feedback admin、统计、批处理、remediation 和 conflict workflow 由 `governance-review` owner 提供 internal API。`job-runtime` 仅拥有这些异步命令的 queue、retry、lease、workflow 和 dead-letter substrate。
 
 ## Decay 管理
 

@@ -21,7 +21,7 @@ flowchart TB
     end
 
     subgraph 存储["持久化"]
-        Repo["FeedbackRepository\n状态: new"]
+        Repo["governance-review owner\nfeedback_records\n状态: new"]
     end
 
     subgraph 自动触发["生命周期触发器"]
@@ -31,7 +31,7 @@ flowchart TB
     end
 
     subgraph 管理["管理员操作"]
-        Admin["/v1/feedback-admin\nlist / resolve / dismiss / triage / transition"]
+        Admin["gateway /v1/operations/feedback*\n治理 owner admin / remediation"]
         Score["质量评分计算"]
     end
 
@@ -81,17 +81,20 @@ interface FeedbackRequest {
 ### 管理员操作
 
 ```typescript
-// /v1/feedback-admin
-// - GET  /v1/feedback-admin          列出反馈（支持过滤）
-// - POST /v1/feedback-admin/:id/resolve   解决反馈
-// - POST /v1/feedback-admin/:id/dismiss   驳回反馈
-// - POST /v1/feedback-admin/:id/triage    分诊反馈
-// - POST /v1/feedback-admin/:id/transition 触发状态转换
+// Public gateway URLs remain stable and forward to governance-review:
+// - GET  /v1/operations/feedback
+// - POST /v1/operations/feedback/batch
+// - GET  /v1/operations/feedback/stats/:entryId
+// - GET  /v1/operations/feedback/remediation
+// - GET  /v1/operations/feedback/remediation/:entryId
+// - POST /v1/operations/feedback/remediation/:entryId/complete
+
+// Internal owner routes are under /internal/feedback/admin*.
 ```
 
 ## 生命周期触发器
 
-`checkLifecycleTriggers()` 在反馈提交时内联执行，评估累积反馈是否触发条目的衰变状态转换：
+治理 owner 在反馈写入后评估累积反馈和 remediation 状态；需要重激活、重索引或 badcase draft 的 follow-up 通过 job-runtime 异步命令执行：
 
 | 条件 | 动作 |
 |------|------|
@@ -122,6 +125,8 @@ interface FeedbackRequest {
 ## 相关源码
 
 - [packages/cli/src/commands/feedback.ts](../../../packages/cli/src/commands/feedback.ts)
-- [packages/server/src/lib/feedback/repository.ts](../../../packages/server/src/lib/feedback/repository.ts)
-- [packages/server/src/lib/feedback/lifecycle-triggers.ts](../../../packages/server/src/lib/feedback/lifecycle-triggers.ts)
+- [packages/service-governance-review/src/application/module.ts](../../../packages/service-governance-review/src/application/module.ts)
+- [packages/service-governance-review/src/admin.ts](../../../packages/service-governance-review/src/admin.ts)
+- [packages/service-governance-review/src/routes.ts](../../../packages/service-governance-review/src/routes.ts)
+- [packages/host-distributed/src/gateway/routes.ts](../../../packages/host-distributed/src/gateway/routes.ts)
 - [packages/contracts/src/domain/](../../../packages/contracts/src/domain/)

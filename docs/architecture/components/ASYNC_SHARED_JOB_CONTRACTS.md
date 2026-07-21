@@ -1,10 +1,10 @@
 # Shared Async Job Contracts
 
-本页是 Stage 2 对 shared async jobs 的统一契约说明。权威实现位于 `packages/server/src/lib/jobs/types.ts`，本页提供 operator / 架构层可读语义。
+本页是 Stage 2 对 shared async jobs 的统一契约说明。任务契约位于 `packages/contracts/src/domain/async.ts`，队列消费和 typed handlers 由 `packages/service-job-runtime` 提供；本页提供 operator / 架构层可读语义。
 
 ## 统一规则
 
-- 所有 shared job 必须先在 `sharedJobContracts` 中声明 `taskType`、payload shape、owner context、idempotency key、`maxAttempts`、dead-letter 语义和 workflow binding，再通过 `createSharedJobHandlers()` 接入 worker。
+- 所有 shared job 必须先在 `sharedJobContracts` 中声明 `taskType`、payload shape、owner context、idempotency key、`maxAttempts`、dead-letter 语义和 workflow binding，再由 `job-runtime` 的 typed handler 接入 worker。
 - `subjectId` 表示业务归属对象，用于 operator 视角按 entry / feedback 定位问题。
 - `runId` 表示任务实例绑定，必须至少与该任务的幂等单元同粒度，避免多个合法 follow-up 覆盖同一 workflow run。
 - authoritative write 仍在命令事务内完成；这些 jobs 只负责 derived / retryable follow-up。
@@ -93,7 +93,7 @@
 
 ## `feedback.remediation-reactivation`
 
-- Owner context: `feedback-remediation`
+- Owner context: `governance-review`（contract owner: `feedback-remediation`）
 - Subject: `<entryType>:<entryId>`
 - Payload:
   - `entryId`
@@ -111,7 +111,7 @@
   - `subjectId = entryId`
   - `runId` 绑定到 `<entryId>:<resolvedAt>` 粒度
 - Projection ownership:
-  - owner: `feedback-remediation-projection`
+  - owner: `governance-review`
   - refreshes: remediation 解除后的 retrieval visibility
 - Cache invalidation trigger:
   - `shared-job` for reactivation
@@ -123,7 +123,7 @@
 
 ## `feedback.badcase-export-draft`
 
-- Owner context: `feedback-badcase`
+- Owner context: `governance-review`（contract owner: `feedback-badcase`）
 - Subject: `feedback:<feedbackId>`
 - Payload:
   - `feedbackId`
@@ -142,3 +142,26 @@
   - Step: `dead-letter`
   - Meaning: badcase draft 导出未能完成，反馈记录缺少最终 async bookkeeping
   - Operator action: 检查相关 feedback trace 与队列 dead letter，修复导出/存储问题后按需 requeue
+
+## `governance.conflict-detection`
+
+- Owner context: `governance-review`（contract owner: `conflict-relation`）
+- Subject: `knowledge-entry:<entryId>`
+- Payload:
+  - `entryId`
+  - `sourceEventId`
+- Idempotency key:
+  - Format: `governance.conflict-detection:<entryId>:<sourceEventId>`
+  - Meaning: 同一 approved entry 和 source event 只保留一个 conflict detection work item；重复 delivery 必须幂等
+- Max attempts: `5`
+- Workflow binding:
+  - `workflowType = governance-conflict-detection`
+  - `subjectId = entryId`
+- Ordering: `per-transition`
+- Projection ownership:
+  - owner: `governance-review`
+  - refreshes: canonical conflict relations and the read-only retrieval conflict projection
+- Dead-letter:
+  - Step: `dead-letter`
+  - Meaning: conflict detection 重试耗尽，治理 conflict projection 可能陈旧
+  - Operator action: 检查 governance workflow 与 queue dead letter，修复依赖后 replay task

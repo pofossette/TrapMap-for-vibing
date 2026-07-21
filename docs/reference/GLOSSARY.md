@@ -368,10 +368,10 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/feedback.ts:63-74` | Zod schema (`feedbackRecordSchema`) | 完整记录：id, entryId, entryType, problemType, description, context, querySeed, customAnswers, submittedAt, submittedBy, status, adminNotes |
 | `packages/contracts/src/domain/feedback.ts:168` | Zod enum (`feedbackBatchActionSchema`) | 批量操作：`['resolve', 'dismiss', 'triage', 'transition']` |
 | `packages/contracts/src/domain/feedback.ts:289-290` | TS 类型 (`FeedbackStatus`, `FeedbackRecord`) | 推断类型 |
-| `packages/server/src/routes/feedback.ts:19` | Route | `POST /v1/feedback` — 提交反馈 |
-| `packages/server/src/routes/feedback-admin.ts:86` | Route | `GET /v1/operations/feedback` — 反馈队列 |
-| `packages/server/src/routes/feedback-admin.ts:195` | Route | `POST /v1/operations/feedback/batch` — 批量操作 |
-| `packages/server/src/routes/feedback-admin.ts:407` | Route | `GET /v1/operations/feedback/stats/:entryId` — 条目反馈质量统计 |
+| `packages/host-distributed/src/gateway/routes.ts` | Route | `POST /v1/feedback` — gateway 保留的 feedback 提交 URL |
+| `packages/host-distributed/src/gateway/routes.ts` | Route | `/v1/operations/feedback*` — gateway 保留的 feedback admin/remediation public URLs |
+| `packages/service-governance-review/src/routes.ts` | Internal route | governance owner 的 feedback、admin、remediation、conflict 与 projection 接线 |
+| `packages/service-governance-review/src/admin.ts` | Impl | feedback 列表、统计、批处理和 remediation 用例 |
 
 ### Decay（衰减）
 

@@ -31,9 +31,9 @@
 - `packages/service-identity-access/`：拥有身份访问服务组装、内部路由注册和有界上下文 auth/session/team/member/access-key 接线。
 - `packages/service-knowledge-read/`：知识读取服务组装。拥有检索、读模型和投影视图状态路由接线；read model 经 `packages/contracts` 的 projection helper 读取共享契约，不反向导入 server implementation。
 - `packages/service-knowledge-write/`：拥有知识写入服务组装、内部路由注册和有界上下文写入接线（knowledge/trap/skill/lifecycle/maintenance/decay）。
-- `packages/service-governance-review/`：拥有治理审核服务组装、内部路由注册和有界上下文 review/feedback 接线，同时将生命周期变更委托给 knowledge-write。
+- `packages/service-governance-review/`：拥有治理审核服务组装、内部路由注册和有界上下文 review/feedback/conflict/remediation/operator projection 接线，同时将最终生命周期变更委托给 knowledge-write。
 - `packages/service-candidate-ingestion/`：拥有候选摄取服务组装、内部路由注册和有界上下文 candidate 接线，同时将结果发布委托给 knowledge-write。
-- `packages/service-job-runtime/`：拥有作业运行时服务组装、内部路由注册、队列/运行时依赖接线和运行时服务器引导表面。
+- `packages/service-job-runtime/`：拥有作业运行时服务组装、内部路由注册、队列/重试/租约/dead-letter 依赖接线、typed owner handlers 和运行时服务器引导表面。
 - `packages/host-local/`：轻量主机组装，服务于 `local-agent` 和 `team-monolith`。冻结的默认轻量主线为 `src/nest/**`，通过包默认入口（`src/index.ts`）和默认 `dev` / `start` 脚本暴露。
   `packages/host-local/src/nest/adapters/` 是轻量主机中主机拥有的端口适配器选择（`in-process` vs `remote`）的权威放置位置。这些文件是内部端口的适配器接缝，不是仓库适配器，也不是主机组装的万能目录。
   `packages/runtime-infra/src/shared-infra.ts` 是当前过渡性共享基础设施接缝的权威放置位置，它借用 server 拥有的基础设施助手而不改变主机归属。
@@ -43,6 +43,8 @@
   `packages/host-distributed/src/shared/` 是分布式主机中内部端口共享包装器（如 `internal-knowledge-write-client.ts`）的权威放置位置；这些包装器将传输语义映射回 backend-core 端口语义，不是仓库适配器。
 
 Wave-2 closeout（commit `b3374307`）：contracts projection/fixture helpers remain pure shared code; candidate fixture helpers stay under `packages/server/src/lib/candidates/`, labels runner helpers stay under `packages/server/src/lib/labels/`, and SQL/PG/worker runtime code remains in its owning zone.
+
+Wave-4 closeout（2026-07-21）：`service-governance-review` 是 feedback、conflict、remediation 与 operator projection 的唯一 owner；distributed gateway 只保留 public transport/认证/trace forwarding，`packages/server` 与 `packages/runtime-infra` 不再拥有这些领域的 route、repository、subscriber 或 aggregate member。
 
 ## 文档
 

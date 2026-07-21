@@ -53,7 +53,7 @@ interface AllowlistEntry {
   rationale: string;
 }
 
-const completedOwnerWaves: OwnerWave[] = ['wave-1', 'wave-2', 'wave-3'];
+const completedOwnerWaves: OwnerWave[] = ['wave-1', 'wave-2', 'wave-3', 'wave-4'];
 const POSTGRES_COMPOSITION_ENTRYPOINTS = [
   'scripts/export-retrieval-db-snapshot.ts',
   'evals/retrieval-live/lib/snapshot-orchestrator.ts',
@@ -807,6 +807,13 @@ describe('compatibility retirement guard', () => {
 
   it('has no Wave-4 members in the runtime-infra repository aggregate', () => {
     expect(findRetiredWaveFourRuntimeAggregateMembers(repoRoot)).toEqual([]);
+  });
+
+  it('marks Wave-4 complete only after its production compatibility scan is empty', () => {
+    expect(findRetiredWaveFourCompatibilitySurfaces(repoRoot)).toEqual([]);
+    expect(findRetiredWaveFourRuntimeAggregateMembers(repoRoot)).toEqual([]);
+    expect(findRetiredWaveFourBadcaseBoundaryViolations(repoRoot)).toEqual([]);
+    expect(completedOwnerWaves).toContain('wave-4');
   });
 
   it('rejects server-owned remediation and badcase handlers', () => {

@@ -16,7 +16,7 @@
 | `knowledge-read` | `packages/service-knowledge-read` | 检索、读投影、查询追踪、读缓存 |
 | `knowledge-write` | `packages/service-knowledge-write` | 知识 / 陷阱 / 技能 / 生命周期 / 维护 / 衰减写入 |
 | `candidate-ingestion` | `packages/service-candidate-ingestion` | 候选接收、规范化、去重、状态推进 |
-| `governance-review` | `packages/service-governance-review` | 审查队列、工作台、冲突解决、补救 |
+| `governance-review` | `packages/service-governance-review` | 审查队列、feedback、operator projection、冲突解决、补救 |
 | `job-runtime` | `packages/service-job-runtime` | 任务队列、工作流运行、outbox 调度、共享任务 |
 
 ## 服务定义
