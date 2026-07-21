@@ -13,7 +13,6 @@ import {
   createIndexingSubscriber,
 } from '@trapmap/server/lib/lifecycle/index.js';
 import type { DomainEvent, DomainEventHandler } from '@trapmap/server/lib/lifecycle/index.js';
-import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/index.js';
 import { getStorePool } from '@trapmap/server/lib/store.js';
 
 const INDEXING_EVENT_NAMES = [
@@ -105,80 +104,36 @@ export async function bootstrapLifecycle(
     if (eventTransport.kind !== 'postgres-domain-outbox') {
       throw new Error(`Unsupported event transport kind: ${eventTransport.kind}`);
     }
-    const outbox = eventTransport;
-
-    const pollIntervalMs = 2000;
-    let running = false;
-    let runPromise: Promise<void> | null = null;
-
-    async function run(): Promise<void> {
-      running = true;
-      while (running) {
-        try {
-          const events = await outbox.claimBatch(10);
-          for (const event of events) {
-            const handlers = lifecycleContract.compositeHandlers.get(
-              event.eventName as LifecycleEventName,
-            );
-            if (handlers && handlers.length > 0) {
-              try {
-                await Promise.all(handlers.map((h) => h(event.payload as DomainEvent)));
-                await outbox.complete(event.id);
-              } catch (error) {
-                const msg = error instanceof Error ? error.message : String(error);
-                await outbox.fail(event.id, msg);
-                recordRuntimeExecution({
-                  dependencyName: 'outbox-worker',
-                  failureKind: 'retryable',
-                });
-                app.log.error(
-                  { error: msg, eventName: event.eventName, aggregateId: event.aggregateId },
-                  'Outbox event handler failed',
-                );
-              }
-            } else {
-              await outbox.complete(event.id);
-            }
-          }
-          if (events.length === 0) {
-            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-          }
-        } catch (error) {
-          recordRuntimeExecution({
-            dependencyName: 'outbox-worker',
-            failureKind: 'retryable',
-          });
-          app.log.error({ error }, 'Outbox worker poll error');
-          await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-        }
-      }
+    const outboxWorkerFactory = app.skillShareer.outboxWorkerFactory;
+    if (!outboxWorkerFactory) {
+      throw new Error('server lifecycle requires an injected job-runtime outbox worker factory');
     }
-
-    async function start(): Promise<void> {
-      if (runPromise) return runPromise;
-      runPromise = run();
-      try {
-        await runPromise;
-      } finally {
-        runPromise = null;
-        running = false;
-      }
-    }
+    const outboxWorker = outboxWorkerFactory.create({
+      outbox: eventTransport,
+      ownsWork: ownsOutboxWork,
+      handlers: lifecycleContract.registrations.map((registration) => ({
+        eventName: registration.eventName,
+        handle: async (payload) => {
+          await Promise.all(
+            registration.handlers.map((handler) => handler(payload as DomainEvent)),
+          );
+        },
+      })),
+      onError(error, event) {
+        app.log.error(
+          { error, eventName: event?.eventName, aggregateId: event?.aggregateId },
+          'Job-runtime outbox event handler failed',
+        );
+      },
+    });
 
     if (startOutboxWorker) {
-      void start();
+      void outboxWorker.run();
       app.log.info('Outbox event worker started');
     } else {
       app.log.info('Outbox event worker ownership registered without starting local processing');
     }
 
-    app.decorate('outboxWorker', {
-      isRunning: () => running,
-      ownsWork: () => ownsOutboxWork,
-      stop: async () => {
-        running = false;
-        if (runPromise) await runPromise;
-      },
-    });
+    app.decorate('outboxWorker', outboxWorker);
   }
 }

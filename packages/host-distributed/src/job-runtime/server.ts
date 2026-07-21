@@ -5,6 +5,7 @@ import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/obse
 import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
 import {
   type JobRuntimeServer,
+  createJobRuntimeAsyncTransport,
   createJobRuntimeDeps,
   createJobRuntimeServer,
 } from '@trapmap/service-job-runtime';
@@ -18,14 +19,45 @@ export async function createServer(
 ): Promise<JobRuntimeServer> {
   const identity = createIdentityAccessPgDeps(db.pool, { systemAdminKey: config.systemAdminKey });
   const ports = createServicePorts(db.pool, config.serviceName, identity);
-  if (!ports.jobRuntime) {
-    throw new Error('job-runtime capability unavailable for job-runtime service');
-  }
+  const queuePorts = createJobRuntimeAsyncTransport({
+    config: {
+      asyncTaskTransport: {
+        provider: 'postgres',
+        rabbitmq: null,
+      },
+    },
+    pool: db.pool,
+  });
   const internalClients = createInternalServiceClients(config.internalUrls);
   const deps = createJobRuntimeDeps({
-    queuePorts: ports.jobRuntime,
+    queuePorts,
     auditLog: ports.auditLog,
     taskHandlers: createJobRuntimeTaskHandlers(internalClients),
+    outboxHandlers: [
+      {
+        eventName: 'knowledge.approved',
+        async handle(payload) {
+          const event = payload as {
+            entryId?: unknown;
+            metadata?: { sourceEventId?: unknown };
+          };
+          if (typeof event.entryId !== 'string') {
+            throw new Error('knowledge.approved outbox event is missing entryId');
+          }
+          const sourceEventId =
+            typeof event.metadata?.sourceEventId === 'string'
+              ? event.metadata.sourceEventId
+              : undefined;
+          await queuePorts.task.enqueue(
+            'governance.conflict-detection',
+            { entryId: event.entryId, ...(sourceEventId ? { sourceEventId } : {}) },
+            {
+              dedupeKey: `governance.conflict-detection:${event.entryId}:${sourceEventId ?? 'outbox'}`,
+            },
+          );
+        },
+      },
+    ],
     ownsWork: true,
   });
   const server = await createJobRuntimeServer(config, deps);

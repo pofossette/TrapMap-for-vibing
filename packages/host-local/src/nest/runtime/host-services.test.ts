@@ -25,6 +25,7 @@ const sharedInfra = {
   graphQuery: {},
   eventBus: {},
 };
+const asyncTransport = { task: {}, events: {} };
 
 vi.mock('@trapmap/runtime-infra', () => ({
   getStorePool: vi.fn(() => pool),
@@ -37,6 +38,9 @@ vi.mock('@trapmap/service-candidate-ingestion', () => ({
 }));
 vi.mock('@trapmap/service-knowledge-write', () => ({
   createKnowledgeWriteOwnerBundle: vi.fn(() => ownerBundle),
+}));
+vi.mock('@trapmap/service-job-runtime', () => ({
+  createJobRuntimeAsyncTransport: vi.fn(() => asyncTransport),
 }));
 vi.mock('./shared-infra.js', () => ({
   createHostLocalSharedInfra: vi.fn(async () => sharedInfra),
@@ -51,6 +55,7 @@ vi.mock('./retrieval-assembly.js', () => ({
 
 import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
 import { createCandidateIngestionPgOwnerBundle } from '@trapmap/service-candidate-ingestion';
+import { createJobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
 
 import { createHostLocalServices } from './host-services.js';
 
@@ -78,5 +83,19 @@ describe('host-local service composition', () => {
     expect(services.repos.governanceRetrievalProjection).toBe(
       services.governanceReview.retrievalProjection,
     );
+  });
+
+  it('composes the async transport through the job-runtime owner', async () => {
+    const config = {
+      systemAdminKey: 'test-key',
+      asyncTaskTransport: { provider: 'postgres', rabbitmq: null },
+    } as never;
+    const services = await createHostLocalServices(config);
+
+    expect(createJobRuntimeAsyncTransport).toHaveBeenCalledWith({
+      config: { asyncTaskTransport: config.asyncTaskTransport },
+      pool,
+    });
+    expect(services.asyncTransport).toBe(asyncTransport);
   });
 });

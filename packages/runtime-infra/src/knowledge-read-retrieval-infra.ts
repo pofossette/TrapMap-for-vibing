@@ -81,10 +81,15 @@ export function createDefaultKnowledgeReadRetrievalInfra(): RuntimeInfraKnowledg
     },
     conflicts: {
       enrichMatches: (matches, data, governance) =>
-        enrichConflictHints(matches, data.conflicts, data.knowledgeEntries, governance ?? {
-          teamId: null,
-          requiredLevel: 0,
-        }),
+        enrichConflictHints(
+          matches,
+          data.conflicts,
+          data.knowledgeEntries,
+          governance ?? {
+            teamId: null,
+            requiredLevel: 0,
+          },
+        ),
     },
     scoring: {
       freshnessConfig: DEFAULT_FRESHNESS_CONFIG,

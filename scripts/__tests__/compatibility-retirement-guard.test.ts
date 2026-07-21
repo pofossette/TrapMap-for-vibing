@@ -123,6 +123,25 @@ const RETIRED_WAVE_4_SYMBOLS = [
   'FeedbackRepository',
 ] as const;
 const RETIRED_WAVE_4_BADCASE_EXPORT = 'scripts/export-badcase-to-eval.ts';
+const RETIRED_WAVE_6_RUNTIME_INFRA_EXPORTS = [
+  'createAsyncTransport',
+  'createPostgresTaskTransport',
+  'createPostgresEventTransport',
+  'createTaskQueue',
+  'createTaskWorker',
+  'createDomainEventOutbox',
+  'createRabbitMqTaskTransport',
+] as const;
+const RETIRED_WAVE_6_ASYNC_IMPLEMENTATIONS = [
+  'packages/runtime-infra/src/async-factory.ts',
+  'packages/runtime-infra/src/async-transport.ts',
+  'packages/runtime-infra/src/task-queue.ts',
+  'packages/runtime-infra/src/outbox.ts',
+  'packages/runtime-infra/src/rabbitmq-task-queue.ts',
+  'packages/runtime-infra/src/event-bus.ts',
+  'packages/server/src/lib/async/factory.ts',
+  'packages/server/src/lib/async/rabbitmq-task-queue.ts',
+] as const;
 const allowlist: AllowlistEntry[] = [
   ['package.json', '@trapmap/server', 'wave-10', 'root development dependency'],
   [
@@ -597,6 +616,25 @@ function findRetiredWaveFourBadcaseBoundaryViolations(root: string): string[] {
     : [];
 }
 
+function findRetiredWaveSixAsyncCompatibility(root: string): string[] {
+  const index = join(root, 'packages/runtime-infra/src/index.ts');
+  const indexViolations = existsSync(index)
+    ? RETIRED_WAVE_6_RUNTIME_INFRA_EXPORTS.filter((symbol) =>
+        readFileSync(index, 'utf8').includes(symbol),
+      ).map((symbol) => `retired wave-6 runtime-infra async export: ${symbol}`)
+    : [];
+  const lifecycle = join(root, 'packages/server/src/bootstrap/bootstrap-lifecycle.ts');
+  const lifecycleViolations = existsSync(lifecycle)
+    ? ['createTaskQueue(', 'createDomainEventOutbox(', 'store.snapshot(']
+        .filter((symbol) => readFileSync(lifecycle, 'utf8').includes(symbol))
+        .map((symbol) => `retired wave-6 server lifecycle compatibility: ${symbol}`)
+    : [];
+  const implementationViolations = RETIRED_WAVE_6_ASYNC_IMPLEMENTATIONS.filter((path) =>
+    existsSync(join(root, path)),
+  ).map((path) => `retired wave-6 async implementation: ${path}`);
+  return [...indexViolations, ...lifecycleViolations, ...implementationViolations];
+}
+
 function findArtifactReadProjectionBoundaryViolations(root: string): string[] {
   const violations: string[] = [];
   const contractPort = 'packages/contracts/src/domain/artifact-ports.ts';
@@ -849,6 +887,30 @@ describe('compatibility retirement guard', () => {
 
   it('has no server boundary from badcase export', () => {
     expect(findRetiredWaveFourBadcaseBoundaryViolations(repoRoot)).toEqual([]);
+  });
+
+  it('keeps wave-6 async exports and lifecycle compatibility wiring retired', () => {
+    expect(findRetiredWaveSixAsyncCompatibility(repoRoot)).toEqual([]);
+    expect(completedOwnerWaves).not.toContain('wave-6');
+  });
+
+  it('rejects retired Wave-6 async implementation files', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trapmap-compatibility-guard-'));
+    writeProductionFile(
+      root,
+      'packages/runtime-infra/src/async-factory.ts',
+      'export const legacy = true;',
+    );
+    writeProductionFile(
+      root,
+      'packages/server/src/lib/async/factory.ts',
+      'export const legacy = true;',
+    );
+
+    expect(findRetiredWaveSixAsyncCompatibility(root)).toEqual([
+      'retired wave-6 async implementation: packages/runtime-infra/src/async-factory.ts',
+      'retired wave-6 async implementation: packages/server/src/lib/async/factory.ts',
+    ]);
   });
 
   it('requires a real file, supported symbol, owner wave, and rationale for each exception', () => {

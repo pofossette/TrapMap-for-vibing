@@ -7,9 +7,6 @@ import {
 } from '@trapmap/server/lib/graph-query/index.js';
 import { buildDefaultAdapterRegistry } from '@trapmap/server/lib/indexing/adapters/index.js';
 import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
-import { createAsyncTransport } from './async-factory.js';
-import type { AsyncTransport } from './async-transport.js';
-import { LifecycleEventBus } from './event-bus.js';
 import { type SkillShareerRepos, createRuntimeInfraRepos } from './repos.js';
 import { createSkillShareerStore } from './store-factory.js';
 import { type SkillShareerStore, getStorePool } from './store.js';
@@ -33,23 +30,19 @@ export interface RuntimeInfraConfig {
 
 export interface RuntimeInfraShared {
   store: SkillShareerStore;
-  asyncTransport?: AsyncTransport;
   adapterRegistry: AdapterRegistry;
   ai: AiProviders;
   repos: SkillShareerRepos;
   graphQueryBackend: GraphQueryBackend;
   graphQuery: GraphQueryRuntimeState;
-  eventBus: LifecycleEventBus;
 }
 
 export type RuntimeInfraStore = RuntimeInfraShared['store'];
-export type RuntimeInfraAsyncTransport = RuntimeInfraShared['asyncTransport'];
 export type RuntimeInfraAdapterRegistry = RuntimeInfraShared['adapterRegistry'];
 export type RuntimeInfraAiProviders = RuntimeInfraShared['ai'];
 export type RuntimeInfraRepos = RuntimeInfraShared['repos'];
 export type RuntimeInfraGraphQueryBackend = RuntimeInfraShared['graphQueryBackend'];
 export type RuntimeInfraGraphQueryRuntimeState = RuntimeInfraShared['graphQuery'];
-export type RuntimeInfraEventBus = RuntimeInfraShared['eventBus'];
 
 export async function createRuntimeSharedInfra(
   config: RuntimeInfraConfig,
@@ -60,17 +53,10 @@ export async function createRuntimeSharedInfra(
   });
   const pool = getStorePool(store) ?? undefined;
   const repos = await createRuntimeInfraRepos(pool ? { store, pool } : { store });
-  const asyncTransport = pool
-    ? createAsyncTransport({
-        config: { asyncTaskTransport: config.asyncTaskTransport },
-        pool,
-      })
-    : undefined;
   const ai = createAiProviders(config.ai);
 
   const infra: RuntimeInfraShared = {
     store,
-    ...(asyncTransport ? { asyncTransport } : {}),
     adapterRegistry: buildDefaultAdapterRegistry(),
     ai,
     repos,
@@ -80,7 +66,6 @@ export async function createRuntimeSharedInfra(
       failOpen: true,
       mode: 'disabled',
     },
-    eventBus: new LifecycleEventBus(),
   };
 
   setGlobalEmbeddingsProvider(ai.embeddings);

@@ -7,7 +7,6 @@ import type { Pool } from 'pg';
 
 import { buildSharedJobHandlersContract } from '@trapmap/server/lib/jobs/index.js';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
-import { createTaskWorker } from '@trapmap/server/lib/queue/task-worker.js';
 import { type SkillShareerStore, getStorePool } from '@trapmap/server/lib/store.js';
 
 export interface BootstrapWorkersOptions {
@@ -35,33 +34,9 @@ function buildSharedJobWorkerHandlers(
       },
       pool,
     },
-    remediationReactivation: {
-      services: {
-        store,
-        repos: {
-          knowledge: app.skillShareer.repos.knowledge,
-          artifact: app.skillShareer.repos.artifact,
-        },
-        adapterRegistry: app.skillShareer.adapterRegistry,
-        ai: app.skillShareer.ai,
-        graphQueryBackend: app.skillShareer.graphQueryBackend,
-      },
-      pool,
-    },
-    badcaseExportDraft: {
-      services: {
-        store,
-      },
-      pool,
-    },
   });
 
-  return [
-    contract.knowledgeIndexFollowUp,
-    contract.skillIndexFollowUp,
-    contract.remediationReactivation,
-    contract.badcaseExportDraft,
-  ];
+  return [contract.knowledgeIndexFollowUp, contract.skillIndexFollowUp];
 }
 
 export async function bootstrapWorkers(
@@ -69,10 +44,7 @@ export async function bootstrapWorkers(
   options: BootstrapWorkersOptions = {},
 ): Promise<void> {
   const store = app.skillShareer.store;
-  const {
-    enabled = true,
-    ownSharedJobTaskWork = enabled,
-  } = options;
+  const { enabled = true, ownSharedJobTaskWork = enabled } = options;
 
   // Only runs when the store exposes PostgreSQL pool access (databaseUrl configured).
   const pool = getStorePool(store);
@@ -80,18 +52,18 @@ export async function bootstrapWorkers(
 
   const taskTransport = app.skillShareer.asyncTransport?.task;
 
-  if (taskTransport?.kind === 'rabbitmq-task-queue' && taskTransport.createConsumer) {
+  if (taskTransport?.createConsumer) {
     const consumer = await taskTransport.createConsumer({
       handlers: buildSharedJobWorkerHandlers(app, store, pool),
-      ownsWork: enabled,
+      ownsWork: ownSharedJobTaskWork,
     });
 
-    if (enabled) {
+    if (enabled && ownSharedJobTaskWork) {
       void consumer.run();
-      app.log.info({ worker: 'rabbitmq-task-consumer' }, 'Task worker started');
+      app.log.info({ worker: 'job-runtime-task-consumer' }, 'Task worker started');
     } else {
       app.log.info(
-        { worker: 'rabbitmq-task-consumer' },
+        { worker: 'job-runtime-task-consumer' },
         'Task worker ownership registered without starting local processing',
       );
     }
@@ -100,39 +72,5 @@ export async function bootstrapWorkers(
     return;
   }
 
-  const taskWorkers = [
-    {
-      key: 'sharedJobTaskWorker',
-      label: 'shared-async-job',
-      shouldOwn: ownSharedJobTaskWork,
-      worker: createTaskWorker({
-        pool,
-        handlers: buildSharedJobWorkerHandlers(app, store, pool),
-        pollIntervalMs: 1000,
-        concurrency: 1,
-        ownsWork: ownSharedJobTaskWork,
-      }),
-    },
-  ] as const;
-
-  for (const entry of taskWorkers) {
-    if (enabled && entry.shouldOwn) {
-      void entry.worker.run();
-      app.log.info({ worker: entry.label }, 'Task worker started');
-    } else {
-      app.log.info(
-        { worker: entry.label },
-        'Task worker ownership registered without starting local processing',
-      );
-    }
-  }
-
-  // Store worker reference for graceful shutdown
-  app.decorate('taskWorker', {
-    isRunning: () => taskWorkers.some((entry) => entry.worker.isRunning()),
-    ownsWork: () => taskWorkers.some((entry) => entry.worker.ownsWork()),
-    stop: async () => {
-      await Promise.all(taskWorkers.map((entry) => entry.worker.stop()));
-    },
-  });
+  throw new Error('server worker bootstrap requires an injected job-runtime task consumer');
 }

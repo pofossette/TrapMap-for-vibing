@@ -5,49 +5,21 @@ import { describe, expect, it } from 'vitest';
 const ROOT = resolve(process.cwd(), 'packages/server/src/lib');
 
 describe('service boundary guard', () => {
-  it('candidate services avoid full SkillShareer repos dependencies', () => {
-    const files = [
-      'candidates/services/query-service.ts',
-      'candidates/services/submission-service.ts',
-      'candidates/services/resolution-service.ts',
-      'knowledge/review-application-service.ts',
-      'jobs/handlers/remediation-reactivation.ts',
-    ];
+  it('lifecycle bootstrap does not inspect compatibility store state', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'packages/server/src/bootstrap/bootstrap-lifecycle.ts'),
+      'utf8',
+    );
 
-    const violations = files
-      .map((file) => {
-        const source = readFileSync(resolve(ROOT, file), 'utf8');
-        const hasFullRepos =
-          source.includes("SkillShareerServices['repos']") ||
-          source.includes('SkillShareerRepos;') ||
-          source.includes('repos: SkillShareerRepos');
-        return hasFullRepos ? file : null;
-      })
-      .filter((value): value is string => value !== null);
-
-    expect(
-      violations,
-      violations.length > 0
-        ? `These services depend on a full repo bag instead of narrow ports:\n${violations.map((file) => `  ${file}`).join('\n')}`
-        : undefined,
-    ).toEqual([]);
+    expect(source).not.toContain('store.snapshot(');
+    expect(source).not.toContain('createTaskQueue(');
+    expect(source).not.toContain('createDomainEventOutbox(');
   });
 
-  it('critical application services do not directly construct task queues', () => {
-    const files = ['candidates/services/submission-service.ts', 'jobs/scheduler.ts'];
+  it('receives async transport from host composition instead of constructing it', () => {
+    const source = readFileSync(resolve(process.cwd(), 'packages/server/src/app.ts'), 'utf8');
 
-    const violations = files
-      .map((file) => {
-        const source = readFileSync(resolve(ROOT, file), 'utf8');
-        return source.includes('createTaskQueue(') ? file : null;
-      })
-      .filter((value): value is string => value !== null);
-
-    expect(
-      violations,
-      violations.length > 0
-        ? `These services construct task queues directly instead of using async queue ports:\n${violations.map((file) => `  ${file}`).join('\n')}`
-        : undefined,
-    ).toEqual([]);
+    expect(source).not.toContain("from './lib/async/factory.js'");
+    expect(source).not.toContain('createAsyncTransport(');
   });
 });

@@ -128,6 +128,16 @@ Review correction：最初 owner bundle 的简化 SQL 错误指向不存在的 `
 - Full closeout evidence：`rtk pnpm eval:smoke` 81/81；`rtk pnpm test:deployment-smoke` 静态 135/135、PostgreSQL app/startup 37/37；`rtk pnpm check:docs-drift` 46/46；`rtk pnpm check:structure`、`rtk pnpm typecheck`、`rtk git diff --check` 均通过。
 - Fallow new-only boundary audit verdict 为 `pass`；本轮新增 dead-code、boundary、duplication、complexity 均为 0，仅保留 inherited complexity。Wave-5+ 与 `store_snapshot` 的 Wave-9 删除范围未在本轮修改。
 
+## Task 6 — Wave-6 job-runtime bridge evidence (in progress)
+
+`service-job-runtime` now provides the owner-local PostgreSQL task queue/outbox transport factory, retaining dedupe, lease reclaim, retry/backoff, dead-letter, and outbox claim/complete/fail semantics. The distributed `job-runtime` host composes that factory directly; governance conflict handling remains a typed workflow call to governance-review and does not move conflict persistence or decisions into the runtime.
+
+`runtime-infra` no longer exports its async factory, queue/outbox transports, task worker, RabbitMQ transport, or lifecycle event-bus compatibility surface. The retirement guard records those exports and server lifecycle queue/outbox/store-snapshot construction as Wave-6 deletion contracts. `completedOwnerWaves` intentionally does not yet include `wave-6`.
+
+本轮继续收口：host-local 通过 `service-job-runtime` owner factory 注入 transport，compatibility server 只接受 host 注入，不再构造 async transport；Job Runtime server 同时管理 task 与 outbox consumer 的启动/停止。RabbitMQ task publishing、outbox 成功/失败/即时停止和 server lifecycle 均有 owner-local focused tests；distributed `knowledge.approved` outbox 事件只投递 typed `governance.conflict-detection`，业务判断仍在 governance-review。`runtime-infra` 与 server 的遗留 async 实现文件已删除，guard 同时拒绝其重新出现。
+
+本轮通过：job-runtime focused suite（9 tests）、retirement guard（28 tests）、host-local async composition（3 tests）、host-distributed database ownership（8 tests）、`rtk pnpm typecheck`、`rtk git diff --check`、`rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`。`test:deployment-smoke` 的静态段为 135/135；重新构建 job-runtime 后 PostgreSQL app suite 显示 23/23 passed，但该命令的完整 coordinator 收尾未在本轮记录为 closeout evidence。`test:runtime-foundations` 仍受未提供 PostgreSQL 的 host composition 前置影响；`test:distributed-closeout` 保留既有两处 500 closeout failure。Fallow new-only audit 仍报告迁移期复杂度/重复与 runtime-infra 已移除依赖，未将 wave-6 标记完成。
+
 ## Deferred 边界
 
 平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。

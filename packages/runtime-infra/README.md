@@ -1,14 +1,13 @@
 # @trapmap/runtime-infra
 
-TrapMap 宿主与服务的共享运行时基础设施层。提供存储、异步传输、AI 提供者、图查询后端和事件总线的统一组装入口。
+TrapMap compatibility shell 的共享运行时基础设施层。提供存储、AI 提供者和图查询后端的统一组装入口。
 
 ## 职责
 
-- **运行时组装** -- 通过 `createRuntimeSharedInfra` 一次性构建完整的共享基础设施对象（store、repos、async transport、AI providers、graph query、event bus）
+- **运行时组装** -- 通过 `createRuntimeSharedInfra` 一次性构建共享基础设施对象（store、repos、AI providers、graph query）
 - **read-side retrieval 默认装配** -- 暴露 `createDefaultKnowledgeReadRetrievalInfra`，把知识读取服务所需的 embedding、routing、recall、scoring 默认实现收口到稳定 owner seam
 - **存储抽象** -- 提供 JSON 文件存储和 PostgreSQL 存储两种实现，由配置自动选择
-- **异步任务队列** -- 基于 PostgreSQL `SKIP LOCKED` 的持久化任务队列，支持优先级、指数退避重试、死信队列和租约回收；可选 RabbitMQ 后端
-- **领域事件 Outbox** -- 将写路径事务中的事件持久化到 PostgreSQL，由后台 worker 异步处理，解耦 HTTP 请求生命周期与重副作用（索引、冲突检测等）
+- **异步运行时** -- 任务队列、Outbox、worker 与 RabbitMQ transport 已归属 `@trapmap/service-job-runtime`，由 host 显式组合
 - **运行时模式控制** -- 通过 `RuntimeMode` 决定启动哪些 worker（API / task-worker / outbox-worker / combined）
 - **可观测性** -- 内置 Prometheus 格式指标采集，覆盖执行计数、延迟直方图、队列积压、重试/回收等维度
 
@@ -21,13 +20,6 @@ TrapMap 宿主与服务的共享运行时基础设施层。提供存储、异步
 | `store-factory.ts` | 工厂函数 `createSkillShareerStore`：有 `databaseUrl` 时创建 `PostgresStore`，否则创建 `JsonStore` |
 | `postgres-store.ts` | `PostgresStore` 实现 -- 基于 `pg.Pool` 的事务性快照存储，使用 `SELECT ... FOR UPDATE` 保证并发安全 |
 | `repos.ts` | `createRuntimeInfraRepos` -- 统一创建所有领域仓库（knowledge、candidate、feedback、audit、graph-index 等共 15 个） |
-| `async-transport.ts` | 异步传输接口定义（`AsyncTransport`、`AsyncTaskTransport`、`AsyncEventTransport`）及 PostgreSQL 实现工厂 |
-| `async-factory.ts` | `createAsyncTransport` -- 根据配置选择 PostgreSQL 或 RabbitMQ 作为任务传输后端 |
-| `task-queue.ts` | PostgreSQL 任务队列实现：`createTaskQueue`（入队/出队/重试/死信/租约回收）和 `createTaskWorker`（轮询消费 worker） |
-| `rabbitmq-task-queue.ts` | RabbitMQ 任务传输实现 `createRabbitMqTaskTransport`，实现相同的 `AsyncTaskTransport` 接口 |
-| `outbox.ts` | `createDomainEventOutbox` -- 领域事件 Outbox，支持事务内入队、批量 claim（SKIP LOCKED）、指数退避重试、过期租约回收 |
-| `event-bus.ts` | `LifecycleEventBus` -- 基于 Node.js `EventEmitter` 的进程内领域事件总线，支持同步/异步派发 |
-| `lifecycle-types.ts` | 生命周期事件类型定义：`DomainEvent`、`DomainEventHandler`、`TransitionDefinition`、`TransitionContext` |
 | `metrics.ts` | 运行时指标模块 -- 计数器、直方图、Gauge 的内存采集，`renderPrometheusMetrics` 导出 Prometheus 文本格式 |
 | `runtime-contract.ts` | 运行时模式与 worker 快照：`RuntimeMode` 类型、`shouldBoot*` 决策函数、`snapshotRuntimeWorker` |
 | `knowledge-read-retrieval-infra.ts` | `service-knowledge-read` retrieval seam 的默认实现 owner，封装 embedding/cache、routing、conflict enrichment、recall 和 scoring 默认装配 |
@@ -44,17 +36,6 @@ TrapMap 宿主与服务的共享运行时基础设施层。提供存储、异步
 
 **存储：**
 - `JsonStore`、`PostgresStore`、`createSkillShareerStore`
-
-**异步传输：**
-- `createAsyncTransport`、`createPostgresTaskTransport`、`createPostgresEventTransport`
-- `createRabbitMqTaskTransport`
-
-**任务队列：**
-- `createTaskQueue`、`createTaskWorker`、`taskQueue`（Drizzle 表定义）
-
-**事件：**
-- `LifecycleEventBus`、`createDomainEventOutbox`
-- `DomainEvent`、`DomainEventHandler`
 
 **指标：**
 - `renderPrometheusMetrics`、`getRuntimeMetricsSnapshot`、`resetRuntimeMetrics`

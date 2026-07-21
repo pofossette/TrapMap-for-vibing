@@ -20,7 +20,9 @@ export interface GovernanceAsyncCommandDeps {
 
 export type GovernanceAsyncCommandModule = GovernanceAsyncCommandPort;
 
-function parseRemediationPayload(payload: RemediationReactivationPayload): RemediationReactivationPayload {
+function parseRemediationPayload(
+  payload: RemediationReactivationPayload,
+): RemediationReactivationPayload {
   try {
     return remediationReactivationPayloadSchema.parse(payload);
   } catch (error) {
@@ -56,9 +58,7 @@ function assertBadcaseFeedbackMatches(
     record.entryType !== payload.entryType ||
     (record.queryId ?? null) !== payload.queryId
   ) {
-    throw InvocationError.conflict(
-      `Feedback does not match badcase export request: ${record.id}`,
-    );
+    throw InvocationError.conflict(`Feedback does not match badcase export request: ${record.id}`);
   }
 }
 

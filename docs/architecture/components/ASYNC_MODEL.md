@@ -4,6 +4,8 @@
 
 > **Wave-4 closeout（2026-07-21）**：`governance-review` 是 feedback、conflict、remediation 和 operator projection 的唯一业务 owner；`job-runtime` 只拥有 queue、retry、lease、workflow 与 dead-letter，并消费治理 owner 提供的 typed handlers。distributed gateway 继续保留既有 feedback public URLs 和 transport semantics。
 
+> **Wave-6 bridge（2026-07-21）**：PostgreSQL queue/outbox transport factory 现在由 `service-job-runtime` 提供；runtime owner 保留 worker lifecycle、lease/reclaim、retry/backoff 与 dead-letter，业务 handler 只经 typed workflow port 到达其领域 owner。
+
 ## Phase 1 observability seam
 
 - 统一命名与可见性 contract 以 `packages/contracts/src/domain/observability.ts` 为准

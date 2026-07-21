@@ -1,17 +1,13 @@
-import type { RuntimeWorkerHandle } from './runtime-contract.js';
-import type { Task, TaskHandler } from './task-queue.js';
-
-import type { AsyncTaskTransport } from './async-transport.js';
+import type {
+  TaskConsumerHandle,
+  TaskEnqueueOptions,
+  TaskHandler,
+  TaskQueuePort,
+} from '@trapmap/backend-core';
 
 interface RabbitMqMessage {
   content: Buffer;
-  fields: {
-    routingKey: string;
-  };
-  properties?: {
-    messageId?: string;
-    priority?: number;
-  };
+  fields: { routingKey: string };
 }
 
 interface RabbitMqConsumeOk {
@@ -49,30 +45,11 @@ interface RabbitMqConnectionLike {
   close?(): Promise<unknown> | unknown;
 }
 
-// fallow-ignore-next-line unused-type
 export interface RabbitMqTaskEnvelope<T = unknown> {
   id: string;
   type: string;
   payload: T;
-  options: {
-    priority: number;
-    maxAttempts: number;
-    delayMs: number;
-    dedupeKey: string | null;
-  };
-}
-
-export interface RabbitMqTaskConsumer extends RuntimeWorkerHandle {
-  run(): Promise<void>;
-  stop(): Promise<void>;
-}
-
-export interface RabbitMqTaskTransport extends AsyncTaskTransport {
-  kind: 'rabbitmq-task-queue';
-  createConsumer(params: {
-    handlers: TaskHandler<unknown>[];
-    ownsWork: boolean;
-  }): Promise<RabbitMqTaskConsumer>;
+  options: { priority: number; maxAttempts: number; delayMs: number; dedupeKey: string | null };
 }
 
 export interface RabbitMqTaskTransportConfig {
@@ -84,22 +61,25 @@ export interface RabbitMqTaskTransportConfig {
   connectionFactory?: () => Promise<RabbitMqConnectionLike>;
 }
 
-function generateEnvelopeId(): string {
-  return `rtmq_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
-async function loadAmqplib() {
-  const importer = new Function('specifier', 'return import(specifier)') as (
-    specifier: string,
-  ) => Promise<{
-    connect: (url: string) => Promise<RabbitMqConnectionLike>;
-  }>;
-  return importer('amqplib');
-}
+export type RabbitMqTaskTransport = TaskQueuePort & {
+  kind: 'rabbitmq-task-queue';
+  enqueueTx<T>(
+    client: unknown,
+    type: string,
+    payload: T,
+    options?: TaskEnqueueOptions,
+  ): Promise<unknown>;
+  createConsumer(params: {
+    handlers: TaskHandler<unknown>[];
+    ownsWork: boolean;
+  }): Promise<TaskConsumerHandle>;
+};
 
 async function createDefaultConnection(url: string): Promise<RabbitMqConnectionLike> {
-  const amqplib = await loadAmqplib();
-  return amqplib.connect(url);
+  const importer = new Function('specifier', 'return import(specifier)') as (
+    specifier: string,
+  ) => Promise<{ connect: (connectionUrl: string) => Promise<RabbitMqConnectionLike> }>;
+  return (await importer('amqplib')).connect(url);
 }
 
 async function ensureTopology(
@@ -117,43 +97,28 @@ export function createRabbitMqTaskTransport(
 ): RabbitMqTaskTransport {
   let publishChannelPromise: Promise<RabbitMqChannelLike> | null = null;
   let publishConnection: RabbitMqConnectionLike | null = null;
-
-  async function getOrCreatePublishChannel(): Promise<RabbitMqChannelLike> {
-    if (!publishChannelPromise) {
-      publishChannelPromise = (async () => {
-        if (config.channelFactory) {
-          const channel = await config.channelFactory();
-          await ensureTopology(channel, config);
-          return channel;
-        }
-
-        publishConnection = await (config.connectionFactory
-          ? config.connectionFactory()
-          : createDefaultConnection(config.url));
-        const channel = await publishConnection.createChannel();
+  const getPublishChannel = () => {
+    publishChannelPromise ??= (async () => {
+      if (config.channelFactory) {
+        const channel = await config.channelFactory();
         await ensureTopology(channel, config);
         return channel;
-      })();
-    }
-
+      }
+      publishConnection = await (config.connectionFactory
+        ? config.connectionFactory()
+        : createDefaultConnection(config.url));
+      const channel = await publishConnection.createChannel();
+      await ensureTopology(channel, config);
+      return channel;
+    })();
     return publishChannelPromise;
-  }
+  };
 
   return {
     kind: 'rabbitmq-task-queue',
-    async enqueue<T>(
-      type: string,
-      payload: T,
-      options: {
-        priority?: number;
-        maxAttempts?: number;
-        delayMs?: number;
-        dedupeKey?: string;
-      } = {},
-    ) {
-      const channel = await getOrCreatePublishChannel();
+    async enqueue<T>(type: string, payload: T, options: TaskEnqueueOptions = {}) {
       const envelope: RabbitMqTaskEnvelope<T> = {
-        id: generateEnvelopeId(),
+        id: `rtmq_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         type,
         payload,
         options: {
@@ -163,43 +128,33 @@ export function createRabbitMqTaskTransport(
           dedupeKey: options.dedupeKey ?? null,
         },
       };
-
+      const channel = await getPublishChannel();
       channel.publish(config.exchange, type, Buffer.from(JSON.stringify(envelope), 'utf8'), {
         persistent: true,
         priority: envelope.options.priority,
         messageId: envelope.id,
       });
-
       return envelope;
     },
     async enqueueTx<T>(
       _client: unknown,
       type: string,
       payload: T,
-      options: {
-        priority?: number;
-        maxAttempts?: number;
-        delayMs?: number;
-        dedupeKey?: string;
-      } = {},
+      options: TaskEnqueueOptions = {},
     ) {
       return this.enqueue(type, payload, options);
     },
-    async requeue(taskId: string) {
+    async requeue(taskId) {
       throw new Error(`RabbitMQ task transport does not support requeue by task id: ${taskId}`);
     },
     async getStatusSnapshot() {
       return {
-        provider: 'rabbitmq' as const,
+        provider: 'rabbitmq',
         pending: 0,
         running: 0,
         dead: 0,
         staleRunning: 0,
-        backlogOldestAgeSeconds: null,
-        runningOldestAgeSeconds: null,
-        deadOldestAgeSeconds: null,
         reclaimCount: 0,
-        recentDeadLetters: [],
       };
     },
     async createConsumer({ handlers, ownsWork }) {
@@ -208,88 +163,54 @@ export function createRabbitMqTaskTransport(
       let consumerTag: string | null = null;
       let channel: RabbitMqChannelLike | null = null;
       let connection: RabbitMqConnectionLike | null = null;
-
       return {
         async run() {
           if (running || !ownsWork || handlerMap.size === 0) {
             running = ownsWork && handlerMap.size > 0;
             return;
           }
-
           running = true;
-          if (config.channelFactory) {
-            channel = await config.channelFactory();
-          } else {
+          if (config.channelFactory) channel = await config.channelFactory();
+          else {
             connection = await (config.connectionFactory
               ? config.connectionFactory()
               : createDefaultConnection(config.url));
             channel = await connection.createChannel();
           }
-
           await ensureTopology(channel, config);
-          if (!channel.consume) {
-            throw new Error('RabbitMQ channel does not support consume()');
-          }
-
-          const consumeOk = await channel.consume(
+          if (!channel.consume) throw new Error('RabbitMQ channel does not support consume()');
+          const consumed = await channel.consume(
             config.queue,
             async (message) => {
               if (!message) return;
-
-              const routingKey = message.fields.routingKey;
-              const handler = handlerMap.get(routingKey);
+              const handler = handlerMap.get(message.fields.routingKey);
               if (!handler) {
                 channel?.nack?.(message, false, false);
                 return;
               }
-
-              const raw = JSON.parse(message.content.toString('utf8')) as RabbitMqTaskEnvelope;
-              const task: Task = {
-                id: raw.id,
-                type: raw.type,
-                payload: raw.payload,
-                status: 'running',
-                priority: raw.options.priority,
-                attempts: 0,
-                maxAttempts: raw.options.maxAttempts,
-                lastError: null,
-                dedupeKey: raw.options.dedupeKey,
-                processAfter: new Date(),
-                workerId: 'rabbitmq-consumer',
-                startedAt: new Date(),
-                heartbeatAt: null,
-                leaseUntil: null,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                completedAt: null,
-              };
-
+              const task = JSON.parse(message.content.toString('utf8')) as RabbitMqTaskEnvelope;
               try {
-                await handler.handle(task, new AbortController().signal);
+                await handler.handle(
+                  { id: task.id, type: task.type, payload: task.payload, attempt: 0 },
+                  new AbortController().signal,
+                );
                 channel?.ack?.(message);
-              } catch (_error) {
+              } catch {
                 channel?.nack?.(message, false, false);
               }
             },
             { noAck: false },
           );
-
-          consumerTag = consumeOk.consumerTag;
+          consumerTag = consumed.consumerTag;
         },
         async stop() {
           running = false;
-          if (consumerTag && channel?.cancel) {
-            await channel.cancel(consumerTag);
-          }
+          if (consumerTag && channel?.cancel) await channel.cancel(consumerTag);
           await channel?.close?.();
           await connection?.close?.();
         },
-        isRunning() {
-          return running;
-        },
-        ownsWork() {
-          return ownsWork;
-        },
+        isRunning: () => running,
+        ownsWork: () => ownsWork,
       };
     },
   };

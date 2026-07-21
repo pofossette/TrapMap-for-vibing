@@ -15,6 +15,7 @@ import {
   createGovernanceReviewPgOwnerBundle,
   type GovernanceReviewPgOwnerBundle,
 } from '@trapmap/service-governance-review';
+import { createJobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
 import { getStorePool } from '@trapmap/runtime-infra';
 
 import type { HostLocalConfig } from '../config/index.js';
@@ -30,7 +31,6 @@ import {
   type HostLocalAdapterRegistry,
   type HostLocalAiProviders,
   type HostLocalAsyncTransport,
-  type HostLocalEventBus,
   type HostLocalGraphQueryBackend,
   type HostLocalGraphQueryRuntimeState,
   type HostLocalRepos,
@@ -60,7 +60,6 @@ export interface HostLocalServices {
   repos: HostLocalRepos;
   graphQueryBackend: HostLocalGraphQueryBackend;
   graphQuery: HostLocalGraphQueryRuntimeState;
-  eventBus: HostLocalEventBus;
 }
 
 export async function createHostLocalServices(
@@ -77,6 +76,10 @@ export async function createHostLocalServices(
   const candidateCorpus: CandidateCorpusReadPort = createCandidateCorpusPgReadPort(pool);
   const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
   const governanceReview = createGovernanceReviewPgOwnerBundle(pool);
+  const asyncTransport = createJobRuntimeAsyncTransport({
+    config: { asyncTaskTransport: config.asyncTaskTransport },
+    pool,
+  });
   infra.repos.governanceRetrievalProjection = governanceReview.retrievalProjection;
 
   const services: HostLocalServices = {
@@ -85,7 +88,7 @@ export async function createHostLocalServices(
     runtimeMode: runtimeDeployment.runtimeMode,
     serviceUnit: runtimeDeployment.serviceUnit,
     store: infra.store,
-    ...(infra.asyncTransport ? { asyncTransport: infra.asyncTransport } : {}),
+    asyncTransport,
     adapterRegistry: infra.adapterRegistry,
     channelRegistry: createHostLocalChannelRegistry(),
     strategyRegistry: createHostLocalStrategyRegistry(),
@@ -102,7 +105,6 @@ export async function createHostLocalServices(
     repos: infra.repos,
     graphQueryBackend: infra.graphQueryBackend,
     graphQuery: infra.graphQuery,
-    eventBus: infra.eventBus,
   };
   return services;
 }

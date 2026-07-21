@@ -19,7 +19,6 @@
     "@trapmap/backend-core": "workspace:*",
     "@trapmap/contracts": "workspace:*",
     "@trapmap/server": "workspace:*",
-    "@trapmap/persistence-schema": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "pg": "8.20.0"
   },

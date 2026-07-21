@@ -47,9 +47,7 @@ describe('distributed database ownership guard', () => {
       identity,
     );
 
-    await expect(ports.repos.knowledge.insert({ id: 'entry-1' } as never)).rejects.toThrow(
-      /knowledge-write owner/i,
-    );
+    expect(ports.repos.knowledge).not.toHaveProperty('insert');
   });
 
   it('keeps cross-owner audit repository writes behind the audit capability', () => {

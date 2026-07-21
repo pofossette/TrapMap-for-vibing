@@ -1,7 +1,7 @@
 import { buildServer, type BuildServerOptions } from '@trapmap/server/app.js';
 import { getStorePool } from '@trapmap/runtime-infra';
 import { createJobRuntimeModule } from '@trapmap/backend-core';
-import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
+import { createJobRuntimeDeps, createJobRuntimeOutboxConsumer } from '@trapmap/service-job-runtime';
 
 import type { HostLocalConfig } from '../config/index.js';
 import { createHostLocalServices } from './host-services.js';
@@ -39,6 +39,7 @@ export async function buildHostLocalServer(
     knowledgeOwner: services.knowledgeOwner,
     artifactReadProjection: services.artifactReadProjection,
     governanceRetrievalProjection: services.governanceReview.retrievalProjection,
+    asyncTransport: services.asyncTransport,
     store: services.store,
     jobRuntime: createJobRuntimeModule(
       createJobRuntimeDeps({
@@ -46,6 +47,9 @@ export async function buildHostLocalServer(
         auditLog: services.identity.auditLog,
       }),
     ),
+    outboxWorkerFactory: {
+      create: (worker) => createJobRuntimeOutboxConsumer(worker),
+    },
     ownsStore: false,
   });
   const closeApp = app.close.bind(app);

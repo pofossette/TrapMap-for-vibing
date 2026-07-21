@@ -54,6 +54,15 @@ export interface IdentityCompatibilityBundle {
   actorLookup: ActorBatchLookupPort;
 }
 
+export interface OutboxWorkerFactory {
+  create(params: {
+    outbox: NonNullable<SkillShareerServices['asyncTransport']>['events'];
+    handlers: Array<{ eventName: string; handle(payload: unknown): Promise<void> }>;
+    ownsWork: boolean;
+    onError(error: unknown, event?: { eventName: string; aggregateId: string }): void;
+  }): RuntimeWorkerHandle;
+}
+
 export interface SkillShareerServices {
   config: ServerConfig;
   runtimeDeployment: ResolvedRuntimeDeployment;
@@ -92,6 +101,8 @@ export interface SkillShareerServices {
   eventBus: LifecycleEventBus;
   /** Job-runtime port injected by the owning host for async commands. */
   jobRuntime?: Pick<JobRuntimePort, 'schedule'>;
+  /** Job-runtime worker factory injected by host composition. */
+  outboxWorkerFactory?: OutboxWorkerFactory;
   /** TracingPort adapter for distributed tracing (Phase 2B). */
   tracing?: TracingPort;
 }

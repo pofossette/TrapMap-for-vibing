@@ -2,19 +2,19 @@ import {
   createRuntimeSharedInfra,
   type RuntimeInfraShared,
 } from '@trapmap/runtime-infra';
+import type { JobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
 
 import type { HostLocalConfig } from '../config/index.js';
 
 export type HostLocalSharedInfra = RuntimeInfraShared;
 
 export type HostLocalStore = HostLocalSharedInfra['store'];
-export type HostLocalAsyncTransport = NonNullable<HostLocalSharedInfra['asyncTransport']>;
+export type HostLocalAsyncTransport = JobRuntimeAsyncTransport;
 export type HostLocalAdapterRegistry = HostLocalSharedInfra['adapterRegistry'];
 export type HostLocalAiProviders = HostLocalSharedInfra['ai'];
 export type HostLocalRepos = HostLocalSharedInfra['repos'];
 export type HostLocalGraphQueryBackend = HostLocalSharedInfra['graphQueryBackend'];
 export type HostLocalGraphQueryRuntimeState = HostLocalSharedInfra['graphQuery'];
-export type HostLocalEventBus = HostLocalSharedInfra['eventBus'];
 
 export async function createHostLocalSharedInfra(
   config: HostLocalConfig,

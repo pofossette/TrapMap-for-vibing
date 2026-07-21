@@ -105,7 +105,13 @@ export function createCandidateProcessingTaskQueue(
                  WHERE id = $1`,
                 [task.id, dead ? 'dead' : 'pending', message],
               );
-              if (dead) await handler.onDead?.({ id: task.id, type: task.type, payload: task.payload, attempt: task.attempts });
+              if (dead)
+                await handler.onDead?.({
+                  id: task.id,
+                  type: task.type,
+                  payload: task.payload,
+                  attempt: task.attempts,
+                });
             }
           }
         } finally {

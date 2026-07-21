@@ -87,4 +87,28 @@ describe('job-runtime consumer ownership', () => {
     await server.close();
     expect(consumer.stop).toHaveBeenCalledTimes(1);
   });
+
+  it('starts and stops the owner-local outbox consumer with the runtime server', async () => {
+    const consumer = {
+      run: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn().mockResolvedValue(undefined),
+    };
+    const queuePorts = createQueuePorts(consumer);
+    queuePorts.outbox.claimBatch.mockResolvedValue([]);
+
+    const server = await createJobRuntimeServer(
+      { host: '127.0.0.1', port: 0, logLevel: 'silent' },
+      createJobRuntimeDeps({
+        queuePorts,
+        auditLog: {} as never,
+        taskHandlers: [],
+        outboxHandlers: [{ eventName: 'knowledge.approved', handle: vi.fn() }],
+        ownsWork: true,
+      }),
+    );
+
+    expect(server.outboxConsumer?.isRunning()).toBe(true);
+    await server.close();
+    expect(server.outboxConsumer?.isRunning()).toBe(false);
+  });
 });

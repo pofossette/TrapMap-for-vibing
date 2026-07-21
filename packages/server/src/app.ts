@@ -13,8 +13,12 @@ import type { JobRuntimePort } from '@trapmap/backend-core';
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
 import { createAiProviders } from './lib/ai/index.js';
-import { createAsyncTransport } from './lib/async/factory.js';
-import type { IdentityCompatibilityBundle, SkillShareerServices } from './lib/context.js';
+import type { AsyncTransport } from './lib/async/transport.js';
+import type {
+  IdentityCompatibilityBundle,
+  OutboxWorkerFactory,
+  SkillShareerServices,
+} from './lib/context.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
 import { type GraphQueryBackend, createGraphQueryRuntimeState } from './lib/graph-query/index.js';
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
@@ -62,6 +66,8 @@ export interface BuildServerOptions {
     ConflictRelation
   >;
   jobRuntime?: Pick<JobRuntimePort, 'schedule'>;
+  asyncTransport?: AsyncTransport;
+  outboxWorkerFactory?: OutboxWorkerFactory;
   store?: SkillShareerStore;
   ownsStore?: boolean;
 }
@@ -204,7 +210,9 @@ export function buildServer(options: BuildServerOptions = {}) {
     graphQueryBackend: {} as GraphQueryBackend,
     graphQuery: createGraphQueryRuntimeState(config.graphDb),
     eventBus: new LifecycleEventBus(),
+    ...(options.asyncTransport ? { asyncTransport: options.asyncTransport } : {}),
     ...(options.jobRuntime ? { jobRuntime: options.jobRuntime } : {}),
+    ...(options.outboxWorkerFactory ? { outboxWorkerFactory: options.outboxWorkerFactory } : {}),
     // Phase 2B: tracing adapter -- disabled by default (OTEL_DISABLED=true).
     // The startup sequence will initialise the OTel SDK if enabled.
     tracing: createTracingPortAdapter(undefined, {
@@ -220,11 +228,8 @@ export function buildServer(options: BuildServerOptions = {}) {
   if (!storePool) {
     throw new Error('server identity compatibility bridge requires PostgreSQL');
   }
-  if (storePool) {
-    app.skillShareer.asyncTransport = createAsyncTransport({
-      config: app.skillShareer.config,
-      pool: storePool,
-    });
+  if (!options.asyncTransport) {
+    throw new Error('server async transport must be injected by job-runtime host composition');
   }
 
   // Bridge: wire global embeddings provider so existing generateEmbedding() callers

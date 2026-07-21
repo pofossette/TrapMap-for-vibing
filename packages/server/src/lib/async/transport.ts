@@ -1,9 +1,5 @@
-import type { Pool, PoolClient } from 'pg';
-
-import { createDomainEventOutbox } from '@trapmap/server/lib/lifecycle/index.js';
-import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
+import type { PoolClient } from 'pg';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
-import { createTaskWorker } from '@trapmap/server/lib/queue/task-worker.js';
 
 export interface AsyncTaskTransport {
   kind: 'postgres-task-queue' | 'rabbitmq-task-queue';
@@ -86,49 +82,4 @@ export interface AsyncEventTransport {
 export interface AsyncTransport {
   task: AsyncTaskTransport;
   events: AsyncEventTransport;
-}
-
-export function createPostgresTaskTransport(pool: Pool): AsyncTaskTransport {
-  const queue = createTaskQueue({ pool });
-
-  return {
-    kind: 'postgres-task-queue',
-    enqueue: queue.enqueue,
-    enqueueTx: queue.enqueueTx,
-    requeue: queue.requeue,
-    async getStatusSnapshot() {
-      const snapshot = await queue.getStatusSnapshot();
-      return {
-        provider: 'postgres',
-        ...snapshot,
-      };
-    },
-    async createConsumer({ handlers, ownsWork }) {
-      return createTaskWorker({
-        pool,
-        handlers,
-        ownsWork,
-      });
-    },
-  };
-}
-
-export function createPostgresEventTransport(pool: Pool): AsyncEventTransport {
-  const events = createDomainEventOutbox({ pool });
-
-  return {
-    kind: 'postgres-domain-outbox',
-    enqueue: events.enqueue,
-    enqueueTx: events.enqueueTx,
-    claimBatch: events.claimBatch,
-    complete: events.complete,
-    fail: events.fail,
-    async getStatusSnapshot() {
-      const snapshot = await events.getStatusSnapshot();
-      return {
-        provider: 'postgres',
-        ...snapshot,
-      };
-    },
-  };
 }

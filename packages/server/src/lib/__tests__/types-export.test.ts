@@ -48,7 +48,6 @@ import type {
 
 import type { MergedCandidate, RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
 
-
 import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
 
 describe('Direct Type Export Verification', () => {

@@ -2,10 +2,7 @@ import pg from 'pg';
 
 import { createJobRuntimeModule } from '../../packages/backend-core/src/index.js';
 import { buildServer, type BuildServerOptions } from '../../packages/server/src/app.js';
-import {
-  createPostgresEventTransport,
-  createPostgresTaskTransport,
-} from '../../packages/server/src/lib/async/transport.js';
+import { createJobRuntimeAsyncTransport } from '../../packages/service-job-runtime/src/index.js';
 import { PostgresStore } from '../../packages/server/src/lib/persistence/postgres-store.js';
 import { createIdentityAccessPgDeps } from '../../packages/service-identity-access/src/pg-ports.js';
 import {
@@ -33,6 +30,15 @@ export function buildPostgresComposedServer(
   const identity = createIdentityAccessPgDeps(pool);
   const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
   const governanceReview = createGovernanceReviewPgOwnerBundle(pool);
+  const asyncTransport = createJobRuntimeAsyncTransport({
+    config: {
+      asyncTaskTransport: {
+        provider: 'postgres',
+        rabbitmq: null,
+      },
+    },
+    pool,
+  });
   const app = buildServer({
     ...options,
     config: { ...options.config, databaseUrl },
@@ -40,10 +46,11 @@ export function buildPostgresComposedServer(
     artifactReadProjection: knowledgeWrite.artifactReadProjection,
     knowledgeOwner: knowledgeWrite.knowledgeOwner,
     governanceRetrievalProjection: governanceReview.retrievalProjection,
+    asyncTransport,
     jobRuntime: createJobRuntimeModule({
       queuePorts: {
-        task: createPostgresTaskTransport(pool),
-        outbox: createPostgresEventTransport(pool),
+        task: asyncTransport.task,
+        outbox: asyncTransport.outbox,
       },
       auditLog: identity.auditLog,
     }),
