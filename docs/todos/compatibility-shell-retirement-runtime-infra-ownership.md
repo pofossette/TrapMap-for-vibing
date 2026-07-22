@@ -209,6 +209,8 @@ Knowledge snapshot PostgreSQL owner follow-up：`createKnowledgeSnapshotOwner()`
 
 Task-9 orchestrator core follow-up：新增 `scripts/legacy-snapshot-backfill.ts` 的纯协调层，结构性读取一次 legacy JSON snapshot，将 identity、knowledge、artifact、artifact payload、candidate 和 governance bucket 分别交给 owner-local importer；它不导入 `@trapmap/server` 或 `@trapmap/runtime-infra` 类型。所有 authoritative owner 返回无错误后，才允许 knowledge-read 从 knowledge/artifact source 重建 derived graph projection；legacy `graphIndexDocuments` 只作为重建计数证据，绝不复制。`counters`、`promptVersion`、`rebuildState` 是唯一明确列出的 discard bucket，结果中固定记录；任何 owner conflict 会阻止 graph rebuild 和 compatibility-state deletion authorization。TDD RED 为缺少编排模块，GREEN：`rtk pnpm --config.store-dir=/tmp/pnpm-store test:file -- scripts/__tests__/legacy-snapshot-backfill.test.ts`（2/2）通过，覆盖完整 bucket fixture、single read、derived rebuild 和 conflict rejection。该核心尚未接入真实 PostgreSQL pool/CLI，也没有 representative DB evidence，因此 Wave-9 仍未完成。
 
+Artifact verification hardening：`migrateSkillArtifacts()` 不再把任意 existing ID 视为可跳过；它现在先逐字段比对 existing artifact，首次写入也必须经 owner read projection 完整回读，只有完全相同才递增 `verified`。同 ID 不同 payload 或写后回读不一致均为 migration error，阻断上层 Task-9 deletion authorization。TDD RED：两项新断言分别证明缺失 verified/readback 和 destination conflict 被误标 skipped；GREEN：`rtk pnpm --config.store-dir=/tmp/pnpm-store --filter @trapmap/service-knowledge-write test --run src/wave9-artifact-backfill.test.ts`（2/2）通过。CLI 和 representative database evidence 仍待完成。
+
 ## Deferred 边界
 
 平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。

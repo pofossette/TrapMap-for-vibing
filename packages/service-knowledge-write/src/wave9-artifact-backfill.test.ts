@@ -4,10 +4,7 @@ import type { ArtifactWritePort } from './artifact-ports.js';
 import { migrateSkillArtifacts } from './wave9-artifact-backfill.js';
 import { createArtifactReadProjectionFixture } from './test-helpers.js';
 
-const artifact = { id: 'artifact_1' } as never;
-
-const readProjection = (existing: boolean) =>
-  createArtifactReadProjectionFixture(vi.fn(async () => (existing ? artifact : null)));
+const artifact = { id: 'artifact_1', title: 'snapshot artifact' } as never;
 
 function writer(): ArtifactWritePort {
   return {
@@ -25,20 +22,37 @@ function writer(): ArtifactWritePort {
 }
 
 describe('Wave-9 artifact backfill', () => {
-  it('uses owner ports idempotently and records individual failures', async () => {
-    const artifacts = [artifact, { id: 'artifact_2' } as never];
+  it('verifies an inserted artifact by exact owner readback', async () => {
+    const records = new Map<string, typeof artifact>();
     const write = writer();
     write.insert = vi.fn(async (value) => {
-      if (value.id === 'artifact_2') throw new Error('insert failed');
+      records.set(value.id, value as typeof artifact);
     });
     const result = await migrateSkillArtifacts({
-      artifacts,
+      artifacts: [artifact],
       artifactWriter: write,
-      artifactReadProjection: readProjection(false),
+      artifactReadProjection: createArtifactReadProjectionFixture(
+        vi.fn(async (id) => records.get(id) ?? null),
+      ),
     });
 
-    expect(result).toMatchObject({ totalArtifacts: 2, migrated: 1, skipped: 0 });
-    expect(result.errors).toEqual([{ artifactId: 'artifact_2', error: 'insert failed' }]);
-    expect(write.insert).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({ totalArtifacts: 1, migrated: 1, skipped: 0, verified: 1 });
+    expect(result.errors).toEqual([]);
+  });
+
+  it('rejects a same-ID destination artifact whose payload differs', async () => {
+    const existing = { ...artifact, title: 'different artifact' } as never;
+    const write = writer();
+    const result = await migrateSkillArtifacts({
+      artifacts: [artifact],
+      artifactWriter: write,
+      artifactReadProjection: createArtifactReadProjectionFixture(vi.fn(async () => existing)),
+    });
+
+    expect(write.insert).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ migrated: 0, skipped: 0, verified: 0 });
+    expect(result.errors).toEqual([
+      { artifactId: 'artifact_1', error: 'destination artifact differs from snapshot' },
+    ]);
   });
 });
