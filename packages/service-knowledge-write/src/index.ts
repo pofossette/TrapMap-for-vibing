@@ -44,3 +44,4 @@ export {
   type KnowledgeSnapshotOwner,
   type LegacyKnowledgeSnapshotRecord,
 } from './knowledge-snapshot-backfill.js';
+export { createKnowledgeSnapshotOwner } from './knowledge-snapshot-owner.js';

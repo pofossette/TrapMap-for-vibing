@@ -205,6 +205,8 @@ Knowledge snapshot storage follow-up：legacy record 的完整 metadata、agent 
 
 Knowledge snapshot coordinator follow-up：`migrateKnowledgeSnapshot()` 定义 contracts-only 的完整 legacy aggregate input，不导入 server store 类型；它保留 ID、revision/submission/review/lifecycle histories 及全部 metadata，并要求 owner port 首次写入后完整回读验证。TDD RED：缺失 module；GREEN：snapshot coordinator tests（2/2）覆盖首次导入、匹配 rerun 和不同 history 的 destination 拒绝。knowledge-write package typecheck 仍由既有 `routes.ts` 缺失 `toInvocationErrorResponse` 引入而失败，未归因于该 coordinator；PostgreSQL owner adapter 和代表性数据库证据仍待完成。
 
+Knowledge snapshot PostgreSQL owner follow-up：`createKnowledgeSnapshotOwner()` 在单事务中写入 `knowledge_entries`、labels、revisions、submissions、review decisions 与 lifecycle events；完整 aggregate 作为同一 entry 的 `metadata.legacySnapshotRecord` 仅供 Task 9 回读核验，未创建共享 `store_snapshot` 或导入 server 类型。TDD RED：缺失 owner adapter；GREEN：owner/coordinator focused tests（4/4）覆盖 canonical writes、exact metadata readback、首次迁移、rerun 与冲突拒绝。代表性数据库 backfill 与 package typecheck（仍被既有 `routes.ts` 缺失 helper 阻断）待后续验证。
+
 ## Deferred 边界
 
 平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。
