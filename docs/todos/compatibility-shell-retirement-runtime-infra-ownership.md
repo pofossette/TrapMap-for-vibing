@@ -199,6 +199,8 @@ Candidate-ingestion first slice：新增 `migrateCandidateIngestionSnapshot()`�
 
 Artifact payload follow-up：`skill_artifact_files` 现在含有 owner-local `content` 列，knowledge-write baseline migration 同步创建该列。`createArtifactFilePayloadOwner()` 以 artifact/revision/path 为稳定键写入并回读 payload；`migrateArtifactFilePayloads()` 使用该结构性 owner port，保留完整 content，验证写后回读，允许完全相同的 rerun，并拒绝 destination 内容冲突。TDD RED 为缺失迁移模块，GREEN 为 payload/artifact port focused tests（5/5）及 typecheck。它尚未替代 legacy export command 或覆盖 artifact/knowledge 其余 backfill，因此不构成 destructive delete evidence。
 
+Governance snapshot follow-up：`migrateGovernanceSnapshot()` 的 owner input 现使用完整 `FeedbackQueueRecord`/`ConflictRelation` contract，而非仅 ID。对既有 destination 与写后回读均逐字段比较：完全相同的 rerun 才能 skip/verify，任何差异均记录为 error 而不会覆盖。TDD RED 分别覆盖同 ID destination 冲突和写后不一致；GREEN：governance snapshot/PG-port focused tests（9/9）通过，`rtk git diff --check` 通过。`rtk pnpm eval:smoke` 已执行，但本环境 Docker daemon 不可用，PostgreSQL coordinator 在连接 `/var/run/docker.sock` 前失败；须在有 Docker 的环境补跑。knowledge bucket 仍缺少完整 owner-local 字段映射，Wave-9 继续保持未完成。
+
 ## Deferred 边界
 
 平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。

@@ -34,4 +34,68 @@ describe('governance snapshot backfill', () => {
       verified: 2,
     });
   });
+
+  it('refuses to skip a destination record that differs from the snapshot', async () => {
+    const owner = {
+      feedbackRepo: {
+        insert: vi.fn(),
+        getById: vi.fn(async () => ({ ...feedback, status: 'resolved' })),
+      },
+      conflictProjection: {
+        upsert: vi.fn(),
+        getById: vi.fn(async () => null),
+      },
+    };
+
+    await expect(
+      migrateGovernanceSnapshot({
+        owner,
+        snapshot: { feedbackQueue: [feedback], conflicts: [] },
+      }),
+    ).resolves.toEqual({
+      migrated: 0,
+      skipped: 0,
+      errors: [
+        {
+          domain: 'feedbackQueue',
+          recordId: feedback.id,
+          error: 'destination record differs from snapshot',
+        },
+      ],
+      verified: 0,
+    });
+    expect(owner.feedbackRepo.insert).not.toHaveBeenCalled();
+  });
+
+  it('reports a write that cannot be read back losslessly', async () => {
+    const owner = {
+      feedbackRepo: {
+        insert: vi.fn(),
+        getById: vi.fn(async () => ({ ...feedback, status: 'resolved' })),
+      },
+      conflictProjection: {
+        upsert: vi.fn(),
+        getById: vi.fn(async () => null),
+      },
+    };
+    owner.feedbackRepo.getById.mockResolvedValueOnce(null);
+
+    await expect(
+      migrateGovernanceSnapshot({
+        owner,
+        snapshot: { feedbackQueue: [feedback], conflicts: [] },
+      }),
+    ).resolves.toEqual({
+      migrated: 1,
+      skipped: 0,
+      errors: [
+        {
+          domain: 'feedbackQueue',
+          recordId: feedback.id,
+          error: 'destination record differs from snapshot after write',
+        },
+      ],
+      verified: 0,
+    });
+  });
 });
