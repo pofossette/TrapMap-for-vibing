@@ -17,6 +17,11 @@ export {
   type GovernanceReviewPgOwnerBundle,
 } from './pg-ports.js';
 export {
+  migrateGovernanceSnapshot,
+  type GovernanceSnapshotBackfillResult,
+  type GovernanceSnapshotOwner,
+} from './snapshot-backfill.js';
+export {
   classifyConflict,
   createGovernanceConflictWorkflow,
   generateConflictContext,
@@ -38,6 +43,7 @@ export {
   type GovernanceReviewReadinessOptions,
 } from './routes.js';
 export {
+  buildOwnerReviewQueueProjection,
   buildReviewQueueProjection,
   type ReviewQueueProjection,
 } from './review-queue-projection.js';

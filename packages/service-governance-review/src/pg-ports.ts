@@ -17,6 +17,7 @@ export interface GovernanceReviewPgOwnerBundle {
   feedbackRepo: FeedbackRepositoryPort;
   conflictProjection: ConflictReadProjection & {
     upsert(conflict: ConflictRelation): Promise<void>;
+    getById(conflictId: string): Promise<ConflictRelation | null>;
   };
   retrievalProjection: GovernanceRetrievalProjection;
 }
@@ -138,6 +139,27 @@ export function createGovernanceReviewPgOwnerBundle(
           detectedAt: asIso(record.detected_at) ?? new Date().toISOString(),
         };
       });
+    },
+    async getById(conflictId) {
+      const { rows } = await pool.query(
+        `SELECT id, entry_id_a, entry_id_b, conflict_type, context,
+                problem_overlap_score, solution_diff_score, detected_at
+           FROM conflict_relations WHERE id = $1`,
+        [conflictId],
+      );
+      const record = rows[0] as FeedbackRow | undefined;
+      return record
+        ? {
+            id: String(record.id),
+            entryIdA: String(record.entry_id_a),
+            entryIdB: String(record.entry_id_b),
+            conflictType: String(record.conflict_type) as ConflictRelation['conflictType'],
+            context: String(record.context),
+            problemOverlapScore: Number(record.problem_overlap_score),
+            solutionDiffScore: Number(record.solution_diff_score),
+            detectedAt: asIso(record.detected_at) ?? new Date().toISOString(),
+          }
+        : null;
     },
   };
   const feedbackRepo: FeedbackRepositoryPort = {
