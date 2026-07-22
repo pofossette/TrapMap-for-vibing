@@ -203,6 +203,8 @@ Governance snapshot follow-up：`migrateGovernanceSnapshot()` 的 owner input �
 
 Knowledge snapshot storage follow-up：legacy record 的完整 metadata、agent review、index/decay/evidence/remediation state 现在具有 `knowledge_entries` 的 owner-local JSONB 落点；submission aggregate 与 reviewer decision history 分别落入 `knowledge_submissions`、`knowledge_review_decisions`，而 revision/review note/lifecycle history 继续使用既有 owner tables。TDD RED：migration contract 缺失 `index_state` 等字段；GREEN：knowledge-write migration test（7/7）、persistence-schema typecheck 与 diff check 通过。此项仅建立无损导入的 storage prerequisite；实际 snapshot importer、回读核验和 representative database evidence 尚未完成。
 
+Knowledge snapshot coordinator follow-up：`migrateKnowledgeSnapshot()` 定义 contracts-only 的完整 legacy aggregate input，不导入 server store 类型；它保留 ID、revision/submission/review/lifecycle histories 及全部 metadata，并要求 owner port 首次写入后完整回读验证。TDD RED：缺失 module；GREEN：snapshot coordinator tests（2/2）覆盖首次导入、匹配 rerun 和不同 history 的 destination 拒绝。knowledge-write package typecheck 仍由既有 `routes.ts` 缺失 `toInvocationErrorResponse` 引入而失败，未归因于该 coordinator；PostgreSQL owner adapter 和代表性数据库证据仍待完成。
+
 ## Deferred 边界
 
 平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。

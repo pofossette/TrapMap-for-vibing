@@ -38,3 +38,9 @@ export {
   migrateArtifactFilePayloads,
   type ArtifactFilePayloadBackfillResult,
 } from './wave9-artifact-payload-backfill.js';
+export {
+  migrateKnowledgeSnapshot,
+  type KnowledgeSnapshotBackfillResult,
+  type KnowledgeSnapshotOwner,
+  type LegacyKnowledgeSnapshotRecord,
+} from './knowledge-snapshot-backfill.js';
