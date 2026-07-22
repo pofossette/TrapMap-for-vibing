@@ -16,6 +16,13 @@ export {
   type CandidateResolutionOutcomeRepository,
 } from './pg-ports.js';
 export {
+  migrateCandidateIngestionSnapshot,
+  type CandidateIngestionSnapshot,
+  type CandidateIngestionSnapshotBackfillConfig,
+  type CandidateIngestionSnapshotBackfillResult,
+  type CandidateIngestionSnapshotOwner,
+} from './snapshot-backfill.js';
+export {
   buildNormalizedDuplicateInput,
   createCandidateDuplicateDetector,
   type CandidateCorpusReadPort,
