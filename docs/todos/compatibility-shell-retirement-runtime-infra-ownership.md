@@ -213,6 +213,8 @@ Artifact verification hardening：`migrateSkillArtifacts()` 不再把任意 exis
 
 Graph rebuild count hardening：Task-9 coordinator 现在以 `knowledgeEntries.length + skillArtifacts.length` 作为 expected authoritative source count；只有 graph owner 回报的 source count 与 destination count 都精确等于该值，才可返回 `readyForCompatibilityStateDeletion`。TDD RED：graph rebuild 对两个 source 回报 `1/1` 时旧实现错误授权删除；GREEN：legacy orchestrator focused tests（3/3）通过。实际 graph owner rebuild command、PostgreSQL evidence 与 destructive migration 仍待完成。
 
+Legacy source adapter follow-up：`scripts/legacy-snapshot-source.ts` 是 Task-9-only PostgreSQL reader，唯一执行 `SELECT data FROM store_snapshot WHERE key = 'main'` 的 source access；它不导入 compatibility store 或 server types，并拒绝缺失任一 owner bucket、无效 counters/promptVersion/rebuildState 的 JSONB row。TDD RED：缺少 source module；GREEN：`rtk pnpm --config.store-dir=/tmp/pnpm-store test:file -- scripts/__tests__/legacy-snapshot-source.test.ts`（2/2）验证 singleton single-read 与缺桶拒绝。真实 target owner wiring、graph rebuild 与 representative DB evidence 仍待完成。
+
 ## Deferred 边界
 
 平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。
