@@ -93,4 +93,14 @@ describe('legacy snapshot backfill', () => {
       },
     ]);
   });
+
+  it('does not authorize deletion when a graph rebuild omits an authoritative source', async () => {
+    const deps = createDeps();
+    deps.rebuildGraphProjection.mockResolvedValueOnce({ sourceCount: 1, destinationCount: 1 });
+
+    const result = await runLegacySnapshotBackfill(deps);
+
+    expect(result.graphProjection).toEqual({ sourceCount: 1, destinationCount: 1 });
+    expect(result.readyForCompatibilityStateDeletion).toBe(false);
+  });
 });

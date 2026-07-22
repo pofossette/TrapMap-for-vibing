@@ -211,6 +211,8 @@ Task-9 orchestrator core follow-up：新增 `scripts/legacy-snapshot-backfill.ts
 
 Artifact verification hardening：`migrateSkillArtifacts()` 不再把任意 existing ID 视为可跳过；它现在先逐字段比对 existing artifact，首次写入也必须经 owner read projection 完整回读，只有完全相同才递增 `verified`。同 ID 不同 payload 或写后回读不一致均为 migration error，阻断上层 Task-9 deletion authorization。TDD RED：两项新断言分别证明缺失 verified/readback 和 destination conflict 被误标 skipped；GREEN：`rtk pnpm --config.store-dir=/tmp/pnpm-store --filter @trapmap/service-knowledge-write test --run src/wave9-artifact-backfill.test.ts`（2/2）通过。CLI 和 representative database evidence 仍待完成。
 
+Graph rebuild count hardening：Task-9 coordinator 现在以 `knowledgeEntries.length + skillArtifacts.length` 作为 expected authoritative source count；只有 graph owner 回报的 source count 与 destination count 都精确等于该值，才可返回 `readyForCompatibilityStateDeletion`。TDD RED：graph rebuild 对两个 source 回报 `1/1` 时旧实现错误授权删除；GREEN：legacy orchestrator focused tests（3/3）通过。实际 graph owner rebuild command、PostgreSQL evidence 与 destructive migration 仍待完成。
+
 ## Deferred 边界
 
 平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。

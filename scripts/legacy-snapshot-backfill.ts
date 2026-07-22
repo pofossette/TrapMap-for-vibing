@@ -119,11 +119,14 @@ export async function runLegacySnapshotBackfill(
     },
     legacyDocumentCount: snapshot.graphIndexDocuments.length,
   });
+  const expectedGraphSourceCount =
+    snapshot.knowledgeEntries.length + snapshot.skillArtifacts.length;
   return {
     errors: [],
     graphProjection,
     discardedLegacyBuckets: ['counters', 'promptVersion', 'rebuildState'],
     readyForCompatibilityStateDeletion:
-      graphProjection.sourceCount === graphProjection.destinationCount,
+      graphProjection.sourceCount === expectedGraphSourceCount &&
+      graphProjection.destinationCount === expectedGraphSourceCount,
   };
 }
