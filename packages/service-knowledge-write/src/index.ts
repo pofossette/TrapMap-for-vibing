@@ -22,7 +22,9 @@ export {
 } from './pg-ports.js';
 export {
   createArtifactReadProjection,
+  createArtifactFilePayloadOwner,
   createArtifactWritePort,
+  type ArtifactFilePayloadOwner,
   type ArtifactWritePort,
 } from './artifact-ports.js';
 export { registerArtifactRoutes } from './artifact-routes.js';
@@ -32,3 +34,7 @@ export {
   type ArtifactMigrationResult,
   type Wave9ArtifactBackfillConfig,
 } from './wave9-artifact-backfill.js';
+export {
+  migrateArtifactFilePayloads,
+  type ArtifactFilePayloadBackfillResult,
+} from './wave9-artifact-payload-backfill.js';

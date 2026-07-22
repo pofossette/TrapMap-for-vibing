@@ -293,6 +293,7 @@ CREATE TABLE "skill_artifact_files" (
 	"sha256" text NOT NULL,
 	"size_bytes" integer NOT NULL,
 	"media_type" text NOT NULL,
+	"content" text NOT NULL,
 	"source_group" text NOT NULL,
 	"include_in_derivation" integer DEFAULT 1 NOT NULL,
 	"activation_only" integer DEFAULT 0 NOT NULL,

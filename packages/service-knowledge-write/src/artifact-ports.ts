@@ -1,6 +1,7 @@
 // fallow-ignore-file complexity -- artifact row mapping mirrors the frozen contract shape.
 import { randomUUID } from 'node:crypto';
 import type {
+  ArtifactFilePayloadRecord,
   ArtifactReadProjection,
   LifecycleState,
   SkillArtifact,
@@ -37,6 +38,15 @@ export interface ArtifactWritePort {
 }
 
 type Queryable = Pick<Pool, 'query' | 'connect'>;
+
+export interface ArtifactFilePayloadOwner {
+  put(payload: ArtifactFilePayloadRecord): Promise<void>;
+  get(
+    artifactId: string,
+    revision: number,
+    path: string,
+  ): Promise<ArtifactFilePayloadRecord | null>;
+}
 
 const id = (prefix: string) => `${prefix}_${randomUUID().replaceAll('-', '').slice(0, 16)}`;
 
@@ -172,6 +182,52 @@ export function createArtifactReadProjection(pool: Pick<Pool, 'query'>): Artifac
     },
     async reviewQueue() {
       return listByFilter({ lifecycleState: 'submitted' });
+    },
+  };
+}
+
+export function createArtifactFilePayloadOwner(
+  pool: Pick<Pool, 'query'>,
+): ArtifactFilePayloadOwner {
+  return {
+    async put(payload) {
+      await pool.query(
+        `INSERT INTO skill_artifact_files
+          (artifact_revision_id, artifact_id, revision_no, path, kind, sha256, size_bytes, media_type, content, source_group, include_in_derivation, activation_only, created_at)
+         VALUES ($1, $2, $3, $4, 'skill-markdown', $5, $6, $7, $8, 'SKILL.md', 1, 0, $9)
+         ON CONFLICT (artifact_revision_id, path) DO UPDATE SET content = EXCLUDED.content, sha256 = EXCLUDED.sha256, size_bytes = EXCLUDED.size_bytes, media_type = EXCLUDED.media_type`,
+        [
+          `${payload.artifactId}_rev${payload.revision}`,
+          payload.artifactId,
+          payload.revision,
+          payload.path,
+          payload.sha256,
+          payload.sizeBytes,
+          payload.mediaType,
+          payload.content,
+          payload.storedAt,
+        ],
+      );
+    },
+    async get(artifactId, revision, path) {
+      const { rows } = await pool.query(
+        `SELECT artifact_id, revision_no, path, sha256, size_bytes, media_type, content, created_at
+           FROM skill_artifact_files WHERE artifact_id = $1 AND revision_no = $2 AND path = $3`,
+        [artifactId, revision, path],
+      );
+      const row = rows[0] as Record<string, unknown> | undefined;
+      return row
+        ? {
+            artifactId: String(row.artifact_id),
+            revision: Number(row.revision_no),
+            path: String(row.path),
+            sha256: String(row.sha256),
+            sizeBytes: Number(row.size_bytes),
+            mediaType: String(row.media_type),
+            content: String(row.content),
+            storedAt: String(row.created_at),
+          }
+        : null;
     },
   };
 }

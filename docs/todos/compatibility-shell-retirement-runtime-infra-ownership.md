@@ -26,24 +26,37 @@
 - [x] 建立 Task 1 deletion contract：[`compatibility-retirement-guard.test.ts`](../../scripts/__tests__/compatibility-retirement-guard.test.ts) 扫描生产 TypeScript、Dockerfile、根脚本与 workspace manifest；测试、spec 和 fixture 不构成新增阻断面。
 - [x] Task 2 migration baseline：六个 owner-local baseline 仅支持空数据库；旧 `0000–0020` 数据库须重建，不提供原地升级。`identity-access` 暂管 `store_snapshot`，仅作为 Task 9 一次性 backfill 输入；Task 9 完成导出、回填与核对后必须删除该表及其迁移资产。已通过六个 service 的 `src/migrations.test.ts`：每个 runner 均拒绝 owner-external SQL 和缺失 journal tag；host coordinator 的顺序、失败停止与 pool close 覆盖保留在 `packages/host-distributed/src/migrate.test.ts`。
 - [x] Wave-4 governance-review closeout（2026-07-21）：feedback、conflict、remediation、operator projection 的 production compatibility surface 已清空；server route/repository/subscriber 与 runtime-infra aggregate 成员已删除，`completedOwnerWaves` 已包含 `wave-4`，且未改变 Wave-5+ 或 Wave-9 条目。
-- [ ] 每完成一个 owner wave，回写迁移范围、已删除 compatibility surface、focused tests、Fallow boundary audit 与 typecheck 结果。
-- [ ] 所有 wave 完成后执行 empty-database migration、legacy snapshot backfill、distributed acceptance 与 closeout，并归档本文件。
+
+## 已核验进度（2026-07-21）
+
+完成判定以 [`compatibility-retirement-guard.test.ts`](../../scripts/__tests__/compatibility-retirement-guard.test.ts) 的 `completedOwnerWaves`、生产 surface 扫描和本文件对应 closeout evidence 为准；仅删除部分旧代码不等于完成 wave。
+
+- [x] Wave-1 identity-access：owner ports、迁移与 compatibility repository 删除已完成；guard 将 `wave-1` 标记完成。
+- [x] Wave-2 knowledge-write：PG-first write/outbox、artifact read projection 与 server compatibility surface 删除已完成；guard 将 `wave-2` 标记完成。
+- [x] Wave-3 candidate-ingestion：candidate、duplicate、lineage 与 processing ownership 已迁移；production scan 无 compatibility import，guard 将 `wave-3` 标记完成。
+- [x] Wave-4 governance-review：feedback、conflict、remediation 与 operator projection 已迁移；production/runtime aggregate/badcase boundary scan 均为空，guard 将 `wave-4` 标记完成。
+- [ ] Wave-6 job-runtime：旧 async/runtime-infra surface 已删除，runtime foundations 与 distributed closeout 已通过，但尚未满足 Fallow closeout；`completedOwnerWaves` 未包含 `wave-6`。
+- [ ] Wave-7 knowledge-read：已删除 `service-knowledge-read` 对 `runtime-infra`/`server` 的 retrieval/read-model compatibility dependencies 及 runtime-infra retrieval/support assembly；PostgreSQL/deployment 与 eval acceptance 已通过，尚待 Fallow closeout，不能标记完成。
+- [ ] Wave-8 host surfaces：host composition、capability config 与 gateway/server compatibility dependencies 仍在 allowlist 中，尚未迁移删除。
+- [ ] Wave-9 backfill/delete state：`store_snapshot`、`JsonStore`、`PostgresStore`、legacy migration/export fixture 及一次性回填验证尚待完成。
+- [ ] Wave-10 package retirement：`packages/server`、`packages/runtime-infra`、根依赖和 compatibility Docker/package references 尚待删除。
+- [ ] 最终 closeout：待所有未完成 wave 关闭后，执行 empty-database migration、legacy snapshot backfill、distributed acceptance、文档回写并归档本文件。
 
 ## Task 1 — Deletion contract evidence
 
 `scripts/__tests__/compatibility-retirement-guard.test.ts` 是临时 allowlist 的权威记录。每个对象均为精确的 `{ file, symbol, ownerWave, rationale }` 删除契约；guard 拒绝未登记的生产命中、过期文件、未知标识符、缺失 owner/rationale，以及已完成 wave 遗留的条目。不得使用目录、包或 glob 级豁免。
 
-| Owner wave | 当前例外与删除条件 |
-| --- | --- |
-| wave-1 identity-access | `auth/users/teams/audit` 的旧 snapshot 注记与 identity migration fixture 已不再是 guard 例外；唯一允许的 snapshot 输入是 service-local `IdentityAccessSnapshotPort`，仅供 Task 9 backfill 使用。完整 repository aggregate 迁移仍未完成。 |
-| wave-2 knowledge-write | artifact/knowledge/lifecycle 的 `JsonStore` 与 snapshot fallback；PG-first write path 落地即删除。 |
-| wave-3 candidate-ingestion | 已完成：candidate/duplicate/lineage/processing 已完全归属 owner；无 guard allowlist、server/runtime-infra concrete implementation 或 snapshot fallback。 |
-| wave-4 governance-review | 已完成：feedback、conflict、remediation、operator projection 归属 `service-governance-review`；server compatibility routes/repositories/subscribers 与 runtime-infra aggregate 成员已删除，guard 无 Wave-4 allowlist 条目。 |
-| wave-6 job-runtime | runtime-infra outbox bridge；job runtime 接管后删除。 |
-| wave-7 knowledge-read | retrieval schema 和 service knowledge-read 对 runtime-infra/server 的依赖；read owner 完成即删除。 |
-| wave-8 host surfaces | host composition、migration entrypoint、capability config；host-owned runtime surface 完成即删除。 |
-| wave-9 backfill/delete state | `store_snapshot`、`JsonStore`、`PostgresStore` 与明确的 migration/export/benchmark fixture；完成一次性 backfill 后删除。 |
-| wave-10 package retirement | root/runtime-infra dependency、repository aggregate、Docker compatibility self-reference；删除 packages 后移除。 |
+| Owner wave                   | 当前例外与删除条件                                                                                                                                                                                                                       |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| wave-1 identity-access       | `auth/users/teams/audit` 的旧 snapshot 注记与 identity migration fixture 已不再是 guard 例外；唯一允许的 snapshot 输入是 service-local `IdentityAccessSnapshotPort`，仅供 Task 9 backfill 使用。完整 repository aggregate 迁移仍未完成。 |
+| wave-2 knowledge-write       | artifact/knowledge/lifecycle 的 `JsonStore` 与 snapshot fallback；PG-first write path 落地即删除。                                                                                                                                       |
+| wave-3 candidate-ingestion   | 已完成：candidate/duplicate/lineage/processing 已完全归属 owner；无 guard allowlist、server/runtime-infra concrete implementation 或 snapshot fallback。                                                                                 |
+| wave-4 governance-review     | 已完成：feedback、conflict、remediation、operator projection 归属 `service-governance-review`；server compatibility routes/repositories/subscribers 与 runtime-infra aggregate 成员已删除，guard 无 Wave-4 allowlist 条目。              |
+| wave-6 job-runtime           | runtime-infra outbox bridge；job runtime 接管后删除。                                                                                                                                                                                    |
+| wave-7 knowledge-read        | retrieval schema 和 service knowledge-read 对 runtime-infra/server 的依赖；read owner 完成即删除。                                                                                                                                       |
+| wave-8 host surfaces         | host composition、migration entrypoint、capability config；host-owned runtime surface 完成即删除。                                                                                                                                       |
+| wave-9 backfill/delete state | `store_snapshot`、`JsonStore`、`PostgresStore` 与明确的 migration/export/benchmark fixture；完成一次性 backfill 后删除。                                                                                                                 |
+| wave-10 package retirement   | root/runtime-infra dependency、repository aggregate、Docker compatibility self-reference；删除 packages 后移除。                                                                                                                         |
 
 已执行：guard 先以空 allowlist 运行，基线报出 68 个未登记生产依赖（预期 RED）；加入精确条目后 `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts` 通过（4 tests，GREEN）。同轮通过 `rtk pnpm test:file -- scripts/__tests__/closeout-surface.test.ts`（8 tests）、`rtk pnpm check:arch-freeze`（9 rules）、`rtk pnpm exec fallow list --boundaries`、`rtk pnpm exec fallow audit --base main`（18 changed files, no issues）、`rtk pnpm check:docs-drift`（46 rules）及 `rtk pnpm check:structure`。Fallow 保留一个既有 `../../tsconfig.base.json` entry-point 警告，但审计成功。
 
@@ -128,6 +141,8 @@ Review correction：最初 owner bundle 的简化 SQL 错误指向不存在的 `
 - Full closeout evidence：`rtk pnpm eval:smoke` 81/81；`rtk pnpm test:deployment-smoke` 静态 135/135、PostgreSQL app/startup 37/37；`rtk pnpm check:docs-drift` 46/46；`rtk pnpm check:structure`、`rtk pnpm typecheck`、`rtk git diff --check` 均通过。
 - Fallow new-only boundary audit verdict 为 `pass`；本轮新增 dead-code、boundary、duplication、complexity 均为 0，仅保留 inherited complexity。Wave-5+ 与 `store_snapshot` 的 Wave-9 删除范围未在本轮修改。
 
+后续 host-local queue composition：`buildOwnerReviewQueueProjection()` 直接消费 knowledge-write owner 的规范化 `KnowledgeOwnerPort`，不再通过 `HostLocalServices.repos` 读取 legacy raw knowledge records；其 contract 已包含 owner、submission、review note 与 decision，保留原有 team/security/status 过滤语义。TDD 先以缺失 owner projection RED，再完成 governance package 与 Nest controller 切换；governance queue focused test（2 tests）、host-local candidate review controller/runtime focused tests（7 tests）、retirement guard（28/28）与 typecheck 均通过。new-only Fallow 未新增 finding；`HostLocalServices.repos` 仍供 knowledge-read compatibility adapter 使用，待 retrieval owner composition 后删除，故不把该 follow-up 解释为 shared-infra 关闭。
+
 ## Task 6 — Wave-6 job-runtime bridge evidence (in progress)
 
 `service-job-runtime` now provides the owner-local PostgreSQL task queue/outbox transport factory, retaining dedupe, lease reclaim, retry/backoff, dead-letter, and outbox claim/complete/fail semantics. The distributed `job-runtime` host composes that factory directly; governance conflict handling remains a typed workflow call to governance-review and does not move conflict persistence or decisions into the runtime.
@@ -137,6 +152,50 @@ Review correction：最初 owner bundle 的简化 SQL 错误指向不存在的 `
 本轮继续收口：host-local 通过 `service-job-runtime` owner factory 注入 transport，compatibility server 只接受 host 注入，不再构造 async transport；Job Runtime server 同时管理 task 与 outbox consumer 的启动/停止。RabbitMQ task publishing、outbox 成功/失败/即时停止和 server lifecycle 均有 owner-local focused tests；distributed `knowledge.approved` outbox 事件只投递 typed `governance.conflict-detection`，业务判断仍在 governance-review。`runtime-infra` 与 server 的遗留 async 实现文件已删除，guard 同时拒绝其重新出现。
 
 本轮通过：job-runtime focused suite（9 tests）、retirement guard（28 tests）、host-local async composition（3 tests）、host-distributed database ownership（8 tests）、`rtk pnpm typecheck`、`rtk git diff --check`、`rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`。`test:deployment-smoke` 的静态段为 135/135；重新构建 job-runtime 后 PostgreSQL app suite 显示 23/23 passed，但该命令的完整 coordinator 收尾未在本轮记录为 closeout evidence。`test:runtime-foundations` 仍受未提供 PostgreSQL 的 host composition 前置影响；`test:distributed-closeout` 保留既有两处 500 closeout failure。Fallow new-only audit 仍报告迁移期复杂度/重复与 runtime-infra 已移除依赖，未将 wave-6 标记完成。
+
+2026-07-21 follow-up：distributed closeout 的两个 500 已定位为 smoke harness 在 candidate/governance 到 knowledge-write 的二跳中遗漏 `x-trapmap-actor-id`；knowledge-write 的 `trustedActor` 正确拒绝该缺失身份。harness 现转发受信 actor，且 closeout test 断言 request、trace 和 actor header 均保留。`rtk pnpm test:distributed-closeout` 通过（35/35），job-runtime handler/ownership focused tests（15/15）、`rtk pnpm typecheck`、compatibility guard（28/28）和 `rtk git diff --check` 通过。`test:runtime-foundations` 现使用与 deployment smoke 相同的 PostgreSQL coordinator，并支持显式 `TRAPMAP_POSTGRES_COORDINATOR_URL`：Docker daemon 不可用时，该 URL 指向专用 PostgreSQL 管理库，runner 仍创建唯一数据库、按六个 owner migration 顺序执行、验证 `vector` 扩展并清理数据库。以临时本地 PostgreSQL 18 和从 `pgvector` 0.8.1 源码编译的隔离扩展目录运行 `TRAPMAP_POSTGRES_COORDINATOR_URL=postgres://trapmap@127.0.0.1:55432/postgres rtk pnpm test:runtime-foundations` 通过（150/150），且数据库清理查询为空。Fallow trace 后移除了四个无消费者的 compatibility exports；`rtk pnpm exec fallow audit --base wave1-fallow-base --gate new-only --format json --quiet --explain --no-cache` 仍失败（新增 dead-code 6、complexity 17、duplication 35），其中 6 个 boundary 问题位于 server/runtime-infra compatibility surfaces，须由 Wave-10 删除而非在 Wave-6 引入豁免。因此 Wave-6 继续保持未完成。
+
+## Task 7 — Wave-7 knowledge-read progress (in progress)
+
+`service-knowledge-read` 现本地拥有 retrieval/support default assembly、graph query structural seam 与 retrieval read-model repository seam；生产 source 不再导入 `@trapmap/server` 或 `@trapmap/runtime-infra`，其 package manifest 也不再依赖两者。`runtime-infra` 的 knowledge-read retrieval/support assembly 文件、导出与过期测试均已删除；retirement allowlist 同步移除已经不存在的 Wave-7 例外。
+
+TDD：先将 read-service import-boundary test 扩展为禁止两个 compatibility packages，观察到 4 个预期失败；owner-local assembly 后变绿。`service-knowledge-read` 全量 focused suite（56 tests）、runtime-infra assembly-retirement tests（7 tests）、retirement guard（28 tests）、`rtk pnpm typecheck`、doc-drift、structure 与 diff check 都通过。后续将 SQL assertion 与四个 import-boundary tests 的重复机制分别收敛为 local/shared test helpers，new-only Fallow duplication 从 42 降至 37，且未新增 test dependency 或 boundary finding；knowledge-read 自身只保留与尚未删除的 server compatibility source 的三个重复组。`rtk pnpm exec fallow audit --base wave1-fallow-base --gate new-only --format json --quiet --explain --no-cache` 仍因既有 Wave-6/Wave-10 scoped dead-code、complexity 和 duplication findings 未通过；未将 Wave-7 标记完成。Docker coordinator 下 `rtk pnpm test:deployment-smoke`（静态 135/135、PostgreSQL app/startup 成功）与 `rtk pnpm eval:smoke` 均已通过。该 eval RED 暴露 `buildPostgresComposedServer()` 未注入 job-runtime outbox worker factory；以 `createJobRuntimeOutboxConsumer` 按 host-local 模式注入后，composition 回归测试（9/9）与 eval smoke 通过。
+
+## Task 8 — Wave-8 host surfaces progress
+
+distributed gateway 现在本地拥有仅包含 request/correlation fields 的 `GatewayRequestContext`，不再导入 `@trapmap/server` 的 compatibility request-context type；retirement allowlist 已删除该 gateway 例外。TDD 静态 import-boundary test 先因原 server import 失败，替换为 owner-local structural type 后通过。`OTEL_DISABLED=true rtk pnpm exec vitest run --project host-distributed packages/host-distributed/src/gateway/server.test.ts`（6 tests）、`rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`（28 tests）和 `rtk pnpm typecheck` 均通过。未启用该测试变量时，`server.close()` 会等待连接不可用的本地 OTLP exporter（`localhost:4318`）并超时；这与 request-context ownership change 无关。Wave-8 其余 host composition、capability config 与 compatibility dependencies 仍待迁移，不能标记完成。
+
+host-local follow-up：`host-services.ts` 与 `server-composition.ts` 不再从 `runtime-infra` 导入 `getStorePool`；host-local 的结构性 `getHostLocalStorePool()` 只依赖可选 `getPool()` seam，并保留缺少 PostgreSQL pool 时的既有 fail-fast。先新增 import-boundary RED，再切换 helper 并删除两条过期 Wave-8 allowlist entry。`rtk pnpm exec vitest run --project host-local packages/host-local/src/nest/runtime/import-boundary.test.ts packages/host-local/src/nest/runtime/host-services.test.ts`（5 tests）、retirement guard（28/28）、`rtk pnpm typecheck` 与 `rtk git diff --check` 通过；new-only Fallow 没有新增 host-local boundary finding。`rtk pnpm test:distributed-closeout` 通过（35/35），`OTEL_DISABLED=true rtk pnpm test:deployment-smoke` 通过静态 135/135 与 coordinated PostgreSQL app/startup suite；未禁用时本地 OTLP exporter 不可达会使 metrics test 的 exporter shutdown 超过 5 秒，coordinator 下单测以相同环境变量通过，属环境 exporter 前置而非 pool-seam 回归。`shared-infra.ts`、host manifest 和 compatibility server composition 仍保留，故 Wave-8 继续保持未完成。
+
+distributed host follow-up：治理 read adapter 的两个重复 remote-error mapper 改为 host-owned `toInvocationError()`；`conflict-read` 与 governance ports 继续保留相同的 canonical `InvocationError` taxonomy。`rtk pnpm exec vitest run --project host-distributed packages/host-distributed/src/governance-review/conflict-read.test.ts packages/host-distributed/src/governance-review/ports.test.ts packages/host-distributed/src/governance-review/delegation-acceptance.test.ts`（9 tests）和 typecheck 通过；new-only Fallow 的 introduced complexity 从 17 降至 15、duplication 从 37 降至 36。该 cleanup 不改变 Wave-8 未完成状态。
+
+host-local retrieval follow-up：`service-knowledge-read` 现提供 `createKnowledgeReadOwnerRetrievalServices()`，仅接收 knowledge-write 的 `KnowledgeOwnerPort`、artifact read projection、governance retrieval projection 与 host-owned AI/store/graph seams。`host-runtime.ts` 不再把整个 `HostLocalServices` 强制转换成 retrieval services；`HostLocalServices` 也不再暴露 compatibility `repos` 或 `usageAnalyticsRepo`。embedding cache 写入扩展为 knowledge owner 的显式 `updateEmbeddingCache()` operation，并由 knowledge-write PostgreSQL bundle 持久化，避免 retrieval assembly 回退到 legacy repository。TDD RED：host-local composition assertion 在仍有 `repos` 时失败，knowledge-write port test 在缺少该 operation 时失败；GREEN：knowledge-write focused tests（18/18）、knowledge-read seam/search tests（2/2）、host-local composition/import-boundary tests（5/5）、retirement guard（28/28）与 `rtk pnpm typecheck` 均通过。`OTEL_DISABLED=true rtk pnpm test:deployment-smoke` 通过静态 135/135 与 coordinated PostgreSQL app/startup 23/23；doc-drift（46 rules）、structure 和 diff check 也通过。new-only Fallow 仍为既有迁移期 6 dead-code boundary、15 complexity 与 36 duplication groups，未增加 host-local boundary finding，故其 verdict 不能作为 closeout。该组合移除了 host retrieval 对 runtime-infra aggregate 的依赖，但 `shared-infra.ts` 及其 server-owned AI/indexing/graph compatibility composition 仍存在，故 Wave-8 继续保持未完成。
+
+host-local adapter follow-up：`adapterRegistry` 在 host-local 只由 `RuntimeInfraShared` 创建并透传到 `HostLocalServices`，没有生产消费者；移除该字段、类型 alias 与 `buildDefaultAdapterRegistry()` compatibility import，避免 runtime-infra 继续为 host-local 组装无消费的 server indexing implementation。TDD RED：host-local composition test 在 registry 仍被暴露时失败；GREEN：host-local/runtime-infra focused tests（12/12）、retirement guard（28/28）、typecheck 与 `OTEL_DISABLED=true rtk pnpm test:deployment-smoke`（静态 135/135、PostgreSQL app/startup 23/23）均通过。runtime-infra 仍拥有 AI、graph 与 legacy store composition，因此本项只是缩小 Wave-8/10 迁移面，不能作为 package retirement 或 Wave-8 closeout。
+
+runtime-infra aggregate follow-up：host-local 已不消费 `RuntimeInfraShared.repos`，该 aggregate 只为创建 graph index 而构造已废弃的 knowledge projection 和 usage analytics repository。shared composition 现仅内部创建所需 graph index；`repos.ts`、公开 `createRuntimeInfraRepos`/`RuntimeInfraRepos` export、无消费的 backend-core/contracts/drizzle dependencies 均已删除。TDD RED：runtime-infra entry test 在仍公开 aggregate 时失败；guard RED：删除文件后检测到过期 `repos.ts` allowlist，移除该条后 GREEN。runtime-infra focused tests（6/6）、host-local composition/import-boundary（5/5）、retirement guard（28/28）、typecheck 与 diff check 通过；clean Fallow audit 也消除该 aggregate 的 boundary/unresolved-import finding，new-only 现为 5 dead-code boundary、15 complexity、36 duplication。`runtime-infra` 仍通过 AI、graph 和 legacy store 依赖 `@trapmap/server`，故 Wave-10 仍未完成。
+
+## Wave-9 preflight — legacy snapshot bucket ownership（2026-07-21）
+
+在删除 `store_snapshot` 前，逐项核对 `packages/server/src/lib/store/store-data.ts`。表中的 “covered” 仅表示已有 owner-local、可保留记录 ID 的导入实现；“rebuild” 表示目标是派生投影而非业务真相，必须以 authoritative owner 的数据重建并计数核验；任何 “missing” 均禁止进入 destructive migration。
+
+| Legacy bucket | Real owner / target | Existing owner-local path | Required disposition |
+| --- | --- | --- | --- |
+| `counters` | none; IDs are now owner-generated or supplied | none | discard only after a production scan proves no `nextId`/counter consumer remains |
+| `users`, `teams`, `memberships`, `accessKeys`, `sessions`, `auditEvents` | `service-identity-access` tables | `migrateIdentityAudit()` preserves IDs, timestamps and payloads, and verifies table counts | covered |
+| `knowledgeEntries` | `service-knowledge-write` authoritative knowledge tables | `KnowledgeOwnerPort` has no snapshot-preserving import operation | missing: add an owner-local importer that retains history, submissions, lifecycle, index/maintenance metadata and IDs |
+| `skillArtifacts` | `service-knowledge-write` artifact tables | `migrateSkillArtifacts()` inserts a complete `SkillArtifact` idempotently | partially covered; verify every legacy record converts losslessly |
+| `artifactFilePayloads` | artifact content storage owned by knowledge-write | revision `files` store metadata only; no owner-local durable payload importer exists | missing: retain content keyed by artifact/revision/path before deleting snapshot |
+| `candidateSubmissions`, `duplicateCases`, `entityLineage` | `service-candidate-ingestion` tables | PG owner bundle has idempotent candidate insert, duplicate upsert and lineage insert | missing: expose a dedicated snapshot importer plus count/field verification; candidate analysis/manual-result fields must be retained |
+| `graphIndexDocuments` | `service-knowledge-read` derived graph projection | PG graph table exists, but no read-owner importer is established | rebuild from authoritative knowledge/artifact owners; verify source and destination/rebuild counts, not snapshot reuse |
+| `conflicts`, `feedbackQueue` | `service-governance-review` tables | PG bundle has conflict upsert and feedback insert | missing: add a dedicated snapshot importer with idempotency and custom-answer/remediation field verification |
+| `promptVersion`, `rebuildState` | `service-knowledge-read` rebuild coordinator | only legacy snapshot state exists | discard and start a fresh owner-local rebuild; verify no interrupted legacy state is silently resumed |
+
+已有 identity backfill tests cover dry-run, idempotent insert and table-count verification. Artifact tests cover skip-on-existing behavior but do not include `artifactFilePayloads`, so they are insufficient for the full artifact bucket. Candidate and governance PG-port tests cover their normal owner operations, not a snapshot migration. This preflight is therefore not Wave-9 completion evidence.
+
+Candidate-ingestion first slice：新增 `migrateCandidateIngestionSnapshot()`，仅接受 candidate owner 的结构性 ports 与已经抽取的 snapshot records，不导入 server store 类型或实现。它逐项保留 candidate、analysis/manual-result、duplicate case 与 lineage 的 ID 和完整记录；逐项回读核验 source/destination count，完全相同的 rerun 标记 skipped，而同 ID 的不同记录拒绝覆盖并报告错误。TDD RED 先因缺少模块失败，后以冲突 destination 断言得到预期 RED；focused candidate snapshot/PG-port tests（19/19）、`rtk pnpm typecheck` 与 `rtk pnpm eval:smoke` 均通过。该 slice 尚未提供 legacy snapshot export command、representative database evidence 或其他 bucket importer，故 Wave-9 仍未完成。
+
+Artifact payload follow-up：`skill_artifact_files` 现在含有 owner-local `content` 列，knowledge-write baseline migration 同步创建该列。`createArtifactFilePayloadOwner()` 以 artifact/revision/path 为稳定键写入并回读 payload；`migrateArtifactFilePayloads()` 使用该结构性 owner port，保留完整 content，验证写后回读，允许完全相同的 rerun，并拒绝 destination 内容冲突。TDD RED 为缺失迁移模块，GREEN 为 payload/artifact port focused tests（5/5）及 typecheck。它尚未替代 legacy export command 或覆盖 artifact/knowledge 其余 backfill，因此不构成 destructive delete evidence。
 
 ## Deferred 边界
 

@@ -238,6 +238,7 @@ export const skillArtifactFiles = pgTable(
     sha256: text('sha256').notNull(),
     sizeBytes: integer('size_bytes').notNull(),
     mediaType: text('media_type').notNull(),
+    content: text('content').notNull(),
     sourceGroup: text('source_group')
       .notNull()
       .$type<'references/' | 'assets/' | 'scripts/' | 'SKILL.md'>(),
