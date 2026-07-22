@@ -191,20 +191,36 @@ export function createArtifactFilePayloadOwner(
 ): ArtifactFilePayloadOwner {
   return {
     async put(payload) {
+      const revision = await pool.query(
+        'SELECT files FROM artifact_revisions WHERE artifact_id = $1 AND revision_no = $2',
+        [payload.artifactId, payload.revision],
+      );
+      const files =
+        (revision.rows[0] as { files?: Array<Record<string, unknown>> } | undefined)?.files ?? [];
+      const file = files.find((item) => item.path === payload.path);
+      if (!file) {
+        throw new Error(
+          `Artifact revision metadata missing file ${payload.artifactId}@${payload.revision}:${payload.path}`,
+        );
+      }
       await pool.query(
         `INSERT INTO skill_artifact_files
           (artifact_revision_id, artifact_id, revision_no, path, kind, sha256, size_bytes, media_type, content, source_group, include_in_derivation, activation_only, created_at)
-         VALUES ($1, $2, $3, $4, 'skill-markdown', $5, $6, $7, $8, 'SKILL.md', 1, 0, $9)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          ON CONFLICT (artifact_revision_id, path) DO UPDATE SET content = EXCLUDED.content, sha256 = EXCLUDED.sha256, size_bytes = EXCLUDED.size_bytes, media_type = EXCLUDED.media_type`,
         [
           `${payload.artifactId}_rev${payload.revision}`,
           payload.artifactId,
           payload.revision,
           payload.path,
+          file.kind,
           payload.sha256,
           payload.sizeBytes,
           payload.mediaType,
           payload.content,
+          file.source,
+          file.includeInDerivation ? 1 : 0,
+          file.activationOnly ? 1 : 0,
           payload.storedAt,
         ],
       );

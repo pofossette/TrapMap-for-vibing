@@ -1,7 +1,11 @@
 import type { SkillArtifact } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createArtifactReadProjection, createArtifactWritePort } from './artifact-ports.js';
+import {
+  createArtifactFilePayloadOwner,
+  createArtifactReadProjection,
+  createArtifactWritePort,
+} from './artifact-ports.js';
 import { createTransactionPool } from './test-helpers.js';
 
 function artifactFixture(): SkillArtifact {
@@ -115,6 +119,50 @@ describe('ArtifactWritePort', () => {
     expect(calls).toContain('ROLLBACK');
     expect(calls).not.toContain('COMMIT');
     expect(client.release).toHaveBeenCalledOnce();
+  });
+});
+
+describe('ArtifactFilePayloadOwner', () => {
+  it('uses the revision file metadata when persisting legacy payload content', async () => {
+    const calls: Array<{ sql: string; values?: unknown[] }> = [];
+    const pool = {
+      query: vi.fn(async (sql: string, values?: unknown[]) => {
+        calls.push({ sql, values });
+        if (sql.includes('FROM artifact_revisions')) {
+          return {
+            rows: [
+              {
+                files: [
+                  {
+                    path: 'references/setup.md',
+                    kind: 'reference',
+                    source: 'references/',
+                    includeInDerivation: true,
+                    activationOnly: false,
+                  },
+                ],
+              },
+            ],
+          };
+        }
+        return { rows: [] };
+      }),
+    };
+    const owner = createArtifactFilePayloadOwner(pool as never);
+
+    await owner.put({
+      artifactId: 'artifact-1',
+      revision: 1,
+      path: 'references/setup.md',
+      sha256: 'a'.repeat(64),
+      sizeBytes: 3,
+      mediaType: 'text/markdown',
+      content: 'one',
+      storedAt: '2026-07-22T00:00:00.000Z',
+    });
+
+    const insert = calls.find(({ sql }) => sql.includes('INSERT INTO skill_artifact_files'));
+    expect(insert?.values).toEqual(expect.arrayContaining(['reference', 'references/', 1, 0]));
   });
 });
 
