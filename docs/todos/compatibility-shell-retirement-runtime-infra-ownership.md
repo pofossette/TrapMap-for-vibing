@@ -207,6 +207,8 @@ Knowledge snapshot coordinator follow-up：`migrateKnowledgeSnapshot()` 定义 c
 
 Knowledge snapshot PostgreSQL owner follow-up：`createKnowledgeSnapshotOwner()` 在单事务中写入 `knowledge_entries`、labels、revisions、submissions、review decisions 与 lifecycle events；完整 aggregate 作为同一 entry 的 `metadata.legacySnapshotRecord` 仅供 Task 9 回读核验，未创建共享 `store_snapshot` 或导入 server 类型。TDD RED：缺失 owner adapter；GREEN：owner/coordinator focused tests（4/4）覆盖 canonical writes、exact metadata readback、首次迁移、rerun 与冲突拒绝。代表性数据库 backfill 与 package typecheck（仍被既有 `routes.ts` 缺失 helper 阻断）待后续验证。
 
+Task-9 orchestrator core follow-up：新增 `scripts/legacy-snapshot-backfill.ts` 的纯协调层，结构性读取一次 legacy JSON snapshot，将 identity、knowledge、artifact、artifact payload、candidate 和 governance bucket 分别交给 owner-local importer；它不导入 `@trapmap/server` 或 `@trapmap/runtime-infra` 类型。所有 authoritative owner 返回无错误后，才允许 knowledge-read 从 knowledge/artifact source 重建 derived graph projection；legacy `graphIndexDocuments` 只作为重建计数证据，绝不复制。`counters`、`promptVersion`、`rebuildState` 是唯一明确列出的 discard bucket，结果中固定记录；任何 owner conflict 会阻止 graph rebuild 和 compatibility-state deletion authorization。TDD RED 为缺少编排模块，GREEN：`rtk pnpm --config.store-dir=/tmp/pnpm-store test:file -- scripts/__tests__/legacy-snapshot-backfill.test.ts`（2/2）通过，覆盖完整 bucket fixture、single read、derived rebuild 和 conflict rejection。该核心尚未接入真实 PostgreSQL pool/CLI，也没有 representative DB evidence，因此 Wave-9 仍未完成。
+
 ## Deferred 边界
 
 平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。
