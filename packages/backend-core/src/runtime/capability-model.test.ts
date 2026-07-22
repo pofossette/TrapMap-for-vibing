@@ -42,6 +42,7 @@ describe('runtime/capability-model', () => {
       expect(resolved.deploymentProfile).toBe('local-agent');
       expect(resolved.capabilities.routeSurface).toBe('gateway-core');
       expect(resolved.capabilities.supportsLocalSingleUserMode).toBe(true);
+      expect(resolved.capabilities).not.toHaveProperty('supportsJsonStore');
       expect(resolved.capabilities.requiresPostgres).toBe(false);
     });
 

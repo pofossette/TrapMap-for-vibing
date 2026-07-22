@@ -145,28 +145,10 @@ const RETIRED_WAVE_6_ASYNC_IMPLEMENTATIONS = [
 const allowlist: AllowlistEntry[] = [
   ['package.json', '@trapmap/server', 'wave-10', 'root development dependency'],
   [
-    'packages/backend-core/src/runtime/capability-model.ts',
-    'JsonStore',
-    'wave-9',
-    'legacy capability taxonomy',
-  ],
-  [
-    'packages/host-distributed/src/gateway/server.ts',
-    '@trapmap/server',
-    'wave-8',
-    'gateway request context',
-  ],
-  [
     'packages/host-local/package.json',
     '@trapmap/runtime-infra',
     'wave-8',
     'local host composition dependency',
-  ],
-  [
-    'packages/host-local/src/nest/config/config.ts',
-    'JsonStore',
-    'wave-8',
-    'local host capability config',
   ],
   [
     'packages/host-local/src/nest/runtime/shared-infra.ts',
@@ -175,22 +157,10 @@ const allowlist: AllowlistEntry[] = [
     'local host shared infrastructure',
   ],
   [
-    'packages/host-local/src/nest/runtime/host-services.ts',
-    '@trapmap/runtime-infra',
-    'wave-8',
-    'local host PostgreSQL pool seam',
-  ],
-  [
     'packages/host-local/src/nest/runtime/server-composition.ts',
     '@trapmap/server',
     'wave-8',
     'local host compatibility-shell composition',
-  ],
-  [
-    'packages/host-local/src/nest/runtime/server-composition.ts',
-    '@trapmap/runtime-infra',
-    'wave-8',
-    'local host PostgreSQL pool ownership',
   ],
   [
     'packages/runtime-infra/package.json',
@@ -200,18 +170,6 @@ const allowlist: AllowlistEntry[] = [
   ],
   ['packages/runtime-infra/src/index.ts', 'JsonStore', 'wave-9', 'legacy store export'],
   ['packages/runtime-infra/src/index.ts', 'PostgresStore', 'wave-9', 'legacy store export'],
-  [
-    'packages/runtime-infra/src/knowledge-read-retrieval-infra.ts',
-    '@trapmap/server',
-    'wave-7',
-    'knowledge-read infrastructure',
-  ],
-  [
-    'packages/runtime-infra/src/knowledge-read-support-infra.ts',
-    '@trapmap/server',
-    'wave-7',
-    'knowledge-read infrastructure',
-  ],
   [
     'packages/runtime-infra/src/postgres-store.ts',
     'store_snapshot',
@@ -223,12 +181,6 @@ const allowlist: AllowlistEntry[] = [
     'PostgresStore',
     'wave-9',
     'legacy snapshot persistence',
-  ],
-  [
-    'packages/runtime-infra/src/repos.ts',
-    '@trapmap/server',
-    'wave-10',
-    'compatibility repository aggregate',
   ],
   [
     'packages/runtime-infra/src/shared-infra.ts',
@@ -256,7 +208,6 @@ const allowlist: AllowlistEntry[] = [
     'wave-10',
     'compatibility image self-reference',
   ],
-  ['packages/server/src/config.ts', 'JsonStore', 'wave-8', 'compatibility runtime capability'],
   [
     'packages/server/src/lib/labels/backfill-runner.ts',
     'PostgresStore',
@@ -323,66 +274,12 @@ const allowlist: AllowlistEntry[] = [
     'wave-7',
     'retrieval snapshot schema',
   ],
-  [
-    'packages/server/src/lib/runtime/deployment-profile.ts',
-    'JsonStore',
-    'wave-8',
-    'compatibility profile capability',
-  ],
   ['packages/server/src/lib/store/index.ts', 'JsonStore', 'wave-9', 'legacy JSON store export'],
   [
     'packages/server/src/lib/store/json-store.ts',
     'JsonStore',
     'wave-9',
     'legacy JSON store implementation',
-  ],
-  [
-    'packages/service-knowledge-read/package.json',
-    '@trapmap/server',
-    'wave-7',
-    'read service compatibility dependency',
-  ],
-  [
-    'packages/service-knowledge-read/package.json',
-    '@trapmap/runtime-infra',
-    'wave-7',
-    'read service compatibility dependency',
-  ],
-  [
-    'packages/service-knowledge-read/src/context.ts',
-    '@trapmap/runtime-infra',
-    'wave-7',
-    'read service context bridge',
-  ],
-  [
-    'packages/service-knowledge-read/src/knowledge-read-support-infra-default.ts',
-    '@trapmap/runtime-infra',
-    'wave-7',
-    'read support infrastructure',
-  ],
-  [
-    'packages/service-knowledge-read/src/read-model.ts',
-    '@trapmap/runtime-infra',
-    'wave-7',
-    'read model infrastructure',
-  ],
-  [
-    'packages/service-knowledge-read/src/retrieval-infra-default.ts',
-    '@trapmap/runtime-infra',
-    'wave-7',
-    'retrieval infrastructure',
-  ],
-  [
-    'packages/service-knowledge-read/src/retrieval-recall-coordinator.ts',
-    '@trapmap/runtime-infra',
-    'wave-7',
-    'recall coordinator infrastructure',
-  ],
-  [
-    'packages/service-knowledge-read/src/server-retrieval-seam.ts',
-    '@trapmap/runtime-infra',
-    'wave-7',
-    'server retrieval seam',
   ],
   ['scripts/bench-store.ts', 'JsonStore', 'wave-9', 'legacy store benchmark'],
   ['scripts/bench-store.ts', 'PostgresStore', 'wave-9', 'legacy store benchmark'],

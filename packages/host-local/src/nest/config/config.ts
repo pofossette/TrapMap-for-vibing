@@ -88,7 +88,6 @@ const DeploymentSchema = z.object({
       exposesGateway: z.boolean(),
       exposesFullHttpApi: z.boolean(),
       supportsLocalSingleUserMode: z.boolean(),
-      supportsJsonStore: z.boolean(),
       requiresPostgres: z.boolean(),
       requiresGateway: z.literal(true),
       requiresAsyncOwnership: z.boolean(),

@@ -175,6 +175,8 @@ host-local adapter follow-up：`adapterRegistry` 在 host-local 只由 `RuntimeI
 
 runtime-infra aggregate follow-up：host-local 已不消费 `RuntimeInfraShared.repos`，该 aggregate 只为创建 graph index 而构造已废弃的 knowledge projection 和 usage analytics repository。shared composition 现仅内部创建所需 graph index；`repos.ts`、公开 `createRuntimeInfraRepos`/`RuntimeInfraRepos` export、无消费的 backend-core/contracts/drizzle dependencies 均已删除。TDD RED：runtime-infra entry test 在仍公开 aggregate 时失败；guard RED：删除文件后检测到过期 `repos.ts` allowlist，移除该条后 GREEN。runtime-infra focused tests（6/6）、host-local composition/import-boundary（5/5）、retirement guard（28/28）、typecheck 与 diff check 通过；clean Fallow audit 也消除该 aggregate 的 boundary/unresolved-import finding，new-only 现为 5 dead-code boundary、15 complexity、36 duplication。`runtime-infra` 仍通过 AI、graph 和 legacy store 依赖 `@trapmap/server`，故 Wave-10 仍未完成。
 
+capability config follow-up：共享 `DeploymentCapabilities`、host-local/server config schema、server compatibility deployment profile 与 retrieval fixture 不再声明或接受 `supportsJsonStore`；`storagePosture` 继续表达 profile 的存储要求。TDD RED：local-agent capability assertion 在旧字段仍存在时失败；GREEN：backend-core capability model（32/32）、server config/profile（48/48）和 host-local config boundary（1/1）通过。guard 随之删除 backend-core、host-local config、server config 与 server deployment-profile 的四项过期 `JsonStore` allowlist，retirement guard（28/28）与 diff check 通过。Wave-8/9 其余 host composition 与 snapshot backfill/delete surface 仍在，不能标记完成。
+
 ## Wave-9 preflight — legacy snapshot bucket ownership（2026-07-21）
 
 在删除 `store_snapshot` 前，逐项核对 `packages/server/src/lib/store/store-data.ts`。表中的 “covered” 仅表示已有 owner-local、可保留记录 ID 的导入实现；“rebuild” 表示目标是派生投影而非业务真相，必须以 authoritative owner 的数据重建并计数核验；任何 “missing” 均禁止进入 destructive migration。

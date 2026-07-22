@@ -74,7 +74,6 @@ export interface DeploymentCapabilities {
   exposesGateway: boolean;
   exposesFullHttpApi: boolean;
   supportsLocalSingleUserMode: boolean;
-  supportsJsonStore: boolean;
   requiresPostgres: boolean;
   requiresGateway: true;
   requiresAsyncOwnership: boolean;
@@ -272,7 +271,6 @@ function resolveDeploymentCapabilities(
       exposesGateway: !workerStatusOnly,
       exposesFullHttpApi: !workerStatusOnly,
       supportsLocalSingleUserMode: true,
-      supportsJsonStore: true,
       requiresPostgres: false,
       requiresGateway: true,
       requiresAsyncOwnership: false,
@@ -295,7 +293,6 @@ function resolveDeploymentCapabilities(
       exposesGateway: !workerStatusOnly,
       exposesFullHttpApi: !workerStatusOnly,
       supportsLocalSingleUserMode: false,
-      supportsJsonStore: false,
       requiresPostgres: true,
       requiresGateway: true,
       requiresAsyncOwnership: true,
@@ -318,7 +315,6 @@ function resolveDeploymentCapabilities(
     exposesGateway: !workerStatusOnly,
     exposesFullHttpApi: !workerStatusOnly,
     supportsLocalSingleUserMode: false,
-    supportsJsonStore: false,
     requiresPostgres: true,
     requiresGateway: true,
     requiresAsyncOwnership: taskRuntime || outboxRuntime,

@@ -388,7 +388,6 @@ export function makeMockServices(storeData: Partial<StoreData> = {}): SkillShare
         exposesGateway: true,
         exposesFullHttpApi: true,
         supportsLocalSingleUserMode: false,
-        supportsJsonStore: false,
         requiresPostgres: true,
         requiresGateway: true,
         requiresAsyncOwnership: false,
