@@ -103,6 +103,12 @@ CREATE TABLE "knowledge_entries" (
 	"boundary" jsonb,
 	"maintenance_meta" jsonb,
 	"embedding_cache" jsonb,
+	"metadata" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"agent_review" jsonb,
+	"index_state" jsonb,
+	"decay_meta" jsonb,
+	"evidence_meta" jsonb,
+	"remediation" jsonb,
 	"dive_log_id" text,
 	"dive_site" text,
 	"slang_level" text,
@@ -145,6 +151,33 @@ CREATE TABLE "knowledge_revisions" (
 	"labels" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"review_notes" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "knowledge_review_decisions" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "knowledge_review_decisions_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"entry_id" text NOT NULL,
+	"decided_at" timestamp with time zone NOT NULL,
+	"decided_by_user_id" text NOT NULL,
+	"decision" text NOT NULL,
+	"notes" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "ck_knowledge_review_decisions_decision" CHECK ("knowledge_review_decisions"."decision" IN ('approve', 'reject'))
+);
+--> statement-breakpoint
+CREATE TABLE "knowledge_submissions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"entry_id" text NOT NULL,
+	"revision_no" integer NOT NULL,
+	"submitted_at" timestamp with time zone NOT NULL,
+	"submitted_by_user_id" text NOT NULL,
+	"lifecycle_state" text NOT NULL,
+	"resubmission_of" text,
+	"agent_review" jsonb,
+	"reviewer_decision" jsonb,
+	"review_notes" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "label_aliases" (
@@ -429,6 +462,10 @@ CREATE INDEX "idx_knowledge_maintenance_assignments_maintainer" ON "knowledge_ma
 CREATE INDEX "idx_knowledge_maintenance_assignments_review_by" ON "knowledge_maintenance_assignments" USING btree ("review_by");--> statement-breakpoint
 CREATE INDEX "idx_knowledge_revisions_entry" ON "knowledge_revisions" USING btree ("entry_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "idx_knowledge_revisions_entry_revision_no" ON "knowledge_revisions" USING btree ("entry_id","revision_no");--> statement-breakpoint
+CREATE INDEX "idx_knowledge_review_decisions_entry" ON "knowledge_review_decisions" USING btree ("entry_id");--> statement-breakpoint
+CREATE INDEX "idx_knowledge_review_decisions_decided_at" ON "knowledge_review_decisions" USING btree ("decided_at");--> statement-breakpoint
+CREATE INDEX "idx_knowledge_submissions_entry" ON "knowledge_submissions" USING btree ("entry_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "idx_knowledge_submissions_entry_revision" ON "knowledge_submissions" USING btree ("entry_id","revision_no");--> statement-breakpoint
 CREATE UNIQUE INDEX "idx_label_aliases_normalized" ON "label_aliases" USING btree ("normalized_alias");--> statement-breakpoint
 CREATE INDEX "idx_label_aliases_canonical" ON "label_aliases" USING btree ("canonical_label_id");--> statement-breakpoint
 CREATE INDEX "idx_label_alignment_events_raw_label" ON "label_alignment_events" USING btree ("raw_label");--> statement-breakpoint

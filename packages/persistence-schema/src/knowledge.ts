@@ -224,6 +224,18 @@ export const knowledgeEntries = pgTable(
       createdAt: string;
       revision: number;
     } | null>(),
+    /** Submission counters and current decision metadata. */
+    metadata: jsonb('metadata').notNull().$type<Record<string, unknown>>().default({}),
+    /** Latest automated review decision for the entry. */
+    agentReview: jsonb('agent_review').$type<Record<string, unknown> | null>(),
+    /** Derived index state retained until the read owner rebuilds its projections. */
+    indexState: jsonb('index_state').$type<Record<string, unknown> | null>(),
+    /** Decay policy state for lifecycle maintenance. */
+    decayMeta: jsonb('decay_meta').$type<Record<string, unknown> | null>(),
+    /** Evidence and provenance metadata attached to the entry. */
+    evidenceMeta: jsonb('evidence_meta').$type<Record<string, unknown> | null>(),
+    /** Feedback remediation state owned by the knowledge record. */
+    remediation: jsonb('remediation').$type<Record<string, unknown> | null>(),
 
     // -- DiveLog columns (Round 11) -------------------------------------------
 
@@ -301,6 +313,54 @@ export const knowledgeRevisions = pgTable(
   (table) => [
     index('idx_knowledge_revisions_entry').on(table.entryId),
     uniqueIndex('idx_knowledge_revisions_entry_revision_no').on(table.entryId, table.revisionNo),
+  ],
+);
+
+/**
+ * Submission aggregates preserve the state captured at each submission.
+ * They are distinct from revisions because a revision can be edited without
+ * entering a review lifecycle.
+ */
+export const knowledgeSubmissions = pgTable(
+  'knowledge_submissions',
+  {
+    id: text('id').primaryKey(),
+    entryId: text('entry_id').notNull(),
+    revisionNo: integer('revision_no').notNull(),
+    submittedAt: timestamp('submitted_at', { withTimezone: true }).notNull(),
+    submittedByUserId: text('submitted_by_user_id').notNull(),
+    lifecycleState: text('lifecycle_state').notNull().$type<LifecycleState>(),
+    resubmissionOf: text('resubmission_of'),
+    agentReview: jsonb('agent_review').$type<Record<string, unknown> | null>(),
+    reviewerDecision: jsonb('reviewer_decision').$type<Record<string, unknown> | null>(),
+    reviewNotes: jsonb('review_notes').notNull().$type<Record<string, unknown>[]>().default([]),
+    ...auditTimestamps(),
+  },
+  (table) => [
+    index('idx_knowledge_submissions_entry').on(table.entryId),
+    uniqueIndex('idx_knowledge_submissions_entry_revision').on(table.entryId, table.revisionNo),
+  ],
+);
+
+/** Reviewer decisions are retained independently from the current lifecycle state. */
+export const knowledgeReviewDecisions = pgTable(
+  'knowledge_review_decisions',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    entryId: text('entry_id').notNull(),
+    decidedAt: timestamp('decided_at', { withTimezone: true }).notNull(),
+    decidedByUserId: text('decided_by_user_id').notNull(),
+    decision: text('decision').notNull(),
+    notes: text('notes').notNull(),
+    ...auditTimestamps(),
+  },
+  (table) => [
+    index('idx_knowledge_review_decisions_entry').on(table.entryId),
+    index('idx_knowledge_review_decisions_decided_at').on(table.decidedAt),
+    check(
+      'ck_knowledge_review_decisions_decision',
+      sql`${table.decision} IN ('approve', 'reject')`,
+    ),
   ],
 );
 

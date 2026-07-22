@@ -94,6 +94,26 @@ it('freezes artifact roundtrip columns and lookup indexes in the owner migration
   }
 });
 
+it('preserves every legacy knowledge aggregate in owner-local tables', () => {
+  const migration = readFileSync(
+    new URL('../drizzle/0000_youthful_gargoyle.sql', import.meta.url),
+    'utf8',
+  );
+
+  for (const column of [
+    '"metadata" jsonb',
+    '"agent_review" jsonb',
+    '"index_state" jsonb',
+    '"decay_meta" jsonb',
+    '"evidence_meta" jsonb',
+    '"remediation" jsonb',
+  ]) {
+    expect(migration).toContain(column);
+  }
+  expect(migration).toContain('CREATE TABLE "knowledge_submissions"');
+  expect(migration).toContain('CREATE TABLE "knowledge_review_decisions"');
+});
+
 it('rejects external files and missing journal tags', async () => {
   const external = await createMigrationSet(
     ['0000_youthful_gargoyle.sql', '0000_identity_access_baseline.sql'],
