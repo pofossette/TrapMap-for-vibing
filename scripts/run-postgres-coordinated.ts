@@ -67,7 +67,35 @@ async function waitForDatabase(databaseUrl: string): Promise<void> {
       await pool.end().catch(() => undefined);
     }
   }
-  throw new Error(`temporary PostgreSQL container did not become ready: ${String(lastError)}`);
+  throw new Error(`temporary PostgreSQL coordinator did not become ready: ${String(lastError)}`);
+}
+
+interface PostgresCoordinatorConfig {
+  adminUrl: string;
+  containerName?: string;
+}
+
+export function resolvePostgresCoordinatorConfig(
+  environment: NodeJS.ProcessEnv = process.env,
+): PostgresCoordinatorConfig | undefined {
+  const configuredUrl = environment.TRAPMAP_POSTGRES_COORDINATOR_URL;
+  if (!configuredUrl) return undefined;
+
+  const url = new URL(configuredUrl);
+  if (!['postgres:', 'postgresql:'].includes(url.protocol)) {
+    throw new Error('TRAPMAP_POSTGRES_COORDINATOR_URL must use a PostgreSQL URL');
+  }
+  if (url.pathname === '/' || url.pathname === '') {
+    throw new Error('TRAPMAP_POSTGRES_COORDINATOR_URL must name an admin database');
+  }
+
+  return { adminUrl: url.toString() };
+}
+
+function databaseUrlFromAdminUrl(adminUrl: string, databaseName: string): string {
+  const url = new URL(adminUrl);
+  url.pathname = `/${databaseName}`;
+  return url.toString();
 }
 
 async function main(): Promise<void> {
@@ -77,47 +105,58 @@ async function main(): Promise<void> {
     throw new Error('Usage: run-postgres-coordinated.ts -- <command> [args...]');
   }
 
-  const containerName = `trapmap-wave1-${randomUUID().replaceAll('-', '')}`;
   const databaseName = `trapmap_wave1_${randomUUID().replaceAll('-', '')}`;
-  let adminUrl: string | undefined;
+  let coordinator = resolvePostgresCoordinatorConfig();
   let databasePool: pg.Pool | undefined;
 
   try {
-    await run('docker', [
-      'run',
-      '--detach',
-      '--rm',
-      '--name',
-      containerName,
-      '--env',
-      'POSTGRES_USER=trapmap',
-      '--env',
-      'POSTGRES_PASSWORD=trapmap',
-      '--env',
-      'POSTGRES_DB=postgres',
-      '--publish',
-      '127.0.0.1::5432',
-      'pgvector/pgvector:pg16',
-    ]);
-    const port = (await commandOutput('docker', ['port', containerName, '5432/tcp']))
-      .split('\n')[0]
-      ?.trim()
-      .match(/:(\d+)$/)?.[1];
-    if (!port) throw new Error('temporary PostgreSQL container did not expose port 5432');
+    if (!coordinator) {
+      const containerName = `trapmap-wave1-${randomUUID().replaceAll('-', '')}`;
+      await run('docker', [
+        'run',
+        '--detach',
+        '--rm',
+        '--name',
+        containerName,
+        '--env',
+        'POSTGRES_USER=trapmap',
+        '--env',
+        'POSTGRES_PASSWORD=trapmap',
+        '--env',
+        'POSTGRES_DB=postgres',
+        '--publish',
+        '127.0.0.1::5432',
+        'pgvector/pgvector:pg16',
+      ]);
+      const port = (await commandOutput('docker', ['port', containerName, '5432/tcp']))
+        .split('\n')[0]
+        ?.trim()
+        .match(/:(\d+)$/)?.[1];
+      if (!port) throw new Error('temporary PostgreSQL container did not expose port 5432');
 
-    adminUrl = `postgres://trapmap:trapmap@127.0.0.1:${port}/postgres`;
-    await waitForDatabase(adminUrl);
-    const adminPool = new pg.Pool({ connectionString: adminUrl });
+      coordinator = {
+        adminUrl: `postgres://trapmap:trapmap@127.0.0.1:${port}/postgres`,
+        containerName,
+      };
+    }
+
+    await waitForDatabase(coordinator.adminUrl);
+    const adminPool = new pg.Pool({ connectionString: coordinator.adminUrl });
     try {
       await adminPool.query(`CREATE DATABASE ${quoteIdentifier(databaseName)}`);
     } finally {
       await adminPool.end();
     }
 
-    const databaseUrl = `postgres://trapmap:trapmap@127.0.0.1:${port}/${databaseName}`;
+    const databaseUrl = databaseUrlFromAdminUrl(coordinator.adminUrl, databaseName);
     databasePool = new pg.Pool({ connectionString: databaseUrl });
     for (const migrate of migrations) await migrate(databasePool);
-    await databasePool.query("SELECT extname FROM pg_extension WHERE extname = 'vector'");
+    const extension = await databasePool.query(
+      "SELECT extname FROM pg_extension WHERE extname = 'vector'",
+    );
+    if (extension.rowCount !== 1) {
+      throw new Error('temporary PostgreSQL database is missing the vector extension');
+    }
     await databasePool.end();
     databasePool = undefined;
 
@@ -129,8 +168,8 @@ async function main(): Promise<void> {
     });
   } finally {
     await databasePool?.end().catch(() => undefined);
-    if (adminUrl) {
-      const adminPool = new pg.Pool({ connectionString: adminUrl });
+    if (coordinator) {
+      const adminPool = new pg.Pool({ connectionString: coordinator.adminUrl });
       try {
         await adminPool.query(
           `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1`,
@@ -141,11 +180,17 @@ async function main(): Promise<void> {
         await adminPool.end().catch(() => undefined);
       }
     }
-    await run('docker', ['rm', '--force', containerName]).catch(() => undefined);
+    if (coordinator?.containerName) {
+      await run('docker', ['rm', '--force', coordinator.containerName]).catch(() => undefined);
+    }
   }
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+const isDirectExecution = process.argv[1]?.endsWith('run-postgres-coordinated.ts');
+
+if (isDirectExecution) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

@@ -186,6 +186,31 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     );
   });
 
+  it('persists an embedding cache update through the knowledge owner port', async () => {
+    const query = vi.fn(async () => ({ rows: [] }));
+    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() } as never);
+
+    await owner.knowledgeOwner.updateEmbeddingCache('entry-1', {
+      textHash: 'hash-1',
+      vector: [0.1, 0.2],
+      createdAt: '2026-07-21T00:00:00.000Z',
+      revision: 3,
+    });
+
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE knowledge_entries SET embedding_cache = $2'),
+      [
+        'entry-1',
+        JSON.stringify({
+          textHash: 'hash-1',
+          vector: [0.1, 0.2],
+          createdAt: '2026-07-21T00:00:00.000Z',
+          revision: 3,
+        }),
+      ],
+    );
+  });
+
   it.each([
     ['revision', 'INSERT INTO knowledge_revisions'],
     ['lifecycle', 'INSERT INTO lifecycle_events'],

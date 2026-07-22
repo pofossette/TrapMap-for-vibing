@@ -74,6 +74,7 @@ function requestHeaders(request: { headers: Record<string, unknown> }) {
   return {
     'x-request-id': request.headers['x-request-id'] as string | undefined,
     'x-trace-id': request.headers['x-trace-id'] as string | undefined,
+    'x-trapmap-actor-id': request.headers['x-trapmap-actor-id'] as string | undefined,
   };
 }
 
@@ -149,6 +150,7 @@ function createKnowledgeWriteService(state: DiagnosticsState) {
       state.headers.push({
         'x-request-id': request.headers['x-request-id'] as string | undefined,
         'x-trace-id': request.headers['x-trace-id'] as string | undefined,
+        'x-trapmap-actor-id': request.headers['x-trapmap-actor-id'] as string | undefined,
       });
     }
   });
@@ -232,28 +234,44 @@ function createGovernanceModule(
         throw error;
       }
       const response = await clients.knowledgeWrite.approveReviewDecision(input, {
-        headers: { 'x-request-id': 'req-closeout', 'x-trace-id': 'trace-closeout' },
+        headers: {
+          'x-request-id': 'req-closeout',
+          'x-trace-id': 'trace-closeout',
+          'x-trapmap-actor-id': input.actorId,
+        },
       });
       return response.body as { entryId: string; lifecycleState: 'approved' };
     },
     reject: async (input) => {
       state.hits.push(`review:reject:${input.entryId}`);
       const response = await clients.knowledgeWrite.rejectReviewDecision(input, {
-        headers: { 'x-request-id': 'req-closeout', 'x-trace-id': 'trace-closeout' },
+        headers: {
+          'x-request-id': 'req-closeout',
+          'x-trace-id': 'trace-closeout',
+          'x-trapmap-actor-id': input.actorId,
+        },
       });
       return response.body as { entryId: string; lifecycleState: 'rejected' };
     },
     applyMaintenance: async (input) => {
       state.hits.push(`review:maintenance:${input.entryId}`);
       const response = await clients.knowledgeWrite.applyMaintenanceDecision(input, {
-        headers: { 'x-request-id': 'req-closeout', 'x-trace-id': 'trace-closeout' },
+        headers: {
+          'x-request-id': 'req-closeout',
+          'x-trace-id': 'trace-closeout',
+          'x-trapmap-actor-id': input.actorId,
+        },
       });
       return response.body as { entryId: string; action: string };
     },
     applyDecay: async (input) => {
       state.hits.push(`review:decay:${input.entryId}`);
       const response = await clients.knowledgeWrite.applyDecayDecision(input, {
-        headers: { 'x-request-id': 'req-closeout', 'x-trace-id': 'trace-closeout' },
+        headers: {
+          'x-request-id': 'req-closeout',
+          'x-trace-id': 'trace-closeout',
+          'x-trapmap-actor-id': input.actorId,
+        },
       });
       return response.body as { entryId: string; action: string };
     },

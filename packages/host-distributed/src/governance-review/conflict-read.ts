@@ -6,28 +6,7 @@ import {
 } from '@trapmap/backend-core';
 import type { InternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
 
-function mapRemoteError(body: unknown, fallback: string): InvocationError {
-  const payload = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
-  const message = typeof payload.error === 'string' ? payload.error : fallback;
-  switch (payload.kind) {
-    case 'validation':
-      return InvocationError.validation(message, body);
-    case 'unauthorized':
-      return InvocationError.unauthorized(message, body);
-    case 'forbidden':
-      return InvocationError.forbidden(message, body);
-    case 'not-found':
-      return InvocationError.notFound(message, body);
-    case 'conflict':
-      return InvocationError.conflict(message, body);
-    case 'timeout':
-      return InvocationError.timeout(message, body);
-    case 'unavailable':
-      return InvocationError.unavailable(message, body);
-    default:
-      return InvocationError.internal(message, body);
-  }
-}
+import { toInvocationError } from '../shared/invocation-error.js';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object';
@@ -58,7 +37,7 @@ export function createDistributedGovernanceConflictReadPort(
     async getApprovedConflictCandidates(entryId): Promise<GovernanceConflictCandidateSet | null> {
       const response = await clients.knowledgeWrite.getConflictCandidates(entryId);
       if (response.status < 200 || response.status >= 300) {
-        throw mapRemoteError(response.body, 'knowledge-write conflict candidate read failed');
+        throw toInvocationError(response.body, 'knowledge-write conflict candidate read failed');
       }
       if (response.body === null) return null;
       if (!isRecord(response.body) || !Array.isArray(response.body.candidates)) {

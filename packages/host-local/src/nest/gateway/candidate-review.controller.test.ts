@@ -25,10 +25,11 @@ vi.mock('@trapmap/service-governance-review', async () => {
   const actual = await vi.importActual('@trapmap/service-governance-review');
   return {
     ...actual,
-  buildReviewQueueProjection: vi.fn(),
+    buildOwnerReviewQueueProjection: vi.fn(),
   };
 });
 
+import { buildOwnerReviewQueueProjection } from '@trapmap/service-governance-review';
 import { CandidateReviewController } from './candidate-review.controller.js';
 
 function createRuntime(): HostLocalRuntime {
@@ -38,6 +39,12 @@ function createRuntime(): HostLocalRuntime {
       store: {},
       eventBus: {},
       asyncTransport: undefined,
+      knowledgeOwner: {
+        getById: vi.fn(async () => ({
+          id: 'entry-1',
+          lifecycleState: 'approved',
+        })),
+      },
       repos: {
         candidate: {},
         lineage: {},
@@ -152,6 +159,27 @@ describe('CandidateReviewController', () => {
         id: 'entry-1',
         lifecycleState: 'approved',
       },
+    });
+  });
+
+  it('builds the review queue through the knowledge owner port', async () => {
+    const runtime = createRuntime();
+    vi.mocked(buildOwnerReviewQueueProjection).mockResolvedValueOnce({ items: [], total: 0 });
+    const controller = new CandidateReviewController(
+      candidateIngestionMock,
+      governanceReviewMock,
+      runtime,
+    );
+    const auth = {
+      subjectType: 'system-admin' as const,
+      activeTeamId: null,
+      securityLevel: 10,
+    };
+
+    await controller.getReviewQueue(undefined, { authContext: auth } as any);
+
+    expect(buildOwnerReviewQueueProjection).toHaveBeenCalledWith(runtime.services.knowledgeOwner, {
+      auth,
     });
   });
 

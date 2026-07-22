@@ -18,7 +18,7 @@ import {
 } from '@trapmap/contracts';
 import type { CandidateIngestionPort, ReviewPort } from '@trapmap/backend-core';
 import type { FastifyRequest } from 'fastify';
-import { buildReviewQueueProjection } from '@trapmap/service-governance-review';
+import { buildOwnerReviewQueueProjection } from '@trapmap/service-governance-review';
 import { z } from 'zod';
 
 import { CANDIDATE_INGESTION_PORT } from '../candidate-ingestion/candidate-ingestion.tokens.js';
@@ -98,8 +98,8 @@ export class CandidateReviewController {
     @Req() request: AuthenticatedRequest,
   ) {
     const auth = request.authContext!;
-    const projection = await buildReviewQueueProjection(
-      this.runtime.services.repos,
+    const projection = await buildOwnerReviewQueueProjection(
+      this.runtime.services.knowledgeOwner,
       status !== undefined ? { auth, status } : { auth },
     );
 
@@ -133,7 +133,7 @@ export class CandidateReviewController {
             ...(body.evidence ? { evidence: body.evidence as Record<string, unknown> } : {}),
           });
 
-    const entry = await this.runtime.services.repos.knowledge.getById(result.entryId);
+    const entry = await this.runtime.services.knowledgeOwner.getById(result.entryId);
 
     return {
       entry:

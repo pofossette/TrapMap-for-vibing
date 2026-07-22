@@ -341,6 +341,7 @@ describe('distributed runtime closeout', () => {
     expect(knowledgeWriteBeforeRestart.headers).toContainEqual({
       'x-request-id': 'req-closeout',
       'x-trace-id': 'trace-closeout',
+      'x-trapmap-actor-id': 'user-1',
     });
     expect(knowledgeWrite.hits).toContain('knowledge-write:approve:entry-after-restart');
     expect(jobRuntime.reclaimCount).toBe(2);
@@ -430,6 +431,7 @@ describe('distributed runtime closeout', () => {
     expect(knowledgeWrite.headers).toContainEqual({
       'x-request-id': 'req-candidate-rpc',
       'x-trace-id': 'trace-candidate-rpc',
+      'x-trapmap-actor-id': 'user-1',
     });
   }, 120_000);
 });

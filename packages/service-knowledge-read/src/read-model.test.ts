@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { vi } from 'vitest';
 
 import { createRetrievalArtifactFixture, createRetrievalMockRepos } from '@trapmap/contracts';
-import type { SkillShareerRepos } from '@trapmap/runtime-infra';
+import type { SkillShareerRepos } from './context.js';
 
 import { buildRetrievalReadModel } from './read-model.js';
 import { resetRetrievalReadModelCacheForTests } from './retrieval-read-model-cache.js';

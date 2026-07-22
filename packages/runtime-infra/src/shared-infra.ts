@@ -5,9 +5,7 @@ import {
   type GraphQueryRuntimeState,
   createMemoryGraphQueryBackend,
 } from '@trapmap/server/lib/graph-query/index.js';
-import { buildDefaultAdapterRegistry } from '@trapmap/server/lib/indexing/adapters/index.js';
-import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
-import { type SkillShareerRepos, createRuntimeInfraRepos } from './repos.js';
+import { createGraphIndexRepository } from '@trapmap/server/lib/graph-index/index.js';
 import { createSkillShareerStore } from './store-factory.js';
 import { type SkillShareerStore, getStorePool } from './store.js';
 
@@ -30,17 +28,13 @@ export interface RuntimeInfraConfig {
 
 export interface RuntimeInfraShared {
   store: SkillShareerStore;
-  adapterRegistry: AdapterRegistry;
   ai: AiProviders;
-  repos: SkillShareerRepos;
   graphQueryBackend: GraphQueryBackend;
   graphQuery: GraphQueryRuntimeState;
 }
 
 export type RuntimeInfraStore = RuntimeInfraShared['store'];
-export type RuntimeInfraAdapterRegistry = RuntimeInfraShared['adapterRegistry'];
 export type RuntimeInfraAiProviders = RuntimeInfraShared['ai'];
-export type RuntimeInfraRepos = RuntimeInfraShared['repos'];
 export type RuntimeInfraGraphQueryBackend = RuntimeInfraShared['graphQueryBackend'];
 export type RuntimeInfraGraphQueryRuntimeState = RuntimeInfraShared['graphQuery'];
 
@@ -52,15 +46,13 @@ export async function createRuntimeSharedInfra(
     databaseUrl: config.databaseUrl,
   });
   const pool = getStorePool(store) ?? undefined;
-  const repos = await createRuntimeInfraRepos(pool ? { store, pool } : { store });
+  const graphIndex = createGraphIndexRepository(pool ? { store, pool } : { store });
   const ai = createAiProviders(config.ai);
 
   const infra: RuntimeInfraShared = {
     store,
-    adapterRegistry: buildDefaultAdapterRegistry(),
     ai,
-    repos,
-    graphQueryBackend: createMemoryGraphQueryBackend(repos.graphIndex),
+    graphQueryBackend: createMemoryGraphQueryBackend(graphIndex),
     graphQuery: {
       backendKind: 'memory',
       failOpen: true,

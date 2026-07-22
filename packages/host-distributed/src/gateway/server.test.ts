@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { ConsulDiscoveryAdapter } from './consul-discovery-adapter.js';
@@ -32,6 +34,13 @@ function createConfig(): ServiceConfig {
 }
 
 describe('createServer observability surface', () => {
+  it('owns the gateway request-context type instead of importing the compatibility server', async () => {
+    const source = await readFile(path.join(import.meta.dirname, 'server.ts'), 'utf8');
+
+    expect(source).not.toContain('@trapmap/server/lib/runtime/index.js');
+    expect(source).toContain('interface GatewayRequestContext');
+  });
+
   it('echoes request correlation headers from /health', async () => {
     const server = await createServer(createConfig());
     await server.app.ready();

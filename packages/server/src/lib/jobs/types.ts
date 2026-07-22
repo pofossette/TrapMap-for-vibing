@@ -201,13 +201,6 @@ export function getSharedJobContract<TTaskType extends SharedJobTaskType>(
   return sharedJobContracts[taskType] as unknown as SharedJobContract<TTaskType>;
 }
 
-export function getSharedJobWorkflowRunId<TTaskType extends SharedJobTaskType>(
-  taskType: TTaskType,
-  payload: SharedJobPayloadByType[TTaskType],
-): string {
-  return getSharedJobContract(taskType).workflow.runId(payload);
-}
-
 export interface SharedJobHandler<TPayload> extends TaskHandler<TPayload> {
   workflowType: WorkflowType;
 }

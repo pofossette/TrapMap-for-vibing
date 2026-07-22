@@ -3,6 +3,8 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { expectFilesFreeOfImports } from '../../../scripts/testing/import-boundary.js';
+
 const FILES = [
   'src/server-retrieval-seam.ts',
   'src/retrieval-orchestration.ts',
@@ -75,7 +77,7 @@ async function collectTypeScriptFiles(dir: string): Promise<string[]> {
 }
 
 describe('knowledge-read import boundary', () => {
-  it('keeps all business source files free of direct @trapmap/server imports', async () => {
+  it('keeps all business source files free of compatibility package imports', async () => {
     const root = path.resolve(import.meta.dirname);
     const files = await collectTypeScriptFiles(root);
 
@@ -87,26 +89,31 @@ describe('knowledge-read import boundary', () => {
       const source = await readFile(file, 'utf-8');
       expect(source).not.toMatch(/from\s+['"]@trapmap\/server(?:\/[^'"]*)?['"]/);
       expect(source).not.toMatch(/import\s*\(\s*['"]@trapmap\/server(?:\/[^'"]*)?['"]\s*\)/);
+      expect(source).not.toMatch(/from\s+['"]@trapmap\/runtime-infra(?:\/[^'"]*)?['"]/);
+      expect(source).not.toMatch(/import\s*\(\s*['"]@trapmap\/runtime-infra(?:\/[^'"]*)?['"]\s*\)/);
     }
   });
 
   it('keeps retrieval core files free of direct server retrieval internals', async () => {
     const root = path.resolve(import.meta.dirname, '..');
 
-    for (const file of RETRIEVAL_CORE_FILES) {
-      const source = await readFile(path.join(root, file), 'utf-8');
-      for (const forbidden of FORBIDDEN_IMPORTS) {
+    await expectFilesFreeOfImports(
+      root,
+      RETRIEVAL_CORE_FILES,
+      FORBIDDEN_IMPORTS,
+      (source, forbidden) => {
         expect(source).not.toContain(forbidden);
-      }
-    }
+      },
+    );
   });
 
   it('owns retrieval orchestration registries locally', async () => {
     const root = path.resolve(import.meta.dirname, '..');
 
-    for (const file of FILES) {
-      const source = await readFile(path.join(root, file), 'utf-8');
-      for (const forbidden of [
+    await expectFilesFreeOfImports(
+      root,
+      FILES,
+      [
         '@trapmap/server/lib/retrieval/recall/keyword',
         '@trapmap/server/lib/retrieval/recall/semantic',
         '@trapmap/server/lib/retrieval/orchestration/recall-coordinator',
@@ -125,10 +132,11 @@ describe('knowledge-read import boundary', () => {
         '@trapmap/server/lib/activation-policy.js',
         '@trapmap/server/lib/cache/retrieval-read-model-cache.js',
         '@trapmap/server/lib/feedback/remediation.js',
-      ]) {
+      ],
+      (source, forbidden) => {
         expect(source).not.toContain(forbidden);
-      }
-    }
+      },
+    );
   });
 
   it('keeps package-local retrieval seams in searchKnowledge', async () => {
@@ -195,7 +203,7 @@ describe('knowledge-read import boundary', () => {
 
     expect(seamSource).toContain('createKnowledgeReadRetrievalInfra');
     expect(seamSource).toContain('KnowledgeReadRetrievalInfra');
-    expect(seamSource).toContain('@trapmap/runtime-infra');
+    expect(seamSource).not.toContain('@trapmap/runtime-infra');
     expect(seamSource).not.toContain('createPgKeywordRecall');
     expect(seamSource).not.toContain('vectorSimilaritySearch');
     expect(defaultInfraSource).not.toContain('@trapmap/server/lib/cache/query-embedding-cache.js');
@@ -211,7 +219,7 @@ describe('knowledge-read import boundary', () => {
     );
     expect(defaultInfraSource).not.toContain('@trapmap/server/lib/retrieval/recall/pg-keyword.js');
     expect(defaultInfraSource).not.toContain('@trapmap/server/lib/retrieval/scoring/index.js');
-    expect(defaultInfraSource).toContain('@trapmap/runtime-infra');
+    expect(defaultInfraSource).not.toContain('@trapmap/runtime-infra');
   });
 
   it('keeps default retrieval infra independent from the query-port seam', async () => {
@@ -232,7 +240,7 @@ describe('knowledge-read import boundary', () => {
 
     expect(contextSource).not.toContain('@trapmap/server/lib/graph-query/index.js');
     expect(coordinatorSource).not.toContain('@trapmap/server/lib/graph-query/index.js');
-    expect(contextSource).toContain('@trapmap/runtime-infra');
+    expect(contextSource).not.toContain('@trapmap/runtime-infra');
   });
 
   it('uses backend-core invocation errors instead of server AppError in read-side flows', async () => {
@@ -265,11 +273,19 @@ describe('knowledge-read import boundary', () => {
 
     expect(supportSource).toContain('getKnowledgeReadSupportInfra');
     expect(defaultSupportSource).toContain('createDefaultKnowledgeReadSupportInfra');
-    expect(defaultSupportSource).toContain('@trapmap/runtime-infra');
+    expect(defaultSupportSource).not.toContain('@trapmap/runtime-infra');
     expect(defaultSupportSource).not.toContain('@trapmap/server/lib/governance/index.js');
     expect(defaultSupportSource).not.toContain('@trapmap/server/lib/ai/prompts.js');
     expect(defaultSupportSource).not.toContain('@trapmap/server/lib/cache/invalidation.js');
     expect(defaultSupportSource).not.toContain('@trapmap/server/lib/cache/retrieval-cache.js');
     expect(defaultSupportSource).not.toContain('@trapmap/server/lib/decay/index.js');
+  });
+
+  it('types the owner-local retrieval read-model seam without an unchecked cast', async () => {
+    const root = path.resolve(import.meta.dirname, '..');
+    const source = await readFile(path.join(root, 'src/read-model.ts'), 'utf-8');
+
+    expect(source).not.toContain('repos as never');
+    expect(source).toContain('RetrievalReadModelRepositories');
   });
 });

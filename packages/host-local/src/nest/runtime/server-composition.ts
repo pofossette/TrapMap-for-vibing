@@ -1,11 +1,11 @@
 import { buildServer, type BuildServerOptions } from '@trapmap/server/app.js';
-import { getStorePool } from '@trapmap/runtime-infra';
 import { createJobRuntimeModule } from '@trapmap/backend-core';
 import { createJobRuntimeDeps, createJobRuntimeOutboxConsumer } from '@trapmap/service-job-runtime';
 
 import type { HostLocalConfig } from '../config/index.js';
 import { createHostLocalServices } from './host-services.js';
 import { createQueuePorts } from './backend-core-adapters.js';
+import { getHostLocalStorePool } from './store-pool.js';
 
 export interface HostLocalServer {
   app: ReturnType<typeof buildServer>;
@@ -22,7 +22,7 @@ export async function buildHostLocalServer(
   options: Pick<BuildServerOptions, 'bodyLimit' | 'config' | 'runtimeMode' | 'serviceUnit'> = {},
 ): Promise<HostLocalServer> {
   const services = await createHostLocalServices(config);
-  const pool = getStorePool(services.store);
+  const pool = getHostLocalStorePool(services.store);
   if (!pool) {
     throw new Error('host-local server composition requires PostgreSQL');
   }

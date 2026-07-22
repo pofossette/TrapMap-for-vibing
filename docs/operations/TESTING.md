@@ -1115,6 +1115,13 @@ CI 中通过 `postgres-integration` job 运行真实 PostgreSQL/pgvector 校验�
 docker run -d --name trapmap-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=trapmap -p 5432:5432 pgvector/pgvector:pg16
 ```
 
+`pnpm test:runtime-foundations` 和 `pnpm test:deployment-smoke` 默认各自启动临时 Docker pgvector coordinator。Docker 不可用、但已有专用 pgvector 管理库时，可显式提供 `TRAPMAP_POSTGRES_COORDINATOR_URL`：该 URL 必须指向可创建和删除数据库的管理库（通常为 `postgres`），runner 仍会创建唯一临时数据库、执行六个 owner migration、验证 `vector` 扩展，并在结束时删除该数据库。不要把应用运行时的 `TRAPMAP_DATABASE_URL` 用作该变量。
+
+```bash
+TRAPMAP_POSTGRES_COORDINATOR_URL=postgresql://trapmap:test@localhost:5432/postgres \
+  pnpm test:runtime-foundations
+```
+
 包含 PG 集成测试的模块：
 
 | 模块 | 测试文件 | 说明 |

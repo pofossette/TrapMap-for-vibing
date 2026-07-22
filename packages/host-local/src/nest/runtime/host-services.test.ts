@@ -27,9 +27,6 @@ const sharedInfra = {
 };
 const asyncTransport = { task: {}, events: {} };
 
-vi.mock('@trapmap/runtime-infra', () => ({
-  getStorePool: vi.fn(() => pool),
-}));
 vi.mock('@trapmap/service-identity-access', () => ({
   createIdentityAccessPgDeps: vi.fn(() => ({ auditLog: {} })),
 }));
@@ -44,6 +41,9 @@ vi.mock('@trapmap/service-job-runtime', () => ({
 }));
 vi.mock('./shared-infra.js', () => ({
   createHostLocalSharedInfra: vi.fn(async () => sharedInfra),
+}));
+vi.mock('./store-pool.js', () => ({
+  getHostLocalStorePool: vi.fn(() => pool),
 }));
 vi.mock('./runtime-deployment.js', () => ({
   resolveHostLocalDeployment: vi.fn(() => ({ runtimeMode: 'embedded', serviceUnit: 'host-local' })),
@@ -77,12 +77,13 @@ describe('host-local service composition', () => {
     expect(services).not.toHaveProperty('artifactRepo');
   });
 
-  it('injects the governance retrieval projection into read-side services', async () => {
+  it('keeps governance retrieval access on its explicit owner port', async () => {
     const services = await createHostLocalServices({ systemAdminKey: 'test-key' } as never);
 
-    expect(services.repos.governanceRetrievalProjection).toBe(
-      services.governanceReview.retrievalProjection,
-    );
+    expect(services.governanceReview.retrievalProjection).toBeDefined();
+    expect(services).not.toHaveProperty('adapterRegistry');
+    expect(services).not.toHaveProperty('repos');
+    expect(services).not.toHaveProperty('usageAnalyticsRepo');
   });
 
   it('composes the async transport through the job-runtime owner', async () => {

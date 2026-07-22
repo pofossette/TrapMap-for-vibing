@@ -12,14 +12,14 @@ import {
   attachRemediationProjection,
   buildCachedRetrievalReadModelFromRepositories,
   type RetrievalReadProjection,
+  type RetrievalReadModelRepositories,
   type ConflictRelation,
-  type RetrievalGovernanceProjection,
 } from '@trapmap/contracts';
-import type { SkillShareerRepos } from '@trapmap/runtime-infra';
 import {
   getCachedRetrievalReadModel,
   setCachedRetrievalReadModel,
 } from './retrieval-read-model-cache.js';
+import type { SkillShareerRepos } from './context.js';
 import type { FeedbackQueueRecord, KnowledgeRecord, SkillArtifactRecord } from './store.js';
 
 export type RetrievalReadModel = RetrievalReadProjection<
@@ -31,9 +31,7 @@ export type RetrievalReadModel = RetrievalReadProjection<
 export async function buildRetrievalReadModel(
   repos: SkillShareerRepos,
 ): Promise<RetrievalReadModel> {
-  const governanceRetrievalProjection = repos.governanceRetrievalProjection as unknown as
-    | RetrievalGovernanceProjection<FeedbackQueueRecord, ConflictRelation>
-    | undefined;
+  const governanceRetrievalProjection = repos.governanceRetrievalProjection;
   if (!governanceRetrievalProjection) {
     throw new Error('knowledge-read requires the governance retrieval projection owner port');
   }
@@ -42,7 +40,12 @@ export async function buildRetrievalReadModel(
       get: getCachedRetrievalReadModel,
       set: setCachedRetrievalReadModel,
     },
-    repos,
+    repos as RetrievalReadModelRepositories<
+      KnowledgeRecord,
+      SkillArtifactRecord,
+      FeedbackQueueRecord,
+      ConflictRelation
+    >,
     governanceRetrievalProjection,
     (artifact) => artifact,
     (entries, _feedback, remediation) => attachRemediationProjection(entries, remediation),

@@ -25,7 +25,6 @@ export { transitionLifecycleState } from './state-machine.js';
 
 // Outbox
 export type { OutboxStatusSnapshot } from './outbox.js';
-export { createDomainEventOutbox } from './outbox.js';
 
 // Subscribers
 export { createAuditSubscriber } from './subscribers/audit.js';

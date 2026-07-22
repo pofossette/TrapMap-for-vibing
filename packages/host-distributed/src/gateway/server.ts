@@ -11,7 +11,6 @@ import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 
 import { DynamicDiscovery } from '@trapmap/backend-core';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
-import type { RequestContext } from '@trapmap/server/lib/runtime/index.js';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import { ConsulDiscoveryAdapter } from './consul-discovery-adapter.js';
 import { DiscoveryResolver } from './discovery-resolver.js';
@@ -27,6 +26,16 @@ interface HistogramSample {
   sum: number;
   count: number;
   labels: Record<string, string>;
+}
+
+interface GatewayRequestContext {
+  requestId: string;
+  traceHeaderName: string;
+  traceHeaderValue: string | null;
+  traceId: string | null;
+  traceParent: string | null;
+  method: string;
+  route: string;
 }
 
 const counters = new Map<string, Map<string, CounterSample>>();
@@ -90,9 +99,9 @@ function extractTraceId(traceParent: string): string {
   return traceParentMatch?.[1] ?? trimmed;
 }
 
-function getOrCreateRequestContext(request: FastifyRequest): RequestContext {
+function getOrCreateRequestContext(request: FastifyRequest): GatewayRequestContext {
   const contextCarrier = request as FastifyRequest & {
-    requestContext?: RequestContext;
+    requestContext?: GatewayRequestContext;
   };
   if (contextCarrier.requestContext) {
     return contextCarrier.requestContext;
@@ -109,7 +118,7 @@ function getOrCreateRequestContext(request: FastifyRequest): RequestContext {
       ? traceParentHeader.trim()
       : null;
 
-  const context: RequestContext = {
+  const context: GatewayRequestContext = {
     requestId,
     traceHeaderName: 'traceparent',
     traceHeaderValue: traceParent,

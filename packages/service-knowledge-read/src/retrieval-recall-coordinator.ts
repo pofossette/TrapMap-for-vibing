@@ -1,6 +1,5 @@
 import { InvocationError } from '@trapmap/backend-core';
 import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
-import type { RuntimeInfraGraphQueryRuntimeState } from '@trapmap/runtime-infra';
 import type { Pool } from 'pg';
 import type {
   MergedCandidate,
@@ -9,7 +8,11 @@ import type {
   ScoredEntry,
 } from './retrieval-types.js';
 
-import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
+import type {
+  KnowledgeReadGraphQueryRuntimeState,
+  ResolvedAuthContext,
+  SkillShareerServices,
+} from './context.js';
 import { getRetrievalInfra } from './retrieval-infra.js';
 import { keywordRecall, normalizeQuery } from './retrieval-keyword.js';
 import { computeScore, getQueryEmbedding, optimizedSemanticRecall } from './retrieval-semantic.js';
@@ -44,8 +47,8 @@ export interface DbSearchConfig {
 export interface GraphRecallTrace {
   mergeMode: 'mixed';
   graphExpansion: 'local-neighborhood';
-  backendKind: RuntimeInfraGraphQueryRuntimeState['backendKind'];
-  backendMode: RuntimeInfraGraphQueryRuntimeState['mode'];
+  backendKind: KnowledgeReadGraphQueryRuntimeState['backendKind'];
+  backendMode: KnowledgeReadGraphQueryRuntimeState['mode'];
   graphCandidateCount: number;
 }
 
@@ -426,7 +429,7 @@ function mergeCandidatesWithGraph(
 }
 
 function createGraphRecallTrace(
-  runtimeState: RuntimeInfraGraphQueryRuntimeState | undefined,
+  runtimeState: KnowledgeReadGraphQueryRuntimeState | undefined,
   graphCandidateCount: number,
 ): GraphRecallTrace {
   return {

@@ -24,6 +24,15 @@ export interface KnowledgeOperationsProjection {
     requiredLevelMax?: number;
     operation?: string;
   }): Promise<KnowledgeEntry[]>;
+  updateEmbeddingCache(
+    entryId: string,
+    cache: {
+      textHash: string;
+      vector: number[];
+      createdAt: string;
+      revision: number;
+    },
+  ): Promise<void>;
 }
 
 export interface KnowledgeCommandPort {

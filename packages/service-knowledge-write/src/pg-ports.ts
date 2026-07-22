@@ -729,6 +729,12 @@ export function createKnowledgeWriteOwnerBundle(
     getById: projection.getById,
     getByIds: projection.getByIds,
     listByFilter: projection.listByFilter,
+    async updateEmbeddingCache(entryId, cache) {
+      await pool.query(
+        'UPDATE knowledge_entries SET embedding_cache = $2, updated_at = NOW() WHERE id = $1',
+        [entryId, JSON.stringify(cache)],
+      );
+    },
   };
   return {
     knowledgeOwner,

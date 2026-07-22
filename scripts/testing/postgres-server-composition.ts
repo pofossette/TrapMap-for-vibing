@@ -2,7 +2,10 @@ import pg from 'pg';
 
 import { createJobRuntimeModule } from '../../packages/backend-core/src/index.js';
 import { buildServer, type BuildServerOptions } from '../../packages/server/src/app.js';
-import { createJobRuntimeAsyncTransport } from '../../packages/service-job-runtime/src/index.js';
+import {
+  createJobRuntimeAsyncTransport,
+  createJobRuntimeOutboxConsumer,
+} from '../../packages/service-job-runtime/src/index.js';
 import { PostgresStore } from '../../packages/server/src/lib/persistence/postgres-store.js';
 import { createIdentityAccessPgDeps } from '../../packages/service-identity-access/src/pg-ports.js';
 import {
@@ -54,6 +57,9 @@ export function buildPostgresComposedServer(
       },
       auditLog: identity.auditLog,
     }),
+    outboxWorkerFactory: {
+      create: (worker) => createJobRuntimeOutboxConsumer(worker),
+    },
     ownsStore: false,
     store,
   });

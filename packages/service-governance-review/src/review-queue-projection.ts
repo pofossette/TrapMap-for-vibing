@@ -4,6 +4,7 @@ import {
   type EvidenceMeta,
   type FeedbackRemediationState,
   type KnowledgeEntry,
+  type KnowledgeOwnerPort,
   type LifecycleState,
   type ReviewQueueItem,
   type Scope,
@@ -148,6 +149,47 @@ export interface ReviewQueueProjectionAuth {
 export interface ReviewQueueProjection {
   items: ReviewQueueItem[];
   total: number;
+}
+
+type ReviewQueueEntry = Pick<KnowledgeEntry, 'teamId' | 'requiredLevel' | 'lifecycleState'>;
+
+function filterReviewQueueEntries<T extends ReviewQueueEntry>(
+  entries: T[],
+  input: { auth: ReviewQueueProjectionAuth; status?: string },
+): T[] {
+  return entries.filter((entry) => {
+    if (
+      entry.teamId &&
+      input.auth.subjectType !== 'system-admin' &&
+      input.auth.activeTeamId !== entry.teamId
+    ) {
+      return false;
+    }
+    if (
+      input.auth.subjectType !== 'system-admin' &&
+      input.auth.securityLevel <= entry.requiredLevel
+    ) {
+      return false;
+    }
+    return input.status ? entry.lifecycleState === input.status : true;
+  });
+}
+
+export async function buildOwnerReviewQueueProjection(
+  knowledge: Pick<KnowledgeOwnerPort, 'listByFilter'>,
+  input: { auth: ReviewQueueProjectionAuth; status?: string },
+): Promise<ReviewQueueProjection> {
+  const entries = filterReviewQueueEntries(await knowledge.listByFilter({}), input);
+  const items = entries.map((entry) => ({
+    entry,
+    agentReview: entry.agentReview,
+    submittedBy: entry.latestSubmission?.submittedBy ?? entry.owner,
+    latestSubmission: entry.latestSubmission,
+    reviewNotes: entry.reviewNotes,
+    lastDecision: entry.reviewHistory.at(-1) ?? null,
+  }));
+
+  return { items, total: items.length };
 }
 
 function collectActorIds(record: KnowledgeRecord): string[] {
@@ -401,22 +443,7 @@ export async function buildReviewQueueProjection(
   input: { auth: ReviewQueueProjectionAuth; status?: string },
 ): Promise<ReviewQueueProjection> {
   const allEntries = await repos.knowledge.listByFilter({});
-  const filteredEntries = allEntries.filter((entry) => {
-    if (
-      entry.teamId &&
-      input.auth.subjectType !== 'system-admin' &&
-      input.auth.activeTeamId !== entry.teamId
-    ) {
-      return false;
-    }
-    if (
-      input.auth.subjectType !== 'system-admin' &&
-      input.auth.securityLevel <= entry.requiredLevel
-    ) {
-      return false;
-    }
-    return input.status ? entry.lifecycleState === input.status : true;
-  });
+  const filteredEntries = filterReviewQueueEntries(allEntries, input);
 
   const fullEntries = await Promise.all(
     filteredEntries.map(

@@ -11,11 +11,10 @@ import { createGovernanceConflictTaskScheduler } from '@trapmap/backend-core';
 import { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import { KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
+import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
+import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import type { DomainEvent } from '@trapmap/server/lib/lifecycle/types.js';
-import {
-  buildTestServer,
-  seedApprovedKnowledgeEntry,
-} from '@trapmap/server/lib/retrieval/__fixtures__/auth-store-helpers.js';
+import { buildPostgresTestServer } from '../../../../../../scripts/testing/server-test-composition.js';
 import { createIndexingSubscriber } from './indexing.js';
 
 // Mock the heavy dependencies
@@ -338,12 +337,8 @@ describe('outbox-driven subscriber execution (Phase 2)', () => {
   });
 
   it('postgres subscriber enqueues shared indexing jobs instead of running heavy work inline', async () => {
-    const { app, store, userId } = await buildTestServer((data, auth) => {
-      seedApprovedKnowledgeEntry(data, auth.userId, {
-        id: 'entry_phase5_pg_subscriber',
-        shortcut: 'PG subscriber target',
-      });
-    });
+    const app = await buildPostgresTestServer();
+    const store = app.skillShareer.store;
 
     try {
       if (!(store instanceof PostgresStore)) {
@@ -358,7 +353,7 @@ describe('outbox-driven subscriber execution (Phase 2)', () => {
           previousState: 'approved',
           nextState: 'deactivated',
           reason: 'phase5-subscriber',
-          actorId: userId,
+          actorId: 'user-1',
         }),
       );
 

@@ -7,8 +7,8 @@ import type {
   TeamLookupPort,
 } from '@trapmap/backend-core';
 import {
+  createKnowledgeReadOwnerRetrievalServices,
   createKnowledgeReadRetrievalQuery,
-  type KnowledgeReadRetrievalQueryOptions,
 } from '@trapmap/service-knowledge-read';
 import {
   createCandidateProcessingRuntime,
@@ -35,10 +35,19 @@ export interface HostLocalRuntime {
   processing: CandidateProcessingRuntime;
 }
 
-type HostLocalKnowledgeReadServices = KnowledgeReadRetrievalQueryOptions['services'];
-
 function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
-  const retrievalServices = services as unknown as HostLocalKnowledgeReadServices;
+  const retrievalServices = createKnowledgeReadOwnerRetrievalServices({
+    config: services.config,
+    knowledge: services.knowledgeOwner,
+    artifact: services.artifactReadProjection,
+    governance: services.governanceReview.retrievalProjection,
+    strategyRegistry: services.strategyRegistry,
+    channelRegistry: services.channelRegistry,
+    ai: services.ai,
+    store: services.store,
+    graphQuery: services.graphQuery,
+    graphQueryBackend: services.graphQueryBackend,
+  });
 
   return createKnowledgeReadRetrievalQuery({
     services: retrievalServices,

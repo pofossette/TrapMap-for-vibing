@@ -5,13 +5,10 @@ import type {
   ConflictRelation,
   FreshnessDecayConfig,
   Permission,
+  type RetrievalGovernanceProjection,
+  type RetrievalReadModelRepositories,
   RetrievalQuery,
 } from '@trapmap/contracts';
-import type {
-  RuntimeInfraGraphQueryBackend,
-  RuntimeInfraGraphQueryRuntimeState,
-  SkillShareerRepos,
-} from '@trapmap/runtime-infra';
 import type { Pool } from 'pg';
 
 import type { RagLogConfig } from './rag-log.js';
@@ -26,7 +23,56 @@ import type {
   ScoredEntry,
   TokenMatchDetail,
 } from './retrieval-types.js';
-import type { KnowledgeRecord } from './store.js';
+import type { FeedbackQueueRecord, KnowledgeRecord, SkillArtifactRecord } from './store.js';
+
+export type KnowledgeReadGraphQueryBackendKind = 'memory' | 'neo4j';
+export type KnowledgeReadGraphQueryMode = 'disabled' | 'enabled-primary' | 'enabled-fallback';
+
+export interface KnowledgeReadGraphQueryRuntimeState {
+  mode: KnowledgeReadGraphQueryMode;
+  backendKind: KnowledgeReadGraphQueryBackendKind;
+  failOpen: boolean;
+  detail?: string;
+}
+
+export interface KnowledgeReadGraphQueryBackend {
+  getRuntimeState(): KnowledgeReadGraphQueryRuntimeState;
+  expandSourcesOneHop(params: {
+    queryLabels: Set<string>;
+    eligibleSourceIds?: Set<string>;
+  }): Promise<Set<string>>;
+  calculateSourceRelationStrength(params: {
+    sourceId: string;
+    queryLabels: Set<string>;
+  }): Promise<number>;
+}
+
+export interface SkillShareerRepos
+  extends RetrievalReadModelRepositories<
+    KnowledgeRecord,
+    SkillArtifactRecord,
+    FeedbackQueueRecord,
+    ConflictRelation
+  > {
+  knowledge: RetrievalReadModelRepositories<
+    KnowledgeRecord,
+    SkillArtifactRecord,
+    FeedbackQueueRecord,
+    ConflictRelation
+  >['knowledge'] & {
+    getById(entryId: string): Promise<unknown | null>;
+    updateEmbeddingCache(
+      entryId: string,
+      cache: { textHash: string; vector: number[]; createdAt: string; revision: number },
+    ): Promise<void>;
+  };
+  usageAnalytics: unknown;
+  graphIndex: unknown;
+  governanceRetrievalProjection?: RetrievalGovernanceProjection<
+    FeedbackQueueRecord,
+    ConflictRelation
+  >;
+}
 
 export interface ResolvedAuthContext {
   subjectType: 'user' | 'system-admin';
@@ -114,7 +160,10 @@ export interface KnowledgeReadRetrievalInfra {
   conflicts: {
     enrichMatches(
       matches: Array<{ entryId: string }>,
-      data: { conflicts: ConflictRelation[]; knowledgeEntries: KnowledgeRecord[] },
+      data: {
+        conflicts: ConflictRelation[];
+        knowledgeEntries: KnowledgeRecord[];
+      },
       governance?: { teamId: string | null; requiredLevel: number },
     ): Map<string, ConflictHint[]>;
   };
@@ -166,7 +215,7 @@ export interface KnowledgeReadRetrievalInfra {
     graphAssistedRecall(
       queryText: string,
       eligibleEntries: Map<string, KnowledgeRecord>,
-      options?: { graphQueryBackend?: RuntimeInfraGraphQueryBackend },
+      options?: { graphQueryBackend?: KnowledgeReadGraphQueryBackend },
     ): Promise<RecallCandidate[]>;
   };
 }
@@ -224,6 +273,6 @@ export interface SkillShareerServices {
   store: KnowledgeReadStoreSeam;
   retrievalInfra?: KnowledgeReadRetrievalInfra;
   knowledgeReadSupportInfra?: KnowledgeReadSupportInfra;
-  graphQueryBackend?: RuntimeInfraGraphQueryBackend;
-  graphQuery: RuntimeInfraGraphQueryRuntimeState;
+  graphQueryBackend?: KnowledgeReadGraphQueryBackend;
+  graphQuery: KnowledgeReadGraphQueryRuntimeState;
 }

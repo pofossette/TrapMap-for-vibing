@@ -23,6 +23,13 @@ describe('PostgreSQL composition entrypoints', () => {
     expect(source).toMatch(/jobRuntime:\s*createJobRuntimeModule\(/);
   });
 
+  it('injects the job-runtime outbox worker factory into compatibility composition', async () => {
+    const source = await readFile('scripts/testing/postgres-server-composition.ts', 'utf8');
+
+    expect(source).toContain('createJobRuntimeOutboxConsumer');
+    expect(source).toMatch(/outboxWorkerFactory:\s*\{\s*create:/);
+  });
+
   it('injects the governance retrieval projection into the compatibility composition', async () => {
     const source = await readFile('scripts/testing/postgres-server-composition.ts', 'utf8');
 

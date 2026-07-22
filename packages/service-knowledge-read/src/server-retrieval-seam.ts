@@ -1,7 +1,20 @@
 import type { RetrievalQueryPort } from '@trapmap/backend-core';
-import type { RetrievalQuery } from '@trapmap/contracts';
-import { createDefaultKnowledgeReadRetrievalInfra } from '@trapmap/runtime-infra';
-import type { KnowledgeReadRetrievalInfra, ResolvedAuthContext } from './context.js';
+import type {
+  ArtifactReadProjection,
+  KnowledgeOwnerPort,
+  RetrievalGovernanceProjection,
+  RetrievalQuery,
+} from '@trapmap/contracts';
+import type {
+  KnowledgeReadAiServices,
+  KnowledgeReadGraphQueryBackend,
+  KnowledgeReadGraphQueryRuntimeState,
+  KnowledgeReadRetrievalInfra,
+  KnowledgeReadStoreSeam,
+  ResolvedAuthContext,
+  SkillShareerRepos,
+} from './context.js';
+import { createDefaultKnowledgeReadRetrievalInfra } from './retrieval-infra-default.js';
 import { keywordChannel } from './retrieval-keyword.js';
 import {
   ChannelRegistry,
@@ -23,6 +36,44 @@ export interface KnowledgeReadRetrievalQueryOptions {
   services: SearchKnowledgeServices;
   resolveAuthContext(params: { teamId?: string }): SearchKnowledgeAuth;
   mode?: RetrievalQuery['mode'];
+}
+
+export interface KnowledgeReadOwnerRetrievalServicesOptions {
+  config: SearchKnowledgeServices['config'];
+  knowledge: Pick<KnowledgeOwnerPort, 'getById' | 'listByFilter' | 'updateEmbeddingCache'>;
+  artifact: Pick<ArtifactReadProjection, 'listByFilter' | 'listForRetrieval'>;
+  governance: RetrievalGovernanceProjection;
+  strategyRegistry: SearchKnowledgeServices['strategyRegistry'];
+  channelRegistry: SearchKnowledgeServices['channelRegistry'];
+  ai: KnowledgeReadAiServices;
+  store: KnowledgeReadStoreSeam;
+  graphQuery: KnowledgeReadGraphQueryRuntimeState;
+  graphQueryBackend?: KnowledgeReadGraphQueryBackend;
+  retrievalInfra?: KnowledgeReadRetrievalInfra;
+}
+
+export function createKnowledgeReadOwnerRetrievalServices(
+  options: KnowledgeReadOwnerRetrievalServicesOptions,
+): SearchKnowledgeServices {
+  const repos: SkillShareerRepos = {
+    knowledge: options.knowledge as SkillShareerRepos['knowledge'],
+    artifact: options.artifact as SkillShareerRepos['artifact'],
+    governanceRetrievalProjection: options.governance,
+    usageAnalytics: null,
+    graphIndex: null,
+  };
+
+  return {
+    config: options.config,
+    repos,
+    strategyRegistry: options.strategyRegistry,
+    channelRegistry: options.channelRegistry,
+    ai: options.ai,
+    store: options.store,
+    graphQuery: options.graphQuery,
+    ...(options.graphQueryBackend ? { graphQueryBackend: options.graphQueryBackend } : {}),
+    ...(options.retrievalInfra ? { retrievalInfra: options.retrievalInfra } : {}),
+  };
 }
 
 export function createKnowledgeReadRetrievalInfra(): KnowledgeReadRetrievalInfra {

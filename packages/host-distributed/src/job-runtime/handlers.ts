@@ -2,7 +2,6 @@ import {
   InvocationError,
   type GovernanceAsyncCommandPort,
   type GovernanceConflictWorkflowPort,
-  type InvocationErrorKind,
   type TaskHandler,
 } from '@trapmap/backend-core';
 import type { InternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
@@ -11,25 +10,9 @@ import {
   createGovernanceConflictTaskHandler,
   createGovernanceRemediationTaskHandler,
 } from '@trapmap/service-job-runtime';
+import { toInvocationError } from '../shared/invocation-error.js';
 
-function toInvocationError(body: unknown, fallback: string): InvocationError {
-  const payload = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
-  const message = typeof payload.error === 'string' ? payload.error : fallback;
-  const factoryByKind: Record<InvocationErrorKind, typeof InvocationError.internal> = {
-    validation: InvocationError.validation,
-    unauthorized: InvocationError.unauthorized,
-    'not-found': InvocationError.notFound,
-    conflict: InvocationError.conflict,
-    forbidden: InvocationError.forbidden,
-    timeout: InvocationError.timeout,
-    unavailable: InvocationError.unavailable,
-    internal: InvocationError.internal,
-  };
-  const factory = factoryByKind[payload.kind as InvocationErrorKind] ?? InvocationError.internal;
-  return factory(message, body);
-}
-
-export function createRemoteGovernanceConflictWorkflowClient(
+function createRemoteGovernanceConflictWorkflowClient(
   clients: Pick<InternalServiceClients, 'governanceReview'>,
 ): GovernanceConflictWorkflowPort {
   return {
@@ -53,7 +36,7 @@ export function createRemoteGovernanceConflictWorkflowClient(
   };
 }
 
-export function createRemoteGovernanceAsyncCommandClient(
+function createRemoteGovernanceAsyncCommandClient(
   clients: Pick<InternalServiceClients, 'governanceReview'>,
 ): GovernanceAsyncCommandPort {
   return {

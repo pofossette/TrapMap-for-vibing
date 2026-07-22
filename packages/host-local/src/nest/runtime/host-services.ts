@@ -16,7 +16,6 @@ import {
   type GovernanceReviewPgOwnerBundle,
 } from '@trapmap/service-governance-review';
 import { createJobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
-import { getStorePool } from '@trapmap/runtime-infra';
 
 import type { HostLocalConfig } from '../config/index.js';
 import {
@@ -26,14 +25,13 @@ import {
   type HostLocalStrategyRegistry,
 } from './retrieval-assembly.js';
 import { resolveHostLocalDeployment } from './runtime-deployment.js';
+import { getHostLocalStorePool } from './store-pool.js';
 import {
   createHostLocalSharedInfra,
-  type HostLocalAdapterRegistry,
   type HostLocalAiProviders,
   type HostLocalAsyncTransport,
   type HostLocalGraphQueryBackend,
   type HostLocalGraphQueryRuntimeState,
-  type HostLocalRepos,
   type HostLocalStore,
 } from './shared-infra.js';
 
@@ -44,7 +42,6 @@ export interface HostLocalServices {
   serviceUnit: ResolvedRuntimeDeployment['serviceUnit'];
   store: HostLocalStore;
   asyncTransport?: HostLocalAsyncTransport;
-  adapterRegistry: HostLocalAdapterRegistry;
   channelRegistry: HostLocalChannelRegistry;
   strategyRegistry: HostLocalStrategyRegistry;
   ai: HostLocalAiProviders;
@@ -56,8 +53,6 @@ export interface HostLocalServices {
   knowledgeOwner: KnowledgeOwnerPort;
   artifactWriter: ArtifactWritePort;
   artifactReadProjection: ArtifactReadProjection;
-  usageAnalyticsRepo: HostLocalRepos['usageAnalytics'];
-  repos: HostLocalRepos;
   graphQueryBackend: HostLocalGraphQueryBackend;
   graphQuery: HostLocalGraphQueryRuntimeState;
 }
@@ -67,7 +62,7 @@ export async function createHostLocalServices(
 ): Promise<HostLocalServices> {
   const runtimeDeployment = resolveHostLocalDeployment(config);
   const infra = await createHostLocalSharedInfra(config);
-  const pool = getStorePool(infra.store);
+  const pool = getHostLocalStorePool(infra.store);
   if (!pool) {
     throw new Error('host-local identity runtime requires PostgreSQL');
   }
@@ -80,8 +75,6 @@ export async function createHostLocalServices(
     config: { asyncTaskTransport: config.asyncTaskTransport },
     pool,
   });
-  infra.repos.governanceRetrievalProjection = governanceReview.retrievalProjection;
-
   const services: HostLocalServices = {
     config,
     runtimeDeployment,
@@ -89,7 +82,6 @@ export async function createHostLocalServices(
     serviceUnit: runtimeDeployment.serviceUnit,
     store: infra.store,
     asyncTransport,
-    adapterRegistry: infra.adapterRegistry,
     channelRegistry: createHostLocalChannelRegistry(),
     strategyRegistry: createHostLocalStrategyRegistry(),
     ai: infra.ai,
@@ -101,8 +93,6 @@ export async function createHostLocalServices(
     knowledgeOwner: knowledgeWrite.knowledgeOwner,
     artifactWriter: knowledgeWrite.artifactWriter,
     artifactReadProjection: knowledgeWrite.artifactReadProjection,
-    usageAnalyticsRepo: infra.repos.usageAnalytics,
-    repos: infra.repos,
     graphQueryBackend: infra.graphQueryBackend,
     graphQuery: infra.graphQuery,
   };

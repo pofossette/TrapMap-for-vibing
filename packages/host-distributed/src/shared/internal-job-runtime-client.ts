@@ -1,28 +1,10 @@
 import {
   InvocationError,
-  type InvocationErrorKind,
   type JobRuntimePort,
   type TaskEnqueueOptions,
 } from '@trapmap/backend-core';
 import type { InternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
-
-function toInvocationError(body: unknown, fallback: string): InvocationError {
-  const payload = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
-  const message = typeof payload.error === 'string' ? payload.error : fallback;
-
-  const factoryByKind: Record<InvocationErrorKind, typeof InvocationError.internal> = {
-    validation: InvocationError.validation,
-    unauthorized: InvocationError.unauthorized,
-    'not-found': InvocationError.notFound,
-    conflict: InvocationError.conflict,
-    forbidden: InvocationError.forbidden,
-    timeout: InvocationError.timeout,
-    unavailable: InvocationError.unavailable,
-    internal: InvocationError.internal,
-  };
-  const factory = factoryByKind[payload.kind as InvocationErrorKind] ?? InvocationError.internal;
-  return factory(message, body);
-}
+import { toInvocationError } from './invocation-error.js';
 
 export function createRemoteJobRuntimeClient(
   clients: Pick<InternalServiceClients, 'jobRuntime'>,

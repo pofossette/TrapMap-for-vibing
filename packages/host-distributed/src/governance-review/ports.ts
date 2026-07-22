@@ -1,5 +1,4 @@
 import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
-import { InvocationError } from '@trapmap/backend-core';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
 import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
@@ -17,30 +16,8 @@ import {
 } from '@trapmap/service-governance-review';
 import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 
+import { toInvocationError } from '../shared/invocation-error.js';
 import { createDistributedGovernanceConflictReadPort } from './conflict-read.js';
-
-function mapRemoteError(body: unknown, fallback: string): InvocationError {
-  const payload = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
-  const message = typeof payload.error === 'string' ? payload.error : fallback;
-  switch (payload.kind) {
-    case 'validation':
-      return InvocationError.validation(message, body);
-    case 'unauthorized':
-      return InvocationError.unauthorized(message, body);
-    case 'forbidden':
-      return InvocationError.forbidden(message, body);
-    case 'not-found':
-      return InvocationError.notFound(message, body);
-    case 'conflict':
-      return InvocationError.conflict(message, body);
-    case 'timeout':
-      return InvocationError.timeout(message, body);
-    case 'unavailable':
-      return InvocationError.unavailable(message, body);
-    default:
-      return InvocationError.internal(message, body);
-  }
-}
 
 export function createDistributedGovernanceKnowledgeReadPort(
   clients: Pick<ReturnType<typeof createInternalServiceClients>, 'knowledgeRead'>,
@@ -50,7 +27,7 @@ export function createDistributedGovernanceKnowledgeReadPort(
       const response = await clients.knowledgeRead.getById(entryId);
       if (response.status === 404) return null;
       if (response.status < 200 || response.status >= 300) {
-        throw mapRemoteError(response.body, 'knowledge-read entry projection failed');
+        throw toInvocationError(response.body, 'knowledge-read entry projection failed');
       }
       return response.body as Awaited<ReturnType<KnowledgeOwnerPort['getById']>>;
     },
@@ -65,7 +42,7 @@ export function createDistributedGovernanceArtifactReadProjection(
       const response = await clients.knowledgeWrite.getArtifactById(artifactId);
       if (response.status === 404) return null;
       if (response.status < 200 || response.status >= 300) {
-        throw mapRemoteError(response.body, 'knowledge-write artifact projection failed');
+        throw toInvocationError(response.body, 'knowledge-write artifact projection failed');
       }
       return response.body as Awaited<ReturnType<ArtifactReadProjection['getById']>>;
     },

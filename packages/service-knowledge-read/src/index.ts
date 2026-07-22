@@ -18,10 +18,12 @@ export {
 } from './knowledge-read-support-infra.js';
 export {
   createKnowledgeReadChannelRegistry,
+  createKnowledgeReadOwnerRetrievalServices,
   createKnowledgeReadRetrievalInfra,
   createKnowledgeReadRetrievalQuery,
   createKnowledgeReadStrategyRegistry,
   type KnowledgeReadRetrievalQueryOptions,
+  type KnowledgeReadOwnerRetrievalServicesOptions,
 } from './server-retrieval-seam.js';
 export {
   ChannelRegistry,

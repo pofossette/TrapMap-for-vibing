@@ -1,6 +1,10 @@
+import type { KnowledgeEntry, KnowledgeOwnerPort } from '@trapmap/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { buildReviewQueueProjection } from './review-queue-projection.js';
+import {
+  buildOwnerReviewQueueProjection,
+  buildReviewQueueProjection,
+} from './review-queue-projection.js';
 
 function createKnowledgeEntryRecord() {
   return {
@@ -85,6 +89,63 @@ function createKnowledgeEntryRecord() {
 }
 
 describe('buildReviewQueueProjection', () => {
+  it('builds queue items from the normalized knowledge owner port', async () => {
+    const raw = createKnowledgeEntryRecord();
+    const owner = { id: 'owner-1', handle: 'owner', securityLevel: 7 };
+    const entry = {
+      ...raw,
+      owner,
+      latestRevision: { ...raw.latestRevision, submittedBy: owner, reviewNotes: [] },
+      history: raw.history.map((revision) => ({
+        ...revision,
+        submittedBy: owner,
+        reviewNotes: [],
+      })),
+      latestSubmission: {
+        ...raw.submissionHistory[0]!,
+        submittedBy: owner,
+        reviewerDecision: null,
+        reviewNotes: [],
+      },
+      submissionHistory: raw.submissionHistory.map((submission) => ({
+        ...submission,
+        submittedBy: owner,
+        reviewerDecision: null,
+        reviewNotes: [],
+      })),
+      reviewHistory: [],
+      reviewNotes: [],
+      lifecycleHistory: [],
+    } as unknown as KnowledgeEntry;
+    const knowledge: Pick<KnowledgeOwnerPort, 'listByFilter'> = {
+      async listByFilter() {
+        return [entry];
+      },
+    };
+
+    const projection = await buildOwnerReviewQueueProjection(knowledge, {
+      auth: {
+        subjectType: 'user',
+        activeTeamId: 'team-1',
+        securityLevel: 9,
+      },
+    });
+
+    expect(projection).toEqual({
+      items: [
+        {
+          entry,
+          agentReview: entry.agentReview,
+          submittedBy: owner,
+          latestSubmission: entry.latestSubmission,
+          reviewNotes: [],
+          lastDecision: null,
+        },
+      ],
+      total: 1,
+    });
+  });
+
   it('builds governance review queue items without server package helpers', async () => {
     const entry = createKnowledgeEntryRecord();
     const repos = {
