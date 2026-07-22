@@ -215,6 +215,8 @@ Graph rebuild count hardening：Task-9 coordinator 现在以 `knowledgeEntries.l
 
 Legacy source adapter follow-up：`scripts/legacy-snapshot-source.ts` 是 Task-9-only PostgreSQL reader，唯一执行 `SELECT data FROM store_snapshot WHERE key = 'main'` 的 source access；它不导入 compatibility store 或 server types，并拒绝缺失任一 owner bucket、无效 counters/promptVersion/rebuildState 的 JSONB row。TDD RED：缺少 source module；GREEN：`rtk pnpm --config.store-dir=/tmp/pnpm-store test:file -- scripts/__tests__/legacy-snapshot-source.test.ts`（2/2）验证 singleton single-read 与缺桶拒绝。真实 target owner wiring、graph rebuild 与 representative DB evidence 仍待完成。
 
+Owner wiring follow-up：`scripts/legacy-snapshot-owner-wiring.ts` 现在使用各 service 的直接 owner-local module（identity audit importer、knowledge/artifact owners、candidate bundle、governance bundle）构造 Task-9 importer dependencies；不使用 workspace runtime alias、server store 或 runtime-infra。graph rebuild 仍为显式 knowledge-read owner callback，不回退到 legacy graph repository。focused wiring test（1/1）通过。直接单文件 `tsc` 仅被既有 `service-governance-review/src/admin.ts` 类型错误及未加载项目 pg declaration 阻断，未报告 wiring 映射错误；完整 package/root typecheck 仍待现有 worktree 错误修复后执行。
+
 ## Deferred 边界
 
 平台化、物理 database isolation/PgBouncer、工程维护热点和未证实安全候选仍由 [`open-debt-and-compromises.md`](open-debt-and-compromises.md) 管理，不得与本主线并行启动。
