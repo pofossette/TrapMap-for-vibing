@@ -428,7 +428,7 @@ async function llmClassify(
 
   try {
     const { judgeDuplicateWithLLM } = await import(
-      '../../packages/server/src/lib/candidates/llm-dedup.js'
+      '../../packages/service-candidate-ingestion/src/llm-dedup.js'
     );
     const { createAiProviders, loadAiProviderConfig } = await import('@trapmap/ai-providers');
 

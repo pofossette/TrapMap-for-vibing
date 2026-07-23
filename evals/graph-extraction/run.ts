@@ -191,7 +191,7 @@ export async function performLLMExtraction(
   try {
     // Dynamic imports to avoid loading AI modules in dry-run
     const { extractSegmentEntities } = await import(
-      '../../packages/server/src/lib/indexing/graph-lite/llm-extract.js'
+      '../../packages/service-knowledge-read/src/graph-llm-extract.js'
     );
     const { createAiProviders, loadAiProviderConfig } = await import('@trapmap/ai-providers');
 

@@ -41,6 +41,26 @@ const alias = [
     replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
   },
   {
+    find: /^@trapmap\/ai-providers\/(.+)\.js$/,
+    replacement: resolve(__dirname, './packages/ai-providers/src/$1.ts'),
+  },
+  {
+    find: /^@trapmap\/service-knowledge-read\/(.+)\.js$/,
+    replacement: resolve(__dirname, './packages/service-knowledge-read/src/$1.ts'),
+  },
+  {
+    find: /^@trapmap\/service-knowledge-write\/(.+)\.js$/,
+    replacement: resolve(__dirname, './packages/service-knowledge-write/src/$1.ts'),
+  },
+  {
+    find: /^@trapmap\/service-candidate-ingestion\/(.+)\.js$/,
+    replacement: resolve(__dirname, './packages/service-candidate-ingestion/src/$1.ts'),
+  },
+  {
+    find: /^@trapmap\/service-governance-review\/(.+)\.js$/,
+    replacement: resolve(__dirname, './packages/service-governance-review/src/$1.ts'),
+  },
+  {
     find: '@trapmap/service-knowledge-read',
     replacement: resolve(__dirname, './packages/service-knowledge-read/src/index.ts'),
   },

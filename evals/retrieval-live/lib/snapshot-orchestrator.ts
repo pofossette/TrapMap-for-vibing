@@ -18,9 +18,14 @@ import {
   liveSnapshotMetaSchema,
 } from '@trapmap/contracts/evals';
 
-import { loadConfig } from '../../../packages/server/src/config.js';
-import type { SkillShareerRepos } from '../../../packages/server/src/lib/repos/index.js';
-import { hashSecret, nowIso } from '../../../packages/server/src/lib/store.js';
+import { createHash } from 'node:crypto';
+
+import { loadConfig } from '../../../packages/host-local/src/nest/config/config.js';
+import { nowIso } from '../../../packages/host-local/src/nest/runtime/now-iso.js';
+
+function hashSecret(secret: string): string {
+  return createHash('sha256').update(secret).digest('hex');
+}
 import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
 
 import { detectServiceProfile, materializeCorpusRecords } from './snapshot-support.js';
@@ -142,22 +147,17 @@ export async function restoreSnapshot(
     );
   }
 
-  const composed = buildPostgresComposedServer(databaseUrl);
-  const app = composed.app;
+  const composed = await buildPostgresComposedServer(databaseUrl);
+  const { services } = composed;
+  const pool = services.store.getPool() as import('pg').Pool;
 
   try {
-    await app.ready();
-    const repos = app.skillShareer.repos;
-    if (!repos) {
-      throw new Error('Snapshot restore requires PostgreSQL mode (repos not available)');
-    }
-
     // Step 1: Truncate all retrieval-related tables
-    await truncateRetrievalTables(repos);
+    await truncateRetrievalTables(pool);
 
     // Step 2: Create eval runner user
     const actorId = 'user_eval_runner';
-    await repos.user.insert({
+    await services.identity.userRepo.insert({
       id: actorId,
       handle: 'eval-runner',
       notes: null,
@@ -167,21 +167,21 @@ export async function restoreSnapshot(
 
     // Step 3: Import corpus data based on derivation mode
     if (meta.derivationContext.mode === 'frozen') {
-      await importFrozenCorpus(repos, corpus, actorId);
+      await importFrozenCorpus(pool, services, corpus, actorId);
     } else {
-      await importRebuildCorpus(repos, corpus, actorId);
+      await importRebuildCorpus(pool, services, corpus, actorId);
     }
 
     // Step 4: Rebuild graph projection from graph index documents
     const graphDocs = (corpus.graphIndexDocuments ?? []) as Array<Record<string, unknown>>;
     if (graphDocs.length > 0) {
-      await app.skillShareer.graphQueryBackend.rebuildProjection(
-        graphDocs as Parameters<typeof app.skillShareer.graphQueryBackend.rebuildProjection>[0],
+      await services.graphQueryBackend.rebuildProjection(
+        graphDocs as Parameters<typeof services.graphQueryBackend.rebuildProjection>[0],
       );
     }
 
     // Step 5: Health check
-    const health = await collectIndexHealth(repos);
+    const health = await collectIndexHealth(pool);
 
     return { meta, health };
   } finally {
@@ -193,13 +193,7 @@ export async function restoreSnapshot(
 // Table Truncation
 // =============================================================================
 
-async function truncateRetrievalTables(repos: SkillShareerRepos): Promise<void> {
-  // Use the knowledge repo's pool directly for TRUNCATE
-  // The repos share a pool, so we can use any repo's access
-  const pool = (repos as unknown as { _pool?: import('pg').Pool })._pool;
-  if (!pool) {
-    throw new Error('Cannot access database pool from repos');
-  }
+async function truncateRetrievalTables(pool: import('pg').Pool): Promise<void> {
   const tableList = RETRIEVAL_TRUNCATE_TABLES.join(', ');
   await pool.query(`TRUNCATE TABLE ${tableList} CASCADE`);
 }
@@ -214,24 +208,38 @@ async function truncateRetrievalTables(repos: SkillShareerRepos): Promise<void> 
  * index state, and capsule index tables.
  */
 async function importFrozenCorpus(
-  repos: SkillShareerRepos,
+  pool: import('pg').Pool,
+  services: import(
+    '../../../packages/host-local/src/nest/runtime/host-services.js',
+  ).HostLocalServices,
   corpus: Record<string, unknown>,
   _actorId: string,
 ): Promise<void> {
   const _createdAt = nowIso();
 
-  await materializeCorpusRecords(repos as never, corpus);
+  const repos = {
+    knowledge: {
+      insert: (record: Record<string, unknown>) => services.knowledgeOwner.submit(record as never),
+    },
+    artifact: {
+      insert: (record: Record<string, unknown>) => services.artifactWriter.insert(record as never),
+    },
+    graphIndex: {
+      upsert: (record: Record<string, unknown>) => services.graphIndex.upsert(record as never),
+    },
+  };
+  await materializeCorpusRecords(repos, corpus);
 
   // Import capsule embeddings (frozen mode only)
   const capsuleEmbeddings = (corpus.capsuleEmbeddings ?? []) as Array<Record<string, unknown>>;
   if (capsuleEmbeddings.length > 0) {
-    await importCapsuleEmbeddings(repos, capsuleEmbeddings);
+    await importCapsuleEmbeddings(pool, capsuleEmbeddings);
   }
 
   // Import capsule keywords (frozen mode only)
   const capsuleKeywords = (corpus.capsuleKeywords ?? []) as Array<Record<string, unknown>>;
   if (capsuleKeywords.length > 0) {
-    await importCapsuleKeywords(repos, capsuleKeywords);
+    await importCapsuleKeywords(pool, capsuleKeywords);
   }
 }
 
@@ -244,13 +252,27 @@ async function importFrozenCorpus(
  * The indexing pipeline will re-derive embeddings, keywords, and graph docs.
  */
 async function importRebuildCorpus(
-  repos: SkillShareerRepos,
+  _pool: import('pg').Pool,
+  services: import(
+    '../../../packages/host-local/src/nest/runtime/host-services.js',
+  ).HostLocalServices,
   corpus: Record<string, unknown>,
   _actorId: string,
 ): Promise<void> {
   const _createdAt = nowIso();
 
-  await materializeCorpusRecords(repos as never, corpus, (entry) => ({
+  const repos = {
+    knowledge: {
+      insert: (record: Record<string, unknown>) => services.knowledgeOwner.submit(record as never),
+    },
+    artifact: {
+      insert: (record: Record<string, unknown>) => services.artifactWriter.insert(record as never),
+    },
+    graphIndex: {
+      upsert: (record: Record<string, unknown>) => services.graphIndex.upsert(record as never),
+    },
+  };
+  await materializeCorpusRecords(repos, corpus, (entry) => ({
     ...entry,
     embeddingCache: undefined,
     indexState: undefined,
@@ -266,12 +288,9 @@ async function importRebuildCorpus(
  * Uses raw SQL since there's no dedicated repository method for bulk import.
  */
 async function importCapsuleEmbeddings(
-  repos: SkillShareerRepos,
+  pool: import('pg').Pool,
   embeddings: Array<Record<string, unknown>>,
 ): Promise<void> {
-  const pool = (repos as unknown as { _pool?: import('pg').Pool })._pool;
-  if (!pool) return;
-
   for (const row of embeddings) {
     await pool.query(
       `INSERT INTO skill_artifact_capsule_embeddings (capsule_id, artifact_id, embedding, created_at, updated_at)
@@ -292,12 +311,9 @@ async function importCapsuleEmbeddings(
  * Import capsule keyword rows into skill_artifact_capsule_keywords.
  */
 async function importCapsuleKeywords(
-  repos: SkillShareerRepos,
+  pool: import('pg').Pool,
   keywords: Array<Record<string, unknown>>,
 ): Promise<void> {
-  const pool = (repos as unknown as { _pool?: import('pg').Pool })._pool;
-  if (!pool) return;
-
   for (const row of keywords) {
     await pool.query(
       `INSERT INTO skill_artifact_capsule_keywords (capsule_id, artifact_id, tokens, field_tokens, created_at, updated_at)
@@ -322,12 +338,7 @@ async function importCapsuleKeywords(
 /**
  * Collect index health summary from the test database.
  */
-async function collectIndexHealth(repos: SkillShareerRepos): Promise<IndexHealthSummary> {
-  const pool = (repos as unknown as { _pool?: import('pg').Pool })._pool;
-  if (!pool) {
-    return emptyIndexHealth();
-  }
-
+async function collectIndexHealth(pool: import('pg').Pool): Promise<IndexHealthSummary> {
   return collectAvailableIndexHealth(pool);
 }
 

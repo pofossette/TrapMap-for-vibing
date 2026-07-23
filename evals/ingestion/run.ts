@@ -86,7 +86,9 @@ async function main(): Promise<void> {
   console.log('');
 
   // Dynamic import of deriveFromPayloads (avoids loading server modules at top level)
-  const { deriveFromPayloads } = await import('../../packages/server/src/lib/artifacts/derive.js');
+  const { deriveFromPayloads } = await import(
+    '../../packages/service-knowledge-write/src/artifact-derive-from-payloads.js'
+  );
 
   // Evaluate each bundle
   const results = [];

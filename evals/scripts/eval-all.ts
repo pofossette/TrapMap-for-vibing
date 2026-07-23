@@ -512,7 +512,7 @@ async function runIngestionEval(options: EvalAllOptions): Promise<IngestionResul
     const { runAssertions } = await import('../ingestion/assertions.js');
     const { aggregateMetrics } = await import('../ingestion/metrics.js');
     const { deriveFromPayloads } = await import(
-      '../../packages/server/src/lib/artifacts/derive.js'
+      '../../packages/service-knowledge-write/src/artifact-derive-from-payloads.js'
     );
 
     const fixtures = options.tier === 'smoke' ? getSmokeFixtures() : derivationFixtures;

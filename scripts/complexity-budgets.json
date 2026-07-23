@@ -2,11 +2,7 @@
   "docRules": [
     {
       "file": "docs/guides/CODE_GUIDE.md",
-      "mustContain": [
-        "buildServer()",
-        "packages/server/src/lib/README.md",
-        "packages/server/src/routes/README.md"
-      ],
+      "mustContain": [],
       "mustNotContain": ["createApp()"]
     },
     {
@@ -36,7 +32,6 @@
         "运行时指标快照语义",
         "队列 / outbox 可靠性策略",
         "Phase 1 server/backend-core boundary freeze",
-        "packages/server/src/lib/persistence/schema/index.ts",
         "packages/service-*/src/migrations.ts",
         "packages/service-*",
         "thin assembly",
@@ -59,10 +54,6 @@
         "packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts",
         "docker-compose.yml",
         "Phase 6 mature-capability / library-replacement freeze",
-        "packages/server/src/lib/runtime/resilience.ts",
-        "packages/server/src/lib/runtime/metrics.ts",
-        "packages/server/src/lib/cache/invalidation.ts",
-        "packages/server/src/lib/graph-query/config.ts",
         "不是当前内置运行时默认值",
         "Node `24`",
         "DOCS_TRUTH_MATRIX.md"
@@ -73,8 +64,7 @@
       "mustContain": [
         "Phase 5 六服务 ownership 冻结补充事实",
         "`knowledge-write` 拥有 knowledge/trap/evidence 写模型真相",
-        "`job-runtime` 只拥有 queue/outbox/worker/retry/reclaim/status 等 runtime 编排",
-        "`packages/server` 当前是 compatibility shell 与 runtime/status surface"
+        "`job-runtime` 只拥有 queue/outbox/worker/retry/reclaim/status 等 runtime 编排"
       ]
     },
     {
@@ -83,9 +73,7 @@
     },
     {
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
-      "mustContain": [
-        "`packages/server` 是 Fastify compatibility shell 与 shared runtime/status seam，不再承担默认 light 宿主职责，也不再提供本地宿主 rollback 入口。"
-      ]
+      "mustContain": []
     },
     {
       "file": "docs/reference/REPO_STRUCTURE.md",
@@ -120,11 +108,7 @@
     },
     {
       "file": "docs/guides/GETTING_STARTED.md",
-      "mustContain": [
-        "PostgreSQL 设置（推荐）",
-        ".data/skill-shareer.json",
-        "pnpm --filter @trapmap/server db:migrate"
-      ],
+      "mustContain": ["PostgreSQL 设置（推荐）", ".data/skill-shareer.json"],
       "mustNotContain": [
         "PostgreSQL 模式（可选）",
         ".data/trapmap.json",
@@ -160,7 +144,10 @@
         "当前未内置 `/metrics` 端点"
       ],
       "mustNotContainRegex": ["gpt-4o(?!-)"],
-      "mustContainCount": { "pattern": "PostgreSQL", "minOccurrences": 3 }
+      "mustContainCount": {
+        "pattern": "PostgreSQL",
+        "minOccurrences": 3
+      }
     },
     {
       "file": "docs/operations/OBSERVABILITY-VERIFICATION.md",
@@ -183,7 +170,7 @@
     },
     {
       "file": "docs/reference/DATABASE_SCHEMA.md",
-      "mustContain": ["63 张表", "packages/server/src/lib/persistence/schema"],
+      "mustContain": ["63 张表"],
       "mustNotContain": ["48 张表", "54 张表", "56 张表"]
     },
     {
@@ -318,10 +305,6 @@
         "`pnpm eval:ci:core`",
         "Node `24`",
         "### Phase 1 closure freeze (G1 `#1-#10`)",
-        "`packages/server` 只保留 Fastify compatibility shell 与 shared runtime/status seam",
-        "packages/server/src/lib/*/repository.ts",
-        "packages/server/src/lib/repos/index.ts",
-        "Drizzle schema 与 migration 执行 owner 继续冻结在 `packages/server`",
         "`service-*` 只承载 owner-aligned thin assembly",
         "### Phase 2 closure freeze (G2 `#11-#16`)",
         "compatibility JSONB store",
@@ -436,7 +419,8 @@
     },
     {
       "file": "docs/architecture/components/ASYNC_INFRASTRUCTURE.md",
-      "mustNotContain": ["DualWriteKnowledgeRepository", "DualWriteArtifactRepository"]
+      "mustNotContain": ["DualWriteKnowledgeRepository", "DualWriteArtifactRepository"],
+      "mustContain": []
     },
     {
       "file": "docs/architecture/components/ARTIFACTS.md",
@@ -485,7 +469,6 @@
         "Phase 4 数据、运维与退役收尾",
         "packages/host-local/src/nest/**",
         "## Phase 1 Server / Backend-Core boundary freeze",
-        "`packages/server` 保留 Fastify compatibility shell 与 shared runtime/status seam",
         "`packages/backend-core` 不是“仅接口”空壳",
         "`packages/service-*` 只承载 owner-aligned thin assembly",
         "## Phase 2 Store Snapshot / PG-first posture freeze",
@@ -631,9 +614,21 @@
     }
   ],
   "lineBudgets": [
-    { "file": "packages/server/src/app.ts", "maxLines": 350 },
-    { "file": "packages/server/src/routes/candidates.ts", "maxLines": 150 },
-    { "file": "packages/server/src/lib/persistence/schema.ts", "maxLines": 200 },
-    { "file": "packages/server/src/lib/artifacts/pg-repository.ts", "maxLines": 250 }
+    {
+      "file": "packages/host-local/src/nest/app.module.ts",
+      "maxLines": 350
+    },
+    {
+      "file": "packages/host-local/src/nest/gateway/candidate-review.controller.ts",
+      "maxLines": 150
+    },
+    {
+      "file": "packages/persistence-schema/src/knowledge.ts",
+      "maxLines": 200
+    },
+    {
+      "file": "packages/service-knowledge-write/src/artifact-ports.ts",
+      "maxLines": 250
+    }
   ]
 }

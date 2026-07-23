@@ -6,12 +6,15 @@ import { buildVitestCommandArgs, resolveVitestFileTarget } from '../run-vitest-f
 
 function createRepoFixture(): string {
   const repoRoot = mkdtempSync(join(tmpdir(), 'trapmap-vitest-file-'));
-  mkdirSync(join(repoRoot, 'packages/server/src/lib/runtime'), { recursive: true });
+  mkdirSync(join(repoRoot, 'packages/host-local/src/nest/runtime'), { recursive: true });
   mkdirSync(join(repoRoot, 'packages/contracts/src'), { recursive: true });
   mkdirSync(join(repoRoot, 'evals/retrieval/lib'), { recursive: true });
   mkdirSync(join(repoRoot, 'scripts/__tests__'), { recursive: true });
 
-  writeFileSync(join(repoRoot, 'packages/server/src/lib/runtime/metrics.test.ts'), 'export {};');
+  writeFileSync(
+    join(repoRoot, 'packages/host-local/src/nest/runtime/metrics.test.ts'),
+    'export {};',
+  );
   writeFileSync(join(repoRoot, 'packages/contracts/src/index.test.ts'), 'export {};');
   writeFileSync(join(repoRoot, 'evals/retrieval/lib/metrics.test.ts'), 'export {};');
   writeFileSync(join(repoRoot, 'scripts/__tests__/check-doc-drift.test.ts'), 'export {};');
@@ -20,17 +23,17 @@ function createRepoFixture(): string {
 }
 
 describe('resolveVitestFileTarget', () => {
-  it('routes a repo-root-relative server file to the server project', () => {
+  it('routes a repo-root-relative host-local file to the host-local project', () => {
     const repoRoot = createRepoFixture();
     const target = resolveVitestFileTarget(
-      'packages/server/src/lib/runtime/metrics.test.ts',
+      'packages/host-local/src/nest/runtime/metrics.test.ts',
       repoRoot,
       repoRoot,
     );
 
-    expect(target.projectName).toBe('server');
-    expect(target.repoRelativePath).toBe('packages/server/src/lib/runtime/metrics.test.ts');
-    expect(target.projectFilePath).toBe('src/lib/runtime/metrics.test.ts');
+    expect(target.projectName).toBe('host-local');
+    expect(target.repoRelativePath).toBe('packages/host-local/src/nest/runtime/metrics.test.ts');
+    expect(target.projectFilePath).toBe('src/nest/runtime/metrics.test.ts');
   });
 
   it('routes a cwd-relative file inside a package to the owning project', () => {
@@ -76,7 +79,7 @@ describe('resolveVitestFileTarget', () => {
 
     expect(() =>
       resolveVitestFileTarget(
-        'packages/server/src/lib/runtime/missing.test.ts',
+        'packages/host-local/src/nest/runtime/missing.test.ts',
         repoRoot,
         repoRoot,
       ),

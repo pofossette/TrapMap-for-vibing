@@ -1,89 +1,147 @@
-import pg from 'pg';
+/**
+ * PostgreSQL eval composition using the host-local runtime.
+ *
+ * Creates a minimal Fastify app with retrieval routes for HTTP testing,
+ * backed by the host-local runtime services.
+ */
 
-import { createJobRuntimeModule } from '../../packages/backend-core/src/index.js';
-import { buildServer, type BuildServerOptions } from '../../packages/server/src/app.js';
-import {
-  createJobRuntimeAsyncTransport,
-  createJobRuntimeOutboxConsumer,
-} from '../../packages/service-job-runtime/src/index.js';
-import { createIdentityAccessPgDeps } from '../../packages/service-identity-access/src/pg-ports.js';
-import {
-  createKnowledgeWriteOwnerBundle,
-  type ArtifactWritePort,
-} from '../../packages/service-knowledge-write/src/pg-ports.js';
-import { createGovernanceReviewPgOwnerBundle } from '../../packages/service-governance-review/src/pg-ports.js';
-import {
-  createKnowledgeReadGraphIndexRepository,
-  createMemoryGraphQueryBackend,
-} from '../../packages/service-knowledge-read/src/index.js';
+import type { FastifyInstance } from 'fastify';
+import Fastify from 'fastify';
+
 import type { KnowledgeOwnerPort } from '../../packages/contracts/src/index.js';
+import {
+  createHostLocalRuntime,
+  type HostLocalRuntime,
+} from '../../packages/host-local/src/nest/runtime/host-runtime.js';
+import type { HostLocalServices } from '../../packages/host-local/src/nest/runtime/host-services.js';
+import type { ArtifactWritePort } from '../../packages/service-knowledge-write/src/artifact-ports.js';
 
 export interface PostgresComposedServer {
-  app: ReturnType<typeof buildServer>;
-  pool: pg.Pool;
+  /** Fastify app for HTTP injection testing. */
+  app: FastifyInstance;
+  /** Full host-local runtime with retrieval, identity, queue, etc. */
+  runtime: HostLocalRuntime;
+  /** Service-owner ports (identity, knowledge, governance, graph, etc.). */
+  services: HostLocalServices;
+  /** Artifact write port from service-knowledge-write. */
   artifactWriter: ArtifactWritePort;
+  /** Knowledge owner port from service-knowledge-write. */
   knowledgeOwner: KnowledgeOwnerPort;
   close(): Promise<void>;
 }
 
-/** Host-equivalent PostgreSQL composition for evals and one-shot scripts. */
-export function buildPostgresComposedServer(
+/**
+ * Build a PostgreSQL-backed eval composition using the host-local runtime.
+ * Sets TRAPMAP_DATABASE_URL before creating the runtime so it connects
+ * to the eval database.
+ */
+export async function buildPostgresComposedServer(
   databaseUrl: string,
-  options: Omit<BuildServerOptions, 'identityBundle' | 'pool'> = {},
-): PostgresComposedServer {
-  const pool = new pg.Pool({ connectionString: databaseUrl });
-  const identity = createIdentityAccessPgDeps(pool);
-  const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
-  const governanceReview = createGovernanceReviewPgOwnerBundle(pool);
-  const graphIndex = createKnowledgeReadGraphIndexRepository(pool);
-  const graphQueryBackend = options.graphQueryBackend ?? createMemoryGraphQueryBackend(graphIndex);
-  const graphQuery = options.graphQuery ??
-    options.graphQueryBackend?.getRuntimeState() ?? {
-      backendKind: 'memory' as const,
-      failOpen: true,
-      mode: 'disabled' as const,
-    };
-  const asyncTransport = createJobRuntimeAsyncTransport({
-    config: {
-      asyncTaskTransport: {
-        provider: 'postgres',
-        rabbitmq: null,
-      },
-    },
-    pool,
+): Promise<PostgresComposedServer> {
+  // Configure env before createHostLocalRuntime reads config
+  process.env.TRAPMAP_DATABASE_URL = databaseUrl;
+  process.env.OTEL_DISABLED = 'true';
+
+  const runtime = await createHostLocalRuntime();
+  const services = runtime.services;
+
+  // Create a minimal Fastify app with retrieval routes for HTTP testing
+  const app = Fastify({ logger: false });
+
+  // Register retrieval search route
+  app.post('/v1/retrieval/search', async (request, reply) => {
+    try {
+      const body = request.body as Record<string, unknown>;
+      const authHeader = request.headers.authorization;
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+      // Resolve auth context from session token
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const session = await services.identity.sessionLookup.getByTokenHash(
+        createHash('sha256').update(token).digest('hex'),
+      );
+      if (!session) {
+        return reply.status(401).send({ error: 'Invalid session' });
+      }
+
+      const result = await runtime.retrievalQuery.search({
+        query: body.query as string,
+        teamId: body.teamId as string | undefined,
+        limit: body.limit as number | undefined,
+      });
+
+      return reply.send(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return reply.status(500).send({ error: message });
+    }
   });
-  const app = buildServer({
-    ...options,
-    config: { ...options.config, databaseUrl },
-    identityBundle: createIdentityAccessPgDeps(pool),
-    artifactReadProjection: knowledgeWrite.artifactReadProjection,
-    knowledgeOwner: knowledgeWrite.knowledgeOwner,
-    governanceRetrievalProjection: governanceReview.retrievalProjection,
-    graphIndex,
-    graphQueryBackend,
-    graphQuery,
-    asyncTransport,
-    jobRuntime: createJobRuntimeModule({
-      queuePorts: {
-        task: asyncTransport.task,
-        outbox: asyncTransport.outbox,
-      },
-      auditLog: identity.auditLog,
-    }),
-    outboxWorkerFactory: {
-      create: (worker) => createJobRuntimeOutboxConsumer(worker),
-    },
-    pool,
+
+  // Register skill lookup route
+  app.post('/v1/retrieval/skills/search-by-content', async (request, reply) => {
+    try {
+      const body = request.body as Record<string, unknown>;
+      const authHeader = request.headers.authorization;
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+      if (!token) {
+        return reply.status(401).send({ error: 'Unauthorized' });
+      }
+
+      const session = await services.identity.sessionLookup.getByTokenHash(
+        createHash('sha256').update(token).digest('hex'),
+      );
+      if (!session) {
+        return reply.status(401).send({ error: 'Invalid session' });
+      }
+
+      const result = await runtime.retrievalQuery.search({
+        query: body.text as string,
+        limit: body.maxResults as number | undefined,
+      });
+
+      return reply.send(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return reply.status(500).send({ error: message });
+    }
   });
-  const closeApp = app.close.bind(app);
+
+  // Register auth session route
+  app.post('/v1/auth/session', async (request, reply) => {
+    try {
+      const body = request.body as Record<string, unknown>;
+      const token = `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+      await services.identity.sessionRepo.create({
+        userId: body.userId as string,
+        tokenHash: createHash('sha256').update(token).digest('hex'),
+        activeTeamId: (body.activeTeamId as string) ?? null,
+        subjectType: (body.subjectType as string) ?? 'user',
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      });
+
+      return reply.send({ token });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return reply.status(500).send({ error: message });
+    }
+  });
 
   return {
     app,
-    pool,
-    artifactWriter: knowledgeWrite.artifactWriter,
-    knowledgeOwner: knowledgeWrite.knowledgeOwner,
+    runtime,
+    services,
+    artifactWriter: services.artifactWriter,
+    knowledgeOwner: services.knowledgeOwner,
     async close() {
-      await closeApp();
+      await app.close();
+      await services.close();
     },
   };
 }
+
+import { createHash } from 'node:crypto';

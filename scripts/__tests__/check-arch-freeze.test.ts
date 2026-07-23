@@ -7,7 +7,7 @@ import {
 } from '../check-arch-freeze';
 
 describe('checkFile', () => {
-  const filePath = 'packages/server/src/app.ts';
+  const filePath = 'packages/host-local/src/nest/app.module.ts';
 
   // ── mustContain ──────────────────────────────────────────────────
 

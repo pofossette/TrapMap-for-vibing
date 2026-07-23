@@ -6,27 +6,35 @@
  * Executes through explicit adapters that record execution path and fallback usage.
  */
 
+import { createHash } from 'node:crypto';
+
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 
 import type {
+  GraphIndexDocumentRecord,
   RetrievalQuery,
   RetrievalV2Query,
   SkillArtifact,
   SkillLookupQuery,
 } from '@trapmap/contracts';
 import type { RetrievalEvalCase, RetrievalEvalScenario } from '@trapmap/contracts/evals';
-import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
-import type { ArtifactWritePort } from '../../../packages/service-knowledge-write/src/artifact-ports.js';
-import type { KnowledgeOwnerPort } from '../../../packages/contracts/src/index.js';
-import { resetRetrievalReadModelCacheForTests } from '../../../packages/server/src/lib/cache/retrieval-read-model-cache.js';
-import type { GraphIndexDocumentRecord } from '../../../packages/server/src/lib/indexing/graph-lite/documents.js';
-import { createKnowledgeEntryRecord } from '../../../packages/server/src/lib/knowledge.js';
-import { hashSecret, nowIso } from '../../../packages/server/src/lib/store.js';
+import type { HostLocalRuntime } from '../../../packages/host-local/src/nest/runtime/host-runtime.js';
+import type { HostLocalServices } from '../../../packages/host-local/src/nest/runtime/host-services.js';
+import { nowIso } from '../../../packages/host-local/src/nest/runtime/now-iso.js';
+import { resetRetrievalReadModelCacheForTests } from '../../../packages/service-knowledge-read/src/retrieval-read-model-cache.js';
 import type {
   DerivedSkillCapsuleRecord,
   KnowledgeRecord,
-} from '../../../packages/server/src/lib/store.js';
+} from '../../../packages/service-knowledge-read/src/store.js';
+import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
+import type { ArtifactWritePort } from '../../../packages/service-knowledge-write/src/artifact-ports.js';
+import { createKnowledgeEntryRecord } from '../../../packages/service-knowledge-write/src/knowledge-record-mutations.js';
+import type { KnowledgeOwnerPort } from '../../../packages/contracts/src/index.js';
+
+function hashSecret(secret: string): string {
+  return createHash('sha256').update(secret).digest('hex');
+}
 import { loadScenario } from './load.js';
 import { normalizeResponse } from './normalize.js';
 import { hydrateScenarioSnapshot } from './snapshot.js';
@@ -177,8 +185,12 @@ function buildArtifactFixtureFields(artifact: ArtifactFixture) {
  * Context for executing an eval case.
  */
 export interface ExecutionContext {
-  /** Fastify app instance */
+  /** Fastify app for HTTP injection. */
   app: FastifyInstance;
+  /** Host-local runtime with all service ports. */
+  runtime: HostLocalRuntime;
+  /** Host-local services (identity, graphIndex, graphQueryBackend, etc.). */
+  services: HostLocalServices;
   /** Host-owned PostgreSQL pool for fixture cleanup. */
   pool: Pool;
   /** Session token for authentication */
@@ -229,11 +241,11 @@ export async function createExecutionContext(options?: {
   if (!databaseUrl) {
     throw new Error('retrieval eval requires TRAPMAP_DATABASE_URL and PostgreSQL host composition');
   }
-  const composed = buildPostgresComposedServer(databaseUrl);
-  const app = composed.app;
-  await app.ready();
+  const composed = await buildPostgresComposedServer(databaseUrl);
+  const { app, runtime, services } = composed;
+  const pool = services.store.getPool() as Pool;
 
-  const identity = app.skillShareer.identity;
+  const identity = services.identity;
 
   // Create a system admin user and session for the eval runner
   const actorId = 'user_eval_runner';
@@ -253,7 +265,9 @@ export async function createExecutionContext(options?: {
 
   return {
     app,
-    pool: composed.pool,
+    runtime,
+    services,
+    pool,
     sessionToken,
     actorId,
     artifactWriter: composed.artifactWriter,
@@ -295,9 +309,9 @@ export async function closeExecutionContext(ctx: ExecutionContext): Promise<void
   // Eval cases run in isolated app instances, but a shared Neo4j projection can
   // outlive each case. Clear the projection before closing so graph-backed
   // scenarios do not leak fixture state into subsequent cases.
-  if (ctx.app.skillShareer.graphQueryBackend.isEnabled()) {
+  if (ctx.services.graphQueryBackend.isEnabled()) {
     try {
-      await ctx.app.skillShareer.graphQueryBackend.rebuildProjection([]);
+      await ctx.services.graphQueryBackend.rebuildProjection([]);
     } catch {
       // Ignore projection cleanup errors during teardown.
     }
@@ -343,7 +357,7 @@ export async function seedScenarioFixtures(
     []) as GraphIndexDocumentRecord[];
 
   const createdAt = nowIso();
-  const repos = ctx.app.skillShareer.repos;
+  const services = ctx.services;
 
   // Seed through owners so fixtures exercise the same aggregate/revision/lifecycle
   // transaction as commands.
@@ -408,13 +422,13 @@ export async function seedScenarioFixtures(
   }
 
   for (const graphDoc of fixtureGraphDocs) {
-    await repos.graphIndex.upsert(graphDoc);
+    await services.graphIndex.upsert(graphDoc as never);
   }
 
   // Keep the active graph backend aligned with the scenario fixture set. In
   // Neo4j-primary mode the PG truth source alone is insufficient, because
   // graph queries read from the projected backend during eval execution.
-  await ctx.app.skillShareer.graphQueryBackend.rebuildProjection(fixtureGraphDocs);
+  await services.graphQueryBackend.rebuildProjection(fixtureGraphDocs as never);
 
   // Set up actor session with scenario permissions
   await createActorSession(ctx, scenario.actor);
@@ -432,7 +446,7 @@ export async function createActorSession(
     permissions: string[];
   },
 ): Promise<string> {
-  const identity = ctx.app.skillShareer.identity;
+  const identity = ctx.services.identity;
   if (actor.activeTeamId) {
     const existing = await identity.teamRepo.getById(actor.activeTeamId);
     if (!existing) {

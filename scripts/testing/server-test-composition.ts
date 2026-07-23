@@ -1,52 +1,26 @@
-import {
-  resolveDeploymentProfileCompatibility,
-  resolveRuntimeDeployment,
-} from '../../packages/backend-core/src/index.js';
-import type { BuildServerOptions } from '../../packages/server/src/app.js';
-import { loadConfig } from '../../packages/host-local/src/nest/config/config.js';
-import { buildPostgresComposedServer } from './postgres-server-composition.js';
+/**
+ * Test server composition for integration and eval tests.
+ *
+ * Wraps the host-local Nest composition for tests that need a full
+ * PostgreSQL-backed server instance.
+ */
 
-type TestServerOptions = Pick<
-  BuildServerOptions,
-  | 'bodyLimit'
-  | 'config'
-  | 'graphQuery'
-  | 'graphQueryBackend'
-  | 'runtimeMode'
-  | 'serviceUnit'
-  | 'ownerReadModel'
->;
+import { loadConfig } from '../../packages/host-local/src/nest/config/config.js';
+import {
+  buildPostgresComposedServer,
+  type PostgresComposedServer,
+} from './postgres-server-composition.js';
 
 /**
- * Builds the compatibility shell through the dedicated PostgreSQL test
- * composition. The coordinator supplies TRAPMAP_DATABASE_URL.
+ * Build a test server backed by PostgreSQL using the host-local Nest host.
+ * Requires TRAPMAP_DATABASE_URL in the environment.
  */
-export async function buildPostgresTestServer(options: TestServerOptions = {}) {
-  const baseConfig = loadConfig();
-  const { config: configOverrides, ...serverOptions } = options;
-  const deploymentProfile = configOverrides?.deployment?.profile ?? baseConfig.deployment.profile;
-  const deploymentPreset = configOverrides?.deployment?.preset ?? baseConfig.deployment.preset;
-  const deploymentInput = { profile: deploymentProfile, preset: deploymentPreset };
-  const config = {
-    ...baseConfig,
-    ...configOverrides,
-    databaseUrl: baseConfig.databaseUrl,
-    runtime: { ...baseConfig.runtime, ...configOverrides?.runtime },
-    deployment: {
-      profile: deploymentProfile,
-      preset: deploymentPreset,
-      compatibility: resolveDeploymentProfileCompatibility(deploymentInput),
-      resolved: resolveRuntimeDeployment(deploymentInput),
-    },
-  };
+export async function buildPostgresTestServer(
+  options: { logger?: boolean } = {},
+): Promise<PostgresComposedServer> {
+  const config = loadConfig();
   if (!config.databaseUrl) {
     throw new Error('PostgreSQL test composition requires TRAPMAP_DATABASE_URL');
   }
-  const composed = buildPostgresComposedServer(config.databaseUrl, {
-    ...serverOptions,
-    config,
-  });
-  const app = composed.app;
-  app.close = composed.close;
-  return app;
+  return buildPostgresComposedServer(config.databaseUrl, options);
 }

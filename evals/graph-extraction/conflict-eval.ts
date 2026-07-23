@@ -405,7 +405,7 @@ async function llmClassify(
 
   try {
     const { judgeConflictWithLLM } = await import(
-      '../../packages/server/src/lib/conflict/llm-conflict.js'
+      '../../packages/service-governance-review/src/llm-conflict.js'
     );
     const { createAiProviders, loadAiProviderConfig } = await import('@trapmap/ai-providers');
 

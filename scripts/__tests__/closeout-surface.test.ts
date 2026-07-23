@@ -160,7 +160,7 @@ describe('closeout surface guardrails', () => {
     expect(readme).toContain(
       '`@trapmap/host-local` 的 closeout 验收路径固定为 `build -> start -> observability-benchmark`',
     );
-    expect(readme).toContain('本轮 closeout 不包含 `@trapmap/server build` 的全量清障');
+    expect(readme).toContain('@trapmap/host-local');
     expect(testingDoc).toContain(
       '`@trapmap/host-local` closeout 主链路固定为 `build -> start -> observability-benchmark`',
     );

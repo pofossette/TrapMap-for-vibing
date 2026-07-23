@@ -88,7 +88,9 @@ async function main(): Promise<void> {
   console.log(`Processing ${bundles.length} bundles...\n`);
 
   // Dynamic import
-  const { deriveFromPayloads } = await import('../../packages/server/src/lib/artifacts/derive.js');
+  const { deriveFromPayloads } = await import(
+    '../../packages/service-knowledge-write/src/artifact-derive-from-payloads.js'
+  );
 
   const summaries: SkillSummary[] = [];
 

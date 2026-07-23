@@ -56,7 +56,7 @@
 | `fastify` | HTTP 框架 |
 | `pg` | PostgreSQL 客户端 (用于 pgvector 语义搜索与 pg keyword recall) |
 
-普通业务文件不得直接导入 `@trapmap/server`。retrieval 默认装配与 support 默认装配均由 package-local seam 提供；若再次出现 `server` 直接导入，应视为边界回退。
+`@trapmap/server` 已退役。retrieval 默认装配与 support 默认装配均由 package-local seam 提供。
 
 entry snapshot 当前是 `temporary-direct-backed-projection`：生命周期失效后 status 会显示 `refresh-pending` 和 lag，operator 可显式 rebuild。它的退出条件是由 outbox 维护独立的 persisted projection；这不是新的默认跨 owner direct-read 路径。
 

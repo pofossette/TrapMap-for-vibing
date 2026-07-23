@@ -9,6 +9,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./ai-parse.js": {
+      "types": "./dist/ai-parse.d.ts",
+      "import": "./dist/ai-parse.js"
+    },
+    "./prompts.js": {
+      "types": "./dist/prompts.d.ts",
+      "import": "./dist/prompts.js"
+    },
+    "./prompts-knowledge.js": {
+      "types": "./dist/prompts-knowledge.d.ts",
+      "import": "./dist/prompts-knowledge.js"
     }
   },
   "scripts": {

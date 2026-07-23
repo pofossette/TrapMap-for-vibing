@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { RetrievalEvalScenario } from '@trapmap/contracts/evals';
-import { hashSecret } from '../../../packages/server/src/lib/store.js';
+import { createHash } from 'node:crypto';
+
+function hashSecret(secret: string): string {
+  return createHash('sha256').update(secret).digest('hex');
+}
 import {
   closeExecutionContext,
   createActorSession,

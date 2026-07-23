@@ -14,7 +14,7 @@
  * - Scores are calculated deterministically for reproducibility
  */
 
-import { buildClaimVerificationSystemPrompt } from '../../../packages/server/src/lib/ai/prompts.js';
+import { buildClaimVerificationSystemPrompt } from '../../../packages/ai-providers/src/prompts-knowledge.js';
 import { extractClaims, simplifyClaim } from './claims.js';
 import type {
   ClaimVerification,
