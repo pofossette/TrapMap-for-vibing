@@ -16,8 +16,17 @@ function getUniqueStorePath(name: string): string {
 }
 
 function createRepos(store: JsonStore, extra: Record<string, unknown> = {}) {
+  const graphIndex = {
+    insert: async () => undefined,
+    getById: async () => null,
+    listBySource: async () => [],
+    listAll: async () => [],
+    upsert: async () => undefined,
+    remove: async () => undefined,
+    removeBySource: async () => undefined,
+  };
   return createAllRepos({
-    store,
+    graphIndex,
     artifactReadProjection: { getById: async () => null } as never,
     knowledgeOwner: { getById: async () => null } as never,
     ...extra,

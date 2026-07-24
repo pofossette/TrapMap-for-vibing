@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 import { createRetrievalArtifactFixture, createRetrievalMockRepos } from '@trapmap/contracts';
 import type { SkillShareerRepos } from './context.js';
 
-import { buildRetrievalReadModel } from './read-model.js';
+import { buildOwnerReadModel, buildRetrievalReadModel } from './read-model.js';
 import { resetRetrievalReadModelCacheForTests } from './retrieval-read-model-cache.js';
 
 describe('buildRetrievalReadModel', () => {
@@ -25,6 +25,12 @@ describe('buildRetrievalReadModel', () => {
 
     expect(result.skillArtifacts).toEqual([artifact]);
     expect(result.skillArtifacts[0]).toBe(artifact);
+  });
+
+  it('builds the admin read projection from owner ports', async () => {
+    const repos = createRetrievalMockRepos() as unknown as SkillShareerRepos;
+
+    await expect(buildOwnerReadModel(repos)).resolves.toEqual(await buildRetrievalReadModel(repos));
   });
 
   it('reads retrieval feedback and scoped conflicts through the governance projection seam', async () => {

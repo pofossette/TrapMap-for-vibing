@@ -16,6 +16,7 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import {
   assertNoHardDependencyCycles,
@@ -42,6 +43,8 @@ export interface ArtifactGraphAdapterInput {
   chat?: ChatProvider;
   /** Optional query backend for PG truth + optional graph projection sync */
   graphQueryBackend?: GraphQueryBackend;
+  /** Knowledge-read-owned persistence port. */
+  graphIndex?: GraphIndexRepositoryPort;
 }
 
 /**
@@ -54,6 +57,8 @@ export interface ArtifactGraphAdapterRemoveInput {
   artifactId: string;
   /** Optional query backend for PG truth + optional graph projection sync */
   graphQueryBackend?: GraphQueryBackend;
+  /** Knowledge-read-owned persistence port. */
+  graphIndex?: GraphIndexRepositoryPort;
 }
 
 /**
@@ -104,7 +109,7 @@ export const artifactGraphIndexAdapter: ArtifactGraphAdapter = {
    * clientManifest.assets and clientManifest.scripts bodies.
    */
   async sync(input: ArtifactGraphAdapterInput): Promise<ArtifactGraphAdapterSyncResult> {
-    const { data, artifact, chat, graphQueryBackend } = input;
+    const { data, artifact, chat, graphQueryBackend, graphIndex } = input;
 
     try {
       // Build the graph document from derived text only
@@ -121,15 +126,19 @@ export const artifactGraphIndexAdapter: ArtifactGraphAdapter = {
 
       // Check for hard dependency cycles before persistence
       // Include existing documents excluding this artifact's current document
-      const existingDocs = getGraphIndexDocuments(data).filter(
-        (d) => !(d.sourceType === 'skill' && d.sourceId === artifact.id),
-      );
+      const existingDocs = (
+        graphIndex ? await graphIndex.listAll() : getGraphIndexDocuments(data)
+      ).filter((d) => !(d.sourceType === 'skill' && d.sourceId === artifact.id));
       const allDocs = [...existingDocs, doc];
 
       assertNoHardDependencyCycles(allDocs);
 
       // Persist the document
-      upsertGraphIndexDocument(data, doc);
+      if (graphIndex) {
+        await graphIndex.upsert(doc);
+      } else {
+        upsertGraphIndexDocument(data, doc);
+      }
 
       if (graphQueryBackend?.isEnabled()) {
         await graphQueryBackend.upsertDocument(doc);
@@ -158,8 +167,12 @@ export const artifactGraphIndexAdapter: ArtifactGraphAdapter = {
    * Removes all documents with sourceType='skill' and sourceId=artifactId.
    */
   async remove(input: ArtifactGraphAdapterRemoveInput): Promise<void> {
-    const { data, artifactId, graphQueryBackend } = input;
-    removeGraphIndexDocumentsForSource(data, 'skill', artifactId);
+    const { data, artifactId, graphQueryBackend, graphIndex } = input;
+    if (graphIndex) {
+      await graphIndex.removeBySource('skill', artifactId);
+    } else {
+      removeGraphIndexDocumentsForSource(data, 'skill', artifactId);
+    }
     if (graphQueryBackend?.isEnabled()) {
       await graphQueryBackend.removeSource('skill', artifactId);
     }

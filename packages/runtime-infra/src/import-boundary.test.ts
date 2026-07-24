@@ -34,6 +34,16 @@ describe('runtime-infra import boundary', () => {
     expect(source).not.toContain('./postgres-store.js');
     expect(source).not.toContain('instanceof PostgresStore');
   });
+
+  it('accepts graph projection persistence through a host-owned factory', async () => {
+    const root = path.resolve(import.meta.dirname, '..');
+    const source = await readFile(path.join(root, 'src/shared-infra.ts'), 'utf-8');
+
+    expect(source).toContain('graphIndexRepositoryFactory');
+    expect(source).toContain('config.graphIndexRepositoryFactory(pool)');
+    expect(source).not.toContain('@trapmap/service-knowledge-read');
+    expect(source).not.toContain('@trapmap/server/lib/graph-index');
+  });
 });
 
 it('does not retain knowledge-read assembly files', async () => {

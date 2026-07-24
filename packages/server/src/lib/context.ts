@@ -1,6 +1,8 @@
 import type {
   ArtifactReadProjection,
   ConflictRelation,
+  DecayState,
+  GraphIndexRepositoryPort,
   KnowledgeOwnerPort,
   Permission,
   RetrievalGovernanceProjection,
@@ -63,6 +65,40 @@ export interface OutboxWorkerFactory {
   }): RuntimeWorkerHandle;
 }
 
+/**
+ * Structural read-side projection injected by the knowledge-read owner.
+ * Compatibility routes use it only while the gateway package is being retired.
+ */
+export interface OwnerReadModelProjection {
+  getReadModel(): Promise<{
+    knowledgeEntries: Array<{
+      id: string;
+      teamId: string | null;
+      scope: string;
+      labels: string[];
+      shortcut: string;
+      detail: string;
+      requiredLevel: number;
+      lifecycleState: string;
+      updatedAt: string;
+      boundary: unknown | null;
+      indexState: unknown | null;
+      decayMeta: {
+        lastVerifiedAt: string;
+        decayState: DecayState;
+        supersededById: string | null;
+        freshnessType?: string;
+      } | null;
+      maintenanceMeta: {
+        maintainerUserId: string | null;
+        maintainerHandle: string | null;
+        maintainerLevel: number | null;
+        reviewBy: string | null;
+      } | null;
+    }>;
+  }>;
+}
+
 export interface SkillShareerServices {
   config: ServerConfig;
   runtimeDeployment: ResolvedRuntimeDeployment;
@@ -81,6 +117,10 @@ export interface SkillShareerServices {
   artifactReadProjection: ArtifactReadProjection;
   /** Wave-2 owner-injected command and operational projection compatibility port. */
   knowledgeOwner: KnowledgeOwnerPort;
+  /** Owner-built administrative read projection; never falls back to compatibility state. */
+  ownerReadModel?: OwnerReadModelProjection;
+  /** Derived graph projection injected by the knowledge-read owner. */
+  graphIndex: GraphIndexRepositoryPort;
   governanceRetrievalProjection?: RetrievalGovernanceProjection<
     import('./store.js').FeedbackQueueRecord,
     ConflictRelation

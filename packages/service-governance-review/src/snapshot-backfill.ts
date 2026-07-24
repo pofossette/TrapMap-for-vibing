@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+
 import type { FeedbackQueueRecord } from '@trapmap/backend-core';
 import type { ConflictRelation } from '@trapmap/contracts';
 
@@ -65,7 +67,7 @@ async function migrateRecords<T extends { id: string }>(
 }
 
 function recordsMatch<T>(left: T, right: T): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return isDeepStrictEqual(left, right);
 }
 
 export async function migrateGovernanceSnapshot(input: {

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   getGraphIndexDocuments,
@@ -122,6 +122,29 @@ describe('graph index adapter: durable persistence', () => {
     expect(graphDocs).toHaveLength(1);
     expect(graphDocs[0]!.sourceType).toBe('trap');
     expect(graphDocs[0]!.sourceId).toBe('test-entry-1');
+  });
+
+  it('persists through an injected graph owner port without reading the compatibility store', async () => {
+    const graphIndex = {
+      listAll: vi.fn().mockResolvedValue([]),
+      upsert: vi.fn().mockResolvedValue(undefined),
+      removeBySource: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const result = await graphIndexAdapter.sync(
+      testDocument,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      graphIndex as never,
+    );
+
+    expect(result.success).toBe(true);
+    expect(graphIndex.listAll).toHaveBeenCalledOnce();
+    expect(graphIndex.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceType: 'trap', sourceId: testDocument.entryId }),
+    );
   });
 
   it('stores an empty trap graph when no LLM extraction is available', async () => {

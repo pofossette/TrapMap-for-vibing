@@ -1,4 +1,4 @@
-import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+type BenchmarkKnowledgeEntry = { requiredLevel: number };
 
 /**
  * Benchmark result for a retrieval pipeline execution.
@@ -93,7 +93,7 @@ export async function measurePipelineStep<T>(
  * @returns Benchmark result with latency breakdown
  */
 export async function runRetrievalBenchmark(
-  entries: KnowledgeRecord[],
+  entries: BenchmarkKnowledgeEntry[],
   query: string,
   mode: 'semantic' | 'hybrid' | 'graph-assisted',
 ): Promise<RetrievalBenchmarkResult> {

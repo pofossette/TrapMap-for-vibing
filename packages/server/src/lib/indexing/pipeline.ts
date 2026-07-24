@@ -11,6 +11,7 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
@@ -129,6 +130,7 @@ export async function syncKnowledgeIndex(
     data: StoreData;
     ai?: { chat: ChatProvider };
     graphQueryBackend?: GraphQueryBackend;
+    graphIndex?: GraphIndexRepositoryPort;
   },
   entryId: string,
   registry: AdapterRegistry,
@@ -158,6 +160,7 @@ export async function syncKnowledgeIndex(
                 },
                 undefined,
                 services.graphQueryBackend,
+                services.graphIndex,
               )
             : adapter.remove({
                 entryId: entry.id,
@@ -207,6 +210,7 @@ export async function syncKnowledgeIndex(
             ai?.chat,
             services.graphQueryBackend,
             data,
+            services.graphIndex,
           )
         : await adapter.sync(normalizedDocument);
 

@@ -89,7 +89,7 @@ contracts → server (app → routes → lib) → cli → evals
 
 - **submit**: 运行预审 → 创建条目记录 → 插入仓库
 - **resubmit**: 验证所有权和状态 → 运行预审 → 持久化治理/修订/生命周期变更
-- **supersede**: 通过 `store.transact()` 委托给 `supersedeEntry()`（Phase 4 将迁移）
+- **supersede**: 委托给 `KnowledgeOwnerPort.supersede()`；knowledge-write owner 在本地事务内更新生命周期并写入 outbox
 
 路由仅负责 HTTP 关注点（认证、权限、请求解析、日志），所有持久化逻辑通过 `repos.knowledge` 统一访问。
 

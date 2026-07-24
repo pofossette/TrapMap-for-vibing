@@ -13,6 +13,7 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import { extractBoundaryGraphEntities } from '@trapmap/server/lib/indexing/boundary-extract.js';
@@ -90,11 +91,13 @@ export const graphIndexAdapter: IndexAdapter & {
     chat?: ChatProvider,
     graphQueryBackend?: GraphQueryBackend,
     storeData?: Pick<StoreData, 'graphIndexDocuments'>,
+    graphIndex?: GraphIndexRepositoryPort,
   ): Promise<IndexSyncResult>;
   remove(
     ref: { entryId: string; revision: number },
     store?: SkillShareerStore,
     graphQueryBackend?: GraphQueryBackend,
+    graphIndex?: GraphIndexRepositoryPort,
   ): Promise<void>;
 } = {
   kind: 'graph',
@@ -105,6 +108,7 @@ export const graphIndexAdapter: IndexAdapter & {
     chat?: ChatProvider,
     graphQueryBackend?: GraphQueryBackend,
     storeData?: Pick<StoreData, 'graphIndexDocuments'>,
+    graphIndex?: GraphIndexRepositoryPort,
   ): Promise<IndexSyncResult> {
     const cacheKey = `${document.entryId}:${document.revision}`;
     const existingState = graphStateCache.get(cacheKey);
@@ -160,7 +164,18 @@ export const graphIndexAdapter: IndexAdapter & {
       });
 
       // Store-backed persistence path
-      if (storeData) {
+      if (graphIndex) {
+        const existingDocs = (await graphIndex.listAll()).filter(
+          (entry) =>
+            !(
+              entry.sourceType === 'trap' &&
+              entry.sourceId === document.entryId &&
+              entry.revision === document.revision
+            ),
+        );
+        assertNoHardDependencyCycles([...existingDocs, candidateDoc]);
+        await graphIndex.upsert(candidateDoc);
+      } else if (storeData) {
         const existingDocs = storeData.graphIndexDocuments.filter(
           (d) =>
             !(
@@ -227,9 +242,12 @@ export const graphIndexAdapter: IndexAdapter & {
     ref: { entryId: string; revision: number },
     store?: SkillShareerStore,
     graphQueryBackend?: GraphQueryBackend,
+    graphIndex?: GraphIndexRepositoryPort,
   ): Promise<void> {
     // Store-backed removal
-    if (store) {
+    if (graphIndex) {
+      await graphIndex.removeBySource('trap', ref.entryId);
+    } else if (store) {
       await store.transact((data) => {
         removeGraphIndexDocumentsForSource(data, 'trap', ref.entryId);
       });

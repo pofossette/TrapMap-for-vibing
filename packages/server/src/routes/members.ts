@@ -23,7 +23,7 @@ export const memberRoutes: FastifyPluginAsync = async (app) => {
     requireTeamAccess(auth, payload.teamId);
 
     const createdAt = nowIso();
-    const { identity, store } = app.skillShareer;
+    const { identity } = app.skillShareer;
     const { userRepo, teamRepo, membershipRepo } = identity;
 
     // Use repositories if available
@@ -74,49 +74,7 @@ export const memberRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    // Fallback: use store.transact()
-    const member = await store.transact((data) => {
-      if (!data.teams.some((team) => team.id === payload.teamId)) {
-        throw new AppError(404, 'team_not_found', 'Team not found');
-      }
-
-      if (data.users.some((user) => user.handle === payload.handle)) {
-        throw new AppError(409, 'handle_exists', 'A user with this handle already exists');
-      }
-
-      const user = {
-        id: store.nextId(data, 'user'),
-        handle: payload.handle,
-        notes: payload.notes ?? null,
-        createdAt,
-        updatedAt: createdAt,
-      };
-
-      data.users.push(user);
-
-      const membership = {
-        id: store.nextId(data, 'member'),
-        userId: user.id,
-        teamId: payload.teamId,
-        roleTemplate: payload.roleTemplate,
-        securityLevel: payload.securityLevel,
-        permissions: payload.permissions,
-        notes: payload.notes ?? null,
-        createdAt,
-        updatedAt: createdAt,
-      };
-
-      data.memberships.push(membership);
-
-      const { userId: _uid, ...membershipFields } = membership;
-      return {
-        ...membershipFields,
-        handle: user.handle,
-        isSystem: false,
-      };
-    });
-
-    return memberSchema.parse(member);
+    throw new AppError(503, 'identity_unavailable', 'Identity owner is unavailable');
   });
 
   app.patch('/v1/members/:memberId', async (request) => {
@@ -129,7 +87,7 @@ export const memberRoutes: FastifyPluginAsync = async (app) => {
       memberId,
     });
 
-    const { identity, store } = app.skillShareer;
+    const { identity } = app.skillShareer;
     const { userRepo, membershipRepo } = identity;
 
     // Use repositories if available
@@ -181,40 +139,6 @@ export const memberRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    // Fallback: use store.transact()
-    const updatedMember = await store.transact((data) => {
-      const membership = data.memberships.find((candidate) => candidate.id === payload.memberId);
-
-      if (!membership) {
-        throw new AppError(404, 'member_not_found', 'Member not found');
-      }
-
-      requireTeamAccess(auth, membership.teamId);
-      requireHigherLevel(
-        auth,
-        membership.securityLevel,
-        payload.securityLevel ?? membership.securityLevel,
-      );
-
-      membership.securityLevel = payload.securityLevel ?? membership.securityLevel;
-      membership.permissions = payload.permissions ?? membership.permissions;
-      membership.notes = payload.notes ?? membership.notes;
-      membership.updatedAt = nowIso();
-
-      const user = data.users.find((candidate) => candidate.id === membership.userId);
-
-      if (!user) {
-        throw new AppError(404, 'user_not_found', 'Linked user not found');
-      }
-
-      const { userId: _uid, ...membershipFields } = membership;
-      return {
-        ...membershipFields,
-        handle: user.handle,
-        isSystem: false,
-      };
-    });
-
-    return memberSchema.parse(updatedMember);
+    throw new AppError(503, 'identity_unavailable', 'Identity owner is unavailable');
   });
 };

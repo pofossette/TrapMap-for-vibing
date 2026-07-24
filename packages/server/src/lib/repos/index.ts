@@ -14,6 +14,7 @@
 import type {
   ArtifactReadProjection,
   ConflictRelation,
+  GraphIndexRepositoryPort,
   KnowledgeOwnerPort,
   RetrievalGovernanceProjection,
 } from '@trapmap/contracts';
@@ -21,11 +22,8 @@ import type { FeedbackQueueRecord } from '@trapmap/backend-core';
 import type { Pool } from 'pg';
 
 import type { UsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
-import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/index.js';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
 import { createUsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
-import { createGraphIndexRepository } from '@trapmap/server/lib/graph-index/index.js';
 
 /**
  * Unified repository object containing all domain repositories.
@@ -35,7 +33,7 @@ export interface SkillShareerRepos {
   knowledge: KnowledgeOwnerPort;
   artifact: ArtifactReadProjection;
   usageAnalytics: UsageAnalyticsRepository;
-  graphIndex: GraphIndexRepository;
+  graphIndex: GraphIndexRepositoryPort;
   governanceRetrievalProjection?: RetrievalGovernanceProjection<
     FeedbackQueueRecord,
     ConflictRelation
@@ -51,7 +49,7 @@ export interface SkillShareerRepos {
  */
 export async function createAllRepos(config: {
   pool?: Pool;
-  store: SkillShareerStore;
+  graphIndex: GraphIndexRepositoryPort;
   artifactReadProjection: ArtifactReadProjection;
   knowledgeOwner: KnowledgeOwnerPort;
   governanceRetrievalProjection?: RetrievalGovernanceProjection<
@@ -67,7 +65,7 @@ export async function createAllRepos(config: {
     knowledge: config.knowledgeOwner,
     artifact: config.artifactReadProjection,
     usageAnalytics,
-    graphIndex: createGraphIndexRepository(config),
+    graphIndex: config.graphIndex,
     ...(config.governanceRetrievalProjection
       ? { governanceRetrievalProjection: config.governanceRetrievalProjection }
       : {}),

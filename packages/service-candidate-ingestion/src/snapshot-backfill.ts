@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+
 import type { CandidateRepositoryPort } from '@trapmap/backend-core';
 import type { CandidateSubmission, DuplicateCase, EntityLineage } from '@trapmap/contracts';
 
@@ -42,22 +44,36 @@ export interface CandidateIngestionSnapshotBackfillConfig {
   snapshot: CandidateIngestionSnapshot;
 }
 
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).flatMap(([key, item]) =>
+        item === undefined ? [] : [[key, canonicalize(item)]],
+      ),
+    );
+  }
+  return value;
+}
+
 function recordsMatch<T>(left: T, right: T): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return isDeepStrictEqual(canonicalize(left), canonicalize(right));
 }
 
 async function migrateDomain<T extends { id: string }>(input: {
   records: readonly T[];
   read(recordId: string): Promise<T | null>;
   write(record: T): Promise<void>;
+  matches?: (left: T, right: T) => boolean;
 }): Promise<{ result: SnapshotDomainResult; destinationCount: number }> {
   const result: SnapshotDomainResult = { migrated: 0, skipped: 0, errors: [] };
+  const matches = input.matches ?? recordsMatch;
 
   for (const record of input.records) {
     try {
       const existing = await input.read(record.id);
       if (existing) {
-        if (!recordsMatch(existing, record)) {
+        if (!matches(existing, record)) {
           result.errors.push({
             recordId: record.id,
             error: 'destination record differs from snapshot',
@@ -79,9 +95,7 @@ async function migrateDomain<T extends { id: string }>(input: {
 
   const destinationCount = (
     await Promise.all(input.records.map((record) => input.read(record.id)))
-  ).filter(
-    (record, index) => record !== null && recordsMatch(record, input.records[index]!),
-  ).length;
+  ).filter((record, index) => record !== null && matches(record, input.records[index]!)).length;
 
   return { result, destinationCount };
 }
@@ -97,6 +111,10 @@ export async function migrateCandidateIngestionSnapshot(
     records: config.snapshot.candidateSubmissions,
     read: (recordId) => config.owner.candidateRepo.getById(recordId),
     write: (record) => config.owner.candidateRepo.insert(record),
+    // The owner read projection joins duplicate cases, while the legacy
+    // snapshot persists that relationship as its own bucket.
+    matches: (existing, record) =>
+      recordsMatch({ ...existing, duplicateCase: null }, { ...record, duplicateCase: null }),
   });
   const duplicateCases = await migrateDomain({
     records: config.snapshot.duplicateCases,

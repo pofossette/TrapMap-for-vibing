@@ -87,6 +87,26 @@ describe('createIndexingSubscriber', () => {
 
     expect(runKnowledgeIndexEvent).toHaveBeenCalledWith(expect.objectContaining({ registry }));
   });
+
+  it('passes the graph owner port to the inline indexing path', async () => {
+    const store = mockStore();
+    const graphIndex = { listAll: vi.fn(), upsert: vi.fn() };
+    const subscriber = createIndexingSubscriber(
+      store as any,
+      new AdapterRegistry(),
+      undefined,
+      undefined,
+      graphIndex as never,
+    );
+
+    await subscriber(makeEvent());
+
+    expect(runKnowledgeIndexEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        services: expect.objectContaining({ graphIndex }),
+      }),
+    );
+  });
 });
 
 describe('createAuditSubscriber', () => {

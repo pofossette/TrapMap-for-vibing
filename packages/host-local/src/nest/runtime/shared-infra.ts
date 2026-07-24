@@ -2,6 +2,7 @@ import {
   createRuntimeSharedInfra,
   type RuntimeInfraShared,
 } from '@trapmap/runtime-infra';
+import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
 import type { JobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
 
 import type { HostLocalConfig } from '../config/index.js';
@@ -18,5 +19,8 @@ export type HostLocalGraphQueryRuntimeState = HostLocalSharedInfra['graphQuery']
 export async function createHostLocalSharedInfra(
   config: HostLocalConfig,
 ): Promise<HostLocalSharedInfra> {
-  return createRuntimeSharedInfra(config);
+  return createRuntimeSharedInfra({
+    ...config,
+    graphIndexRepositoryFactory: createKnowledgeReadGraphIndexRepository,
+  });
 }

@@ -14,7 +14,7 @@
  * T-36-10: Persist teamId, scope, requiredLevel from artifact root
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import {
@@ -450,6 +450,27 @@ describe('artifact graph adapter', () => {
       // Should only have one document
       expect(testData.graphIndexDocuments).toHaveLength(1);
     });
+
+    it('persists through the injected graph owner port without mutating compatibility data', async () => {
+      const artifact = buildTestArtifact();
+      const graphIndex = {
+        listAll: vi.fn().mockResolvedValue([]),
+        upsert: vi.fn().mockResolvedValue(undefined),
+      };
+
+      const result = await artifactGraphIndexAdapter.sync({
+        data: testData,
+        artifact,
+        graphIndex: graphIndex as never,
+      });
+
+      expect(result.success).toBe(true);
+      expect(graphIndex.listAll).toHaveBeenCalledOnce();
+      expect(graphIndex.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ sourceType: 'skill', sourceId: artifact.id }),
+      );
+      expect(testData.graphIndexDocuments).toEqual([]);
+    });
   });
 
   describe('remove', () => {
@@ -488,6 +509,21 @@ describe('artifact graph adapter', () => {
       });
 
       expect(testData.graphIndexDocuments).toHaveLength(0);
+    });
+
+    it('removes through the injected graph owner port without mutating compatibility data', async () => {
+      const graphIndex = {
+        removeBySource: vi.fn().mockResolvedValue(undefined),
+      };
+
+      await artifactGraphIndexAdapter.remove({
+        data: testData,
+        artifactId: 'artifact-test-1',
+        graphIndex: graphIndex as never,
+      });
+
+      expect(graphIndex.removeBySource).toHaveBeenCalledWith('skill', 'artifact-test-1');
+      expect(testData.graphIndexDocuments).toEqual([]);
     });
   });
 });

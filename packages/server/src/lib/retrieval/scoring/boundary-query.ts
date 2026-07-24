@@ -13,7 +13,6 @@ import {
   normalizePackageName,
 } from '@trapmap/server/lib/indexing/boundary-normalize.js';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/index.js';
-import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 /**
  * Constraint for back-reference queries.
@@ -33,14 +32,25 @@ export interface BoundaryQueryConstraint {
  * @param constraint - Boundary constraint to match
  * @returns Entries whose indexed boundary facets match all constraint fields
  */
-export function findEntriesByBoundaryConstraint(
-  entries: KnowledgeRecord[],
-  constraint: BoundaryQueryConstraint,
-): KnowledgeRecord[] {
+export function findEntriesByBoundaryConstraint<
+  Entry extends {
+    boundary: unknown | null;
+    indexState: unknown | null;
+  },
+>(entries: Entry[], constraint: BoundaryQueryConstraint): Entry[] {
   return entries.filter((entry) => {
-    if (!entry.indexState?.keyword || entry.indexState.keyword.status !== 'synced') return false;
+    const indexState = entry.indexState as {
+      keyword?: { status?: string; persistedState?: { boundaryFacets?: unknown } };
+    } | null;
+    if (!indexState?.keyword || indexState.keyword.status !== 'synced') return false;
 
-    const facets = (entry.indexState.keyword as any).persistedState?.boundaryFacets;
+    const facets = indexState.keyword.persistedState?.boundaryFacets as
+      | {
+          contexts?: string[];
+          platforms?: string[];
+          packages?: string[];
+        }
+      | undefined;
     if (!facets || !entry.boundary) return false;
 
     if (constraint.context) {

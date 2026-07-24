@@ -68,7 +68,7 @@
 
 - 新增：`packages/server/src/lib/decay/application-service.ts`
 - 修改：`packages/server/src/routes/decay.ts`
-- 参考：`packages/server/src/lib/decay/batch.ts`
+- 参考：`packages/service-knowledge-write/src/pg-ports.ts`
 
 - [x] 定义 `DecayBatchApplicationService`，至少拆分 `previewBatch()` 与 `executeBatch()`。
 - [x] `previewBatch()` 允许以显式只读输入组装 dry-run 结果，但其兼容读取必须集中在 service 或专用 helper，不留在 route。

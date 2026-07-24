@@ -53,7 +53,14 @@ interface AllowlistEntry {
   rationale: string;
 }
 
-const completedOwnerWaves: OwnerWave[] = ['wave-1', 'wave-2', 'wave-3', 'wave-4'];
+const completedOwnerWaves: OwnerWave[] = [
+  'wave-1',
+  'wave-2',
+  'wave-3',
+  'wave-4',
+  'wave-6',
+  'wave-7',
+];
 const POSTGRES_COMPOSITION_ENTRYPOINTS = [
   'scripts/export-retrieval-db-snapshot.ts',
   'evals/retrieval-live/lib/snapshot-orchestrator.ts',
@@ -221,12 +228,6 @@ const allowlist: AllowlistEntry[] = [
     'migration export fixture',
   ],
   [
-    'packages/server/src/lib/persistence/backfill-indexes.ts',
-    'PostgresStore',
-    'wave-9',
-    'migration export fixture',
-  ],
-  [
     'packages/server/src/lib/persistence/create-store.ts',
     'JsonStore',
     'wave-9',
@@ -271,8 +272,8 @@ const allowlist: AllowlistEntry[] = [
   [
     'packages/persistence-schema/src/retrieval.ts',
     'store_snapshot',
-    'wave-7',
-    'retrieval snapshot schema',
+    'wave-9',
+    'legacy snapshot schema deletion',
   ],
   ['packages/server/src/lib/store/index.ts', 'JsonStore', 'wave-9', 'legacy JSON store export'],
   [
@@ -701,6 +702,31 @@ describe('compatibility retirement guard', () => {
     ).toBe(true);
   });
 
+  it('retires unconsumed compatibility maintenance and decay mutation helpers', () => {
+    for (const path of [
+      'packages/server/src/lib/maintenance/batch.ts',
+      'packages/server/src/lib/decay/batch.ts',
+      'packages/server/src/lib/decay/supersede.ts',
+    ]) {
+      expect(existsSync(join(repoRoot, path))).toBe(false);
+    }
+  });
+
+  it('retires the completed Task-9 legacy snapshot command surface', () => {
+    for (const path of [
+      'scripts/backfill-legacy-snapshot.ts',
+      'scripts/legacy-snapshot-backfill.ts',
+      'scripts/legacy-snapshot-owner-wiring.ts',
+      'scripts/legacy-snapshot-source.ts',
+    ]) {
+      expect(existsSync(join(repoRoot, path))).toBe(false);
+    }
+    const packageJson = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8')) as {
+      scripts: Record<string, string>;
+    };
+    expect(packageJson.scripts['backfill:legacy-snapshot']).toBeUndefined();
+  });
+
   it('rejects retired Wave-4 server compatibility surfaces', () => {
     const root = mkdtempSync(join(tmpdir(), 'trapmap-compatibility-guard-'));
     writeProductionFile(
@@ -788,7 +814,11 @@ describe('compatibility retirement guard', () => {
 
   it('keeps wave-6 async exports and lifecycle compatibility wiring retired', () => {
     expect(findRetiredWaveSixAsyncCompatibility(repoRoot)).toEqual([]);
-    expect(completedOwnerWaves).not.toContain('wave-6');
+    expect(completedOwnerWaves).toContain('wave-6');
+  });
+
+  it('marks Wave-7 complete after its read-service compatibility imports are retired', () => {
+    expect(completedOwnerWaves).toContain('wave-7');
   });
 
   it('rejects retired Wave-6 async implementation files', () => {

@@ -10,9 +10,10 @@
  */
 
 import type { LifecycleState } from '@trapmap/contracts';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
-import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { graphIndexAdapter } from './adapters/graph.js';
 import { removeGraphIndexDocumentsForSource } from './graph-lite/index.js';
 import { syncKnowledgeIndex } from './pipeline.js';
@@ -48,7 +49,7 @@ export function determineKnowledgeIndexAction(
  * Run an indexing event for a lifecycle transition.
  *
  * @param args - Event arguments
- * @param args.services - Store and data snapshot
+ * @param args.services - Store and owner-owned indexing dependencies
  * @param args.entryId - ID of the entry being transitioned
  * @param args.previousState - Previous lifecycle state
  * @param args.nextState - New lifecycle state
@@ -58,9 +59,9 @@ export function determineKnowledgeIndexAction(
 export async function runKnowledgeIndexEvent(args: {
   services: {
     store: SkillShareerStore;
-    data: StoreData;
     ai?: { chat: ChatProvider };
     graphQueryBackend?: GraphQueryBackend;
+    graphIndex?: GraphIndexRepositoryPort;
   };
   entryId: string;
   previousState: LifecycleState;
@@ -89,10 +90,14 @@ export async function runKnowledgeIndexEvent(args: {
             data: typeof data;
             ai?: { chat: ChatProvider };
             graphQueryBackend?: GraphQueryBackend;
+            graphIndex?: GraphIndexRepositoryPort;
           } = { store, data };
           if (args.services.ai) syncServices.ai = args.services.ai;
           if (args.services.graphQueryBackend) {
             syncServices.graphQueryBackend = args.services.graphQueryBackend;
+          }
+          if (args.services.graphIndex) {
+            syncServices.graphIndex = args.services.graphIndex;
           }
           await syncKnowledgeIndex(syncServices, entryId, registry);
         }
@@ -111,6 +116,7 @@ export async function runKnowledgeIndexEvent(args: {
                     },
                     undefined,
                     args.services.graphQueryBackend,
+                    args.services.graphIndex,
                   )
                 : adapter.remove({
                     entryId: entry.id,
@@ -123,7 +129,11 @@ export async function runKnowledgeIndexEvent(args: {
           entry.embeddingCache = null;
         }
         // Also remove graph index documents directly (T-36-13)
-        removeGraphIndexDocumentsForSource(data, 'trap', entry.id);
+        if (args.services.graphIndex) {
+          await args.services.graphIndex.removeBySource('trap', entry.id);
+        } else {
+          removeGraphIndexDocumentsForSource(data, 'trap', entry.id);
+        }
         break;
 
       case 'noop':

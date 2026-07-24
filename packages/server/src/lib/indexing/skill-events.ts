@@ -18,19 +18,18 @@
  * Security note: This module reads only derived outputs, never raw asset/script bodies.
  */
 
-import type { LifecycleState } from '@trapmap/contracts';
+import type { GraphIndexRepositoryPort, LifecycleState } from '@trapmap/contracts';
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
-import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 import {
   resolveArtifactAdapters,
   runArtifactAdapterFanOut,
   runArtifactAdapterRemoval,
 } from './artifact-pipeline.js';
-import { assertNoHardDependencyCycles, getGraphIndexDocuments } from './graph-lite/index.js';
 
 // ---------------------------------------------------------------------------
 // Re-export public API from extracted modules (backward compatibility)
@@ -95,9 +94,9 @@ export function determineSkillIndexAction(
 export async function runSkillIndexEvent(args: {
   services: {
     store: SkillShareerStore;
-    data: StoreData;
     ai?: { chat: ChatProvider };
     graphQueryBackend?: GraphQueryBackend;
+    graphIndex?: GraphIndexRepositoryPort;
   };
   artifactId: string;
   previousState: LifecycleState;
@@ -106,7 +105,7 @@ export async function runSkillIndexEvent(args: {
   adapters?: ArtifactGraphAdapter[];
 }): Promise<void> {
   const { services, artifactId, previousState, nextState } = args;
-  const { store, data: _data } = services;
+  const { store } = services;
   const adapters = args.adapters ?? resolveArtifactAdapters(store);
 
   const action = determineSkillIndexAction(previousState, nextState);
@@ -130,31 +129,6 @@ export async function runSkillIndexEvent(args: {
           );
         }
 
-        // Build the graph document
-        const { buildSkillGraphDocument } = await import('./skill-graph-build.js');
-        const doc = await buildSkillGraphDocument(artifact, services.ai?.chat, store);
-        if (!doc) {
-          // No derived content, skip indexing
-          return;
-        }
-
-        // Check for hard dependency cycles before persistence (D-06)
-        // Include existing documents excluding this artifact's current document
-        const existingDocs = getGraphIndexDocuments(txData).filter(
-          (d) => !(d.sourceType === 'skill' && d.sourceId === artifactId),
-        );
-        const allDocs = [...existingDocs, doc];
-
-        try {
-          assertNoHardDependencyCycles(allDocs);
-        } catch (error) {
-          if (error instanceof Error && error.message === 'hard dependency cycle detected') {
-            // Reject the cycle - do not persist
-            throw new Error(`Cannot index skill ${artifactId}: hard dependency cycle detected`);
-          }
-          throw error;
-        }
-
         const result = await runArtifactAdapterFanOut({
           data: txData,
           artifact,
@@ -163,6 +137,9 @@ export async function runSkillIndexEvent(args: {
           adapters,
           ...(args.services.graphQueryBackend !== undefined
             ? { graphQueryBackend: args.services.graphQueryBackend }
+            : {}),
+          ...(args.services.graphIndex !== undefined
+            ? { graphIndex: args.services.graphIndex }
             : {}),
         });
         const firstFailure = result.results.find((entry) => !entry.success);
@@ -180,6 +157,9 @@ export async function runSkillIndexEvent(args: {
           adapters,
           ...(args.services.graphQueryBackend !== undefined
             ? { graphQueryBackend: args.services.graphQueryBackend }
+            : {}),
+          ...(args.services.graphIndex !== undefined
+            ? { graphIndex: args.services.graphIndex }
             : {}),
         });
         break;

@@ -305,6 +305,34 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     expect(client.release).toHaveBeenCalledOnce();
   });
 
+  it('writes reviewed evidence and its projection event in one transaction', async () => {
+    const { calls, client, pool } = createTransactionPool((sql) => {
+      if (sql.includes('SELECT lifecycle_state')) {
+        return { rows: [{ lifecycle_state: 'approved' }] };
+      }
+      return { rows: [] };
+    });
+    const owner = createKnowledgeWriteOwnerBundle(pool as never);
+
+    await owner.knowledgeOwner.reviewEvidence(
+      'entry-1',
+      {
+        sourceType: 'doc',
+        sourceRef: 'https://example.test/evidence',
+        evidenceLevel: 'documented',
+        verifiedAt: '2026-07-23T00:00:00.000Z',
+        verifiedBy: { id: 'reviewer-1', handle: 'reviewer', securityLevel: 10 },
+      },
+      'reviewer-1',
+    );
+
+    expectSuccessfulTransaction(calls, [
+      'UPDATE knowledge_entries SET evidence_meta',
+      'INSERT INTO domain_event_outbox',
+    ]);
+    expect(client.release).toHaveBeenCalledOnce();
+  });
+
   it('persists a resubmission in one transaction with its revision, lifecycle, and outbox events', async () => {
     const { calls, client, pool } = createTransactionPool((sql) => {
       if (sql.includes('SELECT lifecycle_state')) {

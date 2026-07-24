@@ -67,7 +67,20 @@ function createOwner(): CandidateIngestionSnapshotOwner {
       insert: vi.fn(async (record) => {
         candidates.set(record.id, record);
       }),
-      getById: vi.fn(async (id) => candidates.get(id) ?? null),
+      getById: vi.fn(async (id) => {
+        const record = candidates.get(id);
+        const duplicateCase = [...duplicateCases.values()].find(
+          (candidateCase) => candidateCase.candidateId === id,
+        );
+        return record
+          ? {
+              status: record.status,
+              id: record.id,
+              ...record,
+              duplicateCase: duplicateCase ?? null,
+            }
+          : null;
+      }),
     },
     duplicateCases: {
       upsert: vi.fn(async (record) => {

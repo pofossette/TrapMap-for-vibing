@@ -9,7 +9,7 @@ import {
 
 import { computeDecayState } from '@trapmap/server/lib/decay/index.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
-import type { KnowledgeRecord, SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import type { ActorBatchLookupPort } from '@trapmap/backend-core';
 
 type FeedbackEntryType = 'trap' | 'skill';
@@ -348,17 +348,4 @@ export async function buildDecayEntriesProjection(
     items: items.slice(0, input.filters.limit),
     total: items.length,
   };
-}
-
-export async function listArtifactRevisionFilePayloads(
-  store: SkillShareerStore,
-  artifactId: string,
-  revision: number,
-) {
-  const data = await store.snapshot();
-  return (
-    data.artifactFilePayloads?.filter(
-      (payload) => payload.artifactId === artifactId && payload.revision === revision,
-    ) ?? []
-  );
 }

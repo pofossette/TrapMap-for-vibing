@@ -5,6 +5,7 @@ import Fastify from 'fastify';
 import type {
   ArtifactReadProjection,
   ConflictRelation,
+  GraphIndexRepositoryPort,
   KnowledgeOwnerPort,
   RetrievalGovernanceProjection,
 } from '@trapmap/contracts';
@@ -16,6 +17,7 @@ import { createAiProviders } from './lib/ai/index.js';
 import type { AsyncTransport } from './lib/async/transport.js';
 import type {
   IdentityCompatibilityBundle,
+  OwnerReadModelProjection,
   OutboxWorkerFactory,
   SkillShareerServices,
 } from './lib/context.js';
@@ -61,10 +63,12 @@ export interface BuildServerOptions {
   identityBundle?: IdentityCompatibilityBundle;
   artifactReadProjection?: ArtifactReadProjection;
   knowledgeOwner?: KnowledgeOwnerPort;
+  ownerReadModel?: OwnerReadModelProjection;
   governanceRetrievalProjection?: RetrievalGovernanceProjection<
     FeedbackQueueRecord,
     ConflictRelation
   >;
+  graphIndex?: GraphIndexRepositoryPort;
   jobRuntime?: Pick<JobRuntimePort, 'schedule'>;
   asyncTransport?: AsyncTransport;
   outboxWorkerFactory?: OutboxWorkerFactory;
@@ -200,9 +204,11 @@ export function buildServer(options: BuildServerOptions = {}) {
     ai: createAiProviders(config.ai),
     artifactReadProjection: options.artifactReadProjection as ArtifactReadProjection,
     knowledgeOwner: options.knowledgeOwner as KnowledgeOwnerPort,
+    ...(options.ownerReadModel ? { ownerReadModel: options.ownerReadModel } : {}),
     ...(options.governanceRetrievalProjection
       ? { governanceRetrievalProjection: options.governanceRetrievalProjection }
       : {}),
+    graphIndex: options.graphIndex as GraphIndexRepositoryPort,
     identity: options.identityBundle,
     // usageAnalyticsRepo is set in bootstrapRepositories when PostgreSQL pool is available
     usageAnalyticsRepo: undefined,

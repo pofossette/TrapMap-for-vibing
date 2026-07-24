@@ -1,11 +1,11 @@
 import { type AiProviders, createAiProviders } from '@trapmap/server/lib/ai/index.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import { setGlobalEmbeddingsProvider } from '@trapmap/server/lib/embeddings.js';
 import {
   type GraphQueryBackend,
   type GraphQueryRuntimeState,
   createMemoryGraphQueryBackend,
 } from '@trapmap/server/lib/graph-query/index.js';
-import { createGraphIndexRepository } from '@trapmap/server/lib/graph-index/index.js';
 import { createSkillShareerStore } from './store-factory.js';
 import { type SkillShareerStore, getStorePool } from './store.js';
 
@@ -24,6 +24,9 @@ export interface RuntimeInfraConfig {
       prefetch: number;
     } | null;
   };
+  graphIndexRepositoryFactory(
+    pool: NonNullable<ReturnType<typeof getStorePool>>,
+  ): GraphIndexRepositoryPort;
 }
 
 export interface RuntimeInfraShared {
@@ -45,8 +48,11 @@ export async function createRuntimeSharedInfra(
     dataFile: config.dataFile,
     databaseUrl: config.databaseUrl,
   });
-  const pool = getStorePool(store) ?? undefined;
-  const graphIndex = createGraphIndexRepository(pool ? { store, pool } : { store });
+  const pool = getStorePool(store);
+  if (!pool) {
+    throw new Error('runtime infra graph projection requires PostgreSQL');
+  }
+  const graphIndex = config.graphIndexRepositoryFactory(pool);
   const ai = createAiProviders(config.ai);
 
   const infra: RuntimeInfraShared = {

@@ -5,7 +5,10 @@ import { createSharedJobQueuePort, scheduleSharedJob } from './index.js';
 import { SKILL_INDEX_FOLLOW_UP_TASK_TYPE, type SkillIndexFollowUpPayload } from './types.js';
 
 export async function runOrScheduleSkillIndexFollowUp(args: {
-  services: Pick<SkillShareerServices, 'store' | 'ai' | 'graphQueryBackend' | 'asyncTransport'>;
+  services: Pick<
+    SkillShareerServices,
+    'store' | 'ai' | 'graphQueryBackend' | 'graphIndex' | 'asyncTransport'
+  >;
   payload: SkillIndexFollowUpPayload;
 }): Promise<void> {
   const { services, payload } = args;
@@ -27,9 +30,9 @@ export async function runOrScheduleSkillIndexFollowUp(args: {
   await runSkillIndexEvent({
     services: {
       store: services.store,
-      data: await services.store.snapshot(),
       ai: { chat: services.ai.chat },
       graphQueryBackend: services.graphQueryBackend,
+      graphIndex: services.graphIndex,
     },
     artifactId: payload.artifactId,
     previousState: payload.previousState,

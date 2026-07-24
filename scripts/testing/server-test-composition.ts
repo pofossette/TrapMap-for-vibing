@@ -8,7 +8,7 @@ import { buildHostLocalServer } from '../../packages/host-local/src/nest/runtime
 
 type TestServerOptions = Pick<
   BuildServerOptions,
-  'bodyLimit' | 'config' | 'runtimeMode' | 'serviceUnit'
+  'bodyLimit' | 'config' | 'runtimeMode' | 'serviceUnit' | 'ownerReadModel'
 >;
 
 /**

@@ -13,7 +13,7 @@ const candidateIngestionBundle = {
   lineage: {},
 };
 const sharedInfra = {
-  store: { kind: 'postgres' },
+  store: { kind: 'postgres', close: vi.fn() },
   adapterRegistry: {},
   ai: {},
   repos: {
@@ -26,6 +26,8 @@ const sharedInfra = {
   eventBus: {},
 };
 const asyncTransport = { task: {}, events: {} };
+const ownerReadModelProjection = { getReadModel: vi.fn() };
+const graphIndexRepository = { listAll: vi.fn(), upsert: vi.fn() };
 
 vi.mock('@trapmap/service-identity-access', () => ({
   createIdentityAccessPgDeps: vi.fn(() => ({ auditLog: {} })),
@@ -38,6 +40,11 @@ vi.mock('@trapmap/service-knowledge-write', () => ({
 }));
 vi.mock('@trapmap/service-job-runtime', () => ({
   createJobRuntimeAsyncTransport: vi.fn(() => asyncTransport),
+}));
+vi.mock('@trapmap/service-knowledge-read', () => ({
+  createCandidateCorpusPgReadPort: vi.fn(() => ({})),
+  createKnowledgeReadGraphIndexRepository: vi.fn(() => graphIndexRepository),
+  createOwnerReadModelProjection: vi.fn(() => ownerReadModelProjection),
 }));
 vi.mock('./shared-infra.js', () => ({
   createHostLocalSharedInfra: vi.fn(async () => sharedInfra),
@@ -56,6 +63,8 @@ vi.mock('./retrieval-assembly.js', () => ({
 import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
 import { createCandidateIngestionPgOwnerBundle } from '@trapmap/service-candidate-ingestion';
 import { createJobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
+import { createOwnerReadModelProjection } from '@trapmap/service-knowledge-read';
+import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
 
 import { createHostLocalServices } from './host-services.js';
 
@@ -86,6 +95,24 @@ describe('host-local service composition', () => {
     expect(services).not.toHaveProperty('usageAnalyticsRepo');
   });
 
+  it('builds the administrative read projection from owner ports', async () => {
+    const services = await createHostLocalServices({ systemAdminKey: 'test-key' } as never);
+
+    expect(createOwnerReadModelProjection).toHaveBeenCalledWith({
+      knowledge: ownerBundle.knowledgeOwner,
+      artifact: ownerBundle.artifactReadProjection,
+      governance: services.governanceReview.retrievalProjection,
+    });
+    expect(services.ownerReadModel).toBe(ownerReadModelProjection);
+  });
+
+  it('creates the graph projection repository through the knowledge-read owner', async () => {
+    const services = await createHostLocalServices({ systemAdminKey: 'test-key' } as never);
+
+    expect(createKnowledgeReadGraphIndexRepository).toHaveBeenCalledWith(pool);
+    expect(services.graphIndex).toBe(graphIndexRepository);
+  });
+
   it('composes the async transport through the job-runtime owner', async () => {
     const config = {
       systemAdminKey: 'test-key',
@@ -98,5 +125,13 @@ describe('host-local service composition', () => {
       pool,
     });
     expect(services.asyncTransport).toBe(asyncTransport);
+  });
+
+  it('releases its host-owned infrastructure through one close operation', async () => {
+    const services = await createHostLocalServices({ systemAdminKey: 'test-key' } as never);
+
+    await services.close();
+
+    expect(sharedInfra.store.close).toHaveBeenCalledTimes(1);
   });
 });

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type {
   ArtifactReadProjection,
+  EvidenceMeta,
   KnowledgeEntry,
   KnowledgeOwnerCommandInput,
   KnowledgeOwnerPort,
@@ -67,6 +68,7 @@ function readKnowledgeRowFields(row: Record<string, unknown>) {
     maintenanceMeta: readKnowledgeRowValue(row, 'maintenance_meta', 'maintenanceMeta', null),
     embeddingCache: readKnowledgeRowValue(row, 'embedding_cache', 'embeddingCache', null),
     decayMeta: readKnowledgeRowValue(row, 'decay_meta', 'decayMeta', null),
+    evidenceMeta: readKnowledgeRowValue(row, 'evidence_meta', 'evidenceMeta', null),
   };
 }
 
@@ -642,6 +644,28 @@ async function persistEntryUpdateTx(
   });
 }
 
+async function persistEvidenceReviewTx(
+  pool: KnowledgeTransactionPool,
+  entryId: string,
+  evidence: EvidenceMeta,
+  actorId: string,
+): Promise<void> {
+  await withKnowledgeTransaction(pool, async (client) => {
+    const lifecycleState = await lockKnowledgeEntryTx(client, entryId);
+    await client.query(
+      'UPDATE knowledge_entries SET evidence_meta = $2, updated_at = NOW() WHERE id = $1',
+      [entryId, JSON.stringify(evidence)],
+    );
+    await enqueueLifecycleOutboxTx(client, {
+      entryId,
+      previousState: lifecycleState,
+      nextState: lifecycleState,
+      actorId,
+      note: 'knowledge evidence reviewed',
+    });
+  });
+}
+
 async function persistSupersedeTx(
   pool: KnowledgeTransactionPool,
   entryId: string,
@@ -725,6 +749,10 @@ export function createKnowledgeWriteOwnerBundle(
     },
     async applyDecayDecision(input) {
       return persistOperationalDecisionTx(pool, input, 'decay');
+    },
+    async reviewEvidence(entryId, evidence, actorId) {
+      await persistEvidenceReviewTx(pool, entryId, evidence, actorId);
+      return { entryId, evidence };
     },
     getById: projection.getById,
     getByIds: projection.getByIds,

@@ -50,6 +50,10 @@ export interface ArtifactFilePayloadOwner {
 
 const id = (prefix: string) => `${prefix}_${randomUUID().replaceAll('-', '').slice(0, 16)}`;
 
+function asIsoString(value: unknown): string {
+  return value instanceof Date ? value.toISOString() : String(value);
+}
+
 function artifactLifecycleEventName(state: LifecycleState): string {
   if (state === 'approved') return 'artifact.approved';
   if (state === 'rejected') return 'artifact.rejected';
@@ -63,9 +67,12 @@ function rowToArtifact(
   events: SkillArtifactLifecycleEvent[],
 ): SkillArtifact {
   return {
-    ...(row as unknown as SkillArtifact),
     id: String(row.id),
     teamId: (row.team_id as string | null) ?? null,
+    scope: row.scope as SkillArtifact['scope'],
+    labels: (row.labels as string[]) ?? [],
+    title: String(row.title),
+    slug: String(row.slug),
     requiredLevel: Number(row.required_level ?? 0),
     lifecycleState: row.lifecycle_state as LifecycleState,
     owner: {
@@ -76,13 +83,16 @@ function rowToArtifact(
     latestRevision: revisions.at(-1)?.revision ?? 1,
     history: revisions,
     lifecycleHistory: events,
-    labels: (row.labels as string[]) ?? [],
     metadata: row.metadata as SkillArtifact['metadata'],
     agentReview: (row.agent_review as SkillArtifact['agentReview']) ?? null,
+    reviewHistory: [],
+    reviewNotes: [],
     maintenanceMeta: (row.maintenance_meta as SkillArtifact['maintenanceMeta']) ?? null,
     boundaryMeta: (row.boundary as SkillArtifact['boundaryMeta']) ?? null,
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at),
+    evidenceMeta: null,
+    remediation: null,
+    createdAt: asIsoString(row.created_at),
+    updatedAt: asIsoString(row.updated_at),
   };
 }
 
@@ -93,7 +103,7 @@ function mapRevision(row: Record<string, unknown>): SkillArtifactRevision {
     files: (row.files as SkillArtifactRevision['files']) ?? [],
     scriptDescriptors: (row.script_descriptors as SkillArtifactRevision['scriptDescriptors']) ?? [],
     derived: (row.derived as SkillArtifactRevision['derived']) ?? null,
-    submittedAt: String(row.submitted_at),
+    submittedAt: asIsoString(row.submitted_at),
     submittedBy: {
       id: String(row.submitted_by_user_id),
       handle: String(row.submitted_by_handle ?? row.submitted_by_user_id),

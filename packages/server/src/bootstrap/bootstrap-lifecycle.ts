@@ -42,7 +42,7 @@ export interface BootstrapLifecycleOptions {
 }
 
 function buildLifecycleSubscriberContract(app: FastifyInstance): LifecycleSubscriberContract {
-  const { store, adapterRegistry, graphQueryBackend, asyncTransport, jobRuntime } =
+  const { store, adapterRegistry, graphQueryBackend, graphIndex, asyncTransport, jobRuntime } =
     app.skillShareer;
   if (!jobRuntime) {
     throw new Error('server lifecycle requires an injected job-runtime port');
@@ -52,6 +52,7 @@ function buildLifecycleSubscriberContract(app: FastifyInstance): LifecycleSubscr
     adapterRegistry,
     graphQueryBackend,
     asyncTransport?.task,
+    graphIndex,
   );
   const auditHandler = createAuditSubscriber(store, app.log);
   const conflictHandler = createGovernanceConflictTaskScheduler(jobRuntime);

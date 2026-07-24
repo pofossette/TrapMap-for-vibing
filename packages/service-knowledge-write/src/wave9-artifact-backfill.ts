@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+
 import type { ArtifactReadProjection, SkillArtifact } from '@trapmap/contracts';
 import type { ArtifactWritePort } from './artifact-ports.js';
 
@@ -43,7 +45,7 @@ export async function migrateSkillArtifacts(
       } else {
         const existing = await config.artifactReadProjection.getById(artifact.id);
         if (existing) {
-          if (JSON.stringify(existing) !== JSON.stringify(artifact)) {
+          if (!isDeepStrictEqual(existing, artifact)) {
             result.errors.push({
               artifactId: artifact.id,
               error: 'destination artifact differs from snapshot',
@@ -56,7 +58,7 @@ export async function migrateSkillArtifacts(
           await config.artifactWriter.insert(artifact);
           result.migrated += 1;
           const written = await config.artifactReadProjection.getById(artifact.id);
-          if (written && JSON.stringify(written) === JSON.stringify(artifact)) {
+          if (written && isDeepStrictEqual(written, artifact)) {
             result.verified += 1;
           } else {
             result.errors.push({

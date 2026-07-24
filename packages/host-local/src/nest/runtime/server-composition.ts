@@ -19,7 +19,10 @@ export interface HostLocalServer {
  */
 export async function buildHostLocalServer(
   config: HostLocalConfig,
-  options: Pick<BuildServerOptions, 'bodyLimit' | 'config' | 'runtimeMode' | 'serviceUnit'> = {},
+  options: Pick<
+    BuildServerOptions,
+    'bodyLimit' | 'config' | 'runtimeMode' | 'serviceUnit' | 'ownerReadModel'
+  > = {},
 ): Promise<HostLocalServer> {
   const services = await createHostLocalServices(config);
   const pool = getHostLocalStorePool(services.store);
@@ -37,6 +40,8 @@ export async function buildHostLocalServer(
     },
     identityBundle: services.identity,
     knowledgeOwner: services.knowledgeOwner,
+    ownerReadModel: services.ownerReadModel,
+    graphIndex: services.graphIndex,
     artifactReadProjection: services.artifactReadProjection,
     governanceRetrievalProjection: services.governanceReview.retrievalProjection,
     asyncTransport: services.asyncTransport,
@@ -58,7 +63,7 @@ export async function buildHostLocalServer(
     app,
     async close() {
       await closeApp();
-      await pool.end();
+      await services.close();
     },
   };
 }

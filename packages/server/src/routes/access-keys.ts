@@ -39,7 +39,7 @@ export const accessKeyRoutes: FastifyPluginAsync = async (app) => {
       updatedAt: createdAt,
     };
 
-    const { identity, store } = app.skillShareer;
+    const { identity } = app.skillShareer;
     const { membershipRepo, accessKeyRepo } = identity;
 
     // Use repositories if available
@@ -84,47 +84,6 @@ export const accessKeyRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    // Fallback: use store.transact()
-    const response = await store.transact((data) => {
-      const membership = data.memberships.find((candidate) => candidate.id === payload.memberId);
-
-      if (!membership) {
-        throw new AppError(404, 'member_not_found', 'Member not found');
-      }
-
-      if (membership.teamId !== payload.teamId) {
-        throw new AppError(
-          400,
-          'team_member_mismatch',
-          'Member does not belong to the requested team',
-        );
-      }
-
-      requireTeamAccess(auth, payload.teamId);
-      requireHigherLevel(auth, membership.securityLevel);
-
-      const record = {
-        id: store.nextId(data, 'access_key'),
-        memberId: membership.id,
-        tokenHash: hashSecret(accessKey),
-        tokenPreview: accessKey.slice(-8),
-        issuedByUserId: issuer.id,
-        teamId: payload.teamId,
-        level: membership.securityLevel,
-        notes: payload.notes ?? null,
-        revokedAt: null,
-        createdAt,
-        updatedAt: createdAt,
-      };
-
-      data.accessKeys.push(record);
-
-      return issueAccessKeyResponseSchema.parse({
-        accessKey,
-        record: issueAccessKeyPayload(data, record, issuer, issuerMembership),
-      });
-    });
-
-    return response;
+    throw new AppError(503, 'identity_unavailable', 'Identity owner is unavailable');
   });
 };

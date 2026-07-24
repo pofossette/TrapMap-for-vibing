@@ -6,7 +6,7 @@
 
 > **Round 10 Phase 3 更新**：身份域（Team/User/Member/Session/AccessKey）和审计域（Audit）已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表。这些域在 PG 模式下不再通过 `store.snapshot()` 读取，`store_snapshot` 仅保留为未迁移辅助域的兼容层。
 >
-> **Phase 1 (PG-First Convergence) 更新**：路由层的 actor 查找（用户 handle、成员安全等级）已从 `store.snapshot()` 迁移到仓库-backed 的 `lib/actors/lookup.ts`。核心路由（knowledge、traps）不再调用 `store.snapshot()` 进行序列化。剩余的 `store.snapshot()` / `store.transact()` 使用限于：(1) supersede 工作流（Phase 3 迁移），(2) 未迁移辅助域，(3) 启动/诊断路径。
+> **Phase 1 (PG-First Convergence) 更新**：路由层的 actor 查找（用户 handle、成员安全等级）已从 `store.snapshot()` 迁移到仓库-backed 的 `lib/actors/lookup.ts`。核心路由（knowledge、traps）不再调用 `store.snapshot()` 进行序列化；supersede 已由 `KnowledgeOwnerPort` 的 owner-local transaction/outbox 路径处理。剩余的 `store.snapshot()` / `store.transact()` 只限于尚未迁移辅助域与启动/诊断路径。
 >
 > **Round 6 更新**：反馈（feedback）已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表（`feedback_records` + `feedback_custom_answers`）。`PgFeedbackRepository` 替代 `InMemoryFeedbackRepository` 成为主路径。用法统计新增 `usage_events_daily_rollup` 预聚合表。治理冲突关系由 `conflict_relations` 持久化，知识读侧仅通过 `ConflictReadProjection` 查询。
 >

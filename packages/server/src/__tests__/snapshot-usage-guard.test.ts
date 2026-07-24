@@ -26,10 +26,6 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   // Repository implementations — wrap store.snapshot()/transact() internally
   'lib/graph-index/repository.ts',
 
-  // Migration and backfill scripts
-  'lib/persistence/migrate-knowledge.ts',
-  'lib/persistence/backfill-indexes.ts',
-
   // Bootstrap and startup
   'bootstrap/bootstrap-repositories.ts',
   'bootstrap/bootstrap-workers.ts',
@@ -37,9 +33,6 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   // Lifecycle subscribers
   'lib/lifecycle/subscribers/indexing.ts',
   'lib/lifecycle/subscribers/audit.ts',
-
-  // Knowledge review application service (named compatibility debt: local audit seam)
-  'lib/knowledge/review-application-service.ts',
 
   // Retrieval read-model: repo-backed assembly; retained only for cache-backed read-model ownership
   'lib/retrieval/read-model.ts',
@@ -58,17 +51,7 @@ const SNAPSHOT_ALLOWLIST: string[] = [
 
   // Diagnostic/admin mutations — controlled operator writes and migration tools
   'routes/operations/knowledge-legacy.ts',
-  'routes/admin-benchmark.ts',
   'routes/knowledge.ts',
-  'routes/teams.ts',
-  'routes/admin-boundary-search.ts',
-  'routes/maintenance.ts',
-  'routes/access-keys.ts',
-  'routes/evidence.ts',
-  'routes/members.ts',
-
-  // Projection exceptions — explicit read-side helpers with named repo capability gaps
-  'lib/operations/read-model.ts',
 ];
 
 function findAllTsFiles(dir: string): string[] {
@@ -148,15 +131,8 @@ describe('snapshot usage guard', () => {
   it('Phase 2 freeze keeps key compatibility buckets explicit', () => {
     expect(SNAPSHOT_ALLOWLIST).toEqual(
       expect.arrayContaining([
-        'routes/teams.ts',
-        'routes/members.ts',
-        'routes/access-keys.ts',
-        'routes/maintenance.ts',
-        'bootstrap/bootstrap-candidate-recovery.ts',
-        'lib/operations/read-model.ts',
         'lib/jobs/handlers/knowledge-index-follow-up.ts',
         'lib/jobs/handlers/skill-index-follow-up.ts',
-        'lib/knowledge/review-application-service.ts',
       ]),
     );
   });

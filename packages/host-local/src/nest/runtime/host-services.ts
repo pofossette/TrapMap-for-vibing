@@ -1,11 +1,21 @@
 import type { ResolvedRuntimeDeployment } from '@trapmap/backend-core';
-import type { ArtifactReadProjection, CandidateCorpusReadPort, KnowledgeOwnerPort } from '@trapmap/contracts';
+import type {
+  ArtifactReadProjection,
+  CandidateCorpusReadPort,
+  GraphIndexRepositoryPort,
+  KnowledgeOwnerPort,
+} from '@trapmap/contracts';
 import { createIdentityAccessPgDeps, type IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 import {
   createCandidateIngestionPgOwnerBundle,
   type CandidateIngestionPgOwnerBundle,
 } from '@trapmap/service-candidate-ingestion';
-import { createCandidateCorpusPgReadPort } from '@trapmap/service-knowledge-read';
+import {
+  createCandidateCorpusPgReadPort,
+  createKnowledgeReadGraphIndexRepository,
+  createOwnerReadModelProjection,
+  type OwnerReadModelProjection,
+} from '@trapmap/service-knowledge-read';
 import {
   createKnowledgeWriteOwnerBundle,
   type ArtifactWritePort,
@@ -53,8 +63,11 @@ export interface HostLocalServices {
   knowledgeOwner: KnowledgeOwnerPort;
   artifactWriter: ArtifactWritePort;
   artifactReadProjection: ArtifactReadProjection;
+  ownerReadModel: OwnerReadModelProjection;
+  graphIndex: GraphIndexRepositoryPort;
   graphQueryBackend: HostLocalGraphQueryBackend;
   graphQuery: HostLocalGraphQueryRuntimeState;
+  close(): Promise<void>;
 }
 
 export async function createHostLocalServices(
@@ -69,8 +82,14 @@ export async function createHostLocalServices(
   const identity = createIdentityAccessPgDeps(pool, { systemAdminKey: config.systemAdminKey });
   const candidateIngestion = createCandidateIngestionPgOwnerBundle(pool);
   const candidateCorpus: CandidateCorpusReadPort = createCandidateCorpusPgReadPort(pool);
+  const graphIndex = createKnowledgeReadGraphIndexRepository(pool);
   const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
   const governanceReview = createGovernanceReviewPgOwnerBundle(pool);
+  const ownerReadModel = createOwnerReadModelProjection({
+    knowledge: knowledgeWrite.knowledgeOwner,
+    artifact: knowledgeWrite.artifactReadProjection,
+    governance: governanceReview.retrievalProjection,
+  });
   const asyncTransport = createJobRuntimeAsyncTransport({
     config: { asyncTaskTransport: config.asyncTaskTransport },
     pool,
@@ -93,8 +112,11 @@ export async function createHostLocalServices(
     knowledgeOwner: knowledgeWrite.knowledgeOwner,
     artifactWriter: knowledgeWrite.artifactWriter,
     artifactReadProjection: knowledgeWrite.artifactReadProjection,
+    ownerReadModel,
+    graphIndex,
     graphQueryBackend: infra.graphQueryBackend,
     graphQuery: infra.graphQuery,
+    close: () => infra.store.close(),
   };
   return services;
 }

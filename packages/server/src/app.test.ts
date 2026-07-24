@@ -108,6 +108,14 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     await app.close();
   });
 
+  it('keeps the compatibility store readable after owner migrations', async () => {
+    const app = await buildServer();
+
+    await expect(app.skillShareer.store.snapshot()).resolves.toEqual(expect.any(Object));
+
+    await app.close();
+  });
+
   it('exposes graph query runtime state from /ready', async () => {
     const app = await buildServer();
     await app.ready();

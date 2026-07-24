@@ -22,7 +22,7 @@
 - `packages/server/src/routes/operations/status.ts`、`stats.ts`、`badcases.ts`、`capsule-index.ts` 已形成分散 operator 面。
 - `packages/server/src/config.ts` 已定义 deployment 与 task transport 的 schema，但还缺少更完整的 config governance 叙事。
 - `packages/server/src/lib/cache/metrics.ts` 已存在基础缓存指标。
-- `packages/server/src/lib/maintenance/batch.ts`、`packages/server/src/lib/decay/batch.ts` 已经说明 bulk/batch path 具备可工程化入口。
+- maintenance/decay bulk writes now use knowledge-write owner commands; unconsumed compatibility batch helpers were retired.
 - Stage 3 现有细化计划已覆盖 operator、config/capacity、cache/bulk 主线，但仍分散在旧目录。
 
 ## 范围
@@ -33,8 +33,7 @@
 - `packages/server/src/lib/runtime/runtime-metadata.ts`
 - `packages/server/src/lib/cache/metrics.ts`
 - `packages/server/src/lib/cache/invalidation.ts`
-- `packages/server/src/lib/maintenance/batch.ts`
-- `packages/server/src/lib/decay/batch.ts`
+- `packages/service-knowledge-write/src/pg-ports.ts`
 - `packages/server/src/lib/retrieval/read-model.ts`
 - `packages/server/src/lib/operations/read-model.ts`
 - `docs/operations/ENVIRONMENT.md`
@@ -48,8 +47,7 @@
 - `packages/server/src/lib/runtime/runtime-metadata.ts`
 - `packages/server/src/lib/cache/metrics.ts`
 - `packages/server/src/lib/cache/invalidation.ts`
-- `packages/server/src/lib/maintenance/batch.ts`
-- `packages/server/src/lib/decay/batch.ts`
+- `packages/service-knowledge-write/src/pg-ports.ts`
 - `docs/reference/api-surface.md`
 - `docs/operations/TESTING.md`
 - `docs/reference/PERFORMANCE.md`
@@ -87,8 +85,7 @@
   - `packages/server/src/routes/operations/status.test.ts`
   - `packages/server/src/routes/operations/stats.test.ts`
   - `packages/server/src/lib/cache/retrieval-cache.test.ts`
-  - `packages/server/src/lib/maintenance/batch.test.ts`
-  - `packages/server/src/lib/decay/batch.test.ts`
+  - `packages/service-knowledge-write/src/pg-ports.test.ts`
 - [x] 若涉及 cache freshness contract 变化，补 retrieval 相关 smoke 回归。
 
 ## 必要示例

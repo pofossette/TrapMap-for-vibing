@@ -371,50 +371,7 @@ flowchart TB
 
 ### 替代实现
 
-```typescript
-function supersedeEntry(args: {
-  store: SkillShareerStore;
-  data: StoreData;
-  entryId: EntityId;
-  replacementId: EntityId;
-  actorId: EntityId;
-}): KnowledgeRecord {
-  const entry = data.knowledgeEntries.find(e => e.id === entryId);
-  const replacement = data.knowledgeEntries.find(e => e.id === replacementId);
-  
-  if (!entry || !replacement) {
-    throw new AppError(404, 'entry_not_found', 'Entry not found');
-  }
-  
-  if (replacement.lifecycleState !== 'approved') {
-    throw new AppError(400, 'invalid_state', 'Replacement must be approved');
-  }
-  
-  // 更新衰减元数据
-  entry.decayMeta = {
-    lastVerifiedAt: entry.decayMeta?.lastVerifiedAt ?? entry.updatedAt,
-    decayState: 'superseded',
-    supersededById: replacementId,
-    decayStateComputedAt: nowIso(),
-    freshnessType: entry.decayMeta?.freshnessType ?? 'evergreen',
-  };
-  
-  // 创建生命周期事件
-  const event: KnowledgeLifecycleEventRecord = {
-    id: store.nextId(data, 'evt'),
-    type: 'superseded',
-    createdAt: nowIso(),
-    actorUserId: args.actorId,
-    submissionId: null,
-    revision: null,
-    state: entry.lifecycleState,
-    note: `Superseded by ${replacementId}`,
-  };
-  entry.lifecycleHistory.push(event);
-  
-  return entry;
-}
-```
+Supersede and operator decay decisions are owner commands. The gateway invokes `KnowledgeOwnerPort.supersede()` or `applyDecayDecision()`; knowledge-write performs the authoritative PostgreSQL transaction and emits its outbox follow-up. The old compatibility batch mutation helpers were retired because no production route invoked them.
 
 ## 参考文档
 
@@ -427,5 +384,4 @@ function supersedeEntry(args: {
 - [packages/server/src/routes/decay.ts](../../../packages/server/src/routes/decay.ts)
 - [packages/server/src/routes/maintenance.ts](../../../packages/server/src/routes/maintenance.ts)
 - [packages/server/src/lib/decay/state-machine.ts](../../../packages/server/src/lib/decay/state-machine.ts)
-- [packages/server/src/lib/decay/batch.ts](../../../packages/server/src/lib/decay/batch.ts)
-- [packages/server/src/lib/decay/supersede.ts](../../../packages/server/src/lib/decay/supersede.ts)
+- [packages/service-knowledge-write/src/pg-ports.ts](../../../packages/service-knowledge-write/src/pg-ports.ts)

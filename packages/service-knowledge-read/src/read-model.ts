@@ -14,6 +14,9 @@ import {
   type RetrievalReadProjection,
   type RetrievalReadModelRepositories,
   type ConflictRelation,
+  type ArtifactReadProjection,
+  type KnowledgeOwnerPort,
+  type RetrievalGovernanceProjection,
 } from '@trapmap/contracts';
 import {
   getCachedRetrievalReadModel,
@@ -27,6 +30,20 @@ export type RetrievalReadModel = RetrievalReadProjection<
   SkillArtifactRecord,
   ConflictRelation
 >;
+
+/**
+ * Host-injected owner read model used by administrative compatibility routes.
+ * The projection remains assembled inside knowledge-read from owner ports.
+ */
+export interface OwnerReadModelProjection {
+  getReadModel(): Promise<RetrievalReadModel>;
+}
+
+export interface OwnerReadModelProjectionOptions {
+  knowledge: Pick<KnowledgeOwnerPort, 'listByFilter'>;
+  artifact: Pick<ArtifactReadProjection, 'listByFilter' | 'listForRetrieval'>;
+  governance: RetrievalGovernanceProjection<FeedbackQueueRecord, ConflictRelation>;
+}
 
 export async function buildRetrievalReadModel(
   repos: SkillShareerRepos,
@@ -51,4 +68,27 @@ export async function buildRetrievalReadModel(
     (entries, _feedback, remediation) => attachRemediationProjection(entries, remediation),
     (artifacts, _feedback, remediation) => attachRemediationProjection(artifacts, remediation),
   );
+}
+
+/**
+ * Owner-facing read projection for administrative and maintenance consumers.
+ * It deliberately shares the retrieval model's owner-port assembly.
+ */
+export function buildOwnerReadModel(repos: SkillShareerRepos): Promise<RetrievalReadModel> {
+  return buildRetrievalReadModel(repos);
+}
+
+export function createOwnerReadModelProjection(
+  options: OwnerReadModelProjectionOptions,
+): OwnerReadModelProjection {
+  return {
+    getReadModel: () =>
+      buildOwnerReadModel({
+        knowledge: options.knowledge as unknown as SkillShareerRepos['knowledge'],
+        artifact: options.artifact as unknown as SkillShareerRepos['artifact'],
+        governanceRetrievalProjection: options.governance,
+        usageAnalytics: null,
+        graphIndex: null,
+      }),
+  };
 }

@@ -1,5 +1,6 @@
 import type { KnowledgeEntry } from './knowledge.js';
 import type { LifecycleState } from './common.js';
+import type { EvidenceMeta } from './evidence.js';
 
 /**
  * Compatibility input accepted by the knowledge-write owner.
@@ -56,6 +57,11 @@ export interface KnowledgeCommandPort {
   applyDecayDecision(
     input: KnowledgeOwnerCommandInput,
   ): Promise<{ entryId: string; action: string }>;
+  reviewEvidence(
+    entryId: string,
+    evidence: EvidenceMeta,
+    actorId: string,
+  ): Promise<{ entryId: string; evidence: EvidenceMeta }>;
 }
 
 export type KnowledgeOwnerPort = KnowledgeCommandPort & KnowledgeOperationsProjection;

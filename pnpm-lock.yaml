@@ -304,6 +304,9 @@ importers:
 
   packages/runtime-infra:
     dependencies:
+      '@trapmap/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@trapmap/server':
         specifier: workspace:*
         version: link:../server

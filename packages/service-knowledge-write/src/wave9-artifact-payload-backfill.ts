@@ -1,13 +1,7 @@
-import type { ArtifactFilePayloadRecord } from '@trapmap/contracts';
+import { isDeepStrictEqual } from 'node:util';
 
-export interface ArtifactFilePayloadOwner {
-  put(payload: ArtifactFilePayloadRecord): Promise<void>;
-  get(
-    artifactId: string,
-    revision: number,
-    path: string,
-  ): Promise<ArtifactFilePayloadRecord | null>;
-}
+import type { ArtifactFilePayloadRecord } from '@trapmap/contracts';
+import type { ArtifactFilePayloadOwner } from './artifact-ports.js';
 
 export interface ArtifactFilePayloadBackfillResult {
   migrated: number;
@@ -16,8 +10,16 @@ export interface ArtifactFilePayloadBackfillResult {
   verified: number;
 }
 
+function canonicalizeTimestamp(value: string): string {
+  const timestamp = new Date(value);
+  return Number.isNaN(timestamp.getTime()) ? value : timestamp.toISOString();
+}
+
 function matches(left: ArtifactFilePayloadRecord, right: ArtifactFilePayloadRecord): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return isDeepStrictEqual(
+    { ...left, storedAt: canonicalizeTimestamp(left.storedAt) },
+    { ...right, storedAt: canonicalizeTimestamp(right.storedAt) },
+  );
 }
 
 /** Task 9-only transfer of legacy artifact file content to the artifact owner. */

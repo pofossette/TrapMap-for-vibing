@@ -1,7 +1,6 @@
 import { evidenceMetaSchema } from '@trapmap/contracts';
 import type { FastifyPluginAsync } from 'fastify';
 
-import { createAuditEvent } from '@trapmap/server/lib/audit.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import {
   requireHigherLevel,
@@ -9,7 +8,6 @@ import {
   requireTeamAccess,
 } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
-import { nowIso } from '@trapmap/server/lib/store.js';
 
 /**
  * Evidence metadata routes for updating provenance on knowledge entries.
@@ -25,58 +23,33 @@ export const evidenceRoutes: FastifyPluginAsync = async (app) => {
     const { id } = request.params;
     const partialEvidence = request.body;
 
-    const updatedEntry = await app.skillShareer.store.transact((data) => {
-      const entry = data.knowledgeEntries.find((candidate) => candidate.id === id);
-      if (!entry) {
-        throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
-      }
+    const entry = await app.skillShareer.knowledgeOwner.getById(id);
+    if (!entry) {
+      throw new AppError(404, 'knowledge_not_found', 'Knowledge entry not found');
+    }
 
-      if (entry.teamId) {
-        requireTeamAccess(auth, entry.teamId);
-      }
+    if (entry.teamId) {
+      requireTeamAccess(auth, entry.teamId);
+    }
+    requireHigherLevel(auth, entry.requiredLevel);
 
-      requireHigherLevel(auth, entry.requiredLevel);
-
-      const now = nowIso();
-      const reviewerActorRef = {
+    const evidence = evidenceMetaSchema.parse({
+      sourceType:
+        partialEvidence.sourceType ?? entry.evidenceMeta?.sourceType ?? 'internal-experience',
+      ...((partialEvidence.sourceRef ?? entry.evidenceMeta?.sourceRef)
+        ? { sourceRef: partialEvidence.sourceRef ?? entry.evidenceMeta?.sourceRef }
+        : {}),
+      evidenceLevel:
+        partialEvidence.evidenceLevel ?? entry.evidenceMeta?.evidenceLevel ?? 'anecdotal',
+      verifiedAt: new Date().toISOString(),
+      verifiedBy: {
         id: auth.actorId,
         handle: auth.handle,
         securityLevel: auth.securityLevel,
-      };
-
-      // Merge with existing or create new
-      const mergedEvidence = {
-        sourceType:
-          partialEvidence.sourceType ?? entry.evidenceMeta?.sourceType ?? 'internal-experience',
-        sourceRef: partialEvidence.sourceRef ?? entry.evidenceMeta?.sourceRef ?? '',
-        evidenceLevel:
-          partialEvidence.evidenceLevel ?? entry.evidenceMeta?.evidenceLevel ?? 'anecdotal',
-        verifiedAt: now,
-        verifiedBy: reviewerActorRef,
-      };
-
-      // Validate with zod schema
-      entry.evidenceMeta = evidenceMetaSchema.parse(mergedEvidence);
-      entry.updatedAt = now;
-
-      // Record audit event
-      const auditEvent = createAuditEvent({
-        store: app.skillShareer.store,
-        data,
-        teamId: entry.teamId,
-        actor: auth,
-        action: 'knowledge-reviewed',
-        entityId: entry.id,
-        payload: {
-          evidenceUpdate: true,
-          evidence: entry.evidenceMeta,
-        },
-      });
-      data.auditEvents.push(auditEvent);
-
-      return entry;
+      },
     });
+    const result = await app.skillShareer.knowledgeOwner.reviewEvidence(id, evidence, auth.actorId);
 
-    return { evidence: updatedEntry.evidenceMeta };
+    return { evidence: result.evidence };
   });
 };

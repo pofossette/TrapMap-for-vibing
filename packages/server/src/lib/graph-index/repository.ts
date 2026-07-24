@@ -17,8 +17,9 @@ import type { Pool } from 'pg';
 import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
+  GraphIndexRepositoryPort,
   GraphNodeRecord,
-} from '@trapmap/server/lib/indexing/graph-lite/index.js';
+} from '@trapmap/contracts';
 import { graphIndexDocuments } from '@trapmap/server/lib/persistence/schema.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 
@@ -26,45 +27,7 @@ import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
  * Repository interface for graph index document CRUD operations.
  * Abstracts whether data lives in JSONB or dedicated PostgreSQL tables.
  */
-export interface GraphIndexRepository {
-  /**
-   * Insert a new graph index document.
-   */
-  insert(doc: GraphIndexDocumentRecord): Promise<void>;
-
-  /**
-   * Get a graph index document by its ID.
-   * Returns null if the document does not exist.
-   */
-  getById(docId: string): Promise<GraphIndexDocumentRecord | null>;
-
-  /**
-   * List graph index documents by source type and source ID.
-   */
-  listBySource(sourceType: string, sourceId: string): Promise<GraphIndexDocumentRecord[]>;
-
-  /**
-   * List all graph index documents.
-   */
-  listAll(): Promise<GraphIndexDocumentRecord[]>;
-
-  /**
-   * Upsert a graph index document.
-   * Replaces existing document with same ID, or inserts if new.
-   */
-  upsert(doc: GraphIndexDocumentRecord): Promise<void>;
-
-  /**
-   * Remove a graph index document by its ID.
-   */
-  remove(docId: string): Promise<void>;
-
-  /**
-   * Remove all graph index documents for a given source.
-   * Used during deactivation or when a source is no longer approved.
-   */
-  removeBySource(sourceType: 'trap' | 'skill', sourceId: string): Promise<void>;
-}
+export type GraphIndexRepository = GraphIndexRepositoryPort;
 
 /**
  * In-memory repository that uses SkillShareerStore for all graph index operations.

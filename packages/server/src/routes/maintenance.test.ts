@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { FastifyInstance } from 'fastify';
 
-import { buildServer } from '@trapmap/server/app.js';
+import { buildPostgresTestServer as buildServer } from '../../../../scripts/testing/server-test-composition.js';
 import type { KnowledgeRecord, MaintenanceMetaRecord } from '@trapmap/server/lib/store.js';
 import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 
@@ -89,7 +89,25 @@ describe('maintenance routes', () => {
   let app: FastifyInstance;
 
   beforeEach(async () => {
-    app = buildServer({ config: { dataFile: `/tmp/trapmap-maint-${Date.now()}.json` } });
+    app = await buildServer({
+      ownerReadModel: {
+        getReadModel: async () => ({
+          knowledgeEntries: [
+            createTestEntry({
+              id: 'entry-no-owner',
+              shortcut: 'no-owner-entry',
+              detail: 'No owner assigned',
+              maintenanceMeta: {
+                maintainerUserId: null,
+                maintainerHandle: null,
+                maintainerLevel: null,
+                reviewBy: null,
+              },
+            }),
+          ],
+        }),
+      },
+    });
     await app.ready();
   });
 
@@ -99,22 +117,6 @@ describe('maintenance routes', () => {
 
   it('keeps maintenance entries read-side working', async () => {
     const auth = await getSystemAdminAuth(app);
-
-    await app.skillShareer.store.transact((data) => {
-      data.knowledgeEntries.push(
-        createTestEntry({
-          id: 'entry-no-owner',
-          shortcut: 'no-owner-entry',
-          detail: 'No owner assigned',
-          maintenanceMeta: {
-            maintainerUserId: null,
-            maintainerHandle: null,
-            maintainerLevel: null,
-            reviewBy: null,
-          },
-        }),
-      );
-    });
 
     const response = await app.inject({
       method: 'GET',

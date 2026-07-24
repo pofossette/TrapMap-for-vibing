@@ -244,50 +244,7 @@ flowchart TB
 
 ### 替代实现
 
-```typescript
-function supersedeEntry(args: {
-  store: SkillShareerStore;
-  data: StoreData;
-  entryId: EntityId;
-  replacementId: EntityId;
-  actorId: EntityId;
-}): KnowledgeRecord {
-  const entry = data.knowledgeEntries.find(e => e.id === entryId);
-  const replacement = data.knowledgeEntries.find(e => e.id === replacementId);
-  
-  if (!entry || !replacement) {
-    throw new AppError(404, 'entry_not_found', 'Entry not found');
-  }
-  
-  if (replacement.lifecycleState !== 'approved') {
-    throw new AppError(400, 'invalid_state', 'Replacement must be approved');
-  }
-  
-  // 更新衰减元数据
-  entry.decayMeta = {
-    lastVerifiedAt: entry.decayMeta?.lastVerifiedAt ?? entry.updatedAt,
-    decayState: 'superseded',
-    supersededById: replacementId,
-    decayStateComputedAt: nowIso(),
-    freshnessType: entry.decayMeta?.freshnessType ?? 'evergreen',
-  };
-  
-  // 创建生命周期事件
-  const event: KnowledgeLifecycleEventRecord = {
-    id: store.nextId(data, 'evt'),
-    type: 'superseded',
-    createdAt: nowIso(),
-    actorUserId: args.actorId,
-    submissionId: null,
-    revision: null,
-    state: entry.lifecycleState,
-    note: `Superseded by ${replacementId}`,
-  };
-  entry.lifecycleHistory.push(event);
-  
-  return entry;
-}
-```
+Gateway validates the actor and invokes `KnowledgeOwnerPort.supersede(entryId, replacementId, actorId)`. The knowledge-write owner validates and updates the authoritative entry in one PostgreSQL transaction, appends the lifecycle event, and enqueues the post-commit outbox event. It does not mutate a compatibility `StoreData` aggregate.
 
 ## 更新与重新提交的区别
 
@@ -335,6 +292,4 @@ void logUserOperation(app.skillShareer.config.userOpsLog, {
 ## 相关源码
 
 - [packages/server/src/routes/knowledge.ts](../../../packages/server/src/routes/knowledge.ts)
-- [packages/server/src/lib/knowledge.ts](../../../packages/server/src/lib/knowledge.ts)
-- [packages/server/src/lib/decay/supersede.ts](../../../packages/server/src/lib/decay/supersede.ts)
-- [packages/server/src/lib/lifecycle/state-machine.ts](../../../packages/server/src/lib/lifecycle/state-machine.ts)
+- [packages/service-knowledge-write/src/pg-ports.ts](../../../packages/service-knowledge-write/src/pg-ports.ts)

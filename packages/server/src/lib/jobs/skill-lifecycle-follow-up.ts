@@ -11,7 +11,10 @@ export interface ScheduleSkillLifecycleFollowUpParams {
 }
 
 export async function scheduleSkillLifecycleFollowUp(
-  services: Pick<SkillShareerServices, 'store' | 'ai' | 'graphQueryBackend' | 'asyncTransport'>,
+  services: Pick<
+    SkillShareerServices,
+    'store' | 'ai' | 'graphQueryBackend' | 'graphIndex' | 'asyncTransport'
+  >,
   params: ScheduleSkillLifecycleFollowUpParams,
 ): Promise<void> {
   if (params.previousState === params.nextState) {

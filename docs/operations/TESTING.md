@@ -1292,6 +1292,12 @@ rtk pnpm check:docs-drift
 
 ## Label Backfill and Repair Commands
 
+### Legacy snapshot retirement evidence
+
+`store_snapshot` 的一次性 source-to-target backfill 已在 2026-07-23 以独立 PostgreSQL source 与已迁移的 six-owner target 完成验收。提前加入 identity-access baseline 的 destructive migration 会破坏仍在运行的 compatibility server，已撤回；只有 Wave-10 删除全部 runtime consumer 后，才可在同一 cutover 中重新引入该 migration。用于该演练的命令、wiring 与 acceptance test 已删除，仓库不再提供可执行的 legacy snapshot backfill 命令。
+
+该证据及 source/target readback、idempotency 与 conflict-rejection 结果记录在 active compatibility-shell retirement detail。外部历史数据库的迁移须经运维变更流程执行，不得依赖已从本仓库移除的 compatibility runtime。
+
 ### backfill:labels
 
 从历史数据（`knowledge_labels`、artifact `labels`、`graph_index_documents`）中回填规范标签目录。

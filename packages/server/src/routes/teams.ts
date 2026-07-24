@@ -11,10 +11,9 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'team:list');
 
-    const { identity, store } = app.skillShareer;
+    const { identity } = app.skillShareer;
     const { teamRepo, membershipRepo } = identity;
 
-    // Use repositories if available
     if (teamRepo && membershipRepo) {
       const allTeams = await teamRepo.listAll();
 
@@ -33,21 +32,7 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    // Fallback: use store.snapshot()
-    const data = await store.snapshot();
-    const teams =
-      auth.subjectType === 'system-admin'
-        ? data.teams
-        : data.teams.filter((team) =>
-            data.memberships.some(
-              (membership) => membership.userId === auth.user?.id && membership.teamId === team.id,
-            ),
-          );
-
-    return teamListResponseSchema.parse({
-      teams,
-      activeTeamId: auth.activeTeamId,
-    });
+    throw new AppError(503, 'identity_unavailable', 'Identity owner is unavailable');
   });
 
   app.post('/v1/teams', async (request) => {
@@ -58,10 +43,9 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
     const createdAt = nowIso();
     const slug = createSlug(payload.name);
 
-    const { identity, store } = app.skillShareer;
+    const { identity } = app.skillShareer;
     const { teamRepo, membershipRepo } = identity;
 
-    // Use repositories if available
     if (teamRepo && membershipRepo) {
       // Check for duplicate slug
       const existing = await teamRepo.getBySlug(slug);
@@ -100,40 +84,6 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
       return teamSchema.parse(team);
     }
 
-    // Fallback: use store.transact()
-    const team = await store.transact((data) => {
-      if (data.teams.some((candidate) => candidate.slug === slug)) {
-        throw new AppError(409, 'team_exists', 'A team with this name already exists');
-      }
-
-      const record = {
-        id: store.nextId(data, 'team'),
-        name: payload.name,
-        slug,
-        description: payload.description ?? null,
-        createdAt,
-        updatedAt: createdAt,
-      };
-
-      data.teams.push(record);
-
-      if (auth.subjectType === 'user' && auth.user) {
-        data.memberships.push({
-          id: store.nextId(data, 'member'),
-          userId: auth.user.id,
-          teamId: record.id,
-          roleTemplate: auth.membership?.roleTemplate ?? 'admin',
-          securityLevel: auth.securityLevel,
-          permissions: auth.membership?.permissions ?? [],
-          notes: auth.membership?.notes ?? null,
-          createdAt,
-          updatedAt: createdAt,
-        });
-      }
-
-      return record;
-    });
-
-    return teamSchema.parse(team);
+    throw new AppError(503, 'identity_unavailable', 'Identity owner is unavailable');
   });
 };

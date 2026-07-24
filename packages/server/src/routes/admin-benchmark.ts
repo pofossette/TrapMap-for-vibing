@@ -36,7 +36,11 @@ export const adminBenchmarkRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const body = benchmarkRequestSchema.parse(request.body);
-    const data = await app.skillShareer.store.snapshot();
+    const ownerReadModel = app.skillShareer.ownerReadModel;
+    if (!ownerReadModel) {
+      throw new AppError(503, 'knowledge_read_unavailable', 'Knowledge read owner is unavailable');
+    }
+    const data = await ownerReadModel.getReadModel();
 
     const result = await runRetrievalBenchmark(data.knowledgeEntries, body.query, body.mode);
 

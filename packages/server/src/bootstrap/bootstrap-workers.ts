@@ -25,12 +25,14 @@ function buildSharedJobWorkerHandlers(
       registry: app.skillShareer.adapterRegistry,
       pool,
       graphQueryBackend: app.skillShareer.graphQueryBackend,
+      graphIndex: app.skillShareer.graphIndex,
     },
     skillIndexFollowUp: {
       services: {
         store,
         ai: app.skillShareer.ai,
         graphQueryBackend: app.skillShareer.graphQueryBackend,
+        graphIndex: app.skillShareer.graphIndex,
       },
       pool,
     },

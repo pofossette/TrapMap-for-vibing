@@ -10,125 +10,22 @@
 
 import { createHash } from 'node:crypto';
 
-import type { Scope } from '@trapmap/contracts';
+import type {
+  GraphEdgeRecord,
+  GraphIndexDocumentRecord,
+  GraphNodeRecord,
+  GraphRelationStrength,
+  Scope,
+} from '@trapmap/contracts';
 
-// ---------------------------------------------------------------------------
-// Node and edge record types
-// ---------------------------------------------------------------------------
-
-/**
- * Kinds of graph nodes in the TrapMap-specific vocabulary.
- */
-export type GraphNodeKind =
-  | 'trap'
-  | 'skill'
-  | 'cue'
-  | 'tool'
-  | 'environment'
-  | 'prerequisite'
-  | 'mitigation'
-  | 'boundary-context' // Context labels like "frontend", "production"
-  | 'boundary-version' // Version constraints like "react>=16.8.0"
-  | 'boundary-platform'; // Platform identifiers like "linux", "docker"
-
-/**
- * Typed relation vocabulary for the GraphRAG-lite index.
- */
-export type GraphRelationType =
-  | 'mitigates'
-  | 'requires'
-  | 'order'
-  | 'risk-blocks'
-  | 'co-occurs-with'
-  | 'applies-in' // Entry applies in this context (trap -> boundary-context)
-  | 'requires-version' // Entry requires this version (trap -> boundary-version)
-  | 'excludes-context' // Entry excluded in this context (trap -> boundary-context)
-  | 'excludes-version'; // Entry incompatible with this version (trap -> boundary-version)
-
-/**
- * Edge strength distinguishing hard dependencies from soft precedence.
- * GraSP: hard edges must be respected by the compiler; soft edges may be reordered.
- */
-export type GraphRelationStrength = 'hard' | 'soft';
-
-/**
- * A single node record within a graph document.
- */
-export interface GraphNodeRecord {
-  /** Unique node identifier scoped to the graph document */
-  id: string;
-  /** Node kind from the TrapMap vocabulary */
-  kind: GraphNodeKind;
-  /** Human-readable label (canonical if aligned, raw otherwise) */
-  label: string;
-  /** Evidence text justifying this node */
-  evidence: string;
-  /** Pre-computed severity for trap nodes. Derived from risk-blocks edge strength. */
-  severity?: 'hard' | 'soft';
-  /** Pre-computed list of trap nodeIds this skill/mitigation node mitigates. Only for kind=skill or kind=mitigation. */
-  mitigates?: string[];
-  /** Original raw label before canonical alignment (undefined if no alignment occurred) */
-  rawLabel?: string;
-  /** Canonical label ID from the label catalog (undefined if no alignment occurred or unsure) */
-  canonicalLabelId?: string;
-  /** Alignment decision: 'existing' | 'new' | 'unsure' (undefined if no alignment occurred) */
-  alignmentDecision?: 'existing' | 'new' | 'unsure';
-}
-
-/**
- * A single edge record within a graph document.
- */
-export interface GraphEdgeRecord {
-  /** Unique edge identifier scoped to the graph document */
-  id: string;
-  /** Source node id */
-  sourceNodeId: string;
-  /** Target node id */
-  targetNodeId: string;
-  /** Relation type from the locked vocabulary */
-  relationType: GraphRelationType;
-  /** Hard vs soft edge strength */
-  strength: GraphRelationStrength;
-  /** Evidence text justifying this edge */
-  evidence: string;
-}
-
-// ---------------------------------------------------------------------------
-// Document record type
-// ---------------------------------------------------------------------------
-
-/**
- * Durable graph document record stored in the JSON store.
- * Keyed by {sourceType, sourceId, revision} for deterministic upsert/remove.
- */
-export interface GraphIndexDocumentRecord {
-  /** Unique document identifier */
-  id: string;
-  /** Source type: trap (knowledge entry) or skill (artifact) */
-  sourceType: 'trap' | 'skill';
-  /** Source entity identifier (entry ID or artifact ID) */
-  sourceId: string;
-  /** Source revision number */
-  revision: number;
-  /** SHA-256 hash of the document content */
-  contentHash: string;
-  /** Team ID (null for global scope) */
-  teamId: string | null;
-  /** Governance scope */
-  scope: Scope;
-  /** Required security level (inherited from source) */
-  requiredLevel: number;
-  /** Graph nodes in this document */
-  nodes: GraphNodeRecord[];
-  /** Graph edges in this document */
-  edges: GraphEdgeRecord[];
-  /** Human-readable evidence description for audit trail */
-  evidence: string;
-  /** ISO timestamp when document was created */
-  createdAt: string;
-  /** ISO timestamp when document was last updated */
-  updatedAt: string;
-}
+export type {
+  GraphEdgeRecord,
+  GraphIndexDocumentRecord,
+  GraphNodeKind,
+  GraphNodeRecord,
+  GraphRelationStrength,
+  GraphRelationType,
+} from '@trapmap/contracts';
 
 // ---------------------------------------------------------------------------
 // Document builders

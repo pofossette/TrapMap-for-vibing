@@ -3,6 +3,7 @@ import {
   emitCacheInvalidation,
 } from '@trapmap/server/lib/cache/invalidation.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
 import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import {
@@ -20,6 +21,7 @@ export function createKnowledgeIndexFollowUpHandler(args: {
   registry: AdapterRegistry;
   pool: Pool;
   graphQueryBackend?: GraphQueryBackend;
+  graphIndex?: GraphIndexRepositoryPort;
 }): SharedJobHandler<KnowledgeIndexFollowUpPayload> {
   const contract = getSharedJobContract(KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE);
   return {
@@ -52,8 +54,8 @@ export function createKnowledgeIndexFollowUpHandler(args: {
       await runKnowledgeIndexEvent({
         services: {
           store: args.store,
-          data: await args.store.snapshot(),
           ...(args.graphQueryBackend ? { graphQueryBackend: args.graphQueryBackend } : {}),
+          ...(args.graphIndex ? { graphIndex: args.graphIndex } : {}),
         },
         entryId: task.payload.entryId,
         previousState: task.payload.previousState,

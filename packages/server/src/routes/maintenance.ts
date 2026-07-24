@@ -6,7 +6,6 @@
  * - POST /v1/admin/reconcile-knowledge-indexes: Reconcile all knowledge indexes (Phase 77)
  */
 
-import type { DecayState } from '@trapmap/contracts';
 import {
   type MaintenanceAwareListItem,
   maintenanceAwareListItemSchema,
@@ -26,8 +25,12 @@ import {
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
-import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { loadUserOpsLogConfig, logUserOperation } from '@trapmap/server/lib/user-ops-log.js';
+import type { OwnerReadModelProjection } from '@trapmap/server/lib/context.js';
+
+type OwnerReadEntry = Awaited<
+  ReturnType<OwnerReadModelProjection['getReadModel']>
+>['knowledgeEntries'][number];
 
 /**
  * Compute age in days from lastVerifiedAt to now.
@@ -70,7 +73,7 @@ function filterEntriesByPermission(
 }
 
 function matchesMaintenanceFilters(
-  entry: KnowledgeRecord,
+  entry: OwnerReadEntry,
   query: ReturnType<typeof maintenanceEntryListRequestSchema.parse>,
   lastVerifiedAt: string | null,
   reviewBy: string | null,
@@ -106,8 +109,11 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
     // Parse query parameters
     const query = maintenanceEntryListRequestSchema.parse(request.query);
 
-    // Get snapshot
-    const data = await app.skillShareer.store.snapshot();
+    const ownerReadModel = app.skillShareer.ownerReadModel;
+    if (!ownerReadModel) {
+      throw new AppError(503, 'knowledge_read_unavailable', 'Knowledge read owner is unavailable');
+    }
+    const data = await ownerReadModel.getReadModel();
     const decayConfig = loadDecayConfig();
     const now = new Date();
 
@@ -130,17 +136,7 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
       // Skip entries not permitted for this user
       if (!permittedIds.has(entry.id)) continue;
 
-      // Access decayMeta via cast since KnowledgeRecord type does not include it
-      // (pre-existing pattern from decay.ts routes)
-      type DecayMetaAccess = {
-        decayMeta?: {
-          lastVerifiedAt: string;
-          decayState: DecayState;
-          supersededById: string | null;
-          freshnessType?: string;
-        };
-      };
-      const entryDecay = (entry as unknown as DecayMetaAccess).decayMeta;
+      const entryDecay = entry.decayMeta;
 
       // Compute decay state for decay-aware list item base
       const decayResult = entryDecay

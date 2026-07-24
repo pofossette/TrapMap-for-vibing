@@ -302,15 +302,19 @@ export async function verify(config: {
 
   const client = await pool.connect();
   try {
-    return await Promise.all(
-      domainDefs.map(async (definition) => {
-        const { rows } = await client.query<{ count: string }>(
-          `SELECT COUNT(*) as count FROM "${definition.table}"`,
-        );
-        const tableCount = Number(rows[0]?.count ?? 0);
-        return { ...definition, tableCount, matched: tableCount === definition.snapshotCount };
-      }),
-    );
+    const verification: DomainVerification[] = [];
+    for (const definition of domainDefs) {
+      const { rows } = await client.query<{ count: string }>(
+        `SELECT COUNT(*) as count FROM "${definition.table}"`,
+      );
+      const tableCount = Number(rows[0]?.count ?? 0);
+      verification.push({
+        ...definition,
+        tableCount,
+        matched: tableCount === definition.snapshotCount,
+      });
+    }
+    return verification;
   } finally {
     client.release();
   }

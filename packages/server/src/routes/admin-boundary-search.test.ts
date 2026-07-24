@@ -9,7 +9,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { buildServer } from '@trapmap/server/app.js';
+import { buildPostgresTestServer as buildServer } from '../../../../scripts/testing/server-test-composition.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
@@ -27,7 +27,10 @@ describe('admin boundary search routes', () => {
   beforeEach(async () => {
     const testDataFile = `/tmp/trapmap-test-admin-boundary-${Date.now()}-${Math.random()}.json`;
 
-    app = buildServer({ config: { dataFile: testDataFile } });
+    app = await buildServer({
+      config: { dataFile: testDataFile },
+      ownerReadModel: { getReadModel: async () => ({ knowledgeEntries: [] }) },
+    });
     await app.ready();
     store = app.skillShareer.store;
 

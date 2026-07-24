@@ -35,8 +35,11 @@ export const adminBoundarySearchRoutes: FastifyPluginAsync = async (app) => {
     // Validate query
     const query = adminBoundarySearchQuerySchema.parse(request.body);
 
-    // Get store snapshot
-    const data = await app.skillShareer.store.snapshot();
+    const ownerReadModel = app.skillShareer.ownerReadModel;
+    if (!ownerReadModel) {
+      throw new AppError(503, 'knowledge_read_unavailable', 'Knowledge read owner is unavailable');
+    }
+    const data = await ownerReadModel.getReadModel();
 
     // Build constraint from query (only include defined values)
     const constraint: {

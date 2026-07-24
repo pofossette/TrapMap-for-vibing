@@ -56,7 +56,14 @@ export {
   loadRagLogConfig,
   logRagRetrieval,
 } from './rag-log.js';
-export { buildRetrievalReadModel, type RetrievalReadModel } from './read-model.js';
+export {
+  buildOwnerReadModel,
+  buildRetrievalReadModel,
+  createOwnerReadModelProjection,
+  type OwnerReadModelProjection,
+  type OwnerReadModelProjectionOptions,
+  type RetrievalReadModel,
+} from './read-model.js';
 export {
   assembleResponseBuckets,
   buildEmptyResponse,
@@ -68,3 +75,4 @@ export { generateRefinement, isRefinementAvailable } from './response-refinement
 export { buildSummary } from './response-summary.js';
 export { searchKnowledge, updateEntryEmbeddingCache } from './search-knowledge.js';
 export { createCandidateCorpusPgReadPort } from './candidate-corpus-pg.js';
+export { createKnowledgeReadGraphIndexRepository } from './graph-index-repository.js';

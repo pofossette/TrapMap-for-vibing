@@ -12,6 +12,7 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import {
   type SkillArtifactRecord,
   type SkillShareerStore,
@@ -114,6 +115,7 @@ export async function runArtifactAdapterFanOut(args: {
   store?: SkillShareerStore;
   chat?: ChatProvider;
   graphQueryBackend?: Parameters<ArtifactGraphAdapter['sync']>[0]['graphQueryBackend'];
+  graphIndex?: GraphIndexRepositoryPort;
   adapters?: ArtifactGraphAdapter[];
 }): Promise<ArtifactAdapterFanOutResult> {
   const { data, artifact } = args;
@@ -132,6 +134,7 @@ export async function runArtifactAdapterFanOut(args: {
         ...(args.graphQueryBackend !== undefined
           ? { graphQueryBackend: args.graphQueryBackend }
           : {}),
+        ...(args.graphIndex !== undefined ? { graphIndex: args.graphIndex } : {}),
       });
       results.push({
         success: result.success,
@@ -163,6 +166,7 @@ export async function runArtifactAdapterRemoval(args: {
   artifactId: string;
   store?: SkillShareerStore;
   graphQueryBackend?: Parameters<ArtifactGraphAdapter['remove']>[0]['graphQueryBackend'];
+  graphIndex?: GraphIndexRepositoryPort;
   adapters?: ArtifactGraphAdapter[];
 }): Promise<void> {
   const { data, artifactId } = args;
@@ -177,6 +181,7 @@ export async function runArtifactAdapterRemoval(args: {
       ...(args.graphQueryBackend !== undefined
         ? { graphQueryBackend: args.graphQueryBackend }
         : {}),
+      ...(args.graphIndex !== undefined ? { graphIndex: args.graphIndex } : {}),
     });
   }
 }
