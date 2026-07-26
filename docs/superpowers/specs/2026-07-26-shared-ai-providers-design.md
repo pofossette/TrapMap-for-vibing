@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Retire the remaining Wave-8 host-local dependency on `@trapmap/server` by
+Retire the Wave-8 host-local AI-provider dependency on `@trapmap/server` by
 moving the complete AI provider implementation and environment configuration
 into a dedicated shared workspace package. Server-owned prompt construction,
 prompt caching, parsing, and dynamic prompt injection remain in the server
@@ -44,9 +44,11 @@ runner, graph extraction evals, and type-only consumers with
 `@trapmap/ai-providers`. The server AI barrel ceases to be a provider entry
 point and exposes only server-owned prompt/cache/parse facilities.
 
-This removes `@trapmap/server` from
+This removes provider/config imports from
 `packages/host-local/src/nest/runtime/shared-infra.ts`. The graph-query
-dependency remains a separate Wave-8 item and is not hidden by this change.
+dependency keeps its separate `@trapmap/server` import until its own Wave-8
+owner migration; this change must not be represented as removing the complete
+file-level server dependency.
 
 ## Behavior And Errors
 
