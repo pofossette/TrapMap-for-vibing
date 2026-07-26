@@ -14,6 +14,13 @@ export default defineConfig({
     projects: [
       {
         test: {
+          name: 'ai-providers',
+          root: './packages/ai-providers',
+          include: ['src/**/*.test.ts'],
+        },
+      },
+      {
+        test: {
           name: 'scripts',
           root: './scripts',
           include: ['__tests__/**/*.test.ts'],

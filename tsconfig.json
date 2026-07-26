@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "./packages/ai-providers" },
     { "path": "./packages/contracts" },
     { "path": "./packages/persistence-schema" },
     { "path": "./packages/client-core" },
