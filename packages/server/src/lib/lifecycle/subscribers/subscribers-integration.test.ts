@@ -346,7 +346,13 @@ describe('outbox-driven subscriber execution (Phase 2)', () => {
       }
 
       const registry = new AdapterRegistry();
-      const subscriber = createIndexingSubscriber(store, registry);
+      const asyncQueue = app.skillShareer.asyncTransport?.task;
+      if (!asyncQueue) {
+        throw new Error(
+          'PostgreSQL subscriber integration requires injected job-runtime task queue',
+        );
+      }
+      const subscriber = createIndexingSubscriber(store, registry, undefined, asyncQueue);
       await subscriber(
         makeEvent({
           entryId: 'entry_phase5_pg_subscriber',
