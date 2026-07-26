@@ -34,14 +34,9 @@ const SNAPSHOT_ALLOWLIST: string[] = [
   // Retrieval read-model: repo-backed assembly; retained only for cache-backed read-model ownership
   'lib/retrieval/read-model.ts',
 
-  // Indexing pipeline
-  'lib/indexing/pipeline.ts',
-  'lib/indexing/events.ts',
-  'lib/indexing/skill-events.ts',
+  // Indexing compatibility helpers
   'lib/indexing/skill-extract.ts',
   'lib/indexing/skill-graph-build.ts',
-  'lib/indexing/reconcile.ts',
-  'lib/indexing/adapters/graph.ts',
   'lib/jobs/handlers/knowledge-index-follow-up.ts',
   'lib/jobs/handlers/skill-index-follow-up.ts',
   'lib/jobs/skill-index-follow-up.ts',

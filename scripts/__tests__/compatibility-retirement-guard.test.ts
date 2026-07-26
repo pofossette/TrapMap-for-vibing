@@ -62,11 +62,9 @@ const completedOwnerWaves: OwnerWave[] = [
   'wave-7',
 ];
 const POSTGRES_COMPOSITION_ENTRYPOINTS = [
-  'scripts/export-retrieval-db-snapshot.ts',
   'evals/retrieval-live/lib/snapshot-orchestrator.ts',
-  'packages/server/scripts/benchmark-graph-backend.ts',
-  'scripts/test-skill-import-export.ts',
 ] as const;
+const OWNER_LOCAL_POSTGRES_ENTRYPOINTS = ['scripts/test-skill-import-export.ts'] as const;
 const RETIRED_WAVE_1_OWNER_SYMBOLS = [
   'createSessionRepository',
   'createAccessKeyRepository',
@@ -150,18 +148,11 @@ const RETIRED_WAVE_6_ASYNC_IMPLEMENTATIONS = [
   'packages/server/src/lib/async/rabbitmq-task-queue.ts',
 ] as const;
 const allowlist: AllowlistEntry[] = [
-  ['package.json', '@trapmap/server', 'wave-10', 'root development dependency'],
   [
     'packages/host-local/src/nest/runtime/shared-infra.ts',
     '@trapmap/server',
     'wave-8',
     'local host compatibility shared infrastructure',
-  ],
-  [
-    'packages/host-local/src/nest/runtime/server-composition.ts',
-    '@trapmap/server',
-    'wave-8',
-    'local host compatibility-shell composition',
   ],
   [
     'scripts/label-runner.ts',
@@ -229,14 +220,6 @@ const allowlist: AllowlistEntry[] = [
     'JsonStore',
     'wave-9',
     'legacy JSON store implementation',
-  ],
-  ['scripts/bench-store.ts', 'JsonStore', 'wave-9', 'legacy store benchmark'],
-  ['scripts/bench-store.ts', 'PostgresStore', 'wave-9', 'legacy store benchmark'],
-  [
-    'scripts/export-retrieval-db-snapshot.ts',
-    '@trapmap/server',
-    'wave-9',
-    'legacy snapshot export fixture',
   ],
 ].map(([file, symbol, ownerWave, rationale]) => ({
   file,
@@ -520,6 +503,16 @@ describe('compatibility retirement guard', () => {
     }
   });
 
+  it('requires owner-local PostgreSQL tooling to avoid compatibility server composition', () => {
+    for (const file of OWNER_LOCAL_POSTGRES_ENTRYPOINTS) {
+      const source = readFileSync(join(repoRoot, file), 'utf8');
+      expect(source).toContain('createArtifactBundleImportPort');
+      expect(source).toContain('createArtifactReadProjection');
+      expect(source).not.toContain('buildPostgresComposedServer');
+      expect(source).not.toContain('@trapmap/server');
+    }
+  });
+
   function writeProductionFile(root: string, relativePath: string, content: string): void {
     const file = join(root, relativePath);
     mkdirSync(resolve(file, '..'), { recursive: true });
@@ -698,6 +691,12 @@ describe('compatibility retirement guard', () => {
     ]) {
       expect(existsSync(join(repoRoot, path))).toBe(false);
     }
+  });
+
+  it('retires the compatibility server graph-startup benchmark', () => {
+    expect(existsSync(join(repoRoot, 'packages/server/scripts/benchmark-graph-backend.ts'))).toBe(
+      false,
+    );
   });
 
   it('retires the completed Task-9 legacy snapshot command surface', () => {

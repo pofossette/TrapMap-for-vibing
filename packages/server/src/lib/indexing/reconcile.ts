@@ -1,9 +1,7 @@
 /**
  * Cross-domain graph reconciliation and stale-state cleanup.
  *
- * This module provides:
- * - reconcileGraphIndexes: Repair drift between approved content and persisted graph state
- * - reconcileGraphIndexesFromSnapshot: Same operation with explicit data snapshot
+ * This module rebuilds graph projections from owner-local indexing sources.
  *
  * Security note: Stale graph documents for deactivated or rejected entities are
  * treated as security-sensitive removals, not warnings. Hard dependency cycles
@@ -12,23 +10,18 @@
  * T-36-13: Remove stale graph documents (missing, deactivated, rejected, old revision)
  * T-36-14: Rebuild missing approved trap and skill documents
  * T-36-16: Derive allowed source set from current governance metadata
- * Phase 4: Full rebuild on prompt version change with interrupt recovery
  */
 
-import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import type {
-  KnowledgeRecord,
-  SkillArtifactRecord,
-  SkillShareerStore,
-  StoreData,
-} from '@trapmap/server/lib/store.js';
+  ArtifactIndexingEntry,
+  ArtifactReadProjection,
+  GraphIndexRepositoryPort,
+  KnowledgeIndexingEntry,
+  KnowledgeOwnerPort,
+} from '@trapmap/contracts';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import { buildTrapGraphDocument } from './adapters/graph-builders.js';
-import {
-  type GraphIndexDocumentRecord,
-  PROMPT_VERSION,
-  assertNoHardDependencyCycles,
-} from './graph-lite/index.js';
+import { type GraphIndexDocumentRecord, assertNoHardDependencyCycles } from './graph-lite/index.js';
 import { normalizeKnowledgeIndexDocument } from './normalize.js';
 import { buildSkillGraphDocument } from './skill-events.js';
 
@@ -64,7 +57,7 @@ interface ApprovedSource {
   teamId: string | null;
   scope: import('@trapmap/contracts').Scope;
   requiredLevel: number;
-  entity: KnowledgeRecord | SkillArtifactRecord;
+  entity: KnowledgeIndexingEntry | ArtifactIndexingEntry;
 }
 
 // ---------------------------------------------------------------------------
@@ -74,86 +67,15 @@ interface ApprovedSource {
 /**
  * Check if a knowledge entry is currently approved.
  */
-function isApprovedKnowledge(entry: KnowledgeRecord): boolean {
+function isApprovedKnowledge(entry: { lifecycleState: string }): boolean {
   return entry.lifecycleState === 'approved';
 }
 
 /**
  * Check if a skill artifact is currently approved.
  */
-function isApprovedSkill(artifact: SkillArtifactRecord): boolean {
+function isApprovedSkill(artifact: { lifecycleState: string }): boolean {
   return artifact.lifecycleState === 'approved';
-}
-
-/**
- * Compute the set of approved sources from knowledge entries and skill artifacts.
- */
-function computeApprovedSources(data: StoreData): ApprovedSource[] {
-  const sources: ApprovedSource[] = [];
-
-  // Add approved knowledge entries (traps)
-  for (const entry of data.knowledgeEntries) {
-    if (isApprovedKnowledge(entry)) {
-      sources.push({
-        sourceType: 'trap',
-        sourceId: entry.id,
-        revision: entry.history.length > 0 ? entry.history.length : 1,
-        teamId: entry.teamId,
-        scope: entry.scope,
-        requiredLevel: entry.requiredLevel,
-        entity: entry,
-      });
-    }
-  }
-
-  // Add approved skill artifacts
-  for (const artifact of data.skillArtifacts) {
-    if (isApprovedSkill(artifact)) {
-      sources.push({
-        sourceType: 'skill',
-        sourceId: artifact.id,
-        revision: artifact.latestRevision.revision,
-        teamId: artifact.teamId,
-        scope: artifact.scope,
-        requiredLevel: artifact.requiredLevel,
-        entity: artifact,
-      });
-    }
-  }
-
-  return sources;
-}
-
-/**
- * Result of a full rebuild triggered by prompt version change.
- */
-export interface FullRebuildResult {
-  /** Whether a rebuild was triggered */
-  triggered: boolean;
-  /** Previous prompt version (null if first run) */
-  previousVersion: number | null;
-  /** Current prompt version */
-  currentVersion: number;
-  /** Total sources to rebuild */
-  totalSources: number;
-  /** Sources rebuilt successfully in this pass */
-  sourcesRebuilt: number;
-  /** Sources that errored during rebuild */
-  sourcesErrored: number;
-  /** Whether the rebuild completed or was interrupted */
-  completed: boolean;
-  /** Error messages for failed sources */
-  errors: Array<{ sourceKey: string; error: string }>;
-}
-
-/**
- * A candidate for rebuild: an approved source that needs its graph document regenerated.
- */
-interface RebuildCandidate {
-  sourceKey: string;
-  sourceType: 'trap' | 'skill';
-  sourceId: string;
-  entity: KnowledgeRecord | SkillArtifactRecord;
 }
 
 /**
@@ -195,7 +117,7 @@ function isStaleDocument(
  * Build a candidate graph document for a trap source.
  */
 function buildCandidateForTrap(source: ApprovedSource): GraphIndexDocumentRecord | null {
-  const entry = source.entity as KnowledgeRecord;
+  const entry = source.entity as KnowledgeIndexingEntry;
 
   const normalized = normalizeKnowledgeIndexDocument(entry);
 
@@ -212,7 +134,7 @@ function buildCandidateForTrap(source: ApprovedSource): GraphIndexDocumentRecord
 async function buildCandidateForSkill(
   source: ApprovedSource,
 ): Promise<GraphIndexDocumentRecord | null> {
-  const artifact = source.entity as SkillArtifactRecord;
+  const artifact = source.entity as ArtifactIndexingEntry;
   return buildSkillGraphDocument(artifact);
 }
 
@@ -234,18 +156,16 @@ async function buildCandidateForSkill(
  * @param args - Store and data snapshot
  * @returns Reconciliation result with counts and error status
  */
-export async function reconcileGraphIndexesFromSnapshot(args: {
-  data: StoreData;
+async function reconcileGraphIndexesFromApprovedSources(args: {
+  approvedSources: ApprovedSource[];
   graphIndex: GraphIndexRepositoryPort;
 }): Promise<GraphReconcileResult> {
-  const { data, graphIndex } = args;
+  const { approvedSources, graphIndex } = args;
 
   // The knowledge-read owner is the sole durable graph projection authority.
   const existingDocs = await graphIndex.listAll();
   const totalDocuments = existingDocs.length;
 
-  // Compute approved sources
-  const approvedSources = computeApprovedSources(data);
   const approvedSourcesByKey = new Map<string, ApprovedSource>();
   for (const source of approvedSources) {
     approvedSourcesByKey.set(sourceKey(source.sourceType, source.sourceId), source);
@@ -341,203 +261,72 @@ export async function reconcileGraphIndexesFromSnapshot(args: {
   };
 }
 
-/**
- * Perform a full rebuild of all graph index documents.
- *
- * This is triggered when PROMPT_VERSION changes. It regenerates graph documents
- * for all approved sources using the current extraction logic, replacing stale
- * documents that were built with an older prompt version.
- *
- * Supports interrupt recovery: if a previous rebuild was interrupted,
- * it resumes from the last completed source (tracked in data.rebuildState).
- *
- * @param args - Store and data snapshot
- * @returns Full rebuild result with counts and completion status
- */
-export async function fullRebuildGraphIndexes(args: {
-  data: StoreData;
-  graphIndex: GraphIndexRepositoryPort;
-}): Promise<FullRebuildResult> {
-  const { data, graphIndex } = args;
-
-  const currentVersion = PROMPT_VERSION;
-  const previousVersion = data.promptVersion;
-
-  // Compute all approved sources
-  const approvedSources = computeApprovedSources(data);
-
-  // Determine which sources need rebuild (resume from interrupt if applicable)
-  const completedKeys = new Set(data.rebuildState?.completedSourceKeys ?? []);
-  const pendingSources: RebuildCandidate[] = [];
-
-  for (const source of approvedSources) {
-    const key = sourceKey(source.sourceType, source.sourceId);
-    if (completedKeys.has(key)) continue;
-
-    pendingSources.push({
-      sourceKey: key,
-      sourceType: source.sourceType,
-      sourceId: source.sourceId,
-      entity: source.entity,
-    });
-  }
-
-  const totalSources = approvedSources.length;
-
-  // If nothing to rebuild (all completed or no sources), finalize
-  if (pendingSources.length === 0) {
-    data.promptVersion = currentVersion;
-    data.rebuildState = null;
-    return {
-      triggered: true,
-      previousVersion,
-      currentVersion,
-      totalSources,
-      sourcesRebuilt: 0,
-      sourcesErrored: 0,
-      completed: true,
-      errors: [],
-    };
-  }
-
-  console.log(
-    `[reconcile] Full rebuild triggered: promptVersion ${previousVersion ?? 'null'} -> ${currentVersion}. ` +
-      `${pendingSources.length}/${totalSources} sources pending.`,
-  );
-
-  let sourcesRebuilt = 0;
-  let sourcesErrored = 0;
-  const errors: Array<{ sourceKey: string; error: string }> = [];
-
-  for (const source of pendingSources) {
-    try {
-      // Remove existing document for this source
-      await graphIndex.removeBySource(source.sourceType, source.sourceId);
-
-      // Rebuild the document
-      let candidate: GraphIndexDocumentRecord | null = null;
-      if (source.sourceType === 'trap') {
-        const trapSource = computeApprovedSources(data).find(
-          (s) => s.sourceId === source.sourceId && s.sourceType === source.sourceType,
-        );
-        if (trapSource) {
-          candidate = buildCandidateForTrap(trapSource);
-        }
-      } else {
-        const skillSource = computeApprovedSources(data).find(
-          (s) => s.sourceId === source.sourceId && s.sourceType === source.sourceType,
-        );
-        if (skillSource) {
-          candidate = await buildCandidateForSkill(skillSource);
-        }
-      }
-
-      if (candidate) {
-        await graphIndex.upsert(candidate);
-        sourcesRebuilt++;
-        console.log(
-          `[reconcile] Rebuilt ${source.sourceType}:${source.sourceId} (${sourcesRebuilt}/${pendingSources.length})`,
-        );
-      }
-
-      // Update rebuild state for interrupt recovery
-      completedKeys.add(source.sourceKey);
-      data.rebuildState = {
-        targetVersion: currentVersion,
-        completedSourceKeys: [...completedKeys],
-      };
-    } catch (error) {
-      sourcesErrored++;
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      errors.push({ sourceKey: source.sourceKey, error: errorMsg });
-      console.error(`[reconcile] Error rebuilding ${source.sourceKey}: ${errorMsg}`);
-      // Continue with next source rather than aborting
+async function listOwnerEntries<T>(input: {
+  listPage: (page: { offset: number; limit: number }) => Promise<{
+    entries: T[];
+    nextOffset: number | null;
+  }>;
+}): Promise<T[]> {
+  const entries: T[] = [];
+  let offset = 0;
+  while (true) {
+    const page = await input.listPage({ offset, limit: 100 });
+    entries.push(...page.entries);
+    if (page.nextOffset === null) return entries;
+    if (page.nextOffset <= offset) {
+      throw new Error('Owner indexing projection returned a non-advancing page offset');
     }
+    offset = page.nextOffset;
   }
-
-  // Mark rebuild as completed
-  const completed = sourcesErrored === 0;
-  if (completed) {
-    data.promptVersion = currentVersion;
-    data.rebuildState = null;
-    console.log(`[reconcile] Full rebuild completed: ${sourcesRebuilt} sources rebuilt.`);
-  } else {
-    console.log(
-      `[reconcile] Full rebuild partially completed: ${sourcesRebuilt} rebuilt, ${sourcesErrored} errored. Will resume on next reconcile.`,
-    );
-  }
-
-  return {
-    triggered: true,
-    previousVersion,
-    currentVersion,
-    totalSources,
-    sourcesRebuilt,
-    sourcesErrored,
-    completed,
-    errors,
-  };
 }
 
 /**
- * Reconcile graph indexes with automatic snapshot.
+ * Reconcile graph documents from the authoritative owner projections.
  *
- * Reads compatibility source state once, delegates graph persistence to the
- * knowledge-read owner, then checkpoints only prompt rebuild metadata. Graph
- * owner I/O must not execute inside a compatibility store transaction.
- *
- * @param args - Store instance
- * @returns Reconciliation result with counts and error status
+ * Unlike the compatibility path, this does not read a snapshot or checkpoint
+ * prompt/rebuild state. A fresh owner projection is the only source of truth.
  */
-export async function reconcileGraphIndexes(args: {
-  store: SkillShareerStore;
-  graphIndexRepo: GraphIndexRepositoryPort;
+export async function reconcileGraphIndexesFromOwners(args: {
+  knowledgeOwner: Pick<KnowledgeOwnerPort, 'listIndexingEntries'>;
+  artifactReadProjection: Pick<ArtifactReadProjection, 'listIndexingEntries'>;
+  graphIndex: GraphIndexRepositoryPort;
   graphQueryBackend?: GraphQueryBackend;
   syncProjection?: boolean;
 }): Promise<GraphReconcileResult> {
-  const { store, graphIndexRepo } = args;
-
-  let result: GraphReconcileResult = {
-    totalDocuments: 0,
-    documentsRemoved: 0,
-    documentsRebuilt: 0,
-    documentsUnchanged: 0,
-    rebuildHadErrors: false,
-    rebuildError: null,
-  };
-
-  const data = await store.snapshot();
-  result = await reconcileGraphIndexesFromSnapshot({ data, graphIndex: graphIndexRepo });
-
-  // Phase 4: Check if prompt version changed — trigger full rebuild.
-  const storedVersion = data.promptVersion;
-  const hasPendingRebuild = data.rebuildState !== null;
-  const versionChanged = storedVersion !== null && storedVersion !== PROMPT_VERSION;
-  if (versionChanged || hasPendingRebuild) {
-    const rebuildResult = await fullRebuildGraphIndexes({ data, graphIndex: graphIndexRepo });
-
-    if (rebuildResult.sourcesErrored > 0) {
-      result.rebuildHadErrors = true;
-      result.rebuildError = `Full rebuild: ${rebuildResult.sourcesErrored} source(s) failed. ${rebuildResult.errors.map((e) => `${e.sourceKey}: ${e.error}`).join('; ')}`;
-    }
-
-    result.documentsRebuilt += rebuildResult.sourcesRebuilt;
-  } else if (storedVersion === null) {
-    data.promptVersion = PROMPT_VERSION;
-  }
-
-  await store.transact((current) => {
-    current.promptVersion = data.promptVersion;
-    current.rebuildState = data.rebuildState;
+  const [knowledgeEntries, artifacts] = await Promise.all([
+    listOwnerEntries({ listPage: args.knowledgeOwner.listIndexingEntries }),
+    listOwnerEntries({ listPage: args.artifactReadProjection.listIndexingEntries }),
+  ]);
+  const approvedSources: ApprovedSource[] = [
+    ...knowledgeEntries.filter(isApprovedKnowledge).map((entry) => ({
+      sourceType: 'trap' as const,
+      sourceId: entry.id,
+      revision: entry.revision,
+      teamId: entry.teamId,
+      scope: entry.scope,
+      requiredLevel: entry.requiredLevel,
+      entity: entry,
+    })),
+    ...artifacts.filter(isApprovedSkill).map((artifact) => ({
+      sourceType: 'skill' as const,
+      sourceId: artifact.id,
+      revision: artifact.revision,
+      teamId: artifact.teamId,
+      scope: artifact.scope,
+      requiredLevel: artifact.requiredLevel,
+      entity: artifact,
+    })),
+  ];
+  const result = await reconcileGraphIndexesFromApprovedSources({
+    approvedSources,
+    graphIndex: args.graphIndex,
   });
-
   if (args.syncProjection && args.graphQueryBackend) {
     await rebuildGraphProjectionFromTruth({
-      graphIndexRepo: args.graphIndexRepo,
+      graphIndexRepo: args.graphIndex,
       graphQueryBackend: args.graphQueryBackend,
     });
   }
-
   return result;
 }
 

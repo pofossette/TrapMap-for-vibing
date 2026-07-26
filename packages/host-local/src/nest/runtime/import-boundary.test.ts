@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -51,10 +52,30 @@ describe("host-local runtime import boundary", () => {
     for (const file of [
       "src/nest/runtime/shared-infra.ts",
       "src/nest/runtime/host-services.ts",
-      "src/nest/runtime/server-composition.ts",
     ]) {
       const source = await readFile(path.join(root, file), "utf-8");
       expect(source).not.toContain("from '@trapmap/runtime-infra'");
     }
+  });
+
+  it("does not retain the unused compatibility server composition bridge", () => {
+    const root = path.resolve(import.meta.dirname, "../../..");
+
+    expect(existsSync(path.join(root, "src/nest/runtime/server-composition.ts"))).toBe(false);
+  });
+
+  it("does not initialize the compatibility global embeddings bridge", async () => {
+    const root = path.resolve(import.meta.dirname, "../../..");
+    const source = await readFile(path.join(root, "src/nest/runtime/shared-infra.ts"), "utf-8");
+
+    expect(source).not.toContain("setGlobalEmbeddingsProvider");
+  });
+
+  it("owns its PostgreSQL pool without compatibility store assembly", async () => {
+    const root = path.resolve(import.meta.dirname, "../../..");
+    const source = await readFile(path.join(root, "src/nest/runtime/shared-infra.ts"), "utf-8");
+
+    expect(source).not.toContain("createSkillShareerStore");
+    expect(source).not.toContain("getStorePool");
   });
 });

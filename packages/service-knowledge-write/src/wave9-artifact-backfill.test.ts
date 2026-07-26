@@ -14,7 +14,6 @@ function writer(): ArtifactWritePort {
     appendRevision: vi.fn(),
     updateRevisionDerived: vi.fn(),
     appendLifecycleEvent: vi.fn(),
-    importArtifact: vi.fn(),
     editArtifact: vi.fn(),
     review: vi.fn(),
     activate: vi.fn(),

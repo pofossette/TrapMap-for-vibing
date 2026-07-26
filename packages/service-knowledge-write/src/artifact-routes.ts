@@ -1,17 +1,77 @@
-import type { ArtifactReadProjection } from '@trapmap/contracts';
+import { InvocationError } from '@trapmap/backend-core';
+import {
+  artifactImportRequestSchema,
+  artifactImportResponseSchema,
+  type ArtifactReadProjection,
+} from '@trapmap/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { ArtifactWritePort } from './artifact-ports.js';
+import type { ArtifactBundleImportPort, ArtifactWritePort } from './artifact-ports.js';
 import { sendInvocationError, trustedActor } from './route-helpers.js';
 
 export function registerArtifactRoutes(
   app: FastifyInstance,
   artifacts: ArtifactWritePort,
   readProjection: ArtifactReadProjection,
+  importer: ArtifactBundleImportPort,
 ): void {
   app.post('/internal/artifacts/import', async (request, reply) => {
     try {
       const body = trustedActor(request, (request.body ?? {}) as Record<string, unknown>);
-      return reply.status(201).send(await artifacts.importArtifact(body));
+      const input = artifactImportRequestSchema.parse(body);
+      const actor = {
+        actorId: body.actorId,
+        teamId:
+          typeof request.headers['x-trapmap-team-id'] === 'string'
+            ? request.headers['x-trapmap-team-id']
+            : null,
+        handle:
+          typeof request.headers['x-trapmap-actor-handle'] === 'string'
+            ? request.headers['x-trapmap-actor-handle']
+            : body.actorId,
+        securityLevel: Number(request.headers['x-trapmap-security-level'] ?? 0),
+      };
+      const results = await Promise.all(
+        input.bundles.map(async (bundle) => {
+          if (
+            !Number.isInteger(actor.securityLevel) ||
+            actor.securityLevel < bundle.requiredLevel
+          ) {
+            return {
+              success: false,
+              artifactId: null,
+              title: bundle.title,
+              error: `requiredLevel ${bundle.requiredLevel} exceeds actor level ${actor.securityLevel}`,
+              sourceKind: bundle.sourceKind,
+            };
+          }
+          try {
+            const artifact = await importer.importBundle(bundle, actor);
+            return {
+              success: true,
+              artifactId: artifact.id,
+              title: artifact.title,
+              error: null,
+              sourceKind: bundle.sourceKind,
+            };
+          } catch (error) {
+            if (error instanceof InvocationError) throw error;
+            return {
+              success: false,
+              artifactId: null,
+              title: bundle.title,
+              error: error instanceof Error ? error.message : 'Unknown error',
+              sourceKind: bundle.sourceKind,
+            };
+          }
+        }),
+      );
+      return reply.status(200).send(
+        artifactImportResponseSchema.parse({
+          results,
+          importedCount: results.filter((result) => result.success).length,
+          failedCount: results.filter((result) => !result.success).length,
+        }),
+      );
     } catch (error) {
       return sendInvocationError(reply, error);
     }

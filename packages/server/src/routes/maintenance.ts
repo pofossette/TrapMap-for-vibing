@@ -16,10 +16,7 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { computeDecayState, loadDecayConfig } from '@trapmap/server/lib/decay/index.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import {
-  reconcileKnowledgeIndexes,
-  reconcileKnowledgeIndexesFromOwner,
-} from '@trapmap/server/lib/indexing/pipeline.js';
+import { reconcileKnowledgeIndexesFromOwner } from '@trapmap/server/lib/indexing/pipeline.js';
 import {
   isReviewOverdue,
   isStaleVerification,
@@ -232,12 +229,21 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
     const startTime = Date.now();
     const registry = app.skillShareer.adapterRegistry;
 
-    const result = app.skillShareer.knowledgeOwner
-      ? await reconcileKnowledgeIndexesFromOwner(
-          { knowledgeOwner: app.skillShareer.knowledgeOwner, store: app.skillShareer.store },
-          registry,
-        )
-      : await reconcileKnowledgeIndexes({ store: app.skillShareer.store }, registry);
+    if (!app.skillShareer.knowledgeOwner || !app.skillShareer.graphIndex) {
+      throw new AppError(
+        503,
+        'indexing_owner_unavailable',
+        'Knowledge and graph indexing owners are required for reconciliation',
+      );
+    }
+    const result = await reconcileKnowledgeIndexesFromOwner(
+      {
+        knowledgeOwner: app.skillShareer.knowledgeOwner,
+        store: app.skillShareer.store,
+        graphIndex: app.skillShareer.graphIndex,
+      },
+      registry,
+    );
 
     const durationMs = Date.now() - startTime;
 

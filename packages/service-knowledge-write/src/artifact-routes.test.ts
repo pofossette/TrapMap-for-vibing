@@ -2,7 +2,7 @@ import { InvocationError } from '@trapmap/backend-core';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ArtifactWritePort } from './artifact-ports.js';
+import type { ArtifactBundleImportPort, ArtifactWritePort } from './artifact-ports.js';
 import { registerArtifactRoutes } from './artifact-routes.js';
 import { createArtifactReadProjectionFixture } from './test-helpers.js';
 
@@ -14,19 +14,24 @@ function createArtifacts(): ArtifactWritePort {
     appendRevision: vi.fn(),
     updateRevisionDerived: vi.fn(),
     appendLifecycleEvent: vi.fn(),
-    importArtifact: vi.fn(async () => ({ id: 'artifact-1' }) as never),
     editArtifact: vi.fn(async () => ({ id: 'artifact-1' }) as never),
     review: vi.fn(async () => ({ id: 'artifact-1' }) as never),
     activate: vi.fn(async () => ({ id: 'artifact-1' }) as never),
   };
 }
 
-async function createArtifactRouteApp() {
+function createImporter(): ArtifactBundleImportPort {
+  return {
+    importBundle: vi.fn(async () => ({ id: 'artifact_1', title: 'Imported skill' }) as never),
+  };
+}
+
+async function createArtifactRouteApp(importer = createImporter()) {
   const artifacts = createArtifacts();
   const app = Fastify();
-  registerArtifactRoutes(app, artifacts, createArtifactReadProjectionFixture());
+  registerArtifactRoutes(app, artifacts, createArtifactReadProjectionFixture(), importer);
   await app.ready();
-  return { app, artifacts };
+  return { app, artifacts, importer };
 }
 
 describe('artifact owner routes', () => {
@@ -50,7 +55,7 @@ describe('artifact owner routes', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/internal/artifacts/artifact-1/deactivate',
-      headers: { 'x-trapmap-actor-id': 'trusted-user' },
+      headers: { 'x-trapmap-actor-id': 'trusted-user', 'x-trapmap-security-level': '1' },
       payload: { actorId: 'spoofed-user' },
     });
 
@@ -59,20 +64,100 @@ describe('artifact owner routes', () => {
     await app.close();
   });
 
+  it('imports canonical bundles through the owner importer and returns batch results', async () => {
+    const { app, artifacts, importer } = await createArtifactRouteApp();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/artifacts/import',
+      headers: { 'x-trapmap-actor-id': 'trusted-user', 'x-trapmap-security-level': '1' },
+      payload: {
+        bundles: [
+          {
+            scope: 'project',
+            labels: ['skill'],
+            title: 'Imported skill',
+            slug: 'imported-skill',
+            requiredLevel: 1,
+            sourceKind: 'single-skill-md',
+            files: [
+              {
+                path: 'SKILL.md',
+                kind: 'skill-markdown',
+                sha256: 'a'.repeat(64),
+                sizeBytes: 4,
+                mediaType: 'text/markdown',
+                source: 'SKILL.md',
+                includeInDerivation: true,
+                activationOnly: false,
+                content: 'body',
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      importedCount: 1,
+      failedCount: 0,
+      results: [
+        {
+          success: true,
+          artifactId: 'artifact_1',
+          title: 'Imported skill',
+          error: null,
+          sourceKind: 'single-skill-md',
+        },
+      ],
+    });
+    expect(importer.importBundle).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Imported skill' }),
+      expect.objectContaining({ actorId: 'trusted-user' }),
+    );
+    await app.close();
+  });
+
   it('preserves canonical unavailable invocation errors', async () => {
     const artifacts = createArtifacts();
-    artifacts.importArtifact = vi.fn(async () => {
+    const importer = createImporter();
+    importer.importBundle = vi.fn(async () => {
       throw InvocationError.unavailable('artifact owner unavailable');
     });
     const app = Fastify();
-    registerArtifactRoutes(app, artifacts, createArtifactReadProjectionFixture());
+    registerArtifactRoutes(app, artifacts, createArtifactReadProjectionFixture(), importer);
     await app.ready();
 
     const response = await app.inject({
       method: 'POST',
       url: '/internal/artifacts/import',
       headers: { 'x-trapmap-actor-id': 'trusted-user' },
-      payload: {},
+      payload: {
+        bundles: [
+          {
+            scope: 'project',
+            labels: ['skill'],
+            title: 'Unavailable skill',
+            slug: 'unavailable-skill',
+            requiredLevel: 0,
+            sourceKind: 'single-skill-md',
+            files: [
+              {
+                path: 'SKILL.md',
+                kind: 'skill-markdown',
+                sha256: 'a'.repeat(64),
+                sizeBytes: 4,
+                mediaType: 'text/markdown',
+                source: 'SKILL.md',
+                includeInDerivation: true,
+                activationOnly: false,
+                content: 'body',
+              },
+            ],
+          },
+        ],
+      },
     });
 
     expect(response.statusCode).toBe(503);

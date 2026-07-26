@@ -22,8 +22,11 @@ export {
 } from './pg-ports.js';
 export {
   createArtifactReadProjection,
+  createArtifactBundleImportPort,
   createArtifactFilePayloadOwner,
   createArtifactWritePort,
+  type ArtifactBundleImportActor,
+  type ArtifactBundleImportPort,
   type ArtifactFilePayloadOwner,
   type ArtifactWritePort,
 } from './artifact-ports.js';

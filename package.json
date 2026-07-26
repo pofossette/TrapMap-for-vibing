@@ -96,7 +96,6 @@
     "download:skills": "pnpm exec tsx scripts/batch-download-skills.ts",
     "download:skills:dry": "pnpm exec tsx scripts/batch-download-skills.ts --dry-run --verbose",
     "test:import-export": "pnpm exec tsx scripts/test-skill-import-export.ts",
-    "bench:store": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/bench-store.ts",
     "rag:analyze": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/rag-analyze.ts",
     "check:md-lint": "markdownlint-cli2 'docs/**/*.md' 'README.md' 'evals/**/*.md'",
     "check:links": "find docs evals -name '*.md' -not -path 'docs/archived/*' -not -path 'docs/plans/*' -not -path 'docs/superpowers/specs/*' -exec markdown-link-check {} +",
@@ -114,7 +113,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@trapmap/server": "workspace:*",
     "@trapmap/service-knowledge-read": "workspace:*",
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^3.2.4",

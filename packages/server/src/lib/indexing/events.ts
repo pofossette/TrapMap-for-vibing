@@ -17,9 +17,7 @@ import type {
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
-import { graphIndexAdapter } from './adapters/graph.js';
-import { removeGraphIndexDocumentsForSource } from './graph-lite/index.js';
-import { syncKnowledgeIndex, syncKnowledgeIndexFromOwner } from './pipeline.js';
+import { syncKnowledgeIndexFromOwner } from './pipeline.js';
 import type { AdapterRegistry } from './registry.js';
 
 /**
@@ -74,84 +72,12 @@ export async function runKnowledgeIndexEvent(args: {
   registry: AdapterRegistry;
 }): Promise<void> {
   const { services, entryId, previousState, nextState, registry } = args;
-  const { store } = services;
 
   const action = determineKnowledgeIndexAction(previousState, nextState);
 
-  // PostgreSQL composition supplies the authoritative knowledge owner. Keep the
-  // JSON-store branch below only for compatibility tests during retirement.
-  if (services.knowledgeOwner) {
-    if (action !== 'noop') {
-      await syncKnowledgeIndexFromOwner(services, entryId, registry);
-    }
-    return;
+  if (action === 'noop') return;
+  if (!services.knowledgeOwner) {
+    throw new Error('Knowledge owner is required for lifecycle indexing');
   }
-
-  // All modifications must be done within a transaction to persist
-  await store.transact(async (data) => {
-    const entry = data.knowledgeEntries.find((e) => e.id === entryId);
-    if (!entry) {
-      throw new Error(`Entry ${entryId} not found`);
-    }
-
-    switch (action) {
-      case 'upsert':
-        // Sync the entry to all adapters
-        {
-          const syncServices: {
-            store: typeof store;
-            data: typeof data;
-            ai?: { chat: ChatProvider };
-            graphQueryBackend?: GraphQueryBackend;
-            graphIndex?: GraphIndexRepositoryPort;
-          } = { store, data };
-          if (args.services.ai) syncServices.ai = args.services.ai;
-          if (args.services.graphQueryBackend) {
-            syncServices.graphQueryBackend = args.services.graphQueryBackend;
-          }
-          if (args.services.graphIndex) {
-            syncServices.graphIndex = args.services.graphIndex;
-          }
-          await syncKnowledgeIndex(syncServices, entryId, registry);
-        }
-        break;
-
-      case 'remove':
-        // Remove from all adapters
-        if (entry.indexState) {
-          await Promise.all(
-            registry.all().map((adapter) =>
-              adapter === graphIndexAdapter
-                ? graphIndexAdapter.remove(
-                    {
-                      entryId: entry.id,
-                      revision: entry.history.length,
-                    },
-                    undefined,
-                    args.services.graphQueryBackend,
-                    args.services.graphIndex,
-                  )
-                : adapter.remove({
-                    entryId: entry.id,
-                    revision: entry.history.length,
-                  }),
-            ),
-          );
-          entry.indexState = null;
-          // Also clear embedding cache when index is removed (IDX-06)
-          entry.embeddingCache = null;
-        }
-        // Also remove graph index documents directly (T-36-13)
-        if (args.services.graphIndex) {
-          await args.services.graphIndex.removeBySource('trap', entry.id);
-        } else {
-          removeGraphIndexDocumentsForSource(data, 'trap', entry.id);
-        }
-        break;
-
-      case 'noop':
-        // No action needed for this transition
-        break;
-    }
-  });
+  await syncKnowledgeIndexFromOwner(services, entryId, registry);
 }

@@ -1,9 +1,9 @@
 /**
- * Graph index adapter for lifecycle-driven indexing with store-backed persistence.
+ * Graph index adapter for lifecycle-driven indexing with owner-backed persistence.
  *
  * This module provides:
  * - Graph sync with idempotency based on revision and content hash
- * - Idempotent graph removal through store-backed helpers
+ * - Idempotent graph removal through the knowledge-read graph owner
  * - Hard-edge cycle validation before persist
  * - Persisted graph document data keyed by sourceType and sourceId
  *
@@ -22,18 +22,13 @@ import {
   LlmExtractionCache,
   assertNoHardDependencyCycles,
   extractGraphEntitiesWithLLM,
-  removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
 } from '@trapmap/server/lib/indexing/graph-lite/index.js';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { IndexAdapter, IndexSyncResult } from '@trapmap/server/lib/indexing/types.js';
 import { createLabelReadProjection } from '@trapmap/server/lib/labels/repository.js';
-import {
-  type SkillShareerStore,
-  type StoreData,
-  getStorePool,
-  nowIso,
-} from '@trapmap/server/lib/store.js';
+import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import { getStorePool, nowIso } from '@trapmap/server/lib/store.js';
 import { buildTrapGraphDocument } from './graph-builders.js';
 
 // ---------------------------------------------------------------------------
@@ -73,11 +68,9 @@ function cacheDocument(document: GraphIndexDocumentRecord): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Graph index adapter implementation with store-backed persistence.
+ * Graph index adapter implementation with owner-backed persistence.
  *
- * sync(document, store?) accepts an optional shared store for durable persistence.
- * When a store is provided, the adapter writes GraphIndexDocumentRecord entries
- * to StoreData.graphIndexDocuments through the store-backed helpers.
+ * sync accepts an injected graph owner for durable persistence.
  * Before persisting a trap document, the adapter validates that no hard-edge
  * cycle would be introduced by appending the candidate to the existing graph state.
  *
@@ -95,7 +88,7 @@ export const graphIndexAdapter: IndexAdapter & {
   ): Promise<IndexSyncResult>;
   remove(
     ref: { entryId: string; revision: number },
-    store?: SkillShareerStore,
+    _store?: SkillShareerStore,
     graphQueryBackend?: GraphQueryBackend,
     graphIndex?: GraphIndexRepositoryPort,
   ): Promise<void>;
@@ -163,7 +156,7 @@ export const graphIndexAdapter: IndexAdapter & {
         edges: allEdges,
       });
 
-      // Store-backed persistence path
+      // Owner-backed persistence path
       if (graphIndex) {
         const existingDocs = (await graphIndex.listAll()).filter(
           (entry) =>
@@ -187,24 +180,8 @@ export const graphIndexAdapter: IndexAdapter & {
         existingDocs.push(candidateDoc);
         assertNoHardDependencyCycles(existingDocs);
         upsertGraphIndexDocument(storeData, candidateDoc);
-      } else if (store) {
-        await store.transact((data) => {
-          // Validate hard-edge cycle: load existing docs excluding current source/revision,
-          // append the candidate, and check for cycles
-          const existingDocs = data.graphIndexDocuments.filter(
-            (d) =>
-              !(
-                d.sourceType === 'trap' &&
-                d.sourceId === document.entryId &&
-                d.revision === document.revision
-              ),
-          );
-          existingDocs.push(candidateDoc);
-          assertNoHardDependencyCycles(existingDocs);
-
-          // Persist the graph document
-          upsertGraphIndexDocument(data, candidateDoc);
-        });
+      } else {
+        throw new Error('Graph index owner is required for graph indexing');
       }
 
       // Update in-memory cache for transitional graph-assisted recall
@@ -247,10 +224,8 @@ export const graphIndexAdapter: IndexAdapter & {
     // Store-backed removal
     if (graphIndex) {
       await graphIndex.removeBySource('trap', ref.entryId);
-    } else if (store) {
-      await store.transact((data) => {
-        removeGraphIndexDocumentsForSource(data, 'trap', ref.entryId);
-      });
+    } else {
+      throw new Error('Graph index owner is required for graph index removal');
     }
 
     // Also remove from in-memory cache (backward compat)

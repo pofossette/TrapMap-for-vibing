@@ -11,8 +11,10 @@ import type {
 } from '@trapmap/contracts';
 import type { Pool, PoolClient } from 'pg';
 import {
+  createArtifactBundleImportPort,
   createArtifactReadProjection,
   createArtifactWritePort,
+  type ArtifactBundleImportPort,
   type ArtifactWritePort,
 } from './artifact-ports.js';
 
@@ -22,6 +24,7 @@ export interface KnowledgeWriteOwnerBundle {
   knowledgeOwner: KnowledgeOwnerPort;
   artifactWriter: ArtifactWritePort;
   artifactReadProjection: ArtifactReadProjection;
+  artifactBundleImporter: ArtifactBundleImportPort;
 }
 
 export interface KnowledgeWriteOutboxDiagnostics {
@@ -845,6 +848,7 @@ export function createKnowledgeWriteOwnerBundle(
   return {
     knowledgeOwner,
     artifactWriter: createArtifactWritePort(pool),
+    artifactBundleImporter: createArtifactBundleImportPort(pool),
     artifactReadProjection: createArtifactReadProjection(pool),
   };
 }

@@ -1,732 +1,115 @@
-/**
- * Unit tests for indexing pipeline orchestration.
- *
- * Tests cover:
- * - syncKnowledgeIndex normalizes once and fan-outs to all registered adapters
- * - Repeated sync of unchanged approved content is idempotent
- * - Reconciliation repairs missing adapter state
- * - Non-approved/deactivated entries have index state removed
- */
+import { describe, expect, it, vi } from 'vitest';
 
-import { randomUUID } from 'node:crypto';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { createKnowledgeEntryRecord } from '@trapmap/server/lib/knowledge.js';
-import { runPreReview } from '@trapmap/server/lib/pre-review.js';
-import { JsonStore, type SkillShareerStore, nowIso } from '@trapmap/server/lib/store.js';
-
-// Import the functions we're testing
-import {
-  reconcileKnowledgeIndexes,
-  reconcileKnowledgeIndexesFromOwner,
-  syncKnowledgeIndex,
-  syncKnowledgeIndexFromOwner,
-} from './pipeline.js';
+import { reconcileKnowledgeIndexesFromOwner, syncKnowledgeIndexFromOwner } from './pipeline.js';
 import { AdapterRegistry } from './registry.js';
-import type { IndexAdapter } from './types.js';
 
-function toRegistry(adapters: IndexAdapter[]): AdapterRegistry {
-  const registry = new AdapterRegistry();
-  for (const a of adapters) registry.register(a);
-  return registry;
+function registry(adapter: {
+  kind: string;
+  sync: ReturnType<typeof vi.fn>;
+  remove: ReturnType<typeof vi.fn>;
+}) {
+  const result = new AdapterRegistry();
+  result.register(adapter as never);
+  return result;
 }
 
-describe('indexing pipeline', () => {
-  let store: SkillShareerStore;
+function entry(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'entry-1',
+    teamId: null,
+    scope: 'global' as const,
+    labels: ['docker'],
+    shortcut: 'Restart Docker',
+    detail: 'Restart the daemon.',
+    requiredLevel: 0,
+    lifecycleState: 'approved' as const,
+    boundary: null,
+    updatedAt: '2026-07-25T00:00:00.000Z',
+    revision: 3,
+    indexState: null,
+    embeddingCache: null,
+    ...overrides,
+  };
+}
 
-  beforeEach(async () => {
-    // Create temporary store
-    const testDataFile = `/tmp/skill-shareer-indexing-test-${Date.now()}.json`;
-    store = new JsonStore(testDataFile);
-
-    // Initialize empty store
-    await store.transact(async (data) => {
-      data.counters = {};
-      data.users = [];
-      data.teams = [];
-      data.memberships = [];
-      data.accessKeys = [];
-      data.sessions = [];
-      data.knowledgeEntries = [];
-      data.auditEvents = [];
+describe('owner-local indexing pipeline', () => {
+  it('checkpoints owner metadata after syncing an approved entry', async () => {
+    const sync = vi.fn().mockResolvedValue({
+      adapterKind: 'keyword',
+      success: true,
+      error: null,
+      performedWork: true,
     });
+    const updateIndexMetadata = vi.fn().mockResolvedValue(undefined);
+    const knowledgeOwner = {
+      getIndexingEntry: vi.fn().mockResolvedValue(entry()),
+      updateIndexMetadata,
+    };
+
+    await syncKnowledgeIndexFromOwner(
+      { knowledgeOwner, store: {} as never },
+      'entry-1',
+      registry({ kind: 'keyword', sync, remove: vi.fn() }),
+    );
+
+    expect(sync).toHaveBeenCalledOnce();
+    expect(updateIndexMetadata).toHaveBeenCalledWith(
+      'entry-1',
+      expect.objectContaining({ indexState: expect.any(Object), embeddingCache: null }),
+    );
   });
 
-  afterEach(async () => {
-    // Cleanup happens via temp file lifecycle
-  });
-
-  describe('syncKnowledgeIndex', () => {
-    it('loads the owner indexing projection and checkpoints metadata without a store transaction', async () => {
-      const sync = vi.fn().mockResolvedValue({
-        adapterKind: 'keyword',
-        success: true,
-        error: null,
-        performedWork: true,
-      });
-      const updateIndexMetadata = vi.fn().mockResolvedValue(undefined);
-      const owner = {
-        getIndexingEntry: vi.fn().mockResolvedValue({
-          id: 'entry-owner-1',
-          teamId: null,
-          scope: 'global',
-          labels: ['docker'],
-          shortcut: 'Restart Docker',
-          detail: 'Restart the daemon.',
-          requiredLevel: 0,
-          lifecycleState: 'approved',
-          boundary: null,
-          updatedAt: '2026-07-25T00:00:00.000Z',
-          revision: 3,
-          indexState: null,
-          embeddingCache: null,
-        }),
-        updateIndexMetadata,
-      };
-
-      await syncKnowledgeIndexFromOwner(
-        { knowledgeOwner: owner, store },
-        'entry-owner-1',
-        toRegistry([{ kind: 'keyword', sync, remove: vi.fn() }]),
-      );
-
-      expect(owner.getIndexingEntry).toHaveBeenCalledWith('entry-owner-1');
-      expect(sync).toHaveBeenCalledOnce();
-      expect(updateIndexMetadata).toHaveBeenCalledWith(
-        'entry-owner-1',
-        expect.objectContaining({ embeddingCache: null, indexState: expect.any(Object) }),
-      );
-    });
-
-    it('removes owner-backed index metadata for a deactivated entry', async () => {
-      const remove = vi.fn().mockResolvedValue(undefined);
-      const updateIndexMetadata = vi.fn().mockResolvedValue(undefined);
-      const owner = {
-        getIndexingEntry: vi.fn().mockResolvedValue({
-          id: 'entry-owner-deactivated',
-          teamId: null,
-          scope: 'global',
-          labels: ['docker'],
-          shortcut: 'Restart Docker',
-          detail: 'Restart the daemon.',
-          requiredLevel: 0,
-          lifecycleState: 'deactivated',
-          boundary: null,
-          updatedAt: '2026-07-25T00:00:00.000Z',
-          revision: 4,
-          indexState: { adapters: {} },
-          embeddingCache: {
-            textHash: 'hash',
-            vector: [0.1],
-            createdAt: '2026-07-25T00:00:00.000Z',
-            revision: 4,
-          },
-        }),
-        updateIndexMetadata,
-      };
-
-      await syncKnowledgeIndexFromOwner(
-        { knowledgeOwner: owner, store },
-        'entry-owner-deactivated',
-        toRegistry([{ kind: 'keyword', sync: vi.fn(), remove }]),
-      );
-
-      expect(remove).toHaveBeenCalledWith({ entryId: 'entry-owner-deactivated', revision: 4 });
-      expect(updateIndexMetadata).toHaveBeenCalledWith('entry-owner-deactivated', {
-        indexState: null,
-        embeddingCache: null,
-      });
-    });
-
-    it('reconciles every page from the owner indexing projection', async () => {
-      const sync = vi.fn().mockResolvedValue({
-        adapterKind: 'keyword',
-        success: true,
-        error: null,
-        performedWork: true,
-      });
-      const entry = {
-        id: 'entry-owner-reconcile',
-        teamId: null,
-        scope: 'global' as const,
-        labels: ['docker'],
-        shortcut: 'Restart Docker',
-        detail: 'Restart the daemon.',
-        requiredLevel: 0,
-        lifecycleState: 'approved' as const,
-        boundary: null,
-        updatedAt: '2026-07-25T00:00:00.000Z',
-        revision: 3,
-        indexState: null,
-        embeddingCache: null,
-      };
-      const owner = {
-        listIndexingEntries: vi
-          .fn()
-          .mockResolvedValueOnce({ entries: [entry], nextOffset: 1 })
-          .mockResolvedValueOnce({ entries: [], nextOffset: null }),
-        getIndexingEntry: vi.fn().mockResolvedValue(entry),
-        updateIndexMetadata: vi.fn().mockResolvedValue(undefined),
-      };
-
-      await expect(
-        reconcileKnowledgeIndexesFromOwner(
-          { knowledgeOwner: owner, store },
-          toRegistry([{ kind: 'keyword', sync, remove: vi.fn() }]),
-          { batchSize: 1 },
+  it('clears owner metadata after removing a deactivated entry', async () => {
+    const remove = vi.fn().mockResolvedValue(undefined);
+    const updateIndexMetadata = vi.fn().mockResolvedValue(undefined);
+    const knowledgeOwner = {
+      getIndexingEntry: vi
+        .fn()
+        .mockResolvedValue(
+          entry({ lifecycleState: 'deactivated', indexState: { adapters: {} }, revision: 4 }),
         ),
-      ).resolves.toMatchObject({ totalEntries: 1, entriesSynced: 1, entriesRemoved: 0 });
+      updateIndexMetadata,
+    };
 
-      expect(owner.listIndexingEntries).toHaveBeenNthCalledWith(1, { offset: 0, limit: 1 });
-      expect(owner.listIndexingEntries).toHaveBeenNthCalledWith(2, { offset: 1, limit: 1 });
-      expect(sync).toHaveBeenCalledOnce();
-    });
+    await syncKnowledgeIndexFromOwner(
+      { knowledgeOwner, store: {} as never },
+      'entry-1',
+      registry({ kind: 'keyword', sync: vi.fn(), remove }),
+    );
 
-    it('normalizes once and fans-out to all registered adapters using the same document snapshot', async () => {
-      const createdAt = nowIso();
-
-      // Create a test user
-      let userId: string;
-      await store.transact(async (data) => {
-        userId = store.nextId(data, 'user');
-        data.users.push({
-          id: userId,
-          handle: 'testuser',
-          notes: null,
-          createdAt,
-          updatedAt: createdAt,
-        });
-      });
-
-      // Create and approve a knowledge entry
-      const snapshot = await store.snapshot();
-      const preReview = await runPreReview({
-        existingEntries: snapshot.knowledgeEntries,
-        submission: {
-          shortcut: 'JWT Authentication',
-          detail: 'Use JWT tokens for API authentication',
-          labels: ['security', 'auth'],
-          scope: 'global',
-        },
-      });
-
-      let entryId: string;
-      await store.transact(async (data) => {
-        const userIdForTransact = (await store.snapshot()).users[0]?.id;
-        if (!userIdForTransact) throw new Error('User not found');
-        const entry = createKnowledgeEntryRecord({
-          ownerUserId: userIdForTransact,
-          teamId: null,
-          payload: {
-            shortcut: 'JWT Authentication',
-            detail: 'Use JWT tokens for API authentication',
-            labels: ['security', 'auth'],
-            scope: 'global',
-          },
-          requiredLevel: 0,
-          createdAt,
-          preReview,
-          entryId: `knowledge_${randomUUID()}`,
-        });
-
-        // Manually approve the entry for testing
-        entry.lifecycleState = 'approved';
-
-        entryId = entry.id;
-        data.knowledgeEntries.push(entry);
-      });
-
-      // Mock adapters to track calls
-      const vectorAdapterSpy = vi.fn().mockResolvedValue({
-        adapterKind: 'vector' as const,
-        success: true,
-        error: null,
-        performedWork: true,
-      });
-      const keywordAdapterSpy = vi.fn().mockResolvedValue({
-        adapterKind: 'keyword' as const,
-        success: true,
-        error: null,
-        performedWork: true,
-      });
-
-      const mockAdapters = [
-        {
-          kind: 'vector' as const,
-          sync: vectorAdapterSpy,
-          remove: vi.fn().mockResolvedValue(undefined),
-        },
-        {
-          kind: 'keyword' as const,
-          sync: keywordAdapterSpy,
-          remove: vi.fn().mockResolvedValue(undefined),
-        },
-      ];
-
-      // Sync the entry
-      await store.transact(async (data) => {
-        const entry = data.knowledgeEntries.find((e) => e.id === entryId);
-        if (!entry) throw new Error('Entry not found');
-
-        await syncKnowledgeIndex({ store, data }, entryId, toRegistry(mockAdapters));
-      });
-
-      // Both adapters should have been called exactly once
-      expect(vectorAdapterSpy).toHaveBeenCalledTimes(1);
-      expect(keywordAdapterSpy).toHaveBeenCalledTimes(1);
-
-      // Both adapters should have received the same normalized document
-      const vectorDoc = vectorAdapterSpy.mock.calls[0]?.[0];
-      const keywordDoc = keywordAdapterSpy.mock.calls[0]?.[0];
-
-      expect(vectorDoc).toBeDefined();
-      expect(keywordDoc).toBeDefined();
-      expect(vectorDoc.contentHash).toBe(keywordDoc.contentHash);
-      expect(vectorDoc.canonicalText).toBe(keywordDoc.canonicalText);
-      expect(vectorDoc.tokens).toEqual(keywordDoc.tokens);
-    });
-
-    it('only syncs approved entries', async () => {
-      const createdAt = nowIso();
-
-      // Create a test user
-      let userId: string;
-      await store.transact(async (data) => {
-        userId = store.nextId(data, 'user');
-        data.users.push({
-          id: userId,
-          handle: 'testuser',
-          notes: null,
-          createdAt,
-          updatedAt: createdAt,
-        });
-      });
-
-      // Create a knowledge entry in non-approved state
-      const snapshot2 = await store.snapshot();
-      const preReview = await runPreReview({
-        existingEntries: snapshot2.knowledgeEntries,
-        submission: {
-          shortcut: 'Draft Entry',
-          detail: 'This is a draft',
-          labels: ['draft'],
-          scope: 'global',
-        },
-      });
-
-      let entryId: string;
-      await store.transact(async (data) => {
-        const userIdForTransact = (await store.snapshot()).users[0]?.id;
-        if (!userIdForTransact) throw new Error('User not found');
-        const entry = createKnowledgeEntryRecord({
-          ownerUserId: userIdForTransact,
-          teamId: null,
-          payload: {
-            shortcut: 'Draft Entry',
-            detail: 'This is a draft',
-            labels: ['draft'],
-            scope: 'global',
-          },
-          requiredLevel: 0,
-          createdAt,
-          preReview,
-          entryId: `knowledge_${randomUUID()}`,
-        });
-
-        // Keep it in non-approved state
-        entry.lifecycleState = 'submitted';
-
-        entryId = entry.id;
-        data.knowledgeEntries.push(entry);
-      });
-
-      // Mock adapter
-      const adapterSpy = vi.fn().mockResolvedValue({
-        adapterKind: 'vector' as const,
-        success: true,
-        error: null,
-        performedWork: true,
-      });
-      const mockAdapters = [
-        {
-          kind: 'vector' as const,
-          sync: adapterSpy,
-          remove: vi.fn().mockResolvedValue(undefined),
-        },
-      ];
-
-      // Sync the entry
-      await store.transact(async (data) => {
-        await syncKnowledgeIndex({ store, data }, entryId, toRegistry(mockAdapters));
-      });
-
-      // Adapter should NOT have been called for non-approved entry
-      expect(adapterSpy).not.toHaveBeenCalled();
-    });
-
-    it('removes index state for deactivated entries', async () => {
-      const createdAt = nowIso();
-
-      // Create a test user
-      let userId: string;
-      await store.transact(async (data) => {
-        userId = store.nextId(data, 'user');
-        data.users.push({
-          id: userId,
-          handle: 'testuser',
-          notes: null,
-          createdAt,
-          updatedAt: createdAt,
-        });
-      });
-
-      // Create an approved knowledge entry with existing index state
-      const snapshot3 = await store.snapshot();
-      const preReview = await runPreReview({
-        existingEntries: snapshot3.knowledgeEntries,
-        submission: {
-          shortcut: 'JWT Authentication',
-          detail: 'Use JWT tokens for API authentication',
-          labels: ['security', 'auth'],
-          scope: 'global',
-        },
-      });
-
-      let entryId: string;
-      await store.transact(async (data) => {
-        const userIdForTransact = (await store.snapshot()).users[0]?.id;
-        if (!userIdForTransact) throw new Error('User not found');
-        const entry = createKnowledgeEntryRecord({
-          ownerUserId: userIdForTransact,
-          teamId: null,
-          payload: {
-            shortcut: 'JWT Authentication',
-            detail: 'Use JWT tokens for API authentication',
-            labels: ['security', 'auth'],
-            scope: 'global',
-          },
-          requiredLevel: 0,
-          createdAt,
-          preReview,
-          entryId: `knowledge_${randomUUID()}`,
-        });
-
-        entry.lifecycleState = 'approved';
-
-        // Simulate existing index state
-        if (!entry.indexState) {
-          (entry as { indexState: unknown }).indexState = {
-            contentHash: 'abc123',
-            normalizedAt: createdAt,
-            vector: { status: 'synced', revision: 1, lastSyncedAt: createdAt },
-            keyword: { status: 'synced', revision: 1, lastSyncedAt: createdAt },
-          };
-        }
-
-        // Now deactivate it
-        entry.lifecycleState = 'deactivated';
-
-        entryId = entry.id;
-        data.knowledgeEntries.push(entry);
-      });
-
-      // Mock adapter remove function
-      const removeSpy = vi.fn().mockResolvedValue(undefined);
-      const mockAdapters = [
-        {
-          kind: 'vector' as const,
-          sync: vi.fn().mockResolvedValue({
-            adapterKind: 'vector' as const,
-            success: true,
-            error: null,
-            performedWork: true,
-          }),
-          remove: removeSpy,
-        },
-      ];
-
-      // Sync the deactivated entry
-      await store.transact(async (data) => {
-        await syncKnowledgeIndex({ store, data }, entryId, toRegistry(mockAdapters));
-      });
-
-      // Remove should have been called instead of sync
-      expect(removeSpy).toHaveBeenCalledTimes(1);
-
-      // Index state should be cleared
-      const data = await store.snapshot();
-      const entry = data.knowledgeEntries.find((e) => e.id === entryId);
-      expect((entry as { indexState: unknown }).indexState).toBeNull();
-    });
-
-    it('repeated sync of unchanged approved content is idempotent', async () => {
-      const createdAt = nowIso();
-
-      // Create a test user
-      let userId: string;
-      await store.transact(async (data) => {
-        userId = store.nextId(data, 'user');
-        data.users.push({
-          id: userId,
-          handle: 'testuser',
-          notes: null,
-          createdAt,
-          updatedAt: createdAt,
-        });
-      });
-
-      // Create an approved knowledge entry
-      const snapshot4 = await store.snapshot();
-      const preReview = await runPreReview({
-        existingEntries: snapshot4.knowledgeEntries,
-        submission: {
-          shortcut: 'JWT Authentication',
-          detail: 'Use JWT tokens for API authentication',
-          labels: ['security', 'auth'],
-          scope: 'global',
-        },
-      });
-
-      let entryId: string;
-      await store.transact(async (data) => {
-        const userIdForTransact = (await store.snapshot()).users[0]?.id;
-        if (!userIdForTransact) throw new Error('User not found');
-        const entry = createKnowledgeEntryRecord({
-          ownerUserId: userIdForTransact,
-          teamId: null,
-          payload: {
-            shortcut: 'JWT Authentication',
-            detail: 'Use JWT tokens for API authentication',
-            labels: ['security', 'auth'],
-            scope: 'global',
-          },
-          requiredLevel: 0,
-          createdAt,
-          preReview,
-          entryId: `knowledge_${randomUUID()}`,
-        });
-
-        entry.lifecycleState = 'approved';
-
-        entryId = entry.id;
-        data.knowledgeEntries.push(entry);
-      });
-
-      // Mock adapter
-      const adapterSpy = vi.fn().mockResolvedValue({
-        adapterKind: 'vector' as const,
-        success: true,
-        error: null,
-        performedWork: true,
-      });
-      const mockAdapters = [
-        {
-          kind: 'vector' as const,
-          sync: adapterSpy,
-          remove: vi.fn().mockResolvedValue(undefined),
-        },
-      ];
-
-      // First sync
-      await store.transact(async (data) => {
-        await syncKnowledgeIndex({ store, data }, entryId, toRegistry(mockAdapters));
-      });
-
-      const _firstCallCount = adapterSpy.mock.calls.length;
-
-      // Second sync (should be idempotent - no-op if content unchanged)
-      adapterSpy.mockClear();
-      await store.transact(async (data) => {
-        await syncKnowledgeIndex({ store, data }, entryId, toRegistry(mockAdapters));
-      });
-
-      // If content hasn't changed, adapter might not be called again
-      // (implementation may skip adapters if hash matches)
-      // This test verifies idempotency behavior
-      const data = await store.snapshot();
-      const entry = data.knowledgeEntries.find((e) => e.id === entryId);
-      expect(entry).toBeDefined();
+    expect(remove).toHaveBeenCalledWith({ entryId: 'entry-1', revision: 4 });
+    expect(updateIndexMetadata).toHaveBeenCalledWith('entry-1', {
+      indexState: null,
+      embeddingCache: null,
     });
   });
 
-  describe('reconcileKnowledgeIndexes', () => {
-    it('repairs missing adapter state for approved entries', async () => {
-      const createdAt = nowIso();
-
-      // Create a test user
-      let userId: string;
-      await store.transact(async (data) => {
-        userId = store.nextId(data, 'user');
-        data.users.push({
-          id: userId,
-          handle: 'testuser',
-          notes: null,
-          createdAt,
-          updatedAt: createdAt,
-        });
-      });
-
-      // Create approved entries without index state
-      const reconcileSnapshot1 = await store.snapshot();
-      const preReview1 = await runPreReview({
-        existingEntries: reconcileSnapshot1.knowledgeEntries,
-        submission: {
-          shortcut: 'Entry One',
-          detail: 'First entry',
-          labels: ['test'],
-          scope: 'global',
-        },
-      });
-
-      const reconcileSnapshot2 = await store.snapshot();
-      const preReview2 = await runPreReview({
-        existingEntries: reconcileSnapshot2.knowledgeEntries,
-        submission: {
-          shortcut: 'Entry Two',
-          detail: 'Second entry',
-          labels: ['test'],
-          scope: 'global',
-        },
-      });
-
-      await store.transact(async (data) => {
-        const userIdForTransact = (await store.snapshot()).users[0]?.id;
-        if (!userIdForTransact) throw new Error('User not found');
-
-        const entry1 = createKnowledgeEntryRecord({
-          ownerUserId: userIdForTransact,
-          teamId: null,
-          payload: {
-            shortcut: 'Entry One',
-            detail: 'First entry',
-            labels: ['test'],
-            scope: 'global',
-          },
-          requiredLevel: 0,
-          createdAt,
-          preReview: preReview1,
-          entryId: `knowledge_${randomUUID()}`,
-        });
-        entry1.lifecycleState = 'approved';
-
-        const entry2 = createKnowledgeEntryRecord({
-          ownerUserId: userIdForTransact,
-          teamId: null,
-          payload: {
-            shortcut: 'Entry Two',
-            detail: 'Second entry',
-            labels: ['test'],
-            scope: 'global',
-          },
-          requiredLevel: 0,
-          createdAt,
-          preReview: preReview2,
-          entryId: `knowledge_${randomUUID()}`,
-        });
-        entry2.lifecycleState = 'approved';
-
-        data.knowledgeEntries.push(entry1, entry2);
-      });
-
-      // Mock adapter
-      const adapterSpy = vi.fn().mockResolvedValue({
-        adapterKind: 'vector' as const,
-        success: true,
-        error: null,
-        performedWork: true,
-      });
-      const mockAdapters = [
-        {
-          kind: 'vector' as const,
-          sync: adapterSpy,
-          remove: vi.fn().mockResolvedValue(undefined),
-        },
-      ];
-
-      // Reconcile should sync both entries
-      await reconcileKnowledgeIndexes({ store }, toRegistry(mockAdapters));
-
-      // Both approved entries should have been synced
-      expect(adapterSpy).toHaveBeenCalledTimes(2);
+  it('reconciles each owner projection page once', async () => {
+    const sync = vi.fn().mockResolvedValue({
+      adapterKind: 'keyword',
+      success: true,
+      error: null,
+      performedWork: true,
     });
+    const current = entry();
+    const knowledgeOwner = {
+      listIndexingEntries: vi
+        .fn()
+        .mockResolvedValueOnce({ entries: [current], nextOffset: 1 })
+        .mockResolvedValueOnce({ entries: [], nextOffset: null }),
+      getIndexingEntry: vi.fn().mockResolvedValue(current),
+      updateIndexMetadata: vi.fn().mockResolvedValue(undefined),
+    };
 
-    it('removes index state for non-approved entries', async () => {
-      const createdAt = nowIso();
+    await expect(
+      reconcileKnowledgeIndexesFromOwner(
+        { knowledgeOwner, store: {} as never },
+        registry({ kind: 'keyword', sync, remove: vi.fn() }),
+        { batchSize: 1 },
+      ),
+    ).resolves.toMatchObject({ totalEntries: 1, entriesSynced: 1, entriesRemoved: 0 });
 
-      // Create a test user
-      await store.transact(async (data) => {
-        const userId = store.nextId(data, 'user');
-        data.users.push({
-          id: userId,
-          handle: 'testuser',
-          notes: null,
-          createdAt,
-          updatedAt: createdAt,
-        });
-      });
-
-      // Create an entry with existing index state but in non-approved state
-      const reconcileSnapshot3 = await store.snapshot();
-      const preReview = await runPreReview({
-        existingEntries: reconcileSnapshot3.knowledgeEntries,
-        submission: {
-          shortcut: 'Rejected Entry',
-          detail: 'This entry was rejected',
-          labels: ['test'],
-          scope: 'global',
-        },
-      });
-
-      await store.transact(async (data) => {
-        const userIdForTransact = (await store.snapshot()).users[0]?.id;
-        if (!userIdForTransact) throw new Error('User not found');
-        const entry = createKnowledgeEntryRecord({
-          ownerUserId: userIdForTransact,
-          teamId: null,
-          payload: {
-            shortcut: 'Rejected Entry',
-            detail: 'This entry was rejected',
-            labels: ['test'],
-            scope: 'global',
-          },
-          requiredLevel: 0,
-          createdAt,
-          preReview,
-          entryId: `knowledge_${randomUUID()}`,
-        });
-        entry.lifecycleState = 'rejected';
-
-        // Add existing index state
-        (entry as any).indexState = {
-          contentHash: 'abc123',
-          normalizedAt: createdAt,
-          vector: { status: 'synced', revision: 1, lastSyncedAt: createdAt },
-          keyword: { status: 'synced', revision: 1, lastSyncedAt: createdAt },
-        };
-
-        data.knowledgeEntries.push(entry);
-      });
-
-      // Mock adapter remove function
-      const removeSpy = vi.fn().mockResolvedValue(undefined);
-      const mockAdapters = [
-        {
-          kind: 'vector' as const,
-          sync: vi.fn().mockResolvedValue({
-            adapterKind: 'vector' as const,
-            success: true,
-            error: null,
-            performedWork: true,
-          }),
-          remove: removeSpy,
-        },
-      ];
-
-      // Reconcile should remove index state
-      await reconcileKnowledgeIndexes({ store }, toRegistry(mockAdapters));
-
-      // Remove should have been called
-      expect(removeSpy).toHaveBeenCalledTimes(1);
-    });
+    expect(knowledgeOwner.listIndexingEntries).toHaveBeenNthCalledWith(1, { offset: 0, limit: 1 });
+    expect(knowledgeOwner.listIndexingEntries).toHaveBeenNthCalledWith(2, { offset: 1, limit: 1 });
   });
 });

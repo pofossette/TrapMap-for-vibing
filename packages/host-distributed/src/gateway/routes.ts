@@ -77,12 +77,42 @@ function readRequestActorId(request: FastifyRequest): string | undefined {
   return (request as FastifyRequest & { actorId?: string }).actorId;
 }
 
+function readRequestArtifactActor(request: FastifyRequest): {
+  handle?: string;
+  securityLevel?: number;
+  teamId?: string | null;
+} {
+  const actor = request as FastifyRequest & {
+    actorHandle?: string;
+    actorSecurityLevel?: number;
+    actorTeamId?: string | null;
+  };
+  return {
+    ...(actor.actorHandle ? { handle: actor.actorHandle } : {}),
+    ...(typeof actor.actorSecurityLevel === 'number'
+      ? { securityLevel: actor.actorSecurityLevel }
+      : {}),
+    ...(actor.actorTeamId !== undefined ? { teamId: actor.actorTeamId } : {}),
+  };
+}
+
 function trustedActorHeaders(request: FastifyRequest): Record<string, string> | undefined {
   const headers = forwardedTraceHeaders(request) ?? {};
   const actorId = readRequestActorId(request);
   if (actorId) {
     headers['x-trapmap-actor-id'] = actorId;
   }
+  return Object.keys(headers).length > 0 ? headers : undefined;
+}
+
+function trustedArtifactImportHeaders(request: FastifyRequest): Record<string, string> | undefined {
+  const headers = trustedActorHeaders(request) ?? {};
+  const actor = readRequestArtifactActor(request);
+  if (actor.handle) headers['x-trapmap-actor-handle'] = actor.handle;
+  if (actor.securityLevel !== undefined) {
+    headers['x-trapmap-security-level'] = String(actor.securityLevel);
+  }
+  if (actor.teamId) headers['x-trapmap-team-id'] = actor.teamId;
   return Object.keys(headers).length > 0 ? headers : undefined;
 }
 
@@ -322,9 +352,24 @@ function registerAuthHook(app: FastifyInstance, clients: InternalServiceClients)
     if (!result || result.status === 401) {
       return reply.status(401).send({ error: 'Invalid or expired session', kind: 'auth' });
     }
-    const identity = result.body as { userId?: string };
-    if (identity.userId)
-      (request as FastifyRequest & { actorId?: string }).actorId = identity.userId;
+    const identity = result.body as {
+      userId?: string;
+      handle?: string;
+      activeTeamId?: string | null;
+      securityLevel?: number;
+    };
+    if (identity.userId) {
+      const authenticatedRequest = request as FastifyRequest & {
+        actorId?: string;
+        actorHandle?: string;
+        actorTeamId?: string | null;
+        actorSecurityLevel?: number;
+      };
+      authenticatedRequest.actorId = identity.userId;
+      authenticatedRequest.actorHandle = identity.handle;
+      authenticatedRequest.actorTeamId = identity.activeTeamId;
+      authenticatedRequest.actorSecurityLevel = identity.securityLevel;
+    }
   });
 }
 
@@ -369,7 +414,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       reply,
       () =>
         clients.knowledgeWrite.importArtifact(bodyWithoutActor(request), {
-          headers: trustedActorHeaders(request),
+          headers: trustedArtifactImportHeaders(request),
         }),
       'artifact import',
     );

@@ -1,25 +1,26 @@
 import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
 import type { JobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
 import { createAiProviders, type AiProviders } from '@trapmap/server/lib/ai/index.js';
-import { setGlobalEmbeddingsProvider } from '@trapmap/server/lib/embeddings.js';
 import {
   createMemoryGraphQueryBackend,
   type GraphQueryBackend,
   type GraphQueryRuntimeState,
 } from '@trapmap/server/lib/graph-query/index.js';
-import { createSkillShareerStore } from '@trapmap/server/lib/persistence/create-store.js';
-import { getStorePool, type SkillShareerStore } from '@trapmap/server/lib/store.js';
+import pg from 'pg';
 
 import type { HostLocalConfig } from '../config/index.js';
 
 export interface HostLocalSharedInfra {
-  store: SkillShareerStore;
+  store: HostLocalStore;
   ai: AiProviders;
   graphQueryBackend: GraphQueryBackend;
   graphQuery: GraphQueryRuntimeState;
 }
 
-export type HostLocalStore = HostLocalSharedInfra['store'];
+export interface HostLocalStore {
+  getPool(): pg.Pool;
+  close(): Promise<void>;
+}
 export type HostLocalAsyncTransport = JobRuntimeAsyncTransport;
 export type HostLocalAiProviders = HostLocalSharedInfra['ai'];
 export type HostLocalGraphQueryBackend = HostLocalSharedInfra['graphQueryBackend'];
@@ -28,14 +29,16 @@ export type HostLocalGraphQueryRuntimeState = HostLocalSharedInfra['graphQuery']
 export async function createHostLocalSharedInfra(
   config: HostLocalConfig,
 ): Promise<HostLocalSharedInfra> {
-  const store = createSkillShareerStore(config);
-  const pool = getStorePool(store);
-  if (!pool) {
+  if (!config.databaseUrl) {
     throw new Error('host-local graph projection requires PostgreSQL');
   }
+  const pool = new pg.Pool({ connectionString: config.databaseUrl });
+  const store: HostLocalStore = {
+    getPool: () => pool,
+    close: () => pool.end(),
+  };
   const ai = createAiProviders(config.ai);
   const graphIndex = createKnowledgeReadGraphIndexRepository(pool);
-  setGlobalEmbeddingsProvider(ai.embeddings);
 
   return {
     store,

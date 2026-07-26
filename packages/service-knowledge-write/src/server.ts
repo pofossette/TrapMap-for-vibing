@@ -1,10 +1,12 @@
 import type { KnowledgeWritePort } from '@trapmap/backend-core';
-import type { ArtifactReadProjection } from '@trapmap/contracts';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { type KnowledgeWriteDeps, createKnowledgeWriteServiceModule } from './deps.js';
+import {
+  type ComposedKnowledgeWriteDeps,
+  type KnowledgeWriteDeps,
+  createKnowledgeWriteServiceModule,
+} from './deps.js';
 import { type KnowledgeWriteReadinessOptions, registerKnowledgeWriteRoutes } from './routes.js';
 import { registerArtifactRoutes } from './artifact-routes.js';
-import type { ArtifactWritePort } from './artifact-ports.js';
 
 export interface KnowledgeWriteServiceConfig {
   host: string;
@@ -21,19 +23,24 @@ export interface KnowledgeWriteServer {
 
 export async function createKnowledgeWriteServer(
   config: KnowledgeWriteServiceConfig,
-  deps: KnowledgeWriteDeps,
+  deps: ComposedKnowledgeWriteDeps | KnowledgeWriteDeps,
   readinessOptions?: KnowledgeWriteReadinessOptions,
 ): Promise<KnowledgeWriteServer> {
   const app = Fastify({ logger: { level: config.logLevel } });
   const module = createKnowledgeWriteServiceModule(deps);
   registerKnowledgeWriteRoutes(app, module, readinessOptions);
-  const artifactWriter = (deps as KnowledgeWriteDeps & { artifactWriter?: ArtifactWritePort })
-    .artifactWriter;
-  const artifactReadProjection = (
-    deps as KnowledgeWriteDeps & { artifactReadProjection?: ArtifactReadProjection }
-  ).artifactReadProjection;
-  if (artifactWriter && artifactReadProjection) {
-    registerArtifactRoutes(app, artifactWriter, artifactReadProjection);
+  const artifactDeps = deps as ComposedKnowledgeWriteDeps;
+  if (
+    artifactDeps.artifactWriter &&
+    artifactDeps.artifactReadProjection &&
+    artifactDeps.artifactBundleImporter
+  ) {
+    registerArtifactRoutes(
+      app,
+      artifactDeps.artifactWriter,
+      artifactDeps.artifactReadProjection,
+      artifactDeps.artifactBundleImporter,
+    );
   }
 
   return {

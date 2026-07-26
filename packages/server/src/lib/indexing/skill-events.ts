@@ -115,107 +115,51 @@ export async function runSkillIndexEvent(args: {
 
   const action = determineSkillIndexAction(previousState, nextState);
 
-  if (services.artifactReadProjection) {
-    if (!services.graphIndex) {
-      throw new Error('Graph index owner is required for owner-local skill indexing');
-    }
+  if (action === 'noop') {
+    return;
+  }
 
-    if (action === 'upsert') {
-      const artifact = await services.artifactReadProjection.getIndexingEntry(artifactId);
-      if (!artifact) throw new Error(`Artifact ${artifactId} not found`);
-      if (!artifact.derived) {
-        throw new AppError(
-          500,
-          'indexing_no_derived',
-          `Cannot index artifact ${artifactId}: approved artifact must have derived outputs. Run derivation before approving or re-edit the artifact.`,
-        );
-      }
-      const result = await runArtifactAdapterFanOut({
-        artifact,
-        store,
-        ...(services.ai ? { chat: services.ai.chat } : {}),
-        adapters,
-        ...(services.graphQueryBackend !== undefined
-          ? { graphQueryBackend: services.graphQueryBackend }
-          : {}),
-        graphIndex: services.graphIndex,
-      });
-      const firstFailure = result.results.find((entry) => !entry.success);
-      if (firstFailure) {
-        throw new Error(firstFailure.error ?? `Artifact indexing failed for ${artifactId}`);
-      }
-    } else if (action === 'remove') {
-      await runArtifactAdapterRemoval({
-        artifactId,
-        store,
-        adapters,
-        ...(services.graphQueryBackend !== undefined
-          ? { graphQueryBackend: services.graphQueryBackend }
-          : {}),
-        graphIndex: services.graphIndex,
-      });
+  if (!services.artifactReadProjection) {
+    throw new Error('Artifact owner projection is required for skill lifecycle indexing');
+  }
+  if (!services.graphIndex) {
+    throw new Error('Graph index owner is required for owner-local skill indexing');
+  }
+
+  if (action === 'upsert') {
+    const artifact = await services.artifactReadProjection.getIndexingEntry(artifactId);
+    if (!artifact) throw new Error(`Artifact ${artifactId} not found`);
+    if (!artifact.derived) {
+      throw new AppError(
+        500,
+        'indexing_no_derived',
+        `Cannot index artifact ${artifactId}: approved artifact must have derived outputs. Run derivation before approving or re-edit the artifact.`,
+      );
+    }
+    const result = await runArtifactAdapterFanOut({
+      artifact,
+      store,
+      ...(services.ai ? { chat: services.ai.chat } : {}),
+      adapters,
+      ...(services.graphQueryBackend !== undefined
+        ? { graphQueryBackend: services.graphQueryBackend }
+        : {}),
+      graphIndex: services.graphIndex,
+    });
+    const firstFailure = result.results.find((entry) => !entry.success);
+    if (firstFailure) {
+      throw new Error(firstFailure.error ?? `Artifact indexing failed for ${artifactId}`);
     }
     return;
   }
 
-  // All modifications must be done within a transaction to persist
-  await store.transact(async (txData) => {
-    // Find the artifact
-    const artifact = txData.skillArtifacts?.find((a) => a.id === artifactId);
-    if (!artifact) {
-      throw new Error(`Artifact ${artifactId} not found`);
-    }
-
-    switch (action) {
-      case 'upsert': {
-        // Guard: approved artifacts must have derived outputs before indexing
-        if (!artifact.latestRevision.derived) {
-          throw new AppError(
-            500,
-            'indexing_no_derived',
-            `Cannot index artifact ${artifactId}: approved artifact must have derived outputs. Run derivation before approving or re-edit the artifact.`,
-          );
-        }
-
-        const result = await runArtifactAdapterFanOut({
-          data: txData,
-          artifact,
-          store,
-          ...(services.ai ? { chat: services.ai.chat } : {}),
-          adapters,
-          ...(args.services.graphQueryBackend !== undefined
-            ? { graphQueryBackend: args.services.graphQueryBackend }
-            : {}),
-          ...(args.services.graphIndex !== undefined
-            ? { graphIndex: args.services.graphIndex }
-            : {}),
-        });
-        const firstFailure = result.results.find((entry) => !entry.success);
-        if (firstFailure) {
-          throw new Error(firstFailure.error ?? `Artifact indexing failed for ${artifactId}`);
-        }
-        break;
-      }
-
-      case 'remove': {
-        await runArtifactAdapterRemoval({
-          data: txData,
-          artifactId,
-          store,
-          adapters,
-          ...(args.services.graphQueryBackend !== undefined
-            ? { graphQueryBackend: args.services.graphQueryBackend }
-            : {}),
-          ...(args.services.graphIndex !== undefined
-            ? { graphIndex: args.services.graphIndex }
-            : {}),
-        });
-        break;
-      }
-
-      case 'noop':
-        // No action needed for this transition
-        break;
-    }
+  await runArtifactAdapterRemoval({
+    artifactId,
+    store,
+    adapters,
+    ...(services.graphQueryBackend !== undefined
+      ? { graphQueryBackend: services.graphQueryBackend }
+      : {}),
+    graphIndex: services.graphIndex,
   });
 }

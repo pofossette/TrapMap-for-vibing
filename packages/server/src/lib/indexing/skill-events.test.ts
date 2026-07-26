@@ -17,7 +17,7 @@ import {
   getGraphIndexDocuments,
   removeGraphIndexDocumentsForSource,
 } from '@trapmap/server/lib/indexing/graph-lite/store.js';
-import { JsonStore, createEmptyStoreData, nowIso } from '@trapmap/server/lib/store.js';
+import { JsonStore, nowIso } from '@trapmap/server/lib/store.js';
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 
@@ -509,27 +509,22 @@ describe('skill-events', () => {
       );
     });
 
-    it('uses the shared artifact adapter seam when no route-local adapters are passed', async () => {
+    it('rejects non-noop transitions without an artifact owner projection', async () => {
       const store = new JsonStore('/tmp/trapmap-skill-events-test.json');
       const artifact = buildTestArtifact();
       await store.transact((data) => {
         data.skillArtifacts.push(artifact);
       });
 
-      await runSkillIndexEvent({
-        services: {
-          store,
-          data: createEmptyStoreData(),
-        },
-        artifactId: artifact.id,
-        previousState: 'agent-pass',
-        nextState: 'approved',
-        reason: 'test-approve',
-      });
-
-      const snapshot = await store.snapshot();
-      const docs = snapshot.graphIndexDocuments.filter((doc) => doc.sourceId === artifact.id);
-      expect(docs).toHaveLength(1);
+      await expect(
+        runSkillIndexEvent({
+          services: { store },
+          artifactId: artifact.id,
+          previousState: 'agent-pass',
+          nextState: 'approved',
+          reason: 'test-approve',
+        }),
+      ).rejects.toThrow('Artifact owner projection is required for skill lifecycle indexing');
     });
 
     it('throws when upsert action is triggered for an artifact with null derived', async () => {
@@ -580,7 +575,20 @@ describe('skill-events', () => {
         runSkillIndexEvent({
           services: {
             store,
-            data: createEmptyStoreData(),
+            artifactReadProjection: {
+              getIndexingEntry: vi.fn().mockResolvedValue({
+                id: underivedArtifact.id,
+                teamId: underivedArtifact.teamId,
+                scope: underivedArtifact.scope,
+                labels: underivedArtifact.labels,
+                title: underivedArtifact.title,
+                requiredLevel: underivedArtifact.requiredLevel,
+                lifecycleState: underivedArtifact.lifecycleState,
+                revision: underivedArtifact.latestRevision.revision,
+                derived: null,
+              }),
+            },
+            graphIndex: {} as never,
           },
           artifactId: 'artifact-underived',
           previousState: 'agent-pass',
@@ -590,7 +598,7 @@ describe('skill-events', () => {
       ).rejects.toThrow(/Cannot index artifact artifact-underived.*derived outputs/);
     });
 
-    it('uses the shared artifact adapter seam for remove transitions', async () => {
+    it('rejects removal transitions without an artifact owner projection', async () => {
       const store = new JsonStore('/tmp/trapmap-skill-events-remove-test.json');
       const artifact = buildTestArtifact();
       await store.transact((data) => {
@@ -612,20 +620,15 @@ describe('skill-events', () => {
         });
       });
 
-      await runSkillIndexEvent({
-        services: {
-          store,
-          data: createEmptyStoreData(),
-        },
-        artifactId: artifact.id,
-        previousState: 'approved',
-        nextState: 'deactivated',
-        reason: 'test-remove',
-      });
-
-      const snapshot = await store.snapshot();
-      const docs = snapshot.graphIndexDocuments.filter((doc) => doc.sourceId === artifact.id);
-      expect(docs).toHaveLength(0);
+      await expect(
+        runSkillIndexEvent({
+          services: { store },
+          artifactId: artifact.id,
+          previousState: 'approved',
+          nextState: 'deactivated',
+          reason: 'test-remove',
+        }),
+      ).rejects.toThrow('Artifact owner projection is required for skill lifecycle indexing');
     });
   });
 });

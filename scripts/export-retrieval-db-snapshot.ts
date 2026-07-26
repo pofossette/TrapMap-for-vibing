@@ -5,15 +5,18 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import {
+  type ArtifactReadProjection,
+  type GraphIndexDocumentRecord,
+  type GraphIndexRepositoryPort,
+  type KnowledgeOwnerPort,
   liveSnapshotMetaSchema,
   retrievalEvalScenarioSnapshotSchema,
 } from '@trapmap/contracts/evals';
-import { loadConfig } from '@trapmap/server/config.js';
-import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
-import type { KnowledgeRecord, SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
+import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
+import { Pool } from 'pg';
 import { detectServiceProfile } from '../evals/retrieval-live/lib/snapshot-support.js';
 import { reportEntrypointFailure } from './testing/entrypoint.js';
-import { buildPostgresComposedServer } from './testing/postgres-server-composition.js';
 
 interface CliOptions {
   output: string;
@@ -106,7 +109,9 @@ function parseSecurityLevel(value: string): number {
   return securityLevel;
 }
 
-function toSnapshotKnowledgeEntry(entry: KnowledgeRecord) {
+function toSnapshotKnowledgeEntry(
+  entry: Awaited<ReturnType<KnowledgeOwnerPort['listByFilter']>>[number],
+) {
   return {
     id: entry.id,
     teamId: entry.teamId,
@@ -119,7 +124,9 @@ function toSnapshotKnowledgeEntry(entry: KnowledgeRecord) {
   };
 }
 
-function toSnapshotSkillArtifact(artifact: SkillArtifactRecord) {
+function toSnapshotSkillArtifact(
+  artifact: Awaited<ReturnType<ArtifactReadProjection['listForRetrieval']>>[number],
+) {
   return {
     id: artifact.id,
     teamId: artifact.teamId,
@@ -155,34 +162,44 @@ function filterGraphDocs(
 
 export async function main(): Promise<void> {
   const options = parseCliArgs();
-  const config = loadConfig();
-  if (!config.databaseUrl) {
+  const databaseUrl = process.env.TRAPMAP_DATABASE_URL ?? process.env.DATABASE_URL;
+  if (!databaseUrl) {
     throw new Error(
       'retrieval snapshot export requires TRAPMAP_DATABASE_URL and PostgreSQL host composition',
     );
   }
 
-  const composed = buildPostgresComposedServer(config.databaseUrl);
-  const app = composed.app;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
+  const graphIndex = createKnowledgeReadGraphIndexRepository(pool);
 
   try {
-    await app.ready();
-    const exported = await createSnapshotExport(app.skillShareer.repos, options);
+    const exported = await createSnapshotExport(
+      {
+        knowledgeOwner: knowledgeWrite.knowledgeOwner,
+        artifactReadProjection: knowledgeWrite.artifactReadProjection,
+        graphIndex,
+      },
+      options,
+    );
     await writeSnapshotExport(options, exported);
   } finally {
-    await composed.close();
+    await pool.end();
   }
 }
 
-async function createSnapshotExport(
-  repos: ReturnType<typeof buildPostgresComposedServer>['app']['skillShareer']['repos'],
-  options: CliOptions,
-) {
+interface RetrievalSnapshotOwners {
+  knowledgeOwner: Pick<KnowledgeOwnerPort, 'listByFilter'>;
+  artifactReadProjection: Pick<ArtifactReadProjection, 'listForRetrieval'>;
+  graphIndex: Pick<GraphIndexRepositoryPort, 'listAll'>;
+}
+
+async function createSnapshotExport(owners: RetrievalSnapshotOwners, options: CliOptions) {
   const filter = options.teamId ? { teamId: options.teamId } : {};
   const [knowledgeEntries, skillArtifacts, graphIndexDocuments] = await Promise.all([
-    repos.knowledge.listByFilter(filter),
-    repos.artifact.listForRetrieval(filter),
-    repos.graphIndex.listAll(),
+    owners.knowledgeOwner.listByFilter(filter),
+    owners.artifactReadProjection.listForRetrieval(filter),
+    owners.graphIndex.listAll(),
   ]);
   const payload = retrievalEvalScenarioSnapshotSchema.parse({
     actor: {

@@ -1,8 +1,9 @@
-import type { SkillArtifact } from '@trapmap/contracts';
+import type { ArtifactBundle, SkillArtifact } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
   createArtifactFilePayloadOwner,
+  createArtifactBundleImportPort,
   createArtifactReadProjection,
   createArtifactWritePort,
 } from './artifact-ports.js';
@@ -66,6 +67,31 @@ function artifactFixture(): SkillArtifact {
   };
 }
 
+function bundleFixture(): ArtifactBundle {
+  return {
+    scope: 'project',
+    labels: ['owner-local'],
+    title: 'Owner-local bundle',
+    slug: 'owner-local-bundle',
+    requiredLevel: 1,
+    sourceKind: 'skill-directory',
+    files: [
+      {
+        path: 'SKILL.md',
+        kind: 'skill-markdown',
+        sha256: 'a'.repeat(64),
+        sizeBytes: 12,
+        mediaType: 'text/markdown',
+        source: 'SKILL.md',
+        includeInDerivation: true,
+        activationOnly: false,
+        content: '---\nname: x\n---',
+      },
+    ],
+    scriptDescriptors: [],
+  };
+}
+
 describe('ArtifactWritePort', () => {
   it('exposes only artifact mutation operations', () => {
     const port = createArtifactWritePort({
@@ -79,7 +105,6 @@ describe('ArtifactWritePort', () => {
         'appendLifecycleEvent',
         'appendRevision',
         'editArtifact',
-        'importArtifact',
         'insert',
         'nextId',
         'review',
@@ -119,6 +144,57 @@ describe('ArtifactWritePort', () => {
     expect(calls).toContain('ROLLBACK');
     expect(calls).not.toContain('COMMIT');
     expect(client.release).toHaveBeenCalledOnce();
+  });
+});
+
+describe('ArtifactBundleImportPort', () => {
+  it('persists a normalized bundle and its payloads in one owner transaction', async () => {
+    const { calls, client, pool } = createTransactionPool(() => ({ rows: [] }));
+    const importer = createArtifactBundleImportPort(pool as never);
+
+    const artifact = await importer.importBundle(bundleFixture(), {
+      actorId: 'owner-1',
+      teamId: 'team-1',
+      handle: 'owner',
+      securityLevel: 4,
+    });
+
+    expect(artifact).toMatchObject({
+      teamId: 'team-1',
+      lifecycleState: 'submitted',
+      latestRevision: 1,
+      metadata: expect.objectContaining({ sourceKind: 'skill-directory' }),
+    });
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        'BEGIN',
+        expect.stringContaining('INSERT INTO skill_artifacts'),
+        expect.stringContaining('INSERT INTO artifact_revisions'),
+        expect.stringContaining('INSERT INTO artifact_lifecycle_events'),
+        expect.stringContaining('INSERT INTO skill_artifact_files'),
+        'COMMIT',
+      ]),
+    );
+    expect(client.release).toHaveBeenCalledOnce();
+  });
+
+  it('rejects traversal paths before opening an owner transaction', async () => {
+    const { client, pool } = createTransactionPool(() => ({ rows: [] }));
+    const importer = createArtifactBundleImportPort(pool as never);
+    const bundle = bundleFixture();
+    bundle.files[0]!.path = '../outside.md';
+
+    await expect(
+      importer.importBundle(bundle, {
+        actorId: 'owner-1',
+        teamId: null,
+        handle: 'owner',
+        securityLevel: 4,
+      }),
+    ).rejects.toThrow('Invalid file path');
+
+    expect(client.query).not.toHaveBeenCalled();
+    expect(client.release).not.toHaveBeenCalled();
   });
 });
 
@@ -288,6 +364,17 @@ describe('ArtifactReadProjection', () => {
               revision_no: 1,
               derived: null,
             },
+            {
+              id: 'artifact-3',
+              team_id: null,
+              scope: 'global',
+              labels: [],
+              title: 'Three',
+              required_level: 0,
+              lifecycle_state: 'approved',
+              revision_no: 4,
+              derived: { profile: null, capsules: [], clientManifest: null },
+            },
           ],
         };
       }
@@ -297,8 +384,11 @@ describe('ArtifactReadProjection', () => {
     await expect(
       createArtifactReadProjection({ query } as never).listIndexingEntries({ offset: 1, limit: 2 }),
     ).resolves.toEqual({
-      entries: [expect.objectContaining({ id: 'artifact-1', revision: 3 })],
-      nextOffset: 2,
+      entries: [
+        expect.objectContaining({ id: 'artifact-1', revision: 3 }),
+        expect.objectContaining({ id: 'artifact-2', revision: 1 }),
+      ],
+      nextOffset: 3,
     });
   });
 });

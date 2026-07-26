@@ -4,7 +4,7 @@ import {
 } from '../../packages/backend-core/src/index.js';
 import type { BuildServerOptions } from '../../packages/server/src/app.js';
 import { loadConfig } from '../../packages/host-local/src/nest/config/config.js';
-import { buildHostLocalServer } from '../../packages/host-local/src/nest/runtime/server-composition.js';
+import { buildPostgresComposedServer } from './postgres-server-composition.js';
 
 type TestServerOptions = Pick<
   BuildServerOptions,
@@ -12,8 +12,8 @@ type TestServerOptions = Pick<
 >;
 
 /**
- * Builds the compatibility shell through the same PostgreSQL host composition
- * used by the local host. The coordinator supplies TRAPMAP_DATABASE_URL.
+ * Builds the compatibility shell through the dedicated PostgreSQL test
+ * composition. The coordinator supplies TRAPMAP_DATABASE_URL.
  */
 export async function buildPostgresTestServer(options: TestServerOptions = {}) {
   const baseConfig = loadConfig();
@@ -33,7 +33,13 @@ export async function buildPostgresTestServer(options: TestServerOptions = {}) {
       resolved: resolveRuntimeDeployment(deploymentInput),
     },
   };
-  const composed = await buildHostLocalServer(config, serverOptions);
+  if (!config.databaseUrl) {
+    throw new Error('PostgreSQL test composition requires TRAPMAP_DATABASE_URL');
+  }
+  const composed = buildPostgresComposedServer(config.databaseUrl, {
+    ...serverOptions,
+    config,
+  });
   const app = composed.app;
   app.close = composed.close;
   return app;

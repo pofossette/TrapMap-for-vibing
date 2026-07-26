@@ -361,7 +361,6 @@ JSON 存储模式用于开发/测试，不提供后台 worker 处理。非 PG �
 | `vectorSimilaritySearch` | 向量相似度搜索 |
 | `createPgKeywordRecall` | BM25 关键词召回 |
 | `createPgDuplicateDetector` | 重复检测 |
-| `bench-store.ts` | 性能基准测试 |
 
 ### 行级锁事务 (`PostgresStore.transact()`)
 

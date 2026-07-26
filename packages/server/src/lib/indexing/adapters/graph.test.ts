@@ -1,11 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  getGraphIndexDocuments,
-  removeGraphIndexDocumentsForSource,
-} from '@trapmap/server/lib/indexing/graph-lite/store.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
-import { JsonStore, type SkillShareerStore, nowIso } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { buildTrapGraphDocument } from './graph-builders.js';
 import { clearGraphCache, graphIndexAdapter } from './graph.js';
 
@@ -60,7 +57,8 @@ describe('graph-builders: buildTrapGraphDocument', () => {
 });
 
 describe('graph index adapter: durable persistence', () => {
-  let store: SkillShareerStore;
+  let graphDocuments: Awaited<ReturnType<GraphIndexRepositoryPort['listAll']>>;
+  let graphIndex: GraphIndexRepositoryPort;
   const testDocument: NormalizedIndexDocument = {
     entryId: 'test-entry-1',
     teamId: null,
@@ -80,35 +78,38 @@ describe('graph index adapter: durable persistence', () => {
     boundary: null,
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     clearGraphCache();
-    const testDataFile = `/tmp/skill-shareer-graph-test-${Date.now()}.json`;
-    store = new JsonStore(testDataFile);
-
-    await store.transact(async (data) => {
-      data.counters = {};
-      data.users = [];
-      data.teams = [];
-      data.memberships = [];
-      data.accessKeys = [];
-      data.sessions = [];
-      data.knowledgeEntries = [];
-      data.auditEvents = [];
-      data.skillArtifacts = [];
-      data.artifactFilePayloads = [];
-      data.candidateSubmissions = [];
-      data.duplicateCases = [];
-      data.entityLineage = [];
-      data.graphIndexDocuments = [];
-    });
-  });
-
-  afterEach(async () => {
-    // temp store only
+    graphDocuments = [];
+    graphIndex = {
+      insert: vi.fn(),
+      getById: vi.fn(),
+      listBySource: vi.fn(),
+      listAll: vi.fn(async () => graphDocuments),
+      upsert: vi.fn(async (document) => {
+        graphDocuments = [
+          ...graphDocuments.filter((current) => current.id !== document.id),
+          document,
+        ];
+      }),
+      remove: vi.fn(),
+      removeBySource: vi.fn(async (sourceType, sourceId) => {
+        graphDocuments = graphDocuments.filter(
+          (document) => document.sourceType !== sourceType || document.sourceId !== sourceId,
+        );
+      }),
+    };
   });
 
   it('persists graph document for an approved trap revision', async () => {
-    const result = await graphIndexAdapter.sync(testDocument, store);
+    const result = await graphIndexAdapter.sync(
+      testDocument,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      graphIndex,
+    );
 
     expect(result).toMatchObject({
       adapterKind: 'graph',
@@ -117,11 +118,9 @@ describe('graph index adapter: durable persistence', () => {
       performedWork: true,
     });
 
-    const data = await store.snapshot();
-    const graphDocs = getGraphIndexDocuments(data);
-    expect(graphDocs).toHaveLength(1);
-    expect(graphDocs[0]!.sourceType).toBe('trap');
-    expect(graphDocs[0]!.sourceId).toBe('test-entry-1');
+    expect(graphDocuments).toHaveLength(1);
+    expect(graphDocuments[0]!.sourceType).toBe('trap');
+    expect(graphDocuments[0]!.sourceId).toBe('test-entry-1');
   });
 
   it('persists through an injected graph owner port without reading the compatibility store', async () => {
@@ -148,49 +147,66 @@ describe('graph index adapter: durable persistence', () => {
   });
 
   it('stores an empty trap graph when no LLM extraction is available', async () => {
-    const result = await graphIndexAdapter.sync(testDocument, store);
+    const result = await graphIndexAdapter.sync(
+      testDocument,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      graphIndex,
+    );
     expect(result.success).toBe(true);
 
-    const data = await store.snapshot();
-    const graphDoc = getGraphIndexDocuments(data)[0];
+    const graphDoc = graphDocuments[0];
     expect(graphDoc?.nodes).toEqual([]);
     expect(graphDoc?.edges).toEqual([]);
   });
 
   it('is idempotent when revision and contentHash match', async () => {
-    const result1 = await graphIndexAdapter.sync(testDocument, store);
+    const result1 = await graphIndexAdapter.sync(
+      testDocument,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      graphIndex,
+    );
     expect(result1.performedWork).toBe(true);
 
-    const result2 = await graphIndexAdapter.sync(testDocument, store);
+    const result2 = await graphIndexAdapter.sync(
+      testDocument,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      graphIndex,
+    );
     expect(result2.performedWork).toBe(false);
     expect(result2.success).toBe(true);
   });
 
   it('removes graph document from durable store', async () => {
-    await graphIndexAdapter.sync(testDocument, store);
+    await graphIndexAdapter.sync(
+      testDocument,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      graphIndex,
+    );
 
-    let data = await store.snapshot();
-    expect(getGraphIndexDocuments(data).length).toBeGreaterThan(0);
+    expect(graphDocuments.length).toBeGreaterThan(0);
 
     await graphIndexAdapter.remove(
       {
         entryId: testDocument.entryId,
         revision: testDocument.revision,
       },
-      store,
+      undefined,
+      undefined,
+      graphIndex,
     );
 
-    data = await store.snapshot();
-    expect(getGraphIndexDocuments(data).length).toBe(0);
-  });
-
-  it('removes documents for a source through helper store mutation', async () => {
-    await graphIndexAdapter.sync(testDocument, store);
-    await store.transact((data) => {
-      removeGraphIndexDocumentsForSource(data, 'trap', testDocument.entryId);
-    });
-
-    const data = await store.snapshot();
-    expect(getGraphIndexDocuments(data)).toEqual([]);
+    expect(graphDocuments).toEqual([]);
   });
 });

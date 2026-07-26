@@ -3,17 +3,9 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-const entrypoints = [
-  'scripts/export-retrieval-db-snapshot.ts',
-  'evals/retrieval-live/lib/snapshot-orchestrator.ts',
-  'packages/server/scripts/benchmark-graph-backend.ts',
-  'scripts/test-skill-import-export.ts',
-];
+const entrypoints = ['evals/retrieval-live/lib/snapshot-orchestrator.ts'];
 
-const cleanupProtectedEntrypoints = [
-  'evals/retrieval-live/lib/snapshot-orchestrator.ts',
-  'scripts/test-skill-import-export.ts',
-];
+const cleanupProtectedEntrypoints = ['evals/retrieval-live/lib/snapshot-orchestrator.ts'];
 
 describe('PostgreSQL composition entrypoints', () => {
   it('injects the job-runtime port into the compatibility composition', async () => {
@@ -52,6 +44,24 @@ describe('PostgreSQL composition entrypoints', () => {
     expect(source).toContain('buildPostgresComposedServer');
     expect(source).not.toMatch(/\bbuildServer\s*\(/);
     expect(source).toContain('PostgreSQL host composition');
+  });
+
+  it('exports retrieval snapshots from owner projections without the compatibility server', async () => {
+    const source = await readFile('scripts/export-retrieval-db-snapshot.ts', 'utf8');
+
+    expect(source).toContain('createKnowledgeWriteOwnerBundle');
+    expect(source).toContain('createKnowledgeReadGraphIndexRepository');
+    expect(source).not.toContain('@trapmap/server');
+  });
+
+  it('round-trips skill bundles through knowledge-write owner ports without compatibility composition', async () => {
+    const source = await readFile('scripts/test-skill-import-export.ts', 'utf8');
+
+    expect(source).toContain('createArtifactBundleImportPort');
+    expect(source).toContain('createArtifactReadProjection');
+    expect(source).toContain('new Pool');
+    expect(source).not.toContain('buildPostgresComposedServer');
+    expect(source).not.toContain('app.inject');
   });
 
   it.each(cleanupProtectedEntrypoints)(

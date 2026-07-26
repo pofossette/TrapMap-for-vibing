@@ -737,7 +737,14 @@ describe('registerGatewayRoutes', () => {
     ]);
     expect(clients.knowledgeWrite.importArtifact).toHaveBeenCalledWith(
       { bundles: [] },
-      { headers: { 'x-request-id': 'artifact-hop', 'x-trapmap-actor-id': 'user-1' } },
+      {
+        headers: {
+          'x-request-id': 'artifact-hop',
+          'x-trapmap-actor-id': 'user-1',
+          'x-trapmap-actor-handle': 'alice',
+          'x-trapmap-security-level': '1',
+        },
+      },
     );
     expect(clients.knowledgeWrite.reviewArtifact).toHaveBeenCalledWith(
       'artifact-1',

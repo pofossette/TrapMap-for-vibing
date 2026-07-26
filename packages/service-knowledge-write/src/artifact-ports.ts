@@ -1,7 +1,9 @@
 // fallow-ignore-file complexity -- artifact row mapping mirrors the frozen contract shape.
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type {
+  ArtifactBundle,
   ArtifactFilePayloadRecord,
+  ArtifactIndexingEntry,
   ArtifactReadProjection,
   LifecycleState,
   SkillArtifact,
@@ -9,6 +11,7 @@ import type {
   SkillArtifactLifecycleEvent,
   SkillArtifactRevision,
 } from '@trapmap/contracts';
+import { validateRelativePath } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
 export interface ArtifactWritePort {
@@ -26,7 +29,6 @@ export interface ArtifactWritePort {
     derived: SkillArtifactDerived | null,
   ): Promise<void>;
   appendLifecycleEvent(artifactId: string, event: SkillArtifactLifecycleEvent): Promise<void>;
-  importArtifact(input: Record<string, unknown>): Promise<SkillArtifact>;
   editArtifact(artifactId: string, input: Record<string, unknown>): Promise<SkillArtifact>;
   review(
     artifactId: string,
@@ -35,6 +37,17 @@ export interface ArtifactWritePort {
     note?: string,
   ): Promise<SkillArtifact>;
   activate(input: Record<string, unknown>): Promise<SkillArtifact>;
+}
+
+export interface ArtifactBundleImportActor {
+  actorId: string;
+  teamId: string | null;
+  handle: string;
+  securityLevel: number;
+}
+
+export interface ArtifactBundleImportPort {
+  importBundle(bundle: ArtifactBundle, actor: ArtifactBundleImportActor): Promise<SkillArtifact>;
 }
 
 type Queryable = Pick<Pool, 'query' | 'connect'>;
@@ -49,6 +62,153 @@ export interface ArtifactFilePayloadOwner {
 }
 
 const id = (prefix: string) => `${prefix}_${randomUUID().replaceAll('-', '').slice(0, 16)}`;
+
+function classifyFileKind(path: string): 'skill-markdown' | 'reference' | 'asset' | 'script' {
+  if (path === 'SKILL.md') return 'skill-markdown';
+  if (path.startsWith('scripts/')) return 'script';
+  if (path.startsWith('assets/')) return 'asset';
+  return 'reference';
+}
+
+function classifyFileSource(path: string): 'references/' | 'assets/' | 'scripts/' | 'SKILL.md' {
+  if (path === 'SKILL.md') return 'SKILL.md';
+  if (path.startsWith('scripts/')) return 'scripts/';
+  if (path.startsWith('assets/')) return 'assets/';
+  return 'references/';
+}
+
+function isDerivationEligible(path: string): boolean {
+  return path === 'SKILL.md' || path.startsWith('references/');
+}
+
+function isActivationOnly(path: string): boolean {
+  return path.startsWith('assets/') || path.startsWith('scripts/');
+}
+
+function assertBundlePaths(bundle: ArtifactBundle): void {
+  for (const file of bundle.files) {
+    try {
+      validateRelativePath(file.path);
+    } catch (error) {
+      throw new Error(`Invalid file path "${file.path}": ${error}`);
+    }
+  }
+  for (const descriptor of bundle.scriptDescriptors) {
+    try {
+      validateRelativePath(descriptor.path);
+    } catch (error) {
+      throw new Error(`Invalid script path "${descriptor.path}": ${error}`);
+    }
+  }
+  if (bundle.sourceKind !== 'single-skill-md') return;
+  if (bundle.files.length !== 1 || bundle.files[0]?.path !== 'SKILL.md') {
+    throw new Error('single-skill-md imports must contain only SKILL.md');
+  }
+  if (bundle.scriptDescriptors.length > 0) {
+    throw new Error('single-skill-md imports cannot contain script descriptors');
+  }
+}
+
+function createImportedArtifact(
+  bundle: ArtifactBundle,
+  actor: ArtifactBundleImportActor,
+): { artifact: SkillArtifact; payloads: ArtifactFilePayloadRecord[] } {
+  assertBundlePaths(bundle);
+  const artifactId = id('artifact');
+  const createdAt = new Date().toISOString();
+  const files = bundle.files.map((file) => ({
+    path: file.path,
+    kind: classifyFileKind(file.path),
+    sha256: file.sha256,
+    sizeBytes: file.sizeBytes,
+    mediaType: file.mediaType,
+    source: classifyFileSource(file.path),
+    includeInDerivation: isDerivationEligible(file.path),
+    activationOnly: isActivationOnly(file.path),
+  }));
+  const sourceHash = createHash('sha256')
+    .update(
+      files
+        .filter((file) => file.includeInDerivation)
+        .sort((left, right) => left.path.localeCompare(right.path))
+        .map((file) => file.sha256)
+        .join(''),
+      'utf8',
+    )
+    .digest('hex');
+  const owner = {
+    id: actor.actorId,
+    handle: actor.handle,
+    securityLevel: actor.securityLevel,
+  };
+  const artifact: SkillArtifact = {
+    id: artifactId,
+    teamId: actor.teamId,
+    scope: bundle.scope,
+    labels: bundle.labels,
+    title: bundle.title,
+    slug: bundle.slug,
+    requiredLevel: bundle.requiredLevel,
+    lifecycleState: 'submitted',
+    owner,
+    latestRevision: 1,
+    history: [
+      {
+        revision: 1,
+        sourceHash,
+        files,
+        scriptDescriptors: bundle.scriptDescriptors,
+        derived: null,
+        submittedAt: createdAt,
+        submittedBy: owner,
+      },
+    ],
+    lifecycleHistory: [
+      {
+        id: id('artifact_event'),
+        type: 'submitted',
+        createdAt,
+        actor: owner,
+        submissionId: null,
+        revision: 1,
+        state: 'submitted',
+        note: 'Artifact imported',
+      },
+    ],
+    metadata: {
+      sourceKind: bundle.sourceKind,
+      submissionCount: 1,
+      resubmissionCount: 0,
+      revisionCount: 1,
+      latestSubmissionId: null,
+      latestSubmittedAt: createdAt,
+      latestReviewedAt: null,
+      latestDecision: null,
+    },
+    agentReview: null,
+    reviewHistory: [],
+    reviewNotes: [],
+    maintenanceMeta: null,
+    boundaryMeta: null,
+    evidenceMeta: null,
+    remediation: null,
+    createdAt,
+    updatedAt: createdAt,
+  };
+  return {
+    artifact,
+    payloads: bundle.files.map((file) => ({
+      artifactId,
+      revision: 1,
+      path: file.path,
+      sha256: file.sha256,
+      sizeBytes: file.sizeBytes,
+      mediaType: file.mediaType,
+      content: file.content,
+      storedAt: createdAt,
+    })),
+  };
+}
 
 function asIsoString(value: unknown): string {
   return value instanceof Date ? value.toISOString() : String(value);
@@ -172,6 +332,44 @@ export function createArtifactReadProjection(pool: Pick<Pool, 'query'>): Artifac
     );
     return resolveArtifacts(result.rows, getById);
   };
+  const listIndexingEntries = async ({
+    offset,
+    limit,
+  }: Parameters<ArtifactReadProjection['listIndexingEntries']>[0]) => {
+    const boundedLimit = Math.max(1, Math.min(limit, 100));
+    const result = await pool.query(
+      `SELECT sa.id, sa.team_id, sa.scope, sa.labels, sa.title,
+              sa.required_level, sa.lifecycle_state, ar.revision_no, ar.derived
+         FROM skill_artifacts sa
+         JOIN LATERAL (
+           SELECT revision_no, derived
+             FROM artifact_revisions
+            WHERE artifact_id = sa.id
+            ORDER BY revision_no DESC
+            LIMIT 1
+         ) ar ON true
+        ORDER BY sa.updated_at DESC, sa.id DESC
+        OFFSET $1
+        LIMIT $2`,
+      [Math.max(0, offset), boundedLimit + 1],
+    );
+    const rows = result.rows as Array<Record<string, unknown>>;
+    const entries: ArtifactIndexingEntry[] = rows.slice(0, boundedLimit).map((row) => ({
+      id: String(row.id),
+      teamId: (row.team_id as string | null) ?? null,
+      scope: row.scope as SkillArtifact['scope'],
+      labels: (row.labels as string[]) ?? [],
+      title: String(row.title),
+      requiredLevel: Number(row.required_level ?? 0),
+      lifecycleState: row.lifecycle_state as LifecycleState,
+      revision: Number(row.revision_no),
+      derived: (row.derived as SkillArtifactDerived | null) ?? null,
+    }));
+    return {
+      entries,
+      nextOffset: rows.length > boundedLimit ? Math.max(0, offset) + boundedLimit : null,
+    };
+  };
   return {
     getById,
     async getIndexingEntry(artifactId) {
@@ -190,6 +388,7 @@ export function createArtifactReadProjection(pool: Pick<Pool, 'query'>): Artifac
         derived: revision.derived,
       };
     },
+    listIndexingEntries,
     listByFilter,
     listForRetrieval: listByFilter,
     async history(artifactId) {
@@ -440,12 +639,6 @@ export function createArtifactWritePort(pool: Queryable): ArtifactWritePort {
         ],
       );
     },
-    async importArtifact(input) {
-      const artifact = input as unknown as SkillArtifact;
-      if (!artifact.id) artifact.id = await this.nextId();
-      await this.insert(artifact);
-      return (await read.getById(artifact.id)) ?? artifact;
-    },
     async editArtifact(artifactId, input) {
       const current = await read.getById(artifactId);
       if (!current) throw new Error(`Artifact ${artifactId} not found`);
@@ -475,6 +668,101 @@ export function createArtifactWritePort(pool: Queryable): ArtifactWritePort {
       return this.updateLifecycle(artifactId, 'approved', {
         actorId: String(input.actorId ?? 'system'),
       });
+    },
+  };
+}
+
+export function createArtifactBundleImportPort(pool: Queryable): ArtifactBundleImportPort {
+  return {
+    async importBundle(bundle, actor) {
+      const { artifact, payloads } = createImportedArtifact(bundle, actor);
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(
+          `INSERT INTO skill_artifacts (id, team_id, scope, labels, title, slug, required_level, lifecycle_state, owner_user_id, metadata, agent_review, maintenance_meta, boundary, created_at, updated_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+          [
+            artifact.id,
+            artifact.teamId,
+            artifact.scope,
+            JSON.stringify(artifact.labels),
+            artifact.title,
+            artifact.slug,
+            artifact.requiredLevel,
+            artifact.lifecycleState,
+            artifact.owner.id,
+            JSON.stringify(artifact.metadata),
+            JSON.stringify(artifact.agentReview),
+            JSON.stringify(artifact.maintenanceMeta),
+            JSON.stringify(artifact.boundaryMeta ?? null),
+            artifact.createdAt,
+            artifact.updatedAt,
+          ],
+        );
+        const revision = artifact.history[0]!;
+        await client.query(
+          'INSERT INTO artifact_revisions (id, artifact_id, revision_no, source_hash, files, script_descriptors, derived, submitted_at, submitted_by_user_id, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
+          [
+            `${artifact.id}_rev${revision.revision}`,
+            artifact.id,
+            revision.revision,
+            revision.sourceHash,
+            JSON.stringify(revision.files),
+            JSON.stringify(revision.scriptDescriptors),
+            JSON.stringify(revision.derived),
+            revision.submittedAt,
+            revision.submittedBy.id,
+            revision.submittedAt,
+          ],
+        );
+        const event = artifact.lifecycleHistory[0]!;
+        await client.query(
+          'INSERT INTO artifact_lifecycle_events (id, artifact_id, type, created_at, actor_user_id, submission_id, revision_no, state, note) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+          [
+            event.id,
+            artifact.id,
+            event.type,
+            event.createdAt,
+            event.actor?.id ?? null,
+            event.submissionId,
+            event.revision,
+            event.state,
+            event.note,
+          ],
+        );
+        for (const payload of payloads) {
+          const file = revision.files.find((candidate) => candidate.path === payload.path);
+          if (!file) throw new Error(`Artifact revision metadata missing file ${payload.path}`);
+          await client.query(
+            `INSERT INTO skill_artifact_files
+              (artifact_revision_id, artifact_id, revision_no, path, kind, sha256, size_bytes, media_type, content, source_group, include_in_derivation, activation_only, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+            [
+              `${artifact.id}_rev${payload.revision}`,
+              artifact.id,
+              payload.revision,
+              payload.path,
+              file.kind,
+              payload.sha256,
+              payload.sizeBytes,
+              payload.mediaType,
+              payload.content,
+              file.source,
+              file.includeInDerivation ? 1 : 0,
+              file.activationOnly ? 1 : 0,
+              payload.storedAt,
+            ],
+          );
+        }
+        await client.query('COMMIT');
+        return artifact;
+      } catch (error) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw error;
+      } finally {
+        client.release();
+      }
     },
   };
 }

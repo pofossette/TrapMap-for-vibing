@@ -42,6 +42,7 @@ export async function createServer(
     auditLog: identity.auditLog,
     artifactWriter: owner.artifactWriter,
     artifactReadProjection: owner.artifactReadProjection,
+    artifactBundleImporter: owner.artifactBundleImporter,
   });
   const server = await createServiceKnowledgeWriteServer(
     config,

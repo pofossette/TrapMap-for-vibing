@@ -7,16 +7,21 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { reconcileGraphIndexes } from '@trapmap/server/lib/indexing/reconcile.js';
+import { reconcileGraphIndexesFromOwners } from '@trapmap/server/lib/indexing/reconcile.js';
 
 export async function bootstrapGraphReconciliation(app: FastifyInstance): Promise<void> {
   try {
-    const result = await reconcileGraphIndexes({
-      store: app.skillShareer.store,
-      graphIndexRepo: app.skillShareer.repos.graphIndex,
+    const syncProjection =
+      app.skillShareer.config.graphDb.enabled && app.skillShareer.config.graphDb.syncOnWrite;
+    if (!app.skillShareer.knowledgeOwner || !app.skillShareer.artifactReadProjection) {
+      throw new Error('Graph reconciliation requires knowledge and artifact owner projections');
+    }
+    const result = await reconcileGraphIndexesFromOwners({
+      knowledgeOwner: app.skillShareer.knowledgeOwner,
+      artifactReadProjection: app.skillShareer.artifactReadProjection,
+      graphIndex: app.skillShareer.graphIndex,
       graphQueryBackend: app.skillShareer.graphQueryBackend,
-      syncProjection:
-        app.skillShareer.config.graphDb.enabled && app.skillShareer.config.graphDb.syncOnWrite,
+      syncProjection,
     });
     app.log.info(
       { removed: result.documentsRemoved, rebuilt: result.documentsRebuilt },

@@ -58,13 +58,10 @@ Neo4j 不是通用加速开关。它只替换 graph-assisted 路径中的局部�
 # 0. 可选：先确认 Neo4j 连通
 pnpm --filter @trapmap/server graph-db:check
 
-# 1. startup: disabled vs enabled
-pnpm --filter @trapmap/server graph-db:benchmark-startup
-
-# 2. baseline retrieval: disabled / memory
+# 1. baseline retrieval: disabled / memory
 time pnpm eval:retrieval:smoke
 
-# 3. healthy neo4j primary
+# 2. healthy neo4j primary
 time env \
   TRAPMAP_GRAPH_DB_ENABLED=true \
   TRAPMAP_GRAPH_DB_PROVIDER=neo4j \
@@ -75,7 +72,7 @@ time env \
   TRAPMAP_GRAPH_DB_FAIL_OPEN=true \
   pnpm eval:retrieval:smoke
 
-# 4. forced fallback control group
+# 3. forced fallback control group
 time env \
   TRAPMAP_GRAPH_DB_ENABLED=true \
   TRAPMAP_GRAPH_DB_PROVIDER=neo4j \
@@ -89,7 +86,6 @@ time env \
 执行建议：
 
 - 先做 1 次预热，再对每组至少跑 3-5 次，记录 p50，而不是只看单次 wall clock。
-- `graph-db:benchmark-startup` 会输出 disabled-memory、enabled-current-env（若你已提供 Neo4j env）以及 enabled-fallback-control 的多次启动耗时。
 - 重点观察 graph-assisted smoke cases；semantic-only case 对 Neo4j 基本不敏感。
 - 若 healthy Neo4j 与 forced fallback 基本无差别，通常意味着当前数据规模还没到 traversal 成本主导，或服务实际上一直在 fallback。
 

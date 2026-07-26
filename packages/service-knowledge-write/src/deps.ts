@@ -1,6 +1,6 @@
 import { type KnowledgeWriteDeps, createKnowledgeWriteModule } from '@trapmap/backend-core';
 import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
-import type { ArtifactWritePort } from './artifact-ports.js';
+import type { ArtifactBundleImportPort, ArtifactWritePort } from './artifact-ports.js';
 
 export type { KnowledgeWriteDeps } from '@trapmap/backend-core';
 
@@ -9,14 +9,24 @@ export interface KnowledgeWritePortDeps {
   auditLog: KnowledgeWriteDeps['auditLog'];
   artifactWriter?: ArtifactWritePort;
   artifactReadProjection?: ArtifactReadProjection;
+  artifactBundleImporter?: ArtifactBundleImportPort;
 }
 
-export function createKnowledgeWriteDeps(deps: KnowledgeWritePortDeps): KnowledgeWriteDeps {
+export type ComposedKnowledgeWriteDeps = KnowledgeWriteDeps &
+  Pick<
+    KnowledgeWritePortDeps,
+    'artifactWriter' | 'artifactReadProjection' | 'artifactBundleImporter'
+  >;
+
+export function createKnowledgeWriteDeps(deps: KnowledgeWritePortDeps): ComposedKnowledgeWriteDeps {
   return {
     knowledgeOwner: deps.knowledgeOwner,
     auditLog: deps.auditLog,
     ...(deps.artifactWriter ? { artifactRepo: deps.artifactWriter } : {}),
-  } as KnowledgeWriteDeps;
+    ...(deps.artifactWriter ? { artifactWriter: deps.artifactWriter } : {}),
+    ...(deps.artifactReadProjection ? { artifactReadProjection: deps.artifactReadProjection } : {}),
+    ...(deps.artifactBundleImporter ? { artifactBundleImporter: deps.artifactBundleImporter } : {}),
+  } as ComposedKnowledgeWriteDeps;
 }
 
 export function createKnowledgeWriteServiceModule(deps: KnowledgeWriteDeps) {
