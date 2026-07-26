@@ -1,4 +1,4 @@
-import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import {
   type GraphIndexDocumentRecord,
   type GraphNodeRecord,
@@ -18,7 +18,7 @@ import type {
 class MemoryGraphQueryBackend implements GraphQueryBackend {
   readonly kind = 'memory' as const;
 
-  constructor(private readonly graphIndexRepo: GraphIndexRepository) {}
+  constructor(private readonly graphIndexRepo: GraphIndexRepositoryPort) {}
 
   isEnabled(): boolean {
     return false;
@@ -39,7 +39,7 @@ class MemoryGraphQueryBackend implements GraphQueryBackend {
     };
   }
 
-  async upsertDocument(document: Parameters<GraphIndexRepository['upsert']>[0]): Promise<void> {
+  async upsertDocument(document: Parameters<GraphIndexRepositoryPort['upsert']>[0]): Promise<void> {
     await this.graphIndexRepo.upsert(document);
   }
 
@@ -169,7 +169,7 @@ class MemoryGraphQueryBackend implements GraphQueryBackend {
 }
 
 export function createMemoryGraphQueryBackend(
-  graphIndexRepo: GraphIndexRepository,
+  graphIndexRepo: GraphIndexRepositoryPort,
 ): MemoryGraphQueryBackend {
   return new MemoryGraphQueryBackend(graphIndexRepo);
 }

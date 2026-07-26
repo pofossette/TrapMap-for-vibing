@@ -23,8 +23,8 @@ import type {
   SkillShareerStore,
 } from '@trapmap/server/lib/store.js';
 import { JsonStore as JsonStoreClass, nowIso } from '@trapmap/server/lib/store.js';
-import { deriveAndApplyOutputs, deriveFromPayloads, deriveSkillArtifactOutputs } from './derive.js';
-import { applyDerivedArtifactOutputs } from './model.js';
+import { deriveFromPayloads, deriveSkillArtifactOutputs } from './derive.js';
+import { applyDerivedArtifactOutputs } from './derive/legacy.js';
 
 describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
   let store: SkillShareerStore;
@@ -367,13 +367,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
       const derived = deriveSkillArtifactOutputs(artifact, revision);
 
       // Apply derived outputs to record
-      const updatedArtifact = await applyDerivedArtifactOutputs(
-        storeData,
-        artifact,
-        revision,
-        derived,
-        undefined,
-      );
+      const updatedArtifact = await applyDerivedArtifactOutputs(artifact, revision, derived);
 
       // Verify derived outputs are cached on latestRevision
       expect(updatedArtifact.latestRevision.derived).toBeDefined();
@@ -388,13 +382,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
 
     it('should cache derived outputs by sourceHash for downstream consumption', async () => {
       const derived = deriveSkillArtifactOutputs(artifact, revision);
-      const updatedArtifact = await applyDerivedArtifactOutputs(
-        storeData,
-        artifact,
-        revision,
-        derived,
-        undefined,
-      );
+      const updatedArtifact = await applyDerivedArtifactOutputs(artifact, revision, derived);
 
       // Source hash should be preserved
       expect(updatedArtifact.latestRevision.derived?.sourceHash).toBe(derived.sourceHash);
@@ -411,13 +399,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
 
     it('should inherit governance from artifact root (T-12-11)', async () => {
       const derived = deriveSkillArtifactOutputs(artifact, revision);
-      const updatedArtifact = await applyDerivedArtifactOutputs(
-        storeData,
-        artifact,
-        revision,
-        derived,
-        undefined,
-      );
+      const updatedArtifact = await applyDerivedArtifactOutputs(artifact, revision, derived);
 
       // Capsules should inherit artifact governance
       for (const capsule of updatedArtifact.latestRevision.derived?.capsules ?? []) {
@@ -934,13 +916,13 @@ The versions must match exactly for consistent behavior.
 // =============================================================================
 // Phase 1 Regression: retrieval reading stale derived data
 //
-// Documents the wiring debt where appendSkillArtifactRevision() always creates
+// Documents the legacy revision behavior where a new revision always creates
 // revisions with derived: null.  After an edit, latestRevision.derived is null
 // even though the previous revision may have had fully populated derived data.
 // This means retrieval consumers (capsule-recall, skill-lookup, candidate
 // scoring) read null/empty data after every edit until derivation is re-run.
 //
-// Phase 2 will fix appendSkillArtifactRevision() to carry forward derived data
+// Owner-local write paths must decide whether derived data carries forward.
 // or re-derive before persisting.
 // =============================================================================
 
@@ -1059,13 +1041,7 @@ describe('Phase 1 regression: retrieval reads stale derived data after edit', ()
 
     // Derive + apply so revision 1 has populated derived data
     const derived = deriveSkillArtifactOutputs(artifact, revision1);
-    artifact = await applyDerivedArtifactOutputs(
-      storeData,
-      artifact,
-      revision1,
-      derived,
-      undefined,
-    );
+    artifact = await applyDerivedArtifactOutputs(artifact, revision1, derived);
 
     // Sanity: revision 1 now has derived data on latestRevision
     expect(artifact.latestRevision.derived).toBeDefined();
@@ -1074,7 +1050,7 @@ describe('Phase 1 regression: retrieval reads stale derived data after edit', ()
   });
 
   it('should show latestRevision.derived is null after edit (current broken behavior)', () => {
-    // Simulate what appendSkillArtifactRevision() does on edit:
+    // Simulate an edit that creates a new revision:
     // it creates a new revision with derived: null and sets it as latestRevision.
     const revision2: SkillArtifactRevisionRecord = {
       revision: 2,
@@ -1104,7 +1080,7 @@ describe('Phase 1 regression: retrieval reads stale derived data after edit', ()
       submittedAt: createdAt,
       submittedByUserId: userId,
       scriptDescriptors: [],
-      derived: null, // <-- appendSkillArtifactRevision() always sets this to null
+      derived: null,
     };
 
     artifact.latestRevision = revision2;
@@ -1167,220 +1143,5 @@ describe('Phase 1 regression: retrieval reads stale derived data after edit', ()
 
     // Meanwhile latestRevision (rev2) has null derived
     expect(artifact.latestRevision.derived).toBeNull();
-  });
-});
-
-// =============================================================================
-// Phase 2: deriveAndApplyOutputs() — unified derivation+application seam
-// =============================================================================
-
-describe('deriveAndApplyOutputs() — unified seam (Phase 2)', () => {
-  let store: SkillShareerStore;
-  let storeData: any;
-  let artifact: SkillArtifactRecord;
-  let revision: SkillArtifactRevisionRecord;
-  const userId = 'user_1';
-  const teamId = 'team_1';
-  const createdAt = nowIso();
-
-  const skillMdContent = `---
-title: Unified Seam Test
-labels:
-  - test
----
-
-# Unified Seam Test
-
-## Situation
-When building skill artifacts through different code paths (import, migrate, edit).
-
-## Problem
-Each path may choose different derivation strategies, leading to inconsistent derived outputs.
-
-## Goal
-Ensure all paths converge on a single derive-and-apply function.
-`;
-
-  beforeEach(async () => {
-    const testDataFile = `/tmp/skill-shareer-unified-seam-test-${Date.now()}-${Math.random()}.json`;
-    store = new JsonStoreClass(testDataFile);
-    storeData = await store.snapshot();
-    storeData.counters = { user: 1, team: 1, artifact: 0 };
-
-    storeData.users.push({
-      id: userId,
-      handle: 'skillowner',
-      notes: null,
-      createdAt,
-      updatedAt: createdAt,
-    });
-
-    storeData.teams.push({
-      id: teamId,
-      name: 'Test Team',
-      slug: 'test-team',
-      description: 'Test team for unified seam',
-      createdAt,
-      updatedAt: createdAt,
-    });
-
-    storeData.memberships.push({
-      id: store.nextId(storeData, 'membership'),
-      userId,
-      teamId,
-      roleTemplate: 'user',
-      securityLevel: 3,
-      permissions: ['knowledge:read', 'knowledge:write'],
-      notes: null,
-      createdAt,
-      updatedAt: createdAt,
-    });
-
-    const skillMdHash = 'a'.repeat(64);
-    const refHash = 'b'.repeat(64);
-
-    revision = {
-      revision: 1,
-      sourceHash: skillMdHash + refHash,
-      files: [
-        {
-          path: 'SKILL.md',
-          kind: 'skill-markdown',
-          sha256: skillMdHash,
-          sizeBytes: 256,
-          mediaType: 'text/markdown',
-          source: 'SKILL.md',
-          includeInDerivation: true,
-          activationOnly: false,
-        },
-        {
-          path: 'references/ref.md',
-          kind: 'reference',
-          sha256: refHash,
-          sizeBytes: 128,
-          mediaType: 'text/markdown',
-          source: 'references/',
-          includeInDerivation: true,
-          activationOnly: false,
-        },
-      ],
-      submittedAt: createdAt,
-      submittedByUserId: userId,
-      scriptDescriptors: [],
-      derived: null,
-    };
-
-    artifact = {
-      id: store.nextId(storeData, 'artifact'),
-      teamId,
-      scope: 'project',
-      labels: ['test'],
-      title: 'Unified Seam Test',
-      slug: 'unified-seam-test',
-      requiredLevel: 3,
-      lifecycleState: 'agent-pass',
-      ownerUserId: userId,
-      latestRevision: revision,
-      history: [revision],
-      metadata: {
-        sourceKind: 'skill-directory',
-        submissionCount: 1,
-        resubmissionCount: 0,
-        revisionCount: 1,
-        latestSubmissionId: store.nextId(storeData, 'artifact_submission'),
-        latestSubmittedAt: createdAt,
-        latestReviewedAt: createdAt,
-        latestDecision: null,
-      },
-      agentReview: null,
-      reviewHistory: [],
-      reviewNotes: [],
-      lifecycleHistory: [],
-      boundary: null,
-      decayMeta: null,
-      evidenceMeta: null,
-      maintenanceMeta: null,
-      createdAt,
-      updatedAt: createdAt,
-    };
-  });
-
-  it('should populate derived outputs using retrieval-grade derivation when filePayloads provided', async () => {
-    const filePayloads: ArtifactFilePayloadRecord[] = [
-      {
-        artifactId: artifact.id,
-        revision: 1,
-        path: 'SKILL.md',
-        sha256: 'a'.repeat(64),
-        sizeBytes: skillMdContent.length,
-        mediaType: 'text/markdown',
-        content: skillMdContent,
-        storedAt: createdAt,
-      },
-    ];
-
-    const result = await deriveAndApplyOutputs({
-      artifact,
-      revision,
-      filePayloads,
-    });
-
-    // derived should be populated
-    expect(result.latestRevision.derived).toBeDefined();
-    expect(result.latestRevision.derived).not.toBeNull();
-    expect(result.latestRevision.derived?.profile).toBeDefined();
-    expect(result.latestRevision.derived?.capsules.length).toBeGreaterThan(0);
-
-    // Retrieval-grade: summary should contain actual content, not just title placeholder
-    expect(result.latestRevision.derived?.profile?.summary.length).toBeGreaterThan(10);
-    expect(result.latestRevision.derived?.profile?.summary).toMatch(/unified|skill|artifacts/i);
-
-    // History should also be updated
-    const historyRevision = result.history.find((r) => r.revision === 1);
-    expect(historyRevision).toBeDefined();
-    expect(historyRevision!.derived).toBeDefined();
-    expect(historyRevision!.derived?.profile).toBeDefined();
-  });
-
-  it('should fall back to legacy derivation when filePayloads is undefined', async () => {
-    const result = await deriveAndApplyOutputs({
-      artifact,
-      revision,
-      // no filePayloads — legacy fallback
-    });
-
-    // derived should be populated (via legacy path)
-    expect(result.latestRevision.derived).toBeDefined();
-    expect(result.latestRevision.derived).not.toBeNull();
-    expect(result.latestRevision.derived?.profile).toBeNull();
-    expect(result.latestRevision.derived?.capsules).toEqual([]);
-    expect(result.latestRevision.derived?.clientManifest).toBeDefined();
-  });
-
-  it('should fall back to legacy derivation when filePayloads is empty array', async () => {
-    const result = await deriveAndApplyOutputs({
-      artifact,
-      revision,
-      filePayloads: [],
-    });
-
-    // derived should be populated (via legacy path)
-    expect(result.latestRevision.derived).toBeDefined();
-    expect(result.latestRevision.derived?.profile).toBeNull();
-  });
-
-  it('should not leave derived as null after applying', async () => {
-    // Sanity: revision starts with derived: null
-    expect(revision.derived).toBeNull();
-
-    const result = await deriveAndApplyOutputs({
-      artifact,
-      revision,
-    });
-
-    // After deriveAndApplyOutputs, derived should not be null
-    expect(result.latestRevision.derived).not.toBeNull();
-    expect(result.latestRevision.derived?.sourceHash).toBeDefined();
-    expect(result.latestRevision.derived?.derivedAt).toBeDefined();
   });
 });

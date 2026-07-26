@@ -1,4 +1,4 @@
-import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/index.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import {
   buildGraphRuntimeSnapshot,
@@ -133,7 +133,7 @@ function makeGraphDoc(
 
 function createMockGraphIndexRepository(
   docs: ReturnType<typeof makeGraphDoc>[],
-): GraphIndexRepository {
+): GraphIndexRepositoryPort {
   return {
     insert: () => Promise.resolve(),
     getById: () => Promise.resolve(null),

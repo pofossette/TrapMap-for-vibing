@@ -18,6 +18,26 @@ export default defineConfig({
           root: './scripts',
           include: ['__tests__/**/*.test.ts'],
         },
+        resolve: {
+          alias: [
+            {
+              find: /^@trapmap\/server\/(.+)$/,
+              replacement: resolve(__dirname, './packages/server/src/$1'),
+            },
+            {
+              find: '@trapmap/server',
+              replacement: resolve(__dirname, './packages/server/src/app.ts'),
+            },
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+            {
+              find: '@trapmap/service-knowledge-read',
+              replacement: resolve(__dirname, './packages/service-knowledge-read/src/index.ts'),
+            },
+          ],
+        },
       },
       {
         test: {
@@ -71,10 +91,6 @@ export default defineConfig({
               replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
             },
             {
-              find: '@trapmap/runtime-infra',
-              replacement: resolve(__dirname, './packages/runtime-infra/src/index.ts'),
-            },
-            {
               find: /^@trapmap\/server\/(.+)$/,
               replacement: resolve(__dirname, './packages/server/src/$1'),
             },
@@ -108,10 +124,6 @@ export default defineConfig({
             {
               find: '@trapmap/backend-core',
               replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
-            },
-            {
-              find: '@trapmap/runtime-infra',
-              replacement: resolve(__dirname, './packages/runtime-infra/src/index.ts'),
             },
             {
               find: '@trapmap/service-knowledge-read',
@@ -192,10 +204,6 @@ export default defineConfig({
               replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
             },
             {
-              find: '@trapmap/runtime-infra',
-              replacement: resolve(__dirname, './packages/runtime-infra/src/index.ts'),
-            },
-            {
               find: 'fastify',
               replacement: fastifyEntry,
             },
@@ -229,10 +237,6 @@ export default defineConfig({
             {
               find: '@trapmap/backend-core',
               replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
-            },
-            {
-              find: '@trapmap/runtime-infra',
-              replacement: resolve(__dirname, './packages/runtime-infra/src/index.ts'),
             },
             {
               find: 'fastify',
@@ -305,39 +309,8 @@ export default defineConfig({
               replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
             },
             {
-              find: '@trapmap/runtime-infra',
-              replacement: resolve(__dirname, './packages/runtime-infra/src/index.ts'),
-            },
-            {
               find: 'fastify',
               replacement: fastifyEntry,
-            },
-          ],
-        },
-      },
-      {
-        test: {
-          name: 'runtime-infra',
-          root: './packages/runtime-infra',
-          include: ['src/**/*.test.ts'],
-        },
-        resolve: {
-          alias: [
-            {
-              find: /^@trapmap\/server\/lib\/(.+)\.js$/,
-              replacement: resolve(__dirname, './packages/server/src/lib/$1.ts'),
-            },
-            {
-              find: /^@trapmap\/server\/(.+)\.js$/,
-              replacement: resolve(__dirname, './packages/server/src/$1.ts'),
-            },
-            {
-              find: '@trapmap/server',
-              replacement: resolve(__dirname, './packages/server/src/index.ts'),
-            },
-            {
-              find: 'pg',
-              replacement: resolve(__dirname, './packages/server/node_modules/pg/lib/index.js'),
             },
           ],
         },

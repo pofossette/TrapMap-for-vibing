@@ -85,10 +85,6 @@
         "patterns": ["packages/server/src/**"]
       },
       {
-        "name": "runtime-infra",
-        "patterns": ["packages/runtime-infra/src/**"]
-      },
-      {
         "name": "service-standard",
         "patterns": [
           "packages/service-identity-access/src/**",
@@ -141,16 +137,12 @@
         "allow": ["contracts", "persistence-schema"]
       },
       {
-        "from": "runtime-infra",
-        "allow": ["contracts", "server", "persistence-schema"]
-      },
-      {
         "from": "service-standard",
         "allow": ["backend-core", "contracts", "persistence-schema"]
       },
       {
         "from": "service-knowledge-read",
-        "allow": ["backend-core", "contracts", "runtime-infra", "persistence-schema"]
+        "allow": ["backend-core", "contracts", "persistence-schema"]
       },
       {
         "from": "host-local",
@@ -159,7 +151,6 @@
           "client-core",
           "backend-core",
           "server",
-          "runtime-infra",
           "service-standard",
           "service-knowledge-read",
           "persistence-schema"
@@ -172,7 +163,6 @@
           "client-core",
           "backend-core",
           "server",
-          "runtime-infra",
           "service-standard",
           "service-knowledge-read",
           "persistence-schema"

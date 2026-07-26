@@ -12,6 +12,7 @@
 
 import type { Pool } from 'pg';
 
+import type { ArtifactIndexingEntry } from '@trapmap/contracts';
 import type { ArtifactGraphAdapter } from '@trapmap/server/lib/indexing/adapters/artifact-graph.js';
 import { createCapsuleIndexSync } from '@trapmap/server/lib/retrieval/capsules/repositories/index-sync.js';
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
@@ -47,7 +48,7 @@ export interface CapsuleSyncResult {
 export function createCapsuleIndexAdapter(
   config: CapsuleIndexAdapterConfig,
 ): ArtifactGraphAdapter & {
-  syncArtifact(artifact: SkillArtifactRecord): Promise<CapsuleSyncResult>;
+  syncArtifact(artifact: SkillArtifactRecord | ArtifactIndexingEntry): Promise<CapsuleSyncResult>;
   removeArtifact(artifactId: string): Promise<void>;
 } {
   const syncConfig: Parameters<typeof createCapsuleIndexSync>[0] = {
@@ -64,15 +65,17 @@ export function createCapsuleIndexAdapter(
    * - Upserts all capsules in the current revision
    * - Removes index rows for capsules no longer in the current revision
    */
-  async function syncArtifact(artifact: SkillArtifactRecord): Promise<CapsuleSyncResult> {
+  async function syncArtifact(
+    artifact: SkillArtifactRecord | ArtifactIndexingEntry,
+  ): Promise<CapsuleSyncResult> {
     // Get currently indexed capsule IDs for this artifact
     const indexedIds = await sync.getIndexedCapsuleIds(artifact.id);
 
     // Sync current capsules (upsert)
     const result = await sync.syncArtifactCapsules(artifact);
-    const currentIds = new Set(
-      (artifact.latestRevision.derived?.capsules ?? []).map((c) => c.capsuleId),
-    );
+    const derived =
+      'latestRevision' in artifact ? artifact.latestRevision.derived : artifact.derived;
+    const currentIds = new Set((derived?.capsules ?? []).map((c) => c.capsuleId));
 
     // Remove stale capsules that are no longer in the current revision
     const staleIds = indexedIds.filter((id) => !currentIds.has(id));

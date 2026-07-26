@@ -1,4 +1,8 @@
-import type { GraphIndexRepositoryPort, LifecycleState } from '@trapmap/contracts';
+import type {
+  GraphIndexRepositoryPort,
+  KnowledgeOwnerPort,
+  LifecycleState,
+} from '@trapmap/contracts';
 import {
   createCacheInvalidationEvent,
   emitCacheInvalidation,
@@ -22,6 +26,7 @@ export function createIndexingSubscriber(
   graphQueryBackend?: GraphQueryBackend,
   asyncQueue?: Parameters<typeof createSharedJobQueuePort>[0],
   graphIndex?: GraphIndexRepositoryPort,
+  knowledgeOwner?: Pick<KnowledgeOwnerPort, 'getIndexingEntry' | 'updateIndexMetadata'>,
 ): DomainEventHandler {
   const sharedJobQueue = asyncQueue ? createSharedJobQueuePort(asyncQueue) : undefined;
   return async (event) => {
@@ -47,6 +52,7 @@ export function createIndexingSubscriber(
           store,
           ...(graphQueryBackend !== undefined ? { graphQueryBackend } : {}),
           ...(graphIndex !== undefined ? { graphIndex } : {}),
+          ...(knowledgeOwner !== undefined ? { knowledgeOwner } : {}),
         },
         entryId: event.entryId,
         previousState,

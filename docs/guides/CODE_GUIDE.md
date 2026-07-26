@@ -149,19 +149,14 @@ lib/persistence/
 
 `SkillShareerStore` 是遗留存储接口，用于尚未迁移到 PostgreSQL 结构化表的域（用户、团队、成员、会话、访问密钥、审计）。核心业务域（知识、工件、候选、反馈、统计、检索索引）已直接通过各自的 `Pg*Repository` 访问 PostgreSQL。`createSkillShareerStore()` 根据 `TRAPMAP_DATABASE_URL` 选择 PostgreSQL，否则使用 JSON 文件存储。
 
-**Artifact Repository 阅读路径**（如需理解结构化事实源 vs JSONB 缓存规则）：
+**Artifact owner 阅读路径**（如需理解结构化事实源与投影规则）：
 
-- 接口定义：`lib/artifacts/repository.ts` → `ArtifactRepository` 接口（CRUD 抽象）
-- PG 实现：`lib/artifacts/pg-repository/` → `PgArtifactRepository` 类及辅助模块
-  - 类定义：`pg-repository/index.ts` — 委托给辅助模块
-  - 结构化写入：`pg-repository/revision-writer.ts` — `upsertStructuredRevisionRows()` + `replaceStructuredDerivedRows()`
-  - 结构化读取：`pg-repository/revision-reader.ts` — `loadStructuredRevisionData()`
-  - 记录重建：`pg-repository/record-reconstruction.ts` — `reconstructSkillArtifactRecord()` — **事实源优先级的关键代码**
-  - 子表 CRUD：`pg-repository/derived-store.ts` — boundary / maintenance / agent-review / metadata
-- Schema 定义：`lib/persistence/schema/artifacts.ts` — 所有 `skill_artifact_*` 表定义
-- 迁移文件：`drizzle/0007_round4_artifact_structural.sql` — 结构化子表 DDL
-- 模型层：`lib/artifacts/model.ts` — `createSkillArtifactRecord()`、`applyDerivedArtifactOutputs()`
-- 事实源/缓存规则详细文档：`docs/plans/round4-cross-table-consistency-plan.md` 阶段 0 结论
+- 共享读取契约：`packages/contracts/src/domain/artifact-ports.ts` → `ArtifactReadProjection`
+- owner-local PostgreSQL 实现：`packages/service-knowledge-write/src/artifact-ports.ts` → `createArtifactReadProjection()`
+- owner-local 写入组合：`packages/service-knowledge-write/src/pg-ports.ts` → `createKnowledgeWritePgPorts()`
+- 读取模型组合：`packages/service-knowledge-read/src/read-model.ts` → `createOwnerReadModelProjection()`
+- Schema 定义：`packages/persistence-schema/src/schema/artifacts.ts` — 所有 `skill_artifact_*` 表定义
+- 事实源/投影规则的权威实现由上述 contracts 与 owner ports 共同定义；server compatibility shell 不保留 artifact serializer 或 repository。
 
 #### 检索管道 — `lib/retrieval/`
 

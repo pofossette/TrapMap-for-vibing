@@ -18,6 +18,9 @@ importers:
       '@trapmap/server':
         specifier: workspace:*
         version: link:packages/server
+      '@trapmap/service-knowledge-read':
+        specifier: workspace:*
+        version: link:packages/service-knowledge-read
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -236,9 +239,6 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@trapmap/runtime-infra':
-        specifier: workspace:*
-        version: link:../runtime-infra
       '@trapmap/service-candidate-ingestion':
         specifier: workspace:*
         version: link:../service-candidate-ingestion
@@ -298,28 +298,6 @@ importers:
         specifier: ^0.45.2
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(pg@8.20.0)
     devDependencies:
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-
-  packages/runtime-infra:
-    dependencies:
-      '@trapmap/contracts':
-        specifier: workspace:*
-        version: link:../contracts
-      '@trapmap/server':
-        specifier: workspace:*
-        version: link:../server
-      pg:
-        specifier: 8.20.0
-        version: 8.20.0
-    devDependencies:
-      '@types/node':
-        specifier: ^25.6.0
-        version: 25.6.0
-      '@types/pg':
-        specifier: 8.20.0
-        version: 8.20.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

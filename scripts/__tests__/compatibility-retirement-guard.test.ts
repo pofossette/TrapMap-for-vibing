@@ -152,16 +152,10 @@ const RETIRED_WAVE_6_ASYNC_IMPLEMENTATIONS = [
 const allowlist: AllowlistEntry[] = [
   ['package.json', '@trapmap/server', 'wave-10', 'root development dependency'],
   [
-    'packages/host-local/package.json',
-    '@trapmap/runtime-infra',
-    'wave-8',
-    'local host composition dependency',
-  ],
-  [
     'packages/host-local/src/nest/runtime/shared-infra.ts',
-    '@trapmap/runtime-infra',
+    '@trapmap/server',
     'wave-8',
-    'local host shared infrastructure',
+    'local host compatibility shared infrastructure',
   ],
   [
     'packages/host-local/src/nest/runtime/server-composition.ts',
@@ -170,62 +164,16 @@ const allowlist: AllowlistEntry[] = [
     'local host compatibility-shell composition',
   ],
   [
-    'packages/runtime-infra/package.json',
+    'scripts/label-runner.ts',
     '@trapmap/server',
     'wave-10',
-    'compatibility package dependency',
+    'temporary compatibility label catalog core composition',
   ],
-  ['packages/runtime-infra/src/index.ts', 'JsonStore', 'wave-9', 'legacy store export'],
-  ['packages/runtime-infra/src/index.ts', 'PostgresStore', 'wave-9', 'legacy store export'],
-  [
-    'packages/runtime-infra/src/postgres-store.ts',
-    'store_snapshot',
-    'wave-9',
-    'legacy snapshot persistence',
-  ],
-  [
-    'packages/runtime-infra/src/postgres-store.ts',
-    'PostgresStore',
-    'wave-9',
-    'legacy snapshot persistence',
-  ],
-  [
-    'packages/runtime-infra/src/shared-infra.ts',
-    '@trapmap/server',
-    'wave-10',
-    'compatibility shared infrastructure',
-  ],
-  ['packages/runtime-infra/src/store-factory.ts', 'JsonStore', 'wave-9', 'legacy store factory'],
-  [
-    'packages/runtime-infra/src/store-factory.ts',
-    'PostgresStore',
-    'wave-9',
-    'legacy store factory',
-  ],
-  [
-    'packages/runtime-infra/src/store.ts',
-    '@trapmap/server',
-    'wave-9',
-    'legacy store contract bridge',
-  ],
-  ['packages/runtime-infra/src/store.ts', 'JsonStore', 'wave-9', 'legacy JSON store export'],
   [
     'packages/server/Dockerfile',
     '@trapmap/server',
     'wave-10',
     'compatibility image self-reference',
-  ],
-  [
-    'packages/server/src/lib/labels/backfill-runner.ts',
-    'PostgresStore',
-    'wave-9',
-    'migration export fixture',
-  ],
-  [
-    'packages/server/src/lib/labels/merge-repair-runner.ts',
-    'PostgresStore',
-    'wave-9',
-    'migration export fixture',
   ],
   [
     'packages/server/src/lib/persistence/create-store.ts',
@@ -707,6 +655,46 @@ describe('compatibility retirement guard', () => {
       'packages/server/src/lib/maintenance/batch.ts',
       'packages/server/src/lib/decay/batch.ts',
       'packages/server/src/lib/decay/supersede.ts',
+    ]) {
+      expect(existsSync(join(repoRoot, path))).toBe(false);
+    }
+  });
+
+  it('retires store-backed label runner entrypoints', () => {
+    for (const path of [
+      'packages/server/src/lib/labels/backfill-runner.ts',
+      'packages/server/src/lib/labels/merge-repair-runner.ts',
+      'packages/server/src/lib/labels/runner-helpers.ts',
+    ]) {
+      expect(existsSync(join(repoRoot, path))).toBe(false);
+    }
+    for (const path of [
+      'scripts/backfill-labels.ts',
+      'scripts/repair-label-merges.ts',
+      'scripts/label-runner.ts',
+    ]) {
+      expect(existsSync(join(repoRoot, path))).toBe(true);
+    }
+  });
+
+  it('retires the unconsumed compatibility artifact serializer aggregate', () => {
+    for (const path of [
+      'packages/server/src/lib/artifacts/index.ts',
+      'packages/server/src/lib/artifacts/model.test.ts',
+      'packages/server/src/lib/artifacts/model.ts',
+      'packages/server/src/lib/artifacts/model/helpers.ts',
+      'packages/server/src/lib/artifacts/model/index.ts',
+      'packages/server/src/lib/artifacts/model/serialize.ts',
+    ]) {
+      expect(existsSync(join(repoRoot, path))).toBe(false);
+    }
+  });
+
+  it('retires the compatibility graph repository aggregate', () => {
+    for (const path of [
+      'packages/server/src/lib/graph-index/index.ts',
+      'packages/server/src/lib/graph-index/repository.ts',
+      'packages/server/src/lib/graph-index/repository.test.ts',
     ]) {
       expect(existsSync(join(repoRoot, path))).toBe(false);
     }

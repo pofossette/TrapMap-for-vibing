@@ -23,9 +23,6 @@ const SERVER_SRC = resolve(process.cwd(), 'packages/server/src');
  * must use repos.* and must NOT appear here.
  */
 const SNAPSHOT_ALLOWLIST: string[] = [
-  // Repository implementations — wrap store.snapshot()/transact() internally
-  'lib/graph-index/repository.ts',
-
   // Bootstrap and startup
   'bootstrap/bootstrap-repositories.ts',
   'bootstrap/bootstrap-workers.ts',

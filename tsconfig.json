@@ -5,7 +5,6 @@
     { "path": "./packages/persistence-schema" },
     { "path": "./packages/client-core" },
     { "path": "./packages/backend-core" },
-    { "path": "./packages/runtime-infra" },
     { "path": "./packages/service-identity-access" },
     { "path": "./packages/service-candidate-ingestion" },
     { "path": "./packages/service-governance-review" },

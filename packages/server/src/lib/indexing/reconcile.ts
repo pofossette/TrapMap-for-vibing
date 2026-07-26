@@ -15,7 +15,7 @@
  * Phase 4: Full rebuild on prompt version change with interrupt recovery
  */
 
-import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import type {
   KnowledgeRecord,
@@ -28,9 +28,6 @@ import {
   type GraphIndexDocumentRecord,
   PROMPT_VERSION,
   assertNoHardDependencyCycles,
-  getGraphIndexDocuments,
-  removeGraphIndexDocumentsForSource,
-  upsertGraphIndexDocument,
 } from './graph-lite/index.js';
 import { normalizeKnowledgeIndexDocument } from './normalize.js';
 import { buildSkillGraphDocument } from './skill-events.js';
@@ -238,13 +235,13 @@ async function buildCandidateForSkill(
  * @returns Reconciliation result with counts and error status
  */
 export async function reconcileGraphIndexesFromSnapshot(args: {
-  store: SkillShareerStore;
   data: StoreData;
+  graphIndex: GraphIndexRepositoryPort;
 }): Promise<GraphReconcileResult> {
-  const { store: _store, data } = args;
+  const { data, graphIndex } = args;
 
-  // Load current graph documents
-  const existingDocs = getGraphIndexDocuments(data);
+  // The knowledge-read owner is the sole durable graph projection authority.
+  const existingDocs = await graphIndex.listAll();
   const totalDocuments = existingDocs.length;
 
   // Compute approved sources
@@ -273,7 +270,7 @@ export async function reconcileGraphIndexesFromSnapshot(args: {
 
   // Persist removals (security-sensitive, must happen before rebuild validation)
   for (const { sourceType, sourceId } of staleSourceIds) {
-    removeGraphIndexDocumentsForSource(data, sourceType, sourceId);
+    await graphIndex.removeBySource(sourceType, sourceId);
   }
 
   // Phase 2: Build candidates for missing approved documents
@@ -309,8 +306,13 @@ export async function reconcileGraphIndexesFromSnapshot(args: {
   let rebuildError: string | null = null;
 
   if (candidates.length > 0) {
-    // Get post-removal durable state
-    const durableDocs = getGraphIndexDocuments(data);
+    const durableDocs = existingDocs.filter(
+      (document) =>
+        !staleSourceIds.some(
+          (stale) =>
+            stale.sourceType === document.sourceType && stale.sourceId === document.sourceId,
+        ),
+    );
     const validationSet = [...durableDocs, ...candidates];
 
     try {
@@ -318,7 +320,7 @@ export async function reconcileGraphIndexesFromSnapshot(args: {
 
       // Validation passed: persist rebuild upserts
       for (const candidate of candidates) {
-        upsertGraphIndexDocument(data, candidate);
+        await graphIndex.upsert(candidate);
         documentsRebuilt++;
       }
     } catch (error) {
@@ -354,8 +356,9 @@ export async function reconcileGraphIndexesFromSnapshot(args: {
  */
 export async function fullRebuildGraphIndexes(args: {
   data: StoreData;
+  graphIndex: GraphIndexRepositoryPort;
 }): Promise<FullRebuildResult> {
-  const { data } = args;
+  const { data, graphIndex } = args;
 
   const currentVersion = PROMPT_VERSION;
   const previousVersion = data.promptVersion;
@@ -409,7 +412,7 @@ export async function fullRebuildGraphIndexes(args: {
   for (const source of pendingSources) {
     try {
       // Remove existing document for this source
-      removeGraphIndexDocumentsForSource(data, source.sourceType, source.sourceId);
+      await graphIndex.removeBySource(source.sourceType, source.sourceId);
 
       // Rebuild the document
       let candidate: GraphIndexDocumentRecord | null = null;
@@ -430,7 +433,7 @@ export async function fullRebuildGraphIndexes(args: {
       }
 
       if (candidate) {
-        upsertGraphIndexDocument(data, candidate);
+        await graphIndex.upsert(candidate);
         sourcesRebuilt++;
         console.log(
           `[reconcile] Rebuilt ${source.sourceType}:${source.sourceId} (${sourcesRebuilt}/${pendingSources.length})`,
@@ -479,20 +482,20 @@ export async function fullRebuildGraphIndexes(args: {
 /**
  * Reconcile graph indexes with automatic snapshot.
  *
- * Runs reconciliation within a transaction, ensuring atomic updates
- * to the graph index. After normal reconciliation, checks if the prompt
- * version has changed and triggers a full rebuild if needed.
+ * Reads compatibility source state once, delegates graph persistence to the
+ * knowledge-read owner, then checkpoints only prompt rebuild metadata. Graph
+ * owner I/O must not execute inside a compatibility store transaction.
  *
  * @param args - Store instance
  * @returns Reconciliation result with counts and error status
  */
 export async function reconcileGraphIndexes(args: {
   store: SkillShareerStore;
-  graphIndexRepo?: GraphIndexRepository;
+  graphIndexRepo: GraphIndexRepositoryPort;
   graphQueryBackend?: GraphQueryBackend;
   syncProjection?: boolean;
 }): Promise<GraphReconcileResult> {
-  const { store } = args;
+  const { store, graphIndexRepo } = args;
 
   let result: GraphReconcileResult = {
     totalDocuments: 0,
@@ -503,34 +506,32 @@ export async function reconcileGraphIndexes(args: {
     rebuildError: null,
   };
 
-  await store.transact(async (data) => {
-    // Normal reconciliation pass
-    result = await reconcileGraphIndexesFromSnapshot({ store, data });
+  const data = await store.snapshot();
+  result = await reconcileGraphIndexesFromSnapshot({ data, graphIndex: graphIndexRepo });
 
-    // Phase 4: Check if prompt version changed — trigger full rebuild
-    // Only trigger if a version was previously stored AND differs from current
-    // (null means first run — normal reconciliation handles initial build)
-    const storedVersion = data.promptVersion;
-    const hasPendingRebuild = data.rebuildState !== null;
-    const versionChanged = storedVersion !== null && storedVersion !== PROMPT_VERSION;
-    if (versionChanged || hasPendingRebuild) {
-      const rebuildResult = await fullRebuildGraphIndexes({ data });
+  // Phase 4: Check if prompt version changed — trigger full rebuild.
+  const storedVersion = data.promptVersion;
+  const hasPendingRebuild = data.rebuildState !== null;
+  const versionChanged = storedVersion !== null && storedVersion !== PROMPT_VERSION;
+  if (versionChanged || hasPendingRebuild) {
+    const rebuildResult = await fullRebuildGraphIndexes({ data, graphIndex: graphIndexRepo });
 
-      // Merge rebuild errors into reconciliation result
-      if (rebuildResult.sourcesErrored > 0) {
-        result.rebuildHadErrors = true;
-        result.rebuildError = `Full rebuild: ${rebuildResult.sourcesErrored} source(s) failed. ${rebuildResult.errors.map((e) => `${e.sourceKey}: ${e.error}`).join('; ')}`;
-      }
-
-      // Increment documentsRebuilt count
-      result.documentsRebuilt += rebuildResult.sourcesRebuilt;
-    } else if (storedVersion === null) {
-      // First run: store the prompt version so future changes can be detected
-      data.promptVersion = PROMPT_VERSION;
+    if (rebuildResult.sourcesErrored > 0) {
+      result.rebuildHadErrors = true;
+      result.rebuildError = `Full rebuild: ${rebuildResult.sourcesErrored} source(s) failed. ${rebuildResult.errors.map((e) => `${e.sourceKey}: ${e.error}`).join('; ')}`;
     }
+
+    result.documentsRebuilt += rebuildResult.sourcesRebuilt;
+  } else if (storedVersion === null) {
+    data.promptVersion = PROMPT_VERSION;
+  }
+
+  await store.transact((current) => {
+    current.promptVersion = data.promptVersion;
+    current.rebuildState = data.rebuildState;
   });
 
-  if (args.syncProjection && args.graphIndexRepo && args.graphQueryBackend) {
+  if (args.syncProjection && args.graphQueryBackend) {
     await rebuildGraphProjectionFromTruth({
       graphIndexRepo: args.graphIndexRepo,
       graphQueryBackend: args.graphQueryBackend,
@@ -541,7 +542,7 @@ export async function reconcileGraphIndexes(args: {
 }
 
 export async function rebuildGraphProjectionFromTruth(args: {
-  graphIndexRepo: GraphIndexRepository;
+  graphIndexRepo: GraphIndexRepositoryPort;
   graphQueryBackend: GraphQueryBackend;
 }): Promise<number> {
   const documents = await args.graphIndexRepo.listAll();

@@ -107,14 +107,15 @@
     "codemod:relative:dry": "bash scripts/codemod-batch.sh --dry",
     "deploy": "bash scripts/deploy.sh",
     "deploy:quick": "bash scripts/deploy-quick.sh",
-    "backfill:labels": "pnpm exec tsx --tsconfig tsconfig.base.json packages/server/src/lib/labels/backfill-runner.ts",
-    "backfill:labels:dry-run": "pnpm exec tsx --tsconfig tsconfig.base.json packages/server/src/lib/labels/backfill-runner.ts --dry-run",
-    "label-merge:repair": "pnpm exec tsx --tsconfig tsconfig.base.json packages/server/src/lib/labels/merge-repair-runner.ts",
-    "label-merge:repair:dry-run": "pnpm exec tsx --tsconfig tsconfig.base.json packages/server/src/lib/labels/merge-repair-runner.ts --dry-run"
+    "backfill:labels": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/backfill-labels.ts",
+    "backfill:labels:dry-run": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/backfill-labels.ts --dry-run",
+    "label-merge:repair": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/repair-label-merges.ts",
+    "label-merge:repair:dry-run": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/repair-label-merges.ts --dry-run"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@trapmap/server": "workspace:*",
+    "@trapmap/service-knowledge-read": "workspace:*",
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^3.2.4",
     "dependency-cruiser": "^18.0.0",

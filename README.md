@@ -536,7 +536,6 @@ Trap-Map/
 │   ├── cli/              # Commander.js CLI 客户端
 │   ├── server/           # 迁移期兼容壳层
 │   ├── contracts/        # 共享 Zod Schema
-│   ├── runtime-infra/    # 共享 runtime 基础设施 seam：store/repos、async transport、AI provider
 │   └── skills/           # 项目级 Skill 工作流（非 workspace 包）
 ├── evals/             # 检索和摘要评估系统
 ├── docs/              # 项目文档

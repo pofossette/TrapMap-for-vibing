@@ -16,7 +16,7 @@
  * governed artifacts. The channel cannot introduce unauthorized capsules.
  */
 
-import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import {
   type GraphQueryBackend,
   createMemoryGraphQueryBackend,
@@ -55,17 +55,17 @@ function calculateCapsuleGraphScore(relationStrength: number): number {
 }
 
 /**
- * Create a capsule-graph recall channel backed by a GraphIndexRepository.
+ * Create a capsule-graph recall channel backed by a graph index owner port.
  *
  * Uses a factory function pattern (like v1's createGraphChannel) because
- * the channel depends on GraphIndexRepository which is not available at
+ * the channel depends on the graph index owner port which is not available at
  * module load time.
  *
- * @param graphIndexRepo - Repository for graph index documents
+ * @param graphIndexRepo - Owner port for graph index documents
  * @returns A CapsuleRecallChannel that supplements recall via graph expansion
  */
 export function createCapsuleGraphChannel(
-  graphQuery: GraphQueryBackend | GraphIndexRepository,
+  graphQuery: GraphQueryBackend | GraphIndexRepositoryPort,
 ): CapsuleRecallChannel {
   const graphBackend = isGraphQueryBackend(graphQuery)
     ? graphQuery

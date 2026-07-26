@@ -6,7 +6,6 @@ import { describe, expect, it } from "vitest";
 import { expectFilesFreeOfImports } from "../../../../../scripts/testing/import-boundary.js";
 
 const RUNTIME_FILES = [
-  "src/nest/runtime/shared-infra.ts",
   "src/nest/runtime/retrieval-assembly.ts",
   "src/nest/runtime/host-runtime.ts",
 ];
@@ -50,6 +49,7 @@ describe("host-local runtime import boundary", () => {
     const root = path.resolve(import.meta.dirname, "../../..");
 
     for (const file of [
+      "src/nest/runtime/shared-infra.ts",
       "src/nest/runtime/host-services.ts",
       "src/nest/runtime/server-composition.ts",
     ]) {

@@ -16,7 +16,7 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
-import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
+import type { ArtifactIndexingEntry, GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import {
   assertNoHardDependencyCycles,
@@ -36,9 +36,9 @@ import type { SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.j
  */
 export interface ArtifactGraphAdapterInput {
   /** Store data (within transaction) */
-  data: Pick<StoreData, 'graphIndexDocuments'>;
+  data?: Pick<StoreData, 'graphIndexDocuments'>;
   /** The skill artifact to index */
-  artifact: SkillArtifactRecord;
+  artifact: SkillArtifactRecord | ArtifactIndexingEntry;
   /** Optional ChatProvider for LLM-powered extraction */
   chat?: ChatProvider;
   /** Optional query backend for PG truth + optional graph projection sync */
@@ -52,7 +52,7 @@ export interface ArtifactGraphAdapterInput {
  */
 export interface ArtifactGraphAdapterRemoveInput {
   /** Store data (within transaction) */
-  data: Pick<StoreData, 'graphIndexDocuments'>;
+  data?: Pick<StoreData, 'graphIndexDocuments'>;
   /** The artifact ID to remove */
   artifactId: string;
   /** Optional query backend for PG truth + optional graph projection sync */
@@ -126,8 +126,11 @@ export const artifactGraphIndexAdapter: ArtifactGraphAdapter = {
 
       // Check for hard dependency cycles before persistence
       // Include existing documents excluding this artifact's current document
+      if (!graphIndex && !data) {
+        throw new Error('Graph index owner is required when compatibility data is unavailable');
+      }
       const existingDocs = (
-        graphIndex ? await graphIndex.listAll() : getGraphIndexDocuments(data)
+        graphIndex ? await graphIndex.listAll() : getGraphIndexDocuments(data!)
       ).filter((d) => !(d.sourceType === 'skill' && d.sourceId === artifact.id));
       const allDocs = [...existingDocs, doc];
 
@@ -137,7 +140,7 @@ export const artifactGraphIndexAdapter: ArtifactGraphAdapter = {
       if (graphIndex) {
         await graphIndex.upsert(doc);
       } else {
-        upsertGraphIndexDocument(data, doc);
+        upsertGraphIndexDocument(data!, doc);
       }
 
       if (graphQueryBackend?.isEnabled()) {
@@ -171,6 +174,9 @@ export const artifactGraphIndexAdapter: ArtifactGraphAdapter = {
     if (graphIndex) {
       await graphIndex.removeBySource('skill', artifactId);
     } else {
+      if (!data) {
+        throw new Error('Graph index owner is required when compatibility data is unavailable');
+      }
       removeGraphIndexDocumentsForSource(data, 'skill', artifactId);
     }
     if (graphQueryBackend?.isEnabled()) {

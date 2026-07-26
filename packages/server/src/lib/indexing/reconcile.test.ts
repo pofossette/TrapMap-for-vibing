@@ -13,8 +13,9 @@
  * - Rebuild upserts for cyclic candidates are rejected while removals remain durable
  */
 
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import { JsonStore as JsonStoreClass, nowIso } from '@trapmap/server/lib/store.js';
 import type { GraphIndexDocumentRecord } from './graph-lite/documents.js';
@@ -31,6 +32,50 @@ import {
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
+
+function createInMemoryGraphIndexRepository(store: SkillShareerStore): GraphIndexRepositoryPort {
+  return {
+    async insert(document) {
+      await store.transact((data) => {
+        data.graphIndexDocuments.push(document);
+      });
+    },
+    async getById(documentId) {
+      const data = await store.snapshot();
+      return data.graphIndexDocuments.find((document) => document.id === documentId) ?? null;
+    },
+    async listBySource(sourceType, sourceId) {
+      const data = await store.snapshot();
+      return data.graphIndexDocuments.filter(
+        (document) => document.sourceType === sourceType && document.sourceId === sourceId,
+      );
+    },
+    async listAll() {
+      return (await store.snapshot()).graphIndexDocuments;
+    },
+    async upsert(document) {
+      await store.transact((data) => {
+        const index = data.graphIndexDocuments.findIndex((current) => current.id === document.id);
+        if (index >= 0) data.graphIndexDocuments[index] = document;
+        else data.graphIndexDocuments.push(document);
+      });
+    },
+    async remove(documentId) {
+      await store.transact((data) => {
+        data.graphIndexDocuments = data.graphIndexDocuments.filter(
+          (document) => document.id !== documentId,
+        );
+      });
+    },
+    async removeBySource(sourceType, sourceId) {
+      await store.transact((data) => {
+        data.graphIndexDocuments = data.graphIndexDocuments.filter(
+          (document) => !(document.sourceType === sourceType && document.sourceId === sourceId),
+        );
+      });
+    },
+  };
+}
 
 function createTestKnowledgeEntry(
   overrides: Partial<StoreData['knowledgeEntries'][0]> = {},
@@ -179,11 +224,13 @@ function createTestGraphDocument(
 
 describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
   let store: SkillShareerStore;
+  let graphIndexRepo: GraphIndexRepositoryPort;
   let _data: StoreData;
 
   beforeEach(async () => {
     const testDataFile = `/tmp/trapmap-reconcile-test-${Date.now()}-${Math.random()}.json`;
     store = new JsonStoreClass(testDataFile);
+    graphIndexRepo = createInMemoryGraphIndexRepository(store);
     _data = await store.snapshot();
 
     // Initialize with empty arrays
@@ -218,7 +265,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
         );
       });
 
-      const result = await reconcileGraphIndexes({ store });
+      const result = await reconcileGraphIndexes({ store, graphIndexRepo });
 
       expect(result.documentsRemoved).toBe(1);
       expect(result.documentsRebuilt).toBe(0);
@@ -246,7 +293,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
         );
       });
 
-      const result = await reconcileGraphIndexes({ store });
+      const result = await reconcileGraphIndexes({ store, graphIndexRepo });
 
       expect(result.documentsRemoved).toBe(1);
 
@@ -273,7 +320,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
         );
       });
 
-      const result = await reconcileGraphIndexes({ store });
+      const result = await reconcileGraphIndexes({ store, graphIndexRepo });
 
       expect(result.documentsRemoved).toBe(1);
 
@@ -329,7 +376,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
         );
       });
 
-      const result = await reconcileGraphIndexes({ store });
+      const result = await reconcileGraphIndexes({ store, graphIndexRepo });
 
       expect(result.documentsRemoved).toBe(1);
 
@@ -359,7 +406,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
         );
       });
 
-      const result = await reconcileGraphIndexes({ store });
+      const result = await reconcileGraphIndexes({ store, graphIndexRepo });
 
       expect(result.documentsRemoved).toBe(1);
 
@@ -383,7 +430,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
         );
       });
 
-      const result = await reconcileGraphIndexes({ store });
+      const result = await reconcileGraphIndexes({ store, graphIndexRepo });
 
       expect(result.documentsRebuilt).toBe(1);
 
@@ -440,7 +487,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
         );
       });
 
-      const result = await reconcileGraphIndexes({ store });
+      const result = await reconcileGraphIndexes({ store, graphIndexRepo });
 
       expect(result.documentsRebuilt).toBe(1);
 
@@ -486,7 +533,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
       });
 
       // Reconcile should remove the stale document
-      const result = await reconcileGraphIndexes({ store });
+      const result = await reconcileGraphIndexes({ store, graphIndexRepo });
 
       // The stale document should be removed
       expect(result.documentsRemoved).toBe(1);
@@ -600,7 +647,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
       // Note: This test verifies that when existing documents already form a cycle,
       // the reconciliation detects it during rebuild validation.
       // The existing graph documents form a cycle: trap_a -> trap_b -> trap_a
-      const result = await reconcileGraphIndexes({ store });
+      const result = await reconcileGraphIndexes({ store, graphIndexRepo });
 
       // Stale document should be removed
       expect(result.documentsRemoved).toBe(1);
@@ -694,7 +741,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
         );
       });
 
-      const result = await reconcileGraphIndexes({ store });
+      const result = await reconcileGraphIndexes({ store, graphIndexRepo });
 
       // Should remove 2 stale documents
       expect(result.documentsRemoved).toBe(2);
@@ -716,6 +763,39 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
   });
 
   describe('reconcileGraphIndexesFromSnapshot', () => {
+    it('reconciles against the injected graph owner instead of snapshot graph documents', async () => {
+      const graphIndex: GraphIndexRepositoryPort = {
+        insert: vi.fn(),
+        getById: vi.fn(),
+        listBySource: vi.fn(),
+        listAll: vi
+          .fn()
+          .mockResolvedValue([
+            createTestGraphDocument({ id: 'graphdoc_stale', sourceId: 'trap_missing' }),
+          ]),
+        upsert: vi.fn(),
+        remove: vi.fn(),
+        removeBySource: vi.fn(),
+      };
+      const snapshot = await store.snapshot();
+      snapshot.knowledgeEntries.push(createTestKnowledgeEntry({ id: 'trap_approved' }));
+      snapshot.graphIndexDocuments.push(createTestGraphDocument({ id: 'legacy_snapshot_doc' }));
+
+      const result = await reconcileGraphIndexesFromSnapshot({
+        data: snapshot,
+        graphIndex,
+      });
+
+      expect(result).toMatchObject({ documentsRemoved: 1, documentsRebuilt: 1 });
+      expect(graphIndex.removeBySource).toHaveBeenCalledWith('trap', 'trap_missing');
+      expect(graphIndex.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ sourceType: 'trap', sourceId: 'trap_approved' }),
+      );
+      expect(snapshot.graphIndexDocuments).toEqual([
+        expect.objectContaining({ id: 'legacy_snapshot_doc' }),
+      ]);
+    });
+
     it('should operate on provided data snapshot without additional transactions', async () => {
       await store.transact(async (d) => {
         // Setup test data
@@ -740,7 +820,10 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
       const snapshot = await store.snapshot();
 
       // Run reconciliation on snapshot
-      const result = await reconcileGraphIndexesFromSnapshot({ store, data: snapshot });
+      const result = await reconcileGraphIndexesFromSnapshot({
+        data: snapshot,
+        graphIndex: graphIndexRepo,
+      });
 
       expect(result.documentsRemoved).toBe(1);
       expect(result.documentsRebuilt).toBe(1);
@@ -774,7 +857,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
       });
 
       const snapshot = await store.snapshot();
-      const result = await fullRebuildGraphIndexes({ data: snapshot });
+      const result = await fullRebuildGraphIndexes({ data: snapshot, graphIndex: graphIndexRepo });
 
       expect(result.triggered).toBe(true);
       expect(result.previousVersion).toBeNull();
@@ -803,7 +886,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
         d.promptVersion = PROMPT_VERSION - 1;
       });
 
-      const result = await reconcileGraphIndexes({ store });
+      const result = await reconcileGraphIndexes({ store, graphIndexRepo });
 
       // Rebuild should have been triggered
       expect(result.rebuildHadErrors).toBe(false);
@@ -827,7 +910,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
       });
 
       // Run reconcile - should not trigger rebuild since version matches
-      const result = await reconcileGraphIndexes({ store });
+      const result = await reconcileGraphIndexes({ store, graphIndexRepo });
 
       // No rebuild errors since version matches
       expect(result.rebuildHadErrors).toBe(false);
@@ -870,7 +953,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
       });
 
       const snapshot = await store.snapshot();
-      const result = await fullRebuildGraphIndexes({ data: snapshot });
+      const result = await fullRebuildGraphIndexes({ data: snapshot, graphIndex: graphIndexRepo });
 
       expect(result.triggered).toBe(true);
       // Should only rebuild trap_2 and trap_3 (trap_1 already done)
@@ -923,7 +1006,7 @@ describe('graph reconciliation (T-36-13, T-36-14, T-36-16)', () => {
       });
 
       const snapshot = await store.snapshot();
-      const result = await fullRebuildGraphIndexes({ data: snapshot });
+      const result = await fullRebuildGraphIndexes({ data: snapshot, graphIndex: graphIndexRepo });
 
       expect(result.triggered).toBe(true);
       expect(result.totalSources).toBe(2);

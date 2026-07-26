@@ -72,7 +72,6 @@ Round 0 已冻结数据库演进方向，后续轮次必须遵守以下边界：
 | `packages/host-local` | `local-agent` / `team-monolith` 的 `light` 宿主装配；默认主入口终局为 `src/nest/**` |
 | `packages/host-distributed` | `distributed` 的 `heavy` 重型宿主装配 |
 | `packages/server` | Fastify compatibility shell，仅服务 `host-local` rollback path 与 shared runtime/status seam |
-| `packages/runtime-infra` | 共享 runtime 基础设施 seam：store/repos、async transport、AI provider、adapter registry、graph-query memory bootstrap |
 | `packages/contracts` | 共享 Zod Schema 和 TypeScript 类型定义 |
 | `packages/service-*` | bounded-context service assembly：identity-access、knowledge-read/write、candidate-ingestion、governance-review、job-runtime |
 | `packages/web-panel` | 管理员浏览器运维面板，继续只面向 gateway surface |

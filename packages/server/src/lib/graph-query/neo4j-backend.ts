@@ -1,4 +1,4 @@
-import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import {
   type Graph,
   type GraphIndexDocumentRecord,
@@ -36,7 +36,7 @@ export class Neo4jGraphQueryBackend implements GraphQueryBackend {
   readonly kind = 'neo4j' as const;
 
   constructor(
-    private readonly graphIndexRepo: GraphIndexRepository,
+    private readonly graphIndexRepo: GraphIndexRepositoryPort,
     private readonly client: Neo4jQueryClient,
   ) {}
 

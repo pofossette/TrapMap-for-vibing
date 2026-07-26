@@ -210,4 +210,95 @@ describe('ArtifactReadProjection', () => {
       expect.objectContaining({ requiredLevel: 8 }),
     );
   });
+
+  it('reads the owner-local artifact indexing projection', async () => {
+    const query = vi.fn(async (sql: string) => {
+      if (sql.includes('FROM skill_artifacts')) {
+        return {
+          rows: [
+            {
+              id: 'artifact-1',
+              team_id: null,
+              scope: 'global',
+              labels: ['docker'],
+              title: 'Docker recovery',
+              slug: 'docker-recovery',
+              required_level: 0,
+              lifecycle_state: 'approved',
+              owner_user_id: 'owner-1',
+              metadata: {},
+              created_at: '2026-07-25T00:00:00.000Z',
+              updated_at: '2026-07-25T00:00:00.000Z',
+            },
+          ],
+        };
+      }
+      if (sql.includes('FROM artifact_revisions')) {
+        return {
+          rows: [
+            {
+              revision_no: 2,
+              source_hash: 'source-hash',
+              files: [],
+              script_descriptors: [],
+              derived: { profile: null, capsules: [], clientManifest: null },
+              submitted_at: '2026-07-25T00:00:00.000Z',
+              submitted_by_user_id: 'owner-1',
+            },
+          ],
+        };
+      }
+      return { rows: [] };
+    });
+    const projection = createArtifactReadProjection({ query } as never);
+
+    await expect(projection.getIndexingEntry('artifact-1')).resolves.toMatchObject({
+      id: 'artifact-1',
+      lifecycleState: 'approved',
+      revision: 2,
+      derived: { capsules: [] },
+    });
+  });
+
+  it('pages owner-local artifact indexing projections', async () => {
+    const query = vi.fn(async (sql: string, values?: unknown[]) => {
+      if (sql.includes('FROM skill_artifacts')) {
+        expect(values).toEqual([1, 3]);
+        return {
+          rows: [
+            {
+              id: 'artifact-1',
+              team_id: null,
+              scope: 'global',
+              labels: [],
+              title: 'One',
+              required_level: 0,
+              lifecycle_state: 'approved',
+              revision_no: 3,
+              derived: { profile: null, capsules: [], clientManifest: null },
+            },
+            {
+              id: 'artifact-2',
+              team_id: null,
+              scope: 'global',
+              labels: [],
+              title: 'Two',
+              required_level: 0,
+              lifecycle_state: 'submitted',
+              revision_no: 1,
+              derived: null,
+            },
+          ],
+        };
+      }
+      return { rows: [] };
+    });
+
+    await expect(
+      createArtifactReadProjection({ query } as never).listIndexingEntries({ offset: 1, limit: 2 }),
+    ).resolves.toEqual({
+      entries: [expect.objectContaining({ id: 'artifact-1', revision: 3 })],
+      nextOffset: 2,
+    });
+  });
 });

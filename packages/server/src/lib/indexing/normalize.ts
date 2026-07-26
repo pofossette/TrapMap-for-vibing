@@ -14,7 +14,23 @@ import { createHash } from 'node:crypto';
 
 import { tokenize } from '@trapmap/server/lib/retrieval/recall/keyword.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
+import type { KnowledgeIndexingEntry } from '@trapmap/contracts';
 import type { NormalizedIndexDocument } from './types.js';
+
+type KnowledgeIndexDocumentSource = Pick<
+  KnowledgeIndexingEntry,
+  | 'id'
+  | 'teamId'
+  | 'scope'
+  | 'requiredLevel'
+  | 'lifecycleState'
+  | 'updatedAt'
+  | 'shortcut'
+  | 'detail'
+  | 'labels'
+  | 'boundary'
+  | 'revision'
+>;
 
 /**
  * Build canonical text for indexing from a knowledge entry.
@@ -22,7 +38,9 @@ import type { NormalizedIndexDocument } from './types.js';
  *
  * This ensures both vector and keyword channels use the same source text.
  */
-function buildCanonicalText(entry: KnowledgeRecord): string {
+function buildCanonicalText(
+  entry: Pick<KnowledgeIndexDocumentSource, 'shortcut' | 'detail' | 'labels'>,
+): string {
   const labelsText = entry.labels.join(' ');
   return `${entry.shortcut}\n${entry.detail}\n${labelsText}`.trim();
 }
@@ -55,7 +73,9 @@ function buildContentHash(canonicalText: string): string {
  * @param entry - The knowledge entry to normalize
  * @returns A normalized index document suitable for all adapters
  */
-export function normalizeKnowledgeIndexDocument(entry: KnowledgeRecord): NormalizedIndexDocument {
+export function normalizeKnowledgeIndexDocument(
+  entry: KnowledgeRecord | KnowledgeIndexDocumentSource,
+): NormalizedIndexDocument {
   const canonicalText = buildCanonicalText(entry);
   const tokens = buildTokens(canonicalText);
   const contentHash = buildContentHash(canonicalText);
@@ -67,7 +87,7 @@ export function normalizeKnowledgeIndexDocument(entry: KnowledgeRecord): Normali
     scope: entry.scope,
     requiredLevel: entry.requiredLevel,
     lifecycleState: entry.lifecycleState,
-    revision: entry.history.length,
+    revision: 'revision' in entry ? entry.revision : entry.history.length,
     updatedAt: entry.updatedAt,
     shortcut: entry.shortcut,
     detail: entry.detail,

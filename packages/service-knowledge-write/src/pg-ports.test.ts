@@ -186,6 +186,89 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     );
   });
 
+  it('reads an indexable entry with its authoritative revision and metadata', async () => {
+    const query = vi.fn(async () => ({
+      rows: [
+        {
+          id: 'entry-1',
+          team_id: null,
+          scope: 'global',
+          labels: ['docker'],
+          shortcut: 'Restart Docker',
+          detail: 'Restart the Docker daemon.',
+          required_level: 2,
+          lifecycle_state: 'approved',
+          boundary: null,
+          updated_at: '2026-07-24T00:00:00.000Z',
+          index_revision: 3,
+          index_state: { adapters: { vector: { status: 'synced' } } },
+          embedding_cache: {
+            textHash: 'hash-1',
+            vector: [0.1, 0.2],
+            createdAt: '2026-07-24T00:00:00.000Z',
+            revision: 3,
+          },
+        },
+      ],
+    }));
+    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() } as never);
+
+    await expect(owner.knowledgeOwner.getIndexingEntry('entry-1')).resolves.toMatchObject({
+      id: 'entry-1',
+      lifecycleState: 'approved',
+      revision: 3,
+      indexState: { adapters: { vector: { status: 'synced' } } },
+      embeddingCache: expect.objectContaining({ revision: 3 }),
+    });
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('MAX(kr.revision_no)'), ['entry-1']);
+  });
+
+  it('paginates owner-local indexing entries with authoritative revisions', async () => {
+    const query = vi.fn(async () => ({
+      rows: [
+        {
+          id: 'entry-1',
+          team_id: null,
+          scope: 'global',
+          labels: ['docker'],
+          shortcut: 'Restart Docker',
+          detail: 'Restart the Docker daemon.',
+          required_level: 2,
+          lifecycle_state: 'approved',
+          boundary: null,
+          updated_at: '2026-07-24T00:00:00.000Z',
+          index_revision: 3,
+          index_state: null,
+          embedding_cache: null,
+        },
+        {
+          id: 'entry-2',
+          team_id: null,
+          scope: 'global',
+          labels: [],
+          shortcut: 'Second',
+          detail: 'Second entry.',
+          required_level: 0,
+          lifecycle_state: 'deactivated',
+          boundary: null,
+          updated_at: '2026-07-23T00:00:00.000Z',
+          index_revision: 1,
+          index_state: { adapters: {} },
+          embedding_cache: null,
+        },
+      ],
+    }));
+    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() } as never);
+
+    await expect(
+      owner.knowledgeOwner.listIndexingEntries({ offset: 0, limit: 1 }),
+    ).resolves.toEqual({
+      entries: [expect.objectContaining({ id: 'entry-1', revision: 3 })],
+      nextOffset: 1,
+    });
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('LIMIT $1 OFFSET $2'), [2, 0]);
+  });
+
   it('persists an embedding cache update through the knowledge owner port', async () => {
     const query = vi.fn(async () => ({ rows: [] }));
     const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() } as never);
@@ -208,6 +291,42 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
           revision: 3,
         }),
       ],
+    );
+  });
+
+  it('persists an index metadata checkpoint atomically through the knowledge owner port', async () => {
+    const query = vi.fn(async () => ({ rows: [] }));
+    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() } as never);
+    const indexState = {
+      contentHash: 'hash-1',
+      normalizedAt: '2026-07-24T00:00:00.000Z',
+      adapters: {
+        vector: {
+          status: 'synced',
+          revision: 3,
+          contentHash: 'hash-1',
+          lastSyncedAt: '2026-07-24T00:00:00.000Z',
+          lastError: null,
+        },
+      },
+    };
+    const embeddingCache = {
+      textHash: 'hash-1',
+      vector: [0.1, 0.2],
+      createdAt: '2026-07-24T00:00:00.000Z',
+      revision: 3,
+    };
+
+    await owner.knowledgeOwner.updateIndexMetadata('entry-1', {
+      indexState,
+      embeddingCache,
+    });
+
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'UPDATE knowledge_entries SET index_state = $2, embedding_cache = $3',
+      ),
+      ['entry-1', JSON.stringify(indexState), JSON.stringify(embeddingCache)],
     );
   });
 
@@ -264,6 +383,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
             owner_user_id: 'owner-1',
             required_level: 2,
             lifecycle_state: 'approved',
+            index_state: { adapters: { vector: { status: 'synced' } } },
           },
         ],
       })),
@@ -274,6 +394,9 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     expect((entry as unknown as { decayMeta: unknown })?.decayMeta).toBeNull();
     expect((entry as unknown as { maintenanceMeta: unknown })?.maintenanceMeta).toBeNull();
     expect((entry as unknown as { requiredLevel: number })?.requiredLevel).toBe(2);
+    expect((entry as unknown as { indexState: unknown })?.indexState).toEqual({
+      adapters: { vector: { status: 'synced' } },
+    });
   });
 
   it('writes entry edits, revisions, and their outbox event atomically', async () => {

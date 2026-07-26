@@ -14,6 +14,7 @@
 
 import { createHash } from 'node:crypto';
 
+import type { ArtifactIndexingEntry } from '@trapmap/contracts';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { createLabelReadProjection } from '@trapmap/server/lib/labels/repository.js';
 import {
@@ -45,11 +46,27 @@ import { extractSkillGraphPrimitives } from './skill-extract.js';
  * - Returns a GraphIndexDocumentRecord ready for persistence
  */
 export async function buildSkillGraphDocument(
-  artifact: SkillArtifactRecord,
+  artifact: SkillArtifactRecord | ArtifactIndexingEntry,
   chat?: ChatProvider,
   store?: SkillShareerStore,
 ): Promise<GraphIndexDocumentRecord | null> {
-  const derived = artifact.latestRevision.derived;
+  // Legacy artifacts expose `latestRevision.derived`; owner projections expose
+  // the same derived revision as a flat, intentionally minimal index payload.
+  const indexingEntry: ArtifactIndexingEntry =
+    'latestRevision' in artifact
+      ? {
+          id: artifact.id,
+          teamId: artifact.teamId,
+          scope: artifact.scope,
+          labels: artifact.labels,
+          title: artifact.title,
+          requiredLevel: artifact.requiredLevel,
+          lifecycleState: artifact.lifecycleState,
+          revision: artifact.latestRevision.revision,
+          derived: artifact.latestRevision.derived,
+        }
+      : artifact;
+  const derived = indexingEntry.derived;
 
   // Skip if no derived content
   if (!derived) {
@@ -107,7 +124,7 @@ export async function buildSkillGraphDocument(
   } else {
     // Rule-based extraction
     const primitives = extractSkillGraphPrimitives({
-      artifactId: artifact.id,
+      artifactId: indexingEntry.id,
       profile,
       capsules,
     });
@@ -128,7 +145,7 @@ export async function buildSkillGraphDocument(
   }
 
   // Always inject root skill node if not already present
-  const skillNodeId = `skill:${artifact.id}`;
+  const skillNodeId = `skill:${indexingEntry.id}`;
   if (!nodes.some((n) => n.id === skillNodeId)) {
     nodes.unshift({
       id: skillNodeId,
@@ -145,11 +162,11 @@ export async function buildSkillGraphDocument(
 
   // Build the document input
   const input: SkillGraphDocumentInput = {
-    artifactId: artifact.id,
-    revision: artifact.latestRevision.revision,
-    teamId: artifact.teamId,
-    scope: artifact.scope,
-    requiredLevel: artifact.requiredLevel,
+    artifactId: indexingEntry.id,
+    revision: indexingEntry.revision,
+    teamId: indexingEntry.teamId,
+    scope: indexingEntry.scope,
+    requiredLevel: indexingEntry.requiredLevel,
     nodes,
     edges,
     derivedTextHash,

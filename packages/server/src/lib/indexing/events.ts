@@ -9,14 +9,17 @@
  * Only approved content receives index upserts.
  */
 
-import type { LifecycleState } from '@trapmap/contracts';
-import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
+import type {
+  GraphIndexRepositoryPort,
+  KnowledgeOwnerPort,
+  LifecycleState,
+} from '@trapmap/contracts';
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { graphIndexAdapter } from './adapters/graph.js';
 import { removeGraphIndexDocumentsForSource } from './graph-lite/index.js';
-import { syncKnowledgeIndex } from './pipeline.js';
+import { syncKnowledgeIndex, syncKnowledgeIndexFromOwner } from './pipeline.js';
 import type { AdapterRegistry } from './registry.js';
 
 /**
@@ -62,6 +65,7 @@ export async function runKnowledgeIndexEvent(args: {
     ai?: { chat: ChatProvider };
     graphQueryBackend?: GraphQueryBackend;
     graphIndex?: GraphIndexRepositoryPort;
+    knowledgeOwner?: Pick<KnowledgeOwnerPort, 'getIndexingEntry' | 'updateIndexMetadata'>;
   };
   entryId: string;
   previousState: LifecycleState;
@@ -73,6 +77,15 @@ export async function runKnowledgeIndexEvent(args: {
   const { store } = services;
 
   const action = determineKnowledgeIndexAction(previousState, nextState);
+
+  // PostgreSQL composition supplies the authoritative knowledge owner. Keep the
+  // JSON-store branch below only for compatibility tests during retirement.
+  if (services.knowledgeOwner) {
+    if (action !== 'noop') {
+      await syncKnowledgeIndexFromOwner(services, entryId, registry);
+    }
+    return;
+  }
 
   // All modifications must be done within a transaction to persist
   await store.transact(async (data) => {

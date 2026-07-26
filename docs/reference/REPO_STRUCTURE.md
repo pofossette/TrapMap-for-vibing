@@ -27,7 +27,6 @@
 - `packages/client-core/`：浏览器兼容的共享网关传输层（HTTP SDK、会话契约、错误模型）。供 CLI 和未来 Web 面板使用。
 - `packages/web-panel/`：基于浏览器的管理员运维面板，仅作为网关客户端表面。
 - `packages/backend-core/`：主机无关的后端核心内核（运行时能力模型、端口接口、用例模式、有界上下文模块、调用模型）。Phase 2 保持无框架，将每个有界上下文重组为内部 `domain/application/module` 接缝，位于 `src/identity-access/`、`src/knowledge-read/`、`src/knowledge-write/`、`src/candidate-ingestion/`、`src/governance-review/`、`src/job-runtime/`；旧的 `src/modules/*.ts` 兼容外观已移除，消费者使用包入口或上下文入口。所有主机共用。
-- `packages/runtime-infra/`：共享运行时基础设施接缝，用于 store/repo 组装、异步传输接线、AI 提供者引导、适配器注册表引导和内存图查询引导，在基础设施仍为共享阶段由各主机复用。
 - `packages/service-identity-access/`：拥有身份访问服务组装、内部路由注册和有界上下文 auth/session/team/member/access-key 接线。
 - `packages/service-knowledge-read/`：知识读取服务组装。拥有检索、读模型和投影视图状态路由接线；read model 经 `packages/contracts` 的 projection helper 读取共享契约，不反向导入 server implementation。
 - `packages/service-knowledge-write/`：拥有知识写入服务组装、内部路由注册和有界上下文写入接线（knowledge/trap/skill/lifecycle/maintenance/decay）。
@@ -36,7 +35,7 @@
 - `packages/service-job-runtime/`：拥有作业运行时服务组装、内部路由注册、队列/重试/租约/dead-letter 依赖接线、typed owner handlers 和运行时服务器引导表面。
 - `packages/host-local/`：轻量主机组装，服务于 `local-agent` 和 `team-monolith`。冻结的默认轻量主线为 `src/nest/**`，通过包默认入口（`src/index.ts`）和默认 `dev` / `start` 脚本暴露。
   `packages/host-local/src/nest/adapters/` 是轻量主机中主机拥有的端口适配器选择（`in-process` vs `remote`）的权威放置位置。这些文件是内部端口的适配器接缝，不是仓库适配器，也不是主机组装的万能目录。
-  `packages/runtime-infra/src/shared-infra.ts` 是当前过渡性共享基础设施接缝的权威放置位置，它借用 server 拥有的基础设施助手而不改变主机归属。
+  迁移期共享基础设施组合留在 host-local 的 runtime composition 内；它可暂时调用 server compatibility helpers，但不形成独立 workspace package 或 service-to-service concrete import。
 - `packages/host-distributed/`：重量级主机组装，服务于 `distributed` 配置文件。它是真正的重量级主机实现，与 `light` 共用相同的 backend-core/service-package 主实现，成熟度基线仍为 `Level 2 / transitional-microservice`。
   `packages/host-distributed/src/gateway/` 是网关传输助手和转发接缝的权威放置位置，包括 `internal-client.ts`（薄内部 HTTP / 规范错误归一化助手）。
   `packages/host-distributed/src/config/service-config.ts` 是服务发现默认值和 URL 解析器接缝的权威放置位置。它拥有显式 `TRAPMAP_*_URL` 覆盖、`distributed` 中的 Docker DNS 默认值和 local/dev 上下文中的 `localhost` 默认值之间的配置感知映射。
@@ -44,7 +43,9 @@
 
 Wave-2 closeout（commit `b3374307`）：contracts projection/fixture helpers remain pure shared code; candidate fixture helpers stay under `packages/server/src/lib/candidates/`, labels runner helpers stay under `packages/server/src/lib/labels/`, and SQL/PG/worker runtime code remains in its owning zone.
 
-Wave-4 closeout（2026-07-21）：`service-governance-review` 是 feedback、conflict、remediation 与 operator projection 的唯一 owner；distributed gateway 只保留 public transport/认证/trace forwarding，`packages/server` 与 `packages/runtime-infra` 不再拥有这些领域的 route、repository、subscriber 或 aggregate member。
+Wave-4 closeout（2026-07-21）：`service-governance-review` 是 feedback、conflict、remediation 与 operator projection 的唯一 owner；distributed gateway 只保留 public transport/认证/trace forwarding，`packages/server` 不再拥有这些领域的 route、repository、subscriber 或 aggregate member。
+
+Wave-10 intermediate（2026-07-25）：`packages/runtime-infra/` 已退休删除。host-local 直接组合过渡性 store、AI 与 graph infrastructure；`packages/server`、snapshot compatibility state 和其余 legacy runtime consumers 仍保留，不能据此宣告完整 package retirement closeout。
 
 ## 文档
 

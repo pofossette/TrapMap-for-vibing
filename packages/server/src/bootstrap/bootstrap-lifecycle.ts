@@ -53,6 +53,7 @@ function buildLifecycleSubscriberContract(app: FastifyInstance): LifecycleSubscr
     graphQueryBackend,
     asyncTransport?.task,
     graphIndex,
+    app.skillShareer.knowledgeOwner,
   );
   const auditHandler = createAuditSubscriber(store, app.log);
   const conflictHandler = createGovernanceConflictTaskScheduler(jobRuntime);

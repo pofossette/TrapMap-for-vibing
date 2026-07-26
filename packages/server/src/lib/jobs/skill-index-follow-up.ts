@@ -7,7 +7,12 @@ import { SKILL_INDEX_FOLLOW_UP_TASK_TYPE, type SkillIndexFollowUpPayload } from 
 export async function runOrScheduleSkillIndexFollowUp(args: {
   services: Pick<
     SkillShareerServices,
-    'store' | 'ai' | 'graphQueryBackend' | 'graphIndex' | 'asyncTransport'
+    | 'store'
+    | 'ai'
+    | 'graphQueryBackend'
+    | 'graphIndex'
+    | 'artifactReadProjection'
+    | 'asyncTransport'
   >;
   payload: SkillIndexFollowUpPayload;
 }): Promise<void> {
@@ -33,6 +38,7 @@ export async function runOrScheduleSkillIndexFollowUp(args: {
       ai: { chat: services.ai.chat },
       graphQueryBackend: services.graphQueryBackend,
       graphIndex: services.graphIndex,
+      artifactReadProjection: services.artifactReadProjection,
     },
     artifactId: payload.artifactId,
     previousState: payload.previousState,

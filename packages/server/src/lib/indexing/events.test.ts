@@ -12,7 +12,7 @@
 import type { LifecycleState } from '@trapmap/contracts';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
 import { JsonStore as JsonStoreClass, nowIso } from '@trapmap/server/lib/store.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { determineKnowledgeIndexAction, runKnowledgeIndexEvent } from './events.js';
 import { AdapterRegistry } from './registry.js';
 import type { IndexAdapter, NormalizedIndexDocument } from './types.js';
@@ -170,6 +170,42 @@ describe('lifecycle event mapping (IDX-03, T-08-06)', () => {
       // Verify sync was called on both adapters
       expect(mockVectorAdapter.syncCalls.length).toBe(1);
       expect(mockKeywordAdapter.syncCalls.length).toBe(1);
+    });
+
+    it('uses the knowledge owner projection for an approved event', async () => {
+      const adapter = new MockAdapter('keyword');
+      const updateIndexMetadata = vi.fn().mockResolvedValue(undefined);
+      const knowledgeOwner = {
+        getIndexingEntry: vi.fn().mockResolvedValue({
+          id: 'owner_entry_1',
+          teamId: null,
+          scope: 'global',
+          labels: ['test'],
+          shortcut: 'Owner entry',
+          detail: 'Read from the owner projection.',
+          requiredLevel: 0,
+          lifecycleState: 'approved',
+          boundary: null,
+          updatedAt: nowIso(),
+          revision: 2,
+          indexState: null,
+          embeddingCache: null,
+        }),
+        updateIndexMetadata,
+      };
+
+      await runKnowledgeIndexEvent({
+        services: { store, knowledgeOwner },
+        entryId: 'owner_entry_1',
+        previousState: 'submitted',
+        nextState: 'approved',
+        reason: 'reviewer-approved',
+        registry: createRegistry(adapter),
+      });
+
+      expect(knowledgeOwner.getIndexingEntry).toHaveBeenCalledWith('owner_entry_1');
+      expect(adapter.syncCalls).toHaveLength(1);
+      expect(updateIndexMetadata).toHaveBeenCalledOnce();
     });
 
     it('should call removeKnowledgeIndex for remove actions (IDX-03)', async () => {

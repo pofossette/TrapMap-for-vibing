@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  type GraphIndexRepository,
-  InMemoryGraphIndexRepository,
-} from '@trapmap/server/lib/graph-index/repository.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
-import { JsonStore, nowIso } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 import { Neo4jGraphQueryBackend } from './neo4j-backend.js';
 
@@ -88,12 +85,41 @@ function createFakeClient() {
 
 async function createRepoWithDocuments(
   documents: GraphIndexDocumentRecord[],
-): Promise<GraphIndexRepository> {
-  const store = new JsonStore(`/tmp/trapmap-neo4j-backend-${Date.now()}-${Math.random()}.json`);
-  await store.transact((data) => {
-    data.graphIndexDocuments = documents;
-  });
-  return new InMemoryGraphIndexRepository(store);
+): Promise<GraphIndexRepositoryPort> {
+  const records = [...documents];
+  return {
+    async insert(document) {
+      records.push(document);
+    },
+    async getById(documentId) {
+      return records.find((document) => document.id === documentId) ?? null;
+    },
+    async listBySource(sourceType, sourceId) {
+      return records.filter(
+        (document) => document.sourceType === sourceType && document.sourceId === sourceId,
+      );
+    },
+    async listAll() {
+      return records;
+    },
+    async upsert(document) {
+      const index = records.findIndex((current) => current.id === document.id);
+      if (index >= 0) records[index] = document;
+      else records.push(document);
+    },
+    async remove(documentId) {
+      const index = records.findIndex((document) => document.id === documentId);
+      if (index >= 0) records.splice(index, 1);
+    },
+    async removeBySource(sourceType, sourceId) {
+      for (let index = records.length - 1; index >= 0; index -= 1) {
+        const document = records[index];
+        if (document?.sourceType === sourceType && document.sourceId === sourceId) {
+          records.splice(index, 1);
+        }
+      }
+    },
+  };
 }
 
 describe('Neo4jGraphQueryBackend', () => {

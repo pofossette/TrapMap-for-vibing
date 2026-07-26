@@ -174,6 +174,22 @@ export function createArtifactReadProjection(pool: Pick<Pool, 'query'>): Artifac
   };
   return {
     getById,
+    async getIndexingEntry(artifactId) {
+      const artifact = await getById(artifactId);
+      const revision = artifact?.history.at(-1);
+      if (!artifact || !revision) return null;
+      return {
+        id: artifact.id,
+        teamId: artifact.teamId,
+        scope: artifact.scope,
+        labels: artifact.labels,
+        title: artifact.title,
+        requiredLevel: artifact.requiredLevel,
+        lifecycleState: artifact.lifecycleState,
+        revision: revision.revision,
+        derived: revision.derived,
+      };
+    },
     listByFilter,
     listForRetrieval: listByFilter,
     async history(artifactId) {

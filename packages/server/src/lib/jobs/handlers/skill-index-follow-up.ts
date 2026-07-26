@@ -14,7 +14,10 @@ import { createWorkflowRepository } from '@trapmap/server/lib/workflows/reposito
 import type { Pool } from 'pg';
 
 export function createSkillIndexFollowUpHandler(args: {
-  services: Pick<SkillShareerServices, 'store' | 'ai' | 'graphQueryBackend' | 'graphIndex'>;
+  services: Pick<
+    SkillShareerServices,
+    'store' | 'ai' | 'graphQueryBackend' | 'graphIndex' | 'artifactReadProjection'
+  >;
   pool: Pool;
 }): SharedJobHandler<SkillIndexFollowUpPayload> {
   const contract = getSharedJobContract(SKILL_INDEX_FOLLOW_UP_TASK_TYPE);
@@ -51,6 +54,7 @@ export function createSkillIndexFollowUpHandler(args: {
           ai: { chat: args.services.ai.chat },
           graphQueryBackend: args.services.graphQueryBackend,
           graphIndex: args.services.graphIndex,
+          artifactReadProjection: args.services.artifactReadProjection,
         },
         artifactId: task.payload.artifactId,
         previousState: task.payload.previousState,

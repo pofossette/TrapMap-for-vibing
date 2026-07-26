@@ -10,7 +10,7 @@
  * - runSkillIndexEvent calls the shared artifact adapter seam
  */
 
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import {
@@ -19,6 +19,7 @@ import {
 } from '@trapmap/server/lib/indexing/graph-lite/store.js';
 import { JsonStore, createEmptyStoreData, nowIso } from '@trapmap/server/lib/store.js';
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
+import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 
 import {
   type SkillGraphEdgePrimitive,
@@ -468,6 +469,46 @@ describe('skill-events', () => {
   });
 
   describe('runSkillIndexEvent', () => {
+    it('indexes from the owner projection without entering the compatibility transaction', async () => {
+      const artifact = buildTestArtifact();
+      const ownerEntry = {
+        id: artifact.id,
+        teamId: artifact.teamId,
+        scope: artifact.scope,
+        labels: artifact.labels,
+        title: artifact.title,
+        requiredLevel: artifact.requiredLevel,
+        lifecycleState: 'approved' as const,
+        revision: artifact.latestRevision.revision,
+        derived: artifact.latestRevision.derived,
+      };
+      const adapter: ArtifactGraphAdapter = {
+        sync: vi.fn().mockResolvedValue({ success: true, performedWork: true, error: null }),
+        remove: vi.fn().mockResolvedValue(undefined),
+      };
+      const store = { transact: vi.fn() };
+
+      await runSkillIndexEvent({
+        services: {
+          store: store as never,
+          artifactReadProjection: {
+            getIndexingEntry: vi.fn().mockResolvedValue(ownerEntry),
+          },
+          graphIndex: {} as never,
+        },
+        artifactId: artifact.id,
+        previousState: 'agent-pass',
+        nextState: 'approved',
+        reason: 'owner-approve',
+        adapters: [adapter],
+      });
+
+      expect(store.transact).not.toHaveBeenCalled();
+      expect(adapter.sync).toHaveBeenCalledWith(
+        expect.objectContaining({ artifact: ownerEntry, graphIndex: expect.any(Object) }),
+      );
+    });
+
     it('uses the shared artifact adapter seam when no route-local adapters are passed', async () => {
       const store = new JsonStore('/tmp/trapmap-skill-events-test.json');
       const artifact = buildTestArtifact();

@@ -11,7 +11,6 @@
  * - client-manifest: Client activation manifest builder
  * - legacy: Legacy derivation from revision records
  * - from-payloads: Retrieval-grade derivation from file content
- * - apply: Unified derivation-and-application seam
  *
  * T-12-09: Derive hashes from ordered SKILL.md + references/ text only
  * T-12-10: Exclude assets/ and scripts/ bodies from profile/capsule content

@@ -16,7 +16,10 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import { computeDecayState, loadDecayConfig } from '@trapmap/server/lib/decay/index.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import { reconcileKnowledgeIndexes } from '@trapmap/server/lib/indexing/pipeline.js';
+import {
+  reconcileKnowledgeIndexes,
+  reconcileKnowledgeIndexesFromOwner,
+} from '@trapmap/server/lib/indexing/pipeline.js';
 import {
   isReviewOverdue,
   isStaleVerification,
@@ -229,7 +232,12 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
     const startTime = Date.now();
     const registry = app.skillShareer.adapterRegistry;
 
-    const result = await reconcileKnowledgeIndexes({ store: app.skillShareer.store }, registry);
+    const result = app.skillShareer.knowledgeOwner
+      ? await reconcileKnowledgeIndexesFromOwner(
+          { knowledgeOwner: app.skillShareer.knowledgeOwner, store: app.skillShareer.store },
+          registry,
+        )
+      : await reconcileKnowledgeIndexes({ store: app.skillShareer.store }, registry);
 
     const durationMs = Date.now() - startTime;
 

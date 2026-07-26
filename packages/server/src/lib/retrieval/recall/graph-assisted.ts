@@ -17,7 +17,7 @@
  * entries can never appear in results.
  */
 
-import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import {
   type GraphQueryBackend,
   createMemoryGraphQueryBackend,
@@ -69,7 +69,7 @@ function extractQueryEntities(queryText: string): Set<string> {
 
 interface GraphAssistedRecallConfig extends GraphScoringConfig {
   graphQueryBackend?: GraphQueryBackend;
-  graphIndexRepo?: GraphIndexRepository;
+  graphIndexRepo?: GraphIndexRepositoryPort;
 }
 
 export async function graphAssistedRecall(

@@ -16,7 +16,12 @@ import { runPreReview } from '@trapmap/server/lib/pre-review.js';
 import { JsonStore, type SkillShareerStore, nowIso } from '@trapmap/server/lib/store.js';
 
 // Import the functions we're testing
-import { reconcileKnowledgeIndexes, syncKnowledgeIndex } from './pipeline.js';
+import {
+  reconcileKnowledgeIndexes,
+  reconcileKnowledgeIndexesFromOwner,
+  syncKnowledgeIndex,
+  syncKnowledgeIndexFromOwner,
+} from './pipeline.js';
 import { AdapterRegistry } from './registry.js';
 import type { IndexAdapter } from './types.js';
 
@@ -52,6 +57,131 @@ describe('indexing pipeline', () => {
   });
 
   describe('syncKnowledgeIndex', () => {
+    it('loads the owner indexing projection and checkpoints metadata without a store transaction', async () => {
+      const sync = vi.fn().mockResolvedValue({
+        adapterKind: 'keyword',
+        success: true,
+        error: null,
+        performedWork: true,
+      });
+      const updateIndexMetadata = vi.fn().mockResolvedValue(undefined);
+      const owner = {
+        getIndexingEntry: vi.fn().mockResolvedValue({
+          id: 'entry-owner-1',
+          teamId: null,
+          scope: 'global',
+          labels: ['docker'],
+          shortcut: 'Restart Docker',
+          detail: 'Restart the daemon.',
+          requiredLevel: 0,
+          lifecycleState: 'approved',
+          boundary: null,
+          updatedAt: '2026-07-25T00:00:00.000Z',
+          revision: 3,
+          indexState: null,
+          embeddingCache: null,
+        }),
+        updateIndexMetadata,
+      };
+
+      await syncKnowledgeIndexFromOwner(
+        { knowledgeOwner: owner, store },
+        'entry-owner-1',
+        toRegistry([{ kind: 'keyword', sync, remove: vi.fn() }]),
+      );
+
+      expect(owner.getIndexingEntry).toHaveBeenCalledWith('entry-owner-1');
+      expect(sync).toHaveBeenCalledOnce();
+      expect(updateIndexMetadata).toHaveBeenCalledWith(
+        'entry-owner-1',
+        expect.objectContaining({ embeddingCache: null, indexState: expect.any(Object) }),
+      );
+    });
+
+    it('removes owner-backed index metadata for a deactivated entry', async () => {
+      const remove = vi.fn().mockResolvedValue(undefined);
+      const updateIndexMetadata = vi.fn().mockResolvedValue(undefined);
+      const owner = {
+        getIndexingEntry: vi.fn().mockResolvedValue({
+          id: 'entry-owner-deactivated',
+          teamId: null,
+          scope: 'global',
+          labels: ['docker'],
+          shortcut: 'Restart Docker',
+          detail: 'Restart the daemon.',
+          requiredLevel: 0,
+          lifecycleState: 'deactivated',
+          boundary: null,
+          updatedAt: '2026-07-25T00:00:00.000Z',
+          revision: 4,
+          indexState: { adapters: {} },
+          embeddingCache: {
+            textHash: 'hash',
+            vector: [0.1],
+            createdAt: '2026-07-25T00:00:00.000Z',
+            revision: 4,
+          },
+        }),
+        updateIndexMetadata,
+      };
+
+      await syncKnowledgeIndexFromOwner(
+        { knowledgeOwner: owner, store },
+        'entry-owner-deactivated',
+        toRegistry([{ kind: 'keyword', sync: vi.fn(), remove }]),
+      );
+
+      expect(remove).toHaveBeenCalledWith({ entryId: 'entry-owner-deactivated', revision: 4 });
+      expect(updateIndexMetadata).toHaveBeenCalledWith('entry-owner-deactivated', {
+        indexState: null,
+        embeddingCache: null,
+      });
+    });
+
+    it('reconciles every page from the owner indexing projection', async () => {
+      const sync = vi.fn().mockResolvedValue({
+        adapterKind: 'keyword',
+        success: true,
+        error: null,
+        performedWork: true,
+      });
+      const entry = {
+        id: 'entry-owner-reconcile',
+        teamId: null,
+        scope: 'global' as const,
+        labels: ['docker'],
+        shortcut: 'Restart Docker',
+        detail: 'Restart the daemon.',
+        requiredLevel: 0,
+        lifecycleState: 'approved' as const,
+        boundary: null,
+        updatedAt: '2026-07-25T00:00:00.000Z',
+        revision: 3,
+        indexState: null,
+        embeddingCache: null,
+      };
+      const owner = {
+        listIndexingEntries: vi
+          .fn()
+          .mockResolvedValueOnce({ entries: [entry], nextOffset: 1 })
+          .mockResolvedValueOnce({ entries: [], nextOffset: null }),
+        getIndexingEntry: vi.fn().mockResolvedValue(entry),
+        updateIndexMetadata: vi.fn().mockResolvedValue(undefined),
+      };
+
+      await expect(
+        reconcileKnowledgeIndexesFromOwner(
+          { knowledgeOwner: owner, store },
+          toRegistry([{ kind: 'keyword', sync, remove: vi.fn() }]),
+          { batchSize: 1 },
+        ),
+      ).resolves.toMatchObject({ totalEntries: 1, entriesSynced: 1, entriesRemoved: 0 });
+
+      expect(owner.listIndexingEntries).toHaveBeenNthCalledWith(1, { offset: 0, limit: 1 });
+      expect(owner.listIndexingEntries).toHaveBeenNthCalledWith(2, { offset: 1, limit: 1 });
+      expect(sync).toHaveBeenCalledOnce();
+    });
+
     it('normalizes once and fans-out to all registered adapters using the same document snapshot', async () => {
       const createdAt = nowIso();
 

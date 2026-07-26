@@ -13,6 +13,7 @@ import {
   type ArtifactWritePort,
 } from '../../packages/service-knowledge-write/src/pg-ports.js';
 import { createGovernanceReviewPgOwnerBundle } from '../../packages/service-governance-review/src/pg-ports.js';
+import { createKnowledgeReadGraphIndexRepository } from '../../packages/service-knowledge-read/src/index.js';
 import type { KnowledgeOwnerPort } from '../../packages/contracts/src/index.js';
 
 export interface PostgresComposedServer {
@@ -49,6 +50,7 @@ export function buildPostgresComposedServer(
     artifactReadProjection: knowledgeWrite.artifactReadProjection,
     knowledgeOwner: knowledgeWrite.knowledgeOwner,
     governanceRetrievalProjection: governanceReview.retrievalProjection,
+    graphIndex: createKnowledgeReadGraphIndexRepository(pool),
     asyncTransport,
     jobRuntime: createJobRuntimeModule({
       queuePorts: {

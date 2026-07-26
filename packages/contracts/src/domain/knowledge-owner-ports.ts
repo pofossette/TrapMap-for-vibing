@@ -1,5 +1,6 @@
 import type { KnowledgeEntry } from './knowledge.js';
-import type { LifecycleState } from './common.js';
+import type { LifecycleState, Scope } from './common.js';
+import type { Boundary } from './boundary.js';
 import type { EvidenceMeta } from './evidence.js';
 
 /**
@@ -13,8 +14,37 @@ export interface KnowledgeOwnerCommandInput {
   [key: string]: unknown;
 }
 
+/** Owner-local source record used by asynchronous indexing projections. */
+export interface KnowledgeIndexingEntry {
+  id: string;
+  teamId: string | null;
+  scope: Scope;
+  labels: string[];
+  shortcut: string;
+  detail: string;
+  requiredLevel: number;
+  lifecycleState: LifecycleState;
+  boundary: Boundary | null;
+  updatedAt: string;
+  revision: number;
+  indexState: Record<string, unknown> | null;
+  embeddingCache: {
+    textHash: string;
+    vector: number[];
+    createdAt: string;
+    revision: number;
+  } | null;
+}
+
+export interface KnowledgeIndexingPage {
+  entries: KnowledgeIndexingEntry[];
+  nextOffset: number | null;
+}
+
 export interface KnowledgeOperationsProjection {
   getById(entryId: string): Promise<KnowledgeEntry | null>;
+  getIndexingEntry(entryId: string): Promise<KnowledgeIndexingEntry | null>;
+  listIndexingEntries(input: { offset: number; limit: number }): Promise<KnowledgeIndexingPage>;
   getByIds(entryIds: string[]): Promise<KnowledgeEntry[]>;
   listByFilter(filter: {
     entryIds?: string[];
@@ -32,6 +62,18 @@ export interface KnowledgeOperationsProjection {
       vector: number[];
       createdAt: string;
       revision: number;
+    },
+  ): Promise<void>;
+  updateIndexMetadata(
+    entryId: string,
+    metadata: {
+      indexState: Record<string, unknown> | null;
+      embeddingCache: {
+        textHash: string;
+        vector: number[];
+        createdAt: string;
+        revision: number;
+      } | null;
     },
   ): Promise<void>;
 }

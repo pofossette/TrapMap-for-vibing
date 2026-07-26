@@ -39,6 +39,13 @@ describe('PostgreSQL composition entrypoints', () => {
     );
   });
 
+  it('injects the knowledge-read graph owner into compatibility composition', async () => {
+    const source = await readFile('scripts/testing/postgres-server-composition.ts', 'utf8');
+
+    expect(source).toContain('createKnowledgeReadGraphIndexRepository');
+    expect(source).toMatch(/graphIndex:\s*createKnowledgeReadGraphIndexRepository\(pool\)/);
+  });
+
   it.each(entrypoints)('%s uses host PostgreSQL composition', async (entrypoint) => {
     const source = await readFile(path.resolve(entrypoint), 'utf8');
 

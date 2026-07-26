@@ -18,7 +18,11 @@
  * Security note: This module reads only derived outputs, never raw asset/script bodies.
  */
 
-import type { GraphIndexRepositoryPort, LifecycleState } from '@trapmap/contracts';
+import type {
+  ArtifactReadProjection,
+  GraphIndexRepositoryPort,
+  LifecycleState,
+} from '@trapmap/contracts';
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
@@ -97,6 +101,7 @@ export async function runSkillIndexEvent(args: {
     ai?: { chat: ChatProvider };
     graphQueryBackend?: GraphQueryBackend;
     graphIndex?: GraphIndexRepositoryPort;
+    artifactReadProjection?: Pick<ArtifactReadProjection, 'getIndexingEntry'>;
   };
   artifactId: string;
   previousState: LifecycleState;
@@ -109,6 +114,49 @@ export async function runSkillIndexEvent(args: {
   const adapters = args.adapters ?? resolveArtifactAdapters(store);
 
   const action = determineSkillIndexAction(previousState, nextState);
+
+  if (services.artifactReadProjection) {
+    if (!services.graphIndex) {
+      throw new Error('Graph index owner is required for owner-local skill indexing');
+    }
+
+    if (action === 'upsert') {
+      const artifact = await services.artifactReadProjection.getIndexingEntry(artifactId);
+      if (!artifact) throw new Error(`Artifact ${artifactId} not found`);
+      if (!artifact.derived) {
+        throw new AppError(
+          500,
+          'indexing_no_derived',
+          `Cannot index artifact ${artifactId}: approved artifact must have derived outputs. Run derivation before approving or re-edit the artifact.`,
+        );
+      }
+      const result = await runArtifactAdapterFanOut({
+        artifact,
+        store,
+        ...(services.ai ? { chat: services.ai.chat } : {}),
+        adapters,
+        ...(services.graphQueryBackend !== undefined
+          ? { graphQueryBackend: services.graphQueryBackend }
+          : {}),
+        graphIndex: services.graphIndex,
+      });
+      const firstFailure = result.results.find((entry) => !entry.success);
+      if (firstFailure) {
+        throw new Error(firstFailure.error ?? `Artifact indexing failed for ${artifactId}`);
+      }
+    } else if (action === 'remove') {
+      await runArtifactAdapterRemoval({
+        artifactId,
+        store,
+        adapters,
+        ...(services.graphQueryBackend !== undefined
+          ? { graphQueryBackend: services.graphQueryBackend }
+          : {}),
+        graphIndex: services.graphIndex,
+      });
+    }
+    return;
+  }
 
   // All modifications must be done within a transaction to persist
   await store.transact(async (txData) => {

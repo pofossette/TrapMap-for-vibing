@@ -41,8 +41,8 @@ const expectPackageNodeModulesCopiedInProductionStage = (packageName: string) =>
 };
 
 describe('host-distributed Dockerfile', () => {
-  it('includes the service-knowledge-read project reference chain in deps, build, and production stages', () => {
-    for (const packageName of ['runtime-infra', 'server']) {
+  it('includes the server compatibility project reference chain in deps, build, and production stages', () => {
+    for (const packageName of ['server']) {
       expectPackageCopiedInDepsStage(packageName);
       expectPackageBuilt(packageName);
       expectPackageCopiedInProductionStage(packageName);
@@ -55,7 +55,6 @@ describe('host-distributed Dockerfile', () => {
       'server',
       'backend-core',
       'client-core',
-      'runtime-infra',
       'service-identity-access',
       'service-knowledge-read',
       'service-knowledge-write',

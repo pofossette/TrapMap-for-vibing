@@ -12,7 +12,7 @@
  */
 
 import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
-import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
+import type { ArtifactIndexingEntry, GraphIndexRepositoryPort } from '@trapmap/contracts';
 import {
   type SkillArtifactRecord,
   type SkillShareerStore,
@@ -110,8 +110,8 @@ export interface ArtifactAdapterFanOutResult {
  * @returns Aggregate result from all adapters
  */
 export async function runArtifactAdapterFanOut(args: {
-  data: StoreData;
-  artifact: SkillArtifactRecord;
+  data?: StoreData;
+  artifact: SkillArtifactRecord | ArtifactIndexingEntry;
   store?: SkillShareerStore;
   chat?: ChatProvider;
   graphQueryBackend?: Parameters<ArtifactGraphAdapter['sync']>[0]['graphQueryBackend'];
@@ -128,7 +128,7 @@ export async function runArtifactAdapterFanOut(args: {
   for (const adapter of adapters) {
     try {
       const result = await adapter.sync({
-        data,
+        ...(data ? { data } : {}),
         artifact,
         ...(args.chat ? { chat: args.chat } : {}),
         ...(args.graphQueryBackend !== undefined
@@ -162,7 +162,7 @@ export async function runArtifactAdapterFanOut(args: {
  * @param args - Removal arguments
  */
 export async function runArtifactAdapterRemoval(args: {
-  data: StoreData;
+  data?: StoreData;
   artifactId: string;
   store?: SkillShareerStore;
   graphQueryBackend?: Parameters<ArtifactGraphAdapter['remove']>[0]['graphQueryBackend'];
@@ -176,7 +176,7 @@ export async function runArtifactAdapterRemoval(args: {
 
   for (const adapter of adapters) {
     await adapter.remove({
-      data,
+      ...(data ? { data } : {}),
       artifactId,
       ...(args.graphQueryBackend !== undefined
         ? { graphQueryBackend: args.graphQueryBackend }

@@ -23,10 +23,6 @@ COPY packages/client-core/package.json ./packages/client-core/
 COPY packages/client-core/tsconfig.json ./packages/client-core/
 COPY packages/client-core/src ./packages/client-core/src
 
-COPY packages/runtime-infra/package.json ./packages/runtime-infra/
-COPY packages/runtime-infra/tsconfig.json ./packages/runtime-infra/
-COPY packages/runtime-infra/src ./packages/runtime-infra/src
-
 COPY packages/service-identity-access/package.json ./packages/service-identity-access/
 COPY packages/service-identity-access/tsconfig.json ./packages/service-identity-access/
 COPY packages/service-identity-access/src ./packages/service-identity-access/src
@@ -66,7 +62,6 @@ RUN pnpm exec tsc -b \
   packages/server/tsconfig.json \
   packages/backend-core/tsconfig.json \
   packages/client-core/tsconfig.json \
-  packages/runtime-infra/tsconfig.json \
   packages/service-identity-access/tsconfig.json \
   packages/service-knowledge-read/tsconfig.json \
   packages/service-knowledge-write/tsconfig.json \
@@ -102,11 +97,6 @@ COPY packages/client-core/package.json ./packages/client-core/
 COPY packages/client-core/tsconfig.json ./packages/client-core/
 COPY --from=deps /app/packages/client-core/node_modules ./packages/client-core/node_modules
 COPY --from=build /app/packages/client-core/dist ./packages/client-core/dist
-
-COPY packages/runtime-infra/package.json ./packages/runtime-infra/
-COPY packages/runtime-infra/tsconfig.json ./packages/runtime-infra/
-COPY --from=deps /app/packages/runtime-infra/node_modules ./packages/runtime-infra/node_modules
-COPY --from=build /app/packages/runtime-infra/dist ./packages/runtime-infra/dist
 
 COPY packages/service-identity-access/package.json ./packages/service-identity-access/
 COPY packages/service-identity-access/tsconfig.json ./packages/service-identity-access/

@@ -4,6 +4,7 @@ import type {
   ArtifactReadProjection,
   EvidenceMeta,
   KnowledgeEntry,
+  KnowledgeIndexingEntry,
   KnowledgeOwnerCommandInput,
   KnowledgeOwnerPort,
   LifecycleState,
@@ -67,6 +68,7 @@ function readKnowledgeRowFields(row: Record<string, unknown>) {
     boundary: readKnowledgeRowValue(row, 'boundary', 'boundary', null),
     maintenanceMeta: readKnowledgeRowValue(row, 'maintenance_meta', 'maintenanceMeta', null),
     embeddingCache: readKnowledgeRowValue(row, 'embedding_cache', 'embeddingCache', null),
+    indexState: readKnowledgeRowValue(row, 'index_state', 'indexState', null),
     decayMeta: readKnowledgeRowValue(row, 'decay_meta', 'decayMeta', null),
     evidenceMeta: readKnowledgeRowValue(row, 'evidence_meta', 'evidenceMeta', null),
   };
@@ -91,6 +93,37 @@ function normalizeKnowledgeProjection(row: Record<string, unknown>) {
 
 function toKnowledgeEntryProjection(row: Record<string, unknown>): KnowledgeEntry {
   return normalizeKnowledgeProjection(row) as unknown as KnowledgeEntry;
+}
+
+function toKnowledgeIndexingEntry(row: Record<string, unknown>): KnowledgeIndexingEntry {
+  return {
+    id: String(row.id),
+    teamId: readKnowledgeRowValue(row, 'team_id', 'teamId', null) as string | null,
+    scope: String(row.scope) as KnowledgeIndexingEntry['scope'],
+    labels: readKnowledgeRowLabels(row),
+    shortcut: String(readKnowledgeRowValue(row, 'shortcut', 'title', '')),
+    detail: String(readKnowledgeRowValue(row, 'detail', 'content', '')),
+    requiredLevel: Number(readKnowledgeRowValue(row, 'required_level', 'requiredLevel', 0)),
+    lifecycleState: readKnowledgeRowLifecycle(row),
+    boundary: readKnowledgeRowValue(
+      row,
+      'boundary',
+      'boundary',
+      null,
+    ) as KnowledgeIndexingEntry['boundary'],
+    updatedAt: String(readKnowledgeRowValue(row, 'updated_at', 'updatedAt', '')),
+    revision: Number(readKnowledgeRowValue(row, 'index_revision', 'revision', 0)),
+    indexState: readKnowledgeRowValue(row, 'index_state', 'indexState', null) as Record<
+      string,
+      unknown
+    > | null,
+    embeddingCache: readKnowledgeRowValue(
+      row,
+      'embedding_cache',
+      'embeddingCache',
+      null,
+    ) as KnowledgeIndexingEntry['embeddingCache'],
+  };
 }
 
 type KnowledgeProjectionFilter = {
@@ -166,12 +199,49 @@ function buildKnowledgeProjectionWhere(filter: KnowledgeProjectionFilter): {
 
 function createKnowledgeOwnerProjection(
   pool: Queryable,
-): Pick<KnowledgeOwnerPort, 'getById' | 'getByIds' | 'listByFilter'> {
+): Pick<
+  KnowledgeOwnerPort,
+  'getById' | 'getByIds' | 'getIndexingEntry' | 'listIndexingEntries' | 'listByFilter'
+> {
   return {
     async getById(entryId) {
       const result = await pool.query('SELECT * FROM knowledge_entries WHERE id = $1', [entryId]);
       const row = result.rows[0] as Record<string, unknown> | undefined;
       return row ? toKnowledgeEntryProjection(row) : null;
+    },
+    async getIndexingEntry(entryId) {
+      const result = await pool.query(
+        `SELECT ke.*, COALESCE(MAX(kr.revision_no), 0)::int AS index_revision
+         FROM knowledge_entries ke
+         LEFT JOIN knowledge_revisions kr ON kr.entry_id = ke.id
+         WHERE ke.id = $1
+         GROUP BY ke.id`,
+        [entryId],
+      );
+      const row = result.rows[0] as Record<string, unknown> | undefined;
+      return row ? toKnowledgeIndexingEntry(row) : null;
+    },
+    async listIndexingEntries({ offset, limit }) {
+      const boundedLimit = Math.max(1, Math.min(limit, 100));
+      const result = await pool.query(
+        `SELECT ke.*, COALESCE(kr.index_revision, 0)::int AS index_revision
+         FROM knowledge_entries ke
+         LEFT JOIN LATERAL (
+           SELECT MAX(revision_no) AS index_revision
+           FROM knowledge_revisions
+           WHERE entry_id = ke.id
+         ) kr ON true
+         ORDER BY ke.updated_at DESC, ke.id DESC
+         LIMIT $1 OFFSET $2`,
+        [boundedLimit + 1, Math.max(0, offset)],
+      );
+      const entries = result.rows
+        .slice(0, boundedLimit)
+        .map((row) => toKnowledgeIndexingEntry(row as Record<string, unknown>));
+      return {
+        entries,
+        nextOffset: result.rows.length > boundedLimit ? offset + boundedLimit : null,
+      };
     },
     async getByIds(entryIds) {
       if (entryIds.length === 0) return [];
@@ -756,11 +826,19 @@ export function createKnowledgeWriteOwnerBundle(
     },
     getById: projection.getById,
     getByIds: projection.getByIds,
+    getIndexingEntry: projection.getIndexingEntry,
+    listIndexingEntries: projection.listIndexingEntries,
     listByFilter: projection.listByFilter,
     async updateEmbeddingCache(entryId, cache) {
       await pool.query(
         'UPDATE knowledge_entries SET embedding_cache = $2, updated_at = NOW() WHERE id = $1',
         [entryId, JSON.stringify(cache)],
+      );
+    },
+    async updateIndexMetadata(entryId, metadata) {
+      await pool.query(
+        'UPDATE knowledge_entries SET index_state = $2, embedding_cache = $3, updated_at = NOW() WHERE id = $1',
+        [entryId, JSON.stringify(metadata.indexState), JSON.stringify(metadata.embeddingCache)],
       );
     },
   };

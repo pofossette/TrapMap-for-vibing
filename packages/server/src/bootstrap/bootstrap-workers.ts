@@ -26,6 +26,7 @@ function buildSharedJobWorkerHandlers(
       pool,
       graphQueryBackend: app.skillShareer.graphQueryBackend,
       graphIndex: app.skillShareer.graphIndex,
+      knowledgeOwner: app.skillShareer.knowledgeOwner,
     },
     skillIndexFollowUp: {
       services: {
@@ -33,6 +34,7 @@ function buildSharedJobWorkerHandlers(
         ai: app.skillShareer.ai,
         graphQueryBackend: app.skillShareer.graphQueryBackend,
         graphIndex: app.skillShareer.graphIndex,
+        artifactReadProjection: app.skillShareer.artifactReadProjection,
       },
       pool,
     },

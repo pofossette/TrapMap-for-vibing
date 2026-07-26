@@ -668,7 +668,7 @@ HTTP 路由和 CLI 命令均可用：
 ##### Capsule-First Recall 约束与 Fallback
 
 - **空胶囊处理**: `syncArtifactCapsules()` 在 `derived.capsules` 为空数组或 undefined 时返回 `{ keyword: [], embedding: [] }` 稳定空结果，不抛异常。
-- **派生数据保证 (Phase 2 wiring debt convergence)**: `deriveAndApplyOutputs()` 现在是所有三条写路径（edit/import/migrate）的统一派生入口。Approved artifacts 始终暴露 latest-revision derived capsules — edit flow 不再产生 `derived: null`。当 artifact 仍缺少 `derived.capsules`（例如尚未 approve 的早期工件或数据迁移不完整时），`extractGovernedCapsules()` 会跳过该 artifact，召回通道使用已有索引数据继续工作。
+- **派生数据缺失处理**: `deriveFromPayloads()` 与 `deriveSkillArtifactOutputs()` 只负责生成派生结果；owner-local 写路径决定何时持久化。当 artifact 缺少 `derived.capsules`（例如尚未 approve、早期工件或数据迁移不完整时），`extractGovernedCapsules()` 会跳过该 artifact，召回通道使用已有索引数据继续工作。
 - **PG 通道 fallback**: `capsule-keyword` 和 `capsule-semantic` 通道在 PG 不可用时自动降级到内存版本 (`capsuleKeywordRecall()` / `capsuleSemanticRecall()`)，`CapsuleRecallCoordinator` 对每个通道单独 try/catch，单通道失败不阻断检索。
 - **索引同步幂等**: `INSERT ... ON CONFLICT (capsule_id) DO UPDATE` 基于 `capsuleId + revisionNo + contentHash` 实现幂等 upsert，重复同步相同内容为无操作。
 - **Feature Flag 控制**: 同步和重建操作均支持 `featureFlag` 配置，flag 返回 false 时静默跳过写入。

@@ -19,9 +19,8 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 | `client-core` | `packages/client-core/src/**` | 客户端核心（无依赖的纯客户端逻辑），提供 HTTP gateway SDK、会话管理、错误模型 |
 | `backend-core` | `packages/backend-core/src/**` | 六边形架构内核（domain/application/ports/use-cases），框架无关，承载运行时能力模型、端口接口、用例模式、bounded-context 模块 |
 | `server` | `packages/server/src/**` | Fastify 兼容层和基础设施适配器（persistence/repos/cache/AI/indexing），承载迁移期兼容壳与既有实现面 |
-| `runtime-infra` | `packages/runtime-infra/src/**` | 运行时基础设施桥接层（Drizzle/PG 适配器），提供共享的 store/repo 组装、异步传输接线、AI provider 引导等 |
 | `service-standard` | `packages/service-identity-access/src/**`、`packages/service-candidate-ingestion/src/**`、`packages/service-governance-review/src/**`、`packages/service-job-runtime/src/**`、`packages/service-knowledge-write/src/**` | 标准服务装配包（identity-access、candidate-ingestion、governance-review、job-runtime、knowledge-write），只依赖 `backend-core` + `contracts` |
-| `service-knowledge-read` | `packages/service-knowledge-read/src/**` | 知识读取服务（特殊：保留 `runtime-infra` 读侧 seam 例外），见下方已知例外说明 |
+| `service-knowledge-read` | `packages/service-knowledge-read/src/**` | 知识读取服务，拥有 read-model、retrieval 与 graph projection owner surface |
 | `host-local` | `packages/host-local/src/**` | 本地宿主组合根（NestJS 光主机），为 `local-agent` 和 `team-monolith` profile 装配所有服务 |
 | `host-distributed` | `packages/host-distributed/src/**` | 分布式宿主组合根（完整微服务宿主），为 `distributed` profile 装配所有服务 |
 | `cli` | `packages/cli/src/**` | CLI 客户端界面（Commander.js），消费 `client-core` |
@@ -50,7 +49,6 @@ flowchart TB
 
     subgraph 基础设施层["基础设施层 (Infrastructure)"]
         server["server"]
-        runtime-infra["runtime-infra"]
     end
 
     subgraph 核心层["核心层 (Core)"]
@@ -64,7 +62,6 @@ flowchart TB
 
     host-local --> backend-core
     host-local --> server
-    host-local --> runtime-infra
     host-local --> service-standard
     host-local --> service-knowledge-read
     host-local --> client-core
@@ -72,7 +69,6 @@ flowchart TB
 
     host-distributed --> backend-core
     host-distributed --> server
-    host-distributed --> runtime-infra
     host-distributed --> service-standard
     host-distributed --> service-knowledge-read
     host-distributed --> client-core
@@ -83,11 +79,6 @@ flowchart TB
 
     service-knowledge-read --> backend-core
     service-knowledge-read --> contracts
-    service-knowledge-read --> runtime-infra
-
-    runtime-infra --> server
-    runtime-infra --> contracts
-
     server --> contracts
 
     backend-core --> contracts
@@ -106,7 +97,6 @@ flowchart TB
 ```
 host-* → service-* → backend-core → contracts
 host-* → server → contracts
-host-* → runtime-infra → server → contracts
 cli → client-core → (none)
 web-panel → client-core → (none)
 ```
@@ -117,26 +107,15 @@ web-panel → client-core → (none)
 2. `client-core` 不依赖 `backend-core` 或任何服务端包
 3. `backend-core` 只依赖 `contracts`，不依赖任何服务或宿主包
 4. `server` 只依赖 `contracts`
-5. `runtime-infra` 依赖 `contracts` 和 `server`
-6. 标准服务包（`service-standard`）只依赖 `backend-core` 和 `contracts`，服务包之间不直接依赖
-7. `cli` 和 `web-panel` 只依赖 `client-core` 和 `contracts`，不依赖任何服务端包
-8. 宿主包（`host-local`、`host-distributed`）是最高层组合根，可以依赖所有下游 zone
+5. 标准服务包（`service-standard`）只依赖 `backend-core` 和 `contracts`，服务包之间不直接依赖
+6. `cli` 和 `web-panel` 只依赖 `client-core` 和 `contracts`，不依赖任何服务端包
+7. 宿主包（`host-local`、`host-distributed`）是最高层组合根，可以依赖所有下游 zone
 
 ## 已知例外
 
-### service-knowledge-read 仅保留 runtime-infra 读侧 seam 例外
+### host-local transitional composition
 
-`service-knowledge-read` zone 当前只额外允许依赖 `runtime-infra`，这是一个 **有意为之（intentional）但应持续收缩** 的迁移期决定。
-
-**原因**：知识读取服务（retrieval read model）需要基础设施层的检索/查询能力，包括：
-
-- 检索管道的索引查询适配器（向量召回、关键词召回、图扩展）
-- 读取侧缓存和投影查询的存储实现
-- Graph query backend 的适配连接
-
-这是 CQRS 模式中读侧的典型特征：读侧服务需要访问基础设施层的查询优化能力，而写侧服务只需要通过端口抽象与基础设施交互。当前约束要求这些能力经由 `runtime-infra` 暴露的稳定 seam 进入读侧，而不是由业务源码直接导入 `server` internals。此例外已在 `.fallowrc.json` 的 `service-knowledge-read` zone 规则中显式声明。
-
-2026-07-09 baseline：该例外已不再覆盖 read-side 业务文件对 `server` error taxonomy、graph runtime types 或 retrieval / support default assembly 的直接依赖；这些已分别迁回 `backend-core` `InvocationError`、`runtime-infra` graph seam types 与 `runtime-infra` read-side default seams。`server` 直接导入现在属于回归信号，不再是 zone 级允许项。
+`packages/runtime-infra` 已在 2026-07-25 删除。host-local 可以在自身 composition 中暂时调用 server compatibility helpers；这不是可复用 service package，其他 services 不得通过 concrete import 获得该能力。
 
 ## 使用指南
 
@@ -172,7 +151,7 @@ The coupling audit (Phase 0.6) identified several patterns that violate strict l
 
 ### Category A: Structural Store Pool Seam (Medium Severity)
 
-**Location**: `packages/server/src/lib/store/store-pool.ts`, `packages/runtime-infra/src/store.ts`, `packages/runtime-infra/src/knowledge-read-retrieval-infra.ts`, and the orchestration/runtime callers that consume those seams
+**Location**: `packages/server/src/lib/store/store-pool.ts` and the remaining compatibility orchestration/runtime callers.
 
 **Pattern**: Orchestration/runtime code now uses structural `getStorePool(...)` or `typeof store.getPool === 'function'` seams to extract a `Pool` from the Store interface instead of checking `instanceof PostgresStore`.
 
@@ -186,17 +165,14 @@ The coupling audit (Phase 0.6) identified several patterns that violate strict l
 
 **Location**: `packages/service-knowledge-read/src/` (historically concentrated behind local read-side seam default assembly; now expected to stay on stable seams)
 
-**Pattern**: `service-knowledge-read` historically depended on server internals for parts of the read path. Retrieval-core business files now consume package-local `retrievalInfra` and `knowledgeReadSupportInfra` seams instead of importing recall/scoring/governance/cache/prompt internals directly, and both retrieval/support default assemblies now resolve through `runtime-infra`.
+**Pattern**: `service-knowledge-read` historically depended on server internals for parts of the read path. Its owner-local read path no longer uses the retired shared-infrastructure package; any remaining server compatibility dependency is migration debt, not a zone exception.
 
-**Why intentional**: The CQRS read-side still requires query-time infrastructure seams for retrieval optimization, but that allowance is now limited to `runtime-infra` as the transitional bridge.
+**Why intentional**: The CQRS read-side requires query-time infrastructure seams for retrieval optimization. Those are now owner-local or host-composed; no service may import another service's concrete implementation to obtain them.
 
-**Tech debt**: The coupling grew beyond the original CQRS read-side scope into wholesale duplication of server internals. Earlier closeout batches reduced the deepest retrieval-core and read-side helper imports to local seams, the 2026-07-09 Wave 1 cut removed direct `server` runtime-type/error imports from read-side business files, Wave 2 moved retrieval default assembly to `runtime-infra`, Wave 3 moved support default assembly there, Wave 5 removed the zone-level `server` allowance, Wave 6 made the default retrieval infra getter depend on the compatibility adapter directly instead of the mixed query-port seam, and Wave 7 removed the remaining server runtime barrel cycle. Remaining debt in this category should now be treated as `runtime-infra` seam shrinkage plus the narrower structural pool seam residual.
+**Tech debt**: Earlier closeout batches removed the deepest retrieval-core and read-side helper imports. The remaining task is removal of the compatibility server/store shell, alongside the narrower structural pool seam residual.
 
 **Status**: Known debt, tracked in open-debt register.
-Remaining exception evidence:
-- Why retained now: zone 级 CQRS 例外仍允许 read-side 依赖 `runtime-infra`，以承载 retrieval/support/query-time seams 与 direct-read / projection 类残留的过渡装配
-- Next trigger to re-evaluate: when a new `fallow` baseline shows `runtime-infra` seam 可继续下沉，或 repo-level `PostgresStore instanceof` / pool-access 收口完成
-- Minimum evidence to keep the exception: `rtk rg "@trapmap/server" packages/service-knowledge-read/src -n` 只应命中 `import-boundary.test.ts` 的禁止清单字符串；若出现其他命中，应先作为边界回退处理
+Minimum regression evidence: `rtk rg "@trapmap/server" packages/service-knowledge-read/src -n` should only match import-boundary test deny-list text; any production import is a boundary regression.
 
 ### Category C: Drizzle Schema Imports in Recall Channels (Low Severity)
 

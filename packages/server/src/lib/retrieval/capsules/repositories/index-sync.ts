@@ -18,6 +18,7 @@ import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
+import type { ArtifactIndexingEntry } from '@trapmap/contracts';
 import { generateEmbedding } from '@trapmap/server/lib/embeddings.js';
 import {
   skillArtifactCapsuleEmbeddings,
@@ -51,6 +52,12 @@ export interface SyncRecord {
 export interface SyncResult {
   keyword: SyncRecord[];
   embedding: SyncRecord[];
+}
+
+type CapsuleIndexingArtifact = SkillArtifactRecord | ArtifactIndexingEntry;
+
+function artifactDerived(artifact: CapsuleIndexingArtifact) {
+  return 'latestRevision' in artifact ? artifact.latestRevision.derived : artifact.derived;
 }
 
 // ---------------------------------------------------------------------------
@@ -87,7 +94,7 @@ export function createCapsuleIndexSync(config: CapsuleIndexSyncConfig) {
    */
   async function syncKeywordTokens(
     capsule: DerivedSkillCapsuleRecord,
-    artifact: SkillArtifactRecord,
+    artifact: Pick<CapsuleIndexingArtifact, 'teamId'>,
   ): Promise<SyncRecord> {
     const contentHash = computeCapsuleContentHash(capsule);
 
@@ -202,7 +209,7 @@ export function createCapsuleIndexSync(config: CapsuleIndexSyncConfig) {
    */
   async function syncEmbedding(
     capsule: DerivedSkillCapsuleRecord,
-    artifact: SkillArtifactRecord,
+    artifact: Pick<CapsuleIndexingArtifact, 'teamId'>,
   ): Promise<SyncRecord> {
     const embeddingText = buildCapsuleEmbeddingText(capsule);
     const contentHash = hashCapsuleEmbeddingText(embeddingText);
@@ -280,12 +287,12 @@ export function createCapsuleIndexSync(config: CapsuleIndexSyncConfig) {
    * keyword tokens and embedding vectors for each. Failed capsules are
    * recorded with status='failed' and lastError set.
    */
-  async function syncArtifactCapsules(artifact: SkillArtifactRecord): Promise<SyncResult> {
+  async function syncArtifactCapsules(artifact: CapsuleIndexingArtifact): Promise<SyncResult> {
     if (config.featureFlag && !config.featureFlag()) {
       return { keyword: [], embedding: [] };
     }
 
-    const capsules = artifact.latestRevision.derived?.capsules ?? [];
+    const capsules = artifactDerived(artifact)?.capsules ?? [];
     if (capsules.length === 0) {
       return { keyword: [], embedding: [] };
     }

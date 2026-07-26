@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { GraphIndexRepository } from '@trapmap/server/lib/graph-index/repository.js';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
@@ -10,12 +10,12 @@ import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { createMockEntry } from '@trapmap/server/testing/mock-factories.js';
 import { graphAssistedRecall } from './graph-assisted.js';
 
-function createMockGraphIndexRepo(docs: GraphIndexDocumentRecord[] = []): GraphIndexRepository {
+function createMockGraphIndexRepo(docs: GraphIndexDocumentRecord[] = []): GraphIndexRepositoryPort {
   return {
     async listAll() {
       return docs;
     },
-  } as GraphIndexRepository;
+  } as GraphIndexRepositoryPort;
 }
 
 function makeDoc(
