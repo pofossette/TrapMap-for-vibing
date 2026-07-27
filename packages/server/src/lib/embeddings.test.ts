@@ -4,7 +4,28 @@ import { resolve } from 'node:path';
 import { FallbackEmbeddings } from '@trapmap/ai-providers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { generateEmbedding, getEmbeddingsAdapter, hashEmbeddingText } from './embeddings.js';
+import { hashEmbeddingText } from './embeddings.js';
+
+const SHARED_PROVIDER_ENV_KEYS = [
+  'AI_PROVIDER',
+  'AI_BASE_URL',
+  'AI_API_KEY',
+  'AI_CHAT_MODEL',
+  'AI_EMBEDDING_MODEL',
+  'EMBEDDING_PROVIDER',
+  'EMBEDDING_BASE_URL',
+  'EMBEDDING_API_KEY',
+  'EMBEDDING_MODEL',
+  'OPENAI_API_KEY',
+  'GEMINI_API_KEY',
+  'AI_PROMPT_TEMPLATE_FILE',
+] as const;
+
+function clearSharedProviderEnv(): void {
+  for (const key of SHARED_PROVIDER_ENV_KEYS) {
+    Reflect.deleteProperty(process.env, key);
+  }
+}
 
 describe('embeddings', () => {
   const originalEnv = process.env;
@@ -43,17 +64,19 @@ describe('embeddings', () => {
 
   describe('getEmbeddingsAdapter', () => {
     it('returns fallback adapter when no provider is configured', async () => {
-      process.env.OPENAI_API_KEY = undefined;
+      clearSharedProviderEnv();
+      const { getEmbeddingsAdapter: getFallbackAdapter } = await import('./embeddings.js');
 
-      const adapter = await getEmbeddingsAdapter();
+      const adapter = await getFallbackAdapter();
       expect(adapter.isConfigured).toBe(false);
       expect(adapter.provider).toBe('fallback');
     });
 
     it('fallback adapter returns deterministic vectors', async () => {
-      process.env.OPENAI_API_KEY = undefined;
+      clearSharedProviderEnv();
+      const { getEmbeddingsAdapter: getFallbackAdapter } = await import('./embeddings.js');
 
-      const adapter = await getEmbeddingsAdapter();
+      const adapter = await getFallbackAdapter();
       const text = 'test embedding text';
 
       const embedding1 = await adapter.embed(text);
@@ -64,15 +87,26 @@ describe('embeddings', () => {
     });
 
     it('fallback vectors have consistent magnitude', async () => {
-      process.env.OPENAI_API_KEY = undefined;
+      clearSharedProviderEnv();
+      const { getEmbeddingsAdapter: getFallbackAdapter } = await import('./embeddings.js');
 
-      const adapter = await getEmbeddingsAdapter();
+      const adapter = await getFallbackAdapter();
 
       const embedding = await adapter.embed('some test content');
       const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
 
       // Should be normalized (magnitude close to 1)
       expect(magnitude).toBeCloseTo(1, 2);
+    });
+
+    it('selects the shared configured provider without embedding over the network', async () => {
+      clearSharedProviderEnv();
+      process.env.AI_PROVIDER = 'ollama';
+      const { getEmbeddingsAdapter: getConfiguredAdapter } = await import('./embeddings.js');
+
+      const adapter = await getConfiguredAdapter();
+
+      expect(adapter).toMatchObject({ provider: 'ollama', isConfigured: true });
     });
   });
 
@@ -93,7 +127,7 @@ describe('embeddings', () => {
 
     it('falls back to the shared adapter when the global provider fails', async () => {
       vi.resetModules();
-      process.env = {};
+      clearSharedProviderEnv();
       const { generateEmbedding: generateWithFailingGlobal, setGlobalEmbeddingsProvider } =
         await import('./embeddings.js');
       const expected = await new FallbackEmbeddings().embed('same input');
@@ -109,7 +143,7 @@ describe('embeddings', () => {
 
     it('matches the shared fallback when no global provider is installed', async () => {
       vi.resetModules();
-      process.env = {};
+      clearSharedProviderEnv();
 
       const { generateEmbedding: generateWithResetAdapter } = await import('./embeddings.js');
       const expected = await new FallbackEmbeddings().embed('same input');
@@ -119,9 +153,10 @@ describe('embeddings', () => {
     });
 
     it('returns embedding array for valid text', async () => {
-      process.env.OPENAI_API_KEY = undefined;
+      clearSharedProviderEnv();
+      const { generateEmbedding: generateWithFallback } = await import('./embeddings.js');
 
-      const embedding = await generateEmbedding('test content');
+      const embedding = await generateWithFallback('test content');
       expect(Array.isArray(embedding)).toBe(true);
       expect(embedding.length).toBeGreaterThan(0);
     });
