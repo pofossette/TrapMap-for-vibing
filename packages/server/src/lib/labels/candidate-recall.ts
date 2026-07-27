@@ -11,7 +11,7 @@
  */
 
 import type { LabelAlignmentCandidate } from '@trapmap/contracts';
-import type { EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
+import type { EmbeddingsProvider } from '@trapmap/ai-providers';
 
 import type { LabelRepository } from './repository.js';
 

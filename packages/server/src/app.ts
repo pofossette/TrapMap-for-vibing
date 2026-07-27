@@ -10,10 +10,10 @@ import type {
   RetrievalGovernanceProjection,
 } from '@trapmap/contracts';
 import type { JobRuntimePort } from '@trapmap/backend-core';
+import { createAiProviders } from '@trapmap/ai-providers';
 
 import type { ServerConfig } from './config.js';
 import { loadConfig } from './config.js';
-import { createAiProviders } from './lib/ai/index.js';
 import type { AsyncTransport } from './lib/async/transport.js';
 import type {
   IdentityCompatibilityBundle,

@@ -1,6 +1,6 @@
 import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
 import type { JobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
-import { createAiProviders, type AiProviders } from '@trapmap/server/lib/ai/index.js';
+import { createAiProviders, type AiProviders } from '@trapmap/ai-providers';
 import {
   createMemoryGraphQueryBackend,
   type GraphQueryBackend,

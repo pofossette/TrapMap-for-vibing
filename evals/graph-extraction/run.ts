@@ -193,10 +193,7 @@ export async function performLLMExtraction(
     const { extractSegmentEntities } = await import(
       '../../packages/server/src/lib/indexing/graph-lite/llm-extract.js'
     );
-    const { createAiProviders } = await import('../../packages/server/src/lib/ai/providers.js');
-    const { loadAiProviderConfig } = await import(
-      '../../packages/server/src/lib/ai/provider-config.js'
-    );
+    const { createAiProviders, loadAiProviderConfig } = await import('@trapmap/ai-providers');
 
     const config = loadAiProviderConfig();
     const { chat } = createAiProviders(config);

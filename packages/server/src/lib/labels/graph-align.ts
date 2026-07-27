@@ -8,7 +8,7 @@
 
 import type { LlmGraphNode } from '@trapmap/contracts';
 
-import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
 import type { GraphNodeRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import { normalizeValue } from '@trapmap/server/lib/indexing/graph-lite/llm-extract-ids.js';
 import { alignLabel } from './llm-align.js';

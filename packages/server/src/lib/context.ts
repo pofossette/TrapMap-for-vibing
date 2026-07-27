@@ -22,9 +22,9 @@ import type {
   UserRepositoryPort,
 } from '@trapmap/backend-core';
 import type { FastifyRequest } from 'fastify';
+import type { AiProviders } from '@trapmap/ai-providers';
 
 import type { ServerConfig } from '@trapmap/server/config.js';
-import type { AiProviders } from './ai/types.js';
 import type { UsageAnalyticsRepository } from './analytics/index.js';
 import type { AsyncTransport } from './async/transport.js';
 import type { GraphQueryBackend, GraphQueryRuntimeState } from './graph-query/index.js';

@@ -7,7 +7,7 @@ import {
   buildBoundaryExtractionSystemPrompt,
   buildBoundaryExtractionSystemPromptBlocks,
 } from './ai/prompts.js';
-import type { ChatProvider } from './ai/types.js';
+import type { ChatProvider } from '@trapmap/ai-providers';
 
 /**
  * Input for boundary extraction.

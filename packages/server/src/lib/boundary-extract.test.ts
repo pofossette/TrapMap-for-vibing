@@ -4,7 +4,7 @@ import type { Boundary } from '@trapmap/contracts';
 
 import type { PromptBlock } from './ai/cache/api-integration.js';
 import { buildBoundaryExtractionSystemPrompt } from './ai/prompts.js';
-import type { ChatProvider } from './ai/types.js';
+import type { ChatProvider } from '@trapmap/ai-providers';
 import {
   buildBoundaryWithQualitySystemPrompt,
   extractCandidateBoundaries,

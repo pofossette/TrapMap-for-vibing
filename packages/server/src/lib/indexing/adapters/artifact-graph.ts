@@ -15,7 +15,7 @@
  * T-36-10: Governance metadata inherited from artifact root
  */
 
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider } from '@trapmap/ai-providers';
 import type { ArtifactIndexingEntry, GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import {

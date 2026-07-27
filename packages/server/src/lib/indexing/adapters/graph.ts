@@ -12,7 +12,7 @@
  * Graph payloads remain server-internal and are not exposed through contracts.
  */
 
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider } from '@trapmap/ai-providers';
 import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
 import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';

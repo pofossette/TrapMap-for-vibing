@@ -13,7 +13,7 @@ import {
   buildGraphExtractionPlannerSlots_default,
   buildPrompt,
 } from '@trapmap/server/lib/ai/prompts.js';
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider } from '@trapmap/ai-providers';
 
 import type { LlmExtractionCache } from './llm-cache.js';
 

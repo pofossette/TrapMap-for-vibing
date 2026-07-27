@@ -15,7 +15,7 @@
 import { createHash } from 'node:crypto';
 
 import type { ArtifactIndexingEntry } from '@trapmap/contracts';
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider } from '@trapmap/ai-providers';
 import { createLabelReadProjection } from '@trapmap/server/lib/labels/repository.js';
 import {
   type SkillArtifactRecord,

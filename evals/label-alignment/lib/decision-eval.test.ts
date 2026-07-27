@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider } from '@trapmap/ai-providers';
 
 import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
 import { runLiveDecisionEvaluation } from './decision-eval.js';

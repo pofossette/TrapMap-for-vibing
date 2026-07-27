@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import path from 'node:path';
+import { loadAiProviderConfig } from '@trapmap/ai-providers';
 import { z } from 'zod';
 
-import { loadAiProviderConfig } from './lib/ai/index.js';
 import { GraphDbConfigSchema, loadGraphDbConfig } from './lib/graph-query/index.js';
 import { loadRagLogConfig } from './lib/rag-log.js';
 import {

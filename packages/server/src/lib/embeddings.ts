@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
-
-import type { EmbeddingsProvider } from './ai/types.js';
+import type { EmbeddingsProvider } from '@trapmap/ai-providers';
 
 interface EmbeddingsAdapter {
   provider: string;

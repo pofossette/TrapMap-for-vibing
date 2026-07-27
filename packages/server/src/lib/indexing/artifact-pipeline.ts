@@ -11,7 +11,7 @@
  * rather than writing directly to graph-lite/store.
  */
 
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider } from '@trapmap/ai-providers';
 import type { ArtifactIndexingEntry, GraphIndexRepositoryPort } from '@trapmap/contracts';
 import {
   type SkillArtifactRecord,

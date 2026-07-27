@@ -32,6 +32,7 @@
     "@opentelemetry/sdk-node": "^0.219.0",
     "@opentelemetry/sdk-trace-node": "^2.8.0",
     "@opentelemetry/semantic-conventions": "^1.41.1",
+    "@trapmap/ai-providers": "workspace:*",
     "@trapmap/contracts": "workspace:*",
     "@trapmap/persistence-schema": "workspace:*",
     "amqplib": "^0.10.8",

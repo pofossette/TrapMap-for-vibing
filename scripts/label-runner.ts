@@ -1,4 +1,4 @@
-import { createAiProviders, loadAiProviderConfig } from '@trapmap/server/lib/ai/index.js';
+import { createAiProviders, loadAiProviderConfig } from '@trapmap/ai-providers';
 import { backfillLabels } from '@trapmap/server/lib/labels/backfill.js';
 import { repairGraphDocuments } from '@trapmap/server/lib/labels/merge-repair.js';
 import { createLabelReadProjection } from '@trapmap/server/lib/labels/repository.js';
