@@ -278,7 +278,7 @@ deployment flexibility 最小验证矩阵：
 - [Prompt 缓存](operations/PROMPT_CACHING.md) — 提示缓存策略
 
 ### 包结构
-- [包结构说明](PACKAGES.md) — client-core、backend-core、hosts、cli、server、contracts、skills 各包职责与接口
+- [包结构说明](PACKAGES.md) — client-core、backend-core、ai-providers、hosts、cli、server、contracts、skills 各包职责与接口
 - [包技术选型说明](PACKAGE_STACK_RATIONALE.md) — 解释各包及主要子包为什么选择当前技术栈
 
 ### 归档文档

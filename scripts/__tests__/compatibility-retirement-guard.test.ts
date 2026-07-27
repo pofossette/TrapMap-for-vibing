@@ -544,6 +544,22 @@ describe('compatibility retirement guard', () => {
     expect(violations).toEqual([]);
   });
 
+  it('retires server AI provider compatibility modules and host-local provider imports', () => {
+    for (const retiredPath of [
+      'packages/server/src/lib/ai/types.ts',
+      'packages/server/src/lib/ai/provider-config.ts',
+      'packages/server/src/lib/ai/providers.ts',
+    ]) {
+      expect(existsSync(resolve(repoRoot, retiredPath))).toBe(false);
+    }
+
+    const hostSharedInfra = readFileSync(
+      resolve(repoRoot, 'packages/host-local/src/nest/runtime/shared-infra.ts'),
+      'utf8',
+    );
+    expect(hostSharedInfra).not.toContain('@trapmap/server/lib/ai');
+  });
+
   it('keeps Wave-8 host composition as the sole server factory path for migrated entrypoints', () => {
     for (const file of POSTGRES_COMPOSITION_ENTRYPOINTS) {
       const source = readFileSync(join(repoRoot, file), 'utf8');

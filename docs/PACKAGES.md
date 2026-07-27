@@ -9,6 +9,7 @@
 | `packages/client-core` | `src/index.ts` | 客户端共享 gateway 传输层：HTTP SDK、session contract、error model |
 | `packages/cli` | `src/index.ts` | Commander.js CLI 客户端，用户交互终端入口 |
 | `packages/backend-core` | `src/index.ts` | 宿主无关的后端核心内核、运行时能力模型与端口 |
+| `packages/ai-providers` | `src/index.ts` | 共享 AI provider 配置、provider factory 与 chat/embedding contracts；不得依赖 server compatibility shell。 |
 | `packages/service-identity-access` | `src/index.ts` | identity-access service assembly 与内部路由 |
 | `packages/service-knowledge-read` | `src/index.ts` | knowledge-read service assembly 与检索读侧路由 |
 | `packages/service-knowledge-write` | `src/index.ts` | knowledge-write service assembly 与 authoritative 写路径 |
