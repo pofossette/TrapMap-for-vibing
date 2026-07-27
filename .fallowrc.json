@@ -19,6 +19,12 @@
     "evals/**/*.ts"
   ],
   "ignoreDependencies": ["amqplib", "markdown-link-check"],
+  "usedClassMembers": [
+    {
+      "implements": "EmbeddingsProvider",
+      "members": ["embed"]
+    }
+  ],
   "duplicates": {
     "enabled": true,
     "mode": "mild",

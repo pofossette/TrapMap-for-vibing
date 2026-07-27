@@ -1,6 +1,41 @@
 import type { AiProviderConfig } from './provider-config.js';
 import type { AiPromptBlock, AiProviders, ChatProvider, EmbeddingsProvider } from './types.js';
 
+const FALLBACK_EMBEDDING_DIMENSION = 384;
+
+function addTokenContribution(vector: number[], token: string): void {
+  let hash = 0;
+  for (let index = 0; index < token.length; index++) {
+    hash = (hash * 31 + token.charCodeAt(index)) | 0;
+  }
+  for (let index = 0; index < 6; index++) {
+    const vectorIndex = Math.abs(hash) % FALLBACK_EMBEDDING_DIMENSION;
+    vector[vectorIndex] += index < 3 ? 1 : -0.5;
+    hash = (hash * 1103515245 + 12345) | 0;
+  }
+}
+
+function fillCharacterEmbedding(vector: number[], text: string): void {
+  let seed = 0;
+  for (let index = 0; index < text.length; index++) {
+    seed = (seed * 31 + text.charCodeAt(index)) | 0;
+  }
+  for (let index = 0; index < FALLBACK_EMBEDDING_DIMENSION; index++) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    vector[index] = (seed % 10000) / 5000 - 1;
+  }
+}
+
+function normalizeEmbedding(vector: number[]): number[] {
+  const magnitude = Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0));
+  if (magnitude > 0) {
+    for (let index = 0; index < FALLBACK_EMBEDDING_DIMENSION; index++) {
+      vector[index] /= magnitude;
+    }
+  }
+  return vector;
+}
+
 export class OpenAICompatibleEmbeddings implements EmbeddingsProvider {
   readonly provider: string;
   readonly isConfigured: boolean;
@@ -76,43 +111,19 @@ export class GoogleGenAIEmbeddings implements EmbeddingsProvider {
 export class FallbackEmbeddings implements EmbeddingsProvider {
   readonly provider = 'fallback';
   readonly isConfigured = false;
-  private readonly dimension = 384;
 
   async embed(text: string): Promise<number[]> {
-    const vector = new Array(this.dimension).fill(0);
+    const vector = new Array(FALLBACK_EMBEDDING_DIMENSION).fill(0);
     const normalizedText = text.toLowerCase().trim();
     const tokens = normalizedText.split(/\s+/).filter((token) => token.length > 2);
 
     if (tokens.length > 0) {
-      for (const token of tokens) {
-        let hash = 0;
-        for (let index = 0; index < token.length; index++) {
-          hash = (hash * 31 + token.charCodeAt(index)) | 0;
-        }
-        for (let index = 0; index < 6; index++) {
-          const vectorIndex = Math.abs(hash) % this.dimension;
-          vector[vectorIndex] += index < 3 ? 1 : -0.5;
-          hash = (hash * 1103515245 + 12345) | 0;
-        }
-      }
+      tokens.forEach((token) => addTokenContribution(vector, token));
     } else {
-      let seed = 0;
-      for (let index = 0; index < normalizedText.length; index++) {
-        seed = (seed * 31 + normalizedText.charCodeAt(index)) | 0;
-      }
-      for (let index = 0; index < this.dimension; index++) {
-        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-        vector[index] = (seed % 10000) / 5000 - 1;
-      }
+      fillCharacterEmbedding(vector, normalizedText);
     }
 
-    const magnitude = Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0));
-    if (magnitude > 0) {
-      for (let index = 0; index < this.dimension; index++) {
-        vector[index] /= magnitude;
-      }
-    }
-    return vector;
+    return normalizeEmbedding(vector);
   }
 }
 

@@ -1,3 +1,7 @@
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
+import { FallbackEmbeddings } from '@trapmap/ai-providers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { generateEmbedding, getEmbeddingsAdapter, hashEmbeddingText } from './embeddings.js';
@@ -12,6 +16,14 @@ describe('embeddings', () => {
 
   afterEach(() => {
     process.env = originalEnv;
+  });
+
+  it('delegates provider selection to the shared AI provider package', async () => {
+    const source = await readFile(resolve(import.meta.dirname, 'embeddings.ts'), 'utf8');
+
+    expect(source).toContain("from '@trapmap/ai-providers'");
+    expect(source).not.toContain('class FallbackEmbeddings');
+    expect(source).not.toContain('class OpenAIEmbeddings');
   });
 
   describe('hashEmbeddingText', () => {
@@ -65,6 +77,47 @@ describe('embeddings', () => {
   });
 
   describe('generateEmbedding', () => {
+    it('uses the installed global provider before the shared adapter', async () => {
+      vi.resetModules();
+      process.env = {};
+      const embed = vi.fn().mockResolvedValue([0.1, 0.2, 0.3]);
+      const { generateEmbedding: generateWithGlobal, setGlobalEmbeddingsProvider } = await import(
+        './embeddings.js'
+      );
+
+      setGlobalEmbeddingsProvider({ provider: 'global', isConfigured: true, embed });
+
+      await expect(generateWithGlobal('same input')).resolves.toEqual([0.1, 0.2, 0.3]);
+      expect(embed).toHaveBeenCalledWith('same input');
+    });
+
+    it('falls back to the shared adapter when the global provider fails', async () => {
+      vi.resetModules();
+      process.env = {};
+      const { generateEmbedding: generateWithFailingGlobal, setGlobalEmbeddingsProvider } =
+        await import('./embeddings.js');
+      const expected = await new FallbackEmbeddings().embed('same input');
+
+      setGlobalEmbeddingsProvider({
+        provider: 'global',
+        isConfigured: true,
+        embed: vi.fn().mockRejectedValue(new Error('provider unavailable')),
+      });
+
+      await expect(generateWithFailingGlobal('same input')).resolves.toEqual(expected);
+    });
+
+    it('matches the shared fallback when no global provider is installed', async () => {
+      vi.resetModules();
+      process.env = {};
+
+      const { generateEmbedding: generateWithResetAdapter } = await import('./embeddings.js');
+      const expected = await new FallbackEmbeddings().embed('same input');
+
+      await expect(generateWithResetAdapter('same input')).resolves.toEqual(expected);
+      expect(Math.sqrt(expected.reduce((sum, value) => sum + value * value, 0))).toBeCloseTo(1, 5);
+    });
+
     it('returns embedding array for valid text', async () => {
       process.env.OPENAI_API_KEY = undefined;
 

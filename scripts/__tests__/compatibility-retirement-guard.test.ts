@@ -549,6 +549,7 @@ describe('compatibility retirement guard', () => {
       'packages/server/src/lib/ai/types.ts',
       'packages/server/src/lib/ai/provider-config.ts',
       'packages/server/src/lib/ai/providers.ts',
+      'packages/host-local/src/nest/config/ai-provider-config.ts',
     ]) {
       expect(existsSync(resolve(repoRoot, retiredPath))).toBe(false);
     }
