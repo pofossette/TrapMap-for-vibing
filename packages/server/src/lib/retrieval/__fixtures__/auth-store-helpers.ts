@@ -7,14 +7,15 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import type { Permission, RoleTemplate } from '@trapmap/contracts';
-
-import { buildServer } from '@trapmap/server/app.js';
 import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-} from '@trapmap/server/lib/indexing/graph-lite/index.js';
+  Permission,
+  RoleTemplate,
+} from '@trapmap/contracts';
+
+import { buildServer } from '@trapmap/server/app.js';
 import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
 import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';

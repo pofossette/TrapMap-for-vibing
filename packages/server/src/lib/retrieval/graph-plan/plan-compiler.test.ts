@@ -4,14 +4,17 @@
  * into a minimal typed graph with blockers surfaced first.
  */
 
-import type { PlanQuery, TrapFirstPlan } from '@trapmap/contracts';
+import {
+  buildGraphRuntimeSnapshot,
+  buildLocalExpansionView,
+  type GraphIndexDocumentRecord,
+  type GraphQueryBackend,
+  type PlanQuery,
+  type TrapFirstPlan,
+} from '@trapmap/contracts';
 import { resetRetrievalReadModelCacheForTests } from '@trapmap/server/lib/cache/retrieval-read-model-cache.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
-import type {
-  GraphEdgeRecord,
-  GraphIndexDocumentRecord,
-  GraphNodeRecord,
-} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import type { GraphEdgeRecord, GraphNodeRecord } from '@trapmap/contracts';
 import { buildDeployClusterDataset } from '@trapmap/server/lib/retrieval/__fixtures__/graph-fixtures.js';
 import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -369,6 +372,66 @@ function makeMockServices(storeData: Partial<StoreData> = {}): SkillShareerServi
         listByFilter: async () => data.skillArtifacts ?? [],
       },
     } as any,
+    graphQueryBackend: createGraphQueryBackend(data.graphIndexDocuments ?? []),
+  };
+}
+
+function createGraphQueryBackend(documents: GraphIndexDocumentRecord[]): GraphQueryBackend {
+  const runtime = () => buildGraphRuntimeSnapshot(documents);
+  return {
+    kind: 'memory',
+    isEnabled: () => true,
+    getRuntimeState: () => ({ mode: 'enabled-primary', backendKind: 'memory', failOpen: false }),
+    healthcheck: async () => ({ ok: true, mode: 'enabled-primary' }),
+    upsertDocument: async () => {},
+    removeSource: async () => {},
+    rebuildProjection: async () => {},
+    expandSourcesOneHop: async () => new Set(),
+    calculateSourceRelationStrength: async () => 0,
+    getSourceNodeIds: async (sourceIds) => {
+      const result = new Map<string, Set<string>>();
+      for (const sourceId of sourceIds) {
+        const nodeIds = runtime().nodeIdsBySourceId.get(sourceId);
+        if (nodeIds) result.set(sourceId, new Set(nodeIds));
+      }
+      return result;
+    },
+    buildLocalExpansionView: async ({ seedNodeIds, maxDepth, auth }) => {
+      const allowedDocuments = documents.filter(
+        (document) =>
+          document.requiredLevel <= auth.securityLevel &&
+          (auth.teamId === null || document.teamId === null || document.teamId === auth.teamId),
+      );
+      const graph = buildLocalExpansionView({
+        documents: allowedDocuments,
+        seedNodeIds,
+        maxDepth,
+      });
+      const nodeViewsById = new Map();
+      const nodeIdsBySourceId = new Map<string, Set<string>>();
+      for (const document of allowedDocuments) {
+        for (const node of document.nodes) {
+          if (!graph.hasNode(node.id)) continue;
+          nodeViewsById.set(node.id, {
+            sourceId: document.sourceId,
+            sourceType: document.sourceType,
+            teamId: document.teamId,
+            scope: document.scope,
+            requiredLevel: document.requiredLevel,
+            documentEvidence: document.evidence,
+            node,
+          });
+          const nodeIds = nodeIdsBySourceId.get(document.sourceId) ?? new Set<string>();
+          nodeIds.add(node.id);
+          nodeIdsBySourceId.set(document.sourceId, nodeIds);
+        }
+      }
+      return { graph, nodeViewsById, nodeIdsBySourceId };
+    },
+    findMitigatingSkills: async (trapNodeIds) =>
+      trapNodeIds.flatMap((nodeId) => [
+        ...(runtime().mitigatingSkillNodeIdsByTrapNodeId.get(nodeId) ?? []),
+      ]),
   };
 }
 

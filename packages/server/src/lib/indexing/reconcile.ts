@@ -16,12 +16,13 @@ import type {
   ArtifactIndexingEntry,
   ArtifactReadProjection,
   GraphIndexRepositoryPort,
+  GraphIndexDocumentRecord,
+  GraphQueryBackend,
   KnowledgeIndexingEntry,
   KnowledgeOwnerPort,
+  assertNoHardDependencyCycles,
 } from '@trapmap/contracts';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import { buildTrapGraphDocument } from './adapters/graph-builders.js';
-import { type GraphIndexDocumentRecord, assertNoHardDependencyCycles } from './graph-lite/index.js';
 import { normalizeKnowledgeIndexDocument } from './normalize.js';
 import { buildSkillGraphDocument } from './skill-events.js';
 

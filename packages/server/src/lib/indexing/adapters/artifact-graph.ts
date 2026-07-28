@@ -16,14 +16,17 @@
  */
 
 import type { ChatProvider } from '@trapmap/ai-providers';
-import type { ArtifactIndexingEntry, GraphIndexRepositoryPort } from '@trapmap/contracts';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
+import type {
+  ArtifactIndexingEntry,
+  GraphIndexRepositoryPort,
+  GraphQueryBackend,
+} from '@trapmap/contracts';
 import {
-  assertNoHardDependencyCycles,
   getGraphIndexDocuments,
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,
 } from '@trapmap/server/lib/indexing/graph-lite/index.js';
+import { assertNoHardDependencyCycles } from '@trapmap/contracts';
 import { buildSkillGraphDocument } from '@trapmap/server/lib/indexing/skill-graph-build.js';
 import type { SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
 

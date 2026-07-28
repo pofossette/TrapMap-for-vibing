@@ -5,14 +5,15 @@
  * pre-built datasets for testing graph-skill orchestration at realistic scale.
  */
 
-import { createRetrievalKnowledgeFixture, type Scope } from '@trapmap/contracts';
+import {
+  createRetrievalKnowledgeFixture,
+  type GraphEdgeRecord,
+  type GraphIndexDocumentRecord,
+  type GraphNodeRecord,
+  type Scope,
+} from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
-import type {
-  GraphEdgeRecord,
-  GraphIndexDocumentRecord,
-  GraphNodeRecord,
-} from '@trapmap/server/lib/indexing/graph-lite/index.js';
 import { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import type { KnowledgeRecord, SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
 

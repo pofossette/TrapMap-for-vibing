@@ -1,9 +1,10 @@
-import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
-import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import {
   buildGraphRuntimeSnapshot,
+  calculateSourceRelationStrength,
   expandSourcesOneHop,
-} from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
+  type GraphIndexDocumentRecord,
+  type GraphQueryBackend,
+} from '@trapmap/contracts';
 import { createCapsuleGraphChannel } from '@trapmap/server/lib/retrieval/capsules/index.js';
 import { normalizeQueryGraphLabels } from '@trapmap/server/lib/retrieval/recall/query-graph-labels.js';
 import type {
@@ -133,15 +134,42 @@ function makeGraphDoc(
 
 function createMockGraphIndexRepository(
   docs: ReturnType<typeof makeGraphDoc>[],
-): GraphIndexRepositoryPort {
+): GraphQueryBackend {
+  const runtime = () => buildGraphRuntimeSnapshot(docs);
   return {
-    insert: () => Promise.resolve(),
-    getById: () => Promise.resolve(null),
-    listBySource: () => Promise.resolve([]),
-    listAll: () => Promise.resolve(docs),
-    upsert: () => Promise.resolve(),
-    remove: () => Promise.resolve(),
-    removeBySource: () => Promise.resolve(),
+    kind: 'memory',
+    isEnabled: () => true,
+    getRuntimeState: () => ({ mode: 'enabled-primary', backendKind: 'memory', failOpen: false }),
+    healthcheck: async () => ({ ok: true, mode: 'enabled-primary' }),
+    upsertDocument: async () => {},
+    removeSource: async () => {},
+    rebuildProjection: async () => {},
+    expandSourcesOneHop: async ({ queryLabels, eligibleSourceIds }) => {
+      const sourceIds = expandSourcesOneHop(runtime(), queryLabels);
+      return eligibleSourceIds
+        ? new Set([...sourceIds].filter((sourceId) => eligibleSourceIds.has(sourceId)))
+        : sourceIds;
+    },
+    calculateSourceRelationStrength: async ({ sourceId, queryLabels }) =>
+      calculateSourceRelationStrength(runtime(), sourceId, queryLabels),
+    getSourceNodeIds: async (sourceIds) => {
+      const result = new Map<string, Set<string>>();
+      const nodeIdsBySourceId = runtime().nodeIdsBySourceId;
+      for (const sourceId of sourceIds) {
+        const nodeIds = nodeIdsBySourceId.get(sourceId);
+        if (nodeIds) result.set(sourceId, new Set(nodeIds));
+      }
+      return result;
+    },
+    buildLocalExpansionView: async () => ({
+      graph: {} as never,
+      nodeViewsById: new Map(),
+      nodeIdsBySourceId: new Map(),
+    }),
+    findMitigatingSkills: async (trapNodeIds) =>
+      trapNodeIds.flatMap((nodeId) => [
+        ...(runtime().mitigatingSkillNodeIdsByTrapNodeId.get(nodeId) ?? []),
+      ]),
   };
 }
 

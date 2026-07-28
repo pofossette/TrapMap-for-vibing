@@ -17,11 +17,7 @@
  * entries can never appear in results.
  */
 
-import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
-import {
-  type GraphQueryBackend,
-  createMemoryGraphQueryBackend,
-} from '@trapmap/server/lib/graph-query/index.js';
+import type { GraphQueryBackend } from '@trapmap/contracts';
 import type { RetrievalRecallChannel } from '@trapmap/server/lib/retrieval/orchestration/index.js';
 import type { RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
@@ -69,7 +65,6 @@ function extractQueryEntities(queryText: string): Set<string> {
 
 interface GraphAssistedRecallConfig extends GraphScoringConfig {
   graphQueryBackend?: GraphQueryBackend;
-  graphIndexRepo?: GraphIndexRepositoryPort;
 }
 
 export async function graphAssistedRecall(
@@ -151,10 +146,6 @@ export async function graphAssistedRecall(
 function resolveGraphBackend(config?: GraphAssistedRecallConfig): GraphQueryBackend | undefined {
   if (config?.graphQueryBackend) {
     return config.graphQueryBackend;
-  }
-
-  if (config?.graphIndexRepo) {
-    return createMemoryGraphQueryBackend(config.graphIndexRepo);
   }
 
   return undefined;

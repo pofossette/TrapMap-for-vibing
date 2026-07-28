@@ -6,6 +6,8 @@ import type {
   ArtifactReadProjection,
   ConflictRelation,
   GraphIndexRepositoryPort,
+  GraphQueryBackend,
+  GraphQueryRuntimeState,
   KnowledgeOwnerPort,
   RetrievalGovernanceProjection,
 } from '@trapmap/contracts';
@@ -22,7 +24,6 @@ import type {
   SkillShareerServices,
 } from './lib/context.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
-import { type GraphQueryBackend, createGraphQueryRuntimeState } from './lib/graph-query/index.js';
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
 import { LifecycleEventBus } from './lib/lifecycle/index.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';
@@ -69,6 +70,8 @@ export interface BuildServerOptions {
     ConflictRelation
   >;
   graphIndex?: GraphIndexRepositoryPort;
+  graphQueryBackend?: GraphQueryBackend;
+  graphQuery?: GraphQueryRuntimeState;
   jobRuntime?: Pick<JobRuntimePort, 'schedule'>;
   asyncTransport?: AsyncTransport;
   outboxWorkerFactory?: OutboxWorkerFactory;
@@ -213,8 +216,13 @@ export function buildServer(options: BuildServerOptions = {}) {
     // usageAnalyticsRepo is set in bootstrapRepositories when PostgreSQL pool is available
     usageAnalyticsRepo: undefined,
     repos: {} as SkillShareerServices['repos'],
-    graphQueryBackend: {} as GraphQueryBackend,
-    graphQuery: createGraphQueryRuntimeState(config.graphDb),
+    ...(options.graphQueryBackend ? { graphQueryBackend: options.graphQueryBackend } : {}),
+    graphQuery: options.graphQuery ??
+      options.graphQueryBackend?.getRuntimeState() ?? {
+        mode: 'disabled',
+        backendKind: 'memory',
+        failOpen: config.graphDb.failOpen,
+      },
     eventBus: new LifecycleEventBus(),
     ...(options.asyncTransport ? { asyncTransport: options.asyncTransport } : {}),
     ...(options.jobRuntime ? { jobRuntime: options.jobRuntime } : {}),

@@ -12,7 +12,7 @@
 
 import type { ChatProvider } from '@trapmap/ai-providers';
 import type { GraphIndexRepositoryPort, KnowledgeOwnerPort } from '@trapmap/contracts';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
+import type { GraphQueryBackend } from '@trapmap/contracts';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { graphIndexAdapter } from './adapters/graph.js';

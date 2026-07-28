@@ -12,7 +12,7 @@ import {
   normalizeContextLabel,
   normalizePackageName,
 } from '@trapmap/server/lib/indexing/boundary-normalize.js';
-import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/index.js';
+import type { GraphIndexDocumentRecord } from '@trapmap/contracts';
 
 /**
  * Constraint for back-reference queries.

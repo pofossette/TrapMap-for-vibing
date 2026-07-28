@@ -3,8 +3,7 @@
  * Filters graph edges to only include plan-relevant edge types between plan nodes.
  */
 
-import type { PlanEdge, PlanSkillNode, PlanTrapNode } from '@trapmap/contracts';
-import type { Graph } from '@trapmap/server/lib/indexing/graph-lite/index.js';
+import type { Graph, PlanEdge, PlanSkillNode, PlanTrapNode } from '@trapmap/contracts';
 
 /**
  * Build plan edges from graph edges.

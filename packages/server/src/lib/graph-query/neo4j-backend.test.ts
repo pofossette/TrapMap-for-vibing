@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
-import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import type { GraphIndexDocumentRecord, GraphIndexRepositoryPort } from '@trapmap/contracts';
 import { nowIso } from '@trapmap/server/lib/store.js';
 
 import { Neo4jGraphQueryBackend } from './neo4j-backend.js';

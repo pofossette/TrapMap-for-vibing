@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { GraphQueryBackend } from './backend.js';
+import type { GraphQueryBackend } from '@trapmap/contracts';
 import { createFailOpenGraphQueryBackend } from './health.js';
 
 function createBackend(
