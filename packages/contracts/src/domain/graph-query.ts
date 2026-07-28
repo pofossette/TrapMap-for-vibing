@@ -1,10 +1,36 @@
-import type { GraphEdgeRecord, GraphIndexDocumentRecord } from '@trapmap/contracts';
 import Graphology from 'graphology';
 import { hasCycle } from 'graphology-dag';
 import { subgraph } from 'graphology-operators';
 import { singleSourceLength } from 'graphology-shortest-path';
+import type { Boundary, ExclusionRule, VersionConstraint } from './boundary.js';
+import type { Scope } from './common.js';
+import type { GraphEdgeRecord, GraphIndexDocumentRecord, GraphNodeRecord } from './graph-index.js';
 
-import { buildContextNodeId } from './boundary-normalize.js';
+export type GraphQueryBackendKind = 'memory' | 'neo4j';
+export type GraphQueryMode = 'disabled' | 'enabled-primary' | 'enabled-fallback';
+
+export interface GraphQueryBackendHealth {
+  ok: boolean;
+  mode: GraphQueryMode;
+  detail?: string;
+}
+
+export interface GraphQueryRuntimeState {
+  mode: GraphQueryMode;
+  backendKind: GraphQueryBackendKind;
+  failOpen: boolean;
+  detail?: string;
+}
+
+export interface GraphQueryNodeView {
+  sourceId: string;
+  sourceType: GraphIndexDocumentRecord['sourceType'];
+  teamId: string | null;
+  scope: Scope;
+  requiredLevel: number;
+  documentEvidence: string;
+  node: GraphNodeRecord;
+}
 
 type GraphNodeAttributes = { kind?: string; label?: string };
 type GraphEdgeAttributes = {
@@ -44,6 +70,37 @@ export interface Graph {
       targetNodeId: string,
     ) => void,
   ): void;
+}
+
+export interface GraphQueryExpansionView {
+  graph: Graph;
+  nodeViewsById: Map<string, GraphQueryNodeView>;
+  nodeIdsBySourceId: Map<string, Set<string>>;
+}
+
+export interface GraphQueryBackend {
+  readonly kind: GraphQueryBackendKind;
+  isEnabled(): boolean;
+  getRuntimeState(): GraphQueryRuntimeState;
+  healthcheck(): Promise<GraphQueryBackendHealth>;
+  upsertDocument(document: GraphIndexDocumentRecord): Promise<void>;
+  removeSource(sourceType: 'trap' | 'skill', sourceId: string): Promise<void>;
+  rebuildProjection(documents: GraphIndexDocumentRecord[]): Promise<void>;
+  expandSourcesOneHop(params: {
+    queryLabels: Set<string>;
+    eligibleSourceIds?: Set<string>;
+  }): Promise<Set<string>>;
+  calculateSourceRelationStrength(params: {
+    sourceId: string;
+    queryLabels: Set<string>;
+  }): Promise<number>;
+  getSourceNodeIds(sourceIds: string[]): Promise<Map<string, Set<string>>>;
+  buildLocalExpansionView(params: {
+    seedNodeIds: string[];
+    maxDepth: number;
+    auth: { teamId: string | null; securityLevel: number };
+  }): Promise<GraphQueryExpansionView>;
+  findMitigatingSkills(trapNodeIds: string[]): Promise<string[]>;
 }
 
 const GraphCtor = Graphology as unknown as new (options?: {
@@ -139,12 +196,9 @@ export function expandSourcesOneHop(
   const sources = new Set<string>();
   const seedNodeIds = new Set<string>();
   for (const label of queryLabels) {
-    for (const sourceId of runtime.sourceIdsByNormalizedLabel.get(label) ?? []) {
+    for (const sourceId of runtime.sourceIdsByNormalizedLabel.get(label) ?? [])
       sources.add(sourceId);
-    }
-    for (const nodeId of runtime.nodeIdsByNormalizedLabel.get(label) ?? []) {
-      seedNodeIds.add(nodeId);
-    }
+    for (const nodeId of runtime.nodeIdsByNormalizedLabel.get(label) ?? []) seedNodeIds.add(nodeId);
   }
   for (const seedNodeId of seedNodeIds) {
     for (const neighborNodeId of runtime.graph.neighbors(seedNodeId)) {
@@ -232,6 +286,82 @@ export function buildLocalExpansionView(params: LocalExpansionParams): Graph {
     }
   }
   return subgraph(graph as never, reachableNodeIds) as Graph;
+}
+
+export function normalizeContextLabel(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .slice(0, 64);
+}
+
+export function normalizePackageName(name: string): string {
+  return name.toLowerCase().trim();
+}
+
+export function buildVersionNodeId(constraint: VersionConstraint): string {
+  return `boundary-version:${normalizePackageName(constraint.package)}@${constraint.range}`;
+}
+
+export function buildContextNodeId(label: string): string {
+  return `boundary-context:${normalizeContextLabel(label)}`;
+}
+
+export function buildPlatformNodeId(name: string): string {
+  return `boundary-platform:${normalizeContextLabel(name)}`;
+}
+
+const COMMON_PLATFORMS = [
+  'linux',
+  'windows',
+  'macos',
+  'darwin',
+  'docker',
+  'kubernetes',
+  'k8s',
+  'aws',
+  'azure',
+  'gcp',
+  'ci',
+  'cd',
+  'localhost',
+] as const;
+
+export function extractPlatformsFromExclusions(exclusions: ExclusionRule[]): string[] {
+  const platforms: string[] = [];
+  for (const exclusion of exclusions) {
+    if (exclusion.kind === 'platform') {
+      const description = exclusion.description.toLowerCase();
+      for (const platform of COMMON_PLATFORMS) {
+        if (description.includes(platform)) platforms.push(platform);
+      }
+    }
+  }
+  return [...new Set(platforms)];
+}
+
+export interface BoundaryFacetIndex {
+  contexts: string[];
+  packages: string[];
+  platforms: string[];
+  versionConstraints: string[];
+}
+
+export function buildBoundaryFacetIndex(boundary: Boundary | null): BoundaryFacetIndex {
+  if (!boundary) return { contexts: [], packages: [], platforms: [], versionConstraints: [] };
+  const contexts = boundary.context.map(normalizeContextLabel);
+  const packages = boundary.versions.map((version) => normalizePackageName(version.package));
+  const platforms = extractPlatformsFromExclusions(boundary.exclusions);
+  const versionConstraints = boundary.versions.map(
+    (version) => `${normalizePackageName(version.package)}@${version.range}`,
+  );
+  return {
+    contexts: [...new Set(contexts)],
+    packages: [...new Set(packages)],
+    platforms: [...new Set(platforms)],
+    versionConstraints: [...new Set(versionConstraints)],
+  };
 }
 
 export function findEntriesByContext(

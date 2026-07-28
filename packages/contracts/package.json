@@ -17,10 +17,14 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run",
+    "test": "pnpm -C ../.. exec vitest run --project contracts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "graphology": "^0.26.0",
+    "graphology-dag": "^0.4.1",
+    "graphology-operators": "^1.6.1",
+    "graphology-shortest-path": "^2.1.0",
     "gray-matter": "^4.0.3",
     "mime-types": "^3.0.2",
     "zod": "^4.1.12"

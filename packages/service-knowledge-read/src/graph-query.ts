@@ -1,75 +1,19 @@
 import type {
   GraphIndexDocumentRecord,
   GraphIndexRepositoryPort,
-  GraphNodeRecord,
+  GraphQueryBackend,
+  GraphQueryExpansionView,
+  GraphQueryNodeView,
+  GraphQueryRuntimeState,
 } from '@trapmap/contracts';
-
 import {
-  type Graph,
   buildGraphRuntimeSnapshot,
   buildLocalExpansionView as buildGraphologyLocalExpansionView,
   calculateSourceRelationStrength,
   expandSourcesOneHop,
-} from './graphology.js';
+} from '@trapmap/contracts';
 
-export type GraphQueryBackendKind = 'memory' | 'neo4j';
-export type GraphQueryMode = 'disabled' | 'enabled-primary' | 'enabled-fallback';
-
-export interface GraphQueryBackendHealth {
-  ok: boolean;
-  mode: GraphQueryMode;
-  detail?: string;
-}
-
-export interface GraphQueryRuntimeState {
-  mode: GraphQueryMode;
-  backendKind: GraphQueryBackendKind;
-  failOpen: boolean;
-  detail?: string;
-}
-
-export interface GraphQueryNodeView {
-  sourceId: string;
-  sourceType: GraphIndexDocumentRecord['sourceType'];
-  teamId: string | null;
-  scope: GraphIndexDocumentRecord['scope'];
-  requiredLevel: number;
-  documentEvidence: string;
-  node: GraphNodeRecord;
-}
-
-export interface GraphQueryExpansionView {
-  graph: Graph;
-  nodeViewsById: Map<string, GraphQueryNodeView>;
-  nodeIdsBySourceId: Map<string, Set<string>>;
-}
-
-export interface GraphQueryBackend {
-  readonly kind: GraphQueryBackendKind;
-  isEnabled(): boolean;
-  getRuntimeState(): GraphQueryRuntimeState;
-  healthcheck(): Promise<GraphQueryBackendHealth>;
-  upsertDocument(document: GraphIndexDocumentRecord): Promise<void>;
-  removeSource(sourceType: 'trap' | 'skill', sourceId: string): Promise<void>;
-  rebuildProjection(documents: GraphIndexDocumentRecord[]): Promise<void>;
-  expandSourcesOneHop(params: {
-    queryLabels: Set<string>;
-    eligibleSourceIds?: Set<string>;
-  }): Promise<Set<string>>;
-  calculateSourceRelationStrength(params: {
-    sourceId: string;
-    queryLabels: Set<string>;
-  }): Promise<number>;
-  getSourceNodeIds(sourceIds: string[]): Promise<Map<string, Set<string>>>;
-  buildLocalExpansionView(params: {
-    seedNodeIds: string[];
-    maxDepth: number;
-    auth: { teamId: string | null; securityLevel: number };
-  }): Promise<GraphQueryExpansionView>;
-  findMitigatingSkills(trapNodeIds: string[]): Promise<string[]>;
-}
-
-class MemoryGraphQueryBackend implements GraphQueryBackend {
+export class MemoryGraphQueryBackend implements GraphQueryBackend {
   readonly kind = 'memory' as const;
 
   constructor(private readonly graphIndexRepo: GraphIndexRepositoryPort) {}
@@ -191,11 +135,14 @@ class MemoryGraphQueryBackend implements GraphQueryBackend {
 
 export function createMemoryGraphQueryBackend(
   graphIndexRepo: GraphIndexRepositoryPort,
-): GraphQueryBackend {
+): MemoryGraphQueryBackend {
   return new MemoryGraphQueryBackend(graphIndexRepo);
 }
 
-function isCanonicalOwner(document: GraphIndexDocumentRecord, node: GraphNodeRecord): boolean {
+function isCanonicalOwner(
+  document: GraphIndexDocumentRecord,
+  node: GraphQueryNodeView['node'],
+): boolean {
   return (
     (node.kind === 'trap' &&
       document.sourceType === 'trap' &&

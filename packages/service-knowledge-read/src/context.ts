@@ -4,14 +4,15 @@ import type {
   ConflictHint,
   ConflictRelation,
   FreshnessDecayConfig,
+  GraphQueryBackend,
+  GraphQueryRuntimeState,
   Permission,
-  type RetrievalGovernanceProjection,
-  type RetrievalReadModelRepositories,
+  RetrievalGovernanceProjection,
   RetrievalQuery,
+  RetrievalReadModelRepositories,
 } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
-import type { GraphQueryBackend, GraphQueryRuntimeState } from './graph-query.js';
 import type { RagLogConfig } from './rag-log.js';
 import type {
   ChannelRegistry as KnowledgeReadChannelRegistry,

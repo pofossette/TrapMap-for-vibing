@@ -64,6 +64,14 @@ export default defineConfig({
             },
           },
         },
+        resolve: {
+          alias: [
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+          ],
+        },
       },
       {
         test: {
