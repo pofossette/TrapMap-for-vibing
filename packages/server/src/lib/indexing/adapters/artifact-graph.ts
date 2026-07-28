@@ -17,11 +17,9 @@
 
 import type { ChatProvider } from '@trapmap/ai-providers';
 import type { ArtifactIndexingEntry, GraphIndexRepositoryPort } from '@trapmap/contracts';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import {
   assertNoHardDependencyCycles,
-  type GraphQueryBackend,
-} from '@trapmap/service-knowledge-read';
-import {
   getGraphIndexDocuments,
   removeGraphIndexDocumentsForSource,
   upsertGraphIndexDocument,

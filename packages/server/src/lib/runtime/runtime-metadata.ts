@@ -1,6 +1,6 @@
 import type { AsyncWorkerDependencyState } from '@trapmap/contracts';
 import type { ServerConfig } from '@trapmap/server/config.js';
-import type { GraphQueryRuntimeState } from '@trapmap/service-knowledge-read';
+import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/index.js';
 import type { OutboxStatusSnapshot } from '@trapmap/server/lib/lifecycle/index.js';
 import type { TaskQueueStatusSnapshot } from '@trapmap/server/lib/queue/task-queue.js';
 import type { ResolvedRuntimeDeployment } from './deployment-profile.js';

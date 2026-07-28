@@ -6,7 +6,10 @@
  * This module reuses the same candidate recall and alignment pipeline.
  */
 
-import type { GraphIndexDocumentRecord, GraphNodeRecord } from '@trapmap/contracts';
+import type {
+  GraphIndexDocumentRecord,
+  GraphNodeRecord,
+} from '@trapmap/server/lib/indexing/graph-lite/index.js';
 
 import type { LabelRepository } from './repository.js';
 

@@ -1,6 +1,9 @@
 import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
-import { buildGraphRuntimeSnapshot, expandSourcesOneHop } from '@trapmap/service-knowledge-read';
-import type { GraphIndexDocumentRecord } from '@trapmap/contracts';
+import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import {
+  buildGraphRuntimeSnapshot,
+  expandSourcesOneHop,
+} from '@trapmap/server/lib/indexing/graph-lite/graphology.js';
 import { createCapsuleGraphChannel } from '@trapmap/server/lib/retrieval/capsules/index.js';
 import { normalizeQueryGraphLabels } from '@trapmap/server/lib/retrieval/recall/query-graph-labels.js';
 import type {

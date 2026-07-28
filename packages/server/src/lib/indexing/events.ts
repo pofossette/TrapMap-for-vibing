@@ -15,7 +15,7 @@ import type {
   LifecycleState,
 } from '@trapmap/contracts';
 import type { ChatProvider } from '@trapmap/ai-providers';
-import type { GraphQueryBackend } from '@trapmap/service-knowledge-read';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { syncKnowledgeIndexFromOwner } from './pipeline.js';
 import type { AdapterRegistry } from './registry.js';

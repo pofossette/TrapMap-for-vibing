@@ -4,7 +4,7 @@
  */
 
 import type { PlanSkillNode } from '@trapmap/contracts';
-import type { GraphQueryExpansionView } from '@trapmap/service-knowledge-read';
+import type { GraphQueryExpansionView } from '@trapmap/server/lib/graph-query/index.js';
 import type { CapsuleCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 

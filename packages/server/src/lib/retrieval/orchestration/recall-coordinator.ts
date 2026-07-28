@@ -9,7 +9,7 @@ import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
 import { DEFAULT_FRESHNESS_CONFIG } from '@trapmap/server/lib/decay/index.js';
 import { AppError } from '@trapmap/server/lib/errors.js';
-import type { GraphQueryRuntimeState } from '@trapmap/service-knowledge-read';
+import type { GraphQueryRuntimeState } from '@trapmap/server/lib/graph-query/index.js';
 import { vectorSimilaritySearch } from '@trapmap/server/lib/retrieval/recall/db-search.js';
 import { graphAssistedRecall as graphRecall } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
 import { keywordRecall, normalizeQuery } from '@trapmap/server/lib/retrieval/recall/keyword.js';

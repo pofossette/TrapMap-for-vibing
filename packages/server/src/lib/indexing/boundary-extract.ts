@@ -15,8 +15,12 @@ import {
   buildPlatformNodeId,
   buildVersionNodeId,
   extractPlatformsFromExclusions,
-} from '@trapmap/service-knowledge-read';
-import type { GraphNodeKind, GraphRelationStrength, GraphRelationType } from '@trapmap/contracts';
+} from './boundary-normalize.js';
+import type {
+  GraphNodeKind,
+  GraphRelationStrength,
+  GraphRelationType,
+} from './graph-lite/index.js';
 
 /**
  * Extracted boundary graph node.

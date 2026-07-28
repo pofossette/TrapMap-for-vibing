@@ -4,8 +4,8 @@
  */
 
 import type { PlanTrapNode } from '@trapmap/contracts';
-import type { GraphQueryExpansionView } from '@trapmap/service-knowledge-read';
 import type { ResolvedAuthContext } from '@trapmap/server/lib/context.js';
+import type { GraphQueryExpansionView } from '@trapmap/server/lib/graph-query/index.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 
 /**

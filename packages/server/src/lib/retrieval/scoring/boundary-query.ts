@@ -8,8 +8,11 @@
  * All functions are pure (no side effects, no I/O).
  */
 
-import { normalizeContextLabel, normalizePackageName } from '@trapmap/service-knowledge-read';
-import type { GraphIndexDocumentRecord } from '@trapmap/contracts';
+import {
+  normalizeContextLabel,
+  normalizePackageName,
+} from '@trapmap/server/lib/indexing/boundary-normalize.js';
+import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/index.js';
 
 /**
  * Constraint for back-reference queries.

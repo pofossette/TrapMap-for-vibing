@@ -22,8 +22,7 @@ import type {
   SkillShareerServices,
 } from './lib/context.js';
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
-import type { GraphQueryBackend } from '@trapmap/service-knowledge-read';
-import { createGraphQueryRuntimeState } from './lib/graph-query/index.js';
+import { type GraphQueryBackend, createGraphQueryRuntimeState } from './lib/graph-query/index.js';
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
 import { LifecycleEventBus } from './lib/lifecycle/index.js';
 import { createSkillShareerStore } from './lib/persistence/create-store.js';

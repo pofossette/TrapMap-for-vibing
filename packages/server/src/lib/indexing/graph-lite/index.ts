@@ -1,7 +1,7 @@
 /**
  * Barrel re-export for the graph-lite indexing module.
  *
- * Consolidates public API from documents, store, llm-cache,
+ * Consolidates public API from documents, graphology, store, llm-cache,
  * and llm-extract so external consumers can import from a single entry point.
  */
 
@@ -23,6 +23,23 @@ export {
   buildTrapGraphDocument,
   buildSkillGraphDocument,
 } from './documents.js';
+
+// ---------------------------------------------------------------------------
+// Graphology — graph assembly, validation, and expansion
+// ---------------------------------------------------------------------------
+
+export type {
+  Graph,
+  GraphRuntimeSnapshot,
+  LocalExpansionParams,
+} from './graphology.js';
+export {
+  buildGraphRuntimeSnapshot,
+  expandSourcesOneHop,
+  calculateSourceRelationStrength,
+  assertNoHardDependencyCycles,
+  buildLocalExpansionView,
+} from './graphology.js';
 
 // ---------------------------------------------------------------------------
 // Store — durable graph document persistence helpers

@@ -1,9 +1,20 @@
 /**
  * Graph query barrel -- re-exports public API from graph-query module files.
  *
- * Covers server-owned config schema/loader, Neo4j backend, projector helpers,
- * and fail-open health wrapper.
+ * Covers backend interfaces and types, config schema/loader, memory backend,
+ * Neo4j backend, projector helpers, and fail-open health wrapper.
  */
+
+// Backend interfaces and types
+export type {
+  GraphQueryBackendKind,
+  GraphQueryMode,
+  GraphQueryBackendHealth,
+  GraphQueryRuntimeState,
+  GraphQueryNodeView,
+  GraphQueryExpansionView,
+  GraphQueryBackend,
+} from './backend.js';
 
 // Config
 export type { GraphDbConfig } from './config.js';
@@ -12,6 +23,9 @@ export {
   loadGraphDbConfig,
   createGraphQueryRuntimeState,
 } from './config.js';
+
+// Memory backend
+export { createMemoryGraphQueryBackend } from './memory-backend.js';
 
 // Neo4j backend
 export type { Neo4jGraphQueryBackendConfig } from './neo4j-backend.js';

@@ -14,7 +14,10 @@
  * The pipeline is responsible for gating on lifecycleState before calling sync.
  */
 
-import { type BoundaryFacetIndex, buildBoundaryFacetIndex } from '@trapmap/service-knowledge-read';
+import {
+  type BoundaryFacetIndex,
+  buildBoundaryFacetIndex,
+} from '@trapmap/server/lib/indexing/boundary-normalize.js';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { IndexAdapter, IndexSyncResult } from '@trapmap/server/lib/indexing/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';

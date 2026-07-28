@@ -13,15 +13,14 @@
  */
 
 import type { ChatProvider } from '@trapmap/ai-providers';
-import type { GraphIndexDocumentRecord, GraphIndexRepositoryPort } from '@trapmap/contracts';
-import {
-  assertNoHardDependencyCycles,
-  type GraphQueryBackend,
-} from '@trapmap/service-knowledge-read';
+import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import { RetrievalCache } from '@trapmap/server/lib/cache/index.js';
+import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import { extractBoundaryGraphEntities } from '@trapmap/server/lib/indexing/boundary-extract.js';
 import {
+  type GraphIndexDocumentRecord,
   LlmExtractionCache,
+  assertNoHardDependencyCycles,
   extractGraphEntitiesWithLLM,
   upsertGraphIndexDocument,
 } from '@trapmap/server/lib/indexing/graph-lite/index.js';

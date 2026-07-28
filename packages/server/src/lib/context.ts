@@ -27,7 +27,7 @@ import type { AiProviders } from '@trapmap/ai-providers';
 import type { ServerConfig } from '@trapmap/server/config.js';
 import type { UsageAnalyticsRepository } from './analytics/index.js';
 import type { AsyncTransport } from './async/transport.js';
-import type { GraphQueryBackend, GraphQueryRuntimeState } from '@trapmap/service-knowledge-read';
+import type { GraphQueryBackend, GraphQueryRuntimeState } from './graph-query/index.js';
 import type { AdapterRegistry } from './indexing/registry.js';
 import type { LifecycleEventBus } from './lifecycle/index.js';
 import type { SkillShareerRepos } from './repos/index.js';
