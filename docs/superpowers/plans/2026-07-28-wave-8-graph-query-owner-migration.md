@@ -12,7 +12,7 @@
 
 - `service-knowledge-read` must not import `@trapmap/server` or `@trapmap/runtime-infra`.
 - `host-local` must not import any `@trapmap/server/lib/graph-query/*` module.
-- Do not introduce a server re-export, duplicate memory backend, dual runtime path, or compatibility fallback.
+- Do not leave a server re-export, duplicate memory backend, dual runtime path, or compatibility fallback after Task 2. Task 1 may add the owner implementation before Task 2 deletes the server implementation; the temporary duplicate is not a deployable completion state and no host-local consumer may be switched before the deletion.
 - The canonical `GraphQueryBackend` retains its complete current surface, including projection writes, health, bounded expansion, and mitigating-skill lookup.
 - Host-local retains `{ backendKind: 'memory', mode: 'disabled', failOpen: true }`; server retains its existing Neo4j fail-open/fail-closed policy.
 - Preserve GraphIndexRepositoryPort as the canonical source; do not introduce snapshot or in-memory compatibility state.
