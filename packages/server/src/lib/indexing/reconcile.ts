@@ -12,6 +12,7 @@
  * T-36-16: Derive allowed source set from current governance metadata
  */
 
+import { assertNoHardDependencyCycles } from '@trapmap/contracts';
 import type {
   ArtifactIndexingEntry,
   ArtifactReadProjection,
@@ -20,7 +21,6 @@ import type {
   GraphQueryBackend,
   KnowledgeIndexingEntry,
   KnowledgeOwnerPort,
-  assertNoHardDependencyCycles,
 } from '@trapmap/contracts';
 import { buildTrapGraphDocument } from './adapters/graph-builders.js';
 import { normalizeKnowledgeIndexDocument } from './normalize.js';

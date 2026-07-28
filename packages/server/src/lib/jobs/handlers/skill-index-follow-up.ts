@@ -52,7 +52,9 @@ export function createSkillIndexFollowUpHandler(args: {
         services: {
           store: args.services.store,
           ai: { chat: args.services.ai.chat },
-          graphQueryBackend: args.services.graphQueryBackend,
+          ...(args.services.graphQueryBackend !== undefined
+            ? { graphQueryBackend: args.services.graphQueryBackend }
+            : {}),
           graphIndex: args.services.graphIndex,
           artifactReadProjection: args.services.artifactReadProjection,
         },
