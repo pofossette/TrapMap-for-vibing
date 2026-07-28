@@ -2,6 +2,7 @@ import type {
   GraphIndexDocumentRecord,
   GraphIndexRepositoryPort,
   GraphQueryBackend,
+  GraphQueryBackendHealth,
   GraphQueryExpansionView,
   GraphQueryNodeView,
   GraphQueryRuntimeState,

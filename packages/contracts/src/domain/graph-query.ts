@@ -393,7 +393,9 @@ export function findEntriesByBoundaryConstraints(
     ),
   ]) {
     result =
-      result === null ? new Set(sources) : new Set([...result].filter((id) => sources.has(id)));
+      result === null
+        ? new Set(sources)
+        : new Set<string>([...result].filter((id: string) => sources.has(id)));
   }
   return result ?? new Set();
 }
