@@ -18,9 +18,9 @@
  */
 
 import type { PlanQuery, TrapFirstPlan } from '@trapmap/contracts';
+import { createMemoryGraphQueryBackend } from '@trapmap/service-knowledge-read';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
-import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import {
   isArtifactGovernanceEligible,
   rankCapsules,

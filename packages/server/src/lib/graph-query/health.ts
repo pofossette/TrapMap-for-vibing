@@ -1,10 +1,9 @@
-import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/index.js';
-
+import type { GraphIndexDocumentRecord } from '@trapmap/contracts';
 import type {
   GraphQueryBackend,
   GraphQueryBackendHealth,
   GraphQueryRuntimeState,
-} from './index.js';
+} from '@trapmap/service-knowledge-read';
 
 interface GraphQueryLogger {
   warn?(payload: Record<string, unknown>, message: string): void;

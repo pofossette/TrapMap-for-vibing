@@ -361,6 +361,9 @@ importers:
       '@trapmap/persistence-schema':
         specifier: workspace:*
         version: link:../persistence-schema
+      '@trapmap/service-knowledge-read':
+        specifier: workspace:*
+        version: link:../service-knowledge-read
       amqplib:
         specifier: ^0.10.8
         version: 0.10.9
@@ -373,18 +376,6 @@ importers:
       fastify:
         specifier: ^5.6.1
         version: 5.8.4
-      graphology:
-        specifier: ^0.26.0
-        version: 0.26.0(graphology-types@0.24.8)
-      graphology-dag:
-        specifier: ^0.4.1
-        version: 0.4.1(graphology-types@0.24.8)
-      graphology-operators:
-        specifier: ^1.6.1
-        version: 1.6.1(graphology-types@0.24.8)
-      graphology-shortest-path:
-        specifier: ^2.1.0
-        version: 2.1.0(graphology-types@0.24.8)
       nanoid:
         specifier: ^5.1.6
         version: 5.1.9

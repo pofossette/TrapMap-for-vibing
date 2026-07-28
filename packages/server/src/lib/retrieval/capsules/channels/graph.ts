@@ -20,7 +20,7 @@ import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import {
   type GraphQueryBackend,
   createMemoryGraphQueryBackend,
-} from '@trapmap/server/lib/graph-query/index.js';
+} from '@trapmap/service-knowledge-read';
 import { extractGovernedCapsules } from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
 import { normalizeQueryGraphLabels } from '@trapmap/server/lib/retrieval/recall/query-graph-labels.js';
 import type {
@@ -141,7 +141,7 @@ export function createCapsuleGraphChannel(
 }
 
 function isGraphQueryBackend(
-  value: GraphQueryBackend | GraphIndexRepository,
+  value: GraphQueryBackend | GraphIndexRepositoryPort,
 ): value is GraphQueryBackend {
   return 'kind' in value && typeof value.healthcheck === 'function';
 }

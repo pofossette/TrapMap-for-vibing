@@ -11,7 +11,7 @@ import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-} from '@trapmap/server/lib/indexing/graph-lite/index.js';
+} from '@trapmap/contracts';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 
 /**

@@ -21,7 +21,7 @@ import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import {
   type GraphQueryBackend,
   createMemoryGraphQueryBackend,
-} from '@trapmap/server/lib/graph-query/index.js';
+} from '@trapmap/service-knowledge-read';
 import type { RetrievalRecallChannel } from '@trapmap/server/lib/retrieval/orchestration/index.js';
 import type { RecallCandidate } from '@trapmap/server/lib/retrieval/types.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';

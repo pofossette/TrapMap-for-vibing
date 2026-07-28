@@ -10,10 +10,7 @@
  */
 
 import type { Boundary, BoundaryContext, BoundaryExplanation } from '@trapmap/contracts';
-import {
-  normalizeContextLabel,
-  normalizePackageName,
-} from '@trapmap/server/lib/indexing/boundary-normalize.js';
+import { normalizeContextLabel, normalizePackageName } from '@trapmap/service-knowledge-read';
 
 /** Penalty for excluded context match (BOUND-04) */
 export const BOUNDARY_EXCLUDED_PENALTY = -0.15;

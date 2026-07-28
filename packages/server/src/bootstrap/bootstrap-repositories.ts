@@ -7,11 +7,11 @@
 
 import type { FastifyInstance } from 'fastify';
 
+import { createMemoryGraphQueryBackend } from '@trapmap/service-knowledge-read';
 import { createUsageAnalyticsRepository } from '@trapmap/server/lib/analytics/index.js';
 import {
   createFailOpenGraphQueryBackend,
   createGraphQueryRuntimeState,
-  createMemoryGraphQueryBackend,
   createNeo4jGraphQueryBackend,
 } from '@trapmap/server/lib/graph-query/index.js';
 import { artifactGraphIndexAdapter } from '@trapmap/server/lib/indexing/adapters/artifact-graph.js';

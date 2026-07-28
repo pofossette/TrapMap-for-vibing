@@ -11,7 +11,7 @@ import type {
   PlanSkillNode,
   PlanTrapNode,
 } from '@trapmap/contracts';
-import type { Graph } from '@trapmap/server/lib/indexing/graph-lite/index.js';
+import type { Graph } from '@trapmap/service-knowledge-read';
 
 /**
  * Build a unified graph plan from traps, skills, graph edges, and citations.

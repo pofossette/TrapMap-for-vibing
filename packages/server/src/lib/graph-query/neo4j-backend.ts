@@ -1,17 +1,16 @@
-import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
+import type {
+  GraphIndexDocumentRecord,
+  GraphIndexRepositoryPort,
+  GraphNodeRecord,
+} from '@trapmap/contracts';
 import {
   type Graph,
-  type GraphIndexDocumentRecord,
-  type GraphNodeRecord,
+  type GraphQueryBackend,
+  type GraphQueryExpansionView,
+  type GraphQueryNodeView,
+  type GraphQueryRuntimeState,
   buildLocalExpansionView as buildGraphologyLocalExpansionView,
-} from '@trapmap/server/lib/indexing/graph-lite/index.js';
-
-import type {
-  GraphQueryBackend,
-  GraphQueryExpansionView,
-  GraphQueryNodeView,
-  GraphQueryRuntimeState,
-} from './backend.js';
+} from '@trapmap/service-knowledge-read';
 import { buildGraphSourceKey, projectGraphDocument } from './projector.js';
 
 interface Neo4jRecordLike {
@@ -211,7 +210,7 @@ export class Neo4jGraphQueryBackend implements GraphQueryBackend {
 
 export async function createNeo4jGraphQueryBackend(args: {
   config: Neo4jGraphQueryBackendConfig;
-  graphIndexRepo: GraphIndexRepository;
+  graphIndexRepo: GraphIndexRepositoryPort;
 }): Promise<Neo4jGraphQueryBackend> {
   const client = await createNeo4jQueryClient(args.config);
   return new Neo4jGraphQueryBackend(args.graphIndexRepo, client);
@@ -266,7 +265,7 @@ async function createNeo4jQueryClient(
 }
 
 async function loadDocumentsBySourceRefs(
-  graphIndexRepo: GraphIndexRepository,
+  graphIndexRepo: GraphIndexRepositoryPort,
   sourceRefs: Array<{ sourceId: string; sourceType: 'trap' | 'skill' }>,
 ): Promise<GraphIndexDocumentRecord[]> {
   const deduped = new Map<string, { sourceId: string; sourceType: 'trap' | 'skill' }>();

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
+import type { GraphQueryBackend } from '@trapmap/service-knowledge-read';
 import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 
@@ -126,7 +127,9 @@ describe('Neo4jGraphQueryBackend', () => {
   it('upserts projected source, nodes, and relationships', async () => {
     const { client, writes } = createFakeClient();
     const repo = await createRepoWithDocuments([]);
-    const backend = new Neo4jGraphQueryBackend(repo, client);
+    const backend: GraphQueryBackend = new Neo4jGraphQueryBackend(repo, client);
+
+    expect(backend.kind).toBe('neo4j');
 
     await backend.upsertDocument(makeGraphDocument());
 

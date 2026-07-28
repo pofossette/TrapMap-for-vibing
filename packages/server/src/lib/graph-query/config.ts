@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import type { GraphQueryMode, GraphQueryRuntimeState } from './backend.js';
+import type { GraphQueryMode, GraphQueryRuntimeState } from '@trapmap/service-knowledge-read';
 
 export const GraphDbConfigSchema = z
   .object({
