@@ -76,3 +76,37 @@ export { buildSummary } from './response-summary.js';
 export { searchKnowledge, updateEntryEmbeddingCache } from './search-knowledge.js';
 export { createCandidateCorpusPgReadPort } from './candidate-corpus-pg.js';
 export { createKnowledgeReadGraphIndexRepository } from './graph-index-repository.js';
+export {
+  createMemoryGraphQueryBackend,
+  type GraphQueryBackend,
+  type GraphQueryBackendHealth,
+  type GraphQueryBackendKind,
+  type GraphQueryExpansionView,
+  type GraphQueryMode,
+  type GraphQueryNodeView,
+  type GraphQueryRuntimeState,
+} from './graph-query.js';
+export {
+  assertNoHardDependencyCycles,
+  buildGraphFromDocuments,
+  buildGraphRuntimeSnapshot,
+  buildLocalExpansionView,
+  calculateSourceRelationStrength,
+  expandSourcesOneHop,
+  findEntriesByBoundaryConstraints,
+  findEntriesByContext,
+  projectHardDependencyGraph,
+  type Graph,
+  type GraphRuntimeSnapshot,
+  type LocalExpansionParams,
+} from './graphology.js';
+export {
+  buildBoundaryFacetIndex,
+  buildContextNodeId,
+  buildPlatformNodeId,
+  buildVersionNodeId,
+  extractPlatformsFromExclusions,
+  normalizeContextLabel,
+  normalizePackageName,
+  type BoundaryFacetIndex,
+} from './boundary-normalize.js';

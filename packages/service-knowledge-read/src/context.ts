@@ -11,6 +11,7 @@ import type {
 } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
+import type { GraphQueryBackend, GraphQueryRuntimeState } from './graph-query.js';
 import type { RagLogConfig } from './rag-log.js';
 import type {
   ChannelRegistry as KnowledgeReadChannelRegistry,
@@ -25,27 +26,8 @@ import type {
 } from './retrieval-types.js';
 import type { FeedbackQueueRecord, KnowledgeRecord, SkillArtifactRecord } from './store.js';
 
-export type KnowledgeReadGraphQueryBackendKind = 'memory' | 'neo4j';
-export type KnowledgeReadGraphQueryMode = 'disabled' | 'enabled-primary' | 'enabled-fallback';
-
-export interface KnowledgeReadGraphQueryRuntimeState {
-  mode: KnowledgeReadGraphQueryMode;
-  backendKind: KnowledgeReadGraphQueryBackendKind;
-  failOpen: boolean;
-  detail?: string;
-}
-
-export interface KnowledgeReadGraphQueryBackend {
-  getRuntimeState(): KnowledgeReadGraphQueryRuntimeState;
-  expandSourcesOneHop(params: {
-    queryLabels: Set<string>;
-    eligibleSourceIds?: Set<string>;
-  }): Promise<Set<string>>;
-  calculateSourceRelationStrength(params: {
-    sourceId: string;
-    queryLabels: Set<string>;
-  }): Promise<number>;
-}
+export type KnowledgeReadGraphQueryBackend = GraphQueryBackend;
+export type KnowledgeReadGraphQueryRuntimeState = GraphQueryRuntimeState;
 
 export interface SkillShareerRepos
   extends RetrievalReadModelRepositories<
