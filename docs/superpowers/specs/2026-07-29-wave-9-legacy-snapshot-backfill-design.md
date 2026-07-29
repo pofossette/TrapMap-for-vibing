@@ -38,9 +38,11 @@ in the same Wave 9 deletion change after acceptance evidence is recorded.
 | `promptVersion`, `rebuildState` | do not copy | `service-knowledge-read` | a clean full rebuild establishes current owner-local index state |
 | `counters` | do not copy | none | no live destination consumes legacy counter allocation; owners generate identifiers locally |
 
-The legacy contract rejects unknown top-level buckets and malformed records.
-It permits absent known buckets only as empty arrays, so a damaged snapshot
-cannot be mistaken for an intentionally empty owner domain.
+The legacy contract rejects unknown top-level buckets, missing business
+buckets, and malformed records. Only the retired technical state fields
+`counters`, `promptVersion`, and `rebuildState` may use their explicit empty
+or null defaults. A damaged business bucket must never be mistaken for an
+intentionally empty owner domain.
 
 ## Execution Model
 

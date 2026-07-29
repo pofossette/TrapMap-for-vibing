@@ -93,7 +93,7 @@ export async function loadLegacySnapshot(source: LegacySnapshotSource): Promise<
 }
 ```
 
-Define `legacySnapshotSchema` with exact known keys from `StoreData`; use `.strict()` at the top level and explicit record schemas for each owner view. Convert absent optional persisted arrays only where historical JSON compatibility explicitly permits them, otherwise reject with a bucket-specific message.
+Define `legacySnapshotSchema` with exact known keys from `StoreData`; use `.strict()` at the top level and explicit record schemas for each owner view. Reject every missing business bucket with a bucket-specific message. Only `counters`, `promptVersion`, and `rebuildState` may use their documented empty/null defaults.
 
 - [ ] **Step 4: Run the focused source tests**
 
