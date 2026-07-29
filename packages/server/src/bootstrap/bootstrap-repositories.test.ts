@@ -145,6 +145,54 @@ describe('bootstrapRepositories graph-query composition', () => {
     expect(graphQueryMocks.createNeo4jGraphQueryBackend).not.toHaveBeenCalled();
     expect(app.skillShareer.channelRegistry.register).not.toHaveBeenCalled();
   });
+
+  it('wraps an injected fallback with Neo4j when graph DB is enabled', async () => {
+    const fallback = createBackend();
+    const primary = createBackendWithKind('neo4j');
+    const wrapped = createBackendWithKind('neo4j');
+    const app = createApp(fallback);
+    app.skillShareer.config.graphDb = {
+      ...app.skillShareer.config.graphDb,
+      enabled: true,
+      database: 'neo4j',
+      password: 'password',
+      uri: 'bolt://localhost:7687',
+      username: 'neo4j',
+    };
+    graphQueryMocks.createNeo4jGraphQueryBackend.mockResolvedValue(primary);
+    graphQueryMocks.createFailOpenGraphQueryBackend.mockReturnValue(wrapped);
+    channelMocks.createGraphChannel.mockReturnValue({ name: 'graph' });
+
+    await bootstrapRepositories(app);
+
+    expect(graphQueryMocks.createNeo4jGraphQueryBackend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: {
+          database: 'neo4j',
+          password: 'password',
+          uri: 'bolt://localhost:7687',
+          username: 'neo4j',
+        },
+      }),
+    );
+    expect(graphQueryMocks.createFailOpenGraphQueryBackend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        primary,
+        fallback,
+        failOpen: true,
+      }),
+    );
+    expect(runtimeMocks.executeWithResilience).toHaveBeenCalledWith(
+      expect.objectContaining({
+        policy: expect.objectContaining({
+          dependencyName: 'graph-backend-healthcheck',
+          failureMode: 'fail-open',
+        }),
+      }),
+    );
+    expect(app.skillShareer.graphQueryBackend).toBe(wrapped);
+    expect(app.skillShareer.channelRegistry.register).toHaveBeenCalledWith({ name: 'graph' });
+  });
 });
 
 function createBackendWithKind(kind: GraphQueryBackend['kind']): GraphQueryBackend {
