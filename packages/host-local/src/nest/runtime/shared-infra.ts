@@ -1,11 +1,10 @@
-import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
+import type { GraphQueryBackend, GraphQueryRuntimeState } from '@trapmap/contracts';
+import {
+  createKnowledgeReadGraphIndexRepository,
+  createMemoryGraphQueryBackend,
+} from '@trapmap/service-knowledge-read';
 import type { JobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
 import { createAiProviders, type AiProviders } from '@trapmap/ai-providers';
-import {
-  createMemoryGraphQueryBackend,
-  type GraphQueryBackend,
-  type GraphQueryRuntimeState,
-} from '@trapmap/server/lib/graph-query/index.js';
 import pg from 'pg';
 
 import type { HostLocalConfig } from '../config/index.js';

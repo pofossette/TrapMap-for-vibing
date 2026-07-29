@@ -22,6 +22,8 @@ const FILES = [
   'src/knowledge-read-support-infra.ts',
   'src/retrieval-types.ts',
   'src/store.ts',
+  'src/graph-index-repository.ts',
+  'src/graph-query.ts',
 ];
 
 const RETRIEVAL_CORE_FILES = [
@@ -92,6 +94,19 @@ describe('knowledge-read import boundary', () => {
       expect(source).not.toMatch(/from\s+['"]@trapmap\/runtime-infra(?:\/[^'"]*)?['"]/);
       expect(source).not.toMatch(/import\s*\(\s*['"]@trapmap\/runtime-infra(?:\/[^'"]*)?['"]\s*\)/);
     }
+  });
+
+  it('keeps owner graph implementation files free of server imports', async () => {
+    const root = path.resolve(import.meta.dirname, '..');
+
+    await expectFilesFreeOfImports(
+      root,
+      ['src/graph-index-repository.ts', 'src/graph-query.ts'],
+      ['@trapmap/server'],
+      (source, forbidden) => {
+        expect(source).not.toContain(forbidden);
+      },
+    );
   });
 
   it('keeps retrieval core files free of direct server retrieval internals', async () => {

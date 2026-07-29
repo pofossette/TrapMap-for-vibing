@@ -82,6 +82,18 @@ describe("host-local runtime import boundary", () => {
     expect(sharedInfraSource).toContain("from '@trapmap/ai-providers'");
   });
 
+  it("constructs graph query from the knowledge-read owner rather than server internals", async () => {
+    const root = path.resolve(import.meta.dirname, "../../..");
+    const sharedInfraSource = await readFile(
+      path.join(root, "src/nest/runtime/shared-infra.ts"),
+      "utf-8",
+    );
+
+    expect(sharedInfraSource).toContain("from '@trapmap/service-knowledge-read'");
+    expect(sharedInfraSource).toContain('createMemoryGraphQueryBackend');
+    expect(sharedInfraSource).not.toMatch(/@trapmap\/server\/lib\/graph-query(?:\/[^'"]*)?/);
+  });
+
   it("owns its PostgreSQL pool without compatibility store assembly", async () => {
     const root = path.resolve(import.meta.dirname, "../../..");
     const source = await readFile(path.join(root, "src/nest/runtime/shared-infra.ts"), "utf-8");

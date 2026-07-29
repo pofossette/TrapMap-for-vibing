@@ -35,7 +35,23 @@ describe('PostgreSQL composition entrypoints', () => {
     const source = await readFile('scripts/testing/postgres-server-composition.ts', 'utf8');
 
     expect(source).toContain('createKnowledgeReadGraphIndexRepository');
-    expect(source).toMatch(/graphIndex:\s*createKnowledgeReadGraphIndexRepository\(pool\)/);
+    expect(source).toMatch(
+      /const graphIndex\s*=\s*createKnowledgeReadGraphIndexRepository\(pool\)/,
+    );
+    expect(source).toMatch(/graphIndex,\s*graphQueryBackend/);
+  });
+
+  it('injects the owner graph-query port and host runtime state into compatibility composition', async () => {
+    const source = await readFile('scripts/testing/postgres-server-composition.ts', 'utf8');
+
+    expect(source).toContain('createMemoryGraphQueryBackend');
+    expect(source).toMatch(
+      /const graphQueryBackend\s*=\s*options\.graphQueryBackend\s*\?\?\s*createMemoryGraphQueryBackend\(graphIndex\)/,
+    );
+    expect(source).toMatch(/graphQueryBackend,\s*graphQuery,/);
+    expect(source).toMatch(
+      /const graphQuery\s*=\s*options\.graphQuery\s*\?\?\s*options\.graphQueryBackend\?\.getRuntimeState\(\)\s*\?\?\s*\{\s*backendKind:\s*'memory' as const,\s*failOpen:\s*true,\s*mode:\s*'disabled' as const,\s*\}/,
+    );
   });
 
   it.each(entrypoints)('%s uses host PostgreSQL composition', async (entrypoint) => {

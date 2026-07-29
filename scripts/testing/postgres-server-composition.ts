@@ -13,7 +13,10 @@ import {
   type ArtifactWritePort,
 } from '../../packages/service-knowledge-write/src/pg-ports.js';
 import { createGovernanceReviewPgOwnerBundle } from '../../packages/service-governance-review/src/pg-ports.js';
-import { createKnowledgeReadGraphIndexRepository } from '../../packages/service-knowledge-read/src/index.js';
+import {
+  createKnowledgeReadGraphIndexRepository,
+  createMemoryGraphQueryBackend,
+} from '../../packages/service-knowledge-read/src/index.js';
 import type { KnowledgeOwnerPort } from '../../packages/contracts/src/index.js';
 
 export interface PostgresComposedServer {
@@ -34,6 +37,14 @@ export function buildPostgresComposedServer(
   const identity = createIdentityAccessPgDeps(pool);
   const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
   const governanceReview = createGovernanceReviewPgOwnerBundle(pool);
+  const graphIndex = createKnowledgeReadGraphIndexRepository(pool);
+  const graphQueryBackend = options.graphQueryBackend ?? createMemoryGraphQueryBackend(graphIndex);
+  const graphQuery = options.graphQuery ??
+    options.graphQueryBackend?.getRuntimeState() ?? {
+      backendKind: 'memory' as const,
+      failOpen: true,
+      mode: 'disabled' as const,
+    };
   const asyncTransport = createJobRuntimeAsyncTransport({
     config: {
       asyncTaskTransport: {
@@ -50,7 +61,9 @@ export function buildPostgresComposedServer(
     artifactReadProjection: knowledgeWrite.artifactReadProjection,
     knowledgeOwner: knowledgeWrite.knowledgeOwner,
     governanceRetrievalProjection: governanceReview.retrievalProjection,
-    graphIndex: createKnowledgeReadGraphIndexRepository(pool),
+    graphIndex,
+    graphQueryBackend,
+    graphQuery,
     asyncTransport,
     jobRuntime: createJobRuntimeModule({
       queuePorts: {

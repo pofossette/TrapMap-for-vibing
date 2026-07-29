@@ -189,12 +189,6 @@ const SERVER_AI_PROVIDER_CONFIG_IMPORT =
   /(?:@trapmap\/server\/lib\/ai|(?:\.\.\/)+packages\/server\/src\/lib\/ai|\.\/ai)\/(?:index|types|providers|provider-config)\.js/;
 const allowlist: AllowlistEntry[] = [
   [
-    'packages/host-local/src/nest/runtime/shared-infra.ts',
-    '@trapmap/server',
-    'wave-8',
-    'local host compatibility shared infrastructure',
-  ],
-  [
     'scripts/label-runner.ts',
     '@trapmap/server',
     'wave-10',
