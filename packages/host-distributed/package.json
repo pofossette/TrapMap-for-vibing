@@ -58,7 +58,7 @@
     "start:governance-review": "node dist/index.js --service governance-review",
     "start:job-runtime": "node dist/index.js --service job-runtime",
     "test:acceptance": "pnpm --filter @trapmap/service-identity-access build && pnpm --filter @trapmap/service-knowledge-read build && pnpm --filter @trapmap/service-knowledge-write build && pnpm --filter @trapmap/service-governance-review build && pnpm --filter @trapmap/service-candidate-ingestion build && pnpm --filter @trapmap/service-job-runtime build && pnpm -C ../.. exec vitest run --project host-distributed packages/host-distributed/src/identity-access/routes.test.ts packages/host-distributed/src/gateway/distributed-acceptance.test.ts packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts packages/host-distributed/src/gateway/internal-client.test.ts packages/host-distributed/src/shared/internal-knowledge-write-client.test.ts packages/host-distributed/src/governance-review/routes.test.ts packages/host-distributed/src/governance-review/delegation-acceptance.test.ts packages/host-distributed/src/candidate-ingestion/routes.test.ts packages/host-distributed/src/knowledge-write/routes.test.ts packages/host-distributed/src/job-runtime/ownership-acceptance.test.ts",
-    "test": "vitest run --passWithNoTests",
+    "test": "pnpm -C ../.. exec vitest run --project host-distributed --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -80,7 +80,8 @@
     "@trapmap/service-knowledge-read": "workspace:*",
     "@trapmap/service-knowledge-write": "workspace:*",
     "fastify": "^5.6.1",
-    "pg": "8.20.0"
+    "pg": "8.20.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
