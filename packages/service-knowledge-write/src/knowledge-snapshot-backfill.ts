@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+
 import type {
   Boundary,
   DecayMeta,
@@ -122,7 +124,7 @@ function recordsMatch(
   left: LegacyKnowledgeSnapshotRecord,
   right: LegacyKnowledgeSnapshotRecord,
 ): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return isDeepStrictEqual(left, right);
 }
 
 /**
