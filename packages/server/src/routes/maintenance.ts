@@ -239,7 +239,7 @@ export const maintenanceRoutes: FastifyPluginAsync = async (app) => {
     const result = await reconcileKnowledgeIndexesFromOwner(
       {
         knowledgeOwner: app.skillShareer.knowledgeOwner,
-        store: app.skillShareer.store,
+        pool: app.skillShareer.pool,
         graphIndex: app.skillShareer.graphIndex,
       },
       registry,

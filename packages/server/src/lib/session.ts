@@ -19,7 +19,6 @@ import {
   type AccessKeyRecord,
   type MembershipRecord,
   type SessionRecord,
-  type SkillShareerStore,
   type StoreData,
   type TeamRecord,
   type UserRecord,

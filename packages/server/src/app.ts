@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
 import Fastify from 'fastify';
+import pg from 'pg';
 import type {
   ArtifactReadProjection,
   ConflictRelation,
@@ -26,7 +27,6 @@ import type {
 import { setGlobalEmbeddingsProvider } from './lib/embeddings.js';
 import { buildDefaultAdapterRegistry } from './lib/indexing/adapters/index.js';
 import { LifecycleEventBus } from './lib/lifecycle/index.js';
-import { createSkillShareerStore } from './lib/persistence/create-store.js';
 import {
   ChannelRegistry,
   StrategyRegistry,
@@ -50,7 +50,7 @@ import {
   resolveServiceUnit,
 } from './lib/runtime/index.js';
 import type { RuntimeMode } from './lib/runtime/index.js';
-import { getStorePool, type FeedbackQueueRecord, type SkillShareerStore } from './lib/store.js';
+import { type FeedbackQueueRecord } from './lib/store.js';
 
 import { getOtelSdk, runStartupSequence } from './bootstrap/run-startup-sequence.js';
 import { createTracingPortAdapter } from './lib/runtime/tracing-port-adapter.js';
@@ -75,8 +75,6 @@ export interface BuildServerOptions {
   jobRuntime?: Pick<JobRuntimePort, 'schedule'>;
   asyncTransport?: AsyncTransport;
   outboxWorkerFactory?: OutboxWorkerFactory;
-  store?: SkillShareerStore;
-  ownsStore?: boolean;
 }
 
 function resolveRuntimeServiceName(runtimeMode: RuntimeMode, serviceUnit: ServiceUnit): string {
@@ -170,7 +168,7 @@ export function buildServer(options: BuildServerOptions = {}) {
     runtimeDeployment,
     runtimeMode,
     serviceUnit,
-    store: options.store ?? createSkillShareerStore(config),
+    pool: new pg.Pool({ connectionString: config.databaseUrl ?? undefined }),
     adapterRegistry: buildDefaultAdapterRegistry(),
     channelRegistry: (() => {
       const cr = new ChannelRegistry();
@@ -238,11 +236,6 @@ export function buildServer(options: BuildServerOptions = {}) {
 
   app.decorate('skillShareer', skillShareer);
 
-  const storePool = getStorePool(app.skillShareer.store);
-  if (!storePool) {
-    throw new Error('server identity compatibility bridge requires PostgreSQL');
-  }
-  app.skillShareer.pool = storePool;
   if (!options.asyncTransport) {
     throw new Error('server async transport must be injected by job-runtime host composition');
   }
@@ -289,7 +282,6 @@ export function buildServer(options: BuildServerOptions = {}) {
   app.addHook('onClose', async () => {
     const taskWorker = (app as any).taskWorker;
     const outboxWorker = (app as any).outboxWorker;
-    const store = app.skillShareer.store;
 
     if (taskWorker?.stop) {
       await taskWorker.stop();
@@ -300,7 +292,7 @@ export function buildServer(options: BuildServerOptions = {}) {
       app.log.info('Outbox worker stopped');
     }
 
-    // Phase 2B: flush and shut down OTel tracing before closing the store.
+    // Phase 2B: flush and shut down OTel tracing before closing the pool.
     if (app.skillShareer.tracing) {
       try {
         await app.skillShareer.tracing.shutdown();
@@ -321,10 +313,7 @@ export function buildServer(options: BuildServerOptions = {}) {
       }
     }
 
-    const closeStore = (store as { close?: () => Promise<void> | void }).close;
-    if (options.ownsStore !== false && typeof closeStore === 'function') {
-      await closeStore.call(store);
-    }
+    await app.skillShareer.pool.end();
   });
 
   app.setErrorHandler((error, request, reply) => {

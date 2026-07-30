@@ -10,7 +10,6 @@ import { auditTimestamps } from './column-factories.js';
 /**
  * Graph index documents for GraphRAG-lite persistence.
  * Derived index table -- not a source of business truth.
- * Replaces in-memory JSONB store_snapshot.graphIndexDocuments.
  */
 export const graphIndexDocuments = pgTable(
   'graph_index_documents',

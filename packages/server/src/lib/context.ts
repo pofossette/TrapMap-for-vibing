@@ -41,7 +41,7 @@ import type {
   ServiceUnit,
   TracingPort,
 } from './runtime/index.js';
-import type { MembershipRecord, SkillShareerStore, TeamRecord, UserRecord } from './store.js';
+import type { MembershipRecord, TeamRecord, UserRecord } from './store.js';
 
 /** Structural compatibility bridge injected by a host that owns identity. */
 export interface IdentityCompatibilityBundle {
@@ -105,7 +105,6 @@ export interface SkillShareerServices {
   runtimeDeployment: ResolvedRuntimeDeployment;
   runtimeMode: RuntimeMode;
   serviceUnit: ServiceUnit;
-  store: SkillShareerStore;
   pool: import('pg').Pool;
   asyncTransport?: AsyncTransport;
   /** Adapter registry for indexing pipeline (replaces indexAdapters array) */

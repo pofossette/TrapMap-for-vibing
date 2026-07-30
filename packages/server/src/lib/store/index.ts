@@ -1,10 +1,8 @@
 // Types
 export * from './enum-types/index.js';
-// Store data and interface
+// Store data shape (retained as read-only DTO for test fixtures)
 export * from './store-data.js';
+// Store interface (retained for audit.ts compatibility)
 export * from './store-interface.js';
-export * from './store-pool.js';
-// Utilities (re-homed from json-store.ts)
+// Utilities
 export * from './store-utils.js';
-// JsonStore (compatibility — scheduled for Wave-9 deletion)
-export * from './json-store.js';

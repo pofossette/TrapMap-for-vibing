@@ -522,7 +522,6 @@ export const knowledgeMaintenanceAssignments = pgTable(
 
 /**
  * Feedback records table for structured feedback persistence.
- * Replaces the feedbackQueue array inside store_snapshot JSONB.
  * Each row represents a single user feedback submission against
  * a knowledge entry or skill artifact.
  */
