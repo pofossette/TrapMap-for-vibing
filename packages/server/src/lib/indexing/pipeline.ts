@@ -13,7 +13,7 @@
 import type { ChatProvider } from '@trapmap/ai-providers';
 import type { GraphIndexRepositoryPort, KnowledgeOwnerPort } from '@trapmap/contracts';
 import type { GraphQueryBackend } from '@trapmap/contracts';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type { Pool } from 'pg';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import { graphIndexAdapter } from './adapters/graph.js';
 import { normalizeKnowledgeIndexDocument } from './normalize.js';
@@ -112,7 +112,7 @@ function updateAdapterState(
 
 type OwnerIndexingServices = {
   knowledgeOwner: Pick<KnowledgeOwnerPort, 'getIndexingEntry' | 'updateIndexMetadata'>;
-  store: SkillShareerStore;
+  pool: Pool | null;
   ai?: { chat: ChatProvider };
   graphQueryBackend?: GraphQueryBackend;
   graphIndex?: GraphIndexRepositoryPort;

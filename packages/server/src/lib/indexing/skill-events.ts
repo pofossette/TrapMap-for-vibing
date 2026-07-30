@@ -27,7 +27,7 @@ import type {
 import type { ChatProvider } from '@trapmap/ai-providers';
 import { AppError } from '@trapmap/server/lib/errors.js';
 import type { GraphQueryBackend } from '@trapmap/contracts';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
+import type { Pool } from 'pg';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 import {
   resolveArtifactAdapters,
@@ -97,7 +97,7 @@ export function determineSkillIndexAction(
  */
 export async function runSkillIndexEvent(args: {
   services: {
-    store: SkillShareerStore;
+    pool: Pool | null;
     ai?: { chat: ChatProvider };
     graphQueryBackend?: GraphQueryBackend;
     graphIndex?: GraphIndexRepositoryPort;
@@ -110,8 +110,8 @@ export async function runSkillIndexEvent(args: {
   adapters?: ArtifactGraphAdapter[];
 }): Promise<void> {
   const { services, artifactId, previousState, nextState } = args;
-  const { store } = services;
-  const adapters = args.adapters ?? resolveArtifactAdapters(store);
+  const { pool } = services;
+  const adapters = args.adapters ?? resolveArtifactAdapters(pool);
 
   const action = determineSkillIndexAction(previousState, nextState);
 
@@ -138,7 +138,7 @@ export async function runSkillIndexEvent(args: {
     }
     const result = await runArtifactAdapterFanOut({
       artifact,
-      store,
+      pool,
       ...(services.ai ? { chat: services.ai.chat } : {}),
       adapters,
       ...(services.graphQueryBackend !== undefined
@@ -155,7 +155,7 @@ export async function runSkillIndexEvent(args: {
 
   await runArtifactAdapterRemoval({
     artifactId,
-    store,
+    pool,
     adapters,
     ...(services.graphQueryBackend !== undefined
       ? { graphQueryBackend: services.graphQueryBackend }
