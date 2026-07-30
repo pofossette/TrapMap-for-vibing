@@ -1,36 +1,92 @@
-# Task 4 Report: CI Pipeline + run-ci.ts + Pre-commit Hook Updates
+# Task 4 Report: Shared AI Provider Acceptance
 
-## Status: DONE
+## Status: BLOCKED
 
-## Changes Made
+Task 4 acceptance evidence was not added to the active plan and no commit was
+created. Wave-8 remains open: the `shared-infra.ts` graph-query import from
+`@trapmap/server` is still outside this task's scope and has not been removed.
 
-### Primary (Task Brief)
-1. **`.github/workflows/ci.yml`** -- Removed `architecture-guardrails` and `doc-rules` jobs. Added single `doc-guardrails` job with all 8 check steps (docs-drift, arch-freeze, deps, mermaid, structure, complexity, md-lint, links). CI job count: 8 -> 7.
-2. **`scripts/run-ci.ts`** -- Added 4 new steps to STEPS array: `check:arch-freeze`, `check:deps`, `check:md-lint`, `check:links`. STEPS count: 8 -> 12.
-3. **`.husky/pre-commit`** -- Added `pnpm check:md-lint || exit 1` after existing checks.
+## Baseline
 
-### Cascading Updates (required for consistency)
-4. **`scripts/arch-freeze-rules.json`** -- Updated phase7 rule to expect `doc-guardrails:` instead of `architecture-guardrails:` in ci.yml.
-5. **`scripts/complexity-budgets.json`** -- Updated mustContain strings to reference `doc-guardrails` job and its full command list.
-6. **`docs/operations/CI_CD.md`** -- Updated job table, descriptions, and guardrail section to reference `doc-guardrails`.
-7. **`docs/operations/TESTING.md`** -- Updated CI guard reference from two jobs to single `doc-guardrails`.
-8. **`docs/reference/SYSTEM_TRUTH_SOURCES.md`** -- Updated Phase 7 CI truth freeze text and CI Guards section.
-9. **`packages/server/src/__tests__/docs-truth-smoke.test.ts`** -- Updated 4 test assertions to reference `doc-guardrails`.
+- Starting implementation baseline: `ee5c63e7 refactor: retire server AI providers`.
+- Production code was not modified.
+- The working tree already contained only `.superpowers/sdd/*` task artifacts.
 
-## Verification
+## Acceptance Results
 
-- CI YAML validation: valid (7 jobs confirmed)
-- `pnpm check:deps`: PASS (1009 modules, 4085 dependencies cruised)
-- `pnpm check:arch-freeze`: PASS (all 8 rules passed)
-- `pnpm check:md-lint`: PASS (212 files, 0 errors)
-- `pnpm check:links`: runs correctly (non-blocking in CI via `|| true`)
-- `docs-truth-smoke.test.ts`: PASS (49 pass, 0 fail)
-- Pre-commit hook: all checks passed during commit
+### Shared package, host-local, and typecheck
 
-## Commit
+Command:
 
-- **c3cd2fad** `ci: merge architecture-guardrails + doc-rules into doc-guardrails, update run-ci and pre-commit`
+```sh
+rtk pnpm --filter @trapmap/ai-providers test && rtk pnpm exec vitest run --project host-local packages/host-local/src/nest/runtime/import-boundary.test.ts packages/host-local/src/nest/runtime/host-services.test.ts && rtk pnpm typecheck
+```
 
-## Concerns
+Result: PASS.
 
-None. The `check:links` script (`markdown-link-check`) produces non-zero exit when files have no hyperlinks, but this is handled with `|| true` in CI as specified in the brief.
+- `@trapmap/ai-providers`: 3 files, 21 tests passed.
+- Host-local import boundary and host services: 2 files, 12 tests passed.
+- Root TypeScript check: no errors.
+
+This confirms the shared package and host-local provider/config seam tests pass.
+
+### Deployment, runtime, and eval acceptance
+
+Command:
+
+```sh
+rtk pnpm test:deployment-smoke && rtk pnpm test:runtime-foundations && rtk pnpm eval:smoke
+```
+
+Initial result: `test:deployment-smoke` could not resolve
+`@trapmap/ai-providers` from `packages/server/src/config.ts`. Investigation
+showed that `packages/server/package.json` and `pnpm-lock.yaml` correctly
+declared the workspace dependency, but the local
+`packages/server/node_modules/@trapmap/ai-providers` symlink was absent while
+the other workspace links existed. `rtk pnpm install --frozen-lockfile`
+restored that symlink without changing tracked files.
+
+Rerun result: BLOCKED by Docker. The non-coordinated deployment portion passed
+with 6 files and 135 tests. The PostgreSQL coordinator then failed before
+`app.test.ts` or `startup.test.ts` began:
+
+```text
+failed to connect to the docker API at unix:///var/run/docker.sock
+dial unix /var/run/docker.sock: connect: no such file or directory
+```
+
+The same failure occurred when rerun with host-level Docker access. Docker's
+default context targets `unix:///var/run/docker.sock`; the daemon/socket is
+not available. Because the command is chained with `&&`,
+`test:runtime-foundations` and `eval:smoke` did not start and have no passing
+acceptance result.
+
+### Fallow architecture audit
+
+Command:
+
+```sh
+rtk pnpm exec fallow audit --base main --format json --quiet
+```
+
+Result: FAIL (`verdict: fail`, base `main`, head `ee5c63e7`). It reports no
+introduced dependency-boundary violation, but the required passing verdict was
+not met:
+
+- Introduced dead-code findings: 1 (`FallbackEmbeddings.embed` in
+  `packages/ai-providers/src/providers.ts`).
+- Introduced complexity findings: 2.
+- Introduced duplication clone groups: 3.
+
+The audit also reports inherited issues, including a pre-existing server to
+backend-core boundary violation; that violation is marked `introduced: false`.
+
+## Required Follow-up
+
+1. Start or expose the Docker daemon at the active default context, then rerun
+   the exact deployment/runtime/eval command.
+2. Resolve or explicitly approve the Fallow-introduced findings, then rerun
+   the exact Fallow audit until it returns `verdict: pass`.
+3. Only after both criteria pass, append the active-plan acceptance evidence.
+   That entry must state that the host-local provider/config edge is gone and
+   that graph-query ownership still prevents Wave-8 closeout.

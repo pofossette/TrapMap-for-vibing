@@ -1,46 +1,69 @@
-### Task 3: 修复架构术语与中文化批次
+### Task 3: Remove Compatibility Provider Modules And Close The Provider Edge
 
 **Files:**
-- Modify: `docs/architecture/OBSERVABILITY.md`
-- Modify: `docs/architecture/SERVICE-DISCOVERY.md`
-- Modify: `docs/architecture/SERVICE_BOUNDARIES.md`
-- Modify: `docs/guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md`
-- Modify: `packages/server/src/lib/README.md`
-- Modify: `packages/backend-core/README.md`
-- Modify: `docs/architecture/MODULE_STRUCTURE.md`
+- Modify: `packages/server/src/lib/ai/index.ts`
+- Delete: `packages/server/src/lib/ai/{types,provider-config,providers,providers.test,provider-config.test}.ts`
+- Modify: `scripts/__tests__/compatibility-retirement-guard.test.ts`
+- Modify: `docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md`
+- Modify: `docs/README.md`
+- Modify: `docs/PACKAGES.md`
 
 **Interfaces:**
-- Consumes: `docs/todos/doc-drift-fix-list.md` 中 M-07 至 M-10 与“简体中文翻译处理清单”；`packages/server/src/app.ts`、`packages/host-distributed/src/shared/telemetry.ts`、`packages/host-local/src/nest/service-discovery/`、各 `service-*` 包目录
-- Produces: 已修正的 OTEL 开关语义、服务发现归属、service 计数、去重后的 checklist 标题和中文化文档
+- Consumes: Task 1 public API and Task 2 consumer imports.
+- Produces: a server AI directory containing only server-owned prompt/cache/parse/dynamic/template code; no provider compatibility entry point.
 
-- [ ] **Step 1: 逐文件核对待修表述**
+- [ ] **Step 1: Add deletion assertions before removing old modules**
 
-Run: `rtk rg -n "OTEL_ENABLED|service-discovery/|前五个物理|Blocking gaps:|^#|README" docs/architecture/OBSERVABILITY.md docs/architecture/SERVICE-DISCOVERY.md docs/architecture/SERVICE_BOUNDARIES.md docs/guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md packages/server/src/lib/README.md packages/backend-core/README.md docs/architecture/MODULE_STRUCTURE.md`
-Expected: 命中待修位置和英文标题
+```ts
+for (const retiredPath of [
+  'packages/server/src/lib/ai/types.ts',
+  'packages/server/src/lib/ai/provider-config.ts',
+  'packages/server/src/lib/ai/providers.ts',
+]) {
+expect(existsSync(resolve(repoRoot, retiredPath))).toBe(false);
+}
 
-- [ ] **Step 2: 更新术语并完成中文化**
+const hostSharedInfra = readFileSync(
+  resolve(repoRoot, 'packages/host-local/src/nest/runtime/shared-infra.ts'),
+  'utf8',
+);
+expect(hostSharedInfra).not.toContain('@trapmap/server/lib/ai');
+```
 
-要求：
-- `OBSERVABILITY.md` 全文改成 `OTEL_DISABLED` 语义
-- `SERVICE-DISCOVERY.md` 改正服务注册归属
-- `SERVICE_BOUNDARIES.md` 改为六个 `service-*`
-- `MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md` 删除重复 `Blocking gaps:`
-- `packages/server/src/lib/README.md`、`packages/backend-core/README.md`、`docs/architecture/MODULE_STRUCTURE.md` 完成简体中文化，且不引入事实漂移
+- [ ] **Step 2: Run the retirement guard to prove the deletion contract is red**
 
-- [ ] **Step 3: 校验 Markdown 与链接**
+Run: `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`
 
-Run: `rtk pnpm check:md-lint`
-Expected: PASS
+Expected: FAIL because the compatibility provider files and provider import
+still exist.
 
-- [ ] **Step 4: 校验文档守卫**
+- [ ] **Step 3: Remove only provider compatibility modules and exports**
 
-Run: `rtk pnpm check:docs-drift`
-Expected: PASS
+Delete the three implementation/config/type files and their moved tests. Remove
+their re-exports from `packages/server/src/lib/ai/index.ts`, but preserve the
+server-owned prompt/cache/parse/dynamic/template exports. Remove the host-local
+Wave-8 allowlist only when the graph-query migration removes the final server
+symbol from `shared-infra.ts`; this task keeps that entry because graph-query
+is not in scope.
 
-- [ ] **Step 5: Commit**
+Document the new package in package navigation and record the exact focused
+test evidence in the active compatibility-retirement detail. State explicitly
+that graph-query remains the unresolved Wave-8 edge.
+
+- [ ] **Step 4: Run retirement and documentation checks**
+
+Run: `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`
+
+Expected: PASS.
+
+Run: `rtk pnpm check:docs-drift && rtk pnpm check:structure && rtk git diff --check`
+
+Expected: PASS.
+
+- [ ] **Step 5: Commit the compatibility cleanup**
 
 ```bash
-git add docs/architecture/OBSERVABILITY.md docs/architecture/SERVICE-DISCOVERY.md docs/architecture/SERVICE_BOUNDARIES.md docs/guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md packages/server/src/lib/README.md packages/backend-core/README.md docs/architecture/MODULE_STRUCTURE.md
-git commit -m "docs: fix architecture wording and zh-cn docs"
+rtk git add packages/server/src/lib/ai scripts/__tests__/compatibility-retirement-guard.test.ts docs
+rtk git commit -m "refactor: retire server AI providers"
 ```
 

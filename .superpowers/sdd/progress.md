@@ -21,3 +21,8 @@ Backend targets Task 1: complete (worktree diff from 37ae87f2, review clean; CLI
 Backend targets Task 2: complete (worktree diff from 37ae87f2, review clean after inherited-key fix)
 Backend targets Task 3: complete (worktree diff from 37ae87f2, review clean)
 Backend targets Task 4: complete (worktree diff from 37ae87f2, review clean after validation-count correction)
+Shared AI providers Task 1: complete (commits 3f3f885b..11be87b1, review clean)
+Shared AI providers Task 2: complete (commits 11be87b1..66cd8d0, review clean)
+Shared AI providers Task 3: complete (commits 66cd8d0..ee5c63e, review clean)
+Shared AI providers Task 5: complete (commits 5f0ccd0..735ef04, review clean after P2 test fix)
+Wave 8 graph-query Task 1: complete (commits 288bb1f..bbb4cc8, review clean after user-approved ordering clarification 1a4ddf1)

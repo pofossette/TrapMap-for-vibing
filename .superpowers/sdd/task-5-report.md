@@ -1,32 +1,34 @@
-# Task 5 — Wave-3 foundation review report
+# Task 5 Report: Shared AI Provider Consolidation
 
-## Scope
+## Status
 
-Reviewed the dirty Wave-3 candidate-ingestion foundation: owner-local Drizzle schema and migration guard, PostgreSQL owner bundle, host-local and distributed composition, trusted-actor forwarding, duplicate domain, source-first test resolution, and retirement guard coverage. This package does not close Wave-3; compatibility repositories, worker/recovery, and public API ownership remain for later packages.
+Complete. Commit: `7605058` (`refactor: consolidate AI provider implementations`).
 
-## RED → GREEN
+## Changes
 
-1. Added `does not retain the deprecated persistence-schema project reference` to `pg-ports.test.ts`.
-2. RED: the focused `pg-ports` suite failed because `packages/service-candidate-ingestion/tsconfig.json` still referenced `../persistence-schema`.
-3. GREEN: removed that obsolete project reference. The full candidate-ingestion focused suite now passes (25 tests).
-4. Refactored the PG row timestamp mapping and candidate status transaction to remove the two new Fallow complexity findings without changing status or idempotency behavior. The PG owner suite remains green (17 tests).
+- Deleted the host-local duplicate `ai-provider-config.ts`; `config.ts` now loads the shared AI provider configuration.
+- Replaced the legacy embedding shim's local fallback/OpenAI selection with `createAiProviders(loadAiProviderConfig()).embeddings` while retaining the explicit global-provider bridge and its error fallback.
+- Added migration contracts for the deleted host-local module, shared imports, removed local provider classes, and shared fallback equivalence.
+- Split shared config and deterministic fallback embedding helpers to remove Fallow complexity findings. The Fallow `EmbeddingsProvider` member rule records legitimate interface-dispatched `embed()` calls rather than suppressing a finding.
+- Added the retired host-local module to the compatibility guard. Graph-query files and the Wave-8 allowlist were not changed.
 
 ## Verification
 
-- `rtk pnpm --filter @trapmap/service-candidate-ingestion test --run src/pg-ports.test.ts src/migrations.test.ts src/routes.test.ts` — 25 passed.
-- `rtk pnpm --filter @trapmap/service-candidate-ingestion typecheck` — passed.
-- `rtk pnpm --filter @trapmap/host-local test --run src/nest/runtime/host-services.test.ts src/nest/gateway/candidate-review.controller.test.ts` — 4 passed.
-- `rtk pnpm exec vitest run --project host-distributed packages/host-distributed/src/gateway/routes.test.ts` — 23 passed.
-- `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts` — 16 passed.
-- `rtk pnpm typecheck` — passed.
-- `rtk pnpm check:docs-drift` — 46 rules passed.
-- `rtk pnpm check:structure` — passed.
-- `rtk git diff --check` — passed.
+- RED observed: host-local contract failed because `ai-provider-config.ts` existed; embedding contract failed because the shim still declared `FallbackEmbeddings`.
+- `rtk pnpm --filter @trapmap/ai-providers test --run src/provider-config.test.ts src/providers.test.ts`: 19 passed.
+- `rtk pnpm test:file -- packages/host-local/src/nest/config/import-boundary.test.ts`: 2 passed.
+- `rtk pnpm test:file -- packages/server/src/lib/embeddings.test.ts`: 10 passed, including global-provider precedence and failing-global fallback.
+- `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`: 38 passed.
+- `rtk pnpm typecheck`: passed.
+- Follow-up review coverage: `rtk pnpm test:file -- packages/server/src/lib/embeddings.test.ts`: 11 passed, including no-network shared Ollama selection and full shared-loader environment isolation for fallback paths.
+- Follow-up provider regression: `rtk pnpm --filter @trapmap/ai-providers test --run src/provider-config.test.ts src/providers.test.ts`: 19 passed.
 
-## Fallow
+## Fallow Audit
 
-`rtk pnpm exec fallow audit --base main --gate new-only --format json --quiet` completes with verdict `warn`: zero new dead-code issues, zero boundary violations, and zero new complexity findings after the refactor. It retains 12 introduced duplication groups, chiefly the intentional owner-local schema/PG port parity with legacy candidate persistence and repeated route templates. No suppression was added; this remains closeout evidence for the later deletion/migration packages rather than a Wave-3 completion claim.
+`rtk pnpm exec fallow audit --base main` examined 78 changed files against `main` and excluded 70 inherited findings. Initial shared-provider findings were one unused class member plus two complexity findings (`loadAiProviderConfig` and `FallbackEmbeddings.embed`). After remediation, the audit emitted zero dead-code, complexity, or duplication findings for `packages/ai-providers` and this provider migration.
 
-## Remaining Wave-3 work
+The branch-wide audit still reports 45 dead-code issues, 23 complexity findings, and 31 clone groups in prior changed files; none are in this task's provider migration surface.
 
-Server/runtime-infra candidate, duplicate, and lineage compatibility implementations; candidate processor/worker/recovery; public host API compatibility; and retirement allowlist removal remain out of scope for this foundation baseline.
+## Review
+
+Focused review found and closed a P2 test gap for the explicit global bridge. No remaining findings.

@@ -1,67 +1,92 @@
-# Task 2 Report: Migrate Smoke Test + Create Arch-Freeze Script
+# Task 2 Report: Migrate Provider And Configuration Consumers
 
-## What Was Implemented
+## Status
 
-### Part 1: Doc-only assertions migrated to complexity-budgets.json
+Completed the provider/config consumer migration against the public
+`@trapmap/ai-providers` API introduced by Task 1 (`11be87b1`). Server provider
+modules remain in place. The shared-infra file-level `@trapmap/server` allowlist
+was retained because graph-query remains out of scope.
 
-Extended `scripts/complexity-budgets.json` from 37 docRules to 43 docRules (net new entries added to existing + new file entries). All doc-only assertions from the smoke test that were not already covered by existing docRules have been migrated.
+## Changed Files
 
-Key additions by category:
-- **SYSTEM_TRUTH_SOURCES.md**: 46 new mustContain values covering all Phase 1-7 freeze facts, drift categories, and cross-references
-- **docs/PACKAGES.md**: 36 new mustContain values covering Phase 1-6 freeze documentation
-- **trapmap-architecture-remediation-plan.md**: 31 new mustContain values covering Phase 1-6 closure freeze facts
-- **docs/operations/ENVIRONMENT.md**: 25 new mustContain values covering Phase 4/6 freeze, health endpoints, operator runbook
-- **docs/operations/TESTING.md**: 24 new mustContain values covering all Phase freeze checks
-- **New file entries created**: README.md, docs/architecture/TARGET_ARCHITECTURE.md, docs/architecture/SERVICE_BOUNDARIES.md, docs/todos/open-debt-and-compromises.md, docs/archived/archived-plans/badcase-feedback-loop.md, docs/archived/archived-plans/backend-engineering-optimization-plan.md, docs/architecture/components/ASYNC_MODEL.md, docs/reference/api-surface.md (extended), docs/archived/archived-plans/microservice-platform-evolution-plan.md (new)
+- `packages/host-local/src/nest/runtime/shared-infra.ts`
+- `packages/host-local/src/nest/runtime/import-boundary.test.ts`
+- `packages/host-local/package.json`
+- `packages/server/src/app.ts`
+- `packages/server/src/config.ts`
+- `packages/server/src/lib/context.ts`
+- `packages/server/src/lib/embeddings.ts`
+- `packages/server/src/lib/indexing/pipeline.ts`
+- `packages/server/src/lib/indexing/events.ts`
+- `packages/server/src/lib/indexing/skill-events.ts`
+- `packages/server/src/lib/indexing/artifact-pipeline.ts`
+- `packages/server/src/lib/indexing/skill-graph-build.ts`
+- `packages/server/src/lib/indexing/adapters/graph.ts`
+- `packages/server/src/lib/indexing/adapters/artifact-graph.ts`
+- `packages/server/src/lib/indexing/graph-lite/llm-extract.ts`
+- `packages/server/src/lib/indexing/graph-lite/llm-extract-planning.ts`
+- `packages/server/src/lib/pre-review.ts`
+- `packages/server/src/lib/boundary-extract.ts`
+- `packages/server/src/lib/artifacts/contextual-enrichment.ts`
+- `packages/server/src/lib/artifacts/derive/types.ts`
+- `packages/server/src/lib/labels/graph-align.ts`
+- `packages/server/src/lib/labels/llm-align.ts`
+- `packages/server/src/lib/labels/backfill.ts`
+- `packages/server/src/lib/labels/candidate-recall.ts`
+- `packages/server/src/lib/retrieval/capsules/intent.ts`
+- `packages/server/src/testing/mock-factories.ts`
+- `packages/server/src/lib/__tests__/types-export.test.ts`
+- `packages/server/src/lib/artifacts/contextual-enrichment.test.ts`
+- `packages/server/src/lib/boundary-extract.test.ts`
+- `packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts`
+- `packages/server/src/lib/labels/llm-align.test.ts`
+- `packages/server/src/lib/pre-review.test.ts`
+- `packages/server/package.json`
+- `scripts/label-runner.ts`
+- `scripts/__tests__/compatibility-retirement-guard.test.ts`
+- `evals/label-alignment/lib/decision-eval.ts`
+- `evals/label-alignment/lib/decision-eval.test.ts`
+- `evals/graph-extraction/run.ts`
+- `evals/graph-extraction/dedup-eval.ts`
+- `evals/graph-extraction/conflict-eval.ts`
+- `package.json`
+- `pnpm-lock.yaml`
 
-### Part 2: Arch-freeze script created
+## Validation
 
-Created `scripts/arch-freeze-rules.json` with 8 rule groups:
-1. **phase1-server-boundary** (6 files): app.ts, config.ts, internal-ports.ts, repos/index.ts, schema/index.ts, migration-runner.ts
-2. **phase2-store-snapshot-pg-first** (4 files): snapshot-usage-guard.test.ts, pg-first-compat.test.ts, read-model.ts, artifacts-activate.ts
-3. **phase3-unified-adapter-boundary** (6 files): adapter-factory.ts, remote.adapter.ts, shared-infra.ts, internal-ports.ts, internal-client.ts, internal-knowledge-write-client.ts
-4. **phase4-adapter-env-target-pruning** (3 files): config.ts, host-local config.ts, service-config.ts
-5. **phase5-distributed-baseline** (3 files): host-distributed README, docker-compose.yml, distributed-runtime-closeout.test.ts
-6. **phase6-mature-capability-boundary** (7 files): resilience.ts, metrics.ts, invalidation.ts, config.ts, graph-query/config.ts, service-config.ts, internal-client.ts
-7. **phase7-ci-truth-execution-surface** (2 files): package.json, ci.yml
-8. **existence-checks** (5 files): lib/README.md, routes/README.md, app.test.ts, server-live-gap-matrix.md, server-source-pack.md
+- `rtk pnpm exec vitest run --project host-local packages/host-local/src/nest/runtime/import-boundary.test.ts`
+  - Expected red test: failed because `shared-infra.ts` imported
+    `createAiProviders` and `AiProviders` from `@trapmap/server/lib/ai/index.js`.
+- `rtk pnpm install --lockfile-only`
+  - Passed; lockfile updated. It emitted only existing transitive-dependency deprecation warnings.
+- `rtk pnpm exec vitest run --project host-local packages/host-local/src/nest/runtime/import-boundary.test.ts packages/host-local/src/nest/runtime/host-services.test.ts`
+  - Passed: 2 files, 12 tests.
+- `rtk pnpm --filter @trapmap/server test --run src/lib/indexing/graph-lite/llm-extract.test.ts src/lib/boundary-extract.test.ts src/lib/labels/llm-align.test.ts`
+  - Failed before provider behavior because package-filtered pnpm runs with `packages/server` as CWD. Prompt construction resolves
+    `packages/server/docs/reference/system-prompt-slots.default.json`, which does not exist.
+- `rtk pnpm exec vitest run packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts packages/server/src/lib/boundary-extract.test.ts packages/server/src/lib/labels/llm-align.test.ts`
+  - Passed from the repository root: 3 files, 72 tests.
+- `rtk pnpm typecheck`
+  - Passed: `TypeScript: No errors found`.
+- `rtk pnpm exec vitest run scripts/__tests__/compatibility-retirement-guard.test.ts`
+  - Passed: 1 file, 37 tests.
+- `rtk git diff --check`
+  - Passed with no whitespace errors.
 
-## Migration Statistics
+## Self-Review
 
-| Category | Count | Target |
-|---|---|---|
-| Doc-only assertions (new) | ~280 | docRules in complexity-budgets.json |
-| Doc-only assertions (already covered) | ~177 | Already in existing docRules |
-| Source-code invariants | ~56 | arch-freeze-rules.json |
-| File existence checks | 5 | arch-freeze-rules.json |
-| Dynamic path checks (skipped) | ~3 | Cannot be statically migrated |
+- Confirmed all targeted provider/config consumers import from
+  `@trapmap/ai-providers`.
+- Confirmed the remaining server AI provider-path imports are limited to the
+  allowed server-local dynamic/cache prompt helper modules.
+- Confirmed server, host-local, and root script/eval consumers declare the
+  shared package as a workspace dependency and that `pnpm-lock.yaml` matches.
+- Confirmed no server provider implementation was deleted and no graph-query
+  compatibility allowlist entry was removed.
 
-## What Was Tested
+## Concerns
 
-1. **Unit tests**: `scripts/__tests__/check-arch-freeze.test.ts` -- 22 tests (mustContain, mustNotContain, mustExist, combined, multi-file, null content, edge cases)
-2. **Unit tests**: `scripts/__tests__/check-doc-drift.test.ts` -- 28 tests (no regressions)
-3. **Integration test**: `pnpm check:docs-drift` -- All 43 doc rules passed
-4. **Integration test**: `pnpm check:arch-freeze` -- All 8 rules passed
-
-## Files Changed
-
-- `scripts/complexity-budgets.json` -- Extended with ~280 new mustContain/mustNotContain assertions across 25+ files
-- `scripts/arch-freeze-rules.json` -- New file: 8 rule groups covering 36 source files
-- `scripts/check-arch-freeze.ts` -- New file: CLI script following check-doc-drift.ts pattern
-- `scripts/__tests__/check-arch-freeze.test.ts` -- New file: 22 unit tests
-- `package.json` -- Added `check:arch-freeze` script
-
-## Self-Review Findings
-
-1. **Incorrect string in agent analysis**: The agent reported `docs/README.md` must contain `DOCS_TRUTH_MATRIX.md`, but the smoke test never checks this file for that string. The smoke test checks `SYSTEM_TRUTH_SOURCES.md` for `DOCS_TRUTH_MATRIX.md`. Fixed by removing the incorrect entry.
-
-2. **Unicode quote encoding**: `docs/PACKAGES.md` uses U+201C/U+201D smart quotes, not ASCII quotes. The docRules were written with the correct Unicode characters from the Write tool output.
-
-3. **Migrated vs. not migrated**: Three assertions in the smoke test use dynamic `existsSync` on paths extracted from `SYSTEM_TRUTH_SOURCES.md` content (the "non-planned truth source paths exist on disk" test). These cannot be statically migrated to either system. They remain as manual/integration concerns.
-
-4. **open-debt evidence paths test**: The smoke test dynamically extracts relative paths from `docs/todos/open-debt-and-compromises.md` and checks each exists. This dynamic test cannot be migrated to a static rule. It's a known limitation.
-
-## Issues or Concerns
-
-- The smoke test has ~50 test blocks and ~457 expect() calls. Some assertions from the Phase tests overlap (e.g., Phase 4 closeout tests check the same files as Phase 4 freeze tests). The docRules were deduplicated to avoid redundancy, which means some Phase closeout assertions are covered by the same docRule entry as Phase freeze assertions.
-- The `phase4-closeout-non-doc` rule was initially planned for arch-freeze-rules.json but was moved to docRules since those files (microservice-platform-evolution-plan.md, open-debt-and-compromises.md) are markdown documentation files.
+The exact package-filtered server test command has a pre-existing CWD-sensitive
+prompt-template lookup failure. The root-coordinated equivalent passes all the
+same named tests. No prompt production behavior was changed as part of this
+migration.

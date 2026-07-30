@@ -1,42 +1,117 @@
-### Task 1: 修复入口与事实源批次
+### Task 1: Establish the Owner Graph Core
 
 **Files:**
-- Modify: `packages/host-distributed/README.md`
-- Modify: `docs/architecture/ARCHITECTURE.md`
-- Modify: `docs/architecture/DEPLOYMENT.md`
-- Modify: `docs/reference/DOCS_TRUTH_MATRIX.md`
+- Create: `packages/service-knowledge-read/src/graph-query.ts`
+- Create: `packages/service-knowledge-read/src/graph-query.test.ts`
+- Create: `packages/service-knowledge-read/src/graphology.ts`
+- Create: `packages/service-knowledge-read/src/boundary-normalize.ts`
+- Modify: `packages/service-knowledge-read/src/context.ts`
+- Modify: `packages/service-knowledge-read/src/index.ts`
+- Modify: `packages/service-knowledge-read/package.json`
+- Modify: `pnpm-lock.yaml`
+- Test: `packages/service-knowledge-read/src/graph-query.test.ts`
 
 **Interfaces:**
-- Consumes: `docs/todos/doc-drift-fix-list.md` 中 H-01 至 H-04 的问题定义；`packages/host-distributed/src/index.ts`、`packages/host-distributed/package.json`、`packages/host-local/src/nest/**`、`package.json`、`.github/workflows/ci.yml`
-- Produces: 已修正的入口职责描述、默认宿主事实、Node/pnpm 基线和 truth-matrix 链接
+- Consumes: `GraphIndexRepositoryPort`, `GraphIndexDocumentRecord`, `GraphNodeRecord`, and graph edge types from `@trapmap/contracts`.
+- Produces: `GraphQueryBackend`, `GraphQueryBackendHealth`, `GraphQueryRuntimeState`, `GraphQueryExpansionView`, `createMemoryGraphQueryBackend`, `buildGraphRuntimeSnapshot`, `buildLocalExpansionView`, and boundary normalization helpers from `@trapmap/service-knowledge-read`.
+- Replaces: the duplicate `KnowledgeReadGraphQueryBackend` and `KnowledgeReadGraphQueryRuntimeState` declarations with aliases to the canonical types.
 
-- [ ] **Step 1: 逐文件核对权威源**
+- [ ] **Step 1: Write failing owner-backend tests**
 
-Run: `rtk rg -n "knowledge-read|Fastify 宿主|Node.js 20\\+|docs/todos/trapmap-architecture-remediation-plan.md" packages/host-distributed/README.md docs/architecture/ARCHITECTURE.md docs/architecture/DEPLOYMENT.md docs/reference/DOCS_TRUTH_MATRIX.md`
-Expected: 命中当前待修表述，便于逐项替换
+Create `graph-query.test.ts` with a repository fake whose methods are `listAll`, `upsert`, and `removeBySource`. Test that `createMemoryGraphQueryBackend(repo)`:
 
-- [ ] **Step 2: 更新文档事实**
+```ts
+const backend = createMemoryGraphQueryBackend(repo);
+expect(backend.getRuntimeState()).toEqual({
+  backendKind: 'memory',
+  failOpen: false,
+  mode: 'disabled',
+});
+await backend.upsertDocument(document);
+expect(repo.upsert).toHaveBeenCalledWith(document);
+await backend.removeSource('skill', 'skill-1');
+expect(repo.removeBySource).toHaveBeenCalledWith('skill', 'skill-1');
+```
 
-要求：
-- `packages/host-distributed/README.md` 明确写成分布式宿主装配层，覆盖 `gateway + 六个服务入口`
-- `docs/architecture/ARCHITECTURE.md` 把默认主线改为 `packages/host-local/src/nest/**`，Fastify 收口为 compatibility shell
-- `docs/architecture/DEPLOYMENT.md` 统一写成 Node `24` + pnpm `10.33.0`
-- `docs/reference/DOCS_TRUTH_MATRIX.md` 改成真实存在的路径
+Add fixtures containing a `trap:t1` node, a connected `skill:s1` node, and a
+`mitigates` edge. Assert one-hop expansion, relation strength, source node IDs,
+bounded expansion view ownership, and `findMitigatingSkills` against that
+fixture. Assert `rebuildProjection` does not write the repository.
 
-- [ ] **Step 3: 校验改动结果**
+- [ ] **Step 2: Run the new test to verify it fails**
 
-Run: `rtk pnpm check:structure`
-Expected: PASS
-
-- [ ] **Step 4: 校验文档守卫**
-
-Run: `rtk pnpm check:docs-drift`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
+Run:
 
 ```bash
-git add packages/host-distributed/README.md docs/architecture/ARCHITECTURE.md docs/architecture/DEPLOYMENT.md docs/reference/DOCS_TRUTH_MATRIX.md
-git commit -m "docs: fix doc truth entry batch"
+rtk pnpm --filter @trapmap/service-knowledge-read test --run src/graph-query.test.ts
+```
+
+Expected: FAIL because `./graph-query.js` and its public exports do not exist.
+
+- [ ] **Step 3: Move the complete canonical contract and memory implementation**
+
+Create `graph-query.ts` with the complete server backend surface:
+
+```ts
+export interface GraphQueryBackend {
+  readonly kind: GraphQueryBackendKind;
+  isEnabled(): boolean;
+  getRuntimeState(): GraphQueryRuntimeState;
+  healthcheck(): Promise<GraphQueryBackendHealth>;
+  upsertDocument(document: GraphIndexDocumentRecord): Promise<void>;
+  removeSource(sourceType: 'trap' | 'skill', sourceId: string): Promise<void>;
+  rebuildProjection(documents: GraphIndexDocumentRecord[]): Promise<void>;
+  expandSourcesOneHop(params: { queryLabels: Set<string>; eligibleSourceIds?: Set<string> }): Promise<Set<string>>;
+  calculateSourceRelationStrength(params: { sourceId: string; queryLabels: Set<string> }): Promise<number>;
+  getSourceNodeIds(sourceIds: string[]): Promise<Map<string, Set<string>>>;
+  buildLocalExpansionView(params: { seedNodeIds: string[]; maxDepth: number; auth: { teamId: string | null; securityLevel: number } }): Promise<GraphQueryExpansionView>;
+  findMitigatingSkills(trapNodeIds: string[]): Promise<string[]>;
+}
+```
+
+Port the current server memory backend without semantic changes. It must load
+documents from `graphIndexRepo.listAll()` for read operations, delegate write
+operations to the port, and use the owner-local graphology helpers.
+
+Port `graphology.ts` from `packages/server/src/lib/indexing/graph-lite/graphology.ts`,
+but import graph document types directly from `@trapmap/contracts` and
+`buildContextNodeId` from `./boundary-normalize.js`. Port every exported helper:
+`buildGraphFromDocuments`, `buildGraphRuntimeSnapshot`, `expandSourcesOneHop`,
+`calculateSourceRelationStrength`, `projectHardDependencyGraph`,
+`assertNoHardDependencyCycles`, `buildLocalExpansionView`,
+`findEntriesByContext`, and `findEntriesByBoundaryConstraints`.
+
+Port all of `boundary-normalize.ts` unchanged in behavior. Change
+`context.ts` declarations to:
+
+```ts
+import type { GraphQueryBackend, GraphQueryRuntimeState } from './graph-query.js';
+
+export type KnowledgeReadGraphQueryBackend = GraphQueryBackend;
+export type KnowledgeReadGraphQueryRuntimeState = GraphQueryRuntimeState;
+```
+
+Export the canonical types/functions from `src/index.ts`. Add
+`graphology`, `graphology-dag`, `graphology-operators`, and
+`graphology-shortest-path` as direct dependencies, then regenerate the lockfile
+using pnpm's existing workspace configuration.
+
+- [ ] **Step 4: Run owner tests and typecheck**
+
+Run:
+
+```bash
+rtk pnpm --filter @trapmap/service-knowledge-read test --run src/graph-query.test.ts
+rtk pnpm --filter @trapmap/service-knowledge-read typecheck
+```
+
+Expected: both commands pass; tests prove the memory backend's behavior without
+any server import.
+
+- [ ] **Step 5: Commit the owner graph core**
+
+```bash
+rtk git add packages/service-knowledge-read/src/graph-query.ts packages/service-knowledge-read/src/graph-query.test.ts packages/service-knowledge-read/src/graphology.ts packages/service-knowledge-read/src/boundary-normalize.ts packages/service-knowledge-read/src/context.ts packages/service-knowledge-read/src/index.ts packages/service-knowledge-read/package.json pnpm-lock.yaml
+rtk git commit -m "feat: move memory graph query to knowledge read"
 ```
 

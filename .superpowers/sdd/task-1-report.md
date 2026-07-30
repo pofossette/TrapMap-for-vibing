@@ -1,50 +1,80 @@
-# Task 1 Report: Foundation Tools — dependency-cruiser + TypeDoc + mustMatchRegex
+# Task 1 Report: Shared AI Providers Foundation
 
-## What was implemented
+## Outcome
 
-### 1A: dependency-cruiser
-- Installed `dependency-cruiser@^18.0.0` as a root devDependency.
-- Created `.dependency-cruiser.cjs` with 5 forbidden rules enforcing layer boundaries:
-  1. `contracts-is-foundation` — contracts must not depend on any other workspace package
-  2. `backend-core-only-depends-contracts` — backend-core may only depend on contracts
-  3. `server-no-host-deps` — server must not depend on host-* packages
-  4. `services-must-not-cross-dep` — service-* packages must not depend on each other (6 per-service rules with self-exclusion via pathNot)
-  5. `web-panel-server-isolation` — web-panel must not import from server, backend-core, or host-*
-- Options: `tsPreCompilationDeps: true`, `tsConfig: { fileName: 'tsconfig.base.json' }`, `enhancedResolveOptions` with exportsFields and conditionNames.
-- Added `check:deps` script to package.json.
+Created the independent `@trapmap/ai-providers` workspace package without
+migrating consumers or modifying/deleting the existing server implementation.
+The package exports the provider/config contracts, configuration loader, and
+provider factory required by the approved task brief.
 
-### 1B: TypeDoc
-- Installed `typedoc@^0.28.19` as a root devDependency.
-- Created `typedoc.json` with entryPointStrategy "packages", entryPoints contracts + backend-core, output to docs/api.
-- Added `docs:api` script to package.json.
+## Changed Files
 
-### 1C: mustMatchRegex in check-doc-drift.ts
-- Added `mustMatchRegex?: string[]` field to `DocRule` interface with JSDoc.
-- Added implementation in `checkRule()` that iterates patterns, creates RegExp with 's' flag, tests content, and reports failures/errors.
-- Added 6 unit tests covering: regex match pass, regex mismatch fail, invalid regex error, multiline matching via 's' flag, empty array edge case, partial match (all patterns must match).
+- `packages/ai-providers/package.json`
+- `packages/ai-providers/tsconfig.json`
+- `packages/ai-providers/src/index.ts`
+- `packages/ai-providers/src/types.ts`
+- `packages/ai-providers/src/provider-config.ts`
+- `packages/ai-providers/src/providers.ts`
+- `packages/ai-providers/src/import-boundary.test.ts`
+- `packages/ai-providers/src/provider-config.test.ts`
+- `packages/ai-providers/src/providers.test.ts`
+- `tsconfig.json`
+- `vitest.config.ts`
+- `pnpm-lock.yaml`
 
-## What was tested and test results
+## TDD Evidence
 
-1. **`pnpm check:deps`** — Passed. 0 violations, 1009 modules, 4085 dependencies cruised.
-2. **`pnpm exec vitest run scripts/__tests__/check-doc-drift.test.ts`** — All 28 tests passed (22 pre-existing + 6 new mustMatchRegex tests).
+1. Added the three new-package test files before production files existed.
+2. Ran the required focused command:
 
-## Self-review findings
+   ```sh
+   rtk pnpm exec vitest run --project ai-providers packages/ai-providers/src/providers.test.ts packages/ai-providers/src/provider-config.test.ts packages/ai-providers/src/import-boundary.test.ts
+   ```
 
-- The initial `.dependency-cruiser.cjs` used invalid `dependencyTypes` values (`aliased-subpath` does not exist in v18). Removed `dependencyTypes` filters entirely since the `path` regex on `to` already restricts cross-package matches when combined with `pathNot` for same-package exclusion.
-- The `services-must-not-cross-dep` rule cannot use regex backreferences in `pathNot`, so it was expanded to one rule per service package (6 rules) each with a correct `pathNot` self-exclusion pattern.
-- The existing `contracts-is-foundation` rule fires on internal file-to-file deps within contracts when `pathNot` is absent — adding `pathNot: '^packages/contracts/'` was required to exclude intra-package imports.
+   Result: failed as expected with `No projects matched the filter "ai-providers"`.
+3. Added the package, source modules, TypeScript reference, and Vitest project.
+4. Reran the focused command: passed, 3 test files and 21 tests.
 
-## Files changed
+## Commands and Results
 
-| File | Change |
-|---|---|
-| `.dependency-cruiser.cjs` | New — layer-boundary rules |
-| `typedoc.json` | New — TypeDoc config |
-| `package.json` | Added dependency-cruiser, typedoc devDeps; added check:deps, docs:api scripts |
-| `pnpm-lock.yaml` | Updated by pnpm install |
-| `scripts/check-doc-drift.ts` | Added mustMatchRegex to DocRule interface + checkRule() |
-| `scripts/__tests__/check-doc-drift.test.ts` | Added 6 mustMatchRegex tests |
+- `rtk pnpm install --lockfile-only`: passed; lockfile updated for the new workspace importer.
+- `rtk pnpm --filter @trapmap/ai-providers test`: passed, 3 files / 21 tests.
+- `rtk pnpm --dir packages/ai-providers typecheck`: passed.
+- `rtk pnpm exec vitest run --project ai-providers packages/ai-providers/src/providers.test.ts packages/ai-providers/src/provider-config.test.ts packages/ai-providers/src/import-boundary.test.ts`: passed, 3 files / 21 tests.
+- `rtk git diff --check`: passed with no whitespace errors.
+- `rtk pnpm install`: run after the lockfile-only step to create the new package's local dependency links required for direct package typechecking; passed.
 
-## Issues or concerns
+The exact `rtk pnpm --filter @trapmap/ai-providers typecheck` command reports
+that RTK does not support forwarding `--filter` to `pnpm tsc` and performs a
+root TypeScript check instead. The direct package command above was run to
+verify the required package typecheck itself.
 
-None. All checks pass, all tests green.
+## Self-Review
+
+- Confirmed `packages/ai-providers/src` contains no production imports of
+  `@trapmap/server`, `/prompts`, or `/cache`; an automated import-boundary test
+  enforces the barrel constraint.
+- Confirmed `index.ts` exports `AiPromptBlock`, `EmbeddingsProvider`,
+  `ChatProvider`, `AiProviders`, `AiProviderType`, `AiProviderConfig`,
+  `loadAiProviderConfig`, and `createAiProviders`.
+- Confirmed configuration behavior covers fallback, OpenAI and Google key
+  precedence, embedding override, and prompt-template environment handling.
+- Confirmed provider behavior covers fallback vectors, Google missing
+  configuration, embedding override construction, and
+  `invokeWithBlocks([{ content: 'block' }], 'user')`.
+- Existing server provider/config source and tests were not modified.
+
+## Independent Review
+
+An independent review of commit `11be87b1baaf12840159c7859ee826dca5da8c8b`
+found no issues. It also verified the package with:
+
+- `rtk pnpm --filter @trapmap/ai-providers test`: passed, 21 tests.
+- `rtk pnpm --filter @trapmap/ai-providers typecheck`: passed.
+- `rtk pnpm exec tsc -b packages/ai-providers --pretty false`: passed.
+
+## Concerns
+
+None. The package test script intentionally invokes Vitest from the repository
+root because the shared multi-project `vitest.config.ts` uses repository-root
+relative project paths.

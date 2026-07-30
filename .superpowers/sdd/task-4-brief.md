@@ -1,46 +1,47 @@
-### Task 4: 修复指南与运维文档批次
+### Task 4: Execute Docker-Coordinated Acceptance
 
 **Files:**
-- Modify: `docs/guides/GETTING_STARTED.md`
-- Modify: `docs/guides/MIGRATION_GUIDE.md`
-- Modify: `docs/operations/ENVIRONMENT.md`
-- Modify: `docs/operations/CI_CD.md`
-- Modify: `docs/operations/OBSERVABILITY-OPERATIONS.md`
+- Modify: `docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md`
 
 **Interfaces:**
-- Consumes: `docs/todos/doc-drift-fix-list.md` 中 H-05 至 H-09、M-11 至 M-15、L-03；`package.json`、`.github/workflows/ci.yml`、`packages/host-distributed/package.json`、`packages/host-distributed/src/index.ts`、相关 observability/runtime 源码
-- Produces: 已同步的入门版本要求、迁移指南服务树与命令、环境变量事实、CI 命令说明、可观测性运维变量与 retention 口径
+- Consumes: Tasks 1-3 migrated provider/config seam.
+- Produces: acceptance evidence for this bounded Wave-8 import retirement.
 
-- [ ] **Step 1: 逐文件核对待修表述**
+- [ ] **Step 1: Run the shared package and composition verification set**
 
-Run: `rtk rg -n "Node.js|PostgreSQL|service-knowledge-read|dev:server:compat|TRAPMAP_EVAL_PLATFORM|fail-on-regression|retention|OTEL_ENABLED|OTEL_SAMPLING_RATE|OTEL_TRACES_EXPORTER|OTEL_LOGS_EXPORTER|LOKI_URL" docs/guides/GETTING_STARTED.md docs/guides/MIGRATION_GUIDE.md docs/operations/ENVIRONMENT.md docs/operations/CI_CD.md docs/operations/OBSERVABILITY-OPERATIONS.md .github/workflows/ci.yml`
-Expected: 命中当前待修表述
+Run: `rtk pnpm --filter @trapmap/ai-providers test && rtk pnpm exec vitest run --project host-local packages/host-local/src/nest/runtime/import-boundary.test.ts packages/host-local/src/nest/runtime/host-services.test.ts && rtk pnpm typecheck`
 
-- [ ] **Step 2: 更新事实并保持简体中文**
+Expected: PASS.
 
-要求：
-- `GETTING_STARTED.md` 改成 Node 24，并弱化“PostgreSQL 默认”成推荐姿态
-- `MIGRATION_GUIDE.md` 补 `service-knowledge-read`，删除过时 compat 脚本
-- `ENVIRONMENT.md` 把 `TRAPMAP_EVAL_PLATFORM` 标成规划/占位或移出当前生效区
-- `CI_CD.md` 改正 fallow 命令、coverage 保留期和 Node 版本口径
-- `OBSERVABILITY-OPERATIONS.md` 统一到当前 OTEL / Loki 变量和真实 retention 事实
+- [ ] **Step 2: Run Docker-coordinated behavior acceptance**
 
-- [ ] **Step 3: 校验文档守卫**
+Run: `rtk pnpm test:deployment-smoke && rtk pnpm test:runtime-foundations && rtk pnpm eval:smoke`
 
-Run: `rtk pnpm check:docs-drift`
-Expected: PASS
+Expected: all commands PASS under the PostgreSQL coordinator; record actual
+test counts and any non-blocking inherited output exactly.
 
-- [ ] **Step 4: 校验链接与 Markdown**
+- [ ] **Step 3: Run the architecture boundary audit**
 
-Run: `rtk pnpm check:links`
-Expected: PASS 或仅剩与本任务无关的既有告警
+Run: `rtk pnpm exec fallow audit --base main --format json --quiet`
 
-Run: `rtk pnpm check:md-lint`
-Expected: PASS
+Expected: `verdict: pass` and no introduced dependency-boundary violation.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Record evidence without closing the wave**
+
+Append an active-plan entry that names `@trapmap/ai-providers`, confirms the
+host-local provider/config edge is gone, lists the passing commands, and states
+that server graph-query ownership remains before Wave-8 can close.
+
+- [ ] **Step 5: Commit acceptance evidence**
 
 ```bash
-git add docs/guides/GETTING_STARTED.md docs/guides/MIGRATION_GUIDE.md docs/operations/ENVIRONMENT.md docs/operations/CI_CD.md docs/operations/OBSERVABILITY-OPERATIONS.md
-git commit -m "docs: sync guides and operations facts"
+rtk git add docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md
+rtk git commit -m "docs: record shared AI provider acceptance"
 ```
+
+## Self-Review
+
+- Spec coverage: Tasks 1-3 cover the complete provider/config move, structural prompt block, package boundary, server prompt retention, all known consumer categories, and removal of the host-local server provider edge. Task 4 covers the required Docker and eval evidence.
+- Scope: graph-query, legacy state, and server package deletion are explicitly excluded and are not represented as completed work.
+- Type consistency: every consumer uses the Task 1 names `AiPromptBlock`, `ChatProvider`, `EmbeddingsProvider`, `AiProviders`, `loadAiProviderConfig`, and `createAiProviders`.
+- Placeholder scan: no unresolved implementation choices or deferred behavior are present; each task has a red test, a concrete implementation action, a green verification command, and a commit.
