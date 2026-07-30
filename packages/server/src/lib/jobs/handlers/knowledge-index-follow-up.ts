@@ -12,14 +12,12 @@ import {
   type SharedJobHandler,
   getSharedJobContract,
 } from '@trapmap/server/lib/jobs/types.js';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 import type { Pool } from 'pg';
 
 export function createKnowledgeIndexFollowUpHandler(args: {
-  store: SkillShareerStore;
-  registry: AdapterRegistry;
   pool: Pool;
+  registry: AdapterRegistry;
   graphQueryBackend?: GraphQueryBackend;
   graphIndex?: GraphIndexRepositoryPort;
   knowledgeOwner?: Pick<KnowledgeOwnerPort, 'getIndexingEntry' | 'updateIndexMetadata'>;
@@ -54,7 +52,7 @@ export function createKnowledgeIndexFollowUpHandler(args: {
 
       await runKnowledgeIndexEvent({
         services: {
-          store: args.store,
+          pool: args.pool,
           ...(args.graphQueryBackend ? { graphQueryBackend: args.graphQueryBackend } : {}),
           ...(args.graphIndex ? { graphIndex: args.graphIndex } : {}),
           ...(args.knowledgeOwner ? { knowledgeOwner: args.knowledgeOwner } : {}),

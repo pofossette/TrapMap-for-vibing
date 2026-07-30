@@ -13,7 +13,6 @@ import {
   createIndexingSubscriber,
 } from '@trapmap/server/lib/lifecycle/index.js';
 import type { DomainEvent, DomainEventHandler } from '@trapmap/server/lib/lifecycle/index.js';
-import { getStorePool } from '@trapmap/server/lib/store.js';
 
 const INDEXING_EVENT_NAMES = [
   'knowledge.approved',
@@ -42,20 +41,20 @@ export interface BootstrapLifecycleOptions {
 }
 
 function buildLifecycleSubscriberContract(app: FastifyInstance): LifecycleSubscriberContract {
-  const { store, adapterRegistry, graphQueryBackend, graphIndex, asyncTransport, jobRuntime } =
+  const { pool, adapterRegistry, graphQueryBackend, graphIndex, asyncTransport, jobRuntime } =
     app.skillShareer;
   if (!jobRuntime) {
     throw new Error('server lifecycle requires an injected job-runtime port');
   }
   const indexingHandler = createIndexingSubscriber(
-    store,
+    pool,
     adapterRegistry,
     graphQueryBackend,
     asyncTransport?.task,
     graphIndex,
     app.skillShareer.knowledgeOwner,
   );
-  const auditHandler = createAuditSubscriber(store, app.log);
+  const auditHandler = createAuditSubscriber(app.log);
   const conflictHandler = createGovernanceConflictTaskScheduler(jobRuntime);
 
   const registrations = INDEXING_EVENT_NAMES.map((eventName) => ({
@@ -78,7 +77,7 @@ export async function bootstrapLifecycle(
   app: FastifyInstance,
   options: BootstrapLifecycleOptions = {},
 ): Promise<void> {
-  const { eventBus, store } = app.skillShareer;
+  const { eventBus } = app.skillShareer;
   const { startOutboxWorker = true, ownsOutboxWork = startOutboxWorker } = options;
   const lifecycleContract = buildLifecycleSubscriberContract(app);
 
@@ -98,7 +97,7 @@ export async function bootstrapLifecycle(
 
   // Start outbox event worker for PG mode
   // Processes domain events asynchronously — indexing, conflict detection, audit
-  if (getStorePool(store)) {
+  if (app.skillShareer.pool) {
     const eventTransport = app.skillShareer.asyncTransport?.events;
     if (!eventTransport) {
       throw new Error('Postgres runtime requires postgres-backed async event transport');

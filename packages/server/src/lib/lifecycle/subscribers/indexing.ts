@@ -13,7 +13,7 @@ import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import { createSharedJobQueuePort, scheduleSharedJob } from '@trapmap/server/lib/jobs/index.js';
 import { KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import type { DomainEventHandler } from '@trapmap/server/lib/lifecycle/types.js';
-import { type SkillShareerStore, getStorePool } from '@trapmap/server/lib/store.js';
+import type { Pool } from 'pg';
 
 /**
  * Create an event subscriber that syncs knowledge indexes on lifecycle transitions.
@@ -21,7 +21,7 @@ import { type SkillShareerStore, getStorePool } from '@trapmap/server/lib/store.
  * (approved entry content changes need index refresh).
  */
 export function createIndexingSubscriber(
-  store: SkillShareerStore,
+  pool: Pool | null,
   registry: AdapterRegistry,
   graphQueryBackend?: GraphQueryBackend,
   asyncQueue?: Parameters<typeof createSharedJobQueuePort>[0],
@@ -37,7 +37,7 @@ export function createIndexingSubscriber(
     // unless reason is 'updated' (approved entry content refresh)
     if (previousState === nextState && event.reason !== 'updated') return;
 
-    if (!getStorePool(store)) {
+    if (!pool) {
       emitCacheInvalidation(
         createCacheInvalidationEvent({
           sourceType: 'trap',
@@ -49,7 +49,7 @@ export function createIndexingSubscriber(
       );
       await runKnowledgeIndexEvent({
         services: {
-          store,
+          pool,
           ...(graphQueryBackend !== undefined ? { graphQueryBackend } : {}),
           ...(graphIndex !== undefined ? { graphIndex } : {}),
           ...(knowledgeOwner !== undefined ? { knowledgeOwner } : {}),
@@ -74,7 +74,7 @@ export function createIndexingSubscriber(
     );
     await scheduleSharedJob(
       sharedJobQueue,
-      store,
+      pool,
       KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
       {
         entryId: event.entryId,

@@ -21,11 +21,8 @@ import { ensureCapsuleVectorIndex } from '@trapmap/server/lib/retrieval/capsules
 import { ensureVectorIndex } from '@trapmap/server/lib/retrieval/recall/db-search.js';
 import { createGraphChannel } from '@trapmap/server/lib/retrieval/recall/graph-assisted.js';
 import { executeWithResilience } from '@trapmap/server/lib/runtime/index.js';
-import { getStorePool } from '@trapmap/server/lib/store.js';
-
 export async function bootstrapRepositories(app: FastifyInstance): Promise<void> {
-  const store = app.skillShareer.store;
-  const pool = getStorePool(store);
+  const pool = app.skillShareer.pool;
 
   const startupContext = {
     logger: app.log,

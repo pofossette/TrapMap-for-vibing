@@ -9,6 +9,8 @@
  * Only approved content receives index upserts.
  */
 
+import type { Pool } from 'pg';
+
 import type {
   GraphIndexRepositoryPort,
   KnowledgeOwnerPort,
@@ -16,7 +18,6 @@ import type {
 } from '@trapmap/contracts';
 import type { ChatProvider } from '@trapmap/ai-providers';
 import type { GraphQueryBackend } from '@trapmap/contracts';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { syncKnowledgeIndexFromOwner } from './pipeline.js';
 import type { AdapterRegistry } from './registry.js';
 
@@ -59,7 +60,7 @@ export function determineKnowledgeIndexAction(
  */
 export async function runKnowledgeIndexEvent(args: {
   services: {
-    store: SkillShareerStore;
+    pool: Pool | null;
     ai?: { chat: ChatProvider };
     graphQueryBackend?: GraphQueryBackend;
     graphIndex?: GraphIndexRepositoryPort;

@@ -242,6 +242,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   if (!storePool) {
     throw new Error('server identity compatibility bridge requires PostgreSQL');
   }
+  app.skillShareer.pool = storePool;
   if (!options.asyncTransport) {
     throw new Error('server async transport must be injected by job-runtime host composition');
   }

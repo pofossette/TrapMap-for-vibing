@@ -11,7 +11,7 @@ import {
   verifyCapsuleIndexHealth,
 } from '@trapmap/server/lib/retrieval/capsules/repositories/index-rebuild.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
-import { getStorePool, nowIso } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 
 const capsuleIndexRebuildRequestSchema = z
@@ -44,16 +44,7 @@ function requireSystemAdmin(subjectType: 'user' | 'system-admin'): void {
 }
 
 function getCapsuleIndexPool(app: FastifyInstance): Pool {
-  const pool = getStorePool(app.skillShareer.store);
-  if (!pool) {
-    throw new AppError(
-      409,
-      'capsule_pg_unavailable',
-      'Capsule index operations require a PostgreSQL-backed store',
-    );
-  }
-
-  return pool;
+  return app.skillShareer.pool;
 }
 
 function summarizeSyncResult(result: {

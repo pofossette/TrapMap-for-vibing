@@ -4,5 +4,7 @@ export * from './enum-types/index.js';
 export * from './store-data.js';
 export * from './store-interface.js';
 export * from './store-pool.js';
-// JsonStore and utilities
+// Utilities (re-homed from json-store.ts)
+export * from './store-utils.js';
+// JsonStore (compatibility — scheduled for Wave-9 deletion)
 export * from './json-store.js';

@@ -106,6 +106,7 @@ export interface SkillShareerServices {
   runtimeMode: RuntimeMode;
   serviceUnit: ServiceUnit;
   store: SkillShareerStore;
+  pool: import('pg').Pool;
   asyncTransport?: AsyncTransport;
   /** Adapter registry for indexing pipeline (replaces indexAdapters array) */
   adapterRegistry: AdapterRegistry;

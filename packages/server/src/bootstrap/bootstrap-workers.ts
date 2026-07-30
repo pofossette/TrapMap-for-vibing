@@ -7,23 +7,17 @@ import type { Pool } from 'pg';
 
 import { buildSharedJobHandlersContract } from '@trapmap/server/lib/jobs/index.js';
 import type { TaskHandler } from '@trapmap/server/lib/queue/task-queue.js';
-import { type SkillShareerStore, getStorePool } from '@trapmap/server/lib/store.js';
 
 export interface BootstrapWorkersOptions {
   enabled?: boolean;
   ownSharedJobTaskWork?: boolean;
 }
 
-function buildSharedJobWorkerHandlers(
-  app: FastifyInstance,
-  store: SkillShareerStore,
-  pool: Pool,
-): TaskHandler<unknown>[] {
+function buildSharedJobWorkerHandlers(app: FastifyInstance, pool: Pool): TaskHandler<unknown>[] {
   const contract = buildSharedJobHandlersContract({
     knowledgeIndexFollowUp: {
-      store,
-      registry: app.skillShareer.adapterRegistry,
       pool,
+      registry: app.skillShareer.adapterRegistry,
       ...(app.skillShareer.graphQueryBackend !== undefined
         ? { graphQueryBackend: app.skillShareer.graphQueryBackend }
         : {}),
@@ -32,7 +26,7 @@ function buildSharedJobWorkerHandlers(
     },
     skillIndexFollowUp: {
       services: {
-        store,
+        pool,
         ai: app.skillShareer.ai,
         ...(app.skillShareer.graphQueryBackend !== undefined
           ? { graphQueryBackend: app.skillShareer.graphQueryBackend }
@@ -51,18 +45,16 @@ export async function bootstrapWorkers(
   app: FastifyInstance,
   options: BootstrapWorkersOptions = {},
 ): Promise<void> {
-  const store = app.skillShareer.store;
   const { enabled = true, ownSharedJobTaskWork = enabled } = options;
 
-  // Only runs when the store exposes PostgreSQL pool access (databaseUrl configured).
-  const pool = getStorePool(store);
+  const pool = app.skillShareer.pool;
   if (!pool) return;
 
   const taskTransport = app.skillShareer.asyncTransport?.task;
 
   if (taskTransport?.createConsumer) {
     const consumer = await taskTransport.createConsumer({
-      handlers: buildSharedJobWorkerHandlers(app, store, pool),
+      handlers: buildSharedJobWorkerHandlers(app, pool),
       ownsWork: ownSharedJobTaskWork,
     });
 

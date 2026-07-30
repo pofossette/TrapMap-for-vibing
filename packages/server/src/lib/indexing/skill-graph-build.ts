@@ -21,12 +21,9 @@ import type {
   GraphNodeRecord,
 } from '@trapmap/contracts';
 import type { ChatProvider } from '@trapmap/ai-providers';
+import type { Pool } from 'pg';
 import { createLabelReadProjection } from '@trapmap/server/lib/labels/repository.js';
-import {
-  type SkillArtifactRecord,
-  type SkillShareerStore,
-  getStorePool,
-} from '@trapmap/server/lib/store.js';
+import { type SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import {
   type SkillGraphDocumentInput,
   buildSkillGraphDocument as buildSkillGraphDocumentRecord,
@@ -50,7 +47,7 @@ import { extractSkillGraphPrimitives } from './skill-extract.js';
 export async function buildSkillGraphDocument(
   artifact: SkillArtifactRecord | ArtifactIndexingEntry,
   chat?: ChatProvider,
-  store?: SkillShareerStore,
+  pool?: Pool | null,
 ): Promise<GraphIndexDocumentRecord | null> {
   // Legacy artifacts expose `latestRevision.derived`; owner projections expose
   // the same derived revision as a flat, intentionally minimal index payload.
@@ -109,7 +106,6 @@ export async function buildSkillGraphDocument(
   let edges: GraphEdgeRecord[];
 
   if (chat?.isConfigured) {
-    const pool = store ? getStorePool(store) : null;
     // LLM extraction path
     const llmResult = await extractGraphEntitiesWithLLM(chat, canonicalText, {
       llmEnabled: true,

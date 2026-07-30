@@ -35,7 +35,7 @@ import type {
   RoutingChannel,
   ScoredEntry,
 } from '@trapmap/server/lib/retrieval/types.js';
-import { type KnowledgeRecord, getStorePool } from '@trapmap/server/lib/store.js';
+import { type KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import type { Pool } from 'pg';
 import type { ChannelRegistry } from './channel-registry.js';
 import type { StrategyRegistry } from './strategy-registry.js';
@@ -73,7 +73,7 @@ export interface RecallExecutionResult {
  */
 export function getDbSearchConfig(services: SkillShareerServices): DbSearchConfig {
   const enabled = process.env.USE_DB_SEARCH === 'true';
-  const pool = getStorePool(services.store);
+  const pool = services.pool;
   return { enabled: enabled && pool !== null, pool };
 }
 

@@ -26,7 +26,7 @@ import {
   resolveAsyncWorkerState,
 } from '@trapmap/server/lib/runtime/index.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
-import { getStorePool, nowIso } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import { createWorkflowRepository } from '@trapmap/server/lib/workflows/repository.js';
 import {
   buildCapacityModel,
@@ -41,8 +41,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:export');
 
-    const store = app.skillShareer.store;
-    const pool = getStorePool(store);
+    const pool = app.skillShareer.pool;
     const runtimeMode = app.skillShareer.runtimeMode;
     const serviceUnit = app.skillShareer.serviceUnit;
     const runtimeDeployment = app.skillShareer.runtimeDeployment;
@@ -291,8 +290,7 @@ export const statusRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:export');
 
-    const store = app.skillShareer.store;
-    if (!getStorePool(store)) {
+    if (!app.skillShareer.pool) {
       return asyncTaskRequeueResponseSchema.parse({
         taskId: (request.params as { taskId: string }).taskId,
         requeued: false,

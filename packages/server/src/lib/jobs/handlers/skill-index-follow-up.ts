@@ -16,7 +16,7 @@ import type { Pool } from 'pg';
 export function createSkillIndexFollowUpHandler(args: {
   services: Pick<
     SkillShareerServices,
-    'store' | 'ai' | 'graphQueryBackend' | 'graphIndex' | 'artifactReadProjection'
+    'pool' | 'ai' | 'graphQueryBackend' | 'graphIndex' | 'artifactReadProjection'
   >;
   pool: Pool;
 }): SharedJobHandler<SkillIndexFollowUpPayload> {
@@ -50,7 +50,7 @@ export function createSkillIndexFollowUpHandler(args: {
 
       await runSkillIndexEvent({
         services: {
-          store: args.services.store,
+          pool: args.services.pool,
           ai: { chat: args.services.ai.chat },
           ...(args.services.graphQueryBackend !== undefined
             ? { graphQueryBackend: args.services.graphQueryBackend }

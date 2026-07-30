@@ -29,8 +29,9 @@ import { assertNoHardDependencyCycles } from '@trapmap/contracts';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { IndexAdapter, IndexSyncResult } from '@trapmap/server/lib/indexing/types.js';
 import { createLabelReadProjection } from '@trapmap/server/lib/labels/repository.js';
-import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
-import { getStorePool, nowIso } from '@trapmap/server/lib/store.js';
+import type { StoreData } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
+import type { Pool } from 'pg';
 import { buildTrapGraphDocument } from './graph-builders.js';
 
 // ---------------------------------------------------------------------------
@@ -82,7 +83,7 @@ function cacheDocument(document: GraphIndexDocumentRecord): void {
 export const graphIndexAdapter: IndexAdapter & {
   sync(
     document: NormalizedIndexDocument,
-    store?: SkillShareerStore,
+    pool?: Pool | null,
     chat?: ChatProvider,
     graphQueryBackend?: GraphQueryBackend,
     storeData?: Pick<StoreData, 'graphIndexDocuments'>,
@@ -90,7 +91,7 @@ export const graphIndexAdapter: IndexAdapter & {
   ): Promise<IndexSyncResult>;
   remove(
     ref: { entryId: string; revision: number },
-    _store?: SkillShareerStore,
+    _pool?: Pool | null,
     graphQueryBackend?: GraphQueryBackend,
     graphIndex?: GraphIndexRepositoryPort,
   ): Promise<void>;
@@ -99,7 +100,7 @@ export const graphIndexAdapter: IndexAdapter & {
 
   async sync(
     document: NormalizedIndexDocument,
-    store?: SkillShareerStore,
+    pool?: Pool | null,
     chat?: ChatProvider,
     graphQueryBackend?: GraphQueryBackend,
     storeData?: Pick<StoreData, 'graphIndexDocuments'>,
@@ -123,7 +124,6 @@ export const graphIndexAdapter: IndexAdapter & {
     }
 
     try {
-      const pool = store ? getStorePool(store) : null;
       // Extract graph entities and relations through the LLM pipeline only.
       const llmResult = await extractGraphEntitiesWithLLM(
         chat ?? { provider: 'none', isConfigured: false, invoke: async () => '' },
@@ -219,7 +219,7 @@ export const graphIndexAdapter: IndexAdapter & {
 
   async remove(
     ref: { entryId: string; revision: number },
-    store?: SkillShareerStore,
+    _pool?: Pool | null,
     graphQueryBackend?: GraphQueryBackend,
     graphIndex?: GraphIndexRepositoryPort,
   ): Promise<void> {

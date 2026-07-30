@@ -1,7 +1,6 @@
-import type { PoolClient } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 import type { AsyncTaskTransport } from '@trapmap/server/lib/async/transport.js';
-import { type SkillShareerStore, getStorePool } from '@trapmap/server/lib/store.js';
 
 import {
   type SharedJobPayloadByType,
@@ -44,13 +43,13 @@ export function createSharedJobQueuePort(queue: AsyncTaskTransport): SharedJobQu
 
 export async function scheduleSharedJobTx<TTaskType extends SharedJobTaskType>(
   queue: SharedJobQueuePort | undefined,
-  store: SkillShareerStore,
+  pool: Pool | null,
   client: PoolClient,
   type: TTaskType,
   payload: SharedJobPayloadByType[TTaskType],
   dedupeKey: string,
 ): Promise<void> {
-  if (!getStorePool(store) || !queue) {
+  if (!pool || !queue) {
     return;
   }
 
@@ -59,12 +58,12 @@ export async function scheduleSharedJobTx<TTaskType extends SharedJobTaskType>(
 
 export async function scheduleSharedJob<TTaskType extends SharedJobTaskType>(
   queue: SharedJobQueuePort | undefined,
-  store: SkillShareerStore,
+  pool: Pool | null,
   type: TTaskType,
   payload: SharedJobPayloadByType[TTaskType],
   dedupeKey: string,
 ): Promise<void> {
-  if (!getStorePool(store) || !queue) {
+  if (!pool || !queue) {
     return;
   }
 

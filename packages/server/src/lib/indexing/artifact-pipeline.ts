@@ -13,12 +13,8 @@
 
 import type { ChatProvider } from '@trapmap/ai-providers';
 import type { ArtifactIndexingEntry, GraphIndexRepositoryPort } from '@trapmap/contracts';
-import {
-  type SkillArtifactRecord,
-  type SkillShareerStore,
-  type StoreData,
-  getStorePool,
-} from '@trapmap/server/lib/store.js';
+import type { Pool } from 'pg';
+import { type SkillArtifactRecord, type StoreData } from '@trapmap/server/lib/store.js';
 import { artifactGraphIndexAdapter } from './adapters/artifact-graph.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 import { createCapsuleIndexAdapter } from './adapters/capsule-index.js';
@@ -31,7 +27,7 @@ import { createCapsuleIndexAdapter } from './adapters/capsule-index.js';
  * Registered artifact adapters for fan-out.
  */
 let registeredArtifactAdapters: ArtifactGraphAdapter[] = [];
-const storeArtifactAdapterCache = new WeakMap<SkillShareerStore, ArtifactGraphAdapter[]>();
+let cachedPoolAdapters: { pool: Pool; adapters: ArtifactGraphAdapter[] } | null = null;
 
 /**
  * Register artifact adapters for the fan-out pipeline.
@@ -52,28 +48,28 @@ export function getArtifactAdapters(): ArtifactGraphAdapter[] {
 }
 
 /**
- * Resolve the shared artifact adapter list for a store instance.
+ * Resolve the shared artifact adapter list for a pool instance.
  *
  * Tests and bootstrap code can still override this by registering adapters
  * explicitly. Otherwise we lazily assemble the default lifecycle adapters.
  */
-export function resolveArtifactAdapters(store: SkillShareerStore): ArtifactGraphAdapter[] {
+export function resolveArtifactAdapters(pool: Pool | null): ArtifactGraphAdapter[] {
   if (registeredArtifactAdapters.length > 0) {
     return registeredArtifactAdapters;
   }
 
-  const cached = storeArtifactAdapterCache.get(store);
-  if (cached) {
-    return cached;
+  if (cachedPoolAdapters && cachedPoolAdapters.pool === pool) {
+    return cachedPoolAdapters.adapters;
   }
 
   const adapters: ArtifactGraphAdapter[] = [artifactGraphIndexAdapter];
-  const pool = getStorePool(store);
   if (pool) {
     adapters.push(createCapsuleIndexAdapter({ pool }));
   }
 
-  storeArtifactAdapterCache.set(store, adapters);
+  if (pool) {
+    cachedPoolAdapters = { pool, adapters };
+  }
   return adapters;
 }
 
@@ -112,7 +108,7 @@ export interface ArtifactAdapterFanOutResult {
 export async function runArtifactAdapterFanOut(args: {
   data?: StoreData;
   artifact: SkillArtifactRecord | ArtifactIndexingEntry;
-  store?: SkillShareerStore;
+  pool?: Pool | null;
   chat?: ChatProvider;
   graphQueryBackend?: Parameters<ArtifactGraphAdapter['sync']>[0]['graphQueryBackend'];
   graphIndex?: GraphIndexRepositoryPort;
@@ -121,7 +117,7 @@ export async function runArtifactAdapterFanOut(args: {
   const { data, artifact } = args;
   const adapters =
     args.adapters ??
-    (args.store ? resolveArtifactAdapters(args.store) : registeredArtifactAdapters);
+    (args.pool !== undefined ? resolveArtifactAdapters(args.pool) : registeredArtifactAdapters);
 
   const results: ArtifactAdapterFanOutResult['results'] = [];
 
@@ -164,7 +160,7 @@ export async function runArtifactAdapterFanOut(args: {
 export async function runArtifactAdapterRemoval(args: {
   data?: StoreData;
   artifactId: string;
-  store?: SkillShareerStore;
+  pool?: Pool | null;
   graphQueryBackend?: Parameters<ArtifactGraphAdapter['remove']>[0]['graphQueryBackend'];
   graphIndex?: GraphIndexRepositoryPort;
   adapters?: ArtifactGraphAdapter[];
@@ -172,7 +168,7 @@ export async function runArtifactAdapterRemoval(args: {
   const { data, artifactId } = args;
   const adapters =
     args.adapters ??
-    (args.store ? resolveArtifactAdapters(args.store) : registeredArtifactAdapters);
+    (args.pool !== undefined ? resolveArtifactAdapters(args.pool) : registeredArtifactAdapters);
 
   for (const adapter of adapters) {
     await adapter.remove({

@@ -11,7 +11,7 @@ import { AppError } from '@trapmap/server/lib/errors.js';
 import { requirePermission } from '@trapmap/server/lib/rbac.js';
 import { recordRuntimeExecution } from '@trapmap/server/lib/runtime/index.js';
 import { resolveAuthContext } from '@trapmap/server/lib/session.js';
-import { getStorePool, nowIso } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 
 interface BadcaseTraceRow {
   feedback_id: string;
@@ -46,10 +46,7 @@ export const badcaseRoutes: FastifyPluginAsync = async (app) => {
     const auth = await resolveAuthContext(app.skillShareer, request);
     requirePermission(auth, 'knowledge:export');
 
-    const pool = getStorePool(app.skillShareer.store);
-    if (!pool) {
-      throw new AppError(409, 'badcase_export_unavailable', 'Badcase export requires PostgreSQL');
-    }
+    const pool = app.skillShareer.pool;
 
     const feedbackId = (request.params as { feedbackId: string }).feedbackId;
     const asyncJobId = `wf_badcase_${feedbackId}`;
