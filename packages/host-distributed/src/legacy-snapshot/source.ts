@@ -2,12 +2,26 @@ import { z } from 'zod';
 
 import {
   artifactFilePayloadRecordSchema,
+  boundarySchema,
   CandidateSubmissionSchema,
   conflictRelationSchema,
+  decayMetaSchema,
   DuplicateCaseSchema,
   EntityLineageSchema,
+  evidenceMetaSchema,
+  feedbackCustomAnswerSchema,
+  feedbackFailureClassificationSchema,
+  feedbackProblemTypeSchema,
+  feedbackRemediationStateSchema,
+  feedbackSelectedResultSnapshotSchema,
+  feedbackStatusSchema,
+  lifecycleStateSchema,
   permissionSchema,
   roleTemplateSchema,
+  skillArtifactDerivedSchema,
+  skillArtifactFileSchema,
+  skillArtifactMetadataSchema,
+  skillScriptDescriptorSchema,
 } from '@trapmap/contracts';
 
 const nullableString = z.string().nullable();
@@ -91,7 +105,139 @@ const auditEventRecordSchema = z
   })
   .passthrough();
 
-const knowledgeRecordSchema = z
+const legacyReviewNoteSchema = z
+  .object({
+    id: z.string().min(1),
+    createdAt: timestamp,
+    authorType: z.enum(['submitter', 'agent', 'reviewer', 'system']),
+    authorUserId: nullableString,
+    message: z.string().min(1).max(2000),
+  })
+  .strict();
+
+const legacyAgentReviewSchema = z
+  .object({
+    status: z.enum(['agent-pass', 'agent-rejected']),
+    duplicateRisk: z.enum(['low', 'medium', 'high']),
+    correctnessRisk: z.enum(['low', 'medium', 'high']),
+    completenessRisk: z.enum(['low', 'medium', 'high']),
+    checkedAt: timestamp,
+    notes: z.array(z.string()),
+  })
+  .strict();
+
+const legacyReviewDecisionSchema = z
+  .object({
+    decidedAt: timestamp,
+    decidedByUserId: z.string().min(1),
+    decision: z.enum(['approve', 'reject']),
+    notes: z.string().min(1).max(2000),
+  })
+  .strict();
+
+const legacyKnowledgeRevisionSchema = z
+  .object({
+    revision: z.number().int().min(1),
+    submittedAt: timestamp,
+    submittedByUserId: z.string().min(1),
+    shortcut: z.string().min(1).max(280),
+    detail: z.string().min(1).max(10000),
+    labels: z.array(z.string().min(1)).min(1),
+    reviewNotes: z.array(legacyReviewNoteSchema),
+  })
+  .strict();
+
+const legacyKnowledgeSubmissionSchema = z
+  .object({
+    id: z.string().min(1),
+    revision: z.number().int().min(1),
+    submittedAt: timestamp,
+    submittedByUserId: z.string().min(1),
+    lifecycleState: lifecycleStateSchema,
+    resubmissionOf: nullableString,
+    agentReview: legacyAgentReviewSchema.nullable(),
+    reviewerDecision: legacyReviewDecisionSchema.nullable(),
+    reviewNotes: z.array(legacyReviewNoteSchema),
+  })
+  .strict();
+
+const legacyLifecycleEventSchema = z
+  .object({
+    id: z.string().min(1),
+    type: z.enum([
+      'submitted',
+      'resubmitted',
+      'agent-reviewed',
+      'reviewer-approved',
+      'reviewer-rejected',
+      'updated',
+      'deactivated',
+    ]),
+    createdAt: timestamp,
+    actorUserId: nullableString,
+    submissionId: nullableString,
+    revision: z.number().int().min(1).nullable(),
+    state: lifecycleStateSchema,
+    note: nullableString,
+  })
+  .strict();
+
+const legacyKnowledgeMetadataSchema = z
+  .object({
+    scopeLabel: z.enum(['global-constraint', 'project-knowledge']),
+    submissionCount: z.number().int().min(0),
+    resubmissionCount: z.number().int().min(0),
+    revisionCount: z.number().int().min(1),
+    latestSubmissionId: nullableString,
+    latestSubmittedAt: nullableString,
+    latestReviewedAt: nullableString,
+    latestDecision: z.enum(['approve', 'reject']).nullable(),
+  })
+  .strict()
+  .refine((data) => data.submissionCount >= data.resubmissionCount, {
+    message: 'submissionCount must be >= resubmissionCount',
+  });
+
+const legacyEmbeddingCacheSchema = z
+  .object({
+    textHash: z.string().min(1),
+    vector: z.array(z.number()),
+    createdAt: timestamp,
+    revision: z.number().int(),
+  })
+  .strict();
+
+const legacyAdapterSyncStateSchema = z
+  .object({
+    status: z.enum(['pending', 'synced', 'failed']),
+    revision: z.number().int(),
+    contentHash: z.string().min(1),
+    lastSyncedAt: nullableString,
+    lastError: nullableString,
+  })
+  .strict();
+
+const legacyIndexStateSchema = z
+  .object({
+    contentHash: z.string().min(1),
+    normalizedAt: timestamp,
+    adapters: z.record(z.string(), legacyAdapterSyncStateSchema),
+    vector: legacyAdapterSyncStateSchema.optional(),
+    keyword: legacyAdapterSyncStateSchema.optional(),
+    graph: legacyAdapterSyncStateSchema.optional(),
+  })
+  .strict();
+
+const legacyMaintenanceMetaSchema = z
+  .object({
+    maintainerUserId: nullableString,
+    maintainerHandle: nullableString,
+    maintainerLevel: z.number().int().nullable(),
+    reviewBy: nullableString,
+  })
+  .strict();
+
+const legacyKnowledgeRecordSchema = z
   .object({
     id: z.string().min(1),
     teamId: nullableString,
@@ -100,27 +246,40 @@ const knowledgeRecordSchema = z
     shortcut: z.string().min(1),
     detail: z.string().min(1),
     requiredLevel: z.number().int(),
-    lifecycleState: z.string().min(1),
+    lifecycleState: lifecycleStateSchema,
     ownerUserId: z.string().min(1),
-    latestRevision: unknownRecord,
-    history: z.array(unknownRecord),
-    metadata: unknownRecord,
+    latestRevision: legacyKnowledgeRevisionSchema,
+    history: z.array(legacyKnowledgeRevisionSchema),
+    metadata: legacyKnowledgeMetadataSchema,
     latestSubmissionId: nullableString,
-    submissionHistory: z.array(unknownRecord),
-    agentReview: unknownRecord.nullable(),
-    reviewHistory: z.array(unknownRecord),
-    reviewNotes: z.array(unknownRecord),
-    lifecycleHistory: z.array(unknownRecord),
-    embeddingCache: unknownRecord.nullable(),
-    indexState: unknownRecord.nullable(),
-    boundary: unknownRecord.nullable(),
-    decayMeta: unknownRecord.nullable(),
-    evidenceMeta: unknownRecord.nullable(),
-    maintenanceMeta: unknownRecord.nullable(),
+    submissionHistory: z.array(legacyKnowledgeSubmissionSchema),
+    agentReview: legacyAgentReviewSchema.nullable(),
+    reviewHistory: z.array(legacyReviewDecisionSchema),
+    reviewNotes: z.array(legacyReviewNoteSchema),
+    lifecycleHistory: z.array(legacyLifecycleEventSchema),
+    embeddingCache: legacyEmbeddingCacheSchema.nullable(),
+    indexState: legacyIndexStateSchema.nullable(),
+    boundary: boundarySchema.nullable(),
+    decayMeta: decayMetaSchema.nullable(),
+    evidenceMeta: evidenceMetaSchema.nullable(),
+    maintenanceMeta: legacyMaintenanceMetaSchema.nullable(),
+    remediation: feedbackRemediationStateSchema.nullable().optional(),
     createdAt: timestamp,
     updatedAt: timestamp,
   })
-  .passthrough();
+  .strict();
+
+const legacyArtifactRevisionSchema = z
+  .object({
+    revision: z.number().int().min(1),
+    sourceHash: z.string().min(1),
+    files: z.array(skillArtifactFileSchema),
+    submittedAt: timestamp,
+    submittedByUserId: z.string().min(1),
+    scriptDescriptors: z.array(skillScriptDescriptorSchema),
+    derived: skillArtifactDerivedSchema.nullable(),
+  })
+  .strict();
 
 const skillArtifactRecordSchema = z
   .object({
@@ -131,23 +290,24 @@ const skillArtifactRecordSchema = z
     title: z.string().min(1),
     slug: z.string().min(1),
     requiredLevel: z.number().int(),
-    lifecycleState: z.string().min(1),
+    lifecycleState: lifecycleStateSchema,
     ownerUserId: z.string().min(1),
-    latestRevision: unknownRecord,
-    history: z.array(unknownRecord),
-    metadata: unknownRecord,
-    agentReview: unknownRecord.nullable(),
-    reviewHistory: z.array(unknownRecord),
-    reviewNotes: z.array(unknownRecord),
-    lifecycleHistory: z.array(unknownRecord),
-    boundary: unknownRecord.nullable(),
-    decayMeta: unknownRecord.nullable(),
-    evidenceMeta: unknownRecord.nullable(),
-    maintenanceMeta: unknownRecord.nullable(),
+    latestRevision: legacyArtifactRevisionSchema,
+    history: z.array(legacyArtifactRevisionSchema),
+    metadata: skillArtifactMetadataSchema,
+    agentReview: legacyAgentReviewSchema.nullable(),
+    reviewHistory: z.array(legacyReviewDecisionSchema),
+    reviewNotes: z.array(legacyReviewNoteSchema),
+    lifecycleHistory: z.array(legacyLifecycleEventSchema),
+    boundary: boundarySchema.nullable(),
+    decayMeta: decayMetaSchema.nullable(),
+    evidenceMeta: evidenceMetaSchema.nullable(),
+    maintenanceMeta: legacyMaintenanceMetaSchema.nullable(),
+    remediation: feedbackRemediationStateSchema.nullable().optional(),
     createdAt: timestamp,
     updatedAt: timestamp,
   })
-  .passthrough();
+  .strict();
 
 const candidateSubmissionRecordSchema = CandidateSubmissionSchema.passthrough();
 const duplicateCaseRecordSchema = DuplicateCaseSchema.passthrough();
@@ -178,28 +338,36 @@ const feedbackQueueRecordSchema = z
     id: z.string().min(1),
     entryId: z.string().min(1),
     entryType: z.enum(['trap', 'skill']),
-    problemType: z.string().min(1),
-    description: z.string().min(1),
+    problemType: feedbackProblemTypeSchema,
+    description: z.string().min(10).max(2000),
     context: nullableString,
     querySeed: nullableString,
     queryId: nullableString,
     routeFamily: z.enum(['entry', 'capsule', 'graph-plan']).nullable(),
-    failureClassification: z.unknown().nullable(),
+    failureClassification: feedbackFailureClassificationSchema.nullable(),
     expectedCorrection: nullableString,
-    selectedResultSnapshot: unknownRecord.nullable(),
-    customAnswers: z.array(unknownRecord).nullable(),
+    selectedResultSnapshot: feedbackSelectedResultSnapshotSchema.nullable(),
+    customAnswers: z.array(feedbackCustomAnswerSchema).nullable(),
     submittedAt: timestamp,
     submittedByUserId: z.string().min(1),
     submittedByHandle: z.string().min(1),
-    status: z.enum(['new', 'triaged', 'resolved', 'dismissed']),
+    status: feedbackStatusSchema,
     adminNotes: nullableString,
     resolvedAt: nullableString,
     resolvedByUserId: nullableString,
     triggeredTransition: nullableString,
+    remediationStatus: z
+      .enum(['pending-human-review', 'in-remediation', 'ready-to-reindex'])
+      .nullable()
+      .optional(),
+    remediationOpenedAt: nullableString.optional(),
+    remediationOpenedByUserId: nullableString.optional(),
+    remediationResolvedAt: nullableString.optional(),
+    remediationResolvedByUserId: nullableString.optional(),
     createdAt: timestamp,
     updatedAt: timestamp,
   })
-  .passthrough();
+  .strict();
 
 const legacySnapshotSchema = z
   .object({
@@ -209,7 +377,7 @@ const legacySnapshotSchema = z
     memberships: z.array(membershipRecordSchema),
     accessKeys: z.array(accessKeyRecordSchema),
     sessions: z.array(sessionRecordSchema),
-    knowledgeEntries: z.array(knowledgeRecordSchema),
+    knowledgeEntries: z.array(legacyKnowledgeRecordSchema),
     auditEvents: z.array(auditEventRecordSchema),
     skillArtifacts: z.array(skillArtifactRecordSchema),
     artifactFilePayloads: z.array(artifactFilePayloadRecordSchema),
