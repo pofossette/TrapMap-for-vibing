@@ -8,7 +8,7 @@
  */
 
 import { stripCodeFences } from '@trapmap/server/lib/ai/parse.js';
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider } from '@trapmap/ai-providers';
 import type { IntentCacheStore } from '@trapmap/server/lib/retrieval/capsules/intent-cache.js';
 import type {
   NormalizedToken,

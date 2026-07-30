@@ -147,13 +147,47 @@ const RETIRED_WAVE_6_ASYNC_IMPLEMENTATIONS = [
   'packages/server/src/lib/async/factory.ts',
   'packages/server/src/lib/async/rabbitmq-task-queue.ts',
 ] as const;
+const AI_PROVIDER_CONFIG_CONSUMERS = [
+  'packages/host-local/src/nest/runtime/shared-infra.ts',
+  'packages/server/src/app.ts',
+  'packages/server/src/config.ts',
+  'packages/server/src/lib/context.ts',
+  'packages/server/src/lib/embeddings.ts',
+  'packages/server/src/lib/indexing/pipeline.ts',
+  'packages/server/src/lib/indexing/events.ts',
+  'packages/server/src/lib/indexing/skill-events.ts',
+  'packages/server/src/lib/indexing/artifact-pipeline.ts',
+  'packages/server/src/lib/indexing/skill-graph-build.ts',
+  'packages/server/src/lib/indexing/adapters/graph.ts',
+  'packages/server/src/lib/indexing/adapters/artifact-graph.ts',
+  'packages/server/src/lib/indexing/graph-lite/llm-extract.ts',
+  'packages/server/src/lib/indexing/graph-lite/llm-extract-planning.ts',
+  'packages/server/src/lib/pre-review.ts',
+  'packages/server/src/lib/boundary-extract.ts',
+  'packages/server/src/lib/artifacts/contextual-enrichment.ts',
+  'packages/server/src/lib/artifacts/derive/types.ts',
+  'packages/server/src/lib/labels/graph-align.ts',
+  'packages/server/src/lib/labels/llm-align.ts',
+  'packages/server/src/lib/labels/backfill.ts',
+  'packages/server/src/lib/labels/candidate-recall.ts',
+  'packages/server/src/lib/retrieval/capsules/intent.ts',
+  'packages/server/src/testing/mock-factories.ts',
+  'packages/server/src/lib/__tests__/types-export.test.ts',
+  'packages/server/src/lib/labels/llm-align.test.ts',
+  'packages/server/src/lib/boundary-extract.test.ts',
+  'packages/server/src/lib/pre-review.test.ts',
+  'packages/server/src/lib/artifacts/contextual-enrichment.test.ts',
+  'packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts',
+  'scripts/label-runner.ts',
+  'evals/label-alignment/lib/decision-eval.ts',
+  'evals/label-alignment/lib/decision-eval.test.ts',
+  'evals/graph-extraction/run.ts',
+  'evals/graph-extraction/dedup-eval.ts',
+  'evals/graph-extraction/conflict-eval.ts',
+] as const;
+const SERVER_AI_PROVIDER_CONFIG_IMPORT =
+  /(?:@trapmap\/server\/lib\/ai|(?:\.\.\/)+packages\/server\/src\/lib\/ai|\.\/ai)\/(?:index|types|providers|provider-config)\.js/;
 const allowlist: AllowlistEntry[] = [
-  [
-    'packages/host-local/src/nest/runtime/shared-infra.ts',
-    '@trapmap/server',
-    'wave-8',
-    'local host compatibility shared infrastructure',
-  ],
   [
     'scripts/label-runner.ts',
     '@trapmap/server',
@@ -495,6 +529,32 @@ function findArtifactReadProjectionBoundaryViolations(root: string): string[] {
 }
 
 describe('compatibility retirement guard', () => {
+  it('requires provider and configuration consumers to use the shared AI provider package', () => {
+    const violations = AI_PROVIDER_CONFIG_CONSUMERS.flatMap((file) => {
+      const source = readFileSync(join(repoRoot, file), 'utf8');
+      return SERVER_AI_PROVIDER_CONFIG_IMPORT.test(source) ? [file] : [];
+    });
+
+    expect(violations).toEqual([]);
+  });
+
+  it('retires server AI provider compatibility modules and host-local provider imports', () => {
+    for (const retiredPath of [
+      'packages/server/src/lib/ai/types.ts',
+      'packages/server/src/lib/ai/provider-config.ts',
+      'packages/server/src/lib/ai/providers.ts',
+      'packages/host-local/src/nest/config/ai-provider-config.ts',
+    ]) {
+      expect(existsSync(resolve(repoRoot, retiredPath))).toBe(false);
+    }
+
+    const hostSharedInfra = readFileSync(
+      resolve(repoRoot, 'packages/host-local/src/nest/runtime/shared-infra.ts'),
+      'utf8',
+    );
+    expect(hostSharedInfra).not.toContain('@trapmap/server/lib/ai');
+  });
+
   it('keeps Wave-8 host composition as the sole server factory path for migrated entrypoints', () => {
     for (const file of POSTGRES_COMPOSITION_ENTRYPOINTS) {
       const source = readFileSync(join(repoRoot, file), 'utf8');

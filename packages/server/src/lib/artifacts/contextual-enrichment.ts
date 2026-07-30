@@ -10,7 +10,7 @@
  * - https://www.anthropic.com/research/contextual-retrieval
  */
 
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider } from '@trapmap/ai-providers';
 import type { DerivedSkillCapsuleRecord } from '@trapmap/server/lib/store/enum-types/artifact-records.js';
 
 // ---------------------------------------------------------------------------

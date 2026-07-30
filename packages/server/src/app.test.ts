@@ -1,7 +1,30 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { GraphQueryBackend, GraphQueryRuntimeState } from '@trapmap/contracts';
+
 import { buildPostgresTestServer as buildServer } from '../../../scripts/testing/server-test-composition.js';
 import { recordRuntimeExecution, resetRuntimeMetrics } from './lib/runtime/index.js';
+
+function createGraphQueryBackend(state: GraphQueryRuntimeState): GraphQueryBackend {
+  return {
+    kind: 'neo4j',
+    isEnabled: () => true,
+    getRuntimeState: () => state,
+    healthcheck: async () => ({ ok: true, mode: state.mode }),
+    upsertDocument: async () => {},
+    removeSource: async () => {},
+    rebuildProjection: async () => {},
+    expandSourcesOneHop: async () => new Set(),
+    calculateSourceRelationStrength: async () => 0,
+    getSourceNodeIds: async () => new Map(),
+    buildLocalExpansionView: async () => ({
+      graph: {} as never,
+      nodeViewsById: new Map(),
+      nodeIdsBySourceId: new Map(),
+    }),
+    findMitigatingSkills: async () => [],
+  };
+}
 
 describe('app.ts live gaps — fm-agent raw report', () => {
   it('exports prometheus metrics with frozen trapmap namespaces and low-cardinality labels', async () => {
@@ -275,15 +298,15 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('reports degraded readiness when graph query is in fallback mode', async () => {
-    const app = await buildServer();
-    await app.ready();
-    (app.skillShareer.graphQueryBackend as { getRuntimeState: () => unknown }).getRuntimeState =
-      () => ({
+    const app = await buildServer({
+      graphQueryBackend: createGraphQueryBackend({
         mode: 'enabled-fallback',
         backendKind: 'neo4j',
         failOpen: true,
         detail: 'fallback active',
-      });
+      }),
+    });
+    await app.ready();
 
     const response = await app.inject({
       method: 'GET',
@@ -307,15 +330,15 @@ describe('app.ts live gaps — fm-agent raw report', () => {
   });
 
   it('returns 503 when readiness is not-ready', async () => {
-    const app = await buildServer();
-    await app.ready();
-    (app.skillShareer.graphQueryBackend as { getRuntimeState: () => unknown }).getRuntimeState =
-      () => ({
+    const app = await buildServer({
+      graphQueryBackend: createGraphQueryBackend({
         mode: 'enabled-primary',
         backendKind: 'neo4j',
         failOpen: false,
         detail: 'primary backend failed',
-      });
+      }),
+    });
+    await app.ready();
 
     const response = await app.inject({
       method: 'GET',

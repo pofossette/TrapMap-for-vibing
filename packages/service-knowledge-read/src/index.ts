@@ -76,3 +76,8 @@ export { buildSummary } from './response-summary.js';
 export { searchKnowledge, updateEntryEmbeddingCache } from './search-knowledge.js';
 export { createCandidateCorpusPgReadPort } from './candidate-corpus-pg.js';
 export { createKnowledgeReadGraphIndexRepository } from './graph-index-repository.js';
+export { createKnowledgeReadGraphProjectionRebuilder } from './graph-projection-backfill.js';
+export {
+  createMemoryGraphQueryBackend,
+  type MemoryGraphQueryBackend,
+} from './graph-query.js';

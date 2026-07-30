@@ -24,7 +24,9 @@ function buildSharedJobWorkerHandlers(
       store,
       registry: app.skillShareer.adapterRegistry,
       pool,
-      graphQueryBackend: app.skillShareer.graphQueryBackend,
+      ...(app.skillShareer.graphQueryBackend !== undefined
+        ? { graphQueryBackend: app.skillShareer.graphQueryBackend }
+        : {}),
       graphIndex: app.skillShareer.graphIndex,
       knowledgeOwner: app.skillShareer.knowledgeOwner,
     },
@@ -32,7 +34,9 @@ function buildSharedJobWorkerHandlers(
       services: {
         store,
         ai: app.skillShareer.ai,
-        graphQueryBackend: app.skillShareer.graphQueryBackend,
+        ...(app.skillShareer.graphQueryBackend !== undefined
+          ? { graphQueryBackend: app.skillShareer.graphQueryBackend }
+          : {}),
         graphIndex: app.skillShareer.graphIndex,
         artifactReadProjection: app.skillShareer.artifactReadProjection,
       },

@@ -36,7 +36,9 @@ export async function runOrScheduleSkillIndexFollowUp(args: {
     services: {
       store: services.store,
       ai: { chat: services.ai.chat },
-      graphQueryBackend: services.graphQueryBackend,
+      ...(services.graphQueryBackend !== undefined
+        ? { graphQueryBackend: services.graphQueryBackend }
+        : {}),
       graphIndex: services.graphIndex,
       artifactReadProjection: services.artifactReadProjection,
     },

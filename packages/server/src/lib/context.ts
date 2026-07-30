@@ -3,6 +3,8 @@ import type {
   ConflictRelation,
   DecayState,
   GraphIndexRepositoryPort,
+  GraphQueryBackend,
+  GraphQueryRuntimeState,
   KnowledgeOwnerPort,
   Permission,
   RetrievalGovernanceProjection,
@@ -22,12 +24,11 @@ import type {
   UserRepositoryPort,
 } from '@trapmap/backend-core';
 import type { FastifyRequest } from 'fastify';
+import type { AiProviders } from '@trapmap/ai-providers';
 
 import type { ServerConfig } from '@trapmap/server/config.js';
-import type { AiProviders } from './ai/types.js';
 import type { UsageAnalyticsRepository } from './analytics/index.js';
 import type { AsyncTransport } from './async/transport.js';
-import type { GraphQueryBackend, GraphQueryRuntimeState } from './graph-query/index.js';
 import type { AdapterRegistry } from './indexing/registry.js';
 import type { LifecycleEventBus } from './lifecycle/index.js';
 import type { SkillShareerRepos } from './repos/index.js';
@@ -134,7 +135,7 @@ export interface SkillShareerServices {
   /** Unified repository object — always populated in both JSON and PG modes. Prefer this over legacy flat repo properties. */
   repos: SkillShareerRepos;
   /** Query-time graph backend used by retrieval hot paths. */
-  graphQueryBackend: GraphQueryBackend;
+  graphQueryBackend?: GraphQueryBackend;
   /** Graph query backend state. Phase 1 exposes mode/config wiring before provider selection is implemented. */
   graphQuery: GraphQueryRuntimeState;
   /** Lifecycle event bus for domain event emission and subscription */

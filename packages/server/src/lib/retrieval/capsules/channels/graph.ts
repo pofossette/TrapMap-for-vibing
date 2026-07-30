@@ -16,11 +16,7 @@
  * governed artifacts. The channel cannot introduce unauthorized capsules.
  */
 
-import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
-import {
-  type GraphQueryBackend,
-  createMemoryGraphQueryBackend,
-} from '@trapmap/server/lib/graph-query/index.js';
+import type { GraphQueryBackend } from '@trapmap/contracts';
 import { extractGovernedCapsules } from '@trapmap/server/lib/retrieval/capsules/capsule-recall.js';
 import { normalizeQueryGraphLabels } from '@trapmap/server/lib/retrieval/recall/query-graph-labels.js';
 import type {
@@ -64,13 +60,7 @@ function calculateCapsuleGraphScore(relationStrength: number): number {
  * @param graphIndexRepo - Owner port for graph index documents
  * @returns A CapsuleRecallChannel that supplements recall via graph expansion
  */
-export function createCapsuleGraphChannel(
-  graphQuery: GraphQueryBackend | GraphIndexRepositoryPort,
-): CapsuleRecallChannel {
-  const graphBackend = isGraphQueryBackend(graphQuery)
-    ? graphQuery
-    : createMemoryGraphQueryBackend(graphQuery);
-
+export function createCapsuleGraphChannel(graphBackend: GraphQueryBackend): CapsuleRecallChannel {
   return {
     name: 'capsule-graph' as CapsuleRecallChannelName,
 
@@ -138,10 +128,4 @@ export function createCapsuleGraphChannel(
       return candidates.slice(0, maxResults);
     },
   };
-}
-
-function isGraphQueryBackend(
-  value: GraphQueryBackend | GraphIndexRepository,
-): value is GraphQueryBackend {
-  return 'kind' in value && typeof value.healthcheck === 'function';
 }

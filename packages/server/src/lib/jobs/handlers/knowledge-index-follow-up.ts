@@ -2,7 +2,7 @@ import {
   createCacheInvalidationEvent,
   emitCacheInvalidation,
 } from '@trapmap/server/lib/cache/invalidation.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
+import type { GraphQueryBackend } from '@trapmap/contracts';
 import type { GraphIndexRepositoryPort, KnowledgeOwnerPort } from '@trapmap/contracts';
 import { runKnowledgeIndexEvent } from '@trapmap/server/lib/indexing/events.js';
 import type { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';

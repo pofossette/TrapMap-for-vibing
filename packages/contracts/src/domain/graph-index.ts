@@ -62,7 +62,7 @@ export interface GraphIndexDocumentRecord {
   updatedAt: string;
 }
 
-/** Derived graph projection port owned by knowledge-read. */
+/** Persisted graph projection port consumed by graph-query backends. */
 export interface GraphIndexRepositoryPort {
   insert(doc: GraphIndexDocumentRecord): Promise<void>;
   getById(docId: string): Promise<GraphIndexDocumentRecord | null>;

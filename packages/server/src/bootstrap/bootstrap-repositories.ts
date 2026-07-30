@@ -11,7 +11,6 @@ import { createUsageAnalyticsRepository } from '@trapmap/server/lib/analytics/in
 import {
   createFailOpenGraphQueryBackend,
   createGraphQueryRuntimeState,
-  createMemoryGraphQueryBackend,
   createNeo4jGraphQueryBackend,
 } from '@trapmap/server/lib/graph-query/index.js';
 import { artifactGraphIndexAdapter } from '@trapmap/server/lib/indexing/adapters/artifact-graph.js';
@@ -92,10 +91,9 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
     governanceRetrievalProjection: app.skillShareer.governanceRetrievalProjection,
   });
 
-  const memoryBackend = createMemoryGraphQueryBackend(app.skillShareer.repos.graphIndex);
-  app.skillShareer.graphQueryBackend = memoryBackend;
+  const fallbackBackend = app.skillShareer.graphQueryBackend;
 
-  if (app.skillShareer.config.graphDb.enabled) {
+  if (app.skillShareer.config.graphDb.enabled && fallbackBackend) {
     const primaryBackend = await createNeo4jGraphQueryBackend({
       config: {
         database: app.skillShareer.config.graphDb.database,
@@ -107,7 +105,7 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
     });
     const graphBackend = createFailOpenGraphQueryBackend({
       primary: primaryBackend,
-      fallback: memoryBackend,
+      fallback: fallbackBackend,
       failOpen: app.skillShareer.config.graphDb.failOpen,
       logger: app.log,
     });
@@ -154,6 +152,10 @@ export async function bootstrapRepositories(app: FastifyInstance): Promise<void>
     'Graph query backend initialized',
   );
 
-  // Register graph channel now that repos are available
-  app.skillShareer.channelRegistry.register(createGraphChannel(app.skillShareer.graphQueryBackend));
+  // Graph recall is an injected host capability, not a server-owned fallback.
+  if (app.skillShareer.graphQueryBackend) {
+    app.skillShareer.channelRegistry.register(
+      createGraphChannel(app.skillShareer.graphQueryBackend),
+    );
+  }
 }

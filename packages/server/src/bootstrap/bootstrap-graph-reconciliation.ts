@@ -20,7 +20,9 @@ export async function bootstrapGraphReconciliation(app: FastifyInstance): Promis
       knowledgeOwner: app.skillShareer.knowledgeOwner,
       artifactReadProjection: app.skillShareer.artifactReadProjection,
       graphIndex: app.skillShareer.graphIndex,
-      graphQueryBackend: app.skillShareer.graphQueryBackend,
+      ...(app.skillShareer.graphQueryBackend !== undefined
+        ? { graphQueryBackend: app.skillShareer.graphQueryBackend }
+        : {}),
       syncProjection,
     });
     app.log.info(

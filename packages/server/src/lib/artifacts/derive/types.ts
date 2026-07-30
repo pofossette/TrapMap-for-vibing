@@ -2,7 +2,7 @@
  * Shared types for the derivation module.
  */
 
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider } from '@trapmap/ai-providers';
 import type { ContextualEnrichmentCache } from '@trapmap/server/lib/artifacts/contextual-enrichment.js';
 import type {
   ClientManifestRecord,

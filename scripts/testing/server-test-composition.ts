@@ -8,7 +8,13 @@ import { buildPostgresComposedServer } from './postgres-server-composition.js';
 
 type TestServerOptions = Pick<
   BuildServerOptions,
-  'bodyLimit' | 'config' | 'runtimeMode' | 'serviceUnit' | 'ownerReadModel'
+  | 'bodyLimit'
+  | 'config'
+  | 'graphQuery'
+  | 'graphQueryBackend'
+  | 'runtimeMode'
+  | 'serviceUnit'
+  | 'ownerReadModel'
 >;
 
 /**

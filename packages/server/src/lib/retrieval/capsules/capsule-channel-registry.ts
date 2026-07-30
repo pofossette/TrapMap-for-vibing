@@ -1,6 +1,6 @@
 import type { Pool } from 'pg';
 
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
+import type { GraphQueryBackend } from '@trapmap/contracts';
 import type {
   CapsuleRecallChannel,
   CapsuleRecallChannelName,

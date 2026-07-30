@@ -18,7 +18,7 @@ import { labelAlignmentDecisionSchema } from '@trapmap/contracts';
 
 import { invokeWithParseRetry } from '@trapmap/server/lib/ai/parse.js';
 import { buildLabelAlignmentSlots_default, buildPrompt } from '@trapmap/server/lib/ai/prompts.js';
-import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
 
 import { recallCandidates } from './candidate-recall.js';
 import type { LabelRepository } from './repository.js';

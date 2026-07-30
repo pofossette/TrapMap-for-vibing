@@ -4,10 +4,12 @@ import type {
   ConflictHint,
   ConflictRelation,
   FreshnessDecayConfig,
+  GraphQueryBackend,
+  GraphQueryRuntimeState,
   Permission,
-  type RetrievalGovernanceProjection,
-  type RetrievalReadModelRepositories,
+  RetrievalGovernanceProjection,
   RetrievalQuery,
+  RetrievalReadModelRepositories,
 } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
@@ -25,27 +27,8 @@ import type {
 } from './retrieval-types.js';
 import type { FeedbackQueueRecord, KnowledgeRecord, SkillArtifactRecord } from './store.js';
 
-export type KnowledgeReadGraphQueryBackendKind = 'memory' | 'neo4j';
-export type KnowledgeReadGraphQueryMode = 'disabled' | 'enabled-primary' | 'enabled-fallback';
-
-export interface KnowledgeReadGraphQueryRuntimeState {
-  mode: KnowledgeReadGraphQueryMode;
-  backendKind: KnowledgeReadGraphQueryBackendKind;
-  failOpen: boolean;
-  detail?: string;
-}
-
-export interface KnowledgeReadGraphQueryBackend {
-  getRuntimeState(): KnowledgeReadGraphQueryRuntimeState;
-  expandSourcesOneHop(params: {
-    queryLabels: Set<string>;
-    eligibleSourceIds?: Set<string>;
-  }): Promise<Set<string>>;
-  calculateSourceRelationStrength(params: {
-    sourceId: string;
-    queryLabels: Set<string>;
-  }): Promise<number>;
-}
+export type KnowledgeReadGraphQueryBackend = GraphQueryBackend;
+export type KnowledgeReadGraphQueryRuntimeState = GraphQueryRuntimeState;
 
 export interface SkillShareerRepos
   extends RetrievalReadModelRepositories<

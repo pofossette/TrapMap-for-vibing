@@ -14,8 +14,8 @@ import type {
   KnowledgeOwnerPort,
   LifecycleState,
 } from '@trapmap/contracts';
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
-import type { GraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
+import type { ChatProvider } from '@trapmap/ai-providers';
+import type { GraphQueryBackend } from '@trapmap/contracts';
 import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { syncKnowledgeIndexFromOwner } from './pipeline.js';
 import type { AdapterRegistry } from './registry.js';

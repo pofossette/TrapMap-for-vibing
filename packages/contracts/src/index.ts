@@ -12,6 +12,7 @@ export * from './domain/decay.js';
 export * from './domain/evidence.js';
 export * from './domain/graph-extraction.js';
 export * from './domain/graph-index.js';
+export * from './domain/graph-query.js';
 
 export * from './domain/feedback.js';
 export * from './domain/health.js';

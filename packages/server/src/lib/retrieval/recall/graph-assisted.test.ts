@@ -1,21 +1,46 @@
 import { describe, expect, it } from 'vitest';
 
-import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-} from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+  GraphQueryBackend,
+} from '@trapmap/contracts';
+import {
+  buildGraphRuntimeSnapshot,
+  calculateSourceRelationStrength,
+  expandSourcesOneHop,
+} from '@trapmap/contracts';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { createMockEntry } from '@trapmap/server/testing/mock-factories.js';
 import { graphAssistedRecall } from './graph-assisted.js';
 
-function createMockGraphIndexRepo(docs: GraphIndexDocumentRecord[] = []): GraphIndexRepositoryPort {
+function createMockGraphIndexRepo(docs: GraphIndexDocumentRecord[] = []): GraphQueryBackend {
+  const runtime = () => buildGraphRuntimeSnapshot(docs);
   return {
-    async listAll() {
-      return docs;
+    kind: 'memory',
+    isEnabled: () => true,
+    getRuntimeState: () => ({ mode: 'enabled-primary', backendKind: 'memory', failOpen: false }),
+    healthcheck: async () => ({ ok: true, mode: 'enabled-primary' }),
+    upsertDocument: async () => {},
+    removeSource: async () => {},
+    rebuildProjection: async () => {},
+    expandSourcesOneHop: async ({ queryLabels, eligibleSourceIds }) => {
+      const sourceIds = expandSourcesOneHop(runtime(), queryLabels);
+      return eligibleSourceIds
+        ? new Set([...sourceIds].filter((sourceId) => eligibleSourceIds.has(sourceId)))
+        : sourceIds;
     },
-  } as GraphIndexRepositoryPort;
+    calculateSourceRelationStrength: async ({ sourceId, queryLabels }) =>
+      calculateSourceRelationStrength(runtime(), sourceId, queryLabels),
+    getSourceNodeIds: async () => new Map(),
+    buildLocalExpansionView: async () => ({
+      graph: {} as never,
+      nodeViewsById: new Map(),
+      nodeIdsBySourceId: new Map(),
+    }),
+    findMitigatingSkills: async () => [],
+  };
 }
 
 function makeDoc(
@@ -64,7 +89,7 @@ describe('graph-assisted recall', () => {
     ]);
 
     const candidates = await graphAssistedRecall('docker timeout', eligibleEntries, {
-      graphIndexRepo,
+      graphQueryBackend: graphIndexRepo,
     });
 
     expect(candidates).toHaveLength(1);
@@ -132,7 +157,7 @@ describe('graph-assisted recall', () => {
     ]);
 
     const candidates = await graphAssistedRecall('docker', eligibleEntries, {
-      graphIndexRepo,
+      graphQueryBackend: graphIndexRepo,
     });
     const ids = candidates.map((candidate) => candidate.entry.id);
 
@@ -191,7 +216,7 @@ describe('graph-assisted recall', () => {
     ]);
 
     const candidates = await graphAssistedRecall('docker', eligibleEntries, {
-      graphIndexRepo,
+      graphQueryBackend: graphIndexRepo,
     });
 
     expect(candidates).toHaveLength(2);
@@ -203,7 +228,7 @@ describe('graph-assisted recall', () => {
     await expect(graphAssistedRecall('', new Map())).resolves.toEqual([]);
     await expect(
       graphAssistedRecall('docker', new Map(), {
-        graphIndexRepo: { listAll: async () => [] } as never,
+        graphQueryBackend: createMockGraphIndexRepo(),
       }),
     ).resolves.toEqual([]);
   });

@@ -2,7 +2,7 @@ import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-} from '@trapmap/server/lib/indexing/graph-lite/index.js';
+} from '@trapmap/contracts';
 
 export interface ProjectedGraphSource {
   key: string;

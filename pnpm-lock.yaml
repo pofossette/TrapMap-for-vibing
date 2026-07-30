@@ -15,9 +15,9 @@ importers:
       '@biomejs/biome':
         specifier: ^1.9.4
         version: 1.9.4
-      '@trapmap/server':
+      '@trapmap/ai-providers':
         specifier: workspace:*
-        version: link:packages/server
+        version: link:packages/ai-providers
       '@trapmap/service-knowledge-read':
         specifier: workspace:*
         version: link:packages/service-knowledge-read
@@ -76,6 +76,15 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@25.6.0)(jiti@2.7.0)(jsdom@29.1.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
+  packages/ai-providers:
+    dependencies:
+      '@langchain/core':
+        specifier: ^1.1.39
+        version: 1.1.39(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(openai@6.34.0(zod@4.3.6))
+      '@langchain/openai':
+        specifier: ^1.4.4
+        version: 1.4.4(@langchain/core@1.1.39(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(openai@6.34.0(zod@4.3.6)))
+
   packages/backend-core:
     dependencies:
       '@trapmap/contracts':
@@ -118,6 +127,18 @@ importers:
 
   packages/contracts:
     dependencies:
+      graphology:
+        specifier: ^0.26.0
+        version: 0.26.0(graphology-types@0.24.8)
+      graphology-dag:
+        specifier: ^0.4.1
+        version: 0.4.1(graphology-types@0.24.8)
+      graphology-operators:
+        specifier: ^1.6.1
+        version: 1.6.1(graphology-types@0.24.8)
+      graphology-shortest-path:
+        specifier: ^2.1.0
+        version: 2.1.0(graphology-types@0.24.8)
       gray-matter:
         specifier: ^4.0.3
         version: 4.0.3
@@ -181,15 +202,15 @@ importers:
       '@trapmap/service-knowledge-write':
         specifier: workspace:*
         version: link:../service-knowledge-write
-      pg:
-        specifier: 8.20.0
-        version: 8.20.0
       fastify:
         specifier: ^5.6.1
         version: 5.8.4
       pg:
         specifier: 8.20.0
         version: 8.20.0
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
@@ -233,6 +254,9 @@ importers:
       '@opentelemetry/semantic-conventions':
         specifier: ^1.41.1
         version: 1.41.1
+      '@trapmap/ai-providers':
+        specifier: workspace:*
+        version: link:../ai-providers
       '@trapmap/backend-core':
         specifier: workspace:*
         version: link:../backend-core
@@ -266,6 +290,9 @@ importers:
       fastify:
         specifier: ^5.6.1
         version: 5.8.5
+      pg:
+        specifier: 8.20.0
+        version: 8.20.0
       prom-client:
         specifier: ^15.1.3
         version: 15.1.3
@@ -337,6 +364,9 @@ importers:
       '@opentelemetry/semantic-conventions':
         specifier: ^1.41.1
         version: 1.41.1
+      '@trapmap/ai-providers':
+        specifier: workspace:*
+        version: link:../ai-providers
       '@trapmap/backend-core':
         specifier: workspace:*
         version: link:../backend-core
@@ -358,18 +388,6 @@ importers:
       fastify:
         specifier: ^5.6.1
         version: 5.8.4
-      graphology:
-        specifier: ^0.26.0
-        version: 0.26.0(graphology-types@0.24.8)
-      graphology-dag:
-        specifier: ^0.4.1
-        version: 0.4.1(graphology-types@0.24.8)
-      graphology-operators:
-        specifier: ^1.6.1
-        version: 1.6.1(graphology-types@0.24.8)
-      graphology-shortest-path:
-        specifier: ^2.1.0
-        version: 2.1.0(graphology-types@0.24.8)
       nanoid:
         specifier: ^5.1.6
         version: 5.1.9

@@ -8,7 +8,12 @@
  * - Relations connect trap to boundary nodes with typed edges
  */
 
-import type { Boundary } from '@trapmap/contracts';
+import type {
+  Boundary,
+  GraphNodeKind,
+  GraphRelationStrength,
+  GraphRelationType,
+} from '@trapmap/contracts';
 import {
   buildBoundaryFacetIndex,
   buildContextNodeId,
@@ -16,11 +21,6 @@ import {
   buildVersionNodeId,
   extractPlatformsFromExclusions,
 } from './boundary-normalize.js';
-import type {
-  GraphNodeKind,
-  GraphRelationStrength,
-  GraphRelationType,
-} from './graph-lite/index.js';
 
 /**
  * Extracted boundary graph node.

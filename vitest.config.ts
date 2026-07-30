@@ -14,6 +14,13 @@ export default defineConfig({
     projects: [
       {
         test: {
+          name: 'ai-providers',
+          root: './packages/ai-providers',
+          include: ['src/**/*.test.ts'],
+        },
+      },
+      {
+        test: {
           name: 'scripts',
           root: './scripts',
           include: ['__tests__/**/*.test.ts'],
@@ -56,6 +63,14 @@ export default defineConfig({
               statements: 70,
             },
           },
+        },
+        resolve: {
+          alias: [
+            {
+              find: '@trapmap/contracts',
+              replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
+            },
+          ],
         },
       },
       {

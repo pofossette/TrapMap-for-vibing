@@ -20,7 +20,6 @@
 import type { PlanQuery, TrapFirstPlan } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '@trapmap/server/lib/context.js';
-import { createMemoryGraphQueryBackend } from '@trapmap/server/lib/graph-query/index.js';
 import {
   isArtifactGovernanceEligible,
   rankCapsules,
@@ -68,8 +67,11 @@ export async function compileTrapFirstPlan(
   auth: ResolvedAuthContext,
   query: PlanQuery,
 ): Promise<TrapFirstPlan> {
-  const graphQueryBackend =
-    services.graphQueryBackend ?? createMemoryGraphQueryBackend(services.repos.graphIndex);
+  const graphQueryBackend = services.graphQueryBackend;
+
+  if (!graphQueryBackend) {
+    return emptyTrapFirstPlan();
+  }
 
   // 1. Parse seed intent
   const intent = await parseSeedIntentWithLLM(query.seed, services.ai.chat, {
@@ -185,6 +187,25 @@ export async function compileTrapFirstPlan(
     citations,
     executionPlan,
     graph,
+  };
+}
+
+function emptyTrapFirstPlan(): TrapFirstPlan {
+  return {
+    blockingTraps: [],
+    recommendedSkills: [],
+    edges: [],
+    citations: [],
+    executionPlan: [],
+    graph: {
+      nodes: [],
+      edges: [],
+      citations: [],
+      focus: {
+        blockingTrapNodeIds: [],
+        recommendedSkillNodeIds: [],
+      },
+    },
   };
 }
 

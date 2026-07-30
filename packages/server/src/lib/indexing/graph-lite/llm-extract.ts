@@ -24,7 +24,7 @@ import {
 
 import { invokeWithParseRetry } from '@trapmap/server/lib/ai/parse.js';
 import { buildGraphExtractionSlots_default, buildPrompt } from '@trapmap/server/lib/ai/prompts.js';
-import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
 import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
 import { executeWithResilience } from '@trapmap/server/lib/runtime/index.js';
 import type { GraphEdgeRecord, GraphNodeRecord } from './documents.js';

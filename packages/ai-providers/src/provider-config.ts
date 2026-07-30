@@ -54,6 +54,8 @@ const PROVIDER_DEFAULTS: Record<
   },
 };
 
+type ConfiguredAiProviderType = Exclude<AiProviderType, 'fallback'>;
+
 function loadPromptTemplateFile(): string | null {
   const value = process.env.AI_PROMPT_TEMPLATE_FILE;
   return typeof value === 'string' && value.trim().length > 0 ? value : null;
@@ -78,56 +80,61 @@ function resolveProviderType(): AiProviderType {
   return 'fallback';
 }
 
-export function loadAiProviderConfig(): AiProviderConfig {
-  const provider = resolveProviderType();
-  const promptTemplateFile = loadPromptTemplateFile();
-
-  if (provider === 'fallback') {
-    return {
-      provider,
-      baseUrl: '',
-      apiKey: '',
-      chatModel: '',
-      embeddingModel: '',
-      isConfigured: false,
-      promptTemplateFile,
-    };
-  }
-
-  const defaults = PROVIDER_DEFAULTS[provider];
-  const baseUrl = process.env.AI_BASE_URL || defaults.baseUrl;
+function resolveApiKey(provider: ConfiguredAiProviderType, defaultApiKey: string): string {
   const providerSpecificKey =
     provider === 'openai'
       ? process.env.OPENAI_API_KEY
       : provider === 'google-genai'
         ? process.env.GEMINI_API_KEY
         : undefined;
-  const apiKey =
+
+  return (
     (typeof providerSpecificKey === 'string' && providerSpecificKey.trim().length > 0
       ? providerSpecificKey
-      : process.env.AI_API_KEY) || defaults.apiKey;
+      : process.env.AI_API_KEY) || defaultApiKey
+  );
+}
+
+function resolveEmbeddingProvider(): AiProviderConfig['embeddingProvider'] {
+  const provider = process.env.EMBEDDING_PROVIDER as AiProviderType | undefined;
+  if (!provider || provider === 'fallback') return undefined;
+
+  const defaults = PROVIDER_DEFAULTS[provider];
+  const baseUrl = process.env.EMBEDDING_BASE_URL || defaults.baseUrl;
+  const apiKey = process.env.EMBEDDING_API_KEY || defaults.apiKey;
+  const model = process.env.EMBEDDING_MODEL || defaults.embeddingModel;
+
+  return {
+    provider,
+    baseUrl,
+    apiKey,
+    model,
+    isConfigured: baseUrl.length > 0 && apiKey.length > 0 && model.length > 0,
+  };
+}
+
+function createFallbackConfig(promptTemplateFile: string | null): AiProviderConfig {
+  return {
+    provider: 'fallback',
+    baseUrl: '',
+    apiKey: '',
+    chatModel: '',
+    embeddingModel: '',
+    isConfigured: false,
+    promptTemplateFile,
+  };
+}
+
+function createConfiguredProviderConfig(
+  provider: ConfiguredAiProviderType,
+  promptTemplateFile: string | null,
+): AiProviderConfig {
+  const defaults = PROVIDER_DEFAULTS[provider];
+  const baseUrl = process.env.AI_BASE_URL || defaults.baseUrl;
+  const apiKey = resolveApiKey(provider, defaults.apiKey);
   const chatModel = process.env.AI_CHAT_MODEL || defaults.chatModel;
   const embeddingModel = process.env.AI_EMBEDDING_MODEL || defaults.embeddingModel;
-
-  const embeddingProviderType = process.env.EMBEDDING_PROVIDER as AiProviderType | undefined;
-  let embeddingProvider: AiProviderConfig['embeddingProvider'];
-
-  if (embeddingProviderType && embeddingProviderType !== 'fallback') {
-    const embDefaults = PROVIDER_DEFAULTS[embeddingProviderType];
-    const embBaseUrl = process.env.EMBEDDING_BASE_URL || embDefaults.baseUrl;
-    const embApiKey = process.env.EMBEDDING_API_KEY || embDefaults.apiKey;
-    const embModel = process.env.EMBEDDING_MODEL || embDefaults.embeddingModel;
-    const embConfigured = embBaseUrl.length > 0 && embApiKey.length > 0 && embModel.length > 0;
-
-    embeddingProvider = {
-      provider: embeddingProviderType,
-      baseUrl: embBaseUrl,
-      apiKey: embApiKey,
-      model: embModel,
-      isConfigured: embConfigured,
-    };
-  }
-
+  const embeddingProvider = resolveEmbeddingProvider();
   const hasEmbedding = embeddingModel.length > 0 || !!embeddingProvider?.isConfigured;
   const isConfigured =
     baseUrl.length > 0 && apiKey.length > 0 && chatModel.length > 0 && hasEmbedding;
@@ -142,4 +149,13 @@ export function loadAiProviderConfig(): AiProviderConfig {
     promptTemplateFile,
     embeddingProvider,
   };
+}
+
+export function loadAiProviderConfig(): AiProviderConfig {
+  const provider = resolveProviderType();
+  const promptTemplateFile = loadPromptTemplateFile();
+
+  return provider === 'fallback'
+    ? createFallbackConfig(promptTemplateFile)
+    : createConfiguredProviderConfig(provider, promptTemplateFile);
 }

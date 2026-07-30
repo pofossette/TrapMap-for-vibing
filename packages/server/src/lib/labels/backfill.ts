@@ -8,8 +8,7 @@
  * Supports `--dry-run` to preview what would be created without writing.
  */
 
-import type { EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
 
 import { alignLabel } from './llm-align.js';
 import type { CanonicalLabelRecord, LabelRepository } from './repository.js';

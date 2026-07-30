@@ -14,8 +14,13 @@
 
 import { createHash } from 'node:crypto';
 
-import type { ArtifactIndexingEntry } from '@trapmap/contracts';
-import type { ChatProvider } from '@trapmap/server/lib/ai/types.js';
+import type {
+  ArtifactIndexingEntry,
+  GraphEdgeRecord,
+  GraphIndexDocumentRecord,
+  GraphNodeRecord,
+} from '@trapmap/contracts';
+import type { ChatProvider } from '@trapmap/ai-providers';
 import { createLabelReadProjection } from '@trapmap/server/lib/labels/repository.js';
 import {
   type SkillArtifactRecord,
@@ -23,9 +28,6 @@ import {
   getStorePool,
 } from '@trapmap/server/lib/store.js';
 import {
-  type GraphEdgeRecord,
-  type GraphIndexDocumentRecord,
-  type GraphNodeRecord,
   type SkillGraphDocumentInput,
   buildSkillGraphDocument as buildSkillGraphDocumentRecord,
   extractGraphEntitiesWithLLM,

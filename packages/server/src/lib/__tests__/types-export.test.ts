@@ -36,7 +36,7 @@ import {
   nowIso,
 } from '@trapmap/server/lib/store/index.js';
 
-import type { ChatProvider, EmbeddingsProvider } from '@trapmap/server/lib/ai/types.js';
+import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
 
 import type { GovernanceContext, GovernedEntity } from '@trapmap/server/lib/governance/types.js';
 

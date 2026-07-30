@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Boundary } from '@trapmap/contracts';
 
-import type { ChatProvider } from './ai/types.js';
+import type { ChatProvider } from '@trapmap/ai-providers';
 import type { BoundaryWithQuality } from './boundary-extract.js';
 import { runPreReview } from './pre-review.js';
 
