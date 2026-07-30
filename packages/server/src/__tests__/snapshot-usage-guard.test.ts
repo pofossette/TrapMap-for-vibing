@@ -4,54 +4,11 @@ import { describe, expect, it } from 'vitest';
 
 const SERVER_SRC = resolve(process.cwd(), 'packages/server/src');
 
-/**
- * Files allowed to call store.snapshot() or store.transact() directly.
- *
- * These fall into categories:
- * - Repository implementations: wrap store as compatibility layer (by design)
- * - Migration/backfill scripts: one-off data migration tools
- * - Bootstrap files: startup wiring and recovery
- * - Lifecycle subscribers: event-driven side effects on store changes
- * - Candidate processing: pipeline that mutates store during candidate lifecycle
- * - Diagnostic/admin mutations: controlled operator writes and migration HTTP tools
- * - Projection exceptions: explicit read-side helpers that still need compatibility snapshot input
- * - Named compatibility debt: audit seams that still require store access
- * - Phase 2 posture freeze: every entry here must belong to an explicit
- *   compatibility bucket and may not silently expand production primary-owner scope
- *
- * Core business routes (auth, knowledge, traps, retrieval, members, teams)
- * must use repos.* and must NOT appear here.
- */
-const SNAPSHOT_ALLOWLIST: string[] = [
-  // Bootstrap and startup
-  'bootstrap/bootstrap-repositories.ts',
-  'bootstrap/bootstrap-workers.ts',
-
-  // Lifecycle subscribers
-  'lib/lifecycle/subscribers/indexing.ts',
-  'lib/lifecycle/subscribers/audit.ts',
-
-  // Retrieval read-model: repo-backed assembly; retained only for cache-backed read-model ownership
-  'lib/retrieval/read-model.ts',
-
-  // Indexing compatibility helpers
-  'lib/indexing/skill-extract.ts',
-  'lib/indexing/skill-graph-build.ts',
-  'lib/jobs/handlers/knowledge-index-follow-up.ts',
-  'lib/jobs/handlers/skill-index-follow-up.ts',
-  'lib/jobs/skill-index-follow-up.ts',
-
-  // Diagnostic/admin mutations — controlled operator writes and migration tools
-  'routes/operations/knowledge-legacy.ts',
-  'routes/knowledge.ts',
-];
-
 function findAllTsFiles(dir: string): string[] {
   const results: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const fullPath = resolve(dir, entry.name);
     if (entry.isDirectory()) {
-      // Skip test fixture directories
       if (entry.name === '__fixtures__') continue;
       results.push(...findAllTsFiles(fullPath));
     } else if (
@@ -69,9 +26,7 @@ function hasActualStoreCall(content: string, pattern: RegExp): boolean {
   const lines = content.split('\n');
   for (const line of lines) {
     const trimmed = line.trimStart();
-    // Skip single-line comments
     if (trimmed.startsWith('//')) continue;
-    // Skip block comment lines (rough heuristic: lines between /* and */)
     if (trimmed.startsWith('*') || trimmed.startsWith('/*')) continue;
     if (pattern.test(line)) return true;
   }
@@ -79,15 +34,12 @@ function hasActualStoreCall(content: string, pattern: RegExp): boolean {
 }
 
 describe('snapshot usage guard', () => {
-  it('no non-allowlisted file calls store.snapshot() or store.transact()', () => {
+  it('no production file calls store.snapshot() or store.transact()', () => {
     const allFiles = findAllTsFiles(SERVER_SRC);
     const violations: Array<{ file: string; calls: string[] }> = [];
 
     for (const filePath of allFiles) {
       const relPath = relative(SERVER_SRC, filePath);
-
-      if (SNAPSHOT_ALLOWLIST.includes(relPath)) continue;
-
       const content = readFileSync(filePath, 'utf8');
       const calls: string[] = [];
 
@@ -102,30 +54,8 @@ describe('snapshot usage guard', () => {
     expect(
       violations,
       violations.length > 0
-        ? `Found store.snapshot()/store.transact() in non-allowlisted files:\n${violations.map((v) => `  ${v.file}: ${v.calls.join(', ')}`).join('\n')}\n\nAdd to SNAPSHOT_ALLOWLIST in this test or refactor to use repos.*`
+        ? `Found store.snapshot()/store.transact() in production files:\n${violations.map((v) => `  ${v.file}: ${v.calls.join(', ')}`).join('\n')}\n\nThe compatibility store has been retired. Use owner ports instead.`
         : undefined,
     ).toEqual([]);
-  });
-
-  it('allowlist entries exist on disk', () => {
-    const missing = SNAPSHOT_ALLOWLIST.filter((relPath) => {
-      try {
-        readFileSync(resolve(SERVER_SRC, relPath), 'utf8');
-        return false;
-      } catch {
-        return true;
-      }
-    });
-
-    expect(missing, `Allowlist entries not found on disk: ${missing.join(', ')}`).toEqual([]);
-  });
-
-  it('Phase 2 freeze keeps key compatibility buckets explicit', () => {
-    expect(SNAPSHOT_ALLOWLIST).toEqual(
-      expect.arrayContaining([
-        'lib/jobs/handlers/knowledge-index-follow-up.ts',
-        'lib/jobs/handlers/skill-index-follow-up.ts',
-      ]),
-    );
   });
 });

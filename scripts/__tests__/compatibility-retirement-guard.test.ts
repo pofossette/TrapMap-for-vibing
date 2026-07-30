@@ -60,6 +60,7 @@ const completedOwnerWaves: OwnerWave[] = [
   'wave-4',
   'wave-6',
   'wave-7',
+  'wave-9',
 ];
 const POSTGRES_COMPOSITION_ENTRYPOINTS = [
   'evals/retrieval-live/lib/snapshot-orchestrator.ts',
@@ -199,61 +200,6 @@ const allowlist: AllowlistEntry[] = [
     '@trapmap/server',
     'wave-10',
     'compatibility image self-reference',
-  ],
-  [
-    'packages/server/src/lib/persistence/create-store.ts',
-    'JsonStore',
-    'wave-9',
-    'legacy store assembly',
-  ],
-  [
-    'packages/server/src/lib/persistence/create-store.ts',
-    'PostgresStore',
-    'wave-9',
-    'legacy store assembly',
-  ],
-  [
-    'packages/server/src/lib/persistence/postgres-store.ts',
-    'store_snapshot',
-    'wave-9',
-    'legacy snapshot persistence',
-  ],
-  [
-    'packages/server/src/lib/persistence/postgres-store.ts',
-    'JsonStore',
-    'wave-9',
-    'legacy store fallback',
-  ],
-  [
-    'packages/server/src/lib/persistence/postgres-store.ts',
-    'PostgresStore',
-    'wave-9',
-    'legacy snapshot persistence',
-  ],
-  [
-    'packages/server/src/lib/persistence/schema/index.ts',
-    'store_snapshot',
-    'wave-9',
-    'legacy snapshot schema export',
-  ],
-  [
-    'packages/persistence-schema/src/knowledge.ts',
-    'store_snapshot',
-    'wave-9',
-    'legacy knowledge snapshot schema',
-  ],
-  [
-    'packages/persistence-schema/src/retrieval.ts',
-    'store_snapshot',
-    'wave-9',
-    'legacy snapshot schema deletion',
-  ],
-  ['packages/server/src/lib/store/index.ts', 'JsonStore', 'wave-9', 'legacy JSON store export'],
-  [
-    'packages/server/src/lib/store/json-store.ts',
-    'JsonStore',
-    'wave-9',
-    'legacy JSON store implementation',
   ],
 ].map(([file, symbol, ownerWave, rationale]) => ({
   file,
