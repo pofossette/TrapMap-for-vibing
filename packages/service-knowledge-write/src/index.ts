@@ -32,11 +32,20 @@ export {
 } from './artifact-ports.js';
 export { registerArtifactRoutes } from './artifact-routes.js';
 export {
-  migrateSkillArtifacts,
+  migrateLegacySkillArtifacts,
   type ArtifactMigrationError,
   type ArtifactMigrationResult,
+  type LegacyArtifactSnapshotOwner,
+  type LegacyArtifactSnapshotRecord,
+  type LegacyArtifactRevision,
+  type LegacyArtifactAgentReview,
+  type LegacyArtifactReviewDecision,
+  type LegacyArtifactReviewNote,
+  type LegacyArtifactLifecycleEvent,
+  type LegacyArtifactMaintenanceMeta,
   type Wave9ArtifactBackfillConfig,
 } from './wave9-artifact-backfill.js';
+export { createArtifactSnapshotOwner } from './wave9-artifact-snapshot-owner.js';
 export {
   migrateArtifactFilePayloads,
   type ArtifactFilePayloadBackfillResult,

@@ -14,11 +14,11 @@ import {
 import { createKnowledgeReadGraphProjectionRebuilder } from '@trapmap/service-knowledge-read';
 import {
   createArtifactFilePayloadOwner,
+  createArtifactSnapshotOwner,
   createKnowledgeSnapshotOwner,
-  createKnowledgeWriteOwnerBundle,
   migrateArtifactFilePayloads,
   migrateKnowledgeSnapshot,
-  migrateSkillArtifacts,
+  migrateLegacySkillArtifacts,
 } from '@trapmap/service-knowledge-write';
 import type { Pool } from 'pg';
 
@@ -35,24 +35,12 @@ function identitySnapshotPort(snapshot: IdentityAuditSnapshot) {
   });
 }
 
-function knowledgeRecords(snapshot: LegacySnapshot['knowledge']) {
-  // The service owner persists the original validated legacy record verbatim.
-  return snapshot.knowledgeEntries as Parameters<typeof migrateKnowledgeSnapshot>[0]['records'];
-}
-
-function artifactRecords(snapshot: LegacySnapshot['artifacts']) {
-  // The legacy snapshot is the compatibility input for the existing owner-local backfill.
-  return snapshot.skillArtifacts as unknown as Parameters<
-    typeof migrateSkillArtifacts
-  >[0]['artifacts'];
-}
-
 /** Host-only composition for the one-time legacy snapshot backfill. */
 export function createLegacySnapshotBackfillOwners(pool: Pool): LegacySnapshotBackfillOwners {
-  const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
   const candidateIngestion = createCandidateIngestionPgOwnerBundle(pool);
   const governance = createGovernanceReviewPgOwnerBundle(pool);
   const rebuildGraphProjection = createKnowledgeReadGraphProjectionRebuilder(pool);
+  const artifactSnapshot = createArtifactSnapshotOwner(pool);
 
   return {
     identityAudit: (snapshot) =>
@@ -60,13 +48,12 @@ export function createLegacySnapshotBackfillOwners(pool: Pool): LegacySnapshotBa
     knowledge: (snapshot) =>
       migrateKnowledgeSnapshot({
         owner: createKnowledgeSnapshotOwner(pool),
-        records: knowledgeRecords(snapshot),
+        records: snapshot.knowledgeEntries,
       }),
     artifacts: (snapshot) =>
-      migrateSkillArtifacts({
-        artifacts: artifactRecords(snapshot),
-        artifactWriter: knowledgeWrite.artifactWriter,
-        artifactReadProjection: knowledgeWrite.artifactReadProjection,
+      migrateLegacySkillArtifacts({
+        owner: artifactSnapshot,
+        records: snapshot.skillArtifacts,
       }),
     artifactFilePayloads: (snapshot) =>
       migrateArtifactFilePayloads({
