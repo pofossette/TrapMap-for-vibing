@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import Fastify from 'fastify';
 import pg from 'pg';
+import type { Pool } from 'pg';
 import type {
   ArtifactReadProjection,
   ConflictRelation,
@@ -75,6 +76,8 @@ export interface BuildServerOptions {
   jobRuntime?: Pick<JobRuntimePort, 'schedule'>;
   asyncTransport?: AsyncTransport;
   outboxWorkerFactory?: OutboxWorkerFactory;
+  /** Shared PostgreSQL pool supplied by host composition. */
+  pool?: Pool;
 }
 
 function resolveRuntimeServiceName(runtimeMode: RuntimeMode, serviceUnit: ServiceUnit): string {
@@ -168,7 +171,7 @@ export function buildServer(options: BuildServerOptions = {}) {
     runtimeDeployment,
     runtimeMode,
     serviceUnit,
-    pool: new pg.Pool({ connectionString: config.databaseUrl ?? undefined }),
+    pool: options.pool ?? new pg.Pool({ connectionString: config.databaseUrl ?? undefined }),
     adapterRegistry: buildDefaultAdapterRegistry(),
     channelRegistry: (() => {
       const cr = new ChannelRegistry();

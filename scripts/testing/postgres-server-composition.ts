@@ -6,7 +6,6 @@ import {
   createJobRuntimeAsyncTransport,
   createJobRuntimeOutboxConsumer,
 } from '../../packages/service-job-runtime/src/index.js';
-import { PostgresStore } from '../../packages/server/src/lib/persistence/postgres-store.js';
 import { createIdentityAccessPgDeps } from '../../packages/service-identity-access/src/pg-ports.js';
 import {
   createKnowledgeWriteOwnerBundle,
@@ -21,7 +20,7 @@ import type { KnowledgeOwnerPort } from '../../packages/contracts/src/index.js';
 
 export interface PostgresComposedServer {
   app: ReturnType<typeof buildServer>;
-  store: PostgresStore;
+  pool: pg.Pool;
   artifactWriter: ArtifactWritePort;
   knowledgeOwner: KnowledgeOwnerPort;
   close(): Promise<void>;
@@ -30,10 +29,9 @@ export interface PostgresComposedServer {
 /** Host-equivalent PostgreSQL composition for evals and one-shot scripts. */
 export function buildPostgresComposedServer(
   databaseUrl: string,
-  options: Omit<BuildServerOptions, 'identityBundle' | 'ownsStore' | 'store'> = {},
+  options: Omit<BuildServerOptions, 'identityBundle' | 'pool'> = {},
 ): PostgresComposedServer {
   const pool = new pg.Pool({ connectionString: databaseUrl });
-  const store = new PostgresStore(pool);
   const identity = createIdentityAccessPgDeps(pool);
   const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
   const governanceReview = createGovernanceReviewPgOwnerBundle(pool);
@@ -75,19 +73,17 @@ export function buildPostgresComposedServer(
     outboxWorkerFactory: {
       create: (worker) => createJobRuntimeOutboxConsumer(worker),
     },
-    ownsStore: false,
-    store,
+    pool,
   });
   const closeApp = app.close.bind(app);
 
   return {
     app,
-    store,
+    pool,
     artifactWriter: knowledgeWrite.artifactWriter,
     knowledgeOwner: knowledgeWrite.knowledgeOwner,
     async close() {
       await closeApp();
-      await pool.end();
     },
   };
 }
