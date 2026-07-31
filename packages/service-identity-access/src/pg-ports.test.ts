@@ -52,6 +52,71 @@ describe('identity PostgreSQL ports', () => {
     });
   });
 
+  it('maps identity reads from PostgreSQL column names to repository records', async () => {
+    const deps = createIdentityAccessPgDeps({
+      query: vi.fn(async (sql: string) => {
+        if (sql.includes('FROM access_keys'))
+          return {
+            rows: [
+              {
+                id: 'key_1',
+                member_id: 'member_1',
+                token_hash: 'hash',
+                token_preview: 'preview',
+                issued_by_user_id: 'user_1',
+                team_id: 'team_1',
+                level: 7,
+                notes: null,
+                revoked_at: null,
+                created_at: new Date('2026-01-01T00:00:00.000Z'),
+                updated_at: new Date('2026-01-02T00:00:00.000Z'),
+              },
+            ],
+          };
+        if (sql.includes('FROM users'))
+          return {
+            rows: [
+              {
+                id: 'user_1',
+                handle: 'alice',
+                notes: null,
+                created_at: new Date('2026-01-01T00:00:00.000Z'),
+                updated_at: new Date('2026-01-02T00:00:00.000Z'),
+              },
+            ],
+          };
+        return {
+          rows: [
+            {
+              id: 'team_1',
+              slug: 'platform',
+              name: 'Platform',
+              description: null,
+              created_at: new Date('2026-01-01T00:00:00.000Z'),
+              updated_at: new Date('2026-01-02T00:00:00.000Z'),
+            },
+          ],
+        };
+      }),
+    } as never);
+
+    await expect(deps.accessKeyRepo.getByTokenHash('hash')).resolves.toMatchObject({
+      tokenHash: 'hash',
+      memberId: 'member_1',
+      revokedAt: null,
+    });
+    await expect(deps.userRepo.getById('user_1')).resolves.toMatchObject({
+      handle: 'alice',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+    await expect(deps.teamRepo.getById('team_1')).resolves.toMatchObject({
+      slug: 'platform',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+  });
+
   it('builds a login-capable identity module from an owner-local pool', async () => {
     const query = vi.fn(async (sql: string) => {
       if (sql.includes('FROM users WHERE handle')) {

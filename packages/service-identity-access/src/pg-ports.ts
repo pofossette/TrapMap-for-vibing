@@ -38,6 +38,43 @@ function rowToMembership(row: Record<string, unknown>) {
   };
 }
 
+function rowToAccessKey(row: Record<string, unknown>) {
+  return {
+    id: String(row.id),
+    memberId: String(row.member_id),
+    tokenHash: String(row.token_hash),
+    tokenPreview: String(row.token_preview),
+    issuedByUserId: String(row.issued_by_user_id),
+    teamId: String(row.team_id),
+    level: Number(row.level),
+    notes: typeof row.notes === 'string' ? row.notes : null,
+    revokedAt: row.revoked_at instanceof Date ? row.revoked_at.toISOString() : null,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : nowIso(),
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : nowIso(),
+  };
+}
+
+function rowToUser(row: Record<string, unknown>) {
+  return {
+    id: String(row.id),
+    handle: String(row.handle),
+    notes: typeof row.notes === 'string' ? row.notes : null,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : nowIso(),
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : nowIso(),
+  };
+}
+
+function rowToTeam(row: Record<string, unknown>) {
+  return {
+    id: String(row.id),
+    slug: String(row.slug),
+    name: String(row.name),
+    description: typeof row.description === 'string' ? row.description : null,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : nowIso(),
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : nowIso(),
+  };
+}
+
 /**
  * Temporary compatibility input for the identity backfill only.
  *
@@ -245,11 +282,11 @@ export function createIdentityAccessPgDeps(
       const { rows } = await pool.query('SELECT * FROM access_keys WHERE token_hash = $1', [
         tokenHash,
       ]);
-      return rows[0] ? (rowToMembership(rows[0] as Record<string, unknown>) as never) : null;
+      return rows[0] ? (rowToAccessKey(rows[0] as Record<string, unknown>) as never) : null;
     },
     async getById(keyId) {
       const { rows } = await pool.query('SELECT * FROM access_keys WHERE id = $1', [keyId]);
-      return rows[0] ? (rowToMembership(rows[0] as Record<string, unknown>) as never) : null;
+      return rows[0] ? (rowToAccessKey(rows[0] as Record<string, unknown>) as never) : null;
     },
     async revoke(keyId) {
       await pool.query(
@@ -280,15 +317,15 @@ export function createIdentityAccessPgDeps(
     },
     async getById(teamId) {
       const { rows } = await pool.query('SELECT * FROM teams WHERE id = $1', [teamId]);
-      return (rows[0] as never) ?? null;
+      return rows[0] ? (rowToTeam(rows[0] as Record<string, unknown>) as never) : null;
     },
     async getBySlug(slug) {
       const { rows } = await pool.query('SELECT * FROM teams WHERE slug = $1', [slug]);
-      return (rows[0] as never) ?? null;
+      return rows[0] ? (rowToTeam(rows[0] as Record<string, unknown>) as never) : null;
     },
     async listAll() {
       const { rows } = await pool.query('SELECT * FROM teams');
-      return rows as never[];
+      return rows.map((row) => rowToTeam(row as Record<string, unknown>)) as never[];
     },
     async update(teamId, updates) {
       await pool.query(
@@ -363,11 +400,11 @@ export function createIdentityAccessPgDeps(
     },
     async getById(userId) {
       const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-      return (rows[0] as never) ?? null;
+      return rows[0] ? (rowToUser(rows[0] as Record<string, unknown>) as never) : null;
     },
     async getByHandle(handle) {
       const { rows } = await pool.query('SELECT * FROM users WHERE handle = $1', [handle]);
-      return (rows[0] as never) ?? null;
+      return rows[0] ? (rowToUser(rows[0] as Record<string, unknown>) as never) : null;
     },
     async update(userId, updates) {
       await pool.query(
