@@ -18,10 +18,8 @@ import type {
 
 import type { StoreData } from '@trapmap/server/lib/store.js';
 import { createEmptyStoreData, hashSecret, nowIso } from '@trapmap/server/lib/store.js';
-import {
-  createArtifactSnapshotOwner,
-  createKnowledgeSnapshotOwner,
-} from '../../../../../service-knowledge-write/src/index.js';
+import { createKnowledgeSnapshotOwner } from '../../../../../service-knowledge-write/src/knowledge-snapshot-owner.js';
+import { createArtifactSnapshotOwner } from '../../../../../service-knowledge-write/src/wave9-artifact-snapshot-owner.js';
 
 import { buildPostgresTestServer } from '../../../../../../scripts/testing/server-test-composition.js';
 
