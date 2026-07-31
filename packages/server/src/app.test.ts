@@ -131,10 +131,12 @@ describe('app.ts live gaps — fm-agent raw report', () => {
     await app.close();
   });
 
-  it('keeps the compatibility store readable after owner migrations', async () => {
+  it('keeps the PostgreSQL pool usable after owner migrations', async () => {
     const app = await buildServer();
 
-    await expect(app.skillShareer.store.snapshot()).resolves.toEqual(expect.any(Object));
+    await expect(app.skillShareer.pool.query('SELECT 1 AS value')).resolves.toMatchObject({
+      rows: [{ value: 1 }],
+    });
 
     await app.close();
   });
