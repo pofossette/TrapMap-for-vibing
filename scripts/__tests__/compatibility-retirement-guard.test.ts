@@ -60,6 +60,7 @@ const completedOwnerWaves: OwnerWave[] = [
   'wave-4',
   'wave-6',
   'wave-7',
+  'wave-8',
   'wave-9',
 ];
 const POSTGRES_COMPOSITION_ENTRYPOINTS = [
@@ -833,6 +834,10 @@ describe('compatibility retirement guard', () => {
 
   it('marks Wave-7 complete after its read-service compatibility imports are retired', () => {
     expect(completedOwnerWaves).toContain('wave-7');
+  });
+
+  it('marks Wave-8 complete after host composition compatibility imports are retired', () => {
+    expect(completedOwnerWaves).toContain('wave-8');
   });
 
   it('rejects retired Wave-6 async implementation files', () => {
