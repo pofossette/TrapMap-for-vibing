@@ -70,17 +70,12 @@ function createTestEntry(args: {
 async function getSystemAdminAuth(app: FastifyInstance): Promise<{ Authorization: string }> {
   const token = 'test-maintenance-admin-token';
   const tokenHash = hashSecret(token);
-  await app.skillShareer.store.transact((txData) => {
-    txData.sessions.push({
-      id: `maintenance-test-session-${Date.now()}`,
-      subjectType: 'system-admin',
-      userId: null,
-      activeTeamId: null,
-      tokenHash,
-      expiresAt: null,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-    });
+  await app.skillShareer.identity.sessionRepo.create({
+    subjectType: 'system-admin',
+    userId: null,
+    activeTeamId: null,
+    tokenHash,
+    expiresAt: null,
   });
   return { Authorization: `Bearer ${token}` };
 }

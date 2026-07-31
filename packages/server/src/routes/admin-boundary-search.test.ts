@@ -10,21 +10,23 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { buildPostgresTestServer as buildServer } from '../../../../scripts/testing/server-test-composition.js';
-import type { SkillShareerStore } from '@trapmap/server/lib/store.js';
 import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
 
 describe('admin boundary search routes', () => {
   let app: FastifyInstance;
-  let store: SkillShareerStore;
 
-  const adminUserId = 'admin_1';
-  const userId = 'user_1';
-  const teamId = 'team_1';
+  let adminUserId: string;
+  let userId: string;
+  let teamId: string;
   let adminSessionToken: string;
   let userSessionToken: string;
 
   beforeEach(async () => {
+    const fixtureId = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    adminUserId = `admin_${fixtureId}`;
+    userId = `user_${fixtureId}`;
+    teamId = `team_${fixtureId}`;
     const testDataFile = `/tmp/trapmap-test-admin-boundary-${Date.now()}-${Math.random()}.json`;
 
     app = await buildServer({
@@ -32,92 +34,66 @@ describe('admin boundary search routes', () => {
       ownerReadModel: { getReadModel: async () => ({ knowledgeEntries: [] }) },
     });
     await app.ready();
-    store = app.skillShareer.store;
-
-    // Setup: Create users, team, memberships, sessions
-    await store.transact(async (data) => {
-      if (!data.counters) data.counters = {};
-      data.counters.user = 2;
-
-      // Create admin user
-      data.users.push({
-        id: adminUserId,
-        handle: 'admin',
-        notes: null,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      });
-
-      // Create regular user
-      data.users.push({
-        id: userId,
-        handle: 'regularuser',
-        notes: null,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      });
-
-      // Create team
-      data.teams.push({
-        id: teamId,
-        name: 'Test Team',
-        slug: 'test-team',
-        description: null,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      });
-
-      // Admin membership
-      data.memberships.push({
-        id: 'membership_admin',
-        userId: adminUserId,
-        teamId,
-        roleTemplate: 'admin',
-        securityLevel: 10,
-        permissions: [],
-        notes: null,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      });
-
-      // Regular user membership
-      data.memberships.push({
-        id: 'membership_user',
-        userId,
-        teamId,
-        roleTemplate: 'user',
-        securityLevel: 5,
-        permissions: [],
-        notes: null,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      });
-
-      // Admin session (system-admin)
-      adminSessionToken = `session_admin_${Date.now()}`;
-      data.sessions.push({
-        id: 'session_admin',
-        userId: null,
-        activeTeamId: null,
-        tokenHash: hashSecret(adminSessionToken),
-        subjectType: 'system-admin',
-        expiresAt: null,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      });
-
-      // Regular user session
-      userSessionToken = `session_user_${Date.now()}`;
-      data.sessions.push({
-        id: 'session_user',
-        userId,
-        activeTeamId: teamId,
-        tokenHash: hashSecret(userSessionToken),
-        subjectType: 'user',
-        expiresAt: null,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      });
+    const { identity } = app.skillShareer;
+    await identity.userRepo.insert({
+      id: adminUserId,
+      handle: `admin-${fixtureId}`,
+      notes: null,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+    await identity.userRepo.insert({
+      id: userId,
+      handle: `regular-${fixtureId}`,
+      notes: null,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+    await identity.teamRepo.insert({
+      id: teamId,
+      name: 'Test Team',
+      slug: `test-team-${fixtureId}`,
+      description: null,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+    await identity.membershipRepo.insert({
+      id: `membership_admin_${fixtureId}`,
+      userId: adminUserId,
+      teamId,
+      roleTemplate: 'admin',
+      securityLevel: 10,
+      permissions: [],
+      notes: null,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+    await identity.membershipRepo.insert({
+      id: `membership_user_${fixtureId}`,
+      userId,
+      teamId,
+      roleTemplate: 'user',
+      securityLevel: 5,
+      permissions: [],
+      notes: null,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+    adminSessionToken = `session_admin_${Date.now()}`;
+    await identity.sessionRepo.create({
+      userId: null,
+      activeTeamId: null,
+      tokenHash: hashSecret(adminSessionToken),
+      subjectType: 'system-admin',
+      expiresAt: null,
+    });
+    userSessionToken = `session_user_${Date.now()}`;
+    await identity.sessionRepo.create({
+      userId,
+      activeTeamId: teamId,
+      tokenHash: hashSecret(userSessionToken),
+      subjectType: 'user',
+      expiresAt: null,
     });
   });
 
