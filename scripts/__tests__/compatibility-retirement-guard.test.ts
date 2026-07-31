@@ -66,6 +66,11 @@ const POSTGRES_COMPOSITION_ENTRYPOINTS = [
   'evals/retrieval-live/lib/snapshot-orchestrator.ts',
 ] as const;
 const OWNER_LOCAL_POSTGRES_ENTRYPOINTS = ['scripts/test-skill-import-export.ts'] as const;
+const RETIRED_WAVE_9_LEGACY_TESTS = [
+  'packages/server/src/lib/artifacts/demo-acceptance.test.ts',
+  'packages/server/src/lib/retrieval-workflow.test.ts',
+  'packages/server/src/routes/retrieval.test.ts',
+] as const;
 const RETIRED_WAVE_1_OWNER_SYMBOLS = [
   'createSessionRepository',
   'createAccessKeyRepository',
@@ -499,6 +504,12 @@ describe('compatibility retirement guard', () => {
       'utf8',
     );
     expect(hostSharedInfra).not.toContain('@trapmap/server/lib/ai');
+  });
+
+  it('retires legacy store-backed server acceptance fixtures', () => {
+    for (const retiredPath of RETIRED_WAVE_9_LEGACY_TESTS) {
+      expect(existsSync(resolve(repoRoot, retiredPath))).toBe(false);
+    }
   });
 
   it('keeps Wave-8 host composition as the sole server factory path for migrated entrypoints', () => {
