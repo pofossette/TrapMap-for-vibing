@@ -22,7 +22,7 @@ import type {
 } from '@trapmap/contracts';
 import type { ChatProvider } from '@trapmap/ai-providers';
 import type { Pool } from 'pg';
-import { createLabelReadProjection } from '@trapmap/server/lib/labels/repository.js';
+import { createLabelReadProjection } from '@trapmap/service-knowledge-write';
 import { type SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import {
   type SkillGraphDocumentInput,

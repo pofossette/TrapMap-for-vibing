@@ -57,3 +57,18 @@ export {
   type LegacyKnowledgeSnapshotRecord,
 } from './knowledge-snapshot-backfill.js';
 export { createKnowledgeSnapshotOwner } from './knowledge-snapshot-owner.js';
+export {
+  backfillLabels,
+  repairGraphDocuments,
+  createLabelReadProjection,
+  PgLabelRepository,
+  alignLabel,
+  type BackfillOptions,
+  type BackfillReport,
+  type LabelRepository,
+  type CanonicalLabelRecord,
+  type LabelAliasRecord,
+  type LabelAlignmentResult,
+  type MergeRepairOptions,
+  type MergeRepairReport,
+} from './labels/index.js';

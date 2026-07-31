@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { LlmGraphExtraction } from '@trapmap/contracts';
 
 import type { ChatProvider } from '@trapmap/ai-providers';
-import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
+import type { LabelRepository } from '@trapmap/service-knowledge-write';
 
 // Mock the prompt builders to avoid template file dependency
 vi.mock('../../ai/prompts.js', () => ({

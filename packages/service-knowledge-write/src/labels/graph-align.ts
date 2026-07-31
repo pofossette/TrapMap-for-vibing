@@ -10,7 +10,6 @@ import type { LlmGraphNode } from '@trapmap/contracts';
 
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
 import type { GraphNodeRecord } from '@trapmap/contracts';
-import { normalizeValue } from '@trapmap/server/lib/indexing/graph-lite/llm-extract-ids.js';
 import { alignLabel } from './llm-align.js';
 import type { AlignLabelOptions } from './llm-align.js';
 import type { LabelRepository } from './repository.js';
@@ -186,6 +185,14 @@ export function rewriteEdgeIds<
 
 function buildRawNodeId(kind: string, label: string): string {
   return `${kind}:${normalizeValue(label)}`;
+}
+
+function normalizeValue(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 function buildCanonicalNodeId(kind: string, canonicalLabelId: string): string {

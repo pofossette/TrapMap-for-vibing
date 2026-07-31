@@ -16,9 +16,8 @@ import type {
 } from '@trapmap/contracts';
 import { labelAlignmentDecisionSchema } from '@trapmap/contracts';
 
-import { invokeWithParseRetry } from '@trapmap/server/lib/ai/parse.js';
-import { buildLabelAlignmentSlots_default, buildPrompt } from '@trapmap/server/lib/ai/prompts.js';
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
+import type { ZodType } from 'zod';
 
 import { recallCandidates } from './candidate-recall.js';
 import type { LabelRepository } from './repository.js';
@@ -213,7 +212,7 @@ async function callLlmAlignment(
   chat: ChatProvider,
   input: LabelAlignmentInput,
 ): Promise<LabelAlignmentDecision | null> {
-  const systemPrompt = buildPrompt('label-alignment', buildLabelAlignmentSlots_default());
+  const systemPrompt = buildLabelAlignmentSystemPrompt();
   const userMessage = buildAlignmentUserMessage(input);
   return invokeWithParseRetry({
     invoke: () => chat.invoke(systemPrompt, userMessage),
@@ -221,6 +220,40 @@ async function callLlmAlignment(
     maxRetries: MAX_RETRIES,
     backoffMs: (attempt) => BACKOFF_BASE_MS * 2 ** (attempt * 2),
   });
+}
+
+function buildLabelAlignmentSystemPrompt(): string {
+  return `You are a label alignment assistant for a knowledge graph catalog.
+
+Given a raw label and candidate canonical labels, return ONLY a JSON object with: decision (existing, new, or unsure), canonicalLabelId for existing, canonicalName for new, confidence from 0 to 1, and reasoning. Prefer unsure over a risky merge. Existing IDs must be from the candidate table; new names must be lowercase hyphenated slugs.`;
+}
+
+async function invokeWithParseRetry<T>(options: {
+  invoke: () => Promise<string>;
+  schema: ZodType<T>;
+  maxRetries: number;
+  backoffMs: (attempt: number) => number;
+}): Promise<T | null> {
+  for (let attempt = 0; attempt <= options.maxRetries; attempt += 1) {
+    try {
+      const raw = await options.invoke();
+      const parsed = options.schema.safeParse(
+        JSON.parse(
+          raw
+            .trim()
+            .replace(/^```(?:json)?\n?/, '')
+            .replace(/\n?```$/, ''),
+        ),
+      );
+      if (parsed.success) return parsed.data;
+    } catch {
+      // Invalid provider output follows the same retry policy as provider errors.
+    }
+    if (attempt < options.maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, options.backoffMs(attempt)));
+    }
+  }
+  return null;
 }
 
 /**

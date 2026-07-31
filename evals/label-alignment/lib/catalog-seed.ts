@@ -1,4 +1,4 @@
-import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
+import type { LabelRepository } from '@trapmap/service-knowledge-write';
 import type {
   LabelAlignmentCatalogSeedEntry,
   LabelAlignmentEvalCase,

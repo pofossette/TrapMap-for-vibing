@@ -1,9 +1,11 @@
 import { createAiProviders, loadAiProviderConfig } from '@trapmap/ai-providers';
-import { backfillLabels } from '@trapmap/server/lib/labels/backfill.js';
-import { repairGraphDocuments } from '@trapmap/server/lib/labels/merge-repair.js';
-import { createLabelReadProjection } from '@trapmap/server/lib/labels/repository.js';
 import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
+import {
+  backfillLabels,
+  createLabelReadProjection,
+  repairGraphDocuments,
+} from '@trapmap/service-knowledge-write';
 import { Pool } from 'pg';
 
 interface RawLabelSource {

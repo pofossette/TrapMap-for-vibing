@@ -14,7 +14,7 @@ import {
   canonicalLabels,
   labelAliases,
   labelAlignmentEvents,
-} from '@trapmap/server/lib/persistence/schema/labels.js';
+} from '@trapmap/persistence-schema';
 
 import type {
   CanonicalLabelRecord,

@@ -43,6 +43,10 @@ export default defineConfig({
               find: '@trapmap/service-knowledge-read',
               replacement: resolve(__dirname, './packages/service-knowledge-read/src/index.ts'),
             },
+            {
+              find: '@trapmap/service-knowledge-write',
+              replacement: resolve(__dirname, './packages/service-knowledge-write/src/index.ts'),
+            },
           ],
         },
       },

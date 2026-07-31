@@ -1,6 +1,5 @@
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
-import { alignLabel } from '@trapmap/server/lib/labels/llm-align.js';
-import type { LabelRepository } from '@trapmap/server/lib/labels/repository.js';
+import { alignLabel, type LabelRepository } from '@trapmap/service-knowledge-write';
 import type {
   LabelAlignmentEvalCase,
   LabelAlignmentEvalCaseResult,

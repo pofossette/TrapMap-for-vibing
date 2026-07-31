@@ -28,7 +28,7 @@ import {
 import { assertNoHardDependencyCycles } from '@trapmap/contracts';
 import type { NormalizedIndexDocument } from '@trapmap/server/lib/indexing/types.js';
 import type { IndexAdapter, IndexSyncResult } from '@trapmap/server/lib/indexing/types.js';
-import { createLabelReadProjection } from '@trapmap/server/lib/labels/repository.js';
+import { createLabelReadProjection } from '@trapmap/service-knowledge-write';
 import type { StoreData } from '@trapmap/server/lib/store.js';
 import { nowIso } from '@trapmap/server/lib/store.js';
 import type { Pool } from 'pg';

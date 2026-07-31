@@ -177,14 +177,14 @@ const AI_PROVIDER_CONFIG_CONSUMERS = [
   'packages/server/src/lib/boundary-extract.ts',
   'packages/server/src/lib/artifacts/contextual-enrichment.ts',
   'packages/server/src/lib/artifacts/derive/types.ts',
-  'packages/server/src/lib/labels/graph-align.ts',
-  'packages/server/src/lib/labels/llm-align.ts',
-  'packages/server/src/lib/labels/backfill.ts',
-  'packages/server/src/lib/labels/candidate-recall.ts',
+  'packages/service-knowledge-write/src/labels/graph-align.ts',
+  'packages/service-knowledge-write/src/labels/llm-align.ts',
+  'packages/service-knowledge-write/src/labels/backfill.ts',
+  'packages/service-knowledge-write/src/labels/candidate-recall.ts',
   'packages/server/src/lib/retrieval/capsules/intent.ts',
   'packages/server/src/testing/mock-factories.ts',
   'packages/server/src/lib/__tests__/types-export.test.ts',
-  'packages/server/src/lib/labels/llm-align.test.ts',
+  'packages/service-knowledge-write/src/labels/llm-align.test.ts',
   'packages/server/src/lib/boundary-extract.test.ts',
   'packages/server/src/lib/pre-review.test.ts',
   'packages/server/src/lib/artifacts/contextual-enrichment.test.ts',
@@ -199,12 +199,6 @@ const AI_PROVIDER_CONFIG_CONSUMERS = [
 const SERVER_AI_PROVIDER_CONFIG_IMPORT =
   /(?:@trapmap\/server\/lib\/ai|(?:\.\.\/)+packages\/server\/src\/lib\/ai|\.\/ai)\/(?:index|types|providers|provider-config)\.js/;
 const allowlist: AllowlistEntry[] = [
-  [
-    'scripts/label-runner.ts',
-    '@trapmap/server',
-    'wave-10',
-    'temporary compatibility label catalog core composition',
-  ],
   [
     'packages/server/Dockerfile',
     '@trapmap/server',

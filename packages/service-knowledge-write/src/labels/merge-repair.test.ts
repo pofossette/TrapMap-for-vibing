@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { GraphIndexDocumentRecord } from '@trapmap/server/lib/indexing/graph-lite/documents.js';
+import type { GraphIndexDocumentRecord } from '@trapmap/contracts';
 
 import { repairGraphDocuments } from './merge-repair.js';
 import type { CanonicalLabelRecord, LabelRepository } from './repository.js';
