@@ -11,10 +11,6 @@ COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/contracts/tsconfig.json ./packages/contracts/
 COPY packages/contracts/src ./packages/contracts/src
 
-COPY packages/server/package.json ./packages/server/
-COPY packages/server/tsconfig.json ./packages/server/
-COPY packages/server/src ./packages/server/src
-
 COPY packages/backend-core/package.json ./packages/backend-core/
 COPY packages/backend-core/tsconfig.json ./packages/backend-core/
 COPY packages/backend-core/src ./packages/backend-core/src
@@ -59,7 +55,6 @@ WORKDIR /app
 
 RUN pnpm exec tsc -b \
   packages/contracts/tsconfig.json \
-  packages/server/tsconfig.json \
   packages/backend-core/tsconfig.json \
   packages/client-core/tsconfig.json \
   packages/service-identity-access/tsconfig.json \
@@ -82,11 +77,6 @@ COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/contracts/tsconfig.json ./packages/contracts/
 COPY --from=deps /app/packages/contracts/node_modules ./packages/contracts/node_modules
 COPY --from=build /app/packages/contracts/dist ./packages/contracts/dist
-
-COPY packages/server/package.json ./packages/server/
-COPY packages/server/tsconfig.json ./packages/server/
-COPY --from=deps /app/packages/server/node_modules ./packages/server/node_modules
-COPY --from=build /app/packages/server/dist ./packages/server/dist
 
 COPY packages/backend-core/package.json ./packages/backend-core/
 COPY packages/backend-core/tsconfig.json ./packages/backend-core/

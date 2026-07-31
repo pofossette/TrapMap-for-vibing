@@ -15,10 +15,6 @@ COPY packages/backend-core/package.json ./packages/backend-core/
 COPY packages/backend-core/tsconfig.json ./packages/backend-core/
 COPY packages/backend-core/src ./packages/backend-core/src
 
-COPY packages/server/package.json ./packages/server/
-COPY packages/server/tsconfig.json ./packages/server/
-COPY packages/server/src ./packages/server/src
-
 COPY packages/service-knowledge-read/package.json ./packages/service-knowledge-read/
 COPY packages/service-knowledge-read/tsconfig.json ./packages/service-knowledge-read/
 COPY packages/service-knowledge-read/src ./packages/service-knowledge-read/src
@@ -52,7 +48,6 @@ RUN pnpm exec tsc -b \
   packages/service-candidate-ingestion/tsconfig.json \
   packages/service-governance-review/tsconfig.json \
   packages/service-knowledge-write/tsconfig.json \
-  packages/server/tsconfig.json \
   packages/host-local/tsconfig.json
 
 FROM node:22-alpine AS production
@@ -70,10 +65,6 @@ COPY --from=build /app/packages/contracts/dist ./packages/contracts/dist
 COPY packages/backend-core/package.json ./packages/backend-core/
 COPY packages/backend-core/tsconfig.json ./packages/backend-core/
 COPY --from=build /app/packages/backend-core/dist ./packages/backend-core/dist
-
-COPY packages/server/package.json ./packages/server/
-COPY packages/server/tsconfig.json ./packages/server/
-COPY --from=build /app/packages/server/dist ./packages/server/dist
 
 COPY packages/service-knowledge-read/package.json ./packages/service-knowledge-read/
 COPY packages/service-knowledge-read/tsconfig.json ./packages/service-knowledge-read/

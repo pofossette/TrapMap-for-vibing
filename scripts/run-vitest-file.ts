@@ -18,7 +18,6 @@ export interface ResolvedVitestFileTarget {
 const PROJECT_TARGETS: readonly VitestProjectTarget[] = [
   { projectName: 'scripts', repoPrefix: 'scripts/' },
   { projectName: 'contracts', repoPrefix: 'packages/contracts/' },
-  { projectName: 'server', repoPrefix: 'packages/server/' },
   { projectName: 'service-knowledge-read', repoPrefix: 'packages/service-knowledge-read/' },
   { projectName: 'web-panel', repoPrefix: 'packages/web-panel/' },
   { projectName: 'host-local', repoPrefix: 'packages/host-local/' },

@@ -15,7 +15,6 @@
     { "path": "./packages/web-panel" },
     { "path": "./packages/host-local" },
     { "path": "./packages/host-distributed" },
-    { "path": "./packages/server" },
     { "path": "./packages/cli" }
   ]
 }
