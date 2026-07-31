@@ -7,6 +7,7 @@
  */
 
 import type { FastifyInstance } from 'fastify';
+import type { Pool } from 'pg';
 
 import type {
   RetrievalQuery,
@@ -25,8 +26,6 @@ import { hashSecret, nowIso } from '../../../packages/server/src/lib/store.js';
 import type {
   DerivedSkillCapsuleRecord,
   KnowledgeRecord,
-  SkillArtifactRecord,
-  SkillShareerStore,
 } from '../../../packages/server/src/lib/store.js';
 import { loadScenario } from './load.js';
 import { normalizeResponse } from './normalize.js';
@@ -180,8 +179,8 @@ function buildArtifactFixtureFields(artifact: ArtifactFixture) {
 export interface ExecutionContext {
   /** Fastify app instance */
   app: FastifyInstance;
-  /** Store instance for fixture seeding */
-  store: SkillShareerStore;
+  /** Host-owned PostgreSQL pool for fixture cleanup. */
+  pool: Pool;
   /** Session token for authentication */
   sessionToken: string;
   /** Actor ID for the session */
@@ -234,7 +233,6 @@ export async function createExecutionContext(options?: {
   const app = composed.app;
   await app.ready();
 
-  const store = composed.store;
   const identity = app.skillShareer.identity;
 
   // Create a system admin user and session for the eval runner
@@ -255,7 +253,7 @@ export async function createExecutionContext(options?: {
 
   return {
     app,
-    store,
+    pool: composed.pool,
     sessionToken,
     actorId,
     artifactWriter: composed.artifactWriter,
@@ -305,7 +303,7 @@ export async function closeExecutionContext(ctx: ExecutionContext): Promise<void
     }
   }
 
-  const pool = ctx.store.getPool();
+  const { pool } = ctx;
   const { rows } = await pool.query<{ tablename: string }>(
     "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE '%migration%'",
   );
@@ -347,128 +345,70 @@ export async function seedScenarioFixtures(
   const createdAt = nowIso();
   const repos = ctx.app.skillShareer.repos;
 
-  if (repos) {
-    // PostgreSQL mode: seed through the knowledge-write owner so fixtures
-    // exercise the same aggregate/revision/lifecycle transaction as commands.
-    for (const entry of fixtureEntries) {
-      const record = createKnowledgeFixtureRecord(entry, ctx.actorId, createdAt);
-      const lifecycleState = mapLifecycleState(entry.lifecycleState);
-      await ctx.knowledgeOwner.submit({
-        actorId: ctx.actorId,
-        entryId: record.id,
-        lifecycleState,
-        content: record.detail,
-        title: record.shortcut,
-        labels: record.labels,
-        teamId: record.teamId,
-        scope: record.scope,
-        requiredLevel: record.requiredLevel,
-      });
-    }
-
-    for (const artifact of fixtureArtifacts) {
-      const capsules = buildDerivedCapsules(artifact);
-
-      const record = {
-        ...buildArtifactFixtureFields(artifact),
-        lifecycleState: mapLifecycleState(artifact.lifecycleState),
-        owner: { id: ctx.actorId, handle: ctx.actorId, securityLevel: 0 },
-        latestRevision: 1,
-        history: [
-          {
-            revision: 1,
-            sourceHash: '',
-            files: [],
-            submittedAt: createdAt,
-            submittedBy: { id: ctx.actorId, handle: ctx.actorId, securityLevel: 0 },
-            scriptDescriptors: [],
-            derived: buildDerivedPayload(artifact, capsules, createdAt),
-          },
-        ],
-        metadata: {
-          sourceKind: 'skill-directory',
-          submissionCount: 1,
-          resubmissionCount: 0,
-          revisionCount: 1,
-          latestSubmissionId: null,
-          latestSubmittedAt: createdAt,
-          latestReviewedAt: null,
-          latestDecision: null,
-        },
-        agentReview: null,
-        reviewHistory: [],
-        reviewNotes: [],
-        lifecycleHistory: [],
-        boundaryMeta: null,
-        evidenceMeta: null,
-        maintenanceMeta: null,
-        createdAt,
-        updatedAt: createdAt,
-        remediation: null,
-      } satisfies SkillArtifact;
-
-      await ctx.artifactWriter.insert(record);
-    }
-
-    for (const graphDoc of fixtureGraphDocs) {
-      await repos.graphIndex.upsert(graphDoc);
-    }
-  } else {
-    await ctx.store.transact(async (data) => {
-      for (const entry of fixtureEntries) {
-        const record = createKnowledgeFixtureRecord(entry, ctx.actorId, createdAt);
-
-        record.lifecycleState = entry.lifecycleState as KnowledgeRecord['lifecycleState'];
-
-        data.knowledgeEntries.push(record);
-      }
-
-      for (const artifact of fixtureArtifacts) {
-        const capsules = buildDerivedCapsules(artifact);
-
-        const record: SkillArtifactRecord = {
-          ...buildArtifactFixtureFields(artifact),
-          lifecycleState: artifact.lifecycleState as SkillArtifactRecord['lifecycleState'],
-          ownerUserId: ctx.actorId,
-          latestRevision: {
-            revision: 1,
-            sourceHash: '',
-            files: [],
-            submittedAt: createdAt,
-            submittedByUserId: ctx.actorId,
-            scriptDescriptors: [],
-            derived: buildDerivedPayload(artifact, capsules, createdAt),
-          },
-          history: [],
-          metadata: {
-            sourceKind: 'skill-directory',
-            submissionCount: 1,
-            resubmissionCount: 0,
-            revisionCount: 1,
-            latestSubmissionId: null,
-            latestSubmittedAt: createdAt,
-            latestReviewedAt: null,
-            latestDecision: null,
-          },
-          agentReview: null,
-          reviewHistory: [],
-          reviewNotes: [],
-          lifecycleHistory: [],
-          boundary: null,
-          decayMeta: null,
-          evidenceMeta: null,
-          maintenanceMeta: null,
-          createdAt,
-          updatedAt: createdAt,
-        };
-
-        data.skillArtifacts.push(record);
-      }
-
-      for (const graphDoc of fixtureGraphDocs) {
-        data.graphIndexDocuments.push(graphDoc);
-      }
+  // Seed through owners so fixtures exercise the same aggregate/revision/lifecycle
+  // transaction as commands.
+  for (const entry of fixtureEntries) {
+    const record = createKnowledgeFixtureRecord(entry, ctx.actorId, createdAt);
+    const lifecycleState = mapLifecycleState(entry.lifecycleState);
+    await ctx.knowledgeOwner.submit({
+      actorId: ctx.actorId,
+      entryId: record.id,
+      lifecycleState,
+      content: record.detail,
+      title: record.shortcut,
+      labels: record.labels,
+      teamId: record.teamId,
+      scope: record.scope,
+      requiredLevel: record.requiredLevel,
     });
+  }
+
+  for (const artifact of fixtureArtifacts) {
+    const capsules = buildDerivedCapsules(artifact);
+
+    const record = {
+      ...buildArtifactFixtureFields(artifact),
+      lifecycleState: mapLifecycleState(artifact.lifecycleState),
+      owner: { id: ctx.actorId, handle: ctx.actorId, securityLevel: 0 },
+      latestRevision: 1,
+      history: [
+        {
+          revision: 1,
+          sourceHash: '',
+          files: [],
+          submittedAt: createdAt,
+          submittedBy: { id: ctx.actorId, handle: ctx.actorId, securityLevel: 0 },
+          scriptDescriptors: [],
+          derived: buildDerivedPayload(artifact, capsules, createdAt),
+        },
+      ],
+      metadata: {
+        sourceKind: 'skill-directory',
+        submissionCount: 1,
+        resubmissionCount: 0,
+        revisionCount: 1,
+        latestSubmissionId: null,
+        latestSubmittedAt: createdAt,
+        latestReviewedAt: null,
+        latestDecision: null,
+      },
+      agentReview: null,
+      reviewHistory: [],
+      reviewNotes: [],
+      lifecycleHistory: [],
+      boundaryMeta: null,
+      evidenceMeta: null,
+      maintenanceMeta: null,
+      createdAt,
+      updatedAt: createdAt,
+      remediation: null,
+    } satisfies SkillArtifact;
+
+    await ctx.artifactWriter.insert(record);
+  }
+
+  for (const graphDoc of fixtureGraphDocs) {
+    await repos.graphIndex.upsert(graphDoc);
   }
 
   // Keep the active graph backend aligned with the scenario fixture set. In
