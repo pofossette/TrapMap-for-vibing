@@ -17,7 +17,7 @@ import {
   getGraphIndexDocuments,
   removeGraphIndexDocumentsForSource,
 } from '@trapmap/server/lib/indexing/graph-lite/store.js';
-import { JsonStore, nowIso } from '@trapmap/server/lib/store.js';
+import { nowIso } from '@trapmap/server/lib/store.js';
 import type { SkillArtifactRecord } from '@trapmap/server/lib/store.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
 
@@ -486,11 +486,9 @@ describe('skill-events', () => {
         sync: vi.fn().mockResolvedValue({ success: true, performedWork: true, error: null }),
         remove: vi.fn().mockResolvedValue(undefined),
       };
-      const store = { transact: vi.fn() };
-
       await runSkillIndexEvent({
         services: {
-          store: store as never,
+          pool: null,
           artifactReadProjection: {
             getIndexingEntry: vi.fn().mockResolvedValue(ownerEntry),
           },
@@ -503,22 +501,17 @@ describe('skill-events', () => {
         adapters: [adapter],
       });
 
-      expect(store.transact).not.toHaveBeenCalled();
       expect(adapter.sync).toHaveBeenCalledWith(
         expect.objectContaining({ artifact: ownerEntry, graphIndex: expect.any(Object) }),
       );
     });
 
     it('rejects non-noop transitions without an artifact owner projection', async () => {
-      const store = new JsonStore('/tmp/trapmap-skill-events-test.json');
       const artifact = buildTestArtifact();
-      await store.transact((data) => {
-        data.skillArtifacts.push(artifact);
-      });
 
       await expect(
         runSkillIndexEvent({
-          services: { store },
+          services: { pool: null },
           artifactId: artifact.id,
           previousState: 'agent-pass',
           nextState: 'approved',
@@ -528,7 +521,6 @@ describe('skill-events', () => {
     });
 
     it('throws when upsert action is triggered for an artifact with null derived', async () => {
-      const store = new JsonStore('/tmp/trapmap-skill-events-null-derived-test.json');
       const now = nowIso();
       const underivedArtifact: SkillArtifactRecord = {
         id: 'artifact-underived',
@@ -567,14 +559,10 @@ describe('skill-events', () => {
         createdAt: now,
         updatedAt: now,
       };
-      await store.transact((data) => {
-        data.skillArtifacts.push(underivedArtifact);
-      });
-
       await expect(
         runSkillIndexEvent({
           services: {
-            store,
+            pool: null,
             artifactReadProjection: {
               getIndexingEntry: vi.fn().mockResolvedValue({
                 id: underivedArtifact.id,
@@ -599,30 +587,11 @@ describe('skill-events', () => {
     });
 
     it('rejects removal transitions without an artifact owner projection', async () => {
-      const store = new JsonStore('/tmp/trapmap-skill-events-remove-test.json');
       const artifact = buildTestArtifact();
-      await store.transact((data) => {
-        data.skillArtifacts.push(artifact);
-        data.graphIndexDocuments.push({
-          id: `graphdoc_skill_${artifact.id}_r1`,
-          sourceType: 'skill',
-          sourceId: artifact.id,
-          revision: artifact.latestRevision.revision,
-          contentHash: 'test-hash',
-          teamId: artifact.teamId,
-          scope: artifact.scope,
-          requiredLevel: artifact.requiredLevel,
-          nodes: [],
-          edges: [],
-          evidence: 'test',
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-      });
 
       await expect(
         runSkillIndexEvent({
-          services: { store },
+          services: { pool: null },
           artifactId: artifact.id,
           previousState: 'approved',
           nextState: 'deactivated',

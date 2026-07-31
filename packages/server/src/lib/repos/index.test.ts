@@ -1,21 +1,8 @@
-import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { JsonStore, createEmptyStoreData } from '@trapmap/server/lib/store.js';
 import { createAllRepos } from './index.js';
 
-// Create a unique temp directory for each test run
-const testRunId = `repos-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-const tempDir = join(tmpdir(), testRunId);
-mkdirSync(tempDir, { recursive: true });
-
-function getUniqueStorePath(name: string): string {
-  return join(tempDir, `${name}-${Date.now()}.json`);
-}
-
-function createRepos(store: JsonStore, extra: Record<string, unknown> = {}) {
+function createRepos(extra: Record<string, unknown> = {}) {
   const graphIndex = {
     insert: async () => undefined,
     getById: async () => null,
@@ -34,26 +21,8 @@ function createRepos(store: JsonStore, extra: Record<string, unknown> = {}) {
 }
 
 describe('createAllRepos', () => {
-  let store: JsonStore;
-  let storePath: string;
-
-  beforeEach(() => {
-    storePath = getUniqueStorePath('repos');
-    store = new JsonStore(storePath);
-    // Initialize empty store
-    store.transact((d) => {
-      Object.assign(d, createEmptyStoreData());
-    });
-  });
-
-  afterEach(() => {
-    if (existsSync(storePath)) {
-      unlinkSync(storePath);
-    }
-  });
-
   it('excludes identity and audit repositories owned by the injected host bundle', async () => {
-    const repos = await createRepos(store);
+    const repos = await createRepos();
 
     expect(repos).toHaveProperty('knowledge');
     expect(repos).toHaveProperty('artifact');
@@ -72,7 +41,7 @@ describe('createAllRepos', () => {
   });
 
   it('each property is an object with expected methods', async () => {
-    const repos = await createRepos(store);
+    const repos = await createRepos();
 
     // Spot-check: knowledge has getById
     expect(typeof repos.knowledge.getById).toBe('function');
@@ -80,9 +49,9 @@ describe('createAllRepos', () => {
     expect(typeof repos.graphIndex.upsert).toBe('function');
   });
 
-  it('works without pool (JSON mode) — usageAnalytics is populated', async () => {
+  it('provides the host-independent usageAnalytics projection', async () => {
     // Should NOT throw
-    const repos = await createRepos(store);
+    const repos = await createRepos();
 
     expect(repos.usageAnalytics).toBeDefined();
     expect(typeof repos.usageAnalytics.recordEvent).toBe('function');
@@ -93,8 +62,8 @@ describe('createAllRepos', () => {
     expect(typeof repos.usageAnalytics.archiveOldEvents).toBe('function');
   });
 
-  it('usageAnalytics InMemory fallback returns empty results for queries', async () => {
-    const repos = await createRepos(store);
+  it('usageAnalytics fallback returns empty results for queries', async () => {
+    const repos = await createRepos();
 
     const timeSeries = await repos.usageAnalytics.queryUsageTimeSeries({
       from: new Date('2026-01-01'),
@@ -120,8 +89,8 @@ describe('createAllRepos', () => {
     expect(archived).toEqual({ archivedCount: 0 });
   });
 
-  it('usageAnalytics InMemory fallback recordEvent is a no-op', async () => {
-    const repos = await createRepos(store);
+  it('usageAnalytics fallback recordEvent is a no-op', async () => {
+    const repos = await createRepos();
 
     // Should not throw
     await repos.usageAnalytics.recordEvent({
@@ -148,7 +117,7 @@ describe('createAllRepos', () => {
       listFeedback: async () => [],
       listConflicts: async () => [],
     };
-    const repos = await createRepos(store, { governanceRetrievalProjection });
+    const repos = await createRepos({ governanceRetrievalProjection });
 
     expect(repos.governanceRetrievalProjection).toBe(governanceRetrievalProjection);
   });

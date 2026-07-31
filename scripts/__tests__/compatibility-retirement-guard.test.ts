@@ -71,6 +71,10 @@ const RETIRED_WAVE_9_LEGACY_TESTS = [
   'packages/server/src/lib/retrieval-workflow.test.ts',
   'packages/server/src/routes/retrieval.test.ts',
 ] as const;
+const RETIRED_WAVE_9_STORE_CONTRACT_TESTS = [
+  'packages/server/src/lib/retrieval.test.ts',
+  'packages/server/src/lib/validation/phase70-gap5-postgres.test.ts',
+] as const;
 const RETIRED_WAVE_1_OWNER_SYMBOLS = [
   'createSessionRepository',
   'createAccessKeyRepository',
@@ -508,6 +512,12 @@ describe('compatibility retirement guard', () => {
 
   it('retires legacy store-backed server acceptance fixtures', () => {
     for (const retiredPath of RETIRED_WAVE_9_LEGACY_TESTS) {
+      expect(existsSync(resolve(repoRoot, retiredPath))).toBe(false);
+    }
+  });
+
+  it('retires legacy store contract tests', () => {
+    for (const retiredPath of RETIRED_WAVE_9_STORE_CONTRACT_TESTS) {
       expect(existsSync(resolve(repoRoot, retiredPath))).toBe(false);
     }
   });

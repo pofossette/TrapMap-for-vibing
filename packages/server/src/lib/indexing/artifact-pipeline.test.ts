@@ -13,7 +13,6 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { JsonStore } from '@trapmap/server/lib/store.js';
 import type { SkillArtifactRecord, StoreData } from '@trapmap/server/lib/store.js';
 import { createEmptyStoreData, nowIso } from '@trapmap/server/lib/store.js';
 import type { ArtifactGraphAdapter } from './adapters/artifact-graph.js';
@@ -144,9 +143,7 @@ describe('artifact-pipeline', () => {
     });
 
     it('resolves the shared default graph adapter when nothing is registered', () => {
-      const store = new JsonStore('/tmp/trapmap-artifact-pipeline-test.json');
-
-      const resolved = resolveArtifactAdapters(store);
+      const resolved = resolveArtifactAdapters(null);
 
       expect(resolved).toHaveLength(1);
       expect(typeof resolved[0]!.sync).toBe('function');
@@ -215,16 +212,15 @@ describe('artifact-pipeline', () => {
       expect(adapter.sync).toHaveBeenCalledTimes(1);
     });
 
-    it('uses store-resolved adapters when none are registered', async () => {
+    it('uses pool-resolved adapters when none are registered', async () => {
       registerArtifactAdapters([]);
-      const store = new JsonStore('/tmp/trapmap-artifact-fanout-test.json');
       const data = createTestData();
       const artifact = createTestArtifact();
 
       await runArtifactAdapterFanOut({
         data,
         artifact,
-        store,
+        pool: null,
       });
 
       expect(data.graphIndexDocuments).toHaveLength(1);
@@ -367,23 +363,22 @@ describe('artifact-pipeline', () => {
       expect(adapter.remove).toHaveBeenCalledTimes(1);
     });
 
-    it('uses store-resolved adapters for removal when none are registered', async () => {
+    it('uses pool-resolved adapters for removal when none are registered', async () => {
       registerArtifactAdapters([]);
-      const store = new JsonStore('/tmp/trapmap-artifact-removal-test.json');
       const data = createTestData();
       const artifact = createTestArtifact();
 
       await runArtifactAdapterFanOut({
         data,
         artifact,
-        store,
+        pool: null,
       });
       expect(data.graphIndexDocuments).toHaveLength(1);
 
       await runArtifactAdapterRemoval({
         data,
         artifactId: artifact.id,
-        store,
+        pool: null,
       });
 
       expect(data.graphIndexDocuments).toHaveLength(0);

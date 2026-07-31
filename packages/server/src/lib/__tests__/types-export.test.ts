@@ -29,7 +29,6 @@ import {
 } from '@trapmap/server/lib/state-machines/index.js';
 
 import {
-  JsonStore,
   createOpaqueToken,
   createSlug,
   hashSecret,
@@ -80,10 +79,6 @@ describe('Direct Type Export Verification', () => {
     expect(typeof hashSecret).toBe('function');
     expect(typeof createOpaqueToken).toBe('function');
     expect(typeof createSlug).toBe('function');
-  });
-
-  it('verifies JsonStore is a class', () => {
-    expect(JsonStore).toBeInstanceOf(Function);
   });
 
   it('verifies sub-module types are importable', () => {

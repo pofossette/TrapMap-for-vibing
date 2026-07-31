@@ -20,15 +20,20 @@ import type {
   ArtifactFilePayloadRecord,
   SkillArtifactRecord,
   SkillArtifactRevisionRecord,
-  SkillShareerStore,
+  StoreData,
 } from '@trapmap/server/lib/store.js';
-import { JsonStore as JsonStoreClass, nowIso } from '@trapmap/server/lib/store.js';
+import { createEmptyStoreData, nowIso } from '@trapmap/server/lib/store.js';
 import { deriveFromPayloads, deriveSkillArtifactOutputs } from './derive.js';
 import { applyDerivedArtifactOutputs } from './derive/legacy.js';
 
+function nextId(data: StoreData, prefix: string): string {
+  const next = (data.counters[prefix] ?? 0) + 1;
+  data.counters[prefix] = next;
+  return `${prefix}_${next}`;
+}
+
 describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
-  let store: SkillShareerStore;
-  let storeData: any;
+  let storeData: StoreData;
   let artifact: SkillArtifactRecord;
   let revision: SkillArtifactRevisionRecord;
   const userId = 'user_1';
@@ -36,10 +41,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
   const createdAt = nowIso();
 
   beforeEach(async () => {
-    // Create an in-memory store for testing
-    const testDataFile = `/tmp/skill-shareer-derive-test-${Date.now()}-${Math.random()}.json`;
-    store = new JsonStoreClass(testDataFile);
-    storeData = await store.snapshot();
+    storeData = createEmptyStoreData();
 
     // Initialize counters
     storeData.counters = { user: 1, team: 1, artifact: 0 };
@@ -65,7 +67,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
 
     // Create membership
     storeData.memberships.push({
-      id: store.nextId(storeData, 'membership'),
+      id: nextId(storeData, 'membership'),
       userId,
       teamId,
       roleTemplate: 'user',
@@ -155,7 +157,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
 
     // Create an artifact record
     artifact = {
-      id: store.nextId(storeData, 'artifact'),
+      id: nextId(storeData, 'artifact'),
       teamId,
       scope: 'project',
       labels: ['docker', 'node', 'version'],
@@ -171,7 +173,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
         submissionCount: 1,
         resubmissionCount: 0,
         revisionCount: 1,
-        latestSubmissionId: store.nextId(storeData, 'artifact_submission'),
+        latestSubmissionId: nextId(storeData, 'artifact_submission'),
         latestSubmittedAt: createdAt,
         latestReviewedAt: createdAt,
         latestDecision: null,
@@ -420,8 +422,7 @@ describe('skill artifact derivation (CAPS-01, CAPS-02, CAPS-03)', () => {
 // =============================================================================
 
 describe('retrieval-grade derivation (RETR-03, CAPS-04, Phase 14 Task 1)', () => {
-  let store: SkillShareerStore;
-  let storeData: any;
+  let storeData: StoreData;
   const userId = 'user_1';
   const teamId = 'team_1';
   const createdAt = nowIso();
@@ -477,10 +478,8 @@ The versions must match exactly for consistent behavior.
   const assetContent = 'version: "3.8"\nservices:\n  app:\n    image: node:latest\n';
   const scriptContent = '#!/bin/bash\necho "Setup script"\n';
 
-  beforeEach(async () => {
-    const testDataFile = `/tmp/skill-shareer-retrieval-derive-test-${Date.now()}-${Math.random()}.json`;
-    store = new JsonStoreClass(testDataFile);
-    storeData = await store.snapshot();
+  beforeEach(() => {
+    storeData = createEmptyStoreData();
     storeData.counters = { user: 1, team: 1, artifact: 0 };
     storeData.users.push({
       id: userId,
@@ -498,7 +497,7 @@ The versions must match exactly for consistent behavior.
       updatedAt: createdAt,
     });
     storeData.memberships.push({
-      id: store.nextId(storeData, 'membership'),
+      id: nextId(storeData, 'membership'),
       userId,
       teamId,
       roleTemplate: 'user',
@@ -513,7 +512,7 @@ The versions must match exactly for consistent behavior.
   describe('deriveFromPayloads() with actual file content', () => {
     it('should build profile summary from SKILL.md and reference text content', async () => {
       // Create artifact with file payloads
-      const artifactId = store.nextId(storeData, 'artifact');
+      const artifactId = nextId(storeData, 'artifact');
       const filePayloads: ArtifactFilePayloadRecord[] = [
         {
           artifactId,
@@ -589,7 +588,7 @@ The versions must match exactly for consistent behavior.
     });
 
     it('should produce multiple capsules from meaningful text sections', async () => {
-      const artifactId = store.nextId(storeData, 'artifact');
+      const artifactId = nextId(storeData, 'artifact');
       const filePayloads: ArtifactFilePayloadRecord[] = [
         {
           artifactId,
@@ -650,7 +649,7 @@ The versions must match exactly for consistent behavior.
     });
 
     it('should not generate capsules when text lacks explicit semantic sections', async () => {
-      const artifactId = store.nextId(storeData, 'artifact');
+      const artifactId = nextId(storeData, 'artifact');
       const filePayloads: ArtifactFilePayloadRecord[] = [
         {
           artifactId,
@@ -689,7 +688,7 @@ The versions must match exactly for consistent behavior.
     });
 
     it('should exclude assets and scripts from profile/capsule content', async () => {
-      const artifactId = store.nextId(storeData, 'artifact');
+      const artifactId = nextId(storeData, 'artifact');
       const filePayloads: ArtifactFilePayloadRecord[] = [
         {
           artifactId,
@@ -782,7 +781,7 @@ The versions must match exactly for consistent behavior.
     }
 
     it('should add contextualPrefix when chat provider is given', async () => {
-      const artifactId = store.nextId(storeData, 'artifact');
+      const artifactId = nextId(storeData, 'artifact');
       const filePayloads: ArtifactFilePayloadRecord[] = [
         {
           artifactId,
@@ -813,7 +812,7 @@ The versions must match exactly for consistent behavior.
     });
 
     it('should omit contextualPrefix when no chat provider is given (backward compat)', async () => {
-      const artifactId = store.nextId(storeData, 'artifact');
+      const artifactId = nextId(storeData, 'artifact');
       const filePayloads: ArtifactFilePayloadRecord[] = [
         {
           artifactId,
@@ -841,7 +840,7 @@ The versions must match exactly for consistent behavior.
     });
 
     it('should use fallback prefix when LLM manifest generation fails', async () => {
-      const artifactId = store.nextId(storeData, 'artifact');
+      const artifactId = nextId(storeData, 'artifact');
       const filePayloads: ArtifactFilePayloadRecord[] = [
         {
           artifactId,
@@ -877,7 +876,7 @@ The versions must match exactly for consistent behavior.
     });
 
     it('should use fallback prefix when chat is not configured', async () => {
-      const artifactId = store.nextId(storeData, 'artifact');
+      const artifactId = nextId(storeData, 'artifact');
       const filePayloads: ArtifactFilePayloadRecord[] = [
         {
           artifactId,
@@ -927,8 +926,7 @@ The versions must match exactly for consistent behavior.
 // =============================================================================
 
 describe('Phase 1 regression: retrieval reads stale derived data after edit', () => {
-  let store: SkillShareerStore;
-  let storeData: any;
+  let storeData: StoreData;
   let artifact: SkillArtifactRecord;
   let revision1: SkillArtifactRevisionRecord;
   const userId = 'user_1';
@@ -936,9 +934,7 @@ describe('Phase 1 regression: retrieval reads stale derived data after edit', ()
   const createdAt = nowIso();
 
   beforeEach(async () => {
-    const testDataFile = `/tmp/skill-shareer-stale-derived-regression-${Date.now()}-${Math.random()}.json`;
-    store = new JsonStoreClass(testDataFile);
-    storeData = await store.snapshot();
+    storeData = createEmptyStoreData();
     storeData.counters = { user: 1, team: 1, artifact: 0 };
 
     storeData.users.push({
@@ -959,7 +955,7 @@ describe('Phase 1 regression: retrieval reads stale derived data after edit', ()
     });
 
     storeData.memberships.push({
-      id: store.nextId(storeData, 'membership'),
+      id: nextId(storeData, 'membership'),
       userId,
       teamId,
       roleTemplate: 'user',
@@ -1006,7 +1002,7 @@ describe('Phase 1 regression: retrieval reads stale derived data after edit', ()
     };
 
     artifact = {
-      id: store.nextId(storeData, 'artifact'),
+      id: nextId(storeData, 'artifact'),
       teamId,
       scope: 'project',
       labels: ['docker', 'node'],
@@ -1022,7 +1018,7 @@ describe('Phase 1 regression: retrieval reads stale derived data after edit', ()
         submissionCount: 1,
         resubmissionCount: 0,
         revisionCount: 1,
-        latestSubmissionId: store.nextId(storeData, 'artifact_submission'),
+        latestSubmissionId: nextId(storeData, 'artifact_submission'),
         latestSubmittedAt: createdAt,
         latestReviewedAt: createdAt,
         latestDecision: null,
