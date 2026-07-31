@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { DecayMeta } from '@trapmap/contracts';
-import { buildServer } from '@trapmap/server/app.js';
+import { buildPostgresTestServer as buildServer } from '../../../../scripts/testing/server-test-composition.js';
 import type { KnowledgeRecord } from '@trapmap/server/lib/store.js';
 import { hashSecret, nowIso } from '@trapmap/server/lib/store.js';
 import type { FastifyInstance } from 'fastify';
@@ -62,19 +62,14 @@ function createTestEntry(args: {
 }
 
 async function getSystemAdminAuth(app: FastifyInstance): Promise<{ Authorization: string }> {
-  const token = 'test-decay-admin-token';
+  const token = `test-decay-admin-token-${Date.now()}-${Math.random()}`;
   const tokenHash = hashSecret(token);
-  await app.skillShareer.store.transact((txData) => {
-    txData.sessions.push({
-      id: `decay-test-session-${Date.now()}`,
-      subjectType: 'system-admin',
-      userId: null,
-      activeTeamId: null,
-      tokenHash,
-      expiresAt: null,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-    });
+  await app.skillShareer.identity.sessionRepo.create({
+    subjectType: 'system-admin',
+    userId: null,
+    activeTeamId: null,
+    tokenHash,
+    expiresAt: null,
   });
   return { Authorization: `Bearer ${token}` };
 }
@@ -83,7 +78,7 @@ describe('decay routes', () => {
   let app: FastifyInstance;
 
   beforeEach(async () => {
-    app = buildServer({ config: { dataFile: `/tmp/trapmap-decay-${Date.now()}.json` } });
+    app = await buildServer();
     await app.ready();
   });
 
@@ -95,23 +90,21 @@ describe('decay routes', () => {
     const auth = await getSystemAdminAuth(app);
     const oldDate = new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString();
 
-    await app.skillShareer.store.transact((data) => {
-      data.knowledgeEntries.push(
-        createTestEntry({
-          id: 'entry-stale',
-          shortcut: 'stale-entry',
-          detail: 'A stale entry',
-          lifecycleState: 'approved',
-          decayMeta: {
-            lastVerifiedAt: oldDate,
-            decayState: 'stale',
-            supersededById: null,
-            decayStateComputedAt: nowIso(),
-            freshnessType: 'evergreen',
-          },
-        }),
-      );
-    });
+    app.skillShareer.repos.knowledge.listByFilter = async () => [
+      createTestEntry({
+        id: 'entry-stale',
+        shortcut: 'stale-entry',
+        detail: 'A stale entry',
+        lifecycleState: 'approved',
+        decayMeta: {
+          lastVerifiedAt: oldDate,
+          decayState: 'stale',
+          supersededById: null,
+          decayStateComputedAt: nowIso(),
+          freshnessType: 'evergreen',
+        },
+      }),
+    ];
 
     const response = await app.inject({
       method: 'GET',
@@ -133,23 +126,21 @@ describe('decay routes', () => {
   it('keeps decay search read-side working', async () => {
     const auth = await getSystemAdminAuth(app);
 
-    await app.skillShareer.store.transact((data) => {
-      data.knowledgeEntries.push(
-        createTestEntry({
-          id: 'entry-search-1',
-          shortcut: 'search-test-unique',
-          detail: 'Contains searchable pattern',
-          lifecycleState: 'approved',
-          decayMeta: {
-            lastVerifiedAt: nowIso(),
-            decayState: 'active',
-            supersededById: null,
-            decayStateComputedAt: nowIso(),
-            freshnessType: 'evergreen',
-          },
-        }),
-      );
-    });
+    app.skillShareer.repos.knowledge.listByFilter = async () => [
+      createTestEntry({
+        id: 'entry-search-1',
+        shortcut: 'search-test-unique',
+        detail: 'Contains searchable pattern',
+        lifecycleState: 'approved',
+        decayMeta: {
+          lastVerifiedAt: nowIso(),
+          decayState: 'active',
+          supersededById: null,
+          decayStateComputedAt: nowIso(),
+          freshnessType: 'evergreen',
+        },
+      }),
+    ];
 
     const response = await app.inject({
       method: 'POST',
