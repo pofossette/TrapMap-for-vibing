@@ -11,7 +11,6 @@ import { createGovernanceConflictTaskScheduler } from '@trapmap/backend-core';
 import { AdapterRegistry } from '@trapmap/server/lib/indexing/registry.js';
 import { KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE } from '@trapmap/server/lib/jobs/types.js';
 import { LifecycleEventBus } from '@trapmap/server/lib/lifecycle/event-bus.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
 import { createTaskQueue } from '@trapmap/server/lib/queue/task-queue.js';
 import type { DomainEvent } from '@trapmap/server/lib/lifecycle/types.js';
 import { buildPostgresTestServer } from '../../../../../../scripts/testing/server-test-composition.js';
@@ -63,7 +62,7 @@ describe('indexing subscriber via event bus', () => {
     const store = mockStore();
     const registry = new AdapterRegistry();
 
-    bus.onDomainEvent('knowledge.approved', createIndexingSubscriber(store as any, registry));
+    bus.onDomainEvent('knowledge.approved', createIndexingSubscriber(null, registry));
 
     await bus.emitDomainEventAsync(makeEvent());
 
@@ -83,7 +82,7 @@ describe('indexing subscriber via event bus', () => {
     const registry = new AdapterRegistry();
 
     // Subscriber registered on 'knowledge.approved' but event is 'knowledge.rejected'
-    bus.onDomainEvent('knowledge.approved', createIndexingSubscriber(store as any, registry));
+    bus.onDomainEvent('knowledge.approved', createIndexingSubscriber(null, registry));
 
     await bus.emitDomainEventAsync(
       makeEvent({ name: 'knowledge.rejected', nextState: 'rejected' }),
@@ -97,7 +96,7 @@ describe('indexing subscriber via event bus', () => {
     const store = mockStore();
     const registry = new AdapterRegistry();
 
-    bus.onDomainEvent('knowledge.updated', createIndexingSubscriber(store as any, registry));
+    bus.onDomainEvent('knowledge.updated', createIndexingSubscriber(null, registry));
 
     await bus.emitDomainEventAsync(
       makeEvent({
@@ -116,7 +115,7 @@ describe('indexing subscriber via event bus', () => {
     const store = mockStore();
     const registry = new AdapterRegistry();
 
-    bus.onDomainEvent('knowledge.updated', createIndexingSubscriber(store as any, registry));
+    bus.onDomainEvent('knowledge.updated', createIndexingSubscriber(null, registry));
 
     await bus.emitDomainEventAsync(
       makeEvent({
@@ -204,7 +203,7 @@ describe('event bus async waiting', () => {
     const jobRuntime = mockJobRuntime();
     const registry = new AdapterRegistry();
 
-    bus.onDomainEvent('knowledge.approved', createIndexingSubscriber(store as any, registry));
+    bus.onDomainEvent('knowledge.approved', createIndexingSubscriber(null, registry));
     bus.onDomainEvent('knowledge.approved', createGovernanceConflictTaskScheduler(jobRuntime));
 
     await bus.emitDomainEventAsync(makeEvent());
@@ -218,7 +217,7 @@ describe('subscriber idempotency and retry safety (Phase 2)', () => {
   it('indexing subscriber is safe to call repeatedly for the same entry', async () => {
     const store = mockStore();
     const registry = new AdapterRegistry();
-    const subscriber = createIndexingSubscriber(store as any, registry);
+    const subscriber = createIndexingSubscriber(null, registry);
     const event = makeEvent();
 
     await subscriber(event);
@@ -241,7 +240,7 @@ describe('subscriber idempotency and retry safety (Phase 2)', () => {
   it('indexing subscriber skips self-transitions on retries', async () => {
     const store = mockStore();
     const registry = new AdapterRegistry();
-    const subscriber = createIndexingSubscriber(store as any, registry);
+    const subscriber = createIndexingSubscriber(null, registry);
 
     // Self-transition should be no-op
     await subscriber(
@@ -268,8 +267,8 @@ describe('outbox-driven subscriber execution (Phase 2)', () => {
     const store = mockStore();
     const registry = new AdapterRegistry();
     const handlerMap = new Map<string, (event: DomainEvent) => void | Promise<void>>();
-    handlerMap.set('knowledge.approved', createIndexingSubscriber(store as any, registry));
-    handlerMap.set('knowledge.deactivated', createIndexingSubscriber(store as any, registry));
+    handlerMap.set('knowledge.approved', createIndexingSubscriber(null, registry));
+    handlerMap.set('knowledge.deactivated', createIndexingSubscriber(null, registry));
 
     // Simulate receiving an outbox event payload
     const eventPayload = makeEvent();
@@ -284,7 +283,7 @@ describe('outbox-driven subscriber execution (Phase 2)', () => {
     const store = mockStore();
     const registry = new AdapterRegistry();
     const handlerMap = new Map<string, (event: DomainEvent) => void | Promise<void>>();
-    handlerMap.set('knowledge.approved', createIndexingSubscriber(store as any, registry));
+    handlerMap.set('knowledge.approved', createIndexingSubscriber(null, registry));
 
     // Unknown event name should be gracefully skipped
     const eventPayload = makeEvent({ name: 'knowledge.submitted' });
@@ -302,7 +301,7 @@ describe('outbox-driven subscriber execution (Phase 2)', () => {
     const failingHandler = async () => {
       throw new Error('handler crash');
     };
-    const passingHandler = createIndexingSubscriber(store as any, registry);
+    const passingHandler = createIndexingSubscriber(null, registry);
 
     // Simulate composite handler list
     const handlers = [failingHandler, passingHandler];
@@ -319,7 +318,7 @@ describe('outbox-driven subscriber execution (Phase 2)', () => {
     // then claimBatch() claims it again
     const store = mockStore();
     const registry = new AdapterRegistry();
-    const subscriber = createIndexingSubscriber(store as any, registry);
+    const subscriber = createIndexingSubscriber(null, registry);
 
     // First attempt
     const firstRetries = 0;
@@ -338,13 +337,7 @@ describe('outbox-driven subscriber execution (Phase 2)', () => {
 
   it('postgres subscriber enqueues shared indexing jobs instead of running heavy work inline', async () => {
     const app = await buildPostgresTestServer();
-    const store = app.skillShareer.store;
-
     try {
-      if (!(store instanceof PostgresStore)) {
-        return;
-      }
-
       const registry = new AdapterRegistry();
       const asyncQueue = app.skillShareer.asyncTransport?.task;
       if (!asyncQueue) {
@@ -352,7 +345,12 @@ describe('outbox-driven subscriber execution (Phase 2)', () => {
           'PostgreSQL subscriber integration requires injected job-runtime task queue',
         );
       }
-      const subscriber = createIndexingSubscriber(store, registry, undefined, asyncQueue);
+      const subscriber = createIndexingSubscriber(
+        app.skillShareer.pool,
+        registry,
+        undefined,
+        asyncQueue,
+      );
       await subscriber(
         makeEvent({
           entryId: 'entry_phase5_pg_subscriber',
@@ -363,21 +361,19 @@ describe('outbox-driven subscriber execution (Phase 2)', () => {
         }),
       );
 
-      const queue = createTaskQueue({ pool: store.getPool() });
+      const queue = createTaskQueue({ pool: app.skillShareer.pool });
       const status = await queue.getStatusSnapshot();
       expect(
         status.recentDeadLetters.find((task) => task.type === KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE),
       ).toBeUndefined();
 
-      const count = await store
-        .getPool()
-        .query<{ count: string }>(
-          'SELECT COUNT(*) AS count FROM task_queue WHERE type = $1 AND dedupe_key = $2',
-          [
-            KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
-            `${KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE}:entry_phase5_pg_subscriber:approved:deactivated:phase5-subscriber`,
-          ],
-        );
+      const count = await app.skillShareer.pool.query<{ count: string }>(
+        'SELECT COUNT(*) AS count FROM task_queue WHERE type = $1 AND dedupe_key = $2',
+        [
+          KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE,
+          `${KNOWLEDGE_INDEX_FOLLOW_UP_TASK_TYPE}:entry_phase5_pg_subscriber:approved:deactivated:phase5-subscriber`,
+        ],
+      );
       expect(Number(count.rows[0]?.count ?? '0')).toBe(1);
       expect(runKnowledgeIndexEvent).not.toHaveBeenCalled();
     } finally {
