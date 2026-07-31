@@ -62,10 +62,6 @@ vi.mock('../recall/pg-keyword.js', () => ({
   createPgKeywordRecall: vi.fn().mockReturnValue(() => Promise.resolve([])),
 }));
 
-vi.mock('../../persistence/postgres-store.js', () => ({
-  PostgresStore: class MockPostgresStore {},
-}));
-
 vi.mock('../../decay/freshness.js', () => ({
   DEFAULT_FRESHNESS_CONFIG: { enabled: false },
 }));
@@ -137,15 +133,7 @@ function createMockServices(overrides: Partial<SkillShareerServices> = {}): Skil
         maxBackupFiles: 3,
       },
     } as SkillShareerServices['config'],
-    store: {
-      snapshot: vi.fn().mockResolvedValue({
-        knowledgeEntries: [],
-        skillArtifacts: [],
-        conflicts: [],
-      }),
-      transact: vi.fn(),
-      nextId: vi.fn(),
-    } as unknown as SkillShareerServices['store'],
+    pool: null,
     adapterRegistry: {
       register: vi.fn(),
       get: vi.fn(),
@@ -335,11 +323,10 @@ describe('getDbSearchConfig', () => {
     expect(config.pool).toBeNull();
   });
 
-  it('returns disabled when store is not PostgresStore', () => {
+  it('returns disabled when no pool is available', () => {
     process.env.USE_DB_SEARCH = 'true';
     const services = createMockServices();
     const config = getDbSearchConfig(services);
-    // The mock store is a plain object, not a PostgresStore instance
     expect(config.enabled).toBe(false);
   });
 });

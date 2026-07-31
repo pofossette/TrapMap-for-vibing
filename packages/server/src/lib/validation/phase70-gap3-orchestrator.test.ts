@@ -140,10 +140,6 @@ vi.mock('../retrieval/recall/pg-keyword.js', () => ({
   createPgKeywordRecall: vi.fn().mockReturnValue(() => Promise.resolve([])),
 }));
 
-vi.mock('../persistence/postgres-store.js', () => ({
-  PostgresStore: class MockPostgresStore {},
-}));
-
 import { logRagRetrieval } from '@trapmap/server/lib/rag-log.js';
 import {
   filterByBoundaryContext,

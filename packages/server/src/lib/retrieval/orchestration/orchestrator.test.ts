@@ -240,10 +240,6 @@ vi.mock('../recall/pg-keyword.js', () => ({
   createPgKeywordRecall: vi.fn().mockReturnValue(() => Promise.resolve([])),
 }));
 
-vi.mock('../../persistence/postgres-store.js', () => ({
-  PostgresStore: class MockPostgresStore {},
-}));
-
 vi.mock('./routing.js', () => ({
   selectRetrievalStrategy: vi.fn().mockImplementation((mode: string, _seed: string) => ({
     selectedMode: mode === 'hybrid' ? 'hybrid' : mode === 'graph-assisted' ? 'mix' : 'local',
