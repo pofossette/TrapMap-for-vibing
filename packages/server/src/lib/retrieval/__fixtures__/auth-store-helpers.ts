@@ -6,6 +6,7 @@
  */
 
 import type { FastifyInstance } from 'fastify';
+import type { Pool } from 'pg';
 
 import type {
   GraphEdgeRecord,
@@ -15,11 +16,14 @@ import type {
   RoleTemplate,
 } from '@trapmap/contracts';
 
-import { buildServer } from '@trapmap/server/app.js';
-import { PostgresStore } from '@trapmap/server/lib/persistence/postgres-store.js';
-import type { SkillShareerRepos } from '@trapmap/server/lib/repos/index.js';
-import type { SkillShareerStore, StoreData } from '@trapmap/server/lib/store.js';
+import type { StoreData } from '@trapmap/server/lib/store.js';
 import { createEmptyStoreData, hashSecret, nowIso } from '@trapmap/server/lib/store.js';
+import {
+  createArtifactSnapshotOwner,
+  createKnowledgeSnapshotOwner,
+} from '../../../../../service-knowledge-write/src/index.js';
+
+import { buildPostgresTestServer } from '../../../../../../scripts/testing/server-test-composition.js';
 
 function mapLifecycleState(state: string): string {
   const mapping: Record<string, string> = {
@@ -49,14 +53,6 @@ const FALLBACK_AI_CONFIG = {
   isConfigured: false,
   promptTemplateFile: null,
 };
-
-function replaceStoreData(target: StoreData, source: StoreData) {
-  for (const key of Object.keys(target) as Array<keyof StoreData>) {
-    delete (target as unknown as Record<string, unknown>)[key];
-  }
-
-  Object.assign(target, cloneStoreData(source));
-}
 
 function slugifySeedValue(value: string): string {
   const slug = value
@@ -201,8 +197,7 @@ function prepareStoreDataForPg(seedData: StoreData): StoreData {
   return prepared;
 }
 
-async function resetPgFixtureState(store: PostgresStore) {
-  const pool = store.getPool();
+async function resetPgFixtureState(pool: Pool) {
   await pool.query(`
     TRUNCATE TABLE
       knowledge_entries, knowledge_labels, knowledge_keywords,
@@ -228,45 +223,38 @@ async function resetPgFixtureState(store: PostgresStore) {
       feedback_records, feedback_custom_answers,
       graph_index_documents, entity_lineage,
       lifecycle_events, usage_events, usage_events_daily_rollup,
-      store_snapshot, task_queue, workflow_runs, retrieval_badcase_traces
+      task_queue, workflow_runs, retrieval_badcase_traces
     CASCADE
   `);
 }
 
-async function syncStoreSnapshot(store: SkillShareerStore, seedData: StoreData) {
-  const snapshot = cloneStoreData(seedData);
-
-  await store.transact(async (data) => {
-    replaceStoreData(data, snapshot);
-  });
-}
-
-async function materializeToPgRepos(repos: SkillShareerRepos, seedData: StoreData) {
+async function materializeToPgRepos(app: FastifyInstance, seedData: StoreData) {
+  const { identity, pool, repos } = app.skillShareer;
   for (const user of seedData.users) {
-    const existingUser = await repos.user.getById(user.id);
+    const existingUser = await identity.userRepo.getById(user.id);
     if (!existingUser) {
-      await repos.user.insert(user);
+      await identity.userRepo.insert(user);
     }
   }
 
   for (const team of seedData.teams) {
-    const existingTeam = await repos.team.getById(team.id);
+    const existingTeam = await identity.teamRepo.getById(team.id);
     if (!existingTeam) {
-      await repos.team.insert(team);
+      await identity.teamRepo.insert(team);
     }
   }
 
   for (const membership of seedData.memberships) {
-    const existingMembership = await repos.membership.getById(membership.id);
+    const existingMembership = await identity.membershipRepo.getById(membership.id);
     if (!existingMembership) {
-      await repos.membership.insert(membership);
+      await identity.membershipRepo.insert(membership);
     }
   }
 
   for (const session of seedData.sessions) {
-    const existingSession = await repos.session.getByTokenHash(session.tokenHash);
+    const existingSession = await identity.sessionRepo.getByTokenHash(session.tokenHash);
     if (!existingSession) {
-      await repos.session.create({
+      await identity.sessionRepo.create({
         userId: session.userId,
         tokenHash: session.tokenHash,
         activeTeamId: session.activeTeamId,
@@ -276,17 +264,19 @@ async function materializeToPgRepos(repos: SkillShareerRepos, seedData: StoreDat
     }
   }
 
+  const knowledgeSnapshotOwner = createKnowledgeSnapshotOwner(pool);
   for (const entry of seedData.knowledgeEntries) {
     const existingEntry = await repos.knowledge.getById(entry.id);
     if (!existingEntry) {
-      await repos.knowledge.insert(entry);
+      await knowledgeSnapshotOwner.put(entry);
     }
   }
 
+  const artifactSnapshotOwner = createArtifactSnapshotOwner(pool);
   for (const artifact of seedData.skillArtifacts) {
     const existingArtifact = await repos.artifact.getById(artifact.id);
     if (!existingArtifact) {
-      await repos.artifact.insert(artifact);
+      await artifactSnapshotOwner.put(artifact);
     }
   }
 
@@ -693,28 +683,22 @@ export function seedGraphDocument(
 
 export interface TestServerResult {
   app: FastifyInstance;
-  store: SkillShareerStore;
+  pool: Pool;
   authToken: string;
   userId: string;
 }
 
 /**
- * Apply a fixture mutation to the compatibility snapshot and, in PG mode,
- * mirror the resulting state into the repository-backed tables.
+ * Apply a fixture mutation through owner repositories backed by PostgreSQL.
  */
 export async function seedTestData(
   app: FastifyInstance,
   mutate: (data: StoreData) => void | Promise<void>,
 ): Promise<StoreData> {
-  const store = app.skillShareer.store;
-  const nextSnapshot = cloneStoreData(await store.snapshot());
+  const nextSnapshot = createEmptyStoreData();
 
   await mutate(nextSnapshot);
-  await syncStoreSnapshot(store, nextSnapshot);
-
-  if (store instanceof PostgresStore) {
-    await materializeToPgRepos(app.skillShareer.repos, prepareStoreDataForPg(nextSnapshot));
-  }
+  await materializeToPgRepos(app, prepareStoreDataForPg(nextSnapshot));
 
   return nextSnapshot;
 }
@@ -732,10 +716,11 @@ export async function buildTestServer(
   } = {},
 ): Promise<TestServerResult> {
   const testDataFile = `/tmp/trapmap-test-${Date.now()}-${Math.random()}.json`;
-  const app = buildServer({ config: { dataFile: testDataFile, ai: FALLBACK_AI_CONFIG } });
+  const app = await buildPostgresTestServer({
+    config: { dataFile: testDataFile, ai: FALLBACK_AI_CONFIG },
+  });
   await app.ready();
 
-  const store = app.skillShareer.store;
   const seedData = createEmptyStoreData();
   let authResult: SeedUserResult = { userId: '', sessionId: '', authToken: '' };
 
@@ -749,20 +734,12 @@ export async function buildTestServer(
     seedFn(seedData, authResult);
   }
 
-  if (store instanceof PostgresStore) {
-    await resetPgFixtureState(store);
-  }
-
-  await syncStoreSnapshot(store, seedData);
-
-  if (store instanceof PostgresStore) {
-    const pgSeedData = prepareStoreDataForPg(seedData);
-    await materializeToPgRepos(app.skillShareer.repos, pgSeedData);
-  }
+  await resetPgFixtureState(app.skillShareer.pool);
+  await materializeToPgRepos(app, prepareStoreDataForPg(seedData));
 
   return {
     app,
-    store,
+    pool: app.skillShareer.pool,
     authToken: authResult.authToken,
     userId: authResult.userId,
   };
