@@ -381,7 +381,7 @@ Supersede and operator decay decisions are owner commands. The gateway invokes `
 
 ## 相关源码
 
-- [packages/server/src/routes/decay.ts](../../../packages/server/src/routes/decay.ts)
-- [packages/server/src/routes/maintenance.ts](../../../packages/server/src/routes/maintenance.ts)
-- [packages/server/src/lib/decay/state-machine.ts](../../../packages/server/src/lib/decay/state-machine.ts)
+- [packages/server（Wave-10 已删除）/src/routes/decay.ts](../../../packages/server（Wave-10 已删除）/src/routes/decay.ts)
+- [packages/server（Wave-10 已删除）/src/routes/maintenance.ts](../../../packages/server（Wave-10 已删除）/src/routes/maintenance.ts)
+- [packages/server（Wave-10 已删除）/src/lib/decay/state-machine.ts](../../../packages/server（Wave-10 已删除）/src/lib/decay/state-machine.ts)
 - [packages/service-knowledge-write/src/pg-ports.ts](../../../packages/service-knowledge-write/src/pg-ports.ts)

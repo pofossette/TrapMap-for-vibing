@@ -65,7 +65,7 @@ describe('artifact owner routes', () => {
   });
 
   it('imports canonical bundles through the owner importer and returns batch results', async () => {
-    const { app, artifacts, importer } = await createArtifactRouteApp();
+    const { app, importer } = await createArtifactRouteApp();
 
     const response = await app.inject({
       method: 'POST',

@@ -14,7 +14,7 @@ describe('distributed database pool configuration', () => {
 
     expect(loadServiceConfig('identity-access').systemAdminKey).toBe('distributed-admin-key');
 
-    if (previous === undefined) delete process.env.TRAPMAP_SYSTEM_ADMIN_KEY;
+    if (previous === undefined) process.env.TRAPMAP_SYSTEM_ADMIN_KEY = undefined;
     else process.env.TRAPMAP_SYSTEM_ADMIN_KEY = previous;
   });
 

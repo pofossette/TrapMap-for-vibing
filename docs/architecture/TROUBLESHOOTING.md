@@ -4,7 +4,7 @@
 
 本文档收集 TrapMap 部署和运行中的常见问题及其解决方案。
 
-> 当前正式开发入口优先使用 `pnpm dev:local-agent`、`pnpm dev:team-monolith` 和 `pnpm dev:distributed:*`。它们分别装配 `@trapmap/host-local` 与 `@trapmap/host-distributed`。本文中的部分底层排查仍会引用 `packages/server`，因为现阶段大量权威实现与诊断代码仍驻留在该兼容实现面中。
+> 当前正式开发入口优先使用 `pnpm dev:local-agent`、`pnpm dev:team-monolith` 和 `pnpm dev:distributed:*`。它们分别装配 `@trapmap/host-local` 与 `@trapmap/host-distributed`。本文中的部分底层排查仍会引用 `packages/server（Wave-10 已删除）`，因为现阶段大量权威实现与诊断代码仍驻留在该兼容实现面中。
 
 ---
 
@@ -560,7 +560,7 @@ docker system df
 
 ```bash
 # 检查速率限制配置
-grep -r "rate" packages/server/src/
+grep -r "rate" packages/server（Wave-10 已删除）/src/
 
 # 检查当前速率
 curl -I http://localhost:4000/v1/knowledge/mine

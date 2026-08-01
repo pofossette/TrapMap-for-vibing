@@ -9,6 +9,7 @@
 export type {
   CanonicalLabelRecord,
   LabelAliasRecord,
+  LabelAlignmentEventRecord,
   LabelRepository,
 } from './repository/index.js';
 

@@ -11,11 +11,11 @@ import type {
 } from '@trapmap/contracts';
 import type { Pool, PoolClient } from 'pg';
 import {
+  type ArtifactBundleImportPort,
+  type ArtifactWritePort,
   createArtifactBundleImportPort,
   createArtifactReadProjection,
   createArtifactWritePort,
-  type ArtifactBundleImportPort,
-  type ArtifactWritePort,
 } from './artifact-ports.js';
 
 type Queryable = Pick<Pool, 'query'>;

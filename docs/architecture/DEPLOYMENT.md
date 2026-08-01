@@ -205,7 +205,7 @@ pnpm --filter @trapmap/host-local dev
 pnpm --filter @trapmap/host-local start
 ```
 
-旧 Fastify 轻宿主路径（`packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**`）已经删除。`light` 默认主入口只剩 `packages/host-local/src/nest/**`；`packages/server` 当前仅保留 Fastify compatibility shell 与 shared runtime/status seam，不再提供本地宿主回退入口。
+旧 Fastify 轻宿主路径（`packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**`）已经删除。`light` 默认主入口只剩 `packages/host-local/src/nest/**`。`packages/server` compatibility shell 已于 Wave-10 删除。
 
 ### 可选：本地 Neo4j 查询后端
 
@@ -467,7 +467,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: packages/server/Dockerfile
+      dockerfile: packages/host-local/Dockerfile
     container_name: trapmap-server
     ports:
       - "4000:4000"
@@ -611,65 +611,9 @@ services:
 
 ### Dockerfile
 
-实际 Dockerfile 位于 `packages/server/Dockerfile`，采用 3-stage 构建（deps → build → production）：
+实际 Dockerfile 位于 `packages/host-local/Dockerfile`（light 宿主）和 `packages/host-distributed/Dockerfile`（distributed 宿主）。
 
-```dockerfile
-# Stage 1: Dependencies
-FROM node:22-alpine AS deps
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
-WORKDIR /app
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY tsconfig.base.json tsconfig.json ./
-
-# Copy contracts package (server depends on it)
-COPY packages/contracts/package.json ./packages/contracts/
-COPY packages/contracts/tsconfig.json ./packages/contracts/
-COPY packages/contracts/src ./packages/contracts/src
-
-# Copy server package
-COPY packages/server/package.json ./packages/server/
-COPY packages/server/tsconfig.json ./packages/server/
-COPY packages/server/src ./packages/server/src
-
-RUN pnpm install --frozen-lockfile
-
-# Stage 2: Build
-FROM deps AS build
-WORKDIR /app
-RUN pnpm exec tsc -b packages/contracts/tsconfig.json packages/server/tsconfig.json
-
-# Stage 3: Production
-FROM node:22-alpine AS production
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
-WORKDIR /app
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY tsconfig.base.json tsconfig.json ./
-
-COPY packages/contracts/package.json ./packages/contracts/
-COPY packages/contracts/tsconfig.json ./packages/contracts/
-COPY --from=build /app/packages/contracts/dist ./packages/contracts/dist
-
-COPY packages/server/package.json ./packages/server/
-COPY packages/server/tsconfig.json ./packages/server/
-COPY --from=build /app/packages/server/dist ./packages/server/dist
-
-RUN pnpm install --frozen-lockfile --prod
-
-WORKDIR /app/packages/server
-ENV NODE_ENV=production
-ENV HOST=0.0.0.0
-ENV PORT=4000
-EXPOSE 4000
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:4000/health || exit 1
-
-CMD ["node", "dist/index.js"]
-```
-
-> 源码：`packages/server/Dockerfile`
+> `packages/server/Dockerfile` 已于 Wave-10 删除。当前 Dockerfile 请直接查看 `packages/host-local/Dockerfile`。
 
 ---
 

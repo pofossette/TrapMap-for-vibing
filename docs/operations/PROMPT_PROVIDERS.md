@@ -225,7 +225,7 @@ JSON 模板使用相同的占位符语法，附加元数据约定：
 
 ### 自定义模板文件
 
-要使用完全自定义的模板，请将模板文件（XML 或 JSON）放在 `packages/server/src/lib/ai/providers/templates/` 中，并在 `defaults.ts` 中注册。
+要使用完全自定义的模板，请将模板文件（XML 或 JSON）放在 `packages/server（Wave-10 已删除）/src/lib/ai/providers/templates/` 中，并在 `defaults.ts` 中注册。
 
 ## API 参考
 

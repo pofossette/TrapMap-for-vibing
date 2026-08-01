@@ -1,4 +1,4 @@
-import type { AnalysisSnapshot, CandidatePayload, DuplicateCase } from '@trapmap/contracts';
+import type { AnalysisSnapshot, CandidatePayload } from '@trapmap/contracts';
 import { sql } from 'drizzle-orm';
 import { check, index, integer, jsonb, pgTable, real, text, timestamp } from 'drizzle-orm/pg-core';
 

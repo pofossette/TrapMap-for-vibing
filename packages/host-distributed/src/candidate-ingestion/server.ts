@@ -2,15 +2,15 @@ import { randomUUID } from 'node:crypto';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
-import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
 import { createRemoteJobRuntimeClient } from '@trapmap/host-distributed/shared/internal-job-runtime-client.js';
+import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import {
-  createCandidateProcessingRuntime,
-  createCandidateProcessingTaskQueue,
   createCandidateIngestionDeps,
   createCandidateIngestionPgOwnerBundle,
   createCandidateIngestionServer,
+  createCandidateProcessingRuntime,
+  createCandidateProcessingTaskQueue,
 } from '@trapmap/service-candidate-ingestion';
 import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import { createCandidateCorpusPgReadPort } from '@trapmap/service-knowledge-read';

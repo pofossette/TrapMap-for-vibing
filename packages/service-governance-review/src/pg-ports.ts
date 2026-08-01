@@ -7,9 +7,9 @@ import type {
   GovernanceRetrievalProjection,
 } from '@trapmap/backend-core';
 import type { ConflictReadProjection, ConflictRelation } from '@trapmap/contracts';
+import { feedbackCustomAnswers, feedbackRecords } from '@trapmap/persistence-schema';
 import { getTableName } from 'drizzle-orm';
 import type { Pool } from 'pg';
-import { feedbackCustomAnswers, feedbackRecords } from '@trapmap/persistence-schema';
 
 import { remediationState } from './admin.js';
 

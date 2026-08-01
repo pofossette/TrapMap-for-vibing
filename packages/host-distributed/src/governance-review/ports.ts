@@ -1,18 +1,18 @@
 import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
-import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
 import { createRemoteJobRuntimeClient } from '@trapmap/host-distributed/shared/internal-job-runtime-client.js';
+import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
 import {
+  type GovernanceReviewAdminDeps,
+  type GovernanceReviewServiceDeps,
   createGovernanceAsyncCommandModule,
   createGovernanceConflictWorkflow,
   createGovernanceReviewAdminModule,
-  type GovernanceReviewAdminDeps,
-  type GovernanceReviewServiceDeps,
 } from '@trapmap/service-governance-review';
 import {
-  createGovernanceReviewDeps as createServiceGovernanceReviewDeps,
   type GovernanceReviewPgOwnerBundle,
+  createGovernanceReviewDeps as createServiceGovernanceReviewDeps,
 } from '@trapmap/service-governance-review';
 import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 

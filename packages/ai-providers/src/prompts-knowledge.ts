@@ -3,8 +3,8 @@
  */
 
 import { type PromptBlock, buildSystemPromptBlocks } from './ai-cache/api-integration.js';
+import type { PromptSlots } from './ai-providers/types.js';
 import { buildPrompt, buildPromptWithCacheControl } from './prompt-builder.js';
-import type { PromptSlots } from './providers/types.js';
 
 // ---------------------------------------------------------------------------
 // Slot definitions

@@ -1,8 +1,8 @@
 import type {
   GovernanceAsyncCommandPort,
   GovernanceConflictWorkflowPort,
-  GovernanceReviewAdminPort,
   GovernanceRetrievalProjection,
+  GovernanceReviewAdminPort,
   ReviewPort,
 } from '@trapmap/backend-core';
 import {
@@ -334,7 +334,7 @@ export function registerGovernanceReviewRoutes(
       return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
     }
     const body = { ...((request.body ?? {}) as Record<string, unknown>) };
-    delete body.actorId;
+    body.actorId = undefined;
     const command = parseAdminRequest(reply, () => feedbackBatchRequestSchema.parse(body));
     if (!command) return;
     return sendGovernanceInvocation(reply, 200, () => module.admin!.batch({ actorId, command }));
@@ -378,7 +378,7 @@ export function registerGovernanceReviewRoutes(
       return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
     }
     const body = { ...((request.body ?? {}) as Record<string, unknown>) };
-    delete body.actorId;
+    body.actorId = undefined;
     const command = parseAdminRequest(reply, () =>
       feedbackRemediationCompleteRequestSchema.parse(body),
     );

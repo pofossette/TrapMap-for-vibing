@@ -5,12 +5,12 @@
  * text, not just title/labels placeholders. (RETR-03, CAPS-04)
  */
 
-import { enrichCapsules } from './artifact-derive/contextual-enrichment.js';
 import type { ArtifactFilePayloadRecord } from '@trapmap/contracts';
 import type {
   DerivedSkillCapsuleRecord,
   DerivedSkillProfileRecord,
 } from '@trapmap/service-knowledge-read/store.js';
+import { enrichCapsules } from './artifact-derive/contextual-enrichment.js';
 import { extractDerivationText } from './artifact-derive/extract-files.js';
 import { buildCapsuleId, buildContentHash } from './artifact-derive/hash.js';
 import {

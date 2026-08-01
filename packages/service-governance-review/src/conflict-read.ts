@@ -5,13 +5,12 @@ function toConflictEntry(entry: {
   id: string;
   shortcut: string;
   detail: string;
-  lifecycleState: 'approved';
 }): GovernanceConflictEntry {
   return {
     id: entry.id,
     shortcut: entry.shortcut,
     detail: entry.detail,
-    lifecycleState: entry.lifecycleState,
+    lifecycleState: 'approved',
   };
 }
 

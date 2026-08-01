@@ -1,8 +1,8 @@
 import {
-  InvocationError,
   type GovernanceConflictCandidateSet,
   type GovernanceConflictEntry,
   type GovernanceConflictReadPort,
+  InvocationError,
 } from '@trapmap/backend-core';
 import type { InternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
 

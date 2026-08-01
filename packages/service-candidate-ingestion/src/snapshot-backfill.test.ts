@@ -2,8 +2,8 @@ import type { CandidateSubmission, DuplicateCase, EntityLineage } from '@trapmap
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  migrateCandidateIngestionSnapshot,
   type CandidateIngestionSnapshotOwner,
+  migrateCandidateIngestionSnapshot,
 } from './snapshot-backfill.js';
 
 const candidate: CandidateSubmission = {

@@ -1,5 +1,5 @@
-import type { LifecycleState } from './common.js';
 import type { SkillArtifact, SkillArtifactDerived, SkillArtifactRevision } from './artifacts.js';
+import type { LifecycleState } from './common.js';
 
 export interface ArtifactIndexingEntry {
   id: string;

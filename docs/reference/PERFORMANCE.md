@@ -2,7 +2,7 @@
 
 本文档提供 TrapMap 生产部署的性能调优参考。
 
-> 当前正式运行入口优先通过 `@trapmap/host-local` 与 `@trapmap/host-distributed` 暴露。本文中提到的 PostgreSQL、检索、索引和缓存底层模块仍大量位于 `packages/server`，因为那部分实现尚未完全从兼容代码面退场。
+> 当前正式运行入口优先通过 `@trapmap/host-local` 与 `@trapmap/host-distributed` 暴露。本文中提到的 PostgreSQL、检索、索引和缓存底层模块仍大量位于 `packages/server（Wave-10 已删除）`，因为那部分实现尚未完全从兼容代码面退场。
 
 ## 检索性能
 

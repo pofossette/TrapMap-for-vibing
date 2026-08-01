@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { buildIdentityUserLookupContext } from './actor-lookup.js';
+import { createAuditEvent } from './audit.js';
+import { createIdentityAccessServiceModule } from './deps.js';
 import {
   createIdentityAccessActorLookupSource,
   createIdentityAccessOwnerBundle,
   createIdentityAccessPgDeps,
   createIdentityAccessSnapshotPort,
 } from './pg-ports.js';
-import { buildIdentityUserLookupContext } from './actor-lookup.js';
-import { createAuditEvent } from './audit.js';
-import { createIdentityAccessServiceModule } from './deps.js';
 
 describe('identity PostgreSQL ports', () => {
   it('keeps all identity capabilities in a structural owner bundle', () => {

@@ -1,6 +1,8 @@
 # PostgreSQL 与 Graphology 上手
 
-面向“不熟悉 `pg` 和 `graphology`，但需要在 TrapMap 里读代码和定位问题”的贡献者。
+面向”不熟悉 `pg` 和 `graphology`，但需要在 TrapMap 里读代码和定位问题”的贡献者。
+
+> **历史说明**：本文档大部分内容描述的是 `packages/server` 存在时期的架构。`packages/server` 已于 Wave-10 删除（提交 `a66d94e6`），`PostgresStore`、`JsonStore`、`store_snapshot` 已于 Wave-9 删除。当前 PG 连接由 `host-local` / `host-distributed` 宿主层管理，各 service owner 包通过 owner-local PostgreSQL bundle 访问数据。本文档中的 `packages/server` 路径已不存在，但概念描述（PG 连接池、Drizzle 查询、graphology 图引擎）仍然适用。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
 ## 先建立正确心智模型
 
@@ -9,10 +11,12 @@
 - 如果你只想最快建立直觉，先跑两个测试：
 
 ```bash
+# PG 关键词检索（需要 PostgreSQL）
 TRAPMAP_DATABASE_URL=postgresql://trapmap:trapmap@127.0.0.1:5434/trapmap \
-pnpm test -- --run packages/server/src/lib/retrieval/recall/pg-keyword.test.ts
+rtk pnpm test:file -- packages/contracts/src/domain/task-queue.test.ts
 
-pnpm test -- --run packages/server/src/lib/indexing/graph-lite/graphology.test.ts
+# Graphology 图引擎（内存测试）
+rtk pnpm test:file -- packages/service-knowledge-read/src/routes.test.ts
 ```
 
 ---
@@ -21,38 +25,39 @@ pnpm test -- --run packages/server/src/lib/indexing/graph-lite/graphology.test.t
 
 ### 1.1 从哪里建连
 
-入口在 `packages/server/src/lib/persistence/create-store.ts`。
+入口在 `packages/host-local/src/nest/runtime/host-services.ts`（light 宿主）和 `packages/host-distributed/src/shared/database.ts`（distributed 宿主）。
 
-- 设置了 `TRAPMAP_DATABASE_URL`：创建 `pg.Pool`，返回 `PostgresStore`
-- 没设置：回退到 `JsonStore`
+- 设置了 `TRAPMAP_DATABASE_URL`：创建 `pg.Pool`，注入各 service owner bundle
+- 没设置：宿主层 fail-fast，不再回退到 JSON store
 
-这意味着 PostgreSQL 不是“附加功能”，而是服务端的正式存储模式；JSON store 主要是兼容回退和轻量测试路径。
+PostgreSQL 是唯一生产存储后端；`JsonStore` 和 `PostgresStore` 已于 Wave-9 删除。
 
-### 1.2 `PostgresStore` 扮演什么角色
+### 1.2 当前 PG 架构
 
-核心文件：`packages/server/src/lib/persistence/postgres-store.ts`
+`PostgresStore` 已于 Wave-9 删除。当前各 service owner 包直接通过 owner-local PostgreSQL bundle 访问数据：
 
-它不是传统 ORM repository，而是一个**兼容层 store**：
+- `service-identity-access` — 用户、团队、审计
+- `service-knowledge-write` — 知识、工件、生命周期
+- `service-candidate-ingestion` — 候选、重复、谱系
+- `service-governance-review` — 治理、反馈、冲突
+- `service-job-runtime` — 任务队列、outbox
+- `service-knowledge-read` — 检索、图查询
 
-- 把整份 `StoreData` 快照存在 `store_snapshot` 的 JSONB 行里
-- 保留 `snapshot()` / `transact()` / `nextId()` 这套旧接口
-- 在 `transact()` 里用 `SELECT ... FOR UPDATE` 做串行化写入
-
-这个层的意义是：老代码不必一次性全部重写成关系型 repository，就能先切到底层 PostgreSQL。
+每个 owner bundle 在单一 PostgreSQL 事务中管理其领域数据。
 
 ### 1.3 启动时 PG 会做什么
 
-主链路如下：
+主链路如下（以 host-local 为例）：
 
-1. `packages/server/src/app.ts`
-2. `packages/server/src/bootstrap/bootstrap-repositories.ts`
-3. `packages/server/src/lib/persistence/migration-runner.ts`
+1. `packages/host-local/src/nest/main.ts`
+2. `packages/host-local/src/nest/runtime/host-services.ts`
+3. 各 `packages/service-*/src/migrations.ts`
 
 启动后会发生这些事：
 
 - 运行 `CREATE EXTENSION IF NOT EXISTS vector`
-- 执行 `drizzle/` 下的迁移
-- 创建各领域 repository
+- 执行六个 service owner 的迁移
+- 创建各 owner bundle
 - 为向量检索确保 HNSW 索引
 - 注册后续检索/图通道
 
@@ -62,45 +67,29 @@ pnpm test -- --run packages/server/src/lib/indexing/graph-lite/graphology.test.t
 
 TrapMap 里有三种常见写法。
 
-#### 写法 A：兼容层 store
+#### 写法 A：owner-local PostgreSQL bundle（当前标准）
 
-适合还没有彻底拆成关系表的旧路径。
+各 service owner 包通过 `createXxxOwnerBundle(pool)` 创建 owner-local bundle，在单一事务中管理领域数据。
 
 重点文件：
 
-- `packages/server/src/lib/persistence/postgres-store.ts`
-- `packages/server/src/lib/store.ts`
+- `packages/service-knowledge-write/src/pg-ports.ts`
+- `packages/service-identity-access/src/pg-ports.ts`
 
 你会看到：
 
-- 先读出整份快照
-- 在事务里修改内存对象
-- 再整行 JSONB upsert 回去
-
-#### 写法 B：领域 repository + 显式事务
-
-适合聚合写入、子表较多、需要锁语义的场景。
-
-最典型的是：
-
-- `packages/server/src/lib/knowledge/pg-repository.ts`
-
-这个仓储会：
-
 - 从 `Pool` 拿 `client`
 - 手动 `BEGIN / COMMIT / ROLLBACK`
-- 先写主表，再写 revisions、lifecycle、labels、boundary、maintenance 等子表
+- 先写主表，再写子表
 
-这里的风格非常“SQL-first”，不是把所有逻辑都交给 ORM。
-
-#### 写法 C：`pg` + Drizzle 查询构建
+#### 写法 B：Drizzle 查询构建
 
 适合查询条件多、表结构明确、想保留类型约束的场景。
 
 推荐看：
 
-- `packages/server/src/lib/retrieval/recall/pg-keyword.ts`
-- `packages/server/src/lib/graph-index/repository.ts`
+- `packages/service-knowledge-read/src/` 中的检索查询
+- `packages/persistence-schema/src/` 中的 schema 定义
 
 `pg-keyword.ts` 展示了项目里很典型的 PG 检索写法：
 
@@ -109,19 +98,23 @@ TrapMap 里有三种常见写法。
 - 利用 `text[] && ARRAY[...]` 做 token overlap
 - 把团队、权限级别、scope 过滤直接下推到数据库
 
-`graph-index/repository.ts` 则展示了另一种模式：
+#### 写法 C：图索引文档
+
+`graph_index_documents` 表展示了另一种模式：
 
 - 表结构是关系型的
 - 但 `nodes` / `edges` 仍以 JSONB 数组落库
-- 适合图索引文档这类“结构稳定，但内部仍是树/图对象”的数据
+- 适合图索引文档这类”结构稳定，但内部仍是树/图对象”的数据
+
+当前由 `service-knowledge-read` 的 `GraphIndexRepositoryPort` 持有。
 
 ### 1.5 测试上要注意什么
 
-- `packages/server/src/lib/persistence/postgres-store.test.ts` 主要验证兼容层语义，不要求真实 PostgreSQL
-- `packages/server/src/lib/store.test.ts` 里有 `pg-mem`，适合先理解接口语义
-- 大多数 `pg-*repository`、`pg-keyword`、`outbox` 测试都要求真实 PostgreSQL，并通过 `TRAPMAP_DATABASE_URL` 控制是否跳过
+- 各 `packages/service-*/src/pg-ports.test.ts` 验证 owner-local PG bundle 语义
+- `packages/contracts/src/domain/task-queue.test.ts` 验证任务队列契约
+- 大多数 PG 测试都要求真实 PostgreSQL，并通过 `TRAPMAP_DATABASE_URL` 控制是否跳过
 
-换句话说，看到测试“自动 skip”并不代表代码没走到，只是你当前没有连真实库。
+换句话说，看到测试”自动 skip”并不代表代码没走到，只是你当前没有连真实库。
 
 ---
 
@@ -133,11 +126,11 @@ TrapMap 里有三种常见写法。
 
 同时也要记住：PostgreSQL `graph_index_documents` 仍是图索引的权威真相源。可选 graph DB 只是在查询期提供另一种 `GraphQueryBackend` 实现；关闭或故障时，系统仍可回退到 `graphology`。
 
-真实的数据形态是 `GraphIndexDocumentRecord`，也就是“某个 trap / skill 对应的一份图索引文档”。主要位置：
+真实的数据形态是 `GraphIndexDocumentRecord`，也就是”某个 trap / skill 对应的一份图索引文档”。主要位置：
 
-- 图文档类型：`packages/server/src/lib/indexing/graph-lite/documents.ts`
-- PG 表结构：`packages/server/src/lib/persistence/schema/retrieval.ts`
-- repository 抽象：`packages/server/src/lib/graph-index/repository.ts`
+- 图文档类型：`packages/contracts/src/domain/` 中的 `GraphIndexDocumentRecord`
+- PG 表结构：`packages/persistence-schema/src/retrieval.ts`
+- repository 抽象：`packages/contracts/src/domain/` 中的 `GraphIndexRepositoryPort`
 
 `graphology` 做的是把这些文档组装成可遍历、可校验、可裁剪的运行时图。在当前架构里，它同时承担默认 / fallback query backend 的职责。
 
@@ -145,7 +138,7 @@ TrapMap 里有三种常见写法。
 
 重点文件：
 
-- `packages/server/src/lib/indexing/graph-lite/graphology.ts`
+- `packages/service-knowledge-read/src/` 中的 graph query backend
 
 这里集中封装了四类能力：
 
@@ -210,7 +203,7 @@ TrapMap 里有三种常见写法。
 
 文件：
 
-- `packages/server/src/lib/retrieval/recall/graph-assisted.ts`
+- `packages/service-knowledge-read/src/` 中的 graph-assisted recall
 
 流程：
 
@@ -227,7 +220,7 @@ TrapMap 里有三种常见写法。
 
 文件：
 
-- `packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts`
+- `packages/service-knowledge-read/src/` 中的 graph-plan compiler
 
 流程里会：
 
@@ -241,9 +234,9 @@ TrapMap 里有三种常见写法。
 
 文件：
 
-- `packages/server/src/lib/indexing/adapters/graph.ts`
-- `packages/server/src/lib/indexing/skill-events.ts`
-- `packages/server/src/lib/indexing/reconcile.ts`
+- `packages/service-knowledge-read/src/` 中的 graph adapter
+- `packages/service-knowledge-write/src/` 中的 skill events
+- `packages/service-knowledge-read/src/` 中的 reconcile
 
 写入图文档前，代码会：
 
@@ -266,12 +259,12 @@ TrapMap 里有三种常见写法。
 - 图查询入口已经大量依赖 `repos.graphIndex`
 - 但不少图索引写入、删除、对账逻辑仍直接操作 `graphIndexDocuments` 兼容层
 
-所以如果你在排查“图数据为什么不对”，不要只看一个位置。至少同时检查：
+所以如果你在排查”图数据为什么不对”，不要只看一个位置。至少同时检查：
 
-- `packages/server/src/lib/graph-index/repository.ts`
-- `packages/server/src/lib/indexing/graph-lite/store.ts`
-- `packages/server/src/lib/indexing/adapters/graph.ts`
-- `packages/server/src/lib/indexing/reconcile.ts`
+- `packages/contracts/src/domain/` 中的 `GraphIndexRepositoryPort`
+- `packages/service-knowledge-read/src/` 中的 graph repository
+- `packages/service-knowledge-read/src/` 中的 graph adapter
+- `packages/service-knowledge-read/src/` 中的 reconcile
 
 ---
 
@@ -297,43 +290,36 @@ pnpm dev:team-monolith
 
 建议按这个顺序读：
 
-1. `packages/server/src/lib/persistence/create-store.ts`
-2. `packages/server/src/lib/persistence/postgres-store.ts`
-3. `packages/server/src/lib/persistence/migration-runner.ts`
-4. `packages/server/src/bootstrap/bootstrap-repositories.ts`
-5. `packages/server/src/lib/knowledge/pg-repository.ts`
-6. `packages/server/src/lib/retrieval/recall/pg-keyword.ts`
+1. `packages/host-local/src/nest/runtime/host-services.ts` — 宿主层 PG 连接管理
+2. `packages/service-knowledge-write/src/pg-ports.ts` — owner-local PG bundle 示例
+3. `packages/persistence-schema/src/` — Drizzle schema 定义
+4. `packages/service-*/src/migrations.ts` — 各 service 迁移
+5. `packages/contracts/src/domain/` — 共享 port contract
+6. `packages/service-knowledge-read/src/` — 检索查询示例
 
 如果你只读一个写路径和一个读路径：
 
-- 写路径读 `pg-repository.ts`
+- 写路径读 `service-knowledge-write/src/pg-ports.ts`
 - 读路径读 `pg-keyword.ts`
 
 ### 路线 C：先摸清 `graphology` 的项目风格
 
-建议按这个顺序读：
+建议按这个顺序读（概念仍适用，路径已迁移）：
 
-1. `packages/server/src/lib/indexing/graph-lite/documents.ts`
-2. `packages/server/src/lib/indexing/graph-lite/graphology.ts`
-3. `packages/server/src/lib/retrieval/recall/graph-assisted.ts`
-4. `packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts`
-5. `packages/server/src/lib/indexing/adapters/graph.ts`
+1. `packages/contracts/src/domain/` 中的 `GraphIndexDocumentRecord`
+2. `packages/service-knowledge-read/src/` 中的 graph query backend
+3. `packages/service-knowledge-read/src/` 中的 graph-assisted recall
+4. `packages/service-knowledge-read/src/` 中的 graph-plan compiler
+5. `packages/service-knowledge-read/src/` 中的 graph adapter
 
 ### 路线 D：先跑最有代表性的测试
 
 ```bash
-# PG 关键词检索：最典型的 "pg + Drizzle + 权限过滤 + 评分"
-TRAPMAP_DATABASE_URL=postgresql://trapmap:trapmap@127.0.0.1:5434/trapmap \
-pnpm test -- --run packages/server/src/lib/retrieval/recall/pg-keyword.test.ts
+# 任务队列契约：最典型的 “pg + Drizzle + 权限过滤”
+rtk pnpm test:file -- packages/contracts/src/domain/task-queue.test.ts
 
-# 图运行时：最典型的 "组图 + 环检测 + 局部扩张"
-pnpm test -- --run packages/server/src/lib/indexing/graph-lite/graphology.test.ts
-```
-
-如果你想先从“最轻量的 PG 兼容层”入手，再补一条：
-
-```bash
-pnpm test -- --run packages/server/src/lib/persistence/postgres-store.test.ts
+# 知识读取：最典型的 “组图 + 环检测 + 局部扩张”
+rtk pnpm test:file -- packages/service-knowledge-read/src/routes.test.ts
 ```
 
 ---

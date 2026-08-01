@@ -146,8 +146,8 @@ export function createTaskWorkerFromQueue<TPool>(
   return createTaskWorkerController({
     queue: createQueue(config.pool),
     handlers: config.handlers,
-    pollIntervalMs: config.pollIntervalMs,
-    concurrency: config.concurrency,
-    ownsWork: config.ownsWork,
+    ...(config.pollIntervalMs !== undefined && { pollIntervalMs: config.pollIntervalMs }),
+    ...(config.concurrency !== undefined && { concurrency: config.concurrency }),
+    ...(config.ownsWork !== undefined && { ownsWork: config.ownsWork }),
   });
 }

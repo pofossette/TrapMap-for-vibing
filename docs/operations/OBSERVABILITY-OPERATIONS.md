@@ -105,7 +105,7 @@ TrapMap 提供三个探针端点，遵循 Kubernetes 探针语义，适用于容
 - **用途**：Kubernetes liveness probe；如果此端点失败，说明进程卡死，应重启容器
 - **不检查**：不检查任何外部依赖（数据库、Consul、OTel 等）
 - **实现**：
-  - Fastify: `packages/server/src/lib/runtime/http-surface.ts` 第 149-152 行
+  - Fastify: `packages/server（Wave-10 已删除）/src/lib/runtime/http-surface.ts` 第 149-152 行
   - NestJS: `packages/host-local/src/nest/health/health.controller.ts` 第 105-110 行
 
 ### `/ready` — Readiness Probe

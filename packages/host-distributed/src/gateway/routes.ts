@@ -68,11 +68,6 @@ function forwardedTraceHeaders(request: FastifyRequest): Record<string, string> 
   return Object.keys(headers).length > 0 ? headers : undefined;
 }
 
-function forwardedTraceOptions(request: FastifyRequest): { headers?: Record<string, string> } {
-  const headers = forwardedTraceHeaders(request);
-  return headers ? { headers } : {};
-}
-
 function readRequestActorId(request: FastifyRequest): string | undefined {
   return (request as FastifyRequest & { actorId?: string }).actorId;
 }
@@ -120,6 +115,13 @@ function trustedActorOptions(request: FastifyRequest): {
   headers?: Record<string, string>;
 } {
   const headers = trustedActorHeaders(request);
+  return headers ? { headers } : {};
+}
+
+function trustedArtifactImportOptions(request: FastifyRequest): {
+  headers?: Record<string, string>;
+} {
+  const headers = trustedArtifactImportHeaders(request);
   return headers ? { headers } : {};
 }
 
@@ -366,9 +368,11 @@ function registerAuthHook(app: FastifyInstance, clients: InternalServiceClients)
         actorSecurityLevel?: number;
       };
       authenticatedRequest.actorId = identity.userId;
-      authenticatedRequest.actorHandle = identity.handle;
-      authenticatedRequest.actorTeamId = identity.activeTeamId;
-      authenticatedRequest.actorSecurityLevel = identity.securityLevel;
+      if (identity.handle !== undefined) authenticatedRequest.actorHandle = identity.handle;
+      if (identity.activeTeamId !== undefined)
+        authenticatedRequest.actorTeamId = identity.activeTeamId;
+      if (identity.securityLevel !== undefined)
+        authenticatedRequest.actorSecurityLevel = identity.securityLevel;
     }
   });
 }
@@ -413,9 +417,10 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       request,
       reply,
       () =>
-        clients.knowledgeWrite.importArtifact(bodyWithoutActor(request), {
-          headers: trustedArtifactImportHeaders(request),
-        }),
+        clients.knowledgeWrite.importArtifact(
+          bodyWithoutActor(request),
+          trustedArtifactImportOptions(request),
+        ),
       'artifact import',
     );
   });
@@ -426,9 +431,10 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       request,
       reply,
       () =>
-        clients.knowledgeWrite.exportArtifacts((request.body ?? {}) as Record<string, unknown>, {
-          headers: trustedActorHeaders(request),
-        }),
+        clients.knowledgeWrite.exportArtifacts(
+          (request.body ?? {}) as Record<string, unknown>,
+          trustedActorOptions(request),
+        ),
       'artifact export',
     );
   });
@@ -439,9 +445,10 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       request,
       reply,
       () =>
-        clients.knowledgeWrite.activateArtifact(bodyWithoutActor(request), {
-          headers: trustedActorHeaders(request),
-        }),
+        clients.knowledgeWrite.activateArtifact(
+          bodyWithoutActor(request),
+          trustedActorOptions(request),
+        ),
       'artifact activate',
     );
   });
@@ -449,10 +456,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     artifactForward(
       request,
       reply,
-      () =>
-        clients.knowledgeWrite.artifactReviewQueue({
-          headers: trustedActorHeaders(request),
-        }),
+      () => clients.knowledgeWrite.artifactReviewQueue(trustedActorOptions(request)),
       'artifact review queue',
     ),
   );
@@ -464,7 +468,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
         clients.knowledgeWrite.editArtifact(
           (request.params as { artifactId: string }).artifactId,
           bodyWithoutActor(request),
-          { headers: trustedActorHeaders(request) },
+          trustedActorOptions(request),
         ),
       'artifact edit',
     ),
@@ -476,7 +480,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       () =>
         clients.knowledgeWrite.artifactHistory(
           (request.params as { artifactId: string }).artifactId,
-          { headers: trustedActorHeaders(request) },
+          trustedActorOptions(request),
         ),
       'artifact history',
     ),
@@ -491,7 +495,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
         clients.knowledgeWrite.reviewArtifact(
           (request.params as { artifactId: string }).artifactId,
           bodyWithoutActor(request),
-          { headers: trustedActorHeaders(request) },
+          trustedActorOptions(request),
         ),
       'artifact review',
     );
@@ -504,7 +508,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
         clients.knowledgeWrite.deactivateArtifact(
           (request.params as { artifactId: string }).artifactId,
           bodyWithoutActor(request),
-          { headers: trustedActorHeaders(request) },
+          trustedActorOptions(request),
         ),
       'artifact deactivate',
     ),
@@ -749,7 +753,10 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
     return forwardTrustedEntryMutation(request, reply, ['actorId'], (entryId, trusted, options) =>
       clients.knowledgeWrite.updateEntry(
         entryId,
-        { updates: trusted.body.updates ?? {}, actorId: trusted.actorId },
+        {
+          updates: (trusted.body.updates ?? {}) as Record<string, unknown>,
+          actorId: trusted.actorId,
+        },
         options,
       ),
     );
@@ -778,7 +785,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
         (entryId, trusted, options) =>
           clients.knowledgeWrite.supersede(
             entryId,
-            { ...trusted.body, actorId: trusted.actorId },
+            { replacementId: trusted.body.replacementId as string, actorId: trusted.actorId },
             options,
           ),
       );
@@ -906,7 +913,10 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       (candidateId, trusted, options) =>
         clients.candidateIngestion.applyResolution(
           candidateId,
-          { ...trusted.body, actorId: trusted.actorId },
+          {
+            resolution: trusted.body.resolution as Record<string, unknown>,
+            actorId: trusted.actorId,
+          },
           options,
         ),
       'candidate-ingestion applyResolution',
@@ -921,7 +931,7 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
       (candidateId, trusted, options) =>
         clients.candidateIngestion.submitManualResult(
           candidateId,
-          { ...trusted.body, actorId: trusted.actorId },
+          { result: trusted.body.result as Record<string, unknown>, actorId: trusted.actorId },
           options,
         ),
       'candidate-ingestion submitManualResult',

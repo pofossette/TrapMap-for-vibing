@@ -43,8 +43,8 @@ export function createCandidateCorpusPgReadPort(
           summary:
             row.metadata &&
             typeof row.metadata === 'object' &&
-            typeof row.metadata.summary === 'string'
-              ? row.metadata.summary
+            typeof (row.metadata as Record<string, unknown>).summary === 'string'
+              ? ((row.metadata as Record<string, unknown>).summary as string)
               : '',
           keywords: Array.isArray(row.labels) ? row.labels.map(String) : [],
         }),

@@ -53,16 +53,25 @@ module.exports = {
       },
     },
 
-    // 4. service-* must not cross-depend on each other.
-    //    One rule per service, excluding self-package via pathNot.
+    // 4. service-* must not cross-depend on each other (runtime imports).
+    //    Type-only imports are allowed for shared record types.
+    //    Known exception: service-knowledge-read dynamically imports
+    //    service-knowledge-write/labels/graph-align.js for optional label alignment.
     ...SERVICE_PACKAGES.map((svc) => ({
       name: `services-must-not-cross-dep:${svc}`,
-      comment: `${svc} must NOT depend on other service-* packages`,
+      comment: `${svc} must NOT depend on other service-* packages (type-only imports allowed)`,
       severity: 'error',
       from: { path: `^packages/${svc}/` },
       to: {
         path: '^packages/service-[^/]+/',
-        pathNot: `^packages/${svc}/`,
+        pathNot: [
+          `^packages/${svc}/`,
+          // knowledge-read may dynamically import knowledge-write/labels/graph-align
+          ...(svc === 'service-knowledge-read'
+            ? ['^packages/service-knowledge-write/dist/labels/graph-align']
+            : []),
+        ],
+        dependencyTypesNot: ['type-only'],
       },
     })),
 

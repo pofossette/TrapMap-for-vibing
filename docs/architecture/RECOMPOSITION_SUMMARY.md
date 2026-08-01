@@ -18,7 +18,7 @@
 
 但"迁移已全部完成"这一说法尚不成立：
 
-- `packages/server` 仍作为兼容性外壳和大型实现表面存在
+- `packages/server（Wave-10 已删除）` 仍作为兼容性外壳和大型实现表面存在
 - host-local 尚未与成熟的遗留路由/运行时表面完全对齐
 - 若干分布式组件仍为接缝/桩实现，而非经过生产环境验证的替代品
 
@@ -105,7 +105,7 @@ pnpm dev:server:outbox-worker
 
 以下是真正有意义的未解决问题，而非表面遗留：
 
-1. `packages/server` 仍拥有大量真实实现，仍是事实表面的一部分。
+1. `packages/server（Wave-10 已删除）` 仍拥有大量真实实现，仍是事实表面的一部分。
 2. `host-local` 在结构上已存在，但相对于完整的成熟遗留运行时，功能尚未完备。
 3. 新宿主中的部分 worker/outbox 行为仍为接缝导向或桩状，而非完全加固。
 4. 分布式宿主的服务壳已存在，但完整的运维成熟度和对齐度仍在遗留实现表面之后。
@@ -124,7 +124,7 @@ pnpm dev:server:outbox-worker
 
 - 跨 `local-agent`、`team-monolith` 和 `distributed` 的完整手动冒烟测试
 - 对路由表面和运行时行为的更强对齐验证
-- `packages/server` 的缩减或退役计划
+- `packages/server（Wave-10 已删除）` 的缩减或退役计划
 
 ## 如何理解当前仓库
 
@@ -153,4 +153,4 @@ pnpm dev:server:outbox-worker
 - 路由/运行时对齐
 - 加固分布式行为
 - 减少对遗留 server 外壳的依赖
-- 最终将 `packages/server` 作为主要实现表面退役
+- 最终将 `packages/server（Wave-10 已删除）` 作为主要实现表面退役

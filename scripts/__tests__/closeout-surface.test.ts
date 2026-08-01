@@ -96,17 +96,21 @@ describe('closeout surface guardrails', () => {
     expect(rule?.mustNotContain ?? []).toEqual(expect.arrayContaining(['48 张表', '56 张表']));
   });
 
-  it('guards the active compatibility-retirement mainline', () => {
+  it('guards the current active mainline in plan.md', () => {
     const budgets = readComplexityBudgets();
     const rule = budgets.docRules.find((entry) => entry.file === 'plan.md');
 
     expect(rule).toBeDefined();
     expect(rule?.mustContain ?? []).toEqual(
       expect.arrayContaining([
-        'Compatibility Shell Retirement and Owner-Local Infrastructure 收口',
-        'docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md',
-        '共享 PostgreSQL',
+        'Documentation Validation and Observability Platform',
+        'docs/todos/documentation-validation-and-observability-platform.md',
         'open-debt-and-compromises.md',
+      ]),
+    );
+    expect(rule?.mustNotContain ?? []).toEqual(
+      expect.arrayContaining([
+        'docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md',
       ]),
     );
   });
@@ -118,20 +122,16 @@ describe('closeout surface guardrails', () => {
     const truthRule = rules.find(
       (entry) =>
         entry.file === 'docs/reference/SYSTEM_TRUTH_SOURCES.md' &&
-        entry.mustContain?.includes(
-          'Phase 7 maintainability / CI-testing truth / docs closeout freeze',
-        ),
+        entry.mustContain?.includes('Documentation Validation and Observability Platform'),
     );
     const archiveRule = rules.find((entry) => entry.file === 'docs/archived/README.md');
 
     expect(truthRule?.mustContain ?? []).toEqual(
-      expect.arrayContaining([
-        'Compatibility Shell Retirement and Owner-Local Infrastructure 收口',
-      ]),
+      expect.arrayContaining(['Documentation Validation and Observability Platform']),
     );
     expect(archiveRule?.mustContain ?? []).toEqual(
       expect.arrayContaining([
-        '当前根 `plan.md` 指向“Compatibility Shell Retirement and Owner-Local Infrastructure 收口”',
+        '当前根 `plan.md` 指向“Documentation Validation and Observability Platform”',
       ]),
     );
   });
@@ -142,11 +142,10 @@ describe('closeout surface guardrails', () => {
       'docs/archived/archived-plans/observability-traceability-closure.md',
     );
 
-    expect(guard).toContain('const COMPATIBILITY_SYMBOLS');
-    expect(guard).toContain('const allowlist');
-    expect(guard).toContain('ownerWave');
-    expect(guard).toContain('unregistered compatibility dependency');
-    expect(guard).toContain('belongs to completed');
+    expect(guard).toContain('const completedOwnerWaves');
+    expect(guard).toContain('wave-10');
+    expect(guard).toContain('productionCompatibilityReferences');
+    expect(guard).toContain('@trapmap/server');
     expect(archivedObservabilityDetail).toContain('状态：** 已归档');
   });
 
@@ -181,5 +180,32 @@ describe('closeout surface guardrails', () => {
     expect(regressionDoc).not.toContain('grep X-Trace-Id');
 
     expect(deploymentDoc).not.toContain('当前未内置 `/metrics` 端点');
+  });
+
+  it('prevents the old compatibility plan from being declared active in indexes', () => {
+    const budgets = readComplexityBudgets();
+
+    const planRule = budgets.docRules.find((entry) => entry.file === 'plan.md');
+    const todosRule = budgets.docRules.find((entry) => entry.file === 'docs/todos/README.md');
+
+    expect(planRule?.mustNotContain ?? []).toEqual(
+      expect.arrayContaining([
+        'docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md',
+      ]),
+    );
+    // todos/README.md should not re-declare the old plan as active
+    expect(todosRule?.mustNotContain ?? []).toEqual(
+      expect.arrayContaining([
+        'docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md',
+      ]),
+    );
+  });
+
+  it('guards that SYSTEM_TRUTH_SOURCES does not treat deleted packages as current authority', () => {
+    const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
+
+    // Deleted packages should be marked as deleted, not listed as current authority
+    expect(truthSources).toContain('**已删除**（Wave-10）');
+    expect(truthSources).toContain('packages/server` 已于 Wave-10 删除');
   });
 });

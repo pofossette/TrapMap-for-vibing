@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { ConsulDiscoveryAdapter } from './consul-discovery-adapter.js';

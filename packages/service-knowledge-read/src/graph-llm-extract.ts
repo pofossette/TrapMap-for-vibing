@@ -22,29 +22,36 @@ import {
   llmGraphExtractionSchema,
 } from '@trapmap/contracts';
 
+import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
 import { invokeWithParseRetry } from '@trapmap/ai-providers/ai-parse.js';
 import { buildGraphExtractionSlots_default, buildPrompt } from '@trapmap/ai-providers/prompts.js';
-import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
-import type { LabelRepository } from '@trapmap/service-knowledge-write';
+import type { LabelRepository } from '@trapmap/contracts';
+import type { GraphEdgeRecord, GraphNodeRecord } from './graph-llm-extract/documents.js';
 import { executeWithResilience } from './graph-llm-extract/resilience.js';
-import type { GraphEdgeRecord, GraphNodeRecord } from './documents.js';
 
-import type { LlmExtractionCache } from './llm-cache.js';
-import { dedupeGraphRecords, mergeExtractions, toGraphRecords } from './llm-extract-merge.js';
-import { planExtraction } from './llm-extract-planning.js';
+import type { LlmExtractionCache } from './graph-llm-extract/llm-cache.js';
+import {
+  dedupeGraphRecords,
+  mergeExtractions,
+  toGraphRecords,
+} from './graph-llm-extract/llm-extract-merge.js';
+import { planExtraction } from './graph-llm-extract/llm-extract-planning.js';
 
 // ---------------------------------------------------------------------------
 // Re-exports for backward compatibility
 // ---------------------------------------------------------------------------
 
-export { buildEdgeId, buildNodeId, normalizeValue } from './llm-extract-ids.js';
+export { buildEdgeId, buildNodeId, normalizeValue } from './graph-llm-extract/llm-extract-ids.js';
 export {
   dedupeGraphRecords,
   mergeExtractions,
   toGraphRecords,
-} from './llm-extract-merge.js';
-export { parseExtractionPlan, parseLlmExtraction } from './llm-extract-parsing.js';
-export { planExtraction } from './llm-extract-planning.js';
+} from './graph-llm-extract/llm-extract-merge.js';
+export {
+  parseExtractionPlan,
+  parseLlmExtraction,
+} from './graph-llm-extract/llm-extract-parsing.js';
+export { planExtraction } from './graph-llm-extract/llm-extract-planning.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -103,27 +110,21 @@ export async function extractSegmentEntities(
   if (!chat.isConfigured) return null;
 
   const systemPrompt = buildPrompt('graph-extraction', buildGraphExtractionSlots_default());
-  const result = await executeWithResilience({
-    policy: {
-      dependencyName: 'graph-llm-segment-extraction',
-      timeoutMs: 15_000,
-      maxAttempts: maxRetries + 1,
-      backoffMs: (attempt) => BACKOFF_BASE_MS * 2 ** (attempt * 2),
-      failureMode: 'fail-open',
-    },
-    operation: async (_signal) => {
-      return invokeWithParseRetry({
-        invoke: () => chat.invoke(systemPrompt, segment),
-        schema: llmGraphExtractionSchema,
-        maxRetries,
-        backoffMs: (attempt) => BACKOFF_BASE_MS * 2 ** (attempt * 2),
-      });
-    },
-    isSuccessfulResult: (value) => value !== null,
-    fallbackValue: null,
-  });
-
-  return result.value ?? null;
+  try {
+    return await executeWithResilience(
+      'graph-llm-segment-extraction',
+      () =>
+        invokeWithParseRetry({
+          invoke: () => chat.invoke(systemPrompt, segment),
+          schema: llmGraphExtractionSchema as unknown as import('zod').ZodType<LlmGraphExtraction>,
+          maxRetries,
+          backoffMs: (attempt: number) => BACKOFF_BASE_MS * 2 ** (attempt * 2),
+        }),
+      { timeoutMs: 15_000, maxAttempts: maxRetries + 1 },
+    );
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -164,9 +165,9 @@ async function gleaningExtraction(
     const systemPrompt = buildPrompt('graph-extraction', buildGraphExtractionSlots_default());
     const gleaningResult = await invokeWithParseRetry({
       invoke: () => chat.invoke(systemPrompt, gleaningUserMsg),
-      schema: llmGraphExtractionSchema,
+      schema: llmGraphExtractionSchema as unknown as import('zod').ZodType<LlmGraphExtraction>,
       maxRetries: MAX_RETRIES,
-      backoffMs: (attempt) => BACKOFF_BASE_MS * 2 ** (attempt * 2),
+      backoffMs: (attempt: number) => BACKOFF_BASE_MS * 2 ** (attempt * 2),
     });
     if (!gleaningResult) return null;
     return mergeExtractions([existing, gleaningResult]);
@@ -274,7 +275,7 @@ export async function extractGraphEntitiesWithLLM(
       // Multiple segments — batched concurrent extraction
       extractions = await extractBatched(
         chat,
-        plan.segments.map((s) => s.text),
+        plan.segments.map((s: { text: string }) => s.text),
       );
     }
 

@@ -313,9 +313,9 @@ async function findDuplicates(
 
 > Phase 1 在两个探测器上同时落地了 **exact-fingerprint lane**：命中即返回 `matchType: 'exact'` 且 `similarityScore: 1`，跳过 Jaccard / pgvector 召回与 LLM 精排开销，保证相同内容在不同探测器之间行为一致。
 
-- **Trap 侧**：`computeTrapFingerprint({shortcut, detail, labels})` 对 `shortcut` / `detail` 做 trim，对 `labels` 做 trim + sort + `,` 拼接，最后以 SHA-256 产出 trap exact key。候选生成时同样调用同一函数（`packages/server/src/lib/candidates/fingerprint.ts`），保证规范化口径一致。
-  - In-memory 探测器（`packages/server/src/lib/candidates/detector.ts` 的 `checkTrapDuplicate`）在 Jaccard 评分前先比对 `computeTrapFingerprint(entry)` 与 `candidateExactLookupKey`，命中则直接返回 `matchType: 'exact'`。
-  - PG 探测器（`packages/server/src/lib/candidates/pg-detector.ts` 的 `detectDuplicatesPg`）先扫描 `fallbackData.trapEntries`，对每个 `lifecycleState === 'approved'` 的 entry 重新计算 trap fingerprint 并比对；一旦命中，直接 early-return exact duplicate case，不再继续 embedding / recall / LLM。
+- **Trap 侧**：`computeTrapFingerprint({shortcut, detail, labels})` 对 `shortcut` / `detail` 做 trim，对 `labels` 做 trim + sort + `,` 拼接，最后以 SHA-256 产出 trap exact key。候选生成时同样调用同一函数（`packages/server（Wave-10 已删除）/src/lib/candidates/fingerprint.ts`），保证规范化口径一致。
+  - In-memory 探测器（`packages/server（Wave-10 已删除）/src/lib/candidates/detector.ts` 的 `checkTrapDuplicate`）在 Jaccard 评分前先比对 `computeTrapFingerprint(entry)` 与 `candidateExactLookupKey`，命中则直接返回 `matchType: 'exact'`。
+  - PG 探测器（`packages/server（Wave-10 已删除）/src/lib/candidates/pg-detector.ts` 的 `detectDuplicatesPg`）先扫描 `fallbackData.trapEntries`，对每个 `lifecycleState === 'approved'` 的 entry 重新计算 trap fingerprint 并比对；一旦命中，直接 early-return exact duplicate case，不再继续 embedding / recall / LLM。
 - **Skill 侧**：候选 exact key 与已批准工件的 `derived.profile.contentHash` / `derived.profile.sourceHash` 对齐，而不是复用用于语义召回的 candidate fingerprint。
   - 候选在 `buildNormalizedDuplicateInput()` 中生成两个 key：`fingerprint` 继续服务于分析快照与语义检索，`exactLookupKey` 则优先复现 derivation text 的 `contentHash`；如果提交时没有正文，只保留 derivation-eligible 文件（`SKILL.md` + `references/`）的 `sha256`，则退化为与已批准 profile `sourceHash` 对齐。
   - In-memory 探测器（`checkSkillDuplicate`）先用 `candidateExactLookupKey` 对比 `profile.contentHash` / `profile.sourceHash`，命中即返回 `matchType: 'exact'`，不会先被相似度阈值过滤。
@@ -325,9 +325,9 @@ async function findDuplicates(
 
 ### Shared normalized candidate input (Phase 2)
 
-> Phase 2 把 trap 与 skill 候选在同一处归一化为 `NormalizedDuplicateInput`（`packages/server/src/lib/candidates/types.ts`），由 in-memory 与 PostgreSQL 探测器共享，避免之前 trap-only `candidateText` 与空 skill 文本的偏差。
+> Phase 2 把 trap 与 skill 候选在同一处归一化为 `NormalizedDuplicateInput`（`packages/server（Wave-10 已删除）/src/lib/candidates/types.ts`），由 in-memory 与 PostgreSQL 探测器共享，避免之前 trap-only `candidateText` 与空 skill 文本的偏差。
 
-`buildNormalizedDuplicateInput(candidate)`（`packages/server/src/lib/candidates/fingerprint.ts`）作为唯一入口产出：
+`buildNormalizedDuplicateInput(candidate)`（`packages/server（Wave-10 已删除）/src/lib/candidates/fingerprint.ts`）作为唯一入口产出：
 
 - `sourceType` — `'trap' | 'skill'`
 - `fingerprint` — 唯一哈希；trap 走 `computeTrapFingerprint({shortcut, detail, labels})`，skill 走 `computeSkillFingerprint({profile, files})`（profile 由 SKILL.md content 解析得到，files 始终用 `path` + `sha256`）
@@ -337,7 +337,7 @@ async function findDuplicates(
 - `tokenTerms` — 对 `titleText` + `bodyText` 调用 `tokenize()` 的结果
 - `exactLookupKey` — trap 与 `fingerprint` 同值；skill 单独走 `computeSkillExactLookupKey()`，优先对齐 derivation text 的 `contentHash`，否则退化为 derivation-eligible 文件哈希形成的 `sourceHash`
 
-调用方（`packages/server/src/lib/candidates/processor.ts`）把同一 `normalized` 对象传给两个探测器：
+调用方（`packages/server（Wave-10 已删除）/src/lib/candidates/processor.ts`）把同一 `normalized` 对象传给两个探测器：
 
 - In-memory 路径：把 `normalized.{fingerprint, keywordTerms, tokenTerms, titleText, bodyText}` 装入 `DuplicateDetectionInput`，LLM 精排直接消费 `candidateTitle` / `candidateBody` 而不是 `candidateKeywords.slice(0, 5)` / `candidateTokens.slice(0, 100)` 拼凑的 fallback。
 - PG 路径：把 `normalized.titleText` + `normalized.bodyText` 拼接为 `candidateText` 喂给 `generateEmbedding()`，并把 `candidateTitle` / `candidateBody` 透传给 PG 探测器的 LLM 精排，确保 PG 端的 skill 候选不再回退到空 embedding / 空 LLM 文本。
@@ -346,9 +346,9 @@ async function findDuplicates(
 
 > 当前实现已经进入分层重复检测路径：候选先规范化，再经过 exact lane、PostgreSQL trap+skill 混合召回、统一排序，以及可选的 top-K LLM 精排。后续阶段（见根目录 `plan.md`）仍会继续补齐 trap 指纹持久化、队列去重和 rollout 校准，但本节描述的六层管线已经是当前的实现方向而非纯 future-state 占位。后续编辑本节时，请保持下表与 `plan.md` 中"Example Target Shapes"以及完成备注中冻结的字段名一致。
 
-1. **Normalize candidate input** — 由共享 helper（`packages/server/src/lib/candidates/fingerprint.ts` 中的规范化器）将 trap 与 skill 候选都转成 `NormalizedDuplicateInput`：`sourceType`、`fingerprint`、`titleText`、`bodyText`、`keywordTerms`、`tokenTerms`、`exactLookupKey`。
+1. **Normalize candidate input** — 由共享 helper（`packages/server（Wave-10 已删除）/src/lib/candidates/fingerprint.ts` 中的规范化器）将 trap 与 skill 候选都转成 `NormalizedDuplicateInput`：`sourceType`、`fingerprint`、`titleText`、`bodyText`、`keywordTerms`、`tokenTerms`、`exactLookupKey`。
 2. **Exact fingerprint lane** — 命中即返回 `matchType: 'exact'`，跳过 Jaccard / pgvector / LLM。trap 仍依赖 on-the-fly 重新计算指纹；skill 复用 `derived.profile.contentHash` / `sourceHash` 这些已有字段。
-3. **Indexed PostgreSQL recall** — `packages/server/src/lib/candidates/pg-detector.ts` 在 PostgreSQL 中并行执行四条召回通道：trap embeddings、trap keywords、skill capsule/profile embeddings、skill capsule/profile keywords。
+3. **Indexed PostgreSQL recall** — `packages/server（Wave-10 已删除）/src/lib/candidates/pg-detector.ts` 在 PostgreSQL 中并行执行四条召回通道：trap embeddings、trap keywords、skill capsule/profile embeddings、skill capsule/profile keywords。
 4. **Merge + preserve exact hits** — SQL 召回结果先归一化为统一候选 shape，再与 exact-fingerprint lane 命中合并；exact 命中始终保留并前置，不会被后续 top-K 截断覆盖。
 5. **Score + rerank top-K** — trap + skill 的混合候选列表按统一相似度分数排序、去重、截断到 top-K，再交给可选的 LLM 精排。
 6. **Optional LLM refinement** — 仅对 merged ranked list 中的 top-K 候选对运行 LLM 判定，不对全量做调用。
@@ -357,7 +357,7 @@ async function findDuplicates(
 
 > Phase 4 把“不要重复处理同一个 candidate”和“命中的 duplicate lane 要能回放解释”这两件事都固化到当前实现里。
 
-- **Queue dedupe**：`packages/server/src/lib/candidates/processor.ts` 在首次 `scheduleCandidateProcessing()` 与失败后的重试入队都传入 `dedupeKey: candidateId`。`packages/server/src/lib/queue/task-queue.ts` 依赖 `task_queue_dedupe_pending_idx` 这个 partial unique index（`WHERE status IN ('pending', 'running')`）保证同一 candidate 在 active 状态下只能保留一个任务；如果并发插入打到唯一约束，队列会回读现存 active task，并在冲突赢家已消失的 race 窗口里重试一次插入，而不是把请求直接丢掉。
+- **Queue dedupe**：`packages/server（Wave-10 已删除）/src/lib/candidates/processor.ts` 在首次 `scheduleCandidateProcessing()` 与失败后的重试入队都传入 `dedupeKey: candidateId`。`packages/server（Wave-10 已删除）/src/lib/queue/task-queue.ts` 依赖 `task_queue_dedupe_pending_idx` 这个 partial unique index（`WHERE status IN ('pending', 'running')`）保证同一 candidate 在 active 状态下只能保留一个任务；如果并发插入打到唯一约束，队列会回读现存 active task，并在冲突赢家已消失的 race 窗口里重试一次插入，而不是把请求直接丢掉。
 - **Retry semantics unchanged**：active dedupe 只覆盖 `pending` / `running`。任务进入 `completed`、`failed` 或 `dead` 后，不再阻止后续合法再入队，所以真实失败后的重新调度、dead-letter 后的人工恢复、以及 resolution 后的显式重跑都不会被 dedupe 永久吞掉。
 - **Persisted duplicate trace**：两个探测器都会把结构化 trace 写进 `AnalysisSnapshot.duplicateTrace`，并由 `PgCandidateRepository` 同步落到 `candidates.analysis_snapshot` 与 `candidate_analyses.duplicate_trace`：
   - `detector: 'in-memory' | 'postgresql'`

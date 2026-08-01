@@ -6,7 +6,9 @@
 >
 > **形式缩写**：`TS` = TypeScript 类型/接口，`Zod` = Zod schema，`DB` = PostgreSQL 表（Drizzle），`Route` = HTTP API 端点，`Impl` = 业务逻辑实现模块。
 >
-> **Round 4 更新**：知识域的 labels/boundary/maintenance 与 Skill Artifact 域的 metadata/files/script descriptors/profile/capsules/client manifest/boundary/maintenance/agent review 均已从“仅 JSONB 聚合”推进到“结构化 PostgreSQL 真表 + JSONB 兼容缓存”模式。见下文对应条目。
+> **Round 4 更新**：知识域的 labels/boundary/maintenance 与 Skill Artifact 域的 metadata/files/script descriptors/profile/capsules/client manifest/boundary/maintenance/agent review 均已从”仅 JSONB 聚合”推进到”结构化 PostgreSQL 真表 + JSONB 兼容缓存”模式。见下文对应条目。
+>
+> **Wave-10 更新（2026-08-01）**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已迁移至各 service owner 包。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
 ---
 
@@ -26,7 +28,7 @@
 | `packages/contracts/src/domain/candidates.ts:41-47` | Zod schema (`TrapCandidatePayloadSchema`) | Trap 候选提交载荷：scope, labels, shortcut, detail, requiredLevel |
 | `packages/contracts/src/domain/plans.ts:29` | Zod enum (`'trap'`) | `graphPlanNodeKindSchema` 中的节点类型 |
 | `packages/contracts/src/domain/plans.ts:63-82` | Zod schema (`planTrapNodeSchema`) | 图规划中的 Trap 阻断节点：severity, scope, evidence, score |
-| `packages/server/src/routes/traps.ts` | Route | 专用 Trap 别名路由：`POST /v1/traps`、`GET /v1/traps`、`GET /v1/traps/:trapId`、`POST /v1/traps/:trapId/resubmit`、`POST /v1/traps/:trapId/supersede` |
+| `packages/server（Wave-10 已删除）/src/routes/traps.ts` | Route | 专用 Trap 别名路由：`POST /v1/traps`、`GET /v1/traps`、`GET /v1/traps/:trapId`、`POST /v1/traps/:trapId/resubmit`、`POST /v1/traps/:trapId/supersede` |
 
 ### Skill（技能/技能工件）
 
@@ -38,19 +40,19 @@
 | `packages/contracts/src/domain/artifacts.ts:395` | TS 类型 (`SkillArtifact`) | 推断类型，server 和 CLI 全局使用 |
 | `packages/contracts/src/domain/candidates.ts:29` | Zod enum (`z.literal('skill')`) | `CandidateSourceSchema` 中的判别值 |
 | `packages/contracts/src/domain/candidates.ts:79-82` | Zod schema (`SkillCandidatePayloadSchema`) | Skill 候选提交载荷：files, metadata |
-| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifacts`) | Skill 工件的行级持久化主表，保留 JSONB 缓存列 |
-| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`artifact_revisions`) | Skill 修订历史，保留 revision 级派生产物缓存 |
-| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifact_metadata`) | Skill 元数据结构化真表（source kind / submission counters / latest decision） |
-| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifact_files`, `skill_artifact_script_descriptors`) | 文件事实与脚本语义真表 |
-| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifact_profiles`, `skill_artifact_capsules`, `skill_artifact_client_manifests`, `skill_artifact_manifest_*`) | 派生产物结构化真表 |
-| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifact_boundary_*`, `skill_artifact_maintenance_assignments`, `skill_artifact_agent_reviews`) | 工件治理结构化真表 |
-| `packages/server/src/routes/operations/artifacts-import.ts:136` | Route | `POST /v1/operations/artifacts/import` — 导入 Skill 工件 |
-| `packages/server/src/routes/operations/artifacts-export.ts:91` | Route | `POST /v1/operations/artifacts/export` — 导出 Skill 工件 |
-| `packages/server/src/routes/operations/artifacts-activate.ts:22` | Route | `POST /v1/operations/artifacts/activate` — 激活（下载）工件文件 |
-| `packages/server/src/routes/operations/skill-review.ts:21` | Route | `GET /v1/operations/artifacts/review-queue` — 审核队列 |
-| `packages/server/src/routes/operations/skill-review.ts:89` | Route | `POST /v1/operations/artifacts/:artifactId/review` — 批准/拒绝 |
-| `packages/server/src/routes/operations/skill-edit.ts:23` | Route | `POST /v1/operations/artifacts/:artifactId/edit` — 编辑 |
-| `packages/server/src/routes/operations/skill-edit.ts:154` | Route | `GET /v1/operations/artifacts/:artifactId/history` — 修订历史 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifacts`) | Skill 工件的行级持久化主表，保留 JSONB 缓存列 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/artifacts.ts` | DB 表 (`artifact_revisions`) | Skill 修订历史，保留 revision 级派生产物缓存 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifact_metadata`) | Skill 元数据结构化真表（source kind / submission counters / latest decision） |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifact_files`, `skill_artifact_script_descriptors`) | 文件事实与脚本语义真表 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifact_profiles`, `skill_artifact_capsules`, `skill_artifact_client_manifests`, `skill_artifact_manifest_*`) | 派生产物结构化真表 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/artifacts.ts` | DB 表 (`skill_artifact_boundary_*`, `skill_artifact_maintenance_assignments`, `skill_artifact_agent_reviews`) | 工件治理结构化真表 |
+| `packages/server（Wave-10 已删除）/src/routes/operations/artifacts-import.ts:136` | Route | `POST /v1/operations/artifacts/import` — 导入 Skill 工件 |
+| `packages/server（Wave-10 已删除）/src/routes/operations/artifacts-export.ts:91` | Route | `POST /v1/operations/artifacts/export` — 导出 Skill 工件 |
+| `packages/server（Wave-10 已删除）/src/routes/operations/artifacts-activate.ts:22` | Route | `POST /v1/operations/artifacts/activate` — 激活（下载）工件文件 |
+| `packages/server（Wave-10 已删除）/src/routes/operations/skill-review.ts:21` | Route | `GET /v1/operations/artifacts/review-queue` — 审核队列 |
+| `packages/server（Wave-10 已删除）/src/routes/operations/skill-review.ts:89` | Route | `POST /v1/operations/artifacts/:artifactId/review` — 批准/拒绝 |
+| `packages/server（Wave-10 已删除）/src/routes/operations/skill-edit.ts:23` | Route | `POST /v1/operations/artifacts/:artifactId/edit` — 编辑 |
+| `packages/server（Wave-10 已删除）/src/routes/operations/skill-edit.ts:154` | Route | `GET /v1/operations/artifacts/:artifactId/history` — 修订历史 |
 
 ### Knowledge Entry / Knowledge（知识条目）
 
@@ -62,15 +64,15 @@
 |------|------|------|
 | `packages/contracts/src/domain/knowledge.ts:98-124` | Zod schema (`knowledgeEntrySchema`) | 聚合根定义：id, teamId, scope, labels, shortcut, detail, requiredLevel, lifecycleState, owner, latestRevision, history, metadata, agentReview, boundary, evidenceMeta, maintenanceMeta |
 | `packages/contracts/src/domain/knowledge.ts:191` | TS 类型 (`KnowledgeEntry`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_entries`) | 行级持久化主表，含 `CHECK` 约束和组合索引 |
-| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_labels`) | 标签结构化子表，`unique(entry_id, label)` |
-| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_boundary_*` x6, `knowledge_maintenance_assignments`) | 边界六子表 + 维护分配表（Round 3） |
-| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_revisions`) | 版本历史，`unique(entry_id, revision_no)` |
-| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`lifecycle_events`) | 生命周期事件，`type` 受 `CHECK` 约束 |
-| `packages/server/src/routes/knowledge.ts:39` | Route | `POST /v1/knowledge` — 提交新条目 |
-| `packages/server/src/routes/knowledge.ts:115` | Route | `GET /v1/knowledge/mine` — 列出当前用户条目 |
-| `packages/server/src/routes/knowledge.ts:129` | Route | `GET /v1/knowledge/:entryId` — 获取单条 |
-| `packages/server/src/routes/knowledge.ts:226` | Route | `PATCH /v1/knowledge/:entryId` — 更新字段 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_entries`) | 行级持久化主表，含 `CHECK` 约束和组合索引 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_labels`) | 标签结构化子表，`unique(entry_id, label)` |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_boundary_*` x6, `knowledge_maintenance_assignments`) | 边界六子表 + 维护分配表（Round 3） |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_revisions`) | 版本历史，`unique(entry_id, revision_no)` |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/knowledge.ts` | DB 表 (`lifecycle_events`) | 生命周期事件，`type` 受 `CHECK` 约束 |
+| `packages/server（Wave-10 已删除）/src/routes/knowledge.ts:39` | Route | `POST /v1/knowledge` — 提交新条目 |
+| `packages/server（Wave-10 已删除）/src/routes/knowledge.ts:115` | Route | `GET /v1/knowledge/mine` — 列出当前用户条目 |
+| `packages/server（Wave-10 已删除）/src/routes/knowledge.ts:129` | Route | `GET /v1/knowledge/:entryId` — 获取单条 |
+| `packages/server（Wave-10 已删除）/src/routes/knowledge.ts:226` | Route | `PATCH /v1/knowledge/:entryId` — 更新字段 |
 
 ### Pitfall（陷阱/误区）
 
@@ -95,19 +97,19 @@
 | `packages/contracts/src/domain/retrieval.ts:35` | Zod enum (`recallChannels`) | 召回通道类型：`['semantic', 'keyword', 'graph']` |
 | `packages/contracts/src/domain/retrieval.ts:392-399` | Zod enum (`retrievalStrategySchema`) | 内部路由策略：`['naive', 'local', 'global', 'hybrid', 'mix', 'auto']` |
 | `packages/contracts/src/domain/retrieval.ts:467-469` | Zod enum (`channelsUsed`) | 完整通道分类：`['semantic', 'keyword', 'graph', 'capsule', 'profile', 'plan']` |
-| `packages/server/src/lib/retrieval/recall/semantic.ts` | Impl | 语义召回 — 基于嵌入相似度 |
-| `packages/server/src/lib/retrieval/recall/keyword.ts` | Impl | 关键词召回 — 词法重叠 |
-| `packages/server/src/lib/retrieval/recall/graph-assisted.ts` | Impl | 图增强召回 — 知识图谱扩展 |
-| `packages/server/src/lib/retrieval/orchestration/index.ts` | Impl | 检索编排入口 — 召回通道注册、策略路由、结果聚合 |
-| `packages/server/src/lib/retrieval/recall/pg-keyword.ts` | Impl | PostgreSQL 关键词召回 |
-| `packages/server/src/lib/retrieval/scoring/rerank.ts` | Impl | 结果重排序 |
-| `packages/server/src/routes/retrieval.ts:71` | Route | `POST /v1/retrieval/search` — v1 检索（接受 `mode` 参数） |
-| `packages/server/src/routes/retrieval.ts` | Route | `POST /v2/retrieval/search` — v2 检索（Capsule + Profile） |
-| `packages/server/src/routes/retrieval.ts` | Route | `POST /v3/retrieval/search` — v3 检索（graphPlan + Fallback） |
-| `packages/server/src/lib/persistence/schema/retrieval.ts` | DB 表 (`knowledge_embeddings`) | 语义检索的向量索引（pgvector HNSW），labels 为 text[] |
-| `packages/server/src/lib/persistence/schema/retrieval.ts` | DB 表 (`knowledge_keywords`) | 关键词检索的词元索引（text[] GIN），tokens 和 field_tokens_* 均为 text[] |
-| `packages/server/src/lib/persistence/schema/retrieval.ts` | DB 表 (`knowledge_search_documents`) | 全文检索索引（tsvector GIN），Round 7 新增 |
-| `packages/server/src/lib/persistence/schema/retrieval.ts` | DB 表 (`graph_index_documents`) | GraphRAG-lite 图索引持久化，Round 7 新增，替代 store_snapshot 内存存储 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/recall/semantic.ts` | Impl | 语义召回 — 基于嵌入相似度 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/recall/keyword.ts` | Impl | 关键词召回 — 词法重叠 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/recall/graph-assisted.ts` | Impl | 图增强召回 — 知识图谱扩展 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/orchestration/index.ts` | Impl | 检索编排入口 — 召回通道注册、策略路由、结果聚合 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/recall/pg-keyword.ts` | Impl | PostgreSQL 关键词召回 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/scoring/rerank.ts` | Impl | 结果重排序 |
+| `packages/server（Wave-10 已删除）/src/routes/retrieval.ts:71` | Route | `POST /v1/retrieval/search` — v1 检索（接受 `mode` 参数） |
+| `packages/server（Wave-10 已删除）/src/routes/retrieval.ts` | Route | `POST /v2/retrieval/search` — v2 检索（Capsule + Profile） |
+| `packages/server（Wave-10 已删除）/src/routes/retrieval.ts` | Route | `POST /v3/retrieval/search` — v3 检索（graphPlan + Fallback） |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/retrieval.ts` | DB 表 (`knowledge_embeddings`) | 语义检索的向量索引（pgvector HNSW），labels 为 text[] |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/retrieval.ts` | DB 表 (`knowledge_keywords`) | 关键词检索的词元索引（text[] GIN），tokens 和 field_tokens_* 均为 text[] |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/retrieval.ts` | DB 表 (`knowledge_search_documents`) | 全文检索索引（tsvector GIN），Round 7 新增 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/retrieval.ts` | DB 表 (`graph_index_documents`) | GraphRAG-lite 图索引持久化，Round 7 新增，替代 store_snapshot 内存存储 |
 
 ### Capsule（技能胶囊）
 
@@ -120,11 +122,11 @@
 | `packages/contracts/src/domain/artifacts.ts:155-180` | Zod schema (`skillCapsuleSchema`) | 规范定义：capsuleId, artifactId, revision, sourcePaths, content, situation, problem, goal, errorText, labels, scope, requiredLevel |
 | `packages/contracts/src/domain/retrieval.ts:106-137` | Zod schema (`capsuleMatchSchema`) | v2 检索响应中的 Capsule 匹配结果，扩展 score 和 reason 字段 |
 | `packages/contracts/src/domain/retrieval.ts:268-277` | Zod schema (`capsuleActivationHintsSchema`) | 每个 Capsule 的激活提示：readNext, assets, scripts |
-| `packages/server/src/lib/retrieval/capsules/capsule-recall.ts` | Impl | Capsule 召回：`rankCapsules()`, `getCapsuleRecords()`, `computeContextMatchScore()` |
-| `packages/server/src/lib/retrieval/response/assembly.ts` | Impl | `buildCapsuleMatch()` — 将 capsule 候选装配为检索响应匹配结果 |
-| `packages/server/src/lib/retrieval/capsules/intent.ts` | Impl | `parseSeedIntent()` + `parseSeedIntentWithLLM()` — 将查询解析为 situation/problem/goal/errorText，LLM 路径额外产出 category/semanticQuery/parseMethod |
-| `packages/server/src/lib/cache/query-embedding-cache.ts` | Impl | `query-embedding` — 检索 query embedding 的过程内缓存（TTL 20 分钟，容量上限 300） |
-| `packages/server/src/lib/retrieval/capsules/intent-cache.ts` | Impl | `InMemoryIntentCache` — LLM 意图解析结果的过程内缓存（TTL 30 分钟，容量上限 200） |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/capsule-recall.ts` | Impl | Capsule 召回：`rankCapsules()`, `getCapsuleRecords()`, `computeContextMatchScore()` |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/response/assembly.ts` | Impl | `buildCapsuleMatch()` — 将 capsule 候选装配为检索响应匹配结果 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/intent.ts` | Impl | `parseSeedIntent()` + `parseSeedIntentWithLLM()` — 将查询解析为 situation/problem/goal/errorText，LLM 路径额外产出 category/semanticQuery/parseMethod |
+| `packages/server（Wave-10 已删除）/src/lib/cache/query-embedding-cache.ts` | Impl | `query-embedding` — 检索 query embedding 的过程内缓存（TTL 20 分钟，容量上限 300） |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/intent-cache.ts` | Impl | `InMemoryIntentCache` — LLM 意图解析结果的过程内缓存（TTL 30 分钟，容量上限 200） |
 
 ### IntentCategory（意图分类）
 
@@ -161,7 +163,7 @@
 | `packages/contracts/src/domain/artifacts.ts:125-148` | Zod schema (`skillProfileSchema`) | 派生画像：artifactId, revision, sourceHash, title, description, summary, keywords, labels, prerequisites, referencePaths, contentHash |
 | `packages/contracts/src/domain/artifacts.ts:385` | TS 类型 (`SkillProfile`) | 推断类型 |
 | `packages/contracts/src/domain/retrieval.ts:144-153` | Zod schema (`profileHintSchema`) | v2 响应中的轻量画像提示：artifactId, title, slug, labels |
-| `packages/server/src/lib/retrieval/orchestration/orchestrator.ts:32` | Impl | `buildProfileShortlist` — 编排器中基于画像的排序 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/orchestration/orchestrator.ts:32` | Impl | `buildProfileShortlist` — 编排器中基于画像的排序 |
 
 ### Manifest（客户端清单）
 
@@ -179,7 +181,7 @@ Skill 工件的客户端激活元数据，包含 references、assets、scripts �
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `packages/server/src/lib/retrieval/scoring/rerank.ts` | Impl | 重排序逻辑实现 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/scoring/rerank.ts` | Impl | 重排序逻辑实现 |
 | `packages/contracts/src/domain/retrieval.ts:37` | TS 字段 (`scores.preRerank`) | `retrievalCitationSchema.scores` 中记录重排前分数 |
 
 ### RetrievalCache
@@ -188,8 +190,8 @@ Skill 工件的客户端激活元数据，包含 references、assets、scripts �
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `packages/server/src/lib/cache/retrieval-cache.ts:100` | TS 类 (`RetrievalCache<V>`) | 核心实现：get, set, has, delete, clear, size, stats, values, ns |
-| `packages/server/src/lib/cache/retrieval-cache.ts:63` | TS 函数 (`getRetrievalCacheStats`) | 按 namespace 聚合所有存活实例的 metrics |
+| `packages/server（Wave-10 已删除）/src/lib/cache/retrieval-cache.ts:100` | TS 类 (`RetrievalCache<V>`) | 核心实现：get, set, has, delete, clear, size, stats, values, ns |
+| `packages/server（Wave-10 已删除）/src/lib/cache/retrieval-cache.ts:63` | TS 函数 (`getRetrievalCacheStats`) | 按 namespace 聚合所有存活实例的 metrics |
 
 ### namespace（缓存命名空间）
 
@@ -197,8 +199,8 @@ Skill 工件的客户端激活元数据，包含 references、assets、scripts �
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `packages/server/src/lib/cache/retrieval-cache.ts:21` | TS 字段 (`RetrievalCacheOptions.namespace`) | 构造时指定，默认 `'default'` |
-| `packages/server/src/lib/cache/retrieval-cache.ts:63` | TS 函数 (`getRetrievalCacheStats`) | 返回 `Record<string, CacheStats>`，key 为 namespace |
+| `packages/server（Wave-10 已删除）/src/lib/cache/retrieval-cache.ts:21` | TS 字段 (`RetrievalCacheOptions.namespace`) | 构造时指定，默认 `'default'` |
+| `packages/server（Wave-10 已删除）/src/lib/cache/retrieval-cache.ts:63` | TS 函数 (`getRetrievalCacheStats`) | 返回 `Record<string, CacheStats>`，key 为 namespace |
 
 ### Hit@K
 
@@ -264,15 +266,15 @@ draft → submitted → agent-pass/agent-rejected
 |------|------|------|
 | `packages/contracts/src/domain/common.ts:38-46` | Zod enum (`lifecycleStateSchema`) | 规范枚举：`['draft', 'submitted', 'agent-pass', 'agent-rejected', 'approved', 'rejected', 'deactivated']` |
 | `packages/contracts/src/domain/common.ts:81` | TS 类型 (`LifecycleState`) | 推断类型，全项目使用 |
-| `packages/server/src/lib/lifecycle/state-machine.ts:23-31` | TS 常量 (`VALID_TRANSITIONS`) | `Record<LifecycleState, LifecycleState[]>` — 完整状态转换映射 |
-| `packages/server/src/lib/lifecycle/state-machine.ts:40` | Impl 函数 (`isValidTransition`) | 校验单次转换合法性 |
-| `packages/server/src/lib/lifecycle/state-machine.ts:50` | Impl 函数 (`getValidTransitions`) | 列出某状态的所有合法目标 |
-| `packages/server/src/lib/lifecycle/state-machine.ts:60` | Impl 函数 (`isTerminalState`) | 判断终态（`deactivated`） |
-| `packages/server/src/lib/lifecycle/state-machine.ts:81` | Impl 函数 (`transitionLifecycleState`) | 纯校验 + 变更 |
-| `packages/server/src/lib/lifecycle/state-machine.ts:109` | Impl 函数 (`executeTransition`) | 编排器：校验 → 变更 → 发布领域事件 |
-| `packages/server/src/lib/lifecycle/transitions.ts:18-44` | TS 常量 (`TRANSITIONS`) | `TransitionDefinition[]` — 完整 (from, to) → event 映射表 |
-| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`lifecycle_events`) | KnowledgeEntry 生命周期事件，`type` 字段受 `CHECK` 约束（Round 3） |
-| `packages/server/src/lib/persistence/schema/artifacts.ts` | DB 表 (`artifact_lifecycle_events`) | SkillArtifact 生命周期事件 |
+| `packages/server（Wave-10 已删除）/src/lib/lifecycle/state-machine.ts:23-31` | TS 常量 (`VALID_TRANSITIONS`) | `Record<LifecycleState, LifecycleState[]>` — 完整状态转换映射 |
+| `packages/server（Wave-10 已删除）/src/lib/lifecycle/state-machine.ts:40` | Impl 函数 (`isValidTransition`) | 校验单次转换合法性 |
+| `packages/server（Wave-10 已删除）/src/lib/lifecycle/state-machine.ts:50` | Impl 函数 (`getValidTransitions`) | 列出某状态的所有合法目标 |
+| `packages/server（Wave-10 已删除）/src/lib/lifecycle/state-machine.ts:60` | Impl 函数 (`isTerminalState`) | 判断终态（`deactivated`） |
+| `packages/server（Wave-10 已删除）/src/lib/lifecycle/state-machine.ts:81` | Impl 函数 (`transitionLifecycleState`) | 纯校验 + 变更 |
+| `packages/server（Wave-10 已删除）/src/lib/lifecycle/state-machine.ts:109` | Impl 函数 (`executeTransition`) | 编排器：校验 → 变更 → 发布领域事件 |
+| `packages/server（Wave-10 已删除）/src/lib/lifecycle/transitions.ts:18-44` | TS 常量 (`TRANSITIONS`) | `TransitionDefinition[]` — 完整 (from, to) → event 映射表 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/knowledge.ts` | DB 表 (`lifecycle_events`) | KnowledgeEntry 生命周期事件，`type` 字段受 `CHECK` 约束（Round 3） |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/artifacts.ts` | DB 表 (`artifact_lifecycle_events`) | SkillArtifact 生命周期事件 |
 
 ### Agent Review（AI 预审）
 
@@ -283,10 +285,10 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/knowledge.ts:19` | Zod enum (`agentReviewStatusSchema`) | `['agent-pass', 'agent-rejected']` |
 | `packages/contracts/src/domain/knowledge.ts:21-29` | Zod schema (`agentReviewResultSchema`) | 完整结果：status, duplicateRisk, correctnessRisk, completenessRisk（各 `low/medium/high`）, checkedAt, notes, boundary |
 | `packages/contracts/src/domain/knowledge.ts:185` | TS 类型 (`AgentReviewResult`) | 推断类型 |
-| `packages/server/src/lib/pre-review.ts` | Impl | `runPreReview()` — 基于 LangChain 的 AI 预审实现 |
+| `packages/server（Wave-10 已删除）/src/lib/pre-review.ts` | Impl | `runPreReview()` — 基于 LangChain 的 AI 预审实现 |
 | `packages/host-local/src/nest/gateway/candidate-review.controller.ts` | Route | `GET /v1/knowledge/review-queue` — 审核队列；`POST /v1/knowledge/review` — 审核决定 |
 | `packages/service-governance-review/src/routes.ts` | Route | 治理审核服务的路由注册 |
-| `packages/server/src/routes/operations/skill-review.ts` | Route | `GET /v1/operations/artifacts/review-queue` — Skill 审核队列；`POST /v1/operations/artifacts/:artifactId/review` — Skill 审核决定 |
+| `packages/server（Wave-10 已删除）/src/routes/operations/skill-review.ts` | Route | `GET /v1/operations/artifacts/review-queue` — Skill 审核队列；`POST /v1/operations/artifacts/:artifactId/review` — Skill 审核决定 |
 
 ### Resubmit（重新提交）
 
@@ -297,8 +299,8 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/knowledge.ts:136-142` | Zod schema (`knowledgeResubmissionSchema`) | 请求体：entryId, labels, shortcut, detail, boundary |
 | `packages/contracts/src/domain/knowledge.ts:193` | TS 类型 (`KnowledgeResubmission`) | 推断类型 |
 | `packages/contracts/src/domain/knowledge.ts:62` | TS 字段 (`resubmissionOf`) | `knowledgeSubmissionRecordSchema` 中关联原始提交 |
-| `packages/server/src/routes/knowledge.ts:154` | Route | `POST /v1/knowledge/:entryId/resubmit` |
-| `packages/server/src/routes/traps.ts:161` | Route | `POST /v1/traps/:trapId/resubmit` — Trap 专用别名 |
+| `packages/server（Wave-10 已删除）/src/routes/knowledge.ts:154` | Route | `POST /v1/knowledge/:entryId/resubmit` |
+| `packages/server（Wave-10 已删除）/src/routes/traps.ts:161` | Route | `POST /v1/traps/:trapId/resubmit` — Trap 专用别名 |
 
 ---
 
@@ -313,14 +315,14 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/candidates.ts:15-23` | Zod enum (`CandidateStatusSchema`) | 管道状态：`['received', 'queued', 'analyzing', 'duplicate_detected', 'ready_for_review', 'resolved', 'error']` |
 | `packages/contracts/src/domain/candidates.ts:167-212` | Zod schema (`CandidateSubmissionSchema`) | 完整记录：id, sourceType, submittedBy, status, originalPayload, analysisSnapshot, duplicateCase, manualResult, timestamps |
 | `packages/contracts/src/domain/candidates.ts:445` | TS 类型 (`CandidateSubmission`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidates`) | 行级持久化主表 |
-| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_analyses`) | 结构化分析结果子表（Round 5） |
-| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_manual_results`) | 结构化人工审核结果子表（Round 5） |
-| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_resolution_outcomes`) | 解决结果子表（Round 5） |
-| `packages/server/src/lib/candidates/processor.ts` | Impl | `scheduleCandidateProcessing()`, `processCandidate()`, `processPendingCandidates()` |
-| `packages/server/src/routes/candidates.ts:104` | Route | `POST /v1/candidates` — 提交新候选 |
-| `packages/server/src/routes/candidates.ts:188` | Route | `GET /v1/candidates/:candidateId` — 查询状态 |
-| `packages/server/src/routes/candidates.ts:211` | Route | `GET /v1/candidates` — 列表 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidates`) | 行级持久化主表 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_analyses`) | 结构化分析结果子表（Round 5） |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_manual_results`) | 结构化人工审核结果子表（Round 5） |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_resolution_outcomes`) | 解决结果子表（Round 5） |
+| `packages/server（Wave-10 已删除）/src/lib/candidates/processor.ts` | Impl | `scheduleCandidateProcessing()`, `processCandidate()`, `processPendingCandidates()` |
+| `packages/server（Wave-10 已删除）/src/routes/candidates.ts:104` | Route | `POST /v1/candidates` — 提交新候选 |
+| `packages/server（Wave-10 已删除）/src/routes/candidates.ts:188` | Route | `GET /v1/candidates/:candidateId` — 查询状态 |
+| `packages/server（Wave-10 已删除）/src/routes/candidates.ts:211` | Route | `GET /v1/candidates` — 列表 |
 
 ### Duplicate Case（去重案例）
 
@@ -332,13 +334,13 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/candidates.ts:125-138` | Zod schema (`DuplicateMatchSchema`) | 单条匹配：entityType, entityId, entityTitle, similarityScore, matchType, overlapDetails |
 | `packages/contracts/src/domain/candidates.ts:144-161` | Zod schema (`DuplicateCaseSchema`) | 完整案例：id, candidateId, detectedAt, detectionVersion, matches[], highestSimilarity, hasExactDuplicate, duplicateType |
 | `packages/contracts/src/domain/candidates.ts:444` | TS 类型 (`DuplicateCase`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_duplicate_cases`) | 判重主记录结构化表（Round 5） |
-| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_duplicate_matches`) | 匹配详情行结构化表（Round 5） |
-| `packages/server/src/lib/candidates/pg-detector.ts` | Impl | `createPgDuplicateDetector()` — PostgreSQL 去重检测 |
-| `packages/server/src/lib/duplicates/pg-repository.ts` | Impl | `PgDuplicateRepository` — PG 判重案例 CRUD（Round 5） |
-| `packages/server/src/routes/candidates.ts:245` | Route | `GET /v1/duplicates` — 列表 |
-| `packages/server/src/routes/candidates.ts:259` | Route | `GET /v1/duplicates/:candidateId` — 查询 |
-| `packages/server/src/routes/candidates.ts:275` | Route | `GET /v1/duplicates/:candidateId/bundle` — 离线审核包 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_duplicate_cases`) | 判重主记录结构化表（Round 5） |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/candidates.ts` | DB 表 (`candidate_duplicate_matches`) | 匹配详情行结构化表（Round 5） |
+| `packages/server（Wave-10 已删除）/src/lib/candidates/pg-detector.ts` | Impl | `createPgDuplicateDetector()` — PostgreSQL 去重检测 |
+| `packages/server（Wave-10 已删除）/src/lib/duplicates/pg-repository.ts` | Impl | `PgDuplicateRepository` — PG 判重案例 CRUD（Round 5） |
+| `packages/server（Wave-10 已删除）/src/routes/candidates.ts:245` | Route | `GET /v1/duplicates` — 列表 |
+| `packages/server（Wave-10 已删除）/src/routes/candidates.ts:259` | Route | `GET /v1/duplicates/:candidateId` — 查询 |
+| `packages/server（Wave-10 已删除）/src/routes/candidates.ts:275` | Route | `GET /v1/duplicates/:candidateId/bundle` — 离线审核包 |
 
 ### Manual Resolution（人工裁定）
 
@@ -350,8 +352,8 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/candidates.ts:296-300` | Zod schema (`ManualResultSubmissionSchema`) | 请求体：decision, notes, mergedWith? |
 | `packages/contracts/src/domain/candidates.ts:306-323` | Zod schema (`ResolutionOutcomeSchema`) | 结果：candidateId, decision, publishedEntityId, mergedIntoEntityId, entityType, resolvedAt, resolvedBy, notes |
 | `packages/contracts/src/domain/candidates.ts:358` | TS 类型 (`ResolutionOutcome`) | 推断类型 |
-| `packages/server/src/routes/candidates.ts:350` | Route | `POST /v1/candidates/:candidateId/manual-result` — 提交人工审核 |
-| `packages/server/src/routes/candidates.ts:401` | Route | `POST /v1/candidates/:candidateId/apply-resolution` — 执行裁定（发布独立或合并） |
+| `packages/server（Wave-10 已删除）/src/routes/candidates.ts:350` | Route | `POST /v1/candidates/:candidateId/manual-result` — 提交人工审核 |
+| `packages/server（Wave-10 已删除）/src/routes/candidates.ts:401` | Route | `POST /v1/candidates/:candidateId/apply-resolution` — 执行裁定（发布独立或合并） |
 
 ---
 
@@ -384,11 +386,11 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/decay.ts:96` | Zod enum (`decayStateSchema`) | 衰减状态：`['active', 'review-due', 'stale', 'expired', 'superseded']` |
 | `packages/contracts/src/domain/decay.ts:104-113` | Zod schema (`decayConfigSchema`) | 配置：reviewDueDays(90), staleDays(180), expireDays(365), enabled |
 | `packages/contracts/src/domain/decay.ts:121-132` | Zod schema (`decayMetaSchema`) | 元数据：lastVerifiedAt, decayState, supersededById, decayStateComputedAt, freshnessType |
-| `packages/server/src/lib/decay/state-machine.ts` | Impl | `computeDecayState()`, `isTerminalDecayState()`, `requiresAttention()` |
-| `packages/server/src/lib/decay/config.ts` | Impl | `loadDecayConfig()`, `validateDecayConfig()` |
-| `packages/server/src/routes/decay.ts:78` | Route | `GET /v1/operations/decay/entries` — 列出衰减条目 |
-| `packages/server/src/routes/decay.ts:203` | Route | `POST /v1/operations/decay/batch` — 批量操作 |
-| `packages/server/src/routes/decay.ts:344` | Route | `POST /v1/operations/decay/search` — 按衰减分面搜索 |
+| `packages/server（Wave-10 已删除）/src/lib/decay/state-machine.ts` | Impl | `computeDecayState()`, `isTerminalDecayState()`, `requiresAttention()` |
+| `packages/server（Wave-10 已删除）/src/lib/decay/config.ts` | Impl | `loadDecayConfig()`, `validateDecayConfig()` |
+| `packages/server（Wave-10 已删除）/src/routes/decay.ts:78` | Route | `GET /v1/operations/decay/entries` — 列出衰减条目 |
+| `packages/server（Wave-10 已删除）/src/routes/decay.ts:203` | Route | `POST /v1/operations/decay/batch` — 批量操作 |
+| `packages/server（Wave-10 已删除）/src/routes/decay.ts:344` | Route | `POST /v1/operations/decay/search` — 按衰减分面搜索 |
 
 ### Maintenance（维护）
 
@@ -401,9 +403,9 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/maintenance.ts:22-27` | Zod schema (`maintenanceMetaSchema`) | 字段：maintainer (ActorRef, nullable), reviewBy (ISO timestamp, nullable) |
 | `packages/contracts/src/domain/maintenance.ts:36` | Zod enum (`maintenanceActionSchema`) | 批量操作：`['assign-owner', 'extend-review', 'mark-verified']` |
 | `packages/contracts/src/domain/maintenance.ts:156` | TS 类型 (`MaintenanceMeta`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_maintenance_assignments`) | 维护分配结构化表（Round 3），`entry_id` 为主键 |
-| `packages/server/src/routes/maintenance.ts:84` | Route | `GET /v1/operations/maintenance/entries` — 按维护过滤列出 |
-| `packages/server/src/routes/maintenance.ts:225` | Route | `POST /v1/operations/maintenance/batch` — 批量维护操作 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_maintenance_assignments`) | 维护分配结构化表（Round 3），`entry_id` 为主键 |
+| `packages/server（Wave-10 已删除）/src/routes/maintenance.ts:84` | Route | `GET /v1/operations/maintenance/entries` — 按维护过滤列出 |
+| `packages/server（Wave-10 已删除）/src/routes/maintenance.ts:225` | Route | `POST /v1/operations/maintenance/batch` — 批量维护操作 |
 
 ### Evidence（证据）
 
@@ -415,7 +417,7 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/evidence.ts:22-27` | Zod enum (`evidenceLevelSchema`) | 证据级别：`['anecdotal', 'reproduced', 'documented', 'verified-in-prod']` |
 | `packages/contracts/src/domain/evidence.ts:33-44` | Zod schema (`evidenceMetaSchema`) | 完整元数据：sourceType, sourceRef, evidenceLevel, verifiedAt, verifiedBy |
 | `packages/contracts/src/domain/evidence.ts:62` | TS 类型 (`EvidenceMeta`) | 推断类型 |
-| `packages/server/src/routes/evidence.ts:17` | Route | `PATCH /v1/knowledge/:id/evidence` — 更新条目证据 |
+| `packages/server（Wave-10 已删除）/src/routes/evidence.ts:17` | Route | `PATCH /v1/knowledge/:id/evidence` — 更新条目证据 |
 
 ### Boundary（边界约束）
 
@@ -429,9 +431,9 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/boundary.ts:152` | TS 类型 (`Boundary`) | 推断类型 |
 | `packages/contracts/src/domain/boundary.ts:167-171` | Zod schema (`boundaryContextSchema`) | 运行时查询上下文：contexts[], platform, versions[] |
 | `packages/contracts/src/domain/boundary.ts:182-188` | Zod schema (`boundaryExplanationSchema`) | 检索解释：checked, requiredSatisfied, warnings[], boosts[] |
-| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_boundary_contexts/versions/prerequisites/signals/exclusions/evidence`) | 边界六子表（Round 3） |
-| `packages/server/src/lib/boundary-extract.ts` | Impl | `extractCandidateBoundaries()` — 基于 LLM 的边界提取 |
-| `packages/server/src/routes/admin-boundary-search.ts:27` | Route | `POST /admin/boundary-search` — 管理员边界搜索 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_boundary_contexts/versions/prerequisites/signals/exclusions/evidence`) | 边界六子表（Round 3） |
+| `packages/server（Wave-10 已删除）/src/lib/boundary-extract.ts` | Impl | `extractCandidateBoundaries()` — 基于 LLM 的边界提取 |
+| `packages/server（Wave-10 已删除）/src/routes/admin-boundary-search.ts:27` | Route | `POST /admin/boundary-search` — 管理员边界搜索 |
 
 ---
 
@@ -445,12 +447,12 @@ Role-Based Access Control。TrapMap 使用角色模板（user/admin/system-admin
 |------|------|------|
 | `packages/contracts/src/domain/common.ts:9` | Zod enum (`roleTemplateSchema`) | 角色模板：`['user', 'admin', 'system-admin']` |
 | `packages/contracts/src/domain/common.ts:20-36` | Zod enum (`permissionSchema`) | 15 项细粒度权限：session:read, team:create/list/select, member:create/update, key:create, knowledge:submit/search/review/update/export/import, audit:read, stats:read |
-| `packages/server/src/lib/rbac.ts:9-13` | TS 常量 (`ROLE_TEMPLATE_PERMISSIONS`) | 角色模板 → 权限数组映射 |
-| `packages/server/src/lib/rbac.ts:15` | Impl 函数 (`resolveEffectivePermissions`) | 计算有效权限（角色 + 显式授权） |
-| `packages/server/src/lib/rbac.ts:22` | Impl 函数 (`hasPermission`) | 权限检查 |
-| `packages/server/src/lib/rbac.ts:26` | Impl 函数 (`requirePermission`) | 权限不足时抛出 AppError(403) |
-| `packages/server/src/lib/rbac.ts:32` | Impl 函数 (`requireTeamAccess`) | 团队作用域强制 |
-| `packages/server/src/lib/rbac.ts:42` | Impl 函数 (`requireHigherLevel`) | 安全等级升级保护 |
+| `packages/server（Wave-10 已删除）/src/lib/rbac.ts:9-13` | TS 常量 (`ROLE_TEMPLATE_PERMISSIONS`) | 角色模板 → 权限数组映射 |
+| `packages/server（Wave-10 已删除）/src/lib/rbac.ts:15` | Impl 函数 (`resolveEffectivePermissions`) | 计算有效权限（角色 + 显式授权） |
+| `packages/server（Wave-10 已删除）/src/lib/rbac.ts:22` | Impl 函数 (`hasPermission`) | 权限检查 |
+| `packages/server（Wave-10 已删除）/src/lib/rbac.ts:26` | Impl 函数 (`requirePermission`) | 权限不足时抛出 AppError(403) |
+| `packages/server（Wave-10 已删除）/src/lib/rbac.ts:32` | Impl 函数 (`requireTeamAccess`) | 团队作用域强制 |
+| `packages/server（Wave-10 已删除）/src/lib/rbac.ts:42` | Impl 函数 (`requireHigherLevel`) | 安全等级升级保护 |
 
 ### Security Level（安全等级）
 
@@ -460,7 +462,7 @@ Role-Based Access Control。TrapMap 使用角色模板（user/admin/system-admin
 |------|------|------|
 | `packages/contracts/src/domain/common.ts:7` | Zod schema (`securityLevelSchema`) | `z.number().int().min(0).max(10)` |
 | `packages/contracts/src/domain/common.ts:76` | TS 类型 (`SecurityLevel`) | 推断类型 |
-| `packages/server/src/lib/rbac.ts:42` | Impl 函数 (`requireHigherLevel`) | 安全等级升级守卫 |
+| `packages/server（Wave-10 已删除）/src/lib/rbac.ts:42` | Impl 函数 (`requireHigherLevel`) | 安全等级升级守卫 |
 
 ### Scope（作用域）
 
@@ -545,7 +547,7 @@ Role-Based Access Control。TrapMap 使用角色模板（user/admin/system-admin
 |------|------|------|
 | `packages/contracts/src/domain/common.ts:3` | Zod schema (`entityIdSchema`) | `z.string().min(1).max(128)` |
 | `packages/contracts/src/domain/common.ts:75` | TS 类型 (`EntityId`) | 推断类型，全项目使用 |
-| `packages/server/src/lib/ids.ts` | Impl | ID 生成工具：`createDuplicateCaseId()`, `createPrefixedId()`, `createQueryId()` |
+| `packages/server（Wave-10 已删除）/src/lib/ids.ts` | Impl | ID 生成工具：`createDuplicateCaseId()`, `createPrefixedId()`, `createQueryId()` |
 
 ### ActorRef
 
@@ -566,7 +568,7 @@ Role-Based Access Control。TrapMap 使用角色模板（user/admin/system-admin
 |------|------|------|
 | `packages/contracts/src/domain/common.ts:13-18` | Zod schema (`labelSchema`) | `z.string().trim().min(1).max(48).regex(/^[a-z0-9:_/-]+$/i)` |
 | `packages/contracts/src/domain/common.ts:79` | TS 类型 (`Label`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_labels`) | 标签结构化子表（Round 3） |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/knowledge.ts` | DB 表 (`knowledge_labels`) | 标签结构化子表（Round 3） |
 
 ---
 
@@ -599,8 +601,8 @@ Skill 工件的磁盘存储结构：
 | `packages/contracts/src/domain/retrieval.ts:438-440` | Zod enum (`graphPlanFallbackTargetSchema`) | 降级目标：`['v2-capsule', 'v1-graph-assisted']` |
 | `packages/contracts/src/domain/retrieval.ts:465` | TS 字段 (`fallbackApplied`) | `routingTraceSchema` 中标记是否触发降级 |
 | `packages/contracts/src/domain/retrieval.ts:526-531` | Zod schema (`graphPlanFallbackSchema`) | Capsule 降级或 Entry 降级的联合载荷 |
-| `packages/server/src/lib/ai/providers.ts:116` | TS 类 (`FallbackEmbeddings`) | 无 AI Provider 时的确定性哈希嵌入回退 |
-| `packages/server/src/lib/ai/providers.ts:223` | TS 类 (`FallbackChat`) | 无 Provider 时的空操作聊天回退 |
+| `packages/server（Wave-10 已删除）/src/lib/ai/providers.ts:116` | TS 类 (`FallbackEmbeddings`) | 无 AI Provider 时的确定性哈希嵌入回退 |
+| `packages/server（Wave-10 已删除）/src/lib/ai/providers.ts:223` | TS 类 (`FallbackChat`) | 无 Provider 时的空操作聊天回退 |
 
 ### JSON Store
 
@@ -608,8 +610,8 @@ Skill 工件的磁盘存储结构：
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `packages/server/src/lib/store/store-interface.ts:3-7` | TS 接口 (`SkillShareerStore`) | 规范存储契约：snapshot(), transact(), nextId() |
-| `packages/server/src/lib/store/json-store.ts:29` | TS 类 (`JsonStore`) | 实现 `SkillShareerStore`，基于 JSON 文件 |
+| `packages/server（Wave-10 已删除）/src/lib/store/store-interface.ts:3-7` | TS 接口 (`SkillShareerStore`) | 规范存储契约：snapshot(), transact(), nextId() |
+| `packages/server（Wave-10 已删除）/src/lib/store/json-store.ts:29` | TS 类 (`JsonStore`) | 实现 `SkillShareerStore`，基于 JSON 文件 |
 
 ### Postgres Store
 
@@ -617,8 +619,8 @@ Skill 工件的磁盘存储结构：
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `packages/server/src/lib/persistence/postgres-store.ts:19` | TS 类 (`PostgresStore`) | 实现 `SkillShareerStore`，JSONB + 行级锁 |
-| `packages/server/src/lib/persistence/schema/index.ts` | DB 表 (`store_snapshot`) | 单行 JSONB 持久化：key='main', data=StoreData, updatedAt |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/postgres-store.ts:19` | TS 类 (`PostgresStore`) | 实现 `SkillShareerStore`，JSONB + 行级锁 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/index.ts` | DB 表 (`store_snapshot`) | 单行 JSONB 持久化：key='main', data=StoreData, updatedAt |
 
 > **Round 8 备注**：核心业务域（知识、工件、候选、反馈、统计、检索索引）已通过各自的 `Pg*Repository` 直接访问 PostgreSQL 结构化表。`PostgresStore` 仅用于尚未迁移的域（用户、团队、成员、会话、访问密钥、审计）。
 
@@ -631,9 +633,9 @@ Skill 工件的磁盘存储结构：
 | `docs/plans/round4-cross-table-consistency-plan.md` | 实施计划 | 明确 PostgreSQL 收敛目标、禁止长期双真相 |
 | `docs/archived/archived-plans/plan-2026-05-21-round4-complete.md` | 归档计划 | Round 0-4 结构化落地方案 |
 | `docs/reference/DATA_MODEL.md:1` | 参考文档 | 说明各领域当前主事实源与过渡边界 |
-| `packages/server/src/lib/knowledge/repository.ts` | Impl | Knowledge 已在 Round 2 切换到 PG-only 主写 |
-| `packages/server/src/lib/artifacts/repository.ts` | Impl | Artifact 已移除 DualWrite，PG 为唯一主写 |
-| `packages/server/src/lib/candidates/repository.ts` | Impl | Candidate 已移除 DualWrite，PG 为唯一主写 |
+| `packages/server（Wave-10 已删除）/src/lib/knowledge/repository.ts` | Impl | Knowledge 已在 Round 2 切换到 PG-only 主写 |
+| `packages/server（Wave-10 已删除）/src/lib/artifacts/repository.ts` | Impl | Artifact 已移除 DualWrite，PG 为唯一主写 |
+| `packages/server（Wave-10 已删除）/src/lib/candidates/repository.ts` | Impl | Candidate 已移除 DualWrite，PG 为唯一主写 |
 
 ### DualWrite（双写兼容层）
 
@@ -652,8 +654,8 @@ Round 0 冻结后的数据库演进约定：先定目标模型和命名规范，
 | 位置 | 形式 | 说明 |
 |------|------|------|
 | `docs/plans/round4-cross-table-consistency-plan.md` | 实施计划 | Round 4+ 后续增强的总体实施策略与阶段划分 |
-| `packages/server/src/lib/persistence/migration-runner.ts` | Impl | 应用启动时统一执行 Drizzle migration |
-| `packages/server/drizzle/` | Migration 目录 | DDL、索引、快照和迁移顺序的唯一入口 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/migration-runner.ts` | Impl | 应用启动时统一执行 Drizzle migration |
+| `packages/server（Wave-10 已删除）/drizzle/` | Migration 目录 | DDL、索引、快照和迁移顺序的唯一入口 |
 
 ### Activation Policy（激活策略）
 
@@ -665,10 +667,10 @@ Round 0 冻结后的数据库演进约定：先定目标模型和命名规范，
 | `packages/contracts/src/domain/artifacts.ts:43` | Zod enum (`legacyScriptActivationPolicySchema`) | 旧版三状态（向后兼容）：`['manual', 'auto', 'blocked']` |
 | `packages/contracts/src/domain/artifacts.ts:48-51` | Zod union (`compatibleScriptActivationPolicySchema`) | 兼容新旧值的联合类型 |
 | `packages/contracts/src/domain/artifacts.ts:379` | TS 类型 (`ScriptActivationPolicy`) | 推断类型 |
-| `packages/server/src/lib/activation-policy.ts:33` | Impl 函数 (`mapLegacyPolicyToFourState`) | manual→needs-approval, auto→client-executable |
-| `packages/server/src/lib/activation-policy.ts:59` | Impl 函数 (`getDefaultActivationPolicy`) | 从描述符计算默认策略 |
-| `packages/server/src/lib/activation-policy.ts:90` | Impl 函数 (`buildScriptPolicyMetadata`) | 将描述符塑形为策略感知元数据 |
-| `packages/server/src/lib/activation-policy.ts:123` | Impl 函数 (`buildActivationHints`) | 批量清单脚本的激活提示 |
+| `packages/server（Wave-10 已删除）/src/lib/activation-policy.ts:33` | Impl 函数 (`mapLegacyPolicyToFourState`) | manual→needs-approval, auto→client-executable |
+| `packages/server（Wave-10 已删除）/src/lib/activation-policy.ts:59` | Impl 函数 (`getDefaultActivationPolicy`) | 从描述符计算默认策略 |
+| `packages/server（Wave-10 已删除）/src/lib/activation-policy.ts:90` | Impl 函数 (`buildScriptPolicyMetadata`) | 将描述符塑形为策略感知元数据 |
+| `packages/server（Wave-10 已删除）/src/lib/activation-policy.ts:123` | Impl 函数 (`buildActivationHints`) | 批量清单脚本的激活提示 |
 
 ### Entity Lineage（实体谱系）
 
@@ -678,9 +680,9 @@ Round 0 冻结后的数据库演进约定：先定目标模型和命名规范，
 |------|------|------|
 | `packages/contracts/src/domain/candidates.ts:329-348` | Zod schema (`EntityLineageSchema`) | 记录：id, candidateId, relationshipType (`published_as`/`merged_into`), sourceType, sourceId, targetType, targetId, createdAt, notes |
 | `packages/contracts/src/domain/candidates.ts:358` | TS 类型 (`EntityLineage`) | 推断类型 |
-| `packages/server/src/lib/persistence/schema/candidates.ts` | DB 表 (`entity_lineage`) | PostgreSQL 结构化表（Round 5），支持按候选、来源、目标三维度查询 |
-| `packages/server/src/lib/lineage/pg-repository.ts` | Impl | `PgLineageRepository` — PG 血缘 CRUD（Round 5） |
-| `packages/server/src/lib/lineage/index.ts` | Impl | `createLineageRepository()`, `LineageRepository` 接口 |
+| `packages/server（Wave-10 已删除）/src/lib/persistence/schema/candidates.ts` | DB 表 (`entity_lineage`) | PostgreSQL 结构化表（Round 5），支持按候选、来源、目标三维度查询 |
+| `packages/server（Wave-10 已删除）/src/lib/lineage/pg-repository.ts` | Impl | `PgLineageRepository` — PG 血缘 CRUD（Round 5） |
+| `packages/server（Wave-10 已删除）/src/lib/lineage/index.ts` | Impl | `createLineageRepository()`, `LineageRepository` 接口 |
 
 ### Tool Profile（工具配置）
 

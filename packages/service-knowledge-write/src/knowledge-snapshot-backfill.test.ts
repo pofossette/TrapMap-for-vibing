@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  migrateKnowledgeSnapshot,
   type KnowledgeSnapshotOwner,
   type LegacyKnowledgeSnapshotRecord,
+  migrateKnowledgeSnapshot,
 } from './knowledge-snapshot-backfill.js';
 
 const knowledge: LegacyKnowledgeSnapshotRecord = {

@@ -14,7 +14,6 @@ import type {
   GraphEdgeRecord,
   GraphIndexDocumentRecord,
   GraphNodeRecord,
-  GraphRelationStrength,
   Scope,
 } from '@trapmap/contracts';
 

@@ -3,10 +3,10 @@ import { describe, expectTypeOf, it } from 'vitest';
 import type { ConflictRelation, FeedbackRemediationState } from '@trapmap/contracts';
 
 import type {
+  GovernanceAsyncCommandPort,
   GovernanceConflictEntry,
   GovernanceConflictReadPort,
   GovernanceConflictWorkflowPort,
-  GovernanceAsyncCommandPort,
   GovernanceRetrievalProjection,
 } from './internal-ports.js';
 import type { FeedbackQueueRecord } from './repo-ports.js';

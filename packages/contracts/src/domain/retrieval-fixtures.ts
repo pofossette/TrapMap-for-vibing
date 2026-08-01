@@ -38,7 +38,9 @@ export function createRetrievalKnowledgeFixture(
       shortcut,
       detail,
       labels,
-      submittedByUserId: options.submittedByUserId,
+      ...(options.submittedByUserId !== undefined && {
+        submittedByUserId: options.submittedByUserId,
+      }),
     }),
     embeddingCache: null,
     indexState: null,
@@ -150,7 +152,7 @@ export function createRetrievalMockRepos<RepositoryOverrides extends object = ob
     'governanceRetrievalProjection' in repositories && repositories.governanceRetrievalProjection
       ? repositories.governanceRetrievalProjection
       : {
-          listFeedback: () => repositories.feedback.listByFilter({}),
+          listFeedback: () => repositories.feedback.listByFilter(),
           listConflicts: () => repositories.conflict.listAll(),
         };
 

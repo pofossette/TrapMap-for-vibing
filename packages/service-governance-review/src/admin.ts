@@ -1,3 +1,9 @@
+import {
+  type AuditLogPort,
+  type FeedbackRepositoryPort,
+  InvocationError,
+  type JobRuntimePort,
+} from '@trapmap/backend-core';
 import type {
   ArtifactReadProjection,
   FeedbackBatchRequest,
@@ -5,32 +11,26 @@ import type {
   FeedbackListItem,
   FeedbackListRequest,
   FeedbackListResponse,
+  FeedbackRemediationCompleteRequest,
+  FeedbackRemediationCompleteResponse,
+  FeedbackRemediationDetailResponse,
   FeedbackRemediationQueueItem,
   FeedbackRemediationQueueResponse,
   FeedbackRemediationState,
-  FeedbackRemediationDetailResponse,
-  FeedbackRemediationCompleteRequest,
-  FeedbackRemediationCompleteResponse,
   FeedbackStatsResponse,
   KnowledgeOwnerPort,
 } from '@trapmap/contracts';
 import {
-  feedbackListResponseSchema,
-  feedbackBatchResponseSchema,
-  feedbackStatsResponseSchema,
-  feedbackRemediationQueueResponseSchema,
-  feedbackRemediationDetailResponseSchema,
-  feedbackRemediationCompleteResponseSchema,
-  remediationReactivationPayloadSchema,
-  normalizeBadcaseTaxonomy,
   DEFAULT_LIFECYCLE_TRIGGER_RULES,
+  feedbackBatchResponseSchema,
+  feedbackListResponseSchema,
+  feedbackRemediationCompleteResponseSchema,
+  feedbackRemediationDetailResponseSchema,
+  feedbackRemediationQueueResponseSchema,
+  feedbackStatsResponseSchema,
+  normalizeBadcaseTaxonomy,
+  remediationReactivationPayloadSchema,
 } from '@trapmap/contracts';
-import {
-  InvocationError,
-  type AuditLogPort,
-  type FeedbackRepositoryPort,
-  type JobRuntimePort,
-} from '@trapmap/backend-core';
 
 export interface GovernanceReviewAdminDeps {
   feedbackRepo: FeedbackRepositoryPort;
@@ -132,8 +132,8 @@ export function remediationState(
     suppressedFromRetrieval: true,
     suppressedFromIndex: true,
     activeFeedbackIds: ordered.map((record) => record.id),
-    openedAt: first.remediationOpenedAt ?? first.submittedAt,
-    openedByUserId: first.remediationOpenedByUserId ?? null,
+    openedAt: (first.remediationOpenedAt as string | undefined) ?? first.submittedAt,
+    openedByUserId: (first.remediationOpenedByUserId as string | undefined) ?? null,
     resolvedAt: resolvedAt ?? null,
     resolvedByUserId: resolvedByUserId ?? null,
   };
@@ -174,12 +174,12 @@ async function toFeedbackItem(
   deps: GovernanceReviewAdminDeps,
 ): Promise<FeedbackListItem> {
   const classification = normalizeBadcaseTaxonomy(record.failureClassification);
-  const item = {
+  const item: FeedbackListItem = {
     id: record.id,
     entryId: record.entryId,
     entryType: record.entryType,
     entryShortcut: await entryShortcut(record, deps),
-    problemType: record.problemType,
+    problemType: record.problemType as FeedbackListItem['problemType'],
     description: record.description,
     context: record.context,
     submittedAt: record.submittedAt,
@@ -188,11 +188,11 @@ async function toFeedbackItem(
       handle: record.submittedByHandle,
       securityLevel: 0,
     },
-    status: record.status,
+    status: record.status as FeedbackListItem['status'],
     ageDays: Math.round(ageDays(record.submittedAt, now)),
     adminNotes: record.adminNotes ?? null,
     ...(classification ? { failureClassification: classification } : {}),
-  } satisfies FeedbackListItem;
+  };
   return item;
 }
 
@@ -431,16 +431,22 @@ export function createGovernanceReviewAdminModule(
           ? {
               trapDetail: String((knowledgeEntry as { detail?: unknown }).detail ?? ''),
             }
-          : {
-              skillRevision: artifact?.latestRevision?.revision ?? null,
-              skillProfileSummary: artifact?.latestRevision?.derived?.profile?.summary ?? null,
-              skillCapsules:
-                artifact?.latestRevision?.derived?.capsules.map((capsule) => ({
-                  capsuleId: capsule.capsuleId,
-                  problem: capsule.problem,
-                  content: capsule.content,
-                })) ?? [],
-            };
+          : (() => {
+              const latestRevision = artifact?.history.find(
+                (r) => r.revision === artifact.latestRevision,
+              );
+              const derived = latestRevision?.derived;
+              return {
+                skillRevision: latestRevision?.revision ?? null,
+                skillProfileSummary: derived?.profile?.summary ?? null,
+                skillCapsules:
+                  derived?.capsules?.map((capsule) => ({
+                    capsuleId: capsule.capsuleId,
+                    problem: capsule.problem,
+                    content: capsule.content,
+                  })) ?? [],
+              };
+            })();
         items.push({
           entryId,
           entryType,

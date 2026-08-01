@@ -294,7 +294,7 @@ export async function updateEntryEmbeddingCache(
     throw InvocationError.notFound('Knowledge entry not found');
   }
 
-  const text = buildEmbeddingText(entry);
+  const text = buildEmbeddingText(entry as KnowledgeRecord);
   const textHash = infra.embeddings.hashText(text);
   const vector = await infra.embeddings.generate(text);
 
@@ -302,6 +302,6 @@ export async function updateEntryEmbeddingCache(
     textHash,
     vector,
     createdAt: nowIso(),
-    revision: entry.history.length,
+    revision: (entry as KnowledgeRecord).history.length,
   });
 }

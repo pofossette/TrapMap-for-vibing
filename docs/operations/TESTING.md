@@ -2,6 +2,8 @@
 
 本文档说明 TrapMap 的测试架构、运行方法和用例编写规范。
 
+> **历史说明**：本文档中大量测试命令引用 `packages/server（Wave-10 已删除）` 路径，该包已于 Wave-10 删除。当前测试命令请使用 `rtk pnpm test:file -- <repo-root-relative-test-path>` 格式，路径指向当前存在的包（如 `packages/service-*`、`packages/host-local`、`packages/contracts` 等）。
+
 ## 测试架构
 
 TrapMap 采用两级评估体系：
@@ -69,11 +71,11 @@ flowchart TB
 - `distributed task worker`：`pnpm dev -- candidate-worker` 或 `pnpm dev -- governance-worker`，确认该进程不对外监听业务 API，但其 runtime mode 仅要求对应 worker 健康。
 - `distributed outbox worker`：`pnpm dev -- outbox-worker`，确认该进程只拥有 outbox runtime。
 
-这些根脚本现在通过 `scripts/run-dev.ts` 分发到 `@trapmap/host-local` 与 `@trapmap/host-distributed`。兼容别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍可用。测试命令里仍然大量引用 `packages/server/...`，是因为当前权威测试文件与核心实现仍主要驻留在该兼容层和既有代码面中。
+这些根脚本现在通过 `scripts/run-dev.ts` 分发到 `@trapmap/host-local` 与 `@trapmap/host-distributed`。兼容别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍可用。测试命令里仍然大量引用 `packages/server（Wave-10 已删除）/...`，是因为当前权威测试文件与核心实现仍主要驻留在该兼容层和既有代码面中。
 
 **Phase 2 Store Snapshot / PG-first Freeze Checks:**
-- Snapshot allowlist：运行 `packages/server/src/__tests__/snapshot-usage-guard.test.ts`，确认新的 `store.snapshot()` / `store.transact()` 调用没有逃出 allowlist，并且 allowlist 仍只覆盖命名 compatibility buckets。
-- PG-first compatibility：运行 `packages/server/src/__tests__/pg-first-compat.test.ts`，确认 access-key / member 等 PG-first surface 在 InMemory fallback 下仍维持相同外部 contract；这证明 InMemory 当前是 compatibility/testing posture，而不是第二套 owner 语义。
+- Snapshot allowlist：运行 `packages/server（Wave-10 已删除）/src/__tests__/snapshot-usage-guard.test.ts`，确认新的 `store.snapshot()` / `store.transact()` 调用没有逃出 allowlist，并且 allowlist 仍只覆盖命名 compatibility buckets。
+- PG-first compatibility：运行 `packages/server（Wave-10 已删除）/src/__tests__/pg-first-compat.test.ts`，确认 access-key / member 等 PG-first surface 在 InMemory fallback 下仍维持相同外部 contract；这证明 InMemory 当前是 compatibility/testing posture，而不是第二套 owner 语义。
 - Truth freeze：运行 `pnpm check:docs-drift`，确认 remediation detail plan、truth source、packages doc、persistence doc 与 testing doc 对 `store_snapshot` / InMemory / PG-first 口径的描述一致。
 - 解释边界：Phase 2 不要求把全部 compatibility path 都迁走；它要求把 remaining direct entrypoints、retention 条件、priority waves 和测试门写成显式事实。
 
@@ -108,9 +110,9 @@ flowchart TB
 - Focused end-to-end proof：在 PostgreSQL 模式下先走一次 retrieval 拿到真实 `queryId`，再提交 badcase feedback，消费 `feedback.badcase-export-draft` 任务并写入 `workflow_runs`，最后调用 `GET /v1/operations/badcases/:feedbackId/export`；确认 `debug.correlation`、`debug.durableTrace`、`debug.workflow` 与 queued payload / workflow snapshot 使用同一组语义，同时 `draft.request` 仍不泄露 `asyncJobId`、`workflowRunId`。
 - Failure taxonomy：制造 dead-letter / failed event，确认 operator 仍通过统一 taxonomy 解释为 `permanent-failure`，而不是只输出底层 status 字符串。
 - Distributed hop correlation：运行 `packages/host-distributed/src/gateway/internal-client.test.ts` 或 distributed acceptance/closeout，确认 `x-request-id`、`x-trace-id` 与既有 `x-correlation-id` 跨 hop 透传，且 `403/404/409/503/504` canonical `kind` 不因 internal client 而漂移；上游空 body 或 transport 级失败也必须被归一化成 canonical body。
-- Phase 3 runtime metrics export：运行 `packages/server/src/app.test.ts`，确认 `/metrics` 返回 Prometheus text，包含 `trapmap_runtime_executions_total`、`trapmap_runtime_request_duration_ms_*` 等真实样本，并且 label 中不出现 `requestId` / `traceId` 这类高基数键。
+- Phase 3 runtime metrics export：运行 `packages/server（Wave-10 已删除）/src/app.test.ts`，确认 `/metrics` 返回 Prometheus text，包含 `trapmap_runtime_executions_total`、`trapmap_runtime_request_duration_ms_*` 等真实样本，并且 label 中不出现 `requestId` / `traceId` 这类高基数键。
 - Phase 3 span propagation：运行 `packages/host-distributed/src/gateway/routes.test.ts` 与 `packages/host-distributed/src/gateway/internal-client.test.ts`，确认 distributed write hop 继续透传 `traceparent`，并由 internal client 生成 `x-trapmap-span-id` / `x-trapmap-parent-span-id`。
-- Phase 3 structured logging：运行 `packages/server/src/app.test.ts` 与 `packages/server/src/lib/runtime/resilience.test.ts`，确认 request / resilience 日志至少带 `eventCategory`、`eventName`、`requestId`、`traceId`、`serviceName`、必要时 `attempt`。
+- Phase 3 structured logging：运行 `packages/server（Wave-10 已删除）/src/app.test.ts` 与 `packages/server（Wave-10 已删除）/src/lib/runtime/resilience.test.ts`，确认 request / resilience 日志至少带 `eventCategory`、`eventName`、`requestId`、`traceId`、`serviceName`、必要时 `attempt`。
 
 **Phase 7 Badcase Export / Decision Metrics Checks:**
 - Operator export flow：先用 retrieval 拿到 `queryId`，提交带 badcase 的 feedback，再调用 `GET /v1/operations/badcases/:feedbackId/export`，确认返回 deterministic draft JSON。
@@ -132,10 +134,10 @@ flowchart TB
 
 **Backend Engineering Master Plan Phase 4 Closeout Matrix:**
 - Phase 0：至少运行当前 gap / docs 相关守卫，并确认 `docs/plans/README.md`、`plan.md` 与阶段索引没有入口漂移。
-- Phase 1：至少运行 `packages/server/src/app.test.ts`、`packages/server/src/bootstrap/startup.test.ts`、`packages/server/src/config.test.ts`，并确认 `ARCHITECTURE.md`、`SYSTEM_TRUTH_SOURCES.md` 与相关 README 已回写 ownership / allowlist。
-- Phase 2：至少运行 `packages/server/src/routes/operations/status.test.ts` 与 async/runtime 相关测试，确认 `/v1/operations/status/async` contract、`workflow_runs.stats` checkpoint source 和 failure taxonomy 已冻结。
+- Phase 1：至少运行 `packages/server（Wave-10 已删除）/src/app.test.ts`、`packages/server（Wave-10 已删除）/src/bootstrap/startup.test.ts`、`packages/server（Wave-10 已删除）/src/config.test.ts`，并确认 `ARCHITECTURE.md`、`SYSTEM_TRUTH_SOURCES.md` 与相关 README 已回写 ownership / allowlist。
+- Phase 2：至少运行 `packages/server（Wave-10 已删除）/src/routes/operations/status.test.ts` 与 async/runtime 相关测试，确认 `/v1/operations/status/async` contract、`workflow_runs.stats` checkpoint source 和 failure taxonomy 已冻结。
 - Phase 2：同时确认 runtime metrics 采用“logical terminal outcome + separate retry attempts”语义，且 route/worker/internal client/operator status 的 canonical error kind 映射没有漂移。
-- Phase 3：至少运行 `packages/server/src/routes/operations/status.test.ts`、`packages/server/src/routes/operations/stats.test.ts`、`packages/server/src/config.test.ts`，确认 operatorHome / configGovernance / capacityModel / bulkOperations 以及 cache invalidation summary 已落地。
+- Phase 3：至少运行 `packages/server（Wave-10 已删除）/src/routes/operations/status.test.ts`、`packages/server（Wave-10 已删除）/src/routes/operations/stats.test.ts`、`packages/server（Wave-10 已删除）/src/config.test.ts`，确认 operatorHome / configGovernance / capacityModel / bulkOperations 以及 cache invalidation summary 已落地。
 - Phase 4：至少运行本轮 closeout 相关测试与守卫，确认 truth-source 回写、active-execution 边界和 closeout 规则已固定。
 
 **Phase 4 Adapter Env / Target Freeze Checks:**
@@ -480,7 +482,7 @@ Phase 4 最小真实落地补充：
 若本轮只是根计划 Phase 4 的最终收口审计，且未改 runtime/API/operator 实现面，则使用更小的 root-plan closeout 集合：
 
 1. `pnpm test:file -- packages/contracts/src/domain/operations.test.ts`
-2. `pnpm test:file -- packages/server/src/routes/operations/badcases.test.ts`
+2. `pnpm test:file -- packages/server（Wave-10 已删除）/src/routes/operations/badcases.test.ts`
 3. `pnpm test:observability-closeout`
 4. `pnpm test:discovery-closeout`
 5. `pnpm test:file -- packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`
@@ -567,16 +569,16 @@ pnpm eval:dedup --dry-run | rg 'real-trap-exact-rmrf-quill|real-semantic-handoff
 
 # Queue dedupe + duplicate trace（Phase 4）
 pnpm exec vitest run \
-  packages/server/src/lib/queue/task-queue.test.ts \
-  packages/server/src/lib/candidates/processor.test.ts \
-  packages/server/src/__tests__/candidate-pipeline.test.ts
+  packages/server（Wave-10 已删除）/src/lib/queue/task-queue.test.ts \
+  packages/server（Wave-10 已删除）/src/lib/candidates/processor.test.ts \
+  packages/server（Wave-10 已删除）/src/__tests__/candidate-pipeline.test.ts
 
 pnpm exec vitest run \
   packages/contracts/src/domain/candidates.test.ts \
-  packages/server/src/lib/candidates/detector.test.ts \
-  packages/server/src/lib/candidates/pg-detector.test.ts \
-  packages/server/src/lib/candidates/pg-repository.test.ts \
-  packages/server/src/lib/persistence/__tests__/schema-candidates.test.ts
+  packages/server（Wave-10 已删除）/src/lib/candidates/detector.test.ts \
+  packages/server（Wave-10 已删除）/src/lib/candidates/pg-detector.test.ts \
+  packages/server（Wave-10 已删除）/src/lib/candidates/pg-repository.test.ts \
+  packages/server（Wave-10 已删除）/src/lib/persistence/__tests__/schema-candidates.test.ts
 
 # 摄取 smoke（捕获文本证据）
 pnpm eval:ingestion:smoke | tee reports/eval/ingestion-smoke-postgres.txt
@@ -632,25 +634,25 @@ pnpm check:fallow
 ```bash
 # Runtime surface
 pnpm test -- --run \
-  packages/server/src/app.test.ts \
-  packages/server/src/lib/runtime/runtime-metadata.test.ts \
-  packages/server/src/config.test.ts
+  packages/server（Wave-10 已删除）/src/app.test.ts \
+  packages/server（Wave-10 已删除）/src/lib/runtime/runtime-metadata.test.ts \
+  packages/server（Wave-10 已删除）/src/config.test.ts
 
 # Shared resilience primitives
 pnpm test -- --run \
-  packages/server/src/lib/runtime/resilience.test.ts \
-  packages/server/src/lib/runtime/metrics.test.ts \
-  packages/server/src/lib/candidates/processor.test.ts \
-  packages/server/src/bootstrap/startup.test.ts \
-  packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts
+  packages/server（Wave-10 已删除）/src/lib/runtime/resilience.test.ts \
+  packages/server（Wave-10 已删除）/src/lib/runtime/metrics.test.ts \
+  packages/server（Wave-10 已删除）/src/lib/candidates/processor.test.ts \
+  packages/server（Wave-10 已删除）/src/bootstrap/startup.test.ts \
+  packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/llm-extract.test.ts
 
 # Async reliability
 pnpm test -- --run \
-  packages/server/src/lib/queue/task-queue.test.ts \
-  packages/server/src/lib/lifecycle/outbox.test.ts \
-  packages/server/src/__tests__/candidate-pipeline.test.ts \
-  packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts \
-  packages/server/src/routes/candidates.test.ts
+  packages/server（Wave-10 已删除）/src/lib/queue/task-queue.test.ts \
+  packages/server（Wave-10 已删除）/src/lib/lifecycle/outbox.test.ts \
+  packages/server（Wave-10 已删除）/src/__tests__/candidate-pipeline.test.ts \
+  packages/server（Wave-10 已删除）/src/lib/lifecycle/subscribers/subscribers-integration.test.ts \
+  packages/server（Wave-10 已删除）/src/routes/candidates.test.ts
 
 # Docs and guardrails
 pnpm check:docs-drift
@@ -682,14 +684,14 @@ pnpm check:links
 | 阶段 | 最小验证 |
 |---|---|
 | `Phase 0` | `pnpm check:docs-drift` + `pnpm check:structure` |
-| `Phase 1` | `pnpm test -- --run packages/server/src/app.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/config.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
-| `Phase 2` | `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts packages/server/src/config.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
+| `Phase 1` | `pnpm test -- --run packages/server（Wave-10 已删除）/src/app.test.ts packages/server（Wave-10 已删除）/src/bootstrap/startup.test.ts packages/server（Wave-10 已删除）/src/config.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
+| `Phase 2` | `pnpm test -- --run packages/server（Wave-10 已删除）/src/routes/operations/status.test.ts packages/server（Wave-10 已删除）/src/lib/runtime/runtime-metadata.test.ts packages/server（Wave-10 已删除）/src/config.test.ts` + `pnpm check:docs-drift` + `pnpm check:structure` |
 | `Phase 3` | `rtk pnpm check:docs-drift` + `rtk pnpm check:structure` |
 | `Phase 4` | 本轮相关测试 + `pnpm check:docs-drift` + `pnpm check:structure`；只有在 truth-source、计划边界和 closeout 规则回写完成后才能勾选根 `plan.md` |
 | CI 配置变更 | `pnpm check:docs-drift` + 更新 `CI_CD.md` |
 | 架构变更 | `pnpm check:docs-drift` + `pnpm check:mermaid` + `pnpm check:complexity` + `pnpm eval:smoke` |
 | 脚本/守卫变更 | `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` + `pnpm check:docs-drift` |
-| 摘要生成变更 (`summary.ts`) | `rtk pnpm test -- --run packages/server/src/lib/retrieval/response/summary.test.ts evals/summary/__tests__/runner-api.test.ts` + `pnpm eval:summary:smoke` |
+| 摘要生成变更 (`summary.ts`) | `rtk pnpm test -- --run packages/server（Wave-10 已删除）/src/lib/retrieval/response/summary.test.ts evals/summary/__tests__/runner-api.test.ts` + `pnpm eval:summary:smoke` |
 | 评测命令变更 | `pnpm check:docs-drift` + smoke 测试（验证 EVALUATION.md / TESTING.md 中的 eval 命令正确） |
 | 贡献指南变更 | `pnpm check:docs-drift` + smoke 测试（验证 CONTRIBUTING.md 中的 DB 命令格式） |
 
@@ -1064,16 +1066,16 @@ export const mySummaryCase = summaryEvalCaseSchema.parse({
 pnpm test
 
 # 意图解析器测试（正则 + LLM）
-pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent.test.ts
+pnpm test -- --run packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/intent.test.ts
 
 # 意图缓存测试
-pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent-cache.test.ts
+pnpm test -- --run packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/intent-cache.test.ts
 
 # 运行特定文件
 pnpm vitest run evals/retrieval/runner.test.ts
 
 # 从仓库根可靠运行单个测试文件
-pnpm test:file -- packages/server/src/lib/runtime/metrics.test.ts
+pnpm test:file -- packages/server（Wave-10 已删除）/src/lib/runtime/metrics.test.ts
 ```
 
 测试文件遵循 `*.test.ts` 命名约定，放置在对应模块目录下。
@@ -1151,11 +1153,11 @@ TRAPMAP_POSTGRES_COORDINATOR_URL=postgresql://trapmap:test@localhost:5432/postgr
 
 ```bash
 rtk pnpm test -- --run \
-  packages/server/src/routes/feedback.test.ts \
-  packages/server/src/routes/retrieval.test.ts \
-  packages/server/src/routes/review.test.ts \
-  packages/server/src/routes/operations/skill-edit.test.ts \
-  packages/server/src/routes/operations/skill-review.test.ts
+  packages/server（Wave-10 已删除）/src/routes/feedback.test.ts \
+  packages/server（Wave-10 已删除）/src/routes/retrieval.test.ts \
+  packages/server（Wave-10 已删除）/src/routes/review.test.ts \
+  packages/server（Wave-10 已删除）/src/routes/operations/skill-edit.test.ts \
+  packages/server（Wave-10 已删除）/src/routes/operations/skill-review.test.ts
 ```
 
 手动检查建议：
@@ -1183,7 +1185,7 @@ rtk pnpm test -- --run \
 运行命令：
 
 ```bash
-pnpm test -- --run packages/server/src/routes/access-keys.test.ts packages/server/src/routes/auth.test.ts packages/server/src/routes/members.test.ts packages/server/src/__tests__/pg-first-compat.test.ts
+pnpm test -- --run packages/server（Wave-10 已删除）/src/routes/access-keys.test.ts packages/server（Wave-10 已删除）/src/routes/auth.test.ts packages/server（Wave-10 已删除）/src/routes/members.test.ts packages/server（Wave-10 已删除）/src/__tests__/pg-first-compat.test.ts
 ```
 
 ---
@@ -1201,12 +1203,12 @@ PG-first 收敛完成后，核心业务路由必须通过 `repos.*` 读写数据
 | 候选处理管线 | `lib/candidates/processor.ts`、`lib/candidates/services/*.ts` | 管线变更 |
 | 运维/管理路由 | `routes/operations/*.ts`、`routes/admin-*.ts` 等 | 诊断和迁移 HTTP 工具 |
 
-守卫测试位于 `packages/server/src/__tests__/snapshot-usage-guard.test.ts`，扫描所有非测试 `.ts` 文件。新增不允许列表中的 `store.snapshot()` / `store.transact()` 调用会导致测试失败。
+守卫测试位于 `packages/server（Wave-10 已删除）/src/__tests__/snapshot-usage-guard.test.ts`，扫描所有非测试 `.ts` 文件。新增不允许列表中的 `store.snapshot()` / `store.transact()` 调用会导致测试失败。
 
 运行守卫测试：
 
 ```bash
-pnpm test -- --run packages/server/src/__tests__/snapshot-usage-guard.test.ts
+pnpm test -- --run packages/server（Wave-10 已删除）/src/__tests__/snapshot-usage-guard.test.ts
 ```
 
 ### 跨模式一致性验证
@@ -1224,7 +1226,7 @@ pnpm test
 pnpm eval:smoke
 
 # 结构守卫
-pnpm test -- --run packages/server/src/__tests__/snapshot-usage-guard.test.ts
+pnpm test -- --run packages/server（Wave-10 已删除）/src/__tests__/snapshot-usage-guard.test.ts
 ```
 
 ---
@@ -1257,7 +1259,7 @@ pnpm test -- --run packages/server/src/__tests__/snapshot-usage-guard.test.ts
 
 ## Server Raw Report Revalidation
 
-fm-agent 针对 `packages/server` 生成了 391 个已确认的原始发现（原始快照）。当前 HEAD 已显著领先原始快照（buildServer、capsule-native 检索等均已落地）。2026-05-29 审计回写后，matrix 中已无 current-live finding；完整分类矩阵见 `docs/plans/fm-agent-scan/server-live-gap-matrix.md`。
+fm-agent 针对 `packages/server（Wave-10 已删除）` 生成了 391 个已确认的原始发现（原始快照）。当前 HEAD 已显著领先原始快照（buildServer、capsule-native 检索等均已落地）。2026-05-29 审计回写后，matrix 中已无 current-live finding；完整分类矩阵见 `docs/plans/fm-agent-scan/server-live-gap-matrix.md`。
 
 ### 回归冻结测试
 
@@ -1265,20 +1267,20 @@ fm-agent 针对 `packages/server` 生成了 391 个已确认的原始发现（�
 
 | 测试文件 | 覆盖的活跃问题 |
 |---|---|
-| `packages/server/src/app.test.ts` | 已修复：onClose await worker stop、startup 后冻结 `skillShareer` |
-| `packages/server/src/bootstrap/startup.test.ts` | 已修复 / 已文档化边界：生命周期审计订阅补齐；JSON store recovery 不重入 PG queue |
-| `packages/server/src/lib/ai/dynamic/context-resolver.test.ts` | 已文档化边界：MCP 状态当前显式为 `unavailable` |
-| `packages/server/src/lib/ai/provider-config.test.ts` | 已修复：provider-specific key 优先级 |
+| `packages/server（Wave-10 已删除）/src/app.test.ts` | 已修复：onClose await worker stop、startup 后冻结 `skillShareer` |
+| `packages/server（Wave-10 已删除）/src/bootstrap/startup.test.ts` | 已修复 / 已文档化边界：生命周期审计订阅补齐；JSON store recovery 不重入 PG queue |
+| `packages/server（Wave-10 已删除）/src/lib/ai/dynamic/context-resolver.test.ts` | 已文档化边界：MCP 状态当前显式为 `unavailable` |
+| `packages/server（Wave-10 已删除）/src/lib/ai/provider-config.test.ts` | 已修复：provider-specific key 优先级 |
 
 ### 运行激活测试
 
 ```bash
 # 仅运行 fm-agent 回归冻结测试
 rtk pnpm --filter @trapmap/server test -- \
-  --run packages/server/src/app.test.ts \
-  packages/server/src/bootstrap/startup.test.ts \
-  packages/server/src/lib/ai/dynamic/context-resolver.test.ts \
-  packages/server/src/lib/ai/provider-config.test.ts
+  --run packages/server（Wave-10 已删除）/src/app.test.ts \
+  packages/server（Wave-10 已删除）/src/bootstrap/startup.test.ts \
+  packages/server（Wave-10 已删除）/src/lib/ai/dynamic/context-resolver.test.ts \
+  packages/server（Wave-10 已删除）/src/lib/ai/provider-config.test.ts
 
 # 重新验证源文档和分类矩阵是否存在
 rtk pnpm check:docs-drift

@@ -125,7 +125,7 @@ interface FeedbackRequest {
 ## 相关源码
 
 - [packages/cli/src/commands/feedback.ts](../../../packages/cli/src/commands/feedback.ts)
-- [packages/service-governance-review/src/application/module.ts](../../../packages/service-governance-review/src/application/module.ts)
+- [packages/service-governance-review/src/index.ts](../../../packages/service-governance-review/src/index.ts)
 - [packages/service-governance-review/src/admin.ts](../../../packages/service-governance-review/src/admin.ts)
 - [packages/service-governance-review/src/routes.ts](../../../packages/service-governance-review/src/routes.ts)
 - [packages/host-distributed/src/gateway/routes.ts](../../../packages/host-distributed/src/gateway/routes.ts)

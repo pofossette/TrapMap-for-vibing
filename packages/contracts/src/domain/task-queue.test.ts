@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createTaskWorkerController, type TaskWorkerQueue } from './task-queue.js';
+import { type TaskWorkerQueue, createTaskWorkerController } from './task-queue.js';
 
 describe('createTaskWorkerController', () => {
   it('processes a task and completes it before stopping', async () => {

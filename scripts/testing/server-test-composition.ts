@@ -7,8 +7,8 @@
 
 import { loadConfig } from '../../packages/host-local/src/nest/config/config.js';
 import {
-  buildPostgresComposedServer,
   type PostgresComposedServer,
+  buildPostgresComposedServer,
 } from './postgres-server-composition.js';
 
 /**

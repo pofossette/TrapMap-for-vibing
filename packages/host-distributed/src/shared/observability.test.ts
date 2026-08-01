@@ -1,5 +1,5 @@
-import Fastify from 'fastify';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
+import Fastify from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { attachRuntimeMetricsRoute } from './observability.js';

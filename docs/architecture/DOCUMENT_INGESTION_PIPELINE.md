@@ -2,6 +2,8 @@
 
 本文档描述 TrapMap 知识条目从提交到持久化的完整入库流程，包括内容规范化、Embedding 生成、图实体关联、重复检测和持久化策略。
 
+> **历史说明**：本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现（Wave-10）。入库流程已迁移至 `packages/service-candidate-ingestion` 和 `packages/service-knowledge-write`。概念描述仍然适用。
+
 ## 整体流程概览
 
 ```mermaid
@@ -37,7 +39,7 @@ flowchart TB
 
 ### 1.1 提交流程
 
-候选提交通过 `processCandidate`（`packages/server/src/lib/candidates/processor.ts`）函数处理，经历五个阶段：
+候选提交通过 `processCandidate`（`packages/server（Wave-10 已删除）/src/lib/candidates/processor.ts`）函数处理，经历五个阶段：
 
 | 阶段 | 状态变更 | 说明 |
 |------|----------|------|
@@ -49,7 +51,7 @@ flowchart TB
 
 ### 1.2 指纹计算
 
-指纹计算在 `computeCandidateFingerprint`（`packages/server/src/lib/candidates/fingerprint.ts`）中完成，为每个候选生成三个维度的标识：
+指纹计算在 `computeCandidateFingerprint`（`packages/server（Wave-10 已删除）/src/lib/candidates/fingerprint.ts`）中完成，为每个候选生成三个维度的标识：
 
 **Trap 类型条目：**
 ```typescript
@@ -75,7 +77,7 @@ fingerprint = createHash('sha256')
 
 ### 1.3 重复检测算法
 
-重复检测在 `detectDuplicates`（`packages/server/src/lib/candidates/detector.ts`）中实现，采用 **Jaccard 预筛 + LLM 语义判定** 两阶段管道：
+重复检测在 `detectDuplicates`（`packages/server（Wave-10 已删除）/src/lib/candidates/detector.ts`）中实现，采用 **Jaccard 预筛 + LLM 语义判定** 两阶段管道：
 
 ```typescript
 // 阶段 1: Jaccard 预筛（快速，确定性）
@@ -107,7 +109,7 @@ async function judgeDuplicateWithLLM(chat, candidate, existing):
 
 ## 二、索引管道（Pipeline）
 
-审核通过后，条目进入索引管道。管道由 `syncKnowledgeIndex`（`packages/server/src/lib/indexing/pipeline.ts`）函数驱动。
+审核通过后，条目进入索引管道。管道由 `syncKnowledgeIndex`（`packages/server（Wave-10 已删除）/src/lib/indexing/pipeline.ts`）函数驱动。
 
 ### 2.1 生命周期门控
 
@@ -126,7 +128,7 @@ if (isDeactivated || !isApproved) {
 
 ### 2.2 内容规范化
 
-规范化在 `normalizeKnowledgeIndexDocument`（`packages/server/src/lib/indexing/normalize.ts`）中完成，生成 `NormalizedIndexDocument`：
+规范化在 `normalizeKnowledgeIndexDocument`（`packages/server（Wave-10 已删除）/src/lib/indexing/normalize.ts`）中完成，生成 `NormalizedIndexDocument`：
 
 ```typescript
 // 1. 构建规范文本（canonical text）
@@ -174,7 +176,7 @@ function needsSync(adapterState, normalizedDocument): boolean {
 
 ### 3.1 向量适配器
 
-向量适配器在 `vectorIndexAdapter.sync`（`packages/server/src/lib/indexing/adapters/vector.ts`）中实现：
+向量适配器在 `vectorIndexAdapter.sync`（`packages/server（Wave-10 已删除）/src/lib/indexing/adapters/vector.ts`）中实现：
 
 ```typescript
 async sync(document: NormalizedIndexDocument): Promise<IndexSyncResult> {
@@ -208,7 +210,7 @@ vector = await generateEmbedding(canonicalText)
 
 ### 3.3 Embedding 提供者
 
-Embedding 生成支持多级提供者回退，在 `embeddings.ts`（`packages/server/src/lib/embeddings.ts`）中实现：
+Embedding 生成支持多级提供者回退，在 `embeddings.ts`（`packages/server（Wave-10 已删除）/src/lib/embeddings.ts`）中实现：
 
 | 优先级 | 提供者 | 条件 | 维度 |
 |--------|--------|------|------|
@@ -250,7 +252,7 @@ entry.embeddingCache = {
 
 ### 4.1 关键词适配器
 
-关键词适配器在 `keywordIndexAdapter.sync`（`packages/server/src/lib/indexing/adapters/keyword.ts`）中实现：
+关键词适配器在 `keywordIndexAdapter.sync`（`packages/server（Wave-10 已删除）/src/lib/indexing/adapters/keyword.ts`）中实现：
 
 ```typescript
 async sync(document: NormalizedIndexDocument): Promise<IndexSyncResult> {
@@ -297,7 +299,7 @@ boundary.exclusions    // 排除项：[{kind: "platform", description: "..."}]
 
 ### 5.1 图适配器流程
 
-图适配器在 `graphIndexAdapter.sync`（`packages/server/src/lib/indexing/adapters/graph.ts`）中实现，经历三个步骤：
+图适配器在 `graphIndexAdapter.sync`（`packages/server（Wave-10 已删除）/src/lib/indexing/adapters/graph.ts`）中实现，经历三个步骤：
 
 ```
 NormalizedDocument
@@ -316,7 +318,7 @@ NormalizedDocument
 
 ### 5.2 Trap 实体提取
 
-实体提取在 `extractGraphEntitiesWithLLM`（`packages/server/src/lib/indexing/graph-lite/llm-extract.ts`）中实现，采用**两阶段 LLM 提取**：
+实体提取在 `extractGraphEntitiesWithLLM`（`packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/llm-extract.ts`）中实现，采用**两阶段 LLM 提取**：
 
 **两阶段 LLM 提取**（详见 `HYBRID_GRAPH_EXTRACTION.md`）：
 1. **Phase 1（切分策略）**：长文本（>2000 字符）经 LLM 规划分为多个 segment
@@ -349,7 +351,7 @@ NormalizedDocument
 
 ### 5.3 边界实体提取
 
-边界提取在 `extractBoundaryGraphEntities`（`packages/server/src/lib/indexing/boundary-extract.ts`）中实现：
+边界提取在 `extractBoundaryGraphEntities`（`packages/server（Wave-10 已删除）/src/lib/indexing/boundary-extract.ts`）中实现：
 
 | 边界类型 | 节点类型 | 关系类型 | 强度 |
 |----------|---------|----------|------|
@@ -377,7 +379,7 @@ assertNoHardDependencyCycles(existingDocs)  // 有环则抛出异常
 
 ### 5.5 图文档持久化
 
-图文档通过 `upsertGraphIndexDocument`（`packages/server/src/lib/indexing/graph-lite/store.ts`）持久化：
+图文档通过 `upsertGraphIndexDocument`（`packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/store.ts`）持久化：
 
 ```typescript
 interface GraphIndexDocumentRecord {
@@ -440,7 +442,7 @@ interface KnowledgeIndexStateRecord {
 
 ### 6.3 协调（Reconciliation）
 
-`reconcileKnowledgeIndexes`（`packages/server/src/lib/indexing/pipeline.ts`）函数用于批量修复索引状态：
+`reconcileKnowledgeIndexes`（`packages/server（Wave-10 已删除）/src/lib/indexing/pipeline.ts`）函数用于批量修复索引状态：
 
 ```typescript
 // 分批处理（默认 50 条/批）

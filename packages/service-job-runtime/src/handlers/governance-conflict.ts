@@ -1,7 +1,7 @@
 import type { GovernanceConflictWorkflowPort, TaskHandler } from '@trapmap/backend-core';
 import {
-  governanceConflictDetectionPayloadSchema,
   type GovernanceConflictDetectionPayload,
+  governanceConflictDetectionPayloadSchema,
 } from '@trapmap/contracts';
 
 export function createGovernanceConflictTaskHandler(

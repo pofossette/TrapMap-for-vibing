@@ -1,5 +1,7 @@
 # 统一缓存架构
 
+> **历史说明**：本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现（Wave-10）。缓存相关代码已迁移至各 service owner 包。概念描述仍然适用。
+
 ## 概述
 
 TrapMap 使用统一的 `RetrievalCache<V>` 泛型类管理所有内存缓存实例。该类提供 LRU 淘汰、惰性 TTL 过期和内置 metrics，是图检索系统的核心基础设施。
@@ -47,12 +49,12 @@ class RetrievalCache<V> {
 
 | 缓存名称 | namespace | maxSize | TTL | 值类型 | 位置 |
 |----------|-----------|---------|-----|--------|------|
-| Query Embedding Cache | `query-embedding` | 300 | 20 min | `number[]` | `packages/server/src/lib/cache/query-embedding-cache.ts` |
-| IntentCache | `intent` | 200 | 30 min | `ParsedIntent` | `packages/server/src/lib/retrieval/capsules/intent-cache.ts` |
-| Graph State Cache | `graph-state` | 500 | 1 h | `LegacyGraphSyncState` | `packages/server/src/lib/indexing/adapters/graph.ts` |
-| Graph Docs Cache | `graph-docs` | 500 | 1 h | `GraphIndexDocumentRecord` | `packages/server/src/lib/indexing/adapters/graph.ts` |
-| LLM Phase1 Cache | `llm-phase1` | 300 | 1 h | `ExtractionPlan` | `packages/server/src/lib/indexing/graph-lite/llm-cache.ts` |
-| LLM Phase2 Cache | `llm-phase2` | 300 | 1 h | `LlmExtractionResult` | `packages/server/src/lib/indexing/graph-lite/llm-cache.ts` |
+| Query Embedding Cache | `query-embedding` | 300 | 20 min | `number[]` | `packages/server（Wave-10 已删除）/src/lib/cache/query-embedding-cache.ts` |
+| IntentCache | `intent` | 200 | 30 min | `ParsedIntent` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/intent-cache.ts` |
+| Graph State Cache | `graph-state` | 500 | 1 h | `LegacyGraphSyncState` | `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/graph.ts` |
+| Graph Docs Cache | `graph-docs` | 500 | 1 h | `GraphIndexDocumentRecord` | `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/graph.ts` |
+| LLM Phase1 Cache | `llm-phase1` | 300 | 1 h | `ExtractionPlan` | `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/llm-cache.ts` |
+| LLM Phase2 Cache | `llm-phase2` | 300 | 1 h | `LlmExtractionResult` | `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/llm-cache.ts` |
 
 **默认值**：`maxSize: 200`, `ttlMs: 30 * 60_000` (30 min), `namespace: 'default'`。
 
@@ -114,9 +116,9 @@ interface CacheStats {
 
 | 文件 | 职责 |
 |------|------|
-| `packages/server/src/lib/cache/retrieval-cache.ts` | `RetrievalCache<V>` 核心实现 + `getRetrievalCacheStats()` + `clearRetrievalCacheRegistry()` |
-| `packages/server/src/lib/cache/metrics.ts` | metrics 入口（re-export `getRetrievalCacheStats` 和 `CacheStats`） |
-| `packages/server/src/lib/cache/retrieval-cache.test.ts` | 单元测试 |
-| `packages/server/src/lib/retrieval/capsules/intent-cache.ts` | IntentCache 封装 |
-| `packages/server/src/lib/indexing/adapters/graph.ts` | Graph State / Docs Cache |
-| `packages/server/src/lib/indexing/graph-lite/llm-cache.ts` | LLM Extraction Cache |
+| `packages/server（Wave-10 已删除）/src/lib/cache/retrieval-cache.ts` | `RetrievalCache<V>` 核心实现 + `getRetrievalCacheStats()` + `clearRetrievalCacheRegistry()` |
+| `packages/server（Wave-10 已删除）/src/lib/cache/metrics.ts` | metrics 入口（re-export `getRetrievalCacheStats` 和 `CacheStats`） |
+| `packages/server（Wave-10 已删除）/src/lib/cache/retrieval-cache.test.ts` | 单元测试 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/intent-cache.ts` | IntentCache 封装 |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/graph.ts` | Graph State / Docs Cache |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/llm-cache.ts` | LLM Extraction Cache |

@@ -4,7 +4,7 @@
 
 ## 覆盖范围
 
-- pnpm workspace 包：`packages/contracts`、`packages/server`、`packages/cli`
+- pnpm workspace 包：`packages/contracts`、`packages/server（Wave-10 已删除）`、`packages/cli`
 - 仓库内可激活子包：`packages/skills/workflow-with-trapmap`、`packages/skills/trapmap-cli-usage-guide`
 
 ## 统一基线
@@ -38,7 +38,7 @@ TrapMap 现在的消费者几乎都在同一个 TypeScript monorepo 里。相比
 - 类型和运行时校验来自同一份源，不需要对齐两套产物。
 - 工件、frontmatter、路径验证这类非 HTTP 契约也能放进同一套约束里。
 
-## `packages/server`
+## `packages/server（Wave-10 已删除）`
 
 `@trapmap/server` 不是单纯的 CRUD API；它同时承载治理、检索、索引、异步处理和 Skill 工件生命周期，所以技术选型以“显式边界”和“可替换后端”为主。
 

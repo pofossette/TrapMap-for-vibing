@@ -1,4 +1,4 @@
-import type { KnowledgeWritePort } from '@trapmap/backend-core';
+import { type KnowledgeWritePort, toInvocationErrorResponse } from '@trapmap/backend-core';
 import type { KnowledgeOwnerPort } from '@trapmap/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { sendInvocation, sendInvocationError, trustedActor } from './route-helpers.js';

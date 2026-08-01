@@ -18,14 +18,9 @@ import {
   liveSnapshotMetaSchema,
 } from '@trapmap/contracts/evals';
 
-import { createHash } from 'node:crypto';
-
 import { loadConfig } from '../../../packages/host-local/src/nest/config/config.js';
 import { nowIso } from '../../../packages/host-local/src/nest/runtime/now-iso.js';
 
-function hashSecret(secret: string): string {
-  return createHash('sha256').update(secret).digest('hex');
-}
 import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
 
 import { detectServiceProfile, materializeCorpusRecords } from './snapshot-support.js';
@@ -340,16 +335,6 @@ async function importCapsuleKeywords(
  */
 async function collectIndexHealth(pool: import('pg').Pool): Promise<IndexHealthSummary> {
   return collectAvailableIndexHealth(pool);
-}
-
-function emptyIndexHealth(): IndexHealthSummary {
-  return {
-    knowledgeEntryCount: 0,
-    skillArtifactCount: 0,
-    graphDocCount: 0,
-    capsuleEmbeddingCount: 0,
-    graphProjectionHealthy: false,
-  };
 }
 
 async function collectAvailableIndexHealth(pool: import('pg').Pool): Promise<IndexHealthSummary> {

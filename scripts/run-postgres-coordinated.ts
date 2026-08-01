@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 
 import pg from 'pg';
 
@@ -172,7 +172,7 @@ async function main(): Promise<void> {
       const adminPool = new pg.Pool({ connectionString: coordinator.adminUrl });
       try {
         await adminPool.query(
-          `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1`,
+          'SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1',
           [databaseName],
         );
         await adminPool.query(`DROP DATABASE IF EXISTS ${quoteIdentifier(databaseName)}`);

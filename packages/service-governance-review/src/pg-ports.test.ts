@@ -185,7 +185,7 @@ describe('governance-review PostgreSQL owner bundle', () => {
   });
 
   it('exposes a governance retrieval projection for retrieval consumers', async () => {
-    const query = vi.fn(async (sql: string, values?: unknown[]) => {
+    const query = vi.fn(async (sql: string, _values?: unknown[]) => {
       if (sql.includes('FROM feedback_records')) {
         return {
           rows: [

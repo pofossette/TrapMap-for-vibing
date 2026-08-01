@@ -280,7 +280,7 @@ interface EntityLineage {
 
 ## 包：`@trapmap/server`
 
-**位置**：`packages/server`
+**位置**：`packages/server（Wave-10 已删除）`
 
 **用途**：Fastify API 服务器，业务逻辑编排。
 

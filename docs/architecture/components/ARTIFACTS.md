@@ -475,7 +475,7 @@ async function deriveFromPayloads(
 
 基于 Anthropic Contextual Retrieval 策略，为每个 Capsule 生成上下文前缀（`contextualPrefix`），显著提升检索效果。
 
-**模块**: `packages/server/src/lib/artifacts/contextual-enrichment.ts`
+**模块**: `packages/server（Wave-10 已删除）/src/lib/artifacts/contextual-enrichment.ts`
 
 **两阶段处理流程**：
 

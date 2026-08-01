@@ -377,7 +377,7 @@ on:
     paths:
       - 'packages/contracts/src/domain/evals/**'
       - 'evals/**'
-      - 'packages/server/src/**'
+      - 'packages/server（Wave-10 已删除）/src/**'
   workflow_dispatch:
     inputs:
       tier:

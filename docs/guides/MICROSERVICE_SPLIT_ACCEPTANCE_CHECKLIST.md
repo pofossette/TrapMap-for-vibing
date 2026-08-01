@@ -16,7 +16,7 @@
 
 ## 前置事实
 
-- `packages/server` 是部分 compatibility shell：maintenance batch、decay batch 已降级为 compatibility-only；candidate apply-resolution、knowledge review 也已从默认 light 主线退役，只保留 retired compatibility 响应
+- `packages/server（Wave-10 已删除）` 是部分 compatibility shell：maintenance batch、decay batch 已降级为 compatibility-only；candidate apply-resolution、knowledge review 也已从默认 light 主线退役，只保留 retired compatibility 响应
 - distributed authoritative write path 已迁移到 `packages/host-distributed`
 - 第一阶段仍共享 PostgreSQL；本清单不要求数据库按服务拆分
 
@@ -31,20 +31,20 @@
 
 必须满足：
 
-- `packages/server` 的 maintenance / decay 最终写路由统一返回 `501 capability_unsupported`
+- `packages/server（Wave-10 已删除）` 的 maintenance / decay 最终写路由统一返回 `501 capability_unsupported`
 - candidate apply-resolution 与 knowledge review 若仍保留 compat 路由，必须被明确记录为 retired rollback-only surface，不能再写成默认入口例外
-- `packages/server` 仍保留 retrieval、status / readiness、必要读侧与迁移兼容面
+- `packages/server（Wave-10 已删除）` 仍保留 retrieval、status / readiness、必要读侧与迁移兼容面
 - truth docs 明确写出 server 是 compatibility shell，而不是主写面
 
 执行：
 
 ```bash
-rtk pnpm test:file -- packages/server/src/routes/candidates.test.ts
-rtk pnpm test:file -- packages/server/src/routes/review.test.ts
-rtk pnpm test:file -- packages/server/src/routes/decay.test.ts
-rtk pnpm test:file -- packages/server/src/routes/maintenance.test.ts
-rtk pnpm test:file -- packages/server/src/app.test.ts
-rtk pnpm test:file -- packages/server/src/__tests__/routes-architecture-guard.test.ts
+rtk pnpm test:file -- packages/server（Wave-10 已删除）/src/routes/candidates.test.ts
+rtk pnpm test:file -- packages/server（Wave-10 已删除）/src/routes/review.test.ts
+rtk pnpm test:file -- packages/server（Wave-10 已删除）/src/routes/decay.test.ts
+rtk pnpm test:file -- packages/server（Wave-10 已删除）/src/routes/maintenance.test.ts
+rtk pnpm test:file -- packages/server（Wave-10 已删除）/src/app.test.ts
+rtk pnpm test:file -- packages/server（Wave-10 已删除）/src/__tests__/routes-architecture-guard.test.ts
 rtk pnpm --filter @trapmap/server build
 rtk pnpm typecheck
 rtk pnpm check:docs-drift
@@ -56,7 +56,7 @@ rtk pnpm check:structure
 - 所有命令退出码为 `0`
 - maintenance / decay 写路由测试断言的是 `501 capability_unsupported`
 - 若 candidate / review compat 路由仍保留，相关文档和计划必须把它们写成 retired rollback-only surface，而不是成功编排主路径
-- 文档不再声称 `packages/server` 仍是这些链路的 authoritative write surface
+- 文档不再声称 `packages/server（Wave-10 已删除）` 仍是这些链路的 authoritative write surface
 
 ## 关卡 2：Distributed authoritative write path 真实闭环
 
@@ -181,7 +181,7 @@ rtk pnpm check:structure
 
 只有当以下复选框全部可勾选时，才允许进入“开始拆微服务”阶段：
 
-- [ ] 关卡 1 通过：`packages/server` compatibility shell 边界已冻结
+- [ ] 关卡 1 通过：`packages/server（Wave-10 已删除）` compatibility shell 边界已冻结
 - [x] 关卡 2 通过：distributed authoritative write path 多进程真实闭环成立
 - [x] 关卡 3 通过：auth、header、timeout、error mapping 跨服务一致
 - [x] 关卡 4 通过：`knowledge-read` 不再是阻塞物理拆分的临时债务

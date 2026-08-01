@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { createTransactionPool } from './test-helpers.js';
 import type { LegacyArtifactSnapshotRecord } from './wave9-artifact-backfill.js';
 import { createArtifactSnapshotOwner } from './wave9-artifact-snapshot-owner.js';
-import { createTransactionPool } from './test-helpers.js';
 
 const record: LegacyArtifactSnapshotRecord = {
   id: 'artifact_legacy_1',

@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { AnalysisSnapshot, CandidateSubmission, DuplicateCase } from '@trapmap/contracts';

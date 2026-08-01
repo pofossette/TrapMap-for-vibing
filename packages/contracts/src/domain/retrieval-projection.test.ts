@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   buildCachedRetrievalReadModel,
-  buildRetrievalReadProjection,
   buildCachedRetrievalReadModelFromRepositories,
+  buildRetrievalReadProjection,
   createRetrievalKnowledgeFixtureParts,
 } from './retrieval-projection.js';
 

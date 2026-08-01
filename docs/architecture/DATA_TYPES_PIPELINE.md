@@ -2,6 +2,8 @@
 
 本文档以流程图形式展示 TrapMap 核心数据类型如何在系统中串联，标注每个环节涉及的具体 Zod Schema 类型。
 
+> **历史说明**：本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现（Wave-10）。数据管道已迁移至各 service owner 包。概念描述仍然适用。
+
 > 与 `DATA_MODEL.md` 的区别：本文档侧重**数据流转路径**和**环节标注**，而非实体定义。
 > 与 `FLOW.md` 的区别：本文档覆盖**三条主线**（入库、检索、生命周期），并明确每个阶段的数据类型。
 
@@ -614,26 +616,26 @@ flowchart TB
 
 | 职责 | 文件路径 |
 |------|---------|
-| 节点/边类型定义 | `packages/server/src/lib/indexing/graph-lite/documents.ts` |
-| graphology 组装与扩展 | `packages/server/src/lib/indexing/graph-lite/graphology.ts` |
-| 文档 CRUD | `packages/server/src/lib/indexing/graph-lite/store.ts` |
-| GraphIndexRepository 接口 | `packages/server/src/lib/graph-index/repository.ts` |
-| **LLM 实体提取（主路径）** | **`packages/server/src/lib/indexing/graph-lite/llm-extract.ts`** |
-| **LLM 提取缓存** | **`packages/server/src/lib/indexing/graph-lite/llm-cache.ts`** |
-| Query 图标签归一化 | `packages/server/src/lib/retrieval/recall/query-graph-labels.ts` |
-| **LLM 重复判定** | **`packages/server/src/lib/candidates/llm-dedup.ts`** |
-| **LLM 冲突判定** | **`packages/server/src/lib/conflict/llm-conflict.ts`** |
+| 节点/边类型定义 | `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/documents.ts` |
+| graphology 组装与扩展 | `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/graphology.ts` |
+| 文档 CRUD | `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/store.ts` |
+| GraphIndexRepository 接口 | `packages/server（Wave-10 已删除）/src/lib/graph-index/repository.ts` |
+| **LLM 实体提取（主路径）** | **`packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/llm-extract.ts`** |
+| **LLM 提取缓存** | **`packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/llm-cache.ts`** |
+| Query 图标签归一化 | `packages/server（Wave-10 已删除）/src/lib/retrieval/recall/query-graph-labels.ts` |
+| **LLM 重复判定** | **`packages/server（Wave-10 已删除）/src/lib/candidates/llm-dedup.ts`** |
+| **LLM 冲突判定** | **`packages/server（Wave-10 已删除）/src/lib/conflict/llm-conflict.ts`** |
 | **图提取 Zod Schema** | **`packages/contracts/src/domain/graph-extraction.ts`** |
-| 边界约束提取 | `packages/server/src/lib/indexing/boundary-extract.ts` |
-| Skill 实体提取 | `packages/server/src/lib/indexing/skill-events.ts` |
-| Trap 图适配器 | `packages/server/src/lib/indexing/adapters/graph.ts` |
-| Skill 图适配器 | `packages/server/src/lib/indexing/adapters/artifact-graph.ts` |
-| 图文档构建器 | `packages/server/src/lib/indexing/adapters/graph-builders.ts` |
-| 索引管道编排 | `packages/server/src/lib/indexing/pipeline.ts` |
-| v1 图辅助召回 | `packages/server/src/lib/retrieval/recall/graph-assisted.ts` |
-| v1 召回协调器 | `packages/server/src/lib/retrieval/orchestration/recall-coordinator.ts` |
-| v3 计划编译器 | `packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts` |
-| v3 搜索入口 | `packages/server/src/lib/retrieval/graph-plan/graph-plan-search.ts` |
+| 边界约束提取 | `packages/server（Wave-10 已删除）/src/lib/indexing/boundary-extract.ts` |
+| Skill 实体提取 | `packages/server（Wave-10 已删除）/src/lib/indexing/skill-events.ts` |
+| Trap 图适配器 | `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/graph.ts` |
+| Skill 图适配器 | `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/artifact-graph.ts` |
+| 图文档构建器 | `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/graph-builders.ts` |
+| 索引管道编排 | `packages/server（Wave-10 已删除）/src/lib/indexing/pipeline.ts` |
+| v1 图辅助召回 | `packages/server（Wave-10 已删除）/src/lib/retrieval/recall/graph-assisted.ts` |
+| v1 召回协调器 | `packages/server（Wave-10 已删除）/src/lib/retrieval/orchestration/recall-coordinator.ts` |
+| v3 计划编译器 | `packages/server（Wave-10 已删除）/src/lib/retrieval/graph-plan/plan-compiler.ts` |
+| v3 搜索入口 | `packages/server（Wave-10 已删除）/src/lib/retrieval/graph-plan/graph-plan-search.ts` |
 
 > **LLM 图提取架构详解**见 [`HYBRID_GRAPH_EXTRACTION.md`](HYBRID_GRAPH_EXTRACTION.md)。
 

@@ -18,7 +18,7 @@
 | `packages/service-job-runtime` | `src/index.ts` | job-runtime service assembly、内部 route、typed handlers 与 queue/runtime server |
 | `packages/host-local` | `src/index.ts` | `local-agent` / `team-monolith` 的 `light` 宿主装配；默认 `main` / `dev` / `start` 只进入 `src/nest/**` 主线，旧 Fastify 轻宿主路径已删除。 |
 | `packages/host-distributed` | `src/index.ts` | `distributed` 的 `heavy` 重宿主装配 |
-| `packages/server` | `src/index.ts` | `packages/server` 是 Fastify compatibility shell + shared runtime/status seam，不再承担默认 light 宿主职责，也不是共享业务内核。 |
+| ~~`packages/server（Wave-10 已删除）`~~ | ~~`src/index.ts`~~ | **已删除**（Wave-10）。原为 Fastify compatibility shell + shared runtime/status seam。 |
 | `packages/contracts` | `src/index.ts` | 共享 Zod Schema 和 TypeScript 类型 |
 | `packages/web-panel` | `src/main.tsx` | 管理员浏览器运维面板，继续只面向 gateway surface |
 | `packages/skills` | `workflow-with-trapmap/SKILL.md` | 项目级 Skill 工作流与 CLI 使用指南 |
@@ -34,19 +34,19 @@
 
 ## Phase 1 Server / Backend-Core boundary freeze
 
-- `packages/server` 保留 Fastify compatibility shell 与 shared runtime/status seam；当前仍负责 `packages/server/src/app.ts`、`packages/server/src/config.ts`、`packages/server/src/lib/repos/index.ts`、`packages/server/src/lib/persistence/schema/index.ts`，但不再被描述为默认 `light` 主应用主体。迁移 baseline 由各 service owner 本地维护。
+- `packages/server（Wave-10 已删除）` 保留 Fastify compatibility shell 与 shared runtime/status seam；当前仍负责 `packages/server（Wave-10 已删除）/src/app.ts`、`packages/server（Wave-10 已删除）/src/config.ts`、`packages/server（Wave-10 已删除）/src/lib/repos/index.ts`、`packages/server（Wave-10 已删除）/src/lib/persistence/schema/index.ts`，但不再被描述为默认 `light` 主应用主体。迁移 baseline 由各 service owner 本地维护。
 - `packages/backend-core` 不是“仅接口”空壳。它继续承载 runtime capability model、internal ports、invocation contract、bounded-context module factory 与 testing utilities，作为 host-agnostic 内核被 `host-local`、`host-distributed` 和 `service-*` 复用。
 - `packages/service-*` 只承载 owner-aligned thin assembly：`deps.ts`、`routes.ts`、`server.ts`、`index.ts`。它们暴露 backend-core owner module，但不定义自己的 schema/migration owner。
-- `packages/host-local` 与 `packages/host-distributed` 负责 transport/DI/process composition；host-local 直接组合临时 shared runtime infrastructure，底层仍可暂时复用 `packages/server` 的实现面。
-- repository interface 的当前 target package 仍冻结在 `packages/server/src/lib/*/repository.ts` 与 `packages/server/src/lib/repos/index.ts`，Drizzle schema 与 migration owner 仍在 `packages/server`，后续 phase 再决定是否抽出共享 seam。
-- 高复杂度 domain logic 继续允许留在 `packages/server` 的 compatibility/application debt 区，但文档必须把它们视为冻结中的过渡态，而不是新的 long-term owner。
+- `packages/host-local` 与 `packages/host-distributed` 负责 transport/DI/process composition；host-local 直接组合临时 shared runtime infrastructure，底层仍可暂时复用 `packages/server（Wave-10 已删除）` 的实现面。
+- repository interface 的当前 target package 仍冻结在 `packages/server（Wave-10 已删除）/src/lib/*/repository.ts` 与 `packages/server（Wave-10 已删除）/src/lib/repos/index.ts`，Drizzle schema 与 migration owner 仍在 `packages/server（Wave-10 已删除）`，后续 phase 再决定是否抽出共享 seam。
+- 高复杂度 domain logic 继续允许留在 `packages/server（Wave-10 已删除）` 的 compatibility/application debt 区，但文档必须把它们视为冻结中的过渡态，而不是新的 long-term owner。
 
 ## Phase 2 模块化单体边界冻结
 
 - `backend-core` 继续保留单包，但其内部必须按六个 bounded context 收口到 `<context>/domain/`、`<context>/application/`、`<context>/module.ts`；`ports`、`invocation`、`runtime`、`testing` 继续作为共享且 framework-free 的顶层目录。当前六个 context 目录已经落地：`identity-access/`、`knowledge-read/`、`knowledge-write/`、`candidate-ingestion/`、`governance-review/`、`job-runtime/`；原 `src/modules/*.ts` compatibility re-export facade 已在 build-target closeout 的 Wave 1 清理中删除，消费方应直接使用真实 context 入口。
 - `packages/host-local/src/nest/**` 是 `light` 默认主入口终局与真实宿主实现；`embedded/local-agent` 与 `team-monolith` 继续共用这套 module graph，两档 profile 只允许在 capability、provider wiring、route surface gating 上有差异。
 - `packages/service-*` 继续只承载 thin assembly：`deps.ts`、`routes.ts`、`server.ts`、`index.ts`。业务规则不在这些包里分叉。
-- `packages/server` 是兼容壳；默认 `light` 主入口已经完全收敛到 `packages/host-local/src/nest/**`。
+- `packages/server（Wave-10 已删除）` 是兼容壳；默认 `light` 主入口已经完全收敛到 `packages/host-local/src/nest/**`。
 - `packages/host-distributed` 继续是 distributed profile 的部署展开层，但必须消费与 modular monolith 相同的 `backend-core` + `service-*` 主实现，而不是维护第二套 business truth。
 
 ## Phase 2 Store Snapshot / PG-first posture freeze
@@ -65,21 +65,21 @@
 - `packages/host-local/src/nest/adapters/remote.adapter.ts` 是 port-level remote adapter，不是 repository adapter。它把 remote HTTP call 包装成 `KnowledgeReadPort` 语义，并把 transport failure 收口为 `InvocationError`，而不是把 `fetch`/`Response` 暴露给上层。
 - `packages/host-distributed/src/gateway/internal-client.ts` 是 distributed gateway 的 thin transport helper / canonical error normalization seam；它负责内部 forwarding、header propagation 与 canonical body normalization，而不是业务编排或 repo adapter。
 - `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` 是 remote port client wrapper 示例：它消费 gateway internal client，把 transport 错误映射回 `InvocationError` / `KnowledgeWritePort` 语义，证明 remote client wrapper 与 gateway transport helper 属于不同层次。
-- `packages/server/src/lib/ai/**` 与 `packages/server/src/lib/indexing/adapters/**` 继续是 server-owned concrete infrastructure/provider implementation。Phase 3 冻结 taxonomy 和 owner，不把它们提前描述成 `backend-core` provider contract，也不把它们抽离成新的 shared workspace package。
-- gateway client 和 remote adapter 不是 repository adapters；repository / persistence seam 仍继续冻结在 repo-owned boundary。`packages/server/src/lib/repos/**`、`packages/server/src/lib/*/repository.ts` 与 persistence implementation 不属于 unified adapter 目录。
-- host-local runtime composition 暂时借用 `packages/server` 的 shared infra helpers；它不是 `packages/server` 仍是默认 host owner 的证据，也不是统一适配器范围应该无限扩大到 host bootstrap 的依据。
+- `packages/server（Wave-10 已删除）/src/lib/ai/**` 与 `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/**` 继续是 server-owned concrete infrastructure/provider implementation。Phase 3 冻结 taxonomy 和 owner，不把它们提前描述成 `backend-core` provider contract，也不把它们抽离成新的 shared workspace package。
+- gateway client 和 remote adapter 不是 repository adapters；repository / persistence seam 仍继续冻结在 repo-owned boundary。`packages/server（Wave-10 已删除）/src/lib/repos/**`、`packages/server（Wave-10 已删除）/src/lib/*/repository.ts` 与 persistence implementation 不属于 unified adapter 目录。
+- host-local runtime composition 暂时借用 `packages/server（Wave-10 已删除）` 的 shared infra helpers；它不是 `packages/server（Wave-10 已删除）` 仍是默认 host owner 的证据，也不是统一适配器范围应该无限扩大到 host bootstrap 的依据。
 
 ## Phase 4 数据、运维与退役收尾
 
 - 仓库级 owner matrix（gateway + 六个 owner service + job-runtime 的 data / projection / runtime / operations owner）已冻结，详见 [`plan.md`](../plan.md) Phase 4 和 [`docs/archived/archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md`](archived/archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md)。
-- `packages/server` 中 candidate apply-resolution、knowledge review、maintenance、decay 旧 Fastify 写路由都已删除。`light` 默认 review/manual-result/apply-resolution 写链路现由 `packages/host-local/src/nest/gateway/candidate-review.controller.ts` 直接委托 `governance-review` / `candidate-ingestion` owner port；candidate-ingestion 再通过 `KnowledgeWritePort` 完成最终 aggregate mutation，而不是回落到 `packages/server`。
+- `packages/server（Wave-10 已删除）` 中 candidate apply-resolution、knowledge review、maintenance、decay 旧 Fastify 写路由都已删除。`light` 默认 review/manual-result/apply-resolution 写链路现由 `packages/host-local/src/nest/gateway/candidate-review.controller.ts` 直接委托 `governance-review` / `candidate-ingestion` owner port；candidate-ingestion 再通过 `KnowledgeWritePort` 完成最终 aggregate mutation，而不是回落到 `packages/server（Wave-10 已删除）`。
 - `packages/backend-core/src/modules/*.ts` 兼容 re-export facade 已退役并删除；truth source 只保留真实 context 目录入口。
 - `packages/host-distributed` 与 `packages/service-*` 不是 compatibility shell，继续保留为分布式部署展开层和 thin service assembly。
 - `packages/host-local/src/nest/**` 是冻结后的默认 `light` 主入口终局和 bounded-context module graph，不属于 compatibility shell。
 
 ## Phase 4 Adapter env / target-pruning freeze
 
-- Phase 4 的 adapter env freeze 只收口 selector env 与 owner-specific env truth，不把配置层改写成新的 mega taxonomy。selector env 继续以 `TRAPMAP_DEPLOYMENT_PROFILE`、`TRAPMAP_DEPLOYMENT_PRESET`、`TRAPMAP_TASK_TRANSPORT` 为中心；AI provider env 继续留在 `packages/server` / shared runtime seam；distributed internal service URL env 继续留在 `packages/host-distributed` owner seam。
+- Phase 4 的 adapter env freeze 只收口 selector env 与 owner-specific env truth，不把配置层改写成新的 mega taxonomy。selector env 继续以 `TRAPMAP_DEPLOYMENT_PROFILE`、`TRAPMAP_DEPLOYMENT_PRESET`、`TRAPMAP_TASK_TRANSPORT` 为中心；AI provider env 继续留在 `packages/server（Wave-10 已删除）` / shared runtime seam；distributed internal service URL env 继续留在 `packages/host-distributed` owner seam。
 - 推荐组合冻结为 `local-agent` / `team-monolith` -> `light`，`distributed` -> `heavy`。这表示 `local-agent` 继续是 in-process/internal defaults + `json-store-ok` posture，`team-monolith` 继续是 `postgres-required` + `gateway-core` + `split-owned` async posture，而 `distributed` 继续是 service/gateway split + `remote-expected` async posture。
 - fail-fast / fallback 规则不再允许文档写模糊话术：`rabbitmq` 缺少 RabbitMQ config 时必须 fail-fast；`distributed` 缺少 PostgreSQL 不能被描述成仍支持 JSON-store runtime；`local-agent` 允许保持 JSON store fallback；`in-process` mode 下 internal service URLs 继续只是 ignored config。
 - target-pruning posture 冻结为文档边界，不夸大实现程度：`light` 与 `heavy` 是 build/deployment targets，不是新的 runtime profiles；optional dependency、tree-shaking 与 target-pruning 仅可写成当前 intent / non-goal，除非代码明确证明，否则不能声称已经具备自动化 optional dependency pruning。
@@ -96,13 +96,13 @@
 
 ## Phase 6 Mature capability freeze
 
-- `internal client + resilience` 当前已经是主线 shared runtime seam，但不是完整 mature-service platform stack。`packages/host-distributed/src/gateway/internal-client.ts`、`packages/server/src/lib/runtime/resilience.ts` 与 `packages/server/src/lib/runtime/metrics.ts` 证明当前存在 internal forwarding、canonical error normalization、timeout/retry/degraded 统计与 shared runtime helper；它们不能被改写成“平台层 resilience 已全面产品化”。
+- `internal client + resilience` 当前已经是主线 shared runtime seam，但不是完整 mature-service platform stack。`packages/host-distributed/src/gateway/internal-client.ts`、`packages/server（Wave-10 已删除）/src/lib/runtime/resilience.ts` 与 `packages/server（Wave-10 已删除）/src/lib/runtime/metrics.ts` 证明当前存在 internal forwarding、canonical error normalization、timeout/retry/degraded 统计与 shared runtime helper；它们不能被改写成“平台层 resilience 已全面产品化”。
 - `tracing + metrics` 当前只冻结到现有 request/trace headers、runtime metrics snapshot、operator summary、以及低基数 label discipline。文档不得把这层夸大成完整 distributed tracing、外部 metrics backend、或 per-service telemetry platform 已落地。
 - `rate limiting + bulkhead / 背压` 当前不是 runtime built-in default。即使 compatibility shell 仍保留 `rateLimitMaxPerMinute` 这类 config seam，也只能写成 follow-up capability order，而不是 host-local 或 distributed 已默认拥有 service bulkhead / adaptive backpressure。
-- retrieval-side `cache + invalidation` 当前是 active seam，而不是自治缓存平台。`packages/server/src/lib/cache/invalidation.ts`、read-model cache、intent cache 与 operator status/stats surface 证明当前有 freshness / invalidation contract；它们不构成 remote cache fabric、service-owned cache budget、或 service-autonomous cache substrate 的当前-state claim。
+- retrieval-side `cache + invalidation` 当前是 active seam，而不是自治缓存平台。`packages/server（Wave-10 已删除）/src/lib/cache/invalidation.ts`、read-model cache、intent cache 与 operator status/stats surface 证明当前有 freshness / invalidation contract；它们不构成 remote cache fabric、service-owned cache budget、或 service-autonomous cache substrate 的当前-state claim。
 - `service discovery`、`DB budget / PgBouncer`、以及 richer `health indicator` rollout 继续冻结为 adoption conditions。当前 distributed 仍使用 checked-in URL env 与 shared PostgreSQL；pool budget / PgBouncer 还只是 operator/capacity follow-up；health/readiness surface 已存在，但 richer rollout policy 不应被描述成当前平台保证。
 - `light` 与 `heavy` 只冻结不同默认策略姿态。`light` 继续以 host-local、in-process 默认、较少 remote dependency 为主；`heavy` 继续以 distributed、gateway + internal HTTP hop、shared PostgreSQL、remote-expected async posture 为主。这里的区别是 adoption posture，不是新 runtime behavior，也不是证明 `heavy` 已自动具备 tracing/discovery/bulkhead 默认值。
-- graph runtime 继续使用同一组 `TRAPMAP_GRAPH_DB_*` env family，但文档必须承认当前实现只是 shared config family + partial shared consumer seam。`packages/server` compatibility shell、`host-local` 默认主线、distributed gateway/service/worker 不能在没有源码证据时被写成 graph provider、readiness disposition、fail-open behavior 完全等价。
+- graph runtime 继续使用同一组 `TRAPMAP_GRAPH_DB_*` env family，但文档必须承认当前实现只是 shared config family + partial shared consumer seam。`packages/server（Wave-10 已删除）` compatibility shell、`host-local` 默认主线、distributed gateway/service/worker 不能在没有源码证据时被写成 graph provider、readiness disposition、fail-open behavior 完全等价。
 
 ### Phase 6 Wave 6D replacement matrix freeze
 
@@ -157,18 +157,11 @@ import { reviewDecisionRequestSchema } from '@trapmap/contracts';
 
 ---
 
-## packages/server
+## ~~packages/server（Wave-10 已删除）~~
 
-`packages/server` 是 Fastify compatibility shell + shared runtime/status seam，不再承担默认 light 宿主职责，也不是共享业务内核。
+**已删除**（Wave-10，提交 `a66d94e6`）。原为 Fastify compatibility shell + shared runtime/status seam。
 
-当前阅读该包时，默认按两类职责理解：
-
-- shared runtime/status seam：可迁到共享 seam 后长期保留。
-- Fastify compatibility surface：仅限仍未迁出的兼容 HTTP/runtime 组装。
-
-> ⚠ 以上内容不是默认 `light` 主线。正式终局归属是 `backend-core` + `service-*` + `host-local` / `host-distributed`。
-
-Phase 1 进一步冻结当前事实：`packages/server` 仍是当前 Drizzle schema/migration owner 与兼容 runtime seam，而 `backend-core` 提供 service assemblies 复用的宿主无关 contracts。
+当前架构：`backend-core` + `service-*` + `host-local` / `host-distributed`。各 service owner 包通过 owner-local PostgreSQL bundle 管理数据。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
 ### Runtime 与部署词汇
 
@@ -177,7 +170,7 @@ Server 相关文档默认使用以下术语，不再混用：
 | 术语 | 当前含义 | 当前实现状态 |
 |---|---|---|
 | `deployment profile` | 产品/部署目标形态：`local-agent`、`team-monolith`、`distributed` | 计划层已冻结，能力模型在后续阶段继续落地 |
-| `deployment preset` | 启动快捷方式/兼容输入：`monolith`、`api`、`candidate-worker`、`governance-worker`、`outbox-worker` | 已在 `packages/server/src/config.ts` 与 `lib/runtime/deployment-preset.ts` 中实现 |
+| `deployment preset` | 启动快捷方式/兼容输入：`monolith`、`api`、`candidate-worker`、`governance-worker`、`outbox-worker` | 已在 `packages/server（Wave-10 已删除）/src/config.ts` 与 `lib/runtime/deployment-preset.ts` 中实现 |
 | `runtimeMode` | 当前进程是否暴露 API、task worker、outbox worker | 已实现 |
 | `serviceUnit` | 当前进程拥有哪类 bounded-context async ownership | 已实现 |
 | `task transport` | 任务投递走 PostgreSQL 还是 RabbitMQ | 已实现 |
@@ -206,7 +199,7 @@ P3 起，`topology` 会把 distributed 第一阶段的正式服务词汇固化�
 - `governance`
 - `outbox-runtime`
 
-当前实现仍保持单个 `packages/server` 包和共享 PostgreSQL，不平行实现第二套后端；拓扑的事实源是 runtime metadata，而不是仅靠 docker compose 命名。
+当前实现仍保持单个 `packages/server（Wave-10 已删除）` 包和共享 PostgreSQL，不平行实现第二套后端；拓扑的事实源是 runtime metadata，而不是仅靠 docker compose 命名。
 
 > **Round 2 更新**：知识、工件、候选的持久化已迁移到 PostgreSQL 专用表。`DualWriteKnowledgeRepository`、`DualWriteCandidateRepository`、`DualWriteArtifactRepository` 已删除。路由层不再对 `store_snapshot` 进行业务读写（审查/衰减/维护等操作仍用于审计/索引等辅助目的，延后至各轮次处理）。
 >
@@ -217,16 +210,16 @@ P3 起，`topology` 会把 distributed 第一阶段的正式服务词汇固化�
 **写入顺序**：JSONB 缓存先写入 → 结构化子表后覆盖写入。**读取优先级**：结构化子表优先，空时 fallback 到 JSONB 缓存（`reconstructSkillArtifactRecord()` 中 `??` 模式）。
 
 **Artifact 仓库代码阅读入口**：
-- 接口定义：`packages/server/src/lib/artifacts/repository.ts`（`ArtifactRepository` 接口）
-- PG 实现：`packages/server/src/lib/artifacts/pg-repository/`（`PgArtifactRepository` 类及辅助模块）
+- 接口定义：`packages/server（Wave-10 已删除）/src/lib/artifacts/repository.ts`（`ArtifactRepository` 接口）
+- PG 实现：`packages/server（Wave-10 已删除）/src/lib/artifacts/pg-repository/`（`PgArtifactRepository` 类及辅助模块）
   - `index.ts` — `PgArtifactRepository` 类（委托给辅助模块）
   - `revision-reader.ts` — `loadStructuredRevisionData()`（结构化读取）
   - `revision-writer.ts` — `upsertStructuredRevisionRows()` + `replaceStructuredDerivedRows()`（结构化写入）
   - `record-reconstruction.ts` — `reconstructSkillArtifactRecord()`（重建逻辑）
   - `derived-store.ts` — boundary / maintenance / agent-review / metadata CRUD
-- Schema 定义：`packages/server/src/lib/persistence/schema/artifacts.ts`（所有 `skill_artifact_*` 表）
-- 迁移文件：`packages/server/drizzle/0007_round4_artifact_structural.sql`
-- Artifact 路由：`packages/server/src/routes/operations/artifacts-import.ts`、`artifacts-export.ts`、`artifacts-activate.ts`
+- Schema 定义：`packages/server（Wave-10 已删除）/src/lib/persistence/schema/artifacts.ts`（所有 `skill_artifact_*` 表）
+- 迁移文件：`packages/server（Wave-10 已删除）/drizzle/0007_round4_artifact_structural.sql`
+- Artifact 路由：`packages/server（Wave-10 已删除）/src/routes/operations/artifacts-import.ts`、`artifacts-export.ts`、`artifacts-activate.ts`
 - 完整事实源/缓存规则：`docs/plans/round4-cross-table-consistency-plan.md` 阶段 0 结论
 
 ### 持久化层
@@ -239,7 +232,7 @@ P3 起，`topology` 会把 distributed 第一阶段的正式服务词汇固化�
 | `ArtifactRepository` | `lib/artifacts/repository.ts` | PG (`PgArtifactRepository`) 或 JSON (`InMemoryArtifactRepository`) |
 | `CandidateRepository` | `lib/candidates/repository.ts` | PG (`PgCandidateRepository`) 或 JSON (`InMemoryCandidateRepository`) |
 
-> **Phase 2 更新**：`buildNormalizedDuplicateInput`（`packages/server/src/lib/candidates/fingerprint.ts`）是 trap 与 skill 候选的共享归一化入口，输出 `NormalizedDuplicateInput`（`packages/server/src/lib/candidates/types.ts`）并被 in-memory / PostgreSQL 探测器与 LLM 精排共享，确保 skill 候选也产出非空 title/body 用于 PG embedding 与 LLM 比对。
+> **Phase 2 更新**：`buildNormalizedDuplicateInput`（`packages/server（Wave-10 已删除）/src/lib/candidates/fingerprint.ts`）是 trap 与 skill 候选的共享归一化入口，输出 `NormalizedDuplicateInput`（`packages/server（Wave-10 已删除）/src/lib/candidates/types.ts`）并被 in-memory / PostgreSQL 探测器与 LLM 精排共享，确保 skill 候选也产出非空 title/body 用于 PG embedding 与 LLM 比对。
 >
 > **Phase 0 更新**：PostgreSQL 模式下，`createAndEnqueueCandidate()` 通过 `PostgresStore.transactWithPgClient()` 将候选创建、初始状态更新、以及 `asyncTransport.queue` 上的 `candidate_processing` 注册放进同一事务；`task_queue` / `domain_event_outbox` 都携带 lease 与 reclaim 元数据，worker 启动后可回收过期 `running` / `processing` 记录。
 >
@@ -306,8 +299,8 @@ const config = loadConfig();
 
 For package-local navigation, read:
 
-- `packages/server/src/lib/README.md`
-- `packages/server/src/routes/README.md`
+- `packages/server（Wave-10 已删除）/src/lib/README.md`
+- `packages/server（Wave-10 已删除）/src/routes/README.md`
 
 ---
 
@@ -487,7 +480,7 @@ flowchart TB
 | service assembly | `packages/service-job-runtime` | 保留，承载 queue / outbox / workflow runtime owner |
 | light host | `packages/host-local` | 保留；`local-agent` / `team-monolith` 都映射到 `light`，冻结默认主入口终局为 `src/nest/**` |
 | heavy host | `packages/host-distributed` | 保留；`distributed` 映射到 `heavy`，继续作为重宿主与部署展开点 |
-| compatibility shell | `packages/server` | 继续缩减，只保留 shared runtime/status seam 与必要的 Fastify compatibility 面 |
+| compatibility shell | `packages/server（Wave-10 已删除）` | 继续缩减，只保留 shared runtime/status seam 与必要的 Fastify compatibility 面 |
 | project workflow | `packages/skills` | 保留，不受宿主迁移主线影响 |
 | deferred / not-on-mainline | `packages/service-gateway` | 不创建；gateway 是宿主拥有的外部适配层，不是当前主线里的独立 service package |
 
@@ -518,7 +511,7 @@ contracts ───────────────────────�
 2. `backend-core` 是框架无关内核；Nest/Fastify 都只能在 host 层做 adapter。
 3. 各 `service-*` 包互不直接依赖；跨服务交互通过 `backend-core` 中定义的 internal ports 与 invocation model。
 4. `host-local` / `host-distributed` 负责把 concrete transport 与依赖装配到统一 port contract 上。
-5. `packages/server` 只能继续缩成迁移期兼容壳层，不能再长出新的 authoritative write orchestration。
+5. `packages/server（Wave-10 已删除）` 只能继续缩成迁移期兼容壳层，不能再长出新的 authoritative write orchestration。
 
 ### 数据库与事务边界
 

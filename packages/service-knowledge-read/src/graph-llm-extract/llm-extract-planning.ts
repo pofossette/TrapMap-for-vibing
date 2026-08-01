@@ -8,12 +8,12 @@
 
 import { type ExtractionPlan, extractionPlanSchema } from '@trapmap/contracts';
 
+import type { ChatProvider } from '@trapmap/ai-providers';
 import { invokeWithParseRetry } from '@trapmap/ai-providers/ai-parse.js';
 import {
   buildGraphExtractionPlannerSlots_default,
   buildPrompt,
 } from '@trapmap/ai-providers/prompts.js';
-import type { ChatProvider } from '@trapmap/ai-providers';
 
 import type { LlmExtractionCache } from './llm-cache.js';
 
@@ -60,7 +60,7 @@ export async function planExtraction(
     );
     const plan = await invokeWithParseRetry({
       invoke: () => chat.invoke(systemPrompt, text),
-      schema: extractionPlanSchema,
+      schema: extractionPlanSchema as unknown as import('zod').ZodType<ExtractionPlan>,
     });
     if (plan && plan.segments.length > 0) {
       if (cache) cache.setPhase1(text, plan);

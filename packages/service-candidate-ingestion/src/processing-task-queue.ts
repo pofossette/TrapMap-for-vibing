@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import type { TaskHandler, TaskQueuePort } from '@trapmap/backend-core';
+import type { TaskQueuePort } from '@trapmap/backend-core';
 import type { Pool } from 'pg';
 
 type QueueTask = {
@@ -110,7 +110,6 @@ export function createCandidateProcessingTaskQueue(
                   id: task.id,
                   type: task.type,
                   payload: task.payload,
-                  attempt: task.attempts,
                 });
             }
           }

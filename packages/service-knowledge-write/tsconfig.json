@@ -9,6 +9,7 @@
   "references": [
     { "path": "../backend-core" },
     { "path": "../contracts" },
+    { "path": "../service-knowledge-read" },
     { "path": "../persistence-schema" }
   ]
 }

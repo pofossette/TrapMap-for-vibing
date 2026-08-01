@@ -10,7 +10,7 @@ function addTokenContribution(vector: number[], token: string): void {
   }
   for (let index = 0; index < 6; index++) {
     const vectorIndex = Math.abs(hash) % FALLBACK_EMBEDDING_DIMENSION;
-    vector[vectorIndex] += index < 3 ? 1 : -0.5;
+    vector[vectorIndex]! += index < 3 ? 1 : -0.5;
     hash = (hash * 1103515245 + 12345) | 0;
   }
 }
@@ -30,7 +30,7 @@ function normalizeEmbedding(vector: number[]): number[] {
   const magnitude = Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0));
   if (magnitude > 0) {
     for (let index = 0; index < FALLBACK_EMBEDDING_DIMENSION; index++) {
-      vector[index] /= magnitude;
+      vector[index]! /= magnitude;
     }
   }
   return vector;
@@ -118,7 +118,7 @@ export class FallbackEmbeddings implements EmbeddingsProvider {
     const tokens = normalizedText.split(/\s+/).filter((token) => token.length > 2);
 
     if (tokens.length > 0) {
-      tokens.forEach((token) => addTokenContribution(vector, token));
+      for (const token of tokens) addTokenContribution(vector, token);
     } else {
       fillCharacterEmbedding(vector, normalizedText);
     }

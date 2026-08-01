@@ -1,5 +1,7 @@
 # 检索系统 (Retrieval System)
 
+> **历史说明**：本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现（Wave-10）。检索系统已迁移至 `packages/service-knowledge-read`。概念描述仍然适用。
+
 ## 概述
 
 TrapMap 提供多版本检索能力，支持从简单的语义搜索到复杂的 GraphRAG-lite 陷阱优先计划生成。检索系统是 TrapMap 的核心功能，负责从索引知识库中高效召回相关条目。
@@ -346,8 +348,8 @@ v2 检索评分支持 Anthropic Contextual Retrieval 策略。派生阶段生成
 - 当 capsule 无 contextualPrefix 时（向后兼容），该维度得分为 0
 
 **相关代码：**
-- `packages/server/src/lib/retrieval/capsules/capsule-recall.ts` — `computeContextMatchScore()` 函数
-- `packages/server/src/lib/artifacts/contextual-enrichment.ts` — 派生阶段的上下文生成
+- `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/capsule-recall.ts` — `computeContextMatchScore()` 函数
+- `packages/server（Wave-10 已删除）/src/lib/artifacts/contextual-enrichment.ts` — 派生阶段的上下文生成
 
 ### v2 多路召回架构 (Phase 4)
 
@@ -375,20 +377,20 @@ searchKnowledgeV2() (orchestrator.ts)
 
 | 组件 | 文件 | 职责 |
 |------|------|------|
-| `searchKnowledgeV2()` | `packages/server/src/lib/retrieval/orchestration/orchestrator.ts` | v2 主编排器：解析 → 治理 → 协调器调用 → 响应组装 |
-| `CapsuleRecallCoordinator` | `packages/server/src/lib/retrieval/capsules/capsule-recall-coordinator.ts` | 多通道召回调度：调用注册的通道、合并结果、产生 MergedCapsuleCandidate |
-| `CapsuleChannelRegistry` | `packages/server/src/lib/retrieval/capsules/capsule-channel-registry.ts` | 通道注册表：register / get / all / unregister |
-| `capsuleHeuristicChannel` | `packages/server/src/lib/retrieval/capsules/channels/heuristic.ts` | heuristic 通道：包装 rankCapsules()，提供 CapsuleRecallCandidate[] |
-| `capsuleKeywordChannel` | `packages/server/src/lib/retrieval/capsules/channels/keyword.ts` | keyword 通道：独立词法召回，字段加权评分，内存/PG 双路径 |
-| `capsuleSemanticChannel` | `packages/server/src/lib/retrieval/capsules/channels/semantic.ts` | semantic 通道：embedding 语义召回，余弦相似度评分，内存/PG 双路径 |
-| `capsuleGraphChannel` | `packages/server/src/lib/retrieval/capsules/channels/graph.ts` | graph 通道：skill graph 结构化扩召回，one-hop 实体展开，artifact-to-capsule 映射 |
-| `rankCapsules()` | `packages/server/src/lib/retrieval/capsules/capsule-recall.ts` | 核心评分引擎：治理过滤 + situation/problem/goal/keyword/context 多维加权评分 |
-| `mergeCapsuleCandidates()` | `packages/server/src/lib/retrieval/capsules/scoring/merge.ts` | RRF 融合层：按 capsuleId 去重、保留 per-channel scores、计算 preRerankScore |
-| `rerankMergedCapsules()` | `packages/server/src/lib/retrieval/capsules/scoring/rerank.ts` | 重排层：复用 v2 intent-aware 特征、计算 finalScore、生成多通道 reason |
-| `buildMultiChannelReason()` | `packages/server/src/lib/retrieval/capsules/scoring/reasons.ts` | 多通道 explainable reason：包含通道来源 + 意图匹配百分比 + boost 信息 |
-| `createCapsuleIndexSync()` | `packages/server/src/lib/retrieval/capsules/repositories/index-sync.ts` | 索引同步服务：capsule → keyword tokens + embedding vectors，幂等 upsert (capsuleId + contentHash) |
-| `rebuildAllCapsuleIndexes()` | `packages/server/src/lib/retrieval/capsules/repositories/index-rebuild.ts` | 批量重建：清空索引表 → 遍历所有 artifact → 重新同步 |
-| `verifyCapsuleIndexHealth()` | `packages/server/src/lib/retrieval/capsules/repositories/index-rebuild.ts` | 健康对账：对比 source capsules 与 index 行，检测缺失/失败/孤立 |
+| `searchKnowledgeV2()` | `packages/server（Wave-10 已删除）/src/lib/retrieval/orchestration/orchestrator.ts` | v2 主编排器：解析 → 治理 → 协调器调用 → 响应组装 |
+| `CapsuleRecallCoordinator` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/capsule-recall-coordinator.ts` | 多通道召回调度：调用注册的通道、合并结果、产生 MergedCapsuleCandidate |
+| `CapsuleChannelRegistry` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/capsule-channel-registry.ts` | 通道注册表：register / get / all / unregister |
+| `capsuleHeuristicChannel` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/channels/heuristic.ts` | heuristic 通道：包装 rankCapsules()，提供 CapsuleRecallCandidate[] |
+| `capsuleKeywordChannel` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/channels/keyword.ts` | keyword 通道：独立词法召回，字段加权评分，内存/PG 双路径 |
+| `capsuleSemanticChannel` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/channels/semantic.ts` | semantic 通道：embedding 语义召回，余弦相似度评分，内存/PG 双路径 |
+| `capsuleGraphChannel` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/channels/graph.ts` | graph 通道：skill graph 结构化扩召回，one-hop 实体展开，artifact-to-capsule 映射 |
+| `rankCapsules()` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/capsule-recall.ts` | 核心评分引擎：治理过滤 + situation/problem/goal/keyword/context 多维加权评分 |
+| `mergeCapsuleCandidates()` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/scoring/merge.ts` | RRF 融合层：按 capsuleId 去重、保留 per-channel scores、计算 preRerankScore |
+| `rerankMergedCapsules()` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/scoring/rerank.ts` | 重排层：复用 v2 intent-aware 特征、计算 finalScore、生成多通道 reason |
+| `buildMultiChannelReason()` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/scoring/reasons.ts` | 多通道 explainable reason：包含通道来源 + 意图匹配百分比 + boost 信息 |
+| `createCapsuleIndexSync()` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/repositories/index-sync.ts` | 索引同步服务：capsule → keyword tokens + embedding vectors，幂等 upsert (capsuleId + contentHash) |
+| `rebuildAllCapsuleIndexes()` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/repositories/index-rebuild.ts` | 批量重建：清空索引表 → 遍历所有 artifact → 重新同步 |
+| `verifyCapsuleIndexHealth()` | `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/repositories/index-rebuild.ts` | 健康对账：对比 source capsules 与 index 行，检测缺失/失败/孤立 |
 
 #### 类型定义
 

@@ -3,6 +3,7 @@ import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import {
   type IdentityAccessServer,
+  createIdentityAccessDeps,
   createIdentityAccessPgDeps,
   createIdentityAccessServer as createServiceIdentityAccessServer,
 } from '@trapmap/service-identity-access';
@@ -12,9 +13,10 @@ export async function createServer(
   config: ServiceConfig,
   db: ServiceDatabase,
 ): Promise<IdentityAccessServer> {
-  const deps = createIdentityAccessPgDeps(db.pool, {
+  const portDeps = createIdentityAccessPgDeps(db.pool, {
     systemAdminKey: config.systemAdminKey,
   });
+  const deps = createIdentityAccessDeps(portDeps);
   const server = await createServiceIdentityAccessServer(config, deps);
   attachRuntimeMetricsRoute(server.app);
   await attachRuntimeTelemetry(server.app, 'identity-access');

@@ -444,7 +444,7 @@ type DeduplicationAuditEvent =
 
 ## 相关源码
 
-- [packages/server/src/routes/candidates.ts](../../../packages/server/src/routes/candidates.ts)
-- [packages/server/src/lib/pre-review.ts](../../../packages/server/src/lib/pre-review.ts)
-- [packages/server/src/lib/candidates/processor.ts](../../../packages/server/src/lib/candidates/processor.ts)
-- [packages/server/src/lib/candidates/reconcile.ts](../../../packages/server/src/lib/candidates/reconcile.ts)
+- [packages/server（Wave-10 已删除）/src/routes/candidates.ts](../../../packages/server（Wave-10 已删除）/src/routes/candidates.ts)
+- [packages/server（Wave-10 已删除）/src/lib/pre-review.ts](../../../packages/server（Wave-10 已删除）/src/lib/pre-review.ts)
+- [packages/server（Wave-10 已删除）/src/lib/candidates/processor.ts](../../../packages/server（Wave-10 已删除）/src/lib/candidates/processor.ts)
+- [packages/server（Wave-10 已删除）/src/lib/candidates/reconcile.ts](../../../packages/server（Wave-10 已删除）/src/lib/candidates/reconcile.ts)

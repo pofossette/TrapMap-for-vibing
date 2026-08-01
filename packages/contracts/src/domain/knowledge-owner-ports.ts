@@ -1,7 +1,7 @@
-import type { KnowledgeEntry } from './knowledge.js';
-import type { LifecycleState, Scope } from './common.js';
 import type { Boundary } from './boundary.js';
+import type { LifecycleState, Scope } from './common.js';
 import type { EvidenceMeta } from './evidence.js';
+import type { KnowledgeEntry } from './knowledge.js';
 
 /**
  * Compatibility input accepted by the knowledge-write owner.

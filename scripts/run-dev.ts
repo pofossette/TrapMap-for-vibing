@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
+  type DevTargetDefinition,
   listDevTargetNames,
   resolveDevTargetFromRegistry,
-  type DevTargetDefinition,
 } from './backend-target-registry';
 
 export type ResolvedDevTarget = DevTargetDefinition;

@@ -216,7 +216,7 @@ async function callLlmAlignment(
   const userMessage = buildAlignmentUserMessage(input);
   return invokeWithParseRetry({
     invoke: () => chat.invoke(systemPrompt, userMessage),
-    schema: labelAlignmentDecisionSchema,
+    schema: labelAlignmentDecisionSchema as unknown as ZodType<LabelAlignmentDecision>,
     maxRetries: MAX_RETRIES,
     backoffMs: (attempt) => BACKOFF_BASE_MS * 2 ** (attempt * 2),
   });

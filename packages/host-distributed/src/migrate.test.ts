@@ -17,7 +17,7 @@ describe('runDistributedMigrations', () => {
 
     expect(migrate).toHaveBeenCalledOnce();
     expect(end).toHaveBeenCalledOnce();
-    if (previous === undefined) delete process.env.TRAPMAP_DATABASE_URL;
+    if (previous === undefined) process.env.TRAPMAP_DATABASE_URL = undefined;
     else process.env.TRAPMAP_DATABASE_URL = previous;
   });
 
@@ -37,7 +37,7 @@ describe('runDistributedMigrations', () => {
       })(),
     ).rejects.toThrow('migration failed');
     expect(end).toHaveBeenCalledOnce();
-    if (previous === undefined) delete process.env.TRAPMAP_DATABASE_URL;
+    if (previous === undefined) process.env.TRAPMAP_DATABASE_URL = undefined;
     else process.env.TRAPMAP_DATABASE_URL = previous;
   });
 
@@ -63,7 +63,7 @@ describe('runDistributedMigrations', () => {
 
     expect(calls).toEqual(['identity-access', 'knowledge-write']);
     expect(end).toHaveBeenCalledOnce();
-    if (previous === undefined) delete process.env.TRAPMAP_DATABASE_URL;
+    if (previous === undefined) process.env.TRAPMAP_DATABASE_URL = undefined;
     else process.env.TRAPMAP_DATABASE_URL = previous;
   });
 });

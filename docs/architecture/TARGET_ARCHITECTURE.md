@@ -18,10 +18,10 @@ TrapMap 起始于 `cli + server + contracts` 的运行时形态，但仓库现�
 | `packages/host-local` | `local-agent` / `team-monolith` 的首选轻量宿主运行时 |
 | `packages/host-distributed` | `distributed` 的首选重量宿主运行时 |
 | `packages/cli` | Commander.js CLI 客户端、输出渲染、本地配置 |
-| `packages/server` | 过渡外壳加大型兼容性/实现表面；不是 knowledge-write、governance-review 或 candidate-ingestion 的权威组装所有者 |
+| `packages/server（Wave-10 已删除）` | 过渡外壳加大型兼容性/实现表面；不是 knowledge-write、governance-review 或 candidate-ingestion 的权威组装所有者 |
 | `packages/contracts` | 共享 Zod 模式和 TypeScript 类型 |
 
-运行时模型已实现 `deployment profile`（`local-agent`、`team-monolith`、`distributed`）、`runtimeMode`、`serviceUnit` 和 `task transport` 概念。仓库还引入了新宿主包并将首选的根开发脚本重新指向它们。然而，`packages/server` 仍持有大量网关路由、应用服务、仓库实现、工作器引导、测试和迁移期事实。
+运行时模型已实现 `deployment profile`（`local-agent`、`team-monolith`、`distributed`）、`runtimeMode`、`serviceUnit` 和 `task transport` 概念。仓库还引入了新宿主包并将首选的根开发脚本重新指向它们。然而，`packages/server（Wave-10 已删除）` 仍持有大量网关路由、应用服务、仓库实现、工作器引导、测试和迁移期事实。
 
 ## 目标包角色
 
@@ -73,7 +73,7 @@ TrapMap 起始于 `cli + server + contracts` 的运行时形态，但仓库现�
 | `packages/host-local` | `local-agent`、`team-monolith` — 单机、最小依赖、低运维负担 |
 | `packages/host-distributed` | `distributed` — 多服务单元、独立扩展、读写隔离 |
 
-在迁移期间，`packages/server` 继续作为过渡外壳。它将被逐步瘦身，直到 `host-local` 和 `host-distributed` 完全替代它。
+在迁移期间，`packages/server（Wave-10 已删除）` 继续作为过渡外壳。它将被逐步瘦身，直到 `host-local` 和 `host-distributed` 完全替代它。
 
 ## 部署角色
 
@@ -125,7 +125,7 @@ TrapMap 起始于 `cli + server + contracts` 的运行时形态，但仓库现�
 - **权威表**：认证、会话、访问密钥、成员关系、团队表
 - **向其他服务提供**：权限决策、actor 查找、团队解析
 - **消费者**：gateway（认证中间件）、所有其他服务（授权检查）
-- **实现状态**：`packages/service-identity-access` 现在是第四个真实的 `service-*` 包。`packages/host-distributed` 作为薄宿主适配器消费它，`packages/server` 仍是兼容性外壳而非权威的身份组装所有者。
+- **实现状态**：`packages/service-identity-access` 现在是第四个真实的 `service-*` 包。`packages/host-distributed` 作为薄宿主适配器消费它，`packages/server（Wave-10 已删除）` 仍是兼容性外壳而非权威的身份组装所有者。
 
 ### knowledge-read
 
@@ -136,7 +136,7 @@ TrapMap 起始于 `cli + server + contracts` 的运行时形态，但仓库现�
 
 ### knowledge-write
 
-当前实现事实：`packages/service-knowledge-write` 现在是第一个真实的 `service-*` 包。它拥有 `knowledge-write` 服务组装表面，被 `packages/host-distributed` 和迁移期 `packages/server` 兼容性叙述共同消费。
+当前实现事实：`packages/service-knowledge-write` 现在是第一个真实的 `service-*` 包。它拥有 `knowledge-write` 服务组装表面，被 `packages/host-distributed` 和迁移期 `packages/server（Wave-10 已删除）` 兼容性叙述共同消费。
 
 - **拥有**：知识条目 CRUD、陷阱生命周期、技能制品生命周期、维护分配、衰减管理、生命周期状态转换、证据更新
 - **权威表**：知识、陷阱、技能生命周期、维护、衰减表
@@ -145,7 +145,7 @@ TrapMap 起始于 `cli + server + contracts` 的运行时形态，但仓库现�
 
 ### candidate-ingestion
 
-- 当前实现事实：`packages/service-candidate-ingestion` 现在是第三个真实的 `service-*` 包。它拥有 `candidate-ingestion` 服务组装表面，被 `packages/host-distributed` 消费，而 `packages/server` 仍是兼容性外壳，不恢复候选权威组装所有权。
+- 当前实现事实：`packages/service-candidate-ingestion` 现在是第三个真实的 `service-*` 包。它拥有 `candidate-ingestion` 服务组装表面，被 `packages/host-distributed` 消费，而 `packages/server（Wave-10 已删除）` 仍是兼容性外壳，不恢复候选权威组装所有权。
 - **拥有**：候选接收、规范化、去重预处理、候选状态推进、重复案例创建、解决结果记录
 - **权威表**：候选接收、处理状态、去重分析中间状态表
 - **不拥有**：知识权威表（发布结果；`knowledge-write` 消费）
@@ -153,7 +153,7 @@ TrapMap 起始于 `cli + server + contracts` 的运行时形态，但仓库现�
 
 ### governance-review
 
-- 当前实现事实：`packages/service-governance-review` 现在是第二个真实的 `service-*` 包。它拥有 `governance-review` 服务组装表面，被 `packages/host-distributed` 消费，而 `packages/server` 仍是兼容性外壳，不恢复审查权威组装所有权。
+- 当前实现事实：`packages/service-governance-review` 现在是第二个真实的 `service-*` 包。它拥有 `governance-review` 服务组装表面，被 `packages/host-distributed` 消费，而 `packages/server（Wave-10 已删除）` 仍是兼容性外壳，不恢复审查权威组装所有权。
 - **拥有**：人在回路队列、审查工作台状态、冲突解决状态、补救队列状态
 - **权威表**：人工干预队列、审查工作台状态、冲突解决状态、补救队列状态表
 - **不拥有**：知识生命周期事实表（决策通过命令端口流转给 `knowledge-write`）
@@ -164,7 +164,7 @@ TrapMap 起始于 `cli + server + contracts` 的运行时形态，但仓库现�
 - **权威表**：任务队列、工作流运行、outbox 调度运行时、租约/回收元数据表
 - **不拥有**：任何业务领域事实表
 - **角色**：执行由其他服务分派的异步工作；管理任务生命周期、重试、死信处理。同时拥有用于分派跨服务事件的领域事件 outbox。
-- **实现状态**：`packages/service-job-runtime` 现在是第五个真实的 `service-*` 包。`packages/host-distributed` 作为薄宿主适配器消费它，`packages/server` 仍是兼容性外壳而非权威的 job-runtime 组装所有者。
+- **实现状态**：`packages/service-job-runtime` 现在是第五个真实的 `service-*` 包。`packages/host-distributed` 作为薄宿主适配器消费它，`packages/server（Wave-10 已删除）` 仍是兼容性外壳而非权威的 job-runtime 组装所有者。
 
 ## 目标包布局
 
@@ -214,7 +214,7 @@ backend-core ← service-* ← host-local, host-distributed     │
 3. 每个 `service-*` 依赖 `backend-core` 和 `contracts`。服务包是对等的；它们不直接相互依赖。跨服务交互通过 `backend-core` 中定义的内部端口进行。
 4. `host-local` 和 `host-distributed` 依赖 `backend-core`、`contracts` 以及它们组装的服务包。它们将具体实现连接到端口。`host-distributed` 现在消费真实的 `packages/service-knowledge-write`、`packages/service-governance-review`、`packages/service-candidate-ingestion`、`packages/service-identity-access` 和 `packages/service-job-runtime` 包，而非自身持有这些路由组装。
 5. `packages/cli` 依赖 `client-core` 和 `contracts`。不依赖 `backend-core` 或任何服务端包。
-6. `packages/server`（过渡外壳）在迁移期间依赖 `backend-core`、`contracts` 和服务包。最终被替代。
+6. `packages/server（Wave-10 已删除）`（过渡外壳）在迁移期间依赖 `backend-core`、`contracts` 和服务包。最终被替代。
 
 ## 架构原则
 

@@ -34,8 +34,8 @@ export interface InternalRpcEnvelope {
 }
 
 export interface InternalRequestOptions {
-  headers?: Record<string, string>;
-  timeoutMs?: number;
+  headers?: Record<string, string> | undefined;
+  timeoutMs?: number | undefined;
 }
 
 const DEFAULT_INTERNAL_TIMEOUT_MS = 10_000;

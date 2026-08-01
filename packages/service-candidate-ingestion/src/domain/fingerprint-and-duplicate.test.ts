@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  buildNormalizedDuplicateInput,
-  createCandidateDuplicateDetector,
-  type CandidateCorpusReadPort,
-} from './index.js';
 import type { CandidateCorpusReadPort as ContractCandidateCorpusReadPort } from '@trapmap/contracts';
 import type { CandidateSubmission } from '@trapmap/contracts';
+import {
+  type CandidateCorpusReadPort,
+  buildNormalizedDuplicateInput,
+  createCandidateDuplicateDetector,
+} from './index.js';
 
 function makeTrapCandidate(
   id: string,

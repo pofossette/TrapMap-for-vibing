@@ -10,8 +10,8 @@ import Fastify from 'fastify';
 
 import type { KnowledgeOwnerPort } from '../../packages/contracts/src/index.js';
 import {
-  createHostLocalRuntime,
   type HostLocalRuntime,
+  createHostLocalRuntime,
 } from '../../packages/host-local/src/nest/runtime/host-runtime.js';
 import type { HostLocalServices } from '../../packages/host-local/src/nest/runtime/host-services.js';
 import type { ArtifactWritePort } from '../../packages/service-knowledge-write/src/artifact-ports.js';

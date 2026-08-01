@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 
 import {
-  enrichConflictHints,
   type BoundaryContext,
   type FreshnessDecayConfig,
+  enrichConflictHints,
 } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
@@ -253,12 +253,11 @@ function rerankCandidates(
   },
 ): MergedCandidate[] {
   const topScore = Math.max(...candidates.map((candidate) => candidate.combinedScore));
+  const threshold = options.earlyTerminationThreshold;
   const retained =
-    options.earlyTerminationThreshold === undefined
+    threshold === undefined
       ? candidates
-      : candidates.filter(
-          (candidate) => candidate.combinedScore >= topScore * options.earlyTerminationThreshold,
-        );
+      : candidates.filter((candidate) => candidate.combinedScore >= topScore * threshold);
   return retained
     .map((candidate) => {
       const preRerankScore = candidate.combinedScore;

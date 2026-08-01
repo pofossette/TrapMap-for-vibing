@@ -14,8 +14,8 @@ import type {
 import type { Permission } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
-import type { IdentityAccessPortDeps } from './deps.js';
 import type { IdentityActorLookupSource } from './actor-lookup.js';
+import type { IdentityAccessPortDeps } from './deps.js';
 
 type Queryable = Pick<Pool, 'query'>;
 

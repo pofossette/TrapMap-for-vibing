@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { resolveBackendTargetCommands, type BackendTargetAction } from '../run-backend-target';
+import { type BackendTargetAction, resolveBackendTargetCommands } from '../run-backend-target';
 
 const packageJsonPath = fileURLToPath(new URL('../../package.json', import.meta.url));
 

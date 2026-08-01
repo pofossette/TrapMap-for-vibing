@@ -2,8 +2,8 @@ import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import {
-  createGovernanceReviewPgOwnerBundle,
   type GovernanceReviewServer,
+  createGovernanceReviewPgOwnerBundle,
   createGovernanceReviewServer as createServiceGovernanceReviewServer,
 } from '@trapmap/service-governance-review';
 import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';

@@ -19,6 +19,7 @@ import type {
   SkillLookupQuery,
 } from '@trapmap/contracts';
 import type { RetrievalEvalCase, RetrievalEvalScenario } from '@trapmap/contracts/evals';
+import type { KnowledgeOwnerPort } from '../../../packages/contracts/src/index.js';
 import type { HostLocalRuntime } from '../../../packages/host-local/src/nest/runtime/host-runtime.js';
 import type { HostLocalServices } from '../../../packages/host-local/src/nest/runtime/host-services.js';
 import { nowIso } from '../../../packages/host-local/src/nest/runtime/now-iso.js';
@@ -27,10 +28,9 @@ import type {
   DerivedSkillCapsuleRecord,
   KnowledgeRecord,
 } from '../../../packages/service-knowledge-read/src/store.js';
-import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
 import type { ArtifactWritePort } from '../../../packages/service-knowledge-write/src/artifact-ports.js';
 import { createKnowledgeEntryRecord } from '../../../packages/service-knowledge-write/src/knowledge-record-mutations.js';
-import type { KnowledgeOwnerPort } from '../../../packages/contracts/src/index.js';
+import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
 
 function hashSecret(secret: string): string {
   return createHash('sha256').update(secret).digest('hex');

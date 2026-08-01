@@ -6,10 +6,10 @@
  * candidate-result publication.
  */
 
+import type { KnowledgeOwnerPort } from '@trapmap/contracts';
 import { InvocationError } from '../../invocation/invocation-model.js';
 import type { AuditLogPort } from '../../ports/audit-ports.js';
 import type { KnowledgeWritePort } from '../../ports/internal-ports.js';
-import type { KnowledgeOwnerPort } from '@trapmap/contracts';
 
 import { KNOWLEDGE_WRITE_OWNED_CAPABILITIES } from '../domain/index.js';
 

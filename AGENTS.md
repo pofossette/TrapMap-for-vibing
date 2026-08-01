@@ -9,7 +9,7 @@
 - 架构/命令/目录等事实冲突时：以 [`docs/reference/SYSTEM_TRUTH_SOURCES.md`](docs/reference/SYSTEM_TRUTH_SOURCES.md) 为准
 - 目录归属和允许的文档落点：以 [`docs/reference/REPO_STRUCTURE.md`](docs/reference/REPO_STRUCTURE.md) 为准
 - 什么时候必须更新文档、索引、测试或 badcase：看 [`docs/guides/DOCUMENTATION_GOVERNANCE.md`](docs/guides/DOCUMENTATION_GOVERNANCE.md)
-- 在本仓库执行 shell 命令时按本地约定加 `rtk` 前缀，例如 `rtk pnpm test:file -- packages/server/src/app.test.ts`
+- 在本仓库执行 shell 命令时按本地约定加 `rtk` 前缀，例如 `rtk pnpm test:file -- packages/host-local/src/nest/app.test.ts`
 
 ## 计划与待办目录规则
 
@@ -29,11 +29,11 @@
 
 ## Vitest 使用要求
 
-- 根目录 `pnpm test` 会读取根 [`vitest.config.ts`](vitest.config.ts)，按 multi-project workspace 同时加载 `scripts`、`contracts`、`server`、`backend-core`、`client-core`、`cli`、`evals` 测试；不要把它当成轻量失败筛选命令
+- 根目录 `pnpm test` 会读取根 [`vitest.config.ts`](vitest.config.ts)，按 multi-project workspace 同时加载 `scripts`、`contracts`、`backend-core`、`client-core`、`cli`、`evals`、各 `service-*`、`host-local`、`host-distributed` 测试；不要把它当成轻量失败筛选命令
 - 默认 `pnpm test` 是一次性执行；需要 watch 时必须显式调用 `pnpm exec vitest`
 - 禁止使用根级全量测试再接 `grep`、`tail`、`head` 的方式查看失败列表，例如 `rtk pnpm test 2>&1 | tail ...`
 - 单文件测试优先使用 `rtk pnpm test:file -- <repo-root-relative-test-path>`
-- 只跑某个包时，使用包级命令，例如 `rtk pnpm --filter @trapmap/server test --run src/lib/runtime/metrics.test.ts`
+- 只跑某个包时，使用包级命令，例如 `rtk pnpm --filter @trapmap/service-knowledge-write test --run src/pg-ports.test.ts`
 
 ## 任务分流
 
@@ -46,11 +46,11 @@
 
 ### Server / API 变更
 
-- 先读：[`packages/server/src/app.ts`](packages/server/src/app.ts)、[`packages/server/src/routes/`](packages/server/src/routes/)、[`packages/server/src/lib/`](packages/server/src/lib/)
-- 权威事实：[`docs/reference/SYSTEM_TRUTH_SOURCES.md`](docs/reference/SYSTEM_TRUTH_SOURCES.md)、[`packages/server/src/config.ts`](packages/server/src/config.ts)、相关 route/schema 源码
+- 先读：各 `packages/service-*/src/routes.ts`、`packages/host-local/src/nest/`、`packages/host-distributed/src/gateway/`
+- 权威事实：[`docs/reference/SYSTEM_TRUTH_SOURCES.md`](docs/reference/SYSTEM_TRUTH_SOURCES.md)、各 service owner 的 config/routes/schema 源码
 - 最小验证：按改动范围运行对应包级测试；涉及 runtime/profile/route surface 时补 `rtk pnpm test:deployment-smoke` 或 `rtk pnpm test:runtime-foundations`
 - 必须同步：API surface、运行时默认值、健康检查、部署行为变化时，更新对应 `reference/`、`architecture/`、`operations/` 文档
-- 涉及 `server` zone 内部模块之间的跨包导入重构时，运行 `rtk pnpm exec fallow list --boundaries` 确认当前 zone 覆盖范围
+- 涉及 service zone 内部模块之间的跨包导入重构时，运行 `rtk pnpm exec fallow list --boundaries` 确认当前 zone 覆盖范围
 
 ### Contracts / 共享类型变更
 
@@ -69,7 +69,7 @@
 ### 安全 / 权限 / 配置变更
 
 - 先读：[`docs/operations/SECURITY.md`](docs/operations/SECURITY.md)、[`docs/operations/ENVIRONMENT.md`](docs/operations/ENVIRONMENT.md)、[`docs/architecture/components/GOVERNANCE.md`](docs/architecture/components/GOVERNANCE.md)
-- 权威事实：[`packages/server/src/config.ts`](packages/server/src/config.ts)、权限/治理相关 contract 与 route 源码、[`docs/reference/SYSTEM_TRUTH_SOURCES.md`](docs/reference/SYSTEM_TRUTH_SOURCES.md)
+- 权威事实：[`packages/host-local/src/nest/config/config.ts`](packages/host-local/src/nest/config/config.ts)、[`packages/host-distributed/src/config/service-config.ts`](packages/host-distributed/src/config/service-config.ts)、权限/治理相关 contract 与 route 源码、[`docs/reference/SYSTEM_TRUTH_SOURCES.md`](docs/reference/SYSTEM_TRUTH_SOURCES.md)
 - 最小验证：受影响测试 + `rtk pnpm typecheck`；涉及 runtime/env surface 时补 `rtk pnpm test:deployment-smoke`
 - 必须同步：环境变量、权限模型、安全级别、治理流程变化时，更新 `operations/`、`reference/` 与必要的 `README`
 

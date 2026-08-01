@@ -18,6 +18,7 @@ export * from './domain/feedback.js';
 export * from './domain/health.js';
 export * from './domain/knowledge.js';
 export * from './domain/knowledge-owner-ports.js';
+export * from './domain/label-repository.js';
 export * from './domain/log-schema.js';
 export * from './domain/maintenance.js';
 export * from './domain/observability.js';

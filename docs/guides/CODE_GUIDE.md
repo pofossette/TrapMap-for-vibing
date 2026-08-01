@@ -40,32 +40,27 @@ contracts → server (app → routes → lib) → cli → evals
 
 ---
 
-## 2. 服务端 — `packages/server`
+## 2. 服务端 — 宿主与服务组合
 
-### 2.1 应用启动 — `src/app.ts` + `src/bootstrap/`
+> `packages/server` 已于 Wave-10 删除。当前服务端由宿主层（`host-local` / `host-distributed`）和六个 service owner 包组成。
 
-从 `buildServer()` 开始读。它创建 Fastify 实例，组装共享服务，并按顺序完成：
+### 2.1 应用启动 — `packages/host-local/src/nest/` + `packages/host-distributed/src/`
+
+从宿主入口开始读。`host-local` 是 `light` 默认宿主，`host-distributed` 是 `heavy` 分布式宿主。启动流程：
 
 1. 加载配置（端口、AI provider、存储后端）
-2. 初始化 store（`JsonStore` 或 `PostgresStore`）
-3. 注册 AI provider 和 embeddings
-4. 注册所有路由
-5. 执行启动序列（`bootstrap/run-startup-sequence.ts`）
+2. 创建 PostgreSQL 连接池
+3. 组合各 service owner bundle（identity、knowledge-write、governance-review 等）
+4. 注册所有路由和健康检查
+5. 执行启动序列（迁移、图索引对账、outbox worker）
 
-启动序列的详细步骤见 `src/bootstrap/run-startup-sequence.ts`，按严格顺序执行：
-
-1. `bootstrapRepositories` — 运行迁移、创建所有 repo、确保向量索引
-2. `bootstrapCandidateRecovery` — 查找并重新排队中断的候选
-3. `bootstrapWorkers` — 按 `runtimeMode × serviceUnit` 创建并启动任务 worker
-4. `bootstrapGraphReconciliation` — 对账图索引
-5. `bootstrapLifecycle` — 注册事件订阅者 + 按 `serviceUnit` ownership 启动 outbox worker
-
-运行时拆分时有两个独立维度：
-
-- `runtimeMode` 决定当前进程暴露 HTTP、task worker、outbox worker 中的哪一类运行面。
-- `serviceUnit` 决定当前进程拥有哪类 async work。当前只允许 `full-platform`、`candidate-ingestion`、`knowledge-governance`。
-
-`src/index.ts` 只是调用 `buildServer()` 并启动 Fastify 监听，可以快速扫过。
+六个 service owner 包各自拥有其领域逻辑：
+- `service-identity-access` — 认证、用户、团队
+- `service-knowledge-write` — 知识/工件写入
+- `service-knowledge-read` — 检索/图查询
+- `service-candidate-ingestion` — 候选处理
+- `service-governance-review` — 治理/反馈
+- `service-job-runtime` — 任务队列/outbox
 
 ### 2.2 路由层 — `src/routes/`
 
@@ -311,9 +306,9 @@ CLI retrieval search "如何处理 N+1"
 | 场景 | 文件 |
 |------|------|
 | 环境变量 | `.env`（模板见 `.env.example`） |
-| Server 配置 | `packages/server/src/config.ts` |
+| 服务配置 | `packages/host-local/src/nest/config/config.ts` + `packages/host-distributed/src/config/service-config.ts` |
 | CLI 配置 | `packages/cli/src/lib/config.ts` |
-| AI Provider | `packages/server/src/lib/ai/provider-config.ts` |
+| AI Provider | `packages/host-local/src/nest/config/config.ts` + `packages/host-distributed/src/config/service-config.ts` |
 | TypeScript | `tsconfig.base.json`（各包继承） |
 | 代码规范 | `biome.json` |
 | 测试 | `vitest.config.ts` |
@@ -346,7 +341,4 @@ CLI retrieval search "如何处理 N+1"
 
 ---
 
-如需查阅包内导航，请参阅：
-
-- `packages/server/src/lib/README.md`
-- `packages/server/src/routes/README.md`
+如需查阅包内导航，请参阅各 service owner 包的 README 和 [`docs/PACKAGES.md`](../PACKAGES.md)。

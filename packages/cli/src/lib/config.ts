@@ -3,10 +3,10 @@ import os, { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import {
-  normalizeBackendTarget,
   type ActiveSession,
   type BackendTarget,
   type ScriptActivationPolicy,
+  normalizeBackendTarget,
 } from '@trapmap/contracts';
 
 /**

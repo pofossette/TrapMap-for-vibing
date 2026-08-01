@@ -19,7 +19,7 @@ import type { ExtractionPlan } from '@trapmap/contracts';
 import { RetrievalCache } from './retrieval-cache.js';
 import type { CacheStats } from './retrieval-cache.js';
 
-import type { LlmExtractionResult } from './llm-extract.js';
+import type { LlmExtractionResult } from '../graph-llm-extract.js';
 
 // ---------------------------------------------------------------------------
 // Constants

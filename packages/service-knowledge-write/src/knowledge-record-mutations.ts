@@ -6,8 +6,6 @@ import type {
   KnowledgeSubmission,
 } from '@trapmap/contracts';
 
-import { createDefaultEvidenceMeta } from './knowledge-deps/evidence-model.js';
-import { transitionLifecycleState } from './knowledge-deps/lifecycle-index.js';
 import type {
   AgentReviewRecord,
   KnowledgeLifecycleEventRecord,
@@ -18,6 +16,8 @@ import type {
 } from '@trapmap/service-knowledge-read/store.js';
 import { toActorRef } from './knowledge-deps/actor-ref.js';
 import type { UserLookupContext } from './knowledge-deps/actor-ref.js';
+import { createDefaultEvidenceMeta } from './knowledge-deps/evidence-model.js';
+import { transitionLifecycleState } from './knowledge-deps/lifecycle-index.js';
 import { nextSubId } from './knowledge-deps/next-sub-id.js';
 
 function toAgentNotes(review: AgentReviewResult): KnowledgeReviewNoteRecord[] {

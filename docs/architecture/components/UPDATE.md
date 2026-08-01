@@ -291,5 +291,5 @@ void logUserOperation(app.skillShareer.config.userOpsLog, {
 
 ## 相关源码
 
-- [packages/server/src/routes/knowledge.ts](../../../packages/server/src/routes/knowledge.ts)
+- [packages/server（Wave-10 已删除）/src/routes/knowledge.ts](../../../packages/server（Wave-10 已删除）/src/routes/knowledge.ts)
 - [packages/service-knowledge-write/src/pg-ports.ts](../../../packages/service-knowledge-write/src/pg-ports.ts)

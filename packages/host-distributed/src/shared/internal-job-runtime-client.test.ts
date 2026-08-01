@@ -1,4 +1,4 @@
-import { InvocationError } from '@trapmap/backend-core';
+import type { InvocationError } from '@trapmap/backend-core';
 import { describe, expect, it, vi } from 'vitest';
 import { createRemoteJobRuntimeClient } from './internal-job-runtime-client.js';
 

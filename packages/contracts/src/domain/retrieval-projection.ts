@@ -8,13 +8,13 @@ export interface RetrievalProjectionSources<KnowledgeEntry, Artifact, Feedback, 
   listRemediation?(entryIds: string[]): Promise<RetrievalRemediationProjection[]>;
 }
 
-export interface RetrievalReadModelRepositories<KnowledgeEntry, Artifact, Feedback, Conflict> {
+export interface RetrievalReadModelRepositories<KnowledgeEntry, Artifact, _Feedback, _Conflict> {
   knowledge: {
-    listByFilter(filter: {}): Promise<KnowledgeEntry[]>;
+    listByFilter(filter: Record<string, unknown>): Promise<KnowledgeEntry[]>;
   };
   artifact: {
-    listByFilter(filter: {}): Promise<Artifact[]>;
-    listForRetrieval?(filter: {}): Promise<Artifact[]>;
+    listByFilter(filter: Record<string, unknown>): Promise<Artifact[]>;
+    listForRetrieval?(filter: Record<string, unknown>): Promise<Artifact[]>;
   };
 }
 

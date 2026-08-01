@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
-import path from 'node:path';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { afterEach, expect, it } from 'vitest';
 
 import { taskQueueColumns } from '@trapmap/persistence-schema';

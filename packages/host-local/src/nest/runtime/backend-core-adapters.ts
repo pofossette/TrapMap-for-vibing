@@ -95,7 +95,7 @@ export function createIdentityAccessRepos(repos: Pick<
 } {
   return {
     sessionRepo: {
-      nextId: () => repos.session.nextId(),
+      nextId: () => Promise.resolve(repos.session.nextId()),
       async create(session) {
         const created = await repos.session.create({
           subjectType: 'user',
@@ -118,14 +118,14 @@ export function createIdentityAccessRepos(repos: Pick<
       },
       deleteByTokenHash: (tokenHash) => repos.session.deleteByTokenHash(tokenHash),
       async updateActiveTeam(sessionId, teamId) {
-        const session = await repos.session.updateActiveTeam(sessionId, teamId);
+        const session = await repos.session.updateActiveTeam(sessionId, teamId ?? '');
         return normalizeSessionRecord(session as unknown as Record<string, unknown>) as Awaited<
           ReturnType<SessionRepositoryPort['updateActiveTeam']>
         >;
       },
     },
     accessKeyRepo: {
-      nextId: () => repos.accessKey.nextId(),
+      nextId: () => Promise.resolve(repos.accessKey.nextId()),
       async insert(key) {
         await repos.accessKey.insert({
           id: key.id,
@@ -169,7 +169,7 @@ export function createIdentityAccessRepos(repos: Pick<
       },
     },
     teamRepo: {
-      nextId: () => repos.team.nextId(),
+      nextId: () => Promise.resolve(repos.team.nextId()),
       async insert(team) {
         await repos.team.insert({
           id: team.id,
@@ -205,7 +205,7 @@ export function createIdentityAccessRepos(repos: Pick<
       update: (teamId, updates) => repos.team.update(teamId, updates as never),
     },
     membershipRepo: {
-      nextId: () => repos.membership.nextId(),
+      nextId: () => Promise.resolve(repos.membership.nextId()),
       async insert(membership) {
         const shape = membership as Record<string, unknown>;
         await repos.membership.insert({
@@ -251,7 +251,7 @@ export function createIdentityAccessRepos(repos: Pick<
       update: (membershipId, updates) => repos.membership.update(membershipId, updates as never),
     },
     userRepo: {
-      nextId: () => repos.user.nextId(),
+      nextId: () => Promise.resolve(repos.user.nextId()),
       async insert(user) {
         await repos.user.insert({
           id: user.id,
@@ -324,7 +324,7 @@ export function createAuditLogPort(repos: Pick<HostLocalRepos, 'audit'>): AuditL
           outcome: item.outcome ?? 'success',
           timestamp: item.createdAt,
         })),
-      };
+      } as Awaited<ReturnType<AuditLogPort['query']>>;
     },
   };
 }
@@ -361,7 +361,7 @@ export function createQueuePorts(asyncTransport?: HostLocalAsyncTransport): Queu
                       handler.onDead?.(task),
                   }
                 : {}),
-            })) as Parameters<NonNullable<HostLocalAsyncTransport['task']['createConsumer']>>[0]['handlers'],
+            })) as unknown as Parameters<NonNullable<HostLocalAsyncTransport['task']['createConsumer']>>[0]['handlers'],
           });
         },
       },

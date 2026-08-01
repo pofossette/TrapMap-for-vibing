@@ -2,8 +2,8 @@ import type { ArtifactBundle, SkillArtifact } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  createArtifactFilePayloadOwner,
   createArtifactBundleImportPort,
+  createArtifactFilePayloadOwner,
   createArtifactReadProjection,
   createArtifactWritePort,
 } from './artifact-ports.js';

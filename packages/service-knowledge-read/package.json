@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./store.js": {
+      "types": "./dist/store.d.ts",
+      "import": "./dist/store.js"
     }
   },
   "scripts": {
@@ -25,6 +29,7 @@
     "pg": "8.20.0"
   },
   "devDependencies": {
+    "@trapmap/service-knowledge-write": "workspace:*",
     "@types/node": "^25.6.0",
     "@types/pg": "8.20.0",
     "typescript": "^5.9.3",

@@ -6,7 +6,7 @@ import type { KnowledgeRecord } from './store.js';
 const originalDecayEnabled = process.env.TRAPMAP_DECAY_ENABLED;
 
 afterEach(() => {
-  if (originalDecayEnabled === undefined) delete process.env.TRAPMAP_DECAY_ENABLED;
+  if (originalDecayEnabled === undefined) process.env.TRAPMAP_DECAY_ENABLED = undefined;
   else process.env.TRAPMAP_DECAY_ENABLED = originalDecayEnabled;
 });
 

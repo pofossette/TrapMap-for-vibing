@@ -15,6 +15,7 @@ import {
   createKnowledgeReadGraphIndexRepository,
   createOwnerReadModelProjection,
   type OwnerReadModelProjection,
+  type OwnerReadModelProjectionOptions,
 } from '@trapmap/service-knowledge-read';
 import {
   createKnowledgeWriteOwnerBundle,
@@ -88,7 +89,7 @@ export async function createHostLocalServices(
   const ownerReadModel = createOwnerReadModelProjection({
     knowledge: knowledgeWrite.knowledgeOwner,
     artifact: knowledgeWrite.artifactReadProjection,
-    governance: governanceReview.retrievalProjection,
+    governance: governanceReview.retrievalProjection as unknown as OwnerReadModelProjectionOptions['governance'],
   });
   const asyncTransport = createJobRuntimeAsyncTransport({
     config: { asyncTaskTransport: config.asyncTaskTransport },

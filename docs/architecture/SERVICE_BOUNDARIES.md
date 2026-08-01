@@ -42,7 +42,7 @@
 
 **用途**：集中式认证、身份和访问控制。
 
-**实现状态**：已实现为 `packages/service-identity-access`。`packages/host-distributed` 只作为薄宿主适配器，`packages/server` 不是权威 owner。
+**实现状态**：已实现为 `packages/service-identity-access`。`packages/host-distributed` 只作为薄宿主适配器，`packages/server（Wave-10 已删除）` 不是权威 owner。
 
 **职责**：
 
@@ -57,7 +57,7 @@
 
 **用途**：优化的读路径，用于检索、搜索和查询分析。
 
-**实现状态**：已实现为 `packages/service-knowledge-read`。`packages/host-distributed` 只负责装配与传输接线，`packages/server` 不是权威 owner。
+**实现状态**：已实现为 `packages/service-knowledge-read`。`packages/host-distributed` 只负责装配与传输接线，`packages/server（Wave-10 已删除）` 不是权威 owner。
 
 **职责**：
 
@@ -87,7 +87,7 @@
 
 **用途**：新候选项的异步接收与处理管道。
 
-**实现状态**：`packages/service-candidate-ingestion` 是六个真实 `service-*` 包之一。`packages/host-distributed` 只消费它，`packages/server` 不是权威候选 owner。
+**实现状态**：`packages/service-candidate-ingestion` 是六个真实 `service-*` 包之一。`packages/host-distributed` 只消费它，`packages/server（Wave-10 已删除）` 不是权威候选 owner。
 
 **职责**：
 
@@ -337,7 +337,7 @@ Current RPC pilot scope（当前 RPC 试点范围）：
 
 ### 轻量宿主
 
-在 `local-agent` / `team-monolith` 下，七个逻辑服务可以由同一宿主进程内组装。当前默认主线是 `packages/host-local`；`packages/server` 只保留 Fastify compatibility shell 与 shared runtime/status seam。
+在 `local-agent` / `team-monolith` 下，七个逻辑服务可以由同一宿主进程内组装。当前默认主线是 `packages/host-local`；`packages/server（Wave-10 已删除）` 只保留 Fastify compatibility shell 与 shared runtime/status seam。
 
 ### `distributed` 当前基线
 

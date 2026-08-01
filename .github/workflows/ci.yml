@@ -140,7 +140,7 @@ jobs:
       - run: pnpm build
 
       - name: Run PG integration tests
-        run: pnpm exec vitest run packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts
+        run: pnpm exec vitest run packages/contracts/src/domain/task-queue.test.ts packages/host-distributed/src/shared/database-ownership.test.ts
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/trapmap
           NODE_ENV: test
@@ -168,5 +168,6 @@ jobs:
       - run: pnpm check:complexity
       - run: pnpm check:md-lint
       - run: pnpm check:links || true
+      - run: pnpm check:stale-package-refs
       - run: pnpm exec fallow dead-code --boundary-violations --ci --fail-on-issues
       - run: pnpm exec fallow dead-code --unused-deps --ci --fail-on-issues

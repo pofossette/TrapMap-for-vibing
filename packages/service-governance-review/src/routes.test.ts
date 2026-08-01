@@ -1,12 +1,12 @@
 import {
-  InvocationError,
   type GovernanceAsyncCommandPort,
   type GovernanceReviewAdminPort,
+  InvocationError,
   type ReviewPort,
 } from '@trapmap/backend-core';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
-import { registerGovernanceReviewRoutes, type GovernanceReviewRouteModule } from './routes.ts';
+import { type GovernanceReviewRouteModule, registerGovernanceReviewRoutes } from './routes.ts';
 
 function createModule(
   overrides: Partial<GovernanceReviewRouteModule> = {},

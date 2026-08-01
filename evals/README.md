@@ -315,7 +315,7 @@ pnpm eval:smoke -- --verbose
 
 | 触发器 | 层级 | 何时 |
 |--------|------|------|
-| Pull Request | Smoke | 修改 `packages/contracts/src/domain/evals/**`、`evals/**` 或 `packages/server/src/**` 的 PR 到 `main` |
+| Pull Request | Smoke | 修改 `packages/contracts/src/domain/evals/**`、`evals/**` 或 `packages/service-*/src/**` 的 PR 到 `main` |
 | 定时 | Core | 每周一 UTC 6 AM |
 | 手动触发 | Smoke 或 Core | 通过 GitHub Actions UI 选择层级 |
 

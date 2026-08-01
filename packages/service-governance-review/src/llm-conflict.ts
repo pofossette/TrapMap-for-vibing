@@ -12,8 +12,8 @@
 
 import { z } from 'zod';
 
-import { stripCodeFences } from '@trapmap/ai-providers/ai-parse.js';
 import type { ChatProvider } from '@trapmap/ai-providers';
+import { stripCodeFences } from '@trapmap/ai-providers/ai-parse.js';
 
 // ---------------------------------------------------------------------------
 // Types

@@ -8,7 +8,7 @@
 
 ## 一、依赖声明
 
-均声明在 `packages/server/package.json`：
+均声明在 `packages/server（Wave-10 已删除）/package.json`：
 
 | 包名 | 版本 | 角色 |
 |------|------|------|
@@ -28,7 +28,7 @@
 ### 2.1 源文件总览
 
 ```
-packages/server/src/lib/
+packages/server（Wave-10 已删除）/src/lib/
 ├── ai/
 │   ├── providers.ts           # 主要集成点（懒加载）
 │   └── types.ts               # ChatProvider / EmbeddingsProvider 接口
@@ -104,7 +104,7 @@ packages/server/src/lib/
 ### 3.1 源文件总览
 
 ```
-packages/server/src/lib/indexing/
+packages/server（Wave-10 已删除）/src/lib/indexing/
 ├── graph-lite/
 │   └── graphology.ts          # 唯一直接引用 graphology npm 的文件（网关）
 ├── adapters/
@@ -113,7 +113,7 @@ packages/server/src/lib/indexing/
 ├── skill-events.ts            # skill 事件扇出 → assertNoHardDependencyCycles
 └── reconcile.ts               # 图索引重建 → assertNoHardDependencyCycles
 
-packages/server/src/lib/retrieval/
+packages/server（Wave-10 已删除）/src/lib/retrieval/
 ├── recall/graph-assisted.ts   # 关系增强召回 → 展开 + 打分
 └── graph-plan/plan-compiler.ts # trap-first 计划编译 → 局部展开 + 子图
 ```

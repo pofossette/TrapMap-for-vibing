@@ -19,21 +19,19 @@
 
 ## 验收脚本
 
-全链路验收测试位于：
-```
-packages/server/src/lib/artifacts/demo-acceptance.test.ts
-```
+全链路验收测试已迁移至 owner-local artifact port/route 测试：
 
-运行：
-```bash
-rtk pnpm test -- --run packages/server/src/lib/artifacts/demo-acceptance.test.ts
-```
+- artifact port 测试：`rtk pnpm --filter @trapmap/service-knowledge-write test --run src/artifact-ports.test.ts`
+- artifact route 测试：`rtk pnpm --filter @trapmap/service-knowledge-write test --run src/artifact-routes.test.ts`
+- PostgreSQL composition 入口测试：`rtk pnpm test:file -- scripts/__tests__/postgres-composition-entrypoints.test.ts`
+
+> 原 `packages/server/src/lib/artifacts/demo-acceptance.test.ts` 已随 Wave-9 store-backed fixture 退役删除。
 
 ## 验收链路
 
 测试覆盖以下主链路环节：
 
-1. **seed** (0→1): 从空 JSON Store 创建 agent-pass artifact
+1. **seed** (0→1): 从空数据库创建 agent-pass artifact
 2. **review approve**: agent-pass → approved
 3. **get/history**: 查询 artifact 历史和 revisions
 4. **retrieval visibility**: skill-lookup search-by-content + v1 hybrid search

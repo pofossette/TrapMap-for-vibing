@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { RetrievalEvalScenario } from '@trapmap/contracts/evals';
 import { createHash } from 'node:crypto';
+import type { RetrievalEvalScenario } from '@trapmap/contracts/evals';
 
 function hashSecret(secret: string): string {
   return createHash('sha256').update(secret).digest('hex');

@@ -2,14 +2,16 @@
 
 > 权威的事实来源和防漂移守卫规则见 [SYSTEM_TRUTH_SOURCES.md](../reference/SYSTEM_TRUTH_SOURCES.md)。
 
+> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本页中保留的 `packages/server（Wave-10 已删除）` 结构说明描述的是删除前的架构，概念上仍然适用但路径已不存在。当前架构由 `host-local` / `host-distributed` 宿主层和六个 service owner 包组成。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+
 ## 系统架构
 
-> 当前正式运行入口已经迁移到 `packages/host-local` 与 `packages/host-distributed`。本页中保留 `packages/server` 结构说明，是因为它仍承担 retrieval/status/readiness 与旧路由兼容壳职责。distributed 写链路已经在 `packages/host-distributed` 落地，而 `local-agent` / `team-monolith` 默认 light 主线也已由 `packages/host-local/src/nest/**` 接管 candidate apply-resolution 与 knowledge review，旧 Fastify 写路由已删除。
+> 当前正式运行入口是 `packages/host-local`（light）与 `packages/host-distributed`（heavy）。各 service owner 包通过 owner-local PostgreSQL bundle 管理数据。
 
 Phase 0 目标架构冻结补充事实：
 
 - 唯一长期后端主线固定为 `Nest host + framework-free domain core + gradual service extraction`。
-- 当前默认实现已经切到 `packages/host-local/src/nest/**`；`packages/server` 只保留 Fastify compatibility shell 与 shared runtime/status seam，不再是默认宿主主线。宿主替换的是 host/transport/DI，而不是 `backend-core`、`contracts` 或 service owner contract。
+- 当前默认实现已经切到 `packages/host-local/src/nest/**`；`packages/server（Wave-10 已删除）` 只保留 Fastify compatibility shell 与 shared runtime/status seam，不再是默认宿主主线。宿主替换的是 host/transport/DI，而不是 `backend-core`、`contracts` 或 service owner contract。
 - 运行模型固定为 `embedded/local-agent -> team-monolith -> distributed` 三档；`embedded` 是当前 `local-agent` 的长期产品语义，不新增第四种 profile。
 - gateway 继续是宿主拥有的统一外部适配层，而不是当前主线里的 `service-gateway` package 前提。
 - 当前 `distributed` 成熟度冻结为 `Level 2 / transitional-microservice`。
@@ -17,8 +19,8 @@ Phase 0 目标架构冻结补充事实：
 Phase 1 边界收敛补充事实：
 
 - 架构边界的自动化守护和 zone 规则详见 [BOUNDARIES.md](BOUNDARIES.md)。
-- `packages/server` 当前是 compatibility shell 与 runtime/status surface。它仍是 partial compatibility shell：maintenance/decay 写路径已降级为 compatibility-only；candidate/review legacy 写路径已经删除。
-- `packages/backend-core` 当前承载 command/use-case/port 模式与内核契约，是后续收敛目标，不是允许与 `packages/server` 平行增长的第二主实现面。
+- `packages/server（Wave-10 已删除）` 当前是 compatibility shell 与 runtime/status surface。它仍是 partial compatibility shell：maintenance/decay 写路径已降级为 compatibility-only；candidate/review legacy 写路径已经删除。
+- `packages/backend-core` 当前承载 command/use-case/port 模式与内核契约，是后续收敛目标，不是允许与 `packages/server（Wave-10 已删除）` 平行增长的第二主实现面。
 - `packages/host-local` 与 `packages/host-distributed` 当前承载宿主装配、HTTP/worker transport 和 concrete port wiring；它们消费 `backend-core` 契约，不重新定义业务真相。
 - `packages/host-distributed` 当前承载 distributed 形态下的 authoritative candidate resolution、review decision、maintenance batch 与 decay batch 写编排。
 
@@ -36,20 +38,20 @@ Phase 2 modular-monolith cutover 补充事实：
 - 六个 bounded context 固定为 `identity-access`、`knowledge-read`、`knowledge-write`、`governance-review`、`candidate-ingestion`、`job-runtime`；`gateway` 继续只是宿主拥有的 transport shell。
 - `backend-core` 已经按这六个 context 落地 `src/<context>/{domain,application,module.ts,index.ts}`；`src/modules/*.ts` 在迁移窗口内退化为对 `<context>/index.ts` 的 compatibility re-export。`backend-core` 必须继续承担 framework-free 的 `ports`、`invocation`、`runtime capability/topology`、testing utilities，以及各 context 的 `domain/application/module` factory；Nest/Fastify/PG/MQ concrete 细节不得进入这里。
 - `embedded/local-agent` 与 `team-monolith` 在 Phase 2 以后共用同一个 `packages/host-local/src/nest/app.module.ts` 和同一套 bounded-context module graph；profile 差异只允许出现在 capability、provider wiring 和 route surface gating。当前六个 bounded-context Nest module 已经全部在 `app.module.ts` 注册。
-- `packages/server` 只保留 compatibility shell 与 runtime/status；`packages/host-distributed` 保留为 distributed 的部署展开层，但不拥有第二套业务真相。
+- `packages/server（Wave-10 已删除）` 只保留 compatibility shell 与 runtime/status；`packages/host-distributed` 保留为 distributed 的部署展开层，但不拥有第二套业务真相。
 - `packages/service-*` 包继续保留，但只作为 distributed internal transport / process entry thin assembly；业务 owner 仍以 `backend-core` module 和本文档定义的边界为准。
 
 Phase 2 异步 contract 补充事实：
 
 - `packages/contracts/src/domain/async.ts` 冻结 async event / shared job 的 idempotency key、retry policy、dead-letter meaning 和 operator action catalog。
-- `packages/contracts/src/domain/operations.ts` + `packages/server/src/routes/operations/status.ts` 共同定义 operator-visible async runtime contract：runtime mode semantics、freshness / projection lag contract、failure taxonomy、idempotency contract、retry / reclaim / resume contract。
+- `packages/contracts/src/domain/operations.ts` + `packages/server（Wave-10 已删除）/src/routes/operations/status.ts` 共同定义 operator-visible async runtime contract：runtime mode semantics、freshness / projection lag contract、failure taxonomy、idempotency contract、retry / reclaim / resume contract。
 - `workflow_runs.stats` 是当前长任务 checkpoint / resume 的权威持久化 surface；bulk path 在进入 Phase 3 之前，不应再额外发明第二套 checkpoint 记录面。
 
 Phase 3 operator / config / capacity 补充事实：
 
-- `packages/server/src/routes/operations/status.ts` 继续作为 operator truth surface，并在 Phase 2 contract 之上加厚 `operatorHome`、`configGovernance`、`capacityModel` 与 `bulkOperations`。
-- `packages/server/src/config.ts` 现在提供 config governance summary：fingerprint、deprecated env、conflict warning 与 profile-aware capability summary。
-- `packages/server/src/routes/operations/stats.ts` 继续承担系统级 summary，并额外暴露 namespace 级 cache invalidation / pending invalidation 视角，作为 capacity modeling 的基础观测入口。
+- `packages/server（Wave-10 已删除）/src/routes/operations/status.ts` 继续作为 operator truth surface，并在 Phase 2 contract 之上加厚 `operatorHome`、`configGovernance`、`capacityModel` 与 `bulkOperations`。
+- `packages/server（Wave-10 已删除）/src/config.ts` 现在提供 config governance summary：fingerprint、deprecated env、conflict warning 与 profile-aware capability summary。
+- `packages/server（Wave-10 已删除）/src/routes/operations/stats.ts` 继续承担系统级 summary，并额外暴露 namespace 级 cache invalidation / pending invalidation 视角，作为 capacity modeling 的基础观测入口。
 
 Phase 4 closeout 补充事实：
 
@@ -68,7 +70,7 @@ Phase 5 六服务 ownership 冻结补充事实：
 
 ## Server Bounded Context
 
-当前 `packages/server` 以内聚职责划分为七个 bounded context：
+当前 `packages/server（Wave-10 已删除）` 以内聚职责划分为七个 bounded context：
 
 - `身份与访问`：auth、session、access key、team、membership、user
 - `知识治理`：knowledge、traps、review、decay、evidence、知识生命周期维护规则
@@ -107,22 +109,22 @@ Docker Compose 配置见仓库根目录 `docker-compose.observability.yml`，配
 
 ## Server Layer Ownership
 
-当前 `packages/server` 采用五层 ownership 模型，对应现有目录而不是新的部署拆分：
+当前 `packages/server（Wave-10 已删除）` 采用五层 ownership 模型，对应现有目录而不是新的部署拆分：
 
 | Layer | 当前目录/模块 | Ownership |
 |---|---|---|
-| `domain` | `packages/server/src/lib/<context>/` 中的实体、规则、仓库接口、policy | 表达 bounded context 语义、不变量、状态转移和聚合边界 |
-| `application` | `packages/server/src/lib/<context>/application-*.ts`、命名 service/processor | 编排命令式业务用例，协调 `repos.*`、lifecycle、权限前提和受控 side effect |
-| `infrastructure` | `packages/server/src/lib/persistence/`、`repos/`、`queue/`、`runtime/`、`ai/`、`lifecycle/`、`bootstrap/` | 持久化、队列、AI/provider、runtime metadata、startup/bootstrap、worker wiring |
-| `interfaces/http` | `packages/server/src/routes/` | Fastify transport adapter：请求解析、鉴权、delegate、响应映射 |
-| `interfaces/worker` | `packages/server/src/worker.ts`、worker/bootstrap 模块 | 异步任务消费与重试边界，把任务载荷翻译成 application/infrastructure 调用 |
+| `domain` | `packages/server（Wave-10 已删除）/src/lib/<context>/` 中的实体、规则、仓库接口、policy | 表达 bounded context 语义、不变量、状态转移和聚合边界 |
+| `application` | `packages/server（Wave-10 已删除）/src/lib/<context>/application-*.ts`、命名 service/processor | 编排命令式业务用例，协调 `repos.*`、lifecycle、权限前提和受控 side effect |
+| `infrastructure` | `packages/server（Wave-10 已删除）/src/lib/persistence/`、`repos/`、`queue/`、`runtime/`、`ai/`、`lifecycle/`、`bootstrap/` | 持久化、队列、AI/provider、runtime metadata、startup/bootstrap、worker wiring |
+| `interfaces/http` | `packages/server（Wave-10 已删除）/src/routes/` | Fastify transport adapter：请求解析、鉴权、delegate、响应映射 |
+| `interfaces/worker` | `packages/server（Wave-10 已删除）/src/worker.ts`、worker/bootstrap 模块 | 异步任务消费与重试边界，把任务载荷翻译成 application/infrastructure 调用 |
 
 层间约束：
 
 - runtime/bootstrap responsibility 留在 `infrastructure`，不进入 `domain` 或 `application`。
 - `interfaces/http` 和 `interfaces/worker` 都不定义业务规则，只适配 transport/runtime 触发。
 - read-model assembly 留在 `检索读侧` 或其他明确的读侧模块；写侧 application service 默认不拼装 retrieval/runtime projection，除非文档显式声明这种耦合是刻意的。
-- `backend-core` / `host-*` 对这些边界的角色是“承接并装配”，不是绕过 `packages/server` 当前事实再定义一套并行 ownership。
+- `backend-core` / `host-*` 对这些边界的角色是“承接并装配”，不是绕过 `packages/server（Wave-10 已删除）` 当前事实再定义一套并行 ownership。
 
 ## 重上下文的具体落点
 
@@ -173,7 +175,7 @@ Round 0 已对数据库现代化方案完成基线冻结，后续架构演进遵
 
 ### 启动序列
 
-应用启动由 `packages/server/src/bootstrap/run-startup-sequence.ts` 统一编排，严格按以下顺序执行：
+应用启动由宿主层统一编排（`packages/host-local/src/nest/` 或 `packages/host-distributed/src/`），严格按以下顺序执行：
 
 1. **Repositories** (`bootstrap-repositories.ts`) — 运行 Drizzle 迁移、创建所有 flat props repo 和统一 `repos` 对象、确保 HNSW 向量索引、注册 graph channel
 2. **Candidate Recovery** (`bootstrap-candidate-recovery.ts`) — 查找并重新排队中断的候选（JSON + PG 双路径）
@@ -187,8 +189,8 @@ Round 0 已对数据库现代化方案完成基线冻结，后续架构演进遵
 
 运行时状态约束：
 
-- `packages/server/src/lib/runtime/request-context.ts` 负责为每个请求建立统一 `requestId` / trace header 上下文
-- `packages/server/src/lib/runtime/runtime-metadata.ts` 负责构建 `/health` 与 `/ready` 共用的 runtime snapshot
+- `packages/server（Wave-10 已删除）/src/lib/runtime/request-context.ts` 负责为每个请求建立统一 `requestId` / trace header 上下文
+- `packages/server（Wave-10 已删除）/src/lib/runtime/runtime-metadata.ts` 负责构建 `/health` 与 `/ready` 共用的 runtime snapshot
 - JSON store 模式下 `queueWorker` / `outboxWorker` 会显示为 `not-configured`，这不是异常
 - PostgreSQL 模式下：
   - 当前进程拥有本地 consumer 且正在运行：`running`
@@ -289,7 +291,7 @@ audit/         审计日志查看
 - `input.ts` - 用户输入处理（提示、选择）
 - `output.ts` - 格式化输出（表格、JSON、ANSI 颜色）
 
-### 2. Server 包 (`packages/server`)
+### 2. Server 包 (`packages/server（Wave-10 已删除）`)
 
 **职责**：迁移期兼容壳层与既有 Fastify 实现面；当前仍承载大量权威实现、测试和运行时基础设施
 
@@ -379,7 +381,7 @@ AI_CHAT_MODEL=gpt-4o-mini
 AI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
-`packages/server/src/lib/ai/` 中的抽象层标准化：
+`packages/server（Wave-10 已删除）/src/lib/ai/` 中的抽象层标准化：
 - 聊天补全（系统提示、消息、参数）
 - Embeddings 生成（文本 → 向量）
 - 流式响应
@@ -620,7 +622,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: packages/server/Dockerfile
+      dockerfile: packages/server（Wave-10 已删除）/Dockerfile
     container_name: trapmap-server
     ports:
       - "4000:4000"

@@ -10,8 +10,8 @@
  * Results are deduplicated and capped at a compact table size for the LLM prompt.
  */
 
-import type { LabelAlignmentCandidate } from '@trapmap/contracts';
 import type { EmbeddingsProvider } from '@trapmap/ai-providers';
+import type { LabelAlignmentCandidate } from '@trapmap/contracts';
 
 import type { LabelRepository } from './repository.js';
 

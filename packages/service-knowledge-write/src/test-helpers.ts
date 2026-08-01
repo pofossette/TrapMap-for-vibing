@@ -1,5 +1,5 @@
-import { vi } from 'vitest';
 import type { ArtifactReadProjection } from '@trapmap/contracts';
+import { vi } from 'vitest';
 
 export function createTransactionPool(
   respond: (sql: string) => Promise<{ rows: unknown[] }> | { rows: unknown[] },
@@ -32,5 +32,7 @@ export function createArtifactReadProjectionFixture(
     history: vi.fn(async () => []),
     exportArtifacts: vi.fn(async () => []),
     reviewQueue: vi.fn(async () => []),
+    getIndexingEntry: vi.fn(async () => null),
+    listIndexingEntries: vi.fn(async () => ({ entries: [], nextOffset: null })),
   };
 }

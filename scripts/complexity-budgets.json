@@ -290,7 +290,8 @@
         "当前主线：待办收口与后续整合",
         "状态：`收口中`",
         "docs/todos/agent-eval-framework-evaluation-and-plan.md",
-        "docs/todos/observability-traceability-closure.md"
+        "docs/todos/observability-traceability-closure.md",
+        "docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md"
       ]
     },
     {
@@ -358,7 +359,8 @@
       ],
       "mustNotContain": [
         "service-discovery-and-observability-plan.md` | 服务发现与可观测性升级主线细则与 closeout tasklist",
-        "| `microservice-platform-evolution-plan.md` | 微服务平台能力增强：服务发现、内部 RPC、可观测性与资源治理 |"
+        "| `microservice-platform-evolution-plan.md` | 微服务平台能力增强：服务发现、内部 RPC、可观测性与资源治理 |",
+        "docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md"
       ]
     },
     {

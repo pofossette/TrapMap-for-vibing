@@ -1,6 +1,7 @@
 import type { RetrievalQueryPort } from '@trapmap/backend-core';
 import type {
   ArtifactReadProjection,
+  ConflictRelation,
   KnowledgeOwnerPort,
   RetrievalGovernanceProjection,
   RetrievalQuery,
@@ -28,6 +29,7 @@ import {
 } from './retrieval-recall-coordinator.js';
 import { semanticChannel } from './retrieval-semantic.js';
 import { searchKnowledge } from './search-knowledge.js';
+import type { FeedbackQueueRecord } from './store.js';
 
 type SearchKnowledgeServices = Parameters<typeof searchKnowledge>[0];
 type SearchKnowledgeAuth = Parameters<typeof searchKnowledge>[1];
@@ -42,7 +44,7 @@ export interface KnowledgeReadOwnerRetrievalServicesOptions {
   config: SearchKnowledgeServices['config'];
   knowledge: Pick<KnowledgeOwnerPort, 'getById' | 'listByFilter' | 'updateEmbeddingCache'>;
   artifact: Pick<ArtifactReadProjection, 'listByFilter' | 'listForRetrieval'>;
-  governance: RetrievalGovernanceProjection;
+  governance: RetrievalGovernanceProjection<FeedbackQueueRecord, ConflictRelation>;
   strategyRegistry: SearchKnowledgeServices['strategyRegistry'];
   channelRegistry: SearchKnowledgeServices['channelRegistry'];
   ai: KnowledgeReadAiServices;
@@ -56,8 +58,8 @@ export function createKnowledgeReadOwnerRetrievalServices(
   options: KnowledgeReadOwnerRetrievalServicesOptions,
 ): SearchKnowledgeServices {
   const repos: SkillShareerRepos = {
-    knowledge: options.knowledge as SkillShareerRepos['knowledge'],
-    artifact: options.artifact as SkillShareerRepos['artifact'],
+    knowledge: options.knowledge as unknown as SkillShareerRepos['knowledge'],
+    artifact: options.artifact as unknown as SkillShareerRepos['artifact'],
     governanceRetrievalProjection: options.governance,
     usageAnalytics: null,
     graphIndex: null,

@@ -75,7 +75,7 @@ pnpm check:fallow
 - **PR smoke**：当 PR 修改以下路径时自动触发：
   - `packages/contracts/src/domain/evals/**`
   - `evals/**`
-  - `packages/server/src/**`
+  - `packages/server（Wave-10 已删除）/src/**`
 - **周调度 core**：每周一 UTC 06:00 运行 core tier
 - **手动触发**：`workflow_dispatch`，可选 smoke 或 core tier
 

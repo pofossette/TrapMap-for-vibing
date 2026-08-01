@@ -3,13 +3,13 @@ import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
+import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import {
   type JobRuntimeServer,
   createJobRuntimeAsyncTransport,
   createJobRuntimeDeps,
   createJobRuntimeServer,
 } from '@trapmap/service-job-runtime';
-import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import { createJobRuntimeTaskHandlers } from './handlers.js';
 

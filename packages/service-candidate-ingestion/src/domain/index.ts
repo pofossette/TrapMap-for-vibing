@@ -106,14 +106,8 @@ function buildMatch(
 export function createCandidateDuplicateDetector(
   corpus: CandidateCorpusReadPort,
   deps: { now(): string; createId(): string },
-): (
-  candidate: CandidateSubmission,
-  normalized: NormalizedDuplicateInput,
-) => Promise<{
-  analysisSnapshot: AnalysisSnapshot;
-  duplicateCase: DuplicateCase | null;
-}> {
-  return async (candidate, normalized) => {
+) {
+  return async (candidate: CandidateSubmission, normalized: NormalizedDuplicateInput) => {
     const [traps, skills] = await Promise.all([
       corpus.listApprovedTraps(candidate.teamId),
       corpus.listApprovedSkills(candidate.teamId),
@@ -170,11 +164,15 @@ export function createCandidateDuplicateDetector(
         keywords: normalized.keywords,
         tokens: normalized.tokens,
         duplicateTrace: {
-          detector: 'postgresql',
-          matchedLane: hasExactMatch ? 'exact' : matches.length ? 'indexed-recall' : 'none',
+          detector: 'postgresql' as const,
+          matchedLane: (hasExactMatch ? 'exact' : matches.length ? 'indexed-recall' : 'none') as
+            | 'exact'
+            | 'indexed-recall'
+            | 'none'
+            | 'fallback',
         },
-      },
-      duplicateCase,
+      } as AnalysisSnapshot,
+      duplicateCase: duplicateCase as DuplicateCase | null,
     };
   };
 }

@@ -1,11 +1,11 @@
 import pg from 'pg';
 
-import { runIdentityAccessMigrations } from '@trapmap/service-identity-access';
-import { runKnowledgeWriteMigrations } from '@trapmap/service-knowledge-write';
 import { runCandidateIngestionMigrations } from '@trapmap/service-candidate-ingestion';
 import { runGovernanceReviewMigrations } from '@trapmap/service-governance-review';
+import { runIdentityAccessMigrations } from '@trapmap/service-identity-access';
 import { runJobRuntimeMigrations } from '@trapmap/service-job-runtime';
 import { runKnowledgeReadMigrations } from '@trapmap/service-knowledge-read';
+import { runKnowledgeWriteMigrations } from '@trapmap/service-knowledge-write';
 import { loadServiceConfig } from './config/index.js';
 
 export const distributedMigrationRunners = [

@@ -1,5 +1,4 @@
 import type {
-  GovernanceAsyncCommandPort,
   GovernanceConflictChat,
   GovernanceConflictProjection,
 } from '@trapmap/service-governance-review';
@@ -8,7 +7,7 @@ import {
   createGovernanceConflictWorkflow,
 } from '@trapmap/service-governance-review';
 import type { KnowledgeOwnerPort } from '@trapmap/contracts';
-import type { GovernanceConflictWorkflowPort, TaskHandler } from '@trapmap/backend-core';
+import type { GovernanceAsyncCommandPort, GovernanceConflictWorkflowPort, TaskHandler } from '@trapmap/backend-core';
 import {
   createGovernanceBadcaseExportDraftTaskHandler,
   createGovernanceConflictTaskHandler,

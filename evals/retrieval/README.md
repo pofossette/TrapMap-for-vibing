@@ -1,12 +1,12 @@
 # 检索评测数据集（离线）
 
-本目录包含用于评测 TrapMap 检索端点的**离线**黄金数据集和入口点。离线 eval 使用 `buildServer()` + `app.inject()` 在进程中执行，每个 case 有独立隔离的 context，不依赖外部服务。
+本目录包含用于评测 TrapMap 检索端点的**离线**黄金数据集和入口点。离线 eval 使用 `buildPostgresComposedServer()` + `app.inject()` 在进程中执行，需要 PostgreSQL 连接（`TRAPMAP_DATABASE_URL`），每个 case 有独立隔离的 context，不依赖外部服务。
 
 > **需要真实后端评测？** 参见 [`evals/retrieval-live/`](../retrieval-live/)，它面向运行中的 TrapMap 服务实例，使用命名 snapshot 版本控制数据变量。
 
 | 维度 | 离线 eval（本目录） | Live eval（`retrieval-live/`） |
 |---|---|---|
-| 服务实例 | `buildServer()` 内建 | 外部运行的 TrapMap 服务 |
+| 服务实例 | `buildPostgresComposedServer()` 内建 | 外部运行的 TrapMap 服务 |
 | 请求方式 | `app.inject()` | 真实 HTTP 请求 |
 | 隔离模型 | 每 case 独立 context + TRUNCATE | 共享 snapshot，全量恢复后依次执行 |
 | 数据控制 | fixture 直写 | 命名 snapshot 版本恢复 |
@@ -411,8 +411,8 @@ pnpm eval:retrieval:core
 PG 模式下的评测 harness 必须与 JSON 模式产生完全相同的 auth/graph 设置语义：
 
 - **场景 actor session 必须在 fixture seeding 之后创建**：`createExecutionContext()` 先创建 system-admin session 用于 seeding，`seedScenarioFixtures()` 完成后通过 `createActorSession()` 删除旧 session 并创建新的 actor session，确保 `subjectType`、`activeTeamId` 和 membership 状态正确。
-- **Graph 文档必须通过 `repos.graphIndex.upsert()` 播种**：PG 模式下 server 从 `graph_index_documents` 表读取数据，直接写入 `store.transact()` 不会同步到 PG 表。
-- **回归测试**：`evals/retrieval/lib/adapters.test.ts` 验证 governance 敏感场景不以隐式 system-admin 身份运行，且 `repos.graphIndex.listAll()` 可见播种的 graph 文档。
+- **Graph 文档必须通过 `services.graphIndex.upsert()` 播种**：PG 模式下 graph index 由 `service-knowledge-read` 的 `GraphIndexRepositoryPort` 持有，直接写入 store 不会同步到 PG 表。
+- **回归测试**：`evals/retrieval/lib/adapters.test.ts` 验证 governance 敏感场景不以隐式 system-admin 身份运行，且 `services.graphIndex.listAll()` 可见播种的 graph 文档。
 
 ## 底层索引结构（Round 7）
 

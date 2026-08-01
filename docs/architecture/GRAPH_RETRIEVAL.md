@@ -1,5 +1,7 @@
 # 图检索系统详解 (GraphRAG-lite)
 
+> **历史说明**：本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现（Wave-10）。图检索相关代码已迁移至 `packages/service-knowledge-read`。概念描述仍然适用。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+
 ## 一、概览：图系统
 
 项目中存在**图系统**：
@@ -16,7 +18,7 @@
 
 ### 2.1 节点类型 (GraphNodeKind)
 
-定义在 `packages/server/src/lib/indexing/graph-lite/documents.ts`
+定义在 `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/documents.ts`
 
 | Node Kind | ID 模式 | 语义 |
 |-----------|---------|------|
@@ -394,11 +396,11 @@ edges:
 
 | 文件 | 职责 |
 |------|------|
-| `packages/server/src/lib/cache/retrieval-cache.ts` | `RetrievalCache<V>` 核心实现 + `getRetrievalCacheStats()` |
-| `packages/server/src/lib/cache/metrics.ts` | metrics 入口（re-export） |
-| `packages/server/src/lib/retrieval/capsules/intent-cache.ts` | IntentCache (`intent` namespace) |
-| `packages/server/src/lib/indexing/adapters/graph.ts` | Graph State / Docs Cache (`graph-state`, `graph-docs`) |
-| `packages/server/src/lib/indexing/graph-lite/llm-cache.ts` | LLM Extraction Cache (`llm-phase1`, `llm-phase2`) |
+| `packages/server（Wave-10 已删除）/src/lib/cache/retrieval-cache.ts` | `RetrievalCache<V>` 核心实现 + `getRetrievalCacheStats()` |
+| `packages/server（Wave-10 已删除）/src/lib/cache/metrics.ts` | metrics 入口（re-export） |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/intent-cache.ts` | IntentCache (`intent` namespace) |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/graph.ts` | Graph State / Docs Cache (`graph-state`, `graph-docs`) |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/llm-cache.ts` | LLM Extraction Cache (`llm-phase1`, `llm-phase2`) |
 
 > **详细设计**见 [`CACHING.md`](CACHING.md)。
 
@@ -410,57 +412,57 @@ edges:
 
 | 文件 | 职责 |
 |------|------|
-| `packages/server/src/lib/indexing/graph-lite/documents.ts` | 节点/边类型定义，图文档结构 |
-| `packages/server/src/lib/indexing/graph-lite/graphology.ts` | 图组装、运行时快照、单跳扩展、BFS 子图、环路检测 |
-| `packages/server/src/lib/indexing/graph-lite/store.ts` | 图文档 CRUD (upsert, remove, get) |
-| `packages/server/src/lib/graph-index/repository.ts` | GraphIndexRepository 接口 + InMemory 实现 |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/documents.ts` | 节点/边类型定义，图文档结构 |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/graphology.ts` | 图组装、运行时快照、单跳扩展、BFS 子图、环路检测 |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/store.ts` | 图文档 CRUD (upsert, remove, get) |
+| `packages/server（Wave-10 已删除）/src/lib/graph-index/repository.ts` | GraphIndexRepository 接口 + InMemory 实现 |
 
 ### 实体抽取
 
 | 文件 | 职责 |
 |------|------|
-| `packages/server/src/lib/indexing/graph-lite/llm-extract.ts` | **LLM 两阶段实体提取** (planExtraction + extractSegmentEntities + gleaning) |
-| `packages/server/src/lib/indexing/graph-lite/llm-cache.ts` | **LLM 提取缓存** (contentHash + promptVersion) |
-| `packages/server/src/lib/retrieval/recall/query-graph-labels.ts` | query 侧图标签归一化 |
-| `packages/server/src/lib/indexing/boundary-extract.ts` | Boundary 侧抽取 (context, version, platform) |
-| `packages/server/src/lib/indexing/boundary-normalize.ts` | Boundary 节点 ID 构建与值标准化 |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/llm-extract.ts` | **LLM 两阶段实体提取** (planExtraction + extractSegmentEntities + gleaning) |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/llm-cache.ts` | **LLM 提取缓存** (contentHash + promptVersion) |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/recall/query-graph-labels.ts` | query 侧图标签归一化 |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/boundary-extract.ts` | Boundary 侧抽取 (context, version, platform) |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/boundary-normalize.ts` | Boundary 节点 ID 构建与值标准化 |
 | `packages/contracts/src/domain/graph-extraction.ts` | LLM 提取 Zod schema (节点/边/计划/指标) |
-| `packages/server/src/lib/candidates/llm-dedup.ts` | LLM 重复判定 (exact/semantic/none) |
-| `packages/server/src/lib/conflict/llm-conflict.ts` | LLM 冲突判定 (contradictory/alternative/superseded/none) |
+| `packages/server（Wave-10 已删除）/src/lib/candidates/llm-dedup.ts` | LLM 重复判定 (exact/semantic/none) |
+| `packages/server（Wave-10 已删除）/src/lib/conflict/llm-conflict.ts` | LLM 冲突判定 (contradictory/alternative/superseded/none) |
 
 ### 索引适配器
 
 | 文件 | 职责 |
 |------|------|
-| `packages/server/src/lib/indexing/adapters/graph.ts` | Trap 图索引适配器 (生命周期驱动) |
-| `packages/server/src/lib/indexing/adapters/artifact-graph.ts` | Skill 图索引适配器 |
-| `packages/server/src/lib/indexing/adapters/graph-builders.ts` | 纯函数：抽取结果 -> GraphIndexDocumentRecord |
-| `packages/server/src/lib/indexing/pipeline.ts` | 多适配器扇出管线 |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/graph.ts` | Trap 图索引适配器 (生命周期驱动) |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/artifact-graph.ts` | Skill 图索引适配器 |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/graph-builders.ts` | 纯函数：抽取结果 -> GraphIndexDocumentRecord |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/pipeline.ts` | 多适配器扇出管线 |
 
 ### 检索通道
 
 | 文件 | 职责 |
 |------|------|
-| `packages/server/src/lib/retrieval/recall/graph-assisted.ts` | v1 图辅助召回通道 (单跳扩展 + 计分) |
-| `packages/server/src/lib/retrieval/orchestration/recall-coordinator.ts` | 召回调度 + graph 三通道合并 |
-| `packages/server/src/lib/retrieval/orchestration/channel-registry.ts` | 可插拔召回通道注册 |
-| `packages/server/src/lib/retrieval/orchestration/strategy-registry.ts` | 可插拔检索策略注册 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/recall/graph-assisted.ts` | v1 图辅助召回通道 (单跳扩展 + 计分) |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/orchestration/recall-coordinator.ts` | 召回调度 + graph 三通道合并 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/orchestration/channel-registry.ts` | 可插拔召回通道注册 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/orchestration/strategy-registry.ts` | 可插拔检索策略注册 |
 
 ### 图计划检索 (v3)
 
 | 文件 | 职责 |
 |------|------|
-| `packages/server/src/lib/retrieval/graph-plan/plan-compiler.ts` | Trap-First Plan 编译器 (BFS 局部展开 + skill 预算 + 拓扑执行计划) |
-| `packages/server/src/lib/retrieval/graph-plan/graph-plan-search.ts` | v3 图计划搜索入口 + 置信度评估 + 降级逻辑 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/graph-plan/plan-compiler.ts` | Trap-First Plan 编译器 (BFS 局部展开 + skill 预算 + 拓扑执行计划) |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/graph-plan/graph-plan-search.ts` | v3 图计划搜索入口 + 置信度评估 + 降级逻辑 |
 
 ### 管线集成
 
 | 文件 | 职责 |
 |------|------|
-| `packages/server/src/lib/retrieval/orchestration/orchestrator.ts` | 检索编排器 (v1/v2/v3 入口) |
-| `packages/server/src/lib/retrieval/capsules/scoring/merge.ts` | 多通道候选合并 (加权平均) |
-| `packages/server/src/lib/retrieval/capsules/scoring/rerank.ts` | 启发式重排序 (衰减、边界、跨通道 boost) |
-| `packages/server/src/lib/retrieval/response/citations.ts` | 结构化引用构建 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/orchestration/orchestrator.ts` | 检索编排器 (v1/v2/v3 入口) |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/scoring/merge.ts` | 多通道候选合并 (加权平均) |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/capsules/scoring/rerank.ts` | 启发式重排序 (衰减、边界、跨通道 boost) |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/response/citations.ts` | 结构化引用构建 |
 
 ### 契约层
 
@@ -475,13 +477,13 @@ edges:
 
 | 文件 | 职责 |
 |------|------|
-| `packages/server/src/lib/retrieval/__fixtures__/graph-fixtures.ts` | 测试 fixture (Deploy Cluster 数据集, 环路检测数据集) |
-| `packages/server/src/lib/retrieval/recall/graph-assisted.test.ts` | graph-assisted 图标签召回测试 |
-| `packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts` | v3 图计划搜索测试 |
-| `packages/server/src/lib/retrieval/recall/graph-assisted.test.ts` | v1 图召回测试 |
-| `packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts` | Plan 编译器测试 |
-| `packages/server/src/lib/indexing/graph-lite/graphology.test.ts` | 图组装与遍历测试 |
-| `packages/server/src/lib/indexing/adapters/graph.test.ts` | Trap 图适配器测试 |
-| `packages/server/src/lib/indexing/adapters/artifact-graph.test.ts` | Skill 图适配器测试 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/__fixtures__/graph-fixtures.ts` | 测试 fixture (Deploy Cluster 数据集, 环路检测数据集) |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/recall/graph-assisted.test.ts` | graph-assisted 图标签召回测试 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/graph-plan/graph-plan-search.test.ts` | v3 图计划搜索测试 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/recall/graph-assisted.test.ts` | v1 图召回测试 |
+| `packages/server（Wave-10 已删除）/src/lib/retrieval/graph-plan/plan-compiler.test.ts` | Plan 编译器测试 |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/graphology.test.ts` | 图组装与遍历测试 |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/graph.test.ts` | Trap 图适配器测试 |
+| `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/artifact-graph.test.ts` | Skill 图适配器测试 |
 
 > **LLM 图提取架构详解**见 [`HYBRID_GRAPH_EXTRACTION.md`](HYBRID_GRAPH_EXTRACTION.md)。

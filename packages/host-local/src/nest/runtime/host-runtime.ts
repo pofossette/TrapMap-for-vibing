@@ -40,7 +40,7 @@ function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
     config: services.config,
     knowledge: services.knowledgeOwner,
     artifact: services.artifactReadProjection,
-    governance: services.governanceReview.retrievalProjection,
+    governance: services.governanceReview.retrievalProjection as unknown as Parameters<typeof createKnowledgeReadOwnerRetrievalServices>[0]['governance'],
     strategyRegistry: services.strategyRegistry,
     channelRegistry: services.channelRegistry,
     ai: services.ai,

@@ -43,10 +43,9 @@ async function migrateRecords<T extends { id: string }>(
           });
         }
         continue;
-      } else {
-        await write(record);
-        result.migrated += 1;
       }
+      await write(record);
+      result.migrated += 1;
       const written = await read(record.id);
       if (written && recordsMatch(written, record)) result.verified += 1;
       else {

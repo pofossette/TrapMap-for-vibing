@@ -8,16 +8,16 @@
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
+import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import {
-  type KnowledgeWriteServer,
   type KnowledgeWriteOwnerBundle,
   type KnowledgeWriteReadinessOptions,
+  type KnowledgeWriteServer,
   createKnowledgeWriteDeps,
   createKnowledgeWriteOutboxDiagnostics,
   createKnowledgeWriteOwnerBundle,
   createKnowledgeWriteServer as createServiceKnowledgeWriteServer,
 } from '@trapmap/service-knowledge-write';
-import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 
 export function createKnowledgeWriteReadinessOptions(

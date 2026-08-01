@@ -115,7 +115,7 @@ web-panel → client-core → (none)
 
 ### host-local transitional composition
 
-`packages/runtime-infra` 已在 2026-07-25 删除。host-local 可以在自身 composition 中暂时调用 server compatibility helpers；这不是可复用 service package，其他 services 不得通过 concrete import 获得该能力。
+`packages/runtime-infra` 已在 2026-07-25 删除（Wave-10）。host-local 可以在自身 composition 中暂时调用 server compatibility helpers（Wave-10 已删除）；这不是可复用 service package，其他 services 不得通过 concrete import 获得该能力。
 
 ## 使用指南
 
@@ -151,7 +151,7 @@ The coupling audit (Phase 0.6) identified several patterns that violate strict l
 
 ### Category A: Structural Store Pool Seam (Medium Severity)
 
-**Location**: `packages/server/src/lib/store/store-pool.ts` and the remaining compatibility orchestration/runtime callers.
+**Location**: `packages/server/src/lib/store/store-pool.ts`（Wave-10 已删除）and the remaining compatibility orchestration/runtime callers.
 
 **Pattern**: Orchestration/runtime code now uses structural `getStorePool(...)` or `typeof store.getPool === 'function'` seams to extract a `Pool` from the Store interface instead of checking `instanceof PostgresStore`.
 

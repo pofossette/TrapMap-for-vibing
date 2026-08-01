@@ -11,8 +11,8 @@
  * IdentityAccessPort surface.
  */
 
-import { InvocationError } from '../../invocation/invocation-model.js';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { InvocationError } from '../../invocation/invocation-model.js';
 import type {
   PermissionCheckPort,
   SessionLookupPort,

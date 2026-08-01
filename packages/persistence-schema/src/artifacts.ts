@@ -22,10 +22,10 @@ import {
 
 import type { Boundary, LifecycleState, Scope } from '@trapmap/contracts';
 import {
-  auditTimestamps,
   artifactFileDetailsColumns,
   artifactRevisionItemColumns,
   artifactScriptDetailsColumns,
+  auditTimestamps,
   boundaryEvidenceColumns,
   boundaryExclusionsColumns,
   boundaryPrerequisitesColumns,

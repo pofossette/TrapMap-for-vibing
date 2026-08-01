@@ -1,6 +1,6 @@
 # LLM 驱动的图构建与入库智能设计（历史计划）
 
-> 已完成的历史设计文档。当前实现已移除 `graph-extract.ts` 规则引擎和相关 fallback 语义；仓库现状以 `packages/server/src/lib/indexing/graph-lite/llm-extract.ts`、`packages/server/src/lib/retrieval/recall/query-graph-labels.ts` 及相关 truth docs 为准。
+> 已完成的历史设计文档。当前实现已移除 `graph-extract.ts` 规则引擎和相关 fallback 语义；仓库现状以 `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/llm-extract.ts`、`packages/server（Wave-10 已删除）/src/lib/retrieval/recall/query-graph-labels.ts` 及相关 truth docs 为准。
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -191,9 +191,9 @@
   - [ ] 编写 schema 校验单元测试
 
 - [ ] **1-2: Prompt 模板** (0.5 天)
-  - [ ] 在 `packages/server/src/lib/ai/providers/types.ts` 的 `AiPromptTaskType` 添加 `'graph-extraction'` 和 `'graph-extraction-planner'`
-  - [ ] 在 `packages/server/src/lib/ai/providers/templates/` 新增 `graph-extraction.xml`
-  - [ ] 在 `packages/server/src/lib/ai/prompts.ts` 添加:
+  - [ ] 在 `packages/server（Wave-10 已删除）/src/lib/ai/providers/types.ts` 的 `AiPromptTaskType` 添加 `'graph-extraction'` 和 `'graph-extraction-planner'`
+  - [ ] 在 `packages/server（Wave-10 已删除）/src/lib/ai/providers/templates/` 新增 `graph-extraction.xml`
+  - [ ] 在 `packages/server（Wave-10 已删除）/src/lib/ai/prompts.ts` 添加:
     - [ ] `buildGraphExtractionPlannerSlots()` — Phase 1 切分策略 prompt
     - [ ] `buildGraphExtractionSlots()` — Phase 2 实体提取 prompt
     - [ ] 对应的 `buildGraphExtractionSystemPrompt()` 和 `buildGraphExtractionSystemPromptBlocks()` 导出
@@ -201,7 +201,7 @@
   - [ ] 验证 prompt 在目标模型上的 JSON 输出稳定性
 
 - [ ] **1-3: LLM 提取核心模块** (2 天)
-  - [ ] 新建 `packages/server/src/lib/indexing/graph-lite/llm-extract.ts`
+  - [ ] 新建 `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/llm-extract.ts`
   - [ ] 实现 `planExtraction(chat, text)` — Phase 1 切分策略:
     - [ ] 文本 <= `CHUNK_THRESHOLD`(2000 chars) → 返回单段 plan
     - [ ] 文本 > `CHUNK_THRESHOLD` → LLM 调用返回 ExtractionPlan
@@ -233,21 +233,21 @@
   - [ ] 编写 gleaning 合并逻辑的单元测试
 
 - [ ] **1-5: 图适配器集成 — Trap 侧** (1 天)
-  - [ ] 修改 `packages/server/src/lib/indexing/adapters/graph.ts` 的 `sync()`:
+  - [ ] 修改 `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/graph.ts` 的 `sync()`:
     - [ ] 参数添加 `chat?: ChatProvider`
     - [ ] 将 `extractTrapGraphEntities(document)` 替换为 `extractGraphEntitiesWithLLM(chat, document.canonicalText)` + trap 根节点注入
     - [ ] 保留 `extractBoundaryGraphEntities()` 调用不变
     - [ ] 合并 LLM 结果 + boundary 结果 → `buildTrapGraphDocument()`
-  - [ ] 修改 `packages/server/src/lib/indexing/pipeline.ts` 的 `syncKnowledgeIndex()`:
+  - [ ] 修改 `packages/server（Wave-10 已删除）/src/lib/indexing/pipeline.ts` 的 `syncKnowledgeIndex()`:
     - [ ] 将 `services.ai.chat` 传递给 graph adapter
-  - [ ] 修改 `packages/server/src/lib/indexing/events.ts` 中的 adapter 调用签名
+  - [ ] 修改 `packages/server（Wave-10 已删除）/src/lib/indexing/events.ts` 中的 adapter 调用签名
   - [ ] 运行现有图索引测试确保无回归
 
 - [ ] **1-6: 图适配器集成 — Skill 侧** (0.5 天)
-  - [ ] 修改 `packages/server/src/lib/indexing/skill-events.ts`:
+  - [ ] 修改 `packages/server（Wave-10 已删除）/src/lib/indexing/skill-events.ts`:
     - [ ] `extractSkillGraphPrimitives()` 改为调用 `extractGraphEntitiesWithLLM()`
     - [ ] 保持安全约束: 仅读 profile.summary/keywords + capsules 文本
-  - [ ] 修改 `packages/server/src/lib/indexing/adapters/artifact-graph.ts` 的 `sync()`:
+  - [ ] 修改 `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/artifact-graph.ts` 的 `sync()`:
     - [ ] 参数添加 `chat?: ChatProvider`
     - [ ] 传递 chat 给 `buildSkillGraphDocument()`
   - [ ] 运行现有 artifact-graph 测试
@@ -293,7 +293,7 @@
 ### 任务清单
 
 - [ ] **2-1: LLM 重复判定模块** (1 天)
-  - [ ] 新建 `packages/server/src/lib/candidates/llm-dedup.ts`
+  - [ ] 新建 `packages/server（Wave-10 已删除）/src/lib/candidates/llm-dedup.ts`
   - [ ] 定义 `LlmDuplicateJudgment` 接口 (isDuplicate, confidence, overlapType, reasoning)
   - [ ] 实现 `judgeDuplicateWithLLM(chat, candidate, existing)` 函数
   - [ ] 编写 duplicate judgment prompt (exact/semantic/none 三分类)
@@ -301,7 +301,7 @@
   - [ ] 编写单元测试 (mock ChatProvider, 至少 3 种 overlapType 场景)
 
 - [ ] **2-2: 集成到 detector.ts** (0.5 天)
-  - [ ] 修改 `packages/server/src/lib/candidates/detector.ts` 的 `detectDuplicates()`
+  - [ ] 修改 `packages/server（Wave-10 已删除）/src/lib/candidates/detector.ts` 的 `detectDuplicates()`
   - [ ] 实现两阶段: Jaccard 预筛 top-K → LLM 判定
   - [ ] `chat.isConfigured && candidates.length > 0` 时调用 LLM
   - [ ] `isDuplicate=true && confidence >= 0.8` → 标记为 duplicate
@@ -310,14 +310,14 @@
   - [ ] 更新 `getDetectionVersion()` 版本号
 
 - [ ] **2-3: LLM 冲突判定模块** (0.5 天)
-  - [ ] 新建 `packages/server/src/lib/conflict/llm-conflict.ts`
+  - [ ] 新建 `packages/server（Wave-10 已删除）/src/lib/conflict/llm-conflict.ts`
   - [ ] 定义 `LlmConflictJudgment` 接口
   - [ ] 实现 `judgeConflictWithLLM(chat, entryA, entryB)`
   - [ ] 编写 conflict judgment prompt (contradictory/alternative/superseded/none)
   - [ ] 编写单元测试
 
 - [ ] **2-4: 集成到 detect.ts** (0.5 天)
-  - [ ] 修改 `packages/server/src/lib/conflict/detect.ts` 的 `detectConflicts()`
+  - [ ] 修改 `packages/server（Wave-10 已删除）/src/lib/conflict/detect.ts` 的 `detectConflicts()`
   - [ ] Jaccard 预筛阈值从 0.5 放宽到 0.3
   - [ ] 对预筛候选对调用 `judgeConflictWithLLM()`
   - [ ] LLM 未配置 → 退化为纯 Jaccard
@@ -361,7 +361,7 @@
 ### 任务清单
 
 - [ ] **3-1: 扩展 boundary-extract.ts 为多任务** (1 天)
-  - [ ] 修改 `packages/server/src/lib/boundary-extract.ts`
+  - [ ] 修改 `packages/server（Wave-10 已删除）/src/lib/boundary-extract.ts`
   - [ ] 在现有 boundary extraction prompt 追加正确性/完整性评估指令
   - [ ] 输出 schema 扩展: `{ boundary, correctness, completeness }`
   - [ ] 实现 `extractCandidateBoundariesWithQuality(chat, input)` 新函数
@@ -369,7 +369,7 @@
   - [ ] 编写扩展后的单元测试
 
 - [ ] **3-2: 修改 pre-review.ts** (0.5 天)
-  - [ ] 修改 `packages/server/src/lib/pre-review.ts` 的 `preReviewChain`
+  - [ ] 修改 `packages/server（Wave-10 已删除）/src/lib/pre-review.ts` 的 `preReviewChain`
   - [ ] `chatProvider.isConfigured` 时调用 `extractCandidateBoundariesWithQuality()`
   - [ ] `correctnessRisk` 使用 LLM `evidenceQuality` 替代 evidenceTerms 计数
   - [ ] `completenessRisk` 使用 LLM `isComplete` + `missingAspects` 替代长度阈值
@@ -416,13 +416,13 @@
 ### 任务清单
 
 - [ ] **4-1: LLM 提取缓存** (1 天)
-  - [ ] 新建 `packages/server/src/lib/indexing/graph-lite/llm-cache.ts`
+  - [ ] 新建 `packages/server（Wave-10 已删除）/src/lib/indexing/graph-lite/llm-cache.ts`
   - [ ] 实现 `LlmExtractionCache` (get, set, invalidate)
   - [ ] 缓存键: `SHA-256(text + promptVersion)`
   - [ ] 缓存两层: `phase1Cache`(text→ExtractionPlan) + `phase2Cache`(text→LlmExtractionResult)
   - [ ] 实现 `promptVersion` 常量
   - [ ] 集成到 `llm-extract.ts`
-  - [ ] 修改 `packages/server/src/lib/store/store-data.ts` 添加缓存字段
+  - [ ] 修改 `packages/server（Wave-10 已删除）/src/lib/store/store-data.ts` 添加缓存字段
   - [ ] 编写缓存 hit/miss/invalidation 测试
 
 - [ ] **4-2: 全量重建机制** (0.5 天)

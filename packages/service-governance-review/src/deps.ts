@@ -1,9 +1,9 @@
 import {
   type GovernanceAsyncCommandPort,
   type GovernanceConflictWorkflowPort,
+  type GovernanceRetrievalProjection,
   type GovernanceReviewAdminPort,
   type GovernanceReviewDeps,
-  type GovernanceRetrievalProjection,
   type ReviewPort,
   createGovernanceReviewModule,
 } from '@trapmap/backend-core';

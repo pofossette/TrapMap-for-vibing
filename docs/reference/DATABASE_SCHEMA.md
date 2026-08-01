@@ -1,7 +1,7 @@
 # 数据库表结构快速参考
 
-> **源码真实来源**: `packages/server/src/lib/persistence/schema.ts`
-> **表定义目录**: `packages/server/src/lib/persistence/schema/`
+> **源码真实来源**: `packages/server（Wave-10 已删除）/src/lib/persistence/schema.ts`
+> **表定义目录**: `packages/server（Wave-10 已删除）/src/lib/persistence/schema/`
 > **数据模型详情**: `docs/reference/DATA_MODEL.md`
 > **迁移基线**: 六个 `packages/service-*/drizzle/` 目录各自拥有一个空库 baseline；distributed host 按 `identity-access → knowledge-write → candidate-ingestion → governance-review → job-runtime → knowledge-read` 协调执行。
 

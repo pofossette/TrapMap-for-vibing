@@ -10,14 +10,13 @@ import { randomUUID } from 'node:crypto';
 import type { Pool } from 'pg';
 
 import type {
+  AuditLogPort,
   KnowledgeEntryRecord,
   KnowledgeReadProjectionPort,
   OutboxPort,
   QueuePorts,
-  RepositoryPorts,
   RetrievalQueryPort,
   TaskQueuePort,
-  AuditLogPort,
 } from '@trapmap/backend-core';
 import type { LifecycleState } from '@trapmap/contracts';
 import type { DatabaseWriteService } from './database-ownership.js';
@@ -49,13 +48,11 @@ function mapKnowledgeRow(row: Record<string, unknown>) {
 // Knowledge repository
 // ---------------------------------------------------------------------------
 
-function rejectKnowledgeMutation(): never {
-  throw new Error('Knowledge mutation is only available through the knowledge-write owner');
-}
-
 function createPgKnowledgeReadProjection(
   pool: Pool,
-): KnowledgeReadProjectionPort<KnowledgeEntryRecord> {
+): KnowledgeReadProjectionPort<KnowledgeEntryRecord> & {
+  listByFilter(filter: Record<string, never>): Promise<KnowledgeEntryRecord[]>;
+} {
   return {
     async getById(entryId) {
       const result = await pool.query('SELECT * FROM knowledge_entries WHERE id = $1', [entryId]);
@@ -89,6 +86,12 @@ function createPgKnowledgeReadProjection(
         fallback: 'none',
         surfaces: [],
       };
+    },
+    async listByFilter(_filter: Record<string, never>) {
+      const { rows } = await pool.query(
+        'SELECT * FROM knowledge_entries ORDER BY created_at DESC LIMIT 100',
+      );
+      return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>)) as never[];
     },
   };
 }
@@ -144,7 +147,7 @@ function createPgTaskQueue(pool: Pool): TaskQueuePort {
   return {
     kind: 'postgres-task-queue',
     async enqueue(type, payload, options) {
-      const id = generateId('task');
+      const id = randomUUID();
       await pool.query(
         `INSERT INTO task_queue (id, type, payload, priority, max_attempts, process_after, status, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, 'pending', NOW())`,
@@ -193,7 +196,7 @@ function createPgOutbox(pool: Pool): OutboxPort {
   return {
     kind: 'postgres-domain-outbox',
     async enqueue(params) {
-      const id = generateId('evt');
+      const id = randomUUID();
       await pool.query(
         `INSERT INTO domain_event_outbox (
            id, aggregate_type, aggregate_id, event_name, payload, status, available_at, attempts, created_at
@@ -265,7 +268,11 @@ function createPgOutbox(pool: Pool): OutboxPort {
 // ---------------------------------------------------------------------------
 
 export interface ServicePortImplementations {
-  repos: Pick<RepositoryPorts, 'knowledge'>;
+  repos: {
+    knowledge: KnowledgeReadProjectionPort<KnowledgeEntryRecord> & {
+      listByFilter(filter: Record<string, never>): Promise<KnowledgeEntryRecord[]>;
+    };
+  };
   auditLog: AuditLogPort;
   retrievalQuery: RetrievalQueryPort;
   asyncDiagnostics: {
@@ -280,7 +287,7 @@ export interface ServicePortImplementations {
  */
 export function createServicePorts(
   pool: Pool,
-  serviceName: DatabaseWriteService = 'server-compatibility-seam',
+  serviceName: DatabaseWriteService,
   identity: Pick<ServicePortImplementations, 'auditLog'>,
 ): ServicePortImplementations {
   const knowledgeProjection = createPgKnowledgeReadProjection(pool);

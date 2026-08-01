@@ -1,8 +1,35 @@
 # Compatibility Shell Retirement and Owner-Local Infrastructure 收口
 
-> **状态：** active  
-> **根入口：** [`../../plan.md`](../../plan.md)  
+> **状态：** archived / completed-with-follow-up
+> **归档日期：** 2026-08-01
+> **根入口：** [`../../plan.md`](../../plan.md)（当前 active mainline 已切换为 Documentation Validation and Observability Platform）
 > **实施路线图：** [`../superpowers/plans/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership.md`](../superpowers/plans/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership.md)
+
+## 完成证据摘要
+
+- `packages/server` 已删除（Wave-10，提交 `a66d94e6`）。
+- `packages/runtime-infra` 已删除（Wave-10 前置，2026-07-25）。
+- `compatibility-retirement-guard.test.ts` 的 `completedOwnerWaves` 包含 wave-1 至 wave-10 全部完成。
+- `store_snapshot`、`JsonStore`、`PostgresStore` 已删除（Wave-9，2026-07-31）。
+- 最终验证：retirement guard（38/38）、typecheck、doc-drift、structure、deployment-smoke、eval:smoke、distributed-closeout 均通过。
+
+## 遗留 follow-up
+
+### 已完成（2026-08-01）
+
+- CI `postgres-integration` job 已更新为当前测试路径。
+- Eval workflow 的 path filter 已修正为 `packages/service-*/src/**`，Node 版本已统一为 24。
+- SYSTEM_TRUTH_SOURCES.md 已系统更新所有引用（30+ 行）。
+- 40+ 个 active 文档已更新，添加历史说明或替换为当前路径。
+- source-aware 文档残留守卫已建立：`scripts/check-stale-package-refs.ts` 扫描 active docs 中对已删除 package 的过期引用，已集成到 CI `doc-guardrails` job 作为阻断门（阈值 0）。
+- `closeout-surface.test.ts` 新增 2 项守卫测试（防止旧计划重新激活、验证 SYSTEM_TRUTH_SOURCES 不把已删除 package 当前权威）。
+- `complexity-budgets.json` 新增旧计划路径禁止规则（plan.md 和 docs/todos/README.md）。
+
+### 已完成（2026-08-01 续）
+
+- active 文档中所有 `packages/server` 过期引用已清理完毕（从 345 降至 0）。
+- `check:stale-package-refs` 阈值已设为 0，作为 CI 阻断门。
+- 详见当前 active mainline [Documentation Validation and Observability Platform](../../docs/todos/documentation-validation-and-observability-platform.md) 中的相关条目。
 
 ## 目标
 
@@ -39,8 +66,8 @@
 - [x] Wave-7 knowledge-read：已删除 `service-knowledge-read` 对 `runtime-infra`/`server` 的 retrieval/read-model compatibility dependencies 及 runtime-infra retrieval/support assembly；guard 将 `wave-7` 标记完成。
 - [x] Wave-8 host surfaces：host composition、capability config、gateway request context 与 host pool ownership 已无 compatibility import；guard 将 `wave-8` 标记完成，且没有新增宽泛 allowlist。
 - [x] Wave-9 backfill/delete state：`store_snapshot`、`JsonStore`、`PostgresStore`、legacy migration/export fixture 已删除；一次性 backfill/operator entrypoint 与 PostgreSQL integration evidence 已完成。
-- [ ] Wave-10 package retirement：`packages/runtime-infra` 已删除；`packages/server`、其根依赖和剩余 compatibility Docker/package references 尚待删除。
-- [ ] 最终 closeout：待所有未完成 wave 关闭后，执行 empty-database migration、legacy snapshot backfill、distributed acceptance、文档回写并归档本文件。
+- [x] Wave-10 package retirement：`packages/runtime-infra` 已删除（2026-07-25）；`packages/server`、其根依赖和剩余 compatibility Docker/package references 已删除（2026-07-31，提交 `a66d94e6`）。
+- [x] 最终 closeout：所有 wave 已关闭，empty-database migration、legacy snapshot backfill、distributed acceptance 已通过。本文件已归档至 `docs/archived/archived-plans/`，当前 active mainline 切换为 Documentation Validation and Observability Platform。
 
 ## Task 1 — Deletion contract evidence
 

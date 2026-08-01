@@ -9,20 +9,20 @@
  */
 
 import {
-  attachRemediationProjection,
-  buildCachedRetrievalReadModelFromRepositories,
-  type RetrievalReadProjection,
-  type RetrievalReadModelRepositories,
-  type ConflictRelation,
   type ArtifactReadProjection,
+  type ConflictRelation,
   type KnowledgeOwnerPort,
   type RetrievalGovernanceProjection,
+  type RetrievalReadModelRepositories,
+  type RetrievalReadProjection,
+  attachRemediationProjection,
+  buildCachedRetrievalReadModelFromRepositories,
 } from '@trapmap/contracts';
+import type { SkillShareerRepos } from './context.js';
 import {
   getCachedRetrievalReadModel,
   setCachedRetrievalReadModel,
 } from './retrieval-read-model-cache.js';
-import type { SkillShareerRepos } from './context.js';
 import type { FeedbackQueueRecord, KnowledgeRecord, SkillArtifactRecord } from './store.js';
 
 export type RetrievalReadModel = RetrievalReadProjection<

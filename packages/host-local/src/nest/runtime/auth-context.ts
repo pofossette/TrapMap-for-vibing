@@ -2,7 +2,15 @@ import { createHash } from 'node:crypto';
 import type { FastifyRequest } from 'fastify';
 
 import type { HostLocalServices } from './host-services.js';
+import type { Permission, RoleTemplate } from '@trapmap/contracts';
 import { resolveEffectivePermissions } from './permissions.js';
+
+function normalizeRoleTemplate(role: unknown): RoleTemplate {
+  if (role === 'admin' || role === 'system-admin') {
+    return role;
+  }
+  return 'user';
+}
 
 function hashSecret(secret: string): string {
   return createHash('sha256').update(secret).digest('hex');
@@ -92,8 +100,8 @@ export async function resolveHostLocalAuthContext(
     activeTeamId: membership.teamId,
     securityLevel: membership.securityLevel,
     effectivePermissions: resolveEffectivePermissions(
-      membership.roleTemplate,
-      membership.permissions,
+      normalizeRoleTemplate(membership.roleTemplate),
+      membership.permissions as Permission[],
     ),
     localSingleUserMode: false,
     user,

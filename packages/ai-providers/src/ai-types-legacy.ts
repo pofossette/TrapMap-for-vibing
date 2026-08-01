@@ -1,4 +1,4 @@
-import type { PromptBlock } from './cache/api-integration.js';
+import type { PromptBlock } from './ai-cache/api-integration.js';
 
 export interface EmbeddingsProvider {
   readonly provider: string;

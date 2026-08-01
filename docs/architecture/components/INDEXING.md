@@ -21,7 +21,7 @@ Skill 侧索引也新增了显式前置条件：`approved` artifact 在进入 `r
 ## 源码目录结构
 
 ```
-packages/server/src/lib/
+packages/server（Wave-10 已删除）/src/lib/
 ├── indexing/                      # 索引管道核心
 │   ├── types.ts                   # 类型定义：NormalizedIndexDocument, IndexAdapter, KnowledgeIndexStateRecord
 │   ├── normalize.ts               # 规范化：KnowledgeRecord → NormalizedIndexDocument

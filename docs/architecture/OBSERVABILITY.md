@@ -6,9 +6,10 @@
 
 TrapMap 采用 OpenTelemetry 作为统一遥测接缝，目标上可对接 Tempo、Prometheus、Loki、Grafana 和可选的 OpenTelemetry Collector。当前仓库已经落地的事实不是“完整 LGTM 平台”，而是三条稳定接缝：
 
-- `packages/server` 负责 Fastify compatibility shell 的 `/metrics`、启动期 OTel bootstrap 和 shutdown。
-- `packages/host-local/src/nest/observability/` 负责 light 宿主的 OTel、Prometheus、Loki 和对应 adapter。
+- `packages/host-local/src/nest/observability/` 负责 light 宿主的 `/metrics`、OTel bootstrap、Prometheus、Loki 和对应 adapter。
 - `packages/host-distributed/src/shared/telemetry.ts` 负责 distributed internal hop 的 traceparent/span 传播，以及 OTLP traces/metrics 导出。
+
+> `packages/server` 已于 Wave-10 删除。其 `/metrics`、OTel bootstrap 和 shutdown 职责已迁移至 `host-local`。
 
 设计原则：
 
@@ -21,7 +22,7 @@ TrapMap 采用 OpenTelemetry 作为统一遥测接缝，目标上可对接 Tempo
 
 | 归属 | 当前事实 | 权威来源 |
 |---|---|---|
-| Fastify compatibility shell | `packages/server/src/app.ts` 和 `packages/server/src/bootstrap/run-startup-sequence.ts` 负责 startup 阶段的 OTel 初始化、`/metrics` 暴露和 shutdown | `packages/server/src/app.ts`、`packages/server/src/bootstrap/run-startup-sequence.ts` |
+| ~~Fastify compatibility shell~~ | **已删除**（Wave-10）。`/metrics`、OTel 初始化和 shutdown 现由 `host-local` 持有 | `packages/host-local/src/nest/observability/*.ts` |
 | light 宿主 | `packages/host-local/src/nest/observability/` 提供 `OtelService`、`PrometheusService`、`LokiService`，并通过 adapter 暴露给 `backend-core` ports | `packages/host-local/src/nest/observability/*.ts` |
 | distributed 宿主 | `packages/host-distributed/src/shared/telemetry.ts` 负责 internal hop span、OTLP endpoint、service.name 拼接和 trace 传播 | `packages/host-distributed/src/shared/telemetry.ts` |
 | 共享契约 | 健康状态、可观测性配置和 telemetry ports 分别由 `packages/contracts/src/domain/health.ts`、`packages/contracts/src/domain/observability-config.ts`、`packages/backend-core/src/ports/telemetry-ports.ts` 定义 | contracts 与 backend-core 源码 |
@@ -80,7 +81,7 @@ flowchart TB
 
 | 组件 | 当前职责 |
 |---|---|
-| `packages/server/src/bootstrap/bootstrap-otel.ts` | Fastify compatibility shell 的 OTel SDK 启动，按 profile 决定是否接 OTLP exporter |
+| ~~`packages/server/src/bootstrap/bootstrap-otel.ts`~~ | **已删除**（Wave-10）。OTel SDK 启动现由 `host-local` 的 `OtelService` 持有 |
 | `packages/host-local/src/nest/observability/otel.service.ts` | Nest 宿主的 OTel SDK 生命周期管理 |
 | `packages/host-local/src/nest/observability/prometheus.service.ts` | `prom-client` 指标注册、收集和文本导出 |
 | `packages/host-local/src/nest/observability/loki.service.ts` | `LOKI_HOST` 存在时追加 Loki transport；否则继续 stdout JSON |
@@ -103,7 +104,7 @@ Tempo、Prometheus、Loki、Grafana 和 Collector 在当前仓库里只冻结为
 - `traceId`
 - `service`
 
-`packages/server/src/lib/runtime/request-context.ts` 和 distributed gateway/internal-client 继续承担 request / trace header 的传播职责，不在文档中发明第二套 header 命名。
+`packages/host-local/src/nest/runtime/request-context.service.ts` 和 `packages/host-distributed/src/gateway/internal-client.ts` 承担 request / trace header 的传播职责，不在文档中发明第二套 header 命名。
 
 ### 关联上下文 contract
 
@@ -166,7 +167,7 @@ packages/host-local/src/nest/observability/
 
 | 环境变量 | 默认值 | 说明 |
 |---|---|---|
-| `OTEL_DISABLED` | `false` | 总开关；为 `true` 时，`packages/server`、`host-local`、`host-distributed` 都跳过 OTel SDK 初始化 |
+| `OTEL_DISABLED` | `false` | 总开关；为 `true` 时，`host-local`、`host-distributed` 都跳过 OTel SDK 初始化 |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | OTLP exporter 端点 |
 | `OTEL_SAMPLE_RATE` | `0.1`（server startup） / `1`（distributed telemetry 未显式设置时） | traces 采样率。当前不同宿主有各自默认值，文档不得写回过时的 `OTEL_SAMPLING_RATE` |
 | `TRAPMAP_METRICS_ENABLED` | `true`（host-local） | 是否启用 `prom-client` 指标收集与文本导出 |
@@ -194,8 +195,7 @@ TrapMap 对外暴露三个探针端点，继续遵循统一 contract：
 
 ### 依赖状态聚合
 
-- Fastify compatibility shell 通过 `packages/server/src/lib/runtime/runtime-metadata.ts` 暴露 runtime snapshot
-- light 宿主通过 `LifecycleManager` 和 `HealthController` 聚合 `HealthCheckResult[]`
+- light 宿主通过 `LifecycleManager` 和 `HealthController` 聚合 `HealthCheckResult[]`，暴露 runtime snapshot
 - distributed 宿主继续复用相同的 health contract，不在服务发现或 tracing 文档里发明第二套状态命名
 
 ## Phase 1A 已冻结的接缝
@@ -217,7 +217,7 @@ Phase 1A 已经在代码中冻结了以下内容：
 - `route` 使用参数化路径，而不是原始 URL
 - 不使用用户 ID、请求 ID、trace ID 之类的动态值作为 Prometheus 标签
 
-`packages/server/src/lib/runtime/metrics.ts` 和 `packages/host-local/src/nest/observability/prometheus.service.ts` 是当前标签命名与导出规则的事实源。
+`packages/host-local/src/nest/observability/prometheus.service.ts` 是当前标签命名与导出规则的事实源。
 
 ## 非目标
 

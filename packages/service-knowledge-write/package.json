@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./labels/graph-align.js": {
+      "types": "./dist/labels/graph-align.d.ts",
+      "import": "./dist/labels/graph-align.js"
     }
   },
   "scripts": {

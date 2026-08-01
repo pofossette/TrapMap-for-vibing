@@ -64,8 +64,10 @@ export function createDefaultKnowledgeReadSupportInfra(): KnowledgeReadSupportIn
             return entry.value as never;
           },
           set(key, value) {
-            if (values.size >= options.maxSize && !values.has(key))
-              values.delete(values.keys().next().value);
+            if (values.size >= options.maxSize && !values.has(key)) {
+              const oldestKey = values.keys().next().value;
+              if (oldestKey !== undefined) values.delete(oldestKey);
+            }
             values.set(key, { value, createdAt: Date.now() });
           },
           clear() {

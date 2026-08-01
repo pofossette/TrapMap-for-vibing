@@ -1,8 +1,8 @@
 import { InvocationError } from '@trapmap/backend-core';
 import {
+  type ArtifactReadProjection,
   artifactImportRequestSchema,
   artifactImportResponseSchema,
-  type ArtifactReadProjection,
 } from '@trapmap/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ArtifactBundleImportPort, ArtifactWritePort } from './artifact-ports.js';

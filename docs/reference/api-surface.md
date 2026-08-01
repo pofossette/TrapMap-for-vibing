@@ -3,10 +3,12 @@
 > **文档关系说明**：本文档是 API 契约表面的全量概览，列出所有端点的请求/响应 Schema 名称。若需完整端点详情（请求示例、响应字段说明），请参阅 [`docs/architecture/API.md`](../architecture/API.md)。
 >
 > **Round 3 更新**：知识域的标签（`knowledge_labels`）、边界（`knowledge_boundary_*` ×6）、维护（`knowledge_maintenance_assignments`）已从 JSONB 拆分为 PostgreSQL 结构化子表。API 契约表面未变，所有请求/响应 Schema 保持不变。`KnowledgeEntry` 的 Schema 类型定义仍为单一聚合，子表读写由 `PgKnowledgeRepository` 内部处理。
+>
+> **Wave-10 更新（2026-08-01）**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现。API 端点已迁移至各 service owner 包和 gateway。
 
 所有路由均以 `/v1` 或 `/v3` 为版本前缀，通过 `@trapmap/contracts` 验证进行 JSON 数据交换。
 
-> 源码依据：`packages/server/src/routes/*.ts`、`packages/contracts/src/domain/*.ts`
+> 源码依据：`packages/server（Wave-10 已删除）/src/routes/*.ts`、`packages/contracts/src/domain/*.ts`
 >
 > **Phase 1 instrumentation freeze**：统一 correlation key、metric namespace 与 public/internal debug 边界以 `packages/contracts/src/domain/observability.ts` 为准。API 响应只能增加 additive debug handles，不得把内部 workflow/candidate/artifact trace payload 直接提升为通用 public surface。
 
@@ -35,7 +37,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `GET` | `/metrics` | 无 | `text/plain; version=0.0.4` Prometheus exposition | Runtime / async / DB / queue / internal-hop 指标导出；仅低基数标签，禁止 requestId/traceId/queryId 等高基数键进入 label |
 | `GET` | `/meta/routes` | 无 | `{ documentedRoutes: string[] }` | 暴露当前 server 维护的文档化路由列表 |
 
-> 源码：`packages/server/src/app.ts`
+> 源码：`packages/server（Wave-10 已删除）/src/app.ts`
 >
 > **Phase 3 observability closeout**：`/metrics` 当前只冻结 Prometheus scrape surface，不引入第二套 operator JSON route。`requestId`、`traceId`、`queryId`、`feedbackId`、`asyncJobId` 等高基数关联键继续留在日志、workflow snapshot 或 durable trace，而不是 metrics label。
 
@@ -47,7 +49,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `GET` | `/v1/auth/session` | 无 | `sessionStatusResponseSchema` | 获取当前会话和有效权限 |
 | `POST` | `/v1/auth/logout` | 无 | `logoutResponseSchema` | 清除当前会话 |
 
-> 源码：`packages/server/src/routes/auth.ts`
+> 源码：`packages/server（Wave-10 已删除）/src/routes/auth.ts`
 
 ## 团队与成员
 
@@ -60,7 +62,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `PATCH` | `/v1/members/:memberId` | `updateMemberRequestSchema` | `memberSchema` | 更新等级、权限或备注 |
 | `POST` | `/v1/access-keys` | `issueAccessKeyRequestSchema` | `issueAccessKeyResponseSchema` | 为其他成员生成永久访问密钥（通过 `repos.accessKey` 持久化） |
 
-> 源码：`packages/server/src/routes/teams.ts`、`packages/server/src/routes/members.ts`、`packages/server/src/routes/access-keys.ts`
+> 源码：`packages/server（Wave-10 已删除）/src/routes/teams.ts`、`packages/server（Wave-10 已删除）/src/routes/members.ts`、`packages/server（Wave-10 已删除）/src/routes/access-keys.ts`
 
 ## 知识条目
 
@@ -77,7 +79,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `PATCH` | `/v1/knowledge/:id/evidence` | `evidenceMetaSchema`（部分） | `{ evidence: evidenceMetaSchema }` | 更新知识条目的 evidence 元数据 |
 | `POST` | `/v1/operations/knowledge/:entryId/deactivate` | `knowledgeDeactivateRequestSchema` | `knowledgeDeactivateResponseSchema` | 停用知识条目并记录审计日志 |
 
-> 源码：`packages/server/src/routes/knowledge.ts`、`packages/host-local/src/nest/gateway/candidate-review.controller.ts`、`packages/host-distributed/src/gateway/routes.ts`、`packages/service-governance-review/src/routes.ts`、`packages/server/src/routes/evidence.ts`
+> 源码：`packages/server（Wave-10 已删除）/src/routes/knowledge.ts`、`packages/host-local/src/nest/gateway/candidate-review.controller.ts`、`packages/host-distributed/src/gateway/routes.ts`、`packages/service-governance-review/src/routes.ts`、`packages/server（Wave-10 已删除）/src/routes/evidence.ts`
 
 ## 陷阱（Traps）
 
@@ -89,7 +91,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `POST` | `/v1/traps/:trapId/resubmit` | `knowledgeResubmissionSchema` | `knowledgeEntryResponseSchema` | 重新提交被拒绝的陷阱 |
 | `POST` | `/v1/traps/:trapId/supersede` | `{ replacementId: string }` | `knowledgeEntryResponseSchema` | 标记陷阱已被新条目取代 |
 
-> 源码：`packages/server/src/routes/traps.ts`
+> 源码：`packages/server（Wave-10 已删除）/src/routes/traps.ts`
 
 ## 候选与重复检测
 
@@ -99,12 +101,12 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `GET` | `/v1/candidates` | `{ status?: string }` | `candidateListResponseSchema` | 列出候选（支持按状态过滤） |
 | `GET` | `/v1/candidates/:candidateId` | 无 | `candidateStatusResponseSchema` | 获取候选状态 |
 | `POST` | `/v1/candidates/:candidateId/manual-result` | `ManualResultSubmissionSchema` | `manualResultResponseSchema` | 人工解决重复 |
-| `POST` | `/v1/candidates/:candidateId/apply-resolution` | 无 | `applyResolutionResponseSchema` | 兼容候选发布入口；不再由 `packages/server` Fastify compatibility shell 提供默认 authoritative write |
+| `POST` | `/v1/candidates/:candidateId/apply-resolution` | 无 | `applyResolutionResponseSchema` | 兼容候选发布入口；不再由 `packages/server（Wave-10 已删除）` Fastify compatibility shell 提供默认 authoritative write |
 | `GET` | `/v1/duplicates` | 无 | `duplicateCaseListResponseSchema` | 列出所有重复案例 |
 | `GET` | `/v1/duplicates/:candidateId` | 无 | `duplicateCaseResponseSchema` | 获取特定候选的重复案例 |
 | `GET` | `/v1/duplicates/:candidateId/bundle` | 无 | `DuplicateJobBundleResponseSchema` | 获取重复候选完整包（含匹配实体） |
 
-> 源码：`packages/server/src/routes/candidates.ts`（submit/query/duplicates compatibility surface）、`packages/host-local/src/nest/gateway/candidate-review.controller.ts`、`packages/host-distributed/src/gateway/routes.ts`、`packages/service-candidate-ingestion/src/routes.ts`
+> 源码：`packages/server（Wave-10 已删除）/src/routes/candidates.ts`（submit/query/duplicates compatibility surface）、`packages/host-local/src/nest/gateway/candidate-review.controller.ts`、`packages/host-distributed/src/gateway/routes.ts`、`packages/service-candidate-ingestion/src/routes.ts`
 
 ## 检索
 
@@ -116,7 +118,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `POST` | `/v3/retrieval/plan` | `planQuerySchema` | `trapFirstPlanSchema` | v3 陷阱优先计划生成 |
 | `POST` | `/v1/retrieval/skills/search-by-content` | `skillLookupQuerySchema` | `skillLookupResponseSchema` | 按内容搜索技能（additive `queryId`） |
 
-> 源码：`packages/server/src/routes/retrieval.ts`
+> 源码：`packages/server（Wave-10 已删除）/src/routes/retrieval.ts`
 
 ## 反馈
 
@@ -146,7 +148,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `POST` | `/v1/operations/decay/batch` | `batchOperationRequestSchema` | `batchOperationResponseSchema` | 批量执行 decay 操作（extend/mark-review/deactivate/supersede） |
 | `POST` | `/v1/operations/decay/search` | `{ pattern, decayStates?, limit? }` | `decayEntryListResponseSchema` | 按模式搜索带有 decay 状态的条目 |
 
-> 源码：`packages/server/src/routes/decay.ts`
+> 源码：`packages/server（Wave-10 已删除）/src/routes/decay.ts`
 
 ## Maintenance 管理
 
@@ -155,7 +157,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `GET` | `/v1/operations/maintenance/entries` | `maintenanceEntryListRequestSchema` | `maintenanceEntryListResponseSchema` | 列出带有维护元数据的知识条目 |
 | `POST` | `/v1/operations/maintenance/batch` | `maintenanceBatchOperationRequestSchema` | `maintenanceBatchOperationResponseSchema` | 批量执行维护操作（assign-owner/extend-review/mark-verified） |
 
-> 源码：`packages/server/src/routes/maintenance.ts`
+> 源码：`packages/server（Wave-10 已删除）/src/routes/maintenance.ts`
 
 ## 工件（Artifacts / Skills）
 
@@ -185,7 +187,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `POST` | `/v1/operations/status/async/tasks/:taskId/requeue` | 无 | `asyncTaskRequeueResponseSchema` | 通过统一 operator flow 重新入队 dead task |
 | `GET` | `/v1/operations/badcases/:feedbackId/export` | 无 | `badcaseExportResponseSchema` | 把持久化 badcase trace 导出为 deterministic eval draft，并附带 operator-only `debug` 闭环信息 |
 
-> 源码：`packages/server/src/routes/operations.ts`（注册子路由）
+> 源码：`packages/server（Wave-10 已删除）/src/routes/operations.ts`（注册子路由）
 
 Phase 4 closeout 补充：
 
@@ -205,7 +207,7 @@ Phase 4 closeout 补充：
 | `GET` | `/v1/operations/capsule-index/health` | 无 | `{ sourceArtifactCount, report: { missingKeywords, missingEmbeddings, failedKeywords, failedEmbeddings, orphanKeywords, orphanEmbeddings }, reportedAt }` | 健康对账（只读） |
 | `POST` | `/v1/operations/capsule-index/cleanup-orphans` | 无 | `{ sourceArtifactCount, removed, cleanedAt }` | 清理孤立索引行 |
 
-> 源码：`packages/server/src/routes/operations/capsule-index.ts`
+> 源码：`packages/server（Wave-10 已删除）/src/routes/operations/capsule-index.ts`
 >
 > **CLI 暴露**: `trapmap operations capsule-index rebuild|health|cleanup-orphans`。详见 CLI 帮助。
 
@@ -217,7 +219,7 @@ Phase 4 closeout 补充：
 | `GET` | `/v1/operations/stats/hits` | `statsHitRankingQuerySchema` | `statsHitRankingResponseSchema` | 按条目命中次数排名 |
 | `GET` | `/v1/operations/stats/summary` | `statsSummaryQuerySchema` | `statsSummaryResponseSchema` | 系统级汇总统计（仅 system-admin），包含 asyncArchitecture 决策指标，以及 namespace 级 cache invalidation / pending invalidation capacity 视角 |
 
-> 源码：`packages/server/src/routes/operations/stats.ts`。注意：统计端点需要 PostgreSQL（`usageAnalyticsRepo`），否则返回 503。
+> 源码：`packages/server（Wave-10 已删除）/src/routes/operations/stats.ts`。注意：统计端点需要 PostgreSQL（`usageAnalyticsRepo`），否则返回 503。
 
 ## 边界搜索与管理
 
@@ -226,7 +228,7 @@ Phase 4 closeout 补充：
 | `POST` | `/admin/boundary-search` | `adminBoundarySearchQuerySchema` | `adminBoundarySearchResponseSchema` | 搜索符合边界约束的知识条目（仅 system-admin） |
 | `POST` | `/v1/admin/reconcile-knowledge-indexes` | 无 | `{ success, totalEntries, entriesSynced, ... }` | 重新同步所有知识索引（仅 system-admin） |
 
-> 源码：`packages/server/src/routes/admin-boundary-search.ts`
+> 源码：`packages/server（Wave-10 已删除）/src/routes/admin-boundary-search.ts`
 
 ---
 

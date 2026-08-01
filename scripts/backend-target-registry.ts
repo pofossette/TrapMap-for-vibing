@@ -1,9 +1,9 @@
 import {
+  type BackendTarget,
+  type DeploymentProfile,
   backendTargetSchema,
   deploymentProfileSchema,
   resolveBackendTargetForProfile,
-  type BackendTarget,
-  type DeploymentProfile,
 } from '../packages/contracts/src/enum-types/backend-target.js';
 
 export interface DevTargetDefinition {

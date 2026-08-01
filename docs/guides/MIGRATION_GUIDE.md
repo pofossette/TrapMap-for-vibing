@@ -34,8 +34,8 @@ packages/
 - 阶段 2 `backend-core`：已完成。运行时能力模型、端口、调用接缝以及有界上下文模块均存在于 `@trapmap/backend-core`。
 - 阶段 3 `host-local`：已完成。根目录的 `pnpm dev:local-agent` 和 `pnpm dev:team-monolith` 现在指向 `@trapmap/host-local`。
 - 阶段 4 `host-distributed`：已完成。根目录的分布式开发脚本现在指向 `@trapmap/host-distributed`。
-- 阶段 5 遗留收口：部分完成。`packages/server` 仍作为兼容外壳和验证层存在。在分布式模式下，candidate/review/maintenance/decay 的权威写入已迁移到 `@trapmap/host-distributed`；在 `light` 侧，默认的 `@trapmap/host-local` Nest 主线现在拥有 candidate/review 写入，而显式回滚路径仅保留已退役的兼容行为以及运行时/状态接缝。
-- 阶段 6 物理拆分执行：进行中。当前仓库已落地 6 个 `service-*` 包：`@trapmap/service-knowledge-read`、`@trapmap/service-knowledge-write`、`@trapmap/service-governance-review`、`@trapmap/service-candidate-ingestion`、`@trapmap/service-identity-access`、`@trapmap/service-job-runtime`；`@trapmap/host-distributed` 以宿主装配层的方式消费这些服务包，`packages/server` 不再持有 `knowledge-write`、`governance-review`、`candidate-ingestion`、`identity-access` 或 `job-runtime` 组装的权威事实。
+- 阶段 5 遗留收口：部分完成。`packages/server（Wave-10 已删除）` 仍作为兼容外壳和验证层存在。在分布式模式下，candidate/review/maintenance/decay 的权威写入已迁移到 `@trapmap/host-distributed`；在 `light` 侧，默认的 `@trapmap/host-local` Nest 主线现在拥有 candidate/review 写入，而显式回滚路径仅保留已退役的兼容行为以及运行时/状态接缝。
+- 阶段 6 物理拆分执行：进行中。当前仓库已落地 6 个 `service-*` 包：`@trapmap/service-knowledge-read`、`@trapmap/service-knowledge-write`、`@trapmap/service-governance-review`、`@trapmap/service-candidate-ingestion`、`@trapmap/service-identity-access`、`@trapmap/service-job-runtime`；`@trapmap/host-distributed` 以宿主装配层的方式消费这些服务包，`packages/server（Wave-10 已删除）` 不再持有 `knowledge-write`、`governance-review`、`candidate-ingestion`、`identity-access` 或 `job-runtime` 组装的权威事实。
 
 ## 当前官方入口点
 
@@ -51,7 +51,7 @@ pnpm dev:distributed:outbox-worker
 pnpm dev:cli
 ```
 
-旧的 `pnpm dev:server:compat*` 入口已经不再存在；兼容壳相关验证应改看当前 `packages/server` 的运行时/状态接缝与现有根命令表面。
+旧的 `pnpm dev:server:compat*` 入口已经不再存在；兼容壳相关验证应改看当前 `packages/server（Wave-10 已删除）` 的运行时/状态接缝与现有根命令表面。
 显式的 `local-agent` / `team-monolith` 根脚本仍存在，但它们已经转发到当前 `@trapmap/host-local` 主线，而不是旧兼容宿主。
 
 ## 环境兼容性
@@ -185,7 +185,7 @@ pnpm test:runtime-closeout
 
 ## 剩余差距
 
-- `packages/server` 仍存在，用于检索、运行时状态/就绪检查以及遗留兼容。它不再拥有分布式模式下 maintenance/decay 的权威写入，但 candidate/review 遗留写入编排仍在当前默认的 Fastify 路径上。
-- `packages/server` 也不再拥有 `knowledge-write` 或 `governance-review` 服务组装。这些组装现在位于 `packages/service-knowledge-write` 和 `packages/service-governance-review`，由 `host-distributed` 直接消费。
+- `packages/server（Wave-10 已删除）` 仍存在，用于检索、运行时状态/就绪检查以及遗留兼容。它不再拥有分布式模式下 maintenance/decay 的权威写入，但 candidate/review 遗留写入编排仍在当前默认的 Fastify 路径上。
+- `packages/server（Wave-10 已删除）` 也不再拥有 `knowledge-write` 或 `governance-review` 服务组装。这些组装现在位于 `packages/service-knowledge-write` 和 `packages/service-governance-review`，由 `host-distributed` 直接消费。
 - 系统真相文档仍需持续收紧，使 host-local / host-distributed 在所有地方成为一等运行时事实，而不仅仅在本指南中。
 - 分布式宿主现在在远程写入所有权和请求语义方面拥有更强的验收证据。任何剩余的 Gate 5 差距现在必须仅作为具体的 docker/已部署运维 closeout 问题来表述，而非读侧不成熟或分布式写入路径歧义。
