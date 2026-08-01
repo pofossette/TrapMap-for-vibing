@@ -273,9 +273,9 @@
       "file": "plan.md",
       "mustContain": [
         "执行计划索引",
-        "Compatibility Shell Retirement and Owner-Local Infrastructure 收口",
-        "docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md",
-        "共享 PostgreSQL",
+        "Documentation Validation and Observability Platform",
+        "docs/todos/documentation-validation-and-observability-platform.md",
+        "优先考虑长期维护，接受短期工作量膨胀",
         "open-debt-and-compromises.md",
         "不承载 tranche checklist 或实施细节"
       ],
@@ -341,9 +341,9 @@
     {
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
       "mustContain": [
-        "Phase 7 maintainability / CI-testing truth / docs closeout freeze",
-        "Compatibility Shell Retirement and Owner-Local Infrastructure 收口",
-        "docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md",
+        "Documentation validation / observability platform mainline",
+        "Documentation Validation and Observability Platform",
+        "docs/todos/documentation-validation-and-observability-platform.md",
         "`doc-guardrails` job runs `pnpm check:docs-drift`、`pnpm check:arch-freeze`、`pnpm check:deps`、`pnpm check:mermaid`、`pnpm check:structure`、`pnpm check:complexity`、`pnpm check:md-lint` 和 `pnpm check:links`"
       ]
     },
@@ -351,8 +351,8 @@
       "file": "docs/todos/README.md",
       "mustContain": [
         "活跃索引",
-        "Compatibility Shell Retirement and Owner-Local Infrastructure 收口",
-        "compatibility-shell-retirement-runtime-infra-ownership.md",
+        "Documentation Validation and Observability Platform",
+        "documentation-validation-and-observability-platform.md",
         "当前状态说明",
         "完整归档表见"
       ],
@@ -365,7 +365,7 @@
       "file": "docs/archived/README.md",
       "mustContain": [
         "不应被其他文档当作当前执行入口引用",
-        "当前根 `plan.md` 指向“Compatibility Shell Retirement and Owner-Local Infrastructure 收口”",
+        "当前根 `plan.md` 指向“Documentation Validation and Observability Platform”",
         "observability-traceability-closure.md",
         "backend-build-targets-and-client-selection-archived.md",
         "microservice-platform-evolution-plan.md",
@@ -443,7 +443,7 @@
       "file": "docs/todos/README.md",
       "mustContain": [
         "当前状态说明",
-        "Compatibility Shell Retirement and Owner-Local Infrastructure 收口",
+        "Documentation Validation and Observability Platform",
         "完整归档表见"
       ]
     },

@@ -9,6 +9,15 @@ must keep documentation, runtime configuration, telemetry signals, and
 operator guidance aligned without making external monitoring infrastructure a
 repository-owned deployment default.
 
+## Delivery Principle
+
+Long-term maintainability takes priority over minimizing the short-term size of
+this change. The mainline may accept additional near-term work when it removes
+a duplicate source of truth, prevents a known class of drift, gives a runtime
+signal a stable owner, or establishes a tested privacy boundary. It must not
+add incidental abstraction, speculative platform infrastructure, or a second
+telemetry pipeline merely to make the implementation look more complete.
+
 ## Context
 
 The repository currently has `check:docs-drift`, `check:structure`, Markdown

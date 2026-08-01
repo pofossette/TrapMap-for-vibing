@@ -1,40 +1,36 @@
 # TrapMap 执行计划索引
 
-根 `plan.md` 只作为当前主线的目录索引：说明目标、总体要求和验收边界；执行步骤、复选框、证据和回写记录统一维护在链接的主细则中，不承载 tranche checklist 或实施细节。
+根 `plan.md` 只作为当前主线目录：说明任务背景、总体要求和验收边界；不承载 tranche checklist 或实施细节，执行步骤、复选框、证据和回写记录全部维护在链接的 active detail 中。
 
 ## 当前主线
 
-- **主题：** Compatibility Shell Retirement and Owner-Local Infrastructure 收口
-- **目标：** 将 compatibility shell 与共享 runtime infrastructure 按领域迁移到真实 service owner，完成一次性 PG-first cutover。
+- **主题：** Documentation Validation and Observability Platform
+- **目标：** 让文档事实可由源码验证，并将 OTel 发展为可运营的统一遥测标准，以可选 Sentry 异常智能层补足错误聚合。
 - **状态：** `进行中`
-- **主细则：** [Compatibility Shell Retirement and Owner-Local Infrastructure 收口](docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md)
+- **主细则：** [Documentation Validation and Observability Platform](docs/todos/documentation-validation-and-observability-platform.md)
+
+## 任务背景
+
+当前文档 guard 不能验证权威源码路径仍存在，CI 对链接错误也不阻断；OTel 已有接缝但部分指标不来自真实运行时，Sentry 尚未接入。本主线先建立事实与信号的正确性，再推进异常聚合和运营闭环。
 
 ## 总体要求
 
-- 根索引只保留一个 active mainline，不承载 tranche checklist 或实现细节。
-- 关联字段、日志 schema、健康 contract 与 API shape 必须优先由 `packages/contracts` 和既有权威源码定义，不在宿主中另建同义模型。
-- 不得把 request ID、trace ID、用户 ID、实体 ID 等动态值作为 Prometheus 标签；路由指标必须使用参数化 route family。
-- 审计、日志与遥测必须做最小必要数据记录，并遵循既有安全、权限与脱敏要求。
-- 共享 PostgreSQL 只允许“共享实例 + 明确 schema/table owner”；每个权威表只有一个写 owner，跨服务一致性使用本地事务 outbox，不引入跨服务事务或两阶段提交。
-- `knowledge-read` 的读侧状态是可重建投影；不得把 direct authoritative read、`store_snapshot` 或 shared DB access 扩展为新的默认业务路径。
-- 每个服务必须拥有可解释的 health/readiness/ownership；异步 follow-up 必须可按业务 owner 与 `job-runtime` 的 runtime owner 分别定位。
-- 每个完成的 tranche 必须勾选细则中的实现、测试、文档回写与验证项；已完成主线归档到 `docs/archived/archived-plans/`。
+- **优先考虑长期维护，接受短期工作量膨胀。** 当额外工作能消除重复 truth source、长期漂移、无 owner 的 telemetry seam 或未经测试的隐私边界时，必须优先完成；不得为压缩本轮工作量保留这些已知缺口。
+- `packages/contracts` 是 correlation、脱敏和配置 contract 的唯一来源；`backend-core` 只定义 port，不依赖 OTel/Sentry SDK；host composition root 拥有外部 SDK。
+- 遥测只记录最小必要数据：动态 ID 不得成为 Prometheus label，prompt、知识正文、request body、headers、cookie、credential、token 和 session 不得传出。
+- `OTEL_DISABLED=true`、缺失 `SENTRY_DSN` 和 exporter/backend 故障均不得影响业务请求或异步任务。
+- 不把 Collector、LGTM、Sentry、dashboard、retention 或 SLO 平台写成仓库内默认部署资产；成熟平台能力只能在满足明确进入条件后新建主线。
+- 每个完成阶段必须包含代码、focused test、相关 closeout、文档回写与 CI evidence；跨包边界变化必须运行 Fallow audit。
 
 ## 验收边界
 
-- 外部请求和内部/异步后续动作可共享或显式关联 `requestId`、W3C `traceparent`、`operationId` 与因果关系。
-- 日志、trace 与审计事件可通过稳定字段联查；审计记录仍独立于运行日志保存。
-- 指标命名、单位和标签符合低基数规则，健康、队列与遥测导出失败具有可诊断信号。
-- 文档、测试与运维告警配置反映已落地事实，不把外部 LGTM 基础设施描述为仓库内默认部署资产。
-- shared PG 不再构成共享写权限或模糊的真相边界；迁移、连接池、投影 freshness/lag 和跨服务失败语义均有源码、测试与文档证据。
-- `knowledge-write + governance-review` 服务样板具备服务级 health/readiness/ownership、队列/outbox 诊断和 acceptance closeout；未满足所有条件前，distributed 保持 `Level 2 / transitional-microservice`。
+- Active docs、源码 authority、scripts、CI、环境变量、runtime routes 和 workspace package facts 一致且由 blocking CI 验证。
+- HTTP、内部 hop、异步任务和关键领域操作能通过 request/trace/operation/causation 关联；metrics 来自真实运行时且标签低基数。
+- Sentry 仅聚合可行动系统错误，具有严格脱敏和 no-op 降级；不成为第二条 traces/metrics 管线。
+- 告警、runbook 和 SLO 只基于实际验证过的信号与多轮基线；长期平台化需求进入显式 deferred landing spot。
 
-## 长期债务登记
+## 长期债务与历史入口
 
-- [长期 open debt 与触发条件](docs/todos/open-debt-and-compromises.md)：记录不属于当前交付范围的工程维护信号、平台化、物理数据隔离和待验证安全候选。它不构成第二条 active mainline；只有满足其中记录的进入条件时，才新建细则并替换当前主线。
-
-## 历史入口
-
-- [已归档的上一版无 active mainline 索引](docs/archived/archived-plans/plan-2026-07-11-no-active-mainline-index-archived.md)
-- [已归档的可观测性、共享 PG 治理与分布式成熟度主细则](docs/archived/archived-plans/observability-traceability-closure.md)
-- [历史归档总表](docs/archived/README.md)
+- [长期 open debt 与触发条件](docs/todos/open-debt-and-compromises.md)：不构成第二条 active mainline。
+- [已归档 compatibility-shell retirement 主线](docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md)：保留 Wave-10 未完成证据，必要时按 debt 条件新建 scoped mainline。
+- [历史归档总表](docs/archived/README.md)。

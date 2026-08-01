@@ -6,7 +6,7 @@
 ## 使用规则
 
 - 每项记录必须包含来源、影响、当前边界、进入条件和后续落点；未验证的扫描信号不得描述为已确认缺陷。
-- 当前 active mainline 只处理 compatibility shell retirement and owner-local infrastructure；本登记册不能自行授权任何其他实施。
+- 当前 active mainline 只处理 documentation validation and observability platform；本登记册不能自行授权任何其他实施。
 - 任一项满足进入条件时，创建新的 active detail 并由根 `plan.md` 显式链接；不得在本文件直接启动并行实施。
 - 关闭一项时记录实际变更、最小验证和权威文档回写；只剩历史价值时归档到 `docs/archived/archived-plans/`。
 
@@ -14,14 +14,14 @@
 
 ### 兼容层债务持续存在
 
-- [x] **当前状态：** 已由 [`compatibility-shell-retirement-runtime-infra-ownership.md`](compatibility-shell-retirement-runtime-infra-ownership.md) 承担 active 执行责任；本节只保留其来源、边界与历史设计输入。
-- [ ] **来源：** `packages/server` 仍是 Fastify compatibility shell 与大量 shared implementation surface；`packages/runtime-infra` 仍通过 shared store/repository/async seam 复用 server 基础设施。
+- [ ] **当前状态：** 原 active detail 已归档为 [`../archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`](../archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md)；其 Wave-10 package retirement 未完成，当前不构成本主线的隐含任务。
+- [ ] **来源：** 历史细则记录 `packages/server` package retirement、根依赖和 Docker/package compatibility reference 的剩余关闭项；现行 active docs 不得将已退役路径写为当前事实。
 - [ ] **设计输入：** [`../superpowers/specs/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership-design.md`](../superpowers/specs/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership-design.md) 定义一次性移除 compatibility shell、`runtime-infra` 和 `store_snapshot` 的 owner-local 目标架构；在根 `plan.md` 显式激活前它仅是 deferred 参考，不构成 active 执行授权。
 - [ ] **实施参考：** [`../superpowers/plans/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership.md`](../superpowers/plans/2026-07-13-compatibility-shell-retirement-runtime-infra-ownership.md) 将该退役拆分为 owner migration、六个领域迁移、host cutover、snapshot backfill 与最终删除 wave；执行 evidence 仅回写 active detail。
 - [ ] **影响：** host 和 service 对迁移期实现面的依赖会扩大改动影响范围，`server-compatibility-seam` 指标归因也无法代表最终服务 owner。
 - [ ] **当前边界：** 不重开旧 Fastify authoritative write path；不新增 `store_snapshot`、shared DB direct-read 或 runtime-infra -> server 依赖作为默认业务路径。
-- [ ] **进入条件：** 当前主线的 Tranche 6/7 已完成，或 runtime-infra/server seam 导致明确的故障归因、边界违规或重复实现回归。
-- [ ] **后续落点：** 新建“compatibility shell retirement and runtime-infra ownership”细则；按 service/host 迁移真实 owner 后删除旧 route、re-export 和 compatibility fallback。
+- [ ] **进入条件：** retired compatibility seam 导致当前文档 truth、host composition、构建、边界违规或生产故障归因被阻塞，且无法在本主线的 source-aware guard 修复中关闭。
+- [ ] **后续落点：** 新建 scoped “compatibility shell retirement and runtime-infra ownership”细则；按 service/host 迁移真实 owner 后删除旧 route、re-export 和 compatibility fallback。
 - [ ] **要求的文档与测试：** 更新 `docs/architecture/BOUNDARIES.md`、`docs/reference/REPO_STRUCTURE.md`、相关 package README；运行受影响包测试、`rtk pnpm exec fallow list --boundaries`、`rtk pnpm exec fallow audit --base main`、`rtk pnpm typecheck`、`rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`。
 
 ### 工程维护信号偏高
