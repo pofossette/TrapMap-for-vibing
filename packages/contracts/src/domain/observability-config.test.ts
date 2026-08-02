@@ -401,6 +401,129 @@ describe('observability config contracts', () => {
       expect(result.reason).toContain('invalid sentry traces sample rate');
     });
 
+    // sampleRate tests
+    it('accepts sampleRate 0', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        sampleRate: '0',
+      });
+      expect(result.sampleRate).toBe(0);
+      expect(result.reason).toBeUndefined();
+    });
+
+    it('accepts sampleRate 0.5', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        sampleRate: '0.5',
+      });
+      expect(result.sampleRate).toBe(0.5);
+    });
+
+    it('accepts sampleRate 1', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        sampleRate: '1',
+      });
+      expect(result.sampleRate).toBe(1);
+    });
+
+    it('defaults sampleRate to 1 when absent', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      });
+      expect(result.sampleRate).toBe(1);
+    });
+
+    it('defaults sampleRate to 1 when empty string', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        sampleRate: '',
+      });
+      expect(result.sampleRate).toBe(1);
+    });
+
+    it('clamps negative sampleRate to 0 and sets reason', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        sampleRate: '-0.5',
+      });
+      expect(result.sampleRate).toBe(0);
+      expect(result.reason).toContain('below minimum');
+    });
+
+    it('clamps sampleRate above 1 to 1 and sets reason', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        sampleRate: '1.5',
+      });
+      expect(result.sampleRate).toBe(1);
+      expect(result.reason).toContain('above maximum');
+    });
+
+    it('falls back to default sampleRate for non-numeric input', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        sampleRate: 'abc',
+      });
+      expect(result.sampleRate).toBe(1);
+      expect(result.reason).toContain('invalid sentry sample rate');
+    });
+
+    // maxBreadcrumbs tests
+    it('accepts maxBreadcrumbs 100', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        maxBreadcrumbs: '100',
+      });
+      expect(result.maxBreadcrumbs).toBe(100);
+      expect(result.reason).toBeUndefined();
+    });
+
+    it('defaults maxBreadcrumbs to 50 when absent', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      });
+      expect(result.maxBreadcrumbs).toBe(50);
+    });
+
+    it('defaults maxBreadcrumbs to 50 when empty string', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        maxBreadcrumbs: '',
+      });
+      expect(result.maxBreadcrumbs).toBe(50);
+    });
+
+    it('falls back to default maxBreadcrumbs for non-numeric input', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        maxBreadcrumbs: 'abc',
+      });
+      expect(result.maxBreadcrumbs).toBe(50);
+      expect(result.reason).toContain('invalid sentry maxBreadcrumbs');
+    });
+
+    it('falls back to default maxBreadcrumbs for negative input', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        maxBreadcrumbs: '-1',
+      });
+      expect(result.maxBreadcrumbs).toBe(50);
+      expect(result.reason).toContain('invalid sentry maxBreadcrumbs');
+    });
+
+    it('includes all coercion reasons when multiple fields are invalid', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        tracesSampleRate: 'abc',
+        sampleRate: 'xyz',
+        maxBreadcrumbs: '-1',
+      });
+      expect(result.reason).toContain('invalid sentry traces sample rate');
+      expect(result.reason).toContain('invalid sentry sample rate');
+      expect(result.reason).toContain('invalid sentry maxBreadcrumbs');
+    });
+
     it('defaults environment to development', () => {
       const result = validateSentryPolicy({
         dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
@@ -447,6 +570,8 @@ describe('observability config contracts', () => {
         'environment',
         'release',
         'tracesSampleRate',
+        'sampleRate',
+        'maxBreadcrumbs',
         'deploymentProfile',
         'serviceName',
       ];
@@ -471,6 +596,8 @@ describe('observability config contracts', () => {
         'environment',
         'release',
         'tracesSampleRate',
+        'sampleRate',
+        'maxBreadcrumbs',
         'deploymentProfile',
         'serviceName',
       ];

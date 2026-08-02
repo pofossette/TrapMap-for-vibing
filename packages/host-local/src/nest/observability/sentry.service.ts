@@ -28,7 +28,7 @@ import type { RequestContextService } from '../runtime/request-context.service.j
  * Covers headers, cookies, auth tokens, prompt/knowledge content, and secrets.
  */
 const SENSITIVE_KEY_PATTERN =
-  /authorization|cookie|set-cookie|x-api-key|x-auth-token|access[-_]?token|session[-_]?token|password|secret|credential|prompt|knowledge[-_]?body|request[-_]?body|content[-_]?body|raw[-_]?content/i;
+  /authorization|cookie|set-cookie|x-api-key|x-auth-token|access[-_]?token|session[-_]?token|password|secret|credential|prompt|knowledge[-_]?body|request[-_]?body|content[-_]?body|raw[-_]?content|token|api[-_]?key|auth/i;
 
 /**
  * HTTP status codes that are "expected" client errors and should not be
@@ -112,17 +112,61 @@ function redactSensitiveKeys(obj: Record<string, unknown>): Record<string, unkno
 }
 
 /**
+ * Redact sensitive query parameter values from a URL or query string.
+ * Preserves non-sensitive parameters and parameter ordering.
+ */
+function redactQueryString(queryString: string): string {
+  try {
+    const pairs = queryString.split('&');
+    const redacted = pairs.map((pair) => {
+      const eqIndex = pair.indexOf('=');
+      if (eqIndex === -1) {
+        return pair;
+      }
+      const key = pair.slice(0, eqIndex);
+      if (SENSITIVE_KEY_PATTERN.test(decodeURIComponent(key))) {
+        return `${key}=[REDACTED]`;
+      }
+      return pair;
+    });
+    return redacted.join('&');
+  } catch {
+    return '[REDACTED]';
+  }
+}
+
+/**
+ * Redact sensitive query parameters from a URL string.
+ */
+function redactUrl(url: string): string {
+  try {
+    const questionIdx = url.indexOf('?');
+    if (questionIdx === -1) {
+      return url;
+    }
+    const base = url.slice(0, questionIdx);
+    const query = url.slice(questionIdx + 1);
+    return `${base}?${redactQueryString(query)}`;
+  } catch {
+    return '[REDACTED]';
+  }
+}
+
+/**
  * Redact sensitive data from a Sentry event before transport.
  */
 function redactEvent(event: SentryEvent): SentryEvent {
-  // Strip request headers, cookies, and body
+  // Strip request headers, cookies, and body; redact query params
   if (event.request) {
-    const redactedRequest: SentryEvent['request'] = {
-      ...(event.request.query_string !== undefined ? { query_string: event.request.query_string } : {}),
-      ...(event.request.url !== undefined ? { url: event.request.url } : {}),
-    };
+    const redactedRequest: NonNullable<SentryEvent['request']> = {};
     if (event.request.headers) {
-      redactedRequest!.headers = redactSensitiveKeys(event.request.headers) as Record<string, string>;
+      redactedRequest.headers = redactSensitiveKeys(event.request.headers) as Record<string, string>;
+    }
+    if (event.request.query_string !== undefined) {
+      redactedRequest.query_string = redactQueryString(event.request.query_string);
+    }
+    if (event.request.url !== undefined) {
+      redactedRequest.url = redactUrl(event.request.url);
     }
     event.request = redactedRequest;
   }
@@ -201,6 +245,8 @@ export class SentryService implements OnModuleInit, OnModuleDestroy {
       environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
       release: process.env.SENTRY_RELEASE ?? process.env.npm_package_version,
       tracesSampleRate: process.env.SENTRY_TRACES_SAMPLE_RATE,
+      sampleRate: process.env.SENTRY_SAMPLE_RATE,
+      maxBreadcrumbs: process.env.SENTRY_MAX_BREADCRUMBS,
       deploymentProfile: process.env.TRAPMAP_DEPLOYMENT_PROFILE,
       serviceName: process.env.TRAPMAP_SERVICE_NAME,
     });
@@ -220,9 +266,9 @@ export class SentryService implements OnModuleInit, OnModuleDestroy {
         environment: this.policy.environment,
         release: this.policy.release,
         sendDefaultPii: false,
-        sampleRate: 1.0,
+        sampleRate: this.policy.sampleRate,
         tracesSampleRate: this.policy.tracesSampleRate,
-        maxBreadcrumbs: 50,
+        maxBreadcrumbs: this.policy.maxBreadcrumbs,
         beforeSend: (event) => redactEvent(event as unknown as SentryEvent) as never,
         integrations: (integrations) =>
           integrations.filter(

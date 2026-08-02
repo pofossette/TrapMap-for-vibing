@@ -99,6 +99,10 @@ export interface SentryPolicyInput {
   release?: string;
   /** SENTRY_TRACES_SAMPLE_RATE value (string, default '0'). */
   tracesSampleRate?: string;
+  /** SENTRY_SAMPLE_RATE value for error event sampling (string, default '1'). */
+  sampleRate?: string;
+  /** SENTRY_MAX_BREADCRUMBS value (string, default '50'). */
+  maxBreadcrumbs?: string;
   /** TRAPMAP_DEPLOYMENT_PROFILE value. */
   deploymentProfile?: string;
   /** Service name for Sentry tags. */
@@ -121,6 +125,10 @@ export interface SentryPolicyResult {
   readonly release: string;
   /** Traces sample rate in [0, 1]. Only meaningful when enabled=true. */
   readonly tracesSampleRate: number;
+  /** Error event sample rate in [0, 1]. Only meaningful when enabled=true. */
+  readonly sampleRate: number;
+  /** Maximum number of breadcrumbs to retain. */
+  readonly maxBreadcrumbs: number;
   /** Deployment profile. */
   readonly deploymentProfile: string;
   /** Service name for Sentry tags. */
@@ -161,6 +169,50 @@ function parseSentrySampleRate(raw: string | undefined): { value: number; reason
 }
 
 /**
+ * Parse an error sample rate string. Defaults to 1 (send all errors).
+ */
+function parseSentryErrorSampleRate(raw: string | undefined): { value: number; reason?: string } {
+  if (raw === undefined || raw.trim() === '') {
+    return { value: 1 };
+  }
+  const parsed = Number.parseFloat(raw);
+  if (!Number.isFinite(parsed)) {
+    return { value: 1, reason: `invalid sentry sample rate '${raw}', using default 1` };
+  }
+  if (parsed < SAMPLE_RATE_MIN) {
+    return {
+      value: SAMPLE_RATE_MIN,
+      reason: `sentry sample rate ${parsed} below minimum, clamped to 0`,
+    };
+  }
+  if (parsed > SAMPLE_RATE_MAX) {
+    return {
+      value: SAMPLE_RATE_MAX,
+      reason: `sentry sample rate ${parsed} above maximum, clamped to 1`,
+    };
+  }
+  return { value: parsed };
+}
+
+/**
+ * Parse a max breadcrumbs string. Defaults to 50.
+ */
+function parseMaxBreadcrumbs(raw: string | undefined): { value: number; reason?: string } {
+  const DEFAULT_MAX_BREADCRUMBS = 50;
+  if (raw === undefined || raw.trim() === '') {
+    return { value: DEFAULT_MAX_BREADCRUMBS };
+  }
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return {
+      value: DEFAULT_MAX_BREADCRUMBS,
+      reason: `invalid sentry maxBreadcrumbs '${raw}', using default ${DEFAULT_MAX_BREADCRUMBS}`,
+    };
+  }
+  return { value: parsed };
+}
+
+/**
  * Validate and produce a typed Sentry policy result from raw environment input.
  *
  * This is the single source of truth for Sentry configuration semantics.
@@ -184,14 +236,24 @@ export function validateSentryPolicy(input: SentryPolicyInput = {}): SentryPolic
       environment,
       release,
       tracesSampleRate: 0,
+      sampleRate: 1,
+      maxBreadcrumbs: 50,
       deploymentProfile,
       serviceName,
       reason: 'SENTRY_DSN not configured',
     };
   }
 
-  const { value: tracesSampleRate, reason: sampleReason } = parseSentrySampleRate(
+  const { value: tracesSampleRate, reason: tracesReason } = parseSentrySampleRate(
     input.tracesSampleRate,
+  );
+  const { value: sampleRate, reason: sampleReason } = parseSentryErrorSampleRate(input.sampleRate);
+  const { value: maxBreadcrumbs, reason: breadcrumbReason } = parseMaxBreadcrumbs(
+    input.maxBreadcrumbs,
+  );
+
+  const reasons = [tracesReason, sampleReason, breadcrumbReason].filter(
+    (r): r is string => r !== undefined,
   );
 
   const result: SentryPolicyResult = {
@@ -200,13 +262,15 @@ export function validateSentryPolicy(input: SentryPolicyInput = {}): SentryPolic
     environment,
     release,
     tracesSampleRate,
+    sampleRate,
+    maxBreadcrumbs,
     deploymentProfile,
     serviceName,
   };
 
-  if (sampleReason) {
+  if (reasons.length > 0) {
     // Assign only when present to satisfy exactOptionalPropertyTypes.
-    return { ...result, reason: sampleReason };
+    return { ...result, reason: reasons.join('; ') };
   }
 
   return result;

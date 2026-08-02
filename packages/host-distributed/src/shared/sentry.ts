@@ -21,7 +21,7 @@ import type { SentryPolicyResult } from '@trapmap/contracts';
 // ---------------------------------------------------------------------------
 
 const SENSITIVE_KEY_PATTERN =
-  /authorization|cookie|set-cookie|x-api-key|x-auth-token|access[-_]?token|session[-_]?token|password|secret|credential|prompt|knowledge[-_]?body|request[-_]?body|content[-_]?body|raw[-_]?content/i;
+  /authorization|cookie|set-cookie|x-api-key|x-auth-token|access[-_]?token|session[-_]?token|password|secret|credential|prompt|knowledge[-_]?body|request[-_]?body|content[-_]?body|raw[-_]?content|token|api[-_]?key|auth/i;
 
 const SUPPRESSED_STATUS_CODES = new Set([400, 401, 403, 404, 409, 422]);
 
@@ -84,23 +84,79 @@ function redactSensitiveKeys(obj: Record<string, unknown>): Record<string, unkno
   return result;
 }
 
+/**
+ * Redact sensitive query parameter values from a URL or query string.
+ * Preserves non-sensitive parameters and parameter ordering.
+ */
+function redactQueryString(queryString: string): string {
+  try {
+    const pairs = queryString.split('&');
+    const redacted = pairs.map((pair) => {
+      const eqIndex = pair.indexOf('=');
+      if (eqIndex === -1) {
+        return pair;
+      }
+      const key = pair.slice(0, eqIndex);
+      if (SENSITIVE_KEY_PATTERN.test(decodeURIComponent(key))) {
+        return `${key}=[REDACTED]`;
+      }
+      return pair;
+    });
+    return redacted.join('&');
+  } catch {
+    return '[REDACTED]';
+  }
+}
+
+/**
+ * Redact sensitive query parameters from a URL string.
+ */
+function redactUrl(url: string): string {
+  try {
+    const questionIdx = url.indexOf('?');
+    if (questionIdx === -1) {
+      return url;
+    }
+    const base = url.slice(0, questionIdx);
+    const query = url.slice(questionIdx + 1);
+    return `${base}?${redactQueryString(query)}`;
+  } catch {
+    return '[REDACTED]';
+  }
+}
+
 function redactEvent(event: SentryEvent): SentryEvent {
   if (event.request) {
-    event.request = {
-      ...event.request,
-      headers: event.request.headers
-        ? (redactSensitiveKeys(event.request.headers) as Record<string, string>)
-        : undefined,
-      cookies: undefined,
-      data: undefined,
-    };
+    const redactedHeaders = event.request.headers
+      ? (redactSensitiveKeys(event.request.headers) as Record<string, string>)
+      : undefined;
+    const redactedQuery = event.request.query_string
+      ? redactQueryString(event.request.query_string)
+      : undefined;
+    const redactedUrl = event.request.url ? redactUrl(event.request.url) : undefined;
+
+    // Build request without undefined optional properties (exactOptionalPropertyTypes).
+    const redactedRequest: NonNullable<SentryEvent['request']> = {};
+    if (redactedHeaders !== undefined) {
+      redactedRequest.headers = redactedHeaders;
+    }
+    if (redactedQuery !== undefined) {
+      redactedRequest.query_string = redactedQuery;
+    }
+    if (redactedUrl !== undefined) {
+      redactedRequest.url = redactedUrl;
+    }
+    event.request = redactedRequest;
   }
 
   if (event.breadcrumbs) {
-    event.breadcrumbs = event.breadcrumbs.map((crumb) => ({
-      ...crumb,
-      data: crumb.data ? redactSensitiveKeys(crumb.data) : undefined,
-    }));
+    event.breadcrumbs = event.breadcrumbs.map((crumb) => {
+      const redacted: { data?: Record<string, unknown> } = {};
+      if (crumb.data) {
+        redacted.data = redactSensitiveKeys(crumb.data);
+      }
+      return redacted;
+    });
   }
 
   if (event.extra) {
@@ -152,6 +208,8 @@ export async function initDistributedSentry(serviceName: string): Promise<Sentry
     environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
     release: process.env.SENTRY_RELEASE ?? process.env.npm_package_version,
     tracesSampleRate: process.env.SENTRY_TRACES_SAMPLE_RATE,
+    sampleRate: process.env.SENTRY_SAMPLE_RATE,
+    maxBreadcrumbs: process.env.SENTRY_MAX_BREADCRUMBS,
     deploymentProfile: process.env.TRAPMAP_DEPLOYMENT_PROFILE,
     serviceName,
   });
@@ -171,9 +229,9 @@ export async function initDistributedSentry(serviceName: string): Promise<Sentry
       environment: policy.environment,
       release: policy.release,
       sendDefaultPii: false,
-      sampleRate: 1.0,
+      sampleRate: policy.sampleRate,
       tracesSampleRate: policy.tracesSampleRate,
-      maxBreadcrumbs: 50,
+      maxBreadcrumbs: policy.maxBreadcrumbs,
       beforeSend: (event) => redactEvent(event as unknown as SentryEvent) as never,
       integrations: (integrations) =>
         integrations.filter(
@@ -280,3 +338,10 @@ export function captureDistributedException(
 export function getDistributedSentryPolicy(): SentryPolicyResult | null {
   return currentPolicy;
 }
+
+// ---------------------------------------------------------------------------
+// Internal exports for testing
+// ---------------------------------------------------------------------------
+
+/** @internal Exported for unit tests only. */
+export { redactSensitiveKeys, redactQueryString, redactUrl, redactEvent, shouldSuppress };
