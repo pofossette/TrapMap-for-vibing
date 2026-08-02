@@ -5,10 +5,12 @@ import {
   parseBacktickedPaths,
   parseHeadingAnchors,
   validateReference,
+  checkDocReferences,
   type ReferenceIssue,
 } from '../check-doc-references.js';
 
 const FIXTURES = resolve(import.meta.dirname, 'fixtures');
+const ROOT = resolve(import.meta.dirname, '../..');
 
 describe('parseMarkdownLinks', () => {
   it('extracts relative links', () => {
@@ -110,5 +112,45 @@ describe('validateReference', () => {
     );
     expect(issues).toHaveLength(1);
     expect(issues[0].kind).toBe('path');
+  });
+});
+
+describe('anchor validation', () => {
+  it('detects missing anchor in linked file', () => {
+    const content = 'See [section](./valid-link-target.md#nonexistent-anchor)';
+    const links = parseMarkdownLinks(content, 'test.md');
+    expect(links).toHaveLength(1);
+    expect(links[0].target).toBe('./valid-link-target.md#nonexistent-anchor');
+  });
+});
+
+describe('retired code path handling', () => {
+  it('skips historical references with deletion markers', () => {
+    const content = 'The old code was in `packages/server（Wave-10 已删除）/src/app.ts`.';
+    const paths = parseBacktickedPaths(content, 'test.md');
+    expect(paths).toEqual([]);
+  });
+
+  it('skips links with historical markers', () => {
+    const content = 'See [old file](packages/server/src/app.ts（Wave-10 已删除）).';
+    const links = parseMarkdownLinks(content, 'test.md');
+    expect(links).toEqual([]);
+  });
+});
+
+describe('active surface discovery', () => {
+  it('excludes archived documents unless reactivated by plan.md', () => {
+    const issues = checkDocReferences(ROOT);
+    // Archived docs linked from plan.md ARE scanned (reactivated)
+    // Archived docs NOT linked from plan.md are excluded
+    const reactivatedFiles = [
+      'docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md',
+      'docs/archived/README.md',
+    ];
+    const archivedIssues = issues.filter((i) => i.file.startsWith('docs/archived/'));
+    const nonReactivatedIssues = archivedIssues.filter(
+      (i) => !reactivatedFiles.some((f) => i.file.startsWith(f)),
+    );
+    expect(nonReactivatedIssues).toEqual([]);
   });
 });

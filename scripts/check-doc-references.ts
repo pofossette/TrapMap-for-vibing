@@ -10,7 +10,7 @@
  * Excluded: docs/archived/**, docs/plans/**, docs/superpowers/**
  */
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, relative, dirname, join } from 'node:path';
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -165,9 +165,47 @@ const ACTIVE_DOCS_SUBDIRS = ['architecture', 'guides', 'operations', 'reference'
 const EXCLUDED_DOCS_SUBDIRS = ['archived', 'plans', 'superpowers'];
 
 /**
- * Discover all active Markdown files in the repository.
+ * Parse plan.md for links that reactivate files in excluded directories.
+ * An excluded file is reactivated only when the root plan.md contains a
+ * local link whose resolved target points into an excluded directory.
  */
-function discoverActiveFiles(root: string): string[] {
+function parsePlanReactivations(root: string): string[] {
+  const planPath = resolve(root, 'plan.md');
+  if (!existsSync(planPath)) return [];
+
+  const content = readFileSync(planPath, 'utf-8');
+  const links = parseMarkdownLinks(content, 'plan.md');
+  const reactivated: string[] = [];
+
+  for (const link of links) {
+    const target = link.target.split('#')[0]; // strip anchor
+    if (!target) continue;
+    const resolved = resolve(root, target);
+    const rel = relative(root, resolved);
+
+    const isExcluded = EXCLUDED_DOCS_SUBDIRS.some(
+      (subdir) => rel.startsWith(`docs/${subdir}/`) || rel === `docs/${subdir}`,
+    );
+
+    if (isExcluded && existsSync(resolved)) {
+      try {
+        if (statSync(resolved).isFile()) {
+          reactivated.push(resolved);
+        }
+      } catch {
+        // unreadable, skip
+      }
+    }
+  }
+
+  return reactivated;
+}
+
+/**
+ * Discover all active Markdown files in the repository.
+ * Exported for testing.
+ */
+export function discoverActiveFiles(root: string): string[] {
   const files: string[] = [];
 
   // Root active files
@@ -184,6 +222,13 @@ function discoverActiveFiles(root: string): string[] {
     const dirPath = resolve(docsDir, subdir);
     if (existsSync(dirPath)) {
       collectMarkdownFiles(dirPath, files);
+    }
+  }
+
+  // Reactivated files from plan.md links into excluded directories
+  for (const file of parsePlanReactivations(root)) {
+    if (!files.includes(file)) {
+      files.push(file);
     }
   }
 
@@ -209,11 +254,12 @@ function collectMarkdownFiles(dir: string, files: string[]): void {
 
 /**
  * Check a single active Markdown file for reference issues.
+ * Exported for testing.
  */
-function checkFile(filePath: string): ReferenceIssue[] {
+export function checkFile(filePath: string, repoRoot: string = REPO_ROOT): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
   const content = readFileSync(filePath, 'utf-8');
-  const relativePath = relative(REPO_ROOT, filePath);
+  const relativePath = relative(repoRoot, filePath);
   const fileDir = dirname(filePath);
 
   // 1. Validate Markdown links
@@ -247,7 +293,7 @@ function checkFile(filePath: string): ReferenceIssue[] {
   // 2. Validate backticked paths
   const paths = parseBacktickedPaths(content, relativePath);
   for (const p of paths) {
-    const resolvedPath = resolve(REPO_ROOT, p.path);
+    const resolvedPath = resolve(repoRoot, p.path);
     validateReference(resolvedPath, relativePath, p.line, 'path', issues);
   }
 
