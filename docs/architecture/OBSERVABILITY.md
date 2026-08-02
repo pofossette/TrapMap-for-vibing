@@ -86,6 +86,8 @@ flowchart TB
 | `packages/host-local/src/nest/observability/prometheus.service.ts` | `prom-client` 指标注册、收集和文本导出 |
 | `packages/host-local/src/nest/observability/loki.service.ts` | `LOKI_HOST` 存在时追加 Loki transport；否则继续 stdout JSON |
 | `packages/host-local/src/nest/observability/sentry.service.ts` | 可选 Sentry 错误智能适配器；`SENTRY_DSN` 为空时 no-op |
+| `packages/host-local/src/nest/observability/langfuse.service.ts` | 可选 Langfuse LLM observation NestJS 服务；凭证缺失时 no-op |
+| `packages/host-local/src/nest/observability/langfuse-sink.ts` | Langfuse sink 工厂；vendor-neutral wrapper 与 host-local SDK 的桥接 |
 | `packages/host-distributed/src/shared/telemetry.ts` | distributed internal hop span、OTLP trace/metric exporter 和 traceparent 透传 |
 | `packages/host-distributed/src/shared/sentry.ts` | distributed 宿主的可选 Sentry 适配器；`SENTRY_DSN` 为空时 no-op |
 
@@ -110,6 +112,29 @@ Sentry 适配器提供 actionable error 聚合能力，作为 OTel traces/metric
 - Sentry 不是第二条 traces/metrics 管线；它只聚合 actionable errors。
 - `backend-core` 和领域包不直接依赖 `@sentry/node`；SDK 只在 host composition root 中动态导入。
 - Sentry 配置契约由 `@trapmap/contracts` 持有，两个 host 使用相同的 `validateSentryPolicy` 确保语义一致。
+
+### Langfuse Runtime LLM Observation（可选）
+
+Langfuse 适配器提供可选的 LLM/embedding 生成运行时观测能力，作为 OTel traces/metrics 的补充：
+
+| 属性 | 值 |
+|---|---|
+| 启用条件 | `LANGFUSE_ENABLED` 非 `false` 且三个凭证（`LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY`）齐全 |
+| 初始化位置 | `packages/host-local/src/nest/observability/langfuse-sink.ts`（组合边界 sink）、`packages/host-local/src/nest/observability/langfuse.service.ts`（Nest 模块） |
+| 配置验证 | `packages/contracts/src/domain/observability-config.ts` 中的 `validateLangfusePolicy` |
+| Vendor-neutral wrapper | `packages/ai-providers/src/observability.ts` — 不依赖 `langfuse` SDK，只接收注入的 `LlmObservationSink` |
+| Host-owned SDK sink | `langfuse-sink.ts` 在 host-local 可观测性边界内动态导入 `langfuse` SDK |
+| 隐私策略 | 默认 `strict` 模式：只发送 metadata、长度、哈希；不发送 raw prompts、outputs、vectors、credentials |
+| 关联字段 | 与 OTel/Sentry 共享 `traceId`、`requestId`、`operationId`；通过 `ObservationCorrelationContext` getter 从 AsyncLocalStorage 动态解析 |
+| Eval platform mirror | 已有，通过 `--platform langfuse` 在 eval aggregate runner 中启用 |
+| 降级策略 | SDK 初始化失败、sink 传输失败、flush 超时均不影响原始请求或任务完成路径 |
+
+设计约束：
+
+- `packages/ai-providers` 不直接依赖 `langfuse` SDK；SDK 只在 host composition root 中动态导入。
+- 配置契约由 `@trapmap/contracts` 持有，两个 host 使用相同的 `validateLangfusePolicy` 确保语义一致。
+- Bounded flush timeout（默认 5000ms，范围 100-60000）防止 Langfuse 不可用时挂起。
+- Correlation context 通过 getter 函数在观测时动态解析，而非在组合时静态注入。
 
 ### Collector 与 LGTM 栈
 
@@ -168,9 +193,15 @@ packages/host-local/src/nest/observability/
   prometheus.service.ts
   loki.module.ts
   loki.service.ts
+  sentry.module.ts
+  sentry.service.ts
+  langfuse.module.ts
+  langfuse.service.ts
+  langfuse-sink.ts
   metrics-port.adapter.ts
   tracing-port.adapter.ts
   logging-port.adapter.ts
+  http-metrics.middleware.ts
 ```
 
 ## 部署 profile 差异

@@ -372,6 +372,40 @@ Sentry 适配器（可选）在 `SENTRY_DSN` 配置时启用。以下隐私约�
 
 ---
 
+## Langfuse Runtime Observation 隐私策略
+
+Langfuse 适配器（可选）在 `LANGFUSE_ENABLED` 且凭证齐全时启用。以下隐私约束始终强制执行：
+
+### 隐私保障
+
+| 约束 | 说明 |
+|------|------|
+| 默认 `strict` 隐私模式 | 等价于 `sendDefaultPii=false`；只发送 metadata、长度、哈希 |
+| 无 raw prompt/output | LLM prompt、completion、embedding text 不会进入 Langfuse 事件 |
+| 无 embedding vectors | Embedding 向量不会进入 Langfuse 事件 |
+| 无 credentials | API keys、session tokens、credentials 不会进入 Langfuse 事件 |
+| 无 request bodies | 请求体不会进入 Langfuse 事件 |
+| Metadata only | 只发送 provider、operation、outcome、latencyMs、inputLength、outputDimensions、correlation IDs |
+
+### 凭证处理
+
+| 约束 | 说明 |
+|------|------|
+| Keys 不进入日志 | `LANGFUSE_PUBLIC_KEY` 和 `LANGFUSE_SECRET_KEY` 不会出现在诊断日志或 policy reason 中 |
+| Keys 不进入 metadata | 凭证不会作为 observation metadata 发送到 Langfuse |
+| Dynamic import | `langfuse` SDK 只在 host composition root 中动态导入，不作为硬依赖 |
+
+### 降级策略
+
+| 场景 | 行为 |
+|------|------|
+| 缺少 `LANGFUSE_*` 凭证 | SDK 不加载，零影响 |
+| SDK 初始化失败 | 本地日志记录错误，不影响请求 |
+| Observation 传输失败 | 本地静默忽略，不影响原始请求或任务完成路径 |
+| Flush 超时 | Bounded timeout（默认 5000ms）防止挂起，超时后放弃 |
+
+---
+
 ## CLI 路径安全
 
 `validateOutputPath`（`packages/cli/src/lib/skill-artifact-export.ts`）在解析输出路径后执行边界检查：解析结果必须等于 `resolve(intendedDir)` 或以 `resolve(intendedDir) + sep` 为前缀。此检查防止绝对路径（如 `/etc/passwd`）绕过目录遍历防护逃逸出预期目录。`requireSessionToken` 同时验证 token 类型为 `string` 且非空，防止非字符串值绕过认证。

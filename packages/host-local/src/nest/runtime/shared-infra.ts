@@ -8,11 +8,13 @@ import {
   createAiProviders,
   wrapProvidersWithObservation,
   type AiProviders,
+  type ObservationCorrelationContext,
 } from '@trapmap/ai-providers';
 import pg from 'pg';
 
 import type { HostLocalConfig } from '../config/index.js';
 import { createLangfuseSinkFromEnv } from '../observability/langfuse-sink.js';
+import { getCurrentRequestContext } from './request-context.service.js';
 
 export interface HostLocalSharedInfra {
   store: HostLocalStore;
@@ -97,10 +99,23 @@ export async function createHostLocalSharedInfra(
   // Wrap AI providers with Langfuse observation at the composition boundary
   // when the policy is enabled. Sink creation failure is treated as a safe
   // diagnostic and does not affect provider initialization.
+  //
+  // The correlation getter is called at observation time (per-request),
+  // picking up OTel trace/request/operation IDs from AsyncLocalStorage.
+  const correlationGetter = (): ObservationCorrelationContext | undefined => {
+    const ctx = getCurrentRequestContext();
+    if (!ctx) return undefined;
+    return {
+      traceId: ctx.traceId ?? undefined,
+      requestId: ctx.requestId,
+      operationId: ctx.operationId,
+    };
+  };
+
   try {
     const langfuseSink = await createLangfuseSinkFromEnv();
     if (langfuseSink) {
-      ai = wrapProvidersWithObservation(ai, langfuseSink);
+      ai = wrapProvidersWithObservation(ai, langfuseSink, correlationGetter);
     }
   } catch {
     // Sink creation failure is a safe diagnostic

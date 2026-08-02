@@ -495,6 +495,25 @@ pnpm dev:local-agent
 |------|------|--------|
 | `LOKI_HOST` | Loki push API 地址；为空时 Loki 日志传输禁用 | 空 |
 
+### Langfuse Runtime Observation 配置（可选）
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `LANGFUSE_ENABLED` | 是否启用 Langfuse 运行时 LLM 观测（`false` 时完全禁用） | `false` |
+| `LANGFUSE_BASE_URL` | Langfuse 实例 URL | 空（禁用） |
+| `LANGFUSE_PUBLIC_KEY` | Langfuse public key | 空（禁用） |
+| `LANGFUSE_SECRET_KEY` | Langfuse secret key | 空（禁用） |
+| `LANGFUSE_FLUSH_TIMEOUT_MS` | Bounded flush 超时（ms，范围 100-60000） | `5000` |
+| `LANGFUSE_PRIVACY_MODE` | 隐私模式：`strict`（仅 metadata/长度/哈希）或 `metadata-only` | `strict` |
+
+约定：
+
+- 缺少任一凭证时，Langfuse observation 不加载、不传输，对请求零影响。
+- 默认 `strict` 隐私模式：只发送 provider、operation、outcome、latencyMs、inputLength、outputDimensions 等 metadata；不发送 raw prompts、outputs、embedding vectors、credentials。
+- Bounded flush timeout 防止 Langfuse 不可用时挂起进程退出。
+- `packages/ai-providers` 中的 vendor-neutral wrapper 不依赖 `langfuse` SDK；SDK 只在 host composition root 中动态导入。
+- Correlation fields（`traceId`、`requestId`、`operationId`）与 OTel/Sentry 共享，通过 AsyncLocalStorage 动态解析。
+
 ### Sentry 错误智能配置（可选）
 
 | 变量 | 说明 | 默认值 |
@@ -523,6 +542,7 @@ pnpm dev:local-agent
 | Consul 服务发现 | 关闭 | `CONSUL_ENABLED` 未设置或为 `false` 时不加载 ConsulModule |
 | Loki 日志传输 | 关闭 | `LOKI_HOST` 为空时只使用 NestJS 内置 Logger |
 | Sentry 错误智能 | 关闭 | `SENTRY_DSN` 为空时完全禁用（no-op）；设置 DSN 后自动启用 |
+| Langfuse LLM Observation | 关闭 | `LANGFUSE_ENABLED` 未设置或凭证缺失时完全禁用（no-op）；设置凭证后自动启用 |
 
 生产环境建议组合：
 

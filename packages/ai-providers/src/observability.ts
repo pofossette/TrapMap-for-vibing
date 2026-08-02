@@ -32,6 +32,10 @@ export interface ChatObservation {
   readonly traceId?: string;
   readonly requestId?: string;
   readonly operationId?: string;
+  /** Input token count, if reported by the provider. */
+  readonly inputTokens?: number;
+  /** Output token count, if reported by the provider. */
+  readonly outputTokens?: number;
 }
 
 export interface EmbeddingObservation {
@@ -48,6 +52,10 @@ export interface EmbeddingObservation {
   readonly traceId?: string;
   readonly requestId?: string;
   readonly operationId?: string;
+  /** Input token count, if reported by the provider. */
+  readonly inputTokens?: number;
+  /** Output token count, if reported by the provider. */
+  readonly outputTokens?: number;
 }
 
 /**
@@ -68,6 +76,16 @@ export interface ObservationCorrelationContext {
   operationId?: string;
 }
 
+/**
+ * A correlation source is either a static context or a getter function
+ * that resolves the context at observation time. Getter functions allow
+ * the wrapper to pick up per-request correlation IDs from AsyncLocalStorage
+ * without requiring them at composition time.
+ */
+export type ObservationCorrelationSource =
+  | ObservationCorrelationContext
+  | (() => ObservationCorrelationContext | undefined);
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
@@ -78,6 +96,18 @@ function safeInvokeSink(fn: () => void): void {
   } catch {
     // Sink failure is a safe diagnostic; never affects the provider path.
   }
+}
+
+/**
+ * Resolve a correlation source to a concrete context.
+ * If the source is a function, it is called at observation time.
+ */
+function resolveCorrelation(
+  source?: ObservationCorrelationSource,
+): ObservationCorrelationContext | undefined {
+  if (!source) return undefined;
+  if (typeof source === 'function') return source();
+  return source;
 }
 
 // ---------------------------------------------------------------------------
@@ -92,13 +122,14 @@ function safeInvokeSink(fn: () => void): void {
  *
  * @param providers - The original AI providers to wrap.
  * @param sink - Optional observation sink to receive metadata.
- * @param correlation - Optional OTel/request correlation IDs.
+ * @param correlation - Optional OTel/request correlation IDs. May be a
+ *   static object or a getter function for per-request resolution.
  * @returns New providers with identical interface and semantics.
  */
 export function wrapProvidersWithObservation(
   providers: AiProviders,
   sink?: LlmObservationSink,
-  correlation?: ObservationCorrelationContext,
+  correlation?: ObservationCorrelationSource,
 ): AiProviders {
   if (!sink) {
     return providers;
@@ -113,7 +144,7 @@ export function wrapProvidersWithObservation(
 function wrapChatProvider(
   inner: ChatProvider,
   sink: LlmObservationSink,
-  correlation?: ObservationCorrelationContext,
+  correlation?: ObservationCorrelationSource,
 ): ChatProvider {
   const wrapped: ChatProvider = {
     get provider() {
@@ -128,32 +159,34 @@ function wrapChatProvider(
       try {
         const result = await inner.invoke(systemPrompt, userMessage);
         const endTime = performance.now();
+        const resolved = resolveCorrelation(correlation);
         safeInvokeSink(() =>
           sink.onChatObservation({
             provider: inner.provider,
-            model: 'chat',
+            model: inner.provider,
             operation: 'invoke',
             outcome: 'success',
             latencyMs: Math.round(endTime - startTime),
             startTimestamp,
             endTimestamp: new Date().toISOString(),
-            ...correlation,
+            ...resolved,
           }),
         );
         return result;
       } catch (error) {
         const endTime = performance.now();
+        const resolved = resolveCorrelation(correlation);
         safeInvokeSink(() =>
           sink.onChatObservation({
             provider: inner.provider,
-            model: 'chat',
+            model: inner.provider,
             operation: 'invoke',
             outcome: 'error',
             latencyMs: Math.round(endTime - startTime),
             startTimestamp,
             endTimestamp: new Date().toISOString(),
             error: error instanceof Error ? error.message : String(error),
-            ...correlation,
+            ...resolved,
           }),
         );
         throw error;
@@ -171,32 +204,34 @@ function wrapChatProvider(
       try {
         const result = await inner.invokeWithBlocks!(blocks, userMessage);
         const endTime = performance.now();
+        const resolved = resolveCorrelation(correlation);
         safeInvokeSink(() =>
           sink.onChatObservation({
             provider: inner.provider,
-            model: 'chat',
+            model: inner.provider,
             operation: 'invokeWithBlocks',
             outcome: 'success',
             latencyMs: Math.round(endTime - startTime),
             startTimestamp,
             endTimestamp: new Date().toISOString(),
-            ...correlation,
+            ...resolved,
           }),
         );
         return result;
       } catch (error) {
         const endTime = performance.now();
+        const resolved = resolveCorrelation(correlation);
         safeInvokeSink(() =>
           sink.onChatObservation({
             provider: inner.provider,
-            model: 'chat',
+            model: inner.provider,
             operation: 'invokeWithBlocks',
             outcome: 'error',
             latencyMs: Math.round(endTime - startTime),
             startTimestamp,
             endTimestamp: new Date().toISOString(),
             error: error instanceof Error ? error.message : String(error),
-            ...correlation,
+            ...resolved,
           }),
         );
         throw error;
@@ -210,7 +245,7 @@ function wrapChatProvider(
 function wrapEmbeddingsProvider(
   inner: EmbeddingsProvider,
   sink: LlmObservationSink,
-  correlation?: ObservationCorrelationContext,
+  correlation?: ObservationCorrelationSource,
 ): EmbeddingsProvider {
   return {
     get provider() {
@@ -225,10 +260,11 @@ function wrapEmbeddingsProvider(
       try {
         const result = await inner.embed(text);
         const endTime = performance.now();
+        const resolved = resolveCorrelation(correlation);
         safeInvokeSink(() =>
           sink.onEmbeddingObservation({
             provider: inner.provider,
-            model: 'embed',
+            model: inner.provider,
             operation: 'embed',
             outcome: 'success',
             latencyMs: Math.round(endTime - startTime),
@@ -236,16 +272,17 @@ function wrapEmbeddingsProvider(
             endTimestamp: new Date().toISOString(),
             inputLength: text.length,
             outputDimensions: result.length,
-            ...correlation,
+            ...resolved,
           }),
         );
         return result;
       } catch (error) {
         const endTime = performance.now();
+        const resolved = resolveCorrelation(correlation);
         safeInvokeSink(() =>
           sink.onEmbeddingObservation({
             provider: inner.provider,
-            model: 'embed',
+            model: inner.provider,
             operation: 'embed',
             outcome: 'error',
             latencyMs: Math.round(endTime - startTime),
@@ -253,7 +290,7 @@ function wrapEmbeddingsProvider(
             endTimestamp: new Date().toISOString(),
             inputLength: text.length,
             error: error instanceof Error ? error.message : String(error),
-            ...correlation,
+            ...resolved,
           }),
         );
         throw error;

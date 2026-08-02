@@ -20,6 +20,17 @@ export interface NestRequestContext {
 
 const storage = new AsyncLocalStorage<NestRequestContext>();
 
+/**
+ * Read the current request context from AsyncLocalStorage.
+ *
+ * This function is safe to call from any code running within a request
+ * scope (e.g. the observation wrapper in shared-infra.ts). Returns
+ * undefined when called outside a request scope.
+ */
+export function getCurrentRequestContext(): NestRequestContext | undefined {
+  return storage.getStore();
+}
+
 @Injectable()
 export class RequestContextService {
   get(): NestRequestContext | undefined {

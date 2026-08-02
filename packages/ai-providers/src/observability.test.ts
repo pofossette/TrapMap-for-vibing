@@ -99,7 +99,7 @@ describe('wrapProvidersWithObservation', () => {
       expect(sink.onChatObservation).toHaveBeenCalledTimes(1);
       const obs = (sink.onChatObservation as ReturnType<typeof vi.fn>).mock.calls[0]![0];
       expect(obs.provider).toBe('openai');
-      expect(obs.model).toBe('chat');
+      expect(obs.model).toBe('openai');
       expect(obs.operation).toBe('invoke');
       expect(obs.outcome).toBe('success');
       expect(obs.latencyMs).toBeGreaterThanOrEqual(0);
@@ -277,7 +277,7 @@ describe('wrapProvidersWithObservation', () => {
       expect(sink.onEmbeddingObservation).toHaveBeenCalledTimes(1);
       const obs = (sink.onEmbeddingObservation as ReturnType<typeof vi.fn>).mock.calls[0]![0];
       expect(obs.provider).toBe('openai');
-      expect(obs.model).toBe('embed');
+      expect(obs.model).toBe('openai');
       expect(obs.operation).toBe('embed');
       expect(obs.outcome).toBe('success');
       expect(obs.latencyMs).toBeGreaterThanOrEqual(0);
@@ -415,6 +415,50 @@ describe('wrapProvidersWithObservation', () => {
       const wrapped = wrapProvidersWithObservation(
         { chat: inner, embeddings: createMockEmbeddingsProvider() },
         sink,
+      );
+
+      await wrapped.chat.invoke('sys', 'user');
+
+      const obs = (sink.onChatObservation as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+      expect(obs.traceId).toBeUndefined();
+      expect(obs.requestId).toBeUndefined();
+      expect(obs.operationId).toBeUndefined();
+    });
+
+    it('resolves correlation from getter function at observation time', async () => {
+      const inner = createMockChatProvider();
+      const sink = createMockSink();
+      let currentContext = { traceId: 'trace-1', requestId: 'req-1', operationId: 'op-1' };
+      const wrapped = wrapProvidersWithObservation(
+        { chat: inner, embeddings: createMockEmbeddingsProvider() },
+        sink,
+        () => currentContext,
+      );
+
+      await wrapped.chat.invoke('sys', 'user');
+
+      const obs = (sink.onChatObservation as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+      expect(obs.traceId).toBe('trace-1');
+      expect(obs.requestId).toBe('req-1');
+      expect(obs.operationId).toBe('op-1');
+
+      // Change context and invoke again
+      currentContext = { traceId: 'trace-2', requestId: 'req-2', operationId: 'op-2' };
+      await wrapped.chat.invoke('sys', 'user');
+
+      const obs2 = (sink.onChatObservation as ReturnType<typeof vi.fn>).mock.calls[1]![0];
+      expect(obs2.traceId).toBe('trace-2');
+      expect(obs2.requestId).toBe('req-2');
+      expect(obs2.operationId).toBe('op-2');
+    });
+
+    it('handles getter returning undefined gracefully', async () => {
+      const inner = createMockChatProvider();
+      const sink = createMockSink();
+      const wrapped = wrapProvidersWithObservation(
+        { chat: inner, embeddings: createMockEmbeddingsProvider() },
+        sink,
+        () => undefined,
       );
 
       await wrapped.chat.invoke('sys', 'user');

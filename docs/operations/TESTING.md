@@ -242,6 +242,34 @@ pnpm test:coverage
 pnpm typecheck
 ```
 
+### Langfuse Observation 测试
+
+Langfuse 相关测试覆盖三类：policy 验证、sink 工厂、NestJS service 生命周期。
+
+```bash
+# Langfuse policy 验证（contracts 层）
+rtk pnpm test:file -- packages/contracts/src/domain/observability-config.test.ts
+
+# Langfuse sink 工厂（host-local 组合边界）
+rtk pnpm test:file -- packages/host-local/src/nest/observability/langfuse-sink.test.ts
+
+# Langfuse NestJS service（host-local 生命周期）
+rtk pnpm test:file -- packages/host-local/src/nest/observability/langfuse.service.test.ts
+
+# Vendor-neutral observation wrapper（ai-providers 层）
+rtk pnpm test:file -- packages/ai-providers/src/observability.test.ts
+
+# 全部 observability closeout（包含 Langfuse）
+pnpm test:observability-closeout
+```
+
+测试要点：
+
+- Policy 验证：disabled/enabled 切换、凭证缺失、flush timeout 边界、隐私模式
+- Sink 工厂：`createLangfuseSinkFromEnv()` 返回 null sink when disabled、创建 sink when enabled、client 错误处理、bounded flush timeout
+- Service 生命周期：disabled mode 降级、SDK 初始化、shutdown timeout、SDK import failure、observation forwarding
+- Wrapper：privacy（不泄露 raw prompts/outputs/vectors）、sink failure 降级、correlation ID 传播（含 getter 函数）、model field 使用实际 provider name
+
 ### Deployment / Runtime 最小验证矩阵
 
 完成 deployment flexibility 相关改动后，至少运行以下命令：
