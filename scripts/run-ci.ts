@@ -107,6 +107,11 @@ const STEPS: StepDefinition[] = [
     command: 'pnpm',
     args: ['run', 'check:doc-references'],
   },
+  {
+    name: 'check:docs-truth',
+    command: 'pnpm',
+    args: ['run', 'check:docs-truth'],
+  },
 ];
 
 // ---------------------------------------------------------------------------

@@ -169,6 +169,7 @@ jobs:
       - run: pnpm check:md-lint
       - run: pnpm check:links || true
       - run: pnpm check:doc-references || true
+      - run: pnpm check:docs-truth || true
       - run: pnpm check:stale-package-refs
       - run: pnpm exec fallow dead-code --boundary-violations --ci --fail-on-issues
       - run: pnpm exec fallow dead-code --unused-deps --ci --fail-on-issues

@@ -43,6 +43,7 @@
     "check:arch-freeze": "pnpm exec tsx scripts/check-arch-freeze.ts",
     "check:stale-package-refs": "pnpm exec tsx scripts/check-stale-package-refs.ts",
     "check:doc-references": "pnpm exec tsx scripts/check-doc-references.ts",
+    "check:docs-truth": "pnpm exec tsx scripts/check-doc-truth.ts",
     "test:distributed-acceptance": "pnpm --filter @trapmap/host-distributed test:acceptance",
     "test:light-target": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-backend-target.ts test light",
     "test:heavy-target": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-backend-target.ts test heavy",
