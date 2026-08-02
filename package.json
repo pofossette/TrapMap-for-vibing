@@ -44,6 +44,7 @@
     "check:stale-package-refs": "pnpm exec tsx scripts/check-stale-package-refs.ts",
     "check:doc-references": "pnpm exec tsx scripts/check-doc-references.ts",
     "check:docs-truth": "pnpm exec tsx scripts/check-doc-truth.ts",
+    "verify:observability-correlation": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/verify-observability-correlation.ts",
     "test:distributed-acceptance": "pnpm --filter @trapmap/host-distributed test:acceptance",
     "test:light-target": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-backend-target.ts test light",
     "test:heavy-target": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-backend-target.ts test heavy",
