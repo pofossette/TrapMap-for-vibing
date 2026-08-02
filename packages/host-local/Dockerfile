@@ -39,6 +39,14 @@ COPY packages/service-knowledge-write/package.json ./packages/service-knowledge-
 COPY packages/service-knowledge-write/tsconfig.json ./packages/service-knowledge-write/
 COPY packages/service-knowledge-write/src ./packages/service-knowledge-write/src
 
+COPY packages/service-identity-access/package.json ./packages/service-identity-access/
+COPY packages/service-identity-access/tsconfig.json ./packages/service-identity-access/
+COPY packages/service-identity-access/src ./packages/service-identity-access/src
+
+COPY packages/service-job-runtime/package.json ./packages/service-job-runtime/
+COPY packages/service-job-runtime/tsconfig.json ./packages/service-job-runtime/
+COPY packages/service-job-runtime/src ./packages/service-job-runtime/src
+
 COPY packages/host-local/package.json ./packages/host-local/
 COPY packages/host-local/tsconfig.json ./packages/host-local/
 COPY packages/host-local/src ./packages/host-local/src
@@ -97,6 +105,14 @@ COPY --from=build /app/packages/service-governance-review/dist ./packages/servic
 COPY packages/service-knowledge-write/package.json ./packages/service-knowledge-write/
 COPY packages/service-knowledge-write/tsconfig.json ./packages/service-knowledge-write/
 COPY --from=build /app/packages/service-knowledge-write/dist ./packages/service-knowledge-write/dist
+
+COPY packages/service-identity-access/package.json ./packages/service-identity-access/
+COPY packages/service-identity-access/tsconfig.json ./packages/service-identity-access/
+COPY --from=build /app/packages/service-identity-access/dist ./packages/service-identity-access/dist
+
+COPY packages/service-job-runtime/package.json ./packages/service-job-runtime/
+COPY packages/service-job-runtime/tsconfig.json ./packages/service-job-runtime/
+COPY --from=build /app/packages/service-job-runtime/dist ./packages/service-job-runtime/dist
 
 COPY packages/host-local/package.json ./packages/host-local/
 COPY packages/host-local/tsconfig.json ./packages/host-local/
