@@ -112,6 +112,18 @@ services:
       - CONSUL_HOST=${CONSUL_HOST:-consul}
       - CONSUL_PORT=${CONSUL_PORT:-8500}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+      - OTEL_DISABLED=${OTEL_DISABLED:-false}
+      # Sentry (optional, no-op when DSN absent)
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      - SENTRY_SAMPLE_RATE=${SENTRY_SAMPLE_RATE:-1}
+      # Langfuse (optional, no-op when disabled)
+      - LANGFUSE_ENABLED=${LANGFUSE_ENABLED:-false}
+      - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_FLUSH_TIMEOUT_MS=${LANGFUSE_FLUSH_TIMEOUT_MS:-5000}
+      - LANGFUSE_PRIVACY_MODE=${LANGFUSE_PRIVACY_MODE:-strict}
       - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
       - LOG_USER_OPS_DIR=${LOG_USER_OPS_DIR:-/app/logs/user-ops}
       - LOG_RAG_ENABLED=${LOG_RAG_ENABLED:-false}
@@ -154,6 +166,18 @@ services:
       - CONSUL_HOST=${CONSUL_HOST:-consul}
       - CONSUL_PORT=${CONSUL_PORT:-8500}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+      - OTEL_DISABLED=${OTEL_DISABLED:-false}
+      # Sentry (optional, no-op when DSN absent)
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      - SENTRY_SAMPLE_RATE=${SENTRY_SAMPLE_RATE:-1}
+      # Langfuse (optional, no-op when disabled)
+      - LANGFUSE_ENABLED=${LANGFUSE_ENABLED:-false}
+      - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_FLUSH_TIMEOUT_MS=${LANGFUSE_FLUSH_TIMEOUT_MS:-5000}
+      - LANGFUSE_PRIVACY_MODE=${LANGFUSE_PRIVACY_MODE:-strict}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
       postgres:
@@ -195,6 +219,9 @@ services:
       - CONSUL_HOST=${CONSUL_HOST:-consul}
       - CONSUL_PORT=${CONSUL_PORT:-8500}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+      - OTEL_DISABLED=${OTEL_DISABLED:-false}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
       postgres:
@@ -236,6 +263,9 @@ services:
       - CONSUL_HOST=${CONSUL_HOST:-consul}
       - CONSUL_PORT=${CONSUL_PORT:-8500}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+      - OTEL_DISABLED=${OTEL_DISABLED:-false}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
       postgres:
@@ -290,6 +320,9 @@ services:
       - CONSUL_HOST=${CONSUL_HOST:-consul}
       - CONSUL_PORT=${CONSUL_PORT:-8500}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+      - OTEL_DISABLED=${OTEL_DISABLED:-false}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
       postgres:
@@ -347,6 +380,9 @@ services:
       - CONSUL_HOST=${CONSUL_HOST:-consul}
       - CONSUL_PORT=${CONSUL_PORT:-8500}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+      - OTEL_DISABLED=${OTEL_DISABLED:-false}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
       postgres:
@@ -400,6 +436,9 @@ services:
       - CONSUL_HOST=${CONSUL_HOST:-consul}
       - CONSUL_PORT=${CONSUL_PORT:-8500}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+      - OTEL_DISABLED=${OTEL_DISABLED:-false}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
       postgres:
