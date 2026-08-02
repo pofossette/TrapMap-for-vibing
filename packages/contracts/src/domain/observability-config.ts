@@ -304,6 +304,198 @@ function parseSampleRate(raw: string | undefined): { value: number; reason?: str
  * Both host-local and host-distributed call this function with the same
  * input shape, guaranteeing identical behavior.
  */
+// ---------------------------------------------------------------------------
+// Langfuse Policy (Task 10)
+// ---------------------------------------------------------------------------
+
+/**
+ * Raw input for Langfuse policy validation. Hosts read environment variables
+ * and pass them here; the shared validator produces a typed, immutable result.
+ */
+export interface LangfusePolicyInput {
+  /** LANGFUSE_ENABLED value (string 'true' | 'false', default 'true'). */
+  langfuseEnabled?: string;
+  /** LANGFUSE_BASE_URL value (may be absent). */
+  baseUrl?: string;
+  /** LANGFUSE_PUBLIC_KEY value (may be absent). */
+  publicKey?: string;
+  /** LANGFUSE_SECRET_KEY value (may be absent). */
+  secretKey?: string;
+  /** LANGFUSE_FLUSH_TIMEOUT_MS value (string, default '5000'). */
+  flushTimeoutMs?: string;
+  /** Service name for Langfuse metadata. */
+  serviceName?: string;
+  /** Service version for Langfuse metadata. */
+  serviceVersion?: string;
+  /** Runtime environment (e.g. 'production', 'development'). */
+  environment?: string;
+  /** Deployment profile. */
+  deploymentProfile?: string;
+  /** Release identifier. */
+  release?: string;
+  /** Privacy mode for Langfuse observations. */
+  privacyMode?: string;
+}
+
+/**
+ * Validated Langfuse policy result. Both hosts consume this identical shape
+ * to configure the Langfuse SDK, ensuring consistent disable/observation/
+ * flush/redaction semantics.
+ */
+export interface LangfusePolicyResult {
+  /** Whether Langfuse observation is enabled. When false, no SDK work. */
+  readonly enabled: boolean;
+  /** Langfuse base URL (always present; empty string when disabled). */
+  readonly baseUrl: string;
+  /** Langfuse public key (always present; empty string when disabled). */
+  readonly publicKey: string;
+  /** Langfuse secret key (always present; empty string when disabled). */
+  readonly secretKey: string;
+  /** Bounded flush timeout in milliseconds. */
+  readonly flushTimeoutMs: number;
+  /** Service name for Langfuse metadata. */
+  readonly serviceName: string;
+  /** Service version for Langfuse metadata. */
+  readonly serviceVersion: string;
+  /** Runtime environment. */
+  readonly environment: string;
+  /** Deployment profile. */
+  readonly deploymentProfile: string;
+  /** Release identifier. */
+  readonly release: string;
+  /** Privacy mode: 'strict' strips all content, 'metadata-only' sends safe metadata only. */
+  readonly privacyMode: 'strict' | 'metadata-only';
+  /**
+   * Safe human-readable diagnostic reason. Present when disabled or when
+   * configuration was coerced from invalid input. Never contains secrets
+   * or sensitive environment values.
+   */
+  readonly reason?: string;
+}
+
+const DEFAULT_LANGFUSE_FLUSH_TIMEOUT_MS = 5000;
+const MIN_LANGFUSE_FLUSH_TIMEOUT_MS = 100;
+const MAX_LANGFUSE_FLUSH_TIMEOUT_MS = 60_000;
+
+/**
+ * Parse a flush timeout string. Returns [value, reason?] where reason is
+ * present if the input was invalid and had to be clamped/coerced.
+ */
+function parseLangfuseFlushTimeout(raw: string | undefined): { value: number; reason?: string } {
+  if (raw === undefined || raw.trim() === '') {
+    return { value: DEFAULT_LANGFUSE_FLUSH_TIMEOUT_MS };
+  }
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return {
+      value: DEFAULT_LANGFUSE_FLUSH_TIMEOUT_MS,
+      reason: `invalid langfuse flush timeout '${raw}', using default ${DEFAULT_LANGFUSE_FLUSH_TIMEOUT_MS}`,
+    };
+  }
+  if (parsed < MIN_LANGFUSE_FLUSH_TIMEOUT_MS) {
+    return {
+      value: MIN_LANGFUSE_FLUSH_TIMEOUT_MS,
+      reason: `langfuse flush timeout ${parsed} below minimum, clamped to ${MIN_LANGFUSE_FLUSH_TIMEOUT_MS}`,
+    };
+  }
+  if (parsed > MAX_LANGFUSE_FLUSH_TIMEOUT_MS) {
+    return {
+      value: MAX_LANGFUSE_FLUSH_TIMEOUT_MS,
+      reason: `langfuse flush timeout ${parsed} above maximum, clamped to ${MAX_LANGFUSE_FLUSH_TIMEOUT_MS}`,
+    };
+  }
+  return { value: parsed };
+}
+
+/**
+ * Validate and produce a typed Langfuse policy result from raw environment input.
+ *
+ * This is the single source of truth for Langfuse configuration semantics.
+ * Both host-local and host-distributed call this function with the same
+ * input shape, guaranteeing identical behavior.
+ *
+ * When `LANGFUSE_ENABLED=false` or any required credential is missing,
+ * the result has `enabled: false` and no Langfuse SDK work should be performed.
+ */
+export function validateLangfusePolicy(input: LangfusePolicyInput = {}): LangfusePolicyResult {
+  const disabled = input.langfuseEnabled?.trim().toLowerCase() === 'false';
+  const deploymentProfile = input.deploymentProfile?.trim() || 'local-agent';
+  const environment = input.environment?.trim() || 'development';
+  const serviceName = input.serviceName?.trim() || 'trapmap';
+  const serviceVersion = input.serviceVersion?.trim() || '0.1.0';
+  const release = input.release?.trim() || '0.1.0';
+  const privacyMode: 'strict' | 'metadata-only' =
+    input.privacyMode?.trim().toLowerCase() === 'metadata-only' ? 'metadata-only' : 'strict';
+
+  if (disabled) {
+    return {
+      enabled: false,
+      baseUrl: '',
+      publicKey: '',
+      secretKey: '',
+      flushTimeoutMs: DEFAULT_LANGFUSE_FLUSH_TIMEOUT_MS,
+      serviceName,
+      serviceVersion,
+      environment,
+      deploymentProfile,
+      release,
+      privacyMode,
+      reason: 'LANGFUSE_ENABLED=false',
+    };
+  }
+
+  const baseUrl = input.baseUrl?.trim() ?? '';
+  const publicKey = input.publicKey?.trim() ?? '';
+  const secretKey = input.secretKey?.trim() ?? '';
+
+  const missingKeys = [
+    !baseUrl ? 'LANGFUSE_BASE_URL' : null,
+    !publicKey ? 'LANGFUSE_PUBLIC_KEY' : null,
+    !secretKey ? 'LANGFUSE_SECRET_KEY' : null,
+  ].filter((key): key is string => key !== null);
+
+  if (missingKeys.length > 0) {
+    return {
+      enabled: false,
+      baseUrl,
+      publicKey,
+      secretKey,
+      flushTimeoutMs: DEFAULT_LANGFUSE_FLUSH_TIMEOUT_MS,
+      serviceName,
+      serviceVersion,
+      environment,
+      deploymentProfile,
+      release,
+      privacyMode,
+      reason: `Langfuse not configured: missing ${missingKeys.join(', ')}`,
+    };
+  }
+
+  const { value: flushTimeoutMs, reason: flushReason } = parseLangfuseFlushTimeout(
+    input.flushTimeoutMs,
+  );
+
+  const result: LangfusePolicyResult = {
+    enabled: true,
+    baseUrl,
+    publicKey,
+    secretKey,
+    flushTimeoutMs,
+    serviceName,
+    serviceVersion,
+    environment,
+    deploymentProfile,
+    release,
+    privacyMode,
+  };
+
+  if (flushReason) {
+    return { ...result, reason: flushReason };
+  }
+
+  return result;
+}
+
 export function validateOtelPolicy(input: OtelPolicyInput = {}): OtelPolicyResult {
   const disabled = input.otelDisabled?.trim().toLowerCase() === 'true';
   const deploymentProfile = input.deploymentProfile?.trim() || 'local-agent';

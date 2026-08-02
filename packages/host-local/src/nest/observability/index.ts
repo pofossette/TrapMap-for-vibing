@@ -6,6 +6,8 @@ export { PrometheusModule } from './prometheus.module.js';
 export { PrometheusService } from './prometheus.service.js';
 export { SentryModule } from './sentry.module.js';
 export { SentryService } from './sentry.service.js';
+export { LangfuseModule } from './langfuse.module.js';
+export { LangfuseService } from './langfuse.service.js';
 export { HttpMetricsMiddleware } from './http-metrics.middleware.js';
 export { MetricsPortAdapter } from './metrics-port.adapter.js';
 export { TracingPortAdapter } from './tracing-port.adapter.js';

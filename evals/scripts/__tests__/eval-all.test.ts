@@ -1557,4 +1557,203 @@ describe('runUnifiedEvaluation', () => {
       runId: 'seed:agent-planning',
     });
   });
+
+  it('treats langfuse publish failure as warning-only and preserves exit code 0', async () => {
+    // Simulate publish returning ok: false (the safe wrapper pattern)
+    const publishPlatformEvent = vi.fn(async () => ({ ok: false as const }));
+    const closePlatformAdapter = vi.fn(async () => ({ ok: true as const }));
+    const warn = vi.fn();
+
+    const result = await runUnifiedEvaluation(
+      {
+        ...baseOptions,
+        platform: 'langfuse' as const,
+      },
+      {
+        createPlatformAdapter: vi.fn(() => ({
+          kind: 'langfuse',
+          publish: vi.fn(),
+          close: vi.fn(),
+        })),
+        resolveLangfuseConfigFromEnv: vi.fn(() => ({
+          ok: true as const,
+          config: {
+            baseUrl: 'https://langfuse.example',
+            publicKey: 'pk-test',
+            secretKey: 'sk-test',
+            flushTimeoutMs: 2500,
+          },
+        })),
+        publishPlatformEvent,
+        closePlatformAdapter,
+        warn,
+        log: vi.fn(),
+        error: vi.fn(),
+        runRetrievalEval: vi.fn(async () => ({
+          passed: true,
+          report: {
+            meta: {
+              schemaVersion: 1,
+              timestamp: '2026-07-03T00:00:05.000Z',
+              durationMs: 5000,
+              options: {
+                tier: 'smoke',
+                dryRun: true,
+                allowEmpty: false,
+                verbose: 0,
+              },
+            },
+            summary: {
+              totalCases: 1,
+              passedCases: 1,
+              failedCases: 0,
+              passRate: 1,
+              passed: true,
+            },
+            slices: [],
+            cohorts: [],
+            modeComparisons: [],
+            routingDistribution: [],
+            cases: [],
+            failures: [],
+            warnings: [],
+          },
+          durationMs: 5000,
+          summary: {
+            totalCases: 1,
+            passedCases: 1,
+            failedCases: 0,
+            passRate: 1,
+            slices: [],
+          },
+        })),
+        runSummaryEval: vi.fn(async () => null),
+        runGraphExtractionEval: vi.fn(async () => null),
+        runIngestionEval: vi.fn(async () => null),
+        runAgentPlanningEval: vi.fn(async () => null),
+        runLabelAlignmentEval: vi.fn(async () => null),
+      },
+    );
+
+    // Exit code must be 0 — native JSON reports are the sole pass/fail truth source
+    expect(result.exitCode).toBe(0);
+    // Warning must be emitted about publish warnings
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('publish warning'));
+  });
+
+  it('treats langfuse close failure as warning-only and preserves exit code 0', async () => {
+    const publishPlatformEvent = vi.fn(async () => ({ ok: true as const }));
+    const closePlatformAdapter = vi.fn().mockRejectedValue(new Error('langfuse close failed'));
+    const warn = vi.fn();
+
+    const result = await runUnifiedEvaluation(
+      {
+        ...baseOptions,
+        platform: 'langfuse' as const,
+      },
+      {
+        createPlatformAdapter: vi.fn(() => ({
+          kind: 'langfuse',
+          publish: vi.fn(),
+          close: vi.fn(),
+        })),
+        resolveLangfuseConfigFromEnv: vi.fn(() => ({
+          ok: true as const,
+          config: {
+            baseUrl: 'https://langfuse.example',
+            publicKey: 'pk-test',
+            secretKey: 'sk-test',
+            flushTimeoutMs: 2500,
+          },
+        })),
+        publishPlatformEvent,
+        closePlatformAdapter,
+        warn,
+        log: vi.fn(),
+        error: vi.fn(),
+        runRetrievalEval: vi.fn(async () => null),
+        runSummaryEval: vi.fn(async () => null),
+        runGraphExtractionEval: vi.fn(async () => null),
+        runIngestionEval: vi.fn(async () => null),
+        runAgentPlanningEval: vi.fn(async () => null),
+        runLabelAlignmentEval: vi.fn(async () => null),
+      },
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('langfuse'), expect.anything());
+  });
+
+  it('does not include raw prompts or secrets in mirrored langfuse events', async () => {
+    const publishPlatformEvent = vi.fn();
+
+    await runUnifiedEvaluation(
+      {
+        ...baseOptions,
+        platform: 'json-archive' as const,
+        platformOutputDir: './reports/platform-events',
+      },
+      {
+        createPlatformAdapter: vi.fn(() => ({
+          kind: 'json-archive',
+          publish: vi.fn(),
+          close: vi.fn(),
+        })),
+        publishPlatformEvent,
+        closePlatformAdapter: vi.fn(),
+        warn: vi.fn(),
+        log: vi.fn(),
+        error: vi.fn(),
+        runRetrievalEval: vi.fn(async () => null),
+        runSummaryEval: vi.fn(async () => null),
+        runGraphExtractionEval: vi.fn(async () => null),
+        runIngestionEval: vi.fn(async () => null),
+        runAgentPlanningEval: vi.fn(async () => ({
+          passed: true,
+          report: {
+            meta: {
+              schemaVersion: 1,
+              timestamp: '2026-07-03T00:00:10.000Z',
+              durationMs: 2000,
+              runner: 'agent-planning',
+              options: {
+                tier: 'smoke',
+                dryRun: true,
+                provider: 'fallback',
+                promptTemplateId: 'default-agent-planning',
+              },
+            },
+            summary: {
+              totalCases: 1,
+              passedCases: 1,
+              failedCases: 0,
+              passRate: 1,
+              avgScore: 1,
+            },
+            cases: [],
+            groups: [],
+            slices: [],
+          },
+          durationMs: 2000,
+          summary: {
+            totalCases: 1,
+            passedCases: 1,
+            failedCases: 0,
+            passRate: 1,
+            avgScore: 1,
+          },
+        })),
+        runLabelAlignmentEval: vi.fn(async () => null),
+      },
+    );
+
+    // Verify no raw prompt content appears in any published event
+    const allEvents = publishPlatformEvent.mock.calls.map(([_, __, event]) => event);
+    const allEventsStr = JSON.stringify(allEvents);
+    // These patterns should never appear in platform events
+    expect(allEventsStr).not.toContain('SECRET');
+    expect(allEventsStr).not.toContain('password');
+    expect(allEventsStr).not.toContain('api_key');
+    expect(allEventsStr).not.toContain('Bearer ');
+  });
 });

@@ -4,10 +4,15 @@ import {
   createMemoryGraphQueryBackend,
 } from '@trapmap/service-knowledge-read';
 import type { JobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
-import { createAiProviders, type AiProviders } from '@trapmap/ai-providers';
+import {
+  createAiProviders,
+  wrapProvidersWithObservation,
+  type AiProviders,
+} from '@trapmap/ai-providers';
 import pg from 'pg';
 
 import type { HostLocalConfig } from '../config/index.js';
+import { createLangfuseSinkFromEnv } from '../observability/langfuse-sink.js';
 
 export interface HostLocalSharedInfra {
   store: HostLocalStore;
@@ -87,7 +92,20 @@ export async function createHostLocalSharedInfra(
     getPool: () => pool,
     close: () => pool.end(),
   };
-  const ai = createAiProviders(config.ai);
+  let ai = createAiProviders(config.ai);
+
+  // Wrap AI providers with Langfuse observation at the composition boundary
+  // when the policy is enabled. Sink creation failure is treated as a safe
+  // diagnostic and does not affect provider initialization.
+  try {
+    const langfuseSink = await createLangfuseSinkFromEnv();
+    if (langfuseSink) {
+      ai = wrapProvidersWithObservation(ai, langfuseSink);
+    }
+  } catch {
+    // Sink creation failure is a safe diagnostic
+  }
+
   const graphIndex = createKnowledgeReadGraphIndexRepository(pool);
 
   return {

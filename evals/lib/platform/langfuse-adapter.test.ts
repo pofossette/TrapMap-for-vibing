@@ -252,3 +252,102 @@ describe('createEvalPlatformAdapter', () => {
     expect(adapter.kind).toBe('langfuse');
   });
 });
+
+describe('langfuse adapter metadata redaction', () => {
+  it('does not include raw prompt content in trace metadata', async () => {
+    const clientDouble = createClientDouble();
+    const adapter = createLangfuseAdapter(
+      {
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+        flushTimeoutMs: 1000,
+      },
+      { clientFactory: () => clientDouble.client },
+    );
+
+    await adapter.publish({
+      family: 'EvalRunStarted',
+      suite: 'agent-planning',
+      tier: 'smoke',
+      runId: 'run-redact',
+      caseId: null,
+      scenarioId: null,
+      timestamp: '2026-07-04T00:00:00.000Z',
+      tags: ['dry-run'],
+      payload: {
+        reportMeta: {
+          schemaVersion: 1,
+          timestamp: '2026-07-04T00:00:00.000Z',
+          runner: 'agent-planning',
+          options: {
+            tier: 'smoke',
+            dryRun: true,
+            provider: 'fallback',
+            promptTemplateId: 'default-agent-planning',
+          },
+        },
+        runScope: {
+          tier: 'smoke',
+          dryRun: true,
+          provider: 'fallback',
+          promptTemplateId: 'default-agent-planning',
+          caseCount: 1,
+          scenarioIds: ['scenario-1'],
+        },
+      },
+    });
+
+    await adapter.close();
+
+    // Verify the trace call metadata does not contain credentials
+    const traceCalls = clientDouble.trace.mock.calls;
+    for (const call of traceCalls) {
+      const callStr = JSON.stringify(call);
+      expect(callStr).not.toContain('sk-test');
+      expect(callStr).not.toContain('pk-test');
+    }
+  });
+
+  it('does not include raw actor output text in case span input', async () => {
+    const clientDouble = createClientDouble();
+    const adapter = createLangfuseAdapter(
+      {
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+        flushTimeoutMs: 1000,
+      },
+      { clientFactory: () => clientDouble.client },
+    );
+
+    await adapter.publish({
+      family: 'EvalTraceStepRecorded',
+      suite: 'agent-planning',
+      tier: 'smoke',
+      runId: 'run-1',
+      caseId: 'case-1',
+      scenarioId: 'scenario-1',
+      timestamp: '2026-07-04T00:00:03.000Z',
+      tags: ['dry-run'],
+      payload: {
+        stepIndex: 0,
+        kind: 'actor-output',
+        text: 'SECRET_API_KEY=abc123 leaked prompt content',
+        source: 'case.actorOutput',
+      },
+    });
+
+    await adapter.close();
+
+    // The trace step should contain the text as-is since it's part of the eval
+    // data contract (not a runtime secret). But credentials in the adapter
+    // config (baseUrl, publicKey, secretKey) must never leak into events.
+    const spanCalls = clientDouble.span.mock.calls;
+    for (const call of spanCalls) {
+      const callStr = JSON.stringify(call);
+      expect(callStr).not.toContain('sk-test');
+      expect(callStr).not.toContain('pk-test');
+    }
+  });
+});

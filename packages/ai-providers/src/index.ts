@@ -9,3 +9,10 @@ export {
   OpenAICompatibleEmbeddings,
 } from './providers.js';
 export type { AiPromptBlock, AiProviders, ChatProvider, EmbeddingsProvider } from './types.js';
+export { wrapProvidersWithObservation } from './observability.js';
+export type {
+  ChatObservation,
+  EmbeddingObservation,
+  LlmObservationSink,
+  ObservationCorrelationContext,
+} from './observability.js';

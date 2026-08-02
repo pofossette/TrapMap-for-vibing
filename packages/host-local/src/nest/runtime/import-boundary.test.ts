@@ -6,6 +6,57 @@ import { describe, expect, it } from "vitest";
 
 import { expectFilesFreeOfImports } from "../../../../../scripts/testing/import-boundary.js";
 
+const PACKAGES_ROOT = path.resolve(import.meta.dirname, "../../../..");
+
+const DOMAIN_AND_SERVICE_PACKAGES = [
+  "packages/contracts",
+  "packages/backend-core",
+  "packages/service-candidate-ingestion",
+  "packages/service-governance-review",
+  "packages/service-identity-access",
+  "packages/service-job-runtime",
+  "packages/service-knowledge-read",
+  "packages/service-knowledge-write",
+  "packages/ai-providers",
+];
+
+/**
+ * Check that a package does not import `langfuse` directly or dynamically.
+ * The `langfuse` SDK must only be imported from:
+ * - host-local observability boundary (langfuse-sink.ts, langfuse.service.ts)
+ * - evals platform adapter (langfuse-adapter.ts)
+ */
+async function expectPackageFreeOfLangfuseImports(packageDir: string): Promise<void> {
+  const srcDir = path.join(packageDir, "src");
+  if (!existsSync(srcDir)) {
+    return;
+  }
+
+  const { readdir } = await import("node:fs/promises");
+  async function collectTs(dir: string): Promise<string[]> {
+    const entries = await readdir(dir, { withFileTypes: true });
+    const files = await Promise.all(
+      entries.map(async (entry) => {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          return collectTs(fullPath);
+        }
+        return fullPath.endsWith(".ts") ? [fullPath] : [];
+      }),
+    );
+    return files.flat();
+  }
+
+  const files = await collectTs(srcDir);
+  for (const file of files) {
+    const source = await readFile(file, "utf-8");
+    // Reject static imports
+    expect(source).not.toMatch(/from\s+['"]langfuse(?:\/[^'"]*)?['"]/);
+    // Reject dynamic imports
+    expect(source).not.toMatch(/import\s*\(\s*['"]langfuse(?:\/[^'"]*)?['"]\s*\)/);
+  }
+}
+
 const RUNTIME_FILES = [
   "src/nest/runtime/retrieval-assembly.ts",
   "src/nest/runtime/host-runtime.ts",
@@ -100,5 +151,26 @@ describe("host-local runtime import boundary", () => {
 
     expect(source).not.toContain("createSkillShareerStore");
     expect(source).not.toContain("getStorePool");
+  });
+
+  it("rejects langfuse imports from backend-core, domain and service packages", async () => {
+    for (const pkg of DOMAIN_AND_SERVICE_PACKAGES) {
+      const pkgDir = path.join(PACKAGES_ROOT, pkg);
+      if (!existsSync(pkgDir)) {
+        continue;
+      }
+      await expectPackageFreeOfLangfuseImports(pkgDir);
+    }
+  });
+
+  it("does not import langfuse from shared-infra.ts (uses langfuse-sink seam)", async () => {
+    const root = path.resolve(import.meta.dirname, "../../..");
+    const source = await readFile(path.join(root, "src/nest/runtime/shared-infra.ts"), "utf-8");
+
+    // shared-infra.ts must NOT import langfuse directly
+    expect(source).not.toMatch(/from\s+['"]langfuse(?:\/[^'"]*)?['"]/);
+    expect(source).not.toMatch(/import\s*\(\s*['"]langfuse(?:\/[^'"]*)?['"]\s*\)/);
+    // But it should import from the langfuse-sink seam
+    expect(source).toContain("langfuse-sink");
   });
 });

@@ -3,10 +3,15 @@ import { describe, expect, it } from 'vitest';
 import {
   featureFlagsSchema,
   observabilityConfigSchema,
+  validateLangfusePolicy,
   validateOtelPolicy,
   validateSentryPolicy,
 } from './observability-config.js';
-import type { OtelPolicyResult, SentryPolicyResult } from './observability-config.js';
+import type {
+  LangfusePolicyResult,
+  OtelPolicyResult,
+  SentryPolicyResult,
+} from './observability-config.js';
 
 describe('observability config contracts', () => {
   describe('featureFlagsSchema', () => {
@@ -605,6 +610,315 @@ describe('observability config contracts', () => {
         expect(disabled).toHaveProperty(key);
         expect(enabled).toHaveProperty(key);
       }
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // validateLangfusePolicy
+  // ---------------------------------------------------------------------------
+
+  describe('validateLangfusePolicy', () => {
+    it('returns enabled=false with reason when LANGFUSE_ENABLED is "false"', () => {
+      const result = validateLangfusePolicy({ langfuseEnabled: 'false' });
+      expect(result.enabled).toBe(false);
+      expect(result.reason).toBe('LANGFUSE_ENABLED=false');
+    });
+
+    it('returns enabled=false when LANGFUSE_ENABLED is "FALSE" (case-insensitive)', () => {
+      const result = validateLangfusePolicy({ langfuseEnabled: 'FALSE' });
+      expect(result.enabled).toBe(false);
+    });
+
+    it('returns enabled=false when LANGFUSE_ENABLED has surrounding whitespace', () => {
+      const result = validateLangfusePolicy({ langfuseEnabled: '  false  ' });
+      expect(result.enabled).toBe(false);
+    });
+
+    it('returns enabled=false when all credentials are missing', () => {
+      const result = validateLangfusePolicy({});
+      expect(result.enabled).toBe(false);
+      expect(result.reason).toContain('LANGFUSE_BASE_URL');
+      expect(result.reason).toContain('LANGFUSE_PUBLIC_KEY');
+      expect(result.reason).toContain('LANGFUSE_SECRET_KEY');
+    });
+
+    it('returns enabled=false when only LANGFUSE_BASE_URL is missing', () => {
+      const result = validateLangfusePolicy({
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+      });
+      expect(result.enabled).toBe(false);
+      expect(result.reason).toContain('LANGFUSE_BASE_URL');
+      expect(result.reason).not.toContain('LANGFUSE_PUBLIC_KEY');
+      expect(result.reason).not.toContain('LANGFUSE_SECRET_KEY');
+    });
+
+    it('returns enabled=false when only LANGFUSE_PUBLIC_KEY is missing', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        secretKey: 'sk-test',
+      });
+      expect(result.enabled).toBe(false);
+      expect(result.reason).toContain('LANGFUSE_PUBLIC_KEY');
+    });
+
+    it('returns enabled=false when only LANGFUSE_SECRET_KEY is missing', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+      });
+      expect(result.enabled).toBe(false);
+      expect(result.reason).toContain('LANGFUSE_SECRET_KEY');
+    });
+
+    it('returns enabled=false when credentials are whitespace only', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: '   ',
+        publicKey: '   ',
+        secretKey: '   ',
+      });
+      expect(result.enabled).toBe(false);
+    });
+
+    it('returns enabled=true when valid credentials are provided', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+      });
+      expect(result.enabled).toBe(true);
+      expect(result.baseUrl).toBe('https://langfuse.example');
+      expect(result.publicKey).toBe('pk-test');
+      expect(result.secretKey).toBe('sk-test');
+      expect(result.reason).toBeUndefined();
+    });
+
+    it('trims credential whitespace', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: '  https://langfuse.example  ',
+        publicKey: '  pk-test  ',
+        secretKey: '  sk-test  ',
+      });
+      expect(result.enabled).toBe(true);
+      expect(result.baseUrl).toBe('https://langfuse.example');
+      expect(result.publicKey).toBe('pk-test');
+      expect(result.secretKey).toBe('sk-test');
+    });
+
+    it('defaults flushTimeoutMs to 5000 when absent', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+      });
+      expect(result.flushTimeoutMs).toBe(5000);
+    });
+
+    it('accepts custom flushTimeoutMs within bounds', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+        flushTimeoutMs: '10000',
+      });
+      expect(result.flushTimeoutMs).toBe(10000);
+      expect(result.reason).toBeUndefined();
+    });
+
+    it('clamps flushTimeoutMs below minimum to 100', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+        flushTimeoutMs: '50',
+      });
+      expect(result.flushTimeoutMs).toBe(100);
+      expect(result.reason).toContain('below minimum');
+    });
+
+    it('clamps flushTimeoutMs above maximum to 60000', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+        flushTimeoutMs: '120000',
+      });
+      expect(result.flushTimeoutMs).toBe(60000);
+      expect(result.reason).toContain('above maximum');
+    });
+
+    it('falls back to default flushTimeoutMs for non-numeric input', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+        flushTimeoutMs: 'abc',
+      });
+      expect(result.flushTimeoutMs).toBe(5000);
+      expect(result.reason).toContain('invalid langfuse flush timeout');
+    });
+
+    it('falls back to default flushTimeoutMs for zero', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+        flushTimeoutMs: '0',
+      });
+      expect(result.flushTimeoutMs).toBe(5000);
+      expect(result.reason).toContain('invalid langfuse flush timeout');
+    });
+
+    it('defaults serviceName to trapmap', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+      });
+      expect(result.serviceName).toBe('trapmap');
+    });
+
+    it('defaults serviceVersion to 0.1.0', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+      });
+      expect(result.serviceVersion).toBe('0.1.0');
+    });
+
+    it('defaults environment to development', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+      });
+      expect(result.environment).toBe('development');
+    });
+
+    it('defaults deploymentProfile to local-agent', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+      });
+      expect(result.deploymentProfile).toBe('local-agent');
+    });
+
+    it('defaults release to 0.1.0', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+      });
+      expect(result.release).toBe('0.1.0');
+    });
+
+    it('defaults privacyMode to strict', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+      });
+      expect(result.privacyMode).toBe('strict');
+    });
+
+    it('accepts privacyMode metadata-only', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+        privacyMode: 'metadata-only',
+      });
+      expect(result.privacyMode).toBe('metadata-only');
+    });
+
+    it('falls back to strict for unrecognized privacyMode', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+        privacyMode: 'permissive',
+      });
+      expect(result.privacyMode).toBe('strict');
+    });
+
+    it('returns all required fields in result', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+      });
+      const keys: (keyof LangfusePolicyResult)[] = [
+        'enabled',
+        'baseUrl',
+        'publicKey',
+        'secretKey',
+        'flushTimeoutMs',
+        'serviceName',
+        'serviceVersion',
+        'environment',
+        'deploymentProfile',
+        'release',
+        'privacyMode',
+      ];
+      for (const key of keys) {
+        expect(result).toHaveProperty(key);
+      }
+    });
+
+    it('disabled mode always includes reason; enabled mode may omit it', () => {
+      const disabled = validateLangfusePolicy({ langfuseEnabled: 'false' });
+      const enabled = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+      });
+      expect(disabled.reason).toBe('LANGFUSE_ENABLED=false');
+      expect(enabled.reason).toBeUndefined();
+    });
+
+    it('never includes secret key or public key in the diagnostic reason', () => {
+      const result = validateLangfusePolicy({});
+      expect(result.reason).not.toContain('sk-test');
+      expect(result.reason).not.toContain('pk-test');
+      // The reason should only list env var names
+      expect(result.reason).toContain('LANGFUSE_BASE_URL');
+    });
+
+    it('returns empty credentials when disabled', () => {
+      const result = validateLangfusePolicy({ langfuseEnabled: 'false' });
+      expect(result.baseUrl).toBe('');
+      expect(result.publicKey).toBe('');
+      expect(result.secretKey).toBe('');
+    });
+
+    it('disabled=false (LANGFUSE_ENABLED=true) requires credentials', () => {
+      const result = validateLangfusePolicy({ langfuseEnabled: 'true' });
+      expect(result.enabled).toBe(false);
+      expect(result.reason).toContain('missing');
+    });
+
+    it('accepts all optional metadata overrides', () => {
+      const result = validateLangfusePolicy({
+        baseUrl: 'https://langfuse.example',
+        publicKey: 'pk-test',
+        secretKey: 'sk-test',
+        serviceName: 'gateway',
+        serviceVersion: '2.0.0',
+        environment: 'production',
+        deploymentProfile: 'distributed',
+        release: 'v1.2.3',
+        privacyMode: 'metadata-only',
+        flushTimeoutMs: '3000',
+      });
+      expect(result.serviceName).toBe('gateway');
+      expect(result.serviceVersion).toBe('2.0.0');
+      expect(result.environment).toBe('production');
+      expect(result.deploymentProfile).toBe('distributed');
+      expect(result.release).toBe('v1.2.3');
+      expect(result.privacyMode).toBe('metadata-only');
+      expect(result.flushTimeoutMs).toBe(3000);
     });
   });
 });
