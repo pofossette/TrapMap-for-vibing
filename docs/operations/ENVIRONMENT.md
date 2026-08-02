@@ -495,6 +495,23 @@ pnpm dev:local-agent
 |------|------|--------|
 | `LOKI_HOST` | Loki push API 地址；为空时 Loki 日志传输禁用 | 空 |
 
+### Sentry 错误智能配置（可选）
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `SENTRY_DSN` | Sentry DSN；为空时 Sentry 完全禁用（no-op） | 空（禁用） |
+| `SENTRY_ENVIRONMENT` | Sentry 环境标签 | `NODE_ENV` 或 `development` |
+| `SENTRY_RELEASE` | Sentry release 标识 | `npm_package_version` 或 `0.1.0` |
+| `SENTRY_TRACES_SAMPLE_RATE` | Sentry traces 采样率（0-1） | `0` |
+
+约定：
+
+- 缺少 `SENTRY_DSN` 时，Sentry SDK 不加载、不传输，对请求和异步任务零影响。
+- `sendDefaultPii=false` 始终强制；`beforeSend` 递归剥离 headers、cookies、request body、敏感 query 参数、prompt/knowledge 内容和 secrets。
+- 只捕获 actionable 错误（5xx、内部异常、terminal async failure）；4xx/auth/validation 错误被抑制。
+- Sentry 传输失败不影响原始请求或任务完成路径。
+- safe tags: `service`、`environment`、`deployment_profile`、`owner_surface`、`failure_classification`、`request_id`、`trace_id`、`operation_id`。
+
 ### Dev-minimal 默认值
 
 本地开发 (`local-agent`) 启动时的可选组件状态：
@@ -505,6 +522,7 @@ pnpm dev:local-agent
 | OpenTelemetry SDK | 启用（无 exporter，SDK 默认无导出） | `OTEL_DISABLED=true` 可完全关闭；`team-monolith` / `distributed` 走 OTLP exporter |
 | Consul 服务发现 | 关闭 | `CONSUL_ENABLED` 未设置或为 `false` 时不加载 ConsulModule |
 | Loki 日志传输 | 关闭 | `LOKI_HOST` 为空时只使用 NestJS 内置 Logger |
+| Sentry 错误智能 | 关闭 | `SENTRY_DSN` 为空时完全禁用（no-op）；设置 DSN 后自动启用 |
 
 生产环境建议组合：
 
@@ -514,6 +532,11 @@ TRAPMAP_METRICS_ENABLED=true
 OTEL_DISABLED=false
 OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
 LOKI_HOST=http://loki:3100
+
+# 可选：启用 Sentry 错误智能
+SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0
+SENTRY_ENVIRONMENT=production
+SENTRY_RELEASE=1.0.0
 
 # distributed：同上，额外启用 Consul 服务发现
 CONSUL_ENABLED=true

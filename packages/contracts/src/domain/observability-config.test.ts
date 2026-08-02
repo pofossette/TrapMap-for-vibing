@@ -4,8 +4,9 @@ import {
   featureFlagsSchema,
   observabilityConfigSchema,
   validateOtelPolicy,
+  validateSentryPolicy,
 } from './observability-config.js';
-import type { OtelPolicyResult } from './observability-config.js';
+import type { OtelPolicyResult, SentryPolicyResult } from './observability-config.js';
 
 describe('observability config contracts', () => {
   describe('featureFlagsSchema', () => {
@@ -284,6 +285,194 @@ describe('observability config contracts', () => {
         'serviceVersion',
         'environment',
         'deploymentProfile',
+      ];
+      for (const key of mandatoryKeys) {
+        expect(disabled).toHaveProperty(key);
+        expect(enabled).toHaveProperty(key);
+      }
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // validateSentryPolicy
+  // ---------------------------------------------------------------------------
+
+  describe('validateSentryPolicy', () => {
+    it('returns enabled=false with reason when DSN is absent', () => {
+      const result = validateSentryPolicy({});
+      expect(result.enabled).toBe(false);
+      expect(result.dsn).toBe('');
+      expect(result.reason).toBe('SENTRY_DSN not configured');
+    });
+
+    it('returns enabled=false when DSN is empty string', () => {
+      const result = validateSentryPolicy({ dsn: '' });
+      expect(result.enabled).toBe(false);
+      expect(result.reason).toBe('SENTRY_DSN not configured');
+    });
+
+    it('returns enabled=false when DSN is whitespace only', () => {
+      const result = validateSentryPolicy({ dsn: '   ' });
+      expect(result.enabled).toBe(false);
+      expect(result.reason).toBe('SENTRY_DSN not configured');
+    });
+
+    it('returns enabled=true when valid DSN is provided', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      });
+      expect(result.enabled).toBe(true);
+      expect(result.dsn).toBe('https://examplePublicKey@o0.ingest.sentry.io/0');
+      expect(result.reason).toBeUndefined();
+    });
+
+    it('trims DSN whitespace', () => {
+      const result = validateSentryPolicy({
+        dsn: '  https://examplePublicKey@o0.ingest.sentry.io/0  ',
+      });
+      expect(result.enabled).toBe(true);
+      expect(result.dsn).toBe('https://examplePublicKey@o0.ingest.sentry.io/0');
+    });
+
+    it('accepts tracesSampleRate 0', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        tracesSampleRate: '0',
+      });
+      expect(result.tracesSampleRate).toBe(0);
+      expect(result.reason).toBeUndefined();
+    });
+
+    it('accepts tracesSampleRate 0.5', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        tracesSampleRate: '0.5',
+      });
+      expect(result.tracesSampleRate).toBe(0.5);
+    });
+
+    it('accepts tracesSampleRate 1', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        tracesSampleRate: '1',
+      });
+      expect(result.tracesSampleRate).toBe(1);
+    });
+
+    it('defaults tracesSampleRate to 0 when absent', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      });
+      expect(result.tracesSampleRate).toBe(0);
+    });
+
+    it('defaults tracesSampleRate to 0 when empty string', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        tracesSampleRate: '',
+      });
+      expect(result.tracesSampleRate).toBe(0);
+    });
+
+    it('clamps negative tracesSampleRate to 0 and sets reason', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        tracesSampleRate: '-0.5',
+      });
+      expect(result.tracesSampleRate).toBe(0);
+      expect(result.reason).toContain('below minimum');
+    });
+
+    it('clamps tracesSampleRate above 1 to 1 and sets reason', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        tracesSampleRate: '1.5',
+      });
+      expect(result.tracesSampleRate).toBe(1);
+      expect(result.reason).toContain('above maximum');
+    });
+
+    it('falls back to default tracesSampleRate for non-numeric input', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        tracesSampleRate: 'abc',
+      });
+      expect(result.tracesSampleRate).toBe(0);
+      expect(result.reason).toContain('invalid sentry traces sample rate');
+    });
+
+    it('defaults environment to development', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      });
+      expect(result.environment).toBe('development');
+    });
+
+    it('uses provided environment', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+        environment: 'production',
+      });
+      expect(result.environment).toBe('production');
+    });
+
+    it('defaults deploymentProfile to local-agent', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      });
+      expect(result.deploymentProfile).toBe('local-agent');
+    });
+
+    it('defaults serviceName to trapmap', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      });
+      expect(result.serviceName).toBe('trapmap');
+    });
+
+    it('defaults release to 0.1.0', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      });
+      expect(result.release).toBe('0.1.0');
+    });
+
+    it('returns all required fields in result', () => {
+      const result = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      });
+      const keys: (keyof SentryPolicyResult)[] = [
+        'enabled',
+        'dsn',
+        'environment',
+        'release',
+        'tracesSampleRate',
+        'deploymentProfile',
+        'serviceName',
+      ];
+      for (const key of keys) {
+        expect(result).toHaveProperty(key);
+      }
+    });
+
+    it('disabled mode always includes reason; enabled mode may omit it', () => {
+      const disabled = validateSentryPolicy({});
+      const enabled = validateSentryPolicy({
+        dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      });
+      // disabled always carries a reason
+      expect(disabled.reason).toBe('SENTRY_DSN not configured');
+      // enabled with valid config has no reason
+      expect(enabled.reason).toBeUndefined();
+      // both share all mandatory keys
+      const mandatoryKeys = [
+        'enabled',
+        'dsn',
+        'environment',
+        'release',
+        'tracesSampleRate',
+        'deploymentProfile',
+        'serviceName',
       ];
       for (const key of mandatoryKeys) {
         expect(disabled).toHaveProperty(key);

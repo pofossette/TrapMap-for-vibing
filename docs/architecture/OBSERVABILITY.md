@@ -85,9 +85,31 @@ flowchart TB
 | `packages/host-local/src/nest/observability/otel.service.ts` | Nest 宿主的 OTel SDK 生命周期管理 |
 | `packages/host-local/src/nest/observability/prometheus.service.ts` | `prom-client` 指标注册、收集和文本导出 |
 | `packages/host-local/src/nest/observability/loki.service.ts` | `LOKI_HOST` 存在时追加 Loki transport；否则继续 stdout JSON |
+| `packages/host-local/src/nest/observability/sentry.service.ts` | 可选 Sentry 错误智能适配器；`SENTRY_DSN` 为空时 no-op |
 | `packages/host-distributed/src/shared/telemetry.ts` | distributed internal hop span、OTLP trace/metric exporter 和 traceparent 透传 |
+| `packages/host-distributed/src/shared/sentry.ts` | distributed 宿主的可选 Sentry 适配器；`SENTRY_DSN` 为空时 no-op |
 
 `backend-core` 通过 `MetricsPort`、`TracingPort`、`LoggingPort` 三个 port 暴露遥测能力，domain / application 层只通过这些接口声明需求，不直接依赖 SDK。
+
+### Sentry 错误智能适配器（可选）
+
+Sentry 适配器提供 actionable error 聚合能力，作为 OTel traces/metrics 的补充：
+
+| 属性 | 值 |
+|---|---|
+| 启用条件 | `SENTRY_DSN` 非空 |
+| 初始化位置 | `packages/host-local/src/nest/observability/sentry.service.ts`（Nest 模块）、`packages/host-distributed/src/shared/sentry.ts`（函数式） |
+| 配置验证 | `packages/contracts/src/domain/observability-config.ts` 中的 `validateSentryPolicy` |
+| 隐私策略 | `sendDefaultPii=false`；`beforeSend` 递归剥离 headers、cookies、request body、敏感 query、prompt/knowledge 内容和 secrets |
+| 捕获策略 | 仅捕获 5xx、内部异常、terminal async failure；抑制 4xx/auth/validation |
+| 降级策略 | SDK 初始化失败、传输失败均不影响原始请求或任务完成路径 |
+| safe tags | `service`、`environment`、`deployment_profile`、`owner_surface`、`failure_classification`、`request_id`、`trace_id`、`operation_id` |
+
+设计约束：
+
+- Sentry 不是第二条 traces/metrics 管线；它只聚合 actionable errors。
+- `backend-core` 和领域包不直接依赖 `@sentry/node`；SDK 只在 host composition root 中动态导入。
+- Sentry 配置契约由 `@trapmap/contracts` 持有，两个 host 使用相同的 `validateSentryPolicy` 确保语义一致。
 
 ### Collector 与 LGTM 栈
 
@@ -131,8 +153,8 @@ host-local Nest 宿主按标准规则解析 request context：有效 request ID 
 | 层 | 集成方式 |
 |---|---|
 | `backend-core` | 只定义 `MetricsPort`、`TracingPort`、`LoggingPort`，不包含具体实现 |
-| `host-local` | 装配 observability modules，把 port 桥接到 `prom-client`、OpenTelemetry 和 Nest Logger |
-| `host-distributed` | 装配 distributed internal hop 的 tracing / metrics seam，负责 owner-aware service.name |
+| `host-local` | 装配 observability modules，把 port 桥接到 `prom-client`、OpenTelemetry 和 Nest Logger；可选 Sentry 适配器 |
+| `host-distributed` | 装配 distributed internal hop 的 tracing / metrics seam，负责 owner-aware service.name；可选 Sentry 适配器 |
 | ~~`server`~~ | **已删除**（Wave-10）。`/metrics`、OTel 初始化和 shutdown 现由 `host-local` 持有 |
 
 ### 当前 light 宿主目录

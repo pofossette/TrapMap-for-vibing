@@ -314,6 +314,55 @@ pnpm --filter @trapmap/cli dev -- audit --limit 50
 
 ---
 
+## Sentry 错误智能隐私策略
+
+Sentry 适配器（可选）在 `SENTRY_DSN` 配置时启用。以下隐私约束始终强制执行：
+
+### 隐私保障
+
+| 约束 | 说明 |
+|------|------|
+| `sendDefaultPii=false` | Sentry SDK 不自动采集 PII |
+| `beforeSend` 递归脱敏 | 剥离 headers、cookies、request body、敏感 query 参数、prompt/knowledge 内容和 secrets |
+| 敏感键模式匹配 | `authorization`、`cookie`、`password`、`secret`、`credential`、`prompt`、`knowledge_body`、`request_body` 等键自动替换为 `[REDACTED]` |
+| 无 prompt/knowledge 正文 | 知识条目正文、prompt 内容、retrieval 结果正文不会进入 Sentry 事件 |
+| 无 request body | 请求体不会进入 Sentry 事件 |
+| 无 headers/cookies | 请求 headers 和 cookies 不会进入 Sentry 事件 |
+
+### 仅捕获 actionable 错误
+
+| 错误类型 | 是否捕获 | 说明 |
+|----------|---------|------|
+| 5xx 内部错误 | 是 | 服务端意外错误 |
+| terminal async failure | 是 | 异步任务永久失败 |
+| startup failure | 是 | 启动阶段致命错误 |
+| 4xx 客户端错误 | 否 | 被抑制 |
+| auth 错误 | 否 | 被抑制 |
+| validation 错误 | 否 | 被抑制 |
+| not-found 错误 | 否 | 被抑制 |
+
+### safe tags（仅附加到 Sentry 事件）
+
+| tag | 说明 |
+|-----|------|
+| `service` | 服务名称 |
+| `environment` | 运行环境 |
+| `deployment_profile` | 部署配置 |
+| `owner_surface` | 负责该 surface 的边界 |
+| `failure_classification` | 错误分类（来自 failure taxonomy） |
+| `request_id` | 请求 ID |
+| `trace_id` | 追踪 ID |
+| `operation_id` | 操作 ID |
+
+### 降级策略
+
+- 缺少 `SENTRY_DSN`：Sentry SDK 不加载，零影响
+- SDK 初始化失败：本地日志记录错误，不影响请求
+- 事件传输失败：本地日志记录警告，不影响原始请求或任务完成路径
+- Sentry close 超时：2 秒超时后放弃，不阻塞进程退出
+
+---
+
 ## 相关文档
 
 - [安全指南](SECURITY.md) — 认证流程、RBAC 和安全等级实现（本文档）

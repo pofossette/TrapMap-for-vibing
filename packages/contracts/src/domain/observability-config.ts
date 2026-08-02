@@ -82,6 +82,136 @@ export interface OtelPolicyResult {
 const SAMPLE_RATE_MIN = 0;
 const SAMPLE_RATE_MAX = 1;
 
+// ---------------------------------------------------------------------------
+// Sentry Policy (Task 9)
+// ---------------------------------------------------------------------------
+
+/**
+ * Raw input for Sentry policy validation. Hosts read environment variables
+ * and pass them here; the shared validator produces a typed, immutable result.
+ */
+export interface SentryPolicyInput {
+  /** SENTRY_DSN value (may be absent). */
+  dsn?: string;
+  /** SENTRY_ENVIRONMENT value. */
+  environment?: string;
+  /** SENTRY_RELEASE value (typically npm_package_version or git SHA). */
+  release?: string;
+  /** SENTRY_TRACES_SAMPLE_RATE value (string, default '0'). */
+  tracesSampleRate?: string;
+  /** TRAPMAP_DEPLOYMENT_PROFILE value. */
+  deploymentProfile?: string;
+  /** Service name for Sentry tags. */
+  serviceName?: string;
+}
+
+/**
+ * Validated Sentry policy result. Both hosts consume this identical shape
+ * to configure the Sentry SDK, ensuring consistent disable/tag/redaction
+ * semantics.
+ */
+export interface SentryPolicyResult {
+  /** Whether Sentry is enabled. When false, no SDK loading or transport work. */
+  readonly enabled: boolean;
+  /** Sentry DSN (always present when enabled; empty string when disabled). */
+  readonly dsn: string;
+  /** Runtime environment (e.g. 'production', 'development'). */
+  readonly environment: string;
+  /** Release identifier. */
+  readonly release: string;
+  /** Traces sample rate in [0, 1]. Only meaningful when enabled=true. */
+  readonly tracesSampleRate: number;
+  /** Deployment profile. */
+  readonly deploymentProfile: string;
+  /** Service name for Sentry tags. */
+  readonly serviceName: string;
+  /**
+   * Safe human-readable diagnostic reason. Present when disabled or when
+   * configuration was coerced from invalid input. Never contains secrets
+   * or sensitive environment values.
+   */
+  readonly reason?: string;
+}
+
+/**
+ * Parse a traces sample rate string. Returns [value, reason?] where reason is
+ * present if the input was invalid and had to be clamped/coerced.
+ */
+function parseSentrySampleRate(raw: string | undefined): { value: number; reason?: string } {
+  if (raw === undefined || raw.trim() === '') {
+    return { value: 0 };
+  }
+  const parsed = Number.parseFloat(raw);
+  if (!Number.isFinite(parsed)) {
+    return { value: 0, reason: `invalid sentry traces sample rate '${raw}', using default 0` };
+  }
+  if (parsed < SAMPLE_RATE_MIN) {
+    return {
+      value: SAMPLE_RATE_MIN,
+      reason: `sentry traces sample rate ${parsed} below minimum, clamped to 0`,
+    };
+  }
+  if (parsed > SAMPLE_RATE_MAX) {
+    return {
+      value: SAMPLE_RATE_MAX,
+      reason: `sentry traces sample rate ${parsed} above maximum, clamped to 1`,
+    };
+  }
+  return { value: parsed };
+}
+
+/**
+ * Validate and produce a typed Sentry policy result from raw environment input.
+ *
+ * This is the single source of truth for Sentry configuration semantics.
+ * Both host-local and host-distributed call this function with the same
+ * input shape, guaranteeing identical behavior.
+ *
+ * When `dsn` is absent or empty, the result has `enabled: false` and no
+ * Sentry SDK work should be performed.
+ */
+export function validateSentryPolicy(input: SentryPolicyInput = {}): SentryPolicyResult {
+  const dsn = input.dsn?.trim() ?? '';
+  const deploymentProfile = input.deploymentProfile?.trim() || 'local-agent';
+  const environment = input.environment?.trim() || 'development';
+  const serviceName = input.serviceName?.trim() || 'trapmap';
+  const release = input.release?.trim() || '0.1.0';
+
+  if (dsn.length === 0) {
+    return {
+      enabled: false,
+      dsn: '',
+      environment,
+      release,
+      tracesSampleRate: 0,
+      deploymentProfile,
+      serviceName,
+      reason: 'SENTRY_DSN not configured',
+    };
+  }
+
+  const { value: tracesSampleRate, reason: sampleReason } = parseSentrySampleRate(
+    input.tracesSampleRate,
+  );
+
+  const result: SentryPolicyResult = {
+    enabled: true,
+    dsn,
+    environment,
+    release,
+    tracesSampleRate,
+    deploymentProfile,
+    serviceName,
+  };
+
+  if (sampleReason) {
+    // Assign only when present to satisfy exactOptionalPropertyTypes.
+    return { ...result, reason: sampleReason };
+  }
+
+  return result;
+}
+
 /**
  * Parse a sample rate string. Returns [value, reason?] where reason is
  * present if the input was invalid and had to be clamped/coerced.

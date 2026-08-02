@@ -23,6 +23,7 @@
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.27",
     "@nestjs/platform-fastify": "^11.1.27",
+    "@sentry/node": "^9.0.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.219.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.219.0",
