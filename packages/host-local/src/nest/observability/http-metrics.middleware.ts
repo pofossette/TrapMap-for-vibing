@@ -11,7 +11,6 @@ import {
 import { normalizeObservabilityRouteFamily } from '@trapmap/contracts';
 
 import { PrometheusService } from './prometheus.service.js';
-import { RequestContextService } from '../runtime/request-context.service.js';
 
 /**
  * NestJS middleware that instruments every inbound HTTP request with:
@@ -32,7 +31,6 @@ import { RequestContextService } from '../runtime/request-context.service.js';
 export class HttpMetricsMiddleware implements NestMiddleware {
   constructor(
     private readonly prometheus: PrometheusService,
-    private readonly _requestContext: RequestContextService,
   ) {}
 
   use(req: FastifyRequest, res: FastifyReply, next: () => void): void {
