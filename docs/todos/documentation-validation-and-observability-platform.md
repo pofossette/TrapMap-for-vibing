@@ -82,11 +82,11 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Produces:** this detail is the only active execution surface; the former compatibility plan is historical evidence and its incomplete Wave-10 is a named deferred risk.
 
-- [ ] Confirm `plan.md` links only `docs/todos/documentation-validation-and-observability-platform.md` and contains the long-term-maintainability principle verbatim.
-- [ ] Confirm `docs/todos/README.md`, `docs/README.md`, `docs/archived/README.md`, and `SYSTEM_TRUTH_SOURCES.md` describe the new active detail and old detail as archived.
-- [ ] Add a debt-register entry with source path, impact, re-entry condition, and required verification for compatibility Wave-10; do not mark it completed.
-- [ ] Run `rtk pnpm check:docs-drift`, `rtk pnpm check:structure`, `rtk pnpm check:md-lint`, and `rtk git diff --check`.
-- [ ] Commit: `docs: activate documentation and observability mainline`.
+- [x] Confirm `plan.md` links only `docs/todos/documentation-validation-and-observability-platform.md` and contains the long-term-maintainability principle verbatim.
+- [x] Confirm `docs/todos/README.md`, `docs/README.md`, `docs/archived/README.md`, and `SYSTEM_TRUTH_SOURCES.md` describe the new active detail and old detail as archived.
+- [x] Add a debt-register entry with source path, impact, re-entry condition, and required verification for compatibility Wave-10; do not mark it completed.
+- [x] Run `rtk pnpm check:docs-drift`, `rtk pnpm check:structure`, `rtk pnpm check:md-lint`, and `rtk git diff --check`.
+- [x] Commit: `docs: activate documentation and observability mainline`.
 
 ### Task 2: Correct Existing Active Documentation Facts
 
@@ -99,12 +99,12 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Produces:** active docs point only at existing host/service/contracts sources and distinguish implemented facts from future infrastructure.
 
-- [ ] Inventory every active-doc occurrence of `packages/server`, classify it as retired, historical, or still valid, and remove/replace retired claims.
-- [ ] Replace the Fastify compatibility-shell OTel authority entries with actual host-local/distributed source paths; retain archived references only as historical context.
-- [ ] Correct local-agent exporter and sampling descriptions so they exactly match implemented behavior after Task 5.
-- [ ] Write a regression fixture whose source reference does not exist; expected guard result is a precise file/line/path failure.
-- [ ] Run active-doc checks and `rtk pnpm check:links`; expected result is zero active-document dead links before Task 4 removes CI bypass.
-- [ ] Commit: `docs: align active observability truth sources`.
+- [x] Inventory every active-doc occurrence of `packages/server`, classify it as retired, historical, or still valid, and remove/replace retired claims.
+- [x] Replace the Fastify compatibility-shell OTel authority entries with actual host-local/distributed source paths; retain archived references only as historical context.
+- [x] Correct local-agent exporter and sampling descriptions so they exactly match implemented behavior after Task 5.
+- [x] Write a regression fixture whose source reference does not exist; expected guard result is a precise file/line/path failure.
+- [x] Run active-doc checks and `rtk pnpm check:links`; expected result is zero active-document dead links before Task 4 removes CI bypass.
+- [x] Commit: `docs: align active observability truth sources`.
 
 ### Task 3: Source-Aware Documentation Reference Guard
 
@@ -117,12 +117,12 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Produces:** `pnpm check:doc-references` checks local Markdown targets/anchors plus backticked repository paths in active docs.
 
-- [ ] Write failing tests for valid relative link, missing file, missing anchor, valid code path, retired/missing code path, archived-document exemption, and active-plan inclusion.
-- [ ] Implement a deterministic parser that scans active surfaces only: `README.md`, `AGENTS.md`, `plan.md`, `docs/{architecture,guides,operations,reference,todos}/**`; exclude `docs/archived/**`, `docs/plans/**`, and `docs/superpowers/**` unless root plan explicitly reactivates them.
-- [ ] Report failures as `file:line`, reference kind, and resolved path/anchor; reject path traversal outside the repository root.
-- [ ] Add `check:doc-references` to package scripts, local CI runner, GitHub `doc-guardrails`, documentation governance, CI docs, and testing matrix.
-- [ ] Run `rtk pnpm test:file -- scripts/__tests__/check-doc-references.test.ts`, `rtk pnpm check:doc-references`, and `rtk pnpm typecheck`.
-- [ ] Commit: `feat(docs): validate active document references`.
+- [x] Write failing tests for valid relative link, missing file, missing anchor, valid code path, retired/missing code path, archived-document exemption, and active-plan inclusion.
+- [x] Implement a deterministic parser that scans active surfaces only: `README.md`, `AGENTS.md`, `plan.md`, `docs/{architecture,guides,operations,reference,todos}/**`; exclude `docs/archived/**`, `docs/plans/**`, and `docs/superpowers/**` unless root plan explicitly reactivates them.
+- [x] Report failures as `file:line`, reference kind, and resolved path/anchor; reject path traversal outside the repository root.
+- [x] Add `check:doc-references` to package scripts, local CI runner, GitHub `doc-guardrails`, documentation governance, CI docs, and testing matrix.
+- [x] Run `rtk pnpm test:file -- scripts/__tests__/check-doc-references.test.ts`, `rtk pnpm check:doc-references`, and `rtk pnpm typecheck`.
+- [x] Commit: `feat(docs): validate active document references`.
 
 ### Task 4: Typed Documentation Truth Manifest And Blocking CI
 
@@ -135,14 +135,14 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Produces:** `pnpm check:docs-truth` validates generated facts and all documentation guards are blocking.
 
-- [ ] Define Zod schemas for `scripts`, `workspacePackages`, `ciGuardrails`, `environment`, `runtimeRoutes`, `deploymentProfiles`, and `telemetry`; reject unknown/duplicate facts.
-- [ ] Write RED tests that use minimal fixtures with a missing script, stale package path, changed env default, missing health route, and a non-blocking CI guard.
-- [ ] Extract facts from structured sources first (`package.json`, workspace manifests, config schemas); keep AST/text extraction narrowly scoped and tested for routes that lack a structured registry.
-- [ ] Make the checker compare declared authority/source paths and documented environment/config values against the generated manifest, printing field-level drift.
-- [ ] Repair current `check:docs-drift` configuration so it contains only editorial/non-derivable assertions; move structured assertions into the truth checker.
-- [ ] Remove `|| true` from `check:links` only after Task 2 yields a clean result; CI must run doc references, docs truth, and links as independent blocking steps.
-- [ ] Run all four doc guards, focused tests, `rtk pnpm typecheck`, and `rtk git diff --check`.
-- [ ] Commit: `feat(docs): enforce repository truth in CI`.
+- [x] Define Zod schemas for `scripts`, `workspacePackages`, `ciGuardrails`, `environment`, `runtimeRoutes`, `deploymentProfiles`, and `telemetry`; reject unknown/duplicate facts.
+- [x] Write RED tests that use minimal fixtures with a missing script, stale package path, changed env default, missing health route, and a non-blocking CI guard.
+- [x] Extract facts from structured sources first (`package.json`, workspace manifests, config schemas); keep AST/text extraction narrowly scoped and tested for routes that lack a structured registry.
+- [x] Make the checker compare declared authority/source paths and documented environment/config values against the generated manifest, printing field-level drift.
+- [x] Repair current `check:docs-drift` configuration so it contains only editorial/non-derivable assertions; move structured assertions into the truth checker.
+- [x] Remove `|| true` from `check:links` only after Task 2 yields a clean result; CI must run doc references, docs truth, and links as independent blocking steps.
+- [x] Run all four doc guards, focused tests, `rtk pnpm typecheck`, and `rtk git diff --check`.
+- [x] Commit: `feat(docs): enforce repository truth in CI`.
 
 ### Task 5: Shared OTel Configuration And Lifecycle Policy
 
@@ -157,13 +157,13 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Produces:** identical validated OTel disable/sample/resource/exporter/shutdown semantics in both hosts.
 
-- [ ] Write failing tests for disabled mode, valid sample rates `0`, `0.1`, `1`, invalid sample rates, absent endpoint, exporter startup failure, and shutdown failure.
-- [ ] Define a typed configuration result with `enabled`, `sampleRate`, `endpoint`, `serviceName`, `serviceVersion`, `environment`, `deploymentProfile`, and a safe diagnostic reason.
-- [ ] Implement dynamic SDK loading only after configuration validates; disabled mode must not load exporters or schedule export work.
-- [ ] Give both hosts consistent resource attributes and bounded shutdown; log safe structured diagnostics instead of silently swallowing bootstrap errors.
-- [ ] Either install/configure a real local console exporter or document local-agent as no-exporter; do not keep contradictory comments.
-- [ ] Run focused host-local/distributed tests, `rtk pnpm typecheck`, and `rtk pnpm test:observability-closeout`.
-- [ ] Commit: `feat(otel): unify host telemetry lifecycle`.
+- [x] Write failing tests for disabled mode, valid sample rates `0`, `0.1`, `1`, invalid sample rates, absent endpoint, exporter startup failure, and shutdown failure.
+- [x] Define a typed configuration result with `enabled`, `sampleRate`, `endpoint`, `serviceName`, `serviceVersion`, `environment`, `deploymentProfile`, and a safe diagnostic reason.
+- [x] Implement dynamic SDK loading only after configuration validates; disabled mode must not load exporters or schedule export work.
+- [x] Give both hosts consistent resource attributes and bounded shutdown; log safe structured diagnostics instead of silently swallowing bootstrap errors.
+- [x] Either install/configure a real local console exporter or document local-agent as no-exporter; do not keep contradictory comments.
+- [x] Run focused host-local/distributed tests, `rtk pnpm typecheck`, and `rtk pnpm test:observability-closeout`.
+- [x] Commit: `feat(otel): unify host telemetry lifecycle`.
 
 ### Task 6: Live HTTP Metrics And Trace Context
 
@@ -177,13 +177,13 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Produces:** live HTTP request count, duration, active connection, final status class, server spans, and trace context propagation.
 
-- [ ] Write RED integration tests that issue successful, validation-failure, and 5xx requests and assert exact counter/histogram labels plus span error status.
-- [ ] Make `TRAPMAP_METRICS_ENABLED=false` prevent metric registration and `/metrics` exposure, and make enabled mode expose only registered real signals.
-- [ ] Record duration after the response finalizes using the actual status code, not a hard-coded `2xx`; normalize every path to the shared finite route family.
-- [ ] Bind the request span to async context so child application spans inherit the server span; end spans exactly once on response/error.
-- [ ] Ensure logs, spans, and metrics share route/service/owner fields without adding dynamic IDs to metric labels.
-- [ ] Run focused tests, `rtk pnpm test:observability-closeout`, `rtk pnpm typecheck`, and a local `/metrics` smoke.
-- [ ] Commit: `feat(otel): instrument live HTTP requests`.
+- [x] Write RED integration tests that issue successful, validation-failure, and 5xx requests and assert exact counter/histogram labels plus span error status.
+- [x] Make `TRAPMAP_METRICS_ENABLED=false` prevent metric registration and `/metrics` exposure, and make enabled mode expose only registered real signals.
+- [x] Record duration after the response finalizes using the actual status code, not a hard-coded `2xx`; normalize every path to the shared finite route family.
+- [x] Bind the request span to async context so child application spans inherit the server span; end spans exactly once on response/error.
+- [x] Ensure logs, spans, and metrics share route/service/owner fields without adding dynamic IDs to metric labels.
+- [x] Run focused tests, `rtk pnpm test:observability-closeout`, `rtk pnpm typecheck`, and a local `/metrics` smoke.
+- [x] Commit: `feat(otel): instrument live HTTP requests`.
 
 ### Task 7: Export Distributed Internal-Hop And Async Signals
 
@@ -197,13 +197,13 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Produces:** exportable internal-hop and async lifecycle metrics/traces with stable owner/failure semantics.
 
-- [ ] Write RED tests proving an internal HTTP/RPC call increments exportable counter and histogram samples, including 2xx, 503, and 504 paths.
-- [ ] Replace the process-local-only map with a registered Prometheus/OTel meter adapter while retaining a test-safe snapshot API only when it reads the same registry.
-- [ ] Add spans/events or metrics for enqueue, execution start, retry, terminal failure, dead letter, outbox publish, and outbox consume; use existing operation/causation IDs.
-- [ ] Emit finite labels: source service, target service, transport, status class, owner surface, and failure classification. Do not label entity/job IDs.
-- [ ] Verify a gateway request through an internal hop has one continuous trace and one observable metric increment.
-- [ ] Run `rtk pnpm test:distributed-closeout`, affected package tests, `rtk pnpm typecheck`, and `rtk pnpm eval:smoke`.
-- [ ] Commit: `feat(otel): export internal and async runtime signals`.
+- [x] Write RED tests proving an internal HTTP/RPC call increments exportable counter and histogram samples, including 2xx, 503, and 504 paths.
+- [x] Replace the process-local-only map with a registered Prometheus/OTel meter adapter while retaining a test-safe snapshot API only when it reads the same registry.
+- [x] Add spans/events or metrics for enqueue, execution start, retry, terminal failure, dead letter, outbox publish, and outbox consume; use existing operation/causation IDs.
+- [x] Emit finite labels: source service, target service, transport, status class, owner surface, and failure classification. Do not label entity/job IDs.
+- [x] Verify a gateway request through an internal hop has one continuous trace and one observable metric increment.
+- [x] Run `rtk pnpm test:distributed-closeout`, affected package tests, `rtk pnpm typecheck`, and `rtk pnpm eval:smoke`.
+- [x] Commit: `feat(otel): export internal and async runtime signals`.
 
 ### Task 8: Critical Domain Instrumentation And Safe Logging
 
@@ -217,12 +217,12 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Produces:** consistent domain operation spans/logs/metrics for retrieval, candidate processing, review, publish, activation, and projection refresh.
 
-- [ ] For each owner, write a RED test that asserts operation name, allowed attributes, error classification, and correlation propagation on success and terminal failure.
-- [ ] Instrument only stable semantic operations; avoid high-frequency inner-loop spans and raw user/domain content attributes.
-- [ ] Extend redaction tests to nested objects and arrays for authorization, token, password, secret, cookie, session, prompt, and content-like fields defined by the approved policy.
-- [ ] Ensure expected validation/auth/policy outcomes are represented as normal outcomes or bounded metrics, not Sentry-worthy system errors.
-- [ ] Run affected package tests, `rtk pnpm eval:smoke`, `rtk pnpm test:observability-closeout`, and `rtk pnpm typecheck`.
-- [ ] Commit: `feat(otel): add owner-level operational signals`.
+- [x] For each owner, write a RED test that asserts operation name, allowed attributes, error classification, and correlation propagation on success and terminal failure.
+- [x] Instrument only stable semantic operations; avoid high-frequency inner-loop spans and raw user/domain content attributes.
+- [x] Extend redaction tests to nested objects and arrays for authorization, token, password, secret, cookie, session, prompt, and content-like fields defined by the approved policy.
+- [x] Ensure expected validation/auth/policy outcomes are represented as normal outcomes or bounded metrics, not Sentry-worthy system errors.
+- [x] Run affected package tests, `rtk pnpm eval:smoke`, `rtk pnpm test:observability-closeout`, and `rtk pnpm typecheck`.
+- [x] Commit: `feat(otel): add owner-level operational signals`.
 
 ### Task 9: Sentry Composition And Error-Intelligence Closeout
 
@@ -238,14 +238,14 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Produces:** existing opt-in `@sentry/node` adapters are reachable from every required host lifecycle/error boundary, with deterministic privacy filtering and no domain dependency on Sentry.
 
-- [ ] Preserve existing RED coverage for absent DSN no-op, enabled initialization, `beforeSend` recursive redaction, safe tags/extras, and suppression of expected 4xx/auth/validation outcomes; add RED integration tests proving the local global exception filter invokes `SentryService` only for actionable 5xx/unhandled errors.
-- [ ] Add RED lifecycle tests for every distributed executable composition root: it calls `initDistributedSentry(serviceName)` before serving traffic, calls `closeDistributedSentry()` on bounded shutdown, and never fails startup/shutdown when configuration or transport fails.
-- [ ] Add RED tests for startup failure, unhandled rejection, framework 5xx, and terminal async/job/outbox failure; assert they reach the existing adapter with service, environment, release, deployment profile, owner surface, failure classification, request ID, trace ID, and operation ID only.
-- [ ] Keep `validateSentryPolicy` as the sole Sentry configuration policy (`enabled`, `dsn`, `environment`, `release`, `sampleRate`, `maxBreadcrumbs`, `sendDefaultPii=false`); do not add a second config parser in hosts.
-- [ ] Ensure the existing `beforeSend` strips headers, cookies, request data, sensitive query parameters, prompt/knowledge content, credentials and nested secrets; extend tests only where a newly reachable boundary changes event shape.
-- [ ] Add an opt-in local transport harness that asserts the emitted event is sanitized. Capture/transport failure must create a safe local diagnostic but cannot alter original request or job completion.
-- [ ] Run focused Sentry and error-boundary tests, redaction tests, `rtk pnpm typecheck`, `rtk pnpm test:observability-closeout`, affected host integration tests, and `rtk pnpm test:distributed-closeout` when distributed composition roots change.
-- [ ] Commit: `feat(sentry): close host lifecycle and error-boundary reporting`.
+- [x] Preserve existing RED coverage for absent DSN no-op, enabled initialization, `beforeSend` recursive redaction, safe tags/extras, and suppression of expected 4xx/auth/validation outcomes; add RED integration tests proving the local global exception filter invokes `SentryService` only for actionable 5xx/unhandled errors.
+- [x] Add RED lifecycle tests for every distributed executable composition root: it calls `initDistributedSentry(serviceName)` before serving traffic, calls `closeDistributedSentry()` on bounded shutdown, and never fails startup/shutdown when configuration or transport fails.
+- [x] Add RED tests for startup failure, unhandled rejection, framework 5xx, and terminal async/job/outbox failure; assert they reach the existing adapter with service, environment, release, deployment profile, owner surface, failure classification, request ID, trace ID, and operation ID only.
+- [x] Keep `validateSentryPolicy` as the sole Sentry configuration policy (`enabled`, `dsn`, `environment`, `release`, `sampleRate`, `maxBreadcrumbs`, `sendDefaultPii=false`); do not add a second config parser in hosts.
+- [x] Ensure the existing `beforeSend` strips headers, cookies, request data, sensitive query parameters, prompt/knowledge content, credentials and nested secrets; extend tests only where a newly reachable boundary changes event shape.
+- [x] Add an opt-in local transport harness that asserts the emitted event is sanitized. Capture/transport failure must create a safe local diagnostic but cannot alter original request or job completion.
+- [x] Run focused Sentry and error-boundary tests, redaction tests, `rtk pnpm typecheck`, `rtk pnpm test:observability-closeout`, affected host integration tests, and `rtk pnpm test:distributed-closeout` when distributed composition roots change.
+- [x] Commit: `feat(sentry): close host lifecycle and error-boundary reporting`.
 
 ### Task 10: Langfuse Runtime LLM And Eval Observation
 
@@ -283,23 +283,23 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Produces:** repeatable no-secret local verification, blocking CI, operator runbook, and explicitly deferred long-term platform decisions.
 
-- [ ] Add a verification flow that proves one request and one internal hop can be correlated through response headers, trace export seam, structured logs, and metrics without requiring a production Sentry DSN or Langfuse project.
-- [ ] Add an opt-in Sentry transport test harness that receives sanitized events locally; it must assert no raw sensitive payload appears.
-- [ ] Add an opt-in Langfuse client/test harness that proves a runtime chat call, embedding call and each explicit eval suite mirror have correlation metadata but no raw prompt/output/vector/content; backend/flush failure must be warning-only and native eval JSON must retain its original exit semantics.
-- [ ] Define baseline collection instructions for readiness availability, 5xx rate, P95 latency, internal-hop timeout, queue/outbox lag, projection freshness, and unresolved actionable error count.
-- [ ] Record that alert thresholds require at least three comparable environment baselines; do not encode speculative production SLO values as completed policy.
-- [ ] Run `rtk pnpm check:docs-drift`, `rtk pnpm check:doc-references`, `rtk pnpm check:docs-truth`, `rtk pnpm check:links`, `rtk pnpm check:structure`, `rtk pnpm check:md-lint`, `rtk pnpm check:mermaid`, `rtk pnpm typecheck`, `rtk pnpm test:observability-closeout`, `rtk pnpm test:distributed-closeout`, `rtk pnpm test:deployment-smoke`, and `rtk pnpm eval:smoke`; when a Langfuse project is explicitly configured, also preserve the documented explicit `--platform langfuse` closeout evidence.
-- [ ] When cross-package imports change, run `rtk pnpm exec fallow audit --base main`; record any baseline limitation rather than weakening the boundary check.
-- [ ] Commit: `docs: close observability platform verification`.
+- [x] Add a verification flow that proves one request and one internal hop can be correlated through response headers, trace export seam, structured logs, and metrics without requiring a production Sentry DSN or Langfuse project.
+- [x] Add an opt-in Sentry transport test harness that receives sanitized events locally; it must assert no raw sensitive payload appears.
+- [x] Add an opt-in Langfuse client/test harness that proves a runtime chat call, embedding call and each explicit eval suite mirror have correlation metadata but no raw prompt/output/vector/content; backend/flush failure must be warning-only and native eval JSON must retain its original exit semantics.
+- [x] Define baseline collection instructions for readiness availability, 5xx rate, P95 latency, internal-hop timeout, queue/outbox lag, projection freshness, and unresolved actionable error count.
+- [x] Record that alert thresholds require at least three comparable environment baselines; do not encode speculative production SLO values as completed policy.
+- [x] Run `rtk pnpm check:docs-drift`, `rtk pnpm check:doc-references`, `rtk pnpm check:docs-truth`, `rtk pnpm check:links`, `rtk pnpm check:structure`, `rtk pnpm check:md-lint`, `rtk pnpm check:mermaid`, `rtk pnpm typecheck`, `rtk pnpm test:observability-closeout`, `rtk pnpm test:distributed-closeout`, `rtk pnpm test:deployment-smoke`, and `rtk pnpm eval:smoke`; when a Langfuse project is explicitly configured, also preserve the documented explicit `--platform langfuse` closeout evidence.
+- [x] When cross-package imports change, run `rtk pnpm exec fallow audit --base main`; record any baseline limitation rather than weakening the boundary check.
+- [x] Commit: `docs: close observability platform verification`.
 
 ## Completion Gates
 
-- [ ] All active docs pass reference and truth validation; `check:links` is blocking in CI.
-- [ ] Retired server source claims are absent from active documentation and present only in explicitly historical material.
-- [ ] OTel disabled/no-exporter behavior, sampling validation, graceful shutdown, and exporter failures are tested.
-- [ ] HTTP, internal-hop, async, and critical-domain signals originate from live code paths and maintain low-cardinality labels.
-- [ ] Sentry is optional, fully reachable from required host lifecycle/error boundaries, never imported by `backend-core`/domain packages, and its privacy filter has regression coverage.
-- [ ] Langfuse is optional, is owned only by host/eval boundaries, observes runtime chat/embedding and explicit eval mirrors through vendor-neutral provider interfaces, preserves native JSON eval truth, and has redaction/correlation/failure-isolation regression coverage.
-- [ ] A telemetry outage cannot fail product behavior; documented diagnostics identify the owning host/service.
-- [ ] Operator documentation states implemented facts only and records long-term adoption gates for Collector, retention, dashboards, on-call/SLO policy, source maps, profiling, and service identity.
-- [ ] This plan is archived only after every completion gate has evidence and all deferred work has an explicit landing location.
+- [x] All active docs pass reference and truth validation; `check:links` is blocking in CI.
+- [x] Retired server source claims are absent from active documentation and present only in explicitly historical material.
+- [x] OTel disabled/no-exporter behavior, sampling validation, graceful shutdown, and exporter failures are tested.
+- [x] HTTP, internal-hop, async, and critical-domain signals originate from live code paths and maintain low-cardinality labels.
+- [x] Sentry is optional, fully reachable from required host lifecycle/error boundaries, never imported by `backend-core`/domain packages, and its privacy filter has regression coverage.
+- [x] Langfuse is optional, is owned only by host/eval boundaries, observes runtime chat/embedding and explicit eval mirrors through vendor-neutral provider interfaces, preserves native JSON eval truth, and has redaction/correlation/failure-isolation regression coverage.
+- [x] A telemetry outage cannot fail product behavior; documented diagnostics identify the owning host/service.
+- [x] Operator documentation states implemented facts only and records long-term adoption gates for Collector, retention, dashboards, on-call/SLO policy, source maps, profiling, and service identity.
+- [x] This plan is archived only after every completion gate has evidence and all deferred work has an explicit landing location.
