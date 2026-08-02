@@ -6,6 +6,7 @@ import { register } from 'prom-client';
 
 function createMockPrometheusService() {
   return {
+    enabled: true,
     getMetrics: vi.fn().mockResolvedValue('# HELP trapmap_test\n'),
   } as any;
 }
