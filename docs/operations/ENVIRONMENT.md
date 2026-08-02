@@ -38,7 +38,7 @@
 | `DATABASE_URL` | PostgreSQL 连接字符串（当前主要用于 `host-distributed` fallback） | 空 |
 | `TRAPMAP_DATA_FILE` | JSON 文件存储路径（兼容回退，可选） | `.data/skill-shareer.json` |
 
-> 本地 `host-local` / `server` 兼容壳以 `TRAPMAP_DATABASE_URL` 为主；`host-distributed` 额外兼容 `DATABASE_URL` fallback。Drizzle migration 由六个 service owner 的本地 `drizzle/` 目录提供，且只支持空库 baseline；已有开发数据库需重建。
+> 本地 `host-local` 以 `TRAPMAP_DATABASE_URL` 为主；`host-distributed` 额外兼容 `DATABASE_URL` fallback。Drizzle migration 由六个 service owner 的本地 `drizzle/` 目录提供，且只支持空库 baseline；已有开发数据库需重建。
 
 ### 可选部署拆分与任务传输
 
@@ -479,7 +479,7 @@ pnpm dev:local-agent
 |------|------|--------|
 | `TRAPMAP_METRICS_ENABLED` | 是否暴露 `/metrics` Prometheus 端点并收集 `prom-client` 指标 | `true` |
 | `OTEL_DISABLED` | 是否禁用 OpenTelemetry SDK 初始化（`true` 时所有 OTel 操作为空操作） | `false` |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP exporter 端点；`local-agent` 默认走 console exporter，其他 profile 走此端点 | `http://localhost:4318` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP exporter 端点；`local-agent` 不配置 exporter（SDK 默认无导出），`team-monolith` / `distributed` 走此端点 | `http://localhost:4318` |
 
 ### 服务发现配置
 
@@ -502,7 +502,7 @@ pnpm dev:local-agent
 | 组件 | 默认状态 | 说明 |
 |------|---------|------|
 | Prometheus `/metrics` | 启用 | 暴露 `trapmap_*` 前缀指标与 `prom-client` 默认 Node.js 指标 |
-| OpenTelemetry SDK | 启用（console exporter） | `OTEL_DISABLED=true` 可完全关闭 |
+| OpenTelemetry SDK | 启用（无 exporter，SDK 默认无导出） | `OTEL_DISABLED=true` 可完全关闭；`team-monolith` / `distributed` 走 OTLP exporter |
 | Consul 服务发现 | 关闭 | `CONSUL_ENABLED` 未设置或为 `false` 时不加载 ConsulModule |
 | Loki 日志传输 | 关闭 | `LOKI_HOST` 为空时只使用 NestJS 内置 Logger |
 
@@ -604,7 +604,7 @@ Feature flags 子 schema（`featureFlagsSchema`）：
 | `TRAPMAP_REQUEST_ID_HEADER` | 运行时 request id 响应/透传头名 | `x-request-id` |
 | `TRAPMAP_TRACE_HEADER_NAME` | 运行时 trace header 名 | `traceparent` |
 
-> **Nest 宿主（默认 `light` 主线）**：`packages/host-local/src/nest/` 的 Nest 宿主现在通过 `packages/host-local/src/nest/config/config.ts` 自己加载 `HostLocalConfig`，这是 default `light` runtime env defaults 的 host-owned truth entry；`packages/server（Wave-10 已删除）/src/config.ts` 仅保留 compatibility shell / shared consumer 侧入口。两者仍复用同一套环境变量与子配置 helper，不引入新的环境变量。`pnpm dev:local-agent`、`pnpm dev:team-monolith` 与 `pnpm --filter @trapmap/host-local dev` 都直接进入这条主线；旧 Fastify 宿主和相关 rollback 脚本已删除。
+> **Nest 宿主（默认 `light` 主线）**：`packages/host-local/src/nest/` 的 Nest 宿主通过 `packages/host-local/src/nest/config/config.ts` 加载 `HostLocalConfig`，这是 default `light` runtime env defaults 的 host-owned truth entry。`packages/server` 已于 Wave-10 删除。环境变量与子配置 helper 统一由 host-local 持有。`pnpm dev:local-agent`、`pnpm dev:team-monolith` 与 `pnpm --filter @trapmap/host-local dev` 都直接进入这条主线。
 
 ### Phase 1 instrumentation 语义冻结
 
@@ -754,7 +754,7 @@ Phase 6 只冻结当前 mature-capability / library-replacement 边界，不把 
 说明：
 
 - `USE_DB_SEARCH` 当前由检索编排层直接读取；文档化是为了部署可见性，不代表它已经成为长期稳定 public surface。
-- decay 配置由 `packages/server（Wave-10 已删除）/src/lib/decay/config.ts` 读取并做 Zod 校验。
+- decay 配置由 `packages/service-governance-review/src/` 读取并做 Zod 校验（原 `packages/server/src/lib/decay/config.ts` 已于 Wave-10 删除）。
 
 ## 系统提示词模板
 

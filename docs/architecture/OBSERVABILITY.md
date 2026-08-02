@@ -122,7 +122,7 @@ Tempo、Prometheus、Loki、Grafana 和 Collector 在当前仓库里只冻结为
 
 `operationId` 与 `causationId` 不属于公开 API 的 additive fields，当前阶段也不会写入新的响应 header。它们只从已定义的内部 header `x-trapmap-operation-id` 和 `x-trapmap-causation-id` 读取，缺失时保持 `undefined`。所有关联 ID 只可进入 JSON 日志 body；Loki labels 始终严格限于 `service`、`environment`、`level`。
 
-server compatibility shell 与 host-local Nest 宿主按相同规则解析 request context：有效 request ID 原样保留，非法或不完整 `traceparent` 按缺失处理；server 使用 Fastify `request.id`，host-local 使用传入的 Fastify ID 作为各自的既有 fallback。两者均不在本阶段创建 trace/span 或改变 OTel 导出。
+host-local Nest 宿主按标准规则解析 request context：有效 request ID 原样保留，非法或不完整 `traceparent` 按缺失处理；host-local 使用传入的 Fastify ID 作为既有 fallback。distributed 宿主在 internal hop 中创建 span 并传播 `traceparent`，由 `packages/host-distributed/src/shared/telemetry.ts` 持有。
 
 ## 与现有架构的集成
 
@@ -133,7 +133,7 @@ server compatibility shell 与 host-local Nest 宿主按相同规则解析 reque
 | `backend-core` | 只定义 `MetricsPort`、`TracingPort`、`LoggingPort`，不包含具体实现 |
 | `host-local` | 装配 observability modules，把 port 桥接到 `prom-client`、OpenTelemetry 和 Nest Logger |
 | `host-distributed` | 装配 distributed internal hop 的 tracing / metrics seam，负责 owner-aware service.name |
-| `server` | 保留 compatibility shell 的 startup 顺序、`/metrics` 导出和 request-context 接缝 |
+| ~~`server`~~ | **已删除**（Wave-10）。`/metrics`、OTel 初始化和 shutdown 现由 `host-local` 持有 |
 
 ### 当前 light 宿主目录
 
@@ -169,7 +169,7 @@ packages/host-local/src/nest/observability/
 |---|---|---|
 | `OTEL_DISABLED` | `false` | 总开关；为 `true` 时，`host-local`、`host-distributed` 都跳过 OTel SDK 初始化 |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | OTLP exporter 端点 |
-| `OTEL_SAMPLE_RATE` | `0.1`（server startup） / `1`（distributed telemetry 未显式设置时） | traces 采样率。当前不同宿主有各自默认值，文档不得写回过时的 `OTEL_SAMPLING_RATE` |
+| `OTEL_SAMPLE_RATE` | `1`（仅 `host-distributed` 读取；`host-local` 使用 SDK 默认 AlwaysOn sampler） | traces 采样率。仅 distributed 宿主通过 `TraceIdRatioBasedSampler` 读取此变量；`host-local` 不配置 sampler |
 | `TRAPMAP_METRICS_ENABLED` | `true`（host-local） | 是否启用 `prom-client` 指标收集与文本导出 |
 | `TRAPMAP_DEPLOYMENT_PROFILE` | `local-agent` | 决定当前宿主 profile，影响 observability wiring 的默认姿态 |
 | `SERVICE_NAME` | `trapmap` | host-local 的 service.name 来源；distributed 宿主内部会拼接为 `trapmap-${serviceName}` |
