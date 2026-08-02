@@ -31,14 +31,19 @@ export const logEntrySchema = z
 export type LogEntry = z.infer<typeof logEntrySchema>;
 
 const SENSITIVE_LOG_KEY_PATTERN =
-  /authorization|access[-_]?token|session[-_]?token|password|secret|cookie/i;
+  /authorization|access[-_]?token|session[-_]?token|password|secret|cookie|session|prompt|content[-_]?body|raw[-_]?content|knowledge[-_]?body|request[-_]?body/i;
 
 function redactValue(key: string, value: unknown): unknown {
-  if (SENSITIVE_LOG_KEY_PATTERN.test(key)) {
+  if (key && SENSITIVE_LOG_KEY_PATTERN.test(key)) {
     return '[REDACTED]';
   }
   if (Array.isArray(value)) {
-    return value.map((item) => redactValue('', item));
+    return value.map((item) => {
+      if (item && typeof item === 'object') {
+        return redactLogContext(item as Record<string, unknown>);
+      }
+      return item;
+    });
   }
   if (value && typeof value === 'object') {
     return redactLogContext(value as Record<string, unknown>);

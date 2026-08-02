@@ -227,5 +227,89 @@ describe('log schema', () => {
         value: 'kept',
       });
     });
+
+    it('redacts authorization, token, password, secret, cookie, session, prompt, and content fields', () => {
+      const result = redactLogContext({
+        authorization: 'Bearer xyz',
+        accessToken: 'tok_123',
+        sessionToken: 'sess_456',
+        password: 'hunter2',
+        secret: 'my-secret',
+        cookie: 'session=abc',
+        session: 'user-session-data',
+        prompt: 'Tell me about traps',
+        contentBody: 'raw knowledge text',
+        rawContent: 'raw text',
+        knowledgeBody: 'knowledge entry body',
+        requestBody: '{"key":"value"}',
+        safeField: 'visible',
+      });
+
+      expect(result).toEqual({
+        authorization: '[REDACTED]',
+        accessToken: '[REDACTED]',
+        sessionToken: '[REDACTED]',
+        password: '[REDACTED]',
+        secret: '[REDACTED]',
+        cookie: '[REDACTED]',
+        session: '[REDACTED]',
+        prompt: '[REDACTED]',
+        contentBody: '[REDACTED]',
+        rawContent: '[REDACTED]',
+        knowledgeBody: '[REDACTED]',
+        requestBody: '[REDACTED]',
+        safeField: 'visible',
+      });
+    });
+
+    it('redacts sensitive fields in nested objects', () => {
+      const result = redactLogContext({
+        metadata: {
+          authorization: 'Bearer nested-secret',
+          nestedDeep: {
+            password: 'deep-password',
+            safe: 'kept',
+          },
+          safe: 'kept',
+        },
+        safeTop: 'visible',
+      });
+
+      expect(result.metadata).toEqual({
+        authorization: '[REDACTED]',
+        nestedDeep: {
+          password: '[REDACTED]',
+          safe: 'kept',
+        },
+        safe: 'kept',
+      });
+      expect(result.safeTop).toBe('visible');
+    });
+
+    it('redacts sensitive fields in arrays of objects', () => {
+      const result = redactLogContext({
+        items: [
+          { id: '1', prompt: 'user prompt', safe: 'kept' },
+          { id: '2', secret: 'array-secret', safe: 'kept' },
+        ],
+        safeTop: 'visible',
+      });
+
+      expect(result.items).toEqual([
+        { id: '1', prompt: '[REDACTED]', safe: 'kept' },
+        { id: '2', secret: '[REDACTED]', safe: 'kept' },
+      ]);
+      expect(result.safeTop).toBe('visible');
+    });
+
+    it('handles mixed arrays with primitive and object values', () => {
+      const result = redactLogContext({
+        tags: ['safe-tag', { cookie: 'session-abc', name: 'test' }],
+        count: 42,
+      });
+
+      expect(result.tags).toEqual(['safe-tag', { cookie: '[REDACTED]', name: 'test' }]);
+      expect(result.count).toBe(42);
+    });
   });
 });
