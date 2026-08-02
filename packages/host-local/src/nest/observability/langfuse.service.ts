@@ -39,19 +39,23 @@ export class LangfuseService implements LlmObservationSink, OnModuleInit, OnModu
   private readonly policy: LangfusePolicyResult;
 
   constructor() {
-    this.policy = validateLangfusePolicy({
-      langfuseEnabled: process.env.LANGFUSE_ENABLED,
-      baseUrl: process.env.LANGFUSE_BASE_URL,
-      publicKey: process.env.LANGFUSE_PUBLIC_KEY,
-      secretKey: process.env.LANGFUSE_SECRET_KEY,
-      flushTimeoutMs: process.env.LANGFUSE_FLUSH_TIMEOUT_MS,
-      serviceName: process.env.TRAPMAP_SERVICE_NAME,
-      serviceVersion: process.env.npm_package_version,
-      environment: process.env.NODE_ENV,
-      deploymentProfile: process.env.TRAPMAP_DEPLOYMENT_PROFILE,
-      release: process.env.SENTRY_RELEASE ?? process.env.npm_package_version,
-      privacyMode: process.env.LANGFUSE_PRIVACY_MODE,
-    });
+    this.policy = validateLangfusePolicy(
+      Object.fromEntries(
+        Object.entries({
+          langfuseEnabled: process.env.LANGFUSE_ENABLED,
+          baseUrl: process.env.LANGFUSE_BASE_URL,
+          publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+          secretKey: process.env.LANGFUSE_SECRET_KEY,
+          flushTimeoutMs: process.env.LANGFUSE_FLUSH_TIMEOUT_MS,
+          serviceName: process.env.TRAPMAP_SERVICE_NAME,
+          serviceVersion: process.env.npm_package_version,
+          environment: process.env.NODE_ENV,
+          deploymentProfile: process.env.TRAPMAP_DEPLOYMENT_PROFILE,
+          release: process.env.SENTRY_RELEASE ?? process.env.npm_package_version,
+          privacyMode: process.env.LANGFUSE_PRIVACY_MODE,
+        }).filter(([, v]) => v !== undefined),
+      ),
+    );
   }
 
   async onModuleInit(): Promise<void> {

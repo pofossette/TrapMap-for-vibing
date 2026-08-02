@@ -22,21 +22,25 @@ const SHUTDOWN_TIMEOUT_MS = 5_000;
 @Injectable()
 export class OtelService implements OnModuleInit, OnApplicationShutdown {
   private readonly logger = new Logger(OtelService.name);
-  private sdk: { shutdown(): Promise<void> } | null = null;
+  private sdk: { start(): void; shutdown(): Promise<void> } | null = null;
   private policy: OtelPolicyResult | null = null;
 
   constructor(private readonly config: ConfigService) {}
 
   async onModuleInit() {
-    this.policy = validateOtelPolicy({
-      otelDisabled: this.config.get<string>('OTEL_DISABLED'),
-      sampleRate: this.config.get<string>('OTEL_SAMPLE_RATE'),
-      endpoint: this.config.get<string>('OTEL_EXPORTER_OTLP_ENDPOINT'),
-      serviceName: this.config.get<string>('SERVICE_NAME'),
-      serviceVersion: this.config.get<string>('npm_package_version'),
-      deploymentProfile: this.config.get<string>('TRAPMAP_DEPLOYMENT_PROFILE'),
-      environment: this.config.get<string>('NODE_ENV'),
-    });
+    this.policy = validateOtelPolicy(
+      Object.fromEntries(
+        Object.entries({
+          otelDisabled: this.config.get<string>('OTEL_DISABLED'),
+          sampleRate: this.config.get<string>('OTEL_SAMPLE_RATE'),
+          endpoint: this.config.get<string>('OTEL_EXPORTER_OTLP_ENDPOINT'),
+          serviceName: this.config.get<string>('SERVICE_NAME'),
+          serviceVersion: this.config.get<string>('npm_package_version'),
+          deploymentProfile: this.config.get<string>('TRAPMAP_DEPLOYMENT_PROFILE'),
+          environment: this.config.get<string>('NODE_ENV'),
+        }).filter(([, v]) => v !== undefined),
+      ),
+    );
 
     if (!this.policy.enabled) {
       this.logger.log(`OpenTelemetry disabled: ${this.policy.reason}`);

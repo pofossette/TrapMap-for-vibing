@@ -1,8 +1,7 @@
 import type { NestMiddleware } from '@nestjs/common';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import {
-  type Span,
   SpanKind,
   SpanStatusCode,
   context as otelContext,
@@ -31,11 +30,9 @@ import { RequestContextService } from '../runtime/request-context.service.js';
  */
 @Injectable()
 export class HttpMetricsMiddleware implements NestMiddleware {
-  private readonly logger = new Logger(HttpMetricsMiddleware.name);
-
   constructor(
     private readonly prometheus: PrometheusService,
-    private readonly requestContext: RequestContextService,
+    private readonly _requestContext: RequestContextService,
   ) {}
 
   use(req: FastifyRequest, res: FastifyReply, next: () => void): void {
