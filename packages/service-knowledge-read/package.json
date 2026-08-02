@@ -21,12 +21,14 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@trapmap/ai-providers": "workspace:*",
     "@trapmap/backend-core": "workspace:*",
     "@trapmap/contracts": "workspace:*",
     "@trapmap/persistence-schema": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.6.1",
-    "pg": "8.20.0"
+    "pg": "8.20.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@trapmap/service-knowledge-write": "workspace:*",

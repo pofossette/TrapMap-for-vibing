@@ -15,6 +15,14 @@ COPY packages/backend-core/package.json ./packages/backend-core/
 COPY packages/backend-core/tsconfig.json ./packages/backend-core/
 COPY packages/backend-core/src ./packages/backend-core/src
 
+COPY packages/persistence-schema/package.json ./packages/persistence-schema/
+COPY packages/persistence-schema/tsconfig.json ./packages/persistence-schema/
+COPY packages/persistence-schema/src ./packages/persistence-schema/src
+
+COPY packages/ai-providers/package.json ./packages/ai-providers/
+COPY packages/ai-providers/tsconfig.json ./packages/ai-providers/
+COPY packages/ai-providers/src ./packages/ai-providers/src
+
 COPY packages/client-core/package.json ./packages/client-core/
 COPY packages/client-core/tsconfig.json ./packages/client-core/
 COPY packages/client-core/src ./packages/client-core/src
@@ -87,6 +95,14 @@ COPY packages/client-core/package.json ./packages/client-core/
 COPY packages/client-core/tsconfig.json ./packages/client-core/
 COPY --from=deps /app/packages/client-core/node_modules ./packages/client-core/node_modules
 COPY --from=build /app/packages/client-core/dist ./packages/client-core/dist
+
+COPY packages/persistence-schema/package.json ./packages/persistence-schema/
+COPY packages/persistence-schema/tsconfig.json ./packages/persistence-schema/
+COPY --from=build /app/packages/persistence-schema/dist ./packages/persistence-schema/dist
+
+COPY packages/ai-providers/package.json ./packages/ai-providers/
+COPY packages/ai-providers/tsconfig.json ./packages/ai-providers/
+COPY --from=build /app/packages/ai-providers/dist ./packages/ai-providers/dist
 
 COPY packages/service-identity-access/package.json ./packages/service-identity-access/
 COPY packages/service-identity-access/tsconfig.json ./packages/service-identity-access/

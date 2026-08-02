@@ -83,7 +83,7 @@ function withLifecycleRecording(handler: TaskHandler<unknown>): TaskHandler<unkn
           });
           await handler.onDead!(task);
         }
-      : async (task) => {
+      : async (_task) => {
           recordAsyncLifecycleEvent({
             eventName: 'dead-letter',
             taskType: handler.type,

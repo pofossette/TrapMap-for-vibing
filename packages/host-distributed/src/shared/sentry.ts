@@ -14,7 +14,7 @@
  */
 
 import { validateSentryPolicy } from '@trapmap/contracts';
-import type { SentryPolicyResult } from '@trapmap/contracts';
+import type { SentryPolicyInput, SentryPolicyResult } from '@trapmap/contracts';
 
 // ---------------------------------------------------------------------------
 // Sensitive data patterns
@@ -203,16 +203,20 @@ let currentPolicy: SentryPolicyResult | null = null;
  * this is a no-op.
  */
 export async function initDistributedSentry(serviceName: string): Promise<SentryPolicyResult> {
-  const policy = validateSentryPolicy({
-    dsn: process.env.SENTRY_DSN,
-    environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
-    release: process.env.SENTRY_RELEASE ?? process.env.npm_package_version,
-    tracesSampleRate: process.env.SENTRY_TRACES_SAMPLE_RATE,
-    sampleRate: process.env.SENTRY_SAMPLE_RATE,
-    maxBreadcrumbs: process.env.SENTRY_MAX_BREADCRUMBS,
-    deploymentProfile: process.env.TRAPMAP_DEPLOYMENT_PROFILE,
-    serviceName,
-  });
+  const policy = validateSentryPolicy(
+    Object.fromEntries(
+      Object.entries({
+        dsn: process.env.SENTRY_DSN,
+        environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
+        release: process.env.SENTRY_RELEASE ?? process.env.npm_package_version,
+        tracesSampleRate: process.env.SENTRY_TRACES_SAMPLE_RATE,
+        sampleRate: process.env.SENTRY_SAMPLE_RATE,
+        maxBreadcrumbs: process.env.SENTRY_MAX_BREADCRUMBS,
+        deploymentProfile: process.env.TRAPMAP_DEPLOYMENT_PROFILE,
+        serviceName,
+      }).filter(([, v]) => v !== undefined),
+    ) as SentryPolicyInput,
+  );
 
   currentPolicy = policy;
 

@@ -8,7 +8,7 @@ import {
 } from '@opentelemetry/api';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { validateOtelPolicy } from '@trapmap/contracts';
-import type { OtelPolicyResult } from '@trapmap/contracts';
+import type { OtelPolicyInput } from '@trapmap/contracts';
 
 const requestSpanSymbol = Symbol('trapmap.distributed.request.span');
 
@@ -75,15 +75,19 @@ export async function attachRuntimeTelemetry(
 }
 
 async function bootstrapOtel(serviceName: string): Promise<{ shutdown(): Promise<void> } | null> {
-  const policy = validateOtelPolicy({
-    otelDisabled: process.env.OTEL_DISABLED,
-    sampleRate: process.env.OTEL_SAMPLE_RATE,
-    endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
-    serviceName,
-    serviceVersion: process.env.npm_package_version,
-    deploymentProfile: process.env.TRAPMAP_DEPLOYMENT_PROFILE,
-    environment: process.env.NODE_ENV,
-  });
+  const policy = validateOtelPolicy(
+    Object.fromEntries(
+      Object.entries({
+        otelDisabled: process.env.OTEL_DISABLED,
+        sampleRate: process.env.OTEL_SAMPLE_RATE,
+        endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+        serviceName,
+        serviceVersion: process.env.npm_package_version,
+        deploymentProfile: process.env.TRAPMAP_DEPLOYMENT_PROFILE,
+        environment: process.env.NODE_ENV,
+      }).filter(([, v]) => v !== undefined),
+    ) as OtelPolicyInput,
+  );
 
   if (!policy.enabled) {
     return null;

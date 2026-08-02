@@ -307,6 +307,7 @@ export async function extractGraphEntitiesWithLLM(
     const alignmentService = options?.alignmentService;
     if (alignmentService?.chat && alignmentService.repository) {
       try {
+        // @ts-ignore circular dep: knowledge-write dist not available during tsc -b of knowledge-read
         const { alignGraphNodes, rewriteEdgeIds } = await import(
           '@trapmap/service-knowledge-write/labels/graph-align.js'
         );
