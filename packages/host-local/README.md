@@ -1,70 +1,226 @@
 # @trapmap/host-local
 
-TrapMap `local-agent` 与 `team-monolith` 部署配置的轻量主机组装包。冻结的默认轻量主线为 `src/nest/**`。
+Nest-based light host entry for TrapMap single-machine deployments. This package assembles all bounded-context service modules, infrastructure adapters, and runtime wiring into a single NestJS application backed by Fastify.
 
-## 用途
+## Purpose
 
-本包是 TrapMap 单机部署的真实 `light` 主机实现。`src/nest/**` 是默认且唯一支持的主机入口。
+`host-local` is the default and only supported `light` host implementation. It composes the full TrapMap platform -- knowledge management, candidate ingestion, governance review, identity/access, and job runtime -- into a single process suitable for `local-agent` and `team-monolith` deployment profiles.
 
-## 部署配置
+The `src/nest/**` path is the frozen default mainline.
 
-| 配置 | 路由面 | Worker | 数据库 | 认证 |
+## Deployment Profiles
+
+| Profile | Route Surface | Worker | Database | Auth |
 |---|---|---|---|---|
-| `local-agent` | 完整网关 + 治理 | 运行时模式拥有任务时进程内执行 | JSON 存储可用 | 单用户完整治理 |
-| `team-monolith` | 完整网关 | 进程内任务 + outbox | 需要 PostgreSQL | 团队认证 |
+| `local-agent` | Full gateway + governance | In-process when owning tasks | JSON store acceptable | Single-user full governance |
+| `team-monolith` | Full gateway | In-process tasks + outbox | PostgreSQL required | Team authentication |
 
-## 使用方式
+The runtime mode (`api`, `task-worker`, `outbox-worker`, `combined`) is programmatically inferred from the deployment profile and preset -- it is not read from an environment variable directly.
 
-### 编程式调用（通过 `start()`）
+## Quick Start
 
-下方 `start()` 示例对应默认 Nest 主线。
+### Programmatic (via `start()`)
 
 ```typescript
 import { start } from '@trapmap/host-local';
 
 const handle = await start({
-  port: 3000,
+  host: '0.0.0.0',
+  port: 4000,
 });
 
-// handle.close() 以关闭
+// Graceful shutdown
+await handle.close();
 ```
 
-#### 接口定义
+### CLI Entry
 
-包导出以下 TypeScript 接口：
+Run directly with `tsx` or `node`:
+
+```bash
+# Development
+pnpm dev
+
+# Production
+pnpm build && pnpm start
+```
+
+Both paths register `SIGINT`/`SIGTERM` handlers for graceful shutdown.
+
+### Docker
+
+```bash
+docker build -t trapmap-host-local -f packages/host-local/Dockerfile .
+docker run -p 4000:4000 -e TRAPMAP_DATABASE_URL=postgres://... trapmap-host-local
+```
+
+The Dockerfile exposes port 4000 and includes a health check hitting `/health`.
+
+## Public API
+
+### Exports
 
 ```typescript
 interface NestBootstrapOptions {
-  host?: string;   // 监听地址，默认 '0.0.0.0'
-  port?: number;   // 监听端口，默认 4000
+  host?: string;   // Listen address, default '0.0.0.0'
+  port?: number;   // Listen port, default 4000
 }
 
 interface NestBootstrapResult {
-  app: unknown;               // NestFastifyApplication 实例
-  close: () => Promise<void>; // 优雅关闭函数
+  app: unknown;               // NestFastifyApplication instance
+  close: () => Promise<void>; // Graceful shutdown function
 }
+
+function start(options?: NestBootstrapOptions): Promise<NestBootstrapResult>;
 ```
 
-### 环境变量
+### HTTP Endpoints
 
-| 变量 | 默认值 | 说明 |
+#### Health & Metrics
+
+| Method | Path | Description |
 |---|---|---|
-| `TRAPMAP_DEPLOYMENT_PROFILE` | `(null，运行时推断)` | `local-agent` 或 `team-monolith` |
-| `TRAPMAP_DEPLOYMENT_PRESET` | `monolith` | 部署预设 |
-| `PORT` | `4000` | HTTP 监听端口 |
-| `TRAPMAP_DATABASE_URL` | (无) | PostgreSQL 连接字符串 |
+| GET | `/health` | Comprehensive health with dependency status |
+| GET | `/ready` | Readiness probe (503 if not ready) |
+| GET | `/live` | Liveness probe |
+| GET | `/metrics` | Prometheus metrics (text format) |
 
-> **注意**：`RUNTIME_MODE`（`api`、`task-worker`、`outbox-worker`、`combined`）不由环境变量读取，而是由运行时根据部署配置和预设程序化推断得出。
+#### Knowledge Read (authenticated)
 
-## 架构
+| Method | Path | Description |
+|---|---|---|
+| GET | `/v1/knowledge/:entryId` | Get knowledge entry by ID |
+| GET | `/v1/knowledge/mine` | List entries for a user (`?userId=&teamId=`) |
+| POST | `/v1/retrieval/search` | Search knowledge (`{ query, teamId?, limit? }`) |
+| GET | `/v1/knowledge/projection-status` | Get read projection status |
 
-host-local 包负责 `light` 主机组装。Nest 路径是冻结的默认主线，也是唯一支持的本地主机入口。
+#### Candidate & Governance Review (authenticated)
+
+| Method | Path | Description |
+|---|---|---|
+| POST | `/v1/candidates/:candidateId/manual-result` | Submit manual candidate result |
+| POST | `/v1/candidates/:candidateId/apply-resolution` | Apply candidate resolution |
+| GET | `/v1/knowledge/review-queue` | Get governance review queue (`?status=`) |
+| POST | `/v1/knowledge/review` | Apply review decision (approve/reject) |
+
+All authenticated endpoints require a `Bearer` token in the `Authorization` header.
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `TRAPMAP_DEPLOYMENT_PROFILE` | (inferred at runtime) | `local-agent`, `team-monolith`, or `distributed` |
+| `TRAPMAP_DEPLOYMENT_PRESET` | `monolith` | Preset: `monolith`, `api`, `candidate-worker`, `governance-worker`, `outbox-worker` |
+| `HOST` | `127.0.0.1` | HTTP listen address |
+| `PORT` | `4000` | HTTP listen port |
+| `TRAPMAP_DATABASE_URL` | (none) | PostgreSQL connection string (required for `team-monolith`) |
+| `TRAPMAP_DATA_FILE` | `.data/skill-shareer.json` | JSON data file path (for `local-agent` without Postgres) |
+| `TRAPMAP_SYSTEM_ADMIN_KEY` | (none) | System admin API key |
+| `CORS_ORIGINS` | `*` | Comma-separated allowed CORS origins |
+| `RATE_LIMIT_MAX_PER_MINUTE` | `0` (unlimited) | Max requests per minute |
+| `SESSION_TRANSPORT` | `bearer-header` | `bearer-header` or `cookie` |
+| `TRAPMAP_REQUEST_ID_HEADER` | `x-request-id` | Request ID header name |
+| `TRAPMAP_TRACE_HEADER_NAME` | `traceparent` | Trace context header name |
+| `TRAPMAP_TASK_TRANSPORT` | `postgres` | Async task transport: `postgres` or `rabbitmq` |
+| `TRAPMAP_RABBITMQ_URL` | (none) | RabbitMQ URL (required when transport is `rabbitmq`) |
+| `CONSUL_ENABLED` | `false` | Enable Consul service discovery |
+| `CONSUL_HOST` | `localhost` | Consul host |
+| `CONSUL_PORT` | `8500` | Consul port |
+
+### Bounded-Context Modules
+
+The `AppModule` registers these Nest modules, each representing a bounded context:
+
+- **IdentityAccessModule** -- user/team management, sessions, permissions
+- **KnowledgeReadModule** -- knowledge entry queries, retrieval search
+- **KnowledgeWriteModule** -- knowledge entry mutations, artifact writes
+- **CandidateIngestionModule** -- candidate submission and processing
+- **GovernanceReviewModule** -- review queues, approve/reject workflows, conflict resolution
+- **JobRuntimeModule** -- async task execution (in-process or outbox)
+
+### Infrastructure Modules
+
+- **ConsulModule** -- Consul service discovery with graceful degradation
+- **OtelModule** -- OpenTelemetry tracing and metrics export
+- **PrometheusModule** -- Prometheus metrics collection (`prom-client`)
+- **LokiModule** -- Loki log shipping (`winston-loki`)
+- **HealthModule** -- Health/readiness/liveness probes
+- **LifecycleModule** -- Lifecycle phase coordination and health check registration
+
+## Architecture
 
 ```
-host-local (HTTP, 中间件, 生命周期)
+host-local (Fastify HTTP, middleware, lifecycle)
+  -> Nest bounded-context modules (identity, knowledge, candidates, governance, jobs)
   -> backend-core ports (repo, queue, retrieval, actor, audit)
-  -> backend-core modules (identity, knowledge, candidates, governance, jobs)
-  -> backend-core 调用模型 (sync/async, 错误分类)
+  -> service-* packages (domain logic per bounded context)
+  -> infrastructure (PostgreSQL, Consul, OpenTelemetry, Prometheus, Loki)
 ```
 
-主机从配置中读取部署配置，并使用 backend-core 的 `resolveRuntimeDeployment()` 来决定注册哪些路由、启动哪些 worker 以及暴露哪些能力。
+The host reads the deployment profile from configuration and uses `backend-core`'s `resolveRuntimeDeployment()` to determine which routes to register, which workers to start, and which capabilities to expose. Runtime mode and service unit are resolved programmatically, not read directly from environment variables.
+
+## Dependencies
+
+### Workspace Packages
+
+| Package | Role |
+|---|---|
+| `@trapmap/backend-core` | Port interfaces, deployment resolution, module factories |
+| `@trapmap/contracts` | Zod schemas, shared types (health, review, knowledge) |
+| `@trapmap/ai-providers` | AI provider configuration and factory |
+| `@trapmap/client-core` | Client-side shared utilities |
+| `@trapmap/service-identity-access` | Identity and access domain logic |
+| `@trapmap/service-knowledge-read` | Knowledge read domain logic, retrieval |
+| `@trapmap/service-knowledge-write` | Knowledge write domain logic |
+| `@trapmap/service-candidate-ingestion` | Candidate ingestion domain logic |
+| `@trapmap/service-governance-review` | Governance review domain logic |
+| `@trapmap/service-job-runtime` | Job/async task runtime |
+
+### Key External Dependencies
+
+- `@nestjs/core`, `@nestjs/common`, `@nestjs/platform-fastify` -- NestJS framework with Fastify adapter
+- `@opentelemetry/*` -- Distributed tracing and metrics
+- `consul` -- Service discovery
+- `pg` -- PostgreSQL client
+- `prom-client` -- Prometheus metrics
+- `winston`, `winston-loki` -- Structured logging with Loki shipping
+- `zod` -- Runtime schema validation
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `pnpm dev` | Start in watch mode with `tsx` |
+| `pnpm build` | Compile TypeScript |
+| `pnpm start` | Run compiled output |
+| `pnpm test` | Run tests via vitest |
+| `pnpm typecheck` | Type-check without emitting |
+
+## Tests
+
+Test files are co-located with source:
+
+- `src/nest/app.test.ts` -- Application bootstrap tests
+- `src/nest/main.test.ts` -- Bootstrap function tests
+- `src/nest/runtime/exception-filter.test.ts` -- Exception filter tests
+- `src/nest/runtime/request-context.test.ts` -- Request context tests
+- `src/nest/runtime/backend-core-adapters.test.ts` -- Adapter tests
+- `src/nest/runtime/logging.middleware.test.ts` -- Logging middleware tests
+- `src/nest/runtime/host-services.test.ts` -- Host services tests
+- `src/nest/runtime/governance-composition.test.ts` -- Governance composition tests
+- `src/nest/runtime/import-boundary.test.ts` -- Import boundary enforcement tests
+- `src/nest/gateway/gateway.schemas.test.ts` -- Gateway schema validation tests
+- `src/nest/gateway/candidate-review.controller.test.ts` -- Candidate review controller tests
+- `src/nest/config/import-boundary.test.ts` -- Config import boundary tests
+- `src/nest/candidate-ingestion/candidate-processing.service.test.ts` -- Candidate processing tests
+- `src/nest/governance-review/governance-review.module.test.ts` -- Governance review module tests
+- `src/nest/job-runtime/job-runtime-worker.service.test.ts` -- Job runtime worker tests
+- `src/nest/service-discovery/consul.service.test.ts` -- Consul service tests
+- `src/nest/observability/prometheus.service.test.ts` -- Prometheus service tests
+- `src/nest/observability/metrics-port.adapter.test.ts` -- Metrics adapter tests
+- `src/nest/observability/observability-chain.test.ts` -- Observability chain tests
+- `src/nest/health/health.controller.test.ts` -- Health controller tests
+- `src/nest/lifecycle/lifecycle-manager.service.test.ts` -- Lifecycle manager tests
+- `src/nest/adapters/adapter-factory.test.ts` -- Adapter factory tests

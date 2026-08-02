@@ -1,119 +1,332 @@
+
 # @trapmap/service-knowledge-write
 
-宿主组件共享的知识写入服务模块。
+Authoritative write-side service for the TrapMap knowledge system. Owns knowledge entries, traps, skill artifacts, evidence records, lifecycle rules, and the canonical label catalog.
 
-## 边界归属
+## Boundary Ownership
 
-`knowledge-write` 拥有知识写入模型、最终聚合变更和生命周期规则。它接受来自 `governance-review`（审查/维护/衰减决策）和 `candidate-ingestion`（候选发布）的委托调用。
+`knowledge-write` owns the knowledge write model, final aggregate mutations, and lifecycle rules. It accepts delegated calls from `governance-review` (review/maintenance/decay decisions) and `candidate-ingestion` (candidate publishing).
 
-- **数据归属**：`knowledge-aggregate`、`knowledge-lifecycle`、`trap-aggregate`、`evidence-record`、`knowledge-revision`、`lifecycle-event`
-- **投影归属**：无（读侧投影由 `knowledge-read` 拥有）
-- **不拥有**：`governance-command-flow`、`review-queue`、`feedback-record`、`candidate-ingestion-workflow`、`retrieval-read-projection`
+- **Data ownership**: `knowledge-aggregate`, `knowledge-lifecycle`, `trap-aggregate`, `evidence-record`, `knowledge-revision`, `lifecycle-event`, `skill_artifacts`, `artifact_revisions`, `artifact_lifecycle_events`, `skill_artifact_files`, canonical label catalog (`canonical_labels`, `label_aliases`, `label_alignment_events`)
+- **Projection ownership**: none (read-side projections owned by `knowledge-read`)
+- **Does not own**: `governance-command-flow`, `review-queue`, `feedback-record`, `candidate-ingestion-workflow`, `retrieval-read-projection`
 
-### 同步边界
+### Sync boundary
 
-`knowledge-write` 拥有最终聚合变更、生命周期规则和权威写入真相。它不拥有治理命令流判断本身。更改知识生命周期状态的唯一权威路径是通过本服务。
+`knowledge-write` owns final aggregate mutation, lifecycle rules, and authoritative write truth. It does not own governance command flow judgment itself. The only authoritative path to change knowledge lifecycle state is through this service.
 
-### 异步边界
+### Async boundary
 
-聚合变更后的后续操作（检索投影刷新、工件/技能后续处理、出站事件分发）进入出站队列/工作流作为异步后续处理，永不返回同步命令路径。`job-runtime` 拥有队列/出站/工作流传输。`knowledge-write` 负责触发权威写入侧事件；下游消费者读取具名事件/任务类型，而非依赖隐式副作用。
+Follow-up actions after aggregate mutation (retrieval projection refresh, artifact/skill follow-up, outbox event dispatch) enter outbox/queue/workflow as async follow-up and never return to the synchronous command path. `job-runtime` owns queue/outbox/workflow transport. `knowledge-write` is responsible for emitting authoritative write-side events; downstream consumers read named event/task types rather than relying on implicit side effects.
 
-## 命令表
+## Public API
 
-`knowledge-write` 暴露的完整命令表：
+### Entry point
 
-- `submit` - 新知识条目
-- `updateEntry` - 内容/标签更新
-- `resubmit` - 重新提交流程
-- `supersede` - 替换式废弃
-- `createTrap` - 创建陷阱聚合
-- `approveReviewDecision` - 委托自 `governance-review`
-- `rejectReviewDecision` - 委托自 `governance-review`
-- `applyMaintenanceDecision` - 委托自 `governance-review`
-- `applyDecayDecision` - 委托自 `governance-review`
-- `publishCandidateResult` - 委托自 `candidate-ingestion`
-- `listTraps` / `getTrap` - 陷阱查询（同步，本地于所有者）
+```ts
+import {
+  createKnowledgeWriteServer,
+  createKnowledgeWriteDeps,
+  runKnowledgeWriteMigrations,
+  registerKnowledgeWriteRoutes,
+  registerArtifactRoutes,
+} from '@trapmap/service-knowledge-write';
+```
 
-所有委托命令通过 `KnowledgeWritePort` 进入。不允许路由级或仓库级绕过。
+Secondary entry for graph alignment:
 
-## RPC 端点
+```ts
+import { alignGraphNodes, rewriteEdgeIds } from '@trapmap/service-knowledge-write/labels/graph-align.js';
+```
+
+### Key exports
+
+| Export | Description |
+|---|---|
+| `createKnowledgeWriteServer` | Create a Fastify server with all knowledge-write and artifact routes |
+| `createKnowledgeWriteDeps` | Compose dependency adapters from `KnowledgeWritePortDeps` |
+| `createKnowledgeWriteServiceModule` | Create the `KnowledgeWritePort` implementation from deps |
+| `registerKnowledgeWriteRoutes` | Register knowledge-write HTTP routes on an existing Fastify instance |
+| `registerArtifactRoutes` | Register artifact HTTP routes on an existing Fastify instance |
+| `runKnowledgeWriteMigrations` | Run Drizzle migrations for knowledge-write-owned tables |
+| `assertKnowledgeWriteMigrationSet` | Verify the migration set is complete |
+| `createKnowledgeWriteOwnerBundle` | Create the full PostgreSQL-backed owner bundle (knowledge owner + artifact ports) |
+| `createKnowledgeWriteOutboxDiagnostics` | Create outbox status diagnostics for operator visibility |
+| `createArtifactReadProjection` | Create the artifact read projection from a pg Pool |
+| `createArtifactWritePort` | Create the artifact write port from a pg Pool |
+| `createArtifactBundleImportPort` | Create the artifact bundle import port from a pg Pool |
+| `createArtifactFilePayloadOwner` | Create the artifact file payload store from a pg Pool |
+| `createArtifactSnapshotOwner` | Create the legacy artifact snapshot owner for Wave-9 backfill |
+| `createKnowledgeSnapshotOwner` | Create the legacy knowledge snapshot owner for Task-9 backfill |
+| `migrateLegacySkillArtifacts` | Run Wave-9 artifact backfill migration |
+| `migrateArtifactFilePayloads` | Run artifact file payload backfill |
+| `migrateKnowledgeSnapshot` | Run knowledge snapshot backfill |
+| `backfillLabels` | Backfill the canonical label catalog from historical data |
+| `alignLabel` | LLM-powered label alignment against the canonical catalog |
+| `repairGraphDocuments` | Repair graph documents after a label merge |
+| `PgLabelRepository` | PostgreSQL-backed canonical label repository |
+| `createLabelReadProjection` | Create the label read projection |
+| `alignGraphNodes` | Align raw extracted graph nodes against the canonical label catalog |
+| `rewriteEdgeIds` | Rewrite edge node IDs using an alignment mapping |
+
+### Types
+
+| Type | Description |
+|---|---|
+| `KnowledgeWriteServiceConfig` | Server config: `host`, `port`, `logLevel` |
+| `KnowledgeWriteServer` | Server handle with `app`, `module`, `start()`, `close()` |
+| `KnowledgeWriteDeps` | Dependencies for the write module |
+| `KnowledgeWritePortDeps` | Port-level dependency shape for composing deps |
+| `KnowledgeWriteOwnerBundle` | Full PostgreSQL owner bundle (knowledge owner + artifact ports) |
+| `KnowledgeWriteOutboxDiagnostics` | Outbox status snapshot interface |
+| `ArtifactWritePort` | Artifact write operations interface |
+| `ArtifactBundleImportPort` | Artifact bundle import interface |
+| `ArtifactFilePayloadOwner` | Artifact file payload get/put interface |
+| `ArtifactReadProjection` | Artifact read projection interface |
+| `BackfillOptions` / `BackfillReport` | Label backfill configuration and result |
+| `LabelRepository` / `CanonicalLabelRecord` / `LabelAliasRecord` | Canonical label catalog types |
+| `LabelAlignmentResult` | LLM label alignment result |
+| `MergeRepairOptions` / `MergeRepairReport` | Graph document merge repair config and result |
+
+## HTTP Endpoints
+
+### Knowledge write
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/internal/knowledge` | Submit a new knowledge entry |
+| `PUT` | `/internal/knowledge/:entryId` | Update entry content/labels |
+| `POST` | `/internal/knowledge/:entryId/resubmit` | Resubmit entry for review |
+| `POST` | `/internal/knowledge/:entryId/supersede` | Supersede entry with replacement |
+| `GET` | `/internal/knowledge/:entryId/conflict-candidates` | List approved conflict candidates |
+
+### Review / maintenance / decay
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/internal/knowledge/review/approve` | Approve a review decision |
+| `POST` | `/internal/knowledge/review/reject` | Reject a review decision |
+| `POST` | `/internal/knowledge/maintenance` | Apply maintenance decision |
+| `POST` | `/internal/knowledge/decay` | Apply decay decision |
+| `POST` | `/internal/candidates/publish` | Publish candidate result |
+
+### Traps
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/internal/traps` | Create a trap aggregate |
+| `GET` | `/internal/traps` | List traps (optional `teamId` query) |
+| `GET` | `/internal/traps/:trapId` | Get trap by ID |
+
+### Artifacts
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/internal/artifacts/import` | Import artifact bundles |
+| `POST` | `/internal/artifacts/export` | Export artifacts |
+| `GET` | `/internal/artifacts/review-queue` | List submitted artifacts awaiting review |
+| `GET` | `/internal/artifacts/:artifactId` | Get artifact by ID |
+| `POST` | `/internal/artifacts/:artifactId/lifecycle` | Update artifact lifecycle state |
+| `POST` | `/internal/artifacts/:artifactId/edit` | Edit artifact metadata |
+| `GET` | `/internal/artifacts/:artifactId/history` | Get artifact revision history |
+| `POST` | `/internal/artifacts/:artifactId/review` | Approve or reject artifact |
+| `POST` | `/internal/artifacts/activate` | Activate artifact |
+| `POST` | `/internal/artifacts/:artifactId/deactivate` | Deactivate artifact |
+
+### RPC endpoint
 
 `POST /internal/rpc/knowledge-write`
 
-统一的 RPC 端点，供跨进程调用方以单一 HTTP 入口调用 `knowledge-write` 的委托命令。请求体包含 `method` 字段指定命令名，以及 `input` 字段传递该命令的参数。
+Unified RPC endpoint for cross-process callers to invoke delegated commands via a single HTTP entry point. Request body contains `method` and `input` fields.
 
-**支持的 method 值：**
-
-| method | 说明 |
+| method | Description |
 |---|---|
-| `approveReviewDecision` | 批准审查决策 |
-| `rejectReviewDecision` | 驳回审查决策 |
-| `applyMaintenanceDecision` | 执行维护决策 |
-| `applyDecayDecision` | 执行衰减决策 |
-| `publishCandidateResult` | 发布候选结果 |
+| `approveReviewDecision` | Approve review decision |
+| `rejectReviewDecision` | Reject review decision |
+| `applyMaintenanceDecision` | Apply maintenance decision |
+| `applyDecayDecision` | Apply decay decision |
+| `publishCandidateResult` | Publish candidate result |
 
-**请求体示例：**
+### Health / readiness / ownership
 
-```json
-{
-  "method": "approveReviewDecision",
-  "input": {
-    "entryId": "...",
-    "actorId": "...",
-    "note": "审查通过",
-    "evidence": {}
-  }
-}
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/internal/health` | Liveness with owner claim and delegation sources |
+| `GET` | `/internal/live` | Dependency-free liveness probe |
+| `GET` | `/internal/readiness` | Persistence reachability, `aggregateMutationAuthority`, `lifecycleRuleAuthority` |
+| `GET` | `/internal/ready` | Alias for `/internal/readiness` |
+| `GET` | `/internal/ownership` | Full static ownership declaration |
+| `GET` | `/internal/operator-status` | Pool health, outbox diagnostics, timeout/idempotency diagnostics |
+
+## Usage
+
+### Standalone server
+
+```ts
+import { createKnowledgeWriteServer, createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';
+import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
+import { Pool } from 'pg';
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const bundle = createKnowledgeWriteOwnerBundle(pool);
+
+const server = await createKnowledgeWriteServer(
+  { host: '0.0.0.0', port: 3100, logLevel: 'info' },
+  createKnowledgeWriteDeps({
+    knowledgeOwner: bundle.knowledgeOwner,
+    auditLog: { log: () => {} },
+    artifactWriter: bundle.artifactWriter,
+    artifactReadProjection: bundle.artifactReadProjection,
+    artifactBundleImporter: bundle.artifactBundleImporter,
+  }),
+);
+
+await server.start();
 ```
 
-**成功响应**：`200 { "ok": true, "result": ... }`
+### Embedding in an existing Fastify app
 
-**错误响应**：遵循与其他端点一致的 `InvocationError` 映射（参见"失败语义"部分）。
+```ts
+import { registerKnowledgeWriteRoutes, createKnowledgeWriteServiceModule } from '@trapmap/service-knowledge-write';
 
-## 失败语义
+const module = createKnowledgeWriteServiceModule(deps);
+registerKnowledgeWriteRoutes(app, module, {
+  checkDependency: async () => ({ reachable: true }),
+  getOperatorStatus: async () => ({ /* custom diagnostics */ }),
+});
+```
 
-## Async capability boundary
+### Running migrations
 
-`knowledge-write` 在 authoritative transaction 内追加本地 outbox event，但 queue/outbox 的 claim、complete、fail、requeue、retry 与 dead-letter runtime 操作归 `job-runtime`。operator status 只暴露只读 snapshot；服务不得从该诊断能力获得 runtime mutation capability。
+```ts
+import { runKnowledgeWriteMigrations } from '@trapmap/service-knowledge-write';
 
-`knowledge-write` 与所有其他所有者共享相同的 `InvocationError` 分类体系。HTTP 状态码映射如下：
+await runKnowledgeWriteMigrations(pool);
+```
 
-- `403 forbidden` - 执行者缺少此写入权限
-- `404 not-found` - 目标条目/陷阱/候选不存在或无法定位权威聚合
-- `409 conflict` - 状态冲突、重复应用或生命周期前置条件未满足
-- `503 unavailable` - 服务或关键持久化依赖当前不可用
-- `504 timeout` - 保留给跨所有者调用方解释调用超时；`knowledge-write` 本身很少抛出此错误
-- `401` 仍为网关/认证传输层关注点
+### Graph node alignment
 
-幂等性：同一治理/候选命令对 `knowledge-write` 的重复执行必须产生相同的聚合变更结果。出站重试重放相同的权威事件，永不计算第二次聚合变更。死信操作者动作要么重新排队/重放，要么声明事件过期。
+```ts
+import { alignGraphNodes, rewriteEdgeIds } from '@trapmap/service-knowledge-write/labels/graph-align.js';
 
-## 健康 / 就绪 / 归属端点
+const { nodes, nodeIdMapping } = await alignGraphNodes(rawNodes, {
+  chat: chatProvider,
+  repository: labelRepository,
+  embeddings: embeddingsProvider,
+});
+const alignedEdges = rewriteEdgeIds(rawEdges, nodeIdMapping);
+```
 
-- `GET /internal/health` - 基本存活性，包含所有者声明和委托来源列表
-- `GET /internal/readiness` - 持久化可达性，报告 `aggregateMutationAuthority: true`、`lifecycleRuleAuthority: true` 和 `followUpDisposition: 'outbox-queue-workflow-async'`
-- `GET /internal/live` / `GET /internal/ready` - 分别为无依赖 liveness 与 persistence readiness 的 service-level probe
-- `GET /internal/ownership` - 完整静态所有者声明（数据/投影归属、不拥有列表、命令表、接受委托来源列表）
-- `GET /internal/operator-status` - pool health、queue/outbox follow-up、timeout 与 idempotency 诊断；异步运行时仍由 `job-runtime` 解释
+## Command Surface
 
-操作可见性目标：
+The full command surface exposed by `knowledge-write`:
 
-- **最终写入完成但后续未收敛**：通过本服务的就绪状态和 job-runtime 队列/出站快照可见
-- **陈旧处理/回收**：解释为 `job-runtime` 运行时所有者行为，而非 `knowledge-write` 业务语义漂移
+| Command | Source |
+|---|---|
+| `submit` | Direct |
+| `updateEntry` | Direct |
+| `resubmit` | Direct |
+| `supersede` | Direct |
+| `createTrap` | Direct |
+| `approveReviewDecision` | Delegated from `governance-review` |
+| `rejectReviewDecision` | Delegated from `governance-review` |
+| `applyMaintenanceDecision` | Delegated from `governance-review` |
+| `applyDecayDecision` | Delegated from `governance-review` |
+| `publishCandidateResult` | Delegated from `candidate-ingestion` |
+| `listTraps` / `getTrap` | Direct (sync, local to owner) |
 
-## 兼容性 / 委托例外
+All delegated commands enter through `KnowledgeWritePort`. No route-level or repository-level bypass is allowed.
 
-- **共享 PostgreSQL（过渡期）**：继续与其他服务共享 PostgreSQL 实例，但具有显式模式/表所有者。`knowledge-write` 权威拥有知识/陷阱/证据/生命周期表。
-- **具名查询接缝**：读侧消费者（`knowledge-read`、操作投影）通过具名投影接缝或派生搜索索引读取；它们不通过直接写入知识表来绕过 `knowledge-write`。
+## Failure Semantics
 
-## 验证
+`knowledge-write` shares the same `InvocationError` classification as all other owners. HTTP status mapping:
 
-- `rtk pnpm test:distributed-acceptance` - 验证多进程委托、错误映射和请求/追踪传播
-- `rtk pnpm --filter @trapmap/service-knowledge-write test --run` - 路由级命令和失败语义
-- `rtk pnpm typecheck`
+| Status | Meaning |
+|---|---|
+| `403` | Actor lacks write permission |
+| `404` | Target entry/trap/candidate not found or cannot locate authoritative aggregate |
+| `409` | State conflict, duplicate application, or lifecycle precondition not met |
+| `503` | Service or critical persistence dependency unavailable |
+| `504` | Reserved for cross-owner caller timeout interpretation |
 
-## 相关文档
+Idempotency: Repeated execution of the same governance/candidate command against `knowledge-write` must produce identical aggregate mutation results. Outbound retries replay the same authoritative events and never compute a second aggregate mutation.
 
-- 试点计划：[`docs/archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-pilot.md`](../../docs/archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-pilot.md)
-- 迁移任务列表：[`docs/archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md`](../../docs/archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md)
-- 成熟度评估：[`docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md`](../../docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md)
-- 真相来源：[`docs/reference/SYSTEM_TRUTH_SOURCES.md`](../../docs/reference/SYSTEM_TRUTH_SOURCES.md)
+## Async Capability Boundary
+
+`knowledge-write` appends local outbox events within the authoritative transaction, but queue/outbox claim, complete, fail, requeue, retry, and dead-letter runtime operations belong to `job-runtime`. Operator status exposes read-only snapshots only; the service must not gain runtime mutation capability from that diagnostic surface.
+
+## Dependencies
+
+### TrapMap workspace packages
+
+| Package | Usage |
+|---|---|
+| `@trapmap/backend-core` | `KnowledgeWritePort` interface, `InvocationError`, `createKnowledgeWriteModule`, `assertOwnerMigrationSet` |
+| `@trapmap/contracts` | Shared types (`KnowledgeOwnerPort`, `ArtifactReadProjection`, lifecycle states, artifact schemas, label types) |
+| `@trapmap/persistence-schema` | Drizzle schema definitions (re-exported via `schema.ts`) |
+| `@trapmap/ai-providers` | `ChatProvider`, `EmbeddingsProvider` for LLM label alignment (used by `labels/` subpackage) |
+
+### External dependencies
+
+| Package | Usage |
+|---|---|
+| `fastify` | HTTP server framework |
+| `drizzle-orm` | Database migration runner |
+| `pg` | PostgreSQL client |
+
+## Database Tables
+
+Knowledge-write owns the following tables:
+
+- `knowledge_entries` -- knowledge entry aggregates
+- `knowledge_labels` -- entry-to-label join table
+- `knowledge_revisions` -- entry revision history
+- `knowledge_submissions` -- submission history
+- `knowledge_review_decisions` -- reviewer decisions
+- `lifecycle_events` -- knowledge lifecycle event log
+- `skill_artifacts` -- skill artifact aggregates
+- `artifact_revisions` -- artifact revision history
+- `artifact_lifecycle_events` -- artifact lifecycle event log
+- `skill_artifact_files` -- artifact file payloads
+- `domain_event_outbox` -- outbound event outbox
+- `canonical_labels` -- canonical label catalog
+- `label_aliases` -- label alias mappings
+- `label_alignment_events` -- LLM alignment event log
+
+## Tests
+
+| File | Covers |
+|---|---|
+| `src/routes.test.ts` | Knowledge-write route registration and failure semantics |
+| `src/artifact-routes.test.ts` | Artifact route registration |
+| `src/artifact-ports.test.ts` | Artifact write port, read projection, bundle import |
+| `src/pg-ports.test.ts` | `createKnowledgeWriteOwnerBundle`, outbox diagnostics |
+| `src/migrations.test.ts` | Migration assertion |
+| `src/knowledge-snapshot-backfill.test.ts` | Knowledge snapshot backfill |
+| `src/knowledge-snapshot-owner.test.ts` | Knowledge snapshot owner |
+| `src/wave9-artifact-backfill.test.ts` | Wave-9 artifact backfill |
+| `src/wave9-artifact-payload-backfill.test.ts` | Artifact file payload backfill |
+| `src/wave9-artifact-snapshot-owner.test.ts` | Artifact snapshot owner |
+| `src/labels/backfill.test.ts` | Label backfill |
+| `src/labels/candidate-recall.test.ts` | Candidate recall |
+| `src/labels/llm-align.test.ts` | LLM label alignment |
+| `src/labels/merge-repair.test.ts` | Graph document merge repair |
+| `src/labels/repository.test.ts` | Label repository |
+
+Run tests:
+
+```bash
+pnpm --filter @trapmap/service-knowledge-write test
+```
+
+## Compatibility Notes
+
+- **Shared PostgreSQL (transitional)**: Continues to share a PostgreSQL instance with other services but has explicit schema/table ownership. `knowledge-write` authoritatively owns knowledge/trap/evidence/lifecycle/artifact/label tables.
+- **Named query seams**: Read-side consumers (`knowledge-read`, operational projections) read through named projection seams or derived search indexes; they do not bypass `knowledge-write` by directly writing to knowledge tables.
+
+## Related Documentation
+
+- Pilot plan: `docs/archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-pilot.md`
+- Migration tasklist: `docs/archived/archived-plans/nestjs-service-evolution-knowledge-write-governance-review-migration-tasklist.md`
+- Maturity assessment: `docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md`
+- Truth sources: `docs/reference/SYSTEM_TRUTH_SOURCES.md`
