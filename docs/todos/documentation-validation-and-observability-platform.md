@@ -6,26 +6,29 @@
 > **根入口：** [`../../plan.md`](../../plan.md)  
 > **设计规格：** [`../superpowers/specs/2026-08-01-documentation-validation-and-observability-platform-design.md`](../superpowers/specs/2026-08-01-documentation-validation-and-observability-platform-design.md)
 
-**Goal:** 建立 source-aware 文档校验、可导出的 OTel 信号和可选 Sentry 异常智能层，使文档、配置、运行时与运维事实可长期一致维护。
+**Goal:** 建立 source-aware 文档校验、可导出的 OTel 信号、完整接线的 Sentry 异常智能层和可选 Langfuse LLM/eval 观测，使文档、配置、运行时与运维事实可长期一致维护。
 
-**Architecture:** 文档守卫以仓库源码生成或验证事实，active docs 仅引用可解析的权威路径。`host-local` 与 `host-distributed` 负责 OTel、Prometheus 和 Sentry SDK 接线；`contracts` 定义关联/脱敏契约，`backend-core` 仅消费 telemetry ports。Sentry 是 opt-in error-intelligence adapter，不复制全量 trace 或 metrics。
+**Architecture:** 文档守卫以仓库源码生成或验证事实，active docs 仅引用可解析的权威路径。`host-local` 与 `host-distributed` 负责 OTel、Prometheus 和 Sentry 接线；实际创建 AI provider 的 host composition root 负责运行时 Langfuse SDK，eval platform adapter 负责 Langfuse 的显式 suite 镜像。`contracts` 定义关联/脱敏/config policy，`ai-providers` 仅提供无 vendor SDK 的可观测包装接缝，`backend-core` 与领域/service 包仅消费 ports/provider interface。Sentry 不复制全量 trace/metrics；Langfuse 不参与 eval 判定，也不构成第二条 trace/metrics 管线。
 
-**Tech Stack:** TypeScript, Zod, Vitest, Fastify, NestJS, OpenTelemetry, prom-client, `@sentry/node`, GitHub Actions, markdownlint.
+**Tech Stack:** TypeScript, Zod, Vitest, Fastify, NestJS, OpenTelemetry, prom-client, `@sentry/node`, `langfuse`, GitHub Actions, markdownlint.
 
 ## 任务背景
 
-当前文档体系已有 phrase/regex drift、目录结构、Markdown、Mermaid 和链接检查，但 active 文档仍可把已退役的 `packages/server` 写成现行权威来源；链接检查也被 CI 的 `|| true` 放行。当前 OTel 已有宿主 bootstrap、distributed HTTP span 和 Prometheus endpoint，但 host-local 请求指标尚未绑定真实请求生命周期，distributed internal-hop 指标仍只保留进程内 snapshot，配置行为与文档并不完全一致。仓库尚未接入 Sentry。
+当前文档体系已有 phrase/regex drift、目录结构、Markdown、Mermaid 和链接检查，但 active 文档仍可把已退役的 `packages/server` 写成现行权威来源；链接检查也被 CI 的 `|| true` 放行。当前 OTel 已有宿主 bootstrap、distributed HTTP span 和 Prometheus endpoint，但 host-local 请求指标尚未绑定真实请求生命周期，distributed internal-hop 指标仍只保留进程内 snapshot，配置行为与文档并不完全一致。
+
+Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host-local` 已注册 module/service，`host-distributed` 已有 adapter，且两侧都有脱敏与 no-op 测试。主线要补的是 composition root 的可达性：local 全局 exception filter、distributed 服务启动/关闭、异步终态失败和本地 sanitized transport evidence。Langfuse 也不是从零开始：eval platform 已在显式 `--platform langfuse` 下镜像 run/case/score/assertion/trace-step，并保留 native TrapMap JSON report 为判定事实；但产品运行时的 `ChatProvider`/`EmbeddingsProvider` 尚无 generation/embedding observation，也没有可复用的配置、脱敏和 OTel correlation policy。
 
 本主线不把外部 observability backend 宣称为仓库默认运行时。它先修复“事实是否真实”和“信号是否真正产生”，再接入异常聚合和运营闭环。
 
 ## 全局约束
 
 - **长期维护优先：** 接受短期工作量膨胀，用于消除重复 truth source、重复 telemetry pipeline、无 owner 的 runtime seam 和无自动验证的文档事实；不得以短期省工保留已知漂移出口。
-- **避免伪平台化：** 不引入完整 Collector/LGTM/Sentry 部署资产、retention 平台、多集群路由或 dashboard-as-code 作为本主线完成条件。
-- **分层归属：** `contracts` 是 correlation/redaction/config schema 的唯一来源；`backend-core` 不依赖 OTel/Sentry SDK；SDK 只在 host composition root 初始化。
+- **避免伪平台化：** 不引入完整 Collector/LGTM/Sentry/Langfuse 部署资产、retention 平台、多集群路由或 dashboard-as-code 作为本主线完成条件。
+- **分层归属：** `contracts` 是 correlation/redaction/config schema 的唯一来源；`backend-core`、领域包和 service 包不依赖 OTel/Sentry/Langfuse SDK；SDK 只在 host composition root 或 eval platform adapter 初始化。
 - **安全优先：** 不上报 request body、prompt、知识正文、headers、cookies、token、password、session、access key 或原始敏感 query；所有新增出口在测试中证明脱敏。
 - **低基数：** Prometheus labels 只能使用有限枚举（method、status class、route family、service、profile、owner surface）；动态 ID 只允许进入受控 trace/log body。
-- **可降级：** `OTEL_DISABLED=true` 与缺失 `SENTRY_DSN` 必须 no-op；exporter/Sentry unavailable 不得让同步请求或异步业务失败。
+- **可降级：** `OTEL_DISABLED=true`、缺失 `SENTRY_DSN`、`LANGFUSE_ENABLED=false` 或 Langfuse 配置不完整必须 no-op；exporter、Sentry 或 Langfuse backend unavailable 不得让同步请求、异步业务或 eval 退出语义失败。
+- **Eval 判定：** native TrapMap JSON report 是唯一 eval truth source；Langfuse 只镜像明确启用的结果，不能改变 suite 通过/失败、重试或退出码，也不复制全量 OTel metrics。
 - **阶段门禁：** 每个 task 完成前必须完成对应 RED/GREEN、focused test、typecheck、doc guard 与文档回写；不得以模拟 signal 代替运行时信号。
 - **前置风险：** 已归档 compatibility-shell 主线仍保留 Wave-10 package retirement 未完成证据；本计划不得重新引用已退役 `packages/server`，若该遗留项阻塞本计划，单独从 debt register 重开 scoped mainline。
 
@@ -37,7 +40,8 @@
   -> 阻断 CI
   -> 共享 OTel policy
   -> HTTP/internal-hop/async/domain signals
-  -> Sentry privacy adapter
+  -> Sentry composition/error-boundary closeout
+  -> Langfuse runtime provider observation + eval mirror policy
   -> live closeout + SLO decision gates
 ```
 
@@ -50,12 +54,16 @@
 | `scripts/check-doc-truth.ts` | 比较 manifest 与 declared truth 文档。 |
 | `scripts/__tests__/check-doc-references.test.ts` | reference guard 正/反例。 |
 | `scripts/__tests__/extract-doc-truth.test.ts` | manifest extraction 与 malformed-source 回归。 |
-| `packages/contracts/src/domain/observability-config.ts` | OTel/Sentry 配置 schema 与关闭语义。 |
+| `packages/contracts/src/domain/observability-config.ts` | OTel/Sentry/Langfuse 配置、关联和关闭 policy。 |
 | `packages/contracts/src/domain/log-schema.ts` | 跨 exporter 的脱敏字段规则。 |
+| `packages/ai-providers/src/observability.ts` | 无 vendor SDK 的 `ChatProvider`/`EmbeddingsProvider` observation wrapping seam。 |
 | `packages/host-local/src/nest/observability/` | local OTel、metrics、Sentry 与 framework middleware。 |
+| `packages/host-local/src/nest/observability/langfuse.service.ts` | local Langfuse client、privacy filter 和 provider-observation sink。 |
 | `packages/host-distributed/src/shared/telemetry.ts` | distributed OTel bootstrap、context propagation 和 shutdown。 |
 | `packages/host-distributed/src/shared/observability.ts` | distributed metrics registry/export。 |
 | `packages/host-distributed/src/shared/sentry.ts` | distributed optional Sentry adapter。 |
+| `packages/host-distributed/src/shared/langfuse.ts` | distributed runtime Langfuse adapter；仅在该 host 创建 AI provider 时接线。 |
+| `evals/lib/platform/langfuse-adapter.ts` | 显式 Langfuse eval mirror，不能作为 eval 判定来源。 |
 | `docs/architecture/OBSERVABILITY.md` | 已实现能力、ownership 和非目标。 |
 | `docs/operations/ENVIRONMENT.md` | env/default/disabled/privacy semantics。 |
 | `docs/operations/OBSERVABILITY-OPERATIONS.md` | alert/runbook/SLO baseline instructions。 |
@@ -216,44 +224,71 @@
 - [ ] Run affected package tests, `rtk pnpm eval:smoke`, `rtk pnpm test:observability-closeout`, and `rtk pnpm typecheck`.
 - [ ] Commit: `feat(otel): add owner-level operational signals`.
 
-### Task 9: Optional Sentry Error-Intelligence Adapter
+### Task 9: Sentry Composition And Error-Intelligence Closeout
 
 **Files:**
-- Modify: `packages/host-local/package.json`, `packages/host-distributed/package.json`, `pnpm-lock.yaml`
-- Create: host-local and distributed Sentry adapter/configuration modules with focused tests
-- Modify: host composition roots, global error boundaries, and async terminal-failure handlers
-- Modify: `packages/contracts/src/domain/observability-config.ts`, `packages/contracts/src/domain/log-schema.ts`
+- Modify: `packages/contracts/src/domain/observability-config.ts`, `packages/contracts/src/domain/observability-config.test.ts`
+- Modify: `packages/host-local/src/nest/observability/sentry.service.ts`, `sentry.service.test.ts`, `sentry.module.ts`
+- Modify: `packages/host-local/src/nest/runtime/exception.filter.ts`, its test, and local async terminal-failure owners
+- Modify: `packages/host-distributed/src/shared/sentry.ts`, `sentry.test.ts`, each distributed service startup/shutdown composition root, and async terminal-failure owners
+- Modify: `packages/contracts/src/domain/log-schema.ts` and its test only where newly reachable event shapes require redaction coverage
 - Modify: `docs/operations/ENVIRONMENT.md`, `docs/operations/SECURITY.md`, `docs/architecture/OBSERVABILITY.md`
 
-**Consumes:** correlation/redaction policy and host-level exception boundaries.
+**Consumes:** existing Sentry policy/adapter tests, correlation/redaction policy, host composition roots, global exception boundaries, and async terminal-failure ownership.
 
-**Produces:** opt-in `@sentry/node` reporting for actionable errors, with deterministic privacy filtering and no domain dependency on Sentry.
+**Produces:** existing opt-in `@sentry/node` adapters are reachable from every required host lifecycle/error boundary, with deterministic privacy filtering and no domain dependency on Sentry.
 
-- [ ] Write RED tests for absent DSN no-op, enabled DSN initialization, capture of startup/unhandled/5xx/terminal async failures, and suppression of expected 4xx/auth/validation outcomes.
-- [ ] Define typed Sentry config: `enabled`, `dsn`, `environment`, `release`, `sampleRate`, `maxBreadcrumbs`, and `sendDefaultPii=false`; validate it at host boundaries.
-- [ ] Implement `beforeSend` that strips headers, cookies, request data, sensitive query parameters, prompt/knowledge content, and secrets recursively before transport.
-- [ ] Attach only safe tags/extras: service, environment, release, deployment profile, owner surface, failure classification, request ID, trace ID, and operation ID.
-- [ ] Ensure capture/transport failure is locally diagnosable but cannot affect the original request or job completion path.
-- [ ] Run focused Sentry tests, redaction tests, `rtk pnpm typecheck`, and affected host integration tests.
-- [ ] Commit: `feat(sentry): add optional sanitized error reporting`.
+- [ ] Preserve existing RED coverage for absent DSN no-op, enabled initialization, `beforeSend` recursive redaction, safe tags/extras, and suppression of expected 4xx/auth/validation outcomes; add RED integration tests proving the local global exception filter invokes `SentryService` only for actionable 5xx/unhandled errors.
+- [ ] Add RED lifecycle tests for every distributed executable composition root: it calls `initDistributedSentry(serviceName)` before serving traffic, calls `closeDistributedSentry()` on bounded shutdown, and never fails startup/shutdown when configuration or transport fails.
+- [ ] Add RED tests for startup failure, unhandled rejection, framework 5xx, and terminal async/job/outbox failure; assert they reach the existing adapter with service, environment, release, deployment profile, owner surface, failure classification, request ID, trace ID, and operation ID only.
+- [ ] Keep `validateSentryPolicy` as the sole Sentry configuration policy (`enabled`, `dsn`, `environment`, `release`, `sampleRate`, `maxBreadcrumbs`, `sendDefaultPii=false`); do not add a second config parser in hosts.
+- [ ] Ensure the existing `beforeSend` strips headers, cookies, request data, sensitive query parameters, prompt/knowledge content, credentials and nested secrets; extend tests only where a newly reachable boundary changes event shape.
+- [ ] Add an opt-in local transport harness that asserts the emitted event is sanitized. Capture/transport failure must create a safe local diagnostic but cannot alter original request or job completion.
+- [ ] Run focused Sentry and error-boundary tests, redaction tests, `rtk pnpm typecheck`, `rtk pnpm test:observability-closeout`, affected host integration tests, and `rtk pnpm test:distributed-closeout` when distributed composition roots change.
+- [ ] Commit: `feat(sentry): close host lifecycle and error-boundary reporting`.
 
-### Task 10: Operational Verification, CI, And Decision Gates
+### Task 10: Langfuse Runtime LLM And Eval Observation
+
+**Files:**
+- Modify: `packages/contracts/src/domain/observability-config.ts`, related contract tests, and `packages/contracts/src/index.ts` only if new exported policy types require aggregation
+- Create: `packages/ai-providers/src/observability.ts`, `observability.test.ts`; modify `types.ts`, `providers.ts`, and `index.ts` only for a vendor-neutral wrapping interface
+- Modify: `packages/host-local/src/nest/runtime/shared-infra.ts` and add/modify `packages/host-local/src/nest/observability/langfuse.service.ts` with focused tests
+- Modify: `packages/host-distributed/src/shared/langfuse.ts` and its tests only where a distributed composition root constructs AI providers; do not create a speculative distributed client otherwise
+- Modify: `evals/lib/platform/langfuse-adapter.ts`, `langfuse-config.ts`, their tests, and `evals/scripts/__tests__/eval-all.test.ts`
+- Modify: `docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md`, `docs/architecture/OBSERVABILITY.md`, `docs/operations/ENVIRONMENT.md`, `docs/operations/SECURITY.md`, and `docs/operations/TESTING.md`
+
+**Consumes:** `ChatProvider`/`EmbeddingsProvider`, host-local `createAiProviders(config.ai)` composition seam, existing explicit eval Langfuse mirror, OTel correlation context, and shared redaction policy.
+
+**Produces:** optional Langfuse generation/embedding observation at provider composition boundaries and explicit eval mirrors, correlated to OTel without allowing Langfuse to change business or eval behavior.
+
+- [x] Write RED contract tests for a Langfuse policy with `LANGFUSE_ENABLED=false`, missing `LANGFUSE_BASE_URL`/`LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY`, valid configuration, bounded flush timeout, and safe diagnostics that never print keys or endpoint credentials.
+- [x] Define one typed policy result in `observability-config.ts`: disabled/incomplete configuration returns a no-op sink; enabled configuration supplies only host/eval-owned SDK inputs, bounded flush behavior, service/environment/release metadata, and an explicit privacy mode. Reuse the eval adapter's existing environment names unless a tested compatibility alias is required.
+- [x] Write RED provider-wrapper tests: a successful and failed `ChatProvider` call and `EmbeddingsProvider` call emit provider, model, operation/task category, start/end/latency, outcome/error classification, available token counts, and OTel trace/request/operation correlation. Assert raw prompts, outputs, embedding vectors, request bodies, knowledge content, headers, credentials and dynamic IDs never leave the wrapper; use approved redacted metadata, hashes or lengths only.
+- [x] Implement the wrapper in `@trapmap/ai-providers` without importing `langfuse`: it must preserve the existing provider interfaces and result/error semantics exactly, invoke an injected best-effort observation sink after completion, and treat sink/flush failure as a safe diagnostic rather than a provider failure.
+- [x] Implement the Langfuse SDK sink in the host-local observability boundary, then wrap the providers returned by `createAiProviders(config.ai)` in `shared-infra.ts`. Apply the same pattern to a distributed host only after locating an actual distributed AI-provider composition root; service/domain call sites continue to consume `ChatProvider`/`EmbeddingsProvider` unchanged.
+- [x] Extend the existing eval Langfuse adapter tests to prove explicit `--platform langfuse` mirror failure is warning-only, native TrapMap JSON reports remain the sole pass/fail truth source, and mirrored metadata follows the same redaction/correlation policy where those fields are available.
+- [x] Add architecture-boundary coverage that rejects `langfuse` imports from `backend-core`, domain and service packages; run `rtk pnpm exec fallow audit --base main` whenever the wrapping/export boundary changes across packages.
+- [x] Run contract, ai-provider, host-local, eval-platform and affected distributed tests; run `rtk pnpm eval:smoke`, `rtk pnpm typecheck`, `rtk pnpm test:observability-closeout`, and a no-secret disabled-mode smoke.
+- [x] Commit: `feat(langfuse): observe runtime LLM and eval execution safely`.
+
+### Task 11: Operational Verification, CI, And Decision Gates
 
 **Files:**
 - Modify: `.github/workflows/ci.yml`, `scripts/run-ci.ts`, `package.json`
 - Modify: `docs/operations/OBSERVABILITY-VERIFICATION.md`, `OBSERVABILITY-OPERATIONS.md`, `REGRESSION-COMMANDS.md`, `TESTING.md`, `CI_CD.md`, `SECURITY.md`
-- Create: focused observability/Sentry live verification script or extend existing `scripts/observability-benchmark.ts` with no-secret modes
+- Create: focused observability/Sentry/Langfuse live verification script or extend existing `scripts/observability-benchmark.ts` with no-secret modes
 - Modify: this plan with actual closeout evidence
 
 **Consumes:** all prior guards and host signal paths.
 
 **Produces:** repeatable no-secret local verification, blocking CI, operator runbook, and explicitly deferred long-term platform decisions.
 
-- [ ] Add a verification flow that proves one request and one internal hop can be correlated through response headers, trace export seam, structured logs, and metrics without requiring a production Sentry DSN.
+- [ ] Add a verification flow that proves one request and one internal hop can be correlated through response headers, trace export seam, structured logs, and metrics without requiring a production Sentry DSN or Langfuse project.
 - [ ] Add an opt-in Sentry transport test harness that receives sanitized events locally; it must assert no raw sensitive payload appears.
+- [ ] Add an opt-in Langfuse client/test harness that proves a runtime chat call, embedding call and each explicit eval suite mirror have correlation metadata but no raw prompt/output/vector/content; backend/flush failure must be warning-only and native eval JSON must retain its original exit semantics.
 - [ ] Define baseline collection instructions for readiness availability, 5xx rate, P95 latency, internal-hop timeout, queue/outbox lag, projection freshness, and unresolved actionable error count.
 - [ ] Record that alert thresholds require at least three comparable environment baselines; do not encode speculative production SLO values as completed policy.
-- [ ] Run `rtk pnpm check:docs-drift`, `rtk pnpm check:doc-references`, `rtk pnpm check:docs-truth`, `rtk pnpm check:links`, `rtk pnpm check:structure`, `rtk pnpm check:md-lint`, `rtk pnpm check:mermaid`, `rtk pnpm typecheck`, `rtk pnpm test:observability-closeout`, `rtk pnpm test:distributed-closeout`, `rtk pnpm test:deployment-smoke`, and `rtk pnpm eval:smoke`.
+- [ ] Run `rtk pnpm check:docs-drift`, `rtk pnpm check:doc-references`, `rtk pnpm check:docs-truth`, `rtk pnpm check:links`, `rtk pnpm check:structure`, `rtk pnpm check:md-lint`, `rtk pnpm check:mermaid`, `rtk pnpm typecheck`, `rtk pnpm test:observability-closeout`, `rtk pnpm test:distributed-closeout`, `rtk pnpm test:deployment-smoke`, and `rtk pnpm eval:smoke`; when a Langfuse project is explicitly configured, also preserve the documented explicit `--platform langfuse` closeout evidence.
 - [ ] When cross-package imports change, run `rtk pnpm exec fallow audit --base main`; record any baseline limitation rather than weakening the boundary check.
 - [ ] Commit: `docs: close observability platform verification`.
 
@@ -263,7 +298,8 @@
 - [ ] Retired server source claims are absent from active documentation and present only in explicitly historical material.
 - [ ] OTel disabled/no-exporter behavior, sampling validation, graceful shutdown, and exporter failures are tested.
 - [ ] HTTP, internal-hop, async, and critical-domain signals originate from live code paths and maintain low-cardinality labels.
-- [ ] Sentry is optional, never imported by `backend-core`/domain packages, and its privacy filter has regression coverage.
+- [ ] Sentry is optional, fully reachable from required host lifecycle/error boundaries, never imported by `backend-core`/domain packages, and its privacy filter has regression coverage.
+- [ ] Langfuse is optional, is owned only by host/eval boundaries, observes runtime chat/embedding and explicit eval mirrors through vendor-neutral provider interfaces, preserves native JSON eval truth, and has redaction/correlation/failure-isolation regression coverage.
 - [ ] A telemetry outage cannot fail product behavior; documented diagnostics identify the owning host/service.
 - [ ] Operator documentation states implemented facts only and records long-term adoption gates for Collector, retention, dashboards, on-call/SLO policy, source maps, profiling, and service identity.
 - [ ] This plan is archived only after every completion gate has evidence and all deferred work has an explicit landing location.
