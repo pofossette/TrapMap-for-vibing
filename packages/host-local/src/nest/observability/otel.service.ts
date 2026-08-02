@@ -1,35 +1,47 @@
 import { Injectable, Logger, OnModuleInit, OnApplicationShutdown } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { validateOtelPolicy } from '@trapmap/contracts';
+import type { OtelPolicyResult } from '@trapmap/contracts';
+
+/**
+ * Maximum time (ms) to wait for OTel SDK shutdown before giving up.
+ * Prevents the process from hanging on unresponsive exporters.
+ */
+const SHUTDOWN_TIMEOUT_MS = 5_000;
 
 /**
  * OpenTelemetry bootstrap service.
  *
- * Starts the OTel SDK (traces + metrics) on module init and shuts it
- * down on application shutdown. The SDK is profile-aware:
- * - local-agent: console exporter (or noop if OTEL_DISABLED=true)
+ * Uses the shared {@link validateOtelPolicy} from @trapmap/contracts to
+ * produce identical validated configuration semantics as host-distributed.
+ *
+ * - disabled mode: no SDK loaded, no export work scheduled
+ * - local-agent profile: SDK starts with default console exporter; no OTLP
  * - team-monolith / distributed: OTLP exporter to Tempo/Prometheus
  */
 @Injectable()
 export class OtelService implements OnModuleInit, OnApplicationShutdown {
   private readonly logger = new Logger(OtelService.name);
-  private sdk: any = null;
+  private sdk: { shutdown(): Promise<void> } | null = null;
+  private policy: OtelPolicyResult | null = null;
 
   constructor(private readonly config: ConfigService) {}
 
   async onModuleInit() {
-    const disabled = this.config.get<string>('OTEL_DISABLED', 'false');
-    if (disabled === 'true') {
-      this.logger.log('OpenTelemetry disabled by configuration');
+    this.policy = validateOtelPolicy({
+      otelDisabled: this.config.get<string>('OTEL_DISABLED'),
+      sampleRate: this.config.get<string>('OTEL_SAMPLE_RATE'),
+      endpoint: this.config.get<string>('OTEL_EXPORTER_OTLP_ENDPOINT'),
+      serviceName: this.config.get<string>('SERVICE_NAME'),
+      serviceVersion: this.config.get<string>('npm_package_version'),
+      deploymentProfile: this.config.get<string>('TRAPMAP_DEPLOYMENT_PROFILE'),
+      environment: this.config.get<string>('NODE_ENV'),
+    });
+
+    if (!this.policy.enabled) {
+      this.logger.log(`OpenTelemetry disabled: ${this.policy.reason}`);
       return;
     }
-
-    const profile = this.config.get<string>('TRAPMAP_DEPLOYMENT_PROFILE', 'local-agent');
-    const endpoint = this.config.get<string>(
-      'OTEL_EXPORTER_OTLP_ENDPOINT',
-      'http://localhost:4318',
-    );
-    const serviceName = this.config.get<string>('SERVICE_NAME', 'trapmap');
-    const serviceVersion = this.config.get<string>('npm_package_version', '0.1.0');
 
     try {
       // Dynamic imports to avoid loading OTel when disabled
@@ -39,15 +51,21 @@ export class OtelService implements OnModuleInit, OnApplicationShutdown {
         ATTR_SERVICE_NAME,
         ATTR_SERVICE_VERSION,
       } = await import('@opentelemetry/semantic-conventions');
+      const { TraceIdRatioBasedSampler } = await import('@opentelemetry/sdk-trace-node');
 
       const resource = resourceFromAttributes({
-        [ATTR_SERVICE_NAME]: serviceName,
-        [ATTR_SERVICE_VERSION]: serviceVersion,
+        [ATTR_SERVICE_NAME]: this.policy.serviceName,
+        [ATTR_SERVICE_VERSION]: this.policy.serviceVersion,
+        'deployment.environment': this.policy.environment,
+        'trapmap.deployment_profile': this.policy.deploymentProfile,
       });
 
-      const sdkConfig: any = { resource };
+      const sdkConfig: Record<string, unknown> = {
+        resource,
+        sampler: new TraceIdRatioBasedSampler(this.policy.sampleRate),
+      };
 
-      if (profile !== 'local-agent') {
+      if (this.policy.deploymentProfile !== 'local-agent') {
         const { OTLPTraceExporter } = await import(
           '@opentelemetry/exporter-trace-otlp-http'
         );
@@ -59,11 +77,11 @@ export class OtelService implements OnModuleInit, OnApplicationShutdown {
         );
 
         sdkConfig.traceExporter = new OTLPTraceExporter({
-          url: `${endpoint}/v1/traces`,
+          url: `${this.policy.endpoint}/v1/traces`,
         });
 
         const metricExporter = new OTLPMetricExporter({
-          url: `${endpoint}/v1/metrics`,
+          url: `${this.policy.endpoint}/v1/metrics`,
         });
 
         sdkConfig.metricReader = new PeriodicExportingMetricReader({
@@ -74,20 +92,33 @@ export class OtelService implements OnModuleInit, OnApplicationShutdown {
 
       this.sdk = new NodeSDK(sdkConfig);
       this.sdk.start();
-      this.logger.log(`OpenTelemetry SDK started (profile: ${profile}, endpoint: ${endpoint})`);
+      this.logger.log(
+        `OpenTelemetry SDK started (profile: ${this.policy.deploymentProfile}, endpoint: ${this.policy.endpoint}, sampleRate: ${this.policy.sampleRate})`,
+      );
     } catch (err) {
-      this.logger.error(`Failed to start OpenTelemetry SDK: ${err}`);
+      this.logger.error(
+        `Failed to start OpenTelemetry SDK: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
   async onApplicationShutdown() {
-    if (this.sdk) {
-      try {
-        await this.sdk.shutdown();
-        this.logger.log('OpenTelemetry SDK shut down');
-      } catch (err) {
-        this.logger.warn(`OpenTelemetry SDK shutdown error: ${err}`);
-      }
+    if (!this.sdk) {
+      return;
+    }
+
+    try {
+      await Promise.race([
+        this.sdk.shutdown(),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('OTel shutdown timed out')), SHUTDOWN_TIMEOUT_MS),
+        ),
+      ]);
+      this.logger.log('OpenTelemetry SDK shut down');
+    } catch (err) {
+      this.logger.warn(
+        `OpenTelemetry SDK shutdown error: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 }
