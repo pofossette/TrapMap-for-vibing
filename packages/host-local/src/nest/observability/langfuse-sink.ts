@@ -22,7 +22,7 @@ import type {
 // Types
 // ---------------------------------------------------------------------------
 
-interface LangfuseClientLike {
+export interface LangfuseClientLike {
   generation(body: {
     name: string;
     model?: string;
@@ -116,7 +116,7 @@ export function createSinkFromClient(
           startTime: new Date(observation.startTimestamp),
           endTime: new Date(observation.endTimestamp),
           level: observation.outcome === 'error' ? 'ERROR' : 'DEFAULT',
-          statusMessage: observation.error,
+          ...(observation.error && { statusMessage: observation.error }),
         });
       } catch {
         // Sink failure is a safe diagnostic
@@ -148,7 +148,7 @@ export function createSinkFromClient(
           startTime: new Date(observation.startTimestamp),
           endTime: new Date(observation.endTimestamp),
           level: observation.outcome === 'error' ? 'ERROR' : 'DEFAULT',
-          statusMessage: observation.error,
+          ...(observation.error && { statusMessage: observation.error }),
         });
       } catch {
         // Sink failure is a safe diagnostic

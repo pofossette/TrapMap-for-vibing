@@ -106,9 +106,9 @@ export async function createHostLocalSharedInfra(
     const ctx = getCurrentRequestContext();
     if (!ctx) return undefined;
     return {
-      traceId: ctx.traceId ?? undefined,
-      requestId: ctx.requestId,
-      operationId: ctx.operationId,
+      ...(ctx.traceId ? { traceId: ctx.traceId } : {}),
+      ...(ctx.requestId ? { requestId: ctx.requestId } : {}),
+      ...(ctx.operationId ? { operationId: ctx.operationId } : {}),
     };
   };
 

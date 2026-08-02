@@ -25,16 +25,7 @@ import type {
   LlmObservationSink,
 } from '@trapmap/ai-providers';
 
-import { createSinkFromClient } from './langfuse-sink.js';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface LangfuseClientLike {
-  generation(body: Record<string, unknown>): { id: string };
-  shutdownAsync(): Promise<void>;
-}
+import { createSinkFromClient, type LangfuseClientLike } from './langfuse-sink.js';
 
 // ---------------------------------------------------------------------------
 // LangfuseService

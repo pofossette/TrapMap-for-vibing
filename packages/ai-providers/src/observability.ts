@@ -106,7 +106,14 @@ function resolveCorrelation(
   source?: ObservationCorrelationSource,
 ): ObservationCorrelationContext | undefined {
   if (!source) return undefined;
-  if (typeof source === 'function') return source();
+  if (typeof source === 'function') {
+    try {
+      return source();
+    } catch {
+      // Getter failure is a safe diagnostic; correlation is best-effort.
+      return undefined;
+    }
+  }
   return source;
 }
 

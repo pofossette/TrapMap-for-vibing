@@ -52,6 +52,9 @@
     "winston-loki": "^6.1.4",
     "zod": "^4.3.6"
   },
+  "optionalDependencies": {
+    "langfuse": "^3.38.20"
+  },
   "devDependencies": {
     "@nestjs/testing": "^11.1.27",
     "@types/node": "^25.6.0",
