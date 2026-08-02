@@ -173,7 +173,11 @@ function createGovernanceModule(
       calls.push(`review-approve:${input.entryId}`);
       return clients.knowledgeWrite
         .approveReviewDecision(input, {
-          headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' },
+          headers: {
+            'x-request-id': 'req-1',
+            'x-trace-id': 'trace-1',
+            'x-trapmap-actor-id': input.actorId,
+          },
         })
         .then((response) => response.body as { entryId: string; lifecycleState: 'approved' });
     }),
@@ -181,7 +185,11 @@ function createGovernanceModule(
       calls.push(`review-reject:${input.entryId}`);
       return clients.knowledgeWrite
         .rejectReviewDecision(input, {
-          headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' },
+          headers: {
+            'x-request-id': 'req-1',
+            'x-trace-id': 'trace-1',
+            'x-trapmap-actor-id': input.actorId,
+          },
         })
         .then((response) => response.body as { entryId: string; lifecycleState: 'rejected' });
     }),
@@ -189,7 +197,11 @@ function createGovernanceModule(
       calls.push(`review-maintenance:${input.entryId}`);
       return clients.knowledgeWrite
         .applyMaintenanceDecision(input, {
-          headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' },
+          headers: {
+            'x-request-id': 'req-1',
+            'x-trace-id': 'trace-1',
+            'x-trapmap-actor-id': input.actorId,
+          },
         })
         .then((response) => response.body as { entryId: string; action: string });
     }),
@@ -197,7 +209,11 @@ function createGovernanceModule(
       calls.push(`review-decay:${input.entryId}`);
       return clients.knowledgeWrite
         .applyDecayDecision(input, {
-          headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' },
+          headers: {
+            'x-request-id': 'req-1',
+            'x-trace-id': 'trace-1',
+            'x-trapmap-actor-id': input.actorId,
+          },
         })
         .then((response) => response.body as { entryId: string; action: string });
     }),
