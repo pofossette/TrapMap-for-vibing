@@ -6,7 +6,7 @@
 
 | 文件 | 归档日期 | 归档原因 |
 |------|----------|----------|
-| `retrieval-structure-adjustment.md` | 2026-05-06 | v1.x 早期检索架构调整决策背景，已整合入主架构文档 `docs/architecture/RETRIEVAL.md` |
+| `retrieval-structure-adjustment.md` | 2026-05-06 | v1.x 早期检索架构调整决策背景，已整合入主架构文档 `docs/architecture/components/RETRIEVAL.md` |
 | `archived-plans/plan.md` | 2026-05-06 | 短期库化改造计划，已过时 |
 | `archived-plans/plan-2026-05-28-doc-drift-audit-and-alignment-active-root.md` | 2026-05-28 | 旧根 `plan.md`，已由目录结构治理计划替代 |
 | `archived-plans/plan-2026-05-29-directory-structure-governance.md` | 2026-05-29 | 旧根目录结构治理计划，根 `plan.md` 现只保留 FM-agent 扫描修复索引 |
