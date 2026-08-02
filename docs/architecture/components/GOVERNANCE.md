@@ -272,7 +272,7 @@ async function getAccessibleEntries(userId: EntityId): Promise<EntityId[]> {
 
 ---
 
-## 审计日志 (Audit Logging)
+## 审计日志 Audit Logging
 
 ### 审计事件类型
 

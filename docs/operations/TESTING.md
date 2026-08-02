@@ -696,7 +696,7 @@ pnpm check:links
 - `/ready` 在 `readiness === "not-ready"` 时应返回 HTTP `503`
 - PostgreSQL 模式下，`queueWorker` 和 `outboxWorker` 都应纳入 readiness 解释
 - 如果更改了 runtime doc contract，需要同步更新 `SYSTEM_TRUTH_SOURCES.md` 与 `scripts/complexity-budgets.json` 中对应的 docRules
-- 如果更改了统一 instrumentation contract，需要同步更新 `SYSTEM_TRUTH_SOURCES.md`、`docs/todos/instrumentation-observability-plan.md` 和相关 architecture/reference 文档；其中 `observability.ts` 必须继续作为 correlation key / workflow correlation / failure taxonomy / public-internal 边界的唯一共享入口
+- 如果更改了统一 instrumentation contract，需要同步更新 `SYSTEM_TRUTH_SOURCES.md`、`docs/archived/archived-plans/instrumentation-observability-plan.md` 和相关 architecture/reference 文档；其中 `observability.ts` 必须继续作为 correlation key / workflow correlation / failure taxonomy / public-internal 边界的唯一共享入口
 
 ### 按变更类型的验证矩阵
 
@@ -1157,14 +1157,12 @@ TRAPMAP_POSTGRES_COORDINATOR_URL=postgresql://trapmap:test@localhost:5432/postgr
 
 | 模块 | 测试文件 | 说明 |
 |------|----------|------|
-| Feedback | `src/lib/feedback/pg-repository.test.ts` | 反馈 CRUD、过滤、约束验证 |
-| Usage Analytics | `src/lib/analytics/pg-repository.test.ts` | 使用统计写入、查询、归档 |
-| Candidates | `src/lib/candidates/pg-repository.test.ts` | 候选提交、分析、判重 |
-| Duplicates | `src/lib/duplicates/repository.test.ts` | 重复检测 |
-| Keyword Recall | `src/lib/retrieval/recall/pg-keyword.test.ts` | 关键词检索：text[] 重叠匹配、字段权重评分、GIN 索引验证 |
-| Knowledge PG | `src/lib/knowledge/pg-repository.test.ts` | 知识条目 CRUD、标签过滤、约束验证 |
-| Task Queue | `src/lib/queue/task-queue.test.ts` | 持久化任务队列：入队、出队、重试、死信队列 |
-| Subscribers | `src/lib/lifecycle/subscribers/subscribers-integration.test.ts` | Outbox 事件驱动：索引同步、审计日志、冲突检测 |
+| Feedback | `packages/service-governance-review/src/pg-ports.test.ts` | 反馈 CRUD、过滤、约束验证 |
+| Governance Review | `packages/service-governance-review/src/routes.test.ts` | 治理审核路由集成测试 |
+| Candidates | `packages/service-candidate-ingestion/src/` | 候选提交、分析、判重 |
+| Knowledge Write | `packages/service-knowledge-write/src/` | 知识条目 CRUD、标签过滤、约束验证 |
+| Task Queue | `packages/contracts/src/domain/task-queue.test.ts` | 持久化任务队列：入队、出队、重试、死信队列 |
+| Lifecycle | `packages/host-local/src/nest/lifecycle/lifecycle-manager.service.test.ts` | 生命周期管理器集成测试 |
 
 ---
 
@@ -1380,7 +1378,7 @@ ORDER BY confidence ASC;
 
 ---
 
-## 运维验证序列 (Phase 5)
+## 运维验证序列 Phase 5 Operations
 
 Phase 5 为运维操作员暴露了 capsule-index CLI 命令，以下验证序列覆盖核心运维路径。
 
@@ -1441,6 +1439,6 @@ trapmap operations capsule-index cleanup-orphans --json | jq .removed
 运行 `rtk pnpm test:distributed-acceptance` 验证真实 HTTP owner hop、correlation、错误分类、deadline/retry 与 idempotent replay；运行 `rtk pnpm test:distributed-closeout` 验证 multi-process recovery，包括 `knowledge-write` 局部重启后 gateway delegation 恢复且 job-runtime 状态面独立可用。该证据仅支持 `Level 2 / transitional-microservice`，不宣称 Level 3。
 
 - [模块详解](../architecture/MODULES.md) — 系统模块架构和设计
-- [API 参考 — 候选重复检索](../architecture/API.md#候选重复检索) — 检索算法和模式
+- [API 参考 — 候选重复检索](../architecture/API.md#-candidate-deduplication-retrieval) — 检索算法和模式
 - [安全指南](SECURITY.md) — RBAC 和安全等级
 - [环境变量参考](ENVIRONMENT.md) — 测试相关环境变量

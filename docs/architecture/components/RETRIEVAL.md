@@ -663,7 +663,7 @@ HTTP 路由和 CLI 命令均可用：
 # 底层调用: cleanupOrphanCapsuleIndexes({ pool, artifacts })
 ```
 
-所有 CLI 命令支持 `--json` 标志输出机器可读格式。完整验证序列见 [`docs/operations/TESTING.md`](../../operations/TESTING.md#运维验证序列-phase-5)。
+所有 CLI 命令支持 `--json` 标志输出机器可读格式。完整验证序列见 [`docs/operations/TESTING.md`](../../operations/TESTING.md#-phase-5-operations)。
 
 **注意**: 索引数据是派生数据，source of truth 始终是 `artifact.latestRevision.derived.capsules`。稳定运维路由只针对 `lifecycleState === 'approved'` 的 artifact 执行 rebuild/health/cleanup；索引重建不会丢失数据，只需重新执行同步逻辑即可。
 

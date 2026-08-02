@@ -21,7 +21,7 @@
 
 - `packages/cli/`：Commander CLI 及 CLI 测试。
 - `packages/server（Wave-10 已删除）/`：Fastify 兼容壳和共享运行时/状态接缝。不再充当默认的 `light` 主机入口或本地回退主机。
-- `packages/contracts/`：共享 Zod schema 和 TypeScript 类型；`src/domain/retrieval-projection.ts` 放置无副作用的 retrieval projection/read-model helper，`src/domain/retrieval-fixtures.ts` 放置确定性的跨包 retrieval fixture builder。
+- `packages/contracts/`：共享 Zod schema 和 TypeScript 类型；`packages/contracts/src/domain/retrieval-projection.ts` 放置无副作用的 retrieval projection/read-model helper，`packages/contracts/src/domain/retrieval-fixtures.ts` 放置确定性的跨包 retrieval fixture builder。
 - `packages/persistence-schema/`：中立的 Drizzle PostgreSQL 表、关系与可复用无状态列工厂；不承载路由、repository 或服务行为。
 - `packages/skills/`：项目级 Skill 工件。
 - `packages/client-core/`：浏览器兼容的共享网关传输层（HTTP SDK、会话契约、错误模型）。供 CLI 和未来 Web 面板使用。
@@ -33,7 +33,7 @@
 - `packages/service-governance-review/`：拥有治理审核服务组装、内部路由注册和有界上下文 review/feedback/conflict/remediation/operator projection 接线，同时将最终生命周期变更委托给 knowledge-write。
 - `packages/service-candidate-ingestion/`：拥有候选摄取服务组装、内部路由注册和有界上下文 candidate 接线，同时将结果发布委托给 knowledge-write。
 - `packages/service-job-runtime/`：拥有作业运行时服务组装、内部路由注册、队列/重试/租约/dead-letter 依赖接线、typed owner handlers 和运行时服务器引导表面。
-- `packages/host-local/`：轻量主机组装，服务于 `local-agent` 和 `team-monolith`。冻结的默认轻量主线为 `src/nest/**`，通过包默认入口（`src/index.ts`）和默认 `dev` / `start` 脚本暴露。
+- `packages/host-local/`：轻量主机组装，服务于 `local-agent` 和 `team-monolith`。冻结的默认轻量主线为 `src/nest/**`，通过包默认入口（`packages/host-local/src/index.ts`）和默认 `dev` / `start` 脚本暴露。
   `packages/host-local/src/nest/adapters/` 是轻量主机中主机拥有的端口适配器选择（`in-process` vs `remote`）的权威放置位置。这些文件是内部端口的适配器接缝，不是仓库适配器，也不是主机组装的万能目录。
   迁移期共享基础设施组合留在 host-local 的 runtime composition 内；它可暂时调用 server compatibility helpers，但不形成独立 workspace package 或 service-to-service concrete import。
 - `packages/host-distributed/`：重量级主机组装，服务于 `distributed` 配置文件。它是真正的重量级主机实现，与 `light` 共用相同的 backend-core/service-package 主实现，成熟度基线仍为 `Level 2 / transitional-microservice`。

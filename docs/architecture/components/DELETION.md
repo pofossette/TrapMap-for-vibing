@@ -218,7 +218,7 @@ interface BatchDeleteResponse {
 - [知识生命周期](KNOWLEDGE_LIFECYCLE.md)
 - [治理模型](GOVERNANCE.md)
 - [持久化存储层](PERSISTENCE.md)
-- [审计日志](GOVERNANCE.md#审计日志-audit-logging)
+- [审计日志](GOVERNANCE.md#-audit-logging)
 
 ## 相关源码
 

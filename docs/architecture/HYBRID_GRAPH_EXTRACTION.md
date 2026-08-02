@@ -390,7 +390,7 @@
 - [ ] 未配置 chat 时退化为现有行为
 
 ##### Eval 代码
-- [ ] `evals/graph-extraction/pre-review-eval.ts`:
+- [ ] `evals/graph-extraction/dedup-eval.ts`:
   - [ ] 至少 10 个已标注提交 (correctness/completeness ground truth)
   - [ ] LLM 评估 vs evidenceTerms+长度 准确率对比
 

@@ -81,7 +81,7 @@ flowchart TB
 
 | 组件 | 当前职责 |
 |---|---|
-| ~~`packages/server/src/bootstrap/bootstrap-otel.ts`~~ | **已删除**（Wave-10）。OTel SDK 启动现由 `host-local` 的 `OtelService` 持有 |
+| ~~packages/server/src/bootstrap/bootstrap-otel.ts~~ | **已删除**（Wave-10）。OTel SDK 启动现由 `packages/host-local/src/nest/observability/otel.service.ts` 持有 |
 | `packages/host-local/src/nest/observability/otel.service.ts` | Nest 宿主的 OTel SDK 生命周期管理 |
 | `packages/host-local/src/nest/observability/prometheus.service.ts` | `prom-client` 指标注册、收集和文本导出 |
 | `packages/host-local/src/nest/observability/loki.service.ts` | `LOKI_HOST` 存在时追加 Loki transport；否则继续 stdout JSON |

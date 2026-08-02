@@ -797,7 +797,7 @@ Phase 6 只冻结当前 mature-capability / library-replacement 边界，不把 
 说明：
 
 - `USE_DB_SEARCH` 当前由检索编排层直接读取；文档化是为了部署可见性，不代表它已经成为长期稳定 public surface。
-- decay 配置由 `packages/service-governance-review/src/` 读取并做 Zod 校验（原 `packages/server/src/lib/decay/config.ts` 已于 Wave-10 删除）。
+- decay 配置 schema 定义见 `packages/contracts/src/domain/decay.ts`，运行时由 `packages/service-governance-review/src/` 和 `packages/service-knowledge-read/src/knowledge-read-support-infra-default.ts` 读取环境变量并做 Zod 校验。
 
 ## 系统提示词模板
 

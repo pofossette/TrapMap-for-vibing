@@ -698,7 +698,7 @@ response = client.chat.completions.create(
 ## 八、参考来源
 
 ### 源码分析
-- **Claude Code**: `src/skills/`, `src/tools/`, `src/constants/prompts.ts`, `src/constants/tools.ts`
+- **Claude Code**: src/skills/, src/tools/, src/constants/prompts.ts, src/constants/tools.ts
 - **OpenCode**: `packages/opencode/src/skill/`, `packages/opencode/src/tool/`, `packages/opencode/src/mcp/`, `packages/opencode/src/config/`
 
 ### 行业最佳实践（2026）

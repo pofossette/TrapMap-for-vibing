@@ -121,7 +121,7 @@
 }
 ```
 
-## 认证
+## 认证 Authentication
 
 ### POST /v1/auth/login
 
@@ -253,7 +253,7 @@
 - `POST /v1/traps/:trapId/resubmit`
 - `POST /v1/traps/:trapId/supersede`
 
-### 候选、重复、检索
+### 候选、重复、检索 Candidate Deduplication Retrieval
 
 - `POST /v1/candidates`
 - `GET /v1/candidates`

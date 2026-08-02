@@ -214,7 +214,7 @@ pnpm check:docs-drift
 
 ## 相关链接
 
-- [项目文档索引](../../README.md#-文档)
+- [项目文档索引](../../README.md#--documentation)
 - [API 文档](../architecture/API.md)
 - [数据模型](../reference/DATA_MODEL.md)
 - [评估系统](../../evals/README.md)

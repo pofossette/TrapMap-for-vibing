@@ -62,7 +62,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 | `packages/host-distributed/src/shared/telemetry.ts` | distributed OTel bootstrap、context propagation 和 shutdown。 |
 | `packages/host-distributed/src/shared/observability.ts` | distributed metrics registry/export。 |
 | `packages/host-distributed/src/shared/sentry.ts` | distributed optional Sentry adapter。 |
-| `packages/host-distributed/src/shared/langfuse.ts` | distributed runtime Langfuse adapter；仅在该 host 创建 AI provider 时接线。 |
+| `packages/host-distributed/src/shared/` (langfuse 未实现) | distributed runtime Langfuse adapter；仅在该 host 创建 AI provider 时接线。当前未创建该文件。 |
 | `evals/lib/platform/langfuse-adapter.ts` | 显式 Langfuse eval mirror，不能作为 eval 判定来源。 |
 | `docs/architecture/OBSERVABILITY.md` | 已实现能力、ownership 和非目标。 |
 | `docs/operations/ENVIRONMENT.md` | env/default/disabled/privacy semantics。 |
@@ -75,7 +75,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 **Files:**
 - Modify: `plan.md`, `docs/todos/README.md`, `docs/README.md`, `docs/reference/SYSTEM_TRUTH_SOURCES.md`
 - Modify: `docs/todos/open-debt-and-compromises.md`, `docs/archived/README.md`
-- Move: `docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md` to `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`
+- Move: docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md to `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`
 - Create: this document
 
 **Consumes:** root-plan one-active-mainline rule and archived compatibility evidence.
@@ -253,7 +253,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - Modify: `packages/contracts/src/domain/observability-config.ts`, related contract tests, and `packages/contracts/src/index.ts` only if new exported policy types require aggregation
 - Create: `packages/ai-providers/src/observability.ts`, `observability.test.ts`; modify `types.ts`, `providers.ts`, and `index.ts` only for a vendor-neutral wrapping interface
 - Modify: `packages/host-local/src/nest/runtime/shared-infra.ts` and add/modify `packages/host-local/src/nest/observability/langfuse.service.ts` with focused tests
-- Modify: `packages/host-distributed/src/shared/langfuse.ts` and its tests only where a distributed composition root constructs AI providers; do not create a speculative distributed client otherwise
+- Modify: `packages/host-distributed/src/shared/` (langfuse adapter, if created) and its tests only where a distributed composition root constructs AI providers; do not create a speculative distributed client otherwise
 - Modify: `evals/lib/platform/langfuse-adapter.ts`, `langfuse-config.ts`, their tests, and `evals/scripts/__tests__/eval-all.test.ts`
 - Modify: `docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md`, `docs/architecture/OBSERVABILITY.md`, `docs/operations/ENVIRONMENT.md`, `docs/operations/SECURITY.md`, and `docs/operations/TESTING.md`
 

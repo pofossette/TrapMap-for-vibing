@@ -16,7 +16,7 @@ contracts → server (app → routes → lib) → cli → evals
 
 ## 1. 共享契约层 — `packages/contracts`
 
-**切入点**：`src/index.ts`
+**切入点**：`packages/contracts/src/index.ts`
 
 所有跨包类型和 Zod 验证 schema 的唯一来源。CLI 和 Server 都从这里导入类型，保证前后端契约一致。
 
@@ -150,7 +150,7 @@ lib/persistence/
 - owner-local PostgreSQL 实现：`packages/service-knowledge-write/src/artifact-ports.ts` → `createArtifactReadProjection()`
 - owner-local 写入组合：`packages/service-knowledge-write/src/pg-ports.ts` → `createKnowledgeWritePgPorts()`
 - 读取模型组合：`packages/service-knowledge-read/src/read-model.ts` → `createOwnerReadModelProjection()`
-- Schema 定义：`packages/persistence-schema/src/schema/artifacts.ts` — 所有 `skill_artifact_*` 表定义
+- Schema 定义：`packages/persistence-schema/src/artifacts.ts` — 所有 `skill_artifact_*` 表定义
 - 事实源/投影规则的权威实现由上述 contracts 与 owner ports 共同定义；server compatibility shell 不保留 artifact serializer 或 repository。
 
 #### 检索管道 — `lib/retrieval/`
@@ -177,7 +177,7 @@ lib/persistence/
 
 统一的 embedding 生成接口。负责将文本转换为向量，供 vector 索引使用。
 
-### 2.4 配置 — `src/config.ts`
+### 2.4 配置 — `packages/host-local/src/nest/config/config.ts`
 
 从环境变量构建运行时配置。关键变量见 `docs/operations/ENVIRONMENT.md`。
 
@@ -185,7 +185,7 @@ lib/persistence/
 
 ## 3. 客户端 — `packages/cli`
 
-### 3.1 入口 — `src/index.ts`
+### 3.1 入口 — `packages/cli/src/index.ts`
 
 Commander.js 应用入口。**注意**：命令不是静态注册的——根据用户权限和 `SecurityLevel` 动态显示/隐藏命令。
 

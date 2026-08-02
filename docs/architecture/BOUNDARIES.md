@@ -151,7 +151,7 @@ The coupling audit (Phase 0.6) identified several patterns that violate strict l
 
 ### Category A: Structural Store Pool Seam (Medium Severity)
 
-**Location**: `packages/server/src/lib/store/store-pool.ts`（Wave-10 已删除）and the remaining compatibility orchestration/runtime callers.
+**Location**: `packages/host-local/src/nest/runtime/store-pool.ts`（Wave-10 迁移后位置）and the remaining compatibility orchestration/runtime callers.
 
 **Pattern**: Orchestration/runtime code now uses structural `getStorePool(...)` or `typeof store.getPool === 'function'` seams to extract a `Pool` from the Store interface instead of checking `instanceof PostgresStore`.
 
