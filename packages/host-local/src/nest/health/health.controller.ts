@@ -1,4 +1,4 @@
-import { Controller, Get, Header, Res } from '@nestjs/common';
+import { Controller, Get, Header, Res, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { HealthStatus } from '@trapmap/contracts';
 import type { HealthCheckResult } from '@trapmap/backend-core';
@@ -112,9 +112,18 @@ export class HealthController {
     };
   }
 
+  /**
+   * Expose registered Prometheus metrics for scraping.
+   *
+   * When `TRAPMAP_METRICS_ENABLED` is `false`, the endpoint returns 503
+   * so that scrapers do not ingest an empty or default-only payload.
+   */
   @Get('metrics')
   @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
   async metrics() {
+    if (!this.prometheus.enabled) {
+      throw new ServiceUnavailableException('Metrics collection is disabled');
+    }
     return this.prometheus.getMetrics();
   }
 

@@ -27,7 +27,7 @@ import { KnowledgeReadModule } from './knowledge-read/knowledge-read.module.js';
 import { KnowledgeWriteModule } from './knowledge-write/knowledge-write.module.js';
 import { LoggingMiddleware } from './runtime/logging.middleware.js';
 import { ConsulModule } from './service-discovery/index.js';
-import { OtelModule, PrometheusModule, LokiModule } from './observability/index.js';
+import { OtelModule, PrometheusModule, LokiModule, HttpMetricsMiddleware } from './observability/index.js';
 import { HealthModule } from './health/index.js';
 import { LifecycleModule } from './lifecycle/index.js';
 import { createHostLocalRuntime, HOST_LOCAL_RUNTIME_TOKEN } from './runtime/host-runtime.js';
@@ -181,6 +181,8 @@ const candidateIngestionModule = CandidateIngestionModule.forDeps(
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RequestContextMiddleware, LoggingMiddleware).forRoutes('*');
+    consumer
+      .apply(RequestContextMiddleware, HttpMetricsMiddleware, LoggingMiddleware)
+      .forRoutes('*');
   }
 }
