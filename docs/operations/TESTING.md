@@ -168,6 +168,7 @@ flowchart TB
   - `rtk pnpm check:deps`
   - `rtk pnpm check:md-lint`
   - `rtk pnpm check:links`
+  - `rtk pnpm check:doc-references`
   - `rtk pnpm eval:smoke`
 - 验证重点：Phase 7 只冻结 current active execution surface、historical/deferred doc role、CI job truth、eval command semantics、以及 deferred landing spot wording；不引入新的 runtime behavior。
 - CI/testing truth 解释：

@@ -82,6 +82,7 @@
 ```bash
 pnpm check:docs-drift
 pnpm check:structure
+pnpm check:doc-references
 ```
 
 如果改动触及 truth source、架构事实或对应 smoke 用例，再补跑相关最小测试。

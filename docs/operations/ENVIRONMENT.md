@@ -617,7 +617,7 @@ Feature flags 子 schema（`featureFlagsSchema`）：
 - Phase 3 当前样板实现把 `retrieval_badcase_traces`、`workflow_runs.stats` 和 eval draft/export 收敛到同一份最小 debug contract：`GET /v1/operations/badcases/:feedbackId/export` 的 `debug.correlation` 只复用冻结的五个 public additive handle，`debug.durableTrace` 只承载 `sourceFeedbackId` / `queryId` / `routeFamily` 这组可复现句柄，`debug.workflow` 只承载 badcase draft async 状态；`draft.request` 仍不扩散 `asyncJobId`、`workflowRunId` 一类 operator-only 字段
 - metric namespace 冻结为 `trapmap.runtime`、`trapmap.async`、`trapmap.retrieval`、`trapmap.cache`、`trapmap.feedback`、`trapmap.operator`
 - 高基数关联键不得进入 metric label；它们只能进入日志、trace、workflow snapshot 或 durable badcase trace
-- Phase 3 当前已把 `GET /metrics` 冻结为 Prometheus scrape surface：owner 仍是 `packages/server（Wave-10 已删除）/src/app.ts` + `packages/server（Wave-10 已删除）/src/lib/runtime/metrics.ts`，当前真实导出命名主要收口到 `trapmap_runtime_*` 与 `trapmap_async_*`
+- Phase 3 当前已把 `GET /metrics` 冻结为 Prometheus scrape surface：owner 已迁移至 `packages/host-local/src/nest/observability/prometheus.service.ts`，当前真实导出命名主要收口到 `trapmap_runtime_*` 与 `trapmap_async_*`
 - distributed internal hop 现在除 `x-request-id` / `x-trace-id` 外，还继续透传 `traceparent`；`packages/host-distributed/src/gateway/internal-client.ts` 会补 `x-trapmap-span-id` 与 `x-trapmap-parent-span-id` 作为当前 host-owned internal span lifecycle 句柄
 
 ## Runtime Resilience
@@ -639,12 +639,12 @@ TrapMap 现在通过共享 runtime resilience 层统一处理部分 timeout / re
 - `/v1/operations/status/async` 现在会以 internal/operator additive `runtimeMetrics` 汇总这些 snapshot，统一包含 `executions`、`degraded`、`reclaims`、`timeouts`、`retryableFailures`、`permanentFailures`、`retries` 以及 queue/outbox/stale-worker 的平均 backlog 统计
 - `executions`、`degraded`、`timeouts`、`retryableFailures`、`permanentFailures` 现在固定为 logical operation 终态计数：每个依赖调用无论中间经历多少次 attempt，最终只计一次 terminal outcome；只有 `retries` 统计首个 attempt 之后的额外尝试次数
 - fail-open fallback 也只算一次 terminal execution：如果最终降级到 fallback，则 `executions += 1`、`degraded += 1`，并按最终 failure kind 只增加一次 `timeouts` / `retryableFailures` / `permanentFailures`
-- runtime metrics 的语义 truth 仍在 `packages/server（Wave-10 已删除）/src/lib/runtime/metrics.ts`；operator route 只做聚合展示，不复制另一套指标字段或高基数 label 规则
+- runtime metrics 的语义 truth 已迁移至 `packages/host-local/src/nest/` + `packages/host-distributed/src/gateway/`；operator route 只做聚合展示，不复制另一套指标字段或高基数 label 规则
 - runtime metrics label 仅允许低基数字段，例如 `failureClassification`、`runtimeMode`、`serviceUnit`、`routeFamily`、`dependencyName`、`cacheNamespace`、`taskType`、`workflowType`
 - Phase 3 当前已把三类关键链路落到真实实现：
-  - HTTP：`packages/server（Wave-10 已删除）/src/app.ts` 记录 request-completed JSON log，并导出 request total / duration metrics
-  - DB：`packages/server（Wave-10 已删除）/src/lib/persistence/postgres-store.ts` 导出 `store_snapshot.select` / `store_snapshot.transact` metrics
-  - queue/outbox：`packages/server（Wave-10 已删除）/src/lib/queue/task-queue.ts` 与 `packages/server（Wave-10 已删除）/src/lib/lifecycle/outbox.ts` 导出 enqueue / claim / complete / fail metrics
+  - HTTP：`packages/host-local/src/nest/` 记录 request-completed JSON log，并导出 request total / duration metrics
+  - DB：`packages/host-local/src/nest/` 导出 `store_snapshot.select` / `store_snapshot.transact` metrics
+  - queue/outbox：`packages/service-job-runtime/src/` 导出 enqueue / claim / complete / fail metrics
 - 结构化日志字段当前至少收口到 `eventCategory`、`eventName`、`requestId`、`traceId`、`serviceName`、`ownerSurface`、`routeFamily`；async retry/failure 路径还会记录 `attempt` 与 `workItemId`
 - observability backend 最小接入面当前只承诺：
   - Prometheus scrape `/metrics`
