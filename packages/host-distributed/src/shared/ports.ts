@@ -19,6 +19,7 @@ import type {
   TaskQueuePort,
 } from '@trapmap/backend-core';
 import type { LifecycleState } from '@trapmap/contracts';
+import { recordAsyncLifecycleEvent } from '../gateway/internal-observability.js';
 import type { DatabaseWriteService } from './database-ownership.js';
 
 function mapKnowledgeRow(row: Record<string, unknown>) {
@@ -162,6 +163,11 @@ function createPgTaskQueue(pool: Pool): TaskQueuePort {
             : new Date().toISOString(),
         ],
       );
+      recordAsyncLifecycleEvent({
+        eventName: 'enqueue',
+        taskType: type,
+        ownerSurface: 'runtime-seam',
+      });
       return id;
     },
     async requeue(taskId) {
@@ -169,6 +175,11 @@ function createPgTaskQueue(pool: Pool): TaskQueuePort {
         `UPDATE task_queue SET status = 'pending', process_after = NOW(), attempts = 0 WHERE id = $1`,
         [taskId],
       );
+      recordAsyncLifecycleEvent({
+        eventName: 'retry',
+        taskType: 'task-queue',
+        ownerSurface: 'runtime-seam',
+      });
     },
     async getStatusSnapshot() {
       const pendingResult = await pool.query(
@@ -209,6 +220,11 @@ function createPgOutbox(pool: Pool): OutboxPort {
           JSON.stringify(params.payload),
         ],
       );
+      recordAsyncLifecycleEvent({
+        eventName: 'outbox-publish',
+        taskType: params.eventName,
+        ownerSurface: 'runtime-seam',
+      });
       return id;
     },
     async claimBatch(limit = 10, workerId = 'default') {
@@ -225,9 +241,17 @@ function createPgOutbox(pool: Pool): OutboxPort {
          RETURNING id, event_name as "eventName", payload, aggregate_id as "aggregateId"`,
         [limit, workerId],
       );
-      return rows as OutboxPort extends { claimBatch(...args: unknown[]): Promise<infer R> }
+      const events = rows as OutboxPort extends { claimBatch(...args: unknown[]): Promise<infer R> }
         ? R
         : never;
+      for (const event of events as Array<{ eventName: string }>) {
+        recordAsyncLifecycleEvent({
+          eventName: 'outbox-consume',
+          taskType: event.eventName,
+          ownerSurface: 'runtime-seam',
+        });
+      }
+      return events;
     },
     async complete(eventId) {
       await pool.query(
@@ -240,6 +264,12 @@ function createPgOutbox(pool: Pool): OutboxPort {
         "UPDATE domain_event_outbox SET status = 'failed', last_error = $2, worker_id = NULL, heartbeat_at = NULL, lease_until = NULL WHERE id = $1",
         [eventId, error],
       );
+      recordAsyncLifecycleEvent({
+        eventName: 'terminal-failure',
+        taskType: 'outbox-event',
+        ownerSurface: 'runtime-seam',
+        failureClassification: 'permanent-failure',
+      });
     },
     async getStatusSnapshot() {
       const pendingResult = await pool.query(

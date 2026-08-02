@@ -508,7 +508,7 @@ describe('createInternalServiceClients', () => {
       body: { ok: true },
     });
 
-    const snapshot = getDistributedInternalObservabilitySnapshot();
+    const snapshot = await getDistributedInternalObservabilitySnapshot();
     expect(snapshot.counters.trapmap_runtime_internal_hops_total).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

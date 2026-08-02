@@ -10,6 +10,7 @@ import {
   createGovernanceConflictTaskHandler,
   createGovernanceRemediationTaskHandler,
 } from '@trapmap/service-job-runtime';
+import { recordAsyncLifecycleEvent } from '../gateway/internal-observability.js';
 import { toInvocationError } from '../shared/invocation-error.js';
 
 function createRemoteGovernanceConflictWorkflowClient(
@@ -55,6 +56,44 @@ function createRemoteGovernanceAsyncCommandClient(
   };
 }
 
+/**
+ * Wraps a TaskHandler with async lifecycle event recording.
+ *
+ * Records 'execute' when the handler starts, and 'dead-letter' when the
+ * task reaches terminal failure (onDead callback).
+ */
+function withLifecycleRecording(handler: TaskHandler<unknown>): TaskHandler<unknown> {
+  return {
+    type: handler.type,
+    async handle(task, signal) {
+      recordAsyncLifecycleEvent({
+        eventName: 'execute',
+        taskType: handler.type,
+        ownerSurface: 'runtime-seam',
+      });
+      return handler.handle(task, signal);
+    },
+    onDead: handler.onDead
+      ? async (task) => {
+          recordAsyncLifecycleEvent({
+            eventName: 'dead-letter',
+            taskType: handler.type,
+            ownerSurface: 'runtime-seam',
+            failureClassification: 'permanent-failure',
+          });
+          await handler.onDead!(task);
+        }
+      : async (task) => {
+          recordAsyncLifecycleEvent({
+            eventName: 'dead-letter',
+            taskType: handler.type,
+            ownerSurface: 'runtime-seam',
+            failureClassification: 'permanent-failure',
+          });
+        },
+  };
+}
+
 export function createJobRuntimeTaskHandlers(
   clients: Pick<InternalServiceClients, 'governanceReview'>,
 ): TaskHandler<unknown>[] {
@@ -63,5 +102,5 @@ export function createJobRuntimeTaskHandlers(
     createGovernanceConflictTaskHandler(createRemoteGovernanceConflictWorkflowClient(clients)),
     createGovernanceRemediationTaskHandler(governanceAsyncCommands),
     createGovernanceBadcaseExportDraftTaskHandler(governanceAsyncCommands),
-  ];
+  ].map(withLifecycleRecording);
 }

@@ -58,6 +58,7 @@ export const observabilityMetricNamespaceSchema = z.enum([
   'trapmap.cache',
   'trapmap.feedback',
   'trapmap.operator',
+  'trapmap.distributed',
 ]);
 
 export type ObservabilityMetricNamespace = z.infer<typeof observabilityMetricNamespaceSchema>;
@@ -122,6 +123,20 @@ export const correlationContextSchema = z
   });
 
 export type CorrelationContext = z.infer<typeof correlationContextSchema>;
+
+export const ASYNC_LIFECYCLE_EVENT_NAMES = [
+  'enqueue',
+  'execute',
+  'retry',
+  'terminal-failure',
+  'dead-letter',
+  'outbox-publish',
+  'outbox-consume',
+] as const;
+
+export const asyncLifecycleEventNameSchema = z.enum(ASYNC_LIFECYCLE_EVENT_NAMES);
+
+export type AsyncLifecycleEventName = z.infer<typeof asyncLifecycleEventNameSchema>;
 
 export const OBSERVABILITY_FAILURE_CLASSIFICATIONS = [
   'user-error',

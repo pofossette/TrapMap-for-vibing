@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 
+import { renderOtelMetricsAsPrometheus } from '../gateway/internal-observability.js';
+
 function renderProcessMetrics(): string {
   const memoryUsage = process.memoryUsage();
   return [
@@ -15,8 +17,10 @@ function renderProcessMetrics(): string {
 
 export function attachRuntimeMetricsRoute(app: FastifyInstance) {
   app.get('/metrics', async (_request, reply) => {
-    return reply
-      .header('content-type', 'text/plain; version=0.0.4; charset=utf-8')
-      .send(renderProcessMetrics());
+    const processMetrics = renderProcessMetrics();
+    const otelMetrics = await renderOtelMetricsAsPrometheus();
+    const body = otelMetrics ? `${processMetrics}\n${otelMetrics}\n` : processMetrics;
+
+    return reply.header('content-type', 'text/plain; version=0.0.4; charset=utf-8').send(body);
   });
 }
