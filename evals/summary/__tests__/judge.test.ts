@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { buildClaimVerificationSystemPrompt } from '../../../../packages/ai-providers/src/prompts-knowledge.js';
+import { buildClaimVerificationSystemPrompt } from '../../../../packages/ai-providers/src/prompts-knowledge.ts';
 import {
   createJudge,
   createLlmJudgeProvider,

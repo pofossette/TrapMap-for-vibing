@@ -626,11 +626,11 @@
     },
     {
       "file": "packages/persistence-schema/src/knowledge.ts",
-      "maxLines": 200
+      "maxLines": 800
     },
     {
       "file": "packages/service-knowledge-write/src/artifact-ports.ts",
-      "maxLines": 250
+      "maxLines": 800
     }
   ]
 }

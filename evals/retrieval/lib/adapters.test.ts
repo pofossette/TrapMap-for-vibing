@@ -14,6 +14,8 @@ import {
 } from './adapters.js';
 import type { ExecutionContext } from './adapters.js';
 
+const hasDatabase = !!process.env.TRAPMAP_DATABASE_URL;
+
 async function expectSession(
   ctx: ExecutionContext,
   expected: { subjectType: 'system-admin' | 'user'; activeTeamId?: string | null },
@@ -30,7 +32,7 @@ async function expectSession(
   return session!;
 }
 
-describe('adapters', () => {
+describe.skipIf(!hasDatabase)('adapters', () => {
   describe('createActorSession', () => {
     it('replaces system-admin session with user session in PG mode', async () => {
       const ctx = await createExecutionContext();

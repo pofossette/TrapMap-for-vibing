@@ -11,8 +11,8 @@
  * - Telemetry configuration
  */
 
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -106,7 +106,7 @@ export function extractWorkspacePackages(root: string): WorkspacePackageFact[] {
     if (!existsSync(pkgJsonPath)) continue;
 
     const raw = readFileSync(pkgJsonPath, 'utf-8');
-    const pkg = JSON.parse(raw);
+    const _pkg = JSON.parse(raw);
 
     packages.push({
       name: entry.name,
@@ -187,7 +187,11 @@ export function extractEnvironmentFacts(root: string): EnvironmentFact[] {
 
     const portMatch = content.match(/['"]PORT['"][:\s]*(\d+)/);
     if (portMatch) {
-      facts.push({ key: 'PORT', defaultValue: parseInt(portMatch[1]), sourcePath: configFile });
+      facts.push({
+        key: 'PORT',
+        defaultValue: Number.parseInt(portMatch[1]),
+        sourcePath: configFile,
+      });
     }
 
     const sessionMatch = content.match(/['"]SESSION_TRANSPORT['"][:\s]*['"]([^'"]+)['"]/);
@@ -343,7 +347,7 @@ export function extractTelemetryFacts(root: string): TelemetryFact[] {
   // Extract from observability config
   const observabilityConfig = join(root, 'packages/contracts/src/domain/observability-config.ts');
   if (existsSync(observabilityConfig)) {
-    const content = readFileSync(observabilityConfig, 'utf-8');
+    const _content = readFileSync(observabilityConfig, 'utf-8');
 
     facts.push({
       key: 'OTEL_DISABLED',

@@ -130,7 +130,28 @@ export default defineConfig({
       project('service-knowledge-write', './packages/service-knowledge-write'),
       project('host-local', './packages/host-local'),
       project('host-distributed', './packages/host-distributed'),
-      project('web-panel', './packages/web-panel', ['src/**/*.test.ts', 'src/**/*.test.tsx']),
+      {
+        ...project('web-panel', './packages/web-panel', ['src/**/*.test.ts', 'src/**/*.test.tsx']),
+        test: {
+          name: 'web-panel',
+          root: './packages/web-panel',
+          include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+          environment: 'jsdom',
+        },
+        resolve: {
+          alias: [
+            ...alias,
+            {
+              find: /^@trapmap\/web-panel\/(.+)$/,
+              replacement: resolve(__dirname, './packages/web-panel/src/$1'),
+            },
+            {
+              find: '@trapmap/web-panel',
+              replacement: resolve(__dirname, './packages/web-panel/src/index.ts'),
+            },
+          ],
+        },
+      },
       project('cli', './packages/cli'),
       project('evals', './evals', ['**/*.test.ts']),
     ],

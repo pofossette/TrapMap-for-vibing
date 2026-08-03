@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
 import { checkDocTruth } from '../check-doc-truth.js';
 
 const ROOT = resolve(import.meta.dirname, '../..');

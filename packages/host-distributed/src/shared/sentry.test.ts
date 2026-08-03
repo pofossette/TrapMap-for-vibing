@@ -1,11 +1,11 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { validateSentryPolicy } from '@trapmap/contracts';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  initDistributedSentry,
-  closeDistributedSentry,
   captureDistributedException,
+  closeDistributedSentry,
   getDistributedSentryPolicy,
+  initDistributedSentry,
 } from './sentry.js';
 
 describe('Distributed Sentry adapter', () => {
@@ -16,12 +16,12 @@ describe('Distributed Sentry adapter', () => {
     // Ensure clean state
     await closeDistributedSentry();
     // Clear Sentry env vars
-    delete process.env.SENTRY_DSN;
-    delete process.env.SENTRY_ENVIRONMENT;
-    delete process.env.SENTRY_RELEASE;
-    delete process.env.SENTRY_TRACES_SAMPLE_RATE;
-    delete process.env.TRAPMAP_DEPLOYMENT_PROFILE;
-    delete process.env.TRAPMAP_SERVICE_NAME;
+    process.env.SENTRY_DSN = '';
+    process.env.SENTRY_ENVIRONMENT = '';
+    process.env.SENTRY_RELEASE = '';
+    process.env.SENTRY_TRACES_SAMPLE_RATE = '';
+    process.env.TRAPMAP_DEPLOYMENT_PROFILE = '';
+    process.env.TRAPMAP_SERVICE_NAME = '';
   });
 
   afterEach(async () => {

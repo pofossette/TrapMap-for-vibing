@@ -41,8 +41,8 @@ const expectPackageNodeModulesCopiedInProductionStage = (packageName: string) =>
 };
 
 describe('host-distributed Dockerfile', () => {
-  it('includes the server compatibility project reference chain in deps, build, and production stages', () => {
-    for (const packageName of ['server']) {
+  it('includes the core project reference chain in deps, build, and production stages', () => {
+    for (const packageName of ['contracts', 'backend-core', 'host-distributed']) {
       expectPackageCopiedInDepsStage(packageName);
       expectPackageBuilt(packageName);
       expectPackageCopiedInProductionStage(packageName);
@@ -52,7 +52,6 @@ describe('host-distributed Dockerfile', () => {
   it('preserves workspace package node_modules symlink layout in the production image', () => {
     for (const packageName of [
       'contracts',
-      'server',
       'backend-core',
       'client-core',
       'service-identity-access',

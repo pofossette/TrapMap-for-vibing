@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { type LlmObservationSink, wrapProvidersWithObservation } from './observability.js';
 import type { AiProviders, ChatProvider, EmbeddingsProvider } from './types.js';
-import { wrapProvidersWithObservation, type LlmObservationSink } from './observability.js';
 
 function createMockChatProvider(overrides: Partial<ChatProvider> = {}): ChatProvider {
   return {
@@ -76,7 +76,7 @@ describe('wrapProvidersWithObservation', () => {
 
     it('preserves invokeWithBlocks absence when inner provider lacks it', () => {
       const inner = createMockChatProvider();
-      delete (inner as Record<string, unknown>).invokeWithBlocks;
+      (inner as Record<string, unknown>).invokeWithBlocks = undefined;
       const sink = createMockSink();
       const wrapped = wrapProvidersWithObservation(
         { chat: inner, embeddings: createMockEmbeddingsProvider() },

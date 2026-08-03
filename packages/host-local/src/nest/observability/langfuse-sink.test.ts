@@ -271,10 +271,10 @@ describe('langfuse-sink', () => {
         endTimestamp: '2026-01-01T00:00:00.100Z',
       });
 
-      const call = client.generation.mock.calls[0]![0];
+      const call = client.generation.mock.calls[0]?.[0];
       // input and output should not be set
-      expect(call.input).toBeUndefined();
-      expect(call.output).toBeUndefined();
+      expect(call?.input).toBeUndefined();
+      expect(call?.output).toBeUndefined();
     });
   });
 });

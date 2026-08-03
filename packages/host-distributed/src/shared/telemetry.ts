@@ -6,9 +6,9 @@ import {
   propagation,
   trace,
 } from '@opentelemetry/api';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { validateOtelPolicy } from '@trapmap/contracts';
 import type { OtelPolicyInput } from '@trapmap/contracts';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 const requestSpanSymbol = Symbol('trapmap.distributed.request.span');
 

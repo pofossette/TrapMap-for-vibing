@@ -15,17 +15,17 @@
  */
 
 import {
-  extractRequestContext,
-  RequestContextService,
-} from '../packages/host-local/src/nest/runtime/request-context.service.js';
-import {
-  logEntrySchema,
+  type LogEntry,
   buildLokiLabels,
   formatLogForStdout,
+  logEntrySchema,
   redactLogContext,
-  type LogEntry,
 } from '../packages/contracts/src/domain/log-schema.js';
 import { validateSentryPolicy } from '../packages/contracts/src/domain/observability-config.js';
+import {
+  RequestContextService,
+  extractRequestContext,
+} from '../packages/host-local/src/nest/runtime/request-context.service.js';
 
 // ---------------------------------------------------------------------------
 // Verification result tracking
@@ -74,8 +74,8 @@ function verifyResponseHeaderCorrelation(): void {
 
   verify(
     'Response header: traceparent echoed',
-    responseHeaders['traceparent'] === headers.traceparent,
-    `Expected '${headers.traceparent}', got '${responseHeaders['traceparent']}'`,
+    responseHeaders.traceparent === headers.traceparent,
+    `Expected '${headers.traceparent}', got '${responseHeaders.traceparent}'`,
   );
 
   verify(
@@ -369,8 +369,8 @@ function verifyInternalHopCorrelation(): void {
     );
     verify(
       'Internal hop: traceparent forwarded to downstream service',
-      hopHeaders['traceparent'] === '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
-      `traceparent=${hopHeaders['traceparent']}`,
+      hopHeaders.traceparent === '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+      `traceparent=${hopHeaders.traceparent}`,
     );
   });
 }

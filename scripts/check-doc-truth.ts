@@ -5,9 +5,9 @@
  * Reports field-level drift between source facts and documented values.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { extractDocTruthManifest, type DocTruthManifest } from './extract-doc-truth.js';
+import { type DocTruthManifest, extractDocTruthManifest } from './extract-doc-truth.js';
 
 // ── Types ────────────────────────────────────────────────────────────
 

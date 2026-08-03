@@ -6,21 +6,21 @@ import { describe, expect, it } from 'vitest';
 const entrypoints = ['evals/retrieval-live/lib/snapshot-orchestrator.ts'];
 
 describe('PostgreSQL composition entrypoints', () => {
-  it('uses host-local Nest composition instead of retired Fastify server', async () => {
+  it('uses host-local runtime composition with Fastify', async () => {
     const source = await readFile('scripts/testing/postgres-server-composition.ts', 'utf8');
 
-    expect(source).toContain('NestFactory.create');
-    expect(source).toContain('FastifyAdapter');
-    expect(source).toContain('HOST_LOCAL_RUNTIME_TOKEN');
+    expect(source).toContain('createHostLocalRuntime');
+    expect(source).toContain('Fastify');
+    expect(source).toContain('PostgresComposedServer');
     expect(source).not.toContain('buildServer');
     expect(source).not.toContain('@trapmap/server');
   });
 
-  it('returns NestFastifyApplication with runtime and services', async () => {
+  it('returns Fastify app with runtime and services', async () => {
     const source = await readFile('scripts/testing/postgres-server-composition.ts', 'utf8');
 
     expect(source).toContain('PostgresComposedServer');
-    expect(source).toContain('nestApp');
+    expect(source).toContain('Fastify');
     expect(source).toContain('runtime');
     expect(source).toContain('services');
   });

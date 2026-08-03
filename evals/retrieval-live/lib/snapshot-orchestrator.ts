@@ -12,6 +12,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import type { Pool } from 'pg';
+
 import {
   type LiveEvalServiceProfile,
   type LiveSnapshotMeta,
@@ -19,6 +21,7 @@ import {
 } from '@trapmap/contracts/evals';
 
 import { loadConfig } from '../../../packages/host-local/src/nest/config/config.js';
+import type { HostLocalServices } from '../../../packages/host-local/src/nest/runtime/host-services.js';
 import { nowIso } from '../../../packages/host-local/src/nest/runtime/now-iso.js';
 
 import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
@@ -203,10 +206,8 @@ async function truncateRetrievalTables(pool: import('pg').Pool): Promise<void> {
  * index state, and capsule index tables.
  */
 async function importFrozenCorpus(
-  pool: import('pg').Pool,
-  services: import(
-    '../../../packages/host-local/src/nest/runtime/host-services.js',
-  ).HostLocalServices,
+  pool: Pool,
+  services: HostLocalServices,
   corpus: Record<string, unknown>,
   _actorId: string,
 ): Promise<void> {
@@ -247,10 +248,8 @@ async function importFrozenCorpus(
  * The indexing pipeline will re-derive embeddings, keywords, and graph docs.
  */
 async function importRebuildCorpus(
-  _pool: import('pg').Pool,
-  services: import(
-    '../../../packages/host-local/src/nest/runtime/host-services.js',
-  ).HostLocalServices,
+  _pool: Pool,
+  services: HostLocalServices,
   corpus: Record<string, unknown>,
   _actorId: string,
 ): Promise<void> {

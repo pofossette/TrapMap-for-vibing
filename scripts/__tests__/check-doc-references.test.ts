@@ -1,12 +1,12 @@
-import { describe, expect, it } from 'vitest';
 import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
 import {
-  parseMarkdownLinks,
+  type ReferenceIssue,
+  checkDocReferences,
   parseBacktickedPaths,
   parseHeadingAnchors,
+  parseMarkdownLinks,
   validateReference,
-  checkDocReferences,
-  type ReferenceIssue,
 } from '../check-doc-references.js';
 
 const FIXTURES = resolve(import.meta.dirname, 'fixtures');

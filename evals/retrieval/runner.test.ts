@@ -14,6 +14,8 @@ import { evaluateGovernance } from './lib/governance.js';
 import { filterByEndpoint, loadCases } from './lib/load.js';
 import { calculateMetrics } from './lib/metrics.js';
 
+const hasDatabase = !!process.env.TRAPMAP_DATABASE_URL;
+
 describe('retrieval runner', () => {
   describe('case loading', () => {
     it('loads smoke tier cases successfully', () => {
@@ -53,7 +55,7 @@ describe('retrieval runner', () => {
     });
   });
 
-  describe('execution context', () => {
+  describe.skipIf(!hasDatabase)('execution context', () => {
     it('creates execution context with app and store', async () => {
       const ctx = await createExecutionContext();
 
@@ -81,7 +83,7 @@ describe('retrieval runner', () => {
     });
   });
 
-  describe('endpoint execution', () => {
+  describe.skipIf(!hasDatabase)('endpoint execution', () => {
     let ctx: Awaited<ReturnType<typeof createExecutionContext>>;
 
     beforeEach(async () => {

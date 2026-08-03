@@ -309,7 +309,6 @@ export async function extractGraphEntitiesWithLLM(
       try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const { alignGraphNodes, rewriteEdgeIds } = await import(
-          // @ts-expect-error circular dep: knowledge-write dist not available during tsc -b of knowledge-read
           '@trapmap/service-knowledge-write/labels/graph-align.js'
         );
         const alignmentResult = await alignGraphNodes(merged.nodes as LlmGraphNode[], {

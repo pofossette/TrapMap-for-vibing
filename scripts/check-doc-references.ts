@@ -11,7 +11,7 @@
  */
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { resolve, relative, dirname, join } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -40,7 +40,7 @@ interface ParsedPath {
  * Extract local Markdown links from content.
  * Skips external URLs (http/https/mailto) and historical references.
  */
-export function parseMarkdownLinks(content: string, filePath: string): ParsedLink[] {
+export function parseMarkdownLinks(content: string, _filePath: string): ParsedLink[] {
   const links: ParsedLink[] = [];
   const lines = content.split('\n');
 
@@ -48,9 +48,7 @@ export function parseMarkdownLinks(content: string, filePath: string): ParsedLin
     const line = lines[i];
     // Match [text](target) but not ![alt](image)
     const regex = /(?<!!)\[([^\]]*)\]\(([^)]+)\)/g;
-    let match;
-
-    while ((match = regex.exec(line)) !== null) {
+    for (const match of line.matchAll(regex)) {
       const target = match[2];
       // Skip external URLs
       if (/^(https?:\/\/|mailto:)/.test(target)) continue;
@@ -68,7 +66,7 @@ export function parseMarkdownLinks(content: string, filePath: string): ParsedLin
  * Matches patterns like `packages/foo/src/bar.ts` or `scripts/check.ts`.
  * Skips paths with wildcards, historical references, and non-existent paths.
  */
-export function parseBacktickedPaths(content: string, filePath: string): ParsedPath[] {
+export function parseBacktickedPaths(content: string, _filePath: string): ParsedPath[] {
   const paths: ParsedPath[] = [];
   const lines = content.split('\n');
 
@@ -78,9 +76,7 @@ export function parseBacktickedPaths(content: string, filePath: string): ParsedP
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const regex = /`([^`]+)`/g;
-    let match;
-
-    while ((match = regex.exec(line)) !== null) {
+    for (const match of line.matchAll(regex)) {
       const candidate = match[1];
       // Skip paths with wildcards (they're patterns, not actual paths)
       if (candidate.includes('*')) continue;
@@ -140,7 +136,7 @@ export function validateReference(
       file: sourceFile,
       line,
       kind,
-      message: `Path traversal detected: target escapes repository root`,
+      message: 'Path traversal detected: target escapes repository root',
       target: targetPath,
     });
     return;

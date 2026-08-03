@@ -4,10 +4,10 @@
 
 Replace the current text-centric documentation guardrails with source-aware
 documentation validation, and establish OpenTelemetry as TrapMap's telemetry
-standard with Sentry as an optional error-intelligence integration. The result
-must keep documentation, runtime configuration, telemetry signals, and
-operator guidance aligned without making external monitoring infrastructure a
-repository-owned deployment default.
+standard with Sentry error intelligence and Langfuse LLM/eval observation as
+optional integrations. The result must keep documentation, runtime
+configuration, telemetry signals, and operator guidance aligned without making
+external monitoring infrastructure a repository-owned deployment default.
 
 ## Delivery Principle
 
@@ -32,8 +32,21 @@ current implementation provides startup seams, HTTP spans for distributed
 services, structured logging, and Prometheus endpoints. Its behavior is not
 yet uniform: host-local request metrics are not connected to the request
 lifecycle, distributed internal-hop metrics remain process-local snapshots,
-and configuration/documentation semantics have drifted. No Sentry SDK is
-currently installed.
+and configuration/documentation semantics have drifted.
+
+Sentry is already partially implemented: shared policy validation lives in
+`contracts`, `host-local` has a Nest module/service, `host-distributed` has an
+adapter, and focused no-op/redaction tests exist. The remaining work is to
+make those adapters reachable from local global exception handling,
+distributed service startup/shutdown, and terminal asynchronous failure
+boundaries, then prove the sanitized transport behavior end to end.
+
+Langfuse is already available for explicit eval platform mirroring through
+`--platform langfuse`. It mirrors run/case/score/assertion/trace-step data and
+has self-host live evidence, while native TrapMap JSON reports remain the eval
+truth source. There is no runtime Langfuse observation around
+`ChatProvider`/`EmbeddingsProvider`, and no shared runtime privacy/config or
+OTel-correlation policy yet.
 
 ## Scope
 
@@ -52,19 +65,23 @@ currently installed.
   sampling, exporter failure handling, and telemetry shutdown across hosts.
 - Record and export real HTTP, internal-hop, asynchronous-runtime, and
   critical-domain signals while preserving low-cardinality metric labels.
-- Add an opt-in Sentry Node integration for actionable failures and release
-  context, with explicit privacy controls.
+- Complete composition and terminal-error wiring for the existing opt-in
+  Sentry Node integration, with explicit privacy controls and live evidence.
+- Add optional Langfuse runtime observation for LLM generations and embeddings
+  through provider composition boundaries, plus a consistent policy for the
+  existing explicit eval mirrors.
 - Add unit, integration, security, regression, and documentation evidence for
   every new behavior.
 
 ### Out Of Scope
 
-- Making a Collector, Tempo, Loki, Prometheus, Grafana, or Sentry deployment a
-  mandatory repository runtime dependency.
+- Making a Collector, Tempo, Loki, Prometheus, Grafana, Sentry, or Langfuse
+  deployment a mandatory repository runtime dependency.
 - Sending raw request bodies, prompts, knowledge content, credentials,
   session identifiers, cookies, or access keys to any telemetry backend.
 - Adding high-cardinality Prometheus labels.
-- Introducing vendor SDK dependencies into `backend-core` or domain packages.
+- Introducing Sentry or Langfuse SDK dependencies into `backend-core`, domain,
+  or service packages.
 - Implementing dashboard-as-code, centralized retention policy, multi-cluster
   routing, service identity, mTLS, or a data warehouse in this mainline.
 
@@ -77,11 +94,13 @@ The design uses three independent layers with explicit ownership.
 | Documentation truth | scripts and docs | Verify active docs against paths and extracted repository facts. |
 | Telemetry runtime | `host-local` and `host-distributed` | Produce logs, metrics, and traces through OTel and Prometheus adapters. |
 | Error intelligence | host composition roots | Optionally report sanitized actionable errors to Sentry. |
+| LLM/eval observation | host composition roots and eval platform adapter | Optionally mirror privacy-filtered runtime generations/embeddings and explicit eval execution to Langfuse. |
 
 `packages/contracts` remains the source for correlation fields, log schemas,
 and configuration shapes. `packages/backend-core` exposes only telemetry ports.
-Host packages own SDK initialization, exporters, framework integration, and
-external service failure behavior.
+`ai-providers` owns a vendor-neutral provider-wrapping seam but imports no
+Langfuse SDK. Host packages and the eval adapter own SDK initialization,
+exporters, framework integration, and external service failure behavior.
 
 ## Documentation Validation Design
 
@@ -112,7 +131,7 @@ guards and tests. It records:
 - active workspace packages and host/service ownership;
 - declared environment variables, defaults, and disabling semantics;
 - health, readiness, liveness, and metrics routes;
-- OTel and Sentry configuration; and
+- OTel, Sentry, and Langfuse configuration; and
 - source paths designated by `SYSTEM_TRUTH_SOURCES.md`.
 
 The manifest is a build/test artifact, not a second hand-maintained truth
@@ -193,18 +212,47 @@ performance tracing, profiling, session replay, source-map uploads, and
 release-health adoption are deferred until production deployment and privacy
 requirements justify them.
 
+## Langfuse Design
+
+Langfuse is an optional LLM/eval observation channel, not an OTel replacement,
+a default deployment dependency, or an eval authority. The existing eval
+adapter is executed only when `--platform langfuse` is selected. Its mirror
+failure remains warning-only and native TrapMap JSON reports alone determine
+suite assertions, retries, and process exit status.
+
+Runtime instrumentation wraps `ChatProvider` and `EmbeddingsProvider` at an
+AI-provider composition boundary. The wrapper preserves provider interfaces
+and result/error semantics, then passes a best-effort observation record to a
+host-owned Langfuse sink after success or failure. Services and domain packages
+continue to consume existing provider interfaces and never import the Langfuse
+SDK. A distributed host gets a Langfuse sink only when it actually constructs
+an AI provider; the plan must not create an unused client.
+
+When explicitly enabled with complete configuration, a Langfuse record may
+contain service/environment/release, provider/model, operation category,
+start/end/latency, result or bounded error classification, available token
+counts, and existing OTel trace/request/operation correlation fields. It must
+never contain raw prompts, generated output, embedding vectors, knowledge
+content, request bodies, headers, credentials, tokens, sessions, or dynamic
+identifiers. Approved metadata is redacted, hashed, or represented by length
+only. `LANGFUSE_ENABLED=false`, missing configuration, SDK initialization
+failure, export failure, and bounded flush failure all produce no-op or safe
+diagnostic behavior without changing a business request, background job, eval
+assertion, retry, or exit code.
+
 ## Operational Model
 
 The first production-ready outcome is a correlation-preserving operator loop:
 
-`alert or Sentry issue -> service/owner -> request or operation ID -> trace -> structured log -> health, queue, outbox, and projection diagnostics`
+`alert, Sentry issue, or Langfuse observation -> service/owner -> request or operation ID -> trace -> structured log -> health, queue, outbox, and projection diagnostics`
 
 Runbooks describe this path and each alert identifies an owning surface,
 severity, query or issue filter, and recovery action. SLO thresholds are not
 hard-coded until at least three comparable real-environment baselines exist.
 The initial candidates are readiness availability, 5xx rate, P95 gateway
 latency, internal-hop timeout rate, queue/outbox lag, projection freshness,
-and unresolved actionable Sentry errors.
+and unresolved actionable Sentry errors. Langfuse is used to investigate
+privacy-filtered LLM/eval execution context, not to derive SLO metrics.
 
 ## Delivery Stages
 
@@ -212,8 +260,10 @@ and unresolved actionable Sentry errors.
 2. Source-aware documentation guards and blocking CI.
 3. Shared OTel bootstrap and configuration semantics.
 4. Real HTTP, internal-hop, async, and critical-domain instrumentation.
-5. Optional Sentry error-intelligence adapter with privacy enforcement.
-6. Closeout: operational docs, regression commands, live verification, and
+5. Sentry composition/error-boundary closeout with privacy enforcement.
+6. Optional Langfuse runtime provider observation and explicit eval mirror
+   policy.
+7. Closeout: operational docs, regression commands, live verification, and
    future-platform decision gates.
 
 Each stage is independently testable and ends with documented evidence. A
@@ -230,8 +280,13 @@ later stage cannot hide a failed earlier guard or telemetry contract.
   are exportable through the configured metrics surface.
 - Trace/log/metric correlation works across external requests, internal hops,
   and asynchronous work without high-cardinality labels.
-- Sentry is optional, reports actionable errors, retains correlation tags, and
-  demonstrably excludes sensitive data.
+- Sentry is optional, reports actionable errors from required lifecycle/error
+  boundaries, retains correlation tags, and demonstrably excludes sensitive
+  data.
+- Langfuse is optional, observes runtime LLM/embedding execution and explicit
+  eval mirrors through host/eval boundaries, retains OTel correlation, leaves
+  native eval JSON as the only truth source, and demonstrably excludes raw
+  prompts, outputs, vectors, and other sensitive data.
 - Telemetry backend failures do not fail user requests or background jobs.
 - Architecture, environment, security, testing, CI, and operator documents
   state only behavior that is implemented and verified.
