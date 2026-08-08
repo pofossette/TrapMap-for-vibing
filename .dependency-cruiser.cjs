@@ -4,9 +4,8 @@
  * Enforces layer-boundary rules:
  *   contracts  -> no workspace deps
  *   backend-core -> contracts only
- *   server     -> no host-* deps
  *   service-*  -> no cross-deps between services
- *   web-panel  -> no server/backend-core/host-* deps
+ *   web-panel  -> no backend-core/host-* deps
  */
 
 const SERVICE_PACKAGES = [
@@ -34,26 +33,15 @@ module.exports = {
     {
       name: 'backend-core-only-depends-contracts',
       comment:
-        'packages/backend-core must only depend on packages/contracts (NOT server, host-*, service-*, web-panel, cli)',
+        'packages/backend-core must only depend on packages/contracts (NOT host-*, service-*, web-panel, cli)',
       severity: 'error',
       from: { path: '^packages/backend-core/' },
       to: {
-        path: '^packages/(server|host-[^/]+|service-[^/]+|web-panel|cli)/',
+        path: '^packages/(host-[^/]+|service-[^/]+|web-panel|cli)/',
       },
     },
 
-    // 3. server must not depend on host-* packages
-    {
-      name: 'server-no-host-deps',
-      comment: 'packages/server must NOT depend on packages/host-*',
-      severity: 'error',
-      from: { path: '^packages/server/' },
-      to: {
-        path: '^packages/host-[^/]+/',
-      },
-    },
-
-    // 4. service-* must not cross-depend on each other (runtime imports).
+    // 3. service-* must not cross-depend on each other (runtime imports).
     //    Type-only imports are allowed for shared record types.
     //    Known exception: service-knowledge-read dynamically imports
     //    service-knowledge-write/labels/graph-align.js for optional label alignment.
@@ -78,12 +66,11 @@ module.exports = {
     // 5. web-panel must not import from server, backend-core, or host-*
     {
       name: 'web-panel-server-isolation',
-      comment:
-        'packages/web-panel must NOT import from packages/server, packages/backend-core, or packages/host-*',
+      comment: 'packages/web-panel must NOT import from packages/backend-core or packages/host-*',
       severity: 'error',
       from: { path: '^packages/web-panel/' },
       to: {
-        path: '^packages/(server|backend-core|host-[^/]+)/',
+        path: '^packages/(backend-core|host-[^/]+)/',
       },
     },
   ],

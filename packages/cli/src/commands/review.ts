@@ -10,6 +10,7 @@ import type { Command } from 'commander';
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
+import { parseBoundaryJson } from '@trapmap/cli/lib/parse-boundary.js';
 
 /**
  * Evidence input from CLI flags.
@@ -150,16 +151,7 @@ export function registerReviewCommands(program: Command, options: ReviewCommandO
           const state = await loadCliState();
           requireSessionToken(state);
 
-          let boundary: unknown;
-          if (flags.boundary !== undefined) {
-            try {
-              boundary = JSON.parse(flags.boundary);
-            } catch (error) {
-              throw new Error(
-                `Invalid boundary JSON: ${error instanceof Error ? error.message : String(error)}`,
-              );
-            }
-          }
+          const boundary = parseBoundaryJson(flags.boundary);
 
           // Build evidence object if any evidence flags are provided
           let evidence: EvidenceInput | undefined;

@@ -11,3 +11,9 @@ export { timeout } from './async.js';
 export { truncate } from './string.js';
 export { uniq, uniqBy, chunk } from './array.js';
 export { sha256 } from './hash.js';
+export {
+  redactSensitiveKeys,
+  redactQueryString,
+  redactUrl,
+  SENSITIVE_KEY_PATTERN,
+} from './redact.js';

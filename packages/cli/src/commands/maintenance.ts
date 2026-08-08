@@ -11,6 +11,7 @@ import type { Command } from 'commander';
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
+import { formatBatchResultHeader } from '@trapmap/cli/lib/batch-result.js';
 
 export interface MaintenanceCommandOptions {
   allowManage: boolean;
@@ -40,14 +41,7 @@ function formatMaintenanceList(data: MaintenanceEntryListResponse): string {
  * Formats a maintenance batch operation response for human-readable output.
  */
 function formatMaintenanceBatch(data: MaintenanceBatchOperationResponse): string {
-  const lines: string[] = [];
-  const mode = data.dryRun ? 'DRY RUN - ' : '';
-  lines.push(`${mode}Action: ${data.action}`);
-  lines.push(`Eligible: ${data.totalEligible}, Ineligible: ${data.totalIneligible}`);
-  if (data.appliedAt != null) {
-    lines.push(`Applied at: ${data.appliedAt}`);
-  }
-  lines.push('');
+  const lines = formatBatchResultHeader(data);
 
   for (const item of data.items) {
     const status = item.eligible ? '\u2713' : '\u2717';

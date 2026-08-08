@@ -2,10 +2,10 @@ import { z } from 'zod';
 
 import { badcaseTaxonomySchema, normalizeBadcaseTaxonomy } from '../enum-types/index.js';
 import {
-  compatibleScriptActivationPolicySchema,
   skillArtifactFileKindSchema,
   skillArtifactFileSourceSchema,
   skillArtifactSchema,
+  skillScriptDescriptorSchema,
 } from './artifacts.js';
 import {
   actorRefSchema,
@@ -166,22 +166,9 @@ export const bundleFilePayloadSchema = z.object({
 
 /**
  * Script descriptor within a bundle-json import.
- * Captures intent and constraints for executable scripts.
+ * Reuses the canonical skillScriptDescriptorSchema from artifacts.
  */
-export const bundleScriptDescriptorSchema = z.object({
-  /** Path to the script file */
-  path: canonicalPathSchema,
-  /** SHA-256 hash of the script content */
-  sha256: sha256HexSchema,
-  /** Human-readable capability description */
-  capability: z.string().min(1).max(280),
-  /** Brief summary of argument schema */
-  argsSchemaSummary: z.string().max(280).default(''),
-  /** Brief summary of side effects */
-  sideEffectSummary: z.string().max(280).default(''),
-  /** Default execution policy */
-  defaultPolicy: compatibleScriptActivationPolicySchema,
-});
+export const bundleScriptDescriptorSchema = skillScriptDescriptorSchema;
 
 /**
  * Canonical artifact bundle for import/export.

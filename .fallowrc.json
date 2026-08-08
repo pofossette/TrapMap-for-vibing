@@ -9,14 +9,10 @@
     "packages/persistence-schema/src/index.ts",
     "packages/host-distributed/src/index.ts",
     "packages/host-local/src/index.ts",
-    "packages/server/src/index.ts",
-    "packages/server/src/worker.ts",
     "packages/web-panel/index.html",
     "packages/web-panel/src/main.tsx",
     "scripts/*.ts",
-    "packages/server/scripts/*.ts",
     "packages/cli/src/testing/index.ts",
-    "packages/server/src/testing/index.ts",
     "evals/**/*.ts"
   ],
   "ignoreDependencies": ["amqplib", "markdown-link-check"],
@@ -92,10 +88,6 @@
         "patterns": ["packages/backend-core/src/**"]
       },
       {
-        "name": "server",
-        "patterns": ["packages/server/src/**"]
-      },
-      {
         "name": "service-standard",
         "patterns": [
           "packages/service-identity-access/src/**",
@@ -148,10 +140,6 @@
         "allow": ["contracts", "persistence-schema"]
       },
       {
-        "from": "server",
-        "allow": ["contracts", "persistence-schema"]
-      },
-      {
         "from": "service-standard",
         "allow": ["backend-core", "contracts", "persistence-schema", "lib"]
       },
@@ -165,7 +153,6 @@
           "contracts",
           "client-core",
           "backend-core",
-          "server",
           "service-standard",
           "service-knowledge-read",
           "persistence-schema",
@@ -178,10 +165,10 @@
           "contracts",
           "client-core",
           "backend-core",
-          "server",
           "service-standard",
           "service-knowledge-read",
-          "persistence-schema"
+          "persistence-schema",
+          "lib"
         ]
       },
       {
@@ -195,12 +182,7 @@
     ],
     "coverage": {
       "requireAllFiles": false,
-      "allowUnmatched": [
-        "scripts/**",
-        "packages/server/scripts/**",
-        "evals/**",
-        "packages/skills/**"
-      ]
+      "allowUnmatched": ["scripts/**", "evals/**", "packages/skills/**"]
     }
   }
 }

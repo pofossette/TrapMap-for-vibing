@@ -175,3 +175,14 @@ export const MOCK_BASE_STATE = {
     effectivePermissions: ['knowledge:submit'] as Permission[],
   },
 };
+
+/**
+ * Create a mutable CLI state object for testing, starting from the
+ * default mock state. Use this to reduce inline state-construction
+ * duplication across test files.
+ */
+export function createMockCliState(
+  overrides: Partial<typeof MOCK_BASE_STATE> = {},
+): typeof MOCK_BASE_STATE {
+  return { ...MOCK_BASE_STATE, ...overrides };
+}

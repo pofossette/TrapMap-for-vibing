@@ -10,7 +10,7 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 
 ## Zone 定义
 
-项目共定义 13 个 zone，每个 zone 对应一组文件路径模式，由 `.fallowrc.json` 的 `boundaries.zones` 字段声明：
+项目共定义 12 个 zone，每个 zone 对应一组文件路径模式，由 `.fallowrc.json` 的 `boundaries.zones` 字段声明：
 
 | Zone | 包路径 | 角色 |
 |------|--------|------|
@@ -19,7 +19,6 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 | `persistence-schema` | `packages/persistence-schema/src/**` | 中立 Drizzle schema 层，只承载物理表定义与无状态列工厂，依赖 `contracts` |
 | `client-core` | `packages/client-core/src/**` | 客户端核心（无依赖的纯客户端逻辑），提供 HTTP gateway SDK、会话管理、错误模型 |
 | `backend-core` | `packages/backend-core/src/**` | 六边形架构内核（domain/application/ports/use-cases），框架无关，承载运行时能力模型、端口接口、用例模式、bounded-context 模块 |
-| `server` | `packages/server/src/**` | Fastify 兼容层和基础设施适配器（persistence/repos/cache/AI/indexing），承载迁移期兼容壳与既有实现面 |
 | `service-standard` | `packages/service-identity-access/src/**`、`packages/service-candidate-ingestion/src/**`、`packages/service-governance-review/src/**`、`packages/service-job-runtime/src/**`、`packages/service-knowledge-write/src/**` | 标准服务装配包（identity-access、candidate-ingestion、governance-review、job-runtime、knowledge-write），只依赖 `backend-core` + `contracts` |
 | `service-knowledge-read` | `packages/service-knowledge-read/src/**` | 知识读取服务，拥有 read-model、retrieval 与 graph projection owner surface |
 | `host-local` | `packages/host-local/src/**` | 本地宿主组合根（NestJS 光主机），为 `local-agent` 和 `team-monolith` profile 装配所有服务 |
@@ -48,10 +47,6 @@ flowchart TB
         service-knowledge-read["service-knowledge-read"]
     end
 
-    subgraph 基础设施层["基础设施层 (Infrastructure)"]
-        server["server"]
-    end
-
     subgraph 核心层["核心层 (Core)"]
         backend-core["backend-core"]
         client-core["client-core"]
@@ -66,7 +61,6 @@ flowchart TB
     end
 
     host-local --> backend-core
-    host-local --> server
     host-local --> service-standard
     host-local --> service-knowledge-read
     host-local --> client-core
@@ -74,7 +68,6 @@ flowchart TB
     host-local --> lib
 
     host-distributed --> backend-core
-    host-distributed --> server
     host-distributed --> service-standard
     host-distributed --> service-knowledge-read
     host-distributed --> client-core
@@ -87,7 +80,6 @@ flowchart TB
     service-knowledge-read --> backend-core
     service-knowledge-read --> contracts
     service-knowledge-read --> lib
-    server --> contracts
 
     backend-core --> contracts
 
@@ -106,7 +98,6 @@ flowchart TB
 
 ```
 host-* → service-* → backend-core → contracts
-host-* → server → contracts
 cli → client-core → (none)
 web-panel → client-core → (none)
 service-* / host-local / cli → lib → contracts
@@ -117,17 +108,16 @@ service-* / host-local / cli → lib → contracts
 1. `contracts` 是最底层叶子节点，不依赖任何其他 zone
 2. `client-core` 不依赖 `backend-core` 或任何服务端包
 3. `backend-core` 只依赖 `contracts`，不依赖任何服务或宿主包
-4. `server` 只依赖 `contracts`
-5. 标准服务包（`service-standard`）只依赖 `backend-core`、`contracts` 和 `lib`，服务包之间不直接依赖
-6. `cli` 和 `web-panel` 只依赖 `client-core`、`contracts`（`cli` 另可依赖 `lib`），不依赖任何服务端包
-7. 宿主包（`host-local`、`host-distributed`）是最高层组合根，可以依赖所有下游 zone
-8. `lib` 是共享工具叶子，type-only 依赖 `contracts`，不依赖任何服务/宿主/框架代码；`contracts` 不得反向依赖 `lib`
+4. 标准服务包（`service-standard`）只依赖 `backend-core`、`contracts` 和 `lib`，服务包之间不直接依赖
+5. `cli` 和 `web-panel` 只依赖 `client-core`、`contracts`（`cli` 另可依赖 `lib`），不依赖任何服务端包
+6. 宿主包（`host-local`、`host-distributed`）是最高层组合根，可以依赖所有下游 zone
+7. `lib` 是共享工具叶子，type-only 依赖 `contracts`，不依赖任何服务/宿主/框架代码；`contracts` 不得反向依赖 `lib`
 
 ## 已知例外
 
 ### host-local transitional composition
 
-`packages/runtime-infra` 已在 2026-07-25 删除（Wave-10）。host-local 可以在自身 composition 中暂时调用 server compatibility helpers（Wave-10 已删除）；这不是可复用 service package，其他 services 不得通过 concrete import 获得该能力。
+`packages/runtime-infra` 已在 2026-07-25 删除（Wave-10）。host-local 可以在自身 composition 中暂时通过迁移期接缝调用必要能力；这不是可复用 service package，其他 services 不得通过 concrete import 获得该能力。
 
 ## 使用指南
 
@@ -184,7 +174,7 @@ The coupling audit (Phase 0.6) identified several patterns that violate strict l
 **Tech debt**: Earlier closeout batches removed the deepest retrieval-core and read-side helper imports. The remaining task is removal of the compatibility server/store shell, alongside the narrower structural pool seam residual.
 
 **Status**: Known debt, tracked in open-debt register.
-Minimum regression evidence: `rtk rg "@trapmap/server" packages/service-knowledge-read/src -n` should only match import-boundary test deny-list text; any production import is a boundary regression.
+Regression evidence: any production import of a deleted package (`@trapmap/server` or `@trapmap/runtime-infra`) from service-knowledge-read is a boundary regression.
 
 ### Category C: Drizzle Schema Imports in Recall Channels (Low Severity)
 
@@ -192,7 +182,7 @@ Minimum regression evidence: `rtk rg "@trapmap/server" packages/service-knowledg
 
 **Pattern**: Recall channels import Drizzle schema directly for raw SQL queries instead of going through repository abstractions.
 
-**Why intentional**: These files are within the `server` zone. For performance-critical query paths, direct schema access is acceptable to avoid abstraction overhead on hot retrieval paths.
+**Why intentional**: These files are within the service-knowledge-read recall layer. For performance-critical query paths, direct schema access is acceptable to avoid abstraction overhead on hot retrieval paths.
 
 **Status**: Acceptable, documented for awareness.
 
@@ -202,13 +192,13 @@ Minimum regression evidence: `rtk rg "@trapmap/server" packages/service-knowledg
 
 **Pattern**: Imports `createMemoryGraphQueryBackend` as a fallback when no graph backend is configured.
 
-**Why intentional**: Within the `server` zone, this provides graceful degradation -- retrieval continues to function without a graph backend rather than failing.
+**Why intentional**: Within the service-knowledge-read retrieval layer, this provides graceful degradation -- retrieval continues to function without a graph backend rather than failing.
 
 **Status**: Acceptable.
 
 ## Wave-2 boundary closeout
 
-The 2026-07-16 Wave-2 closeout keeps the dependency direction above unchanged. `packages/contracts/src/domain/retrieval-projection.ts` contains the pure retrieval projection/read-model helpers, while `packages/contracts/src/domain/retrieval-fixtures.ts` contains deterministic fixture builders. The server and `service-knowledge-read` packages consume those contracts helpers without importing one another's implementation zones; service-specific normalization and remediation remain local.
+The 2026-07-16 Wave-2 closeout keeps the dependency direction above unchanged. `packages/contracts/src/domain/retrieval-projection.ts` contains the pure retrieval projection/read-model helpers, while `packages/contracts/src/domain/retrieval-fixtures.ts` contains deterministic fixture builders. The `service-knowledge-read` packages consume those contracts helpers without importing one another's implementation zones; service-specific normalization and remediation remain local.
 
 The new-only audit at commit `b3374307` reports zero introduced boundary violations, dead-code findings, complexity findings, or duplication groups. The audit still reports inherited complexity and duplication separately; those inherited totals are not new Wave-2 regressions.
 

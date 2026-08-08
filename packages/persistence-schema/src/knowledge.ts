@@ -55,7 +55,7 @@ export const knowledgeEntryIdSeq = pgSequence('knowledge_entry_id_seq', {
  * Stores one row per entry revision with the computed embedding.
  * Enables O(log n) similarity search via HNSW index vs O(n) in-memory scan.
  *
- * HNSW Index (created by ensureVectorIndex in db-search.ts):
+ * HNSW Index (created by migration SQL):
  * ```sql
  * CREATE INDEX knowledge_embeddings_vector_idx
  * ON knowledge_embeddings
@@ -64,8 +64,8 @@ export const knowledgeEntryIdSeq = pgSequence('knowledge_entry_id_seq', {
  * ```
  *
  * The HNSW index is not defined here as Drizzle ORM doesn't natively support
- * custom index types. The index is created programmatically during server
- * startup via ensureVectorIndex() in packages/server/src/lib/retrieval/db-search.ts.
+ * custom index types. The index is created via SQL migration files (see
+ * drizzle/*.sql, e.g. 0000_sharp_talos.sql in service-knowledge-read).
  */
 export const knowledgeEmbeddings = pgTable(
   'knowledge_embeddings',

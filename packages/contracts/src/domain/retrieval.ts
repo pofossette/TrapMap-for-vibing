@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { compatibleScriptActivationPolicySchema } from './artifacts.js';
+import { skillScriptDescriptorSchema } from './artifacts.js';
 
 import { boundaryContextSchema, boundaryExplanationSchema } from './boundary.js';
 import {
@@ -419,23 +419,11 @@ export const assetAvailabilityHintSchema = z.object({
  * Describes script capabilities without exposing script bodies.
  * Metadata-only - does not include script content (T-15-01, T-15-03).
  */
-export const scriptProfileHintSchema = z.object({
+export const scriptProfileHintSchema = skillScriptDescriptorSchema.extend({
   /** Artifact identifier containing the script */
   artifactId: entityIdSchema,
   /** Revision number for cache validation */
   revision: z.number().int().min(1),
-  /** Path to the script file within the skill directory */
-  path: canonicalPathSchema,
-  /** SHA-256 hash for integrity verification */
-  sha256: sha256HexSchema,
-  /** Human-readable capability description */
-  capability: z.string().min(1).max(280),
-  /** Brief summary of expected argument schema */
-  argsSchemaSummary: z.string().max(280).default(''),
-  /** Brief summary of side effects */
-  sideEffectSummary: z.string().max(280).default(''),
-  /** Default activation policy from server */
-  defaultPolicy: compatibleScriptActivationPolicySchema,
 });
 
 /**

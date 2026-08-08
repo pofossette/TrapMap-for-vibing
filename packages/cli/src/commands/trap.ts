@@ -10,6 +10,7 @@ import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { collectValues, resolveTextInput } from '@trapmap/cli/lib/input.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
+import { parseBoundaryJson } from '@trapmap/cli/lib/parse-boundary.js';
 
 interface TrapCommandOptions {
   allowInspect: boolean;
@@ -93,16 +94,7 @@ export function registerTrapCommands(program: Command, options: TrapCommandOptio
             },
             'detail',
           );
-          let boundary: unknown;
-          if (flags.boundary !== undefined) {
-            try {
-              boundary = JSON.parse(flags.boundary);
-            } catch (error) {
-              throw new Error(
-                `Invalid boundary JSON: ${error instanceof Error ? error.message : String(error)}`,
-              );
-            }
-          }
+          const boundary = parseBoundaryJson(flags.boundary);
           const response = await apiRequest<KnowledgeEntryResponse>(state, {
             method: 'POST',
             path: '/v1/knowledge',
@@ -173,16 +165,7 @@ export function registerTrapCommands(program: Command, options: TrapCommandOptio
             },
             'detail',
           );
-          let boundary: unknown;
-          if (flags.boundary !== undefined) {
-            try {
-              boundary = JSON.parse(flags.boundary);
-            } catch (error) {
-              throw new Error(
-                `Invalid boundary JSON: ${error instanceof Error ? error.message : String(error)}`,
-              );
-            }
-          }
+          const boundary = parseBoundaryJson(flags.boundary);
           const response = await apiRequest<KnowledgeEntryResponse>(state, {
             method: 'POST',
             path: `/v1/knowledge/${entryId}/resubmit`,
