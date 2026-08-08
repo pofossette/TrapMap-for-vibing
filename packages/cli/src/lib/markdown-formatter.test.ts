@@ -1,6 +1,7 @@
 import type { GraphPlanSearchResponse, PlanSkillNode, PlanTrapNode } from '@trapmap/contracts';
+import { truncate } from '@trapmap/lib';
 import { describe, expect, it } from 'vitest';
-import { escapeMarkdown, formatLoadContext, truncateText } from './markdown-formatter.js';
+import { escapeMarkdown, formatLoadContext } from './markdown-formatter.js';
 
 describe('escapeMarkdown', () => {
   it('escapes backticks', () => {
@@ -20,28 +21,28 @@ describe('escapeMarkdown', () => {
   });
 });
 
-describe('truncateText', () => {
+describe('truncate (shared via @trapmap/lib)', () => {
   it('does not truncate short text', () => {
-    expect(truncateText('short', 100)).toBe('short');
+    expect(truncate('short', 100)).toBe('short');
   });
 
   it('truncates long text with ellipsis', () => {
     const long = 'a'.repeat(100);
-    const result = truncateText(long, 50);
+    const result = truncate(long, 50);
     expect(result.length).toBe(50);
     expect(result.endsWith('...')).toBe(true);
   });
 
-  it('truncateText with maxLength 2 returns string of length <= 2', () => {
-    expect(truncateText('hello', 2).length).toBeLessThanOrEqual(2);
+  it('truncate with maxLength 2 returns string of length <= 2', () => {
+    expect(truncate('hello', 2).length).toBeLessThanOrEqual(2);
   });
 
-  it('truncateText with maxLength 1 returns string of length <= 1', () => {
-    expect(truncateText('hello', 1).length).toBeLessThanOrEqual(1);
+  it('truncate with maxLength 1 returns string of length <= 1', () => {
+    expect(truncate('hello', 1).length).toBeLessThanOrEqual(1);
   });
 
-  it('truncateText with maxLength 3 returns string of length <= 3', () => {
-    expect(truncateText('hello', 3).length).toBeLessThanOrEqual(3);
+  it('truncate with maxLength 3 returns string of length <= 3', () => {
+    expect(truncate('hello', 3).length).toBeLessThanOrEqual(3);
   });
 });
 

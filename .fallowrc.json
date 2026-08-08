@@ -2,6 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "entry": [
     "packages/backend-core/src/index.ts",
+    "packages/lib/src/index.ts",
     "packages/cli/src/index.ts",
     "packages/client-core/src/index.ts",
     "packages/contracts/src/index.ts",
@@ -75,6 +76,10 @@
         "patterns": ["packages/contracts/src/**"]
       },
       {
+        "name": "lib",
+        "patterns": ["packages/lib/src/**"]
+      },
+      {
         "name": "persistence-schema",
         "patterns": ["packages/persistence-schema/src/**"]
       },
@@ -127,6 +132,10 @@
         "allow": []
       },
       {
+        "from": "lib",
+        "allow": ["contracts"]
+      },
+      {
         "from": "persistence-schema",
         "allow": ["contracts"]
       },
@@ -144,11 +153,11 @@
       },
       {
         "from": "service-standard",
-        "allow": ["backend-core", "contracts", "persistence-schema"]
+        "allow": ["backend-core", "contracts", "persistence-schema", "lib"]
       },
       {
         "from": "service-knowledge-read",
-        "allow": ["backend-core", "contracts", "persistence-schema"]
+        "allow": ["backend-core", "contracts", "persistence-schema", "lib"]
       },
       {
         "from": "host-local",
@@ -159,7 +168,8 @@
           "server",
           "service-standard",
           "service-knowledge-read",
-          "persistence-schema"
+          "persistence-schema",
+          "lib"
         ]
       },
       {
@@ -176,7 +186,7 @@
       },
       {
         "from": "cli",
-        "allow": ["client-core", "contracts"]
+        "allow": ["client-core", "contracts", "lib"]
       },
       {
         "from": "web-panel",

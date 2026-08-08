@@ -12,6 +12,7 @@ import type {
   UserRepositoryPort,
 } from '@trapmap/backend-core';
 import type { Permission } from '@trapmap/contracts';
+import { nowIso, uniqBy } from '@trapmap/lib';
 import type { Pool } from 'pg';
 
 import type { IdentityActorLookupSource } from './actor-lookup.js';
@@ -135,9 +136,7 @@ export function createIdentityAccessActorLookupSource(pool: Queryable): Identity
     },
     async getMembershipLevels(pairs) {
       const levels = new Map<string, number>();
-      const uniquePairs = [
-        ...new Map(pairs.map((pair) => [`${pair.userId}:${pair.teamId}`, pair])).values(),
-      ];
+      const uniquePairs = uniqBy(pairs, (pair) => `${pair.userId}:${pair.teamId}`);
       if (uniquePairs.length === 0) return levels;
       const { rows } = await pool.query(
         `SELECT user_id, team_id, security_level
@@ -153,10 +152,6 @@ export function createIdentityAccessActorLookupSource(pool: Queryable): Identity
       return levels;
     },
   };
-}
-
-function nowIso(): string {
-  return new Date().toISOString();
 }
 
 function rowToSession(row: Record<string, unknown>) {

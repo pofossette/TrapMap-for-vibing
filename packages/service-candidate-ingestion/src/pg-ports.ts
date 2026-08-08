@@ -8,6 +8,7 @@ import type {
   ManualResultSubmission,
   ResolutionOutcome,
 } from '@trapmap/contracts';
+import { nowIso } from '@trapmap/lib';
 import type { Pool, PoolClient } from 'pg';
 
 type Queryable = Pick<Pool, 'query'>;
@@ -96,7 +97,7 @@ async function updateCandidateStatus(
   if (existing.status === status && (status !== 'error' || existing.last_error === errorMessage))
     return;
 
-  const now = new Date().toISOString();
+  const now = nowIso();
   const statusUpdates: Partial<Record<CandidateStatus, [string, unknown[]]>> = {
     queued: [
       'UPDATE candidates SET status = $1, queued_at = $2, updated_at = $2 WHERE id = $3',
@@ -455,7 +456,7 @@ export function createCandidateIngestionPgOwnerBundle(pool: Pool): CandidateInge
         );
         if (rows[0] && sameManualResult(rowToManualResult(rows[0] as Row), result, reviewedBy))
           return;
-        const submittedAt = new Date().toISOString();
+        const submittedAt = nowIso();
         await writeManualResult(client, candidateId, result, reviewedBy, submittedAt);
       });
     },

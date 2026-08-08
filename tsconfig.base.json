@@ -24,6 +24,8 @@
       "@trapmap/client-core": ["./packages/client-core/src/index.ts"],
       "@trapmap/client-core/*": ["./packages/client-core/src/*"],
       "@trapmap/contracts": ["./packages/contracts/src/index.ts"],
+      "@trapmap/lib": ["./packages/lib/src/index.ts"],
+      "@trapmap/lib/*": ["./packages/lib/src/*"],
       "@trapmap/contracts/evals": ["./packages/contracts/src/domain/evals/index.ts"],
       "@trapmap/contracts/*": ["./packages/contracts/src/*"],
       "@trapmap/persistence-schema": ["./packages/persistence-schema/src/index.ts"],

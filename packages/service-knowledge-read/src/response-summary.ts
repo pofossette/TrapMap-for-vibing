@@ -20,6 +20,7 @@
 
 import type { CapsuleMatch, RetrievalCitation, RetrievalSummary } from '@trapmap/contracts';
 import { retrievalSummarySchema } from '@trapmap/contracts';
+import { truncate } from '@trapmap/lib';
 
 /**
  * Input hit for summary generation.
@@ -130,25 +131,10 @@ function generateExtractiveSummary(_query: string, hits: SummaryHit[]): string {
 
   for (const hit of hits) {
     // Add the shortcut as a bullet point
-    parts.push(`• ${hit.shortcut}: ${truncateText(hit.detail, 120)}`);
+    parts.push(`• ${hit.shortcut}: ${truncate(hit.detail, 120)}`);
   }
 
   return `Based on ${hits.length} result${hits.length > 1 ? 's' : ''}:\n${parts.join('\n')}`;
-}
-
-/**
- * Truncate text to a maximum length with ellipsis.
- *
- * @param text - The text to truncate
- * @param maxLength - Maximum length
- * @returns Truncated text with ellipsis if needed
- */
-function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) {
-    return text;
-  }
-
-  return `${text.slice(0, maxLength)}...`;
 }
 
 // =============================================================================

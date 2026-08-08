@@ -10,11 +10,12 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 
 ## Zone 定义
 
-项目共定义 12 个 zone，每个 zone 对应一组文件路径模式，由 `.fallowrc.json` 的 `boundaries.zones` 字段声明：
+项目共定义 13 个 zone，每个 zone 对应一组文件路径模式，由 `.fallowrc.json` 的 `boundaries.zones` 字段声明：
 
 | Zone | 包路径 | 角色 |
 |------|--------|------|
 | `contracts` | `packages/contracts/src/**` | 共享契约层（Zod schema、TypeScript 类型），最底层叶子节点，不依赖任何其他 zone |
+| `lib` | `packages/lib/src/**` | 共享纯函数工具层（时间/异步/字符串/数组/哈希工具），type-only 依赖 `contracts`（复用 `Sha256Hex` 等类型） |
 | `persistence-schema` | `packages/persistence-schema/src/**` | 中立 Drizzle schema 层，只承载物理表定义与无状态列工厂，依赖 `contracts` |
 | `client-core` | `packages/client-core/src/**` | 客户端核心（无依赖的纯客户端逻辑），提供 HTTP gateway SDK、会话管理、错误模型 |
 | `backend-core` | `packages/backend-core/src/**` | 六边形架构内核（domain/application/ports/use-cases），框架无关，承载运行时能力模型、端口接口、用例模式、bounded-context 模块 |
@@ -56,6 +57,10 @@ flowchart TB
         client-core["client-core"]
     end
 
+    subgraph 工具层["工具层 (Lib)"]
+        lib["lib"]
+    end
+
     subgraph 契约层["契约层 (Contracts)"]
         contracts["contracts"]
     end
@@ -66,6 +71,7 @@ flowchart TB
     host-local --> service-knowledge-read
     host-local --> client-core
     host-local --> contracts
+    host-local --> lib
 
     host-distributed --> backend-core
     host-distributed --> server
@@ -76,20 +82,24 @@ flowchart TB
 
     service-standard --> backend-core
     service-standard --> contracts
+    service-standard --> lib
 
     service-knowledge-read --> backend-core
     service-knowledge-read --> contracts
+    service-knowledge-read --> lib
     server --> contracts
 
     backend-core --> contracts
 
     cli --> client-core
     cli --> contracts
+    cli --> lib
 
     web-panel --> client-core
     web-panel --> contracts
 
     client-core -.-> contracts
+    lib --> contracts
 ```
 
 简化依赖层次：
@@ -99,6 +109,7 @@ host-* → service-* → backend-core → contracts
 host-* → server → contracts
 cli → client-core → (none)
 web-panel → client-core → (none)
+service-* / host-local / cli → lib → contracts
 ```
 
 ### 关键约束
@@ -107,9 +118,10 @@ web-panel → client-core → (none)
 2. `client-core` 不依赖 `backend-core` 或任何服务端包
 3. `backend-core` 只依赖 `contracts`，不依赖任何服务或宿主包
 4. `server` 只依赖 `contracts`
-5. 标准服务包（`service-standard`）只依赖 `backend-core` 和 `contracts`，服务包之间不直接依赖
-6. `cli` 和 `web-panel` 只依赖 `client-core` 和 `contracts`，不依赖任何服务端包
+5. 标准服务包（`service-standard`）只依赖 `backend-core`、`contracts` 和 `lib`，服务包之间不直接依赖
+6. `cli` 和 `web-panel` 只依赖 `client-core`、`contracts`（`cli` 另可依赖 `lib`），不依赖任何服务端包
 7. 宿主包（`host-local`、`host-distributed`）是最高层组合根，可以依赖所有下游 zone
+8. `lib` 是共享工具叶子，type-only 依赖 `contracts`，不依赖任何服务/宿主/框架代码；`contracts` 不得反向依赖 `lib`
 
 ## 已知例外
 

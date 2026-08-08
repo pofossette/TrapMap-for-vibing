@@ -9,6 +9,7 @@
  */
 
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
+import { uniqBy } from '@trapmap/lib';
 
 import { alignLabel } from './llm-align.js';
 import type { CanonicalLabelRecord, LabelRepository } from './repository.js';
@@ -88,7 +89,7 @@ export async function backfillLabels(
   };
 
   // Deduplicate labels by normalized form
-  const uniqueLabels = deduplicateLabels(rawLabelSources);
+  const uniqueLabels = uniqBy(rawLabelSources, (source) => normalizeLabel(source.label));
   report.examined = uniqueLabels.length;
 
   for (const entry of uniqueLabels) {
@@ -169,17 +170,6 @@ export async function backfillLabels(
 
 function normalizeLabel(value: string): string {
   return value.toLowerCase().trim().replace(/\s+/g, '-');
-}
-
-function deduplicateLabels(sources: RawLabelSource[]): RawLabelSource[] {
-  const seen = new Map<string, RawLabelSource>();
-  for (const source of sources) {
-    const key = normalizeLabel(source.label);
-    if (!seen.has(key)) {
-      seen.set(key, source);
-    }
-  }
-  return [...seen.values()];
 }
 
 async function checkByNormalizedName(

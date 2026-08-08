@@ -5,6 +5,7 @@ import type {
   PlanTrapNode,
   RetrievalMatch,
 } from '@trapmap/contracts';
+import { truncate } from '@trapmap/lib';
 
 /** Configuration for markdown formatting */
 export interface LoadFormatOptions {
@@ -37,20 +38,11 @@ export function escapeMarkdown(text: string): string {
 }
 
 /**
- * Truncate text to max length with ellipsis indicator.
- */
-export function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  if (maxLength <= 3) return text.slice(0, maxLength);
-  return `${text.slice(0, maxLength - 3)}...`;
-}
-
-/**
  * Format a single trap node as markdown.
  */
 function formatTrapNode(trap: PlanTrapNode, maxLen: number): string {
   const severityLabel = trap.severity === 'hard' ? '[HARD]' : '[SOFT]';
-  const evidence = truncateText(escapeMarkdown(trap.evidence), maxLen);
+  const evidence = truncate(escapeMarkdown(trap.evidence), maxLen);
   const lines = [
     `**${severityLabel} ${escapeMarkdown(trap.label)}**`,
     `> ${evidence}`,
@@ -63,9 +55,9 @@ function formatTrapNode(trap: PlanTrapNode, maxLen: number): string {
  * Format a single skill node as markdown.
  */
 function formatSkillNode(skill: PlanSkillNode, maxLen: number): string {
-  const situation = truncateText(escapeMarkdown(skill.situation), maxLen);
-  const problem = truncateText(escapeMarkdown(skill.problem), maxLen);
-  const goal = truncateText(escapeMarkdown(skill.goal), maxLen);
+  const situation = truncate(escapeMarkdown(skill.situation), maxLen);
+  const problem = truncate(escapeMarkdown(skill.problem), maxLen);
+  const goal = truncate(escapeMarkdown(skill.goal), maxLen);
 
   const lines = [
     `**${escapeMarkdown(skill.label)}** (score: ${skill.score.toFixed(2)})`,
@@ -137,9 +129,9 @@ function formatCapsuleFallback(
   if (capsules.length === 0) return 'No capsules found.';
 
   const lines = capsules.map((cap, i) => {
-    const situation = truncateText(escapeMarkdown(cap.situation ?? 'n/a'), maxLen);
-    const problem = truncateText(escapeMarkdown(cap.problem ?? 'n/a'), maxLen);
-    const goal = truncateText(escapeMarkdown(cap.goal ?? 'n/a'), maxLen);
+    const situation = truncate(escapeMarkdown(cap.situation ?? 'n/a'), maxLen);
+    const problem = truncate(escapeMarkdown(cap.problem ?? 'n/a'), maxLen);
+    const goal = truncate(escapeMarkdown(cap.goal ?? 'n/a'), maxLen);
     return [
       `${i + 1}. **${escapeMarkdown(cap.capsuleId)}** (score: ${cap.score.toFixed(2)})`,
       `   - Situation: ${situation}`,
@@ -186,7 +178,7 @@ function formatEntryFallback(
   }
 
   const lines = entries.map((entry, index) => {
-    const detail = truncateText(escapeMarkdown(entry.detail), maxLen);
+    const detail = truncate(escapeMarkdown(entry.detail), maxLen);
     const labels = entry.labels.length > 0 ? entry.labels.join(', ') : 'none';
     return [
       `${index + 1}. **${escapeMarkdown(entry.shortcut)}** (${entry.bucket}, score: ${entry.score.toFixed(2)})`,

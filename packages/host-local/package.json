@@ -36,6 +36,7 @@
     "@trapmap/backend-core": "workspace:*",
     "@trapmap/client-core": "workspace:*",
     "@trapmap/contracts": "workspace:*",
+    "@trapmap/lib": "workspace:*",
     "@trapmap/service-candidate-ingestion": "workspace:*",
     "@trapmap/service-governance-review": "workspace:*",
     "@trapmap/service-identity-access": "workspace:*",

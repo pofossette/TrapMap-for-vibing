@@ -1,9 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
 
-export function nowIso(): string {
-  return new Date().toISOString();
-}
-
 export function hashSecret(secret: string): string {
   return createHash('sha256').update(secret).digest('hex');
 }

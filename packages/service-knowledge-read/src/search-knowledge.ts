@@ -5,6 +5,7 @@ import {
   type RoutingTrace,
   retrievalQuerySchema,
 } from '@trapmap/contracts';
+import { nowIso } from '@trapmap/lib';
 
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
@@ -23,10 +24,6 @@ import { dispatchByMode, inferChannelsFromMerged } from './retrieval-recall-coor
 import { buildEmbeddingText } from './retrieval-semantic.js';
 import type { ScoredEntry } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
-
-function nowIso(): string {
-  return new Date().toISOString();
-}
 
 function buildRoutingTrace(
   services: SkillShareerServices,

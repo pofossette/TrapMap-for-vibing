@@ -3,6 +3,7 @@
   "references": [
     { "path": "./packages/ai-providers" },
     { "path": "./packages/contracts" },
+    { "path": "./packages/lib" },
     { "path": "./packages/persistence-schema" },
     { "path": "./packages/client-core" },
     { "path": "./packages/backend-core" },

@@ -1,6 +1,8 @@
 import { isDeepStrictEqual } from 'node:util';
 
 import type { ArtifactFilePayloadRecord } from '@trapmap/contracts';
+import { timestamp } from '@trapmap/lib';
+
 import type { ArtifactFilePayloadOwner } from './artifact-ports.js';
 
 export interface ArtifactFilePayloadBackfillResult {
@@ -10,15 +12,10 @@ export interface ArtifactFilePayloadBackfillResult {
   verified: number;
 }
 
-function canonicalizeTimestamp(value: string): string {
-  const timestamp = new Date(value);
-  return Number.isNaN(timestamp.getTime()) ? value : timestamp.toISOString();
-}
-
 function matches(left: ArtifactFilePayloadRecord, right: ArtifactFilePayloadRecord): boolean {
   return isDeepStrictEqual(
-    { ...left, storedAt: canonicalizeTimestamp(left.storedAt) },
-    { ...right, storedAt: canonicalizeTimestamp(right.storedAt) },
+    { ...left, storedAt: timestamp(left.storedAt) },
+    { ...right, storedAt: timestamp(right.storedAt) },
   );
 }
 

@@ -10,6 +10,7 @@
     { "path": "../ai-providers" },
     { "path": "../backend-core" },
     { "path": "../contracts" },
+    { "path": "../lib" },
     { "path": "../persistence-schema" }
   ]
 }

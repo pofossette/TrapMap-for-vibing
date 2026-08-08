@@ -8,8 +8,8 @@ import type {
   AccessKeyRepositoryPort,
 } from '@trapmap/backend-core';
 import type { RoleTemplate } from '@trapmap/contracts';
+import { nowIso } from '@trapmap/lib';
 
-import { nowIso } from './now-iso.js';
 import type { HostLocalAsyncTransport, HostLocalRepos } from './shared-infra.js';
 
 function normalizeRoleTemplate(role: unknown): RoleTemplate {

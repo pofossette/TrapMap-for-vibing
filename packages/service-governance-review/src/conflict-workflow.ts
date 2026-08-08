@@ -6,6 +6,7 @@ import type {
   GovernanceConflictWorkflowPort,
 } from '@trapmap/backend-core';
 import type { ConflictRelation, ConflictType } from '@trapmap/contracts';
+import { nowIso } from '@trapmap/lib';
 
 const PROBLEM_OVERLAP_THRESHOLD = 0.3;
 const SOLUTION_DIFF_THRESHOLD = 0.3;
@@ -96,7 +97,7 @@ export function createGovernanceConflictWorkflow(
   deps: GovernanceConflictWorkflowDeps,
 ): GovernanceConflictWorkflowPort {
   const createId = deps.createId ?? (() => `conflict_${randomUUID().replaceAll('-', '')}`);
-  const now = deps.now ?? (() => new Date().toISOString());
+  const now = deps.now ?? nowIso;
 
   return {
     async detectConflicts({ entryId }) {

@@ -16,6 +16,7 @@ import type {
   GraphNodeRecord,
   Scope,
 } from '@trapmap/contracts';
+import { nowIso } from '@trapmap/lib';
 
 export type {
   GraphEdgeRecord,
@@ -64,7 +65,7 @@ export interface SkillGraphDocumentInput {
  */
 export function buildTrapGraphDocument(input: TrapGraphDocumentInput): GraphIndexDocumentRecord {
   const contentHash = computeDocumentHash(input.nodes, input.edges);
-  const now = new Date().toISOString();
+  const now = nowIso();
 
   return {
     id: `graphdoc_trap_${input.sourceId}_r${input.revision}`,
@@ -89,7 +90,7 @@ export function buildTrapGraphDocument(input: TrapGraphDocumentInput): GraphInde
  */
 export function buildSkillGraphDocument(input: SkillGraphDocumentInput): GraphIndexDocumentRecord {
   const contentHash = computeDocumentHash(input.nodes, input.edges);
-  const now = new Date().toISOString();
+  const now = nowIso();
 
   return {
     id: `graphdoc_skill_${input.artifactId}_r${input.revision}`,

@@ -9,11 +9,11 @@
  * Extracted from operations.ts for Phase 85 refactoring.
  */
 
-import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import type { ArtifactBundle, KnowledgeListResponse } from '@trapmap/contracts';
 import { detectMediaType, isTextLikeMediaType, parseSkillMarkdown } from '@trapmap/contracts';
+import { sha256 } from '@trapmap/lib';
 
 /**
  * Checks if a file path is a SKILL.md file (basename check).
@@ -37,7 +37,7 @@ export async function buildSingleSkillMdBundle(args: {
   // Read SKILL.md content
   const content = await readFile(filePath, 'utf8');
   const buffer = await readFile(filePath);
-  const sha256 = createHash('sha256').update(buffer).digest('hex');
+  const fileSha256 = sha256(buffer);
 
   // Parse metadata from frontmatter
   const metadata = parseSkillMetadata(content);
@@ -63,7 +63,7 @@ export async function buildSingleSkillMdBundle(args: {
       {
         path: 'SKILL.md',
         kind: 'skill-markdown',
-        sha256,
+        sha256: fileSha256,
         sizeBytes: buffer.length,
         mediaType: 'text/markdown',
         source: 'SKILL.md',
@@ -97,13 +97,6 @@ export function parseClaudeSkill(
     shortcut: metadata.name,
     detail: detailContent,
   };
-}
-
-/**
- * Computes SHA-256 hash of file content.
- */
-export function computeFileHash(content: Buffer): string {
-  return createHash('sha256').update(content).digest('hex');
 }
 
 /**
@@ -250,12 +243,12 @@ export async function buildArtifactBundle(args: {
   if (skillMd) {
     const { content, isBinary } = await readFileContent(skillMd);
     const buffer = await readFile(skillMd);
-    const sha256 = computeFileHash(buffer);
+    const fileSha256 = sha256(buffer);
 
     files.push({
       path: 'SKILL.md',
       kind: 'skill-markdown',
-      sha256,
+      sha256: fileSha256,
       sizeBytes: buffer.length,
       mediaType: 'text/markdown',
       source: 'SKILL.md',
@@ -270,13 +263,13 @@ export async function buildArtifactBundle(args: {
     const fullPath = join(rootPath, relPath);
     const { content, isBinary } = await readFileContent(fullPath);
     const buffer = await readFile(fullPath);
-    const sha256 = computeFileHash(buffer);
+    const fileSha256 = sha256(buffer);
     const mediaType = detectMediaType(relPath);
 
     files.push({
       path: relPath,
       kind: 'reference',
-      sha256,
+      sha256: fileSha256,
       sizeBytes: buffer.length,
       mediaType,
       source: 'references/',
@@ -291,13 +284,13 @@ export async function buildArtifactBundle(args: {
     const fullPath = join(rootPath, relPath);
     const { content, isBinary } = await readFileContent(fullPath);
     const buffer = await readFile(fullPath);
-    const sha256 = computeFileHash(buffer);
+    const fileSha256 = sha256(buffer);
     const mediaType = detectMediaType(relPath);
 
     files.push({
       path: relPath,
       kind: 'asset',
-      sha256,
+      sha256: fileSha256,
       sizeBytes: buffer.length,
       mediaType,
       source: 'assets/',
@@ -312,13 +305,13 @@ export async function buildArtifactBundle(args: {
     const fullPath = join(rootPath, relPath);
     const { content, isBinary } = await readFileContent(fullPath);
     const buffer = await readFile(fullPath);
-    const sha256 = computeFileHash(buffer);
+    const fileSha256 = sha256(buffer);
     const mediaType = detectMediaType(relPath);
 
     files.push({
       path: relPath,
       kind: 'script',
-      sha256,
+      sha256: fileSha256,
       sizeBytes: buffer.length,
       mediaType,
       source: 'scripts/',

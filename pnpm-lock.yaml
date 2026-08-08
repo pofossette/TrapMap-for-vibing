@@ -115,6 +115,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/lib':
+        specifier: workspace:*
+        version: link:../lib
       commander:
         specifier: ^14.0.1
         version: 14.0.3
@@ -278,6 +281,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/lib':
+        specifier: workspace:*
+        version: link:../lib
       '@trapmap/service-candidate-ingestion':
         specifier: workspace:*
         version: link:../service-candidate-ingestion
@@ -338,6 +344,22 @@ importers:
         specifier: ^3.38.20
         version: 3.38.20
 
+  packages/lib:
+    dependencies:
+      '@trapmap/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.1
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@25.6.0)(jiti@2.7.0)(jsdom@29.1.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+
   packages/persistence-schema:
     dependencies:
       '@trapmap/contracts':
@@ -362,6 +384,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/lib':
+        specifier: workspace:*
+        version: link:../lib
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(pg@8.20.0)
@@ -396,6 +421,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/lib':
+        specifier: workspace:*
+        version: link:../lib
       '@trapmap/persistence-schema':
         specifier: workspace:*
         version: link:../persistence-schema
@@ -433,6 +461,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/lib':
+        specifier: workspace:*
+        version: link:../lib
       '@trapmap/persistence-schema':
         specifier: workspace:*
         version: link:../persistence-schema
@@ -504,6 +535,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/lib':
+        specifier: workspace:*
+        version: link:../lib
       '@trapmap/persistence-schema':
         specifier: workspace:*
         version: link:../persistence-schema
@@ -547,6 +581,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/lib':
+        specifier: workspace:*
+        version: link:../lib
       '@trapmap/persistence-schema':
         specifier: workspace:*
         version: link:../persistence-schema

@@ -9,6 +9,7 @@
   "references": [
     { "path": "../ai-providers" },
     { "path": "../backend-core" },
-    { "path": "../contracts" }
+    { "path": "../contracts" },
+    { "path": "../lib" }
   ]
 }

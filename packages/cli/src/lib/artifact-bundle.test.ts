@@ -10,12 +10,12 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { sha256 } from '@trapmap/lib';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   buildArtifactBundle,
   buildSingleSkillMdBundle,
-  computeFileHash,
   formatListResponse,
   isSkillMdFile,
   parseClaudeSkill,
@@ -58,18 +58,18 @@ describe('artifact-bundle utilities', () => {
     });
   });
 
-  describe('computeFileHash', () => {
+  describe('sha256 (shared via @trapmap/lib)', () => {
     it('should produce deterministic SHA-256 hash', () => {
       const content = Buffer.from('hello world');
-      const hash1 = computeFileHash(content);
-      const hash2 = computeFileHash(content);
+      const hash1 = sha256(content);
+      const hash2 = sha256(content);
       expect(hash1).toBe(hash2);
       expect(hash1).toHaveLength(64);
     });
 
     it('should produce different hashes for different content', () => {
-      const hash1 = computeFileHash(Buffer.from('content a'));
-      const hash2 = computeFileHash(Buffer.from('content b'));
+      const hash1 = sha256(Buffer.from('content a'));
+      const hash2 = sha256(Buffer.from('content b'));
       expect(hash1).not.toBe(hash2);
     });
   });
@@ -376,7 +376,7 @@ describe('artifact-bundle utilities', () => {
 
       const skillFile = bundle.files.find((f) => f.path === 'SKILL.md');
       expect(skillFile?.sha256).toHaveLength(64);
-      expect(skillFile?.sha256).toBe(computeFileHash(Buffer.from(skillContent)));
+      expect(skillFile?.sha256).toBe(sha256(Buffer.from(skillContent)));
     });
   });
 });

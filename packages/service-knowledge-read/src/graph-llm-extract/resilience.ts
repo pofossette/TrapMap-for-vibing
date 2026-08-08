@@ -1,3 +1,5 @@
+import { timeout } from '@trapmap/lib';
+
 /**
  * Simplified resilience wrapper for LLM calls.
  *
@@ -26,12 +28,7 @@ export async function executeWithResilience<T>(
   let lastError: unknown;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      return await Promise.race([
-        fn(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs),
-        ),
-      ]);
+      return await timeout(fn(), timeoutMs, `Timeout after ${timeoutMs}ms`);
     } catch (error) {
       lastError = error;
       if (attempt < maxAttempts - 1) {

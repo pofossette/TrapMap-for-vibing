@@ -1,6 +1,8 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
+import { formatDate } from '@trapmap/lib';
+
 import { appendWithRotation, loadRotationConfig } from './log-rotation.js';
 
 export type UserOpsAction =
@@ -51,13 +53,6 @@ export function loadUserOpsLogConfig(): UserOpsLogConfig {
   const logDir = process.env.LOG_USER_OPS_DIR ?? 'logs/user-ops';
   const rotation = loadRotationConfig();
   return { enabled, logDir, ...rotation };
-}
-
-function formatDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 export async function logUserOperation(

@@ -2,6 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { RoutingTrace } from '@trapmap/contracts';
+import { formatDate } from '@trapmap/lib';
 
 import { appendWithRotation, loadRotationConfig } from './log-rotation.js';
 
@@ -46,13 +47,6 @@ export function loadRagLogConfig(): RagLogConfig {
   const logDir = process.env.LOG_RAG_DIR ?? 'logs/rag';
   const rotation = loadRotationConfig();
   return { enabled, logDir, ...rotation };
-}
-
-function formatDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 export async function logRagRetrieval(config: RagLogConfig, entry: RagLogEntry): Promise<void> {
