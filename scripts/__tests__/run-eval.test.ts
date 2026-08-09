@@ -30,6 +30,19 @@ describe('resolveEvalTarget', () => {
     expect(target.args).toEqual(['--tier', 'core', '--dry-run']);
   });
 
+  it('forwards --runner to the agent-planning runner', () => {
+    const target = resolveSuite('agent-planning', ['--tier', 'smoke', '--runner', 'promptfoo']);
+
+    expect(target.scriptPath).toBe('evals/agent-planning/run.ts');
+    expect(target.args).toEqual(['--tier', 'smoke', '--runner', 'promptfoo']);
+  });
+
+  it('rejects invalid --runner values', () => {
+    expect(() => resolveSuite('agent-planning', ['--runner', 'bogus'])).toThrow(
+      /Invalid --runner value/,
+    );
+  });
+
   it('maps label-alignment mode onto the existing runner flags', () => {
     const target = resolveSuite('label-alignment', ['--tier', 'smoke', '--mode', 'dry-run']);
 

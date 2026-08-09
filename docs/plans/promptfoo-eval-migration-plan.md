@@ -222,33 +222,52 @@
 **Commit**
 
 - [x] 提交：`feat(evals): add promptfoo execution substrate with SuiteBridge`
-      - 证据：commit `<FILL: phase1 commit hash>`
+      - 证据：commit `615ef274`
 
 ## Phase 2: agent-planning bridge (reference implementation)
 
-- [ ] `evals/agent-planning/bridge.ts`：provider = llmProvider（复用 `llm-actor.ts`/ai-providers chat）；
+- [x] `evals/agent-planning/bridge.ts`：provider = llmProvider（复用 `llm-actor.ts`/ai-providers chat）；
       dry-run = echo + 现有 `buildDryRunOutput`；断言复用
       `normalizeActorOutput` + `evaluateDeterministicPrecheck` + `runJudge`；`concurrency: 4`
-- [ ] `run.ts` 加 `--runner native|promptfoo`（默认 native）
-- [ ] `scripts/run-eval.ts` `buildSuiteArgs` 透传 `--runner`；`scripts/__tests__/run-eval.test.ts`
+      - 证据：新建 `evals/agent-planning/bridge.ts`，provider executor 复用完整 native 管线
+        （actor → normalize → precheck → judge → `AgentPlanningCaseResult`），结果携带于 `raw.result`；
+        断言仅将预计算结果映射为 `GradingResult`；`dryRunMode:'execute'`，`concurrency:4`，模块顶层 `registerBridge`
+- [x] `run.ts` 加 `--runner native|promptfoo`（默认 native）
+      - 证据：`evals/agent-planning/run.ts` 新增 `AgentPlanningResolvedOptions` 与
+        `resolveAgentPlanningOptions()`（条件展开 `promptTemplatePath`），`parseCliArgs` 解析并校验 `--runner`，
+        `runAgentPlanningEval` 在 `runner==='promptfoo'` 时惰性分发到 `runSuiteWithPromptfoo`
+- [x] `scripts/run-eval.ts` `buildSuiteArgs` 透传 `--runner`；`scripts/__tests__/run-eval.test.ts`
       增加 `--runner` 透传断言
-- [ ] `parity-agent-planning.test.ts`：fallback provider 下逐 case 对比 passed/totalScore/dimensionScores
+      - 证据：`scripts/run-eval.ts` 解析 `--runner`（非法值抛 `Invalid --runner value`），
+        `buildSuiteArgs` 仅对 agent-planning 透传（retrieval/summary 用 strict `parseArgs` 不转发）；
+        测试新增正向透传 + 非法值两条断言
+- [x] `parity-agent-planning.test.ts`：fallback provider 下逐 case 对比 passed/totalScore/dimensionScores
+      - 证据：新建 `evals/promptfoo/parity-agent-planning.test.ts`，dryRun=false/true 各一用例，
+        按 `taskId::variantId` 对比 passed/totalScore/dimensionScores/actorOutput（2 tests passed）
 
 **Completion standard**
 
 - parity 全绿；`--runner promptfoo` 与 native 输出一致（报告结构 + 逐 case 判定）；
   `eval:smoke` 默认路径无回归。
+      - 证据：promptfoo 与 native 双 runner 均为 `Cases: 33/33 passed`、`Avg score: 0.97`、exit 0；
+        `eval:smoke` 54/81 与既有本地基线一致，无回归
 
 **Test and eval updates**
 
-- [ ] `rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`
-- [ ] `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
-- [ ] `rtk pnpm eval -- agent-planning --tier smoke --dry-run --runner promptfoo`
-- [ ] `rtk pnpm eval:smoke`
+- [x] `rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`
+      - 证据：2 tests passed
+- [x] `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
+      - 证据：12 tests passed
+- [x] `rtk pnpm eval -- agent-planning --tier smoke --dry-run --runner promptfoo`
+      - 证据：exit 0；`Cases: 33/33 passed`、`Avg score: 0.97`
+- [x] `rtk pnpm eval:smoke`
+      - 证据：54/81 passed（与本地 keyless 基线一致，无回归）；类型检查 `rtk pnpm typecheck` exit 0
 
 **Document updates**
 
-- [ ] `docs/operations/TESTING.md` 记录 `--runner` 双轨选项与验证命令
+- [x] `docs/operations/TESTING.md` 记录 `--runner` 双轨选项与验证命令
+      - 证据：`docs/operations/TESTING.md` 评测（Eval）本地运行段新增
+        `**--runner native|promptfoo 双轨选项（agent-planning 参考实现）**` 小节与验证命令
 
 **Commit**
 

@@ -542,6 +542,14 @@ pnpm eval:summary:core
 pnpm eval:agent-planning:smoke
 pnpm eval:agent-planning:core
 
+**`--runner native|promptfoo` 双轨选项（agent-planning 参考实现）**
+
+- 默认 `native`，语义不变。`promptfoo` 走 SuiteBridge 执行引擎（确定性 fallback 下与 native 逐 case 判定一致）。
+- 验证命令：
+  - `rtk pnpm eval -- agent-planning --tier smoke --dry-run --runner promptfoo`
+  - `rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`
+  - `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
+
 # 仅标签对齐评估
 pnpm eval:label-alignment:smoke
 pnpm eval:label-alignment:core

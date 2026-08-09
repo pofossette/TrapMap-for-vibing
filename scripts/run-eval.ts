@@ -28,6 +28,7 @@ interface ParsedEvalOptions {
   platform?: 'noop' | 'json-archive' | 'langfuse';
   platformOutputDir?: string;
   tier?: EvalTier;
+  runner?: 'native' | 'promptfoo';
 }
 
 const EVAL_USAGE = [
@@ -47,6 +48,7 @@ const EVAL_USAGE = [
   'Options:',
   '  --tier <smoke|core>',
   '  --mode <live|dry-run>',
+  '  --runner <native|promptfoo>',
   '  --dry-run',
   '  --json',
   '  --json-path <path>',
@@ -115,6 +117,16 @@ function parseEvalOptions(argv: readonly string[]): ParsedEvalOptions {
         throw new Error(`Invalid --mode value: ${value ?? '<missing>'}\n\n${EVAL_USAGE}`);
       }
       options.mode = value;
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--runner') {
+      const value = argv[index + 1];
+      if (value !== 'native' && value !== 'promptfoo') {
+        throw new Error(`Invalid --runner value: ${value ?? '<missing>'}\n\n${EVAL_USAGE}`);
+      }
+      options.runner = value;
       index += 1;
       continue;
     }
@@ -193,6 +205,10 @@ function buildSuiteArgs(
   }
 
   args.push('--tier', options.tier ?? 'smoke');
+
+  if (suite === 'agent-planning' && options.runner) {
+    args.push('--runner', options.runner);
+  }
 
   if (options.mode) {
     args.push('--mode', options.mode);

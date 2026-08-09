@@ -30,6 +30,31 @@ export interface AgentPlanningRunOptions {
   provider: 'fallback' | 'openai';
   promptTemplateId?: string;
   promptTemplatePath?: string;
+  runner?: 'native' | 'promptfoo';
+}
+
+export interface AgentPlanningResolvedOptions {
+  tier: AgentPlanningEvalTier;
+  dryRun: boolean;
+  provider: 'fallback' | 'openai';
+  promptTemplateId: string;
+  promptTemplatePath?: string;
+  runner: 'native' | 'promptfoo';
+}
+
+export function resolveAgentPlanningOptions(
+  rawOptions: AgentPlanningRunOptions,
+): AgentPlanningResolvedOptions {
+  return {
+    tier: rawOptions.tier,
+    dryRun: rawOptions.dryRun,
+    provider: rawOptions.provider,
+    promptTemplateId: rawOptions.promptTemplateId ?? 'default-agent-planning',
+    runner: rawOptions.runner ?? 'native',
+    ...(rawOptions.promptTemplatePath !== undefined
+      ? { promptTemplatePath: rawOptions.promptTemplatePath }
+      : {}),
+  };
 }
 
 // Build merged scenario maps for skill identification
@@ -48,7 +73,10 @@ function loadCases(tier: AgentPlanningEvalTier): AgentPlanningEvalCase[] {
   );
 }
 
-function loadScenario(tier: AgentPlanningEvalTier, scenarioId: string): AgentPlanningEvalScenario {
+export function loadScenario(
+  tier: AgentPlanningEvalTier,
+  scenarioId: string,
+): AgentPlanningEvalScenario {
   const baseMap = tier === 'smoke' ? smokeScenariosMap : coreScenariosMap;
   const sidMap = tier === 'smoke' ? smokeSidScenariosMap : coreSidScenariosMap;
   const scenario = baseMap[scenarioId] ?? sidMap[scenarioId];
@@ -60,16 +88,18 @@ function loadScenario(tier: AgentPlanningEvalTier, scenarioId: string): AgentPla
   return agentPlanningEvalScenarioSchema.parse(scenario);
 }
 
-async function executeCase(
+export async function executeCase(
   caseDefinition: AgentPlanningEvalCase,
   scenario: AgentPlanningEvalScenario,
-  options: Required<AgentPlanningRunOptions>,
+  options: AgentPlanningResolvedOptions,
 ): Promise<AgentPlanningCaseResult> {
   const start = Date.now();
   const context = renderScenarioContext(caseDefinition, scenario);
   const promptTemplate = loadPromptTemplate({
     promptTemplateId: options.promptTemplateId,
-    promptTemplatePath: options.promptTemplatePath,
+    ...(options.promptTemplatePath !== undefined
+      ? { promptTemplatePath: options.promptTemplatePath }
+      : {}),
   });
   const prompt = renderPromptTemplate(promptTemplate, {
     taskPrompt: scenario.taskPrompt,
@@ -120,13 +150,25 @@ async function executeCase(
 export async function runAgentPlanningEval(
   rawOptions: AgentPlanningRunOptions,
 ): Promise<AgentPlanningEvalReport> {
-  const options: Required<AgentPlanningRunOptions> = {
-    promptTemplateId: rawOptions.promptTemplateId ?? 'default-agent-planning',
-    promptTemplatePath: rawOptions.promptTemplatePath,
-    tier: rawOptions.tier,
-    dryRun: rawOptions.dryRun,
-    provider: rawOptions.provider,
-  };
+  const options = resolveAgentPlanningOptions(rawOptions);
+
+  if (options.runner === 'promptfoo') {
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { agentPlanningBridge } = await import('./bridge.js');
+    const { report } = await runSuiteWithPromptfoo(agentPlanningBridge, {
+      tier: options.tier,
+      dryRun: options.dryRun,
+      allowEmpty: false,
+      runner: 'promptfoo',
+      provider: options.provider,
+      promptTemplateId: options.promptTemplateId,
+      ...(options.promptTemplatePath !== undefined
+        ? { promptTemplatePath: options.promptTemplatePath }
+        : {}),
+    });
+    return report;
+  }
+
   const startedAt = Date.now();
   const cases = loadCases(options.tier);
   const caseResults: AgentPlanningCaseResult[] = [];
@@ -148,7 +190,7 @@ export async function runAgentPlanningEval(
   );
 }
 
-function parseCliArgs(argv: string[]): Required<AgentPlanningRunOptions> {
+function parseCliArgs(argv: string[]): AgentPlanningResolvedOptions {
   const args = new Set(argv);
   const tier = args.has('--tier')
     ? (argv[argv.indexOf('--tier') + 1] as AgentPlanningEvalTier)
@@ -156,6 +198,11 @@ function parseCliArgs(argv: string[]): Required<AgentPlanningRunOptions> {
   const provider = args.has('--provider')
     ? (argv[argv.indexOf('--provider') + 1] as 'fallback' | 'openai')
     : 'fallback';
+  const runnerValue = args.has('--runner') ? argv[argv.indexOf('--runner') + 1] : 'native';
+  if (runnerValue !== 'native' && runnerValue !== 'promptfoo') {
+    throw new Error(`Invalid --runner value: ${runnerValue}`);
+  }
+  const runner = runnerValue as 'native' | 'promptfoo';
   const promptTemplatePath = args.has('--prompt-template-path')
     ? argv[argv.indexOf('--prompt-template-path') + 1]
     : undefined;
@@ -164,10 +211,11 @@ function parseCliArgs(argv: string[]): Required<AgentPlanningRunOptions> {
     tier,
     dryRun: args.has('--dry-run'),
     provider,
+    runner,
     promptTemplateId: args.has('--prompt-template-id')
       ? argv[argv.indexOf('--prompt-template-id') + 1]
       : 'default-agent-planning',
-    promptTemplatePath,
+    ...(promptTemplatePath !== undefined ? { promptTemplatePath } : {}),
   };
 }
 
