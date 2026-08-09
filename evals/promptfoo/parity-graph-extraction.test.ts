@@ -14,8 +14,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { graphExtractionBridge } from '../graph-extraction/bridge.js';
-import { getSnapshotSuiteConfigs, snapshotFilePath } from './scripts/generate-snapshots.js';
 import { runSuiteWithPromptfoo } from './runner.js';
+import { getSnapshotSuiteConfigs, snapshotFilePath } from './scripts/generate-snapshots.js';
 import { suiteSnapshotSchema } from './snapshots/snapshot-schema.js';
 
 describe('graph-extraction promptfoo output matches committed snapshot', () => {

@@ -22,9 +22,9 @@ import { composedProvider } from '../promptfoo/provider.js';
 import { assertResultPresent } from '../promptfoo/result.js';
 import type { SuiteBridge, SuiteRunOptions } from '../promptfoo/types.js';
 import { executeRetrievalCase } from './lib/execute-case.js';
-import { buildRunnerSummary } from './lib/runner-summary.js';
 import type { RunRetrievalOptions } from './lib/runner-api.js';
 import { getRetrievalEvaluationCases } from './lib/runner-api.js';
+import { buildRunnerSummary } from './lib/runner-summary.js';
 import type { CaseResult, RunnerSummary } from './lib/types.js';
 
 function toRunnerOptions(options: SuiteRunOptions): RunnerSummary['options'] {

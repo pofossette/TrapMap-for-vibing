@@ -8,9 +8,9 @@ import type { Command } from 'commander';
 
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
-import { parseBoundaryJson } from '@trapmap/cli/lib/parse-boundary.js';
 import { collectValues, resolveTextInput } from '@trapmap/cli/lib/input.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
+import { parseBoundaryJson } from '@trapmap/cli/lib/parse-boundary.js';
 
 interface KnowledgeCommandOptions {
   allowInspect: boolean;

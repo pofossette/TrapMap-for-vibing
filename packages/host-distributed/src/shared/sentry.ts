@@ -16,10 +16,10 @@
 import { validateSentryPolicy } from '@trapmap/contracts';
 import type { SentryPolicyInput, SentryPolicyResult } from '@trapmap/contracts';
 import {
+  SENSITIVE_KEY_PATTERN,
   redactQueryString,
   redactSensitiveKeys,
   redactUrl,
-  SENSITIVE_KEY_PATTERN,
 } from '@trapmap/lib';
 
 const SUPPRESSED_STATUS_CODES = new Set([400, 401, 403, 404, 409, 422]);

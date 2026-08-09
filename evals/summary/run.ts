@@ -28,7 +28,7 @@ import { summarySmokeCases } from './smoke.js';
 
 import { formatSummaryReport } from './lib/format.js';
 // Import evaluation modules
-import { buildSummaryReport } from './lib/report.js';
+import type { buildSummaryReport } from './lib/report.js';
 import type { JudgeProvider } from './lib/types.js';
 
 // =============================================================================

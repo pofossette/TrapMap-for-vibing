@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type ReferenceIssue,
   checkDocReferences,
+  expandBracePattern,
   parseBacktickedPaths,
   parseHeadingAnchors,
   parseMarkdownLinks,
@@ -57,6 +58,45 @@ describe('parseBacktickedPaths', () => {
     const content = '`packages/a/src/b.ts` and `packages/c/src/d.ts`';
     const paths = parseBacktickedPaths(content, 'test.md');
     expect(paths).toHaveLength(2);
+  });
+});
+
+describe('expandBracePattern', () => {
+  it('returns the pattern unchanged when it has no braces', () => {
+    expect(expandBracePattern('evals/promptfoo/parity-retrieval.test.ts')).toEqual([
+      'evals/promptfoo/parity-retrieval.test.ts',
+    ]);
+  });
+
+  it('expands a single brace group into each option', () => {
+    expect(expandBracePattern('evals/parity-{a,b,c}.test.ts')).toEqual([
+      'evals/parity-a.test.ts',
+      'evals/parity-b.test.ts',
+      'evals/parity-c.test.ts',
+    ]);
+  });
+
+  it('expands nested brace groups', () => {
+    expect(expandBracePattern('evals/parity-{a,{b,c}}.test.ts')).toEqual([
+      'evals/parity-a.test.ts',
+      'evals/parity-b.test.ts',
+      'evals/parity-c.test.ts',
+    ]);
+  });
+
+  it('treats unbalanced braces as a literal pattern', () => {
+    expect(expandBracePattern('evals/parity-{a,b.test.ts')).toEqual(['evals/parity-{a,b.test.ts']);
+  });
+});
+
+describe('parseBacktickedPaths with brace expansion', () => {
+  it('emits one path per expanded brace option', () => {
+    const content = 'The parity tests live at `evals/promptfoo/parity-{x,y}.test.ts`.';
+    const paths = parseBacktickedPaths(content, 'test.md');
+    expect(paths).toEqual([
+      { line: 1, path: 'evals/promptfoo/parity-x.test.ts' },
+      { line: 1, path: 'evals/promptfoo/parity-y.test.ts' },
+    ]);
   });
 });
 

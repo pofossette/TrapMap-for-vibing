@@ -10,10 +10,10 @@
  * re-deriving scoring state.
  */
 
-import type { AggregateMetrics, CaseMetrics } from './run.js';
-import { aggregateMetrics, evaluateCase } from './run.js';
 import type { GraphExtractionFixture } from './fixtures.js';
 import { getSmokeFixtures, graphExtractionFixtures } from './fixtures.js';
+import type { AggregateMetrics, CaseMetrics } from './run.js';
+import { aggregateMetrics, evaluateCase } from './run.js';
 
 import { createJsAssertion } from '../promptfoo/assertion.js';
 import { registerBridge } from '../promptfoo/bridge.js';

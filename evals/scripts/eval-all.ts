@@ -26,10 +26,9 @@ import type {
   RetrievalEvalReport,
   SummaryEvalReport,
 } from '../../packages/contracts/src/domain/evals/report.js';
+import { buildAgentPlanningPlatformEvents } from '../agent-planning/lib/platform-events.js';
 import type { GraphExtractionBridgeReport } from '../graph-extraction/bridge.js';
 import type { IngestionBridgeReport } from '../ingestion/bridge.js';
-import type { RunnerSummary } from '../retrieval/lib/types.js';
-import { buildAgentPlanningPlatformEvents } from '../agent-planning/lib/platform-events.js';
 import {
   type EvalPlatformAdapterKind,
   type EvalPlatformEvent,
@@ -39,6 +38,7 @@ import {
 } from '../lib/platform/adapter.js';
 import { resolveLangfuseAdapterConfigFromEnv } from '../lib/platform/langfuse-config.js';
 import { buildRetrievalPlatformEvents } from '../retrieval/lib/platform-events.js';
+import type { RunnerSummary } from '../retrieval/lib/types.js';
 import { buildSummaryPlatformEvents } from '../summary/lib/platform-events.js';
 
 // =============================================================================

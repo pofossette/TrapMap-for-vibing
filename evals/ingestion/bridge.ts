@@ -9,16 +9,16 @@
  * without re-deriving assertion state.
  */
 
-import type { DerivationFixture } from './fixtures/index.js';
-import { derivationFixtures, getSmokeFixtures } from './fixtures/index.js';
 import {
   buildDerivationContext,
   bundleToPayloads,
   loadDownloadedBundles,
   makeDeterministicId,
 } from './adapter.js';
-import type { DerivedOutput, DerivationAssertions } from './assertions.js';
+import type { DerivationAssertions, DerivedOutput } from './assertions.js';
 import { runAssertions } from './assertions.js';
+import type { DerivationFixture } from './fixtures/index.js';
+import { derivationFixtures, getSmokeFixtures } from './fixtures/index.js';
 import type { DerivationAggregateMetrics } from './metrics.js';
 import { aggregateMetrics } from './metrics.js';
 

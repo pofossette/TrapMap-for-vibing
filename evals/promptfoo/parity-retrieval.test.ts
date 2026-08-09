@@ -16,7 +16,7 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 import pg from 'pg';
-import { beforeAll, afterAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { runCandidateIngestionMigrations } from '../../packages/service-candidate-ingestion/src/migrations.js';
 import { runGovernanceReviewMigrations } from '../../packages/service-governance-review/src/migrations.js';
@@ -26,8 +26,8 @@ import { runKnowledgeReadMigrations } from '../../packages/service-knowledge-rea
 import { runKnowledgeWriteMigrations } from '../../packages/service-knowledge-write/src/migrations.js';
 
 import { retrievalBridge } from '../retrieval/bridge.js';
-import { getSnapshotSuiteConfigs, snapshotFilePath } from './scripts/generate-snapshots.js';
 import { runSuiteWithPromptfoo } from './runner.js';
+import { getSnapshotSuiteConfigs, snapshotFilePath } from './scripts/generate-snapshots.js';
 import { suiteSnapshotSchema } from './snapshots/snapshot-schema.js';
 
 const migrations = [
@@ -88,6 +88,7 @@ async function teardown(): Promise<void> {
     }
   }
   if (priorDatabaseUrl === undefined) {
+    // biome-ignore lint/performance/noDelete: deleting removes an unset env var; assigning undefined would set the literal string "undefined"
     delete process.env.TRAPMAP_DATABASE_URL;
   } else {
     process.env.TRAPMAP_DATABASE_URL = priorDatabaseUrl;

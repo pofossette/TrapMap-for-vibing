@@ -13,8 +13,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { agentPlanningBridge } from '../agent-planning/bridge.js';
-import { getSnapshotSuiteConfigs, snapshotFilePath } from './scripts/generate-snapshots.js';
 import { runSuiteWithPromptfoo } from './runner.js';
+import { getSnapshotSuiteConfigs, snapshotFilePath } from './scripts/generate-snapshots.js';
 import { suiteSnapshotSchema } from './snapshots/snapshot-schema.js';
 
 describe('agent-planning promptfoo output matches committed snapshot', () => {

@@ -62,6 +62,50 @@ export function parseMarkdownLinks(content: string, _filePath: string): ParsedLi
 }
 
 /**
+ * Expand `{a,b,c}` brace groups into the concrete paths they enumerate,
+ * e.g. `evals/parity-{x,y}.test.ts` → two paths. Nested groups and unbalanced
+ * braces are handled: unbalanced braces are left as a literal pattern.
+ */
+export function expandBracePattern(pattern: string): string[] {
+  const open = pattern.indexOf('{');
+  if (open === -1) return [pattern];
+
+  let depth = 0;
+  let close = -1;
+  for (let i = open; i < pattern.length; i++) {
+    if (pattern[i] === '{') depth += 1;
+    else if (pattern[i] === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        close = i;
+        break;
+      }
+    }
+  }
+  if (close === -1) return [pattern];
+
+  const prefix = pattern.slice(0, open);
+  const suffix = pattern.slice(close + 1);
+  const options: string[] = [];
+  let option = '';
+  let optionDepth = 0;
+  for (let i = open + 1; i < close; i++) {
+    const ch = pattern[i];
+    if (ch === '{') optionDepth += 1;
+    else if (ch === '}') optionDepth -= 1;
+    if (ch === ',' && optionDepth === 0) {
+      options.push(option);
+      option = '';
+    } else {
+      option += ch;
+    }
+  }
+  options.push(option);
+
+  return options.flatMap((value) => expandBracePattern(prefix + value + suffix));
+}
+
+/**
  * Extract backticked paths that look like repository paths.
  * Matches patterns like `packages/foo/src/bar.ts` or `scripts/check.ts`.
  * Skips paths with wildcards, historical references, and non-existent paths.
@@ -83,7 +127,9 @@ export function parseBacktickedPaths(content: string, _filePath: string): Parsed
       // Skip historical references to deleted packages
       if (candidate.includes('（Wave-10 已删除）')) continue;
       if (pathPattern.test(candidate)) {
-        paths.push({ line: i + 1, path: candidate });
+        for (const expanded of expandBracePattern(candidate)) {
+          paths.push({ line: i + 1, path: expanded });
+        }
       }
     }
   }
