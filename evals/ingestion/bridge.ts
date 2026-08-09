@@ -11,7 +11,12 @@
 
 import type { DerivationFixture } from './fixtures/index.js';
 import { derivationFixtures, getSmokeFixtures } from './fixtures/index.js';
-import { buildDerivationContext, bundleToPayloads, makeDeterministicId } from './adapter.js';
+import {
+  buildDerivationContext,
+  bundleToPayloads,
+  loadDownloadedBundles,
+  makeDeterministicId,
+} from './adapter.js';
 import type { DerivedOutput, DerivationAssertions } from './assertions.js';
 import { runAssertions } from './assertions.js';
 import type { DerivationAggregateMetrics } from './metrics.js';
@@ -51,7 +56,14 @@ export const ingestionBridge: SuiteBridge<
   dryRunMode: 'execute',
 
   loadCases(options) {
-    return options.tier === 'smoke' ? getSmokeFixtures() : derivationFixtures;
+    // Mirror native: dry-run uses bundled fixtures, live uses downloaded
+    // bundles (throws with the same clear error when the data file is absent).
+    if (options.dryRun) {
+      return options.tier === 'smoke' ? getSmokeFixtures() : derivationFixtures;
+    }
+    const downloaded = loadDownloadedBundles();
+    const subset = options.tier === 'smoke' ? downloaded.slice(0, 5) : downloaded;
+    return subset.map((bundle) => ({ id: bundle.slug, bundle }));
   },
 
   buildProvider(_options) {

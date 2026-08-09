@@ -58,6 +58,9 @@ describe('ingestion --runner promptfoo parity (dry-run)', () => {
     const pf = await runSuiteWithPromptfoo(ingestionBridge, opts);
 
     expect(pf.caseCount).toBe(native.length);
+    // Smoke fixtures all pass derivation assertions; exercise the assertion
+    // mapping via `pf.passed` rather than only the verbatim-rebuilt results.
+    expect(pf.passed).toBe(true);
 
     const nativeByFixtureId = new Map(native.map((result) => [result.fixtureId, result]));
     for (const pfCase of pf.report.results) {

@@ -329,7 +329,7 @@
 **Commit**
 
 - [x] 提交：`feat(evals): migrate graph-extraction and ingestion runners to promptfoo`
-      - 证据：commit `<pending-hash>`
+      - 证据：commit `76621e36`
 
 ## Phase 4: label-alignment bridge
 

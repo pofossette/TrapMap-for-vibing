@@ -55,12 +55,12 @@ export function extractOutcome<TCase = unknown>(
  */
 export function assertResultPresent<TResult>(evalResult: SuiteEvalResult): TResult {
   const { error, result } = extractOutcome(evalResult);
-  const providerError =
-    result && typeof result === 'object' && 'error' in result
-      ? String((result as { error: unknown }).error)
-      : undefined;
-  if (providerError || result == null) {
-    throw new Error(providerError ?? error ?? 'execution produced no result');
+  const rawError = (result as { error?: unknown } | null | undefined)?.error;
+  if (typeof rawError === 'string') {
+    throw new Error(rawError);
+  }
+  if (result == null) {
+    throw new Error(error || 'execution produced no result');
   }
   return result as TResult;
 }

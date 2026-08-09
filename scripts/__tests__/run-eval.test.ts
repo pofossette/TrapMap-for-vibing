@@ -64,6 +64,26 @@ describe('resolveEvalTarget', () => {
     expect(target.args).toEqual(['--smoke', '--dry-run']);
   });
 
+  it('forwards the runner flag for graph-extraction dry-run', () => {
+    const target = resolveSuite('graph-extraction', ['--dry-run', '--runner', 'promptfoo']);
+
+    expect(target.scriptPath).toBe('evals/graph-extraction/run.ts');
+    expect(target.args).toEqual(['--dry-run', '--runner', 'promptfoo']);
+  });
+
+  it('forwards the runner flag for ingestion smoke dry-run', () => {
+    const target = resolveSuite('ingestion', [
+      '--tier',
+      'smoke',
+      '--dry-run',
+      '--runner',
+      'promptfoo',
+    ]);
+
+    expect(target.scriptPath).toBe('evals/ingestion/run.ts');
+    expect(target.args).toEqual(['--smoke', '--dry-run', '--runner', 'promptfoo']);
+  });
+
   it('builds an exact tsx invocation for aggregate json output', () => {
     const target = resolveSuite('all', [
       '--tier',

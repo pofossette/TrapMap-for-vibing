@@ -496,6 +496,9 @@ async function main(): Promise<void> {
   console.log('');
 
   if (options.runner === 'promptfoo') {
+    const fixtureCount = options.smoke ? getSmokeFixtures().length : graphExtractionFixtures.length;
+    console.log(`Running ${fixtureCount} fixture(s)...`);
+    console.log('');
     const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
     const { graphExtractionBridge } = await import('./bridge.js');
     const { report } = await runSuiteWithPromptfoo(graphExtractionBridge, {
@@ -504,8 +507,6 @@ async function main(): Promise<void> {
       allowEmpty: false,
       runner: 'promptfoo',
     });
-    console.log(`Running ${report.totalFixtures} fixture(s)...`);
-    console.log('');
     console.log(
       formatReport(report.results, report.aggregate, [], aggregateMetrics([]), options.dryRun),
     );

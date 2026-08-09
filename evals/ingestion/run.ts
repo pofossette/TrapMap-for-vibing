@@ -78,6 +78,11 @@ async function main(): Promise<void> {
   console.log('');
 
   if (options.runner === 'promptfoo') {
+    const bundleCount = options.dryRun
+      ? (options.smoke ? getSmokeFixtures() : derivationFixtures).length
+      : loadDownloadedBundles().length;
+    console.log(`Running ${bundleCount} bundle(s)...`);
+    console.log('');
     const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
     const { ingestionBridge } = await import('./bridge.js');
     const { report } = await runSuiteWithPromptfoo(ingestionBridge, {
@@ -86,9 +91,6 @@ async function main(): Promise<void> {
       allowEmpty: false,
       runner: 'promptfoo',
     });
-    const fixtureCount = options.smoke ? getSmokeFixtures().length : derivationFixtures.length;
-    console.log(`Running ${fixtureCount} bundle(s)...`);
-    console.log('');
     const assertionResults = report.results.map((r) => ({
       fixtureId: r.fixtureId,
       title: r.title,
@@ -96,8 +98,7 @@ async function main(): Promise<void> {
       passed: r.passed,
     }));
     console.log(formatDerivationReport(assertionResults, report.aggregate, options.dryRun));
-    const allPassed = report.results.every((r) => r.passed);
-    if (!allPassed) process.exit(1);
+    if (!report.results.every((r) => r.passed)) process.exit(1);
     return;
   }
 
@@ -156,7 +157,9 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}

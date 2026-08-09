@@ -32,6 +32,9 @@ describe('graph-extraction --runner promptfoo parity (dry-run)', () => {
 
     expect(pf.caseCount).toBe(native.length);
     expect(pf.report.totalFixtures).toBe(native.length);
+    // Dry-run produces mode 'unavailable' for every case, so every assertion
+    // fails (pass = mode === 'live'); exercise the assertion mapping directly.
+    expect(pf.passed).toBe(false);
 
     const nativeByCaseId = new Map(native.map((result) => [result.caseId, result]));
     for (const pfCase of pf.report.results) {
