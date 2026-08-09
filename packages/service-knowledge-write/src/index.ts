@@ -60,7 +60,7 @@ export { createKnowledgeSnapshotOwner } from './knowledge-snapshot-owner.js';
 export {
   backfillLabels,
   repairGraphDocuments,
-  createLabelReadProjection,
+  createPgLabelRepository,
   PgLabelRepository,
   alignLabel,
   type BackfillOptions,

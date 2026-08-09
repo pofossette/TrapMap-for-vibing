@@ -8,9 +8,11 @@
 
 export { nowIso, timestamp, formatDate } from './time.js';
 export { timeout } from './async.js';
-export { truncate } from './string.js';
+export { truncate, normalizeLabel } from './string.js';
 export { uniq, uniqBy, chunk } from './array.js';
 export { sha256 } from './hash.js';
+export { asRecord } from './object.js';
+export { prefixedId } from './id.js';
 export {
   redactSensitiveKeys,
   redactQueryString,

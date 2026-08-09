@@ -26,7 +26,7 @@
 - 涉及检索、摘要、治理、feedback、fixtures、eval runner 的改动，至少补跑 `pnpm eval:smoke`
 - 新增枚举、字面量联合、共享接口/类型别名时，默认放到就近 `enum-types/` 目录并通过 `index.ts` 聚合导出
 - 涉及跨包导入路径变更或新增包时，必须通过 `rtk pnpm exec fallow audit --base main` 验证架构边界合规；zone 规则和已知例外详见 [`docs/architecture/BOUNDARIES.md`](docs/architecture/BOUNDARIES.md)
-- 通用工具函数（`nowIso`/`timestamp`/`formatDate`/`timeout`/`truncate`/`uniq`/`chunk`/`sha256` 等）统一从 `@trapmap/lib` 导入，禁止在各包内重复实现已有工具；新增通用函数时：多包消费的放入 `@trapmap/lib` 并补单元测试，单包专用留在包内；重复问题的分析报告见 [`docs/archived/reports/TECH_DEBT_UTILS_TYPES_2026-08-08.md`](docs/archived/reports/TECH_DEBT_UTILS_TYPES_2026-08-08.md)
+- 通用工具函数（`nowIso`/`timestamp`/`formatDate`/`timeout`/`truncate`/`normalizeLabel`/`uniq`/`uniqBy`/`chunk`/`asRecord`/`prefixedId`/`sha256` 等）统一从 `@trapmap/lib` 导入，禁止在各包内重复实现已有工具；新增通用函数时：多包消费的放入 `@trapmap/lib` 并补单元测试，单包专用留在包内；重复问题的分析报告见 [`docs/archived/reports/TECH_DEBT_UTILS_TYPES_2026-08-08.md`](docs/archived/reports/TECH_DEBT_UTILS_TYPES_2026-08-08.md) 与 [`docs/archived/reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md`](docs/archived/reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md)
 - 通用第三方依赖（如 lodash）声明在 `@trapmap/lib` 内由各包经其消费，禁止各包直接散落声明
 - 类型断言规则：禁止新增 `@ts-ignore`/`@ts-expect-error`；禁止用裸 `as never`/`as unknown as` 桥接适配器类型——优先用 [`packages/contracts`](packages/contracts/src/index.ts) 的 Zod schema 运行时校验或显式窄化 helper；确因第三方库类型缺陷必须断言时，加 `// lib type gap:` 注释说明；能用类型收窄/type guard 解决的不用断言
 

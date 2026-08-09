@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { prefixedId } from '@trapmap/lib';
 
 import type {
   ArtifactReadProjection,
@@ -49,7 +49,7 @@ const lifecycleTransitions: Readonly<Record<LifecycleState, readonly LifecycleSt
 };
 
 function generateId(prefix: string): string {
-  return `${prefix}_${randomUUID().replaceAll('-', '').slice(0, 16)}`;
+  return prefixedId(prefix, 16);
 }
 
 function readKnowledgeRowValue(

@@ -9,7 +9,7 @@
  */
 
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
-import { uniqBy } from '@trapmap/lib';
+import { normalizeLabel, prefixedId, uniqBy } from '@trapmap/lib';
 
 import { alignLabel } from './llm-align.js';
 import type { CanonicalLabelRecord, LabelRepository } from './repository.js';
@@ -126,7 +126,7 @@ export async function backfillLabels(
         sourceContext,
         maxCandidates: 5,
         autoMergeThreshold,
-        generateEventId: () => `backfill_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        generateEventId: () => prefixedId('backfill'),
       });
 
       report.alignmentEvents++;
@@ -167,10 +167,6 @@ export async function backfillLabels(
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function normalizeLabel(value: string): string {
-  return value.toLowerCase().trim().replace(/\s+/g, '-');
-}
 
 async function checkByNormalizedName(
   repository: LabelRepository,

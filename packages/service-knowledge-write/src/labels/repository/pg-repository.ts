@@ -7,6 +7,7 @@
 
 import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
+import { normalizeLabel } from '@trapmap/lib';
 import type { Pool } from 'pg';
 
 import {
@@ -46,7 +47,7 @@ export class PgLabelRepository implements LabelRepository {
   }
 
   async findCanonicalByAlias(alias: string): Promise<CanonicalLabelRecord | null> {
-    const normalized = this.normalize(alias);
+    const normalized = normalizeLabel(alias);
     const rows = await this.db
       .select({
         label: canonicalLabels,
@@ -64,7 +65,7 @@ export class PgLabelRepository implements LabelRepository {
     canonicalName: string;
     definition?: string | null;
   }): Promise<CanonicalLabelRecord> {
-    const normalized = this.normalize(label.canonicalName);
+    const normalized = normalizeLabel(label.canonicalName);
     const now = new Date();
     await this.db
       .insert(canonicalLabels)
@@ -108,7 +109,7 @@ export class PgLabelRepository implements LabelRepository {
     source?: 'manual' | 'llm' | 'backfill';
     confidence?: number;
   }): Promise<void> {
-    const normalized = this.normalize(alias.alias);
+    const normalized = normalizeLabel(alias.alias);
     await this.db
       .insert(labelAliases)
       .values({
@@ -403,10 +404,6 @@ export class PgLabelRepository implements LabelRepository {
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
-
-  private normalize(value: string): string {
-    return value.toLowerCase().trim().replace(/\s+/g, '-');
-  }
 
   private toCanonicalRecord(row: {
     id: string;

@@ -1,3 +1,4 @@
+import { asRecord } from '@trapmap/lib';
 import type { Pool, PoolClient } from 'pg';
 
 import type {
@@ -8,12 +9,6 @@ import type {
 type Queryable = Pick<Pool, 'query'>;
 type TransactionPool = Queryable & Pick<Pool, 'connect'>;
 type TransactionClient = Pick<PoolClient, 'query' | 'release'>;
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 function allRevisions(record: LegacyKnowledgeSnapshotRecord) {
   const revisions = [...record.history];

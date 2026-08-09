@@ -1,12 +1,10 @@
-import { randomUUID } from 'node:crypto';
-
 import type {
   GovernanceConflictEntry,
   GovernanceConflictReadPort,
   GovernanceConflictWorkflowPort,
 } from '@trapmap/backend-core';
 import type { ConflictRelation, ConflictType } from '@trapmap/contracts';
-import { nowIso } from '@trapmap/lib';
+import { nowIso, prefixedId } from '@trapmap/lib';
 
 const PROBLEM_OVERLAP_THRESHOLD = 0.3;
 const SOLUTION_DIFF_THRESHOLD = 0.3;
@@ -96,7 +94,7 @@ function canonicalEntries(
 export function createGovernanceConflictWorkflow(
   deps: GovernanceConflictWorkflowDeps,
 ): GovernanceConflictWorkflowPort {
-  const createId = deps.createId ?? (() => `conflict_${randomUUID().replaceAll('-', '')}`);
+  const createId = deps.createId ?? (() => prefixedId('conflict'));
   const now = deps.now ?? nowIso;
 
   return {

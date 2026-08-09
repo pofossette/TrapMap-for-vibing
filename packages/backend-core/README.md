@@ -262,16 +262,7 @@ const custom = buildInProcessConfig(['identity-access', 'knowledge-write']);
 ### 服务发现助手
 
 ```typescript
-import { CachedDiscovery, RoundRobinSelector, DynamicDiscovery } from '@trapmap/backend-core';
-
-// CachedDiscovery: 带 TTL 缓存的服务发现包装
-const cached = new CachedDiscovery(myDiscoveryPort, { ttlMs: 15_000, maxEntries: 128 });
-const instances = await cached.discover('knowledge-service');
-console.log(cached.stats); // { hits, misses, staleRecoveries }
-
-// RoundRobinSelector: 轮询实例选择
-const selector = new RoundRobinSelector();
-const instance = selector.select('knowledge-service', instances, unhealthyIds);
+import { DynamicDiscovery } from '@trapmap/backend-core';
 
 // DynamicDiscovery: 组合缓存与轮询
 const discovery = new DynamicDiscovery(myDiscoveryPort, { cacheTTLMs: 30_000 });

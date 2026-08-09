@@ -6,8 +6,6 @@
  * Executes through explicit adapters that record execution path and fallback usage.
  */
 
-import { createHash } from 'node:crypto';
-
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 
@@ -19,7 +17,7 @@ import type {
   SkillLookupQuery,
 } from '@trapmap/contracts';
 import type { RetrievalEvalCase, RetrievalEvalScenario } from '@trapmap/contracts/evals';
-import { nowIso } from '@trapmap/lib';
+import { nowIso, sha256 } from '@trapmap/lib';
 
 import type { KnowledgeOwnerPort } from '../../../packages/contracts/src/index.js';
 import type { HostLocalRuntime } from '../../../packages/host-local/src/nest/runtime/host-runtime.js';
@@ -33,9 +31,6 @@ import type { ArtifactWritePort } from '../../../packages/service-knowledge-writ
 import { createKnowledgeEntryRecord } from '../../../packages/service-knowledge-write/src/knowledge-record-mutations.js';
 import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
 
-function hashSecret(secret: string): string {
-  return createHash('sha256').update(secret).digest('hex');
-}
 import { loadScenario } from './load.js';
 import { normalizeResponse } from './normalize.js';
 import { hydrateScenarioSnapshot } from './snapshot.js';
@@ -291,7 +286,7 @@ async function createSession(
 
   await sessionRepo.create({
     userId,
-    tokenHash: hashSecret(token),
+    tokenHash: sha256(token),
     activeTeamId,
     subjectType,
     expiresAt: new Date(Date.now() + 3600000).toISOString(),
@@ -478,7 +473,7 @@ export async function createActorSession(
     }
   }
 
-  await identity.sessionRepo.deleteByTokenHash(hashSecret(ctx.sessionToken));
+  await identity.sessionRepo.deleteByTokenHash(sha256(ctx.sessionToken));
   ctx.sessionToken = await createSession(
     ctx.actorId,
     actor.activeTeamId,

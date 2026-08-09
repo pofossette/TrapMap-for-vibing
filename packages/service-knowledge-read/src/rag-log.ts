@@ -1,9 +1,8 @@
-import { randomUUID } from 'node:crypto';
 import { appendFile, mkdir, rename, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { RoutingTrace } from '@trapmap/contracts';
-import { formatDate } from '@trapmap/lib';
+import { formatDate, prefixedId } from '@trapmap/lib';
 
 /**
  * Configuration for RAG retrieval logging.
@@ -80,7 +79,7 @@ export function loadRagLogConfig(): RagLogConfig {
  * Format: qry_{id_segment}
  */
 export function generateQueryId(): string {
-  return `qry_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+  return prefixedId('qry', 12);
 }
 
 async function rotateBackups(logFile: string, maxBackupFiles: number): Promise<void> {

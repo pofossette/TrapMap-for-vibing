@@ -17,6 +17,7 @@ import type {
 import { labelAlignmentDecisionSchema } from '@trapmap/contracts';
 
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
+import { prefixedId } from '@trapmap/lib';
 import type { ZodType } from 'zod';
 
 import { recallCandidates } from './candidate-recall.js';
@@ -284,5 +285,5 @@ function buildAlignmentUserMessage(input: LabelAlignmentInput): string {
 // ---------------------------------------------------------------------------
 
 function defaultEventId(): string {
-  return `align_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return prefixedId('align');
 }

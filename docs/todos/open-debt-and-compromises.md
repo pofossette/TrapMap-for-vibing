@@ -61,6 +61,16 @@
 - [ ] **后续落点：** 安全候选进入 verify-before-action 安全细则；文档事实冲突进入最小 doc-alignment 修复。
 - [ ] **要求的文档与测试：** 安全项先补可复现测试和数据流证据，再修复及更新 `docs/operations/SECURITY.md`；文档项以权威源码为准更新 reference/architecture 文档并运行 `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。
 
+### 重复工具函数回潮与工厂模式一致性（2026-08-09 分析新增）
+
+- [x] **来源：** [`../archived/reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md`](../archived/reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md) 人工分析：2026-08-08 lib 迁移主体无回潮，但发现 5 类新重复（`hashSecret`×3、`asRecord`×2 逐字、`normalize*`×6、前缀 ID×5、`Math.random().toString(36)`×4）、死代码（`store-utils.ts`、`cached-discovery.ts`+`round-robin-selector.ts` 零生产消费者），以及 3 处工厂失范（`createLabelReadProjection` 命名不符、gateway discovery 链内联重复 `new`、backend-core 两套 discovery 实现重叠）。
+- [x] **已缓解（2026-08-09）：** 新增 lib `normalizeLabel`/`asRecord`/`prefixedId`（含单测 12 例）；`hashSecret`×3 改用 lib `sha256`；`asRecord`×2、`normalizeLabel`×5（labels 4 处 + llm-extract-ids 重导出）、前缀 ID×5、`Math.random` ID×4、`nextSubId` 全部收敛；删除死代码 `store-utils.ts`、`cached-discovery.ts`+`round-robin-selector.ts`（含测试与 README 示例）；`createLabelReadProjection` 改名 `createPgLabelRepository`；gateway 新增 `createGatewayDiscovery` 工厂消除重复构造；`ai-providers`/`service-job-runtime` 新增 `@trapmap/lib` 依赖与 tsconfig reference。验证：受影响包测试全绿、`pnpm typecheck` 无错误、`fallow audit --base main` 无 changed-file issue。
+- [ ] **遗留（有意保留，见 lib 源码注释）：** `truncateForPrompt`、`internal-client.ts` AbortController timeout、`processing-task-queue.ts` poll 等待、`graph-align.ts` 的 `[^a-z0-9]+` 归一化、`contracts` 与 `host-distributed` 的 `isRecord`（数组排除语义不同）、`contracts/graph-query.ts` 私有 `normalizeGraphLabel`（contracts 不得反向依赖 lib）。
+- [ ] **当前边界：** 不触发无范围的全仓重构；`web-panel` 未开放 `lib` 依赖（`parseJsonDraft` 与 `parseJsonWithSchema` 的近似重复不属合并范围）。
+- [ ] **进入条件：** 新增工具函数调用点、修改任一 snapshot backfill、或改动 Consul/discovery 行为时，优先在改动内收敛到 lib 或现有工厂；出现第三次同类复制时新建 scoped tranche。
+- [ ] **后续落点：** 若 `ai-providers` 被纳入 fallow zone 治理，需同步 `.fallowrc.json` 与 `BOUNDARIES.md`；`host-distributed` 的 `normalizeLabels`/`labelKey` 与 `formatPrometheusLabels`（metrics label 排序）可随 observability 平台主线一并收敛。
+- [ ] **要求的文档与测试：** lib 新增函数补单测；受影响包 focused tests；架构边界变化时回写 `docs/architecture/BOUNDARIES.md`；运行 `rtk pnpm exec fallow audit --base main`、`rtk pnpm typecheck`。
+
 ## 审核检查表
 
 - [ ] 每次新问题录入都标注来源、影响、分类、证据和进入条件。

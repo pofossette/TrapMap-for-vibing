@@ -8,6 +8,7 @@
 
 import { execSync } from 'node:child_process';
 
+import { prefixedId } from '@trapmap/lib';
 import type { AiPromptTaskType } from '../ai-providers/types.js';
 import type { DynamicInjection } from './injections.js';
 
@@ -93,5 +94,5 @@ function getMcpServerStatus(): string {
 }
 
 function generateSessionId(): string {
-  return `session-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+  return prefixedId('session');
 }

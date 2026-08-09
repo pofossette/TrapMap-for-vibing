@@ -12,6 +12,6 @@ import type { LabelRepository } from './types.js';
 /**
  * Create a LabelRepository. Requires a PostgreSQL pool (pgvector is mandatory).
  */
-export function createLabelReadProjection(config: { pool: Pool }): LabelRepository {
+export function createPgLabelRepository(config: { pool: Pool }): LabelRepository {
   return new PgLabelRepository(config.pool);
 }

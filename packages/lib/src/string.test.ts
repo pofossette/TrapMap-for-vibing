@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { truncate } from './string.js';
+import { normalizeLabel, truncate } from './string.js';
 
 describe('truncate', () => {
   it('returns text unchanged when within maxLength', () => {
@@ -28,5 +28,23 @@ describe('truncate', () => {
 
   it('handles empty text', () => {
     expect(truncate('', 5)).toBe('');
+  });
+});
+
+describe('normalizeLabel', () => {
+  it('lowercases and trims', () => {
+    expect(normalizeLabel('  Hello World  ')).toBe('hello-world');
+  });
+
+  it('collapses whitespace runs into a single dash', () => {
+    expect(normalizeLabel('a   b\t\nc')).toBe('a-b-c');
+  });
+
+  it('keeps existing dashes', () => {
+    expect(normalizeLabel('Graph-LLM Extract')).toBe('graph-llm-extract');
+  });
+
+  it('handles empty input', () => {
+    expect(normalizeLabel('')).toBe('');
   });
 });

@@ -3,7 +3,7 @@ import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
 import {
   backfillLabels,
-  createLabelReadProjection,
+  createPgLabelRepository,
   repairGraphDocuments,
 } from '@trapmap/service-knowledge-write';
 import { Pool } from 'pg';
@@ -91,7 +91,7 @@ export async function runLabelBackfill(dryRun: boolean): Promise<void> {
     const ai = createAiProviders(loadAiProviderConfig());
     console.log(`Starting label backfill${dryRun ? ' (DRY RUN)' : ''}...`);
     console.log(`Found ${rawLabelSources.length} raw label sources`);
-    const report = await backfillLabels(createLabelReadProjection({ pool }), rawLabelSources, {
+    const report = await backfillLabels(createPgLabelRepository({ pool }), rawLabelSources, {
       chat: ai.chat,
       embeddings: ai.embeddings,
       dryRun,
@@ -117,7 +117,7 @@ export async function runLabelMergeRepair(dryRun: boolean): Promise<void> {
     console.log(`Starting label merge repair${dryRun ? ' (DRY RUN)' : ''}...`);
     console.log(`Found ${documents.length} graph documents to examine`);
     const report = await repairGraphDocuments(
-      createLabelReadProjection({ pool }),
+      createPgLabelRepository({ pool }),
       documents,
       (document) => graphIndex.upsert(document),
       { dryRun },

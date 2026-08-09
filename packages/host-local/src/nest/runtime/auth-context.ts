@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { sha256 } from '@trapmap/lib';
 import type { FastifyRequest } from 'fastify';
 
 import type { HostLocalServices } from './host-services.js';
@@ -10,10 +10,6 @@ function normalizeRoleTemplate(role: unknown): RoleTemplate {
     return role;
   }
   return 'user';
-}
-
-function hashSecret(secret: string): string {
-  return createHash('sha256').update(secret).digest('hex');
 }
 
 function getSessionToken(request: FastifyRequest): string | null {
@@ -37,7 +33,7 @@ export async function resolveHostLocalAuthContext(
     throw new Error('A valid session token is required');
   }
 
-  const session = await services.identity.sessionRepo.getByTokenHash(hashSecret(token));
+  const session = await services.identity.sessionRepo.getByTokenHash(sha256(token));
   if (!session) {
     throw new Error('Session not found or expired');
   }

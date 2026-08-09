@@ -112,6 +112,7 @@ service-* / host-local / cli → lib → contracts
 5. `cli` 和 `web-panel` 只依赖 `client-core`、`contracts`（`cli` 另可依赖 `lib`），不依赖任何服务端包
 6. 宿主包（`host-local`、`host-distributed`）是最高层组合根，可以依赖所有下游 zone
 7. `lib` 是共享工具叶子，type-only 依赖 `contracts`，不依赖任何服务/宿主/框架代码；`contracts` 不得反向依赖 `lib`
+8. `ai-providers` 不是独立 zone（fallow 未单独约束），但作为共享 AI 服务层可消费 `lib` 工具（2026-08-09 起依赖 `@trapmap/lib`），不得依赖 server compatibility shell
 
 ## 已知例外
 

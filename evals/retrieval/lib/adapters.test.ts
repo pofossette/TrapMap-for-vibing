@@ -1,11 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { createHash } from 'node:crypto';
+import { sha256 } from '@trapmap/lib';
 import type { RetrievalEvalScenario } from '@trapmap/contracts/evals';
 
-function hashSecret(secret: string): string {
-  return createHash('sha256').update(secret).digest('hex');
-}
 import {
   closeExecutionContext,
   createActorSession,
@@ -21,7 +18,7 @@ async function expectSession(
   expected: { subjectType: 'system-admin' | 'user'; activeTeamId?: string | null },
 ) {
   const session = await ctx.app.skillShareer.identity.sessionRepo.getByTokenHash(
-    hashSecret(ctx.sessionToken),
+    sha256(ctx.sessionToken),
   );
 
   expect(session).not.toBeNull();

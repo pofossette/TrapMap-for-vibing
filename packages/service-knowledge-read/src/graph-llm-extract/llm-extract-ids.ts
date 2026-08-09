@@ -6,10 +6,12 @@
 // ID generation
 // ---------------------------------------------------------------------------
 
-/** Normalize a label into a stable, hyphen-delimited ID fragment. */
-export function normalizeValue(value: string): string {
-  return value.toLowerCase().trim().replace(/\s+/g, '-');
-}
+/**
+ * Normalize a label into a stable, hyphen-delimited ID fragment.
+ * Re-exported from `@trapmap/lib` (`normalizeLabel`) under the historical
+ * name so existing importers (llm-extract-merge, graph-llm-extract) stay stable.
+ */
+export { normalizeLabel as normalizeValue } from '@trapmap/lib';
 
 /** Build a deterministic node ID from kind and label. */
 export function buildNodeId(kind: string, label: string): string {

@@ -1,5 +1,5 @@
 // fallow-ignore-file complexity -- artifact row mapping mirrors the frozen contract shape.
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import type {
   ArtifactBundle,
   ArtifactFilePayloadRecord,
@@ -12,6 +12,7 @@ import type {
   SkillArtifactRevision,
 } from '@trapmap/contracts';
 import { validateRelativePath } from '@trapmap/contracts';
+import { prefixedId } from '@trapmap/lib';
 import type { Pool } from 'pg';
 
 export interface ArtifactWritePort {
@@ -61,7 +62,7 @@ export interface ArtifactFilePayloadOwner {
   ): Promise<ArtifactFilePayloadRecord | null>;
 }
 
-const id = (prefix: string) => `${prefix}_${randomUUID().replaceAll('-', '').slice(0, 16)}`;
+const id = (prefix: string) => prefixedId(prefix, 16);
 
 function classifyFileKind(path: string): 'skill-markdown' | 'reference' | 'asset' | 'script' {
   if (path === 'SKILL.md') return 'skill-markdown';

@@ -4,6 +4,7 @@ import type {
   TaskHandler,
   TaskQueuePort,
 } from '@trapmap/backend-core';
+import { prefixedId } from '@trapmap/lib';
 
 interface RabbitMqMessage {
   content: Buffer;
@@ -118,7 +119,7 @@ export function createRabbitMqTaskTransport(
     kind: 'rabbitmq-task-queue',
     async enqueue<T>(type: string, payload: T, options: TaskEnqueueOptions = {}) {
       const envelope: RabbitMqTaskEnvelope<T> = {
-        id: `rtmq_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        id: prefixedId('rtmq'),
         type,
         payload,
         options: {

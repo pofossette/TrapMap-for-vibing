@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import type {
   FeedbackQueueRecord,
   FeedbackRepositoryPort,
@@ -7,6 +5,7 @@ import type {
   GovernanceRetrievalProjection,
 } from '@trapmap/backend-core';
 import type { ConflictReadProjection, ConflictRelation } from '@trapmap/contracts';
+import { prefixedId } from '@trapmap/lib';
 import { feedbackCustomAnswers, feedbackRecords } from '@trapmap/persistence-schema';
 import { getTableName } from 'drizzle-orm';
 import type { Pool } from 'pg';
@@ -164,7 +163,7 @@ export function createGovernanceReviewPgOwnerBundle(
   };
   const feedbackRepo: FeedbackRepositoryPort = {
     async nextId() {
-      return `feedback_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+      return prefixedId('feedback', 12);
     },
     async insert(feedback) {
       const record = feedback as FeedbackQueueRecord & Record<string, unknown>;

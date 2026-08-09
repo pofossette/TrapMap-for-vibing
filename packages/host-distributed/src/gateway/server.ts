@@ -9,11 +9,10 @@ import { randomUUID } from 'node:crypto';
 
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 
-import { DynamicDiscovery } from '@trapmap/backend-core';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
-import { ConsulDiscoveryAdapter } from './consul-discovery-adapter.js';
-import { DiscoveryResolver } from './discovery-resolver.js';
+import { createGatewayDiscovery, type GatewayDiscovery } from './discovery-factory.js';
+import type { DiscoveryResolver } from './discovery-resolver.js';
 import { type InternalServiceClients, createInternalServiceClients } from './internal-client.js';
 import { registerGatewayRoutes } from './routes.js';
 
@@ -270,6 +269,7 @@ export async function createServer(config: ServiceConfig): Promise<GatewayServer
 
   // Optional: set up dynamic discovery via Consul
   let resolver: DiscoveryResolver | undefined;
+  let gatewayDiscovery: GatewayDiscovery | undefined;
 
   if (config.consulEnabled) {
     // Adapt FastifyBaseLogger (which uses .info()) to the { warn, debug, log } shape
@@ -279,37 +279,11 @@ export async function createServer(config: ServiceConfig): Promise<GatewayServer
       log: (msg: string) => app.log.info(msg),
     };
 
-    const adapter = new ConsulDiscoveryAdapter({
-      consulAddress: config.consulAddress,
-      logger,
-    });
-
-    // DynamicDiscovery wraps the adapter with TTL cache + round-robin.
-    // DiscoveryResolver provides the static-URL fallback layer.
-    const dynamicDiscovery = new DynamicDiscovery(adapter, { cacheTTLMs: 30_000 });
-
-    resolver = new DiscoveryResolver({
-      discovery: dynamicDiscovery,
-      staticUrls: config.internalUrls,
-      logger,
-    });
+    gatewayDiscovery = createGatewayDiscovery(config, logger);
+    resolver = gatewayDiscovery.resolver;
 
     // Register this gateway instance with Consul
-    await adapter.register({
-      id: `trapmap-gateway-${process.pid}`,
-      name: 'gateway',
-      address: config.advertiseHost,
-      port: config.port,
-      check: {
-        http: `http://${config.advertiseHost}:${config.port}/health`,
-        interval: '10s',
-        timeout: '5s',
-      },
-      meta: {
-        version: process.env.npm_package_version ?? '0.1.0',
-        environment: process.env.NODE_ENV ?? 'development',
-      },
-    });
+    await gatewayDiscovery.register();
   }
 
   // Create HTTP clients for all internal services
@@ -331,17 +305,9 @@ export async function createServer(config: ServiceConfig): Promise<GatewayServer
     },
     async close() {
       // Deregister from Consul if we registered
-      if (config.consulEnabled) {
+      if (gatewayDiscovery) {
         try {
-          const adapter = new ConsulDiscoveryAdapter({
-            consulAddress: config.consulAddress,
-            logger: {
-              warn: (msg: string) => app.log.warn(msg),
-              debug: (msg: string) => app.log.debug(msg),
-              log: (msg: string) => app.log.info(msg),
-            },
-          });
-          await adapter.deregister(`trapmap-gateway-${process.pid}`);
+          await gatewayDiscovery.deregister();
         } catch {
           // Best-effort deregistration — never block shutdown
         }

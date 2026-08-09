@@ -64,6 +64,7 @@
 | `archived-plans/plan-2026-07-11-no-active-mainline-index-archived.md` | 2026-07-11 | 根 `plan.md` 已从无 active mainline 的收尾索引切换为可观测性与可追溯性闭环主线 |
 | `archived-plans/observability-traceability-closure.md` | 2026-07-13 | 可观测性、shared PG 治理与分布式成熟度主线完成；Compose 本地重启隔离已验证，未量化的 Level 3 收益转入 deferred debt register |
 | `archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md` | 2026-08-01 | 根计划切换至文档校验与可观测性平台主线；保留 compatibility retirement 的 Wave-10 未完成证据，后续按 debt register 条件重开 scoped mainline |
+| `reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md` | 2026-08-09 | 重复工具函数与工厂模式一致性人工分析报告，结论已登记到 `docs/todos/open-debt-and-compromises.md` |
 
 ## 归档原则
 

@@ -14,15 +14,15 @@ import type {
   KnowledgeReviewNoteRecord,
   KnowledgeRevisionRecord,
 } from '@trapmap/service-knowledge-read/store.js';
+import { prefixedId } from '@trapmap/lib';
 import { toActorRef } from './knowledge-deps/actor-ref.js';
 import type { UserLookupContext } from './knowledge-deps/actor-ref.js';
 import { createDefaultEvidenceMeta } from './knowledge-deps/evidence-model.js';
 import { transitionLifecycleState } from './knowledge-deps/lifecycle-index.js';
-import { nextSubId } from './knowledge-deps/next-sub-id.js';
 
 function toAgentNotes(review: AgentReviewResult): KnowledgeReviewNoteRecord[] {
   return review.notes.map((message) => ({
-    id: nextSubId(),
+    id: prefixedId('sub'),
     createdAt: review.checkedAt,
     authorType: 'agent',
     authorUserId: null,
@@ -34,7 +34,7 @@ function createLifecycleEvent(
   input: Omit<KnowledgeLifecycleEventRecord, 'id'>,
 ): KnowledgeLifecycleEventRecord {
   return {
-    id: nextSubId(),
+    id: prefixedId('sub'),
     ...input,
   };
 }
@@ -49,7 +49,7 @@ function createSubmissionRecord(input: {
   reviewNotes?: KnowledgeReviewNoteRecord[];
 }) {
   return {
-    id: nextSubId(),
+    id: prefixedId('sub'),
     revision: input.revision,
     submittedAt: input.submittedAt,
     submittedByUserId: input.submittedByUserId,
@@ -267,7 +267,7 @@ export function applyReviewDecision(args: {
     notes: args.notes,
   };
   const note: KnowledgeReviewNoteRecord = {
-    id: nextSubId(),
+    id: prefixedId('sub'),
     createdAt: args.decidedAt,
     authorType: 'reviewer',
     authorUserId: args.reviewerUserId,

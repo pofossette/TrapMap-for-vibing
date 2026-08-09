@@ -12,6 +12,7 @@
 
 import type { EmbeddingsProvider } from '@trapmap/ai-providers';
 import type { LabelAlignmentCandidate } from '@trapmap/contracts';
+import { normalizeLabel } from '@trapmap/lib';
 
 import type { LabelRepository } from './repository.js';
 
@@ -154,7 +155,3 @@ export async function recallCandidates(
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function normalizeLabel(value: string): string {
-  return value.toLowerCase().trim().replace(/\s+/g, '-');
-}

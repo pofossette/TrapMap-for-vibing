@@ -14,4 +14,4 @@ export type {
 } from './types.js';
 
 export { PgLabelRepository } from './pg-repository.js';
-export { createLabelReadProjection } from './factory.js';
+export { createPgLabelRepository } from './factory.js';

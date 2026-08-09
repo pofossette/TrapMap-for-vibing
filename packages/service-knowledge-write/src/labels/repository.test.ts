@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LabelRepository } from './repository.js';
-import { PgLabelRepository, createLabelReadProjection } from './repository.js';
+import { PgLabelRepository, createPgLabelRepository } from './repository.js';
 
 describe('LabelRepository', () => {
   describe('factory function', () => {
-    it('createLabelReadProjection returns a PgLabelRepository when pool is provided', () => {
+    it('createPgLabelRepository returns a PgLabelRepository when pool is provided', () => {
       const mockPool = { query: async () => ({ rows: [] }) } as any;
-      const repo = createLabelReadProjection({ pool: mockPool });
+      const repo = createPgLabelRepository({ pool: mockPool });
       expect(repo).toBeInstanceOf(PgLabelRepository);
     });
 
     it('returned repository implements all required methods', () => {
       const mockPool = { query: async () => ({ rows: [] }) } as any;
-      const repo: LabelRepository = createLabelReadProjection({ pool: mockPool });
+      const repo: LabelRepository = createPgLabelRepository({ pool: mockPool });
 
       expect(typeof repo.findCanonicalById).toBe('function');
       expect(typeof repo.findCanonicalByAlias).toBe('function');
