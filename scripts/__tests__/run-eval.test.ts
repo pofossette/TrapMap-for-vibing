@@ -64,6 +64,19 @@ describe('resolveEvalTarget', () => {
     expect(target.args).toEqual(['--tier', 'smoke', '--mode', 'dry-run', '--runner', 'promptfoo']);
   });
 
+  it('forwards --runner to the summary runner', () => {
+    const target = resolveSuite('summary', [
+      '--tier',
+      'smoke',
+      '--dry-run',
+      '--runner',
+      'promptfoo',
+    ]);
+
+    expect(target.scriptPath).toBe('evals/summary/run.ts');
+    expect(target.args).toEqual(['--tier', 'smoke', '--dry-run', '--runner', 'promptfoo']);
+  });
+
   it('keeps graph-extraction defaulting to the full fixture set', () => {
     const target = resolveSuite('graph-extraction');
 

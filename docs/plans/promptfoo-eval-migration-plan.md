@@ -382,28 +382,50 @@
 
 ## Phase 5: summary bridge
 
-- [ ] `evals/summary/bridge.ts`：provider = composedProvider（复用 retrieval adapters
+- [x] `evals/summary/bridge.ts`：provider = composedProvider（复用 retrieval adapters
       create/seed/actor-session/execute/close，输出 `{ summaryText, contextTrace, rawResponse }`）；
       断言复用 `createJudge().evaluate` + `evaluateSummaryVerdicts`；`concurrency: 1`
-- [ ] `parity-summary.test.ts`：fallback judge 下逐 case 对比 passed/groundedness/coverage/verdicts
+  - 证据：新建 `evals/summary/bridge.ts`，provider executor 复用完整 native 管线
+    `executeSummaryCase`（retrieval adapters create/seed/actor-session/execute/close →
+    `createJudge().evaluate` → `evaluateSummaryVerdicts`），结果携带 `SummaryCaseResult` 于
+    `raw.result`；`dryRunMode:'skip'`（native summary dry-run 不执行）并配 `buildDryRunResult` 空报告；
+    `concurrency:1`，顶层 `registerBridge`。同步把 `executeSummaryCase`/`loadSummaryScenario` 从
+    `run.ts` 抽取到 `evals/summary/lib/execute-case.ts` 供 native 与 bridge 共用（DRY，行为逐字一致）；
+    `run.ts` 增加 `--runner native|promptfoo` 分发（默认 native，dry-run 仍在分发前短路）与 CLI guard，
+    并顺带修复 pre-existing exactOptionalPropertyTypes 的 `endpoint`/`jsonPath` 赋值
+- [x] `parity-summary.test.ts`：fallback judge 下逐 case 对比 passed/groundedness/coverage/verdicts
+  - 证据：新建 `evals/promptfoo/parity-summary.test.ts`，沿用既有 summary 测试模式 mock retrieval
+    adapters（DB-free、确定性），按 `caseId` 对比 passed/groundedness/coverage/
+    requiredFactsCovered/requiredFactsMissing/forbiddenClaimsFound/claimsSupported（1 test passed）
 
 **Completion standard**
 
 - parity 全绿；`rtk pnpm eval:smoke`（含 postgres-coordinated 编排）全绿。
+  - 证据：parity 1/1；summary 既有 runner-api 14 tests 无回归（execute-case 抽取行为不变）；
+    `eval:smoke` 54/81 与本地基线一致，无回归；`rtk pnpm typecheck` exit 0
 
 **Test and eval updates**
 
-- [ ] `rtk pnpm test:file -- evals/promptfoo/parity-summary.test.ts`
-- [ ] `rtk pnpm eval -- summary --tier smoke --dry-run --runner promptfoo`
-- [ ] `rtk pnpm eval:smoke`
+- [x] `rtk pnpm test:file -- evals/promptfoo/parity-summary.test.ts`
+  - 证据：1 test passed（mock adapters 下逐 case 判定与 native 一致）
+- [x] `rtk pnpm eval -- summary --tier smoke --dry-run --runner promptfoo`
+  - 证据：exit 0；dry-run 在分发前短路，输出与 native 一致（`Loaded 6 case(s)` + `Dry run complete`），
+    不执行
+- [x] `rtk pnpm eval:smoke`
+  - 证据：54/81 passed（与本地 keyless 基线一致，无回归）；`rtk pnpm typecheck` exit 0
 
 **Document updates**
 
-- [ ] `docs/operations/TESTING.md` suite 表同步（如需）
+- [x] `docs/operations/TESTING.md` suite 表同步（如需）
+  - 证据：`--runner` 双轨小节扩展为 agent-planning、label-alignment、summary、graph-extraction、
+    ingestion 五个 suite，并新增 summary promptfoo 验证命令两条
+    （`rtk pnpm eval -- summary --tier smoke --dry-run --runner promptfoo` 与
+    `rtk pnpm test:file -- evals/promptfoo/parity-summary.test.ts`）
 
 **Commit**
 
-- [ ] 提交：`feat(evals): migrate summary runner to promptfoo`
+- [x] 提交：`feat(evals): migrate summary runner to promptfoo`
+  - 证据：commit `<pending-hash>`
 
 ## Phase 6: retrieval bridge (largest)
 

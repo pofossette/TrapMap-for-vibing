@@ -16,7 +16,6 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
 import {
-  type RetrievalEvalScenario,
   type SummaryEvalCase,
   type SummaryEvalEndpoint,
   type SummaryEvalTier,
@@ -27,26 +26,11 @@ import { summaryCoreCases } from './core.js';
 // Import tier datasets
 import { summarySmokeCases } from './smoke.js';
 
-// Import summary scenarios for fixture loading
-import { summaryCoreScenariosMap } from './scenarios/core/summary-core-scenarios.js';
-import { summarySmokeScenariosMap } from './scenarios/smoke/summary-smoke-scenarios.js';
-
-import { evaluateSummaryVerdicts } from './lib/assertions.js';
-import { formatCaseDetail, formatCompactSummary, formatSummaryReport } from './lib/format.js';
+import { executeSummaryCase } from './lib/execute-case.js';
+import { formatSummaryReport } from './lib/format.js';
 // Import evaluation modules
-import { createJudge, fallbackJudge } from './lib/judge.js';
-import { buildSummaryReport, summarizeReport } from './lib/report.js';
+import { buildSummaryReport } from './lib/report.js';
 import type { JudgeProvider, RunnerOptions, SummaryCaseResult } from './lib/types.js';
-
-// Import retrieval adapters for real endpoint execution
-import {
-  type ExecutionContext as RetrievalExecutionContext,
-  closeExecutionContext,
-  createActorSession,
-  createExecutionContext as createRetrievalContext,
-  executeThroughRoute,
-  seedScenarioFixtures,
-} from '../retrieval/lib/adapters.js';
 
 // =============================================================================
 // Command Line Argument Parsing
@@ -61,6 +45,7 @@ interface RunOptions {
   jsonPath?: string;
   verbose: number;
   provider: JudgeProvider;
+  runner: 'native' | 'promptfoo';
 }
 
 /**
@@ -105,6 +90,10 @@ function parseArgs_(): RunOptions {
         type: 'string',
         default: 'fallback',
       },
+      runner: {
+        type: 'string',
+        default: 'native',
+      },
     },
     strict: true,
   });
@@ -129,15 +118,23 @@ function parseArgs_(): RunOptions {
     process.exit(1);
   }
 
+  const runnerValue = values.runner ?? 'native';
+  if (runnerValue !== 'native' && runnerValue !== 'promptfoo') {
+    console.error(`Invalid --runner value: ${runnerValue}`);
+    process.exit(1);
+  }
+  const runner = runnerValue as 'native' | 'promptfoo';
+
   return {
     tier,
     dryRun: values['dry-run'],
     allowEmpty: values['allow-empty'],
-    endpoint,
     json: values.json,
-    jsonPath: values['json-path'],
     verbose: values.verbose ? 1 : 0,
     provider,
+    runner,
+    ...(endpoint !== undefined ? { endpoint } : {}),
+    ...(values['json-path'] !== undefined ? { jsonPath: values['json-path'] } : {}),
   };
 }
 
@@ -182,180 +179,6 @@ function filterByEndpoint(
 ): SummaryEvalCase[] {
   if (!endpoint) return cases_;
   return cases_.filter((c) => c.endpoint === endpoint);
-}
-
-// =============================================================================
-// Scenario Loading
-// =============================================================================
-
-/**
- * Load a summary scenario by scenarioId.
- * Returns the scenario fixture definition for seeding.
- *
- * @param scenarioId - Scenario identifier
- * @returns Scenario definition or undefined
- */
-function loadSummaryScenario(scenarioId: string): RetrievalEvalScenario | undefined {
-  // Check core scenarios
-  const coreScenario = summaryCoreScenariosMap[scenarioId];
-  if (coreScenario) return coreScenario;
-
-  // Check smoke scenarios
-  const smokeScenario = summarySmokeScenariosMap[scenarioId];
-  if (smokeScenario) return smokeScenario;
-
-  return undefined;
-}
-
-// =============================================================================
-// Case Execution
-// =============================================================================
-
-/**
- * Execution context for summary evaluation.
- * Wraps the retrieval execution context.
- */
-interface ExecutionContext {
-  options: RunOptions;
-  retrievalCtx: RetrievalExecutionContext | null;
-}
-
-/**
- * Create an execution context.
- */
-function createExecutionContext(options: RunOptions): ExecutionContext {
-  return { options, retrievalCtx: null };
-}
-
-/**
- * Execute a single summary evaluation case.
- *
- * Executes against real endpoint with seeded fixtures, extracts summary and
- * context from response, then runs judge evaluation.
- *
- * @param ctx - Execution context
- * @param case_ - Case to execute
- * @returns Case result with trace fields
- */
-export async function executeSummaryCase(
-  ctx: ExecutionContext,
-  case_: SummaryEvalCase,
-): Promise<SummaryCaseResult> {
-  const startTime = Date.now();
-  const warnings: Array<{ code: string; message: string }> = [];
-
-  // Create retrieval execution context
-  const retrievalCtx = await createRetrievalContext();
-
-  try {
-    // Load scenario for fixture seeding
-    const scenario = loadSummaryScenario(case_.scenarioId);
-
-    if (!scenario) {
-      warnings.push({
-        code: 'scenario-not-found',
-        message: `Scenario not found: ${case_.scenarioId}`,
-      });
-
-      // Return early with empty result
-      const judgeResult = fallbackJudge({
-        summaryText: '',
-        context: [],
-        requiredFacts: case_.expected.requiredFacts,
-        forbiddenClaims: case_.expected.forbiddenClaims,
-      });
-
-      return {
-        case: case_,
-        judgeResult,
-        passed: false,
-        durationMs: Date.now() - startTime,
-        warnings,
-        rawResponse: null,
-        contextTrace: [],
-        summaryText: null,
-      };
-    }
-
-    // Build a RetrievalEvalCase-compatible object for fixture seeding
-    const retrievalCase = {
-      scenarioId: case_.scenarioId,
-      endpoint: case_.endpoint,
-      request: case_.request,
-    };
-
-    // Seed fixtures for this scenario (pass scenario directly since loadScenario doesn't know summary scenarios)
-    await seedScenarioFixtures(retrievalCtx, retrievalCase as any, scenario);
-
-    // Set actor session with scenario permissions
-    await createActorSession(retrievalCtx, scenario.actor);
-
-    // Execute retrieval through the route
-    const adapterResult = await executeThroughRoute(retrievalCtx, retrievalCase as any);
-
-    // Extract raw response for trace
-    const rawResponse = adapterResult.result.rawResponse;
-
-    // Extract summary text from response
-    const rawResp = rawResponse as Record<string, any>;
-    const summaryText: string | null = rawResp?.summary?.text ?? null;
-
-    // Build context array based on endpoint type
-    let contextTrace: string[] = [];
-
-    if (case_.endpoint === '/v1/retrieval/search') {
-      // v1: Extract from globalConstraints and projectKnowledge
-      const globalConstraints = rawResp?.globalConstraints ?? [];
-      const projectKnowledge = rawResp?.projectKnowledge ?? [];
-
-      contextTrace = [
-        ...globalConstraints.map((e: any) => e?.detail ?? '').filter(Boolean),
-        ...projectKnowledge.map((e: any) => e?.detail ?? '').filter(Boolean),
-      ];
-    } else {
-      // v2: Extract from capsules
-      const capsules = rawResp?.capsules ?? [];
-
-      contextTrace = capsules
-        .map((c: any) => `${c?.content ?? ''} ${c?.problem ?? ''} ${c?.goal ?? ''}`.trim())
-        .filter(Boolean);
-    }
-
-    // Run judge evaluation with real summary and context
-    const judge = createJudge({ provider: ctx.options.provider });
-    const judgeResult = await judge.evaluate(summaryText ?? '', contextTrace, {
-      requiredFacts: case_.expected.requiredFacts,
-      forbiddenClaims: case_.expected.forbiddenClaims,
-    });
-
-    // Evaluate verdicts
-    const { passed } = evaluateSummaryVerdicts({
-      case_,
-      judgeResult,
-    });
-
-    const durationMs = Date.now() - startTime;
-
-    if (ctx.options.verbose > 0) {
-      console.log(
-        `  ${case_.caseId}: ${passed ? 'PASS' : 'FAIL'} (G=${judgeResult.groundednessScore.toFixed(2)}, C=${judgeResult.coverageScore.toFixed(2)})`,
-      );
-    }
-
-    return {
-      case: case_,
-      judgeResult,
-      passed,
-      durationMs,
-      warnings,
-      rawResponse,
-      contextTrace,
-      summaryText,
-    };
-  } finally {
-    // Always close the retrieval context
-    await closeExecutionContext(retrievalCtx);
-  }
 }
 
 // =============================================================================
@@ -415,26 +238,69 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (options.runner === 'promptfoo') {
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { summaryBridge } = await import('./bridge.js');
+    const { report } = await runSuiteWithPromptfoo(summaryBridge, {
+      tier: options.tier,
+      dryRun: false,
+      allowEmpty: options.allowEmpty,
+      runner: 'promptfoo',
+      provider: options.provider,
+      ...(options.endpoint !== undefined ? { endpoint: options.endpoint } : {}),
+    });
+
+    console.log(formatSummaryReport(report));
+
+    // Write JSON if requested
+    if (options.json) {
+      if (options.jsonPath) {
+        const dir = options.jsonPath.replace(/\/[^/]+$/, '');
+        try {
+          mkdirSync(dir, { recursive: true });
+        } catch {
+          // Directory might already exist
+        }
+        writeFileSync(options.jsonPath, JSON.stringify(report, null, 2));
+        console.log(`JSON report written to: ${options.jsonPath}\n`);
+      } else {
+        console.log('\n=== JSON Report ===');
+        console.log(JSON.stringify(report, null, 2));
+      }
+    }
+
+    // Exit with error code if failures
+    if (report.summary.failedCases > 0) {
+      console.log(`Evaluation completed with ${report.summary.failedCases} failure(s).\n`);
+      process.exit(1);
+    }
+
+    console.log('Evaluation completed successfully.\n');
+    return;
+  }
+
   // Execute cases
   console.log('Executing evaluation...\n');
-  const ctx = createExecutionContext(options);
   const caseResults: SummaryCaseResult[] = [];
 
   for (const case_ of cases_) {
-    const result = await executeSummaryCase(ctx, case_);
+    const result = await executeSummaryCase(case_, {
+      provider: options.provider,
+      verbose: options.verbose,
+    });
     caseResults.push(result);
   }
 
   // Build report
   const runnerOptions: RunnerOptions = {
     tier: options.tier,
-    endpoint: options.endpoint,
     json: options.json,
-    jsonPath: options.jsonPath,
     allowEmpty: options.allowEmpty,
     dryRun: options.dryRun,
     verbose: options.verbose,
     llmProvider: options.provider,
+    ...(options.endpoint !== undefined ? { endpoint: options.endpoint } : {}),
+    ...(options.jsonPath !== undefined ? { jsonPath: options.jsonPath } : {}),
   };
 
   const report = buildSummaryReport({
@@ -473,7 +339,9 @@ async function main(): Promise<void> {
   console.log('Evaluation completed successfully.\n');
 }
 
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}

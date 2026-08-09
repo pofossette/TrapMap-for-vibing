@@ -217,7 +217,10 @@ function buildSuiteArgs(
     args.push('--dry-run');
   }
 
-  if ((suite === 'agent-planning' || suite === 'label-alignment') && options.runner) {
+  if (
+    (suite === 'agent-planning' || suite === 'label-alignment' || suite === 'summary') &&
+    options.runner
+  ) {
     args.push('--runner', options.runner);
   }
 
