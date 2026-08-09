@@ -37,7 +37,7 @@
 - Modify: `package.json` (add `check:asserts` script)
 - Modify: `biome.json` (remove `packages/host-local/src/nest/**/*.ts` from `files.ignore`)
 - Modify: `.github/workflows/ci.yml` (add `check:asserts` to doc-guardrails job)
-- Create: `.superpowers/sdd/2026-08-09-maintainability-rework/assert-exemptions.md` (exemption list, tracked in repo as `docs/todos/assert-exemptions.md`)
+- Create: `docs/todos/assert-exemptions.md` (exemption list; register it in `docs/todos/README.md` index to satisfy doc-drift/structure guards)
 
 **Interfaces:**
 - Consumes: repository-wide source scan; existing `check-relative-imports.mjs` pattern for guard script style.
@@ -66,7 +66,7 @@ Commit a temp test file containing `as never` — guard must fail; remove fixtur
 
 - [ ] **Step 5: Biome host-local coverage**
 
-Remove the `packages/host-local/src/nest/**/*.ts` ignore entry from `biome.json`. Run `rtk pnpm check` and triage: lint findings in host-local must be fixed in this task (they are now in scope); formatting is applied by `pnpm format`.
+Remove the `packages/host-local/src/nest/**/*.ts` ignore entry from `biome.json`. Run `rtk pnpm check` and triage: non-assertion lint findings in host-local (unused vars/imports, formatting) must be fixed in this task. Type-assertion findings are NOT in scope — they are tracked by the Wave-0 exemption list and cleared in Wave 6; do not clear `as never`/`as unknown as` in this task.
 
 - [ ] **Step 6: Wire CI**
 
@@ -74,7 +74,7 @@ Add `pnpm check:asserts` to the `doc-guardrails` job in `.github/workflows/ci.ym
 
 - [ ] **Step 7: Minimal verification**
 
-`rtk pnpm test:file -- scripts/__tests__/check-naked-asserts.test.ts` + `rtk pnpm check:asserts` + `rtk pnpm typecheck` + `rtk pnpm check:fallow` + `rtk pnpm check` (biome).
+`rtk pnpm test:file -- scripts/__tests__/check-naked-asserts.test.ts` + `rtk pnpm check:asserts` + `rtk pnpm typecheck` + `rtk pnpm check:fallow` + `rtk pnpm check` (biome) + `rtk pnpm check:docs-drift` + `rtk pnpm check:structure` (exemption doc registered in index).
 
 **Acceptance:** `check:asserts` green on clean tree; exemption list committed with 240 entries; host-local under Biome; CI job wired.
 
@@ -107,7 +107,7 @@ Move handler bodies from `routes.ts` (Fastify plugin form) into `createIdentityA
 
 - [ ] **Step 3: Fastify adapter pilot**
 
-`service-identity-access/src/server.ts` builds Fastify app from `createFastifyAdapter(createIdentityAccessRouteDefs(deps))`. Existing `routes.test.ts` must pass unchanged (route contract preserved).
+`service-identity-access/src/server.ts` builds Fastify app from `createFastifyAdapter(createIdentityAccessRouteDefs(deps))`. Route behavior (paths, schemas, error mapping) preserved exactly; the existing `routes.test.ts` is parametrized per Step 5 to run over both adapters (human ruling: parametrization wins over file-unchanged).
 
 - [ ] **Step 4: Nest adapter pilot**
 
