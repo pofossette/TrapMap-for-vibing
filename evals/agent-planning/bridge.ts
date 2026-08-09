@@ -91,7 +91,17 @@ export const agentPlanningBridge: SuiteBridge<
   },
 
   mapResult(_options, evalResult) {
-    const { result } = extractOutcome<AgentPlanningEvalCase>(evalResult);
+    const { error, result } = extractOutcome<AgentPlanningEvalCase>(evalResult);
+    const rawError =
+      error ??
+      (result && typeof result === 'object' && 'error' in result
+        ? String((result as { error: unknown }).error)
+        : undefined);
+    if (rawError) {
+      // Native fails the whole run with the underlying error; mirror that
+      // instead of letting a malformed case result reach report schema.parse.
+      throw new Error(rawError);
+    }
     return result as AgentPlanningCaseResult;
   },
 

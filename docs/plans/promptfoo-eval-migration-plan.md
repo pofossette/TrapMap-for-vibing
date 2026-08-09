@@ -271,7 +271,8 @@
 
 **Commit**
 
-- [ ] 提交：`feat(evals): migrate agent-planning runner to promptfoo engine`
+- [x] 提交：`feat(evals): migrate agent-planning runner to promptfoo engine`
+      - 证据：commit `1bf07c71`
 
 ## Phase 3: Deterministic suites — graph-extraction + ingestion
 

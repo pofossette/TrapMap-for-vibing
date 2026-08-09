@@ -44,6 +44,9 @@ describe('agent-planning --runner promptfoo parity (fallback provider)', () => {
 
       expect(pf.caseCount).toBe(nativeResults.length);
       expect(pf.report.summary.totalCases).toBe(nativeResults.length);
+      // The assertion mapping (GradingResult pass) drives `pf.passed`; exercise
+      // it directly rather than only the verbatim-rebuilt case results.
+      expect(pf.passed).toBe(nativeResults.every((result) => result.passed));
 
       const nativeByKey = new Map(
         nativeResults.map((result) => [`${result.taskId}::${result.variantId}`, result]),
@@ -53,6 +56,8 @@ describe('agent-planning --runner promptfoo parity (fallback provider)', () => {
         expect(native).toBeDefined();
         expect(pfCase.passed).toBe(native!.passed);
         expect(pfCase.totalScore).toBe(native!.totalScore);
+        expect(pfCase.pathScore).toBe(native!.pathScore);
+        expect(pfCase.finalAnswerScore).toBe(native!.finalAnswerScore);
         expect(pfCase.dimensionScores).toEqual(native!.dimensionScores);
         expect(pfCase.actorOutput).toBe(native!.actorOutput);
       }
