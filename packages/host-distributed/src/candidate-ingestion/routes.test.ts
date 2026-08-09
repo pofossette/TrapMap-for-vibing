@@ -28,6 +28,7 @@ describe('distributed candidate-ingestion bridge', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/internal/candidates/candidate-1/publish',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
       payload: { result: { decision: 'publish' }, actorId: 'user-1' },
     });
 

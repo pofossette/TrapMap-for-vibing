@@ -74,6 +74,7 @@ describe('observability contract', () => {
       'trapmap.cache',
       'trapmap.feedback',
       'trapmap.operator',
+      'trapmap.distributed',
     ]);
     expect(observabilityFailureClassificationSchema.options).toEqual([
       ...OBSERVABILITY_FAILURE_CLASSIFICATIONS,

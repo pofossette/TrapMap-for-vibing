@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { ConsulDiscoveryAdapter } from './consul-discovery-adapter.js';
@@ -34,6 +34,14 @@ function createConfig(): ServiceConfig {
 }
 
 describe('createServer observability surface', () => {
+  afterAll(() => {
+    vi.unstubAllEnvs();
+  });
+
+  beforeAll(() => {
+    vi.stubEnv('OTEL_DISABLED', 'true');
+  });
+
   it('owns the gateway request-context type instead of importing the compatibility server', async () => {
     const source = await readFile(path.join(import.meta.dirname, 'server.ts'), 'utf8');
 
