@@ -6,7 +6,7 @@
  * 2. Heading anchors are valid
  * 3. Backticked repository paths point to existing files
  *
- * Active surfaces: README.md, AGENTS.md, plan.md, docs/{architecture,guides,operations,reference,todos}/**
+ * Active surfaces: README.md, AGENTS.md, plan.md, architecture.md, docs/{architecture,guides,operations,reference,todos}/**
  * Excluded: docs/archived/**, docs/plans/**, docs/superpowers/**
  */
 
@@ -202,7 +202,7 @@ export function validateReference(
 
 // ── Active surface discovery ─────────────────────────────────────────
 
-const ACTIVE_ROOT_FILES = ['README.md', 'AGENTS.md', 'plan.md'];
+const ACTIVE_ROOT_FILES = ['README.md', 'AGENTS.md', 'plan.md', 'architecture.md'];
 const ACTIVE_DOCS_SUBDIRS = ['architecture', 'guides', 'operations', 'reference', 'todos'];
 const EXCLUDED_DOCS_SUBDIRS = ['archived', 'plans', 'superpowers'];
 

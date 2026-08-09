@@ -110,6 +110,6 @@
 
 ## 归档原则
 
-文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档当作当前执行入口引用。
+文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档当作当前执行入口引用；归档文档内部链接不再维护。
 
 当前根 `plan.md` 指向“Documentation Validation and Observability Platform”这一唯一 active mainline detail。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。

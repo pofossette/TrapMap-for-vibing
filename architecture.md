@@ -94,12 +94,12 @@ Round 0 已冻结数据库演进方向，后续轮次必须遵守以下边界：
 
 其他架构文档：
 
-- [docs/architecture/API.md](./docs/architecture/API.md) — API 端点详解
+- [docs/architecture/API.md（已归档）](./docs/archived/architecture/API.md) — API 端点详解
 - [docs/architecture/CLI.md](./docs/architecture/CLI.md) — CLI 命令详解
 - [docs/architecture/DEPLOYMENT.md](./docs/architecture/DEPLOYMENT.md) — 部署指南
-- [docs/architecture/FLOW.md](./docs/architecture/FLOW.md) — 系统流程图
-- [docs/architecture/MODULES.md](./docs/architecture/MODULES.md) — 模块划分详解
-- [docs/architecture/TROUBLESHOOTING.md](./docs/architecture/TROUBLESHOOTING.md) — 故障排查
+- [docs/architecture/FLOW.md（已归档）](./docs/archived/architecture/FLOW.md) — 系统流程图
+- [docs/architecture/MODULES.md（已归档）](./docs/archived/architecture/MODULES.md) — 模块划分详解
+- [docs/architecture/TROUBLESHOOTING.md（已归档）](./docs/archived/architecture/TROUBLESHOOTING.md) — 故障排查
 
 ## 数据模型概览
 

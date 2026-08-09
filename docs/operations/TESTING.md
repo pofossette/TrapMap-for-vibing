@@ -165,10 +165,9 @@ flowchart TB
 - 最小验证矩阵：
   - `rtk pnpm check:docs`
   - `rtk pnpm check:structure`
+  - `rtk pnpm check:asserts`
   - `rtk pnpm check:deps`
-  - `rtk pnpm check:docs`
-  - `rtk pnpm check:docs`
-  - `rtk pnpm check:docs`
+  - `rtk pnpm check:complexity`
   - `rtk pnpm eval:smoke`
 - 验证重点：Phase 7 只冻结 current active execution surface、historical/deferred doc role、CI job truth、eval command semantics、以及 deferred landing spot wording；不引入新的 runtime behavior。
 - CI/testing truth 解释：
@@ -662,10 +661,8 @@ Phase 4 的 queue-dedupe 验证不需要额外环境变量；只要 PostgreSQL s
 每次结构重构后应运行以下守卫，确保文档与代码一致且热点文件未超出行数预算：
 
 ```bash
-# 检查关键文档是否包含/排除预期短语（规则见 scripts/complexity-budgets.json docRules）
-pnpm check:docs
-
-# 检查所有 Markdown 中的 Mermaid 图语法是否可解析
+# 文档守卫：doc-drift / mermaid / md-lint 阻断层 + doc-truth / doc-references / links 可见层
+# （规则见 scripts/complexity-budgets.json docRules 与各 check 模块）
 pnpm check:docs
 
 # 检查热点文件是否在行数预算内（规则见 scripts/complexity-budgets.json lineBudgets）
@@ -712,8 +709,7 @@ pnpm test -- --run \
 # Docs and guardrails
 pnpm check:docs
 pnpm check:deps
-pnpm check:docs
-pnpm check:docs
+pnpm check:structure
 ```
 
 说明：

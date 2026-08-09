@@ -40,8 +40,19 @@ function resolveBinStep(name: string, pkgName: string, ...rest: string[]): Check
   return { name, command: 'pnpm', args: ['exec', pkgName, ...rest] };
 }
 
-// Mirrors the historical check:links `find` exclusions.
-const LINK_CHECK_EXCLUDED_DIRS = ['archived', 'plans', 'superpowers'];
+// Mirrors the historical check:links `find` exclusions: top-level
+// docs/archived/* and docs/plans/* plus docs/superpowers/specs/* only
+// (the rest of docs/superpowers/** was always included in link checking).
+const LINK_CHECK_EXCLUDED_REL = [
+  join('docs', 'archived'),
+  join('docs', 'plans'),
+  join('docs', 'superpowers', 'specs'),
+];
+
+function isExcluded(absDir: string): boolean {
+  const rel = resolve(absDir);
+  return LINK_CHECK_EXCLUDED_REL.some((excluded) => rel === resolve(ROOT, excluded));
+}
 
 function collectMarkdownFiles(subdirs: string[]): string[] {
   const files: string[] = [];
@@ -54,7 +65,7 @@ function collectMarkdownFiles(subdirs: string[]): string[] {
     }
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        if (LINK_CHECK_EXCLUDED_DIRS.includes(entry.name)) continue;
+        if (isExcluded(join(dir, entry.name))) continue;
         walk(join(dir, entry.name));
       } else if (entry.name.endsWith('.md')) {
         files.push(join(dir, entry.name));
