@@ -68,7 +68,7 @@ export async function runSuiteWithPromptfoo<TCase, TCaseResult, TReport>(
   );
 
   const caseResults = evalRecord.results.map((result) => bridge.mapResult(options, result));
-  const report = bridge.buildReport(options, caseResults);
+  const report = await bridge.buildReport(options, caseResults);
 
   return {
     report,

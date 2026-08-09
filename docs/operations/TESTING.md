@@ -545,7 +545,7 @@ pnpm eval:agent-planning:core
 **`--runner native|promptfoo` 双轨选项（agent-planning 参考实现）**
 
 - 默认 `native`，语义不变。`promptfoo` 走 SuiteBridge 执行引擎（确定性 fallback 下与 native 逐 case 判定一致）。
-- `--runner` 现支持 agent-planning、graph-extraction、ingestion 三个 suite（其余 suite 为 strict parseArgs，暂不转发）。
+- `--runner` 现支持 agent-planning、label-alignment、graph-extraction、ingestion 四个 suite（其余 suite 为 strict parseArgs，暂不转发）。
 - 验证命令：
   - `rtk pnpm eval -- agent-planning --tier smoke --dry-run --runner promptfoo`
   - `rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`
@@ -554,6 +554,8 @@ pnpm eval:agent-planning:core
   - `rtk pnpm eval:ingestion --tier smoke --dry-run --runner promptfoo`（注意用 `--tier smoke`，run-eval 不接受 `--smoke`）
   - `rtk pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts`
   - `rtk pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts`
+  - `rtk pnpm eval -- label-alignment --tier smoke --mode dry-run --runner promptfoo`
+  - `rtk pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`
 
 # 仅标签对齐评估
 pnpm eval:label-alignment:smoke

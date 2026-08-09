@@ -209,16 +209,16 @@ function buildSuiteArgs(
 
   args.push('--tier', options.tier ?? 'smoke');
 
-  if (suite === 'agent-planning' && options.runner) {
-    args.push('--runner', options.runner);
-  }
-
   if (options.mode) {
     args.push('--mode', options.mode);
   }
 
   if (options.dryRun) {
     args.push('--dry-run');
+  }
+
+  if ((suite === 'agent-planning' || suite === 'label-alignment') && options.runner) {
+    args.push('--runner', options.runner);
   }
 
   return args;

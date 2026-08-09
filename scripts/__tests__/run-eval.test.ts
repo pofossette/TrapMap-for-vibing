@@ -50,6 +50,20 @@ describe('resolveEvalTarget', () => {
     expect(target.args).toEqual(['--tier', 'smoke', '--mode', 'dry-run']);
   });
 
+  it('forwards --runner to the label-alignment runner', () => {
+    const target = resolveSuite('label-alignment', [
+      '--tier',
+      'smoke',
+      '--mode',
+      'dry-run',
+      '--runner',
+      'promptfoo',
+    ]);
+
+    expect(target.scriptPath).toBe('evals/label-alignment/run.ts');
+    expect(target.args).toEqual(['--tier', 'smoke', '--mode', 'dry-run', '--runner', 'promptfoo']);
+  });
+
   it('keeps graph-extraction defaulting to the full fixture set', () => {
     const target = resolveSuite('graph-extraction');
 

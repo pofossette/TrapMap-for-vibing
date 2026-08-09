@@ -41,8 +41,8 @@ export interface SuiteBridge<TCase, TCaseResult, TReport> {
   buildAssertions(options: SuiteRunOptions): Assertion[];
   /** Map a promptfoo result back to the contract CaseResult. */
   mapResult(options: SuiteRunOptions, evalResult: SuiteEvalResult): TCaseResult;
-  /** Build the contract report from per-case results. */
-  buildReport(options: SuiteRunOptions, results: TCaseResult[]): TReport;
+  /** Build the contract report from per-case results (may be async). */
+  buildReport(options: SuiteRunOptions, results: TCaseResult[]): TReport | Promise<TReport>;
   /** promptfoo maxConcurrency (1 for suites sharing a TRUNCATE database). */
   concurrency(options: SuiteRunOptions): number;
   dryRunMode: DryRunMode;

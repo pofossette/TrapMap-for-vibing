@@ -333,10 +333,21 @@
 
 ## Phase 4: label-alignment bridge
 
-- [ ] `evals/label-alignment/bridge.ts`：dry-run = deterministicProvider（`runDeterministicRecall` +
+- [x] `evals/label-alignment/bridge.ts`：dry-run = deterministicProvider（`runDeterministicRecall` +
       `inferRecallReason`）；live = composedProvider（`alignLabel` + catalog seed/cleanup）；
       断言复用 `calculateCaseMetrics`；`concurrency: 1`
-- [ ] `parity-label-alignment.test.ts`：dry-run 模式逐 case 对比 metrics（含 recallReasonDistribution）
+  - 证据：新建 `evals/label-alignment/bridge.ts`，dry-run provider executor 复用完整 native 管线
+    （`evaluateLabelAlignmentCaseDryRun`：`runDeterministicRecall`→`inferRecallReason`→`calculateCaseMetrics`），
+    live 走 `runLiveDecisionEvaluation`；`dryRunMode:'execute'`、`concurrency:1`、顶层 `registerBridge`；
+    同步在 `evals/label-alignment/core.ts` 导出 `evaluateLabelAlignmentCaseDryRun`/`inferRecallReason`
+    供 native 与 bridge 复用（DRY，native dry-run 分支改为调用共享函数），`run.ts` 增加
+    `--runner native|promptfoo` 分发（默认 native）与 `import.meta.url` CLI guard；
+    `evals/promptfoo/types.ts`/`runner.ts` 支持 async `buildReport`（bridge 的 buildReport 需
+    `await loadLabelAlignmentFixtures` 计算 fixtureIds），三个既有 suite 的 sync buildReport 不受影响
+- [x] `parity-label-alignment.test.ts`：dry-run 模式逐 case 对比 metrics（含 recallReasonDistribution）
+  - 证据：新建 `evals/promptfoo/parity-label-alignment.test.ts`，dry-run 下按 `caseId` 逐字段对比
+    passed/missedMerges/falseMerges/alignmentAccuracy/synonymEliminationCount/synonymEliminationRate/
+    recallReasonDistribution（1 test passed）
 
 **Completion standard**
 
@@ -344,13 +355,25 @@
 
 **Test and eval updates**
 
-- [ ] `rtk pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`
-- [ ] `rtk pnpm eval -- label-alignment --tier smoke --mode dry-run --runner promptfoo`
-- [ ] `rtk pnpm eval:smoke`
+- [x] `rtk pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`
+  - 证据：1 test passed；10/10 smoke case 双 runner 逐字段一致（含 recallReasonDistribution）
+- [x] `rtk pnpm eval -- label-alignment --tier smoke --mode dry-run --runner promptfoo`
+  - 证据：exit 0；`Cases: 10`、`Passed: 10`、`Failed: 0`、`Accuracy: 100.0%`、`False merges: 0`、
+    `Missed merges: 0`，与 native（同命令不带 `--runner`）报告头逐项一致；
+    `scripts/__tests__/run-eval.test.ts` 15 tests passed（新增 label-alignment `--runner` 透传断言）
+- [x] `rtk pnpm eval:smoke`
+  - 证据：54/81 passed（与本地 keyless 基线一致，无回归；retrieval 4/26、summary 1/6、
+    graph 5 fixtures、ingestion 1/1、agent-planning 33/33、label-alignment 10/10）；
+    `rtk pnpm typecheck` exit 0；其余 parity/substrate 测试全绿
+    （agent-planning 2 / graph-extraction 1 / ingestion 1 / runner 4）
 
 **Document updates**
 
-- [ ] `docs/operations/TESTING.md` suite 表同步（如需）
+- [x] `docs/operations/TESTING.md` suite 表同步（如需）
+  - 证据：`--runner` 双轨小节扩展为 agent-planning、label-alignment、graph-extraction、ingestion
+    四个 suite，并新增 label-alignment promptfoo 验证命令两条
+    （`rtk pnpm eval -- label-alignment --tier smoke --mode dry-run --runner promptfoo` 与
+    `rtk pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`）
 
 **Commit**
 

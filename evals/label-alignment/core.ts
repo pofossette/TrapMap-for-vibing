@@ -55,29 +55,8 @@ export async function runLabelAlignmentSuite(
         continue;
       }
 
-      const recallResult = runDeterministicRecall(case_);
-      const predictions = recallResult.predictions.map((prediction) => ({
-        ...prediction,
-        recallReason: inferRecallReason(case_, prediction.rawLabel),
-      }));
-      const metrics = calculateCaseMetrics(case_, predictions);
-      caseResults.push({
-        caseId: case_.caseId,
-        skillId: case_.skillId,
-        variantId: case_.variantId,
-        variantGroupId: case_.variantGroupId,
-        tier: case_.tier,
-        mode: 'dry-run',
-        passed: metrics.passed,
-        durationMs: Date.now() - caseStart,
-        synonymEliminationCount: metrics.synonymEliminationCount,
-        synonymEliminationRate: metrics.synonymEliminationRate,
-        missedMerges: metrics.missedMerges,
-        falseMerges: metrics.falseMerges,
-        alignmentAccuracy: metrics.alignmentAccuracy,
-        recallReasonDistribution: metrics.recallReasonDistribution,
-        notes: recallResult.notes,
-      });
+      const dryResult = evaluateLabelAlignmentCaseDryRun(case_);
+      caseResults.push({ ...dryResult, mode: 'dry-run', durationMs: Date.now() - caseStart });
     }
   }
 
@@ -94,7 +73,39 @@ export function formatRunResult(report: LabelAlignmentEvalReport): string {
   return formatLabelAlignmentReport(report);
 }
 
-function inferRecallReason(
+/**
+ * Evaluate one label-alignment case with the deterministic dry-run pipeline:
+ * `runDeterministicRecall` → `inferRecallReason` → `calculateCaseMetrics`.
+ * Shared by the native `runLabelAlignmentSuite` and the promptfoo bridge so
+ * `--runner promptfoo` is per-case identical to native.
+ */
+export function evaluateLabelAlignmentCaseDryRun(
+  case_: LabelAlignmentEvalCase,
+): Omit<LabelAlignmentEvalCaseResult, 'durationMs' | 'mode'> {
+  const recallResult = runDeterministicRecall(case_);
+  const predictions = recallResult.predictions.map((prediction) => ({
+    ...prediction,
+    recallReason: inferRecallReason(case_, prediction.rawLabel),
+  }));
+  const metrics = calculateCaseMetrics(case_, predictions);
+  return {
+    caseId: case_.caseId,
+    skillId: case_.skillId,
+    variantId: case_.variantId,
+    variantGroupId: case_.variantGroupId,
+    tier: case_.tier,
+    passed: metrics.passed,
+    synonymEliminationCount: metrics.synonymEliminationCount,
+    synonymEliminationRate: metrics.synonymEliminationRate,
+    missedMerges: metrics.missedMerges,
+    falseMerges: metrics.falseMerges,
+    alignmentAccuracy: metrics.alignmentAccuracy,
+    recallReasonDistribution: metrics.recallReasonDistribution,
+    notes: recallResult.notes,
+  };
+}
+
+export function inferRecallReason(
   case_: LabelAlignmentEvalCase,
   rawLabel: string,
 ): LabelAlignmentRecallReason {
