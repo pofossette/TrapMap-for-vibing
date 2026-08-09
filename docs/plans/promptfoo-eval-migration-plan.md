@@ -541,7 +541,9 @@
 
 **Commit**
 
-- [ ] 提交：`refactor(evals): cut over to promptfoo engine and remove native runners`（含快照）
+- [x] 提交：`refactor(evals): cut over to promptfoo engine and remove native runners`（含快照）
+  - 证据：commit `d0f0932e`（38 files，+1584/-1490；含六个 suite native 移除、runner-api 执行循环删除、
+    六个 parity 测试改快照比对、`eval.yml` 新增 `eval-parity` job 与全部快照）
 
 ## Phase 8: Verification and closeout
 
