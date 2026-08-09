@@ -127,6 +127,16 @@ evals/
     ├── assertions.ts            # 摄取断言
     ├── metrics.ts               # 摄取指标
     └── fixtures/                # 摄取用例固定数据
+├── promptfoo/                   # promptfoo 执行引擎共享基建
+│   ├── types.ts                 # SuiteBridge 接口与统一结果类型
+│   ├── runner.ts                # runSuiteWithPromptfoo（惰性 import promptfoo）
+│   ├── provider.ts              # llm/composed/deterministic 三态 provider 工厂
+│   ├── assertion.ts             # 通用 JS 断言包装
+│   ├── result.ts                # promptfoo result → 契约 CaseResult 映射
+│   ├── filters.ts               # tier/endpoint/metadata 过滤
+│   ├── dryrun.ts                # echo provider + dry-run 语义
+│   └── bridge.ts                # suite 注册表
+└── <suite>/bridge.ts            # 各 suite 的 SuiteBridge 桥接实现
 ```
 
 ## Directory Layout
@@ -140,6 +150,7 @@ evals/
 | `graph-extraction/` | Graph extraction, dedup, and conflict evaluation | `pnpm eval:graph-extraction:smoke` |
 | `ingestion/` | Skill ingestion fixtures, assertions, adapter, and runner | `pnpm eval:ingestion:smoke` |
 | `fixtures/` | Shared trap fixtures | Imported by eval suites |
+| `promptfoo/` | Shared promptfoo execution substrate (SuiteBridge, runner, providers) | Used by suite bridges |
 | `scripts/` | Cross-eval CI and aggregate runners | `pnpm eval:ci` |
 
 ## Phase 状态

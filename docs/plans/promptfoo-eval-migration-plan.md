@@ -172,17 +172,35 @@
 
 ## Phase 1: Shared infrastructure (`evals/promptfoo/`)
 
-- [ ] `types.ts`：`SuiteBridge` 接口
+- [x] `types.ts`：`SuiteBridge` 接口
       （`suiteId/loadCases/buildProvider/buildAssertions/mapResult/buildReport/concurrency`）
-- [ ] `provider.ts`：三态工厂（llmProvider 包装 `@trapmap/ai-providers` ChatProvider；
+      - 证据：`evals/promptfoo/types.ts` 含 `SuiteBridge<TCase,TCaseResult,TReport>`、
+        `SuiteRunOptions`（tier/dryRun/allowEmpty/runner + 不透明字段）、
+        `DryRunMode = 'skip' | 'execute'`（skip 需 `buildDryRunResult`）
+- [x] `provider.ts`：三态工厂（llmProvider 包装 `@trapmap/ai-providers` ChatProvider；
       composedProvider 包装 retrieval adapters seed→execute→close；deterministicProvider 包装纯函数）
-- [ ] `assertion.ts`：通用 JS 断言包装（async 支持），`GradingResult { pass, score, reason, named_scores }`
-- [ ] `result.ts`：promptfoo `EvaluationResult` → 契约 CaseResult 映射
-- [ ] `filters.ts`：tier/endpoint/metadata 过滤（复用现有 CLI 语义）
-- [ ] `dryrun.ts`：echo provider；dry-run 保留"只验 runner 不执行"语义
-- [ ] `runner.ts`：`runSuiteWithPromptfoo(bridge, options)`；动态 `import()` 惰性加载 promptfoo
-- [ ] `bridge.ts`：suite 注册表
-- [ ] `runner.test.ts`：echo provider 走通整条管道（loadCases→evaluate→mapResult→buildReport）
+      - 证据：`evals/promptfoo/provider.ts` 核心 `createCaseProvider(execute: CaseExecutor)`，
+        读取 `context.vars.__case` 取 case；`llmProvider/composedProvider/deterministicProvider` 为别名。
+        （验证阶段确认 promptfoo 自定义 provider 必须为裸函数形式，对象带 id 形式会 "Could not identify provider"）
+- [x] `assertion.ts`：通用 JS 断言包装（async 支持），`GradingResult { pass, score, reason, named_scores }`
+      - 证据：`evals/promptfoo/assertion.ts` 的 `createJsAssertion` 返回 `{type:'javascript', value: async (output, context) => ...}`，
+        grader 从 `context.providerResponse?.raw` 取结构化 result（JS 断言 `output` 参数被字符串化）
+- [x] `result.ts`：promptfoo `EvaluationResult` → 契约 CaseResult 映射
+      - 证据：`evals/promptfoo/result.ts` 定义结构化 `SuiteEvalResult` + `extractOutcome<TCase>`；
+        case 从 `response.raw.case`、result 从 `response.raw.result` 恢复（`EvalResult` 行不含 vars）
+- [x] `filters.ts`：tier/endpoint/metadata 过滤（复用现有 CLI 语义）
+      - 证据：`evals/promptfoo/filters.ts` 导出 `filterByEndpoint`/`filterByMetadata`
+- [x] `dryrun.ts`：echo provider；dry-run 保留"只验 runner 不执行"语义
+      - 证据：`evals/promptfoo/dryrun.ts` 导出 `createEchoProvider(result)`
+- [x] `runner.ts`：`runSuiteWithPromptfoo(bridge, options)`；动态 `import()` 惰性加载 promptfoo
+      - 证据：`evals/promptfoo/runner.ts` 惰性 `import('promptfoo')`，构建
+        `tests: { vars: { __case: JSON.stringify(case) } }`，`evaluate(..., {cache:false, maxConcurrency, silent:true})`，
+        返回 `{report, passed, caseCount}`；allowEmpty 语义已覆盖
+- [x] `bridge.ts`：suite 注册表
+      - 证据：`evals/promptfoo/bridge.ts` 导出 `registerBridge/getBridge/listBridgeIds`（Map 注册表）
+- [x] `runner.test.ts`：echo provider 走通整条管道（loadCases→evaluate→mapResult→buildReport）
+      - 证据：`evals/promptfoo/runner.test.ts` 4 个用例全绿（管道贯通 / dry-run skip 短路 /
+        allowEmpty=false 空 case 抛错 / allowEmpty=true 空 case 返回空报告）
 
 **Completion standard**
 
@@ -190,16 +208,21 @@
 
 **Test and eval updates**
 
-- [ ] `rtk pnpm test:file -- evals/promptfoo/runner.test.ts`
-- [ ] `rtk pnpm typecheck`
+- [x] `rtk pnpm test:file -- evals/promptfoo/runner.test.ts`
+      - 证据：4 tests passed
+- [x] `rtk pnpm typecheck`
+      - 证据：exit 0
 
 **Document updates**
 
-- [ ] `evals/README.md` 工作区布局补 `promptfoo/` 条目
+- [x] `evals/README.md` 工作区布局补 `promptfoo/` 条目
+      - 证据：布局树新增 `promptfoo/` 子目录（types/runner/provider/assertion/result/filters/dryrun/bridge），
+        Directory Layout 表新增 `promptfoo/` 行
 
 **Commit**
 
-- [ ] 提交：`feat(evals): add promptfoo execution substrate with SuiteBridge`
+- [x] 提交：`feat(evals): add promptfoo execution substrate with SuiteBridge`
+      - 证据：commit `<FILL: phase1 commit hash>`
 
 ## Phase 2: agent-planning bridge (reference implementation)
 
