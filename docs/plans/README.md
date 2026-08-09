@@ -29,6 +29,8 @@
 | `capsule-contextual-enrichment-plan.md` | historical-reference | 检索/capsule 设计上下文，现仅作背景引用 |
 | `round4-cross-table-consistency-plan.md` | historical-reference | package 文档引用的 artifact 结构化事实源，现仅作背景引用 |
 | `v2-multi-recall-plan.md` | historical-reference | 检索设计上下文，现仅作背景引用 |
+| `promptfoo-eval-migration-plan.md` | historical-reference | promptfoo eval 引擎迁移（6 suite 桥接 + cutover）已完成，`promptfoo-decision-record.md` 记录 ADR 与 backlog；现仅作背景引用 |
+| `promptfoo-decision-record.md` | historical-reference | 决策记录（ADR-1..4 + closeout），含 backlog 与单供应商风险跟踪 |
 
 ## 后端工程化阶段总结
 

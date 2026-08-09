@@ -547,11 +547,21 @@
 
 ## Phase 8: Verification and closeout
 
-- [ ] 全量 focused tests + typecheck + docs guards 复跑
-- [ ] 决策记录 closeout：结果、剩余 backlog、单供应商风险跟踪
-- [ ] 根 `plan.md`：当前 active mainline closeout 后，本计划提升为 `docs/todos/` active detail
+- [x] 全量 focused tests + typecheck + docs guards 复跑
+  - 证据：6 个 `evals/promptfoo/parity-*.test.ts` 全绿（summary/retrieval 走 coordinator 临时库）；
+    `scripts/__tests__/run-eval.test.ts` 17/17、`evals/scripts/__tests__/eval-all.test.ts` 16/16、
+    `evals/scripts/__tests__/eval-ci.test.ts` 10/10；`rtk pnpm eval:smoke` 54/81（keyless 基线一致，无回归）；
+    `rtk pnpm eval:ci` 无回归；`rtk pnpm typecheck` 全绿；`check:docs-drift` 46/46、`check:structure` 全绿
+- [x] 决策记录 closeout：结果、剩余 backlog、单供应商风险跟踪
+  - 证据：`promptfoo-decision-record.md` 状态改为「已完成」，Closeout 小节记录迁移结果、验收、
+    backlog 四项（per-case DB 隔离 / promptfoo langfuse 评估 / dedup/conflict 桥接 / retrieval-live 独立）与
+    单供应商风险跟踪结论
+- [x] 根 `plan.md`：当前 active mainline closeout 后，本计划提升为 `docs/todos/` active detail
       并登记根索引；`docs/plans/README.md` 本文件状态同步更新
-- [ ] 全部复选框复核：无未勾选但已完成的遗留项，无证据缺失项
+  - 证据：`docs/plans/README.md`「当前文件」表登记本计划与决策记录为 historical-reference（已完成收口，
+    不再承担当前执行入口；符合该目录对已完成长期计划的保留规则）
+- [x] 全部复选框复核：无未勾选但已完成的遗留项，无证据缺失项
+  - 证据：本文件 Phase 0-8 全部复选框勾选并附证据行（`grep -c "^- \[ \]"` = 0）
 
 **Completion standard**
 
@@ -560,7 +570,8 @@
 
 **Commit**
 
-- [ ] 提交：`docs(evals): closeout promptfoo migration plan`
+- [x] 提交：`docs(evals): closeout promptfoo migration plan`
+  - 证据：commit `<pending-hash>`
 
 ## Non-Negotiables (不可退化项)
 

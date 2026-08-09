@@ -1,6 +1,6 @@
 # Promptfoo Eval 引擎迁移决策记录
 
-> 状态：进行中（Phase 0 建立，Phase 8 closeout）
+> 状态：已完成（Phase 0 建立，Phase 8 closeout 完成）
 > 关联计划：[`promptfoo-eval-migration-plan.md`](promptfoo-eval-migration-plan.md)
 
 ## ADR-1: 采用 promptfoo 作为 eval 执行引擎（库形态）
@@ -43,4 +43,14 @@
 
 ## Closeout（Phase 8 填写）
 
-（待 Phase 8 更新：迁移结果、剩余 backlog 状态、单供应商风险跟踪结论）
+**迁移结果（2026-08-09）**：6 个 suite（retrieval / summary / agent-planning / label-alignment / graph-extraction / ingestion）全部迁移到 promptfoo 执行引擎，逐 suite 建立 `SuiteBridge` + `parity-<suite>.test.ts`。Cutover（Phase 7）完成：`scripts/run-eval.ts` 默认 `--runner promptfoo`；`eval-all.ts` / `eval-ci.ts` 收敛为 bridge 注册表循环；6 个 `run.ts` 的自研 case 循环删除（保留契约类型、报告构建器与 `getXxxEvaluationCases` 加载）；`evals/promptfoo/snapshots/` 生成 6 个 smoke 判定快照，parity 测试改为"promptfoo 输出 vs 快照"；`.github/workflows/eval.yml` 增加 blocking `eval-parity` job（无 API key 可跑）。
+
+**验收**：`rtk pnpm eval:smoke` 54/81（与本地 keyless 基线一致，无回归）；`rtk pnpm eval:ci` 无回归；6 个 parity 测试全绿（summary/retrieval 走 coordinator 临时库）；`rtk pnpm typecheck` 全绿；`check:docs-drift` / `check:structure` 全绿。退出码 / tier / dry-run / allow-empty / endpoint 过滤语义不变。
+
+**Backlog 状态**（保持未做，显式登记）：
+- per-case DB schema/临时库隔离 → retrieval/summary/label-alignment-live 可并行（当前 `maxConcurrency: 1`，ADR-4）
+- promptfoo 内置 langfuse 导出 vs 现有 `evals/lib/platform` 镜像的评估（当前不启用 promptfoo 内置 langfuse，避免双写）
+- `dedup-eval.ts` / `conflict-eval.ts` 桥接（独立脚本，未进 aggregate）
+- `retrieval-live` 快照对比工具保持独立（用途不同，强制迁移无收益）
+
+**单供应商风险跟踪**：promptfoo 仍为 MIT 许可、OpenAI 收购主体不变。`SuiteBridge` 薄壳隔离保留，换引擎只需改 `evals/promptfoo/runner.ts` 一处；governance / IR 指标 / judge 评分仍以 TrapMap 原生纯函数逻辑为准（promptfoo 只做载体）。持续跟踪第三方库许可与遥测政策变化。
