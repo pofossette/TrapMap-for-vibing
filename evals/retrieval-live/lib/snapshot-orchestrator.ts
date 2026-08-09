@@ -20,9 +20,10 @@ import {
   liveSnapshotMetaSchema,
 } from '@trapmap/contracts/evals';
 
+import { nowIso } from '@trapmap/lib';
+
 import { loadConfig } from '../../../packages/host-local/src/nest/config/config.js';
 import type { HostLocalServices } from '../../../packages/host-local/src/nest/runtime/host-services.js';
-import { nowIso } from '../../../packages/host-local/src/nest/runtime/now-iso.js';
 
 import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
 

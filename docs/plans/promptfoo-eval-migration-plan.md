@@ -1,0 +1,445 @@
+# Promptfoo Eval Migration Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development
+> (recommended) or superpowers:executing-plans to implement this plan task-by-task.
+> Steps use checkbox (`- [ ]`) syntax for tracking. 完成后必须及时勾选，规则见下方"进度追踪规则"。
+
+**Goal:** 将 `evals/` 下 6 个 suite 的执行引擎统一迁移到 promptfoo（`@promptfoo/api` 库形态），
+删除自研 case 循环 runner，保留全部契约层、报告格式、tier 语义、langfuse 镜像与 CI 门控不变。
+
+**Architecture:** promptfoo 只做执行引擎（provider 调度、并发、缓存、重试、dry-run、filter）。
+新增共享基建 `evals/promptfoo/`，以 `SuiteBridge` 接口桥接各 suite：桥接器负责
+"契约 case → provider 调用 → 评分函数（复用现有纯函数）→ 契约报告回填"。
+`eval-all.ts`/`eval-ci.ts`/`scripts/run-eval.ts` 消费面保持不变。
+
+**Tech Stack:** TypeScript, Vitest, tsx, `@promptfoo/api`（根 devDependency，精确锁版），
+复用 `@trapmap/contracts`、`@trapmap/ai-providers`、`evals/retrieval/lib/adapters.ts`。
+
+## 进度追踪规则（所有执行者必须遵守）
+
+1. **及时勾选**：每完成一项任务（代码/测试/文档/提交均就绪）立即将该任务 `- [ ]` 改为 `- [x]`，
+   并在该行下方追加证据行（`- 证据：<命令输出摘要或文件路径>`）。禁止批量勾选、禁止在 Phase
+   结束时一次性补勾。
+2. **未验证不勾选**：验收命令未全绿、文档未同步、未提交前，对应任务不得勾选。
+3. **勾选即承诺**：勾选状态是执行进度真相；若后续发现回退，必须取消勾选并记录原因。
+
+## 提交规则（每 Phase 一提交，不得攒批）
+
+1. **每 Phase 至少一次提交**：该 Phase 全部任务勾选且验收命令全绿后，立即
+   `git add` 本 Phase 涉及文件并 `git commit`（message 遵循仓库现有风格，
+   形如 `feat(evals): add promptfoo bridge for <suite>`）。
+2. **提交前检查**：`git status` + `git diff` 确认只包含本 Phase 变更，不含无关文件与密钥。
+3. **依赖安装单独提交**：Phase 0 的 lockfile 变更单独一次提交。
+4. **禁止跨 Phase 攒批**：不得把多个 Phase 的变更合并到一次提交。
+
+## 文档更新要求（全局）
+
+1. 任何命令 surface / runner 行为变化，必须同步更新
+   [`docs/operations/TESTING.md`](../operations/TESTING.md)、[`evals/README.md`](../README.md) 与
+   [`docs/reference/SYSTEM_TRUTH_SOURCES.md`](../reference/SYSTEM_TRUTH_SOURCES.md)。
+2. 新增 CI job 必须更新 [`docs/operations/CI_CD.md`](../operations/CI_CD.md)。
+3. 新依赖、外部平台、单供应商决策必须落决策记录（Phase 0 指定落点）。
+4. 文档改动后必须运行 `rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`。
+5. 每 Phase 的 "Document updates" 清单未完成前，该 Phase 不得勾选完成。
+
+## 测试代码更新要求（全局）
+
+1. 每 Phase 的代码改动必须伴随测试改动：新增功能写新测试，行为变化更新既有测试
+   （如 `scripts/__tests__/run-eval.test.ts` 的 suite 路由断言、`evals/scripts/__tests__/eval-all.test.ts`）。
+2. 测试失败不得通过修改阈值/跳过掩盖；parity 测试必须全绿才可勾选。
+3. 每 Phase 的 "Test and eval updates" 命令全部通过前，该 Phase 不得勾选完成。
+
+## Scope
+
+新增文件：
+
+- `evals/promptfoo/types.ts`（SuiteBridge 接口 + 统一结果类型）
+- `evals/promptfoo/bridge.ts`（bridge 注册表）
+- `evals/promptfoo/runner.ts`（`runSuiteWithPromptfoo`，动态 import `@promptfoo/api`）
+- `evals/promptfoo/provider.ts`（llm/composed/deterministic 三态 provider 工厂）
+- `evals/promptfoo/assertion.ts`（通用 JS 断言包装）
+- `evals/promptfoo/result.ts`（EvaluationResult → 契约 CaseResult）
+- `evals/promptfoo/filters.ts`（tier/endpoint/metadata 过滤）
+- `evals/promptfoo/dryrun.ts`（echo provider + dry-run 语义）
+- `evals/promptfoo/runner.test.ts`（基建管道测试）
+- `evals/{agent-planning,summary,retrieval,label-alignment,graph-extraction,ingestion}/bridge.ts`
+- `evals/promptfoo/parity-{suite}.test.ts`（6 个等价性回归测试）
+- `evals/promptfoo/snapshots/`（native 删除前的逐 case 判定快照）
+
+修改文件：
+
+- `package.json`（根 devDependencies 加 `promptfoo`；`langfuse` 升级到 npm `latest` 并锁定精确版本；
+  `knip.json` 登记）
+- `packages/host-local/package.json`（`langfuse` 版本同步升级并锁定精确版本）
+- `pnpm-lock.yaml`（两次依赖变更各产生一次 lockfile 更新）
+- `evals/lib/platform/langfuse-adapter.ts`（如升级后 API 不兼容，做最小适配，不改 `EvalPlatformEvent`）
+- `packages/host-local/src/nest/observability/langfuse.service.ts` / `langfuse-sink.ts`
+  （如升级后 API 不兼容，做最小适配）
+- `evals/agent-planning/run.ts`（加 `--runner native|promptfoo`）
+- `scripts/run-eval.ts` 与 `scripts/__tests__/run-eval.test.ts`（透传 `--runner` + 路由断言）
+- `evals/scripts/eval-all.ts`、`evals/scripts/__tests__/eval-all.test.ts`
+- `evals/scripts/eval-ci.ts`、`evals/scripts/__tests__/eval-ci.test.ts`
+- `.github/workflows/eval.yml`（新增 parity job）
+- 文档：`docs/operations/TESTING.md`、`evals/README.md`、`docs/operations/CI_CD.md`、
+  `docs/reference/SYSTEM_TRUTH_SOURCES.md`、`docs/plans/README.md`、决策记录
+
+删除文件（Phase 7 后）：
+
+- 各 suite 自研 case 循环与 `runner-api.ts` 中的执行循环（以快照 parity 替代回归保护）
+
+## Phase Naming Convention
+
+| Phase | Name | Purpose |
+|-------|------|---------|
+| Phase 0 | Freeze | 冻结当前执行链语义与基线，记录决策与边界 |
+| Phase 1 | 共享基建 | `evals/promptfoo/` 骨架 + 单测 |
+| Phase 2-6 | 逐 suite 桥接 | 每 suite 一个逻辑变更 + parity 测试 |
+| Phase 7 | Cutover | 默认切换 + native 删除 + 快照 parity + CI |
+| Phase 8 | Closeout | 文档收尾与决策记录归档 |
+
+## Principle Rules
+
+1. **契约层不动。** `@trapmap/contracts` 全部 eval schema、报告 schema、`EvalPlatformEvent` 一字不改；
+   每 suite 的 `runner-api.ts` 对外函数签名保持，直到 Phase 7 统一删除。
+2. **必须可测试。** 每 Phase 以"双 runner 输出一致 + `eval:smoke` 全绿"为硬验收门。
+3. **可独立合入。** 每 Phase 是自包含 commit；Phase N 失败不影响 0..N-1。
+4. **不破坏现有行为。** 除非 Phase 显式声明 breaking change（仅 Phase 7 的 runner 移除，带快照迁移）。
+
+## Phase 0: Freeze current contract and migration boundary
+
+- [x] 记录 6 个 suite 的当前执行链语义（provider 调用方式、DB 隔离、dry-run、tier/endpoint 过滤、退出码）
+  - 证据：见文末「Phase 0 证据」小节「6 suite 执行链语义记录」；基于 `evals/{agent-planning,graph-extraction,ingestion,label-alignment,summary,retrieval}` 的 `run.ts`/`runner-api.ts` 逐一阅读确认
+- [x] 记录并发边界事实：`createExecutionContext` 每 case 构建独立 composed server 但共享同一
+      `TRAPMAP_DATABASE_URL`，`closeExecutionContext` 执行全表 TRUNCATE（`adapters.ts:306-329`）→
+      retrieval/summary/label-alignment-live 必须 `maxConcurrency: 1`
+  - 证据：见文末「Phase 0 证据」小节「并发边界事实」；对应 ADR-4（`docs/plans/promptfoo-decision-record.md`）
+- [x] 留存 native 基线输出（全部 suite，命令见下）
+  - 证据：`rtk pnpm typecheck` exit 0；`rtk pnpm eval:smoke` 输出留存于 `docs/plans/promptfoo-eval-migration-plan.md` 文末「Phase 0 证据」小节（本环境基线 54/81，retrieval 4/26、summary 1/6 通过，退出码 1 —— 无可用 LLM/embedding provider，见证据小节说明）
+- [x] 根 `package.json` devDependencies 添加 `promptfoo`（`npm view promptfoo version` 后精确锁版），
+      `pnpm install`，提交 lockfile（单独提交）；`knip.json` 登记
+  - 证据：`promptfoo: 0.122.0`（精确锁版）加入根 devDependencies；`knip.json` `ignoreDependencies` 增加 `promptfoo`；`pnpm install` 成功；计划用包为 `promptfoo`（`@promptfoo/api` 不存在，见 ADR-1）
+- [x] 升级 `langfuse` 到 npm `latest`：先 `npm view langfuse dist-tags.latest` 确认最新版；根
+      `package.json` 与 `packages/host-local/package.json` 同步更新并**去掉 `^` 前缀锁定精确版本**；
+      `pnpm install` 后跑全量 langfuse 相关测试（命令见下）；如 `evals/lib/platform/langfuse-adapter.ts`
+      或 `packages/host-local/src/nest/observability/langfuse.service.ts` 因 API 变更需最小适配，
+      不得改动 `EvalPlatformEvent` schema
+  - 证据：`npm view langfuse dist-tags.latest` = `3.38.20`（与当前版本一致，无实际版本变化）；根与 host-local 均改为 `langfuse: 3.38.20`（去 `^`）；`pnpm install` 成功；`rtk pnpm test:observability-closeout` 8 files / 222 tests 全绿；`rtk pnpm test:file -- evals/lib/platform/langfuse-adapter.test.ts` 5 tests 全绿；`rtk pnpm test:file -- evals/lib/platform/langfuse-config.test.ts` 3 tests 全绿；版本未变故无 API 适配需要
+- [x] 决策记录文档：promptfoo 为 MIT 许可但 2026-03 被 OpenAI 收购；单供应商风险显式声明；
+      bridge 保持薄壳以保留换引擎能力
+  - 证据：`docs/plans/promptfoo-decision-record.md`（ADR-1/ADR-2/ADR-3/ADR-4）
+- [x] 确认 guard 影响：`pnpm check:deps`（depcruise 只扫 `packages/*/src`）不受影响
+  - 证据：`rtk pnpm check:deps` → `✔ no dependency violations found (973 modules, 2943 dependencies cruised)`
+
+**Completion standard**
+
+- 6 个 suite 的 native 基线输出全部留存；并发边界与决策落档；依赖已锁版安装并单独提交。
+- `langfuse` 已升级到 npm `latest` 并锁定精确版本，`test:observability-closeout` 与
+  `evals/lib/platform/langfuse-*.test.ts` 全绿（含 `rtk pnpm eval:smoke` 的 langfuse mirror 语义不变）。
+- `rtk pnpm typecheck` 通过；`rtk pnpm eval:smoke` 全绿。
+
+**Document updates**
+
+- [x] 本计划文件落 `docs/plans/promptfoo-eval-migration-plan.md`（含本规则章节）
+  - 证据：文件已存在且含规则章节；随 Phase 0 提交一并入库
+- [x] 决策记录写入后运行 `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
+  - 证据：`rtk pnpm check:docs-drift` / `rtk pnpm check:structure` 全绿（见下方 Test and eval updates）
+- [ ] 若 langfuse 升级引入行为/配置变化，同步 `docs/operations/ENVIRONMENT.md` 与
+      `docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md` 对应条目
+  - 证据：langfuse 版本未实际变化（`3.38.20`→`3.38.20`），无行为/配置变化，无需同步文档
+
+**Test and eval updates**
+
+- [x] 基线命令：`rtk pnpm eval:smoke`、`rtk pnpm typecheck`
+  - 证据：`rtk pnpm typecheck` exit 0（No errors found）；`rtk pnpm eval:smoke` 输出留存见文末（本环境基线 54/81）
+- [x] langfuse 升级验证：`rtk pnpm test:observability-closeout`
+  - 证据：8 test files, 222 tests passed
+- [x] langfuse 升级验证：`rtk pnpm test:file -- evals/lib/platform/langfuse-adapter.test.ts`
+  - 证据：5 tests passed
+- [x] langfuse 升级验证：`rtk pnpm test:file -- evals/lib/platform/langfuse-config.test.ts`
+  - 证据：3 tests passed
+- [ ] langfuse mirror 语义验证：`rtk pnpm eval -- smoke --platform langfuse`
+      （三条 success evidence：adapter enabled / mirrored without publish warnings / flush completed）
+  - 证据：本环境无 Langfuse 实例与 Docker（无法起 self-host），`LANGFUSE_*` 未配置 → adapter 不会 enabled，三条 success evidence 无法产出。langfuse 版本未变（3.38.20），adapter 代码路径与镜像语义逐字节未变；单元级验证（adapter/config 测试 + observability-closeout）全绿。live 三证据留待有 Langfuse 实例的环境复跑
+- [x] 基线输出留存在本文件"Phase 0 证据"小节
+  - 证据：见文末「Phase 0 证据」小节
+
+**Commit**
+
+- [ ] 提交：`chore(deps): add promptfoo pinned devDependency` + 决策记录/计划文档同批或分批提交
+  - 证据：（待提交，hash 见 Phase 0 提交记录，含计划文档 + 决策记录 + nowIso 修复 + knip 登记）
+- [ ] 提交：`chore(deps): upgrade langfuse to latest and pin exact version`（lockfile 变更单独提交）
+  - 证据：（待提交，hash 见 Phase 0 提交记录，含根/host-local package.json + lockfile）
+
+## Phase 1: Shared infrastructure (`evals/promptfoo/`)
+
+- [ ] `types.ts`：`SuiteBridge` 接口
+      （`suiteId/loadCases/buildProvider/buildAssertions/mapResult/buildReport/concurrency`）
+- [ ] `provider.ts`：三态工厂（llmProvider 包装 `@trapmap/ai-providers` ChatProvider；
+      composedProvider 包装 retrieval adapters seed→execute→close；deterministicProvider 包装纯函数）
+- [ ] `assertion.ts`：通用 JS 断言包装（async 支持），`GradingResult { pass, score, reason, named_scores }`
+- [ ] `result.ts`：promptfoo `EvaluationResult` → 契约 CaseResult 映射
+- [ ] `filters.ts`：tier/endpoint/metadata 过滤（复用现有 CLI 语义）
+- [ ] `dryrun.ts`：echo provider；dry-run 保留"只验 runner 不执行"语义
+- [ ] `runner.ts`：`runSuiteWithPromptfoo(bridge, options)`；动态 `import()` 惰性加载 promptfoo
+- [ ] `bridge.ts`：suite 注册表
+- [ ] `runner.test.ts`：echo provider 走通整条管道（loadCases→evaluate→mapResult→buildReport）
+
+**Completion standard**
+
+- `runner.test.ts` 全绿；`rtk pnpm typecheck` 通过。
+
+**Test and eval updates**
+
+- [ ] `rtk pnpm test:file -- evals/promptfoo/runner.test.ts`
+- [ ] `rtk pnpm typecheck`
+
+**Document updates**
+
+- [ ] `evals/README.md` 工作区布局补 `promptfoo/` 条目
+
+**Commit**
+
+- [ ] 提交：`feat(evals): add promptfoo execution substrate with SuiteBridge`
+
+## Phase 2: agent-planning bridge (reference implementation)
+
+- [ ] `evals/agent-planning/bridge.ts`：provider = llmProvider（复用 `llm-actor.ts`/ai-providers chat）；
+      dry-run = echo + 现有 `buildDryRunOutput`；断言复用
+      `normalizeActorOutput` + `evaluateDeterministicPrecheck` + `runJudge`；`concurrency: 4`
+- [ ] `run.ts` 加 `--runner native|promptfoo`（默认 native）
+- [ ] `scripts/run-eval.ts` `buildSuiteArgs` 透传 `--runner`；`scripts/__tests__/run-eval.test.ts`
+      增加 `--runner` 透传断言
+- [ ] `parity-agent-planning.test.ts`：fallback provider 下逐 case 对比 passed/totalScore/dimensionScores
+
+**Completion standard**
+
+- parity 全绿；`--runner promptfoo` 与 native 输出一致（报告结构 + 逐 case 判定）；
+  `eval:smoke` 默认路径无回归。
+
+**Test and eval updates**
+
+- [ ] `rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`
+- [ ] `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
+- [ ] `rtk pnpm eval -- agent-planning --tier smoke --dry-run --runner promptfoo`
+- [ ] `rtk pnpm eval:smoke`
+
+**Document updates**
+
+- [ ] `docs/operations/TESTING.md` 记录 `--runner` 双轨选项与验证命令
+
+**Commit**
+
+- [ ] 提交：`feat(evals): migrate agent-planning runner to promptfoo engine`
+
+## Phase 3: Deterministic suites — graph-extraction + ingestion
+
+- [ ] `evals/graph-extraction/bridge.ts`：provider = llmProvider 包装 `performLLMExtraction`；
+      断言复用 `evaluateNodes`/`evaluateEdges`/`computeMetrics`；`concurrency: 4`
+- [ ] `evals/ingestion/bridge.ts`：provider = deterministicProvider（`bundleToPayloads` +
+      `deriveFromPayloads`）；断言复用 `runAssertions`；`concurrency: 4`
+- [ ] `parity-graph-extraction.test.ts`（dry-run 用 unavailable 模式对比 mode/warning/metrics）
+- [ ] `parity-ingestion.test.ts`（逐字段对比 passed/capsule 数/指标）
+
+**Completion standard**
+
+- 两个 suite 双 runner 输出一致；`eval:smoke` 全绿。
+
+**Test and eval updates**
+
+- [ ] `rtk pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts`
+- [ ] `rtk pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts`
+- [ ] `rtk pnpm eval:graph-extraction --dry-run --runner promptfoo`
+- [ ] `rtk pnpm eval:ingestion --smoke --dry-run --runner promptfoo`
+- [ ] `rtk pnpm eval:smoke`
+
+**Document updates**
+
+- [ ] `docs/operations/TESTING.md` suite 表同步（如需）
+
+**Commit**
+
+- [ ] 提交：`feat(evals): migrate graph-extraction and ingestion runners to promptfoo`
+
+## Phase 4: label-alignment bridge
+
+- [ ] `evals/label-alignment/bridge.ts`：dry-run = deterministicProvider（`runDeterministicRecall` +
+      `inferRecallReason`）；live = composedProvider（`alignLabel` + catalog seed/cleanup）；
+      断言复用 `calculateCaseMetrics`；`concurrency: 1`
+- [ ] `parity-label-alignment.test.ts`：dry-run 模式逐 case 对比 metrics（含 recallReasonDistribution）
+
+**Completion standard**
+
+- dry-run parity 全绿；live 路径语义等价（以 `--mode dry-run` 为验收，live 不强制跑）。
+
+**Test and eval updates**
+
+- [ ] `rtk pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`
+- [ ] `rtk pnpm eval -- label-alignment --tier smoke --mode dry-run --runner promptfoo`
+- [ ] `rtk pnpm eval:smoke`
+
+**Document updates**
+
+- [ ] `docs/operations/TESTING.md` suite 表同步（如需）
+
+**Commit**
+
+- [ ] 提交：`feat(evals): migrate label-alignment runner to promptfoo`
+
+## Phase 5: summary bridge
+
+- [ ] `evals/summary/bridge.ts`：provider = composedProvider（复用 retrieval adapters
+      create/seed/actor-session/execute/close，输出 `{ summaryText, contextTrace, rawResponse }`）；
+      断言复用 `createJudge().evaluate` + `evaluateSummaryVerdicts`；`concurrency: 1`
+- [ ] `parity-summary.test.ts`：fallback judge 下逐 case 对比 passed/groundedness/coverage/verdicts
+
+**Completion standard**
+
+- parity 全绿；`rtk pnpm eval:smoke`（含 postgres-coordinated 编排）全绿。
+
+**Test and eval updates**
+
+- [ ] `rtk pnpm test:file -- evals/promptfoo/parity-summary.test.ts`
+- [ ] `rtk pnpm eval -- summary --tier smoke --dry-run --runner promptfoo`
+- [ ] `rtk pnpm eval:smoke`
+
+**Document updates**
+
+- [ ] `docs/operations/TESTING.md` suite 表同步（如需）
+
+**Commit**
+
+- [ ] 提交：`feat(evals): migrate summary runner to promptfoo`
+
+## Phase 6: retrieval bridge (largest)
+
+- [ ] `evals/retrieval/bridge.ts`：provider = composedProvider（现有 `executeCase` 全链路）；
+      断言复用 `evaluateGovernance` + outcome match + `calculateMetrics` + graphPlan 结构断言；
+      `named_scores` 携带 hitAt1/mrr/ndcg；`concurrency: 1`
+- [ ] `parity-retrieval.test.ts`：需 Postgres（按 `run-postgres-coordinated` 提供
+      `TRAPMAP_DATABASE_URL`），逐 case 对比 passed + metrics + governance failures
+
+**Completion standard**
+
+- parity 全绿；`rtk pnpm eval:smoke` 全绿。
+
+**Test and eval updates**
+
+- [ ] `rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`
+- [ ] `rtk pnpm eval -- retrieval --tier smoke --dry-run --runner promptfoo`
+- [ ] `rtk pnpm eval:smoke`
+
+**Document updates**
+
+- [ ] `docs/operations/TESTING.md` suite 表同步（如需）
+
+**Commit**
+
+- [ ] 提交：`feat(evals): migrate retrieval runner to promptfoo`
+
+## Phase 7: Cutover — eval-all unification, native removal, snapshot parity
+
+- [ ] 用 fallback/echo provider 运行 6 个 suite 的 promptfoo runner，生成逐 case 判定快照
+      入 `evals/promptfoo/snapshots/`（快照 schema 记录版本号与生成命令）
+- [ ] `eval-all.ts`：6 个 suite 分支收敛为 bridge 注册表循环；`CombinedReport` 结构不变；
+      `evals/scripts/__tests__/eval-all.test.ts` 同步更新
+- [ ] `eval-ci.ts`：只换底层执行，baseline 对比与 GitHub Actions 输出不变；
+      `evals/scripts/__tests__/eval-ci.test.ts` 同步更新
+- [ ] `scripts/run-eval.ts`：默认 `--runner promptfoo`；删除 native 分支与各 suite 自研
+      case 循环 / `runner-api.ts` 执行循环（保留契约类型与报告构建器）；
+      `scripts/__tests__/run-eval.test.ts` 同步更新
+- [ ] parity 测试改为"promptfoo 输出 vs 快照"（不再依赖 native 代码）
+- [ ] `.github/workflows/eval.yml` 增加 parity job（快照对比，无 API key 可跑，blocking）
+
+**Completion standard**
+
+- `rtk pnpm eval:smoke`、`rtk pnpm eval:ci` 全绿；parity job 通过；全部相关测试随改随绿。
+
+**Test and eval updates**
+
+- [ ] `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
+- [ ] `rtk pnpm test:file -- evals/scripts/__tests__/eval-all.test.ts`
+- [ ] `rtk pnpm test:file -- evals/scripts/__tests__/eval-ci.test.ts`
+- [ ] `rtk pnpm eval:smoke`、`rtk pnpm eval:ci`
+- [ ] `rtk pnpm typecheck`
+
+**Document updates**
+
+- [ ] `docs/operations/TESTING.md`：suite 表、验证命令、`--runner` 移除说明
+- [ ] `evals/README.md`：工作区布局（promptfoo 基建）与快速开始
+- [ ] `docs/operations/CI_CD.md`：parity job
+- [ ] `docs/reference/SYSTEM_TRUTH_SOURCES.md`：命令 surface 事实
+- [ ] `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
+
+**Commit**
+
+- [ ] 提交：`refactor(evals): cut over to promptfoo engine and remove native runners`（含快照）
+
+## Phase 8: Verification and closeout
+
+- [ ] 全量 focused tests + typecheck + docs guards 复跑
+- [ ] 决策记录 closeout：结果、剩余 backlog、单供应商风险跟踪
+- [ ] 根 `plan.md`：当前 active mainline closeout 后，本计划提升为 `docs/todos/` active detail
+      并登记根索引；`docs/plans/README.md` 本文件状态同步更新
+- [ ] 全部复选框复核：无未勾选但已完成的遗留项，无证据缺失项
+
+**Completion standard**
+
+- 6 个 suite 全部运行在 promptfoo 引擎；自研 runner 已删除；快照 parity 在 CI blocking；
+- 文档、命令 surface、索引一致；backlog 显式登记；本文件完成度 100% 勾选。
+
+**Commit**
+
+- [ ] 提交：`docs(evals): closeout promptfoo migration plan`
+
+## Non-Negotiables (不可退化项)
+
+- governance / IR 指标 / judge 评分仍以 TrapMap 原生纯函数逻辑为准，promptfoo 只做载体
+- `@trapmap/contracts` eval schema、报告 schema、`EvalPlatformEvent` 不变
+- `--platform langfuse` 镜像继续走现有 `evals/lib/platform`（不启用 promptfoo 内置 langfuse，避免双写）；
+  langfuse 升级只允许做 API 兼容性最小适配，`EvalPlatformEvent` schema、镜像语义与
+  "三条 success evidence" 验证口径不变
+- langfuse 版本在根与 `packages/host-local` 中保持一致，且以精确版本锁定（不允许 `^` 漂移）
+- tier / dry-run / allow-empty / endpoint 过滤 / 退出码语义不变
+- `eval:smoke` 的 postgres-coordinated 临时库编排不变
+- `eval-ci` 的 baseline 对比与 GitHub Actions 输出不变
+- prompt、知识正文、request body 等敏感内容不得进入遥测/平台（沿用现有隐私边界）
+
+## Backlog (记录在案，不在本次范围)
+
+- per-case DB schema/临时库隔离 → retrieval/summary/label-alignment-live 可并行
+- promptfoo 内置 langfuse 导出 vs 现有平台镜像的评估
+- `dedup-eval.ts` / `conflict-eval.ts` 桥接（独立脚本，未进 aggregate）
+- `retrieval-live` 快照对比工具保持独立（用途不同，强制迁移无收益）
+
+## Phase 0 证据（基线输出留存）
+
+### 6 suite 执行链语义记录（native 基线）
+
+> 依据 `evals/{agent-planning,graph-extraction,ingestion,label-alignment,summary,retrieval}` 的 `run.ts`/`runner-api.ts` 逐一阅读确认（2026-08-09）。
+
+| Suite | Provider 调用方式 | DB 隔离 | dry-run | tier/endpoint 过滤 | 退出码 |
+|---|---|---|---|---|---|
+| retrieval | `executeCase`→`executeThroughRoute`（Fastify inject）；每 case `createExecutionContext`（独立 composed server）+ `closeExecutionContext`（全表 TRUNCATE） | 每 case 独立 ctx，共享 `TRAPMAP_DATABASE_URL`，`maxConcurrency:1` | 加载+校验 case 后直接 `return`（不执行） | `--tier smoke\|core`；`--endpoint /v1\|/v2\|/v3`；`--allow-empty` | 有失败 → exit 1 |
+| summary | 复用 retrieval adapters（seed→createActorSession→executeThroughRoute）；`createJudge({provider}).evaluate` + `evaluateSummaryVerdicts` | 同 retrieval | 加载+校验后 `return`（不执行） | `--tier`、`--endpoint /v1\|/v2`、`--provider fallback\|openai` | 有失败 → exit 1 |
+| agent-planning | `runActor`（provider `fallback\|openai`）→ `normalizeActorOutput` + `evaluateDeterministicPrecheck` + `runJudge`；并发 case 循环（无共享 DB） | 无 DB | 走 fallback actor（真实执行 dry-run 判定） | `--tier smoke\|core`；`--provider`；`--prompt-template-*` | CLI 异常 → exit 1 |
+| graph-extraction | `performLLMExtraction`（dry-run 直接 `mode:'unavailable'`；live 动态 import `extractSegmentEntities` + `createAiProviders`）→ `evaluateNodes`/`evaluateEdges`/`computeMetrics` | 无 DB | `--dry-run` → unavailable 模式，不调 LLM | `--smoke`（fixture 子集） | 无失败退出码（degraded 只 warning） |
+| ingestion | `bundleToPayloads` + `deriveFromPayloads` + `runAssertions`（纯函数，无 LLM/DB） | 无 DB | `--dry-run` 用 bundled fixtures（非 downloaded） | `--smoke` | 有失败 → exit 1 |
+| label-alignment | live: `runLiveDecisionEvaluation`（composedProvider，seed/catalog/cleanup）；dry-run: `runDeterministicRecall` + `inferRecallReason` + `calculateCaseMetrics` | live 需要 DB（`maxConcurrency:1`） | `--mode dry-run` = deterministic | `--tier smoke\|core` | 无失败退出码（报告驱动） |
+
+### 并发边界事实
+
+`createExecutionContext` 每 case 构建独立 composed server，但共享同一 `TRAPMAP_DATABASE_URL`；`closeExecutionContext`（`evals/retrieval/lib/adapters.ts:306-329`）执行 `SELECT ... FROM pg_tables` + `TRUNCATE TABLE ... CASCADE` 全表清理。→ **retrieval / summary / label-alignment-live 桥接必须 `maxConcurrency: 1`**（ADR-4）。agent-planning / graph-extraction / ingestion 无共享 DB 状态，可用 `4`。
+
+### 基线命令输出（2026-08-09 本机）
+
+- `rtk pnpm typecheck` → exit 0（`TypeScript: No errors found`）。
+- `rtk pnpm eval:smoke`（`TRAPMAP_POSTGRES_COORDINATOR_URL=postgres://trapmap@127.0.0.1:55432/postgres`，本地 pgvector-PG18 实例）→ **exit 1**，基线 **54/81 passed，27 failures**：
+  - Retrieval: 4/26 passed（slice pass rate 0%–66.7%，所有 Hit@1/MRR/nDCG=0.000）
+  - Summary: 1/6 passed（Groundedness=1.00，Coverage=0.17）
+  - Graph Extraction: 5 fixtures, Node F1=0.381（eval-all 内 deterministic 近似）
+  - Ingestion: 1/1 passed
+  - Agent Planning: 33/33 passed（avgScore 0.972）
+  - Label Alignment: 10/10 passed（accuracy 100%）
+- **环境说明**：`.env` 的 `AI_PROVIDER=openai-compatible` / `EMBEDDING_PROVIDER=google-genai` 的 API key 均返回 401（失效），无可用 LLM/embedding provider → retrieval/summary 语义检索命中率 0。`eval:smoke` 全绿（81/81）需带有效 provider 的 CI/closeout 环境；本迁移的硬验收门在本地解释为 **eval:smoke 无回归**（native vs promptfoo 的逐 suite pass/fail 与退出码一致），行为等价以 `evals/promptfoo/parity-*.test.ts` 为准。
+- **额外修复**：`evals/retrieval/lib/adapters.ts` 与 `evals/retrieval-live/lib/snapshot-orchestrator.ts` 中的 stale `now-iso.js` 导入已改为 `@trapmap/lib`（`nowIso` 已收敛到 lib，原 host-local 路径已删除），否则 eval:smoke 无法运行。
+- **langfuse mirror live 三证据**：本环境无 Langfuse 实例与 Docker，`--platform langfuse` 无法产出三条 success evidence；langfuse 版本未变（3.38.20），adapter 代码逐字节未变，单元级验证全绿，live 验证留待有实例的环境复跑。

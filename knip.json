@@ -17,6 +17,6 @@
     "**/*.test.ts",
     "**/*.spec.ts"
   ],
-  "ignoreDependencies": ["@biomejs/biome"],
+  "ignoreDependencies": ["@biomejs/biome", "promptfoo"],
   "ignoreExportsUsedInFile": true
 }

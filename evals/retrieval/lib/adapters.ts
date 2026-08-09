@@ -19,10 +19,11 @@ import type {
   SkillLookupQuery,
 } from '@trapmap/contracts';
 import type { RetrievalEvalCase, RetrievalEvalScenario } from '@trapmap/contracts/evals';
+import { nowIso } from '@trapmap/lib';
+
 import type { KnowledgeOwnerPort } from '../../../packages/contracts/src/index.js';
 import type { HostLocalRuntime } from '../../../packages/host-local/src/nest/runtime/host-runtime.js';
 import type { HostLocalServices } from '../../../packages/host-local/src/nest/runtime/host-services.js';
-import { nowIso } from '../../../packages/host-local/src/nest/runtime/now-iso.js';
 import { resetRetrievalReadModelCacheForTests } from '../../../packages/service-knowledge-read/src/retrieval-read-model-cache.js';
 import type {
   DerivedSkillCapsuleRecord,
