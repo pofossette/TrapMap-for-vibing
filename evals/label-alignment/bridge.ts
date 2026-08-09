@@ -38,13 +38,16 @@ export const labelAlignmentBridge: SuiteBridge<
 
   async loadCases(options) {
     const fixtures = await loadLabelAlignmentFixtures({ tier: options.tier as 'smoke' | 'core' });
-    return fixtures.flatMap((fixture) =>
+    const ids = options.fixtureIds as string[] | undefined;
+    const filtered = !ids?.length ? fixtures : fixtures.filter((f) => ids.includes(f.fixtureId));
+    return filtered.flatMap((fixture) =>
       fixture.cases.filter((case_) => case_.tier === options.tier),
     );
   },
 
   buildProvider(options) {
-    if (options.mode === 'live') {
+    const mode = (options.mode as 'dry-run' | 'live') ?? (options.dryRun ? 'dry-run' : 'live');
+    if (mode === 'live') {
       return composedProvider(async (case_) => {
         const c = case_ as LabelAlignmentEvalCase;
         const start = Date.now();
@@ -95,7 +98,7 @@ export const labelAlignmentBridge: SuiteBridge<
 
   async buildReport(options, results) {
     const tier = options.tier as 'smoke' | 'core';
-    const mode = (options.mode as 'dry-run' | 'live') ?? 'dry-run';
+    const mode = (options.mode as 'dry-run' | 'live') ?? (options.dryRun ? 'dry-run' : 'live');
     const allFixtures = await loadLabelAlignmentFixtures({ tier });
     const fixtureIds = allFixtures
       .filter((fixture) => {

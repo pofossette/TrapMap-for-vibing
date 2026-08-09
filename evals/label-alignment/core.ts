@@ -105,7 +105,7 @@ export function evaluateLabelAlignmentCaseDryRun(
   };
 }
 
-export function inferRecallReason(
+function inferRecallReason(
   case_: LabelAlignmentEvalCase,
   rawLabel: string,
 ): LabelAlignmentRecallReason {
