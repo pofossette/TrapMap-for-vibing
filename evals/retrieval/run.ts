@@ -267,6 +267,11 @@ async function main(): Promise<void> {
   }
 
   if (options.runner === 'promptfoo') {
+    if (options.baselinePath || options.writeBaseline) {
+      console.warn(
+        'WARNING: baseline write/compare is native-only; --baseline/--write-baseline are ignored under --runner promptfoo.',
+      );
+    }
     console.log('Executing evaluation...\n');
     const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
     const { retrievalBridge } = await import('./bridge.js');
@@ -276,7 +281,11 @@ async function main(): Promise<void> {
       allowEmpty: options.allowEmpty,
       runner: 'promptfoo',
       verbose: options.verbose,
+      json: options.json,
       ...(options.endpoint !== undefined ? { endpoint: options.endpoint } : {}),
+      ...(options.jsonPath !== undefined ? { jsonPath: options.jsonPath } : {}),
+      ...(options.baselinePath !== undefined ? { baselinePath: options.baselinePath } : {}),
+      ...(options.writeBaseline ? { writeBaseline: true } : {}),
     });
 
     console.log(formatRunnerSummary(report.caseResults, report.sliceMetrics));

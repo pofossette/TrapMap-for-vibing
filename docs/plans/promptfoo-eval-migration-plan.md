@@ -472,7 +472,7 @@
 **Commit**
 
 - [x] 提交：`feat(evals): migrate retrieval runner to promptfoo`
-  - 证据：commit `<pending-hash>`
+  - 证据：commit `556a46ce`
 
 ## Phase 7: Cutover — eval-all unification, native removal, snapshot parity
 

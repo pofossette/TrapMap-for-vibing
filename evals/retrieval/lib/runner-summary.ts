@@ -61,7 +61,7 @@ export function aggregateSliceMetrics(results: CaseResult[]): SliceMetrics[] {
     slices.push({
       slice: {
         tier: tier as RetrievalEvalTier,
-        endpoint: endpoint as '/v1/retrieval/search' | '/v2/retrieval/search',
+        endpoint: endpoint as SliceKey['endpoint'],
         ...(mode !== 'none' ? { mode: mode as 'semantic' | 'hybrid' | 'graph-assisted' } : {}),
       },
       caseCount: sliceResults.length,

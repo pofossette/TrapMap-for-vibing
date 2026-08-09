@@ -40,6 +40,7 @@ const migrations = [
 const coordinatorUrl = process.env.TRAPMAP_POSTGRES_COORDINATOR_URL;
 const databaseName = `trapmap_parity_${randomUUID().replace(/-/g, '')}`;
 let databaseUrl: string | undefined;
+const priorDatabaseUrl = process.env.TRAPMAP_DATABASE_URL;
 
 function databaseUrlFromAdmin(adminUrl: string, name: string): string {
   const url = new URL(adminUrl);
@@ -72,16 +73,22 @@ async function provision(): Promise<void> {
 }
 
 async function teardown(): Promise<void> {
-  if (!coordinatorUrl || !databaseUrl) return;
-  const adminPool = new pg.Pool({ connectionString: coordinatorUrl });
-  try {
-    await adminPool.query(
-      'SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1',
-      [databaseName],
-    );
-    await adminPool.query(`DROP DATABASE IF EXISTS "${databaseName}"`);
-  } finally {
-    await adminPool.end();
+  if (coordinatorUrl && databaseUrl) {
+    const adminPool = new pg.Pool({ connectionString: coordinatorUrl });
+    try {
+      await adminPool.query(
+        'SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1',
+        [databaseName],
+      );
+      await adminPool.query(`DROP DATABASE IF EXISTS "${databaseName}"`);
+    } finally {
+      await adminPool.end();
+    }
+  }
+  if (priorDatabaseUrl === undefined) {
+    delete process.env.TRAPMAP_DATABASE_URL;
+  } else {
+    process.env.TRAPMAP_DATABASE_URL = priorDatabaseUrl;
   }
 }
 

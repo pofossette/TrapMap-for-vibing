@@ -30,12 +30,17 @@ import type { CaseResult, RunnerSummary } from './lib/types.js';
 function toRunnerOptions(options: SuiteRunOptions): RunnerSummary['options'] {
   return {
     tier: options.tier as RetrievalEvalTier,
-    json: false,
+    json: (options.json as boolean) ?? false,
     allowEmpty: options.allowEmpty,
     dryRun: options.dryRun,
     verbose: (options.verbose as number) ?? 0,
     ...(options.endpoint !== undefined
       ? { endpoint: options.endpoint as RetrievalEvalEndpoint }
+      : {}),
+    ...(options.jsonPath !== undefined ? { jsonPath: options.jsonPath as string } : {}),
+    ...(options.baselinePath !== undefined ? { baselinePath: options.baselinePath as string } : {}),
+    ...(options.writeBaseline !== undefined
+      ? { writeBaseline: options.writeBaseline as boolean }
       : {}),
   };
 }
