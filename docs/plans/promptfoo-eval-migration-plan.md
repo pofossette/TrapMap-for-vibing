@@ -571,7 +571,7 @@
 **Commit**
 
 - [x] 提交：`docs(evals): closeout promptfoo migration plan`
-  - 证据：commit `<pending-hash>`
+  - 证据：commit `791430d5`
 
 ## Non-Negotiables (不可退化项)
 
