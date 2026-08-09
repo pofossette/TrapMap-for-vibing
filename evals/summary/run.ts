@@ -185,6 +185,35 @@ function filterByEndpoint(
 // Main Entry Point
 // =============================================================================
 
+function outputReport(report: ReturnType<typeof buildSummaryReport>, options: RunOptions): void {
+  console.log(formatSummaryReport(report));
+
+  // Write JSON if requested
+  if (options.json) {
+    if (options.jsonPath) {
+      const dir = options.jsonPath.replace(/\/[^/]+$/, '');
+      try {
+        mkdirSync(dir, { recursive: true });
+      } catch {
+        // Directory might already exist
+      }
+      writeFileSync(options.jsonPath, JSON.stringify(report, null, 2));
+      console.log(`JSON report written to: ${options.jsonPath}\n`);
+    } else {
+      console.log('\n=== JSON Report ===');
+      console.log(JSON.stringify(report, null, 2));
+    }
+  }
+
+  // Exit with error code if failures
+  if (report.summary.failedCases > 0) {
+    console.log(`Evaluation completed with ${report.summary.failedCases} failure(s).\n`);
+    process.exit(1);
+  }
+
+  console.log('Evaluation completed successfully.\n');
+}
+
 /**
  * Main entry point for the summary evaluation runner.
  */
@@ -239,43 +268,20 @@ async function main(): Promise<void> {
   }
 
   if (options.runner === 'promptfoo') {
+    console.log('Executing evaluation...\n');
     const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
     const { summaryBridge } = await import('./bridge.js');
     const { report } = await runSuiteWithPromptfoo(summaryBridge, {
       tier: options.tier,
-      dryRun: false,
+      dryRun: options.dryRun,
       allowEmpty: options.allowEmpty,
       runner: 'promptfoo',
       provider: options.provider,
+      verbose: options.verbose,
       ...(options.endpoint !== undefined ? { endpoint: options.endpoint } : {}),
     });
 
-    console.log(formatSummaryReport(report));
-
-    // Write JSON if requested
-    if (options.json) {
-      if (options.jsonPath) {
-        const dir = options.jsonPath.replace(/\/[^/]+$/, '');
-        try {
-          mkdirSync(dir, { recursive: true });
-        } catch {
-          // Directory might already exist
-        }
-        writeFileSync(options.jsonPath, JSON.stringify(report, null, 2));
-        console.log(`JSON report written to: ${options.jsonPath}\n`);
-      } else {
-        console.log('\n=== JSON Report ===');
-        console.log(JSON.stringify(report, null, 2));
-      }
-    }
-
-    // Exit with error code if failures
-    if (report.summary.failedCases > 0) {
-      console.log(`Evaluation completed with ${report.summary.failedCases} failure(s).\n`);
-      process.exit(1);
-    }
-
-    console.log('Evaluation completed successfully.\n');
+    outputReport(report, options);
     return;
   }
 
@@ -310,33 +316,7 @@ async function main(): Promise<void> {
     llmProvider: options.provider,
   });
 
-  // Print terminal output
-  console.log(formatSummaryReport(report));
-
-  // Write JSON if requested
-  if (options.json) {
-    if (options.jsonPath) {
-      const dir = options.jsonPath.replace(/\/[^/]+$/, '');
-      try {
-        mkdirSync(dir, { recursive: true });
-      } catch {
-        // Directory might already exist
-      }
-      writeFileSync(options.jsonPath, JSON.stringify(report, null, 2));
-      console.log(`JSON report written to: ${options.jsonPath}\n`);
-    } else {
-      console.log('\n=== JSON Report ===');
-      console.log(JSON.stringify(report, null, 2));
-    }
-  }
-
-  // Exit with error code if failures
-  if (report.summary.failedCases > 0) {
-    console.log(`Evaluation completed with ${report.summary.failedCases} failure(s).\n`);
-    process.exit(1);
-  }
-
-  console.log('Evaluation completed successfully.\n');
+  outputReport(report, options);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

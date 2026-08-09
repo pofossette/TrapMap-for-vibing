@@ -425,7 +425,7 @@
 **Commit**
 
 - [x] 提交：`feat(evals): migrate summary runner to promptfoo`
-  - 证据：commit `<pending-hash>`
+  - 证据：commit `cca741ae`
 
 ## Phase 6: retrieval bridge (largest)
 

@@ -78,11 +78,11 @@ export async function executeSummaryCase(
       request: case_.request,
     };
 
-    await seedScenarioFixtures(retrievalCtx, retrievalCase as never, scenario);
+    await seedScenarioFixtures(retrievalCtx, retrievalCase, scenario);
 
     await createActorSession(retrievalCtx, scenario.actor);
 
-    const adapterResult = await executeThroughRoute(retrievalCtx, retrievalCase as never);
+    const adapterResult = await executeThroughRoute(retrievalCtx, retrievalCase as any);
 
     const rawResponse = adapterResult.result.rawResponse;
     const rawResp = rawResponse as Record<string, unknown>;
