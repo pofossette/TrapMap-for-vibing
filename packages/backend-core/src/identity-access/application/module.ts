@@ -3,6 +3,7 @@
  *
  * Phase 2 responsibilities:
  * - use-case orchestration that composes injected ports
+ * - session / access-key issuance that delegates token policy to the domain
  * - the module factory that returns the IdentityAccessPort implementation
  * - the module descriptor consumed by topology / runtime ownership
  *
@@ -11,7 +12,7 @@
  * IdentityAccessPort surface.
  */
 
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { InvocationError } from '../../invocation/invocation-model.js';
 import type {
   PermissionCheckPort,
@@ -22,13 +23,21 @@ import type { AuditLogPort } from '../../ports/audit-ports.js';
 import type { IdentityAccessPort } from '../../ports/internal-ports.js';
 import type {
   AccessKeyRepositoryPort,
+  MembershipRecord,
   MembershipRepositoryPort,
   SessionRepositoryPort,
   TeamRepositoryPort,
   UserRepositoryPort,
 } from '../../ports/repo-ports.js';
 
-import { IDENTITY_ACCESS_OWNED_CAPABILITIES } from '../domain/index.js';
+import {
+  IDENTITY_ACCESS_OWNED_CAPABILITIES,
+  composeAccessToken,
+  composeSystemAdminSessionToken,
+  hashAccessToken,
+  hashLoginSessionToken,
+  systemAdminKeyMatches,
+} from '../domain/index.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)
@@ -45,11 +54,6 @@ export interface IdentityAccessDeps {
   permissionCheck: PermissionCheckPort;
   auditLog: AuditLogPort;
   systemAdminKey?: string | null;
-}
-
-function hasMatchingSystemAdminKey(suppliedKey: string, configuredKey: string): boolean {
-  const digest = (value: string) => createHash('sha256').update(value).digest();
-  return timingSafeEqual(digest(suppliedKey), digest(configuredKey));
 }
 
 // ---------------------------------------------------------------------------
@@ -80,7 +84,7 @@ export function createIdentityAccessModule(deps: IdentityAccessDeps): IdentityAc
       }
       const session = await deps.sessionRepo.create({
         userId: user.id,
-        tokenHash: `hash_${Date.now()}`,
+        tokenHash: hashLoginSessionToken(Date.now()),
         activeTeamId: null,
       } as Parameters<SessionRepositoryPort['create']>[0]);
       return {
@@ -94,10 +98,12 @@ export function createIdentityAccessModule(deps: IdentityAccessDeps): IdentityAc
       if (!deps.systemAdminKey) {
         throw InvocationError.internal('System administrator login is not configured');
       }
-      if (!hasMatchingSystemAdminKey(systemAdminKey, deps.systemAdminKey)) {
+      if (!systemAdminKeyMatches(systemAdminKey, deps.systemAdminKey)) {
         throw InvocationError.unauthorized('Invalid system administrator key');
       }
-      const sessionToken = `ssr_sess_${randomBytes(32).toString('base64url')}`;
+      const sessionToken = composeSystemAdminSessionToken(
+        randomBytes(32).toString('base64url'),
+      );
       await deps.sessionRepo.create({
         subjectType: 'system-admin',
         userId: null,
@@ -157,8 +163,12 @@ export function createIdentityAccessModule(deps: IdentityAccessDeps): IdentityAc
         id: memberId,
         userId,
         teamId,
-        role,
-      } as unknown as Parameters<MembershipRepositoryPort['insert']>[0]);
+        roleTemplate: role as MembershipRecord['roleTemplate'],
+        securityLevel: 0,
+        permissions: [],
+        notes: null,
+        createdAt: new Date().toISOString(),
+      });
       await deps.auditLog.record({
         action: 'member.add',
         actorId,
@@ -181,10 +191,10 @@ export function createIdentityAccessModule(deps: IdentityAccessDeps): IdentityAc
 
     async provisionAccessKey(memberId: string, actorId: string) {
       const keyId = await deps.accessKeyRepo.nextId();
-      const token = `ak_${keyId}_${Date.now()}`;
+      const token = composeAccessToken(keyId, Date.now());
       await deps.accessKeyRepo.insert({
         id: keyId,
-        tokenHash: `hash_${token}`,
+        tokenHash: hashAccessToken(token),
         memberId,
       } as Parameters<AccessKeyRepositoryPort['insert']>[0]);
       await deps.auditLog.record({
