@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConsulService } from './consul.service.js';
 import { LifecycleModule } from '../lifecycle/lifecycle.module.js';
+import { ConsulService } from './consul.service.js';
 
 /**
  * Consul service discovery module.

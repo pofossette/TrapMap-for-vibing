@@ -5,8 +5,8 @@ import type { GovernanceReviewPgOwnerBundle } from '@trapmap/service-governance-
 
 import {
   createHostLocalGovernanceConflictTaskHandlers,
-  createHostLocalGovernanceTaskHandlers,
   createHostLocalGovernanceConflictWorkflow,
+  createHostLocalGovernanceTaskHandlers,
 } from './governance-composition.js';
 
 describe('host-local governance composition', () => {

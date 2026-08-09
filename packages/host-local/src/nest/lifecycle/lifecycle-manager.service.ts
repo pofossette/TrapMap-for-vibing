@@ -1,18 +1,13 @@
-import {
-  Injectable,
-  Logger,
-  type OnModuleInit,
-  type OnApplicationShutdown,
-} from '@nestjs/common';
+import { Injectable, Logger, type OnApplicationShutdown, type OnModuleInit } from '@nestjs/common';
 import type {
-  LifecycleManager,
-  LifecycleHook,
-  LifecyclePhase,
-  LifecycleContext,
-  LifecycleLogger,
-  HealthCheckRegistrar,
   HealthCheck,
+  HealthCheckRegistrar,
   HealthCheckResult,
+  LifecycleContext,
+  LifecycleHook,
+  LifecycleLogger,
+  LifecycleManager,
+  LifecyclePhase,
 } from '@trapmap/backend-core';
 
 /**
@@ -48,17 +43,10 @@ export class LifecycleManagerService
     );
   }
 
-  async runPhase(
-    phase: LifecyclePhase,
-    context?: Partial<LifecycleContext>,
-  ): Promise<void> {
-    const hooks = (this.hooks.get(phase) ?? []).sort(
-      (a, b) => a.priority - b.priority,
-    );
+  async runPhase(phase: LifecyclePhase, context?: Partial<LifecycleContext>): Promise<void> {
+    const hooks = (this.hooks.get(phase) ?? []).sort((a, b) => a.priority - b.priority);
 
-    this.logger.log(
-      `Running lifecycle phase "${phase}" with ${hooks.length} hook(s)`,
-    );
+    this.logger.log(`Running lifecycle phase "${phase}" with ${hooks.length} hook(s)`);
 
     const shutdownHooks: Array<{
       name: string;
@@ -85,9 +73,7 @@ export class LifecycleManagerService
       try {
         await hook.execute(hookContext);
       } catch (err) {
-        this.logger.error(
-          `Lifecycle hook "${hook.name}" failed during phase "${phase}": ${err}`,
-        );
+        this.logger.error(`Lifecycle hook "${hook.name}" failed during phase "${phase}": ${err}`);
         // Continue executing remaining hooks — don't fail the whole phase
       }
     }

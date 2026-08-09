@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
-import { describe, expect, it, vi } from 'vitest';
 import { logEntrySchema } from '@trapmap/contracts';
+import { describe, expect, it, vi } from 'vitest';
 
 import { LoggingMiddleware } from './logging.middleware.js';
 import { RequestContextService } from './request-context.service.js';

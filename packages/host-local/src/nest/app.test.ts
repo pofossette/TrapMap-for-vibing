@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
 import { Module } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { KnowledgeReadPort } from '@trapmap/backend-core';
 
@@ -81,7 +81,7 @@ describe('Nest host scaffold (pilot surface)', () => {
       });
     expect(response.statusCode).toBe(200);
     const entry = JSON.parse(response.payload);
-    expect(entry['entryId']).toBe('entry-1');
+    expect(entry.entryId).toBe('entry-1');
     expect(mockPort.getById).toHaveBeenCalledWith('entry-1');
 
     await app.close();
@@ -123,7 +123,7 @@ describe('Nest host scaffold (pilot surface)', () => {
       });
     expect(response.statusCode).toBe(200);
     const result = JSON.parse(response.payload);
-    expect(result['results']).toHaveLength(1);
+    expect(result.results).toHaveLength(1);
     expect(mockPort.search).toHaveBeenCalledWith({
       query: 'test query',
       limit: 10,
@@ -146,7 +146,7 @@ describe('Nest host scaffold (pilot surface)', () => {
       });
     expect(response.statusCode).toBe(200);
     const status = JSON.parse(response.payload);
-    expect(status['phase']).toBe('phase-2-boundary-closed');
+    expect(status.phase).toBe('phase-2-boundary-closed');
     expect(mockPort.getProjectionStatus).toHaveBeenCalled();
 
     await app.close();
@@ -191,11 +191,11 @@ describe('Nest host scaffold (pilot surface)', () => {
       });
     expect(response.statusCode).toBe(404);
     const body = JSON.parse(response.payload);
-    expect(body['code']).toBe('not_found');
-    expect(body['kind']).toBe('not-found');
-    expect(body['requestId']).toBeDefined();
+    expect(body.code).toBe('not_found');
+    expect(body.kind).toBe('not-found');
+    expect(body.requestId).toBeDefined();
     // Compat window: error field as message alias
-    expect(body['error']).toBe(body['message']);
+    expect(body.error).toBe(body.message);
 
     await app.close();
   });
@@ -218,8 +218,8 @@ describe('Nest host scaffold (pilot surface)', () => {
       });
     expect(response.statusCode).toBe(400);
     const body = JSON.parse(response.payload);
-    expect(body['code']).toBe('validation_error');
-    expect(body['kind']).toBe('validation');
+    expect(body.code).toBe('validation_error');
+    expect(body.kind).toBe('validation');
 
     await app.close();
   });

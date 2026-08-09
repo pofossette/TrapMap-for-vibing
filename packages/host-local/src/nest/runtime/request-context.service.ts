@@ -3,8 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import {
   CAUSATION_ID_HEADER,
-  extractTraceIdFromTraceparent,
   OPERATION_ID_HEADER,
+  extractTraceIdFromTraceparent,
 } from '@trapmap/contracts';
 
 export interface NestRequestContext {

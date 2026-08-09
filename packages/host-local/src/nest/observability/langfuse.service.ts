@@ -16,16 +16,16 @@
  * dependency on `langfuse` at the package level.
  */
 
-import { Injectable, Logger, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common';
-import type { LangfusePolicyResult } from '@trapmap/contracts';
-import { validateLangfusePolicy } from '@trapmap/contracts';
+import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import type {
   ChatObservation,
   EmbeddingObservation,
   LlmObservationSink,
 } from '@trapmap/ai-providers';
+import type { LangfusePolicyResult } from '@trapmap/contracts';
+import { validateLangfusePolicy } from '@trapmap/contracts';
 
-import { createSinkFromClient, type LangfuseClientLike } from './langfuse-sink.js';
+import { type LangfuseClientLike, createSinkFromClient } from './langfuse-sink.js';
 
 // ---------------------------------------------------------------------------
 // LangfuseService

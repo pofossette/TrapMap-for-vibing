@@ -1,5 +1,5 @@
-import { Injectable, Logger, type LoggerService, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, Logger, type LoggerService, type OnModuleInit } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
 
 import {
   type LogEntry,
@@ -41,7 +41,9 @@ export class LokiService implements LoggerService, OnModuleInit {
     const lokiHost = this.config.get<string>('LOKI_HOST', '');
     if (!lokiHost) {
       this.fallbackLogger.log(
-        formatLogForStdout(this.buildEntry('info', 'Loki logging disabled (no LOKI_HOST configured)')),
+        formatLogForStdout(
+          this.buildEntry('info', 'Loki logging disabled (no LOKI_HOST configured)'),
+        ),
       );
       return;
     }
@@ -65,10 +67,7 @@ export class LokiService implements LoggerService, OnModuleInit {
             replaceTimestamp: true,
           }),
           new winston.transports.Console({
-            format: winston.format.combine(
-              winston.format.timestamp(),
-              winston.format.json(),
-            ),
+            format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
           }),
         ],
       });
@@ -106,12 +105,7 @@ export class LokiService implements LoggerService, OnModuleInit {
 
   // ── internals ──────────────────────────────────────────────────
 
-  private emit(
-    level: LogEntry['level'],
-    message: string,
-    context?: string,
-    trace?: string,
-  ): void {
+  private emit(level: LogEntry['level'], message: string, context?: string, trace?: string): void {
     const entry = this.buildEntry(level, message, context, trace);
 
     if (this.winstonLogger) {

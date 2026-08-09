@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -8,14 +9,13 @@ import {
   Param,
   Post,
   Query,
-  Body,
   UseGuards,
 } from '@nestjs/common';
 import type { KnowledgeReadPort } from '@trapmap/backend-core';
 
-import { ZodBodyValidationPipe } from '../runtime/validation.pipe.js';
-import { AuthGuard } from '../runtime/auth.guard.js';
 import { KNOWLEDGE_READ_PORT } from '../knowledge-read/knowledge-read.tokens.js';
+import { AuthGuard } from '../runtime/auth.guard.js';
+import { ZodBodyValidationPipe } from '../runtime/validation.pipe.js';
 
 import { searchBodySchema } from './gateway.schemas.js';
 
@@ -49,10 +49,7 @@ export class KnowledgeReadController {
   }
 
   @Get('knowledge/mine')
-  async listMine(
-    @Query('userId') userId: string,
-    @Query('teamId') teamId?: string,
-  ) {
+  async listMine(@Query('userId') userId: string, @Query('teamId') teamId?: string) {
     if (!userId) {
       throw new HttpException('userId query parameter is required', HttpStatus.BAD_REQUEST);
     }

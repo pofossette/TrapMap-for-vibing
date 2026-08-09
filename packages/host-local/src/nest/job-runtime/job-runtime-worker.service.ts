@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  type OnModuleDestroy,
-  type OnModuleInit,
-} from '@nestjs/common';
+import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import type { JobRuntimeDeps, TaskConsumerHandle } from '@trapmap/backend-core';
 
 import { JOB_RUNTIME_WORKER_CONFIG } from './job-runtime.tokens.js';

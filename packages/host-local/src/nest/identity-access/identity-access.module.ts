@@ -15,6 +15,7 @@ import { IDENTITY_ACCESS_PORT } from './identity-access.tokens.js';
  * module exists but controller surface lands in a follow-up change.
  */
 @Module({})
+// biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
 export class IdentityAccessModule {
   static forPort(port: IdentityAccessPort) {
     return {
@@ -31,6 +32,6 @@ export class IdentityAccessModule {
   }
 
   static forTesting(port: IdentityAccessPort) {
-    return this.forPort(port);
+    return IdentityAccessModule.forPort(port);
   }
 }

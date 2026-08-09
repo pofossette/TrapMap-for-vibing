@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 
 import type { ReviewPort } from '@trapmap/backend-core';
 import {
-  createGovernanceReviewServiceModule,
   type GovernanceReviewServiceDeps,
+  createGovernanceReviewServiceModule,
 } from '@trapmap/service-governance-review';
 
 import { GOVERNANCE_REVIEW_PORT } from './governance-review.tokens.js';
@@ -17,6 +17,7 @@ import { GOVERNANCE_REVIEW_PORT } from './governance-review.tokens.js';
  * assembly is responsible for wiring that provider before this module.
  */
 @Module({})
+// biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
 export class GovernanceReviewModule {
   static forDeps(deps: GovernanceReviewServiceDeps) {
     const port: ReviewPort = createGovernanceReviewServiceModule(deps);

@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { ConfigService } from '@nestjs/config';
-import { PrometheusService } from './prometheus.service.js';
+import type { ConfigService } from '@nestjs/config';
 import { register } from 'prom-client';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { PrometheusService } from './prometheus.service.js';
 
 function createMockConfig(values: Record<string, string> = {}) {
   return {
@@ -125,7 +125,9 @@ describe('PrometheusService', () => {
       const enabledService = new PrometheusService(createMockConfig());
       enabledService.incrementRequests('GET', '/v1/traps', '200');
 
-      const disabledService = new PrometheusService(createMockConfig({ TRAPMAP_METRICS_ENABLED: 'false' }));
+      const disabledService = new PrometheusService(
+        createMockConfig({ TRAPMAP_METRICS_ENABLED: 'false' }),
+      );
       const disabledMetrics = await disabledService.getMetrics();
 
       // Disabled mode should not expose any trapmap signals

@@ -162,6 +162,7 @@ jobs:
 
       - run: pnpm check:docs-drift
       - run: pnpm check:arch-freeze
+      - run: pnpm check:asserts
       - run: pnpm check:deps
       - run: pnpm check:mermaid
       - run: pnpm check:structure

@@ -1,17 +1,17 @@
 import {
   type ArgumentsHost,
   Catch,
-  type ExceptionFilter as NestExceptionFilter,
   HttpException,
   HttpStatus,
   Logger,
+  type ExceptionFilter as NestExceptionFilter,
 } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { ZodError } from 'zod';
 
 import { InvocationError } from '@trapmap/backend-core';
 
-import { RequestContextService } from './request-context.service.js';
+import type { RequestContextService } from './request-context.service.js';
 
 /**
  * Canonical error envelope for all Nest host responses.
@@ -184,7 +184,7 @@ export class AllExceptionFilter implements NestExceptionFilter {
     const message = err.message;
 
     let code = 'internal_error';
-    let kind: string = 'internal';
+    let kind = 'internal';
 
     if (status === HttpStatus.NOT_FOUND) {
       code = 'not_found';

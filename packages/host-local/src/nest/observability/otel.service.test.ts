@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { ConfigService } from '@nestjs/config';
+import type { ConfigService } from '@nestjs/config';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OtelService } from './otel.service.js';
 
 function createMockConfig(values: Record<string, string> = {}) {
@@ -9,14 +9,10 @@ function createMockConfig(values: Record<string, string> = {}) {
 }
 
 describe('OtelService', () => {
-  let logSpy: ReturnType<typeof vi.spyOn>;
-  let warnSpy: ReturnType<typeof vi.spyOn>;
-  let errorSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
-    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -40,12 +36,14 @@ describe('OtelService', () => {
 
   describe('enabled mode', () => {
     it('starts SDK with valid configuration', async () => {
-      const service = new OtelService(createMockConfig({
-        OTEL_EXPORTER_OTLP_ENDPOINT: 'http://otel:4318',
-        SERVICE_NAME: 'test-service',
-        npm_package_version: '1.0.0',
-        TRAPMAP_DEPLOYMENT_PROFILE: 'team-monolith',
-      }));
+      const service = new OtelService(
+        createMockConfig({
+          OTEL_EXPORTER_OTLP_ENDPOINT: 'http://otel:4318',
+          SERVICE_NAME: 'test-service',
+          npm_package_version: '1.0.0',
+          TRAPMAP_DEPLOYMENT_PROFILE: 'team-monolith',
+        }),
+      );
       // This will try to dynamically import @opentelemetry/sdk-node.
       // In test environment, the import may fail (module not installed locally).
       // The service should handle this gracefully.
@@ -71,13 +69,15 @@ describe('OtelService', () => {
 
   describe('configuration policy integration', () => {
     it('passes correct config to policy validator', async () => {
-      const service = new OtelService(createMockConfig({
-        OTEL_DISABLED: 'true',
-        TRAPMAP_DEPLOYMENT_PROFILE: 'distributed',
-        OTEL_EXPORTER_OTLP_ENDPOINT: 'http://collector:4318',
-        SERVICE_NAME: 'my-svc',
-        npm_package_version: '2.0.0',
-      }));
+      const service = new OtelService(
+        createMockConfig({
+          OTEL_DISABLED: 'true',
+          TRAPMAP_DEPLOYMENT_PROFILE: 'distributed',
+          OTEL_EXPORTER_OTLP_ENDPOINT: 'http://collector:4318',
+          SERVICE_NAME: 'my-svc',
+          npm_package_version: '2.0.0',
+        }),
+      );
       // Should not throw, disabled mode is fast
       await service.onModuleInit();
       await expect(service.onApplicationShutdown()).resolves.toBeUndefined();

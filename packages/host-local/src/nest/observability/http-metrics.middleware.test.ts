@@ -1,7 +1,7 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { RequestContextService } from '../runtime/request-context.service.js';
 import { HttpMetricsMiddleware } from './http-metrics.middleware.js';
-import { PrometheusService } from './prometheus.service.js';
-import { RequestContextService } from '../runtime/request-context.service.js';
+import type { PrometheusService } from './prometheus.service.js';
 
 describe('HttpMetricsMiddleware', () => {
   let middleware: HttpMetricsMiddleware;
@@ -50,7 +50,7 @@ describe('HttpMetricsMiddleware', () => {
     const res = {
       statusCode: 200,
       raw: {
-        on: vi.fn((event, cb) => {
+        on: vi.fn((event, _cb) => {
           if (event === 'finish') finishCallback();
         }),
         statusCode: 200,

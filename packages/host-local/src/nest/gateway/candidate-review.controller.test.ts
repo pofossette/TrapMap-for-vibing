@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CandidateIngestionPort, ReviewPort } from '@trapmap/backend-core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { HostLocalRuntime } from '../runtime/host-runtime.js';
 
@@ -77,22 +77,22 @@ describe('CandidateReviewController', () => {
   it('routes apply-resolution through the Nest light mainline runtime', async () => {
     const runtime = createRuntime();
     vi.mocked(candidateIngestionMock.getById)
-        .mockResolvedValueOnce({
-          id: 'candidate-1',
-          status: 'duplicate_detected',
-          manualResult: {
-            decision: 'independent',
-            notes: 'publish it',
-          },
-        })
-        .mockResolvedValueOnce({
-          id: 'candidate-1',
-          status: 'resolved',
-          manualResult: {
-            decision: 'independent',
-            notes: 'publish it',
-          },
-        });
+      .mockResolvedValueOnce({
+        id: 'candidate-1',
+        status: 'duplicate_detected',
+        manualResult: {
+          decision: 'independent',
+          notes: 'publish it',
+        },
+      })
+      .mockResolvedValueOnce({
+        id: 'candidate-1',
+        status: 'resolved',
+        manualResult: {
+          decision: 'independent',
+          notes: 'publish it',
+        },
+      });
     vi.mocked(candidateIngestionMock.applyResolution).mockResolvedValueOnce(undefined);
     const controller = new CandidateReviewController(
       candidateIngestionMock,

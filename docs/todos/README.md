@@ -7,6 +7,7 @@
 | 文件 | 主题 | 状态 |
 |---|---|---|
 | [documentation-validation-and-observability-platform.md](documentation-validation-and-observability-platform.md) | 文档校验与可观测性平台 | 进行中（唯一 active mainline） |
+| [assert-exemptions.md](assert-exemptions.md) | 裸类型断言豁免清单（Wave 6 清理积压） | 由 `pnpm check:asserts` 门禁追踪；非 active mainline |
 | [open-debt-and-compromises.md](open-debt-and-compromises.md) | 长期工程债务与平台成熟度登记 | 受根索引管理；非第二条 active mainline |
 
 ## 目录规则

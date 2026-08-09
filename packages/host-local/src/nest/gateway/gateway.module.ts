@@ -16,6 +16,7 @@ import { KnowledgeReadController } from './knowledge-read.controller.js';
   controllers: [KnowledgeReadController, CandidateReviewController],
 })
 export class GatewayModule {}
+// biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
 export class GatewayRuntimeModule {
   static forRuntime(runtime: HostLocalRuntime) {
     return {

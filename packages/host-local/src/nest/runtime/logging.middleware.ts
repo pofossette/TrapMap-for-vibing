@@ -1,9 +1,9 @@
 import type { NestMiddleware } from '@nestjs/common';
 import { Injectable, Logger } from '@nestjs/common';
-import type { FastifyRequest, FastifyReply } from 'fastify';
-import { formatLogForStdout, type LogEntry } from '@trapmap/contracts';
+import { type LogEntry, formatLogForStdout } from '@trapmap/contracts';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
-import { RequestContextService } from './request-context.service.js';
+import type { RequestContextService } from './request-context.service.js';
 
 @Injectable()
 export class LoggingMiddleware implements NestMiddleware {
@@ -14,7 +14,8 @@ export class LoggingMiddleware implements NestMiddleware {
   use(req: FastifyRequest, res: FastifyReply, next: () => void): void {
     const start = Date.now();
     const requestContext = this.requestContext.get();
-    const responseTarget = (res.raw ?? (res as unknown as { on?: (event: string, cb: () => void) => void })) as {
+    const responseTarget = (res.raw ??
+      (res as unknown as { on?: (event: string, cb: () => void) => void })) as {
       on?: (event: string, cb: () => void) => void;
     };
 
@@ -24,9 +25,10 @@ export class LoggingMiddleware implements NestMiddleware {
       const traceId = requestContext?.traceId ?? undefined;
       const method = req.method;
       const url = req.url;
-      const statusCode = (res as FastifyReply & { raw?: { statusCode?: number } }).statusCode
-        ?? (res as FastifyReply & { raw?: { statusCode?: number } }).raw?.statusCode
-        ?? 0;
+      const statusCode =
+        (res as FastifyReply & { raw?: { statusCode?: number } }).statusCode ??
+        (res as FastifyReply & { raw?: { statusCode?: number } }).raw?.statusCode ??
+        0;
 
       const entry: LogEntry = {
         timestamp: new Date().toISOString(),

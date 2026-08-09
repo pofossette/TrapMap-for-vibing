@@ -7,18 +7,18 @@ import type {
   TeamLookupPort,
 } from '@trapmap/backend-core';
 import {
+  type CandidateProcessingRuntime,
+  createCandidateProcessingRuntime,
+} from '@trapmap/service-candidate-ingestion';
+import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
+import {
   createKnowledgeReadOwnerRetrievalServices,
   createKnowledgeReadRetrievalQuery,
 } from '@trapmap/service-knowledge-read';
-import {
-  createCandidateProcessingRuntime,
-  type CandidateProcessingRuntime,
-} from '@trapmap/service-candidate-ingestion';
-import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 
 import { loadHostLocalConfig } from '../config/index.js';
 import { createQueuePorts } from './backend-core-adapters.js';
-import { createHostLocalServices, type HostLocalServices } from './host-services.js';
+import { type HostLocalServices, createHostLocalServices } from './host-services.js';
 import { resolveEffectivePermissions } from './permissions.js';
 
 export const HOST_LOCAL_RUNTIME_TOKEN = 'HOST_LOCAL_RUNTIME';
@@ -40,7 +40,9 @@ function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
     config: services.config,
     knowledge: services.knowledgeOwner,
     artifact: services.artifactReadProjection,
-    governance: services.governanceReview.retrievalProjection as unknown as Parameters<typeof createKnowledgeReadOwnerRetrievalServices>[0]['governance'],
+    governance: services.governanceReview.retrievalProjection as unknown as Parameters<
+      typeof createKnowledgeReadOwnerRetrievalServices
+    >[0]['governance'],
     strategyRegistry: services.strategyRegistry,
     channelRegistry: services.channelRegistry,
     ai: services.ai,

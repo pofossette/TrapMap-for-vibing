@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 
-import { HOST_LOCAL_RUNTIME_TOKEN } from './host-runtime.js';
 import { resolveHostLocalAuthContext } from './auth-context.js';
+import { HOST_LOCAL_RUNTIME_TOKEN } from './host-runtime.js';
 import type { HostLocalRuntime } from './host-runtime.js';
 
 type HostLocalRequest = FastifyRequest & {

@@ -1,11 +1,11 @@
 import type {
+  AccessKeyRepositoryPort,
   AuditLogPort,
   MembershipRepositoryPort,
   QueuePorts,
   SessionRepositoryPort,
   TeamRepositoryPort,
   UserRepositoryPort,
-  AccessKeyRepositoryPort,
 } from '@trapmap/backend-core';
 import type { RoleTemplate } from '@trapmap/contracts';
 import { nowIso } from '@trapmap/lib';
@@ -83,10 +83,9 @@ function normalizeUserRecord(record: Record<string, unknown>) {
   };
 }
 
-export function createIdentityAccessRepos(repos: Pick<
-  HostLocalRepos,
-  'session' | 'accessKey' | 'team' | 'membership' | 'user'
->): {
+export function createIdentityAccessRepos(
+  repos: Pick<HostLocalRepos, 'session' | 'accessKey' | 'team' | 'membership' | 'user'>,
+): {
   sessionRepo: SessionRepositoryPort;
   accessKeyRepo: AccessKeyRepositoryPort;
   teamRepo: TeamRepositoryPort;
@@ -213,7 +212,8 @@ export function createIdentityAccessRepos(repos: Pick<
           userId: membership.userId,
           teamId: membership.teamId,
           roleTemplate: normalizeRoleTemplate(shape.role ?? membership.roleTemplate),
-          securityLevel: typeof membership.securityLevel === 'number' ? membership.securityLevel : 0,
+          securityLevel:
+            typeof membership.securityLevel === 'number' ? membership.securityLevel : 0,
           permissions: Array.isArray(membership.permissions) ? membership.permissions : [],
           notes: typeof membership.notes === 'string' ? membership.notes : null,
           createdAt: nowIso(),
@@ -223,17 +223,17 @@ export function createIdentityAccessRepos(repos: Pick<
       async getById(membershipId) {
         const membership = await repos.membership.getById(membershipId);
         return membership
-          ? (normalizeMembershipRecord(
-              membership as unknown as Record<string, unknown>,
-            ) as Awaited<ReturnType<MembershipRepositoryPort['getById']>>)
+          ? (normalizeMembershipRecord(membership as unknown as Record<string, unknown>) as Awaited<
+              ReturnType<MembershipRepositoryPort['getById']>
+            >)
           : null;
       },
       async findByUserAndTeam(userId, teamId) {
         const membership = await repos.membership.findByUserAndTeam(userId, teamId);
         return membership
-          ? (normalizeMembershipRecord(
-              membership as unknown as Record<string, unknown>,
-            ) as Awaited<ReturnType<MembershipRepositoryPort['findByUserAndTeam']>>)
+          ? (normalizeMembershipRecord(membership as unknown as Record<string, unknown>) as Awaited<
+              ReturnType<MembershipRepositoryPort['findByUserAndTeam']>
+            >)
           : null;
       },
       async listByUser(userId) {
@@ -345,7 +345,10 @@ export function createQueuePorts(asyncTransport?: HostLocalAsyncTransport): Queu
             ownsWork: params.ownsWork,
             handlers: params.handlers.map((handler) => ({
               type: handler.type,
-              handle: (task: { id: string; type: string; payload: unknown; attempts: number }, signal: AbortSignal) =>
+              handle: (
+                task: { id: string; type: string; payload: unknown; attempts: number },
+                signal: AbortSignal,
+              ) =>
                 handler.handle(
                   {
                     id: task.id,
@@ -361,7 +364,9 @@ export function createQueuePorts(asyncTransport?: HostLocalAsyncTransport): Queu
                       handler.onDead?.(task),
                   }
                 : {}),
-            })) as unknown as Parameters<NonNullable<HostLocalAsyncTransport['task']['createConsumer']>>[0]['handlers'],
+            })) as unknown as Parameters<
+              NonNullable<HostLocalAsyncTransport['task']['createConsumer']>
+            >[0]['handlers'],
           });
         },
       },

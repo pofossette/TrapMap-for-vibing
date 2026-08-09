@@ -1,6 +1,5 @@
 import type { NestMiddleware } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
-import type { FastifyRequest, FastifyReply } from 'fastify';
 import {
   SpanKind,
   SpanStatusCode,
@@ -9,8 +8,9 @@ import {
   trace,
 } from '@opentelemetry/api';
 import { normalizeObservabilityRouteFamily } from '@trapmap/contracts';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
-import { PrometheusService } from './prometheus.service.js';
+import type { PrometheusService } from './prometheus.service.js';
 
 /**
  * NestJS middleware that instruments every inbound HTTP request with:
@@ -29,9 +29,7 @@ import { PrometheusService } from './prometheus.service.js';
  */
 @Injectable()
 export class HttpMetricsMiddleware implements NestMiddleware {
-  constructor(
-    private readonly prometheus: PrometheusService,
-  ) {}
+  constructor(private readonly prometheus: PrometheusService) {}
 
   use(req: FastifyRequest, res: FastifyReply, next: () => void): void {
     const startTime = Date.now();
@@ -78,7 +76,7 @@ export class HttpMetricsMiddleware implements NestMiddleware {
             (res as FastifyReply & { raw?: { statusCode?: number } }).raw?.statusCode ??
             0,
         );
-        const statusCodeNum = parseInt(statusCode, 10);
+        const statusCodeNum = Number.parseInt(statusCode, 10);
 
         // Record Prometheus metrics with actual status code
         this.prometheus.incrementRequests(method, route, statusCode);
@@ -87,10 +85,7 @@ export class HttpMetricsMiddleware implements NestMiddleware {
 
         // Finalize the server span
         span.setAttribute('http.response.status_code', statusCodeNum);
-        span.setAttribute(
-          'http.route',
-          normalizeObservabilityRouteFamily(route),
-        );
+        span.setAttribute('http.route', normalizeObservabilityRouteFamily(route));
 
         if (statusCodeNum >= 500) {
           span.setStatus({ code: SpanStatusCode.ERROR });

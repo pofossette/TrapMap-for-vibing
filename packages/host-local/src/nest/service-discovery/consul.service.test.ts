@@ -1,11 +1,15 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ConsulService } from './consul.service.js';
-import { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
 import type { ServiceRegistration } from '@trapmap/backend-core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
+import { ConsulService } from './consul.service.js';
 
 // ─── Mock Consul ────────────────────────────────────────────────────────
 
-function createMockConsul(opts?: { failHealth?: boolean; failKV?: boolean; failRegister?: boolean }) {
+function createMockConsul(opts?: {
+  failHealth?: boolean;
+  failKV?: boolean;
+  failRegister?: boolean;
+}) {
   const failHealth = opts?.failHealth ?? false;
   const failKV = opts?.failKV ?? false;
   const failRegister = opts?.failRegister ?? false;
@@ -68,8 +72,6 @@ vi.mock('consul', () => {
     default: vi.fn().mockImplementation(() => lastMockConsul),
   };
 });
-
-const ConsulMock = (await import('consul')).default as unknown as ReturnType<typeof vi.fn>;
 
 function createService(configOverrides: Record<string, string> = {}) {
   const config = createConfigService(configOverrides);
@@ -246,9 +248,7 @@ describe('ConsulService', () => {
       expect(service.isAvailable()).toBe(true);
 
       // Make future register calls fail
-      lastMockConsul.agent.service.register.mockRejectedValue(
-        new Error('connection lost'),
-      );
+      lastMockConsul.agent.service.register.mockRejectedValue(new Error('connection lost'));
 
       await service.register({
         id: 'svc-1',

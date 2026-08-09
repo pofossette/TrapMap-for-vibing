@@ -3,8 +3,8 @@ import { Module } from '@nestjs/common';
 import type { KnowledgeReadPort } from '@trapmap/backend-core';
 import { createKnowledgeReadModule } from '@trapmap/backend-core';
 import {
-  createKnowledgeReadDeps,
   type KnowledgeReadPortDeps,
+  createKnowledgeReadDeps,
 } from '@trapmap/service-knowledge-read';
 
 import { KNOWLEDGE_READ_PORT } from './knowledge-read.tokens.js';
@@ -23,6 +23,7 @@ import { KNOWLEDGE_READ_PORT } from './knowledge-read.tokens.js';
  * the gateway module picks up the `KNOWLEDGE_READ_PORT` provider.
  */
 @Module({})
+// biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
 export class KnowledgeReadModule {
   static forDeps(deps: KnowledgeReadPortDeps) {
     const knowledgeReadDeps = createKnowledgeReadDeps(deps);

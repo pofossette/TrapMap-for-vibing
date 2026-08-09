@@ -42,6 +42,7 @@
     "check:complexity": "pnpm exec tsx scripts/check-complexity-budgets.ts",
     "check:arch-freeze": "pnpm exec tsx scripts/check-arch-freeze.ts",
     "check:stale-package-refs": "pnpm exec tsx scripts/check-stale-package-refs.ts",
+    "check:asserts": "pnpm exec tsx scripts/check-naked-asserts.ts",
     "check:doc-references": "pnpm exec tsx scripts/check-doc-references.ts",
     "check:docs-truth": "pnpm exec tsx scripts/check-doc-truth.ts",
     "verify:observability-correlation": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/verify-observability-correlation.ts",

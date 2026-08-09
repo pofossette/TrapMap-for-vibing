@@ -8,19 +8,19 @@
  * These are unit-level tests with mocked external services, but they
  * verify the full signal chain through the middleware and adapters.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  extractRequestContext,
-  RequestContextService,
   type NestRequestContext,
+  RequestContextService,
+  extractRequestContext,
 } from '../runtime/request-context.service.js';
 
 import {
-  logEntrySchema,
+  type LogEntry,
   buildLokiLabels,
   formatLogForStdout,
-  type LogEntry,
+  logEntrySchema,
 } from '@trapmap/contracts';
 
 // ── 1. Request Context: requestId + traceId extraction ────────────────
@@ -48,11 +48,10 @@ describe('observability chain: request context extraction', () => {
   });
 
   it('generates requestId and rejects an invalid traceparent', () => {
-    const ctx = extractRequestContext(
-      { traceparent: 'trace-xyz' },
-      config,
-      { method: 'POST', route: '/v1/candidates' },
-    );
+    const ctx = extractRequestContext({ traceparent: 'trace-xyz' }, config, {
+      method: 'POST',
+      route: '/v1/candidates',
+    });
 
     expect(ctx.requestId).toBeDefined();
     expect(ctx.requestId.length).toBeGreaterThan(0);
@@ -60,11 +59,10 @@ describe('observability chain: request context extraction', () => {
   });
 
   it('sets traceId to null when trace header is absent', () => {
-    const ctx = extractRequestContext(
-      { 'x-request-id': 'req-only' },
-      config,
-      { method: 'DELETE', route: '/v1/traps/42' },
-    );
+    const ctx = extractRequestContext({ 'x-request-id': 'req-only' }, config, {
+      method: 'DELETE',
+      route: '/v1/traps/42',
+    });
 
     expect(ctx.requestId).toBe('req-only');
     expect(ctx.traceId).toBeNull();
@@ -242,9 +240,10 @@ describe('observability chain: LoggingPort adapter format', () => {
     const message = 'Service started';
     const context: Record<string, unknown> | undefined = undefined;
 
-    const formatted = context && Object.keys(context).length > 0
-      ? `${message} ${JSON.stringify(context)}`
-      : message;
+    const formatted =
+      context && Object.keys(context).length > 0
+        ? `${message} ${JSON.stringify(context)}`
+        : message;
 
     expect(formatted).toBe('Service started');
   });
@@ -264,7 +263,7 @@ describe('observability chain: LoggingPort adapter format', () => {
   it('child logger uses name from context', () => {
     // Simulate LoggingPortAdapter.child() behavior
     const context = { name: 'CandidateService' };
-    const childContext = context['name'] ?? context['context'] ?? context['module'];
+    const childContext = context.name ?? context.context ?? context.module;
     const contextStr = typeof childContext === 'string' ? childContext : JSON.stringify(context);
 
     expect(contextStr).toBe('CandidateService');
@@ -359,7 +358,7 @@ describe('observability chain: end-to-end signal chain', () => {
     }
 
     expect(responseHeaders['x-request-id']).toBe('req-echo-test');
-    expect(responseHeaders['traceparent']).toBe(
+    expect(responseHeaders.traceparent).toBe(
       '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
     );
   });

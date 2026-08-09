@@ -60,11 +60,11 @@ vi.mock('./retrieval-assembly.js', () => ({
   createHostLocalStrategyRegistry: vi.fn(() => ({})),
 }));
 
-import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
 import { createCandidateIngestionPgOwnerBundle } from '@trapmap/service-candidate-ingestion';
 import { createJobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
 import { createOwnerReadModelProjection } from '@trapmap/service-knowledge-read';
 import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
+import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
 
 import { createHostLocalServices } from './host-services.js';
 

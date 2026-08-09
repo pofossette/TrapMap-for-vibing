@@ -10,13 +10,13 @@
  * actual SDK interaction.
  */
 
-import type { LangfusePolicyResult } from '@trapmap/contracts';
-import { validateLangfusePolicy } from '@trapmap/contracts';
 import type {
   ChatObservation,
   EmbeddingObservation,
   LlmObservationSink,
 } from '@trapmap/ai-providers';
+import type { LangfusePolicyResult } from '@trapmap/contracts';
+import { validateLangfusePolicy } from '@trapmap/contracts';
 
 // ---------------------------------------------------------------------------
 // Types

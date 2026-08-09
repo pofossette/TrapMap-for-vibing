@@ -1,7 +1,7 @@
 import {
+  type ResolvedRuntimeDeployment,
   resolveRuntimeDeployment,
   resolveServiceUnit,
-  type ResolvedRuntimeDeployment,
 } from '@trapmap/backend-core';
 
 import type { HostLocalConfig } from '../config/index.js';

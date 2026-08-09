@@ -1,5 +1,5 @@
 import { type ArgumentMetadata, BadRequestException, type PipeTransform } from '@nestjs/common';
-import { type ZodSchema, ZodError } from 'zod';
+import { ZodError, type ZodSchema } from 'zod';
 
 /**
  * Validation pipe that validates request bodies against Zod schemas

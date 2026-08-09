@@ -1,42 +1,49 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { createJobRuntimeModule } from '@trapmap/backend-core';
+import { createKnowledgeWriteModule } from '@trapmap/backend-core';
 import { createCandidateIngestionDeps } from '@trapmap/service-candidate-ingestion';
 import {
   createGovernanceAsyncCommandModule,
   createGovernanceReviewAdminModule,
   createGovernanceReviewDeps,
 } from '@trapmap/service-governance-review';
-import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
 import {
   createIdentityAccessDeps,
   createIdentityAccessOwnerBundle,
   createIdentityAccessServiceModule,
 } from '@trapmap/service-identity-access';
+import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
 import { createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';
-import { createKnowledgeWriteModule } from '@trapmap/backend-core';
 
-import { HOST_LOCAL_CONFIG_TOKEN, loadHostLocalConfig } from './config/index.js';
-import { GatewayModule, GatewayRuntimeModule } from './gateway/gateway.module.js';
 import { CandidateIngestionModule } from './candidate-ingestion/candidate-ingestion.module.js';
 import { CandidateProcessingService } from './candidate-ingestion/candidate-processing.service.js';
+import { HOST_LOCAL_CONFIG_TOKEN, loadHostLocalConfig } from './config/index.js';
+import { GatewayModule, GatewayRuntimeModule } from './gateway/gateway.module.js';
 import { GovernanceReviewModule } from './governance-review/governance-review.module.js';
+import { HealthModule } from './health/index.js';
 import { IdentityAccessModule } from './identity-access/identity-access.module.js';
 import { JobRuntimeModule } from './job-runtime/job-runtime.module.js';
 import { KnowledgeReadModule } from './knowledge-read/knowledge-read.module.js';
 import { KnowledgeWriteModule } from './knowledge-write/knowledge-write.module.js';
-import { LoggingMiddleware } from './runtime/logging.middleware.js';
-import { ConsulModule } from './service-discovery/index.js';
-import { OtelModule, PrometheusModule, LokiModule, SentryModule, LangfuseModule, HttpMetricsMiddleware } from './observability/index.js';
-import { HealthModule } from './health/index.js';
 import { LifecycleModule } from './lifecycle/index.js';
-import { createHostLocalRuntime, HOST_LOCAL_RUNTIME_TOKEN } from './runtime/host-runtime.js';
 import {
-  createHostLocalGovernanceTaskHandlers,
+  HttpMetricsMiddleware,
+  LangfuseModule,
+  LokiModule,
+  OtelModule,
+  PrometheusModule,
+  SentryModule,
+} from './observability/index.js';
+import {
   createHostLocalGovernanceConflictWorkflow,
+  createHostLocalGovernanceTaskHandlers,
 } from './runtime/governance-composition.js';
+import { HOST_LOCAL_RUNTIME_TOKEN, createHostLocalRuntime } from './runtime/host-runtime.js';
+import { LoggingMiddleware } from './runtime/logging.middleware.js';
 import { RequestContextMiddleware } from './runtime/request-context.middleware.js';
 import { RequestContextService } from './runtime/request-context.service.js';
+import { ConsulModule } from './service-discovery/index.js';
 
 /**
  * Root application module for the Nest host.
@@ -69,18 +76,18 @@ const knowledgeProjection = {
 
 const identityAccessModule = IdentityAccessModule.forPort(
   createIdentityAccessServiceModule(
-    createIdentityAccessDeps(createIdentityAccessOwnerBundle({
-    ...hostLocalRuntime.identity,
-    })),
+    createIdentityAccessDeps(
+      createIdentityAccessOwnerBundle({
+        ...hostLocalRuntime.identity,
+      }),
+    ),
   ),
 );
 
-const knowledgeReadModule = KnowledgeReadModule.forDeps(
-  {
-    knowledgeRepo: knowledgeProjection as never,
-    retrievalQuery: hostLocalRuntime.retrievalQuery,
-  },
-);
+const knowledgeReadModule = KnowledgeReadModule.forDeps({
+  knowledgeRepo: knowledgeProjection as never,
+  retrievalQuery: hostLocalRuntime.retrievalQuery,
+});
 
 const knowledgeWritePort = createKnowledgeWriteModule(
   createKnowledgeWriteDeps({
@@ -128,8 +135,7 @@ const governanceReviewModule = GovernanceReviewModule.forDeps(
     asyncCommands: governanceAsyncCommands,
     admin: governanceAdmin,
     conflictWorkflow: governanceConflictWorkflow,
-    governanceRetrievalProjection:
-      hostLocalRuntime.services.governanceReview.retrievalProjection,
+    governanceRetrievalProjection: hostLocalRuntime.services.governanceReview.retrievalProjection,
   }),
 );
 

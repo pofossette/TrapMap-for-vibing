@@ -10,23 +10,23 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import type { CandidateIngestionPort, ReviewPort } from '@trapmap/backend-core';
 import {
   ManualResultSubmissionSchema,
   manualResultResponseSchema,
   reviewDecisionRequestSchema,
   reviewQueueResponseSchema,
 } from '@trapmap/contracts';
-import type { CandidateIngestionPort, ReviewPort } from '@trapmap/backend-core';
-import type { FastifyRequest } from 'fastify';
 import { buildOwnerReviewQueueProjection } from '@trapmap/service-governance-review';
-import { z } from 'zod';
+import type { FastifyRequest } from 'fastify';
+import type { z } from 'zod';
 
 import { CANDIDATE_INGESTION_PORT } from '../candidate-ingestion/candidate-ingestion.tokens.js';
 import { GOVERNANCE_REVIEW_PORT } from '../governance-review/governance-review.tokens.js';
-import { HOST_LOCAL_RUNTIME_TOKEN } from '../runtime/host-runtime.js';
-import type { HostLocalRuntime } from '../runtime/host-runtime.js';
 import type { resolveHostLocalAuthContext } from '../runtime/auth-context.js';
 import { AuthGuard } from '../runtime/auth.guard.js';
+import { HOST_LOCAL_RUNTIME_TOKEN } from '../runtime/host-runtime.js';
+import type { HostLocalRuntime } from '../runtime/host-runtime.js';
 import { ZodBodyValidationPipe } from '../runtime/validation.pipe.js';
 
 type AuthenticatedRequest = FastifyRequest & {
@@ -81,7 +81,11 @@ export class CandidateReviewController {
       };
     }
 
-    await this.candidateIngestion.applyResolution(candidateId, candidate.manualResult, auth.actorId);
+    await this.candidateIngestion.applyResolution(
+      candidateId,
+      candidate.manualResult,
+      auth.actorId,
+    );
 
     const resolvedCandidate = await this.candidateIngestion.getById(candidateId);
 
@@ -136,11 +140,10 @@ export class CandidateReviewController {
     const entry = await this.runtime.services.knowledgeOwner.getById(result.entryId);
 
     return {
-      entry:
-        entry ?? {
-          id: result.entryId,
-          lifecycleState: result.lifecycleState,
-        },
+      entry: entry ?? {
+        id: result.entryId,
+        lifecycleState: result.lifecycleState,
+      },
     };
   }
 }

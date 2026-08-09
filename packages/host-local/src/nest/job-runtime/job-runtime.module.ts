@@ -15,6 +15,7 @@ import { JOB_RUNTIME_PORT, JOB_RUNTIME_WORKER_CONFIG } from './job-runtime.token
  * contexts via the task-queue transport the host wires in.
  */
 @Module({})
+// biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
 export class JobRuntimeModule {
   static forDeps(deps: JobRuntimeDeps) {
     const port: JobRuntimePort = createJobRuntimeModule(deps);

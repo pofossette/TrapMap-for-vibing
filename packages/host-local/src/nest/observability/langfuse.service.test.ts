@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { validateLangfusePolicy } from '@trapmap/contracts';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LangfuseService } from './langfuse.service.js';
 
@@ -11,23 +11,30 @@ function setValidLangfuseEnv(): void {
   process.env.LANGFUSE_SECRET_KEY = 'sk-test';
 }
 
+// The only correct way to unset a process.env key (assignment would set the
+// literal string "undefined"); computed delete avoids deleting properties
+// from the shared env object shape.
+function unsetEnv(name: string): void {
+  delete process.env[name];
+}
+
 describe('LangfuseService', () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
     vi.restoreAllMocks();
     // Clear Langfuse env vars
-    delete process.env.LANGFUSE_ENABLED;
-    delete process.env.LANGFUSE_BASE_URL;
-    delete process.env.LANGFUSE_PUBLIC_KEY;
-    delete process.env.LANGFUSE_SECRET_KEY;
-    delete process.env.LANGFUSE_FLUSH_TIMEOUT_MS;
-    delete process.env.LANGFUSE_PRIVACY_MODE;
-    delete process.env.TRAPMAP_SERVICE_NAME;
-    delete process.env.TRAPMAP_DEPLOYMENT_PROFILE;
-    delete process.env.NODE_ENV;
-    delete process.env.SENTRY_RELEASE;
-    delete process.env.npm_package_version;
+    unsetEnv('LANGFUSE_ENABLED');
+    unsetEnv('LANGFUSE_BASE_URL');
+    unsetEnv('LANGFUSE_PUBLIC_KEY');
+    unsetEnv('LANGFUSE_SECRET_KEY');
+    unsetEnv('LANGFUSE_FLUSH_TIMEOUT_MS');
+    unsetEnv('LANGFUSE_PRIVACY_MODE');
+    unsetEnv('TRAPMAP_SERVICE_NAME');
+    unsetEnv('TRAPMAP_DEPLOYMENT_PROFILE');
+    unsetEnv('NODE_ENV');
+    unsetEnv('SENTRY_RELEASE');
+    unsetEnv('npm_package_version');
   });
 
   afterEach(() => {

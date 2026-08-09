@@ -1,9 +1,6 @@
 import { Module } from '@nestjs/common';
 
-import type {
-  CandidateIngestionDeps,
-  CandidateIngestionPort,
-} from '@trapmap/backend-core';
+import type { CandidateIngestionDeps, CandidateIngestionPort } from '@trapmap/backend-core';
 import { createCandidateIngestionModule } from '@trapmap/backend-core';
 
 import { CANDIDATE_INGESTION_PORT } from './candidate-ingestion.tokens.js';
@@ -17,6 +14,7 @@ import { CANDIDATE_INGESTION_PORT } from './candidate-ingestion.tokens.js';
  * `deps` before this module is registered.
  */
 @Module({})
+// biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
 export class CandidateIngestionModule {
   static forDeps(deps: CandidateIngestionDeps) {
     const port: CandidateIngestionPort = createCandidateIngestionModule(deps);

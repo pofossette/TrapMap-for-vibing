@@ -1,4 +1,4 @@
-import { loadConfig, type HostLocalConfig } from './config.js';
+import { type HostLocalConfig, loadConfig } from './config.js';
 
 export function loadHostLocalConfig(): HostLocalConfig {
   return loadConfig();
