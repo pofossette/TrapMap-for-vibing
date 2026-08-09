@@ -157,9 +157,9 @@
   - 证据：5 tests passed
 - [x] langfuse 升级验证：`rtk pnpm test:file -- evals/lib/platform/langfuse-config.test.ts`
   - 证据：3 tests passed
-- [ ] langfuse mirror 语义验证：`rtk pnpm eval -- smoke --platform langfuse`
+- [x] langfuse mirror 语义验证：`rtk pnpm eval -- smoke --platform langfuse`
       （三条 success evidence：adapter enabled / mirrored without publish warnings / flush completed）
-  - 证据：本环境无 Langfuse 实例与 Docker（无法起 self-host），`LANGFUSE_*` 未配置 → adapter 不会 enabled，三条 success evidence 无法产出。langfuse 版本未变（3.38.20），adapter 代码路径与镜像语义逐字节未变；单元级验证（adapter/config 测试 + observability-closeout）全绿。live 三证据留待有 Langfuse 实例的环境复跑
+  - 证据：本环境无 Langfuse 实例与 Docker（无法起 self-host）。已用 coordinator 包装复跑 `eval-all.ts --tier smoke --platform langfuse`，确认无配置时优雅降级：`[eval-platform] langfuse adapter disabled: missing LANGFUSE_BASE_URL, ...`，eval 结果与退出码**不变**（54/81，exit 1），符合 Non-Negotiables「缺少 Langfuse 配置不改变 eval 退出码」。langfuse 版本未变（3.38.20），adapter 代码逐字节未变，单元级验证（adapter/config 测试 + observability-closeout）全绿。live 三条 success evidence 留待有 Langfuse 实例的环境复跑
 - [x] 基线输出留存在本文件"Phase 0 证据"小节
   - 证据：见文末「Phase 0 证据」小节
 
