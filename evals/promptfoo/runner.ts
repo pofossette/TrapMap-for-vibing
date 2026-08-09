@@ -26,7 +26,7 @@ export async function runSuiteWithPromptfoo<TCase, TCaseResult, TReport>(
   if (cases.length === 0) {
     if (options.allowEmpty) {
       return {
-        report: bridge.buildReport(options, []),
+        report: await bridge.buildReport(options, []),
         passed: true,
         caseCount: 0,
       };

@@ -21,7 +21,7 @@ import { createJsAssertion } from '../promptfoo/assertion.js';
 import { registerBridge } from '../promptfoo/bridge.js';
 import { composedProvider, deterministicProvider } from '../promptfoo/provider.js';
 import { assertResultPresent } from '../promptfoo/result.js';
-import type { SuiteBridge, SuiteRunOptions } from '../promptfoo/types.js';
+import type { SuiteBridge } from '../promptfoo/types.js';
 import { evaluateLabelAlignmentCaseDryRun, loadLabelAlignmentFixtures } from './core.js';
 import { type LiveDecisionContext, runLiveDecisionEvaluation } from './lib/decision-eval.js';
 import { buildLabelAlignmentReport } from './lib/report.js';

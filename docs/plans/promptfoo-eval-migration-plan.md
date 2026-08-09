@@ -377,7 +377,8 @@
 
 **Commit**
 
-- [ ] 提交：`feat(evals): migrate label-alignment runner to promptfoo`
+- [x] 提交：`feat(evals): migrate label-alignment runner to promptfoo`
+  - 证据：commit `7cb98806`
 
 ## Phase 5: summary bridge
 
