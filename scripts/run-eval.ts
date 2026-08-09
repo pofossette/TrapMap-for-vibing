@@ -218,7 +218,10 @@ function buildSuiteArgs(
   }
 
   if (
-    (suite === 'agent-planning' || suite === 'label-alignment' || suite === 'summary') &&
+    (suite === 'agent-planning' ||
+      suite === 'label-alignment' ||
+      suite === 'summary' ||
+      suite === 'retrieval') &&
     options.runner
   ) {
     args.push('--runner', options.runner);

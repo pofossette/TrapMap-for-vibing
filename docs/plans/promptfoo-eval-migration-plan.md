@@ -429,29 +429,50 @@
 
 ## Phase 6: retrieval bridge (largest)
 
-- [ ] `evals/retrieval/bridge.ts`：provider = composedProvider（现有 `executeCase` 全链路）；
+- [x] `evals/retrieval/bridge.ts`：provider = composedProvider（现有 `executeCase` 全链路）；
       断言复用 `evaluateGovernance` + outcome match + `calculateMetrics` + graphPlan 结构断言；
       `named_scores` 携带 hitAt1/mrr/ndcg；`concurrency: 1`
-- [ ] `parity-retrieval.test.ts`：需 Postgres（按 `run-postgres-coordinated` 提供
+  - 证据：新建 `evals/retrieval/bridge.ts`，provider executor 复用完整 native 管线
+    `executeRetrievalCase`（抽到 `evals/retrieval/lib/execute-case.ts`：isolated context
+    create/seed/execute/close → `evaluateGovernance` + outcome match + `calculateMetrics` +
+    v3 `assertGraphPlanStructure`），结果携带 `CaseResult` 于 `raw.result`；断言 `namedScores`
+    携带 hitAt1/mrr/ndcg；`dryRunMode:'skip'`（native retrieval dry-run 不执行）配 `buildDryRunResult`；
+    `concurrency:1`，顶层 `registerBridge`。同时抽 `evals/retrieval/lib/runner-summary.ts`
+    （aggregateSliceMetrics/buildRunnerSummary/formatRunnerSummary）供 run.ts 与 bridge 共用
+- [x] `parity-retrieval.test.ts`：需 Postgres（按 `run-postgres-coordinated` 提供
       `TRAPMAP_DATABASE_URL`），逐 case 对比 passed + metrics + governance failures
+  - 证据：新建 `evals/promptfoo/parity-retrieval.test.ts`，自 `TRAPMAP_POSTGRES_COORDINATOR_URL`
+    临时建库 + 六 owner migration + vector 校验，逐 case 对比 passed/hitAt1/hitAt5/mrr/ndcg/recallAt10/
+    governance.failures（1 test passed，真实 PostgreSQL smoke 26 case 全量比对）；无 coordinator 自动 skip
 
 **Completion standard**
 
 - parity 全绿；`rtk pnpm eval:smoke` 全绿。
+  - 证据：parity 1/1；真实 DB CLI 双 runner 对比（native vs `--runner promptfoo`）输出逐字节一致
+    （`Total cases: 26`、`Passed: 4 / Failed: 22`、`Pass rate: 15.4%`，与 4/26 基线一致）；
+    `eval:smoke` 54/81 无回归；`rtk pnpm typecheck` exit 0
 
 **Test and eval updates**
 
-- [ ] `rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`
-- [ ] `rtk pnpm eval -- retrieval --tier smoke --dry-run --runner promptfoo`
-- [ ] `rtk pnpm eval:smoke`
+- [x] `rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`
+  - 证据：1 test passed（真实 PostgreSQL，per-case passed/metrics/governance 全一致）；
+    无 `TRAPMAP_POSTGRES_COORDINATOR_URL` 时自动 skip
+- [x] `rtk pnpm eval -- retrieval --tier smoke --dry-run --runner promptfoo`
+  - 证据：exit 0；dry-run 在分发前短路，输出与 native 一致（`Loaded 26 case(s)` + `Dry run complete`），不执行
+- [x] `rtk pnpm eval:smoke`
+  - 证据：54/81 passed（与本地 keyless 基线一致，无回归）；`rtk pnpm typecheck` exit 0
 
 **Document updates**
 
-- [ ] `docs/operations/TESTING.md` suite 表同步（如需）
+- [x] `docs/operations/TESTING.md` suite 表同步（如需）
+  - 证据：`--runner` 双轨小节更新为全部六个 suite，并新增 retrieval promptfoo 验证命令两条
+    （`rtk pnpm eval -- retrieval --tier smoke --dry-run --runner promptfoo` 与
+    `rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`，注明需 coordinator、无则 skip）
 
 **Commit**
 
-- [ ] 提交：`feat(evals): migrate retrieval runner to promptfoo`
+- [x] 提交：`feat(evals): migrate retrieval runner to promptfoo`
+  - 证据：commit `<pending-hash>`
 
 ## Phase 7: Cutover — eval-all unification, native removal, snapshot parity
 

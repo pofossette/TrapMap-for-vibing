@@ -24,22 +24,13 @@ import { coreCases } from './core.js';
 import { smokeCases } from './smoke.js';
 
 // Import execution modules
+import { executeRetrievalCase } from './lib/execute-case.js';
 import {
-  closeExecutionContext,
-  createExecutionContext,
-  executeCase,
-  seedScenarioFixtures,
-} from './lib/adapters.js';
-import { assertGraphPlanStructure } from './lib/assertions.js';
-import { evaluateGovernance } from './lib/governance.js';
-import { averageMetrics, calculateMetrics } from './lib/metrics.js';
-import type {
-  CaseResult,
-  RunnerOptions,
-  RunnerSummary,
-  SliceKey,
-  SliceMetrics,
-} from './lib/types.js';
+  aggregateSliceMetrics,
+  buildRunnerSummary,
+  formatRunnerSummary,
+} from './lib/runner-summary.js';
+import type { CaseResult, RunnerSummary } from './lib/types.js';
 
 interface RunOptions {
   tier: RetrievalEvalTier;
@@ -53,6 +44,7 @@ interface RunOptions {
   baselinePath?: string;
   /** Write current results as new baseline (Phase 29-03) */
   writeBaseline?: boolean;
+  runner: 'native' | 'promptfoo';
 }
 
 /**
@@ -103,6 +95,10 @@ function parseArgs_(): RunOptions {
         default: false,
         description: 'Write current results as new baseline',
       },
+      runner: {
+        type: 'string',
+        default: 'native',
+      },
     },
     strict: true,
   });
@@ -130,16 +126,24 @@ function parseArgs_(): RunOptions {
     process.exit(1);
   }
 
+  const runnerValue = values.runner ?? 'native';
+  if (runnerValue !== 'native' && runnerValue !== 'promptfoo') {
+    console.error(`Invalid --runner value: ${runnerValue}`);
+    process.exit(1);
+  }
+  const runner = runnerValue as 'native' | 'promptfoo';
+
   return {
     tier,
     dryRun: values['dry-run'],
     allowEmpty: values['allow-empty'],
-    endpoint,
     json: values.json,
-    jsonPath: values['json-path'],
     verbose: values.verbose ? 1 : 0,
-    baselinePath: values.baseline,
-    writeBaseline: values['write-baseline'],
+    runner,
+    ...(endpoint !== undefined ? { endpoint } : {}),
+    ...(values['json-path'] !== undefined ? { jsonPath: values['json-path'] } : {}),
+    ...(values.baseline !== undefined ? { baselinePath: values.baseline } : {}),
+    ...(values['write-baseline'] ? { writeBaseline: true } : {}),
   };
 }
 
@@ -187,197 +191,29 @@ async function executeAllCases(cases_: RetrievalEvalCase[]): Promise<CaseResult[
 
   // Each case gets an isolated context to prevent fixture bleeding
   for (const case_ of cases_) {
-    const ctx = await createExecutionContext();
-
-    try {
-      await seedScenarioFixtures(ctx, case_);
-      const adapterResult = await executeCase(ctx, case_);
-
-      // Evaluate governance
-      const governance = evaluateGovernance(case_, adapterResult.result);
-
-      // Calculate metrics
-      const metrics = calculateMetrics(
-        adapterResult.result,
-        case_.expected.relevance.relevantIds,
-        case_.expected.relevance.idealOrder,
-      );
-
-      // Evaluate graph-plan structure (v3 only)
-      const graphPlanResult =
-        case_.endpoint === '/v3/retrieval/search' && case_.expected.shape.graphPlanExpectations
-          ? assertGraphPlanStructure(
-              adapterResult.result.graphPlanStructure,
-              case_.expected.shape.graphPlanExpectations,
-            )
-          : undefined;
-
-      // Determine overall pass
-      const outcomeMatch =
-        (case_.expected.outcome === 'empty' && adapterResult.result.isEmpty) ||
-        (case_.expected.outcome === 'non-empty' && !adapterResult.result.isEmpty);
-      const graphPlanPassed = !graphPlanResult || graphPlanResult.passed;
-      const passed = governance.passed && outcomeMatch && graphPlanPassed;
-
-      results.push({
-        case: case_,
-        result: adapterResult.result,
-        execution: adapterResult.execution,
-        governance,
-        metrics,
-        passed,
-        warnings: adapterResult.warnings,
-        graphPlanResult,
-      });
-    } finally {
-      await closeExecutionContext(ctx);
-    }
+    results.push(await executeRetrievalCase(case_));
   }
 
   return results;
 }
 
 /**
- * Aggregate metrics by slice.
- * Phase 29-03: EOPS-03 (baseline-aware fields)
+ * Print the JSON report body.
  */
-function aggregateSliceMetrics(results: CaseResult[]): SliceMetrics[] {
-  // Group by slice key
-  const sliceMap = new Map<string, CaseResult[]>();
-
-  for (const result of results) {
-    const key: SliceKey = {
-      tier: result.case.tier,
-      endpoint: result.case.endpoint,
-      mode: result.case.request.mode,
-    };
-    const keyStr = `${key.tier}:${key.endpoint}:${key.mode ?? 'none'}`;
-
-    const existing = sliceMap.get(keyStr) ?? [];
-    existing.push(result);
-    sliceMap.set(keyStr, existing);
+async function writeJsonSummary(
+  summary: RunnerSummary,
+  jsonPath: string | undefined,
+): Promise<void> {
+  if (jsonPath) {
+    const fs = await import('node:fs/promises');
+    const dir = jsonPath.replace(/\/[^/]+$/, '');
+    await fs.mkdir(dir, { recursive: true }).catch(() => {});
+    await fs.writeFile(jsonPath, JSON.stringify(summary, null, 2));
+    console.log(`JSON report written to: ${jsonPath}\n`);
+  } else {
+    console.log('\n=== JSON Report ===');
+    console.log(JSON.stringify(summary, null, 2));
   }
-
-  // Aggregate each slice
-  const slices: SliceMetrics[] = [];
-
-  for (const [keyStr, sliceResults] of sliceMap) {
-    const [tier, endpoint, mode] = keyStr.split(':');
-    const metrics = averageMetrics(sliceResults.map((r) => r.metrics));
-    const governanceFailures = sliceResults.filter((r) => !r.governance.passed).length;
-
-    // Phase 29-03: Routing trace fields
-    const modeCounts = new Map<string, number>();
-    for (const r of sliceResults) {
-      if (r.execution.selectedMode) {
-        modeCounts.set(
-          r.execution.selectedMode,
-          (modeCounts.get(r.execution.selectedMode) ?? 0) + 1,
-        );
-      }
-    }
-    let selectedMode: string | undefined;
-    let maxCount = 0;
-    for (const [m, count] of modeCounts) {
-      if (count > maxCount) {
-        maxCount = count;
-        selectedMode = m;
-      }
-    }
-
-    const fallbackApplied = sliceResults.some((r) => r.execution.fallbackApplied);
-
-    slices.push({
-      slice: {
-        tier: tier as RetrievalEvalTier,
-        endpoint: endpoint as '/v1/retrieval/search' | '/v2/retrieval/search',
-        mode: mode === 'none' ? undefined : (mode as 'semantic' | 'hybrid' | 'graph-assisted'),
-      },
-      caseCount: sliceResults.length,
-      avgHitAt1: metrics.hitAt1,
-      avgHitAt5: metrics.hitAt5,
-      avgHitAt10: metrics.hitAt10,
-      avgMrr: metrics.mrr,
-      avgNdcg: metrics.ndcg,
-      avgRecallAt10: metrics.recallAt10,
-      governanceFailures,
-      selectedMode: selectedMode as
-        | 'naive'
-        | 'local'
-        | 'global'
-        | 'hybrid'
-        | 'mix'
-        | 'auto'
-        | undefined,
-      fallbackApplied,
-      regressionStatus: 'no-baseline',
-    });
-  }
-
-  return slices;
-}
-
-/**
- * Print human-readable summary.
- */
-function printSummary(results: CaseResult[], slices: SliceMetrics[]): void {
-  const passed = results.filter((r) => r.passed).length;
-  const failed = results.length - passed;
-  const passRate = results.length > 0 ? passed / results.length : 0;
-
-  console.log('\n=== Evaluation Summary ===');
-  console.log(`Total cases: ${results.length}`);
-  console.log(`Passed: ${passed}`);
-  console.log(`Failed: ${failed}`);
-  console.log(`Pass rate: ${(passRate * 100).toFixed(1)}%`);
-  console.log('');
-
-  // Print slice metrics
-  console.log('=== Slice Metrics ===');
-  for (const slice of slices) {
-    const modeStr = slice.slice.mode ? ` (${slice.slice.mode})` : '';
-    console.log(`\n[${slice.slice.tier}] ${slice.slice.endpoint}${modeStr}`);
-    console.log(`  Cases: ${slice.caseCount}`);
-    console.log(`  Avg Hit@1: ${slice.avgHitAt1.toFixed(2)}`);
-    console.log(`  Avg Hit@5: ${slice.avgHitAt5.toFixed(2)}`);
-    console.log(`  Avg Hit@10: ${slice.avgHitAt10.toFixed(2)}`);
-    console.log(`  Avg MRR: ${slice.avgMrr.toFixed(2)}`);
-    console.log(`  Avg nDCG: ${slice.avgNdcg.toFixed(2)}`);
-    console.log(`  Avg Recall@10: ${slice.avgRecallAt10.toFixed(2)}`);
-    console.log(`  Governance failures: ${slice.governanceFailures}`);
-  }
-
-  // Print governance failures
-  const govFailures = results.filter((r) => !r.governance.passed);
-  if (govFailures.length > 0) {
-    console.log('\n=== Governance Failures ===');
-    for (const result of govFailures) {
-      console.log(`\n${result.case.caseId}:`);
-      for (const failure of result.governance.failures) {
-        console.log(`  - [${failure.kind}] ${failure.description}`);
-      }
-    }
-  }
-
-  // Print graph-plan structural failures
-  const graphPlanFailures = results.filter((r) => r.graphPlanResult && !r.graphPlanResult.passed);
-  if (graphPlanFailures.length > 0) {
-    console.log('\n=== Graph-Plan Structural Failures ===');
-    for (const result of graphPlanFailures) {
-      console.log(`\n${result.case.caseId}:`);
-      for (const failure of result.graphPlanResult!.failures) {
-        console.log(`  - [${failure.kind}] ${failure.description}`);
-        if (failure.expected.length > 0) {
-          console.log(`    expected: ${failure.expected.join(', ')}`);
-        }
-        if (failure.actual.length > 0) {
-          console.log(`    actual: ${failure.actual.join(', ')}`);
-        }
-      }
-    }
-  }
-
-  console.log('');
 }
 
 /**
@@ -430,13 +266,38 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (options.runner === 'promptfoo') {
+    console.log('Executing evaluation...\n');
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { retrievalBridge } = await import('./bridge.js');
+    const { report } = await runSuiteWithPromptfoo(retrievalBridge, {
+      tier: options.tier,
+      dryRun: options.dryRun,
+      allowEmpty: options.allowEmpty,
+      runner: 'promptfoo',
+      verbose: options.verbose,
+      ...(options.endpoint !== undefined ? { endpoint: options.endpoint } : {}),
+    });
+
+    console.log(formatRunnerSummary(report.caseResults, report.sliceMetrics));
+    if (options.json) await writeJsonSummary(report, options.jsonPath);
+
+    if (report.caseResults.some((r) => !r.passed)) {
+      console.log('Evaluation completed with failures.\n');
+      process.exit(1);
+    }
+
+    console.log('Evaluation completed successfully.\n');
+    return;
+  }
+
   // Execute cases
   console.log('Executing evaluation...\n');
   const results = await executeAllCases(cases_);
   const slices = aggregateSliceMetrics(results);
 
   // Print summary
-  printSummary(results, slices);
+  console.log(formatRunnerSummary(results, slices));
 
   // Phase 29-03: Baseline write/compare flow
   if (options.writeBaseline && options.baselinePath) {
@@ -517,39 +378,8 @@ async function main(): Promise<void> {
 
   // Write JSON report if requested
   if (options.json) {
-    const summary: RunnerSummary = {
-      options: {
-        tier: options.tier,
-        endpoint: options.endpoint,
-        json: options.json,
-        jsonPath: options.jsonPath,
-        allowEmpty: options.allowEmpty,
-        dryRun: options.dryRun,
-        verbose: options.verbose,
-      },
-      caseResults: results,
-      sliceMetrics: slices,
-      totalCases: results.length,
-      passedCases: results.filter((r) => r.passed).length,
-      failedCases: results.filter((r) => !r.passed).length,
-      passRate: results.length > 0 ? results.filter((r) => r.passed).length / results.length : 0,
-      timestamp: new Date().toISOString(),
-      durationMs: Date.now() - startTime,
-    };
-
-    if (options.jsonPath) {
-      const fs = await import('node:fs/promises');
-      await fs
-        .mkdir(new URL(options.jsonPath, import.meta.url).pathname.replace(/\/[^/]+$/, ''), {
-          recursive: true,
-        })
-        .catch(() => {});
-      await fs.writeFile(options.jsonPath, JSON.stringify(summary, null, 2));
-      console.log(`JSON report written to: ${options.jsonPath}\n`);
-    } else {
-      console.log('\n=== JSON Report ===');
-      console.log(JSON.stringify(summary, null, 2));
-    }
+    const summary = buildRunnerSummary(results, toRunnerOptions(options), Date.now() - startTime);
+    await writeJsonSummary(summary, options.jsonPath);
   }
 
   // Exit with error code if any failures
@@ -562,7 +392,23 @@ async function main(): Promise<void> {
   console.log('Evaluation completed successfully.\n');
 }
 
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+function toRunnerOptions(options: RunOptions): RunnerSummary['options'] {
+  return {
+    tier: options.tier,
+    json: options.json,
+    allowEmpty: options.allowEmpty,
+    dryRun: options.dryRun,
+    verbose: options.verbose,
+    ...(options.endpoint !== undefined ? { endpoint: options.endpoint } : {}),
+    ...(options.jsonPath !== undefined ? { jsonPath: options.jsonPath } : {}),
+    ...(options.baselinePath !== undefined ? { baselinePath: options.baselinePath } : {}),
+    ...(options.writeBaseline ? { writeBaseline: true } : {}),
+  };
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}
