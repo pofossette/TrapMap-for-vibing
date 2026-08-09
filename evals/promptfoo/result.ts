@@ -43,3 +43,24 @@ export function extractOutcome<TCase = unknown>(
     error: evalResult.error ?? null,
   };
 }
+
+/**
+ * Extract the precomputed case result, surfacing a provider executor error as
+ * the underlying message.
+ *
+ * promptfoo sets `evalResult.error` to the assertion failure reason, so a
+ * non-passing assertion is NOT an execution failure. Only the provider error
+ * path (`raw.result = { error }`, set by createCaseProvider on an executor
+ * throw) or a missing result signals a real failure worth surfacing.
+ */
+export function assertResultPresent<TResult>(evalResult: SuiteEvalResult): TResult {
+  const { error, result } = extractOutcome(evalResult);
+  const providerError =
+    result && typeof result === 'object' && 'error' in result
+      ? String((result as { error: unknown }).error)
+      : undefined;
+  if (providerError || result == null) {
+    throw new Error(providerError ?? error ?? 'execution produced no result');
+  }
+  return result as TResult;
+}

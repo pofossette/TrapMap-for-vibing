@@ -276,32 +276,60 @@
 
 ## Phase 3: Deterministic suites — graph-extraction + ingestion
 
-- [ ] `evals/graph-extraction/bridge.ts`：provider = llmProvider 包装 `performLLMExtraction`；
+- [x] `evals/graph-extraction/bridge.ts`：provider = llmProvider 包装 `performLLMExtraction`；
       断言复用 `evaluateNodes`/`evaluateEdges`/`computeMetrics`；`concurrency: 4`
-- [ ] `evals/ingestion/bridge.ts`：provider = deterministicProvider（`bundleToPayloads` +
+      - 证据：新建 `evals/graph-extraction/bridge.ts`，provider executor 复用完整 native 管线
+        `evaluateCase`（内部使用 `performLLMExtraction`/`evaluateNodes`/`evaluateEdges`/`computeMetrics`）
+        并携带 `CaseMetrics` 于 `raw.result`；断言仅映射为 `GradingResult`；`dryRunMode:'execute'`，
+        `concurrency:4`，顶层 `registerBridge`。`run.ts` 增加 `import.meta.url` CLI guard（bridge 需从
+        `./run.js` 导入 `evaluateCase`）与 `--runner native|promptfoo` 分发
+- [x] `evals/ingestion/bridge.ts`：provider = deterministicProvider（`bundleToPayloads` +
       `deriveFromPayloads`）；断言复用 `runAssertions`；`concurrency: 4`
-- [ ] `parity-graph-extraction.test.ts`（dry-run 用 unavailable 模式对比 mode/warning/metrics）
-- [ ] `parity-ingestion.test.ts`（逐字段对比 passed/capsule 数/指标）
+      - 证据：新建 `evals/ingestion/bridge.ts`，provider executor 复用完整 native 逐 bundle 管线
+        （`bundleToPayloads`→`deriveFromPayloads`（动态 import）→`runAssertions`），结果携带
+        `IngestionCaseResult { fixtureId,title,assertions,passed,capsuleCount }`；`buildReport` 用
+        `aggregateMetrics` 汇总；`dryRunMode:'execute'`，`concurrency:4`，顶层 `registerBridge`；
+        `run.ts` 增加 `--runner` 分发
+- [x] `parity-graph-extraction.test.ts`（dry-run 用 unavailable 模式对比 mode/warning/metrics）
+      - 证据：新建 `evals/promptfoo/parity-graph-extraction.test.ts`，dry-run 下按 `caseId` 对比
+        mode/warning/degraded/nodeMetrics/edgeMetrics/strengthAccuracy/totalExpectedStrengths（1 test passed）
+- [x] `parity-ingestion.test.ts`（逐字段对比 passed/capsule 数/指标）
+      - 证据：新建 `evals/promptfoo/parity-ingestion.test.ts`，dry-run 下按 `fixtureId` 逐字段对比
+        passed/capsuleCount/完整 `DerivationAssertions`（1 test passed）
 
 **Completion standard**
 
 - 两个 suite 双 runner 输出一致；`eval:smoke` 全绿。
+      - 证据：graph-extraction 双 runner 均 `Total fixtures: 25`、Node/Edge Precision 与 Strength Accuracy 全 0；
+        ingestion 双 runner 均 `Total bundles: 1`、`Passed: 1`、`Pass rate: 100%`、`Avg capsules 2.0`；
+        `eval:smoke` 54/81 与本地基线一致，无回归
 
 **Test and eval updates**
 
-- [ ] `rtk pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts`
-- [ ] `rtk pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts`
-- [ ] `rtk pnpm eval:graph-extraction --dry-run --runner promptfoo`
-- [ ] `rtk pnpm eval:ingestion --smoke --dry-run --runner promptfoo`
-- [ ] `rtk pnpm eval:smoke`
+- [x] `rtk pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts`
+      - 证据：1 test passed
+- [x] `rtk pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts`
+      - 证据：1 test passed
+- [x] `rtk pnpm eval:graph-extraction --dry-run --runner promptfoo`
+      - 证据：exit 0；`Total fixtures: 25`，与 native 逐项一致
+- [x] `rtk pnpm eval:ingestion --smoke --dry-run --runner promptfoo`
+      - 证据：计划命令的 `--smoke` 不被 `run-eval.ts` 接受（无该 option），已改用等价命令
+        `rtk pnpm eval:ingestion --tier smoke --dry-run --runner promptfoo`（exit 0；`Total bundles: 1`、
+        `Passed: 1`、`Pass rate: 100.0%`，与 native 一致）—— 命令修正已在 TESTING.md 注明
+- [x] `rtk pnpm eval:smoke`
+      - 证据：54/81 passed（与本地 keyless 基线一致，无回归）；`rtk pnpm typecheck` exit 0；
+        `fallow audit --base main` 无新增跨包导入违规
 
 **Document updates**
 
-- [ ] `docs/operations/TESTING.md` suite 表同步（如需）
+- [x] `docs/operations/TESTING.md` suite 表同步（如需）
+      - 证据：`--runner` 双轨小节扩展为 agent-planning/graph-extraction/ingestion 三个 suite，
+        并注明 ingestion 用 `--tier smoke`（run-eval 不接受 `--smoke`）
 
 **Commit**
 
-- [ ] 提交：`feat(evals): migrate graph-extraction and ingestion runners to promptfoo`
+- [x] 提交：`feat(evals): migrate graph-extraction and ingestion runners to promptfoo`
+      - 证据：commit `<pending-hash>`
 
 ## Phase 4: label-alignment bridge
 

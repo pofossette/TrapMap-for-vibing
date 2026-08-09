@@ -41,6 +41,7 @@ interface RunOptions {
   dryRun: boolean;
   smoke: boolean;
   verbose: number;
+  runner?: 'native' | 'promptfoo';
 }
 
 function parseArgs_(): RunOptions {
@@ -49,13 +50,19 @@ function parseArgs_(): RunOptions {
       'dry-run': { type: 'boolean', short: 'd', default: false },
       smoke: { type: 'boolean', short: 's', default: false },
       verbose: { type: 'boolean', short: 'v', default: false },
+      runner: { type: 'string', default: 'native' },
     },
     strict: true,
   });
+  const runner = values.runner ?? 'native';
+  if (runner !== 'native' && runner !== 'promptfoo') {
+    throw new Error(`Invalid --runner value: ${runner}`);
+  }
   return {
     dryRun: values['dry-run'] ?? false,
     smoke: values.smoke ?? false,
     verbose: values.verbose ? 1 : 0,
+    runner,
   };
 }
 
@@ -488,6 +495,32 @@ async function main(): Promise<void> {
   console.log(`Smoke: ${options.smoke}`);
   console.log('');
 
+  if (options.runner === 'promptfoo') {
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { graphExtractionBridge } = await import('./bridge.js');
+    const { report } = await runSuiteWithPromptfoo(graphExtractionBridge, {
+      tier: options.smoke ? 'smoke' : 'core',
+      dryRun: options.dryRun,
+      allowEmpty: false,
+      runner: 'promptfoo',
+    });
+    console.log(`Running ${report.totalFixtures} fixture(s)...`);
+    console.log('');
+    console.log(
+      formatReport(report.results, report.aggregate, [], aggregateMetrics([]), options.dryRun),
+    );
+    const durationMs = Date.now() - startTime;
+    console.log(`Duration: ${durationMs}ms`);
+    console.log('');
+    if (!options.dryRun && report.aggregate.degradedCount > 0) {
+      console.log(
+        `WARNING: ${report.aggregate.degradedCount} case(s) degraded -- results may not reflect true LLM quality`,
+      );
+    }
+    console.log('Evaluation completed successfully.');
+    return;
+  }
+
   const fixtures = options.smoke ? getSmokeFixtures() : graphExtractionFixtures;
   console.log(`Running ${fixtures.length} fixture(s)...`);
   console.log('');
@@ -524,7 +557,9 @@ async function main(): Promise<void> {
   console.log('Evaluation completed successfully.');
 }
 
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}

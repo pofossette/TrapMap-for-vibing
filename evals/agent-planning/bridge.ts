@@ -21,7 +21,7 @@ import type {
 import { createJsAssertion } from '../promptfoo/assertion.js';
 import { registerBridge } from '../promptfoo/bridge.js';
 import { llmProvider } from '../promptfoo/provider.js';
-import { extractOutcome } from '../promptfoo/result.js';
+import { assertResultPresent } from '../promptfoo/result.js';
 import type { SuiteBridge, SuiteRunOptions } from '../promptfoo/types.js';
 import { type AgentPlanningReportOptions, buildAgentPlanningReport } from './lib/report.js';
 import { getAgentPlanningEvaluationCases } from './lib/runner-api.js';
@@ -91,18 +91,7 @@ export const agentPlanningBridge: SuiteBridge<
   },
 
   mapResult(_options, evalResult) {
-    const { error, result } = extractOutcome<AgentPlanningEvalCase>(evalResult);
-    const rawError =
-      error ??
-      (result && typeof result === 'object' && 'error' in result
-        ? String((result as { error: unknown }).error)
-        : undefined);
-    if (rawError) {
-      // Native fails the whole run with the underlying error; mirror that
-      // instead of letting a malformed case result reach report schema.parse.
-      throw new Error(rawError);
-    }
-    return result as AgentPlanningCaseResult;
+    return assertResultPresent<AgentPlanningCaseResult>(evalResult);
   },
 
   buildReport(options, results) {

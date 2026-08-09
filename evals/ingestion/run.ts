@@ -39,6 +39,7 @@ interface RunOptions {
   dryRun: boolean;
   smoke: boolean;
   verbose: boolean;
+  runner?: 'native' | 'promptfoo';
 }
 
 function parseArgs_(): RunOptions {
@@ -47,13 +48,19 @@ function parseArgs_(): RunOptions {
       'dry-run': { type: 'boolean', short: 'd', default: false },
       smoke: { type: 'boolean', short: 's', default: false },
       verbose: { type: 'boolean', short: 'v', default: false },
+      runner: { type: 'string', default: 'native' },
     },
     strict: true,
   });
+  const runner = values.runner ?? 'native';
+  if (runner !== 'native' && runner !== 'promptfoo') {
+    throw new Error(`Invalid --runner value: ${runner}`);
+  }
   return {
     dryRun: values['dry-run'] ?? false,
     smoke: values.smoke ?? false,
     verbose: values.verbose ?? false,
+    runner,
   };
 }
 
@@ -69,6 +76,30 @@ async function main(): Promise<void> {
   console.log(`Mode: ${options.dryRun ? 'dry-run' : 'live'}`);
   console.log(`Smoke: ${options.smoke}`);
   console.log('');
+
+  if (options.runner === 'promptfoo') {
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { ingestionBridge } = await import('./bridge.js');
+    const { report } = await runSuiteWithPromptfoo(ingestionBridge, {
+      tier: options.smoke ? 'smoke' : 'core',
+      dryRun: options.dryRun,
+      allowEmpty: false,
+      runner: 'promptfoo',
+    });
+    const fixtureCount = options.smoke ? getSmokeFixtures().length : derivationFixtures.length;
+    console.log(`Running ${fixtureCount} bundle(s)...`);
+    console.log('');
+    const assertionResults = report.results.map((r) => ({
+      fixtureId: r.fixtureId,
+      title: r.title,
+      assertions: r.assertions,
+      passed: r.passed,
+    }));
+    console.log(formatDerivationReport(assertionResults, report.aggregate, options.dryRun));
+    const allPassed = report.results.every((r) => r.passed);
+    if (!allPassed) process.exit(1);
+    return;
+  }
 
   // Load bundles
   let bundles: Array<{ id: string; bundle: ArtifactBundle }>;

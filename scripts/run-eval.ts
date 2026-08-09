@@ -201,6 +201,9 @@ function buildSuiteArgs(
     if (options.dryRun) {
       args.push('--dry-run');
     }
+    if (options.runner) {
+      args.push('--runner', options.runner);
+    }
     return args;
   }
 
