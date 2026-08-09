@@ -85,6 +85,56 @@ jobs:
               body: body
             });
 
+  eval-parity:
+    runs-on: ubuntu-latest
+    # Snapshot parity needs no API keys: it re-runs each suite bridge through
+    # the promptfoo engine and asserts the per-case judgment matches the
+    # committed snapshots in evals/promptfoo/snapshots/. Blocking on evals/**
+    # PRs. The postgres service (with the vector extension) is only required by
+    # the retrieval parity test; the other five run DB-free.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.33.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run snapshot parity tests
+        run: |
+          pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts
+          pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts
+          pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts
+          pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts
+          pnpm test:file -- evals/promptfoo/parity-summary.test.ts
+          pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts
+        env:
+          TRAPMAP_POSTGRES_COORDINATOR_URL: postgres://postgres:postgres@localhost:5432/postgres
+          NODE_ENV: test
+          VITEST_MAX_WORKERS: '1'
+          VITEST_MIN_WORKERS: '1'
+
   eval-core-scheduled:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.tier == 'core')

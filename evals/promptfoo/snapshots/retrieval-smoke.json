@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "retrieval",
+  "tier": "smoke",
+  "generatedAt": "2026-08-09T07:08:38.724Z",
+  "command": "tsx scripts/run-postgres-coordinated.ts -- pnpm exec tsx evals/promptfoo/scripts/generate-snapshots.ts",
+  "cases": [
+    {
+      "caseId": "v1-graph-assisted-positive-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v1-hybrid-positive-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v1-semantic-empty-smoke",
+      "passed": true,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v1-semantic-forbidden-smoke",
+      "passed": true,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v1-semantic-positive-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v1-skill-lookup-positive-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-capsule-empty-smoke",
+      "passed": true,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-capsule-forbidden-smoke",
+      "passed": true,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-capsule-positive-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-capsule-ranked-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-graph-assisted-co-occurs-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-graph-assisted-disabled-backend-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-graph-assisted-fail-open-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-graph-assisted-governance-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-graph-assisted-vector-only-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-include-summary-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-keyword-dominant-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-keyword-regex-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-label-filter-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-semantic-dominant-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v2-semantic-paraphrase-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v3-graph-plan-fallback-v1-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v3-graph-plan-fallback-v2-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v3-graph-plan-maxdepth-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v3-graph-plan-selected-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    },
+    {
+      "caseId": "v3-graph-plan-skill-budget-smoke",
+      "passed": false,
+      "hitAt1": 0,
+      "mrr": 0,
+      "ndcg": 0
+    }
+  ]
+}

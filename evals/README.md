@@ -135,7 +135,11 @@ evals/
 │   ├── result.ts                # promptfoo result → 契约 CaseResult 映射
 │   ├── filters.ts               # tier/endpoint/metadata 过滤
 │   ├── dryrun.ts                # echo provider + dry-run 语义
-│   └── bridge.ts                # suite 注册表
+│   ├── bridge.ts                # suite 注册表
+│   ├── parity-*.test.ts         # 各 suite 快照 parity 测试（bridge 输出 vs 快照）
+│   ├── snapshots/               # 提交的 smoke 判定快照（*-smoke.json + snapshot-schema.ts）
+│   └── scripts/
+│       └── generate-snapshots.ts # 快照生成器（含各 suite case extractor）
 └── <suite>/bridge.ts            # 各 suite 的 SuiteBridge 桥接实现
 ```
 
@@ -151,7 +155,34 @@ evals/
 | `ingestion/` | Skill ingestion fixtures, assertions, adapter, and runner | `pnpm eval:ingestion:smoke` |
 | `fixtures/` | Shared trap fixtures | Imported by eval suites |
 | `promptfoo/` | Shared promptfoo execution substrate (SuiteBridge, runner, providers) | Used by suite bridges |
+| `promptfoo/snapshots/` | Committed per-case smoke judgment snapshots for parity | `pnpm eval:snapshots` regenerates |
+| `promptfoo/scripts/generate-snapshots.ts` | Snapshot generator + per-suite case extractors | Used by parity tests |
 | `scripts/` | Cross-eval CI and aggregate runners | `pnpm eval:ci` |
+
+## promptfoo 引擎与快照 parity
+
+六个 suite 全部运行在 promptfoo 执行引擎（`runSuiteWithPromptfoo` + 各 suite `SuiteBridge`）。
+自研 native case 循环与 `runner-api.ts` 执行循环已删除；`--runner` 默认 `promptfoo`
+（保留 flag 仅为向后兼容）。governance / IR 指标 / judge 评分仍以 TrapMap 原生纯函数逻辑为准，
+promptfoo 只做执行载体。
+
+`evals/promptfoo/snapshots/<suite>-smoke.json` 记录了各 suite smoke tier 的逐 case 判定
+（`caseId` + `passed` + suite 相关数值字段，按 `caseId` 排序、提交输出确定）。快照由
+`pnpm eval:snapshots` 生成（summary/retrieval 需 postgres coordinator）：
+
+```bash
+# 重新生成全部快照（在 postgres coordinator 下）
+pnpm eval:snapshots
+
+# 快照 parity 测试：重跑 bridge 并与提交快照逐 case 比对（不依赖 native 代码）
+rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts
+rtk pnpm test:file -- evals/promptfoo/parity-summary.test.ts
+# retrieval parity 需 TRAPMAP_POSTGRES_COORDINATOR_URL（临时建库），无 coordinator 时自动 skip
+rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts
+```
+
+CI 中 `.github/workflows/eval.yml` 的 `eval-parity` job（blocking）在 `evals/**` 相关的 PR 上
+运行全部六个 parity 测试，无需 API key。
 
 ## Phase 状态
 

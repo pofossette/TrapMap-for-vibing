@@ -9,20 +9,12 @@ import { labelAlignmentEvalFixtureSchema } from '../../packages/contracts/src/do
 
 import { coreFixtures } from './fixtures/core.js';
 import { smokeFixtures } from './fixtures/smoke.js';
-import { type LiveDecisionContext, runLiveDecisionEvaluation } from './lib/decision-eval.js';
 import { formatLabelAlignmentReport } from './lib/format.js';
 import { calculateCaseMetrics } from './lib/metrics.js';
 import { runDeterministicRecall } from './lib/recall-eval.js';
-import { buildLabelAlignmentReport } from './lib/report.js';
 
 export interface LoadFixtureOptions {
   tier: 'smoke' | 'core';
-}
-
-export interface RunLabelAlignmentSuiteOptions extends LoadFixtureOptions {
-  mode: 'dry-run' | 'live';
-  fixtureIds?: string[];
-  live?: LiveDecisionContext;
 }
 
 export async function loadLabelAlignmentFixtures(
@@ -32,43 +24,6 @@ export async function loadLabelAlignmentFixtures(
   return fixtures.map((fixture) => labelAlignmentEvalFixtureSchema.parse(fixture));
 }
 
-export async function runLabelAlignmentSuite(
-  options: RunLabelAlignmentSuiteOptions,
-): Promise<LabelAlignmentEvalReport> {
-  const startTime = Date.now();
-  const fixtures = await loadLabelAlignmentFixtures({ tier: options.tier });
-  const filteredFixtures = options.fixtureIds?.length
-    ? fixtures.filter((fixture) => options.fixtureIds?.includes(fixture.fixtureId))
-    : fixtures;
-
-  const caseResults: LabelAlignmentEvalCaseResult[] = [];
-  for (const fixture of filteredFixtures) {
-    for (const case_ of fixture.cases.filter((entry) => entry.tier === options.tier)) {
-      const caseStart = Date.now();
-      if (options.mode === 'live') {
-        const liveResult = await runLiveDecisionEvaluation(case_, options.live ?? {});
-        caseResults.push({
-          ...liveResult,
-          mode: 'live',
-          durationMs: Date.now() - caseStart,
-        });
-        continue;
-      }
-
-      const dryResult = evaluateLabelAlignmentCaseDryRun(case_);
-      caseResults.push({ ...dryResult, mode: 'dry-run', durationMs: Date.now() - caseStart });
-    }
-  }
-
-  return buildLabelAlignmentReport({
-    tier: options.tier,
-    mode: options.mode,
-    fixtureIds: filteredFixtures.map((fixture) => fixture.fixtureId),
-    durationMs: Date.now() - startTime,
-    cases: caseResults,
-  });
-}
-
 export function formatRunResult(report: LabelAlignmentEvalReport): string {
   return formatLabelAlignmentReport(report);
 }
@@ -76,8 +31,8 @@ export function formatRunResult(report: LabelAlignmentEvalReport): string {
 /**
  * Evaluate one label-alignment case with the deterministic dry-run pipeline:
  * `runDeterministicRecall` → `inferRecallReason` → `calculateCaseMetrics`.
- * Shared by the native `runLabelAlignmentSuite` and the promptfoo bridge so
- * `--runner promptfoo` is per-case identical to native.
+ * Used by the promptfoo bridge's provider executor (the native case loop was
+ * removed in the promptfoo cutover).
  */
 export function evaluateLabelAlignmentCaseDryRun(
   case_: LabelAlignmentEvalCase,

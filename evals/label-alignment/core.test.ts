@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadLabelAlignmentFixtures, runLabelAlignmentSuite } from './core.js';
+import { loadLabelAlignmentFixtures } from './core.js';
 
 describe('label alignment eval scaffold', () => {
   it('loads and validates smoke fixtures', async () => {
@@ -86,8 +86,13 @@ describe('label alignment eval scaffold', () => {
   });
 
   it('runs deterministic dry-run evaluation and reports metrics', async () => {
-    const report = await runLabelAlignmentSuite({
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { labelAlignmentBridge } = await import('./bridge.js');
+    const { report } = await runSuiteWithPromptfoo(labelAlignmentBridge, {
       tier: 'smoke',
+      dryRun: true,
+      allowEmpty: false,
+      runner: 'promptfoo',
       mode: 'dry-run',
     });
 
@@ -106,8 +111,13 @@ describe('label alignment eval scaffold', () => {
 
   it('materializes runnable core fixtures instead of silently passing zero cases', async () => {
     const fixtures = await loadLabelAlignmentFixtures({ tier: 'core' });
-    const report = await runLabelAlignmentSuite({
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { labelAlignmentBridge } = await import('./bridge.js');
+    const { report } = await runSuiteWithPromptfoo(labelAlignmentBridge, {
       tier: 'core',
+      dryRun: true,
+      allowEmpty: false,
+      runner: 'promptfoo',
       mode: 'dry-run',
     });
 

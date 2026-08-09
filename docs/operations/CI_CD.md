@@ -110,7 +110,18 @@ View full report →
 2. 上传评测报告（保留 30 天）
 3. 上传 baseline（保留 90 天）
 
-> 源码：`.github/workflows/eval.yml`、`evals/scripts/eval-ci.ts`
+### eval-parity job（快照 parity，blocking）
+
+对 `evals/**` 相关的 PR（含直接修改 `evals/**` 的 PR）阻断：
+
+1. 启动 `pgvector/pgvector:pg16` postgres service（vector extension；仅 retrieval parity 需要）
+2. 运行全部六个快照 parity 测试：
+   `evals/promptfoo/parity-{agent-planning,graph-extraction,ingestion,label-alignment,summary,retrieval}.test.ts`
+3. parity 测试重跑各 suite bridge（promptfoo 引擎），与提交的
+   `evals/promptfoo/snapshots/*-smoke.json` 逐 case 比对（`caseId` + `passed` + 数值字段），
+   **无需 API key**；判定漂移即失败。
+
+> 源码：`.github/workflows/eval.yml`、`evals/promptfoo/parity-*.test.ts`、`evals/promptfoo/snapshots/`
 
 ---
 

@@ -16,18 +16,18 @@ describe('resolveEvalTarget', () => {
     expect(target.args).toEqual(['--tier', 'smoke']);
   });
 
-  it('routes retrieval core to the retrieval runner', () => {
+  it('routes retrieval core to the retrieval runner with the default promptfoo engine', () => {
     const target = resolveSuite('retrieval', ['--tier', 'core']);
 
     expect(target.scriptPath).toBe('evals/retrieval/run.ts');
-    expect(target.args).toEqual(['--tier', 'core']);
+    expect(target.args).toEqual(['--tier', 'core', '--runner', 'promptfoo']);
   });
 
   it('preserves dry-run mode for agent-planning', () => {
     const target = resolveSuite('agent-planning', ['--tier', 'core', '--dry-run']);
 
     expect(target.scriptPath).toBe('evals/agent-planning/run.ts');
-    expect(target.args).toEqual(['--tier', 'core', '--dry-run']);
+    expect(target.args).toEqual(['--tier', 'core', '--dry-run', '--runner', 'promptfoo']);
   });
 
   it('forwards --runner to the agent-planning runner', () => {
@@ -47,7 +47,7 @@ describe('resolveEvalTarget', () => {
     const target = resolveSuite('label-alignment', ['--tier', 'smoke', '--mode', 'dry-run']);
 
     expect(target.scriptPath).toBe('evals/label-alignment/run.ts');
-    expect(target.args).toEqual(['--tier', 'smoke', '--mode', 'dry-run']);
+    expect(target.args).toEqual(['--tier', 'smoke', '--mode', 'dry-run', '--runner', 'promptfoo']);
   });
 
   it('forwards --runner to the label-alignment runner', () => {
@@ -84,18 +84,18 @@ describe('resolveEvalTarget', () => {
     expect(target.args).toEqual(['--tier', 'smoke', '--runner', 'promptfoo']);
   });
 
-  it('keeps graph-extraction defaulting to the full fixture set', () => {
+  it('keeps graph-extraction defaulting to the full fixture set on the promptfoo engine', () => {
     const target = resolveSuite('graph-extraction');
 
     expect(target.scriptPath).toBe('evals/graph-extraction/run.ts');
-    expect(target.args).toEqual([]);
+    expect(target.args).toEqual(['--runner', 'promptfoo']);
   });
 
   it('maps ingestion smoke onto the legacy boolean flag', () => {
     const target = resolveSuite('ingestion', ['--tier', 'smoke', '--dry-run']);
 
     expect(target.scriptPath).toBe('evals/ingestion/run.ts');
-    expect(target.args).toEqual(['--smoke', '--dry-run']);
+    expect(target.args).toEqual(['--smoke', '--dry-run', '--runner', 'promptfoo']);
   });
 
   it('forwards the runner flag for graph-extraction dry-run', () => {

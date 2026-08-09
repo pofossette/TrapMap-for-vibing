@@ -26,12 +26,14 @@ import type {
   RegressionResult,
   RegressionThresholds,
   RetrievalEvalReport,
+  SummaryEvalReport,
 } from '../../packages/contracts/src/domain/evals/report.js';
 import {
   TIER_THRESHOLDS,
   baselineReportSchema,
   regressionResultSchema,
 } from '../../packages/contracts/src/domain/evals/report.js';
+import type { RunnerSummary } from '../retrieval/lib/types.js';
 
 // =============================================================================
 // GitHub Actions Output Helpers
@@ -368,31 +370,43 @@ interface CIReport {
 // =============================================================================
 
 /**
- * Run retrieval evaluation and return CI-friendly result.
+ * Run retrieval evaluation through the promptfoo bridge and return CI-friendly result.
  */
 async function runRetrievalEval(tier: 'smoke' | 'core'): Promise<CIReport['retrieval']> {
-  const _startTime = Date.now();
+  const startTime = Date.now();
 
   try {
-    const { runRetrievalEvaluation } = await import('../retrieval/lib/runner-api.js');
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { retrievalBridge } = await import('../retrieval/bridge.js');
+    const { buildReport } = await import('../retrieval/lib/report.js');
 
-    const result = await runRetrievalEvaluation({
+    const result = await runSuiteWithPromptfoo(retrievalBridge, {
       tier,
       dryRun: false,
       allowEmpty: false,
+      runner: 'promptfoo',
       verbose: 0,
     });
+    const summary = result.report as RunnerSummary;
+
+    // Rebuild the canonical RetrievalEvalReport from the bridge case results so
+    // the baseline comparison (which reads report.slices) keeps the native shape.
+    const report = buildReport(
+      summary.caseResults,
+      { tier, dryRun: false, allowEmpty: false, verbose: 0 },
+      Date.now() - startTime,
+    );
 
     return {
-      passed: result.passed,
+      passed: report.summary.failedCases === 0,
       summary: {
-        totalCases: result.summary.totalCases,
-        passedCases: result.summary.passedCases,
-        failedCases: result.summary.failedCases,
-        passRate: result.summary.passRate,
-        passed: result.passed,
+        totalCases: report.summary.totalCases,
+        passedCases: report.summary.passedCases,
+        failedCases: report.summary.failedCases,
+        passRate: report.summary.passRate,
+        passed: report.summary.failedCases === 0,
       },
-      report: result.report,
+      report,
     };
   } catch (error) {
     console.error('Retrieval evaluation error:', error);
@@ -401,34 +415,38 @@ async function runRetrievalEval(tier: 'smoke' | 'core'): Promise<CIReport['retri
 }
 
 /**
- * Run summary evaluation and return CI-friendly result.
+ * Run summary evaluation through the promptfoo bridge and return CI-friendly result.
  */
 async function runSummaryEval(tier: 'smoke' | 'core'): Promise<CIReport['summary']> {
   const _startTime = Date.now();
 
   try {
-    const { runSummaryEvaluation } = await import('../summary/lib/runner-api.js');
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { summaryBridge } = await import('../summary/bridge.js');
 
-    const result = await runSummaryEvaluation({
+    const result = await runSuiteWithPromptfoo(summaryBridge, {
       tier,
       dryRun: false,
       allowEmpty: false,
+      runner: 'promptfoo',
+      provider: 'fallback',
       verbose: 0,
     });
+    const report = result.report as SummaryEvalReport;
 
     return {
-      passed: result.passed,
+      passed: report.summary.failedCases === 0,
       summary: {
-        totalCases: result.summary.totalCases,
-        passedCases: result.summary.passedCases,
-        failedCases: result.summary.failedCases,
-        passRate: result.summary.passRate,
-        passed: result.passed,
-        avgGroundedness: result.summary.avgGroundedness,
-        avgCoverage: result.summary.avgCoverage,
-        forbiddenClaimHits: result.summary.forbiddenClaimHits,
+        totalCases: report.summary.totalCases,
+        passedCases: report.summary.passedCases,
+        failedCases: report.summary.failedCases,
+        passRate: report.summary.passRate,
+        passed: report.summary.failedCases === 0,
+        avgGroundedness: report.summary.avgGroundedness,
+        avgCoverage: report.summary.avgCoverage,
+        forbiddenClaimHits: report.summary.forbiddenClaimHits,
       },
-      report: result.report,
+      report,
     };
   } catch (error) {
     console.error('Summary evaluation error:', error);

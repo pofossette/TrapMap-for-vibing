@@ -1756,4 +1756,44 @@ describe('runUnifiedEvaluation', () => {
     expect(allEventsStr).not.toContain('api_key');
     expect(allEventsStr).not.toContain('Bearer ');
   });
+
+  it('routes all six suites through their bridges in dry-run (no native execution)', async () => {
+    const result = await runUnifiedEvaluation({
+      tier: 'smoke' as const,
+      json: false,
+      verbose: false,
+      dryRun: true,
+      allowEmpty: false,
+    });
+
+    expect(result.exitCode).toBe(0);
+    const report = result.combinedReport;
+
+    // Every suite produced a result through its bridge.
+    expect(report.retrieval).not.toBeNull();
+    expect(report.summary).not.toBeNull();
+    expect(report.graphExtraction).not.toBeNull();
+    expect(report.ingestion).not.toBeNull();
+    expect(report.agentPlanning).not.toBeNull();
+    expect(report.labelAlignment).not.toBeNull();
+
+    // Dry-run skip-mode suites report the loaded case count as passed with a
+    // null report (native dry-run shape preserved).
+    expect(report.retrieval?.report).toBeNull();
+    expect(report.summary?.report).toBeNull();
+    expect(report.retrieval?.summary.passedCases).toBe(report.retrieval?.summary.totalCases);
+    expect(report.summary?.summary.passedCases).toBe(report.summary?.summary.totalCases);
+
+    // Aggregate totals are consistent and every case passes in dry-run.
+    const expectedTotal =
+      (report.retrieval?.summary.totalCases ?? 0) +
+      (report.summary?.summary.totalCases ?? 0) +
+      (report.graphExtraction?.totalFixtures ?? 0) +
+      (report.ingestion?.totalBundles ?? 0) +
+      (report.agentPlanning?.summary.totalCases ?? 0) +
+      (report.labelAlignment?.summary.totalCases ?? 0);
+    expect(report.overall.totalCases).toBe(expectedTotal);
+    expect(report.overall.passedCases).toBe(expectedTotal);
+    expect(report.overall.passed).toBe(true);
+  });
 });

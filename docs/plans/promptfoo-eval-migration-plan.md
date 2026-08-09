@@ -476,17 +476,35 @@
 
 ## Phase 7: Cutover — eval-all unification, native removal, snapshot parity
 
-- [ ] 用 fallback/echo provider 运行 6 个 suite 的 promptfoo runner，生成逐 case 判定快照
+- [x] 用 fallback/echo provider 运行 6 个 suite 的 promptfoo runner，生成逐 case 判定快照
       入 `evals/promptfoo/snapshots/`（快照 schema 记录版本号与生成命令）
-- [ ] `eval-all.ts`：6 个 suite 分支收敛为 bridge 注册表循环；`CombinedReport` 结构不变；
+  - 证据：6 个 `*-smoke.json` + `snapshot-schema.ts`（schemaVersion=1，记录生成命令）已提交；
+    `pnpm eval:snapshots`（`scripts/run-postgres-coordinated.ts` 包裹 `generate-snapshots.ts`）
+    重新生成；六个 parity 测试重跑 bridge 与提交快照逐 case 一致
+- [x] `eval-all.ts`：6 个 suite 分支收敛为 bridge 注册表循环；`CombinedReport` 结构不变；
       `evals/scripts/__tests__/eval-all.test.ts` 同步更新
-- [ ] `eval-ci.ts`：只换底层执行，baseline 对比与 GitHub Actions 输出不变；
+  - 证据：eval-all.ts 六个 suite 全部改走 `runSuiteWithPromptfoo(bridge)`（agent-planning /
+    graph-extraction / ingestion / label-alignment / summary / retrieval），`CombinedReport` 形状不变；
+    `evals/scripts/__tests__/eval-all.test.ts` 新增 dry-run 全 bridge 路由测试，16 tests passed
+- [x] `eval-ci.ts`：只换底层执行，baseline 对比与 GitHub Actions 输出不变；
       `evals/scripts/__tests__/eval-ci.test.ts` 同步更新
-- [ ] `scripts/run-eval.ts`：默认 `--runner promptfoo`；删除 native 分支与各 suite 自研
+  - 证据：eval-ci.ts retrieval/summary 改走 bridge，baseline 对比与 GitHub Actions 输出保持；
+    `evals/scripts/__tests__/eval-ci.test.ts` 10 tests passed；`eval:ci` 本地 5/32
+    （retrieval 4/26、summary 1/6）与 keyless 基线一致，`baseline_status=no-baseline`
+- [x] `scripts/run-eval.ts`：默认 `--runner promptfoo`；删除 native 分支与各 suite 自研
       case 循环 / `runner-api.ts` 执行循环（保留契约类型与报告构建器）；
       `scripts/__tests__/run-eval.test.ts` 同步更新
-- [ ] parity 测试改为"promptfoo 输出 vs 快照"（不再依赖 native 代码）
-- [ ] `.github/workflows/eval.yml` 增加 parity job（快照对比，无 API key 可跑，blocking）
+  - 证据：run-eval.ts `parseEvalOptions` 默认 `runner: 'promptfoo'`；六个 suite 的 run.ts 全部
+    promptfoo-only（保留 `--runner` 解析、dry-run 短路、报告打印与退出码）；`runRetrievalEvaluation` /
+    `runSummaryEvaluation` / `runLabelAlignmentSuite` 与对应执行循环已删除，保留 `getXxxEvaluationCases`
+    与报告构建器；`run-eval.test.ts` 17 tests passed；各 suite CLI dry-run 通过
+- [x] parity 测试改为"promptfoo 输出 vs 快照"（不再依赖 native 代码）
+  - 证据：6 个 `evals/promptfoo/parity-*.test.ts` 全部改为重跑 bridge 并与提交快照逐 case 比对
+    （`caseId`+`passed`+数值字段）；summary 沿用 mocked-adapters，retrieval 沿用 coordinator 临时建库；
+    全部 6 个 parity 测试通过（retrieval 在 CI 同构 pgvector postgres service 下实测通过）
+- [x] `.github/workflows/eval.yml` 增加 parity job（快照对比，无 API key 可跑，blocking）
+  - 证据：`eval.yml` 新增 `eval-parity` job：pgvector postgres service + 六个 parity 测试，
+    无 API key，`evals/**` 相关 PR blocking
 
 **Completion standard**
 
@@ -494,19 +512,32 @@
 
 **Test and eval updates**
 
-- [ ] `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
-- [ ] `rtk pnpm test:file -- evals/scripts/__tests__/eval-all.test.ts`
-- [ ] `rtk pnpm test:file -- evals/scripts/__tests__/eval-ci.test.ts`
-- [ ] `rtk pnpm eval:smoke`、`rtk pnpm eval:ci`
-- [ ] `rtk pnpm typecheck`
+- [x] `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
+  - 证据：17 tests passed（默认 runner 断言更新为 `--runner promptfoo`）
+- [x] `rtk pnpm test:file -- evals/scripts/__tests__/eval-all.test.ts`
+  - 证据：16 tests passed（含新增全 bridge dry-run 路由测试）
+- [x] `rtk pnpm test:file -- evals/scripts/__tests__/eval-ci.test.ts`
+  - 证据：10 tests passed
+- [x] `rtk pnpm eval:smoke`、`rtk pnpm eval:ci`
+  - 证据：`eval:smoke` 54/81（与 keyless 本地基线一致，无回归）；`eval:ci` retrieval 4/26、
+    summary 1/6，`has_regressions=false`（baseline 不存在，无回归）
+- [x] `rtk pnpm typecheck`
+  - 证据：root `rtk pnpm typecheck` exit 0（TypeScript: No errors found）
 
 **Document updates**
 
-- [ ] `docs/operations/TESTING.md`：suite 表、验证命令、`--runner` 移除说明
-- [ ] `evals/README.md`：工作区布局（promptfoo 基建）与快速开始
-- [ ] `docs/operations/CI_CD.md`：parity job
-- [ ] `docs/reference/SYSTEM_TRUTH_SOURCES.md`：命令 surface 事实
-- [ ] `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
+- [x] `docs/operations/TESTING.md`：suite 表、验证命令、`--runner` 移除说明
+  - 证据：`--runner promptfoo` 引擎小节更新（native 已移除、默认 promptfoo、快照 parity、
+    验证命令列表与 `pnpm eval:snapshots`）
+- [x] `evals/README.md`：工作区布局（promptfoo 基建）与快速开始
+  - 证据：工作区布局树补充 `promptfoo/snapshots/`、`scripts/generate-snapshots.ts` 与 parity 测试；
+    新增 "promptfoo 引擎与快照 parity" 小节与命令
+- [x] `docs/operations/CI_CD.md`：parity job
+  - 证据：新增 `eval-parity` job 小节（pgvector service、六个 parity 测试、blocking、无 API key）
+- [x] `docs/reference/SYSTEM_TRUTH_SOURCES.md`：命令 surface 事实
+  - 证据：新增 "评估快照 parity" truth-source 行；Phase 7 rule 28 命令 surface 补充 `pnpm eval:snapshots`
+- [x] `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
+  - 证据：`check:docs-drift` All 46 doc rule(s) passed；`check:structure` All checks passed
 
 **Commit**
 

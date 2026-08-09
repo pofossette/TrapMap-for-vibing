@@ -21,10 +21,14 @@ import { parseArgs } from 'node:util';
 
 import type { AgentPlanningEvalReport } from '../../packages/contracts/src/domain/evals/agent-planning.js';
 import type { AgentPlanningEvalCase } from '../../packages/contracts/src/domain/evals/agent-planning.js';
+import type { LabelAlignmentEvalReport } from '../../packages/contracts/src/domain/evals/label-alignment.js';
 import type {
   RetrievalEvalReport,
   SummaryEvalReport,
 } from '../../packages/contracts/src/domain/evals/report.js';
+import type { GraphExtractionBridgeReport } from '../graph-extraction/bridge.js';
+import type { IngestionBridgeReport } from '../ingestion/bridge.js';
+import type { RunnerSummary } from '../retrieval/lib/types.js';
 import { buildAgentPlanningPlatformEvents } from '../agent-planning/lib/platform-events.js';
 import {
   type EvalPlatformAdapterKind,
@@ -355,47 +359,71 @@ async function buildSuitePlatformEvents(
 // =============================================================================
 
 /**
- * Run retrieval evaluation and return results.
+ * Run retrieval evaluation through the promptfoo bridge and return results.
  */
 async function runRetrievalEval(options: EvalAllOptions): Promise<RetrievalResult | null> {
   const startTime = Date.now();
 
   try {
-    // Dynamic import of the retrieval runner
-    const { runRetrievalEvaluation } = await import('../retrieval/lib/runner-api.js');
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { retrievalBridge } = await import('../retrieval/bridge.js');
+    const { buildReport } = await import('../retrieval/lib/report.js');
 
-    const result = await runRetrievalEvaluation({
+    const result = await runSuiteWithPromptfoo(retrievalBridge, {
       tier: options.tier,
       dryRun: options.dryRun,
       allowEmpty: options.allowEmpty,
+      runner: 'promptfoo',
       verbose: options.verbose ? 1 : 0,
     });
+    const summary = result.report as RunnerSummary;
+
+    // Native dry-run short-circuits before executing and reports the loaded
+    // case count as passed with a null report; preserve that shape exactly.
+    if (options.dryRun) {
+      return {
+        passed: true,
+        report: null,
+        durationMs: Date.now() - startTime,
+        summary: {
+          totalCases: result.caseCount,
+          passedCases: result.caseCount,
+          failedCases: 0,
+          passRate: 1,
+          slices: [],
+        },
+      };
+    }
+
+    // Rebuild the canonical RetrievalEvalReport from the bridge case results so
+    // the CombinedReport sub-object and platform events keep the native shape.
+    const report = buildReport(summary.caseResults, summary.options, summary.durationMs);
 
     return {
-      passed: result.passed,
-      report: result.report,
+      passed: report.summary.failedCases === 0,
+      report,
       durationMs: Date.now() - startTime,
       summary: {
-        totalCases: result.summary.totalCases,
-        passedCases: result.summary.passedCases,
-        failedCases: result.summary.failedCases,
-        passRate: result.summary.passRate,
-        slices: result.slices.map((s: any) => ({
-          tier: s.slice.tier,
-          endpoint: s.slice.endpoint,
-          mode: s.slice.mode,
-          caseCount: s.caseCount,
-          avgHitAt1: s.avgHitAt1,
-          avgMrr: s.avgMrr,
-          avgNdcg: s.avgNdcg,
-          passRate: s.passRate,
+        totalCases: report.summary.totalCases,
+        passedCases: report.summary.passedCases,
+        failedCases: report.summary.failedCases,
+        passRate: report.summary.passRate,
+        slices: report.slices.map((slice) => ({
+          tier: slice.slice.tier,
+          endpoint: slice.slice.endpoint,
+          ...(slice.slice.mode !== undefined ? { mode: slice.slice.mode } : {}),
+          caseCount: slice.caseCount,
+          avgHitAt1: slice.avgHitAt1,
+          avgMrr: slice.avgMrr,
+          avgNdcg: slice.avgNdcg,
+          passRate: slice.passRate,
         })),
       },
     };
   } catch (error) {
-    // If the runner API doesn't exist yet, fall back to dry-run simulation
+    // If the bridge is unavailable, fall back to dry-run simulation
     if (options.dryRun) {
-      console.log('  Retrieval evaluation: dry-run mode (runner-api not available)');
+      console.log('  Retrieval evaluation: dry-run mode (bridge not available)');
       return null;
     }
 
@@ -405,8 +433,12 @@ async function runRetrievalEval(options: EvalAllOptions): Promise<RetrievalResul
 }
 
 /**
- * Run graph extraction evaluation and return results.
- * Uses a deterministic lightweight approximation in the unified runner for CI stability.
+ * Run graph extraction evaluation through the promptfoo bridge.
+ *
+ * The aggregate runner always evaluates graph-extraction deterministically (no
+ * LLM calls): the bridge is invoked in dry-run so every fixture runs the
+ * deterministic "unavailable" extraction, preserving the no-API dependency and
+ * CI-stability intent of the previous keyword approximation.
  */
 async function runGraphExtractionEval(
   options: EvalAllOptions,
@@ -414,77 +446,23 @@ async function runGraphExtractionEval(
   const startTime = Date.now();
 
   try {
-    const fixtures = await import('../graph-extraction/fixtures.js');
-    const smokeFixtures = fixtures.getSmokeFixtures();
-    const allFixtures = options.tier === 'smoke' ? smokeFixtures : fixtures.graphExtractionFixtures;
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { graphExtractionBridge } = await import('../graph-extraction/bridge.js');
 
-    // Simple metric computation for the unified report
-    const { normalizeLabel: _nl } = await import('../graph-extraction/fixtures.js');
-
-    // Compute deterministic approximation metrics without LLM calls
-    let totalNodeTP = 0;
-    let totalNodeFP = 0;
-    let totalNodeFN = 0;
-    const _totalEdgeTP = 0;
-    const _totalEdgeFP = 0;
-    let _totalEdgeFN = 0;
-
-    for (const fixture of allFixtures) {
-      // Simple keyword-based approximation
-      const lowerText = fixture.input.toLowerCase();
-      const toolKeywords = [
-        'docker',
-        'npm',
-        'yarn',
-        'nodejs',
-        'postgresql',
-        'redis',
-        'kubernetes',
-        'helm',
-        'ssh',
-        'tmux',
-        'screen',
-        'graphql',
-        'eslint',
-        'prettier',
-      ];
-      const actualNodes = new Set<string>();
-      for (const tool of toolKeywords) {
-        if (lowerText.includes(tool)) {
-          actualNodes.add(`tool:${tool}`);
-        }
-      }
-      const expectedNodes = new Set(
-        fixture.expectedNodes.map((n) => `${n.kind}:${n.label.toLowerCase().replace(/\s+/g, '-')}`),
-      );
-      let tp = 0;
-      for (const key of expectedNodes) {
-        if (actualNodes.has(key)) tp++;
-      }
-      totalNodeTP += tp;
-      totalNodeFP += actualNodes.size - tp;
-      totalNodeFN += expectedNodes.size - tp;
-
-      // Edges: the deterministic approximation does not model edges
-      _totalEdgeFN += fixture.expectedEdges.length;
-    }
-
-    const nodeF1 =
-      totalNodeTP + totalNodeFP + totalNodeFN > 0
-        ? (2 *
-            (totalNodeTP / (totalNodeTP + totalNodeFP)) *
-            (totalNodeTP / (totalNodeTP + totalNodeFN))) /
-          (totalNodeTP / (totalNodeTP + totalNodeFP) + totalNodeTP / (totalNodeTP + totalNodeFN) ||
-            1)
-        : 0;
-    const edgeF1 = 0; // Rule engine produces no edges in simulation
+    const result = await runSuiteWithPromptfoo(graphExtractionBridge, {
+      tier: options.tier,
+      dryRun: true,
+      allowEmpty: false,
+      runner: 'promptfoo',
+    });
+    const report = result.report as GraphExtractionBridgeReport;
 
     return {
       passed: true, // Eval framework itself passed
-      totalFixtures: allFixtures.length,
-      avgNodeF1: nodeF1,
-      avgEdgeF1: edgeF1,
-      avgStrengthAccuracy: 0,
+      totalFixtures: report.totalFixtures,
+      avgNodeF1: report.aggregate.avgNodeF1,
+      avgEdgeF1: report.aggregate.avgEdgeF1,
+      avgStrengthAccuracy: report.aggregate.avgStrengthAccuracy,
       durationMs: Date.now() - startTime,
     };
   } catch (error) {
@@ -498,45 +476,33 @@ async function runGraphExtractionEval(
 }
 
 /**
- * Run ingestion/derivation evaluation and return results.
- * Always dry-run in the unified runner (uses bundled fixtures, no downloaded data).
+ * Run ingestion/derivation evaluation through the promptfoo bridge.
+ *
+ * The aggregate runner always runs ingestion on bundled fixtures (never the
+ * downloaded data file), matching the native "always dry-run in the unified
+ * runner" behavior, so the bridge is invoked in dry-run.
  */
 async function runIngestionEval(options: EvalAllOptions): Promise<IngestionResult | null> {
   const startTime = Date.now();
 
   try {
-    const { derivationFixtures, getSmokeFixtures } = await import('../ingestion/fixtures/index.js');
-    const { bundleToPayloads, buildDerivationContext, makeDeterministicId } = await import(
-      '../ingestion/adapter.js'
-    );
-    const { runAssertions } = await import('../ingestion/assertions.js');
-    const { aggregateMetrics } = await import('../ingestion/metrics.js');
-    const { deriveFromPayloads } = await import(
-      '../../packages/service-knowledge-write/src/artifact-derive-from-payloads.js'
-    );
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { ingestionBridge } = await import('../ingestion/bridge.js');
 
-    const fixtures = options.tier === 'smoke' ? getSmokeFixtures() : derivationFixtures;
-    const results = [];
-    const capsuleCounts: number[] = [];
-
-    for (const fixture of fixtures) {
-      const artifactId = makeDeterministicId(fixture.bundle.slug);
-      const payloads = bundleToPayloads(fixture.bundle, artifactId);
-      const context = buildDerivationContext(fixture.bundle, artifactId);
-      const output = await deriveFromPayloads(payloads, context);
-      const result = runAssertions(fixture.id, fixture.bundle, output as any);
-      results.push(result);
-      capsuleCounts.push(output.capsules.length);
-    }
-
-    const metrics = aggregateMetrics(results, capsuleCounts);
+    const result = await runSuiteWithPromptfoo(ingestionBridge, {
+      tier: options.tier,
+      dryRun: true,
+      allowEmpty: false,
+      runner: 'promptfoo',
+    });
+    const report = result.report as IngestionBridgeReport;
 
     return {
-      passed: results.every((r) => r.passed),
-      totalBundles: metrics.totalBundles,
-      passedBundles: metrics.passedBundles,
-      failedBundles: metrics.failedBundles,
-      passRate: metrics.passRate,
+      passed: report.passedBundles === report.totalBundles,
+      totalBundles: report.totalBundles,
+      passedBundles: report.passedBundles,
+      failedBundles: report.failedBundles,
+      passRate: report.passRate,
       durationMs: Date.now() - startTime,
     };
   } catch (error) {
@@ -550,40 +516,62 @@ async function runIngestionEval(options: EvalAllOptions): Promise<IngestionResul
 }
 
 /**
- * Run summary evaluation and return results.
+ * Run summary evaluation through the promptfoo bridge and return results.
  */
 async function runSummaryEval(options: EvalAllOptions): Promise<SummaryResult | null> {
   const startTime = Date.now();
 
   try {
-    // Dynamic import of the summary runner
-    const { runSummaryEvaluation } = await import('../summary/lib/runner-api.js');
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { summaryBridge } = await import('../summary/bridge.js');
 
-    const result = await runSummaryEvaluation({
+    const result = await runSuiteWithPromptfoo(summaryBridge, {
       tier: options.tier,
       dryRun: options.dryRun,
       allowEmpty: options.allowEmpty,
+      runner: 'promptfoo',
+      provider: 'fallback',
       verbose: options.verbose ? 1 : 0,
     });
+    const report = result.report as SummaryEvalReport;
+
+    // Native dry-run short-circuits before executing and reports the loaded
+    // case count as passed with a null report; preserve that shape exactly.
+    if (options.dryRun) {
+      return {
+        passed: true,
+        report: null,
+        durationMs: Date.now() - startTime,
+        summary: {
+          totalCases: result.caseCount,
+          passedCases: result.caseCount,
+          failedCases: 0,
+          passRate: 1,
+          avgGroundedness: 1,
+          avgCoverage: 1,
+          forbiddenClaimHits: 0,
+        },
+      };
+    }
 
     return {
-      passed: result.passed,
-      report: result.report,
+      passed: report.summary.failedCases === 0,
+      report,
       durationMs: Date.now() - startTime,
       summary: {
-        totalCases: result.summary.totalCases,
-        passedCases: result.summary.passedCases,
-        failedCases: result.summary.failedCases,
-        passRate: result.summary.passRate,
-        avgGroundedness: result.summary.avgGroundedness,
-        avgCoverage: result.summary.avgCoverage,
-        forbiddenClaimHits: result.summary.forbiddenClaimHits,
+        totalCases: report.summary.totalCases,
+        passedCases: report.summary.passedCases,
+        failedCases: report.summary.failedCases,
+        passRate: report.summary.passRate,
+        avgGroundedness: report.summary.avgGroundedness,
+        avgCoverage: report.summary.avgCoverage,
+        forbiddenClaimHits: report.summary.forbiddenClaimHits,
       },
     };
   } catch (error) {
-    // If the runner API doesn't exist yet, fall back to dry-run simulation
+    // If the bridge is unavailable, fall back to dry-run simulation
     if (options.dryRun) {
-      console.log('  Summary evaluation: dry-run mode (runner-api not available)');
+      console.log('  Summary evaluation: dry-run mode (bridge not available)');
       return null;
     }
 
@@ -596,12 +584,17 @@ async function runAgentPlanningEval(options: EvalAllOptions): Promise<AgentPlann
   const startTime = Date.now();
 
   try {
-    const { runAgentPlanningEval: runSuite } = await import('../agent-planning/run.js');
-    const report = await runSuite({
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { agentPlanningBridge } = await import('../agent-planning/bridge.js');
+
+    const result = await runSuiteWithPromptfoo(agentPlanningBridge, {
       tier: options.tier,
       dryRun: options.dryRun,
+      allowEmpty: false,
+      runner: 'promptfoo',
       provider: options.dryRun ? 'fallback' : 'openai',
     });
+    const report = result.report as AgentPlanningEvalReport;
 
     return {
       passed: report.summary.failedCases === 0,
@@ -617,7 +610,7 @@ async function runAgentPlanningEval(options: EvalAllOptions): Promise<AgentPlann
     };
   } catch (error) {
     if (options.dryRun) {
-      console.log('  Agent planning evaluation: dry-run mode (runner not available)');
+      console.log('  Agent planning evaluation: dry-run mode (bridge not available)');
       return null;
     }
 
@@ -632,11 +625,17 @@ async function runLabelAlignmentEval(
   const startTime = Date.now();
 
   try {
-    const { runLabelAlignmentSuite } = await import('../label-alignment/core.js');
-    const report = await runLabelAlignmentSuite({
+    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+    const { labelAlignmentBridge } = await import('../label-alignment/bridge.js');
+
+    const result = await runSuiteWithPromptfoo(labelAlignmentBridge, {
       tier: options.tier,
+      dryRun: options.dryRun,
+      allowEmpty: false,
+      runner: 'promptfoo',
       mode: options.dryRun ? 'dry-run' : 'live',
     });
+    const report = result.report as LabelAlignmentEvalReport;
 
     return {
       passed: report.summary.failedCases === 0,
@@ -654,7 +653,7 @@ async function runLabelAlignmentEval(
     };
   } catch (error) {
     if (options.dryRun) {
-      console.log('  Label alignment evaluation: dry-run mode (runner not available)');
+      console.log('  Label alignment evaluation: dry-run mode (bridge not available)');
       return null;
     }
 

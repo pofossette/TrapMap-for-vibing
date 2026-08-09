@@ -4,25 +4,20 @@ import {
   type AgentPlanningEvalReport,
   type AgentPlanningEvalScenario,
   type AgentPlanningEvalTier,
-  agentPlanningEvalCaseSchema,
   agentPlanningEvalScenarioSchema,
 } from '@trapmap/contracts/evals';
 
-import { coreCases, coreScenariosMap } from './core.js';
-import { skillIdentificationCoreCases } from './datasets/core/skill-identification-core.js';
-import { skillIdentificationSmokeCases } from './datasets/smoke/skill-identification-smoke.js';
+import { coreScenariosMap } from './core.js';
 import { runActor } from './lib/actor-runner.js';
 import { renderScenarioContext } from './lib/context-renderer.js';
 import { formatReport } from './lib/format.js';
 import { runJudge } from './lib/judge-runner.js';
 import { normalizeActorOutput } from './lib/normalizer.js';
 import { loadPromptTemplate, renderPromptTemplate } from './lib/prompt-loader.js';
-import { buildAgentPlanningReport } from './lib/report.js';
-import { getAgentPlanningEvaluationCases } from './lib/runner-api.js';
 import { evaluateDeterministicPrecheck } from './lib/scoring.js';
 import { skillIdentificationCoreScenarios } from './scenarios/core/skill-identification-core-scenarios.js';
 import { skillIdentificationSmokeScenarios } from './scenarios/smoke/skill-identification-smoke-scenarios.js';
-import { smokeCases, smokeScenariosMap } from './smoke.js';
+import { smokeScenariosMap } from './smoke.js';
 
 export interface AgentPlanningRunOptions {
   tier: AgentPlanningEvalTier;
@@ -50,7 +45,7 @@ export function resolveAgentPlanningOptions(
     dryRun: rawOptions.dryRun,
     provider: rawOptions.provider,
     promptTemplateId: rawOptions.promptTemplateId ?? 'default-agent-planning',
-    runner: rawOptions.runner ?? 'native',
+    runner: rawOptions.runner ?? 'promptfoo',
     ...(rawOptions.promptTemplatePath !== undefined
       ? { promptTemplatePath: rawOptions.promptTemplatePath }
       : {}),
@@ -65,12 +60,6 @@ for (const s of skillIdentificationSmokeScenarios) {
 const coreSidScenariosMap: Record<string, AgentPlanningEvalScenario> = {};
 for (const s of skillIdentificationCoreScenarios) {
   coreSidScenariosMap[s.scenarioId] = s;
-}
-
-function loadCases(tier: AgentPlanningEvalTier): AgentPlanningEvalCase[] {
-  return getAgentPlanningEvaluationCases(tier).map((caseDefinition) =>
-    agentPlanningEvalCaseSchema.parse(caseDefinition),
-  );
 }
 
 export function loadScenario(
@@ -152,42 +141,23 @@ export async function runAgentPlanningEval(
 ): Promise<AgentPlanningEvalReport> {
   const options = resolveAgentPlanningOptions(rawOptions);
 
-  if (options.runner === 'promptfoo') {
-    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
-    const { agentPlanningBridge } = await import('./bridge.js');
-    const { report } = await runSuiteWithPromptfoo(agentPlanningBridge, {
-      tier: options.tier,
-      dryRun: options.dryRun,
-      allowEmpty: false,
-      runner: 'promptfoo',
-      provider: options.provider,
-      promptTemplateId: options.promptTemplateId,
-      ...(options.promptTemplatePath !== undefined
-        ? { promptTemplatePath: options.promptTemplatePath }
-        : {}),
-    });
-    return report;
-  }
-
-  const startedAt = Date.now();
-  const cases = loadCases(options.tier);
-  const caseResults: AgentPlanningCaseResult[] = [];
-
-  for (const caseDefinition of cases) {
-    const scenario = loadScenario(options.tier, caseDefinition.scenarioId);
-    caseResults.push(await executeCase(caseDefinition, scenario, options));
-  }
-
-  return buildAgentPlanningReport(
-    caseResults,
-    {
-      tier: options.tier,
-      dryRun: options.dryRun,
-      provider: options.provider,
-      promptTemplateId: options.promptTemplateId,
-    },
-    Date.now() - startedAt,
-  );
+  // The promptfoo bridge is the only engine; it executes the same native
+  // per-case pipeline (actor → normalize → deterministic precheck → judge)
+  // under the hood via its provider executor.
+  const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+  const { agentPlanningBridge } = await import('./bridge.js');
+  const { report } = await runSuiteWithPromptfoo(agentPlanningBridge, {
+    tier: options.tier,
+    dryRun: options.dryRun,
+    allowEmpty: false,
+    runner: 'promptfoo',
+    provider: options.provider,
+    promptTemplateId: options.promptTemplateId,
+    ...(options.promptTemplatePath !== undefined
+      ? { promptTemplatePath: options.promptTemplatePath }
+      : {}),
+  });
+  return report;
 }
 
 function parseCliArgs(argv: string[]): AgentPlanningResolvedOptions {
@@ -198,7 +168,7 @@ function parseCliArgs(argv: string[]): AgentPlanningResolvedOptions {
   const provider = args.has('--provider')
     ? (argv[argv.indexOf('--provider') + 1] as 'fallback' | 'openai')
     : 'fallback';
-  const runnerValue = args.has('--runner') ? argv[argv.indexOf('--runner') + 1] : 'native';
+  const runnerValue = args.has('--runner') ? argv[argv.indexOf('--runner') + 1] : 'promptfoo';
   if (runnerValue !== 'native' && runnerValue !== 'promptfoo') {
     throw new Error(`Invalid --runner value: ${runnerValue}`);
   }

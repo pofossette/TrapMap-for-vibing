@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "label-alignment",
+  "tier": "smoke",
+  "generatedAt": "2026-08-09T07:08:38.724Z",
+  "command": "tsx scripts/run-postgres-coordinated.ts -- pnpm exec tsx evals/promptfoo/scripts/generate-snapshots.ts",
+  "cases": [
+    {
+      "caseId": "backend-timeout-catalog-empty",
+      "passed": true,
+      "alignmentAccuracy": 1,
+      "missedMerges": 0,
+      "falseMerges": 0
+    },
+    {
+      "caseId": "backend-timeout-catalog-populated",
+      "passed": true,
+      "alignmentAccuracy": 1,
+      "missedMerges": 0,
+      "falseMerges": 0
+    },
+    {
+      "caseId": "cicd-pipeline-catalog-empty",
+      "passed": true,
+      "alignmentAccuracy": 1,
+      "missedMerges": 0,
+      "falseMerges": 0
+    },
+    {
+      "caseId": "cicd-pipeline-catalog-populated",
+      "passed": true,
+      "alignmentAccuracy": 1,
+      "missedMerges": 0,
+      "falseMerges": 0
+    },
+    {
+      "caseId": "react-hooks-catalog-empty",
+      "passed": true,
+      "alignmentAccuracy": 1,
+      "missedMerges": 0,
+      "falseMerges": 0
+    },
+    {
+      "caseId": "react-hooks-catalog-populated",
+      "passed": true,
+      "alignmentAccuracy": 1,
+      "missedMerges": 0,
+      "falseMerges": 0
+    },
+    {
+      "caseId": "testing-strategy-catalog-empty",
+      "passed": true,
+      "alignmentAccuracy": 1,
+      "missedMerges": 0,
+      "falseMerges": 0
+    },
+    {
+      "caseId": "testing-strategy-catalog-populated",
+      "passed": true,
+      "alignmentAccuracy": 1,
+      "missedMerges": 0,
+      "falseMerges": 0
+    },
+    {
+      "caseId": "toolchain-config-catalog-empty",
+      "passed": true,
+      "alignmentAccuracy": 1,
+      "missedMerges": 0,
+      "falseMerges": 0
+    },
+    {
+      "caseId": "toolchain-config-catalog-populated",
+      "passed": true,
+      "alignmentAccuracy": 1,
+      "missedMerges": 0,
+      "falseMerges": 0
+    }
+  ]
+}

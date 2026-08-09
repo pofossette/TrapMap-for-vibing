@@ -17,19 +17,9 @@
 
 import { parseArgs } from 'node:util';
 
-import type { ArtifactBundle } from '@trapmap/contracts';
-
-import {
-  buildDerivationContext,
-  bundleToPayloads,
-  loadDownloadedBundles,
-  makeDeterministicId,
-} from './adapter.js';
-import { runAssertions } from './assertions.js';
-import type { DerivedOutput } from './assertions.js';
+import { loadDownloadedBundles } from './adapter.js';
 import { derivationFixtures, getSmokeFixtures } from './fixtures/index.js';
-import type { DerivationFixture } from './fixtures/index.js';
-import { aggregateMetrics, formatDerivationReport } from './metrics.js';
+import { formatDerivationReport } from './metrics.js';
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -48,11 +38,11 @@ function parseArgs_(): RunOptions {
       'dry-run': { type: 'boolean', short: 'd', default: false },
       smoke: { type: 'boolean', short: 's', default: false },
       verbose: { type: 'boolean', short: 'v', default: false },
-      runner: { type: 'string', default: 'native' },
+      runner: { type: 'string', default: 'promptfoo' },
     },
     strict: true,
   });
-  const runner = values.runner ?? 'native';
+  const runner = values.runner ?? 'promptfoo';
   if (runner !== 'native' && runner !== 'promptfoo') {
     throw new Error(`Invalid --runner value: ${runner}`);
   }
@@ -77,84 +67,27 @@ async function main(): Promise<void> {
   console.log(`Smoke: ${options.smoke}`);
   console.log('');
 
-  if (options.runner === 'promptfoo') {
-    const bundleCount = options.dryRun
-      ? (options.smoke ? getSmokeFixtures() : derivationFixtures).length
-      : loadDownloadedBundles().length;
-    console.log(`Running ${bundleCount} bundle(s)...`);
-    console.log('');
-    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
-    const { ingestionBridge } = await import('./bridge.js');
-    const { report } = await runSuiteWithPromptfoo(ingestionBridge, {
-      tier: options.smoke ? 'smoke' : 'core',
-      dryRun: options.dryRun,
-      allowEmpty: false,
-      runner: 'promptfoo',
-    });
-    const assertionResults = report.results.map((r) => ({
-      fixtureId: r.fixtureId,
-      title: r.title,
-      assertions: r.assertions,
-      passed: r.passed,
-    }));
-    console.log(formatDerivationReport(assertionResults, report.aggregate, options.dryRun));
-    if (!report.results.every((r) => r.passed)) process.exit(1);
-    return;
-  }
-
-  // Load bundles
-  let bundles: Array<{ id: string; bundle: ArtifactBundle }>;
-
-  if (options.dryRun) {
-    const fixtures = options.smoke ? getSmokeFixtures() : derivationFixtures;
-    bundles = fixtures.map((f: DerivationFixture) => ({ id: f.id, bundle: f.bundle }));
-  } else {
-    const downloaded = loadDownloadedBundles();
-    const subset = options.smoke ? downloaded.slice(0, 5) : downloaded;
-    bundles = subset.map((b: ArtifactBundle) => ({ id: b.slug, bundle: b }));
-  }
-
-  console.log(`Running ${bundles.length} bundle(s)...`);
+  const bundleCount = options.dryRun
+    ? (options.smoke ? getSmokeFixtures() : derivationFixtures).length
+    : loadDownloadedBundles().length;
+  console.log(`Running ${bundleCount} bundle(s)...`);
   console.log('');
-
-  // Dynamic import of deriveFromPayloads (avoids loading server modules at top level)
-  const { deriveFromPayloads } = await import(
-    '../../packages/service-knowledge-write/src/artifact-derive-from-payloads.js'
-  );
-
-  // Evaluate each bundle
-  const results = [];
-  const capsuleCounts: number[] = [];
-
-  for (const { id, bundle } of bundles) {
-    const artifactId = makeDeterministicId(bundle.slug);
-    const payloads = bundleToPayloads(bundle, artifactId);
-    const context = buildDerivationContext(bundle, artifactId);
-
-    const output: DerivedOutput = (await deriveFromPayloads(payloads, context)) as DerivedOutput;
-    const result = runAssertions(id, bundle, output);
-
-    results.push(result);
-    capsuleCounts.push(output.capsules.length);
-
-    if (options.verbose) {
-      const status = result.passed ? 'PASS' : 'FAIL';
-      console.log(
-        `  [${status}] ${result.fixtureId}: ${output.capsules.length} capsule(s), summary=${output.profile?.summary?.length ?? 0} chars`,
-      );
-    }
-  }
-
-  // Compute and display metrics
-  const metrics = aggregateMetrics(results, capsuleCounts);
-  const report = formatDerivationReport(results, metrics, options.dryRun);
-  console.log(report);
-
-  // Exit code
-  const allPassed = results.every((r) => r.passed);
-  if (!allPassed) {
-    process.exit(1);
-  }
+  const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+  const { ingestionBridge } = await import('./bridge.js');
+  const { report } = await runSuiteWithPromptfoo(ingestionBridge, {
+    tier: options.smoke ? 'smoke' : 'core',
+    dryRun: options.dryRun,
+    allowEmpty: false,
+    runner: 'promptfoo',
+  });
+  const assertionResults = report.results.map((r) => ({
+    fixtureId: r.fixtureId,
+    title: r.title,
+    assertions: r.assertions,
+    passed: r.passed,
+  }));
+  console.log(formatDerivationReport(assertionResults, report.aggregate, options.dryRun));
+  if (!report.results.every((r) => r.passed)) process.exit(1);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

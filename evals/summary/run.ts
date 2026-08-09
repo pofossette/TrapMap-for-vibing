@@ -26,11 +26,10 @@ import { summaryCoreCases } from './core.js';
 // Import tier datasets
 import { summarySmokeCases } from './smoke.js';
 
-import { executeSummaryCase } from './lib/execute-case.js';
 import { formatSummaryReport } from './lib/format.js';
 // Import evaluation modules
 import { buildSummaryReport } from './lib/report.js';
-import type { JudgeProvider, RunnerOptions, SummaryCaseResult } from './lib/types.js';
+import type { JudgeProvider } from './lib/types.js';
 
 // =============================================================================
 // Command Line Argument Parsing
@@ -92,7 +91,7 @@ function parseArgs_(): RunOptions {
       },
       runner: {
         type: 'string',
-        default: 'native',
+        default: 'promptfoo',
       },
     },
     strict: true,
@@ -118,7 +117,7 @@ function parseArgs_(): RunOptions {
     process.exit(1);
   }
 
-  const runnerValue = values.runner ?? 'native';
+  const runnerValue = values.runner ?? 'promptfoo';
   if (runnerValue !== 'native' && runnerValue !== 'promptfoo') {
     console.error(`Invalid --runner value: ${runnerValue}`);
     process.exit(1);
@@ -218,7 +217,6 @@ function outputReport(report: ReturnType<typeof buildSummaryReport>, options: Ru
  * Main entry point for the summary evaluation runner.
  */
 async function main(): Promise<void> {
-  const startTime = Date.now();
   const options = parseArgs_();
 
   console.log('\n=== Summary Evaluation Runner ===');
@@ -267,53 +265,17 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (options.runner === 'promptfoo') {
-    console.log('Executing evaluation...\n');
-    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
-    const { summaryBridge } = await import('./bridge.js');
-    const { report } = await runSuiteWithPromptfoo(summaryBridge, {
-      tier: options.tier,
-      dryRun: options.dryRun,
-      allowEmpty: options.allowEmpty,
-      runner: 'promptfoo',
-      provider: options.provider,
-      verbose: options.verbose,
-      ...(options.endpoint !== undefined ? { endpoint: options.endpoint } : {}),
-    });
-
-    outputReport(report, options);
-    return;
-  }
-
-  // Execute cases
   console.log('Executing evaluation...\n');
-  const caseResults: SummaryCaseResult[] = [];
-
-  for (const case_ of cases_) {
-    const result = await executeSummaryCase(case_, {
-      provider: options.provider,
-      verbose: options.verbose,
-    });
-    caseResults.push(result);
-  }
-
-  // Build report
-  const runnerOptions: RunnerOptions = {
+  const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+  const { summaryBridge } = await import('./bridge.js');
+  const { report } = await runSuiteWithPromptfoo(summaryBridge, {
     tier: options.tier,
-    json: options.json,
-    allowEmpty: options.allowEmpty,
     dryRun: options.dryRun,
+    allowEmpty: options.allowEmpty,
+    runner: 'promptfoo',
+    provider: options.provider,
     verbose: options.verbose,
-    llmProvider: options.provider,
     ...(options.endpoint !== undefined ? { endpoint: options.endpoint } : {}),
-    ...(options.jsonPath !== undefined ? { jsonPath: options.jsonPath } : {}),
-  };
-
-  const report = buildSummaryReport({
-    caseResults,
-    options: runnerOptions,
-    durationMs: Date.now() - startTime,
-    llmProvider: options.provider,
   });
 
   outputReport(report, options);

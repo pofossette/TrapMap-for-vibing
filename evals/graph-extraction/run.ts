@@ -50,11 +50,11 @@ function parseArgs_(): RunOptions {
       'dry-run': { type: 'boolean', short: 'd', default: false },
       smoke: { type: 'boolean', short: 's', default: false },
       verbose: { type: 'boolean', short: 'v', default: false },
-      runner: { type: 'string', default: 'native' },
+      runner: { type: 'string', default: 'promptfoo' },
     },
     strict: true,
   });
-  const runner = values.runner ?? 'native';
+  const runner = values.runner ?? 'promptfoo';
   if (runner !== 'native' && runner !== 'promptfoo') {
     throw new Error(`Invalid --runner value: ${runner}`);
   }
@@ -495,66 +495,28 @@ async function main(): Promise<void> {
   console.log(`Smoke: ${options.smoke}`);
   console.log('');
 
-  if (options.runner === 'promptfoo') {
-    const fixtureCount = options.smoke ? getSmokeFixtures().length : graphExtractionFixtures.length;
-    console.log(`Running ${fixtureCount} fixture(s)...`);
-    console.log('');
-    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
-    const { graphExtractionBridge } = await import('./bridge.js');
-    const { report } = await runSuiteWithPromptfoo(graphExtractionBridge, {
-      tier: options.smoke ? 'smoke' : 'core',
-      dryRun: options.dryRun,
-      allowEmpty: false,
-      runner: 'promptfoo',
-    });
-    console.log(
-      formatReport(report.results, report.aggregate, [], aggregateMetrics([]), options.dryRun),
-    );
-    const durationMs = Date.now() - startTime;
-    console.log(`Duration: ${durationMs}ms`);
-    console.log('');
-    if (!options.dryRun && report.aggregate.degradedCount > 0) {
-      console.log(
-        `WARNING: ${report.aggregate.degradedCount} case(s) degraded -- results may not reflect true LLM quality`,
-      );
-    }
-    console.log('Evaluation completed successfully.');
-    return;
-  }
-
-  const fixtures = options.smoke ? getSmokeFixtures() : graphExtractionFixtures;
-  console.log(`Running ${fixtures.length} fixture(s)...`);
+  const fixtureCount = options.smoke ? getSmokeFixtures().length : graphExtractionFixtures.length;
+  console.log(`Running ${fixtureCount} fixture(s)...`);
   console.log('');
-
-  // Run LLM extraction evaluation
-  const results: CaseMetrics[] = [];
-  for (const fixture of fixtures) {
-    const result = await evaluateCase(fixture, options.dryRun);
-    results.push(result);
-    if (options.verbose) {
-      console.log(
-        `  ${fixture.id}: node F1=${result.nodeMetrics.f1.toFixed(3)}, edge F1=${result.edgeMetrics.f1.toFixed(3)}`,
-      );
-    }
-  }
-
-  const agg = aggregateMetrics(results);
-
-  // Print report
-  console.log(formatReport(results, agg, [], aggregateMetrics([]), options.dryRun));
-
+  const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+  const { graphExtractionBridge } = await import('./bridge.js');
+  const { report } = await runSuiteWithPromptfoo(graphExtractionBridge, {
+    tier: options.smoke ? 'smoke' : 'core',
+    dryRun: options.dryRun,
+    allowEmpty: false,
+    runner: 'promptfoo',
+  });
+  console.log(
+    formatReport(report.results, report.aggregate, [], aggregateMetrics([]), options.dryRun),
+  );
   const durationMs = Date.now() - startTime;
   console.log(`Duration: ${durationMs}ms`);
   console.log('');
-
-  if (!options.dryRun) {
-    if (agg.degradedCount > 0) {
-      console.log(
-        `WARNING: ${agg.degradedCount} case(s) degraded -- results may not reflect true LLM quality`,
-      );
-    }
+  if (!options.dryRun && report.aggregate.degradedCount > 0) {
+    console.log(
+      `WARNING: ${report.aggregate.degradedCount} case(s) degraded -- results may not reflect true LLM quality`,
+    );
   }
-
   console.log('Evaluation completed successfully.');
 }
 

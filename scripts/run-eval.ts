@@ -48,7 +48,7 @@ const EVAL_USAGE = [
   'Options:',
   '  --tier <smoke|core>',
   '  --mode <live|dry-run>',
-  '  --runner <native|promptfoo>',
+  '  --runner <native|promptfoo> (default: promptfoo)',
   '  --dry-run',
   '  --json',
   '  --json-path <path>',
@@ -86,6 +86,9 @@ function parseEvalOptions(argv: readonly string[]): ParsedEvalOptions {
   const options: ParsedEvalOptions = {
     dryRun: false,
     json: false,
+    // The native runners are gone; the promptfoo engine is the only engine, so
+    // it is the default unless the caller explicitly overrides it.
+    runner: 'promptfoo',
   };
 
   for (let index = 0; index < argv.length; index += 1) {

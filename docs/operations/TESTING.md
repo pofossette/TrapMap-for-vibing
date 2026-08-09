@@ -542,25 +542,31 @@ pnpm eval:summary:core
 pnpm eval:agent-planning:smoke
 pnpm eval:agent-planning:core
 
-**`--runner native|promptfoo` 双轨选项（agent-planning 参考实现）**
+**`--runner promptfoo` 引擎（native 已移除）**
 
-- 默认 `native`，语义不变。`promptfoo` 走 SuiteBridge 执行引擎（确定性 fallback 下与 native 逐 case 判定一致）。
-- `--runner` 现支持全部六个 suite（agent-planning、label-alignment、summary、retrieval、graph-extraction、ingestion）。
+- 六个 suite 全部运行在 promptfoo 执行引擎（SuiteBridge），自研 native case 循环与
+  `runner-api.ts` 执行循环已删除；`--runner` 默认 `promptfoo`（保留该 flag 仅为向后兼容，
+  传入 `native` 也走 promptfoo 引擎）。
+- `pnpm eval` 分发默认注入 `--runner promptfoo`；各 suite 的 `run.ts` CLI 同样默认 promptfoo。
+- 快照 parity：`evals/promptfoo/snapshots/*-smoke.json` 为各 suite smoke 判定快照，
+  `evals/promptfoo/parity-*.test.ts` 重跑 bridge 并与快照逐 case 比对（不再依赖 native 代码）。
+  CI 中 `eval.yml` 的 `eval-parity` job 为 blocking。
 - 验证命令：
-  - `rtk pnpm eval -- agent-planning --tier smoke --dry-run --runner promptfoo`
+  - `rtk pnpm eval -- agent-planning --tier smoke --dry-run`
   - `rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`
   - `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
-  - `rtk pnpm eval:graph-extraction --dry-run --runner promptfoo`
-  - `rtk pnpm eval:ingestion --tier smoke --dry-run --runner promptfoo`（注意用 `--tier smoke`，run-eval 不接受 `--smoke`）
+  - `rtk pnpm eval:graph-extraction --dry-run`
+  - `rtk pnpm eval:ingestion --tier smoke --dry-run`（注意用 `--tier smoke`，run-eval 不接受 `--smoke`）
   - `rtk pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts`
   - `rtk pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts`
-  - `rtk pnpm eval -- label-alignment --tier smoke --mode dry-run --runner promptfoo`
+  - `rtk pnpm eval -- label-alignment --tier smoke --mode dry-run`
   - `rtk pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`
-  - `rtk pnpm eval -- summary --tier smoke --dry-run --runner promptfoo`
+  - `rtk pnpm eval -- summary --tier smoke --dry-run`
   - `rtk pnpm test:file -- evals/promptfoo/parity-summary.test.ts`
-  - `rtk pnpm eval -- retrieval --tier smoke --dry-run --runner promptfoo`
+  - `rtk pnpm eval -- retrieval --tier smoke --dry-run`
   - `rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`（需 PostgreSQL：parity-retrieval 测试自
     `TRAPMAP_POSTGRES_COORDINATOR_URL` 临时建库执行，无 coordinator 时自动 skip）
+  - `rtk pnpm eval:snapshots`（在 postgres coordinator 下重新生成全部快照）
 
 # 仅标签对齐评估
 pnpm eval:label-alignment:smoke

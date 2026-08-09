@@ -1,56 +1,15 @@
 /**
- * Tests for summary evaluation runner API.
+ * Tests for summary evaluation verdicts and report building.
  *
- * Covers: evaluateSummaryVerdicts, buildSummaryReport, runSummaryEvaluation.
+ * Covers: evaluateSummaryVerdicts, buildSummaryReport. The native
+ * `runSummaryEvaluation` execution loop was removed in the promptfoo cutover
+ * (execution now runs through the `summaryBridge`).
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-// Mock the heavy dependencies before importing the runner
-vi.mock('../core.js', () => ({
-  summaryCoreCases: [],
-}));
-
-vi.mock('../smoke.js', () => ({
-  summarySmokeCases: [
-    {
-      schemaVersion: 1,
-      caseId: 'smoke-1',
-      scenarioId: 'scenario-1',
-      endpoint: '/v1/retrieval/search',
-      tier: 'smoke',
-      request: { seed: 'test-seed', query: 'test' },
-      expected: {
-        requiredFacts: ['Docker', 'container'],
-        forbiddenClaims: ['password'],
-        minGroundedness: 0.8,
-        minCoverage: 0.7,
-      },
-    },
-  ],
-}));
-
-vi.mock('../scenarios/smoke/summary-smoke-scenarios.js', () => ({
-  summarySmokeScenariosMap: {},
-}));
-
-vi.mock('../scenarios/core/summary-core-scenarios.js', () => ({
-  summaryCoreScenariosMap: {},
-}));
-
-vi.mock('../../retrieval/lib/adapters.js', () => ({
-  closeExecutionContext: vi.fn().mockResolvedValue(undefined),
-  createActorSession: vi.fn().mockResolvedValue(undefined),
-  createExecutionContext: vi.fn().mockResolvedValue({}),
-  executeThroughRoute: vi.fn().mockResolvedValue({
-    result: { rawResponse: { summary: { text: 'mock summary' }, capsules: [] } },
-  }),
-  seedScenarioFixtures: vi.fn().mockResolvedValue(undefined),
-}));
+import { describe, expect, it } from 'vitest';
 
 import { evaluateSummaryVerdicts } from '../lib/assertions.js';
 import { buildSummaryReport } from '../lib/report.js';
-import { runSummaryEvaluation } from '../lib/runner-api.js';
 import type { SummaryCaseResult } from '../lib/types.js';
 
 // ---------------------------------------------------------------------------
@@ -295,39 +254,5 @@ describe('buildSummaryReport', () => {
 
     expect(report.cases[0].caseId).toBe('a-case');
     expect(report.cases[1].caseId).toBe('z-case');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// runSummaryEvaluation
-// ---------------------------------------------------------------------------
-
-describe('runSummaryEvaluation', () => {
-  it('dry-run mode returns passed without executing', async () => {
-    const result = await runSummaryEvaluation({ tier: 'smoke', dryRun: true });
-
-    expect(result.passed).toBe(true);
-    expect(result.summary.totalCases).toBeGreaterThan(0);
-    expect(result.summary.passedCases).toBe(result.summary.totalCases);
-  });
-
-  it('throws when no cases found and allowEmpty is false', async () => {
-    await expect(runSummaryEvaluation({ tier: 'core', allowEmpty: false })).rejects.toThrow(
-      'No cases found',
-    );
-  });
-
-  it('returns empty result when allowEmpty is true and no cases', async () => {
-    const result = await runSummaryEvaluation({ tier: 'core', allowEmpty: true });
-
-    expect(result.passed).toBe(true);
-    expect(result.summary.totalCases).toBe(0);
-  });
-
-  it('uses mock fallback when scenario is not found', async () => {
-    const result = await runSummaryEvaluation({ tier: 'smoke' });
-
-    expect(result).toBeDefined();
-    expect(result.summary.totalCases).toBeGreaterThan(0);
   });
 });

@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "summary",
+  "tier": "smoke",
+  "generatedAt": "2026-08-09T07:08:38.724Z",
+  "command": "tsx scripts/run-postgres-coordinated.ts -- pnpm exec tsx evals/promptfoo/scripts/generate-snapshots.ts",
+  "cases": [
+    {
+      "caseId": "summary-forbidden-claims-smoke",
+      "passed": false,
+      "groundednessScore": 1,
+      "coverageScore": 0
+    },
+    {
+      "caseId": "summary-grounded-smoke",
+      "passed": false,
+      "groundednessScore": 1,
+      "coverageScore": 0
+    },
+    {
+      "caseId": "summary-hallucination-smoke",
+      "passed": true,
+      "groundednessScore": 1,
+      "coverageScore": 1
+    },
+    {
+      "caseId": "summary-label-filter-smoke",
+      "passed": false,
+      "groundednessScore": 1,
+      "coverageScore": 0
+    },
+    {
+      "caseId": "summary-smoke-multi-fact",
+      "passed": false,
+      "groundednessScore": 1,
+      "coverageScore": 0
+    },
+    {
+      "caseId": "summary-strict-grounded-smoke",
+      "passed": false,
+      "groundednessScore": 1,
+      "coverageScore": 0
+    }
+  ]
+}

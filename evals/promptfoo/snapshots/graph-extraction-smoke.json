@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "graph-extraction",
+  "tier": "smoke",
+  "generatedAt": "2026-08-09T07:08:38.724Z",
+  "command": "tsx scripts/run-postgres-coordinated.ts -- pnpm exec tsx evals/promptfoo/scripts/generate-snapshots.ts",
+  "cases": [
+    {
+      "caseId": "complex-multi-entity",
+      "passed": false,
+      "mode": "unavailable",
+      "nodeF1": 0,
+      "edgeF1": 0,
+      "strengthAccuracy": 0
+    },
+    {
+      "caseId": "implicit-prerequisite",
+      "passed": false,
+      "mode": "unavailable",
+      "nodeF1": 0,
+      "edgeF1": 0,
+      "strengthAccuracy": 0
+    },
+    {
+      "caseId": "negation-no-typescript",
+      "passed": false,
+      "mode": "unavailable",
+      "nodeF1": 0,
+      "edgeF1": 0,
+      "strengthAccuracy": 0
+    },
+    {
+      "caseId": "simple-tool-trap",
+      "passed": false,
+      "mode": "unavailable",
+      "nodeF1": 0,
+      "edgeF1": 0,
+      "strengthAccuracy": 0
+    },
+    {
+      "caseId": "skill-with-order",
+      "passed": false,
+      "mode": "unavailable",
+      "nodeF1": 0,
+      "edgeF1": 0,
+      "strengthAccuracy": 0
+    }
+  ]
+}

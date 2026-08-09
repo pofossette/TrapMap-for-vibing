@@ -24,13 +24,8 @@ import { coreCases } from './core.js';
 import { smokeCases } from './smoke.js';
 
 // Import execution modules
-import { executeRetrievalCase } from './lib/execute-case.js';
-import {
-  aggregateSliceMetrics,
-  buildRunnerSummary,
-  formatRunnerSummary,
-} from './lib/runner-summary.js';
-import type { CaseResult, RunnerSummary } from './lib/types.js';
+import { formatRunnerSummary } from './lib/runner-summary.js';
+import type { RunnerSummary } from './lib/types.js';
 
 interface RunOptions {
   tier: RetrievalEvalTier;
@@ -97,7 +92,7 @@ function parseArgs_(): RunOptions {
       },
       runner: {
         type: 'string',
-        default: 'native',
+        default: 'promptfoo',
       },
     },
     strict: true,
@@ -126,7 +121,7 @@ function parseArgs_(): RunOptions {
     process.exit(1);
   }
 
-  const runnerValue = values.runner ?? 'native';
+  const runnerValue = values.runner ?? 'promptfoo';
   if (runnerValue !== 'native' && runnerValue !== 'promptfoo') {
     console.error(`Invalid --runner value: ${runnerValue}`);
     process.exit(1);
@@ -184,20 +179,6 @@ function filterByEndpoint(
 // =============================================================================
 
 /**
- * Execute all cases and return results.
- */
-async function executeAllCases(cases_: RetrievalEvalCase[]): Promise<CaseResult[]> {
-  const results: CaseResult[] = [];
-
-  // Each case gets an isolated context to prevent fixture bleeding
-  for (const case_ of cases_) {
-    results.push(await executeRetrievalCase(case_));
-  }
-
-  return results;
-}
-
-/**
  * Print the JSON report body.
  */
 async function writeJsonSummary(
@@ -220,7 +201,6 @@ async function writeJsonSummary(
  * Main entry point for the retrieval evaluation runner.
  */
 async function main(): Promise<void> {
-  const startTime = Date.now();
   const options = parseArgs_();
 
   console.log('\n=== Retrieval Evaluation Runner ===');
@@ -266,153 +246,36 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (options.runner === 'promptfoo') {
-    if (options.baselinePath || options.writeBaseline) {
-      console.warn(
-        'WARNING: baseline write/compare is native-only; --baseline/--write-baseline are ignored under --runner promptfoo.',
-      );
-    }
-    console.log('Executing evaluation...\n');
-    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
-    const { retrievalBridge } = await import('./bridge.js');
-    const { report } = await runSuiteWithPromptfoo(retrievalBridge, {
-      tier: options.tier,
-      dryRun: options.dryRun,
-      allowEmpty: options.allowEmpty,
-      runner: 'promptfoo',
-      verbose: options.verbose,
-      json: options.json,
-      ...(options.endpoint !== undefined ? { endpoint: options.endpoint } : {}),
-      ...(options.jsonPath !== undefined ? { jsonPath: options.jsonPath } : {}),
-      ...(options.baselinePath !== undefined ? { baselinePath: options.baselinePath } : {}),
-      ...(options.writeBaseline ? { writeBaseline: true } : {}),
-    });
-
-    console.log(formatRunnerSummary(report.caseResults, report.sliceMetrics));
-    if (options.json) await writeJsonSummary(report, options.jsonPath);
-
-    if (report.caseResults.some((r) => !r.passed)) {
-      console.log('Evaluation completed with failures.\n');
-      process.exit(1);
-    }
-
-    console.log('Evaluation completed successfully.\n');
-    return;
+  if (options.baselinePath || options.writeBaseline) {
+    console.warn(
+      'WARNING: baseline write/compare is native-only; --baseline/--write-baseline are ignored under --runner promptfoo.',
+    );
   }
-
-  // Execute cases
   console.log('Executing evaluation...\n');
-  const results = await executeAllCases(cases_);
-  const slices = aggregateSliceMetrics(results);
+  const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
+  const { retrievalBridge } = await import('./bridge.js');
+  const { report } = await runSuiteWithPromptfoo(retrievalBridge, {
+    tier: options.tier,
+    dryRun: options.dryRun,
+    allowEmpty: options.allowEmpty,
+    runner: 'promptfoo',
+    verbose: options.verbose,
+    json: options.json,
+    ...(options.endpoint !== undefined ? { endpoint: options.endpoint } : {}),
+    ...(options.jsonPath !== undefined ? { jsonPath: options.jsonPath } : {}),
+    ...(options.baselinePath !== undefined ? { baselinePath: options.baselinePath } : {}),
+    ...(options.writeBaseline ? { writeBaseline: true } : {}),
+  });
 
-  // Print summary
-  console.log(formatRunnerSummary(results, slices));
+  console.log(formatRunnerSummary(report.caseResults, report.sliceMetrics));
+  if (options.json) await writeJsonSummary(report, options.jsonPath);
 
-  // Phase 29-03: Baseline write/compare flow
-  if (options.writeBaseline && options.baselinePath) {
-    const fs = await import('node:fs/promises');
-    const baselineDir = options.baselinePath.replace(/\/[^/]+$/, '');
-    await fs.mkdir(baselineDir, { recursive: true }).catch(() => {});
-
-    const baselineReport = {
-      timestamp: new Date().toISOString(),
-      tier: options.tier,
-      slices: slices.map((s) => ({
-        slice: s.slice,
-        avgHitAt1: s.avgHitAt1,
-        avgHitAt5: s.avgHitAt5,
-        avgHitAt10: s.avgHitAt10,
-        avgMrr: s.avgMrr,
-        avgNdcg: s.avgNdcg,
-        avgRecallAt10: s.avgRecallAt10,
-        selectedMode: s.selectedMode,
-        fallbackApplied: s.fallbackApplied,
-      })),
-      governanceFailures: results
-        .filter((r) => !r.governance.passed)
-        .map((r) => ({
-          caseId: r.case.caseId,
-          failures: r.governance.failures,
-        })),
-    };
-
-    await fs.writeFile(options.baselinePath, JSON.stringify(baselineReport, null, 2));
-    console.log(`Baseline written to: ${options.baselinePath}\n`);
-  }
-
-  // Phase 29-03: Baseline comparison
-  if (options.baselinePath && !options.writeBaseline) {
-    const fs = await import('node:fs/promises');
-    try {
-      const baselineContent = await fs.readFile(options.baselinePath, 'utf-8');
-      const baseline = JSON.parse(baselineContent);
-
-      console.log('\n=== Baseline Comparison ===');
-      console.log(`Baseline from: ${baseline.timestamp}`);
-
-      // Compare slices
-      for (const currentSlice of slices) {
-        const key = `${currentSlice.slice.tier}:${currentSlice.slice.endpoint}:${currentSlice.slice.mode ?? 'none'}`;
-        const baselineSlice = baseline.slices?.find(
-          (s: { slice: { tier: string; endpoint: string; mode?: string } }) =>
-            `${s.slice.tier}:${s.slice.endpoint}:${s.slice.mode ?? 'none'}` === key,
-        );
-
-        if (baselineSlice) {
-          const hitAt1Diff = currentSlice.avgHitAt1 - baselineSlice.avgHitAt1;
-          const mrrDiff = currentSlice.avgMrr - baselineSlice.avgMrr;
-
-          if (hitAt1Diff < -0.05 || mrrDiff < -0.05) {
-            console.log(
-              `  REGRESSED: ${key} - Hit@1: ${currentSlice.avgHitAt1.toFixed(3)} (${hitAt1Diff >= 0 ? '+' : ''}${hitAt1Diff.toFixed(3)}), MRR: ${currentSlice.avgMrr.toFixed(3)} (${mrrDiff >= 0 ? '+' : ''}${mrrDiff.toFixed(3)})`,
-            );
-          } else if (hitAt1Diff > 0.05 || mrrDiff > 0.05) {
-            console.log(
-              `  IMPROVED: ${key} - Hit@1: ${currentSlice.avgHitAt1.toFixed(3)} (${hitAt1Diff >= 0 ? '+' : ''}${hitAt1Diff.toFixed(3)}), MRR: ${currentSlice.avgMrr.toFixed(3)} (${mrrDiff >= 0 ? '+' : ''}${mrrDiff.toFixed(3)})`,
-            );
-          } else {
-            console.log(
-              `  STABLE: ${key} - Hit@1: ${currentSlice.avgHitAt1.toFixed(3)}, MRR: ${currentSlice.avgMrr.toFixed(3)}`,
-            );
-          }
-        } else {
-          console.log(`  NO-BASELINE: ${key}`);
-        }
-      }
-      console.log('');
-    } catch {
-      console.error(`Warning: Could not read baseline from ${options.baselinePath}`);
-    }
-  }
-
-  // Write JSON report if requested
-  if (options.json) {
-    const summary = buildRunnerSummary(results, toRunnerOptions(options), Date.now() - startTime);
-    await writeJsonSummary(summary, options.jsonPath);
-  }
-
-  // Exit with error code if any failures
-  const hasFailures = results.some((r) => !r.passed);
-  if (hasFailures) {
+  if (report.caseResults.some((r) => !r.passed)) {
     console.log('Evaluation completed with failures.\n');
     process.exit(1);
   }
 
   console.log('Evaluation completed successfully.\n');
-}
-
-function toRunnerOptions(options: RunOptions): RunnerSummary['options'] {
-  return {
-    tier: options.tier,
-    json: options.json,
-    allowEmpty: options.allowEmpty,
-    dryRun: options.dryRun,
-    verbose: options.verbose,
-    ...(options.endpoint !== undefined ? { endpoint: options.endpoint } : {}),
-    ...(options.jsonPath !== undefined ? { jsonPath: options.jsonPath } : {}),
-    ...(options.baselinePath !== undefined ? { baselinePath: options.baselinePath } : {}),
-    ...(options.writeBaseline ? { writeBaseline: true } : {}),
-  };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

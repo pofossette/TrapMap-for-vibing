@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "ingestion",
+  "tier": "smoke",
+  "generatedAt": "2026-08-09T07:08:38.724Z",
+  "command": "tsx scripts/run-postgres-coordinated.ts -- pnpm exec tsx evals/promptfoo/scripts/generate-snapshots.ts",
+  "cases": [
+    {
+      "caseId": "with-frontmatter",
+      "passed": true,
+      "capsuleCount": 2
+    }
+  ]
+}

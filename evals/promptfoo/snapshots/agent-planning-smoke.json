@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "agent-planning",
+  "tier": "smoke",
+  "generatedAt": "2026-08-09T07:08:38.724Z",
+  "command": "tsx scripts/run-postgres-coordinated.ts -- pnpm exec tsx evals/promptfoo/scripts/generate-snapshots.ts",
+  "cases": [
+    {
+      "caseId": "task-coordinate-database-migration::task-coordinate-database-migration-skill-set-high",
+      "passed": true,
+      "totalScore": 0.825,
+      "pathScore": 1,
+      "finalAnswerScore": 0.5
+    },
+    {
+      "caseId": "task-coordinate-database-migration::task-coordinate-database-migration-skill-set-none",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-debug-flaky-tests::task-debug-flaky-tests-plan-graph-low",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-debug-flaky-tests::task-debug-flaky-tests-skill-set-high",
+      "passed": true,
+      "totalScore": 0.85,
+      "pathScore": 1,
+      "finalAnswerScore": 0.5
+    },
+    {
+      "caseId": "task-debug-flaky-tests::task-debug-flaky-tests-skill-set-low",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-identify-cli-workflow::task-identify-cli-workflow-capsule-match",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-identify-cli-workflow::task-identify-cli-workflow-skill-summary",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-identify-governance-workflow::task-identify-governance-workflow-capsule-match",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-identify-governance-workflow::task-identify-governance-workflow-skill-summary",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-migrate-auth-microservice::task-migrate-auth-microservice-plan-graph-none",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-migrate-auth-microservice::task-migrate-auth-microservice-skill-set-medium",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-migrate-auth-microservice::task-migrate-auth-microservice-skill-set-none",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-rank-deployment-strategy::task-rank-deployment-strategy-plan-graph-none",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-rank-deployment-strategy::task-rank-deployment-strategy-skill-set-medium",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-rank-deployment-strategy::task-rank-deployment-strategy-skill-set-none",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-replatform-legacy-monolith::task-replatform-legacy-monolith-plan-graph-none",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-replatform-legacy-monolith::task-replatform-legacy-monolith-skill-set-high",
+      "passed": true,
+      "totalScore": 0.8,
+      "pathScore": 1,
+      "finalAnswerScore": 0.5
+    },
+    {
+      "caseId": "task-replatform-legacy-monolith::task-replatform-legacy-monolith-skill-set-medium",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-replatform-legacy-monolith::task-replatform-legacy-monolith-skill-set-none",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-rollback-feature-flag::task-rollback-feature-flag-plan-graph-medium",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-rollback-feature-flag::task-rollback-feature-flag-plan-graph-none",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-rollback-feature-flag::task-rollback-feature-flag-skill-set-high",
+      "passed": true,
+      "totalScore": 0.8,
+      "pathScore": 1,
+      "finalAnswerScore": 0.5
+    },
+    {
+      "caseId": "task-setup-code-quality-pipeline::task-setup-code-quality-pipeline-plan-graph-none",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-setup-code-quality-pipeline::task-setup-code-quality-pipeline-skill-set-low",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-setup-code-quality-pipeline::task-setup-code-quality-pipeline-skill-set-none",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-triage-alert-storm::task-triage-alert-storm-plan-graph-low",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-triage-alert-storm::task-triage-alert-storm-skill-set-low",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-triage-alert-storm::task-triage-alert-storm-skill-set-medium",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-triage-missing-evidence::task-triage-missing-evidence-skill-set-none",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-upgrade-ci-pipeline::task-upgrade-ci-pipeline-plan-graph-high",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-upgrade-ci-pipeline::task-upgrade-ci-pipeline-plan-graph-none",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    },
+    {
+      "caseId": "task-upgrade-ci-pipeline::task-upgrade-ci-pipeline-skill-set-high",
+      "passed": true,
+      "totalScore": 0.8,
+      "pathScore": 1,
+      "finalAnswerScore": 0.5
+    },
+    {
+      "caseId": "task-upgrade-ci-pipeline::task-upgrade-ci-pipeline-skill-set-none",
+      "passed": true,
+      "totalScore": 1,
+      "pathScore": 1,
+      "finalAnswerScore": 1
+    }
+  ]
+}
