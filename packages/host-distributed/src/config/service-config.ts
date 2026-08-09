@@ -137,7 +137,7 @@ function buildInternalUrls(hosts: Record<ServiceName, string>): InternalServiceU
   };
 }
 
-// fallow-ignore-next-line unused-type
+// fallow-ignore-next-line unused-type -- exported config type for runtime consumers
 export type ServiceDiscoveryMode = 'localhost-defaults' | 'docker-dns';
 
 function resolveServiceDiscoveryMode(): ServiceDiscoveryMode {
@@ -259,6 +259,7 @@ function resolveKnowledgeWriteTransport(): InternalTransportKind {
   return process.env[ENV_KNOWLEDGE_WRITE_TRANSPORT] === 'rpc' ? 'rpc' : 'http';
 }
 
+// fallow-ignore-next-line complexity -- flat env aggregation for a single ServiceConfig shape; splitting would add indirection without reducing decision count meaningfully
 export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
   const name: ServiceName =
     serviceName ?? (process.env[ENV_SERVICE_NAME] as ServiceName) ?? 'gateway';

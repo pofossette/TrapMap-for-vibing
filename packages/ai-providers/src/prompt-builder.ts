@@ -61,7 +61,7 @@ function filterStrings(values: unknown, field: string): string[] | undefined {
   return values.map((v) => v.trim()).filter((v) => v.length > 0);
 }
 
-export function parseOverrideEntry(
+function parseOverrideEntry(
   taskType: AiPromptTaskType,
   value: unknown,
 ): PromptTemplateOverride | undefined {
@@ -138,7 +138,7 @@ function loadPromptTemplateOverrides(templateFile: string | null): PromptTemplat
 // Slot merging and normalization
 // ---------------------------------------------------------------------------
 
-export function mergeSlots(base: PromptSlots, override?: PromptTemplateOverride): PromptSlots {
+function mergeSlots(base: PromptSlots, override?: PromptTemplateOverride): PromptSlots {
   if (!override) return base;
   const result: PromptSlots = { ...base };
   const r = override.role ?? base.role;
@@ -338,6 +338,3 @@ export function buildPromptWithCacheControl(
 
   return result;
 }
-
-// Re-export PromptBlock from cache/api-integration for sub-module convenience
-export type { PromptBlock } from './ai-cache/api-integration.js';

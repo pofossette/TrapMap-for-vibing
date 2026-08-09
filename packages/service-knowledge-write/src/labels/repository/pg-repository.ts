@@ -5,9 +5,9 @@
  * embeddings, and alignment events backed by pgvector-enabled PostgreSQL.
  */
 
+import { normalizeLabel } from '@trapmap/lib';
 import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { normalizeLabel } from '@trapmap/lib';
 import type { Pool } from 'pg';
 
 import {

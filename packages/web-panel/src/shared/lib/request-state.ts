@@ -1,5 +1,3 @@
-import type { RequestStatus } from '@trapmap/web-panel/shared/enum-types';
-
 export type RequestState<T> =
   | {
       error: null;
@@ -63,8 +61,4 @@ export function createErrorRequestState<T>(
     error,
     lastUpdatedAt: previous.lastUpdatedAt,
   };
-}
-
-export function isRequestSettled(status: RequestStatus): boolean {
-  return status === 'success' || status === 'error';
 }

@@ -1,10 +1,10 @@
-import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   type DevTargetDefinition,
   listDevTargetNames,
   resolveDevTargetFromRegistry,
 } from './backend-target-registry';
+import { exitWithResolveError, spawnPnpmAndExit } from './lib/spawn-pnpm.js';
 
 export type ResolvedDevTarget = DevTargetDefinition;
 
@@ -47,31 +47,15 @@ async function main(): Promise<void> {
   try {
     target = resolveDevTarget(process.argv.slice(2));
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const isUsageError = message.startsWith('Usage:');
-    const stream = isUsageError ? process.stdout : process.stderr;
-    stream.write(`${message}\n`);
-    process.exit(isUsageError ? 0 : 1);
+    exitWithResolveError(error, 'Usage:');
     return;
   }
 
-  const child = spawn('pnpm', buildDevCommandArgs(target), {
-    stdio: 'inherit',
+  spawnPnpmAndExit({
+    args: buildDevCommandArgs(target),
+    label: 'dev',
+    startErrorMessage: 'Failed to start pnpm',
     env: { ...process.env, ...target.env },
-  });
-
-  child.on('exit', (code, signal) => {
-    if (signal) {
-      process.kill(process.pid, signal);
-      return;
-    }
-
-    process.exit(code ?? 1);
-  });
-
-  child.on('error', (error) => {
-    console.error(`[dev] Failed to start pnpm: ${error.message}`);
-    process.exit(1);
   });
 }
 

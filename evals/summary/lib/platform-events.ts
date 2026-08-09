@@ -4,6 +4,14 @@ import type {
   SummaryEvalFailureRecord,
   SummaryEvalReport,
 } from '../../../packages/contracts/src/domain/evals/report.js';
+import {
+  buildCaseAssertionEvent,
+  buildCaseLifecycleEvents,
+  buildCaseScoreEvents,
+  collectCaseEvents,
+  deriveStartedAt,
+  groupFailuresByCase,
+} from '../../lib/platform-events.js';
 import { getSummaryEvaluationCases, getSummaryScenarioIds } from './runner-api.js';
 
 export interface BuildSummaryPlatformEventsInput {
@@ -22,120 +30,38 @@ const defaultDeps: SummaryPlatformEventDeps = {
   loadScenarioIds: getSummaryScenarioIds,
 };
 
-function deriveStartedAt(timestamp: string, durationMs: number): string {
-  return new Date(new Date(timestamp).getTime() - durationMs).toISOString();
-}
-
-function getEventTags(baseTags: string[], caseTags: string[]): string[] {
-  return [...new Set([...baseTags, ...caseTags])];
-}
-
-function groupSummaryFailuresByCase(
-  failures: SummaryEvalFailureRecord[],
-): Map<string, SummaryEvalFailureRecord[]> {
-  const grouped = new Map<string, SummaryEvalFailureRecord[]>();
-
-  for (const failure of failures) {
-    const existing = grouped.get(failure.caseId) ?? [];
-    existing.push(failure);
-    grouped.set(failure.caseId, existing);
-  }
-
-  return grouped;
-}
-
 function buildSummaryScoreEvents(params: {
   suiteRunId: string;
   timestamp: string;
   caseDefinition: SummaryEvalCase;
   caseResult: SummaryEvalReport['cases'][number];
   tags: string[];
-}): EvalPlatformEvent[] {
+}) {
   const { suiteRunId, timestamp, caseDefinition, caseResult, tags } = params;
 
-  return [
+  return buildCaseScoreEvents(
     {
-      family: 'EvalScoreRecorded',
       suite: 'summary',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
+      suiteRunId,
       timestamp,
+      caseResult,
+      caseDefinition,
+      caseId: caseResult.caseId,
       tags,
-      payload: {
+    },
+    [
+      {
         scoreId: 'groundednessScore',
         score: caseResult.groundednessScore,
         source: 'case.groundednessScore',
       },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'summary',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: {
+      {
         scoreId: 'coverageScore',
         score: caseResult.coverageScore,
         source: 'case.coverageScore',
       },
-    },
-  ];
-}
-
-function buildSummaryAssertionEvent(params: {
-  suiteRunId: string;
-  timestamp: string;
-  caseDefinition: SummaryEvalCase;
-  caseResult: SummaryEvalReport['cases'][number];
-  tags: string[];
-  assertionId: 'summary-present' | 'groundedness' | 'coverage' | 'forbidden-claims';
-  passed: boolean;
-  source:
-    | 'case.claimsTotal'
-    | 'case.groundednessScore'
-    | 'case.coverageScore'
-    | 'case.forbiddenClaimsFound';
-  expected?: unknown;
-  actual?: unknown;
-  reason?: string;
-}): EvalPlatformEvent {
-  const {
-    suiteRunId,
-    timestamp,
-    caseDefinition,
-    caseResult,
-    tags,
-    assertionId,
-    passed,
-    source,
-    expected,
-    actual,
-    reason,
-  } = params;
-
-  return {
-    family: 'EvalAssertionRecorded',
-    suite: 'summary',
-    tier: caseResult.tier,
-    runId: suiteRunId,
-    caseId: caseResult.caseId,
-    scenarioId: caseDefinition.scenarioId,
-    timestamp,
-    tags,
-    payload: {
-      assertionId,
-      passed,
-      source,
-      ...(expected !== undefined ? { expected } : {}),
-      ...(actual !== undefined ? { actual } : {}),
-      ...(reason ? { reason } : {}),
-    },
-  };
+    ],
+  );
 }
 
 function buildSummaryCasePlatformEvents(params: {
@@ -146,124 +72,103 @@ function buildSummaryCasePlatformEvents(params: {
   report: SummaryEvalReport;
   caseMap: Map<string, SummaryEvalCase>;
   failuresByCase: Map<string, SummaryEvalFailureRecord[]>;
-}): EvalPlatformEvent[] {
+}) {
   const { suiteRunId, startedAt, finishedAt, baseTags, report, caseMap, failuresByCase } = params;
-  const events: EvalPlatformEvent[] = [];
 
-  for (const caseResult of report.cases) {
-    const caseDefinition = caseMap.get(caseResult.caseId);
-    if (!caseDefinition) {
-      continue;
-    }
+  return collectCaseEvents(
+    report,
+    caseMap,
+    failuresByCase,
+    baseTags,
+    ({ caseResult, caseDefinition, tags, caseFailures }) => {
+      const expectedSummary = caseDefinition.expected.expectSummary ?? true;
+      const actualSummary = caseResult.claimsTotal > 0;
+      const groundednessReason =
+        caseFailures.find((failure) => failure.kind === 'groundedness-below-threshold')
+          ?.description ?? undefined;
+      const coverageReason =
+        caseFailures.find((failure) => failure.kind === 'coverage-below-threshold')?.description ??
+        undefined;
+      const summaryPresentReason =
+        caseFailures.find((failure) => failure.kind === 'missing-summary')?.description ??
+        undefined;
+      const forbiddenReason =
+        caseFailures
+          .filter((failure) => failure.kind === 'forbidden-claim-found')
+          .map((failure) => failure.description)
+          .join('; ') || undefined;
+      const caseParams = {
+        suite: 'summary' as const,
+        suiteRunId,
+        timestamp: finishedAt,
+        caseResult,
+        caseDefinition,
+        caseId: caseResult.caseId,
+        tags,
+      };
 
-    const tags = getEventTags(baseTags, caseDefinition.tags);
-    const caseFailures = failuresByCase.get(caseResult.caseId) ?? [];
-    const expectedSummary = caseDefinition.expected.expectSummary ?? true;
-    const actualSummary = caseResult.claimsTotal > 0;
-    const groundednessReason =
-      caseFailures.find((failure) => failure.kind === 'groundedness-below-threshold')
-        ?.description ?? undefined;
-    const coverageReason =
-      caseFailures.find((failure) => failure.kind === 'coverage-below-threshold')?.description ??
-      undefined;
-    const summaryPresentReason =
-      caseFailures.find((failure) => failure.kind === 'missing-summary')?.description ?? undefined;
-    const forbiddenReason =
-      caseFailures
-        .filter((failure) => failure.kind === 'forbidden-claim-found')
-        .map((failure) => failure.description)
-        .join('; ') || undefined;
-
-    events.push({
-      family: 'EvalCaseStarted',
-      suite: 'summary',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp: startedAt,
-      tags,
-      payload: {
-        case: caseDefinition,
-      },
-    });
-    events.push({
-      family: 'EvalCaseFinished',
-      suite: 'summary',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp: finishedAt,
-      tags,
-      payload: {
-        result: caseResult,
-      },
-    });
-    events.push(
-      ...buildSummaryScoreEvents({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-      }),
-      buildSummaryAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'summary-present',
-        passed: expectedSummary === actualSummary,
-        source: 'case.claimsTotal',
-        expected: expectedSummary,
-        actual: actualSummary,
-        reason: summaryPresentReason,
-      }),
-      buildSummaryAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'groundedness',
-        passed: caseResult.groundednessScore >= (caseDefinition.expected.minGroundedness ?? 0.8),
-        source: 'case.groundednessScore',
-        expected: caseDefinition.expected.minGroundedness ?? 0.8,
-        actual: caseResult.groundednessScore,
-        reason: groundednessReason,
-      }),
-      buildSummaryAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'coverage',
-        passed: caseResult.coverageScore >= (caseDefinition.expected.minCoverage ?? 0.7),
-        source: 'case.coverageScore',
-        expected: caseDefinition.expected.minCoverage ?? 0.7,
-        actual: caseResult.coverageScore,
-        reason: coverageReason,
-      }),
-      buildSummaryAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'forbidden-claims',
-        passed: caseResult.forbiddenClaimsFound.length === 0,
-        source: 'case.forbiddenClaimsFound',
-        expected: [],
-        actual: caseResult.forbiddenClaimsFound,
-        reason: forbiddenReason,
-      }),
-    );
-  }
-
-  return events;
+      return [
+        ...buildCaseLifecycleEvents({
+          envelope: {
+            suite: 'summary',
+            tier: caseResult.tier,
+            runId: suiteRunId,
+            caseId: caseResult.caseId,
+            scenarioId: caseDefinition.scenarioId,
+            timestamp: finishedAt,
+            tags,
+          },
+          startedAt,
+          finishedAt,
+          caseDefinition,
+          caseResult,
+        }),
+        ...buildSummaryScoreEvents({
+          suiteRunId,
+          timestamp: finishedAt,
+          caseDefinition,
+          caseResult,
+          tags,
+        }),
+        buildCaseAssertionEvent({
+          ...caseParams,
+          assertionId: 'summary-present',
+          passed: expectedSummary === actualSummary,
+          source: 'case.claimsTotal',
+          expected: expectedSummary,
+          actual: actualSummary,
+          reason: summaryPresentReason,
+        }),
+        buildCaseAssertionEvent({
+          ...caseParams,
+          assertionId: 'groundedness',
+          passed: caseResult.groundednessScore >= (caseDefinition.expected.minGroundedness ?? 0.8),
+          source: 'case.groundednessScore',
+          expected: caseDefinition.expected.minGroundedness ?? 0.8,
+          actual: caseResult.groundednessScore,
+          reason: groundednessReason,
+        }),
+        buildCaseAssertionEvent({
+          ...caseParams,
+          assertionId: 'coverage',
+          passed: caseResult.coverageScore >= (caseDefinition.expected.minCoverage ?? 0.7),
+          source: 'case.coverageScore',
+          expected: caseDefinition.expected.minCoverage ?? 0.7,
+          actual: caseResult.coverageScore,
+          reason: coverageReason,
+        }),
+        buildCaseAssertionEvent({
+          ...caseParams,
+          assertionId: 'forbidden-claims',
+          passed: caseResult.forbiddenClaimsFound.length === 0,
+          source: 'case.forbiddenClaimsFound',
+          expected: [],
+          actual: caseResult.forbiddenClaimsFound,
+          reason: forbiddenReason,
+        }),
+      ];
+    },
+  );
 }
 
 export async function buildSummaryPlatformEvents(
@@ -280,7 +185,7 @@ export async function buildSummaryPlatformEvents(
     report.meta.options.endpoint,
   );
   const caseMap = new Map(summaryCases.map((case_) => [case_.caseId, case_]));
-  const failuresByCase = groupSummaryFailuresByCase(report.failures);
+  const failuresByCase = groupFailuresByCase(report.failures);
 
   return [
     {

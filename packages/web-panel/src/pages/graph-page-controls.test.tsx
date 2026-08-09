@@ -24,6 +24,10 @@ vi.mock('@trapmap/web-panel/shared/ui', async () => {
   };
 });
 
+vi.mock('../shared/ui/g6-graph-component', () => ({
+  G6GraphComponent: () => <div data-testid="mock-graph" />,
+}));
+
 // @ts-ignore
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 

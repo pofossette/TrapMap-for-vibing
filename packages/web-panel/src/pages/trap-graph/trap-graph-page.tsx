@@ -1,15 +1,233 @@
 import { Button, Card, ListBox, Select } from '@heroui/react';
-import { type ReactElement, useCallback, useEffect, useState } from 'react';
+import {
+  type Dispatch,
+  type ReactElement,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
 import type { G6Edge, G6Node } from '@trapmap/web-panel/shared/enum-types';
 import { PageTransition } from '@trapmap/web-panel/shared/motion';
-import { G6GraphComponent, PageContainer, SectionHeader } from '@trapmap/web-panel/shared/ui';
+import {
+  GraphCanvasPane,
+  GraphEdgeInspector,
+  type GraphElement,
+  GraphSelectItem,
+  PageContainer,
+  SectionHeader,
+  useGraphSelection,
+} from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
+
+type NodeFilterState = {
+  trap: boolean;
+  cue: boolean;
+  tool: boolean;
+  environment: boolean;
+  mitigation: boolean;
+};
+
+type NeighborhoodDepth = '1' | '2' | 'all';
+
+function TrapGraphErrorBanner({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}): ReactElement {
+  const { t } = useI18nStore();
+  return (
+    <div className="p-6 text-center border border-panel-line rounded-2xl bg-panel-surface">
+      <p className="text-rose-400 font-semibold">{message}</p>
+      <Button className="mt-4" size="sm" variant="secondary" onPress={onRetry}>
+        {t('retry')}
+      </Button>
+    </div>
+  );
+}
+
+function TrapGraphControls({
+  nodeFilter,
+  onNodeFilterChange,
+  neighborhoodDepth,
+  onNeighborhoodDepthChange,
+  nodeCount,
+  edgeCount,
+}: {
+  nodeFilter: NodeFilterState;
+  onNodeFilterChange: Dispatch<SetStateAction<NodeFilterState>>;
+  neighborhoodDepth: NeighborhoodDepth;
+  onNeighborhoodDepthChange: Dispatch<SetStateAction<NeighborhoodDepth>>;
+  nodeCount: number;
+  edgeCount: number;
+}): ReactElement {
+  const { t } = useI18nStore();
+  return (
+    <Card className="border border-panel-line bg-panel-surface p-5 flex flex-col gap-6 overflow-y-auto">
+      <div>
+        <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/35 pb-2 mb-3">
+          {t('graphLayers')}
+        </h3>
+        <div className="flex flex-col gap-2.5">
+          {(
+            [
+              ['trap', t('graphLayerTrap')],
+              ['cue', t('graphLayerCue')],
+              ['tool', t('graphLayerTool')],
+              ['environment', t('graphLayerEnvironment')],
+              ['mitigation', t('graphLayerMitigation')],
+            ] as const
+          ).map(([key, label]) => (
+            <label key={key} className="flex items-center gap-2 text-sm text-panel-text">
+              <input
+                type="checkbox"
+                checked={nodeFilter[key]}
+                onChange={(event) =>
+                  onNodeFilterChange((prev) => ({ ...prev, [key]: event.target.checked }))
+                }
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/35 pb-2 mb-3">
+          {t('neighborhoodDepth')}
+        </h3>
+        <Select
+          aria-label={t('neighborhoodDepth')}
+          className="w-full"
+          value={neighborhoodDepth}
+          onChange={(value) =>
+            onNeighborhoodDepthChange((value ? String(value) : '1') as NeighborhoodDepth)
+          }
+        >
+          <Select.Trigger className="relative w-full flex items-center justify-between rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none transition duration-200 focus:ring-1 focus:ring-panel-accent cursor-pointer">
+            <Select.Value />
+            <Select.Indicator className="text-panel-muted transition-transform duration-200" />
+          </Select.Trigger>
+          <Select.Popover className="min-w-[220px] rounded-xl border border-panel-line bg-panel-surface p-1.5 shadow-panel">
+            <ListBox className="outline-none">
+              {[
+                { id: '1', label: t('oneHopNeighbors') },
+                { id: '2', label: t('twoHopNeighbors') },
+                { id: 'all', label: t('fullyConnectedComponent') },
+              ].map((option) => (
+                <GraphSelectItem key={option.id} id={option.id} textValue={option.label}>
+                  {option.label}
+                </GraphSelectItem>
+              ))}
+            </ListBox>
+          </Select.Popover>
+        </Select>
+      </div>
+
+      <div className="mt-auto pt-4 border-t border-panel-line/35 text-xs text-panel-muted space-y-2">
+        <p className="font-semibold uppercase tracking-wider">{t('graphStats')}</p>
+        <div className="grid grid-cols-2 gap-y-1 text-[11px] font-mono">
+          <span>{t('nodes')}:</span>
+          <span className="text-panel-text text-right">{nodeCount}</span>
+          <span>{t('edges')}:</span>
+          <span className="text-panel-text text-right">{edgeCount}</span>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function TrapGraphInspector({
+  selectedElement,
+}: {
+  selectedElement: GraphElement | null;
+}): ReactElement {
+  const { t } = useI18nStore();
+  return (
+    <Card className="border border-panel-line bg-panel-surface p-5 flex flex-col gap-6 overflow-y-auto">
+      <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/35 pb-2">
+        {t('graphInspector')}
+      </h3>
+
+      {selectedElement ? (
+        <div className="space-y-4">
+          <div className="border-b border-panel-line/35 pb-3">
+            <span className="inline-flex rounded-full bg-panel-accent/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-panel-accent">
+              {selectedElement.type}
+            </span>
+            <h4 className="mt-2 text-md font-bold text-panel-text">
+              {selectedElement.label || `${selectedElement.source} → ${selectedElement.target}`}
+            </h4>
+          </div>
+
+          {selectedElement.type === 'node' ? (
+            <div className="space-y-3 font-mono text-xs">
+              <div className="grid grid-cols-2">
+                <span className="text-panel-muted">{t('nodeId')}:</span>
+                <span className="text-panel-text text-right truncate">{selectedElement.id}</span>
+              </div>
+              <div className="grid grid-cols-2">
+                <span className="text-panel-muted">{t('modelType')}:</span>
+                <span className="text-panel-text text-right capitalize">
+                  {selectedElement.kind}
+                </span>
+              </div>
+              {selectedElement.severity && (
+                <div className="grid grid-cols-2">
+                  <span className="text-panel-muted">{t('severity')}:</span>
+                  <span className="text-rose-400 font-bold text-right capitalize">
+                    {selectedElement.severity}
+                  </span>
+                </div>
+              )}
+              {selectedElement.scope && (
+                <div className="grid grid-cols-2">
+                  <span className="text-panel-muted">{t('scope')}:</span>
+                  <span className="text-panel-text text-right capitalize">
+                    {selectedElement.scope}
+                  </span>
+                </div>
+              )}
+              {selectedElement.requiredLevel !== undefined && (
+                <div className="grid grid-cols-2">
+                  <span className="text-panel-muted">{t('requiredLevel')}:</span>
+                  <span className="text-panel-text text-right">
+                    {selectedElement.requiredLevel}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <GraphEdgeInspector
+              element={selectedElement}
+              sourceLabel={`${t('source')}:`}
+              targetLabel={`${t('target')}:`}
+            />
+          )}
+
+          <div className="pt-4 border-t border-panel-line/35">
+            <span className="text-xs text-panel-muted block mb-1">{t('evidenceNotes')}</span>
+            <p className="text-xs leading-relaxed text-panel-muted">
+              {selectedElement.evidence || selectedElement.details || t('noEvidenceLinked')}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-center py-10">
+          <p className="text-xs text-panel-muted max-w-[200px]">{t('selectGraphElementTip')}</p>
+        </div>
+      )}
+    </Card>
+  );
+}
 
 export function TrapGraphPage(): ReactElement {
   const { t } = useI18nStore();
-  const [neighborhoodDepth, setNeighborhoodDepth] = useState<'1' | '2' | 'all'>('1');
+  const [neighborhoodDepth, setNeighborhoodDepth] = useState<NeighborhoodDepth>('1');
 
   const [graphData, setGraphData] = useState<{ nodes: G6Node[]; edges: G6Edge[] }>({
     nodes: [],
@@ -19,15 +237,13 @@ export function TrapGraphPage(): ReactElement {
   const [error, setError] = useState<string | null>(null);
 
   // Inspector selected element
-  const [selectedElement, setSelectedElement] = useState<
-    (G6Node & { type: 'node' }) | (G6Edge & { type: 'edge' }) | null
-  >(null);
+  const { selectedElement, handleSelectNode, handleSelectEdge } = useGraphSelection();
 
   // Search keyword
   const [searchKeyword, setSearchKeyword] = useState('');
 
   // Graph filters state
-  const [nodeFilter, setNodeFilter] = useState({
+  const [nodeFilter, setNodeFilter] = useState<NodeFilterState>({
     trap: true,
     cue: true,
     tool: true,
@@ -51,14 +267,6 @@ export function TrapGraphPage(): ReactElement {
   useEffect(() => {
     void fetchGraph();
   }, [fetchGraph]);
-
-  const handleSelectNode = (node: G6Node) => {
-    setSelectedElement({ type: 'node', ...node });
-  };
-
-  const handleSelectEdge = (edge: G6Edge) => {
-    setSelectedElement({ type: 'edge', ...edge });
-  };
 
   // Apply filters locally
   const filteredNodes = graphData.nodes.filter((node) => {
@@ -89,238 +297,34 @@ export function TrapGraphPage(): ReactElement {
         <SectionHeader title={t('trapGraph')} description={t('trapGraphDesc')} />
 
         {error ? (
-          <div className="p-6 text-center border border-panel-line rounded-2xl bg-panel-surface">
-            <p className="text-rose-400 font-semibold">{error}</p>
-            <Button
-              className="mt-4"
-              size="sm"
-              variant="secondary"
-              onPress={() => void fetchGraph()}
-            >
-              {t('retry')}
-            </Button>
-          </div>
+          <TrapGraphErrorBanner message={error} onRetry={() => void fetchGraph()} />
         ) : (
           <div className="grid gap-6 lg:grid-cols-[280px,1fr,340px] h-[calc(100vh-230px)] min-h-[500px]">
             {/* Left Control Panel */}
-            <Card className="border border-panel-line bg-panel-surface p-5 flex flex-col gap-6 overflow-y-auto">
-              <div>
-                <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/35 pb-2 mb-3">
-                  {t('graphLayers')}
-                </h3>
-                <div className="flex flex-col gap-2.5">
-                  {(
-                    [
-                      ['trap', t('graphLayerTrap')],
-                      ['cue', t('graphLayerCue')],
-                      ['tool', t('graphLayerTool')],
-                      ['environment', t('graphLayerEnvironment')],
-                      ['mitigation', t('graphLayerMitigation')],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-2 text-sm text-panel-text">
-                      <input
-                        type="checkbox"
-                        checked={nodeFilter[key]}
-                        onChange={(event) =>
-                          setNodeFilter((prev) => ({ ...prev, [key]: event.target.checked }))
-                        }
-                      />
-                      <span>{label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/35 pb-2 mb-3">
-                  {t('neighborhoodDepth')}
-                </h3>
-                <Select
-                  aria-label={t('neighborhoodDepth')}
-                  className="w-full"
-                  value={neighborhoodDepth}
-                  onChange={(value) =>
-                    setNeighborhoodDepth((value ? String(value) : '1') as '1' | '2' | 'all')
-                  }
-                >
-                  <Select.Trigger className="relative w-full flex items-center justify-between rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none transition duration-200 focus:ring-1 focus:ring-panel-accent cursor-pointer">
-                    <Select.Value />
-                    <Select.Indicator className="text-panel-muted transition-transform duration-200" />
-                  </Select.Trigger>
-                  <Select.Popover className="min-w-[220px] rounded-xl border border-panel-line bg-panel-surface p-1.5 shadow-panel">
-                    <ListBox className="outline-none">
-                      {[
-                        { id: '1', label: t('oneHopNeighbors') },
-                        { id: '2', label: t('twoHopNeighbors') },
-                        { id: 'all', label: t('fullyConnectedComponent') },
-                      ].map((option) => (
-                        <ListBox.Item
-                          key={option.id}
-                          id={option.id}
-                          textValue={option.label}
-                          className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-panel-text transition duration-150 hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium"
-                        >
-                          {option.label}
-                          <ListBox.ItemIndicator>
-                            <svg
-                              role="img"
-                              aria-label="Selected"
-                              className="h-4 w-4 shrink-0 text-panel-accent"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth={2.5}
-                              viewBox="0 0 24 24"
-                            >
-                              <title>Selected</title>
-                              <path
-                                d="M5 13l4 4L19 7"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </ListBox.ItemIndicator>
-                        </ListBox.Item>
-                      ))}
-                    </ListBox>
-                  </Select.Popover>
-                </Select>
-              </div>
-
-              <div className="mt-auto pt-4 border-t border-panel-line/35 text-xs text-panel-muted space-y-2">
-                <p className="font-semibold uppercase tracking-wider">{t('graphStats')}</p>
-                <div className="grid grid-cols-2 gap-y-1 text-[11px] font-mono">
-                  <span>{t('nodes')}:</span>
-                  <span className="text-panel-text text-right">{filteredNodes.length}</span>
-                  <span>{t('edges')}:</span>
-                  <span className="text-panel-text text-right">{filteredEdges.length}</span>
-                </div>
-              </div>
-            </Card>
+            <TrapGraphControls
+              nodeFilter={nodeFilter}
+              onNodeFilterChange={setNodeFilter}
+              neighborhoodDepth={neighborhoodDepth}
+              onNeighborhoodDepthChange={setNeighborhoodDepth}
+              nodeCount={filteredNodes.length}
+              edgeCount={filteredEdges.length}
+            />
 
             {/* Center Canvas Pane */}
-            <Card className="border border-panel-line bg-panel-surface flex flex-col relative overflow-hidden">
-              <div className="absolute top-4 left-4 z-10 w-[240px]">
-                <input
-                  placeholder={t('searchGraphNode')}
-                  className="w-full rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
-                  value={searchKeyword}
-                  onChange={(event) => setSearchKeyword(event.target.value)}
-                />
-              </div>
-
-              <div className="flex-1 flex items-center justify-center bg-[#060a13]">
-                {loading ? (
-                  <p className="text-panel-muted animate-pulse">{t('initializingGraphEngine')}</p>
-                ) : (
-                  <G6GraphComponent
-                    data={displayData}
-                    onSelectNode={handleSelectNode}
-                    onSelectEdge={handleSelectEdge}
-                    searchKeyword={searchKeyword}
-                    highlightColor="#f97316"
-                  />
-                )}
-              </div>
-            </Card>
+            <GraphCanvasPane
+              data={displayData}
+              onSelectNode={handleSelectNode}
+              onSelectEdge={handleSelectEdge}
+              searchKeyword={searchKeyword}
+              onSearchKeywordChange={setSearchKeyword}
+              loading={loading}
+              loadingLabel={t('initializingGraphEngine')}
+              searchPlaceholder={t('searchGraphNode')}
+              highlightColor="#f97316"
+            />
 
             {/* Right Inspector Panel */}
-            <Card className="border border-panel-line bg-panel-surface p-5 flex flex-col gap-6 overflow-y-auto">
-              <h3 className="font-mono text-xs uppercase tracking-wider text-panel-muted border-b border-panel-line/35 pb-2">
-                {t('graphInspector')}
-              </h3>
-
-              {selectedElement ? (
-                <div className="space-y-4">
-                  <div className="border-b border-panel-line/35 pb-3">
-                    <span className="inline-flex rounded-full bg-panel-accent/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-panel-accent">
-                      {selectedElement.type}
-                    </span>
-                    <h4 className="mt-2 text-md font-bold text-panel-text">
-                      {selectedElement.label ||
-                        `${selectedElement.source} → ${selectedElement.target}`}
-                    </h4>
-                  </div>
-
-                  {selectedElement.type === 'node' ? (
-                    <div className="space-y-3 font-mono text-xs">
-                      <div className="grid grid-cols-2">
-                        <span className="text-panel-muted">{t('nodeId')}:</span>
-                        <span className="text-panel-text text-right truncate">
-                          {selectedElement.id}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2">
-                        <span className="text-panel-muted">{t('modelType')}:</span>
-                        <span className="text-panel-text text-right capitalize">
-                          {selectedElement.kind}
-                        </span>
-                      </div>
-                      {selectedElement.severity && (
-                        <div className="grid grid-cols-2">
-                          <span className="text-panel-muted">{t('severity')}:</span>
-                          <span className="text-rose-400 font-bold text-right capitalize">
-                            {selectedElement.severity}
-                          </span>
-                        </div>
-                      )}
-                      {selectedElement.scope && (
-                        <div className="grid grid-cols-2">
-                          <span className="text-panel-muted">{t('scope')}:</span>
-                          <span className="text-panel-text text-right capitalize">
-                            {selectedElement.scope}
-                          </span>
-                        </div>
-                      )}
-                      {selectedElement.requiredLevel !== undefined && (
-                        <div className="grid grid-cols-2">
-                          <span className="text-panel-muted">{t('requiredLevel')}:</span>
-                          <span className="text-panel-text text-right">
-                            {selectedElement.requiredLevel}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-3 font-mono text-xs">
-                      <div className="grid grid-cols-2">
-                        <span className="text-panel-muted">{t('source')}:</span>
-                        <span className="text-panel-text text-right truncate">
-                          {selectedElement.source}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2">
-                        <span className="text-panel-muted">{t('target')}:</span>
-                        <span className="text-panel-text text-right truncate">
-                          {selectedElement.target}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2">
-                        <span className="text-panel-muted">{t('relation')}:</span>
-                        <span className="text-panel-text text-right capitalize">
-                          {selectedElement.kind || t('connected')}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="pt-4 border-t border-panel-line/35">
-                    <span className="text-xs text-panel-muted block mb-1">
-                      {t('evidenceNotes')}
-                    </span>
-                    <p className="text-xs leading-relaxed text-panel-muted">
-                      {selectedElement.evidence || selectedElement.details || t('noEvidenceLinked')}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-center py-10">
-                  <p className="text-xs text-panel-muted max-w-[200px]">
-                    {t('selectGraphElementTip')}
-                  </p>
-                </div>
-              )}
-            </Card>
+            <TrapGraphInspector selectedElement={selectedElement} />
           </div>
         )}
       </PageContainer>

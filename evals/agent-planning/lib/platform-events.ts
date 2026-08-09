@@ -5,6 +5,13 @@ import type {
   EvalPlatformEvent,
 } from '@trapmap/contracts/evals';
 
+import {
+  buildAssertionEvent,
+  buildCaseLifecycleEvents,
+  buildCaseScoreEvents,
+  deriveStartedAt,
+  getEventTags,
+} from '../../lib/platform-events.js';
 import { getAgentPlanningEvaluationCases, getAgentPlanningScenarioIds } from './runner-api.js';
 
 export interface BuildAgentPlanningPlatformEventsInput {
@@ -23,77 +30,43 @@ const defaultDeps: AgentPlanningPlatformEventDeps = {
   loadScenarioIds: getAgentPlanningScenarioIds,
 };
 
-function deriveStartedAt(timestamp: string, durationMs: number): string {
-  return new Date(new Date(timestamp).getTime() - durationMs).toISOString();
-}
-
-function getEventTags(baseTags: string[], caseTags: string[]): string[] {
-  return [...new Set([...baseTags, ...caseTags])];
-}
-
 function buildAgentPlanningScoreEvents(params: {
   suiteRunId: string;
   timestamp: string;
   caseDefinition: AgentPlanningEvalCase;
   caseResult: AgentPlanningEvalReport['cases'][number];
   tags: string[];
-}): EvalPlatformEvent[] {
+}) {
   const { suiteRunId, timestamp, caseDefinition, caseResult, tags } = params;
+  const caseParams = {
+    suite: 'agent-planning' as const,
+    suiteRunId,
+    timestamp,
+    caseResult,
+    caseDefinition,
+    caseId: caseResult.variantId,
+    tags,
+  };
 
   return [
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'agent-planning',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'totalScore', score: caseResult.totalScore, source: 'case.totalScore' },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'agent-planning',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'pathScore', score: caseResult.pathScore, source: 'case.pathScore' },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'agent-planning',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: {
+    ...buildCaseScoreEvents(caseParams, [
+      { scoreId: 'totalScore', score: caseResult.totalScore, source: 'case.totalScore' },
+      { scoreId: 'pathScore', score: caseResult.pathScore, source: 'case.pathScore' },
+      {
         scoreId: 'finalAnswerScore',
         score: caseResult.finalAnswerScore,
         source: 'case.finalAnswerScore',
       },
-    },
-    ...caseResult.judge.dimensionScores.map((dimensionScore) => ({
-      family: 'EvalScoreRecorded' as const,
-      suite: 'agent-planning' as const,
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: {
+    ]),
+    ...buildCaseScoreEvents(
+      caseParams,
+      caseResult.judge.dimensionScores.map((dimensionScore) => ({
         scoreId: `dimension:${dimensionScore.dimensionId}`,
         score: dimensionScore.score,
         source: 'case.judge.dimensionScores[*].score' as const,
         rationale: dimensionScore.rationale,
-      },
-    })),
+      })),
+    ),
   ];
 }
 
@@ -124,27 +97,25 @@ function buildAgentPlanningAssertionEvent(params: {
     | 'case.judge.forbiddenActionHits';
   expected?: unknown;
   actual?: unknown;
-}): EvalPlatformEvent {
-  const { suiteRunId, timestamp, caseDefinition, caseResult, tags, assertionId, passed, source } =
-    params;
+}) {
+  const { suiteRunId, timestamp, caseDefinition, caseResult, tags } = params;
 
-  return {
-    family: 'EvalAssertionRecorded',
-    suite: 'agent-planning',
-    tier: caseResult.tier,
-    runId: suiteRunId,
-    caseId: caseResult.variantId,
-    scenarioId: caseDefinition.scenarioId,
-    timestamp,
-    tags,
-    payload: {
-      assertionId,
-      passed,
-      source,
-      ...(params.expected !== undefined ? { expected: params.expected } : {}),
-      ...(params.actual !== undefined ? { actual: params.actual } : {}),
+  return buildAssertionEvent({
+    envelope: {
+      suite: 'agent-planning',
+      tier: caseResult.tier,
+      runId: suiteRunId,
+      caseId: caseResult.variantId,
+      scenarioId: caseDefinition.scenarioId,
+      timestamp,
+      tags,
     },
-  };
+    assertionId: params.assertionId,
+    passed: params.passed,
+    source: params.source,
+    expected: params.expected,
+    actual: params.actual,
+  });
 }
 
 function buildAgentPlanningTraceEvents(params: {
@@ -199,7 +170,7 @@ function buildAgentPlanningCasePlatformEvents(params: {
   baseTags: string[];
   report: AgentPlanningEvalReport;
   caseMap: Map<string, AgentPlanningEvalCase>;
-}): EvalPlatformEvent[] {
+}) {
   const { suiteRunId, startedAt, finishedAt, baseTags, report, caseMap } = params;
   const events: EvalPlatformEvent[] = [];
 
@@ -210,37 +181,26 @@ function buildAgentPlanningCasePlatformEvents(params: {
     }
 
     const tags = getEventTags(baseTags, caseDefinition.tags);
-    events.push({
-      family: 'EvalCaseStarted',
-      suite: 'agent-planning',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp: startedAt,
-      tags,
-      payload: {
-        case: caseDefinition,
-      },
-    });
-    events.push({
-      family: 'EvalCaseFinished',
-      suite: 'agent-planning',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.variantId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp: finishedAt,
-      tags,
-      payload: {
-        result: caseResult,
+    events.push(
+      ...buildCaseLifecycleEvents({
+        envelope: {
+          suite: 'agent-planning',
+          tier: caseResult.tier,
+          runId: suiteRunId,
+          caseId: caseResult.variantId,
+          scenarioId: caseDefinition.scenarioId,
+          timestamp: finishedAt,
+          tags,
+        },
+        startedAt,
+        finishedAt,
+        caseDefinition,
+        caseResult,
         execution: {
           actorOutput: caseResult.actorOutput,
           normalizedPlan: caseResult.normalizedPlan,
         },
-      },
-    });
-    events.push(
+      }),
       ...buildAgentPlanningScoreEvents({
         suiteRunId,
         timestamp: finishedAt,

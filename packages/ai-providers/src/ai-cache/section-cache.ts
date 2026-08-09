@@ -19,7 +19,7 @@ interface SectionCacheEntry {
   timestamp: number;
 }
 
-export interface SectionCacheOptions {
+interface SectionCacheOptions {
   /** Maximum number of entries. Default: 1000. */
   max?: number;
   /** TTL in milliseconds. Default: 1 hour. */
@@ -94,14 +94,7 @@ class SectionLRUCache {
 // Singleton cache instance
 // ---------------------------------------------------------------------------
 
-let cacheInstance = new SectionLRUCache();
-
-/**
- * Reset the cache (useful for testing).
- */
-export function resetSectionCache(options?: SectionCacheOptions): void {
-  cacheInstance = new SectionLRUCache(options);
-}
+const cacheInstance = new SectionLRUCache();
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -110,7 +103,7 @@ export function resetSectionCache(options?: SectionCacheOptions): void {
 /**
  * Compute a SHA-256 hash of the given content.
  */
-export function computeHash(content: string): string {
+function computeHash(content: string): string {
   return createHash('sha256').update(content).digest('hex');
 }
 
@@ -142,25 +135,4 @@ export function getCachedSection(name: string, computeFn: () => string): string 
   // Track miss — content was not in cache
   trackCacheMiss(cacheKey, 'content_changed');
   return content;
-}
-
-/**
- * Invalidate a specific section in the cache.
- */
-export function invalidateSection(name: string): void {
-  cacheInstance.delete(`section:${name}`);
-}
-
-/**
- * Clear all cached sections.
- */
-export function clearAllSections(): void {
-  cacheInstance.clear();
-}
-
-/**
- * Get the current cache size (number of entries).
- */
-export function getSectionCacheSize(): number {
-  return cacheInstance.size;
 }

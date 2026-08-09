@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import { finishCheckRun } from './lib/check-result.js';
+
 // ── Types ────────────────────────────────────────────────────────────
 
 export interface ArchFreezeFileRule {
@@ -120,21 +122,15 @@ const CONFIG_PATH = resolve(ROOT, 'scripts/arch-freeze-rules.json');
 
 function main(): void {
   const result = checkArchFreeze(CONFIG_PATH, ROOT);
-
-  for (const msg of result.messages) {
-    console.error(msg);
-  }
-
-  if (result.failures > 0) {
-    console.error(
-      `\n[arch-freeze] ${result.failures} violation(s) found. Fix the source code or update the rules.`,
-    );
-    process.exit(1);
-  }
-
   const raw = readFileSync(CONFIG_PATH, 'utf-8');
   const config: ArchFreezeConfig = JSON.parse(raw);
-  console.log(`[arch-freeze] All ${config.archFreezeRules.length} rule(s) passed.`);
+
+  finishCheckRun({
+    name: '[arch-freeze]',
+    result,
+    remedy: 'Fix the source code or update the rules.',
+    passedMessage: `[arch-freeze] All ${config.archFreezeRules.length} rule(s) passed.`,
+  });
 }
 
 // Only run when executed directly, not when imported (e.g. by tests).

@@ -1,5 +1,6 @@
-import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+
+import { exitWithResolveError, spawnPnpmAndExit } from './lib/spawn-pnpm.js';
 
 type EvalTier = 'smoke' | 'core';
 type EvalMode = 'live' | 'dry-run';
@@ -82,6 +83,94 @@ function assertEvalSuite(value: string): asserts value is EvalSuite {
   }
 }
 
+interface OptionSpec {
+  flag: string;
+  /** 1 when the option consumes the next argv entry as its value. */
+  takesValue: boolean;
+  apply(options: ParsedEvalOptions, value: string | undefined): void;
+}
+
+function requireValue(flag: string, value: string | undefined): string {
+  if (!value) {
+    throw new Error(`Missing ${flag} value\n\n${EVAL_USAGE}`);
+  }
+  return value;
+}
+
+function assertChoice<T extends string>(
+  flag: string,
+  value: string | undefined,
+  choices: readonly T[],
+): T {
+  if (!value || !choices.includes(value as T)) {
+    throw new Error(`Invalid ${flag} value: ${value ?? '<missing>'}\n\n${EVAL_USAGE}`);
+  }
+  return value as T;
+}
+
+const EVAL_OPTION_SPECS: readonly OptionSpec[] = [
+  {
+    flag: '--dry-run',
+    takesValue: false,
+    apply: (options) => {
+      options.dryRun = true;
+    },
+  },
+  {
+    flag: '--json',
+    takesValue: false,
+    apply: (options) => {
+      options.json = true;
+    },
+  },
+  {
+    flag: '--tier',
+    takesValue: true,
+    apply: (options, value) => {
+      options.tier = assertChoice('--tier', value, ['smoke', 'core'] as const);
+    },
+  },
+  {
+    flag: '--mode',
+    takesValue: true,
+    apply: (options, value) => {
+      options.mode = assertChoice('--mode', value, ['live', 'dry-run'] as const);
+    },
+  },
+  {
+    flag: '--runner',
+    takesValue: true,
+    apply: (options, value) => {
+      options.runner = assertChoice('--runner', value, ['native', 'promptfoo'] as const);
+    },
+  },
+  {
+    flag: '--json-path',
+    takesValue: true,
+    apply: (options, value) => {
+      options.jsonPath = requireValue('--json-path', value);
+    },
+  },
+  {
+    flag: '--platform',
+    takesValue: true,
+    apply: (options, value) => {
+      options.platform = assertChoice('--platform', value, [
+        'noop',
+        'json-archive',
+        'langfuse',
+      ] as const);
+    },
+  },
+  {
+    flag: '--platform-output-dir',
+    takesValue: true,
+    apply: (options, value) => {
+      options.platformOutputDir = requireValue('--platform-output-dir', value);
+    },
+  },
+];
+
 function parseEvalOptions(argv: readonly string[]): ParsedEvalOptions {
   const options: ParsedEvalOptions = {
     dryRun: false,
@@ -93,78 +182,12 @@ function parseEvalOptions(argv: readonly string[]): ParsedEvalOptions {
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
-
-    if (arg === '--dry-run') {
-      options.dryRun = true;
-      continue;
+    const spec = EVAL_OPTION_SPECS.find((candidate) => candidate.flag === arg);
+    if (!spec) {
+      throw new Error(`Unknown eval option: ${arg}\n\n${EVAL_USAGE}`);
     }
-
-    if (arg === '--json') {
-      options.json = true;
-      continue;
-    }
-
-    if (arg === '--tier') {
-      const value = argv[index + 1];
-      if (value !== 'smoke' && value !== 'core') {
-        throw new Error(`Invalid --tier value: ${value ?? '<missing>'}\n\n${EVAL_USAGE}`);
-      }
-      options.tier = value;
-      index += 1;
-      continue;
-    }
-
-    if (arg === '--mode') {
-      const value = argv[index + 1];
-      if (value !== 'live' && value !== 'dry-run') {
-        throw new Error(`Invalid --mode value: ${value ?? '<missing>'}\n\n${EVAL_USAGE}`);
-      }
-      options.mode = value;
-      index += 1;
-      continue;
-    }
-
-    if (arg === '--runner') {
-      const value = argv[index + 1];
-      if (value !== 'native' && value !== 'promptfoo') {
-        throw new Error(`Invalid --runner value: ${value ?? '<missing>'}\n\n${EVAL_USAGE}`);
-      }
-      options.runner = value;
-      index += 1;
-      continue;
-    }
-
-    if (arg === '--json-path') {
-      const value = argv[index + 1];
-      if (!value) {
-        throw new Error(`Missing --json-path value\n\n${EVAL_USAGE}`);
-      }
-      options.jsonPath = value;
-      index += 1;
-      continue;
-    }
-
-    if (arg === '--platform') {
-      const value = argv[index + 1];
-      if (value !== 'noop' && value !== 'json-archive' && value !== 'langfuse') {
-        throw new Error(`Invalid --platform value: ${value ?? '<missing>'}\n\n${EVAL_USAGE}`);
-      }
-      options.platform = value;
-      index += 1;
-      continue;
-    }
-
-    if (arg === '--platform-output-dir') {
-      const value = argv[index + 1];
-      if (!value) {
-        throw new Error(`Missing --platform-output-dir value\n\n${EVAL_USAGE}`);
-      }
-      options.platformOutputDir = value;
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown eval option: ${arg}\n\n${EVAL_USAGE}`);
+    spec.apply(options, spec.takesValue ? argv[index + 1] : undefined);
+    index += spec.takesValue ? 1 : 0;
   }
 
   return options;
@@ -284,31 +307,14 @@ async function main(): Promise<void> {
   try {
     target = resolveEvalTarget(process.argv.slice(2));
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const isUsageError = message.startsWith('Usage:');
-    const stream = isUsageError ? process.stdout : process.stderr;
-    stream.write(`${message}\n`);
-    process.exit(isUsageError ? 0 : 1);
+    exitWithResolveError(error, 'Usage:');
     return;
   }
 
-  const child = spawn('pnpm', buildEvalCommandArgs(target), {
-    stdio: 'inherit',
-    env: process.env,
-  });
-
-  child.on('exit', (code, signal) => {
-    if (signal) {
-      process.kill(process.pid, signal);
-      return;
-    }
-
-    process.exit(code ?? 1);
-  });
-
-  child.on('error', (error) => {
-    console.error(`[eval] Failed to start pnpm: ${error.message}`);
-    process.exit(1);
+  spawnPnpmAndExit({
+    args: buildEvalCommandArgs(target),
+    label: 'eval',
+    startErrorMessage: 'Failed to start pnpm',
   });
 }
 

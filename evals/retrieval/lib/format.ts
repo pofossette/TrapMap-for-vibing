@@ -15,6 +15,7 @@ import type {
   RetrievalEvalWarningRecord,
   RoutingDistribution,
 } from '../../../packages/contracts/src/domain/evals/report.js';
+import { pushSliceTable, pushSummaryStats } from '../../lib/eval-report.js';
 
 // =============================================================================
 // Main Formatter
@@ -33,10 +34,7 @@ export function formatReport(report: RetrievalEvalReport): string {
   // Header
   lines.push('');
   lines.push('=== Evaluation Summary ===');
-  lines.push(`Total cases: ${report.summary.totalCases}`);
-  lines.push(`Passed: ${report.summary.passedCases}`);
-  lines.push(`Failed: ${report.summary.failedCases}`);
-  lines.push(`Pass rate: ${(report.summary.passRate * 100).toFixed(1)}%`);
+  pushSummaryStats(lines, report.summary);
   lines.push(`Duration: ${report.meta.durationMs}ms`);
   lines.push('');
 
@@ -223,14 +221,6 @@ export function formatSliceComparison(report: RetrievalEvalReport): string {
   lines.push('=== Slice Comparison ===');
   lines.push('');
 
-  // Table header
-  lines.push(
-    'Tier     | Endpoint              | Mode          | Cases | Pass Rate | Avg Hit@1 | Avg MRR | Avg nDCG',
-  );
-  lines.push(
-    '---------|----------------------|---------------|-------|-----------|-----------|---------|----------',
-  );
-
   // Sort slices for consistent display
   const sortedSlices = [...report.slices].sort((a, b) => {
     // Sort by tier, then endpoint, then mode
@@ -245,22 +235,19 @@ export function formatSliceComparison(report: RetrievalEvalReport): string {
     return modeA.localeCompare(modeB);
   });
 
-  // Table rows
-  for (const slice of sortedSlices) {
-    const mode = slice.slice.mode ?? 'default';
-    const tier = slice.slice.tier.padEnd(8);
-    const endpoint = slice.slice.endpoint.padEnd(20);
-    const modeStr = mode.padEnd(13);
-    const cases = String(slice.caseCount).padStart(5);
-    const passRate = `${(slice.passRate * 100).toFixed(1)}%`.padStart(9);
-    const hitAt1 = slice.avgHitAt1.toFixed(3).padStart(9);
-    const mrr = slice.avgMrr.toFixed(3).padStart(7);
-    const ndcg = slice.avgNdcg.toFixed(3).padStart(9);
-
-    lines.push(
-      `${tier} | ${endpoint} | ${modeStr} | ${cases} | ${passRate} | ${hitAt1} | ${mrr} | ${ndcg}`,
-    );
-  }
+  pushSliceTable(
+    lines,
+    sortedSlices.map((slice) => ({
+      tier: slice.slice.tier,
+      endpoint: slice.slice.endpoint,
+      mode: slice.slice.mode ?? 'default',
+      caseCount: slice.caseCount,
+      passRate: slice.passRate,
+      avgHitAt1: slice.avgHitAt1,
+      avgMrr: slice.avgMrr,
+      avgNdcg: slice.avgNdcg,
+    })),
+  );
 
   lines.push('');
 

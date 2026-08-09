@@ -22,6 +22,12 @@ import type {
   RoutingDistribution,
 } from '@trapmap/contracts/evals';
 import { retrievalEvalReportSchema } from '@trapmap/contracts/evals';
+import {
+  average,
+  buildEvalReportMetaOptions,
+  compareFailuresByCaseThenKind,
+  computeCaseTotals,
+} from '../../lib/eval-report.js';
 import type { CaseResult, SliceKey, SliceMetrics } from './types.js';
 import {
   deriveQueryType,
@@ -53,20 +59,11 @@ export function buildReport(
     schemaVersion: 1,
     timestamp: new Date().toISOString(),
     durationMs,
-    options: {
-      tier: options.tier,
-      endpoint: options.endpoint,
-      dryRun: options.dryRun,
-      allowEmpty: options.allowEmpty,
-      verbose: options.verbose,
-    },
+    options: buildEvalReportMetaOptions(options),
   };
 
   // Build overall summary
-  const totalCases = caseResults.length;
-  const passedCases = caseResults.filter((r) => r.passed).length;
-  const failedCases = totalCases - passedCases;
-  const passRate = totalCases > 0 ? passedCases / totalCases : 0;
+  const { totalCases, passedCases, failedCases, passRate } = computeCaseTotals(caseResults);
 
   // Build slice summaries (sorted by tier, endpoint, mode)
   const sliceSummaries = buildSliceSummaries(caseResults);
@@ -94,11 +91,9 @@ export function buildReport(
     .sort((a, b) => a.caseId.localeCompare(b.caseId));
 
   // Build failure records (sorted by case ID, then kind)
-  const failureRecords = caseResults.flatMap(buildFailureRecords).sort((a, b) => {
-    const caseCompare = a.caseId.localeCompare(b.caseId);
-    if (caseCompare !== 0) return caseCompare;
-    return a.kind.localeCompare(b.kind);
-  });
+  const failureRecords = caseResults
+    .flatMap(buildFailureRecords)
+    .sort(compareFailuresByCaseThenKind);
 
   // Build warning records (sorted by case ID)
   const warningRecords = caseResults
@@ -500,12 +495,4 @@ function compareSliceSummaries(a: RetrievalEvalSliceSummary, b: RetrievalEvalSli
   const modeA = a.slice.mode ?? 'none';
   const modeB = b.slice.mode ?? 'none';
   return modeA.localeCompare(modeB);
-}
-
-/**
- * Calculate average of an array of numbers.
- */
-function average(values: number[]): number {
-  if (values.length === 0) return 0;
-  return values.reduce((sum, v) => sum + v, 0) / values.length;
 }

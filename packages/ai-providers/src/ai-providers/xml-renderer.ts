@@ -9,6 +9,7 @@
  * HTML comments (<!-- ... -->) are stripped before rendering.
  */
 
+import { isTruthy } from './render-common.js';
 import type { PromptSlots } from './types.js';
 
 const XML_ESCAPE_MAP: Readonly<Record<string, string>> = {
@@ -23,13 +24,6 @@ const XML_ESCAPE_RE = /[&<>"']/g;
 
 function escapeXml(value: string): string {
   return value.replace(XML_ESCAPE_RE, (ch) => XML_ESCAPE_MAP[ch]!);
-}
-
-function isTruthy(value: unknown): boolean {
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'string') return value.length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  return true;
 }
 
 export function renderXmlTemplate(template: string, slots: PromptSlots): string {

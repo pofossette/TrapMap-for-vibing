@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import { finishCheckRun } from './lib/check-result.js';
+
 // ── Types ────────────────────────────────────────────────────────────
 
 export interface CountAssertion {
@@ -46,9 +48,17 @@ export interface CheckResult {
  * Returns failure messages (empty array = pass).
  */
 export function checkRule(rule: DocRule, content: string): string[] {
-  const msgs: string[] = [];
+  return [
+    ...checkMustContain(rule, content),
+    ...checkMustNotContain(rule, content),
+    ...checkMustNotContainRegex(rule, content),
+    ...checkMustMatchRegex(rule, content),
+    ...checkMustContainCount(rule, content),
+  ];
+}
 
-  // mustContain
+function checkMustContain(rule: DocRule, content: string): string[] {
+  const msgs: string[] = [];
   if (rule.mustContain) {
     for (const phrase of rule.mustContain) {
       if (!content.includes(phrase)) {
@@ -56,8 +66,11 @@ export function checkRule(rule: DocRule, content: string): string[] {
       }
     }
   }
+  return msgs;
+}
 
-  // mustNotContain
+function checkMustNotContain(rule: DocRule, content: string): string[] {
+  const msgs: string[] = [];
   if (rule.mustNotContain) {
     for (const phrase of rule.mustNotContain) {
       if (content.includes(phrase)) {
@@ -65,8 +78,11 @@ export function checkRule(rule: DocRule, content: string): string[] {
       }
     }
   }
+  return msgs;
+}
 
-  // mustNotContainRegex
+function checkMustNotContainRegex(rule: DocRule, content: string): string[] {
+  const msgs: string[] = [];
   if (rule.mustNotContainRegex) {
     for (const patternStr of rule.mustNotContainRegex) {
       try {
@@ -84,8 +100,11 @@ export function checkRule(rule: DocRule, content: string): string[] {
       }
     }
   }
+  return msgs;
+}
 
-  // mustMatchRegex
+function checkMustMatchRegex(rule: DocRule, content: string): string[] {
+  const msgs: string[] = [];
   if (rule.mustMatchRegex) {
     for (const patternStr of rule.mustMatchRegex) {
       try {
@@ -102,58 +121,79 @@ export function checkRule(rule: DocRule, content: string): string[] {
       }
     }
   }
-
-  // mustContainCount
-  if (rule.mustContainCount) {
-    const { pattern, expected, minOccurrences } = rule.mustContainCount;
-    try {
-      const re = new RegExp(pattern, 'g');
-      const allMatches = [...content.matchAll(re)];
-
-      if (minOccurrences !== undefined) {
-        // minOccurrences mode: count total matches
-        if (allMatches.length < minOccurrences) {
-          msgs.push(
-            `[doc-drift] FAIL: ${rule.file} expected at least ${minOccurrences} occurrences of /${pattern}/ but found ${allMatches.length}`,
-          );
-        }
-      } else if (expected !== undefined) {
-        // expected mode: extract number from first match's capture group
-        const reSingle = new RegExp(pattern);
-        const match = content.match(reSingle);
-        if (!match) {
-          msgs.push(
-            `[doc-drift] FAIL: ${rule.file} must match regex /${pattern}/ to extract a count, but no match found`,
-          );
-        } else if (match[1] === undefined) {
-          msgs.push(
-            `[doc-drift] ERROR: regex /${pattern}/ matched but has no capture group in rule for ${rule.file}`,
-          );
-        } else {
-          const actual = Number(match[1]);
-          if (Number.isNaN(actual)) {
-            msgs.push(
-              `[doc-drift] ERROR: regex /${pattern}/ capture group is not a number ("${match[1]}") in rule for ${rule.file}`,
-            );
-          } else if (actual !== expected) {
-            msgs.push(
-              `[doc-drift] FAIL: ${rule.file} expected count ${expected} but found ${actual} (from pattern /${pattern}/)`,
-            );
-          }
-        }
-      } else {
-        msgs.push(
-          `[doc-drift] ERROR: mustContainCount for ${rule.file} must specify either "expected" or "minOccurrences"`,
-        );
-      }
-    } catch (err) {
-      msgs.push(
-        `[doc-drift] ERROR: invalid regex "${pattern}" in mustContainCount for ${rule.file}: ${err}`,
-      );
-    }
-  }
-
   return msgs;
+}
+
+function checkMustContainCount(rule: DocRule, content: string): string[] {
+  if (!rule.mustContainCount) return [];
+
+  const { pattern, expected, minOccurrences } = rule.mustContainCount;
+  try {
+    const re = new RegExp(pattern, 'g');
+    const allMatches = [...content.matchAll(re)];
+
+    if (minOccurrences !== undefined) {
+      return checkCountByMinOccurrences(rule, pattern, allMatches.length, minOccurrences);
+    }
+    if (expected !== undefined) {
+      return checkCountByExpected(rule, content, pattern, expected);
+    }
+    return [
+      `[doc-drift] ERROR: mustContainCount for ${rule.file} must specify either "expected" or "minOccurrences"`,
+    ];
+  } catch (err) {
+    return [
+      `[doc-drift] ERROR: invalid regex "${pattern}" in mustContainCount for ${rule.file}: ${err}`,
+    ];
+  }
+}
+
+function checkCountByMinOccurrences(
+  rule: DocRule,
+  pattern: string,
+  matchCount: number,
+  minOccurrences: number,
+): string[] {
+  // minOccurrences mode: count total matches
+  if (matchCount < minOccurrences) {
+    return [
+      `[doc-drift] FAIL: ${rule.file} expected at least ${minOccurrences} occurrences of /${pattern}/ but found ${matchCount}`,
+    ];
+  }
+  return [];
+}
+
+function checkCountByExpected(
+  rule: DocRule,
+  content: string,
+  pattern: string,
+  expected: number,
+): string[] {
+  // expected mode: extract number from first match's capture group
+  const reSingle = new RegExp(pattern);
+  const match = content.match(reSingle);
+  if (!match) {
+    return [
+      `[doc-drift] FAIL: ${rule.file} must match regex /${pattern}/ to extract a count, but no match found`,
+    ];
+  }
+  if (match[1] === undefined) {
+    return [
+      `[doc-drift] ERROR: regex /${pattern}/ matched but has no capture group in rule for ${rule.file}`,
+    ];
+  }
+  const actual = Number(match[1]);
+  if (Number.isNaN(actual)) {
+    return [
+      `[doc-drift] ERROR: regex /${pattern}/ capture group is not a number ("${match[1]}") in rule for ${rule.file}`,
+    ];
+  }
+  if (actual !== expected) {
+    return [
+      `[doc-drift] FAIL: ${rule.file} expected count ${expected} but found ${actual} (from pattern /${pattern}/)`,
+    ];
+  }
+  return [];
 }
 
 /**
@@ -189,21 +229,15 @@ const CONFIG_PATH = resolve(ROOT, 'scripts/complexity-budgets.json');
 
 function main(): void {
   const result = checkDocDrift(CONFIG_PATH, ROOT);
-
-  for (const msg of result.messages) {
-    console.error(msg);
-  }
-
-  if (result.failures > 0) {
-    console.error(
-      `\n[doc-drift] ${result.failures} violation(s) found. Fix the docs and try again.`,
-    );
-    process.exit(1);
-  }
-
   const raw = readFileSync(CONFIG_PATH, 'utf-8');
   const config: Config = JSON.parse(raw);
-  console.log(`[doc-drift] All ${config.docRules.length} doc rule(s) passed.`);
+
+  finishCheckRun({
+    name: '[doc-drift]',
+    result,
+    remedy: 'Fix the docs and try again.',
+    passedMessage: `[doc-drift] All ${config.docRules.length} doc rule(s) passed.`,
+  });
 }
 
 // Only run when executed directly, not when imported (e.g. by tests).

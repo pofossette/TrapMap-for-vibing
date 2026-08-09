@@ -55,15 +55,3 @@ export function injectDynamicContent(
 
   return { injected: result, unresolvedPlaceholders };
 }
-
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-/**
- * Escape special regex characters in a string so it can be used safely
- * inside `new RegExp(...)` or `String.prototype.replaceAll(pattern, ...)`.
- */
-export function escapeRegExp(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { sha256 } from '@trapmap/lib';
 import type { RetrievalEvalScenario } from '@trapmap/contracts/evals';
+import { sha256 } from '@trapmap/lib';
 
 import {
   closeExecutionContext,

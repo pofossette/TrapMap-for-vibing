@@ -139,7 +139,6 @@ export function buildGraphExtractionSlots_default(): PromptSlots {
 /**
  * Cache-aware system prompt blocks for graph extraction planning.
  */
-// fallow-ignore-next-line unused-export
 export function buildGraphExtractionPlannerSystemPromptBlocks(): PromptBlock[] {
   const sections = buildPromptWithCacheControl(
     'graph-extraction-planner',
@@ -151,7 +150,6 @@ export function buildGraphExtractionPlannerSystemPromptBlocks(): PromptBlock[] {
 /**
  * Cache-aware system prompt blocks for graph entity extraction.
  */
-// fallow-ignore-next-line unused-export
 export function buildGraphExtractionSystemPromptBlocks(): PromptBlock[] {
   const sections = buildPromptWithCacheControl('graph-extraction', buildGraphExtractionSlots());
   return buildSystemPromptBlocks(sections);

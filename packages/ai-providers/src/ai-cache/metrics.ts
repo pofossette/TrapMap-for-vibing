@@ -11,7 +11,7 @@
 
 export type CacheMissReason = 'content_changed' | 'model_changed' | 'ttl_expired';
 
-export interface CacheMetrics {
+interface CacheMetrics {
   hitRate: number;
   totalRequests: number;
   cacheHits: number;
@@ -27,7 +27,7 @@ export interface CacheMetrics {
 // Singleton state
 // ---------------------------------------------------------------------------
 
-let metrics: CacheMetrics = {
+const metrics: CacheMetrics = {
   hitRate: 0,
   totalRequests: 0,
   cacheHits: 0,
@@ -71,31 +71,4 @@ export function trackCacheMiss(_sectionName: string, reason: CacheMissReason): v
       metrics.breakReasons.ttlExpired++;
       break;
   }
-}
-
-/**
- * Get a snapshot of the current cache metrics.
- */
-export function getCacheMetrics(): CacheMetrics {
-  return {
-    ...metrics,
-    breakReasons: { ...metrics.breakReasons },
-  };
-}
-
-/**
- * Reset all metrics (useful for testing).
- */
-export function resetCacheMetrics(): void {
-  metrics = {
-    hitRate: 0,
-    totalRequests: 0,
-    cacheHits: 0,
-    cacheMisses: 0,
-    breakReasons: {
-      contentChanged: 0,
-      modelChanged: 0,
-      ttlExpired: 0,
-    },
-  };
 }

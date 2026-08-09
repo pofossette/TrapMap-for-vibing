@@ -11,7 +11,7 @@ import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
-import { createGatewayDiscovery, type GatewayDiscovery } from './discovery-factory.js';
+import { type GatewayDiscovery, createGatewayDiscovery } from './discovery-factory.js';
 import type { DiscoveryResolver } from './discovery-resolver.js';
 import { type InternalServiceClients, createInternalServiceClients } from './internal-client.js';
 import { registerGatewayRoutes } from './routes.js';

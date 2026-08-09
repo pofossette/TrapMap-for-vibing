@@ -23,9 +23,13 @@ import { registerBridge } from '../promptfoo/bridge.js';
 import { llmProvider } from '../promptfoo/provider.js';
 import { assertResultPresent } from '../promptfoo/result.js';
 import type { SuiteBridge, SuiteRunOptions } from '../promptfoo/types.js';
+import {
+  type AgentPlanningResolvedOptions,
+  executeCase,
+  loadScenario,
+} from './lib/case-execution.js';
 import { type AgentPlanningReportOptions, buildAgentPlanningReport } from './lib/report.js';
 import { getAgentPlanningEvaluationCases } from './lib/runner-api.js';
-import { type AgentPlanningResolvedOptions, executeCase, loadScenario } from './run.js';
 
 function resolveOptions(options: SuiteRunOptions): AgentPlanningResolvedOptions {
   return {

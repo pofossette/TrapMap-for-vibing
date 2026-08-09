@@ -5,7 +5,6 @@
  */
 
 import type { ArtifactFilePayloadRecord } from '@trapmap/contracts';
-import type { SkillArtifactRevisionRecord } from '@trapmap/service-knowledge-read/store.js';
 
 /**
  * Extract derivation-eligible files (SKILL.md and references/ only).
@@ -15,21 +14,6 @@ import type { SkillArtifactRevisionRecord } from '@trapmap/service-knowledge-rea
  * @param revision - Artifact revision
  * @returns Array of files eligible for derivation, ordered by path
  */
-export function getDerivationEligibleFiles(revision: SkillArtifactRevisionRecord) {
-  return revision.files
-    .filter((f) => f.includeInDerivation && !f.activationOnly)
-    .sort((a, b) => a.path.localeCompare(b.path));
-}
-
-/**
- * Extract files by source directory.
- */
-export function getFilesBySource(
-  revision: SkillArtifactRevisionRecord,
-  source: 'SKILL.md' | 'references/' | 'assets/' | 'scripts/',
-) {
-  return revision.files.filter((f) => f.source === source);
-}
 
 /**
  * Extract text content from file payloads for derivation.

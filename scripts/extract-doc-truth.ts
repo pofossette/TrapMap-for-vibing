@@ -239,6 +239,26 @@ export function extractEnvironmentFacts(root: string): EnvironmentFact[] {
 /**
  * Extract runtime routes from host controllers.
  */
+const ROUTE_PATTERNS = [
+  { path: '/health', pattern: /health/ },
+  { path: '/ready', pattern: /ready/ },
+  { path: '/live', pattern: /live/ },
+] as const;
+
+function extractRoutesFromContent(
+  content: string,
+  host: RuntimeRouteFact['host'],
+  sourcePath: string,
+): RuntimeRouteFact[] {
+  const routes: RuntimeRouteFact[] = [];
+  for (const { path, pattern } of ROUTE_PATTERNS) {
+    if (pattern.test(content)) {
+      routes.push({ path, host, sourcePath });
+    }
+  }
+  return routes;
+}
+
 export function extractRuntimeRoutes(root: string): RuntimeRouteFact[] {
   const routes: RuntimeRouteFact[] = [];
 
@@ -246,22 +266,13 @@ export function extractRuntimeRoutes(root: string): RuntimeRouteFact[] {
   const healthController = join(root, 'packages/host-local/src/nest/health/health.controller.ts');
   if (existsSync(healthController)) {
     const content = readFileSync(healthController, 'utf-8');
-
-    const routePatterns = [
-      { path: '/health', pattern: /health/ },
-      { path: '/ready', pattern: /ready/ },
-      { path: '/live', pattern: /live/ },
-    ];
-
-    for (const { path, pattern } of routePatterns) {
-      if (pattern.test(content)) {
-        routes.push({
-          path,
-          host: 'host-local',
-          sourcePath: 'packages/host-local/src/nest/health/health.controller.ts',
-        });
-      }
-    }
+    routes.push(
+      ...extractRoutesFromContent(
+        content,
+        'host-local',
+        'packages/host-local/src/nest/health/health.controller.ts',
+      ),
+    );
   }
 
   // Extract metrics route
@@ -288,18 +299,7 @@ export function extractRuntimeRoutes(root: string): RuntimeRouteFact[] {
     if (!existsSync(fullPath)) continue;
 
     const content = readFileSync(fullPath, 'utf-8');
-
-    const routePatterns = [
-      { path: '/health', pattern: /health/ },
-      { path: '/ready', pattern: /ready/ },
-      { path: '/live', pattern: /live/ },
-    ];
-
-    for (const { path, pattern } of routePatterns) {
-      if (pattern.test(content)) {
-        routes.push({ path, host: 'host-distributed-gateway', sourcePath: routeFile });
-      }
-    }
+    routes.push(...extractRoutesFromContent(content, 'host-distributed-gateway', routeFile));
   }
 
   return routes;

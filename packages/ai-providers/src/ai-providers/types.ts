@@ -81,7 +81,7 @@ export interface CacheSection {
   readonly cacheScope: 'global' | 'org' | null;
 }
 
-// fallow-ignore-next-line unused-type
+// fallow-ignore-next-line unused-type -- part of public provider types surface
 export interface CacheBoundaryMarker {
   /** Byte offset where the boundary is inserted. */
   readonly position: number;

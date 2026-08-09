@@ -98,7 +98,7 @@ Are these duplicates? Classify the overlap type and provide your judgment as JSO
  * Parse and validate an LLM response into a LlmDuplicateJudgment.
  * Returns null if parsing or validation fails.
  */
-export function parseDuplicateJudgmentResponse(raw: string): LlmDuplicateJudgment | null {
+function parseDuplicateJudgmentResponse(raw: string): LlmDuplicateJudgment | null {
   try {
     const cleaned = stripCodeFences(raw);
     const parsed = JSON.parse(cleaned);

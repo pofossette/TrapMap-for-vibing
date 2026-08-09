@@ -203,37 +203,48 @@ function discoverSkills(
   return skills;
 }
 
+/**
+ * Recursively walk a directory tree, skipping hidden entries and node_modules.
+ * The visitor receives each entry's full path. Permission errors are ignored,
+ * matching the original scan behavior.
+ */
+function walkDirectory(
+  dir: string,
+  visit: (entry: import('node:fs').Dirent, fullPath: string) => void,
+): void {
+  try {
+    const entries = readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      if (entry.name.startsWith('.') || entry.name === 'node_modules') {
+        continue;
+      }
+
+      const fullPath = join(dir, entry.name);
+      visit(entry, fullPath);
+
+      if (entry.isDirectory()) {
+        walkDirectory(fullPath, visit);
+      }
+    }
+  } catch (_err) {
+    // Ignore permission errors, etc.
+  }
+}
+
 function findSkillsInDir(rootDir: string, repo: RepoConfig): DiscoveredSkill[] {
   const skills: DiscoveredSkill[] = [];
 
-  function scanDir(dir: string) {
-    try {
-      const entries = readdirSync(dir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = join(dir, entry.name);
-
-        // Skip hidden dirs, .git, node_modules
-        if (entry.name.startsWith('.') || entry.name === 'node_modules') {
-          continue;
-        }
-
-        if (entry.isDirectory()) {
-          // Check if this dir has SKILL.md
-          const skillMdPath = join(fullPath, 'SKILL.md');
-          if (existsSync(skillMdPath)) {
-            skills.push({ path: fullPath, repo });
-          }
-          // Continue scanning subdirectories
-          scanDir(fullPath);
-        }
+  walkDirectory(rootDir, (entry, fullPath) => {
+    if (entry.isDirectory()) {
+      // Check if this dir has SKILL.md
+      const skillMdPath = join(fullPath, 'SKILL.md');
+      if (existsSync(skillMdPath)) {
+        skills.push({ path: fullPath, repo });
       }
-    } catch (_err) {
-      // Ignore permission errors, etc.
     }
-  }
+  });
 
-  scanDir(rootDir);
   return skills;
 }
 
@@ -395,6 +406,53 @@ function sanitizeLabel(label: string): string {
   return sanitized;
 }
 
+/**
+ * Read and parse SKILL.md metadata, falling back to defaults on failure.
+ */
+async function readSkillMetadata(
+  skillMd: string,
+  skillPath: string,
+): Promise<{ title: string; labels: string[] }> {
+  try {
+    const content = await readFile(skillMd, 'utf8');
+    const metadata = parseSkillMetadata(content);
+    if (metadata) {
+      return { title: metadata.title, labels: metadata.labels };
+    }
+  } catch (_err) {
+    console.warn(`  [warn] Failed to read SKILL.md: ${skillPath}`);
+  }
+  return { title: 'Untitled Skill', labels: ['imported'] };
+}
+
+/**
+ * Build the full label set for a skill bundle: base labels, frontmatter
+ * labels, and path-segment labels.
+ */
+function buildLabelSet(
+  frontmatterLabels: string[],
+  skillPath: string,
+  repoLabel: string,
+): Set<string> {
+  const allLabels = new Set<string>();
+
+  allLabels.add('imported');
+  allLabels.add('batch-download');
+  allLabels.add(sanitizeLabel(repoLabel));
+
+  for (const label of frontmatterLabels) {
+    const sanitized = sanitizeLabel(label);
+    if (sanitized) allLabels.add(sanitized);
+  }
+
+  for (const segment of skillPath.split('/').slice(-3)) {
+    const sanitized = sanitizeLabel(segment);
+    if (sanitized && sanitized.length > 2) allLabels.add(sanitized);
+  }
+
+  return allLabels;
+}
+
 // =============================================================================
 // Directory Scanning
 // =============================================================================
@@ -412,46 +470,72 @@ function scanSkillDirectory(rootPath: string): ScannedFiles {
   const assets: string[] = [];
   const scripts: string[] = [];
 
-  function scanDir(dir: string) {
-    try {
-      const entries = readdirSync(dir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = join(dir, entry.name);
-        const relPath = relative(rootPath, fullPath);
-
-        // Skip hidden files and node_modules
-        if (entry.name.startsWith('.') || relPath.includes('node_modules')) {
-          continue;
-        }
-
-        if (entry.isFile()) {
-          // Classify file by directory
-          if (relPath === 'SKILL.md') {
-            skillMd = fullPath;
-          } else if (relPath.startsWith('references/')) {
-            references.push(relPath);
-          } else if (relPath.startsWith('assets/')) {
-            assets.push(relPath);
-          } else if (relPath.startsWith('scripts/')) {
-            scripts.push(relPath);
-          }
-        } else if (entry.isDirectory()) {
-          scanDir(fullPath);
-        }
+  walkDirectory(rootPath, (entry, fullPath) => {
+    if (entry.isFile()) {
+      const relPath = relative(rootPath, fullPath);
+      if (relPath.includes('node_modules')) {
+        return;
       }
-    } catch (_err) {
-      // Ignore errors
+      // Classify file by directory
+      if (relPath === 'SKILL.md') {
+        skillMd = fullPath;
+      } else if (relPath.startsWith('references/')) {
+        references.push(relPath);
+      } else if (relPath.startsWith('assets/')) {
+        assets.push(relPath);
+      } else if (relPath.startsWith('scripts/')) {
+        scripts.push(relPath);
+      }
     }
-  }
+  });
 
-  scanDir(rootPath);
   return { skillMd, references, assets, scripts };
 }
 
 // =============================================================================
 // Artifact Bundle Building
 // =============================================================================
+
+interface BundleFileSpec {
+  fullPath: string;
+  relPath: string;
+  kind: 'reference' | 'asset' | 'script';
+  source: 'references/' | 'assets/' | 'scripts/';
+  includeInDerivation: boolean;
+  activationOnly: boolean;
+}
+
+/**
+ * Read a bundled file (size-capped) and push it onto `files`. Warns and skips
+ * files that are too large or unreadable, matching the original per-kind loops.
+ */
+async function addBundleFile(files: BundleFilePayload[], spec: BundleFileSpec): Promise<void> {
+  try {
+    const buffer = await readFile(spec.fullPath);
+    if (buffer.length > MAX_FILE_SIZE) {
+      console.warn(`  [warn] Skipping large file (${buffer.length} bytes): ${spec.relPath}`);
+      return;
+    }
+
+    const { content } = await readFileContent(spec.fullPath);
+    const sha256 = computeFileHash(buffer);
+    const mediaType = detectMimeType(spec.relPath);
+
+    files.push({
+      path: spec.relPath,
+      kind: spec.kind,
+      sha256,
+      sizeBytes: buffer.length,
+      mediaType,
+      source: spec.source,
+      includeInDerivation: spec.includeInDerivation,
+      activationOnly: spec.activationOnly,
+      content,
+    });
+  } catch (_err) {
+    console.warn(`  [warn] Failed to read ${spec.kind}: ${spec.relPath}`);
+  }
+}
 
 async function buildArtifactBundle(skill: DiscoveredSkill): Promise<ArtifactBundle | null> {
   const { path: skillPath, repo } = skill;
@@ -464,43 +548,11 @@ async function buildArtifactBundle(skill: DiscoveredSkill): Promise<ArtifactBund
     return null;
   }
 
-  // Read SKILL.md for metadata
-  let title = 'Untitled Skill';
-  let labels: string[] = ['imported'];
-
-  try {
-    const skillMdContent = await readFile(skillMd, 'utf8');
-    const metadata = parseSkillMetadata(skillMdContent);
-    if (metadata) {
-      title = metadata.title;
-      labels = metadata.labels;
-    }
-  } catch (_err) {
-    console.warn(`  [warn] Failed to read SKILL.md: ${skillPath}`);
-  }
+  const { title, labels } = await readSkillMetadata(skillMd, skillPath);
 
   const slug = generateSlug(title);
 
-  // Build labels array
-  const allLabels = new Set<string>();
-
-  // Add base labels
-  allLabels.add('imported');
-  allLabels.add('batch-download');
-  allLabels.add(sanitizeLabel(repo.label));
-
-  // Add frontmatter labels
-  for (const label of labels) {
-    const sanitized = sanitizeLabel(label);
-    if (sanitized) allLabels.add(sanitized);
-  }
-
-  // Add path segments as labels
-  const pathSegments = skillPath.split('/');
-  for (const segment of pathSegments.slice(-3)) {
-    const sanitized = sanitizeLabel(segment);
-    if (sanitized && sanitized.length > 2) allLabels.add(sanitized);
-  }
+  const allLabels = buildLabelSet(labels, skillPath, repo.label);
 
   // Build files array
   const files: BundleFilePayload[] = [];
@@ -532,92 +584,38 @@ async function buildArtifactBundle(skill: DiscoveredSkill): Promise<ArtifactBund
 
   // Add references
   for (const relPath of references) {
-    const fullPath = join(skillPath, relPath);
-    try {
-      const buffer = await readFile(fullPath);
-      if (buffer.length > MAX_FILE_SIZE) {
-        console.warn(`  [warn] Skipping large file (${buffer.length} bytes): ${relPath}`);
-        continue;
-      }
-
-      const { content } = await readFileContent(fullPath);
-      const sha256 = computeFileHash(buffer);
-      const mediaType = detectMimeType(relPath);
-
-      files.push({
-        path: relPath,
-        kind: 'reference',
-        sha256,
-        sizeBytes: buffer.length,
-        mediaType,
-        source: 'references/',
-        includeInDerivation: true,
-        activationOnly: false,
-        content,
-      });
-    } catch (_err) {
-      console.warn(`  [warn] Failed to read reference: ${relPath}`);
-    }
+    await addBundleFile(files, {
+      fullPath: join(skillPath, relPath),
+      relPath,
+      kind: 'reference',
+      source: 'references/',
+      includeInDerivation: true,
+      activationOnly: false,
+    });
   }
 
   // Add assets
   for (const relPath of assets) {
-    const fullPath = join(skillPath, relPath);
-    try {
-      const buffer = await readFile(fullPath);
-      if (buffer.length > MAX_FILE_SIZE) {
-        console.warn(`  [warn] Skipping large file (${buffer.length} bytes): ${relPath}`);
-        continue;
-      }
-
-      const { content } = await readFileContent(fullPath);
-      const sha256 = computeFileHash(buffer);
-      const mediaType = detectMimeType(relPath);
-
-      files.push({
-        path: relPath,
-        kind: 'asset',
-        sha256,
-        sizeBytes: buffer.length,
-        mediaType,
-        source: 'assets/',
-        includeInDerivation: false,
-        activationOnly: true,
-        content,
-      });
-    } catch (_err) {
-      console.warn(`  [warn] Failed to read asset: ${relPath}`);
-    }
+    await addBundleFile(files, {
+      fullPath: join(skillPath, relPath),
+      relPath,
+      kind: 'asset',
+      source: 'assets/',
+      includeInDerivation: false,
+      activationOnly: true,
+    });
   }
 
   // Add scripts
   for (const relPath of scripts) {
-    const fullPath = join(skillPath, relPath);
-    try {
-      const buffer = await readFile(fullPath);
-      if (buffer.length > MAX_FILE_SIZE) {
-        console.warn(`  [warn] Skipping large file (${buffer.length} bytes): ${relPath}`);
-        continue;
-      }
-
-      const { content } = await readFileContent(fullPath);
-      const sha256 = computeFileHash(buffer);
-      const mediaType = detectMimeType(relPath);
-
-      files.push({
-        path: relPath,
-        kind: 'script',
-        sha256,
-        sizeBytes: buffer.length,
-        mediaType,
-        source: 'scripts/',
-        includeInDerivation: false,
-        activationOnly: true,
-        content,
-      });
-    } catch (_err) {
-      console.warn(`  [warn] Failed to read script: ${relPath}`);
-    }
+    await addBundleFile(files, {
+      fullPath: join(skillPath, relPath),
+      relPath,
+      kind: 'script',
+      source: 'scripts/',
+      includeInDerivation: false,
+      activationOnly: true,
+    });
   }
 
   // Ensure at least one file

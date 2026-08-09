@@ -4,7 +4,6 @@ import type {
   LifecycleState,
   ReviewQueueItem,
   ReviewQueueQuery,
-  ReviewQueueResponse,
 } from '@trapmap/contracts';
 
 import type { ActivityEventViewModel } from './activity.js';
@@ -31,7 +30,7 @@ export type ReviewWarning = {
   message: string;
 };
 
-// fallow-ignore-next-line unused-type
+// fallow-ignore-next-line unused-type -- shared enum kept for panel symmetry
 export type ReviewDecisionKind = 'approve' | 'reject' | 'return-for-correction';
 
 export type ReviewHistoryEntry = {
@@ -76,11 +75,6 @@ export type ReviewQueueRequest = {
   paging: Pick<ReviewQueueQuery, 'cursor' | 'limit'>;
 };
 
-export type ReviewDetailDecisionInput = {
-  decision: ReviewDecisionKind;
-  notes: string;
-};
-
 export type ManualJsonEditInput = {
   filePath?: string;
   payload: unknown;
@@ -97,7 +91,6 @@ export type ReviewArtifactFile = {
   size: number;
 };
 
-export type ReviewQueueDto = ReviewQueueResponse;
 export type ReviewQueueItemDto = ReviewQueueItem;
 export type ActorRefDto = ActorRef;
 

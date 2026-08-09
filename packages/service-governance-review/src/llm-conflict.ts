@@ -98,7 +98,7 @@ Are these entries in conflict? Classify the conflict type and provide your judgm
  * Parse and validate an LLM response into a LlmConflictJudgment.
  * Returns null if parsing or validation fails.
  */
-export function parseConflictJudgmentResponse(raw: string): LlmConflictJudgment | null {
+function parseConflictJudgmentResponse(raw: string): LlmConflictJudgment | null {
   try {
     const cleaned = stripCodeFences(raw);
     const parsed = JSON.parse(cleaned);

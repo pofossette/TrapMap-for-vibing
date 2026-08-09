@@ -70,86 +70,126 @@ export async function recallCandidates(
   const breakdown = { exactAliasCount: 0, normalizedNameCount: 0, embeddingCount: 0 };
 
   // Phase 1: exact alias match
-  const exactAliasResult = await repository.findCanonicalByAlias(rawLabel);
-  if (exactAliasResult && exactAliasResult.status === 'active') {
-    seenIds.add(exactAliasResult.id);
-    const aliases = await repository.listAliases(exactAliasResult.id);
-    candidates.push({
-      id: exactAliasResult.id,
-      canonicalName: exactAliasResult.canonicalName,
-      definition: exactAliasResult.definition,
-      aliases: aliases.map((a) => a.alias),
-      recallReason: 'exact-alias',
-    });
-    breakdown.exactAliasCount = 1;
-  }
+  await recallByExactAlias(repository, rawLabel, seenIds, candidates, breakdown);
 
   // Phase 2: normalized name match (if we haven't hit the limit)
-  if (candidates.length < cappedMax) {
-    const nameResults = await repository.searchCandidates(
-      normalizedQuery,
-      kind,
-      cappedMax - candidates.length + 2, // fetch a few extra for dedup
-    );
-
-    for (const result of nameResults) {
-      if (seenIds.has(result.label.id)) continue;
-      if (result.label.status !== 'active') continue;
-      if (result.recallReason === 'exact-alias') continue; // already handled
-      seenIds.add(result.label.id);
-      candidates.push({
-        id: result.label.id,
-        canonicalName: result.label.canonicalName,
-        definition: result.label.definition,
-        aliases: result.aliases,
-        recallReason: 'normalized-name',
-      });
-      breakdown.normalizedNameCount++;
-
-      if (candidates.length >= cappedMax) break;
-    }
-  }
+  await recallByName(repository, normalizedQuery, kind, seenIds, candidates, breakdown, cappedMax);
 
   // Phase 3: embedding similarity (if embeddings provider available and we haven't hit limit)
-  if (candidates.length < cappedMax && embeddings) {
-    try {
-      const normalizedForEmbedding = normalizeLabel(rawLabel);
-      const embedding = await embeddings.embed(normalizedForEmbedding);
-
-      if (embedding) {
-        const embeddingCandidates = await repository.searchCandidatesByEmbedding(
-          embedding,
-          kind,
-          cappedMax - candidates.length + 2,
-        );
-
-        for (const result of embeddingCandidates) {
-          if (seenIds.has(result.label.id)) continue;
-          if (result.label.status !== 'active') continue;
-          if (result.distance > EMBEDDING_DISTANCE_THRESHOLD) continue;
-          seenIds.add(result.label.id);
-          const aliases = await repository.listAliases(result.label.id);
-          candidates.push({
-            id: result.label.id,
-            canonicalName: result.label.canonicalName,
-            definition: result.label.definition,
-            aliases: aliases.map((a) => a.alias),
-            recallReason: 'semantic-embedding',
-          });
-          breakdown.embeddingCount++;
-
-          if (candidates.length >= cappedMax) break;
-        }
-      }
-    } catch {
-      // Embedding provider failure is non-fatal; skip semantic recall
-    }
-  }
+  await recallByEmbedding(
+    repository,
+    rawLabel,
+    kind,
+    embeddings,
+    seenIds,
+    candidates,
+    breakdown,
+    cappedMax,
+  );
 
   return {
     candidates: candidates.slice(0, cappedMax),
     recallBreakdown: breakdown,
   };
+}
+
+async function recallByExactAlias(
+  repository: LabelRepository,
+  rawLabel: string,
+  seenIds: Set<string>,
+  candidates: LabelAlignmentCandidate[],
+  breakdown: CandidateRecallResult['recallBreakdown'],
+): Promise<void> {
+  const exactAliasResult = await repository.findCanonicalByAlias(rawLabel);
+  if (!exactAliasResult || exactAliasResult.status !== 'active') return;
+  seenIds.add(exactAliasResult.id);
+  const aliases = await repository.listAliases(exactAliasResult.id);
+  candidates.push({
+    id: exactAliasResult.id,
+    canonicalName: exactAliasResult.canonicalName,
+    definition: exactAliasResult.definition,
+    aliases: aliases.map((a) => a.alias),
+    recallReason: 'exact-alias',
+  });
+  breakdown.exactAliasCount = 1;
+}
+
+async function recallByName(
+  repository: LabelRepository,
+  normalizedQuery: string,
+  kind: string | undefined,
+  seenIds: Set<string>,
+  candidates: LabelAlignmentCandidate[],
+  breakdown: CandidateRecallResult['recallBreakdown'],
+  cappedMax: number,
+): Promise<void> {
+  if (candidates.length >= cappedMax) return;
+  const nameResults = await repository.searchCandidates(
+    normalizedQuery,
+    kind,
+    cappedMax - candidates.length + 2, // fetch a few extra for dedup
+  );
+
+  for (const result of nameResults) {
+    if (seenIds.has(result.label.id)) continue;
+    if (result.label.status !== 'active') continue;
+    if (result.recallReason === 'exact-alias') continue; // already handled
+    seenIds.add(result.label.id);
+    candidates.push({
+      id: result.label.id,
+      canonicalName: result.label.canonicalName,
+      definition: result.label.definition,
+      aliases: result.aliases,
+      recallReason: 'normalized-name',
+    });
+    breakdown.normalizedNameCount++;
+
+    if (candidates.length >= cappedMax) break;
+  }
+}
+
+async function recallByEmbedding(
+  repository: LabelRepository,
+  rawLabel: string,
+  kind: string | undefined,
+  embeddings: EmbeddingsProvider | undefined,
+  seenIds: Set<string>,
+  candidates: LabelAlignmentCandidate[],
+  breakdown: CandidateRecallResult['recallBreakdown'],
+  cappedMax: number,
+): Promise<void> {
+  if (candidates.length >= cappedMax || !embeddings) return;
+  try {
+    const normalizedForEmbedding = normalizeLabel(rawLabel);
+    const embedding = await embeddings.embed(normalizedForEmbedding);
+
+    if (!embedding) return;
+    const embeddingCandidates = await repository.searchCandidatesByEmbedding(
+      embedding,
+      kind,
+      cappedMax - candidates.length + 2,
+    );
+
+    for (const result of embeddingCandidates) {
+      if (seenIds.has(result.label.id)) continue;
+      if (result.label.status !== 'active') continue;
+      if (result.distance > EMBEDDING_DISTANCE_THRESHOLD) continue;
+      seenIds.add(result.label.id);
+      const aliases = await repository.listAliases(result.label.id);
+      candidates.push({
+        id: result.label.id,
+        canonicalName: result.label.canonicalName,
+        definition: result.label.definition,
+        aliases: aliases.map((a) => a.alias),
+        recallReason: 'semantic-embedding',
+      });
+      breakdown.embeddingCount++;
+
+      if (candidates.length >= cappedMax) break;
+    }
+  } catch {
+    // Embedding provider failure is non-fatal; skip semantic recall
+  }
 }
 
 // ---------------------------------------------------------------------------

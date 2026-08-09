@@ -4,7 +4,6 @@ import type { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import type {
   ActivityEventViewModel,
   ReviewItemViewModel,
-  ReviewMetadataLabelKey,
   ReviewWarning,
 } from '@trapmap/web-panel/shared/enum-types';
 
@@ -45,17 +44,6 @@ export function localizeReviewSource(t: Translate, source: string): string {
   }
 
   return source;
-}
-
-export function localizeReviewMetadataLabel(
-  t: Translate,
-  label: ReviewMetadataLabelKey | string,
-): string {
-  if (label === 'scope') return t('scope');
-  if (label === 'required-level') return t('requiredLevel');
-  if (label === 'owner') return t('owner');
-  if (label === 'last-updated') return t('lastUpdated');
-  return t('unknownLabel');
 }
 
 export function localizeReviewWarningKind(

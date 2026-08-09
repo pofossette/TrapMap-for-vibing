@@ -444,7 +444,7 @@ function createGatewayService(_state: DiagnosticsState) {
   return app;
 }
 
-export async function main() {
+async function main() {
   const role = env('TRAPMAP_TEST_SERVICE_ROLE') as ServiceRole;
   const port = Number.parseInt(env('TRAPMAP_SERVICE_PORT'), 10);
   const state: DiagnosticsState = {

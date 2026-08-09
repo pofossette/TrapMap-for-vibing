@@ -15,7 +15,7 @@ import { stripNewlines } from '@trapmap/cli/lib/sanitize.js';
  * Format a skill lookup match for text output (Phase 18 SKED-01).
  * Renders artifact-first results without capsule content.
  */
-export function formatSkillMatch(match: {
+function formatSkillMatch(match: {
   artifactId: string;
   title: string;
   slug: string;
@@ -241,4 +241,3 @@ export function formatSkillReviewDecisionResponse(response: SkillReviewDecisionR
 /**
  * Re-export formatCandidateTable for backward compatibility.
  */
-export { formatCandidateTable } from '@trapmap/cli/lib/skill-utils.js';

@@ -67,104 +67,122 @@ export async function repairGraphDocuments(
   for (const doc of documents) {
     report.examined++;
 
-    let docChanged = false;
-    const nodeIdMapping = new Map<string, string>();
-    const updatedNodes: GraphNodeRecord[] = [];
+    const repaired = await repairDocumentNodes(repository, doc, report);
+    if (!repaired.docChanged) continue;
 
-    for (const node of doc.nodes) {
-      // Check if this node's label has a canonical mapping
-      const canonical = await repository.findCanonicalByAlias(node.label);
+    const updatedEdges = rewriteEdges(doc.edges, repaired.nodeIdMapping, report);
+    const deduped = dedupeRepairedDocument(repaired.updatedNodes, updatedEdges);
+    report.updatedDocuments++;
 
-      if (canonical && canonical.status === 'active') {
-        const canonicalId = `${node.kind}:${canonical.id}`;
-        if (canonicalId !== node.id) {
-          nodeIdMapping.set(node.id, canonicalId);
-          updatedNodes.push({
-            ...node,
-            id: canonicalId,
-            label: canonical.canonicalName,
-            rawLabel: node.rawLabel ?? node.label,
-            canonicalLabelId: canonical.id,
-            alignmentDecision: node.alignmentDecision ?? 'existing',
-          });
-          report.nodesRewritten++;
-          docChanged = true;
-        } else {
-          // Already canonical, just ensure metadata
-          updatedNodes.push({
-            ...node,
-            rawLabel: node.rawLabel ?? node.label,
-            canonicalLabelId: node.canonicalLabelId ?? canonical.id,
-            alignmentDecision: node.alignmentDecision ?? 'existing',
-          });
-        }
-      } else {
-        // No canonical mapping — keep as-is
-        updatedNodes.push(node);
-      }
-    }
-
-    // Rewrite edges if node IDs changed
-    let updatedEdges = doc.edges;
-    if (nodeIdMapping.size > 0) {
-      updatedEdges = doc.edges.map((edge) => {
-        const newSource = nodeIdMapping.get(edge.sourceNodeId) ?? edge.sourceNodeId;
-        const newTarget = nodeIdMapping.get(edge.targetNodeId) ?? edge.targetNodeId;
-        const changed = newSource !== edge.sourceNodeId || newTarget !== edge.targetNodeId;
-        if (changed) {
-          report.edgesRewritten++;
-          return {
-            ...edge,
-            sourceNodeId: newSource,
-            targetNodeId: newTarget,
-            id: `${newSource}-${edge.relationType}-${newTarget}`,
-          };
-        }
-        return edge;
-      });
-    }
-
-    if (nodeIdMapping.size > 0) {
-      const dedupedNodes = new Map<string, GraphNodeRecord>();
-      for (const node of updatedNodes) {
-        const existing = dedupedNodes.get(node.id);
-        if (
-          !existing ||
-          node.evidence.length > existing.evidence.length ||
-          (!!node.canonicalLabelId && !existing.canonicalLabelId)
-        ) {
-          dedupedNodes.set(node.id, node);
-        }
-      }
-      const validNodeIds = new Set(dedupedNodes.keys());
-      const dedupedEdges = new Map<string, (typeof updatedEdges)[number]>();
-      for (const edge of updatedEdges) {
-        if (!validNodeIds.has(edge.sourceNodeId) || !validNodeIds.has(edge.targetNodeId)) {
-          continue;
-        }
-        const edgeId = `${edge.sourceNodeId}-${edge.relationType}-${edge.targetNodeId}`;
-        if (!dedupedEdges.has(edgeId)) {
-          dedupedEdges.set(edgeId, { ...edge, id: edgeId });
-        }
-      }
-      updatedEdges = [...dedupedEdges.values()];
-      updatedNodes.length = 0;
-      updatedNodes.push(...dedupedNodes.values());
-    }
-
-    if (docChanged && !dryRun) {
-      const updatedDoc: GraphIndexDocumentRecord = {
+    if (!dryRun) {
+      await updateDocument({
         ...doc,
-        nodes: updatedNodes,
-        edges: updatedEdges,
+        nodes: deduped.nodes,
+        edges: deduped.edges,
         updatedAt: new Date().toISOString(),
-      };
-      await updateDocument(updatedDoc);
-      report.updatedDocuments++;
-    } else if (docChanged) {
-      report.updatedDocuments++;
+      });
     }
   }
 
   return report;
+}
+
+async function repairDocumentNodes(
+  repository: LabelRepository,
+  doc: GraphIndexDocumentRecord,
+  report: MergeRepairReport,
+): Promise<{
+  nodeIdMapping: Map<string, string>;
+  updatedNodes: GraphNodeRecord[];
+  docChanged: boolean;
+}> {
+  const nodeIdMapping = new Map<string, string>();
+  const updatedNodes: GraphNodeRecord[] = [];
+  let docChanged = false;
+
+  for (const node of doc.nodes) {
+    // Check if this node's label has a canonical mapping
+    const canonical = await repository.findCanonicalByAlias(node.label);
+
+    if (canonical && canonical.status === 'active') {
+      const canonicalId = `${node.kind}:${canonical.id}`;
+      if (canonicalId !== node.id) {
+        nodeIdMapping.set(node.id, canonicalId);
+        updatedNodes.push({
+          ...node,
+          id: canonicalId,
+          label: canonical.canonicalName,
+          rawLabel: node.rawLabel ?? node.label,
+          canonicalLabelId: canonical.id,
+          alignmentDecision: node.alignmentDecision ?? 'existing',
+        });
+        report.nodesRewritten++;
+        docChanged = true;
+      } else {
+        // Already canonical, just ensure metadata
+        updatedNodes.push({
+          ...node,
+          rawLabel: node.rawLabel ?? node.label,
+          canonicalLabelId: node.canonicalLabelId ?? canonical.id,
+          alignmentDecision: node.alignmentDecision ?? 'existing',
+        });
+      }
+    } else {
+      // No canonical mapping — keep as-is
+      updatedNodes.push(node);
+    }
+  }
+
+  return { nodeIdMapping, updatedNodes, docChanged };
+}
+
+function rewriteEdges(
+  edges: GraphIndexDocumentRecord['edges'],
+  nodeIdMapping: Map<string, string>,
+  report: MergeRepairReport,
+): GraphIndexDocumentRecord['edges'] {
+  if (nodeIdMapping.size === 0) return edges;
+  return edges.map((edge) => {
+    const newSource = nodeIdMapping.get(edge.sourceNodeId) ?? edge.sourceNodeId;
+    const newTarget = nodeIdMapping.get(edge.targetNodeId) ?? edge.targetNodeId;
+    if (newSource === edge.sourceNodeId && newTarget === edge.targetNodeId) {
+      return edge;
+    }
+    report.edgesRewritten++;
+    return {
+      ...edge,
+      sourceNodeId: newSource,
+      targetNodeId: newTarget,
+      id: `${newSource}-${edge.relationType}-${newTarget}`,
+    };
+  });
+}
+
+function dedupeRepairedDocument(
+  updatedNodes: GraphNodeRecord[],
+  updatedEdges: GraphIndexDocumentRecord['edges'],
+): { nodes: GraphNodeRecord[]; edges: GraphIndexDocumentRecord['edges'] } {
+  const dedupedNodes = new Map<string, GraphNodeRecord>();
+  for (const node of updatedNodes) {
+    const existing = dedupedNodes.get(node.id);
+    if (
+      !existing ||
+      node.evidence.length > existing.evidence.length ||
+      (!!node.canonicalLabelId && !existing.canonicalLabelId)
+    ) {
+      dedupedNodes.set(node.id, node);
+    }
+  }
+  const validNodeIds = new Set(dedupedNodes.keys());
+  const dedupedEdges = new Map<string, (typeof updatedEdges)[number]>();
+  for (const edge of updatedEdges) {
+    if (!validNodeIds.has(edge.sourceNodeId) || !validNodeIds.has(edge.targetNodeId)) {
+      continue;
+    }
+    const edgeId = `${edge.sourceNodeId}-${edge.relationType}-${edge.targetNodeId}`;
+    if (!dedupedEdges.has(edgeId)) {
+      dedupedEdges.set(edgeId, { ...edge, id: edgeId });
+    }
+  }
+  return { nodes: [...dedupedNodes.values()], edges: [...dedupedEdges.values()] };
 }

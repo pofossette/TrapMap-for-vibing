@@ -9,7 +9,7 @@ import { getDefaultKnowledgeReadSupportInfra } from './knowledge-read-support-in
 const ENTRY_PROJECTION_CACHE_KEY = 'knowledge-entry-projection:global';
 const ENTRY_PROJECTION_CACHE_NAMESPACE = 'knowledge-entry-projection';
 
-export interface KnowledgeEntryProjectionSnapshot {
+interface KnowledgeEntryProjectionSnapshot {
   entries: KnowledgeEntryRecord[];
   entriesById: Map<string, KnowledgeEntryRecord>;
 }

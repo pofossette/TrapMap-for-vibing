@@ -83,7 +83,6 @@ Output:
 /**
  * Cache-aware system prompt blocks for label alignment.
  */
-// fallow-ignore-next-line unused-export
 export function buildLabelAlignmentSystemPromptBlocks(): PromptBlock[] {
   const sections = buildPromptWithCacheControl(
     'label-alignment',

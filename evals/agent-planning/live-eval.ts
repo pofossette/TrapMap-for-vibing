@@ -213,91 +213,106 @@ interface RunResult {
   latencyMs: number;
 }
 
-async function main() {
-  console.log('=== Live Eval v2: Q&A Paradigm ===');
-  console.log('Model:', process.env.AURSCAN_OPENAI_MODEL);
-  console.log('Scenarios:', scenarios.length);
-  console.log('Interference:', interferenceLevels.map((l) => `${l.name}(${l.count})`).join(', '));
-  console.log('Total LLM calls:', scenarios.length * interferenceLevels.length * 3);
-  console.log('');
+function buildContextBlock(strategy: Strategy, question: string, distractors: DbSkill[]): string {
+  let contextBlock = '';
 
-  const results: RunResult[] = [];
+  if (strategy === 'capsule-match') {
+    // keyword-based retrieval → capsule format
+    const retrieved = searchByKeywords(question, 5);
+    const allDocs = [...retrieved, ...distractors];
+    contextBlock = formatCapsuleContext(allDocs);
+  } else if (strategy === 'skill-summary') {
+    // summary similarity → plain format
+    const retrieved = searchBySummary(question, 5);
+    const allDocs = [...retrieved, ...distractors];
+    contextBlock = formatSummaryContext(allDocs);
+  }
 
-  for (const scenario of scenarios) {
+  return contextBlock;
+}
+
+function formatRunPrefix(strategy: Strategy, level: (typeof interferenceLevels)[number]): string {
+  return `${strategy.padEnd(16)} | ${level.name}(${String(level.count).padStart(2)})`;
+}
+
+async function runCaseForStrategy(
+  scenario: Scenario,
+  level: (typeof interferenceLevels)[number],
+  strategy: Strategy,
+  distractors: DbSkill[],
+  results: RunResult[],
+): Promise<void> {
+  const distractorIds = distractors.map((d) => d.id);
+  const userPrompt =
+    strategy === 'no-context'
+      ? scenario.question
+      : `Documentation:\n${buildContextBlock(strategy, scenario.question, distractors)}\n\nQuestion: ${scenario.question}`;
+
+  try {
+    const result = await callLLM(SYSTEM_PROMPT, userPrompt, {
+      temperature: 0,
+      maxTokens: 512,
+      timeoutMs: 60000,
+    });
+
+    const judgment = judgeAnswer(result.content, scenario.targetKeywords, distractorIds);
+
+    results.push({
+      scenario: scenario.id,
+      strategy,
+      interference: level.name,
+      interferenceCount: level.count,
+      ...judgment,
+      latencyMs: result.latencyMs,
+    });
+
+    const pct = (judgment.keywordScore * 100).toFixed(0);
+    const hitStr = `${judgment.keywordHits}/${judgment.keywordTotal}`;
+    console.log(
+      `  ${formatRunPrefix(strategy, level)} | keywords=${hitStr.padEnd(6)} ${pct.padStart(4)}% | score=${judgment.overallScore.toFixed(2)} | ${result.latencyMs}ms`,
+    );
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`  ${formatRunPrefix(strategy, level)} | ERROR: ${msg}`);
+    results.push({
+      scenario: scenario.id,
+      strategy,
+      interference: level.name,
+      interferenceCount: level.count,
+      keywordHits: 0,
+      keywordTotal: scenario.targetKeywords.length,
+      keywordScore: 0,
+      overallScore: 0,
+      latencyMs: 0,
+    });
+  }
+}
+
+async function runAllScenarios(
+  scenarioDefs: Scenario[],
+  levels: readonly (typeof interferenceLevels)[number][],
+  results: RunResult[],
+): Promise<void> {
+  for (const scenario of scenarioDefs) {
     console.log(`\n--- ${scenario.id} (target: ${scenario.targetId}) ---`);
 
-    const _targetDoc = searchByKeywords(scenario.question, 5);
     const distractorPool = getAllExcept([scenario.targetId]);
 
-    for (const level of interferenceLevels) {
+    for (const level of levels) {
       const distractors = distractorPool.slice(0, level.count);
-      const distractorIds = distractors.map((d) => d.id);
 
       for (const strategy of ['capsule-match', 'skill-summary', 'no-context'] as const) {
-        let contextBlock = '';
-
-        if (strategy === 'capsule-match') {
-          // keyword-based retrieval → capsule format
-          const retrieved = searchByKeywords(scenario.question, 5);
-          const allDocs = [...retrieved, ...distractors];
-          contextBlock = formatCapsuleContext(allDocs);
-        } else if (strategy === 'skill-summary') {
-          // summary similarity → plain format
-          const retrieved = searchBySummary(scenario.question, 5);
-          const allDocs = [...retrieved, ...distractors];
-          contextBlock = formatSummaryContext(allDocs);
-        }
-
-        const userPrompt =
-          strategy === 'no-context'
-            ? scenario.question
-            : `Documentation:\n${contextBlock}\n\nQuestion: ${scenario.question}`;
-
-        try {
-          const result = await callLLM(SYSTEM_PROMPT, userPrompt, {
-            temperature: 0,
-            maxTokens: 512,
-            timeoutMs: 60000,
-          });
-
-          const judgment = judgeAnswer(result.content, scenario.targetKeywords, distractorIds);
-
-          results.push({
-            scenario: scenario.id,
-            strategy,
-            interference: level.name,
-            interferenceCount: level.count,
-            ...judgment,
-            latencyMs: result.latencyMs,
-          });
-
-          const pct = (judgment.keywordScore * 100).toFixed(0);
-          const hitStr = `${judgment.keywordHits}/${judgment.keywordTotal}`;
-          console.log(
-            `  ${strategy.padEnd(16)} | ${level.name}(${String(level.count).padStart(2)}) | keywords=${hitStr.padEnd(6)} ${pct.padStart(4)}% | score=${judgment.overallScore.toFixed(2)} | ${result.latencyMs}ms`,
-          );
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.error(
-            `  ${strategy.padEnd(16)} | ${level.name}(${String(level.count).padStart(2)}) | ERROR: ${msg}`,
-          );
-          results.push({
-            scenario: scenario.id,
-            strategy,
-            interference: level.name,
-            interferenceCount: level.count,
-            keywordHits: 0,
-            keywordTotal: scenario.targetKeywords.length,
-            keywordScore: 0,
-            overallScore: 0,
-            latencyMs: 0,
-          });
-        }
+        await runCaseForStrategy(scenario, level, strategy, distractors, results);
       }
     }
   }
+}
 
-  // ─── Report ───
+function averageScore(results: RunResult[]): number {
+  return results.length ? results.reduce((s, r) => s + r.overallScore, 0) / results.length : 0;
+}
+
+function printResultsTable(results: RunResult[]): void {
   console.log(`\n${'═'.repeat(80)}`);
   console.log('  LIVE EVAL RESULTS v2: capsule-match vs skill-summary (Q&A paradigm)');
   console.log('═'.repeat(80));
@@ -315,7 +330,7 @@ async function main() {
     for (const strategy of ['capsule-match', 'skill-summary', 'no-context'] as const) {
       const rs = results.filter((r) => r.interference === level.name && r.strategy === strategy);
       if (!rs.length) continue;
-      const avgScore = rs.reduce((s, r) => s + r.overallScore, 0) / rs.length;
+      const avgScore = averageScore(rs);
       const avgHits = rs.reduce((s, r) => s + r.keywordHits, 0) / rs.length;
       const avgLat = rs.reduce((s, r) => s + r.latencyMs, 0) / rs.length;
       console.log(
@@ -327,8 +342,9 @@ async function main() {
       );
     }
   }
+}
 
-  // ─── Lift table ───
+function printLiftTable(results: RunResult[]): void {
   console.log(`\n${'═'.repeat(80)}`);
   console.log('  CAPSULE LIFT BY INTERFERENCE LEVEL');
   console.log('═'.repeat(80));
@@ -352,11 +368,9 @@ async function main() {
     );
     const noc = results.filter((r) => r.interference === level.name && r.strategy === 'no-context');
 
-    const avg = (rs: RunResult[]) =>
-      rs.length ? rs.reduce((s, r) => s + r.overallScore, 0) / rs.length : 0;
-    const capAvg = avg(cap);
-    const sumAvg = avg(sum);
-    const nocAvg = avg(noc);
+    const capAvg = averageScore(cap);
+    const sumAvg = averageScore(sum);
+    const nocAvg = averageScore(noc);
     const lift = sumAvg > 0 ? ((capAvg - sumAvg) / sumAvg) * 100 : 0;
     const absDiff = capAvg - sumAvg;
 
@@ -369,8 +383,9 @@ async function main() {
         padR((absDiff >= 0 ? '+' : '') + absDiff.toFixed(2), 10),
     );
   }
+}
 
-  // ─── Per-scenario ───
+function printPerScenarioHits(results: RunResult[]): void {
   console.log(`\n${'─'.repeat(80)}`);
   console.log('  PER-SCENARIO KEYWORD HITS');
   console.log('─'.repeat(80));
@@ -396,6 +411,24 @@ async function main() {
       );
     }
   }
+}
+
+async function main() {
+  console.log('=== Live Eval v2: Q&A Paradigm ===');
+  console.log('Model:', process.env.AURSCAN_OPENAI_MODEL);
+  console.log('Scenarios:', scenarios.length);
+  console.log('Interference:', interferenceLevels.map((l) => `${l.name}(${l.count})`).join(', '));
+  console.log('Total LLM calls:', scenarios.length * interferenceLevels.length * 3);
+  console.log('');
+
+  const results: RunResult[] = [];
+
+  await runAllScenarios(scenarios, interferenceLevels, results);
+
+  // ─── Report ───
+  printResultsTable(results);
+  printLiftTable(results);
+  printPerScenarioHits(results);
 }
 
 function padR(s: string, len: number): string {

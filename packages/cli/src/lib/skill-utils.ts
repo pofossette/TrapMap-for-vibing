@@ -47,7 +47,7 @@ export function formatCandidateTable(candidates: CandidateSubmission[]): string 
  * Format a SkillApplyResult for human-readable output.
  * Handles all four outcome types: success, alreadyPublished, rejection, duplicate.
  */
-// fallow-ignore-next-line unused-export
+// fallow-ignore-next-line unused-export -- intentional: kept as CLI util
 export function formatSkillApplyResult(result: SkillApplyResult): string {
   if (result.success && result.skillId) {
     return `Applied successfully. Skill ID: ${result.skillId}`;

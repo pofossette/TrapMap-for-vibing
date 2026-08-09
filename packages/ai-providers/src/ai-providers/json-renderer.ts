@@ -12,6 +12,7 @@
  * Steps: expand lists → substitute scalars → remove conditionals → strip metadata → parse.
  */
 
+import { isTruthy } from './render-common.js';
 import type { PromptSlots } from './types.js';
 
 const SCALAR_RE = /\{\{(\w+)\}\}/g;
@@ -41,15 +42,7 @@ function expandListArrays(template: string, slots: PromptSlots): string {
     if (openMatch) {
       const key = openMatch[1]!;
       const value = slots[key as keyof PromptSlots];
-
-      // Find the closing {{/list}} line
-      let closeIdx = -1;
-      for (let j = i + 1; j < lines.length; j++) {
-        if (LIST_CLOSE_RE.test(lines[j]!)) {
-          closeIdx = j;
-          break;
-        }
-      }
+      const closeIdx = findClosingListIndex(lines, i);
 
       if (closeIdx === -1) {
         // No closing tag found, pass through
@@ -59,18 +52,7 @@ function expandListArrays(template: string, slots: PromptSlots): string {
       }
 
       if (Array.isArray(value) && value.length > 0) {
-        const lastIdx = closeIdx - 1;
-        for (let k = 0; k < value.length; k++) {
-          // Use the template item line (between open and close), replace {{item}}
-          const itemLine = lines[i + 1]!.replace(/\{\{item\}\}/g, String(value[k]));
-          result.push(itemLine);
-          if (k < value.length - 1 && lastIdx > i + 1) {
-            // Add separator lines between items (lines between item and close)
-            for (let s = i + 2; s <= lastIdx; s++) {
-              result.push(lines[s]!);
-            }
-          }
-        }
+        result.push(...expandListItems(lines, i, closeIdx, value));
       }
       // Skip to line after {{/list}}
       i = closeIdx + 1;
@@ -81,6 +63,37 @@ function expandListArrays(template: string, slots: PromptSlots): string {
   }
 
   return result.join('\n');
+}
+
+function findClosingListIndex(lines: string[], openIdx: number): number {
+  for (let j = openIdx + 1; j < lines.length; j++) {
+    if (LIST_CLOSE_RE.test(lines[j]!)) {
+      return j;
+    }
+  }
+  return -1;
+}
+
+function expandListItems(
+  lines: string[],
+  openIdx: number,
+  closeIdx: number,
+  value: unknown[],
+): string[] {
+  const expanded: string[] = [];
+  const lastIdx = closeIdx - 1;
+  for (let k = 0; k < value.length; k++) {
+    // Use the template item line (between open and close), replace {{item}}
+    const itemLine = lines[openIdx + 1]!.replace(/\{\{item\}\}/g, String(value[k]));
+    expanded.push(itemLine);
+    if (k < value.length - 1 && lastIdx > openIdx + 1) {
+      // Add separator lines between items (lines between item and close)
+      for (let s = openIdx + 2; s <= lastIdx; s++) {
+        expanded.push(lines[s]!);
+      }
+    }
+  }
+  return expanded;
 }
 
 function removeConditionalSections(template: string, slots: PromptSlots): string {
@@ -118,13 +131,6 @@ function removeMetaKeys(data: Record<string, unknown>): Record<string, unknown> 
     }
   }
   return cleaned;
-}
-
-function isTruthy(value: unknown): boolean {
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'string') return value.length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  return true;
 }
 
 export function renderJsonTemplate(template: string, slots: PromptSlots): Record<string, unknown> {

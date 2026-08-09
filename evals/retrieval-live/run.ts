@@ -301,10 +301,7 @@ function printSummary(results: LiveCaseResult[]): void {
 // Main Entry Point
 // =============================================================================
 
-async function main(): Promise<void> {
-  const startTime = Date.now();
-  const options = parseArgs_();
-
+function printRunnerBanner(options: LiveRunnerOptions): void {
   console.log('\n=== Live Retrieval Evaluation Runner ===');
   console.log(`Snapshot version: ${options.snapshotVersion}`);
   console.log(`Backend URL: ${options.baseUrl}`);
@@ -313,54 +310,33 @@ async function main(): Promise<void> {
   if (options.endpoint) {
     console.log(`Endpoint filter: ${options.endpoint}`);
   }
+}
 
-  // Step 1: Restore snapshot (skip in dry-run mode)
-  const snapshotDir = path.resolve(`evals/retrieval-live/snapshots/${options.snapshotVersion}`);
+interface SnapshotPhaseResult {
+  meta: Awaited<ReturnType<typeof restoreSnapshot>>['meta'];
+  health: Awaited<ReturnType<typeof restoreSnapshot>>['health'] | undefined;
+  actualProfile: ReturnType<typeof detectServiceProfile>;
+}
 
-  let meta: Awaited<ReturnType<typeof restoreSnapshot>>['meta'] | undefined;
-  let health: Awaited<ReturnType<typeof restoreSnapshot>>['health'] | undefined;
+/**
+ * Restore the named snapshot (or just validate it in dry-run mode) and verify
+ * the running service profile matches the snapshot source.
+ */
+async function restoreSnapshotPhase(
+  options: LiveRunnerOptions,
+  snapshotDir: string,
+): Promise<SnapshotPhaseResult> {
   const actualProfile = detectServiceProfile();
 
-  if (!options.dryRun) {
-    console.log(`\nRestoring snapshot from ${snapshotDir} ...`);
-
+  if (options.dryRun) {
+    const { loadSnapshot } = await import('./lib/snapshot-orchestrator.js');
     try {
-      ({ meta, health } = await restoreSnapshot({
-        databaseUrl: options.databaseUrl,
-        snapshotDir,
-      }));
-    } catch (error) {
-      console.error(
-        `Failed to restore snapshot: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      process.exit(1);
-    }
-
-    console.log(`  Mode: ${meta.derivationContext.mode}`);
-    console.log(`  Knowledge entries: ${health.knowledgeEntryCount}`);
-    console.log(`  Skill artifacts: ${health.skillArtifactCount}`);
-    console.log(`  Graph docs: ${health.graphDocCount}`);
-    console.log(`  Capsule embeddings: ${health.capsuleEmbeddingCount}`);
-
-    // Step 2: Verify service profile
-    const profileMismatches = verifyServiceProfile(meta.serviceProfile, actualProfile);
-    if (profileMismatches.length > 0) {
-      console.warn('\n⚠ Service profile mismatches:');
-      for (const mismatch of profileMismatches) {
-        console.warn(`  - ${mismatch}`);
-      }
-      console.warn('Results may not be directly comparable with the snapshot source.\n');
-    }
-  } else {
-    // In dry-run mode, just validate the snapshot meta
-    try {
-      const { loadSnapshot } = await import('./lib/snapshot-orchestrator.js');
       const { meta: loadedMeta } = await loadSnapshot(snapshotDir);
-      meta = loadedMeta;
       console.log(`\nSnapshot "${options.snapshotVersion}" validated successfully.`);
-      console.log(`  Version: ${meta.version}`);
-      console.log(`  Mode: ${meta.derivationContext.mode}`);
-      console.log(`  Embedding model: ${meta.derivationContext.embeddingModelUsed}`);
+      console.log(`  Version: ${loadedMeta.version}`);
+      console.log(`  Mode: ${loadedMeta.derivationContext.mode}`);
+      console.log(`  Embedding model: ${loadedMeta.derivationContext.embeddingModelUsed}`);
+      return { meta: loadedMeta, health: undefined, actualProfile };
     } catch (error) {
       console.error(
         `Failed to load snapshot: ${error instanceof Error ? error.message : String(error)}`,
@@ -369,7 +345,46 @@ async function main(): Promise<void> {
     }
   }
 
-  // Step 3: Load cases
+  console.log(`\nRestoring snapshot from ${snapshotDir} ...`);
+
+  let meta: Awaited<ReturnType<typeof restoreSnapshot>>['meta'];
+  let health: Awaited<ReturnType<typeof restoreSnapshot>>['health'];
+  try {
+    ({ meta, health } = await restoreSnapshot({
+      databaseUrl: options.databaseUrl,
+      snapshotDir,
+    }));
+  } catch (error) {
+    console.error(
+      `Failed to restore snapshot: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exit(1);
+  }
+
+  console.log(`  Mode: ${meta.derivationContext.mode}`);
+  console.log(`  Knowledge entries: ${health.knowledgeEntryCount}`);
+  console.log(`  Skill artifacts: ${health.skillArtifactCount}`);
+  console.log(`  Graph docs: ${health.graphDocCount}`);
+  console.log(`  Capsule embeddings: ${health.capsuleEmbeddingCount}`);
+
+  // Verify service profile
+  const profileMismatches = verifyServiceProfile(meta.serviceProfile, actualProfile);
+  if (profileMismatches.length > 0) {
+    console.warn('\n⚠ Service profile mismatches:');
+    for (const mismatch of profileMismatches) {
+      console.warn(`  - ${mismatch}`);
+    }
+    console.warn('Results may not be directly comparable with the snapshot source.\n');
+  }
+
+  return { meta, health, actualProfile };
+}
+
+/**
+ * Load the tier's live cases, applying the endpoint filter and the
+ * allow-empty handling.
+ */
+function loadAndFilterCases(options: LiveRunnerOptions): LiveEvalCase[] {
   let cases = loadLiveCases(options.tier);
 
   if (options.endpoint) {
@@ -379,7 +394,7 @@ async function main(): Promise<void> {
   if (cases.length === 0) {
     if (options.allowEmpty) {
       console.log('No cases found. Exiting successfully (allow-empty mode).\n');
-      return;
+      process.exit(0);
     }
     console.error('No cases found. Use --allow-empty to skip.');
     process.exit(1);
@@ -390,74 +405,106 @@ async function main(): Promise<void> {
     console.log(`  - [${c.endpoint}] ${c.caseId} (stability=${c.stability})`);
   }
 
+  return cases;
+}
+
+function buildLiveJsonReport(
+  options: LiveRunnerOptions,
+  results: LiveCaseResult[],
+  meta: SnapshotPhaseResult['meta'],
+  health: SnapshotPhaseResult['health'],
+  actualProfile: SnapshotPhaseResult['actualProfile'],
+  startTime: number,
+): unknown {
+  return {
+    meta: {
+      schemaVersion: 1,
+      timestamp: new Date().toISOString(),
+      durationMs: Date.now() - startTime,
+      options: {
+        tier: options.tier,
+        endpoint: options.endpoint,
+        dryRun: options.dryRun,
+        allowEmpty: options.allowEmpty,
+        verbose: options.verbose,
+      },
+      snapshotVersion: options.snapshotVersion,
+      snapshotFingerprint: meta.fingerprint,
+      restoreMode: meta.derivationContext.mode,
+      backendBaseUrl: options.baseUrl,
+      serviceProfileSnapshot: actualProfile,
+      indexHealthSummary: health,
+    },
+    summary: {
+      totalCases: results.length,
+      passedCases: results.filter((r) => r.passed).length,
+      failedCases: results.filter((r) => !r.passed).length,
+      passRate: results.length > 0 ? results.filter((r) => r.passed).length / results.length : 0,
+      passed: results.every((r) => r.passed),
+    },
+    cases: results.map((r) => ({
+      caseId: r.case.caseId,
+      endpoint: r.case.endpoint,
+      tier: r.case.tier,
+      stability: r.case.stability,
+      passed: r.passed,
+      outcomeMatch: r.case.expected.outcome === 'empty' ? r.result.isEmpty : !r.result.isEmpty,
+      governancePassed: r.governance.passed,
+      durationMs: r.execution.durationMs,
+      hitAt1: r.metrics.hitAt1,
+      hitAt5: r.metrics.hitAt5,
+      hitAt10: r.metrics.hitAt10,
+      mrr: r.metrics.mrr,
+      ndcg: r.metrics.ndcg,
+      recallAt10: r.metrics.recallAt10,
+      fallbackApplied: r.execution.fallbackApplied,
+    })),
+  };
+}
+
+async function writeLiveJsonReport(options: LiveRunnerOptions, report: unknown): Promise<void> {
+  if (options.jsonPath) {
+    const dir = path.dirname(options.jsonPath);
+    await mkdir(dir, { recursive: true }).catch(() => {});
+    await writeFile(options.jsonPath, JSON.stringify(report, null, 2));
+    console.log(`JSON report written to: ${options.jsonPath}\n`);
+  } else {
+    console.log('\n=== JSON Report ===');
+    console.log(JSON.stringify(report, null, 2));
+  }
+}
+
+async function main(): Promise<void> {
+  const startTime = Date.now();
+  const options = parseArgs_();
+
+  printRunnerBanner(options);
+
+  // Step 1: Restore snapshot (skip in dry-run mode)
+  const snapshotDir = path.resolve(`evals/retrieval-live/snapshots/${options.snapshotVersion}`);
+  const { meta, health, actualProfile } = await restoreSnapshotPhase(options, snapshotDir);
+
+  // Step 2: Load cases
+  const cases = loadAndFilterCases(options);
+
   if (options.dryRun) {
     console.log('\nDry run complete. No evaluation executed.\n');
     return;
   }
 
-  // Step 4: Execute cases
+  // Step 3: Execute cases
   console.log('\nExecuting live evaluation...\n');
   const results = await executeAllLiveCases(cases, options);
 
-  // Step 5: Print summary
+  // Step 4: Print summary
   printSummary(results);
 
-  // Step 6: Write JSON report
+  // Step 5: Write JSON report
   if (options.json) {
-    const report = {
-      meta: {
-        schemaVersion: 1,
-        timestamp: new Date().toISOString(),
-        durationMs: Date.now() - startTime,
-        options: {
-          tier: options.tier,
-          endpoint: options.endpoint,
-          dryRun: options.dryRun,
-          allowEmpty: options.allowEmpty,
-          verbose: options.verbose,
-        },
-        snapshotVersion: options.snapshotVersion,
-        snapshotFingerprint: meta.fingerprint,
-        restoreMode: meta.derivationContext.mode,
-        backendBaseUrl: options.baseUrl,
-        serviceProfileSnapshot: actualProfile,
-        indexHealthSummary: health,
-      },
-      summary: {
-        totalCases: results.length,
-        passedCases: results.filter((r) => r.passed).length,
-        failedCases: results.filter((r) => !r.passed).length,
-        passRate: results.length > 0 ? results.filter((r) => r.passed).length / results.length : 0,
-        passed: results.every((r) => r.passed),
-      },
-      cases: results.map((r) => ({
-        caseId: r.case.caseId,
-        endpoint: r.case.endpoint,
-        tier: r.case.tier,
-        stability: r.case.stability,
-        passed: r.passed,
-        outcomeMatch: r.case.expected.outcome === 'empty' ? r.result.isEmpty : !r.result.isEmpty,
-        governancePassed: r.governance.passed,
-        durationMs: r.execution.durationMs,
-        hitAt1: r.metrics.hitAt1,
-        hitAt5: r.metrics.hitAt5,
-        hitAt10: r.metrics.hitAt10,
-        mrr: r.metrics.mrr,
-        ndcg: r.metrics.ndcg,
-        recallAt10: r.metrics.recallAt10,
-        fallbackApplied: r.execution.fallbackApplied,
-      })),
-    };
-
-    if (options.jsonPath) {
-      const dir = path.dirname(options.jsonPath);
-      await mkdir(dir, { recursive: true }).catch(() => {});
-      await writeFile(options.jsonPath, JSON.stringify(report, null, 2));
-      console.log(`JSON report written to: ${options.jsonPath}\n`);
-    } else {
-      console.log('\n=== JSON Report ===');
-      console.log(JSON.stringify(report, null, 2));
-    }
+    await writeLiveJsonReport(
+      options,
+      buildLiveJsonReport(options, results, meta, health, actualProfile, startTime),
+    );
   }
 
   // Exit code

@@ -11,6 +11,7 @@ import type {
   SummaryEvalCaseResult,
   SummaryEvalReport,
 } from '../../../packages/contracts/src/domain/evals/report.js';
+import { pushSummaryStats } from '../../lib/eval-report.js';
 import type { SummaryCaseResult } from './types.js';
 
 // =============================================================================
@@ -37,10 +38,7 @@ export function formatSummaryReport(report: SummaryEvalReport): string {
 
   // Summary stats
   lines.push('=== Summary ===');
-  lines.push(`Total cases: ${report.summary.totalCases}`);
-  lines.push(`Passed: ${report.summary.passedCases}`);
-  lines.push(`Failed: ${report.summary.failedCases}`);
-  lines.push(`Pass rate: ${(report.summary.passRate * 100).toFixed(1)}%`);
+  pushSummaryStats(lines, report.summary);
   lines.push(`Average Groundedness: ${report.summary.avgGroundedness.toFixed(2)}`);
   lines.push(`Average Coverage: ${report.summary.avgCoverage.toFixed(2)}`);
   lines.push(`Forbidden Claim Hits: ${report.summary.forbiddenClaimHits}`);

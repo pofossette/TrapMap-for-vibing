@@ -40,6 +40,17 @@ export interface InternalRequestOptions {
 
 const DEFAULT_INTERNAL_TIMEOUT_MS = 10_000;
 
+function classifyInternalServiceKind(status: number): string {
+  if (status === 400 || status === 422) return 'validation';
+  if (status === 401) return 'unauthorized';
+  if (status === 403) return 'forbidden';
+  if (status === 404) return 'not-found';
+  if (status === 409) return 'conflict';
+  if (status === 504) return 'timeout';
+  if (status === 503) return 'unavailable';
+  return 'internal';
+}
+
 function normalizeCanonicalErrorBody(status: number, body: unknown): unknown {
   if (body && typeof body === 'object') {
     const payload = body as Record<string, unknown>;
@@ -48,23 +59,7 @@ function normalizeCanonicalErrorBody(status: number, body: unknown): unknown {
     }
   }
 
-  const kind =
-    status === 400 || status === 422
-      ? 'validation'
-      : status === 401
-        ? 'unauthorized'
-        : status === 403
-          ? 'forbidden'
-          : status === 404
-            ? 'not-found'
-            : status === 409
-              ? 'conflict'
-              : status === 504
-                ? 'timeout'
-                : status === 503
-                  ? 'unavailable'
-                  : 'internal';
-
+  const kind = classifyInternalServiceKind(status);
   return {
     error: `Internal service ${kind.replace(/-/g, ' ')}`,
     kind,

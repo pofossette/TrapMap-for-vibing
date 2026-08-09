@@ -141,165 +141,185 @@ export function renderCodex(envelope: RenderEnvelope<RenderPayload>): string {
   return JSON.stringify(buildCodexObject(envelope));
 }
 
+function buildOpenCodeSection(title: string, itemLines: string[]): string[] {
+  return [title, ...itemLines, ''];
+}
+
+function buildOpenCodeNextSteps(steps: string[]): string[] {
+  if (steps.length === 0) return [];
+  return ['## Next Steps', ...steps.map((step) => `- ${step}`)];
+}
+
+function buildScoredMatchLine(item: Record<string, unknown>): string {
+  return `- **${String(item.shortcut)}** (${Number(item.score).toFixed(2)}): ${String(item.reason)}`;
+}
+
+function buildOpenCodeArtifactLine(artifact: Record<string, unknown>): string {
+  const parts = [String(artifact.id)];
+  if (artifact.title) parts.push(String(artifact.title));
+  if (artifact.newState) parts.push(`[${String(artifact.newState)}]`);
+  if (artifact.revision) parts.push(`rev ${String(artifact.revision)}`);
+  return `- ${parts.join(' ')}`;
+}
+
+function renderOpenCodeGraphPlan(envelope: RenderEnvelope<RenderPayload>): string {
+  const codexObject = buildCodexObject(envelope);
+  const steps = Array.isArray(codexObject.next_steps) ? codexObject.next_steps : [];
+  const traps = Array.isArray(codexObject.traps) ? codexObject.traps : [];
+  const skills = Array.isArray(codexObject.skills) ? codexObject.skills : [];
+  const activationHints = Array.isArray(codexObject.activation_hints)
+    ? codexObject.activation_hints
+    : [];
+
+  const lines = [
+    '# Goal',
+    String(codexObject.summary ?? 'No summary available'),
+    '',
+    '## Selected Path',
+    String(codexObject.selected_path ?? 'generic'),
+    '',
+  ];
+
+  if (codexObject.fallback_notice) {
+    lines.push('## Fallback Notice');
+    lines.push(String(codexObject.fallback_notice));
+    lines.push('');
+  }
+
+  lines.push(
+    ...buildMarkdownListSection('## Recommended Skills', skills, '- None'),
+    ...buildMarkdownListSection('## Blocking Traps', traps, '- None'),
+    ...buildMarkdownListSection('## Activation Hints', activationHints, '- None'),
+    '## Suggested Execution Order',
+    ...(steps.length > 0 ? steps.map((step) => `1. ${String(step)}`) : ['1. No suggested steps']),
+  );
+
+  return lines.join('\n');
+}
+
+function renderOpenCodeRetrievalV1(payload: RetrievalResponse): string {
+  const view = buildRetrievalV1View(payload);
+  const lines = ['# Goal', view.querySummary, ''];
+
+  if (view.constraints.length > 0) {
+    lines.push(
+      ...buildOpenCodeSection('## Global Constraints', view.constraints.map(buildScoredMatchLine)),
+    );
+  }
+  if (view.projectKnowledge.length > 0) {
+    lines.push(
+      ...buildOpenCodeSection(
+        '## Project Knowledge',
+        view.projectKnowledge.map(buildScoredMatchLine),
+      ),
+    );
+  }
+
+  const summary = payload.summary;
+  if (summary?.text) {
+    lines.push('## Summary');
+    lines.push(summary.text);
+    lines.push('');
+  }
+  lines.push(...buildOpenCodeNextSteps(view.nextSteps));
+  return lines.join('\n').trimEnd();
+}
+
+function renderOpenCodeRetrievalV2(payload: RetrievalV2Response): string {
+  const view = buildRetrievalV2View(payload);
+  const lines = ['# Goal', view.querySummary, ''];
+
+  if (view.capsules.length > 0) {
+    lines.push(
+      ...buildOpenCodeSection(
+        '## Capsules',
+        view.capsules.map(
+          (capsule) =>
+            `- **${String(capsule.artifactId)}**: ${String(capsule.goal)} (${Number(capsule.score).toFixed(2)})`,
+        ),
+      ),
+    );
+  }
+  if (view.profileHints.length > 0) {
+    lines.push(
+      ...buildOpenCodeSection(
+        '## Profile Hints',
+        view.profileHints.map((hint) => `- ${String(hint.title)} (${String(hint.slug)})`),
+      ),
+    );
+  }
+
+  const refinementSummary = payload.refinementSummary;
+  if (refinementSummary) {
+    lines.push('## Refinement Summary');
+    lines.push(refinementSummary);
+    lines.push('');
+  }
+  lines.push(...buildOpenCodeNextSteps(view.nextSteps));
+  return lines.join('\n').trimEnd();
+}
+
+function renderOpenCodeSkillLookup(payload: SkillLookupResponse): string {
+  const view = buildSkillLookupView(payload);
+  const lines = ['# Goal', view.querySummary, ''];
+
+  if (view.matches.length > 0) {
+    lines.push(
+      ...buildOpenCodeSection(
+        '## Matches',
+        view.matches.map(
+          (match) =>
+            `- **${String(match.artifactId)}**: ${String(match.title)} (${Number(match.score).toFixed(2)}): ${String(match.reason)}`,
+        ),
+      ),
+    );
+  }
+  lines.push(...buildOpenCodeNextSteps(view.nextSteps));
+  return lines.join('\n').trimEnd();
+}
+
+function renderOpenCodeCommandResult(payload: Record<string, unknown>): string {
+  const view = buildCommandResultView(payload);
+  const lines = ['# Result', view.action, ''];
+  lines.push('## Summary');
+  lines.push(view.summary);
+  lines.push('');
+
+  if (view.artifacts.length > 0) {
+    lines.push(
+      ...buildOpenCodeSection('## Artifacts', view.artifacts.map(buildOpenCodeArtifactLine)),
+    );
+  }
+  if (view.transition) {
+    lines.push('## Transition');
+    lines.push(`${view.transition.from} → ${view.transition.to}`);
+    lines.push('');
+  }
+  lines.push(...buildOpenCodeNextSteps(view.nextSteps));
+  return lines.join('\n').trimEnd();
+}
+
+function renderOpenCodeFallback(payload: Record<string, unknown>): string {
+  return `# Goal\n${String(payload.summary ?? 'TrapMap output')}`;
+}
+
 export function renderOpenCode(envelope: RenderEnvelope<RenderPayload>): string {
   if (envelope.kind === 'graph-plan') {
-    const codexObject = buildCodexObject(envelope);
-    const steps = Array.isArray(codexObject.next_steps) ? codexObject.next_steps : [];
-    const traps = Array.isArray(codexObject.traps) ? codexObject.traps : [];
-    const skills = Array.isArray(codexObject.skills) ? codexObject.skills : [];
-    const activationHints = Array.isArray(codexObject.activation_hints)
-      ? codexObject.activation_hints
-      : [];
-
-    const lines = [
-      '# Goal',
-      String(codexObject.summary ?? 'No summary available'),
-      '',
-      '## Selected Path',
-      String(codexObject.selected_path ?? 'generic'),
-      '',
-    ];
-
-    if (codexObject.fallback_notice) {
-      lines.push('## Fallback Notice');
-      lines.push(String(codexObject.fallback_notice));
-      lines.push('');
-    }
-
-    lines.push(
-      ...buildMarkdownListSection('## Recommended Skills', skills, '- None'),
-      ...buildMarkdownListSection('## Blocking Traps', traps, '- None'),
-      ...buildMarkdownListSection('## Activation Hints', activationHints, '- None'),
-      '## Suggested Execution Order',
-      ...(steps.length > 0 ? steps.map((step) => `1. ${String(step)}`) : ['1. No suggested steps']),
-    );
-
-    return lines.join('\n');
+    return renderOpenCodeGraphPlan(envelope);
   }
-
   if (envelope.kind === 'retrieval-v1') {
-    const view = buildRetrievalV1View(envelope.payload as RetrievalResponse);
-    const lines = ['# Goal', view.querySummary, ''];
-    if (view.constraints.length > 0) {
-      lines.push('## Global Constraints');
-      for (const item of view.constraints) {
-        lines.push(
-          `- **${String(item.shortcut)}** (${Number(item.score).toFixed(2)}): ${String(item.reason)}`,
-        );
-      }
-      lines.push('');
-    }
-    if (view.projectKnowledge.length > 0) {
-      lines.push('## Project Knowledge');
-      for (const item of view.projectKnowledge) {
-        lines.push(
-          `- **${String(item.shortcut)}** (${Number(item.score).toFixed(2)}): ${String(item.reason)}`,
-        );
-      }
-      lines.push('');
-    }
-    const summary = (envelope.payload as RetrievalResponse).summary;
-    if (summary?.text) {
-      lines.push('## Summary');
-      lines.push(summary.text);
-      lines.push('');
-    }
-    if (view.nextSteps.length > 0) {
-      lines.push('## Next Steps');
-      for (const step of view.nextSteps) {
-        lines.push(`- ${step}`);
-      }
-    }
-    return lines.join('\n').trimEnd();
+    return renderOpenCodeRetrievalV1(envelope.payload as RetrievalResponse);
   }
-
   if (envelope.kind === 'retrieval-v2') {
-    const view = buildRetrievalV2View(envelope.payload as RetrievalV2Response);
-    const lines = ['# Goal', view.querySummary, ''];
-    if (view.capsules.length > 0) {
-      lines.push('## Capsules');
-      for (const capsule of view.capsules) {
-        lines.push(
-          `- **${String(capsule.artifactId)}**: ${String(capsule.goal)} (${Number(capsule.score).toFixed(2)})`,
-        );
-      }
-      lines.push('');
-    }
-    if (view.profileHints.length > 0) {
-      lines.push('## Profile Hints');
-      for (const hint of view.profileHints) {
-        lines.push(`- ${String(hint.title)} (${String(hint.slug)})`);
-      }
-      lines.push('');
-    }
-    const refinementSummary = (envelope.payload as RetrievalV2Response).refinementSummary;
-    if (refinementSummary) {
-      lines.push('## Refinement Summary');
-      lines.push(refinementSummary);
-      lines.push('');
-    }
-    if (view.nextSteps.length > 0) {
-      lines.push('## Next Steps');
-      for (const step of view.nextSteps) {
-        lines.push(`- ${step}`);
-      }
-    }
-    return lines.join('\n').trimEnd();
+    return renderOpenCodeRetrievalV2(envelope.payload as RetrievalV2Response);
   }
-
   if (envelope.kind === 'skill-lookup') {
-    const view = buildSkillLookupView(envelope.payload as SkillLookupResponse);
-    const lines = ['# Goal', view.querySummary, ''];
-    if (view.matches.length > 0) {
-      lines.push('## Matches');
-      for (const match of view.matches) {
-        lines.push(
-          `- **${String(match.artifactId)}**: ${String(match.title)} (${Number(match.score).toFixed(2)}): ${String(match.reason)}`,
-        );
-      }
-      lines.push('');
-    }
-    if (view.nextSteps.length > 0) {
-      lines.push('## Next Steps');
-      for (const step of view.nextSteps) {
-        lines.push(`- ${step}`);
-      }
-    }
-    return lines.join('\n').trimEnd();
+    return renderOpenCodeSkillLookup(envelope.payload as SkillLookupResponse);
   }
-
   if (envelope.kind === 'command-result') {
-    const view = buildCommandResultView(envelope.payload as Record<string, unknown>);
-    const lines = ['# Result', view.action, ''];
-    lines.push('## Summary');
-    lines.push(view.summary);
-    lines.push('');
-    if (view.artifacts.length > 0) {
-      lines.push('## Artifacts');
-      for (const artifact of view.artifacts) {
-        const parts = [String(artifact.id)];
-        if (artifact.title) parts.push(String(artifact.title));
-        if (artifact.newState) parts.push(`[${String(artifact.newState)}]`);
-        if (artifact.revision) parts.push(`rev ${String(artifact.revision)}`);
-        lines.push(`- ${parts.join(' ')}`);
-      }
-      lines.push('');
-    }
-    if (view.transition) {
-      lines.push('## Transition');
-      lines.push(`${view.transition.from} → ${view.transition.to}`);
-      lines.push('');
-    }
-    if (view.nextSteps.length > 0) {
-      lines.push('## Next Steps');
-      for (const step of view.nextSteps) {
-        lines.push(`- ${step}`);
-      }
-    }
-    return lines.join('\n').trimEnd();
+    return renderOpenCodeCommandResult(envelope.payload as Record<string, unknown>);
   }
-
-  return `# Goal\n${String((envelope.payload as Record<string, unknown>).summary ?? 'TrapMap output')}`;
+  return renderOpenCodeFallback(envelope.payload as Record<string, unknown>);
 }
 
 export function renderGeneric(envelope: RenderEnvelope<RenderPayload>): string {

@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { z } from 'zod';
 
@@ -231,27 +230,4 @@ export function loadConfig(): HostLocalConfig {
   }
 
   return result.data as HostLocalConfig;
-}
-
-export function buildConfigFingerprint(config: HostLocalConfig): string {
-  return createHash('sha256')
-    .update(
-      JSON.stringify({
-        deploymentProfile: config.deployment.resolved.deploymentProfile,
-        runtimeMode: config.deployment.resolved.runtimeMode,
-        serviceUnit: config.deployment.resolved.serviceUnit,
-        routeSurface: config.deployment.resolved.capabilities.routeSurface,
-        asyncOwnershipExpectation: config.deployment.resolved.capabilities.asyncOwnershipExpectation,
-        storagePosture: config.deployment.resolved.capabilities.storagePosture,
-        authTeamExpectation: config.deployment.resolved.capabilities.authTeamExpectation,
-        taskTransportProvider: config.asyncTaskTransport.provider,
-        eventTransportProvider: 'postgres',
-        graphEnabled: config.graphDb.enabled,
-        graphProvider: config.graphDb.provider,
-        aiProvider: config.ai.provider,
-        sessionTransport: config.sessionTransport,
-      }),
-    )
-    .digest('hex')
-    .slice(0, 16);
 }

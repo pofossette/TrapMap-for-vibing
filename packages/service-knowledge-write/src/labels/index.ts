@@ -4,11 +4,10 @@ export {
   type MergeRepairOptions,
   type MergeRepairReport,
 } from './merge-repair.js';
-export { alignLabel, type AlignLabelOptions, type LabelAlignmentResult } from './llm-align.js';
+export { alignLabel, type LabelAlignmentResult } from './llm-align.js';
 export { createPgLabelRepository, PgLabelRepository } from './repository.js';
 export type {
   CanonicalLabelRecord,
   LabelAliasRecord,
-  LabelAlignmentEventRecord,
   LabelRepository,
 } from './repository.js';

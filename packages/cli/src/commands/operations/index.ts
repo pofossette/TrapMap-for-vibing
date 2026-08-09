@@ -1,4 +1,4 @@
-// fallow-ignore-next-line unused-type
+// fallow-ignore-next-line unused-type -- barrel re-export for CLI command surface
 export type { OperationsCommandOptions } from './types.js';
 export { registerListCommand } from './list.js';
 export { registerEditCommand } from './edit.js';

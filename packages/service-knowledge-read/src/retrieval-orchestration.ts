@@ -12,6 +12,7 @@ export interface KnowledgeReadRecallChannel {
 export class ChannelRegistry {
   private readonly channels = new Map<string, KnowledgeReadRecallChannel>();
 
+  // fallow-ignore-next-line unused-class-member -- registry pattern; register() is called by server-retrieval-seam createKnowledgeReadChannelRegistry
   register(channel: KnowledgeReadRecallChannel): void {
     if (this.channels.has(channel.name)) {
       throw new Error(`Channel '${channel.name}' is already registered`);
@@ -19,10 +20,12 @@ export class ChannelRegistry {
     this.channels.set(channel.name, channel);
   }
 
+  // fallow-ignore-next-line unused-class-member -- registry pattern; get() satisfies ChannelRegistryLike structural contract consumed by dispatchByMode in retrieval-recall-coordinator
   get(name: string): KnowledgeReadRecallChannel | undefined {
     return this.channels.get(name);
   }
 
+  // fallow-ignore-next-line unused-class-member -- registry pattern; all() satisfies ChannelRegistryLike structural contract consumed by dispatchByMode in retrieval-recall-coordinator
   all(): KnowledgeReadRecallChannel[] {
     return Array.from(this.channels.values());
   }

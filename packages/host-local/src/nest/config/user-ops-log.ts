@@ -1,9 +1,4 @@
-import { mkdir } from 'node:fs/promises';
-import path from 'node:path';
-
-import { formatDate } from '@trapmap/lib';
-
-import { appendWithRotation, loadRotationConfig } from './log-rotation.js';
+import { loadRotationConfig } from './log-rotation.js';
 
 export type UserOpsAction =
   | 'search'
@@ -30,7 +25,7 @@ export type UserOpsAction =
   | 'maintenance-batch'
   | 'reconcile-knowledge-indexes';
 
-// fallow-ignore-next-line unused-type
+// fallow-ignore-next-line unused-type -- log entry shape for user-ops observability
 export interface UserOpsLogEntry {
   timestamp: string;
   actorId: string;
@@ -53,27 +48,4 @@ export function loadUserOpsLogConfig(): UserOpsLogConfig {
   const logDir = process.env.LOG_USER_OPS_DIR ?? 'logs/user-ops';
   const rotation = loadRotationConfig();
   return { enabled, logDir, ...rotation };
-}
-
-export async function logUserOperation(
-  config: UserOpsLogConfig,
-  entry: UserOpsLogEntry,
-): Promise<void> {
-  if (!config.enabled) {
-    return;
-  }
-
-  try {
-    await mkdir(config.logDir, { recursive: true });
-    const dateStr = formatDate(new Date(entry.timestamp));
-    const logFile = path.join(config.logDir, `${dateStr}.log`);
-    const line = `${JSON.stringify(entry)}\n`;
-
-    await appendWithRotation(logFile, line, {
-      maxFileSizeBytes: config.maxFileSizeBytes,
-      maxBackupFiles: config.maxBackupFiles,
-    });
-  } catch (error) {
-    console.error('[user-ops-log] Failed to write log entry:', error);
-  }
 }

@@ -42,7 +42,7 @@ export function summarizeSkillLookup(payload: SkillLookupResponse): string {
   return first ? `${first.title} (${first.score.toFixed(2)})` : 'No skills found';
 }
 
-export function summarizeGraphPlan(payload: GraphPlanSearchResponse): string {
+function summarizeGraphPlan(payload: GraphPlanSearchResponse): string {
   if (
     payload.plan?.recommendedSkills.some((s) => s != null) ||
     payload.plan?.blockingTraps.some((t) => t != null)
@@ -65,7 +65,7 @@ export function summarizeGraphPlan(payload: GraphPlanSearchResponse): string {
   return 'No plan available';
 }
 
-export function buildExecutionOrder(payload: GraphPlanSearchResponse): string[] {
+function buildExecutionOrder(payload: GraphPlanSearchResponse): string[] {
   const executionPlan = payload.plan?.executionPlan ?? [];
   if (executionPlan.length === 0) {
     return [];

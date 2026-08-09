@@ -29,6 +29,7 @@ import type {
 import { buildAgentPlanningPlatformEvents } from '../agent-planning/lib/platform-events.js';
 import type { GraphExtractionBridgeReport } from '../graph-extraction/bridge.js';
 import type { IngestionBridgeReport } from '../ingestion/bridge.js';
+import { pushSliceTable } from '../lib/eval-report.js';
 import {
   type EvalPlatformAdapterKind,
   type EvalPlatformEvent,
@@ -257,6 +258,24 @@ interface RunUnifiedEvaluationDeps {
   resolveLangfuseConfigFromEnv: typeof resolveLangfuseAdapterConfigFromEnv;
 }
 
+interface RunUnifiedEvaluationState {
+  retrieval: RetrievalResult | null;
+  summary: SummaryResult | null;
+  graphExtraction: GraphExtractionResult | null;
+  ingestion: IngestionResult | null;
+  agentPlanning: AgentPlanningResult | null;
+  labelAlignment: LabelAlignmentResult | null;
+}
+
+class FatalEvalError extends Error {
+  readonly result: RunUnifiedEvaluationResult;
+
+  constructor(result: RunUnifiedEvaluationResult) {
+    super('fatal eval failure');
+    this.result = result;
+  }
+}
+
 function logLangfuseAdapterEnabled(
   log: typeof console.log,
   config: NonNullable<
@@ -292,6 +311,218 @@ function getRunUnifiedEvaluationDeps(): RunUnifiedEvaluationDeps {
     runLabelAlignmentEval,
     resolveLangfuseConfigFromEnv: resolveLangfuseAdapterConfigFromEnv,
   };
+}
+
+function createPlatformAdapterForOptions(
+  options: EvalAllOptions,
+  deps: RunUnifiedEvaluationDeps,
+): ReturnType<RunUnifiedEvaluationDeps['createPlatformAdapter']> | null {
+  if (options.platform === 'langfuse') {
+    const langfuseConfig = deps.resolveLangfuseConfigFromEnv(process.env);
+    if (!langfuseConfig.ok) {
+      deps.warn(langfuseConfig.warning);
+      return null;
+    }
+    logLangfuseAdapterEnabled(deps.log, langfuseConfig.config);
+    return deps.createPlatformAdapter({
+      kind: 'langfuse',
+      ...langfuseConfig.config,
+    });
+  }
+
+  if (options.platform) {
+    return deps.createPlatformAdapter({
+      kind: options.platform,
+      outputDir: options.platformOutputDir,
+    });
+  }
+
+  return null;
+}
+
+function logRunnerBanner(options: EvalAllOptions, deps: RunUnifiedEvaluationDeps): void {
+  deps.log('');
+  deps.log('╔══════════════════════════════════════════════════════════════╗');
+  deps.log('║              Unified Evaluation Runner                       ║');
+  deps.log('╚══════════════════════════════════════════════════════════════╝');
+  deps.log('');
+  deps.log(`Tier: ${options.tier}`);
+  deps.log(`Dry run: ${options.dryRun}`);
+  deps.log(`Allow empty: ${options.allowEmpty}`);
+  deps.log(`JSON output: ${options.json}`);
+  if (options.jsonPath) {
+    deps.log(`JSON path: ${options.jsonPath}`);
+  }
+  if (options.platform) {
+    deps.log(`Platform adapter: ${options.platform}`);
+  }
+  deps.log('');
+}
+
+/**
+ * Run one suite section. Fatal failures (not in dry-run/allow-empty) abort the
+ * whole run by throwing FatalEvalError carrying the failure report; recoverable
+ * failures fall back to `null`, matching the previous per-suite behavior.
+ */
+async function runSuiteSection<TResult>(params: {
+  deps: RunUnifiedEvaluationDeps;
+  options: EvalAllOptions;
+  sectionName: string;
+  startTime: number;
+  run: (options: EvalAllOptions) => Promise<TResult | null>;
+  completionMessage: (result: TResult) => string;
+  buildFailureResult: () => RunUnifiedEvaluationResult;
+}): Promise<TResult | null> {
+  const { deps, options, sectionName, run, completionMessage, buildFailureResult } = params;
+
+  deps.log(`--- ${sectionName} ---`);
+  try {
+    const result = await run(options);
+    if (result) {
+      deps.log(`  Completed: ${completionMessage(result)}`);
+    }
+    deps.log('');
+    return result;
+  } catch (error) {
+    deps.error('  Failed:', error);
+    if (!options.allowEmpty && !options.dryRun) {
+      throw new FatalEvalError(buildFailureResult());
+    }
+    return null;
+  }
+}
+
+function buildFailureResult(
+  state: RunUnifiedEvaluationState,
+  startTime: number,
+  tier: EvalAllOptions['tier'],
+): RunUnifiedEvaluationResult {
+  return {
+    combinedReport: {
+      schemaVersion: 1,
+      timestamp: new Date().toISOString(),
+      durationMs: Date.now() - startTime,
+      tier,
+      retrieval: state.retrieval,
+      summary: state.summary,
+      graphExtraction: state.graphExtraction,
+      ingestion: state.ingestion,
+      agentPlanning: state.agentPlanning,
+      labelAlignment: state.labelAlignment,
+      overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
+    },
+    exitCode: 1,
+  };
+}
+
+function computeOverallTotals(state: RunUnifiedEvaluationState): {
+  totalCases: number;
+  passedCases: number;
+  failedCases: number;
+} {
+  const totalCases =
+    (state.retrieval?.summary.totalCases ?? 0) +
+    (state.summary?.summary.totalCases ?? 0) +
+    (state.graphExtraction?.totalFixtures ?? 0) +
+    (state.ingestion?.totalBundles ?? 0) +
+    (state.agentPlanning?.summary.totalCases ?? 0) +
+    (state.labelAlignment?.summary.totalCases ?? 0);
+  const passedCases =
+    (state.retrieval?.summary.passedCases ?? 0) +
+    (state.summary?.summary.passedCases ?? 0) +
+    (state.graphExtraction?.passed ? (state.graphExtraction?.totalFixtures ?? 0) : 0) +
+    (state.ingestion?.passedBundles ?? 0) +
+    (state.agentPlanning?.summary.passedCases ?? 0) +
+    (state.labelAlignment?.summary.passedCases ?? 0);
+  return { totalCases, passedCases, failedCases: totalCases - passedCases };
+}
+
+function buildCombinedReport(
+  state: RunUnifiedEvaluationState,
+  startTime: number,
+  tier: EvalAllOptions['tier'],
+): CombinedReport {
+  const { totalCases, passedCases, failedCases } = computeOverallTotals(state);
+
+  return {
+    schemaVersion: 1,
+    timestamp: new Date().toISOString(),
+    durationMs: Date.now() - startTime,
+    tier,
+    retrieval: state.retrieval,
+    summary: state.summary,
+    graphExtraction: state.graphExtraction,
+    ingestion: state.ingestion,
+    agentPlanning: state.agentPlanning,
+    labelAlignment: state.labelAlignment,
+    overall: {
+      passed:
+        failedCases === 0 &&
+        (state.retrieval !== null ||
+          state.summary !== null ||
+          state.graphExtraction !== null ||
+          state.ingestion !== null ||
+          state.agentPlanning !== null ||
+          state.labelAlignment !== null),
+      totalCases,
+      passedCases,
+      failedCases,
+    },
+  };
+}
+
+async function mirrorPlatformEvents(params: {
+  adapter: NonNullable<ReturnType<RunUnifiedEvaluationDeps['createPlatformAdapter']>>;
+  deps: RunUnifiedEvaluationDeps;
+  options: EvalAllOptions;
+  suiteRunId: string;
+  state: RunUnifiedEvaluationState;
+}): Promise<void> {
+  const { adapter, deps, options, suiteRunId, state } = params;
+
+  try {
+    const suiteEvents = await buildSuitePlatformEvents(
+      options,
+      suiteRunId,
+      state.retrieval,
+      state.summary,
+      state.agentPlanning,
+      deps,
+    );
+    let publishWarnings = 0;
+    for (const event of suiteEvents) {
+      const publishResult = await deps.publishPlatformEvent(adapter, deps.warn, event);
+      if (publishResult?.ok === false) {
+        publishWarnings += 1;
+      }
+    }
+    if (publishWarnings === 0) {
+      deps.log(
+        `[eval-platform] ${adapter.kind} adapter mirrored ${suiteEvents.length} suite events without publish warnings.`,
+      );
+    } else {
+      deps.warn(
+        `[eval-platform] ${adapter.kind} adapter mirrored ${suiteEvents.length} suite events with ${publishWarnings} publish warning(s).`,
+      );
+    }
+  } catch (error) {
+    deps.warn(
+      `[eval-platform] ${adapter.kind} suite event mirroring failed; continuing without affecting eval status.`,
+      error,
+    );
+  }
+
+  try {
+    const closeResult = await deps.closePlatformAdapter(adapter, deps.warn);
+    if (closeResult?.ok !== false) {
+      deps.log(`[eval-platform] ${adapter.kind} adapter flush completed without close warnings.`);
+    }
+  } catch (error) {
+    deps.warn(
+      `[eval-platform] ${adapter.kind} adapter close failed; continuing without affecting eval status.`,
+      error,
+    );
+  }
 }
 
 function buildPlatformTags(options: EvalAllOptions): string[] {
@@ -702,28 +933,20 @@ function formatCombinedReport(report: CombinedReport, _options: EvalAllOptions):
     if (ret.summary.slices.length > 0) {
       lines.push('=== Slice Comparison ===');
       lines.push('');
-      lines.push(
-        'Tier     | Endpoint              | Mode          | Cases | Pass Rate | Avg Hit@1 | Avg MRR | Avg nDCG',
-      );
-      lines.push(
-        '---------|----------------------|---------------|-------|-----------|-----------|---------|----------',
-      );
 
-      for (const slice of ret.summary.slices) {
-        const mode = slice.mode || 'default';
-        const tier = slice.tier.padEnd(8);
-        const endpoint = slice.endpoint.padEnd(20);
-        const modeStr = mode.padEnd(13);
-        const cases = String(slice.caseCount).padStart(5);
-        const passRate = `${(slice.passRate * 100).toFixed(1)}%`.padStart(9);
-        const hitAt1 = slice.avgHitAt1.toFixed(3).padStart(9);
-        const mrr = slice.avgMrr.toFixed(3).padStart(7);
-        const ndcg = slice.avgNdcg.toFixed(3).padStart(9);
-
-        lines.push(
-          `${tier} | ${endpoint} | ${modeStr} | ${cases} | ${passRate} | ${hitAt1} | ${mrr} | ${ndcg}`,
-        );
-      }
+      pushSliceTable(
+        lines,
+        ret.summary.slices.map((slice) => ({
+          tier: slice.tier,
+          endpoint: slice.endpoint,
+          mode: slice.mode || 'default',
+          caseCount: slice.caseCount,
+          passRate: slice.passRate,
+          avgHitAt1: slice.avgHitAt1,
+          avgMrr: slice.avgMrr,
+          avgNdcg: slice.avgNdcg,
+        })),
+      );
       lines.push('');
 
       // Best/worst summary
@@ -903,286 +1126,94 @@ export async function runUnifiedEvaluation(
   };
   const startTime = Date.now();
   const platformRunSeed = randomUUID();
-  let adapter = null;
-  if (options.platform === 'langfuse') {
-    const langfuseConfig = resolvedDeps.resolveLangfuseConfigFromEnv(process.env);
-    if (!langfuseConfig.ok) {
-      resolvedDeps.warn(langfuseConfig.warning);
-    } else {
-      logLangfuseAdapterEnabled(resolvedDeps.log, langfuseConfig.config);
-      adapter = resolvedDeps.createPlatformAdapter({
-        kind: 'langfuse',
-        ...langfuseConfig.config,
-      });
-    }
-  } else if (options.platform) {
-    adapter = resolvedDeps.createPlatformAdapter({
-      kind: options.platform,
-      outputDir: options.platformOutputDir,
-    });
-  }
+  const adapter = createPlatformAdapterForOptions(options, resolvedDeps);
 
-  resolvedDeps.log('');
-  resolvedDeps.log('╔══════════════════════════════════════════════════════════════╗');
-  resolvedDeps.log('║              Unified Evaluation Runner                       ║');
-  resolvedDeps.log('╚══════════════════════════════════════════════════════════════╝');
-  resolvedDeps.log('');
-  resolvedDeps.log(`Tier: ${options.tier}`);
-  resolvedDeps.log(`Dry run: ${options.dryRun}`);
-  resolvedDeps.log(`Allow empty: ${options.allowEmpty}`);
-  resolvedDeps.log(`JSON output: ${options.json}`);
-  if (options.jsonPath) {
-    resolvedDeps.log(`JSON path: ${options.jsonPath}`);
-  }
-  if (options.platform) {
-    resolvedDeps.log(`Platform adapter: ${options.platform}`);
-  }
-  resolvedDeps.log('');
+  logRunnerBanner(options, resolvedDeps);
 
   // Run evaluations
   resolvedDeps.log('Running evaluations...\n');
 
-  let retrievalResult: RetrievalResult | null = null;
-  let summaryResult: SummaryResult | null = null;
-  let agentPlanningResult: AgentPlanningResult | null = null;
-  let labelAlignmentResult: LabelAlignmentResult | null = null;
+  const state: RunUnifiedEvaluationState = {
+    retrieval: null,
+    summary: null,
+    graphExtraction: null,
+    ingestion: null,
+    agentPlanning: null,
+    labelAlignment: null,
+  };
 
-  // Run retrieval evaluation
-  resolvedDeps.log('--- Retrieval Evaluation ---');
-  try {
-    retrievalResult = await resolvedDeps.runRetrievalEval(options);
-    if (retrievalResult) {
-      resolvedDeps.log(
-        `  Completed: ${retrievalResult.summary.passedCases}/${retrievalResult.summary.totalCases} passed`,
-      );
-    }
-  } catch (error) {
-    resolvedDeps.error('  Failed:', error);
-    if (!options.allowEmpty && !options.dryRun) {
-      return {
-        combinedReport: {
-          schemaVersion: 1,
-          timestamp: new Date().toISOString(),
-          durationMs: Date.now() - startTime,
-          tier: options.tier,
-          retrieval: null,
-          summary: null,
-          graphExtraction: null,
-          ingestion: null,
-          agentPlanning: null,
-          labelAlignment: null,
-          overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
-        },
-        exitCode: 1,
-      };
-    }
-  }
-  resolvedDeps.log('');
+  const failureResult = (): RunUnifiedEvaluationResult =>
+    buildFailureResult(state, startTime, options.tier);
 
-  // Run summary evaluation
-  resolvedDeps.log('--- Summary Evaluation ---');
   try {
-    summaryResult = await resolvedDeps.runSummaryEval(options);
-    if (summaryResult) {
-      resolvedDeps.log(
-        `  Completed: ${summaryResult.summary.passedCases}/${summaryResult.summary.totalCases} passed`,
-      );
-    }
+    state.retrieval = await runSuiteSection({
+      deps: resolvedDeps,
+      options,
+      sectionName: 'Retrieval Evaluation',
+      startTime,
+      run: (opts) => resolvedDeps.runRetrievalEval(opts),
+      completionMessage: (result) =>
+        `${result.summary.passedCases}/${result.summary.totalCases} passed`,
+      buildFailureResult: failureResult,
+    });
+    state.summary = await runSuiteSection({
+      deps: resolvedDeps,
+      options,
+      sectionName: 'Summary Evaluation',
+      startTime,
+      run: (opts) => resolvedDeps.runSummaryEval(opts),
+      completionMessage: (result) =>
+        `${result.summary.passedCases}/${result.summary.totalCases} passed`,
+      buildFailureResult: failureResult,
+    });
+    state.graphExtraction = await runSuiteSection({
+      deps: resolvedDeps,
+      options,
+      sectionName: 'Graph Extraction Evaluation',
+      startTime,
+      run: (opts) => resolvedDeps.runGraphExtractionEval(opts),
+      completionMessage: (result) =>
+        `${result.totalFixtures} fixtures, Node F1=${result.avgNodeF1.toFixed(3)}`,
+      buildFailureResult: failureResult,
+    });
+    state.ingestion = await runSuiteSection({
+      deps: resolvedDeps,
+      options,
+      sectionName: 'Ingestion / Derivation Evaluation',
+      startTime,
+      run: (opts) => resolvedDeps.runIngestionEval(opts),
+      completionMessage: (result) => `${result.passedBundles}/${result.totalBundles} passed`,
+      buildFailureResult: failureResult,
+    });
+    state.agentPlanning = await runSuiteSection({
+      deps: resolvedDeps,
+      options,
+      sectionName: 'Agent Planning Evaluation',
+      startTime,
+      run: (opts) => resolvedDeps.runAgentPlanningEval(opts),
+      completionMessage: (result) =>
+        `${result.summary.passedCases}/${result.summary.totalCases} passed`,
+      buildFailureResult: failureResult,
+    });
+    state.labelAlignment = await runSuiteSection({
+      deps: resolvedDeps,
+      options,
+      sectionName: 'Label Alignment Evaluation',
+      startTime,
+      run: (opts) => resolvedDeps.runLabelAlignmentEval(opts),
+      completionMessage: (result) =>
+        `${result.summary.passedCases}/${result.summary.totalCases} passed`,
+      buildFailureResult: failureResult,
+    });
   } catch (error) {
-    resolvedDeps.error('  Failed:', error);
-    if (!options.allowEmpty && !options.dryRun) {
-      return {
-        combinedReport: {
-          schemaVersion: 1,
-          timestamp: new Date().toISOString(),
-          durationMs: Date.now() - startTime,
-          tier: options.tier,
-          retrieval: retrievalResult,
-          summary: null,
-          graphExtraction: null,
-          ingestion: null,
-          agentPlanning: null,
-          labelAlignment: null,
-          overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
-        },
-        exitCode: 1,
-      };
+    if (error instanceof FatalEvalError) {
+      return error.result;
     }
+    throw error;
   }
-  resolvedDeps.log('');
-
-  // Run graph extraction evaluation
-  let graphExtractionResult: GraphExtractionResult | null = null;
-  resolvedDeps.log('--- Graph Extraction Evaluation ---');
-  try {
-    graphExtractionResult = await resolvedDeps.runGraphExtractionEval(options);
-    if (graphExtractionResult) {
-      resolvedDeps.log(
-        `  Completed: ${graphExtractionResult.totalFixtures} fixtures, Node F1=${graphExtractionResult.avgNodeF1.toFixed(3)}`,
-      );
-    }
-  } catch (error) {
-    resolvedDeps.error('  Failed:', error);
-    if (!options.allowEmpty && !options.dryRun) {
-      return {
-        combinedReport: {
-          schemaVersion: 1,
-          timestamp: new Date().toISOString(),
-          durationMs: Date.now() - startTime,
-          tier: options.tier,
-          retrieval: retrievalResult,
-          summary: summaryResult,
-          graphExtraction: null,
-          ingestion: null,
-          agentPlanning: null,
-          labelAlignment: null,
-          overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
-        },
-        exitCode: 1,
-      };
-    }
-  }
-  resolvedDeps.log('');
-
-  // Run ingestion/derivation evaluation
-  let ingestionResult: IngestionResult | null = null;
-  resolvedDeps.log('--- Ingestion / Derivation Evaluation ---');
-  try {
-    ingestionResult = await resolvedDeps.runIngestionEval(options);
-    if (ingestionResult) {
-      resolvedDeps.log(
-        `  Completed: ${ingestionResult.passedBundles}/${ingestionResult.totalBundles} passed`,
-      );
-    }
-  } catch (error) {
-    resolvedDeps.error('  Failed:', error);
-    if (!options.allowEmpty && !options.dryRun) {
-      return {
-        combinedReport: {
-          schemaVersion: 1,
-          timestamp: new Date().toISOString(),
-          durationMs: Date.now() - startTime,
-          tier: options.tier,
-          retrieval: retrievalResult,
-          summary: summaryResult,
-          graphExtraction: graphExtractionResult,
-          ingestion: null,
-          agentPlanning: null,
-          labelAlignment: null,
-          overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
-        },
-        exitCode: 1,
-      };
-    }
-  }
-  resolvedDeps.log('');
-
-  // Run agent planning evaluation
-  resolvedDeps.log('--- Agent Planning Evaluation ---');
-  try {
-    agentPlanningResult = await resolvedDeps.runAgentPlanningEval(options);
-    if (agentPlanningResult) {
-      resolvedDeps.log(
-        `  Completed: ${agentPlanningResult.summary.passedCases}/${agentPlanningResult.summary.totalCases} passed`,
-      );
-    }
-  } catch (error) {
-    resolvedDeps.error('  Failed:', error);
-    if (!options.allowEmpty && !options.dryRun) {
-      return {
-        combinedReport: {
-          schemaVersion: 1,
-          timestamp: new Date().toISOString(),
-          durationMs: Date.now() - startTime,
-          tier: options.tier,
-          retrieval: retrievalResult,
-          summary: summaryResult,
-          graphExtraction: graphExtractionResult,
-          ingestion: ingestionResult,
-          agentPlanning: null,
-          labelAlignment: null,
-          overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
-        },
-        exitCode: 1,
-      };
-    }
-  }
-  resolvedDeps.log('');
-
-  // Run label alignment evaluation
-  resolvedDeps.log('--- Label Alignment Evaluation ---');
-  try {
-    labelAlignmentResult = await resolvedDeps.runLabelAlignmentEval(options);
-    if (labelAlignmentResult) {
-      resolvedDeps.log(
-        `  Completed: ${labelAlignmentResult.summary.passedCases}/${labelAlignmentResult.summary.totalCases} passed`,
-      );
-    }
-  } catch (error) {
-    resolvedDeps.error('  Failed:', error);
-    if (!options.allowEmpty && !options.dryRun) {
-      return {
-        combinedReport: {
-          schemaVersion: 1,
-          timestamp: new Date().toISOString(),
-          durationMs: Date.now() - startTime,
-          tier: options.tier,
-          retrieval: retrievalResult,
-          summary: summaryResult,
-          graphExtraction: graphExtractionResult,
-          ingestion: ingestionResult,
-          agentPlanning: agentPlanningResult,
-          labelAlignment: null,
-          overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
-        },
-        exitCode: 1,
-      };
-    }
-  }
-  resolvedDeps.log('');
 
   // Build combined report
-  const totalCases =
-    (retrievalResult?.summary.totalCases ?? 0) +
-    (summaryResult?.summary.totalCases ?? 0) +
-    (graphExtractionResult?.totalFixtures ?? 0) +
-    (ingestionResult?.totalBundles ?? 0) +
-    (agentPlanningResult?.summary.totalCases ?? 0) +
-    (labelAlignmentResult?.summary.totalCases ?? 0);
-  const passedCases =
-    (retrievalResult?.summary.passedCases ?? 0) +
-    (summaryResult?.summary.passedCases ?? 0) +
-    (graphExtractionResult?.passed ? (graphExtractionResult?.totalFixtures ?? 0) : 0) +
-    (ingestionResult?.passedBundles ?? 0) +
-    (agentPlanningResult?.summary.passedCases ?? 0) +
-    (labelAlignmentResult?.summary.passedCases ?? 0);
-  const failedCases = totalCases - passedCases;
-
-  const combinedReport: CombinedReport = {
-    schemaVersion: 1,
-    timestamp: new Date().toISOString(),
-    durationMs: Date.now() - startTime,
-    tier: options.tier,
-    retrieval: retrievalResult,
-    summary: summaryResult,
-    graphExtraction: graphExtractionResult,
-    ingestion: ingestionResult,
-    agentPlanning: agentPlanningResult,
-    labelAlignment: labelAlignmentResult,
-    overall: {
-      passed:
-        failedCases === 0 &&
-        (retrievalResult !== null ||
-          summaryResult !== null ||
-          graphExtractionResult !== null ||
-          ingestionResult !== null ||
-          agentPlanningResult !== null ||
-          labelAlignmentResult !== null),
-      totalCases,
-      passedCases,
-      failedCases,
-    },
-  };
+  const combinedReport = buildCombinedReport(state, startTime, options.tier);
 
   // Print terminal output
   resolvedDeps.log(formatCombinedReport(combinedReport, options));
@@ -1194,60 +1225,20 @@ export async function runUnifiedEvaluation(
   }
 
   if (adapter) {
-    try {
-      const suiteEvents = await buildSuitePlatformEvents(
-        options,
-        platformRunSeed,
-        retrievalResult,
-        summaryResult,
-        agentPlanningResult,
-        resolvedDeps,
-      );
-      let publishWarnings = 0;
-      for (const event of suiteEvents) {
-        const publishResult = await resolvedDeps.publishPlatformEvent(
-          adapter,
-          resolvedDeps.warn,
-          event,
-        );
-        if (publishResult?.ok === false) {
-          publishWarnings += 1;
-        }
-      }
-      if (publishWarnings === 0) {
-        resolvedDeps.log(
-          `[eval-platform] ${adapter.kind} adapter mirrored ${suiteEvents.length} suite events without publish warnings.`,
-        );
-      } else {
-        resolvedDeps.warn(
-          `[eval-platform] ${adapter.kind} adapter mirrored ${suiteEvents.length} suite events with ${publishWarnings} publish warning(s).`,
-        );
-      }
-    } catch (error) {
-      resolvedDeps.warn(
-        `[eval-platform] ${adapter.kind} suite event mirroring failed; continuing without affecting eval status.`,
-        error,
-      );
-    }
-
-    try {
-      const closeResult = await resolvedDeps.closePlatformAdapter(adapter, resolvedDeps.warn);
-      if (closeResult?.ok !== false) {
-        resolvedDeps.log(
-          `[eval-platform] ${adapter.kind} adapter flush completed without close warnings.`,
-        );
-      }
-    } catch (error) {
-      resolvedDeps.warn(
-        `[eval-platform] ${adapter.kind} adapter close failed; continuing without affecting eval status.`,
-        error,
-      );
-    }
+    await mirrorPlatformEvents({
+      adapter,
+      deps: resolvedDeps,
+      options,
+      suiteRunId: platformRunSeed,
+      state,
+    });
   }
 
   // Exit with error code if any failures
   if (!combinedReport.overall.passed && !options.dryRun) {
-    resolvedDeps.log(`Evaluation completed with ${failedCases} failure(s).\n`);
+    resolvedDeps.log(
+      `Evaluation completed with ${combinedReport.overall.failedCases} failure(s).\n`,
+    );
     return {
       combinedReport,
       exitCode: 1,

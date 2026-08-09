@@ -79,36 +79,6 @@ export function computeScore(
   return score;
 }
 
-export async function getEntryEmbedding(
-  services: SkillShareerServices,
-  entry: KnowledgeRecord,
-): Promise<number[]> {
-  const infra = getRetrievalInfra(services);
-  const text = buildEmbeddingText(entry);
-  const textHash = infra.embeddings.hashText(text);
-
-  if (
-    entry.indexState?.vector?.status === 'synced' &&
-    entry.indexState.vector.revision === entry.history.length &&
-    entry.indexState.vector.contentHash === textHash
-  ) {
-    if (entry.embeddingCache?.vector) {
-      return entry.embeddingCache.vector;
-    }
-  }
-
-  if (
-    entry.embeddingCache &&
-    entry.embeddingCache.revision === entry.history.length &&
-    entry.embeddingCache.textHash === textHash
-  ) {
-    return entry.embeddingCache.vector;
-  }
-
-  const vector = await infra.embeddings.generate(text);
-  return vector;
-}
-
 export async function getQueryEmbedding(
   services: SkillShareerServices,
   queryText: string,

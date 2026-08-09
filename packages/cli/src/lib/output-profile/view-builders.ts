@@ -12,7 +12,7 @@ import type {
   SkillLookupView,
 } from './types.js';
 
-export { buildGraphPlanSummaryView, buildExecutionOrder } from './summarizers.js';
+export { buildGraphPlanSummaryView } from './summarizers.js';
 
 export function buildRetrievalV1View(payload: RetrievalResponse): RetrievalV1View {
   return {

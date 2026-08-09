@@ -9,9 +9,14 @@
  *   pnpm exec tsx --tsconfig tsconfig.base.json evals/graph-extraction/conflict-eval.ts --dry-run
  */
 
-import { parseArgs } from 'node:util';
-
 import { realSkillConflictFixtures } from './conflict-fixtures-real.js';
+import {
+  type ClassificationMetrics,
+  computeMetrics,
+  overlapScore,
+  tokenize,
+} from './lib/classification.js';
+import { parseEvalCliArgs } from './lib/cli.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,34 +31,9 @@ export interface ConflictFixture {
   expectedConflictType: ConflictType;
 }
 
-interface ClassificationMetrics {
-  tp: number;
-  fp: number;
-  fn: number;
-  precision: number;
-  recall: number;
-  f1: number;
-}
-
 // ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
-
-function parseArgs_() {
-  const { values } = parseArgs({
-    options: {
-      'dry-run': { type: 'boolean', short: 'd', default: false },
-      smoke: { type: 'boolean', short: 's', default: false },
-      verbose: { type: 'boolean', short: 'v', default: false },
-    },
-    strict: true,
-  });
-  return {
-    dryRun: values['dry-run'] ?? false,
-    smoke: values.smoke ?? false,
-    verbose: values.verbose ? 1 : 0,
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Fixtures: 20 annotated conflict detection pairs
@@ -345,24 +325,6 @@ export const conflictFixtures: ConflictFixture[] = [
 // Jaccard-based conflict classification (reproduces detect.ts logic)
 // ---------------------------------------------------------------------------
 
-function tokenize(text: string): Set<string> {
-  return new Set(
-    text
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .filter((part) => part.length >= 3),
-  );
-}
-
-function overlapScore(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 || b.size === 0) return 0;
-  let shared = 0;
-  for (const token of a) {
-    if (b.has(token)) shared++;
-  }
-  return shared / new Set([...a, ...b]).size;
-}
-
 const PROBLEM_OVERLAP_THRESHOLD = 0.3;
 const SOLUTION_DIFF_THRESHOLD = 0.3;
 const CONTRADICTORY_THRESHOLD = 0.8;
@@ -429,13 +391,6 @@ async function llmClassify(
 // ---------------------------------------------------------------------------
 // Metrics
 // ---------------------------------------------------------------------------
-
-function computeMetrics(tp: number, fp: number, fn: number): ClassificationMetrics {
-  const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
-  const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
-  const f1 = precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
-  return { tp, fp, fn, precision, recall, f1 };
-}
 
 function computePerClassMetrics(
   predictions: ConflictType[],
@@ -557,7 +512,7 @@ function formatReport(
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
-  const options = parseArgs_();
+  const options = parseEvalCliArgs();
 
   console.log('');
   console.log('=== Conflict Detection Evaluation ===');

@@ -7,7 +7,6 @@ import {
 } from '@trapmap/web-panel/services/mappers/review-item-mapper';
 import type {
   AdminPanelApiContract,
-  ManualJsonEditInput,
   ReviewDetailViewModel,
 } from '@trapmap/web-panel/shared/enum-types';
 
@@ -31,11 +30,4 @@ export async function submitReviewDecision(
 ): Promise<ReviewDetailViewModel> {
   const response = await api.submitReviewDecision(input);
   return mapReviewDetail(response.entry);
-}
-
-export async function saveManualJsonEdit(
-  api: AdminPanelApiContract,
-  input: ManualJsonEditInput,
-): Promise<{ savedAt: string }> {
-  return api.saveManualJsonEdit(input);
 }

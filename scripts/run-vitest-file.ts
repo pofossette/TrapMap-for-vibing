@@ -1,7 +1,8 @@
-import { spawn } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { spawnPnpmAndExit } from './lib/spawn-pnpm.js';
 
 export interface VitestProjectTarget {
   projectName: string;
@@ -106,24 +107,11 @@ async function main(): Promise<void> {
     return;
   }
 
-  const child = spawn('pnpm', buildVitestCommandArgs(target), {
+  spawnPnpmAndExit({
+    args: buildVitestCommandArgs(target),
     cwd: repoRoot,
-    stdio: 'inherit',
-    env: process.env,
-  });
-
-  child.on('exit', (code, signal) => {
-    if (signal) {
-      process.kill(process.pid, signal);
-      return;
-    }
-
-    process.exit(code ?? 1);
-  });
-
-  child.on('error', (error) => {
-    console.error(`[test:file] Failed to start Vitest: ${error.message}`);
-    process.exit(1);
+    label: 'test:file',
+    startErrorMessage: 'Failed to start Vitest',
   });
 }
 

@@ -10,43 +10,13 @@ import type {
 } from './output-profile/types.js';
 
 export type {
-  CommandResultView,
-  GraphPlanSummaryView,
   RenderEnvelope,
   RenderEnvelopeContext,
   RenderKind,
   RenderPayload,
   Renderer,
-  RendererRegistry,
-  RetrievalV1View,
-  RetrievalV2View,
-  SkillLookupView,
 } from './output-profile/types.js';
 export type { OutputProfile } from '@trapmap/cli/lib/config.js';
-
-export {
-  buildExecutionOrder,
-  buildGraphPlanSummaryView,
-  summarizeGraphPlan,
-  summarizeRetrievalV1,
-  summarizeRetrievalV2,
-  summarizeSkillLookup,
-  xmlEscape,
-} from './output-profile/summarizers.js';
-export {
-  buildCommandResultView,
-  buildRetrievalV1View,
-  buildRetrievalV2View,
-  buildSkillLookupView,
-} from './output-profile/view-builders.js';
-export { buildCodexObject } from './output-profile/codex-object-builder.js';
-export {
-  renderClaude,
-  renderCodex,
-  renderGeneric,
-  renderOpenCode,
-} from './output-profile/renderers.js';
-export { registry } from './output-profile/registry.js';
 
 export function getDefaultOutputProfile(): OutputProfile {
   return getConfigDefaultOutputProfile();

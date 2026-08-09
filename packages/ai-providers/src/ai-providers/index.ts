@@ -13,8 +13,6 @@ import type { AiPromptProvider, ProviderConfig } from './types.js';
 
 // Re-export types so consumers can import everything from './providers/index.js'
 
-export { PROVIDER_CONFIGS, ALL_PROVIDERS };
-
 // ---------------------------------------------------------------------------
 // Provider selection
 // ---------------------------------------------------------------------------
@@ -72,30 +70,12 @@ export function loadProviderTemplate(provider: AiPromptProvider): string {
 }
 
 // ---------------------------------------------------------------------------
-// Configuration access
-// ---------------------------------------------------------------------------
-
-/**
- * Get the full configuration object for a provider.
- */
-export function getProviderConfig(provider: AiPromptProvider): ProviderConfig {
-  return PROVIDER_CONFIGS[provider];
-}
-
-/**
- * List all registered provider names.
- */
-export function listProviders(): readonly AiPromptProvider[] {
-  return ALL_PROVIDERS;
-}
-
-// ---------------------------------------------------------------------------
 // Type guards
 // ---------------------------------------------------------------------------
 
 /**
  * Check whether a string is a valid AiPromptProvider name.
  */
-export function isAiPromptProvider(value: string): value is AiPromptProvider {
+function isAiPromptProvider(value: string): value is AiPromptProvider {
   return (ALL_PROVIDERS as readonly string[]).includes(value);
 }

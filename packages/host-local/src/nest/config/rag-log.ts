@@ -1,10 +1,6 @@
-import { mkdir } from 'node:fs/promises';
-import path from 'node:path';
-
 import type { RoutingTrace } from '@trapmap/contracts';
-import { formatDate } from '@trapmap/lib';
 
-import { appendWithRotation, loadRotationConfig } from './log-rotation.js';
+import { loadRotationConfig } from './log-rotation.js';
 
 export interface RagLogConfig {
   enabled: boolean;
@@ -22,7 +18,7 @@ export interface PipelineStep {
   error?: string;
 }
 
-// fallow-ignore-next-line unused-type
+// fallow-ignore-next-line unused-type -- log entry shape for rag observability
 export interface RagLogEntry {
   timestamp: string;
   queryId: string;
@@ -49,22 +45,3 @@ export function loadRagLogConfig(): RagLogConfig {
   return { enabled, logDir, ...rotation };
 }
 
-export async function logRagRetrieval(config: RagLogConfig, entry: RagLogEntry): Promise<void> {
-  if (!config.enabled) {
-    return;
-  }
-
-  try {
-    await mkdir(config.logDir, { recursive: true });
-    const dateStr = formatDate(new Date(entry.timestamp));
-    const logFile = path.join(config.logDir, `${dateStr}.log`);
-    const line = `${JSON.stringify(entry)}\n`;
-
-    await appendWithRotation(logFile, line, {
-      maxFileSizeBytes: config.maxFileSizeBytes,
-      maxBackupFiles: config.maxBackupFiles,
-    });
-  } catch (error) {
-    console.error('[rag-log] Failed to write log entry:', error);
-  }
-}

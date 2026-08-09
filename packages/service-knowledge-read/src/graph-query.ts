@@ -15,34 +15,42 @@ import {
 } from '@trapmap/contracts';
 
 export class MemoryGraphQueryBackend implements GraphQueryBackend {
+  // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   readonly kind = 'memory' as const;
 
   constructor(private readonly graphIndexRepo: GraphIndexRepositoryPort) {}
 
+  // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   isEnabled(): boolean {
     return false;
   }
 
+  // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   getRuntimeState(): GraphQueryRuntimeState {
     return { mode: 'disabled', backendKind: 'memory', failOpen: false };
   }
 
+  // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   async healthcheck(): Promise<GraphQueryBackendHealth> {
     return { ok: true, mode: 'disabled' };
   }
 
+  // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   async upsertDocument(document: GraphIndexDocumentRecord): Promise<void> {
     await this.graphIndexRepo.upsert(document);
   }
 
+  // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   async removeSource(sourceType: 'trap' | 'skill', sourceId: string): Promise<void> {
     await this.graphIndexRepo.removeBySource(sourceType, sourceId);
   }
 
+  // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   async rebuildProjection(_documents: GraphIndexDocumentRecord[]): Promise<void> {
     // Memory mode already uses graphIndexRepo as the canonical store.
   }
 
+  // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   async expandSourcesOneHop(params: {
     queryLabels: Set<string>;
     eligibleSourceIds?: Set<string>;
@@ -54,6 +62,7 @@ export class MemoryGraphQueryBackend implements GraphQueryBackend {
     return new Set([...expanded].filter((sourceId) => params.eligibleSourceIds?.has(sourceId)));
   }
 
+  // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   async calculateSourceRelationStrength(params: {
     sourceId: string;
     queryLabels: Set<string>;
@@ -65,6 +74,7 @@ export class MemoryGraphQueryBackend implements GraphQueryBackend {
     );
   }
 
+  // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   async getSourceNodeIds(sourceIds: string[]): Promise<Map<string, Set<string>>> {
     const runtime = await this.loadRuntime();
     return new Map(
@@ -75,6 +85,7 @@ export class MemoryGraphQueryBackend implements GraphQueryBackend {
     );
   }
 
+  // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   async buildLocalExpansionView(params: {
     seedNodeIds: string[];
     maxDepth: number;
@@ -118,6 +129,7 @@ export class MemoryGraphQueryBackend implements GraphQueryBackend {
     return { graph, nodeViewsById, nodeIdsBySourceId };
   }
 
+  // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   async findMitigatingSkills(trapNodeIds: string[]): Promise<string[]> {
     const runtime = await this.loadRuntime();
     const skills = new Set<string>();

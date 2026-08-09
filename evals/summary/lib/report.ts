@@ -14,6 +14,12 @@ import type {
   SummaryEvalReportMeta,
 } from '../../../packages/contracts/src/domain/evals/report.js';
 import { summaryEvalReportSchema } from '../../../packages/contracts/src/domain/evals/report.js';
+import {
+  average,
+  buildEvalReportMetaOptions,
+  compareFailuresByCaseThenKind,
+  computeCaseTotals,
+} from '../../lib/eval-report.js';
 import type { JudgeProvider, RunnerOptions, SummaryCaseResult } from './types.js';
 
 // =============================================================================
@@ -40,20 +46,11 @@ export function buildSummaryReport(params: {
     timestamp: new Date().toISOString(),
     durationMs,
     llmProvider,
-    options: {
-      tier: options.tier,
-      endpoint: options.endpoint,
-      dryRun: options.dryRun,
-      allowEmpty: options.allowEmpty,
-      verbose: options.verbose,
-    },
+    options: buildEvalReportMetaOptions(options),
   };
 
   // Build overall summary
-  const totalCases = caseResults.length;
-  const passedCases = caseResults.filter((r) => r.passed).length;
-  const failedCases = totalCases - passedCases;
-  const passRate = totalCases > 0 ? passedCases / totalCases : 0;
+  const { totalCases, passedCases, failedCases, passRate } = computeCaseTotals(caseResults);
 
   // Calculate averages
   const avgGroundedness = average(caseResults.map((r) => r.judgeResult.groundednessScore));
@@ -67,11 +64,7 @@ export function buildSummaryReport(params: {
   const cases = caseResults.map(buildCaseSummary).sort((a, b) => a.caseId.localeCompare(b.caseId));
 
   // Build failure records
-  const failures = caseResults.flatMap(buildFailureRecords).sort((a, b) => {
-    const caseCompare = a.caseId.localeCompare(b.caseId);
-    if (caseCompare !== 0) return caseCompare;
-    return a.kind.localeCompare(b.kind);
-  });
+  const failures = caseResults.flatMap(buildFailureRecords).sort(compareFailuresByCaseThenKind);
 
   const report: SummaryEvalReport = {
     meta,
@@ -170,17 +163,6 @@ function buildFailureRecords(result: SummaryCaseResult): SummaryEvalFailureRecor
 // =============================================================================
 // Helper Functions
 // =============================================================================
-
-/**
- * Calculate average of an array of numbers.
- *
- * @param values - Array of numbers
- * @returns Average value, or 0 if empty
- */
-function average(values: number[]): number {
-  if (values.length === 0) return 0;
-  return values.reduce((sum, v) => sum + v, 0) / values.length;
-}
 
 // =============================================================================
 // Report Summary Formatter

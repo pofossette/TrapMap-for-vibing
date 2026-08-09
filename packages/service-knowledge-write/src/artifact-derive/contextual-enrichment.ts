@@ -17,7 +17,7 @@ import type { DerivedSkillCapsuleRecord } from '@trapmap/service-knowledge-read/
 // Types
 // ---------------------------------------------------------------------------
 
-export interface CapsuleManifestItem {
+interface CapsuleManifestItem {
   capsuleIndex: number;
   title: string;
   description: string;
@@ -28,13 +28,13 @@ export interface CapsuleManifestItem {
   tags: string[];
 }
 
-export interface CapsuleManifest {
+interface CapsuleManifest {
   documentTitle: string;
   documentLabels: string[];
   capsules: CapsuleManifestItem[];
 }
 
-export interface CapsuleContentResult {
+interface CapsuleContentResult {
   capsuleIndex: number;
   contextualPrefix: string | null;
 }
@@ -69,7 +69,7 @@ function truncateForPrompt(content: string, maxLength = MAX_DOCUMENT_CONTENT_LEN
  * The prompt asks the model to analyse the full document and produce a
  * structured JSON manifest describing what capsules should be created.
  */
-export function buildManifestPrompt(
+function buildManifestPrompt(
   documentTitle: string,
   labels: string[],
   documentContent: string,
@@ -117,7 +117,7 @@ Respond with ONLY valid JSON (no markdown fences, no explanation):
  * Uses prompt caching: the document info and manifest are shared across all
  * calls for the same document. Only the per-capsule manifest item varies.
  */
-export function buildContentPrompt(
+function buildContentPrompt(
   documentTitle: string,
   labels: string[],
   documentContent: string,
@@ -161,7 +161,7 @@ Respond with ONLY the prefix text (no JSON, no quotes, no explanation):`;
  * Parse an LLM response into a CapsuleManifest.
  * Returns null if parsing fails.
  */
-export function parseManifestResponse(raw: string): CapsuleManifest | null {
+function parseManifestResponse(raw: string): CapsuleManifest | null {
   const cleaned = raw
     .trim()
     .replace(/^```(?:json)?\n?/, '')
@@ -206,7 +206,7 @@ export function parseManifestResponse(raw: string): CapsuleManifest | null {
  * @param documentContent - Full document content
  * @returns Parsed manifest, or null on failure
  */
-export async function generateCapsuleManifest(
+async function generateCapsuleManifest(
   chat: ChatProvider,
   documentTitle: string,
   labels: string[],
@@ -231,26 +231,6 @@ export async function generateCapsuleManifest(
 // ---------------------------------------------------------------------------
 
 /**
- * Build the shared base content for prompt caching.
- * The document info and content go first; per-capsule manifest item is appended.
- */
-export function buildBaseContentForCache(
-  documentTitle: string,
-  labels: string[],
-  documentContent: string,
-): string {
-  const content = truncateForPrompt(documentContent);
-  return `You are generating contextual prefixes for knowledge capsules.
-
-Document title: ${documentTitle}
-Document labels: ${labels.join(', ')}
-
---- DOCUMENT START ---
-${content}
---- DOCUMENT END ---`;
-}
-
-/**
  * Generate contextual prefix for a single capsule.
  * Includes retry with exponential backoff on transient failures.
  *
@@ -262,7 +242,7 @@ ${content}
  * @param maxRetries - Maximum retry attempts (default 2)
  * @returns Contextual prefix string, or null on failure
  */
-export async function generateSingleCapsuleContent(
+async function generateSingleCapsuleContent(
   chat: ChatProvider,
   documentTitle: string,
   labels: string[],
@@ -305,7 +285,7 @@ export async function generateSingleCapsuleContent(
  * @param manifestItems - Manifest items to generate prefixes for
  * @param maxConcurrent - Maximum concurrent LLM calls (default 3)
  */
-export async function generateCapsuleContents(
+async function generateCapsuleContents(
   chat: ChatProvider,
   documentTitle: string,
   labels: string[],
@@ -335,7 +315,7 @@ export async function generateCapsuleContents(
 /**
  * Generate a deterministic fallback contextual prefix when LLM is unavailable.
  */
-export function buildFallbackPrefix(
+function buildFallbackPrefix(
   documentTitle: string,
   sourceType: 'skill-main' | 'reference',
   sourcePath: string,
@@ -360,20 +340,19 @@ export class ContextualEnrichmentCache {
     return `${sourceHash}:${capsuleIndex}`;
   }
 
+  // fallow-ignore-next-line unused-class-member -- called via cache?. optional chaining in enrichCapsules (lines 487/534); fallow cannot resolve optional-chained calls
   get(sourceHash: string, capsuleIndex: number): string | undefined {
     return this.store.get(this.buildKey(sourceHash, capsuleIndex));
   }
 
+  // fallow-ignore-next-line unused-class-member -- called via cache?. optional chaining in enrichCapsules (line 558); fallow cannot resolve optional-chained calls
   set(sourceHash: string, capsuleIndex: number, prefix: string): void {
     this.store.set(this.buildKey(sourceHash, capsuleIndex), prefix);
   }
 
+  // fallow-ignore-next-line unused-class-member -- called via cache?. optional chaining in enrichCapsules (line 477); fallow cannot resolve optional-chained calls
   has(sourceHash: string, capsuleIndex: number): boolean {
     return this.store.has(this.buildKey(sourceHash, capsuleIndex));
-  }
-
-  get size(): number {
-    return this.store.size;
   }
 }
 

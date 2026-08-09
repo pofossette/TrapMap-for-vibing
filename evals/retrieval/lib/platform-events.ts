@@ -8,6 +8,14 @@ import type {
   RetrievalEvalFailureRecord,
   RetrievalEvalReport,
 } from '../../../packages/contracts/src/domain/evals/report.js';
+import {
+  buildCaseAssertionEvent,
+  buildCaseLifecycleEvents,
+  buildCaseScoreEvents,
+  collectCaseEvents,
+  deriveStartedAt,
+  groupFailuresByCase,
+} from '../../lib/platform-events.js';
 import { getRetrievalEvaluationCases, getRetrievalScenarioIds } from './runner-api.js';
 
 export interface BuildRetrievalPlatformEventsInput {
@@ -26,152 +34,34 @@ const defaultDeps: RetrievalPlatformEventDeps = {
   loadScenarioIds: getRetrievalScenarioIds,
 };
 
-function deriveStartedAt(timestamp: string, durationMs: number): string {
-  return new Date(new Date(timestamp).getTime() - durationMs).toISOString();
-}
-
-function getEventTags(baseTags: string[], caseTags: string[]): string[] {
-  return [...new Set([...baseTags, ...caseTags])];
-}
-
-function groupRetrievalFailuresByCase(
-  failures: RetrievalEvalFailureRecord[],
-): Map<string, RetrievalEvalFailureRecord[]> {
-  const grouped = new Map<string, RetrievalEvalFailureRecord[]>();
-
-  for (const failure of failures) {
-    const existing = grouped.get(failure.caseId) ?? [];
-    existing.push(failure);
-    grouped.set(failure.caseId, existing);
-  }
-
-  return grouped;
-}
-
 function buildRetrievalScoreEvents(params: {
   suiteRunId: string;
   timestamp: string;
   caseDefinition: RetrievalEvalCase;
   caseResult: RetrievalEvalReport['cases'][number];
   tags: string[];
-}): EvalPlatformEvent[] {
+}) {
   const { suiteRunId, timestamp, caseDefinition, caseResult, tags } = params;
 
-  return [
+  return buildCaseScoreEvents(
     {
-      family: 'EvalScoreRecorded',
       suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
+      suiteRunId,
       timestamp,
-      tags,
-      payload: { scoreId: 'hitAt1', score: caseResult.hitAt1, source: 'case.hitAt1' },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
+      caseResult,
+      caseDefinition,
       caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
       tags,
-      payload: { scoreId: 'hitAt5', score: caseResult.hitAt5, source: 'case.hitAt5' },
     },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'hitAt10', score: caseResult.hitAt10, source: 'case.hitAt10' },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'mrr', score: caseResult.mrr, source: 'case.mrr' },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'ndcg', score: caseResult.ndcg, source: 'case.ndcg' },
-    },
-    {
-      family: 'EvalScoreRecorded',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp,
-      tags,
-      payload: { scoreId: 'recallAt10', score: caseResult.recallAt10, source: 'case.recallAt10' },
-    },
-  ];
-}
-
-function buildRetrievalAssertionEvent(params: {
-  suiteRunId: string;
-  timestamp: string;
-  caseDefinition: RetrievalEvalCase;
-  caseResult: RetrievalEvalReport['cases'][number];
-  tags: string[];
-  assertionId: 'outcome' | 'governance' | 'shape' | 'graph-plan';
-  passed: boolean;
-  source:
-    | 'case.outcomeMatch'
-    | 'case.governancePassed'
-    | 'case.selectedMode'
-    | 'case.routingReason'
-    | 'case.fallbackApplied'
-    | 'case.passed';
-  reason?: string;
-}): EvalPlatformEvent {
-  const {
-    suiteRunId,
-    timestamp,
-    caseDefinition,
-    caseResult,
-    tags,
-    assertionId,
-    passed,
-    source,
-    reason,
-  } = params;
-
-  return {
-    family: 'EvalAssertionRecorded',
-    suite: 'retrieval',
-    tier: caseResult.tier,
-    runId: suiteRunId,
-    caseId: caseResult.caseId,
-    scenarioId: caseDefinition.scenarioId,
-    timestamp,
-    tags,
-    payload: {
-      assertionId,
-      passed,
-      source,
-      ...(reason ? { reason } : {}),
-    },
-  };
+    [
+      { scoreId: 'hitAt1', score: caseResult.hitAt1, source: 'case.hitAt1' },
+      { scoreId: 'hitAt5', score: caseResult.hitAt5, source: 'case.hitAt5' },
+      { scoreId: 'hitAt10', score: caseResult.hitAt10, source: 'case.hitAt10' },
+      { scoreId: 'mrr', score: caseResult.mrr, source: 'case.mrr' },
+      { scoreId: 'ndcg', score: caseResult.ndcg, source: 'case.ndcg' },
+      { scoreId: 'recallAt10', score: caseResult.recallAt10, source: 'case.recallAt10' },
+    ],
+  );
 }
 
 function buildRetrievalCasePlatformEvents(params: {
@@ -182,112 +72,90 @@ function buildRetrievalCasePlatformEvents(params: {
   report: RetrievalEvalReport;
   caseMap: Map<string, RetrievalEvalCase>;
   failuresByCase: Map<string, RetrievalEvalFailureRecord[]>;
-}): EvalPlatformEvent[] {
+}) {
   const { suiteRunId, startedAt, finishedAt, baseTags, report, caseMap, failuresByCase } = params;
-  const events: EvalPlatformEvent[] = [];
 
-  for (const caseResult of report.cases) {
-    const caseDefinition = caseMap.get(caseResult.caseId);
-    if (!caseDefinition) {
-      continue;
-    }
-
-    const tags = getEventTags(baseTags, caseDefinition.tags);
-    const caseFailures = failuresByCase.get(caseResult.caseId) ?? [];
-    const shapeFailures = caseFailures.filter((failure) => failure.kind === 'shape-mismatch');
-    const graphPlanFailures = caseFailures.filter(
-      (failure) => failure.kind === 'graph-plan-mismatch',
-    );
-
-    events.push({
-      family: 'EvalCaseStarted',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp: startedAt,
-      tags,
-      payload: {
-        case: caseDefinition,
-      },
-    });
-    events.push({
-      family: 'EvalCaseFinished',
-      suite: 'retrieval',
-      tier: caseResult.tier,
-      runId: suiteRunId,
-      caseId: caseResult.caseId,
-      scenarioId: caseDefinition.scenarioId,
-      timestamp: finishedAt,
-      tags,
-      payload: {
-        result: caseResult,
-      },
-    });
-    events.push(
-      ...buildRetrievalScoreEvents({
+  return collectCaseEvents(
+    report,
+    caseMap,
+    failuresByCase,
+    baseTags,
+    ({ caseResult, caseDefinition, tags, caseFailures }) => {
+      const shapeFailures = caseFailures.filter((failure) => failure.kind === 'shape-mismatch');
+      const graphPlanFailures = caseFailures.filter(
+        (failure) => failure.kind === 'graph-plan-mismatch',
+      );
+      const caseParams = {
+        suite: 'retrieval' as const,
         suiteRunId,
         timestamp: finishedAt,
-        caseDefinition,
         caseResult,
-        tags,
-      }),
-      buildRetrievalAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
         caseDefinition,
-        caseResult,
+        caseId: caseResult.caseId,
         tags,
-        assertionId: 'outcome',
-        passed: caseResult.outcomeMatch,
-        source: 'case.outcomeMatch',
-      }),
-      buildRetrievalAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'governance',
-        passed: caseResult.governancePassed,
-        source: 'case.governancePassed',
-      }),
-    );
+      };
 
-    if (caseDefinition.endpoint === '/v3/retrieval/search') {
-      events.push(
-        buildRetrievalAssertionEvent({
+      const assertionEvents =
+        caseDefinition.endpoint === '/v3/retrieval/search'
+          ? [
+              buildCaseAssertionEvent({
+                ...caseParams,
+                assertionId: 'graph-plan',
+                passed: graphPlanFailures.length === 0,
+                source: 'case.passed',
+                reason:
+                  graphPlanFailures.map((failure) => failure.description).join('; ') || undefined,
+              }),
+            ]
+          : [
+              buildCaseAssertionEvent({
+                ...caseParams,
+                assertionId: 'shape',
+                passed: shapeFailures.length === 0,
+                source: 'case.passed',
+                reason: shapeFailures.map((failure) => failure.description).join('; ') || undefined,
+              }),
+            ];
+
+      return [
+        ...buildCaseLifecycleEvents({
+          envelope: {
+            suite: 'retrieval',
+            tier: caseResult.tier,
+            runId: suiteRunId,
+            caseId: caseResult.caseId,
+            scenarioId: caseDefinition.scenarioId,
+            timestamp: finishedAt,
+            tags,
+          },
+          startedAt,
+          finishedAt,
+          caseDefinition,
+          caseResult,
+        }),
+        ...buildRetrievalScoreEvents({
           suiteRunId,
           timestamp: finishedAt,
           caseDefinition,
           caseResult,
           tags,
-          assertionId: 'graph-plan',
-          passed: graphPlanFailures.length === 0,
-          source: 'case.passed',
-          reason: graphPlanFailures.map((failure) => failure.description).join('; ') || undefined,
         }),
-      );
-      continue;
-    }
-
-    events.push(
-      buildRetrievalAssertionEvent({
-        suiteRunId,
-        timestamp: finishedAt,
-        caseDefinition,
-        caseResult,
-        tags,
-        assertionId: 'shape',
-        passed: shapeFailures.length === 0,
-        source: 'case.passed',
-        reason: shapeFailures.map((failure) => failure.description).join('; ') || undefined,
-      }),
-    );
-  }
-
-  return events;
+        buildCaseAssertionEvent({
+          ...caseParams,
+          assertionId: 'outcome',
+          passed: caseResult.outcomeMatch,
+          source: 'case.outcomeMatch',
+        }),
+        buildCaseAssertionEvent({
+          ...caseParams,
+          assertionId: 'governance',
+          passed: caseResult.governancePassed,
+          source: 'case.governancePassed',
+        }),
+        ...assertionEvents,
+      ];
+    },
+  );
 }
 
 export async function buildRetrievalPlatformEvents(
@@ -301,7 +169,7 @@ export async function buildRetrievalPlatformEvents(
   const scenarioIds = deps.loadScenarioIds(tier, endpoint);
   const retrievalCases = deps.loadCases(tier, endpoint);
   const caseMap = new Map(retrievalCases.map((case_) => [case_.caseId, case_]));
-  const failuresByCase = groupRetrievalFailuresByCase(report.failures);
+  const failuresByCase = groupFailuresByCase(report.failures);
 
   return [
     {

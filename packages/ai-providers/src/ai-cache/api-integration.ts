@@ -28,21 +28,6 @@ export interface PromptBlock {
 // ---------------------------------------------------------------------------
 
 /**
- * Build a cache control header for a single section, or null if the section
- * should not be cached (cacheScope === null).
- */
-export function buildCacheControlForSection(section: CacheSection): CacheControlHeader | null {
-  if (section.cacheScope === null) {
-    return null;
-  }
-
-  return {
-    type: 'ephemeral',
-    scope: section.cacheScope === 'org' ? 'organization' : section.cacheScope,
-  };
-}
-
-/**
  * Split prompt sections into API-compatible blocks with cache control.
  *
  * Static sections (before the cache boundary) are grouped into a single

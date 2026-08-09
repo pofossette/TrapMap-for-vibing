@@ -38,17 +38,3 @@ export interface MergedCandidate {
   decayMultiplier?: number;
   boundaryExplanation?: BoundaryExplanation;
 }
-
-export interface CapsuleCandidate {
-  capsuleId: string;
-  artifactId: string;
-  revision: number;
-  situationScore: number;
-  problemScore: number;
-  goalScore: number;
-  errorScore: number | null;
-  contextScore: number;
-  stackPathBoost: number;
-  finalScore: number;
-  reason: string;
-}
