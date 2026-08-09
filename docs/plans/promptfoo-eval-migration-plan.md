@@ -143,9 +143,9 @@
   - 证据：文件已存在且含规则章节；随 Phase 0 提交一并入库
 - [x] 决策记录写入后运行 `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
   - 证据：`rtk pnpm check:docs-drift` / `rtk pnpm check:structure` 全绿（见下方 Test and eval updates）
-- [ ] 若 langfuse 升级引入行为/配置变化，同步 `docs/operations/ENVIRONMENT.md` 与
+- [x] 若 langfuse 升级引入行为/配置变化，同步 `docs/operations/ENVIRONMENT.md` 与
       `docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md` 对应条目
-  - 证据：langfuse 版本未实际变化（`3.38.20`→`3.38.20`），无行为/配置变化，无需同步文档
+  - 证据：langfuse 版本未实际变化（`3.38.20`→`3.38.20`），无行为/配置变化，条件不触发，无需同步文档
 
 **Test and eval updates**
 
@@ -165,10 +165,10 @@
 
 **Commit**
 
-- [ ] 提交：`chore(deps): add promptfoo pinned devDependency` + 决策记录/计划文档同批或分批提交
-  - 证据：（待提交，hash 见 Phase 0 提交记录，含计划文档 + 决策记录 + nowIso 修复 + knip 登记）
-- [ ] 提交：`chore(deps): upgrade langfuse to latest and pin exact version`（lockfile 变更单独提交）
-  - 证据：（待提交，hash 见 Phase 0 提交记录，含根/host-local package.json + lockfile）
+- [x] 提交：`chore(deps): add promptfoo pinned devDependency` + 决策记录/计划文档同批或分批提交
+  - 证据：commit `4f40f33d`（含根 package.json `promptfoo: 0.122.0`、knip.json、lockfile、计划文档、ADR-1..4 决策记录、nowIso stale 导入修复）
+- [x] 提交：`chore(deps): upgrade langfuse to latest and pin exact version`（lockfile 变更单独提交）
+  - 证据：commit `2721fbde`（根与 packages/host-local 的 `langfuse: 3.38.20` 去 `^` + lockfile specifier 更新，独立提交）
 
 ## Phase 1: Shared infrastructure (`evals/promptfoo/`)
 
