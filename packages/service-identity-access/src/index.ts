@@ -4,7 +4,10 @@ export {
   type IdentityAccessDeps,
   type IdentityAccessPortDeps,
 } from './deps.js';
-export { registerIdentityAccessRoutes } from './routes.js';
+export {
+  createIdentityAccessRouteDefs,
+  registerIdentityAccessRoutes,
+} from './routes.js';
 export { createAuditEvent, type CreateAuditEventArgs } from './audit.js';
 export {
   buildIdentityUserLookupContext,

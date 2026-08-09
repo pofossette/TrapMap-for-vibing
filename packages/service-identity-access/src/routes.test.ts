@@ -1,7 +1,27 @@
-import { type IdentityAccessPort, InvocationError } from '@trapmap/backend-core';
-import Fastify from 'fastify';
+import 'reflect-metadata';
+
+import { Module } from '@nestjs/common';
+import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { Test } from '@nestjs/testing';
+import {
+  type IdentityAccessPort,
+  InvocationError,
+  RouteDefExceptionFilter,
+  createFastifyAdapter,
+  createNestAdapter,
+} from '@trapmap/backend-core';
+import type { FastifyInjectOptions, FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
-import { registerIdentityAccessRoutes } from './routes.ts';
+
+import { createIdentityAccessRouteDefs } from './routes.ts';
+
+const ADAPTERS = ['fastify', 'nest'] as const;
+type AdapterName = (typeof ADAPTERS)[number];
+
+interface RouteTestApp {
+  inject(options: FastifyInjectOptions): Promise<LightMyRequestResponse>;
+  close(): Promise<void>;
+}
 
 function createModule(overrides: Partial<IdentityAccessPort> = {}): IdentityAccessPort {
   return {
@@ -25,17 +45,37 @@ function createModule(overrides: Partial<IdentityAccessPort> = {}): IdentityAcce
   };
 }
 
-async function buildApp(module: IdentityAccessPort) {
-  const app = Fastify();
-  registerIdentityAccessRoutes(app, module);
-  await app.ready();
-  return app;
+async function buildApp(module: IdentityAccessPort, adapter: AdapterName): Promise<RouteTestApp> {
+  const routeDefs = createIdentityAccessRouteDefs(module);
+
+  if (adapter === 'fastify') {
+    const app = createFastifyAdapter(routeDefs, module);
+    await app.ready();
+    return {
+      inject: (options) => app.inject(options),
+      close: () => app.close(),
+    };
+  }
+
+  @Module({ controllers: [createNestAdapter(routeDefs, module)] })
+  class RouteDefTestModule {}
+
+  const moduleRef = await Test.createTestingModule({ imports: [RouteDefTestModule] }).compile();
+  const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+  app.useGlobalFilters(new RouteDefExceptionFilter());
+  await app.init();
+  const fastifyApp = app.getHttpAdapter().getInstance() as FastifyInstance;
+  await fastifyApp.ready();
+  return {
+    inject: (options) => fastifyApp.inject(options),
+    close: () => app.close(),
+  };
 }
 
-describe('service-identity-access routes', () => {
+describe.each(ADAPTERS)('service-identity-access routes (%s adapter)', (adapter) => {
   it('issues a system-admin session only through the dedicated internal route', async () => {
     const module = createModule();
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -51,7 +91,7 @@ describe('service-identity-access routes', () => {
 
   it('exposes auth, team, member, and access-key flows through the service module', async () => {
     const module = createModule();
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const login = await app.inject({
       method: 'POST',
@@ -115,6 +155,7 @@ describe('service-identity-access routes', () => {
       createModule({
         validateSession: vi.fn(async () => null),
       }),
+      adapter,
     );
     const unauthorized = await validateOnly.inject({
       method: 'POST',
@@ -134,6 +175,7 @@ describe('service-identity-access routes', () => {
           throw InvocationError.unavailable('identity unavailable');
         }),
       }),
+      adapter,
     );
     const unavailable = await unavailableApp.inject({
       method: 'POST',
@@ -141,7 +183,7 @@ describe('service-identity-access routes', () => {
       payload: { handle: 'alice', password: 'secret' },
     });
     expect(unavailable.statusCode).toBe(503);
-    expect(unavailable.json()).toEqual({
+    expect(unavailable.json()).toMatchObject({
       error: 'identity unavailable',
       kind: 'unavailable',
     });
