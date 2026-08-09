@@ -138,7 +138,7 @@ TrapMap 目前处于持续演进阶段。核心方向已经比较明确：知识
 | [docs/guides/GETTING_STARTED.md](docs/guides/GETTING_STARTED.md) | 本地开发环境搭建 |
 | [docs/guides/CODE_GUIDE.md](docs/guides/CODE_GUIDE.md) | 源码导读 |
 | [docs/PACKAGES.md](docs/PACKAGES.md) | 各包职责 |
-| [docs/PACKAGE_STACK_RATIONALE.md](docs/PACKAGE_STACK_RATIONALE.md) | 各包及主要子包的技术选型原因 |
+| [docs/PACKAGE_STACK_RATIONALE.md（已归档）](docs/archived/PACKAGE_STACK_RATIONALE.md) | 各包及主要子包的技术选型原因（历史参考） |
 | [docs/reference/DATA_MODEL.md](docs/reference/DATA_MODEL.md) | 数据模型详解 |
 | [docs/architecture/](docs/architecture/) | 完整架构文档（模块、组件、API、CLI、部署、流程图等） |
 | [docs/reference/api-surface.md](docs/reference/api-surface.md) | v1 API 契约表面 |
@@ -252,7 +252,7 @@ pnpm test:runtime-foundations
 pnpm test:light-target
 pnpm test:heavy-target
 pnpm typecheck
-pnpm check:docs-drift
+pnpm check:docs
 ```
 
 评测脚手架入口：
@@ -468,10 +468,10 @@ docker compose down
   - XML = 语义标记（内容层）：系统指令、环境信息
   - YAML = 配置文件（Skill 文件头）：Frontmatter 元数据
   - Markdown = 内容载体（Skill 正文）
-- 详见 [docs/operations/ENVIRONMENT.md](docs/operations/ENVIRONMENT.md) 和 [docs/reference/xml-system-prompt-methodology.md](docs/reference/xml-system-prompt-methodology.md)
+- 详见 [docs/operations/ENVIRONMENT.md](docs/operations/ENVIRONMENT.md) 和 [docs/archived/reference/xml-system-prompt-methodology.md](docs/archived/reference/xml-system-prompt-methodology.md)
 - `claim verification` 优先使用 `json`
 
-XML 组织方法参考 [docs/reference/xml-system-prompt-methodology.md](docs/reference/xml-system-prompt-methodology.md)。默认可编辑槽位模板见 [docs/reference/system-prompt-slots.default.json](docs/reference/system-prompt-slots.default.json)。
+XML 组织方法参考 [docs/archived/reference/xml-system-prompt-methodology.md](docs/archived/reference/xml-system-prompt-methodology.md)。默认可编辑槽位模板见 [docs/reference/system-prompt-slots.default.json](docs/reference/system-prompt-slots.default.json)。
 
 ---
 

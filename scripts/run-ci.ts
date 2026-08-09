@@ -63,14 +63,14 @@ const STEPS: StepDefinition[] = [
     env: { NODE_ENV: 'test', OTEL_DISABLED: 'true' },
   },
   {
-    name: 'check:docs-drift',
+    name: 'check:docs',
     command: 'pnpm',
-    args: ['run', 'check:docs-drift'],
+    args: ['run', 'check:docs'],
   },
   {
-    name: 'check:arch-freeze',
+    name: 'check:structure',
     command: 'pnpm',
-    args: ['run', 'check:arch-freeze'],
+    args: ['run', 'check:structure'],
   },
   {
     name: 'check:deps',
@@ -78,39 +78,14 @@ const STEPS: StepDefinition[] = [
     args: ['run', 'check:deps'],
   },
   {
-    name: 'check:mermaid',
-    command: 'pnpm',
-    args: ['run', 'check:mermaid'],
-  },
-  {
     name: 'check:complexity',
     command: 'pnpm',
     args: ['run', 'check:complexity'],
   },
   {
-    name: 'check:structure',
-    command: 'node',
-    args: ['scripts/check-structure.mjs'],
-  },
-  {
-    name: 'check:md-lint',
+    name: 'check:asserts',
     command: 'pnpm',
-    args: ['run', 'check:md-lint'],
-  },
-  {
-    name: 'check:links',
-    command: 'pnpm',
-    args: ['run', 'check:links'],
-  },
-  {
-    name: 'check:doc-references',
-    command: 'pnpm',
-    args: ['run', 'check:doc-references'],
-  },
-  {
-    name: 'check:docs-truth',
-    command: 'pnpm',
-    args: ['run', 'check:docs-truth'],
+    args: ['run', 'check:asserts'],
   },
 ];
 

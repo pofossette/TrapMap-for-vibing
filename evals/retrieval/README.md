@@ -168,7 +168,7 @@ expected: {
 
 1. 先通过 `/v1/operations/feedback/remediation` 确认是 trap 还是 skill 的检索坏例
 2. 修正内容并完成 remediation
-3. 调用 `/v1/operations/badcases/:feedbackId/export` 或运行 `scripts/export-badcase-to-eval.ts`
+3. 调用 `/v1/operations/badcases/:feedbackId/export` 或运行 `scripts/archived/export-badcase-to-eval.ts`
 4. 审核导出的 draft JSON，并补成 retrieval eval case
 5. 至少运行 `pnpm eval:retrieval:smoke` 或 `pnpm eval:smoke`，确保问题转化为固定回归题
 
@@ -186,7 +186,7 @@ expected: {
 
 ```bash
 TRAPMAP_DATABASE_URL=postgres://user:pass@host:5432/db \
-pnpm eval:retrieval:snapshot:export --output ./evals/retrieval/snapshots/team-a.json --teamId team_a
+pnpm exec tsx --tsconfig tsconfig.base.json scripts/archived/export-retrieval-db-snapshot.ts --output ./evals/retrieval/snapshots/team-a.json --teamId team_a
 ```
 
 可选参数：

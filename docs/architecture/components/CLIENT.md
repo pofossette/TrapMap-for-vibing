@@ -529,7 +529,7 @@ function printError(error: Error): void {
 
 - [检索系统](RETRIEVAL.md)
 - [治理模型](GOVERNANCE.md)
-- [知识生命周期](KNOWLEDGE_LIFECYCLE.md)
+- [知识生命周期（已归档）](../../archived/architecture/components/KNOWLEDGE_LIFECYCLE.md)
 
 ## 相关源码
 

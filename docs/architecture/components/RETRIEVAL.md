@@ -1041,4 +1041,4 @@ WITH (lists = 100);
 
 检索路径的残余外部调用：每次 1 次 query embedding API；v2/v3 首次查询 1 次 intent parsing LLM（有 cache + 正则 fallback）。
 
-> 完整清单见 [入库预计算策略](../PRECOMPUTATION.md)。
+> 完整清单见 [入库预计算策略（已归档）](../../archived/architecture/PRECOMPUTATION.md)。

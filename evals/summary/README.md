@@ -33,7 +33,7 @@ pnpm eval:summary --tier core --json --json-path ./reports/summary.json
 pnpm eval:summary --tier smoke --provider fallback
 
 # 从 badcase trace 导出 draft（当前统一先导出 retrieval-shaped draft）
-pnpm exec tsx scripts/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
+pnpm exec tsx scripts/archived/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
 ```
 
 平台集成边界：

@@ -93,7 +93,7 @@ Phase 5 六服务 ownership 冻结补充事实：
 
 - 可观测性架构（LGTM 栈 + OpenTelemetry）：[OBSERVABILITY.md](OBSERVABILITY.md)
 - 服务发现架构（Consul）：[SERVICE-DISCOVERY.md](SERVICE-DISCOVERY.md)
-- 技术选型对比：[TECH-SELECTION.md](TECH-SELECTION.md)
+- 技术选型对比：[TECH-SELECTION.md（已归档）](../archived/architecture/TECH-SELECTION.md)
 
 核心选型：Consul（服务发现）、Prometheus（指标）、Tempo（追踪）、Loki（日志）、Grafana（可视化）、OpenTelemetry（采集标准）。
 
@@ -417,7 +417,7 @@ flowchart TB
 - **Keyword**：BM25/基于分词的词法匹配
 - **Graph**：Graphology DAG 用于关系扩展
 
-> **入库预计算策略**：三个适配器在入库阶段完成所有昂贵计算（Embedding API、LLM 图实体提取、Token 分词），检索阶段直接读取预计算结果。检索路径的召回/评分/图遍历均不调用 LLM。完整的预计算措施清单见 [PRECOMPUTATION.md](PRECOMPUTATION.md)。
+> **入库预计算策略**：三个适配器在入库阶段完成所有昂贵计算（Embedding API、LLM 图实体提取、Token 分词），检索阶段直接读取预计算结果。检索路径的召回/评分/图遍历均不调用 LLM。完整的预计算措施清单见 [PRECOMPUTATION.md（已归档）](../archived/architecture/PRECOMPUTATION.md)。
 
 ### 检索管道
 

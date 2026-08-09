@@ -55,7 +55,7 @@ pnpm eval -- label-alignment --tier smoke --mode dry-run
 pnpm eval -- label-alignment --tier core --mode dry-run
 
 # 从持久化 badcase trace 导出 eval draft
-pnpm exec tsx scripts/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
+pnpm exec tsx scripts/archived/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
 ```
 
 兼容别名 `pnpm eval:smoke`、`pnpm eval:core`、`pnpm eval:retrieval:*`、`pnpm eval:summary:*`、`pnpm eval:agent-planning:*`、`pnpm eval:label-alignment:*` 仍可用；统一入口由 `scripts/run-eval.ts` 提供，完整选项可通过 `pnpm eval -- --help` 查看。

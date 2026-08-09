@@ -65,6 +65,48 @@
 | `archived-plans/observability-traceability-closure.md` | 2026-07-13 | 可观测性、shared PG 治理与分布式成熟度主线完成；Compose 本地重启隔离已验证，未量化的 Level 3 收益转入 deferred debt register |
 | `archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md` | 2026-08-01 | 根计划切换至文档校验与可观测性平台主线；保留 compatibility retirement 的 Wave-10 未完成证据，后续按 debt register 条件重开 scoped mainline |
 | `reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md` | 2026-08-09 | 重复工具函数与工厂模式一致性人工分析报告，结论已登记到 `docs/todos/open-debt-and-compromises.md` |
+| `PACKAGE_STACK_RATIONALE.md` | 2026-08-09 | Wave 7 文档分层收敛：技术选型历史理由，非权威核心页；仍被 `README.md`、`docs/PACKAGES.md` 以归档路径引用 |
+| `reference/PERFORMANCE.md` | 2026-08-09 | Wave 7 文档分层收敛：性能参考页，非权威核心页；仍被 `SYSTEM_TRUTH_SOURCES.md` 以归档路径引用 |
+| `reference/xml-system-prompt-methodology.md` | 2026-08-09 | Wave 7 文档分层收敛：XML system prompt 组织方法说明，非权威核心页 |
+| `architecture/API.md` | 2026-08-09 | Wave 7 文档分层收敛：完整 API 列表已被 `reference/api-surface.md` 取代 |
+| `architecture/CACHING.md` | 2026-08-09 | Wave 7 文档分层收敛：缓存架构历史说明 |
+| `architecture/DATABASE_OWNERSHIP.md` | 2026-08-09 | Wave 7 文档分层收敛：数据 owner 历史说明 |
+| `architecture/DATA_TYPES_PIPELINE.md` | 2026-08-09 | Wave 7 文档分层收敛：数据类型流转中间态分析 |
+| `architecture/DOCUMENT_INGESTION_PIPELINE.md` | 2026-08-09 | Wave 7 文档分层收敛：摄取管线历史说明 |
+| `architecture/FLOW.md` | 2026-08-09 | Wave 7 文档分层收敛：数据流图历史说明 |
+| `architecture/GRAPH_RETRIEVAL.md` | 2026-08-09 | Wave 7 文档分层收敛：图检索历史说明 |
+| `architecture/HYBRID_GRAPH_EXTRACTION.md` | 2026-08-09 | Wave 7 文档分层收敛：LLM 图提取改造中间态计划 |
+| `architecture/MICROSERVICE_SPLIT_READINESS_REPORT_2026-06-22.md` | 2026-08-09 | Wave 7 文档分层收敛：微服务拆分就绪度一次性报告 |
+| `architecture/MODULES.md` | 2026-08-09 | Wave 7 文档分层收敛：模块分解历史说明，已由 `REPO_STRUCTURE.md` 与 package README 覆盖 |
+| `architecture/MODULE_STRUCTURE.md` | 2026-08-09 | Wave 7 文档分层收敛：模块结构历史说明 |
+| `architecture/PRECOMPUTATION.md` | 2026-08-09 | Wave 7 文档分层收敛：入库预计算中间态分析 |
+| `architecture/RECOMPOSITION_SUMMARY.md` | 2026-08-09 | Wave 7 文档分层收敛：重组总结（中间态分析） |
+| `architecture/RENDERING.md` | 2026-08-09 | Wave 7 文档分层收敛：CLI 渲染适配层历史说明 |
+| `architecture/SERVICE_BOUNDARIES.md` | 2026-08-09 | Wave 7 文档分层收敛：RPC 试点边界历史说明，当前事实以 `SYSTEM_TRUTH_SOURCES.md` 为准 |
+| `architecture/TARGET_ARCHITECTURE.md` | 2026-08-09 | Wave 7 文档分层收敛：目标架构演进中间态说明 |
+| `architecture/TECH-SELECTION.md` | 2026-08-09 | Wave 7 文档分层收敛：技术选型历史决策说明 |
+| `architecture/TROUBLESHOOTING.md` | 2026-08-09 | Wave 7 文档分层收敛：故障排查历史说明 |
+| `architecture/components/ASYNC_INFRASTRUCTURE.md` | 2026-08-09 | Wave 7 文档分层收敛：异步基础设施组件旧版说明，由 `ASYNC_MODEL.md` / `ASYNC_SHARED_JOB_CONTRACTS.md` 取代 |
+| `architecture/components/AUTH.md` | 2026-08-09 | Wave 7 文档分层收敛：认证组件历史说明 |
+| `architecture/components/DECAY.md` | 2026-08-09 | Wave 7 文档分层收敛：淘汰机制组件历史说明 |
+| `architecture/components/DEDUPLICATION.md` | 2026-08-09 | Wave 7 文档分层收敛：入库验重组件历史说明 |
+| `architecture/components/DELETION.md` | 2026-08-09 | Wave 7 文档分层收敛：删除流程组件历史说明 |
+| `architecture/components/DEPENDENCY_ANALYSIS.md` | 2026-08-09 | Wave 7 文档分层收敛：外部依赖使用分析组件历史说明 |
+| `architecture/components/FEEDBACK.md` | 2026-08-09 | Wave 7 文档分层收敛：用户反馈组件历史说明 |
+| `architecture/components/INDEXING.md` | 2026-08-09 | Wave 7 文档分层收敛：索引管道组件历史说明 |
+| `architecture/components/INGESTION.md` | 2026-08-09 | Wave 7 文档分层收敛：异步摄取组件历史说明 |
+| `architecture/components/KNOWLEDGE_LIFECYCLE.md` | 2026-08-09 | Wave 7 文档分层收敛：知识生命周期组件历史说明 |
+| `architecture/components/OPTIONAL_SERVICE_SPLIT_AND_MQ.md` | 2026-08-09 | Wave 7 文档分层收敛：可选服务拆分与 MQ 前瞻说明 |
+| `architecture/components/REVIEW.md` | 2026-08-09 | Wave 7 文档分层收敛：审批流程组件历史说明 |
+| `architecture/components/UPDATE.md` | 2026-08-09 | Wave 7 文档分层收敛：更新流程组件历史说明 |
+| `operations/OBSERVABILITY-VERIFICATION.md` | 2026-08-09 | Wave 7 文档分层收敛：可观测性验证一次性步骤说明 |
+| `operations/PROMPT_CACHING.md` | 2026-08-09 | Wave 7 文档分层收敛：提示缓存策略历史说明 |
+| `operations/PROMPT_PROVIDERS.md` | 2026-08-09 | Wave 7 文档分层收敛：多 Provider 提示系统历史说明 |
+| `operations/VALIDATION_MATRIX.md` | 2026-08-09 | Wave 7 文档分层收敛：验证矩阵中间态说明 |
+| `guides/AGENT_EVAL_PLATFORM_INTEGRATION.md` | 2026-08-09 | Wave 7 文档分层收敛：Agent Eval 平台集成历史说明，evals 事实以 `evals/README.md` 为准 |
+| `guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md` | 2026-08-09 | Wave 7 文档分层收敛：微服务拆分验收清单中间态说明 |
+| `guides/MIGRATION_GUIDE.md` | 2026-08-09 | Wave 7 文档分层收敛：迁移指南历史说明，部署术语以 `SYSTEM_TRUTH_SOURCES.md` 为准 |
+| `guides/PG_AND_GRAPHOLOGY.md` | 2026-08-09 | Wave 7 文档分层收敛：pg / graphology 上手导读历史说明 |
 
 ## 归档原则
 

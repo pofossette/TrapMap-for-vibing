@@ -22,7 +22,7 @@ rtk pnpm test:deployment-smoke
 rtk pnpm test:distributed-acceptance
 rtk pnpm test:runtime-closeout
 rtk pnpm test:runtime-closeout:compose
-rtk pnpm check:docs-drift
+rtk pnpm check:docs
 rtk pnpm check:structure
 ```
 

@@ -12,6 +12,7 @@
     "packages/web-panel/index.html",
     "packages/web-panel/src/main.tsx",
     "scripts/*.ts",
+    "scripts/*.mjs",
     "packages/cli/src/testing/index.ts",
     "evals/**/*.ts"
   ],
@@ -63,6 +64,7 @@
     "reports/**",
     "data/**",
     "graphify-out/**",
+    "scripts/archived/**",
     "packages/skills"
   ],
   "boundaries": {
