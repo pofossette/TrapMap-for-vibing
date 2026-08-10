@@ -8,8 +8,6 @@ import {
   initialLifecycleEventType,
   initialSubmissionState,
   isDeactivationAction,
-  isDecayEligible,
-  isMaintenanceDue,
   reviewDecisionTargetState,
 } from './policy.js';
 
@@ -47,27 +45,11 @@ describe('knowledge-write policy domain', () => {
     expect(isDeactivationAction('')).toBe(false);
   });
 
-  it('only approves decay eligibility for approved entries', () => {
-    expect(isDecayEligible('approved')).toBe(true);
-    expect(isDecayEligible('draft')).toBe(false);
-    expect(isDecayEligible('submitted')).toBe(false);
-    expect(isDecayEligible('rejected')).toBe(false);
-    expect(isDecayEligible('deactivated')).toBe(false);
-  });
-
-  it('judges maintenance due only when the review-by deadline has passed', () => {
-    const now = new Date('2026-08-01T00:00:00.000Z');
-    expect(isMaintenanceDue('2026-07-31T00:00:00.000Z', now)).toBe(true);
-    expect(isMaintenanceDue('2026-08-01T00:00:00.000Z', now)).toBe(true);
-    expect(isMaintenanceDue('2026-08-02T00:00:00.000Z', now)).toBe(false);
-    expect(isMaintenanceDue(null, now)).toBe(false);
-    expect(isMaintenanceDue(undefined, now)).toBe(false);
-  });
-
-  it('encodes projection operation eligibility conditions', () => {
+  it('encodes projection operation eligibility conditions as the sole authority', () => {
     expect(KNOWLEDGE_PROJECTION_OPERATION_CONDITIONS).toEqual({
       'maintenance-due': "(ke.maintenance_meta->>'reviewBy')::timestamptz <= NOW()",
       'decay-eligible': "ke.lifecycle_state = 'approved'",
     });
+    expect(KNOWLEDGE_PROJECTION_OPERATION_CONDITIONS['decay-eligible']).toContain("'approved'");
   });
 });

@@ -8,7 +8,8 @@
  * Lifecycle decisions follow the domain rules: the application layer
  * pre-flights each command against the state machine using the owner's
  * latest projection, and the owner re-validates atomically inside its
- * transaction before persisting. Audit orchestration stays here.
+ * transaction before persisting. 预检非原子，权威校验在 owner 事务内。
+ * Audit orchestration stays here.
  */
 
 import type { KnowledgeOwnerPort } from '@trapmap/contracts';
@@ -50,12 +51,12 @@ function toKnowledgeEntryRecord(
   entry: NonNullable<Awaited<ReturnType<KnowledgeOwnerPort['getById']>>>,
 ): KnowledgeEntryRecord {
   return {
+    ...entry,
     id: entry.id,
     content: entry.detail ?? '',
     lifecycleState: entry.lifecycleState,
     ownerUserId: entry.owner?.id ?? '',
     teamId: entry.teamId ?? '',
-    ...entry,
   };
 }
 

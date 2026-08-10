@@ -43,23 +43,13 @@ export function isDeactivationAction(action: string): boolean {
   return action === 'deactivate';
 }
 
-/** Decay eligibility: only approved entries can decay. */
-export function isDecayEligible(lifecycleState: LifecycleState): boolean {
-  return lifecycleState === 'approved';
-}
-
-/** Maintenance due: the entry's review-by deadline has passed. */
-export function isMaintenanceDue(
-  reviewBy: string | null | undefined,
-  now: Date,
-): boolean {
-  return reviewBy !== null && reviewBy !== undefined && new Date(reviewBy) <= now;
-}
-
 /**
- * SQL condition fragments for owner projection operations. Kept as a pure
- * domain constant so the eligibility policy (which entries qualify for a
- * maintenance-due / decay-eligible projection) is not buried in the port.
+ * SQL condition fragments for owner projection operations.
+ *
+ * Sole authority for the decay-eligible / maintenance-due eligibility rules:
+ * the projection queries are built directly from these fragments, so the
+ * policy (which entries qualify for a maintenance-due / decay-eligible
+ * projection) is not buried in the port and has no JS duplicate.
  */
 export const KNOWLEDGE_PROJECTION_OPERATION_CONDITIONS: Readonly<Record<string, string>> = {
   'maintenance-due': "(ke.maintenance_meta->>'reviewBy')::timestamptz <= NOW()",

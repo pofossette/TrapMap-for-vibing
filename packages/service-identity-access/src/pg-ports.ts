@@ -8,6 +8,7 @@ import type {
   MembershipRepositoryPort,
   PermissionCheckPort,
   SessionLookupPort,
+  SessionRecord,
   SessionRepositoryPort,
   TeamLookupPort,
   TeamRepositoryPort,
@@ -166,7 +167,7 @@ export function createIdentityAccessActorLookupSource(pool: Queryable): Identity
   };
 }
 
-function rowToSession(row: Record<string, unknown>) {
+function rowToSession(row: Record<string, unknown>): SessionRecord {
   return {
     id: String(row.id),
     subjectType: row.subject_type === 'system-admin' ? 'system-admin' : 'user',
@@ -193,29 +194,18 @@ export function createIdentityAccessPgDeps(
     async create(session) {
       const id = await this.nextId();
       const createdAt = nowIso();
+      const subjectType: SessionRecord['subjectType'] =
+        session.subjectType === 'system-admin' ? 'system-admin' : 'user';
+      const userId = typeof session.userId === 'string' ? session.userId : null;
+      const activeTeamId = typeof session.activeTeamId === 'string' ? session.activeTeamId : null;
+      const tokenHash = String(session.tokenHash);
+      const expiresAt = typeof session.expiresAt === 'string' ? session.expiresAt : null;
       await pool.query(
         `INSERT INTO sessions (id, token_hash, user_id, active_team_id, subject_type, expires_at, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $7)`,
-        [
-          id,
-          session.tokenHash,
-          session.userId,
-          session.activeTeamId,
-          session.subjectType ?? 'user',
-          session.expiresAt,
-          createdAt,
-        ],
+        [id, tokenHash, userId, activeTeamId, subjectType, expiresAt, createdAt],
       );
-      return {
-        id,
-        subjectType: session.subjectType ?? 'user',
-        userId: session.userId,
-        activeTeamId: session.activeTeamId,
-        tokenHash: session.tokenHash,
-        expiresAt: session.expiresAt ?? null,
-        createdAt,
-        updatedAt: createdAt,
-      };
+      return { id, subjectType, userId, activeTeamId, tokenHash, expiresAt, createdAt, updatedAt: createdAt };
     },
     async getByTokenHash(tokenHash) {
       const { rows } = await pool.query('SELECT * FROM sessions WHERE token_hash = $1', [
