@@ -28,6 +28,12 @@ export interface RouteContext {
   params: Record<string, unknown>;
   query: Record<string, unknown>;
   body: unknown;
+  /**
+   * Raw request headers, populated by the adapters for routes whose handlers
+   * need the trusted-actor or tenant headers. Present only when the route's
+   * schema declares a `headers` key; otherwise stripped by Zod.
+   */
+  headers?: Record<string, unknown>;
   actor?: unknown;
   requestId?: string;
 }

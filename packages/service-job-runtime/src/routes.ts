@@ -1,79 +1,97 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance } from 'fastify';
+import { type ZodType, z } from 'zod';
 
 import type { JobRuntimePort } from '@trapmap/backend-core';
-import { InvocationError } from '@trapmap/backend-core';
+import { type RouteContext, type RouteDef, registerFastifyRoutes } from '@trapmap/backend-core';
 
-function translateInvocationError(error: unknown): {
-  status: number;
-  body: { error: string; kind: string };
-} {
-  if (error instanceof InvocationError) {
-    const statusMap: Record<string, number> = {
-      validation: 400,
-      'not-found': 404,
-      conflict: 409,
-      forbidden: 403,
-      timeout: 504,
-      unavailable: 503,
-      internal: 500,
-    };
-    return {
-      status: statusMap[error.kind] ?? 500,
-      body: { error: error.message, kind: error.kind },
-    };
-  }
-  return {
-    status: 500,
-    body: { error: 'Internal server error', kind: 'internal' },
-  };
+const emptyRecord = z.record(z.string(), z.unknown());
+
+const scheduleSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: z.object({
+    type: z.string(),
+    payload: z.unknown(),
+    delayMs: z.number().optional(),
+    priority: z.number().optional(),
+    maxAttempts: z.number().optional(),
+    dedupeKey: z.string().optional(),
+  }),
+});
+
+const jobParamsSchema = z.object({
+  params: z.object({ jobId: z.string() }),
+  query: emptyRecord,
+  body: z.unknown(),
+});
+
+const healthSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: z.unknown(),
+});
+
+function jobRuntimeRouteDef<Ctx extends RouteContext>(def: {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  path: string;
+  schema: ZodType<Ctx>;
+  successStatus?: number;
+  handler(ctx: Ctx, deps: JobRuntimePort): Promise<unknown>;
+}): RouteDef<Ctx, JobRuntimePort> {
+  return def;
 }
 
+export function createJobRuntimeRouteDefs(
+  _module: JobRuntimePort,
+): RouteDef<RouteContext, JobRuntimePort>[] {
+  return [
+    jobRuntimeRouteDef({
+      method: 'POST',
+      path: '/internal/jobs',
+      schema: scheduleSchema,
+      successStatus: 201,
+      handler: async (ctx, deps) => {
+        const jobId = await deps.schedule(ctx.body.type, ctx.body.payload, {
+          ...(ctx.body.delayMs !== undefined ? { delayMs: ctx.body.delayMs } : {}),
+          ...(ctx.body.priority !== undefined ? { priority: ctx.body.priority } : {}),
+          ...(ctx.body.maxAttempts !== undefined ? { maxAttempts: ctx.body.maxAttempts } : {}),
+          ...(ctx.body.dedupeKey !== undefined ? { dedupeKey: ctx.body.dedupeKey } : {}),
+        });
+        return { jobId };
+      },
+    }),
+
+    jobRuntimeRouteDef({
+      method: 'GET',
+      path: '/internal/jobs/:jobId',
+      schema: jobParamsSchema,
+      handler: async (ctx, deps) => {
+        return deps.getStatus(ctx.params.jobId);
+      },
+    }),
+
+    jobRuntimeRouteDef({
+      method: 'GET',
+      path: '/internal/jobs/queue',
+      schema: healthSchema,
+      handler: async (_ctx, deps) => {
+        return deps.getQueueStatus();
+      },
+    }),
+
+    jobRuntimeRouteDef({
+      method: 'GET',
+      path: '/internal/health',
+      schema: healthSchema,
+      handler: async () => ({ status: 'ok', service: 'job-runtime' }),
+    }),
+  ];
+}
+
+/**
+ * Fastify-plugin compatibility shim: registers the job-runtime RouteDefs onto
+ * an existing Fastify instance. Consumed by the host-distributed bridge.
+ */
 export function registerJobRuntimeRoutes(app: FastifyInstance, module: JobRuntimePort): void {
-  app.post('/internal/jobs', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const body = request.body as {
-        type: string;
-        payload: unknown;
-        delayMs?: number;
-        priority?: number;
-        maxAttempts?: number;
-        dedupeKey?: string;
-      };
-      const jobId = await module.schedule(body.type, body.payload, {
-        ...(body.delayMs !== undefined ? { delayMs: body.delayMs } : {}),
-        ...(body.priority !== undefined ? { priority: body.priority } : {}),
-        ...(body.maxAttempts !== undefined ? { maxAttempts: body.maxAttempts } : {}),
-        ...(body.dedupeKey !== undefined ? { dedupeKey: body.dedupeKey } : {}),
-      });
-      return reply.status(201).send({ jobId });
-    } catch (error) {
-      const { status, body } = translateInvocationError(error);
-      return reply.status(status).send(body);
-    }
-  });
-
-  app.get('/internal/jobs/:jobId', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const { jobId } = request.params as { jobId: string };
-      const result = await module.getStatus(jobId);
-      return reply.status(200).send(result);
-    } catch (error) {
-      const { status, body } = translateInvocationError(error);
-      return reply.status(status).send(body);
-    }
-  });
-
-  app.get('/internal/jobs/queue', async (_request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const result = await module.getQueueStatus();
-      return reply.status(200).send(result);
-    } catch (error) {
-      const { status, body } = translateInvocationError(error);
-      return reply.status(status).send(body);
-    }
-  });
-
-  app.get('/internal/health', async (_request: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send({ status: 'ok', service: 'job-runtime' });
-  });
+  registerFastifyRoutes(app, createJobRuntimeRouteDefs(module), module);
 }

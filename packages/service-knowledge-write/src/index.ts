@@ -6,8 +6,10 @@ export {
 } from './deps.js';
 export { assertKnowledgeWriteMigrationSet, runKnowledgeWriteMigrations } from './migrations.js';
 export {
+  createKnowledgeWriteRouteDefs,
   registerKnowledgeWriteRoutes,
   type KnowledgeWriteReadinessOptions,
+  type KnowledgeWriteRouteDeps,
 } from './routes.js';
 export {
   createKnowledgeWriteServer,
@@ -30,7 +32,11 @@ export {
   type ArtifactFilePayloadOwner,
   type ArtifactWritePort,
 } from './artifact-ports.js';
-export { registerArtifactRoutes } from './artifact-routes.js';
+export {
+  createArtifactRouteDefs,
+  registerArtifactRoutes,
+  type ArtifactRouteDeps,
+} from './artifact-routes.js';
 export {
   migrateLegacySkillArtifacts,
   type ArtifactMigrationError,

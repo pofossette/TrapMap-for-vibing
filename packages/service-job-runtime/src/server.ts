@@ -1,9 +1,10 @@
 import type { JobRuntimePort } from '@trapmap/backend-core';
-import Fastify, { type FastifyInstance } from 'fastify';
+import { createFastifyAdapter } from '@trapmap/backend-core';
+import type { FastifyInstance } from 'fastify';
 
 import { type JobRuntimeServiceDeps, createJobRuntimeServiceModule } from './deps.js';
 import { type JobRuntimeOutboxConsumer, createJobRuntimeOutboxConsumer } from './outbox-worker.js';
-import { registerJobRuntimeRoutes } from './routes.js';
+import { createJobRuntimeRouteDefs } from './routes.js';
 
 export interface JobRuntimeServiceConfig {
   host: string;
@@ -23,9 +24,10 @@ export async function createJobRuntimeServer(
   config: JobRuntimeServiceConfig,
   deps: JobRuntimeServiceDeps,
 ): Promise<JobRuntimeServer> {
-  const app = Fastify({ logger: { level: config.logLevel } });
   const module = createJobRuntimeServiceModule(deps);
-  registerJobRuntimeRoutes(app, module);
+  const app = createFastifyAdapter(createJobRuntimeRouteDefs(module), module, {
+    logger: { level: config.logLevel },
+  });
   const taskConsumer = deps.queuePorts.task.createConsumer
     ? await deps.queuePorts.task.createConsumer({
         handlers: deps.taskHandlers ?? [],

@@ -52,6 +52,7 @@ export interface NestAdapterRequest {
   params?: Record<string, unknown>;
   query?: Record<string, unknown>;
   body?: unknown;
+  headers?: Record<string, unknown>;
 }
 
 export interface NestAdapterResponse {
@@ -93,6 +94,7 @@ export function createNestAdapter(routeDefs: RouteDef[], deps: unknown): Type<un
           params: request.params ?? {},
           query: request.query ?? {},
           body: request.body,
+          headers: request.headers ?? {},
         });
         const result = await route.handler(context, deps);
         if (isRouteResponse(result)) {

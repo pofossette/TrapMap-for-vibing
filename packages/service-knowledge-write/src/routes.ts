@@ -1,13 +1,23 @@
-import { type KnowledgeWritePort, toInvocationErrorResponse } from '@trapmap/backend-core';
+import {
+  InvocationError,
+  type KnowledgeWritePort,
+  type RouteContext,
+  type RouteDef,
+  registerFastifyRoutes,
+  routeResponse,
+} from '@trapmap/backend-core';
 import type { KnowledgeOwnerPort } from '@trapmap/contracts';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { sendInvocation, sendInvocationError, trustedActor } from './route-helpers.js';
+import type { FastifyInstance } from 'fastify';
+import { type ZodType, z } from 'zod';
+import { trustedActor } from './route-helpers.js';
 
 export interface KnowledgeWriteReadinessOptions {
   checkDependency?: () => Promise<{ reachable: boolean; detail?: string }>;
   getOperatorStatus?: () => Promise<Record<string, unknown>>;
   conflictCandidateRead?: Pick<KnowledgeOwnerPort, 'getById' | 'listByFilter'>;
 }
+
+export type KnowledgeWriteRouteDeps = KnowledgeWritePort & Partial<KnowledgeWriteReadinessOptions>;
 
 const KNOWLEDGE_WRITE_OWNERSHIP = {
   service: 'knowledge-write',
@@ -85,39 +95,129 @@ async function invokeKnowledgeWriteRpc(
   }
 }
 
-type EntryUpdateBody = { updates: Record<string, unknown>; actorId?: string };
-type SupersedeBody = { replacementId: string; actorId?: string };
-type ReviewDecisionBody = {
-  entryId: string;
-  actorId?: string;
-  note?: string;
-  evidence?: Record<string, unknown>;
-};
-type MaintenanceDecisionBody = {
-  entryId: string;
-  actorId?: string;
-  action: string;
-  note?: string;
-  evidence?: Record<string, unknown>;
-};
+const emptyRecord = z.record(z.string(), z.unknown());
+const headersSchema = z.record(z.string(), z.unknown());
 
-function readEntryUpdateBody(req: FastifyRequest): EntryUpdateBody & { actorId: string } {
-  return trustedActor(req, (req.body ?? {}) as EntryUpdateBody);
-}
+const submitSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z.object({
+    content: z.string(),
+    actorId: z.string().optional(),
+    title: z.string().optional(),
+    labels: z.array(z.string()).optional(),
+    teamId: z.string().optional(),
+  }),
+});
 
-function readSupersedeBody(req: FastifyRequest): SupersedeBody & { actorId: string } {
-  return trustedActor(req, (req.body ?? {}) as SupersedeBody);
-}
+const entryMutationSchema = z.object({
+  params: z.object({ entryId: z.string() }),
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z.object({
+    updates: z.record(z.string(), z.unknown()),
+    actorId: z.string().optional(),
+  }),
+});
 
-function readReviewDecisionBody(req: FastifyRequest): ReviewDecisionBody & { actorId: string } {
-  return trustedActor(req, (req.body ?? {}) as ReviewDecisionBody);
-}
+const supersedeSchema = z.object({
+  params: z.object({ entryId: z.string() }),
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z.object({
+    replacementId: z.string(),
+    actorId: z.string().optional(),
+  }),
+});
 
-function readMaintenanceDecisionBody(
-  req: FastifyRequest,
-): MaintenanceDecisionBody & { actorId: string } {
-  return trustedActor(req, (req.body ?? {}) as MaintenanceDecisionBody);
-}
+const reviewDecisionSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z.object({
+    entryId: z.string(),
+    actorId: z.string().optional(),
+    note: z.string().optional(),
+    evidence: z.record(z.string(), z.unknown()).optional(),
+  }),
+});
+
+const maintenanceDecisionSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z.object({
+    entryId: z.string(),
+    actorId: z.string().optional(),
+    action: z.string(),
+    note: z.string().optional(),
+    evidence: z.record(z.string(), z.unknown()).optional(),
+  }),
+});
+
+const createTrapSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z.object({
+    content: z.string(),
+    teamId: z.string(),
+    actorId: z.string().optional(),
+    title: z.string().optional(),
+  }),
+});
+
+const listTrapsSchema = z.object({
+  params: emptyRecord,
+  query: z.object({ teamId: z.string().optional() }),
+  body: z.unknown(),
+});
+
+const getTrapSchema = z.object({
+  params: z.object({ trapId: z.string() }),
+  query: emptyRecord,
+  body: z.unknown(),
+});
+
+const publishCandidateSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z.object({
+    candidateId: z.string(),
+    actorId: z.string().optional(),
+    result: z.record(z.string(), z.unknown()),
+  }),
+});
+
+const rpcSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z.object({
+    method: z.enum([
+      'approveReviewDecision',
+      'rejectReviewDecision',
+      'applyMaintenanceDecision',
+      'applyDecayDecision',
+      'publishCandidateResult',
+    ]),
+    input: z.record(z.string(), z.unknown()).optional(),
+  }),
+});
+
+const conflictCandidatesSchema = z.object({
+  params: z.object({ entryId: z.string() }),
+  query: emptyRecord,
+  body: z.unknown(),
+});
+
+const healthSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: z.unknown(),
+});
 
 function toConflictCandidate(entry: {
   id: string;
@@ -133,53 +233,30 @@ function toConflictCandidate(entry: {
   };
 }
 
-function runEntryMutation<T>(
-  req: FastifyRequest,
-  reply: FastifyReply,
-  readBody: (req: FastifyRequest) => T,
-  operation: (entryId: string, body: T) => Promise<void>,
-) {
-  return sendInvocation(reply, 200, async () => {
-    const { entryId } = req.params as { entryId: string };
-    await operation(entryId, readBody(req));
-    return { ok: true };
-  });
+function knowledgeWriteRouteDef<Ctx extends RouteContext>(def: {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  path: string;
+  schema: ZodType<Ctx>;
+  successStatus?: number;
+  handler(ctx: Ctx, deps: KnowledgeWriteRouteDeps): Promise<unknown>;
+}): RouteDef<Ctx, KnowledgeWriteRouteDeps> {
+  return def;
 }
 
-function runReviewDecision(
-  req: FastifyRequest,
-  reply: FastifyReply,
-  operation: (body: ReviewDecisionBody & { actorId: string }) => Promise<unknown>,
-) {
-  return sendInvocation(reply, 200, () => operation(readReviewDecisionBody(req)));
-}
-
-function runMaintenanceDecision(
-  req: FastifyRequest,
-  reply: FastifyReply,
-  operation: (body: MaintenanceDecisionBody & { actorId: string }) => Promise<unknown>,
-) {
-  return sendInvocation(reply, 200, () => operation(readMaintenanceDecisionBody(req)));
-}
-
-export function registerKnowledgeWriteRoutes(
-  app: FastifyInstance,
-  module: KnowledgeWritePort,
-  options?: KnowledgeWriteReadinessOptions,
-): void {
-  const readinessHandler = async (_req: FastifyRequest, reply: FastifyReply) => {
+function readinessHandler(deps: KnowledgeWriteRouteDeps, service: string) {
+  return async () => {
     let dependencyStatus: { reachable: boolean; detail?: string } = { reachable: true };
-    if (options?.checkDependency) {
+    if (deps.checkDependency) {
       try {
-        dependencyStatus = await options.checkDependency();
+        dependencyStatus = await deps.checkDependency();
       } catch {
         dependencyStatus = { reachable: false, detail: 'dependency check threw' };
       }
     }
     const ready = dependencyStatus.reachable;
-    return reply.status(ready ? 200 : 503).send({
+    const body = {
       ready,
-      service: 'knowledge-write',
+      service,
       checks: {
         self: { status: 'ok' },
         persistence: {
@@ -190,38 +267,39 @@ export function registerKnowledgeWriteRoutes(
       aggregateMutationAuthority: true,
       lifecycleRuleAuthority: true,
       followUpDisposition: 'outbox-queue-workflow-async',
-    });
+    };
+    return ready ? body : routeResponse(503, body);
   };
-  app.post('/internal/knowledge', async (req: FastifyRequest, reply: FastifyReply) =>
-    sendInvocation(reply, 201, async () => {
-      const body = trustedActor(
-        req,
-        (req.body ?? {}) as {
-          content: string;
-          actorId?: string;
-          title?: string;
-          labels?: string[];
-          teamId?: string;
-        },
-      );
-      return module.submit(body);
-    }),
-  );
+}
 
-  app.get(
-    '/internal/knowledge/:entryId/conflict-candidates',
-    async (req: FastifyRequest, reply: FastifyReply) => {
-      if (!options?.conflictCandidateRead) {
-        return reply.status(503).send({
-          error: 'knowledge-write conflict candidate read projection unavailable',
-          kind: 'unavailable',
-        });
-      }
-      return sendInvocation(reply, 200, async () => {
-        const { entryId } = req.params as { entryId: string };
-        const entry = await options.conflictCandidateRead!.getById(entryId);
+export function createKnowledgeWriteRouteDefs(
+  _deps: KnowledgeWriteRouteDeps,
+): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
+  return [
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/knowledge',
+      schema: submitSchema,
+      successStatus: 201,
+      handler: async (ctx, module) => {
+        const body = trustedActor(ctx.headers ?? {}, ctx.body);
+        return module.submit(body);
+      },
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'GET',
+      path: '/internal/knowledge/:entryId/conflict-candidates',
+      schema: conflictCandidatesSchema,
+      handler: async (ctx, module) => {
+        if (!module.conflictCandidateRead) {
+          throw InvocationError.unavailable(
+            'knowledge-write conflict candidate read projection unavailable',
+          );
+        }
+        const entry = await module.conflictCandidateRead.getById(ctx.params.entryId);
         if (!entry || entry.lifecycleState !== 'approved') return null;
-        const candidates = await options.conflictCandidateRead!.listByFilter({
+        const candidates = await module.conflictCandidateRead.listByFilter({
           lifecycleState: 'approved',
         });
         return {
@@ -230,143 +308,209 @@ export function registerKnowledgeWriteRoutes(
             .filter((candidate) => candidate.lifecycleState === 'approved')
             .map(toConflictCandidate),
         };
-      });
-    },
-  );
-
-  app.put('/internal/knowledge/:entryId', async (req: FastifyRequest, reply: FastifyReply) =>
-    runEntryMutation(req, reply, readEntryUpdateBody, (entryId, body) =>
-      module.updateEntry(entryId, body.updates, body.actorId),
-    ),
-  );
-
-  app.post(
-    '/internal/knowledge/:entryId/resubmit',
-    async (req: FastifyRequest, reply: FastifyReply) =>
-      runEntryMutation(req, reply, readEntryUpdateBody, (entryId, body) =>
-        module.resubmit(entryId, body.updates, body.actorId),
-      ),
-  );
-
-  app.post(
-    '/internal/knowledge/:entryId/supersede',
-    async (req: FastifyRequest, reply: FastifyReply) =>
-      runEntryMutation(req, reply, readSupersedeBody, (entryId, body) =>
-        module.supersede(entryId, body.replacementId, body.actorId),
-      ),
-  );
-
-  app.post('/internal/traps', async (req: FastifyRequest, reply: FastifyReply) =>
-    sendInvocation(reply, 201, async () => {
-      const body = trustedActor(
-        req,
-        (req.body ?? {}) as {
-          content: string;
-          teamId: string;
-          actorId?: string;
-          title?: string;
-        },
-      );
-      return module.createTrap(body);
+      },
     }),
-  );
 
-  app.get('/internal/traps', async (req: FastifyRequest, reply: FastifyReply) =>
-    sendInvocation(reply, 200, async () => {
-      const { teamId } = req.query as { teamId?: string };
-      return module.listTraps(teamId ?? '');
+    knowledgeWriteRouteDef({
+      method: 'PUT',
+      path: '/internal/knowledge/:entryId',
+      schema: entryMutationSchema,
+      handler: async (ctx, module) => {
+        const body = trustedActor(ctx.headers ?? {}, ctx.body);
+        await module.updateEntry(ctx.params.entryId, body.updates, body.actorId);
+        return { ok: true };
+      },
     }),
-  );
 
-  app.get('/internal/traps/:trapId', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const { trapId } = req.params as { trapId: string };
-      const result = await module.getTrap(trapId);
-      if (!result) {
-        return reply.status(404).send({ error: 'Trap not found', kind: 'not-found' });
-      }
-      return reply.status(200).send(result);
-    } catch (err) {
-      const { status, body } = toInvocationErrorResponse(err);
-      return reply.status(status).send(body);
-    }
-  });
-
-  app.post('/internal/knowledge/review/approve', async (req: FastifyRequest, reply: FastifyReply) =>
-    runReviewDecision(req, reply, (body) => module.approveReviewDecision(body)),
-  );
-
-  app.post('/internal/knowledge/review/reject', async (req: FastifyRequest, reply: FastifyReply) =>
-    runReviewDecision(req, reply, (body) => module.rejectReviewDecision(body)),
-  );
-
-  app.post('/internal/knowledge/maintenance', async (req: FastifyRequest, reply: FastifyReply) =>
-    runMaintenanceDecision(req, reply, (body) => module.applyMaintenanceDecision(body)),
-  );
-
-  app.post('/internal/knowledge/decay', async (req: FastifyRequest, reply: FastifyReply) =>
-    runMaintenanceDecision(req, reply, (body) => module.applyDecayDecision(body)),
-  );
-
-  app.post('/internal/candidates/publish', async (req: FastifyRequest, reply: FastifyReply) =>
-    sendInvocation(reply, 200, async () => {
-      const body = trustedActor(
-        req,
-        (req.body ?? {}) as {
-          candidateId: string;
-          actorId?: string;
-          result: Record<string, unknown>;
-        },
-      );
-      return module.publishCandidateResult(body);
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/knowledge/:entryId/resubmit',
+      schema: entryMutationSchema,
+      handler: async (ctx, module) => {
+        const body = trustedActor(ctx.headers ?? {}, ctx.body);
+        await module.resubmit(ctx.params.entryId, body.updates, body.actorId);
+        return { ok: true };
+      },
     }),
-  );
 
-  app.post('/internal/rpc/knowledge-write', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const body = req.body as { method: KnowledgeWriteRpcMethod; input: Record<string, unknown> };
-      const input = trustedActor(req, body.input ?? {});
-      const result = await invokeKnowledgeWriteRpc(module, body.method, input);
-      return reply.status(200).send({ ok: true, result });
-    } catch (err) {
-      return sendInvocationError(reply, err);
-    }
-  });
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/knowledge/:entryId/supersede',
+      schema: supersedeSchema,
+      handler: async (ctx, module) => {
+        const body = trustedActor(ctx.headers ?? {}, ctx.body);
+        await module.supersede(ctx.params.entryId, body.replacementId, body.actorId);
+        return { ok: true };
+      },
+    }),
 
-  app.get('/internal/health', async (_req: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send({
-      status: 'ok',
-      service: 'knowledge-write',
-      owner: KNOWLEDGE_WRITE_OWNERSHIP.boundedContext,
-      acceptsDelegationFrom: KNOWLEDGE_WRITE_OWNERSHIP.acceptsDelegationFrom,
-    });
-  });
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/traps',
+      schema: createTrapSchema,
+      successStatus: 201,
+      handler: async (ctx, module) => {
+        const body = trustedActor(ctx.headers ?? {}, ctx.body);
+        return module.createTrap(body);
+      },
+    }),
 
-  app.get('/internal/live', async (_req: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send({ status: 'alive', service: 'knowledge-write' });
-  });
+    knowledgeWriteRouteDef({
+      method: 'GET',
+      path: '/internal/traps',
+      schema: listTrapsSchema,
+      handler: async (ctx, module) => {
+        return module.listTraps(ctx.query.teamId ?? '');
+      },
+    }),
 
-  app.get('/internal/readiness', readinessHandler);
-  app.get('/internal/ready', readinessHandler);
+    knowledgeWriteRouteDef({
+      method: 'GET',
+      path: '/internal/traps/:trapId',
+      schema: getTrapSchema,
+      handler: async (ctx, module) => {
+        const result = await module.getTrap(ctx.params.trapId);
+        if (!result) {
+          throw InvocationError.notFound('Trap not found');
+        }
+        return result;
+      },
+    }),
 
-  app.get('/internal/ownership', async (_req: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send(KNOWLEDGE_WRITE_OWNERSHIP);
-  });
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/knowledge/review/approve',
+      schema: reviewDecisionSchema,
+      handler: async (ctx, module) => {
+        const body = trustedActor(ctx.headers ?? {}, ctx.body);
+        return module.approveReviewDecision(body);
+      },
+    }),
 
-  app.get('/internal/operator-status', async (_req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const details = (await options?.getOperatorStatus?.()) ?? {};
-      return reply.status(200).send({
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/knowledge/review/reject',
+      schema: reviewDecisionSchema,
+      handler: async (ctx, module) => {
+        const body = trustedActor(ctx.headers ?? {}, ctx.body);
+        return module.rejectReviewDecision(body);
+      },
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/knowledge/maintenance',
+      schema: maintenanceDecisionSchema,
+      handler: async (ctx, module) => {
+        const body = trustedActor(ctx.headers ?? {}, ctx.body);
+        return module.applyMaintenanceDecision(body);
+      },
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/knowledge/decay',
+      schema: maintenanceDecisionSchema,
+      handler: async (ctx, module) => {
+        const body = trustedActor(ctx.headers ?? {}, ctx.body);
+        return module.applyDecayDecision(body);
+      },
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/candidates/publish',
+      schema: publishCandidateSchema,
+      handler: async (ctx, module) => {
+        const body = trustedActor(ctx.headers ?? {}, ctx.body);
+        return module.publishCandidateResult(body);
+      },
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/rpc/knowledge-write',
+      schema: rpcSchema,
+      handler: async (ctx, module) => {
+        const input = trustedActor(ctx.headers ?? {}, ctx.body.input ?? {});
+        const result = await invokeKnowledgeWriteRpc(module, ctx.body.method, input);
+        return { ok: true, result };
+      },
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'GET',
+      path: '/internal/health',
+      schema: healthSchema,
+      handler: async (_ctx, _module) => ({
+        status: 'ok',
         service: 'knowledge-write',
         owner: KNOWLEDGE_WRITE_OWNERSHIP.boundedContext,
-        ...details,
-      });
-    } catch (error) {
-      return reply.status(503).send({
-        service: 'knowledge-write',
-        owner: KNOWLEDGE_WRITE_OWNERSHIP.boundedContext,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
+        acceptsDelegationFrom: KNOWLEDGE_WRITE_OWNERSHIP.acceptsDelegationFrom,
+      }),
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'GET',
+      path: '/internal/live',
+      schema: healthSchema,
+      handler: async () => ({ status: 'alive', service: 'knowledge-write' }),
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'GET',
+      path: '/internal/readiness',
+      schema: healthSchema,
+      handler: async (_ctx, module) => readinessHandler(module, 'knowledge-write')(),
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'GET',
+      path: '/internal/ready',
+      schema: healthSchema,
+      handler: async (_ctx, module) => readinessHandler(module, 'knowledge-write')(),
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'GET',
+      path: '/internal/ownership',
+      schema: healthSchema,
+      handler: async () => KNOWLEDGE_WRITE_OWNERSHIP,
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'GET',
+      path: '/internal/operator-status',
+      schema: healthSchema,
+      handler: async (_ctx, module) => {
+        try {
+          const details = (await module.getOperatorStatus?.()) ?? {};
+          return {
+            service: 'knowledge-write',
+            owner: KNOWLEDGE_WRITE_OWNERSHIP.boundedContext,
+            ...details,
+          };
+        } catch (error) {
+          return routeResponse(503, {
+            service: 'knowledge-write',
+            owner: KNOWLEDGE_WRITE_OWNERSHIP.boundedContext,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      },
+    }),
+  ];
+}
+
+/**
+ * Fastify-plugin compatibility shim: registers the knowledge-write RouteDefs
+ * onto an existing Fastify instance. Consumed by the host-distributed bridge.
+ */
+export function registerKnowledgeWriteRoutes(
+  app: FastifyInstance,
+  module: KnowledgeWritePort,
+  options?: KnowledgeWriteReadinessOptions,
+): void {
+  const deps: KnowledgeWriteRouteDeps = { ...module, ...options };
+  registerFastifyRoutes(app, createKnowledgeWriteRouteDefs(deps), deps);
 }

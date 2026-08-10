@@ -1,8 +1,13 @@
-import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 
-import { InvocationError, type JobRuntimePort } from '@trapmap/backend-core';
-import { registerJobRuntimeRoutes } from './routes.js';
+import { InvocationError, type JobRuntimePort, type RouteTestApp } from '@trapmap/backend-core';
+import {
+  type AdapterName,
+  buildRouteTestApp,
+} from '@trapmap/backend-core/testing/route-test-app.js';
+import { createJobRuntimeRouteDefs } from './routes.js';
+
+const ADAPTERS: readonly AdapterName[] = ['fastify', 'nest'];
 
 function createModule(overrides: Partial<JobRuntimePort> = {}): JobRuntimePort {
   return {
@@ -13,17 +18,14 @@ function createModule(overrides: Partial<JobRuntimePort> = {}): JobRuntimePort {
   };
 }
 
-async function buildApp(module: JobRuntimePort) {
-  const app = Fastify();
-  registerJobRuntimeRoutes(app, module);
-  await app.ready();
-  return app;
+async function buildApp(module: JobRuntimePort, adapter: AdapterName): Promise<RouteTestApp> {
+  return buildRouteTestApp(createJobRuntimeRouteDefs(module), module, adapter);
 }
 
-describe('service-job-runtime routes', () => {
+describe.each(ADAPTERS)('service-job-runtime routes (%s adapter)', (adapter) => {
   it('preserves schedule payload and option passthrough', async () => {
     const module = createModule();
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -54,7 +56,7 @@ describe('service-job-runtime routes', () => {
 
   it('preserves the dedupe key for queue-level idempotency', async () => {
     const module = createModule();
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -78,7 +80,7 @@ describe('service-job-runtime routes', () => {
 
   it('preserves job status path param and queue status response shape', async () => {
     const module = createModule();
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const status = await app.inject({
       method: 'GET',
@@ -111,6 +113,7 @@ describe('service-job-runtime routes', () => {
           throw InvocationError.unavailable('queue unavailable');
         }),
       }),
+      adapter,
     );
 
     const schedule = await app.inject({
@@ -128,11 +131,11 @@ describe('service-job-runtime routes', () => {
     });
 
     expect(schedule.statusCode).toBe(400);
-    expect(schedule.json()).toEqual({ error: 'invalid job', kind: 'validation' });
+    expect(schedule.json()).toMatchObject({ error: 'invalid job', kind: 'validation' });
     expect(status.statusCode).toBe(404);
-    expect(status.json()).toEqual({ error: 'missing job', kind: 'not-found' });
+    expect(status.json()).toMatchObject({ error: 'missing job', kind: 'not-found' });
     expect(queue.statusCode).toBe(503);
-    expect(queue.json()).toEqual({ error: 'queue unavailable', kind: 'unavailable' });
+    expect(queue.json()).toMatchObject({ error: 'queue unavailable', kind: 'unavailable' });
 
     await app.close();
   });

@@ -6,7 +6,7 @@ export {
   type JobRuntimeServiceDeps,
 } from './deps.js';
 export { assertJobRuntimeMigrationSet, runJobRuntimeMigrations } from './migrations.js';
-export { registerJobRuntimeRoutes } from './routes.js';
+export { createJobRuntimeRouteDefs, registerJobRuntimeRoutes } from './routes.js';
 export { createGovernanceConflictTaskHandler } from './handlers/governance-conflict.js';
 export {
   createGovernanceBadcaseExportDraftTaskHandler,

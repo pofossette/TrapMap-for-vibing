@@ -6,8 +6,8 @@
 
 ## 统计
 
-- 总条目：256 处
-- 文件数：77
+- 总条目：253 处
+- 文件数：76
 
 ## 清单
 
@@ -304,12 +304,6 @@
 
 - 119: `as unknown as`
 
-### packages/service-governance-review/src/routes.test.ts
-
-- 77: `as never`
-- 291: `as never`
-- 357: `as never`
-
 ### packages/service-governance-review/src/server.test.ts
 
 - 15: `as never`
@@ -446,10 +440,10 @@
 
 ### packages/service-knowledge-write/src/artifact-routes.test.ts
 
-- 17: `as never`
-- 18: `as never`
-- 19: `as never`
+- 23: `as never`
+- 24: `as never`
 - 25: `as never`
+- 31: `as never`
 
 ### packages/service-knowledge-write/src/knowledge-snapshot-owner.test.ts
 

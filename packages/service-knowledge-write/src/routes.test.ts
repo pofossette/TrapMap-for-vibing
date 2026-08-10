@@ -1,7 +1,14 @@
 import { InvocationError, type KnowledgeWritePort } from '@trapmap/backend-core';
-import Fastify from 'fastify';
+import {
+  type AdapterName,
+  type RouteTestApp,
+  buildRouteTestApp,
+} from '@trapmap/backend-core/testing/route-test-app.js';
 import { describe, expect, it, vi } from 'vitest';
-import { registerKnowledgeWriteRoutes } from './routes.ts';
+
+import { createKnowledgeWriteRouteDefs } from './routes.ts';
+
+const ADAPTERS: readonly AdapterName[] = ['fastify', 'nest'];
 
 function createModule(overrides: Partial<KnowledgeWritePort> = {}): KnowledgeWritePort {
   return {
@@ -36,17 +43,14 @@ function createModule(overrides: Partial<KnowledgeWritePort> = {}): KnowledgeWri
   };
 }
 
-async function buildApp(module: KnowledgeWritePort) {
-  const app = Fastify();
-  registerKnowledgeWriteRoutes(app, module);
-  await app.ready();
-  return app;
+async function buildApp(module: KnowledgeWritePort, adapter: AdapterName): Promise<RouteTestApp> {
+  return buildRouteTestApp(createKnowledgeWriteRouteDefs(module), module, adapter);
 }
 
-describe('service-knowledge-write routes', () => {
+describe.each(ADAPTERS)('service-knowledge-write routes (%s adapter)', (adapter) => {
   it('uses the trusted actor header for candidate publish and review lifecycle commands', async () => {
     const module = createModule();
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const publish = await app.inject({
       method: 'POST',
@@ -96,7 +100,7 @@ describe('service-knowledge-write routes', () => {
 
   it('rejects missing or spoofed body actors on command routes', async () => {
     const module = createModule();
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const missing = await app.inject({
       method: 'POST',
@@ -122,7 +126,7 @@ describe('service-knowledge-write routes', () => {
         throw InvocationError.unavailable('knowledge-write unavailable');
       }),
     });
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -136,7 +140,7 @@ describe('service-knowledge-write routes', () => {
     });
 
     expect(response.statusCode).toBe(503);
-    expect(response.json()).toEqual({
+    expect(response.json()).toMatchObject({
       error: 'knowledge-write unavailable',
       kind: 'unavailable',
     });
@@ -145,7 +149,7 @@ describe('service-knowledge-write routes', () => {
 
   it('accepts rpc invoke envelope for the frozen remote command surface', async () => {
     const module = createModule();
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -176,7 +180,6 @@ describe('service-knowledge-write routes', () => {
   });
 
   it('exposes approved conflict candidates through the knowledge owner read projection', async () => {
-    const app = Fastify();
     const conflictCandidateRead = {
       getById: vi.fn(async () => ({
         id: 'entry-new',
@@ -193,8 +196,12 @@ describe('service-knowledge-write routes', () => {
         },
       ]),
     };
-    registerKnowledgeWriteRoutes(app, createModule(), { conflictCandidateRead });
-    await app.ready();
+    const module = createModule();
+    const app = await buildRouteTestApp(
+      createKnowledgeWriteRouteDefs({ ...module, conflictCandidateRead }),
+      { ...module, conflictCandidateRead },
+      adapter,
+    );
 
     const response = await app.inject({
       method: 'GET',
@@ -225,16 +232,17 @@ describe('service-knowledge-write routes', () => {
   });
 
   it('exposes independent liveness, readiness, ownership, and operator diagnostics', async () => {
-    const app = Fastify();
-    registerKnowledgeWriteRoutes(app, createModule(), {
+    const module = createModule();
+    const deps = {
+      ...module,
       checkDependency: vi.fn(async () => ({ reachable: true })),
       getOperatorStatus: vi.fn(async () => ({
         persistence: { status: 'healthy' },
         asyncFollowUp: { owner: 'job-runtime', outbox: { pending: 2, failed: 0 } },
         idempotency: { mechanism: 'task_queue.dedupe_key' },
       })),
-    });
-    await app.ready();
+    };
+    const app = await buildRouteTestApp(createKnowledgeWriteRouteDefs(deps), deps, adapter);
 
     const [live, ready, ownership, operator] = await Promise.all([
       app.inject({ method: 'GET', url: '/internal/live' }),
@@ -255,11 +263,9 @@ describe('service-knowledge-write routes', () => {
   });
 
   it('reports a healthy dependency without an optional detail value', async () => {
-    const app = Fastify();
-    registerKnowledgeWriteRoutes(app, createModule(), {
-      checkDependency: vi.fn(async () => ({ reachable: true })),
-    });
-    await app.ready();
+    const module = createModule();
+    const deps = { ...module, checkDependency: vi.fn(async () => ({ reachable: true })) };
+    const app = await buildRouteTestApp(createKnowledgeWriteRouteDefs(deps), deps, adapter);
 
     const response = await app.inject({ method: 'GET', url: '/internal/ready' });
 

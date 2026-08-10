@@ -49,6 +49,7 @@ export function registerFastifyRoutes(
             params: request.params ?? {},
             query: request.query ?? {},
             body: request.body,
+            headers: request.headers ?? {},
           });
           const result = await route.handler(context, deps);
           if (isRouteResponse(result)) {
