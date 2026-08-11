@@ -1,6 +1,6 @@
 import type { AgentPlanningEvalCase } from '@trapmap/contracts/evals';
 
-import { skillIdentificationSmokeCases } from '../smoke/skill-identification-smoke.js';
+import { skillIdentificationSmokeCases } from '../../../datasets/smoke/skill-identification-smoke.js';
 
 // Promote smoke cases to core tier
 const promotedSkillIdCases: AgentPlanningEvalCase[] = skillIdentificationSmokeCases.map((c) => ({

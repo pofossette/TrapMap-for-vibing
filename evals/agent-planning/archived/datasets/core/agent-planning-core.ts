@@ -1,6 +1,6 @@
 import type { AgentPlanningEvalCase } from '@trapmap/contracts/evals';
 
-import { agentPlanningSmokeCases } from '../smoke/agent-planning-smoke.js';
+import { agentPlanningSmokeCases } from '../../../datasets/smoke/agent-planning-smoke.js';
 
 const conflictFixturePath = 'evals/ingestion/fixtures/demo-full/SKILL.md';
 const trapFixturePath = 'evals/fixtures/traps/testing/trap_flaky_test_timing.json';

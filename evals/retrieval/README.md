@@ -426,3 +426,10 @@ PG 模式下的评测 harness 必须与 JSON 模式产生完全相同的 auth/gr
 | `graph_index_documents` | JSONB | GraphRAG-lite 图检索 | `nodes` (jsonb), `edges` (jsonb) |
 
 所有索引表均为派生视图，不承载业务真相。索引同步通过 `PgVectorAdapter`、`PgKeywordAdapter` 和 `PgGraphIndexRepository` 完成，基于 `(entry_id, revision)` 唯一约束保证幂等性。同步状态通过 `status` 和 `last_error` 字段跟踪，支持失败重试和运维监控。
+
+## Owner 与变更门禁
+
+- **Owner**：检索召回/路由 owner（service-knowledge-read 检索面）
+- **Tier 状态**：smoke 是 CI 门禁 tier；core tier 保留为 active（`evals/retrieval/datasets/core/`、`scenarios/core/`）
+- **变更必跑**：`rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`（快照 parity，需 postgres coordinator）+ `rtk pnpm eval:retrieval:smoke`
+- 修改 case/scenario/断言后若判定发生变化，需同步重新生成并提交 parity 快照（`pnpm eval:snapshots`）

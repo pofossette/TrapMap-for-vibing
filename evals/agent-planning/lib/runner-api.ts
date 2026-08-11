@@ -5,7 +5,7 @@ import {
 } from '@trapmap/contracts/evals';
 
 import { coreCases } from '../core.js';
-import { skillIdentificationCoreCases } from '../datasets/core/skill-identification-core.js';
+import { skillIdentificationCoreCases } from '../archived/datasets/core/skill-identification-core.js';
 import { skillIdentificationSmokeCases } from '../datasets/smoke/skill-identification-smoke.js';
 import { smokeCases } from '../smoke.js';
 

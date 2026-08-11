@@ -6,8 +6,7 @@ pnpm format || exit 1
 git update-index --again || exit 1
 
 pnpm check:imports || exit 1
-pnpm check:mermaid || exit 1
-pnpm check:md-lint || exit 1
+pnpm check:docs || exit 1
 
 # Run fallow boundary and dependency check (fail only on critical new issues)
 pnpm exec fallow list --boundaries --format json --quiet | grep -q '"configured": true' || {

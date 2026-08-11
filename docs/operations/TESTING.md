@@ -6,29 +6,40 @@
 
 ## 测试架构
 
-TrapMap 采用两级评估体系：
+TrapMap 采用两级评估体系（Wave 8 收敛后，非核心 suite 的 core tier 已归档为手动 tier）：
 
 ```mermaid
 flowchart TB
     subgraph 评估层级["评估层级"]
-        Smoke["Smoke 层<br/>快速反馈，验证核心路径正确性<br/>命令: pnpm eval:smoke"]
+        Smoke["Smoke 层<br/>CI 门禁，验证核心路径正确性<br/>命令: pnpm eval:smoke"]
         Core["Core 层<br/>全面覆盖，验证边界条件和治理规则<br/>命令: pnpm eval:core"]
-        
+        ArchivedCore["归档 Core 层<br/>agent-planning / label-alignment / ingestion<br/>数据在 evals/&lt;suite&gt;/archived/，手动运行"]
+
         Smoke --> Core
+        Smoke --> ArchivedCore
     end
 ```
 
+tier 归属（owner 与变更门禁详见各 suite README 与 `evals/README.md` 的 suite 矩阵）：
+
+- **retrieval / summary / graph-extraction**：core tier 保留为 active。
+- **agent-planning / label-alignment / ingestion**：core tier 已于 Wave 8 归档（`evals/<suite>/archived/`），
+  `core.ts` 聚合器 re-export archived 数据，`--tier core` 仍可手动运行（manual tier），但不进 CI；
+  归档文件不再维护内部链接。
+- **CI 门禁**：`pnpm eval:smoke`（eval-all aggregate）+ `pnpm eval:ci`（baseline-aware runner）+
+  `pnpm eval:snapshots` 生成的六套 parity 快照（`eval-parity` job 逐 case 比对）。
+
 ### 评估类型
 
-| 类型 | 说明 | 运行器 |
-|------|------|--------|
-| 检索评估 (Retrieval) | 验证召回结果的相关性和治理正确性 | `evals/retrieval/run.ts` |
-| 摘要评估 (Summary) | 验证 AI 生成摘要的忠实度和覆盖率 | `evals/summary/run.ts` |
-| 路径规划评估 (Agent Planning) | 比较 `skill-set` 与 `plan-graph-set` 的路径规划质量 | `evals/agent-planning/run.ts` |
-| 标签对齐评估 (Label Alignment) | 验证标签三路召回与对齐决策效果 | `evals/label-alignment/run.ts` |
-| 图提取评估 (Graph Extraction) | 验证图提取、去重和冲突评测 | `evals/graph-extraction/run.ts` |
-| 摄取评估 (Ingestion) | 验证 Skill 目录摄取的正确性 | `evals/ingestion/run.ts` |
-| 治理评估 (Governance) | 验证 RBAC 和安全等级过滤 | 内嵌于检索评估 |
+| 类型 | 说明 | 运行器 | Owner |
+|------|------|--------|-------|
+| 检索评估 (Retrieval) | 验证召回结果的相关性和治理正确性 | `evals/retrieval/run.ts` | 检索召回/路由 owner |
+| 摘要评估 (Summary) | 验证 AI 生成摘要的忠实度和覆盖率 | `evals/summary/run.ts` | 摘要 owner |
+| 路径规划评估 (Agent Planning) | 比较 `skill-set` 与 `plan-graph-set` 的路径规划质量 | `evals/agent-planning/run.ts` | agent-planning eval owner |
+| 标签对齐评估 (Label Alignment) | 验证标签三路召回与对齐决策效果 | `evals/label-alignment/run.ts` | label-alignment eval owner |
+| 图提取评估 (Graph Extraction) | 验证图提取、去重和冲突评测 | `evals/graph-extraction/run.ts` | 图提取 owner |
+| 摄取评估 (Ingestion) | 验证 Skill 目录摄取的正确性 | `evals/ingestion/run.ts` | ingestion eval owner |
+| 治理评估 (Governance) | 验证 RBAC 和安全等级过滤 | 内嵌于检索评估 | 检索召回/路由 owner |
 
 当前 platform mirror 入口约定：
 
