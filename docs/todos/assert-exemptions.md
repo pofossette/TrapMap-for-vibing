@@ -357,7 +357,7 @@
 
 ### packages/service-knowledge-read/src/knowledge-read-support-infra-default.ts
 
-- 64: `as never`
+- 38: `as never`
 
 ### packages/service-knowledge-read/src/read-model.test.ts
 
@@ -390,7 +390,7 @@
 
 ### packages/service-knowledge-read/src/retrieval-semantic.ts
 
-- 227: `as unknown as`
+- 156: `as unknown as`
 
 ### packages/service-knowledge-read/src/search-knowledge.test.ts
 

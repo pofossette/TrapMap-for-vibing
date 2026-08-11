@@ -1,4 +1,9 @@
-import type { OutboxPort } from '@trapmap/backend-core';
+import {
+  OUTBOX_CLAIM_BATCH_SIZE,
+  OUTBOX_POLL_INTERVAL_MS,
+  type OutboxPort,
+  unhandledEventIsAcknowledged,
+} from '@trapmap/backend-core';
 
 export interface JobRuntimeOutboxHandler {
   eventName: string;
@@ -20,7 +25,7 @@ export function createJobRuntimeOutboxConsumer(params: {
   onError?: (error: unknown, event?: { eventName: string; aggregateId: string }) => void;
 }): JobRuntimeOutboxConsumer {
   const handlers = new Map(params.handlers.map((handler) => [handler.eventName, handler]));
-  const pollIntervalMs = params.pollIntervalMs ?? 2000;
+  const pollIntervalMs = params.pollIntervalMs ?? OUTBOX_POLL_INTERVAL_MS;
   let running = false;
   let loop: Promise<void> | null = null;
   let wakePoll: (() => void) | null = null;
@@ -45,11 +50,13 @@ export function createJobRuntimeOutboxConsumer(params: {
       loop = (async () => {
         while (running) {
           try {
-            const events = await params.outbox.claimBatch(10);
+            const events = await params.outbox.claimBatch(OUTBOX_CLAIM_BATCH_SIZE);
             for (const event of events) {
               const handler = handlers.get(event.eventName);
-              if (!handler) {
-                await params.outbox.complete(event.id);
+              if (handler === undefined) {
+                if (unhandledEventIsAcknowledged(false)) {
+                  await params.outbox.complete(event.id);
+                }
                 continue;
               }
               try {

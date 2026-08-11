@@ -1,8 +1,16 @@
 /**
  * LLM refinement generation logic for the retrieval orchestrator.
  *
- * Extracted from orchestrator.ts to isolate refinement from recall and routing.
+ * Pure refinement rules (availability judgment, prompt assembly) live in
+ * the knowledge-read domain; this module keeps the provider invocation
+ * orchestration around them.
  */
+
+import {
+  REFINEMENT_MAX_SENTENCES,
+  buildRefinementPrompt,
+  isRefinementAvailable as isRefinementProviderConfigured,
+} from '@trapmap/backend-core';
 
 import type { SkillShareerServices } from './context.js';
 import { getKnowledgeReadSupportInfra } from './knowledge-read-support-infra.js';
@@ -12,27 +20,7 @@ import { getKnowledgeReadSupportInfra } from './knowledge-read-support-infra.js'
  * Returns true if a chat model is available for refinement.
  */
 export function isRefinementAvailable(services: SkillShareerServices): boolean {
-  return services.ai.chat.isConfigured;
-}
-
-/**
- * Build a refinement prompt from search results.
- */
-function buildRefinementPrompt(
-  query: string,
-  globalConstraints: unknown[],
-  projectKnowledge: unknown[],
-): string {
-  const parts: string[] = [];
-  for (const item of globalConstraints) {
-    const m = item as { shortcut?: string; detail?: string };
-    parts.push(`- [Global Constraint] ${m.shortcut ?? ''}: ${m.detail ?? ''}`);
-  }
-  for (const item of projectKnowledge) {
-    const m = item as { shortcut?: string; detail?: string };
-    parts.push(`- [Project Knowledge] ${m.shortcut ?? ''}: ${m.detail ?? ''}`);
-  }
-  return `Search results for "${query}":\n${parts.join('\n')}`;
+  return isRefinementProviderConfigured(services.ai.chat.isConfigured);
 }
 
 /**
@@ -63,10 +51,13 @@ export async function generateRefinement(
     const userMessage = buildRefinementPrompt(query, globalConstraints, projectKnowledge);
     const supportInfra = getKnowledgeReadSupportInfra(services);
     if (services.ai.chat.invokeWithBlocks) {
-      const blocks = supportInfra.refinement.buildSystemPromptBlocks(3);
+      const blocks = supportInfra.refinement.buildSystemPromptBlocks(REFINEMENT_MAX_SENTENCES);
       return await services.ai.chat.invokeWithBlocks(blocks, userMessage);
     }
-    return await services.ai.chat.invoke(supportInfra.refinement.buildSystemPrompt(3), userMessage);
+    return await services.ai.chat.invoke(
+      supportInfra.refinement.buildSystemPrompt(REFINEMENT_MAX_SENTENCES),
+      userMessage,
+    );
   } catch {
     return null;
   }

@@ -1,83 +1,12 @@
+import { buildEmbeddingText, computeScore, cosineSimilarity } from '@trapmap/backend-core';
 import type { RetrievalQuery } from '@trapmap/contracts';
 
 import type { SkillShareerServices } from './context.js';
 import { getDefaultRetrievalInfra, getRetrievalInfra } from './retrieval-infra.js';
-import { normalizeQuery } from './retrieval-keyword.js';
 import type { KnowledgeReadRecallChannel } from './retrieval-orchestration.js';
 import type { KnowledgeRecord } from './store.js';
 
-export function buildEmbeddingText(entry: KnowledgeRecord): string {
-  const labelsText = entry.labels.join(' ');
-  return `${entry.shortcut}\n${entry.detail}\n${labelsText}`.trim();
-}
-
-function computeLexicalIntentBoost(seed: string, entry: KnowledgeRecord): number {
-  const queryTokens = normalizeQuery(seed);
-  if (queryTokens.length === 0) return 0;
-
-  const entryTokens = normalizeQuery(buildEmbeddingText(entry));
-  if (entryTokens.length === 0) return 0;
-
-  const overlapCount = queryTokens.filter((token) => entryTokens.includes(token)).length;
-  if (overlapCount === 0) return 0;
-
-  const ratio = overlapCount / queryTokens.length;
-  const baseBoost = ratio >= 1 ? 0.55 : ratio * 0.3;
-  return Math.min(0.55, baseBoost);
-}
-
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error('Vector dimensions must match');
-  }
-
-  let dotProduct = 0;
-  let magnitudeA = 0;
-  let magnitudeB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    const ai = a[i] ?? 0;
-    const bi = b[i] ?? 0;
-    dotProduct += ai * bi;
-    magnitudeA += ai * ai;
-    magnitudeB += bi * bi;
-  }
-
-  magnitudeA = Math.sqrt(magnitudeA);
-  magnitudeB = Math.sqrt(magnitudeB);
-
-  if (magnitudeA === 0 || magnitudeB === 0) {
-    return 0;
-  }
-
-  return dotProduct / (magnitudeA * magnitudeB);
-}
-
-export function computeScore(
-  similarity: number,
-  entry: KnowledgeRecord,
-  filters: RetrievalQuery['filters'],
-  seed?: string,
-): number {
-  let score = Math.max(0, Math.min(1, similarity));
-
-  if (filters.labels.length > 0) {
-    const matchingLabels = filters.labels.filter((label) => entry.labels.includes(label));
-    const labelBoost = matchingLabels.length * 0.05;
-    score = Math.min(1, score + labelBoost);
-  }
-
-  if (filters.scopes.length === 1 && filters.scopes[0] === entry.scope) {
-    score = Math.min(1, score + 0.03);
-  }
-
-  if (seed) {
-    const lexicalBoost = computeLexicalIntentBoost(seed, entry);
-    score = Math.min(1, score + lexicalBoost);
-  }
-
-  return score;
-}
+export { buildEmbeddingText } from '@trapmap/backend-core';
 
 export async function getQueryEmbedding(
   services: SkillShareerServices,
