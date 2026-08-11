@@ -15,21 +15,16 @@ import { z } from 'zod';
 
 import type { ChatProvider } from '@trapmap/ai-providers';
 import { stripCodeFences } from '@trapmap/ai-providers/ai-parse.js';
+import {
+  LLM_DUPLICATE_CONFIDENCE_MAX,
+  LLM_DUPLICATE_CONFIDENCE_MIN,
+  LLM_DUPLICATE_OVERLAP_TYPES,
+  LLM_DUPLICATE_REASONING_MAX,
+  LLM_DUPLICATE_REASONING_MIN,
+  type LlmDuplicateJudgment,
+} from '@trapmap/backend-core';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export interface LlmDuplicateJudgment {
-  /** Whether the candidate is considered a duplicate of the existing entry */
-  isDuplicate: boolean;
-  /** Confidence score between 0 and 1 */
-  confidence: number;
-  /** Classification of the overlap relationship */
-  overlapType: 'exact' | 'semantic' | 'none';
-  /** Human-readable explanation of the judgment */
-  reasoning: string;
-}
+export type { LlmDuplicateJudgment } from '@trapmap/backend-core';
 
 // ---------------------------------------------------------------------------
 // Zod schema for LLM response validation
@@ -37,9 +32,12 @@ export interface LlmDuplicateJudgment {
 
 const llmDuplicateJudgmentSchema = z.object({
   isDuplicate: z.boolean(),
-  confidence: z.number().min(0).max(1),
-  overlapType: z.enum(['exact', 'semantic', 'none']),
-  reasoning: z.string().min(1).max(1024),
+  confidence: z.number().min(LLM_DUPLICATE_CONFIDENCE_MIN).max(LLM_DUPLICATE_CONFIDENCE_MAX),
+  overlapType: z.enum(LLM_DUPLICATE_OVERLAP_TYPES),
+  reasoning: z
+    .string()
+    .min(LLM_DUPLICATE_REASONING_MIN)
+    .max(LLM_DUPLICATE_REASONING_MAX),
 });
 
 // ---------------------------------------------------------------------------

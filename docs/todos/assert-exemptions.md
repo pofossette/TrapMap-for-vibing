@@ -6,8 +6,8 @@
 
 ## 统计
 
-- 总条目：238 处
-- 文件数：73
+- 总条目：237 处
+- 文件数：72
 
 ## 清单
 
@@ -286,10 +286,6 @@
 - 163: `as never`
 - 245: `as never`
 - 315: `as never`
-
-### packages/service-governance-review/src/pg-ports.ts
-
-- 342: `as never`
 
 ### packages/service-governance-review/src/review-queue-projection.test.ts
 

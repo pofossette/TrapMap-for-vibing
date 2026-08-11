@@ -1,3 +1,12 @@
+/**
+ * Candidate-ingestion bounded context — dedup policy.
+ *
+ * Pure candidate normalization, fingerprinting and duplicate-detection
+ * rules with zero framework / DB / I/O imports (contracts types and
+ * node:crypto stdlib only). The service application layer feeds corpus
+ * data through these rules; the PostgreSQL owner persists the results.
+ */
+
 import { createHash } from 'node:crypto';
 
 import type {
@@ -9,6 +18,15 @@ import type {
 } from '@trapmap/contracts';
 
 export type { CandidateCorpusReadPort } from '@trapmap/contracts';
+
+/** Semantic-similarity cutoff below which a candidate is not a duplicate match. */
+export const SEMANTIC_MATCH_CUTOFF = 0.38;
+
+/** Similarity at or above which a semantic match is classified high-overlap. */
+export const HIGH_OVERLAP_THRESHOLD = 0.72;
+
+/** Detector version stamped into duplicate cases. */
+export const DETECTION_VERSION = 'owner-v1' as const;
 
 export interface NormalizedDuplicateInput {
   fingerprint: string;
@@ -88,13 +106,13 @@ function buildMatch(
 ): DuplicateMatch | null {
   const corpusTokens = tokens(corpusText);
   const score = exact ? 1 : similarity(candidate.tokens, corpusTokens);
-  if (!exact && score < 0.38) return null;
+  if (!exact && score < SEMANTIC_MATCH_CUTOFF) return null;
   return {
     entityType,
     entityId,
     entityTitle,
     similarityScore: exact ? 1 : Math.round(score * 1000) / 1000,
-    matchType: exact ? 'exact' : score >= 0.72 ? 'high-overlap' : 'semantic-similar',
+    matchType: exact ? 'exact' : score >= HIGH_OVERLAP_THRESHOLD ? 'high-overlap' : 'semantic-similar',
     overlapDetails: {
       sharedKeywords: overlap(candidate.keywords, keywords),
       sharedTokens: overlap(candidate.tokens, corpusTokens),
@@ -151,7 +169,7 @@ export function createCandidateDuplicateDetector(
             id: deps.createId(),
             candidateId: candidate.id,
             detectedAt: deps.now(),
-            detectionVersion: 'owner-v1',
+            detectionVersion: DETECTION_VERSION,
             matches,
             highestSimilarity: matches[0]?.similarityScore ?? 0,
             hasExactDuplicate: matches.some((match) => match.matchType === 'exact'),

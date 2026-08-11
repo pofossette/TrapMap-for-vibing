@@ -1,10 +1,18 @@
 import type { CandidateRepositoryPort, TaskHandler, TaskQueuePort } from '@trapmap/backend-core';
+import {
+  DEAD_LETTER_MESSAGE,
+  MAX_PROCESSING_ATTEMPTS,
+  RECOVERY_REASON,
+  RECOVERY_STATUS,
+  buildNormalizedDuplicateInput,
+  createCandidateDuplicateDetector,
+  isActionableCandidateStatus,
+  isInterruptedCandidateStatus,
+  statusAfterAnalysis,
+} from '@trapmap/backend-core';
 import type { CandidateCorpusReadPort, CandidateProcessingPayload } from '@trapmap/contracts';
 
-import { buildNormalizedDuplicateInput, createCandidateDuplicateDetector } from './domain/index.js';
-
 export const CANDIDATE_PROCESSING_TASK_TYPE = 'candidate_processing' as const;
-const MAX_PROCESSING_ATTEMPTS = 3;
 
 export interface CandidateProcessingDeps {
   candidateRepo: CandidateRepositoryPort;
@@ -36,17 +44,13 @@ export interface CandidateProcessingRuntime {
   close(): Promise<void>;
 }
 
-function isActionable(status: string): boolean {
-  return status === 'received' || status === 'queued' || status === 'error';
-}
-
 export async function processCandidate(
   candidateId: string,
   deps: CandidateProcessingDeps,
 ): Promise<void> {
   const candidate = await deps.candidateRepo.getById(candidateId);
   if (!candidate) throw new Error(`Candidate ${candidateId} not found`);
-  if (!isActionable(candidate.status)) return;
+  if (!isActionableCandidateStatus(candidate.status)) return;
 
   try {
     await deps.candidateRepo.updateStatus(candidateId, 'queued');
@@ -64,7 +68,7 @@ export async function processCandidate(
     }
     await deps.candidateRepo.updateStatus(
       candidateId,
-      result.duplicateCase ? 'duplicate_detected' : 'ready_for_review',
+      statusAfterAnalysis(Boolean(result.duplicateCase)),
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Candidate processing failed';
@@ -84,11 +88,7 @@ export function createCandidateProcessingHandler(
     async onDead(task) {
       const candidateId = task.payload.candidateId;
       deps.logger?.error({ candidateId }, 'Candidate processing dead-lettered');
-      await deps.candidateRepo.updateStatus(
-        candidateId,
-        'error',
-        'Candidate processing exhausted retries',
-      );
+      await deps.candidateRepo.updateStatus(candidateId, 'error', DEAD_LETTER_MESSAGE);
     },
   };
 }
@@ -132,18 +132,16 @@ export async function recoverInterruptedCandidates(
     deps.candidateRepo.listByStatus('analyzing'),
   ]);
   const candidates = new Map(
-    [...queued, ...analyzing].map((candidate) => [candidate.id, candidate]),
+    [...queued, ...analyzing]
+      .filter((candidate) => isInterruptedCandidateStatus(candidate.status))
+      .map((candidate) => [candidate.id, candidate]),
   );
   let recovered = 0;
   let errors = 0;
 
   for (const candidate of candidates.values()) {
     try {
-      await deps.candidateRepo.updateStatus(
-        candidate.id,
-        'received',
-        'Candidate worker restart recovery',
-      );
+      await deps.candidateRepo.updateStatus(candidate.id, RECOVERY_STATUS, RECOVERY_REASON);
       await deps.enqueue(
         CANDIDATE_PROCESSING_TASK_TYPE,
         { candidateId: candidate.id, retryCount: 0 },

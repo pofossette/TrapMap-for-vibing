@@ -1,4 +1,10 @@
 import type { CandidateRepositoryPort } from '@trapmap/backend-core';
+import {
+  isStatusUpdateNoop,
+  sameAnalysis,
+  sameDuplicateCase,
+  sameManualResult,
+} from '@trapmap/backend-core';
 import type {
   AnalysisSnapshot,
   CandidateStatus,
@@ -94,7 +100,14 @@ async function updateCandidateStatus(
 ): Promise<void> {
   const existing = await lockCandidate(client, candidateId);
   const errorMessage = error ?? 'Unknown error';
-  if (existing.status === status && (status !== 'error' || existing.last_error === errorMessage))
+  if (
+    isStatusUpdateNoop(
+      existing.status as string,
+      existing.last_error as string | null,
+      status,
+      error,
+    )
+  )
     return;
 
   const now = nowIso();
@@ -216,31 +229,6 @@ async function lockCandidate(client: Pick<PoolClient, 'query'>, candidateId: str
   const candidate = rows[0] as Row | undefined;
   if (!candidate) throw new Error(`Candidate ${candidateId} not found`);
   return candidate;
-}
-
-function sameJson(left: unknown, right: unknown): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function sameAnalysis(existing: AnalysisSnapshot, incoming: AnalysisSnapshot): boolean {
-  return sameJson(existing, incoming);
-}
-
-function sameManualResult(
-  existing: NonNullable<CandidateSubmission['manualResult']>,
-  incoming: ManualResultSubmission,
-  reviewedBy: string,
-): boolean {
-  return (
-    existing.decision === incoming.decision &&
-    existing.notes === incoming.notes &&
-    existing.submittedBy === reviewedBy &&
-    sameJson(existing.mergedWith, incoming.mergedWith)
-  );
-}
-
-function sameDuplicateCase(existing: DuplicateCase, incoming: DuplicateCase): boolean {
-  return sameJson(existing, incoming);
 }
 
 async function writeAnalysis(

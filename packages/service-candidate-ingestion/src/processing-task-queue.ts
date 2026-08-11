@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import type { TaskQueuePort } from '@trapmap/backend-core';
+import { isDeadLetter } from '@trapmap/backend-core';
 import type { Pool } from 'pg';
 
 type QueueTask = {
@@ -98,7 +99,7 @@ export function createCandidateProcessingTaskQueue(
               );
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
-              const dead = task.attempts >= task.max_attempts;
+              const dead = isDeadLetter(task.attempts, task.max_attempts);
               await pool.query(
                 `UPDATE task_queue
                  SET status = $2, last_error = $3, updated_at = NOW(), process_after = NOW() + INTERVAL '5 seconds'

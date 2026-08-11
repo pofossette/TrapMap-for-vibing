@@ -1,15 +1,18 @@
 import type {
-  GovernanceConflictEntry,
   GovernanceConflictReadPort,
   GovernanceConflictWorkflowPort,
 } from '@trapmap/backend-core';
+import {
+  PROBLEM_OVERLAP_THRESHOLD,
+  canonicalEntries,
+  classifyConflict,
+  generateConflictContext,
+  overlapScore,
+  relationKey,
+  tokenize,
+} from '@trapmap/backend-core';
 import type { ConflictRelation, ConflictType } from '@trapmap/contracts';
 import { nowIso, prefixedId } from '@trapmap/lib';
-
-const PROBLEM_OVERLAP_THRESHOLD = 0.3;
-const SOLUTION_DIFF_THRESHOLD = 0.3;
-const CONTRADICTORY_THRESHOLD = 0.8;
-const ALTERNATIVE_THRESHOLD = 0.4;
 
 export interface GovernanceConflictProjection {
   listByEntryIds(entryIds: string[]): Promise<ConflictRelation[]>;
@@ -37,59 +40,7 @@ export interface GovernanceConflictWorkflowDeps {
   now?: () => string;
 }
 
-export function tokenize(text: string): Set<string> {
-  return new Set(
-    text
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .filter((part) => part.length >= 3),
-  );
-}
-
-export function overlapScore(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 || b.size === 0) return 0;
-
-  let shared = 0;
-  for (const token of a) {
-    if (b.has(token)) shared += 1;
-  }
-  return shared / new Set([...a, ...b]).size;
-}
-
-export function classifyConflict(
-  problemOverlap: number,
-  solutionDiff: number,
-): ConflictType | null {
-  if (problemOverlap < PROBLEM_OVERLAP_THRESHOLD) return null;
-  if (solutionDiff < SOLUTION_DIFF_THRESHOLD) return null;
-  if (solutionDiff >= CONTRADICTORY_THRESHOLD) return 'contradictory';
-  if (solutionDiff >= ALTERNATIVE_THRESHOLD) return 'alternative';
-  return 'superseded';
-}
-
-export function generateConflictContext(
-  entryA: Pick<GovernanceConflictEntry, 'shortcut'>,
-  entryB: Pick<GovernanceConflictEntry, 'shortcut'>,
-  conflictType: ConflictType,
-): string {
-  const descriptions: Record<ConflictType, string> = {
-    alternative: 'Different approaches to the same problem',
-    contradictory: 'Opposing solutions for the same problem',
-    superseded: 'Newer approach supersedes older one',
-  };
-  return `${descriptions[conflictType]}: "${entryA.shortcut}" vs "${entryB.shortcut}"`;
-}
-
-function relationKey(entryIdA: string, entryIdB: string): string {
-  return `${entryIdA}\u0000${entryIdB}`;
-}
-
-function canonicalEntries(
-  current: GovernanceConflictEntry,
-  candidate: GovernanceConflictEntry,
-): [GovernanceConflictEntry, GovernanceConflictEntry] {
-  return current.id < candidate.id ? [current, candidate] : [candidate, current];
-}
+export { tokenize, overlapScore, classifyConflict, generateConflictContext };
 
 export function createGovernanceConflictWorkflow(
   deps: GovernanceConflictWorkflowDeps,
