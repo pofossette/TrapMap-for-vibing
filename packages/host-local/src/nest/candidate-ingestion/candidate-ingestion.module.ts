@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
 
 import type { CandidateIngestionDeps, CandidateIngestionPort } from '@trapmap/backend-core';
-import { createCandidateIngestionModule } from '@trapmap/backend-core';
+import { createCandidateIngestionModule, createNestAdapter } from '@trapmap/backend-core';
+import { createCandidateIngestionRouteDefs } from '@trapmap/service-candidate-ingestion';
 
+import { AuthGuard } from '../runtime/auth.guard.js';
+import { serviceRouteDefsForMonolith } from '../runtime/monolith-route-defs.js';
 import { CANDIDATE_INGESTION_PORT } from './candidate-ingestion.tokens.js';
 
 /**
@@ -12,6 +15,10 @@ import { CANDIDATE_INGESTION_PORT } from './candidate-ingestion.tokens.js';
  * factory. The host assembly is responsible for wiring the
  * `KnowledgeWritePort` and optional `JobRuntimePort` providers into
  * `deps` before this module is registered.
+ *
+ * The service package's RouteDef list is registered through the shared
+ * Nest adapter (probe routes excluded, monolith owns /health) and guarded
+ * by the host session guard.
  */
 @Module({})
 // biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
@@ -21,6 +28,13 @@ export class CandidateIngestionModule {
 
     return {
       module: CandidateIngestionModule,
+      controllers: [
+        createNestAdapter(
+          serviceRouteDefsForMonolith(createCandidateIngestionRouteDefs(port)),
+          port,
+          { guards: [AuthGuard] },
+        ),
+      ],
       providers: [
         {
           provide: CANDIDATE_INGESTION_PORT,
@@ -35,6 +49,13 @@ export class CandidateIngestionModule {
   static forTesting(port: CandidateIngestionPort) {
     return {
       module: CandidateIngestionModule,
+      controllers: [
+        createNestAdapter(
+          serviceRouteDefsForMonolith(createCandidateIngestionRouteDefs(port)),
+          port,
+          { guards: [AuthGuard] },
+        ),
+      ],
       providers: [
         {
           provide: CANDIDATE_INGESTION_PORT,

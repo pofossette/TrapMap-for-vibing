@@ -72,7 +72,7 @@
 ## Phase 4 数据、运维与退役收尾
 
 - 仓库级 owner matrix（gateway + 六个 owner service + job-runtime 的 data / projection / runtime / operations owner）已冻结，详见 [`plan.md`](../plan.md) Phase 4 和 [`docs/archived/archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md`](archived/archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md)。
-- `packages/server（Wave-10 已删除）` 中 candidate apply-resolution、knowledge review、maintenance、decay 旧 Fastify 写路由都已删除。`light` 默认 review/manual-result/apply-resolution 写链路现由 `packages/host-local/src/nest/gateway/candidate-review.controller.ts` 直接委托 `governance-review` / `candidate-ingestion` owner port；candidate-ingestion 再通过 `KnowledgeWritePort` 完成最终 aggregate mutation，而不是回落到 `packages/server（Wave-10 已删除）`。
+- `packages/server（Wave-10 已删除）` 中 candidate apply-resolution、knowledge review、maintenance、decay 旧 Fastify 写路由都已删除。`light` 默认 review/manual-result/apply-resolution 写链路现由 `packages/host-local/src/nest/gateway/gateway.route-defs.ts` 直接委托 `governance-review` / `candidate-ingestion` owner port；candidate-ingestion 再通过 `KnowledgeWritePort` 完成最终 aggregate mutation，而不是回落到 `packages/server（Wave-10 已删除）`。
 - `packages/backend-core/src/modules/*.ts` 兼容 re-export facade 已退役并删除；truth source 只保留真实 context 目录入口。
 - `packages/host-distributed` 与 `packages/service-*` 不是 compatibility shell，继续保留为分布式部署展开层和 thin service assembly。
 - `packages/host-local/src/nest/**` 是冻结后的默认 `light` 主入口终局和 bounded-context module graph，不属于 compatibility shell。

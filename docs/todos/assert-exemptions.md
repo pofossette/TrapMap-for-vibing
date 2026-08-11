@@ -148,9 +148,9 @@
 
 ### packages/host-local/src/nest/app.module.ts
 
-- 70: `as never`
-- 73: `as never`
-- 88: `as never`
+- 74: `as never`
+- 77: `as never`
+- 92: `as never`
 
 ### packages/host-local/src/nest/candidate-ingestion/candidate-processing.service.test.ts
 

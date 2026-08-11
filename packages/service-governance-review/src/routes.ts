@@ -243,28 +243,54 @@ export function createGovernanceReviewRouteDefs(
       method: 'POST',
       path: '/internal/review/approve',
       schema: reviewCommandSchema,
-      handler: async (ctx, module) => module.approve(ctx.body),
+      handler: async (ctx, module) =>
+        module.approve({
+          entryId: ctx.body.entryId,
+          actorId: ctx.body.actorId,
+          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
+          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
+        }),
     }),
 
     governanceRouteDef({
       method: 'POST',
       path: '/internal/review/reject',
       schema: reviewCommandSchema,
-      handler: async (ctx, module) => module.reject(ctx.body),
+      handler: async (ctx, module) =>
+        module.reject({
+          entryId: ctx.body.entryId,
+          actorId: ctx.body.actorId,
+          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
+          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
+        }),
     }),
 
     governanceRouteDef({
       method: 'POST',
       path: '/internal/review/maintenance',
       schema: maintenanceCommandSchema,
-      handler: async (ctx, module) => module.applyMaintenance(ctx.body),
+      handler: async (ctx, module) =>
+        module.applyMaintenance({
+          entryId: ctx.body.entryId,
+          actorId: ctx.body.actorId,
+          action: ctx.body.action,
+          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
+          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
+        }),
     }),
 
     governanceRouteDef({
       method: 'POST',
       path: '/internal/review/decay',
       schema: maintenanceCommandSchema,
-      handler: async (ctx, module) => module.applyDecay(ctx.body),
+      handler: async (ctx, module) =>
+        module.applyDecay({
+          entryId: ctx.body.entryId,
+          actorId: ctx.body.actorId,
+          action: ctx.body.action,
+          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
+          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
+        }),
     }),
 
     governanceRouteDef({

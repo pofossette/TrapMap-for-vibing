@@ -621,8 +621,8 @@
       "maxLines": 350
     },
     {
-      "file": "packages/host-local/src/nest/gateway/candidate-review.controller.ts",
-      "maxLines": 150
+      "file": "packages/host-local/src/nest/gateway/gateway.route-defs.ts",
+      "maxLines": 300
     },
     {
       "file": "packages/persistence-schema/src/knowledge.ts",

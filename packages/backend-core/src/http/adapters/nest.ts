@@ -14,18 +14,19 @@ import 'reflect-metadata';
 
 import {
   type ArgumentsHost,
+  type CanActivate,
   Catch,
   Controller,
   Delete,
   type ExceptionFilter,
   Get,
-  type MethodDecorator,
   Patch,
   Post,
   Put,
   Req,
   Res,
   type Type,
+  UseGuards,
 } from '@nestjs/common';
 
 import {
@@ -53,10 +54,28 @@ export interface NestAdapterRequest {
   query?: Record<string, unknown>;
   body?: unknown;
   headers?: Record<string, unknown>;
+  /** Host-level fields attached by guards/context extractors (e.g. authContext). */
+  [key: string]: unknown;
 }
 
 export interface NestAdapterResponse {
   status(code: number): { send(body: unknown): unknown };
+}
+
+/**
+ * Host-specific adapter options.
+ *
+ * - `guards`: session/authorization guards applied per route. A route is
+ *   guarded unless its path appears in `openRoutes` (exact match) — hosts
+ *   keep authentication in their guard layer, never in handlers.
+ * - `context`: enriches the assembled RouteContext with per-request fields
+ *   that are not part of params/query/body/headers (e.g. the auth context
+ *   resolved by a guard); the route schema decides which fields survive.
+ */
+export interface NestAdapterOptions {
+  guards?: Type<CanActivate>[];
+  openRoutes?: readonly string[];
+  context?: (request: NestAdapterRequest & Record<string, unknown>) => Record<string, unknown>;
 }
 
 function methodNameFor(route: Pick<RouteDef, 'method' | 'path'>): string {
@@ -68,7 +87,11 @@ function methodNameFor(route: Pick<RouteDef, 'method' | 'path'>): string {
  * captured by closure (the controller has no constructor dependencies), so
  * hosts can register it directly in a module's `controllers` list.
  */
-export function createNestAdapter(routeDefs: RouteDef[], deps: unknown): Type<unknown> {
+export function createNestAdapter(
+  routeDefs: RouteDef[],
+  deps: unknown,
+  options?: NestAdapterOptions,
+): Type<unknown> {
   @Controller()
   class RouteDefController {}
 
@@ -81,6 +104,11 @@ export function createNestAdapter(routeDefs: RouteDef[], deps: unknown): Type<un
         `RouteDef adapter: duplicate method name ${methodName} for ${route.method} ${route.path}`,
       );
     }
+
+    const routeGuards =
+      options?.guards && options.guards.length > 0 && !options.openRoutes?.includes(route.path)
+        ? options.guards
+        : undefined;
 
     Object.defineProperty(prototype, methodName, {
       configurable: true,
@@ -95,6 +123,7 @@ export function createNestAdapter(routeDefs: RouteDef[], deps: unknown): Type<un
           query: request.query ?? {},
           body: request.body,
           headers: request.headers ?? {},
+          ...(options?.context ? options.context(request) : {}),
         });
         const result = await route.handler(context, deps);
         if (isRouteResponse(result)) {
@@ -104,11 +133,15 @@ export function createNestAdapter(routeDefs: RouteDef[], deps: unknown): Type<un
       },
     });
 
-    METHOD_DECORATORS[route.method](route.path)(
-      prototype,
-      methodName,
-      Object.getOwnPropertyDescriptor(prototype, methodName),
-    );
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, methodName);
+    if (!descriptor) {
+      throw new Error(`RouteDef adapter: failed to materialize ${methodName}`);
+    }
+
+    METHOD_DECORATORS[route.method](route.path)(prototype, methodName, descriptor);
+    if (routeGuards) {
+      UseGuards(...routeGuards)(prototype, methodName, descriptor);
+    }
     Req()(prototype, methodName, 0);
     Res()(prototype, methodName, 1);
   }

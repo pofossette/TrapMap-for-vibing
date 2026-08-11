@@ -1,12 +1,18 @@
 import { Module } from '@nestjs/common';
 
-import type { KnowledgeReadPort } from '@trapmap/backend-core';
-import { createKnowledgeReadModule } from '@trapmap/backend-core';
+import {
+  type KnowledgeReadPort,
+  createKnowledgeReadModule,
+  createNestAdapter,
+} from '@trapmap/backend-core';
 import {
   type KnowledgeReadPortDeps,
   createKnowledgeReadDeps,
+  createKnowledgeReadRouteDefs,
 } from '@trapmap/service-knowledge-read';
 
+import { AuthGuard } from '../runtime/auth.guard.js';
+import { serviceRouteDefsForMonolith } from '../runtime/monolith-route-defs.js';
 import { KNOWLEDGE_READ_PORT } from './knowledge-read.tokens.js';
 
 /**
@@ -18,9 +24,9 @@ import { KNOWLEDGE_READ_PORT } from './knowledge-read.tokens.js';
  * designated read-side thin assembly and projection-status owner for
  * the modular-monolith window.
  *
- * The host assembly passes concrete `knowledgeRepo` and
- * `retrievalQuery` ports via `forDeps`; no controller is wired here —
- * the gateway module picks up the `KNOWLEDGE_READ_PORT` provider.
+ * The service package's RouteDef list is registered through the shared
+ * Nest adapter (probe routes excluded, monolith owns /health) and guarded
+ * by the host session guard.
  */
 @Module({})
 // biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
@@ -31,6 +37,11 @@ export class KnowledgeReadModule {
 
     return {
       module: KnowledgeReadModule,
+      controllers: [
+        createNestAdapter(serviceRouteDefsForMonolith(createKnowledgeReadRouteDefs(port)), port, {
+          guards: [AuthGuard],
+        }),
+      ],
       providers: [
         {
           provide: KNOWLEDGE_READ_PORT,
@@ -48,6 +59,11 @@ export class KnowledgeReadModule {
   static forTesting(port: KnowledgeReadPort) {
     return {
       module: KnowledgeReadModule,
+      controllers: [
+        createNestAdapter(serviceRouteDefsForMonolith(createKnowledgeReadRouteDefs(port)), port, {
+          guards: [AuthGuard],
+        }),
+      ],
       providers: [
         {
           provide: KNOWLEDGE_READ_PORT,

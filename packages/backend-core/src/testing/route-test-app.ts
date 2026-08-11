@@ -13,7 +13,11 @@ import 'reflect-metadata';
 import { Module } from '@nestjs/common';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import type { FastifyInjectOptions, FastifyInstance, LightMyRequestResponse } from 'fastify';
+import type {
+  InjectOptions as FastifyInjectOptions,
+  FastifyInstance,
+  LightMyRequestResponse,
+} from 'fastify';
 
 import {
   type RouteDef,
@@ -39,7 +43,7 @@ export async function buildRouteTestApp(
     const app = createFastifyAdapter(routeDefs, deps);
     await app.ready();
     return {
-      inject: (options) => app.inject(options),
+      inject: async (options) => app.inject(options),
       close: () => app.close(),
     };
   }
@@ -54,7 +58,7 @@ export async function buildRouteTestApp(
   const fastifyApp = app.getHttpAdapter().getInstance() as FastifyInstance;
   await fastifyApp.ready();
   return {
-    inject: (options) => fastifyApp.inject(options),
+    inject: async (options) => fastifyApp.inject(options),
     close: () => app.close(),
   };
 }

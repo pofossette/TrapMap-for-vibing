@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 
-import { Module } from '@nestjs/common';
+import { type CanActivate, type ExecutionContext, Injectable, Module } from '@nestjs/common';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import type { FastifyInjectOptions, FastifyInstance, LightMyRequestResponse } from 'fastify';
@@ -207,6 +207,166 @@ describe.each(ADAPTERS)('RouteDef adapters (%s adapter)', (adapter) => {
       error: 'Request validation failed',
       kind: 'validation',
     });
+    await app.close();
+  });
+});
+
+describe('Fastify adapter error wire', () => {
+  it('renders the full canonical envelope including requestId', async () => {
+    const routeDefs: RouteDef[] = [
+      {
+        method: 'GET',
+        path: '/unavailable',
+        schema: z.object({
+          params: z.record(z.string(), z.unknown()),
+          query: z.record(z.string(), z.unknown()),
+          body: z.unknown(),
+        }),
+        handler: async () => {
+          throw InvocationError.conflict('already exists');
+        },
+      },
+    ];
+
+    const app = createFastifyAdapter(routeDefs, undefined);
+    await app.ready();
+    const response = await app.inject({ method: 'GET', url: '/unavailable' });
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({
+      code: 'conflict',
+      message: 'already exists',
+      kind: 'conflict',
+      error: 'already exists',
+    });
+    expect(response.json().requestId).toEqual(expect.any(String));
+    await app.close();
+  });
+
+  it('passes host context fields through the adapter into the validated context', async () => {
+    const handler = vi.fn(async () => ({ received: true }));
+    const routeDefs: RouteDef[] = [
+      {
+        method: 'GET',
+        path: '/actor',
+        schema: z.object({
+          params: z.record(z.string(), z.unknown()),
+          query: z.record(z.string(), z.unknown()),
+          body: z.unknown(),
+          actor: z.object({ id: z.string().optional() }).optional(),
+        }),
+        handler,
+      },
+    ];
+
+    const app = createFastifyAdapter(routeDefs, undefined, undefined, {
+      context: (request) => ({ actor: { id: (request as { actorId?: string }).actorId } }),
+    });
+    await app.ready();
+    const response = await app.inject({ method: 'GET', url: '/actor' });
+    expect(response.statusCode).toBe(200);
+    expect(handler.mock.calls[0]![0].actor).toEqual({ id: undefined });
+    await app.close();
+  });
+});
+
+describe('Nest adapter guards and context', () => {
+  @Injectable()
+  class TestGuard implements CanActivate {
+    canActivate(context: ExecutionContext): boolean {
+      const request = context.switchToHttp().getRequest<{ guarded?: boolean }>();
+      request.guarded = true;
+      return true;
+    }
+  }
+
+  it('applies guards to every route except openRoutes', async () => {
+    const guardedHandler = vi.fn(async () => ({ guarded: true }));
+    const routeDefs: RouteDef[] = [
+      {
+        method: 'POST',
+        path: '/open',
+        schema: z.object({
+          params: z.record(z.string(), z.unknown()),
+          query: z.record(z.string(), z.unknown()),
+          body: z.unknown(),
+          guarded: z.boolean().optional(),
+        }),
+        handler: async (ctx) => ({ guarded: ctx.guarded }),
+      },
+      {
+        method: 'POST',
+        path: '/guarded',
+        schema: z.object({
+          params: z.record(z.string(), z.unknown()),
+          query: z.record(z.string(), z.unknown()),
+          body: z.unknown(),
+          guarded: z.boolean().optional(),
+        }),
+        handler: guardedHandler,
+      },
+    ];
+
+    @Module({
+      controllers: [
+        createNestAdapter(routeDefs, undefined, { guards: [TestGuard], openRoutes: ['/open'] }),
+      ],
+      providers: [TestGuard],
+    })
+    class GuardTestModule {}
+
+    const moduleRef = await Test.createTestingModule({ imports: [GuardTestModule] }).compile();
+    const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    await app.init();
+    const fastifyApp = app.getHttpAdapter().getInstance() as FastifyInstance;
+    await fastifyApp.ready();
+
+    const open = await fastifyApp.inject({ method: 'POST', url: '/open' });
+    expect(open.json()).toEqual({ guarded: undefined });
+
+    const guarded = await fastifyApp.inject({ method: 'POST', url: '/guarded' });
+    expect(guarded.json()).toEqual({ guarded: true });
+    expect(guardedHandler).toHaveBeenCalledOnce();
+
+    await app.close();
+  });
+
+  it('passes host context fields into the validated context', async () => {
+    const handler = vi.fn(async () => ({ ok: true }));
+    const routeDefs: RouteDef[] = [
+      {
+        method: 'POST',
+        path: '/ctx',
+        schema: z.object({
+          params: z.record(z.string(), z.unknown()),
+          query: z.record(z.string(), z.unknown()),
+          body: z.unknown(),
+          authContext: z.unknown(),
+        }),
+        handler,
+      },
+    ];
+
+    @Module({
+      controllers: [
+        createNestAdapter(routeDefs, undefined, {
+          context: (request) => ({ authContext: request.authContext }),
+        }),
+      ],
+    })
+    class ContextTestModule {}
+
+    const moduleRef = await Test.createTestingModule({ imports: [ContextTestModule] }).compile();
+    const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    await app.init();
+    const fastifyApp = app.getHttpAdapter().getInstance() as FastifyInstance;
+    await fastifyApp.ready();
+
+    await fastifyApp.inject({
+      method: 'POST',
+      url: '/ctx',
+      headers: { authorization: 'Bearer token' },
+    });
+    expect(handler.mock.calls[0]![0].authContext).toBeUndefined();
     await app.close();
   });
 });

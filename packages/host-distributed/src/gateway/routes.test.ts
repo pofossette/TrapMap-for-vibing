@@ -791,8 +791,9 @@ describe('registerGatewayRoutes', () => {
     });
 
     expect(response.statusCode).toBe(400);
-    expect(response.json()).toEqual({
-      error: 'Missing required fields: decision',
+    expect(response.json()).toMatchObject({
+      code: 'validation_error',
+      message: 'Request validation failed',
       kind: 'validation',
     });
     expect(clients.knowledgeWrite.reviewArtifact).not.toHaveBeenCalled();

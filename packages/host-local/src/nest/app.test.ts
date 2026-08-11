@@ -1,13 +1,13 @@
-import { Module } from '@nestjs/common';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { KnowledgeReadPort } from '@trapmap/backend-core';
+import type { CandidateIngestionPort, KnowledgeReadPort, ReviewPort } from '@trapmap/backend-core';
 
-import { KnowledgeReadController } from './gateway/knowledge-read.controller.js';
+import { GatewayModule } from './gateway/gateway.module.js';
 import { KnowledgeReadModule } from './knowledge-read/knowledge-read.module.js';
 import { AllExceptionFilter } from './runtime/exception.filter.js';
+import type { HostLocalRuntime } from './runtime/host-runtime.js';
 import { RequestContextService } from './runtime/request-context.service.js';
 
 function createMockPort(): KnowledgeReadPort {
@@ -44,15 +44,74 @@ function createMockPort(): KnowledgeReadPort {
   };
 }
 
-async function createTestApp(mockPort: KnowledgeReadPort) {
-  @Module({
-    imports: [KnowledgeReadModule.forTesting(mockPort)],
-    controllers: [KnowledgeReadController],
-  })
-  class TestGatewayModule {}
+function createMockCandidatePort(): CandidateIngestionPort {
+  return {
+    submit: vi.fn(),
+    getById: vi.fn().mockResolvedValue(null),
+    listByStatus: vi.fn(),
+    applyResolution: vi.fn(),
+    submitManualResult: vi.fn().mockResolvedValue(undefined),
+    publishCandidateResult: vi.fn(),
+  };
+}
 
+function createMockReviewPort(): ReviewPort {
+  return {
+    approve: vi.fn(),
+    reject: vi.fn(),
+    applyMaintenance: vi.fn(),
+    applyDecay: vi.fn(),
+    reviewArtifact: vi.fn(),
+    submitFeedback: vi.fn(),
+  };
+}
+
+function createMockRuntime(): HostLocalRuntime {
+  return {
+    services: {
+      identity: {
+        sessionRepo: {
+          getByTokenHash: vi.fn(async () => ({
+            subjectType: 'user',
+            userId: 'user-1',
+            activeTeamId: null,
+          })),
+        },
+        userRepo: {
+          getById: vi.fn(async () => ({ id: 'user-1', handle: 'alice' })),
+        },
+        membershipRepo: {
+          listByUser: vi.fn(async () => []),
+        },
+        teamRepo: {
+          getById: vi.fn(),
+        },
+      },
+      runtimeDeployment: {
+        capabilities: { supportsLocalSingleUserMode: true },
+      },
+      knowledgeOwner: {
+        getById: vi.fn(async () => ({ id: 'entry-1', lifecycleState: 'approved' })),
+        listByFilter: vi.fn(async () => []),
+      },
+    },
+  };
+}
+
+async function createTestApp(
+  mockPort: KnowledgeReadPort,
+  candidatePort: CandidateIngestionPort = createMockCandidatePort(),
+  reviewPort: ReviewPort = createMockReviewPort(),
+) {
   const moduleRef = await Test.createTestingModule({
-    imports: [TestGatewayModule],
+    imports: [
+      KnowledgeReadModule.forTesting(mockPort),
+      GatewayModule.forRuntime(createMockRuntime(), {
+        knowledgeRead: mockPort,
+        candidateIngestion: candidatePort,
+        governanceReview: reviewPort,
+      }),
+    ],
     providers: [RequestContextService],
   }).compile();
 
@@ -66,7 +125,7 @@ async function createTestApp(mockPort: KnowledgeReadPort) {
   return app;
 }
 
-describe('Nest host scaffold (pilot surface)', () => {
+describe('Nest host gateway surface (RouteDef-driven)', () => {
   it('should serve GET /v1/knowledge/:entryId via in-process port', async () => {
     const mockPort = createMockPort();
     const app = await createTestApp(mockPort);

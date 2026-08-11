@@ -282,8 +282,14 @@ export function createKnowledgeWriteRouteDefs(
       schema: submitSchema,
       successStatus: 201,
       handler: async (ctx, module) => {
-        const body = trustedActor(ctx.headers ?? {}, ctx.body);
-        return module.submit(body);
+        const trusted = trustedActor(ctx.headers ?? {}, ctx.body);
+        return module.submit({
+          content: ctx.body.content,
+          ...(ctx.body.title !== undefined ? { title: ctx.body.title } : {}),
+          ...(ctx.body.labels !== undefined ? { labels: ctx.body.labels } : {}),
+          ...(ctx.body.teamId !== undefined ? { teamId: ctx.body.teamId } : {}),
+          actorId: trusted.actorId,
+        });
       },
     }),
 
@@ -350,8 +356,13 @@ export function createKnowledgeWriteRouteDefs(
       schema: createTrapSchema,
       successStatus: 201,
       handler: async (ctx, module) => {
-        const body = trustedActor(ctx.headers ?? {}, ctx.body);
-        return module.createTrap(body);
+        const trusted = trustedActor(ctx.headers ?? {}, ctx.body);
+        return module.createTrap({
+          content: ctx.body.content,
+          teamId: ctx.body.teamId,
+          ...(ctx.body.title !== undefined ? { title: ctx.body.title } : {}),
+          actorId: trusted.actorId,
+        });
       },
     }),
 
@@ -382,8 +393,13 @@ export function createKnowledgeWriteRouteDefs(
       path: '/internal/knowledge/review/approve',
       schema: reviewDecisionSchema,
       handler: async (ctx, module) => {
-        const body = trustedActor(ctx.headers ?? {}, ctx.body);
-        return module.approveReviewDecision(body);
+        const trusted = trustedActor(ctx.headers ?? {}, ctx.body);
+        return module.approveReviewDecision({
+          entryId: ctx.body.entryId,
+          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
+          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
+          actorId: trusted.actorId,
+        });
       },
     }),
 
@@ -392,8 +408,13 @@ export function createKnowledgeWriteRouteDefs(
       path: '/internal/knowledge/review/reject',
       schema: reviewDecisionSchema,
       handler: async (ctx, module) => {
-        const body = trustedActor(ctx.headers ?? {}, ctx.body);
-        return module.rejectReviewDecision(body);
+        const trusted = trustedActor(ctx.headers ?? {}, ctx.body);
+        return module.rejectReviewDecision({
+          entryId: ctx.body.entryId,
+          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
+          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
+          actorId: trusted.actorId,
+        });
       },
     }),
 
@@ -402,8 +423,14 @@ export function createKnowledgeWriteRouteDefs(
       path: '/internal/knowledge/maintenance',
       schema: maintenanceDecisionSchema,
       handler: async (ctx, module) => {
-        const body = trustedActor(ctx.headers ?? {}, ctx.body);
-        return module.applyMaintenanceDecision(body);
+        const trusted = trustedActor(ctx.headers ?? {}, ctx.body);
+        return module.applyMaintenanceDecision({
+          entryId: ctx.body.entryId,
+          action: ctx.body.action,
+          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
+          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
+          actorId: trusted.actorId,
+        });
       },
     }),
 
@@ -412,8 +439,14 @@ export function createKnowledgeWriteRouteDefs(
       path: '/internal/knowledge/decay',
       schema: maintenanceDecisionSchema,
       handler: async (ctx, module) => {
-        const body = trustedActor(ctx.headers ?? {}, ctx.body);
-        return module.applyDecayDecision(body);
+        const trusted = trustedActor(ctx.headers ?? {}, ctx.body);
+        return module.applyDecayDecision({
+          entryId: ctx.body.entryId,
+          action: ctx.body.action,
+          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
+          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
+          actorId: trusted.actorId,
+        });
       },
     }),
 

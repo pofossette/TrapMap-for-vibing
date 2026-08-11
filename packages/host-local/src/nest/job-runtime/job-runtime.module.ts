@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
 
 import type { JobRuntimeDeps, JobRuntimePort } from '@trapmap/backend-core';
-import { createJobRuntimeModule } from '@trapmap/backend-core';
+import { createJobRuntimeModule, createNestAdapter } from '@trapmap/backend-core';
+import { createJobRuntimeRouteDefs } from '@trapmap/service-job-runtime';
 
+import { AuthGuard } from '../runtime/auth.guard.js';
+import { serviceRouteDefsForMonolith } from '../runtime/monolith-route-defs.js';
 import { JobRuntimeWorkerService } from './job-runtime-worker.service.js';
 import { JOB_RUNTIME_PORT, JOB_RUNTIME_WORKER_CONFIG } from './job-runtime.tokens.js';
 
@@ -13,6 +16,10 @@ import { JOB_RUNTIME_PORT, JOB_RUNTIME_WORKER_CONFIG } from './job-runtime.token
  * factory. This module is pure runtime substrate — it owns no business
  * state machine and accepts handler-registry injection from other
  * contexts via the task-queue transport the host wires in.
+ *
+ * The service package's RouteDef list is registered through the shared
+ * Nest adapter (probe routes excluded, monolith owns /health) and guarded
+ * by the host session guard.
  */
 @Module({})
 // biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
@@ -22,6 +29,11 @@ export class JobRuntimeModule {
 
     return {
       module: JobRuntimeModule,
+      controllers: [
+        createNestAdapter(serviceRouteDefsForMonolith(createJobRuntimeRouteDefs(port)), port, {
+          guards: [AuthGuard],
+        }),
+      ],
       providers: [
         {
           provide: JOB_RUNTIME_PORT,
@@ -45,6 +57,11 @@ export class JobRuntimeModule {
   static forTesting(port: JobRuntimePort) {
     return {
       module: JobRuntimeModule,
+      controllers: [
+        createNestAdapter(serviceRouteDefsForMonolith(createJobRuntimeRouteDefs(port)), port, {
+          guards: [AuthGuard],
+        }),
+      ],
       providers: [
         {
           provide: JOB_RUNTIME_PORT,

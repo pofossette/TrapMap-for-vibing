@@ -11,9 +11,11 @@
  * - Handlers throw; they do not write responses.
  * - The shared `mapErrorToEnvelope` maps any thrown error to the canonical
  *   error envelope (`code/message/kind/requestId?/traceId?/details?`).
- * - Each adapter renders that envelope per its host's established wire
- *   convention: the standalone Fastify services render `{ error, kind }`,
- *   the Nest host renders the full envelope through its global filter.
+ * - Every adapter renders that envelope in full: the Fastify adapter sends
+ *   the complete canonical envelope plus the fastify request id, and the
+ *   Nest host renders it through its global filter (host-local's
+ *   AllExceptionFilter enriches it with requestId/traceId from the request
+ *   context).
  * - 401 authentication responses stay in each host's guard layer, never in
  *   the adapters or handlers.
  */

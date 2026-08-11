@@ -34,7 +34,7 @@ const importSchema = z.object({
 const exportSchema = z.object({
   params: emptyRecord,
   query: emptyRecord,
-  body: z.record(z.string(), z.unknown()).optional(),
+  body: z.record(z.string(), z.unknown()).optional().default({}),
 });
 
 const reviewQueueSchema = z.object({
@@ -173,7 +173,7 @@ export function createArtifactRouteDefs(_deps: ArtifactRouteDeps): RouteDef[] {
       path: '/internal/artifacts/export',
       schema: exportSchema,
       handler: async (ctx, module) => {
-        return module.readProjection.exportArtifacts(ctx.body ?? {});
+        return module.readProjection.exportArtifacts(ctx.body);
       },
     }),
 

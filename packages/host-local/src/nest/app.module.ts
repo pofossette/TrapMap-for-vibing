@@ -1,12 +1,15 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { createJobRuntimeModule } from '@trapmap/backend-core';
+import { createKnowledgeReadModule } from '@trapmap/backend-core';
 import { createKnowledgeWriteModule } from '@trapmap/backend-core';
+import { createCandidateIngestionModule } from '@trapmap/backend-core';
 import { createCandidateIngestionDeps } from '@trapmap/service-candidate-ingestion';
 import {
   createGovernanceAsyncCommandModule,
   createGovernanceReviewAdminModule,
   createGovernanceReviewDeps,
+  createGovernanceReviewServiceModule,
 } from '@trapmap/service-governance-review';
 import {
   createIdentityAccessDeps,
@@ -14,12 +17,13 @@ import {
   createIdentityAccessServiceModule,
 } from '@trapmap/service-identity-access';
 import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
+import { createKnowledgeReadDeps } from '@trapmap/service-knowledge-read';
 import { createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';
 
 import { CandidateIngestionModule } from './candidate-ingestion/candidate-ingestion.module.js';
 import { CandidateProcessingService } from './candidate-ingestion/candidate-processing.service.js';
 import { HOST_LOCAL_CONFIG_TOKEN, loadHostLocalConfig } from './config/index.js';
-import { GatewayModule, GatewayRuntimeModule } from './gateway/gateway.module.js';
+import { GatewayModule } from './gateway/gateway.module.js';
 import { GovernanceReviewModule } from './governance-review/governance-review.module.js';
 import { HealthModule } from './health/index.js';
 import { IdentityAccessModule } from './identity-access/identity-access.module.js';
@@ -84,10 +88,12 @@ const identityAccessModule = IdentityAccessModule.forPort(
   ),
 );
 
-const knowledgeReadModule = KnowledgeReadModule.forDeps({
+const knowledgeReadDeps = createKnowledgeReadDeps({
   knowledgeRepo: knowledgeProjection as never,
   retrievalQuery: hostLocalRuntime.retrievalQuery,
 });
+const knowledgeReadPort = createKnowledgeReadModule(knowledgeReadDeps);
+const knowledgeReadModule = KnowledgeReadModule.forTesting(knowledgeReadPort);
 
 const knowledgeWritePort = createKnowledgeWriteModule(
   createKnowledgeWriteDeps({
@@ -127,7 +133,7 @@ const governanceAdmin = createGovernanceReviewAdminModule({
   auditLog: hostLocalRuntime.auditLog,
 });
 
-const governanceReviewModule = GovernanceReviewModule.forDeps(
+const governanceReviewPort = createGovernanceReviewServiceModule(
   createGovernanceReviewDeps({
     knowledgeWrite: knowledgeWritePort,
     feedbackRepo: hostLocalRuntime.services.governanceReview.feedbackRepo,
@@ -138,10 +144,11 @@ const governanceReviewModule = GovernanceReviewModule.forDeps(
     governanceRetrievalProjection: hostLocalRuntime.services.governanceReview.retrievalProjection,
   }),
 );
+const governanceReviewModule = GovernanceReviewModule.forTesting(governanceReviewPort);
 
 const jobRuntimeModule = JobRuntimeModule.forDeps(jobRuntimeDeps);
 
-const candidateIngestionModule = CandidateIngestionModule.forDeps(
+const candidateIngestionPort = createCandidateIngestionModule(
   createCandidateIngestionDeps({
     candidateRepo: hostLocalRuntime.services.candidateIngestion.candidateRepo,
     auditLog: hostLocalRuntime.auditLog,
@@ -149,6 +156,7 @@ const candidateIngestionModule = CandidateIngestionModule.forDeps(
     jobRuntime: jobRuntimePort,
   }),
 );
+const candidateIngestionModule = CandidateIngestionModule.forTesting(candidateIngestionPort);
 
 @Module({
   imports: [
@@ -162,8 +170,11 @@ const candidateIngestionModule = CandidateIngestionModule.forDeps(
     governanceReviewModule,
     candidateIngestionModule,
     jobRuntimeModule,
-    GatewayRuntimeModule.forRuntime(hostLocalRuntime),
-    GatewayModule,
+    GatewayModule.forRuntime(hostLocalRuntime, {
+      knowledgeRead: knowledgeReadPort,
+      candidateIngestion: candidateIngestionPort,
+      governanceReview: governanceReviewPort,
+    }),
     ConsulModule,
     OtelModule,
     PrometheusModule,
