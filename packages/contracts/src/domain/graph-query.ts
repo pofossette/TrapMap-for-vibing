@@ -104,10 +104,11 @@ export interface GraphQueryBackend {
 }
 
 const GraphCtor = Graphology as unknown as new (options?: {
+  // lib type gap: graphology's default
   type?: string;
   multi?: boolean;
-}) => Graph; // lib type gap: graphology's default export types the constructor against
-// AbstractGraphOptions; the projection only needs the minimal directed/multi options
+}) => Graph; // export types the constructor against AbstractGraphOptions;
+// the projection only needs the minimal directed/multi options
 
 export function buildGraphFromDocuments(documents: GraphIndexDocumentRecord[]): Graph {
   const graph = new GraphCtor({ type: 'directed', multi: true });

@@ -5,7 +5,7 @@ import {
 } from '@trapmap/backend-core';
 import { decayConfigSchema } from '@trapmap/contracts';
 
-import type { KnowledgeReadSupportInfra } from './context.js';
+import type { KnowledgeReadProjectionCache, KnowledgeReadSupportInfra } from './context.js';
 
 function loadDecayConfig() {
   return decayConfigSchema.parse({
@@ -29,13 +29,17 @@ export function createDefaultKnowledgeReadSupportInfra(): KnowledgeReadSupportIn
       },
     },
     cache: {
-      createRetrievalReadModelCache(options) {
-        const values = new Map<string, { value: unknown; createdAt: number }>();
+      createRetrievalReadModelCache<V>(options: {
+        maxSize: number;
+        ttlMs: number;
+        namespace: string;
+      }): KnowledgeReadProjectionCache<V> {
+        const values = new Map<string, { value: V; createdAt: number }>();
         return {
           get(key) {
             const entry = values.get(key);
             if (!entry || Date.now() - entry.createdAt > options.ttlMs) return null;
-            return entry.value as never;
+            return entry.value;
           },
           set(key, value) {
             if (values.size >= options.maxSize && !values.has(key)) {

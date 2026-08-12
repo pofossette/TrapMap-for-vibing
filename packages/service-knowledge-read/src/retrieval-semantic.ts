@@ -153,7 +153,7 @@ export const semanticChannel: KnowledgeReadRecallChannel = {
       services,
       queryVector,
       entries,
-      undefined as unknown as RetrievalQuery['filters'],
+      { labels: [], scopes: [] },
       queryText,
     );
     return scoredEntries.map(({ entry, score }) => ({

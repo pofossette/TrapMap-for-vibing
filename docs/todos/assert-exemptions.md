@@ -6,8 +6,8 @@
 
 ## 统计
 
-- 总条目：222 处
-- 文件数：66
+- 总条目：175 处
+- 文件数：48
 
 ## 清单
 
@@ -58,13 +58,6 @@
 
 - 311: `as unknown as`
 
-### packages/contracts/src/domain/graph-query.ts
-
-- 106: `as unknown as`
-- 266: `as never`
-- 283: `as never`
-- 288: `as never`
-
 ### packages/host-distributed/src/governance-review/conflict-read.test.ts
 
 - 28: `as never`
@@ -81,14 +74,6 @@
 - 85: `as never`
 - 98: `as never`
 - 109: `as never`
-
-### packages/host-distributed/src/governance-review/ports.ts
-
-- 72: `as unknown as`
-
-### packages/host-distributed/src/index.ts
-
-- 118: `as never`
 
 ### packages/host-distributed/src/job-runtime/handlers.test.ts
 
@@ -125,23 +110,11 @@
 
 - 45: `as never`
 
-### packages/host-distributed/src/shared/ports.ts
-
-- 61: `as never`
-- 79: `as never`
-- 95: `as never`
-
 ### packages/host-distributed/src/shared/telemetry.test.ts
 
 - 27: `as never`
 - 60: `as never`
 - 83: `as never`
-
-### packages/host-local/src/nest/app.module.ts
-
-- 74: `as never`
-- 77: `as never`
-- 92: `as never`
 
 ### packages/host-local/src/nest/candidate-ingestion/candidate-processing.service.test.ts
 
@@ -162,14 +135,6 @@
 - 17: `as unknown as`
 - 19: `as unknown as`
 
-### packages/host-local/src/nest/observability/langfuse-sink.ts
-
-- 82: `as unknown as`
-
-### packages/host-local/src/nest/observability/langfuse.service.ts
-
-- 76: `as unknown as`
-
 ### packages/host-local/src/nest/observability/otel.service.test.ts
 
 - 8: `as unknown as`
@@ -177,33 +142,6 @@
 ### packages/host-local/src/nest/observability/prometheus.service.test.ts
 
 - 9: `as unknown as`
-
-### packages/host-local/src/nest/observability/sentry.service.ts
-
-- 202: `as unknown as`
-- 202: `as never`
-
-### packages/host-local/src/nest/runtime/backend-core-adapters.ts
-
-- 106: `as unknown as`
-- 113: `as unknown as`
-- 121: `as unknown as`
-- 149: `as unknown as`
-- 157: `as unknown as`
-- 166: `as unknown as`
-- 185: `as unknown as`
-- 193: `as unknown as`
-- 201: `as unknown as`
-- 204: `as never`
-- 226: `as unknown as`
-- 234: `as unknown as`
-- 242: `as unknown as`
-- 248: `as unknown as`
-- 251: `as never`
-- 267: `as unknown as`
-- 275: `as unknown as`
-- 280: `as never`
-- 367: `as unknown as`
 
 ### packages/host-local/src/nest/runtime/exception-filter.test.ts
 
@@ -222,10 +160,6 @@
 
 - 29: `as never`
 
-### packages/host-local/src/nest/runtime/host-runtime.ts
-
-- 43: `as unknown as`
-
 ### packages/host-local/src/nest/runtime/host-services.test.ts
 
 - 77: `as never`
@@ -235,20 +169,12 @@
 - 120: `as never`
 - 131: `as never`
 
-### packages/host-local/src/nest/runtime/host-services.ts
-
-- 94: `as unknown as`
-
 ### packages/host-local/src/nest/runtime/logging.middleware.test.ts
 
 - 25: `as never`
 - 35: `as never`
 - 62: `as never`
 - 70: `as never`
-
-### packages/host-local/src/nest/runtime/logging.middleware.ts
-
-- 18: `as unknown as`
 
 ### packages/host-local/src/nest/runtime/request-context.test.ts
 
@@ -325,17 +251,9 @@
 
 - 26: `as never`
 
-### packages/service-knowledge-read/src/graph-llm-extract.ts
-
-- 47: `as unknown as`
-
 ### packages/service-knowledge-read/src/import-boundary.test.ts
 
 - 303: `as never`
-
-### packages/service-knowledge-read/src/knowledge-read-support-infra-default.ts
-
-- 38: `as never`
 
 ### packages/service-knowledge-read/src/read-model.test.ts
 
@@ -343,11 +261,6 @@
 - 31: `as unknown as`
 - 60: `as unknown as`
 - 98: `as unknown as`
-
-### packages/service-knowledge-read/src/read-model.ts
-
-- 87: `as unknown as`
-- 88: `as unknown as`
 
 ### packages/service-knowledge-read/src/response-refinement.test.ts
 
@@ -366,19 +279,9 @@
 - 81: `as never`
 - 99: `as never`
 
-### packages/service-knowledge-read/src/retrieval-semantic.ts
-
-- 156: `as unknown as`
-
 ### packages/service-knowledge-read/src/search-knowledge.test.ts
 
 - 22: `as never`
-
-### packages/service-knowledge-read/src/server-retrieval-seam.ts
-
-- 61: `as unknown as`
-- 62: `as unknown as`
-- 82: `as unknown as`
 
 ### packages/service-knowledge-write/src/artifact-ports.test.ts
 
@@ -402,10 +305,6 @@
 ### packages/service-knowledge-write/src/labels/llm-align.test.ts
 
 - 52: `as unknown as`
-
-### packages/service-knowledge-write/src/labels/llm-align.ts
-
-- 220: `as unknown as`
 
 ### packages/service-knowledge-write/src/pg-ports.test.ts
 

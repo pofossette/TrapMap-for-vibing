@@ -73,7 +73,9 @@ export class LangfuseService implements LlmObservationSink, OnModuleInit, OnModu
         secretKey: this.policy.secretKey,
         flushAt: 1,
         persistence: 'memory',
-      }) as unknown as LangfuseClientLike;
+      }) as unknown as LangfuseClientLike; // lib type gap: the langfuse
+      // SDK client type does not structurally match the minimal local client
+      // surface used by the sink adapter
 
       this.sink = createSinkFromClient(this.client, this.policy);
 

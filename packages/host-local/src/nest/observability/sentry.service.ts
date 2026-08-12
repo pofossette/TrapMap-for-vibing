@@ -199,7 +199,9 @@ export class SentryService implements OnModuleInit, OnModuleDestroy {
         sampleRate: this.policy.sampleRate,
         tracesSampleRate: this.policy.tracesSampleRate,
         maxBreadcrumbs: this.policy.maxBreadcrumbs,
-        beforeSend: (event) => redactEvent(event as unknown as SentryEvent) as never,
+        beforeSend: (event) => redactEvent(event as SentryEvent) as never, // lib type gap: the Sentry SDK
+        // beforeSend return type is ErrorEvent, which requires fields the local
+        // redaction surface omits; both describe the same runtime event object
         integrations: (integrations) =>
           integrations.filter(
             (integration) => integration.name !== 'Http' && integration.name !== 'Undici',

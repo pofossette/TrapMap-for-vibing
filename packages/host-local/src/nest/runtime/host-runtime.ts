@@ -41,10 +41,10 @@ function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
     knowledge: services.knowledgeOwner,
     artifact: services.artifactReadProjection,
     governance: services.governanceReview.retrievalProjection as unknown as Parameters<
+      // lib type gap: the governance
       typeof createKnowledgeReadOwnerRetrievalServices
-    >[0]['governance'], // lib type gap: the governance owner bundle returns the
-    // backend-core minimal FeedbackQueueRecord shape while the retrieval seam
-    // expects knowledge-read's richer store record — same feedback rows at runtime
+    >[0]['governance'], // owner bundle returns the backend-core minimal FeedbackQueueRecord shape while
+    // the retrieval seam expects knowledge-read's richer store record — same rows at runtime
     strategyRegistry: services.strategyRegistry,
     channelRegistry: services.channelRegistry,
     ai: services.ai,
