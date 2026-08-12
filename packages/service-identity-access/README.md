@@ -206,21 +206,6 @@ await assertIdentityAccessMigrationSet();
 await runIdentityAccessMigrations(pool);
 ```
 
-### 遗留快照回填（Task 9）
-
-```typescript
-import {
-  migrateIdentityAudit,
-  verifyIdentityAuditBackfill,
-} from '@trapmap/service-identity-access';
-
-// 从遗留快照回填到身份表（幂等）
-const result = await migrateIdentityAudit({ pool, snapshot, dryRun: false });
-
-// 验证表行数与快照行数一致
-const verification = await verifyIdentityAuditBackfill({ pool, snapshot });
-```
-
 ## 脚本
 
 | 命令 | 说明 |
@@ -255,4 +240,3 @@ const verification = await verifyIdentityAuditBackfill({ pool, snapshot });
 | `routes.test.ts` | HTTP 端点：认证、团队、成员、访问密钥流程及错误映射 |
 | `pg-ports.test.ts` | PostgreSQL 端口工厂：行映射、actor 查找、审计查询、快照端口 |
 | `migrations.test.ts` | 迁移集断言：拒绝外部迁移文件、验证 journal 完整性 |
-| `identity-audit-backfill.test.ts` | 遗留快照回填：dry-run、全量写入、计数验证 |

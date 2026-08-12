@@ -57,7 +57,6 @@ src/
   llm-conflict.ts               LLM-powered conflict judgment (internal, not exported)
   pg-ports.ts                   PostgreSQL adapters for feedback repo, conflict projection, retrieval projection
   migrations.ts                 Drizzle migration runner
-  snapshot-backfill.ts          Snapshot migration/backfill utilities
   review-queue-projection.ts    Review queue projection builders
   schema.ts                     Re-exports from @trapmap/persistence-schema
 drizzle/
@@ -166,18 +165,6 @@ const projection = await buildReviewQueueProjection(repos, {
 // projection.total - number
 ```
 
-### Snapshot Backfill
-
-```typescript
-import { migrateGovernanceSnapshot } from '@trapmap/service-governance-review';
-
-const result = await migrateGovernanceSnapshot({
-  owner: { feedbackRepo: myRepo, conflictProjection: myProjection },
-  snapshot: { feedbackQueue: [...], conflicts: [...] },
-});
-// result.migrated, result.skipped, result.errors, result.verified
-```
-
 ## HTTP Routes
 
 ### Governance Commands
@@ -277,7 +264,6 @@ This service can read job-runtime queue/outbox operator snapshots but does not h
 | `src/review-queue-projection.test.ts` | Review queue projection |
 | `src/routes.test.ts` | HTTP route handlers and error mapping |
 | `src/server.test.ts` | Server factory |
-| `src/snapshot-backfill.test.ts` | Snapshot backfill utilities |
 
 ## Validation
 

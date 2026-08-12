@@ -118,7 +118,6 @@
 | 导出 | 说明 |
 |---|---|
 | `createKnowledgeReadGraphIndexRepository(pool)` | 创建 PostgreSQL graph_index_documents 仓库 |
-| `createKnowledgeReadGraphProjectionRebuilder(pool)` | 创建图投影回填器（从权威源表全量重建） |
 | `createMemoryGraphQueryBackend(repo)` | 创建内存图查询后端 |
 | `createCandidateCorpusPgReadPort(pool)` | 创建候选语料 PostgreSQL 读端口 |
 
@@ -174,7 +173,6 @@
 | `response-refinement.ts` | LLM refinement 生成：通过 package-local support seam 获取 prompt blocks / prompt string，再由 AI chat provider 生成 3 句话精炼 |
 | `rag-log.ts` | RAG 日志：配置加载、查询 ID 生成、JSON Lines 写入与文件轮转 |
 | `graph-index-repository.ts` | PostgreSQL `graph_index_documents` 表的 CRUD 仓库实现 |
-| `graph-projection-backfill.ts` | 图投影回填器：从 knowledge-write 权威源表全量重建 graph_index_documents |
 | `graph-query.ts` | `MemoryGraphQueryBackend`：one-hop expansion、relation strength、local expansion view、mitigating skills |
 | `graph-llm-extract.ts` | 两阶段 LLM 图实体抽取编排器，含 gleaning、canonical label alignment、resilience |
 | `candidate-corpus-pg.ts` | 候选语料 PostgreSQL 读端口（listApprovedTraps / listApprovedSkills） |
@@ -245,4 +243,4 @@ pnpm --filter @trapmap/service-knowledge-read typecheck # 类型检查
 
 测试文件与源码同目录，使用 `*.test.ts` 命名约定：
 
-`candidate-corpus-pg.test.ts`、`deps.test.ts`、`entry-projection.test.ts`、`graph-index-repository.test.ts`、`graph-projection-backfill.test.ts`、`graph-query.test.ts`、`import-boundary.test.ts`、`knowledge-read-support-infra-default.test.ts`、`migrations.test.ts`、`rag-log.test.ts`、`read-model.test.ts`、`retrieval-infra-default.test.ts`、`retrieval-keyword.test.ts`、`retrieval-orchestration.test.ts`、`retrieval-read-model-cache.test.ts`、`routes.test.ts`、`search-knowledge.test.ts`、`server-retrieval-seam.test.ts`、`server.test.ts`、`response-refinement.test.ts`
+`candidate-corpus-pg.test.ts`、`deps.test.ts`、`entry-projection.test.ts`、`graph-index-repository.test.ts`、`graph-query.test.ts`、`import-boundary.test.ts`、`knowledge-read-support-infra-default.test.ts`、`migrations.test.ts`、`rag-log.test.ts`、`read-model.test.ts`、`retrieval-infra-default.test.ts`、`retrieval-keyword.test.ts`、`retrieval-orchestration.test.ts`、`retrieval-read-model-cache.test.ts`、`routes.test.ts`、`search-knowledge.test.ts`、`server-retrieval-seam.test.ts`、`server.test.ts`、`response-refinement.test.ts`

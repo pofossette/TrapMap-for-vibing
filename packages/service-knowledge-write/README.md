@@ -56,11 +56,6 @@ import { alignGraphNodes, rewriteEdgeIds } from '@trapmap/service-knowledge-writ
 | `createArtifactWritePort` | Create the artifact write port from a pg Pool |
 | `createArtifactBundleImportPort` | Create the artifact bundle import port from a pg Pool |
 | `createArtifactFilePayloadOwner` | Create the artifact file payload store from a pg Pool |
-| `createArtifactSnapshotOwner` | Create the legacy artifact snapshot owner for Wave-9 backfill |
-| `createKnowledgeSnapshotOwner` | Create the legacy knowledge snapshot owner for Task-9 backfill |
-| `migrateLegacySkillArtifacts` | Run Wave-9 artifact backfill migration |
-| `migrateArtifactFilePayloads` | Run artifact file payload backfill |
-| `migrateKnowledgeSnapshot` | Run knowledge snapshot backfill |
 | `backfillLabels` | Backfill the canonical label catalog from historical data |
 | `alignLabel` | LLM-powered label alignment against the canonical catalog |
 | `repairGraphDocuments` | Repair graph documents after a label merge |
@@ -302,11 +297,6 @@ Knowledge-write owns the following tables:
 | `src/artifact-ports.test.ts` | Artifact write port, read projection, bundle import |
 | `src/pg-ports.test.ts` | `createKnowledgeWriteOwnerBundle`, outbox diagnostics |
 | `src/migrations.test.ts` | Migration assertion |
-| `src/knowledge-snapshot-backfill.test.ts` | Knowledge snapshot backfill |
-| `src/knowledge-snapshot-owner.test.ts` | Knowledge snapshot owner |
-| `src/wave9-artifact-backfill.test.ts` | Wave-9 artifact backfill |
-| `src/wave9-artifact-payload-backfill.test.ts` | Artifact file payload backfill |
-| `src/wave9-artifact-snapshot-owner.test.ts` | Artifact snapshot owner |
 | `src/labels/backfill.test.ts` | Label backfill |
 | `src/labels/candidate-recall.test.ts` | Candidate recall |
 | `src/labels/llm-align.test.ts` | LLM label alignment |

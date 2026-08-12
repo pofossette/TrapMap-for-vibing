@@ -71,6 +71,15 @@
 - [ ] **后续落点：** 若 `ai-providers` 被纳入 fallow zone 治理，需同步 `.fallowrc.json` 与 `BOUNDARIES.md`；`host-distributed` 的 `normalizeLabels`/`labelKey` 与 `formatPrometheusLabels`（metrics label 排序）可随 observability 平台主线一并收敛。
 - [ ] **要求的文档与测试：** lib 新增函数补单测；受影响包 focused tests；架构边界变化时回写 `docs/architecture/BOUNDARIES.md`；运行 `rtk pnpm exec fallow audit --base main`、`rtk pnpm typecheck`。
 
+### `test:import-export` 脚本损坏（2026-08-12 登记）
+
+- [ ] **来源：** Task 8（Wave 5 兼容债清除）验证时发现 `pnpm test:import-export` 在 base `19463ca3` 与主仓库同样失败：`scripts/test-skill-import-export.ts` 从根上下文导入 `@trapmap/service-knowledge-write` 与 `@trapmap/contracts`，但根 `package.json` 仅声明 `@trapmap/ai-providers`、`@trapmap/service-knowledge-read` 为 devDependencies，且 npm script 未传 `--tsconfig tsconfig.base.json`（其 paths 映射可解析所有 @trapmap 包）。`pnpm exec tsx --tsconfig tsconfig.base.json scripts/test-skill-import-export.ts` 可正常通过模块解析。
+- [ ] **影响：** 该脚本实际不可通过 npm script 运行，Skill 导入导出回归检查（AGENTS.md 要求）只能手工带 `--tsconfig` 执行；未被 CI 引用，因此不阻塞 CI。
+- [ ] **当前边界：** 不改变 `scripts/test-skill-import-export.ts` 逻辑；本登记项只追脚本可运行性。
+- [ ] **进入条件：** 任何 Skill artifact import/export 变更需要按 AGENTS.md 补 `test:import-export`，或根 `package.json` devDependencies/脚本定义被重整时。
+- [ ] **后续落点：** 建议修复：npm script 增加 `--tsconfig tsconfig.base.json`，或在根 devDependencies 声明 `@trapmap/service-knowledge-write` 与 `@trapmap/contracts`（`workspace:*`）后重跑 `pnpm install --lockfile-only` 更新锁文件。
+- [ ] **要求的文档与测试：** 修复后运行 `pnpm exec tsx --tsconfig tsconfig.base.json scripts/test-skill-import-export.ts`（需已下载 skill bundles 与 PostgreSQL）验证，并回写 `docs/operations/TESTING.md` 中相关命令说明。
+
 ## 审核检查表
 
 - [ ] 每次新问题录入都标注来源、影响、分类、证据和进入条件。
