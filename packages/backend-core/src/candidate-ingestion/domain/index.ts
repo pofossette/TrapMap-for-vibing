@@ -1,10 +1,9 @@
 /**
  * Candidate-ingestion bounded context — domain layer.
  *
- * Phase 2 target: pure candidate intake / normalize / dedup / resolution
- * domain types and policy helpers. Currently the business rules for this
- * context live behind the port seam; this file reserves the pure-domain
- * home for future extraction.
+ * Pure candidate intake / normalize / dedup / resolution rules with zero
+ * framework, DB or I/O imports. The application layer drives the pipeline
+ * through these rules; the PostgreSQL owner persists their results.
  */
 
 export const CANDIDATE_INGESTION_CONTEXT = 'candidate-ingestion' as const;
@@ -15,3 +14,8 @@ export const CANDIDATE_INGESTION_OWNED_CAPABILITIES = [
   'dedup',
   'resolution',
 ] as const;
+
+export * from './dedup.js';
+export * from './policy.js';
+export * from './resolution.js';
+export * from './llm-judgment.js';

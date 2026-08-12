@@ -3,6 +3,15 @@ import {
   type FeedbackRepositoryPort,
   InvocationError,
   type JobRuntimePort,
+  FEEDBACK_REMEDIATION_THRESHOLD,
+  activeFeedback,
+  ageDays,
+  batchActionEligibility,
+  batchActionUpdates,
+  failureClassificationSummary,
+  matchesLifecycleTriggerRule,
+  qualityScore,
+  remediationState,
 } from '@trapmap/backend-core';
 import type {
   ArtifactReadProjection,
@@ -16,7 +25,6 @@ import type {
   FeedbackRemediationDetailResponse,
   FeedbackRemediationQueueItem,
   FeedbackRemediationQueueResponse,
-  FeedbackRemediationState,
   FeedbackStatsResponse,
   KnowledgeOwnerPort,
 } from '@trapmap/contracts';
@@ -80,81 +88,6 @@ type FeedbackRepositoryRecord = Awaited<
 > extends infer T
   ? Exclude<T, null>
   : never;
-
-const FEEDBACK_REMEDIATION_THRESHOLD = 10;
-const FAILURE_CLASSIFICATIONS = [
-  'recall-miss',
-  'ranking-error',
-  'summary-hallucination',
-  'governance-leak',
-  'stale-content',
-] as const;
-
-function ageDays(submittedAt: string, now: Date): number {
-  return (now.getTime() - new Date(submittedAt).getTime()) / (1000 * 60 * 60 * 24);
-}
-
-function activeFeedback(records: AdminFeedbackRecord[], entryId: string): AdminFeedbackRecord[] {
-  return records.filter(
-    (record) =>
-      record.entryId === entryId && (record.status === 'new' || record.status === 'triaged'),
-  );
-}
-
-export function remediationState(
-  records: AdminFeedbackRecord[],
-  entryId: string,
-): FeedbackRemediationState | null {
-  const active = activeFeedback(records, entryId);
-  if (active.length < FEEDBACK_REMEDIATION_THRESHOLD) return null;
-  const ordered = [...active].sort((left, right) =>
-    left.submittedAt.localeCompare(right.submittedAt),
-  );
-  const status = ordered.some((record) => record.remediationStatus === 'ready-to-reindex')
-    ? 'ready-to-reindex'
-    : ordered.some((record) => record.remediationStatus === 'in-remediation')
-      ? 'in-remediation'
-      : 'pending-human-review';
-  const resolvedAt = ordered
-    .map((record) => record.remediationResolvedAt)
-    .filter((value): value is string => typeof value === 'string')
-    .sort()
-    .at(-1);
-  const resolvedByUserId = ordered
-    .map((record) => record.remediationResolvedByUserId)
-    .filter((value): value is string => typeof value === 'string')
-    .at(-1);
-  const first = ordered[0]!;
-  return {
-    status,
-    triggeredByFeedbackCount: ordered.length,
-    threshold: FEEDBACK_REMEDIATION_THRESHOLD,
-    suppressedFromRetrieval: true,
-    suppressedFromIndex: true,
-    activeFeedbackIds: ordered.map((record) => record.id),
-    openedAt: (first.remediationOpenedAt as string | undefined) ?? first.submittedAt,
-    openedByUserId: (first.remediationOpenedByUserId as string | undefined) ?? null,
-    resolvedAt: resolvedAt ?? null,
-    resolvedByUserId: resolvedByUserId ?? null,
-  };
-}
-
-function failureClassificationSummary(records: FeedbackListItem[]) {
-  const counts = FAILURE_CLASSIFICATIONS.map((classification) => ({ classification, count: 0 }));
-  for (const record of records) {
-    const classification = normalizeBadcaseTaxonomy(record.failureClassification);
-    const count = counts.find((item) => item.classification === classification);
-    if (count) count.count += 1;
-  }
-  const dominant = [...counts]
-    .sort((left, right) => right.count - left.count)
-    .find((item) => item.count > 0)?.classification;
-  return {
-    totalClassified: counts.reduce((total, item) => total + item.count, 0),
-    dominantClassification: dominant ?? null,
-    counts,
-  };
-}
 
 async function entryShortcut(
   record: AdminFeedbackRecord,
@@ -247,15 +180,7 @@ export function createGovernanceReviewAdminModule(
               records[0]!.submittedAt,
             )
           : null;
-      const score = Math.max(
-        0,
-        Math.min(
-          1,
-          Math.round(
-            (1 - unresolvedFeedback * 0.1 - incorrectReports * 0.05 - outdatedReports * 0.05) * 100,
-          ) / 100,
-        ),
-      );
+      const score = qualityScore(unresolvedFeedback, incorrectReports, outdatedReports);
       const recentFeedback = await Promise.all(
         [...records]
           .sort((left, right) => right.submittedAt.localeCompare(left.submittedAt))
@@ -283,29 +208,17 @@ export function createGovernanceReviewAdminModule(
       const items = command.feedbackIds.map(async (feedbackId) => {
         const record = (await deps.feedbackRepo.getById(feedbackId)) as AdminFeedbackRecord | null;
         if (record) records.set(feedbackId, record);
-        let eligible = false;
-        let reason: string | null = null;
-        if (!record) {
-          reason = 'Feedback not found';
-        } else if (record.status === 'resolved' || record.status === 'dismissed') {
-          reason = `Feedback already ${record.status}`;
-        } else {
-          switch (command.action) {
-            case 'resolve':
-            case 'dismiss':
-              eligible = true;
-              break;
-            case 'triage':
-              eligible = record.status === 'new';
-              if (!eligible) reason = 'Only new feedback can be triaged';
-              break;
-            case 'transition':
-              eligible = command.transitionTarget !== undefined;
-              if (!eligible) reason = 'transitionTarget required for transition action';
-              break;
-          }
-        }
-        return { feedbackId, eligible, reason, transitionApplied: false };
+        const eligibility = batchActionEligibility(
+          command.action,
+          record,
+          command.transitionTarget,
+        );
+        return {
+          feedbackId,
+          eligible: eligibility.eligible,
+          reason: eligibility.reason,
+          transitionApplied: false,
+        };
       });
       const resultItems = await Promise.all(items);
       const totalEligible = resultItems.filter((item) => item.eligible).length;
@@ -324,25 +237,12 @@ export function createGovernanceReviewAdminModule(
       const appliedAt = (deps.now?.() ?? new Date()).toISOString();
       for (const item of resultItems) {
         if (!item.eligible) continue;
-        const updates: Record<string, unknown> = { updatedAt: appliedAt };
-        switch (command.action) {
-          case 'resolve':
-            updates.status = 'resolved';
-            updates.resolvedAt = appliedAt;
-            updates.resolvedByUserId = actorId;
-            break;
-          case 'dismiss':
-            updates.status = 'dismissed';
-            break;
-          case 'triage':
-            updates.status = 'triaged';
-            break;
-          case 'transition':
-            updates.triggeredTransition = command.transitionTarget ?? null;
-            item.transitionApplied = true;
-            break;
-        }
+        const updates: Record<string, unknown> = {
+          ...batchActionUpdates(command.action, command.transitionTarget, appliedAt, actorId),
+          updatedAt: appliedAt,
+        };
         if (command.notes) updates.adminNotes = command.notes;
+        if (command.action === 'transition') item.transitionApplied = true;
         await deps.feedbackRepo.update(item.feedbackId, updates);
       }
       const lifecycleTransitions: Array<{ entryId: string; toState: string; reason: string }> = [];
@@ -361,12 +261,9 @@ export function createGovernanceReviewAdminModule(
             entryId,
           )) as AdminFeedbackRecord[];
           for (const rule of DEFAULT_LIFECYCLE_TRIGGER_RULES) {
-            const matching = entryRecords.filter((record) => {
-              if (record.status === 'dismissed' || record.problemType !== rule.problemType) {
-                return false;
-              }
-              return ageDays(record.submittedAt, now) <= rule.timeWindowDays;
-            });
+            const matching = entryRecords.filter((record) =>
+              matchesLifecycleTriggerRule(record, rule, now),
+            );
             if (matching.length < rule.minCount) continue;
             const reason = `${matching.length} '${rule.problemType}' feedback in last ${rule.timeWindowDays} days`;
             await deps.knowledgeWrite.applyDecayDecision({

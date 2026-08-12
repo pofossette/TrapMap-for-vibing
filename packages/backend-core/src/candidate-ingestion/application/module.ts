@@ -16,7 +16,10 @@ import type {
 } from '../../ports/internal-ports.js';
 import type { CandidateRepositoryPort } from '../../ports/repo-ports.js';
 
-import { CANDIDATE_INGESTION_OWNED_CAPABILITIES } from '../domain/index.js';
+import {
+  CANDIDATE_INGESTION_OWNED_CAPABILITIES,
+  normalizeManualResolution,
+} from '../domain/index.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)
@@ -48,60 +51,11 @@ export function createCandidateIngestionModule(
   const normalizeManualResult = (
     resolution: Record<string, unknown>,
   ): Parameters<CandidateRepositoryPort['attachManualResult']>[1] => {
-    const decision = resolution.decision;
-    const notes = resolution.notes;
-    const mergedWith = resolution.mergedWith;
-
-    if (decision !== 'independent' && decision !== 'merged') {
-      throw InvocationError.validation(
-        'Candidate resolution requires decision "independent" or "merged"',
-      );
+    try {
+      return normalizeManualResolution(resolution);
+    } catch (error) {
+      throw InvocationError.validation(error instanceof Error ? error.message : String(error));
     }
-
-    if (typeof notes !== 'string' || notes.trim().length === 0) {
-      throw InvocationError.validation('Candidate resolution requires non-empty notes');
-    }
-
-    if (decision === 'merged') {
-      if (
-        !mergedWith ||
-        typeof mergedWith !== 'object' ||
-        !('entityType' in mergedWith) ||
-        !('entityId' in mergedWith)
-      ) {
-        throw InvocationError.validation(
-          'Merged candidate resolution requires mergedWith.entityType and mergedWith.entityId',
-        );
-      }
-
-      const entityType = mergedWith.entityType;
-      const entityId = mergedWith.entityId;
-      const entityTitle =
-        'entityTitle' in mergedWith && typeof mergedWith.entityTitle === 'string'
-          ? mergedWith.entityTitle
-          : undefined;
-
-      if ((entityType !== 'trap' && entityType !== 'skill') || typeof entityId !== 'string') {
-        throw InvocationError.validation(
-          'Merged candidate resolution requires a valid mergedWith target',
-        );
-      }
-
-      return {
-        decision,
-        notes,
-        mergedWith: {
-          entityType,
-          entityId,
-          ...(entityTitle ? { entityTitle } : {}),
-        },
-      };
-    }
-
-    return {
-      decision,
-      notes,
-    };
   };
 
   return {

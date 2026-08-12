@@ -10,6 +10,9 @@ import {
   type Scope,
   knowledgeEntrySchema,
 } from '@trapmap/contracts';
+import { type ReviewQueueProjectionAuth, filterReviewQueueEntries } from '@trapmap/backend-core';
+
+export type { ReviewQueueProjectionAuth } from '@trapmap/backend-core';
 
 interface KnowledgeReviewNoteRecord {
   id: string;
@@ -140,39 +143,9 @@ interface ReviewQueueRepos {
   };
 }
 
-export interface ReviewQueueProjectionAuth {
-  subjectType: 'user' | 'system-admin';
-  activeTeamId: string | null;
-  securityLevel: number;
-}
-
 export interface ReviewQueueProjection {
   items: ReviewQueueItem[];
   total: number;
-}
-
-type ReviewQueueEntry = Pick<KnowledgeEntry, 'teamId' | 'requiredLevel' | 'lifecycleState'>;
-
-function filterReviewQueueEntries<T extends ReviewQueueEntry>(
-  entries: T[],
-  input: { auth: ReviewQueueProjectionAuth; status?: string },
-): T[] {
-  return entries.filter((entry) => {
-    if (
-      entry.teamId &&
-      input.auth.subjectType !== 'system-admin' &&
-      input.auth.activeTeamId !== entry.teamId
-    ) {
-      return false;
-    }
-    if (
-      input.auth.subjectType !== 'system-admin' &&
-      input.auth.securityLevel <= entry.requiredLevel
-    ) {
-      return false;
-    }
-    return input.status ? entry.lifecycleState === input.status : true;
-  });
 }
 
 export async function buildOwnerReviewQueueProjection(

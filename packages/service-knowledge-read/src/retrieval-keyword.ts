@@ -1,25 +1,9 @@
+import { normalizeQuery, scoreKeywordEntry, tokenizeText } from '@trapmap/backend-core';
 import type { KnowledgeReadRecallChannel } from './retrieval-orchestration.js';
-import type { RecallCandidate, TokenMatchDetail } from './retrieval-types.js';
+import type { RecallCandidate } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 
-export function tokenize(text: string): string[] {
-  const normalized = text.toLowerCase();
-  const rawTokens = normalized.split(/[^a-z0-9]+/g);
-  const tokenSet = new Set<string>();
-
-  for (const token of rawTokens) {
-    if (token.length > 0) {
-      tokenSet.add(token);
-    }
-  }
-
-  return Array.from(tokenSet);
-}
-
-export function normalizeQuery(query: string): string[] {
-  const tokens = tokenize(query);
-  return tokens.filter((t) => t.length >= 2);
-}
+export { normalizeQuery, tokenizeText as tokenize } from '@trapmap/backend-core';
 
 function tokenizeEntry(entry: KnowledgeRecord): {
   shortcut: Set<string>;
@@ -38,63 +22,9 @@ function tokenizeEntry(entry: KnowledgeRecord): {
   }
 
   return {
-    shortcut: new Set(tokenize(entry.shortcut)),
-    detail: new Set(tokenize(entry.detail)),
-    labels: new Set(tokenize(entry.labels.join(' '))),
-  };
-}
-
-function scoreEntry(
-  queryTokens: string[],
-  _entry: KnowledgeRecord,
-  entryTokens: {
-    shortcut: Set<string>;
-    detail: Set<string>;
-    labels: Set<string>;
-  },
-): { score: number; tokenMatches: TokenMatchDetail[] } {
-  if (queryTokens.length === 0) {
-    return { score: 0, tokenMatches: [] };
-  }
-
-  const tokenMatches: TokenMatchDetail[] = [];
-  const LABEL_WEIGHT = 3.0;
-  const SHORTCUT_WEIGHT = 2.0;
-  const DETAIL_WEIGHT = 1.0;
-
-  let totalWeightedScore = 0;
-  let maxPossibleScore = 0;
-
-  for (const token of queryTokens) {
-    const fields: TokenMatchDetail['fields'] = [];
-    let tokenScore = 0;
-
-    if (entryTokens.labels.has(token)) {
-      tokenScore += LABEL_WEIGHT;
-      fields.push('labels');
-    }
-    if (entryTokens.shortcut.has(token)) {
-      tokenScore += SHORTCUT_WEIGHT;
-      fields.push('shortcut');
-    }
-    if (entryTokens.detail.has(token)) {
-      tokenScore += DETAIL_WEIGHT;
-      fields.push('detail');
-    }
-
-    if (fields.length > 0) {
-      tokenMatches.push({ token, fields });
-    }
-
-    totalWeightedScore += tokenScore;
-    maxPossibleScore += LABEL_WEIGHT + SHORTCUT_WEIGHT + DETAIL_WEIGHT;
-  }
-
-  const score = maxPossibleScore > 0 ? totalWeightedScore / maxPossibleScore : 0;
-
-  return {
-    score: Math.min(1, Math.max(0, score)),
-    tokenMatches,
+    shortcut: new Set(tokenizeText(entry.shortcut)),
+    detail: new Set(tokenizeText(entry.detail)),
+    labels: new Set(tokenizeText(entry.labels.join(' '))),
   };
 }
 
@@ -117,7 +47,7 @@ export async function keywordRecall(
     const entryTokens = entryTokenMaps.get(entry.id);
     if (!entryTokens) continue;
 
-    const { score, tokenMatches } = scoreEntry(queryTokens, entry, entryTokens);
+    const { score, tokenMatches } = scoreKeywordEntry(queryTokens, entryTokens);
     if (tokenMatches.length > 0) {
       candidates.push({
         entry,

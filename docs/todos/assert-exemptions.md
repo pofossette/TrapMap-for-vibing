@@ -6,24 +6,13 @@
 
 ## 统计
 
-- 总条目：253 处
-- 文件数：76
 
 ## 清单
-
-### packages/backend-core/src/identity-access/application/module.ts
-
-- 161: `as unknown as`
 
 ### packages/backend-core/src/job-runtime/application/module.test.ts
 
 - 16: `as never`
 - 18: `as never`
-
-### packages/backend-core/src/knowledge-write/application/module.ts
-
-- 182: `as never`
-- 186: `as never`
 
 ### packages/backend-core/src/ports/lifecycle-ports.test.ts
 
@@ -296,10 +285,6 @@
 - 245: `as never`
 - 315: `as never`
 
-### packages/service-governance-review/src/pg-ports.ts
-
-- 342: `as never`
-
 ### packages/service-governance-review/src/review-queue-projection.test.ts
 
 - 119: `as unknown as`
@@ -328,23 +313,6 @@
 - 158: `as never`
 - 160: `as never`
 - 165: `as never`
-
-### packages/service-identity-access/src/pg-ports.ts
-
-- 25: `as never`
-- 231: `as never`
-- 237: `as never`
-- 248: `as never`
-- 280: `as never`
-- 284: `as never`
-- 296: `as never`
-- 315: `as never`
-- 319: `as never`
-- 323: `as never`
-- 355: `as never`
-- 362: `as never`
-- 398: `as never`
-- 402: `as never`
 
 ### packages/service-job-runtime/src/async-runtime.test.ts
 
@@ -381,7 +349,7 @@
 
 ### packages/service-knowledge-read/src/knowledge-read-support-infra-default.ts
 
-- 64: `as never`
+- 38: `as never`
 
 ### packages/service-knowledge-read/src/read-model.test.ts
 
@@ -414,7 +382,7 @@
 
 ### packages/service-knowledge-read/src/retrieval-semantic.ts
 
-- 227: `as unknown as`
+- 156: `as unknown as`
 
 ### packages/service-knowledge-read/src/search-knowledge.test.ts
 
@@ -481,10 +449,6 @@
 - 493: `as never`
 - 515: `as never`
 - 534: `as never`
-
-### packages/service-knowledge-write/src/pg-ports.ts
-
-- 98: `as unknown as`
 
 ### packages/service-knowledge-write/src/wave9-artifact-snapshot-owner.test.ts
 

@@ -6,7 +6,7 @@ import {
   type CandidateCorpusReadPort,
   buildNormalizedDuplicateInput,
   createCandidateDuplicateDetector,
-} from './index.js';
+} from './dedup.js';
 
 function makeTrapCandidate(
   id: string,

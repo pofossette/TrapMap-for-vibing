@@ -1,12 +1,14 @@
-import { InvocationError } from '@trapmap/backend-core';
+import {
+  InvocationError,
+  buildUnknownModeMessage,
+  computeScore,
+  createGraphRecallTrace,
+  inferChannelsFromMerged,
+  mergeCandidatesWithGraph,
+} from '@trapmap/backend-core';
 import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
 import type { Pool } from 'pg';
-import type {
-  MergedCandidate,
-  RecallCandidate,
-  RoutingChannel,
-  ScoredEntry,
-} from './retrieval-types.js';
+import type { MergedCandidate, ScoredEntry } from './retrieval-types.js';
 
 import type {
   KnowledgeReadGraphQueryRuntimeState,
@@ -15,9 +17,10 @@ import type {
 } from './context.js';
 import { getRetrievalInfra } from './retrieval-infra.js';
 import { keywordRecall, normalizeQuery } from './retrieval-keyword.js';
-import { computeScore, getQueryEmbedding, optimizedSemanticRecall } from './retrieval-semantic.js';
+import { getQueryEmbedding, optimizedSemanticRecall } from './retrieval-semantic.js';
 import type { KnowledgeRecord } from './store.js';
 
+export { inferChannelsFromMerged };
 interface RetrievalStrategyLike {
   readonly version: string;
   execute(
@@ -69,19 +72,6 @@ export function getDbSearchConfig(services: SkillShareerServices): DbSearchConfi
   return { enabled: enabled && pool !== null, pool };
 }
 
-export function inferChannelsFromMerged(mergedCandidates?: MergedCandidate[]): RoutingChannel[] {
-  if (!mergedCandidates || mergedCandidates.length === 0) {
-    return ['semantic'];
-  }
-  const channelSet = new Set<RoutingChannel>();
-  for (const candidate of mergedCandidates) {
-    for (const ch of candidate.channels) {
-      channelSet.add(ch);
-    }
-  }
-  return Array.from(channelSet);
-}
-
 export async function dispatchByMode(
   mode: string,
   _seed: string,
@@ -95,10 +85,10 @@ export async function dispatchByMode(
   const strategy = strategyRegistry.get(mode);
   if (!strategy) {
     throw InvocationError.validation(
-      `Invalid query mode: ${mode}. Must be one of: ${strategyRegistry
-        .all()
-        .map((s) => s.version)
-        .join(', ')}`,
+      buildUnknownModeMessage(
+        mode,
+        strategyRegistry.all().map((s) => s.version),
+      ),
     );
   }
   return strategy.execute(parsed, channelRegistry, eligibleEntries, services, auth);
@@ -323,8 +313,6 @@ async function computeSemanticCandidates(
   return candidates;
 }
 
-const GRAPH_SCORE_BOOST_FACTOR = 0.2;
-
 export async function graphAssistedHybridRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
@@ -384,59 +372,5 @@ export async function graphAssistedHybridRecall(
         governedGraphCandidates.length,
       ),
     },
-  };
-}
-
-function mergeCandidatesWithGraph(
-  hybridMerged: MergedCandidate[],
-  graphCandidates: RecallCandidate[],
-): MergedCandidate[] {
-  const result = [...hybridMerged];
-
-  for (const graphCandidate of graphCandidates) {
-    const existing = result.find((c) => c.entry.id === graphCandidate.entry.id);
-
-    if (existing) {
-      existing.channels.push('graph');
-      existing.graphScore = graphCandidate.score;
-      const preRerankScore = existing.combinedScore;
-      const finalScore = Math.min(
-        1,
-        preRerankScore + graphCandidate.score * GRAPH_SCORE_BOOST_FACTOR,
-      );
-      existing.combinedScore = finalScore;
-      existing.preRerankScore = preRerankScore;
-      existing.finalScore = finalScore;
-    } else {
-      const score = graphCandidate.score;
-      result.push({
-        entry: graphCandidate.entry,
-        semanticScore: 0,
-        keywordScore: 0,
-        graphScore: graphCandidate.score,
-        channelScores: { graph: graphCandidate.score },
-        combinedScore: score,
-        tokenMatches: [],
-        channels: ['graph'],
-        preRerankScore: score,
-        finalScore: score,
-      });
-    }
-  }
-
-  result.sort((a, b) => b.combinedScore - a.combinedScore);
-  return result;
-}
-
-function createGraphRecallTrace(
-  runtimeState: KnowledgeReadGraphQueryRuntimeState | undefined,
-  graphCandidateCount: number,
-): GraphRecallTrace {
-  return {
-    mergeMode: 'mixed',
-    graphExpansion: 'local-neighborhood',
-    backendKind: runtimeState?.backendKind ?? 'memory',
-    backendMode: runtimeState?.mode ?? 'disabled',
-    graphCandidateCount,
   };
 }

@@ -1,17 +1,26 @@
 import { randomUUID } from 'node:crypto';
 
 import type {
+  AccessKeyRecord,
   AccessKeyRepositoryPort,
   AuditLogPort,
+  MembershipRecord,
   MembershipRepositoryPort,
   PermissionCheckPort,
   SessionLookupPort,
+  SessionRecord,
   SessionRepositoryPort,
   TeamLookupPort,
   TeamRepositoryPort,
   UserRepositoryPort,
 } from '@trapmap/backend-core';
-import type { Permission } from '@trapmap/contracts';
+import {
+  defaultRoleTemplate,
+  defaultSecurityLevel,
+  defaultTeamName,
+  permissionsForRole,
+  sessionSecurityLevel,
+} from '@trapmap/backend-core';
 import { nowIso, uniqBy } from '@trapmap/lib';
 import type { Pool } from 'pg';
 
@@ -22,15 +31,17 @@ type Queryable = Pick<Pool, 'query'>;
 
 async function listMemberships(pool: Queryable, column: 'user_id' | 'team_id', value: string) {
   const { rows } = await pool.query(`SELECT * FROM memberships WHERE ${column} = $1`, [value]);
-  return rows.map(rowToMembership) as never[];
+  return rows.map((row) => rowToMembership(row as Record<string, unknown>));
 }
 
-function rowToMembership(row: Record<string, unknown>) {
+// lib type gap: repo-ports MembershipRecord narrows roleTemplate to a fixed
+// union while rows carry arbitrary role templates
+function rowToMembership(row: Record<string, unknown>): MembershipRecord {
   return {
     id: String(row.id),
     userId: String(row.user_id),
     teamId: String(row.team_id),
-    roleTemplate: String(row.role_template),
+    roleTemplate: String(row.role_template) as MembershipRecord['roleTemplate'],
     securityLevel: Number(row.security_level),
     permissions: Array.isArray(row.permissions) ? row.permissions : [],
     notes: typeof row.notes === 'string' ? row.notes : null,
@@ -39,7 +50,9 @@ function rowToMembership(row: Record<string, unknown>) {
   };
 }
 
-function rowToAccessKey(row: Record<string, unknown>) {
+// lib type gap: repo-ports AccessKeyRecord models revokedAt/updatedAt as
+// optional, while rows always carry them (null when never revoked)
+function rowToAccessKey(row: Record<string, unknown>): AccessKeyRecord {
   return {
     id: String(row.id),
     memberId: String(row.member_id),
@@ -52,7 +65,7 @@ function rowToAccessKey(row: Record<string, unknown>) {
     revokedAt: row.revoked_at instanceof Date ? row.revoked_at.toISOString() : null,
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : nowIso(),
     updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : nowIso(),
-  };
+  } as unknown as AccessKeyRecord; // lib type gap:
 }
 
 function rowToUser(row: Record<string, unknown>) {
@@ -154,7 +167,7 @@ export function createIdentityAccessActorLookupSource(pool: Queryable): Identity
   };
 }
 
-function rowToSession(row: Record<string, unknown>) {
+function rowToSession(row: Record<string, unknown>): SessionRecord {
   return {
     id: String(row.id),
     subjectType: row.subject_type === 'system-admin' ? 'system-admin' : 'user',
@@ -165,31 +178,6 @@ function rowToSession(row: Record<string, unknown>) {
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : nowIso(),
     updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : nowIso(),
   };
-}
-
-function rolePermissions(role: string): Permission[] {
-  const read: Permission[] = ['session:read', 'team:list', 'knowledge:search'];
-  if (role === 'admin' || role === 'system-admin') {
-    return [
-      ...read,
-      'team:create',
-      'team:select',
-      'member:create',
-      'member:update',
-      'member:key:create',
-      'knowledge:submit',
-      'knowledge:review',
-      'knowledge:update',
-      'knowledge:export',
-      'knowledge:import',
-      'audit:read',
-      'stats:read',
-    ];
-  }
-  if (role === 'editor') {
-    return [...read, 'team:select', 'knowledge:submit', 'knowledge:update', 'knowledge:export'];
-  }
-  return read;
 }
 
 export function createIdentityAccessPgDeps(
@@ -206,35 +194,33 @@ export function createIdentityAccessPgDeps(
     async create(session) {
       const id = await this.nextId();
       const createdAt = nowIso();
+      const subjectType: SessionRecord['subjectType'] =
+        session.subjectType === 'system-admin' ? 'system-admin' : 'user';
+      const userId = typeof session.userId === 'string' ? session.userId : null;
+      const activeTeamId = typeof session.activeTeamId === 'string' ? session.activeTeamId : null;
+      const tokenHash = String(session.tokenHash);
+      const expiresAt = typeof session.expiresAt === 'string' ? session.expiresAt : null;
       await pool.query(
         `INSERT INTO sessions (id, token_hash, user_id, active_team_id, subject_type, expires_at, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $7)`,
-        [
-          id,
-          session.tokenHash,
-          session.userId,
-          session.activeTeamId,
-          session.subjectType ?? 'user',
-          session.expiresAt,
-          createdAt,
-        ],
+        [id, tokenHash, userId, activeTeamId, subjectType, expiresAt, createdAt],
       );
       return {
         id,
-        subjectType: session.subjectType ?? 'user',
-        userId: session.userId,
-        activeTeamId: session.activeTeamId,
-        tokenHash: session.tokenHash,
-        expiresAt: session.expiresAt ?? null,
+        subjectType,
+        userId,
+        activeTeamId,
+        tokenHash,
+        expiresAt,
         createdAt,
         updatedAt: createdAt,
-      } as never;
+      };
     },
     async getByTokenHash(tokenHash) {
       const { rows } = await pool.query('SELECT * FROM sessions WHERE token_hash = $1', [
         tokenHash,
       ]);
-      return rows[0] ? (rowToSession(rows[0] as Record<string, unknown>) as never) : null;
+      return rows[0] ? rowToSession(rows[0] as Record<string, unknown>) : null;
     },
     async deleteByTokenHash(tokenHash) {
       await pool.query('DELETE FROM sessions WHERE token_hash = $1', [tokenHash]);
@@ -245,7 +231,7 @@ export function createIdentityAccessPgDeps(
         [teamId, sessionId],
       );
       if (!rows[0]) throw new Error(`Session ${sessionId} not found`);
-      return rowToSession(rows[0] as Record<string, unknown>) as never;
+      return rowToSession(rows[0] as Record<string, unknown>);
     },
   };
   const accessKeyRepo: AccessKeyRepositoryPort = {
@@ -277,11 +263,11 @@ export function createIdentityAccessPgDeps(
       const { rows } = await pool.query('SELECT * FROM access_keys WHERE token_hash = $1', [
         tokenHash,
       ]);
-      return rows[0] ? (rowToAccessKey(rows[0] as Record<string, unknown>) as never) : null;
+      return rows[0] ? rowToAccessKey(rows[0] as Record<string, unknown>) : null;
     },
     async getById(keyId) {
       const { rows } = await pool.query('SELECT * FROM access_keys WHERE id = $1', [keyId]);
-      return rows[0] ? (rowToAccessKey(rows[0] as Record<string, unknown>) as never) : null;
+      return rows[0] ? rowToAccessKey(rows[0] as Record<string, unknown>) : null;
     },
     async revoke(keyId) {
       await pool.query(
@@ -293,7 +279,7 @@ export function createIdentityAccessPgDeps(
       const { rows } = await pool.query('SELECT * FROM access_keys WHERE member_id = $1', [
         memberId,
       ]);
-      return rows as never[];
+      return rows.map((row) => rowToAccessKey(row as Record<string, unknown>));
     },
   };
   const actorLookup = createIdentityAccessActorLookupSource(pool);
@@ -307,20 +293,20 @@ export function createIdentityAccessPgDeps(
     async insert(team) {
       await pool.query(
         'INSERT INTO teams (id, slug, name, description, created_at, updated_at) VALUES ($1,$2,$3,$4,NOW(),NOW())',
-        [team.id, team.slug, team.name ?? team.slug, team.description ?? null],
+        [team.id, team.slug, defaultTeamName(team.name, team.slug), team.description ?? null],
       );
     },
     async getById(teamId) {
       const { rows } = await pool.query('SELECT * FROM teams WHERE id = $1', [teamId]);
-      return rows[0] ? (rowToTeam(rows[0] as Record<string, unknown>) as never) : null;
+      return rows[0] ? rowToTeam(rows[0] as Record<string, unknown>) : null;
     },
     async getBySlug(slug) {
       const { rows } = await pool.query('SELECT * FROM teams WHERE slug = $1', [slug]);
-      return rows[0] ? (rowToTeam(rows[0] as Record<string, unknown>) as never) : null;
+      return rows[0] ? rowToTeam(rows[0] as Record<string, unknown>) : null;
     },
     async listAll() {
       const { rows } = await pool.query('SELECT * FROM teams');
-      return rows.map((row) => rowToTeam(row as Record<string, unknown>)) as never[];
+      return rows.map((row) => rowToTeam(row as Record<string, unknown>));
     },
     async update(teamId, updates) {
       await pool.query(
@@ -343,8 +329,8 @@ export function createIdentityAccessPgDeps(
           member.id,
           member.userId,
           member.teamId,
-          member.roleTemplate ?? (member as { role?: string }).role ?? 'user',
-          member.securityLevel ?? 0,
+          member.roleTemplate ?? defaultRoleTemplate((member as { role?: string }).role),
+          defaultSecurityLevel(member.securityLevel),
           JSON.stringify(member.permissions ?? []),
           member.notes ?? null,
         ],
@@ -352,14 +338,14 @@ export function createIdentityAccessPgDeps(
     },
     async getById(memberId) {
       const { rows } = await pool.query('SELECT * FROM memberships WHERE id = $1', [memberId]);
-      return rows[0] ? (rowToMembership(rows[0] as Record<string, unknown>) as never) : null;
+      return rows[0] ? rowToMembership(rows[0] as Record<string, unknown>) : null;
     },
     async findByUserAndTeam(userId, teamId) {
       const { rows } = await pool.query(
         'SELECT * FROM memberships WHERE user_id = $1 AND team_id = $2',
         [userId, teamId],
       );
-      return rows[0] ? (rowToMembership(rows[0] as Record<string, unknown>) as never) : null;
+      return rows[0] ? rowToMembership(rows[0] as Record<string, unknown>) : null;
     },
     async listByUser(userId) {
       return listMemberships(pool, 'user_id', userId);
@@ -395,11 +381,11 @@ export function createIdentityAccessPgDeps(
     },
     async getById(userId) {
       const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-      return rows[0] ? (rowToUser(rows[0] as Record<string, unknown>) as never) : null;
+      return rows[0] ? rowToUser(rows[0] as Record<string, unknown>) : null;
     },
     async getByHandle(handle) {
       const { rows } = await pool.query('SELECT * FROM users WHERE handle = $1', [handle]);
-      return rows[0] ? (rowToUser(rows[0] as Record<string, unknown>) as never) : null;
+      return rows[0] ? rowToUser(rows[0] as Record<string, unknown>) : null;
     },
     async update(userId, updates) {
       await pool.query(
@@ -422,7 +408,7 @@ export function createIdentityAccessPgDeps(
           userId: 'system-admin',
           handle: 'system-admin',
           activeTeamId: null,
-          securityLevel: 10,
+          securityLevel: sessionSecurityLevel('system-admin'),
         };
       return row.user_id && row.handle
         ? {
@@ -430,7 +416,7 @@ export function createIdentityAccessPgDeps(
             userId: String(row.user_id),
             handle: String(row.handle),
             activeTeamId: typeof row.active_team_id === 'string' ? row.active_team_id : null,
-            securityLevel: 1,
+            securityLevel: sessionSecurityLevel('user'),
           }
         : null;
     },
@@ -461,7 +447,7 @@ export function createIdentityAccessPgDeps(
         'SELECT role_template FROM memberships WHERE user_id = $1 AND team_id = $2',
         [userId, teamId],
       );
-      return rows[0] ? rolePermissions(String(rows[0].role_template)) : [];
+      return rows[0] ? permissionsForRole(String(rows[0].role_template)) : [];
     },
     async hasPermission(userId, teamId, permission) {
       return (await this.resolvePermissions(userId, teamId)).includes(permission);

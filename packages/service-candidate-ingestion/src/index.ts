@@ -27,7 +27,7 @@ export {
   createCandidateDuplicateDetector,
   type CandidateCorpusReadPort,
   type NormalizedDuplicateInput,
-} from './domain/index.js';
+} from '@trapmap/backend-core';
 export {
   CANDIDATE_PROCESSING_TASK_TYPE,
   createCandidateProcessingHandler,

@@ -1,37 +1,23 @@
 import { createHash } from 'node:crypto';
 
 import {
-  type BoundaryContext,
-  type FreshnessDecayConfig,
-  enrichConflictHints,
-} from '@trapmap/contracts';
+  DEFAULT_FRESHNESS_DECAY_CONFIG,
+  computeBoundaryScoreDelta,
+  createSemanticCandidate,
+  filterByBoundary,
+  mergeCandidates,
+  normalizeQuery,
+  rerankCandidates,
+  routingDecision,
+} from '@trapmap/backend-core';
+import { type FreshnessDecayConfig, enrichConflictHints } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
-import type {
-  KnowledgeReadGraphQueryBackend,
-  KnowledgeReadRetrievalInfra,
-  KnowledgeReadRoutingDecision,
-} from './context.js';
-import { normalizeQuery } from './retrieval-keyword.js';
-import type { MergedCandidate, RecallCandidate, ScoredEntry } from './retrieval-types.js';
+import type { KnowledgeReadGraphQueryBackend, KnowledgeReadRetrievalInfra } from './context.js';
+import type { RecallCandidate, ScoredEntry } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 
-const freshnessConfig: FreshnessDecayConfig = {
-  evergreen: { enabled: false },
-  versioned: {
-    enabled: true,
-    mode: 'step',
-    matchMultiplier: 1,
-    mismatchMultiplier: 0.5,
-  },
-  volatile: {
-    enabled: true,
-    mode: 'exponential',
-    halfLifeDays: 30,
-    zeroDays: 90,
-    floor: 0.3,
-  },
-};
+const freshnessConfig: FreshnessDecayConfig = DEFAULT_FRESHNESS_DECAY_CONFIG;
 const queryEmbeddings = new Map<string, number[]>();
 
 function embed(text: string): number[] {
@@ -44,246 +30,6 @@ function embed(text: string): number[] {
   }
   const magnitude = Math.sqrt(vector.reduce((total, value) => total + value * value, 0));
   return magnitude === 0 ? vector : vector.map((value) => value / magnitude);
-}
-
-function routingDecision(mode: string): KnowledgeReadRoutingDecision {
-  const channels =
-    mode === 'graph-assisted'
-      ? ['semantic', 'keyword', 'graph']
-      : mode === 'hybrid'
-        ? ['semantic', 'keyword']
-        : ['semantic'];
-  return {
-    selectedMode:
-      mode === 'semantic'
-        ? 'local'
-        : mode === 'hybrid'
-          ? 'hybrid'
-          : mode === 'graph-assisted'
-            ? 'mix'
-            : 'local',
-    routeFamily: 'entry',
-    routingReason: 'explicit-mode',
-    fallbackApplied: !['semantic', 'hybrid', 'graph-assisted'].includes(mode),
-    fallbackTarget: null,
-    confidenceScore: null,
-    confidenceBucket: null,
-    channelsPlanned: channels,
-    channelsUsed: [],
-  };
-}
-
-function filterByBoundary(
-  entries: KnowledgeRecord[],
-  context: BoundaryContext | undefined,
-): KnowledgeRecord[] {
-  if (!context?.versions?.length) return entries;
-  return entries.filter(
-    (entry) =>
-      entry.boundary?.versions.every((constraint) => {
-        const version = context.versions?.find(
-          (item) => item.package.toLowerCase().trim() === constraint.package.toLowerCase().trim(),
-        );
-        return !version || satisfiesVersionRange(version.version, constraint.range);
-      }) ?? true,
-  );
-}
-
-function boundaryDelta(entry: KnowledgeRecord, context: BoundaryContext | undefined): number {
-  if (!context || !entry.boundary) return 0;
-  return (
-    (context.contexts ?? []).reduce(
-      (delta, queryContext) => delta + contextScoreDelta(entry, queryContext),
-      0,
-    ) + platformScoreDelta(entry, context.platform)
-  );
-}
-
-function contextScoreDelta(entry: KnowledgeRecord, queryContext: string): number {
-  const normalized = normalizeBoundaryLabel(queryContext);
-  const contextExcluded = entry.boundary?.exclusions.some(
-    (exclusion) =>
-      exclusion.kind === 'context' &&
-      matchesBoundaryDescription(exclusion.description, normalized, queryContext),
-  );
-  const contextIncluded = entry.boundary?.context.some(
-    (label) => normalizeBoundaryLabel(label) === normalized,
-  );
-  return (contextExcluded ? -0.15 : 0) + (contextIncluded ? 0.1 : 0);
-}
-
-function platformScoreDelta(entry: KnowledgeRecord, platform: string | undefined): number {
-  if (!platform) return 0;
-  return entry.boundary?.exclusions.some(
-    (exclusion) =>
-      exclusion.kind === 'platform' &&
-      exclusion.description.toLowerCase().includes(platform.toLowerCase()),
-  )
-    ? -0.15
-    : 0;
-}
-
-function matchesBoundaryDescription(
-  description: string,
-  normalized: string,
-  queryContext: string,
-): boolean {
-  const normalizedDescription = description.toLowerCase();
-  return (
-    normalizedDescription.includes(normalized) ||
-    normalizedDescription.includes(queryContext.toLowerCase())
-  );
-}
-
-function normalizeBoundaryLabel(label: string): string {
-  return label
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .slice(0, 64);
-}
-
-function parseVersion(version: string): [number, number, number] {
-  const parts = version.replace(/^v/, '').split('.').map(Number);
-  return [parts[0] || 0, parts[1] || 0, parts[2] || 0];
-}
-
-function compareVersions(left: [number, number, number], right: [number, number, number]): number {
-  for (let index = 0; index < 3; index += 1)
-    if (left[index] !== right[index]) return left[index]! < right[index]! ? -1 : 1;
-  return 0;
-}
-
-function satisfiesVersionRange(version: string, range: string): boolean {
-  const actual = parseVersion(version);
-  const trimmed = range.trim();
-  const comparator = ['>=', '<=', '>', '<', '^', '~'].find((prefix) => trimmed.startsWith(prefix));
-  const expected = parseVersion(comparator ? trimmed.slice(comparator.length) : trimmed);
-  return matchesVersionComparator(actual, expected, comparator);
-}
-
-function matchesVersionComparator(
-  actual: [number, number, number],
-  expected: [number, number, number],
-  comparator: string | undefined,
-): boolean {
-  const comparison = compareVersions(actual, expected);
-  const matcher = versionRangeMatchers[comparator ?? ''] ?? exactVersionMatch;
-  return matcher(actual, expected, comparison);
-}
-
-type VersionRangeMatcher = (
-  actual: [number, number, number],
-  expected: [number, number, number],
-  comparison: number,
-) => boolean;
-
-const exactVersionMatch: VersionRangeMatcher = (_actual, _expected, comparison) => comparison === 0;
-
-const versionRangeMatchers: Record<string, VersionRangeMatcher> = {
-  '>=': (_actual, _expected, comparison) => comparison >= 0,
-  '>': (_actual, _expected, comparison) => comparison > 0,
-  '<=': (_actual, _expected, comparison) => comparison <= 0,
-  '<': (_actual, _expected, comparison) => comparison < 0,
-  '^': (actual, expected, comparison) => actual[0] === expected[0] && comparison >= 0,
-  '~': (actual, expected, comparison) =>
-    actual[0] === expected[0] && actual[1] === expected[1] && comparison >= 0,
-};
-
-function semanticCandidate(entry: KnowledgeRecord, score: number): RecallCandidate {
-  return { entry, channel: 'semantic', score, tokenMatches: [] };
-}
-
-function mergeCandidates(
-  semantic: RecallCandidate[],
-  keyword: RecallCandidate[],
-): MergedCandidate[] {
-  const candidates = new Map<string, MergedCandidate>();
-  for (const candidate of semantic)
-    candidates.set(candidate.entry.id, {
-      entry: candidate.entry,
-      semanticScore: candidate.score,
-      keywordScore: 0,
-      graphScore: 0,
-      channelScores: { semantic: candidate.score },
-      combinedScore: candidate.score * 0.6,
-      tokenMatches: [],
-      channels: ['semantic'],
-      preRerankScore: candidate.score * 0.6,
-      finalScore: candidate.score * 0.6,
-    });
-  for (const candidate of keyword) {
-    const existing = candidates.get(candidate.entry.id);
-    if (existing) {
-      existing.keywordScore = candidate.score;
-      existing.channelScores.keyword = candidate.score;
-      existing.tokenMatches = candidate.tokenMatches;
-      existing.channels = ['semantic', 'keyword'];
-      existing.combinedScore = existing.semanticScore * 0.6 + candidate.score * 0.4;
-      existing.preRerankScore = existing.combinedScore;
-      existing.finalScore = existing.combinedScore;
-    } else
-      candidates.set(candidate.entry.id, {
-        entry: candidate.entry,
-        semanticScore: 0,
-        keywordScore: candidate.score,
-        graphScore: 0,
-        channelScores: { keyword: candidate.score },
-        combinedScore: candidate.score * 0.4,
-        tokenMatches: candidate.tokenMatches,
-        channels: ['keyword'],
-        preRerankScore: candidate.score * 0.4,
-        finalScore: candidate.score * 0.4,
-      });
-  }
-  return [...candidates.values()].sort(
-    (left, right) =>
-      right.combinedScore - left.combinedScore || left.entry.id.localeCompare(right.entry.id),
-  );
-}
-
-function rerankCandidates(
-  candidates: MergedCandidate[],
-  tokens: string[],
-  options: {
-    maxCandidates: number;
-    boundaryContext?: BoundaryContext;
-    freshnessConfig: FreshnessDecayConfig;
-    earlyTerminationThreshold?: number;
-  },
-): MergedCandidate[] {
-  const topScore = Math.max(...candidates.map((candidate) => candidate.combinedScore));
-  const threshold = options.earlyTerminationThreshold;
-  const retained =
-    threshold === undefined
-      ? candidates
-      : candidates.filter((candidate) => candidate.combinedScore >= topScore * threshold);
-  return retained
-    .map((candidate) => {
-      const preRerankScore = candidate.combinedScore;
-      let finalScore = preRerankScore;
-      if (candidate.channels.includes('semantic') && candidate.channels.includes('keyword'))
-        finalScore += 0.15;
-      if (
-        tokens.length > 0 &&
-        new Set(candidate.tokenMatches.map((match) => match.token)).size / tokens.length >= 0.5
-      )
-        finalScore += 0.1;
-      if (candidate.entry.decayMeta?.decayState === 'stale') finalScore -= 0.1;
-      finalScore += boundaryDelta(candidate.entry, options.boundaryContext);
-      finalScore = Math.min(1, Math.max(0, finalScore));
-      return {
-        ...candidate,
-        combinedScore: finalScore,
-        preRerankScore,
-        finalScore,
-      };
-    })
-    .sort(
-      (left, right) =>
-        right.combinedScore - left.combinedScore || left.entry.id.localeCompare(right.entry.id),
-    )
-    .slice(0, options.maxCandidates);
 }
 
 async function vectorSimilaritySearch(
@@ -460,7 +206,7 @@ export function createDefaultKnowledgeReadRetrievalInfra(): KnowledgeReadRetriev
       setCachedQuery: (text, vector) => queryEmbeddings.set(normalizeQuery(text).join(' '), vector),
     },
     routing: {
-      selectStrategy: routingDecision,
+      selectStrategy: (mode) => routingDecision(mode),
       toRoutingTrace: (decision) => ({
         ...decision,
         channelsUsed: decision.channelsUsed,
@@ -477,7 +223,7 @@ export function createDefaultKnowledgeReadRetrievalInfra(): KnowledgeReadRetriev
     },
     scoring: {
       freshnessConfig,
-      computeBoundaryScoreDelta: boundaryDelta,
+      computeBoundaryScoreDelta,
       buildBoundaryExplanation: (_entry, context) => ({
         checked: context !== undefined,
         requiredSatisfied: true,
@@ -485,7 +231,7 @@ export function createDefaultKnowledgeReadRetrievalInfra(): KnowledgeReadRetriev
         boosts: [],
       }),
       filterByBoundary,
-      createSemanticCandidate: semanticCandidate,
+      createSemanticCandidate,
       mergeCandidates,
       rerankCandidates,
       toScoredEntriesFromReranked: (candidates): ScoredEntry[] =>
