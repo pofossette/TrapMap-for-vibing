@@ -20,15 +20,15 @@ function createArtifacts(): ArtifactWritePort {
     appendRevision: vi.fn(),
     updateRevisionDerived: vi.fn(),
     appendLifecycleEvent: vi.fn(),
-    editArtifact: vi.fn(async () => ({ id: 'artifact-1' }) as never),
-    review: vi.fn(async () => ({ id: 'artifact-1' }) as never),
-    activate: vi.fn(async () => ({ id: 'artifact-1' }) as never),
+    editArtifact: vi.fn(async () => ({ id: 'artifact-1' })),
+    review: vi.fn(async () => ({ id: 'artifact-1' })),
+    activate: vi.fn(async () => ({ id: 'artifact-1' })),
   };
 }
 
 function createImporter(): ArtifactBundleImportPort {
   return {
-    importBundle: vi.fn(async () => ({ id: 'artifact_1', title: 'Imported skill' }) as never),
+    importBundle: vi.fn(async () => ({ id: 'artifact_1', title: 'Imported skill' })),
   };
 }
 

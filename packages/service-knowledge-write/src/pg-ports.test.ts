@@ -41,7 +41,7 @@ async function expectOutboxRollback(
   sqlFragments: string[] = [],
 ): Promise<void> {
   const { calls, client, pool } = createOutboxFailurePool(lifecycleState);
-  const owner = createKnowledgeWriteOwnerBundle(pool as never);
+  const owner = createKnowledgeWriteOwnerBundle(pool);
 
   await expect(operation(owner.knowledgeOwner)).rejects.toThrow('outbox unavailable');
 
@@ -108,7 +108,7 @@ const outboxRollbackCases: Array<{
 describe('knowledge-write PostgreSQL owner bundle', () => {
   it('persists a submission aggregate and its outbox event in one transaction', async () => {
     const { calls, client, pool } = createTransactionPool(() => ({ rows: [] }));
-    const owner = createKnowledgeWriteOwnerBundle(pool as never);
+    const owner = createKnowledgeWriteOwnerBundle(pool);
 
     await owner.knowledgeOwner.submit({
       actorId: 'author-1',
@@ -145,7 +145,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
         ? [{ id: 'entry-1', lifecycle_state: 'approved' }]
         : [],
     }));
-    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() } as never);
+    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() });
 
     await owner.knowledgeOwner.getByIds(['entry-1', 'entry-2']);
     await owner.knowledgeOwner.listByFilter({
@@ -173,7 +173,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     const query = vi.fn(async (sql: string) => ({
       rows: sql.includes('knowledge_entries') ? [{ id: 'entry-1' }] : [],
     }));
-    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() } as never);
+    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() });
 
     await owner.knowledgeOwner.listByFilter({});
     await owner.knowledgeOwner.listByFilter({ operation: 'decay-eligible' });
@@ -211,7 +211,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
         },
       ],
     }));
-    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() } as never);
+    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() });
 
     await expect(owner.knowledgeOwner.getIndexingEntry('entry-1')).resolves.toMatchObject({
       id: 'entry-1',
@@ -258,7 +258,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
         },
       ],
     }));
-    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() } as never);
+    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() });
 
     await expect(
       owner.knowledgeOwner.listIndexingEntries({ offset: 0, limit: 1 }),
@@ -271,7 +271,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
 
   it('persists an embedding cache update through the knowledge owner port', async () => {
     const query = vi.fn(async () => ({ rows: [] }));
-    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() } as never);
+    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() });
 
     await owner.knowledgeOwner.updateEmbeddingCache('entry-1', {
       textHash: 'hash-1',
@@ -296,7 +296,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
 
   it('persists an index metadata checkpoint atomically through the knowledge owner port', async () => {
     const query = vi.fn(async () => ({ rows: [] }));
-    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() } as never);
+    const owner = createKnowledgeWriteOwnerBundle({ query, connect: vi.fn() });
     const indexState = {
       contentHash: 'hash-1',
       normalizedAt: '2026-07-24T00:00:00.000Z',
@@ -339,7 +339,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
       if (sql.includes(sqlFragment)) throw new Error(`${_phase} unavailable`);
       return { rows: [] };
     });
-    const owner = createKnowledgeWriteOwnerBundle(pool as never);
+    const owner = createKnowledgeWriteOwnerBundle(pool);
 
     await expect(
       owner.knowledgeOwner.submit({ actorId: 'author-1', content: 'content' }),
@@ -353,7 +353,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
 
   it('rolls back a decision when the entry does not exist', async () => {
     const { calls, client, pool } = createTransactionPool(() => ({ rows: [] }));
-    const owner = createKnowledgeWriteOwnerBundle(pool as never);
+    const owner = createKnowledgeWriteOwnerBundle(pool);
 
     await expect(
       owner.knowledgeOwner.applyMaintenanceDecision({
@@ -387,14 +387,15 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
           },
         ],
       })),
-    } as never);
+      connect: vi.fn(),
+    });
 
     const entry = await owner.knowledgeOwner.getById('entry-1');
 
-    expect((entry as unknown as { decayMeta: unknown })?.decayMeta).toBeNull();
-    expect((entry as unknown as { maintenanceMeta: unknown })?.maintenanceMeta).toBeNull();
-    expect((entry as unknown as { requiredLevel: number })?.requiredLevel).toBe(2);
-    expect((entry as unknown as { indexState: unknown })?.indexState).toEqual({
+    expect((entry as Record<string, unknown>).decayMeta).toBeNull();
+    expect((entry as Record<string, unknown>).maintenanceMeta).toBeNull();
+    expect((entry as Record<string, unknown>).requiredLevel).toBe(2);
+    expect((entry as Record<string, unknown>).indexState).toEqual({
       adapters: { vector: { status: 'synced' } },
     });
   });
@@ -406,7 +407,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
       }
       return { rows: [] };
     });
-    const owner = createKnowledgeWriteOwnerBundle(pool as never);
+    const owner = createKnowledgeWriteOwnerBundle(pool);
 
     await owner.knowledgeOwner.updateEntry(
       'entry-1',
@@ -435,7 +436,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
       }
       return { rows: [] };
     });
-    const owner = createKnowledgeWriteOwnerBundle(pool as never);
+    const owner = createKnowledgeWriteOwnerBundle(pool);
 
     await owner.knowledgeOwner.reviewEvidence(
       'entry-1',
@@ -466,7 +467,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
       }
       return { rows: [] };
     });
-    const owner = createKnowledgeWriteOwnerBundle(pool as never);
+    const owner = createKnowledgeWriteOwnerBundle(pool);
 
     await owner.knowledgeOwner.resubmit(
       'entry-1',
@@ -490,7 +491,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
   });
 
   it('exposes the contracts-only knowledge owner compatibility port', () => {
-    const owner = createKnowledgeWriteOwnerBundle({ query: vi.fn() } as never);
+    const owner = createKnowledgeWriteOwnerBundle({ query: vi.fn() });
 
     expect(owner.knowledgeOwner).toEqual(
       expect.objectContaining({
@@ -512,7 +513,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     const query = vi.fn(async () => ({ rows: [{ count: '2' }] }));
     const diagnostics = createKnowledgeWriteOutboxDiagnostics({
       query,
-    } as never);
+    });
 
     await expect(diagnostics.getStatusSnapshot()).resolves.toEqual({
       provider: 'postgres',
@@ -531,7 +532,7 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
         ? { rows: [{ lifecycle_state: 'agent-pass' }] }
         : { rows: [] },
     );
-    const owner = createKnowledgeWriteOwnerBundle(pool as never);
+    const owner = createKnowledgeWriteOwnerBundle(pool);
 
     await expect(
       owner.artifactWriter.updateLifecycle('artifact-1', 'approved', {

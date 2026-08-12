@@ -6,8 +6,8 @@
 
 ## 统计
 
-- 总条目：84 处
-- 文件数：21
+- 总条目：49 处
+- 文件数：17
 
 ## 清单
 
@@ -110,50 +110,3 @@
 ### packages/service-knowledge-read/src/search-knowledge.test.ts
 
 - 22: `as never`
-
-### packages/service-knowledge-write/src/artifact-ports.test.ts
-
-- 100: `as never`
-- 119: `as never`
-- 140: `as never`
-- 153: `as never`
-- 183: `as never`
-- 227: `as never`
-- 283: `as never`
-- 329: `as never`
-- 385: `as never`
-
-### packages/service-knowledge-write/src/artifact-routes.test.ts
-
-- 23: `as never`
-- 24: `as never`
-- 25: `as never`
-- 31: `as never`
-
-### packages/service-knowledge-write/src/labels/llm-align.test.ts
-
-- 52: `as unknown as`
-
-### packages/service-knowledge-write/src/pg-ports.test.ts
-
-- 44: `as never`
-- 111: `as never`
-- 148: `as never`
-- 176: `as never`
-- 214: `as never`
-- 261: `as never`
-- 274: `as never`
-- 299: `as never`
-- 342: `as never`
-- 356: `as never`
-- 390: `as never`
-- 394: `as unknown as`
-- 395: `as unknown as`
-- 396: `as unknown as`
-- 397: `as unknown as`
-- 409: `as never`
-- 438: `as never`
-- 469: `as never`
-- 493: `as never`
-- 515: `as never`
-- 534: `as never`

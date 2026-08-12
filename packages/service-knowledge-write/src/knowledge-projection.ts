@@ -5,11 +5,12 @@
 
 import type { KnowledgeEntry, KnowledgeIndexingEntry, LifecycleState } from '@trapmap/contracts';
 import { KNOWLEDGE_PROJECTION_OPERATION_CONDITIONS } from '@trapmap/backend-core';
-import type { Pool } from 'pg';
 
 import type { KnowledgeOwnerPort } from '@trapmap/contracts';
 
-type Queryable = Pick<Pool, 'query'>;
+type Queryable = {
+  query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+};
 
 function readKnowledgeRowFields(row: Record<string, unknown>) {
   return {

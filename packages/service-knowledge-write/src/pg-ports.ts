@@ -1,5 +1,4 @@
 import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
-import type { Pool } from 'pg';
 import {
   type ArtifactBundleImportPort,
   type ArtifactWritePort,
@@ -16,8 +15,18 @@ import {
 } from './knowledge-entry-tx.js';
 import { createKnowledgeOwnerProjection } from './knowledge-projection.js';
 
-type Queryable = Pick<Pool, 'query'>;
-type TransactionPool = Queryable & Pick<Pool, 'connect'>;
+/** Minimal query-only pool seam (structural; satisfied by pg.Pool). */
+export interface Queryable {
+  query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+}
+
+/** Minimal transactional pool seam (structural; satisfied by pg.Pool). */
+export interface TransactionPool extends Queryable {
+  connect(): Promise<{
+    query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+    release(): Promise<void>;
+  }>;
+}
 
 export interface KnowledgeWriteOwnerBundle {
   knowledgeOwner: KnowledgeOwnerPort;

@@ -13,7 +13,6 @@ import type {
 } from '@trapmap/contracts';
 import { validateRelativePath } from '@trapmap/contracts';
 import { prefixedId } from '@trapmap/lib';
-import type { Pool } from 'pg';
 
 export interface ArtifactWritePort {
   nextId(): Promise<string>;
@@ -51,7 +50,10 @@ export interface ArtifactBundleImportPort {
   importBundle(bundle: ArtifactBundle, actor: ArtifactBundleImportActor): Promise<SkillArtifact>;
 }
 
-type Queryable = Pick<Pool, 'query' | 'connect'>;
+/** Minimal pool seam (structural; satisfied by pg.Pool). */
+export interface Queryable {
+  query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+}
 
 export interface ArtifactFilePayloadOwner {
   put(payload: ArtifactFilePayloadRecord): Promise<void>;
@@ -298,7 +300,7 @@ async function resolveArtifacts(
   return artifacts.filter((artifact): artifact is SkillArtifact => Boolean(artifact));
 }
 
-export function createArtifactReadProjection(pool: Pick<Pool, 'query'>): ArtifactReadProjection {
+export function createArtifactReadProjection(pool: Queryable): ArtifactReadProjection {
   const getById = async (artifactId: string): Promise<SkillArtifact | null> => {
     const result = await pool.query('SELECT * FROM skill_artifacts WHERE id = $1', [artifactId]);
     if (!result.rows[0]) return null;
@@ -412,9 +414,7 @@ export function createArtifactReadProjection(pool: Pick<Pool, 'query'>): Artifac
   };
 }
 
-export function createArtifactFilePayloadOwner(
-  pool: Pick<Pool, 'query'>,
-): ArtifactFilePayloadOwner {
+export function createArtifactFilePayloadOwner(pool: Queryable): ArtifactFilePayloadOwner {
   return {
     async put(payload) {
       const revision = await pool.query(
@@ -474,7 +474,14 @@ export function createArtifactFilePayloadOwner(
   };
 }
 
-export function createArtifactWritePort(pool: Queryable): ArtifactWritePort {
+export interface TransactionalPool extends Queryable {
+  connect(): Promise<{
+    query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+    release(): Promise<void>;
+  }>;
+}
+
+export function createArtifactWritePort(pool: TransactionalPool): ArtifactWritePort {
   const read = createArtifactReadProjection(pool);
   return {
     async nextId() {
@@ -673,7 +680,7 @@ export function createArtifactWritePort(pool: Queryable): ArtifactWritePort {
   };
 }
 
-export function createArtifactBundleImportPort(pool: Queryable): ArtifactBundleImportPort {
+export function createArtifactBundleImportPort(pool: TransactionalPool): ArtifactBundleImportPort {
   return {
     async importBundle(bundle, actor) {
       const { artifact, payloads } = createImportedArtifact(bundle, actor);

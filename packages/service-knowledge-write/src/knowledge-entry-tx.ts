@@ -16,20 +16,28 @@ import {
   lifecycleEventType,
   lifecycleOutboxEventName,
 } from '@trapmap/backend-core';
-import type { Pool, PoolClient } from 'pg';
 
-type Queryable = Pick<Pool, 'query'>;
+interface Queryable {
+  query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+}
 
 function generateId(prefix: string): string {
   return prefixedId(prefix, 16);
 }
 
-type KnowledgeTransactionPool = Queryable & Pick<Pool, 'connect'>;
-type KnowledgeTransactionClient = Pick<PoolClient, 'query'>;
+type KnowledgeTransactionPool = Queryable & {
+  connect(): Promise<{
+    query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+    release(): Promise<void>;
+  }>;
+};
+type KnowledgeTransactionClient = {
+  query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+};
 
 async function withKnowledgeTransaction<T>(
   pool: KnowledgeTransactionPool,
-  operation: (client: PoolClient) => Promise<T>,
+  operation: (client: KnowledgeTransactionClient) => Promise<T>,
 ): Promise<T> {
   const client = await pool.connect();
   try {
