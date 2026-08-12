@@ -6,7 +6,7 @@ import { PrometheusService } from './prometheus.service.js';
 function createMockConfig(values: Record<string, string> = {}) {
   return {
     get: (key: string, defaultValue?: string) => values[key] ?? defaultValue,
-  } as unknown as ConfigService;
+  } as ConfigService;
 }
 
 describe('PrometheusService', () => {

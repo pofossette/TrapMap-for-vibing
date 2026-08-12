@@ -66,6 +66,7 @@ import { createOwnerReadModelProjection } from '@trapmap/service-knowledge-read'
 import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
 import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
 
+import type { HostLocalConfig } from '../config/index.js';
 import { createHostLocalServices } from './host-services.js';
 
 describe('host-local service composition', () => {
@@ -74,7 +75,9 @@ describe('host-local service composition', () => {
   });
 
   it('injects the knowledge-write owner bundle from the host PostgreSQL pool', async () => {
-    const services = await createHostLocalServices({ systemAdminKey: 'test-key' } as never);
+    const services = await createHostLocalServices({
+      systemAdminKey: 'test-key',
+    } as HostLocalConfig);
 
     expect(createKnowledgeWriteOwnerBundle).toHaveBeenCalledWith(pool);
     expect(createCandidateIngestionPgOwnerBundle).toHaveBeenCalledWith(pool);
@@ -87,7 +90,9 @@ describe('host-local service composition', () => {
   });
 
   it('keeps governance retrieval access on its explicit owner port', async () => {
-    const services = await createHostLocalServices({ systemAdminKey: 'test-key' } as never);
+    const services = await createHostLocalServices({
+      systemAdminKey: 'test-key',
+    } as HostLocalConfig);
 
     expect(services.governanceReview.retrievalProjection).toBeDefined();
     expect(services).not.toHaveProperty('adapterRegistry');
@@ -96,7 +101,9 @@ describe('host-local service composition', () => {
   });
 
   it('builds the administrative read projection from owner ports', async () => {
-    const services = await createHostLocalServices({ systemAdminKey: 'test-key' } as never);
+    const services = await createHostLocalServices({
+      systemAdminKey: 'test-key',
+    } as HostLocalConfig);
 
     expect(createOwnerReadModelProjection).toHaveBeenCalledWith({
       knowledge: ownerBundle.knowledgeOwner,
@@ -107,7 +114,9 @@ describe('host-local service composition', () => {
   });
 
   it('creates the graph projection repository through the knowledge-read owner', async () => {
-    const services = await createHostLocalServices({ systemAdminKey: 'test-key' } as never);
+    const services = await createHostLocalServices({
+      systemAdminKey: 'test-key',
+    } as HostLocalConfig);
 
     expect(createKnowledgeReadGraphIndexRepository).toHaveBeenCalledWith(pool);
     expect(services.graphIndex).toBe(graphIndexRepository);
@@ -117,7 +126,7 @@ describe('host-local service composition', () => {
     const config = {
       systemAdminKey: 'test-key',
       asyncTaskTransport: { provider: 'postgres', rabbitmq: null },
-    } as never;
+    } as HostLocalConfig;
     const services = await createHostLocalServices(config);
 
     expect(createJobRuntimeAsyncTransport).toHaveBeenCalledWith({
@@ -128,7 +137,9 @@ describe('host-local service composition', () => {
   });
 
   it('releases its host-owned infrastructure through one close operation', async () => {
-    const services = await createHostLocalServices({ systemAdminKey: 'test-key' } as never);
+    const services = await createHostLocalServices({
+      systemAdminKey: 'test-key',
+    } as HostLocalConfig);
 
     await services.close();
 

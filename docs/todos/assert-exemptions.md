@@ -6,77 +6,10 @@
 
 ## 统计
 
-- 总条目：118 处
-- 文件数：32
+- 总条目：84 处
+- 文件数：21
 
 ## 清单
-
-### packages/host-local/src/nest/candidate-ingestion/candidate-processing.service.test.ts
-
-- 8: `as never`
-
-### packages/host-local/src/nest/governance-review/governance-review.module.test.ts
-
-- 25: `as never`
-
-### packages/host-local/src/nest/job-runtime/job-runtime-worker.service.test.ts
-
-- 31: `as never`
-- 33: `as never`
-- 36: `as unknown as`
-
-### packages/host-local/src/nest/observability/http-metrics.middleware.test.ts
-
-- 17: `as unknown as`
-- 19: `as unknown as`
-
-### packages/host-local/src/nest/observability/otel.service.test.ts
-
-- 8: `as unknown as`
-
-### packages/host-local/src/nest/observability/prometheus.service.test.ts
-
-- 9: `as unknown as`
-
-### packages/host-local/src/nest/runtime/exception-filter.test.ts
-
-- 76: `as never`
-- 90: `as never`
-- 102: `as never`
-- 114: `as never`
-- 126: `as never`
-- 138: `as never`
-- 150: `as never`
-- 162: `as never`
-- 173: `as never`
-- 194: `as never`
-
-### packages/host-local/src/nest/runtime/governance-composition.test.ts
-
-- 29: `as never`
-
-### packages/host-local/src/nest/runtime/host-services.test.ts
-
-- 77: `as never`
-- 90: `as never`
-- 99: `as never`
-- 110: `as never`
-- 120: `as never`
-- 131: `as never`
-
-### packages/host-local/src/nest/runtime/logging.middleware.test.ts
-
-- 25: `as never`
-- 35: `as never`
-- 62: `as never`
-- 70: `as never`
-
-### packages/host-local/src/nest/runtime/request-context.test.ts
-
-- 154: `as never`
-- 155: `as never`
-- 181: `as never`
-- 182: `as never`
 
 ### packages/service-candidate-ingestion/src/pg-ports.test.ts
 

@@ -1,3 +1,4 @@
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { HostLocalConfig } from '../config/index.js';
@@ -151,8 +152,8 @@ describe('RequestContextMiddleware', () => {
         url: '/health',
         id: 'fastify-id',
         routeOptions: { url: '/health' },
-      } as never,
-      { header } as never,
+      } as FastifyRequest,
+      { header } as FastifyReply,
       next,
     );
 
@@ -178,8 +179,8 @@ describe('RequestContextMiddleware', () => {
         url: '/health',
         id: 'fastify-id',
         routeOptions: { url: '/health' },
-      } as never,
-      { raw: { setHeader } } as never,
+      } as FastifyRequest,
+      { raw: { setHeader } } as FastifyReply,
       next,
     );
 

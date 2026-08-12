@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { GovernanceReviewServiceDeps } from '@trapmap/service-governance-review';
 import { GovernanceReviewModule } from './governance-review.module.js';
 
 describe('host-local governance review module', () => {
@@ -22,7 +23,7 @@ describe('host-local governance review module', () => {
       asyncCommands,
       admin,
       governanceRetrievalProjection,
-    } as never);
+    } as GovernanceReviewServiceDeps);
 
     const provider = dynamicModule.providers?.[0] as {
       useValue: {

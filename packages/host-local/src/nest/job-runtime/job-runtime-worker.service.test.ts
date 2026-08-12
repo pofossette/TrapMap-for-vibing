@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { JobRuntimeDeps, TaskConsumerHandle, TaskHandler } from '@trapmap/backend-core';
+import type {
+  AuditLogPort,
+  JobRuntimeDeps,
+  OutboxPort,
+  TaskConsumerHandle,
+  TaskHandler,
+} from '@trapmap/backend-core';
 
 import { JobRuntimeWorkerService } from './job-runtime-worker.service.js';
 
@@ -28,12 +34,12 @@ describe('host-local job-runtime worker', () => {
           getStatusSnapshot: vi.fn(),
           createConsumer,
         },
-        outbox: {} as never,
+        outbox: {} as OutboxPort,
       },
-      auditLog: {} as never,
+      auditLog: {} as AuditLogPort,
       taskHandlers,
       ownsWork: true,
-    } as unknown as JobRuntimeDeps;
+    };
     const worker = new JobRuntimeWorkerService(deps);
 
     await worker.onModuleInit();

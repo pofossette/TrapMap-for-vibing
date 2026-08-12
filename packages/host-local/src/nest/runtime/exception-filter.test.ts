@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { type ArgumentsHost, Logger } from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { InvocationError } from '@trapmap/backend-core';
@@ -6,7 +6,7 @@ import { InvocationError } from '@trapmap/backend-core';
 import { AllExceptionFilter } from './exception.filter.js';
 import { RequestContextService } from './request-context.service.js';
 
-function createMockHost() {
+function createMockHost(): ArgumentsHost & { getStatus(): number; getBody(): unknown } {
   let sentStatus = 0;
   let sentBody: unknown = null;
   return {
@@ -27,7 +27,7 @@ function createMockHost() {
     }),
     getStatus: () => sentStatus,
     getBody: () => sentBody,
-  };
+  } as ArgumentsHost & { getStatus(): number; getBody(): unknown };
 }
 
 function createRawOnlyHost() {
@@ -73,7 +73,7 @@ describe('AllExceptionFilter', () => {
     const host = createMockHost();
     const error = InvocationError.notFound('Entry not found');
 
-    filter.catch(error, host as never);
+    filter.catch(error, host);
 
     expect(host.getStatus()).toBe(404);
     const body = host.getBody() as Record<string, unknown>;
@@ -87,7 +87,7 @@ describe('AllExceptionFilter', () => {
     const host = createMockHost();
     const error = InvocationError.validation('Invalid input');
 
-    filter.catch(error, host as never);
+    filter.catch(error, host);
 
     expect(host.getStatus()).toBe(400);
     const body = host.getBody() as Record<string, unknown>;
@@ -99,7 +99,7 @@ describe('AllExceptionFilter', () => {
     const host = createMockHost();
     const error = InvocationError.forbidden('Access denied');
 
-    filter.catch(error, host as never);
+    filter.catch(error, host);
 
     expect(host.getStatus()).toBe(403);
     const body = host.getBody() as Record<string, unknown>;
@@ -111,7 +111,7 @@ describe('AllExceptionFilter', () => {
     const host = createMockHost();
     const error = InvocationError.timeout('Request timed out');
 
-    filter.catch(error, host as never);
+    filter.catch(error, host);
 
     expect(host.getStatus()).toBe(504);
     const body = host.getBody() as Record<string, unknown>;
@@ -123,7 +123,7 @@ describe('AllExceptionFilter', () => {
     const host = createMockHost();
     const error = InvocationError.unavailable('Service down');
 
-    filter.catch(error, host as never);
+    filter.catch(error, host);
 
     expect(host.getStatus()).toBe(503);
     const body = host.getBody() as Record<string, unknown>;
@@ -135,7 +135,7 @@ describe('AllExceptionFilter', () => {
     const host = createMockHost();
     const error = InvocationError.conflict('State conflict');
 
-    filter.catch(error, host as never);
+    filter.catch(error, host);
 
     expect(host.getStatus()).toBe(409);
     const body = host.getBody() as Record<string, unknown>;
@@ -147,7 +147,7 @@ describe('AllExceptionFilter', () => {
     const host = createMockHost();
     const error = InvocationError.internal('Unexpected failure');
 
-    filter.catch(error, host as never);
+    filter.catch(error, host);
 
     expect(host.getStatus()).toBe(500);
     const body = host.getBody() as Record<string, unknown>;
@@ -159,7 +159,7 @@ describe('AllExceptionFilter', () => {
     const host = createMockHost();
     const error = InvocationError.notFound('Entry not found');
 
-    filter.catch(error, host as never);
+    filter.catch(error, host);
 
     const body = host.getBody() as Record<string, unknown>;
     expect(body.error).toBe(body.message);
@@ -170,7 +170,7 @@ describe('AllExceptionFilter', () => {
     const error = new Error('something broke');
     const loggerSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
 
-    filter.catch(error, host as never);
+    filter.catch(error, host);
 
     expect(host.getStatus()).toBe(500);
     const body = host.getBody() as Record<string, unknown>;
@@ -191,7 +191,7 @@ describe('AllExceptionFilter', () => {
         route: '/health',
       },
       () => {
-        filter.catch(InvocationError.notFound('Entry not found'), host as never);
+        filter.catch(InvocationError.notFound('Entry not found'), host);
       },
     );
 

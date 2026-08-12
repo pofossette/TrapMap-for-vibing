@@ -26,7 +26,7 @@ describe('host-local governance composition', () => {
           lifecycleState: 'approved',
         },
       ]),
-    } as never;
+    };
     const conflictProjection: GovernanceReviewPgOwnerBundle['conflictProjection'] = {
       listByEntryIds: vi.fn().mockResolvedValue([]),
       upsert: vi.fn().mockResolvedValue(undefined),

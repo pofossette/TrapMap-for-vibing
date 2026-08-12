@@ -14,9 +14,9 @@ describe('HttpMetricsMiddleware', () => {
       decrementConnections: vi.fn(),
       incrementRequests: vi.fn(),
       observeDuration: vi.fn(),
-    } as unknown as PrometheusService;
+    } as PrometheusService;
 
-    requestContext = {} as unknown as RequestContextService;
+    requestContext = {} as RequestContextService;
 
     middleware = new HttpMetricsMiddleware(prometheus, requestContext);
   });
