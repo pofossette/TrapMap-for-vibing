@@ -42,9 +42,9 @@ describe('extractScripts', () => {
     const scripts = extractScripts(ROOT);
     const names = scripts.map((s) => s.name);
     expect(names).toContain('ci');
-    expect(names).toContain('check:docs-drift');
-    expect(names).toContain('check:doc-references');
-    expect(names).toContain('check:links');
+    expect(names).toContain('check:docs');
+    expect(names).toContain('check:structure');
+    expect(names).toContain('check:asserts');
     expect(names).toContain('test');
     expect(names).toContain('typecheck');
   });
@@ -99,29 +99,25 @@ describe('extractCiGuardrails', () => {
     expect(guardrails.length).toBeGreaterThan(0);
 
     const names = guardrails.map((g) => g.name);
-    expect(names).toContain('check:docs-drift');
-    expect(names).toContain('check:arch-freeze');
-    expect(names).toContain('check:mermaid');
+    expect(names).toContain('check:docs');
     expect(names).toContain('check:structure');
+    expect(names).toContain('check:asserts');
+    expect(names).toContain('check:deps');
     expect(names).toContain('check:complexity');
   });
 
-  it('marks commands with || true as non-blocking', () => {
+  it('marks all doc-guardrails steps as blocking (non-blocking tiers moved inside check:docs)', () => {
     const guardrails = extractCiGuardrails(ROOT);
-    const links = guardrails.find((g) => g.name === 'check:links');
-    expect(links).toBeDefined();
-    expect(links!.blocking).toBe(false);
-
-    const docRefs = guardrails.find((g) => g.name === 'check:doc-references');
-    expect(docRefs).toBeDefined();
-    expect(docRefs!.blocking).toBe(false);
+    for (const guardrail of guardrails) {
+      expect(guardrail.blocking).toBe(true);
+    }
   });
 
   it('marks commands without || true as blocking', () => {
     const guardrails = extractCiGuardrails(ROOT);
-    const drift = guardrails.find((g) => g.name === 'check:docs-drift');
-    expect(drift).toBeDefined();
-    expect(drift!.blocking).toBe(true);
+    const docs = guardrails.find((g) => g.name === 'check:docs');
+    expect(docs).toBeDefined();
+    expect(docs!.blocking).toBe(true);
   });
 });
 

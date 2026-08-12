@@ -34,7 +34,7 @@
 - `packages/service-candidate-ingestion/`：拥有候选摄取服务组装、内部路由注册和有界上下文 candidate 接线，同时将结果发布委托给 knowledge-write。
 - `packages/service-job-runtime/`：拥有作业运行时服务组装、内部路由注册、队列/重试/租约/dead-letter 依赖接线、typed owner handlers 和运行时服务器引导表面。
 - `packages/host-local/`：轻量主机组装，服务于 `local-agent` 和 `team-monolith`。冻结的默认轻量主线为 `src/nest/**`，通过包默认入口（`packages/host-local/src/index.ts`）和默认 `dev` / `start` 脚本暴露。
-  `packages/host-local/src/nest/adapters/` 是轻量主机中主机拥有的端口适配器选择（`in-process` vs `remote`）的权威放置位置。这些文件是内部端口的适配器接缝，不是仓库适配器，也不是主机组装的万能目录。
+  `packages/host-local/src/nest/runtime/backend-core-adapters.ts` 是轻量主机中主机拥有的端口适配器选择的权威放置位置（`in-process` vs `remote`）。这些文件是内部端口的适配器接缝，不是仓库适配器，也不是主机组装的万能目录。
   迁移期共享基础设施组合留在 host-local 的 runtime composition 内；它可暂时调用 server compatibility helpers，但不形成独立 workspace package 或 service-to-service concrete import。
 - `packages/host-distributed/`：重量级主机组装，服务于 `distributed` 配置文件。它是真正的重量级主机实现，与 `light` 共用相同的 backend-core/service-package 主实现，成熟度基线仍为 `Level 2 / transitional-microservice`。
   `packages/host-distributed/src/gateway/` 是网关传输助手和转发接缝的权威放置位置，包括 `internal-client.ts`（薄内部 HTTP / 规范错误归一化助手）。

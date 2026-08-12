@@ -7,7 +7,7 @@ import type {
 } from '../../packages/contracts/src/domain/evals/label-alignment.js';
 import { labelAlignmentEvalFixtureSchema } from '../../packages/contracts/src/domain/evals/label-alignment.js';
 
-import { coreFixtures } from './fixtures/core.js';
+import { coreFixtures } from './archived/fixtures/core.js';
 import { smokeFixtures } from './fixtures/smoke.js';
 import { formatLabelAlignmentReport } from './lib/format.js';
 import { calculateCaseMetrics } from './lib/metrics.js';

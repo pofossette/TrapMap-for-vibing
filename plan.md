@@ -63,7 +63,7 @@
 
 ## 验证门禁
 
-- 文档或目录规则变更至少运行 `rtk pnpm check:docs-drift` 和 `rtk pnpm check:structure`；新增 reference/truth/Markdown 规则时补跑对应 guard。
+- 文档或目录规则变更至少运行 `rtk pnpm check:docs` 和 `rtk pnpm check:structure`；新增 reference/truth/Markdown 规则时补跑对应 guard。
 - 检索、摘要、治理、feedback、fixtures 或 eval runner 受影响时，至少运行 `rtk pnpm eval:smoke`。
 - 跨包导入或边界变化必须运行 `rtk pnpm exec fallow audit --base main`，并记录基线限制而不是降低检查强度。
 - 每个阶段的 focused test、typecheck、closeout 和文档回写证据必须落在主细则；根索引只呈现路线和门禁，不替代证据。

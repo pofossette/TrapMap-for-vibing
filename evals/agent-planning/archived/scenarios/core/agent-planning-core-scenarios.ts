@@ -1,6 +1,6 @@
 import type { AgentPlanningEvalScenario } from '@trapmap/contracts/evals';
 
-import { smokeScenarios } from '../smoke/agent-planning-smoke-scenarios.js';
+import { smokeScenarios } from '../../../scenarios/smoke/agent-planning-smoke-scenarios.js';
 
 const promotedSmokeScenarios: AgentPlanningEvalScenario[] = smokeScenarios.map((scenario) => ({
   ...scenario,

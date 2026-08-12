@@ -89,7 +89,7 @@ flowchart TB
 | `packages/host-local/src/nest/observability/langfuse.service.ts` | 可选 Langfuse LLM observation NestJS 服务；凭证缺失时 no-op |
 | `packages/host-local/src/nest/observability/langfuse-sink.ts` | Langfuse sink 工厂；vendor-neutral wrapper 与 host-local SDK 的桥接 |
 | `packages/host-distributed/src/shared/telemetry.ts` | distributed internal hop span、OTLP trace/metric exporter 和 traceparent 透传 |
-| `packages/host-distributed/src/shared/sentry.ts` | distributed 宿主的可选 Sentry 适配器；`SENTRY_DSN` 为空时 no-op |
+| distributed 宿主 | 可选 Sentry 适配器未实现；Sentry 错误智能适配器当前仅由 host-local 提供，`SENTRY_DSN` 为空时 no-op |
 
 `backend-core` 通过 `MetricsPort`、`TracingPort`、`LoggingPort` 三个 port 暴露遥测能力，domain / application 层只通过这些接口声明需求，不直接依赖 SDK。
 
@@ -100,7 +100,7 @@ Sentry 适配器提供 actionable error 聚合能力，作为 OTel traces/metric
 | 属性 | 值 |
 |---|---|
 | 启用条件 | `SENTRY_DSN` 非空 |
-| 初始化位置 | `packages/host-local/src/nest/observability/sentry.service.ts`（Nest 模块）、`packages/host-distributed/src/shared/sentry.ts`（函数式） |
+| 初始化位置 | `packages/host-local/src/nest/observability/sentry.service.ts`（Nest 模块）；distributed 宿主的函数式适配器未实现 |
 | 配置验证 | `packages/contracts/src/domain/observability-config.ts` 中的 `validateSentryPolicy` |
 | 隐私策略 | `sendDefaultPii=false`；`beforeSend` 递归剥离 headers、cookies、request body、敏感 query、prompt/knowledge 内容和 secrets |
 | 捕获策略 | 仅捕获 5xx、内部异常、terminal async failure；抑制 4xx/auth/validation |

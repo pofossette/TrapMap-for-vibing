@@ -22,7 +22,7 @@
 - [ ] **当前边界：** 不重开旧 Fastify authoritative write path；不新增 `store_snapshot`、shared DB direct-read 或 runtime-infra -> server 依赖作为默认业务路径。
 - [ ] **进入条件：** retired compatibility seam 导致当前文档 truth、host composition、构建、边界违规或生产故障归因被阻塞，且无法在本主线的 source-aware guard 修复中关闭。
 - [ ] **后续落点：** 新建 scoped “compatibility shell retirement and runtime-infra ownership”细则；按 service/host 迁移真实 owner 后删除旧 route、re-export 和 compatibility fallback。
-- [ ] **要求的文档与测试：** 更新 `docs/architecture/BOUNDARIES.md`、`docs/reference/REPO_STRUCTURE.md`、相关 package README；运行受影响包测试、`rtk pnpm exec fallow list --boundaries`、`rtk pnpm exec fallow audit --base main`、`rtk pnpm typecheck`、`rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`。
+- [ ] **要求的文档与测试：** 更新 `docs/architecture/BOUNDARIES.md`、`docs/reference/REPO_STRUCTURE.md`、相关 package README；运行受影响包测试、`rtk pnpm exec fallow list --boundaries`、`rtk pnpm exec fallow audit --base main`、`rtk pnpm typecheck`、`rtk pnpm check:docs` 与 `rtk pnpm check:structure`。
 
 ### 工程维护信号偏高
 
@@ -50,7 +50,7 @@
 - [ ] **当前边界：** 不引入跨服务事务、XA/2PC，亦不以 database-per-service 或 PgBouncer 作为当前主线的关闭条件。
 - [ ] **进入条件：** 某服务存在稳定 DB 热点、独立备份/保留或合规需求、连接预算耗尽，或共享实例持续造成跨服务干扰；必须先具备 Tranche 6 的 owner/migration/projection 证据。
 - [ ] **后续落点：** 新建“selective database isolation”细则，按一个 owner service 设计迁移、回填、双读/切换、outbox 兼容、回滚与容量验证。
-- [ ] **要求的文档与测试：** 更新 `docs/architecture/DATABASE_OWNERSHIP.md`、`docs/architecture/components/PERSISTENCE.md`、`docs/reference/DATA_MODEL.md`、`docs/operations/ENVIRONMENT.md`；运行迁移/repository focused tests、distributed acceptance、容量验证、`rtk pnpm typecheck` 与文档守卫。
+- [ ] **要求的文档与测试：** 更新 `docs/archived/architecture/DATABASE_OWNERSHIP.md`、`docs/architecture/components/PERSISTENCE.md`、`docs/reference/DATA_MODEL.md`、`docs/operations/ENVIRONMENT.md`；运行迁移/repository focused tests、distributed acceptance、容量验证、`rtk pnpm typecheck` 与文档守卫。
 
 ### 安全候选与文档事实校准
 
@@ -59,7 +59,7 @@
 - [ ] **当前边界：** 不把 advisory 扫描结果描述为已确认漏洞；不因文档校准改变运行时语义。
 - [ ] **进入条件：** 候选可从外部输入到达危险 sink，或 `SYSTEM_TRUTH_SOURCES.md` 与具体 config/source 再次出现事实冲突。
 - [ ] **后续落点：** 安全候选进入 verify-before-action 安全细则；文档事实冲突进入最小 doc-alignment 修复。
-- [ ] **要求的文档与测试：** 安全项先补可复现测试和数据流证据，再修复及更新 `docs/operations/SECURITY.md`；文档项以权威源码为准更新 reference/architecture 文档并运行 `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。
+- [ ] **要求的文档与测试：** 安全项先补可复现测试和数据流证据，再修复及更新 `docs/operations/SECURITY.md`；文档项以权威源码为准更新 reference/architecture 文档并运行 `rtk pnpm check:docs`、`rtk pnpm check:structure`。
 
 ### 重复工具函数回潮与工厂模式一致性（2026-08-09 分析新增）
 

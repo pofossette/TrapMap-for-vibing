@@ -24,10 +24,10 @@ Runs retrieval eval cases against a **real TrapMap backend instance** with named
 
 ```bash
 # From a live database (requires TRAPMAP_DATABASE_URL)
-pnpm eval:retrieval:snapshot:export --version 2026-07-baseline --teamId team_alpha
+pnpm exec tsx --tsconfig tsconfig.base.json scripts/archived/export-retrieval-db-snapshot.ts --version 2026-07-baseline --teamId team_alpha
 
 # With rebuild mode (source data only, pipeline re-derives)
-pnpm eval:retrieval:snapshot:export --version 2026-07-baseline-source --teamId team_alpha --derived-mode rebuild
+pnpm exec tsx --tsconfig tsconfig.base.json scripts/archived/export-retrieval-db-snapshot.ts --version 2026-07-baseline-source --teamId team_alpha --derived-mode rebuild
 ```
 
 ### Run Live Eval

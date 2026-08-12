@@ -20,12 +20,12 @@ import {
   formatLogForStdout,
   logEntrySchema,
   redactLogContext,
-} from '../packages/contracts/src/domain/log-schema.js';
-import { validateSentryPolicy } from '../packages/contracts/src/domain/observability-config.js';
+} from '../../packages/contracts/src/domain/log-schema.js';
+import { validateSentryPolicy } from '../../packages/contracts/src/domain/observability-config.js';
 import {
   RequestContextService,
   extractRequestContext,
-} from '../packages/host-local/src/nest/runtime/request-context.service.js';
+} from '../../packages/host-local/src/nest/runtime/request-context.service.js';
 
 // ---------------------------------------------------------------------------
 // Verification result tracking

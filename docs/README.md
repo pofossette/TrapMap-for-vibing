@@ -101,7 +101,7 @@ flowchart TB
 | 图 | graphology + graphology-dag |
 | 向量搜索 | OpenAI embeddings |
 | 数据库 | PostgreSQL + Drizzle ORM |
-| 兼容回退 | JSON 文件存储 + `store_snapshot` 兼容层 |
+| 兼容回退 | JSON 文件存储与 `store_snapshot` 兼容层已于 Wave-9/10 删除 |
 | 测试 | Vitest |
 | 包管理 | pnpm 10.x |
 | 代码质量 | Biome |
@@ -195,10 +195,10 @@ pnpm run ci
 - [代码导读](guides/CODE_GUIDE.md) — 源码导航与建议阅读顺序
 - [快速上手](guides/GETTING_STARTED.md) — 本地开发环境搭建
 - [文档治理指南](guides/DOCUMENTATION_GOVERNANCE.md) — `README` / `AGENTS` / `reference` 分层与回写规则
-- [PostgreSQL 与 Graphology 上手](guides/PG_AND_GRAPHOLOGY.md) — 面向仓库实际代码的 `pg` / `graphology` 使用方式导读
+- [PostgreSQL 与 Graphology 上手（已归档）](archived/guides/PG_AND_GRAPHOLOGY.md) — 面向仓库实际代码的 `pg` / `graphology` 使用方式导读
 - [客户端集成](guides/CLIENT_INTEGRATION.md) — Skill 工件结构、检索→激活流程、各客户端落地方式
-- [Agent Eval Platform 集成](guides/AGENT_EVAL_PLATFORM_INTEGRATION.md) — aggregate runner 启用 `langfuse/json-archive` mirror、失败回退与关闭方式
-- [微服务拆分验收清单](guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md) — 判断何时可以开始物理拆分 distributed 微服务
+- [Agent Eval Platform 集成（已归档）](archived/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md) — aggregate runner 启用 `langfuse/json-archive` mirror、失败回退与关闭方式
+- [微服务拆分验收清单（已归档）](archived/guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md) — 判断何时可以开始物理拆分 distributed 微服务
 - [数据模型](reference/DATA_MODEL.md) — 核心数据实体及关系
 - [数据库表结构速查](reference/DATABASE_SCHEMA.md) — 63 张表快速参考、枚举值、外键关系
 - [术语表](reference/GLOSSARY.md) — 项目专用术语解释
@@ -220,7 +220,7 @@ deployment flexibility 最小验证矩阵：
 - `pnpm test:deployment-smoke`
 - `pnpm test:runtime-foundations`
 - `pnpm typecheck`
-- 文档事实变更时补 `pnpm check:docs-drift`
+- 文档事实变更时补 `pnpm check:docs`
 
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
@@ -228,7 +228,7 @@ deployment flexibility 最小验证矩阵：
 - [文档校验与可观测性平台细则](todos/documentation-validation-and-observability-platform.md) — source-aware docs guard、OTel runtime signal 与可选 Sentry error intelligence 的当前执行面
 - 当前唯一 active execution surface 是“Documentation Validation and Observability Platform”；新的 todo 文档必须先由根 `plan.md` 显式赋予执行责任，其余材料只能作为背景输入、deferred 落点或已完成 closeout 参考
 - [健壮性与可扩展性收尾细则](archived/archived-plans/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
-- 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
+- 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/archived/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](archived/archived-plans/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪
 - [轻重后端构建目标细则](archived/archived-plans/backend-build-targets-plan.md) — 轻重后端构建目标、兼容壳清理与客户端后端形态配置的冻结结论，已归档为背景参考
 - [组件替换细则](archived/archived-plans/component-replacement-plan.md) — 成熟包替换的独立细则；根计划已切换，不再是当前主线
@@ -250,36 +250,36 @@ deployment flexibility 最小验证矩阵：
 ### 架构与 API
 - [架构概览](../architecture.md) — 根入口级架构摘要，适合先建立整体心智模型
 - [架构详解](architecture/ARCHITECTURE.md) — 系统设计、流程图、模块划分
-- [摄取与重复检测分层管线](architecture/components/INGESTION.md) — candidate normalize、exact lane、PostgreSQL trap+skill recall、queue dedupe、duplicate trace
+- [摄取与重复检测分层管线（已归档）](archived/architecture/components/INGESTION.md) — candidate normalize、exact lane、PostgreSQL trap+skill recall、queue dedupe、duplicate trace
 - [System Truth Sources](reference/SYSTEM_TRUTH_SOURCES.md) — 架构事实、入口文件与文档参考规则
 - [仓库目录结构](reference/REPO_STRUCTURE.md) — 根目录、packages、docs、evals、归档目录的权威布局规则
-- [模块详解](architecture/MODULES.md) — 详细模块分解
-- [API 参考](architecture/API.md) — 完整 API 列表
+- [模块详解（已归档）](archived/architecture/MODULES.md) — 详细模块分解
+- [API 参考（已归档）](archived/architecture/API.md) — 完整 API 列表
 - [API 契约表面](reference/api-surface.md) — 端点 Schema 概览
 - [CLI 参考](architecture/CLI.md) — CLI 命令全量参考
-- [CLI 渲染适配层](architecture/RENDERING.md) — 多工具输出格式适配
-- [数据流](architecture/FLOW.md) — 详细数据流图
-- [数据类型串联图](architecture/DATA_TYPES_PIPELINE.md) — 核心数据类型流转路径与 GraphRAG-lite 图构建详解
-- [入库预计算策略](architecture/PRECOMPUTATION.md) — 入库阶段预计算措施总览、API 请求清单与延迟对比
-- [LLM 图提取改造计划](architecture/HYBRID_GRAPH_EXTRACTION.md) — 用 LLM 替代规则引擎的图构建 + 入库智能增强（进行中）
+- [CLI 渲染适配层（已归档）](archived/architecture/RENDERING.md) — 多工具输出格式适配
+- [数据流（已归档）](archived/architecture/FLOW.md) — 详细数据流图
+- [数据类型串联图（已归档）](archived/architecture/DATA_TYPES_PIPELINE.md) — 核心数据类型流转路径与 GraphRAG-lite 图构建详解
+- [入库预计算策略（已归档）](archived/architecture/PRECOMPUTATION.md) — 入库阶段预计算措施总览、API 请求清单与延迟对比
+- [LLM 图提取改造计划（已归档）](archived/architecture/HYBRID_GRAPH_EXTRACTION.md) — 用 LLM 替代规则引擎的图构建 + 入库智能增强（进行中）
 - [可观测性架构](architecture/OBSERVABILITY.md) — 指标、日志、链路追踪三大支柱与 LGTM 栈设计
 - [服务发现架构](architecture/SERVICE-DISCOVERY.md) — Consul 集成与 DNS 发现机制
 - [数据库表结构速查](reference/DATABASE_SCHEMA.md) — PostgreSQL 63 张表完整参考
 
 ### 部署与运维
 - [部署指南](architecture/DEPLOYMENT.md) — `local-agent` / `team-monolith` / `distributed` 三档部署入口与 `host-local` Nest 主线 / `host-distributed` 分布式展开层
-- [故障排查](architecture/TROUBLESHOOTING.md) — 常见问题及解决方案
+- [故障排查（已归档）](archived/architecture/TROUBLESHOOTING.md) — 常见问题及解决方案
 - [环境变量参考](operations/ENVIRONMENT.md) — 所有环境变量完整参考
 - [可观测性运维指南](operations/OBSERVABILITY-OPERATIONS.md) — 采样策略、数据保留、资源限制与 SLO/SLI 目标
 - [回归验证命令参考](operations/REGRESSION-COMMANDS.md) — PR 必跑、阶段完成验证与可观测性专项命令
-- [性能指南](reference/PERFORMANCE.md) — 性能调优与瓶颈排查
+- [性能指南（已归档）](archived/reference/PERFORMANCE.md) — 性能调优与瓶颈排查
 - [安全指南](operations/SECURITY.md) — 安全架构、配置清单与最佳实践
-- [Prompt Provider](operations/PROMPT_PROVIDERS.md) — 多 Provider 提示系统
-- [Prompt 缓存](operations/PROMPT_CACHING.md) — 提示缓存策略
+- [Prompt Provider（已归档）](archived/operations/PROMPT_PROVIDERS.md) — 多 Provider 提示系统
+- [Prompt 缓存（已归档）](archived/operations/PROMPT_CACHING.md) — 提示缓存策略
 
 ### 包结构
-- [包结构说明](PACKAGES.md) — client-core、backend-core、ai-providers、hosts、cli、server、contracts、skills 各包职责与接口
-- [包技术选型说明](PACKAGE_STACK_RATIONALE.md) — 解释各包及主要子包为什么选择当前技术栈
+- [包结构说明](PACKAGES.md) — client-core、backend-core、ai-providers、hosts、cli、contracts、skills 各包职责与接口
+- [包技术选型说明（已归档）](archived/PACKAGE_STACK_RATIONALE.md) — 解释各包及主要子包为什么选择当前技术栈
 
 ### 归档文档
 - [归档文档](archived/) — 历史参考文档

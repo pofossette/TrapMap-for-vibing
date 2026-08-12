@@ -1,7 +1,7 @@
 import type { AgentPlanningEvalScenario } from '@trapmap/contracts/evals';
 
 // Re-export smoke scenarios with -core suffix on variantIds only (scenarioId stays original)
-import { skillIdentificationSmokeScenarios } from '../smoke/skill-identification-smoke-scenarios.js';
+import { skillIdentificationSmokeScenarios } from '../../../scenarios/smoke/skill-identification-smoke-scenarios.js';
 
 const promotedSkillIdScenarios: AgentPlanningEvalScenario[] = skillIdentificationSmokeScenarios.map(
   (scenario) => ({

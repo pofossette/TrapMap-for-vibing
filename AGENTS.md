@@ -87,7 +87,7 @@
 
 - 先读：[`docs/guides/DOCUMENTATION_GOVERNANCE.md`](docs/guides/DOCUMENTATION_GOVERNANCE.md)、[`docs/reference/SYSTEM_TRUTH_SOURCES.md`](docs/reference/SYSTEM_TRUTH_SOURCES.md)、[`docs/reference/REPO_STRUCTURE.md`](docs/reference/REPO_STRUCTURE.md)
 - 权威事实：`reference/` 下权威页、[`package.json`](package.json) 的守卫脚本、相关 CI workflow
-- 最小验证：`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`；必要时补对应 truth smoke
+- 最小验证：`rtk pnpm check:docs`、`rtk pnpm check:structure`；必要时补对应 truth smoke
 - 必须同步：新增规则时优先更新权威页，再回写入口索引；如果同类漂移可能复发，补充 doc-drift 规则或贡献约定
 
 ### 可观测性 / 健康检查 / 服务发现变更

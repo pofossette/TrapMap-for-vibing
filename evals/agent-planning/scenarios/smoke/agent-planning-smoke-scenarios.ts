@@ -823,7 +823,7 @@ export const smokeScenarios: AgentPlanningEvalScenario[] = [
           id: 'noise-with-assets-and-scripts',
           kind: 'skill',
           title: 'Ingestion fixture with assets',
-          sourcePath: 'evals/ingestion/fixtures/with-assets-and-scripts/SKILL.md',
+          sourcePath: 'evals/ingestion/archived/fixtures/with-assets-and-scripts/SKILL.md',
           summary: 'Ingestion fixture as far-domain noise for database migration.',
         },
       ],

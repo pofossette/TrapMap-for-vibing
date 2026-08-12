@@ -1,6 +1,6 @@
 # TrapMap 包结构
 
-本文档说明 TrapMap 各包的职责、接口和关键类型。若你关心的是“为什么选这套技术栈”，请配合阅读 [PACKAGE_STACK_RATIONALE.md](PACKAGE_STACK_RATIONALE.md)。
+本文档说明 TrapMap 各包的职责、接口和关键类型。若你关心的是“为什么选这套技术栈”，请配合阅读 [PACKAGE_STACK_RATIONALE.md（已归档）](archived/PACKAGE_STACK_RATIONALE.md)。
 
 ## 包概览
 
@@ -61,8 +61,8 @@
 
 - 统一适配器不是 mega-adapter。它当前只覆盖 infrastructure/provider seam，不混入 repository、application service、gateway route/client 或 host composition owner。
 - `backend-core` 只定义 port contract、invocation model 和 host-agnostic invocation semantics；它不拥有 concrete provider implementation，也不在本 phase 承诺抽出新的 shared provider package。
-- `packages/host-local/src/nest/adapters/` 是当前默认 `light` host 的 host-owned adapter selection seam。`adapter-factory.ts` 在这里决定 `in-process` 与 `remote` 两种 port adapter，business code 不负责自行挑选实现。
-- `packages/host-local/src/nest/adapters/remote.adapter.ts` 是 port-level remote adapter，不是 repository adapter。它把 remote HTTP call 包装成 `KnowledgeReadPort` 语义，并把 transport failure 收口为 `InvocationError`，而不是把 `fetch`/`Response` 暴露给上层。
+- `packages/host-local/src/nest/runtime/backend-core-adapters.ts` 是当前默认 `light` host 的 host-owned adapter selection seam，决定 `in-process` 与 `remote` 两种 port adapter，business code 不负责自行挑选实现。
+- port-level remote adapter 不是 repository adapter。它把 remote HTTP call 包装成 port 语义，并把 transport failure 收口为 `InvocationError`，而不是把 `fetch`/`Response` 暴露给上层。
 - `packages/host-distributed/src/gateway/internal-client.ts` 是 distributed gateway 的 thin transport helper / canonical error normalization seam；它负责内部 forwarding、header propagation 与 canonical body normalization，而不是业务编排或 repo adapter。
 - `packages/host-distributed/src/shared/internal-knowledge-write-client.ts` 是 remote port client wrapper 示例：它消费 gateway internal client，把 transport 错误映射回 `InvocationError` / `KnowledgeWritePort` 语义，证明 remote client wrapper 与 gateway transport helper 属于不同层次。
 - `packages/server（Wave-10 已删除）/src/lib/ai/**` 与 `packages/server（Wave-10 已删除）/src/lib/indexing/adapters/**` 继续是 server-owned concrete infrastructure/provider implementation。Phase 3 冻结 taxonomy 和 owner，不把它们提前描述成 `backend-core` provider contract，也不把它们抽离成新的 shared workspace package。
@@ -515,12 +515,12 @@ contracts ───────────────────────�
 
 ### 数据库与事务边界
 
-首期继续共享 PostgreSQL，但服务 owner、写侧事实源和投影边界已经冻结。详见 [architecture/DATABASE_OWNERSHIP.md](architecture/DATABASE_OWNERSHIP.md) 和 [architecture/SERVICE_BOUNDARIES.md](architecture/SERVICE_BOUNDARIES.md)。
+首期继续共享 PostgreSQL，但服务 owner、写侧事实源和投影边界已经冻结。详见 [architecture/DATABASE_OWNERSHIP.md（已归档）](archived/architecture/DATABASE_OWNERSHIP.md) 和 [architecture/SERVICE_BOUNDARIES.md（已归档）](archived/architecture/SERVICE_BOUNDARIES.md)。
 
 ### 参考文档
 
 - [docs/archived/archived-plans/nestjs-service-evolution-00-target-architecture.md](archived/archived-plans/nestjs-service-evolution-00-target-architecture.md) -- Phase 0 冻结结论
 - [docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md](archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md) -- distributed 当前成熟度基线
-- [architecture/DATABASE_OWNERSHIP.md](architecture/DATABASE_OWNERSHIP.md) -- 表级 ownership 和事务边界规则
-- [architecture/SERVICE_BOUNDARIES.md](architecture/SERVICE_BOUNDARIES.md) -- 服务角色定义和 ownership 模型
+- [architecture/DATABASE_OWNERSHIP.md（已归档）](archived/architecture/DATABASE_OWNERSHIP.md) -- 表级 ownership 和事务边界规则
+- [architecture/SERVICE_BOUNDARIES.md（已归档）](archived/architecture/SERVICE_BOUNDARIES.md) -- 服务角色定义和 ownership 模型
 - [plans/runtime-recomposition/](plans/runtime-recomposition/) -- 历史迁移背景，不再承担当前阶段执行入口

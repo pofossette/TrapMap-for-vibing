@@ -13,9 +13,9 @@
 目录：
 
 - `run.ts`：运行入口
-- `smoke.ts` / `core.ts`：tier 导出
-- `datasets/`：case 数据
-- `scenarios/`：任务与上下文场景
+- `smoke.ts` / `core.ts`：tier 导出（`core.ts` re-export `archived/` 数据）
+- `datasets/smoke/`、`scenarios/smoke/`：smoke case 与场景
+- `archived/datasets/core/`、`archived/scenarios/core/`：Wave 8 归档的 core 数据（手动 tier）
 - `lib/`：prompt、context、actor、judge、normalizer、scoring、report、format、platform event builder
 
 平台集成边界：
@@ -29,3 +29,10 @@
 ```bash
 rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/agent-planning/run.ts --tier smoke --dry-run
 ```
+
+## Owner 与变更门禁
+
+- **Owner**：agent-planning eval owner
+- **Tier 状态**：smoke 是 CI 门禁 tier；core 已归档到 `archived/`（`--tier core` 仍可手动运行，不进 CI）
+- **变更必跑**：`rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`（快照 parity）+ `rtk pnpm test:file -- evals/agent-planning/runner.test.ts`（数据集自洽与 dry-run）
+- 修改 case/scenario 后若判定发生变化，需同步重新生成并提交 parity 快照（`pnpm eval:snapshots`）

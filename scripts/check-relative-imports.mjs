@@ -69,14 +69,14 @@ async function main() {
 
   if (fixMode) {
     console.log(
-      `Found ${violations.length} relative import(s). Run the codemod to fix:\n  pnpm codemod:relative\n`,
+      `Found ${violations.length} relative import(s). Run the archived codemod to fix:\n  bash scripts/archived/codemod-batch.sh\n`,
     );
   } else {
     console.error(`Found ${violations.length} relative import(s):\n`);
     for (const v of violations) {
       console.error(`  ${v.file}:${v.line}  "${v.importPath}"`);
     }
-    console.error('\nFix with: pnpm codemod:relative');
+    console.error('\nFix with: bash scripts/archived/codemod-batch.sh');
     process.exit(1);
   }
 }

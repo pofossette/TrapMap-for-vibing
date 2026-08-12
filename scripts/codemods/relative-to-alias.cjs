@@ -1,4 +1,4 @@
-// fallow-ignore-file unused-file -- invoked by scripts/codemod-batch.sh
+// fallow-ignore-file unused-file -- invoked by scripts/archived/codemod-batch.sh
 /**
  * jscodeshift transform: 将相对路径导入转换为 @trapmap/<pkg> 别名导入
  *

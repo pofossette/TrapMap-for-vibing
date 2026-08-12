@@ -20,7 +20,7 @@ describe('checkDocTruth', () => {
 
   it('verifies critical CI guards are blocking', () => {
     const result = checkDocTruth(ROOT);
-    const criticalGuards = ['check:docs-drift', 'check:structure', 'check:mermaid'];
+    const criticalGuards = ['check:docs', 'check:structure', 'check:asserts'];
     for (const guard of criticalGuards) {
       const found = result.manifest.ciGuardrails.find((g) => g.name === guard);
       expect(found).toBeDefined();
@@ -34,8 +34,9 @@ describe('checkDocTruth', () => {
       'build',
       'test',
       'typecheck',
-      'check:docs-drift',
-      'check:doc-references',
+      'check:docs',
+      'check:structure',
+      'check:asserts',
     ];
     for (const script of requiredScripts) {
       const found = result.manifest.scripts.find((s) => s.name === script);

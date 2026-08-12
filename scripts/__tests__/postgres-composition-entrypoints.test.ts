@@ -34,7 +34,7 @@ describe('PostgreSQL composition entrypoints', () => {
   });
 
   it('exports retrieval snapshots from owner projections without the compatibility server', async () => {
-    const source = await readFile('scripts/export-retrieval-db-snapshot.ts', 'utf8');
+    const source = await readFile('scripts/archived/export-retrieval-db-snapshot.ts', 'utf8');
 
     expect(source).toContain('createKnowledgeWriteOwnerBundle');
     expect(source).toContain('createKnowledgeReadGraphIndexRepository');

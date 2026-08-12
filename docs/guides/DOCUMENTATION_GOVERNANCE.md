@@ -42,7 +42,7 @@
 
 如果某类文档漂移可能反复出现，优先补守卫而不是只补文字说明：
 
-- 文本漂移：优先补 `pnpm check:docs-drift`
+- 文本漂移：优先补 `pnpm check:docs`
 - 目录落点漂移：优先补 `pnpm check:structure`
 - 事实一致性漂移：优先补 truth smoke 或对应测试
 
@@ -73,16 +73,15 @@
 
 - [`docs/archived/archived-plans/badcase-feedback-loop.md`](../archived/archived-plans/badcase-feedback-loop.md)
 - `GET /v1/operations/badcases/:feedbackId/export`
-- `scripts/export-badcase-to-eval.ts`
+- `scripts/archived/export-badcase-to-eval.ts`
 
 ## 最小验证
 
 文档、入口、结构规则变更完成后，至少运行：
 
 ```bash
-pnpm check:docs-drift
+pnpm check:docs
 pnpm check:structure
-pnpm check:doc-references
 ```
 
 如果改动触及 truth source、架构事实或对应 smoke 用例，再补跑相关最小测试。

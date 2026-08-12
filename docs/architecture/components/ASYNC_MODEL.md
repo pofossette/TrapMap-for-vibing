@@ -70,7 +70,7 @@ flowchart TB
         AsyncStatus["/v1/operations/status/async"]
         Stats["/v1/operations/stats/summary"]
         Badcase["/v1/operations/badcases/:feedbackId/export"]
-        Script["scripts/export-badcase-to-eval.ts"]
+        Script["scripts/archived/export-badcase-to-eval.ts"]
     end
 
     Api --> Tx
@@ -374,7 +374,7 @@ sequenceDiagram
     participant Feedback as /v1/feedback
     participant Trace as retrieval_badcase_traces
     participant Export as /v1/operations/badcases/:feedbackId/export
-    participant Script as export-badcase-to-eval.ts
+    participant Script as export-badcase-to-eval.ts (archived)
 
     Retrieval-->>Feedback: queryId + selected result
     Feedback->>Trace: persist badcase trace
