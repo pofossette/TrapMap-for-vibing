@@ -165,7 +165,7 @@ describe('LifecycleManager', () => {
 
     await manager.runPhase('init');
 
-    const stub = manager as unknown as StubLifecycleManager;
+    const stub = manager as StubLifecycleManager;
     expect(stub.executionLog).toHaveLength(1);
     expect(stub.executionLog[0].hookName).toBe('init-hook');
   });

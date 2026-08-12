@@ -21,6 +21,7 @@ vi.mock('../lib/config.js', () => ({
 
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest } from '@trapmap/cli/lib/http.js';
+import type { DecayState } from '@trapmap/contracts';
 // Import after mocking
 import { Command } from 'commander';
 import { formatDecayList, registerDecayCommands } from './decay.js';
@@ -776,7 +777,9 @@ describe('CLI decay commands (Phase 50)', () => {
             lifecycleState: 'approved',
             requiredLevel: 1,
             updatedAt: '2026-01-01T00:00:00Z',
-            decayState: undefined as unknown as string | null,
+            decayState: undefined as unknown as DecayState | null, // lib type gap: the decay list item
+            // type excludes undefined although the formatter explicitly renders it; the
+            // fixture exercises that branch
             freshnessType: 'evergreen',
             ageDays: 10,
             lastVerifiedAt: null,

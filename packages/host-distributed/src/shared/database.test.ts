@@ -5,7 +5,12 @@ import {
   getDistributedConnectionBudgetSnapshot,
   loadServiceConfig,
 } from '../config/index.js';
-import { createServiceDatabase, getServicePoolConfig, getServicePoolSnapshot } from './database.js';
+import {
+  type ServicePoolCounters,
+  createServiceDatabase,
+  getServicePoolConfig,
+  getServicePoolSnapshot,
+} from './database.js';
 
 describe('distributed database pool configuration', () => {
   it('loads the system admin key only from the distributed environment', () => {
@@ -34,12 +39,12 @@ describe('distributed database pool configuration', () => {
 
   it('keeps a service pool health snapshot bounded to pool counters', async () => {
     const config = loadServiceConfig('knowledge-read');
-    const pool = {
+    const pool: ServicePoolCounters & { options: { max: number } } = {
       totalCount: 3,
       idleCount: 1,
       waitingCount: 2,
       options: { max: config.poolSize },
-    } as never;
+    };
 
     const snapshot = getServicePoolSnapshot(pool, pool.options.max);
 
@@ -54,7 +59,7 @@ describe('distributed database pool configuration', () => {
 
   it('returns unknown diagnostics when a pool counter is unavailable', () => {
     const snapshot = getServicePoolSnapshot(
-      { totalCount: undefined, idleCount: 1, waitingCount: undefined } as never,
+      { totalCount: undefined, idleCount: 1, waitingCount: undefined },
       5,
     );
 

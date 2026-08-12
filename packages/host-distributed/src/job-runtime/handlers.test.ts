@@ -11,7 +11,7 @@ describe('distributed job-runtime task handlers', () => {
         reactivateRemediation: vi.fn(),
         exportBadcaseDraft: vi.fn(),
       },
-    } as never);
+    });
 
     expect(handlers.map(({ type }) => type)).toEqual([
       'governance.conflict-detection',
@@ -31,7 +31,7 @@ describe('distributed job-runtime task handlers', () => {
         reactivateRemediation: vi.fn(),
         exportBadcaseDraft: vi.fn(),
       },
-    } as never);
+    });
 
     const handler = handlers.find(({ type }) => type === 'governance.conflict-detection');
     expect(handler).toBeDefined();
@@ -57,7 +57,7 @@ describe('distributed job-runtime task handlers', () => {
         reactivateRemediation,
         exportBadcaseDraft: vi.fn(),
       },
-    } as never);
+    });
 
     const handler = handlers.find(({ type }) => type === 'feedback.remediation-reactivation');
     expect(handler).toBeDefined();
@@ -93,7 +93,7 @@ describe('distributed job-runtime task handlers', () => {
         reactivateRemediation,
         exportBadcaseDraft,
       },
-    } as never);
+    });
 
     const remediationHandler = handlers.find(
       ({ type }) => type === 'feedback.remediation-reactivation',
@@ -195,7 +195,7 @@ describe('distributed job-runtime task handlers', () => {
 
       const handlers = createJobRuntimeTaskHandlers({
         governanceReview,
-      } as never);
+      });
       const handler = handlers.find(({ type: taskType }) => taskType === type);
 
       await expect(

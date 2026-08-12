@@ -25,7 +25,7 @@ describe('distributed governance conflict read port', () => {
     });
     const read = createDistributedGovernanceConflictReadPort({
       knowledgeWrite: { getConflictCandidates },
-    } as never);
+    });
 
     await expect(read.getApprovedConflictCandidates('entry-new')).resolves.toEqual({
       entry: {

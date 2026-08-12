@@ -42,7 +42,7 @@ describe('distributed database ownership guard', () => {
 
   it('does not expose knowledge mutation through the distributed shared bundle', async () => {
     const ports = createServicePorts(
-      { query: vi.fn(async () => ({ rows: [] })) } as never,
+      { query: vi.fn(async () => ({ rows: [] })) },
       'knowledge-write',
       identity,
     );
@@ -51,13 +51,13 @@ describe('distributed database ownership guard', () => {
   });
 
   it('keeps cross-owner audit repository writes behind the audit capability', () => {
-    const ports = createServicePorts({} as never, 'knowledge-write', identity);
+    const ports = createServicePorts({}, 'knowledge-write', identity);
 
     expect(ports.repos.audit).toBeUndefined();
   });
 
   it('does not construct identity repositories in the distributed shared bundle', () => {
-    const ports = createServicePorts({} as never, 'knowledge-write', identity);
+    const ports = createServicePorts({}, 'knowledge-write', identity);
 
     expect(ports.repos).not.toHaveProperty('session');
     expect(ports.repos).not.toHaveProperty('accessKey');
@@ -68,7 +68,7 @@ describe('distributed database ownership guard', () => {
   });
 
   it('does not expose job runtime mutation capabilities to business owners', () => {
-    const ports = createServicePorts({} as never, 'knowledge-write', identity);
+    const ports = createServicePorts({}, 'knowledge-write', identity);
 
     expect(ports.jobRuntime).toBeUndefined();
     expect(ports.asyncDiagnostics).toEqual({
@@ -80,7 +80,7 @@ describe('distributed database ownership guard', () => {
   });
 
   it('exposes queue and outbox mutation capabilities only to job-runtime', () => {
-    const ports = createServicePorts({} as never, 'job-runtime', identity);
+    const ports = createServicePorts({}, 'job-runtime', identity);
 
     expect(ports.jobRuntime).toEqual({
       task: expect.any(Object),
