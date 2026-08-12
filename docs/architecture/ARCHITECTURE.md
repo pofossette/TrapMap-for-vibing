@@ -36,7 +36,7 @@ Phase 1 Nest 宿主试点补充事实：
 Phase 2 modular-monolith cutover 补充事实：
 
 - 六个 bounded context 固定为 `identity-access`、`knowledge-read`、`knowledge-write`、`governance-review`、`candidate-ingestion`、`job-runtime`；`gateway` 继续只是宿主拥有的 transport shell。
-- `backend-core` 已经按这六个 context 落地 `src/<context>/{domain,application,module.ts,index.ts}`；`src/modules/*.ts` 在迁移窗口内退化为对 `<context>/index.ts` 的 compatibility re-export。`backend-core` 必须继续承担 framework-free 的 `ports`、`invocation`、`runtime capability/topology`、testing utilities，以及各 context 的 `domain/application/module` factory；PG/MQ concrete 细节不得进入这里。Nest/Fastify 框架导入是 2026-08 统一后的唯一例外，只允许集中在 `src/http/adapters/{nest.ts,fastify.ts}`（RouteDef 双 adapter）。
+- `backend-core` 已经按这六个 context 落地 `src/<context>/{domain,application,module.ts,index.ts}`；`src/modules/*.ts` 在迁移窗口内退化为对 `<context>/index.ts` 的 compatibility re-export。`backend-core` 必须继续承担 framework-free 的 `ports`、`invocation`、`runtime capability/topology`、testing utilities，以及各 context 的 `domain/application/module` factory；PG/MQ concrete 细节不得进入这里。Nest/Fastify 框架导入是 2026-08 统一后的唯一例外（测试接缝 `src/testing/` 除外），只允许集中在 `src/http/adapters/{nest.ts,fastify.ts}`（RouteDef 双 adapter）。
 - `embedded/local-agent` 与 `team-monolith` 在 Phase 2 以后共用同一个 `packages/host-local/src/nest/app.module.ts` 和同一套 bounded-context module graph；profile 差异只允许出现在 capability、provider wiring 和 route surface gating。当前六个 bounded-context Nest module 已经全部在 `app.module.ts` 注册。
 - `packages/server（Wave-10 已删除）` 只保留 compatibility shell 与 runtime/status；`packages/host-distributed` 保留为 distributed 的部署展开层，但不拥有第二套业务真相。
 - `packages/service-*` 包继续保留，但只作为 distributed internal transport / process entry thin assembly；业务 owner 仍以 `backend-core` module 和本文档定义的边界为准。

@@ -107,7 +107,7 @@ service-* / host-local / cli → lib → contracts
 
 1. `contracts` 是最底层叶子节点，不依赖任何其他 zone
 2. `client-core` 不依赖 `backend-core` 或任何服务端包
-3. `backend-core` 只依赖 `contracts`（`.fallowrc.json` 的 allow 列表另有 `persistence-schema` 但当前无消费方），不依赖任何服务或宿主包；外部框架依赖（`fastify`、`@nestjs/*`）只允许出现在 `src/http/adapters/`，不得扩散到 `domain/`、`application/`、`ports/`、`use-cases/`
+3. `backend-core` 只依赖 `contracts`（`.fallowrc.json` 的 allow 列表另有 `persistence-schema` 但当前无消费方），不依赖任何服务或宿主包；外部框架依赖（`fastify`、`@nestjs/*`）只允许出现在 `src/http/adapters/`（测试接缝 `src/testing/` 除外），不得扩散到 `domain/`、`application/`、`ports/`、`use-cases/`
 4. 标准服务包（`service-standard`）只依赖 `backend-core`、`contracts` 和 `lib`，服务包之间不直接依赖
 5. `cli` 和 `web-panel` 只依赖 `client-core`、`contracts`（`cli` 另可依赖 `lib`），不依赖任何服务端包
 6. 宿主包（`host-local`、`host-distributed`）是最高层组合根，可以依赖所有下游 zone
@@ -119,7 +119,7 @@ service-* / host-local / cli → lib → contracts
 2026-08 maintainability-rework 后，`backend-core` 内部出现两个对维护者重要的固定结构，不构成新 zone（仍属 `backend-core` 单 zone）：
 
 - **domain 纯规则层**：`packages/backend-core/src/<context>/domain/` 是六个有界上下文真实承载规则的位置（lifecycle/policy/conflict/dedup/retrieval 等），只允许纯函数与零框架/零 DB 依赖，并配套单元测试。`service-*` 的 pg-ports 只保留 SQL + 行映射；宿主与 infrastructure 层禁止新增业务判断。
-- **http RouteDef 层**：`packages/backend-core/src/http/route-contract.ts` 定义框架中立的 `RouteDef` 契约（method/path/Zod schema/handler + canonical error envelope）；`src/http/adapters/{nest.ts,fastify.ts}` 是唯一的框架导入落点。各 service 包以 `create<X>RouteDefs(deps)` 工厂声明路由，host-local Nest 经 `createNestAdapter`、host-distributed gateway 与各 Fastify 服务经 `createFastifyAdapter` 消费同一份 RouteDef，宿主内禁止手写重复路由实现。
+- **http RouteDef 层**：`packages/backend-core/src/http/route-contract.ts` 定义框架中立的 `RouteDef` 契约（method/path/Zod schema/handler + canonical error envelope）；`src/http/adapters/{nest.ts,fastify.ts}` 是生产代码唯一的框架导入落点（测试接缝 `src/testing/` 除外）。各 service 包以 `create<X>RouteDefs(deps)` 工厂声明路由，host-local Nest 经 `createNestAdapter`、host-distributed gateway 与各 Fastify 服务经 `createFastifyAdapter` 消费同一份 RouteDef，宿主内禁止手写重复路由实现。
 
 ## 已知例外
 
