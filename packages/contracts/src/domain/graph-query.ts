@@ -106,7 +106,8 @@ export interface GraphQueryBackend {
 const GraphCtor = Graphology as unknown as new (options?: {
   type?: string;
   multi?: boolean;
-}) => Graph;
+}) => Graph; // lib type gap: graphology's default export types the constructor against
+// AbstractGraphOptions; the projection only needs the minimal directed/multi options
 
 export function buildGraphFromDocuments(documents: GraphIndexDocumentRecord[]): Graph {
   const graph = new GraphCtor({ type: 'directed', multi: true });
@@ -264,6 +265,8 @@ export function projectHardDependencyGraph(documents: GraphIndexDocumentRecord[]
 
 export function assertNoHardDependencyCycles(documents: GraphIndexDocumentRecord[]): void {
   if (hasCycle(projectHardDependencyGraph(documents) as never)) {
+    // lib type gap: graphology-dag's
+    // hasCycle is typed against AbstractGraph; the projection graph is a minimal structural subset
     throw new Error('hard dependency cycle detected');
   }
 }
@@ -280,12 +283,14 @@ export function buildLocalExpansionView(params: LocalExpansionParams): Graph {
   for (const seedNodeId of params.seedNodeIds) {
     if (!graph.hasNode(seedNodeId)) continue;
     reachableNodeIds.add(seedNodeId);
-    const distances = singleSourceLength(graph as never, seedNodeId) as Record<string, number>;
+    const distances = singleSourceLength(graph as never, seedNodeId) as Record<string, number>; // lib type gap:
+    // graphology-shortest-path is typed against AbstractGraph; the projection graph is a minimal structural subset
     for (const [nodeId, distance] of Object.entries(distances)) {
       if (distance !== null && distance <= params.maxDepth) reachableNodeIds.add(nodeId);
     }
   }
-  return subgraph(graph as never, reachableNodeIds) as Graph;
+  return subgraph(graph as never, reachableNodeIds) as Graph; // lib type gap: graphology-operators is
+  // typed against AbstractGraph; the projection graph is a minimal structural subset
 }
 
 export function normalizeContextLabel(label: string): string {

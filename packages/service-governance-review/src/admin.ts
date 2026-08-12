@@ -43,7 +43,7 @@ import {
 export interface GovernanceReviewAdminDeps {
   feedbackRepo: FeedbackRepositoryPort;
   knowledgeRead: Pick<KnowledgeOwnerPort, 'getById'>;
-  artifactReadProjection: ArtifactReadProjection;
+  artifactReadProjection: Pick<ArtifactReadProjection, 'getById'>;
   knowledgeWrite?: Pick<KnowledgeOwnerPort, 'applyDecayDecision'>;
   jobRuntime?: Pick<JobRuntimePort, 'schedule'>;
   auditLog?: AuditLogPort;

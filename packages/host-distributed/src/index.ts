@@ -115,7 +115,7 @@ async function main() {
     for (const name of ALL_SERVICES) {
       try {
         const result = await startService(name);
-        handles.push({ name, ...result } as never);
+        handles.push({ name, ...result });
         console.log(`  ${name} started on port ${result.config.port}`);
       } catch (error) {
         console.error(`  Failed to start ${name}:`, error);

@@ -22,7 +22,7 @@ import type { LifecycleState } from '@trapmap/contracts';
 import { recordAsyncLifecycleEvent } from '../gateway/internal-observability.js';
 import type { DatabaseWriteService } from './database-ownership.js';
 
-function mapKnowledgeRow(row: Record<string, unknown>) {
+function mapKnowledgeRow(row: Record<string, unknown>): KnowledgeEntryRecord {
   const {
     detail,
     shortcut,
@@ -36,11 +36,12 @@ function mapKnowledgeRow(row: Record<string, unknown>) {
   } = row;
   return {
     ...entry,
+    id: String(row.id),
     content: String(detail ?? ''),
     title: String(shortcut ?? ''),
     labels: Array.isArray(labels) ? labels : [],
     ownerUserId: String(ownerUserId ?? legacyOwnerUserId ?? ''),
-    teamId: (teamId as string | null) ?? (legacyTeamId as string | null) ?? null,
+    teamId: ((teamId as string | null) ?? (legacyTeamId as string | null) ?? null) as string,
     lifecycleState: lifecycleState as LifecycleState,
   };
 }
@@ -58,7 +59,7 @@ function createPgKnowledgeReadProjection(
     async getById(entryId) {
       const result = await pool.query('SELECT * FROM knowledge_entries WHERE id = $1', [entryId]);
       const row = result.rows.at(0) as Record<string, unknown> | undefined;
-      return row ? (mapKnowledgeRow(row) as never) : null;
+      return row ? mapKnowledgeRow(row) : null;
     },
     async listMine({ userId, teamId }) {
       const conditions: string[] = [];
@@ -76,7 +77,7 @@ function createPgKnowledgeReadProjection(
         `SELECT * FROM knowledge_entries ${whereClause} ORDER BY created_at DESC LIMIT 100`,
         params,
       );
-      return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>)) as never[];
+      return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>));
     },
     async getStatus() {
       return {
@@ -92,7 +93,7 @@ function createPgKnowledgeReadProjection(
       const { rows } = await pool.query(
         'SELECT * FROM knowledge_entries ORDER BY created_at DESC LIMIT 100',
       );
-      return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>)) as never[];
+      return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>));
     },
   };
 }

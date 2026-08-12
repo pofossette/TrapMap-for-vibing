@@ -17,7 +17,9 @@ import {
   createIdentityAccessServiceModule,
 } from '@trapmap/service-identity-access';
 import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
+import type { KnowledgeEntry } from '@trapmap/contracts';
 import { createKnowledgeReadDeps } from '@trapmap/service-knowledge-read';
+import type { KnowledgeReadPortDeps } from '@trapmap/service-knowledge-read';
 import { createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';
 
 import { CandidateIngestionModule } from './candidate-ingestion/candidate-ingestion.module.js';
@@ -65,16 +67,29 @@ import { ConsulModule } from './service-discovery/index.js';
  *   module graph.
  */
 const hostLocalRuntime = await createHostLocalRuntime();
-const knowledgeProjection = {
+type HostLocalKnowledgeRepo = KnowledgeReadPortDeps['knowledgeRepo'] & {
+  getById(entryId: string): Promise<KnowledgeEntry | null>;
+  listMine(input: { userId: string; teamId?: string }): Promise<KnowledgeEntry[]>;
+  getStatus(): Promise<{ status: string; provider: string }>;
+};
+const knowledgeProjection: HostLocalKnowledgeRepo = {
   getById: hostLocalRuntime.services.knowledgeOwner.getById,
   async listMine(input: { userId: string; teamId?: string }) {
     return hostLocalRuntime.services.knowledgeOwner.listByFilter({
       ownerUserId: input.userId,
       ...(input.teamId ? { teamId: input.teamId } : {}),
-    }) as never;
+    });
   },
   async getStatus() {
-    return { status: 'ready', provider: 'knowledge-write-owner' } as never;
+    return { status: 'ready', provider: 'knowledge-write-owner' };
+  },
+  async listByFilter(filter) {
+    return (await hostLocalRuntime.services.knowledgeOwner.listByFilter({
+      ...(filter.ownerUserId !== undefined ? { ownerUserId: filter.ownerUserId } : {}),
+      ...(filter.teamId !== undefined ? { teamId: filter.teamId } : {}),
+    })) as unknown as Awaited<ReturnType<KnowledgeReadPortDeps['knowledgeRepo']['listByFilter']>>; // lib type gap: the projection repo seam bridges the owner port's contracts
+    // entry shape (KnowledgeEntry) into the backend-core KnowledgeEntryRecord
+    // shape; both describe the same runtime rows but the static shapes differ
   },
 };
 
@@ -89,7 +104,7 @@ const identityAccessModule = IdentityAccessModule.forPort(
 );
 
 const knowledgeReadDeps = createKnowledgeReadDeps({
-  knowledgeRepo: knowledgeProjection as never,
+  knowledgeRepo: knowledgeProjection,
   retrievalQuery: hostLocalRuntime.retrievalQuery,
 });
 const knowledgeReadPort = createKnowledgeReadModule(knowledgeReadDeps);

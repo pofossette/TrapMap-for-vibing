@@ -91,7 +91,10 @@ export async function createHostLocalServices(config: HostLocalConfig): Promise<
     knowledge: knowledgeWrite.knowledgeOwner,
     artifact: knowledgeWrite.artifactReadProjection,
     governance:
-      governanceReview.retrievalProjection as unknown as OwnerReadModelProjectionOptions['governance'],
+      governanceReview.retrievalProjection as unknown as OwnerReadModelProjectionOptions['governance'], // lib type gap: the
+    // governance owner bundle returns the backend-core minimal FeedbackQueueRecord
+    // shape while the owner read model expects knowledge-read's richer store record —
+    // same feedback rows at runtime
   });
   const asyncTransport = createJobRuntimeAsyncTransport({
     config: { asyncTaskTransport: config.asyncTaskTransport },

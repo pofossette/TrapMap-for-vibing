@@ -14,8 +14,7 @@ export class LoggingMiddleware implements NestMiddleware {
   use(req: FastifyRequest, res: FastifyReply, next: () => void): void {
     const start = Date.now();
     const requestContext = this.requestContext.get();
-    const responseTarget = (res.raw ??
-      (res as unknown as { on?: (event: string, cb: () => void) => void })) as {
+    const responseTarget = (res.raw ?? res) as {
       on?: (event: string, cb: () => void) => void;
     };
 
