@@ -71,8 +71,25 @@
 - [ ] **后续落点：** 若 `ai-providers` 被纳入 fallow zone 治理，需同步 `.fallowrc.json` 与 `BOUNDARIES.md`；`host-distributed` 的 `normalizeLabels`/`labelKey` 与 `formatPrometheusLabels`（metrics label 排序）可随 observability 平台主线一并收敛。
 - [ ] **要求的文档与测试：** lib 新增函数补单测；受影响包 focused tests；架构边界变化时回写 `docs/architecture/BOUNDARIES.md`；运行 `rtk pnpm exec fallow audit --base main`、`rtk pnpm typecheck`。
 
-### `test:import-export` 脚本损坏（2026-08-12 登记）
+### knowledgeRepo listByFilter 桥的 LIMIT 100 暴露（2026-08-12 登记）
 
+- [ ] **来源：** Task 9 断言清零时 host-local 新组装路径（`packages/host-local/src/nest/app.module.ts` 的 `knowledgeProjection` 桥）首次真实暴露：knowledge-read 读侧 `knowledgeRepo.listByFilter` 经桥委托到 knowledge-write owner 的 `knowledgeOwner.listByFilter`，其 SQL（`packages/service-knowledge-write/src/knowledge-projection.ts` 的 `listByFilter`）硬编码 `LIMIT 100`，无分页参数、无契约声明。
+- [ ] **影响：** 读侧按 filter 列举超过 100 条知识条目时会被静默截断；桥两侧 port 签名均为无界数组语义（`Promise<KnowledgeEntryRecord[]>`），调用方无法感知截断，可能造成列表/统计结果不完整。
+- [ ] **当前边界：** 该限制先于桥已存在于 owner 的 projection 实现；本登记项只追语义暴露，不修改 SQL 行为；不做无界扫描，也不在无分页契约下扩大 LIMIT。
+- [ ] **进入条件：** 任一真实读路径出现 >100 条同 filter 命中的知识条目且被截断影响结果正确性；或该桥被新的消费方引用时。
+- [ ] **后续落点：** 给 owner `listByFilter` 增加显式分页/上限契约（offset+limit 或返回 total），桥与 read-side port 同步声明语义，并补覆盖 >100 条命中的测试；回写 `docs/reference/api-surface.md` 与相关 README。
+- [ ] **要求的文档与测试：** 改动集中在 `service-knowledge-write` pg-ports/projection 与 host-local 桥；运行相关包 focused tests、`rtk pnpm typecheck`、`rtk pnpm test:deployment-smoke`；契约变化时回写 reference 文档并跑 `rtk pnpm check:docs`。
+
+### eval:smoke 需 CI 补跑（docker 环境）
+
+- [ ] **来源：** Task 6/9/12 本地无 docker daemon（且无 pgvector 扩展的本地 PG），`rtk pnpm eval:smoke`（`scripts/run-postgres-coordinated.ts` 需临时 `pgvector/pgvector:pg16` 容器）在本地无法完整执行，只能跑无 PG 的离线部分。
+- [ ] **影响：** 检索/摘要/治理/ingestion smoke 判定未经本机全量验证；eval 相关改动（Wave 8 收敛后）的回归证据只到离线部分与单元测试。
+- [ ] **当前边界：** 不把本地跳过当作通过；`pnpm eval:smoke` 仍是 CI 的 eval 门禁（`.github/workflows/eval.yml`），本地报告明确标注"CI 需补跑"。
+- [ ] **进入条件：** 任何检索/摘要/治理/feedback/fixtures/eval runner 改动按 AGENTS.md 要求补 `eval:smoke` 时，在具备 docker/PG 的环境（CI 或本地容器）完整跑一次并将结果回填本条。
+- [ ] **后续落点：** CI 上跑完整 `pnpm eval:smoke` 并把结果摘要写回本登记项；如频繁需要本地完整跑，可评估把 `TRAPMAP_POSTGRES_COORDINATOR_URL` 指向本地 pgvector 实例的开发流程。
+- [ ] **要求的文档与测试：** 补跑后在 `docs/operations/TESTING.md` 的 eval 小节确认无 drift；`rtk pnpm check:docs` 保持通过。
+
+### `test:import-export` 脚本损坏（2026-08-12 登记）
 - [ ] **来源：** Task 8（Wave 5 兼容债清除）验证时发现 `pnpm test:import-export` 在 base `19463ca3` 与主仓库同样失败：`scripts/test-skill-import-export.ts` 从根上下文导入 `@trapmap/service-knowledge-write` 与 `@trapmap/contracts`，但根 `package.json` 仅声明 `@trapmap/ai-providers`、`@trapmap/service-knowledge-read` 为 devDependencies，且 npm script 未传 `--tsconfig tsconfig.base.json`（其 paths 映射可解析所有 @trapmap 包）。`pnpm exec tsx --tsconfig tsconfig.base.json scripts/test-skill-import-export.ts` 可正常通过模块解析。
 - [ ] **影响：** 该脚本实际不可通过 npm script 运行，Skill 导入导出回归检查（AGENTS.md 要求）只能手工带 `--tsconfig` 执行；未被 CI 引用，因此不阻塞 CI。
 - [ ] **当前边界：** 不改变 `scripts/test-skill-import-export.ts` 逻辑；本登记项只追脚本可运行性。
