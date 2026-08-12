@@ -1,7 +1,7 @@
 import { InvocationError } from '@trapmap/backend-core';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SkillShareerServices } from './context.js';
+import type { SkillShareerRepos, SkillShareerServices } from './context.js';
 import { updateEntryEmbeddingCache } from './search-knowledge.js';
 
 function createServices(): SkillShareerServices {
@@ -19,7 +19,7 @@ function createServices(): SkillShareerServices {
         getById: vi.fn(async () => null),
         updateEmbeddingCache: vi.fn(),
       },
-    } as never,
+    } as SkillShareerRepos,
     strategyRegistry: {
       get: vi.fn(),
       all: vi.fn(() => []),

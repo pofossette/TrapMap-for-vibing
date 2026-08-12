@@ -22,7 +22,7 @@ describe('createCandidateCorpusPgReadPort', () => {
           },
         ],
       });
-    const corpus = createCandidateCorpusPgReadPort({ query } as never);
+    const corpus = createCandidateCorpusPgReadPort({ query });
 
     await expect(corpus.listApprovedTraps('team-1')).resolves.toEqual([
       { id: 'trap-1', teamId: 'team-1', shortcut: 'short', detail: 'detail', labels: ['a'] },

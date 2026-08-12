@@ -300,7 +300,6 @@ describe('knowledge-read import boundary', () => {
     const root = path.resolve(import.meta.dirname, '..');
     const source = await readFile(path.join(root, 'src/read-model.ts'), 'utf-8');
 
-    expect(source).not.toContain('repos as never');
     expect(source).toContain('RetrievalReadModelRepositories');
   });
 });

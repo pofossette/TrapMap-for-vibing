@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createDefaultKnowledgeReadRetrievalInfra } from './retrieval-infra-default.js';
 import type { MergedCandidate } from './retrieval-types.js';
+import type { Pool } from 'pg';
 import type { KnowledgeRecord } from './store.js';
 
 function createEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord {
@@ -49,7 +50,7 @@ describe('default knowledge-read retrieval infra', () => {
   it('preserves stale-entry penalties while reranking', () => {
     const infra = createDefaultKnowledgeReadRetrievalInfra();
     const candidate: MergedCandidate = {
-      entry: createEntry({ decayMeta: { decayState: 'stale' } as never }),
+      entry: createEntry({ decayMeta: { decayState: 'stale' } as KnowledgeRecord['decayMeta'] }),
       semanticScore: 0.6,
       keywordScore: 0.6,
       graphScore: 0,
@@ -75,7 +76,7 @@ describe('default knowledge-read retrieval infra', () => {
     const infra = createDefaultKnowledgeReadRetrievalInfra();
     const query = createCapturingPool();
 
-    await infra.pgRecall.vectorSimilaritySearch(query.pool as never, {
+    await infra.pgRecall.vectorSimilaritySearch(query.pool as Pool, {
       queryVector: [1, 0],
       limit: 5,
       teamId: 'team-1',
@@ -99,7 +100,7 @@ describe('default knowledge-read retrieval infra', () => {
         versions: [{ package: 'react', range: '^2.1.0' }],
         exclusions: [{ kind: 'context', description: 'not for staging environments' }],
       },
-    } as never);
+    });
 
     expect(
       infra.scoring.filterByBoundary([entry], {
@@ -114,7 +115,7 @@ describe('default knowledge-read retrieval infra', () => {
     const query = createCapturingPool();
 
     await infra.pgRecall.keywordRecall(
-      query.pool as never,
+      query.pool as Pool,
       'deploy kubernetes',
       {
         teamId: 'team-1',

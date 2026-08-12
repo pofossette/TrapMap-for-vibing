@@ -97,7 +97,7 @@ function expectNoSql(calls: string[], fragment: string): void {
 describe('candidate-ingestion PostgreSQL owner bundle', () => {
   it('constructs PG-only collaborators and makes repeated candidate inserts idempotent', async () => {
     const { calls, client, pool } = createPool();
-    const owner = createCandidateIngestionPgOwnerBundle(pool as never);
+    const owner = createCandidateIngestionPgOwnerBundle(pool);
 
     await owner.candidateRepo.insert(candidate);
     await owner.candidateRepo.insert(candidate);
@@ -130,7 +130,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
       sql.includes('FOR UPDATE') ? { rows: [{ id: candidate.id }] } : { rows: [] },
     );
 
-    await createCandidateIngestionPgOwnerBundle(pool as never).candidateRepo.updateStatus(
+    await createCandidateIngestionPgOwnerBundle(pool).candidateRepo.updateStatus(
       candidate.id,
       status,
       'processing failed',
@@ -144,7 +144,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
     const { calls, client, pool } = createPool((sql) =>
       sql.includes('FOR UPDATE') ? { rows: [{ id: candidate.id }] } : { rows: [] },
     );
-    const owner = createCandidateIngestionPgOwnerBundle(pool as never);
+    const owner = createCandidateIngestionPgOwnerBundle(pool);
 
     await owner.candidateRepo.attachAnalysis(candidate.id, analysis);
     await owner.candidateRepo.attachDuplicateCase(candidate.id, duplicateCase);
@@ -193,7 +193,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
       if (sql.includes('FROM candidates')) return { rows: [row] };
       return { rows: [] };
     });
-    const repository = createCandidateIngestionPgOwnerBundle(pool as never).candidateRepo;
+    const repository = createCandidateIngestionPgOwnerBundle(pool).candidateRepo;
 
     await expect(repository.getById(candidate.id)).resolves.toMatchObject({
       id: candidate.id,
@@ -208,7 +208,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
 
   it('persists idempotent resolution outcomes and lineage records through local collaborators', async () => {
     const { calls, client, pool } = createPool();
-    const owner = createCandidateIngestionPgOwnerBundle(pool as never);
+    const owner = createCandidateIngestionPgOwnerBundle(pool);
     const outcome = {
       candidateId: candidate.id,
       decision: 'independent' as const,
@@ -255,7 +255,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
         : { rows: [] },
     );
 
-    await createCandidateIngestionPgOwnerBundle(pool as never).candidateRepo.updateStatus(
+    await createCandidateIngestionPgOwnerBundle(pool).candidateRepo.updateStatus(
       candidate.id,
       status,
       lastError ?? undefined,
@@ -290,7 +290,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
       return { rows: [] };
     });
 
-    await createCandidateIngestionPgOwnerBundle(pool as never).candidateRepo.attachManualResult(
+    await createCandidateIngestionPgOwnerBundle(pool).candidateRepo.attachManualResult(
       candidate.id,
       {
         decision: 'merged',
@@ -326,7 +326,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
       return { rows: [] };
     });
 
-    await createCandidateIngestionPgOwnerBundle(pool as never).candidateRepo.attachAnalysis(
+    await createCandidateIngestionPgOwnerBundle(pool).candidateRepo.attachAnalysis(
       candidate.id,
       analysis,
     );
@@ -375,7 +375,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
       return { rows: [] };
     });
 
-    await createCandidateIngestionPgOwnerBundle(pool as never).candidateRepo.attachDuplicateCase(
+    await createCandidateIngestionPgOwnerBundle(pool).candidateRepo.attachDuplicateCase(
       candidate.id,
       duplicateCase,
     );

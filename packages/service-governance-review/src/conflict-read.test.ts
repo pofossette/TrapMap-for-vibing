@@ -23,7 +23,7 @@ describe('governance conflict read adapter', () => {
       ]),
     };
 
-    const read = createGovernanceConflictReadPort(owner as never);
+    const read = createGovernanceConflictReadPort(owner);
 
     await expect(read.getApprovedConflictCandidates('entry-new')).resolves.toEqual({
       entry: {

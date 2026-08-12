@@ -9,7 +9,6 @@ import type { ConflictReadProjection, ConflictRelation } from '@trapmap/contract
 import { prefixedId } from '@trapmap/lib';
 import { feedbackCustomAnswers, feedbackRecords } from '@trapmap/persistence-schema';
 import { getTableName } from 'drizzle-orm';
-import type { Pool } from 'pg';
 
 export interface GovernanceReviewPgOwnerBundle {
   feedbackRepo: FeedbackRepositoryPort;
@@ -20,7 +19,9 @@ export interface GovernanceReviewPgOwnerBundle {
   retrievalProjection: GovernanceRetrievalProjection;
 }
 
-type Queryable = Pick<Pool, 'query'>;
+type Queryable = {
+  query<T = Record<string, unknown>>(sql: string, values?: unknown[]): Promise<{ rows: T[] }>;
+};
 type FeedbackRow = Record<string, unknown>;
 const feedbackRecordsTable = getTableName(feedbackRecords);
 const feedbackCustomAnswersTable = getTableName(feedbackCustomAnswers);

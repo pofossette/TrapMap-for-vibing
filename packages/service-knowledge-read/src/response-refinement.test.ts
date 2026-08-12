@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SkillShareerServices } from './context.js';
+import type {
+  KnowledgeReadGraphQueryRuntimeState,
+  SkillShareerRepos,
+  SkillShareerServices,
+} from './context.js';
 import { generateRefinement } from './response-refinement.js';
 
 function createServices(): SkillShareerServices {
@@ -13,7 +17,7 @@ function createServices(): SkillShareerServices {
         maxBackupFiles: 1,
       },
     },
-    repos: {} as never,
+    repos: {} as SkillShareerRepos,
     strategyRegistry: {
       get: vi.fn(),
       all: vi.fn(() => []),
@@ -45,7 +49,7 @@ function createServices(): SkillShareerServices {
         buildSystemPromptBlocks: vi.fn(() => [{ type: 'text', text: 'block-prompt' }]),
       },
     },
-    graphQuery: {} as never,
+    graphQuery: {} as KnowledgeReadGraphQueryRuntimeState,
   };
 }
 

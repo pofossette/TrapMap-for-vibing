@@ -22,12 +22,13 @@ import {
   sessionSecurityLevel,
 } from '@trapmap/backend-core';
 import { nowIso, uniqBy } from '@trapmap/lib';
-import type { Pool } from 'pg';
 
 import type { IdentityActorLookupSource } from './actor-lookup.js';
 import type { IdentityAccessPortDeps } from './deps.js';
 
-type Queryable = Pick<Pool, 'query'>;
+type Queryable = {
+  query<T = Record<string, unknown>>(sql: string, values?: unknown[]): Promise<{ rows: T[] }>;
+};
 
 async function listMemberships(pool: Queryable, column: 'user_id' | 'team_id', value: string) {
   const { rows } = await pool.query(`SELECT * FROM memberships WHERE ${column} = $1`, [value]);
@@ -515,18 +516,18 @@ export function createIdentityAccessPgDeps(
           id: String(row.id),
           action: String(row.action),
           actorId: String(row.actor_id),
-          entityId: typeof row.entity_id === 'string' ? row.entity_id : undefined,
-          teamId: typeof row.team_id === 'string' ? row.team_id : undefined,
-          metadata: (row.payload as Record<string, unknown>) ?? {},
+          ...(typeof row.entity_id === 'string' ? { entityId: row.entity_id } : {}),
+          ...(typeof row.team_id === 'string' ? { teamId: row.team_id } : {}),
+          ...(row.payload ? { metadata: row.payload as Record<string, unknown> } : {}),
           eventVersion: Number(row.event_version ?? 1),
           sourceService: String(row.source_service ?? 'identity-access'),
-          requestId: typeof row.request_id === 'string' ? row.request_id : undefined,
-          traceId: typeof row.trace_id === 'string' ? row.trace_id : undefined,
-          operationId: typeof row.operation_id === 'string' ? row.operation_id : undefined,
-          causationId: typeof row.causation_id === 'string' ? row.causation_id : undefined,
+          ...(typeof row.request_id === 'string' ? { requestId: row.request_id } : {}),
+          ...(typeof row.trace_id === 'string' ? { traceId: row.trace_id } : {}),
+          ...(typeof row.operation_id === 'string' ? { operationId: row.operation_id } : {}),
+          ...(typeof row.causation_id === 'string' ? { causationId: row.causation_id } : {}),
           outcome: row.outcome === 'rejected' || row.outcome === 'failed' ? row.outcome : 'success',
-          updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : undefined,
-          timestamp: row.created_at instanceof Date ? row.created_at.toISOString() : undefined,
+          ...(row.updated_at instanceof Date ? { updatedAt: row.updated_at.toISOString() } : {}),
+          ...(row.created_at instanceof Date ? { timestamp: row.created_at.toISOString() } : {}),
         })),
         total: Number(countRows[0]?.total ?? 0),
       };

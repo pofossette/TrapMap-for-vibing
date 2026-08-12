@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { TaskHandler } from '@trapmap/backend-core';
+import type { AuditLogPort, TaskHandler } from '@trapmap/backend-core';
 
 import { createJobRuntimeDeps } from './deps.js';
 import { createJobRuntimeServer } from './server.js';
@@ -41,14 +41,14 @@ describe('job-runtime consumer ownership', () => {
     const handler = {
       type: 'governance.conflict-detection',
       handle: vi.fn(),
-    } as unknown as TaskHandler<unknown>;
+    } as TaskHandler<unknown>;
     const queuePorts = createQueuePorts(consumer);
 
     const server = await createJobRuntimeServer(
       { host: '127.0.0.1', port: 0, logLevel: 'silent' },
       createJobRuntimeDeps({
         queuePorts,
-        auditLog: {} as never,
+        auditLog: {} as AuditLogPort,
         taskHandlers: [handler],
         ownsWork: true,
       }),
@@ -75,7 +75,7 @@ describe('job-runtime consumer ownership', () => {
       { host: '127.0.0.1', port: 0, logLevel: 'silent' },
       createJobRuntimeDeps({
         queuePorts,
-        auditLog: {} as never,
+        auditLog: {} as AuditLogPort,
         taskHandlers: [],
         ownsWork: false,
       }),
@@ -100,7 +100,7 @@ describe('job-runtime consumer ownership', () => {
       { host: '127.0.0.1', port: 0, logLevel: 'silent' },
       createJobRuntimeDeps({
         queuePorts,
-        auditLog: {} as never,
+        auditLog: {} as AuditLogPort,
         taskHandlers: [],
         outboxHandlers: [{ eventName: 'knowledge.approved', handle: vi.fn() }],
         ownsWork: true,

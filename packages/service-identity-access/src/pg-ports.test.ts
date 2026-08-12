@@ -12,7 +12,7 @@ import {
 
 describe('identity PostgreSQL ports', () => {
   it('keeps all identity capabilities in a structural owner bundle', () => {
-    const deps = createIdentityAccessPgDeps({ query: vi.fn(async () => ({ rows: [] })) } as never);
+    const deps = createIdentityAccessPgDeps({ query: vi.fn(async () => ({ rows: [] })) });
 
     expect(createIdentityAccessOwnerBundle(deps)).toMatchObject({
       sessionRepo: deps.sessionRepo,
@@ -43,7 +43,7 @@ describe('identity PostgreSQL ports', () => {
           },
         ],
       })),
-    } as never);
+    });
 
     await expect(deps.membershipRepo.getById('member_1')).resolves.toMatchObject({
       userId: 'user_1',
@@ -98,7 +98,7 @@ describe('identity PostgreSQL ports', () => {
           ],
         };
       }),
-    } as never);
+    });
 
     await expect(deps.accessKeyRepo.getByTokenHash('hash')).resolves.toMatchObject({
       tokenHash: 'hash',
@@ -126,7 +126,7 @@ describe('identity PostgreSQL ports', () => {
       return { rows: [] };
     });
     const module = createIdentityAccessServiceModule(
-      createIdentityAccessPgDeps({ query } as never, { systemAdminKey: 'admin-key' }),
+      createIdentityAccessPgDeps({ query }, { systemAdminKey: 'admin-key' }),
     );
 
     await expect(module.login('alice', 'secret')).resolves.toMatchObject({
@@ -155,14 +155,12 @@ describe('identity PostgreSQL ports', () => {
       }
       return { rows: [] };
     });
-    const deps = createIdentityAccessPgDeps({ query } as never);
+    const deps = createIdentityAccessPgDeps({ query });
     const audit = await deps.auditLog.query({ actorId: 'user_1', limit: 1 });
-    const actors = await createIdentityAccessActorLookupSource({ query } as never).getUsersByIds([
-      'user_1',
-    ]);
+    const actors = await createIdentityAccessActorLookupSource({ query }).getUsersByIds(['user_1']);
     const memberships = await createIdentityAccessActorLookupSource({
       query,
-    } as never).getMembershipLevels([
+    }).getMembershipLevels([
       { userId: 'user_1', teamId: 'team_1' },
       { userId: 'user_2', teamId: 'team_2' },
     ]);

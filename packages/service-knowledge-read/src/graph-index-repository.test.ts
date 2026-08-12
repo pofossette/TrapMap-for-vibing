@@ -23,7 +23,7 @@ const document: GraphIndexDocumentRecord = {
 describe('createKnowledgeReadGraphIndexRepository', () => {
   it('persists graph documents through the knowledge-read owner port', async () => {
     const query = vi.fn().mockResolvedValue({ rows: [] });
-    const repository = createKnowledgeReadGraphIndexRepository({ query } as never);
+    const repository = createKnowledgeReadGraphIndexRepository({ query });
 
     await repository.upsert(document);
     await repository.removeBySource('trap', 'entry-1');
