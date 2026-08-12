@@ -15,8 +15,10 @@ TrapMap 采用四层架构设计：
     ↓
 业务逻辑层（AI 抽象、权限、检索、索引）
     ↓
-持久层（存储抽象，支持 JSON 文件和 PostgreSQL）
+持久层（PostgreSQL 主路径）
 ```
+
+路由层由 `packages/backend-core/src/http/route-contract.ts` 的框架中立 `RouteDef` 契约承载：各 service 包以 `create<X>RouteDefs(deps)` 声明路由，host-local（Nest）与 host-distributed（Fastify gateway）经 `createNestAdapter` / `createFastifyAdapter` 消费同一份 RouteDef，宿主内不手写重复路由实现。业务规则沉淀在 `backend-core/<context>/domain/` 纯函数层，infrastructure 不新增业务判断。
 
 ## 部署基线
 
@@ -45,19 +47,17 @@ TrapMap 当前把部署语义拆成几层，后续文档与实现都应按这组
 
 Round 0 已冻结数据库演进方向，后续轮次必须遵守以下边界：
 
-- PostgreSQL 是目标唯一业务事实源，结构化主表优先于单行 `JSONB` 快照。
-- `store_snapshot` 仅保留给尚未迁移的兼容域，不能再承接新的核心业务主路径。
-- `DualWrite*Repository` 这类双写真相仅允许作为短期迁移策略，必须带明确删除轮次。
+- PostgreSQL 是唯一业务事实源，结构化主表优先于单行 `JSONB` 快照。
+- 兼容层（`store_snapshot` / `JsonStore` / `PostgresStore`）已于 Wave-9 删除；`DualWrite*Repository` 这类双写真相仅允许作为短期迁移策略，必须带明确删除轮次。
 - 检索索引、capsule、profile、manifest、usage 统计属于派生层，不是业务真相来源。
 
 当前状态：
 
 - 知识、技能工件、候选、身份、审计、任务队列已切到 PostgreSQL 主路径。
-- `store_snapshot` 仅保留为兼容层，用于尚未迁移的辅助域，以及少量启动恢复/运维路径；业务主读写边界以 `app.skillShareer.repos` 为准。
 - 所有正式 DDL 目标应由 Drizzle migration 管理，不再通过 repository 运行时建表兜底。
+- 权威的迁移状态与 schema 事实见 [`docs/reference/DATA_MODEL.md`](docs/reference/DATA_MODEL.md) 与 [`docs/reference/DATABASE_SCHEMA.md`](docs/reference/DATABASE_SCHEMA.md)。
 
 **关键设计原则：**
-- 存储接口抽象（`JsonStore` 用于开发/测试，`PostgresStore` 用于生产）
 - AI 提供商抽象（支持 OpenAI、OpenAI 兼容接口、Ollama、Google GenAI）
 - 检索管道多模式（语义检索 / 关键词检索 / 图增强检索）
 - 异步摄取管道（候选提交 → 去重检测 → 人工裁定）
@@ -68,12 +68,12 @@ Round 0 已冻结数据库演进方向，后续轮次必须遵守以下边界：
 |----|------|
 | `packages/client-core` | 共享 gateway 访问层，供 CLI 与未来 Web 面板复用 |
 | `packages/cli` | Commander.js CLI 客户端，所有用户交互的终端入口 |
-| `packages/backend-core` | 宿主无关的后端核心内核、运行时能力模型与端口定义 |
-| `packages/host-local` | `local-agent` / `team-monolith` 的 `light` 宿主装配；默认主入口终局为 `src/nest/**` |
-| `packages/host-distributed` | `distributed` 的 `heavy` 重型宿主装配 |
-| `packages/server` | Fastify compatibility shell，仅服务 `host-local` rollback path 与 shared runtime/status seam |
+| `packages/backend-core` | 宿主无关的后端核心内核：六个 context 的纯 `domain/` 规则层、application/ports/use-cases，以及 `http/` 框架中立 RouteDef 路由契约与 Nest/Fastify 双 adapter |
+| `packages/host-local` | `local-agent` / `team-monolith` 的 `light` 宿主装配；默认主入口为 `src/nest/**`，经 `createNestAdapter` 消费 RouteDefs |
+| `packages/host-distributed` | `distributed` 的 `heavy` 重型宿主装配；gateway 为薄传输层，经 `createFastifyAdapter` 消费 RouteDefs |
+| `packages/server` | **已删除**（Wave-10）。历史证据见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md` |
 | `packages/contracts` | 共享 Zod Schema 和 TypeScript 类型定义 |
-| `packages/service-*` | bounded-context service assembly：identity-access、knowledge-read/write、candidate-ingestion、governance-review、job-runtime |
+| `packages/service-*` | bounded-context service assembly：identity-access、knowledge-read/write、candidate-ingestion、governance-review、job-runtime；各自以 `create<X>RouteDefs` 声明路由，pg-ports 只留 SQL+行映射 |
 | `packages/web-panel` | 管理员浏览器运维面板，继续只面向 gateway surface |
 | `packages/skills` | 项目级 Skill 定义 |
 | `evals/` | 检索和摘要评估系统 |
@@ -81,7 +81,7 @@ Round 0 已冻结数据库演进方向，后续轮次必须遵守以下边界：
 ## Phase 0 冻结的长期宿主目标
 
 - 唯一长期后端主线固定为 `Nest host + framework-free domain core + gradual service extraction`。
-- `packages/host-local/src/nest/**` 是冻结后的 `light` 默认主入口终局；`packages/server` 与 `host-local` 旧 Fastify 路径只保留为 rollback path。
+- `packages/host-local/src/nest/**` 是冻结后的 `light` 默认主入口；`packages/server`（Wave-10 已删除）与旧 Fastify 路径不再存在。
 - 运行模型固定为 `embedded/local-agent -> team-monolith -> distributed` 三档；`embedded` 是当前 `local-agent` 的产品语义，不新增第四种常驻 profile。
 - gateway 继续是宿主拥有的统一外部适配层；当前主线不创建 `packages/service-gateway`。
 - `distributed` 当前成熟度冻结为 `Level 2 / transitional-microservice`。

@@ -12,7 +12,9 @@
 | 数据库 schema | `packages/persistence-schema/src/`（owner-local schema 模块）+ 各 `packages/service-*/src/schema.ts` | `docs/reference/DATABASE_SCHEMA.md` |
 | ~~Server 数据访问边界~~ | **已删除**（Wave-10）。当前数据访问由各 service owner ports 管理 | — |
 | ~~Server 有界上下文与层归属~~ | **已删除**（Wave-10）。当前归属见六服务边界 | — |
-| 六服务归属边界（`identity-access` / `candidate-ingestion` / `knowledge-write` / `governance-review` [`backend-core` 描述符简称：`review`] / `knowledge-read` / `job-runtime`） | `packages/backend-core/src/ports/internal-ports.ts` + `packages/backend-core/src/<context>/{application/module.ts,index.ts}`（六个上下文目录：`identity-access/`、`knowledge-read/`、`knowledge-write/`、`candidate-ingestion/`、`governance-review/`、`job-runtime/`）+ `packages/host-distributed/src/config/service-config.ts` + `packages/service-*/src/index.ts` | `docs/architecture/ARCHITECTURE.md`、`packages/backend-core/README.md`、`packages/host-distributed/README.md` |
+| 六服务归属边界（`identity-access` / `candidate-ingestion` / `knowledge-write` / `governance-review` [`backend-core` 描述符简称：`review`] / `knowledge-read` / `job-runtime`） | `packages/backend-core/src/ports/internal-ports.ts` + `packages/backend-core/src/<context>/{domain,application/module.ts,index.ts}`（六个上下文目录：`identity-access/`、`knowledge-read/`、`knowledge-write/`、`candidate-ingestion/`、`governance-review/`、`job-runtime/`；`domain/` 为纯规则层，零框架/零 DB）+ `packages/host-distributed/src/config/service-config.ts` + `packages/service-*/src/index.ts` | `docs/architecture/ARCHITECTURE.md`、`packages/backend-core/README.md`、`packages/host-distributed/README.md` |
+| HTTP 路由契约（RouteDef） | `packages/backend-core/src/http/route-contract.ts`（框架中立 `RouteDef` + canonical error envelope）+ `packages/backend-core/src/http/adapters/{nest.ts,fastify.ts}`（双 adapter，唯一框架导入落点）+ 各 `packages/service-*/src/routes.ts`（`create<X>RouteDefs(deps)` 工厂） | `docs/architecture/ARCHITECTURE.md`、`docs/architecture/BOUNDARIES.md`、`packages/backend-core/README.md` |
+| 一次性/运维脚本收纳 | `scripts/archived/`（fallow ignorePatterns 已排除；仅被 reference 的例外如 `export-badcase-to-eval.ts`、`backfill-labels.ts` 保留） | `docs/reference/REPO_STRUCTURE.md`、`docs/operations/TESTING.md` |
 | `backend-core` / `host-*` 归属关系 | `docs/plans/backend-engineering-masterplan/01-boundaries-and-compat-convergence.md` + `packages/backend-core/src/use-cases/command-handling.ts` + `packages/host-local/src/nest/app.module.ts` + `packages/host-distributed/src/shared/ports.ts` | `docs/architecture/ARCHITECTURE.md`、`docs/plans/runtime-recomposition/`、`docs/plans/deployment-flexibility/` |
 | Phase 1 server/backend-core 边界冻结 | `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md` + `packages/backend-core/src/ports/internal-ports.ts` + 各 `packages/service-*/src/migrations.ts`（`packages/server` 已删除，历史证据见归档计划） | `docs/PACKAGES.md`、`docs/reference/REPO_STRUCTURE.md` |
 | Phase 2 store-snapshot / PG-first 姿态冻结 | `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md` + `docs/reference/DATA_MODEL.md`（`packages/server` 已删除，`store_snapshot`/`JsonStore`/`PostgresStore` 已退役） | `docs/PACKAGES.md`、`docs/architecture/components/PERSISTENCE.md` |
@@ -118,6 +120,8 @@
 ## CI 守卫
 
 两个自动化守卫在每个 PR 上强制执行这些规则。它们在 CI 中作为 `doc-guardrails` 任务运行，也可以在本地运行。完整的跨文档事实矩阵参见 [`DOCS_TRUTH_MATRIX.md`](DOCS_TRUTH_MATRIX.md)。
+
+本地可用的 `check:*` 守卫面已收敛为 7 个命令（2026-08 maintainability-rework 由 14 个合并）：`check:docs`、`check:structure`、`check:fallow`、`check:asserts`、`check:complexity`、`check:deps`、`check:imports`；`check`（biome）与 `typecheck` 单独运行。`doc-guardrails` CI job 的子集见规则 28。
 
 ### 文档漂移守卫
 
