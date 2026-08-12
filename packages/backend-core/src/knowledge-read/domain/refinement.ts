@@ -8,6 +8,12 @@
 
 export const REFINEMENT_MAX_SENTENCES = 3;
 
+/** A constraint or knowledge entry rendered into the refinement prompt. */
+export interface RefinementEntry {
+  shortcut?: string;
+  detail?: string;
+}
+
 /** Refinement is available when the chat provider is configured. */
 export function isRefinementAvailable(chatProviderConfigured: boolean): boolean {
   return chatProviderConfigured;
@@ -16,17 +22,15 @@ export function isRefinementAvailable(chatProviderConfigured: boolean): boolean 
 /** Build the refinement prompt from global constraints and project knowledge. */
 export function buildRefinementPrompt(
   query: string,
-  globalConstraints: ReadonlyArray<unknown>,
-  projectKnowledge: ReadonlyArray<unknown>,
+  globalConstraints: ReadonlyArray<RefinementEntry>,
+  projectKnowledge: ReadonlyArray<RefinementEntry>,
 ): string {
   const parts: string[] = [];
   for (const item of globalConstraints) {
-    const m = item as { shortcut?: string; detail?: string };
-    parts.push(`- [Global Constraint] ${m.shortcut ?? ''}: ${m.detail ?? ''}`);
+    parts.push(`- [Global Constraint] ${item.shortcut ?? ''}: ${item.detail ?? ''}`);
   }
   for (const item of projectKnowledge) {
-    const m = item as { shortcut?: string; detail?: string };
-    parts.push(`- [Project Knowledge] ${m.shortcut ?? ''}: ${m.detail ?? ''}`);
+    parts.push(`- [Project Knowledge] ${item.shortcut ?? ''}: ${item.detail ?? ''}`);
   }
   return `Search results for "${query}":\n${parts.join('\n')}`;
 }

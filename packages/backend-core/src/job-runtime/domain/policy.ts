@@ -64,14 +64,6 @@ export function statusAfterTaskFailure(
   return isRetryExhausted(attempts, maxAttempts) ? TASK_STATUS_DEAD : TASK_STATUS_PENDING;
 }
 
-/**
- * Policy for outbox events without a registered handler: they are treated
- * as already handled and acknowledged (completed) rather than retried.
- */
-export function unhandledEventIsAcknowledged(hasHandler: boolean): boolean {
-  return !hasHandler;
-}
-
 // ---------------------------------------------------------------------------
 // Authoritative SQL condition rendering (consumed by the queue/outbox owners)
 // ---------------------------------------------------------------------------

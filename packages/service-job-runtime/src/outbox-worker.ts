@@ -2,7 +2,6 @@ import {
   OUTBOX_CLAIM_BATCH_SIZE,
   OUTBOX_POLL_INTERVAL_MS,
   type OutboxPort,
-  unhandledEventIsAcknowledged,
 } from '@trapmap/backend-core';
 
 export interface JobRuntimeOutboxHandler {
@@ -54,9 +53,7 @@ export function createJobRuntimeOutboxConsumer(params: {
             for (const event of events) {
               const handler = handlers.get(event.eventName);
               if (handler === undefined) {
-                if (unhandledEventIsAcknowledged(false)) {
-                  await params.outbox.complete(event.id);
-                }
+                await params.outbox.complete(event.id);
                 continue;
               }
               try {

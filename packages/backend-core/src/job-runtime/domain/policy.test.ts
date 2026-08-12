@@ -28,7 +28,6 @@ import {
   isRetryExhausted,
   retryBackoffMs,
   statusAfterTaskFailure,
-  unhandledEventIsAcknowledged,
 } from './index.js';
 
 describe('job-runtime queue policy', () => {
@@ -50,11 +49,6 @@ describe('job-runtime queue policy', () => {
     expect(statusAfterTaskFailure(3, 3)).toBe(TASK_STATUS_DEAD);
     expect(statusAfterTaskFailure(2, 3)).toBe(TASK_STATUS_PENDING);
     expect(statusAfterTaskFailure(0, TASK_DEFAULT_MAX_ATTEMPTS)).toBe(TASK_STATUS_PENDING);
-  });
-
-  it('acknowledges outbox events that have no registered handler', () => {
-    expect(unhandledEventIsAcknowledged(false)).toBe(true);
-    expect(unhandledEventIsAcknowledged(true)).toBe(false);
   });
 
   it('defaults task enqueue to zero priority and three attempts', () => {

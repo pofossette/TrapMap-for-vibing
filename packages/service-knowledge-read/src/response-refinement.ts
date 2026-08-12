@@ -8,6 +8,7 @@
 
 import {
   REFINEMENT_MAX_SENTENCES,
+  type RefinementEntry,
   buildRefinementPrompt,
   isRefinementAvailable as isRefinementProviderConfigured,
 } from '@trapmap/backend-core';
@@ -36,8 +37,8 @@ export function isRefinementAvailable(services: SkillShareerServices): boolean {
 export async function generateRefinement(
   services: SkillShareerServices,
   query: string,
-  globalConstraints: unknown[],
-  projectKnowledge: unknown[],
+  globalConstraints: ReadonlyArray<RefinementEntry>,
+  projectKnowledge: ReadonlyArray<RefinementEntry>,
 ): Promise<string | null> {
   if (!isRefinementAvailable(services)) {
     return null;

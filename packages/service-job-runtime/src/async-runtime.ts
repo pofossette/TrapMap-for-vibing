@@ -24,8 +24,8 @@ import {
   TASK_STATUS_RUNNING,
   type QueuePorts,
   type TaskHandler,
-  isRetryExhausted,
   retryBackoffMs,
+  statusAfterTaskFailure,
 } from '@trapmap/backend-core';
 import type { Pool, PoolClient } from 'pg';
 import { createRabbitMqTaskTransport } from './rabbitmq-task-transport.js';
@@ -192,7 +192,10 @@ function createPostgresTaskQueue(pool: Pool): JobRuntimeAsyncTransport['task'] {
             [task.id],
           );
           const row = failed.rows[0];
-          if (row === undefined || isRetryExhausted(row.attempts, row.max_attempts)) {
+          if (
+            row === undefined ||
+            statusAfterTaskFailure(row.attempts, row.max_attempts) === TASK_STATUS_DEAD
+          ) {
             await pool.query(
               `UPDATE task_queue SET status = '${TASK_STATUS_DEAD}', last_error = $2, worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, updated_at = NOW() WHERE id = $1`,
               [task.id, message],
