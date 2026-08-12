@@ -6,8 +6,8 @@
 
 ## 统计
 
-- 总条目：175 处
-- 文件数：48
+- 总条目：171 处
+- 文件数：47
 
 ## 清单
 
@@ -29,13 +29,6 @@
 - 201: `as unknown as`
 - 214: `as unknown as`
 - 223: `as unknown as`
-
-### packages/backend-core/src/testing/test-utils.ts
-
-- 202: `as never`
-- 220: `as never`
-- 271: `as never`
-- 280: `as never`
 
 ### packages/cli/src/commands/decay.test.ts
 

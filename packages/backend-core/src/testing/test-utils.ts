@@ -24,8 +24,10 @@ import type {
   AuditRepositoryPort,
   CandidateRepositoryPort,
   FeedbackRepositoryPort,
+  KnowledgeEntryRecord,
   KnowledgeRepositoryPort,
   MembershipRepositoryPort,
+  SessionRecord,
   SessionRepositoryPort,
   TeamRepositoryPort,
   UserRepositoryPort,
@@ -199,7 +201,7 @@ export function createStubKnowledgeRepository(): KnowledgeRepositoryPort {
       return null;
     },
     async updateLifecycle(_entryId, _newState, _context) {
-      return {} as never;
+      return {} as KnowledgeEntryRecord;
     },
     async appendRevision(_entryId, _revision) {
       /* no-op */
@@ -217,7 +219,7 @@ export function createStubKnowledgeRepository(): KnowledgeRepositoryPort {
       /* no-op */
     },
     async supersede(_entryId, _input) {
-      return {} as never;
+      return {} as KnowledgeEntryRecord;
     },
   };
 }
@@ -268,7 +270,7 @@ export function createStubSessionRepository(): SessionRepositoryPort {
       return `s_${Date.now()}`;
     },
     async create(session) {
-      return { id: 's1', ...session, createdAt: '', updatedAt: '' } as never;
+      return { id: 's1', ...session, createdAt: '', updatedAt: '' } as SessionRecord;
     },
     async getByTokenHash(_tokenHash) {
       return null;
@@ -277,7 +279,7 @@ export function createStubSessionRepository(): SessionRepositoryPort {
       /* no-op */
     },
     async updateActiveTeam(_sessionId, _teamId) {
-      return {} as never;
+      return {} as SessionRecord;
     },
   };
 }

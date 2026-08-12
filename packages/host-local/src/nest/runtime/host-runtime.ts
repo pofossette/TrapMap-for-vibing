@@ -35,16 +35,21 @@ export interface HostLocalRuntime {
   processing: CandidateProcessingRuntime;
 }
 
+type GovernanceRetrievalSeam = Parameters<
+  typeof createKnowledgeReadOwnerRetrievalServices
+>[0]['governance'];
+
 function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
+  // lib type gap: the governance owner bundle returns the backend-core minimal
+  // FeedbackQueueRecord shape while the retrieval seam expects knowledge-read's
+  // richer store record — same feedback rows at runtime
+  const governanceProjection = services.governanceReview
+    .retrievalProjection as unknown as GovernanceRetrievalSeam; // lib type gap:
   const retrievalServices = createKnowledgeReadOwnerRetrievalServices({
     config: services.config,
     knowledge: services.knowledgeOwner,
     artifact: services.artifactReadProjection,
-    governance: services.governanceReview.retrievalProjection as unknown as Parameters<
-      // lib type gap: the governance
-      typeof createKnowledgeReadOwnerRetrievalServices
-    >[0]['governance'], // owner bundle returns the backend-core minimal FeedbackQueueRecord shape while
-    // the retrieval seam expects knowledge-read's richer store record — same rows at runtime
+    governance: governanceProjection,
     strategyRegistry: services.strategyRegistry,
     channelRegistry: services.channelRegistry,
     ai: services.ai,
