@@ -1,6 +1,6 @@
 # 检索系统 (Retrieval System)
 
-> **历史说明**：本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现（Wave-10）。检索系统已迁移至 `packages/service-knowledge-read`。概念描述仍然适用。
+> **历史说明**：本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现（Wave-10）。检索系统已迁移至 `packages/service-knowledge-read`。概念描述仍然适用。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
 ## 概述
 

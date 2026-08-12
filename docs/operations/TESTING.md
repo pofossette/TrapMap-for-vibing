@@ -2,7 +2,7 @@
 
 本文档说明 TrapMap 的测试架构、运行方法和用例编写规范。
 
-> **历史说明**：本文档中大量测试命令引用 `packages/server（Wave-10 已删除）` 路径，该包已于 Wave-10 删除。当前测试命令请使用 `rtk pnpm test:file -- <repo-root-relative-test-path>` 格式，路径指向当前存在的包（如 `packages/service-*`、`packages/host-local`、`packages/contracts` 等）。
+> **历史说明**：本文档中大量测试命令引用 `packages/server（Wave-10 已删除）` 路径，该包已于 Wave-10 删除。当前测试命令请使用 `rtk pnpm test:file -- <repo-root-relative-test-path>` 格式，路径指向当前存在的包（如 `packages/service-*`、`packages/host-local`、`packages/contracts` 等）。历史路径详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
 ## 测试架构
 

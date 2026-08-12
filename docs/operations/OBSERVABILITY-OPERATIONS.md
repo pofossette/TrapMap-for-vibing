@@ -2,6 +2,8 @@
 
 > 本文档定义 TrapMap 可观测性基础设施的运维参数：采样策略、数据保留、资源限制、健康检查语义和 SLO/SLI 目标。
 > 本文档面向运维人员和平台工程师，关注"如何运维"而非"如何构建"。
+>
+> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
 ---
 

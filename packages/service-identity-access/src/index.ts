@@ -28,14 +28,6 @@ export {
   type IdentitySnapshotIdKind,
 } from './pg-ports.js';
 export {
-  migrateIdentityAudit,
-  verify as verifyIdentityAuditBackfill,
-  type DomainVerification,
-  type IdentityAuditMigrationConfig,
-  type IdentityAuditMigrationResult,
-  type IdentityAuditSnapshot,
-} from './identity-audit-backfill.js';
-export {
   createIdentityAccessServer,
   type IdentityAccessServer,
   type IdentityAccessServiceConfig,

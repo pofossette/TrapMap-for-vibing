@@ -1,5 +1,7 @@
 # TrapMap 异步模型
 
+> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+
 本文是当前 TrapMap 异步模型的详细说明，覆盖 authoritative write、outbox、task queue、worker modes、shared jobs、workflow snapshots、cache invalidation 与 badcase export。
 
 > **Wave-4 closeout（2026-07-21）**：`governance-review` 是 feedback、conflict、remediation 和 operator projection 的唯一业务 owner；`job-runtime` 只拥有 queue、retry、lease、workflow 与 dead-letter，并消费治理 owner 提供的 typed handlers。distributed gateway 继续保留既有 feedback public URLs 和 transport semantics。

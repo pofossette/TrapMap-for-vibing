@@ -11,28 +11,19 @@ import type { KnowledgeOwnerPort } from '@trapmap/contracts';
 
 type Queryable = Pick<Pool, 'query'>;
 
-function readKnowledgeRowValue(
-  row: Record<string, unknown>,
-  primaryKey: string,
-  fallbackKey: string,
-  fallback: unknown,
-): unknown {
-  return row[primaryKey] ?? row[fallbackKey] ?? fallback;
-}
-
 function readKnowledgeRowFields(row: Record<string, unknown>) {
   return {
-    content: String(readKnowledgeRowValue(row, 'detail', 'content', '')),
-    title: String(readKnowledgeRowValue(row, 'shortcut', 'title', '')),
-    ownerUserId: String(readKnowledgeRowValue(row, 'owner_user_id', 'ownerUserId', '')),
-    teamId: readKnowledgeRowValue(row, 'team_id', 'teamId', null) as string | null,
-    requiredLevel: Number(readKnowledgeRowValue(row, 'required_level', 'requiredLevel', 0)),
-    boundary: readKnowledgeRowValue(row, 'boundary', 'boundary', null),
-    maintenanceMeta: readKnowledgeRowValue(row, 'maintenance_meta', 'maintenanceMeta', null),
-    embeddingCache: readKnowledgeRowValue(row, 'embedding_cache', 'embeddingCache', null),
-    indexState: readKnowledgeRowValue(row, 'index_state', 'indexState', null),
-    decayMeta: readKnowledgeRowValue(row, 'decay_meta', 'decayMeta', null),
-    evidenceMeta: readKnowledgeRowValue(row, 'evidence_meta', 'evidenceMeta', null),
+    content: String(row.detail ?? ''),
+    title: String(row.shortcut ?? ''),
+    ownerUserId: String(row.owner_user_id ?? ''),
+    teamId: (row.team_id as string | null) ?? null,
+    requiredLevel: Number(row.required_level ?? 0),
+    boundary: row.boundary ?? null,
+    maintenanceMeta: row.maintenance_meta ?? null,
+    embeddingCache: row.embedding_cache ?? null,
+    indexState: row.index_state ?? null,
+    decayMeta: row.decay_meta ?? null,
+    evidenceMeta: row.evidence_meta ?? null,
   };
 }
 
@@ -54,40 +45,27 @@ function normalizeKnowledgeProjection(row: Record<string, unknown>) {
 }
 
 function toKnowledgeEntryProjection(row: Record<string, unknown>): KnowledgeEntry {
-  // lib type gap: the owner projection normalizes legacy row column names
-  // into the contracts projection shape; strict structural assignment is
-  // impossible because rows carry the full legacy column surface
+  // lib type gap: the owner projection maps PG columns (snake_case) into the
+  // contracts projection shape; strict structural assignment is impossible
+  // because rows carry the full knowledge_entries column surface
   return normalizeKnowledgeProjection(row) as unknown as KnowledgeEntry; // lib type gap:
 }
 
 function toKnowledgeIndexingEntry(row: Record<string, unknown>): KnowledgeIndexingEntry {
   return {
     id: String(row.id),
-    teamId: readKnowledgeRowValue(row, 'team_id', 'teamId', null) as string | null,
+    teamId: (row.team_id as string | null) ?? null,
     scope: String(row.scope) as KnowledgeIndexingEntry['scope'],
     labels: readKnowledgeRowLabels(row),
-    shortcut: String(readKnowledgeRowValue(row, 'shortcut', 'title', '')),
-    detail: String(readKnowledgeRowValue(row, 'detail', 'content', '')),
-    requiredLevel: Number(readKnowledgeRowValue(row, 'required_level', 'requiredLevel', 0)),
+    shortcut: String(row.shortcut ?? ''),
+    detail: String(row.detail ?? ''),
+    requiredLevel: Number(row.required_level ?? 0),
     lifecycleState: readKnowledgeRowLifecycle(row),
-    boundary: readKnowledgeRowValue(
-      row,
-      'boundary',
-      'boundary',
-      null,
-    ) as KnowledgeIndexingEntry['boundary'],
-    updatedAt: String(readKnowledgeRowValue(row, 'updated_at', 'updatedAt', '')),
-    revision: Number(readKnowledgeRowValue(row, 'index_revision', 'revision', 0)),
-    indexState: readKnowledgeRowValue(row, 'index_state', 'indexState', null) as Record<
-      string,
-      unknown
-    > | null,
-    embeddingCache: readKnowledgeRowValue(
-      row,
-      'embedding_cache',
-      'embeddingCache',
-      null,
-    ) as KnowledgeIndexingEntry['embeddingCache'],
+    boundary: (row.boundary as KnowledgeIndexingEntry['boundary']) ?? null,
+    updatedAt: String(row.updated_at ?? ''),
+    revision: Number(row.index_revision ?? 0),
+    indexState: (row.index_state as Record<string, unknown> | null) ?? null,
+    embeddingCache: (row.embedding_cache as KnowledgeIndexingEntry['embeddingCache']) ?? null,
   };
 }
 

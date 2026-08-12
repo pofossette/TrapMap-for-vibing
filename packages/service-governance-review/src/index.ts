@@ -17,11 +17,6 @@ export {
   type GovernanceReviewPgOwnerBundle,
 } from './pg-ports.js';
 export {
-  migrateGovernanceSnapshot,
-  type GovernanceSnapshotBackfillResult,
-  type GovernanceSnapshotOwner,
-} from './snapshot-backfill.js';
-export {
   classifyConflict,
   createGovernanceConflictWorkflow,
   generateConflictContext,

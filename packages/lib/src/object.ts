@@ -8,7 +8,8 @@
  *
  * Unified semantics adopted from the two identical `asRecord` helpers that
  * previously lived in service-knowledge-write `knowledge-snapshot-owner.ts`
- * and `wave9-artifact-snapshot-owner.ts`.
+ * and `wave9-artifact-snapshot-owner.ts` (both removed with the Wave-9
+ * backfill script retirement).
  *
  * NOT unified here: `isRecord` type guards in contracts
  * (`domain/parsing.ts`) and host-distributed (`governance-review/conflict-read.ts`)

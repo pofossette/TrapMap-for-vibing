@@ -1,5 +1,7 @@
 # CI/CD 流水线
 
+> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+
 ## 概述
 
 TrapMap 使用 GitHub Actions 运行两条独立流水线：

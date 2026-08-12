@@ -6,6 +6,8 @@
 
 ## 统计
 
+- 总条目：222 处
+- 文件数：66
 
 ## 清单
 
@@ -293,17 +295,6 @@
 
 - 15: `as never`
 
-### packages/service-governance-review/src/snapshot-backfill.test.ts
-
-- 5: `as never`
-- 6: `as never`
-
-### packages/service-identity-access/src/identity-audit-backfill.test.ts
-
-- 106: `as never`
-- 116: `as never`
-- 123: `as never`
-
 ### packages/service-identity-access/src/pg-ports.test.ts
 
 - 15: `as never`
@@ -337,11 +328,6 @@
 ### packages/service-knowledge-read/src/graph-llm-extract.ts
 
 - 47: `as unknown as`
-
-### packages/service-knowledge-read/src/graph-projection-backfill.test.ts
-
-- 49: `as never`
-- 75: `as never`
 
 ### packages/service-knowledge-read/src/import-boundary.test.ts
 
@@ -413,11 +399,6 @@
 - 25: `as never`
 - 31: `as never`
 
-### packages/service-knowledge-write/src/knowledge-snapshot-owner.test.ts
-
-- 57: `as never`
-- 82: `as never`
-
 ### packages/service-knowledge-write/src/labels/llm-align.test.ts
 
 - 52: `as unknown as`
@@ -449,9 +430,3 @@
 - 493: `as never`
 - 515: `as never`
 - 534: `as never`
-
-### packages/service-knowledge-write/src/wave9-artifact-snapshot-owner.test.ts
-
-- 75: `as never`
-- 101: `as never`
-- 112: `as never`

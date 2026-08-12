@@ -38,32 +38,6 @@ export {
   type ArtifactRouteDeps,
 } from './artifact-routes.js';
 export {
-  migrateLegacySkillArtifacts,
-  type ArtifactMigrationError,
-  type ArtifactMigrationResult,
-  type LegacyArtifactSnapshotOwner,
-  type LegacyArtifactSnapshotRecord,
-  type LegacyArtifactRevision,
-  type LegacyArtifactAgentReview,
-  type LegacyArtifactReviewDecision,
-  type LegacyArtifactReviewNote,
-  type LegacyArtifactLifecycleEvent,
-  type LegacyArtifactMaintenanceMeta,
-  type Wave9ArtifactBackfillConfig,
-} from './wave9-artifact-backfill.js';
-export { createArtifactSnapshotOwner } from './wave9-artifact-snapshot-owner.js';
-export {
-  migrateArtifactFilePayloads,
-  type ArtifactFilePayloadBackfillResult,
-} from './wave9-artifact-payload-backfill.js';
-export {
-  migrateKnowledgeSnapshot,
-  type KnowledgeSnapshotBackfillResult,
-  type KnowledgeSnapshotOwner,
-  type LegacyKnowledgeSnapshotRecord,
-} from './knowledge-snapshot-backfill.js';
-export { createKnowledgeSnapshotOwner } from './knowledge-snapshot-owner.js';
-export {
   backfillLabels,
   repairGraphDocuments,
   createPgLabelRepository,

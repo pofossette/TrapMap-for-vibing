@@ -1,7 +1,9 @@
 # 数据库表结构快速参考
 
-> **源码真实来源**: `packages/server（Wave-10 已删除）/src/lib/persistence/schema.ts`
-> **表定义目录**: `packages/server（Wave-10 已删除）/src/lib/persistence/schema/`
+> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。表定义现由 `packages/persistence-schema/src/` 统一持有。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+
+> **源码真实来源**: `packages/persistence-schema/src/`
+> **表定义目录**: `packages/persistence-schema/src/`
 > **数据模型详情**: `docs/reference/DATA_MODEL.md`
 > **迁移基线**: 六个 `packages/service-*/drizzle/` 目录各自拥有一个空库 baseline；distributed host 按 `identity-access → knowledge-write → candidate-ingestion → governance-review → job-runtime → knowledge-read` 协调执行。
 

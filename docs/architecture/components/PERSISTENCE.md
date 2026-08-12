@@ -1,5 +1,7 @@
 # 持久化存储层 (Persistence Layer)
 
+> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+
 ## 概述
 
 持久化存储层为 TrapMap 提供数据持久化能力。PostgreSQL 是主要且权威的生产存储后端；JsonStore / `store_snapshot` 只作为 compatibility fallback 与迁移期载体保留。
