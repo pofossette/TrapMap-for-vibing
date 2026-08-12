@@ -3,8 +3,8 @@
  * building. Pure PostgreSQL mapping — no business judgment.
  */
 
-import type { KnowledgeEntry, KnowledgeIndexingEntry, LifecycleState } from '@trapmap/contracts';
 import { KNOWLEDGE_PROJECTION_OPERATION_CONDITIONS } from '@trapmap/backend-core';
+import type { KnowledgeEntry, KnowledgeIndexingEntry, LifecycleState } from '@trapmap/contracts';
 
 import type { KnowledgeOwnerPort } from '@trapmap/contracts';
 

@@ -6,7 +6,6 @@
 
 import { prefixedId } from '@trapmap/lib';
 
-import type { EvidenceMeta, KnowledgeOwnerCommandInput, LifecycleState } from '@trapmap/contracts';
 import {
   DEACTIVATED_STATE,
   assertValidLifecycleTransition,
@@ -16,6 +15,7 @@ import {
   lifecycleEventType,
   lifecycleOutboxEventName,
 } from '@trapmap/backend-core';
+import type { EvidenceMeta, KnowledgeOwnerCommandInput, LifecycleState } from '@trapmap/contracts';
 
 interface Queryable {
   query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;

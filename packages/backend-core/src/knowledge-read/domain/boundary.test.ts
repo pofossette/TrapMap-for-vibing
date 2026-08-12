@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  type BoundaryEntryView,
   computeBoundaryScoreDelta,
   contextScoreDelta,
   filterByBoundary,
@@ -9,7 +10,6 @@ import {
   parseVersion,
   platformScoreDelta,
   satisfiesVersionRange,
-  type BoundaryEntryView,
 } from './index.js';
 
 const ENTRY: BoundaryEntryView = {

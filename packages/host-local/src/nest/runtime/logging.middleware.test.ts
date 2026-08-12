@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
-import type { FastifyReply, FastifyRequest } from 'fastify';
 import { logEntrySchema } from '@trapmap/contracts';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 
 import { LoggingMiddleware } from './logging.middleware.js';

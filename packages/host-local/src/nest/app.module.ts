@@ -4,6 +4,7 @@ import { createJobRuntimeModule } from '@trapmap/backend-core';
 import { createKnowledgeReadModule } from '@trapmap/backend-core';
 import { createKnowledgeWriteModule } from '@trapmap/backend-core';
 import { createCandidateIngestionModule } from '@trapmap/backend-core';
+import type { KnowledgeEntry } from '@trapmap/contracts';
 import { createCandidateIngestionDeps } from '@trapmap/service-candidate-ingestion';
 import {
   createGovernanceAsyncCommandModule,
@@ -17,7 +18,6 @@ import {
   createIdentityAccessServiceModule,
 } from '@trapmap/service-identity-access';
 import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
-import type { KnowledgeEntry } from '@trapmap/contracts';
 import { createKnowledgeReadDeps } from '@trapmap/service-knowledge-read';
 import type { KnowledgeReadPortDeps } from '@trapmap/service-knowledge-read';
 import { createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';

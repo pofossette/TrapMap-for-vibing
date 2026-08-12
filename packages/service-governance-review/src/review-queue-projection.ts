@@ -1,3 +1,4 @@
+import { type ReviewQueueProjectionAuth, filterReviewQueueEntries } from '@trapmap/backend-core';
 import {
   type AgentReviewResult,
   type Boundary,
@@ -10,7 +11,6 @@ import {
   type Scope,
   knowledgeEntrySchema,
 } from '@trapmap/contracts';
-import { type ReviewQueueProjectionAuth, filterReviewQueueEntries } from '@trapmap/backend-core';
 
 export type { ReviewQueueProjectionAuth } from '@trapmap/backend-core';
 

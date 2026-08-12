@@ -15,8 +15,8 @@ import type {
   RetrievalQuery,
 } from '@trapmap/contracts';
 
-import { type TokenMatchDetailLike, normalizeQuery } from './tokenization.js';
 import { type BoundaryEntryView, computeBoundaryScoreDelta } from './boundary.js';
+import { type TokenMatchDetailLike, normalizeQuery } from './tokenization.js';
 
 // ---------------------------------------------------------------------------
 // Channel vocabulary

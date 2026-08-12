@@ -1,5 +1,5 @@
 import { InvocationError } from '@trapmap/backend-core';
-import { type RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
+import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import {

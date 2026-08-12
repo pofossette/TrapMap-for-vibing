@@ -14,8 +14,8 @@ import {
   agentPlanningEvalScenarioSchema,
 } from '@trapmap/contracts/evals';
 
-import { coreScenariosMap } from '../core.js';
 import { skillIdentificationCoreScenarios } from '../archived/scenarios/core/skill-identification-core-scenarios.js';
+import { coreScenariosMap } from '../core.js';
 import { skillIdentificationSmokeScenarios } from '../scenarios/smoke/skill-identification-smoke-scenarios.js';
 import { smokeScenariosMap } from '../smoke.js';
 import { runActor } from './actor-runner.js';

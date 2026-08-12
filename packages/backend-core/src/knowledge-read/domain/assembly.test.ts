@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest';
 import type { RetrievalCitation, RetrievalSummary } from '@trapmap/contracts';
 
 import {
+  type MatchableEntryView,
+  type ScoredEntryLike,
   assembleResponseBuckets,
   buildEmptyResponse,
   buildRetrievalResponse,
   generateMatchReason,
   toRetrievalMatch,
-  type MatchableEntryView,
-  type ScoredEntryLike,
 } from './index.js';
 
 function createEntry(overrides: Partial<MatchableEntryView> = {}): MatchableEntryView {

@@ -5,9 +5,11 @@ import {
   GRAPH_SCORE_BOOST_FACTOR,
   MERGE_KEYWORD_WEIGHT,
   MERGE_SEMANTIC_WEIGHT,
+  type MergedCandidateLike,
   RECALL_CHANNEL_GRAPH,
   RECALL_CHANNEL_KEYWORD,
   RECALL_CHANNEL_SEMANTIC,
+  type RecallCandidateLike,
   buildUnknownModeMessage,
   computeLexicalIntentBoost,
   computeScore,
@@ -19,8 +21,6 @@ import {
   mergeCandidatesWithGraph,
   rerankCandidates,
   routingDecision,
-  type MergedCandidateLike,
-  type RecallCandidateLike,
 } from './index.js';
 
 interface Entry {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import type { Pool } from 'pg';
 import { createDefaultKnowledgeReadRetrievalInfra } from './retrieval-infra-default.js';
 import type { MergedCandidate } from './retrieval-types.js';
-import type { Pool } from 'pg';
 import type { KnowledgeRecord } from './store.js';
 
 function createEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord {
