@@ -3,7 +3,14 @@
  *
  * Used by the extraction runner (run.ts), conflict eval and dedup eval so the
  * Jaccard overlap and precision/recall/F1 computation stays in one place.
+ *
+ * `tokenize` / `overlapScore` are the canonical governance-review conflict
+ * rules hosted in `@trapmap/backend-core` (governance-review domain); they are
+ * re-exported here instead of duplicated so the eval baseline never drifts
+ * from production classification.
  */
+
+export { tokenize, overlapScore } from '@trapmap/backend-core';
 
 export interface ClassificationMetrics {
   tp: number;
@@ -19,22 +26,4 @@ export function computeMetrics(tp: number, fp: number, fn: number): Classificati
   const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
   const f1 = precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
   return { tp, fp, fn, precision, recall, f1 };
-}
-
-export function tokenize(text: string): Set<string> {
-  return new Set(
-    text
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .filter((part) => part.length >= 3),
-  );
-}
-
-export function overlapScore(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 || b.size === 0) return 0;
-  let shared = 0;
-  for (const token of a) {
-    if (b.has(token)) shared++;
-  }
-  return shared / new Set([...a, ...b]).size;
 }

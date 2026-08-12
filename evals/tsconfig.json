@@ -9,6 +9,7 @@
   "exclude": ["./**/*.test.ts"],
   "references": [
     { "path": "../packages/contracts" },
+    { "path": "../packages/backend-core" },
     { "path": "../packages/service-knowledge-write" }
   ]
 }
