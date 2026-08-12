@@ -477,7 +477,7 @@ export function createArtifactFilePayloadOwner(pool: Queryable): ArtifactFilePay
 export interface TransactionalPool extends Queryable {
   connect(): Promise<{
     query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
-    release(): Promise<void>;
+    release(): void;
   }>;
 }
 

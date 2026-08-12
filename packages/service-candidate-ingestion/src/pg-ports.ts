@@ -20,7 +20,7 @@ interface Queryable {
   query<T = Record<string, unknown>>(sql: string, values?: unknown[]): Promise<{ rows: T[] }>;
 }
 export interface TransactionClient extends Queryable {
-  release(): Promise<void>;
+  release(): void;
 }
 export interface TransactionPool extends Queryable {
   connect(): Promise<TransactionClient>;

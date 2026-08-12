@@ -28,7 +28,7 @@ function generateId(prefix: string): string {
 type KnowledgeTransactionPool = Queryable & {
   connect(): Promise<{
     query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
-    release(): Promise<void>;
+    release(): void;
   }>;
 };
 type KnowledgeTransactionClient = {

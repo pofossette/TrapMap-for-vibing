@@ -24,7 +24,7 @@ export interface Queryable {
 export interface TransactionPool extends Queryable {
   connect(): Promise<{
     query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
-    release(): Promise<void>;
+    release(): void;
   }>;
 }
 
