@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
-import { describe, expect, it, vi } from 'vitest';
 import { logEntrySchema } from '@trapmap/contracts';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import { describe, expect, it, vi } from 'vitest';
 
 import { LoggingMiddleware } from './logging.middleware.js';
 import { RequestContextService } from './request-context.service.js';
@@ -22,7 +23,7 @@ describe('LoggingMiddleware', () => {
       },
       () => {
         middleware.use(
-          { method: 'GET', url: '/health' } as never,
+          { method: 'GET', url: '/health' } as FastifyRequest,
           {
             raw: {
               statusCode: 204,
@@ -32,7 +33,7 @@ describe('LoggingMiddleware', () => {
                 }
               },
             },
-          } as never,
+          } as FastifyReply,
           vi.fn(),
         );
       },
@@ -59,7 +60,7 @@ describe('LoggingMiddleware', () => {
     let finishHandler: (() => void) | undefined;
 
     middleware.use(
-      { method: 'GET', url: '/metrics' } as never,
+      { method: 'GET', url: '/metrics' } as FastifyRequest,
       {
         statusCode: 200,
         on(event: string, cb: () => void) {
@@ -67,7 +68,7 @@ describe('LoggingMiddleware', () => {
             finishHandler = cb;
           }
         },
-      } as never,
+      } as FastifyReply,
       vi.fn(),
     );
 

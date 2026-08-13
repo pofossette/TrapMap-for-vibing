@@ -1,8 +1,11 @@
 import type { CandidateCorpusReadPort } from '@trapmap/contracts';
-import type { Pool } from 'pg';
+
+interface Queryable {
+  query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+}
 
 async function listApproved<T>(
-  pool: Pick<Pool, 'query'>,
+  pool: Queryable,
   teamId: string | null,
   query: string,
   map: (row: Record<string, unknown>) => T,
@@ -11,9 +14,7 @@ async function listApproved<T>(
   return rows.map(map);
 }
 
-export function createCandidateCorpusPgReadPort(
-  pool: Pick<Pool, 'query'>,
-): CandidateCorpusReadPort {
+export function createCandidateCorpusPgReadPort(pool: Queryable): CandidateCorpusReadPort {
   return {
     async listApprovedTraps(teamId) {
       return listApproved(

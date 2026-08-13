@@ -43,13 +43,14 @@ function makeMockChat(
 ): ChatProvider {
   let callIndex = 0;
   return {
+    provider: 'mock',
     isConfigured: options.configured ?? true,
     invoke: vi.fn().mockImplementation(async () => {
       const response = responses[callIndex] ?? responses[responses.length - 1] ?? '{}';
       callIndex++;
       return response;
     }),
-  } as unknown as ChatProvider;
+  };
 }
 
 // ---------------------------------------------------------------------------

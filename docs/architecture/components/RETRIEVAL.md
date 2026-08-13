@@ -1,6 +1,6 @@
 # 检索系统 (Retrieval System)
 
-> **历史说明**：本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现（Wave-10）。检索系统已迁移至 `packages/service-knowledge-read`。概念描述仍然适用。
+> **历史说明**：本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现（Wave-10）。检索系统已迁移至 `packages/service-knowledge-read`。概念描述仍然适用。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
 ## 概述
 
@@ -1041,4 +1041,4 @@ WITH (lists = 100);
 
 检索路径的残余外部调用：每次 1 次 query embedding API；v2/v3 首次查询 1 次 intent parsing LLM（有 cache + 正则 fallback）。
 
-> 完整清单见 [入库预计算策略](../PRECOMPUTATION.md)。
+> 完整清单见 [入库预计算策略（已归档）](../../archived/architecture/PRECOMPUTATION.md)。

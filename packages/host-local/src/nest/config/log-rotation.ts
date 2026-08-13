@@ -1,4 +1,3 @@
-
 export interface RotationConfig {
   maxFileSizeBytes: number;
   maxBackupFiles: number;

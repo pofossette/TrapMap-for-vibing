@@ -1,7 +1,8 @@
 import type { CandidateIngestionPort } from '@trapmap/backend-core';
-import Fastify, { type FastifyInstance } from 'fastify';
+import { createFastifyAdapter } from '@trapmap/backend-core';
+import type { FastifyInstance } from 'fastify';
 import { type CandidateIngestionDeps, createCandidateIngestionServiceModule } from './deps.js';
-import { registerCandidateIngestionRoutes } from './routes.js';
+import { createCandidateIngestionRouteDefs } from './routes.js';
 
 export interface CandidateIngestionServiceConfig {
   host: string;
@@ -20,9 +21,10 @@ export async function createCandidateIngestionServer(
   config: CandidateIngestionServiceConfig,
   deps: CandidateIngestionDeps,
 ): Promise<CandidateIngestionServer> {
-  const app = Fastify({ logger: { level: config.logLevel } });
   const module = createCandidateIngestionServiceModule(deps);
-  registerCandidateIngestionRoutes(app, module);
+  const app = createFastifyAdapter(createCandidateIngestionRouteDefs(module), module, {
+    logger: { level: config.logLevel },
+  });
 
   return {
     app,

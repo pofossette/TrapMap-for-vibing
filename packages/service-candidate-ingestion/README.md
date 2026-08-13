@@ -164,18 +164,6 @@ const result = await detect(candidate, normalized);
 // result.analysisSnapshot, result.duplicateCase
 ```
 
-### 快照迁移
-
-```typescript
-import { migrateCandidateIngestionSnapshot } from '@trapmap/service-candidate-ingestion';
-
-const result = await migrateCandidateIngestionSnapshot({
-  owner: { candidateRepo, duplicateCases, lineage },
-  snapshot: { candidateSubmissions, duplicateCases, entityLineage },
-});
-// result.domains, result.verification
-```
-
 ## 数据库 Schema
 
 本服务拥有以下 PostgreSQL 表（通过 Drizzle ORM 定义）：
@@ -212,7 +200,6 @@ const result = await migrateCandidateIngestionSnapshot({
 | `src/routes.test.ts` | HTTP 端点路由 |
 | `src/migrations.test.ts` | 数据库迁移 |
 | `src/pg-ports.test.ts` | PostgreSQL 仓库实现 |
-| `src/snapshot-backfill.test.ts` | 快照迁移 |
 
 ## 验证
 

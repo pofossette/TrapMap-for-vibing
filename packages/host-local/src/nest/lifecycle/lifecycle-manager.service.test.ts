@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import type { HealthCheck, HealthCheckResult, LifecycleHook } from '@trapmap/backend-core';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { LifecycleManagerService } from './lifecycle-manager.service.js';
-import type { LifecycleHook, HealthCheck, HealthCheckResult } from '@trapmap/backend-core';
 
 describe('LifecycleManagerService', () => {
   let manager: LifecycleManagerService;
@@ -17,21 +17,27 @@ describe('LifecycleManagerService', () => {
         name: 'hook-a-high-priority',
         phase: 'init',
         priority: 10,
-        execute: async () => { order.push('a'); },
+        execute: async () => {
+          order.push('a');
+        },
       };
 
       const hookB: LifecycleHook = {
         name: 'hook-b-low-priority',
         phase: 'init',
         priority: 1,
-        execute: async () => { order.push('b'); },
+        execute: async () => {
+          order.push('b');
+        },
       };
 
       const hookC: LifecycleHook = {
         name: 'hook-c-medium-priority',
         phase: 'init',
         priority: 5,
-        execute: async () => { order.push('c'); },
+        execute: async () => {
+          order.push('c');
+        },
       };
 
       manager.registerHook(hookA);
@@ -50,14 +56,18 @@ describe('LifecycleManagerService', () => {
         name: 'init-hook',
         phase: 'init',
         priority: 1,
-        execute: async () => { ran.push('init'); },
+        execute: async () => {
+          ran.push('init');
+        },
       });
 
       manager.registerHook({
         name: 'ready-hook',
         phase: 'ready',
         priority: 1,
-        execute: async () => { ran.push('ready'); },
+        execute: async () => {
+          ran.push('ready');
+        },
       });
 
       await manager.runPhase('init');
@@ -72,14 +82,18 @@ describe('LifecycleManagerService', () => {
         name: 'failing-hook',
         phase: 'init',
         priority: 1,
-        execute: async () => { throw new Error('boom'); },
+        execute: async () => {
+          throw new Error('boom');
+        },
       });
 
       manager.registerHook({
         name: 'recovery-hook',
         phase: 'init',
         priority: 2,
-        execute: async () => { ran.push('recovery'); },
+        execute: async () => {
+          ran.push('recovery');
+        },
       });
 
       await manager.runPhase('init');
@@ -97,7 +111,9 @@ describe('LifecycleManagerService', () => {
         execute: async (ctx) => {
           ctx.registerShutdownHook({
             name: 'my-cleanup',
-            execute: async () => { shutdownRan.push('cleaned'); },
+            execute: async () => {
+              shutdownRan.push('cleaned');
+            },
           });
         },
       });
@@ -177,7 +193,9 @@ describe('LifecycleManagerService', () => {
     it('should return unknown status when a health check throws', async () => {
       manager.registerHealthCheck({
         name: 'broken-check',
-        check: async () => { throw new Error('connection refused'); },
+        check: async () => {
+          throw new Error('connection refused');
+        },
       });
 
       const results = await manager.runHealthChecks();

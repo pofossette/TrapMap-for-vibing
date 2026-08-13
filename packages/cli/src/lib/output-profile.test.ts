@@ -308,7 +308,9 @@ describe('output profile helpers', () => {
       plan: {
         blockingTraps: [],
         recommendedSkills: [
-          null as unknown as import('@trapmap/contracts').PlanSkillNode,
+          null as unknown as import('@trapmap/contracts').PlanSkillNode, // lib type gap: fixture uses a
+          // null placeholder inside the non-nullable recommendedSkills array to exercise
+          // the renderer's defensive null handling
           {
             nodeId: 'skill-2',
             artifactId: 'artifact-2',

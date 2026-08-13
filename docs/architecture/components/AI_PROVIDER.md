@@ -4,7 +4,7 @@
 
 AI 提供商抽象层为 TrapMap 提供统一的 AI 接口，支持多种 AI 提供商（OpenAI、OpenAI 兼容接口、Ollama、Google GenAI）。这使得系统可以在不改变业务逻辑的情况下切换 AI 提供商。当无 API key 时自动降级到 `fallback` 模式（确定性哈希向量）。
 
-所有提供商实现均基于 `@langchain/openai` 的 `ChatOpenAI` 和 `OpenAIEmbeddings`，通过动态懒加载（`await import()`）避免非 fallback 模式下的包加载开销。详见 [依赖分析](DEPENDENCY_ANALYSIS.md)。
+所有提供商实现均基于 `@langchain/openai` 的 `ChatOpenAI` 和 `OpenAIEmbeddings`，通过动态懒加载（`await import()`）避免非 fallback 模式下的包加载开销。详见 [依赖分析（已归档）](../../archived/architecture/components/DEPENDENCY_ANALYSIS.md)。
 
 ## 支持的提供商
 

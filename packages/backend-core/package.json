@@ -161,10 +161,17 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@trapmap/contracts": "workspace:*"
+    "@nestjs/common": "^11.1.27",
+    "@trapmap/contracts": "workspace:*",
+    "fastify": "^5.6.1",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@nestjs/core": "^11.1.27",
+    "@nestjs/platform-fastify": "^11.1.27",
+    "@nestjs/testing": "^11.1.27",
     "@types/node": "^25.6.0",
+    "reflect-metadata": "^0.2.2",
     "typescript": "^5.9.3",
     "vitest": "^3.2.1"
   }

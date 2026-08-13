@@ -1,13 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import Consul from 'consul';
-import type {
-  DiscoveryPort,
-  DiscoveredService,
-  ServiceRegistration,
-} from '@trapmap/backend-core';
+import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
+import type { DiscoveredService, DiscoveryPort, ServiceRegistration } from '@trapmap/backend-core';
 import type { HealthCheck, HealthCheckResult } from '@trapmap/backend-core';
-import { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
+import Consul from 'consul';
+import type { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
 
 /**
  * Consul-backed implementation of {@link DiscoveryPort} with graceful
@@ -37,13 +33,10 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
   // ─── NestJS lifecycle ────────────────────────────────────────────────
 
   async onModuleInit() {
-    this.consulEnabled =
-      this.config.get<string>('CONSUL_ENABLED', 'false') === 'true';
+    this.consulEnabled = this.config.get<string>('CONSUL_ENABLED', 'false') === 'true';
 
     if (!this.consulEnabled) {
-      this.logger.log(
-        'Consul is disabled (CONSUL_ENABLED=false). Skipping initialization.',
-      );
+      this.logger.log('Consul is disabled (CONSUL_ENABLED=false). Skipping initialization.');
       this.registerHealthCheck();
       return;
     }
@@ -109,9 +102,7 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
       });
       this.serviceId = registration.id;
       this.registered = true;
-      this.logger.log(
-        `Service registered: ${registration.id} (${registration.name})`,
-      );
+      this.logger.log(`Service registered: ${registration.id} (${registration.name})`);
     } catch (err) {
       this.consulAvailable = false;
       this.logger.warn(
@@ -164,9 +155,7 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
       return result?.Value ?? undefined;
     } catch (err) {
       this.consulAvailable = false;
-      this.logger.warn(
-        `getKV(${key}) failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      this.logger.warn(`getKV(${key}) failed: ${err instanceof Error ? err.message : String(err)}`);
       return undefined;
     }
   }
@@ -178,9 +167,7 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
       await (this.consul!.kv.set as any)(key, value);
     } catch (err) {
       this.consulAvailable = false;
-      this.logger.warn(
-        `setKV(${key}) failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      this.logger.warn(`setKV(${key}) failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -197,9 +184,7 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
    */
   private ensureAvailable(operation: string): boolean {
     if (!this.consulAvailable) {
-      this.logger.warn(
-        `Consul unavailable — ${operation} is a no-op in degraded mode.`,
-      );
+      this.logger.warn(`Consul unavailable — ${operation} is a no-op in degraded mode.`);
       return false;
     }
     return true;
@@ -209,10 +194,7 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
     const serviceName = this.config.get<string>('SERVICE_NAME', 'trapmap');
     const serviceHost = this.config.get<string>('SERVICE_HOST', 'localhost');
     const servicePort = this.config.get<number>('PORT', 4000);
-    const instanceId = this.config.get<string>(
-      'INSTANCE_ID',
-      process.pid?.toString() ?? '0',
-    );
+    const instanceId = this.config.get<string>('INSTANCE_ID', process.pid?.toString() ?? '0');
     const version = this.config.get<string>('npm_package_version', '0.1.0');
     const env = this.config.get<string>('NODE_ENV', 'development');
 

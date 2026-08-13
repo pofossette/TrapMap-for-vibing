@@ -1,7 +1,7 @@
 import type { GraphIndexDocumentRecord, GraphIndexRepositoryPort } from '@trapmap/contracts';
-import type { Pool } from 'pg';
-
-type Queryable = Pick<Pool, 'query'>;
+interface Queryable {
+  query<T = Record<string, unknown>>(sql: string, values?: unknown[]): Promise<{ rows: T[] }>;
+}
 
 interface GraphIndexRow {
   id: string;
@@ -74,22 +74,24 @@ export function createKnowledgeReadGraphIndexRepository(pool: Queryable): GraphI
       );
     },
     async getById(id) {
-      const result = await pool.query(
+      const result = await pool.query<GraphIndexRow>(
         `SELECT ${columns} FROM graph_index_documents WHERE id = $1`,
         [id],
       );
-      return result.rows[0] ? toRecord(result.rows[0] as GraphIndexRow) : null;
+      return result.rows[0] ? toRecord(result.rows[0]) : null;
     },
     async listBySource(sourceType, sourceId) {
-      const result = await pool.query(
+      const result = await pool.query<GraphIndexRow>(
         `SELECT ${columns} FROM graph_index_documents WHERE source_type = $1 AND source_id = $2`,
         [sourceType, sourceId],
       );
-      return result.rows.map((row) => toRecord(row as GraphIndexRow));
+      return result.rows.map((row) => toRecord(row));
     },
     async listAll() {
-      const result = await pool.query(`SELECT ${columns} FROM graph_index_documents`);
-      return result.rows.map((row) => toRecord(row as GraphIndexRow));
+      const result = await pool.query<GraphIndexRow>(
+        `SELECT ${columns} FROM graph_index_documents`,
+      );
+      return result.rows.map((row) => toRecord(row));
     },
     async upsert(document) {
       await pool.query(

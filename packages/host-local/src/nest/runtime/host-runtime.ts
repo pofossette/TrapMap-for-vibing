@@ -7,18 +7,18 @@ import type {
   TeamLookupPort,
 } from '@trapmap/backend-core';
 import {
+  type CandidateProcessingRuntime,
+  createCandidateProcessingRuntime,
+} from '@trapmap/service-candidate-ingestion';
+import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
+import {
   createKnowledgeReadOwnerRetrievalServices,
   createKnowledgeReadRetrievalQuery,
 } from '@trapmap/service-knowledge-read';
-import {
-  createCandidateProcessingRuntime,
-  type CandidateProcessingRuntime,
-} from '@trapmap/service-candidate-ingestion';
-import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 
 import { loadHostLocalConfig } from '../config/index.js';
 import { createQueuePorts } from './backend-core-adapters.js';
-import { createHostLocalServices, type HostLocalServices } from './host-services.js';
+import { type HostLocalServices, createHostLocalServices } from './host-services.js';
 import { resolveEffectivePermissions } from './permissions.js';
 
 export const HOST_LOCAL_RUNTIME_TOKEN = 'HOST_LOCAL_RUNTIME';
@@ -35,12 +35,21 @@ export interface HostLocalRuntime {
   processing: CandidateProcessingRuntime;
 }
 
+type GovernanceRetrievalSeam = Parameters<
+  typeof createKnowledgeReadOwnerRetrievalServices
+>[0]['governance'];
+
 function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
+  // lib type gap: the governance owner bundle returns the backend-core minimal
+  // FeedbackQueueRecord shape while the retrieval seam expects knowledge-read's
+  // richer store record — same feedback rows at runtime
+  const governanceProjection = services.governanceReview
+    .retrievalProjection as unknown as GovernanceRetrievalSeam; // lib type gap:
   const retrievalServices = createKnowledgeReadOwnerRetrievalServices({
     config: services.config,
     knowledge: services.knowledgeOwner,
     artifact: services.artifactReadProjection,
-    governance: services.governanceReview.retrievalProjection as unknown as Parameters<typeof createKnowledgeReadOwnerRetrievalServices>[0]['governance'],
+    governance: governanceProjection,
     strategyRegistry: services.strategyRegistry,
     channelRegistry: services.channelRegistry,
     ai: services.ai,

@@ -160,16 +160,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm check:docs-drift
-      - run: pnpm check:arch-freeze
-      - run: pnpm check:deps
-      - run: pnpm check:mermaid
+      - run: pnpm check:docs
       - run: pnpm check:structure
+      - run: pnpm check:asserts
+      - run: pnpm check:deps
       - run: pnpm check:complexity
-      - run: pnpm check:md-lint
-      - run: pnpm check:links || true
-      - run: pnpm check:doc-references || true
-      - run: pnpm check:docs-truth || true
-      - run: pnpm check:stale-package-refs
-      - run: pnpm exec fallow dead-code --boundary-violations --ci --fail-on-issues
-      - run: pnpm exec fallow dead-code --unused-deps --ci --fail-on-issues

@@ -1,5 +1,5 @@
-import { Injectable, Logger, OnModuleInit, OnApplicationShutdown } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, Logger, type OnApplicationShutdown, type OnModuleInit } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
 import { validateOtelPolicy } from '@trapmap/contracts';
 import type { OtelPolicyResult } from '@trapmap/contracts';
 
@@ -51,10 +51,9 @@ export class OtelService implements OnModuleInit, OnApplicationShutdown {
       // Dynamic imports to avoid loading OTel when disabled
       const { NodeSDK } = await import('@opentelemetry/sdk-node');
       const { resourceFromAttributes } = await import('@opentelemetry/resources');
-      const {
-        ATTR_SERVICE_NAME,
-        ATTR_SERVICE_VERSION,
-      } = await import('@opentelemetry/semantic-conventions');
+      const { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } = await import(
+        '@opentelemetry/semantic-conventions'
+      );
       const { TraceIdRatioBasedSampler } = await import('@opentelemetry/sdk-trace-node');
 
       const resource = resourceFromAttributes({
@@ -70,15 +69,9 @@ export class OtelService implements OnModuleInit, OnApplicationShutdown {
       };
 
       if (this.policy.deploymentProfile !== 'local-agent') {
-        const { OTLPTraceExporter } = await import(
-          '@opentelemetry/exporter-trace-otlp-http'
-        );
-        const { OTLPMetricExporter } = await import(
-          '@opentelemetry/exporter-metrics-otlp-http'
-        );
-        const { PeriodicExportingMetricReader } = await import(
-          '@opentelemetry/sdk-metrics'
-        );
+        const { OTLPTraceExporter } = await import('@opentelemetry/exporter-trace-otlp-http');
+        const { OTLPMetricExporter } = await import('@opentelemetry/exporter-metrics-otlp-http');
+        const { PeriodicExportingMetricReader } = await import('@opentelemetry/sdk-metrics');
 
         sdkConfig.traceExporter = new OTLPTraceExporter({
           url: `${this.policy.endpoint}/v1/traces`,

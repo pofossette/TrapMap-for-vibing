@@ -4,13 +4,11 @@ import type {
   GovernanceRemediationProjection,
   GovernanceRetrievalProjection,
 } from '@trapmap/backend-core';
+import { remediationState } from '@trapmap/backend-core';
 import type { ConflictReadProjection, ConflictRelation } from '@trapmap/contracts';
 import { prefixedId } from '@trapmap/lib';
 import { feedbackCustomAnswers, feedbackRecords } from '@trapmap/persistence-schema';
 import { getTableName } from 'drizzle-orm';
-import type { Pool } from 'pg';
-
-import { remediationState } from './admin.js';
 
 export interface GovernanceReviewPgOwnerBundle {
   feedbackRepo: FeedbackRepositoryPort;
@@ -21,7 +19,9 @@ export interface GovernanceReviewPgOwnerBundle {
   retrievalProjection: GovernanceRetrievalProjection;
 }
 
-type Queryable = Pick<Pool, 'query'>;
+type Queryable = {
+  query<T = Record<string, unknown>>(sql: string, values?: unknown[]): Promise<{ rows: T[] }>;
+};
 type FeedbackRow = Record<string, unknown>;
 const feedbackRecordsTable = getTableName(feedbackRecords);
 const feedbackCustomAnswersTable = getTableName(feedbackCustomAnswers);
@@ -339,7 +339,26 @@ export function createGovernanceReviewPgOwnerBundle(
         grouped.set(record.entryId, group);
       }
       return [...grouped.entries()].flatMap(([entryId, entryRecords]) => {
-        const remediation = remediationState(entryRecords as never, entryId);
+        const remediation = remediationState(
+          entryRecords.map((record) => ({
+            id: record.id,
+            entryId: record.entryId,
+            status: record.status,
+            submittedAt: record.submittedAt as string,
+            remediationStatus: record.remediationStatus as string | null | undefined,
+            remediationOpenedAt: record.remediationOpenedAt as string | null | undefined,
+            remediationOpenedByUserId: record.remediationOpenedByUserId as
+              | string
+              | null
+              | undefined,
+            remediationResolvedAt: record.remediationResolvedAt as string | null | undefined,
+            remediationResolvedByUserId: record.remediationResolvedByUserId as
+              | string
+              | null
+              | undefined,
+          })),
+          entryId,
+        );
         return remediation ? [{ entryId, remediation }] : [];
       });
     },

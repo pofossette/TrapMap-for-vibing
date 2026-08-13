@@ -1,5 +1,7 @@
 # 工件系统 (Artifact System)
 
+> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+
 ## 概述
 
 工件系统是 TrapMap 的技能管理组件，负责管理技能工件（SkillArtifact）及其派生产物：配置文件（SkillProfile）、胶囊（SkillCapsule）和客户端清单（ClientManifest）。

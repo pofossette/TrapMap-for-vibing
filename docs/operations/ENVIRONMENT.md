@@ -1,5 +1,7 @@
 # TrapMap 环境变量参考
 
+> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+
 本文档是 TrapMap 所有环境变量的完整参考。
 
 ## 常用起步变量
@@ -815,7 +817,7 @@ TrapMap 的服务端 AI 提示词支持“插槽式”覆盖。你可以提供�
 - 系统提示词统一使用 XML 语义标记（四层架构中的内容层）
 - JSON 仅用于 API 传输层（消息结构、工具参数 Schema）和模板覆盖文件
 - 只支持覆盖槽位内容，不支持覆盖渲染骨架
-- 四层架构详见 [docs/reference/xml-system-prompt-methodology.md](../reference/xml-system-prompt-methodology.md)
+- 四层架构详见 [docs/archived/reference/xml-system-prompt-methodology.md](../archived/reference/xml-system-prompt-methodology.md)
 
 ## 安全配置
 

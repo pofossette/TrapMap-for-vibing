@@ -16,18 +16,11 @@ export {
   type CandidateResolutionOutcomeRepository,
 } from './pg-ports.js';
 export {
-  migrateCandidateIngestionSnapshot,
-  type CandidateIngestionSnapshot,
-  type CandidateIngestionSnapshotBackfillConfig,
-  type CandidateIngestionSnapshotBackfillResult,
-  type CandidateIngestionSnapshotOwner,
-} from './snapshot-backfill.js';
-export {
   buildNormalizedDuplicateInput,
   createCandidateDuplicateDetector,
   type CandidateCorpusReadPort,
   type NormalizedDuplicateInput,
-} from './domain/index.js';
+} from '@trapmap/backend-core';
 export {
   CANDIDATE_PROCESSING_TASK_TYPE,
   createCandidateProcessingHandler,
@@ -40,7 +33,7 @@ export {
   type CandidateRecoveryDeps,
 } from './processing.js';
 export { createCandidateProcessingTaskQueue } from './processing-task-queue.js';
-export { registerCandidateIngestionRoutes } from './routes.js';
+export { createCandidateIngestionRouteDefs, registerCandidateIngestionRoutes } from './routes.js';
 export {
   createCandidateIngestionServer,
   type CandidateIngestionServer,

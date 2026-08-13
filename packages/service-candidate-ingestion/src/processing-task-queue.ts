@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
 import type { TaskQueuePort } from '@trapmap/backend-core';
-import type { Pool } from 'pg';
+import { isDeadLetter } from '@trapmap/backend-core';
+import type { TransactionPool } from './pg-ports.js';
 
 type QueueTask = {
   id: string;
@@ -14,7 +15,7 @@ type QueueTask = {
 const POLL_INTERVAL_MS = 100;
 
 export function createCandidateProcessingTaskQueue(
-  pool: Pool,
+  pool: TransactionPool,
 ): Pick<TaskQueuePort, 'enqueue' | 'createConsumer'> {
   return {
     async enqueue(type, payload, options = {}) {
@@ -98,7 +99,7 @@ export function createCandidateProcessingTaskQueue(
               );
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
-              const dead = task.attempts >= task.max_attempts;
+              const dead = isDeadLetter(task.attempts, task.max_attempts);
               await pool.query(
                 `UPDATE task_queue
                  SET status = $2, last_error = $3, updated_at = NOW(), process_after = NOW() + INTERVAL '5 seconds'

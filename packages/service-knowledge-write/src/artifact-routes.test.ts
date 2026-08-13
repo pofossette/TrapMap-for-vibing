@@ -1,10 +1,16 @@
 import { InvocationError } from '@trapmap/backend-core';
-import Fastify from 'fastify';
+import {
+  type AdapterName,
+  type RouteTestApp,
+  buildRouteTestApp,
+} from '@trapmap/backend-core/testing/route-test-app.js';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ArtifactBundleImportPort, ArtifactWritePort } from './artifact-ports.js';
-import { registerArtifactRoutes } from './artifact-routes.js';
+import { createArtifactRouteDefs } from './artifact-routes.js';
 import { createArtifactReadProjectionFixture } from './test-helpers.js';
+
+const ADAPTERS: readonly AdapterName[] = ['fastify', 'nest'];
 
 function createArtifacts(): ArtifactWritePort {
   return {
@@ -14,29 +20,39 @@ function createArtifacts(): ArtifactWritePort {
     appendRevision: vi.fn(),
     updateRevisionDerived: vi.fn(),
     appendLifecycleEvent: vi.fn(),
-    editArtifact: vi.fn(async () => ({ id: 'artifact-1' }) as never),
-    review: vi.fn(async () => ({ id: 'artifact-1' }) as never),
-    activate: vi.fn(async () => ({ id: 'artifact-1' }) as never),
+    editArtifact: vi.fn(async () => ({ id: 'artifact-1' })),
+    review: vi.fn(async () => ({ id: 'artifact-1' })),
+    activate: vi.fn(async () => ({ id: 'artifact-1' })),
   };
 }
 
 function createImporter(): ArtifactBundleImportPort {
   return {
-    importBundle: vi.fn(async () => ({ id: 'artifact_1', title: 'Imported skill' }) as never),
+    importBundle: vi.fn(async () => ({ id: 'artifact_1', title: 'Imported skill' })),
   };
 }
 
-async function createArtifactRouteApp(importer = createImporter()) {
+async function createArtifactRouteApp(
+  adapter: AdapterName,
+  importer = createImporter(),
+): Promise<{
+  app: RouteTestApp;
+  artifacts: ArtifactWritePort;
+  importer: ArtifactBundleImportPort;
+}> {
   const artifacts = createArtifacts();
-  const app = Fastify();
-  registerArtifactRoutes(app, artifacts, createArtifactReadProjectionFixture(), importer);
-  await app.ready();
+  const deps = {
+    artifacts,
+    readProjection: createArtifactReadProjectionFixture(),
+    importer,
+  };
+  const app = await buildRouteTestApp(createArtifactRouteDefs(deps), deps, adapter);
   return { app, artifacts, importer };
 }
 
-describe('artifact owner routes', () => {
+describe.each(ADAPTERS)('artifact owner routes (%s adapter)', (adapter) => {
   it('rejects mutations without a trusted actor header', async () => {
-    const { app, artifacts } = await createArtifactRouteApp();
+    const { app, artifacts } = await createArtifactRouteApp(adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -50,7 +66,7 @@ describe('artifact owner routes', () => {
   });
 
   it('uses the trusted actor header and rejects a spoofed body actor', async () => {
-    const { app, artifacts } = await createArtifactRouteApp();
+    const { app, artifacts } = await createArtifactRouteApp(adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -65,7 +81,7 @@ describe('artifact owner routes', () => {
   });
 
   it('imports canonical bundles through the owner importer and returns batch results', async () => {
-    const { app, importer } = await createArtifactRouteApp();
+    const { app, importer } = await createArtifactRouteApp(adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -125,9 +141,12 @@ describe('artifact owner routes', () => {
     importer.importBundle = vi.fn(async () => {
       throw InvocationError.unavailable('artifact owner unavailable');
     });
-    const app = Fastify();
-    registerArtifactRoutes(app, artifacts, createArtifactReadProjectionFixture(), importer);
-    await app.ready();
+    const deps = {
+      artifacts,
+      readProjection: createArtifactReadProjectionFixture(),
+      importer,
+    };
+    const app = await buildRouteTestApp(createArtifactRouteDefs(deps), deps, adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -161,7 +180,10 @@ describe('artifact owner routes', () => {
     });
 
     expect(response.statusCode).toBe(503);
-    expect(response.json()).toEqual({ error: 'artifact owner unavailable', kind: 'unavailable' });
+    expect(response.json()).toMatchObject({
+      error: 'artifact owner unavailable',
+      kind: 'unavailable',
+    });
     await app.close();
   });
 });

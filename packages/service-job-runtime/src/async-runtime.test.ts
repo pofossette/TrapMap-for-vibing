@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import type { Pool } from 'pg';
 import { createJobRuntimeAsyncTransport, createRabbitMqTaskTransport } from './index.js';
 
 describe('job-runtime async infrastructure ownership', () => {
@@ -11,7 +12,7 @@ describe('job-runtime async infrastructure ownership', () => {
           rabbitmq: null,
         },
       },
-      pool: {} as never,
+      pool: {} as Pool,
     });
 
     expect(transport.task.kind).toBe('postgres-task-queue');
@@ -27,7 +28,7 @@ describe('job-runtime async infrastructure ownership', () => {
             rabbitmq: null,
           },
         },
-        pool: {} as never,
+        pool: {} as Pool,
       }),
     ).toThrow('RabbitMQ task transport config is required');
   });

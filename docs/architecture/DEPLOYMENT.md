@@ -308,10 +308,10 @@ deployment flexibility 相关改动至少执行：
 pnpm test:deployment-smoke
 pnpm test:runtime-foundations
 pnpm typecheck
-pnpm check:docs-drift
+pnpm check:docs
 ```
 
-如果只改了代码且未触碰文档事实，可省略 `pnpm check:docs-drift`。
+如果只改了代码且未触碰文档事实，可省略 `pnpm check:docs`。
 
 ---
 

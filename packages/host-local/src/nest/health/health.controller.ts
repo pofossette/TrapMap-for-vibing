@@ -1,10 +1,10 @@
 import { Controller, Get, Header, Res, ServiceUnavailableException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import type { HealthStatus } from '@trapmap/contracts';
+import type { ConfigService } from '@nestjs/config';
 import type { HealthCheckResult } from '@trapmap/backend-core';
+import type { HealthStatus } from '@trapmap/contracts';
 import type { FastifyReply } from 'fastify';
-import { PrometheusService } from '../observability/prometheus.service.js';
-import { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
+import type { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
+import type { PrometheusService } from '../observability/prometheus.service.js';
 
 /**
  * Health check and metrics controller.
@@ -28,14 +28,9 @@ export class HealthController {
 
   @Get('health')
   async health(): Promise<HealthStatus> {
-    const dependencies = await this.mapDependencies(
-      await this.lifecycle.runHealthChecks(),
-    );
+    const dependencies = await this.mapDependencies(await this.lifecycle.runHealthChecks());
 
-    const profile = this.config.get<string>(
-      'TRAPMAP_DEPLOYMENT_PROFILE',
-      'local-agent',
-    );
+    const profile = this.config.get<string>('TRAPMAP_DEPLOYMENT_PROFILE', 'local-agent');
     const preset = this.config.get<string | undefined>('TRAPMAP_DEPLOYMENT_PRESET');
 
     const hasUnhealthy = dependencies.some((d) => d.status === 'unhealthy');
@@ -133,9 +128,7 @@ export class HealthController {
    * Map HealthCheckResult[] from the lifecycle manager to the
    * DependencyStatus[] shape expected by the health contract.
    */
-  private mapDependencies(
-    results: HealthCheckResult[],
-  ): HealthStatus['dependencies'] {
+  private mapDependencies(results: HealthCheckResult[]): HealthStatus['dependencies'] {
     return results.map((r) => ({
       name: r.name,
       status: r.status === 'unknown' ? ('unknown' as const) : r.status,

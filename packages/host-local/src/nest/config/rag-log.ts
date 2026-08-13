@@ -44,4 +44,3 @@ export function loadRagLogConfig(): RagLogConfig {
   const rotation = loadRotationConfig();
   return { enabled, logDir, ...rotation };
 }
-

@@ -5,8 +5,8 @@ import type { GovernanceReviewPgOwnerBundle } from '@trapmap/service-governance-
 
 import {
   createHostLocalGovernanceConflictTaskHandlers,
-  createHostLocalGovernanceTaskHandlers,
   createHostLocalGovernanceConflictWorkflow,
+  createHostLocalGovernanceTaskHandlers,
 } from './governance-composition.js';
 
 describe('host-local governance composition', () => {
@@ -26,7 +26,7 @@ describe('host-local governance composition', () => {
           lifecycleState: 'approved',
         },
       ]),
-    } as never;
+    };
     const conflictProjection: GovernanceReviewPgOwnerBundle['conflictProjection'] = {
       listByEntryIds: vi.fn().mockResolvedValue([]),
       upsert: vi.fn().mockResolvedValue(undefined),

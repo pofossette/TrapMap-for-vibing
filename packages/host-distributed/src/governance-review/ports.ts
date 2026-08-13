@@ -4,7 +4,6 @@ import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/
 import { createRemoteJobRuntimeClient } from '@trapmap/host-distributed/shared/internal-job-runtime-client.js';
 import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
 import {
-  type GovernanceReviewAdminDeps,
   type GovernanceReviewServiceDeps,
   createGovernanceAsyncCommandModule,
   createGovernanceConflictWorkflow,
@@ -68,8 +67,7 @@ export function createGovernanceReviewDeps(
   const admin = createGovernanceReviewAdminModule({
     feedbackRepo: owner.feedbackRepo,
     knowledgeRead,
-    artifactReadProjection:
-      artifactReadProjection as unknown as GovernanceReviewAdminDeps['artifactReadProjection'],
+    artifactReadProjection,
     knowledgeWrite,
     jobRuntime,
     auditLog: identity.auditLog,

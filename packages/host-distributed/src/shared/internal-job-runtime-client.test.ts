@@ -5,7 +5,7 @@ import { createRemoteJobRuntimeClient } from './internal-job-runtime-client.js';
 describe('remote job-runtime client', () => {
   it('returns the authoritative remote job identifier', async () => {
     const schedule = vi.fn(async () => ({ status: 201, body: { jobId: 'job-remote-1' } }));
-    const client = createRemoteJobRuntimeClient({ jobRuntime: { schedule } } as never);
+    const client = createRemoteJobRuntimeClient({ jobRuntime: { schedule } });
 
     await expect(
       client.schedule('candidate-processing', { candidateId: 'candidate-1' }),
@@ -18,7 +18,7 @@ describe('remote job-runtime client', () => {
 
   it('forwards task dedupe keys to the remote job-runtime', async () => {
     const schedule = vi.fn(async () => ({ status: 201, body: { jobId: 'job-remote-2' } }));
-    const client = createRemoteJobRuntimeClient({ jobRuntime: { schedule } } as never);
+    const client = createRemoteJobRuntimeClient({ jobRuntime: { schedule } });
 
     await expect(
       client.schedule(
@@ -42,7 +42,7 @@ describe('remote job-runtime client', () => {
           body: { error: 'job runtime unavailable', kind: 'unavailable' },
         })),
       },
-    } as never);
+    });
 
     await expect(client.schedule('candidate-processing', {})).rejects.toMatchObject({
       name: 'InvocationError',

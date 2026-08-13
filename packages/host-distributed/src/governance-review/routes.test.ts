@@ -69,9 +69,11 @@ describe('governance-review internal routes', () => {
     });
 
     expect(response.statusCode).toBe(504);
-    expect(response.json()).toEqual({
-      error: 'knowledge-write timed out',
+    expect(response.json()).toMatchObject({
+      code: 'timeout',
+      message: 'knowledge-write timed out',
       kind: 'timeout',
+      error: 'knowledge-write timed out',
     });
     await app.close();
   });

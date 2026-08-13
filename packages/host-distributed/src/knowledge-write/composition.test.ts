@@ -8,10 +8,13 @@ describe('distributed knowledge-write composition', () => {
       getById: vi.fn(),
       listByFilter: vi.fn(),
     };
-    const options = createKnowledgeWriteReadinessOptions({ knowledgeOwner } as never, {
-      checkDependency: vi.fn(),
-      getOperatorStatus: vi.fn(),
-    });
+    const options = createKnowledgeWriteReadinessOptions(
+      { knowledgeOwner },
+      {
+        checkDependency: vi.fn(),
+        getOperatorStatus: vi.fn(),
+      },
+    );
 
     expect(options.conflictCandidateRead).toBe(knowledgeOwner);
   });

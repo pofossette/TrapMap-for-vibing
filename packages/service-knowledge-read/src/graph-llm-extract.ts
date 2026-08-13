@@ -44,7 +44,7 @@ export async function extractSegmentEntities(
       () =>
         invokeWithParseRetry({
           invoke: () => chat.invoke(systemPrompt, segment),
-          schema: llmGraphExtractionSchema as unknown as import('zod').ZodType<LlmGraphExtraction>,
+          schema: llmGraphExtractionSchema,
           maxRetries,
           backoffMs: (attempt: number) => BACKOFF_BASE_MS * 2 ** (attempt * 2),
         }),

@@ -1,8 +1,9 @@
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { HostLocalConfig } from '../config/index.js';
 import { RequestContextMiddleware } from './request-context.middleware.js';
-import { extractRequestContext, RequestContextService } from './request-context.service.js';
+import { RequestContextService, extractRequestContext } from './request-context.service.js';
 
 describe('RequestContextService', () => {
   it('should return undefined outside a run scope', () => {
@@ -71,8 +72,8 @@ describe('extractRequestContext', () => {
       { traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01' },
       config,
       {
-      method: 'POST',
-      route: '/test',
+        method: 'POST',
+        route: '/test',
       },
     );
     expect(ctx.traceId).toBe('4bf92f3577b34da6a3ce929d0e0e4736');
@@ -115,7 +116,10 @@ describe('extractRequestContext', () => {
       traceHeaderName: 'x-trace',
     };
     const ctx = extractRequestContext(
-      { 'x-custom-id': 'custom-id', 'x-trace': '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01' },
+      {
+        'x-custom-id': 'custom-id',
+        'x-trace': '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+      },
       customConfig,
       { method: 'GET', route: '/test' },
     );
@@ -148,8 +152,8 @@ describe('RequestContextMiddleware', () => {
         url: '/health',
         id: 'fastify-id',
         routeOptions: { url: '/health' },
-      } as never,
-      { header } as never,
+      } as FastifyRequest,
+      { header } as FastifyReply,
       next,
     );
 
@@ -175,8 +179,8 @@ describe('RequestContextMiddleware', () => {
         url: '/health',
         id: 'fastify-id',
         routeOptions: { url: '/health' },
-      } as never,
-      { raw: { setHeader } } as never,
+      } as FastifyRequest,
+      { raw: { setHeader } } as FastifyReply,
       next,
     );
 

@@ -6,13 +6,23 @@ import type {
   ReviewPort,
 } from '@trapmap/backend-core';
 import {
+  InvocationError,
+  type RouteContext,
+  type RouteDef,
+  type RouteSuccess,
+  isRouteResponse,
+  registerFastifyRoutes,
+  routeResponse,
+} from '@trapmap/backend-core';
+import {
   badcaseExportDraftPayloadSchema,
   feedbackBatchRequestSchema,
   feedbackListRequestSchema,
   feedbackRemediationCompleteRequestSchema,
   remediationReactivationPayloadSchema,
 } from '@trapmap/contracts';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance } from 'fastify';
+import { type ZodType, z } from 'zod';
 
 export type GovernanceReviewRouteModule = ReviewPort & {
   asyncCommands?: GovernanceAsyncCommandPort;
@@ -26,101 +36,8 @@ export interface GovernanceReviewReadinessOptions {
   getOperatorStatus?: () => Promise<Record<string, unknown>>;
 }
 
-function toInvocationErrorResponse(error: unknown): {
-  status: number;
-  body: { error: string; kind: string };
-} {
-  const candidate = error as { kind?: unknown; message?: unknown } | undefined;
-  const statusByKind: Record<string, number> = {
-    validation: 400,
-    forbidden: 403,
-    'not-found': 404,
-    conflict: 409,
-    unavailable: 503,
-    timeout: 504,
-    internal: 500,
-  };
-  if (
-    candidate &&
-    typeof candidate.kind === 'string' &&
-    typeof candidate.message === 'string' &&
-    candidate.kind in statusByKind
-  ) {
-    return {
-      status: statusByKind[candidate.kind] ?? 500,
-      body: { error: candidate.message, kind: candidate.kind },
-    };
-  }
-  return { status: 500, body: { error: 'Internal server error', kind: 'internal' } };
-}
-
-function sendGovernanceInvocation<T>(
-  reply: FastifyReply,
-  status: number,
-  operation: () => Promise<T>,
-): Promise<FastifyReply> {
-  return operation()
-    .then((result) => reply.status(status).send(result))
-    .catch((error: unknown) => {
-      const response = toInvocationErrorResponse(error);
-      return reply.status(response.status).send(response.body);
-    });
-}
-
-type ReviewCommandBody = {
-  entryId: string;
-  actorId: string;
-  note?: string;
-  evidence?: Record<string, unknown>;
-};
-
-type MaintenanceCommandBody = ReviewCommandBody & {
-  action: string;
-};
-
-function runGovernanceCommand<T>(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  operation: (body: T) => Promise<unknown>,
-) {
-  return sendGovernanceInvocation(reply, 200, () => operation(request.body as T));
-}
-
-function readAdminActor(request: FastifyRequest, reply: FastifyReply): string | null {
-  const actorId = request.headers['x-trapmap-actor-id'];
-  if (typeof actorId !== 'string' || actorId.length === 0) {
-    void reply.status(401).send({ error: 'Missing authenticated actor', kind: 'auth' });
-    return null;
-  }
-  const body = request.body as { actorId?: unknown } | undefined;
-  if (body?.actorId !== undefined && body.actorId !== actorId) {
-    void reply
-      .status(403)
-      .send({ error: 'Body actor does not match authenticated actor', kind: 'forbidden' });
-    return null;
-  }
-  return actorId;
-}
-
-function parseAdminRequest<T>(reply: FastifyReply, parse: () => T): T | null {
-  try {
-    return parse();
-  } catch {
-    void reply.status(400).send({ error: 'Invalid feedback admin request', kind: 'validation' });
-    return null;
-  }
-}
-
-function parseAsyncCommandRequest<T>(reply: FastifyReply, parse: () => T): T | null {
-  try {
-    return parse();
-  } catch {
-    void reply
-      .status(400)
-      .send({ error: 'Invalid governance async command request', kind: 'validation' });
-    return null;
-  }
-}
+export type GovernanceReviewRouteDeps = GovernanceReviewRouteModule &
+  Partial<GovernanceReviewReadinessOptions>;
 
 const GOVERNANCE_REVIEW_OWNERSHIP = {
   service: 'governance-review',
@@ -157,22 +74,150 @@ const GOVERNANCE_REVIEW_OWNERSHIP = {
   delegateTo: 'knowledge-write',
 } as const;
 
-export function registerGovernanceReviewRoutes(
-  app: FastifyInstance,
-  module: GovernanceReviewRouteModule,
-  options?: GovernanceReviewReadinessOptions,
-): void {
-  const readinessHandler = async (_request: FastifyRequest, reply: FastifyReply) => {
+const emptyRecord = z.record(z.string(), z.unknown());
+const headersSchema = z.record(z.string(), z.unknown());
+
+const reviewCommandSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: z.object({
+    entryId: z.string(),
+    actorId: z.string(),
+    note: z.string().optional(),
+    evidence: z.record(z.string(), z.unknown()).optional(),
+  }),
+});
+
+const maintenanceCommandSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: z.object({
+    entryId: z.string(),
+    actorId: z.string(),
+    action: z.string(),
+    note: z.string().optional(),
+    evidence: z.record(z.string(), z.unknown()).optional(),
+  }),
+});
+
+const conflictDetectSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: z.object({ entryId: z.string() }),
+});
+
+const reviewArtifactSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: z.object({
+    artifactId: z.string(),
+    decision: z.enum(['approve', 'reject']),
+    actorId: z.string(),
+    note: z.string().optional(),
+  }),
+});
+
+const feedbackSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z
+    .object({
+      entryId: z.string(),
+      problemType: z.string(),
+      description: z.string(),
+      actorId: z.string().optional(),
+    })
+    .passthrough(),
+});
+
+const remediationReactivationSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: remediationReactivationPayloadSchema,
+});
+
+const badcaseExportDraftSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: badcaseExportDraftPayloadSchema,
+});
+
+const retrievalProjectionSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: z.object({ entryIds: z.array(z.string()) }),
+});
+
+const feedbackAdminListSchema = z.object({
+  params: emptyRecord,
+  query: feedbackListRequestSchema,
+  headers: headersSchema,
+  body: z.unknown(),
+});
+
+const feedbackAdminBatchSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  headers: headersSchema,
+  body: feedbackBatchRequestSchema,
+});
+
+const feedbackAdminStatsSchema = z.object({
+  params: z.object({ entryId: z.string() }),
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z.unknown(),
+});
+
+const feedbackAdminRemediationCompleteSchema = z.object({
+  params: z.object({ entryId: z.string() }),
+  query: emptyRecord,
+  headers: headersSchema,
+  body: feedbackRemediationCompleteRequestSchema,
+});
+
+const healthSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: z.unknown(),
+});
+
+function readAdminActor(headers: Record<string, unknown>, body: unknown): string | RouteSuccess {
+  const actorId = headers['x-trapmap-actor-id'];
+  if (typeof actorId !== 'string' || actorId.length === 0) {
+    return routeResponse(401, { error: 'Missing authenticated actor', kind: 'auth' });
+  }
+  const bodyActorId =
+    typeof body === 'object' && body !== null ? (body as { actorId?: unknown }).actorId : undefined;
+  if (bodyActorId !== undefined && bodyActorId !== actorId) {
+    throw InvocationError.forbidden('Body actor does not match authenticated actor');
+  }
+  return actorId;
+}
+
+function governanceRouteDef<Ctx extends RouteContext>(def: {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  path: string;
+  schema: ZodType<Ctx>;
+  successStatus?: number;
+  handler(ctx: Ctx, deps: GovernanceReviewRouteDeps): Promise<unknown>;
+}): RouteDef<Ctx, GovernanceReviewRouteDeps> {
+  return def;
+}
+
+function readinessHandler(deps: GovernanceReviewRouteDeps) {
+  return async () => {
     let dependencyStatus: { reachable: boolean; detail?: string } = { reachable: true };
-    if (options?.checkDependency) {
+    if (deps.checkDependency) {
       try {
-        dependencyStatus = await options.checkDependency();
+        dependencyStatus = await deps.checkDependency();
       } catch {
         dependencyStatus = { reachable: false, detail: 'dependency check threw' };
       }
     }
     const ready = dependencyStatus.reachable;
-    return reply.status(ready ? 200 : 503).send({
+    const body = {
       ready,
       service: 'governance-review',
       checks: {
@@ -185,244 +230,317 @@ export function registerGovernanceReviewRoutes(
       commandSurfaceReceived: true,
       finalAggregateMutation: 'delegated-to-knowledge-write',
       followUpDisposition: 'outbox-queue-workflow-async',
-    });
-  };
-  app.post('/internal/review/approve', (request: FastifyRequest, reply: FastifyReply) =>
-    runGovernanceCommand<ReviewCommandBody>(request, reply, (body) => module.approve(body)),
-  );
-
-  app.post('/internal/review/reject', (request: FastifyRequest, reply: FastifyReply) =>
-    runGovernanceCommand<ReviewCommandBody>(request, reply, (body) => module.reject(body)),
-  );
-
-  app.post('/internal/review/maintenance', (request: FastifyRequest, reply: FastifyReply) =>
-    runGovernanceCommand<MaintenanceCommandBody>(request, reply, (body) =>
-      module.applyMaintenance(body),
-    ),
-  );
-
-  app.post('/internal/review/decay', (request: FastifyRequest, reply: FastifyReply) =>
-    runGovernanceCommand<MaintenanceCommandBody>(request, reply, (body) => module.applyDecay(body)),
-  );
-
-  app.post('/internal/conflicts/detect', (request: FastifyRequest, reply: FastifyReply) => {
-    const entryId = (request.body as { entryId?: unknown } | undefined)?.entryId;
-    if (typeof entryId !== 'string' || entryId.length === 0) {
-      return reply.status(400).send({ error: 'entryId is required', kind: 'validation' });
-    }
-    if (!module.conflictWorkflow) {
-      return reply
-        .status(503)
-        .send({ error: 'Conflict workflow unavailable', kind: 'unavailable' });
-    }
-    return sendGovernanceInvocation(reply, 200, () =>
-      module.conflictWorkflow!.detectConflicts({ entryId }),
-    );
-  });
-
-  app.post('/internal/review/artifact', (request: FastifyRequest, reply: FastifyReply) =>
-    sendGovernanceInvocation(reply, 200, async () => {
-      const body = request.body as {
-        artifactId: string;
-        decision: 'approve' | 'reject';
-        actorId: string;
-        note?: string;
-      };
-      await module.reviewArtifact(body.artifactId, body.decision, body.actorId, body.note);
-      return { ok: true };
-    }),
-  );
-
-  app.post('/internal/feedback', async (request: FastifyRequest, reply: FastifyReply) => {
-    const requestActorId = request.headers['x-trapmap-actor-id'];
-    if (typeof requestActorId !== 'string' || requestActorId.length === 0) {
-      return reply.status(401).send({ error: 'Missing authenticated actor', kind: 'auth' });
-    }
-    const body = request.body as {
-      entryId: string;
-      problemType: string;
-      description: string;
-      actorId?: string;
-      [key: string]: unknown;
     };
-    if (body.actorId !== undefined && body.actorId !== requestActorId) {
-      return reply
-        .status(403)
-        .send({ error: 'Body actor does not match authenticated actor', kind: 'forbidden' });
-    }
-    return sendGovernanceInvocation(reply, 201, () =>
-      module.submitFeedback({ ...body, actorId: requestActorId }),
-    );
-  });
+    return ready ? body : routeResponse(503, body);
+  };
+}
 
-  app.post('/internal/feedback/async/remediation-reactivation', async (request, reply) => {
-    if (!module.asyncCommands) {
-      return reply
-        .status(503)
-        .send({ error: 'Governance async commands unavailable', kind: 'unavailable' });
-    }
-    const payload = parseAsyncCommandRequest(reply, () =>
-      remediationReactivationPayloadSchema.parse(request.body),
-    );
-    if (!payload) return;
-    return sendGovernanceInvocation(reply, 200, async () => {
-      await module.asyncCommands!.reactivateRemediation(payload);
-      return { ok: true };
-    });
-  });
+export function createGovernanceReviewRouteDefs(
+  _deps: GovernanceReviewRouteDeps,
+): RouteDef<RouteContext, GovernanceReviewRouteDeps>[] {
+  return [
+    governanceRouteDef({
+      method: 'POST',
+      path: '/internal/review/approve',
+      schema: reviewCommandSchema,
+      handler: async (ctx, module) =>
+        module.approve({
+          entryId: ctx.body.entryId,
+          actorId: ctx.body.actorId,
+          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
+          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
+        }),
+    }),
 
-  app.post('/internal/feedback/async/badcase-export-draft', async (request, reply) => {
-    if (!module.asyncCommands) {
-      return reply
-        .status(503)
-        .send({ error: 'Governance async commands unavailable', kind: 'unavailable' });
-    }
-    const payload = parseAsyncCommandRequest(reply, () =>
-      badcaseExportDraftPayloadSchema.parse(request.body),
-    );
-    if (!payload) return;
-    return sendGovernanceInvocation(reply, 200, async () => {
-      await module.asyncCommands!.exportBadcaseDraft(payload);
-      return { ok: true };
-    });
-  });
+    governanceRouteDef({
+      method: 'POST',
+      path: '/internal/review/reject',
+      schema: reviewCommandSchema,
+      handler: async (ctx, module) =>
+        module.reject({
+          entryId: ctx.body.entryId,
+          actorId: ctx.body.actorId,
+          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
+          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
+        }),
+    }),
 
-  app.post(
-    '/internal/governance-review/retrieval-projection',
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const body = request.body as { entryIds?: unknown } | undefined;
-      if (!module.governanceRetrievalProjection) {
-        return reply
-          .status(503)
-          .send({ error: 'Governance retrieval projection unavailable', kind: 'unavailable' });
-      }
-      if (
-        !Array.isArray(body?.entryIds) ||
-        body.entryIds.some((entryId) => typeof entryId !== 'string')
-      ) {
-        return reply.status(400).send({
-          error: 'entryIds must be an array of strings',
-          kind: 'validation',
-        });
-      }
-      const entryIds = body.entryIds as string[];
-      return sendGovernanceInvocation(reply, 200, async () => {
+    governanceRouteDef({
+      method: 'POST',
+      path: '/internal/review/maintenance',
+      schema: maintenanceCommandSchema,
+      handler: async (ctx, module) =>
+        module.applyMaintenance({
+          entryId: ctx.body.entryId,
+          actorId: ctx.body.actorId,
+          action: ctx.body.action,
+          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
+          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
+        }),
+    }),
+
+    governanceRouteDef({
+      method: 'POST',
+      path: '/internal/review/decay',
+      schema: maintenanceCommandSchema,
+      handler: async (ctx, module) =>
+        module.applyDecay({
+          entryId: ctx.body.entryId,
+          actorId: ctx.body.actorId,
+          action: ctx.body.action,
+          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
+          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
+        }),
+    }),
+
+    governanceRouteDef({
+      method: 'POST',
+      path: '/internal/conflicts/detect',
+      schema: conflictDetectSchema,
+      handler: async (ctx, module) => {
+        if (!module.conflictWorkflow) {
+          throw InvocationError.unavailable('Conflict workflow unavailable');
+        }
+        return module.conflictWorkflow.detectConflicts({ entryId: ctx.body.entryId });
+      },
+    }),
+
+    governanceRouteDef({
+      method: 'POST',
+      path: '/internal/review/artifact',
+      schema: reviewArtifactSchema,
+      handler: async (ctx, module) => {
+        await module.reviewArtifact(
+          ctx.body.artifactId,
+          ctx.body.decision,
+          ctx.body.actorId,
+          ctx.body.note,
+        );
+        return { ok: true };
+      },
+    }),
+
+    governanceRouteDef({
+      method: 'POST',
+      path: '/internal/feedback',
+      schema: feedbackSchema,
+      successStatus: 201,
+      handler: async (ctx, module) => {
+        const requestActorId = ctx.headers?.['x-trapmap-actor-id'];
+        if (typeof requestActorId !== 'string' || requestActorId.length === 0) {
+          return routeResponse(401, { error: 'Missing authenticated actor', kind: 'auth' });
+        }
+        if (ctx.body.actorId !== undefined && ctx.body.actorId !== requestActorId) {
+          throw InvocationError.forbidden('Body actor does not match authenticated actor');
+        }
+        return module.submitFeedback({ ...ctx.body, actorId: requestActorId });
+      },
+    }),
+
+    governanceRouteDef({
+      method: 'POST',
+      path: '/internal/feedback/async/remediation-reactivation',
+      schema: remediationReactivationSchema,
+      handler: async (ctx, module) => {
+        if (!module.asyncCommands) {
+          throw InvocationError.unavailable('Governance async commands unavailable');
+        }
+        await module.asyncCommands.reactivateRemediation(ctx.body);
+        return { ok: true };
+      },
+    }),
+
+    governanceRouteDef({
+      method: 'POST',
+      path: '/internal/feedback/async/badcase-export-draft',
+      schema: badcaseExportDraftSchema,
+      handler: async (ctx, module) => {
+        if (!module.asyncCommands) {
+          throw InvocationError.unavailable('Governance async commands unavailable');
+        }
+        await module.asyncCommands.exportBadcaseDraft(ctx.body);
+        return { ok: true };
+      },
+    }),
+
+    governanceRouteDef({
+      method: 'POST',
+      path: '/internal/governance-review/retrieval-projection',
+      schema: retrievalProjectionSchema,
+      handler: async (ctx, module) => {
+        if (!module.governanceRetrievalProjection) {
+          throw InvocationError.unavailable('Governance retrieval projection unavailable');
+        }
         const [feedback, conflicts] = await Promise.all([
-          module.governanceRetrievalProjection!.listFeedback(),
-          module.governanceRetrievalProjection!.listConflicts(entryIds),
+          module.governanceRetrievalProjection.listFeedback(),
+          module.governanceRetrievalProjection.listConflicts(ctx.body.entryIds),
         ]);
         return { feedback, conflicts };
-      });
-    },
-  );
+      },
+    }),
 
-  app.get('/internal/feedback/admin', async (request, reply) => {
-    const actorId = readAdminActor(request, reply);
-    if (!actorId) return;
-    if (!module.admin) {
-      return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
-    }
-    const query = parseAdminRequest(reply, () => feedbackListRequestSchema.parse(request.query));
-    if (!query) return;
-    return sendGovernanceInvocation(reply, 200, () => module.admin!.list({ actorId, query }));
-  });
+    governanceRouteDef({
+      method: 'GET',
+      path: '/internal/feedback/admin',
+      schema: feedbackAdminListSchema,
+      handler: async (ctx, module) => {
+        const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
+        if (isRouteResponse(actor)) return actor;
+        if (!module.admin) {
+          throw InvocationError.unavailable('Feedback admin unavailable');
+        }
+        return module.admin.list({ actorId: actor, query: ctx.query });
+      },
+    }),
 
-  app.post('/internal/feedback/admin/batch', async (request, reply) => {
-    const actorId = readAdminActor(request, reply);
-    if (!actorId) return;
-    if (!module.admin) {
-      return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
-    }
-    const body = { ...((request.body ?? {}) as Record<string, unknown>) };
-    body.actorId = undefined;
-    const command = parseAdminRequest(reply, () => feedbackBatchRequestSchema.parse(body));
-    if (!command) return;
-    return sendGovernanceInvocation(reply, 200, () => module.admin!.batch({ actorId, command }));
-  });
+    governanceRouteDef({
+      method: 'POST',
+      path: '/internal/feedback/admin/batch',
+      schema: feedbackAdminBatchSchema,
+      handler: async (ctx, module) => {
+        const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
+        if (isRouteResponse(actor)) return actor;
+        if (!module.admin) {
+          throw InvocationError.unavailable('Feedback admin unavailable');
+        }
+        return module.admin.batch({ actorId: actor, command: ctx.body });
+      },
+    }),
 
-  app.get('/internal/feedback/admin/stats/:entryId', async (request, reply) => {
-    const actorId = readAdminActor(request, reply);
-    if (!actorId) return;
-    if (!module.admin) {
-      return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
-    }
-    const { entryId } = request.params as { entryId: string };
-    return sendGovernanceInvocation(reply, 200, () => module.admin!.stats({ actorId, entryId }));
-  });
+    governanceRouteDef({
+      method: 'GET',
+      path: '/internal/feedback/admin/stats/:entryId',
+      schema: feedbackAdminStatsSchema,
+      handler: async (ctx, module) => {
+        const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
+        if (isRouteResponse(actor)) return actor;
+        if (!module.admin) {
+          throw InvocationError.unavailable('Feedback admin unavailable');
+        }
+        return module.admin.stats({ actorId: actor, entryId: ctx.params.entryId });
+      },
+    }),
 
-  app.get('/internal/feedback/admin/remediation', async (request, reply) => {
-    const actorId = readAdminActor(request, reply);
-    if (!actorId) return;
-    if (!module.admin) {
-      return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
-    }
-    return sendGovernanceInvocation(reply, 200, () => module.admin!.listRemediation({ actorId }));
-  });
+    governanceRouteDef({
+      method: 'GET',
+      path: '/internal/feedback/admin/remediation',
+      schema: feedbackAdminStatsSchema,
+      handler: async (ctx, module) => {
+        const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
+        if (isRouteResponse(actor)) return actor;
+        if (!module.admin) {
+          throw InvocationError.unavailable('Feedback admin unavailable');
+        }
+        return module.admin.listRemediation({ actorId: actor });
+      },
+    }),
 
-  app.get('/internal/feedback/admin/remediation/:entryId', async (request, reply) => {
-    const actorId = readAdminActor(request, reply);
-    if (!actorId) return;
-    if (!module.admin) {
-      return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
-    }
-    const { entryId } = request.params as { entryId: string };
-    return sendGovernanceInvocation(reply, 200, () =>
-      module.admin!.getRemediation({ actorId, entryId }),
-    );
-  });
+    governanceRouteDef({
+      method: 'GET',
+      path: '/internal/feedback/admin/remediation/:entryId',
+      schema: feedbackAdminStatsSchema,
+      handler: async (ctx, module) => {
+        const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
+        if (isRouteResponse(actor)) return actor;
+        if (!module.admin) {
+          throw InvocationError.unavailable('Feedback admin unavailable');
+        }
+        return module.admin.getRemediation({ actorId: actor, entryId: ctx.params.entryId });
+      },
+    }),
 
-  app.post('/internal/feedback/admin/remediation/:entryId/complete', async (request, reply) => {
-    const actorId = readAdminActor(request, reply);
-    if (!actorId) return;
-    if (!module.admin) {
-      return reply.status(503).send({ error: 'Feedback admin unavailable', kind: 'unavailable' });
-    }
-    const body = { ...((request.body ?? {}) as Record<string, unknown>) };
-    body.actorId = undefined;
-    const command = parseAdminRequest(reply, () =>
-      feedbackRemediationCompleteRequestSchema.parse(body),
-    );
-    if (!command) return;
-    const { entryId } = request.params as { entryId: string };
-    return sendGovernanceInvocation(reply, 200, () =>
-      module.admin!.completeRemediation({ actorId, entryId, command }),
-    );
-  });
+    governanceRouteDef({
+      method: 'POST',
+      path: '/internal/feedback/admin/remediation/:entryId/complete',
+      schema: feedbackAdminRemediationCompleteSchema,
+      handler: async (ctx, module) => {
+        const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
+        if (isRouteResponse(actor)) return actor;
+        if (!module.admin) {
+          throw InvocationError.unavailable('Feedback admin unavailable');
+        }
+        return module.admin.completeRemediation({
+          actorId: actor,
+          entryId: ctx.params.entryId,
+          command: ctx.body,
+        });
+      },
+    }),
 
-  app.get('/internal/health', async (_request: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send({
-      status: 'ok',
-      service: 'governance-review',
-      owner: GOVERNANCE_REVIEW_OWNERSHIP.boundedContext,
-      delegateTo: GOVERNANCE_REVIEW_OWNERSHIP.delegateTo,
-    });
-  });
-
-  app.get('/internal/live', async (_request: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send({ status: 'alive', service: 'governance-review' });
-  });
-
-  app.get('/internal/readiness', readinessHandler);
-  app.get('/internal/ready', readinessHandler);
-
-  app.get('/internal/ownership', async (_request: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send(GOVERNANCE_REVIEW_OWNERSHIP);
-  });
-
-  app.get('/internal/operator-status', async (_request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const details = (await options?.getOperatorStatus?.()) ?? {};
-      return reply.status(200).send({
+    governanceRouteDef({
+      method: 'GET',
+      path: '/internal/health',
+      schema: healthSchema,
+      handler: async () => ({
+        status: 'ok',
         service: 'governance-review',
         owner: GOVERNANCE_REVIEW_OWNERSHIP.boundedContext,
-        ...details,
-      });
-    } catch (error) {
-      return reply.status(503).send({
-        service: 'governance-review',
-        owner: GOVERNANCE_REVIEW_OWNERSHIP.boundedContext,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
+        delegateTo: GOVERNANCE_REVIEW_OWNERSHIP.delegateTo,
+      }),
+    }),
+
+    governanceRouteDef({
+      method: 'GET',
+      path: '/internal/live',
+      schema: healthSchema,
+      handler: async () => ({ status: 'alive', service: 'governance-review' }),
+    }),
+
+    governanceRouteDef({
+      method: 'GET',
+      path: '/internal/readiness',
+      schema: healthSchema,
+      handler: async (_ctx, module) => readinessHandler(module)(),
+    }),
+
+    governanceRouteDef({
+      method: 'GET',
+      path: '/internal/ready',
+      schema: healthSchema,
+      handler: async (_ctx, module) => readinessHandler(module)(),
+    }),
+
+    governanceRouteDef({
+      method: 'GET',
+      path: '/internal/ownership',
+      schema: healthSchema,
+      handler: async () => GOVERNANCE_REVIEW_OWNERSHIP,
+    }),
+
+    governanceRouteDef({
+      method: 'GET',
+      path: '/internal/operator-status',
+      schema: healthSchema,
+      handler: async (_ctx, module) => {
+        try {
+          const details = (await module.getOperatorStatus?.()) ?? {};
+          return {
+            service: 'governance-review',
+            owner: GOVERNANCE_REVIEW_OWNERSHIP.boundedContext,
+            ...details,
+          };
+        } catch (error) {
+          return routeResponse(503, {
+            service: 'governance-review',
+            owner: GOVERNANCE_REVIEW_OWNERSHIP.boundedContext,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      },
+    }),
+  ];
+}
+
+/**
+ * Fastify-plugin compatibility shim: registers the governance-review
+ * RouteDefs onto an existing Fastify instance. Consumed by the
+ * host-distributed bridge.
+ */
+export function registerGovernanceReviewRoutes(
+  app: FastifyInstance,
+  module: GovernanceReviewRouteModule,
+  options?: GovernanceReviewReadinessOptions,
+): void {
+  const deps: GovernanceReviewRouteDeps = { ...module, ...options };
+  registerFastifyRoutes(app, createGovernanceReviewRouteDefs(deps), deps);
 }

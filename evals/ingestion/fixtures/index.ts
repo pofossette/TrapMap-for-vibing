@@ -144,7 +144,8 @@ function loadFixture(dirName: string): DerivationFixture {
 export const derivationFixtures: DerivationFixture[] = [
   loadFixture('with-frontmatter'),
   loadFixture('minimal-skill'),
-  loadFixture('with-assets-and-scripts'),
+  // core-tier fixture archived in Wave 8; kept loadable for manual `--tier core`
+  loadFixture('../archived/fixtures/with-assets-and-scripts'),
 ];
 
 export function getSmokeFixtures(): DerivationFixture[] {

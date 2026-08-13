@@ -1,6 +1,6 @@
 # TrapMap API 契约表面
 
-> **文档关系说明**：本文档是 API 契约表面的全量概览，列出所有端点的请求/响应 Schema 名称。若需完整端点详情（请求示例、响应字段说明），请参阅 [`docs/architecture/API.md`](../architecture/API.md)。
+> **文档关系说明**：本文档是 API 契约表面的全量概览，列出所有端点的请求/响应 Schema 名称。若需完整端点详情（请求示例、响应字段说明），请参阅 [`docs/archived/architecture/API.md`](../archived/architecture/API.md)。
 >
 > **Round 3 更新**：知识域的标签（`knowledge_labels`）、边界（`knowledge_boundary_*` ×6）、维护（`knowledge_maintenance_assignments`）已从 JSONB 拆分为 PostgreSQL 结构化子表。API 契约表面未变，所有请求/响应 Schema 保持不变。`KnowledgeEntry` 的 Schema 类型定义仍为单一聚合，子表读写由 `PgKnowledgeRepository` 内部处理。
 >
@@ -79,7 +79,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `PATCH` | `/v1/knowledge/:id/evidence` | `evidenceMetaSchema`（部分） | `{ evidence: evidenceMetaSchema }` | 更新知识条目的 evidence 元数据 |
 | `POST` | `/v1/operations/knowledge/:entryId/deactivate` | `knowledgeDeactivateRequestSchema` | `knowledgeDeactivateResponseSchema` | 停用知识条目并记录审计日志 |
 
-> 源码：`packages/server（Wave-10 已删除）/src/routes/knowledge.ts`、`packages/host-local/src/nest/gateway/candidate-review.controller.ts`、`packages/host-distributed/src/gateway/routes.ts`、`packages/service-governance-review/src/routes.ts`、`packages/server（Wave-10 已删除）/src/routes/evidence.ts`
+> 源码：`packages/server（Wave-10 已删除）/src/routes/knowledge.ts`、`packages/host-local/src/nest/gateway/gateway.route-defs.ts`、`packages/host-distributed/src/gateway/routes.ts`、`packages/service-governance-review/src/routes.ts`、`packages/server（Wave-10 已删除）/src/routes/evidence.ts`
 
 ## 陷阱（Traps）
 
@@ -106,7 +106,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `GET` | `/v1/duplicates/:candidateId` | 无 | `duplicateCaseResponseSchema` | 获取特定候选的重复案例 |
 | `GET` | `/v1/duplicates/:candidateId/bundle` | 无 | `DuplicateJobBundleResponseSchema` | 获取重复候选完整包（含匹配实体） |
 
-> 源码：`packages/server（Wave-10 已删除）/src/routes/candidates.ts`（submit/query/duplicates compatibility surface）、`packages/host-local/src/nest/gateway/candidate-review.controller.ts`、`packages/host-distributed/src/gateway/routes.ts`、`packages/service-candidate-ingestion/src/routes.ts`
+> 源码：`packages/server（Wave-10 已删除）/src/routes/candidates.ts`（submit/query/duplicates compatibility surface）、`packages/host-local/src/nest/gateway/gateway.route-defs.ts`、`packages/host-distributed/src/gateway/routes.ts`、`packages/service-candidate-ingestion/src/routes.ts`
 
 ## 检索
 
@@ -195,7 +195,7 @@ Phase 4 closeout 补充：
 - operator runbook 继续只依赖 `/health`、`/ready`、`/metrics`、`/v1/operations/status/async` 四个既有入口，不新增第二套 runtime control plane。
 - dashboard/alert/SLO 当前只冻结为 operator 文档 truth：task queue、internal hop latency、error rate 需要被解释为可观测指标族，但不表示仓库已经提供 checked-in dashboard-as-code 或 alert rule pack。
 - `workflow` drill-down 当前可返回 internal/operator-only `workflows[*].correlation`，用于解释 `requestId` / `traceId` / `queryId` / `feedbackId` / `asyncJobId` 与 async follow-up 的关系；它不属于新的通用 public additive field。
-- `GET /v1/operations/badcases/:feedbackId/export` 的 `debug` 字段同样属于 operator/debug 闭环，不属于 script/eval draft payload；`scripts/export-badcase-to-eval.ts` 只序列化 `draft`。
+- `GET /v1/operations/badcases/:feedbackId/export` 的 `debug` 字段同样属于 operator/debug 闭环，不属于 script/eval draft payload；`scripts/archived/export-badcase-to-eval.ts` 只序列化 `draft`。
 - 热点 `team/query/artifact` 当前不属于默认 operator surface contract；如后续需要，应作为单独 deep drill-down 能力新增，而不是隐式塞入现有首页 schema。
 - 本根计划已经关闭；如需新增 operator/debug route、operator panel、额外 public additive field 或新的 export wrapper，必须转入独立审计或独立计划，而不是继续在当前 closeout 口径下扩写。
 
@@ -234,6 +234,7 @@ Phase 4 closeout 补充：
 
 ## 说明
 
+- 所有错误响应统一为 canonical error envelope：`{ code, message, kind, requestId?, traceId?, error?, details? }`。`kind` 与 HTTP 状态码遵循共享 invocation taxonomy（400 validation / 401 unauthorized / 403 forbidden / 404 not-found / 409 conflict / 503 unavailable / 504 timeout / 500 internal）；`error` 是 `message` 的兼容别名；`details` 携带结构化附加信息（如 Zod 校验 issues）。`/v1/auth/login` 与网关 auth hook 的历史 `{ error, kind }` 响应体仍由各宿主保留（guard/登录入口语义，见 `packages/host-distributed/src/gateway/routes.ts`）。
 - CLI 和 Server 必须将 `@trapmap/contracts` 视为规范的 Schema 契约表面。
 - 统计端点（`/v1/operations/stats/*`）依赖 PostgreSQL，使用 JSONB 存储的部署不可用。
 - **Round 2 更新**：知识、陷阱（traps）、候选提交的内部实现已从 `store_snapshot` JSONB 切换为 PostgreSQL 专用表（通过 `KnowledgeRepository` / `CandidateRepository`）。API 契约表面未变，所有请求/响应 Schema 保持不变。`DualWrite*Repository` 兼容层已删除。

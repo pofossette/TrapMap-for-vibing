@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { PrometheusModule } from '../observability/prometheus.module.js';
 import { LifecycleModule } from '../lifecycle/lifecycle.module.js';
+import { PrometheusModule } from '../observability/prometheus.module.js';
 import { HealthController } from './health.controller.js';
 
 /**

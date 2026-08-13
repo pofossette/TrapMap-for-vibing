@@ -1,6 +1,32 @@
 import { randomUUID } from 'node:crypto';
 
-import type { QueuePorts, TaskHandler } from '@trapmap/backend-core';
+import {
+  OUTBOX_CLAIMABLE_SQL_CONDITION,
+  OUTBOX_CLAIM_BATCH_SIZE,
+  OUTBOX_FAIL_STATUS_SQL,
+  OUTBOX_LEASE_MS,
+  OUTBOX_MAX_ATTEMPTS,
+  OUTBOX_RECLAIM_SQL_CONDITION,
+  OUTBOX_STATUS_COMPLETED,
+  OUTBOX_STATUS_PENDING,
+  OUTBOX_STATUS_PROCESSING,
+  type QueuePorts,
+  TASK_CLAIMABLE_SQL_CONDITION,
+  TASK_DEDUPE_SQL_CONDITION,
+  TASK_DEFAULT_MAX_ATTEMPTS,
+  TASK_DEFAULT_PRIORITY,
+  TASK_LEASE_MS,
+  TASK_RECLAIM_SQL_CONDITION,
+  TASK_REQUEUE_SQL_CONDITION,
+  TASK_RETRY_BASE_DELAY_MS,
+  TASK_STATUS_COMPLETED,
+  TASK_STATUS_DEAD,
+  TASK_STATUS_PENDING,
+  TASK_STATUS_RUNNING,
+  type TaskHandler,
+  retryBackoffMs,
+  statusAfterTaskFailure,
+} from '@trapmap/backend-core';
 import type { Pool, PoolClient } from 'pg';
 import { createRabbitMqTaskTransport } from './rabbitmq-task-transport.js';
 
@@ -76,13 +102,13 @@ function createPostgresTaskQueue(pool: Pool): JobRuntimeAsyncTransport['task'] {
     try {
       const result = await client.query<{ id: string }>(
         `INSERT INTO task_queue (id, type, payload, status, priority, attempts, max_attempts, dedupe_key, process_after, created_at, updated_at)
-         VALUES ($1, $2, $3, 'pending', $4, 0, $5, $6, $7, NOW(), NOW()) RETURNING id`,
+         VALUES ($1, $2, $3, '${TASK_STATUS_PENDING}', $4, 0, $5, $6, $7, NOW(), NOW()) RETURNING id`,
         [
           id,
           type,
           JSON.stringify(payload),
-          options.priority ?? 0,
-          options.maxAttempts ?? 3,
+          options.priority ?? TASK_DEFAULT_PRIORITY,
+          options.maxAttempts ?? TASK_DEFAULT_MAX_ATTEMPTS,
           options.dedupeKey ?? null,
           processAfter,
         ],
@@ -91,7 +117,7 @@ function createPostgresTaskQueue(pool: Pool): JobRuntimeAsyncTransport['task'] {
     } catch (error) {
       if (!(options.dedupeKey && isUniqueViolation(error))) throw error;
       const existing = await client.query<{ id: string }>(
-        `SELECT id FROM task_queue WHERE type = $1 AND dedupe_key = $2 AND status IN ('pending', 'running') ORDER BY created_at ASC LIMIT 1`,
+        `SELECT id FROM task_queue WHERE type = $1 AND dedupe_key = $2 AND ${TASK_DEDUPE_SQL_CONDITION} ORDER BY created_at ASC LIMIT 1`,
         [type, options.dedupeKey],
       );
       if (existing.rows[0]) return existing.rows[0].id;
@@ -105,7 +131,7 @@ function createPostgresTaskQueue(pool: Pool): JobRuntimeAsyncTransport['task'] {
     enqueueTx: (client, type, payload, options) => enqueueWith(client, type, payload, options),
     async requeue(taskId) {
       await pool.query(
-        `UPDATE task_queue SET status = 'pending', attempts = 0, last_error = NULL, process_after = NOW(), worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, updated_at = NOW() WHERE id = $1 AND status = 'dead'`,
+        `UPDATE task_queue SET status = '${TASK_STATUS_PENDING}', attempts = 0, last_error = NULL, process_after = NOW(), worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, updated_at = NOW() WHERE id = $1 AND ${TASK_REQUEUE_SQL_CONDITION}`,
         [taskId],
       );
     },
@@ -133,7 +159,7 @@ function createPostgresTaskQueue(pool: Pool): JobRuntimeAsyncTransport['task'] {
       const workerId = `job-runtime_${process.pid}_${randomUUID().slice(0, 8)}`;
       const reclaim = async () => {
         const result = await pool.query(
-          `UPDATE task_queue SET status = 'pending', worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, process_after = NOW(), updated_at = NOW() WHERE status = 'running' AND lease_until < NOW()`,
+          `UPDATE task_queue SET status = '${TASK_STATUS_PENDING}', worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, process_after = NOW(), updated_at = NOW() WHERE ${TASK_RECLAIM_SQL_CONDITION}`,
         );
         reclaimCount += result.rowCount ?? 0;
       };
@@ -145,7 +171,7 @@ function createPostgresTaskQueue(pool: Pool): JobRuntimeAsyncTransport['task'] {
           payload: unknown;
           attempts: number;
         }>(
-          `UPDATE task_queue SET status = 'running', attempts = attempts + 1, worker_id = $2, started_at = COALESCE(started_at, NOW()), heartbeat_at = NOW(), lease_until = NOW() + INTERVAL '30 seconds', updated_at = NOW() WHERE id = (SELECT id FROM task_queue WHERE type = $1 AND status = 'pending' AND process_after <= NOW() ORDER BY priority DESC, created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING id, type, payload, attempts`,
+          `UPDATE task_queue SET status = '${TASK_STATUS_RUNNING}', attempts = attempts + 1, worker_id = $2, started_at = COALESCE(started_at, NOW()), heartbeat_at = NOW(), lease_until = NOW() + INTERVAL '${TASK_LEASE_MS / 1000} seconds', updated_at = NOW() WHERE id = (SELECT id FROM task_queue WHERE type = $1 AND ${TASK_CLAIMABLE_SQL_CONDITION} ORDER BY priority DESC, created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING id, type, payload, attempts`,
           [handler.type, workerId],
         );
         const task = claimed.rows[0];
@@ -156,7 +182,7 @@ function createPostgresTaskQueue(pool: Pool): JobRuntimeAsyncTransport['task'] {
             new AbortController().signal,
           );
           await pool.query(
-            `UPDATE task_queue SET status = 'completed', completed_at = NOW(), worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, updated_at = NOW() WHERE id = $1`,
+            `UPDATE task_queue SET status = '${TASK_STATUS_COMPLETED}', completed_at = NOW(), worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, updated_at = NOW() WHERE id = $1`,
             [task.id],
           );
         } catch (error) {
@@ -166,14 +192,21 @@ function createPostgresTaskQueue(pool: Pool): JobRuntimeAsyncTransport['task'] {
             [task.id],
           );
           const row = failed.rows[0];
-          const dead = !row || row.attempts >= row.max_attempts;
-          await pool.query(
-            dead
-              ? `UPDATE task_queue SET status = 'dead', last_error = $2, worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, updated_at = NOW() WHERE id = $1`
-              : `UPDATE task_queue SET status = 'pending', last_error = $2, worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, process_after = NOW() + (5000 * POWER(2, attempts - 1)) * INTERVAL '1 millisecond', updated_at = NOW() WHERE id = $1`,
-            [task.id, message],
-          );
-          if (dead) await handler.onDead?.({ id: task.id, type: task.type, payload: task.payload });
+          if (
+            row === undefined ||
+            statusAfterTaskFailure(row.attempts, row.max_attempts) === TASK_STATUS_DEAD
+          ) {
+            await pool.query(
+              `UPDATE task_queue SET status = '${TASK_STATUS_DEAD}', last_error = $2, worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, updated_at = NOW() WHERE id = $1`,
+              [task.id, message],
+            );
+            await handler.onDead?.({ id: task.id, type: task.type, payload: task.payload });
+          } else {
+            await pool.query(
+              `UPDATE task_queue SET status = '${TASK_STATUS_PENDING}', last_error = $2, worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, process_after = NOW() + $3 * INTERVAL '1 millisecond', updated_at = NOW() WHERE id = $1`,
+              [task.id, message, retryBackoffMs(row.attempts)],
+            );
+          }
         }
       };
       let loop: Promise<void> | null = null;
@@ -204,7 +237,7 @@ function createPostgresOutbox(pool: Pool): JobRuntimeAsyncTransport['events'] {
   const enqueueWith = async (client: Pick<PoolClient, 'query'>, params: OutboxParams) => {
     const id = `evt_${Date.now()}_${randomUUID().slice(0, 8)}`;
     await client.query(
-      `INSERT INTO domain_event_outbox (id, aggregate_type, aggregate_id, event_name, payload, status, available_at, attempts, created_at) VALUES ($1, $2, $3, $4, $5::jsonb, 'pending', $6, 0, NOW())`,
+      `INSERT INTO domain_event_outbox (id, aggregate_type, aggregate_id, event_name, payload, status, available_at, attempts, created_at) VALUES ($1, $2, $3, $4, $5::jsonb, '${OUTBOX_STATUS_PENDING}', $6, 0, NOW())`,
       [
         id,
         params.aggregateType,
@@ -220,9 +253,12 @@ function createPostgresOutbox(pool: Pool): JobRuntimeAsyncTransport['events'] {
     kind: 'postgres-domain-outbox',
     enqueue: (params) => enqueueWith(pool, params),
     enqueueTx: (client, params) => enqueueWith(client, params),
-    async claimBatch(limit = 10, workerId = `job-runtime-outbox_${process.pid}`) {
+    async claimBatch(
+      limit = OUTBOX_CLAIM_BATCH_SIZE,
+      workerId = `job-runtime-outbox_${process.pid}`,
+    ) {
       const reclaimed = await pool.query(
-        `UPDATE domain_event_outbox SET status = 'pending', worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, available_at = NOW() WHERE status = 'processing' AND lease_until < NOW()`,
+        `UPDATE domain_event_outbox SET status = '${OUTBOX_STATUS_PENDING}', worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, available_at = NOW() WHERE ${OUTBOX_RECLAIM_SQL_CONDITION}`,
       );
       reclaimCount += reclaimed.rowCount ?? 0;
       const result = await pool.query<{
@@ -231,20 +267,20 @@ function createPostgresOutbox(pool: Pool): JobRuntimeAsyncTransport['events'] {
         payload: unknown;
         aggregateId: string;
       }>(
-        `UPDATE domain_event_outbox SET status = 'processing', attempts = attempts + 1, worker_id = $2, started_at = COALESCE(started_at, NOW()), heartbeat_at = NOW(), lease_until = NOW() + INTERVAL '30 seconds' WHERE id IN (SELECT id FROM domain_event_outbox WHERE status = 'pending' AND available_at <= NOW() ORDER BY event_name, created_at ASC LIMIT $1 FOR UPDATE SKIP LOCKED) RETURNING id, event_name AS "eventName", payload, aggregate_id AS "aggregateId"`,
+        `UPDATE domain_event_outbox SET status = '${OUTBOX_STATUS_PROCESSING}', attempts = attempts + 1, worker_id = $2, started_at = COALESCE(started_at, NOW()), heartbeat_at = NOW(), lease_until = NOW() + INTERVAL '${OUTBOX_LEASE_MS / 1000} seconds' WHERE id IN (SELECT id FROM domain_event_outbox WHERE ${OUTBOX_CLAIMABLE_SQL_CONDITION} ORDER BY event_name, created_at ASC LIMIT $1 FOR UPDATE SKIP LOCKED) RETURNING id, event_name AS "eventName", payload, aggregate_id AS "aggregateId"`,
         [limit, workerId],
       );
       return result.rows;
     },
     async complete(eventId) {
       await pool.query(
-        `UPDATE domain_event_outbox SET status = 'completed', published_at = NOW(), worker_id = NULL, heartbeat_at = NULL, lease_until = NULL WHERE id = $1`,
+        `UPDATE domain_event_outbox SET status = '${OUTBOX_STATUS_COMPLETED}', published_at = NOW(), worker_id = NULL, heartbeat_at = NULL, lease_until = NULL WHERE id = $1`,
         [eventId],
       );
     },
     async fail(eventId, error) {
       await pool.query(
-        `UPDATE domain_event_outbox SET status = CASE WHEN attempts >= 3 THEN 'failed' ELSE 'pending' END, last_error = $2, worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, available_at = CASE WHEN attempts >= 3 THEN available_at ELSE NOW() + (5000 * POWER(2, attempts - 1)) * INTERVAL '1 millisecond' END WHERE id = $1`,
+        `UPDATE domain_event_outbox SET status = ${OUTBOX_FAIL_STATUS_SQL}, last_error = $2, worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, available_at = CASE WHEN attempts >= ${OUTBOX_MAX_ATTEMPTS} THEN available_at ELSE NOW() + (${TASK_RETRY_BASE_DELAY_MS} * POWER(2, attempts - 1)) * INTERVAL '1 millisecond' END WHERE id = $1`,
         [eventId, error],
       );
     },

@@ -7,12 +7,16 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { Pool } from 'pg';
+/** Minimal pool seam used by the distributed bundle factories (query-only). */
+export interface DistributedServicePool {
+  query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+}
 
 import type {
   AuditLogPort,
   KnowledgeEntryRecord,
   KnowledgeReadProjectionPort,
+  OutboxEvent,
   OutboxPort,
   QueuePorts,
   RetrievalQueryPort,
@@ -22,7 +26,7 @@ import type { LifecycleState } from '@trapmap/contracts';
 import { recordAsyncLifecycleEvent } from '../gateway/internal-observability.js';
 import type { DatabaseWriteService } from './database-ownership.js';
 
-function mapKnowledgeRow(row: Record<string, unknown>) {
+function mapKnowledgeRow(row: Record<string, unknown>): KnowledgeEntryRecord {
   const {
     detail,
     shortcut,
@@ -36,11 +40,12 @@ function mapKnowledgeRow(row: Record<string, unknown>) {
   } = row;
   return {
     ...entry,
+    id: String(row.id),
     content: String(detail ?? ''),
     title: String(shortcut ?? ''),
     labels: Array.isArray(labels) ? labels : [],
     ownerUserId: String(ownerUserId ?? legacyOwnerUserId ?? ''),
-    teamId: (teamId as string | null) ?? (legacyTeamId as string | null) ?? null,
+    teamId: ((teamId as string | null) ?? (legacyTeamId as string | null) ?? null) as string,
     lifecycleState: lifecycleState as LifecycleState,
   };
 }
@@ -50,7 +55,7 @@ function mapKnowledgeRow(row: Record<string, unknown>) {
 // ---------------------------------------------------------------------------
 
 function createPgKnowledgeReadProjection(
-  pool: Pool,
+  pool: DistributedServicePool,
 ): KnowledgeReadProjectionPort<KnowledgeEntryRecord> & {
   listByFilter(filter: Record<string, never>): Promise<KnowledgeEntryRecord[]>;
 } {
@@ -58,7 +63,7 @@ function createPgKnowledgeReadProjection(
     async getById(entryId) {
       const result = await pool.query('SELECT * FROM knowledge_entries WHERE id = $1', [entryId]);
       const row = result.rows.at(0) as Record<string, unknown> | undefined;
-      return row ? (mapKnowledgeRow(row) as never) : null;
+      return row ? mapKnowledgeRow(row) : null;
     },
     async listMine({ userId, teamId }) {
       const conditions: string[] = [];
@@ -76,7 +81,7 @@ function createPgKnowledgeReadProjection(
         `SELECT * FROM knowledge_entries ${whereClause} ORDER BY created_at DESC LIMIT 100`,
         params,
       );
-      return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>)) as never[];
+      return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>));
     },
     async getStatus() {
       return {
@@ -92,7 +97,7 @@ function createPgKnowledgeReadProjection(
       const { rows } = await pool.query(
         'SELECT * FROM knowledge_entries ORDER BY created_at DESC LIMIT 100',
       );
-      return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>)) as never[];
+      return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>));
     },
   };
 }
@@ -101,7 +106,7 @@ function createPgKnowledgeReadProjection(
 // owned by service-identity-access.  Hosts inject its append-only audit
 // capability below; distributed shared ports must not construct those owners.
 
-function createPgRetrievalQuery(pool: Pool): RetrievalQueryPort {
+function createPgRetrievalQuery(pool: DistributedServicePool): RetrievalQueryPort {
   return {
     async search(params) {
       // Basic text search implementation
@@ -144,7 +149,7 @@ function createPgRetrievalQuery(pool: Pool): RetrievalQueryPort {
 // Queue ports (simplified for distributed host)
 // ---------------------------------------------------------------------------
 
-function createPgTaskQueue(pool: Pool): TaskQueuePort {
+function createPgTaskQueue(pool: DistributedServicePool): TaskQueuePort {
   return {
     kind: 'postgres-task-queue',
     async enqueue(type, payload, options) {
@@ -203,7 +208,7 @@ function createPgTaskQueue(pool: Pool): TaskQueuePort {
   };
 }
 
-function createPgOutbox(pool: Pool): OutboxPort {
+function createPgOutbox(pool: DistributedServicePool): OutboxPort {
   return {
     kind: 'postgres-domain-outbox',
     async enqueue(params) {
@@ -241,10 +246,13 @@ function createPgOutbox(pool: Pool): OutboxPort {
          RETURNING id, event_name as "eventName", payload, aggregate_id as "aggregateId"`,
         [limit, workerId],
       );
-      const events = rows as OutboxPort extends { claimBatch(...args: unknown[]): Promise<infer R> }
-        ? R
-        : never;
-      for (const event of events as Array<{ eventName: string }>) {
+      const events: OutboxEvent[] = rows.map((row) => ({
+        id: String(row.id),
+        eventName: String(row.eventName),
+        payload: row.payload,
+        aggregateId: String(row.aggregateId),
+      }));
+      for (const event of events) {
         recordAsyncLifecycleEvent({
           eventName: 'outbox-consume',
           taskType: event.eventName,
@@ -316,7 +324,7 @@ export interface ServicePortImplementations {
  * Create all port implementations backed by a PostgreSQL pool.
  */
 export function createServicePorts(
-  pool: Pool,
+  pool: DistributedServicePool,
   serviceName: DatabaseWriteService,
   identity: Pick<ServicePortImplementations, 'auditLog'>,
 ): ServicePortImplementations {

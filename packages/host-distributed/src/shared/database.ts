@@ -58,7 +58,16 @@ export function getServicePoolConfig(config: ServiceConfig): PoolConfig {
   };
 }
 
-export function getServicePoolSnapshot(pool: pg.Pool, max: number): ServicePoolSnapshot {
+export interface ServicePoolCounters {
+  totalCount?: number | undefined;
+  idleCount?: number | undefined;
+  waitingCount?: number | undefined;
+}
+
+export function getServicePoolSnapshot(
+  pool: Pick<pg.Pool, 'options'> & ServicePoolCounters,
+  max: number,
+): ServicePoolSnapshot {
   const total = typeof pool.totalCount === 'number' ? pool.totalCount : 'unknown';
   const idle = typeof pool.idleCount === 'number' ? pool.idleCount : 'unknown';
   const waiting = typeof pool.waitingCount === 'number' ? pool.waitingCount : 'unknown';

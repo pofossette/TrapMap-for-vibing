@@ -1,12 +1,17 @@
 import type { KnowledgeWritePort } from '@trapmap/backend-core';
-import Fastify, { type FastifyInstance } from 'fastify';
-import { registerArtifactRoutes } from './artifact-routes.js';
+import { createFastifyAdapter, registerFastifyRoutes } from '@trapmap/backend-core';
+import type { FastifyInstance } from 'fastify';
+import { type ArtifactRouteDeps, createArtifactRouteDefs } from './artifact-routes.js';
 import {
   type ComposedKnowledgeWriteDeps,
   type KnowledgeWriteDeps,
   createKnowledgeWriteServiceModule,
 } from './deps.js';
-import { type KnowledgeWriteReadinessOptions, registerKnowledgeWriteRoutes } from './routes.js';
+import {
+  type KnowledgeWriteReadinessOptions,
+  type KnowledgeWriteRouteDeps,
+  createKnowledgeWriteRouteDefs,
+} from './routes.js';
 
 export interface KnowledgeWriteServiceConfig {
   host: string;
@@ -26,21 +31,23 @@ export async function createKnowledgeWriteServer(
   deps: ComposedKnowledgeWriteDeps | KnowledgeWriteDeps,
   readinessOptions?: KnowledgeWriteReadinessOptions,
 ): Promise<KnowledgeWriteServer> {
-  const app = Fastify({ logger: { level: config.logLevel } });
   const module = createKnowledgeWriteServiceModule(deps);
-  registerKnowledgeWriteRoutes(app, module, readinessOptions);
+  const routeDeps: KnowledgeWriteRouteDeps = { ...module, ...readinessOptions };
+  const app = createFastifyAdapter(createKnowledgeWriteRouteDefs(routeDeps), routeDeps, {
+    logger: { level: config.logLevel },
+  });
   const artifactDeps = deps as ComposedKnowledgeWriteDeps;
   if (
     artifactDeps.artifactWriter &&
     artifactDeps.artifactReadProjection &&
     artifactDeps.artifactBundleImporter
   ) {
-    registerArtifactRoutes(
-      app,
-      artifactDeps.artifactWriter,
-      artifactDeps.artifactReadProjection,
-      artifactDeps.artifactBundleImporter,
-    );
+    const artifactRouteDeps: ArtifactRouteDeps = {
+      artifacts: artifactDeps.artifactWriter,
+      readProjection: artifactDeps.artifactReadProjection,
+      importer: artifactDeps.artifactBundleImporter,
+    };
+    registerFastifyRoutes(app, createArtifactRouteDefs(artifactRouteDeps), artifactRouteDeps);
   }
 
   return {

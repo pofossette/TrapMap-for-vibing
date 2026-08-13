@@ -28,7 +28,7 @@ describe('cli config', () => {
         outputProfile: {
           tool: 'codex',
         },
-      }) as never,
+      }),
     );
 
     const { getDefaultOutputProfile, loadCliState } = await import('./config.js');
@@ -60,7 +60,7 @@ describe('cli config', () => {
 
   it('preserves empty-string outputProfile value', async () => {
     const fs = await import('node:fs/promises');
-    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ outputProfile: '' }) as never);
+    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ outputProfile: '' }));
     const { loadCliState } = await import('./config.js');
     const state = await loadCliState();
     // BUG(fm-agent): empty-string outputProfile should be normalized to undefined per CliState interface
@@ -75,7 +75,7 @@ describe('cli config', () => {
     vi.mocked(fs.readFile).mockResolvedValue(
       JSON.stringify({
         gatewayUrl: 'http://localhost:9999',
-      }) as never,
+      }),
     );
 
     const { loadCliState } = await import('./config.js');
@@ -95,7 +95,7 @@ describe('cli config', () => {
           tool: 'codex',
           colorScheme: 'dark',
         },
-      }) as never,
+      }),
     );
 
     const { loadCliState } = await import('./config.js');
@@ -118,7 +118,7 @@ describe('cli config', () => {
     vi.mocked(fs.readFile).mockResolvedValue(
       JSON.stringify({
         serverUrl: 'http://legacy-server:9999',
-      }) as never,
+      }),
     );
 
     const { loadCliState } = await import('./config.js');
@@ -135,7 +135,7 @@ describe('cli config', () => {
       JSON.stringify({
         gatewayUrl: 'http://gateway:4000',
         serverUrl: 'http://legacy-server:9999',
-      }) as never,
+      }),
     );
 
     const { loadCliState } = await import('./config.js');
@@ -152,7 +152,7 @@ describe('cli config', () => {
       JSON.stringify({
         gatewayUrl: 'http://gateway:4000',
         backendTarget: 'heavy',
-      }) as never,
+      }),
     );
 
     const { loadCliState } = await import('./config.js');
@@ -167,7 +167,7 @@ describe('cli config', () => {
       JSON.stringify({
         gatewayUrl: 'http://gateway:4000',
         backendTarget: 'unknown',
-      }) as never,
+      }),
     );
 
     const { loadCliState } = await import('./config.js');
@@ -183,7 +183,7 @@ describe('cli config', () => {
       JSON.stringify({
         gatewayUrl: 'http://gateway:4000',
         backendTarget: 'unknown',
-      }) as never,
+      }),
     );
 
     const { loadCliState } = await import('./config.js');
@@ -198,7 +198,7 @@ describe('cli config', () => {
     vi.mocked(fs.readFile).mockResolvedValue(
       JSON.stringify({
         serverUrl: 'http://legacy-server:9999',
-      }) as never,
+      }),
     );
 
     const { updateCliState } = await import('./config.js');

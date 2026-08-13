@@ -3,11 +3,15 @@ import { describe, expect, it, vi } from 'vitest';
 import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
-import { loadRawLabelSources, runLabelBackfill, runLabelRunnerMain } from '../label-runner.js';
+import {
+  loadRawLabelSources,
+  runLabelBackfill,
+  runLabelRunnerMain,
+} from '../archived/label-runner.js';
 
 it('gets the canonical label catalog API exclusively from the knowledge-write owner', async () => {
   const source = await import('node:fs/promises').then((fs) =>
-    fs.readFile(new URL('../label-runner.ts', import.meta.url), 'utf8'),
+    fs.readFile(new URL('../archived/label-runner.ts', import.meta.url), 'utf8'),
   );
 
   expect(source).toContain("from '@trapmap/service-knowledge-write'");

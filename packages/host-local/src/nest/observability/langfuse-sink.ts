@@ -10,13 +10,13 @@
  * actual SDK interaction.
  */
 
-import type { LangfusePolicyResult } from '@trapmap/contracts';
-import { validateLangfusePolicy } from '@trapmap/contracts';
 import type {
   ChatObservation,
   EmbeddingObservation,
   LlmObservationSink,
 } from '@trapmap/ai-providers';
+import type { LangfusePolicyResult } from '@trapmap/contracts';
+import { validateLangfusePolicy } from '@trapmap/contracts';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -79,7 +79,9 @@ export async function createLangfuseSinkFromEnv(): Promise<LlmObservationSink | 
       secretKey: policy.secretKey,
       flushAt: 1,
       persistence: 'memory',
-    }) as unknown as LangfuseClientLike;
+    }) as unknown as LangfuseClientLike; // lib type gap: the langfuse
+    // SDK client type does not structurally match the minimal local client
+    // surface used by the sink adapter
 
     return createSinkFromClient(client, policy);
   } catch {

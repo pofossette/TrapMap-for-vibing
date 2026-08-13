@@ -28,7 +28,7 @@
 - 涉及跨包导入路径变更或新增包时，必须通过 `rtk pnpm exec fallow audit --base main` 验证架构边界合规；zone 规则和已知例外详见 [`docs/architecture/BOUNDARIES.md`](docs/architecture/BOUNDARIES.md)
 - 通用工具函数（`nowIso`/`timestamp`/`formatDate`/`timeout`/`truncate`/`normalizeLabel`/`uniq`/`uniqBy`/`chunk`/`asRecord`/`prefixedId`/`sha256` 等）统一从 `@trapmap/lib` 导入，禁止在各包内重复实现已有工具；新增通用函数时：多包消费的放入 `@trapmap/lib` 并补单元测试，单包专用留在包内；重复问题的分析报告见 [`docs/archived/reports/TECH_DEBT_UTILS_TYPES_2026-08-08.md`](docs/archived/reports/TECH_DEBT_UTILS_TYPES_2026-08-08.md) 与 [`docs/archived/reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md`](docs/archived/reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md)
 - 通用第三方依赖（如 lodash）声明在 `@trapmap/lib` 内由各包经其消费，禁止各包直接散落声明
-- 类型断言规则：禁止新增 `@ts-ignore`/`@ts-expect-error`；禁止用裸 `as never`/`as unknown as` 桥接适配器类型——优先用 [`packages/contracts`](packages/contracts/src/index.ts) 的 Zod schema 运行时校验或显式窄化 helper；确因第三方库类型缺陷必须断言时，加 `// lib type gap:` 注释说明；能用类型收窄/type guard 解决的不用断言
+- 类型断言规则：禁止新增 `@ts-ignore`/`@ts-expect-error`；禁止用裸 `as never`/`as unknown as` 桥接适配器类型——优先用 [`packages/contracts`](packages/contracts/src/index.ts) 的 Zod schema 运行时校验或显式窄化 helper；确因第三方库类型缺陷必须断言时，加 `// lib type gap:` 同行注释说明；能用类型收窄/type guard 解决的不用断言。该禁令已由 `rtk pnpm check:asserts` 在 CI 与 pre-commit 拦截（豁免清单 [`docs/todos/assert-exemptions.md`](docs/todos/assert-exemptions.md) 已清零，新增裸断言视为回归）
 
 ## Vitest 使用要求
 
@@ -49,11 +49,13 @@
 
 ### Server / API 变更
 
-- 先读：各 `packages/service-*/src/routes.ts`、`packages/host-local/src/nest/`、`packages/host-distributed/src/gateway/`
-- 权威事实：[`docs/reference/SYSTEM_TRUTH_SOURCES.md`](docs/reference/SYSTEM_TRUTH_SOURCES.md)、各 service owner 的 config/routes/schema 源码
+- 先读：[`packages/backend-core/src/http/route-contract.ts`](packages/backend-core/src/http/route-contract.ts)、各 `packages/service-*/src/routes.ts`（`create<X>RouteDefs(deps)` 工厂）、`packages/host-local/src/nest/`、`packages/host-distributed/src/gateway/`
+- 权威事实：[`packages/backend-core/src/http/route-contract.ts`](packages/backend-core/src/http/route-contract.ts)（HTTP 路由契约）、[`docs/reference/SYSTEM_TRUTH_SOURCES.md`](docs/reference/SYSTEM_TRUTH_SOURCES.md)、各 service owner 的 config/routes/schema 源码
 - 最小验证：按改动范围运行对应包级测试；涉及 runtime/profile/route surface 时补 `rtk pnpm test:deployment-smoke` 或 `rtk pnpm test:runtime-foundations`
 - 必须同步：API surface、运行时默认值、健康检查、部署行为变化时，更新对应 `reference/`、`architecture/`、`operations/` 文档
 - 涉及 service zone 内部模块之间的跨包导入重构时，运行 `rtk pnpm exec fallow list --boundaries` 确认当前 zone 覆盖范围
+- **新领域规则落点：** 新领域规则必须落在 [`packages/backend-core/src/<context>/domain/`](packages/backend-core/src/knowledge-write/domain/lifecycle.ts)（纯函数，零框架、零 DB 依赖），由 context 的 `index.ts` 聚合导出；infrastructure 层（pg-ports、宿主装配、http adapter）禁止新增业务判断
+- **新 HTTP 路由必须走 RouteDef 工厂：** 新路由必须在对应 service 包以 `create<X>RouteDefs(deps)` 声明为 [`RouteDef`](packages/backend-core/src/http/route-contract.ts)，由 `createNestAdapter`/`createFastifyAdapter` 消费；host-local Nest 与 host-distributed gateway 均经 adapter 消费同一 RouteDef，禁止在任一宿主手写重复路由实现
 
 ### Contracts / 共享类型变更
 
@@ -87,7 +89,7 @@
 
 - 先读：[`docs/guides/DOCUMENTATION_GOVERNANCE.md`](docs/guides/DOCUMENTATION_GOVERNANCE.md)、[`docs/reference/SYSTEM_TRUTH_SOURCES.md`](docs/reference/SYSTEM_TRUTH_SOURCES.md)、[`docs/reference/REPO_STRUCTURE.md`](docs/reference/REPO_STRUCTURE.md)
 - 权威事实：`reference/` 下权威页、[`package.json`](package.json) 的守卫脚本、相关 CI workflow
-- 最小验证：`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`；必要时补对应 truth smoke
+- 最小验证：`rtk pnpm check:docs`、`rtk pnpm check:structure`；必要时补对应 truth smoke
 - 必须同步：新增规则时优先更新权威页，再回写入口索引；如果同类漂移可能复发，补充 doc-drift 规则或贡献约定
 
 ### 可观测性 / 健康检查 / 服务发现变更

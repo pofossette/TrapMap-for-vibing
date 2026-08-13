@@ -1,42 +1,55 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { createJobRuntimeModule } from '@trapmap/backend-core';
+import { createKnowledgeReadModule } from '@trapmap/backend-core';
+import { createKnowledgeWriteModule } from '@trapmap/backend-core';
+import { createCandidateIngestionModule } from '@trapmap/backend-core';
+import type { KnowledgeEntry } from '@trapmap/contracts';
 import { createCandidateIngestionDeps } from '@trapmap/service-candidate-ingestion';
 import {
   createGovernanceAsyncCommandModule,
   createGovernanceReviewAdminModule,
   createGovernanceReviewDeps,
+  createGovernanceReviewServiceModule,
 } from '@trapmap/service-governance-review';
-import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
 import {
   createIdentityAccessDeps,
   createIdentityAccessOwnerBundle,
   createIdentityAccessServiceModule,
 } from '@trapmap/service-identity-access';
+import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
+import { createKnowledgeReadDeps } from '@trapmap/service-knowledge-read';
+import type { KnowledgeReadPortDeps } from '@trapmap/service-knowledge-read';
 import { createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';
-import { createKnowledgeWriteModule } from '@trapmap/backend-core';
 
-import { HOST_LOCAL_CONFIG_TOKEN, loadHostLocalConfig } from './config/index.js';
-import { GatewayModule, GatewayRuntimeModule } from './gateway/gateway.module.js';
 import { CandidateIngestionModule } from './candidate-ingestion/candidate-ingestion.module.js';
 import { CandidateProcessingService } from './candidate-ingestion/candidate-processing.service.js';
+import { HOST_LOCAL_CONFIG_TOKEN, loadHostLocalConfig } from './config/index.js';
+import { GatewayModule } from './gateway/gateway.module.js';
 import { GovernanceReviewModule } from './governance-review/governance-review.module.js';
+import { HealthModule } from './health/index.js';
 import { IdentityAccessModule } from './identity-access/identity-access.module.js';
 import { JobRuntimeModule } from './job-runtime/job-runtime.module.js';
 import { KnowledgeReadModule } from './knowledge-read/knowledge-read.module.js';
 import { KnowledgeWriteModule } from './knowledge-write/knowledge-write.module.js';
-import { LoggingMiddleware } from './runtime/logging.middleware.js';
-import { ConsulModule } from './service-discovery/index.js';
-import { OtelModule, PrometheusModule, LokiModule, SentryModule, LangfuseModule, HttpMetricsMiddleware } from './observability/index.js';
-import { HealthModule } from './health/index.js';
 import { LifecycleModule } from './lifecycle/index.js';
-import { createHostLocalRuntime, HOST_LOCAL_RUNTIME_TOKEN } from './runtime/host-runtime.js';
 import {
-  createHostLocalGovernanceTaskHandlers,
+  HttpMetricsMiddleware,
+  LangfuseModule,
+  LokiModule,
+  OtelModule,
+  PrometheusModule,
+  SentryModule,
+} from './observability/index.js';
+import {
   createHostLocalGovernanceConflictWorkflow,
+  createHostLocalGovernanceTaskHandlers,
 } from './runtime/governance-composition.js';
+import { HOST_LOCAL_RUNTIME_TOKEN, createHostLocalRuntime } from './runtime/host-runtime.js';
+import { LoggingMiddleware } from './runtime/logging.middleware.js';
 import { RequestContextMiddleware } from './runtime/request-context.middleware.js';
 import { RequestContextService } from './runtime/request-context.service.js';
+import { ConsulModule } from './service-discovery/index.js';
 
 /**
  * Root application module for the Nest host.
@@ -54,33 +67,48 @@ import { RequestContextService } from './runtime/request-context.service.js';
  *   module graph.
  */
 const hostLocalRuntime = await createHostLocalRuntime();
-const knowledgeProjection = {
+type HostLocalKnowledgeRepo = KnowledgeReadPortDeps['knowledgeRepo'] & {
+  getById(entryId: string): Promise<KnowledgeEntry | null>;
+  listMine(input: { userId: string; teamId?: string }): Promise<KnowledgeEntry[]>;
+  getStatus(): Promise<{ status: string; provider: string }>;
+};
+const knowledgeProjection: HostLocalKnowledgeRepo = {
   getById: hostLocalRuntime.services.knowledgeOwner.getById,
   async listMine(input: { userId: string; teamId?: string }) {
     return hostLocalRuntime.services.knowledgeOwner.listByFilter({
       ownerUserId: input.userId,
       ...(input.teamId ? { teamId: input.teamId } : {}),
-    }) as never;
+    });
   },
   async getStatus() {
-    return { status: 'ready', provider: 'knowledge-write-owner' } as never;
+    return { status: 'ready', provider: 'knowledge-write-owner' };
+  },
+  async listByFilter(filter) {
+    return (await hostLocalRuntime.services.knowledgeOwner.listByFilter({
+      ...(filter.ownerUserId !== undefined ? { ownerUserId: filter.ownerUserId } : {}),
+      ...(filter.teamId !== undefined ? { teamId: filter.teamId } : {}),
+    })) as unknown as Awaited<ReturnType<KnowledgeReadPortDeps['knowledgeRepo']['listByFilter']>>; // lib type gap: the projection repo seam bridges the owner port's contracts
+    // entry shape (KnowledgeEntry) into the backend-core KnowledgeEntryRecord
+    // shape; both describe the same runtime rows but the static shapes differ
   },
 };
 
 const identityAccessModule = IdentityAccessModule.forPort(
   createIdentityAccessServiceModule(
-    createIdentityAccessDeps(createIdentityAccessOwnerBundle({
-    ...hostLocalRuntime.identity,
-    })),
+    createIdentityAccessDeps(
+      createIdentityAccessOwnerBundle({
+        ...hostLocalRuntime.identity,
+      }),
+    ),
   ),
 );
 
-const knowledgeReadModule = KnowledgeReadModule.forDeps(
-  {
-    knowledgeRepo: knowledgeProjection as never,
-    retrievalQuery: hostLocalRuntime.retrievalQuery,
-  },
-);
+const knowledgeReadDeps = createKnowledgeReadDeps({
+  knowledgeRepo: knowledgeProjection,
+  retrievalQuery: hostLocalRuntime.retrievalQuery,
+});
+const knowledgeReadPort = createKnowledgeReadModule(knowledgeReadDeps);
+const knowledgeReadModule = KnowledgeReadModule.forTesting(knowledgeReadPort);
 
 const knowledgeWritePort = createKnowledgeWriteModule(
   createKnowledgeWriteDeps({
@@ -120,7 +148,7 @@ const governanceAdmin = createGovernanceReviewAdminModule({
   auditLog: hostLocalRuntime.auditLog,
 });
 
-const governanceReviewModule = GovernanceReviewModule.forDeps(
+const governanceReviewPort = createGovernanceReviewServiceModule(
   createGovernanceReviewDeps({
     knowledgeWrite: knowledgeWritePort,
     feedbackRepo: hostLocalRuntime.services.governanceReview.feedbackRepo,
@@ -128,14 +156,14 @@ const governanceReviewModule = GovernanceReviewModule.forDeps(
     asyncCommands: governanceAsyncCommands,
     admin: governanceAdmin,
     conflictWorkflow: governanceConflictWorkflow,
-    governanceRetrievalProjection:
-      hostLocalRuntime.services.governanceReview.retrievalProjection,
+    governanceRetrievalProjection: hostLocalRuntime.services.governanceReview.retrievalProjection,
   }),
 );
+const governanceReviewModule = GovernanceReviewModule.forTesting(governanceReviewPort);
 
 const jobRuntimeModule = JobRuntimeModule.forDeps(jobRuntimeDeps);
 
-const candidateIngestionModule = CandidateIngestionModule.forDeps(
+const candidateIngestionPort = createCandidateIngestionModule(
   createCandidateIngestionDeps({
     candidateRepo: hostLocalRuntime.services.candidateIngestion.candidateRepo,
     auditLog: hostLocalRuntime.auditLog,
@@ -143,6 +171,7 @@ const candidateIngestionModule = CandidateIngestionModule.forDeps(
     jobRuntime: jobRuntimePort,
   }),
 );
+const candidateIngestionModule = CandidateIngestionModule.forTesting(candidateIngestionPort);
 
 @Module({
   imports: [
@@ -156,8 +185,11 @@ const candidateIngestionModule = CandidateIngestionModule.forDeps(
     governanceReviewModule,
     candidateIngestionModule,
     jobRuntimeModule,
-    GatewayRuntimeModule.forRuntime(hostLocalRuntime),
-    GatewayModule,
+    GatewayModule.forRuntime(hostLocalRuntime, {
+      knowledgeRead: knowledgeReadPort,
+      candidateIngestion: candidateIngestionPort,
+      governanceReview: governanceReviewPort,
+    }),
     ConsulModule,
     OtelModule,
     PrometheusModule,

@@ -1,13 +1,15 @@
 # 数据库表结构快速参考
 
-> **源码真实来源**: `packages/server（Wave-10 已删除）/src/lib/persistence/schema.ts`
-> **表定义目录**: `packages/server（Wave-10 已删除）/src/lib/persistence/schema/`
+> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。表定义现由 `packages/persistence-schema/src/` 统一持有。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+
+> **源码真实来源**: `packages/persistence-schema/src/`
+> **表定义目录**: `packages/persistence-schema/src/`
 > **数据模型详情**: `docs/reference/DATA_MODEL.md`
 > **迁移基线**: 六个 `packages/service-*/drizzle/` 目录各自拥有一个空库 baseline；distributed host 按 `identity-access → knowledge-write → candidate-ingestion → governance-review → job-runtime → knowledge-read` 协调执行。
 
 ## 迁移操作
 
-迁移只支持从空数据库建立当前 schema。已有开发数据库必须重建；不支持旧 `0000–0020` 历史的原地升级。`store_snapshot` 中的遗留数据不由 migration 搬运，后续 Task 9 会通过显式 export/backfill 处理。
+迁移只支持从空数据库建立当前 schema。已有开发数据库必须重建；不支持旧 `0000–0020` 历史的原地升级。`store_snapshot` 及其 JSONB 兼容层已于 Wave-9 删除；遗留数据的一次性 backfill 已完成并退役（详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`）。
 
 ## 技术栈
 
@@ -18,13 +20,7 @@
 | 向量搜索 | pgvector (384 维 HNSW 索引) |
 | 全文搜索 | tsvector + GIN 索引 |
 
-## 表总览 (63 张表)
-
-### 兼容层 (1 表)
-
-| 表名 | 用途 | 主键 |
-|------|------|------|
-| `store_snapshot` | JSONB 兼容层，存储完整 StoreData 聚合 | `key` (text, 固定值 `'main'`) |
+## 表总览 (62 张表)
 
 ### 知识域 (14 表)
 

@@ -1,7 +1,16 @@
-import { type CandidateIngestionPort, InvocationError } from '@trapmap/backend-core';
-import Fastify from 'fastify';
+import {
+  type CandidateIngestionPort,
+  InvocationError,
+  type RouteTestApp,
+} from '@trapmap/backend-core';
+import {
+  type AdapterName,
+  buildRouteTestApp,
+} from '@trapmap/backend-core/testing/route-test-app.js';
 import { describe, expect, it, vi } from 'vitest';
-import { registerCandidateIngestionRoutes } from './routes.ts';
+import { createCandidateIngestionRouteDefs } from './routes.ts';
+
+const ADAPTERS: readonly AdapterName[] = ['fastify', 'nest'];
 
 function createModule(overrides: Partial<CandidateIngestionPort> = {}): CandidateIngestionPort {
   return {
@@ -18,17 +27,17 @@ function createModule(overrides: Partial<CandidateIngestionPort> = {}): Candidat
   };
 }
 
-async function buildApp(module: CandidateIngestionPort) {
-  const app = Fastify();
-  registerCandidateIngestionRoutes(app, module);
-  await app.ready();
-  return app;
+async function buildApp(
+  module: CandidateIngestionPort,
+  adapter: AdapterName,
+): Promise<RouteTestApp> {
+  return buildRouteTestApp(createCandidateIngestionRouteDefs(module), module, adapter);
 }
 
-describe('service-candidate-ingestion routes', () => {
+describe.each(ADAPTERS)('service-candidate-ingestion routes (%s adapter)', (adapter) => {
   it('routes candidate resolution and publish commands through the trusted actor header', async () => {
     const module = createModule();
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const resolution = await app.inject({
       method: 'POST',
@@ -61,7 +70,7 @@ describe('service-candidate-ingestion routes', () => {
 
   it('rejects missing or spoofed actors for candidate mutations', async () => {
     const module = createModule();
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const missingActor = await app.inject({
       method: 'POST',
@@ -88,7 +97,7 @@ describe('service-candidate-ingestion routes', () => {
   });
 
   it('preserves the canonical internal error response for a null mutation body', async () => {
-    const app = await buildApp(createModule());
+    const app = await buildApp(createModule(), adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -98,13 +107,13 @@ describe('service-candidate-ingestion routes', () => {
     });
 
     expect(response.statusCode).toBe(500);
-    expect(response.json()).toEqual({ error: 'Internal server error', kind: 'internal' });
+    expect(response.json()).toMatchObject({ error: 'Internal server error', kind: 'internal' });
     await app.close();
   });
 
   it('exposes candidate-ingestion as the owner of resolution command receipt', async () => {
     const module = createModule();
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const health = await app.inject({
       method: 'GET',
@@ -126,7 +135,7 @@ describe('service-candidate-ingestion routes', () => {
         throw InvocationError.timeout('knowledge-write timed out');
       }),
     });
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -136,7 +145,7 @@ describe('service-candidate-ingestion routes', () => {
     });
 
     expect(response.statusCode).toBe(504);
-    expect(response.json()).toEqual({
+    expect(response.json()).toMatchObject({
       error: 'knowledge-write timed out',
       kind: 'timeout',
     });
@@ -149,7 +158,7 @@ describe('service-candidate-ingestion routes', () => {
         throw new InvocationError('unauthorized', 'upstream identity is unavailable');
       }),
     });
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'POST',

@@ -1,10 +1,10 @@
 /**
  * Governance-review bounded context — domain layer.
  *
- * Phase 2 target: pure governance / review decision / remediation /
- * maintenance / decay domain types and policy helpers. Currently the
- * business rules live behind the port seam; this file reserves the
- * pure-domain home for future extraction.
+ * Pure governance / review decision / remediation / feedback / conflict
+ * rules with zero framework, DB or I/O imports. The service application
+ * layer renders these into orchestration; the PostgreSQL owner uses them
+ * for remediation projections and queue eligibility.
  */
 
 export const GOVERNANCE_REVIEW_CONTEXT = 'governance-review' as const;
@@ -23,3 +23,7 @@ export const GOVERNANCE_REVIEW_OWNED_CAPABILITIES = [
  * used by topology and runtime ownership lookups.
  */
 export const GOVERNANCE_REVIEW_SHORTHAND = 'review' as const;
+
+export * from './policy.js';
+export * from './conflict.js';
+export * from './invariants.js';

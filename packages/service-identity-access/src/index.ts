@@ -4,7 +4,10 @@ export {
   type IdentityAccessDeps,
   type IdentityAccessPortDeps,
 } from './deps.js';
-export { registerIdentityAccessRoutes } from './routes.js';
+export {
+  createIdentityAccessRouteDefs,
+  registerIdentityAccessRoutes,
+} from './routes.js';
 export { createAuditEvent, type CreateAuditEventArgs } from './audit.js';
 export {
   buildIdentityUserLookupContext,
@@ -24,14 +27,6 @@ export {
   type IdentityAccessSnapshotData,
   type IdentitySnapshotIdKind,
 } from './pg-ports.js';
-export {
-  migrateIdentityAudit,
-  verify as verifyIdentityAuditBackfill,
-  type DomainVerification,
-  type IdentityAuditMigrationConfig,
-  type IdentityAuditMigrationResult,
-  type IdentityAuditSnapshot,
-} from './identity-audit-backfill.js';
 export {
   createIdentityAccessServer,
   type IdentityAccessServer,

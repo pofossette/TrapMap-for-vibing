@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { Pool } from 'pg';
-
 import { createCandidateProcessingTaskQueue } from './processing-task-queue.js';
 
 const CANDIDATE_PROCESSING = 'candidate_processing';
@@ -71,7 +69,7 @@ function createPool() {
       }
       return { rows: [] } as { rows: Row[] };
     }),
-  } as unknown as Pool;
+  };
 
   return { pool, tasks };
 }

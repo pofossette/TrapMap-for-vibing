@@ -40,7 +40,7 @@
         "live no-PG / InMemory fallback",
         "artifactFilePayloads hydration",
         "Phase 3 unified-adapter boundary freeze",
-        "packages/host-local/src/nest/adapters/adapter-factory.ts",
+        "packages/host-local/src/nest/runtime/backend-core-adapters.ts",
         "packages/host-distributed/src/gateway/internal-client.ts",
         "packages/host-distributed/src/shared/internal-knowledge-write-client.ts",
         "host-owned adapter selection",
@@ -68,10 +68,6 @@
       ]
     },
     {
-      "file": "docs/guides/MIGRATION_GUIDE.md",
-      "mustContain": ["兼容外壳", "分布式模式下", "显式回滚路径仅保留已退役的兼容行为"]
-    },
-    {
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
       "mustContain": []
     },
@@ -80,7 +76,7 @@
       "mustContain": [
         "`docs/plans/`：历史设计参考，仅在当前根 `plan.md` 显式重新链接时才重新激活。",
         "`docs/todos/`：当前执行文档目录。只有被根 `plan.md` 显式链接、且明确承担当前 owner 执行责任的文档才属于 active surface；“仍有参考价值”不足以继续留在这里。",
-        "packages/host-local/src/nest/adapters/",
+        "packages/host-local/src/nest/runtime/backend-core-adapters.ts",
         "packages/host-distributed/src/gateway/",
         "packages/host-distributed/src/shared/"
       ]
@@ -150,28 +146,14 @@
       }
     },
     {
-      "file": "docs/operations/OBSERVABILITY-VERIFICATION.md",
-      "mustContain": [
-        "http://127.0.0.1:4000/metrics",
-        "http://127.0.0.1:4000/health",
-        "LOKI_HOST",
-        "CONSUL_ENABLED=true",
-        "CONSUL_HOST",
-        "CONSUL_PORT",
-        "traceparent",
-        "pnpm test:observability-benchmark"
-      ],
-      "mustNotContain": ["http://localhost:3000/metrics", "TRAPMAP_LOKI_URL"]
-    },
-    {
       "file": "docs/operations/REGRESSION-COMMANDS.md",
       "mustContain": ["rtk pnpm test:observability-benchmark", "grep -i traceparent"],
       "mustNotContain": ["grep X-Trace-Id"]
     },
     {
       "file": "docs/reference/DATABASE_SCHEMA.md",
-      "mustContain": ["63 张表"],
-      "mustNotContain": ["48 张表", "54 张表", "56 张表"]
+      "mustContain": ["62 张表"],
+      "mustNotContain": ["48 张表", "54 张表", "56 张表", "63 张表"]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
@@ -233,13 +215,13 @@
         "pnpm eval:ci:core",
         "route 额外携带的 `debug` 仅用于 operator/debug 闭环，不属于 eval draft payload。",
         "Phase 4 验证归属矩阵",
-        "pnpm check:docs-drift",
+        "pnpm check:docs",
         "pnpm check:complexity",
         "Phase 2 Store Snapshot / PG-first Freeze Checks",
         "snapshot-usage-guard.test.ts",
         "pg-first-compat.test.ts",
         "Phase 3 Unified Adapter Freeze Checks",
-        "pnpm check:docs-drift",
+        "pnpm check:docs",
         "pnpm check:structure",
         "Phase 4 Adapter Env / Target Freeze Checks",
         "Phase 5 Distributed Baseline Freeze Checks",
@@ -345,7 +327,7 @@
         "Documentation validation / observability platform mainline",
         "Documentation Validation and Observability Platform",
         "docs/todos/documentation-validation-and-observability-platform.md",
-        "`doc-guardrails` job runs `pnpm check:docs-drift`、`pnpm check:arch-freeze`、`pnpm check:deps`、`pnpm check:mermaid`、`pnpm check:structure`、`pnpm check:complexity`、`pnpm check:md-lint` 和 `pnpm check:links`"
+        "`doc-guardrails` job runs `pnpm check:docs`、`pnpm check:structure`、`pnpm check:asserts`、`pnpm check:deps` 和 `pnpm check:complexity`"
       ]
     },
     {
@@ -388,7 +370,7 @@
       "file": "docs/operations/CI_CD.md",
       "mustContain": [
         "Node.js 24 + pnpm 10.33.0",
-        "`doc-guardrails` | `pnpm check:docs-drift` + `pnpm check:arch-freeze` + `pnpm check:deps` + `pnpm check:mermaid` + `pnpm check:structure` + `pnpm check:complexity` + `pnpm check:md-lint` + `pnpm check:links`",
+        "`doc-guardrails` | `pnpm check:docs` + `pnpm check:structure` + `pnpm check:asserts` + `pnpm check:deps` + `pnpm check:complexity`",
         "`pnpm run ci`",
         "`pnpm eval:ci`",
         "`pnpm eval:ci:core`",
@@ -418,11 +400,6 @@
       "mustContain": ["pgvector/pgvector:pg16", "wget"],
       "mustNotContain": ["image: postgres:16"],
       "mustNotContainRegex": ["curl.*-f.*health"]
-    },
-    {
-      "file": "docs/architecture/components/ASYNC_INFRASTRUCTURE.md",
-      "mustNotContain": ["DualWriteKnowledgeRepository", "DualWriteArtifactRepository"],
-      "mustContain": []
     },
     {
       "file": "docs/architecture/components/ARTIFACTS.md",
@@ -480,7 +457,7 @@
         "## Phase 3 Unified adapter boundary freeze",
         "统一适配器不是 mega-adapter",
         "`backend-core` 只定义 port contract",
-        "`packages/host-local/src/nest/adapters/`",
+        "`packages/host-local/src/nest/runtime/backend-core-adapters.ts`",
         "`packages/host-distributed/src/gateway/internal-client.ts`",
         "## Phase 4 Adapter env / target-pruning freeze",
         "`local-agent` / `team-monolith` -> `light`",
@@ -528,34 +505,6 @@
         "internal hop latency",
         "error rate",
         "dashboard/alert/SLO"
-      ]
-    },
-    {
-      "file": "docs/architecture/TARGET_ARCHITECTURE.md",
-      "mustContain": [
-        "Phase 2 微服务平台演进更新",
-        "knowledge-write",
-        "`http` 或 `rpc` 传输",
-        "governance-review -> knowledge-write",
-        "candidate-ingestion -> knowledge-write",
-        "Connect RPC",
-        "gRPC",
-        "Protobuf"
-      ]
-    },
-    {
-      "file": "docs/architecture/SERVICE_BOUNDARIES.md",
-      "mustContain": [
-        "Current RPC pilot scope",
-        "governance-review",
-        "candidate-ingestion",
-        "timeout",
-        "InvocationError",
-        "404",
-        "409",
-        "503",
-        "Connect RPC",
-        "gRPC"
       ]
     },
     {
@@ -621,8 +570,8 @@
       "maxLines": 350
     },
     {
-      "file": "packages/host-local/src/nest/gateway/candidate-review.controller.ts",
-      "maxLines": 150
+      "file": "packages/host-local/src/nest/gateway/gateway.route-defs.ts",
+      "maxLines": 300
     },
     {
       "file": "packages/persistence-schema/src/knowledge.ts",

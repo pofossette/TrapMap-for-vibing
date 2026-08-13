@@ -152,7 +152,7 @@ describe('closeout surface guardrails', () => {
   it('guards observability verification and regression docs against stale closeout facts', () => {
     const readme = readDoc('README.md');
     const testingDoc = readDoc('docs/operations/TESTING.md');
-    const verificationDoc = readDoc('docs/operations/OBSERVABILITY-VERIFICATION.md');
+    const verificationDoc = readDoc('docs/archived/operations/OBSERVABILITY-VERIFICATION.md');
     const regressionDoc = readDoc('docs/operations/REGRESSION-COMMANDS.md');
     const deploymentDoc = readDoc('docs/architecture/DEPLOYMENT.md');
 

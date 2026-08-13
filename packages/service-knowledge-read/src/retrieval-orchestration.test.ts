@@ -1,5 +1,5 @@
 import { InvocationError } from '@trapmap/backend-core';
-import type { RetrievalQuery } from '@trapmap/contracts';
+import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -78,7 +78,7 @@ describe('knowledge-read retrieval orchestration', () => {
           seed: 'seed',
           mode: 'semantic',
           maxResults: 5,
-        } as never,
+        } as ReturnType<typeof retrievalQuerySchema.parse>,
         strategyRegistry,
         channelRegistry,
       ),
@@ -96,7 +96,7 @@ describe('knowledge-read retrieval orchestration', () => {
           seed: 'seed',
           mode: 'semantic',
           maxResults: 5,
-        } as never,
+        } as ReturnType<typeof retrievalQuerySchema.parse>,
         strategyRegistry,
         channelRegistry,
       ),

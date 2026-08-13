@@ -1,8 +1,8 @@
 import { sha256 } from '@trapmap/lib';
 import type { FastifyRequest } from 'fastify';
 
-import type { HostLocalServices } from './host-services.js';
 import type { Permission, RoleTemplate } from '@trapmap/contracts';
+import type { HostLocalServices } from './host-services.js';
 import { resolveEffectivePermissions } from './permissions.js';
 
 function normalizeRoleTemplate(role: unknown): RoleTemplate {
@@ -39,7 +39,9 @@ export async function resolveHostLocalAuthContext(
   }
 
   if (session.subjectType === 'system-admin') {
-    const team = session.activeTeamId ? await services.identity.teamRepo.getById(session.activeTeamId) : null;
+    const team = session.activeTeamId
+      ? await services.identity.teamRepo.getById(session.activeTeamId)
+      : null;
 
     return {
       subjectType: 'system-admin' as const,
@@ -68,7 +70,9 @@ export async function resolveHostLocalAuthContext(
     null;
 
   if (!membership && services.runtimeDeployment.capabilities.supportsLocalSingleUserMode) {
-    const team = session.activeTeamId ? await services.identity.teamRepo.getById(session.activeTeamId) : null;
+    const team = session.activeTeamId
+      ? await services.identity.teamRepo.getById(session.activeTeamId)
+      : null;
 
     return {
       subjectType: 'user' as const,

@@ -1,15 +1,15 @@
+import {
+  type AiProviders,
+  type ObservationCorrelationContext,
+  createAiProviders,
+  wrapProvidersWithObservation,
+} from '@trapmap/ai-providers';
 import type { GraphQueryBackend, GraphQueryRuntimeState } from '@trapmap/contracts';
+import type { JobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
 import {
   createKnowledgeReadGraphIndexRepository,
   createMemoryGraphQueryBackend,
 } from '@trapmap/service-knowledge-read';
-import type { JobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
-import {
-  createAiProviders,
-  wrapProvidersWithObservation,
-  type AiProviders,
-  type ObservationCorrelationContext,
-} from '@trapmap/ai-providers';
 import pg from 'pg';
 
 import type { HostLocalConfig } from '../config/index.js';

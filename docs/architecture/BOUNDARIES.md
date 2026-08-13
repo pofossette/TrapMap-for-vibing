@@ -18,7 +18,7 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 | `lib` | `packages/lib/src/**` | 共享纯函数工具层（时间/异步/字符串/数组/哈希工具），type-only 依赖 `contracts`（复用 `Sha256Hex` 等类型） |
 | `persistence-schema` | `packages/persistence-schema/src/**` | 中立 Drizzle schema 层，只承载物理表定义与无状态列工厂，依赖 `contracts` |
 | `client-core` | `packages/client-core/src/**` | 客户端核心（无依赖的纯客户端逻辑），提供 HTTP gateway SDK、会话管理、错误模型 |
-| `backend-core` | `packages/backend-core/src/**` | 六边形架构内核（domain/application/ports/use-cases），框架无关，承载运行时能力模型、端口接口、用例模式、bounded-context 模块 |
+| `backend-core` | `packages/backend-core/src/**` | 六边形架构内核：`src/<context>/domain` 纯规则层（零框架、零 DB）+ `application/ports/use-cases` + `src/http/`（框架中立 RouteDef 路由契约与 Nest/Fastify 双 adapter）。承载运行时能力模型、端口接口、用例模式、bounded-context 模块 |
 | `service-standard` | `packages/service-identity-access/src/**`、`packages/service-candidate-ingestion/src/**`、`packages/service-governance-review/src/**`、`packages/service-job-runtime/src/**`、`packages/service-knowledge-write/src/**` | 标准服务装配包（identity-access、candidate-ingestion、governance-review、job-runtime、knowledge-write），只依赖 `backend-core` + `contracts` |
 | `service-knowledge-read` | `packages/service-knowledge-read/src/**` | 知识读取服务，拥有 read-model、retrieval 与 graph projection owner surface |
 | `host-local` | `packages/host-local/src/**` | 本地宿主组合根（NestJS 光主机），为 `local-agent` 和 `team-monolith` profile 装配所有服务 |
@@ -107,12 +107,19 @@ service-* / host-local / cli → lib → contracts
 
 1. `contracts` 是最底层叶子节点，不依赖任何其他 zone
 2. `client-core` 不依赖 `backend-core` 或任何服务端包
-3. `backend-core` 只依赖 `contracts`，不依赖任何服务或宿主包
+3. `backend-core` 只依赖 `contracts`（`.fallowrc.json` 的 allow 列表另有 `persistence-schema` 但当前无消费方），不依赖任何服务或宿主包；外部框架依赖（`fastify`、`@nestjs/*`）只允许出现在 `src/http/adapters/`（测试接缝 `src/testing/` 除外），不得扩散到 `domain/`、`application/`、`ports/`、`use-cases/`
 4. 标准服务包（`service-standard`）只依赖 `backend-core`、`contracts` 和 `lib`，服务包之间不直接依赖
 5. `cli` 和 `web-panel` 只依赖 `client-core`、`contracts`（`cli` 另可依赖 `lib`），不依赖任何服务端包
 6. 宿主包（`host-local`、`host-distributed`）是最高层组合根，可以依赖所有下游 zone
 7. `lib` 是共享工具叶子，type-only 依赖 `contracts`，不依赖任何服务/宿主/框架代码；`contracts` 不得反向依赖 `lib`
 8. `ai-providers` 不是独立 zone（fallow 未单独约束），但作为共享 AI 服务层可消费 `lib` 工具（2026-08-09 起依赖 `@trapmap/lib`），不得依赖 server compatibility shell
+
+## backend-core 内部结构（domain 纯规则层 + http RouteDef 层）
+
+2026-08 maintainability-rework 后，`backend-core` 内部出现两个对维护者重要的固定结构，不构成新 zone（仍属 `backend-core` 单 zone）：
+
+- **domain 纯规则层**：`packages/backend-core/src/<context>/domain/` 是六个有界上下文真实承载规则的位置（lifecycle/policy/conflict/dedup/retrieval 等），只允许纯函数与零框架/零 DB 依赖，并配套单元测试。`service-*` 的 pg-ports 只保留 SQL + 行映射；宿主与 infrastructure 层禁止新增业务判断。
+- **http RouteDef 层**：`packages/backend-core/src/http/route-contract.ts` 定义框架中立的 `RouteDef` 契约（method/path/Zod schema/handler + canonical error envelope）；`src/http/adapters/{nest.ts,fastify.ts}` 是生产代码唯一的框架导入落点（测试接缝 `src/testing/` 除外）。各 service 包以 `create<X>RouteDefs(deps)` 工厂声明路由，host-local Nest 经 `createNestAdapter`、host-distributed gateway 与各 Fastify 服务经 `createFastifyAdapter` 消费同一份 RouteDef，宿主内禁止手写重复路由实现。
 
 ## 已知例外
 

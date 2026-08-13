@@ -26,8 +26,8 @@ Phase 1 边界收敛补充事实：
 
 Phase 1 Nest 宿主试点补充事实：
 
-- 当前默认 `light` 主线已经固定为 `gateway + 六个 bounded-context module`，统一注册在 `packages/host-local/src/nest/app.module.ts`。
-- Nest 代码落点固定在 `packages/host-local/src/nest/`，目录职责包括：`gateway/`（外部 controller）、六个 bounded-context module、`adapters/`（in-process / remote provider factory）、`config/`（ConfigModule bridge）、`runtime/`（request context、exception filter、validation pipe、auth guard、logging middleware）。
+- 当前默认 `light` 主线已经固定为 `gateway + 六个 bounded-context module`，统一注册在 `packages/host-local/src/nest/app.module.ts`，全部经 `createNestAdapter` 消费各 service 包的 `create<X>RouteDefs`。
+- Nest 代码落点固定在 `packages/host-local/src/nest/`，目录职责包括：`gateway/`（外部 controller，消费网关 RouteDef）、六个 bounded-context module、`adapters/`（in-process / remote provider factory）、`config/`（ConfigModule bridge）、`runtime/`（request context、exception filter、validation pipe、auth guard、logging middleware）。
 - Nest controller 不重写业务逻辑，只注入 `backend-core` Port 或 service-assembly factory。
 - 异常映射统一为 canonical envelope：`code`、`message`、`kind`、`requestId`、`traceId?`、`details?`；兼容窗口内保留 `error` 作为 `message` 别名。
 - `401` 停留在 guard 层，不扩写进 `InvocationErrorKind`。
@@ -36,7 +36,7 @@ Phase 1 Nest 宿主试点补充事实：
 Phase 2 modular-monolith cutover 补充事实：
 
 - 六个 bounded context 固定为 `identity-access`、`knowledge-read`、`knowledge-write`、`governance-review`、`candidate-ingestion`、`job-runtime`；`gateway` 继续只是宿主拥有的 transport shell。
-- `backend-core` 已经按这六个 context 落地 `src/<context>/{domain,application,module.ts,index.ts}`；`src/modules/*.ts` 在迁移窗口内退化为对 `<context>/index.ts` 的 compatibility re-export。`backend-core` 必须继续承担 framework-free 的 `ports`、`invocation`、`runtime capability/topology`、testing utilities，以及各 context 的 `domain/application/module` factory；Nest/Fastify/PG/MQ concrete 细节不得进入这里。
+- `backend-core` 已经按这六个 context 落地 `src/<context>/{domain,application,module.ts,index.ts}`；`src/modules/*.ts` 在迁移窗口内退化为对 `<context>/index.ts` 的 compatibility re-export。`backend-core` 必须继续承担 framework-free 的 `ports`、`invocation`、`runtime capability/topology`、testing utilities，以及各 context 的 `domain/application/module` factory；PG/MQ concrete 细节不得进入这里。Nest/Fastify 框架导入是 2026-08 统一后的唯一例外（测试接缝 `src/testing/` 除外），只允许集中在 `src/http/adapters/{nest.ts,fastify.ts}`（RouteDef 双 adapter）。
 - `embedded/local-agent` 与 `team-monolith` 在 Phase 2 以后共用同一个 `packages/host-local/src/nest/app.module.ts` 和同一套 bounded-context module graph；profile 差异只允许出现在 capability、provider wiring 和 route surface gating。当前六个 bounded-context Nest module 已经全部在 `app.module.ts` 注册。
 - `packages/server（Wave-10 已删除）` 只保留 compatibility shell 与 runtime/status；`packages/host-distributed` 保留为 distributed 的部署展开层，但不拥有第二套业务真相。
 - `packages/service-*` 包继续保留，但只作为 distributed internal transport / process entry thin assembly；业务 owner 仍以 `backend-core` module 和本文档定义的边界为准。
@@ -68,6 +68,14 @@ Phase 5 六服务 ownership 冻结补充事实：
 - `knowledge-read` 只消费写侧/治理侧派生事件或只读投影，不直接复用写侧事务对象。
 - `job-runtime` 只拥有 queue/outbox/worker/retry/reclaim/status 等 runtime 编排；worker handler 只做 transport glue，不内嵌业务判断。
 
+## 当前分层与传输统一（2026-08 maintainability-rework）
+
+Wave 9 之后的结构事实（与 `SYSTEM_TRUTH_SOURCES.md`、`BOUNDARIES.md` 一致）：
+
+- **domain 纯规则层真实存在**：`packages/backend-core/src/<context>/domain/` 是六个有界上下文的真实规则落点（lifecycle/policy/conflict/dedup/retrieval 等），只含纯函数、零框架、零 DB 依赖，并配套单元测试。`service-*` 的 pg-ports 只保留 SQL 与行映射（如 knowledge-write pg-ports 已从 876 行收敛到 ~150 行）；infrastructure 层禁止新增业务判断。
+- **双宿主共享 RouteDef**：`packages/backend-core/src/http/route-contract.ts` 定义框架中立的 `RouteDef`（method/path/Zod schema/handler + canonical error envelope）。各 service 包以 `create<X>RouteDefs(deps)` 工厂声明路由；host-local 六个 bounded-context Nest module 与 gateway module 经 `createNestAdapter` 消费，host-distributed gateway 与各 Fastify 服务入口经 `createFastifyAdapter` 消费同一份 RouteDef，宿主内不手写重复路由实现。
+- **gateway 转发薄化**：`packages/host-distributed/src/gateway/route-defs.ts` 承载网关路由声明（`createGatewayRouteDefs`），`routes.ts` 收缩为薄传输壳（~180 行），只做注册/认证/转发，业务与校验语义全部来自共享 RouteDef 与 service ports。
+
 ## Server Bounded Context
 
 当前 `packages/server（Wave-10 已删除）` 以内聚职责划分为七个 bounded context：
@@ -93,7 +101,7 @@ Phase 5 六服务 ownership 冻结补充事实：
 
 - 可观测性架构（LGTM 栈 + OpenTelemetry）：[OBSERVABILITY.md](OBSERVABILITY.md)
 - 服务发现架构（Consul）：[SERVICE-DISCOVERY.md](SERVICE-DISCOVERY.md)
-- 技术选型对比：[TECH-SELECTION.md](TECH-SELECTION.md)
+- 技术选型对比：[TECH-SELECTION.md（已归档）](../archived/architecture/TECH-SELECTION.md)
 
 核心选型：Consul（服务发现）、Prometheus（指标）、Tempo（追踪）、Loki（日志）、Grafana（可视化）、OpenTelemetry（采集标准）。
 
@@ -210,7 +218,7 @@ flowchart TB
     end
 
     subgraph 路由层["路由层 (Route Layer - 薄)"]
-        Routes["Fastify 路由<br/>auth | teams | members | knowledge<br/>review | retrieval | operations | traps"]
+        Routes["RouteDef 路由<br/>auth | teams | members | knowledge<br/>review | retrieval | operations | traps"]
     end
 
     subgraph 业务逻辑层["业务逻辑层 (Business Logic)"]
@@ -417,7 +425,7 @@ flowchart TB
 - **Keyword**：BM25/基于分词的词法匹配
 - **Graph**：Graphology DAG 用于关系扩展
 
-> **入库预计算策略**：三个适配器在入库阶段完成所有昂贵计算（Embedding API、LLM 图实体提取、Token 分词），检索阶段直接读取预计算结果。检索路径的召回/评分/图遍历均不调用 LLM。完整的预计算措施清单见 [PRECOMPUTATION.md](PRECOMPUTATION.md)。
+> **入库预计算策略**：三个适配器在入库阶段完成所有昂贵计算（Embedding API、LLM 图实体提取、Token 分词），检索阶段直接读取预计算结果。检索路径的召回/评分/图遍历均不调用 LLM。完整的预计算措施清单见 [PRECOMPUTATION.md（已归档）](../archived/architecture/PRECOMPUTATION.md)。
 
 ### 检索管道
 

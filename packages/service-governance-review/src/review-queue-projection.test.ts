@@ -116,7 +116,7 @@ describe('buildReviewQueueProjection', () => {
       reviewHistory: [],
       reviewNotes: [],
       lifecycleHistory: [],
-    } as unknown as KnowledgeEntry;
+    } as KnowledgeEntry;
     const knowledge: Pick<KnowledgeOwnerPort, 'listByFilter'> = {
       async listByFilter() {
         return [entry];

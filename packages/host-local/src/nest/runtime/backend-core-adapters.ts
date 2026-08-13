@@ -1,11 +1,16 @@
 import type {
+  AccessKeyRecord,
+  AccessKeyRepositoryPort,
   AuditLogPort,
+  MembershipRecord,
   MembershipRepositoryPort,
   QueuePorts,
+  SessionRecord,
   SessionRepositoryPort,
+  TeamRecord,
   TeamRepositoryPort,
+  UserRecord,
   UserRepositoryPort,
-  AccessKeyRepositoryPort,
 } from '@trapmap/backend-core';
 import type { RoleTemplate } from '@trapmap/contracts';
 import { nowIso } from '@trapmap/lib';
@@ -19,7 +24,7 @@ function normalizeRoleTemplate(role: unknown): RoleTemplate {
   return 'user';
 }
 
-function normalizeSessionRecord(record: Record<string, unknown>) {
+function normalizeSessionRecord(record: Record<string, unknown>): SessionRecord {
   return {
     id: String(record.id),
     tokenHash: String(record.tokenHash),
@@ -27,12 +32,15 @@ function normalizeSessionRecord(record: Record<string, unknown>) {
     createdAt: String(record.createdAt ?? nowIso()),
     updatedAt: String(record.updatedAt ?? nowIso()),
     userId: typeof record.userId === 'string' ? record.userId : null,
-    subjectType: record.subjectType === 'system-admin' ? 'system-admin' : 'user',
+    subjectType:
+      typeof record.subjectType === 'string' && record.subjectType === 'system-admin'
+        ? 'system-admin'
+        : 'user',
     expiresAt: typeof record.expiresAt === 'string' ? record.expiresAt : null,
   };
 }
 
-function normalizeAccessKeyRecord(record: Record<string, unknown>) {
+function normalizeAccessKeyRecord(record: Record<string, unknown>): AccessKeyRecord {
   return {
     id: String(record.id),
     tokenHash: String(record.tokenHash),
@@ -48,7 +56,7 @@ function normalizeAccessKeyRecord(record: Record<string, unknown>) {
   };
 }
 
-function normalizeTeamRecord(record: Record<string, unknown>) {
+function normalizeTeamRecord(record: Record<string, unknown>): TeamRecord {
   return {
     id: String(record.id),
     slug: String(record.slug),
@@ -73,7 +81,7 @@ function normalizeMembershipRecord(record: Record<string, unknown>) {
   };
 }
 
-function normalizeUserRecord(record: Record<string, unknown>) {
+function normalizeUserRecord(record: Record<string, unknown>): UserRecord {
   return {
     id: String(record.id),
     handle: String(record.handle),
@@ -83,10 +91,9 @@ function normalizeUserRecord(record: Record<string, unknown>) {
   };
 }
 
-export function createIdentityAccessRepos(repos: Pick<
-  HostLocalRepos,
-  'session' | 'accessKey' | 'team' | 'membership' | 'user'
->): {
+export function createIdentityAccessRepos(
+  repos: Pick<HostLocalRepos, 'session' | 'accessKey' | 'team' | 'membership' | 'user'>,
+): {
   sessionRepo: SessionRepositoryPort;
   accessKeyRepo: AccessKeyRepositoryPort;
   teamRepo: TeamRepositoryPort;
@@ -104,24 +111,16 @@ export function createIdentityAccessRepos(repos: Pick<
           tokenHash: String(session.tokenHash),
           expiresAt: null,
         });
-        return normalizeSessionRecord(created as unknown as Record<string, unknown>) as Awaited<
-          ReturnType<SessionRepositoryPort['create']>
-        >;
+        return normalizeSessionRecord(created);
       },
       async getByTokenHash(tokenHash) {
         const session = await repos.session.getByTokenHash(tokenHash);
-        return session
-          ? (normalizeSessionRecord(session as unknown as Record<string, unknown>) as Awaited<
-              ReturnType<SessionRepositoryPort['getByTokenHash']>
-            >)
-          : null;
+        return session ? normalizeSessionRecord(session) : null;
       },
       deleteByTokenHash: (tokenHash) => repos.session.deleteByTokenHash(tokenHash),
       async updateActiveTeam(sessionId, teamId) {
         const session = await repos.session.updateActiveTeam(sessionId, teamId ?? '');
-        return normalizeSessionRecord(session as unknown as Record<string, unknown>) as Awaited<
-          ReturnType<SessionRepositoryPort['updateActiveTeam']>
-        >;
+        return normalizeSessionRecord(session);
       },
     },
     accessKeyRepo: {
@@ -142,30 +141,20 @@ export function createIdentityAccessRepos(repos: Pick<
           revokedAt: typeof key.revokedAt === 'string' ? key.revokedAt : null,
           createdAt: nowIso(),
           updatedAt: typeof key.updatedAt === 'string' ? key.updatedAt : nowIso(),
-        } as Parameters<HostLocalRepos['accessKey']['insert']>[0]);
+        });
       },
       async getByTokenHash(tokenHash) {
         const accessKey = await repos.accessKey.getByTokenHash(tokenHash);
-        return accessKey
-          ? (normalizeAccessKeyRecord(accessKey as unknown as Record<string, unknown>) as Awaited<
-              ReturnType<AccessKeyRepositoryPort['getByTokenHash']>
-            >)
-          : null;
+        return accessKey ? normalizeAccessKeyRecord(accessKey) : null;
       },
       async getById(keyId) {
         const accessKey = await repos.accessKey.getById(keyId);
-        return accessKey
-          ? (normalizeAccessKeyRecord(accessKey as unknown as Record<string, unknown>) as Awaited<
-              ReturnType<AccessKeyRepositoryPort['getById']>
-            >)
-          : null;
+        return accessKey ? normalizeAccessKeyRecord(accessKey) : null;
       },
       revoke: (keyId) => repos.accessKey.revoke(keyId),
       async listByMember(memberId) {
         const keys = await repos.accessKey.listByMember(memberId);
-        return keys.map((key) =>
-          normalizeAccessKeyRecord(key as unknown as Record<string, unknown>),
-        ) as Awaited<ReturnType<AccessKeyRepositoryPort['listByMember']>>;
+        return keys.map((key) => normalizeAccessKeyRecord(key));
       },
     },
     teamRepo: {
@@ -178,31 +167,21 @@ export function createIdentityAccessRepos(repos: Pick<
           description: typeof team.description === 'string' ? team.description : null,
           createdAt: nowIso(),
           updatedAt: typeof team.updatedAt === 'string' ? team.updatedAt : nowIso(),
-        } as Parameters<HostLocalRepos['team']['insert']>[0]);
+        });
       },
       async getById(teamId) {
         const team = await repos.team.getById(teamId);
-        return team
-          ? (normalizeTeamRecord(team as unknown as Record<string, unknown>) as Awaited<
-              ReturnType<TeamRepositoryPort['getById']>
-            >)
-          : null;
+        return team ? normalizeTeamRecord(team) : null;
       },
       async getBySlug(slug) {
         const team = await repos.team.getBySlug(slug);
-        return team
-          ? (normalizeTeamRecord(team as unknown as Record<string, unknown>) as Awaited<
-              ReturnType<TeamRepositoryPort['getBySlug']>
-            >)
-          : null;
+        return team ? normalizeTeamRecord(team) : null;
       },
       async listAll() {
         const teams = await repos.team.listAll();
-        return teams.map((team) =>
-          normalizeTeamRecord(team as unknown as Record<string, unknown>),
-        ) as Awaited<ReturnType<TeamRepositoryPort['listAll']>>;
+        return teams.map((team) => normalizeTeamRecord(team));
       },
-      update: (teamId, updates) => repos.team.update(teamId, updates as never),
+      update: (teamId, updates) => repos.team.update(teamId, updates),
     },
     membershipRepo: {
       nextId: () => Promise.resolve(repos.membership.nextId()),
@@ -213,42 +192,35 @@ export function createIdentityAccessRepos(repos: Pick<
           userId: membership.userId,
           teamId: membership.teamId,
           roleTemplate: normalizeRoleTemplate(shape.role ?? membership.roleTemplate),
-          securityLevel: typeof membership.securityLevel === 'number' ? membership.securityLevel : 0,
+          securityLevel:
+            typeof membership.securityLevel === 'number' ? membership.securityLevel : 0,
           permissions: Array.isArray(membership.permissions) ? membership.permissions : [],
           notes: typeof membership.notes === 'string' ? membership.notes : null,
           createdAt: nowIso(),
           updatedAt: typeof membership.updatedAt === 'string' ? membership.updatedAt : nowIso(),
-        } as Parameters<HostLocalRepos['membership']['insert']>[0]);
+        });
       },
       async getById(membershipId) {
         const membership = await repos.membership.getById(membershipId);
-        return membership
-          ? (normalizeMembershipRecord(
-              membership as unknown as Record<string, unknown>,
-            ) as Awaited<ReturnType<MembershipRepositoryPort['getById']>>)
-          : null;
+        return membership ? (normalizeMembershipRecord(membership) as MembershipRecord) : null;
       },
       async findByUserAndTeam(userId, teamId) {
         const membership = await repos.membership.findByUserAndTeam(userId, teamId);
-        return membership
-          ? (normalizeMembershipRecord(
-              membership as unknown as Record<string, unknown>,
-            ) as Awaited<ReturnType<MembershipRepositoryPort['findByUserAndTeam']>>)
-          : null;
+        return membership ? (normalizeMembershipRecord(membership) as MembershipRecord) : null;
       },
       async listByUser(userId) {
         const memberships = await repos.membership.listByUser(userId);
-        return memberships.map((membership) =>
-          normalizeMembershipRecord(membership as unknown as Record<string, unknown>),
-        ) as Awaited<ReturnType<MembershipRepositoryPort['listByUser']>>;
+        return memberships.map(
+          (membership) => normalizeMembershipRecord(membership) as MembershipRecord,
+        );
       },
       async listByTeam(teamId) {
         const memberships = await repos.membership.listByTeam(teamId);
-        return memberships.map((membership) =>
-          normalizeMembershipRecord(membership as unknown as Record<string, unknown>),
-        ) as Awaited<ReturnType<MembershipRepositoryPort['listByTeam']>>;
+        return memberships.map(
+          (membership) => normalizeMembershipRecord(membership) as MembershipRecord,
+        );
       },
-      update: (membershipId, updates) => repos.membership.update(membershipId, updates as never),
+      update: (membershipId, updates) => repos.membership.update(membershipId, updates),
     },
     userRepo: {
       nextId: () => Promise.resolve(repos.user.nextId()),
@@ -259,25 +231,17 @@ export function createIdentityAccessRepos(repos: Pick<
           notes: typeof user.notes === 'string' ? user.notes : null,
           createdAt: nowIso(),
           updatedAt: typeof user.updatedAt === 'string' ? user.updatedAt : nowIso(),
-        } as Parameters<HostLocalRepos['user']['insert']>[0]);
+        });
       },
       async getById(userId) {
         const user = await repos.user.getById(userId);
-        return user
-          ? (normalizeUserRecord(user as unknown as Record<string, unknown>) as Awaited<
-              ReturnType<UserRepositoryPort['getById']>
-            >)
-          : null;
+        return user ? normalizeUserRecord(user) : null;
       },
       async getByHandle(handle) {
         const user = await repos.user.getByHandle(handle);
-        return user
-          ? (normalizeUserRecord(user as unknown as Record<string, unknown>) as Awaited<
-              ReturnType<UserRepositoryPort['getByHandle']>
-            >)
-          : null;
+        return user ? normalizeUserRecord(user) : null;
       },
-      update: (userId, updates) => repos.user.update(userId, updates as never),
+      update: (userId, updates) => repos.user.update(userId, updates),
     },
   };
 }
@@ -310,21 +274,21 @@ export function createAuditLogPort(repos: Pick<HostLocalRepos, 'audit'>): AuditL
       return {
         total: result.total,
         items: result.items.map((item) => ({
-          actorId: item.actorId,
-          action: item.action,
-          entityId: item.entityId,
-          ...(item.teamId ? { teamId: item.teamId } : {}),
-          ...(item.payload ? { metadata: item.payload } : {}),
-          eventVersion: item.eventVersion ?? 1,
-          sourceService: item.sourceService ?? 'host-local',
-          ...(item.requestId ? { requestId: item.requestId } : {}),
-          ...(item.traceId ? { traceId: item.traceId } : {}),
-          ...(item.operationId ? { operationId: item.operationId } : {}),
-          ...(item.causationId ? { causationId: item.causationId } : {}),
-          outcome: item.outcome ?? 'success',
-          timestamp: item.createdAt,
+          actorId: item.actorId as string,
+          action: item.action as string,
+          ...(item.entityId ? { entityId: item.entityId as string } : {}),
+          ...(item.teamId ? { teamId: item.teamId as string } : {}),
+          ...(item.payload ? { metadata: item.payload as Record<string, unknown> } : {}),
+          eventVersion: (item.eventVersion ?? 1) as number,
+          sourceService: (item.sourceService ?? 'host-local') as string,
+          ...(item.requestId ? { requestId: item.requestId as string } : {}),
+          ...(item.traceId ? { traceId: item.traceId as string } : {}),
+          ...(item.operationId ? { operationId: item.operationId as string } : {}),
+          ...(item.causationId ? { causationId: item.causationId as string } : {}),
+          outcome: (item.outcome ?? 'success') as 'success' | 'rejected' | 'failed',
+          timestamp: item.createdAt as string,
         })),
-      } as Awaited<ReturnType<AuditLogPort['query']>>;
+      };
     },
   };
 }
@@ -343,25 +307,7 @@ export function createQueuePorts(asyncTransport?: HostLocalAsyncTransport): Queu
           }
           return asyncTransport.task.createConsumer({
             ownsWork: params.ownsWork,
-            handlers: params.handlers.map((handler) => ({
-              type: handler.type,
-              handle: (task: { id: string; type: string; payload: unknown; attempts: number }, signal: AbortSignal) =>
-                handler.handle(
-                  {
-                    id: task.id,
-                    type: task.type,
-                    payload: task.payload,
-                    attempt: task.attempts,
-                  },
-                  signal,
-                ),
-              ...(handler.onDead
-                ? {
-                    onDead: (task: { id: string; type: string; payload: unknown }) =>
-                      handler.onDead?.(task),
-                  }
-                : {}),
-            })) as unknown as Parameters<NonNullable<HostLocalAsyncTransport['task']['createConsumer']>>[0]['handlers'],
+            handlers: params.handlers,
           });
         },
       },

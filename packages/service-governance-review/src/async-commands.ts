@@ -3,6 +3,8 @@ import {
   type FeedbackRepositoryPort,
   type GovernanceAsyncCommandPort,
   InvocationError,
+  feedbackMatchesBadcaseExport,
+  feedbackMatchesRemediationReactivation,
 } from '@trapmap/backend-core';
 import {
   type BadcaseExportDraftPayload,
@@ -42,7 +44,7 @@ function assertRemediationFeedbackMatches(
   record: FeedbackRecord,
   payload: RemediationReactivationPayload,
 ): void {
-  if (record.entryId !== payload.entryId || record.entryType !== payload.entryType) {
+  if (!feedbackMatchesRemediationReactivation(record, payload)) {
     throw InvocationError.conflict(
       `Feedback does not match remediation reactivation request: ${record.id}`,
     );
@@ -53,11 +55,7 @@ function assertBadcaseFeedbackMatches(
   record: FeedbackRecord,
   payload: BadcaseExportDraftPayload,
 ): void {
-  if (
-    record.entryId !== payload.entryId ||
-    record.entryType !== payload.entryType ||
-    (record.queryId ?? null) !== payload.queryId
-  ) {
+  if (!feedbackMatchesBadcaseExport(record, payload)) {
     throw InvocationError.conflict(`Feedback does not match badcase export request: ${record.id}`);
   }
 }

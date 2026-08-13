@@ -1,7 +1,14 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { validateSentryPolicy } from '@trapmap/contracts';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SentryService } from './sentry.service.js';
+
+// The only correct way to unset a process.env key (assignment would set the
+// literal string "undefined"); computed delete avoids deleting properties
+// from the shared env object shape.
+function unsetEnv(name: string): void {
+  delete process.env[name];
+}
 
 describe('SentryService', () => {
   const originalEnv = { ...process.env };
@@ -9,12 +16,12 @@ describe('SentryService', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     // Clear Sentry env vars
-    delete process.env.SENTRY_DSN;
-    delete process.env.SENTRY_ENVIRONMENT;
-    delete process.env.SENTRY_RELEASE;
-    delete process.env.SENTRY_TRACES_SAMPLE_RATE;
-    delete process.env.TRAPMAP_DEPLOYMENT_PROFILE;
-    delete process.env.TRAPMAP_SERVICE_NAME;
+    unsetEnv('SENTRY_DSN');
+    unsetEnv('SENTRY_ENVIRONMENT');
+    unsetEnv('SENTRY_RELEASE');
+    unsetEnv('SENTRY_TRACES_SAMPLE_RATE');
+    unsetEnv('TRAPMAP_DEPLOYMENT_PROFILE');
+    unsetEnv('TRAPMAP_SERVICE_NAME');
   });
 
   afterEach(() => {
@@ -42,7 +49,7 @@ describe('SentryService', () => {
 
     it('should not initialize Sentry when DSN is absent', async () => {
       const service = new SentryService();
-      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      vi.spyOn(console, 'log').mockImplementation(() => {});
 
       await service.onModuleInit();
 

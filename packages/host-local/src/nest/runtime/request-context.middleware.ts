@@ -1,13 +1,10 @@
 import type { NestMiddleware } from '@nestjs/common';
 import { Inject, Injectable } from '@nestjs/common';
-import type { FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import { HOST_LOCAL_CONFIG_TOKEN } from '../config/index.js';
 import type { HostLocalConfig } from '../config/index.js';
-import {
-  RequestContextService,
-  extractRequestContext,
-} from './request-context.service.js';
+import { type RequestContextService, extractRequestContext } from './request-context.service.js';
 
 @Injectable()
 export class RequestContextMiddleware implements NestMiddleware {

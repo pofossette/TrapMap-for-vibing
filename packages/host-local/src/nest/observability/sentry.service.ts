@@ -13,17 +13,17 @@
  * on @sentry/node at the package level.
  */
 
-import { Injectable, Logger, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import type { SentryPolicyResult } from '@trapmap/contracts';
 import { validateSentryPolicy } from '@trapmap/contracts';
 
-import type { RequestContextService } from '../runtime/request-context.service.js';
 import {
+  SENSITIVE_KEY_PATTERN,
   redactQueryString,
   redactSensitiveKeys,
   redactUrl,
-  SENSITIVE_KEY_PATTERN,
 } from '@trapmap/lib';
+import type { RequestContextService } from '../runtime/request-context.service.js';
 
 /**
  * HTTP status codes that are "expected" client errors and should not be
@@ -80,7 +80,6 @@ interface SentryEvent {
   }>;
 }
 
-
 /**
  * Redact sensitive data from a Sentry event before transport.
  */
@@ -89,7 +88,10 @@ function redactEvent(event: SentryEvent): SentryEvent {
   if (event.request) {
     const redactedRequest: NonNullable<SentryEvent['request']> = {};
     if (event.request.headers) {
-      redactedRequest.headers = redactSensitiveKeys(event.request.headers) as Record<string, string>;
+      redactedRequest.headers = redactSensitiveKeys(event.request.headers) as Record<
+        string,
+        string
+      >;
     }
     if (event.request.query_string !== undefined) {
       redactedRequest.query_string = redactQueryString(event.request.query_string);
@@ -127,21 +129,18 @@ function redactEvent(event: SentryEvent): SentryEvent {
  * - InvocationError with validation/unauthorized/forbidden/not-found kinds
  * - Errors with explicit status codes in the suppressed set
  */
-function shouldSuppress(
-  error: unknown,
-  context: SentryCaptureContext | undefined,
-): boolean {
+function shouldSuppress(error: unknown, context: SentryCaptureContext | undefined): boolean {
   // Check explicit status code
   if (context?.statusCode && SUPPRESSED_STATUS_CODES.has(context.statusCode)) {
     return true;
   }
 
   // Check failure classification
-  const suppressedClassifications = new Set([
-    'user-error',
-    'auth-policy-error',
-  ]);
-  if (context?.failureClassification && suppressedClassifications.has(context.failureClassification)) {
+  const suppressedClassifications = new Set(['user-error', 'auth-policy-error']);
+  if (
+    context?.failureClassification &&
+    suppressedClassifications.has(context.failureClassification)
+  ) {
     return true;
   }
 
@@ -166,9 +165,7 @@ export class SentryService implements OnModuleInit, OnModuleDestroy {
   private sentry: typeof import('@sentry/node') | null = null;
   private readonly policy: SentryPolicyResult;
 
-  constructor(
-    private readonly requestContext?: RequestContextService,
-  ) {
+  constructor(private readonly requestContext?: RequestContextService) {
     this.policy = validateSentryPolicy(
       Object.fromEntries(
         Object.entries({
@@ -202,19 +199,20 @@ export class SentryService implements OnModuleInit, OnModuleDestroy {
         sampleRate: this.policy.sampleRate,
         tracesSampleRate: this.policy.tracesSampleRate,
         maxBreadcrumbs: this.policy.maxBreadcrumbs,
-        beforeSend: (event) => redactEvent(event as unknown as SentryEvent) as never,
+        beforeSend: (event) => redactEvent(event as SentryEvent) as never, // lib type gap: the Sentry SDK
+        // beforeSend return type is ErrorEvent, which requires fields the local
+        // redaction surface omits; both describe the same runtime event object
         integrations: (integrations) =>
           integrations.filter(
-            (integration) =>
-              integration.name !== 'Http' && integration.name !== 'Undici',
+            (integration) => integration.name !== 'Http' && integration.name !== 'Undici',
           ),
       });
 
       this.sentry = Sentry;
       this.logger.log(
         `Sentry initialized: environment=${this.policy.environment}, ` +
-        `release=${this.policy.release}, ` +
-        `deploymentProfile=${this.policy.deploymentProfile}`,
+          `release=${this.policy.release}, ` +
+          `deploymentProfile=${this.policy.deploymentProfile}`,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

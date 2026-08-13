@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { GovernanceReviewServiceDeps } from './deps.js';
 import { createGovernanceReviewServer } from './server.js';
 
 describe('governance-review server composition', () => {
@@ -12,7 +13,7 @@ describe('governance-review server composition', () => {
         feedbackRepo: {},
         auditLog: {},
         conflictWorkflow: { detectConflicts },
-      } as never,
+      } as GovernanceReviewServiceDeps,
     );
 
     const response = await server.app.inject({

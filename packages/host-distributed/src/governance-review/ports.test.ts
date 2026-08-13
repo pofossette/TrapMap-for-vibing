@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { AuditLogPort, FeedbackRepositoryPort } from '@trapmap/backend-core';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
+import type { GovernanceReviewPgOwnerBundle } from '@trapmap/service-governance-review';
 
 import {
   createDistributedGovernanceArtifactReadProjection,
@@ -12,12 +14,13 @@ describe('distributed governance review composition', () => {
   it('injects a conflict workflow backed by internal knowledge-write reads', () => {
     const deps = createGovernanceReviewDeps(
       {
-        feedbackRepo: {} as never,
+        feedbackRepo: {} as FeedbackRepositoryPort,
         conflictProjection: {
           listByEntryIds: vi.fn().mockResolvedValue([]),
           upsert: vi.fn().mockResolvedValue(undefined),
+          getById: vi.fn().mockResolvedValue(null),
         },
-      } as never,
+      } as GovernanceReviewPgOwnerBundle,
       {
         internalUrls: {
           identityAccess: 'http://identity.test',
@@ -31,7 +34,7 @@ describe('distributed governance review composition', () => {
         },
         internalTransports: { knowledgeWrite: 'http' },
       } as ServiceConfig,
-      { auditLog: {} as never },
+      { auditLog: {} as AuditLogPort },
     );
 
     expect(deps.conflictWorkflow).toBeDefined();
@@ -40,12 +43,13 @@ describe('distributed governance review composition', () => {
   it('injects owner async commands and feedback admin capabilities', () => {
     const deps = createGovernanceReviewDeps(
       {
-        feedbackRepo: {} as never,
+        feedbackRepo: {} as FeedbackRepositoryPort,
         conflictProjection: {
           listByEntryIds: vi.fn().mockResolvedValue([]),
           upsert: vi.fn().mockResolvedValue(undefined),
+          getById: vi.fn().mockResolvedValue(null),
         },
-      } as never,
+      } as GovernanceReviewPgOwnerBundle,
       {
         internalUrls: {
           identityAccess: 'http://identity.test',
@@ -59,7 +63,7 @@ describe('distributed governance review composition', () => {
         },
         internalTransports: { knowledgeWrite: 'http' },
       } as ServiceConfig,
-      { auditLog: {} as never },
+      { auditLog: {} as AuditLogPort },
     );
 
     expect(deps.asyncCommands).toBeDefined();
@@ -74,7 +78,7 @@ describe('distributed governance review composition', () => {
           body: { error: 'Knowledge entry not found', kind: 'not-found' },
         }),
       },
-    } as never);
+    });
     await expect(knowledgeRead.getById('entry-1')).resolves.toBeNull();
 
     const unavailableBody = { error: 'knowledge unavailable', kind: 'unavailable' };
@@ -82,7 +86,7 @@ describe('distributed governance review composition', () => {
       knowledgeRead: {
         getById: vi.fn().mockResolvedValue({ status: 503, body: unavailableBody }),
       },
-    } as never);
+    });
     await expect(unavailableRead.getById('entry-1')).rejects.toMatchObject({
       kind: 'unavailable',
       cause: unavailableBody,
@@ -95,7 +99,7 @@ describe('distributed governance review composition', () => {
           body: { error: 'Artifact not found', kind: 'not-found' },
         }),
       },
-    } as never);
+    });
     await expect(artifactRead.getById('artifact-1')).resolves.toBeNull();
 
     const artifactUnavailableBody = { error: 'artifact unavailable', kind: 'unavailable' };
@@ -106,7 +110,7 @@ describe('distributed governance review composition', () => {
           body: artifactUnavailableBody,
         }),
       },
-    } as never);
+    });
     await expect(unavailableArtifactRead.getById('artifact-1')).rejects.toMatchObject({
       kind: 'unavailable',
       cause: artifactUnavailableBody,

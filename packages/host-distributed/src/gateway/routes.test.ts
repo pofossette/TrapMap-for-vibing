@@ -536,6 +536,49 @@ describe('registerGatewayRoutes', () => {
     await app.close();
   });
 
+  it('rejects candidate mutations and job scheduling when required fields are missing', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const missingResolution = await app.inject({
+      method: 'POST',
+      url: '/v1/candidates/candidate-1/resolution',
+      headers: { authorization: 'Bearer session' },
+      payload: { actorId: 'user-1' },
+    });
+    expect(missingResolution.statusCode).toBe(400);
+    expect(clients.candidateIngestion.applyResolution).not.toHaveBeenCalled();
+
+    const missingResult = await app.inject({
+      method: 'POST',
+      url: '/v1/candidates/candidate-1/manual-result',
+      headers: { authorization: 'Bearer session' },
+      payload: { actorId: 'user-1' },
+    });
+    expect(missingResult.statusCode).toBe(400);
+    expect(clients.candidateIngestion.submitManualResult).not.toHaveBeenCalled();
+
+    const missingPayload = await app.inject({
+      method: 'POST',
+      url: '/v1/jobs',
+      headers: { authorization: 'Bearer session' },
+      payload: { type: 'reindex' },
+    });
+    expect(missingPayload.statusCode).toBe(400);
+    expect(clients.jobRuntime.schedule).not.toHaveBeenCalled();
+
+    const nullPayload = await app.inject({
+      method: 'POST',
+      url: '/v1/jobs',
+      headers: { authorization: 'Bearer session' },
+      payload: { type: 'reindex', payload: null },
+    });
+    expect(nullPayload.statusCode).toBe(400);
+    expect(clients.jobRuntime.schedule).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
   it('forwards candidate resolution and manual result requests', async () => {
     const clients = createClients();
     const app = await buildApp(clients);
@@ -791,8 +834,9 @@ describe('registerGatewayRoutes', () => {
     });
 
     expect(response.statusCode).toBe(400);
-    expect(response.json()).toEqual({
-      error: 'Missing required fields: decision',
+    expect(response.json()).toMatchObject({
+      code: 'validation_error',
+      message: 'Request validation failed',
       kind: 'validation',
     });
     expect(clients.knowledgeWrite.reviewArtifact).not.toHaveBeenCalled();

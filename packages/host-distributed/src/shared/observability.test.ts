@@ -42,7 +42,7 @@ describe('attachRuntimeMetricsRoute', () => {
       }),
     };
     const startSpan = vi.fn(() => span);
-    vi.spyOn(trace, 'getTracer').mockReturnValue({ startSpan } as never);
+    vi.spyOn(trace, 'getTracer').mockReturnValue({ startSpan } as Tracer);
     vi.spyOn(propagation, 'extract').mockReturnValue(otelContext.active());
 
     const app = Fastify();

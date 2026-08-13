@@ -135,7 +135,7 @@ describe('MetricsPort', () => {
     metrics.incrementCounter('requests', { method: 'GET' });
     metrics.incrementCounter('requests', { method: 'GET' }, 5);
 
-    const stub = metrics as unknown as StubMetrics;
+    const stub = metrics as StubMetrics;
     expect(stub.counters.get('requests')).toHaveLength(2);
     expect(stub.counters.get('requests')![0].value).toBe(1);
     expect(stub.counters.get('requests')![1].value).toBe(5);
@@ -145,7 +145,7 @@ describe('MetricsPort', () => {
     const metrics: MetricsPort = new StubMetrics();
     metrics.setGauge('connections', 42, { pool: 'primary' });
 
-    const stub = metrics as unknown as StubMetrics;
+    const stub = metrics as StubMetrics;
     expect(stub.gauges.get('connections')).toHaveLength(1);
     expect(stub.gauges.get('connections')![0].value).toBe(42);
   });
@@ -155,7 +155,7 @@ describe('MetricsPort', () => {
     metrics.observeHistogram('latency_ms', 120);
     metrics.observeHistogram('latency_ms', 250);
 
-    const stub = metrics as unknown as StubMetrics;
+    const stub = metrics as StubMetrics;
     expect(stub.histograms.get('latency_ms')).toHaveLength(2);
   });
 
@@ -178,7 +178,7 @@ describe('TracingPort', () => {
     span.recordError(new Error('connection lost'));
     span.end();
 
-    const stub = tracing as unknown as StubTracing;
+    const stub = tracing as StubTracing;
     const handle = stub.spans[0];
     expect(handle.ended).toBe(true);
     expect(handle.attributes['db.statement']).toBe('SELECT 1');
@@ -198,7 +198,7 @@ describe('TracingPort', () => {
     const tracing: TracingPort = new StubTracing();
     await tracing.shutdown();
 
-    const stub = tracing as unknown as StubTracing;
+    const stub = tracing as StubTracing;
     expect(stub.shutdownCalled).toBe(true);
   });
 });
@@ -211,7 +211,7 @@ describe('LoggingPort', () => {
     logger.error('failed', { code: 500 });
     logger.debug('detail');
 
-    const stub = logger as unknown as StubLogging;
+    const stub = logger as StubLogging;
     expect(stub.entries).toHaveLength(4);
     expect(stub.entries.map((e) => e.level)).toEqual(['info', 'warn', 'error', 'debug']);
   });
@@ -220,7 +220,7 @@ describe('LoggingPort', () => {
     const parent: LoggingPort = new StubLogging({ service: 'gateway' });
     const child = parent.child({ requestId: 'abc-123' });
 
-    const childStub = child as unknown as StubLogging;
+    const childStub = child as StubLogging;
     expect(childStub.parentContext).toEqual({ service: 'gateway', requestId: 'abc-123' });
   });
 });

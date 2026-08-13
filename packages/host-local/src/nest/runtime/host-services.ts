@@ -5,46 +5,49 @@ import type {
   GraphIndexRepositoryPort,
   KnowledgeOwnerPort,
 } from '@trapmap/contracts';
-import { createIdentityAccessPgDeps, type IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 import {
-  createCandidateIngestionPgOwnerBundle,
   type CandidateIngestionPgOwnerBundle,
+  createCandidateIngestionPgOwnerBundle,
 } from '@trapmap/service-candidate-ingestion';
 import {
+  type GovernanceReviewPgOwnerBundle,
+  createGovernanceReviewPgOwnerBundle,
+} from '@trapmap/service-governance-review';
+import {
+  type IdentityAccessPortDeps,
+  createIdentityAccessPgDeps,
+} from '@trapmap/service-identity-access';
+import { createJobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
+import {
+  type OwnerReadModelProjection,
+  type OwnerReadModelProjectionOptions,
   createCandidateCorpusPgReadPort,
   createKnowledgeReadGraphIndexRepository,
   createOwnerReadModelProjection,
-  type OwnerReadModelProjection,
-  type OwnerReadModelProjectionOptions,
 } from '@trapmap/service-knowledge-read';
 import {
-  createKnowledgeWriteOwnerBundle,
   type ArtifactWritePort,
   type KnowledgeWriteOwnerBundle,
+  createKnowledgeWriteOwnerBundle,
 } from '@trapmap/service-knowledge-write';
-import {
-  createGovernanceReviewPgOwnerBundle,
-  type GovernanceReviewPgOwnerBundle,
-} from '@trapmap/service-governance-review';
-import { createJobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
 
 import type { HostLocalConfig } from '../config/index.js';
 import {
-  createHostLocalChannelRegistry,
-  createHostLocalStrategyRegistry,
   type HostLocalChannelRegistry,
   type HostLocalStrategyRegistry,
+  createHostLocalChannelRegistry,
+  createHostLocalStrategyRegistry,
 } from './retrieval-assembly.js';
 import { resolveHostLocalDeployment } from './runtime-deployment.js';
-import { getHostLocalStorePool } from './store-pool.js';
 import {
-  createHostLocalSharedInfra,
   type HostLocalAiProviders,
   type HostLocalAsyncTransport,
   type HostLocalGraphQueryBackend,
   type HostLocalGraphQueryRuntimeState,
   type HostLocalStore,
+  createHostLocalSharedInfra,
 } from './shared-infra.js';
+import { getHostLocalStorePool } from './store-pool.js';
 
 export interface HostLocalServices {
   config: HostLocalConfig;
@@ -71,9 +74,7 @@ export interface HostLocalServices {
   close(): Promise<void>;
 }
 
-export async function createHostLocalServices(
-  config: HostLocalConfig,
-): Promise<HostLocalServices> {
+export async function createHostLocalServices(config: HostLocalConfig): Promise<HostLocalServices> {
   const runtimeDeployment = resolveHostLocalDeployment(config);
   const infra = await createHostLocalSharedInfra(config);
   const pool = getHostLocalStorePool(infra.store);
@@ -89,7 +90,11 @@ export async function createHostLocalServices(
   const ownerReadModel = createOwnerReadModelProjection({
     knowledge: knowledgeWrite.knowledgeOwner,
     artifact: knowledgeWrite.artifactReadProjection,
-    governance: governanceReview.retrievalProjection as unknown as OwnerReadModelProjectionOptions['governance'],
+    governance:
+      governanceReview.retrievalProjection as unknown as OwnerReadModelProjectionOptions['governance'], // lib type gap: the
+    // governance owner bundle returns the backend-core minimal FeedbackQueueRecord
+    // shape while the owner read model expects knowledge-read's richer store record —
+    // same feedback rows at runtime
   });
   const asyncTransport = createJobRuntimeAsyncTransport({
     config: { asyncTaskTransport: config.asyncTaskTransport },

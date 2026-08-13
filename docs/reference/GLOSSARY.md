@@ -286,7 +286,7 @@ draft → submitted → agent-pass/agent-rejected
 | `packages/contracts/src/domain/knowledge.ts:21-29` | Zod schema (`agentReviewResultSchema`) | 完整结果：status, duplicateRisk, correctnessRisk, completenessRisk（各 `low/medium/high`）, checkedAt, notes, boundary |
 | `packages/contracts/src/domain/knowledge.ts:185` | TS 类型 (`AgentReviewResult`) | 推断类型 |
 | `packages/server（Wave-10 已删除）/src/lib/pre-review.ts` | Impl | `runPreReview()` — 基于 LangChain 的 AI 预审实现 |
-| `packages/host-local/src/nest/gateway/candidate-review.controller.ts` | Route | `GET /v1/knowledge/review-queue` — 审核队列；`POST /v1/knowledge/review` — 审核决定 |
+| `packages/host-local/src/nest/gateway/gateway.route-defs.ts` | Route | `GET /v1/knowledge/review-queue` — 审核队列；`POST /v1/knowledge/review` — 审核决定 |
 | `packages/service-governance-review/src/routes.ts` | Route | 治理审核服务的路由注册 |
 | `packages/server（Wave-10 已删除）/src/routes/operations/skill-review.ts` | Route | `GET /v1/operations/artifacts/review-queue` — Skill 审核队列；`POST /v1/operations/artifacts/:artifactId/review` — Skill 审核决定 |
 

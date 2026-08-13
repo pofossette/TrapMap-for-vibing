@@ -58,8 +58,12 @@ export function createKnowledgeReadOwnerRetrievalServices(
   options: KnowledgeReadOwnerRetrievalServicesOptions,
 ): SearchKnowledgeServices {
   const repos: SkillShareerRepos = {
-    knowledge: options.knowledge as unknown as SkillShareerRepos['knowledge'],
-    artifact: options.artifact as unknown as SkillShareerRepos['artifact'],
+    knowledge: options.knowledge as unknown as SkillShareerRepos['knowledge'], // lib type gap: the owner
+    // port returns contracts KnowledgeEntry records while the retrieval pipeline
+    // consumes the internal KnowledgeRecord shape — the same runtime projection rows
+    artifact: options.artifact as unknown as SkillShareerRepos['artifact'], // lib type gap: the owner
+    // port returns contracts artifact records while the retrieval pipeline consumes
+    // the internal SkillArtifactRecord shape — same runtime rows
     governanceRetrievalProjection: options.governance,
     usageAnalytics: null,
     graphIndex: null,
@@ -79,7 +83,7 @@ export function createKnowledgeReadOwnerRetrievalServices(
 }
 
 export function createKnowledgeReadRetrievalInfra(): KnowledgeReadRetrievalInfra {
-  return createDefaultKnowledgeReadRetrievalInfra() as unknown as KnowledgeReadRetrievalInfra;
+  return createDefaultKnowledgeReadRetrievalInfra();
 }
 
 export function createKnowledgeReadChannelRegistry(): ChannelRegistry {

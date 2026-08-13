@@ -18,7 +18,7 @@ function createPool() {
 describe('governance-review PostgreSQL owner bundle', () => {
   it('persists the complete feedback record into the authoritative feedback tables', async () => {
     const { calls, pool } = createPool();
-    const owner = createGovernanceReviewPgOwnerBundle(pool as never);
+    const owner = createGovernanceReviewPgOwnerBundle(pool);
 
     await owner.feedbackRepo.insert({
       id: 'feedback_abc123',
@@ -49,7 +49,7 @@ describe('governance-review PostgreSQL owner bundle', () => {
       customAnswers: [{ prompt: 'What happened?', answer: 'Wrong result' }],
       createdAt: '2026-07-18T00:00:00.000Z',
       updatedAt: '2026-07-18T00:00:00.000Z',
-    } as never);
+    });
 
     expect(calls[0]?.sql).toContain('INSERT INTO feedback_records');
     expect(calls[0]?.sql).toContain('entry_type');
@@ -111,7 +111,7 @@ describe('governance-review PostgreSQL owner bundle', () => {
       }
       return { rows: [] };
     });
-    const owner = createGovernanceReviewPgOwnerBundle({ query } as never);
+    const owner = createGovernanceReviewPgOwnerBundle({ query });
 
     await expect(owner.feedbackRepo.getById('feedback_abc123')).resolves.toMatchObject({
       id: 'feedback_abc123',
@@ -130,7 +130,7 @@ describe('governance-review PostgreSQL owner bundle', () => {
 
   it('filters and updates feedback records without losing remediation fields', async () => {
     const { calls, pool } = createPool();
-    const owner = createGovernanceReviewPgOwnerBundle(pool as never);
+    const owner = createGovernanceReviewPgOwnerBundle(pool);
 
     await owner.feedbackRepo.listByFilter({
       status: ['triaged'],
@@ -160,7 +160,7 @@ describe('governance-review PostgreSQL owner bundle', () => {
 
   it('owns conflict persistence behind the shared knowledge-read projection', async () => {
     const { calls, pool } = createPool();
-    const owner = createGovernanceReviewPgOwnerBundle(pool as never);
+    const owner = createGovernanceReviewPgOwnerBundle(pool);
 
     await owner.conflictProjection.upsert({
       id: 'conflict_abc123',
@@ -242,7 +242,7 @@ describe('governance-review PostgreSQL owner bundle', () => {
       }
       return { rows: [] };
     });
-    const owner = createGovernanceReviewPgOwnerBundle({ query } as never);
+    const owner = createGovernanceReviewPgOwnerBundle({ query });
 
     await expect(owner.retrievalProjection.listFeedback()).resolves.toEqual([
       expect.objectContaining({
@@ -312,7 +312,7 @@ describe('governance-review PostgreSQL owner bundle', () => {
       }
       return { rows: [] };
     });
-    const owner = createGovernanceReviewPgOwnerBundle({ query } as never);
+    const owner = createGovernanceReviewPgOwnerBundle({ query });
 
     await expect(
       owner.retrievalProjection.listRemediation(['entry-a', 'entry-missing']),

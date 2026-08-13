@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { AuditLogPort } from '../../ports/audit-ports.js';
+import type { OutboxPort } from '../../ports/queue-ports.js';
 import { createJobRuntimeModule } from './module.js';
 
 describe('job-runtime module', () => {
@@ -13,9 +15,9 @@ describe('job-runtime module', () => {
           requeue: vi.fn(),
           getStatusSnapshot: vi.fn(),
         },
-        outbox: {} as never,
+        outbox: {} as OutboxPort,
       },
-      auditLog: {} as never,
+      auditLog: {} as AuditLogPort,
     });
 
     await expect(

@@ -2,15 +2,18 @@ import {
   type GovernanceAsyncCommandPort,
   type GovernanceReviewAdminPort,
   InvocationError,
-  type ReviewPort,
+  type RouteTestApp,
+  buildRouteTestApp,
 } from '@trapmap/backend-core';
-import Fastify from 'fastify';
+import type { AdapterName } from '@trapmap/backend-core/testing/route-test-app.js';
 import { describe, expect, it, vi } from 'vitest';
-import { type GovernanceReviewRouteModule, registerGovernanceReviewRoutes } from './routes.ts';
+import { type GovernanceReviewRouteDeps, createGovernanceReviewRouteDefs } from './routes.ts';
+
+const ADAPTERS: readonly AdapterName[] = ['fastify', 'nest'];
 
 function createModule(
-  overrides: Partial<GovernanceReviewRouteModule> = {},
-): GovernanceReviewRouteModule {
+  overrides: Partial<GovernanceReviewRouteDeps> = {},
+): GovernanceReviewRouteDeps {
   return {
     approve: vi.fn(async () => ({ entryId: 'entry-1', lifecycleState: 'approved' as const })),
     reject: vi.fn(async () => ({ entryId: 'entry-1', lifecycleState: 'rejected' as const })),
@@ -22,17 +25,17 @@ function createModule(
   };
 }
 
-async function buildApp(module: GovernanceReviewRouteModule) {
-  const app = Fastify();
-  registerGovernanceReviewRoutes(app, module);
-  await app.ready();
-  return app;
+async function buildApp(
+  module: GovernanceReviewRouteDeps,
+  adapter: AdapterName,
+): Promise<RouteTestApp> {
+  return buildRouteTestApp(createGovernanceReviewRouteDefs(module), module, adapter);
 }
 
-describe('service-governance-review routes', () => {
+describe.each(ADAPTERS)('service-governance-review routes (%s adapter)', (adapter) => {
   it('routes governance decisions and feedback through the module', async () => {
     const module = createModule();
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const maintenance = await app.inject({
       method: 'POST',
@@ -74,7 +77,7 @@ describe('service-governance-review routes', () => {
       ...createModule(),
       conflictWorkflow: { detectConflicts },
     };
-    const app = await buildApp(module as never);
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -91,7 +94,7 @@ describe('service-governance-review routes', () => {
 
   it('rejects an untrusted feedback actor before invoking the governance module', async () => {
     const module = createModule();
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -116,7 +119,7 @@ describe('service-governance-review routes', () => {
         throw InvocationError.timeout('knowledge-write timed out');
       }),
     });
-    const app = await buildApp(module);
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -125,7 +128,7 @@ describe('service-governance-review routes', () => {
     });
 
     expect(response.statusCode).toBe(504);
-    expect(response.json()).toEqual({
+    expect(response.json()).toMatchObject({
       error: 'knowledge-write timed out',
       kind: 'timeout',
     });
@@ -137,7 +140,7 @@ describe('service-governance-review routes', () => {
       reactivateRemediation: vi.fn(async () => undefined),
       exportBadcaseDraft: vi.fn(async () => undefined),
     };
-    const app = await buildApp(createModule({ asyncCommands }));
+    const app = await buildApp(createModule({ asyncCommands }), adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -165,7 +168,7 @@ describe('service-governance-review routes', () => {
   });
 
   it('rejects async feedback routes when command wiring is unavailable', async () => {
-    const app = await buildApp(createModule());
+    const app = await buildApp(createModule(), adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -181,7 +184,7 @@ describe('service-governance-review routes', () => {
     });
 
     expect(response.statusCode).toBe(503);
-    expect(response.json()).toEqual({
+    expect(response.json()).toMatchObject({
       error: 'Governance async commands unavailable',
       kind: 'unavailable',
     });
@@ -195,7 +198,7 @@ describe('service-governance-review routes', () => {
         throw InvocationError.conflict('Feedback does not match badcase export request');
       }),
     };
-    const app = await buildApp(createModule({ asyncCommands }));
+    const app = await buildApp(createModule({ asyncCommands }), adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -211,7 +214,7 @@ describe('service-governance-review routes', () => {
     });
 
     expect(response.statusCode).toBe(409);
-    expect(response.json()).toEqual({
+    expect(response.json()).toMatchObject({
       error: 'Feedback does not match badcase export request',
       kind: 'conflict',
     });
@@ -219,12 +222,10 @@ describe('service-governance-review routes', () => {
   });
 
   it('reports readiness and ownership for the governance-review owner-port path', async () => {
-    const module = createModule();
-    const app = Fastify();
-    registerGovernanceReviewRoutes(app, module, {
+    const module = createModule({
       checkDependency: vi.fn(async () => ({ reachable: true })),
     });
-    await app.ready();
+    const app = await buildApp(module, adapter);
 
     const readiness = await app.inject({
       method: 'GET',
@@ -252,8 +253,7 @@ describe('service-governance-review routes', () => {
   });
 
   it('keeps operator diagnostics available when the delegated owner is unhealthy', async () => {
-    const app = Fastify();
-    registerGovernanceReviewRoutes(app, createModule(), {
+    const module = createModule({
       checkDependency: vi.fn(async () => ({ reachable: false, detail: 'knowledge-write timeout' })),
       getOperatorStatus: vi.fn(async () => ({
         persistence: { status: 'healthy' },
@@ -261,7 +261,7 @@ describe('service-governance-review routes', () => {
         asyncFollowUp: { owner: 'job-runtime', queue: { pending: 1, dead: 0 } },
       })),
     });
-    await app.ready();
+    const app = await buildApp(module, adapter);
 
     const [live, ready, operator] = await Promise.all([
       app.inject({ method: 'GET', url: '/internal/live' }),
@@ -288,7 +288,7 @@ describe('service-governance-review routes', () => {
       getRemediation: vi.fn(),
       completeRemediation: vi.fn(),
     };
-    const app = await buildApp({ ...createModule(), admin } as never);
+    const app = await buildApp(createModule({ admin }), adapter);
 
     const response = await app.inject({
       method: 'GET',
@@ -301,6 +301,43 @@ describe('service-governance-review routes', () => {
       actorId: 'admin-1',
       query: { status: ['new'], limit: 10 },
     });
+    await app.close();
+  });
+
+  it('enforces the strict remediation-complete contract and strips nothing', async () => {
+    const completeRemediation = vi.fn(async () => ({ entryId: 'entry-1' }));
+    const admin: GovernanceReviewAdminPort = {
+      list: vi.fn(),
+      stats: vi.fn(),
+      batch: vi.fn(),
+      listRemediation: vi.fn(),
+      getRemediation: vi.fn(),
+      completeRemediation,
+    };
+    const app = await buildApp(createModule({ admin }), adapter);
+
+    const cleanBody = await app.inject({
+      method: 'POST',
+      url: '/internal/feedback/admin/remediation/entry-1/complete',
+      headers: { 'x-trapmap-actor-id': 'admin-1' },
+      payload: { notes: 'reindexed' },
+    });
+    expect(cleanBody.statusCode).toBe(200);
+    expect(completeRemediation).toHaveBeenCalledWith({
+      actorId: 'admin-1',
+      entryId: 'entry-1',
+      command: { notes: 'reindexed' },
+    });
+
+    const unknownKey = await app.inject({
+      method: 'POST',
+      url: '/internal/feedback/admin/remediation/entry-1/complete',
+      headers: { 'x-trapmap-actor-id': 'admin-1' },
+      payload: { notes: 'reindexed', unexpectedKey: 'rejected' },
+    });
+    expect(unknownKey.statusCode).toBe(400);
+    expect(completeRemediation).toHaveBeenCalledTimes(1);
+
     await app.close();
   });
 
@@ -351,10 +388,7 @@ describe('service-governance-review routes', () => {
         },
       ]),
     };
-    const app = await buildApp({
-      ...createModule(),
-      governanceRetrievalProjection,
-    } as never);
+    const app = await buildApp(createModule({ governanceRetrievalProjection }), adapter);
 
     const response = await app.inject({
       method: 'POST',

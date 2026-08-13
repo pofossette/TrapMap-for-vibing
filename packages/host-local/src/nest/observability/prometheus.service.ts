@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Counter, Gauge, Histogram, register, collectDefaultMetrics } from 'prom-client';
+import type { ConfigService } from '@nestjs/config';
 import { normalizeObservabilityRouteFamily } from '@trapmap/contracts';
+import { Counter, Gauge, Histogram, collectDefaultMetrics, register } from 'prom-client';
 
 /**
  * Prometheus metrics service for host-local.

@@ -1,8 +1,13 @@
-import { InvocationError, type KnowledgeReadPort } from '@trapmap/backend-core';
-import Fastify from 'fastify';
+import { InvocationError, type KnowledgeReadPort, type RouteTestApp } from '@trapmap/backend-core';
+import {
+  type AdapterName,
+  buildRouteTestApp,
+} from '@trapmap/backend-core/testing/route-test-app.js';
 import { describe, expect, it, vi } from 'vitest';
 
-import { registerKnowledgeReadRoutes } from './routes.js';
+import { createKnowledgeReadRouteDefs } from './routes.js';
+
+const ADAPTERS: readonly AdapterName[] = ['fastify', 'nest'];
 
 function createProjectionStatus() {
   return {
@@ -128,12 +133,14 @@ function createModule(): KnowledgeReadPort {
   };
 }
 
-describe('knowledge-read routes', () => {
+async function buildApp(module: KnowledgeReadPort, adapter: AdapterName): Promise<RouteTestApp> {
+  return buildRouteTestApp(createKnowledgeReadRouteDefs(module), module, adapter);
+}
+
+describe.each(ADAPTERS)('knowledge-read routes (%s adapter)', (adapter) => {
   it('serves derived entry lookup through getById with 404 semantics', async () => {
-    const app = Fastify();
     const module = createModule();
-    registerKnowledgeReadRoutes(app, module);
-    await app.ready();
+    const app = await buildApp(module, adapter);
 
     const success = await app.inject({
       method: 'GET',
@@ -151,9 +158,9 @@ describe('knowledge-read routes', () => {
     });
 
     expect(notFound.statusCode).toBe(404);
-    expect(notFound.json()).toEqual({
-      error: 'not-found',
-      message: 'Knowledge entry not found',
+    expect(notFound.json()).toMatchObject({
+      error: 'Knowledge entry not found',
+      kind: 'not-found',
     });
     expect(module.getById).toHaveBeenCalledWith('missing-entry');
 
@@ -161,7 +168,6 @@ describe('knowledge-read routes', () => {
   });
 
   it('serves listMine from the derived entry projection with query passthrough', async () => {
-    const app = Fastify();
     const module = createModule();
     vi.mocked(module.listMine).mockResolvedValueOnce([
       {
@@ -172,8 +178,7 @@ describe('knowledge-read routes', () => {
         teamId: 'team-2',
       },
     ]);
-    registerKnowledgeReadRoutes(app, module);
-    await app.ready();
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'GET',
@@ -198,16 +203,15 @@ describe('knowledge-read routes', () => {
     });
 
     expect(missingUserId.statusCode).toBe(400);
-    expect(missingUserId.json()).toEqual({
-      error: 'validation',
-      message: 'userId query parameter is required',
+    expect(missingUserId.json()).toMatchObject({
+      error: 'Request validation failed',
+      kind: 'validation',
     });
 
     await app.close();
   });
 
   it('serves retrieval search from derived read-side state with body passthrough', async () => {
-    const app = Fastify();
     const module = createModule();
     vi.mocked(module.search).mockResolvedValueOnce({
       results: [{ entryId: 'entry-1', score: 0.98, snippet: 'hello' }],
@@ -215,8 +219,7 @@ describe('knowledge-read routes', () => {
       channel: 'derived-index',
       latencyMs: 12,
     });
-    registerKnowledgeReadRoutes(app, module);
-    await app.ready();
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -244,19 +247,17 @@ describe('knowledge-read routes', () => {
     });
 
     expect(missingQuery.statusCode).toBe(400);
-    expect(missingQuery.json()).toEqual({
-      error: 'validation',
-      message: 'query is required in request body',
+    expect(missingQuery.json()).toMatchObject({
+      error: 'Request validation failed',
+      kind: 'validation',
     });
 
     await app.close();
   });
 
   it('exposes projection status for freshness and fallback evidence', async () => {
-    const app = Fastify();
     const module = createModule();
-    registerKnowledgeReadRoutes(app, module);
-    await app.ready();
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'GET',
@@ -270,10 +271,8 @@ describe('knowledge-read routes', () => {
   });
 
   it('rebuilds the projection only through the knowledge-read operator surface', async () => {
-    const app = Fastify();
     const module = createModule();
-    registerKnowledgeReadRoutes(app, module);
-    await app.ready();
+    const app = await buildApp(module, adapter);
 
     const response = await app.inject({
       method: 'POST',
@@ -360,7 +359,6 @@ describe('knowledge-read routes', () => {
   ] as const)(
     'maps InvocationError kind %s to HTTP %i across knowledge-read surfaces',
     async (kind, statusCode) => {
-      const app = Fastify();
       const error = new InvocationError(kind, `boom:${kind}`);
       const module: KnowledgeReadPort = {
         getById: vi.fn(async () => {
@@ -376,8 +374,7 @@ describe('knowledge-read routes', () => {
           throw error;
         }),
       };
-      registerKnowledgeReadRoutes(app, module);
-      await app.ready();
+      const app = await buildApp(module, adapter);
 
       const byId = await app.inject({ method: 'GET', url: '/internal/knowledge/entry-1' });
       const mine = await app.inject({
@@ -396,7 +393,7 @@ describe('knowledge-read routes', () => {
 
       for (const response of [byId, mine, search, projectionStatus]) {
         expect(response.statusCode).toBe(statusCode);
-        expect(response.json()).toEqual({ error: kind, message: `boom:${kind}` });
+        expect(response.json()).toMatchObject({ error: `boom:${kind}`, kind });
       }
 
       await app.close();

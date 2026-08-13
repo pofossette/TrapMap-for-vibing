@@ -1,9 +1,6 @@
 import { Module } from '@nestjs/common';
 
-import type {
-  KnowledgeWriteDeps,
-  KnowledgeWritePort,
-} from '@trapmap/backend-core';
+import type { KnowledgeWriteDeps, KnowledgeWritePort } from '@trapmap/backend-core';
 import { createKnowledgeWriteModule } from '@trapmap/backend-core';
 
 import { KNOWLEDGE_WRITE_PORT } from './knowledge-write.tokens.js';
@@ -17,6 +14,7 @@ import { KNOWLEDGE_WRITE_PORT } from './knowledge-write.tokens.js';
  * `KNOWLEDGE_WRITE_PORT` provider rather than through a repo seam.
  */
 @Module({})
+// biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
 export class KnowledgeWriteModule {
   static forDeps(deps: KnowledgeWriteDeps) {
     const port: KnowledgeWritePort = createKnowledgeWriteModule(deps);

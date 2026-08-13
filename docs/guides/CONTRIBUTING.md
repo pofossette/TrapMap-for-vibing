@@ -194,20 +194,14 @@ PR 修改以下路径时，`eval.yml` 的 smoke tier 会自动触发：
 ### 验证命令
 
 ```bash
-# 检查文档漂移守卫
-pnpm check:docs-drift
-
-# 检查 Mermaid 图语法
-pnpm check:mermaid
+# 检查文档守卫（含 doc-drift / mermaid / md-lint 阻断层）
+pnpm check:docs
 
 # 检查复杂度预算
 pnpm check:complexity
 
 # 全仓 fallow 质量门
 pnpm check:fallow
-
-# 运行文档漂移守卫
-pnpm check:docs-drift
 ```
 
 详见 [`docs/reference/DOCS_TRUTH_MATRIX.md`](../reference/DOCS_TRUTH_MATRIX.md) 和 [`docs/reference/SYSTEM_TRUTH_SOURCES.md`](../reference/SYSTEM_TRUTH_SOURCES.md)。
@@ -215,6 +209,6 @@ pnpm check:docs-drift
 ## 相关链接
 
 - [项目文档索引](../../README.md#--documentation)
-- [API 文档](../architecture/API.md)
+- [API 文档（已归档）](../archived/architecture/API.md)
 - [数据模型](../reference/DATA_MODEL.md)
 - [评估系统](../../evals/README.md)

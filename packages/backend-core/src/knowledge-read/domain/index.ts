@@ -1,9 +1,11 @@
 /**
  * Knowledge-read bounded context — domain layer.
  *
- * Phase 2 target: pure read-side domain types. Currently this context is
- * fully expressed through its port seam; this file reserves the pure
- * domain home for future extraction.
+ * Pure read-side judgment and assembly rules (retrieval eligibility,
+ * boundary filtering, ranking merge, response assembly, tokenization,
+ * refinement) with zero framework, DB or I/O imports. Performance
+ * sensitive recall channels stay in the service infrastructure; they
+ * render these rules over their candidate streams.
  */
 
 export const KNOWLEDGE_READ_CONTEXT = 'knowledge-read' as const;
@@ -13,3 +15,10 @@ export const KNOWLEDGE_READ_OWNED_CAPABILITIES = [
   'retrieval-search',
   'read-model',
 ] as const;
+
+export * from './tokenization.js';
+export * from './eligibility.js';
+export * from './boundary.js';
+export * from './ranking.js';
+export * from './assembly.js';
+export * from './refinement.js';

@@ -5,7 +5,7 @@ export {
   type KnowledgeReadPortDeps,
 } from './deps.js';
 export { assertKnowledgeReadMigrationSet, runKnowledgeReadMigrations } from './migrations.js';
-export { registerKnowledgeReadRoutes } from './routes.js';
+export { createKnowledgeReadRouteDefs, registerKnowledgeReadRoutes } from './routes.js';
 export {
   createKnowledgeReadServer,
   type KnowledgeReadServer,
@@ -76,7 +76,6 @@ export { buildSummary } from './response-summary.js';
 export { searchKnowledge, updateEntryEmbeddingCache } from './search-knowledge.js';
 export { createCandidateCorpusPgReadPort } from './candidate-corpus-pg.js';
 export { createKnowledgeReadGraphIndexRepository } from './graph-index-repository.js';
-export { createKnowledgeReadGraphProjectionRebuilder } from './graph-projection-backfill.js';
 export {
   createMemoryGraphQueryBackend,
   type MemoryGraphQueryBackend,

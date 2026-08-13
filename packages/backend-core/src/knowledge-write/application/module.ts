@@ -4,14 +4,28 @@
  * Owns knowledge / trap entry creation, resubmit, supersede, update,
  * review-decision application, maintenance / decay application and
  * candidate-result publication.
+ *
+ * Lifecycle decisions follow the domain rules: the application layer
+ * pre-flights each command against the state machine using the owner's
+ * latest projection, and the owner re-validates atomically inside its
+ * transaction before persisting. 预检非原子，权威校验在 owner 事务内。
+ * Audit orchestration stays here.
  */
 
 import type { KnowledgeOwnerPort } from '@trapmap/contracts';
 import { InvocationError } from '../../invocation/invocation-model.js';
 import type { AuditLogPort } from '../../ports/audit-ports.js';
 import type { KnowledgeWritePort } from '../../ports/internal-ports.js';
+import type { KnowledgeEntryRecord } from '../../ports/repo-ports.js';
 
-import { KNOWLEDGE_WRITE_OWNED_CAPABILITIES } from '../domain/index.js';
+import {
+  KNOWLEDGE_WRITE_OWNED_CAPABILITIES,
+  RESUBMIT_TARGET_STATE,
+  SUPERSEDE_TARGET_STATE,
+  assertValidLifecycleTransition,
+  isDeactivationAction,
+  reviewDecisionTargetState,
+} from '../domain/index.js';
 
 // ---------------------------------------------------------------------------
 // Module dependencies (injected by host assembly)
@@ -32,6 +46,19 @@ export const KNOWLEDGE_WRITE_MODULE = {
   owns: KNOWLEDGE_WRITE_OWNED_CAPABILITIES,
   dependsOn: [] as const,
 } as const;
+
+function toKnowledgeEntryRecord(
+  entry: NonNullable<Awaited<ReturnType<KnowledgeOwnerPort['getById']>>>,
+): KnowledgeEntryRecord {
+  return {
+    ...entry,
+    id: entry.id,
+    content: entry.detail ?? '',
+    lifecycleState: entry.lifecycleState,
+    ownerUserId: entry.owner?.id ?? '',
+    teamId: entry.teamId ?? '',
+  };
+}
 
 /**
  * Create a KnowledgeWritePort backed by the given dependencies.
@@ -70,7 +97,8 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
     },
 
     async resubmit(entryId, input, actorId) {
-      await ownerEntry(entryId);
+      const entry = await ownerEntry(entryId);
+      assertValidLifecycleTransition(entry.lifecycleState, RESUBMIT_TARGET_STATE);
       await deps.knowledgeOwner.resubmit(entryId, input, actorId);
       await deps.auditLog.record({
         action: 'knowledge.resubmit',
@@ -80,7 +108,8 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
     },
 
     async supersede(entryId, replacementId, actorId) {
-      await ownerEntry(entryId);
+      const entry = await ownerEntry(entryId);
+      assertValidLifecycleTransition(entry.lifecycleState, SUPERSEDE_TARGET_STATE);
       await deps.knowledgeOwner.supersede(entryId, replacementId, actorId);
       await deps.auditLog.record({
         action: 'knowledge.supersede',
@@ -104,7 +133,8 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
     },
 
     async approveReviewDecision(input) {
-      await ownerEntry(input.entryId);
+      const entry = await ownerEntry(input.entryId);
+      assertValidLifecycleTransition(entry.lifecycleState, reviewDecisionTargetState('approve'));
       const result = await deps.knowledgeOwner.approveReviewDecision(input);
 
       await deps.auditLog.record({
@@ -118,7 +148,8 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
     },
 
     async rejectReviewDecision(input) {
-      await ownerEntry(input.entryId);
+      const entry = await ownerEntry(input.entryId);
+      assertValidLifecycleTransition(entry.lifecycleState, reviewDecisionTargetState('reject'));
       const result = await deps.knowledgeOwner.rejectReviewDecision(input);
 
       await deps.auditLog.record({
@@ -132,7 +163,10 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
     },
 
     async applyMaintenanceDecision(input) {
-      await ownerEntry(input.entryId);
+      const entry = await ownerEntry(input.entryId);
+      if (isDeactivationAction(String(input.action))) {
+        assertValidLifecycleTransition(entry.lifecycleState, SUPERSEDE_TARGET_STATE);
+      }
       const result = await deps.knowledgeOwner.applyMaintenanceDecision(input);
 
       await deps.auditLog.record({
@@ -179,11 +213,13 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
     },
 
     async listTraps(teamId: string) {
-      return (await deps.knowledgeOwner.listByFilter({ teamId })) as never;
+      const entries = await deps.knowledgeOwner.listByFilter({ teamId });
+      return entries.map(toKnowledgeEntryRecord);
     },
 
     async getTrap(trapId: string) {
-      return (await deps.knowledgeOwner.getById(trapId)) as never;
+      const entry = await deps.knowledgeOwner.getById(trapId);
+      return entry ? toKnowledgeEntryRecord(entry) : null;
     },
   };
 }

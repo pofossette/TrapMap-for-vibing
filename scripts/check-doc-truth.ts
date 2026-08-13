@@ -39,9 +39,9 @@ export function checkDocTruth(root: string): CheckResult {
     'build',
     'test',
     'typecheck',
-    'check:docs-drift',
-    'check:doc-references',
-    'check:links',
+    'check:docs',
+    'check:structure',
+    'check:asserts',
   ];
   for (const script of expectedScripts) {
     const found = manifest.scripts.find((s) => s.name === script);
@@ -72,7 +72,7 @@ export function checkDocTruth(root: string): CheckResult {
   }
 
   // Check CI guardrails are blocking
-  const criticalGuards = ['check:docs-drift', 'check:structure', 'check:mermaid'];
+  const criticalGuards = ['check:docs', 'check:structure', 'check:asserts'];
   for (const guard of criticalGuards) {
     const found = manifest.ciGuardrails.find((g) => g.name === guard);
     if (found && !found.blocking) {

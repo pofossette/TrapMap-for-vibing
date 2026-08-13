@@ -23,12 +23,18 @@
     "@trapmap/persistence-schema": "workspace:*",
     "fastify": "^5.6.1",
     "drizzle-orm": "^0.45.2",
-    "pg": "8.20.0"
+    "pg": "8.20.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@types/pg": "8.20.0",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.1"
+    "vitest": "^3.2.1",
+    "@nestjs/common": "^11.1.27",
+    "@nestjs/core": "^11.1.27",
+    "@nestjs/platform-fastify": "^11.1.27",
+    "@nestjs/testing": "^11.1.27",
+    "reflect-metadata": "^0.2.2"
   }
 }

@@ -19,7 +19,7 @@ describe('buildRetrievalReadModel', () => {
         listByFilter: async () => [],
         listForRetrieval: async () => [artifact],
       },
-    }) as unknown as SkillShareerRepos;
+    }) as SkillShareerRepos;
 
     const result = await buildRetrievalReadModel(repos);
 
@@ -28,7 +28,7 @@ describe('buildRetrievalReadModel', () => {
   });
 
   it('builds the admin read projection from owner ports', async () => {
-    const repos = createRetrievalMockRepos() as unknown as SkillShareerRepos;
+    const repos = createRetrievalMockRepos() as SkillShareerRepos;
 
     await expect(buildOwnerReadModel(repos)).resolves.toEqual(await buildRetrievalReadModel(repos));
   });
@@ -57,7 +57,7 @@ describe('buildRetrievalReadModel', () => {
         listFeedback,
         listConflicts,
       },
-    }) as unknown as SkillShareerRepos;
+    }) as SkillShareerRepos;
 
     await buildRetrievalReadModel(repos);
 
@@ -95,7 +95,7 @@ describe('buildRetrievalReadModel', () => {
         listConflicts: vi.fn().mockResolvedValue([]),
         listRemediation,
       },
-    }) as unknown as SkillShareerRepos;
+    }) as SkillShareerRepos;
 
     const result = await buildRetrievalReadModel(repos);
 

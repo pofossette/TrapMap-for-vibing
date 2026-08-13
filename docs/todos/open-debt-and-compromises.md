@@ -22,7 +22,7 @@
 - [ ] **当前边界：** 不重开旧 Fastify authoritative write path；不新增 `store_snapshot`、shared DB direct-read 或 runtime-infra -> server 依赖作为默认业务路径。
 - [ ] **进入条件：** retired compatibility seam 导致当前文档 truth、host composition、构建、边界违规或生产故障归因被阻塞，且无法在本主线的 source-aware guard 修复中关闭。
 - [ ] **后续落点：** 新建 scoped “compatibility shell retirement and runtime-infra ownership”细则；按 service/host 迁移真实 owner 后删除旧 route、re-export 和 compatibility fallback。
-- [ ] **要求的文档与测试：** 更新 `docs/architecture/BOUNDARIES.md`、`docs/reference/REPO_STRUCTURE.md`、相关 package README；运行受影响包测试、`rtk pnpm exec fallow list --boundaries`、`rtk pnpm exec fallow audit --base main`、`rtk pnpm typecheck`、`rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`。
+- [ ] **要求的文档与测试：** 更新 `docs/architecture/BOUNDARIES.md`、`docs/reference/REPO_STRUCTURE.md`、相关 package README；运行受影响包测试、`rtk pnpm exec fallow list --boundaries`、`rtk pnpm exec fallow audit --base main`、`rtk pnpm typecheck`、`rtk pnpm check:docs` 与 `rtk pnpm check:structure`。
 
 ### 工程维护信号偏高
 
@@ -50,7 +50,7 @@
 - [ ] **当前边界：** 不引入跨服务事务、XA/2PC，亦不以 database-per-service 或 PgBouncer 作为当前主线的关闭条件。
 - [ ] **进入条件：** 某服务存在稳定 DB 热点、独立备份/保留或合规需求、连接预算耗尽，或共享实例持续造成跨服务干扰；必须先具备 Tranche 6 的 owner/migration/projection 证据。
 - [ ] **后续落点：** 新建“selective database isolation”细则，按一个 owner service 设计迁移、回填、双读/切换、outbox 兼容、回滚与容量验证。
-- [ ] **要求的文档与测试：** 更新 `docs/architecture/DATABASE_OWNERSHIP.md`、`docs/architecture/components/PERSISTENCE.md`、`docs/reference/DATA_MODEL.md`、`docs/operations/ENVIRONMENT.md`；运行迁移/repository focused tests、distributed acceptance、容量验证、`rtk pnpm typecheck` 与文档守卫。
+- [ ] **要求的文档与测试：** 更新 `docs/archived/architecture/DATABASE_OWNERSHIP.md`、`docs/architecture/components/PERSISTENCE.md`、`docs/reference/DATA_MODEL.md`、`docs/operations/ENVIRONMENT.md`；运行迁移/repository focused tests、distributed acceptance、容量验证、`rtk pnpm typecheck` 与文档守卫。
 
 ### 安全候选与文档事实校准
 
@@ -59,7 +59,7 @@
 - [ ] **当前边界：** 不把 advisory 扫描结果描述为已确认漏洞；不因文档校准改变运行时语义。
 - [ ] **进入条件：** 候选可从外部输入到达危险 sink，或 `SYSTEM_TRUTH_SOURCES.md` 与具体 config/source 再次出现事实冲突。
 - [ ] **后续落点：** 安全候选进入 verify-before-action 安全细则；文档事实冲突进入最小 doc-alignment 修复。
-- [ ] **要求的文档与测试：** 安全项先补可复现测试和数据流证据，再修复及更新 `docs/operations/SECURITY.md`；文档项以权威源码为准更新 reference/architecture 文档并运行 `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。
+- [ ] **要求的文档与测试：** 安全项先补可复现测试和数据流证据，再修复及更新 `docs/operations/SECURITY.md`；文档项以权威源码为准更新 reference/architecture 文档并运行 `rtk pnpm check:docs`、`rtk pnpm check:structure`。
 
 ### 重复工具函数回潮与工厂模式一致性（2026-08-09 分析新增）
 
@@ -70,6 +70,62 @@
 - [ ] **进入条件：** 新增工具函数调用点、修改任一 snapshot backfill、或改动 Consul/discovery 行为时，优先在改动内收敛到 lib 或现有工厂；出现第三次同类复制时新建 scoped tranche。
 - [ ] **后续落点：** 若 `ai-providers` 被纳入 fallow zone 治理，需同步 `.fallowrc.json` 与 `BOUNDARIES.md`；`host-distributed` 的 `normalizeLabels`/`labelKey` 与 `formatPrometheusLabels`（metrics label 排序）可随 observability 平台主线一并收敛。
 - [ ] **要求的文档与测试：** lib 新增函数补单测；受影响包 focused tests；架构边界变化时回写 `docs/architecture/BOUNDARIES.md`；运行 `rtk pnpm exec fallow audit --base main`、`rtk pnpm typecheck`。
+
+### knowledgeRepo listByFilter 桥的 LIMIT 100 暴露（2026-08-12 登记）
+
+- [ ] **来源：** Task 9 断言清零时 host-local 新组装路径（`packages/host-local/src/nest/app.module.ts` 的 `knowledgeProjection` 桥）首次真实暴露：knowledge-read 读侧 `knowledgeRepo.listByFilter` 经桥委托到 knowledge-write owner 的 `knowledgeOwner.listByFilter`，其 SQL（`packages/service-knowledge-write/src/knowledge-projection.ts` 的 `listByFilter`）硬编码 `LIMIT 100`，无分页参数、无契约声明。
+- [ ] **影响：** 读侧按 filter 列举超过 100 条知识条目时会被静默截断；桥两侧 port 签名均为无界数组语义（`Promise<KnowledgeEntryRecord[]>`），调用方无法感知截断，可能造成列表/统计结果不完整。
+- [ ] **当前边界：** 该限制先于桥已存在于 owner 的 projection 实现；本登记项只追语义暴露，不修改 SQL 行为；不做无界扫描，也不在无分页契约下扩大 LIMIT。
+- [ ] **进入条件：** 任一真实读路径出现 >100 条同 filter 命中的知识条目且被截断影响结果正确性；或该桥被新的消费方引用时。
+- [ ] **后续落点：** 给 owner `listByFilter` 增加显式分页/上限契约（offset+limit 或返回 total），桥与 read-side port 同步声明语义，并补覆盖 >100 条命中的测试；回写 `docs/reference/api-surface.md` 与相关 README。
+- [ ] **要求的文档与测试：** 改动集中在 `service-knowledge-write` pg-ports/projection 与 host-local 桥；运行相关包 focused tests、`rtk pnpm typecheck`、`rtk pnpm test:deployment-smoke`；契约变化时回写 reference 文档并跑 `rtk pnpm check:docs`。
+
+### eval:smoke 需 CI 补跑（docker 环境）
+
+- [ ] **来源：** Task 6/9/12 本地无 docker daemon（且无 pgvector 扩展的本地 PG），`rtk pnpm eval:smoke`（`scripts/run-postgres-coordinated.ts` 需临时 `pgvector/pgvector:pg16` 容器）在本地无法完整执行，只能跑无 PG 的离线部分。
+- [ ] **影响：** 检索/摘要/治理/ingestion smoke 判定未经本机全量验证；eval 相关改动（Wave 8 收敛后）的回归证据只到离线部分与单元测试。
+- [ ] **当前边界：** 不把本地跳过当作通过；`pnpm eval:smoke` 仍是 CI 的 eval 门禁（`.github/workflows/eval.yml`），本地报告明确标注"CI 需补跑"。
+- [ ] **进入条件：** 任何检索/摘要/治理/feedback/fixtures/eval runner 改动按 AGENTS.md 要求补 `eval:smoke` 时，在具备 docker/PG 的环境（CI 或本地容器）完整跑一次并将结果回填本条。
+- [ ] **后续落点：** CI 上跑完整 `pnpm eval:smoke` 并把结果摘要写回本登记项；如频繁需要本地完整跑，可评估把 `TRAPMAP_POSTGRES_COORDINATOR_URL` 指向本地 pgvector 实例的开发流程。
+- [ ] **要求的文档与测试：** 补跑后在 `docs/operations/TESTING.md` 的 eval 小节确认无 drift；`rtk pnpm check:docs` 保持通过。
+
+### `test:import-export` 脚本损坏（2026-08-12 登记）
+- [ ] **来源：** Task 8（Wave 5 兼容债清除）验证时发现 `pnpm test:import-export` 在 base `19463ca3` 与主仓库同样失败：`scripts/test-skill-import-export.ts` 从根上下文导入 `@trapmap/service-knowledge-write` 与 `@trapmap/contracts`，但根 `package.json` 仅声明 `@trapmap/ai-providers`、`@trapmap/service-knowledge-read` 为 devDependencies，且 npm script 未传 `--tsconfig tsconfig.base.json`（其 paths 映射可解析所有 @trapmap 包）。`pnpm exec tsx --tsconfig tsconfig.base.json scripts/test-skill-import-export.ts` 可正常通过模块解析。
+- [ ] **影响：** 该脚本实际不可通过 npm script 运行，Skill 导入导出回归检查（AGENTS.md 要求）只能手工带 `--tsconfig` 执行；未被 CI 引用，因此不阻塞 CI。
+- [ ] **当前边界：** 不改变 `scripts/test-skill-import-export.ts` 逻辑；本登记项只追脚本可运行性。
+- [ ] **进入条件：** 任何 Skill artifact import/export 变更需要按 AGENTS.md 补 `test:import-export`，或根 `package.json` devDependencies/脚本定义被重整时。
+- [ ] **后续落点：** 建议修复：npm script 增加 `--tsconfig tsconfig.base.json`，或在根 devDependencies 声明 `@trapmap/service-knowledge-write` 与 `@trapmap/contracts`（`workspace:*`）后重跑 `pnpm install --lockfile-only` 更新锁文件。
+- [ ] **要求的文档与测试：** 修复后运行 `pnpm exec tsx --tsconfig tsconfig.base.json scripts/test-skill-import-export.ts`（需已下载 skill bundles 与 PostgreSQL）验证，并回写 `docs/operations/TESTING.md` 中相关命令说明。
+
+### gateway actorId 字段放宽族（2026-08-13 登记，人类裁决）
+
+- [ ] **状态：** 两类放宽均为**人类裁决的良性放宽候选，待拍板**；本轮（final fix wave）不修改 schema，只登记。
+- [ ] **来源：** final review 对比 `ae34db87`（RouteDef 统一前 `packages/host-distributed/src/gateway/routes.ts` 的 `validateBody` 时代）发现 `packages/host-distributed/src/gateway/route-defs.ts` 在迁移时放宽了两类必填约束：① `actorId` 从 body 必填变为 optional（`updateMemberSchema`、`entryMutationSchema`、`knowledgeSubmitSchema`、`supersedeSchema`、`createTrapSchema`、`knowledgeActionSchema`）；② 部分 query schema 从空串报错变为接受空串（`listTeamsSchema`、`mineQuerySchema`、`listTrapsSchema` 的 `userId`/`teamId` 不再拒绝 `''`）。
+- [ ] **影响：** 语义上由客户端 body 自报 actorId 变为以 gateway auth hook 会话 actor 为准（`requireTrustedActor` + `trustedActorHeaders` 已用 hook actor 覆盖 header），空串 query 会导致服务端收到空过滤条件；两者均无已知真实调用方依赖，属可容忍的契约漂移，但未经人类确认不应永久化。
+- [ ] **当前边界：** 本轮不恢复这些必填约束；`requireTrustedActor` 已保证 handler 侧 actor 来自会话而非客户端 body，空串 query 只影响过滤语义不影响安全。
+- [ ] **进入条件：** 任一真实客户端开始依赖 body.actorId 必填语义（收到 400 而非 201/200），或空串 query 在服务端产生错误过滤结果；或人类拍板恢复旧语义。
+- [ ] **后续落点：** 若拍板恢复：为相关 schema 恢复 `actorId: z.string()` 必填与 query 非空校验（`z.string().min(1)`），并补 400 断言测试；若拍板保留：在本条标注裁决结论后关闭。
+- [ ] **要求的文档与测试：** 改动集中在 `packages/host-distributed/src/gateway/route-defs.ts` 与 `routes.test.ts`；恢复必填时补 400 断言测试并运行 gateway focused tests、`rtk pnpm test:deployment-smoke`、裸 `pnpm typecheck`。
+
+### governance remediation-complete 契约反转已修复（2026-08-13 登记）
+
+- [x] **来源：** final review 发现 `packages/service-governance-review/src/routes.ts` 的 remediation-complete 路由把契约 `.strict()` 反转为 `.passthrough()`（未知键从 400 变透传），契约本体 `packages/contracts/src/domain/feedback.ts` 的 `feedbackRemediationCompleteRequestSchema` 仍是 `.strict()`。链条上被丢过两次：Task 3 deferred → Task 4 留给 DDD → Task 6 未处理。
+- [x] **已修复（2026-08-13）：** 路由 body schema 恢复为直接使用 `feedbackRemediationCompleteRequestSchema`（strict），handler 不再做 `actorId` 剥离（原剥离依赖 `.passthrough()` 放行未知键）。验证：`service-governance-review` routes.test 新增 strict 契约测试（未知键 400 + 干净 body 200，fastify/nest 双 adapter），host-distributed gateway 的 completeRemediation 转发前已由 `requireTrustedActor` 剥离 body.actorId，不受 strict 影响。
+- [ ] **当前边界：** 恢复 strict 后，直接向服务 internal 路由发送含 `actorId` body 的调用方会收到 400；gateway 形态不受影响（转发前剥离 actorId），host-local monolith 不挂载该 internal 路由。
+- [ ] **进入条件：** 若未来出现不经 gateway、直接携带 `actorId` body 调用该 internal 路由的合法消费者，需为其提供显式 actor 透传通道。
+- [ ] **后续落点：** 关闭本条；如发现遗留调用方再重开。
+- [ ] **要求的文档与测试：** 已补 strict 契约测试；相关包 focused tests、`rtk pnpm test:deployment-smoke`、裸 `pnpm typecheck` 通过（见 final fix report）。
+
+### Task 9 listMine 空集 follow-up 补登记（2026-08-13）
+
+- [ ] **状态：** 大概率不实，但作为 dropped follow-up 补登记（该事项在 Task 3/4/6 链条中被丢弃，本次为追溯性登记）。
+- [ ] **来源：** [`../../.superpowers/sdd/2026-08-09-maintainability-rework/task-9-report.md`](../../.superpowers/sdd/2026-08-09-maintainability-rework/task-9-report.md) 记录的遗留：host-local `knowledgeProjection` 桥把 `listByFilter` 委托到 knowledge-write owner；read 侧 `entryProjection.listMine` 按 `ownerUserId` 内存过滤，而 contracts `KnowledgeEntry` 运行时记录无该字段（有 `owner.userId`），`listMine` 可能返回空集。Task 9 明确"该问题超出类型清理范围，建议单独立项（Wave: read-projection wiring）"，但未登记。
+- [ ] **影响：** 若成立，host-local `/v1/knowledge/mine` 与网关 `GET /v1/knowledge/mine` 可能对已有用户返回空列表；无真实用户报告过，且 owner 层 `listByFilter` 的 ownerUserId 过滤语义可能已覆盖该场景，故标记"大概率不实"。
+- [ ] **当前边界：** 本轮不修改 read-side 过滤逻辑，不改变 contracts 字段；仅补登记。
+- [ ] **进入条件：** 任一真实 host-local/distributed 调用方在存在 `owner.userId` 知识条目时调用 listMine 得到空集且可复现。
+- [ ] **后续落点：** 进入条件满足时，在 read-side projection 或桥层按 `owner.userId` 对齐过滤字段，补 host-local 与 distributed 的 listMine 非空回归测试，并回写 `docs/reference/api-surface.md`。
+- [ ] **要求的文档与测试：** 修改集中在 host-local 桥与 knowledge-read projection；运行对应包 focused tests、`rtk pnpm test:deployment-smoke`、裸 `pnpm typecheck`。
+
 
 ## 审核检查表
 

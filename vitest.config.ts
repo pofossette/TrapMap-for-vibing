@@ -49,6 +49,10 @@ const alias = [
     replacement: resolve(__dirname, './packages/ai-providers/src/$1.ts'),
   },
   {
+    find: '@trapmap/ai-providers',
+    replacement: resolve(__dirname, './packages/ai-providers/src/index.ts'),
+  },
+  {
     find: /^@trapmap\/service-knowledge-read\/(.+)\.js$/,
     replacement: resolve(__dirname, './packages/service-knowledge-read/src/$1.ts'),
   },
@@ -87,6 +91,10 @@ const alias = [
   {
     find: '@trapmap/service-job-runtime',
     replacement: resolve(__dirname, './packages/service-job-runtime/src/index.ts'),
+  },
+  {
+    find: '@trapmap/persistence-schema',
+    replacement: resolve(__dirname, './packages/persistence-schema/src/index.ts'),
   },
   {
     find: '@trapmap/client-core',

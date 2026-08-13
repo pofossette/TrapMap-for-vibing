@@ -14,6 +14,8 @@ import type { FeedbackRepositoryPort } from '../../ports/repo-ports.js';
 import {
   GOVERNANCE_REVIEW_OWNED_CAPABILITIES,
   GOVERNANCE_REVIEW_SHORTHAND,
+  INITIAL_FEEDBACK_STATUS,
+  normalizeFeedbackEntryType,
 } from '../domain/index.js';
 
 // ---------------------------------------------------------------------------
@@ -126,7 +128,7 @@ export function createGovernanceReviewModule(deps: GovernanceReviewDeps): Review
       await deps.feedbackRepo.insert({
         id: feedbackId,
         entryId: input.entryId,
-        entryType: record.entryType === 'skill' ? 'skill' : 'trap',
+        entryType: normalizeFeedbackEntryType(record.entryType),
         problemType: input.problemType,
         description: input.description,
         context: record.context ?? null,
@@ -141,7 +143,7 @@ export function createGovernanceReviewModule(deps: GovernanceReviewDeps): Review
         submittedByUserId: input.actorId,
         submittedByHandle:
           typeof record.submittedByHandle === 'string' ? record.submittedByHandle : input.actorId,
-        status: 'new',
+        status: INITIAL_FEEDBACK_STATUS,
         adminNotes: null,
         resolvedAt: null,
         resolvedByUserId: null,

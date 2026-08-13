@@ -84,8 +84,13 @@ export function createOwnerReadModelProjection(
   return {
     getReadModel: () =>
       buildOwnerReadModel({
-        knowledge: options.knowledge as unknown as SkillShareerRepos['knowledge'],
-        artifact: options.artifact as unknown as SkillShareerRepos['artifact'],
+        knowledge: options.knowledge as unknown as SkillShareerRepos['knowledge'], // lib type gap: the
+        // owner port returns contracts KnowledgeEntry records while the retrieval
+        // read model consumes the internal KnowledgeRecord shape — the same runtime
+        // projection rows, structurally distinct at the type level
+        artifact: options.artifact as unknown as SkillShareerRepos['artifact'], // lib type gap: the
+        // owner port returns contracts artifact records while the retrieval read
+        // model consumes the internal SkillArtifactRecord shape — same runtime rows
         governanceRetrievalProjection: options.governance,
         usageAnalytics: null,
         graphIndex: null,

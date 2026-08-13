@@ -61,7 +61,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 | `packages/host-local/src/nest/observability/langfuse.service.ts` | local Langfuse client、privacy filter 和 provider-observation sink。 |
 | `packages/host-distributed/src/shared/telemetry.ts` | distributed OTel bootstrap、context propagation 和 shutdown。 |
 | `packages/host-distributed/src/shared/observability.ts` | distributed metrics registry/export。 |
-| `packages/host-distributed/src/shared/sentry.ts` | distributed optional Sentry adapter。 |
+| distributed optional Sentry adapter | 未实现（当前仅 host-local 提供 Sentry 适配器）。 |
 | `packages/host-distributed/src/shared/` (langfuse 未实现) | distributed runtime Langfuse adapter；仅在该 host 创建 AI provider 时接线。当前未创建该文件。 |
 | `evals/lib/platform/langfuse-adapter.ts` | 显式 Langfuse eval mirror，不能作为 eval 判定来源。 |
 | `docs/architecture/OBSERVABILITY.md` | 已实现能力、ownership 和非目标。 |
@@ -92,7 +92,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Files:**
 - Modify: `docs/reference/DOCS_TRUTH_MATRIX.md`, `docs/reference/SYSTEM_TRUTH_SOURCES.md`
-- Modify: `docs/architecture/OBSERVABILITY.md`, `docs/operations/ENVIRONMENT.md`, `docs/operations/OBSERVABILITY-VERIFICATION.md`
+- Modify: `docs/architecture/OBSERVABILITY.md`, `docs/operations/ENVIRONMENT.md`, `docs/archived/operations/OBSERVABILITY-VERIFICATION.md`
 - Test: focused reference-guard fixtures added in Task 3
 
 **Consumes:** current package layout and host-owned OTel implementation.
@@ -230,7 +230,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - Modify: `packages/contracts/src/domain/observability-config.ts`, `packages/contracts/src/domain/observability-config.test.ts`
 - Modify: `packages/host-local/src/nest/observability/sentry.service.ts`, `sentry.service.test.ts`, `sentry.module.ts`
 - Modify: `packages/host-local/src/nest/runtime/exception.filter.ts`, its test, and local async terminal-failure owners
-- Modify: `packages/host-distributed/src/shared/sentry.ts`, `sentry.test.ts`, each distributed service startup/shutdown composition root, and async terminal-failure owners
+- Create: distributed shared optional Sentry adapter（当前不存在）、其测试、各 distributed service startup/shutdown composition root 与 async terminal-failure owners
 - Modify: `packages/contracts/src/domain/log-schema.ts` and its test only where newly reachable event shapes require redaction coverage
 - Modify: `docs/operations/ENVIRONMENT.md`, `docs/operations/SECURITY.md`, `docs/architecture/OBSERVABILITY.md`
 
@@ -255,7 +255,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - Modify: `packages/host-local/src/nest/runtime/shared-infra.ts` and add/modify `packages/host-local/src/nest/observability/langfuse.service.ts` with focused tests
 - Modify: `packages/host-distributed/src/shared/` (langfuse adapter, if created) and its tests only where a distributed composition root constructs AI providers; do not create a speculative distributed client otherwise
 - Modify: `evals/lib/platform/langfuse-adapter.ts`, `langfuse-config.ts`, their tests, and `evals/scripts/__tests__/eval-all.test.ts`
-- Modify: `docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md`, `docs/architecture/OBSERVABILITY.md`, `docs/operations/ENVIRONMENT.md`, `docs/operations/SECURITY.md`, and `docs/operations/TESTING.md`
+- Modify: `docs/archived/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md`, `docs/architecture/OBSERVABILITY.md`, `docs/operations/ENVIRONMENT.md`, `docs/operations/SECURITY.md`, and `docs/operations/TESTING.md`
 
 **Consumes:** `ChatProvider`/`EmbeddingsProvider`, host-local `createAiProviders(config.ai)` composition seam, existing explicit eval Langfuse mirror, OTel correlation context, and shared redaction policy.
 
@@ -275,7 +275,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Files:**
 - Modify: `.github/workflows/ci.yml`, `scripts/run-ci.ts`, `package.json`
-- Modify: `docs/operations/OBSERVABILITY-VERIFICATION.md`, `OBSERVABILITY-OPERATIONS.md`, `REGRESSION-COMMANDS.md`, `TESTING.md`, `CI_CD.md`, `SECURITY.md`
+- Modify: `docs/archived/operations/OBSERVABILITY-VERIFICATION.md`, `OBSERVABILITY-OPERATIONS.md`, `REGRESSION-COMMANDS.md`, `TESTING.md`, `CI_CD.md`, `SECURITY.md`
 - Create: focused observability/Sentry/Langfuse live verification script or extend existing `scripts/observability-benchmark.ts` with no-secret modes
 - Modify: this plan with actual closeout evidence
 

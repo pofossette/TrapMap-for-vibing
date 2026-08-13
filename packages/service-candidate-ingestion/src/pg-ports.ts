@@ -1,4 +1,10 @@
 import type { CandidateRepositoryPort } from '@trapmap/backend-core';
+import {
+  isStatusUpdateNoop,
+  sameAnalysis,
+  sameDuplicateCase,
+  sameManualResult,
+} from '@trapmap/backend-core';
 import type {
   AnalysisSnapshot,
   CandidateStatus,
@@ -9,11 +15,16 @@ import type {
   ResolutionOutcome,
 } from '@trapmap/contracts';
 import { nowIso } from '@trapmap/lib';
-import type { Pool, PoolClient } from 'pg';
 
-type Queryable = Pick<Pool, 'query'>;
-type TransactionPool = Pick<Pool, 'connect'>;
-type TransactionClient = Pick<PoolClient, 'query' | 'release'>;
+interface Queryable {
+  query<T = Record<string, unknown>>(sql: string, values?: unknown[]): Promise<{ rows: T[] }>;
+}
+export interface TransactionClient extends Queryable {
+  release(): void;
+}
+export interface TransactionPool extends Queryable {
+  connect(): Promise<TransactionClient>;
+}
 type Row = Record<string, unknown>;
 
 export interface CandidateDuplicateCaseRepository {
@@ -87,14 +98,21 @@ function rowToCandidate(row: Row): CandidateSubmission {
 }
 
 async function updateCandidateStatus(
-  client: Pick<PoolClient, 'query'>,
+  client: TransactionClient,
   candidateId: string,
   status: CandidateStatus,
   error?: string,
 ): Promise<void> {
   const existing = await lockCandidate(client, candidateId);
   const errorMessage = error ?? 'Unknown error';
-  if (existing.status === status && (status !== 'error' || existing.last_error === errorMessage))
+  if (
+    isStatusUpdateNoop(
+      existing.status as string,
+      existing.last_error as string | null,
+      status,
+      error,
+    )
+  )
     return;
 
   const now = nowIso();
@@ -208,7 +226,7 @@ function rowToLineage(row: Row): EntityLineage {
   };
 }
 
-async function lockCandidate(client: Pick<PoolClient, 'query'>, candidateId: string): Promise<Row> {
+async function lockCandidate(client: TransactionClient, candidateId: string): Promise<Row> {
   const { rows } = await client.query(
     'SELECT id, status, last_error, retry_count FROM candidates WHERE id = $1 FOR UPDATE',
     [candidateId],
@@ -218,33 +236,8 @@ async function lockCandidate(client: Pick<PoolClient, 'query'>, candidateId: str
   return candidate;
 }
 
-function sameJson(left: unknown, right: unknown): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function sameAnalysis(existing: AnalysisSnapshot, incoming: AnalysisSnapshot): boolean {
-  return sameJson(existing, incoming);
-}
-
-function sameManualResult(
-  existing: NonNullable<CandidateSubmission['manualResult']>,
-  incoming: ManualResultSubmission,
-  reviewedBy: string,
-): boolean {
-  return (
-    existing.decision === incoming.decision &&
-    existing.notes === incoming.notes &&
-    existing.submittedBy === reviewedBy &&
-    sameJson(existing.mergedWith, incoming.mergedWith)
-  );
-}
-
-function sameDuplicateCase(existing: DuplicateCase, incoming: DuplicateCase): boolean {
-  return sameJson(existing, incoming);
-}
-
 async function writeAnalysis(
-  client: Pick<PoolClient, 'query'>,
+  client: TransactionClient,
   candidateId: string,
   snapshot: AnalysisSnapshot,
 ): Promise<void> {
@@ -266,7 +259,7 @@ async function writeAnalysis(
 }
 
 async function writeDuplicateCase(
-  client: Pick<PoolClient, 'query'>,
+  client: TransactionClient,
   duplicateCase: DuplicateCase,
 ): Promise<boolean> {
   const existing = await readDuplicateCaseFromClient(client, duplicateCase.id);
@@ -315,7 +308,7 @@ async function writeDuplicateCase(
 }
 
 async function writeManualResult(
-  client: Pick<PoolClient, 'query'>,
+  client: TransactionClient,
   candidateId: string,
   result: ManualResultSubmission,
   reviewedBy: string,
@@ -348,11 +341,11 @@ async function readDuplicateCase(
   pool: Queryable,
   duplicateCaseId: string,
 ): Promise<DuplicateCase | null> {
-  return readDuplicateCaseFromClient(pool, duplicateCaseId);
+  return readDuplicateCaseFromClient(pool as TransactionClient, duplicateCaseId);
 }
 
 async function readDuplicateCaseFromClient(
-  client: Pick<PoolClient, 'query'>,
+  client: TransactionClient,
   duplicateCaseId: string,
 ): Promise<DuplicateCase | null> {
   const { rows } = await client.query('SELECT * FROM candidate_duplicate_cases WHERE id = $1', [
@@ -367,7 +360,9 @@ async function readDuplicateCaseFromClient(
   return rowToDuplicateCase(caseRow, matches.rows as Row[]);
 }
 
-export function createCandidateIngestionPgOwnerBundle(pool: Pool): CandidateIngestionPgOwnerBundle {
+export function createCandidateIngestionPgOwnerBundle(
+  pool: TransactionPool,
+): CandidateIngestionPgOwnerBundle {
   const candidateRepo: CandidateRepositoryPort = {
     async insert(candidate) {
       await withTransaction(pool, async (client) => {

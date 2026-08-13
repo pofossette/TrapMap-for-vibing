@@ -9,9 +9,11 @@
  * - Use-case patterns (commands, review flows, retrieval, job scheduling)
  * - Bounded-context modules (identity, knowledge, candidates, governance, jobs)
  * - Invocation model (sync/async contracts, error taxonomy)
+ * - Framework-neutral HTTP route contract + thin Nest/Fastify adapters
  * - Testing utilities (stub implementations of all ports)
  *
- * This package does NOT depend on Fastify, pg, or any specific infrastructure.
+ * Business code does NOT depend on Fastify, pg, or any specific infrastructure.
+ * The only framework-touching surface is the optional `http` adapters module.
  * Host assemblies (local-agent, team-monolith, distributed) provide concrete
  * implementations of the port interfaces defined here.
  */
@@ -45,6 +47,11 @@ export * from './use-cases/index.js';
 // Invocation model
 // ---------------------------------------------------------------------------
 export * from './invocation/index.js';
+
+// ---------------------------------------------------------------------------
+// HTTP route contract (framework-neutral RouteDef + Nest/Fastify adapters)
+// ---------------------------------------------------------------------------
+export * from './http/index.js';
 
 // ---------------------------------------------------------------------------
 // Testing utilities

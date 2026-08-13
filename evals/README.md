@@ -55,7 +55,7 @@ pnpm eval -- label-alignment --tier smoke --mode dry-run
 pnpm eval -- label-alignment --tier core --mode dry-run
 
 # 从持久化 badcase trace 导出 eval draft
-pnpm exec tsx scripts/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
+pnpm exec tsx scripts/archived/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
 ```
 
 兼容别名 `pnpm eval:smoke`、`pnpm eval:core`、`pnpm eval:retrieval:*`、`pnpm eval:summary:*`、`pnpm eval:agent-planning:*`、`pnpm eval:label-alignment:*` 仍可用；统一入口由 `scripts/run-eval.ts` 提供，完整选项可通过 `pnpm eval -- --help` 查看。
@@ -102,15 +102,18 @@ evals/
 ├── agent-planning/
 │   ├── README.md                # 路径规划对比评测文档
 │   ├── run.ts                   # 运行器入口
-│   ├── smoke.ts / core.ts       # 分层数据集导出
-│   ├── datasets/                # case 数据
-│   ├── scenarios/               # task/context 场景
+│   ├── smoke.ts                 # Smoke 层级数据集导出
+│   ├── core.ts                  # Core 层级数据集导出（re-export archived 数据，手动 tier）
+│   ├── datasets/smoke/          # smoke case 数据
+│   ├── scenarios/smoke/         # smoke 任务/上下文场景
+│   ├── archived/                # Wave 8 归档的 core datasets/scenarios（手动 tier）
 │   └── lib/                     # actor/judge/scoring/report 基础设施
 ├── label-alignment/
 │   ├── README.md                # 标签对齐评测文档
 │   ├── run.ts                   # 运行器入口
-│   ├── smoke.ts / core.ts       # 分层导出
-│   ├── fixtures/                # 标注 Skill fixture
+│   ├── smoke.ts / core.ts       # 分层导出（core re-export archived fixture）
+│   ├── fixtures/smoke.ts        # smoke 标注 Skill fixture
+│   ├── archived/fixtures/       # Wave 8 归档的 core fixture（手动 tier）
 │   └── lib/                     # recall/decision/metrics/report 基础设施
 ├── graph-extraction/
 │   ├── README.md                # 图提取评测文档
@@ -126,7 +129,8 @@ evals/
     ├── adapter.ts               # 摄取适配器
     ├── assertions.ts            # 摄取断言
     ├── metrics.ts               # 摄取指标
-    └── fixtures/                # 摄取用例固定数据
+    ├── fixtures/                # 摄取 smoke fixture 固定数据
+    └── archived/fixtures/       # Wave 8 归档的 core fixture（手动 tier）
 ├── promptfoo/                   # promptfoo 执行引擎共享基建
 │   ├── types.ts                 # SuiteBridge 接口与统一结果类型
 │   ├── runner.ts                # runSuiteWithPromptfoo（惰性 import promptfoo）
@@ -183,6 +187,30 @@ rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts
 
 CI 中 `.github/workflows/eval.yml` 的 `eval-parity` job（blocking）在 `evals/**` 相关的 PR 上
 运行全部六个 parity 测试，无需 API key。
+
+## Suite 所有权与变更门禁
+
+每个 suite 有明确 owner 与变更门禁；改动对应 suite 时，owner 必须跑通该 suite 的
+最小验证集合（见下表），并在 PR 描述中给出证据。CI 门禁是 `eval:smoke`（eval-all
+aggregate）与 `eval-parity`（六套 parity 快照）；两者只保证 smoke tier 与已提交
+快照，不保证 core tier。
+
+| Suite | Owner | Tier 状态 | 变更必跑门禁 |
+|-------|-------|-----------|--------------|
+| `retrieval` | 检索召回/路由 owner（service-knowledge-read 检索面） | smoke=CI gate；core=保留 | `rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts` + `rtk pnpm eval:retrieval:smoke` |
+| `summary` | 摘要 owner（service-knowledge-read 摘要面） | smoke=CI gate；core=保留 | `rtk pnpm test:file -- evals/promptfoo/parity-summary.test.ts` + `rtk pnpm eval:summary:smoke` |
+| `graph-extraction` | 图提取 owner（service-knowledge-read graph + ai-providers） | smoke=CI gate；core=保留 | `rtk pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts` + `rtk pnpm eval:graph-extraction:smoke` |
+| `agent-planning` | agent-planning eval owner | smoke=CI gate；core=已归档（`archived/`，手动 tier） | `rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts` + `rtk pnpm test:file -- evals/agent-planning/runner.test.ts` |
+| `label-alignment` | label-alignment eval owner | smoke=CI gate；core=已归档（`archived/`，手动 tier） | `rtk pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts` + `rtk pnpm test:file -- evals/label-alignment/core.test.ts` |
+| `ingestion` | ingestion eval owner | smoke=CI gate；core=已归档（`archived/`，手动 tier） | `rtk pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts` + `rtk pnpm eval:ingestion:smoke` |
+| `promptfoo` 基建与快照 | 全部 suite owner 共同维护 | 快照为提交产物 | 修改 runner/provider/assertion 后：`pnpm eval:snapshots` 重生成快照并提交 + 六个 parity 测试全绿 |
+
+tier 约定：
+
+- **smoke** 是唯一 CI 门禁 tier，任何 suite 变更不得破坏 smoke 的 runner/import 链。
+- **core** tier：`retrieval`/`summary`/`graph-extraction` 保留为 active；`agent-planning`/`label-alignment`/`ingestion` 的 core 数据已在 Wave 8 归档到各自 `archived/` 目录，`core.ts` 聚合器 re-export archived 数据，`--tier core` 仍可手动运行（manual tier），但不进 CI。
+- 归档文件不再维护内部链接（sourcePath 等字符串引用属历史参考）。
+
 
 ## Phase 状态
 

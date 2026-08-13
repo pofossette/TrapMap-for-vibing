@@ -97,7 +97,7 @@ describe('ArtifactWritePort', () => {
     const port = createArtifactWritePort({
       connect: vi.fn(),
       query: vi.fn(),
-    } as never);
+    });
 
     expect(Object.keys(port).sort()).toEqual(
       [
@@ -116,7 +116,7 @@ describe('ArtifactWritePort', () => {
 
   it('persists an imported artifact and its revision in one owner transaction', async () => {
     const { calls, client, pool } = createTransactionPool(() => ({ rows: [] }));
-    const port = createArtifactWritePort(pool as never);
+    const port = createArtifactWritePort(pool);
 
     await port.insert(artifactFixture());
 
@@ -137,7 +137,7 @@ describe('ArtifactWritePort', () => {
       if (sql.includes('INSERT INTO artifact_revisions')) throw new Error('revision unavailable');
       return { rows: [] };
     });
-    const port = createArtifactWritePort(pool as never);
+    const port = createArtifactWritePort(pool);
 
     await expect(port.insert(artifactFixture())).rejects.toThrow('revision unavailable');
 
@@ -150,7 +150,7 @@ describe('ArtifactWritePort', () => {
 describe('ArtifactBundleImportPort', () => {
   it('persists a normalized bundle and its payloads in one owner transaction', async () => {
     const { calls, client, pool } = createTransactionPool(() => ({ rows: [] }));
-    const importer = createArtifactBundleImportPort(pool as never);
+    const importer = createArtifactBundleImportPort(pool);
 
     const artifact = await importer.importBundle(bundleFixture(), {
       actorId: 'owner-1',
@@ -180,7 +180,7 @@ describe('ArtifactBundleImportPort', () => {
 
   it('rejects traversal paths before opening an owner transaction', async () => {
     const { client, pool } = createTransactionPool(() => ({ rows: [] }));
-    const importer = createArtifactBundleImportPort(pool as never);
+    const importer = createArtifactBundleImportPort(pool);
     const bundle = bundleFixture();
     bundle.files[0]!.path = '../outside.md';
 
@@ -224,7 +224,7 @@ describe('ArtifactFilePayloadOwner', () => {
         return { rows: [] };
       }),
     };
-    const owner = createArtifactFilePayloadOwner(pool as never);
+    const owner = createArtifactFilePayloadOwner(pool);
 
     await owner.put({
       artifactId: 'artifact-1',
@@ -280,7 +280,7 @@ describe('ArtifactReadProjection', () => {
       return { rows: [] };
     });
 
-    const projection = createArtifactReadProjection({ query } as never);
+    const projection = createArtifactReadProjection({ query });
 
     await expect(projection.getById('artifact-1')).resolves.toEqual(
       expect.objectContaining({ requiredLevel: 8 }),
@@ -326,7 +326,7 @@ describe('ArtifactReadProjection', () => {
       }
       return { rows: [] };
     });
-    const projection = createArtifactReadProjection({ query } as never);
+    const projection = createArtifactReadProjection({ query });
 
     await expect(projection.getIndexingEntry('artifact-1')).resolves.toMatchObject({
       id: 'artifact-1',
@@ -382,7 +382,7 @@ describe('ArtifactReadProjection', () => {
     });
 
     await expect(
-      createArtifactReadProjection({ query } as never).listIndexingEntries({ offset: 1, limit: 2 }),
+      createArtifactReadProjection({ query }).listIndexingEntries({ offset: 1, limit: 2 }),
     ).resolves.toEqual({
       entries: [
         expect.objectContaining({ id: 'artifact-1', revision: 3 }),
