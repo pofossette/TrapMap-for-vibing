@@ -282,4 +282,48 @@ describe('Nest host gateway surface (RouteDef-driven)', () => {
 
     await app.close();
   });
+
+  it('should not expose any /internal/* routes on the monolith HTTP surface', async () => {
+    const mockPort = createMockPort();
+    const app = await createTestApp(mockPort);
+    const fastifyApp = app.getHttpAdapter().getInstance() as {
+      inject(input: {
+        method: string;
+        url: string;
+        headers?: Record<string, string>;
+        payload?: unknown;
+      }): Promise<{ statusCode: number }>;
+    };
+
+    const responses = await Promise.all([
+      fastifyApp.inject({
+        method: 'GET',
+        url: '/internal/knowledge/entry-1',
+        headers: { authorization: 'Bearer test-token' },
+      }),
+      fastifyApp.inject({
+        method: 'GET',
+        url: '/internal/knowledge/mine?userId=user-1',
+        headers: { authorization: 'Bearer test-token' },
+      }),
+      fastifyApp.inject({
+        method: 'POST',
+        url: '/internal/feedback/admin',
+        headers: { authorization: 'Bearer test-token' },
+        payload: {},
+      }),
+      fastifyApp.inject({
+        method: 'POST',
+        url: '/internal/candidates',
+        headers: { authorization: 'Bearer test-token' },
+        payload: { id: 'candidate-1', content: 'x', submittedBy: 'user-1' },
+      }),
+    ]);
+
+    for (const response of responses) {
+      expect(response.statusCode).toBe(404);
+    }
+
+    await app.close();
+  });
 });

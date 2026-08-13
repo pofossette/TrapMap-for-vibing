@@ -174,7 +174,7 @@ const feedbackAdminRemediationCompleteSchema = z.object({
   params: z.object({ entryId: z.string() }),
   query: emptyRecord,
   headers: headersSchema,
-  body: feedbackRemediationCompleteRequestSchema.passthrough(),
+  body: feedbackRemediationCompleteRequestSchema,
 });
 
 const healthSchema = z.object({
@@ -459,11 +459,10 @@ export function createGovernanceReviewRouteDefs(
         if (!module.admin) {
           throw InvocationError.unavailable('Feedback admin unavailable');
         }
-        const { actorId: _bodyActorId, ...command } = ctx.body;
         return module.admin.completeRemediation({
           actorId: actor,
           entryId: ctx.params.entryId,
-          command,
+          command: ctx.body,
         });
       },
     }),

@@ -304,6 +304,43 @@ describe.each(ADAPTERS)('service-governance-review routes (%s adapter)', (adapte
     await app.close();
   });
 
+  it('enforces the strict remediation-complete contract and strips nothing', async () => {
+    const completeRemediation = vi.fn(async () => ({ entryId: 'entry-1' }));
+    const admin: GovernanceReviewAdminPort = {
+      list: vi.fn(),
+      stats: vi.fn(),
+      batch: vi.fn(),
+      listRemediation: vi.fn(),
+      getRemediation: vi.fn(),
+      completeRemediation,
+    };
+    const app = await buildApp(createModule({ admin }), adapter);
+
+    const cleanBody = await app.inject({
+      method: 'POST',
+      url: '/internal/feedback/admin/remediation/entry-1/complete',
+      headers: { 'x-trapmap-actor-id': 'admin-1' },
+      payload: { notes: 'reindexed' },
+    });
+    expect(cleanBody.statusCode).toBe(200);
+    expect(completeRemediation).toHaveBeenCalledWith({
+      actorId: 'admin-1',
+      entryId: 'entry-1',
+      command: { notes: 'reindexed' },
+    });
+
+    const unknownKey = await app.inject({
+      method: 'POST',
+      url: '/internal/feedback/admin/remediation/entry-1/complete',
+      headers: { 'x-trapmap-actor-id': 'admin-1' },
+      payload: { notes: 'reindexed', unexpectedKey: 'rejected' },
+    });
+    expect(unknownKey.statusCode).toBe(400);
+    expect(completeRemediation).toHaveBeenCalledTimes(1);
+
+    await app.close();
+  });
+
   it('serves the retrieval projection through an internal governance-review route', async () => {
     const governanceRetrievalProjection = {
       listFeedback: vi.fn(async () => [

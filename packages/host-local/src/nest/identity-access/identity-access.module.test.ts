@@ -47,7 +47,7 @@ async function createTestApp(mockPort: IdentityAccessPort) {
 }
 
 describe('host-local identity-access module', () => {
-  it('serves identity-access RouteDefs through the Nest adapter', async () => {
+  it('serves the credential login routes through the Nest adapter', async () => {
     const mockPort = createMockPort();
     const { app, fastifyApp } = await createTestApp(mockPort);
 
@@ -59,49 +59,45 @@ describe('host-local identity-access module', () => {
     expect(login.statusCode).toBe(200);
     expect(mockPort.login).toHaveBeenCalledWith('alice', 'secret');
 
-    const teams = await fastifyApp.inject({
-      method: 'POST',
-      url: '/internal/teams',
-      headers: { authorization: 'Bearer test-token' },
-      payload: { name: 'Alpha', slug: 'alpha', actorId: 'user-1' },
-    });
-    expect(teams.statusCode).toBe(201);
-
-    const health = await fastifyApp.inject({
-      method: 'GET',
-      url: '/internal/health',
-      headers: { authorization: 'Bearer test-token' },
-    });
-    expect(health.statusCode).toBe(200);
-    expect(health.json()).toMatchObject({ service: 'identity-access', status: 'ok' });
-
-    await app.close();
-  });
-
-  it('keeps credential routes open and guards the rest', async () => {
-    const mockPort = createMockPort();
-    const { app, fastifyApp } = await createTestApp(mockPort);
-
-    const login = await fastifyApp.inject({
-      method: 'POST',
-      url: '/internal/auth/login',
-      payload: { handle: 'alice', password: 'secret' },
-    });
-    expect(login.statusCode).toBe(200);
-
     const systemAdminLogin = await fastifyApp.inject({
       method: 'POST',
       url: '/internal/auth/system-admin-login',
       payload: { systemAdminKey: 'key' },
     });
     expect(systemAdminLogin.statusCode).toBe(200);
+    expect(mockPort.loginSystemAdmin).toHaveBeenCalledWith('key');
 
-    const guardedWithoutSession = await fastifyApp.inject({
+    await app.close();
+  });
+
+  it('does not mount non-login internal routes on the monolith surface', async () => {
+    const mockPort = createMockPort();
+    const { app, fastifyApp } = await createTestApp(mockPort);
+
+    const teams = await fastifyApp.inject({
       method: 'POST',
       url: '/internal/teams',
+      headers: { authorization: 'Bearer test-token' },
       payload: { name: 'Alpha', slug: 'alpha', actorId: 'user-1' },
     });
-    expect(guardedWithoutSession.statusCode).toBe(401);
+    expect(teams.statusCode).toBe(404);
+    expect(mockPort.createTeam).not.toHaveBeenCalled();
+
+    const health = await fastifyApp.inject({
+      method: 'GET',
+      url: '/internal/health',
+      headers: { authorization: 'Bearer test-token' },
+    });
+    expect(health.statusCode).toBe(404);
+
+    const members = await fastifyApp.inject({
+      method: 'POST',
+      url: '/internal/members',
+      headers: { authorization: 'Bearer test-token' },
+      payload: { teamId: 'team-1', userId: 'user-2', role: 'member', actorId: 'user-1' },
+    });
+    expect(members.statusCode).toBe(404);
+    expect(mockPort.addMember).not.toHaveBeenCalled();
 
     await app.close();
   });

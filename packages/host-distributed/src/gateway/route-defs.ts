@@ -173,6 +173,18 @@ function queryStringValues(query: Record<string, unknown>): Record<string, strin
 // Schemas
 // ---------------------------------------------------------------------------
 
+/**
+ * `z.unknown()` accepts `undefined`, so a missing/undefined field would
+ * pass validation and be forwarded as `undefined`; this requires the field
+ * to be present with a non-null, non-undefined value (the pre-RouteDef
+ * `validateBody` semantics).
+ */
+const requiredDefinedValue = z
+  .unknown()
+  .refine((value): value is unknown => value !== undefined && value !== null, {
+    message: 'Required',
+  });
+
 const actorHeadersSchema = z.object({
   params: emptyRecord,
   query: emptyRecord,
@@ -331,9 +343,14 @@ const candidateListSchema = z.object({
   body: z.unknown(),
 });
 
-const candidateMutationSchema = actorHeadersSchema.extend({
+const candidateResolutionSchema = actorHeadersSchema.extend({
   params: z.object({ candidateId: z.string() }),
-  body: z.record(z.string(), z.unknown()),
+  body: z.object({ resolution: requiredDefinedValue }).passthrough(),
+});
+
+const candidateManualResultSchema = actorHeadersSchema.extend({
+  params: z.object({ candidateId: z.string() }),
+  body: z.object({ result: requiredDefinedValue }).passthrough(),
 });
 
 const reviewDecisionSchema = z.object({
@@ -408,7 +425,7 @@ const scheduleJobSchema = z.object({
   query: emptyRecord,
   body: z.object({
     type: z.string(),
-    payload: z.unknown(),
+    payload: requiredDefinedValue,
     delayMs: z.number().optional(),
     priority: z.number().optional(),
     maxAttempts: z.number().optional(),
@@ -819,7 +836,7 @@ export function createGatewayRouteDefs(_clients: InternalServiceClients): RouteD
     gatewayRouteDef({
       method: 'POST',
       path: '/v1/candidates/:candidateId/resolution',
-      schema: candidateMutationSchema,
+      schema: candidateResolutionSchema,
       handler: async (ctx, clients) => {
         const trusted = requireTrustedActor(ctx);
         return forward(
@@ -837,7 +854,7 @@ export function createGatewayRouteDefs(_clients: InternalServiceClients): RouteD
     gatewayRouteDef({
       method: 'POST',
       path: '/v1/candidates/:candidateId/manual-result',
-      schema: candidateMutationSchema,
+      schema: candidateManualResultSchema,
       handler: async (ctx, clients) => {
         const trusted = requireTrustedActor(ctx);
         return forward(

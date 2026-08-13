@@ -97,6 +97,36 @@
 - [ ] **后续落点：** 建议修复：npm script 增加 `--tsconfig tsconfig.base.json`，或在根 devDependencies 声明 `@trapmap/service-knowledge-write` 与 `@trapmap/contracts`（`workspace:*`）后重跑 `pnpm install --lockfile-only` 更新锁文件。
 - [ ] **要求的文档与测试：** 修复后运行 `pnpm exec tsx --tsconfig tsconfig.base.json scripts/test-skill-import-export.ts`（需已下载 skill bundles 与 PostgreSQL）验证，并回写 `docs/operations/TESTING.md` 中相关命令说明。
 
+### gateway actorId 字段放宽族（2026-08-13 登记，人类裁决）
+
+- [ ] **状态：** 两类放宽均为**人类裁决的良性放宽候选，待拍板**；本轮（final fix wave）不修改 schema，只登记。
+- [ ] **来源：** final review 对比 `ae34db87`（RouteDef 统一前 `packages/host-distributed/src/gateway/routes.ts` 的 `validateBody` 时代）发现 `packages/host-distributed/src/gateway/route-defs.ts` 在迁移时放宽了两类必填约束：① `actorId` 从 body 必填变为 optional（`updateMemberSchema`、`entryMutationSchema`、`knowledgeSubmitSchema`、`supersedeSchema`、`createTrapSchema`、`knowledgeActionSchema`）；② 部分 query schema 从空串报错变为接受空串（`listTeamsSchema`、`mineQuerySchema`、`listTrapsSchema` 的 `userId`/`teamId` 不再拒绝 `''`）。
+- [ ] **影响：** 语义上由客户端 body 自报 actorId 变为以 gateway auth hook 会话 actor 为准（`requireTrustedActor` + `trustedActorHeaders` 已用 hook actor 覆盖 header），空串 query 会导致服务端收到空过滤条件；两者均无已知真实调用方依赖，属可容忍的契约漂移，但未经人类确认不应永久化。
+- [ ] **当前边界：** 本轮不恢复这些必填约束；`requireTrustedActor` 已保证 handler 侧 actor 来自会话而非客户端 body，空串 query 只影响过滤语义不影响安全。
+- [ ] **进入条件：** 任一真实客户端开始依赖 body.actorId 必填语义（收到 400 而非 201/200），或空串 query 在服务端产生错误过滤结果；或人类拍板恢复旧语义。
+- [ ] **后续落点：** 若拍板恢复：为相关 schema 恢复 `actorId: z.string()` 必填与 query 非空校验（`z.string().min(1)`），并补 400 断言测试；若拍板保留：在本条标注裁决结论后关闭。
+- [ ] **要求的文档与测试：** 改动集中在 `packages/host-distributed/src/gateway/route-defs.ts` 与 `routes.test.ts`；恢复必填时补 400 断言测试并运行 gateway focused tests、`rtk pnpm test:deployment-smoke`、裸 `pnpm typecheck`。
+
+### governance remediation-complete 契约反转已修复（2026-08-13 登记）
+
+- [x] **来源：** final review 发现 `packages/service-governance-review/src/routes.ts` 的 remediation-complete 路由把契约 `.strict()` 反转为 `.passthrough()`（未知键从 400 变透传），契约本体 `packages/contracts/src/domain/feedback.ts` 的 `feedbackRemediationCompleteRequestSchema` 仍是 `.strict()`。链条上被丢过两次：Task 3 deferred → Task 4 留给 DDD → Task 6 未处理。
+- [x] **已修复（2026-08-13）：** 路由 body schema 恢复为直接使用 `feedbackRemediationCompleteRequestSchema`（strict），handler 不再做 `actorId` 剥离（原剥离依赖 `.passthrough()` 放行未知键）。验证：`service-governance-review` routes.test 新增 strict 契约测试（未知键 400 + 干净 body 200，fastify/nest 双 adapter），host-distributed gateway 的 completeRemediation 转发前已由 `requireTrustedActor` 剥离 body.actorId，不受 strict 影响。
+- [ ] **当前边界：** 恢复 strict 后，直接向服务 internal 路由发送含 `actorId` body 的调用方会收到 400；gateway 形态不受影响（转发前剥离 actorId），host-local monolith 不挂载该 internal 路由。
+- [ ] **进入条件：** 若未来出现不经 gateway、直接携带 `actorId` body 调用该 internal 路由的合法消费者，需为其提供显式 actor 透传通道。
+- [ ] **后续落点：** 关闭本条；如发现遗留调用方再重开。
+- [ ] **要求的文档与测试：** 已补 strict 契约测试；相关包 focused tests、`rtk pnpm test:deployment-smoke`、裸 `pnpm typecheck` 通过（见 final fix report）。
+
+### Task 9 listMine 空集 follow-up 补登记（2026-08-13）
+
+- [ ] **状态：** 大概率不实，但作为 dropped follow-up 补登记（该事项在 Task 3/4/6 链条中被丢弃，本次为追溯性登记）。
+- [ ] **来源：** [`../../.superpowers/sdd/2026-08-09-maintainability-rework/task-9-report.md`](../../.superpowers/sdd/2026-08-09-maintainability-rework/task-9-report.md) 记录的遗留：host-local `knowledgeProjection` 桥把 `listByFilter` 委托到 knowledge-write owner；read 侧 `entryProjection.listMine` 按 `ownerUserId` 内存过滤，而 contracts `KnowledgeEntry` 运行时记录无该字段（有 `owner.userId`），`listMine` 可能返回空集。Task 9 明确"该问题超出类型清理范围，建议单独立项（Wave: read-projection wiring）"，但未登记。
+- [ ] **影响：** 若成立，host-local `/v1/knowledge/mine` 与网关 `GET /v1/knowledge/mine` 可能对已有用户返回空列表；无真实用户报告过，且 owner 层 `listByFilter` 的 ownerUserId 过滤语义可能已覆盖该场景，故标记"大概率不实"。
+- [ ] **当前边界：** 本轮不修改 read-side 过滤逻辑，不改变 contracts 字段；仅补登记。
+- [ ] **进入条件：** 任一真实 host-local/distributed 调用方在存在 `owner.userId` 知识条目时调用 listMine 得到空集且可复现。
+- [ ] **后续落点：** 进入条件满足时，在 read-side projection 或桥层按 `owner.userId` 对齐过滤字段，补 host-local 与 distributed 的 listMine 非空回归测试，并回写 `docs/reference/api-surface.md`。
+- [ ] **要求的文档与测试：** 修改集中在 host-local 桥与 knowledge-read projection；运行对应包 focused tests、`rtk pnpm test:deployment-smoke`、裸 `pnpm typecheck`。
+
+
 ## 审核检查表
 
 - [ ] 每次新问题录入都标注来源、影响、分类、证据和进入条件。
