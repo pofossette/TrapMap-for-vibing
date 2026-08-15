@@ -65,7 +65,8 @@
 
 - [x] **来源：** [`../archived/reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md`](../archived/reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md) 人工分析：2026-08-08 lib 迁移主体无回潮，但发现 5 类新重复（`hashSecret`×3、`asRecord`×2 逐字、`normalize*`×6、前缀 ID×5、`Math.random().toString(36)`×4）、死代码（`store-utils.ts`、`cached-discovery.ts`+`round-robin-selector.ts` 零生产消费者），以及 3 处工厂失范（`createLabelReadProjection` 命名不符、gateway discovery 链内联重复 `new`、backend-core 两套 discovery 实现重叠）。
 - [x] **已缓解（2026-08-09）：** 新增 lib `normalizeLabel`/`asRecord`/`prefixedId`（含单测 12 例）；`hashSecret`×3 改用 lib `sha256`；`asRecord`×2、`normalizeLabel`×5（labels 4 处 + llm-extract-ids 重导出）、前缀 ID×5、`Math.random` ID×4、`nextSubId` 全部收敛；删除死代码 `store-utils.ts`、`cached-discovery.ts`+`round-robin-selector.ts`（含测试与 README 示例）；`createLabelReadProjection` 改名 `createPgLabelRepository`；gateway 新增 `createGatewayDiscovery` 工厂消除重复构造；`ai-providers`/`service-job-runtime` 新增 `@trapmap/lib` 依赖与 tsconfig reference。验证：受影响包测试全绿、`pnpm typecheck` 无错误、`fallow audit --base main` 无 changed-file issue。
-- [ ] **遗留（有意保留，见 lib 源码注释）：** `truncateForPrompt`、`internal-client.ts` AbortController timeout、`processing-task-queue.ts` poll 等待、`graph-align.ts` 的 `[^a-z0-9]+` 归一化、`contracts` 与 `host-distributed` 的 `isRecord`（数组排除语义不同）、`contracts/graph-query.ts` 私有 `normalizeGraphLabel`（contracts 不得反向依赖 lib）。
+- [ ] **遗留（有意保留，见 lib 源码注释）：** `truncateForPrompt`、`internal-client.ts` AbortController timeout、`processing-task-queue.ts` poll 等待、`graph-align.ts` 的 `[^a-z0-9]+` 归一化、`contracts` 与 `host-distributed` 的 `isRecord`（数组排除语义不同）。
+- [x] **遗留项更新（2026-08-15）：** 原遗留项中的 `contracts/graph-query.ts` 私有 `normalizeGraphLabel` 已随 Task 8（图算法/parsing 下沉）删除；contracts 仍保持"不得反向依赖 lib"的约束。其余遗留项保持有意保留。
 - [ ] **当前边界：** 不触发无范围的全仓重构；`web-panel` 未开放 `lib` 依赖（`parseJsonDraft` 与 `parseJsonWithSchema` 的近似重复不属合并范围）。
 - [ ] **进入条件：** 新增工具函数调用点、修改任一 snapshot backfill、或改动 Consul/discovery 行为时，优先在改动内收敛到 lib 或现有工厂；出现第三次同类复制时新建 scoped tranche。
 - [ ] **后续落点：** 若 `ai-providers` 被纳入 fallow zone 治理，需同步 `.fallowrc.json` 与 `BOUNDARIES.md`；`host-distributed` 的 `normalizeLabels`/`labelKey` 与 `formatPrometheusLabels`（metrics label 排序）可随 observability 平台主线一并收敛。
@@ -82,10 +83,10 @@
 
 ### eval:smoke 需 CI 补跑（docker 环境）
 
-- [ ] **来源：** Task 6/9/12 本地无 docker daemon（且无 pgvector 扩展的本地 PG），`rtk pnpm eval:smoke`（`scripts/run-postgres-coordinated.ts` 需临时 `pgvector/pgvector:pg16` 容器）在本地无法完整执行，只能跑无 PG 的离线部分。
+- [ ] **来源：** Task 6/9/12/13 本地无 docker daemon（且无 pgvector 扩展的本地 PG），`rtk pnpm eval:smoke`（`scripts/run-postgres-coordinated.ts` 需临时 `pgvector/pgvector:pg16` 容器）在本地无法完整执行，只能跑无 PG 的离线部分。
 - [ ] **影响：** 检索/摘要/治理/ingestion smoke 判定未经本机全量验证；eval 相关改动（Wave 8 收敛后）的回归证据只到离线部分与单元测试。
 - [ ] **当前边界：** 不把本地跳过当作通过；`pnpm eval:smoke` 仍是 CI 的 eval 门禁（`.github/workflows/eval.yml`），本地报告明确标注"CI 需补跑"。
-- [ ] **进入条件：** 任何检索/摘要/治理/feedback/fixtures/eval runner 改动按 AGENTS.md 要求补 `eval:smoke` 时，在具备 docker/PG 的环境（CI 或本地容器）完整跑一次并将结果回填本条。
+- [ ] **进入条件：** 任何检索/摘要/治理/feedback/fixtures/eval runner 改动按 AGENTS.md 要求补 `eval:smoke` 时，在具备 docker/PG 的环境（CI 或本地容器）完整跑一次并将结果回填本条。**Dead Code and Architecture Order Cleanup 主线 closeout（Task 13）后必须在 CI 完整补跑一轮**：本轮涉及 evals 双轨 runner 合并（Task 6）、eval import 边界/@eval-only 标记守卫（Task 12）与全量清理，线上回归证据目前仅到离线部分。
 - [ ] **后续落点：** CI 上跑完整 `pnpm eval:smoke` 并把结果摘要写回本登记项；如频繁需要本地完整跑，可评估把 `TRAPMAP_POSTGRES_COORDINATOR_URL` 指向本地 pgvector 实例的开发流程。
 - [ ] **要求的文档与测试：** 补跑后在 `docs/operations/TESTING.md` 的 eval 小节确认无 drift；`rtk pnpm check:docs` 保持通过。
 
@@ -125,6 +126,128 @@
 - [ ] **进入条件：** 任一真实 host-local/distributed 调用方在存在 `owner.userId` 知识条目时调用 listMine 得到空集且可复现。
 - [ ] **后续落点：** 进入条件满足时，在 read-side projection 或桥层按 `owner.userId` 对齐过滤字段，补 host-local 与 distributed 的 listMine 非空回归测试，并回写 `docs/reference/api-surface.md`。
 - [ ] **要求的文档与测试：** 修改集中在 host-local 桥与 knowledge-read projection；运行对应包 focused tests、`rtk pnpm test:deployment-smoke`、裸 `pnpm typecheck`。
+### candidates 表双份已单源化（2026-08-15 closeout 登记）
+
+- [x] **来源：** 2026-08-15 六路审查确认 `persistence-schema/src/candidates.ts`（7 表）与 `service-candidate-ingestion/src/schema.ts`（本地 7 表，未声明依赖）双份定义已漂移。
+- [x] **已修复（本主线）：** Task 3 将 candidate-ingestion `schema.ts` 改为 `export * from '@trapmap/persistence-schema'` 并补依赖声明；Task 7 diff 两副本列差异（auditTimestamps 工厂、CHECK 集合、列顺序），以经迁移验证的本地版为准补齐 persistence-schema 后单源化；Task 12 落地 pgTable 单源守卫（`check:pgtable-single-source`）阻断复发。验证：service-candidate-ingestion pg-ports/migrations 测试全绿、表清单守卫 64=64、全量回归通过。
+- [ ] **当前边界：** 单源约束已由守卫强制；遗留差异只剩迁移 SQL 的 3 个 legacy JSONB 列（见下方独立条目）。
+- [ ] **进入条件/后续落点：** 关闭本条；如未来任一 service 包重新定义 pgTable，由 `check:pgtable-single-source` 直接阻断（守卫单测 9 例覆盖正反例）。
+- [ ] **要求的文档与测试：** 已含 guard 单测与迁移测试；无额外要求。
+
+### vitest.config.ts fastify 别名漂移已修复（2026-08-15 closeout 登记）
+
+- [x] **来源：** Task 4 验证时发现 `vitest.config.ts` 硬编码 `fastify@5.8.4` 而 lockfile 已解析 `fastify@5.8.5`；主仓库因 store 残留旧目录侥幸通过，全新 worktree/CI 安装必然失败。
+- [x] **已修复：** 别名更新为 `fastify@5.8.5` 与 lockfile 对齐（Task 4 附带 1 行修复）。
+- [ ] **当前边界/进入条件/后续落点：** 关闭本条；如再出现版本漂移，建议检查 vitest 别名与 lockfile 的一致性守卫。
+- [ ] **要求的文档与测试：** 无额外要求。
+
+### web-panel real admin 路径不可运行（2026-08-15 登记）
+
+- [ ] **来源：** 六路审查 web-panel 车道 + Task 5 验证：`packages/web-panel/src/services/api/admin-panel-api.ts` 的 5 个 `/api/admin/*` 路径（runtime-overview、reviews/:id、json-edits、activity、artifacts）全仓无后端实现（host/service 零路由）；客户端经 `@trapmap/client-core` 的 `apiRequest` 调用，但登录后 token 不回填（web-panel 只有手动 copy-token UX，`SessionProvider` 未接登录回填），real 模式实际不可用；`VITE_ADMIN_PANEL_API_MODE=mock` 是唯一可用模式。
+- [ ] **影响：** web-panel admin 面板在 real 模式（生产构建拒绝 mock）下所有 admin 端点 404/未授权，不能作为真实管理控制台使用；`/api/admin/*` 属于无后端实现的前端死路径。
+- [ ] **当前边界：** 本轮不实现后端、不改 token 流程；mock 模式维持现状。
+- [ ] **进入条件：** 需要 web-panel 承担真实管理控制台职责（存在操作员/管理员用户故事）时。
+- [ ] **后续落点：** 新建 web-panel real 接入细则：按 RouteDef 工厂补齐 `/api/admin/*` 路由（或改用已有 `/v1` 表面），登录成功后会话 token 回填 `SessionProvider`，补集成测试。
+- [ ] **要求的文档与测试：** 更新 `packages/web-panel/README.md` 与 host 路由面文档；运行 host/service 相关包测试、`rtk pnpm test:deployment-smoke`、`rtk pnpm typecheck`、`rtk pnpm check:docs`。
+
+### capability-model 拆分（2026-08-15 登记）
+
+- [ ] **来源：** 六路审查 backend-core 车道：`packages/backend-core/src/runtime/capability-model.ts` 单文件 510 行，类型定义/默认值/校验/推导混合并承担宿主 capability 组合职责。
+- [ ] **影响：** 新增能力维度或宿主接入时改动集中、审查困难；单文件行数已接近复杂度预算（Task 1 后 capability-model.test.ts 改用 stub，仍保留 510 行主体）。
+- [ ] **当前边界：** 本轮不拆分（行为不变硬约束）。
+- [ ] **进入条件：** capability-model.ts 行数超出复杂度预算、新增维度需要独立校验/推导单元，或出现第三个宿主消费方。
+- [ ] **后续落点：** 在 backend-core runtime 内拆为 types/defaults/validation/resolution 模块，补能力组合单测。
+- [ ] **要求的文档与测试：** 相关包 focused tests、`rtk pnpm typecheck`、`rtk pnpm exec fallow audit --base main`。
+
+### OTel 双份接线收敛（2026-08-15 登记）
+
+- [ ] **来源：** 六路审查 hosts 车道：host-local（nest observability 模块）与 host-distributed（`shared/telemetry.ts` + `gateway/internal-observability.ts` + `shared/observability.ts`）各维护一套 OTel/指标接线，规则与导出语义存在两份实现。
+- [ ] **影响：** OTel 语义调整需双处同步，漂移风险高；host-local 与 distributed 的 metrics/span 行为可能不一致。
+- [ ] **当前边界：** 本轮不合并（涉及两个宿主 runtime 行为，属大重构）。
+- [ ] **进入条件：** 出现需双宿主同步修改的 OTel 语义变更（span 属性、采样策略、脱敏规则），或指标口径在两侧被证实不一致。
+- [ ] **后续落点：** 提取共享 OTel 接线支持（backend-core 或 lib），两宿主经同一 API 接线，host-local 与 host-distributed 只保留组合。
+- [ ] **要求的文档与测试：** 更新 `docs/architecture/OBSERVABILITY.md`；运行 `rtk pnpm test:observability-closeout`、`rtk pnpm test:deployment-smoke`、`rtk pnpm typecheck`。
+
+### Consul 双份实现收敛（2026-08-15 登记）
+
+- [ ] **来源：** 六路审查 hosts 车道：host-local 维护 NestJS `service-discovery/consul.module.ts`+`consul.service.ts`，host-distributed 维护 framework-free `gateway/consul-discovery-adapter.ts`+`discovery-factory.ts`（实现 backend-core `DiscoveryPort`），两套 Consul 发现实现并行。
+- [ ] **影响：** Consul 健康检查/KV/重试语义双处漂移；服务发现行为验证需覆盖两个实现。
+- [ ] **当前边界：** 本轮不合并。
+- [ ] **进入条件：** Consul 行为（健康检查、KV、重试）需双宿主一致修改，或出现真实 Consul 故障归因不一致。
+- [ ] **后续落点：** 以 `DiscoveryPort` 为准统一 framework-free adapter，host-local 迁到同一实现或共用 backend-core discovery 支持。
+- [ ] **要求的文档与测试：** 更新 `docs/architecture/SERVICE-DISCOVERY.md`；运行 `rtk pnpm test:discovery-closeout`、`rtk pnpm test:deployment-smoke`。
+
+### EvalSeedPort 收窄（2026-08-15 登记）
+
+- [ ] **来源：** 六路审查 evals 车道：eval seed 能力经共享端口对 eval runner 全量开放，暴露面过宽，缺少最小化接口；收窄属大重构，本主线明确不实施。
+- [ ] **影响：** eval seed 写入面与产品写路径耦合，新增 seed 源或写路径语义变化时需同步评估 eval 面。
+- [ ] **当前边界：** 本轮不实施。
+- [ ] **进入条件：** 新增 eval seed 源、或产品写路径语义变化影响 seed 端口签名、或 evals 出现绕过 seed 端口直写行为。
+- [ ] **后续落点：** 将 seed 端口收窄为最小契约（只暴露 eval 需要的 seed 能力），其余写路径回到产品端口。
+- [ ] **要求的文档与测试：** evals focused tests、`rtk pnpm eval:smoke`（CI）、`rtk pnpm typecheck`。
+
+### internal-client review/governanceReview 双组合并（2026-08-15 登记）
+
+- [ ] **来源：** 六路审查 hosts 车道：`packages/host-distributed/src/gateway/internal-client.ts`（928 行）的 `review` 与 `governanceReview` 两组 7 方法逐字重复（同一 governance-review 服务的两个 URL key：`urls.review`/`urls.governanceReview`；`governanceReview` 额外含 getRetrievalProjection/reactivateRemediation/exportBadcaseDraft）。
+- [ ] **影响：** 方法签名/路径改动需双处同步；新增内部方法要复制两份。
+- [ ] **当前边界：** 本轮不合并（涉及 gateway 客户端语义与 baseUrl 选择逻辑）。
+- [ ] **进入条件：** governance-review 内部接口新增/变更方法时，或 `urls.review`/`urls.governanceReview` 任一 URL key 被确认可退役。
+- [ ] **后续落点：** 合并为单组并按 baseUrl 来源选择 URL key（或统一为一个 URL key），补 gateway 客户端测试。
+- [ ] **要求的文档与测试：** host-distributed gateway focused tests、`rtk pnpm test:deployment-smoke`、`rtk pnpm typecheck`。
+
+### host-distributed shared/ports.ts 业务下沉（2026-08-15 登记）
+
+- [ ] **来源：** 六路审查 hosts 车道：`packages/host-distributed/src/shared/ports.ts`（353 行，其中 109-302）宿主直接手写检索/队列/outbox SQL 实现（宿主应只做装配，SQL 应留在 service pg-ports 或 backend-core 端口实现）。
+- [ ] **影响：** 宿主持有业务 SQL，绕过 service 包 pg-ports 与 domain 规则；SQL 逻辑在宿主与 service 间可能漂移。
+- [ ] **当前边界：** 本轮不迁移（宿主行为不变硬约束；迁移涉及 distributed 装配面）。
+- [ ] **进入条件：** `shared/ports.ts` 任一 SQL 实现出现行为不一致修复，或 service 包 pg-ports 签名变化使宿主实现可自然替换。
+- [ ] **后续落点：** 宿主改消费对应 service 包/backend-core 的端口实现，`shared/ports.ts` 只保留装配与组合。
+- [ ] **要求的文档与测试：** 更新 `docs/architecture/BOUNDARIES.md` 与服务发现相关文档；运行 `rtk pnpm test:distributed-closeout`、`rtk pnpm test:deployment-smoke`。
+
+### candidates 3 个 legacy JSONB 列（2026-08-15 登记）
+
+- [ ] **来源：** Task 7 迁移 SQL 与 persistence-schema diff：`service-candidate-ingestion/drizzle` 迁移 baseline 的 `candidates` 表含 `analysis_snapshot`/`duplicate_case`/`manual_result` 3 个 legacy nullable JSONB 列，persistence-schema 单源定义无这些列（注释明确为结构化拆分替代品）；两份定义从未同步过（溯源至更早基线重生成时保留旧列）。
+- [ ] **影响：** 实际应用迁移后 DB 比单源 schema 多 3 个零代码消费的列，表结构与单源不一致。
+- [ ] **当前边界：** 本轮不动迁移 SQL；表清单守卫刻意不覆盖迁移 SQL。
+- [ ] **进入条件：** 需对已有环境 DB 做结构迁移/重建基线时（需先确认无数据依赖）。
+- [ ] **后续落点：** 新增 0001 迁移 `ALTER TABLE candidates DROP COLUMN ...`（或重建基线），回写 `DATABASE_SCHEMA.md`。
+- [ ] **要求的文档与测试：** service-candidate-ingestion migrations 测试、表清单守卫、`rtk pnpm test:deployment-smoke`。
+
+### task_queue_type_dedupe_idx 冗余索引（2026-08-15 登记）
+
+- [ ] **来源：** Task 11 索引对比：`packages/persistence-schema/src/queue.ts` 的 `task_queue_type_dedupe_idx`（非部分，`(type, dedupe_key)`）与 `task_queue_dedupe_pending_idx`（部分唯一，`status IN ('pending','running')` 同列组）覆盖同一列组；唯一消费 `(type, dedupe_key)` 的 dedupe 回查（`async-runtime.ts:120`，条件 `status IN ('pending','running')`）被部分唯一索引完全覆盖，终态行无该组合查询。
+- [ ] **影响：** 冗余非唯一索引增加写入开销与索引维护成本（量级小，非功能缺陷）。
+- [ ] **当前边界：** 本轮只确认冗余不删除——`0000_sharp_old_lace.sql` 是已应用迁移，原地修改需按团队约定走新迁移或重建基线。
+- [ ] **进入条件：** 索引清理/迁移基线重建任务窗口（建议与 candidates JSONB 列、store_snapshot 同批）。
+- [ ] **后续落点：** `queue.ts` 移除定义 + 新迁移 `DROP INDEX`（或重建基线），补 async-runtime 回归测试。
+- [ ] **要求的文档与测试：** service-job-runtime 测试、`rtk pnpm test:deployment-smoke`、表清单守卫。
+
+### store_snapshot 幽灵表（2026-08-15 登记）
+
+- [ ] **来源：** Task 11/12 发现 `service-identity-access/drizzle/0000_identity_access_baseline.sql` 仍 `CREATE TABLE store_snapshot`（Wave-9 已删除模块的迁移残留），persistence-schema 无此表；六个 service drizzle baseline 共建 66 张 CREATE TABLE（64 建模 + `conflict_relations` 未建模 + `store_snapshot` 残留）。
+- [ ] **影响：** 全新环境应用迁移后创建已退役表；迁移 SQL 与单源表清单不一致。
+- [ ] **当前边界：** 表清单守卫以 persistence-schema（64 表）为权威且明确不覆盖迁移 SQL；`conflict_relations` 属同族未建模表（governance-review 独立 baseline），随服务演进一并裁决。
+- [ ] **进入条件：** 迁移 SQL 重建/收敛窗口（建议与 candidates JSONB 列、dedupe 索引同批）。
+- [ ] **后续落点：** 从 identity-access 迁移 SQL 删除 `store_snapshot` CREATE TABLE（或迁入 persistence-schema 若仍需保留），同步 `conflict_relations` 裁决。
+- [ ] **要求的文档与测试：** identity-access migrations 测试、`rtk pnpm test:deployment-smoke`、表清单守卫。
+
+### host-distributed Dockerfile 冗余 COPY client-core（2026-08-15 登记）
+
+- [ ] **来源：** Task 4 移除两 host `@trapmap/client-core` 依赖后，`packages/host-distributed/Dockerfile` 与 `dockerfile.test.ts` 仍 COPY client-core（镜像构建冗余，超出 Task 4 范围未动）。
+- [ ] **影响：** 镜像构建复制无消费者的包目录，构建面与依赖面不一致（无害）。
+- [ ] **当前边界：** 本轮未动。
+- [ ] **进入条件：** 镜像构建/Dockerfile 清理任务窗口。
+- [ ] **后续落点：** Dockerfile 移除 COPY client-core 行并同步 `dockerfile.test.ts` 断言。
+- [ ] **要求的文档与测试：** `dockerfile.test.ts`、`rtk pnpm test:deployment-smoke`。
+
+### web-panel 5 个预存测试失败（2026-08-15 登记）
+
+- [ ] **来源：** Task 5 验证发现 web-panel 测试 `9 failed | 4 passed (13 files)` / `5 failed | 10 passed (15 tests)`，干净 HEAD 复跑得到一致失败画像（`admin-panel-service-context.test.ts` 等 stubEnv/MODE 相关），属与主链改动无关的预存失败。
+- [ ] **影响：** web-panel 测试门禁实际不可绿，其改动回归信号被淹没。
+- [ ] **当前边界：** 本轮不修（web-panel 未纳入本主线文件域）。
+- [ ] **进入条件：** web-panel 任何功能改动需要跑其测试，或 web-panel 被纳入 CI 门禁时。
+- [ ] **后续落点：** 修复 stubEnv/MODE 环境模拟（对齐 vitest 环境变量注入），补全 web-panel 测试配置。
+- [ ] **要求的文档与测试：** web-panel 全量测试恢复全绿后回写 `docs/operations/TESTING.md`。
 
 
 ## 审核检查表
