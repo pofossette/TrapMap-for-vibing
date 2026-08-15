@@ -212,15 +212,9 @@ importers:
       '@opentelemetry/semantic-conventions':
         specifier: ^1.41.1
         version: 1.41.1
-      '@sentry/node':
-        specifier: ^9.0.0
-        version: 9.47.1
       '@trapmap/backend-core':
         specifier: workspace:*
         version: link:../backend-core
-      '@trapmap/client-core':
-        specifier: workspace:*
-        version: link:../client-core
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
@@ -309,9 +303,6 @@ importers:
       '@trapmap/backend-core':
         specifier: workspace:*
         version: link:../backend-core
-      '@trapmap/client-core':
-        specifier: workspace:*
-        version: link:../client-core
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts

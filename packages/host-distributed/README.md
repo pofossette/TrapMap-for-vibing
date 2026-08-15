@@ -92,7 +92,6 @@ The gateway exposes a REST API under `/v1/`. All non-public endpoints require a 
 | GET | `/ready` | Readiness probe |
 | GET | `/metrics` | Prometheus metrics |
 | POST | `/v1/auth/login` | Authenticate (handle+password or systemAdminKey) |
-| POST | `/v1/auth/register` | Register new user |
 
 ### Auth (`/v1/auth/`)
 
