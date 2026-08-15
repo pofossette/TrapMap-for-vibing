@@ -19,6 +19,7 @@
     "skipLibCheck": true,
     "paths": {
       "@trapmap/ai-providers": ["./packages/ai-providers/src/index.ts"],
+      "@trapmap/ai-providers/*": ["./packages/ai-providers/src/*"],
       "@trapmap/backend-core": ["./packages/backend-core/src/index.ts"],
       "@trapmap/backend-core/*": ["./packages/backend-core/src/*"],
       "@trapmap/client-core": ["./packages/client-core/src/index.ts"],

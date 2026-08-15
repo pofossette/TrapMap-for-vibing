@@ -329,7 +329,7 @@
       "mustContain": [
         "Documentation validation / observability platform mainline",
         "Documentation Validation and Observability Platform",
-        "`doc-guardrails` job runs `pnpm check:docs`、`pnpm check:structure`、`pnpm check:asserts`、`pnpm check:deps` 和 `pnpm check:complexity`",
+        "`doc-guardrails` job runs `pnpm check:docs`、`pnpm check:structure`、`pnpm check:asserts`、`pnpm check:table-schema`、`pnpm check:pgtable-single-source`、`pnpm check:eval-imports`、`pnpm check:eval-only`、`pnpm check:deps` 和 `pnpm check:complexity`",
         "docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md"
       ]
     },
@@ -373,7 +373,7 @@
       "file": "docs/operations/CI_CD.md",
       "mustContain": [
         "Node.js 24 + pnpm 10.33.0",
-        "`doc-guardrails` | `pnpm check:docs` + `pnpm check:structure` + `pnpm check:asserts` + `pnpm check:deps` + `pnpm check:complexity`",
+        "`doc-guardrails` | `pnpm check:docs` + `pnpm check:structure` + `pnpm check:asserts` + `pnpm check:table-schema` + `pnpm check:pgtable-single-source` + `pnpm check:eval-imports` + `pnpm check:eval-only` + `pnpm check:deps` + `pnpm check:complexity`",
         "`pnpm run ci`",
         "`pnpm eval:ci`",
         "`pnpm eval:ci:core`",

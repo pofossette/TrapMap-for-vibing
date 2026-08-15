@@ -467,6 +467,10 @@ capability parity with `light`.
 | Deployment smoke | `pnpm test:deployment-smoke` | profile / preset / runtime / route exposure / CLI gateway-only 关键切片 |
 | Runtime foundations | `pnpm test:runtime-foundations` | runtime metadata / readiness / ownership / startup foundations |
 | 文档守卫 | `pnpm check:docs` + `pnpm check:structure` | 文档叙事与命令示例一致性、目录规则 |
+| 表清单守卫 | `pnpm check:table-schema` | `persistence-schema` 的 64 张 `pgTable` vs `DATABASE_SCHEMA.md` 表清单 diff（缺表/幽灵表/分节计数不一致即失败） |
+| pgTable 单源守卫 | `pnpm check:pgtable-single-source` | service 包 src 内禁止直接 `pgTable(...)`，schema.ts 只允许 re-export `@trapmap/persistence-schema` |
+| Eval import 边界守卫 | `pnpm check:eval-imports` | evals 只允许经 `@trapmap/*` 包名、`packages/contracts/**`、host-local allowlist、`@eval-only` 模块接入 packages |
+| @eval-only 标记守卫 | `pnpm check:eval-only` | 仅被 evals 引用且无产品消费者的模块必须带 `@eval-only` 头注释 |
 | Eval smoke | `pnpm eval:smoke` | **仅在**检索/摘要/治理/feedback/eval runner 相关改动时纳入 |
 
 `packages/host-local/src/nest/**` 若有改动，应额外运行其包级测试或 focused Nest 相关测试；但它当前不是 root `dev:local-agent` / `dev:team-monolith` 的默认入口。
@@ -679,6 +683,17 @@ pnpm check:docs
 # 检查热点文件是否在行数预算内（规则见 scripts/complexity-budgets.json lineBudgets）
 pnpm check:complexity
 ```
+
+涉及数据库表、evals 导入关系或 eval-only 模块的改动，还应运行表清单 / pgTable 单源 / eval import 边界 / @eval-only 四类防复发守卫：
+
+```bash
+pnpm check:table-schema
+pnpm check:pgtable-single-source
+pnpm check:eval-imports
+pnpm check:eval-only
+```
+
+表清单守卫以 `packages/persistence-schema/src/` 的 64 张 `pgTable` 为权威；`store_snapshot` 属迁移 SQL 历史残留，不在守卫范围内。CI 中由 `doc-guardrails` job 自动执行。
 
 CI 中由 `doc-guardrails` job 自动执行。本地开发时可在改动 Mermaid 图、热点文件或架构文档后手动运行。
 

@@ -1,3 +1,11 @@
+/**
+ * @eval-only — product code has zero consumers; this module is imported
+ * only by the evals retrieval runner (evals/retrieval/lib/adapters.ts).
+ * It is intentionally NOT exported from the package index.
+ *
+ * Knowledge record construction helpers for eval fixture seeding.
+ */
+
 import type {
   AgentReviewRecord,
   AgentReviewResult,

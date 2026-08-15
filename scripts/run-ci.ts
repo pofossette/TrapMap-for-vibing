@@ -87,6 +87,26 @@ const STEPS: StepDefinition[] = [
     command: 'pnpm',
     args: ['run', 'check:asserts'],
   },
+  {
+    name: 'check:table-schema',
+    command: 'pnpm',
+    args: ['run', 'check:table-schema'],
+  },
+  {
+    name: 'check:pgtable-single-source',
+    command: 'pnpm',
+    args: ['run', 'check:pgtable-single-source'],
+  },
+  {
+    name: 'check:eval-imports',
+    command: 'pnpm',
+    args: ['run', 'check:eval-imports'],
+  },
+  {
+    name: 'check:eval-only',
+    command: 'pnpm',
+    args: ['run', 'check:eval-only'],
+  },
 ];
 
 // ---------------------------------------------------------------------------

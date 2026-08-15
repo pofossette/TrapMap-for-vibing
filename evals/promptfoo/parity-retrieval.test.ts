@@ -18,12 +18,12 @@ import { readFileSync } from 'node:fs';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { runCandidateIngestionMigrations } from '../../packages/service-candidate-ingestion/src/migrations.js';
-import { runGovernanceReviewMigrations } from '../../packages/service-governance-review/src/migrations.js';
-import { runIdentityAccessMigrations } from '../../packages/service-identity-access/src/migrations.js';
-import { runJobRuntimeMigrations } from '../../packages/service-job-runtime/src/migrations.js';
-import { runKnowledgeReadMigrations } from '../../packages/service-knowledge-read/src/migrations.js';
-import { runKnowledgeWriteMigrations } from '../../packages/service-knowledge-write/src/migrations.js';
+import { runCandidateIngestionMigrations } from '@trapmap/service-candidate-ingestion';
+import { runGovernanceReviewMigrations } from '@trapmap/service-governance-review';
+import { runIdentityAccessMigrations } from '@trapmap/service-identity-access';
+import { runJobRuntimeMigrations } from '@trapmap/service-job-runtime';
+import { runKnowledgeReadMigrations } from '@trapmap/service-knowledge-read';
+import { runKnowledgeWriteMigrations } from '@trapmap/service-knowledge-write';
 
 import { retrievalBridge } from '../retrieval/bridge.js';
 import { runSuiteWithPromptfoo } from './runner.js';

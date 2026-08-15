@@ -1,4 +1,9 @@
 /**
+ * @eval-only — product code has zero consumers; this module is imported
+ * only by the evals ingestion bridge (evals/ingestion/bridge.ts) and the
+ * skill annotation script (evals/scripts/annotate-skills.ts).
+ * It is intentionally NOT exported from the package index.
+ *
  * Retrieval-grade derivation from actual file content (Phase 14 Task 1).
  *
  * These functions derive profile/capsule content from actual SKILL.md and reference

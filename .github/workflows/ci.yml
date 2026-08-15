@@ -163,5 +163,9 @@ jobs:
       - run: pnpm check:docs
       - run: pnpm check:structure
       - run: pnpm check:asserts
+      - run: pnpm check:table-schema
+      - run: pnpm check:pgtable-single-source
+      - run: pnpm check:eval-imports
+      - run: pnpm check:eval-only
       - run: pnpm check:deps
       - run: pnpm check:complexity
