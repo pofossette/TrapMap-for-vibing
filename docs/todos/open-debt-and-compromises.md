@@ -143,12 +143,12 @@
 
 ### web-panel real admin 路径不可运行（2026-08-15 登记）
 
-- [ ] **来源：** 六路审查 web-panel 车道 + Task 5 验证：`packages/web-panel/src/services/api/admin-panel-api.ts` 的 5 个 `/api/admin/*` 路径（runtime-overview、reviews/:id、json-edits、activity、artifacts）全仓无后端实现（host/service 零路由）；客户端经 `@trapmap/client-core` 的 `apiRequest` 调用，但登录后 token 不回填（web-panel 只有手动 copy-token UX，`SessionProvider` 未接登录回填），real 模式实际不可用；`VITE_ADMIN_PANEL_API_MODE=mock` 是唯一可用模式。
+- [ ] **来源：** 六路审查 web-panel 车道 + Task 5 验证：`apps/web-panel/src/services/api/admin-panel-api.ts` 的 5 个 `/api/admin/*` 路径（runtime-overview、reviews/:id、json-edits、activity、artifacts）全仓无后端实现（host/service 零路由）；客户端经 `@trapmap/client-core` 的 `apiRequest` 调用，但登录后 token 不回填（web-panel 只有手动 copy-token UX，`SessionProvider` 未接登录回填），real 模式实际不可用；`VITE_ADMIN_PANEL_API_MODE=mock` 是唯一可用模式。
 - [ ] **影响：** web-panel admin 面板在 real 模式（生产构建拒绝 mock）下所有 admin 端点 404/未授权，不能作为真实管理控制台使用；`/api/admin/*` 属于无后端实现的前端死路径。
 - [ ] **当前边界：** 本轮不实现后端、不改 token 流程；mock 模式维持现状。
 - [ ] **进入条件：** 需要 web-panel 承担真实管理控制台职责（存在操作员/管理员用户故事）时。
 - [ ] **后续落点：** 新建 web-panel real 接入细则：按 RouteDef 工厂补齐 `/api/admin/*` 路由（或改用已有 `/v1` 表面），登录成功后会话 token 回填 `SessionProvider`，补集成测试。
-- [ ] **要求的文档与测试：** 更新 `packages/web-panel/README.md` 与 host 路由面文档；运行 host/service 相关包测试、`pnpm test:deployment-smoke`、`pnpm typecheck`、`pnpm check:docs`。
+- [ ] **要求的文档与测试：** 更新 `apps/web-panel/README.md` 与 host 路由面文档；运行 host/service 相关包测试、`pnpm test:deployment-smoke`、`pnpm typecheck`、`pnpm check:docs`。
 
 ### capability-model 拆分（2026-08-15 登记）
 

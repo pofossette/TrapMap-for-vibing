@@ -42,7 +42,7 @@
 
 ### CLI 变更
 
-- 先读：[`packages/cli/src/index.ts`](packages/cli/src/index.ts)、[`packages/cli/src/commands/`](packages/cli/src/commands/)、[`packages/cli/README.md`](packages/cli/README.md)
+- 先读：[`apps/cli/src/index.ts`](apps/cli/src/index.ts)、[`apps/cli/src/commands/`](apps/cli/src/commands/)、[`apps/cli/README.md`](apps/cli/README.md)
 - 权威事实：[`package.json`](package.json) 中根脚本、[`docs/reference/SYSTEM_TRUTH_SOURCES.md`](docs/reference/SYSTEM_TRUTH_SOURCES.md) 的 startup/root command 条目
 - 最小验证：`pnpm --filter @trapmap/cli test --run <test-path>`；必要时补 `pnpm test:deployment-smoke`
 - 必须同步：命令入口、CLI 使用方式、网关接入模型变化时，更新 [`README.md`](README.md)、[`docs/architecture/CLI.md`](docs/architecture/CLI.md)、相关 guide/README
