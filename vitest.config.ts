@@ -23,11 +23,11 @@ const alias = [
   },
   {
     find: /^@trapmap\/cli\/(.+)\.js$/,
-    replacement: resolve(__dirname, './packages/cli/src/$1.ts'),
+    replacement: resolve(__dirname, './apps/cli/src/$1.ts'),
   },
   {
     find: /^@trapmap\/web-panel\/(.+)\.js$/,
-    replacement: resolve(__dirname, './packages/web-panel/src/$1.ts'),
+    replacement: resolve(__dirname, './apps/web-panel/src/$1.ts'),
   },
   {
     find: '@trapmap/contracts',
@@ -141,10 +141,10 @@ export default defineConfig({
       project('host-local', './packages/host-local'),
       project('host-distributed', './packages/host-distributed'),
       {
-        ...project('web-panel', './packages/web-panel', ['src/**/*.test.ts', 'src/**/*.test.tsx']),
+        ...project('web-panel', './apps/web-panel', ['src/**/*.test.ts', 'src/**/*.test.tsx']),
         test: {
           name: 'web-panel',
-          root: './packages/web-panel',
+          root: './apps/web-panel',
           include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
           environment: 'jsdom',
         },
@@ -153,16 +153,19 @@ export default defineConfig({
             ...alias,
             {
               find: /^@trapmap\/web-panel\/(.+)$/,
-              replacement: resolve(__dirname, './packages/web-panel/src/$1'),
+              replacement: resolve(__dirname, './apps/web-panel/src/$1'),
             },
             {
               find: '@trapmap/web-panel',
-              replacement: resolve(__dirname, './packages/web-panel/src/index.ts'),
+              replacement: resolve(__dirname, './apps/web-panel/src/index.ts'),
             },
           ],
         },
       },
-      project('cli', './packages/cli'),
+      project('cli', './apps/cli'),
+      project('app-light', './apps/light'),
+      project('app-distributed', './apps/distributed'),
+      project('app-migration', './apps/migration'),
       project('evals', './evals', ['**/*.test.ts']),
     ],
     pool: 'forks',

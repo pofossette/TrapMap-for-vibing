@@ -10,6 +10,14 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./migrate.js": {
+      "types": "./dist/migrate.d.ts",
+      "import": "./dist/migrate.js"
+    },
+    "./migrate": {
+      "types": "./dist/migrate.d.ts",
+      "import": "./dist/migrate.js"
+    },
     "./config": {
       "types": "./dist/config/index.d.ts",
       "import": "./dist/config/index.js"
@@ -37,6 +45,54 @@
     "./shared/*": {
       "types": "./dist/shared/*.d.ts",
       "import": "./dist/shared/*.js"
+    },
+    "./identity-access/*.js": {
+      "types": "./dist/identity-access/*.d.ts",
+      "import": "./dist/identity-access/*.js"
+    },
+    "./identity-access/*": {
+      "types": "./dist/identity-access/*.d.ts",
+      "import": "./dist/identity-access/*.js"
+    },
+    "./knowledge-read/*.js": {
+      "types": "./dist/knowledge-read/*.d.ts",
+      "import": "./dist/knowledge-read/*.js"
+    },
+    "./knowledge-read/*": {
+      "types": "./dist/knowledge-read/*.d.ts",
+      "import": "./dist/knowledge-read/*.js"
+    },
+    "./knowledge-write/*.js": {
+      "types": "./dist/knowledge-write/*.d.ts",
+      "import": "./dist/knowledge-write/*.js"
+    },
+    "./knowledge-write/*": {
+      "types": "./dist/knowledge-write/*.d.ts",
+      "import": "./dist/knowledge-write/*.js"
+    },
+    "./candidate-ingestion/*.js": {
+      "types": "./dist/candidate-ingestion/*.d.ts",
+      "import": "./dist/candidate-ingestion/*.js"
+    },
+    "./candidate-ingestion/*": {
+      "types": "./dist/candidate-ingestion/*.d.ts",
+      "import": "./dist/candidate-ingestion/*.js"
+    },
+    "./governance-review/*.js": {
+      "types": "./dist/governance-review/*.d.ts",
+      "import": "./dist/governance-review/*.js"
+    },
+    "./governance-review/*": {
+      "types": "./dist/governance-review/*.d.ts",
+      "import": "./dist/governance-review/*.js"
+    },
+    "./job-runtime/*.js": {
+      "types": "./dist/job-runtime/*.d.ts",
+      "import": "./dist/job-runtime/*.js"
+    },
+    "./job-runtime/*": {
+      "types": "./dist/job-runtime/*.d.ts",
+      "import": "./dist/job-runtime/*.js"
     }
   },
   "scripts": {

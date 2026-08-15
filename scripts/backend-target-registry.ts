@@ -13,29 +13,30 @@ export interface DevTargetDefinition {
 }
 
 export interface BackendTargetDefinition {
+  appPackage: string;
   buildCommand: readonly string[];
   clientDefault: boolean;
   devTargets: Record<string, DevTargetDefinition>;
-  hostPackage: string;
+  libraryPackage: string;
   profiles: readonly DeploymentProfile[];
   verificationCommands: readonly string[];
 }
 
 const distributedDevTargets = {
   gateway: {
-    packageName: '@trapmap/host-distributed',
+    packageName: '@trapmap/app-distributed',
     scriptName: 'dev:gateway',
   },
   'candidate-worker': {
-    packageName: '@trapmap/host-distributed',
+    packageName: '@trapmap/app-distributed',
     scriptName: 'dev:candidate-ingestion',
   },
   'governance-worker': {
-    packageName: '@trapmap/host-distributed',
+    packageName: '@trapmap/app-distributed',
     scriptName: 'dev:governance-review',
   },
   'outbox-worker': {
-    packageName: '@trapmap/host-distributed',
+    packageName: '@trapmap/app-distributed',
     scriptName: 'dev:job-runtime',
   },
 } as const satisfies Record<string, DevTargetDefinition>;
@@ -52,26 +53,28 @@ const BACKEND_TARGET_PROFILES = Object.fromEntries(
 export const BACKEND_TARGET_REGISTRY = {
   light: {
     profiles: BACKEND_TARGET_PROFILES.light,
-    hostPackage: '@trapmap/host-local',
+    appPackage: '@trapmap/app-light',
+    libraryPackage: '@trapmap/host-local',
     devTargets: {
       'local-agent': {
         env: { TRAPMAP_DEPLOYMENT_PROFILE: 'local-agent' },
-        packageName: '@trapmap/host-local',
+        packageName: '@trapmap/app-light',
         scriptName: 'dev',
       },
       'team-monolith': {
         env: { TRAPMAP_DEPLOYMENT_PROFILE: 'team-monolith' },
-        packageName: '@trapmap/host-local',
+        packageName: '@trapmap/app-light',
         scriptName: 'dev',
       },
     },
-    buildCommand: ['pnpm', '--filter', '@trapmap/host-local', 'build'],
+    buildCommand: ['pnpm', '--filter', '@trapmap/app-light', 'build'],
     verificationCommands: ['pnpm test:deployment-smoke', 'pnpm test:runtime-foundations'],
     clientDefault: true,
   },
   heavy: {
     profiles: BACKEND_TARGET_PROFILES.heavy,
-    hostPackage: '@trapmap/host-distributed',
+    appPackage: '@trapmap/app-distributed',
+    libraryPackage: '@trapmap/host-distributed',
     devTargets: {
       ...distributedDevTargets,
       'distributed:gateway': distributedDevTargets.gateway,
@@ -79,7 +82,7 @@ export const BACKEND_TARGET_REGISTRY = {
       'distributed:governance-worker': distributedDevTargets['governance-worker'],
       'distributed:outbox-worker': distributedDevTargets['outbox-worker'],
     },
-    buildCommand: ['pnpm', '--filter', '@trapmap/host-distributed', 'build'],
+    buildCommand: ['pnpm', '--filter', '@trapmap/app-distributed', 'build'],
     verificationCommands: [
       'pnpm test:deployment-smoke',
       'pnpm test:runtime-foundations',

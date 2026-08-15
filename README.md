@@ -14,7 +14,7 @@
 
 面向 AI 编程工作流的知识与 Skill 治理基础设施。
 
-这个仓库是一个 `pnpm` + TypeScript monorepo，包含 `client-core`、`backend-core`、`host-local`、`host-distributed`、多组 `service-*` 包、CLI、web-panel、共享契约和评测工具，用来提交、审核、索引、检索和激活团队的工程知识与 Skill 工件。
+这个仓库是一个 `pnpm` + TypeScript monorepo，包含顶层 `apps/` 组装中心（`light` / `distributed` / `migration` / `cli` / `web-panel`）、`client-core`、`backend-core`、`host-local`、`host-distributed`、多组 `service-*` 包、共享契约和评测工具，用来提交、审核、索引、检索和激活团队的工程知识与 Skill 工件。
 
 文档入口分工：
 
@@ -164,7 +164,7 @@ cp .env.example .env
 pnpm dev -- local-agent
 ```
 
-本地默认 gateway 监听 `http://127.0.0.1:4000`，其中 `local-agent` / `team-monolith` 映射到 `light` 并由 `@trapmap/host-local` 提供，`distributed` 映射到 `heavy` 并由 `@trapmap/host-distributed` 提供。
+本地默认 gateway 监听 `http://127.0.0.1:4000`，其中 `local-agent` / `team-monolith` 映射到 `light` 并由 `@trapmap/app-light`（组装中心，装配 `@trapmap/host-local` 库包）提供，`distributed` 映射到 `heavy` 并由 `@trapmap/app-distributed`（组装中心，装配 `@trapmap/host-distributed` 库包）提供。
 
 推荐使用统一分发入口：
 
@@ -184,22 +184,22 @@ pnpm dev -- outbox-worker       # distributed outbox worker
 ```bash
 pnpm dev -- local-agent
 pnpm dev -- team-monolith
-pnpm --filter @trapmap/host-local dev
-pnpm --filter @trapmap/host-local start
+pnpm --filter @trapmap/app-light dev
+pnpm --filter @trapmap/app-light start
 ```
 
-构建和验证使用四个 root target commands；它们从 registry 派生，不复制 host build 逻辑：
+构建和验证使用四个 root target commands；它们从 backend target registry 派生（`appPackage` 指向组装中心），不复制 host build 逻辑：
 
 ```bash
-pnpm build:light        # @trapmap/host-local
-pnpm build:heavy        # @trapmap/host-distributed
+pnpm build:light        # @trapmap/app-light（装配 @trapmap/host-local）
+pnpm build:heavy        # @trapmap/app-distributed（装配 @trapmap/host-distributed）
 pnpm test:light-target  # deployment smoke + runtime foundations
 pnpm test:heavy-target  # light checks + discovery/distributed/runtime closeout
 ```
 
 `heavy` 是 gateway + worker/service-unit 的过渡性分布式拓扑，而不是物理数据库隔离、Kubernetes、mTLS、独立控制面或与 `light` 的能力对等承诺。无论选择哪个 target，CLI 和 web-panel 都只访问唯一 gateway；web-panel 没有持久化连接配置，因此不提供 target selector。
 
-`@trapmap/host-local` 的 closeout 验收路径固定为 `build -> start -> observability-benchmark`。`dev` 只保留给开发便利，不作为“本轮是否修复完成”的事实源；本轮 closeout 不包含 `@trapmap/server build` 的全量清障。
+`@trapmap/app-light` 的 closeout 验收路径固定为 `build -> start -> observability-benchmark`。`dev` 只保留给开发便利，不作为“本轮是否修复完成”的事实源；本轮 closeout 不包含 `@trapmap/server build` 的全量清障。
 
 另一个终端可运行 CLI：
 
@@ -224,7 +224,7 @@ docker compose --profile distributed --profile mq up -d
 
 `local-agent` 不推荐走 compose；直接使用 `pnpm dev -- local-agent` 更符合单用户轻量模式。
 
-`docker-compose.yml` 中的 `server` service 现在只是 service name，实际运行的是 `packages/host-local/Dockerfile` 构建出来的 `team-monolith` light host。`distributed` profile 改为运行 `packages/host-distributed/Dockerfile` 构建的 gateway/worker 入口；CLI 仍然只连 `TRAPMAP_GATEWAY_URL`。
+`docker-compose.yml` 中的 `server` service 现在只是 service name，实际运行的是 `apps/light/Dockerfile` 构建出来的 `team-monolith` light host。`distributed` profile 改为运行 `apps/distributed/Dockerfile` 构建的 gateway/worker 入口，`apps/migration/Dockerfile` 构建迁移作业；CLI 仍然只连 `TRAPMAP_GATEWAY_URL`。
 
 最快捷试跑方式：
 
@@ -241,8 +241,8 @@ cp .env.production.example .env
 deployment flexibility 相关改动至少回归：
 
 ```bash
-pnpm --filter @trapmap/host-local build
-pnpm --filter @trapmap/host-local start
+pnpm --filter @trapmap/app-light build
+pnpm --filter @trapmap/app-light start
 pnpm test:observability-closeout
 pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
 pnpm test:discovery-closeout
@@ -526,15 +526,18 @@ TrapMap 采用 LGTM 栈（Loki、Grafana、Tempo、Prometheus）+ OpenTelemetry 
 
 ```
 Trap-Map/
+├── apps/               # 顶层组装中心（thin assembly）
+│   ├── light/          # light 宿主组装（@trapmap/app-light）
+│   ├── distributed/    # distributed 宿主组装（@trapmap/app-distributed）
+│   ├── migration/      # 迁移作业（@trapmap/app-migration）
+│   ├── cli/            # Commander.js CLI 客户端（@trapmap/cli，自 packages 迁入）
+│   └── web-panel/      # 管理员 Web 运维面板（@trapmap/web-panel，自 packages 迁入）
 ├── packages/
 │   ├── client-core/      # 共享 gateway SDK
 │   ├── backend-core/     # 宿主无关后端内核
 │   ├── service-*/        # bounded-context service assembly（identity-access / knowledge-* / candidate / governance / job-runtime）
-│   ├── host-local/       # local-agent / team-monolith 宿主
-│   ├── host-distributed/ # distributed 宿主
-│   ├── web-panel/        # 管理员 Web 运维面板
-│   ├── cli/              # Commander.js CLI 客户端
-│   ├── server/           # 迁移期兼容壳层
+│   ├── host-local/       # local-agent / team-monolith 宿主库包（组装入口在 apps/light）
+│   ├── host-distributed/ # distributed 宿主库包（组装入口在 apps/distributed）
 │   ├── contracts/        # 共享 Zod Schema
 │   └── skills/           # 项目级 Skill 工作流（非 workspace 包）
 ├── evals/             # 检索和摘要评估系统

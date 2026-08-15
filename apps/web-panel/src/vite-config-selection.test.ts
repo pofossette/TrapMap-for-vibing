@@ -17,8 +17,12 @@ describe('vite config selection', () => {
 
     const aliasReplacements = config.resolve.alias.map((entry) => entry.replacement);
     const packageSrc = normalizePath(path.resolve(packageRoot, 'src'));
-    const clientCoreSrc = normalizePath(path.resolve(packageRoot, '../client-core/src/index.ts'));
-    const contractsSrc = normalizePath(path.resolve(packageRoot, '../contracts/src/index.ts'));
+    const clientCoreSrc = normalizePath(
+      path.resolve(packageRoot, '../../packages/client-core/src/index.ts'),
+    );
+    const contractsSrc = normalizePath(
+      path.resolve(packageRoot, '../../packages/contracts/src/index.ts'),
+    );
 
     expect(aliasReplacements).toContain(packageSrc);
     expect(aliasReplacements).toContain(`${packageSrc}/$1`);

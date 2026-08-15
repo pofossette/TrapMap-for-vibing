@@ -236,14 +236,9 @@
 - [ ] **后续落点：** 从 identity-access 迁移 SQL 删除 `store_snapshot` CREATE TABLE（或迁入 persistence-schema 若仍需保留），同步 `conflict_relations` 裁决。
 - [ ] **要求的文档与测试：** identity-access migrations 测试、`pnpm test:deployment-smoke`、表清单守卫。
 
-### host-distributed Dockerfile 冗余 COPY client-core（2026-08-15 登记）
+### host-distributed Dockerfile 冗余 COPY client-core（2026-08-15 登记，已关闭）
 
-- [ ] **来源：** Task 4 移除两 host `@trapmap/client-core` 依赖后，`packages/host-distributed/Dockerfile` 与 `dockerfile.test.ts` 仍 COPY client-core（镜像构建冗余，超出 Task 4 范围未动）。
-- [ ] **影响：** 镜像构建复制无消费者的包目录，构建面与依赖面不一致（无害）。
-- [ ] **当前边界：** 本轮未动。
-- [ ] **进入条件：** 镜像构建/Dockerfile 清理任务窗口。
-- [ ] **后续落点：** Dockerfile 移除 COPY client-core 行并同步 `dockerfile.test.ts` 断言。
-- [ ] **要求的文档与测试：** `dockerfile.test.ts`、`pnpm test:deployment-smoke`。
+- [x] **已关闭（apps workspace 迁移，2026-08-15）：** Dockerfile 迁入 `apps/distributed/Dockerfile` 时移除 client-core COPY（deps/build/production 三阶段），`packages/host-distributed/src/dockerfile.test.ts` 同步删除 client-core 断言并改为断言 `apps/distributed`；`pnpm test:deployment-smoke`、dockerfile 测试全绿。
 
 ### web-panel 5 个预存测试失败（2026-08-15 登记）
 
@@ -255,8 +250,20 @@
 - [ ] **要求的文档与测试：** web-panel 全量测试恢复全绿后回写 `docs/operations/TESTING.md`。
 
 
+
+### apps workspace 组装中心迁移遗留（2026-08-15 登记）
+
+- [ ] **来源：** 用户要求的 5 个 app 组装中心（apps/light、apps/distributed、apps/migration、apps/cli、apps/web-panel）全量实施完成：cli/web-panel 自 packages/ 迁入 apps/，light/distributed/migration 为新建 thin assembly 入口，registry 字段 hostPackage→appPackage+libraryPackage，Dockerfile/compose/文档/守卫同步迁移。验证：build:light/heavy、test:light-target、deployment-smoke、runtime-foundations、distributed-closeout、observability-closeout、discovery-closeout、cli(537)/web-panel(30) 测试、check:docs/structure/asserts/imports、全量 typecheck 全绿。设计输入：[`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 分项设计 F。
+- [ ] **遗留 1（迁移窗口双入口）**：`packages/host-local/src/index.ts` 与 `packages/host-distributed/src/index.ts` 的 direct-run seam 在窗口内保留（设计 F 迁移窗口策略），apps/distributed 的 `--service` 分发薄壳与库包 main 存在约 97 行结构重复。
+- [ ] **遗留 2（fallow 基线变化）**：git mv 使 cli/web-panel 全部文件进入 changed 集，fallow complexity 从基线 3 升至 34 findings（绝大多数为既有代码路径变更重新暴露，非新增）；apps/light parsePort 已加 fallow-ignore 注释。
+- [ ] **当前边界：** 不删除库包 direct-run seam（closeout 测试链 `build -> start` 依赖）；不合并组装入口重复（窗口期预期）；不逐条修复迁移暴露的既有复杂度。
+- [ ] **进入条件：** closeout 测试链迁移到 app 入口完成（TESTING.md 中 `@trapmap/app-light` build/start 成为唯一主链路）时，退役库包 direct-run seam 并消除组装入口重复；fallow 在迁移暴露的既有 finding 上出现真实变更时按常规处理。
+- [ ] **后续落点：** 窗口关闭后删除 `packages/host-*/src/index.ts` 的 direct-run 判定与库包可执行脚本，apps/distributed 分发逻辑收敛为对库包导出 API 的纯调用；回写 `docs/operations/TESTING.md` 与 `docs/architecture/DEPLOYMENT.md`。
+- [ ] **要求的文档与测试：** `pnpm test:deployment-smoke`、`pnpm test:runtime-foundations`、closeout 相关测试、`pnpm check:docs`、`pnpm check:structure`。
+
 ## 审核检查表
 
 - [ ] 每次新问题录入都标注来源、影响、分类、证据和进入条件。
 - [ ] 每次主线 closeout 前确认没有把 deferred 项误标为已交付能力。
 - [ ] 每次将事项提升为 active mainline 前，在根 `plan.md` 明确替换当前细则链接，并在 `docs/todos/README.md` 同步状态。
+

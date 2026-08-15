@@ -7,7 +7,7 @@ TrapMap 中的 Skill 有两种消费方式：
 1. **检索 → 激活**：通过客户端检索并展示 metadata-only 结果，再按需激活具体文件
 2. **物化到本地**：将激活后的 Skill 写入 Claude Code / Codex / OpenCode 等工具的技能目录
 
-> 源码：`packages/cli/src/lib/activation-policy.ts`、`packages/cli/src/lib/artifact-bundle.ts`
+> 源码：`apps/cli/src/lib/activation-policy.ts`、`apps/cli/src/lib/artifact-bundle.ts`
 
 ## Backend Connection Model
 
@@ -115,7 +115,7 @@ TrapMap 本身是"受治理的知识与 Skill 仓库"，不要求客户端通过
 | `needs-approval` | 需要用户明确批准后才可执行 |
 | `client-executable` | 无需额外确认即可执行 |
 
-> 源码：`packages/cli/src/lib/activation-policy.ts`
+> 源码：`apps/cli/src/lib/activation-policy.ts`
 
 ### 策略解析规则
 

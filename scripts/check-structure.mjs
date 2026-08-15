@@ -70,17 +70,21 @@ function checkNoDuplicateRootDirs() {
   }
 }
 
-// Check 4: packages/* has README.md
+// Check 4: packages/* and apps/* have README.md
 function checkPackageReadmes() {
-  const packagesDir = join(ROOT, 'packages');
-  if (!existsSync(packagesDir)) return;
-  const packages = readdirSync(packagesDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name);
-  for (const pkg of packages) {
-    const readme = join(packagesDir, pkg, 'README.md');
-    if (!existsSync(readme)) {
-      fail(`packages/${pkg}/README.md is missing`);
+  for (const [root, kind] of [
+    [join(ROOT, 'packages'), 'packages'],
+    [join(ROOT, 'apps'), 'apps'],
+  ]) {
+    if (!existsSync(root)) continue;
+    const pkgs = readdirSync(root, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+    for (const pkg of pkgs) {
+      const readme = join(root, pkg, 'README.md');
+      if (!existsSync(readme)) {
+        fail(`${kind}/${pkg}/README.md is missing`);
+      }
     }
   }
 }

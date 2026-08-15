@@ -13,9 +13,12 @@
     { "path": "./packages/service-job-runtime" },
     { "path": "./packages/service-knowledge-read" },
     { "path": "./packages/service-knowledge-write" },
-    { "path": "./packages/web-panel" },
+    { "path": "./apps/web-panel" },
     { "path": "./packages/host-local" },
     { "path": "./packages/host-distributed" },
-    { "path": "./packages/cli" }
+    { "path": "./apps/cli" },
+    { "path": "./apps/light" },
+    { "path": "./apps/distributed" },
+    { "path": "./apps/migration" }
   ]
 }

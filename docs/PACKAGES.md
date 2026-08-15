@@ -7,7 +7,7 @@
 | 包 | 入口 | 职责 |
 |----|------|------|
 | `packages/client-core` | `src/index.ts` | 客户端共享 gateway 传输层：HTTP SDK、session contract、error model |
-| `packages/cli` | `src/index.ts` | Commander.js CLI 客户端，用户交互终端入口 |
+| `apps/cli` | `src/index.ts` | Commander.js CLI 客户端，用户交互终端入口 |
 | `packages/backend-core` | `src/index.ts` | 宿主无关的后端核心内核、运行时能力模型与端口 |
 | `packages/ai-providers` | `src/index.ts` | 共享 AI provider 配置、provider factory 与 chat/embedding contracts；不得依赖 server compatibility shell。 |
 | `packages/service-identity-access` | `src/index.ts` | identity-access service assembly 与内部路由 |
@@ -20,7 +20,7 @@
 | `packages/host-distributed` | `src/index.ts` | `distributed` 的 `heavy` 重宿主装配 |
 | ~~`packages/server（Wave-10 已删除）`~~ | ~~`src/index.ts`~~ | **已删除**（Wave-10）。原为 Fastify compatibility shell + shared runtime/status seam。 |
 | `packages/contracts` | `src/index.ts` | 共享 Zod Schema 和 TypeScript 类型 |
-| `packages/web-panel` | `src/main.tsx` | 管理员浏览器运维面板，继续只面向 gateway surface |
+| `apps/web-panel` | `src/main.tsx` | 管理员浏览器运维面板，继续只面向 gateway surface |
 | `packages/skills` | `workflow-with-trapmap/SKILL.md` | 项目级 Skill 工作流与 CLI 使用指南 |
 
 ---
@@ -318,18 +318,18 @@ For package-local navigation, read:
 | `ApiResponse<T>` | type | 成功响应包装 |
 | `RequestOptions` | type | 单次请求选项 |
 
-CLI 通过 `CliSessionProvider`（`packages/cli/src/lib/client-core-adapter.ts`）实现 `SessionProvider`，将 `CliState` 桥接到 client-core 的通用契约。
+CLI 通过 `CliSessionProvider`（`apps/cli/src/lib/client-core-adapter.ts`）实现 `SessionProvider`，将 `CliState` 桥接到 client-core 的通用契约。
 
 ---
 
-## packages/cli
+## apps/cli
 
 命令行接口，命令格式明确，shell 友好输出，支持可选 JSON 模式。
 
 CLI 当前正式接入模型固定为单一 gateway：
 
-- `packages/cli/src/lib/http.ts` 只基于一个 gateway URL 发起请求。
-- `packages/cli/src/lib/config.ts` 只持久化一个 `gatewayUrl`，并兼容读取旧 `serverUrl`。
+- `apps/cli/src/lib/http.ts` 只基于一个 gateway URL 发起请求。
+- `apps/cli/src/lib/config.ts` 只持久化一个 `gatewayUrl`，并兼容读取旧 `serverUrl`。
 - 即使后端后续演进到 `distributed` profile，CLI 仍然只连接统一 gateway，不直接感知微服务拆分。
 
 ### 命令模块
@@ -468,8 +468,8 @@ flowchart TB
 | 类别 | 包 / 目录 | Phase 0 冻结决策 |
 |---|---|---|
 | client | `packages/client-core` | 保持 gateway SDK 角色，不依赖 `backend-core` 或内部服务包 |
-| client | `packages/cli` | 继续只连统一 gateway；对后端是单 URL 视角 |
-| client | `packages/web-panel` | 保持管理员浏览器面板角色；继续只消费 gateway API |
+| client | `apps/cli` | 继续只连统一 gateway；对后端是单 URL 视角 |
+| client | `apps/web-panel` | 保持管理员浏览器面板角色；继续只消费 gateway API |
 | kernel | `packages/backend-core` | 保留单包，持续按 bounded-context 模块收口，不预拆成多个 `domain-*` workspace 包 |
 | shared contracts | `packages/contracts` | 继续作为 HTTP、internal、event contract 的共享事实源 |
 | service assembly | `packages/service-identity-access` | 保留，承载 identity-access owner 的内部路由与装配 |

@@ -3,17 +3,17 @@
   "entry": [
     "packages/backend-core/src/index.ts",
     "packages/lib/src/index.ts",
-    "packages/cli/src/index.ts",
+    "apps/cli/src/index.ts",
     "packages/client-core/src/index.ts",
     "packages/contracts/src/index.ts",
     "packages/persistence-schema/src/index.ts",
     "packages/host-distributed/src/index.ts",
     "packages/host-local/src/index.ts",
-    "packages/web-panel/index.html",
-    "packages/web-panel/src/main.tsx",
+    "apps/web-panel/index.html",
+    "apps/web-panel/src/main.tsx",
     "scripts/*.ts",
     "scripts/*.mjs",
-    "packages/cli/src/testing/index.ts",
+    "apps/cli/src/testing/index.ts",
     "evals/**/*.ts"
   ],
   "ignoreDependencies": ["amqplib", "markdown-link-check"],
@@ -113,11 +113,11 @@
       },
       {
         "name": "cli",
-        "patterns": ["packages/cli/src/**"]
+        "patterns": ["apps/cli/src/**"]
       },
       {
         "name": "web-panel",
-        "patterns": ["packages/web-panel/src/**"]
+        "patterns": ["apps/web-panel/src/**"]
       }
     ],
     "rules": [

@@ -9,12 +9,14 @@ describe('backend target registry', () => {
   it('describes light and heavy target ownership and client defaults', () => {
     expect(BACKEND_TARGET_REGISTRY.light).toMatchObject({
       profiles: ['local-agent', 'team-monolith'],
-      hostPackage: '@trapmap/host-local',
+      appPackage: '@trapmap/app-light',
+      libraryPackage: '@trapmap/host-local',
       clientDefault: true,
     });
     expect(BACKEND_TARGET_REGISTRY.heavy).toMatchObject({
       profiles: ['distributed'],
-      hostPackage: '@trapmap/host-distributed',
+      appPackage: '@trapmap/app-distributed',
+      libraryPackage: '@trapmap/host-distributed',
       clientDefault: false,
     });
   });
@@ -47,15 +49,15 @@ describe('backend target registry', () => {
   it('resolves standard and distributed compatibility dev targets', () => {
     expect(resolveDevTargetFromRegistry('local-agent')).toMatchObject({
       env: { TRAPMAP_DEPLOYMENT_PROFILE: 'local-agent' },
-      packageName: '@trapmap/host-local',
+      packageName: '@trapmap/app-light',
       scriptName: 'dev',
     });
     expect(resolveDevTargetFromRegistry('candidate-worker')).toMatchObject({
-      packageName: '@trapmap/host-distributed',
+      packageName: '@trapmap/app-distributed',
       scriptName: 'dev:candidate-ingestion',
     });
     expect(resolveDevTargetFromRegistry('distributed:gateway')).toMatchObject({
-      packageName: '@trapmap/host-distributed',
+      packageName: '@trapmap/app-distributed',
       scriptName: 'dev:gateway',
     });
   });
