@@ -143,7 +143,7 @@ distributed 形态当前为 `Level 2 / transitional-microservice`（见 [`docs/t
 
 **影响：** 指标/span 语义、采样策略、健康检查/KV/重试语义需双处同步修改，漂移风险高；两宿主观测口径可能不一致，跨形态排障（本地 vs distributed）结论不可互信。
 
-**债务登记对应：** 「OTel 双份接线收敛」（`docs/todos/open-debt-and-compromises.md:163-171`）、「Consul 双份实现收敛」（`:171-178`）。
+**债务登记对应：** 「OTel 双份接线收敛」（`docs/todos/open-debt-and-compromises.md:163-171`）、「Consul 双份实现收敛」（`:173-181`）。
 
 ---
 
