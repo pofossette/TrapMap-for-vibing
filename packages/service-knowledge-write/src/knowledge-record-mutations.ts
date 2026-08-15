@@ -1,13 +1,15 @@
-import type { AgentReviewResult, Boundary, KnowledgeSubmission } from '@trapmap/contracts';
-
-import { prefixedId } from '@trapmap/lib';
 import type {
   AgentReviewRecord,
+  AgentReviewResult,
+  Boundary,
   KnowledgeLifecycleEventRecord,
   KnowledgeRecord,
   KnowledgeReviewNoteRecord,
   KnowledgeRevisionRecord,
-} from '@trapmap/service-knowledge-read/store.js';
+  KnowledgeSubmission,
+} from '@trapmap/contracts';
+
+import { prefixedId } from '@trapmap/lib';
 
 function toAgentNotes(review: AgentReviewResult): KnowledgeReviewNoteRecord[] {
   return review.notes.map((message) => ({
