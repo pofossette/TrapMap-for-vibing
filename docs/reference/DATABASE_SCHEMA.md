@@ -20,14 +20,18 @@
 | 向量搜索 | pgvector (384 维 HNSW 索引) |
 | 全文搜索 | tsvector + GIN 索引 |
 
-## 表总览 (62 张表)
+## 表总览 (64 张表)
 
-### 知识域 (14 表)
+> 表清单以 `packages/persistence-schema/src/` 实测 64 张 `pgTable` 为准；六个 `packages/service-*/drizzle/` 迁移 SQL 与之对齐（例外见下文 `conflict_relations` 标注）。
+
+### 知识域 (16 表)
 
 | 表名 | 用途 | 主键 |
 |------|------|------|
 | `knowledge_entries` | 知识条目主表 | `id` (text) |
 | `knowledge_revisions` | 条目修订历史 | `id` (text) |
+| `knowledge_submissions` | 知识提交记录（agent/reviewer 快照与提交生命周期） | `id` (text) |
+| `knowledge_review_decisions` | 审核决策记录（approve/reject） | `id` (identity) |
 | `lifecycle_events` | 状态变更审计 | `id` (text) |
 | `knowledge_labels` | 结构化标签 | 唯一索引 `(entry_id, label)` |
 | `knowledge_boundary_contexts` | 情境上下文 | `id` (identity) |
@@ -118,9 +122,10 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 |------|------|------|
 | `feedback_records` | 用户反馈 | `id` (text) |
 | `feedback_custom_answers` | 反馈自定义问答 | `id` (identity) |
-| `conflict_relations` | 治理冲突关系 | `id` (text) |
 | `usage_events` | 使用事件 | `id` (text) |
 | `usage_events_daily_rollup` | 日聚合分析 | `id` (identity) |
+
+> ⚠️ `conflict_relations`（治理冲突关系）**仅存在于 `service-governance-review/drizzle/0000_shiny_swarm.sql` 迁移 SQL 与其原始 SQL 查询（`pg-ports.ts`）中，未在 `packages/persistence-schema` 建模**。这是迁移 SQL 与 schema 源码双份表定义源的实例；Task 11 裁决为保持现状 + 文档标注（最小改动），是否迁入 persistence-schema 或删除留待后续任务评估。
 
 ### 标签目录域 (4 表) — 规范标签 catalog
 
@@ -145,9 +150,11 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 
 ### task_queue 关键索引
 
+> 以 `packages/persistence-schema/src/queue.ts` 与 `service-job-runtime/drizzle/0000_sharp_old_lace.sql` 为准。历史迁移 0009 中的 `task_queue_pending_dequeue_idx`（出队谓词索引）当前 schema 已不存在，仅保留在 queue.ts 注释中；SKIP LOCKED 出队谓词（`status='pending' AND process_after<=NOW() ORDER BY priority DESC, created_at ASC`）目前无专门索引支撑。
+
 | 索引名 | 类型 | 列 | 条件 | 用途 |
 |--------|------|-----|------|------|
-| `task_queue_pending_dequeue_idx` | 部分索引 | `(type, process_after, priority DESC, created_at ASC)` | `WHERE status = 'pending'` | 匹配 SKIP LOCKED 出队谓词 |
+| `task_queue_type_dedupe_idx` | 非部分索引 | `(type, dedupe_key)` | — | ⚠️ 疑似冗余：与 `task_queue_dedupe_pending_idx` 覆盖同一列组，且 dedupe 查询（`TASK_DEDUPE_SQL_CONDITION`）只命中 pending/running，被部分唯一索引完全覆盖；删除会改变已应用迁移，裁决留待后续任务 |
 | `task_queue_dedupe_pending_idx` | 唯一部分索引 | `(type, dedupe_key)` | `WHERE status IN ('pending', 'running')` | 防止同一实体重复排队 |
 | `task_queue_running_lease_idx` | 部分索引 | `(type, lease_until, updated_at)` | `WHERE status = 'running'` | 支撑 stuck-task reclaim |
 
