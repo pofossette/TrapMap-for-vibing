@@ -3,10 +3,7 @@ import { defineConfig } from 'vitest/config';
 
 const rootVitestMaxWorkers = process.env.VITEST_MAX_WORKERS ?? '50%';
 const rootVitestMinWorkers = process.env.VITEST_MIN_WORKERS ?? '1';
-const fastifyEntry = resolve(
-  __dirname,
-  './node_modules/.pnpm/fastify@5.8.4/node_modules/fastify/fastify.js',
-);
+const fastifyEntry = resolve(__dirname, './node_modules/fastify/fastify.js');
 const alias = [
   {
     find: /^@trapmap\/contracts\/evals$/,
