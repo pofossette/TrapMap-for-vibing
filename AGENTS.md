@@ -95,7 +95,7 @@
 ### 可观测性 / 健康检查 / 服务发现变更
 
 - 先读：[`docs/architecture/OBSERVABILITY.md`](docs/architecture/OBSERVABILITY.md)、[`docs/architecture/SERVICE-DISCOVERY.md`](docs/architecture/SERVICE-DISCOVERY.md)、[`docs/operations/OBSERVABILITY-OPERATIONS.md`](docs/operations/OBSERVABILITY-OPERATIONS.md)
-- 权威事实：健康契约 [`packages/contracts/src/domain/health.ts`](packages/contracts/src/domain/health.ts)、遥测端口 [`packages/backend-core/src/ports/telemetry-ports.ts`](packages/backend-core/src/ports/telemetry-ports.ts)
+- 权威事实：健康契约 [`packages/contracts/src/domain/health.ts`](packages/contracts/src/domain/health.ts)、可观测性配置契约 [`packages/contracts/src/domain/observability-config.ts`](packages/contracts/src/domain/observability-config.ts)
 - 最小验证：`rtk pnpm test:observability-closeout`、`rtk pnpm test:discovery-closeout`；涉及 distributed hop 补 `rtk pnpm test:distributed-closeout`；涉及部署配置时补 `rtk pnpm test:deployment-smoke` 与 `rtk pnpm test:runtime-foundations`
 - 回归命令参考：[`docs/operations/REGRESSION-COMMANDS.md`](docs/operations/REGRESSION-COMMANDS.md)
 - 必须同步：指标暴露、健康端点语义、采样策略、服务发现配置变化时，更新对应 `architecture/`、`operations/` 文档

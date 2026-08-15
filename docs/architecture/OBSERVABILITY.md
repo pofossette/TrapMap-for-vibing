@@ -25,7 +25,7 @@ TrapMap 采用 OpenTelemetry 作为统一遥测接缝，目标上可对接 Tempo
 | ~~Fastify compatibility shell~~ | **已删除**（Wave-10）。`/metrics`、OTel 初始化和 shutdown 现由 `host-local` 持有 | `packages/host-local/src/nest/observability/*.ts` |
 | light 宿主 | `packages/host-local/src/nest/observability/` 提供 `OtelService`、`PrometheusService`、`LokiService`，并通过 adapter 暴露给 `backend-core` ports | `packages/host-local/src/nest/observability/*.ts` |
 | distributed 宿主 | `packages/host-distributed/src/shared/telemetry.ts` 负责 internal hop span、OTLP endpoint、service.name 拼接和 trace 传播 | `packages/host-distributed/src/shared/telemetry.ts` |
-| 共享契约 | 健康状态、可观测性配置和 telemetry ports 分别由 `packages/contracts/src/domain/health.ts`、`packages/contracts/src/domain/observability-config.ts`、`packages/backend-core/src/ports/telemetry-ports.ts` 定义 | contracts 与 backend-core 源码 |
+| 共享契约 | 健康状态、可观测性配置和遥测 policy 分别由 `packages/contracts/src/domain/health.ts`、`packages/contracts/src/domain/observability-config.ts`、`packages/contracts/src/domain/observability.ts` 定义 | contracts 源码 |
 
 ## 目标架构总览
 
@@ -255,7 +255,8 @@ TrapMap 对外暴露三个探针端点，继续遵循统一 contract：
 
 Phase 1A 已经在代码中冻结了以下内容：
 
-- `packages/backend-core/src/ports/telemetry-ports.ts`：`MetricsPort`、`TracingPort`、`LoggingPort`
+- `packages/contracts/src/domain/observability-config.ts`：OTel/Sentry/Langfuse 配置 policy（`observabilityConfigSchema`、`validateOtelPolicy`）
+- `packages/contracts/src/domain/observability.ts`：traceparent 解析、路由 family 归一、脱敏字段规则
 - `packages/backend-core/src/ports/lifecycle-ports.ts`：`LifecycleManager`、`HealthCheckRegistrar`、`HealthCheck`
 - `packages/contracts/src/domain/health.ts`：统一的健康状态 schema
 - `packages/contracts/src/domain/observability-config.ts`：可观测性配置 schema 与 feature flags

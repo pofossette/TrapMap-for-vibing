@@ -44,11 +44,11 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 ### Task 1: backend-core 死代码删除
 
 **Files:**
-- Delete: `packages/backend-core/src/use-cases/command-handling.ts`, `use-cases/review-flows.ts`, `use-cases/retrieval-orchestration.ts`, `use-cases/job-scheduling.ts`, `use-cases/index.ts`（空目录删除）
-- Delete: `packages/backend-core/src/invocation/invocation-config.ts`
-- Delete: `packages/backend-core/src/ports/telemetry-ports.ts`, `ports/telemetry-ports.test.ts`
-- Delete: `packages/backend-core/src/runtime/status.ts`, `runtime/topology.ts`, `runtime/route-surface.ts` 及其测试
-- Delete: `packages/backend-core/src/governance-review/application/conflict-scheduler.ts`
+- Delete: packages/backend-core/src/use-cases/command-handling.ts, `use-cases/review-flows.ts`, `use-cases/retrieval-orchestration.ts`, `use-cases/job-scheduling.ts`, `use-cases/index.ts`（空目录删除）
+- Delete: packages/backend-core/src/invocation/invocation-config.ts
+- Delete: packages/backend-core/src/ports/telemetry-ports.ts, `ports/telemetry-ports.test.ts`
+- Delete: packages/backend-core/src/runtime/status.ts, `runtime/topology.ts`, `runtime/route-surface.ts` 及其测试
+- Delete: packages/backend-core/src/governance-review/application/conflict-scheduler.ts
 - Modify: `packages/backend-core/src/testing/test-utils.ts`（收缩为仅 3 个有消费者的 stub：`createStubAuditLog`/`createStubMetrics`/`createStubRepositoryPorts`）
 - Modify: `packages/backend-core/src/index.ts`（移除 `export * from './use-cases/index.js'` 与 `export * from './ports/telemetry-ports.js'` 相关行）
 - Modify: `packages/backend-core/src/ports/index.ts`, `governance-review/application/index.ts`, `runtime/index.ts`, `invocation/index.ts`（删除死导出）

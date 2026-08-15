@@ -119,7 +119,7 @@
 ### Task 9 listMine 空集 follow-up 补登记（2026-08-13）
 
 - [ ] **状态：** 大概率不实，但作为 dropped follow-up 补登记（该事项在 Task 3/4/6 链条中被丢弃，本次为追溯性登记）。
-- [ ] **来源：** [`../../.superpowers/sdd/2026-08-09-maintainability-rework/task-9-report.md`](../../.superpowers/sdd/2026-08-09-maintainability-rework/task-9-report.md) 记录的遗留：host-local `knowledgeProjection` 桥把 `listByFilter` 委托到 knowledge-write owner；read 侧 `entryProjection.listMine` 按 `ownerUserId` 内存过滤，而 contracts `KnowledgeEntry` 运行时记录无该字段（有 `owner.userId`），`listMine` 可能返回空集。Task 9 明确"该问题超出类型清理范围，建议单独立项（Wave: read-projection wiring）"，但未登记。
+- [ ] **来源：** `.superpowers/sdd/2026-08-09-maintainability-rework/task-9-report.md`（git-ignored 工作区报告）记录的遗留：host-local `knowledgeProjection` 桥把 `listByFilter` 委托到 knowledge-write owner；read 侧 `entryProjection.listMine` 按 `ownerUserId` 内存过滤，而 contracts `KnowledgeEntry` 运行时记录无该字段（有 `owner.userId`），`listMine` 可能返回空集。Task 9 明确"该问题超出类型清理范围，建议单独立项（Wave: read-projection wiring）"，但未登记。
 - [ ] **影响：** 若成立，host-local `/v1/knowledge/mine` 与网关 `GET /v1/knowledge/mine` 可能对已有用户返回空列表；无真实用户报告过，且 owner 层 `listByFilter` 的 ownerUserId 过滤语义可能已覆盖该场景，故标记"大概率不实"。
 - [ ] **当前边界：** 本轮不修改 read-side 过滤逻辑，不改变 contracts 字段；仅补登记。
 - [ ] **进入条件：** 任一真实 host-local/distributed 调用方在存在 `owner.userId` 知识条目时调用 listMine 得到空集且可复现。
