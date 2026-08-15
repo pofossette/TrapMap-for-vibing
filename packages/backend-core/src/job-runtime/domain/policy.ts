@@ -3,9 +3,8 @@
  *
  * Pure retry / reclaim / status-decision rules with zero framework, DB or
  * I/O imports. The service infrastructure renders these rules into SQL
- * statements and worker loops; the SQL-condition constants below are the
- * authoritative rendering of the same decisions (same pattern as
- * `KNOWLEDGE_PROJECTION_OPERATION_CONDITIONS` in knowledge-write).
+ * statements and worker loops; the owner SQL-condition rendering lives in
+ * `service-job-runtime`.
  */
 
 // ---------------------------------------------------------------------------
@@ -63,32 +62,3 @@ export function statusAfterTaskFailure(
 ): typeof TASK_STATUS_DEAD | typeof TASK_STATUS_PENDING {
   return isRetryExhausted(attempts, maxAttempts) ? TASK_STATUS_DEAD : TASK_STATUS_PENDING;
 }
-
-// ---------------------------------------------------------------------------
-// Authoritative SQL condition rendering (consumed by the queue/outbox owners)
-// ---------------------------------------------------------------------------
-
-/** Dedupe lookup targets: only in-flight tasks are considered duplicates. */
-export const TASK_DEDUPE_TARGET_STATUSES = [TASK_STATUS_PENDING, TASK_STATUS_RUNNING] as const;
-
-export const TASK_DEDUPE_SQL_CONDITION = `status IN (${TASK_DEDUPE_TARGET_STATUSES.map(
-  (status) => `'${status}'`,
-).join(', ')})`;
-
-/** Tasks eligible for claim: pending and past their scheduled process time. */
-export const TASK_CLAIMABLE_SQL_CONDITION = `status = '${TASK_STATUS_PENDING}' AND process_after <= NOW()`;
-
-/** Tasks whose worker lease expired are reclaimed back to pending. */
-export const TASK_RECLAIM_SQL_CONDITION = `status = '${TASK_STATUS_RUNNING}' AND lease_until < NOW()`;
-
-/** Only dead tasks can be requeued for a fresh run. */
-export const TASK_REQUEUE_SQL_CONDITION = `status = '${TASK_STATUS_DEAD}'`;
-
-/** Outbox events eligible for claim: pending and past their availability time. */
-export const OUTBOX_CLAIMABLE_SQL_CONDITION = `status = '${OUTBOX_STATUS_PENDING}' AND available_at <= NOW()`;
-
-/** Outbox events whose worker lease expired are reclaimed back to pending. */
-export const OUTBOX_RECLAIM_SQL_CONDITION = `status = '${OUTBOX_STATUS_PROCESSING}' AND lease_until < NOW()`;
-
-/** Outbox fail transition: terminal after the retry budget, pending otherwise. */
-export const OUTBOX_FAIL_STATUS_SQL = `CASE WHEN attempts >= ${OUTBOX_MAX_ATTEMPTS} THEN '${OUTBOX_STATUS_FAILED}' ELSE '${OUTBOX_STATUS_PENDING}' END`;
