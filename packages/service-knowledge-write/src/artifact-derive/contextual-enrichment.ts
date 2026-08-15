@@ -11,7 +11,7 @@
  */
 
 import type { ChatProvider } from '@trapmap/ai-providers';
-import type { DerivedSkillCapsuleRecord } from '@trapmap/service-knowledge-read/store.js';
+import type { DerivedSkillCapsuleRecord } from '@trapmap/contracts';
 
 // ---------------------------------------------------------------------------
 // Types

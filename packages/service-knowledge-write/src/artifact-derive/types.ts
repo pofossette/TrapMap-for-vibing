@@ -7,7 +7,7 @@ import type {
   ClientManifestRecord,
   DerivedSkillCapsuleRecord,
   DerivedSkillProfileRecord,
-} from '@trapmap/service-knowledge-read/store.js';
+} from '@trapmap/contracts';
 import type { ContextualEnrichmentCache } from './contextual-enrichment.js';
 
 /**

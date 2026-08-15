@@ -1,118 +1,16 @@
 import { type ReviewQueueProjectionAuth, filterReviewQueueEntries } from '@trapmap/backend-core';
 import {
-  type AgentReviewResult,
-  type Boundary,
-  type EvidenceMeta,
-  type FeedbackRemediationState,
   type KnowledgeEntry,
   type KnowledgeOwnerPort,
-  type LifecycleState,
+  type KnowledgeRecord,
+  type KnowledgeReviewDecisionRecord,
+  type KnowledgeReviewNoteRecord,
+  type KnowledgeRevisionRecord,
   type ReviewQueueItem,
-  type Scope,
   knowledgeEntrySchema,
 } from '@trapmap/contracts';
 
 export type { ReviewQueueProjectionAuth } from '@trapmap/backend-core';
-
-interface KnowledgeReviewNoteRecord {
-  id: string;
-  createdAt: string;
-  authorType: 'submitter' | 'agent' | 'reviewer' | 'system';
-  authorUserId: string | null;
-  message: string;
-}
-
-interface KnowledgeRevisionRecord {
-  revision: number;
-  submittedAt: string;
-  submittedByUserId: string;
-  shortcut: string;
-  detail: string;
-  labels: string[];
-  reviewNotes: KnowledgeReviewNoteRecord[];
-}
-
-interface KnowledgeReviewDecisionRecord {
-  decidedAt: string;
-  decidedByUserId: string;
-  decision: 'approve' | 'reject';
-  notes: string;
-}
-
-interface KnowledgeSubmissionRecord {
-  id: string;
-  revision: number;
-  submittedAt: string;
-  submittedByUserId: string;
-  lifecycleState: LifecycleState;
-  resubmissionOf: string | null;
-  agentReview: AgentReviewResult | null;
-  reviewerDecision: KnowledgeReviewDecisionRecord | null;
-  reviewNotes: KnowledgeReviewNoteRecord[];
-}
-
-interface KnowledgeLifecycleEventRecord {
-  id: string;
-  type:
-    | 'submitted'
-    | 'resubmitted'
-    | 'agent-reviewed'
-    | 'reviewer-approved'
-    | 'reviewer-rejected'
-    | 'updated'
-    | 'deactivated';
-  createdAt: string;
-  actorUserId: string | null;
-  submissionId: string | null;
-  revision: number | null;
-  state: LifecycleState;
-  note: string | null;
-}
-
-interface KnowledgeMetadataRecord {
-  scopeLabel: 'global-constraint' | 'project-knowledge';
-  submissionCount: number;
-  resubmissionCount: number;
-  revisionCount: number;
-  latestSubmissionId: string | null;
-  latestSubmittedAt: string | null;
-  latestReviewedAt: string | null;
-  latestDecision: 'approve' | 'reject' | null;
-}
-
-interface MaintenanceMetaRecord {
-  maintainerUserId: string | null;
-  maintainerHandle: string | null;
-  maintainerLevel: number | null;
-  reviewBy: string | null;
-}
-
-interface KnowledgeRecord {
-  id: string;
-  teamId: string | null;
-  scope: Scope;
-  labels: string[];
-  shortcut: string;
-  detail: string;
-  requiredLevel: number;
-  lifecycleState: LifecycleState;
-  ownerUserId: string;
-  latestRevision: KnowledgeRevisionRecord;
-  history: KnowledgeRevisionRecord[];
-  metadata: KnowledgeMetadataRecord;
-  latestSubmissionId: string | null;
-  submissionHistory: KnowledgeSubmissionRecord[];
-  agentReview: AgentReviewResult | null;
-  reviewHistory: KnowledgeReviewDecisionRecord[];
-  reviewNotes: KnowledgeReviewNoteRecord[];
-  lifecycleHistory: KnowledgeLifecycleEventRecord[];
-  boundary: Boundary | null;
-  evidenceMeta: EvidenceMeta | null;
-  maintenanceMeta: MaintenanceMetaRecord | null;
-  remediation?: FeedbackRemediationState | null;
-  createdAt: string;
-  updatedAt: string;
-}
 
 interface UserRecord {
   id: string;
