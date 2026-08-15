@@ -161,7 +161,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 **Files:**
 - Delete: packages/web-panel/vite.config.d.ts, `vite.config.d.ts.map`, `vitest.config.d.ts`, `vitest.config.d.ts.map`（git rm，tsc 构建产物误提交）
 - Modify: 根 `.gitignore`（补充 `*.d.ts.map` 与 config 构建产物忽略规则，防复发）
-- 附带：确认 `packages/web-panel/src/vite-env.d.ts`（类型声明，保留）与 `packages/host-local/src/types.d.ts`、`packages/contracts/src/types/mime-types.d.ts`（随 Task 8 parsing 下沉评估，本任务不动）
+- 附带：确认 `packages/web-panel/src/vite-env.d.ts`（类型声明，保留）与 `packages/host-local/src/types.d.ts`、packages/contracts/src/types/mime-types.d.ts（随 Task 8 parsing 下沉评估，本任务不动）
 
 **Interfaces:**
 - Consumes: `git ls-files` 确认 4 个误提交产物。
@@ -228,7 +228,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - Create: packages/service-knowledge-read/src/graph-query-core.ts（从 contracts graph-query.ts 迁移 4 个活函数：`buildGraphRuntimeSnapshot`/`expandSourcesOneHop`/`buildLocalExpansionView`/`calculateSourceRelationStrength` 及 Graph 实现）
 - Modify: `packages/contracts/src/domain/graph-query.ts`（只保留 schema/类型：`GraphQueryBackend` 接口、`GraphIndexDocumentRecord`、`GraphQueryNodeView` 等类型与 `backendKind` 枚举）
 - Create: packages/lib/src/parsing.ts（从 contracts parsing.ts 迁移 `parseMarkdownFrontmatter`/`parseSkillMarkdown`/`detectMediaType`/`isTextLikeMediaType` + MIME 覆写表）
-- Delete: `packages/contracts/src/domain/parsing.ts`, `contracts/src/types/mime-types.d.ts`（随 parsing 迁移）
+- Delete: packages/contracts/src/domain/parsing.ts, `contracts/src/types/mime-types.d.ts`（随 parsing 迁移）
 - Modify: `packages/contracts/package.json`（移除 `gray-matter`、`mime-types` 依赖）
 - Modify: `packages/lib/package.json`（补 `gray-matter`、`mime-types` 依赖）
 - Modify: 消费方（`service-knowledge-read/src/graph-query.ts:10-15`、CLI `artifact-bundle.ts`、`service-knowledge-write` parse-content.ts）改 import 新位置
