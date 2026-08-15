@@ -137,7 +137,7 @@
 | conflict | `domain/conflict.ts` | 冲突检测 Schema |
 | graph-extraction | `domain/graph-extraction.ts` | 图提取 Schema |
 | plans | `domain/plans.ts` | 执行计划 Schema |
-| parsing | `domain/parsing.ts` | 解析规则（frontmatter 等） |
+| graph-query | `domain/graph-query.ts` | 图查询后端契约（纯类型：`GraphQueryBackend` 接口、view 类型）；图算法实现见 `@trapmap/service-knowledge-read` 的 `graph-query-core.ts` |
 | path-validation | `domain/path-validation.ts` | 路径安全验证 |
 
 > **Source of truth**: Shared validation helpers (`canonicalPathSchema`, `sha256HexSchema`, `mediaTypeSchema`) are defined in `common.ts` and `path-validation.ts` and reused across all domain files. Always import these helpers rather than duplicating validation logic.

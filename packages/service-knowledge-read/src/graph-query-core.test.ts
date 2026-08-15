@@ -1,10 +1,11 @@
+import type { GraphIndexDocumentRecord } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
+
 import {
-  type GraphIndexDocumentRecord,
   buildGraphRuntimeSnapshot,
   calculateSourceRelationStrength,
   expandSourcesOneHop,
-} from '@trapmap/contracts';
-import { describe, expect, it } from 'vitest';
+} from './graph-query-core.js';
 
 const trapDocument: GraphIndexDocumentRecord = {
   id: 'graphdoc_trap_t1_r1',
@@ -56,7 +57,7 @@ const skillDocument: GraphIndexDocumentRecord = {
   evidence: 'Skill graph evidence.',
 };
 
-describe('graph query contract helpers', () => {
+describe('graph query core helpers', () => {
   it('expands related sources and weights hard relations', () => {
     const runtime = buildGraphRuntimeSnapshot([trapDocument, skillDocument]);
 

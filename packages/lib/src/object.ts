@@ -11,8 +11,8 @@
  * and `wave9-artifact-snapshot-owner.ts` (both removed with the Wave-9
  * backfill script retirement).
  *
- * NOT unified here: `isRecord` type guards in contracts
- * (`domain/parsing.ts`) and host-distributed (`governance-review/conflict-read.ts`)
+ * NOT unified here: `isRecord` type guards in @trapmap/lib (`parsing.ts`)
+ * and host-distributed (`governance-review/conflict-read.ts`)
  * keep their local forms because their array-exclusion semantics differ.
  */
 export function asRecord(value: unknown): Record<string, unknown> {

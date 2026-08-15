@@ -25,7 +25,6 @@ export * from './domain/observability.js';
 export * from './domain/observability-config.js';
 export * from './domain/operations.js';
 export * from './domain/path-validation.js';
-export * from './domain/parsing.js';
 export * from './domain/retrieval.js';
 export * from './domain/retrieval-fixtures.js';
 export * from './domain/retrieval-projection.js';

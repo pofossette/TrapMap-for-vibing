@@ -27,6 +27,9 @@
     "@trapmap/lib": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.6.1",
+    "graphology": "^0.26.0",
+    "graphology-operators": "^1.6.1",
+    "graphology-shortest-path": "^2.1.0",
     "pg": "8.20.0",
     "zod": "^4.3.6"
   },

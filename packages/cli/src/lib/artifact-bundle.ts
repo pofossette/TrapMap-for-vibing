@@ -12,8 +12,8 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import type { ArtifactBundle, KnowledgeListResponse } from '@trapmap/contracts';
-import { detectMediaType, isTextLikeMediaType, parseSkillMarkdown } from '@trapmap/contracts';
 import { sha256 } from '@trapmap/lib';
+import { detectMediaType, isTextLikeMediaType, parseSkillMarkdown } from '@trapmap/lib';
 
 /**
  * Checks if a file path is a SKILL.md file (basename check).

@@ -2,7 +2,7 @@
  * Markdown content parsing helpers for derivation.
  */
 
-import { parseSkillMarkdown } from '@trapmap/contracts';
+import { parseSkillMarkdown } from '@trapmap/lib';
 
 /**
  * Extract frontmatter metadata from SKILL.md content.

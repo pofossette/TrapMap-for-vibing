@@ -19,3 +19,10 @@ export {
   redactUrl,
   SENSITIVE_KEY_PATTERN,
 } from './redact.js';
+export {
+  parseMarkdownFrontmatter,
+  parseSkillMarkdown,
+  detectMediaType,
+  isTextLikeMediaType,
+} from './parsing.js';
+export type { ParsedMarkdownFrontmatter, ParsedSkillMarkdown, FeedbackPrompt } from './parsing.js';
