@@ -155,8 +155,8 @@
     },
     {
       "file": "docs/reference/DATABASE_SCHEMA.md",
-      "mustContain": ["62 张表"],
-      "mustNotContain": ["48 张表", "54 张表", "56 张表", "63 张表"]
+      "mustContain": ["64 张表"],
+      "mustNotContain": ["48 张表", "54 张表", "56 张表", "62 张表", "63 张表"]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
