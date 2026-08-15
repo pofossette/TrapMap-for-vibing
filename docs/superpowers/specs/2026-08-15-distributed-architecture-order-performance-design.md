@@ -823,7 +823,7 @@ host-local 与 host-distributed 各有一份 Consul 接线，注册/注销/健�
 - **KV/超时语义单一**：KV 读写以 adapter 实现（`:145-181`）为准；超时统一为 AbortController 语义（见设计 3 收敛 B），host-local 不再有第二份。
 - **fail-open 语义不变**：Consul 不可用时两宿主都返回安全默认、应用继续服务（`consul.service.ts:56-61`、adapter 注释 `:7-9`）——这是行为不变硬约束，收敛后以 adapter 为唯一实现点。
 
-对应：Q9；G7；P4；debt：「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:173`，进入条件 `:176`：Consul 行为需双宿主一致修改，或真实 Consul 故障归因不一致）；验证：`pnpm test:discovery-closeout`（⚠️ 脚本需先修复，见五）、`pnpm test:deployment-smoke`、`pnpm typecheck`。
+对应：Q9；G7；P4；debt：「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:173`，进入条件 `:178`：Consul 行为需双宿主一致修改，或真实 Consul 故障归因不一致）；验证：`pnpm test:discovery-closeout`（⚠️ 脚本需先修复，见五）、`pnpm test:deployment-smoke`、`pnpm typecheck`。
 
 #### 2.3 设计 3：工具收敛 —— Q10
 
@@ -875,7 +875,7 @@ host-local 与 host-distributed 各有一份 Consul 接线，注册/注销/健�
 
 | 风险 | 缓解 |
 | --- | --- |
-| 双份接线收敛属大重构，仓促实施破坏两宿主 runtime 行为 | 按 debt 进入条件执行（`open-debt-and-compromises.md:168/:176`）；行为不变硬约束（fail-open、环境变量、`/metrics` 输出）；本主线不实施，仅输出设计 |
+| 双份接线收敛属大重构，仓促实施破坏两宿主 runtime 行为 | 按 debt 进入条件执行（`open-debt-and-compromises.md:168/:178`）；行为不变硬约束（fail-open、环境变量、`/metrics` 输出）；本主线不实施，仅输出设计 |
 | `timeout` 语义被误读为可无条件替换 AbortController 超时 | 语义差异显式化（设计 3 收敛 A/B 分轨）；`async.ts:17-22` 文档持续记录；禁止声称"替换即可" |
 | gateway Map 管线删除后指标口径变化 | 新增指标只增不改；gateway 侧 `trapmap_runtime_http_requests_total` 等现有名字在迁移中保持，合并命名口径需先确认 scraper 消费方 |
 | `OBSERVABILITY.md` 已漂移（port/adapter 名单、sampler 口径）导致实现时按文档做错 | 实施前以源码为基准修正文档（本设计 1.1 已列三处漂移证据）；`pnpm check:docs` 把关 |
@@ -1021,7 +1021,7 @@ EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:183-190`）是独
 | 设计 | 问题编号 | 对应 debt 条目 | 验证命令 |
 | --- | --- | --- | --- |
 | 1. `apps/` workspace 与组装中心划分表 | F1 | 无独立条目（六路审查 hosts 车道相关条目 `docs/todos/open-debt-and-compromises.md:163-200` 由本设计承接落点） | `pnpm build:light`、`pnpm build:heavy`、`pnpm typecheck` |
-| 2. 组装中心职责边界（thin assembly） | F2 | 同上；「host-distributed shared/ports.ts 业务下沉」`docs/todos/open-debt-and-compromises.md:198` 的宿主内 SQL 是反向教训 | `pnpm check:structure`、`pnpm check:imports` |
+| 2. 组装中心职责边界（thin assembly） | F2 | 同上；「host-distributed shared/ports.ts 业务下沉」`docs/todos/open-debt-and-compromises.md:202` 的宿主内 SQL 是反向教训 | `pnpm check:structure`、`pnpm check:imports` |
 | 3. `BACKEND_TARGET_REGISTRY` 迁移到 apps 注册表 | F3 | 无独立条目（registry 测试 `scripts/__tests__/backend-target-build.test.ts:29-58` 需同步） | `pnpm test:light-target`、`pnpm test:heavy-target` |
 | 4. Dockerfile / compose 映射迁移 | F4 | 「host-distributed Dockerfile 冗余 COPY client-core」`docs/todos/open-debt-and-compromises.md:239-247` | `pnpm build:light`、`pnpm build:heavy`、`docker compose --profile distributed config` |
 | 5. cli / web-panel 落点建议 | F5 | 无独立条目 | `pnpm typecheck`、`pnpm --filter @trapmap/cli test`、`pnpm --filter @trapmap/web-panel test` |
@@ -1090,7 +1090,7 @@ EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:183-190`）是独
 4. 依赖装配（把库包暴露的 `start()` / `start<X>Service()` 组合起来）；
 5. Dockerfile 与启动命令（`CMD`）。
 
-**组装中心禁止做的：** 领域规则、port 接口实现、SQL/pg-ports、RouteDef 声明、适配器实现、可复用组合逻辑。全部必须留在 host / service / backend-core 库包。设计红线：`docs/todos/open-debt-and-compromises.md:198` 登记的反向教训（host-distributed `shared/ports.ts` 宿主内手写 SQL）与本设计 F2 互斥——组装中心比宿主包更薄，任何"顺手在 app 里放逻辑"的行为视为回归。落地时建议复用 `scripts/check-relative-imports.mjs`（`check:imports` 入口，`package.json:102`）的跨目录检查思路：`apps/*/src` 只允许导入 `@trapmap/*` 库包包名入口，禁止相对路径深导 host/service 内部文件；若需更强约束，可在 `check-structure` 家族新增 `apps` 目录规则。
+**组装中心禁止做的：** 领域规则、port 接口实现、SQL/pg-ports、RouteDef 声明、适配器实现、可复用组合逻辑。全部必须留在 host / service / backend-core 库包。设计红线：`docs/todos/open-debt-and-compromises.md:202-210` 登记的反向教训（host-distributed `shared/ports.ts` 宿主内手写 SQL）与本设计 F2 互斥——组装中心比宿主包更薄，任何"顺手在 app 里放逻辑"的行为视为回归。落地时建议复用 `scripts/check-relative-imports.mjs`（`check:imports` 入口，`package.json:102`）的跨目录检查思路：`apps/*/src` 只允许导入 `@trapmap/*` 库包包名入口，禁止相对路径深导 host/service 内部文件；若需更强约束，可在 `check-structure` 家族新增 `apps` 目录规则。
 
 **双入口迁移窗口策略（关键约束）：** 迁移窗口内 `packages/host-local/src/index.ts:43-66` 与 `packages/host-distributed/src/index.ts:154-166` 的 direct-run 判定**保留**，使 `pnpm --filter @trapmap/host-local start`、`pnpm --filter @trapmap/host-distributed start:*`（`TESTING.md:336-338` 的 closeout 主链路 `build -> start` 依赖它们）继续可用；窗口关闭后以 debt 形式退役这两个 seam 与 `packages/host-local/package.json:16-17` 的可执行脚本，`start` 库 API 保留。窗口内双入口以"app 入口 import 库 API、零逻辑复制"为防漂移手段。
 
@@ -1156,7 +1156,7 @@ EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:183-190`）是独
 | --- | --- | --- |
 | R1 | **验证语义回归**：迁移中破坏 `test:light-target`/`test:heavy-target`/`test:deployment-smoke`（硬约束） | 验证命令保持"库包路径"面（`package.json:56-57`），宿主库不动；注册表 `verificationCommands` 逐字不变；`backend-target-build.test.ts:29-58` 断言同 commit 更新为 app 命令并新增"验证命令集合不变"断言 |
 | R2 | **双入口漂移**：窗口内 `packages/host-*/src/index.ts` direct-run 与 `apps/*` 入口行为分叉 | app 入口只 import 库 API（`host-local/src/index.ts:31` 的 `start()`、host-distributed 子路径 exports `packages/host-distributed/package.json:13-40`），零逻辑复制；窗口关闭后以 debt 退役旧 seam（`host-local/src/index.ts:43-66`、`host-distributed/src/index.ts:154-166`） |
-| R3 | **组装中心偷偷变厚**：app 包夹带业务逻辑（反向教训 `docs/todos/open-debt-and-compromises.md:198`） | 2.2 红线 + `check:imports` 类守卫（app 只允许 `@trapmap/*` 包名导入）；新增 app 代码走 Code Review 时的 fallow audit 通道 |
+| R3 | **组装中心偷偷变厚**：app 包夹带业务逻辑（反向教训 `docs/todos/open-debt-and-compromises.md:202-210`） | 2.2 红线 + `check:imports` 类守卫（app 只允许 `@trapmap/*` 包名导入）；新增 app 代码走 Code Review 时的 fallow audit 通道 |
 | R4 | **文档/守卫不同步**：`REPO_STRUCTURE.md`/`TESTING.md`/`SYSTEM_TRUTH_SOURCES.md`/`DEPLOYMENT.md` 仍写旧路径，`check:docs` 与 doc-drift 失败 | 文档回写与实现同 PR；`check:docs`（`package.json:39`）+ `check:structure`（`package.json:40`）纳入本分项必跑门 |
 | R5 | **compose 路径遗漏**：9 处 dockerfile 引用 + 7 处 working_dir 漏改一处导致 distributed profile 起不来 | `docker compose --profile distributed config` 静态校验 + `test:runtime-closeout:compose`（`package.json:55`，真实拉起验证）列入验证 |
 | R6 | **Docker 构建面回归**：app Dockerfile 的 COPY 清单少包或多包（现状已有一处冗余，debt `docs/todos/open-debt-and-compromises.md:239-247`） | Dockerfile 重写时消债并同步 `packages/host-distributed/src/dockerfile.test.ts`；`pnpm build:light`/`pnpm build:heavy` 无法覆盖镜像构建，镜像构建验证挂在 compose 静态校验 + 手动 `docker build` 冒烟 |
@@ -1208,7 +1208,7 @@ EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:183-190`）是独
 | 项 | 内容 |
 | --- | --- |
 | 内容 | ① internal RouteDef 派生类型化 client，`InternalServiceClients` 退役（Q1，G1/P1）；② `review`/`governanceReview` 双组合并（debt「internal-client review/governanceReview 双组合并」）；③ `shared/ports.ts` 检索/Queue/Outbox SQL 业务下沉到 service 包 pg-ports（Q5/Q6，debt「host-distributed shared/ports.ts 业务下沉」）；④ Queue/Outbox 单实现（复用 `service-job-runtime` `async-runtime.ts`，Q6） |
-| 放行条件（与 debt 进入条件关系） | 满足「internal-client review/governanceReview 双组合并」进入条件（`open-debt-and-compromises.md:197`：governance-review 内部接口新增/变更，或 URL key 可退役）或「shared/ports.ts 业务下沉」进入条件（`:203`：任一 SQL 实现出现行为不一致修复，或 service pg-ports 签名变化可自然替换）；行为不变硬约束 |
+| 放行条件（与 debt 进入条件关系） | 满足「internal-client review/governanceReview 双组合并」进入条件（`open-debt-and-compromises.md:197`：governance-review 内部接口新增/变更，或 URL key 可退役）或「shared/ports.ts 业务下沉」进入条件（`:207`：任一 SQL 实现出现行为不一致修复，或 service pg-ports 签名变化可自然替换）；行为不变硬约束 |
 | 验证命令 | `pnpm test:file -- packages/host-distributed/src/gateway/internal-client.test.ts`、`pnpm test:distributed-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck`、`pnpm exec fallow audit --base main` |
 
 ### Phase 3：失效通道与检索 owner
@@ -1224,7 +1224,7 @@ EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:183-190`）是独
 | 项 | 内容 |
 | --- | --- |
 | 内容 | ① OTel 单接线（本分项设计 1，Q9）；② Consul 接线侧收敛（本分项设计 2，Q9）；③ 内部 hop 指标增强（本分项设计 4）；④ capability-model 拆分（本分项设计 3 原则与验收，Q10） |
-| 放行条件（与 debt 进入条件关系） | 「OTel 双份接线收敛」进入条件（`open-debt-and-compromises.md:168`：需双宿主同步修改的 OTel 语义变更，或指标口径不一致——本文 1.1 已证实口径不一致与文档漂移，条件实质满足）；「Consul 双份实现收敛」进入条件（`:176`：Consul 行为需双宿主一致修改，或真实故障归因不一致）；「capability-model 拆分」进入条件（`:158`：行数超预算/新维度需独立单测/第三宿主） |
+| 放行条件（与 debt 进入条件关系） | 「OTel 双份接线收敛」进入条件（`open-debt-and-compromises.md:168`：需双宿主同步修改的 OTel 语义变更，或指标口径不一致——本文 1.1 已证实口径不一致与文档漂移，条件实质满足）；「Consul 双份实现收敛」进入条件（`:178`：Consul 行为需双宿主一致修改，或真实故障归因不一致）；「capability-model 拆分」进入条件（`:158`：行数超预算/新维度需独立单测/第三宿主） |
 | 验证命令 | `pnpm test:observability-closeout`、`pnpm test:discovery-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck`、`pnpm check:docs`、`pnpm check:structure`、`pnpm exec fallow audit --base main` |
 
 ### 验证门禁
