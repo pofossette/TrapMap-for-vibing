@@ -1,4 +1,8 @@
 /**
+ * @eval-only — product code has zero consumers; this module is imported
+ * dynamically only by the evals graph-extraction runner (case-eval.ts).
+ * It is intentionally NOT exported from the package index.
+ *
  * LLM-powered graph extraction helpers.
  *
  * Provides single-segment entity extraction via LLM, consumed by the

@@ -1,4 +1,8 @@
 /**
+ * @eval-only — product code has zero consumers; this module is imported
+ * dynamically only by the evals graph-extraction runner (conflict-eval.ts).
+ * It is intentionally NOT exported from the package index.
+ *
  * LLM-powered conflict judgment module.
  *
  * Uses an LLM to classify whether two knowledge entries are in conflict,
@@ -127,6 +131,7 @@ function parseConflictJudgmentResponse(raw: string): LlmConflictJudgment | null 
  * @param entryB - Second entry (title + body)
  * @returns Conflict judgment or null on failure
  */
+// fallow-ignore-next-line complexity -- eval-only LLM judge: inherent retry/branching; pre-existing at baseline
 export async function judgeConflictWithLLM(
   chat: ChatProvider,
   entryA: { title: string; body: string },

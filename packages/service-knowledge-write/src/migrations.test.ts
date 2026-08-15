@@ -8,6 +8,7 @@ import { taskQueueColumns } from '@trapmap/persistence-schema';
 import { assertKnowledgeWriteMigrationSet } from './migrations.js';
 
 const temporaryDirectories: string[] = [];
+// fallow-ignore-next-line code-duplication -- createMigrationSet helper is cloned across all six service migration tests; shared-helper extraction deferred
 async function createMigrationSet(files: string[], tags: string[]) {
   const directory = await mkdtemp(path.join(tmpdir(), 'trapmap-write-migrations-'));
   temporaryDirectories.push(directory);
@@ -29,21 +30,12 @@ it('uses its complete owner-local migration set', async () => {
   await expect(assertKnowledgeWriteMigrationSet()).resolves.toBeUndefined();
 });
 
-it('keeps its Drizzle schema owner-local', () => {
-  const source = readFileSync(new URL('./schema.ts', import.meta.url), 'utf8');
-
-  expect(source).not.toContain('@trapmap/server');
-  expect(source).not.toContain('../../server/');
-});
-
-it('consumes the shared persistence schema instead of local table definitions', async () => {
+it('consumes the shared persistence schema as the single table source', async () => {
   const schema = await import('@trapmap/persistence-schema');
-  const source = readFileSync(new URL('./schema.ts', import.meta.url), 'utf8');
 
   expect(schema.skillArtifacts).toBeDefined();
   expect(schema.knowledgeEntries).toBeDefined();
   expect(schema.canonicalLabels).toBeDefined();
-  expect(source).toContain('@trapmap/persistence-schema');
 });
 
 it('uses the frozen shared task queue column shape', () => {

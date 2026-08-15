@@ -7,9 +7,14 @@
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "exclude": ["src/**/*.test.ts"],
   "references": [
-    { "path": "../backend-core" },
-    { "path": "../contracts" },
-    { "path": "../lib" },
-    { "path": "../persistence-schema" }
+    {
+      "path": "../backend-core"
+    },
+    {
+      "path": "../contracts"
+    },
+    {
+      "path": "../lib"
+    }
   ]
 }
