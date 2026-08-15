@@ -1,23 +1,17 @@
 import { randomUUID } from 'node:crypto';
 
 import {
-  OUTBOX_CLAIMABLE_SQL_CONDITION,
   OUTBOX_CLAIM_BATCH_SIZE,
-  OUTBOX_FAIL_STATUS_SQL,
   OUTBOX_LEASE_MS,
   OUTBOX_MAX_ATTEMPTS,
-  OUTBOX_RECLAIM_SQL_CONDITION,
   OUTBOX_STATUS_COMPLETED,
+  OUTBOX_STATUS_FAILED,
   OUTBOX_STATUS_PENDING,
   OUTBOX_STATUS_PROCESSING,
   type QueuePorts,
-  TASK_CLAIMABLE_SQL_CONDITION,
-  TASK_DEDUPE_SQL_CONDITION,
   TASK_DEFAULT_MAX_ATTEMPTS,
   TASK_DEFAULT_PRIORITY,
   TASK_LEASE_MS,
-  TASK_RECLAIM_SQL_CONDITION,
-  TASK_REQUEUE_SQL_CONDITION,
   TASK_RETRY_BASE_DELAY_MS,
   TASK_STATUS_COMPLETED,
   TASK_STATUS_DEAD,
@@ -29,6 +23,35 @@ import {
 } from '@trapmap/backend-core';
 import type { Pool, PoolClient } from 'pg';
 import { createRabbitMqTaskTransport } from './rabbitmq-task-transport.js';
+
+// ---------------------------------------------------------------------------
+// Authoritative SQL condition rendering (owner-local postgres dialect)
+// ---------------------------------------------------------------------------
+
+/** Dedupe lookup targets: only in-flight tasks are considered duplicates. */
+export const TASK_DEDUPE_TARGET_STATUSES = [TASK_STATUS_PENDING, TASK_STATUS_RUNNING] as const;
+
+export const TASK_DEDUPE_SQL_CONDITION = `status IN (${TASK_DEDUPE_TARGET_STATUSES.map(
+  (status) => `'${status}'`,
+).join(', ')})`;
+
+/** Tasks eligible for claim: pending and past their scheduled process time. */
+export const TASK_CLAIMABLE_SQL_CONDITION = `status = '${TASK_STATUS_PENDING}' AND process_after <= NOW()`;
+
+/** Tasks whose worker lease expired are reclaimed back to pending. */
+export const TASK_RECLAIM_SQL_CONDITION = `status = '${TASK_STATUS_RUNNING}' AND lease_until < NOW()`;
+
+/** Only dead tasks can be requeued for a fresh run. */
+export const TASK_REQUEUE_SQL_CONDITION = `status = '${TASK_STATUS_DEAD}'`;
+
+/** Outbox events eligible for claim: pending and past their availability time. */
+export const OUTBOX_CLAIMABLE_SQL_CONDITION = `status = '${OUTBOX_STATUS_PENDING}' AND available_at <= NOW()`;
+
+/** Outbox events whose worker lease expired are reclaimed back to pending. */
+export const OUTBOX_RECLAIM_SQL_CONDITION = `status = '${OUTBOX_STATUS_PROCESSING}' AND lease_until < NOW()`;
+
+/** Outbox fail transition: terminal after the retry budget, pending otherwise. */
+export const OUTBOX_FAIL_STATUS_SQL = `CASE WHEN attempts >= ${OUTBOX_MAX_ATTEMPTS} THEN '${OUTBOX_STATUS_FAILED}' ELSE '${OUTBOX_STATUS_PENDING}' END`;
 
 export interface JobRuntimeAsyncTransportConfig {
   provider: 'postgres' | 'rabbitmq';
