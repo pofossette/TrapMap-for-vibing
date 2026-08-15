@@ -108,7 +108,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - Modify: `packages/service-candidate-ingestion/src/llm-dedup.ts`（标记 `@eval-only`）
 - Modify: `packages/service-governance-review/src/llm-conflict.ts`（标记 `@eval-only`）
 - Delete: `packages/service-candidate-ingestion/src/schema.ts`（本地 7 表副本）→ 改为 re-export `@trapmap/persistence-schema`（并补该依赖声明）
-- Delete: `packages/service-identity-access/src/schema.ts`, `service-knowledge-read/src/schema.ts`, `service-knowledge-write/src/schema.ts`, `service-governance-review/src/schema.ts`, `service-job-runtime/src/schema.ts`（孤儿 re-export，knip 报 unused）——若确认无引用
+- Delete: packages/service-identity-access/src/schema.ts, `service-knowledge-read/src/schema.ts`, `service-knowledge-write/src/schema.ts`, `service-governance-review/src/schema.ts`, `service-job-runtime/src/schema.ts`（孤儿 re-export，knip 报 unused）——若确认无引用
 - Delete: 六个 `drizzle.config.ts`（孤儿，根无 drizzle 脚本，迁移走已提交 SQL）——若确认无引用
 - Modify: `packages/service-candidate-ingestion/package.json`、`service-identity-access/package.json`、`service-governance-review/package.json`（补 `@trapmap/persistence-schema` 依赖声明——已 import 但未声明）
 - Delete: 服务包 stale dist 产物（`wave9-*`、`knowledge-deps/*`、`snapshot-backfill*`、`identity-audit-backfill*`、`graph-projection-backfill*`、`activation-policy*` 等 37 个文件）——git 未跟踪，直接删除磁盘文件
@@ -134,7 +134,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 ### Task 4: hosts 死代码与死依赖删除
 
 **Files:**
-- Delete: `packages/host-local/src/nest/runtime/validation.pipe.ts`（knip unused file，路由校验已由 RouteDef schema 承担）
+- Delete: packages/host-local/src/nest/runtime/validation.pipe.ts（knip unused file，路由校验已由 RouteDef schema 承担）
 - Modify: `packages/host-distributed/package.json`（移除 `@sentry/node` 依赖——全 src 无 import）
 - Modify: `packages/host-local/package.json`、`packages/host-distributed/package.json`（移除 `@trapmap/client-core` 依赖——两 host src 无 import）
 - Modify: `packages/host-distributed/src/gateway/routes.ts`（移除 `'/v1/auth/register'` 死允许项——全仓无此路由）
@@ -159,7 +159,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 ### Task 5: web-panel 误提交产物清理
 
 **Files:**
-- Delete: `packages/web-panel/vite.config.d.ts`, `vite.config.d.ts.map`, `vitest.config.d.ts`, `vitest.config.d.ts.map`（git rm，tsc 构建产物误提交）
+- Delete: packages/web-panel/vite.config.d.ts, `vite.config.d.ts.map`, `vitest.config.d.ts`, `vitest.config.d.ts.map`（git rm，tsc 构建产物误提交）
 - Modify: 根 `.gitignore`（补充 `*.d.ts.map` 与 config 构建产物忽略规则，防复发）
 - 附带：确认 `packages/web-panel/src/vite-env.d.ts`（类型声明，保留）与 `packages/host-local/src/types.d.ts`、`packages/contracts/src/types/mime-types.d.ts`（随 Task 8 parsing 下沉评估，本任务不动）
 
@@ -181,7 +181,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 **Files:**
 - Modify: `evals/scripts/eval-ci.ts`（复用 `eval-all.ts` 导出的 `runRetrievalEval`/`runSummaryEval`，删除 `eval-ci.ts:375-455` 的重复实现；统一 report 类型）
 - Modify: `evals/scripts/eval-all.ts`（导出 `runRetrievalEval`/`runSummaryEval`；统一 `reports/eval-report.json` 输出 schema——CI 与 all 共用一份）
-- Delete: `evals/baselines/`（孤儿目录，真实基线在 `reports/baselines`，由 `eval-ci.ts:77` 的 `BASELINES_DIR` 管理）
+- Delete: evals/baselines/（孤儿目录，真实基线在 `reports/baselines`，由 `eval-ci.ts:77` 的 `BASELINES_DIR` 管理）
 - Modify: `knip.json`（entry 补全所有 eval 可执行入口：`evals/retrieval/run.ts`、`summary/run.ts`、`agent-planning/run.ts`、`label-alignment/run.ts`、`graph-extraction/run.ts`、`ingestion/run.ts`、`retrieval-live/run.ts`、`retrieval-live/compare.ts`、`graph-extraction/dedup-eval.ts`、`conflict-eval.ts`、`evals/scripts/annotate-skills.ts`）
 - 附带：`scripts/run-eval.ts:222-234` 的 `--smoke` 特判保留（历史兼容入口，本主线不改分发语义）
 
