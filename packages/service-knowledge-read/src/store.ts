@@ -14,7 +14,6 @@ import type {
   LifecycleState,
   MaintenanceMetaRecord,
   Scope,
-  ScriptActivationPolicy,
   StoredScriptActivationPolicy,
 } from '@trapmap/contracts';
 
