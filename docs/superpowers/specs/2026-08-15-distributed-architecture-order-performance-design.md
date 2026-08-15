@@ -16,7 +16,7 @@ distributed 形态当前为 `Level 2 / transitional-microservice`（见 [`docs/t
 
 **证据（`packages/host-distributed/src/gateway/internal-client.ts`，共 928 行）：**
 
-- `InternalServiceClients` 接口与实现全部手写：`packages/host-distributed/src/gateway/internal-client.ts:179-409`（接口）与 `:432-927`（实现），共 8 组方法（identityAccess / knowledgeRead / knowledgeWrite / candidateIngestion / review / governanceReview / feedbackAdmin / jobRuntime；brief 原记 9 组，复核为 8 组）。
+- `InternalServiceClients` 接口与实现全部手写：`packages/host-distributed/src/gateway/internal-client.ts:179-409`（接口）与 `:432-927`（实现段约 496 行），共 8 组方法（identityAccess / knowledgeRead / knowledgeWrite / candidateIngestion / review / governanceReview / feedbackAdmin / jobRuntime；brief 原记 9 组，复核为 8 组）。
 - 每组方法的 URL 模板逐条手写：如 `:436`、`:454`、`:514`、`:684` 等 60+ 处 `${await baseUrl(...)}/internal/...`。
 - `baseUrl` 每次调用都异步解析：`:427-430`（`resolver ? resolver.resolveServiceUrl(serviceName) : staticUrl`），即每个内部调用固定多一跳 `DiscoveryResolver.resolveServiceUrl`（`discovery-resolver.ts:53`）。
 - **review 与 governanceReview 两组 7 方法逐字重复**：review 组 `:342-376`（接口）与 `:749-794`（实现）、governanceReview 组 `:377-381`（接口）与 `:795-858`（实现）——detectConflicts/approve/reject/applyMaintenance/applyDecay/reviewArtifact/submitFeedback 七个方法体仅 URL key 不同（`urls.review` vs `urls.governanceReview`）；governanceReview 额外含 3 个方法（`:840-857`）。
@@ -24,7 +24,7 @@ distributed 形态当前为 `Level 2 / transitional-microservice`（见 [`docs/t
 
 **影响：** 内部接口新增/变更方法时需在接口、实现、测试多处同步；review/governanceReview 改动必须双处重复编辑，签名或路径漂移风险高；每次调用多一跳无缓存的解析层（与问题 2 叠加）。
 
-**债务登记对应：** 「internal-client review/governanceReview 双组合并」（`docs/todos/open-debt-and-compromises.md:189-196`）。
+**债务登记对应：** 「internal-client review/governanceReview 双组合并」（`docs/todos/open-debt-and-compromises.md:192-200`）。
 
 ---
 
@@ -40,7 +40,7 @@ distributed 形态当前为 `Level 2 / transitional-microservice`（见 [`docs/t
 
 **影响：** 正常态下每请求固定多一跳 async 解析（虽被 DynamicDiscovery 缓存兜底）；Consul 故障窗口内每个内部调用都付出一次完整 HTTP 超时代价，叠加问题 3 的 10s 超时，网关雪崩风险被放大；无负缓存使故障恢复后的首个请求仍以"逐请求探活"方式打满 Consul。
 
-**债务登记对应：** 无直接对应条目；与「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:171-178`）及「平台化与服务自治尚未成熟」的"服务发现默认值是显式 URL + Docker DNS"（`:38-43`）相关，属本设计文档新承接问题。
+**债务登记对应：** 无直接对应条目；与「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:173-181`）及「平台化与服务自治尚未成熟」的"服务发现默认值是显式 URL + Docker DNS"（`:38-43`）相关，属本设计文档新承接问题。
 
 ---
 
@@ -85,7 +85,7 @@ distributed 形态当前为 `Level 2 / transitional-microservice`（见 [`docs/t
 
 **影响：** 同一对外语义（`/internal/retrieval/search`，`internal-client.ts:512-517`）在两种形态下行为完全不同：distributed 退化为无打分、无 mode 选择的文本包含匹配，检索质量与 host-local 不一致；宿主手写 SQL 与 service 包 pg-ports/domain 规则并存（即债务登记"宿主业务下沉"），后续检索能力增强（向量、rerank）需双处维护。
 
-**债务登记对应：** 「host-distributed shared/ports.ts 业务下沉」（`docs/todos/open-debt-and-compromises.md:198-205`）。
+**债务登记对应：** 「host-distributed shared/ports.ts 业务下沉」（`docs/todos/open-debt-and-compromises.md:202-210`）。
 
 ---
 
@@ -100,7 +100,7 @@ distributed 形态当前为 `Level 2 / transitional-microservice`（见 [`docs/t
 
 **影响：** 同一套 QueuePorts/OutboxPort 存在两套 SQL 语义，任何行为修复若只改一处即产生漂移（正对应债务登记的进入条件"任一 SQL 实现出现行为不一致修复"）；诊断快照语义不一致（简化版 stale 恒为 0）会误导排障。
 
-**债务登记对应：** 「host-distributed shared/ports.ts 业务下沉」（`docs/todos/open-debt-and-compromises.md:198-205`）。
+**债务登记对应：** 「host-distributed shared/ports.ts 业务下沉」（`docs/todos/open-debt-and-compromises.md:202-210`）。
 
 ---
 
@@ -143,7 +143,7 @@ distributed 形态当前为 `Level 2 / transitional-microservice`（见 [`docs/t
 
 **影响：** 指标/span 语义、采样策略、健康检查/KV/重试语义需双处同步修改，漂移风险高；两宿主观测口径可能不一致，跨形态排障（本地 vs distributed）结论不可互信。
 
-**债务登记对应：** 「OTel 双份接线收敛」（`docs/todos/open-debt-and-compromises.md:162-169`）、「Consul 双份实现收敛」（`:171-178`）。
+**债务登记对应：** 「OTel 双份接线收敛」（`docs/todos/open-debt-and-compromises.md:163-171`）、「Consul 双份实现收敛」（`:171-178`）。
 
 ---
 
@@ -152,11 +152,11 @@ distributed 形态当前为 `Level 2 / transitional-microservice`（见 [`docs/t
 **证据：**
 
 - 手写 AbortController+setTimeout 超时两处：`packages/host-distributed/src/gateway/internal-client.ts:84-86` 与 `packages/host-distributed/src/gateway/consul-discovery-adapter.ts:186-187`；而 `@trapmap/lib` 已有 `timeout` 工具（`packages/lib/src/async.ts:27`），AGENTS.md 通用约束要求统一从 lib 导入。该两处被债务登记明确列为"有意保留的遗留"（`docs/todos/open-debt-and-compromises.md:68`）。
-- capability-model 单文件 510 行：`packages/backend-core/src/runtime/capability-model.ts`（类型定义/默认值/校验/推导混合），对应「capability-model 拆分」条目（`docs/todos/open-debt-and-compromises.md:153-160`，注明 510 行主体保留）。
+- capability-model 单文件 510 行：`packages/backend-core/src/runtime/capability-model.ts`（类型定义/默认值/校验/推导混合），对应「capability-model 拆分」条目（`docs/todos/open-debt-and-compromises.md:153-161`，注明 510 行主体保留）。
 
 **影响：** 超时实现两处独立演化（如后续加超时元数据/指标需双处同步）；capability-model 新增能力维度时改动集中、审查困难，且宿主 capability 组合职责与 backend-core runtime 混合。
 
-**债务登记对应：** 「capability-model 拆分」（`docs/todos/open-debt-and-compromises.md:153-160`）、「重复工具函数回潮与工厂模式一致性」遗留项（`:64-71`，其中 `:68` 明确列出 `internal-client.ts` AbortController timeout）。
+**债务登记对应：** 「capability-model 拆分」（`docs/todos/open-debt-and-compromises.md:153-161`）、「重复工具函数回潮与工厂模式一致性」遗留项（`:64-71`，其中 `:68` 明确列出 `internal-client.ts` AbortController timeout）。
 
 ---
 
@@ -192,7 +192,7 @@ distributed 形态当前为 `Level 2 / transitional-microservice`（见 [`docs/t
 | **G1** | **内部 transport 与外部 transport 共享同一 RouteDef 真相**：gateway 内部调用不再手写 URL 字符串 client，而是由 service 声明的 `/internal/*` RouteDef（`create<X>RouteDefs`）派生类型化 client；手写 `InternalServiceClients`（internal-client.ts:179-409，8 组）与 review/governanceReview 逐字重复（internal-client.ts:749-858）被单一契约替代 | Q1（双轨制/手写 client 膨胀） |
 | **G2** | **服务发现解析从 per-call 变为带失效通道的 TTL 快照**：解析结果作为 gateway 内"发现快照"被复用，快照含负缓存与显式失效通道，不再每次内部调用都进入解析链路（internal-client.ts:427-430 → discovery-resolver.ts:53） | Q2（解析无缓存/负缓存/失效） |
 | **G3** | **内部客户端获得弹性并收敛为唯一实现**：统一 internal transport 层内置重试/退避/熔断与并发池化，`classifyInternalServiceKind`（internal-client.ts:43-52）的分类开始驱动恢复策略，替换当前单次尝试 + 固定 10s 超时（internal-client.ts:41,121-173） | Q3（内部客户端无弹性） |
-| **G4** | **读路径引入带显式失效通道的缓存**：会话校验（gateway 每请求 `validateSession`，routes.ts:59-71 → identity-access `resolveSession` → sessions 表查询，pg-ports.ts:221）与 knowledge-read 读模型（retrieval-read-model-cache.ts、entry-projection.ts）改为 short-TTL 缓存 + 写路径驱动的失效通道，TTL 只作兜底 | Q4（会话逐请求 DB hop）、Q8（跨实例缓存失效缺失） |
+| **G4** | **读路径引入带显式失效通道的缓存**：会话校验（gateway 每请求 `validateSession`，routes.ts:59-71 → identity-access `resolveSession` → sessions 表查询，pg-ports.ts:400-403）与 knowledge-read 读模型（retrieval-read-model-cache.ts、entry-projection.ts）改为 short-TTL 缓存 + 写路径驱动的失效通道，TTL 只作兜底 | Q4（会话逐请求 DB hop）、Q8（跨实例缓存失效缺失） |
 | **G5** | **检索唯一 owner**：检索语义收敛到 service-knowledge-read 完整管线（semantic/hybrid 通道、向量检索 retrieval-infra-default.ts:82、embedding 缓存），distributed 形态复用其检索端口实现；宿主不再持有降级 ILIKE 实现（shared/ports.ts:109,124-125） | Q5（检索 ILIKE 双实现） |
 | **G6** | **异步 runtime 单一实现**：Queue/Outbox 的 claim、lease、退避、快照语义收敛为 service-job-runtime 的 `JobRuntimeAsyncTransport`（async-runtime.ts，lease 可配置 OUTBOX_LEASE_MS、真实 stale 统计），宿主侧简化实现（shared/ports.ts:152,211）退役；outbox 消费改为并发 + 每事件独立失败 + 指数退避（替换 outbox-worker.ts:52-74 的串行与固定间隔） | Q6（Queue/Outbox 双实现）、Q7（outbox 串行无退避） |
 | **G7** | **双宿主观测/发现接线收敛**：OTel 与 Consul 各保留单一接线实现（backend-core 共享支持 + 宿主只装配），消除 host-local（otel.module.ts、consul.service.ts:15,48）与 host-distributed（telemetry.ts:32、consul-discovery-adapter.ts）的两套并行接线 | Q9（OTel/Consul 双份接线） |
@@ -262,7 +262,7 @@ flowchart TB
 | Q1 内部 transport 双轨/手写 client | 外部面 RouteDef（route-defs.ts），内部面手写 8 组 `InternalServiceClients`（internal-client.ts:179-409），review/governanceReview 两组 7 方法逐字重复（internal-client.ts:749-858） | 内部 client 由 `/internal/*` RouteDef 派生，单一契约两端共享（G1） | L2/L3 |
 | Q2 发现解析无缓存（N+1） | 每次内部调用经 `baseUrl` → `resolveServiceUrl`（internal-client.ts:427-430，discovery-resolver.ts:53）；仅 consulEnabled 路径经 DynamicDiscovery 30s TTL + round-robin（dynamic-discovery.ts:9-58，discovery-factory.ts:44），无负缓存（空结果直接 throw，dynamic-discovery.ts:31-33）、无主动失效；Consul 超时默认 3s（consul-discovery-adapter.ts:38） | 统一"发现快照"层：TTL 快照 + 负缓存 + 显式失效通道，解析不再进入 per-call 链路（G2） | L2/L5 |
 | Q3 内部客户端无弹性 | 单次尝试、固定 10s 超时（internal-client.ts:41,121-173）；错误已分类但分类不驱动恢复（internal-client.ts:43-52） | internal transport 层内置重试/退避/熔断/池化，分类驱动恢复策略（G3） | L2 |
-| Q4 会话逐请求 DB hop | gateway auth hook 每请求 `validateSession`（routes.ts:59-71）→ `/internal/auth/validate`（service-identity-access routes.ts:136-139）→ `resolveSession`（module.ts:119-121）→ sessions 表 `SELECT`（pg-ports.ts:221） | short-TTL 会话缓存 + 登录/登出/切团队等写路径失效通道（G4） | L2/L4 |
+| Q4 会话逐请求 DB hop | gateway auth hook 每请求 `validateSession`（routes.ts:59-71）→ `/internal/auth/validate`（service-identity-access routes.ts:136-139）→ `resolveSession`（module.ts:119-121）→ sessions 表 `SELECT`（pg-ports.ts:400-403） | short-TTL 会话缓存 + 登录/登出/切团队等写路径失效通道（G4） | L2/L4 |
 | Q5 检索 ILIKE 双实现 | host-distributed 手写 `%term%` ILIKE + 前端切片（shared/ports.ts:109,124-125,140），与 service-knowledge-read 完整管线（向量检索 retrieval-infra-default.ts:82、semantic/keyword 通道、embedding 缓存）语义不一致 | 检索唯一 owner 在 service-knowledge-read，宿主复用其端口实现（G5） | L4 |
 | Q6 Queue/Outbox 双实现 | 宿主简化实现（shared/ports.ts:152 `createPgTaskQueue`、:211 `createPgOutbox`，lease 30s 硬编码 :238，stale 统计硬编码 0 :204,:297）与 job-runtime 完整实现（async-runtime.ts:197 task claim、:279-297 outbox claimBatch、可配置 OUTBOX_LEASE_MS :293、真实 stale 统计 :161-179/:310-328）并存 | 异步 runtime 单一实现（service-job-runtime owner），宿主只装配（G6） | L4/L5 |
 | Q7 outbox 消费串行无退避 | batch 内事件顺序 `await`（outbox-worker.ts:52-69）；错误/空轮后固定间隔 pause（outbox-worker.ts:32-43,70-74），无指数退避、无并发上限 | 并发消费 + 每事件独立失败 + 指数退避 + 并发上限（G6） | L4 |
@@ -287,7 +287,7 @@ flowchart TB
 
 | 设计 | 对应问题 | 对应 G/P | 对应 debt 条目 | 验证命令 |
 | --- | --- | --- | --- | --- |
-| 1. internal RouteDef 单一契约 + 类型化派生 client | Q1 | G1、P1、P4 | 「internal-client review/governanceReview 双组合并」（`docs/todos/open-debt-and-compromises.md:189`） | `internal-client.test.ts` focused、`pnpm test:distributed-closeout`、`pnpm typecheck`、`pnpm exec fallow audit --base main` |
+| 1. internal RouteDef 单一契约 + 类型化派生 client | Q1 | G1、P1、P4 | 「internal-client review/governanceReview 双组合并」（`docs/todos/open-debt-and-compromises.md:192`） | `internal-client.test.ts` focused、`pnpm test:distributed-closeout`、`pnpm typecheck`、`pnpm exec fallow audit --base main` |
 | 2. typed client 收敛 + review/governanceReview 合并 | Q1 | G1、P1 | 同上（`:189`） | `internal-client.test.ts`、`routes.test.ts` focused、`pnpm test:distributed-closeout`、`pnpm test:deployment-smoke` |
 | 3. 内部调用弹性策略（重试/超时分级/可选熔断） | Q3 | G3、P4 | 无独立条目（Q3 由本设计文档承接，可挂「工程维护信号偏高」`:27`） | `internal-client.test.ts`、`distributed-acceptance.test.ts` focused、`pnpm test:distributed-closeout`、`pnpm test:deployment-smoke` |
 | 4. 显式超时工具（替代手写 AbortController） | Q10 | G8、P1 | 「重复工具函数回潮与工厂模式一致性」遗留项（`:68` 明列 `internal-client.ts` AbortController timeout） | `packages/lib/src/async.test.ts`、`internal-client.test.ts` focused、`pnpm typecheck` |
@@ -305,14 +305,14 @@ flowchart TB
 - knowledge-read：`createKnowledgeReadRouteDefs`（`packages/service-knowledge-read/src/routes.ts:55`，`/internal/knowledge/:entryId` `:61`、`/internal/retrieval/search` `:83`）。
 - knowledge-write：`createKnowledgeWriteRouteDefs`（`packages/service-knowledge-write/src/routes.ts:275`）+ `createArtifactRouteDefs`（`packages/service-knowledge-write/src/artifact-routes.ts:107`）；`/internal/rpc/knowledge-write` `routes.ts:463-472`。
 - candidate-ingestion：`packages/service-candidate-ingestion/src/routes.ts:91`。
-- governance-review：`packages/service-governance-review/src/routes.ts:238`（路径全集 `:244-454`）。
+- governance-review：`packages/service-governance-review/src/routes.ts:238`（业务路径全集 `:244-454`）。
 - job-runtime：`packages/service-job-runtime/src/routes.ts:44`。
 
-「同一 RouteDef 双 adapter 消费」在 host-local monolith 已是事实：`host-local/src/nest/gateway/gateway.module.ts:34` 用 `createNestAdapter(createGatewayRouteDefs(deps), deps)`；`monolith-route-defs.test.ts:54-58` 直接 import 六个服务包 RouteDef 经 Nest adapter 装配。host-distributed 对六个 service 包的 `workspace:*` 依赖已声明在 `dependencies`（`packages/host-distributed/package.json:75-80`），依赖方向成立。
+「同一 RouteDef 双 adapter 消费」在 host-local monolith 已是事实：`host-local/src/nest/gateway/gateway.module.ts:34` 用 `createNestAdapter(createGatewayRouteDefs(deps), deps)`；`packages/host-local/src/nest/runtime/monolith-route-defs.test.ts:54-58` 直接 import 六个服务包 RouteDef 经 Nest adapter 装配。host-distributed 对六个 service 包的 `workspace:*` 依赖已声明在 `dependencies`（`packages/host-distributed/package.json:75-80`），依赖方向成立。
 
-**client 面仍是手写（Q1 的实质缺口）：** `InternalServiceClients` 接口（`packages/host-distributed/src/gateway/internal-client.ts:179-409`，**8 组**：identityAccess / knowledgeRead / knowledgeWrite / candidateIngestion / review / governanceReview / feedbackAdmin / jobRuntime）与实现（`:432-927`，共 928 行）全部手写；`callInternalService`（`:69-173`）内 60+ 处 `${await baseUrl(...)}/internal/...` URL 模板与 service 包 RouteDef 的 path **重复声明**。例：`/internal/auth/login` 同时存在于 identity-access `routes.ts:106` 与 internal-client `:436`；`/internal/auth/validate` 在 `routes.ts:136` 与 internal-client `:454`。每次调用还经 `baseUrl` 异步解析（`:427-430`，`resolver ? resolver.resolveServiceUrl(serviceName) : staticUrl`）。
+**client 面仍是手写（Q1 的实质缺口）：** `InternalServiceClients` 接口（`packages/host-distributed/src/gateway/internal-client.ts:179-409`，**8 组**：identityAccess / knowledgeRead / knowledgeWrite / candidateIngestion / review / governanceReview / feedbackAdmin / jobRuntime）与实现（`:432-927`，该段约 496 行，文件总行数 928）全部手写；`callInternalService`（`:69-173`）内 60+ 处 `${await baseUrl(...)}/internal/...` URL 模板与 service 包 RouteDef 的 path **重复声明**。例：`/internal/auth/login` 同时存在于 identity-access `routes.ts:106` 与 internal-client `:436`；`/internal/auth/validate` 在 `routes.ts:136` 与 internal-client `:454`。每次调用还经 `baseUrl` 异步解析（`:427-430`，`resolver ? resolver.resolveServiceUrl(serviceName) : staticUrl`）。
 
-**review/governanceReview 双组逐字重复（debt 直接对应）：** 接口 `:342-376` 与 `:377-381`（`InternalServiceClients['review'] & {...}`）、实现 `:749-794` 与 `:795-858`——detectConflicts/approve/reject/applyMaintenance/applyDecay/reviewArtifact/submitFeedback 七个方法体仅静态回退 URL key 不同（`urls.review` vs `urls.governanceReview`），governanceReview 额外含 3 方法（`:840-857`）。且两 key 来自**同一 env**（`service-config.ts:321-322` 均读 `TRAPMAP_GOVERNANCE_REVIEW_URL`），服务名同为 `'governance-review'`（`discovery-resolver.ts:19-26` 的 `SERVICE_NAME_TO_URL_KEY` 只映射到 `governanceReview`）。即 review 组的静态回退 key 与 discovery 映射不一致，是合并的潜在正确性收益点。该双组由 debt「internal-client review/governanceReview 双组合并」（`docs/todos/open-debt-and-compromises.md:189-196`）登记，进入条件：「governance-review 内部接口新增/变更方法时，或 `urls.review`/`urls.governanceReview` 任一 URL key 被确认可退役」——本设计的合并方案即确认 `urls.review` 可退役。
+**review/governanceReview 双组逐字重复（debt 直接对应）：** 接口 `:342-376` 与 `:377-381`（`InternalServiceClients['review'] & {...}`）、实现 `:749-794` 与 `:795-858`——detectConflicts/approve/reject/applyMaintenance/applyDecay/reviewArtifact/submitFeedback 七个方法体仅静态回退 URL key 不同（`urls.review` vs `urls.governanceReview`），governanceReview 额外含 3 方法（`:840-857`）。且两 key 来自**同一 env**（`service-config.ts:321-322` 均读 `TRAPMAP_GOVERNANCE_REVIEW_URL`），服务名同为 `'governance-review'`（`discovery-resolver.ts:19-26` 的 `SERVICE_NAME_TO_URL_KEY` 只映射到 `governanceReview`）。即 review 组的静态回退 key 与 discovery 映射不一致，是合并的潜在正确性收益点。该双组由 debt「internal-client review/governanceReview 双组合并」（`docs/todos/open-debt-and-compromises.md:192-200`）登记，进入条件：「governance-review 内部接口新增/变更方法时，或 `urls.review`/`urls.governanceReview` 任一 URL key 被确认可退役」——本设计的合并方案即确认 `urls.review` 可退役。
 
 #### 1.2 错误反序列化三份同构实现（Q1 伴随）
 
@@ -350,23 +350,23 @@ createTypedInternalClient(routeDefs, resolveBaseUrl, options)
 - 装配：`gateway/server.ts:290` 的 `createInternalServiceClients(config.internalUrls, resolver)` 改为「按服务收集 RouteDef + baseUrl 解析器」装配；`InternalServiceClients` 保留为对外形状（`route-defs.ts:462` 的 deps 类型、`routes.ts:22`、`server.ts:200` 消费），由派生器生成。
 - baseUrl 解析调用面保留（`internal-client.ts:427-430` 语义），每服务一次解析入口；解析性能缺口（负缓存/失败路径/TTL 可配置）归 Task 4，本分项不重复设计，口径一致：`DynamicDiscovery` 已有 30s TTL + round-robin（`dynamic-discovery.ts:18`、`:53`），缺口仅为 `discover` 空结果直接 throw 不写负缓存（`dynamic-discovery.ts:31-33`）与 `discovery-factory.ts:44` TTL 硬编码。
 
-对应：Q1；G1（内部与外部 transport 共享同一 RouteDef 真相）、P1（唯一路由面）、P4（同一契约单一实现）；debt：`open-debt-and-compromises.md:189`（入口之一）；验证：见 §五 设计 1/2。
+对应：Q1；G1（内部与外部 transport 共享同一 RouteDef 真相）、P1（唯一路由面）、P4（同一契约单一实现）；debt：`open-debt-and-compromises.md:192`（入口之一）；验证：见 §五 设计 1/2。
 
 #### 2.2 设计 2：typed client 收敛 + review/governanceReview 合并 —— Q1 / G1 / P1 / debt
 
 - `InternalServiceClients` 从手写 8 组收敛为由 RouteDef 派生的类型化调用面；**review 与 governanceReview 合并为单组 `governanceReview`**（原 7 方法 + getRetrievalProjection/reactivateRemediation/exportBadcaseDraft 共 10 方法），`urls.review` 退役，静态回退 key 统一为 `urls.governanceReview`——与 `discovery-resolver.ts:19-26` 的 `SERVICE_NAME_TO_URL_KEY` 对齐（消除 review 组「discovery 解析到 governanceReview、静态回退却走 review」的隐式不一致）。
-- 消费方更新：gateway `route-defs.ts:884-885`（approve/reject）、`:936`（submitFeedback）、`:1013`（reviewArtifact）改指 `clients.governanceReview.*`；`job-runtime/handlers.ts:21,45,51` 已使用 governanceReview 组，无需改动；`feedbackAdmin` 组保持独立（对应 `GovernanceReviewAdminPort` 语义，`internal-ports.ts:228-248`）。
+- 消费方更新：gateway `route-defs.ts:884-885`（approve/reject）、`:936`（submitFeedback）、`:1013`（reviewArtifact）改指 `clients.governanceReview.*`；`job-runtime/handlers.ts:21,45,51` 已使用 governanceReview 组，无需改动；`feedbackAdmin` 组保持独立（对应 `GovernanceReviewAdminPort` 语义，`packages/backend-core/src/ports/internal-ports.ts:228-248`）。
 - 服务端零改动：governance-review 全部路径已单源在 `routes.ts:244-454`。
-- debt 回写：合并实施后按债务进入条件更新 `open-debt-and-compromises.md:189-196`（关闭「双组重复」，若 `urls.review` 无其他消费则连同 URL key 退役一并记录）。
+- debt 回写：合并实施后按债务进入条件更新 `open-debt-and-compromises.md:192-200`（关闭「双组重复」，若 `urls.review` 无其他消费则连同 URL key 退役一并记录）。
 
-对应：Q1；G1、P1；debt：`open-debt-and-compromises.md:189`；验证：见 §五 设计 2。
+对应：Q1；G1、P1；debt：`open-debt-and-compromises.md:192`；验证：见 §五 设计 2。
 
 #### 2.3 设计 3：内部调用弹性策略 —— Q3 / G3
 
 以现有错误分类为唯一驱动源（`classifyInternalServiceKind` `internal-client.ts:43-52` 并入派生层，status → `InvocationErrorKind`，`invocation-model.ts:57-65` 为唯一 taxonomy）：
 
 - **重试：仅幂等 GET + 网络类失败**（fetch 抛错 / 503 unavailable / 504 timeout），上限 1 次 + 短 jitter backoff；POST/PUT/PATCH 不自动重试（幂等性由业务语义决定——delegation 重放幂等已有测试基础：`distributed-acceptance.test.ts:626`「idempotent retry of governance delegation replays the same command without duplicate aggregate mutation」）。
-- **超时分级：** 默认 10s 保留（`internal-client.ts:41` 语义不变），派生层支持 per-route/per-call `timeoutMs` 覆盖（现有 `InternalRequestOptions.timeoutMs` `internal-client.ts:36-39` 的调用方语义不变，gateway `route-defs.ts:475` 等已传 options）。
+- **超时分级：** 默认 10s 保留（`internal-client.ts:41` 语义不变），派生层支持 per-route/per-call `timeoutMs` 覆盖（现有 `InternalRequestOptions.timeoutMs` `internal-client.ts:36-39` 的调用方语义不变；现状 gateway `route-defs.ts:475` 只传 headers（`trustedArtifactImportOptions`），per-route timeoutMs 覆盖属新增能力）。
 - **熔断：可选 fallback**，基于连续网络类失败计数 + 半开探测窗口；默认关闭，显式配置才启用，避免误判；失败计数与恢复窗口可配置。
 - **池化：** per-origin undici `Agent`（`maxConnections`/`maxKeepAliveTime`）由 Task 4 设计 3 定义，派生层保留 dispatcher 注入面，本分项不重复实现。
 - **指标：** internal hop 指标沿用 `recordDistributedInternalHopMetric`（`internal-observability.ts:87-103`，含 `transport: 'http' | 'rpc'` 维度 `:90`）；重试/熔断计数器挂同一 registry（可选，future-state）。
@@ -406,7 +406,7 @@ createTypedInternalClient(routeDefs, resolveBaseUrl, options)
 | 契约 | 无对外契约变化；`/internal/*` 路径与 canonical envelope 不变；`urls.review` 退役（与 `urls.governanceReview` 同 env 同服务，`service-config.ts:321-322`） | 不新增路由、不新增 env（弹性参数可选新增，future-state）；RPC 试点范围不变 |
 | 依赖/边界 | `host-distributed → service-*` 依赖已存在（`package.json:75-80`，dependencies），派生层 import 服务包 RouteDef 元数据不新增包依赖 | 需 `pnpm exec fallow audit --base main` 验证 zone 合规；派生层不得执行 service handler |
 | 测试 | `internal-client.test.ts`、`routes.test.ts`、`distributed-acceptance.test.ts`、`distributed-runtime-closeout.test.ts`、`internal-knowledge-write-client.test.ts`、`delegation-acceptance.test.ts` 扩展/回归；`lib async.test.ts` 新增原语用例 | 合并前后逐方法 URL 断言（`internal-client.test.ts` 现有 10+ it 用例为基础） |
-| 文档 | `host-distributed/README.md:263`（transport 说明）、debt register `open-debt-and-compromises.md:189`（合并关闭/更新）与 `:68`（遗留关闭）、必要时 `docs/architecture/BOUNDARIES.md` | 本分项写作阶段不改动 tracked 文件 |
+| 文档 | `host-distributed/README.md:263`（transport 说明）、debt register `open-debt-and-compromises.md:192`（合并关闭/更新）与 `:68`（遗留关闭）、必要时 `docs/architecture/BOUNDARIES.md` | 本分项写作阶段不改动 tracked 文件 |
 | 与其它分项边界 | Task 4（发现解析缓存、连接池化——本分项仅保留其注入面）；Task 5（跨实例失效通道）；Task 6（OTel/Consul 收敛、hop 指标增强） | 不重复定义上述内容；`route-defs.ts` 外部面的 host-local 副本（`host-local/src/nest/gateway/gateway.route-defs.ts:118`）与内部传输无关，不在本分项收敛范围 |
 
 ---
@@ -437,7 +437,7 @@ createTypedInternalClient(routeDefs, resolveBaseUrl, options)
 | 架构边界（跨包导入变化） | `pnpm exec fallow audit --base main` |
 | 类型 | `pnpm typecheck` |
 
-> **实施前前置项（集成者必读）：** 本分项为 deferred design input，在根 `plan.md` 显式激活前不构成执行授权；实施时的 debt 回写与文档更新按 `docs/todos/open-debt-and-compromises.md:196`（「要求的文档与测试」）执行，并同步核对 `docs/operations/REGRESSION-COMMANDS.md` 中 distributed 相关命令是否需随 internal-client 重写更新。
+> **实施前前置项（集成者必读）：** 本分项为 deferred design input，在根 `plan.md` 显式激活前不构成执行授权；实施时的 debt 回写与文档更新按 `docs/todos/open-debt-and-compromises.md:200`（「要求的文档与测试」）执行，并同步核对 `docs/operations/REGRESSION-COMMANDS.md` 中 distributed 相关命令是否需随 internal-client 重写更新。
 
 ---
 
@@ -455,7 +455,7 @@ createTypedInternalClient(routeDefs, resolveBaseUrl, options)
 | 1. 发现解析 TTL 快照缓存（含负缓存） | Q2 | G2、P5 | 无独立条目（Q2 由本设计文档承接） | `pnpm test:discovery-closeout`、`pnpm test:distributed-closeout`、`pnpm typecheck` |
 | 2. 会话校验缓存 + 失效通道 | Q4、Q8 | G4、P4 | 无独立条目；失效通道设计与 Task 5（Q8 分项）共用 | gateway focused tests、`pnpm test:distributed-closeout`、`pnpm test:deployment-smoke` |
 | 3. 内部 HTTP 连接池化 | Q3 | G3、P4 | 无独立条目（Q3 由本设计文档承接） | `internal-client.test.ts` focused、`pnpm test:distributed-closeout`、`pnpm typecheck` |
-| 4. Consul 双份收敛定位 | Q9 | G7、P4 | 「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:171`） | `pnpm test:discovery-closeout`、`pnpm test:deployment-smoke` |
+| 4. Consul 双份收敛定位 | Q9 | G7、P4 | 「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:173`） | `pnpm test:discovery-closeout`、`pnpm test:deployment-smoke` |
 
 ---
 
@@ -473,7 +473,7 @@ gateway 每次内部请求都走一次解析链：`createInternalServiceClients`
 
 #### 1.2 会话校验逐请求无缓存（Q4）
 
-gateway `identityAccess.validateSession` 每请求内部调用 `POST /internal/auth/validate`（`internal-client.ts:452`）；identity-access 路由 `deps.validateSession(ctx.body.sessionToken)`（`packages/service-identity-access/src/routes.ts:139`）落到应用层 `sessionLookup.resolveSession(sessionToken)`（`packages/backend-core/src/identity-access/application/module.ts:119`）——repository-backed 会话解析（登出路径 `sessionRepo.deleteByTokenHash`，`module.ts:116` 为唯一状态变更点）。即每个外部请求 = 1 次 internal hop + 1 次会话解析，无任何缓存与失效通道。
+gateway `identityAccess.validateSession` 每请求内部调用 `POST /internal/auth/validate`（`internal-client.ts:452`）；identity-access 路由 `deps.validateSession(ctx.body.sessionToken)`（`packages/service-identity-access/src/routes.ts:139`）落到应用层 `sessionLookup.resolveSession(sessionToken)`（`packages/backend-core/src/identity-access/application/module.ts:119`）——repository-backed 会话解析（会话变更点包括 create `module.ts:85/:105`、logout `module.ts:116`、select-team `:128`，后两者是失效通道应覆盖的写路径）。即每个外部请求 = 1 次 internal hop + 1 次会话解析，无任何缓存与失效通道。
 
 #### 1.3 内部客户端无显式连接池、无弹性策略（Q3）
 
@@ -481,7 +481,7 @@ gateway `identityAccess.validateSession` 每请求内部调用 `POST /internal/a
 
 #### 1.4 Consul 双份实现并行（Q9）
 
-host-local 维护 NestJS 实现（`consul.service.ts:15` implements `DiscoveryPort`，依赖 `consul` npm 包 `consul.service.ts:5`，装配于 `consul.module.ts:18`）；host-distributed 维护 framework-free 实现（`consul-discovery-adapter.ts:51` implements `DiscoveryPort`，native fetch `:185`）。两份实现行为（健康检查、KV、重试、degraded 语义）并行漂移（debt「Consul 双份实现收敛」`docs/todos/open-debt-and-compromises.md:171`）。
+host-local 维护 NestJS 实现（`consul.service.ts:15` implements `DiscoveryPort`，依赖 `consul` npm 包 `consul.service.ts:5`，装配于 `consul.module.ts:18`）；host-distributed 维护 framework-free 实现（`consul-discovery-adapter.ts:51` implements `DiscoveryPort`，native fetch `:185`）。两份实现行为（健康检查、KV、重试、degraded 语义）并行漂移（debt「Consul 双份实现收敛」`docs/todos/open-debt-and-compromises.md:173`）。
 
 ---
 
@@ -527,11 +527,11 @@ host-local 维护 NestJS 实现（`consul.service.ts:15` implements `DiscoveryPo
 
 **定位（本分项只写定位，不实施）：** 以 backend-core `DiscoveryPort`（`packages/backend-core/src/ports/discovery-ports.ts:31`）为**唯一契约**；以 host-distributed 现有 framework-free adapter（`consul-discovery-adapter.ts`，native fetch、无第三方依赖）为**唯一实现**；host-local 的 `consul.module.ts:18` 装配层改为注入同一实现，`consul.service.ts` 退役。行为约束：注册/注销/健康检查/KV/ degraded 语义以 adapter 为准单一化。
 
-- 承接 debt「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:171`）；进入条件见该条目（Consul 行为需双宿主一致修改或故障归因不一致）。
+- 承接 debt「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:173`）；进入条件见该条目（Consul 行为需双宿主一致修改或故障归因不一致）。
 - 本分项与 Task 6（可观测性与通用收敛）的接线侧细节共用同一口径；本分项只固定契约与实现落点。
 - **明确不实施**：在根 `plan.md` 显式激活前，此为 deferred 设计输入，不构成执行授权；实施时需同步更新 `docs/architecture/SERVICE-DISCOVERY.md`（debt 条目「要求的文档与测试」）。
 
-对应：Q9；G7、P4；debt：「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:171`）；验证：`pnpm test:discovery-closeout`、`pnpm test:deployment-smoke`。
+对应：Q9；G7、P4；debt：「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:173`）；验证：`pnpm test:discovery-closeout`、`pnpm test:deployment-smoke`。
 
 ---
 
@@ -555,7 +555,7 @@ host-local 维护 NestJS 实现（`consul.service.ts:15` implements `DiscoveryPo
 | 会话缓存安全窗口：登出/权限变更后 TTL 内仍放行 | 失效通道优先级明确（outbox 事件 → 复用 knowledge-read 失效通道 → TTL 兜底）；TTL 上限 60s 作为失效延迟上界；高敏校验（如 system-admin、权限变更后的敏感写路径）可配置旁路缓存，需要时逐调用回源 |
 | 跨实例一致性：多 gateway/多 knowledge-read 实例缓存各自为政 | Level 2 阶段进程内缓存即可接受；跨实例失效（Q8）由 Task 5 分项的失效通道统一承载，本分项只声明依赖其接口语义，不自行发明通道 |
 | 连接池参数不当导致连接耗尽/FD 峰值 | `maxConnections` 有界（默认 10/服务）、`maxKeepAliveTime` 30s、与 10s 内部超时（`internal-client.ts:41`）配合；配合 Task 6 内部 hop 指标（低基数 counter）观察连接池与超时分布 |
-| Consul 双份收敛属大重构，仓促实施可能破坏两宿主行为 | 按 debt 进入条件（`open-debt-and-compromises.md:176`）执行；行为不变硬约束；本主线不实施，仅输出设计定位 |
+| Consul 双份收敛属大重构，仓促实施可能破坏两宿主行为 | 按 debt 进入条件（`open-debt-and-compromises.md:178`）执行；行为不变硬约束；本主线不实施，仅输出设计定位 |
 | Q10 表面建议（手写 AbortController 统一替换为 lib `timeout`）与 fetch 取消语义冲突 | 保留 AbortController 超时（`internal-client.ts:84`、`consul-discovery-adapter.ts:186`）；`async.ts:17` 文档已记录该分歧，本设计不强行统一 |
 
 ---
@@ -587,7 +587,7 @@ host-local 维护 NestJS 实现（`consul.service.ts:15` implements `DiscoveryPo
 
 | 设计 | 对应问题 | 对应 G/P（编号以 Task 2 定稿为准） | 对应 debt 条目 | 验证命令 |
 | --- | --- | --- | --- | --- |
-| 1. 检索唯一 Owner | Q5 | **G5**（检索唯一 owner）；**P3**（宿主只装配）、**P4**（同一契约单一实现） | 「host-distributed shared/ports.ts 业务下沉」（[`docs/todos/open-debt-and-compromises.md`](../../docs/todos/open-debt-and-compromises.md:198-205)） | service-knowledge-read focused tests、`pnpm eval:smoke`、`pnpm test:distributed-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck` |
+| 1. 检索唯一 Owner | Q5 | **G5**（检索唯一 owner）；**P3**（宿主只装配）、**P4**（同一契约单一实现） | 「host-distributed shared/ports.ts 业务下沉」（[`docs/todos/open-debt-and-compromises.md`](../../docs/todos/open-debt-and-compromises.md:202-210)） | service-knowledge-read focused tests、`pnpm eval:smoke`、`pnpm test:distributed-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck` |
 | 2. Queue/Outbox 单一实现收敛 | Q6 | **G6**（异步 runtime 单一实现）；**P3**、**P4** | 「host-distributed shared/ports.ts 业务下沉」（同上条目） | service-job-runtime focused tests、`pnpm test:distributed-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck` |
 | 3. Outbox 并发与退避 | Q7 | **G6**（outbox 消费改为并发 + 每事件独立失败 + 指数退避） | 无独立条目（Q7 由本设计文档承接） | service-job-runtime focused tests（`outbox-worker.test.ts`、`async-runtime.test.ts`）、`pnpm test:deployment-smoke` |
 | 4. 跨实例失效通道 | Q8 | **G4**（读路径缓存带显式失效通道）；**P5**（缓存必须带显式失效通道而非信任 TTL） | 无独立条目（Q8 由本设计文档承接；与 Task 4 分项的失效通道共用同一选型） | service-knowledge-read focused tests、`pnpm eval:smoke`、`pnpm test:distributed-closeout`、`pnpm test:deployment-smoke` |
@@ -603,7 +603,7 @@ host-local 维护 NestJS 实现（`consul.service.ts:15` implements `DiscoveryPo
 - **实现 A（distributed 宿主手写，当前被接线）：** `createPgRetrievalQuery`（`packages/host-distributed/src/shared/ports.ts:109-146`）：`:114` 硬编码 `lifecycle_state = 'approved'`；`:123-126` `(content ILIKE $n OR title ILIKE $n)` + `%${params.query}%`（前导 `%` 无法走 B-tree 索引）；`:130-134` **`SELECT id, content, title ... LIMIT`（仅 3 列，LIMIT 已下推）**；`:140` JS `slice(0, 200)` 截断 snippet；结果 score 恒为 1.0（`:139`），无相关性排序。接线于 `packages/host-distributed/src/knowledge-read/index.ts:22-25`（`ports.retrievalQuery` 注入 knowledge-read 装配），对外经 `/internal/retrieval/search` 路由（`packages/service-knowledge-read/src/routes.ts:81-92` → `deps.search` → `packages/backend-core/src/knowledge-read/application/module.ts:52-58`）被 gateway 消费（`packages/host-distributed/src/gateway/internal-client.ts:512-517`）。
 - **实现 B（service 完整管线，仅 host-local 使用）：** `createKnowledgeReadRetrievalQuery`（`packages/service-knowledge-read/src/server-retrieval-seam.ts:122-152`）基于 `searchKnowledge` 完整管线（`search-knowledge.ts:66`）：semantic/keyword 双通道（`server-retrieval-seam.ts:89-94` 注册 `semanticChannel`/`keywordChannel`）、semantic/hybrid/graph-assisted 三策略（`:96-120`）、pgvector 向量检索 SQL（`packages/service-knowledge-read/src/retrieval-infra-default.ts:82`）、查询向量缓存（`retrieval-semantic.ts:16-22`）、routing trace 与 rag 日志。host-local 经 `createKnowledgeReadOwnerRetrievalServices` 装配（`packages/host-local/src/nest/runtime/host-runtime.ts:42-78`，mode `'hybrid'`，`:76`）。
 
-同一对外语义（`/internal/retrieval/search`）在两种形态下行为完全不同：distributed 退化为无打分、无 mode 选择的文本包含匹配。宿主手写 SQL 与 service 包 pg-ports/domain 规则并存，即债务「host-distributed shared/ports.ts 业务下沉」（`open-debt-and-compromises.md:198-205`）。
+同一对外语义（`/internal/retrieval/search`）在两种形态下行为完全不同：distributed 退化为无打分、无 mode 选择的文本包含匹配。宿主手写 SQL 与 service 包 pg-ports/domain 规则并存，即债务「host-distributed shared/ports.ts 业务下沉」（`open-debt-and-compromises.md:202-210`）。
 
 #### 1.2 Queue/Outbox 双实现并存，简化版无运行时消费者（Q6）
 
@@ -649,7 +649,7 @@ knowledge-read 的两个读缓存均为**进程内模块级单例、纯 TTL 驱�
 
 过渡缓解只改变索引与执行计划，不改变 SQL 语义；**最终形态是删除该实现**（与 Q6 的简化版删除同批执行，一并关闭 debt 条目）。
 
-对应：Q5；G5；P3/P4；debt：「host-distributed shared/ports.ts 业务下沉」（`open-debt-and-compromises.md:198-205`，进入条件：`shared/ports.ts` 任一 SQL 实现出现行为不一致修复，或 service 包 pg-ports 签名变化使宿主实现可自然替换）；验证：service-knowledge-read focused tests、`pnpm eval:smoke`（检索改动必跑）、`pnpm test:distributed-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck`、跨包导入变化时 `pnpm exec fallow audit --base main`。
+对应：Q5；G5；P3/P4；debt：「host-distributed shared/ports.ts 业务下沉」（`open-debt-and-compromises.md:202-210`，进入条件：`shared/ports.ts` 任一 SQL 实现出现行为不一致修复，或 service 包 pg-ports 签名变化使宿主实现可自然替换）；验证：service-knowledge-read focused tests、`pnpm eval:smoke`（检索改动必跑）、`pnpm test:distributed-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck`、跨包导入变化时 `pnpm exec fallow audit --base main`。
 
 #### 2.2 设计 2：Queue/Outbox 单一实现收敛 —— Q6 / G6 / P3、P4
 
@@ -709,7 +709,7 @@ NOTIFY 投递天然广播到所有 knowledge-read 实例，满足"失效消息�
 | 契约 | 无对外契约变化 | `/internal/retrieval/search`（`routes.ts:81-92`）、`/internal/jobs/queue`（`routes.ts:73-80`）语义不变；失效通道为服务间基础设施，不新增路由 |
 | 测试 | `database-ownership.test.ts`（删除 `jobRuntime`/`asyncDiagnostics` 断言）、`outbox-worker.test.ts`/`async-runtime.test.ts`（并发/退避/lease）、knowledge-read focused tests（失效通道）、`distributed-runtime-closeout.test.ts`（快照断言随实现收敛回归） | focused tests + closeout 命令见各设计标注 |
 | 文档 | `docs/architecture/BOUNDARIES.md`（宿主 SQL 收归后的边界说明，debt 条目「要求的文档与测试」） | 本分项写作阶段不改动 tracked 文件 |
-| 与其它分项边界 | Task 4（会话缓存失效通道共用本分项选型）、Task 6（可观测性：outbox 并发/退避与失效通道的指标落点）、债务「task_queue_type_dedupe_idx 冗余索引」「store_snapshot 幽灵表」等迁移窗口（`open-debt-and-compromises.md:216-232`） | 本分项不重复定义上述内容；落地时避免与迁移窗口同批冲突 |
+| 与其它分项边界 | Task 4（会话缓存失效通道共用本分项选型）、Task 6（可观测性：outbox 并发/退避与失效通道的指标落点）、债务「task_queue_type_dedupe_idx 冗余索引」「store_snapshot 幽灵表」等迁移窗口（`open-debt-and-compromises.md:221-238`） | 本分项不重复定义上述内容；落地时避免与迁移窗口同批冲突 |
 
 ---
 
@@ -752,8 +752,8 @@ NOTIFY 投递天然广播到所有 knowledge-read 实例，满足"失效消息�
 
 | 设计 | 对应问题 | 对应 G/P | 对应 debt 条目 | 验证命令 |
 | --- | --- | --- | --- | --- |
-| 1. OTel 单接线 | Q9 | G7（双宿主观测/发现接线收敛）、P1/P4 | 「OTel 双份接线收敛」（`docs/todos/open-debt-and-compromises.md:162`） | `pnpm test:observability-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck`、`pnpm check:docs` |
-| 2. Consul 接线侧收敛 | Q9 | G7、P4 | 「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:171`） | `pnpm test:discovery-closeout`（⚠️ 脚本先修复，见五）、`pnpm test:deployment-smoke`、`pnpm typecheck` |
+| 1. OTel 单接线 | Q9 | G7（双宿主观测/发现接线收敛）、P1/P4 | 「OTel 双份接线收敛」（`docs/todos/open-debt-and-compromises.md:163`） | `pnpm test:observability-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck`、`pnpm check:docs` |
+| 2. Consul 接线侧收敛 | Q9 | G7、P4 | 「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:173`） | `pnpm test:discovery-closeout`（⚠️ 脚本先修复，见五）、`pnpm test:deployment-smoke`、`pnpm typecheck` |
 | 3. 工具收敛（timeout 语义边界 + capability-model 拆分原则） | Q10 | G8、P4 | 「capability-model 拆分」（`docs/todos/open-debt-and-compromises.md:153`） | backend-core focused tests、`pnpm typecheck`、`pnpm exec fallow audit --base main` |
 | 4. 内部 hop 指标增强 | Q2/Q3/Q6 的观测支撑 | G2/G3/G6 支撑 | 无独立条目（本设计文档承接） | `pnpm test:observability-closeout`、`pnpm test:distributed-closeout`、`pnpm test:deployment-smoke` |
 
@@ -772,7 +772,7 @@ NOTIFY 投递天然广播到所有 knowledge-read 实例，满足"失效消息�
 
 已共享的部分只有 policy 校验：两宿主都调用 contracts 的 `validateOtelPolicy`（`packages/contracts/src/domain/observability-config.ts:499`；消费点 `otel.service.ts:31`、`telemetry.ts:78`），span 属性集、采样策略应用、指标口径均无单一来源。
 
-**文档与代码已漂移（现状问题的一部分）：** `docs/architecture/OBSERVABILITY.md:94/:180/:200-202` 声称 backend-core 经 `MetricsPort`/`TracingPort`/`LoggingPort` 暴露遥测、host-local observability 目录含 `metrics-port.adapter.ts`/`tracing-port.adapter.ts`/`logging-port.adapter.ts`——但实际目录清单（glob 核实，18 个文件）无这三个 adapter，backend-core `ports/index.ts:1-12` 亦无对应 port（仅有 `AuditMetricsPort`，`ports/audit-ports.ts:63`）；`OBSERVABILITY.md:225` 声称 host-local 不读 `OTEL_SAMPLE_RATE`、用 AlwaysOn sampler——实际 `otel.service.ts:35` 读取且 `:68` 应用 `TraceIdRatioBasedSampler`。规则的"双处同步 + 文档漂移"正是 debt「OTel 双份接线收敛」（`docs/todos/open-debt-and-compromises.md:162-169`）的影响面，也意味着该 debt 的进入条件（指标口径在两侧被证实不一致，`:167`）**已经实质满足**，实施窗口可提前。
+**文档与代码已漂移（现状问题的一部分）：** `docs/architecture/OBSERVABILITY.md:94/:180/:200-202` 声称 backend-core 经 `MetricsPort`/`TracingPort`/`LoggingPort` 暴露遥测、host-local observability 目录含 `metrics-port.adapter.ts`/`tracing-port.adapter.ts`/`logging-port.adapter.ts`——但实际目录清单（glob 核实，20 个条目）无这三个 adapter，backend-core `ports/index.ts:1-12` 亦无对应 port（仅有 `AuditMetricsPort`，`ports/audit-ports.ts:63`）；`OBSERVABILITY.md:225` 声称 host-local 不读 `OTEL_SAMPLE_RATE`、用 AlwaysOn sampler——实际 `otel.service.ts:35` 读取且 `:68` 应用 `TraceIdRatioBasedSampler`。规则的"双处同步 + 文档漂移"正是 debt「OTel 双份接线收敛」（`docs/todos/open-debt-and-compromises.md:163-171`）的影响面，也意味着该 debt 的进入条件（指标口径在两侧被证实不一致，`:168`）**已经实质满足**，实施窗口可提前。
 
 #### 1.2 Consul 双份实现的接线侧（Q9）
 
@@ -781,13 +781,13 @@ host-local 与 host-distributed 各有一份 Consul 接线，注册/注销/健�
 - host-local：`consul.service.ts:15` implements `DiscoveryPort`，依赖 `consul` npm 包（`packages/host-local/package.json:45`），装配于 `consul.module.ts:18-22`；`onModuleInit` degraded 分支 `:36-73`，`registerDefault` `:193-218`（健康检查 `/health` 10s/5s `:208-212`），`onModuleDestroy` 注销 `:75-79`，`registerHealthCheck` 挂到 LifecycleManager `:220-256`。
 - host-distributed：`consul-discovery-adapter.ts:51` implements `DiscoveryPort`，native fetch（`:185-199`，AbortController+setTimeout 超时 `:186-187`，默认 3s `:38`）；`discovery-factory.ts:37-50` 组合 adapter + `DynamicDiscovery` + `DiscoveryResolver`，gateway 注册参数与 host-local 相同（`/health` 10s/5s，`discovery-factory.ts:63-67`）。
 
-即"注册字段、健康检查探测语义、degraded fail-open、注销时机"存在两份实现（debt「Consul 双份实现收敛」`docs/todos/open-debt-and-compromises.md:171-178`）。Task 4 分项设计 4 已固定契约与实现落点（`DiscoveryPort` 唯一契约 `packages/backend-core/src/ports/discovery-ports.ts:31`、framework-free adapter 唯一实现），本分项承接其接线侧细节。
+即"注册字段、健康检查探测语义、degraded fail-open、注销时机"存在两份实现（debt「Consul 双份实现收敛」`docs/todos/open-debt-and-compromises.md:173-181`）。Task 4 分项设计 4 已固定契约与实现落点（`DiscoveryPort` 唯一契约 `packages/backend-core/src/ports/discovery-ports.ts:31`、framework-free adapter 唯一实现），本分项承接其接线侧细节。
 
 #### 1.3 工具收敛遗留（Q10）
 
 - **手写 AbortController 超时**：`internal-client.ts:84-86` 与 `consul-discovery-adapter.ts:185-199` 各一份 `AbortController + setTimeout` 样板；`@trapmap/lib` 已有 `timeout`（`packages/lib/src/async.ts:27-46`），但其文档（`async.ts:17-22`）显式记录 internal-client 的 AbortController 超时是**有意不统一**——promise-race 超时无法取消 in-flight fetch。语义差异必须显式化（见设计 3），不得简单声称"替换即可"。
 - **非取消 bounded-wait 双份**：`otel.service.ts:108-113` 与 `telemetry.ts:139-150` 是两份几乎相同的 OTel shutdown `Promise.race` 超时（各自定义 `SHUTDOWN_TIMEOUT_MS = 5_000`，`otel.service.ts:10`、`telemetry.ts:21`），另有 `langfuse.service.ts:99-104` 的 flush 超时。
-- **capability-model 单文件**：`packages/backend-core/src/runtime/capability-model.ts` 共 510 行，类型定义（`:20-106`）、异步 worker 推导（`:112-140`）、boot 逻辑（`:146-169`）、service unit（`:175-217`）、preset（`:228-245`）、capability 推导（`:251-437`）、入口（`:443-510`）混装一文件（debt「capability-model 拆分」`docs/todos/open-debt-and-compromises.md:153-160`）。
+- **capability-model 单文件**：`packages/backend-core/src/runtime/capability-model.ts` 共 510 行，类型定义（`:20-106`）、异步 worker 推导（`:112-140`）、boot 逻辑（`:146-169`）、service unit（`:175-217`）、preset（`:228-245`）、capability 推导（`:251-437`）、入口（`:443-510`）混装一文件（debt「capability-model 拆分」`docs/todos/open-debt-and-compromises.md:153-161`）。
 
 #### 1.4 内部 hop 指标缺口
 
@@ -810,7 +810,7 @@ host-local 与 host-distributed 各有一份 Consul 接线，注册/注销/健�
 
 收敛边界（明确不做）：不合并 Sentry/Loki/Langfuse 适配器（各自按现有边界留在 host-local，`index.ts:1-6`）；不改变 `OTEL_DISABLED`/`OTEL_EXPORTER_OTLP_ENDPOINT`/`OTEL_SAMPLE_RATE`/`TRAPMAP_METRICS_ENABLED` 环境变量语义（`OBSERVABILITY.md:221-229`）；不引入 Collector/Grafana 等部署资产。
 
-对应：Q9；G7；P1/P4；debt：「OTel 双份接线收敛」（`docs/todos/open-debt-and-compromises.md:162`，进入条件 `:167` 已实质满足）；验证：`pnpm test:observability-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck`、`pnpm check:docs`（同步更新 `OBSERVABILITY.md`，debt 条目「要求的文档与测试」）。
+对应：Q9；G7；P1/P4；debt：「OTel 双份接线收敛」（`docs/todos/open-debt-and-compromises.md:163`，进入条件 `:168` 已实质满足）；验证：`pnpm test:observability-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck`、`pnpm check:docs`（同步更新 `OBSERVABILITY.md`，debt 条目「要求的文档与测试」）。
 
 #### 2.2 设计 2：Consul 接线侧收敛 —— Q9
 
@@ -823,7 +823,7 @@ host-local 与 host-distributed 各有一份 Consul 接线，注册/注销/健�
 - **KV/超时语义单一**：KV 读写以 adapter 实现（`:145-181`）为准；超时统一为 AbortController 语义（见设计 3 收敛 B），host-local 不再有第二份。
 - **fail-open 语义不变**：Consul 不可用时两宿主都返回安全默认、应用继续服务（`consul.service.ts:56-61`、adapter 注释 `:7-9`）——这是行为不变硬约束，收敛后以 adapter 为唯一实现点。
 
-对应：Q9；G7；P4；debt：「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:171`，进入条件 `:176`：Consul 行为需双宿主一致修改，或真实 Consul 故障归因不一致）；验证：`pnpm test:discovery-closeout`（⚠️ 脚本需先修复，见五）、`pnpm test:deployment-smoke`、`pnpm typecheck`。
+对应：Q9；G7；P4；debt：「Consul 双份实现收敛」（`docs/todos/open-debt-and-compromises.md:173`，进入条件 `:176`：Consul 行为需双宿主一致修改，或真实 Consul 故障归因不一致）；验证：`pnpm test:discovery-closeout`（⚠️ 脚本需先修复，见五）、`pnpm test:deployment-smoke`、`pnpm typecheck`。
 
 #### 2.3 设计 3：工具收敛 —— Q10
 
@@ -875,7 +875,7 @@ host-local 与 host-distributed 各有一份 Consul 接线，注册/注销/健�
 
 | 风险 | 缓解 |
 | --- | --- |
-| 双份接线收敛属大重构，仓促实施破坏两宿主 runtime 行为 | 按 debt 进入条件执行（`open-debt-and-compromises.md:167/:176`）；行为不变硬约束（fail-open、环境变量、`/metrics` 输出）；本主线不实施，仅输出设计 |
+| 双份接线收敛属大重构，仓促实施破坏两宿主 runtime 行为 | 按 debt 进入条件执行（`open-debt-and-compromises.md:168/:176`）；行为不变硬约束（fail-open、环境变量、`/metrics` 输出）；本主线不实施，仅输出设计 |
 | `timeout` 语义被误读为可无条件替换 AbortController 超时 | 语义差异显式化（设计 3 收敛 A/B 分轨）；`async.ts:17-22` 文档持续记录；禁止声称"替换即可" |
 | gateway Map 管线删除后指标口径变化 | 新增指标只增不改；gateway 侧 `trapmap_runtime_http_requests_total` 等现有名字在迁移中保持，合并命名口径需先确认 scraper 消费方 |
 | `OBSERVABILITY.md` 已漂移（port/adapter 名单、sampler 口径）导致实现时按文档做错 | 实施前以源码为基准修正文档（本设计 1.1 已列三处漂移证据）；`pnpm check:docs` 把关 |
@@ -947,7 +947,7 @@ eval 类型并非自包含：`packages/contracts/src/domain/evals/report.ts:11` 
 
 **D2 — 独立类型单独维护，明确迁移边界（哪些随迁、哪些留守）。**
 `packages/contracts/src/domain/evals/` 整体迁往 eval workspace 内独立目录（如 `evals/types/`，保留 `index.ts` 聚合导出结构，最大程度减少消费方改写）。迁移判定标准与证据：
-- **随迁（eval-only，零产品消费者）**：agent-planning/label-alignment/platform/retrieval/retrieval-live/report/summary 全部 7 模块。证据：全仓 grep，`@trapmap/contracts/evals` 的消费方集中在 `evals/` 内（约 87 处命中，绝大多数为 evals 代码），`packages/*/src` 中无任何产品路径消费该子路径；`packages/` 内 `domain/evals` 相对引用仅 `packages/contracts/src/index.test.ts:3401`（contracts 包自身测试，随迁改写）与 `packages/web-panel/vite.config.ts:85-87`（vite 配置残留，已核实 `packages/web-panel/src` 无 eval 引用，直接退役）。
+- **随迁（eval-only，零产品消费者）**：agent-planning/label-alignment/platform/retrieval/retrieval-live/report/summary 全部 7 模块。证据：全仓 grep，`@trapmap/contracts/evals` 的消费方集中在 `evals/` 内（约 82 处命中，绝大多数为 evals 代码），`packages/*/src` 中无任何产品路径消费该子路径；`packages/` 内 `domain/evals` 相对引用仅 `packages/contracts/src/index.test.ts:3401`（contracts 包自身测试，随迁改写）与 `packages/web-panel/vite.config.ts:85-87`（vite 配置残留，已核实 `packages/web-panel/src` 无 eval 引用，直接退役）。
 - **留守（有产品消费者）**：本轮为零。规则显式写明：凡被 `packages/*/src` 产品路径引用的类型必须留在 contracts 并由主入口或显式子路径导出，不得以 `@eval-only` 标记（`scripts/check-eval-only.ts:40-45` 作用域仅 service-*/backend-core/host-*）或白名单绕过——这与 `check:eval-only` 的判定逻辑（`scripts/check-eval-only.ts:118-136`：有产品引用或 index re-export 可达者不算 eval-only）保持一致。
 - 迁移完成后：**contracts 不保留任何被产品路径引用的 eval 类型**（现状为零，目标保持为零）；`packages/contracts/src/domain/evals/` 目录整体删除。
 
@@ -973,12 +973,12 @@ eval 类型并非自包含：`packages/contracts/src/domain/evals/report.ts:11` 
 - 两个守卫继续在 CI doc-guardrails job 运行（`.github/workflows/ci.yml:168-169`），禁止绕过；守卫单测（`scripts/__tests__/check-eval-imports.test.ts`、`check-eval-only.test.ts`）同步更新用例（现有用例含 "allows packages/contracts imports"，`check-eval-imports.test.ts:29-31`，需按 D7 新语义改写）。
 
 **D8 — 与 EvalSeedPort 收窄的关系（独立 debt，不互相替代）。**
-EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:180-187`）是独立 debt 条目：它收敛「seed 端口最小契约」，本分项收敛「eval 类型归属 + workspace 边界 + 守卫」。二者正交——即使类型迁出 contracts，seed 端口仍驻留在共享端口面，其签名收窄仍需独立评估与进入条件。本分项不实施 EvalSeedPort 收窄，不修改端口签名；完成本分项后 evals 依赖面更清晰，可作为该 debt 的前置地基，但两者互不替代。
+EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:183-190`）是独立 debt 条目：它收敛「seed 端口最小契约」，本分项收敛「eval 类型归属 + workspace 边界 + 守卫」。二者正交——即使类型迁出 contracts，seed 端口仍驻留在共享端口面，其签名收窄仍需独立评估与进入条件。本分项不实施 EvalSeedPort 收窄，不修改端口签名；完成本分项后 evals 依赖面更清晰，可作为该 debt 的前置地基，但两者互不替代。
 
 ### E.3 影响面
 
 - **packages/contracts**：`src/domain/evals/`（7 模块 + index + 4 测试）整体迁出删除；`package.json:13-15` 的 `./evals` exports 删除；`packages/contracts/src/index.test.ts:3390-3401` 的 eval 契约用例（Phase 25）随迁改写或删除（与 evals 侧测试去重）；`README.md:248-259` 的 Evals Sub-Entry 章节删除；主入口 `src/index.ts` 无变化（本就不导出 eval 类型）。
-- **evals/**：新增 `package.json` 与 `types/` 目录；约 87 处 `@trapmap/contracts/evals` 引用改写为包内相对导入；`evals/tsconfig.json` references 更新（补 `@trapmap/lib`）、rootDir 收紧；`evals/README.md` 更新。
+- **evals/**：新增 `package.json` 与 `types/` 目录；约 82 处 `@trapmap/contracts/evals` 引用改写为包内相对导入；`evals/tsconfig.json` references 更新（补 `@trapmap/lib`）、rootDir 收紧；`evals/README.md` 更新。
 - **根**：`pnpm-workspace.yaml`、`package.json` devDependencies（promptfoo/langfuse 等迁出）、`tsconfig.base.json:30` 别名删除、`vitest.config.ts:9-11` 别名删除、`pnpm-lock.yaml` 重新生成；可选：`tsconfig.json:3-20` references 增加 evals。
 - **scripts**：`check-eval-imports.ts:87` 判定子句收窄（D7）；`scripts/archived/export-retrieval-db-snapshot.ts:14` 消费 `@trapmap/contracts/evals`，需改写或随 archived 目录处理；`scripts/__tests__/check-eval-imports.test.ts` 用例同步。
 - **web-panel**：`vite.config.ts:85-87` 残留别名删除（`packages/web-panel/src` 无 eval 引用，已核实）。
@@ -994,7 +994,7 @@ EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:180-187`）是独
 - **R5 — evals 首次进入 typecheck 暴露存量类型错误**（E5 现状缺口）：缓解——迁移 PR 内先修或分步解；若工作量过大，先不纳入根 `tsconfig.json` references，debt register 登记，并以 `pnpm exec tsc -b evals` 人工验证。
 - **R6 — workspace 化改变安装图/锁文件/hoisting**：缓解——迁移后重新生成 `pnpm-lock.yaml`，CI `pnpm install --frozen-lockfile` 一致性由 CI 自身验证。
 - **R7 — 守卫单测语义回归**（`scripts/__tests__/check-eval-imports.test.ts:29-31` 现有 "allows packages/contracts imports" 用例）：缓解——与 D7 同 PR 更新守卫单测，确保 classifyImport 新语义（仅包名导入合法）被测试锁定。
-- **R8 — EvalSeedPort 收窄被误并**：缓解——本分项明确不做端口签名变更（D8），debt 条目（`open-debt-and-compromises.md:180-187`）维持独立，进入条件不变。
+- **R8 — EvalSeedPort 收窄被误并**：缓解——本分项明确不做端口签名变更（D8），debt 条目（`open-debt-and-compromises.md:183-190`）维持独立，进入条件不变。
 
 ### E.5 验证方式
 
@@ -1020,10 +1020,10 @@ EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:180-187`）是独
 
 | 设计 | 问题编号 | 对应 debt 条目 | 验证命令 |
 | --- | --- | --- | --- |
-| 1. `apps/` workspace 与组装中心划分表 | F1 | 无独立条目（六路审查 hosts 车道相关条目 `docs/todos/open-debt-and-compromises.md:164-196` 由本设计承接落点） | `pnpm build:light`、`pnpm build:heavy`、`pnpm typecheck` |
+| 1. `apps/` workspace 与组装中心划分表 | F1 | 无独立条目（六路审查 hosts 车道相关条目 `docs/todos/open-debt-and-compromises.md:163-200` 由本设计承接落点） | `pnpm build:light`、`pnpm build:heavy`、`pnpm typecheck` |
 | 2. 组装中心职责边界（thin assembly） | F2 | 同上；「host-distributed shared/ports.ts 业务下沉」`docs/todos/open-debt-and-compromises.md:198` 的宿主内 SQL 是反向教训 | `pnpm check:structure`、`pnpm check:imports` |
 | 3. `BACKEND_TARGET_REGISTRY` 迁移到 apps 注册表 | F3 | 无独立条目（registry 测试 `scripts/__tests__/backend-target-build.test.ts:29-58` 需同步） | `pnpm test:light-target`、`pnpm test:heavy-target` |
-| 4. Dockerfile / compose 映射迁移 | F4 | 「host-distributed Dockerfile 冗余 COPY client-core」`docs/todos/open-debt-and-compromises.md:234-240` | `pnpm build:light`、`pnpm build:heavy`、`docker compose --profile distributed config` |
+| 4. Dockerfile / compose 映射迁移 | F4 | 「host-distributed Dockerfile 冗余 COPY client-core」`docs/todos/open-debt-and-compromises.md:239-247` | `pnpm build:light`、`pnpm build:heavy`、`docker compose --profile distributed config` |
 | 5. cli / web-panel 落点建议 | F5 | 无独立条目 | `pnpm typecheck`、`pnpm --filter @trapmap/cli test`、`pnpm --filter @trapmap/web-panel test` |
 
 ---
@@ -1050,7 +1050,7 @@ EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:180-187`）是独
 
 - Dockerfile 存放在 `packages/` 内：`packages/host-local/Dockerfile:130-132`（`WORKDIR /app/packages/host-local` + `CMD node dist/index.js`）、`packages/host-distributed/Dockerfile:154-156`（`WORKDIR /app/packages/host-distributed` + `CMD node dist/index.js --service gateway`）。
 - `docker-compose.yml` 共 9 处直接引用这两个 Dockerfile（`docker-compose.yml:7`、`:73`、`:153`、`:198`、`:242`、`:286`、`:346`、`:406`、`:489`）；distributed 各服务通过 `working_dir: /app/packages/host-distributed`（如 `:155`、`:200`、`:244`、`:288`、`:348`、`:408`、`:491`）＋ `command: node dist/index.js --service <name>`（如 `:154`、`:199`、`:243`、`:287`、`:347`、`:407`、`:490`）复用同一镜像展开。migration 服务固定执行 `node dist/migrate.js`（`:490`）。
-- 镜像构建面与依赖面已出现不一致：`packages/host-distributed/Dockerfile:26-28` 冗余 COPY `client-core`（debt「host-distributed Dockerfile 冗余 COPY client-core」`docs/todos/open-debt-and-compromises.md:234-240`）——Dockerfile 作为"组装"的物理载体，但其内容不随依赖面守卫自动对齐。
+- 镜像构建面与依赖面已出现不一致：`packages/host-distributed/Dockerfile:26-28` 冗余 COPY `client-core`（debt「host-distributed Dockerfile 冗余 COPY client-core」`docs/todos/open-debt-and-compromises.md:239-247`）——Dockerfile 作为"组装"的物理载体，但其内容不随依赖面守卫自动对齐。
 
 问题：组装（镜像内容、入口选择、working_dir）分散在 Dockerfile、compose 服务定义与包脚本三处，且都以"包目录路径"为坐标；任何组装结构调整都会连带改动 compose 的 9 处路径与 working_dir。
 
@@ -1116,7 +1116,7 @@ EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:180-187`）是独
 - Dockerfile 归属迁移到组装中心：`apps/light/Dockerfile`、`apps/distributed/Dockerfile`（原 `packages/host-local/Dockerfile`、`packages/host-distributed/Dockerfile` 内容迁入；生产阶段 `WORKDIR`/`CMD` 从 `/app/packages/host-*`（`packages/host-local/Dockerfile:130-132`、`packages/host-distributed/Dockerfile:154-156`）改为 `/app/apps/light` / `/app/apps/distributed`）。
 - `docker-compose.yml` 的 9 处 `dockerfile:` 引用（`:7`、`:73`、`:153`、`:198`、`:242`、`:286`、`:346`、`:406`、`:489`）与 distributed 服务的 `working_dir: /app/packages/host-distributed`（`:155` 等 7 处）同步改为 app 路径；`command` 覆盖（`:154`、`:199`、`:243`、`:287`、`:347`、`:407`、`:490`）保持 `--service` 分发与 `node dist/migrate.js` 语义不变。
 - **镜像名不变**（`trap-map-host-local:latest`、`trap-map-server:latest`、`trap-map-host-distributed:latest`，`docker-compose.yml:4`、`:69`、`:149` 等），迁移窗口内不引入镜像名变更，避免部署漂移。
-- Dockerfile 重写时顺带消债：移除 `packages/host-distributed/Dockerfile:26-28` 冗余 `client-core` COPY（debt `docs/todos/open-debt-and-compromises.md:234-240`），并同步 `packages/host-distributed/src/dockerfile.test.ts`（该文件是 Dockerfile 内容断言面，`packages/host-distributed/src/dockerfile.test.ts`）。
+- Dockerfile 重写时顺带消债：移除 `packages/host-distributed/Dockerfile:26-28` 冗余 `client-core` COPY（debt `docs/todos/open-debt-and-compromises.md:239-247`），并同步 `packages/host-distributed/src/dockerfile.test.ts`（该文件是 Dockerfile 内容断言面，`packages/host-distributed/src/dockerfile.test.ts`）。
 - Docker 构建上下文仍是仓库根（`docker-compose.yml:6`、`:72` 的 `context: .` 不变），app Dockerfile 需要 COPY 的库包清单比现 host Dockerfile 多一层（`apps/*` 自身），沿用现有逐包 COPY 模式（`packages/host-local/Dockerfile:10-52`）。
 - `docker-compose.observability.yml` 只含 consul/tempo/prometheus/loki/promtail/grafana 基础设施（`docker-compose.observability.yml:20-144`），不引用 TrapMap 镜像，不在本设计变更面内。
 
@@ -1159,7 +1159,7 @@ EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:180-187`）是独
 | R3 | **组装中心偷偷变厚**：app 包夹带业务逻辑（反向教训 `docs/todos/open-debt-and-compromises.md:198`） | 2.2 红线 + `check:imports` 类守卫（app 只允许 `@trapmap/*` 包名导入）；新增 app 代码走 Code Review 时的 fallow audit 通道 |
 | R4 | **文档/守卫不同步**：`REPO_STRUCTURE.md`/`TESTING.md`/`SYSTEM_TRUTH_SOURCES.md`/`DEPLOYMENT.md` 仍写旧路径，`check:docs` 与 doc-drift 失败 | 文档回写与实现同 PR；`check:docs`（`package.json:39`）+ `check:structure`（`package.json:40`）纳入本分项必跑门 |
 | R5 | **compose 路径遗漏**：9 处 dockerfile 引用 + 7 处 working_dir 漏改一处导致 distributed profile 起不来 | `docker compose --profile distributed config` 静态校验 + `test:runtime-closeout:compose`（`package.json:55`，真实拉起验证）列入验证 |
-| R6 | **Docker 构建面回归**：app Dockerfile 的 COPY 清单少包或多包（现状已有一处冗余，debt `docs/todos/open-debt-and-compromises.md:234-240`） | Dockerfile 重写时消债并同步 `packages/host-distributed/src/dockerfile.test.ts`；`pnpm build:light`/`pnpm build:heavy` 无法覆盖镜像构建，镜像构建验证挂在 compose 静态校验 + 手动 `docker build` 冒烟 |
+| R6 | **Docker 构建面回归**：app Dockerfile 的 COPY 清单少包或多包（现状已有一处冗余，debt `docs/todos/open-debt-and-compromises.md:239-247`） | Dockerfile 重写时消债并同步 `packages/host-distributed/src/dockerfile.test.ts`；`pnpm build:light`/`pnpm build:heavy` 无法覆盖镜像构建，镜像构建验证挂在 compose 静态校验 + 手动 `docker build` 冒烟 |
 | R7 | **包名/导出面兼容**：`appPackage` 字段改名触发 registry 消费者（run-dev/run-backend-target）漏改 | 两个执行器只读字段语义（`run-dev.ts:41-43`、`run-backend-target.ts:17-22`），不消费字段名本身；改名与新增字段在 registry 测试中显式断言 |
 | R8 | **tsc -b / vitest 引用面遗漏**：apps 未进 `tsconfig.json` references 或 vitest projects，typecheck 覆盖不到 | 2.1 明确新增引用；`pnpm typecheck`（`package.json:61`）与本分项验收绑定 |
 
@@ -1208,7 +1208,7 @@ EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:180-187`）是独
 | 项 | 内容 |
 | --- | --- |
 | 内容 | ① internal RouteDef 派生类型化 client，`InternalServiceClients` 退役（Q1，G1/P1）；② `review`/`governanceReview` 双组合并（debt「internal-client review/governanceReview 双组合并」）；③ `shared/ports.ts` 检索/Queue/Outbox SQL 业务下沉到 service 包 pg-ports（Q5/Q6，debt「host-distributed shared/ports.ts 业务下沉」）；④ Queue/Outbox 单实现（复用 `service-job-runtime` `async-runtime.ts`，Q6） |
-| 放行条件（与 debt 进入条件关系） | 满足「internal-client review/governanceReview 双组合并」进入条件（`open-debt-and-compromises.md:194`：governance-review 内部接口新增/变更，或 URL key 可退役）或「shared/ports.ts 业务下沉」进入条件（`:203`：任一 SQL 实现出现行为不一致修复，或 service pg-ports 签名变化可自然替换）；行为不变硬约束 |
+| 放行条件（与 debt 进入条件关系） | 满足「internal-client review/governanceReview 双组合并」进入条件（`open-debt-and-compromises.md:197`：governance-review 内部接口新增/变更，或 URL key 可退役）或「shared/ports.ts 业务下沉」进入条件（`:203`：任一 SQL 实现出现行为不一致修复，或 service pg-ports 签名变化可自然替换）；行为不变硬约束 |
 | 验证命令 | `pnpm test:file -- packages/host-distributed/src/gateway/internal-client.test.ts`、`pnpm test:distributed-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck`、`pnpm exec fallow audit --base main` |
 
 ### Phase 3：失效通道与检索 owner
@@ -1224,7 +1224,7 @@ EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:180-187`）是独
 | 项 | 内容 |
 | --- | --- |
 | 内容 | ① OTel 单接线（本分项设计 1，Q9）；② Consul 接线侧收敛（本分项设计 2，Q9）；③ 内部 hop 指标增强（本分项设计 4）；④ capability-model 拆分（本分项设计 3 原则与验收，Q10） |
-| 放行条件（与 debt 进入条件关系） | 「OTel 双份接线收敛」进入条件（`open-debt-and-compromises.md:167`：需双宿主同步修改的 OTel 语义变更，或指标口径不一致——本文 1.1 已证实口径不一致与文档漂移，条件实质满足）；「Consul 双份实现收敛」进入条件（`:176`：Consul 行为需双宿主一致修改，或真实故障归因不一致）；「capability-model 拆分」进入条件（`:158`：行数超预算/新维度需独立单测/第三宿主） |
+| 放行条件（与 debt 进入条件关系） | 「OTel 双份接线收敛」进入条件（`open-debt-and-compromises.md:168`：需双宿主同步修改的 OTel 语义变更，或指标口径不一致——本文 1.1 已证实口径不一致与文档漂移，条件实质满足）；「Consul 双份实现收敛」进入条件（`:176`：Consul 行为需双宿主一致修改，或真实故障归因不一致）；「capability-model 拆分」进入条件（`:158`：行数超预算/新维度需独立单测/第三宿主） |
 | 验证命令 | `pnpm test:observability-closeout`、`pnpm test:discovery-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck`、`pnpm check:docs`、`pnpm check:structure`、`pnpm exec fallow audit --base main` |
 
 ### 验证门禁
@@ -1246,5 +1246,7 @@ EvalSeedPort 收窄（`docs/todos/open-debt-and-compromises.md:180-187`）是独
 ---
 
 ## 执行组织
+
+> 本文档由并行分节写作后集成，文中「Task N」指写作任务编号，映射：Task 1=问题背景、Task 2=目标与目标架构、Task 3=分项 A、Task 4=分项 B、Task 5=分项 C、Task 6=分项 D 与演进路线、Task 8=分项 E、Task 9=分项 F；实际章节以标题为准。
 
 本文档按「现状盘点 → 目标架构 → 分项设计 A-F → 演进路线」组织：A/B/C/D 承接 Q1-Q10（分布式 transport/缓存/异步 runtime 秩序与性能），E 承接 eval workspace 独立化，F 承接 app workspace 组装中心。各分项标注对应问题编号、G/P 目标原则、debt 条目与验证命令；在根 `plan.md` 显式激活前均为 deferred 设计输入。
