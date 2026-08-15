@@ -398,12 +398,11 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
     );
 
     expect(sources.join('\n')).not.toMatch(/@trapmap\/(server|runtime-infra)/);
-    expect(sources.join('\n')).not.toContain('@trapmap/persistence-schema');
   });
 
-  it('does not retain the deprecated persistence-schema project reference', async () => {
+  it('references the shared persistence-schema project as table source', async () => {
     const tsconfig = await readFile(new URL('../tsconfig.json', import.meta.url), 'utf8');
 
-    expect(tsconfig).not.toContain('../persistence-schema');
+    expect(tsconfig).toContain('../persistence-schema');
   });
 });

@@ -7,10 +7,17 @@
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "exclude": ["src/**/*.test.ts"],
   "references": [
-    { "path": "../ai-providers" },
-    { "path": "../backend-core" },
-    { "path": "../contracts" },
-    { "path": "../lib" },
-    { "path": "../persistence-schema" }
+    {
+      "path": "../ai-providers"
+    },
+    {
+      "path": "../backend-core"
+    },
+    {
+      "path": "../contracts"
+    },
+    {
+      "path": "../lib"
+    }
   ]
 }

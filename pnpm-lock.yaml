@@ -424,6 +424,9 @@ importers:
       '@trapmap/lib':
         specifier: workspace:*
         version: link:../lib
+      '@trapmap/persistence-schema':
+        specifier: workspace:*
+        version: link:../persistence-schema
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@libsql/client@0.17.4)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(pg@8.20.0)
@@ -534,9 +537,6 @@ importers:
       '@trapmap/lib':
         specifier: workspace:*
         version: link:../lib
-      '@trapmap/persistence-schema':
-        specifier: workspace:*
-        version: link:../persistence-schema
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@libsql/client@0.17.4)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(pg@8.20.0)
@@ -589,9 +589,6 @@ importers:
       '@trapmap/lib':
         specifier: workspace:*
         version: link:../lib
-      '@trapmap/persistence-schema':
-        specifier: workspace:*
-        version: link:../persistence-schema
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@libsql/client@0.17.4)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(pg@8.20.0)
@@ -647,9 +644,6 @@ importers:
       '@trapmap/lib':
         specifier: workspace:*
         version: link:../lib
-      '@trapmap/persistence-schema':
-        specifier: workspace:*
-        version: link:../persistence-schema
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@libsql/client@0.17.4)(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(pg@8.20.0)

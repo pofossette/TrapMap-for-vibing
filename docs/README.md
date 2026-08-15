@@ -261,7 +261,7 @@ deployment flexibility 最小验证矩阵：
 - [数据流（已归档）](archived/architecture/FLOW.md) — 详细数据流图
 - [数据类型串联图（已归档）](archived/architecture/DATA_TYPES_PIPELINE.md) — 核心数据类型流转路径与 GraphRAG-lite 图构建详解
 - [入库预计算策略（已归档）](archived/architecture/PRECOMPUTATION.md) — 入库阶段预计算措施总览、API 请求清单与延迟对比
-- [LLM 图提取改造计划（已归档）](archived/architecture/HYBRID_GRAPH_EXTRACTION.md) — 用 LLM 替代规则引擎的图构建 + 入库智能增强（进行中）
+- [LLM 图提取改造计划（已归档）](archived/architecture/HYBRID_GRAPH_EXTRACTION.md) — 用 LLM 替代规则引擎的图构建 + 入库智能增强（进行中；实现已标记 @eval-only，仅 eval 链路引用）
 - [可观测性架构](architecture/OBSERVABILITY.md) — 指标、日志、链路追踪三大支柱与 LGTM 栈设计
 - [服务发现架构](architecture/SERVICE-DISCOVERY.md) — Consul 集成与 DNS 发现机制
 - [数据库表结构速查](reference/DATABASE_SCHEMA.md) — PostgreSQL 62 张表完整参考

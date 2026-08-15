@@ -1,4 +1,8 @@
 /**
+ * @eval-only — product code has zero consumers; this module is imported
+ * dynamically only by the evals graph-extraction runner (dedup-eval.ts).
+ * It is intentionally NOT exported from the package index.
+ *
  * LLM-powered duplicate judgment module.
  *
  * Uses an LLM to classify whether a candidate submission is a duplicate
@@ -122,6 +126,7 @@ function parseDuplicateJudgmentResponse(raw: string): LlmDuplicateJudgment | nul
  * @param existing - The existing entry to compare against (title + body)
  * @returns Duplicate judgment or null on failure
  */
+// fallow-ignore-next-line complexity -- eval-only LLM judge: inherent retry/branching; pre-existing at baseline
 export async function judgeDuplicateWithLLM(
   chat: ChatProvider,
   candidate: { title: string; body: string },
