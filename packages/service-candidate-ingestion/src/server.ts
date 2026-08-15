@@ -1,5 +1,5 @@
 import type { CandidateIngestionPort } from '@trapmap/backend-core';
-import { createFastifyAdapter } from '@trapmap/backend-core';
+import { createFastifyServiceServer } from '@trapmap/backend-core';
 import type { FastifyInstance } from 'fastify';
 import { type CandidateIngestionDeps, createCandidateIngestionServiceModule } from './deps.js';
 import { createCandidateIngestionRouteDefs } from './routes.js';
@@ -22,18 +22,10 @@ export async function createCandidateIngestionServer(
   deps: CandidateIngestionDeps,
 ): Promise<CandidateIngestionServer> {
   const module = createCandidateIngestionServiceModule(deps);
-  const app = createFastifyAdapter(createCandidateIngestionRouteDefs(module), module, {
-    logger: { level: config.logLevel },
-  });
-
-  return {
-    app,
+  return createFastifyServiceServer(
+    config,
     module,
-    async start() {
-      await app.listen({ port: config.port, host: config.host });
-    },
-    async close() {
-      await app.close();
-    },
-  };
+    createCandidateIngestionRouteDefs(module),
+    module,
+  );
 }

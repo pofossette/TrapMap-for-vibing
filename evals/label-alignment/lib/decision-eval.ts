@@ -3,17 +3,42 @@ import { type LabelRepository, alignLabel } from '@trapmap/service-knowledge-wri
 import type {
   LabelAlignmentEvalCase,
   LabelAlignmentEvalCaseResult,
+  LabelAlignmentRecallReason,
 } from '../../../packages/contracts/src/domain/evals/label-alignment.js';
 
 import { buildCatalogSeed, seedCatalogEntries } from './catalog-seed.js';
 import { calculateCaseMetrics } from './metrics.js';
-import { runDeterministicRecall } from './recall-eval.js';
+import { type DryRunPrediction, runDeterministicRecall } from './recall-eval.js';
 
 export interface LiveDecisionContext {
   repository?: LabelRepository;
   chat?: ChatProvider;
   embeddings?: EmbeddingsProvider;
   cleanupCatalog?: () => Promise<void>;
+}
+
+export function buildLabelAlignmentCaseResult(
+  case_: LabelAlignmentEvalCase,
+  predictions: DryRunPrediction[],
+  notes: string[],
+  recallReasonDistribution?: Record<LabelAlignmentRecallReason, number>,
+): Omit<LabelAlignmentEvalCaseResult, 'durationMs' | 'mode'> {
+  const metrics = calculateCaseMetrics(case_, predictions);
+  return {
+    caseId: case_.caseId,
+    skillId: case_.skillId,
+    variantId: case_.variantId,
+    variantGroupId: case_.variantGroupId,
+    tier: case_.tier,
+    passed: metrics.passed,
+    synonymEliminationCount: metrics.synonymEliminationCount,
+    synonymEliminationRate: metrics.synonymEliminationRate,
+    missedMerges: metrics.missedMerges,
+    falseMerges: metrics.falseMerges,
+    alignmentAccuracy: metrics.alignmentAccuracy,
+    recallReasonDistribution: recallReasonDistribution ?? metrics.recallReasonDistribution,
+    notes,
+  };
 }
 
 export async function runLiveDecisionEvaluation(
@@ -23,28 +48,18 @@ export async function runLiveDecisionEvaluation(
   const fallback = runDeterministicRecall(case_);
 
   if (!context.repository || !context.chat || !context.cleanupCatalog) {
-    const metrics = calculateCaseMetrics(case_, fallback.predictions);
-    return {
-      caseId: case_.caseId,
-      skillId: case_.skillId,
-      variantId: case_.variantId,
-      variantGroupId: case_.variantGroupId,
-      tier: case_.tier,
-      passed: metrics.passed,
-      synonymEliminationCount: metrics.synonymEliminationCount,
-      synonymEliminationRate: metrics.synonymEliminationRate,
-      missedMerges: metrics.missedMerges,
-      falseMerges: metrics.falseMerges,
-      alignmentAccuracy: metrics.alignmentAccuracy,
-      recallReasonDistribution: {
-        ...metrics.recallReasonDistribution,
-        'live-decision': 0,
-      },
-      notes: [
+    return buildLabelAlignmentCaseResult(
+      case_,
+      fallback.predictions,
+      [
         ...fallback.notes,
         'Live isolation adapters unavailable; used deterministic dry-run scaffold.',
       ],
-    };
+      {
+        ...calculateCaseMetrics(case_, fallback.predictions).recallReasonDistribution,
+        'live-decision': 0,
+      },
+    );
   }
 
   await seedCatalogEntries(context.repository, buildCatalogSeed(case_).entries);
@@ -78,25 +93,15 @@ export async function runLiveDecisionEvaluation(
     await context.cleanupCatalog();
   }
 
-  const metrics = calculateCaseMetrics(case_, predictions);
-  return {
-    caseId: case_.caseId,
-    skillId: case_.skillId,
-    variantId: case_.variantId,
-    variantGroupId: case_.variantGroupId,
-    tier: case_.tier,
-    passed: metrics.passed,
-    synonymEliminationCount: metrics.synonymEliminationCount,
-    synonymEliminationRate: metrics.synonymEliminationRate,
-    missedMerges: metrics.missedMerges,
-    falseMerges: metrics.falseMerges,
-    alignmentAccuracy: metrics.alignmentAccuracy,
-    recallReasonDistribution: {
-      ...metrics.recallReasonDistribution,
+  return buildLabelAlignmentCaseResult(
+    case_,
+    predictions,
+    ['Executed through live label-alignment interfaces.'],
+    {
+      ...calculateCaseMetrics(case_, predictions).recallReasonDistribution,
       'live-decision': case_.goldenAnnotations.length,
     },
-    notes: ['Executed through live label-alignment interfaces.'],
-  };
+  );
 }
 
 async function normalizePredictedCanonicalLabel(

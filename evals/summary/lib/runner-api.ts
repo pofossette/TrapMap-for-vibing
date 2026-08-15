@@ -56,7 +56,7 @@ export interface RunSummaryResult {
 /**
  * Load cases for the specified tier.
  */
-function loadCasesForTier(tier: SummaryEvalTier): SummaryEvalCase[] {
+export function loadCasesForTier(tier: SummaryEvalTier): SummaryEvalCase[] {
   const rawCases = tier === 'smoke' ? summarySmokeCases : summaryCoreCases;
 
   const validatedCases: SummaryEvalCase[] = [];

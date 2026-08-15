@@ -198,6 +198,36 @@ export function parseSkillMetadata(content: string): { title: string; labels: st
   };
 }
 
+async function appendBundleFiles(
+  files: ArtifactBundle['files'],
+  rootPath: string,
+  relPaths: readonly string[],
+  kind: ArtifactBundle['files'][number]['kind'],
+  source: ArtifactBundle['files'][number]['source'],
+  includeInDerivation: boolean,
+  activationOnly: boolean,
+): Promise<void> {
+  for (const relPath of relPaths) {
+    const fullPath = join(rootPath, relPath);
+    const { content, isBinary } = await readFileContent(fullPath);
+    const buffer = await readFile(fullPath);
+    const fileSha256 = sha256(buffer);
+    const mediaType = detectMediaType(relPath);
+
+    files.push({
+      path: relPath,
+      kind,
+      sha256: fileSha256,
+      sizeBytes: buffer.length,
+      mediaType,
+      source,
+      includeInDerivation,
+      activationOnly,
+      content: isBinary ? content : content,
+    });
+  }
+}
+
 /**
  * Builds a canonical artifact bundle from a local skill directory.
  */
@@ -259,67 +289,13 @@ export async function buildArtifactBundle(args: {
   }
 
   // Add references
-  for (const relPath of references) {
-    const fullPath = join(rootPath, relPath);
-    const { content, isBinary } = await readFileContent(fullPath);
-    const buffer = await readFile(fullPath);
-    const fileSha256 = sha256(buffer);
-    const mediaType = detectMediaType(relPath);
-
-    files.push({
-      path: relPath,
-      kind: 'reference',
-      sha256: fileSha256,
-      sizeBytes: buffer.length,
-      mediaType,
-      source: 'references/',
-      includeInDerivation: true,
-      activationOnly: false,
-      content: isBinary ? content : content,
-    });
-  }
+  await appendBundleFiles(files, rootPath, references, 'reference', 'references/', true, false);
 
   // Add assets
-  for (const relPath of assets) {
-    const fullPath = join(rootPath, relPath);
-    const { content, isBinary } = await readFileContent(fullPath);
-    const buffer = await readFile(fullPath);
-    const fileSha256 = sha256(buffer);
-    const mediaType = detectMediaType(relPath);
-
-    files.push({
-      path: relPath,
-      kind: 'asset',
-      sha256: fileSha256,
-      sizeBytes: buffer.length,
-      mediaType,
-      source: 'assets/',
-      includeInDerivation: false,
-      activationOnly: true,
-      content: isBinary ? content : content,
-    });
-  }
+  await appendBundleFiles(files, rootPath, assets, 'asset', 'assets/', false, true);
 
   // Add scripts
-  for (const relPath of scripts) {
-    const fullPath = join(rootPath, relPath);
-    const { content, isBinary } = await readFileContent(fullPath);
-    const buffer = await readFile(fullPath);
-    const fileSha256 = sha256(buffer);
-    const mediaType = detectMediaType(relPath);
-
-    files.push({
-      path: relPath,
-      kind: 'script',
-      sha256: fileSha256,
-      sizeBytes: buffer.length,
-      mediaType,
-      source: 'scripts/',
-      includeInDerivation: false,
-      activationOnly: true,
-      content: isBinary ? content : content,
-    });
-  }
+  await appendBundleFiles(files, rootPath, scripts, 'script', 'scripts/', false, true);
 
   const scriptHashes = new Map(
     files.filter((file) => file.kind === 'script').map((file) => [file.path, file.sha256]),

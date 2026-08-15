@@ -1,4 +1,4 @@
-import { createFastifyAdapter } from '@trapmap/backend-core';
+import { createFastifyServiceServer } from '@trapmap/backend-core';
 import type { FastifyInstance } from 'fastify';
 import {
   type GovernanceReviewServiceDeps,
@@ -31,18 +31,10 @@ export async function createGovernanceReviewServer(
 ): Promise<GovernanceReviewServer> {
   const module = createGovernanceReviewServiceModule(deps);
   const routeDeps: GovernanceReviewRouteDeps = { ...module, ...readinessOptions };
-  const app = createFastifyAdapter(createGovernanceReviewRouteDefs(routeDeps), routeDeps, {
-    logger: { level: config.logLevel },
-  });
-
-  return {
-    app,
+  return createFastifyServiceServer(
+    config,
     module,
-    async start() {
-      await app.listen({ port: config.port, host: config.host });
-    },
-    async close() {
-      await app.close();
-    },
-  };
+    createGovernanceReviewRouteDefs(routeDeps),
+    routeDeps,
+  );
 }

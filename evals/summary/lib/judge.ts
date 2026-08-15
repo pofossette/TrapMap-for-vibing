@@ -16,6 +16,7 @@
 
 import { buildClaimVerificationSystemPrompt } from '@trapmap/ai-providers/prompts.js';
 import { extractClaims, simplifyClaim } from './claims.js';
+import { checkRequiredFactsCoverage } from './coverage.js';
 import type {
   ClaimVerification,
   ExtractedClaim,
@@ -372,17 +373,8 @@ export function fallbackJudge(params: {
   const groundednessScore = claims.length > 0 ? supportedCount / claims.length : 1.0;
 
   // Check required facts coverage
-  const summaryLower = summaryText.toLowerCase();
-  const requiredFactsCovered: string[] = [];
-  const requiredFactsMissing: string[] = [];
-
-  for (const fact of requiredFacts) {
-    if (summaryLower.includes(fact.toLowerCase())) {
-      requiredFactsCovered.push(fact);
-    } else {
-      requiredFactsMissing.push(fact);
-    }
-  }
+  const { covered: requiredFactsCovered, missing: requiredFactsMissing } =
+    checkRequiredFactsCoverage(summaryText, requiredFacts);
 
   const coverageScore =
     requiredFacts.length > 0 ? requiredFactsCovered.length / requiredFacts.length : 1.0;
@@ -452,17 +444,8 @@ export function createJudge(config: JudgeConfig) {
       const groundednessScore = claims.length > 0 ? supportedCount / claims.length : 1.0;
 
       // Check required facts coverage (always use deterministic check)
-      const summaryLower = summaryText.toLowerCase();
-      const requiredFactsCovered: string[] = [];
-      const requiredFactsMissing: string[] = [];
-
-      for (const fact of expected.requiredFacts) {
-        if (summaryLower.includes(fact.toLowerCase())) {
-          requiredFactsCovered.push(fact);
-        } else {
-          requiredFactsMissing.push(fact);
-        }
-      }
+      const { covered: requiredFactsCovered, missing: requiredFactsMissing } =
+        checkRequiredFactsCoverage(summaryText, expected.requiredFacts);
 
       const coverageScore =
         expected.requiredFacts.length > 0

@@ -1,4 +1,4 @@
-import type { ArtifactImportResponse, ImportResponse } from '@trapmap/contracts';
+import type { ArtifactBundle, ArtifactImportResponse, ImportResponse } from '@trapmap/contracts';
 import { artifactImportResponseSchema, importResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
@@ -13,6 +13,28 @@ import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { resolveTextInput } from '@trapmap/cli/lib/input.js';
 import { printResult } from '@trapmap/cli/lib/output.js';
 import type { OperationsCommandOptions } from './types.js';
+
+async function importArtifactBundle(
+  state: Awaited<ReturnType<typeof loadCliState>>,
+  bundle: ArtifactBundle,
+  flags: { json?: boolean },
+): Promise<void> {
+  const response = await apiRequest<ArtifactImportResponse>(state, {
+    method: 'POST',
+    path: '/v1/operations/artifacts/import',
+    body: { bundles: [bundle] },
+  });
+  const parsed = artifactImportResponseSchema.parse(response.data);
+
+  printResult(parsed, flags, (value) =>
+    [
+      `Imported ${value.importedCount} artifacts, failed ${value.failedCount}`,
+      ...value.results.map(
+        (r) => `  ${r.success ? '✓' : '✗'} ${r.title ?? 'Unknown'}: ${r.error ?? 'OK'}`,
+      ),
+    ].join('\n'),
+  );
+}
 
 export function registerImportCommand(program: Command, options: OperationsCommandOptions): void {
   if (!options.allowImport) return;
@@ -45,21 +67,7 @@ export function registerImportCommand(program: Command, options: OperationsComma
           sourceKind: 'skill-directory',
         });
 
-        const response = await apiRequest<ArtifactImportResponse>(state, {
-          method: 'POST',
-          path: '/v1/operations/artifacts/import',
-          body: { bundles: [bundle] },
-        });
-        const parsed = artifactImportResponseSchema.parse(response.data);
-
-        printResult(parsed, flags, (value) =>
-          [
-            `Imported ${value.importedCount} artifacts, failed ${value.failedCount}`,
-            ...value.results.map(
-              (r) => `  ${r.success ? '✓' : '✗'} ${r.title ?? 'Unknown'}: ${r.error ?? 'OK'}`,
-            ),
-          ].join('\n'),
-        );
+        await importArtifactBundle(state, bundle, flags);
       } else {
         // File import: check for single SKILL.md or legacy knowledge entry
         const isSkillMd = isSkillMdFile(filePath);
@@ -71,21 +79,7 @@ export function registerImportCommand(program: Command, options: OperationsComma
             requestedLevel: flags.level,
           });
 
-          const response = await apiRequest<ArtifactImportResponse>(state, {
-            method: 'POST',
-            path: '/v1/operations/artifacts/import',
-            body: { bundles: [bundle] },
-          });
-          const parsed = artifactImportResponseSchema.parse(response.data);
-
-          printResult(parsed, flags, (value) =>
-            [
-              `Imported ${value.importedCount} artifacts, failed ${value.failedCount}`,
-              ...value.results.map(
-                (r) => `  ${r.success ? '✓' : '✗'} ${r.title ?? 'Unknown'}: ${r.error ?? 'OK'}`,
-              ),
-            ].join('\n'),
-          );
+          await importArtifactBundle(state, bundle, flags);
         } else {
           // Legacy knowledge entry import (JSON or non-SKILL.md files)
           const fileContent = await resolveTextInput({ file: flags.file }, 'import');

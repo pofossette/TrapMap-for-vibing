@@ -17,6 +17,7 @@ import type {
   LabelAlignmentEvalReport,
 } from '@trapmap/contracts/evals';
 
+import { failedExecutionAssertion } from '../lib/assertion.js';
 import { createJsAssertion } from '../promptfoo/assertion.js';
 import { registerBridge } from '../promptfoo/bridge.js';
 import { composedProvider, deterministicProvider } from '../promptfoo/provider.js';
@@ -76,7 +77,7 @@ export const labelAlignmentBridge: SuiteBridge<
     return [
       createJsAssertion<LabelAlignmentEvalCase, LabelAlignmentEvalCaseResult>((_case, result) => {
         if (!result || typeof result !== 'object' || !('passed' in result)) {
-          return { pass: false, score: 0, reason: 'execution failed', namedScores: {} };
+          return failedExecutionAssertion();
         }
         return {
           pass: result.passed,

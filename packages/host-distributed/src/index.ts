@@ -10,14 +10,17 @@
  *   node dist/index.js --service identity-access  # Start only identity-access
  */
 
+import { assertDistributedConnectionBudget } from './config/index.js';
 import type { ServiceName } from './config/index.js';
-import { ALL_SERVICES, assertDistributedConnectionBudget } from './config/index.js';
+import { type DistributedServiceHandle, runDistributedServices } from './runner.js';
 
-// ---------------------------------------------------------------------------
-// Service starters (lazy-imported to avoid loading unnecessary modules)
-// ---------------------------------------------------------------------------
+export {
+  type DistributedServiceHandle,
+  type DistributedServiceStarter,
+  runDistributedServices,
+} from './runner.js';
 
-async function startService(name: ServiceName) {
+async function startService(name: ServiceName): Promise<DistributedServiceHandle> {
   assertDistributedConnectionBudget();
   switch (name) {
     case 'gateway': {
@@ -49,107 +52,11 @@ async function startService(name: ServiceName) {
       return startJobRuntimeService();
     }
     default: {
-      throw new Error(`Unknown service: ${name}`);
+      const exhaustive: never = name;
+      throw new Error(`Unknown service: ${exhaustive}`);
     }
   }
 }
-
-// ---------------------------------------------------------------------------
-// CLI argument parsing
-// ---------------------------------------------------------------------------
-
-function parseArgs(): { service: ServiceName | null } {
-  const args = process.argv.slice(2);
-  let service: ServiceName | null = null;
-
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--service' && args[i + 1]) {
-      const name = args[i + 1] as ServiceName;
-      if (!ALL_SERVICES.includes(name)) {
-        console.error(`Unknown service: ${name}`);
-        console.error(`Available services: ${ALL_SERVICES.join(', ')}`);
-        process.exit(1);
-      }
-      service = name;
-      i++; // skip the value
-    }
-  }
-
-  return { service };
-}
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
-
-async function main() {
-  const { service } = parseArgs();
-
-  if (service) {
-    // Start a single service
-    console.log(`Starting service: ${service}`);
-    const result = await startService(service);
-    console.log(`Service ${service} started on port ${result.config.port}`);
-
-    // Graceful shutdown
-    const shutdown = async () => {
-      console.log(`Shutting down service: ${service}...`);
-      await result.server.close();
-      if ('db' in result && result.db) {
-        await (result.db as { close(): Promise<void> }).close();
-      }
-      process.exit(0);
-    };
-    process.on('SIGINT', shutdown);
-    process.on('SIGTERM', shutdown);
-  } else {
-    // Start all services
-    console.log('Starting all services...');
-    const handles: Array<{
-      name: ServiceName;
-      config: { port: number };
-      server: { close(): Promise<void> };
-      db?: { close(): Promise<void> };
-    }> = [];
-
-    for (const name of ALL_SERVICES) {
-      try {
-        const result = await startService(name);
-        handles.push({ name, ...result });
-        console.log(`  ${name} started on port ${result.config.port}`);
-      } catch (error) {
-        console.error(`  Failed to start ${name}:`, error);
-        process.exit(1);
-      }
-    }
-
-    console.log(`All ${handles.length} services started.`);
-
-    // Graceful shutdown
-    const shutdown = async () => {
-      console.log('Shutting down all services...');
-      await Promise.all(
-        handles.map(async (h) => {
-          try {
-            await h.server.close();
-            if (h.db) {
-              await h.db.close();
-            }
-          } catch (error) {
-            console.error(`Error shutting down ${h.name}:`, error);
-          }
-        }),
-      );
-      process.exit(0);
-    };
-    process.on('SIGINT', shutdown);
-    process.on('SIGTERM', shutdown);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Direct execution
-// ---------------------------------------------------------------------------
 
 const isDirectExecution =
   process.argv[1] &&
@@ -159,7 +66,7 @@ const isDirectExecution =
     process.argv[1].endsWith('\\host-distributed\\dist\\index.js'));
 
 if (isDirectExecution) {
-  main().catch((error) => {
+  runDistributedServices({ startService }).catch((error: unknown) => {
     console.error('Fatal error:', error);
     process.exit(1);
   });

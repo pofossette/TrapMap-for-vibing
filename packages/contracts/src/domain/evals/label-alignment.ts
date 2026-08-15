@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { evalSummaryTotalsFields } from './report.js';
 import { retrievalEvalTierSchema } from './retrieval.js';
 
 export const labelAlignmentRecallReasonSchema = z.enum([
@@ -181,6 +182,14 @@ export const labelAlignmentRecallReasonDistributionSchema = z
     'live-decision': 0,
   });
 
+const labelAlignmentMetricFields = {
+  alignmentAccuracy: z.number().min(0).max(1),
+  falseMerges: z.number().int().min(0),
+  missedMerges: z.number().int().min(0),
+  synonymEliminationCount: z.number().int().min(0),
+  synonymEliminationRate: z.number().min(0).max(1),
+};
+
 export const labelAlignmentEvalCaseResultSchema = z
   .object({
     caseId: z.string().min(1),
@@ -191,11 +200,7 @@ export const labelAlignmentEvalCaseResultSchema = z
     mode: z.enum(['dry-run', 'live']),
     passed: z.boolean(),
     durationMs: z.number().int().min(0),
-    synonymEliminationCount: z.number().int().min(0),
-    synonymEliminationRate: z.number().min(0).max(1),
-    missedMerges: z.number().int().min(0),
-    falseMerges: z.number().int().min(0),
-    alignmentAccuracy: z.number().min(0).max(1),
+    ...labelAlignmentMetricFields,
     recallReasonDistribution: labelAlignmentRecallReasonDistributionSchema,
     notes: z.array(z.string()).default([]),
   })
@@ -205,15 +210,8 @@ export const labelAlignmentEvalReportSchema = z
   .object({
     meta: labelAlignmentEvalReportMetaSchema,
     summary: z.object({
-      totalCases: z.number().int().min(0),
-      passedCases: z.number().int().min(0),
-      failedCases: z.number().int().min(0),
-      passRate: z.number().min(0).max(1),
-      synonymEliminationCount: z.number().int().min(0),
-      synonymEliminationRate: z.number().min(0).max(1),
-      missedMerges: z.number().int().min(0),
-      falseMerges: z.number().int().min(0),
-      alignmentAccuracy: z.number().min(0).max(1),
+      ...evalSummaryTotalsFields,
+      ...labelAlignmentMetricFields,
       recallReasonDistribution: labelAlignmentRecallReasonDistributionSchema,
     }),
     cases: z.array(labelAlignmentEvalCaseResultSchema),

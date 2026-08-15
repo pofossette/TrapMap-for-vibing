@@ -1,5 +1,5 @@
 import type { IdentityAccessPort } from '@trapmap/backend-core';
-import { createFastifyAdapter } from '@trapmap/backend-core';
+import { createFastifyServiceServer } from '@trapmap/backend-core';
 import type { FastifyInstance } from 'fastify';
 import { type IdentityAccessDeps, createIdentityAccessServiceModule } from './deps.js';
 import { createIdentityAccessRouteDefs } from './routes.js';
@@ -22,18 +22,5 @@ export async function createIdentityAccessServer(
   deps: IdentityAccessDeps,
 ): Promise<IdentityAccessServer> {
   const module = createIdentityAccessServiceModule(deps);
-  const app = createFastifyAdapter(createIdentityAccessRouteDefs(module), module, {
-    logger: { level: config.logLevel },
-  });
-
-  return {
-    app,
-    module,
-    async start() {
-      await app.listen({ port: config.port, host: config.host });
-    },
-    async close() {
-      await app.close();
-    },
-  };
+  return createFastifyServiceServer(config, module, createIdentityAccessRouteDefs(module), module);
 }

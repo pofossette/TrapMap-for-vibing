@@ -10,6 +10,7 @@ import {
   type RouteContext,
   type RouteDef,
   type RouteSuccess,
+  createServiceReadinessHandler,
   isRouteResponse,
   registerFastifyRoutes,
   routeResponse,
@@ -183,6 +184,49 @@ const healthSchema = z.object({
   body: z.unknown(),
 });
 
+function reviewCommandArgs(ctx: RouteContext): {
+  actorId: string;
+  entryId: string;
+  evidence?: Record<string, unknown>;
+  note?: string;
+} {
+  const body = ctx.body as {
+    actorId: string;
+    entryId: string;
+    evidence?: Record<string, unknown>;
+    note?: string;
+  };
+  return {
+    entryId: body.entryId,
+    actorId: body.actorId,
+    ...(body.note !== undefined ? { note: body.note } : {}),
+    ...(body.evidence !== undefined ? { evidence: body.evidence } : {}),
+  };
+}
+
+function maintenanceCommandArgs(ctx: RouteContext): {
+  action: string;
+  actorId: string;
+  entryId: string;
+  evidence?: Record<string, unknown>;
+  note?: string;
+} {
+  const body = ctx.body as {
+    action: string;
+    actorId: string;
+    entryId: string;
+    evidence?: Record<string, unknown>;
+    note?: string;
+  };
+  return {
+    entryId: body.entryId,
+    actorId: body.actorId,
+    action: body.action,
+    ...(body.note !== undefined ? { note: body.note } : {}),
+    ...(body.evidence !== undefined ? { evidence: body.evidence } : {}),
+  };
+}
+
 function readAdminActor(headers: Record<string, unknown>, body: unknown): string | RouteSuccess {
   const actorId = headers['x-trapmap-actor-id'];
   if (typeof actorId !== 'string' || actorId.length === 0) {
@@ -196,6 +240,38 @@ function readAdminActor(headers: Record<string, unknown>, body: unknown): string
   return actorId;
 }
 
+function withAdminActor<T>(
+  module: GovernanceReviewRouteModule,
+  ctx: RouteContext,
+  run: (
+    admin: NonNullable<GovernanceReviewRouteModule['admin']>,
+    actorId: string,
+  ) => Promise<T> | T,
+): Promise<T | RouteSuccess> {
+  const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
+  if (isRouteResponse(actor)) return Promise.resolve(actor);
+  const admin = module.admin;
+  if (!admin) {
+    throw InvocationError.unavailable('Feedback admin unavailable');
+  }
+  return Promise.resolve(run(admin, actor));
+}
+
+function readinessHandler(deps: GovernanceReviewRouteDeps) {
+  return createServiceReadinessHandler({
+    service: 'governance-review',
+    checkDependency: deps.checkDependency,
+    checks: {
+      'delegate-to-knowledge-write': { status: 'ok', detail: null },
+    },
+    extra: {
+      commandSurfaceReceived: true,
+      finalAggregateMutation: 'delegated-to-knowledge-write',
+      followUpDisposition: 'outbox-queue-workflow-async',
+    },
+  });
+}
+
 function governanceRouteDef<Ctx extends RouteContext>(def: {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   path: string;
@@ -206,35 +282,6 @@ function governanceRouteDef<Ctx extends RouteContext>(def: {
   return def;
 }
 
-function readinessHandler(deps: GovernanceReviewRouteDeps) {
-  return async () => {
-    let dependencyStatus: { reachable: boolean; detail?: string } = { reachable: true };
-    if (deps.checkDependency) {
-      try {
-        dependencyStatus = await deps.checkDependency();
-      } catch {
-        dependencyStatus = { reachable: false, detail: 'dependency check threw' };
-      }
-    }
-    const ready = dependencyStatus.reachable;
-    const body = {
-      ready,
-      service: 'governance-review',
-      checks: {
-        self: { status: 'ok' },
-        'delegate-to-knowledge-write': {
-          status: dependencyStatus.reachable ? 'ok' : 'degraded',
-          detail: dependencyStatus.detail ?? null,
-        },
-      },
-      commandSurfaceReceived: true,
-      finalAggregateMutation: 'delegated-to-knowledge-write',
-      followUpDisposition: 'outbox-queue-workflow-async',
-    };
-    return ready ? body : routeResponse(503, body);
-  };
-}
-
 export function createGovernanceReviewRouteDefs(
   _deps: GovernanceReviewRouteDeps,
 ): RouteDef<RouteContext, GovernanceReviewRouteDeps>[] {
@@ -243,54 +290,28 @@ export function createGovernanceReviewRouteDefs(
       method: 'POST',
       path: '/internal/review/approve',
       schema: reviewCommandSchema,
-      handler: async (ctx, module) =>
-        module.approve({
-          entryId: ctx.body.entryId,
-          actorId: ctx.body.actorId,
-          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
-          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
-        }),
+      handler: (ctx, module) => module.approve(reviewCommandArgs(ctx)),
     }),
 
     governanceRouteDef({
       method: 'POST',
       path: '/internal/review/reject',
       schema: reviewCommandSchema,
-      handler: async (ctx, module) =>
-        module.reject({
-          entryId: ctx.body.entryId,
-          actorId: ctx.body.actorId,
-          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
-          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
-        }),
+      handler: (ctx, module) => module.reject(reviewCommandArgs(ctx)),
     }),
 
     governanceRouteDef({
       method: 'POST',
       path: '/internal/review/maintenance',
       schema: maintenanceCommandSchema,
-      handler: async (ctx, module) =>
-        module.applyMaintenance({
-          entryId: ctx.body.entryId,
-          actorId: ctx.body.actorId,
-          action: ctx.body.action,
-          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
-          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
-        }),
+      handler: (ctx, module) => module.applyMaintenance(maintenanceCommandArgs(ctx)),
     }),
 
     governanceRouteDef({
       method: 'POST',
       path: '/internal/review/decay',
       schema: maintenanceCommandSchema,
-      handler: async (ctx, module) =>
-        module.applyDecay({
-          entryId: ctx.body.entryId,
-          actorId: ctx.body.actorId,
-          action: ctx.body.action,
-          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
-          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
-        }),
+      handler: (ctx, module) => module.applyDecay(maintenanceCommandArgs(ctx)),
     }),
 
     governanceRouteDef({
@@ -383,88 +404,62 @@ export function createGovernanceReviewRouteDefs(
       method: 'GET',
       path: '/internal/feedback/admin',
       schema: feedbackAdminListSchema,
-      handler: async (ctx, module) => {
-        const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
-        if (isRouteResponse(actor)) return actor;
-        if (!module.admin) {
-          throw InvocationError.unavailable('Feedback admin unavailable');
-        }
-        return module.admin.list({ actorId: actor, query: ctx.query });
-      },
+      handler: (ctx, module) =>
+        withAdminActor(module, ctx, (admin, actor) =>
+          admin.list({ actorId: actor, query: ctx.query }),
+        ),
     }),
 
     governanceRouteDef({
       method: 'POST',
       path: '/internal/feedback/admin/batch',
       schema: feedbackAdminBatchSchema,
-      handler: async (ctx, module) => {
-        const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
-        if (isRouteResponse(actor)) return actor;
-        if (!module.admin) {
-          throw InvocationError.unavailable('Feedback admin unavailable');
-        }
-        return module.admin.batch({ actorId: actor, command: ctx.body });
-      },
+      handler: (ctx, module) =>
+        withAdminActor(module, ctx, (admin, actor) =>
+          admin.batch({ actorId: actor, command: ctx.body }),
+        ),
     }),
 
     governanceRouteDef({
       method: 'GET',
       path: '/internal/feedback/admin/stats/:entryId',
       schema: feedbackAdminStatsSchema,
-      handler: async (ctx, module) => {
-        const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
-        if (isRouteResponse(actor)) return actor;
-        if (!module.admin) {
-          throw InvocationError.unavailable('Feedback admin unavailable');
-        }
-        return module.admin.stats({ actorId: actor, entryId: ctx.params.entryId });
-      },
+      handler: (ctx, module) =>
+        withAdminActor(module, ctx, (admin, actor) =>
+          admin.stats({ actorId: actor, entryId: ctx.params.entryId }),
+        ),
     }),
 
     governanceRouteDef({
       method: 'GET',
       path: '/internal/feedback/admin/remediation',
       schema: feedbackAdminStatsSchema,
-      handler: async (ctx, module) => {
-        const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
-        if (isRouteResponse(actor)) return actor;
-        if (!module.admin) {
-          throw InvocationError.unavailable('Feedback admin unavailable');
-        }
-        return module.admin.listRemediation({ actorId: actor });
-      },
+      handler: (ctx, module) =>
+        withAdminActor(module, ctx, (admin, actor) => admin.listRemediation({ actorId: actor })),
     }),
 
     governanceRouteDef({
       method: 'GET',
       path: '/internal/feedback/admin/remediation/:entryId',
       schema: feedbackAdminStatsSchema,
-      handler: async (ctx, module) => {
-        const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
-        if (isRouteResponse(actor)) return actor;
-        if (!module.admin) {
-          throw InvocationError.unavailable('Feedback admin unavailable');
-        }
-        return module.admin.getRemediation({ actorId: actor, entryId: ctx.params.entryId });
-      },
+      handler: (ctx, module) =>
+        withAdminActor(module, ctx, (admin, actor) =>
+          admin.getRemediation({ actorId: actor, entryId: ctx.params.entryId }),
+        ),
     }),
 
     governanceRouteDef({
       method: 'POST',
       path: '/internal/feedback/admin/remediation/:entryId/complete',
       schema: feedbackAdminRemediationCompleteSchema,
-      handler: async (ctx, module) => {
-        const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
-        if (isRouteResponse(actor)) return actor;
-        if (!module.admin) {
-          throw InvocationError.unavailable('Feedback admin unavailable');
-        }
-        return module.admin.completeRemediation({
-          actorId: actor,
-          entryId: ctx.params.entryId,
-          command: ctx.body,
-        });
-      },
+      handler: (ctx, module) =>
+        withAdminActor(module, ctx, (admin, actor) =>
+          admin.completeRemediation({
+            actorId: actor,
+            entryId: ctx.params.entryId,
+            command: ctx.body,
+          }),
+        ),
     }),
 
     governanceRouteDef({

@@ -123,6 +123,8 @@
 
 本地可用的 `check:*` 守卫面已收敛为 11 个命令（2026-08 maintainability-rework 由 14 个合并，Task 12 新增 4 个防复发守卫）：`check:docs`、`check:structure`、`check:fallow`、`check:asserts`、`check:table-schema`、`check:pgtable-single-source`、`check:eval-imports`、`check:eval-only`、`check:complexity`、`check:deps`、`check:imports`；`check`（biome）与 `typecheck` 单独运行。`doc-guardrails` CI job 的子集见规则 28。
 
+重复代码另提供独立诊断命令 `pnpm duplication`（jscpd，扫描 `packages`、`apps`、`scripts`、`evals`，测试/fixtures/datasets/scenarios 等声明式夹具数据排除，阈值见根 `.jscpd.json`），不替代 `pnpm check:fallow` 的零重复质量门。
+
 ### 文档漂移守卫
 
 ```bash

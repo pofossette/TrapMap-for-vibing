@@ -1,12 +1,15 @@
 import { z } from 'zod';
 
 import {
+  batchResponseFields,
+  commaSeparatedListSchema,
   entityIdSchema,
   isoTimestampSchema,
   labelSchema,
   lifecycleStateSchema,
   scopeSchema,
   securityLevelSchema,
+  withEligibilityRefinements,
 } from './common.js';
 
 /**
@@ -167,28 +170,10 @@ export const decayAwareListItemSchema = z.object({
  * for building the batch management discovery interface.
  */
 export const decayEntryListRequestSchema = z.object({
-  decayStates: z.preprocess((val) => {
-    if (val === undefined || val === null) return undefined;
-    if (Array.isArray(val)) return val;
-    if (typeof val === 'string')
-      return val
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-    return val;
-  }, z.array(decayStateSchema).optional()),
+  decayStates: commaSeparatedListSchema(z.array(decayStateSchema).optional()),
   ageMinDays: z.coerce.number().int().min(0).optional(),
   ageMaxDays: z.coerce.number().int().min(0).optional(),
-  labels: z.preprocess((val) => {
-    if (val === undefined || val === null) return undefined;
-    if (Array.isArray(val)) return val;
-    if (typeof val === 'string')
-      return val
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-    return val;
-  }, z.array(labelSchema).optional()),
+  labels: commaSeparatedListSchema(z.array(labelSchema).optional()),
   scope: scopeSchema.optional(),
   limit: z.coerce.number().int().min(1).max(100).default(25),
 });
@@ -223,8 +208,8 @@ export const batchOperationRequestSchema = z.object({
  * Each entry in the batch gets an item describing the planned or applied change,
  * eligibility status, and reason if ineligible.
  */
-export const batchOperationItemSchema = z
-  .object({
+export const batchOperationItemSchema = withEligibilityRefinements(
+  z.object({
     entryId: entityIdSchema,
     shortcut: z.string(),
     currentDecayState: decayStateSchema.nullable(),
@@ -232,13 +217,8 @@ export const batchOperationItemSchema = z
     changeDescription: z.string(),
     eligible: z.boolean(),
     ineligibilityReason: z.string().nullable(),
-  })
-  .refine((d) => !d.eligible || d.ineligibilityReason === null, {
-    message: 'ineligibilityReason must be null when eligible is true',
-  })
-  .refine((d) => d.eligible || d.ineligibilityReason !== null, {
-    message: 'ineligibilityReason must be non-null when eligible is false',
-  });
+  }),
+);
 
 /**
  * Response schema for batch operations.
@@ -251,9 +231,7 @@ export const batchOperationResponseSchema = z
     action: batchActionSchema,
     dryRun: z.boolean(),
     items: z.array(batchOperationItemSchema),
-    totalEligible: z.number().int().min(0),
-    totalIneligible: z.number().int().min(0),
-    appliedAt: isoTimestampSchema.nullable(),
+    ...batchResponseFields,
   })
   .strict()
   .refine((d) => !d.dryRun || d.appliedAt === null, {

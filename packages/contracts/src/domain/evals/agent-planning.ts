@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { evalSummaryTotalsFields } from './report.js';
 import { retrievalEvalTierSchema } from './retrieval.js';
 
 export const agentPlanningEvalTierSchema = retrievalEvalTierSchema;
@@ -329,10 +330,7 @@ export const agentPlanningEvalReportSchema = z
   .object({
     meta: agentPlanningEvalReportMetaSchema,
     summary: z.object({
-      totalCases: z.number().int().min(0),
-      passedCases: z.number().int().min(0),
-      failedCases: z.number().int().min(0),
-      passRate: z.number().min(0).max(1),
+      ...evalSummaryTotalsFields,
       avgScore: z.number().min(0).max(1),
     }),
     cases: z.array(agentPlanningCaseResultSchema),

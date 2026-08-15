@@ -263,7 +263,7 @@ export function createAuditLogPort(repos: Pick<HostLocalRepos, 'audit'>): AuditL
       });
     },
     async query(filter) {
-      const result = await repos.audit.listByFilter(filter);
+      const result = await repos.audit.listByFilter(Object.fromEntries(Object.entries(filter)));
       return {
         total: result.total,
         items: result.items.map((item) => ({

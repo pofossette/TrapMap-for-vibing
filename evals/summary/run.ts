@@ -15,20 +15,17 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
-import {
-  type SummaryEvalCase,
-  type SummaryEvalEndpoint,
-  type SummaryEvalTier,
-  summaryEvalCaseSchema,
+import type {
+  SummaryEvalCase,
+  SummaryEvalEndpoint,
+  SummaryEvalTier,
 } from '@trapmap/contracts/evals';
 
-import { summaryCoreCases } from './core.js';
-// Import tier datasets
-import { summarySmokeCases } from './smoke.js';
-
+import { loadAndFilterCases, resolveRunnerValue } from '../lib/runner-cli.js';
 import { formatSummaryReport } from './lib/format.js';
 // Import evaluation modules
 import type { buildSummaryReport } from './lib/report.js';
+import { loadCasesForTier } from './lib/runner-api.js';
 import type { JudgeProvider } from './lib/types.js';
 
 // =============================================================================
@@ -117,12 +114,7 @@ function parseArgs_(): RunOptions {
     process.exit(1);
   }
 
-  const runnerValue = values.runner ?? 'promptfoo';
-  if (runnerValue !== 'native' && runnerValue !== 'promptfoo') {
-    console.error(`Invalid --runner value: ${runnerValue}`);
-    process.exit(1);
-  }
-  const runner = runnerValue as 'native' | 'promptfoo';
+  const runner = resolveRunnerValue(values.runner);
 
   return {
     tier,
@@ -140,30 +132,6 @@ function parseArgs_(): RunOptions {
 // =============================================================================
 // Case Loading
 // =============================================================================
-
-/**
- * Load cases for the specified tier.
- *
- * @param tier - Evaluation tier
- * @returns Array of validated cases
- */
-export function loadCases(tier: SummaryEvalTier): SummaryEvalCase[] {
-  const rawCases = tier === 'smoke' ? summarySmokeCases : summaryCoreCases;
-
-  // Validate each case against the schema
-  const validatedCases: SummaryEvalCase[] = [];
-  for (const rawCase of rawCases) {
-    try {
-      const parsed = summaryEvalCaseSchema.parse(rawCase);
-      validatedCases.push(parsed);
-    } catch (error) {
-      console.error(`Invalid case in ${tier} tier:`, error);
-      throw error;
-    }
-  }
-
-  return validatedCases;
-}
 
 /**
  * Filter cases by endpoint if specified.
@@ -230,26 +198,7 @@ async function main(): Promise<void> {
   console.log('');
 
   // Load and validate cases
-  let cases_: SummaryEvalCase[];
-  try {
-    cases_ = loadCases(options.tier);
-  } catch (error) {
-    console.error('Failed to load cases:', error);
-    process.exit(1);
-  }
-
-  // Filter by endpoint if specified
-  cases_ = filterByEndpoint(cases_, options.endpoint);
-
-  // Check for empty dataset
-  if (cases_.length === 0) {
-    if (options.allowEmpty) {
-      console.log('No cases found. Exiting successfully (allow-empty mode).\n');
-      return;
-    }
-    console.error(`No cases found for tier '${options.tier}'. Use --allow-empty to skip.`);
-    process.exit(1);
-  }
+  const cases_ = loadAndFilterCases(loadCasesForTier, filterByEndpoint, options);
 
   // Summary output
   console.log(`Loaded ${cases_.length} case(s):`);

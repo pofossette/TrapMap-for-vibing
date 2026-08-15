@@ -7,7 +7,7 @@
  * of "what evals imports" cannot drift apart.
  */
 
-import { readdirSync, readFileSync } from 'node:fs';
+import { type Dirent, readFileSync, readdirSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 
 export const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.cts']);
@@ -69,12 +69,13 @@ export function scanImportRefs(relPath: string, content: string): ImportRef[] {
     if (isSkippedLine(trimmed)) continue;
 
     SPECIFIER_RE.lastIndex = 0;
-    let match: RegExpExecArray | null;
-    while ((match = SPECIFIER_RE.exec(line)) !== null) {
+    let match = SPECIFIER_RE.exec(line);
+    while (match !== null) {
       const importPath = match[1] ?? match[2];
       if (importPath) {
         refs.push({ file: relPath, line: i + 1, importPath });
       }
+      match = SPECIFIER_RE.exec(line);
     }
   }
   return refs;
@@ -101,7 +102,7 @@ export function resolvePackageTarget(
 /** Recursively collect source files under a directory. */
 // fallow-ignore-next-line complexity -- recursive directory walker with error tolerance used by all eval-boundary guards
 export function walkSourceFiles(dir: string, out: string[]): void {
-  let entries;
+  let entries: Dirent[];
   try {
     entries = readdirSync(dir, { withFileTypes: true });
   } catch {

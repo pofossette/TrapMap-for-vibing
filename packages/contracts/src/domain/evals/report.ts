@@ -12,6 +12,13 @@ import { retrievalStrategySchema, routeFamilySchema, routingReasonSchema } from 
 import { retrievalEvalEndpointSchema, retrievalEvalTierSchema } from './retrieval.js';
 import { summaryEvalEndpointSchema, summaryEvalTierSchema } from './summary.js';
 
+export const evalSummaryTotalsFields = {
+  failedCases: z.number().int().min(0),
+  passRate: z.number().min(0).max(1),
+  passedCases: z.number().int().min(0),
+  totalCases: z.number().int().min(0),
+};
+
 // =============================================================================
 // Summary Evaluation Report Schemas
 // =============================================================================
@@ -176,6 +183,24 @@ export const cohortSummarySchema = z.object({
 
 export type CohortSummary = z.infer<typeof cohortSummarySchema>;
 
+const retrievalMetricFields = {
+  avgHitAt1: z.number().min(0).max(1),
+  avgHitAt5: z.number().min(0).max(1),
+  avgHitAt10: z.number().min(0).max(1),
+  avgMrr: z.number().min(0).max(1),
+  avgNdcg: z.number().min(0).max(1),
+  avgRecallAt10: z.number().min(0).max(1),
+};
+
+const baselineDeltaFields = {
+  baselineHitAt1: z.number(),
+  currentHitAt1: z.number(),
+  hitAt1Delta: z.number(),
+  baselineMrr: z.number(),
+  currentMrr: z.number(),
+  mrrDelta: z.number(),
+};
+
 // =============================================================================
 // Mode Comparison Schemas (Phase 31-02: EOPS-01)
 // =============================================================================
@@ -229,12 +254,7 @@ export type RoutingDistribution = z.infer<typeof routingDistributionSchema>;
 export const baselineSliceSchema = z.object({
   slice: retrievalEvalSliceKeySchema,
   routeFamily: routeFamilySchema.optional(),
-  avgHitAt1: z.number().min(0).max(1),
-  avgHitAt5: z.number().min(0).max(1),
-  avgHitAt10: z.number().min(0).max(1),
-  avgMrr: z.number().min(0).max(1),
-  avgNdcg: z.number().min(0).max(1),
-  avgRecallAt10: z.number().min(0).max(1),
+  ...retrievalMetricFields,
   selectedMode: retrievalStrategySchema.optional(),
   fallbackApplied: z.boolean().default(false),
   passRate: z.number().min(0).max(1),
@@ -362,24 +382,14 @@ export const regressionResultSchema = z.object({
   regressedSlices: z.array(
     z.object({
       slice: retrievalEvalSliceKeySchema,
-      baselineHitAt1: z.number(),
-      currentHitAt1: z.number(),
-      hitAt1Delta: z.number(),
-      baselineMrr: z.number(),
-      currentMrr: z.number(),
-      mrrDelta: z.number(),
+      ...baselineDeltaFields,
     }),
   ),
   /** Slices that improved */
   improvedSlices: z.array(
     z.object({
       slice: retrievalEvalSliceKeySchema,
-      baselineHitAt1: z.number(),
-      currentHitAt1: z.number(),
-      hitAt1Delta: z.number(),
-      baselineMrr: z.number(),
-      currentMrr: z.number(),
-      mrrDelta: z.number(),
+      ...baselineDeltaFields,
     }),
   ),
   /** Cohorts that regressed */
@@ -426,12 +436,7 @@ export const retrievalEvalSliceSummarySchema = z
     passedCount: z.number().int().min(0),
     failedCount: z.number().int().min(0),
     passRate: z.number().min(0).max(1),
-    avgHitAt1: z.number().min(0).max(1),
-    avgHitAt5: z.number().min(0).max(1),
-    avgHitAt10: z.number().min(0).max(1),
-    avgMrr: z.number().min(0).max(1),
-    avgNdcg: z.number().min(0).max(1),
-    avgRecallAt10: z.number().min(0).max(1),
+    ...retrievalMetricFields,
     governanceFailureCount: z.number().int().min(0),
     outcomeMismatchCount: z.number().int().min(0),
     executionIssueCount: z.number().int().min(0),
@@ -506,10 +511,7 @@ export const retrievalEvalReportSchema = z
   .object({
     meta: retrievalEvalReportMetaSchema,
     summary: z.object({
-      totalCases: z.number().int().min(0),
-      passedCases: z.number().int().min(0),
-      failedCases: z.number().int().min(0),
-      passRate: z.number().min(0).max(1),
+      ...evalSummaryTotalsFields,
       passed: z.boolean(),
     }),
     slices: z.array(retrievalEvalSliceSummarySchema),

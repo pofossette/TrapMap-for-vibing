@@ -64,6 +64,7 @@ Wave-10 intermediate（2026-07-25）：`packages/runtime-infra/` 已退休删除
 ## 脚本
 
 - `scripts/`：根级工具与守卫脚本——`check-docs.ts` / `check-structure.ts` / `check-complexity-budgets.ts` / `check-naked-asserts.ts` / `check-arch-freeze.ts` / `check-relative-imports.mjs` / `check-doc-*.ts`（`check:docs` 合并后的内部子检查）、`run-backend-target.ts`（`light`/`heavy` target 执行）、`run-postgres-coordinated.ts`（eval/协调测试的临时 PG 协调器）、`run-ci.ts`、`run-eval.ts`、`run-dev.ts`、`complexity-budgets.json`（docRules + lineBudgets）。
+- 根级 `.jscpd.json`：jscpd 重复代码诊断配置（命令 `pnpm duplication`，扫描 `packages`、`apps`、`scripts`、`evals`）。
 - `scripts/archived/`：一次性/运维脚本收纳位置（2026-08 maintainability-rework），fallow 的 `ignorePatterns` 已排除；仅被 reference 引用的例外（`export-badcase-to-eval.ts`、`backfill-labels.ts`、`label-runner.ts`）保留在仓库中。
 
 ## 文档

@@ -72,10 +72,11 @@ function collectReExportTargets(root: string, rel: string): string[] {
   const targets: string[] = [];
   const content = readFileSync(abs, 'utf8');
   RE_EXPORT_RE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = RE_EXPORT_RE.exec(content)) !== null) {
+  let match = RE_EXPORT_RE.exec(content);
+  while (match !== null) {
     const target = resolvePackageTarget(root, rel, match[1]!);
     if (target) targets.push(target);
+    match = RE_EXPORT_RE.exec(content);
   }
   return targets;
 }
@@ -89,7 +90,7 @@ function collectReExportTargets(root: string, rel: string): string[] {
 // fallow-ignore-next-line complexity -- package index re-export BFS over all workspace packages
 export function collectIndexReachable(root: string): Set<string> {
   const reachable = new Set<string>();
-  let packagesEntries;
+  let packagesEntries: string[];
   try {
     packagesEntries = readdirSync(resolve(root, 'packages'));
   } catch {

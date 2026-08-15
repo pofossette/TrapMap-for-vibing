@@ -49,12 +49,7 @@ function querySkills(sql: string): DbSkill[] {
 }
 
 function searchByKeywords(query: string, limit: number): DbSkill[] {
-  const terms = query
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]+/g, ' ')
-    .split(/\s+/)
-    .filter((t) => t.length > 2)
-    .slice(0, 10);
+  const terms = extractSearchTerms(query);
   if (!terms.length) return [];
   const tsQuery = terms.join(' | ');
   return querySkills(
@@ -63,18 +58,22 @@ function searchByKeywords(query: string, limit: number): DbSkill[] {
 }
 
 function searchBySummary(query: string, limit: number): DbSkill[] {
-  const terms = query
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]+/g, ' ')
-    .split(/\s+/)
-    .filter((t) => t.length > 2)
-    .slice(0, 10);
+  const terms = extractSearchTerms(query);
   if (!terms.length) return [];
   // Use pg_trgm similarity on summary
   const q = terms.join(' ');
   return querySkills(
     `SELECT id, title, summary, keywords, labels, similarity(summary, '${q}') AS rank FROM eval_skills WHERE similarity(summary, '${q}') > 0.05 ORDER BY rank DESC LIMIT ${limit}`,
   );
+}
+
+function extractSearchTerms(query: string): string[] {
+  return query
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]+/g, ' ')
+    .split(/\s+/)
+    .filter((t) => t.length > 2)
+    .slice(0, 10);
 }
 
 function getAllExcept(excludeIds: string[]): DbSkill[] {

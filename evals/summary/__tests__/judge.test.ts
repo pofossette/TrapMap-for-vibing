@@ -4,8 +4,8 @@
  * Phase 27-02: SEVAL-01, SEVAL-02
  */
 
-import { describe, expect, it } from 'vitest';
 import { buildClaimVerificationSystemPrompt } from '@trapmap/ai-providers/prompts.js';
+import { describe, expect, it } from 'vitest';
 import {
   createJudge,
   createLlmJudgeProvider,

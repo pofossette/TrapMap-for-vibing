@@ -27,6 +27,20 @@ export interface AuditLogEntry {
   updatedAt?: string;
 }
 
+export interface AuditQueryFilter {
+  action?: string[];
+  actorId?: string;
+  entityId?: string;
+  teamId?: string;
+  requestId?: string;
+  traceId?: string;
+  operationId?: string;
+  causationId?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+}
+
 export interface AuditLogPort {
   /**
    * Record an audit event.
@@ -36,19 +50,7 @@ export interface AuditLogPort {
   /**
    * Query audit events.
    */
-  query(filter: {
-    action?: string[];
-    actorId?: string;
-    entityId?: string;
-    teamId?: string;
-    requestId?: string;
-    traceId?: string;
-    operationId?: string;
-    causationId?: string;
-    from?: string;
-    to?: string;
-    limit?: number;
-  }): Promise<{ items: AuditLogEntry[]; total: number }>;
+  query(filter: AuditQueryFilter): Promise<{ items: AuditLogEntry[]; total: number }>;
 }
 
 // ---------------------------------------------------------------------------

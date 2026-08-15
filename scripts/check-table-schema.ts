@@ -54,9 +54,10 @@ const PGTABLE_RE = /pgTable\(\s*'([a-z_0-9]+)'/g;
 function tableNamesIn(content: string): string[] {
   const names: string[] = [];
   PGTABLE_RE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = PGTABLE_RE.exec(content)) !== null) {
+  let match = PGTABLE_RE.exec(content);
+  while (match !== null) {
     names.push(match[1]!);
+    match = PGTABLE_RE.exec(content);
   }
   return names;
 }

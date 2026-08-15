@@ -11,6 +11,7 @@ import {
   GraphEdgeInspector,
   type GraphElement,
   GraphSelectItem,
+  GraphStats,
   PageContainer,
   SectionHeader,
   useGraphSelection,
@@ -111,15 +112,7 @@ function SkillGraphControls({
         </div>
       </div>
 
-      <div className="mt-auto pt-4 border-t border-panel-line/35 text-xs text-panel-muted space-y-2">
-        <p className="font-semibold uppercase tracking-wider">{t('graphStats')}</p>
-        <div className="grid grid-cols-2 gap-y-1 text-[11px] font-mono">
-          <span>{t('nodes')}:</span>
-          <span className="text-panel-text text-right">{graphData.nodes.length}</span>
-          <span>{t('edges')}:</span>
-          <span className="text-panel-text text-right">{graphData.edges.length}</span>
-        </div>
-      </div>
+      <GraphStats nodeCount={graphData.nodes.length} edgeCount={graphData.edges.length} />
     </Card>
   );
 }

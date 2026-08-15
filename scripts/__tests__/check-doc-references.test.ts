@@ -184,6 +184,7 @@ describe('active surface discovery', () => {
     // Archived docs linked from plan.md ARE scanned (reactivated)
     // Archived docs NOT linked from plan.md are excluded
     const reactivatedFiles = [
+      'docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md',
       'docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md',
       'docs/archived/README.md',
     ];

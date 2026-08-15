@@ -16,6 +16,7 @@ import type {
   RoutingDistribution,
 } from '../../../packages/contracts/src/domain/evals/report.js';
 import { pushSliceTable, pushSummaryStats } from '../../lib/eval-report.js';
+import { compareCohortSummaries, compareSliceSummaries } from './report.js';
 
 // =============================================================================
 // Main Formatter
@@ -222,18 +223,7 @@ export function formatSliceComparison(report: RetrievalEvalReport): string {
   lines.push('');
 
   // Sort slices for consistent display
-  const sortedSlices = [...report.slices].sort((a, b) => {
-    // Sort by tier, then endpoint, then mode
-    if (a.slice.tier !== b.slice.tier) {
-      return a.slice.tier === 'smoke' ? -1 : 1;
-    }
-    if (a.slice.endpoint !== b.slice.endpoint) {
-      return a.slice.endpoint.localeCompare(b.slice.endpoint);
-    }
-    const modeA = a.slice.mode ?? 'none';
-    const modeB = b.slice.mode ?? 'none';
-    return modeA.localeCompare(modeB);
-  });
+  const sortedSlices = [...report.slices].sort(compareSliceSummaries);
 
   pushSliceTable(
     lines,
@@ -343,12 +333,7 @@ export function formatCohortComparison(report: RetrievalEvalReport): string {
   );
 
   // Sort cohorts
-  const sortedCohorts = [...report.cohorts].sort((a, b) => {
-    if (a.cohort.queryType !== b.cohort.queryType) {
-      return a.cohort.queryType.localeCompare(b.cohort.queryType);
-    }
-    return a.cohort.routeFamily.localeCompare(b.cohort.routeFamily);
-  });
+  const sortedCohorts = [...report.cohorts].sort(compareCohortSummaries);
 
   // Table rows
   for (const cohort of sortedCohorts) {

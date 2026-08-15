@@ -6,6 +6,7 @@ import {
   routeResponse,
 } from '@trapmap/backend-core';
 import type { KnowledgeReadPort } from '@trapmap/backend-core';
+import { retrievalSearchBodySchema } from '@trapmap/contracts';
 import type { FastifyInstance } from 'fastify';
 import { type ZodType, z } from 'zod';
 
@@ -17,7 +18,7 @@ const entryParamsSchema = z.object({
   body: z.unknown(),
 });
 
-const mineSchema = z.object({
+export const knowledgeReadMineSchema = z.object({
   params: emptyRecord,
   query: z.object({
     userId: z.string(),
@@ -26,15 +27,27 @@ const mineSchema = z.object({
   body: z.unknown(),
 });
 
-const searchSchema = z.object({
+export const knowledgeReadSearchSchema = z.object({
   params: emptyRecord,
   query: emptyRecord,
-  body: z.object({
-    query: z.string(),
-    teamId: z.string().optional(),
-    limit: z.number().optional(),
-  }),
+  body: retrievalSearchBodySchema,
 });
+
+export function toKnowledgeReadSearchArgs(body: {
+  limit?: number;
+  query: string;
+  teamId?: string;
+}): {
+  limit?: number;
+  query: string;
+  teamId?: string;
+} {
+  return {
+    query: body.query,
+    ...(body.teamId !== undefined ? { teamId: body.teamId } : {}),
+    ...(body.limit !== undefined ? { limit: body.limit } : {}),
+  };
+}
 
 const healthSchema = z.object({
   params: emptyRecord,
@@ -72,7 +85,7 @@ export function createKnowledgeReadRouteDefs(
     knowledgeReadRouteDef({
       method: 'GET',
       path: '/internal/knowledge/mine',
-      schema: mineSchema,
+      schema: knowledgeReadMineSchema,
       handler: async (ctx, deps) => {
         return deps.listMine(ctx.query.userId, ctx.query.teamId);
       },
@@ -81,13 +94,11 @@ export function createKnowledgeReadRouteDefs(
     knowledgeReadRouteDef({
       method: 'POST',
       path: '/internal/retrieval/search',
-      schema: searchSchema,
+      schema: knowledgeReadSearchSchema,
       handler: async (ctx, deps) => {
-        return deps.search({
-          query: ctx.body.query,
-          ...(ctx.body.teamId !== undefined ? { teamId: ctx.body.teamId } : {}),
-          ...(ctx.body.limit !== undefined ? { limit: ctx.body.limit } : {}),
-        });
+        return deps.search(
+          toKnowledgeReadSearchArgs(ctx.body as Parameters<typeof toKnowledgeReadSearchArgs>[0]),
+        );
       },
     }),
 

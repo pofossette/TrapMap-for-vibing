@@ -16,9 +16,11 @@ describe('buildRetrievalReadProjection', () => {
         listFeedback: async () => ['feedback'],
         listConflicts: async () => ['conflict'],
       },
-      (artifact) => artifact.toUpperCase(),
-      (entries, feedback) => [...entries, ...feedback],
-      (artifacts, feedback) => [...artifacts, ...feedback],
+      {
+        normalizeArtifact: (artifact) => artifact.toUpperCase(),
+        attachFeedbackToKnowledge: (entries, feedback) => [...entries, ...feedback],
+        attachFeedbackToArtifacts: (artifacts, feedback) => [...artifacts, ...feedback],
+      },
     );
 
     expect(result).toEqual({
@@ -42,13 +44,11 @@ describe('buildRetrievalReadProjection', () => {
     };
     const set = vi.fn();
 
-    const result = await buildCachedRetrievalReadModel(
-      { get: () => cached, set },
-      sources,
-      (artifact) => artifact,
-      (entries) => entries,
-      (artifacts) => artifacts,
-    );
+    const result = await buildCachedRetrievalReadModel({ get: () => cached, set }, sources, {
+      normalizeArtifact: (artifact) => artifact,
+      attachFeedbackToKnowledge: (entries) => entries,
+      attachFeedbackToArtifacts: (artifacts) => artifacts,
+    });
 
     expect(result).toBe(cached);
     expect(set).not.toHaveBeenCalled();
@@ -87,9 +87,11 @@ describe('buildRetrievalReadProjection', () => {
         listFeedback,
         listConflicts,
       },
-      (artifact) => artifact,
-      (entries) => entries,
-      (artifacts) => artifacts,
+      {
+        normalizeArtifact: (artifact) => artifact,
+        attachFeedbackToKnowledge: (entries) => entries,
+        attachFeedbackToArtifacts: (artifacts) => artifacts,
+      },
     );
 
     expect(result.conflicts).toEqual(['conflict']);

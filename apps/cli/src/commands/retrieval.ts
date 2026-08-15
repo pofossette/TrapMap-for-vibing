@@ -4,7 +4,7 @@ import type { Command } from 'commander';
 
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
-import { collectValues, resolveTextInput } from '@trapmap/cli/lib/input.js';
+import { collectValues, resolveSearchSeed } from '@trapmap/cli/lib/input.js';
 import { printAdaptiveResult } from '@trapmap/cli/lib/output.js';
 
 interface RetrievalCommandOptions {
@@ -94,43 +94,49 @@ function formatProfileHint(hint: {
   return `${hint.artifactId}: ${hint.title} (${hint.slug}) [${hint.labels.join(', ')}]`;
 }
 
+function appendSection(sections: string[], title: string, body: string): void {
+  if (sections.length > 0) {
+    sections.push('');
+  }
+  sections.push(title);
+  sections.push(body);
+}
+
+function joinSections(sections: string[]): string {
+  if (sections.length === 0) {
+    return 'No results found';
+  }
+  return sections.join('\n');
+}
+
 function formatRetrievalResponse(response: RetrievalResponse): string {
   const sections: string[] = [];
 
   if (response.globalConstraints.length > 0) {
-    sections.push('Global constraints');
-    sections.push(response.globalConstraints.map(formatMatch).join('\n\n'));
+    appendSection(
+      sections,
+      'Global constraints',
+      response.globalConstraints.map(formatMatch).join('\n\n'),
+    );
   }
 
   if (response.projectKnowledge.length > 0) {
-    if (sections.length > 0) {
-      sections.push('');
-    }
-    sections.push('Project knowledge');
-    sections.push(response.projectKnowledge.map(formatMatch).join('\n\n'));
+    appendSection(
+      sections,
+      'Project knowledge',
+      response.projectKnowledge.map(formatMatch).join('\n\n'),
+    );
   }
 
   if (response.refinementSummary) {
-    if (sections.length > 0) {
-      sections.push('');
-    }
-    sections.push('Refinement summary');
-    sections.push(response.refinementSummary);
+    appendSection(sections, 'Refinement summary', response.refinementSummary);
   }
 
   if (response.summary) {
-    if (sections.length > 0) {
-      sections.push('');
-    }
-    sections.push('Summary');
-    sections.push(response.summary.text);
+    appendSection(sections, 'Summary', response.summary.text);
   }
 
-  if (sections.length === 0) {
-    return 'No results found';
-  }
-
-  return sections.join('\n');
+  return joinSections(sections);
 }
 
 /**
@@ -141,39 +147,26 @@ function formatV2RetrievalResponse(response: RetrievalV2Response): string {
   const sections: string[] = [];
 
   if (response.capsules.length > 0) {
-    sections.push('Capsules');
-    sections.push(response.capsules.map(formatCapsuleMatch).join('\n\n'));
+    appendSection(sections, 'Capsules', response.capsules.map(formatCapsuleMatch).join('\n\n'));
   }
 
   if (response.profileHints.length > 0) {
-    if (sections.length > 0) {
-      sections.push('');
-    }
-    sections.push('Profile hints');
-    sections.push(response.profileHints.map(formatProfileHint).join('\n'));
+    appendSection(
+      sections,
+      'Profile hints',
+      response.profileHints.map(formatProfileHint).join('\n'),
+    );
   }
 
   if (response.refinementSummary) {
-    if (sections.length > 0) {
-      sections.push('');
-    }
-    sections.push('Refinement summary');
-    sections.push(response.refinementSummary);
+    appendSection(sections, 'Refinement summary', response.refinementSummary);
   }
 
   if (response.summary) {
-    if (sections.length > 0) {
-      sections.push('');
-    }
-    sections.push('Summary');
-    sections.push(response.summary.text);
+    appendSection(sections, 'Summary', response.summary.text);
   }
 
-  if (sections.length === 0) {
-    return 'No results found';
-  }
-
-  return sections.join('\n');
+  return joinSections(sections);
 }
 
 export function registerRetrievalCommands(
@@ -216,13 +209,7 @@ export function registerRetrievalCommands(
         requireSessionToken(state);
 
         // Resolve seed text from argument or stdin
-        const searchSeed = await resolveTextInput(
-          {
-            ...(seed !== undefined ? { text: seed } : {}),
-            ...(flags.stdin !== undefined ? { stdin: flags.stdin } : {}),
-          },
-          'seed',
-        );
+        const searchSeed = await resolveSearchSeed(seed, flags);
 
         // Build filters
         const filters: Record<string, unknown> = {

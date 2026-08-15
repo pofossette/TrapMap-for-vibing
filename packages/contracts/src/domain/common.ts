@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { type ZodTypeAny, z } from 'zod';
 
 export const entityIdSchema = z.string().min(1).max(128);
 
@@ -51,6 +51,41 @@ export const actorRefSchema = z.object({
   securityLevel: securityLevelSchema,
 });
 
+export const lifecycleEventBaseSchema = z.object({
+  id: entityIdSchema,
+  type: z.enum([
+    'submitted',
+    'resubmitted',
+    'agent-reviewed',
+    'reviewer-approved',
+    'reviewer-rejected',
+    'updated',
+    'deactivated',
+  ]),
+  createdAt: isoTimestampSchema,
+  actor: actorRefSchema.nullable().default(null),
+  submissionId: entityIdSchema.nullable().default(null),
+  revision: z.number().int().min(1).nullable().default(null),
+  state: lifecycleStateSchema,
+  note: z.string().min(1).max(2000).nullable().default(null),
+});
+
+export const lifecycleMetadataBaseFields = {
+  latestDecision: z.enum(['approve', 'reject']).nullable().default(null),
+  latestReviewedAt: isoTimestampSchema.nullable().default(null),
+  latestSubmissionId: entityIdSchema.nullable().default(null),
+  latestSubmittedAt: isoTimestampSchema.nullable().default(null),
+  resubmissionCount: z.number().int().min(0),
+  revisionCount: z.number().int().min(1),
+  submissionCount: z.number().int().min(0),
+};
+
+export const batchResponseFields = {
+  appliedAt: isoTimestampSchema.nullable(),
+  totalEligible: z.number().int().min(0),
+  totalIneligible: z.number().int().min(0),
+};
+
 export const auditMetadataSchema = z
   .object({
     createdAt: isoTimestampSchema,
@@ -83,6 +118,41 @@ export const apiErrorSchema = z.object({
   message: z.string().min(1),
   details: z.record(z.string(), z.unknown()).optional(),
 });
+
+export function commaSeparatedListSchema<Schema extends ZodTypeAny>(
+  schema: Schema,
+): z.ZodType<z.infer<Schema>, unknown> {
+  return z.preprocess((val) => {
+    if (val === undefined || val === null) return undefined;
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      return val
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    return val;
+  }, schema);
+}
+
+export function withEligibilityRefinements<Schema extends ZodTypeAny>(
+  schema: Schema,
+  reasonKey: 'ineligibilityReason' | 'reason' = 'ineligibilityReason',
+) {
+  return schema
+    .refine(
+      (value) =>
+        !(value as { eligible?: boolean }).eligible ||
+        (value as Record<string, unknown>)[reasonKey] === null,
+      { message: `${reasonKey} must be null when eligible is true` },
+    )
+    .refine(
+      (value) =>
+        (value as { eligible?: boolean }).eligible ||
+        (value as Record<string, unknown>)[reasonKey] !== null,
+      { message: `${reasonKey} must be non-null when eligible is false` },
+    );
+}
 
 export type Sha256Hex = z.infer<typeof sha256HexSchema>;
 export type MediaType = z.infer<typeof mediaTypeSchema>;

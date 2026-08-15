@@ -333,7 +333,7 @@ pnpm eval:retrieval:live:compare \
 ```
 
 ```bash
-# @trapmap/app-light closeout 主链路固定为 build -> start -> observability-benchmark
+# @trapmap/host-local closeout 主链路固定为 build -> start -> observability-benchmark
 pnpm --filter @trapmap/app-light build
 pnpm --filter @trapmap/app-light start
 
@@ -370,7 +370,7 @@ pnpm typecheck
 pnpm check:docs
 ```
 
-`@trapmap/app-light` closeout 主链路固定为 `build -> start -> observability-benchmark`（`appPackage` 语义，宿主库包为 `@trapmap/host-local`）。`dev` 仅用于开发便利，不作为 closeout 完成判据；`@trapmap/server build` 的全量清障也不在本轮范围内。
+`@trapmap/host-local` closeout 主链路固定为 `build -> start -> observability-benchmark`（`appPackage` 语义，宿主库包为 `@trapmap/host-local`）。`dev` 仅用于开发便利，不作为 closeout 完成判据；`@trapmap/server build` 的全量清障也不在本轮范围内。
 
 当改动涉及 `packages/host-distributed` 的 candidate/review/maintenance/decay authoritative write path、gateway auth 透传、internal client 失败语义、或 distributed job runtime ownership 时，`pnpm test:distributed-acceptance` 是必跑门，不应只用 `test:deployment-smoke` 代替。
 
@@ -704,6 +704,12 @@ pnpm check:fallow
 ```
 
 它要求未使用导出/文件、重复代码、循环依赖和复杂度问题为零，不替代 `pnpm check:complexity`。
+
+本地可另跑 jscpd 重复代码诊断，扫描 `packages`、`apps`、`scripts` 与 `evals`，阈值配置见 `.jscpd.json`。测试、fixtures、datasets 与 scenarios 属于声明式夹具数据，默认排除在重复扫描之外：
+
+```bash
+pnpm duplication
+```
 
 ### Runtime Foundations Verification
 

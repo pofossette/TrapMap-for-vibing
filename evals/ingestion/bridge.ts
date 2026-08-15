@@ -22,6 +22,7 @@ import { derivationFixtures, getSmokeFixtures } from './fixtures/index.js';
 import type { DerivationAggregateMetrics } from './metrics.js';
 import { aggregateMetrics } from './metrics.js';
 
+import { failedExecutionAssertion } from '../lib/assertion.js';
 import { createJsAssertion } from '../promptfoo/assertion.js';
 import { registerBridge } from '../promptfoo/bridge.js';
 import { deterministicProvider } from '../promptfoo/provider.js';
@@ -94,7 +95,7 @@ export const ingestionBridge: SuiteBridge<
     return [
       createJsAssertion<DerivationFixture, IngestionCaseResult>((_case, result) => {
         if (!result || typeof result !== 'object' || !('passed' in result)) {
-          return { pass: false, score: 0, reason: 'execution failed', namedScores: {} };
+          return failedExecutionAssertion();
         }
         return {
           pass: result.passed,

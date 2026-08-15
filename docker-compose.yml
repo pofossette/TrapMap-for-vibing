@@ -487,7 +487,7 @@ services:
     build:
       context: .
       dockerfile: apps/migration/Dockerfile
-    command: ["node", "dist/index.js"]
+    command: ["node", "dist/migrate.js"]
     working_dir: /app/apps/migration
     environment:
       - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap

@@ -64,9 +64,13 @@ export async function buildRetrievalReadModel(
       ConflictRelation
     >,
     governanceRetrievalProjection,
-    (artifact) => artifact,
-    (entries, _feedback, remediation) => attachRemediationProjection(entries, remediation),
-    (artifacts, _feedback, remediation) => attachRemediationProjection(artifacts, remediation),
+    {
+      normalizeArtifact: (artifact) => artifact,
+      attachFeedbackToKnowledge: (entries, _feedback, remediation) =>
+        attachRemediationProjection(entries, remediation),
+      attachFeedbackToArtifacts: (artifacts, _feedback, remediation) =>
+        attachRemediationProjection(artifacts, remediation),
+    },
   );
 }
 

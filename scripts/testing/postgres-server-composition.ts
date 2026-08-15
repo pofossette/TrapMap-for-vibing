@@ -5,7 +5,9 @@
  * backed by the host-local runtime services.
  */
 
-import type { FastifyInstance } from 'fastify';
+import { createHash } from 'node:crypto';
+
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import Fastify from 'fastify';
 
 import type { KnowledgeOwnerPort } from '../../packages/contracts/src/index.js';
@@ -30,6 +32,50 @@ export interface PostgresComposedServer {
   close(): Promise<void>;
 }
 
+async function resolveSession(
+  services: HostLocalServices,
+  authHeader: string | undefined,
+): Promise<NonNullable<
+  Awaited<ReturnType<HostLocalServices['identity']['sessionLookup']['getByTokenHash']>>
+> | null> {
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) {
+    return null;
+  }
+  return services.identity.sessionLookup.getByTokenHash(
+    createHash('sha256').update(token).digest('hex'),
+  );
+}
+
+function sendError(reply: FastifyReply, error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return reply.status(500).send({ error: message });
+}
+
+function registerRetrievalRoute(
+  app: FastifyInstance,
+  services: HostLocalServices,
+  runtime: HostLocalRuntime,
+  path: string,
+  buildQuery: (
+    body: Record<string, unknown>,
+  ) => Parameters<HostLocalRuntime['retrievalQuery']['search']>[0],
+): void {
+  app.post(path, async (request, reply) => {
+    try {
+      const body = request.body as Record<string, unknown>;
+      const session = await resolveSession(services, request.headers.authorization);
+      if (!session) {
+        return reply.status(401).send({ error: 'Invalid session' });
+      }
+      const result = await runtime.retrievalQuery.search(buildQuery(body));
+      return reply.send(result);
+    } catch (error) {
+      return sendError(reply, error);
+    }
+  });
+}
+
 /**
  * Build a PostgreSQL-backed eval composition using the host-local runtime.
  * Sets TRAPMAP_DATABASE_URL before creating the runtime so it connects
@@ -49,66 +95,23 @@ export async function buildPostgresComposedServer(
   const app = Fastify({ logger: false });
 
   // Register retrieval search route
-  app.post('/v1/retrieval/search', async (request, reply) => {
-    try {
-      const body = request.body as Record<string, unknown>;
-      const authHeader = request.headers.authorization;
-      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-      // Resolve auth context from session token
-      if (!token) {
-        return reply.status(401).send({ error: 'Unauthorized' });
-      }
-
-      const session = await services.identity.sessionLookup.getByTokenHash(
-        createHash('sha256').update(token).digest('hex'),
-      );
-      if (!session) {
-        return reply.status(401).send({ error: 'Invalid session' });
-      }
-
-      const result = await runtime.retrievalQuery.search({
-        query: body.query as string,
-        teamId: body.teamId as string | undefined,
-        limit: body.limit as number | undefined,
-      });
-
-      return reply.send(result);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return reply.status(500).send({ error: message });
-    }
-  });
+  registerRetrievalRoute(app, services, runtime, '/v1/retrieval/search', (body) => ({
+    query: body.query as string,
+    teamId: body.teamId as string | undefined,
+    limit: body.limit as number | undefined,
+  }));
 
   // Register skill lookup route
-  app.post('/v1/retrieval/skills/search-by-content', async (request, reply) => {
-    try {
-      const body = request.body as Record<string, unknown>;
-      const authHeader = request.headers.authorization;
-      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-      if (!token) {
-        return reply.status(401).send({ error: 'Unauthorized' });
-      }
-
-      const session = await services.identity.sessionLookup.getByTokenHash(
-        createHash('sha256').update(token).digest('hex'),
-      );
-      if (!session) {
-        return reply.status(401).send({ error: 'Invalid session' });
-      }
-
-      const result = await runtime.retrievalQuery.search({
-        query: body.text as string,
-        limit: body.maxResults as number | undefined,
-      });
-
-      return reply.send(result);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return reply.status(500).send({ error: message });
-    }
-  });
+  registerRetrievalRoute(
+    app,
+    services,
+    runtime,
+    '/v1/retrieval/skills/search-by-content',
+    (body) => ({
+      query: body.text as string,
+      limit: body.maxResults as number | undefined,
+    }),
+  );
 
   // Register auth session route
   app.post('/v1/auth/session', async (request, reply) => {
@@ -126,8 +129,7 @@ export async function buildPostgresComposedServer(
 
       return reply.send({ token });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return reply.status(500).send({ error: message });
+      return sendError(reply, error);
     }
   });
 
@@ -143,5 +145,3 @@ export async function buildPostgresComposedServer(
     },
   };
 }
-
-import { createHash } from 'node:crypto';

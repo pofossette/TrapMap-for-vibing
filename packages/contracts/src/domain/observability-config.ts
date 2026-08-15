@@ -168,30 +168,37 @@ function parseSentrySampleRate(raw: string | undefined): { value: number; reason
   return { value: parsed };
 }
 
-/**
- * Parse an error sample rate string. Defaults to 1 (send all errors).
- */
-function parseSentryErrorSampleRate(raw: string | undefined): { value: number; reason?: string } {
+function parseSampleRateValue(
+  raw: string | undefined,
+  label: string,
+): { value: number; reason?: string } {
   if (raw === undefined || raw.trim() === '') {
     return { value: 1 };
   }
   const parsed = Number.parseFloat(raw);
   if (!Number.isFinite(parsed)) {
-    return { value: 1, reason: `invalid sentry sample rate '${raw}', using default 1` };
+    return { value: 1, reason: `invalid ${label} '${raw}', using default 1` };
   }
   if (parsed < SAMPLE_RATE_MIN) {
     return {
       value: SAMPLE_RATE_MIN,
-      reason: `sentry sample rate ${parsed} below minimum, clamped to 0`,
+      reason: `${label} ${parsed} below minimum, clamped to 0`,
     };
   }
   if (parsed > SAMPLE_RATE_MAX) {
     return {
       value: SAMPLE_RATE_MAX,
-      reason: `sentry sample rate ${parsed} above maximum, clamped to 1`,
+      reason: `${label} ${parsed} above maximum, clamped to 1`,
     };
   }
   return { value: parsed };
+}
+
+/**
+ * Parse an error sample rate string. Defaults to 1 (send all errors).
+ */
+function parseSentryErrorSampleRate(raw: string | undefined): { value: number; reason?: string } {
+  return parseSampleRateValue(raw, 'sentry sample rate');
 }
 
 /**
@@ -281,20 +288,7 @@ export function validateSentryPolicy(input: SentryPolicyInput = {}): SentryPolic
  * present if the input was invalid and had to be clamped/coerced.
  */
 function parseSampleRate(raw: string | undefined): { value: number; reason?: string } {
-  if (raw === undefined || raw.trim() === '') {
-    return { value: 1 };
-  }
-  const parsed = Number.parseFloat(raw);
-  if (!Number.isFinite(parsed)) {
-    return { value: 1, reason: `invalid sample rate '${raw}', using default 1` };
-  }
-  if (parsed < SAMPLE_RATE_MIN) {
-    return { value: SAMPLE_RATE_MIN, reason: `sample rate ${parsed} below minimum, clamped to 0` };
-  }
-  if (parsed > SAMPLE_RATE_MAX) {
-    return { value: SAMPLE_RATE_MAX, reason: `sample rate ${parsed} above maximum, clamped to 1` };
-  }
-  return { value: parsed };
+  return parseSampleRateValue(raw, 'sample rate');
 }
 
 /**

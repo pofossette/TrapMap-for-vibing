@@ -34,29 +34,17 @@ export class KnowledgeReadModule {
   static forDeps(deps: KnowledgeReadPortDeps) {
     const knowledgeReadDeps = createKnowledgeReadDeps(deps);
     const port: KnowledgeReadPort = createKnowledgeReadModule(knowledgeReadDeps);
-
-    return {
-      module: KnowledgeReadModule,
-      controllers: [
-        createNestAdapter(serviceRouteDefsForMonolith(createKnowledgeReadRouteDefs(port)), port, {
-          guards: [AuthGuard],
-        }),
-      ],
-      providers: [
-        {
-          provide: KNOWLEDGE_READ_PORT,
-          useValue: port,
-        },
-      ],
-      exports: [KNOWLEDGE_READ_PORT],
-      global: true,
-    };
+    return KnowledgeReadModule.options(port);
   }
 
   /**
    * For testing: register a mock/stub port directly.
    */
   static forTesting(port: KnowledgeReadPort) {
+    return KnowledgeReadModule.options(port);
+  }
+
+  private static options(port: KnowledgeReadPort) {
     return {
       module: KnowledgeReadModule,
       controllers: [

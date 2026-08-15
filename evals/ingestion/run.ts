@@ -15,8 +15,7 @@
  *   pnpm eval:ingestion --smoke --dry-run
  */
 
-import { parseArgs } from 'node:util';
-
+import { parseRunnerCliArgs } from '../lib/runner-cli.js';
 import { loadDownloadedBundles } from './adapter.js';
 import { derivationFixtures, getSmokeFixtures } from './fixtures/index.js';
 import { formatDerivationReport } from './metrics.js';
@@ -33,24 +32,12 @@ interface RunOptions {
 }
 
 function parseArgs_(): RunOptions {
-  const { values } = parseArgs({
-    options: {
-      'dry-run': { type: 'boolean', short: 'd', default: false },
-      smoke: { type: 'boolean', short: 's', default: false },
-      verbose: { type: 'boolean', short: 'v', default: false },
-      runner: { type: 'string', default: 'promptfoo' },
-    },
-    strict: true,
-  });
-  const runner = values.runner ?? 'promptfoo';
-  if (runner !== 'native' && runner !== 'promptfoo') {
-    throw new Error(`Invalid --runner value: ${runner}`);
-  }
+  const parsed = parseRunnerCliArgs();
   return {
-    dryRun: values['dry-run'] ?? false,
-    smoke: values.smoke ?? false,
-    verbose: values.verbose ?? false,
-    runner,
+    dryRun: parsed.dryRun,
+    smoke: parsed.smoke,
+    verbose: parsed.verbose,
+    runner: parsed.runner,
   };
 }
 

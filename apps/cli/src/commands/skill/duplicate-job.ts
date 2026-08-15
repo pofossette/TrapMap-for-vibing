@@ -14,6 +14,7 @@ import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
 
+import { printApplyResolutionResult } from './apply-resolution-result.js';
 import {
   formatApplyResolutionResponse,
   formatDuplicateJobBundle,
@@ -160,25 +161,11 @@ export function registerDuplicateJobCommands(skill: Command): void {
 
       const parsed = applyResolutionResponseSchema.parse(response.data);
 
-      printCommandResult(
-        {
-          action: 'apply-resolution',
-          success: true,
-          summary: `Applied resolution for ${parsed.candidateId}: ${parsed.outcome.decision}.`,
-          artifacts: [
-            {
-              id: parsed.candidateId,
-              newState: parsed.status,
-              ...(parsed.outcome.decision === 'independent'
-                ? { publishedAs: parsed.outcome.entityType }
-                : { mergedInto: parsed.outcome.mergedIntoEntityId }),
-            },
-          ],
-          nextSteps: [],
-        },
+      printApplyResolutionResult(
         parsed,
         state,
         flags,
+        'apply-resolution',
         formatApplyResolutionResponse,
       );
     });

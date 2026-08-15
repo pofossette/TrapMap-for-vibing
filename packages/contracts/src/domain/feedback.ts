@@ -1,7 +1,14 @@
 import { z } from 'zod';
 
 import { badcaseTaxonomySchema, normalizeBadcaseTaxonomy } from '../enum-types/index.js';
-import { actorRefSchema, entityIdSchema, isoTimestampSchema } from './common.js';
+import {
+  actorRefSchema,
+  batchResponseFields,
+  commaSeparatedListSchema,
+  entityIdSchema,
+  isoTimestampSchema,
+  withEligibilityRefinements,
+} from './common.js';
 import { decayStateSchema } from './decay.js';
 
 /**
@@ -168,27 +175,9 @@ export const feedbackResponseSchema = z
  */
 export const feedbackListRequestSchema = z.object({
   /** Filter by feedback status (multiple allowed) */
-  status: z.preprocess((val) => {
-    if (val === undefined || val === null) return undefined;
-    if (Array.isArray(val)) return val;
-    if (typeof val === 'string')
-      return val
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-    return val;
-  }, z.array(feedbackStatusSchema).optional()),
+  status: commaSeparatedListSchema(z.array(feedbackStatusSchema).optional()),
   /** Filter by problem type (multiple allowed) */
-  problemType: z.preprocess((val) => {
-    if (val === undefined || val === null) return undefined;
-    if (Array.isArray(val)) return val;
-    if (typeof val === 'string')
-      return val
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-    return val;
-  }, z.array(feedbackProblemTypeSchema).optional()),
+  problemType: commaSeparatedListSchema(z.array(feedbackProblemTypeSchema).optional()),
   /** Filter by specific entry ID */
   entryId: entityIdSchema.optional(),
   /** Filter by entry type */
@@ -269,8 +258,8 @@ export const feedbackBatchRequestSchema = z.object({
 /**
  * Individual item result in a batch operation response.
  */
-export const feedbackBatchItemSchema = z
-  .object({
+export const feedbackBatchItemSchema = withEligibilityRefinements(
+  z.object({
     /** Feedback record ID */
     feedbackId: entityIdSchema,
     /** Whether this feedback is eligible for the action */
@@ -279,13 +268,9 @@ export const feedbackBatchItemSchema = z
     reason: z.string().nullable(),
     /** Whether a transition was applied (for transition action) */
     transitionApplied: z.boolean(),
-  })
-  .refine((d) => !d.eligible || d.reason === null, {
-    message: 'reason must be null when eligible is true',
-  })
-  .refine((d) => d.eligible || d.reason !== null, {
-    message: 'reason must be non-null when eligible is false',
-  });
+  }),
+  'reason',
+);
 
 /**
  * Response schema for batch operations on feedback.
@@ -298,12 +283,7 @@ export const feedbackBatchResponseSchema = z
     dryRun: z.boolean(),
     /** Per-feedback results */
     items: z.array(feedbackBatchItemSchema),
-    /** Count of eligible feedbacks */
-    totalEligible: z.number().int().min(0),
-    /** Count of ineligible feedbacks */
-    totalIneligible: z.number().int().min(0),
-    /** When the action was applied (null for dry-run) */
-    appliedAt: isoTimestampSchema.nullable(),
+    ...batchResponseFields,
   })
   .strict()
   .refine((d) => !d.dryRun || d.appliedAt === null, {

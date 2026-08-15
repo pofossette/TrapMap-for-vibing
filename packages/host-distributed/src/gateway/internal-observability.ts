@@ -219,24 +219,30 @@ function renderMetricAsPrometheus(metric: MetricData, lines: string[]): void {
   const name = metric.descriptor.name;
 
   if (metric.dataPointType === DataPointType.SUM) {
-    lines.push(`# TYPE ${name} counter`);
-    if (metric.descriptor.description) {
-      lines.push(`# HELP ${name} ${metric.descriptor.description}`);
-    }
+    pushMetricHeader(lines, name, metric.descriptor.description, 'counter');
     for (const dp of metric.dataPoints) {
       const labelStr = formatPrometheusLabels(dp.attributes as Record<string, string>);
       lines.push(`${name}{${labelStr}} ${dp.value}`);
     }
   } else if (metric.dataPointType === DataPointType.HISTOGRAM) {
-    lines.push(`# TYPE ${name} histogram`);
-    if (metric.descriptor.description) {
-      lines.push(`# HELP ${name} ${metric.descriptor.description}`);
-    }
+    pushMetricHeader(lines, name, metric.descriptor.description, 'histogram');
     for (const dp of metric.dataPoints) {
       const labelStr = formatPrometheusLabels(dp.attributes as Record<string, string>);
       lines.push(`${name}_sum{${labelStr}} ${dp.value.sum ?? 0}`);
       lines.push(`${name}_count{${labelStr}} ${dp.value.count}`);
     }
+  }
+}
+
+function pushMetricHeader(
+  lines: string[],
+  name: string,
+  description: string | undefined,
+  type: string,
+): void {
+  lines.push(`# TYPE ${name} ${type}`);
+  if (description) {
+    lines.push(`# HELP ${name} ${description}`);
   }
 }
 

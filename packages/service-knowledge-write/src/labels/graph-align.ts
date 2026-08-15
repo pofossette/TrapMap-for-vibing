@@ -87,6 +87,25 @@ export async function alignGraphNodes(
   for (const node of nodes) {
     const rawId = buildRawNodeId(node.kind, node.label);
     const evidence = node.description ?? 'llm-extracted';
+    const pushAlignedNode = (
+      id: string,
+      label: string,
+      canonicalLabelId: string | undefined,
+      alignmentDecision: AlignedNode['alignmentDecision'],
+    ): void => {
+      alignedNodes.push({
+        id,
+        kind: node.kind as GraphNodeRecord['kind'],
+        label,
+        evidence,
+        rawLabel: node.label,
+        ...(canonicalLabelId !== undefined ? { canonicalLabelId } : {}),
+        alignmentDecision,
+      });
+      if (id !== rawId) {
+        nodeIdMapping.set(rawId, id);
+      }
+    };
 
     try {
       const alignOpts: AlignLabelOptions = { sourceContext };
@@ -98,33 +117,21 @@ export async function alignGraphNodes(
       if (decision.decision === 'existing' && decision.canonicalLabelId) {
         // Rewrite to canonical ID
         const canonicalId = buildCanonicalNodeId(node.kind, decision.canonicalLabelId);
-        alignedNodes.push({
-          id: canonicalId,
-          kind: node.kind as GraphNodeRecord['kind'],
-          label: decision.canonicalName ?? node.label,
-          evidence,
-          rawLabel: node.label,
-          canonicalLabelId: decision.canonicalLabelId,
-          alignmentDecision: 'existing',
-        });
-        if (canonicalId !== rawId) {
-          nodeIdMapping.set(rawId, canonicalId);
-        }
+        pushAlignedNode(
+          canonicalId,
+          decision.canonicalName ?? node.label,
+          decision.canonicalLabelId,
+          'existing',
+        );
       } else if (decision.decision === 'new' && decision.canonicalLabelId) {
         // Rewrite to new canonical ID
         const canonicalId = buildCanonicalNodeId(node.kind, decision.canonicalLabelId);
-        alignedNodes.push({
-          id: canonicalId,
-          kind: node.kind as GraphNodeRecord['kind'],
-          label: decision.canonicalName ?? node.label,
-          evidence,
-          rawLabel: node.label,
-          canonicalLabelId: decision.canonicalLabelId,
-          alignmentDecision: 'new',
-        });
-        if (canonicalId !== rawId) {
-          nodeIdMapping.set(rawId, canonicalId);
-        }
+        pushAlignedNode(
+          canonicalId,
+          decision.canonicalName ?? node.label,
+          decision.canonicalLabelId,
+          'new',
+        );
       } else {
         // Unsure or no decision — keep raw label
         alignedNodes.push({

@@ -25,28 +25,14 @@ import { CANDIDATE_INGESTION_PORT } from './candidate-ingestion.tokens.js';
 export class CandidateIngestionModule {
   static forDeps(deps: CandidateIngestionDeps) {
     const port: CandidateIngestionPort = createCandidateIngestionModule(deps);
-
-    return {
-      module: CandidateIngestionModule,
-      controllers: [
-        createNestAdapter(
-          serviceRouteDefsForMonolith(createCandidateIngestionRouteDefs(port)),
-          port,
-          { guards: [AuthGuard] },
-        ),
-      ],
-      providers: [
-        {
-          provide: CANDIDATE_INGESTION_PORT,
-          useValue: port,
-        },
-      ],
-      exports: [CANDIDATE_INGESTION_PORT],
-      global: true,
-    };
+    return CandidateIngestionModule.options(port);
   }
 
   static forTesting(port: CandidateIngestionPort) {
+    return CandidateIngestionModule.options(port);
+  }
+
+  private static options(port: CandidateIngestionPort) {
     return {
       module: CandidateIngestionModule,
       controllers: [

@@ -9,7 +9,12 @@ import { nowIso } from '@trapmap/lib';
 
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
-import { type PipelineStep, generateQueryId, logRagRetrieval } from './rag-log.js';
+import {
+  type PipelineStep,
+  type RagLogEntry,
+  generateQueryId,
+  logRagRetrieval,
+} from './rag-log.js';
 import { buildRetrievalReadModel } from './read-model.js';
 import {
   assembleResponseBuckets,
@@ -63,6 +68,47 @@ async function timedStep<T>(
   return result;
 }
 
+function buildRagLogEntry(options: {
+  auth: ResolvedAuthContext;
+  includeRefinement: boolean;
+  includeSummary: boolean;
+  maxResults: number;
+  mode: string;
+  queryId: string;
+  resultCount: number;
+  routingTrace: RoutingTrace;
+  seed: string;
+  services: SkillShareerServices;
+  startedAtMs: number;
+  steps: PipelineStep[];
+  filters?: RetrievalQuery['filters'];
+}): RagLogEntry {
+  const metadata: RagLogEntry['metadata'] = {
+    maxResults: options.maxResults,
+    includeSummary: options.includeSummary,
+    includeRefinement: options.includeRefinement,
+    routingTrace: options.routingTrace,
+  };
+  if (options.filters) {
+    metadata.filters = {
+      labels: options.filters.labels,
+      scopes: options.filters.scopes,
+    };
+  }
+  return {
+    timestamp: new Date(options.startedAtMs).toISOString(),
+    queryId: options.queryId,
+    seed: options.seed,
+    mode: options.mode as RagLogEntry['mode'],
+    actorId: options.auth.actorId,
+    teamId: options.auth.activeTeamId,
+    pipelineSteps: options.steps,
+    totalLatencyMs: Date.now() - options.startedAtMs,
+    resultCount: options.resultCount,
+    metadata,
+  };
+}
+
 export async function searchKnowledge(
   services: SkillShareerServices,
   auth: ResolvedAuthContext,
@@ -114,24 +160,24 @@ export async function searchKnowledge(
     if (boundaryFiltered.length === 0) {
       const emptyRouting = infra.routing.selectStrategy(parsed.mode, parsed.seed);
       const routingTrace = buildRoutingTrace(services, emptyRouting);
-      void logRagRetrieval(services.config.ragLog, {
-        timestamp: new Date(startMs).toISOString(),
-        queryId,
-        seed: parsed.seed,
-        mode: parsed.mode,
-        actorId: auth.actorId,
-        teamId: auth.activeTeamId,
-        pipelineSteps: steps,
-        totalLatencyMs: Date.now() - startMs,
-        resultCount: 0,
-        metadata: {
-          filters: parsed.filters,
-          maxResults: parsed.maxResults,
+      void logRagRetrieval(
+        services.config.ragLog,
+        buildRagLogEntry({
+          auth,
+          services,
+          startedAtMs: startMs,
+          steps,
+          resultCount: 0,
+          queryId,
+          seed: parsed.seed,
+          mode: parsed.mode,
           includeSummary: parsed.includeSummary ?? false,
           includeRefinement: parsed.includeRefinement ?? false,
+          maxResults: parsed.maxResults,
+          filters: parsed.filters,
           routingTrace,
-        },
-      });
+        }),
+      );
       return {
         ...buildEmptyResponse(),
         routingTrace,
@@ -234,24 +280,24 @@ export async function searchKnowledge(
       summary,
     );
 
-    void logRagRetrieval(services.config.ragLog, {
-      timestamp: new Date(startMs).toISOString(),
-      queryId,
-      seed: parsed.seed,
-      mode: parsed.mode,
-      actorId: auth.actorId,
-      teamId: auth.activeTeamId,
-      pipelineSteps: steps,
-      totalLatencyMs: Date.now() - startMs,
-      resultCount: globalConstraints.length + projectKnowledge.length,
-      metadata: {
-        filters: parsed.filters,
-        maxResults: parsed.maxResults,
+    void logRagRetrieval(
+      services.config.ragLog,
+      buildRagLogEntry({
+        auth,
+        services,
+        startedAtMs: startMs,
+        steps,
+        resultCount: globalConstraints.length + projectKnowledge.length,
+        queryId,
+        seed: parsed.seed,
+        mode: parsed.mode,
         includeSummary: parsed.includeSummary ?? false,
         includeRefinement: parsed.includeRefinement ?? false,
+        maxResults: parsed.maxResults,
+        filters: parsed.filters,
         routingTrace: buildRoutingTrace(services, routingDecision, trace),
-      },
-    });
+      }),
+    );
 
     return {
       ...result,
@@ -259,24 +305,24 @@ export async function searchKnowledge(
     };
   } catch (error) {
     const failRouting = infra.routing.selectStrategy(query.mode ?? 'semantic', query.seed ?? '');
-    void logRagRetrieval(services.config.ragLog, {
-      timestamp: new Date(startMs).toISOString(),
-      queryId,
-      seed: query.seed ?? '',
-      mode: query.mode ?? 'semantic',
-      actorId: auth.actorId,
-      teamId: auth.activeTeamId,
-      pipelineSteps: steps,
-      totalLatencyMs: Date.now() - startMs,
-      resultCount: 0,
-      metadata: {
-        filters: query.filters,
-        maxResults: query.maxResults ?? 10,
+    void logRagRetrieval(
+      services.config.ragLog,
+      buildRagLogEntry({
+        auth,
+        services,
+        startedAtMs: startMs,
+        steps,
+        resultCount: 0,
+        queryId,
+        seed: query.seed ?? '',
+        mode: query.mode ?? 'semantic',
         includeSummary: query.includeSummary ?? false,
         includeRefinement: query.includeRefinement ?? false,
+        maxResults: query.maxResults ?? 10,
+        filters: query.filters,
         routingTrace: buildRoutingTrace(services, failRouting),
-      },
-    });
+      }),
+    );
     throw error;
   }
 }

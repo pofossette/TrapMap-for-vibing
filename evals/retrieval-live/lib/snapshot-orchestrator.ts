@@ -197,6 +197,30 @@ async function truncateRetrievalTables(pool: import('pg').Pool): Promise<void> {
   await pool.query(`TRUNCATE TABLE ${tableList} CASCADE`);
 }
 
+function buildCorpusRepos(services: HostLocalServices): {
+  artifact: {
+    insert: (record: Record<string, unknown>) => unknown;
+  };
+  graphIndex: {
+    upsert: (record: Record<string, unknown>) => unknown;
+  };
+  knowledge: {
+    insert: (record: Record<string, unknown>) => unknown;
+  };
+} {
+  return {
+    knowledge: {
+      insert: (record: Record<string, unknown>) => services.knowledgeOwner.submit(record as never),
+    },
+    artifact: {
+      insert: (record: Record<string, unknown>) => services.artifactWriter.insert(record as never),
+    },
+    graphIndex: {
+      upsert: (record: Record<string, unknown>) => services.graphIndex.upsert(record as never),
+    },
+  };
+}
+
 // =============================================================================
 // Frozen Mode Import
 // =============================================================================
@@ -212,20 +236,7 @@ async function importFrozenCorpus(
   corpus: Record<string, unknown>,
   _actorId: string,
 ): Promise<void> {
-  const _createdAt = nowIso();
-
-  const repos = {
-    knowledge: {
-      insert: (record: Record<string, unknown>) => services.knowledgeOwner.submit(record as never),
-    },
-    artifact: {
-      insert: (record: Record<string, unknown>) => services.artifactWriter.insert(record as never),
-    },
-    graphIndex: {
-      upsert: (record: Record<string, unknown>) => services.graphIndex.upsert(record as never),
-    },
-  };
-  await materializeCorpusRecords(repos, corpus);
+  await materializeCorpusRecords(buildCorpusRepos(services), corpus);
 
   // Import capsule embeddings (frozen mode only)
   const capsuleEmbeddings = (corpus.capsuleEmbeddings ?? []) as Array<Record<string, unknown>>;
@@ -254,20 +265,7 @@ async function importRebuildCorpus(
   corpus: Record<string, unknown>,
   _actorId: string,
 ): Promise<void> {
-  const _createdAt = nowIso();
-
-  const repos = {
-    knowledge: {
-      insert: (record: Record<string, unknown>) => services.knowledgeOwner.submit(record as never),
-    },
-    artifact: {
-      insert: (record: Record<string, unknown>) => services.artifactWriter.insert(record as never),
-    },
-    graphIndex: {
-      upsert: (record: Record<string, unknown>) => services.graphIndex.upsert(record as never),
-    },
-  };
-  await materializeCorpusRecords(repos, corpus, (entry) => ({
+  await materializeCorpusRecords(buildCorpusRepos(services), corpus, (entry) => ({
     ...entry,
     embeddingCache: undefined,
     indexState: undefined,

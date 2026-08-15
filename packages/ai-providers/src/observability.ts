@@ -153,6 +153,32 @@ function wrapChatProvider(
   sink: LlmObservationSink,
   correlation?: ObservationCorrelationSource,
 ): ChatProvider {
+  const emitChatObservation = (
+    operation: 'invoke' | 'invokeWithBlocks',
+    outcome: 'error' | 'success',
+    startTimestamp: string,
+    startTime: number,
+    error?: unknown,
+  ): void => {
+    const endTime = performance.now();
+    const resolved = resolveCorrelation(correlation);
+    safeInvokeSink(() =>
+      sink.onChatObservation({
+        provider: inner.provider,
+        model: inner.provider,
+        operation,
+        outcome,
+        latencyMs: Math.round(endTime - startTime),
+        startTimestamp,
+        endTimestamp: new Date().toISOString(),
+        ...(error !== undefined
+          ? { error: error instanceof Error ? error.message : String(error) }
+          : {}),
+        ...resolved,
+      }),
+    );
+  };
+
   const wrapped: ChatProvider = {
     get provider() {
       return inner.provider;
@@ -165,37 +191,10 @@ function wrapChatProvider(
       const startTime = performance.now();
       try {
         const result = await inner.invoke(systemPrompt, userMessage);
-        const endTime = performance.now();
-        const resolved = resolveCorrelation(correlation);
-        safeInvokeSink(() =>
-          sink.onChatObservation({
-            provider: inner.provider,
-            model: inner.provider,
-            operation: 'invoke',
-            outcome: 'success',
-            latencyMs: Math.round(endTime - startTime),
-            startTimestamp,
-            endTimestamp: new Date().toISOString(),
-            ...resolved,
-          }),
-        );
+        emitChatObservation('invoke', 'success', startTimestamp, startTime);
         return result;
       } catch (error) {
-        const endTime = performance.now();
-        const resolved = resolveCorrelation(correlation);
-        safeInvokeSink(() =>
-          sink.onChatObservation({
-            provider: inner.provider,
-            model: inner.provider,
-            operation: 'invoke',
-            outcome: 'error',
-            latencyMs: Math.round(endTime - startTime),
-            startTimestamp,
-            endTimestamp: new Date().toISOString(),
-            error: error instanceof Error ? error.message : String(error),
-            ...resolved,
-          }),
-        );
+        emitChatObservation('invoke', 'error', startTimestamp, startTime, error);
         throw error;
       }
     },
@@ -210,37 +209,10 @@ function wrapChatProvider(
       const startTime = performance.now();
       try {
         const result = await inner.invokeWithBlocks!(blocks, userMessage);
-        const endTime = performance.now();
-        const resolved = resolveCorrelation(correlation);
-        safeInvokeSink(() =>
-          sink.onChatObservation({
-            provider: inner.provider,
-            model: inner.provider,
-            operation: 'invokeWithBlocks',
-            outcome: 'success',
-            latencyMs: Math.round(endTime - startTime),
-            startTimestamp,
-            endTimestamp: new Date().toISOString(),
-            ...resolved,
-          }),
-        );
+        emitChatObservation('invokeWithBlocks', 'success', startTimestamp, startTime);
         return result;
       } catch (error) {
-        const endTime = performance.now();
-        const resolved = resolveCorrelation(correlation);
-        safeInvokeSink(() =>
-          sink.onChatObservation({
-            provider: inner.provider,
-            model: inner.provider,
-            operation: 'invokeWithBlocks',
-            outcome: 'error',
-            latencyMs: Math.round(endTime - startTime),
-            startTimestamp,
-            endTimestamp: new Date().toISOString(),
-            error: error instanceof Error ? error.message : String(error),
-            ...resolved,
-          }),
-        );
+        emitChatObservation('invokeWithBlocks', 'error', startTimestamp, startTime, error);
         throw error;
       }
     };

@@ -4,7 +4,7 @@ import type { Command } from 'commander';
 
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
-import { collectValues, resolveTextInput } from '@trapmap/cli/lib/input.js';
+import { collectValues, resolveSearchSeed } from '@trapmap/cli/lib/input.js';
 import { formatLoadContext } from '@trapmap/cli/lib/markdown-formatter.js';
 import { printAdaptiveResult } from '@trapmap/cli/lib/output.js';
 
@@ -43,13 +43,7 @@ export function registerLoadCommand(program: Command, options: LoadCommandOption
         requireSessionToken(state);
 
         // Resolve seed text from argument or stdin
-        const searchSeed = await resolveTextInput(
-          {
-            ...(seed !== undefined ? { text: seed } : {}),
-            ...(flags.stdin !== undefined ? { stdin: flags.stdin } : {}),
-          },
-          'seed',
-        );
+        const searchSeed = await resolveSearchSeed(seed, flags);
 
         if (!searchSeed.trim()) {
           throw new Error('Seed text is required. Provide a seed argument or use --stdin.');

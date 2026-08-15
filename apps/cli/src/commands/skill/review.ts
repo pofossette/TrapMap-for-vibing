@@ -11,6 +11,59 @@ import { printCommandResult } from '@trapmap/cli/lib/output.js';
 
 import { formatSkillReviewDecisionResponse, formatSkillReviewQueue } from './formatters.js';
 
+function registerReviewDecisionCommand(skill: Command, decision: 'approve' | 'reject'): void {
+  const verb = decision === 'approve' ? 'Approve' : 'Reject';
+  const pastVerb = decision === 'approve' ? 'Approved' : 'Rejected';
+  skill
+    .command(`review:${decision}`)
+    .description(`${verb} a pending skill edit`)
+    .argument('<artifactId>', `Artifact ID to ${decision}`)
+    .requiredOption('--notes <text>', 'Review notes (required)')
+    .option('--json', 'Output JSON')
+    .action(
+      async (
+        artifactId: string,
+        flags: {
+          notes: string;
+          json?: boolean;
+        },
+      ) => {
+        const state = await loadCliState();
+        requireSessionToken(state);
+
+        const response = await apiRequest<SkillReviewDecisionResponse>(state, {
+          method: 'POST',
+          path: `/v1/operations/artifacts/${artifactId}/review`,
+          body: {
+            artifactId,
+            decision,
+            notes: flags.notes,
+          },
+        });
+
+        const parsed = skillReviewDecisionResponseSchema.parse(response.data);
+
+        printCommandResult(
+          {
+            action: `review-${decision}`,
+            success: true,
+            summary: `${pastVerb} ${parsed.artifact.id} (${parsed.artifact.title}).`,
+            artifacts: [
+              { id: parsed.artifact.id, title: parsed.artifact.title, newState: parsed.newState },
+            ],
+            previousState: parsed.previousState,
+            transition: { from: parsed.previousState, to: parsed.newState },
+            nextSteps: [],
+          },
+          parsed,
+          state,
+          flags,
+          formatSkillReviewDecisionResponse,
+        );
+      },
+    );
+}
+
 /**
  * Register the skill review subcommands (Phase 20 SKED-03):
  *   review:queue, review:approve, review:reject
@@ -53,101 +106,6 @@ export function registerReviewCommands(skill: Command): void {
       );
     });
 
-  skill
-    .command('review:approve')
-    .description('Approve a pending skill edit')
-    .argument('<artifactId>', 'Artifact ID to approve')
-    .requiredOption('--notes <text>', 'Review notes (required)')
-    .option('--json', 'Output JSON')
-    .action(
-      async (
-        artifactId: string,
-        flags: {
-          notes: string;
-          json?: boolean;
-        },
-      ) => {
-        const state = await loadCliState();
-        requireSessionToken(state);
-
-        const response = await apiRequest<SkillReviewDecisionResponse>(state, {
-          method: 'POST',
-          path: `/v1/operations/artifacts/${artifactId}/review`,
-          body: {
-            artifactId,
-            decision: 'approve',
-            notes: flags.notes,
-          },
-        });
-
-        const parsed = skillReviewDecisionResponseSchema.parse(response.data);
-
-        printCommandResult(
-          {
-            action: 'review-approve',
-            success: true,
-            summary: `Approved ${parsed.artifact.id} (${parsed.artifact.title}).`,
-            artifacts: [
-              { id: parsed.artifact.id, title: parsed.artifact.title, newState: parsed.newState },
-            ],
-            previousState: parsed.previousState,
-            transition: { from: parsed.previousState, to: parsed.newState },
-            nextSteps: [],
-          },
-          parsed,
-          state,
-          flags,
-          formatSkillReviewDecisionResponse,
-        );
-      },
-    );
-
-  skill
-    .command('review:reject')
-    .description('Reject a pending skill edit')
-    .argument('<artifactId>', 'Artifact ID to reject')
-    .requiredOption('--notes <text>', 'Review notes (required)')
-    .option('--json', 'Output JSON')
-    .action(
-      async (
-        artifactId: string,
-        flags: {
-          notes: string;
-          json?: boolean;
-        },
-      ) => {
-        const state = await loadCliState();
-        requireSessionToken(state);
-
-        const response = await apiRequest<SkillReviewDecisionResponse>(state, {
-          method: 'POST',
-          path: `/v1/operations/artifacts/${artifactId}/review`,
-          body: {
-            artifactId,
-            decision: 'reject',
-            notes: flags.notes,
-          },
-        });
-
-        const parsed = skillReviewDecisionResponseSchema.parse(response.data);
-
-        printCommandResult(
-          {
-            action: 'review-reject',
-            success: true,
-            summary: `Rejected ${parsed.artifact.id} (${parsed.artifact.title}).`,
-            artifacts: [
-              { id: parsed.artifact.id, title: parsed.artifact.title, newState: parsed.newState },
-            ],
-            previousState: parsed.previousState,
-            transition: { from: parsed.previousState, to: parsed.newState },
-            nextSteps: [],
-          },
-          parsed,
-          state,
-          flags,
-          formatSkillReviewDecisionResponse,
-        );
-      },
-    );
+  registerReviewDecisionCommand(skill, 'approve');
+  registerReviewDecisionCommand(skill, 'reject');
 }

@@ -71,12 +71,7 @@ export function buildReport(
 
   // Build cohort summaries (sorted by query type, then route family)
   const cohortSummaries = buildCohortSummaries(caseResults);
-  cohortSummaries.sort((a, b) => {
-    if (a.cohort.queryType !== b.cohort.queryType) {
-      return a.cohort.queryType.localeCompare(b.cohort.queryType);
-    }
-    return a.cohort.routeFamily.localeCompare(b.cohort.routeFamily);
-  });
+  cohortSummaries.sort(compareCohortSummaries);
 
   // Build mode comparisons (sorted by case count)
   const modeComparisons = buildModeComparisons(caseResults);
@@ -480,7 +475,10 @@ function getSliceKeyString(key: SliceKey): string {
  * Compare slice summaries for sorting.
  * Sort by tier, then endpoint, then mode.
  */
-function compareSliceSummaries(a: RetrievalEvalSliceSummary, b: RetrievalEvalSliceSummary): number {
+export function compareSliceSummaries(
+  a: RetrievalEvalSliceSummary,
+  b: RetrievalEvalSliceSummary,
+): number {
   // Compare tier
   if (a.slice.tier !== b.slice.tier) {
     return a.slice.tier === 'smoke' ? -1 : 1;
@@ -495,4 +493,11 @@ function compareSliceSummaries(a: RetrievalEvalSliceSummary, b: RetrievalEvalSli
   const modeA = a.slice.mode ?? 'none';
   const modeB = b.slice.mode ?? 'none';
   return modeA.localeCompare(modeB);
+}
+
+export function compareCohortSummaries(a: CohortSummary, b: CohortSummary): number {
+  if (a.cohort.queryType !== b.cohort.queryType) {
+    return a.cohort.queryType.localeCompare(b.cohort.queryType);
+  }
+  return a.cohort.routeFamily.localeCompare(b.cohort.routeFamily);
 }

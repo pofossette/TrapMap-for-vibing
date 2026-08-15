@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { skillScriptDescriptorSchema } from './artifacts.js';
+import { skillCapsuleSchema, skillScriptDescriptorSchema } from './artifacts.js';
 
 import { boundaryContextSchema, boundaryExplanationSchema } from './boundary.js';
 import {
@@ -279,38 +279,19 @@ export type RetrievalSearchBody = z.infer<typeof retrievalSearchBodySchema>;
  * Extends the base SkillCapsule shape with score and reason for ranking transparency.
  * Inherits governance (scope, requiredLevel) from artifact root per T-14-01 mitigation.
  */
-export const capsuleMatchSchema = z.object({
-  /** Capsule identifier */
-  capsuleId: entityIdSchema,
-  /** Parent artifact identifier */
-  artifactId: entityIdSchema,
-  /** Revision number this capsule was derived from */
-  revision: z.number().int().min(1),
-  /** Source file paths that contributed to this capsule */
-  sourcePaths: z.array(canonicalPathSchema).min(1),
-  /** Distilled capsule content */
-  content: z.string().min(1).max(5000),
-  /** Situation context when available */
-  situation: z.string().min(1).max(1000).nullable(),
-  /** Problem statement when available */
-  problem: z.string().min(1).max(1000).nullable(),
-  /** Goal or solution when available */
-  goal: z.string().min(1).max(1000).nullable(),
-  /** Optional error text for error-specific capsules */
-  errorText: z.string().max(500).optional(),
-  /** Searchable labels */
-  labels: z.array(labelSchema).min(1),
-  /** Governance scope (inherited from artifact root) */
-  scope: scopeSchema,
-  /** Required security level (inherited from artifact root) */
-  requiredLevel: securityLevelSchema,
-  /** Final ranking score after all boosts applied */
-  score: z.number().min(0).max(1),
-  /** Human-readable explanation of why this capsule matched */
-  reason: z.string().min(1),
-  /** Conflict hints showing related entries with different solutions */
-  conflicts: z.array(conflictHintSchema).optional(),
-});
+export const capsuleMatchSchema = skillCapsuleSchema
+  .omit({ contextualPrefix: true, errorText: true })
+  .extend({
+    /** Optional error text for error-specific capsules */
+    errorText: z.string().max(500).optional(),
+    /** Final ranking score after all boosts applied */
+    score: z.number().min(0).max(1),
+    /** Human-readable explanation of why this capsule matched */
+    reason: z.string().min(1),
+    /** Conflict hints showing related entries with different solutions */
+    conflicts: z.array(conflictHintSchema).optional(),
+  })
+  .strict();
 
 /**
  * Profile hint in v2 retrieval response.

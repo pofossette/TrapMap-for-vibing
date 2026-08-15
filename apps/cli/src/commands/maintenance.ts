@@ -52,6 +52,53 @@ function formatMaintenanceBatch(data: MaintenanceBatchOperationResponse): string
   return lines.join('\n');
 }
 
+function registerMaintenanceBatchCommand(
+  program: Command,
+  descriptor: {
+    addOptions(command: Command): Command;
+    actionId: string;
+    buildBody(flags: Record<string, unknown>): Record<string, unknown>;
+    description: string;
+    name: string;
+  },
+): void {
+  descriptor
+    .addOptions(program.command(descriptor.name).description(descriptor.description))
+    .action(async (flags: Record<string, unknown>) => {
+      const state = await loadCliState();
+      requireSessionToken(state);
+      const entryIds = String(flags.entries)
+        .split(',')
+        .map((id: string) => id.trim());
+      const body = descriptor.buildBody({ ...flags, entryIds });
+
+      const response = await apiRequest<MaintenanceBatchOperationResponse>(state, {
+        method: 'POST',
+        path: '/v1/operations/maintenance/batch',
+        body,
+      });
+      const parsed = maintenanceBatchOperationResponseSchema.parse(response.data);
+
+      printCommandResult(
+        {
+          action: descriptor.actionId,
+          success: true,
+          summary: `${parsed.action}: ${parsed.totalEligible} eligible, ${parsed.totalIneligible} ineligible`,
+          artifacts: parsed.items.map((item) => ({
+            id: item.entryId,
+            title: item.shortcut,
+            eligible: item.eligible,
+          })),
+          nextSteps: [],
+        },
+        parsed,
+        state,
+        flags,
+        formatMaintenanceBatch,
+      );
+    });
+}
+
 export function registerMaintenanceCommands(
   program: Command,
   options: MaintenanceCommandOptions,
@@ -136,114 +183,47 @@ export function registerMaintenanceCommands(
     );
 
   // maintenance-assign command: Assign maintainer to entries
-  program
-    .command('maintenance-assign')
-    .description('Assign maintainer to entries')
-    .requiredOption('--entries <ids>', 'Comma-separated entry IDs')
-    .requiredOption('--owner <userId>', 'User ID of the new maintainer')
-    .option('--owner-handle <handle>', 'Handle of the new maintainer')
-    .option('--dry-run', 'Show what would change without applying')
-    .option('--json', 'Output JSON')
-    .action(
-      async (flags: {
-        entries: string;
-        owner: string;
-        ownerHandle?: string;
-        dryRun?: boolean;
-        json?: boolean;
-      }) => {
-        const state = await loadCliState();
-        requireSessionToken(state);
-
-        const entryIds = flags.entries.split(',').map((id: string) => id.trim());
-        const body: Record<string, unknown> = {
-          action: 'assign-owner',
-          entryIds,
-          dryRun: !!flags.dryRun,
-          newMaintainerId: flags.owner,
-        };
-
-        if (flags.ownerHandle) {
-          body.newMaintainerHandle = flags.ownerHandle;
-        }
-
-        const response = await apiRequest<MaintenanceBatchOperationResponse>(state, {
-          method: 'POST',
-          path: '/v1/operations/maintenance/batch',
-          body,
-        });
-        const parsed = maintenanceBatchOperationResponseSchema.parse(response.data);
-
-        printCommandResult(
-          {
-            action: 'maintenance-assign',
-            success: true,
-            summary: `${parsed.action}: ${parsed.totalEligible} eligible, ${parsed.totalIneligible} ineligible`,
-            artifacts: parsed.items.map((item) => ({
-              id: item.entryId,
-              title: item.shortcut,
-              eligible: item.eligible,
-            })),
-            nextSteps: [],
-          },
-          parsed,
-          state,
-          flags,
-          formatMaintenanceBatch,
-        );
-      },
-    );
+  registerMaintenanceBatchCommand(program, {
+    name: 'maintenance-assign',
+    description: 'Assign maintainer to entries',
+    actionId: 'maintenance-assign',
+    addOptions: (command) =>
+      command
+        .requiredOption('--entries <ids>', 'Comma-separated entry IDs')
+        .requiredOption('--owner <userId>', 'User ID of the new maintainer')
+        .option('--owner-handle <handle>', 'Handle of the new maintainer')
+        .option('--dry-run', 'Show what would change without applying')
+        .option('--json', 'Output JSON'),
+    buildBody: (flags) => {
+      const body: Record<string, unknown> = {
+        action: 'assign-owner',
+        entryIds: flags.entryIds,
+        dryRun: !!flags.dryRun,
+        newMaintainerId: flags.owner,
+      };
+      if (flags.ownerHandle) {
+        body.newMaintainerHandle = flags.ownerHandle;
+      }
+      return body;
+    },
+  });
 
   // maintenance-verify command: Mark entries as re-verified
-  program
-    .command('maintenance-verify')
-    .description('Mark entries as re-verified')
-    .requiredOption('--entries <ids>', 'Comma-separated entry IDs')
-    .option('--extend-days <n>', 'Days to extend review-by deadline', Number.parseInt, 90)
-    .option('--dry-run', 'Show what would change without applying')
-    .option('--json', 'Output JSON')
-    .action(
-      async (flags: {
-        entries: string;
-        extendDays: number;
-        dryRun?: boolean;
-        json?: boolean;
-      }) => {
-        const state = await loadCliState();
-        requireSessionToken(state);
-
-        const entryIds = flags.entries.split(',').map((id: string) => id.trim());
-        const body: Record<string, unknown> = {
-          action: 'mark-verified',
-          entryIds,
-          dryRun: !!flags.dryRun,
-          extendDays: flags.extendDays,
-        };
-
-        const response = await apiRequest<MaintenanceBatchOperationResponse>(state, {
-          method: 'POST',
-          path: '/v1/operations/maintenance/batch',
-          body,
-        });
-        const parsed = maintenanceBatchOperationResponseSchema.parse(response.data);
-
-        printCommandResult(
-          {
-            action: 'maintenance-verify',
-            success: true,
-            summary: `${parsed.action}: ${parsed.totalEligible} eligible, ${parsed.totalIneligible} ineligible`,
-            artifacts: parsed.items.map((item) => ({
-              id: item.entryId,
-              title: item.shortcut,
-              eligible: item.eligible,
-            })),
-            nextSteps: [],
-          },
-          parsed,
-          state,
-          flags,
-          formatMaintenanceBatch,
-        );
-      },
-    );
+  registerMaintenanceBatchCommand(program, {
+    name: 'maintenance-verify',
+    description: 'Mark entries as re-verified',
+    actionId: 'maintenance-verify',
+    addOptions: (command) =>
+      command
+        .requiredOption('--entries <ids>', 'Comma-separated entry IDs')
+        .option('--extend-days <n>', 'Days to extend review-by deadline', Number.parseInt, 90)
+        .option('--dry-run', 'Show what would change without applying')
+        .option('--json', 'Output JSON'),
+    buildBody: (flags) => ({
+      action: 'mark-verified',
+      entryIds: flags.entryIds,
+      dryRun: !!flags.dryRun,
+      extendDays: flags.extendDays,
+    }),
+  });
 }

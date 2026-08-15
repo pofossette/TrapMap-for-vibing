@@ -20,11 +20,15 @@ import type { CandidateIngestionPort, KnowledgeReadPort, ReviewPort } from '@tra
 import {
   ManualResultSubmissionSchema,
   manualResultResponseSchema,
-  retrievalSearchBodySchema,
   reviewDecisionRequestSchema,
   reviewQueueResponseSchema,
 } from '@trapmap/contracts';
 import { buildOwnerReviewQueueProjection } from '@trapmap/service-governance-review';
+import {
+  knowledgeReadMineSchema,
+  knowledgeReadSearchSchema,
+  toKnowledgeReadSearchArgs,
+} from '@trapmap/service-knowledge-read';
 import { type ZodType, z } from 'zod';
 
 import type { resolveHostLocalAuthContext } from '../runtime/auth-context.js';
@@ -58,21 +62,6 @@ const entryParamsSchema = z.object({
   authContext: authContextSchema,
 });
 
-const mineSchema = z.object({
-  params: emptyRecord,
-  query: z.object({
-    userId: z.string(),
-    teamId: z.string().optional(),
-  }),
-  body: z.unknown(),
-});
-
-const searchSchema = z.object({
-  params: emptyRecord,
-  query: emptyRecord,
-  body: retrievalSearchBodySchema,
-});
-
 const candidateParamsSchema = z.object({
   params: z.object({ candidateId: z.string() }),
   query: emptyRecord,
@@ -100,6 +89,28 @@ const reviewDecisionSchema = z.object({
   body: reviewDecisionRequestSchema,
   authContext: authContextSchema,
 });
+
+function reviewDecisionInput(
+  ctx: GatewayRouteContext,
+  actorId: string,
+): {
+  actorId: string;
+  entryId: string;
+  evidence?: Record<string, unknown>;
+  note?: string;
+} {
+  const body = ctx.body as {
+    entryId: string;
+    evidence?: Record<string, unknown>;
+    notes?: string;
+  };
+  return {
+    entryId: body.entryId,
+    actorId,
+    ...(body.notes ? { note: body.notes } : {}),
+    ...(body.evidence ? { evidence: body.evidence } : {}),
+  };
+}
 
 /**
  * The AuthGuard guarantees the auth context on guarded routes, so handlers
@@ -133,23 +144,22 @@ export function createGatewayRouteDefs(_deps: GatewayRouteDeps): RouteDef[] {
     gatewayRouteDef({
       method: 'GET',
       path: '/v1/knowledge/mine',
-      schema: mineSchema,
+      schema: knowledgeReadMineSchema,
       handler: async (ctx, deps) => {
-        return deps.knowledgeRead.listMine(ctx.query.userId, ctx.query.teamId);
+        const query = ctx.query as { teamId?: string; userId: string };
+        return deps.knowledgeRead.listMine(query.userId, query.teamId);
       },
     }),
 
     gatewayRouteDef({
       method: 'POST',
       path: '/v1/retrieval/search',
-      schema: searchSchema,
+      schema: knowledgeReadSearchSchema,
       successStatus: 200,
       handler: async (ctx, deps) => {
-        return deps.knowledgeRead.search({
-          query: ctx.body.query,
-          ...(ctx.body.teamId !== undefined ? { teamId: ctx.body.teamId } : {}),
-          ...(ctx.body.limit !== undefined ? { limit: ctx.body.limit } : {}),
-        });
+        return deps.knowledgeRead.search(
+          toKnowledgeReadSearchArgs(ctx.body as Parameters<typeof toKnowledgeReadSearchArgs>[0]),
+        );
       },
     }),
 
@@ -249,20 +259,11 @@ export function createGatewayRouteDefs(_deps: GatewayRouteDeps): RouteDef[] {
       successStatus: 200,
       handler: async (ctx, deps) => {
         const auth = ctx.authContext;
+        const input = reviewDecisionInput(ctx, auth.actorId);
         const result =
           ctx.body.decision === 'approve'
-            ? await deps.governanceReview.approve({
-                entryId: ctx.body.entryId,
-                actorId: auth.actorId,
-                ...(ctx.body.notes ? { note: ctx.body.notes } : {}),
-                ...(ctx.body.evidence ? { evidence: ctx.body.evidence } : {}),
-              })
-            : await deps.governanceReview.reject({
-                entryId: ctx.body.entryId,
-                actorId: auth.actorId,
-                ...(ctx.body.notes ? { note: ctx.body.notes } : {}),
-                ...(ctx.body.evidence ? { evidence: ctx.body.evidence } : {}),
-              });
+            ? await deps.governanceReview.approve(input)
+            : await deps.governanceReview.reject(input);
 
         const entry = await deps.runtime.services.knowledgeOwner.getById(result.entryId);
 

@@ -7,6 +7,8 @@ import {
   entityIdSchema,
   isoTimestampSchema,
   labelSchema,
+  lifecycleEventBaseSchema,
+  lifecycleMetadataBaseFields,
   lifecycleStateSchema,
   mediaTypeSchema,
   scopeSchema,
@@ -109,7 +111,7 @@ export const skillArtifactFileSchema = z
  * Script capability descriptor for executable scripts in skill artifacts.
  * Captures intent and constraints without exposing script bodies in retrieval context.
  */
-export const skillScriptDescriptorSchema = z.object({
+const scriptDescriptorFields = {
   /** Path to the script file within the skill directory */
   path: canonicalPathSchema,
   /** SHA-256 hash of the script content */
@@ -122,7 +124,9 @@ export const skillScriptDescriptorSchema = z.object({
   sideEffectSummary: z.string().max(280).default(''),
   /** Default execution policy (legacy three-state or four-state vocabulary) */
   defaultPolicy: compatibleScriptActivationPolicySchema,
-});
+};
+
+export const skillScriptDescriptorSchema = z.object(scriptDescriptorFields);
 
 /**
  * Derived profile from SKILL.md and references/.
@@ -221,12 +225,7 @@ export const clientManifestAssetSchema = z
  * Excludes script body text (T-12-02 mitigation).
  */
 export const clientManifestScriptSchema = z.object({
-  path: canonicalPathSchema,
-  sha256: sha256HexSchema,
-  capability: z.string().min(1).max(280),
-  argsSchemaSummary: z.string().max(280).default(''),
-  sideEffectSummary: z.string().max(280).default(''),
-  defaultPolicy: compatibleScriptActivationPolicySchema,
+  ...scriptDescriptorFields,
 });
 
 /**
@@ -303,24 +302,7 @@ export const skillArtifactRevisionSchema = z
  * Lifecycle event specific to skill artifacts.
  * Extends knowledge lifecycle events with artifact-specific concerns.
  */
-export const skillArtifactLifecycleEventSchema = z.object({
-  id: entityIdSchema,
-  type: z.enum([
-    'submitted',
-    'resubmitted',
-    'agent-reviewed',
-    'reviewer-approved',
-    'reviewer-rejected',
-    'updated',
-    'deactivated',
-  ]),
-  createdAt: isoTimestampSchema,
-  actor: actorRefSchema.nullable().default(null),
-  submissionId: entityIdSchema.nullable().default(null),
-  revision: z.number().int().min(1).nullable().default(null),
-  state: lifecycleStateSchema,
-  note: z.string().min(1).max(2000).nullable().default(null),
-});
+export const skillArtifactLifecycleEventSchema = lifecycleEventBaseSchema;
 
 /**
  * Metadata specific to skill artifacts.
@@ -330,20 +312,7 @@ export const skillArtifactMetadataSchema = z
   .object({
     /** How this artifact was originally created */
     sourceKind: z.enum(['skill-directory', 'single-skill-md', 'legacy-knowledge']),
-    /** Total number of submissions across all revisions */
-    submissionCount: z.number().int().min(0),
-    /** Number of times this artifact was resubmitted after rejection */
-    resubmissionCount: z.number().int().min(0),
-    /** Total number of revisions */
-    revisionCount: z.number().int().min(1),
-    /** ID of the most recent submission */
-    latestSubmissionId: entityIdSchema.nullable().default(null),
-    /** When the most recent submission was created */
-    latestSubmittedAt: isoTimestampSchema.nullable().default(null),
-    /** When the most recent review was completed */
-    latestReviewedAt: isoTimestampSchema.nullable().default(null),
-    /** Most recent review decision (approve/reject) */
-    latestDecision: z.enum(['approve', 'reject']).nullable().default(null),
+    ...lifecycleMetadataBaseFields,
   })
   .refine((d) => d.submissionCount >= d.resubmissionCount, {
     message: 'submissionCount must be >= resubmissionCount',

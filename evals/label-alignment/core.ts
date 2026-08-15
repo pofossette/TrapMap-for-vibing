@@ -9,8 +9,8 @@ import { labelAlignmentEvalFixtureSchema } from '../../packages/contracts/src/do
 
 import { coreFixtures } from './archived/fixtures/core.js';
 import { smokeFixtures } from './fixtures/smoke.js';
+import { buildLabelAlignmentCaseResult } from './lib/decision-eval.js';
 import { formatLabelAlignmentReport } from './lib/format.js';
-import { calculateCaseMetrics } from './lib/metrics.js';
 import { runDeterministicRecall } from './lib/recall-eval.js';
 
 export interface LoadFixtureOptions {
@@ -42,22 +42,7 @@ export function evaluateLabelAlignmentCaseDryRun(
     ...prediction,
     recallReason: inferRecallReason(case_, prediction.rawLabel),
   }));
-  const metrics = calculateCaseMetrics(case_, predictions);
-  return {
-    caseId: case_.caseId,
-    skillId: case_.skillId,
-    variantId: case_.variantId,
-    variantGroupId: case_.variantGroupId,
-    tier: case_.tier,
-    passed: metrics.passed,
-    synonymEliminationCount: metrics.synonymEliminationCount,
-    synonymEliminationRate: metrics.synonymEliminationRate,
-    missedMerges: metrics.missedMerges,
-    falseMerges: metrics.falseMerges,
-    alignmentAccuracy: metrics.alignmentAccuracy,
-    recallReasonDistribution: metrics.recallReasonDistribution,
-    notes: recallResult.notes,
-  };
+  return buildLabelAlignmentCaseResult(case_, predictions, recallResult.notes);
 }
 
 function inferRecallReason(

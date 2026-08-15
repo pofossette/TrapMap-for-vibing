@@ -481,6 +481,70 @@ export interface TransactionalPool extends Queryable {
   }>;
 }
 
+type ArtifactClient = Awaited<ReturnType<TransactionalPool['connect']>>;
+
+async function insertArtifactRows(
+  client: ArtifactClient,
+  artifact: SkillArtifact,
+  revisions: readonly SkillArtifactRevision[],
+  events: readonly SkillArtifactLifecycleEvent[],
+): Promise<void> {
+  await client.query(
+    `INSERT INTO skill_artifacts (id, team_id, scope, labels, title, slug, required_level, lifecycle_state, owner_user_id, metadata, agent_review, maintenance_meta, boundary, created_at, updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+    [
+      artifact.id,
+      artifact.teamId,
+      artifact.scope,
+      JSON.stringify(artifact.labels),
+      artifact.title,
+      artifact.slug,
+      artifact.requiredLevel,
+      artifact.lifecycleState,
+      artifact.owner.id,
+      JSON.stringify(artifact.metadata),
+      JSON.stringify(artifact.agentReview),
+      JSON.stringify(artifact.maintenanceMeta),
+      JSON.stringify(artifact.boundaryMeta ?? null),
+      artifact.createdAt,
+      artifact.updatedAt,
+    ],
+  );
+  for (const revision of revisions) {
+    await client.query(
+      'INSERT INTO artifact_revisions (id, artifact_id, revision_no, source_hash, files, script_descriptors, derived, submitted_at, submitted_by_user_id, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
+      [
+        `${artifact.id}_rev${revision.revision}`,
+        artifact.id,
+        revision.revision,
+        revision.sourceHash,
+        JSON.stringify(revision.files),
+        JSON.stringify(revision.scriptDescriptors),
+        JSON.stringify(revision.derived ?? null),
+        revision.submittedAt,
+        revision.submittedBy.id,
+        revision.submittedAt,
+      ],
+    );
+  }
+  for (const event of events) {
+    await client.query(
+      'INSERT INTO artifact_lifecycle_events (id, artifact_id, type, created_at, actor_user_id, submission_id, revision_no, state, note) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+      [
+        event.id,
+        artifact.id,
+        event.type,
+        event.createdAt,
+        event.actor?.id ?? null,
+        event.submissionId ?? null,
+        event.revision ?? null,
+        event.state,
+        event.note ?? null,
+      ],
+    );
+  }
+}
+
 export function createArtifactWritePort(pool: TransactionalPool): ArtifactWritePort {
   const read = createArtifactReadProjection(pool);
   return {
@@ -491,60 +555,7 @@ export function createArtifactWritePort(pool: TransactionalPool): ArtifactWriteP
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        await client.query(
-          `INSERT INTO skill_artifacts (id, team_id, scope, labels, title, slug, required_level, lifecycle_state, owner_user_id, metadata, agent_review, maintenance_meta, boundary, created_at, updated_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
-          [
-            artifact.id,
-            artifact.teamId,
-            artifact.scope,
-            JSON.stringify(artifact.labels),
-            artifact.title,
-            artifact.slug,
-            artifact.requiredLevel,
-            artifact.lifecycleState,
-            artifact.owner.id,
-            JSON.stringify(artifact.metadata),
-            JSON.stringify(artifact.agentReview),
-            JSON.stringify(artifact.maintenanceMeta),
-            JSON.stringify(artifact.boundaryMeta ?? null),
-            artifact.createdAt,
-            artifact.updatedAt,
-          ],
-        );
-        for (const revision of artifact.history) {
-          await client.query(
-            'INSERT INTO artifact_revisions (id, artifact_id, revision_no, source_hash, files, script_descriptors, derived, submitted_at, submitted_by_user_id, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
-            [
-              `${artifact.id}_rev${revision.revision}`,
-              artifact.id,
-              revision.revision,
-              revision.sourceHash,
-              JSON.stringify(revision.files),
-              JSON.stringify(revision.scriptDescriptors),
-              JSON.stringify(revision.derived ?? null),
-              revision.submittedAt,
-              revision.submittedBy.id,
-              revision.submittedAt,
-            ],
-          );
-        }
-        for (const event of artifact.lifecycleHistory) {
-          await client.query(
-            'INSERT INTO artifact_lifecycle_events (id, artifact_id, type, created_at, actor_user_id, submission_id, revision_no, state, note) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
-            [
-              event.id,
-              artifact.id,
-              event.type,
-              event.createdAt,
-              event.actor?.id ?? null,
-              event.submissionId ?? null,
-              event.revision ?? null,
-              event.state,
-              event.note ?? null,
-            ],
-          );
-        }
+        await insertArtifactRows(client, artifact, artifact.history, artifact.lifecycleHistory);
         await client.query('COMMIT');
       } catch (error) {
         await client.query('ROLLBACK').catch(() => {});
@@ -687,58 +698,13 @@ export function createArtifactBundleImportPort(pool: TransactionalPool): Artifac
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        await client.query(
-          `INSERT INTO skill_artifacts (id, team_id, scope, labels, title, slug, required_level, lifecycle_state, owner_user_id, metadata, agent_review, maintenance_meta, boundary, created_at, updated_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
-          [
-            artifact.id,
-            artifact.teamId,
-            artifact.scope,
-            JSON.stringify(artifact.labels),
-            artifact.title,
-            artifact.slug,
-            artifact.requiredLevel,
-            artifact.lifecycleState,
-            artifact.owner.id,
-            JSON.stringify(artifact.metadata),
-            JSON.stringify(artifact.agentReview),
-            JSON.stringify(artifact.maintenanceMeta),
-            JSON.stringify(artifact.boundaryMeta ?? null),
-            artifact.createdAt,
-            artifact.updatedAt,
-          ],
+        await insertArtifactRows(
+          client,
+          artifact,
+          [artifact.history[0]!],
+          [artifact.lifecycleHistory[0]!],
         );
         const revision = artifact.history[0]!;
-        await client.query(
-          'INSERT INTO artifact_revisions (id, artifact_id, revision_no, source_hash, files, script_descriptors, derived, submitted_at, submitted_by_user_id, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
-          [
-            `${artifact.id}_rev${revision.revision}`,
-            artifact.id,
-            revision.revision,
-            revision.sourceHash,
-            JSON.stringify(revision.files),
-            JSON.stringify(revision.scriptDescriptors),
-            JSON.stringify(revision.derived),
-            revision.submittedAt,
-            revision.submittedBy.id,
-            revision.submittedAt,
-          ],
-        );
-        const event = artifact.lifecycleHistory[0]!;
-        await client.query(
-          'INSERT INTO artifact_lifecycle_events (id, artifact_id, type, created_at, actor_user_id, submission_id, revision_no, state, note) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
-          [
-            event.id,
-            artifact.id,
-            event.type,
-            event.createdAt,
-            event.actor?.id ?? null,
-            event.submissionId,
-            event.revision,
-            event.state,
-            event.note,
-          ],
-        );
         for (const payload of payloads) {
           const file = revision.files.find((candidate) => candidate.path === payload.path);
           if (!file) throw new Error(`Artifact revision metadata missing file ${payload.path}`);

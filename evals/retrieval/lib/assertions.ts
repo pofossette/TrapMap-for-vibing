@@ -11,6 +11,12 @@
  */
 
 import type { GraphPlanExpectations, RetrievalEvalCase } from '@trapmap/contracts/evals';
+import {
+  checkV1BucketShape,
+  checkV1SkillLookupArtifacts,
+  checkV2CapsuleCount,
+  checkV2ProfileHints,
+} from './governance-shared.js';
 import type {
   AdapterWarning,
   GovernanceFailure,
@@ -123,40 +129,8 @@ function assertV1BucketShape(
   bucketExpectations?: Record<'globalConstraints' | 'projectKnowledge', string[]>,
 ): Verdict | null {
   if (!bucketExpectations) return null;
-
-  const missingIds: string[] = [];
-
-  // Check global constraints
-  const expectedGlobal = bucketExpectations.globalConstraints ?? [];
-  const actualGlobalSet = new Set(result.buckets.globalConstraints);
-  for (const expectedId of expectedGlobal) {
-    if (!actualGlobalSet.has(expectedId)) {
-      missingIds.push(expectedId);
-    }
-  }
-
-  // Check project knowledge
-  const expectedProject = bucketExpectations.projectKnowledge ?? [];
-  const actualProjectSet = new Set(result.buckets.projectKnowledge);
-  for (const expectedId of expectedProject) {
-    if (!actualProjectSet.has(expectedId)) {
-      missingIds.push(expectedId);
-    }
-  }
-
-  if (missingIds.length > 0) {
-    return {
-      kind: 'shape',
-      passed: false,
-      failure: {
-        kind: 'shape-mismatch',
-        description: `Expected IDs missing from buckets: ${missingIds.join(', ')}`,
-        ids: missingIds,
-      },
-    };
-  }
-
-  return { kind: 'shape', passed: true };
+  const failure = checkV1BucketShape(result, bucketExpectations);
+  return failure ? { kind: 'shape', passed: false, failure } : { kind: 'shape', passed: true };
 }
 
 /**
@@ -169,23 +143,8 @@ function assertV1SkillLookupArtifacts(
   if (!expectedArtifactIds || expectedArtifactIds.length === 0) {
     return null;
   }
-
-  const actualSet = new Set(result.artifactIds);
-  const missingIds = expectedArtifactIds.filter((id) => !actualSet.has(id));
-
-  if (missingIds.length > 0) {
-    return {
-      kind: 'shape',
-      passed: false,
-      failure: {
-        kind: 'shape-mismatch',
-        description: `Expected artifact IDs missing from skill lookup response: ${missingIds.join(', ')}`,
-        ids: missingIds,
-      },
-    };
-  }
-
-  return { kind: 'shape', passed: true };
+  const failure = checkV1SkillLookupArtifacts(result, expectedArtifactIds);
+  return failure ? { kind: 'shape', passed: false, failure } : { kind: 'shape', passed: true };
 }
 
 /**
@@ -198,23 +157,8 @@ function assertV2ProfileHints(
   if (!expectedProfileHintArtifactIds || expectedProfileHintArtifactIds.length === 0) {
     return null;
   }
-
-  const actualSet = new Set(result.profileHintArtifactIds);
-  const missingIds = expectedProfileHintArtifactIds.filter((id) => !actualSet.has(id));
-
-  if (missingIds.length > 0) {
-    return {
-      kind: 'shape',
-      passed: false,
-      failure: {
-        kind: 'shape-mismatch',
-        description: `Expected profile hint artifact IDs missing: ${missingIds.join(', ')}`,
-        ids: missingIds,
-      },
-    };
-  }
-
-  return { kind: 'shape', passed: true };
+  const failure = checkV2ProfileHints(result, expectedProfileHintArtifactIds);
+  return failure ? { kind: 'shape', passed: false, failure } : { kind: 'shape', passed: true };
 }
 
 /**
@@ -225,21 +169,8 @@ function assertV2CapsuleCount(
   expectedCapsuleCount?: number,
 ): Verdict | null {
   if (expectedCapsuleCount === undefined) return null;
-
-  const actualCount = result.hits.length;
-  if (actualCount !== expectedCapsuleCount) {
-    return {
-      kind: 'shape',
-      passed: false,
-      failure: {
-        kind: 'shape-mismatch',
-        description: `Expected ${expectedCapsuleCount} capsules but got ${actualCount}`,
-        ids: [],
-      },
-    };
-  }
-
-  return { kind: 'shape', passed: true };
+  const failure = checkV2CapsuleCount(result, expectedCapsuleCount);
+  return failure ? { kind: 'shape', passed: false, failure } : { kind: 'shape', passed: true };
 }
 
 /**

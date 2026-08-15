@@ -2,10 +2,13 @@ import { z } from 'zod';
 
 import {
   actorRefSchema,
+  batchResponseFields,
+  commaSeparatedListSchema,
   entityIdSchema,
   isoTimestampSchema,
   labelSchema,
   scopeSchema,
+  withEligibilityRefinements,
 } from './common.js';
 import { decayAwareListItemSchema } from './decay.js';
 
@@ -57,16 +60,7 @@ export const maintenanceEntryListRequestSchema = z
     /** Filter by scope */
     scope: scopeSchema.optional(),
     /** Filter by labels */
-    labels: z.preprocess((val) => {
-      if (val === undefined || val === null) return undefined;
-      if (Array.isArray(val)) return val;
-      if (typeof val === 'string')
-        return val
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean);
-      return val;
-    }, z.array(labelSchema).optional()),
+    labels: commaSeparatedListSchema(z.array(labelSchema).optional()),
     /** Maximum number of items to return */
     limit: z.coerce.number().int().min(1).max(100).default(25),
   })
@@ -124,8 +118,8 @@ export const maintenanceBatchOperationRequestSchema = z.object({
  * Each entry in the batch gets an item describing the planned or applied change,
  * eligibility status, and reason if ineligible.
  */
-export const maintenanceBatchOperationItemSchema = z
-  .object({
+export const maintenanceBatchOperationItemSchema = withEligibilityRefinements(
+  z.object({
     /** Entry ID */
     entryId: entityIdSchema,
     /** Entry shortcut for display */
@@ -140,13 +134,8 @@ export const maintenanceBatchOperationItemSchema = z
     eligible: z.boolean(),
     /** Reason for ineligibility (null if eligible) */
     ineligibilityReason: z.string().nullable(),
-  })
-  .refine((d) => !d.eligible || d.ineligibilityReason === null, {
-    message: 'ineligibilityReason must be null when eligible is true',
-  })
-  .refine((d) => d.eligible || d.ineligibilityReason !== null, {
-    message: 'ineligibilityReason must be non-null when eligible is false',
-  });
+  }),
+);
 
 /**
  * Response schema for maintenance batch operations.
@@ -162,12 +151,7 @@ export const maintenanceBatchOperationResponseSchema = z
     dryRun: z.boolean(),
     /** Per-entry results */
     items: z.array(maintenanceBatchOperationItemSchema),
-    /** Count of eligible entries */
-    totalEligible: z.number().int().min(0),
-    /** Count of ineligible entries */
-    totalIneligible: z.number().int().min(0),
-    /** When the batch was applied (null for dry-run) */
-    appliedAt: isoTimestampSchema.nullable(),
+    ...batchResponseFields,
   })
   .strict()
   .refine((d) => !d.dryRun || d.appliedAt === null, {

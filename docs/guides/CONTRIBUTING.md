@@ -200,6 +200,9 @@ pnpm check:docs
 # 检查复杂度预算
 pnpm check:complexity
 
+# 重复代码诊断（jscpd，阈值 6%）
+pnpm duplication
+
 # 全仓 fallow 质量门
 pnpm check:fallow
 ```

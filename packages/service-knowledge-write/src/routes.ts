@@ -3,6 +3,7 @@ import {
   type KnowledgeWritePort,
   type RouteContext,
   type RouteDef,
+  createServiceReadinessHandler,
   registerFastifyRoutes,
   routeResponse,
 } from '@trapmap/backend-core';
@@ -65,6 +66,44 @@ type KnowledgeWriteRpcMethod =
   | 'applyMaintenanceDecision'
   | 'applyDecayDecision'
   | 'publishCandidateResult';
+
+function reviewDecisionArgs(
+  ctx: RouteContext,
+): Parameters<KnowledgeWritePort['approveReviewDecision']>[0] {
+  const body = ctx.body as {
+    actorId?: string;
+    entryId: string;
+    evidence?: Record<string, unknown>;
+    note?: string;
+  };
+  const trusted = trustedActor(ctx.headers ?? {}, body);
+  return {
+    entryId: body.entryId,
+    ...(body.note !== undefined ? { note: body.note } : {}),
+    ...(body.evidence !== undefined ? { evidence: body.evidence } : {}),
+    actorId: trusted.actorId,
+  };
+}
+
+function maintenanceDecisionArgs(
+  ctx: RouteContext,
+): Parameters<KnowledgeWritePort['applyMaintenanceDecision']>[0] {
+  const body = ctx.body as {
+    action: string;
+    actorId?: string;
+    entryId: string;
+    evidence?: Record<string, unknown>;
+    note?: string;
+  };
+  const trusted = trustedActor(ctx.headers ?? {}, body);
+  return {
+    entryId: body.entryId,
+    action: body.action,
+    ...(body.note !== undefined ? { note: body.note } : {}),
+    ...(body.evidence !== undefined ? { evidence: body.evidence } : {}),
+    actorId: trusted.actorId,
+  };
+}
 
 async function invokeKnowledgeWriteRpc(
   module: KnowledgeWritePort,
@@ -244,32 +283,18 @@ function knowledgeWriteRouteDef<Ctx extends RouteContext>(def: {
 }
 
 function readinessHandler(deps: KnowledgeWriteRouteDeps, service: string) {
-  return async () => {
-    let dependencyStatus: { reachable: boolean; detail?: string } = { reachable: true };
-    if (deps.checkDependency) {
-      try {
-        dependencyStatus = await deps.checkDependency();
-      } catch {
-        dependencyStatus = { reachable: false, detail: 'dependency check threw' };
-      }
-    }
-    const ready = dependencyStatus.reachable;
-    const body = {
-      ready,
-      service,
-      checks: {
-        self: { status: 'ok' },
-        persistence: {
-          status: dependencyStatus.reachable ? 'ok' : 'degraded',
-          detail: dependencyStatus.detail ?? null,
-        },
-      },
+  return createServiceReadinessHandler({
+    service,
+    checkDependency: deps.checkDependency,
+    checks: {
+      persistence: { status: 'ok', detail: null },
+    },
+    extra: {
       aggregateMutationAuthority: true,
       lifecycleRuleAuthority: true,
       followUpDisposition: 'outbox-queue-workflow-async',
-    };
-    return ready ? body : routeResponse(503, body);
-  };
+    },
+  });
 }
 
 export function createKnowledgeWriteRouteDefs(
@@ -393,13 +418,7 @@ export function createKnowledgeWriteRouteDefs(
       path: '/internal/knowledge/review/approve',
       schema: reviewDecisionSchema,
       handler: async (ctx, module) => {
-        const trusted = trustedActor(ctx.headers ?? {}, ctx.body);
-        return module.approveReviewDecision({
-          entryId: ctx.body.entryId,
-          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
-          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
-          actorId: trusted.actorId,
-        });
+        return module.approveReviewDecision(reviewDecisionArgs(ctx));
       },
     }),
 
@@ -408,13 +427,7 @@ export function createKnowledgeWriteRouteDefs(
       path: '/internal/knowledge/review/reject',
       schema: reviewDecisionSchema,
       handler: async (ctx, module) => {
-        const trusted = trustedActor(ctx.headers ?? {}, ctx.body);
-        return module.rejectReviewDecision({
-          entryId: ctx.body.entryId,
-          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
-          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
-          actorId: trusted.actorId,
-        });
+        return module.rejectReviewDecision(reviewDecisionArgs(ctx));
       },
     }),
 
@@ -423,14 +436,7 @@ export function createKnowledgeWriteRouteDefs(
       path: '/internal/knowledge/maintenance',
       schema: maintenanceDecisionSchema,
       handler: async (ctx, module) => {
-        const trusted = trustedActor(ctx.headers ?? {}, ctx.body);
-        return module.applyMaintenanceDecision({
-          entryId: ctx.body.entryId,
-          action: ctx.body.action,
-          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
-          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
-          actorId: trusted.actorId,
-        });
+        return module.applyMaintenanceDecision(maintenanceDecisionArgs(ctx));
       },
     }),
 
@@ -439,14 +445,7 @@ export function createKnowledgeWriteRouteDefs(
       path: '/internal/knowledge/decay',
       schema: maintenanceDecisionSchema,
       handler: async (ctx, module) => {
-        const trusted = trustedActor(ctx.headers ?? {}, ctx.body);
-        return module.applyDecayDecision({
-          entryId: ctx.body.entryId,
-          action: ctx.body.action,
-          ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
-          ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
-          actorId: trusted.actorId,
-        });
+        return module.applyDecayDecision(maintenanceDecisionArgs(ctx));
       },
     }),
 

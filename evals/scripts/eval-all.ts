@@ -279,6 +279,27 @@ class FatalEvalError extends Error {
   }
 }
 
+function passRateSummary(report: {
+  summary: {
+    failedCases: number;
+    passRate: number;
+    passedCases: number;
+    totalCases: number;
+  };
+}): {
+  failedCases: number;
+  passRate: number;
+  passedCases: number;
+  totalCases: number;
+} {
+  return {
+    totalCases: report.summary.totalCases,
+    passedCases: report.summary.passedCases,
+    failedCases: report.summary.failedCases,
+    passRate: report.summary.passRate,
+  };
+}
+
 function logLangfuseAdapterEnabled(
   log: typeof console.log,
   config: NonNullable<
@@ -400,18 +421,10 @@ function buildFailureResult(
   startTime: number,
   tier: EvalAllOptions['tier'],
 ): RunUnifiedEvaluationResult {
+  const report = buildCombinedReport(state, startTime, tier);
   return {
     combinedReport: {
-      schemaVersion: 1,
-      timestamp: new Date().toISOString(),
-      durationMs: Date.now() - startTime,
-      tier,
-      retrieval: state.retrieval,
-      summary: state.summary,
-      graphExtraction: state.graphExtraction,
-      ingestion: state.ingestion,
-      agentPlanning: state.agentPlanning,
-      labelAlignment: state.labelAlignment,
+      ...report,
       overall: { passed: false, totalCases: 0, passedCases: 0, failedCases: 0 },
     },
     exitCode: 1,
@@ -642,10 +655,7 @@ export async function runRetrievalEval(options: EvalAllOptions): Promise<Retriev
       report,
       durationMs: Date.now() - startTime,
       summary: {
-        totalCases: report.summary.totalCases,
-        passedCases: report.summary.passedCases,
-        failedCases: report.summary.failedCases,
-        passRate: report.summary.passRate,
+        ...passRateSummary(report),
         slices: report.slices.map((slice) => ({
           tier: slice.slice.tier,
           endpoint: slice.slice.endpoint,
@@ -843,10 +853,7 @@ async function runAgentPlanningEval(options: EvalAllOptions): Promise<AgentPlann
       report,
       durationMs: Date.now() - startTime,
       summary: {
-        totalCases: report.summary.totalCases,
-        passedCases: report.summary.passedCases,
-        failedCases: report.summary.failedCases,
-        passRate: report.summary.passRate,
+        ...passRateSummary(report),
         avgScore: report.summary.avgScore,
       },
     };
@@ -884,10 +891,7 @@ async function runLabelAlignmentEval(
       report,
       durationMs: Date.now() - startTime,
       summary: {
-        totalCases: report.summary.totalCases,
-        passedCases: report.summary.passedCases,
-        failedCases: report.summary.failedCases,
-        passRate: report.summary.passRate,
+        ...passRateSummary(report),
         alignmentAccuracy: report.summary.alignmentAccuracy,
         falseMerges: report.summary.falseMerges,
         missedMerges: report.summary.missedMerges,

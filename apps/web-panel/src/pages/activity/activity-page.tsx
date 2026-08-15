@@ -1,4 +1,3 @@
-import { ListBox, Select } from '@heroui/react';
 import { useActivityPageModel } from '@trapmap/web-panel/features/activity/use-activity-page-model';
 import {
   localizeActivityType,
@@ -9,6 +8,7 @@ import {
   EmptyState,
   ErrorPanel,
   FilterItem,
+  FilterSelect,
   FilterToolbar,
   PageContainer,
   SectionHeader,
@@ -103,104 +103,16 @@ export function ActivityPage(): ReactElement {
             />
           </FilterItem>
           <FilterItem label={t('typeFilter')}>
-            <Select
-              className="w-full"
+            <FilterSelect
               value={typeFilter}
-              onChange={(val) => setTypeFilter(val ? String(val) : 'all')}
-            >
-              <Select.Trigger className="relative w-full flex items-center justify-between rounded-md border border-panel-line bg-panel-surface px-3 py-2.5 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent cursor-pointer transition duration-200 outline-none">
-                <Select.Value />
-                <Select.Indicator className="text-panel-muted transition-transform duration-200" />
-              </Select.Trigger>
-              <Select.Popover className="min-w-[220px] rounded-xl border border-panel-line bg-panel-surface p-1.5 shadow-panel">
-                <ListBox className="outline-none">
-                  <ListBox.Item
-                    id="all"
-                    textValue={t('allTypes')}
-                    className="flex items-center justify-between px-3 py-2 text-sm rounded-lg text-panel-text hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium transition duration-150"
-                  >
-                    {t('allTypes')}
-                    <ListBox.ItemIndicator>
-                      <svg
-                        role="img"
-                        aria-label="Selected"
-                        className="h-4 w-4 text-panel-accent shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2.5}
-                        viewBox="0 0 24 24"
-                      >
-                        <title>Selected</title>
-                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </ListBox.ItemIndicator>
-                  </ListBox.Item>
-                  <ListBox.Item
-                    id="decision"
-                    textValue={t('decisions')}
-                    className="flex items-center justify-between px-3 py-2 text-sm rounded-lg text-panel-text hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium transition duration-150"
-                  >
-                    {t('decisions')}
-                    <ListBox.ItemIndicator>
-                      <svg
-                        role="img"
-                        aria-label="Selected"
-                        className="h-4 w-4 text-panel-accent shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2.5}
-                        viewBox="0 0 24 24"
-                      >
-                        <title>Selected</title>
-                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </ListBox.ItemIndicator>
-                  </ListBox.Item>
-                  <ListBox.Item
-                    id="intervention"
-                    textValue={t('interventions')}
-                    className="flex items-center justify-between px-3 py-2 text-sm rounded-lg text-panel-text hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium transition duration-150"
-                  >
-                    {t('interventions')}
-                    <ListBox.ItemIndicator>
-                      <svg
-                        role="img"
-                        aria-label="Selected"
-                        className="h-4 w-4 text-panel-accent shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2.5}
-                        viewBox="0 0 24 24"
-                      >
-                        <title>Selected</title>
-                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </ListBox.ItemIndicator>
-                  </ListBox.Item>
-                  <ListBox.Item
-                    id="system-ingestion"
-                    textValue={t('systemIngestion')}
-                    className="flex items-center justify-between px-3 py-2 text-sm rounded-lg text-panel-text hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium transition duration-150"
-                  >
-                    {t('systemIngestion')}
-                    <ListBox.ItemIndicator>
-                      <svg
-                        role="img"
-                        aria-label="Selected"
-                        className="h-4 w-4 text-panel-accent shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2.5}
-                        viewBox="0 0 24 24"
-                      >
-                        <title>Selected</title>
-                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </ListBox.ItemIndicator>
-                  </ListBox.Item>
-                </ListBox>
-              </Select.Popover>
-            </Select>
+              onChange={setTypeFilter}
+              options={[
+                { id: 'all', label: t('allTypes') },
+                { id: 'decision', label: t('decisions') },
+                { id: 'intervention', label: t('interventions') },
+                { id: 'system-ingestion', label: t('systemIngestion') },
+              ]}
+            />
           </FilterItem>
         </FilterToolbar>
 

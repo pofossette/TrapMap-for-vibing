@@ -13,16 +13,10 @@
 
 import { parseArgs } from 'node:util';
 
-import {
-  type RetrievalEvalCase,
-  type RetrievalEvalTier,
-  retrievalEvalCaseSchema,
-} from '@trapmap/contracts/evals';
+import type { RetrievalEvalCase, RetrievalEvalTier } from '@trapmap/contracts/evals';
 
-import { coreCases } from './core.js';
-// Import tier datasets
-import { smokeCases } from './smoke.js';
-
+import { loadAndFilterCases, resolveRunnerValue } from '../lib/runner-cli.js';
+import { loadCases } from './lib/load.js';
 // Import execution modules
 import { formatRunnerSummary } from './lib/runner-summary.js';
 import type { RunnerSummary } from './lib/types.js';
@@ -121,12 +115,7 @@ function parseArgs_(): RunOptions {
     process.exit(1);
   }
 
-  const runnerValue = values.runner ?? 'promptfoo';
-  if (runnerValue !== 'native' && runnerValue !== 'promptfoo') {
-    console.error(`Invalid --runner value: ${runnerValue}`);
-    process.exit(1);
-  }
-  const runner = runnerValue as 'native' | 'promptfoo';
+  const runner = resolveRunnerValue(values.runner);
 
   return {
     tier,
@@ -140,27 +129,6 @@ function parseArgs_(): RunOptions {
     ...(values.baseline !== undefined ? { baselinePath: values.baseline } : {}),
     ...(values['write-baseline'] ? { writeBaseline: true } : {}),
   };
-}
-
-/**
- * Load cases for the specified tier.
- */
-function loadCases(tier: RetrievalEvalTier): RetrievalEvalCase[] {
-  const rawCases = tier === 'smoke' ? smokeCases : coreCases;
-
-  // Validate each case against the schema
-  const validatedCases: RetrievalEvalCase[] = [];
-  for (const rawCase of rawCases) {
-    try {
-      const parsed = retrievalEvalCaseSchema.parse(rawCase);
-      validatedCases.push(parsed);
-    } catch (error) {
-      console.error(`Invalid case in ${tier} tier:`, error);
-      throw error;
-    }
-  }
-
-  return validatedCases;
 }
 
 /**
@@ -213,26 +181,7 @@ async function main(): Promise<void> {
   console.log('');
 
   // Load and validate cases
-  let cases_: RetrievalEvalCase[];
-  try {
-    cases_ = loadCases(options.tier);
-  } catch (error) {
-    console.error('Failed to load cases:', error);
-    process.exit(1);
-  }
-
-  // Filter by endpoint if specified
-  cases_ = filterByEndpoint(cases_, options.endpoint);
-
-  // Check for empty dataset
-  if (cases_.length === 0) {
-    if (options.allowEmpty) {
-      console.log('No cases found. Exiting successfully (allow-empty mode).\n');
-      return;
-    }
-    console.error(`No cases found for tier '${options.tier}'. Use --allow-empty to skip.`);
-    process.exit(1);
-  }
+  const cases_ = loadAndFilterCases(loadCases, filterByEndpoint, options);
 
   // Summary output
   console.log(`Loaded ${cases_.length} case(s):`);

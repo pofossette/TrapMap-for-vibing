@@ -32,6 +32,34 @@ function extractRoutingTrace(response: unknown): NormalizedResult['routingTrace'
   };
 }
 
+interface V3RoutingTrace extends NonNullable<NormalizedResult['routingTrace']> {
+  intentCategory?: string;
+  parseMethod?: string;
+}
+
+function buildV3Result(
+  normalized: Omit<NormalizedResult, 'endpoint' | 'rawResponse' | 'routingTrace'>,
+  response: GraphPlanSearchResponse,
+  routingTrace: V3RoutingTrace,
+): NormalizedResult {
+  return {
+    ...normalized,
+    rawResponse: response,
+    endpoint: '/v3/retrieval/search',
+    routingTrace: {
+      selectedMode: routingTrace.selectedMode,
+      routingReason: routingTrace.routingReason,
+      fallbackApplied: routingTrace.fallbackApplied,
+      channelsUsed: routingTrace.channelsUsed,
+      ...(routingTrace.graphRetrieval ? { graphRetrieval: routingTrace.graphRetrieval } : {}),
+      ...(routingTrace.parseMethod !== undefined ? { parseMethod: routingTrace.parseMethod } : {}),
+      ...(routingTrace.intentCategory !== undefined
+        ? { intentCategory: routingTrace.intentCategory }
+        : {}),
+    },
+  };
+}
+
 // =============================================================================
 // V1 Response Normalization
 // =============================================================================
@@ -204,82 +232,46 @@ export function normalizeV3Response(response: GraphPlanSearchResponse): Normaliz
       recommendedSkillNodeIds: graphFocus.recommendedSkillNodeIds,
     };
 
-    return {
-      hits,
-      returnedIds: hits.map((h) => h.id),
-      buckets: {
-        globalConstraints: [],
-        projectKnowledge: [],
+    return buildV3Result(
+      {
+        hits,
+        returnedIds: hits.map((h) => h.id),
+        buckets: {
+          globalConstraints: [],
+          projectKnowledge: [],
+        },
+        profileHintArtifactIds: recommendedSkills.map((skill) => skill.artifactId),
+        artifactIds: recommendedSkills.map((skill) => skill.artifactId),
+        isEmpty: hits.length === 0,
+        graphPlanStructure,
       },
-      profileHintArtifactIds: recommendedSkills.map((skill) => skill.artifactId),
-      artifactIds: recommendedSkills.map((skill) => skill.artifactId),
-      isEmpty: hits.length === 0,
-      rawResponse: response,
-      endpoint: '/v3/retrieval/search',
-      routingTrace: {
-        selectedMode: routingTrace.selectedMode,
-        routingReason: routingTrace.routingReason,
-        fallbackApplied: routingTrace.fallbackApplied,
-        channelsUsed: routingTrace.channelsUsed,
-        parseMethod: (routingTrace as any).parseMethod,
-        intentCategory: (routingTrace as any).intentCategory,
-      },
-      graphPlanStructure,
-    };
+      response,
+      routingTrace as V3RoutingTrace,
+    );
   }
 
   if (response.fallback?.routeFamily === 'capsule') {
     const normalized = normalizeV2Response(response.fallback.response);
-    return {
-      ...normalized,
-      rawResponse: response,
-      endpoint: '/v3/retrieval/search',
-      routingTrace: {
-        selectedMode: routingTrace.selectedMode,
-        routingReason: routingTrace.routingReason,
-        fallbackApplied: routingTrace.fallbackApplied,
-        channelsUsed: routingTrace.channelsUsed,
-        parseMethod: (routingTrace as any).parseMethod,
-        intentCategory: (routingTrace as any).intentCategory,
-      },
-    };
+    return buildV3Result(normalized, response, routingTrace as V3RoutingTrace);
   }
 
   if (response.fallback?.routeFamily === 'entry') {
     const normalized = normalizeV1Response(response.fallback.response);
-    return {
-      ...normalized,
-      rawResponse: response,
-      endpoint: '/v3/retrieval/search',
-      routingTrace: {
-        selectedMode: routingTrace.selectedMode,
-        routingReason: routingTrace.routingReason,
-        fallbackApplied: routingTrace.fallbackApplied,
-        channelsUsed: routingTrace.channelsUsed,
-        parseMethod: (routingTrace as any).parseMethod,
-        intentCategory: (routingTrace as any).intentCategory,
-      },
-    };
+    return buildV3Result(normalized, response, routingTrace as V3RoutingTrace);
   }
 
-  return {
-    hits: [],
-    returnedIds: [],
-    buckets: { globalConstraints: [], projectKnowledge: [] },
-    profileHintArtifactIds: [],
-    artifactIds: [],
-    isEmpty: true,
-    rawResponse: response,
-    endpoint: '/v3/retrieval/search',
-    routingTrace: {
-      selectedMode: routingTrace.selectedMode,
-      routingReason: routingTrace.routingReason,
-      fallbackApplied: routingTrace.fallbackApplied,
-      channelsUsed: routingTrace.channelsUsed,
-      parseMethod: (routingTrace as any).parseMethod,
-      intentCategory: (routingTrace as any).intentCategory,
+  return buildV3Result(
+    {
+      hits: [],
+      returnedIds: [],
+      buckets: { globalConstraints: [], projectKnowledge: [] },
+      profileHintArtifactIds: [],
+      artifactIds: [],
+      isEmpty: true,
     },
-  };
+    response,
+    routingTrace as V3RoutingTrace,
+  );
 }
 
 // =============================================================================

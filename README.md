@@ -199,7 +199,7 @@ pnpm test:heavy-target  # light checks + discovery/distributed/runtime closeout
 
 `heavy` 是 gateway + worker/service-unit 的过渡性分布式拓扑，而不是物理数据库隔离、Kubernetes、mTLS、独立控制面或与 `light` 的能力对等承诺。无论选择哪个 target，CLI 和 web-panel 都只访问唯一 gateway；web-panel 没有持久化连接配置，因此不提供 target selector。
 
-`@trapmap/app-light` 的 closeout 验收路径固定为 `build -> start -> observability-benchmark`。`dev` 只保留给开发便利，不作为“本轮是否修复完成”的事实源；本轮 closeout 不包含 `@trapmap/server build` 的全量清障。
+`@trapmap/host-local` 的 closeout 验收路径固定为 `build -> start -> observability-benchmark`。`dev` 只保留给开发便利，不作为“本轮是否修复完成”的事实源；本轮 closeout 不包含 `@trapmap/server build` 的全量清障。
 
 另一个终端可运行 CLI：
 

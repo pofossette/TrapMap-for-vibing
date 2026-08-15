@@ -41,13 +41,15 @@ export const DuplicateMatchTypeSchema = z.enum(['exact', 'high-overlap', 'semant
  * Payload for trap (knowledge entry) candidate submission.
  * Mirrors KnowledgeSubmission shape for pre-ingest validation.
  */
-export const TrapCandidatePayloadSchema = z.object({
+const trapCandidateFields = {
   scope: scopeSchema,
   labels: z.array(labelSchema).min(1),
   shortcut: z.string().min(1).max(280),
   detail: z.string().min(1).max(10000),
   requiredLevel: securityLevelSchema.optional(),
-});
+};
+
+export const TrapCandidatePayloadSchema = z.object(trapCandidateFields);
 
 /**
  * Metadata for a single file within a skill bundle.
@@ -276,13 +278,7 @@ export const CandidateSubmissionSchema = z
 // Type exports
 // Request schemas
 
-export const candidateTrapSubmissionSchema = z.object({
-  scope: scopeSchema,
-  labels: z.array(labelSchema).min(1),
-  shortcut: z.string().min(1).max(280),
-  detail: z.string().min(1).max(10000),
-  requiredLevel: securityLevelSchema.optional(),
-});
+export const candidateTrapSubmissionSchema = z.object(trapCandidateFields);
 
 export const candidateSkillSubmissionSchema = z.object({
   // Matches artifact import bundle structure

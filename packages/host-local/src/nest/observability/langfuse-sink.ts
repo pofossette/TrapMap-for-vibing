@@ -41,15 +41,8 @@ export interface LangfuseClientLike {
 // Factory
 // ---------------------------------------------------------------------------
 
-/**
- * Create a Langfuse observation sink from environment variables.
- *
- * Returns `undefined` when Langfuse is disabled or misconfigured.
- * When a sink is returned, it dynamically imports the `langfuse` SDK
- * on first use and treats all failures as safe diagnostics.
- */
-export async function createLangfuseSinkFromEnv(): Promise<LlmObservationSink | undefined> {
-  const policy = validateLangfusePolicy(
+export function loadLangfusePolicyFromEnv(): LangfusePolicyResult {
+  return validateLangfusePolicy(
     Object.fromEntries(
       Object.entries({
         langfuseEnabled: process.env.LANGFUSE_ENABLED,
@@ -66,6 +59,17 @@ export async function createLangfuseSinkFromEnv(): Promise<LlmObservationSink | 
       }).filter(([, v]) => v !== undefined),
     ),
   );
+}
+
+/**
+ * Create a Langfuse observation sink from environment variables.
+ *
+ * Returns `undefined` when Langfuse is disabled or misconfigured.
+ * When a sink is returned, it dynamically imports the `langfuse` SDK
+ * on first use and treats all failures as safe diagnostics.
+ */
+export async function createLangfuseSinkFromEnv(): Promise<LlmObservationSink | undefined> {
+  const policy = loadLangfusePolicyFromEnv();
 
   if (!policy.enabled) {
     return undefined;
@@ -98,32 +102,43 @@ export function createSinkFromClient(
   client: LangfuseClientLike,
   policy: LangfusePolicyResult,
 ): LlmObservationSink {
+  const emitGeneration = (
+    observation: ChatObservation | EmbeddingObservation,
+    name: string,
+  ): void => {
+    const metadata: Record<string, unknown> = {
+      provider: observation.provider,
+      operation: observation.operation,
+      outcome: observation.outcome,
+      latencyMs: observation.latencyMs,
+      serviceName: policy.serviceName,
+      environment: policy.environment,
+      deploymentProfile: policy.deploymentProfile,
+    };
+
+    if ('inputLength' in observation) {
+      metadata.inputLength = observation.inputLength;
+      metadata.outputDimensions = observation.outputDimensions;
+    }
+    if (observation.traceId) metadata.traceId = observation.traceId;
+    if (observation.requestId) metadata.requestId = observation.requestId;
+    if (observation.operationId) metadata.operationId = observation.operationId;
+
+    client.generation({
+      name,
+      model: observation.provider,
+      metadata,
+      startTime: new Date(observation.startTimestamp),
+      endTime: new Date(observation.endTimestamp),
+      level: observation.outcome === 'error' ? 'ERROR' : 'DEFAULT',
+      ...(observation.error && { statusMessage: observation.error }),
+    });
+  };
+
   return {
     onChatObservation(observation: ChatObservation): void {
       try {
-        const metadata: Record<string, unknown> = {
-          provider: observation.provider,
-          operation: observation.operation,
-          outcome: observation.outcome,
-          latencyMs: observation.latencyMs,
-          serviceName: policy.serviceName,
-          environment: policy.environment,
-          deploymentProfile: policy.deploymentProfile,
-        };
-
-        if (observation.traceId) metadata.traceId = observation.traceId;
-        if (observation.requestId) metadata.requestId = observation.requestId;
-        if (observation.operationId) metadata.operationId = observation.operationId;
-
-        client.generation({
-          name: `${observation.provider}:${observation.operation}`,
-          model: observation.provider,
-          metadata,
-          startTime: new Date(observation.startTimestamp),
-          endTime: new Date(observation.endTimestamp),
-          level: observation.outcome === 'error' ? 'ERROR' : 'DEFAULT',
-          ...(observation.error && { statusMessage: observation.error }),
-        });
+        emitGeneration(observation, `${observation.provider}:${observation.operation}`);
       } catch {
         // Sink failure is a safe diagnostic
       }
@@ -131,31 +146,7 @@ export function createSinkFromClient(
 
     onEmbeddingObservation(observation: EmbeddingObservation): void {
       try {
-        const metadata: Record<string, unknown> = {
-          provider: observation.provider,
-          operation: observation.operation,
-          outcome: observation.outcome,
-          latencyMs: observation.latencyMs,
-          inputLength: observation.inputLength,
-          outputDimensions: observation.outputDimensions,
-          serviceName: policy.serviceName,
-          environment: policy.environment,
-          deploymentProfile: policy.deploymentProfile,
-        };
-
-        if (observation.traceId) metadata.traceId = observation.traceId;
-        if (observation.requestId) metadata.requestId = observation.requestId;
-        if (observation.operationId) metadata.operationId = observation.operationId;
-
-        client.generation({
-          name: `${observation.provider}:embed`,
-          model: observation.provider,
-          metadata,
-          startTime: new Date(observation.startTimestamp),
-          endTime: new Date(observation.endTimestamp),
-          level: observation.outcome === 'error' ? 'ERROR' : 'DEFAULT',
-          ...(observation.error && { statusMessage: observation.error }),
-        });
+        emitGeneration(observation, `${observation.provider}:embed`);
       } catch {
         // Sink failure is a safe diagnostic
       }

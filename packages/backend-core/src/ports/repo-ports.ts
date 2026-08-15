@@ -19,6 +19,7 @@ import type {
   LifecycleState,
   ManualResultSubmission,
 } from '@trapmap/contracts';
+import type { AuditQueryFilter } from './audit-ports.js';
 
 // ---------------------------------------------------------------------------
 // Shared record stubs — these reference the server's record types.
@@ -283,19 +284,7 @@ export interface AuditRepositoryPort {
   nextId(): Promise<string>;
   insert(event: AuditEventRecord): Promise<void>;
   getById(eventId: string): Promise<AuditEventRecord | null>;
-  listByFilter(filter: {
-    action?: string[];
-    actorId?: string;
-    entityId?: string;
-    teamId?: string;
-    requestId?: string;
-    traceId?: string;
-    operationId?: string;
-    causationId?: string;
-    from?: string;
-    to?: string;
-    limit?: number;
-  }): Promise<{ items: AuditEventRecord[]; total: number }>;
+  listByFilter(filter: AuditQueryFilter): Promise<{ items: AuditEventRecord[]; total: number }>;
 }
 
 // ---------------------------------------------------------------------------

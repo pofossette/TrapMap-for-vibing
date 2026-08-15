@@ -9,5 +9,7 @@ export * from './json-editor-panel';
 export * from './timeline-item';
 export * from './review-action-bar';
 export * from './filter-toolbar';
+export * from './filter-select';
 export * from './g6-graph-component';
+export * from './graph-stats';
 export * from './graph-utils';

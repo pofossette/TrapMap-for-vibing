@@ -64,3 +64,16 @@ export async function resolveTextInput(
 
   throw new Error(formatMissingTextError(fieldName));
 }
+
+export async function resolveSearchSeed(
+  seed: string | undefined,
+  flags: { stdin?: boolean },
+): Promise<string> {
+  return resolveTextInput(
+    {
+      ...(seed !== undefined ? { text: seed } : {}),
+      ...(flags.stdin !== undefined ? { stdin: flags.stdin } : {}),
+    },
+    'seed',
+  );
+}

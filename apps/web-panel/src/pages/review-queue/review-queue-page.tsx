@@ -1,4 +1,3 @@
-import { ListBox, Select } from '@heroui/react';
 import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -13,6 +12,7 @@ import {
   EmptyState,
   ErrorPanel,
   FilterItem,
+  FilterSelect,
   FilterToolbar,
   PageContainer,
   SectionHeader,
@@ -80,103 +80,33 @@ export function ReviewQueuePage(): ReactElement {
         {/* Filter Toolbar using shared component */}
         <FilterToolbar>
           <FilterItem label={t('statusLabel')}>
-            <Select
-              className="w-full"
+            <FilterSelect
               value={model.filters.status}
               onChange={(val) =>
-                model.updateFilters({
-                  status: (val ? String(val) : 'all') as typeof model.filters.status,
-                })
+                model.updateFilters({ status: val as typeof model.filters.status })
               }
-            >
-              <Select.Trigger className="relative w-full flex items-center justify-between rounded-md border border-panel-line bg-panel-surface px-3 py-2.5 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent cursor-pointer transition duration-200 outline-none">
-                <Select.Value />
-                <Select.Indicator className="text-panel-muted transition-transform duration-200" />
-              </Select.Trigger>
-              <Select.Popover className="min-w-[220px] rounded-xl border border-panel-line bg-panel-surface p-1.5 shadow-panel">
-                <ListBox className="outline-none">
-                  {[
-                    { id: 'all', label: t('allStatus') },
-                    { id: 'submitted', label: t('submitted') },
-                    { id: 'approved', label: t('approved') },
-                    { id: 'rejected', label: t('rejected') },
-                  ].map((opt) => (
-                    <ListBox.Item
-                      key={opt.id}
-                      id={opt.id}
-                      textValue={opt.label}
-                      className="flex items-center justify-between px-3 py-2 text-sm rounded-lg text-panel-text hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium transition duration-150"
-                    >
-                      {opt.label}
-                      <ListBox.ItemIndicator>
-                        <svg
-                          role="img"
-                          aria-label="Selected"
-                          className="h-4 w-4 text-panel-accent shrink-0"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2.5}
-                          viewBox="0 0 24 24"
-                        >
-                          <title>Selected</title>
-                          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </ListBox.ItemIndicator>
-                    </ListBox.Item>
-                  ))}
-                </ListBox>
-              </Select.Popover>
-            </Select>
+              options={[
+                { id: 'all', label: t('allStatus') },
+                { id: 'submitted', label: t('submitted') },
+                { id: 'approved', label: t('approved') },
+                { id: 'rejected', label: t('rejected') },
+              ]}
+            />
           </FilterItem>
 
           <FilterItem label={t('riskLevel')}>
-            <Select
-              className="w-full"
+            <FilterSelect
               value={model.filters.riskLevel}
               onChange={(val) =>
-                model.updateFilters({
-                  riskLevel: (val ? String(val) : 'all') as typeof model.filters.riskLevel,
-                })
+                model.updateFilters({ riskLevel: val as typeof model.filters.riskLevel })
               }
-            >
-              <Select.Trigger className="relative w-full flex items-center justify-between rounded-md border border-panel-line bg-panel-surface px-3 py-2.5 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent cursor-pointer transition duration-200 outline-none">
-                <Select.Value />
-                <Select.Indicator className="text-panel-muted transition-transform duration-200" />
-              </Select.Trigger>
-              <Select.Popover className="min-w-[220px] rounded-xl border border-panel-line bg-panel-surface p-1.5 shadow-panel">
-                <ListBox className="outline-none">
-                  {[
-                    { id: 'all', label: t('allRisk') },
-                    { id: 'high', label: t('highRisk') },
-                    { id: 'medium', label: t('mediumRisk') },
-                    { id: 'low', label: t('lowRisk') },
-                  ].map((opt) => (
-                    <ListBox.Item
-                      key={opt.id}
-                      id={opt.id}
-                      textValue={opt.label}
-                      className="flex items-center justify-between px-3 py-2 text-sm rounded-lg text-panel-text hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium transition duration-150"
-                    >
-                      {opt.label}
-                      <ListBox.ItemIndicator>
-                        <svg
-                          role="img"
-                          aria-label="Selected"
-                          className="h-4 w-4 text-panel-accent shrink-0"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2.5}
-                          viewBox="0 0 24 24"
-                        >
-                          <title>Selected</title>
-                          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </ListBox.ItemIndicator>
-                    </ListBox.Item>
-                  ))}
-                </ListBox>
-              </Select.Popover>
-            </Select>
+              options={[
+                { id: 'all', label: t('allRisk') },
+                { id: 'high', label: t('highRisk') },
+                { id: 'medium', label: t('mediumRisk') },
+                { id: 'low', label: t('lowRisk') },
+              ]}
+            />
           </FilterItem>
 
           <FilterItem label={t('sourceLabel')}>
@@ -190,53 +120,16 @@ export function ReviewQueuePage(): ReactElement {
           </FilterItem>
 
           <FilterItem label={t('sortBy')}>
-            <Select
-              className="w-full"
+            <FilterSelect
               value={model.filters.sort}
-              onChange={(val) =>
-                model.updateFilters({
-                  sort: (val ? String(val) : 'highest-risk') as typeof model.filters.sort,
-                })
-              }
-            >
-              <Select.Trigger className="relative w-full flex items-center justify-between rounded-md border border-panel-line bg-panel-surface px-3 py-2.5 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent cursor-pointer transition duration-200 outline-none">
-                <Select.Value />
-                <Select.Indicator className="text-panel-muted transition-transform duration-200" />
-              </Select.Trigger>
-              <Select.Popover className="min-w-[220px] rounded-xl border border-panel-line bg-panel-surface p-1.5 shadow-panel">
-                <ListBox className="outline-none">
-                  {[
-                    { id: 'highest-risk', label: t('sortHighestRisk') },
-                    { id: 'newest', label: t('sortNewest') },
-                    { id: 'oldest', label: t('sortOldest') },
-                    { id: 'longest-waiting', label: t('sortLongestWaiting') },
-                  ].map((opt) => (
-                    <ListBox.Item
-                      key={opt.id}
-                      id={opt.id}
-                      textValue={opt.label}
-                      className="flex items-center justify-between px-3 py-2 text-sm rounded-lg text-panel-text hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium transition duration-150"
-                    >
-                      {opt.label}
-                      <ListBox.ItemIndicator>
-                        <svg
-                          role="img"
-                          aria-label="Selected"
-                          className="h-4 w-4 text-panel-accent shrink-0"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2.5}
-                          viewBox="0 0 24 24"
-                        >
-                          <title>Selected</title>
-                          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </ListBox.ItemIndicator>
-                    </ListBox.Item>
-                  ))}
-                </ListBox>
-              </Select.Popover>
-            </Select>
+              onChange={(val) => model.updateFilters({ sort: val as typeof model.filters.sort })}
+              options={[
+                { id: 'highest-risk', label: t('sortHighestRisk') },
+                { id: 'newest', label: t('sortNewest') },
+                { id: 'oldest', label: t('sortOldest') },
+                { id: 'longest-waiting', label: t('sortLongestWaiting') },
+              ]}
+            />
           </FilterItem>
 
           <FilterItem label={t('searchQuery')}>

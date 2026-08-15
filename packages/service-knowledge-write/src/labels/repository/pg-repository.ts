@@ -37,6 +37,29 @@ export class PgLabelRepository implements LabelRepository {
     });
   }
 
+  private async appendLabelMatch(
+    label: CanonicalLabelRecord,
+    seenIds: Set<string>,
+    results: Array<{
+      aliases: string[];
+      label: CanonicalLabelRecord;
+      recallReason: 'exact-alias' | 'normalized-name';
+    }>,
+    recallReason: 'exact-alias' | 'normalized-name',
+  ): Promise<void> {
+    if (seenIds.has(label.id)) return;
+    seenIds.add(label.id);
+    const allAliases = await this.db
+      .select({ alias: labelAliases.alias })
+      .from(labelAliases)
+      .where(eq(labelAliases.canonicalLabelId, label.id));
+    results.push({
+      label,
+      aliases: allAliases.map((a) => a.alias),
+      recallReason,
+    });
+  }
+
   async findCanonicalById(id: string): Promise<CanonicalLabelRecord | null> {
     const rows = await this.db
       .select()
@@ -173,18 +196,7 @@ export class PgLabelRepository implements LabelRepository {
     const seenIds = new Set<string>();
     for (const row of aliasRows) {
       const label = this.toCanonicalRecord(row.label);
-      if (seenIds.has(label.id)) continue;
-      seenIds.add(label.id);
-      // Fetch all aliases for this label
-      const allAliases = await this.db
-        .select({ alias: labelAliases.alias })
-        .from(labelAliases)
-        .where(eq(labelAliases.canonicalLabelId, label.id));
-      results.push({
-        label,
-        aliases: allAliases.map((a) => a.alias),
-        recallReason: 'exact-alias',
-      });
+      await this.appendLabelMatch(label, seenIds, results, 'exact-alias');
     }
 
     // 2. Normalized name prefix/suffix match (if we haven't hit limit)
@@ -222,17 +234,7 @@ export class PgLabelRepository implements LabelRepository {
 
       for (const row of nameRows) {
         const label = this.toCanonicalRecord(row);
-        if (seenIds.has(label.id)) continue;
-        seenIds.add(label.id);
-        const allAliases = await this.db
-          .select({ alias: labelAliases.alias })
-          .from(labelAliases)
-          .where(eq(labelAliases.canonicalLabelId, label.id));
-        results.push({
-          label,
-          aliases: allAliases.map((a) => a.alias),
-          recallReason: 'normalized-name',
-        });
+        await this.appendLabelMatch(label, seenIds, results, 'normalized-name');
       }
     }
 
@@ -307,18 +309,9 @@ export class PgLabelRepository implements LabelRepository {
       });
   }
 
-  async recordAlignmentEvent(event: {
-    id: string;
-    rawLabel: string;
-    rawEvidence: string;
-    decision: 'existing' | 'new' | 'unsure';
-    canonicalLabelId?: string | null;
-    canonicalName?: string | null;
-    confidence: number;
-    reasoning: string;
-    candidateSnapshot?: Array<{ id: string; canonicalName: string; recallReason: string }>;
-    sourceContext?: string;
-  }): Promise<void> {
+  async recordAlignmentEvent(
+    event: Parameters<LabelRepository['recordAlignmentEvent']>[0],
+  ): Promise<void> {
     await this.db.insert(labelAlignmentEvents).values({
       id: event.id,
       rawLabel: event.rawLabel,

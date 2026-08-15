@@ -26,6 +26,14 @@ import { nowIso, uniqBy } from '@trapmap/lib';
 import type { IdentityActorLookupSource } from './actor-lookup.js';
 import type { IdentityAccessPortDeps } from './deps.js';
 
+function toIso(value: unknown): string {
+  return value instanceof Date ? value.toISOString() : nowIso();
+}
+
+function toNullableIso(value: unknown): string | null {
+  return value instanceof Date ? value.toISOString() : null;
+}
+
 type Queryable = {
   query<T = Record<string, unknown>>(sql: string, values?: unknown[]): Promise<{ rows: T[] }>;
 };
@@ -46,8 +54,8 @@ function rowToMembership(row: Record<string, unknown>): MembershipRecord {
     securityLevel: Number(row.security_level),
     permissions: Array.isArray(row.permissions) ? row.permissions : [],
     notes: typeof row.notes === 'string' ? row.notes : null,
-    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : nowIso(),
-    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : nowIso(),
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at),
   };
 }
 
@@ -63,9 +71,9 @@ function rowToAccessKey(row: Record<string, unknown>): AccessKeyRecord {
     teamId: String(row.team_id),
     level: Number(row.level),
     notes: typeof row.notes === 'string' ? row.notes : null,
-    revokedAt: row.revoked_at instanceof Date ? row.revoked_at.toISOString() : null,
-    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : nowIso(),
-    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : nowIso(),
+    revokedAt: toNullableIso(row.revoked_at),
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at),
   } as unknown as AccessKeyRecord; // lib type gap:
 }
 
@@ -74,8 +82,8 @@ function rowToUser(row: Record<string, unknown>) {
     id: String(row.id),
     handle: String(row.handle),
     notes: typeof row.notes === 'string' ? row.notes : null,
-    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : nowIso(),
-    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : nowIso(),
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at),
   };
 }
 
@@ -85,8 +93,8 @@ function rowToTeam(row: Record<string, unknown>) {
     slug: String(row.slug),
     name: String(row.name),
     description: typeof row.description === 'string' ? row.description : null,
-    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : nowIso(),
-    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : nowIso(),
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at),
   };
 }
 
@@ -176,8 +184,8 @@ function rowToSession(row: Record<string, unknown>): SessionRecord {
     activeTeamId: typeof row.active_team_id === 'string' ? row.active_team_id : null,
     tokenHash: String(row.token_hash),
     expiresAt: row.expires_at instanceof Date ? row.expires_at.toISOString() : null,
-    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : nowIso(),
-    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : nowIso(),
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at),
   };
 }
 

@@ -30,6 +30,11 @@ vi.mock('../lib/input.js', () => ({
     if (options.stdin) return 'stdin seed content';
     throw new Error('No seed provided');
   }),
+  resolveSearchSeed: vi.fn(async (seed?: string, flags?: { stdin?: boolean }) => {
+    if (seed) return seed;
+    if (flags?.stdin) return 'stdin seed content';
+    throw new Error('No seed provided');
+  }),
 }));
 
 describe('CLI retrieval commands', () => {

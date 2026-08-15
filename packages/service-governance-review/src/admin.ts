@@ -2,6 +2,7 @@ import {
   type AuditLogPort,
   FEEDBACK_REMEDIATION_THRESHOLD,
   type FeedbackRepositoryPort,
+  type GovernanceReviewAdminPort,
   InvocationError,
   type JobRuntimePort,
   activeFeedback,
@@ -15,17 +16,8 @@ import {
 } from '@trapmap/backend-core';
 import type {
   ArtifactReadProjection,
-  FeedbackBatchRequest,
-  FeedbackBatchResponse,
   FeedbackListItem,
-  FeedbackListRequest,
-  FeedbackListResponse,
-  FeedbackRemediationCompleteRequest,
-  FeedbackRemediationCompleteResponse,
-  FeedbackRemediationDetailResponse,
   FeedbackRemediationQueueItem,
-  FeedbackRemediationQueueResponse,
-  FeedbackStatsResponse,
   KnowledgeOwnerPort,
 } from '@trapmap/contracts';
 import {
@@ -50,27 +42,7 @@ export interface GovernanceReviewAdminDeps {
   now?: () => Date;
 }
 
-export interface GovernanceReviewAdminModule {
-  list(input: {
-    actorId: string;
-    query: FeedbackListRequest;
-  }): Promise<FeedbackListResponse>;
-  stats(input: { actorId: string; entryId: string }): Promise<FeedbackStatsResponse>;
-  batch(input: {
-    actorId: string;
-    command: FeedbackBatchRequest;
-  }): Promise<FeedbackBatchResponse>;
-  listRemediation(input: { actorId: string }): Promise<FeedbackRemediationQueueResponse>;
-  getRemediation(input: {
-    actorId: string;
-    entryId: string;
-  }): Promise<FeedbackRemediationDetailResponse>;
-  completeRemediation(input: {
-    actorId: string;
-    entryId: string;
-    command: FeedbackRemediationCompleteRequest;
-  }): Promise<FeedbackRemediationCompleteResponse>;
-}
+export type GovernanceReviewAdminModule = GovernanceReviewAdminPort;
 
 type AdminFeedbackRecord = FeedbackRepositoryRecord & {
   entryType: 'trap' | 'skill';
@@ -129,6 +101,19 @@ async function toFeedbackItem(
   return item;
 }
 
+function recentFeedbackItems(
+  records: AdminFeedbackRecord[],
+  now: Date,
+  deps: GovernanceReviewAdminDeps,
+): Promise<FeedbackListItem[]> {
+  return Promise.all(
+    [...records]
+      .sort((left, right) => right.submittedAt.localeCompare(left.submittedAt))
+      .slice(0, 10)
+      .map((record) => toFeedbackItem(record, now, deps)),
+  );
+}
+
 export function createGovernanceReviewAdminModule(
   deps: GovernanceReviewAdminDeps,
 ): GovernanceReviewAdminModule {
@@ -181,12 +166,7 @@ export function createGovernanceReviewAdminModule(
             )
           : null;
       const score = qualityScore(unresolvedFeedback, incorrectReports, outdatedReports);
-      const recentFeedback = await Promise.all(
-        [...records]
-          .sort((left, right) => right.submittedAt.localeCompare(left.submittedAt))
-          .slice(0, 10)
-          .map((record) => toFeedbackItem(record, now, deps)),
-      );
+      const recentFeedback = await recentFeedbackItems(records, now, deps);
 
       return feedbackStatsResponseSchema.parse({
         entryId,
@@ -318,12 +298,7 @@ export function createGovernanceReviewAdminModule(
         const title = knowledgeEntry
           ? String((knowledgeEntry as { shortcut?: unknown }).shortcut ?? 'unknown')
           : String((artifact as { title?: unknown }).title ?? 'unknown');
-        const recentFeedback = await Promise.all(
-          [...records]
-            .sort((left, right) => right.submittedAt.localeCompare(left.submittedAt))
-            .slice(0, 10)
-            .map((record) => toFeedbackItem(record, now, deps)),
-        );
+        const recentFeedback = await recentFeedbackItems(records, now, deps);
         const sourceSnapshot = knowledgeEntry
           ? {
               trapDetail: String((knowledgeEntry as { detail?: unknown }).detail ?? ''),

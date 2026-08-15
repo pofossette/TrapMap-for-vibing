@@ -1,0 +1,32 @@
+{
+  "minTokens": 60,
+  "minLines": 6,
+  "mode": "mild",
+  "format": ["typescript", "tsx"],
+  "pattern": "**/*.{ts,tsx}",
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/coverage/**",
+    "**/reports/**",
+    "**/.tmp/**",
+    "**/.data/**",
+    "**/data/**",
+    "**/archived/**",
+    "**/tests/**",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/*.test.tsx",
+    "**/*.spec.tsx",
+    "**/fixtures/**",
+    "**/datasets/**",
+    "**/scenarios/**",
+    "**/*.d.ts"
+  ],
+  "ignorePattern": ["(?s)/\\* jscpd:ignore-start \\*/.*?/\\* jscpd:ignore-end \\*/"],
+  "reporters": ["console"],
+  "threshold": 6,
+  "noColors": true,
+  "noTips": true
+}

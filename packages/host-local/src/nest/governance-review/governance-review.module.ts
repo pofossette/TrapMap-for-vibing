@@ -29,30 +29,14 @@ import { GOVERNANCE_REVIEW_PORT } from './governance-review.tokens.js';
 export class GovernanceReviewModule {
   static forDeps(deps: GovernanceReviewServiceDeps) {
     const port: GovernanceReviewServiceModule = createGovernanceReviewServiceModule(deps);
-
-    return {
-      module: GovernanceReviewModule,
-      controllers: [
-        createNestAdapter(
-          serviceRouteDefsForMonolith(createGovernanceReviewRouteDefs(port)),
-          port,
-          {
-            guards: [AuthGuard],
-          },
-        ),
-      ],
-      providers: [
-        {
-          provide: GOVERNANCE_REVIEW_PORT,
-          useValue: port,
-        },
-      ],
-      exports: [GOVERNANCE_REVIEW_PORT],
-      global: true,
-    };
+    return GovernanceReviewModule.options(port);
   }
 
   static forTesting(port: ReviewPort) {
+    return GovernanceReviewModule.options(port);
+  }
+
+  private static options(port: ReviewPort | GovernanceReviewServiceModule) {
     return {
       module: GovernanceReviewModule,
       controllers: [

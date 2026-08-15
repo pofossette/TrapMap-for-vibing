@@ -23,6 +23,20 @@ type Queryable = {
   query<T = Record<string, unknown>>(sql: string, values?: unknown[]): Promise<{ rows: T[] }>;
 };
 type FeedbackRow = Record<string, unknown>;
+
+function rowToConflictRelation(record: FeedbackRow): ConflictRelation {
+  return {
+    id: String(record.id),
+    entryIdA: String(record.entry_id_a),
+    entryIdB: String(record.entry_id_b),
+    conflictType: String(record.conflict_type) as ConflictRelation['conflictType'],
+    context: String(record.context),
+    problemOverlapScore: Number(record.problem_overlap_score),
+    solutionDiffScore: Number(record.solution_diff_score),
+    detectedAt: asIso(record.detected_at) ?? new Date().toISOString(),
+  };
+}
+
 const feedbackRecordsTable = getTableName(feedbackRecords);
 const feedbackCustomAnswersTable = getTableName(feedbackCustomAnswers);
 
@@ -125,19 +139,7 @@ export function createGovernanceReviewPgOwnerBundle(
           WHERE entry_id_a = ANY($1) OR entry_id_b = ANY($1)`,
         [entryIds],
       );
-      return rows.map((row) => {
-        const record = row as FeedbackRow;
-        return {
-          id: String(record.id),
-          entryIdA: String(record.entry_id_a),
-          entryIdB: String(record.entry_id_b),
-          conflictType: String(record.conflict_type) as ConflictRelation['conflictType'],
-          context: String(record.context),
-          problemOverlapScore: Number(record.problem_overlap_score),
-          solutionDiffScore: Number(record.solution_diff_score),
-          detectedAt: asIso(record.detected_at) ?? new Date().toISOString(),
-        };
-      });
+      return rows.map((row) => rowToConflictRelation(row as FeedbackRow));
     },
     async getById(conflictId) {
       const { rows } = await pool.query(
@@ -147,18 +149,7 @@ export function createGovernanceReviewPgOwnerBundle(
         [conflictId],
       );
       const record = rows[0] as FeedbackRow | undefined;
-      return record
-        ? {
-            id: String(record.id),
-            entryIdA: String(record.entry_id_a),
-            entryIdB: String(record.entry_id_b),
-            conflictType: String(record.conflict_type) as ConflictRelation['conflictType'],
-            context: String(record.context),
-            problemOverlapScore: Number(record.problem_overlap_score),
-            solutionDiffScore: Number(record.solution_diff_score),
-            detectedAt: asIso(record.detected_at) ?? new Date().toISOString(),
-          }
-        : null;
+      return record ? rowToConflictRelation(record) : null;
     },
   };
   const feedbackRepo: FeedbackRepositoryPort = {

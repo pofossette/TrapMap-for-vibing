@@ -12,6 +12,23 @@
 // Coverage Score Calculation
 // =============================================================================
 
+export function checkRequiredFactsCoverage(
+  summaryText: string,
+  requiredFacts: string[],
+): { covered: string[]; missing: string[] } {
+  const summaryLower = summaryText.toLowerCase();
+  const covered: string[] = [];
+  const missing: string[] = [];
+  for (const fact of requiredFacts) {
+    if (summaryLower.includes(fact.toLowerCase())) {
+      covered.push(fact);
+    } else {
+      missing.push(fact);
+    }
+  }
+  return { covered, missing };
+}
+
 /**
  * Calculate coverage score from required facts.
  *
@@ -36,17 +53,7 @@ export function calculateCoverageScore(params: {
     };
   }
 
-  const summaryLower = summaryText.toLowerCase();
-  const covered: string[] = [];
-  const missing: string[] = [];
-
-  for (const fact of requiredFacts) {
-    if (summaryLower.includes(fact.toLowerCase())) {
-      covered.push(fact);
-    } else {
-      missing.push(fact);
-    }
-  }
+  const { covered, missing } = checkRequiredFactsCoverage(summaryText, requiredFacts);
 
   const score = covered.length / requiredFacts.length;
 

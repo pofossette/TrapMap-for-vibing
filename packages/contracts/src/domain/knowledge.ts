@@ -7,6 +7,8 @@ import {
   entityIdSchema,
   isoTimestampSchema,
   labelSchema,
+  lifecycleEventBaseSchema,
+  lifecycleMetadataBaseFields,
   lifecycleStateSchema,
   scopeSchema,
   securityLevelSchema,
@@ -66,35 +68,12 @@ export const knowledgeSubmissionRecordSchema = z.object({
   reviewNotes: z.array(reviewNoteSchema).default([]),
 });
 
-export const knowledgeLifecycleEventSchema = z.object({
-  id: entityIdSchema,
-  type: z.enum([
-    'submitted',
-    'resubmitted',
-    'agent-reviewed',
-    'reviewer-approved',
-    'reviewer-rejected',
-    'updated',
-    'deactivated',
-  ]),
-  createdAt: isoTimestampSchema,
-  actor: actorRefSchema.nullable().default(null),
-  submissionId: entityIdSchema.nullable().default(null),
-  revision: z.number().int().min(1).nullable().default(null),
-  state: lifecycleStateSchema,
-  note: z.string().min(1).max(2000).nullable().default(null),
-});
+export const knowledgeLifecycleEventSchema = lifecycleEventBaseSchema;
 
 export const knowledgeMetadataSchema = z
   .object({
     scopeLabel: z.enum(['global-constraint', 'project-knowledge']),
-    submissionCount: z.number().int().min(0),
-    resubmissionCount: z.number().int().min(0),
-    revisionCount: z.number().int().min(1),
-    latestSubmissionId: entityIdSchema.nullable().default(null),
-    latestSubmittedAt: isoTimestampSchema.nullable().default(null),
-    latestReviewedAt: isoTimestampSchema.nullable().default(null),
-    latestDecision: z.enum(['approve', 'reject']).nullable().default(null),
+    ...lifecycleMetadataBaseFields,
   })
   .refine((d) => d.submissionCount >= d.resubmissionCount, {
     message: 'submissionCount must be >= resubmissionCount',

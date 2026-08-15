@@ -52,6 +52,30 @@ function formatBatchResult(data: BatchOperationResponse): string {
   return lines.join('\n');
 }
 
+function printDecayListResult(
+  parsed: DecayEntryListResponse,
+  state: Awaited<ReturnType<typeof loadCliState>>,
+  flags: { json?: boolean },
+  action: string,
+): void {
+  printCommandResult(
+    {
+      action,
+      success: true,
+      summary: `Found ${parsed.total} entries.`,
+      artifacts: parsed.items.map((item) => ({
+        id: item.id,
+        decayState: item.decayState,
+      })),
+      nextSteps: [],
+    },
+    parsed,
+    state,
+    flags,
+    formatDecayList,
+  );
+}
+
 export function registerDecayCommands(program: Command, options: DecayCommandOptions): void {
   if (!options.allowManage) return;
 
@@ -109,22 +133,7 @@ export function registerDecayCommands(program: Command, options: DecayCommandOpt
         const response = await apiRequest<DecayEntryListResponse>(state, { path });
         const parsed = decayEntryListResponseSchema.parse(response.data);
 
-        printCommandResult(
-          {
-            action: 'decay-stale',
-            success: true,
-            summary: `Found ${parsed.total} entries.`,
-            artifacts: parsed.items.map((item) => ({
-              id: item.id,
-              decayState: item.decayState,
-            })),
-            nextSteps: [],
-          },
-          parsed,
-          state,
-          flags,
-          formatDecayList,
-        );
+        printDecayListResult(parsed, state, flags, 'decay-stale');
       },
     );
 
@@ -236,22 +245,7 @@ export function registerDecayCommands(program: Command, options: DecayCommandOpt
         });
         const parsed = decayEntryListResponseSchema.parse(response.data);
 
-        printCommandResult(
-          {
-            action: 'decay-search',
-            success: true,
-            summary: `Found ${parsed.total} entries.`,
-            artifacts: parsed.items.map((item) => ({
-              id: item.id,
-              decayState: item.decayState,
-            })),
-            nextSteps: [],
-          },
-          parsed,
-          state,
-          flags,
-          formatDecayList,
-        );
+        printDecayListResult(parsed, state, flags, 'decay-search');
       },
     );
 }

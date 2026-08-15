@@ -72,6 +72,38 @@ export function getDbSearchConfig(services: SkillShareerServices): DbSearchConfi
   return { enabled: enabled && pool !== null, pool };
 }
 
+function finalizeSemanticResults(
+  infra: NonNullable<ReturnType<typeof getRetrievalInfra>>,
+  scoredEntries: ScoredEntry[],
+  parsed: ReturnType<typeof retrievalQuerySchema.parse>,
+): RecallExecutionResult {
+  scoredEntries.sort((a, b) => b.score - a.score);
+  const sliced = scoredEntries.slice(0, parsed.maxResults);
+  const mergedCandidates = infra.scoring.mergeCandidates(
+    sliced.map(({ entry, score }) => infra.scoring.createSemanticCandidate(entry, score)),
+    [],
+  );
+  return { scoredEntries: sliced, mergedCandidates };
+}
+
+function rerankRecallResults(
+  infra: NonNullable<ReturnType<typeof getRetrievalInfra>>,
+  mergedCandidates: MergedCandidate[],
+  queryTokens: ReturnType<typeof normalizeQuery>,
+  parsed: ReturnType<typeof retrievalQuerySchema.parse>,
+): RecallExecutionResult {
+  const rerankedCandidates = infra.scoring.rerankCandidates(mergedCandidates, queryTokens, {
+    maxCandidates: parsed.maxResults,
+    ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
+    freshnessConfig: infra.scoring.freshnessConfig,
+    earlyTerminationThreshold: 0.3,
+  });
+  return {
+    scoredEntries: infra.scoring.toScoredEntriesFromReranked(rerankedCandidates),
+    mergedCandidates: rerankedCandidates,
+  };
+}
+
 export async function dispatchByMode(
   mode: string,
   _seed: string,
@@ -143,13 +175,7 @@ export async function semanticRecall(
         scoredEntries.push(scoredEntry);
       }
 
-      scoredEntries.sort((a, b) => b.score - a.score);
-      const sliced = scoredEntries.slice(0, parsed.maxResults);
-      const mergedCandidates = infra!.scoring.mergeCandidates(
-        sliced.map(({ entry, score }) => infra!.scoring.createSemanticCandidate(entry, score)),
-        [],
-      );
-      return { scoredEntries: sliced, mergedCandidates };
+      return finalizeSemanticResults(infra!, scoredEntries, parsed);
     } catch (error) {
       console.error('[semanticRecall] DB search failed, falling back to in-memory:', error);
     }
@@ -177,13 +203,7 @@ export async function semanticRecall(
     return result;
   });
 
-  scoredEntries.sort((a, b) => b.score - a.score);
-  const sliced = scoredEntries.slice(0, parsed.maxResults);
-  const mergedCandidates = infra!.scoring.mergeCandidates(
-    sliced.map(({ entry, score }) => infra!.scoring.createSemanticCandidate(entry, score)),
-    [],
-  );
-  return { scoredEntries: sliced, mergedCandidates };
+  return finalizeSemanticResults(infra!, scoredEntries, parsed);
 }
 
 export async function hybridRecall(
@@ -258,15 +278,7 @@ export async function hybridRecall(
         semanticCandidates,
         keywordCandidates,
       );
-      const rerankedCandidates = infra!.scoring.rerankCandidates(mergedCandidates, queryTokens, {
-        maxCandidates: parsed.maxResults,
-        ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
-        freshnessConfig: infra!.scoring.freshnessConfig,
-        earlyTerminationThreshold: 0.3,
-      });
-
-      const scoredEntries = infra!.scoring.toScoredEntriesFromReranked(rerankedCandidates);
-      return { scoredEntries, mergedCandidates: rerankedCandidates };
+      return rerankRecallResults(infra!, mergedCandidates, queryTokens, parsed);
     } catch (error) {
       console.error('[hybridRecall] DB search failed, falling back to in-memory:', error);
     }
@@ -278,15 +290,7 @@ export async function hybridRecall(
   ]);
 
   const mergedCandidates = infra!.scoring.mergeCandidates(semanticCandidates, keywordCandidates);
-  const rerankedCandidates = infra!.scoring.rerankCandidates(mergedCandidates, queryTokens, {
-    maxCandidates: parsed.maxResults,
-    ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
-    freshnessConfig: infra!.scoring.freshnessConfig,
-    earlyTerminationThreshold: 0.3,
-  });
-
-  const scoredEntries = infra!.scoring.toScoredEntriesFromReranked(rerankedCandidates);
-  return { scoredEntries, mergedCandidates: rerankedCandidates };
+  return rerankRecallResults(infra!, mergedCandidates, queryTokens, parsed);
 }
 
 async function computeSemanticCandidates(
@@ -355,17 +359,9 @@ export async function graphAssistedHybridRecall(
   const hybridMerged = infra!.scoring.mergeCandidates(semanticCandidates, keywordCandidates);
   const finalMerged = mergeCandidatesWithGraph(hybridMerged, governedGraphCandidates);
 
-  const rerankedCandidates = infra!.scoring.rerankCandidates(finalMerged, queryTokens, {
-    maxCandidates: parsed.maxResults,
-    ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
-    freshnessConfig: infra!.scoring.freshnessConfig,
-    earlyTerminationThreshold: 0.3,
-  });
-
-  const scoredEntries = infra!.scoring.toScoredEntriesFromReranked(rerankedCandidates);
+  const reranked = rerankRecallResults(infra!, finalMerged, queryTokens, parsed);
   return {
-    scoredEntries,
-    mergedCandidates: rerankedCandidates,
+    ...reranked,
     trace: {
       graph: createGraphRecallTrace(
         services?.graphQueryBackend?.getRuntimeState() ?? services?.graphQuery,

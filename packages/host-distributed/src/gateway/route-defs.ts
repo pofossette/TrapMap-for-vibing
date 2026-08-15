@@ -159,6 +159,42 @@ function requireTrustedActor(ctx: GatewayRouteContext): {
   return { actorId, body: bodyWithoutActor(ctx.body) };
 }
 
+function searchBodyArgs(ctx: GatewayRouteContext): {
+  limit?: number;
+  query: string;
+  teamId?: string;
+} {
+  const body = ctx.body as { limit?: number; query: string; teamId?: string };
+  return {
+    query: body.query,
+    ...(body.teamId !== undefined ? { teamId: body.teamId } : {}),
+    ...(body.limit !== undefined ? { limit: body.limit } : {}),
+  };
+}
+
+function knowledgeActionBodyArgs(ctx: GatewayRouteContext): {
+  action: string;
+  actorId: string;
+  entryId: string;
+  evidence?: Record<string, unknown>;
+  note?: string;
+} {
+  const body = ctx.body as {
+    action: string;
+    entryId: string;
+    evidence?: Record<string, unknown>;
+    note?: string;
+  };
+  const trusted = requireTrustedActor(ctx);
+  return {
+    entryId: body.entryId,
+    action: body.action,
+    ...(body.note !== undefined ? { note: body.note } : {}),
+    ...(body.evidence !== undefined ? { evidence: body.evidence } : {}),
+    actorId: trusted.actorId,
+  };
+}
+
 function queryStringValues(query: Record<string, unknown>): Record<string, string> {
   return Object.fromEntries(
     Object.entries(query).flatMap(([key, value]) => {
@@ -783,13 +819,7 @@ export function createGatewayRouteDefs(_clients: InternalServiceClients): RouteD
       path: '/v1/retrieval/search',
       schema: searchBodySchema,
       handler: async (ctx, clients) => {
-        return forward(
-          clients.knowledgeRead.search({
-            query: ctx.body.query,
-            ...(ctx.body.teamId !== undefined ? { teamId: ctx.body.teamId } : {}),
-            ...(ctx.body.limit !== undefined ? { limit: ctx.body.limit } : {}),
-          }),
-        );
+        return forward(clients.knowledgeRead.search(searchBodyArgs(ctx)));
       },
     }),
     gatewayRouteDef({
@@ -797,13 +827,7 @@ export function createGatewayRouteDefs(_clients: InternalServiceClients): RouteD
       path: '/v3/retrieval/search',
       schema: searchBodySchema,
       handler: async (ctx, clients) => {
-        return forward(
-          clients.knowledgeRead.search({
-            query: ctx.body.query,
-            ...(ctx.body.teamId !== undefined ? { teamId: ctx.body.teamId } : {}),
-            ...(ctx.body.limit !== undefined ? { limit: ctx.body.limit } : {}),
-          }),
-        );
+        return forward(clients.knowledgeRead.search(searchBodyArgs(ctx)));
       },
     }),
 
@@ -891,16 +915,9 @@ export function createGatewayRouteDefs(_clients: InternalServiceClients): RouteD
       path: '/v1/knowledge/maintenance',
       schema: knowledgeActionSchema,
       handler: async (ctx, clients) => {
-        const trusted = requireTrustedActor(ctx);
         return forward(
           clients.knowledgeWrite.applyMaintenanceDecision(
-            {
-              entryId: ctx.body.entryId,
-              action: ctx.body.action,
-              ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
-              ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
-              actorId: trusted.actorId,
-            },
+            knowledgeActionBodyArgs(ctx),
             trustedActorOptions(ctx),
           ),
         );
@@ -911,16 +928,9 @@ export function createGatewayRouteDefs(_clients: InternalServiceClients): RouteD
       path: '/v1/knowledge/decay',
       schema: knowledgeActionSchema,
       handler: async (ctx, clients) => {
-        const trusted = requireTrustedActor(ctx);
         return forward(
           clients.knowledgeWrite.applyDecayDecision(
-            {
-              entryId: ctx.body.entryId,
-              action: ctx.body.action,
-              ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
-              ...(ctx.body.evidence !== undefined ? { evidence: ctx.body.evidence } : {}),
-              actorId: trusted.actorId,
-            },
+            knowledgeActionBodyArgs(ctx),
             trustedActorOptions(ctx),
           ),
         );

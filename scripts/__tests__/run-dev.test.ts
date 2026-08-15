@@ -7,7 +7,7 @@ describe('resolveDevTarget', () => {
 
     expect(target).toEqual({
       env: { TRAPMAP_DEPLOYMENT_PROFILE: 'local-agent' },
-      packageName: '@trapmap/host-local',
+      packageName: '@trapmap/app-light',
       scriptName: 'dev',
     });
   });
@@ -17,7 +17,7 @@ describe('resolveDevTarget', () => {
 
     expect(target).toEqual({
       env: undefined,
-      packageName: '@trapmap/host-distributed',
+      packageName: '@trapmap/app-distributed',
       scriptName: 'dev:candidate-ingestion',
     });
   });
@@ -27,7 +27,7 @@ describe('resolveDevTarget', () => {
 
     expect(target).toEqual({
       env: undefined,
-      packageName: '@trapmap/host-distributed',
+      packageName: '@trapmap/app-distributed',
       scriptName: 'dev:gateway',
     });
   });
@@ -40,7 +40,7 @@ describe('resolveDevTarget', () => {
   it('builds a pnpm filter invocation for the resolved target', () => {
     const target = resolveDevTarget(['team-monolith']);
 
-    expect(buildDevCommandArgs(target)).toEqual(['--filter', '@trapmap/host-local', 'dev']);
+    expect(buildDevCommandArgs(target)).toEqual(['--filter', '@trapmap/app-light', 'dev']);
   });
 
   it('rejects unknown startup targets with a helpful error', () => {

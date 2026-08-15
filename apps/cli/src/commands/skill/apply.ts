@@ -4,9 +4,9 @@ import type { Command } from 'commander';
 
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
-import { printCommandResult } from '@trapmap/cli/lib/output.js';
 import { sanitizeForDisplay } from '@trapmap/cli/lib/sanitize.js';
 import { formatApplyResolutionText } from '@trapmap/cli/lib/skill-utils.js';
+import { printApplyResolutionResult } from './apply-resolution-result.js';
 
 /**
  * Register the skill apply subcommand.
@@ -28,26 +28,6 @@ export function registerApplyCommand(skill: Command): void {
 
       const parsed = applyResolutionResponseSchema.parse(response.data);
 
-      printCommandResult(
-        {
-          action: 'skill-apply',
-          success: true,
-          summary: `Applied resolution for ${parsed.candidateId}: ${parsed.outcome.decision}.`,
-          artifacts: [
-            {
-              id: parsed.candidateId,
-              newState: parsed.status,
-              ...(parsed.outcome.decision === 'independent'
-                ? { publishedAs: parsed.outcome.entityType }
-                : { mergedInto: parsed.outcome.mergedIntoEntityId }),
-            },
-          ],
-          nextSteps: [],
-        },
-        parsed,
-        state,
-        flags,
-        formatApplyResolutionText,
-      );
+      printApplyResolutionResult(parsed, state, flags, 'skill-apply', formatApplyResolutionText);
     });
 }

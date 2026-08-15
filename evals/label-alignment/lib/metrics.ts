@@ -152,8 +152,8 @@ function countSuccessfulEliminations(
   return successfulEliminations;
 }
 
-function countMissedMerges(case_: LabelAlignmentEvalCase, predictions: DryRunPrediction[]): number {
-  const mergedPairs = buildPairSet(
+function mergedPredictionPairs(predictions: DryRunPrediction[]): Set<string> {
+  return buildPairSet(
     predictions.flatMap((left, leftIndex) =>
       predictions
         .slice(leftIndex + 1)
@@ -161,6 +161,10 @@ function countMissedMerges(case_: LabelAlignmentEvalCase, predictions: DryRunPre
         .map((right) => [left.rawLabel, right.rawLabel] as const),
     ),
   );
+}
+
+function countMissedMerges(case_: LabelAlignmentEvalCase, predictions: DryRunPrediction[]): number {
+  const mergedPairs = mergedPredictionPairs(predictions);
 
   const expectedPairs = buildPairSet(
     case_.expectedAlignment.canonicalGroups.flatMap((group) =>
@@ -180,14 +184,7 @@ function countMissedMerges(case_: LabelAlignmentEvalCase, predictions: DryRunPre
 }
 
 function countFalseMerges(case_: LabelAlignmentEvalCase, predictions: DryRunPrediction[]): number {
-  const mergedPairs = buildPairSet(
-    predictions.flatMap((left, leftIndex) =>
-      predictions
-        .slice(leftIndex + 1)
-        .filter((right) => left.predictedCanonicalLabel === right.predictedCanonicalLabel)
-        .map((right) => [left.rawLabel, right.rawLabel] as const),
-    ),
-  );
+  const mergedPairs = mergedPredictionPairs(predictions);
 
   const shouldNotMerge = buildPairSet(case_.expectedAlignment.shouldNotMerge);
   let falseMerges = 0;
