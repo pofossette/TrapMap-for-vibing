@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-import { badcaseTaxonomySchema, normalizeBadcaseTaxonomy } from '../enum-types/index.js';
 import {
   skillArtifactFileKindSchema,
   skillArtifactFileSourceSchema,
@@ -19,8 +18,6 @@ import {
   securityLevelSchema,
   sha256HexSchema,
 } from './common.js';
-import { evidenceLevelSchema, evidenceSourceTypeSchema } from './evidence.js';
-import { feedbackFailureClassificationSchema } from './feedback.js';
 import {
   agentReviewResultSchema,
   knowledgeEntrySchema,
@@ -28,39 +25,7 @@ import {
   knowledgeSubmissionSchema,
   reviewDecisionSchema,
 } from './knowledge.js';
-import {
-  type WorkflowCorrelation,
-  observabilityFailureClassificationSchema,
-  observabilityFailureTaxonomyItemSchema,
-  workflowCorrelationSchema,
-} from './observability.js';
 import { canonicalPathSchema } from './path-validation.js';
-
-export const knowledgeDeactivateRequestSchema = z
-  .object({
-    entryId: entityIdSchema,
-    reason: z.string().min(1).max(500),
-  })
-  .strict();
-
-export const knowledgeListRequestSchema = z.object({
-  scope: scopeSchema.optional(),
-  lifecycleState: z.array(lifecycleStateSchema).optional(),
-  requiredLevelMax: securityLevelSchema.optional(),
-  ownerUserId: entityIdSchema.optional(),
-  /** Filter by evidence level */
-  evidenceLevel: z.array(evidenceLevelSchema).optional(),
-  /** Filter by source type */
-  sourceType: z.array(evidenceSourceTypeSchema).optional(),
-  /** Filter entries verified before this timestamp */
-  verifiedBefore: isoTimestampSchema.optional(),
-  /** Filter entries verified after this timestamp */
-  verifiedAfter: isoTimestampSchema.optional(),
-  /** Filter entries with missing evidence metadata */
-  missingEvidence: z.boolean().optional(),
-  limit: z.number().int().min(1).max(100).default(25),
-  cursor: z.string().min(1).max(128).optional(),
-});
 
 export const knowledgeListResponseSchema = z
   .object({
@@ -281,37 +246,6 @@ export const auditEventSchema = z
   })
   .merge(auditMetadataSchema);
 
-export const auditQuerySchema = z.object({
-  action: z
-    .array(
-      z.enum([
-        'knowledge-reviewed',
-        'knowledge-imported',
-        'knowledge-exported',
-        'knowledge-deactivated',
-        'member-updated',
-        'artifact-imported',
-        'artifact-exported',
-        'artifact-deactivated',
-      ]),
-    )
-    .optional(),
-  actorId: entityIdSchema.optional(),
-  entityId: entityIdSchema.optional(),
-  teamId: entityIdSchema.optional(),
-  requestId: entityIdSchema.optional(),
-  traceId: z
-    .string()
-    .regex(/^[0-9a-f]{32}$/)
-    .optional(),
-  operationId: entityIdSchema.optional(),
-  causationId: entityIdSchema.optional(),
-  from: z.iso.datetime({ offset: true }).optional(),
-  to: z.iso.datetime({ offset: true }).optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(25),
-  cursor: z.string().min(1).max(128).optional(),
-});
-
 export const auditListResponseSchema = z
   .object({
     items: z.array(auditEventSchema),
@@ -332,13 +266,6 @@ export const artifactExportFormatSchema = z.enum(['bundle-json', 'distilled-json
  * Artifact-native export request.
  * Targets one artifact by ID with explicit format selection.
  */
-export const artifactExportRequestSchema = z.object({
-  /** Target artifact to export */
-  artifactId: entityIdSchema,
-  /** Export format selection */
-  format: artifactExportFormatSchema.default('bundle-json'),
-});
-
 /**
  * Distilled artifact export projection.
  * Compact view built from cached derived outputs.
@@ -408,13 +335,10 @@ export type ArtifactImportResultItem = z.infer<typeof artifactImportResultItemSc
 export type ArtifactImportResponse = z.infer<typeof artifactImportResponseSchema>;
 export type ArtifactFilePayloadRecord = z.infer<typeof artifactFilePayloadRecordSchema>;
 export type AuditEvent = z.infer<typeof auditEventSchema>;
-export type AuditQuery = z.infer<typeof auditQuerySchema>;
 export type AuditListResponse = z.infer<typeof auditListResponseSchema>;
-export type KnowledgeListRequest = z.infer<typeof knowledgeListRequestSchema>;
 export type KnowledgeListResponse = z.infer<typeof knowledgeListResponseSchema>;
 export type KnowledgeDeactivateResponse = z.infer<typeof knowledgeDeactivateResponseSchema>;
 export type ArtifactExportFormat = z.infer<typeof artifactExportFormatSchema>;
-export type ArtifactExportRequest = z.infer<typeof artifactExportRequestSchema>;
 export type DistilledArtifact = z.infer<typeof distilledArtifactSchema>;
 export type ArtifactExportResponse = z.infer<typeof artifactExportResponseSchema>;
 
@@ -442,19 +366,6 @@ export const activationFilePayloadSchema = z
   .strict();
 
 /**
- * Selective activation request targeting one artifact revision.
- * Allows bounded path selection for references, assets, and scripts.
- */
-export const activationRequestSchema = z.object({
-  /** Target artifact identifier */
-  artifactId: entityIdSchema,
-  /** Optional revision number (defaults to latest) */
-  revision: z.number().int().min(1).optional(),
-  /** Selected paths to fetch (bounded set) */
-  selectedPaths: z.array(canonicalPathSchema).min(1).max(50),
-});
-
-/**
  * Selective activation response.
  * Returns only requested files with metadata for policy-aware materialization.
  */
@@ -480,33 +391,7 @@ export const activationResponseSchema = z
   .strict();
 
 export type ActivationFilePayload = z.infer<typeof activationFilePayloadSchema>;
-export type ActivationRequest = z.infer<typeof activationRequestSchema>;
 export type ActivationResponse = z.infer<typeof activationResponseSchema>;
-
-/**
- * Migration mode for legacy knowledge entries.
- * - explicit: Migrate specific entry IDs provided in entryIds
- * - all-approved: Migrate all approved legacy entries (bounded by limit)
- * - all-team: Migrate all entries for a specific team (bounded by limit)
- */
-export const legacyMigrationModeSchema = z.enum(['explicit', 'all-approved', 'all-team']);
-
-/**
- * Legacy entry migration request.
- * Requests conversion of legacy knowledge entries into minimal skill artifacts.
- */
-export const legacyMigrationRequestSchema = z
-  .object({
-    /** Migration mode controlling which entries to migrate */
-    mode: legacyMigrationModeSchema,
-    /** Explicit entry IDs to migrate (required for 'explicit' mode) */
-    entryIds: z.array(entityIdSchema).max(100).optional(),
-    /** Team ID for 'all-team' mode */
-    teamId: entityIdSchema.optional(),
-    /** Maximum entries to migrate in bounded modes (default 50, max 200) */
-    limit: z.number().int().min(1).max(200).default(50),
-  })
-  .strict();
 
 /**
  * Result item for a single legacy entry migration attempt.
@@ -548,15 +433,6 @@ export const legacyMigrationResponseSchema = z
   .strict();
 
 /**
- * Compatibility status request.
- * Requests current migration and compatibility window status.
- */
-export const compatibilityStatusRequestSchema = z.object({
-  /** Optional team ID to filter status */
-  teamId: entityIdSchema.optional(),
-});
-
-/**
  * Compatibility status response.
  * Provides migration progress and sunset readiness information.
  */
@@ -596,27 +472,6 @@ export const asyncWorkerDependencyStateSchema = z.enum([
   'not-configured',
 ]);
 
-export const queueTaskOperatorSnapshotSchema = z
-  .object({
-    id: entityIdSchema,
-    type: z.string().min(1),
-    status: z.enum(['pending', 'running', 'completed', 'failed', 'dead']),
-    attempts: z.number().int().min(0),
-    maxAttempts: z.number().int().min(1),
-    dedupeKey: z.string().nullable(),
-    workerId: z.string().nullable(),
-    startedAt: isoTimestampSchema.nullable(),
-    heartbeatAt: isoTimestampSchema.nullable(),
-    leaseUntil: isoTimestampSchema.nullable(),
-    createdAt: isoTimestampSchema,
-    updatedAt: isoTimestampSchema,
-    processAfter: isoTimestampSchema,
-    completedAt: isoTimestampSchema.nullable(),
-    lastError: z.string().nullable(),
-    ageSeconds: z.number().int().min(0),
-  })
-  .strict();
-
 export const outboxEventOperatorSnapshotSchema = z
   .object({
     id: entityIdSchema,
@@ -634,30 +489,6 @@ export const outboxEventOperatorSnapshotSchema = z
     publishedAt: isoTimestampSchema.nullable(),
     lastError: z.string().nullable(),
     ageSeconds: z.number().int().min(0),
-  })
-  .strict();
-
-export const queueStatusSnapshotSchema = z
-  .object({
-    provider: z.enum(['postgres', 'rabbitmq', 'not-configured']),
-    pending: z.number().int().min(0),
-    running: z.number().int().min(0),
-    dead: z.number().int().min(0),
-    staleRunning: z.number().int().min(0),
-    backlogOldestAgeSeconds: z.number().int().min(0).nullable(),
-    runningOldestAgeSeconds: z.number().int().min(0).nullable(),
-    deadOldestAgeSeconds: z.number().int().min(0).nullable(),
-    reclaimCount: z.number().int().min(0),
-    workerState: asyncWorkerDependencyStateSchema,
-    serviceUnit: z.enum(['full-platform', 'candidate-ingestion', 'knowledge-governance']),
-    ownership: z
-      .object({
-        ownsAny: z.boolean(),
-        ownsCandidateTaskWork: z.boolean(),
-        ownsSharedJobTaskWork: z.boolean(),
-      })
-      .strict(),
-    recentDeadLetters: z.array(queueTaskOperatorSnapshotSchema),
   })
   .strict();
 
@@ -684,464 +515,16 @@ export const outboxStatusSnapshotSchema = z
   })
   .strict();
 
-export const workflowRunSnapshotSchema = z
-  .object({
-    runId: entityIdSchema,
-    workflowType: z.enum([
-      'candidate-processing',
-      'capsule-index-rebuild',
-      'knowledge-index-follow-up',
-      'skill-index-follow-up',
-      'feedback-remediation-reactivation',
-      'badcase-export-draft',
-    ]),
-    subjectId: entityIdSchema,
-    status: z.enum(['pending', 'running', 'completed', 'failed']),
-    stepName: z.string().nullable(),
-    attempt: z.number().int().min(0),
-    startedAt: isoTimestampSchema.nullable(),
-    completedAt: isoTimestampSchema.nullable(),
-    lastError: z.string().nullable(),
-    correlation: workflowCorrelationSchema.nullable(),
-    stats: z.record(z.string(), z.union([z.number(), z.string(), z.boolean(), z.null()])),
-    createdAt: isoTimestampSchema,
-    updatedAt: isoTimestampSchema,
-  })
-  .strict();
-
-export const retrievalCacheNamespaceStatsSchema = z
-  .object({
-    hits: z.number().int().min(0),
-    misses: z.number().int().min(0),
-    evictions: z.number().int().min(0),
-    invalidations: z.number().int().min(0),
-    size: z.number().int().min(0),
-    hitRate: z.number().min(0).max(1),
-    staleRecoveries: z.number().int().min(0),
-    pendingInvalidation: z.boolean(),
-    lastInvalidatedAt: isoTimestampSchema.nullable(),
-    lastRecoveredAt: isoTimestampSchema.nullable(),
-  })
-  .strict();
-
-export const operatorStatusGroupSchema = z
-  .object({
-    headline: z.string().min(1).max(280),
-    status: z.enum(['healthy', 'degraded', 'investigate']),
-    summary: z.string().min(1).max(1000),
-  })
-  .strict();
-
-export const configGovernanceSummarySchema = z
-  .object({
-    fingerprint: z.string().min(1).max(128),
-    deploymentProfile: z.enum(['local-agent', 'team-monolith', 'distributed']),
-    runtimeMode: z.enum(['api', 'task-worker', 'outbox-worker', 'combined']),
-    serviceUnit: z.enum(['full-platform', 'candidate-ingestion', 'knowledge-governance']),
-    taskTransportProvider: z.enum(['postgres', 'rabbitmq']),
-    eventTransportProvider: z.literal('postgres'),
-    profileAwareCapabilitySummary: z
-      .object({
-        routeSurface: z.enum(['minimal-agent', 'gateway-core', 'worker-status']),
-        asyncOwnershipExpectation: z.enum(['local-owned', 'split-owned', 'remote-expected']),
-        storagePosture: z.enum(['json-store-ok', 'postgres-required']),
-        authTeamExpectation: z.enum(['single-user', 'team-auth']),
-      })
-      .strict(),
-    deprecatedEnvKeys: z.array(z.string().min(1).max(120)),
-    conflictWarnings: z.array(z.string().min(1).max(500)),
-  })
-  .strict();
-
-export const capacityModelSummarySchema = z
-  .object({
-    databasePool: z
-      .object({
-        configured: z.boolean(),
-        maxConnections: z.number().int().min(0).nullable(),
-      })
-      .strict(),
-    handlerLatency: z
-      .object({
-        averageMs: z.number().min(0),
-        investigateAboveMs: z.number().min(0),
-      })
-      .strict(),
-    backlogPressure: z
-      .object({
-        queuePending: z.number().int().min(0),
-        outboxPending: z.number().int().min(0),
-        workflowsInFlight: z.number().int().min(0),
-      })
-      .strict(),
-    cachePressure: z
-      .object({
-        namespacesWithPendingInvalidation: z.number().int().min(0),
-        staleRecoveryCount: z.number().int().min(0),
-      })
-      .strict(),
-  })
-  .strict();
-
-export const runtimeMetricsSummarySchema = z
-  .object({
-    totals: z
-      .object({
-        executions: z.number().int().min(0),
-        degraded: z.number().int().min(0),
-        reclaims: z.number().int().min(0),
-        timeouts: z.number().int().min(0),
-        retryableFailures: z.number().int().min(0),
-        permanentFailures: z.number().int().min(0),
-        retries: z.number().int().min(0),
-        averageLatencyMs: z.number().min(0),
-        averageQueueBacklog: z.number().min(0),
-        averageOutboxBacklog: z.number().min(0),
-        averageStaleWorkers: z.number().min(0),
-      })
-      .strict(),
-    dependencies: z.record(
-      z.string(),
-      z
-        .object({
-          executions: z.number().int().min(0),
-          degraded: z.number().int().min(0),
-          reclaims: z.number().int().min(0),
-          timeouts: z.number().int().min(0),
-          retryableFailures: z.number().int().min(0),
-          permanentFailures: z.number().int().min(0),
-          retries: z.number().int().min(0),
-          averageLatencyMs: z.number().min(0),
-          averageQueueBacklog: z.number().min(0),
-          averageOutboxBacklog: z.number().min(0),
-          averageStaleWorkers: z.number().min(0),
-        })
-        .strict(),
-    ),
-  })
-  .strict();
-
-export const workflowOperatorSummarySchema = z
-  .object({
-    runId: entityIdSchema,
-    workflowType: workflowRunSnapshotSchema.shape.workflowType,
-    status: workflowRunSnapshotSchema.shape.status,
-    stepName: z.string().nullable(),
-    lastError: z.string().nullable(),
-    checkpoint: z.string().nullable(),
-    resumeAllowed: z.boolean(),
-    progress: z
-      .object({
-        completed: z.number().min(0).nullable(),
-        total: z.number().min(0).nullable(),
-        percent: z.number().min(0).max(100).nullable(),
-      })
-      .strict(),
-    failureSample: z.string().nullable(),
-  })
-  .strict();
-
-export const asyncFailureCategorySchema = observabilityFailureClassificationSchema;
-
-export const asyncFailureTaxonomyItemSchema = observabilityFailureTaxonomyItemSchema;
-
-export const asyncFreshnessContractSchema = z
-  .object({
-    consistencyModel: z.literal('eventual-consistency'),
-    writeVisibility: z
-      .object({
-        authoritativeWriteCommitted: z.boolean(),
-        projectionRefreshPending: z.boolean(),
-        cachesPendingInvalidation: z.boolean(),
-      })
-      .strict(),
-    projectionLag: z
-      .object({
-        queueBacklog: z.number().int().min(0),
-        outboxBacklog: z.number().int().min(0),
-        staleWorkers: z.number().int().min(0),
-        workflowsInFlight: z.number().int().min(0),
-      })
-      .strict(),
-    operatorGuidance: z.string().min(1).max(1000),
-  })
-  .strict();
-
-export const asyncRuntimeContractSchema = z
-  .object({
-    workerModes: z
-      .object({
-        api: z.string().min(1).max(500),
-        'task-worker': z.string().min(1).max(500),
-        'outbox-worker': z.string().min(1).max(500),
-        combined: z.string().min(1).max(500),
-      })
-      .strict(),
-    degradedSemantics: z.string().min(1).max(1000),
-  })
-  .strict();
-
-export const asyncIdempotencyContractSchema = z
-  .object({
-    syncCommandKey: z.string().min(1).max(280),
-    asyncTaskKey: z.string().min(1).max(280),
-    bulkJobKey: z.string().min(1).max(280),
-    dedupeWindow: z.string().min(1).max(500),
-  })
-  .strict();
-
-export const asyncRetryResumeContractSchema = z
-  .object({
-    queueRetryPolicy: z.string().min(1).max(500),
-    outboxRetryPolicy: z.string().min(1).max(500),
-    runtimeMetricsSemantics: z.string().min(1).max(500),
-    canonicalErrorSemantics: z.string().min(1).max(500),
-    deadLetterPolicy: z.string().min(1).max(500),
-    reclaimPolicy: z.string().min(1).max(500),
-    workflowCheckpointSource: z.string().min(1).max(500),
-    bulkResumePolicy: z.string().min(1).max(500),
-  })
-  .strict();
-
-export const asyncOperationsStatusResponseSchema = z
-  .object({
-    asyncRuntimeEnabled: z.boolean(),
-    deploymentProfile: z.enum(['local-agent', 'team-monolith', 'distributed']),
-    runtimeMode: z.enum(['api', 'task-worker', 'outbox-worker', 'combined']),
-    serviceUnit: z.enum(['full-platform', 'candidate-ingestion', 'knowledge-governance']),
-    routeSurface: z.enum(['minimal-agent', 'gateway-core', 'worker-status']),
-    asyncOwnershipExpectation: z.enum(['local-owned', 'split-owned', 'remote-expected']),
-    storagePosture: z.enum(['json-store-ok', 'postgres-required']),
-    authTeamExpectation: z.enum(['single-user', 'team-auth']),
-    taskTransportProvider: z.enum(['postgres', 'rabbitmq', 'not-configured']),
-    eventTransportProvider: z.enum(['postgres', 'not-configured']),
-    adoptionGuidance: z.string(),
-    runtimeContract: asyncRuntimeContractSchema,
-    idempotencyContract: asyncIdempotencyContractSchema,
-    retryResumeContract: asyncRetryResumeContractSchema,
-    freshnessContract: asyncFreshnessContractSchema,
-    failureTaxonomy: z.array(asyncFailureTaxonomyItemSchema).length(7),
-    operatorHome: z
-      .object({
-        health: operatorStatusGroupSchema,
-        status: operatorStatusGroupSchema,
-        freshness: operatorStatusGroupSchema,
-        capacity: operatorStatusGroupSchema,
-        jobControl: operatorStatusGroupSchema,
-      })
-      .strict(),
-    configGovernance: configGovernanceSummarySchema,
-    capacityModel: capacityModelSummarySchema,
-    runtimeMetrics: runtimeMetricsSummarySchema,
-    queue: queueStatusSnapshotSchema,
-    outbox: outboxStatusSnapshotSchema,
-    diagnostics: z
-      .object({
-        dominantFailureCategory: asyncFailureCategorySchema.nullable(),
-        owningSubsystem: z.enum(['queue', 'outbox', 'workflow', 'cache', 'badcase', 'none']),
-        nextInspection: z.string().min(1).max(500),
-        evidence: z.array(z.string().min(1).max(500)).max(10),
-        badcaseClassificationSummary: z
-          .object({
-            totalClassified: z.number().int().min(0),
-            dominantClassification: feedbackFailureClassificationSchema.nullable(),
-            counts: z.array(
-              z
-                .object({
-                  classification: feedbackFailureClassificationSchema,
-                  count: z.number().int().min(0),
-                })
-                .strict(),
-            ),
-          })
-          .strict(),
-      })
-      .strict(),
-    cache: z.record(z.string(), retrievalCacheNamespaceStatsSchema),
-    workflows: z.array(workflowRunSnapshotSchema),
-    bulkOperations: z.array(workflowOperatorSummarySchema),
-    reportedAt: isoTimestampSchema,
-  })
-  .strict();
-
-export const asyncTaskRequeueResponseSchema = z
-  .object({
-    taskId: entityIdSchema,
-    requeued: z.boolean(),
-    reportedAt: isoTimestampSchema,
-  })
-  .strict();
-
-export type LegacyMigrationMode = z.infer<typeof legacyMigrationModeSchema>;
-export type LegacyMigrationRequest = z.infer<typeof legacyMigrationRequestSchema>;
 export type LegacyMigrationResultItem = z.infer<typeof legacyMigrationResultItemSchema>;
 export type LegacyMigrationResponse = z.infer<typeof legacyMigrationResponseSchema>;
-export type CompatibilityStatusRequest = z.infer<typeof compatibilityStatusRequestSchema>;
 export type CompatibilityStatusResponse = z.infer<typeof compatibilityStatusResponseSchema>;
 export type AsyncWorkerDependencyState = z.infer<typeof asyncWorkerDependencyStateSchema>;
-export type QueueTaskOperatorSnapshot = z.infer<typeof queueTaskOperatorSnapshotSchema>;
 export type OutboxEventOperatorSnapshot = z.infer<typeof outboxEventOperatorSnapshotSchema>;
-export type QueueStatusSnapshot = z.infer<typeof queueStatusSnapshotSchema>;
 export type OutboxStatusSnapshot = z.infer<typeof outboxStatusSnapshotSchema>;
-export type WorkflowRunSnapshot = z.infer<typeof workflowRunSnapshotSchema>;
-export type RetrievalCacheNamespaceStats = z.infer<typeof retrievalCacheNamespaceStatsSchema>;
-export type OperatorStatusGroup = z.infer<typeof operatorStatusGroupSchema>;
-export type ConfigGovernanceSummary = z.infer<typeof configGovernanceSummarySchema>;
-export type CapacityModelSummary = z.infer<typeof capacityModelSummarySchema>;
-export type RuntimeMetricsSummary = z.infer<typeof runtimeMetricsSummarySchema>;
-export type WorkflowOperatorSummary = z.infer<typeof workflowOperatorSummarySchema>;
-export type AsyncFailureCategory = z.infer<typeof asyncFailureCategorySchema>;
-export type AsyncFailureTaxonomyItem = z.infer<typeof asyncFailureTaxonomyItemSchema>;
-export type AsyncFreshnessContract = z.infer<typeof asyncFreshnessContractSchema>;
-export type AsyncRuntimeContract = z.infer<typeof asyncRuntimeContractSchema>;
-export type AsyncIdempotencyContract = z.infer<typeof asyncIdempotencyContractSchema>;
-export type AsyncRetryResumeContract = z.infer<typeof asyncRetryResumeContractSchema>;
-export type AsyncOperationsStatusResponse = z.infer<typeof asyncOperationsStatusResponseSchema>;
-export type AsyncTaskRequeueResponse = z.infer<typeof asyncTaskRequeueResponseSchema>;
-
-export const badcaseEvalDraftSchema = z
-  .object({
-    kind: z.enum(['retrieval', 'summary']),
-    caseId: entityIdSchema,
-    sourceFeedbackId: entityIdSchema,
-    queryId: z.string().nullable(),
-    routeFamily: z.enum(['entry', 'capsule', 'graph-plan']).nullable(),
-    taxonomy: badcaseTaxonomySchema.nullable(),
-    request: z.record(z.string(), z.unknown()),
-    expected: z.record(z.string(), z.unknown()),
-    notes: z.array(z.string().min(1)),
-  })
-  .strict();
-
-export const badcaseDebugContractSchema = z
-  .object({
-    correlation: workflowCorrelationSchema,
-    durableTrace: z
-      .object({
-        sourceFeedbackId: entityIdSchema,
-        queryId: entityIdSchema.nullable(),
-        routeFamily: z.enum(['entry', 'capsule', 'graph-plan']).nullable(),
-      })
-      .strict(),
-    workflow: z
-      .object({
-        asyncJobId: entityIdSchema,
-        workflowType: z.literal('badcase-export-draft'),
-        exportDraftReady: z.boolean(),
-      })
-      .strict(),
-  })
-  .strict();
-
-export const badcaseExportResponseSchema = z
-  .object({
-    feedbackId: entityIdSchema,
-    draft: badcaseEvalDraftSchema,
-    debug: badcaseDebugContractSchema,
-    exportedAt: isoTimestampSchema,
-  })
-  .strict();
-
-export interface BadcaseTraceDraftInput {
-  feedbackId: string;
-  queryId: string | null;
-  querySeed: string | null;
-  routeFamily: 'entry' | 'capsule' | 'graph-plan' | null;
-  entryId: string;
-  entryType: 'trap' | 'skill';
-  failureClassification: string | null;
-  expectedCorrection: string | null;
-  selectedResultSnapshot: Record<string, unknown> | null;
-}
-
-export function buildBadcaseEvalDraft(input: BadcaseTraceDraftInput): BadcaseEvalDraft {
-  const taxonomy = normalizeBadcaseTaxonomy(input.failureClassification);
-  return badcaseEvalDraftSchema.parse({
-    kind: 'retrieval',
-    caseId: `badcase_${input.feedbackId}`,
-    sourceFeedbackId: input.feedbackId,
-    queryId: input.queryId,
-    routeFamily: input.routeFamily,
-    taxonomy,
-    request: {
-      queryId: input.queryId,
-      querySeed: input.querySeed,
-      routeFamily: input.routeFamily,
-      entryId: input.entryId,
-      entryType: input.entryType,
-    },
-    expected: {
-      failureClassification: taxonomy,
-      expectedCorrection: input.expectedCorrection,
-      selectedResultSnapshot: input.selectedResultSnapshot,
-    },
-    notes: [
-      'Draft generated from retrieval_badcase_traces.',
-      'Review expectedCorrection and selectedResultSnapshot before promoting into eval fixtures.',
-    ],
-  });
-}
-
-export function buildBadcaseDebugContract(args: {
-  correlation: WorkflowCorrelation;
-  sourceFeedbackId: string;
-  queryId: string | null;
-  routeFamily: 'entry' | 'capsule' | 'graph-plan' | null;
-  asyncJobId: string;
-  exportDraftReady: boolean;
-}) {
-  return badcaseDebugContractSchema.parse({
-    correlation: args.correlation,
-    durableTrace: {
-      sourceFeedbackId: args.sourceFeedbackId,
-      queryId: args.queryId,
-      routeFamily: args.routeFamily,
-    },
-    workflow: {
-      asyncJobId: args.asyncJobId,
-      workflowType: 'badcase-export-draft',
-      exportDraftReady: args.exportDraftReady,
-    },
-  });
-}
-
-export const architectureDecisionThresholdSchema = z
-  .object({
-    metric: z.string().min(1),
-    healthyBelowOrEqual: z.number().min(0).nullable(),
-    investigateAbove: z.number().min(0).nullable(),
-    action: z.string().min(1),
-  })
-  .strict();
 
 // =============================================================================
 // Phase 19: Skill Edit and History Contracts (SKED-02, SKED-04)
 // =============================================================================
-
-/**
- * Skill edit request schema.
- * Allows partial updates to title, labels, or full file replacement.
- * At least one update field must be provided.
- */
-export const skillEditRequestSchema = z
-  .object({
-    /** Target artifact to edit */
-    artifactId: entityIdSchema,
-    /** New title (optional) */
-    title: z.string().min(1).max(280).optional(),
-    /** New labels (optional) */
-    labels: z.array(labelSchema).min(1).optional(),
-    /** Full file replacement (optional) */
-    files: z.array(bundleFilePayloadSchema).min(1).optional(),
-    /** Script descriptors for executable scripts */
-    scriptDescriptors: z.array(bundleScriptDescriptorSchema).default([]),
-  })
-  .refine(
-    (data) => data.title !== undefined || data.labels !== undefined || data.files !== undefined,
-    {
-      message: 'At least one of title, labels, or files must be provided',
-    },
-  );
 
 /**
  * Skill edit response schema.
@@ -1182,15 +565,6 @@ export const skillRevisionSummarySchema = z.object({
 });
 
 /**
- * Skill history request schema.
- * Requests revision history for a specific artifact.
- */
-export const skillHistoryRequestSchema = z.object({
-  /** Target artifact to view history for */
-  artifactId: entityIdSchema,
-});
-
-/**
  * Skill history response schema.
  * Returns revision summaries without full file manifests.
  * Distinct from artifact export - metadata-only for history viewing.
@@ -1210,12 +584,13 @@ export const skillHistoryResponseSchema = z
   })
   .strict();
 
-export type SkillEditRequest = z.infer<typeof skillEditRequestSchema>;
 export type SkillEditResponse = z.infer<typeof skillEditResponseSchema>;
 export type SkillRevisionSummary = z.infer<typeof skillRevisionSummarySchema>;
-export type SkillHistoryRequest = z.infer<typeof skillHistoryRequestSchema>;
 export type SkillHistoryResponse = z.infer<typeof skillHistoryResponseSchema>;
 
+// ============================================================================
+// Phase 20: Skill Review Contracts (SKED-03)
+// ============================================================================
 // ============================================================================
 // Phase 20: Skill Review Contracts (SKED-03)
 // ============================================================================
@@ -1255,24 +630,6 @@ export const skillReviewQueueResponseSchema = z
   });
 
 /**
- * Skill review decision request schema.
- * Used to submit approve/reject decisions.
- */
-export const skillReviewDecisionRequestSchema = z.object({
-  /** The artifact to review */
-  artifactId: entityIdSchema,
-  /** The review decision */
-  decision: z.enum(['approve', 'reject']),
-  /** Reviewer notes (required, 1-2000 characters) */
-  notes: z
-    .string()
-    .min(1)
-    .refine((s) => [...s].length <= 2000, {
-      message: 'notes must be at most 2000 Unicode characters',
-    }),
-});
-
-/**
  * Skill review decision response schema.
  * Returns the updated artifact and state transition.
  */
@@ -1289,164 +646,4 @@ export const skillReviewDecisionResponseSchema = z
 
 export type SkillReviewQueueItem = z.infer<typeof skillReviewQueueItemSchema>;
 export type SkillReviewQueueResponse = z.infer<typeof skillReviewQueueResponseSchema>;
-export type SkillReviewDecisionRequest = z.infer<typeof skillReviewDecisionRequestSchema>;
 export type SkillReviewDecisionResponse = z.infer<typeof skillReviewDecisionResponseSchema>;
-
-// =============================================================================
-// Phase 36: Artifact Deactivation Contracts (P36-02)
-// =============================================================================
-
-/**
- * Artifact deactivation request schema.
- * Used to deactivate an approved skill artifact.
- */
-export const artifactDeactivateRequestSchema = z.object({
-  /** Reason for deactivation (required) */
-  reason: z.string().min(1).max(500),
-});
-
-/**
- * Artifact deactivation response schema.
- * Returns the updated artifact with deactivated lifecycle state.
- */
-export const artifactDeactivateResponseSchema = z
-  .object({
-    /** The updated artifact */
-    artifact: skillArtifactSchema,
-    /** Lifecycle state before deactivation */
-    previousState: lifecycleStateSchema,
-    /** Lifecycle state after deactivation (always 'deactivated') */
-    newState: lifecycleStateSchema,
-  })
-  .strict();
-
-export type ArtifactDeactivateRequest = z.infer<typeof artifactDeactivateRequestSchema>;
-export type ArtifactDeactivateResponse = z.infer<typeof artifactDeactivateResponseSchema>;
-
-// =============================================================================
-// Phase 89: Usage Analytics Contracts
-// =============================================================================
-
-/**
- * Entry type for usage analytics.
- */
-export const statsEntryTypeSchema = z.enum(['skill', 'trap', 'knowledge']);
-
-/**
- * Granularity for time-series aggregation.
- */
-export const statsGranularitySchema = z.enum(['hour', 'day', 'week', 'month']);
-
-/**
- * Usage time-series query schema.
- * Request usage counts aggregated by time bucket.
- */
-export const statsUsageQuerySchema = z.object({
-  teamId: entityIdSchema.optional(),
-  accountId: entityIdSchema.optional(),
-  from: isoTimestampSchema,
-  to: isoTimestampSchema,
-  granularity: statsGranularitySchema.default('day'),
-});
-
-/**
- * Usage time-series item schema.
- * Single time bucket with event count.
- */
-export const statsUsageItemSchema = z.object({
-  period: z.string().min(1),
-  count: z.number().int().min(0),
-});
-
-/**
- * Usage time-series response schema.
- */
-export const statsUsageResponseSchema = z
-  .object({
-    items: z.array(statsUsageItemSchema),
-  })
-  .strict();
-
-/**
- * Hit ranking query schema.
- * Request top N entries by hit count.
- */
-export const statsHitRankingQuerySchema = z.object({
-  teamId: entityIdSchema.optional(),
-  entryType: statsEntryTypeSchema.optional(),
-  from: isoTimestampSchema.optional(),
-  to: isoTimestampSchema.optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(10),
-});
-
-/**
- * Hit ranking item schema.
- * Single entry with hit count.
- */
-export const statsHitRankingItemSchema = z.object({
-  entryId: entityIdSchema,
-  entryType: statsEntryTypeSchema,
-  count: z.number().int().min(0),
-});
-
-/**
- * Hit ranking response schema.
- */
-export const statsHitRankingResponseSchema = z
-  .object({
-    items: z.array(statsHitRankingItemSchema),
-  })
-  .strict();
-
-/**
- * System summary query schema.
- * Request system-wide statistics.
- */
-export const statsSummaryQuerySchema = z
-  .object({
-    from: isoTimestampSchema.optional(),
-    to: isoTimestampSchema.optional(),
-  })
-  .refine((d) => d.from == null || d.to == null || d.from <= d.to, {
-    message: 'from must be on or before to',
-  });
-
-/**
- * System summary response schema.
- * Aggregate statistics across the system.
- */
-export const statsSummaryResponseSchema = z
-  .object({
-    totalEvents: z.number().int().min(0),
-    uniqueQueries: z.number().int().min(0),
-    uniqueTeams: z.number().int().min(0),
-    uniqueAccounts: z.number().int().min(0),
-    asyncArchitecture: z
-      .object({
-        queueBacklogByType: z.record(z.string(), z.number().int().min(0)),
-        deadLetterByType: z.record(z.string(), z.number().int().min(0)),
-        retryRateByType: z.record(z.string(), z.number().min(0)),
-        avgHandlerLatencyMsByType: z.record(z.string(), z.number().min(0)),
-        cacheHitRateByNamespace: z.record(z.string(), z.number().min(0).max(1)),
-        cacheInvalidationByNamespace: z.record(z.string(), z.number().int().min(0)),
-        cachePendingInvalidationByNamespace: z.record(z.string(), z.boolean()),
-        badcaseExportCount: z.number().int().min(0),
-        retrievalFailureDistribution: z.record(z.string(), z.number().int().min(0)),
-        thresholds: z.array(architectureDecisionThresholdSchema),
-      })
-      .strict(),
-  })
-  .strict();
-
-export type StatsEntryType = z.infer<typeof statsEntryTypeSchema>;
-export type StatsGranularity = z.infer<typeof statsGranularitySchema>;
-export type StatsUsageQuery = z.infer<typeof statsUsageQuerySchema>;
-export type StatsUsageItem = z.infer<typeof statsUsageItemSchema>;
-export type StatsUsageResponse = z.infer<typeof statsUsageResponseSchema>;
-export type StatsHitRankingQuery = z.infer<typeof statsHitRankingQuerySchema>;
-export type StatsHitRankingItem = z.infer<typeof statsHitRankingItemSchema>;
-export type StatsHitRankingResponse = z.infer<typeof statsHitRankingResponseSchema>;
-export type StatsSummaryQuery = z.infer<typeof statsSummaryQuerySchema>;
-export type StatsSummaryResponse = z.infer<typeof statsSummaryResponseSchema>;
-export type BadcaseEvalDraft = z.infer<typeof badcaseEvalDraftSchema>;
-export type BadcaseExportResponse = z.infer<typeof badcaseExportResponseSchema>;

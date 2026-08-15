@@ -3,11 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   PathValidationError,
   activationFilePayloadSchema,
-  activationRequestSchema,
   activationResponseSchema,
   artifactBundleSchema,
   artifactExportFormatSchema,
-  artifactExportRequestSchema,
   artifactExportResponseSchema,
   artifactFilePayloadRecordSchema,
   artifactImportRequestSchema,
@@ -1397,13 +1395,6 @@ describe('contracts package', () => {
         expect(() => artifactExportFormatSchema.parse('invalid')).toThrow();
       });
 
-      it('artifactExportRequestSchema requires artifactId with optional format', () => {
-        const request = { artifactId: 'artifact_1' };
-        const parsed = artifactExportRequestSchema.parse(request);
-        expect(parsed.artifactId).toBe('artifact_1');
-        expect(parsed.format).toBe('bundle-json'); // default
-      });
-
       it('distilledArtifactSchema accepts compact derived projection', () => {
         const distilled = {
           artifactId: 'artifact_1',
@@ -1813,47 +1804,6 @@ describe('contracts package', () => {
   });
 
   describe('activation request and response schemas (Phase 15-03)', () => {
-    it('accepts valid activation request with artifact ID and selected paths', () => {
-      const request = {
-        artifactId: 'artifact_1',
-        selectedPaths: ['references/docker.md', 'assets/docker-compose.yml', 'scripts/setup.sh'],
-      };
-
-      expect(() => activationRequestSchema.parse(request)).not.toThrow();
-      const parsed = activationRequestSchema.parse(request);
-      expect(parsed.artifactId).toBe('artifact_1');
-      expect(parsed.selectedPaths).toHaveLength(3);
-    });
-
-    it('accepts activation request with optional revision number', () => {
-      const request = {
-        artifactId: 'artifact_1',
-        revision: 2,
-        selectedPaths: ['SKILL.md'],
-      };
-
-      const parsed = activationRequestSchema.parse(request);
-      expect(parsed.revision).toBe(2);
-    });
-
-    it('rejects activation request with empty selected paths', () => {
-      const request = {
-        artifactId: 'artifact_1',
-        selectedPaths: [],
-      };
-
-      expect(() => activationRequestSchema.parse(request)).toThrow();
-    });
-
-    it('rejects activation request with too many selected paths (max 50)', () => {
-      const request = {
-        artifactId: 'artifact_1',
-        selectedPaths: Array.from({ length: 51 }, (_, i) => `file_${i}.md`),
-      };
-
-      expect(() => activationRequestSchema.parse(request)).toThrow();
-    });
-
     it('accepts valid activation response with file payloads', () => {
       const response = {
         artifactId: 'artifact_1',
@@ -2315,104 +2265,12 @@ describe('Phase 15: Activation hints', () => {
 // =============================================================================
 
 import {
-  compatibilityStatusRequestSchema,
   compatibilityStatusResponseSchema,
-  legacyMigrationModeSchema,
-  legacyMigrationRequestSchema,
   legacyMigrationResponseSchema,
   legacyMigrationResultItemSchema,
 } from './index.js';
 
 describe('Phase 16: Legacy Migration and Compatibility Status Contracts', () => {
-  describe('legacyMigrationModeSchema', () => {
-    it('accepts valid migration modes', () => {
-      expect(legacyMigrationModeSchema.parse('explicit')).toBe('explicit');
-      expect(legacyMigrationModeSchema.parse('all-approved')).toBe('all-approved');
-      expect(legacyMigrationModeSchema.parse('all-team')).toBe('all-team');
-    });
-
-    it('rejects invalid migration modes', () => {
-      expect(() => legacyMigrationModeSchema.parse('invalid')).toThrow();
-      expect(() => legacyMigrationModeSchema.parse('all')).toThrow();
-    });
-  });
-
-  describe('legacyMigrationRequestSchema', () => {
-    it('accepts explicit migration request with entry IDs', () => {
-      const request = {
-        mode: 'explicit' as const,
-        entryIds: ['knowledge_1', 'knowledge_2', 'knowledge_3'],
-      };
-
-      const parsed = legacyMigrationRequestSchema.parse(request);
-      expect(parsed.mode).toBe('explicit');
-      expect(parsed.entryIds).toHaveLength(3);
-      expect(parsed.limit).toBe(50); // default
-    });
-
-    it('accepts all-approved migration request with limit', () => {
-      const request = {
-        mode: 'all-approved' as const,
-        limit: 100,
-      };
-
-      const parsed = legacyMigrationRequestSchema.parse(request);
-      expect(parsed.mode).toBe('all-approved');
-      expect(parsed.limit).toBe(100);
-    });
-
-    it('accepts all-team migration request with team ID', () => {
-      const request = {
-        mode: 'all-team' as const,
-        teamId: 'team_1',
-        limit: 25,
-      };
-
-      const parsed = legacyMigrationRequestSchema.parse(request);
-      expect(parsed.mode).toBe('all-team');
-      expect(parsed.teamId).toBe('team_1');
-      expect(parsed.limit).toBe(25);
-    });
-
-    it('rejects explicit mode without entry IDs', () => {
-      const request = {
-        mode: 'explicit' as const,
-        // entryIds is optional in schema, but required for explicit mode semantically
-        // Server will validate this at runtime
-      };
-
-      // Schema should parse (runtime validation for mode-specific requirements)
-      expect(() => legacyMigrationRequestSchema.parse(request)).not.toThrow();
-    });
-
-    it('rejects entry arrays larger than 100', () => {
-      const request = {
-        mode: 'explicit' as const,
-        entryIds: Array.from({ length: 101 }, (_, i) => `knowledge_${i}`),
-      };
-
-      expect(() => legacyMigrationRequestSchema.parse(request)).toThrow();
-    });
-
-    it('rejects limit larger than 200', () => {
-      const request = {
-        mode: 'all-approved' as const,
-        limit: 201,
-      };
-
-      expect(() => legacyMigrationRequestSchema.parse(request)).toThrow();
-    });
-
-    it('rejects limit less than 1', () => {
-      const request = {
-        mode: 'all-approved' as const,
-        limit: 0,
-      };
-
-      expect(() => legacyMigrationRequestSchema.parse(request)).toThrow();
-    });
-  });
-
   describe('legacyMigrationResultItemSchema', () => {
     it('accepts successful migration result', () => {
       const result = {
@@ -2511,24 +2369,6 @@ describe('Phase 16: Legacy Migration and Compatibility Status Contracts', () => 
 
       const parsed = legacyMigrationResponseSchema.parse(response);
       expect(parsed.results).toHaveLength(0);
-    });
-  });
-
-  describe('compatibilityStatusRequestSchema', () => {
-    it('accepts empty status request', () => {
-      const request = {};
-
-      const parsed = compatibilityStatusRequestSchema.parse(request);
-      expect(parsed.teamId).toBeUndefined();
-    });
-
-    it('accepts status request with team ID filter', () => {
-      const request = {
-        teamId: 'team_1',
-      };
-
-      const parsed = compatibilityStatusRequestSchema.parse(request);
-      expect(parsed.teamId).toBe('team_1');
     });
   });
 
@@ -2951,144 +2791,12 @@ describe('Phase 18: Skill Lookup by Content Contracts (SKED-01)', () => {
 // =============================================================================
 
 import {
-  skillEditRequestSchema,
   skillEditResponseSchema,
-  skillHistoryRequestSchema,
   skillHistoryResponseSchema,
   skillRevisionSummarySchema,
 } from './index.js';
 
 describe('Phase 19: Skill Edit and History Contracts', () => {
-  describe('skillEditRequestSchema', () => {
-    it('accepts valid edit request with artifactId and title only', () => {
-      const request = {
-        artifactId: 'artifact_123',
-        title: 'Updated Docker Troubleshooting Guide',
-      };
-
-      const parsed = skillEditRequestSchema.parse(request);
-      expect(parsed.artifactId).toBe('artifact_123');
-      expect(parsed.title).toBe('Updated Docker Troubleshooting Guide');
-      expect(parsed.labels).toBeUndefined();
-      expect(parsed.files).toBeUndefined();
-    });
-
-    it('accepts valid edit request with artifactId and labels only', () => {
-      const request = {
-        artifactId: 'artifact_456',
-        labels: ['docker', 'containers', 'updated'],
-      };
-
-      const parsed = skillEditRequestSchema.parse(request);
-      expect(parsed.artifactId).toBe('artifact_456');
-      expect(parsed.labels).toHaveLength(3);
-      expect(parsed.title).toBeUndefined();
-    });
-
-    it('accepts valid edit request with artifactId and files payload', () => {
-      const request = {
-        artifactId: 'artifact_789',
-        files: [
-          {
-            path: 'SKILL.md',
-            kind: 'skill-markdown',
-            sha256: 'a'.repeat(64),
-            sizeBytes: 2048,
-            mediaType: 'text/markdown',
-            source: 'SKILL.md',
-            includeInDerivation: true,
-            activationOnly: false,
-            content: '# Updated Skill Content',
-          },
-        ],
-      };
-
-      const parsed = skillEditRequestSchema.parse(request);
-      expect(parsed.artifactId).toBe('artifact_789');
-      expect(parsed.files).toHaveLength(1);
-      expect(parsed.files?.[0]?.path).toBe('SKILL.md');
-    });
-
-    it('accepts edit request with title, labels, and files together', () => {
-      const request = {
-        artifactId: 'artifact_full',
-        title: 'Complete Update',
-        labels: ['new-label'],
-        files: [
-          {
-            path: 'references/guide.md',
-            kind: 'reference',
-            sha256: 'b'.repeat(64),
-            sizeBytes: 1024,
-            mediaType: 'text/markdown',
-            source: 'references/',
-            includeInDerivation: true,
-            activationOnly: false,
-            content: 'Reference content',
-          },
-        ],
-      };
-
-      const parsed = skillEditRequestSchema.parse(request);
-      expect(parsed.title).toBe('Complete Update');
-      expect(parsed.labels).toHaveLength(1);
-      expect(parsed.files).toHaveLength(1);
-    });
-
-    it('defaults scriptDescriptors to empty array', () => {
-      const request = {
-        artifactId: 'artifact_1',
-        title: 'Test',
-      };
-
-      const parsed = skillEditRequestSchema.parse(request);
-      expect(parsed.scriptDescriptors).toEqual([]);
-    });
-
-    it('rejects edit request with no update fields (at least one required)', () => {
-      const request = {
-        artifactId: 'artifact_noupdate',
-      };
-
-      expect(() => skillEditRequestSchema.parse(request)).toThrow();
-    });
-
-    it('rejects edit request with empty labels array', () => {
-      const request = {
-        artifactId: 'artifact_1',
-        labels: [],
-      };
-
-      expect(() => skillEditRequestSchema.parse(request)).toThrow();
-    });
-
-    it('rejects edit request with empty files array', () => {
-      const request = {
-        artifactId: 'artifact_1',
-        files: [],
-      };
-
-      expect(() => skillEditRequestSchema.parse(request)).toThrow();
-    });
-
-    it('rejects edit request missing artifactId', () => {
-      const request = {
-        title: 'Missing artifactId',
-      };
-
-      expect(() => skillEditRequestSchema.parse(request)).toThrow();
-    });
-
-    it('rejects title longer than 280 characters', () => {
-      const request = {
-        artifactId: 'artifact_1',
-        title: 'a'.repeat(281),
-      };
-
-      expect(() => skillEditRequestSchema.parse(request)).toThrow();
-    });
-  });
-
   describe('skillEditResponseSchema', () => {
     const makeMinimalArtifact = () => ({
       id: 'artifact_1',
@@ -3298,29 +3006,6 @@ describe('Phase 19: Skill Edit and History Contracts', () => {
       const parsed = skillRevisionSummarySchema.parse(summary);
       expect('files' in parsed).toBe(false);
       expect('sourceHash' in parsed).toBe(false);
-    });
-  });
-
-  describe('skillHistoryRequestSchema', () => {
-    it('accepts valid history request with artifactId', () => {
-      const request = {
-        artifactId: 'artifact_123',
-      };
-
-      const parsed = skillHistoryRequestSchema.parse(request);
-      expect(parsed.artifactId).toBe('artifact_123');
-    });
-
-    it('rejects history request missing artifactId', () => {
-      expect(() => skillHistoryRequestSchema.parse({})).toThrow();
-    });
-
-    it('rejects invalid artifactId format', () => {
-      const request = {
-        artifactId: '',
-      };
-
-      expect(() => skillHistoryRequestSchema.parse(request)).toThrow();
     });
   });
 
@@ -3537,63 +3222,12 @@ describe('Phase 19: Skill Edit and History Contracts', () => {
 
 // Phase 20: Skill Review Contracts (SKED-03)
 import {
-  skillReviewDecisionRequestSchema,
   skillReviewDecisionResponseSchema,
   skillReviewQueueItemSchema,
   skillReviewQueueResponseSchema,
 } from './domain/operations.js';
 
 describe('Phase 20: Skill Review Contracts', () => {
-  describe('skillReviewDecisionRequestSchema', () => {
-    it('accepts valid approve decision', () => {
-      const request = {
-        artifactId: 'artifact_123',
-        decision: 'approve' as const,
-        notes: 'Looks good to me',
-      };
-      const parsed = skillReviewDecisionRequestSchema.parse(request);
-      expect(parsed.decision).toBe('approve');
-      expect(parsed.notes).toBe('Looks good to me');
-    });
-
-    it('accepts valid reject decision', () => {
-      const request = {
-        artifactId: 'artifact_123',
-        decision: 'reject' as const,
-        notes: 'Needs more detail in the SKILL.md',
-      };
-      const parsed = skillReviewDecisionRequestSchema.parse(request);
-      expect(parsed.decision).toBe('reject');
-    });
-
-    it('rejects notes shorter than 1 character', () => {
-      const request = {
-        artifactId: 'artifact_123',
-        decision: 'approve' as const,
-        notes: '',
-      };
-      expect(() => skillReviewDecisionRequestSchema.parse(request)).toThrow();
-    });
-
-    it('rejects notes longer than 2000 characters', () => {
-      const request = {
-        artifactId: 'artifact_123',
-        decision: 'approve' as const,
-        notes: 'x'.repeat(2001),
-      };
-      expect(() => skillReviewDecisionRequestSchema.parse(request)).toThrow();
-    });
-
-    it('rejects invalid decision value', () => {
-      const request = {
-        artifactId: 'artifact_123',
-        decision: 'maybe',
-        notes: 'Not sure',
-      };
-      expect(() => skillReviewDecisionRequestSchema.parse(request)).toThrow();
-    });
-  });
-
   describe('skillReviewQueueResponseSchema', () => {
     it('accepts valid queue response with items', () => {
       const artifact = {

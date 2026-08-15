@@ -1,8 +1,6 @@
 import Graphology from 'graphology';
-import { hasCycle } from 'graphology-dag';
 import { subgraph } from 'graphology-operators';
 import { singleSourceLength } from 'graphology-shortest-path';
-import type { Boundary, ExclusionRule, VersionConstraint } from './boundary.js';
 import type { Scope } from './common.js';
 import type { GraphEdgeRecord, GraphIndexDocumentRecord, GraphNodeRecord } from './graph-index.js';
 
@@ -239,37 +237,6 @@ export function calculateSourceRelationStrength(
   return strength;
 }
 
-const HARD_RELATION_TYPES: ReadonlySet<string> = new Set([
-  'requires',
-  'risk-blocks',
-  'requires-version',
-]);
-
-export function projectHardDependencyGraph(documents: GraphIndexDocumentRecord[]): Graph {
-  const graph = new GraphCtor({ type: 'directed', multi: true });
-  for (const document of documents) {
-    for (const edge of document.edges) {
-      if (HARD_RELATION_TYPES.has(edge.relationType) && edge.strength === 'hard') {
-        graph.mergeNode(edge.sourceNodeId);
-        graph.mergeNode(edge.targetNodeId);
-        graph.mergeEdgeWithKey(edge.id, edge.sourceNodeId, edge.targetNodeId, {
-          relationType: edge.relationType,
-          strength: edge.strength,
-        });
-      }
-    }
-  }
-  return graph;
-}
-
-export function assertNoHardDependencyCycles(documents: GraphIndexDocumentRecord[]): void {
-  // biome-ignore format: keep the lib type gap marker on the cast line
-  if (hasCycle(projectHardDependencyGraph(documents) as never)) { // lib type gap: graphology-dag's
-    // hasCycle is typed against AbstractGraph; the projection graph is a minimal structural subset
-    throw new Error('hard dependency cycle detected');
-  }
-}
-
 export interface LocalExpansionParams {
   documents: GraphIndexDocumentRecord[];
   seedNodeIds: string[];
@@ -290,116 +257,4 @@ export function buildLocalExpansionView(params: LocalExpansionParams): Graph {
   }
   return subgraph(graph as never, reachableNodeIds) as Graph; // lib type gap: graphology-operators is
   // typed against AbstractGraph; the projection graph is a minimal structural subset
-}
-
-export function normalizeContextLabel(label: string): string {
-  return label
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .slice(0, 64);
-}
-
-export function normalizePackageName(name: string): string {
-  return name.toLowerCase().trim();
-}
-
-export function buildVersionNodeId(constraint: VersionConstraint): string {
-  return `boundary-version:${normalizePackageName(constraint.package)}@${constraint.range}`;
-}
-
-export function buildContextNodeId(label: string): string {
-  return `boundary-context:${normalizeContextLabel(label)}`;
-}
-
-export function buildPlatformNodeId(name: string): string {
-  return `boundary-platform:${normalizeContextLabel(name)}`;
-}
-
-const COMMON_PLATFORMS = [
-  'linux',
-  'windows',
-  'macos',
-  'darwin',
-  'docker',
-  'kubernetes',
-  'k8s',
-  'aws',
-  'azure',
-  'gcp',
-  'ci',
-  'cd',
-  'localhost',
-] as const;
-
-export function extractPlatformsFromExclusions(exclusions: ExclusionRule[]): string[] {
-  const platforms: string[] = [];
-  for (const exclusion of exclusions) {
-    if (exclusion.kind === 'platform') {
-      const description = exclusion.description.toLowerCase();
-      for (const platform of COMMON_PLATFORMS) {
-        if (description.includes(platform)) platforms.push(platform);
-      }
-    }
-  }
-  return [...new Set(platforms)];
-}
-
-export interface BoundaryFacetIndex {
-  contexts: string[];
-  packages: string[];
-  platforms: string[];
-  versionConstraints: string[];
-}
-
-export function buildBoundaryFacetIndex(boundary: Boundary | null): BoundaryFacetIndex {
-  if (!boundary) return { contexts: [], packages: [], platforms: [], versionConstraints: [] };
-  const contexts = boundary.context.map(normalizeContextLabel);
-  const packages = boundary.versions.map((version) => normalizePackageName(version.package));
-  const platforms = extractPlatformsFromExclusions(boundary.exclusions);
-  const versionConstraints = boundary.versions.map(
-    (version) => `${normalizePackageName(version.package)}@${version.range}`,
-  );
-  return {
-    contexts: [...new Set(contexts)],
-    packages: [...new Set(packages)],
-    platforms: [...new Set(platforms)],
-    versionConstraints: [...new Set(versionConstraints)],
-  };
-}
-
-export function findEntriesByContext(
-  runtime: GraphRuntimeSnapshot,
-  contextLabel: string,
-): Set<string> {
-  return runtime.sourceIdsByNodeId.get(buildContextNodeId(contextLabel)) ?? new Set();
-}
-
-function findEntriesByPackage(runtime: GraphRuntimeSnapshot, packageName: string): Set<string> {
-  const results = new Set<string>();
-  for (const [nodeId, sourceIds] of runtime.sourceIdsByNodeId) {
-    if (nodeId.startsWith(`boundary-version:${packageName.toLowerCase()}@`)) {
-      for (const sourceId of sourceIds) results.add(sourceId);
-    }
-  }
-  return results;
-}
-
-export function findEntriesByBoundaryConstraints(
-  runtime: GraphRuntimeSnapshot,
-  constraints: { contexts?: string[]; packages?: string[] },
-): Set<string> {
-  let result: Set<string> | null = null;
-  for (const sources of [
-    ...(constraints.contexts ?? []).map((context) => findEntriesByContext(runtime, context)),
-    ...(constraints.packages ?? []).map((packageName) =>
-      findEntriesByPackage(runtime, packageName),
-    ),
-  ]) {
-    result =
-      result === null
-        ? new Set(sources)
-        : new Set<string>([...result].filter((id: string) => sources.has(id)));
-  }
-  return result ?? new Set();
 }

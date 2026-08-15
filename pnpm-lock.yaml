@@ -170,9 +170,6 @@ importers:
       graphology:
         specifier: ^0.26.0
         version: 0.26.0(graphology-types@0.24.8)
-      graphology-dag:
-        specifier: ^0.4.1
-        version: 0.4.1(graphology-types@0.24.8)
       graphology-operators:
         specifier: ^1.6.1
         version: 1.6.1(graphology-types@0.24.8)
@@ -5837,11 +5834,6 @@ packages:
 
   graphlib@2.1.8:
     resolution: {integrity: sha512-jcLLfkpoVGmH7/InMC/1hIvOPSUh38oJtGhvrOFGzioE1DZ+0YW16RgmOJhHiuWTvGiJQ9Z1Ik43JvkRPRvE+A==}
-
-  graphology-dag@0.4.1:
-    resolution: {integrity: sha512-3ch9oOAnHZDoT043vyg7ukmSkKJ505nFzaHaYOn0IF2PgGo5VtIavyVK4UpbIa4tli3hhGm1ZTdBsubTmaxu/w==}
-    peerDependencies:
-      graphology-types: '>=0.19.0'
 
   graphology-indices@0.17.0:
     resolution: {integrity: sha512-A7RXuKQvdqSWOpn7ZVQo4S33O0vCfPBnUSf7FwE0zNCasqwZVUaCXePuWo5HBpWw68KJcwObZDHpFk6HKH6MYQ==}
@@ -13830,12 +13822,6 @@ snapshots:
   graphlib@2.1.8:
     dependencies:
       lodash: 4.18.1
-
-  graphology-dag@0.4.1(graphology-types@0.24.8):
-    dependencies:
-      graphology-types: 0.24.8
-      graphology-utils: 2.5.2(graphology-types@0.24.8)
-      mnemonist: 0.39.8
 
   graphology-indices@0.17.0(graphology-types@0.24.8):
     dependencies:

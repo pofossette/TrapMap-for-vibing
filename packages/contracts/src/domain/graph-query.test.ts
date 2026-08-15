@@ -1,6 +1,5 @@
 import {
   type GraphIndexDocumentRecord,
-  assertNoHardDependencyCycles,
   buildGraphRuntimeSnapshot,
   calculateSourceRelationStrength,
   expandSourcesOneHop,
@@ -65,33 +64,5 @@ describe('graph query contract helpers', () => {
       new Set(['t1', 's1']),
     );
     expect(calculateSourceRelationStrength(runtime, 's1', new Set(['database-migration']))).toBe(2);
-  });
-
-  it('rejects a hard dependency cycle with the deterministic message', () => {
-    const cyclicDocument: GraphIndexDocumentRecord = {
-      ...trapDocument,
-      edges: [
-        {
-          id: 'edge:trap-requires-skill',
-          sourceNodeId: 'trap:t1',
-          targetNodeId: 'skill:s1',
-          relationType: 'requires',
-          strength: 'hard',
-          evidence: 'Trap requires skill.',
-        },
-        {
-          id: 'edge:skill-requires-trap',
-          sourceNodeId: 'skill:s1',
-          targetNodeId: 'trap:t1',
-          relationType: 'requires',
-          strength: 'hard',
-          evidence: 'Skill requires trap.',
-        },
-      ],
-    };
-
-    expect(() => assertNoHardDependencyCycles([cyclicDocument])).toThrow(
-      'hard dependency cycle detected',
-    );
   });
 });

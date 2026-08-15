@@ -2,35 +2,17 @@ import { describe, expect, it } from 'vitest';
 
 import { maintenanceEntryListRequestSchema } from './maintenance.js';
 import {
-  OBSERVABILITY_FAILURE_CLASSIFICATIONS,
-  OBSERVABILITY_PUBLIC_ADDITIVE_FIELDS,
-} from './observability.js';
-import {
   activationFilePayloadSchema,
   artifactExportResponseSchema,
-  asyncFailureCategorySchema,
-  asyncFailureTaxonomyItemSchema,
   auditEventSchema,
-  auditQuerySchema,
-  badcaseEvalDraftSchema,
-  badcaseExportResponseSchema,
-  buildBadcaseDebugContract,
-  buildBadcaseEvalDraft,
   bundleFilePayloadSchema,
   bundleScriptDescriptorSchema,
   distilledArtifactSchema,
   importResponseSchema,
   importResultItemSchema,
-  knowledgeDeactivateRequestSchema,
   knowledgeListResponseSchema,
-  legacyMigrationRequestSchema,
   legacyMigrationResultItemSchema,
-  skillReviewDecisionRequestSchema,
   skillReviewQueueResponseSchema,
-  statsSummaryQuerySchema,
-  statsUsageItemSchema,
-  statsUsageResponseSchema,
-  workflowRunSnapshotSchema,
 } from './operations.js';
 
 // Valid actor reference matching actorRefSchema
@@ -104,178 +86,13 @@ describe('operations schema fixes', () => {
       createdAt: validTimestamp,
       updatedAt: validTimestamp,
     });
-    const query = auditQuerySchema.parse({
-      operationId: 'operation_1',
-      traceId: '4bf92f3577b34da6a3ce929d0e0e4736',
-      causationId: 'event_1',
-    });
-
     expect(event.operationId).toBe('operation_1');
-    expect(query.causationId).toBe('event_1');
-  });
-
-  describe('phase 1 truth-source reuse', () => {
-    it('reuses the shared observability failure taxonomy categories', () => {
-      expect(asyncFailureCategorySchema.options).toEqual([
-        ...OBSERVABILITY_FAILURE_CLASSIFICATIONS,
-      ]);
-    });
-
-    it('limits workflow correlation to the frozen public additive keys', () => {
-      const parsed = workflowRunSnapshotSchema.parse({
-        runId: 'wf_1',
-        workflowType: 'badcase-export-draft',
-        subjectId: 'feedback_1',
-        status: 'running',
-        stepName: 'draft-export',
-        attempt: 1,
-        startedAt: validTimestamp,
-        completedAt: null,
-        lastError: null,
-        correlation: {
-          requestId: 'req_1',
-          traceId: 'trace_1',
-          queryId: 'qry_1',
-          feedbackId: 'feedback_1',
-          asyncJobId: 'wf_1',
-        },
-        stats: {},
-        createdAt: validTimestamp,
-        updatedAt: validTimestamp,
-      });
-
-      expect(Object.keys(parsed.correlation ?? {})).toEqual([
-        ...OBSERVABILITY_PUBLIC_ADDITIVE_FIELDS,
-      ]);
-      expect(() =>
-        workflowRunSnapshotSchema.parse({
-          ...parsed,
-          correlation: {
-            ...parsed.correlation,
-            workflowRunId: 'wf_internal_only',
-          },
-        }),
-      ).toThrow();
-    });
-
-    it('requires async failure taxonomy items to stay aligned with the shared contract', () => {
-      const parsed = asyncFailureTaxonomyItemSchema.parse({
-        category: 'permanent-failure',
-        meaning: 'Retry exhausted.',
-        operatorAction: 'Repair and requeue.',
-      });
-
-      expect(parsed.category).toBe('permanent-failure');
-    });
-
-    it('reuses one badcase debug contract across export and workflow correlation views', () => {
-      const draft = buildBadcaseEvalDraft({
-        feedbackId: 'feedback_1',
-        queryId: 'qry_1',
-        querySeed: 'seed',
-        routeFamily: 'entry',
-        entryId: 'trap_1',
-        entryType: 'trap',
-        failureClassification: 'stale-content',
-        expectedCorrection: 'Use the latest answer.',
-        selectedResultSnapshot: { entryId: 'trap_1' },
-      });
-      const debug = buildBadcaseDebugContract({
-        correlation: {
-          requestId: 'req_1',
-          traceId: 'trace_1',
-          queryId: 'qry_1',
-          feedbackId: 'feedback_1',
-          asyncJobId: 'wf_badcase_feedback_1',
-        },
-        sourceFeedbackId: 'feedback_1',
-        queryId: 'qry_1',
-        routeFamily: 'entry',
-        asyncJobId: 'wf_badcase_feedback_1',
-        exportDraftReady: true,
-      });
-
-      const response = badcaseExportResponseSchema.parse({
-        feedbackId: 'feedback_1',
-        draft,
-        debug,
-        exportedAt: validTimestamp,
-      });
-
-      expect(response.debug.correlation.feedbackId).toBe('feedback_1');
-      expect(response.debug.durableTrace.queryId).toBe('qry_1');
-      expect(response.debug.workflow.asyncJobId).toBe('wf_badcase_feedback_1');
-      expect(response.draft.request.asyncJobId).toBeUndefined();
-    });
-
-    it('keeps the script/export draft payload narrower than the operator route wrapper', () => {
-      const draft = buildBadcaseEvalDraft({
-        feedbackId: 'feedback_1',
-        queryId: 'qry_1',
-        querySeed: 'seed',
-        routeFamily: 'entry',
-        entryId: 'trap_1',
-        entryType: 'trap',
-        failureClassification: 'stale-content',
-        expectedCorrection: 'Use the latest answer.',
-        selectedResultSnapshot: { entryId: 'trap_1' },
-      });
-
-      expect(() =>
-        badcaseEvalDraftSchema.parse({
-          ...draft,
-          debug: {
-            correlation: { queryId: 'qry_1', feedbackId: 'feedback_1', asyncJobId: 'wf_1' },
-          },
-        }),
-      ).toThrow();
-    });
   });
 
   // =========================================================================
   // .strict() fixes
   // =========================================================================
   describe('.strict() enforcement', () => {
-    describe('knowledgeDeactivateRequestSchema', () => {
-      it('accepts valid object with known keys', () => {
-        const result = knowledgeDeactivateRequestSchema.parse({
-          entryId: 'entry-1',
-          reason: 'invalid content',
-        });
-        expect(result.entryId).toBe('entry-1');
-      });
-
-      it('rejects object with extra keys', () => {
-        expect(() =>
-          knowledgeDeactivateRequestSchema.parse({
-            entryId: 'entry-1',
-            reason: 'invalid content',
-            extra: 'field',
-          }),
-        ).toThrow();
-      });
-    });
-
-    describe('legacyMigrationRequestSchema', () => {
-      it('accepts valid object with known keys', () => {
-        const result = legacyMigrationRequestSchema.parse({
-          mode: 'all-approved',
-          limit: 50,
-        });
-        expect(result.mode).toBe('all-approved');
-      });
-
-      it('rejects object with extra keys', () => {
-        expect(() =>
-          legacyMigrationRequestSchema.parse({
-            mode: 'all-approved',
-            limit: 50,
-            extra: 'field',
-          }),
-        ).toThrow();
-      });
-    });
-
     describe('legacyMigrationResultItemSchema', () => {
       it('accepts valid object with known keys', () => {
         const result = legacyMigrationResultItemSchema.parse({
@@ -322,24 +139,6 @@ describe('operations schema fixes', () => {
         expect(() =>
           activationFilePayloadSchema.parse({
             ...validPayload,
-            extra: 'field',
-          }),
-        ).toThrow();
-      });
-    });
-
-    describe('statsUsageResponseSchema', () => {
-      it('accepts valid object with known keys', () => {
-        const result = statsUsageResponseSchema.parse({
-          items: [{ period: '2024-01', count: 10 }],
-        });
-        expect(result.items).toHaveLength(1);
-      });
-
-      it('rejects object with extra keys', () => {
-        expect(() =>
-          statsUsageResponseSchema.parse({
-            items: [{ period: '2024-01', count: 10 }],
             extra: 'field',
           }),
         ).toThrow();
@@ -558,73 +357,6 @@ describe('operations schema fixes', () => {
           bundleScriptDescriptorSchema.parse({
             ...validDescriptor,
             sha256: 'A'.repeat(64),
-          }),
-        ).toThrow();
-      });
-    });
-  });
-
-  // =========================================================================
-  // Non-empty constraints
-  // =========================================================================
-  describe('non-empty constraints', () => {
-    describe('skillReviewDecisionRequestSchema', () => {
-      it('accepts notes with 2000 ASCII characters', () => {
-        const result = skillReviewDecisionRequestSchema.parse({
-          artifactId: 'art-1',
-          decision: 'approve',
-          notes: 'a'.repeat(2000),
-        });
-        expect(result.notes).toHaveLength(2000);
-      });
-
-      it('rejects notes exceeding 2000 Unicode characters', () => {
-        expect(() =>
-          skillReviewDecisionRequestSchema.parse({
-            artifactId: 'art-1',
-            decision: 'approve',
-            notes: 'a'.repeat(2001),
-          }),
-        ).toThrow();
-      });
-
-      it('counts multi-byte emoji as single Unicode character', () => {
-        // Each emoji is 1 Unicode code point but 2 UTF-16 code units
-        const emojiNotes = '\u{1F600}'.repeat(2000); // 2000 emoji
-        const result = skillReviewDecisionRequestSchema.parse({
-          artifactId: 'art-1',
-          decision: 'approve',
-          notes: emojiNotes,
-        });
-        expect([...result.notes].length).toBe(2000);
-      });
-
-      it('rejects when Unicode character count exceeds 2000', () => {
-        const emojiNotes = '\u{1F600}'.repeat(2001); // 2001 emoji
-        expect(() =>
-          skillReviewDecisionRequestSchema.parse({
-            artifactId: 'art-1',
-            decision: 'approve',
-            notes: emojiNotes,
-          }),
-        ).toThrow();
-      });
-    });
-
-    describe('statsUsageItemSchema', () => {
-      it('accepts non-empty period', () => {
-        const result = statsUsageItemSchema.parse({
-          period: '2024-01',
-          count: 10,
-        });
-        expect(result.period).toBe('2024-01');
-      });
-
-      it('rejects empty period', () => {
-        expect(() =>
-          statsUsageItemSchema.parse({
-            period: '',
-            count: 10,
           }),
         ).toThrow();
       });
@@ -900,55 +632,6 @@ describe('operations schema fixes', () => {
         expect(result.staleVerification).toBe(false);
         expect(result.staleDays).toBeUndefined();
       });
-    });
-  });
-
-  describe('statsSummaryQuerySchema', () => {
-    it('accepts empty object', () => {
-      const result = statsSummaryQuerySchema.parse({});
-      expect(result.from).toBeUndefined();
-      expect(result.to).toBeUndefined();
-    });
-
-    it('accepts from before to', () => {
-      const result = statsSummaryQuerySchema.parse({
-        from: '2024-01-01T00:00:00.000Z',
-        to: '2024-12-31T23:59:59.000Z',
-      });
-      expect(result.from).toBe('2024-01-01T00:00:00.000Z');
-    });
-
-    it('accepts from equal to to', () => {
-      const result = statsSummaryQuerySchema.parse({
-        from: '2024-01-01T00:00:00.000Z',
-        to: '2024-01-01T00:00:00.000Z',
-      });
-      expect(result.from).toBe(result.to);
-    });
-
-    it('rejects from after to', () => {
-      expect(() =>
-        statsSummaryQuerySchema.parse({
-          from: '2024-12-31T23:59:59.000Z',
-          to: '2024-01-01T00:00:00.000Z',
-        }),
-      ).toThrow();
-    });
-
-    it('accepts from only', () => {
-      const result = statsSummaryQuerySchema.parse({
-        from: '2024-01-01T00:00:00.000Z',
-      });
-      expect(result.from).toBe('2024-01-01T00:00:00.000Z');
-      expect(result.to).toBeUndefined();
-    });
-
-    it('accepts to only', () => {
-      const result = statsSummaryQuerySchema.parse({
-        to: '2024-12-31T23:59:59.000Z',
-      });
-      expect(result.to).toBe('2024-12-31T23:59:59.000Z');
-      expect(result.from).toBeUndefined();
     });
   });
 });
