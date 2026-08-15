@@ -2,7 +2,7 @@
  * Actor and auth lookup port interfaces.
  *
  * These ports define the contract for authentication and authorization
- * lookups required by backend-core use-cases. They are host-agnostic --
+ * lookups required by backend-core bounded contexts. They are host-agnostic --
  * host assemblies wire them to session stores, team repositories, or
  * external identity providers.
  */

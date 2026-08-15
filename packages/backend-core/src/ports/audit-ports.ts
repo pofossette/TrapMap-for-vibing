@@ -58,7 +58,7 @@ export interface AuditLogPort {
 /**
  * Audit/write-path specific metrics hooks used by legacy backend-core tests.
  *
- * General telemetry metrics belong to `telemetry-ports.ts`.
+ * General telemetry metrics are provided by host observability layers.
  */
 export interface AuditMetricsPort {
   /**

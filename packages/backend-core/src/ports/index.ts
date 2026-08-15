@@ -10,5 +10,4 @@ export type {
 } from './audit-ports.js';
 export * from './internal-ports.js';
 export * from './discovery-ports.js';
-export * from './telemetry-ports.js';
 export * from './lifecycle-ports.js';

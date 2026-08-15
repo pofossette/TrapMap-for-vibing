@@ -2,7 +2,7 @@
  * Repository port interfaces.
  *
  * These are host-agnostic repository contracts that define the persistence
- * shape required by backend-core use-cases and modules. Host assemblies
+ * shape required by backend-core bounded-context modules. Host assemblies
  * (local-agent, team-monolith, distributed) provide concrete implementations
  * backed by JSON store, PostgreSQL, or any other persistence layer.
  *

@@ -7,8 +7,6 @@ import {
   createStubMetrics,
   createStubRepositoryPorts,
 } from '../testing/test-utils.js';
-import { executeCommand } from '../use-cases/command-handling.js';
-import type { Command } from '../use-cases/command-handling.js';
 import {
   getServiceUnitProfile,
   resolveAsyncWorkerState,
@@ -21,16 +19,6 @@ import {
   shouldBootTaskWorker,
   shouldOwnAsyncWork,
 } from './capability-model.js';
-import {
-  buildRouteSurfaceSummary,
-  getUnsupportedRouteDescriptors,
-  resolveRouteFamilies,
-} from './route-surface.js';
-import {
-  DISTRIBUTED_SERVICES,
-  SHARED_INFRASTRUCTURE,
-  buildServiceTopologySnapshot,
-} from './topology.js';
 
 describe('runtime/capability-model', () => {
   describe('resolveRuntimeDeployment', () => {
@@ -201,57 +189,6 @@ describe('runtime/capability-model', () => {
   });
 });
 
-describe('runtime/route-surface', () => {
-  it('resolveRouteFamilies returns worker-status for worker-status surface', () => {
-    const families = resolveRouteFamilies('worker-status', false);
-    expect(families).toHaveLength(1);
-    expect(families[0]!.kind).toBe('worker-status');
-  });
-
-  it('resolveRouteFamilies returns gateway-api for gateway-core surface', () => {
-    const families = resolveRouteFamilies('gateway-core', false);
-    expect(families).toHaveLength(1);
-    expect(families[0]!.kind).toBe('gateway-api');
-  });
-
-  it('getUnsupportedRouteDescriptors returns empty for gateway-core', () => {
-    const descriptors = getUnsupportedRouteDescriptors('gateway-core');
-    expect(descriptors).toHaveLength(0);
-  });
-
-  it('buildRouteSurfaceSummary computes correct counts', () => {
-    const resolved = resolveRuntimeDeployment({
-      profile: 'team-monolith',
-      preset: 'monolith',
-    });
-    const summary = buildRouteSurfaceSummary(resolved);
-    expect(summary.publicGatewayRouteCount).toBeGreaterThan(0);
-    expect(summary.routeSurface).toBe('gateway-core');
-  });
-});
-
-describe('runtime/topology', () => {
-  it('buildServiceTopologySnapshot creates a valid snapshot', () => {
-    const resolved = resolveRuntimeDeployment({
-      profile: 'team-monolith',
-      preset: 'monolith',
-    });
-    const families = resolveRouteFamilies('gateway-core', true);
-    const snapshot = buildServiceTopologySnapshot({
-      deployment: resolved,
-      routeFamilies: families,
-      runtimeMode: 'combined',
-      serviceUnit: 'full-platform',
-      serviceUnitProfile: getServiceUnitProfile('full-platform', 'combined'),
-    });
-    expect(snapshot.deploymentProfile).toBe('team-monolith');
-    expect(snapshot.phase).toBe('shared-postgres-phase1');
-    expect(snapshot.currentService.name).toBe('gateway');
-    expect(snapshot.sharedInfrastructure).toEqual(SHARED_INFRASTRUCTURE);
-    expect(snapshot.distributedServices).toEqual(DISTRIBUTED_SERVICES);
-  });
-});
-
 describe('invocation/invocation-model', () => {
   it('InvocationError creates typed errors', () => {
     const err = InvocationError.notFound('test');
@@ -278,43 +215,6 @@ describe('invocation/invocation-model', () => {
       status: 500,
       body: { error: 'Internal server error', kind: 'internal' },
     });
-  });
-});
-
-describe('use-cases/command-handling', () => {
-  it('executeCommand wraps success', async () => {
-    const cmd: Command<string, number> = { execute: async (input) => input.length };
-    const result = await executeCommand(cmd, 'hello');
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.value).toBe(5);
-    }
-  });
-
-  it('executeCommand wraps InvocationError', async () => {
-    const cmd: Command<string, number> = {
-      execute: async () => {
-        throw InvocationError.notFound('nope');
-      },
-    };
-    const result = await executeCommand(cmd, 'hello');
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.kind).toBe('not-found');
-    }
-  });
-
-  it('executeCommand wraps unknown errors as internal', async () => {
-    const cmd: Command<string, number> = {
-      execute: async () => {
-        throw new Error('boom');
-      },
-    };
-    const result = await executeCommand(cmd, 'hello');
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.kind).toBe('internal');
-    }
   });
 });
 

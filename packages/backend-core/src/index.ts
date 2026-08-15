@@ -6,7 +6,6 @@
  * This package contains:
  * - Runtime capability model (deployment profiles, service units, topology)
  * - Application port interfaces (repos, queues, retrieval, actors, audit)
- * - Use-case patterns (commands, review flows, retrieval, job scheduling)
  * - Bounded-context modules (identity, knowledge, candidates, governance, jobs)
  * - Invocation model (sync/async contracts, error taxonomy)
  * - Framework-neutral HTTP route contract + thin Nest/Fastify adapters
@@ -37,11 +36,6 @@ export * from './knowledge-write/index.js';
 export * from './candidate-ingestion/index.js';
 export * from './governance-review/index.js';
 export * from './job-runtime/index.js';
-
-// ---------------------------------------------------------------------------
-// Use-case patterns
-// ---------------------------------------------------------------------------
-export * from './use-cases/index.js';
 
 // ---------------------------------------------------------------------------
 // Invocation model

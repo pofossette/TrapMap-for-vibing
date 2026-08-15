@@ -6,19 +6,8 @@
  * contracts without performing real I/O.
  */
 
-import type {
-  PermissionCheckPort,
-  SessionLookupPort,
-  TeamLookupPort,
-} from '../ports/actor-ports.js';
 import type { AuditLogPort } from '../ports/audit-ports.js';
 import type { AuditMetricsPort } from '../ports/audit-ports.js';
-import type {
-  OutboxPort,
-  OutboxStatusSnapshot,
-  TaskQueuePort,
-  TaskStatusSnapshot,
-} from '../ports/queue-ports.js';
 import type {
   AccessKeyRepositoryPort,
   AuditRepositoryPort,
@@ -86,110 +75,10 @@ export function createStubMetrics(): AuditMetricsPort & {
 }
 
 // ---------------------------------------------------------------------------
-// Stub: SessionLookupPort
+// Stub: RepositoryPorts bundle (individual repo stubs are internal helpers)
 // ---------------------------------------------------------------------------
 
-export function createStubSessionLookup(): SessionLookupPort {
-  return {
-    async resolveSession(_sessionToken) {
-      return null;
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Stub: TeamLookupPort
-// ---------------------------------------------------------------------------
-
-export function createStubTeamLookup(): TeamLookupPort {
-  return {
-    async getTeam(_teamId) {
-      return null;
-    },
-    async listTeamsForUser(_userId) {
-      return [];
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Stub: PermissionCheckPort
-// ---------------------------------------------------------------------------
-
-export function createStubPermissionCheck(): PermissionCheckPort {
-  return {
-    async resolvePermissions(_userId, _teamId) {
-      return [];
-    },
-    async hasPermission(_userId, _teamId, _permission) {
-      return false;
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Stub: TaskQueuePort
-// ---------------------------------------------------------------------------
-
-export function createStubTaskQueue(): TaskQueuePort {
-  return {
-    kind: 'postgres-task-queue',
-    async enqueue(_type, _payload, _options) {
-      return `task_${Date.now()}`;
-    },
-    async requeue(_taskId) {
-      /* no-op */
-    },
-    async getStatusSnapshot(): Promise<TaskStatusSnapshot> {
-      return {
-        provider: 'postgres',
-        pending: 0,
-        running: 0,
-        dead: 0,
-        staleRunning: 0,
-        reclaimCount: 0,
-      };
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Stub: OutboxPort
-// ---------------------------------------------------------------------------
-
-export function createStubOutbox(): OutboxPort {
-  return {
-    kind: 'postgres-domain-outbox',
-    async enqueue(_params) {
-      return `event_${Date.now()}`;
-    },
-    async claimBatch(_limit, _workerId) {
-      return [];
-    },
-    async complete(_eventId) {
-      /* no-op */
-    },
-    async fail(_eventId, _error) {
-      /* no-op */
-    },
-    async getStatusSnapshot(): Promise<OutboxStatusSnapshot> {
-      return {
-        provider: 'postgres',
-        pending: 0,
-        processing: 0,
-        failed: 0,
-        staleProcessing: 0,
-        reclaimCount: 0,
-      };
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Stub: KnowledgeRepositoryPort
-// ---------------------------------------------------------------------------
-
-export function createStubKnowledgeRepository(): KnowledgeRepositoryPort {
+function createStubKnowledgeRepository(): KnowledgeRepositoryPort {
   return {
     async nextId() {
       return `k_${Date.now()}`;
@@ -224,11 +113,7 @@ export function createStubKnowledgeRepository(): KnowledgeRepositoryPort {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Stub: CandidateRepositoryPort
-// ---------------------------------------------------------------------------
-
-export function createStubCandidateRepository(): CandidateRepositoryPort {
+function createStubCandidateRepository(): CandidateRepositoryPort {
   return {
     async insert(_candidate) {
       /* no-op */
@@ -260,11 +145,7 @@ export function createStubCandidateRepository(): CandidateRepositoryPort {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Stub: SessionRepositoryPort
-// ---------------------------------------------------------------------------
-
-export function createStubSessionRepository(): SessionRepositoryPort {
+function createStubSessionRepository(): SessionRepositoryPort {
   return {
     async nextId() {
       return `s_${Date.now()}`;
@@ -284,11 +165,7 @@ export function createStubSessionRepository(): SessionRepositoryPort {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Stub: AccessKeyRepositoryPort
-// ---------------------------------------------------------------------------
-
-export function createStubAccessKeyRepository(): AccessKeyRepositoryPort {
+function createStubAccessKeyRepository(): AccessKeyRepositoryPort {
   return {
     async nextId() {
       return `ak_${Date.now()}`;
@@ -311,11 +188,7 @@ export function createStubAccessKeyRepository(): AccessKeyRepositoryPort {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Stub: TeamRepositoryPort
-// ---------------------------------------------------------------------------
-
-export function createStubTeamRepository(): TeamRepositoryPort {
+function createStubTeamRepository(): TeamRepositoryPort {
   return {
     async nextId() {
       return `t_${Date.now()}`;
@@ -338,11 +211,7 @@ export function createStubTeamRepository(): TeamRepositoryPort {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Stub: MembershipRepositoryPort
-// ---------------------------------------------------------------------------
-
-export function createStubMembershipRepository(): MembershipRepositoryPort {
+function createStubMembershipRepository(): MembershipRepositoryPort {
   return {
     async nextId() {
       return `m_${Date.now()}`;
@@ -368,11 +237,7 @@ export function createStubMembershipRepository(): MembershipRepositoryPort {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Stub: UserRepositoryPort
-// ---------------------------------------------------------------------------
-
-export function createStubUserRepository(): UserRepositoryPort {
+function createStubUserRepository(): UserRepositoryPort {
   return {
     async nextId() {
       return `u_${Date.now()}`;
@@ -392,11 +257,7 @@ export function createStubUserRepository(): UserRepositoryPort {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Stub: FeedbackRepositoryPort
-// ---------------------------------------------------------------------------
-
-export function createStubFeedbackRepository(): FeedbackRepositoryPort {
+function createStubFeedbackRepository(): FeedbackRepositoryPort {
   return {
     async nextId() {
       return `f_${Date.now()}`;
@@ -422,11 +283,7 @@ export function createStubFeedbackRepository(): FeedbackRepositoryPort {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Stub: AuditRepositoryPort
-// ---------------------------------------------------------------------------
-
-export function createStubAuditRepository(): AuditRepositoryPort {
+function createStubAuditRepository(): AuditRepositoryPort {
   return {
     async nextId() {
       return `ae_${Date.now()}`;
@@ -442,10 +299,6 @@ export function createStubAuditRepository(): AuditRepositoryPort {
     },
   };
 }
-
-// ---------------------------------------------------------------------------
-// Convenience: create a full stub RepositoryPorts bundle
-// ---------------------------------------------------------------------------
 
 export function createStubRepositoryPorts(): RepositoryPorts {
   return {

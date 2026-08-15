@@ -34,30 +34,6 @@
       "types": "./dist/ports/*.d.ts",
       "import": "./dist/ports/*.js"
     },
-    "./use-cases": {
-      "types": "./dist/use-cases/index.d.ts",
-      "import": "./dist/use-cases/index.js"
-    },
-    "./use-cases/*.js": {
-      "types": "./dist/use-cases/*.d.ts",
-      "import": "./dist/use-cases/*.js"
-    },
-    "./use-cases/*": {
-      "types": "./dist/use-cases/*.d.ts",
-      "import": "./dist/use-cases/*.js"
-    },
-    "./modules": {
-      "types": "./dist/modules/index.d.ts",
-      "import": "./dist/modules/index.js"
-    },
-    "./modules/*.js": {
-      "types": "./dist/modules/*.d.ts",
-      "import": "./dist/modules/*.js"
-    },
-    "./modules/*": {
-      "types": "./dist/modules/*.d.ts",
-      "import": "./dist/modules/*.js"
-    },
     "./identity-access": {
       "types": "./dist/identity-access/index.d.ts",
       "import": "./dist/identity-access/index.js"
