@@ -24,7 +24,7 @@ configuration. The only values are `light` and `heavy`: `local-agent` and
 This is not an HTTP route parameter and does not select an internal service. Clients
 continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 
-> Source: `packages/contracts/src/enum-types/backend-target.ts`, `packages/cli/src/lib/config.ts`
+> Source: `packages/contracts/src/enum-types/backend-target.ts`, `apps/cli/src/lib/config.ts`
 
 ---
 

@@ -82,7 +82,7 @@ tier 归属（owner 与变更门禁详见各 suite README 与 `evals/README.md` 
 - `distributed task worker`：`pnpm dev -- candidate-worker` 或 `pnpm dev -- governance-worker`，确认该进程不对外监听业务 API，但其 runtime mode 仅要求对应 worker 健康。
 - `distributed outbox worker`：`pnpm dev -- outbox-worker`，确认该进程只拥有 outbox runtime。
 
-这些根脚本现在通过 `scripts/run-dev.ts` 分发到 `@trapmap/host-local` 与 `@trapmap/host-distributed`。兼容别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍可用。测试命令里仍然大量引用 `packages/server（Wave-10 已删除）/...`，是因为当前权威测试文件与核心实现仍主要驻留在该兼容层和既有代码面中。
+这些根脚本现在通过 `scripts/run-dev.ts` 经 backend target registry 分发到 `@trapmap/app-light` 与 `@trapmap/app-distributed`（组装中心；宿主库包 `@trapmap/host-local` / `@trapmap/host-distributed` 由 registry 的 `libraryPackage` 字段保留）。兼容别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍可用。测试命令里仍然大量引用 `packages/server（Wave-10 已删除）/...`，是因为当前权威测试文件与核心实现仍主要驻留在该兼容层和既有代码面中。
 
 **Phase 2 Store Snapshot / PG-first Freeze Checks:**
 - Snapshot allowlist：运行 `packages/server（Wave-10 已删除）/src/__tests__/snapshot-usage-guard.test.ts`，确认新的 `store.snapshot()` / `store.transact()` 调用没有逃出 allowlist，并且 allowlist 仍只覆盖命名 compatibility buckets。
@@ -333,9 +333,9 @@ pnpm eval:retrieval:live:compare \
 ```
 
 ```bash
-# @trapmap/host-local closeout 主链路固定为 build -> start -> observability-benchmark
-pnpm --filter @trapmap/host-local build
-pnpm --filter @trapmap/host-local start
+# @trapmap/app-light closeout 主链路固定为 build -> start -> observability-benchmark
+pnpm --filter @trapmap/app-light build
+pnpm --filter @trapmap/app-light start
 
 # host-local observability closeout: readiness/liveness probes + request/trace/metrics/log chain
 pnpm test:observability-closeout
@@ -370,7 +370,7 @@ pnpm typecheck
 pnpm check:docs
 ```
 
-`@trapmap/host-local` closeout 主链路固定为 `build -> start -> observability-benchmark`。`dev` 仅用于开发便利，不作为 closeout 完成判据；`@trapmap/server build` 的全量清障也不在本轮范围内。
+`@trapmap/app-light` closeout 主链路固定为 `build -> start -> observability-benchmark`（`appPackage` 语义，宿主库包为 `@trapmap/host-local`）。`dev` 仅用于开发便利，不作为 closeout 完成判据；`@trapmap/server build` 的全量清障也不在本轮范围内。
 
 当改动涉及 `packages/host-distributed` 的 candidate/review/maintenance/decay authoritative write path、gateway auth 透传、internal client 失败语义、或 distributed job runtime ownership 时，`pnpm test:distributed-acceptance` 是必跑门，不应只用 `test:deployment-smoke` 代替。
 
@@ -447,10 +447,10 @@ Phase 4 把验证矩阵固定为两类部署形态，不再依赖隐式经验解
 
 #### Backend target commands
 
-| Target | Profile | Host owner | Build | Verification |
+| Target | Profile | App package（宿主库包） | Build | Verification |
 |---|---|---|---|---|
-| `light` | `local-agent`、`team-monolith` | `@trapmap/host-local` | `pnpm build:light` | `pnpm test:light-target`（deployment smoke、runtime foundations） |
-| `heavy` | `distributed` | `@trapmap/host-distributed` | `pnpm build:heavy` | `pnpm test:heavy-target`（light checks 加 discovery、distributed、runtime closeout） |
+| `light` | `local-agent`、`team-monolith` | `@trapmap/app-light`（`@trapmap/host-local`） | `pnpm build:light` | `pnpm test:light-target`（deployment smoke、runtime foundations） |
+| `heavy` | `distributed` | `@trapmap/app-distributed`（`@trapmap/host-distributed`） | `pnpm build:heavy` | `pnpm test:heavy-target`（light checks 加 discovery、distributed、runtime closeout） |
 
 The registry at `scripts/backend-target-registry.ts` is the command mapping owner.
 `heavy` proves the current transitional distributed topology only; it does not prove
@@ -473,7 +473,7 @@ capability parity with `light`.
 | @eval-only 标记守卫 | `pnpm check:eval-only` | 仅被 evals 引用且无产品消费者的模块必须带 `@eval-only` 头注释 |
 | Eval smoke | `pnpm eval:smoke` | **仅在**检索/摘要/治理/feedback/eval runner 相关改动时纳入 |
 
-`packages/host-local/src/nest/**` 若有改动，应额外运行其包级测试或 focused Nest 相关测试；但它当前不是 root `dev:local-agent` / `dev:team-monolith` 的默认入口。
+`packages/host-local/src/nest/**` 若有改动，应额外运行其包级测试或 focused Nest 相关测试；但它当前不是 root `dev:local-agent` / `dev:team-monolith` 的直接入口（可执行组装入口在 `apps/light`）。
 
 #### 分布式验证（`host-distributed` 主线）
 

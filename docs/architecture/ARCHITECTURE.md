@@ -275,7 +275,7 @@ sequenceDiagram
 
 ## 模块划分
 
-### 1. CLI 包 (`packages/cli`)
+### 1. CLI 包 (`apps/cli`)
 
 **职责**：所有用户交互的终端客户端
 

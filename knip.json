@@ -1,7 +1,10 @@
 {
   "$schema": "https://raw.githubusercontent.com/webpro/knip/main/knip.schema.json",
   "entry": [
-    "packages/cli/src/index.ts",
+    "apps/light/src/index.ts",
+    "apps/distributed/src/index.ts",
+    "apps/migration/src/index.ts",
+    "apps/cli/src/index.ts",
     "packages/contracts/src/index.ts",
     "evals/retrieval/run.ts",
     "evals/summary/run.ts",

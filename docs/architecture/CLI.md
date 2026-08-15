@@ -1,6 +1,6 @@
 # TrapMap CLI 参考
 
-本文档记录当前 `packages/cli` 实现出来的命令面。更细的行为以 `trapmap <command> --help` 和 `@trapmap/contracts` 为准。
+本文档记录当前 `apps/cli` 实现出来的命令面。更细的行为以 `trapmap <command> --help` 和 `@trapmap/contracts` 为准。
 
 ## 基本规则
 
@@ -124,7 +124,7 @@ Evidence 枚举值与 contracts 一致：
 | 命令 | 参数 |
 |------|------|
 | `trapmap list` | 可选 `--scope <scope>`、`--state <states>`、`--max-level <n>`、`--owner <userId>`、`--json` |
-| `trapmap edit <entryId>` | 见 `packages/cli/src/commands/operations/edit.ts`；支持 `--json` |
+| `trapmap edit <entryId>` | 见 `apps/cli/src/commands/operations/edit.ts`；支持 `--json` |
 | `trapmap deactivate <entryId>` | `--reason <text>`；可选 `--json` |
 | `trapmap export` | 可选 `--team <teamId>`、`--include-history`、`--output <path>`、`--json` |
 | `trapmap import` | `--file <path>`、`--level <n>`；可选 `--json` |
@@ -177,7 +177,7 @@ Evidence 枚举值与 contracts 一致：
 
 ## 真值来源
 
-- CLI 注册入口：`packages/cli/src/index.ts`
-- 具体命令：`packages/cli/src/commands/`
-- 输出策略：`packages/cli/src/lib/output.ts`
+- CLI 注册入口：`apps/cli/src/index.ts`
+- 具体命令：`apps/cli/src/commands/`
+- 输出策略：`apps/cli/src/lib/output.ts`
 - 契约：`packages/contracts/src/`

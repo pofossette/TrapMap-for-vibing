@@ -2,6 +2,8 @@
 
 Nest-based light host entry for TrapMap single-machine deployments. This package assembles all bounded-context service modules, infrastructure adapters, and runtime wiring into a single NestJS application backed by Fastify.
 
+> **组装入口**：`packages/host-local` 是库包。可执行组装中心在 `apps/light`（`@trapmap/app-light`）——根脚本 `dev:local-agent` / `dev:team-monolith` / `pnpm build:light` 经 backend target registry（`appPackage: @trapmap/app-light`）指向该组装中心，它消费本包的 `start()` API。本包内的 `pnpm dev` / `pnpm start` 仅用于库级开发调试。
+
 ## Purpose
 
 `host-local` is the default and only supported `light` host implementation. It composes the full TrapMap platform -- knowledge management, candidate ingestion, governance review, identity/access, and job runtime -- into a single process suitable for `local-agent` and `team-monolith` deployment profiles.
@@ -50,7 +52,7 @@ Both paths register `SIGINT`/`SIGTERM` handlers for graceful shutdown.
 ### Docker
 
 ```bash
-docker build -t trapmap-host-local -f packages/host-local/Dockerfile .
+docker build -t trapmap-host-local -f apps/light/Dockerfile .
 docker run -p 4000:4000 -e TRAPMAP_DATABASE_URL=postgres://... trapmap-host-local
 ```
 

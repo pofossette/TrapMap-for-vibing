@@ -690,9 +690,9 @@ CLI 输出渲染的目标工具类型：`claude-code`（XML 输出）、`codex`�
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `packages/cli/src/lib/config.ts:27` | TS 类型 (`OutputToolProfile`) | `'claude-code' | 'codex' | 'opencode' | 'generic'` |
-| `packages/cli/src/lib/config.ts:33-40` | TS 接口 (`OutputProfile`) | 完整配置：tool, modelHint, renderMode, graphPlanMode, verbosity, includeRawHints |
-| `packages/cli/src/lib/config.ts:24` | TS 字段 (`outputProfile`) | `CliState` 中持久化的 CLI 配置 |
+| `apps/cli/src/lib/config.ts:27` | TS 类型 (`OutputToolProfile`) | `'claude-code' | 'codex' | 'opencode' | 'generic'` |
+| `apps/cli/src/lib/config.ts:33-40` | TS 接口 (`OutputProfile`) | 完整配置：tool, modelHint, renderMode, graphPlanMode, verbosity, includeRawHints |
+| `apps/cli/src/lib/config.ts:24` | TS 字段 (`outputProfile`) | `CliState` 中持久化的 CLI 配置 |
 
 ### Render Kind（渲染类型）
 
@@ -700,6 +700,6 @@ CLI 输出适配层的渲染分类：`retrieval-v1`、`retrieval-v2`、`graph-pl
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `packages/cli/src/lib/output-profile.ts:18-25` | TS 类型 (`RenderKind`) | 7 种渲染分类的联合类型 |
-| `packages/cli/src/lib/output-profile.ts:883` | Impl 函数 (`resolveRenderKind`) | 透传解析器（恒等映射） |
-| `packages/cli/src/lib/output-profile.ts:915` | Impl 函数 (`resolveRenderer`) | 按 tool+kind 分派到具体渲染器 |
+| `apps/cli/src/lib/output-profile.ts:18-25` | TS 类型 (`RenderKind`) | 7 种渲染分类的联合类型 |
+| `apps/cli/src/lib/output-profile.ts:883` | Impl 函数 (`resolveRenderKind`) | 透传解析器（恒等映射） |
+| `apps/cli/src/lib/output-profile.ts:915` | Impl 函数 (`resolveRenderer`) | 按 tool+kind 分派到具体渲染器 |

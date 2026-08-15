@@ -28,7 +28,7 @@ describe('backend target build entrypoints', () => {
 
   it('maps light to the local host and local verification evidence only', () => {
     expect(resolveBackendTargetCommands('light', 'build')).toEqual([
-      ['pnpm', '--filter', '@trapmap/host-local', 'build'],
+      ['pnpm', '--filter', '@trapmap/app-light', 'build'],
     ]);
     expect(resolveBackendTargetCommands('light', 'test')).toEqual([
       ['pnpm', 'test:deployment-smoke'],
@@ -39,6 +39,7 @@ describe('backend target build entrypoints', () => {
   it('does not start distributed workers for the light target', () => {
     const commands = resolveBackendTargetCommands('light', 'test').flat().join(' ');
 
+    expect(commands).not.toContain('@trapmap/app-distributed');
     expect(commands).not.toContain('@trapmap/host-distributed');
     expect(commands).not.toContain('worker');
     expect(commands).not.toContain('distributed');
@@ -46,7 +47,7 @@ describe('backend target build entrypoints', () => {
 
   it('maps heavy to gateway-only distributed verification evidence', () => {
     expect(resolveBackendTargetCommands('heavy', 'build')).toEqual([
-      ['pnpm', '--filter', '@trapmap/host-distributed', 'build'],
+      ['pnpm', '--filter', '@trapmap/app-distributed', 'build'],
     ]);
     expect(resolveBackendTargetCommands('heavy', 'test')).toEqual([
       ['pnpm', 'test:deployment-smoke'],

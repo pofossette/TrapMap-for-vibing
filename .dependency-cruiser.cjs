@@ -37,7 +37,7 @@ module.exports = {
       severity: 'error',
       from: { path: '^packages/backend-core/' },
       to: {
-        path: '^packages/(host-[^/]+|service-[^/]+|web-panel|cli)/',
+        path: '^packages/(host-[^/]+|service-[^/]+)/|^apps/(web-panel|cli)/',
       },
     },
 
@@ -66,9 +66,9 @@ module.exports = {
     // 5. web-panel must not import from server, backend-core, or host-*
     {
       name: 'web-panel-server-isolation',
-      comment: 'packages/web-panel must NOT import from packages/backend-core or packages/host-*',
+      comment: 'apps/web-panel must NOT import from packages/backend-core or packages/host-*',
       severity: 'error',
-      from: { path: '^packages/web-panel/' },
+      from: { path: '^apps/web-panel/' },
       to: {
         path: '^packages/(backend-core|host-[^/]+)/',
       },

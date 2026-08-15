@@ -3,6 +3,8 @@
 
 TrapMap's distributed host assembly layer. Responsible for process startup, runtime wiring, and internal HTTP transport for the gateway and six bounded-context services. Each service can run as an independent process.
 
+> **组装入口**：`packages/host-distributed` 是库包。可执行组装中心在 `apps/distributed`（`@trapmap/app-distributed`）——根脚本 `pnpm dev -- gateway` / `pnpm dev:distributed:*` / `pnpm build:heavy` 经 backend target registry（`appPackage: @trapmap/app-distributed`）指向该组装中心，它消费本包经子路径导出的各 `start<X>Service()` API（如 `startGatewayService` / `startKnowledgeWriteService`）。本包 exports 面包含 `config` / `gateway` / `shared` / `identity-access` / `knowledge-read` / `knowledge-write` / `candidate-ingestion` / `governance-review` / `job-runtime` / `migrate` 子路径，供组装中心与库级消费者使用。
+
 ## Architecture
 
 ```

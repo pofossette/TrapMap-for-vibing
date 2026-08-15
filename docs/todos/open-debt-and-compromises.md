@@ -143,12 +143,12 @@
 
 ### web-panel real admin 路径不可运行（2026-08-15 登记）
 
-- [ ] **来源：** 六路审查 web-panel 车道 + Task 5 验证：`packages/web-panel/src/services/api/admin-panel-api.ts` 的 5 个 `/api/admin/*` 路径（runtime-overview、reviews/:id、json-edits、activity、artifacts）全仓无后端实现（host/service 零路由）；客户端经 `@trapmap/client-core` 的 `apiRequest` 调用，但登录后 token 不回填（web-panel 只有手动 copy-token UX，`SessionProvider` 未接登录回填），real 模式实际不可用；`VITE_ADMIN_PANEL_API_MODE=mock` 是唯一可用模式。
+- [ ] **来源：** 六路审查 web-panel 车道 + Task 5 验证：`apps/web-panel/src/services/api/admin-panel-api.ts` 的 5 个 `/api/admin/*` 路径（runtime-overview、reviews/:id、json-edits、activity、artifacts）全仓无后端实现（host/service 零路由）；客户端经 `@trapmap/client-core` 的 `apiRequest` 调用，但登录后 token 不回填（web-panel 只有手动 copy-token UX，`SessionProvider` 未接登录回填），real 模式实际不可用；`VITE_ADMIN_PANEL_API_MODE=mock` 是唯一可用模式。
 - [ ] **影响：** web-panel admin 面板在 real 模式（生产构建拒绝 mock）下所有 admin 端点 404/未授权，不能作为真实管理控制台使用；`/api/admin/*` 属于无后端实现的前端死路径。
 - [ ] **当前边界：** 本轮不实现后端、不改 token 流程；mock 模式维持现状。
 - [ ] **进入条件：** 需要 web-panel 承担真实管理控制台职责（存在操作员/管理员用户故事）时。
 - [ ] **后续落点：** 新建 web-panel real 接入细则：按 RouteDef 工厂补齐 `/api/admin/*` 路由（或改用已有 `/v1` 表面），登录成功后会话 token 回填 `SessionProvider`，补集成测试。
-- [ ] **要求的文档与测试：** 更新 `packages/web-panel/README.md` 与 host 路由面文档；运行 host/service 相关包测试、`pnpm test:deployment-smoke`、`pnpm typecheck`、`pnpm check:docs`。
+- [ ] **要求的文档与测试：** 更新 `apps/web-panel/README.md` 与 host 路由面文档；运行 host/service 相关包测试、`pnpm test:deployment-smoke`、`pnpm typecheck`、`pnpm check:docs`。
 
 ### capability-model 拆分（2026-08-15 登记）
 
@@ -157,6 +157,7 @@
 - [ ] **当前边界：** 本轮不拆分（行为不变硬约束）。
 - [ ] **进入条件：** capability-model.ts 行数超出复杂度预算、新增维度需要独立校验/推导单元，或出现第三个宿主消费方。
 - [ ] **后续落点：** 在 backend-core runtime 内拆为 types/defaults/validation/resolution 模块，补能力组合单测。
+- [ ] **设计输入：** [`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 定义目标架构（deferred 设计输入，激活前不构成执行授权）。
 - [ ] **要求的文档与测试：** 相关包 focused tests、`pnpm typecheck`、`pnpm exec fallow audit --base main`。
 
 ### OTel 双份接线收敛（2026-08-15 登记）
@@ -166,6 +167,7 @@
 - [ ] **当前边界：** 本轮不合并（涉及两个宿主 runtime 行为，属大重构）。
 - [ ] **进入条件：** 出现需双宿主同步修改的 OTel 语义变更（span 属性、采样策略、脱敏规则），或指标口径在两侧被证实不一致。
 - [ ] **后续落点：** 提取共享 OTel 接线支持（backend-core 或 lib），两宿主经同一 API 接线，host-local 与 host-distributed 只保留组合。
+- [ ] **设计输入：** [`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 定义目标架构（deferred 设计输入，激活前不构成执行授权）。
 - [ ] **要求的文档与测试：** 更新 `docs/architecture/OBSERVABILITY.md`；运行 `pnpm test:observability-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck`。
 
 ### Consul 双份实现收敛（2026-08-15 登记）
@@ -175,6 +177,7 @@
 - [ ] **当前边界：** 本轮不合并。
 - [ ] **进入条件：** Consul 行为（健康检查、KV、重试）需双宿主一致修改，或出现真实 Consul 故障归因不一致。
 - [ ] **后续落点：** 以 `DiscoveryPort` 为准统一 framework-free adapter，host-local 迁到同一实现或共用 backend-core discovery 支持。
+- [ ] **设计输入：** [`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 定义目标架构（deferred 设计输入，激活前不构成执行授权）。
 - [ ] **要求的文档与测试：** 更新 `docs/architecture/SERVICE-DISCOVERY.md`；运行 `pnpm test:discovery-closeout`、`pnpm test:deployment-smoke`。
 
 ### EvalSeedPort 收窄（2026-08-15 登记）
@@ -193,6 +196,7 @@
 - [ ] **当前边界：** 本轮不合并（涉及 gateway 客户端语义与 baseUrl 选择逻辑）。
 - [ ] **进入条件：** governance-review 内部接口新增/变更方法时，或 `urls.review`/`urls.governanceReview` 任一 URL key 被确认可退役。
 - [ ] **后续落点：** 合并为单组并按 baseUrl 来源选择 URL key（或统一为一个 URL key），补 gateway 客户端测试。
+- [ ] **设计输入：** [`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 定义目标架构（deferred 设计输入，激活前不构成执行授权）。
 - [ ] **要求的文档与测试：** host-distributed gateway focused tests、`pnpm test:deployment-smoke`、`pnpm typecheck`。
 
 ### host-distributed shared/ports.ts 业务下沉（2026-08-15 登记）
@@ -202,6 +206,7 @@
 - [ ] **当前边界：** 本轮不迁移（宿主行为不变硬约束；迁移涉及 distributed 装配面）。
 - [ ] **进入条件：** `shared/ports.ts` 任一 SQL 实现出现行为不一致修复，或 service 包 pg-ports 签名变化使宿主实现可自然替换。
 - [ ] **后续落点：** 宿主改消费对应 service 包/backend-core 的端口实现，`shared/ports.ts` 只保留装配与组合。
+- [ ] **设计输入：** [`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 定义目标架构（deferred 设计输入，激活前不构成执行授权）。
 - [ ] **要求的文档与测试：** 更新 `docs/architecture/BOUNDARIES.md` 与服务发现相关文档；运行 `pnpm test:distributed-closeout`、`pnpm test:deployment-smoke`。
 
 ### candidates 3 个 legacy JSONB 列（2026-08-15 登记）
@@ -231,14 +236,9 @@
 - [ ] **后续落点：** 从 identity-access 迁移 SQL 删除 `store_snapshot` CREATE TABLE（或迁入 persistence-schema 若仍需保留），同步 `conflict_relations` 裁决。
 - [ ] **要求的文档与测试：** identity-access migrations 测试、`pnpm test:deployment-smoke`、表清单守卫。
 
-### host-distributed Dockerfile 冗余 COPY client-core（2026-08-15 登记）
+### host-distributed Dockerfile 冗余 COPY client-core（2026-08-15 登记，已关闭）
 
-- [ ] **来源：** Task 4 移除两 host `@trapmap/client-core` 依赖后，`packages/host-distributed/Dockerfile` 与 `dockerfile.test.ts` 仍 COPY client-core（镜像构建冗余，超出 Task 4 范围未动）。
-- [ ] **影响：** 镜像构建复制无消费者的包目录，构建面与依赖面不一致（无害）。
-- [ ] **当前边界：** 本轮未动。
-- [ ] **进入条件：** 镜像构建/Dockerfile 清理任务窗口。
-- [ ] **后续落点：** Dockerfile 移除 COPY client-core 行并同步 `dockerfile.test.ts` 断言。
-- [ ] **要求的文档与测试：** `dockerfile.test.ts`、`pnpm test:deployment-smoke`。
+- [x] **已关闭（apps workspace 迁移，2026-08-15）：** Dockerfile 迁入 `apps/distributed/Dockerfile` 时移除 client-core COPY（deps/build/production 三阶段），`packages/host-distributed/src/dockerfile.test.ts` 同步删除 client-core 断言并改为断言 `apps/distributed`；`pnpm test:deployment-smoke`、dockerfile 测试全绿。
 
 ### web-panel 5 个预存测试失败（2026-08-15 登记）
 
@@ -250,8 +250,20 @@
 - [ ] **要求的文档与测试：** web-panel 全量测试恢复全绿后回写 `docs/operations/TESTING.md`。
 
 
+
+### apps workspace 组装中心迁移遗留（2026-08-15 登记）
+
+- [ ] **来源：** 用户要求的 5 个 app 组装中心（apps/light、apps/distributed、apps/migration、apps/cli、apps/web-panel）全量实施完成：cli/web-panel 自 packages/ 迁入 apps/，light/distributed/migration 为新建 thin assembly 入口，registry 字段 hostPackage→appPackage+libraryPackage，Dockerfile/compose/文档/守卫同步迁移。验证：build:light/heavy、test:light-target、deployment-smoke、runtime-foundations、distributed-closeout、observability-closeout、discovery-closeout、cli(537)/web-panel(30) 测试、check:docs/structure/asserts/imports、全量 typecheck 全绿。设计输入：[`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 分项设计 F。
+- [ ] **遗留 1（迁移窗口双入口）**：`packages/host-local/src/index.ts` 与 `packages/host-distributed/src/index.ts` 的 direct-run seam 在窗口内保留（设计 F 迁移窗口策略），apps/distributed 的 `--service` 分发薄壳与库包 main 存在约 97 行结构重复。
+- [ ] **遗留 2（fallow 基线变化）**：git mv 使 cli/web-panel 全部文件进入 changed 集，fallow complexity 从基线 3 升至 34 findings（绝大多数为既有代码路径变更重新暴露，非新增）；apps/light parsePort 已加 fallow-ignore 注释。
+- [ ] **当前边界：** 不删除库包 direct-run seam（closeout 测试链 `build -> start` 依赖）；不合并组装入口重复（窗口期预期）；不逐条修复迁移暴露的既有复杂度。
+- [ ] **进入条件：** closeout 测试链迁移到 app 入口完成（TESTING.md 中 `@trapmap/app-light` build/start 成为唯一主链路）时，退役库包 direct-run seam 并消除组装入口重复；fallow 在迁移暴露的既有 finding 上出现真实变更时按常规处理。
+- [ ] **后续落点：** 窗口关闭后删除 `packages/host-*/src/index.ts` 的 direct-run 判定与库包可执行脚本，apps/distributed 分发逻辑收敛为对库包导出 API 的纯调用；回写 `docs/operations/TESTING.md` 与 `docs/architecture/DEPLOYMENT.md`。
+- [ ] **要求的文档与测试：** `pnpm test:deployment-smoke`、`pnpm test:runtime-foundations`、closeout 相关测试、`pnpm check:docs`、`pnpm check:structure`。
+
 ## 审核检查表
 
 - [ ] 每次新问题录入都标注来源、影响、分类、证据和进入条件。
 - [ ] 每次主线 closeout 前确认没有把 deferred 项误标为已交付能力。
 - [ ] 每次将事项提升为 active mainline 前，在根 `plan.md` 明确替换当前细则链接，并在 `docs/todos/README.md` 同步状态。
+

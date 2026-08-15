@@ -200,9 +200,9 @@ pnpm dev:cli -- --help
 `packages/host-local/src/nest/**` 是冻结后的 `light` 默认主入口终局。六个 bounded-context Nest module 已在 `app.module.ts` 注册。
 
 ```bash
-# opt-in Nest modular monolith
-pnpm --filter @trapmap/host-local dev
-pnpm --filter @trapmap/host-local start
+# opt-in Nest modular monolith（组装中心 apps/light）
+pnpm --filter @trapmap/app-light dev
+pnpm --filter @trapmap/app-light start
 ```
 
 旧 Fastify 轻宿主路径（`packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**`）已经删除。`light` 默认主入口只剩 `packages/host-local/src/nest/**`。`packages/server` compatibility shell 已于 Wave-10 删除。
@@ -278,7 +278,7 @@ pnpm dev:distributed:governance-worker
 pnpm dev:distributed:outbox-worker
 ```
 
-这些根脚本已经直接指向 `@trapmap/host-distributed`，底层仍通过 `TRAPMAP_DEPLOYMENT_PRESET` + `RUNTIME_MODE` 兼容既有 runtime seams。
+这些根脚本现在经 backend target registry 分发到 `@trapmap/app-distributed`（组装中心，消费 `@trapmap/host-distributed` 库包），底层仍通过 `TRAPMAP_DEPLOYMENT_PRESET` + `RUNTIME_MODE` 兼容既有 runtime seams。
 
 ### 可选：RabbitMQ task transport
 
@@ -467,7 +467,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: packages/host-local/Dockerfile
+      dockerfile: apps/light/Dockerfile
     container_name: trapmap-server
     ports:
       - "4000:4000"
@@ -611,9 +611,9 @@ services:
 
 ### Dockerfile
 
-实际 Dockerfile 位于 `packages/host-local/Dockerfile`（light 宿主）和 `packages/host-distributed/Dockerfile`（distributed 宿主）。
+实际 Dockerfile 位于 `apps/light/Dockerfile`（light 宿主）、`apps/distributed/Dockerfile`（distributed 宿主）与 `apps/migration/Dockerfile`（迁移作业）。
 
-> `packages/server/Dockerfile` 已于 Wave-10 删除。当前 Dockerfile 请直接查看 `packages/host-local/Dockerfile`。
+> `packages/server/Dockerfile` 已于 Wave-10 删除。当前 Dockerfile 请直接查看 `apps/light/Dockerfile`（及 `apps/distributed/Dockerfile`、`apps/migration/Dockerfile`）。
 
 ---
 

@@ -21,13 +21,13 @@
 
 ## 产品包
 
-- `packages/cli/`：Commander CLI 及 CLI 测试。
+- `apps/cli/`：Commander CLI 及 CLI 测试（2026-08 从 `packages/` 迁入，见下方 `apps/` 小节）。
 - `packages/server（Wave-10 已删除）/`：Fastify 兼容壳和共享运行时/状态接缝。不再充当默认的 `light` 主机入口或本地回退主机。
 - `packages/contracts/`：共享 Zod schema 和 TypeScript 类型；`packages/contracts/src/domain/retrieval-projection.ts` 放置无副作用的 retrieval projection/read-model helper，`packages/contracts/src/domain/retrieval-fixtures.ts` 放置确定性的跨包 retrieval fixture builder。
 - `packages/persistence-schema/`：中立的 Drizzle PostgreSQL 表、关系与可复用无状态列工厂；不承载路由、repository 或服务行为。
 - `packages/skills/`：项目级 Skill 工件。
 - `packages/client-core/`：浏览器兼容的共享网关传输层（HTTP SDK、会话契约、错误模型）。供 CLI 和未来 Web 面板使用。
-- `packages/web-panel/`：基于浏览器的管理员运维面板，仅作为网关客户端表面。
+- `apps/web-panel/`：基于浏览器的管理员运维面板，仅作为网关客户端表面（2026-08 从 `packages/` 迁入，见下方 `apps/` 小节）。
 - `packages/backend-core/`：主机无关的后端核心内核（运行时能力模型、端口接口、用例模式、有界上下文模块、调用模型）。Phase 2 保持无框架，将每个有界上下文重组为内部 `domain/application/module` 接缝，位于 `src/identity-access/`、`src/knowledge-read/`、`src/knowledge-write/`、`src/candidate-ingestion/`、`src/governance-review/`、`src/job-runtime/`；其中 `src/<context>/domain/` 是真实纯规则层（零框架、零 DB，配套单元测试）。`src/http/` 承载框架中立 `RouteDef` 路由契约（`route-contract.ts`）与 Nest/Fastify 双 adapter（`adapters/{nest,fastify}.ts`，唯一框架导入落点）。旧的 `src/modules/*.ts` 兼容外观已移除，消费者使用包入口或上下文入口。所有主机共用。
 - `packages/service-identity-access/`：拥有身份访问服务组装、内部路由注册（`createIdentityAccessRouteDefs`）和有界上下文 auth/session/team/member/access-key 接线。
 - `packages/service-knowledge-read/`：知识读取服务组装（`createKnowledgeReadRouteDefs`）。拥有检索、读模型和投影视图状态路由接线；read model 经 `packages/contracts` 的 projection helper 读取共享契约，不反向导入 server implementation。
@@ -35,10 +35,10 @@
 - `packages/service-governance-review/`：拥有治理审核服务组装、内部路由注册（`createGovernanceReviewRouteDefs`）和有界上下文 review/feedback/conflict/remediation/operator projection 接线，同时将最终生命周期变更委托给 knowledge-write。
 - `packages/service-candidate-ingestion/`：拥有候选摄取服务组装、内部路由注册（`createCandidateIngestionRouteDefs`）和有界上下文 candidate 接线，同时将结果发布委托给 knowledge-write。
 - `packages/service-job-runtime/`：拥有作业运行时服务组装、内部路由注册（`createJobRuntimeRouteDefs`）、队列/重试/租约/dead-letter 依赖接线、typed owner handlers 和运行时服务器引导表面。
-- `packages/host-local/`：轻量主机组装，服务于 `local-agent` 和 `team-monolith`。冻结的默认轻量主线为 `src/nest/**`，通过包默认入口（`packages/host-local/src/index.ts`）和默认 `dev` / `start` 脚本暴露。六个有界上下文 Nest module 与 `gateway.module.ts` 都经 `createNestAdapter` 消费各 service 包的 `create<X>RouteDefs` 声明，不在宿主内手写路由实现。
+- `packages/host-local/`：轻量宿主库包（组装入口在 `apps/light`，2026-08 起由 `@trapmap/app-light` 消费其 `start()` / `start<X>Service()` API），服务于 `local-agent` 和 `team-monolith`。冻结的默认轻量主线为 `src/nest/**`，通过包默认入口（`packages/host-local/src/index.ts`）和默认 `dev` / `start` 脚本暴露。六个有界上下文 Nest module 与 `gateway.module.ts` 都经 `createNestAdapter` 消费各 service 包的 `create<X>RouteDefs` 声明，不在宿主内手写路由实现。
   `packages/host-local/src/nest/runtime/backend-core-adapters.ts` 是轻量主机中主机拥有的端口适配器选择的权威放置位置（`in-process` vs `remote`）。这些文件是内部端口的适配器接缝，不是仓库适配器，也不是主机组装的万能目录。
   迁移期共享基础设施组合留在 host-local 的 runtime composition 内；它可暂时调用 server compatibility helpers，但不形成独立 workspace package 或 service-to-service concrete import。
-- `packages/host-distributed/`：重量级主机组装，服务于 `distributed` 配置文件。它是真正的重量级主机实现，与 `light` 共用相同的 backend-core/service-package 主实现，成熟度基线仍为 `Level 2 / transitional-microservice`。
+- `packages/host-distributed/`：重量级宿主库包（组装入口在 `apps/distributed`，2026-08 起由 `@trapmap/app-distributed` 消费），服务于 `distributed` 配置文件。它是真正的重量级主机实现，与 `light` 共用相同的 backend-core/service-package 主实现，成熟度基线仍为 `Level 2 / transitional-microservice`。
   `packages/host-distributed/src/gateway/` 是网关传输助手和转发接缝的权威放置位置，包括 `route-defs.ts`（网关路由声明）与 `routes.ts`（薄传输壳，仅注册/认证/转发，~180 行）；`internal-client.ts` 是薄内部 HTTP / 规范错误归一化助手。
   `packages/host-distributed/src/config/service-config.ts` 是服务发现默认值和 URL 解析器接缝的权威放置位置。它拥有显式 `TRAPMAP_*_URL` 覆盖、`distributed` 中的 Docker DNS 默认值和 local/dev 上下文中的 `localhost` 默认值之间的配置感知映射。
   `packages/host-distributed/src/shared/` 是分布式主机中内部端口共享包装器（如 `internal-knowledge-write-client.ts`）的权威放置位置；这些包装器将传输语义映射回 backend-core 端口语义，不是仓库适配器。
@@ -48,6 +48,18 @@ Wave-2 closeout（commit `b3374307`）：contracts projection/fixture helpers re
 Wave-4 closeout（2026-07-21）：`service-governance-review` 是 feedback、conflict、remediation 与 operator projection 的唯一 owner；distributed gateway 只保留 public transport/认证/trace forwarding，`packages/server（Wave-10 已删除）` 不再拥有这些领域的 route、repository、subscriber 或 aggregate member。
 
 Wave-10 intermediate（2026-07-25）：`packages/runtime-infra/` 已退休删除。host-local 直接组合过渡性 store、AI 与 graph infrastructure；`packages/server（Wave-10 已删除）`、snapshot compatibility state 和其余 legacy runtime consumers 仍保留，不能据此宣告完整 package retirement closeout。
+
+## Apps（组装中心）
+
+`apps/` 是顶层 pnpm workspace（`pnpm-workspace.yaml` 的 `apps/*`），承载 5 个可执行组装中心。它们是 **thin assembly**：只做依赖装配、启动入口与可执行产物暴露，禁止承载业务逻辑（业务规则在 `packages/backend-core/src/<context>/domain/`，领域接线在各 service 包）。backend target registry（`scripts/backend-target-registry.ts`）以 `appPackage` 字段指向这些组装中心，`libraryPackage` 字段保留对应的宿主库包名。
+
+- `apps/light/`（`@trapmap/app-light`）：light 宿主组装中心，消费 `packages/host-local` 库包，为 `local-agent` / `team-monolith` profile 组装可执行入口。
+- `apps/distributed/`（`@trapmap/app-distributed`）：distributed 宿主组装中心，消费 `packages/host-distributed` 库包，组装 gateway 与 candidate/governance/outbox worker 进程。
+- `apps/migration/`（`@trapmap/app-migration`）：迁移作业组装中心。
+- `apps/cli/`（`@trapmap/cli`）：Commander CLI 及 CLI 测试，2026-08 从 `packages/` 迁入。
+- `apps/web-panel/`（`@trapmap/web-panel`）：基于浏览器的管理员运维面板，2026-08 从 `packages/` 迁入。
+
+`packages/host-local` 与 `packages/host-distributed` 仍以库包形式存在：`packages/host-local` 暴露 `start()` API，`packages/host-distributed` 经子路径暴露各 `start<X>Service()` API（exports 面含 `identity-access`、`knowledge-read`、`knowledge-write`、`candidate-ingestion`、`governance-review`、`job-runtime`、`migrate` 子路径），其可执行组装入口统一落在 `apps/`。
 
 ## 脚本
 

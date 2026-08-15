@@ -21,10 +21,19 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 | `backend-core` | `packages/backend-core/src/**` | 六边形架构内核：`src/<context>/domain` 纯规则层（零框架、零 DB）+ `application/ports/use-cases` + `src/http/`（框架中立 RouteDef 路由契约与 Nest/Fastify 双 adapter）。承载运行时能力模型、端口接口、用例模式、bounded-context 模块 |
 | `service-standard` | `packages/service-identity-access/src/**`、`packages/service-candidate-ingestion/src/**`、`packages/service-governance-review/src/**`、`packages/service-job-runtime/src/**`、`packages/service-knowledge-write/src/**` | 标准服务装配包（identity-access、candidate-ingestion、governance-review、job-runtime、knowledge-write），只依赖 `backend-core` + `contracts` |
 | `service-knowledge-read` | `packages/service-knowledge-read/src/**` | 知识读取服务，拥有 read-model、retrieval 与 graph projection owner surface |
-| `host-local` | `packages/host-local/src/**` | 本地宿主组合根（NestJS 光主机），为 `local-agent` 和 `team-monolith` profile 装配所有服务 |
-| `host-distributed` | `packages/host-distributed/src/**` | 分布式宿主组合根（完整微服务宿主），为 `distributed` profile 装配所有服务 |
-| `cli` | `packages/cli/src/**` | CLI 客户端界面（Commander.js），消费 `client-core` |
-| `web-panel` | `packages/web-panel/src/**` | Web 管理面板，消费 `client-core` |
+| `host-local` | `packages/host-local/src/**` | 本地宿主库包（NestJS 光主机），为 `local-agent` 和 `team-monolith` profile 提供装配；可执行组装中心在 `apps/light` |
+| `host-distributed` | `packages/host-distributed/src/**` | 分布式宿主库包（完整微服务宿主），为 `distributed` profile 提供装配；可执行组装中心在 `apps/distributed` |
+| `cli` | `apps/cli/src/**` | CLI 客户端界面（Commander.js），消费 `client-core` |
+| `web-panel` | `apps/web-panel/src/**` | Web 管理面板，消费 `client-core` |
+
+## apps/ 组装中心边界
+
+`apps/` 下的组装中心（`apps/light`、`apps/distributed`、`apps/migration`、`apps/cli`、`apps/web-panel`）是顶层 pnpm workspace 中的 thin assembly 落点，不构成独立 zone（fallow 未单独约束）：
+
+- `apps/light` / `apps/distributed` 只做宿主装配：`apps/light` 消费 `@trapmap/host-local` 的 `start()` API，`apps/distributed` 消费 `@trapmap/host-distributed` 子路径导出的各 `start<X>Service()` API 与依赖注入，暴露可执行入口。
+- 组装中心**禁止新增业务逻辑**：不得承载 domain 规则、路由声明、端口实现或 repository 行为；业务判断必须留在 `backend-core` 的 `domain/` 纯规则层或各 service 包的 owner 接线中。
+- `apps/cli` / `apps/web-panel` 的依赖方向与 zone 规则不变（见下方 `cli` / `web-panel` 条目），仅代码落点从 `packages/` 迁至 `apps/`。
+- `apps/migration` 只承载迁移作业装配，禁止混入业务查询或服务组装。
 
 ## 依赖方向规则
 
@@ -109,8 +118,8 @@ service-* / host-local / cli → lib → contracts
 2. `client-core` 不依赖 `backend-core` 或任何服务端包
 3. `backend-core` 只依赖 `contracts`（`.fallowrc.json` 的 allow 列表另有 `persistence-schema` 但当前无消费方），不依赖任何服务或宿主包；外部框架依赖（`fastify`、`@nestjs/*`）只允许出现在 `src/http/adapters/`（测试接缝 `src/testing/` 除外），不得扩散到 `domain/`、`application/`、`ports/`、`use-cases/`
 4. 标准服务包（`service-standard`）只依赖 `backend-core`、`contracts` 和 `lib`，服务包之间不直接依赖
-5. `cli` 和 `web-panel` 只依赖 `client-core`、`contracts`（`cli` 另可依赖 `lib`），不依赖任何服务端包
-6. 宿主包（`host-local`、`host-distributed`）是最高层组合根，可以依赖所有下游 zone
+5. `cli` 和 `web-panel` 只依赖 `client-core`、`contracts`（`cli` 另可依赖 `lib`），不依赖任何服务端包；代码落点现为 `apps/cli/src/**`、`apps/web-panel/src/**`
+6. 宿主包（`host-local`、`host-distributed`）是最高层组合根，可以依赖所有下游 zone；其可执行组装中心在 `apps/light`、`apps/distributed`，仅做 thin assembly，不得新增业务逻辑
 7. `lib` 是共享工具叶子，type-only 依赖 `contracts`，不依赖任何服务/宿主/框架代码；`contracts` 不得反向依赖 `lib`
 8. `ai-providers` 不是独立 zone（fallow 未单独约束），但作为共享 AI 服务层可消费 `lib` 工具（2026-08-09 起依赖 `@trapmap/lib`），不得依赖 server compatibility shell
 

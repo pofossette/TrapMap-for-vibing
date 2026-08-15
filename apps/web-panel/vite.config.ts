@@ -6,10 +6,14 @@ import { defineConfig, normalizePath } from 'vite';
 
 const packageRoot = path.dirname(fileURLToPath(import.meta.url));
 const packageSrc = normalizePath(path.resolve(packageRoot, 'src'));
-const clientCoreSrc = normalizePath(path.resolve(packageRoot, '../client-core/src/index.ts'));
-const contractsSrc = normalizePath(path.resolve(packageRoot, '../contracts/src/index.ts'));
+const clientCoreSrc = normalizePath(
+  path.resolve(packageRoot, '../../packages/client-core/src/index.ts'),
+);
+const contractsSrc = normalizePath(
+  path.resolve(packageRoot, '../../packages/contracts/src/index.ts'),
+);
 const contractsEvalsSrc = normalizePath(
-  path.resolve(packageRoot, '../contracts/src/domain/evals/index.ts'),
+  path.resolve(packageRoot, '../../packages/contracts/src/domain/evals/index.ts'),
 );
 
 export default defineConfig({
@@ -22,7 +26,7 @@ export default defineConfig({
         if (source.includes('@trapmap/web-panel') || source.includes('packages/web-panel')) {
           let subPath = '';
           const matchPackage = '@trapmap/web-panel';
-          const matchPhys = 'packages/web-panel';
+          const matchPhys = 'apps/web-panel';
 
           if (source.includes(matchPackage)) {
             const idx = source.indexOf(matchPackage);

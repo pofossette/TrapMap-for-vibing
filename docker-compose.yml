@@ -4,7 +4,7 @@ services:
     image: trap-map-host-local:latest
     build:
       context: .
-      dockerfile: packages/host-local/Dockerfile
+      dockerfile: apps/light/Dockerfile
     container_name: trapmap-server
     ports:
       - "4000:4000"
@@ -70,7 +70,7 @@ services:
     profiles: ["distributed"]
     build:
       context: .
-      dockerfile: packages/host-distributed/Dockerfile
+      dockerfile: apps/distributed/Dockerfile
     container_name: trapmap-gateway
     ports:
       - "4000:4000"
@@ -150,9 +150,9 @@ services:
     profiles: ["distributed"]
     build:
       context: .
-      dockerfile: packages/host-distributed/Dockerfile
+      dockerfile: apps/distributed/Dockerfile
     command: ["node", "dist/index.js", "--service", "identity-access"]
-    working_dir: /app/packages/host-distributed
+    working_dir: /app/apps/distributed
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
@@ -195,9 +195,9 @@ services:
     profiles: ["distributed"]
     build:
       context: .
-      dockerfile: packages/host-distributed/Dockerfile
+      dockerfile: apps/distributed/Dockerfile
     command: ["node", "dist/index.js", "--service", "knowledge-read"]
-    working_dir: /app/packages/host-distributed
+    working_dir: /app/apps/distributed
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
@@ -239,9 +239,9 @@ services:
     profiles: ["distributed"]
     build:
       context: .
-      dockerfile: packages/host-distributed/Dockerfile
+      dockerfile: apps/distributed/Dockerfile
     command: ["node", "dist/index.js", "--service", "knowledge-write"]
-    working_dir: /app/packages/host-distributed
+    working_dir: /app/apps/distributed
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
@@ -283,9 +283,9 @@ services:
     profiles: ["distributed"]
     build:
       context: .
-      dockerfile: packages/host-distributed/Dockerfile
+      dockerfile: apps/distributed/Dockerfile
     command: ["node", "dist/index.js", "--service", "candidate-ingestion"]
-    working_dir: /app/packages/host-distributed
+    working_dir: /app/apps/distributed
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
@@ -343,9 +343,9 @@ services:
     profiles: ["distributed"]
     build:
       context: .
-      dockerfile: packages/host-distributed/Dockerfile
+      dockerfile: apps/distributed/Dockerfile
     command: ["node", "dist/index.js", "--service", "governance-review"]
-    working_dir: /app/packages/host-distributed
+    working_dir: /app/apps/distributed
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
@@ -403,9 +403,9 @@ services:
     profiles: ["distributed"]
     build:
       context: .
-      dockerfile: packages/host-distributed/Dockerfile
+      dockerfile: apps/distributed/Dockerfile
     command: ["node", "dist/index.js", "--service", "job-runtime"]
-    working_dir: /app/packages/host-distributed
+    working_dir: /app/apps/distributed
     environment:
       - NODE_ENV=production
       - HOST=0.0.0.0
@@ -482,13 +482,13 @@ services:
       - trapmap-distributed
 
   migration:
-    image: trap-map-host-distributed:latest
+    image: trap-map-migration:latest
     profiles: ["distributed"]
     build:
       context: .
-      dockerfile: packages/host-distributed/Dockerfile
-    command: ["node", "dist/migrate.js"]
-    working_dir: /app/packages/host-distributed
+      dockerfile: apps/migration/Dockerfile
+    command: ["node", "dist/index.js"]
+    working_dir: /app/apps/migration
     environment:
       - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
       - TRAPMAP_DEPLOYMENT_PROFILE=distributed

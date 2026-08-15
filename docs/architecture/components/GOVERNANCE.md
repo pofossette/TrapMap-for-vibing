@@ -143,7 +143,7 @@ flowchart TB
 
 ### CLI 权限标志映射
 
-CLI 入口 (`packages/cli/src/index.ts`) 将 RBAC 权限和安全等级组合为 `visibility` 对象，再映射到各命令组的细粒度标志：
+CLI 入口 (`apps/cli/src/index.ts`) 将 RBAC 权限和安全等级组合为 `visibility` 对象，再映射到各命令组的细粒度标志：
 
 | CLI 权限标志 | 来源 | 控制命令 |
 |-------------|------|----------|

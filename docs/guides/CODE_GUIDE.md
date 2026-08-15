@@ -183,9 +183,9 @@ lib/persistence/
 
 ---
 
-## 3. 客户端 — `packages/cli`
+## 3. 客户端 — `apps/cli`
 
-### 3.1 入口 — `packages/cli/src/index.ts`
+### 3.1 入口 — `apps/cli/src/index.ts`
 
 Commander.js 应用入口。**注意**：命令不是静态注册的——根据用户权限和 `SecurityLevel` 动态显示/隐藏命令。
 
@@ -307,7 +307,7 @@ CLI retrieval search "如何处理 N+1"
 |------|------|
 | 环境变量 | `.env`（模板见 `.env.example`） |
 | 服务配置 | `packages/host-local/src/nest/config/config.ts` + `packages/host-distributed/src/config/service-config.ts` |
-| CLI 配置 | `packages/cli/src/lib/config.ts` |
+| CLI 配置 | `apps/cli/src/lib/config.ts` |
 | AI Provider | `packages/host-local/src/nest/config/config.ts` + `packages/host-distributed/src/config/service-config.ts` |
 | TypeScript | `tsconfig.base.json`（各包继承） |
 | 代码规范 | `biome.json` |

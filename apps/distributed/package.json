@@ -1,0 +1,30 @@
+{
+  "name": "@trapmap/app-distributed",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "dev:gateway": "tsx watch src/index.ts --service gateway",
+    "dev:candidate-ingestion": "tsx watch src/index.ts --service candidate-ingestion",
+    "dev:governance-review": "tsx watch src/index.ts --service governance-review",
+    "dev:job-runtime": "tsx watch src/index.ts --service job-runtime",
+    "start": "node dist/index.js",
+    "start:gateway": "node dist/index.js --service gateway",
+    "start:candidate-ingestion": "node dist/index.js --service candidate-ingestion",
+    "start:governance-review": "node dist/index.js --service governance-review",
+    "start:job-runtime": "node dist/index.js --service job-runtime",
+    "test": "pnpm -C ../.. exec vitest run --project app-distributed --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@trapmap/host-distributed": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "vitest": "^3.2.1"
+  }
+}

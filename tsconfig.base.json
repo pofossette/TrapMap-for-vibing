@@ -41,11 +41,17 @@
       "@trapmap/service-knowledge-write": ["./packages/service-knowledge-write/src/index.ts"],
       "@trapmap/host-distributed": ["./packages/host-distributed/src/index.ts"],
       "@trapmap/host-distributed/*": ["./packages/host-distributed/src/*"],
-      "@trapmap/web-panel/*": ["./packages/web-panel/src/*"],
+      "@trapmap/web-panel/*": ["./apps/web-panel/src/*"],
       "@trapmap/host-local": ["./packages/host-local/src/index.ts"],
       "@trapmap/host-local/*": ["./packages/host-local/src/*"],
-      "@trapmap/cli": ["./packages/cli/src/index.ts"],
-      "@trapmap/cli/*": ["./packages/cli/src/*"]
+      "@trapmap/cli": ["./apps/cli/src/index.ts"],
+      "@trapmap/cli/*": ["./apps/cli/src/*"],
+      "@trapmap/app-light": ["./apps/light/src/index.ts"],
+      "@trapmap/app-light/*": ["./apps/light/src/*"],
+      "@trapmap/app-distributed": ["./apps/distributed/src/index.ts"],
+      "@trapmap/app-distributed/*": ["./apps/distributed/src/*"],
+      "@trapmap/app-migration": ["./apps/migration/src/index.ts"],
+      "@trapmap/app-migration/*": ["./apps/migration/src/*"]
     }
   }
 }

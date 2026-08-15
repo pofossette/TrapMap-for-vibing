@@ -159,16 +159,16 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 ### Task 5: web-panel 误提交产物清理
 
 **Files:**
-- Delete: packages/web-panel/vite.config.d.ts, `vite.config.d.ts.map`, `vitest.config.d.ts`, `vitest.config.d.ts.map`（git rm，tsc 构建产物误提交）
+- Delete: apps/web-panel/vite.config.d.ts, `vite.config.d.ts.map`, `vitest.config.d.ts`, `vitest.config.d.ts.map`（git rm，tsc 构建产物误提交）
 - Modify: 根 `.gitignore`（补充 `*.d.ts.map` 与 config 构建产物忽略规则，防复发）
-- 附带：确认 `packages/web-panel/src/vite-env.d.ts`（类型声明，保留）与 `packages/host-local/src/types.d.ts`、packages/contracts/src/types/mime-types.d.ts（随 Task 8 parsing 下沉评估，本任务不动）
+- 附带：确认 `apps/web-panel/src/vite-env.d.ts`（类型声明，保留）与 `packages/host-local/src/types.d.ts`、packages/contracts/src/types/mime-types.d.ts（随 Task 8 parsing 下沉评估，本任务不动）
 
 **Interfaces:**
 - Consumes: `git ls-files` 确认 4 个误提交产物。
 - Produces: git 跟踪面干净；构建产物防复发规则。
 
 - [ ] **Step 1: 确认误提交产物**
-  `git ls-files packages/web-panel | rg '\.d\.ts(\.map)?$'` 确认 4 个构建产物。
+  `git ls-files apps/web-panel | rg '\.d\.ts(\.map)?$'` 确认 4 个构建产物。
 - [ ] **Step 2: 删除 + gitignore**
   `git rm` 4 个文件；根 `.gitignore` 补 `*.d.ts.map` 规则（`*.d.ts` 已有规则但被 `packages/*/src/**/*.d.ts` 精确匹配绕过，需补 `packages/*/*.d.ts` 层）。
 - [ ] **Step 3: 验证**

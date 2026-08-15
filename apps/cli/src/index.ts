@@ -88,7 +88,7 @@ program
   .description('Show current prototype scope and package boundaries')
   .action(() => {
     console.log('TrapMap prototype');
-    console.log('- packages/cli: imperative user-facing terminal commands');
+    console.log('- apps/cli: imperative user-facing terminal commands');
     console.log('- packages/host-local: Nest-based light host (default runtime entry)');
     console.log('- packages/contracts: shared Zod schemas and runtime-safe contracts');
   });

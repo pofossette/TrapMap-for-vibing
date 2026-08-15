@@ -1,0 +1,21 @@
+{
+  "name": "@trapmap/app-migration",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "pnpm -C ../.. exec vitest run --project app-migration --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@trapmap/host-distributed": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "vitest": "^3.2.1"
+  }
+}

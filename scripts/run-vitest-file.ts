@@ -20,10 +20,10 @@ const PROJECT_TARGETS: readonly VitestProjectTarget[] = [
   { projectName: 'scripts', repoPrefix: 'scripts/' },
   { projectName: 'contracts', repoPrefix: 'packages/contracts/' },
   { projectName: 'service-knowledge-read', repoPrefix: 'packages/service-knowledge-read/' },
-  { projectName: 'web-panel', repoPrefix: 'packages/web-panel/' },
+  { projectName: 'web-panel', repoPrefix: 'apps/web-panel/' },
   { projectName: 'host-local', repoPrefix: 'packages/host-local/' },
   { projectName: 'host-distributed', repoPrefix: 'packages/host-distributed/' },
-  { projectName: 'cli', repoPrefix: 'packages/cli/' },
+  { projectName: 'cli', repoPrefix: 'apps/cli/' },
   { projectName: 'evals', repoPrefix: 'evals/' },
 ] as const;
 
