@@ -157,6 +157,7 @@
 - [ ] **当前边界：** 本轮不拆分（行为不变硬约束）。
 - [ ] **进入条件：** capability-model.ts 行数超出复杂度预算、新增维度需要独立校验/推导单元，或出现第三个宿主消费方。
 - [ ] **后续落点：** 在 backend-core runtime 内拆为 types/defaults/validation/resolution 模块，补能力组合单测。
+- [ ] **设计输入：** [`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 定义目标架构（deferred 设计输入，激活前不构成执行授权）。
 - [ ] **要求的文档与测试：** 相关包 focused tests、`pnpm typecheck`、`pnpm exec fallow audit --base main`。
 
 ### OTel 双份接线收敛（2026-08-15 登记）
@@ -166,6 +167,7 @@
 - [ ] **当前边界：** 本轮不合并（涉及两个宿主 runtime 行为，属大重构）。
 - [ ] **进入条件：** 出现需双宿主同步修改的 OTel 语义变更（span 属性、采样策略、脱敏规则），或指标口径在两侧被证实不一致。
 - [ ] **后续落点：** 提取共享 OTel 接线支持（backend-core 或 lib），两宿主经同一 API 接线，host-local 与 host-distributed 只保留组合。
+- [ ] **设计输入：** [`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 定义目标架构（deferred 设计输入，激活前不构成执行授权）。
 - [ ] **要求的文档与测试：** 更新 `docs/architecture/OBSERVABILITY.md`；运行 `pnpm test:observability-closeout`、`pnpm test:deployment-smoke`、`pnpm typecheck`。
 
 ### Consul 双份实现收敛（2026-08-15 登记）
@@ -175,6 +177,7 @@
 - [ ] **当前边界：** 本轮不合并。
 - [ ] **进入条件：** Consul 行为（健康检查、KV、重试）需双宿主一致修改，或出现真实 Consul 故障归因不一致。
 - [ ] **后续落点：** 以 `DiscoveryPort` 为准统一 framework-free adapter，host-local 迁到同一实现或共用 backend-core discovery 支持。
+- [ ] **设计输入：** [`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 定义目标架构（deferred 设计输入，激活前不构成执行授权）。
 - [ ] **要求的文档与测试：** 更新 `docs/architecture/SERVICE-DISCOVERY.md`；运行 `pnpm test:discovery-closeout`、`pnpm test:deployment-smoke`。
 
 ### EvalSeedPort 收窄（2026-08-15 登记）
@@ -193,6 +196,7 @@
 - [ ] **当前边界：** 本轮不合并（涉及 gateway 客户端语义与 baseUrl 选择逻辑）。
 - [ ] **进入条件：** governance-review 内部接口新增/变更方法时，或 `urls.review`/`urls.governanceReview` 任一 URL key 被确认可退役。
 - [ ] **后续落点：** 合并为单组并按 baseUrl 来源选择 URL key（或统一为一个 URL key），补 gateway 客户端测试。
+- [ ] **设计输入：** [`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 定义目标架构（deferred 设计输入，激活前不构成执行授权）。
 - [ ] **要求的文档与测试：** host-distributed gateway focused tests、`pnpm test:deployment-smoke`、`pnpm typecheck`。
 
 ### host-distributed shared/ports.ts 业务下沉（2026-08-15 登记）
@@ -202,6 +206,7 @@
 - [ ] **当前边界：** 本轮不迁移（宿主行为不变硬约束；迁移涉及 distributed 装配面）。
 - [ ] **进入条件：** `shared/ports.ts` 任一 SQL 实现出现行为不一致修复，或 service 包 pg-ports 签名变化使宿主实现可自然替换。
 - [ ] **后续落点：** 宿主改消费对应 service 包/backend-core 的端口实现，`shared/ports.ts` 只保留装配与组合。
+- [ ] **设计输入：** [`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 定义目标架构（deferred 设计输入，激活前不构成执行授权）。
 - [ ] **要求的文档与测试：** 更新 `docs/architecture/BOUNDARIES.md` 与服务发现相关文档；运行 `pnpm test:distributed-closeout`、`pnpm test:deployment-smoke`。
 
 ### candidates 3 个 legacy JSONB 列（2026-08-15 登记）
