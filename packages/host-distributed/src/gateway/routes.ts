@@ -33,7 +33,6 @@ const PUBLIC_PATHS: ReadonlySet<string> = new Set([
   '/ready',
   '/metrics',
   '/v1/auth/login',
-  '/v1/auth/register',
 ]);
 
 /**

@@ -12,17 +12,10 @@ import type {
   UserRecord,
   UserRepositoryPort,
 } from '@trapmap/backend-core';
-import type { RoleTemplate } from '@trapmap/contracts';
 import { nowIso } from '@trapmap/lib';
 
+import { normalizeRoleTemplate } from './auth-context.js';
 import type { HostLocalAsyncTransport, HostLocalRepos } from './shared-infra.js';
-
-function normalizeRoleTemplate(role: unknown): RoleTemplate {
-  if (role === 'admin' || role === 'system-admin') {
-    return role;
-  }
-  return 'user';
-}
 
 function normalizeSessionRecord(record: Record<string, unknown>): SessionRecord {
   return {

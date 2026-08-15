@@ -5,7 +5,7 @@ import type { Permission, RoleTemplate } from '@trapmap/contracts';
 import type { HostLocalServices } from './host-services.js';
 import { resolveEffectivePermissions } from './permissions.js';
 
-function normalizeRoleTemplate(role: unknown): RoleTemplate {
+export function normalizeRoleTemplate(role: unknown): RoleTemplate {
   if (role === 'admin' || role === 'system-admin') {
     return role;
   }
