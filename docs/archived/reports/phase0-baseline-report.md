@@ -1,7 +1,7 @@
 # Phase 0: Baseline Report - v2 Multi-Recall
 
 **Date**: 2026-05-23
-**Trigger**: `rtk pnpm eval:retrieval:smoke` and `rtk pnpm eval:retrieval:core`
+**Trigger**: `pnpm eval:retrieval:smoke` and `pnpm eval:retrieval:core`
 
 ## Smoke Tier (15 cases, 100% pass)
 

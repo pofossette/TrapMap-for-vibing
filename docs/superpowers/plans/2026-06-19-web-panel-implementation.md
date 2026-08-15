@@ -92,7 +92,7 @@
 - [ ] Establish `AppProviders` to hold HeroUI provider, router provider, and future session provider seam.
 - [ ] Replace the placeholder `bootstrapWebPanel()` entry with a real `main.tsx` browser mount.
 - [ ] Add a minimal route tree for `/`, `/reviews`, `/reviews/:id`, and `/activity`.
-- [ ] Verify with `rtk pnpm --filter @trapmap/web-panel typecheck` and `rtk pnpm --filter @trapmap/web-panel test`.
+- [ ] Verify with `pnpm --filter @trapmap/web-panel typecheck` and `pnpm --filter @trapmap/web-panel test`.
 
 ## Task 2: Shared Contracts For UI/Logic Separation
 
@@ -251,7 +251,7 @@
 - [ ] Update package README with real local commands and module map after implementation.
 - [ ] Reconcile requirements doc with any route or service naming decisions made during implementation.
 - [ ] Keep architecture doc aligned with actual folder structure and controller/store split.
-- [ ] Run `rtk pnpm --filter @trapmap/web-panel typecheck`, `rtk pnpm --filter @trapmap/web-panel test`, and any package-specific lint command once added.
+- [ ] Run `pnpm --filter @trapmap/web-panel typecheck`, `pnpm --filter @trapmap/web-panel test`, and any package-specific lint command once added.
 
 ## Self-Review
 

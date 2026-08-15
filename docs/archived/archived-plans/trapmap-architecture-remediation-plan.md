@@ -16,7 +16,7 @@
 
 ## 总体约束
 
-- 所有复选框都以“结构结论或代码整改 + 测试证据 + 文档回写 + `rtk pnpm check:docs-drift` + `rtk pnpm check:structure`”同时完成为关闭条件
+- 所有复选框都以“结构结论或代码整改 + 测试证据 + 文档回写 + `pnpm check:docs-drift` + `pnpm check:structure`”同时完成为关闭条件
 - 根 `plan.md` 只保留目标、阶段索引与当前关键路径；本文件保留执行细节、问题池、冻结边界、历史输入角色、文档矩阵与测试矩阵
 - 涉及架构事实冲突时，以 [`../reference/SYSTEM_TRUTH_SOURCES.md`](../reference/SYSTEM_TRUTH_SOURCES.md) 和对应源码入口为准
 - 不允许再新增与本主题平行的 Phase 文档；新增细化任务应落在本文件对应章节，或转入被本文件直接链接的单一专题文档
@@ -203,7 +203,7 @@
 - `packages/server/src/lib/ai/**` 与 `packages/server/src/lib/indexing/adapters/**` 在当前 phase 继续是 server-owned concrete infrastructure/provider implementation。Phase 3 冻结的是 taxonomy 和 owner：这些 concrete provider seam 仍归 `packages/server`，并未在本轮抽成新的 shared workspace package。
 - gateway client、remote adapter 与 repository adapter 的边界已经冻结为三件不同的事：gateway client 负责跨进程 transport；remote adapter 负责把 port 调用桥接到 transport；repository / persistence seam 继续留在 repo-owned boundary。文档不得把 gateway client 或 remote adapter 改写成 repository adapter，也不得把 repository seam 混入 unified adapter 口径。
 - `packages/host-local/src/nest/runtime/shared-infra.ts` 借用 `packages/server` 的 shared infra helpers 这一事实，只证明当前存在 transitional shared infrastructure seam；它不是 `packages/server` 仍是默认 host owner 的证据。默认 `light` host owner 仍冻结在 `packages/host-local/src/nest/**`，而 shared-infra 借用只是过渡态基础设施复用。
-- Phase 3 minimum verification matrix 已冻结为 focused docs/truth checks：`rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。只有在后续 phase 真正改动 adapter runtime behavior、internal client transport semantics 或 host assembly wiring 时，才补更广的 runtime/deployment tests。
+- Phase 3 minimum verification matrix 已冻结为 focused docs/truth checks：`pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`pnpm check:docs-drift`、`pnpm check:structure`。只有在后续 phase 真正改动 adapter runtime behavior、internal client transport semantics 或 host assembly wiring 时，才补更广的 runtime/deployment tests。
 
 ### Phase 4 统一适配器环境变量与构建裁剪冻结
 
@@ -218,7 +218,7 @@
 - 推荐组合在本 phase 明确冻结为三档，不再让 follow-up docs 重新发明矩阵：`local-agent` -> `light`，保持 in-process/internal defaults 与 `json-store-ok` posture；`team-monolith` -> `light`，保持 `postgres-required` + `gateway-core` + `split-owned` async posture；`distributed` -> `heavy`，保持 service/gateway split 与 `remote-expected` async posture。
 - fail-fast / fallback 规则必须区分当前允许的回退与被禁止的歧义：`rabbitmq` 需要 RabbitMQ config，缺 `TRAPMAP_RABBITMQ_URL` 时应 fail-fast；`distributed` 需要 PostgreSQL，缺 `TRAPMAP_DATABASE_URL` / `DATABASE_URL` 时只能报告冲突/缺口，不得写成仍支持 JSON-store runtime；`local-agent` 当前仍允许 `json-store-ok`；internal service URLs 在 `in-process` mode 下继续视为 ignored config，而不是必填依赖。
 - target-pruning posture 当前只冻结为文档边界：`light` 与 `heavy` 是 build/deployment targets，不是新增 runtime profiles；optional dependency、tree-shaking、target 裁剪规则当前只可描述为既有 intent 与 non-goals。除非源码已经证明，否则文档不得宣称已存在 fully automated package-pruning / optional-dependency elimination。
-- Phase 4 minimum verification matrix 冻结为 focused docs/truth checks：`rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。只有这些检查通过、且结果已记录到 phase report 后，Wave 4A-4C 才允许勾选关闭。
+- Phase 4 minimum verification matrix 冻结为 focused docs/truth checks：`pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`pnpm check:docs-drift`、`pnpm check:structure`。只有这些检查通过、且结果已记录到 phase report 后，Wave 4A-4C 才允许勾选关闭。
 
 ### Phase 5 Distributed 基线与运行隔离冻结
 
@@ -234,7 +234,7 @@
 - runtime-isolation 现状必须按当前证据描述：内部同步 RPC 已存在，但统一 resilience、全链路 tracing、service-owned persistence budget、独立 platform isolation 仍未在本 phase 落地；当前只允许把这些写成 deferred capability，而不是 current-state claim。
 - compose/runtime wording 继续冻结为“真实当前拓扑而非成熟编排”：`docker-compose.yml` 当前证明的是 gateway + 多个 service/worker 进程可运行、`distributed` profile 真实展开、并通过 env 指向 shared runtime substrate；它不是 service discovery、K8s orchestration、mesh、per-service autonomous deployment 的证据。
 - deferred boundary 必须显式保留：service discovery、K8s/platformization、per-service database、成熟 observability/tracing、以及更强 autonomy / isolation claim 继续留在 deferred 路径，而不是在 distributed baseline 文案中被隐含为当前已具备。
-- Phase 5 minimum verification matrix 冻结为 focused docs/truth checks：`rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。只有 closure freeze 文本、truth source / packages / deployment / testing 回写和这三条 focused checks 的实际结果都完成记录后，Wave 5A-5C 才允许关闭。
+- Phase 5 minimum verification matrix 冻结为 focused docs/truth checks：`pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`pnpm check:docs-drift`、`pnpm check:structure`。只有 closure freeze 文本、truth source / packages / deployment / testing 回写和这三条 focused checks 的实际结果都完成记录后，Wave 5A-5C 才允许关闭。
 
 ### Phase 6 成熟能力与成熟库替换矩阵冻结
 
@@ -255,7 +255,7 @@
 - “优先引成熟库 / 条件成熟后引入 / 暂不替换”的矩阵在本 phase 冻结为文档边界，而不是立即替换实现：当前优先复用既有 internal client、shared resilience helper、runtime metrics snapshot、cache invalidation seam；只有当真实吞吐、独立故障域、外部 telemetry / discovery / pool-governance 需求持续存在时，才进入条件成熟后引库；而 service discovery platform、PgBouncer rollout、完整 distributed tracing/backend、以及 service-autonomous remote cache 继续属于暂不替换或 deferred。
 - `light` 与 `heavy` 的默认策略姿态必须区分，但不得发明新 runtime 行为：`light` 当前仍以 host-local、in-process 默认、较少 remote dependency、`local-agent` 的 `json-store-ok` 与 `team-monolith` 的 `postgres-required` posture 为主；`heavy` 当前以 distributed、gateway + internal HTTP hop、shared PostgreSQL、remote-expected async posture 为主，因此更接近后续 mature capability 的 adoption front。Phase 6 只冻结“不同默认姿态”，不是宣称 `heavy` 已自动带来 resilience / discovery / bulkhead / tracing platform 默认值。
 - `graph runtime` 配置入口必须按当前证据冻结：同一组 `TRAPMAP_GRAPH_DB_*` env family 今天由 `packages/server/src/config.ts` / `lib/graph-query/config.ts` 解析，`TRAPMAP_GRAPH_DB_FAIL_OPEN` 与 runtime readiness/metrics 已有 shared truth；但主文档不能把 `server` compatibility shell、`host-local` default mainline、distributed profile、以及 worker-status surface 写成“graph behavior perfectly identical”。当前代码只证明它们共享同一 env family 和部分 shared consumer seam，同时对 worker-status + graph-enabled 组合保留 conflict warning。
-- Phase 6 minimum verification matrix 冻结为 focused docs/truth checks：`rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。只有 closure freeze 文本、truth source / packages / environment / testing 回写和这三条 focused checks 的实际结果都完成记录后，Wave 6A-6F 才允许关闭。
+- Phase 6 minimum verification matrix 冻结为 focused docs/truth checks：`pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`pnpm check:docs-drift`、`pnpm check:structure`。只有 closure freeze 文本、truth source / packages / environment / testing 回写和这三条 focused checks 的实际结果都完成记录后，Wave 6A-6F 才允许关闭。
 
 ### Phase 7 可维护性、测试矩阵与文档真相收口
 
@@ -278,7 +278,7 @@
 - Dockerfile / config maintainability topic 在本 phase 的冻结方式是“truth + deferred landing spot”，不是新增平台重构 claim。`packages/host-local/Dockerfile`、`packages/host-distributed/Dockerfile`、compose profile、以及 config surface 的同步风险继续作为维护性 guard topic 记录，但更重的平台化、镜像矩阵收敛、service discovery、K8s、独立 deployment shape 与 monitoring platform 仍进入既有 deferred 落点，而不是留成模糊的“later”。
 - deferred platform topics 的 landing spot 在本 phase 明确冻结：MQ 产品化、监控平台、长期服务化与更重的平台工程议题继续落在 `docs/todos/backend-engineering-optimization-plan.md`；compatibility shell 进一步退役与 owner matrix 历史补充继续落在 `docs/todos/nestjs-service-evolution-04-data-runtime-and-cutover.md`；distributed 成熟度独立审计继续落在 `docs/todos/nestjs-service-evolution-distributed-maturity-assessment.md`；observability / debug closeout 背景继续保留在 `docs/todos/robustness-scalability-closeout-plan.md` 与 `docs/todos/instrumentation-observability-plan.md`。Phase 7 不允许再把这些写成未指定落点的“后续再看”。
 - guardrail scope 在本 phase 只冻结当前代码已可验证的 truth：`scripts/complexity-budgets.json` 与 `packages/server/src/__tests__/docs-truth-smoke.test.ts` 应覆盖 current active-remediation entry、todos/archived index truth、以及 eval/CI command drift 的高风险表述；但它们不得 invent 未由 `.github/workflows/ci.yml`、`package.json`、`scripts/check-doc-drift.ts`、`scripts/check-structure.mjs` 实际 enforce 的新行为。
-- Wave 7A-7C 只有在本 closure freeze、truth-source/docs 回写、guardrail 更新，以及 `rtk pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`、`rtk pnpm eval:smoke` 四条 focused validations 的实际结果全部记录后，才允许勾选完成。
+- Wave 7A-7C 只有在本 closure freeze、truth-source/docs 回写、guardrail 更新，以及 `pnpm test:file -- packages/server/src/__tests__/docs-truth-smoke.test.ts`、`pnpm check:docs-drift`、`pnpm check:structure`、`pnpm eval:smoke` 四条 focused validations 的实际结果全部记录后，才允许勾选完成。
 
 ## 文档回写矩阵
 
@@ -292,15 +292,15 @@
 
 ### Phase 0 最小验证
 
-- [x] `rtk pnpm check:docs-drift`
-- [x] `rtk pnpm check:structure`
+- [x] `pnpm check:docs-drift`
+- [x] `pnpm check:structure`
 
 ### 后续阶段追加验证规则
 
-- 仅调整计划/索引文档：至少运行 `rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`
-- 涉及 contracts、共享类型、导出边界：补 `rtk pnpm typecheck` 与受影响包最小测试
-- 涉及 `server`、`backend-core`、`service-*`、`host-*`、runtime 或 distributed 边界：补受影响包 focused tests，必要时补 `rtk pnpm test:runtime-foundations` 与 `rtk pnpm test:deployment-smoke`
-- 涉及 retrieval、governance、feedback、fixtures、eval runner：相关包测试外，至少补 `rtk pnpm eval:smoke`
+- 仅调整计划/索引文档：至少运行 `pnpm check:docs-drift` 与 `pnpm check:structure`
+- 涉及 contracts、共享类型、导出边界：补 `pnpm typecheck` 与受影响包最小测试
+- 涉及 `server`、`backend-core`、`service-*`、`host-*`、runtime 或 distributed 边界：补受影响包 focused tests，必要时补 `pnpm test:runtime-foundations` 与 `pnpm test:deployment-smoke`
+- 涉及 retrieval、governance、feedback、fixtures、eval runner：相关包测试外，至少补 `pnpm eval:smoke`
 
 ## Phase 0 完成定义
 

@@ -19,7 +19,7 @@
 - Keep `test:runtime-closeout:compose` disposable: generated key/port, isolated Compose project, and `down --volumes --remove-orphans` cleanup remain unchanged.
 - A passing local restart gate proves only local restart isolation. Keep the distributed maturity claim at `Level 2 / transitional-microservice` unless independent measurable scaling, isolation, or operational-benefit evidence is supplied.
 - Do not create a Git commit unless the user explicitly requests one.
-- Prefix repository commands with `rtk`.
+- Run repository commands directly with pnpm.
 
 ---
 
@@ -58,7 +58,7 @@ Add a test that passes `['0020_observability_audit_correlation.sql']` with `[]` 
 Run:
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/lib/persistence/migration-ownership.test.ts
+pnpm --filter @trapmap/server test --run src/lib/persistence/migration-ownership.test.ts
 ```
 
 Expected: the new assertions fail because no journal-completeness helper exists.
@@ -84,8 +84,8 @@ In `migration-ownership.ts`, compare each SQL filename without its `.sql` suffix
 Run:
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/lib/persistence/migration-ownership.test.ts
-rtk pnpm typecheck
+pnpm --filter @trapmap/server test --run src/lib/persistence/migration-ownership.test.ts
+pnpm typecheck
 ```
 
 Expected: the migration tests and typecheck exit successfully.
@@ -167,7 +167,7 @@ it('binds lifecycle state before owner user ID when inserting knowledge', async 
 Run:
 
 ```bash
-rtk pnpm --filter @trapmap/host-distributed test --run src/shared/ports.transaction.test.ts
+pnpm --filter @trapmap/host-distributed test --run src/shared/ports.transaction.test.ts
 ```
 
 Expected: one failure in `binds lifecycle state before owner user ID when inserting knowledge`; the received array has `'system-admin'` at index 7 and `'submitted'` at index 8.
@@ -207,7 +207,7 @@ The complete surrounding SQL remains unchanged; do not rename placeholders, alte
 Run:
 
 ```bash
-rtk pnpm --filter @trapmap/host-distributed test --run src/shared/ports.transaction.test.ts
+pnpm --filter @trapmap/host-distributed test --run src/shared/ports.transaction.test.ts
 ```
 
 Expected: all tests in the file pass, including the new ordered-binding regression.
@@ -217,7 +217,7 @@ Expected: all tests in the file pass, including the new ordered-binding regressi
 Run:
 
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 Expected: exit code `0`.
@@ -239,7 +239,7 @@ Expected: exit code `0`.
 Run:
 
 ```bash
-rtk docker info --format '{{.ServerVersion}}'
+docker info --format '{{.ServerVersion}}'
 ```
 
 Expected: a Docker Engine version. If the daemon is unavailable, do not mark Tranche 7 complete; record the unavailable external prerequisite and retain all Tranche 7 checkboxes.
@@ -249,7 +249,7 @@ Expected: a Docker Engine version. If the daemon is unavailable, do not mark Tra
 Run:
 
 ```bash
-rtk pnpm test:runtime-closeout:compose
+pnpm test:runtime-closeout:compose
 ```
 
 Expected: after building a disposable project, output matching:
@@ -283,13 +283,13 @@ Keep all Tranche 7 items unchecked. Capture the command, the failing phase (star
 Run in this order:
 
 ```bash
-rtk pnpm test:distributed-acceptance
-rtk pnpm test:distributed-closeout
-rtk pnpm test:observability-closeout
-rtk pnpm test:deployment-smoke
-rtk pnpm typecheck
-rtk pnpm check:docs-drift
-rtk pnpm check:structure
+pnpm test:distributed-acceptance
+pnpm test:distributed-closeout
+pnpm test:observability-closeout
+pnpm test:deployment-smoke
+pnpm typecheck
+pnpm check:docs-drift
+pnpm check:structure
 ```
 
 Expected: every command exits `0`. `eval:smoke` is not required for this SQL-order-only fix because no retrieval, summary, governance, feedback, fixture, or eval runner behavior changes.
@@ -300,7 +300,7 @@ Replace the current blocker line with an entry containing:
 
 ```markdown
 - Fixed: `createPgKnowledgeRepo().insert()` now binds `lifecycle_state` before `owner_user_id`; a repository regression test covers the positional mapping.
-- Passed: `rtk pnpm test:runtime-closeout:compose` — `knowledge-write` restart recovery: `<actual-ms>ms` (gateway=true job-runtime=true).
+- Passed: `pnpm test:runtime-closeout:compose` — `knowledge-write` restart recovery: `<actual-ms>ms` (gateway=true job-runtime=true).
 ```
 
 Add each successfully rerun command to the existing `Passed:` evidence line or a new dated entry. Use the exact observed millisecond value; never substitute a target or estimate.
@@ -322,8 +322,8 @@ Move the unchecked quantitative Level 3 evidence from the active Tranche 7 check
 When Steps 1–5 are green, use `git mv` to move `docs/todos/observability-traceability-closure.md` to `docs/archived/archived-plans/`. Update `docs/archived/README.md`, `docs/todos/README.md`, and root `plan.md` so the repository has exactly one status: no active mainline, with compatibility retirement retained only as a deferred candidate. Run:
 
 ```bash
-rtk pnpm check:docs-drift
-rtk pnpm check:structure
+pnpm check:docs-drift
+pnpm check:structure
 ```
 
 Expected: both documentation guards pass and no active execution surface points to the archived detail.
@@ -338,6 +338,6 @@ Expected: both documentation guards pass and no active execution surface points 
 ## Completion Criteria
 
 - The new repository test fails before and passes after the two-value binding correction.
-- `rtk pnpm test:runtime-closeout:compose` reports a measured recovery with `gateway=true` and `job-runtime=true`.
+- `pnpm test:runtime-closeout:compose` reports a measured recovery with `gateway=true` and `job-runtime=true`.
 - The required Tranche 7 regression commands pass and the active todo records their actual results.
 - The repository continues to claim `Level 2 / transitional-microservice`; the unproven Level 3 benefit remains deferred rather than blocking archival of this completed observability and operational-evidence mainline.

@@ -73,9 +73,9 @@
 - [ ] **Step 3: 运行只读核对，不改 schema**
 
 ```bash
-rtk jq '.bugs[] | select(.confirmation_status=="confirmed") | {id,detail_file,trigger_summary}' /home/wunai/Downloads/fm-agent-raw-reports/contracts/summary.json
-rtk sed -n '1,220p' packages/contracts/README.md
-rtk sed -n '1,220p' docs/operations/TESTING.md
+jq '.bugs[] | select(.confirmation_status=="confirmed") | {id,detail_file,trigger_summary}' /home/wunai/Downloads/fm-agent-raw-reports/contracts/summary.json
+sed -n '1,220p' packages/contracts/README.md
+sed -n '1,220p' docs/operations/TESTING.md
 ```
 
 Expected: 后续任何 schema 改动都能从 `contracts-source-pack.md` 反查到原始报告和下游文档承诺。
@@ -126,7 +126,7 @@ it('rejects absolute sourcePaths in skillCapsuleSchema', () => {
 - [ ] **Step 3: 跑 contracts targeted tests，冻结现状**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/contracts/src/domain/artifacts.test.ts \
   packages/contracts/src/domain/candidates.test.ts \
   packages/contracts/src/domain/operations.test.ts \
@@ -140,7 +140,7 @@ Expected: 只允许 live gap 的 case 失败；已修复 raw finding 不得重�
 - [ ] **Step 4: 提交 Phase 1**
 
 ```bash
-rtk git add \
+git add \
   docs/plans/fm-agent-scan/contracts-live-gap-matrix.md \
   packages/contracts/src/domain/artifacts.test.ts \
   packages/contracts/src/domain/candidates.test.ts \
@@ -148,7 +148,7 @@ rtk git add \
   packages/contracts/src/domain/retrieval.test.ts \
   packages/contracts/src/domain/retrieval.adversarial.test.ts \
   packages/contracts/src/domain/evals/evals.test.ts
-rtk git commit --no-verify -m "test(contracts): freeze fm-agent live schema gaps"
+git commit --no-verify -m "test(contracts): freeze fm-agent live schema gaps"
 ```
 
 ### Phase 1 完成标准
@@ -214,7 +214,7 @@ path: canonicalPathSchema,
 - [ ] **Step 3: 运行 helper 影响面测试**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/contracts/src/domain/artifacts.test.ts \
   packages/contracts/src/domain/candidates.test.ts \
   packages/contracts/src/domain/operations.test.ts \
@@ -226,7 +226,7 @@ Expected: 路径、sha256、mediaType 的断言全部由 shared helper 兜住。
 - [ ] **Step 4: 提交 Phase 2**
 
 ```bash
-rtk git add \
+git add \
   packages/contracts/src/domain/path-validation.ts \
   packages/contracts/src/domain/common.ts \
   packages/contracts/src/domain/artifacts.ts \
@@ -237,7 +237,7 @@ rtk git add \
   packages/contracts/src/domain/candidates.test.ts \
   packages/contracts/src/domain/operations.test.ts \
   packages/contracts/src/domain/retrieval.test.ts
-rtk git commit --no-verify -m "refactor(contracts): centralize path and hash helpers"
+git commit --no-verify -m "refactor(contracts): centralize path and hash helpers"
 ```
 
 ### Phase 2 完成标准
@@ -311,7 +311,7 @@ it('rejects authenticated=true with session=null', () => {
 - [ ] **Step 3: 跑 cross-field regression 集**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/contracts/src/domain/auth.test.ts \
   packages/contracts/src/domain/candidates.test.ts \
   packages/contracts/src/domain/decay.test.ts \
@@ -325,7 +325,7 @@ rtk pnpm test -- --run \
 - [ ] **Step 4: 提交 Phase 3**
 
 ```bash
-rtk git add \
+git add \
   packages/contracts/src/domain/auth.ts \
   packages/contracts/src/domain/candidates.ts \
   packages/contracts/src/domain/decay.ts \
@@ -342,7 +342,7 @@ rtk git add \
   packages/contracts/src/domain/maintenance.test.ts \
   packages/contracts/src/domain/operations.test.ts \
   packages/contracts/src/domain/review.test.ts
-rtk git commit --no-verify -m "fix(contracts): enforce cross-field invariants"
+git commit --no-verify -m "fix(contracts): enforce cross-field invariants"
 ```
 
 ### Phase 3 完成标准
@@ -404,15 +404,15 @@ expect(() =>
 - [ ] **Step 3: 跑 contracts 包级测试、类型检查和仓库 smoke**
 
 ```bash
-rtk pnpm --filter @trapmap/contracts test
-rtk pnpm --filter @trapmap/contracts typecheck
-rtk pnpm eval:smoke
+pnpm --filter @trapmap/contracts test
+pnpm --filter @trapmap/contracts typecheck
+pnpm eval:smoke
 ```
 
 - [ ] **Step 4: 提交 Phase 4**
 
 ```bash
-rtk git add \
+git add \
   packages/contracts/src/domain/artifacts.ts \
   packages/contracts/src/domain/retrieval.ts \
   packages/contracts/src/domain/evals/report.ts \
@@ -421,7 +421,7 @@ rtk git add \
   packages/contracts/src/domain/retrieval.test.ts \
   packages/contracts/src/domain/retrieval.adversarial.test.ts \
   packages/contracts/src/domain/evals/evals.test.ts
-rtk git commit --no-verify -m "fix(contracts): converge retrieval artifact eval contracts"
+git commit --no-verify -m "fix(contracts): converge retrieval artifact eval contracts"
 ```
 
 ### Phase 4 完成标准
@@ -438,7 +438,7 @@ rtk git commit --no-verify -m "fix(contracts): converge retrieval artifact eval 
 ### Phase 4 测试 / Eval 更新
 
 - [ ] 更新 `retrieval.test.ts` 与 `retrieval.adversarial.test.ts` 的 path fixtures
-- [ ] 运行 `rtk pnpm eval:smoke` 作为 downstream regression check
+- [ ] 运行 `pnpm eval:smoke` 作为 downstream regression check
 
 ### Phase 4 示例结构
 
@@ -474,13 +474,13 @@ packages/contracts/src/domain/
 - [x] 四个 phase 的完成标准都已满足
 - [x] contracts 文档已明确 shared helper、schema regression map、downstream fixture 约束
 - [x] contracts 测试代码已覆盖本轮 live schema gaps
-- [x] `rtk pnpm --filter @trapmap/contracts test` 通过
-- [x] `rtk pnpm --filter @trapmap/contracts typecheck` 通过
-- [x] `rtk pnpm eval:smoke` 通过
+- [x] `pnpm --filter @trapmap/contracts test` 通过
+- [x] `pnpm --filter @trapmap/contracts typecheck` 通过
+- [x] `pnpm eval:smoke` 通过
 
 ## Execution Close-Out (2026-05-29)
 
 - 状态：已完成，并在 post-audit reconciliation 中迁移到 `docs/plans/fm-agent-scan/`
 - 当前 HEAD 证据：contracts raw matrix 已回写为 `0 current live`
-- 当前验证：仓库级 `rtk pnpm test`、`rtk pnpm typecheck`、`rtk pnpm eval:smoke` 已重跑通过
+- 当前验证：仓库级 `pnpm test`、`pnpm typecheck`、`pnpm eval:smoke` 已重跑通过
 - 残留说明：`parsing.ts` 的 function-as-record / empty-title 争议已归类为 design-level stale，而非未实现 contracts gap

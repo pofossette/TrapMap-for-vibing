@@ -31,7 +31,7 @@
 - [ ] `backend-core` 只消费 telemetry / audit ports，不依赖 OTel、Prometheus、Loki 或具体 logger SDK。
 - [ ] 所有 Prometheus 标签保持低基数；禁止使用 request ID、trace ID、用户 ID、实体 ID 和原始 URL。
 - [ ] 日志、trace attribute 与审计 metadata 不记录 access token、会话密钥、完整敏感 payload 或未经审查的用户内容。
-- [ ] 每个涉及 runtime/env/API surface 的 tranche 都更新权威文档，并运行 `rtk pnpm typecheck` 与对应最小测试。
+- [ ] 每个涉及 runtime/env/API surface 的 tranche 都更新权威文档，并运行 `pnpm typecheck` 与对应最小测试。
 - [ ] 不新增 shared DB direct-read、`store_snapshot` 或 compatibility route 作为业务默认路径；必须先以 owner port、投影或明确记录的临时例外表达跨服务访问。
 - [ ] 不将 PgBouncer、物理 database-per-service、Kubernetes、service mesh、MQ 产品化或动态服务发现写成当前已交付资产；长期进入条件见 [`open-debt-and-compromises.md`](open-debt-and-compromises.md)。
 
@@ -51,9 +51,9 @@
 **Produces:** 严格的共享 correlation schema，字段为 `requestId`、`traceparent`、`traceId`、`operationId`、`causationId`、`service`、`ownerSurface`；`LogEntry` 允许这些字段进入 JSON body，但 Loki labels 始终仅为 `service`、`environment`、`level`。
 
 - [ ] **Step 1: Write failing contract tests.** 在 `observability.test.ts` 添加一个完整关联上下文的 `safeParse` 断言和一个非法 `traceparent` 的拒绝断言；在 `log-schema.test.ts` 断言 `operationId`、`causationId` 不会出现在 `buildLokiLabels()` 输出中。
-- [ ] **Step 2: Verify RED.** 运行 `rtk pnpm --filter @trapmap/contracts test --run src/domain/observability.test.ts src/domain/log-schema.test.ts`；预期新增字段尚不存在或非法 W3C header 未被拒绝。
+- [ ] **Step 2: Verify RED.** 运行 `pnpm --filter @trapmap/contracts test --run src/domain/observability.test.ts src/domain/log-schema.test.ts`；预期新增字段尚不存在或非法 W3C header 未被拒绝。
 - [ ] **Step 3: Implement the minimum contract.** 在 `observability.ts` 新增 `operationId`、`causationId` 及 W3C 格式的 `traceparent` schema；在 `log-schema.ts` 增加可选 correlation fields，保持 `.passthrough()` 和三项 Loki label 白名单不变。
-- [ ] **Step 4: Verify GREEN.** 重跑 Step 2 命令；再运行 `rtk pnpm typecheck`。
+- [ ] **Step 4: Verify GREEN.** 重跑 Step 2 命令；再运行 `pnpm typecheck`。
 - [ ] **Step 5: Document the authority.** 更新 `docs/architecture/OBSERVABILITY.md`，说明 `observability.ts` 与 `log-schema.ts` 分别是关联字段和日志字段的唯一 contract source。
 
 ### Task 2：统一入口上下文与 HTTP trace 传播
@@ -73,9 +73,9 @@
 **Produces:** 每个入口都有合法 `requestId` 和 trace context；无上游 `traceparent` 的入口创建 root server span；内部 client 注入 OTel child context，不再依赖 `x-trapmap-span-id` / `x-trapmap-parent-span-id` 表示 trace 父子关系。
 
 - [ ] **Step 1: Write failing tests.** 为 server 与 host-local context 添加“无 header 生成 request ID、operation ID，且 traceparent 为空”的测试；为 distributed telemetry 添加“无上游 traceparent 仍创建并结束 server span”的测试；将 internal-client 测试改为断言 W3C header 注入且不包含自定义 span headers。
-- [ ] **Step 2: Verify RED.** 运行 `rtk pnpm test:file -- packages/host-local/src/nest/runtime/request-context.test.ts` 和 `rtk pnpm --filter @trapmap/host-distributed test --run src/shared/telemetry.test.ts src/gateway/internal-client.test.ts`；预期 root span 和标准 child propagation 断言失败。
+- [ ] **Step 2: Verify RED.** 运行 `pnpm test:file -- packages/host-local/src/nest/runtime/request-context.test.ts` 和 `pnpm --filter @trapmap/host-distributed test --run src/shared/telemetry.test.ts src/gateway/internal-client.test.ts`；预期 root span 和标准 child propagation 断言失败。
 - [ ] **Step 3: Implement minimum propagation.** 仅通过 `propagation.extract()` / `propagation.inject()` 读取和写入 W3C carrier；在 `attachRuntimeTelemetry()` 无条件创建 server span，使用 extracted context 作为可选 parent；将 `requestId`、`operationId`、`causationId` 放进既有内部 header allowlist，不改变业务请求 body。
-- [ ] **Step 4: Verify GREEN.** 重跑 Step 2，并运行 `rtk pnpm test:distributed-closeout`、`rtk pnpm typecheck`。
+- [ ] **Step 4: Verify GREEN.** 重跑 Step 2，并运行 `pnpm test:distributed-closeout`、`pnpm typecheck`。
 - [ ] **Step 5: Document transport compatibility.** 更新 `docs/architecture/OBSERVABILITY.md` 与 `docs/architecture/SERVICE-DISCOVERY.md`，声明 `traceparent` 是唯一 trace propagation header；保留的业务 correlation headers 只承载 operation/causation 语义。
 
 ### Task 3：将运行日志收敛为同一结构化出口
@@ -94,9 +94,9 @@
 **Produces:** `LoggingPort`、HTTP completion 和异常日志均输出 schema-valid JSON；child logger 保留 inherited context；Loki 写入失败时仍以同一 JSON schema 输出 stdout。
 
 - [ ] **Step 1: Write failing tests.** 在 host-local middleware test 断言输出可由 `logEntrySchema.parse()` 校验且含 request/trace/operation fields；在 adapter tests 断言 child context 合并；在 `log-schema.test.ts` 增加 `authorization`、token、session secret 不可进入 serialised log body 的断言。
-- [ ] **Step 2: Verify RED.** 运行 `rtk pnpm --filter @trapmap/host-local test --run src/nest/runtime/logging.middleware.test.ts src/nest/observability/observability-chain.test.ts` 与 `rtk pnpm --filter @trapmap/server test --run src/lib/runtime/logging-port-adapter.test.ts`。
+- [ ] **Step 2: Verify RED.** 运行 `pnpm --filter @trapmap/host-local test --run src/nest/runtime/logging.middleware.test.ts src/nest/observability/observability-chain.test.ts` 与 `pnpm --filter @trapmap/server test --run src/lib/runtime/logging-port-adapter.test.ts`。
 - [ ] **Step 3: Implement minimum logger adapter.** 使 adapter 接收 `LogEntry` context 并通过唯一 formatter 输出；以 request context 补全缺失 correlation fields；在 Loki transport 失败路径复用同一 entry；采用字段白名单或 redaction helper 移除 `authorization`、`accessToken`、`sessionToken`、`secret`。
-- [ ] **Step 4: Verify GREEN.** 重跑 Step 2，执行 `rtk pnpm test:observability-closeout` 和 `rtk pnpm typecheck`。
+- [ ] **Step 4: Verify GREEN.** 重跑 Step 2，执行 `pnpm test:observability-closeout` 和 `pnpm typecheck`。
 - [ ] **Step 5: Update operating rules.** 更新 `docs/operations/SECURITY.md`、`docs/operations/OBSERVABILITY-OPERATIONS.md` 和 `docs/architecture/OBSERVABILITY.md`，列出允许字段、脱敏字段和 stdout fallback 语义。
 
 ### Task 4：使审计事件具备可查询的业务因果关系
@@ -118,9 +118,9 @@
 **Produces:** 每个审计记录持久化 event version、source service、request/trace/operation/causation IDs 和 outcome；查询 filter 支持 `operationId`、`traceId`、`causationId`，不绕过团队和 `audit:read` 授权。
 
 - [ ] **Step 1: Write failing repository and route tests.** 在 `audit-ports.test.ts` 断言完整 audit entry contract；在 repository test 覆盖 insert/query correlation fields；在 route test 使用有权限 session fixture 验证 `operationId` filter 不泄露其他 team 数据。
-- [ ] **Step 2: Verify RED.** 运行 `rtk pnpm --filter @trapmap/backend-core test --run src/ports/audit-ports.test.ts` 与 `rtk pnpm --filter @trapmap/server test --run src/lib/audit/repository.test.ts src/routes/operations/audit.test.ts`。
+- [ ] **Step 2: Verify RED.** 运行 `pnpm --filter @trapmap/backend-core test --run src/ports/audit-ports.test.ts` 与 `pnpm --filter @trapmap/server test --run src/lib/audit/repository.test.ts src/routes/operations/audit.test.ts`。
 - [ ] **Step 3: Implement migration and adapters.** 迁移只新增 nullable correlation columns、必要索引与 event version/source/outcome 列；更新 Drizzle schema、in-memory repository、PG repository、host-local 与 distributed adapters；扩展 contract/query schema 和受权限保护的 route 映射。
-- [ ] **Step 4: Verify GREEN.** 重跑 Step 2，并运行 `rtk pnpm typecheck`、`rtk pnpm eval:smoke`（若治理、feedback 或 badcase 路径修改）。
+- [ ] **Step 4: Verify GREEN.** 重跑 Step 2，并运行 `pnpm typecheck`、`pnpm eval:smoke`（若治理、feedback 或 badcase 路径修改）。
 - [ ] **Step 5: Update external semantics.** 更新 `docs/reference/DATA_MODEL.md`、`docs/reference/api-surface.md`、`docs/architecture/components/GOVERNANCE.md` 和 `docs/operations/SECURITY.md`，明确审计不可由调试日志替代及其访问控制。
 
 ### Task 5：收敛指标、健康与遥测自监控
@@ -140,9 +140,9 @@
 **Produces:** 跨宿主一致的 metric name/unit/label registry；参数化 `routeFamily` 替代原始 URL；对 exporter、Loki 与 audit write 失败的计数或健康 diagnostics；readiness 不因可选 telemetry sink 不可用而被错误阻断。
 
 - [ ] **Step 1: Write failing metric/health tests.** 在 Prometheus service test 断言 raw URL 不会成为 label value；在 runtime metrics test 断言 allowed labels 不含动态 IDs；在 health controller test 覆盖 audit write / OTLP exporter 失败为 `degraded` 而非 `not-ready` 的可选依赖语义。
-- [ ] **Step 2: Verify RED.** 运行 `rtk pnpm --filter @trapmap/host-local test --run src/nest/observability/prometheus.service.test.ts src/nest/health/health.controller.test.ts`、`rtk pnpm --filter @trapmap/server test --run src/lib/runtime/metrics.test.ts`。
+- [ ] **Step 2: Verify RED.** 运行 `pnpm --filter @trapmap/host-local test --run src/nest/observability/prometheus.service.test.ts src/nest/health/health.controller.test.ts`、`pnpm --filter @trapmap/server test --run src/lib/runtime/metrics.test.ts`。
 - [ ] **Step 3: Implement minimum registry.** 使用固定 label set `method`、`status_class`、`route_family`、`service_name`、`owner_surface`；在 host-local 入口将 route 规范化为注册路由模板；为可选遥测 sink 的失败添加低基数指标与 dependency diagnostic。
-- [ ] **Step 4: Verify GREEN.** 重跑 Step 2，执行 `rtk pnpm test:observability-closeout`、`rtk pnpm test:runtime-foundations`、`rtk pnpm typecheck`。
+- [ ] **Step 4: Verify GREEN.** 重跑 Step 2，执行 `pnpm test:observability-closeout`、`pnpm test:runtime-foundations`、`pnpm typecheck`。
 - [ ] **Step 5: Document the catalogue.** 更新 `docs/architecture/OBSERVABILITY.md`、`docs/operations/OBSERVABILITY-OPERATIONS.md`、`docs/operations/REGRESSION-COMMANDS.md` 与 health/metrics API reference。
 
 ### Task 6：交付可执行的运维联查资产
@@ -162,9 +162,9 @@
 **Produces:** 版本化的 SLI/告警查询、trace → log → audit 联查 runbook、外部 retention/access-control 责任界定，以及可由 CI 验证的文档事实。
 
 - [ ] **Step 1: Write failing document guard test.** 在 `closeout-surface.test.ts` 增加断言，要求运维文档包含 `trace → log → audit` 联查、OTLP/Loki 失败处置，以及“外部基础设施而非仓库默认部署”的边界。
-- [ ] **Step 2: Verify RED.** 运行 `rtk pnpm test:file -- scripts/__tests__/closeout-surface.test.ts`；预期新断言失败。
+- [ ] **Step 2: Verify RED.** 运行 `pnpm test:file -- scripts/__tests__/closeout-surface.test.ts`；预期新断言失败。
 - [ ] **Step 3: Implement runbook and guard rule.** 在运维文档中添加具体查询字段、告警信号、抑制逻辑与失败处置；在 `complexity-budgets.json` 增加对应 `mustContain` rule，禁止把 Collector/Grafana 描述为内置资产。
-- [ ] **Step 4: Verify GREEN.** 重跑 Step 2，执行 `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`、`rtk pnpm test:deployment-smoke`。
+- [ ] **Step 4: Verify GREEN.** 重跑 Step 2，执行 `pnpm check:docs-drift`、`pnpm check:structure`、`pnpm test:deployment-smoke`。
 - [ ] **Step 5: Record external preconditions.** 在本计划的完成记录中列出验证所需的 Collector endpoint、Loki endpoint、Prometheus scrape 与 Grafana access；未提供时只标记为外部验收前置条件，不勾选为仓库内已验证。
 
 ## Tranche 0：冻结关联模型与基线
@@ -176,7 +176,7 @@
 - [ ] 盘点 `packages/server`、`packages/host-local`、`packages/host-distributed` 的入口、中间件、内部 client、异步消息和审计写入点，记录采用新 contract 的迁移顺序。
 - [x] 为 server 与 host-local 的 request-context 补齐最小测试，覆盖：上游字段存在、缺失 fallback、非法 traceparent、AsyncLocalStorage 保留，以及 operation/causation headers。
 - [x] 更新 `docs/architecture/OBSERVABILITY.md` 和本文档，明确关联字段的权威来源与兼容边界；`SYSTEM_TRUTH_SOURCES.md` 未新增或变更权威条目，保持不变。
-- [x] 验证（2026-07-11）：`rtk pnpm --filter @trapmap/contracts test --run src/domain/observability.test.ts src/domain/log-schema.test.ts`（20 passed）、`rtk pnpm test:file -- packages/server/src/lib/runtime/request-context.test.ts`（3 passed）、`rtk pnpm --filter @trapmap/host-local test --run src/nest/runtime/request-context.test.ts src/nest/observability/observability-chain.test.ts`（30 passed）、`rtk pnpm typecheck`（No errors found）、`rtk pnpm check:docs-drift`（46 rules passed）及 `rtk pnpm check:structure`（passed）。
+- [x] 验证（2026-07-11）：`pnpm --filter @trapmap/contracts test --run src/domain/observability.test.ts src/domain/log-schema.test.ts`（20 passed）、`pnpm test:file -- packages/server/src/lib/runtime/request-context.test.ts`（3 passed）、`pnpm --filter @trapmap/host-local test --run src/nest/runtime/request-context.test.ts src/nest/observability/observability-chain.test.ts`（30 passed）、`pnpm typecheck`（No errors found）、`pnpm check:docs-drift`（46 rules passed）及 `pnpm check:structure`（passed）。
 
 ## Tranche 1：完成端到端 trace 与上下文传播
 
@@ -188,7 +188,7 @@
 - [ ] 将 request/trace/operation/causation 关联字段写入响应、内部调用与异步消息的已定义 header 或 envelope，且不改变外部业务 payload。
 - [ ] 补齐测试：无上游 trace 创建根 span；合法 W3C context 跨 gateway 到内部服务延续；错误与超时标记 span；异步任务可关联发起操作。
 - [ ] 更新 `docs/architecture/OBSERVABILITY.md`、`docs/architecture/SERVICE-DISCOVERY.md`（仅涉及 internal hop 时）、`docs/operations/ENVIRONMENT.md` 与 `docs/operations/OBSERVABILITY-OPERATIONS.md`。
-- [ ] 验证：受影响 server / host-local / host-distributed 包级测试、`rtk pnpm test:distributed-closeout`、`rtk pnpm test:observability-closeout`、`rtk pnpm typecheck`；若更改跨包导入，额外运行 `rtk pnpm exec fallow audit --base main`。
+- [ ] 验证：受影响 server / host-local / host-distributed 包级测试、`pnpm test:distributed-closeout`、`pnpm test:observability-closeout`、`pnpm typecheck`；若更改跨包导入，额外运行 `pnpm exec fallow audit --base main`。
 
 ## Tranche 2：统一结构化日志与错误关联
 
@@ -200,7 +200,7 @@
 - [ ] 定义日志脱敏与字段白名单测试，防止 token、session secret、authorization header 和完整敏感 payload 写入日志。
 - [ ] 补齐测试：logger child context 继承；HTTP 成功/失败日志包含关联字段；Loki 不可用时 stdout JSON 保持可用；敏感字段被移除或掩码。
 - [ ] 更新 `docs/architecture/OBSERVABILITY.md`、`docs/operations/SECURITY.md`、`docs/operations/OBSERVABILITY-OPERATIONS.md` 与相关环境变量说明。
-- [ ] 验证：相关 package 单文件测试、`rtk pnpm typecheck`、`rtk pnpm test:observability-closeout`、`rtk pnpm check:docs-drift`。
+- [ ] 验证：相关 package 单文件测试、`pnpm typecheck`、`pnpm test:observability-closeout`、`pnpm check:docs-drift`。
 
 ## Tranche 3：加强审计事件与业务因果追溯
 
@@ -212,7 +212,7 @@
 - [ ] 为 audit 查询增加按 operation、trace、因果事件的受权限保护过滤；确保分页、时间范围和团队隔离语义明确。
 - [ ] 补齐测试：同步业务命令与审计事件关联；异步后续事件保留 causation；未授权审计查询被拒绝；metadata 脱敏；host-local / distributed 映射一致。
 - [ ] 更新 `docs/reference/DATA_MODEL.md`、`docs/reference/api-surface.md`、`docs/architecture/components/GOVERNANCE.md`、`docs/operations/SECURITY.md` 和相关 CLI / API 文档。
-- [ ] 验证：contracts、backend-core、受影响 host 与 route 测试，`rtk pnpm typecheck`；如涉及检索/治理/feedback 追溯，额外运行 `rtk pnpm eval:smoke`。
+- [ ] 验证：contracts、backend-core、受影响 host 与 route 测试，`pnpm typecheck`；如涉及检索/治理/feedback 追溯，额外运行 `pnpm eval:smoke`。
 
 ## Tranche 4：收敛指标、健康与遥测自监控
 
@@ -223,7 +223,7 @@
 - [ ] 对 health 注册关键依赖、审计写入、遥测 exporter、队列/outbox 和 worker 状态的清晰语义；区分 readiness 阻断、degraded 诊断与可选依赖故障。
 - [ ] 补齐测试：指标中不出现高基数字段；失败路径递增正确计数；`/ready` 与 `/health` 聚合规则符合统一 contract；指标关闭或 exporter 不可用时应用不崩溃。
 - [ ] 更新 `docs/architecture/OBSERVABILITY.md`、`docs/operations/OBSERVABILITY-OPERATIONS.md`、`docs/operations/REGRESSION-COMMANDS.md` 和 health / metrics API reference。
-- [ ] 验证：`rtk pnpm test:observability-closeout`、`rtk pnpm test:discovery-closeout`、受影响包测试、`rtk pnpm typecheck`、`rtk pnpm check:docs-drift`。
+- [ ] 验证：`pnpm test:observability-closeout`、`pnpm test:discovery-closeout`、受影响包测试、`pnpm typecheck`、`pnpm check:docs-drift`。
 
 ## Tranche 5：落地运维联查与告警资产
 
@@ -235,7 +235,7 @@
 - [ ] 明确日志、trace、metrics、audit 的外部保留期和访问控制由部署环境配置；仓库文档只写默认建议与必需配置项。
 - [ ] 补齐 deploy/config 验证与文档测试；不将无法在仓库内验证的 Grafana UI 操作伪装为自动化通过。
 - [ ] 更新 `docs/operations/OBSERVABILITY-OPERATIONS.md`、`docs/operations/ENVIRONMENT.md`、`docs/operations/SECURITY.md`、`docs/architecture/OBSERVABILITY.md` 与 README / 部署入口（仅在用户可见接入方式变化时）。
-- [ ] 验证：`rtk pnpm test:deployment-smoke`、`rtk pnpm test:observability-closeout`、`rtk pnpm test:runtime-foundations`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。
+- [ ] 验证：`pnpm test:deployment-smoke`、`pnpm test:observability-closeout`、`pnpm test:runtime-foundations`、`pnpm check:docs-drift`、`pnpm check:structure`。
 
 ## Tranche 6：落实 shared PG 所有权、迁移和容量治理
 
@@ -247,7 +247,7 @@
 - [x] 为 `knowledge-read`、`job-runtime` 与其他 distributed service 明确 pool size、idle timeout、connection timeout、statement timeout 和总连接预算；pool saturation、连接超时和 DB health 需可按服务诊断。
 - [x] 补齐测试：跨 owner 写入被 owner port/route guard 拦截；同事务 authoritative write + outbox 原子性；projection lag 与 rebuild 语义；per-service pool override、timeout 和 health failure。
 - [x] 更新 `docs/architecture/DATABASE_OWNERSHIP.md`、`docs/architecture/components/PERSISTENCE.md`、`docs/architecture/components/ASYNC_MODEL.md`、`docs/operations/ENVIRONMENT.md`、`docs/operations/OBSERVABILITY-OPERATIONS.md`、`docs/reference/DATA_MODEL.md` 与受影响 service README。
-- [x] 验证：相关 `packages/server`、`packages/runtime-infra`、`packages/host-distributed` 和 `packages/service-knowledge-read` 包级测试，`rtk pnpm test:runtime-foundations`、`rtk pnpm test:distributed-closeout`、`rtk pnpm typecheck`；有跨包导入时运行 `rtk pnpm exec fallow audit --base main`。
+- [x] 验证：相关 `packages/server`、`packages/runtime-infra`、`packages/host-distributed` 和 `packages/service-knowledge-read` 包级测试，`pnpm test:runtime-foundations`、`pnpm test:distributed-closeout`、`pnpm typecheck`；有跨包导入时运行 `pnpm exec fallow audit --base main`。
 
 ## Tranche 7：交付服务级运维面与 Level 3 样板证据
 
@@ -258,7 +258,7 @@
 - [x] 为 gateway -> governance-review -> knowledge-write 路径补齐 correlation、错误分类、超时、重试和幂等 acceptance；局部服务重启或下游不可用不得退化为不可解释的整套系统失败。
 - [x] 补齐服务 README、health/readiness/ownership 测试、distributed acceptance、runtime closeout 和 operator runbook；外部基础设施依赖仅记录为验收前置条件。
 - [x] 更新 `docs/architecture/SERVICE_BOUNDARIES.md`、`docs/architecture/DEPLOYMENT.md`、`docs/architecture/OBSERVABILITY.md`、`docs/operations/TESTING.md`、`docs/operations/REGRESSION-COMMANDS.md` 与对应 service README。
-- [x] 验证：受影响包级测试、`rtk pnpm test:distributed-acceptance`、`rtk pnpm test:distributed-closeout`、`rtk pnpm test:observability-closeout`、`rtk pnpm test:runtime-closeout:compose`、`rtk pnpm test:deployment-smoke`、`rtk pnpm typecheck`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`。
+- [x] 验证：受影响包级测试、`pnpm test:distributed-acceptance`、`pnpm test:distributed-closeout`、`pnpm test:observability-closeout`、`pnpm test:runtime-closeout:compose`、`pnpm test:deployment-smoke`、`pnpm typecheck`、`pnpm check:docs-drift`、`pnpm check:structure`。
 
 ## 完成与归档
 
@@ -266,14 +266,14 @@
 
 - Implemented: distributed ports now separate owner-scoped repositories, read-only `asyncDiagnostics`, and a `jobRuntime` capability available only to `job-runtime`; non-audit services no longer receive `repos.audit`. Candidate follow-up scheduling now uses the remote `job-runtime` owner and preserves canonical `InvocationError` failures. Pool saturation is derived as `total / max`; absent pool counters report `unknown`.
 - Implemented: the multi-process closeout restarts `knowledge-write`, verifies a subsequent gateway → governance-review → knowledge-write command recovers, and verifies the independent job-runtime queue surface remains available. The maturity claim remains `Level 2 / transitional-microservice`; no Level 3 claim or checkbox is made.
-- Passed: `rtk pnpm exec vitest run packages/host-distributed/src/shared/database-ownership.test.ts packages/host-distributed/src/shared/internal-job-runtime-client.test.ts packages/host-distributed/src/shared/database.test.ts packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts` (17 tests), `rtk pnpm test:runtime-foundations` (175 passed, 10 skipped), `rtk pnpm test:distributed-acceptance` (41 passed), `rtk pnpm test:distributed-closeout` (30 passed), `rtk pnpm test:observability-closeout` (52 passed), `rtk pnpm test:deployment-smoke` (171 passed, 4 skipped), `rtk pnpm typecheck`, `rtk pnpm eval:smoke` (81 passed), `rtk pnpm check:docs-drift`, `rtk pnpm check:structure`, and `rtk pnpm exec fallow audit --base main`.
+- Passed: `pnpm exec vitest run packages/host-distributed/src/shared/database-ownership.test.ts packages/host-distributed/src/shared/internal-job-runtime-client.test.ts packages/host-distributed/src/shared/database.test.ts packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts` (17 tests), `pnpm test:runtime-foundations` (175 passed, 10 skipped), `pnpm test:distributed-acceptance` (41 passed), `pnpm test:distributed-closeout` (30 passed), `pnpm test:observability-closeout` (52 passed), `pnpm test:deployment-smoke` (171 passed, 4 skipped), `pnpm typecheck`, `pnpm eval:smoke` (81 passed), `pnpm check:docs-drift`, `pnpm check:structure`, and `pnpm exec fallow audit --base main`.
 - Tranche 6 closure correction: its items 2/5/6/7 are complete based on the implementation, targeted tests, `runtime-foundations`, `distributed-closeout`, typecheck, eval smoke, documentation guards, and Fallow audit listed above. `runtime-closeout` was never a Tranche 6 gate.
-- Tranche 7 pending real runtime evidence: `rtk pnpm test:runtime-closeout:compose` creates a disposable Compose project with PostgreSQL, gateway, and six internal services; it generates an in-memory admin key and free gateway port, restarts only `knowledge-write`, requires uninterrupted gateway health and job-runtime operator status, then requires gateway → governance-review → knowledge-write recovery within 60 seconds. Its measured value and full acceptance matrix are recorded here only after a successful run. This demonstrates local restart isolation, not a production SLO, autonomous scaling, or Level 3 maturity.
+- Tranche 7 pending real runtime evidence: `pnpm test:runtime-closeout:compose` creates a disposable Compose project with PostgreSQL, gateway, and six internal services; it generates an in-memory admin key and free gateway port, restarts only `knowledge-write`, requires uninterrupted gateway health and job-runtime operator status, then requires gateway → governance-review → knowledge-write recovery within 60 seconds. Its measured value and full acceptance matrix are recorded here only after a successful run. This demonstrates local restart isolation, not a production SLO, autonomous scaling, or Level 3 maturity.
 - Fixed (2026-07-12): `createPgKnowledgeRepo().insert()` now binds `lifecycle_state` before `owner_user_id`; `packages/host-distributed/src/shared/ports.transaction.test.ts` covers the positional mapping.
-- Fixed (2026-07-13): registered `0020_observability_audit_correlation` in `packages/server/drizzle/meta/_journal.json`. `assertDrizzleJournalComplete()` now rejects both SQL migrations missing journal tags and journal tags missing SQL migrations; `runMigrations()` reads and validates the journal before calling Drizzle. `rtk pnpm --filter @trapmap/server test --run src/lib/persistence/migration-ownership.test.ts` passed (9 tests), as did `rtk pnpm typecheck`.
+- Fixed (2026-07-13): registered `0020_observability_audit_correlation` in `packages/server/drizzle/meta/_journal.json`. `assertDrizzleJournalComplete()` now rejects both SQL migrations missing journal tags and journal tags missing SQL migrations; `runMigrations()` reads and validates the journal before calling Drizzle. `pnpm --filter @trapmap/server test --run src/lib/persistence/migration-ownership.test.ts` passed (9 tests), as did `pnpm typecheck`.
 - Fixed (2026-07-13): the disposable Compose fixture preserves the `submitted -> agent-pass -> approved` lifecycle contract. It creates the entry through the gateway to exercise empty-database audit insertion, then seeds the isolated pre-review `agent-pass` condition before the measured restart path; it does not change product lifecycle transitions, authentication, teams, or production data.
-- Passed (2026-07-13): `rtk pnpm test:runtime-closeout:compose` — `knowledge-write` restart recovery: `11431ms` (`gateway=true job-runtime=true`). `rtk pnpm test:distributed-acceptance` (41 passed), `rtk pnpm test:distributed-closeout` (30 passed), `rtk pnpm test:observability-closeout` (52 passed), `rtk pnpm test:deployment-smoke` (171 passed, 4 skipped), `rtk pnpm typecheck`, `rtk pnpm check:docs-drift`, and `rtk pnpm check:structure` all passed. The service README and deployment/testing/regression documentation continue to describe the Compose gate as disposable local restart-isolation evidence with a 60-second threshold, not a production SLO or Level 3 claim.
-- Passed: `rtk pnpm exec vitest run --project host-distributed packages/host-distributed/src/shared/ports.transaction.test.ts` (7 tests) and `rtk pnpm typecheck`.
+- Passed (2026-07-13): `pnpm test:runtime-closeout:compose` — `knowledge-write` restart recovery: `11431ms` (`gateway=true job-runtime=true`). `pnpm test:distributed-acceptance` (41 passed), `pnpm test:distributed-closeout` (30 passed), `pnpm test:observability-closeout` (52 passed), `pnpm test:deployment-smoke` (171 passed, 4 skipped), `pnpm typecheck`, `pnpm check:docs-drift`, and `pnpm check:structure` all passed. The service README and deployment/testing/regression documentation continue to describe the Compose gate as disposable local restart-isolation evidence with a 60-second threshold, not a production SLO or Level 3 claim.
+- Passed: `pnpm exec vitest run --project host-distributed packages/host-distributed/src/shared/ports.transaction.test.ts` (7 tests) and `pnpm typecheck`.
 
 - [x] 每个 tranche 完成后，在本文件记录实际变更、验证命令和未覆盖的外部前置条件。
 - [x] 主线完成时，确认根 `plan.md`、`docs/todos/README.md`、`docs/archived/README.md` 只有一个 active execution surface。

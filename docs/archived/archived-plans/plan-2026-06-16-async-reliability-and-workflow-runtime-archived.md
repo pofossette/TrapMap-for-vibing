@@ -195,7 +195,7 @@
   - recovery path can reclaim stuck queue/outbox rows
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/queue/task-queue.test.ts \
   packages/server/src/lib/lifecycle/outbox.test.ts \
   packages/server/src/routes/candidates.test.ts \
@@ -203,7 +203,7 @@ rtk pnpm test -- --run \
 ```
 - [x] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**
@@ -288,14 +288,14 @@ await store.transact(async (tx) => {
   - readiness success when the current process is not expected to own workers
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/routes/operations/status.test.ts \
   packages/server/src/lib/runtime/runtime-metadata.test.ts \
   packages/server/src/app.test.ts
 ```
 - [x] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**
@@ -375,13 +375,13 @@ app.get('/v1/operations/status/async', async () => {
 - [x] Extend `packages/server/src/app.test.ts` readiness assertions for runtime-mode-aware health.
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/bootstrap/startup.test.ts \
   packages/server/src/app.test.ts
 ```
 - [x] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**
@@ -459,13 +459,13 @@ if (runtime.mode === 'api') {
 - [x] Extend `packages/server/src/routes/operations/status.test.ts` with workflow-run visibility.
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/__tests__/candidate-pipeline.test.ts \
   packages/server/src/routes/operations/status.test.ts
 ```
 - [x] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**
@@ -550,7 +550,7 @@ await workflowRepo.recordStep(runId, {
   - feedback persists result snapshot and expected correction metadata
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/contracts/src/domain/retrieval.test.ts \
   packages/contracts/src/domain/feedback.test.ts \
   packages/server/src/routes/retrieval.test.ts \
@@ -558,7 +558,7 @@ rtk pnpm test -- --run \
 ```
 - [x] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**
@@ -632,14 +632,14 @@ return retrievalV2ResponseWithHintsSchema.parse({
 - [x] Extend `packages/server/src/routes/feedback.test.ts` and `packages/server/src/__tests__/candidate-pipeline.test.ts` with async follow-up visibility checks.
 - [ ] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts \
   packages/server/src/__tests__/candidate-pipeline.test.ts \
   packages/server/src/routes/feedback.test.ts
 ```
 - [ ] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**
@@ -705,7 +705,7 @@ await taskQueue.enqueue(
 - [x] Extend retrieval integration tests with stale-cache guard assertions.
 - [ ] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/cache/retrieval-cache.test.ts \
   packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts \
   packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts \
@@ -713,7 +713,7 @@ rtk pnpm test -- --run \
 ```
 - [ ] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**
@@ -804,18 +804,18 @@ if (event.reason === 'remediation-suppressed') {
 - [x] Add at least one example exported retrieval eval draft fixture or snapshot test.
 - [ ] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/routes/operations/*.test.ts \
   packages/server/src/lib/runtime/metrics.test.ts \
   packages/server/src/routes/operations/stats.test.ts
 ```
 - [ ] Run:
 ```bash
-rtk pnpm eval:smoke
+pnpm eval:smoke
 ```
 - [ ] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**

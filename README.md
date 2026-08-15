@@ -271,7 +271,7 @@ pnpm eval -- label-alignment --tier smoke --mode dry-run
 - 仓库根 `pnpm test` 是 workspace 级全量测试入口，会按根 [`vitest.config.ts`](vitest.config.ts) 同时加载多个 project；不要把它当成查看失败列表的轻量命令。
 - 仓库内 `pnpm test` / 包级 `pnpm test` 已统一为非 watch 的一次性执行；需要交互式 watch 时请显式运行 `pnpm exec vitest` 或进入具体包后手动启动。
 - 不要使用 `pnpm test 2>&1 | grep ...`、`pnpm test 2>&1 | tail ...`、`pnpm test 2>&1 | head ...` 这类管道命令筛失败。它们不会减少 Vitest 实际启动的 worker 数，只会在输出层截断结果，仍可能触发高并发多进程和 OOM。
-- 单文件测试请使用 `pnpm test:file -- <repo-root-relative-test-path>`，例如 `rtk pnpm test:file -- packages/contracts/src/domain/task-queue.test.ts`。
+- 单文件测试请使用 `pnpm test:file -- <repo-root-relative-test-path>`，例如 `pnpm test:file -- packages/contracts/src/domain/task-queue.test.ts`。
 - 单包定向测试请使用 `pnpm --filter @trapmap/server test --run <project-local-test-path>` 这类包级命令，避免在仓库根使用 basename 或过短路径过滤。
 - 日常开发优先执行与改动直接相关的最小测试集合；仅在需要做全仓回归时再运行根级 `pnpm test`。
 
@@ -580,4 +580,4 @@ pnpm format
 
 > 📘 本地开发环境详细搭建步骤请参阅 [docs/guides/GETTING_STARTED.md](docs/guides/GETTING_STARTED.md)。
 >
-> 在本仓库执行命令时，按本地约定应使用 `rtk` 前缀，例如 `rtk pnpm test`、`rtk pnpm lint`。
+> 在本仓库执行命令时直接使用 `pnpm`，例如 `pnpm test`、`pnpm lint`。

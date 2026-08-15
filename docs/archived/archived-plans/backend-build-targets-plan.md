@@ -139,7 +139,7 @@ Round 2 closeout note:
 
 - `local-agent` 与 `team-monolith` 的默认启动脚本切到 `packages/host-local/src/nest/**`。
 - candidate apply-resolution 与 knowledge review 不再经过 `packages/server` legacy 写入口。
-- `rtk pnpm test:deployment-smoke` 与 `@trapmap/host-local` 最小测试覆盖 Nest 默认路径。
+- `pnpm test:deployment-smoke` 与 `@trapmap/host-local` 最小测试覆盖 Nest 默认路径。
 - `README.md`、`docs/README.md`、`docs/PACKAGES.md`、`docs/reference/SYSTEM_TRUTH_SOURCES.md`、`docs/reference/REPO_STRUCTURE.md` 不再把 Fastify 路径描述为默认主入口或可用 rollback 入口。
 
 ### E. 客户端后端形态配置项定义

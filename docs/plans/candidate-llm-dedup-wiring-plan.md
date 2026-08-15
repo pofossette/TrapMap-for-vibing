@@ -40,7 +40,7 @@
 **Test and eval updates**
 
 - [x] Record baseline tests:
-  - `rtk pnpm test -- --run packages/server/src/lib/candidates/processor.test.ts packages/server/src/lib/candidates/detector.test.ts packages/server/src/lib/candidates/pg-detector.test.ts`
+  - `pnpm test -- --run packages/server/src/lib/candidates/processor.test.ts packages/server/src/lib/candidates/detector.test.ts packages/server/src/lib/candidates/pg-detector.test.ts`
 
 **Example structure or code**
 
@@ -145,7 +145,7 @@ expect(mockChat.invoke).toHaveBeenCalled();
 ## Phase 4: Verification and closeout
 
 - [x] Run focused tests.
-- [x] Run `rtk pnpm typecheck`.
+- [x] Run `pnpm typecheck`.
 - [x] Update completion notes if executed.
 
 **Completion standard**

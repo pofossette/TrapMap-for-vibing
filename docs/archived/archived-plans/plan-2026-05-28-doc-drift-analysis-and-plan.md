@@ -15,7 +15,7 @@
 - Archived previous root plan to `docs/archived/archived-plans/plan-2026-05-28-cli-bug-fix.md`
 - This file is the active working plan at `plan.md`
 - Analysis date: `2026-05-28`
-- Current guard status: `rtk pnpm check:docs-drift` passes, but only validates 2 string rules
+- Current guard status: `pnpm check:docs-drift` passes, but only validates 2 string rules
 
 ## Observed Drift Snapshot
 
@@ -71,11 +71,11 @@
 - [x] All observed drift items above are either fixed or explicitly reclassified as intentional with updated truth-source docs
 - [x] `README.md`, `docs/README.md`, `GETTING_STARTED.md`, `DEPLOYMENT.md`, `CI_CD.md`, `TESTING.md`, and `DATABASE_SCHEMA.md` agree on persistence posture, key commands, and CI/eval expectations
 - [x] Schema-count references match the current `pgTable(...)` reality
-- [x] `rtk pnpm check:docs-drift` fails on the previously undetected drift classes and passes after the documentation updates
-- [x] `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` passes
-- [x] `rtk pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` passes if the checker test file is introduced
-- [x] `rtk pnpm check:complexity` passes
-- [x] `rtk pnpm eval:smoke` passes after the documentation/guardrail changes
+- [x] `pnpm check:docs-drift` fails on the previously undetected drift classes and passes after the documentation updates
+- [x] `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` passes
+- [x] `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` passes if the checker test file is introduced
+- [x] `pnpm check:complexity` passes
+- [x] `pnpm eval:smoke` passes after the documentation/guardrail changes
 
 ---
 
@@ -104,7 +104,7 @@
   - server entrypoint references remain `buildServer()`
   - guardrail docs mention `pnpm check:docs-drift` and `pnpm check:complexity`
   - schema-count source points to the persistence schema modules instead of hard-coded prose
-- Run: `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+- Run: `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
 
 **Necessary example structure or code:**
 
@@ -158,9 +158,9 @@
   - `docs/README.md` no longer advertising JSON as the primary runtime model
   - `CI_CD.md` mentioning the actual guardrail and postgres jobs
   - `DATABASE_SCHEMA.md` matching the current table count source
-- Run: `rtk pnpm check:docs-drift`
-- Run: `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-- Run: `rtk pnpm eval:smoke`
+- Run: `pnpm check:docs-drift`
+- Run: `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+- Run: `pnpm eval:smoke`
 
 **Necessary example structure or code:**
 
@@ -212,9 +212,9 @@ TrapMap is operated in a PostgreSQL-first mode. JSON/file-backed storage remains
   - numeric/count mismatch
   - referenced workflow job missing from docs
 - Add docs smoke assertions for the most important truth-source edges
-- Run: `rtk pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts packages/server/src/__tests__/docs-truth-smoke.test.ts`
-- Run: `rtk pnpm check:docs-drift`
-- Run: `rtk pnpm check:complexity`
+- Run: `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts packages/server/src/__tests__/docs-truth-smoke.test.ts`
+- Run: `pnpm check:docs-drift`
+- Run: `pnpm check:complexity`
 
 **Necessary example structure or code:**
 
@@ -274,10 +274,10 @@ interface CountRule {
 **Test / eval updates required:**
 
 - Final verification run:
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm check:complexity`
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts scripts/__tests__/check-doc-drift.test.ts`
-  - `rtk pnpm eval:smoke`
+  - `pnpm check:docs-drift`
+  - `pnpm check:complexity`
+  - `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts scripts/__tests__/check-doc-drift.test.ts`
+  - `pnpm eval:smoke`
 
 **Necessary example structure or code:**
 

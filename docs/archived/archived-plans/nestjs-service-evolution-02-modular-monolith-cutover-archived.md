@@ -219,12 +219,12 @@ packages/host-local/src/nest/
    - `docs/reference/SYSTEM_TRUTH_SOURCES.md`
    如果 package 角色发生可见变化，再补对应 package README。
 7. 跑最小验证并修直观报错，只处理这次迁移直接导致的问题：
-   - `rtk pnpm --filter @trapmap/backend-core test --run src/modules/boundary-import-guard.test.ts src/modules/boundary-ownership.test.ts src/modules/knowledge-read.test.ts`
-   - `rtk pnpm --filter @trapmap/host-local test --run src/nest/app.test.ts src/nest/adapters/adapter-factory.test.ts src/nest/runtime/exception-filter.test.ts src/nest/runtime/request-context.test.ts`
-   - 对你实际改到的 `service-*` 包分别跑 `rtk pnpm --filter <pkg> test --run <touched-test-path>`
-   - `rtk pnpm typecheck`
-   - `rtk pnpm check:docs-drift`
-   - `rtk pnpm check:structure`
+   - `pnpm --filter @trapmap/backend-core test --run src/modules/boundary-import-guard.test.ts src/modules/boundary-ownership.test.ts src/modules/knowledge-read.test.ts`
+   - `pnpm --filter @trapmap/host-local test --run src/nest/app.test.ts src/nest/adapters/adapter-factory.test.ts src/nest/runtime/exception-filter.test.ts src/nest/runtime/request-context.test.ts`
+   - 对你实际改到的 `service-*` 包分别跑 `pnpm --filter <pkg> test --run <touched-test-path>`
+   - `pnpm typecheck`
+   - `pnpm check:docs-drift`
+   - `pnpm check:structure`
 8. 如果测试或 typecheck 失败，只顺手修 import path、barrel export、Nest module registration、token/provider wiring、文档索引漂移、显而易见的类型错误；不要顺手做额外重构。
 
 交付要求：
@@ -243,12 +243,12 @@ packages/host-local/src/nest/
 
 ## 推荐的最小验证集合
 
-- `rtk pnpm check:docs-drift`
-- `rtk pnpm check:structure`
+- `pnpm check:docs-drift`
+- `pnpm check:structure`
 - 若继续执行代码迁移，再追加：
-  - `rtk pnpm --filter @trapmap/backend-core test --run <touched-test-path>`
-  - `rtk pnpm --filter @trapmap/host-local test --run <touched-test-path>`
-  - `rtk pnpm typecheck`
+  - `pnpm --filter @trapmap/backend-core test --run <touched-test-path>`
+  - `pnpm --filter @trapmap/host-local test --run <touched-test-path>`
+  - `pnpm typecheck`
 
 ## 完成定义
 

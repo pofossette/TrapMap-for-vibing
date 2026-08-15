@@ -61,16 +61,16 @@
 
 | 验证命令 | 结果 |
 |----------|------|
-| `rtk pnpm check:docs-drift` | ✅ All 15 doc rule(s) passed |
-| `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` | ✅ 27 tests passed |
-| `rtk pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` | ✅ Passed (as part of full suite) |
-| `rtk pnpm test` | ✅ 4014 passed, 118 skipped, 1 unrelated error (graph-index temp file race) |
+| `pnpm check:docs-drift` | ✅ All 15 doc rule(s) passed |
+| `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` | ✅ 27 tests passed |
+| `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` | ✅ Passed (as part of full suite) |
+| `pnpm test` | ✅ 4014 passed, 118 skipped, 1 unrelated error (graph-index temp file race) |
 
 ### 未运行的验证
 
 | 命令 | 原因 | 风险 |
 |------|------|------|
-| `rtk pnpm eval:smoke` | 需要运行中的服务器和 API key | 低：本次修改仅涉及文档和守卫，不影响检索/摘要逻辑 |
+| `pnpm eval:smoke` | 需要运行中的服务器和 API key | 低：本次修改仅涉及文档和守卫，不影响检索/摘要逻辑 |
 
 ## 6. 剩余风险
 

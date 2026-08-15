@@ -17,7 +17,7 @@
 - Host-local retains `{ backendKind: 'memory', mode: 'disabled', failOpen: true }`; server retains its existing Neo4j fail-open/fail-closed policy.
 - Preserve GraphIndexRepositoryPort as the canonical source; do not introduce snapshot or in-memory compatibility state.
 - Stage only task files; do not stage `.superpowers/sdd/*` workflow artifacts.
-- Run `rtk pnpm exec fallow audit --base main --format json --quiet 2>/dev/null || true` after the migration and investigate introduced findings without suppressing inherited ones.
+- Run `pnpm exec fallow audit --base main --format json --quiet 2>/dev/null || true` after the migration and investigate introduced findings without suppressing inherited ones.
 
 ---
 
@@ -81,7 +81,7 @@ fixture. Assert `rebuildProjection` does not write the repository.
 Run:
 
 ```bash
-rtk pnpm --filter @trapmap/service-knowledge-read test --run src/graph-query.test.ts
+pnpm --filter @trapmap/service-knowledge-read test --run src/graph-query.test.ts
 ```
 
 Expected: FAIL because `./graph-query.js` and its public exports do not exist.
@@ -139,8 +139,8 @@ using pnpm's existing workspace configuration.
 Run:
 
 ```bash
-rtk pnpm --filter @trapmap/service-knowledge-read test --run src/graph-query.test.ts
-rtk pnpm --filter @trapmap/service-knowledge-read typecheck
+pnpm --filter @trapmap/service-knowledge-read test --run src/graph-query.test.ts
+pnpm --filter @trapmap/service-knowledge-read typecheck
 ```
 
 Expected: both commands pass; tests prove the memory backend's behavior without
@@ -149,8 +149,8 @@ any server import.
 - [ ] **Step 5: Commit the owner graph core**
 
 ```bash
-rtk git add packages/service-knowledge-read/src/graph-query.ts packages/service-knowledge-read/src/graph-query.test.ts packages/service-knowledge-read/src/graphology.ts packages/service-knowledge-read/src/boundary-normalize.ts packages/service-knowledge-read/src/context.ts packages/service-knowledge-read/src/index.ts packages/service-knowledge-read/package.json pnpm-lock.yaml
-rtk git commit -m "feat: move memory graph query to knowledge read"
+git add packages/service-knowledge-read/src/graph-query.ts packages/service-knowledge-read/src/graph-query.test.ts packages/service-knowledge-read/src/graphology.ts packages/service-knowledge-read/src/boundary-normalize.ts packages/service-knowledge-read/src/context.ts packages/service-knowledge-read/src/index.ts packages/service-knowledge-read/package.json pnpm-lock.yaml
+git commit -m "feat: move memory graph query to knowledge read"
 ```
 
 ### Task 2: Adapt Server to the Canonical Owner API
@@ -198,7 +198,7 @@ reverse package dependency.
 Run:
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/lib/graph-query/health.test.ts src/lib/graph-query/neo4j-backend.test.ts src/lib/indexing/graph-lite/graphology.test.ts
+pnpm --filter @trapmap/server test --run src/lib/graph-query/health.test.ts src/lib/graph-query/neo4j-backend.test.ts src/lib/indexing/graph-lite/graphology.test.ts
 ```
 
 Expected: FAIL until the server consumers use Task 1's owner API and the old
@@ -237,9 +237,9 @@ lockfile.
 Run:
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/lib/graph-query/health.test.ts src/lib/graph-query/neo4j-backend.test.ts src/lib/indexing/graph-lite/graphology.test.ts
-rtk rg -n "graph-query/(backend|memory-backend)|graph-lite/graphology" packages/server/src --glob '*.ts'
-rtk pnpm --filter @trapmap/server typecheck
+pnpm --filter @trapmap/server test --run src/lib/graph-query/health.test.ts src/lib/graph-query/neo4j-backend.test.ts src/lib/indexing/graph-lite/graphology.test.ts
+rg -n "graph-query/(backend|memory-backend)|graph-lite/graphology" packages/server/src --glob '*.ts'
+pnpm --filter @trapmap/server typecheck
 ```
 
 Expected: tests and typecheck pass. The search returns no production reference
@@ -249,8 +249,8 @@ term `graphology` but may not import a deleted server source.
 - [ ] **Step 5: Commit the server adaptation**
 
 ```bash
-rtk git add packages/server/package.json pnpm-lock.yaml packages/server/src
-rtk git commit -m "refactor: consume owner graph query core"
+git add packages/server/package.json pnpm-lock.yaml packages/server/src
+git commit -m "refactor: consume owner graph query core"
 ```
 
 ### Task 3: Cut Host-Local Over and Record Wave 8 Evidence
@@ -282,8 +282,8 @@ business-source coverage and assert they are free of `@trapmap/server` imports.
 Run:
 
 ```bash
-rtk pnpm --filter @trapmap/host-local test --run src/nest/runtime/import-boundary.test.ts
-rtk pnpm --filter @trapmap/service-knowledge-read test --run src/import-boundary.test.ts
+pnpm --filter @trapmap/host-local test --run src/nest/runtime/import-boundary.test.ts
+pnpm --filter @trapmap/service-knowledge-read test --run src/import-boundary.test.ts
 ```
 
 Expected: host-local test FAILS while `shared-infra.ts` imports the server
@@ -313,13 +313,13 @@ counts and any remaining Wave 8 allowlist entries.
 Run:
 
 ```bash
-rtk pnpm --filter @trapmap/host-local test --run src/nest/runtime/import-boundary.test.ts
-rtk pnpm --filter @trapmap/service-knowledge-read test --run src/import-boundary.test.ts src/graph-query.test.ts
-rtk pnpm --filter @trapmap/server test --run src/lib/graph-query/health.test.ts src/lib/graph-query/neo4j-backend.test.ts src/lib/indexing/graph-lite/graphology.test.ts
-rtk pnpm typecheck
-rtk pnpm exec fallow audit --base main --format json --quiet 2>/dev/null || true
-rtk pnpm check:docs-drift
-rtk pnpm check:structure
+pnpm --filter @trapmap/host-local test --run src/nest/runtime/import-boundary.test.ts
+pnpm --filter @trapmap/service-knowledge-read test --run src/import-boundary.test.ts src/graph-query.test.ts
+pnpm --filter @trapmap/server test --run src/lib/graph-query/health.test.ts src/lib/graph-query/neo4j-backend.test.ts src/lib/indexing/graph-lite/graphology.test.ts
+pnpm typecheck
+pnpm exec fallow audit --base main --format json --quiet 2>/dev/null || true
+pnpm check:docs-drift
+pnpm check:structure
 ```
 
 Expected: focused tests, typecheck, docs-drift, and structure pass. Inspect the
@@ -330,8 +330,8 @@ findings separately rather than suppressing them.
 - [ ] **Step 5: Commit the host cutover and evidence**
 
 ```bash
-rtk git add packages/host-local/src/nest/runtime/shared-infra.ts packages/host-local/src/nest/runtime/import-boundary.test.ts packages/service-knowledge-read/src/import-boundary.test.ts scripts/__tests__/compatibility-retirement-guard.test.ts docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md
-rtk git commit -m "refactor: move host graph query to knowledge read"
+git add packages/host-local/src/nest/runtime/shared-infra.ts packages/host-local/src/nest/runtime/import-boundary.test.ts packages/service-knowledge-read/src/import-boundary.test.ts scripts/__tests__/compatibility-retirement-guard.test.ts docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md
+git commit -m "refactor: move host graph query to knowledge read"
 ```
 
 ## Final Review Checklist

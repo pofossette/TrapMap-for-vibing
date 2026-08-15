@@ -39,7 +39,7 @@
 **Test and eval updates**
 
 - [x] Record baseline tests:
-  - `rtk pnpm test -- --run packages/server/src/lib/indexing/skill-events.test.ts packages/server/src/routes/operations/skill-review.test.ts packages/server/src/routes/operations/skill-edit.test.ts packages/server/src/routes/operations/artifacts-activate.test.ts`
+  - `pnpm test -- --run packages/server/src/lib/indexing/skill-events.test.ts packages/server/src/routes/operations/skill-review.test.ts packages/server/src/routes/operations/skill-edit.test.ts packages/server/src/routes/operations/artifacts-activate.test.ts`
 
 **Example structure or code**
 
@@ -133,7 +133,7 @@ const requiresIndexRefresh = previousState !== nextState || reason === 'updated'
 ## Phase 4: Verification and closeout
 
 - [x] Run focused tests.
-- [x] Run `rtk pnpm typecheck`.
+- [x] Run `pnpm typecheck`.
 - [x] Update this plan with completion notes if executed.
 
 **Completion standard**

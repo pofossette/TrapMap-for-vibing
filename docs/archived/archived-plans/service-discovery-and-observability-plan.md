@@ -33,7 +33,7 @@
 - 当前真实完成面应表述为：contract / port / host seam / compose 资产 / 文档框架已落地；distributed 动态发现、readiness 闭环与系统级验收仍待收口
 - 本文档后续的 `完成` 描述只代表该阶段存在可复用资产，不代表系统级 closeout 已通过
 - 是否允许重新勾选完成，以第 14 节 closeout tasklist 和第 13 节统一验收口径同时满足为准
-- 2026-07-02 当日已确认 `rtk pnpm test:distributed-closeout` 绿灯，closeout 阻塞从“分布式测试链路不可运行”收敛为“目标环境 Consul 验收与性能基线尚未关闭”
+- 2026-07-02 当日已确认 `pnpm test:distributed-closeout` 绿灯，closeout 阻塞从“分布式测试链路不可运行”收敛为“目标环境 Consul 验收与性能基线尚未关闭”
 
 ### 1.1 这次优化要解决的问题
 
@@ -128,8 +128,8 @@
 
 ### 最小验证
 
-- `rtk pnpm check:docs-drift`
-- `rtk pnpm check:structure`
+- `pnpm check:docs-drift`
+- `pnpm check:structure`
 
 ---
 
@@ -187,8 +187,8 @@
 ### 最小验证
 
 - 相关包最小单测
-- `rtk pnpm test:runtime-foundations`
-- 若触及文档入口：`rtk pnpm check:docs-drift` 和 `rtk pnpm check:structure`
+- `pnpm test:runtime-foundations`
+- 若触及文档入口：`pnpm check:docs-drift` 和 `pnpm check:structure`
 
 ---
 
@@ -246,9 +246,9 @@
 ### 最小验证
 
 - Consul 相关单测
-- `rtk pnpm test:discovery-closeout`
-- `rtk pnpm test:deployment-smoke`
-- 若触及跨包边界：`rtk pnpm exec fallow audit --base main`
+- `pnpm test:discovery-closeout`
+- `pnpm test:deployment-smoke`
+- 若触及跨包边界：`pnpm exec fallow audit --base main`
 
 ---
 
@@ -294,8 +294,8 @@
 
 - metrics 单测
 - `/metrics` surface 测试
-- `rtk pnpm test:runtime-foundations`
-- 如涉及部署链路：`rtk pnpm test:deployment-smoke`
+- `pnpm test:runtime-foundations`
+- 如涉及部署链路：`pnpm test:deployment-smoke`
 
 ---
 
@@ -346,8 +346,8 @@
 ### 最小验证
 
 - tracing 单测
-- `rtk pnpm test:observability-closeout`
-- 如涉及 shared runtime seam：`rtk pnpm test:runtime-foundations`
+- `pnpm test:observability-closeout`
+- 如涉及 shared runtime seam：`pnpm test:runtime-foundations`
 
 ---
 
@@ -397,7 +397,7 @@
 ### 最小验证
 
 - logging 单测
-- `rtk pnpm test:observability-closeout`
+- `pnpm test:observability-closeout`
 - Loki 最小集成验证
 
 ---
@@ -452,9 +452,9 @@
 
 - 相关模块单测
 - 健康检查与配置回滚测试
-- `rtk pnpm test:observability-closeout`
-- `rtk pnpm test:runtime-foundations`
-- 视改动补 `rtk pnpm eval:smoke`
+- `pnpm test:observability-closeout`
+- `pnpm test:runtime-foundations`
+- 视改动补 `pnpm eval:smoke`
 
 ---
 
@@ -488,16 +488,16 @@
 
 - [x] 至少一条业务请求同时经过 discovery、metrics、tracing、logging 链路
 - [x] 故障注入可验证降级与恢复路径
-- [ ] 性能开销、延迟和资源占用有基线（以 `rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000` 记录 `/health`、`/metrics` 与进程内存指标）
+- [ ] 性能开销、延迟和资源占用有基线（以 `pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000` 记录 `/health`、`/metrics` 与进程内存指标）
 - [x] 所有验证命令可重复执行并已记录到文档
 
 ### 最小验证
 
-- `rtk pnpm test:observability-closeout`
-- `rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
-- `rtk pnpm test:discovery-closeout`
-- `rtk pnpm test:distributed-closeout`
-- `rtk pnpm test:deployment-smoke`
+- `pnpm test:observability-closeout`
+- `pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
+- `pnpm test:discovery-closeout`
+- `pnpm test:distributed-closeout`
+- `pnpm test:deployment-smoke`
 - 如有专门回归命令，回写到文档并在此 phase 执行
 
 ---
@@ -534,8 +534,8 @@
 
 ### 最小验证
 
-- `rtk pnpm check:docs-drift`
-- `rtk pnpm check:structure`
+- `pnpm check:docs-drift`
+- `pnpm check:structure`
 - 对最终交付链路补跑对应 smoke
 
 ---
@@ -653,17 +653,17 @@ Phase 1A 应用接入骨架
 
 ### 14.5 Phase 3-4 收口：系统级验证
 
-- [x] 明确 closeout 最小命令集：`rtk pnpm test:observability-closeout`、`rtk pnpm test:discovery-closeout`、`rtk pnpm test:distributed-closeout`、`rtk pnpm test:runtime-foundations`、`rtk pnpm test:deployment-smoke`、必要时 `rtk pnpm eval:smoke`
-- [x] 为性能基线固定最小命令入口：`rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
+- [x] 明确 closeout 最小命令集：`pnpm test:observability-closeout`、`pnpm test:discovery-closeout`、`pnpm test:distributed-closeout`、`pnpm test:runtime-foundations`、`pnpm test:deployment-smoke`、必要时 `pnpm eval:smoke`
+- [x] 为性能基线固定最小命令入口：`pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
 - [x] 为 closeout 增加一组可重复的 E2E / fault-injection / deployment smoke 证据
-- [x] 若 distributed resolver 或 runtime surface 跨包变更，补跑 `rtk pnpm exec fallow audit --base main`
+- [x] 若 distributed resolver 或 runtime surface 跨包变更，补跑 `pnpm exec fallow audit --base main`
 - [x] 将真实且可复发的问题沉淀到测试、doc-drift、debt register 或 badcase
 
 ### 14.6 重新验收与归档条件
 
 - [ ] 第 13 节所有仍未完成的验收项均关闭
 - [x] 根 `plan.md` 与活跃细则的阶段状态一致
-- [x] 所有入口索引完成回写后，运行 `rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`
+- [x] 所有入口索引完成回写后，运行 `pnpm check:docs-drift` 与 `pnpm check:structure`
 - [ ] 满足 closeout 条件后，再把主线状态改回 `完成` 并按归档规则处理
 
 ---

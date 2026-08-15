@@ -55,8 +55,8 @@
 建议的阶段收尾命令：
 
 ```bash
-rtk pnpm typecheck
-rtk pnpm check
+pnpm typecheck
+pnpm check
 git status --short
 git add -A
 git commit -m "refactor(server): <阶段摘要>"
@@ -130,7 +130,7 @@ git commit -m "refactor(server): <阶段摘要>"
   - `CODE_GUIDE.md` 不包含 `createApp()`
   - 关键文档引用了 `SYSTEM_TRUTH_SOURCES.md`
 - 本阶段不修改 eval 数据集
-- 运行一次 `rtk pnpm eval:smoke`，确保文档修订没有掩盖已有服务端启动回归
+- 运行一次 `pnpm eval:smoke`，确保文档修订没有掩盖已有服务端启动回归
 
 **必要的结构或代码示例：**
 
@@ -184,7 +184,7 @@ describe('docs truth smoke', () => {
 });
 ```
 
-运行：`rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`  
+运行：`pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`  
 预期：FAIL，因为 `docs/guides/CODE_GUIDE.md` 仍然提到 `createApp()`
 
 - [x] **步骤 1.2：创建权威真相源文档**
@@ -225,18 +225,18 @@ describe('docs truth smoke', () => {
 
 - [x] **步骤 1.5：重新运行 smoke 测试和静态检查**
 
-运行：`rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`  
+运行：`pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`  
 预期：PASS
 
-运行：`rtk pnpm check`  
+运行：`pnpm check`  
 预期：PASS
 
 - [x] **步骤 1.6：运行更大范围验证并提交**
 
-运行：`rtk pnpm typecheck`  
+运行：`pnpm typecheck`  
 预期：PASS
 
-运行：`rtk pnpm eval:smoke`  
+运行：`pnpm eval:smoke`  
 预期：PASS
 
 运行：`git add -A && git commit -m "docs: establish server truth sources"`  
@@ -264,7 +264,7 @@ describe('docs truth smoke', () => {
 **阶段完成标准：**
 - `packages/server/src/app.ts` 从 641 行收敛到不超过 350 行，并回到薄组合根角色
 - 仓储初始化发生在 candidate 恢复和任何依赖 repos 的 worker 之前
-- `rtk pnpm eval:smoke` 不再反复打印 `Failed to check for interrupted candidates` 启动噪声
+- `pnpm eval:smoke` 不再反复打印 `Failed to check for interrupted candidates` 启动噪声
 - 启动顺序可以从一个 orchestrator 模块中直接读懂，而不是分散在多个 `onReady` 钩子里
 
 **阶段文档更新要求：**
@@ -322,7 +322,7 @@ describe('startup sequence', () => {
 });
 ```
 
-运行：`rtk pnpm test -- --run packages/server/src/bootstrap/startup.test.ts`  
+运行：`pnpm test -- --run packages/server/src/bootstrap/startup.test.ts`  
 预期：FAIL，因为当前 `app.ts` 里 recovery 与 `repos` 装配顺序不稳定
 
 - [x] **步骤 2.2：把仓储初始化抽成独立模块**
@@ -387,10 +387,10 @@ app.addHook('onReady', async () => {
 
 - [x] **步骤 2.6：运行验证**
 
-运行：`rtk pnpm test -- --run packages/server/src/bootstrap/startup.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts packages/server/src/lib/queue/task-queue.test.ts`  
+运行：`pnpm test -- --run packages/server/src/bootstrap/startup.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts packages/server/src/lib/queue/task-queue.test.ts`  
 预期：PASS
 
-运行：`rtk pnpm eval:smoke`  
+运行：`pnpm eval:smoke`  
 预期：PASS，且不再出现重复的 `Failed to check for interrupted candidates` 启动日志
 
 - [x] **步骤 2.7：提交**
@@ -480,7 +480,7 @@ it('POST /v1/candidates 在重构后仍返回 queued 状态', async () => {
 });
 ```
 
-运行：`rtk pnpm test -- --run packages/server/src/routes/candidates.test.ts`  
+运行：`pnpm test -- --run packages/server/src/routes/candidates.test.ts`  
 预期：在重构前先 PASS
 
 - [x] **步骤 3.2：为 submission、query、resolution 建立 service 边界**
@@ -521,10 +521,10 @@ const result = await resolveCandidate(
 
 - [x] **步骤 3.6：运行验证**
 
-运行：`rtk pnpm test -- --run packages/server/src/routes/candidates.test.ts packages/server/src/routes/review.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts`  
+运行：`pnpm test -- --run packages/server/src/routes/candidates.test.ts packages/server/src/routes/review.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts`  
 预期：PASS
 
-运行：`rtk pnpm eval:smoke`  
+运行：`pnpm eval:smoke`  
 预期：PASS
 
 - [x] **步骤 3.7：提交**
@@ -627,7 +627,7 @@ it('保持 schema 与 artifact repository 的公开导出稳定', () => {
 });
 ```
 
-运行：`rtk pnpm test -- --run packages/server/src/lib/artifacts/pg-repository.round4.roundtrip.test.ts packages/server/src/lib/artifacts/pg-repository.round4.consistency.test.ts`  
+运行：`pnpm test -- --run packages/server/src/lib/artifacts/pg-repository.round4.roundtrip.test.ts packages/server/src/lib/artifacts/pg-repository.round4.consistency.test.ts`  
 预期：在拆分前先 PASS
 
 - [x] **步骤 4.2：按领域拆分 Drizzle schema**
@@ -673,10 +673,10 @@ export * from './pg-repository/index.js';
 
 - [x] **步骤 4.6：运行验证**
 
-运行：`rtk pnpm test -- --run packages/server/src/lib/artifacts/pg-repository.round4.roundtrip.test.ts packages/server/src/lib/artifacts/pg-repository.round4.consistency.test.ts packages/server/src/lib/knowledge/pg-repository.test.ts`  
+运行：`pnpm test -- --run packages/server/src/lib/artifacts/pg-repository.round4.roundtrip.test.ts packages/server/src/lib/artifacts/pg-repository.round4.consistency.test.ts packages/server/src/lib/knowledge/pg-repository.test.ts`  
 预期：PASS
 
-运行：`rtk pnpm eval:smoke`  
+运行：`pnpm eval:smoke`  
 预期：PASS
 
 - [x] **步骤 4.7：提交**
@@ -811,13 +811,13 @@ function countLines(file: string): number {
 
 - [x] **步骤 5.6：运行验证**
 
-运行：`rtk pnpm check:docs-drift`  
+运行：`pnpm check:docs-drift`  
 预期：PASS
 
-运行：`rtk pnpm check:complexity`  
+运行：`pnpm check:complexity`  
 预期：PASS
 
-运行：`rtk pnpm eval:smoke`  
+运行：`pnpm eval:smoke`  
 预期：PASS
 
 - [x] **步骤 5.7：提交**
@@ -840,9 +840,9 @@ function countLines(file: string): number {
 | `docs-truth-smoke.test.ts` 正则会误匹配短模块名（如 `auth.ts`） | `packages/server/src/__tests__/docs-truth-smoke.test.ts` | 正则要求路径含 `/`，避免误匹配裸文件名 |
 
 验证结果：
-- `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` — PASS（4/4）
-- `rtk node scripts/check-doc-drift.ts` — PASS
-- `rtk node scripts/check-complexity-budgets.ts` — PASS（4/4 within budget）
+- `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` — PASS（4/4）
+- `node scripts/check-doc-drift.ts` — PASS
+- `node scripts/check-complexity-budgets.ts` — PASS（4/4 within budget）
 
 ---
 

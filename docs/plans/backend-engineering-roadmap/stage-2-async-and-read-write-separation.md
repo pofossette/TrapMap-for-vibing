@@ -99,9 +99,9 @@
 ## 验证与收尾
 
 - [x] 对被改动的 async/runtime 模块跑聚焦测试。
-- [x] 跑 `rtk pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts`。
-- [x] 跑 `rtk pnpm typecheck`。
-- [x] 跑 `rtk pnpm check:structure`。
+- [x] 跑 `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts`。
+- [x] 跑 `pnpm typecheck`。
+- [x] 跑 `pnpm check:structure`。
 - [x] 更新 `plan.md` 和本文件，标记 Stage 2 已完成的检查点。
 
 **完成标准**

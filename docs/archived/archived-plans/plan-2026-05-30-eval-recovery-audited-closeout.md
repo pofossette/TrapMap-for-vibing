@@ -115,9 +115,9 @@
 
 **Tests / Eval Updates Required In This Phase:**
 - [x] Create `evals/retrieval/lib/adapters.test.ts` for PG actor/session/graph seeding regressions. **DONE.**
-- [x] Run: `rtk pnpm test -- --run evals/retrieval/lib/adapters.test.ts evals/retrieval/lib/normalize.test.ts` — **DONE (2026-05-30):** 241/241 test files pass, 4114/4114 tests pass.
-- [x] Run: `rtk pnpm eval:retrieval --tier core --endpoint /v2/retrieval/search` — **DONE (2026-05-30):** 10/14 pass, Hit@1=0.93. Report at `reports/eval/retrieval-core-postgres.json`.
-- [x] Run: `rtk pnpm eval:retrieval --tier core --endpoint /v3/retrieval/search` — **DONE (2026-05-30):** 6/7 pass, Hit@1=0.86, 0 governance failures. Report at `reports/eval/retrieval-core-postgres.json`.
+- [x] Run: `pnpm test -- --run evals/retrieval/lib/adapters.test.ts evals/retrieval/lib/normalize.test.ts` — **DONE (2026-05-30):** 241/241 test files pass, 4114/4114 tests pass.
+- [x] Run: `pnpm eval:retrieval --tier core --endpoint /v2/retrieval/search` — **DONE (2026-05-30):** 10/14 pass, Hit@1=0.93. Report at `reports/eval/retrieval-core-postgres.json`.
+- [x] Run: `pnpm eval:retrieval --tier core --endpoint /v3/retrieval/search` — **DONE (2026-05-30):** 6/7 pass, Hit@1=0.86, 0 governance failures. Report at `reports/eval/retrieval-core-postgres.json`.
 
 **Example Structure / Code:**
 
@@ -177,8 +177,8 @@ for (const graphDoc of fixtureGraphDocs) {
 **Tests / Eval Updates Required In This Phase:**
 - [ ] Extend `packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts` with zero-score and threshold boundary cases.
 - [ ] Extend `packages/server/src/routes/retrieval.test.ts` with a route-level empty-result regression for `/v2/retrieval/search`.
-- [ ] Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts packages/server/src/routes/retrieval.test.ts`
-- [ ] Run: `rtk pnpm eval:retrieval --tier core --endpoint /v2/retrieval/search`
+- [ ] Run: `pnpm test -- --run packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts packages/server/src/routes/retrieval.test.ts`
+- [ ] Run: `pnpm eval:retrieval --tier core --endpoint /v2/retrieval/search`
 
 **Example Structure / Code:**
 
@@ -233,8 +233,8 @@ return ranked
 **Tests / Eval Updates Required In This Phase:**
 - [ ] Create `packages/server/src/lib/retrieval/capsules/scoring/rerank.test.ts` with channel-consensus ranking fixtures.
 - [ ] Extend `packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts` if needed for semantic-query path coverage.
-- [ ] Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/scoring/rerank.test.ts packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts`
-- [ ] Run: `rtk pnpm eval:retrieval --tier core --endpoint /v2/retrieval/search`
+- [ ] Run: `pnpm test -- --run packages/server/src/lib/retrieval/capsules/scoring/rerank.test.ts packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts`
+- [ ] Run: `pnpm eval:retrieval --tier core --endpoint /v2/retrieval/search`
 
 **Example Structure / Code:**
 
@@ -285,8 +285,8 @@ const finalScore = Math.min(1, blendedScore * stackPathBoost);
 **Tests / Eval Updates Required In This Phase:**
 - [ ] Extend `packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts` with query-relevance filtering coverage.
 - [ ] Extend `packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts` with readiness and fallback assertions.
-- [ ] Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts`
-- [ ] Run: `rtk pnpm eval:retrieval --tier core --endpoint /v3/retrieval/search`
+- [ ] Run: `pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts`
+- [ ] Run: `pnpm eval:retrieval --tier core --endpoint /v3/retrieval/search`
 
 **Example Structure / Code:**
 
@@ -338,9 +338,9 @@ const seedNodeIds = extractSeedNodeIds(
 **Tests / Eval Updates Required In This Phase:**
 - [x] Extend `packages/server/src/lib/retrieval/response/summary.test.ts` with multi-fact and de-duplication cases.
 - [x] Extend `evals/summary/__tests__/runner-api.test.ts` if report fields or expectations change.
-- [x] Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/response/summary.test.ts evals/summary/__tests__/runner-api.test.ts`
-- [x] Run: `rtk pnpm eval:summary --tier core --provider fallback` — **EVIDENCE (2026-05-30):** 6/7 pass, report at `reports/eval/summary-core-postgres.json`
-- [x] Optional live check when credentials exist: `rtk pnpm eval:summary --tier core --provider openai`
+- [x] Run: `pnpm test -- --run packages/server/src/lib/retrieval/response/summary.test.ts evals/summary/__tests__/runner-api.test.ts`
+- [x] Run: `pnpm eval:summary --tier core --provider fallback` — **EVIDENCE (2026-05-30):** 6/7 pass, report at `reports/eval/summary-core-postgres.json`
+- [x] Optional live check when credentials exist: `pnpm eval:summary --tier core --provider openai`
 
 **Example Structure / Code:**
 
@@ -388,9 +388,9 @@ return summaryLines.join(' ');
 **Tests / Eval Updates Required In This Phase:**
 - [x] Create `evals/graph-extraction/run.test.ts` for runner-mode reporting.
 - [x] Extend `packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts` with edge preservation cases.
-- [x] Run: `rtk pnpm test -- --run evals/graph-extraction/run.test.ts packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts`
-- [x] Run: `rtk pnpm eval:graph-extraction --dry-run`
-- [x] Run: `rtk pnpm eval:graph-extraction --smoke`
+- [x] Run: `pnpm test -- --run evals/graph-extraction/run.test.ts packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts`
+- [x] Run: `pnpm eval:graph-extraction --dry-run`
+- [x] Run: `pnpm eval:graph-extraction --smoke`
 
 **Example Structure / Code:**
 
@@ -437,19 +437,19 @@ if (!chat.isConfigured) {
 - [x] `plan.md`: mark completed phases and note residual risk with exact failing slices if any remain.
 
 **Tests / Eval Updates Required In This Phase:**
-- [x] Run: `rtk pnpm eval:retrieval --tier core` — **DONE (2026-05-30 re-run after Phase 0 fix):** 23/28 pass (82.1%). v1: 6/7; v2: 10/14; v3: 6/7. Report at `reports/eval/retrieval-core-postgres.json`.
-- [x] Run: `rtk pnpm eval:summary --tier core --provider fallback` — ran core tier, 6/7 pass (85.7%), groundedness 1.0, 0 forbidden. Report at `reports/eval/summary-core-postgres.json`.
-- [x] Run: `rtk pnpm eval:graph-extraction --smoke` — completed in live mode (5/5 live, no fallback), LLM outperforms rule engine baseline. Node F1=0.485, Edge F1=0.261.
-- [x] Run: `rtk pnpm eval:ingestion:smoke` — **DONE (2026-05-30):** 5/5 pass (100%), all metrics green.
+- [x] Run: `pnpm eval:retrieval --tier core` — **DONE (2026-05-30 re-run after Phase 0 fix):** 23/28 pass (82.1%). v1: 6/7; v2: 10/14; v3: 6/7. Report at `reports/eval/retrieval-core-postgres.json`.
+- [x] Run: `pnpm eval:summary --tier core --provider fallback` — ran core tier, 6/7 pass (85.7%), groundedness 1.0, 0 forbidden. Report at `reports/eval/summary-core-postgres.json`.
+- [x] Run: `pnpm eval:graph-extraction --smoke` — completed in live mode (5/5 live, no fallback), LLM outperforms rule engine baseline. Node F1=0.485, Edge F1=0.261.
+- [x] Run: `pnpm eval:ingestion:smoke` — **DONE (2026-05-30):** 5/5 pass (100%), all metrics green.
 - [x] Run the project’s targeted server tests for every file touched in Phases 0-5 — 241/241 test files pass, 4114/4114 tests pass
 
 **Example Structure / Code:**
 
 ```bash
-rtk pnpm eval:retrieval --tier core --json --json-path reports/eval/retrieval-core-postgres.json
-rtk pnpm eval:summary --tier core --provider fallback --json --json-path reports/eval/summary-core-postgres.json
-rtk pnpm eval:graph-extraction --smoke
-rtk pnpm eval:ingestion:smoke
+pnpm eval:retrieval --tier core --json --json-path reports/eval/retrieval-core-postgres.json
+pnpm eval:summary --tier core --provider fallback --json --json-path reports/eval/summary-core-postgres.json
+pnpm eval:graph-extraction --smoke
+pnpm eval:ingestion:smoke
 ```
 
 ## Final Acceptance Criteria
@@ -466,7 +466,7 @@ rtk pnpm eval:ingestion:smoke
 
 ### Independent Verification
 
-- [x] Re-ran repository tests from the current `HEAD` with `rtk pnpm test -- --run evals/retrieval/lib/adapters.test.ts packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts packages/server/src/lib/retrieval/capsules/scoring/rerank.test.ts packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts packages/server/src/lib/retrieval/response/summary.test.ts evals/graph-extraction/run.test.ts packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts packages/server/src/routes/retrieval.test.ts evals/summary/__tests__/runner-api.test.ts`
+- [x] Re-ran repository tests from the current `HEAD` with `pnpm test -- --run evals/retrieval/lib/adapters.test.ts packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts packages/server/src/lib/retrieval/capsules/scoring/rerank.test.ts packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts packages/server/src/lib/retrieval/response/summary.test.ts evals/graph-extraction/run.test.ts packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts packages/server/src/routes/retrieval.test.ts evals/summary/__tests__/runner-api.test.ts`
 - [x] Audit result: Vitest completed successfully with `241 passed | 7 skipped` test files and `4114 passed | 118 skipped` tests.
 - [x] Persisted PostgreSQL report artifacts were found for retrieval and summary at `reports/eval/retrieval-core-postgres.json` and `reports/eval/summary-core-postgres.json`.
 - [ ] Persisted PostgreSQL report artifacts were not found for graph extraction smoke or ingestion smoke in the current repository snapshot.
@@ -489,7 +489,7 @@ rtk pnpm eval:ingestion:smoke
 - [x] **Phase 0 structural deviation:** the plan asked to create the scenario session only after actor seeding, but the implementation still creates an initial system-admin session in `createExecutionContext()` and then deletes/recreates it in `createActorSession()`. Functional parity appears restored, but the lifecycle differs from the planned structure.
 - [x] **Phase 0 reopened by current PG-backed retrieval evidence:** `reports/eval/retrieval-core-postgres.json` confirms `v1` works in PG mode while `v2` and `v3` mostly return empty results. That pattern is consistent with a remaining PG harness seed/rehydration limitation for capsule / graph-plan eval scenarios, so Phase 0 cannot be treated as fully closed.
 - [x] **Phase 2 scope deviation:** the plan named `packages/server/src/lib/retrieval/capsules/scoring/merge.ts`, `packages/server/src/lib/retrieval/capsules/channels/semantic.ts`, `packages/server/src/lib/retrieval/capsules/channels/graph.ts`, and `packages/server/src/lib/retrieval/orchestration/orchestrator.ts` as intended edit points. The implemented solution achieved the goal primarily through `rerank.ts`, `reasons.ts`, and existing tests, so the file scope was narrower than planned.
-- [x] **Phase 4 evidence deviation:** the plan required `rtk pnpm eval:summary --tier core --provider fallback` as the phase completion proof. **CLOSED (2026-05-30):** core eval ran successfully. 6/7 pass, groundedness 1.0, 0 forbidden. Report at `reports/eval/summary-core-postgres.json`. One remaining product quality gap: `summary-core-multi-fact` coverage 0% (4 missing facts).
+- [x] **Phase 4 evidence deviation:** the plan required `pnpm eval:summary --tier core --provider fallback` as the phase completion proof. **CLOSED (2026-05-30):** core eval ran successfully. 6/7 pass, groundedness 1.0, 0 forbidden. Report at `reports/eval/summary-core-postgres.json`. One remaining product quality gap: `summary-core-multi-fact` coverage 0% (4 missing facts).
 - [x] **Phase 5 evidence deviation:** the plan required enough evidence to distinguish infra fallback from real live-model quality. **CLOSED (2026-05-30):** graph extraction smoke ran in live mode with AI provider configured. 5/5 live (0 fallback), Node F1=0.485, Edge F1=0.261. LLM outperforms rule engine baseline.
 - [x] **Phase 6 execution gap:** commands were reportedly run for all 4 eval types, but only retrieval and summary have persisted artifacts under `reports/eval/`. Graph extraction smoke and ingestion smoke are still session-only evidence in the current repository snapshot.
 - [x] **Phase 0 root cause resolution (2026-05-30 re-audit):** The PG-backed v2/v3 empty-result gap was caused by `PgArtifactRepository.listByFilter()` returning lightweight records with `derived: null`. All capsule recall channels depend on `artifact.latestRevision.derived?.capsules`. Fix: added `listForRetrieval()` method that batch-loads revision + structured capsule data, and used it in `buildRetrievalReadModel()`. Files changed: `packages/server/src/lib/artifacts/repository.ts`, `packages/server/src/lib/artifacts/pg-repository/index.ts`, `packages/server/src/lib/retrieval/read-model.ts`. Result: retrieval pass rate 32.1% → 82.1%.

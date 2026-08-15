@@ -8,16 +8,16 @@
 
 ### 当前 closeout 快照（2026-07-06）
 
-本次 closeout 执行环境里，Docker daemon 已恢复可用，`rtk docker compose -f docker-compose.observability.yml up -d`
+本次 closeout 执行环境里，Docker daemon 已恢复可用，`docker compose -f docker-compose.observability.yml up -d`
 可成功拉起 `consul`、`prometheus`、`tempo`、`loki`、`promtail`、`grafana`。
 
 当前已完成的 live 证据：
 
 - 自动化 closeout 通过：
-  - `rtk pnpm test:observability-closeout`
-  - `rtk pnpm test:discovery-closeout`
-  - `rtk pnpm test:distributed-closeout`
-  - `rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
+  - `pnpm test:observability-closeout`
+  - `pnpm test:discovery-closeout`
+  - `pnpm test:distributed-closeout`
+  - `pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
 - `GET /health` 响应头已确认回显 `X-Request-Id: closeout-req-001` 与 `Traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01`
 - Grafana API 已确认 datasource provisioning：
   - Prometheus datasource health: `OK`
@@ -39,17 +39,17 @@
 ### 本地最小路径
 
 ```bash
-rtk pnpm --filter @trapmap/host-local build
-rtk pnpm --filter @trapmap/host-local start
+pnpm --filter @trapmap/host-local build
+pnpm --filter @trapmap/host-local start
 ```
 
-先执行 `rtk pnpm --filter @trapmap/host-local build`，再执行 `rtk pnpm --filter @trapmap/host-local start`。本轮 `host-local` closeout 只认 `build -> start -> observability-benchmark` 这条主链路，`dev` 不作为完成判据。
+先执行 `pnpm --filter @trapmap/host-local build`，再执行 `pnpm --filter @trapmap/host-local start`。本轮 `host-local` closeout 只认 `build -> start -> observability-benchmark` 这条主链路，`dev` 不作为完成判据。
 
 ### 本地完整可观测性路径
 
 ```bash
-rtk docker compose -f docker-compose.observability.yml up -d
-rtk pnpm --filter @trapmap/host-local start
+docker compose -f docker-compose.observability.yml up -d
+pnpm --filter @trapmap/host-local start
 ```
 
 启用 Loki / Consul 时，当前有效配置名为：
@@ -198,7 +198,7 @@ curl -s http://127.0.0.1:8500/v1/health/checks/trapmap | jq .
 执行命令：
 
 ```bash
-rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
+pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
 ```
 
 默认行为：
@@ -220,12 +220,12 @@ rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
 
 当前 closeout 自动化入口：
 
-- `rtk pnpm test:observability-closeout`
-- `rtk pnpm test:observability-benchmark`
-- `rtk pnpm test:discovery-closeout`
-- `rtk pnpm test:distributed-closeout`
-- `rtk pnpm test:runtime-foundations`
-- `rtk pnpm test:deployment-smoke`
+- `pnpm test:observability-closeout`
+- `pnpm test:observability-benchmark`
+- `pnpm test:discovery-closeout`
+- `pnpm test:distributed-closeout`
+- `pnpm test:runtime-foundations`
+- `pnpm test:deployment-smoke`
 
 其中：
 

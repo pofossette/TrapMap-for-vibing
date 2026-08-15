@@ -29,7 +29,7 @@
 - 配置齐全且成功发送时，runner 会额外打印三条 evidence 日志：adapter enabled、suite event mirrored without publish warnings、flush completed without close warnings。
 - 若缺少 Langfuse 配置、鉴权失败、超时或网络错误，runner 只产出 warning，不改变 eval 退出码。
 - 回退到本地 archive mirror 时，改用 `--platform json-archive [--platform-output-dir <path>]`。
-- 2026-07-07 23:24-23:25 CST 已用本地 Docker Compose 启动的官方 Langfuse v3 实例完成 live closeout：`LANGFUSE_BASE_URL=http://127.0.0.1:3000`，同轮 `rtk pnpm eval -- smoke --platform langfuse` 输出三条 success evidence，且 native TrapMap smoke 仍以 `81/81 passed` 结束。
+- 2026-07-07 23:24-23:25 CST 已用本地 Docker Compose 启动的官方 Langfuse v3 实例完成 live closeout：`LANGFUSE_BASE_URL=http://127.0.0.1:3000`，同轮 `pnpm eval -- smoke --platform langfuse` 输出三条 success evidence，且 native TrapMap smoke 仍以 `81/81 passed` 结束。
 - 若本地 self-host 覆盖了 `MINIO_ROOT_PASSWORD`，必须同步对齐 `LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY`、`LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY`、`LANGFUSE_S3_BATCH_EXPORT_SECRET_ACCESS_KEY`；否则 Langfuse 可能在 `/api/public/health` 仍为 `OK` 时于服务端日志中报 `SignatureDoesNotMatch`，造成“目标环境配置错、不是 TrapMap adapter 错”的假阴性。
 
 ## 数据库配置

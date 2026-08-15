@@ -262,10 +262,10 @@ async function executeCase(caseDefinition, scenario, options) {
 
 ```bash
 # 现有 dry-run（CI 冒烟）
-rtk pnpm exec tsx evals/agent-planning/run.ts --tier smoke --dry-run
+pnpm exec tsx evals/agent-planning/run.ts --tier smoke --dry-run
 
 # 新增 live 模式（真实评测）
-rtk pnpm exec tsx evals/agent-planning/run.ts --tier smoke --live \
+pnpm exec tsx evals/agent-planning/run.ts --tier smoke --live \
   --provider anthropic \
   --model claude-sonnet-4-20250514 \
   --runs-per-case 3    # 每个 case 跑 3 次取平均，消除随机性

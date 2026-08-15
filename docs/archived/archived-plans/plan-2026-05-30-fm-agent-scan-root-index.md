@@ -12,7 +12,7 @@
 
 本索引对应 `/home/wunai/Downloads/fm-agent-raw-reports` 中 `cli`、`contracts`、`server` 三个包的原始扫描结果。执行时必须同时查看 raw report、当前代码、项目文档，不能只按计划摘要机械改动。
 
-> **Post-audit reconciliation (2026-05-29):** 子计划、matrix 和 source-pack 已从 `.gitignore` 覆盖的 `temp/` 迁移到 `docs/plans/fm-agent-scan/`。当前 HEAD 已重新验证 `rtk pnpm test`、`rtk pnpm typecheck`、`rtk pnpm eval:smoke` 与 `rtk pnpm eval:ingestion:smoke`，并据此回写本根计划与子计划状态。
+> **Post-audit reconciliation (2026-05-29):** 子计划、matrix 和 source-pack 已从 `.gitignore` 覆盖的 `temp/` 迁移到 `docs/plans/fm-agent-scan/`。当前 HEAD 已重新验证 `pnpm test`、`pnpm typecheck`、`pnpm eval:smoke` 与 `pnpm eval:ingestion:smoke`，并据此回写本根计划与子计划状态。
 
 **当前根计划状态：**
 - [x] 旧根计划已归档到 [`docs/archived/archived-plans/plan-2026-05-29-directory-structure-governance.md`](docs/archived/archived-plans/plan-2026-05-29-directory-structure-governance.md)
@@ -75,7 +75,7 @@
 
 - [x] `contracts` lane C：`Phase 4`，收敛 retrieval / artifact / eval contract 与 fixture
 - [x] `cli` lane C：`Phase 4`，修本地状态、output profile、JSON output、export helper
-- [x] Gate `G3`：contracts Phase 4 合并且 `rtk pnpm eval:smoke` 通过后，server 可进入深层 retrieval/indexing 修复
+- [x] Gate `G3`：contracts Phase 4 合并且 `pnpm eval:smoke` 通过后，server 可进入深层 retrieval/indexing 修复
 
 ### Wave 4：Server 深层修复
 
@@ -91,17 +91,17 @@
 ### Wave 6：仓库级验证与收口
 
 - [x] 运行每个包自己的 package tests / typecheck
-- [x] 运行 `rtk pnpm eval:smoke`
-- [x] 若 server 改动涉及 ingestion / artifact lifecycle，再运行 `rtk pnpm eval:ingestion:smoke`
+- [x] 运行 `pnpm eval:smoke`
+- [x] 若 server 改动涉及 ingestion / artifact lifecycle，再运行 `pnpm eval:ingestion:smoke`
 - [x] 回写 `plan.md` 与各子计划的完成状态、残留风险、跳过项
 
 ## 包级文档与测试联动矩阵
 
 | 包 | 必须同步更新的文档 | 必须同步更新的测试代码 | 包级必跑命令 |
 |---|---|---|---|
-| `contracts` | `packages/contracts/README.md`、`docs/PACKAGES.md`、`docs/operations/TESTING.md`、必要时 `docs/reference/api-surface.md` | `packages/contracts/src/domain/artifacts.test.ts`、`candidates.test.ts`、`operations.test.ts`、`retrieval.test.ts`、`retrieval.adversarial.test.ts`、`evals/evals.test.ts` | `rtk pnpm --filter @trapmap/contracts test`、`rtk pnpm --filter @trapmap/contracts typecheck`、`rtk pnpm eval:smoke` |
-| `cli` | `packages/cli/README.md`、`docs/architecture/CLI.md`、`docs/operations/TESTING.md` | `packages/cli/src/commands/*.test.ts`、`packages/cli/src/lib/{config,markdown-formatter,output,output-profile,skill-artifact-export,prompts}.test.ts` | `rtk pnpm --filter @trapmap/cli test`、`rtk pnpm --filter @trapmap/cli typecheck`、`rtk pnpm eval:smoke` |
-| `server` | `packages/server/README.md`、`packages/server/src/lib/README.md`、`docs/architecture/API.md`、`docs/architecture/components/{AI_PROVIDER,RETRIEVAL,INDEXING,ARTIFACTS,PERSISTENCE,KNOWLEDGE_LIFECYCLE,ASYNC_INFRASTRUCTURE}.md`、必要时 `docs/reference/api-surface.md`、`docs/operations/TESTING.md` | `packages/server/src/app.test.ts`、`bootstrap/startup.test.ts`、`lib/ai/**/*.test.ts`、`lib/retrieval/**/*.test.ts`、`lib/indexing/**/*.test.ts`、`lib/artifacts/**/*.test.ts`、`lib/candidates/**/*.test.ts`、`routes/**/*.test.ts` | `rtk pnpm test -- --run <phase-targeted-files>`、`rtk pnpm eval:smoke`、必要时 `rtk pnpm eval:ingestion:smoke` |
+| `contracts` | `packages/contracts/README.md`、`docs/PACKAGES.md`、`docs/operations/TESTING.md`、必要时 `docs/reference/api-surface.md` | `packages/contracts/src/domain/artifacts.test.ts`、`candidates.test.ts`、`operations.test.ts`、`retrieval.test.ts`、`retrieval.adversarial.test.ts`、`evals/evals.test.ts` | `pnpm --filter @trapmap/contracts test`、`pnpm --filter @trapmap/contracts typecheck`、`pnpm eval:smoke` |
+| `cli` | `packages/cli/README.md`、`docs/architecture/CLI.md`、`docs/operations/TESTING.md` | `packages/cli/src/commands/*.test.ts`、`packages/cli/src/lib/{config,markdown-formatter,output,output-profile,skill-artifact-export,prompts}.test.ts` | `pnpm --filter @trapmap/cli test`、`pnpm --filter @trapmap/cli typecheck`、`pnpm eval:smoke` |
+| `server` | `packages/server/README.md`、`packages/server/src/lib/README.md`、`docs/architecture/API.md`、`docs/architecture/components/{AI_PROVIDER,RETRIEVAL,INDEXING,ARTIFACTS,PERSISTENCE,KNOWLEDGE_LIFECYCLE,ASYNC_INFRASTRUCTURE}.md`、必要时 `docs/reference/api-surface.md`、`docs/operations/TESTING.md` | `packages/server/src/app.test.ts`、`bootstrap/startup.test.ts`、`lib/ai/**/*.test.ts`、`lib/retrieval/**/*.test.ts`、`lib/indexing/**/*.test.ts`、`lib/artifacts/**/*.test.ts`、`lib/candidates/**/*.test.ts`、`routes/**/*.test.ts` | `pnpm test -- --run <phase-targeted-files>`、`pnpm eval:smoke`、必要时 `pnpm eval:ingestion:smoke` |
 
 ## 根验收标准
 
@@ -109,8 +109,8 @@
 - [x] 三个 `*-live-gap-matrix.md` 都能解释 raw finding 的 `live` / `fixed` / `stale` 结论
 - [x] 每个已实施修复都同时包含实现、文档和测试代码，不存在"代码已改但文档或测试未落地"的悬空项
 - [x] `contracts`、`cli`、`server` 各自的包级测试和 typecheck 已按子计划完成
-- [x] 仓库级 `rtk pnpm eval:smoke` 通过
-- [x] 若 server 触达 ingestion / artifact lifecycle，则 `rtk pnpm eval:ingestion:smoke` 通过
+- [x] 仓库级 `pnpm eval:smoke` 通过
+- [x] 若 server 触达 ingestion / artifact lifecycle，则 `pnpm eval:ingestion:smoke` 通过
 - [x] 根计划和三个子计划都已回写实际完成顺序、被跳过项与残留风险
 
 ## 执行总结 (2026-05-29)

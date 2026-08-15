@@ -13,10 +13,10 @@
 ```bash
 # PG 关键词检索（需要 PostgreSQL）
 TRAPMAP_DATABASE_URL=postgresql://trapmap:trapmap@127.0.0.1:5434/trapmap \
-rtk pnpm test:file -- packages/contracts/src/domain/task-queue.test.ts
+pnpm test:file -- packages/contracts/src/domain/task-queue.test.ts
 
 # Graphology 图引擎（内存测试）
-rtk pnpm test:file -- packages/service-knowledge-read/src/routes.test.ts
+pnpm test:file -- packages/service-knowledge-read/src/routes.test.ts
 ```
 
 ---
@@ -316,10 +316,10 @@ pnpm dev:team-monolith
 
 ```bash
 # 任务队列契约：最典型的 “pg + Drizzle + 权限过滤”
-rtk pnpm test:file -- packages/contracts/src/domain/task-queue.test.ts
+pnpm test:file -- packages/contracts/src/domain/task-queue.test.ts
 
 # 知识读取：最典型的 “组图 + 环检测 + 局部扩张”
-rtk pnpm test:file -- packages/service-knowledge-read/src/routes.test.ts
+pnpm test:file -- packages/service-knowledge-read/src/routes.test.ts
 ```
 
 ---

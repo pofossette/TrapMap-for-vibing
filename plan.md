@@ -57,11 +57,11 @@
 
 ## 验证门禁
 
-- 每任务至少运行相关包 focused tests 与 `rtk pnpm typecheck`。
-- 跨包导入或边界变化必须运行 `rtk pnpm exec fallow audit --base main`。
-- 检索、摘要、治理、feedback、fixtures 或 eval runner 受影响时，至少运行 `rtk pnpm eval:smoke`。
-- 文档变化至少运行 `rtk pnpm check:docs` 和 `rtk pnpm check:structure`。
-- 收尾运行 `rtk pnpm exec knip` 并记录新基线。
+- 每任务至少运行相关包 focused tests 与 `pnpm typecheck`。
+- 跨包导入或边界变化必须运行 `pnpm exec fallow audit --base main`。
+- 检索、摘要、治理、feedback、fixtures 或 eval runner 受影响时，至少运行 `pnpm eval:smoke`。
+- 文档变化至少运行 `pnpm check:docs` 和 `pnpm check:structure`。
+- 收尾运行 `pnpm exec knip` 并记录新基线。
 
 ## 验收边界
 

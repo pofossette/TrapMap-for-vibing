@@ -64,7 +64,7 @@ pnpm exec tsx scripts/archived/export-badcase-to-eval.ts feedback_example ./repo
 
 配置齐全并成功发送时，aggregate runner 会打印三条 live evidence：adapter enabled、suite event mirrored without publish warnings、flush completed without close warnings。若缺少配置或外部平台失败，则继续走 warning-only fallback，不改变 TrapMap native report 或退出码。
 
-截至 2026-07-07 23:25 CST，这条平台 mirror 主线的真实 Langfuse 目标验证已经完成：目标为本地 Docker Compose 启动的官方 Langfuse v3 实例 `http://127.0.0.1:3000`，同轮 `rtk pnpm eval -- smoke --platform langfuse` 输出了 adapter enabled、`mirrored 1041 suite events without publish warnings`、flush completed 三条 success evidence，且 native smoke eval 仍以 81/81 passed 成功结束。`MLflow` 与第二平台切换验证继续属于 deferred work。
+截至 2026-07-07 23:25 CST，这条平台 mirror 主线的真实 Langfuse 目标验证已经完成：目标为本地 Docker Compose 启动的官方 Langfuse v3 实例 `http://127.0.0.1:3000`，同轮 `pnpm eval -- smoke --platform langfuse` 输出了 adapter enabled、`mirrored 1041 suite events without publish warnings`、flush completed 三条 success evidence，且 native smoke eval 仍以 81/81 passed 成功结束。`MLflow` 与第二平台切换验证继续属于 deferred work。
 
 复跑这条 closeout 时，若本地 self-host 覆盖了 `MINIO_ROOT_PASSWORD`，记得同步对齐 `LANGFUSE_S3_*_SECRET_ACCESS_KEY`；否则 Langfuse 可能在 API health 正常时仍因 blob upload `SignatureDoesNotMatch` 失败。
 
@@ -179,10 +179,10 @@ promptfoo 只做执行载体。
 pnpm eval:snapshots
 
 # 快照 parity 测试：重跑 bridge 并与提交快照逐 case 比对（不依赖 native 代码）
-rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts
-rtk pnpm test:file -- evals/promptfoo/parity-summary.test.ts
+pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts
+pnpm test:file -- evals/promptfoo/parity-summary.test.ts
 # retrieval parity 需 TRAPMAP_POSTGRES_COORDINATOR_URL（临时建库），无 coordinator 时自动 skip
-rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts
+pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts
 ```
 
 CI 中 `.github/workflows/eval.yml` 的 `eval-parity` job（blocking）在 `evals/**` 相关的 PR 上
@@ -197,12 +197,12 @@ aggregate）与 `eval-parity`（六套 parity 快照）；两者只保证 smoke 
 
 | Suite | Owner | Tier 状态 | 变更必跑门禁 |
 |-------|-------|-----------|--------------|
-| `retrieval` | 检索召回/路由 owner（service-knowledge-read 检索面） | smoke=CI gate；core=保留 | `rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts` + `rtk pnpm eval:retrieval:smoke` |
-| `summary` | 摘要 owner（service-knowledge-read 摘要面） | smoke=CI gate；core=保留 | `rtk pnpm test:file -- evals/promptfoo/parity-summary.test.ts` + `rtk pnpm eval:summary:smoke` |
-| `graph-extraction` | 图提取 owner（service-knowledge-read graph + ai-providers） | smoke=CI gate；core=保留 | `rtk pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts` + `rtk pnpm eval:graph-extraction:smoke` |
-| `agent-planning` | agent-planning eval owner | smoke=CI gate；core=已归档（`archived/`，手动 tier） | `rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts` + `rtk pnpm test:file -- evals/agent-planning/runner.test.ts` |
-| `label-alignment` | label-alignment eval owner | smoke=CI gate；core=已归档（`archived/`，手动 tier） | `rtk pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts` + `rtk pnpm test:file -- evals/label-alignment/core.test.ts` |
-| `ingestion` | ingestion eval owner | smoke=CI gate；core=已归档（`archived/`，手动 tier） | `rtk pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts` + `rtk pnpm eval:ingestion:smoke` |
+| `retrieval` | 检索召回/路由 owner（service-knowledge-read 检索面） | smoke=CI gate；core=保留 | `pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts` + `pnpm eval:retrieval:smoke` |
+| `summary` | 摘要 owner（service-knowledge-read 摘要面） | smoke=CI gate；core=保留 | `pnpm test:file -- evals/promptfoo/parity-summary.test.ts` + `pnpm eval:summary:smoke` |
+| `graph-extraction` | 图提取 owner（service-knowledge-read graph + ai-providers） | smoke=CI gate；core=保留 | `pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts` + `pnpm eval:graph-extraction:smoke` |
+| `agent-planning` | agent-planning eval owner | smoke=CI gate；core=已归档（`archived/`，手动 tier） | `pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts` + `pnpm test:file -- evals/agent-planning/runner.test.ts` |
+| `label-alignment` | label-alignment eval owner | smoke=CI gate；core=已归档（`archived/`，手动 tier） | `pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts` + `pnpm test:file -- evals/label-alignment/core.test.ts` |
+| `ingestion` | ingestion eval owner | smoke=CI gate；core=已归档（`archived/`，手动 tier） | `pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts` + `pnpm eval:ingestion:smoke` |
 | `promptfoo` 基建与快照 | 全部 suite owner 共同维护 | 快照为提交产物 | 修改 runner/provider/assertion 后：`pnpm eval:snapshots` 重生成快照并提交 + 六个 parity 测试全绿 |
 
 tier 约定：

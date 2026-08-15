@@ -85,7 +85,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - [x] Confirm `plan.md` links only `docs/todos/documentation-validation-and-observability-platform.md` and contains the long-term-maintainability principle verbatim.
 - [x] Confirm `docs/todos/README.md`, `docs/README.md`, `docs/archived/README.md`, and `SYSTEM_TRUTH_SOURCES.md` describe the new active detail and old detail as archived.
 - [x] Add a debt-register entry with source path, impact, re-entry condition, and required verification for compatibility Wave-10; do not mark it completed.
-- [x] Run `rtk pnpm check:docs-drift`, `rtk pnpm check:structure`, `rtk pnpm check:md-lint`, and `rtk git diff --check`.
+- [x] Run `pnpm check:docs-drift`, `pnpm check:structure`, `pnpm check:md-lint`, and `git diff --check`.
 - [x] Commit: `docs: activate documentation and observability mainline`.
 
 ### Task 2: Correct Existing Active Documentation Facts
@@ -103,7 +103,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - [x] Replace the Fastify compatibility-shell OTel authority entries with actual host-local/distributed source paths; retain archived references only as historical context.
 - [x] Correct local-agent exporter and sampling descriptions so they exactly match implemented behavior after Task 5.
 - [x] Write a regression fixture whose source reference does not exist; expected guard result is a precise file/line/path failure.
-- [x] Run active-doc checks and `rtk pnpm check:links`; expected result is zero active-document dead links before Task 4 removes CI bypass.
+- [x] Run active-doc checks and `pnpm check:links`; expected result is zero active-document dead links before Task 4 removes CI bypass.
 - [x] Commit: `docs: align active observability truth sources`.
 
 ### Task 3: Source-Aware Documentation Reference Guard
@@ -121,7 +121,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - [x] Implement a deterministic parser that scans active surfaces only: `README.md`, `AGENTS.md`, `plan.md`, `docs/{architecture,guides,operations,reference,todos}/**`; exclude `docs/archived/**`, `docs/plans/**`, and `docs/superpowers/**` unless root plan explicitly reactivates them.
 - [x] Report failures as `file:line`, reference kind, and resolved path/anchor; reject path traversal outside the repository root.
 - [x] Add `check:doc-references` to package scripts, local CI runner, GitHub `doc-guardrails`, documentation governance, CI docs, and testing matrix.
-- [x] Run `rtk pnpm test:file -- scripts/__tests__/check-doc-references.test.ts`, `rtk pnpm check:doc-references`, and `rtk pnpm typecheck`.
+- [x] Run `pnpm test:file -- scripts/__tests__/check-doc-references.test.ts`, `pnpm check:doc-references`, and `pnpm typecheck`.
 - [x] Commit: `feat(docs): validate active document references`.
 
 ### Task 4: Typed Documentation Truth Manifest And Blocking CI
@@ -141,7 +141,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - [x] Make the checker compare declared authority/source paths and documented environment/config values against the generated manifest, printing field-level drift.
 - [x] Repair current `check:docs-drift` configuration so it contains only editorial/non-derivable assertions; move structured assertions into the truth checker.
 - [x] Remove `|| true` from `check:links` only after Task 2 yields a clean result; CI must run doc references, docs truth, and links as independent blocking steps.
-- [x] Run all four doc guards, focused tests, `rtk pnpm typecheck`, and `rtk git diff --check`.
+- [x] Run all four doc guards, focused tests, `pnpm typecheck`, and `git diff --check`.
 - [x] Commit: `feat(docs): enforce repository truth in CI`.
 
 ### Task 5: Shared OTel Configuration And Lifecycle Policy
@@ -162,7 +162,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - [x] Implement dynamic SDK loading only after configuration validates; disabled mode must not load exporters or schedule export work.
 - [x] Give both hosts consistent resource attributes and bounded shutdown; log safe structured diagnostics instead of silently swallowing bootstrap errors.
 - [x] Either install/configure a real local console exporter or document local-agent as no-exporter; do not keep contradictory comments.
-- [x] Run focused host-local/distributed tests, `rtk pnpm typecheck`, and `rtk pnpm test:observability-closeout`.
+- [x] Run focused host-local/distributed tests, `pnpm typecheck`, and `pnpm test:observability-closeout`.
 - [x] Commit: `feat(otel): unify host telemetry lifecycle`.
 
 ### Task 6: Live HTTP Metrics And Trace Context
@@ -182,7 +182,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - [x] Record duration after the response finalizes using the actual status code, not a hard-coded `2xx`; normalize every path to the shared finite route family.
 - [x] Bind the request span to async context so child application spans inherit the server span; end spans exactly once on response/error.
 - [x] Ensure logs, spans, and metrics share route/service/owner fields without adding dynamic IDs to metric labels.
-- [x] Run focused tests, `rtk pnpm test:observability-closeout`, `rtk pnpm typecheck`, and a local `/metrics` smoke.
+- [x] Run focused tests, `pnpm test:observability-closeout`, `pnpm typecheck`, and a local `/metrics` smoke.
 - [x] Commit: `feat(otel): instrument live HTTP requests`.
 
 ### Task 7: Export Distributed Internal-Hop And Async Signals
@@ -202,7 +202,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - [x] Add spans/events or metrics for enqueue, execution start, retry, terminal failure, dead letter, outbox publish, and outbox consume; use existing operation/causation IDs.
 - [x] Emit finite labels: source service, target service, transport, status class, owner surface, and failure classification. Do not label entity/job IDs.
 - [x] Verify a gateway request through an internal hop has one continuous trace and one observable metric increment.
-- [x] Run `rtk pnpm test:distributed-closeout`, affected package tests, `rtk pnpm typecheck`, and `rtk pnpm eval:smoke`.
+- [x] Run `pnpm test:distributed-closeout`, affected package tests, `pnpm typecheck`, and `pnpm eval:smoke`.
 - [x] Commit: `feat(otel): export internal and async runtime signals`.
 
 ### Task 8: Critical Domain Instrumentation And Safe Logging
@@ -221,7 +221,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - [x] Instrument only stable semantic operations; avoid high-frequency inner-loop spans and raw user/domain content attributes.
 - [x] Extend redaction tests to nested objects and arrays for authorization, token, password, secret, cookie, session, prompt, and content-like fields defined by the approved policy.
 - [x] Ensure expected validation/auth/policy outcomes are represented as normal outcomes or bounded metrics, not Sentry-worthy system errors.
-- [x] Run affected package tests, `rtk pnpm eval:smoke`, `rtk pnpm test:observability-closeout`, and `rtk pnpm typecheck`.
+- [x] Run affected package tests, `pnpm eval:smoke`, `pnpm test:observability-closeout`, and `pnpm typecheck`.
 - [x] Commit: `feat(otel): add owner-level operational signals`.
 
 ### Task 9: Sentry Composition And Error-Intelligence Closeout
@@ -244,7 +244,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - [x] Keep `validateSentryPolicy` as the sole Sentry configuration policy (`enabled`, `dsn`, `environment`, `release`, `sampleRate`, `maxBreadcrumbs`, `sendDefaultPii=false`); do not add a second config parser in hosts.
 - [x] Ensure the existing `beforeSend` strips headers, cookies, request data, sensitive query parameters, prompt/knowledge content, credentials and nested secrets; extend tests only where a newly reachable boundary changes event shape.
 - [x] Add an opt-in local transport harness that asserts the emitted event is sanitized. Capture/transport failure must create a safe local diagnostic but cannot alter original request or job completion.
-- [x] Run focused Sentry and error-boundary tests, redaction tests, `rtk pnpm typecheck`, `rtk pnpm test:observability-closeout`, affected host integration tests, and `rtk pnpm test:distributed-closeout` when distributed composition roots change.
+- [x] Run focused Sentry and error-boundary tests, redaction tests, `pnpm typecheck`, `pnpm test:observability-closeout`, affected host integration tests, and `pnpm test:distributed-closeout` when distributed composition roots change.
 - [x] Commit: `feat(sentry): close host lifecycle and error-boundary reporting`.
 
 ### Task 10: Langfuse Runtime LLM And Eval Observation
@@ -267,8 +267,8 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - [x] Implement the wrapper in `@trapmap/ai-providers` without importing `langfuse`: it must preserve the existing provider interfaces and result/error semantics exactly, invoke an injected best-effort observation sink after completion, and treat sink/flush failure as a safe diagnostic rather than a provider failure.
 - [x] Implement the Langfuse SDK sink in the host-local observability boundary, then wrap the providers returned by `createAiProviders(config.ai)` in `shared-infra.ts`. Apply the same pattern to a distributed host only after locating an actual distributed AI-provider composition root; service/domain call sites continue to consume `ChatProvider`/`EmbeddingsProvider` unchanged.
 - [x] Extend the existing eval Langfuse adapter tests to prove explicit `--platform langfuse` mirror failure is warning-only, native TrapMap JSON reports remain the sole pass/fail truth source, and mirrored metadata follows the same redaction/correlation policy where those fields are available.
-- [x] Add architecture-boundary coverage that rejects `langfuse` imports from `backend-core`, domain and service packages; run `rtk pnpm exec fallow audit --base main` whenever the wrapping/export boundary changes across packages.
-- [x] Run contract, ai-provider, host-local, eval-platform and affected distributed tests; run `rtk pnpm eval:smoke`, `rtk pnpm typecheck`, `rtk pnpm test:observability-closeout`, and a no-secret disabled-mode smoke.
+- [x] Add architecture-boundary coverage that rejects `langfuse` imports from `backend-core`, domain and service packages; run `pnpm exec fallow audit --base main` whenever the wrapping/export boundary changes across packages.
+- [x] Run contract, ai-provider, host-local, eval-platform and affected distributed tests; run `pnpm eval:smoke`, `pnpm typecheck`, `pnpm test:observability-closeout`, and a no-secret disabled-mode smoke.
 - [x] Commit: `feat(langfuse): observe runtime LLM and eval execution safely`.
 
 ### Task 11: Operational Verification, CI, And Decision Gates
@@ -288,8 +288,8 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 - [x] Add an opt-in Langfuse client/test harness that proves a runtime chat call, embedding call and each explicit eval suite mirror have correlation metadata but no raw prompt/output/vector/content; backend/flush failure must be warning-only and native eval JSON must retain its original exit semantics.
 - [x] Define baseline collection instructions for readiness availability, 5xx rate, P95 latency, internal-hop timeout, queue/outbox lag, projection freshness, and unresolved actionable error count.
 - [x] Record that alert thresholds require at least three comparable environment baselines; do not encode speculative production SLO values as completed policy.
-- [x] Run `rtk pnpm check:docs-drift`, `rtk pnpm check:doc-references`, `rtk pnpm check:docs-truth`, `rtk pnpm check:links`, `rtk pnpm check:structure`, `rtk pnpm check:md-lint`, `rtk pnpm check:mermaid`, `rtk pnpm typecheck`, `rtk pnpm test:observability-closeout`, `rtk pnpm test:distributed-closeout`, `rtk pnpm test:deployment-smoke`, and `rtk pnpm eval:smoke`; when a Langfuse project is explicitly configured, also preserve the documented explicit `--platform langfuse` closeout evidence.
-- [x] When cross-package imports change, run `rtk pnpm exec fallow audit --base main`; record any baseline limitation rather than weakening the boundary check.
+- [x] Run `pnpm check:docs-drift`, `pnpm check:doc-references`, `pnpm check:docs-truth`, `pnpm check:links`, `pnpm check:structure`, `pnpm check:md-lint`, `pnpm check:mermaid`, `pnpm typecheck`, `pnpm test:observability-closeout`, `pnpm test:distributed-closeout`, `pnpm test:deployment-smoke`, and `pnpm eval:smoke`; when a Langfuse project is explicitly configured, also preserve the documented explicit `--platform langfuse` closeout evidence.
+- [x] When cross-package imports change, run `pnpm exec fallow audit --base main`; record any baseline limitation rather than weakening the boundary check.
 - [x] Commit: `docs: close observability platform verification`.
 
 ## Completion Gates

@@ -12,11 +12,11 @@
 
 - Work directly on `main`; preserve the six pre-existing unstaged formatting changes and never stage them.
 - Every behavior follows RED → confirm RED → minimal GREEN → focused regression → tranche commit.
-- Every shell command starts with `rtk`; every commit stages only files in its tranche.
+- Run shell commands directly with pnpm; every commit stages only files in its tranche.
 - Do not import another service's concrete implementation; use `contracts`, `backend-core` ports, internal HTTP, or outbox delivery.
 - Do not touch Wave-5+ ownership work or the `store_snapshot`/`JsonStore`/`PostgresStore` Wave-9 deletion scope.
 - Do not remove the Wave-4 guard allowlist or add `wave-4` to `completedOwnerWaves` until the final closeout tranche.
-- Required per-tranche checks are focused owner/gateway/host tests, `rtk pnpm typecheck`, and `rtk git diff --check`.
+- Required per-tranche checks are focused owner/gateway/host tests, `pnpm typecheck`, and `git diff --check`.
 
 ---
 
@@ -53,7 +53,7 @@ expect(() => governanceConflictDetectionPayloadSchema.parse({ sourceEventId: 'ev
 
 - [x] **Step 2: Run the focused tests to confirm RED.**
 
-Run `rtk pnpm test:file -- packages/contracts/src/domain/async.test.ts packages/backend-core/src/ports/internal-ports.test.ts`. Expected: the new schema/task symbols and port types are missing; do not proceed on a passing test.
+Run `pnpm test:file -- packages/contracts/src/domain/async.test.ts packages/backend-core/src/ports/internal-ports.test.ts`. Expected: the new schema/task symbols and port types are missing; do not proceed on a passing test.
 
 - [x] **Step 3: Implement the minimum shared contract.**
 
@@ -61,13 +61,13 @@ Add the task type to `asyncJobTaskTypeSchema` and `sharedJobPayloadSchemaMap`, d
 
 - [x] **Step 4: Run the contract tests GREEN.**
 
-Run the same focused test command and then `rtk pnpm typecheck`. Expected: contract and port tests pass with no new boundary errors.
+Run the same focused test command and then `pnpm typecheck`. Expected: contract and port tests pass with no new boundary errors.
 
 - [x] **Step 5: Commit the contract tranche.**
 
 ```bash
-rtk git add packages/contracts/src/domain/async.ts packages/contracts/src/domain/async.test.ts packages/backend-core/src/ports/internal-ports.ts packages/backend-core/src/ports/internal-ports.test.ts packages/backend-core/src/ports/index.ts
-rtk git commit -m "feat(governance): define conflict workflow contracts"
+git add packages/contracts/src/domain/async.ts packages/contracts/src/domain/async.test.ts packages/backend-core/src/ports/internal-ports.ts packages/backend-core/src/ports/internal-ports.test.ts packages/backend-core/src/ports/index.ts
+git commit -m "feat(governance): define conflict workflow contracts"
 ```
 
 ---
@@ -104,7 +104,7 @@ expect(projection.upsert).toHaveBeenCalledWith(expect.objectContaining({
 
 - [x] **Step 2: Run the owner and handler tests to confirm RED.**
 
-Run `rtk pnpm test:file -- packages/service-governance-review/src/conflict-workflow.test.ts packages/service-job-runtime/src/handlers/governance-conflict.test.ts`. Expected: the new factories are missing.
+Run `pnpm test:file -- packages/service-governance-review/src/conflict-workflow.test.ts packages/service-job-runtime/src/handlers/governance-conflict.test.ts`. Expected: the new factories are missing.
 
 - [x] **Step 3: Implement the minimal owner workflow.**
 
@@ -116,13 +116,13 @@ Parse the payload, invoke the workflow, and return normally for workflow no-op/r
 
 - [x] **Step 5: Run GREEN and owner typechecks.**
 
-Run `rtk pnpm test:file -- packages/service-governance-review/src/conflict-workflow.test.ts packages/service-job-runtime/src/handlers/governance-conflict.test.ts packages/service-governance-review/src/pg-ports.test.ts`, `rtk pnpm typecheck`, and `rtk git diff --check`.
+Run `pnpm test:file -- packages/service-governance-review/src/conflict-workflow.test.ts packages/service-job-runtime/src/handlers/governance-conflict.test.ts packages/service-governance-review/src/pg-ports.test.ts`, `pnpm typecheck`, and `git diff --check`.
 
 - [x] **Step 6: Commit the consumable workflow tranche.**
 
 ```bash
-rtk git add packages/service-governance-review/src/conflict-workflow.ts packages/service-governance-review/src/conflict-workflow.test.ts packages/service-governance-review/src/pg-ports.ts packages/service-governance-review/src/index.ts packages/service-job-runtime/src/handlers/governance-conflict.ts packages/service-job-runtime/src/handlers/governance-conflict.test.ts packages/service-job-runtime/src/index.ts
-rtk git commit -m "feat(governance): consume conflict detection workflow"
+git add packages/service-governance-review/src/conflict-workflow.ts packages/service-governance-review/src/conflict-workflow.test.ts packages/service-governance-review/src/pg-ports.ts packages/service-governance-review/src/index.ts packages/service-job-runtime/src/handlers/governance-conflict.ts packages/service-job-runtime/src/handlers/governance-conflict.test.ts packages/service-job-runtime/src/index.ts
+git commit -m "feat(governance): consume conflict detection workflow"
 ```
 
 ---
@@ -160,7 +160,7 @@ Test that an approved event calls `jobRuntime.schedule('governance.conflict-dete
 
 - [x] **Step 2: Run focused tests to confirm RED.**
 
-Run `rtk pnpm test:file -- packages/server/src/lib/lifecycle/subscribers/subscribers.test.ts packages/service-job-runtime/src/server.test.ts packages/server/src/bootstrap/startup.test.ts`. Expected: the subscriber still reads the store and job-runtime server has no consumer wiring.
+Run `pnpm test:file -- packages/server/src/lib/lifecycle/subscribers/subscribers.test.ts packages/service-job-runtime/src/server.test.ts packages/server/src/bootstrap/startup.test.ts`. Expected: the subscriber still reads the store and job-runtime server has no consumer wiring.
 
 - [x] **Step 3: Add injected job-runtime and handler wiring.**
 
@@ -176,11 +176,11 @@ Add a remote `GovernanceConflictWorkflowPort` adapter using `callInternalService
 
 - [x] **Step 6: Run GREEN validation and commit.**
 
-Run `rtk pnpm test:file -- packages/server/src/lib/lifecycle/subscribers/subscribers.test.ts packages/server/src/bootstrap/startup.test.ts packages/service-job-runtime/src/server.test.ts packages/host-local/src/nest/runtime/host-services.test.ts packages/host-distributed/src/job-runtime/ownership-acceptance.test.ts`, then `rtk pnpm typecheck` and `rtk git diff --check`.
+Run `pnpm test:file -- packages/server/src/lib/lifecycle/subscribers/subscribers.test.ts packages/server/src/bootstrap/startup.test.ts packages/service-job-runtime/src/server.test.ts packages/host-local/src/nest/runtime/host-services.test.ts packages/host-distributed/src/job-runtime/ownership-acceptance.test.ts`, then `pnpm typecheck` and `git diff --check`.
 
 ```bash
-rtk git add packages/service-job-runtime/src/deps.ts packages/service-job-runtime/src/server.ts packages/service-job-runtime/src/server.test.ts packages/host-distributed/src/job-runtime/server.ts packages/host-distributed/src/shared/ports.ts packages/host-distributed/src/shared/internal-governance-review-client.ts packages/backend-core/src/job-runtime/application/module.ts packages/server/src/lib/context.ts packages/server/src/app.ts packages/server/src/lib/lifecycle/subscribers/conflict.ts packages/server/src/bootstrap/bootstrap-lifecycle.ts packages/server/src/bootstrap/bootstrap-workers.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers.test.ts packages/host-local/src/nest/runtime/backend-core-adapters.ts packages/host-local/src/nest/runtime/host-services.ts
-rtk git commit -m "refactor(runtime): schedule governance conflict work"
+git add packages/service-job-runtime/src/deps.ts packages/service-job-runtime/src/server.ts packages/service-job-runtime/src/server.test.ts packages/host-distributed/src/job-runtime/server.ts packages/host-distributed/src/shared/ports.ts packages/host-distributed/src/shared/internal-governance-review-client.ts packages/backend-core/src/job-runtime/application/module.ts packages/server/src/lib/context.ts packages/server/src/app.ts packages/server/src/lib/lifecycle/subscribers/conflict.ts packages/server/src/bootstrap/bootstrap-lifecycle.ts packages/server/src/bootstrap/bootstrap-workers.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers.test.ts packages/host-local/src/nest/runtime/backend-core-adapters.ts packages/host-local/src/nest/runtime/host-services.ts
+git commit -m "refactor(runtime): schedule governance conflict work"
 ```
 
 ---
@@ -212,7 +212,7 @@ Port the existing schema-driven behavior into owner tests: filters and descendin
 
 - [x] **Step 2: Run owner admin tests to confirm RED.**
 
-Run `rtk pnpm test:file -- packages/service-governance-review/src/admin.test.ts packages/service-governance-review/src/routes.test.ts`. Expected: admin port/factory/routes do not exist.
+Run `pnpm test:file -- packages/service-governance-review/src/admin.test.ts packages/service-governance-review/src/routes.test.ts`. Expected: admin port/factory/routes do not exist.
 
 - [x] **Step 3: Implement owner admin module and internal routes.**
 
@@ -228,11 +228,11 @@ Host-local injects the governance PG bundle, knowledge/artifact projections, loc
 
 - [x] **Step 6: Run GREEN and commit the owner API tranche.**
 
-Run `rtk pnpm test:file -- packages/service-governance-review/src/admin.test.ts packages/service-governance-review/src/routes.test.ts packages/service-governance-review/src/pg-ports.test.ts packages/host-distributed/src/governance-review/routes.test.ts packages/host-distributed/src/governance-review/delegation-acceptance.test.ts`, then `rtk pnpm typecheck` and `rtk git diff --check`.
+Run `pnpm test:file -- packages/service-governance-review/src/admin.test.ts packages/service-governance-review/src/routes.test.ts packages/service-governance-review/src/pg-ports.test.ts packages/host-distributed/src/governance-review/routes.test.ts packages/host-distributed/src/governance-review/delegation-acceptance.test.ts`, then `pnpm typecheck` and `git diff --check`.
 
 ```bash
-rtk git add packages/backend-core/src/ports/internal-ports.ts packages/backend-core/src/ports/repo-ports.ts packages/service-governance-review/src/admin.ts packages/service-governance-review/src/admin.test.ts packages/service-governance-review/src/application/module.ts packages/service-governance-review/src/deps.ts packages/service-governance-review/src/routes.ts packages/service-governance-review/src/routes.test.ts packages/service-governance-review/src/server.ts packages/host-distributed/src/governance-review/ports.ts packages/host-distributed/src/governance-review/server.ts packages/host-local/src/nest/app.module.ts
-rtk git commit -m "feat(governance): expose feedback admin owner APIs"
+git add packages/backend-core/src/ports/internal-ports.ts packages/backend-core/src/ports/repo-ports.ts packages/service-governance-review/src/admin.ts packages/service-governance-review/src/admin.test.ts packages/service-governance-review/src/application/module.ts packages/service-governance-review/src/deps.ts packages/service-governance-review/src/routes.ts packages/service-governance-review/src/routes.test.ts packages/service-governance-review/src/server.ts packages/host-distributed/src/governance-review/ports.ts packages/host-distributed/src/governance-review/server.ts packages/host-local/src/nest/app.module.ts
+git commit -m "feat(governance): expose feedback admin owner APIs"
 ```
 
 ---
@@ -270,7 +270,7 @@ Assert all six public URLs call the governance client with exact path/query/body
 
 - [x] **Step 2: Run focused tests to confirm RED.**
 
-Run `rtk pnpm test:file -- packages/host-distributed/src/gateway/routes.test.ts packages/host-distributed/src/gateway/internal-client.test.ts packages/service-knowledge-read/src/routes.test.ts packages/server/src/lib/retrieval/orchestration/search-v1.test.ts`. Expected: admin client methods/routes and injected projection seams are missing.
+Run `pnpm test:file -- packages/host-distributed/src/gateway/routes.test.ts packages/host-distributed/src/gateway/internal-client.test.ts packages/service-knowledge-read/src/routes.test.ts packages/server/src/lib/retrieval/orchestration/search-v1.test.ts`. Expected: admin client methods/routes and injected projection seams are missing.
 
 - [x] **Step 3: Implement gateway forwarding.**
 
@@ -282,11 +282,11 @@ Replace runtime-infra conflict/feedback repository reads in both retrieval paths
 
 - [x] **Step 5: Run GREEN and commit the compatibility-preserving tranche.**
 
-Run `rtk pnpm test:file -- packages/host-distributed/src/gateway/routes.test.ts packages/host-distributed/src/gateway/internal-client.test.ts packages/host-distributed/src/gateway/distributed-acceptance.test.ts packages/service-knowledge-read/src/routes.test.ts packages/service-knowledge-read/src/read-model.test.ts packages/server/src/lib/retrieval/orchestration/search-v1.test.ts`, then `rtk pnpm typecheck` and `rtk git diff --check`.
+Run `pnpm test:file -- packages/host-distributed/src/gateway/routes.test.ts packages/host-distributed/src/gateway/internal-client.test.ts packages/host-distributed/src/gateway/distributed-acceptance.test.ts packages/service-knowledge-read/src/routes.test.ts packages/service-knowledge-read/src/read-model.test.ts packages/server/src/lib/retrieval/orchestration/search-v1.test.ts`, then `pnpm typecheck` and `git diff --check`.
 
 ```bash
-rtk git add packages/host-distributed/src/gateway/internal-client.ts packages/host-distributed/src/gateway/routes.ts packages/host-distributed/src/gateway/routes.test.ts packages/host-distributed/src/gateway/internal-client.test.ts packages/host-distributed/src/shared/internal-governance-review-client.ts packages/backend-core/src/ports/internal-ports.ts packages/service-knowledge-read/src/deps.ts packages/service-knowledge-read/src/routes.ts packages/service-knowledge-read/src/routes.test.ts packages/service-knowledge-read/src/read-model.ts packages/host-distributed/src/knowledge-read/index.ts packages/host-local/src/nest/runtime/host-services.ts packages/host-local/src/nest/app.module.ts packages/server/src/lib/context.ts packages/server/src/app.ts packages/server/src/lib/retrieval/read-model.ts packages/server/src/lib/retrieval/orchestration/search-v1.ts packages/server/src/lib/retrieval/__fixtures__/graph-fixtures.ts
-rtk git commit -m "feat(gateway): forward governance feedback operations"
+git add packages/host-distributed/src/gateway/internal-client.ts packages/host-distributed/src/gateway/routes.ts packages/host-distributed/src/gateway/routes.test.ts packages/host-distributed/src/gateway/internal-client.test.ts packages/host-distributed/src/shared/internal-governance-review-client.ts packages/backend-core/src/ports/internal-ports.ts packages/service-knowledge-read/src/deps.ts packages/service-knowledge-read/src/routes.ts packages/service-knowledge-read/src/routes.test.ts packages/service-knowledge-read/src/read-model.ts packages/host-distributed/src/knowledge-read/index.ts packages/host-local/src/nest/runtime/host-services.ts packages/host-local/src/nest/app.module.ts packages/server/src/lib/context.ts packages/server/src/app.ts packages/server/src/lib/retrieval/read-model.ts packages/server/src/lib/retrieval/orchestration/search-v1.ts packages/server/src/lib/retrieval/__fixtures__/graph-fixtures.ts
+git commit -m "feat(gateway): forward governance feedback operations"
 ```
 
 ---
@@ -331,7 +331,7 @@ Extend the server/runtime aggregate tests to assert `SkillShareerRepos` has no `
 
 - [x] **Step 2: Run the guard/deletion tests to confirm RED.**
 
-Run `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts packages/runtime-infra/src/shared-infra.test.ts packages/server/src/lib/__tests__/types-export.test.ts`. Expected: current aggregate and route imports fail the new assertions.
+Run `pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts packages/runtime-infra/src/shared-infra.test.ts packages/server/src/lib/__tests__/types-export.test.ts`. Expected: current aggregate and route imports fail the new assertions.
 
 - [x] **Step 3: Remove registrations and compatibility implementations.**
 
@@ -343,11 +343,11 @@ After the production scan reports no Wave-4 compatibility hits, remove only the 
 
 - [x] **Step 5: Run GREEN boundary validation and commit.**
 
-Run `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts packages/runtime-infra/src/shared-infra.test.ts packages/server/src/lib/__tests__/types-export.test.ts packages/service-knowledge-read/src/import-boundary.test.ts`, `rtk pnpm typecheck`, and `rtk git diff --check`.
+Run `pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts packages/runtime-infra/src/shared-infra.test.ts packages/server/src/lib/__tests__/types-export.test.ts packages/service-knowledge-read/src/import-boundary.test.ts`, `pnpm typecheck`, and `git diff --check`.
 
 ```bash
-rtk git add packages/server/src/routes/register-capability-routes.ts packages/server/src/lib/repos/index.ts packages/runtime-infra/src/repos.ts packages/runtime-infra/src/shared-infra.ts packages/server/src/lib/jobs/index.ts packages/server/src/lib/jobs/handlers packages/server/src/routes/feedback.ts packages/server/src/routes/feedback-admin.ts packages/server/src/routes/feedback-admin packages/server/src/lib/feedback packages/server/src/lib/conflict scripts/export-badcase-to-eval.ts scripts/__tests__/compatibility-retirement-guard.test.ts
-rtk git commit -m "refactor(governance): delete wave-4 compatibility shell"
+git add packages/server/src/routes/register-capability-routes.ts packages/server/src/lib/repos/index.ts packages/runtime-infra/src/repos.ts packages/runtime-infra/src/shared-infra.ts packages/server/src/lib/jobs/index.ts packages/server/src/lib/jobs/handlers packages/server/src/routes/feedback.ts packages/server/src/routes/feedback-admin.ts packages/server/src/routes/feedback-admin packages/server/src/lib/feedback packages/server/src/lib/conflict scripts/export-badcase-to-eval.ts scripts/__tests__/compatibility-retirement-guard.test.ts
+git commit -m "refactor(governance): delete wave-4 compatibility shell"
 ```
 
 ---
@@ -370,7 +370,7 @@ Add a focused guard test that expects `completedOwnerWaves` to include `wave-4` 
 
 - [x] **Step 2: Run the complete closeout evidence.**
 
-Run, without filtering output through `head`, `tail`, or `grep`: `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`, `rtk pnpm eval:smoke`, `rtk pnpm test:deployment-smoke`, `rtk pnpm check:docs-drift`, `rtk pnpm check:structure`, `rtk pnpm exec fallow audit --base main --gate new-only --format json --quiet --explain`, `rtk pnpm typecheck`, and `rtk git diff --check`. Treat missing dependencies, failed startup, unavailable databases, or partial smoke output as failed validation, not success.
+Run, without filtering output through `head`, `tail`, or `grep`: `pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`, `pnpm eval:smoke`, `pnpm test:deployment-smoke`, `pnpm check:docs-drift`, `pnpm check:structure`, `pnpm exec fallow audit --base main --gate new-only --format json --quiet --explain`, `pnpm typecheck`, and `git diff --check`. Treat missing dependencies, failed startup, unavailable databases, or partial smoke output as failed validation, not success.
 
 - [x] **Step 3: Update the completion markers only after all checks pass.**
 
@@ -379,8 +379,8 @@ Add `wave-4` to `completedOwnerWaves`, remove all Wave-4 allowlist entries, and 
 - [x] **Step 4: Commit the closeout tranche.**
 
 ```bash
-rtk git add scripts/__tests__/compatibility-retirement-guard.test.ts docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md docs/reference/REPO_STRUCTURE.md docs/architecture/components/GOVERNANCE.md docs/superpowers/plans/2026-07-18-wave-4-governance-review-ownership.md
-rtk git commit -m "docs(governance): close wave-4 ownership"
+git add scripts/__tests__/compatibility-retirement-guard.test.ts docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md docs/reference/REPO_STRUCTURE.md docs/architecture/components/GOVERNANCE.md docs/superpowers/plans/2026-07-18-wave-4-governance-review-ownership.md
+git commit -m "docs(governance): close wave-4 ownership"
 ```
 
-After this commit, run `rtk git status --short` and verify the only remaining unstaged changes are the pre-existing formatting files.
+After this commit, run `git status --short` and verify the only remaining unstaged changes are the pre-existing formatting files.

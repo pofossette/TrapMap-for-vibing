@@ -290,12 +290,12 @@ CI 和本地统一使用 `reports/baselines/` 目录存储基线文件：
 
 ```bash
 # 写入新基线（通过 eval-ci）
-rtk env WRITE_BASELINE=true TIER=smoke pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
-rtk env WRITE_BASELINE=true TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+env WRITE_BASELINE=true TIER=smoke pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+env WRITE_BASELINE=true TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
 
 # 与基线比较（通过 eval-ci）
-rtk env TIER=smoke pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
-rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+env TIER=smoke pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
 
 # 直接运行检索评测并写入基线（不经过 CI 运行器）
 pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --json --json-path ./reports/eval-report.json
@@ -431,5 +431,5 @@ PG 模式下的评测 harness 必须与 JSON 模式产生完全相同的 auth/gr
 
 - **Owner**：检索召回/路由 owner（service-knowledge-read 检索面）
 - **Tier 状态**：smoke 是 CI 门禁 tier；core tier 保留为 active（`evals/retrieval/datasets/core/`、`scenarios/core/`）
-- **变更必跑**：`rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`（快照 parity，需 postgres coordinator）+ `rtk pnpm eval:retrieval:smoke`
+- **变更必跑**：`pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`（快照 parity，需 postgres coordinator）+ `pnpm eval:retrieval:smoke`
 - 修改 case/scenario/断言后若判定发生变化，需同步重新生成并提交 parity 快照（`pnpm eval:snapshots`）

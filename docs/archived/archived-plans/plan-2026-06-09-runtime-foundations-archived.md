@@ -137,7 +137,7 @@
 - [x] Add `packages/server/src/lib/runtime/runtime-metadata.test.ts` covering process-alive, queue worker stopped, graph fallback active, and JSON-store vs PostgreSQL modes.
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/app.test.ts \
   packages/server/src/lib/runtime/runtime-metadata.test.ts \
   packages/server/src/config.test.ts
@@ -146,7 +146,7 @@ rtk pnpm test -- --run \
 - [ ] Run:
 - [x] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
   - Result: `TypeScript: No errors found`
 
@@ -234,7 +234,7 @@ export function getOrCreateRequestContext(request: FastifyRequest) {
   - `packages/server/src/bootstrap/startup.test.ts`
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/runtime/resilience.test.ts \
   packages/server/src/lib/runtime/metrics.test.ts \
   packages/server/src/lib/candidates/processor.test.ts \
@@ -329,7 +329,7 @@ if (!result.ok && graphHealthPolicy.fallbackMode === 'fail-closed') {
   - `packages/server/src/routes/candidates.test.ts`
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/queue/task-queue.test.ts \
   packages/server/src/lib/lifecycle/outbox.test.ts \
   packages/server/src/__tests__/candidate-pipeline.test.ts \
@@ -339,7 +339,7 @@ rtk pnpm test -- --run \
   - Result: pass via `pnpm test:runtime-foundations`; note `outbox.test.ts` remains PG-conditional and skips without local DB env
 - [x] Run PostgreSQL-backed verification subset:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/queue/task-queue.test.ts \
   packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts
 ```
@@ -409,17 +409,17 @@ runtimeMetrics.recordWorkerFailure({
 - [x] Update `packages/server/src/__tests__/docs-truth-smoke.test.ts` with assertions for new runtime doc phrases / truth-source references.
 - [x] Run:
 ```bash
-rtk pnpm check:docs-drift
+pnpm check:docs-drift
 ```
   - Result: pass
 - [x] Run:
 ```bash
-rtk pnpm check:complexity
+pnpm check:complexity
 ```
   - Result: pass
 - [x] Run:
 ```bash
-rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
+pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
 ```
   - Result: pass
 
@@ -440,13 +440,13 @@ rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
 
 ## Final Verification Checklist
 
-- [x] `rtk pnpm typecheck`
-- [x] `rtk pnpm test -- --run packages/server/src/app.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts`
-- [x] `rtk pnpm test -- --run packages/server/src/lib/runtime/resilience.test.ts packages/server/src/lib/runtime/metrics.test.ts`
-- [x] `rtk pnpm test -- --run packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/lifecycle/outbox.test.ts`
-- [x] `rtk pnpm test -- --run packages/server/src/__tests__/candidate-pipeline.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts`
-- [x] `rtk pnpm check:docs-drift`
-- [x] `rtk pnpm check:complexity`
+- [x] `pnpm typecheck`
+- [x] `pnpm test -- --run packages/server/src/app.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts`
+- [x] `pnpm test -- --run packages/server/src/lib/runtime/resilience.test.ts packages/server/src/lib/runtime/metrics.test.ts`
+- [x] `pnpm test -- --run packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/lifecycle/outbox.test.ts`
+- [x] `pnpm test -- --run packages/server/src/__tests__/candidate-pipeline.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts`
+- [x] `pnpm check:docs-drift`
+- [x] `pnpm check:complexity`
 
 **Final audit summary:**
 

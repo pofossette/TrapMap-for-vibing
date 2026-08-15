@@ -103,8 +103,8 @@ describe('closeout surface guardrails', () => {
     expect(rule).toBeDefined();
     expect(rule?.mustContain ?? []).toEqual(
       expect.arrayContaining([
-        'Documentation Validation and Observability Platform',
-        'docs/todos/documentation-validation-and-observability-platform.md',
+        'Dead Code and Architecture Order Cleanup',
+        'docs/todos/dead-code-and-architecture-order-cleanup.md',
         'open-debt-and-compromises.md',
       ]),
     );
@@ -122,17 +122,19 @@ describe('closeout surface guardrails', () => {
     const truthRule = rules.find(
       (entry) =>
         entry.file === 'docs/reference/SYSTEM_TRUTH_SOURCES.md' &&
-        entry.mustContain?.includes('Documentation Validation and Observability Platform'),
+        entry.mustContain?.includes(
+          'docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md',
+        ),
     );
     const archiveRule = rules.find((entry) => entry.file === 'docs/archived/README.md');
 
     expect(truthRule?.mustContain ?? []).toEqual(
-      expect.arrayContaining(['Documentation Validation and Observability Platform']),
+      expect.arrayContaining([
+        'docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md',
+      ]),
     );
     expect(archiveRule?.mustContain ?? []).toEqual(
-      expect.arrayContaining([
-        '当前根 `plan.md` 指向“Documentation Validation and Observability Platform”',
-      ]),
+      expect.arrayContaining(['当前根 `plan.md` 指向“Dead Code and Architecture Order Cleanup”']),
     );
   });
 
@@ -166,7 +168,7 @@ describe('closeout surface guardrails', () => {
     expect(testingDoc).toContain('`dev` 仅用于开发便利，不作为 closeout 完成判据');
     expect(verificationDoc).toContain('http://127.0.0.1:4000/metrics');
     expect(verificationDoc).toContain(
-      '先执行 `rtk pnpm --filter @trapmap/host-local build`，再执行 `rtk pnpm --filter @trapmap/host-local start`',
+      '先执行 `pnpm --filter @trapmap/host-local build`，再执行 `pnpm --filter @trapmap/host-local start`',
     );
     expect(verificationDoc).toContain('`build -> start -> observability-benchmark`');
     expect(verificationDoc).toContain('LOKI_HOST');

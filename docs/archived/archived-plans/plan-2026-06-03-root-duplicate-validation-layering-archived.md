@@ -127,9 +127,9 @@ await queue.enqueue(
 **Test and eval updates**
 
 - [x] Record baseline commands:
-  - `rtk pnpm test -- --run packages/server/src/lib/candidates/detector.test.ts packages/server/src/lib/candidates/pg-detector.test.ts`
-  - `rtk pnpm test -- --run packages/server/src/__tests__/candidate-pipeline.test.ts`
-  - `rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/graph-extraction/dedup-eval.ts --dry-run`
+  - `pnpm test -- --run packages/server/src/lib/candidates/detector.test.ts packages/server/src/lib/candidates/pg-detector.test.ts`
+  - `pnpm test -- --run packages/server/src/__tests__/candidate-pipeline.test.ts`
+  - `pnpm exec tsx --tsconfig tsconfig.base.json evals/graph-extraction/dedup-eval.ts --dry-run`
 - [x] Capture which cases currently fail or are known blind spots before code changes.
 
 **Example architecture note**
@@ -163,12 +163,12 @@ The "Example Target Shapes" section above (`NormalizedDuplicateInput`, `ExactDup
 Note: `packages/server/src/lib/candidates/pg-detector.test.ts` does not exist yet — Phase 1 creates it. Until then the baseline test command is:
 
 ```bash
-rtk pnpm --filter @trapmap/server exec vitest run \
+pnpm --filter @trapmap/server exec vitest run \
   src/lib/candidates/detector.test.ts \
   src/lib/candidates/processor.test.ts \
   src/__tests__/candidate-pipeline.test.ts
 
-rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/graph-extraction/dedup-eval.ts --dry-run
+pnpm exec tsx --tsconfig tsconfig.base.json evals/graph-extraction/dedup-eval.ts --dry-run
 ```
 
 Vitest results on `main` at baseline:
@@ -255,10 +255,10 @@ function buildTrapExactLookupKey(payload: {
 
 **Verification**
 
-- `rtk pnpm exec vitest run packages/server/src/lib/candidates/fingerprint.test.ts packages/server/src/lib/candidates/detector.test.ts packages/server/src/lib/candidates/pg-detector.test.ts packages/server/src/lib/candidates/processor.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts` — 124 tests pass
-- `rtk pnpm typecheck` — passes
-- `rtk node --import tsx scripts/check-doc-drift.ts` — passes
-- `rtk node --import tsx scripts/check-mermaid.ts` — passes
+- `pnpm exec vitest run packages/server/src/lib/candidates/fingerprint.test.ts packages/server/src/lib/candidates/detector.test.ts packages/server/src/lib/candidates/pg-detector.test.ts packages/server/src/lib/candidates/processor.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts` — 124 tests pass
+- `pnpm typecheck` — passes
+- `node --import tsx scripts/check-doc-drift.ts` — passes
+- `node --import tsx scripts/check-mermaid.ts` — passes
 
 **Notes**
 
@@ -334,10 +334,10 @@ export function buildNormalizedDuplicateInput(candidate: CandidateSubmission): N
 **Verification**
 
 - `packages/server/src/lib/candidates/`: 196 tests pass (183 prior + 13 new fingerprint / processor tests).
-- `rtk pnpm typecheck`: clean.
-- `rtk pnpm lint`: clean.
-- `rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/graph-extraction/dedup-eval.ts --dry-run`: runs; macro F1 within baseline noise (dedup-eval uses its own internal Jaccard/heuristic classifier, so changes to the detector normalization flow don't surface in dry-run metrics; the real detector inputs now carry non-empty skill text on the live path).
-- `rtk pnpm test -- --run`: 4166 tests pass; no regressions outside candidates.
+- `pnpm typecheck`: clean.
+- `pnpm lint`: clean.
+- `pnpm exec tsx --tsconfig tsconfig.base.json evals/graph-extraction/dedup-eval.ts --dry-run`: runs; macro F1 within baseline noise (dedup-eval uses its own internal Jaccard/heuristic classifier, so changes to the detector normalization flow don't surface in dry-run metrics; the real detector inputs now carry non-empty skill text on the live path).
+- `pnpm test -- --run`: 4166 tests pass; no regressions outside candidates.
 
 **Deferred (Phase 3 / Phase 5)**
 
@@ -366,7 +366,7 @@ export function buildNormalizedDuplicateInput(candidate: CandidateSubmission): N
 - [x] Add PG detector tests for trap-only, skill-only, and mixed candidate sets.
 - [x] Add repository/schema tests if new SQL paths or indexes are introduced.
 - [x] Expand `evals/graph-extraction/dedup-fixtures-real.ts` with one false-positive control and one skill-near-duplicate case.
-- [x] Re-run `rtk pnpm eval:dedup:dry-run` and then the live dedup eval once fixtures and expectations stabilize.
+- [x] Re-run `pnpm eval:dedup:dry-run` and then the live dedup eval once fixtures and expectations stabilize.
 
 **Example structure or code**
 
@@ -406,11 +406,11 @@ const ranked = mergeAndRankDuplicateMatches(recallCandidates)
 
 **Verification run**
 
-- `rtk zsh -lc "pnpm --config.store-dir=/tmp/pnpm-store --filter @trapmap/server exec tsc -p tsconfig.json --noEmit"` — passes
-- `rtk ./node_modules/.bin/vitest run packages/server/src/lib/candidates/pg-detector.test.ts packages/server/src/lib/persistence/__tests__/schema-duplicate-recall.test.ts` — passes
-- `rtk zsh -lc "pnpm --config.store-dir=/tmp/pnpm-store run check:docs-drift"` — verified earlier in this turn by the docs sidecar
-- `rtk zsh -lc "pnpm --config.store-dir=/tmp/pnpm-store run check:mermaid"` — verified earlier in this turn by the docs sidecar
-- `rtk zsh -lc "pnpm --config.store-dir=/tmp/pnpm-store run eval:dedup -- --dry-run | rg 'real-trap-exact-rmrf-quill|real-semantic-handoff-vs-doccoauthoring|real-none-postgres-tuning-vs-backup'"` — verified earlier in this turn by the docs sidecar
+- `zsh -lc "pnpm --config.store-dir=/tmp/pnpm-store --filter @trapmap/server exec tsc -p tsconfig.json --noEmit"` — passes
+- `./node_modules/.bin/vitest run packages/server/src/lib/candidates/pg-detector.test.ts packages/server/src/lib/persistence/__tests__/schema-duplicate-recall.test.ts` — passes
+- `zsh -lc "pnpm --config.store-dir=/tmp/pnpm-store run check:docs-drift"` — verified earlier in this turn by the docs sidecar
+- `zsh -lc "pnpm --config.store-dir=/tmp/pnpm-store run check:mermaid"` — verified earlier in this turn by the docs sidecar
+- `zsh -lc "pnpm --config.store-dir=/tmp/pnpm-store run eval:dedup -- --dry-run | rg 'real-trap-exact-rmrf-quill|real-semantic-handoff-vs-doccoauthoring|real-none-postgres-tuning-vs-backup'"` — verified earlier in this turn by the docs sidecar
 
 **Notes / deferred**
 
@@ -477,8 +477,8 @@ await queue.enqueue<CandidateProcessingPayload>(
 - Updated `docs/architecture/components/INGESTION.md` with the Phase 4 queue-dedupe contract and persisted duplicate-trace semantics.
 - Updated `docs/operations/TESTING.md` with Phase 4 queue-dedupe / duplicate-trace verification commands.
 - Focused verification passed on 2026-06-03:
-  - `rtk pnpm exec vitest run packages/contracts/src/domain/candidates.test.ts packages/server/src/lib/candidates/detector.test.ts packages/server/src/lib/candidates/pg-detector.test.ts packages/server/src/lib/candidates/pg-repository.test.ts packages/server/src/lib/candidates/processor.test.ts packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/persistence/__tests__/schema-candidates.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts`
-  - `rtk pnpm typecheck`
+  - `pnpm exec vitest run packages/contracts/src/domain/candidates.test.ts packages/server/src/lib/candidates/detector.test.ts packages/server/src/lib/candidates/pg-detector.test.ts packages/server/src/lib/candidates/pg-repository.test.ts packages/server/src/lib/candidates/processor.test.ts packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/persistence/__tests__/schema-candidates.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts`
+  - `pnpm typecheck`
 
 **Notes / deferred**
 
@@ -508,21 +508,21 @@ await queue.enqueue<CandidateProcessingPayload>(
 
 - [x] Run the smallest focused Vitest targets first.
 - [x] Run the candidate pipeline integration tests.
-- [x] Run `rtk pnpm eval:dedup:dry-run`.
+- [x] Run `pnpm eval:dedup:dry-run`.
 - [x] Run the live dedup eval if the environment is configured.
 - [x] If score distributions move, update the dedup eval acceptance notes in the plan and the relevant eval README.
 
 **Example verification block**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/candidates/fingerprint.test.ts \
   packages/server/src/lib/candidates/detector.test.ts \
   packages/server/src/lib/candidates/pg-detector.test.ts \
   packages/server/src/lib/candidates/processor.test.ts \
   packages/server/src/__tests__/candidate-pipeline.test.ts
 
-rtk pnpm eval:dedup:dry-run
+pnpm eval:dedup:dry-run
 ```
 
 ### Phase 5 Completion Notes (2026-06-03)
@@ -539,26 +539,26 @@ rtk pnpm eval:dedup:dry-run
 **Verification run summary**
 
 - Focused candidate duplicate suite:
-  - `rtk pnpm exec vitest run packages/server/src/lib/candidates/fingerprint.test.ts packages/server/src/lib/candidates/detector.test.ts packages/server/src/lib/candidates/pg-detector.test.ts packages/server/src/lib/candidates/processor.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts`
+  - `pnpm exec vitest run packages/server/src/lib/candidates/fingerprint.test.ts packages/server/src/lib/candidates/detector.test.ts packages/server/src/lib/candidates/pg-detector.test.ts packages/server/src/lib/candidates/processor.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts`
   - Result: 124 / 124 tests passing
 - Type check:
-  - `rtk pnpm typecheck`
+  - `pnpm typecheck`
   - Result: clean
 - Doc guards:
-  - `rtk node --import tsx scripts/check-doc-drift.ts`
-  - `rtk node --import tsx scripts/check-mermaid.ts`
+  - `node --import tsx scripts/check-doc-drift.ts`
+  - `node --import tsx scripts/check-mermaid.ts`
   - Result: both pass
 - Dedup eval dry-run:
-  - `rtk node --import tsx evals/graph-extraction/dedup-eval.ts --dry-run`
+  - `node --import tsx evals/graph-extraction/dedup-eval.ts --dry-run`
   - Result: runs successfully in the sandbox; macro F1 remains near baseline (`Jaccard 0.372`, `LLM 0.488`)
 
 **Environment note on eval commands**
 
-- `rtk pnpm eval:dedup:dry-run` was not runnable verbatim in this sandbox because:
+- `pnpm eval:dedup:dry-run` was not runnable verbatim in this sandbox because:
   - plain `pnpm` attempted to create its store under `~/.local/share/pnpm/store/v11`
   - `pnpm run` with `/tmp/pnpm-store` then hit a sandboxed `fetch failed`
   - `pnpm exec tsx` / direct `tsx` hit `listen EPERM` on `/tmp/tsx-1000/*.pipe`
-- The dry-run was therefore verified with `rtk node --import tsx ...`, which avoids the `tsx` IPC server and exercises the same eval entrypoint.
+- The dry-run was therefore verified with `node --import tsx ...`, which avoids the `tsx` IPC server and exercises the same eval entrypoint.
 - Live dedup eval was **not** executed in this turn because no provider-backed environment was available in the sandbox; Phase 5 is marked complete because the plan explicitly scopes live eval to “if the environment is configured,” and this run records the blocker concretely.
 
 ## Deferred Risks

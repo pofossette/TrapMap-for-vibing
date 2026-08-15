@@ -102,10 +102,10 @@
 ### Step 4. 固化测试与 smoke matrix
 
 - 至少定义一套“实现完成后必须跑”的最小命令：
-  - `rtk pnpm test:deployment-smoke`
-  - `rtk pnpm test:runtime-foundations`
-  - `rtk pnpm typecheck`
-  - 如涉及部署文档调整，补 `rtk pnpm check:docs-drift`
+  - `pnpm test:deployment-smoke`
+  - `pnpm test:runtime-foundations`
+  - `pnpm typecheck`
+  - 如涉及部署文档调整，补 `pnpm check:docs-drift`
 - 若新增 profile-based route exposure，文档中要给出最小 smoke 步骤：
   - 启动 gateway
   - CLI 登录/检索

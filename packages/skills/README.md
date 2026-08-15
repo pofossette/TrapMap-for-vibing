@@ -92,8 +92,8 @@ Skills 可以被智能体引用，用于指导工作流程：
 
 ```bash
 # 测试 Skill 导入导出
-rtk pnpm test:import-export
+pnpm test:import-export
 
 # 验证 Skill 结构
-rtk pnpm check:structure
+pnpm check:structure
 ```

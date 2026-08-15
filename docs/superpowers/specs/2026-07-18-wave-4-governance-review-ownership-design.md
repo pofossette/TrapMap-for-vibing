@@ -85,9 +85,9 @@ No environment startup failure, missing dependency, or unavailable external serv
 Each tranche follows RED → GREEN → focused regression → commit:
 
 1. Add contracts/backend-core tests for the conflict task payload, workflow port, handler dispatch, no-op behavior, retryable error propagation, and idempotent owner upsert. Run the focused test and record a genuine missing-behavior RED before production code.
-2. Implement the governance conflict workflow and queue handler; run governance, job-runtime, host-local/distributed workflow tests, `rtk pnpm typecheck`, and `rtk git diff --check`.
+2. Implement the governance conflict workflow and queue handler; run governance, job-runtime, host-local/distributed workflow tests, `pnpm typecheck`, and `git diff --check`.
 3. Add governance feedback-admin/remediation internal route tests and gateway forwarding/actor/header/error tests, then remove server route registration only after the new owner path is green.
 4. Delete server conflict/feedback/remediation compatibility files and runtime-infra aggregate members; update retrieval projection imports and run boundary/guard tests.
 5. Remove the Wave-4 allowlist and update `completedOwnerWaves` and active documentation only after the guard, focused tests, typecheck, and diff check are green.
 
-Final closeout must include the retirement guard, `rtk pnpm eval:smoke`, `rtk pnpm test:deployment-smoke`, `rtk pnpm check:docs-drift`, `rtk pnpm check:structure`, and the Fallow new-only boundary audit. Every commit stages only files belonging to its tranche; the six pre-existing formatting changes remain unstaged.
+Final closeout must include the retirement guard, `pnpm eval:smoke`, `pnpm test:deployment-smoke`, `pnpm check:docs-drift`, `pnpm check:structure`, and the Fallow new-only boundary audit. Every commit stages only files belonging to its tranche; the six pre-existing formatting changes remain unstaged.

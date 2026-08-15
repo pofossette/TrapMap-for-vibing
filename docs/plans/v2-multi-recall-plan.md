@@ -117,13 +117,13 @@
 - [ ] 实际完成日期已记录
 
 ### 代码质量
-- [ ] `rtk pnpm typecheck` 通过
-- [ ] `rtk pnpm check` 通过
-- [ ] 相关 `rtk pnpm test` 通过
+- [ ] `pnpm typecheck` 通过
+- [ ] `pnpm check` 通过
+- [ ] 相关 `pnpm test` 通过
 
 ### 检索验证
-- [ ] `rtk pnpm eval:retrieval:smoke` 通过（若适用）
-- [ ] `rtk pnpm eval:retrieval:core` 通过或有说明（若适用）
+- [ ] `pnpm eval:retrieval:smoke` 通过（若适用）
+- [ ] `pnpm eval:retrieval:core` 通过或有说明（若适用）
 - [ ] 与 baseline 对比结果已记录
 
 ### 文档同步
@@ -780,12 +780,12 @@ Matched via semantic + keyword; strong problem match (82%), context match (61%),
 ### 建议执行命令
 
 ```bash
-rtk pnpm test
-rtk pnpm typecheck
-rtk pnpm check
-rtk pnpm eval:retrieval:smoke
-rtk pnpm eval:retrieval:core
-rtk pnpm eval:smoke
+pnpm test
+pnpm typecheck
+pnpm check
+pnpm eval:retrieval:smoke
+pnpm eval:retrieval:core
+pnpm eval:smoke
 ```
 
 ### 成功判据
@@ -838,8 +838,8 @@ rtk pnpm eval:smoke
 #### 任务清单
 
 - [x] **0-1: 冻结当前 baseline 指标**
-  - [x] 运行 `rtk pnpm eval:retrieval:smoke`
-  - [x] 运行 `rtk pnpm eval:retrieval:core`
+  - [x] 运行 `pnpm eval:retrieval:smoke`
+  - [x] 运行 `pnpm eval:retrieval:core`
   - [x] 记录当前 v2 的 Hit@1、Hit@5、MRR、nDCG、Recall@10
   - [x] 保存 baseline 报告文件
 
@@ -886,13 +886,13 @@ rtk pnpm eval:smoke
 #### Phase 0 完成检查
 
 ##### 代码质量
-- [x] `rtk pnpm typecheck` 通过
-- [x] `rtk pnpm lint` 通过
-- [x] `rtk pnpm test` 通过（无相关单元测试变更）
+- [x] `pnpm typecheck` 通过
+- [x] `pnpm lint` 通过
+- [x] `pnpm test` 通过（无相关单元测试变更）
 
 ##### 检索验证
-- [x] `rtk pnpm eval:retrieval:smoke` 通过（15/15，100%）
-- [x] `rtk pnpm eval:retrieval:core` 通过（24/26，92.3%，2 个预存问题与本次变更无关：v1-low-maxresults-core、v2-label-filter-core）
+- [x] `pnpm eval:retrieval:smoke` 通过（15/15，100%）
+- [x] `pnpm eval:retrieval:core` 通过（24/26，92.3%，2 个预存问题与本次变更无关：v1-low-maxresults-core、v2-label-filter-core）
 
 ##### v2 Baseline 指标
 | 指标 | Smoke | Core |
@@ -981,19 +981,19 @@ rtk pnpm eval:smoke
 
 - [x] `evals/retrieval/lib/adapters.ts` — 无需修改（v2 端点调用方式未变）
 - [x] `evals/retrieval/lib/normalize.ts` — 无需修改（trace 字段结构未变）
-- [x] `rtk pnpm eval:retrieval:smoke` — 15/15 通过 (100%)
-- [x] `rtk pnpm eval:retrieval:core` — 2 个预存失败与本次变更无关
+- [x] `pnpm eval:retrieval:smoke` — 15/15 通过 (100%)
+- [x] `pnpm eval:retrieval:core` — 2 个预存失败与本次变更无关
 
 #### Phase 1 完成检查
 
 ##### 代码质量
-- [x] `rtk pnpm typecheck` 通过
-- [x] `rtk pnpm lint` 通过
-- [x] `rtk pnpm test` 通过（新增 14 个测试，3 个预存失败不相关）
+- [x] `pnpm typecheck` 通过
+- [x] `pnpm lint` 通过
+- [x] `pnpm test` 通过（新增 14 个测试，3 个预存失败不相关）
 
 ##### 检索验证
-- [x] `rtk pnpm eval:retrieval:smoke` 通过（15/15，100%）
-- [x] `rtk pnpm eval:retrieval:core` 指标与 Phase 0 baseline 一致（v2 Hit@1=0.83, MRR=0.88）
+- [x] `pnpm eval:retrieval:smoke` 通过（15/15，100%）
+- [x] `pnpm eval:retrieval:core` 指标与 Phase 0 baseline 一致（v2 Hit@1=0.83, MRR=0.88）
 
 ##### 文档同步
 - [x] RETRIEVAL.md 已更新（v2 流程图 + 多路召回架构章节）
@@ -1071,19 +1071,19 @@ rtk pnpm eval:smoke
 
 - [x] `evals/retrieval/datasets/smoke/v2-retrieval-smoke.ts` — 新增 2 个 smoke case
 - [x] `evals/retrieval/scenarios/smoke/retrieval-smoke-scenarios.ts` — 新增 `smoke-keyword-dominant` scenario
-- [x] `rtk pnpm eval:retrieval:smoke` — 7/7 通过 (100%，v2 Hit@1=0.71)
-- [x] `rtk pnpm eval:retrieval:core` — v2 指标与 baseline 一致 (Hit@1=0.83, MRR=0.88)
+- [x] `pnpm eval:retrieval:smoke` — 7/7 通过 (100%，v2 Hit@1=0.71)
+- [x] `pnpm eval:retrieval:core` — v2 指标与 baseline 一致 (Hit@1=0.83, MRR=0.88)
 
 #### Phase 2 完成检查
 
 ##### 代码质量
-- [x] `rtk pnpm typecheck` 通过
-- [x] `rtk pnpm lint` 通过
-- [x] `rtk pnpm test` 通过（检索层 26 个测试 + route 78 个测试）
+- [x] `pnpm typecheck` 通过
+- [x] `pnpm lint` 通过
+- [x] `pnpm test` 通过（检索层 26 个测试 + route 78 个测试）
 
 ##### 检索验证
-- [x] `rtk pnpm eval:retrieval:smoke` 通过（7/7，100%；v2 Hit@1 从 0.60 提升至 0.71）
-- [x] `rtk pnpm eval:retrieval:core` 指标与 Phase 0/1 baseline 一致
+- [x] `pnpm eval:retrieval:smoke` 通过（7/7，100%；v2 Hit@1 从 0.60 提升至 0.71）
+- [x] `pnpm eval:retrieval:core` 指标与 Phase 0/1 baseline 一致
 
 ##### 文档同步
 - [x] RETRIEVAL.md 已更新（keyword 通道详情 + Phase 2 状态）
@@ -1159,17 +1159,17 @@ rtk pnpm eval:smoke
 
 - [x] `evals/retrieval/datasets/smoke/v2-retrieval-smoke.ts` — 新增 2 个 semantic-dominant smoke case
 - [x] `evals/retrieval/scenarios/smoke/retrieval-smoke-scenarios.ts` — 新增 `smoke-semantic-dominant` scenario
-- [x] `rtk pnpm eval:retrieval:smoke` — 19/19 通过 (100%, 0 governance failures)
+- [x] `pnpm eval:retrieval:smoke` — 19/19 通过 (100%, 0 governance failures)
 
 #### Phase 3 完成检查
 
 ##### 代码质量
-- [x] `rtk pnpm lint` 通过
-- [x] `rtk pnpm test` 通过（检索层 42 个测试 + route 78 个测试）
-- [x] `rtk pnpm typecheck` 预存错误与本次变更无关
+- [x] `pnpm lint` 通过
+- [x] `pnpm test` 通过（检索层 42 个测试 + route 78 个测试）
+- [x] `pnpm typecheck` 预存错误与本次变更无关
 
 ##### 检索验证
-- [x] `rtk pnpm eval:retrieval:smoke` 通过（19/19，100%；v2 Hit@1=0.78，0 governance failures）
+- [x] `pnpm eval:retrieval:smoke` 通过（19/19，100%；v2 Hit@1=0.78，0 governance failures）
 
 ##### 文档同步
 - [x] RETRIEVAL.md 已更新（semantic 通道详情 + Phase 3 状态 + 流程图更新）
@@ -1252,20 +1252,20 @@ rtk pnpm eval:smoke
 
 #### 对应 Eval 组件更新
 
-- [x] `rtk pnpm eval:retrieval:smoke` — 9/9 v2 用例通过 (100%, v2 Hit@1=0.78)
-- [x] `rtk pnpm eval:retrieval:core` — v2 Hit@1=0.83, MRR=0.88，与 Phase 0 baseline 一致
+- [x] `pnpm eval:retrieval:smoke` — 9/9 v2 用例通过 (100%, v2 Hit@1=0.78)
+- [x] `pnpm eval:retrieval:core` — v2 Hit@1=0.83, MRR=0.88，与 Phase 0 baseline 一致
 - [x] 2 个预存 governance 失败与本次变更无关（v1-low-maxresults-core, v2-label-filter-core）
 
 #### Phase 4 完成检查
 
 ##### 代码质量
-- [x] `rtk pnpm typecheck` 通过
-- [x] `rtk pnpm lint` 通过
-- [x] `rtk pnpm test` 通过（检索层 146 个测试 + route 78 个测试）
+- [x] `pnpm typecheck` 通过
+- [x] `pnpm lint` 通过
+- [x] `pnpm test` 通过（检索层 146 个测试 + route 78 个测试）
 
 ##### 检索验证
-- [x] `rtk pnpm eval:retrieval:smoke` 通过（9/9 v2 用例，100%；v2 Hit@1=0.78, 0 governance failures）
-- [x] `rtk pnpm eval:retrieval:core` 指标与 Phase 0 baseline 一致（v2 Hit@1=0.83, MRR=0.88）
+- [x] `pnpm eval:retrieval:smoke` 通过（9/9 v2 用例，100%；v2 Hit@1=0.78, 0 governance failures）
+- [x] `pnpm eval:retrieval:core` 指标与 Phase 0 baseline 一致（v2 Hit@1=0.83, MRR=0.88）
 
 ##### Phase 4 Baseline 对比
 | 指标 | Phase 3 Smoke | Phase 4 Smoke | Phase 0 Core | Phase 4 Core |
@@ -1351,13 +1351,13 @@ rtk pnpm eval:smoke
 #### Phase 5 完成检查
 
 ##### 代码质量
-- [x] `rtk pnpm typecheck` 通过
-- [x] `rtk pnpm lint` 通过
-- [x] `rtk pnpm test` 通过（185 个检索层测试通过）
+- [x] `pnpm typecheck` 通过
+- [x] `pnpm lint` 通过
+- [x] `pnpm test` 通过（185 个检索层测试通过）
 
 ##### 检索验证
-- [x] `rtk pnpm eval:retrieval:smoke` 通过（11/11 v2 用例，100%；v2 Hit@1=0.82，0 governance failures）
-- [x] `rtk pnpm eval:retrieval:core` 通过（14/14 v2 用例，1 个预存 failure 与本次变更无关）
+- [x] `pnpm eval:retrieval:smoke` 通过（11/11 v2 用例，100%；v2 Hit@1=0.82，0 governance failures）
+- [x] `pnpm eval:retrieval:core` 通过（14/14 v2 用例，1 个预存 failure 与本次变更无关）
 
 ##### 文档同步
 - [x] RETRIEVAL.md 已更新（graph 通道详情、架构树、组件表、Phase 5 roadmap）
@@ -1434,12 +1434,12 @@ rtk pnpm eval:smoke
 #### Phase 6 完成检查
 
 ##### 代码质量
-- [x] `rtk pnpm typecheck` 通过
-- [x] `rtk pnpm lint` 通过
-- [x] `rtk pnpm test` 通过（新增 37 个 tests）
+- [x] `pnpm typecheck` 通过
+- [x] `pnpm lint` 通过
+- [x] `pnpm test` 通过（新增 37 个 tests）
 
 ##### 检索验证
-- [x] `rtk pnpm eval:retrieval:smoke` 行为不变
+- [x] `pnpm eval:retrieval:smoke` 行为不变
 
 ##### 文档同步
 - [x] RETRIEVAL.md 已更新
@@ -1472,11 +1472,11 @@ rtk pnpm eval:smoke
   - [x] `rankCapsules()` 不再承担全部召回职责
 
 - [x] **7-2: 最终回归**
-  - [x] `rtk pnpm typecheck` — TypeScript: No errors found
-  - [x] `rtk pnpm lint` — Checked 629 files, no fixes applied
-  - [x] `rtk pnpm test` — 检索层 185 个测试 + route 78 个测试全通过（12 个预存 PG 失败不相关）
-  - [x] `rtk pnpm eval:retrieval:smoke` — 32/32 通过（100%；v2 Hit@1=0.82，0 governance failures）
-  - [x] `rtk pnpm eval:retrieval:core` — v2 14 个用例，Hit@1=0.86，MRR=0.89（2 个预存 governance 失败与本次变更无关）
+  - [x] `pnpm typecheck` — TypeScript: No errors found
+  - [x] `pnpm lint` — Checked 629 files, no fixes applied
+  - [x] `pnpm test` — 检索层 185 个测试 + route 78 个测试全通过（12 个预存 PG 失败不相关）
+  - [x] `pnpm eval:retrieval:smoke` — 32/32 通过（100%；v2 Hit@1=0.82，0 governance failures）
+  - [x] `pnpm eval:retrieval:core` — v2 14 个用例，Hit@1=0.86，MRR=0.89（2 个预存 governance 失败与本次变更无关）
 
 - [x] **7-3: 对比 baseline**
   - [x] 记录改动前后关键指标
@@ -1544,13 +1544,13 @@ rtk pnpm eval:smoke
 #### Phase 7 完成检查
 
 ##### 代码质量
-- [x] `rtk pnpm typecheck` 通过
-- [x] `rtk pnpm lint` 通过
-- [x] `rtk pnpm test` 检索相关测试全通过
+- [x] `pnpm typecheck` 通过
+- [x] `pnpm lint` 通过
+- [x] `pnpm test` 检索相关测试全通过
 
 ##### 检索验证
-- [x] `rtk pnpm eval:retrieval:smoke` 通过（32/32，100%；v2 Hit@1=0.82）
-- [x] `rtk pnpm eval:retrieval:core` v2 指标优于 Phase 0 baseline（Hit@5 +8.1%, MRR +3.5%, nDCG +5.8%）
+- [x] `pnpm eval:retrieval:smoke` 通过（32/32，100%；v2 Hit@1=0.82）
+- [x] `pnpm eval:retrieval:core` v2 指标优于 Phase 0 baseline（Hit@5 +8.1%, MRR +3.5%, nDCG +5.8%）
 
 ##### 文档同步
 - [x] RETRIEVAL.md 已更新

@@ -10,11 +10,11 @@ Browser-based admin panel for TrapMap runtime operations, governance review work
 ## Scripts
 
 ```bash
-rtk pnpm --filter @trapmap/web-panel dev        # Start Vite dev server
-rtk pnpm --filter @trapmap/web-panel build       # Typecheck + production build
-rtk pnpm --filter @trapmap/web-panel preview     # Preview production build
-rtk pnpm --filter @trapmap/web-panel test        # Run vitest suite
-rtk pnpm --filter @trapmap/web-panel typecheck   # TypeScript type checking only
+pnpm --filter @trapmap/web-panel dev        # Start Vite dev server
+pnpm --filter @trapmap/web-panel build       # Typecheck + production build
+pnpm --filter @trapmap/web-panel preview     # Preview production build
+pnpm --filter @trapmap/web-panel test        # Run vitest suite
+pnpm --filter @trapmap/web-panel typecheck   # TypeScript type checking only
 ```
 
 ## Routes
@@ -111,7 +111,7 @@ Full bilingual support (Chinese `cn` and English `en`) via `useI18nStore`. All u
 ## Testing
 
 ```bash
-rtk pnpm --filter @trapmap/web-panel test
+pnpm --filter @trapmap/web-panel test
 ```
 
 Test files are co-located with their modules (`*.test.ts` / `*.test.tsx`). Current coverage includes:
@@ -143,5 +143,5 @@ Reusable components exported from `src/shared/ui`:
 - **Feature surface 冻结**：现有 Routes 表中的页面与功能是当前冻结的 feature surface。新增页面、路由或功能必须先有明确的维护理由与 owner 决策，不得为了演示或实验随意扩面。
 - **依赖边界**：panel 只消费 `@trapmap/client-core`（API 传输）与 `@trapmap/contracts`（共享类型/契约）；禁止引入 `@trapmap/backend-core`、`@trapmap/lib`、`@trapmap/service-*` 等后端包。后端数据一律经 gateway API + `createAdminPanelApi` 获取。
 - **第三方依赖**：现有依赖（react/react-dom、react-router-dom、zustand、framer-motion、@heroui/react + styles、@antv/g6、tailwindcss 等）为冻结基线；新增任何第三方依赖必须在 PR 中给出文档化理由（用途、替代方案评估、体积/维护成本），并回写本 README 的依赖清单。
-- **测试保留**：vitest 配置与 co-located 测试（`*.test.ts(x)`）是强制保留的维护资产，新增/修改页面逻辑时必须同步补充测试；`rtk pnpm --filter @trapmap/web-panel test` 必须保持通过。
+- **测试保留**：vitest 配置与 co-located 测试（`*.test.ts(x)`）是强制保留的维护资产，新增/修改页面逻辑时必须同步补充测试；`pnpm --filter @trapmap/web-panel test` 必须保持通过。
 - **文档同步**：Routes 表、目录布局、依赖清单变更时必须同步更新本 README。

@@ -5,7 +5,7 @@ Raw snapshot: 391 confirmed. HEAD is significantly ahead (buildServer, documente
 
 ## Current HEAD Status
 
-No reproducible **current-live** server findings remained after the 2026-05-29 audit reran `rtk pnpm test`, `rtk pnpm typecheck`, `rtk pnpm eval:smoke`, and `rtk pnpm eval:ingestion:smoke`.
+No reproducible **current-live** server findings remained after the 2026-05-29 audit reran `pnpm test`, `pnpm typecheck`, `pnpm eval:smoke`, and `pnpm eval:ingestion:smoke`.
 
 ## Reclassified to Fixed During Audit
 

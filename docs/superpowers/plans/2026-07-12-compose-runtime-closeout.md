@@ -38,7 +38,7 @@ expect(closeoutCompose).not.toContain('ports:\n      - "4001:4001"');
 
 - [ ] **Step 2: Verify RED**
 
-Run: `rtk pnpm test:file -- scripts/__tests__/distributed-compose-assets.test.ts`
+Run: `pnpm test:file -- scripts/__tests__/distributed-compose-assets.test.ts`
 
 Expected: failure because `docker-compose.closeout.yml` does not exist.
 
@@ -61,7 +61,7 @@ services:
 
 - [ ] **Step 4: Verify GREEN**
 
-Run: `rtk pnpm test:file -- scripts/__tests__/distributed-compose-assets.test.ts`
+Run: `pnpm test:file -- scripts/__tests__/distributed-compose-assets.test.ts`
 
 Expected: pass.
 
@@ -89,7 +89,7 @@ expect(script).toContain('60000');
 
 - [ ] **Step 2: Verify RED**
 
-Run: `rtk pnpm test:file -- scripts/__tests__/closeout-surface.test.ts`
+Run: `pnpm test:file -- scripts/__tests__/closeout-surface.test.ts`
 
 Expected: failure because the closeout script and package command do not exist.
 
@@ -107,7 +107,7 @@ Add:
 
 - [ ] **Step 4: Verify GREEN**
 
-Run: `rtk pnpm test:file -- scripts/__tests__/closeout-surface.test.ts`
+Run: `pnpm test:file -- scripts/__tests__/closeout-surface.test.ts`
 
 Expected: pass with static guards for cleanup, parameterization, and the measured isolation threshold.
 
@@ -130,7 +130,7 @@ Mark Tranche 6 items 2, 5, 6, and 7 as complete and state that prior evidence al
 
 - [ ] **Step 2: Document the repeatable closeout command**
 
-Add `rtk pnpm test:runtime-closeout:compose` to the service README, deployment, testing, and regression pages. Document generated key/port isolation, automatic teardown, the single-container restart procedure, continuous job-runtime proof, and the 60-second gateway delegation threshold.
+Add `pnpm test:runtime-closeout:compose` to the service README, deployment, testing, and regression pages. Document generated key/port isolation, automatic teardown, the single-container restart procedure, continuous job-runtime proof, and the 60-second gateway delegation threshold.
 
 - [ ] **Step 3: Record only actual evidence**
 
@@ -147,7 +147,7 @@ After Task 4 passes, record the measured recovery duration and successful comman
 
 - [ ] **Step 1: Run focused static verification**
 
-Run: `rtk pnpm test:file -- scripts/__tests__/distributed-compose-assets.test.ts scripts/__tests__/closeout-surface.test.ts`
+Run: `pnpm test:file -- scripts/__tests__/distributed-compose-assets.test.ts scripts/__tests__/closeout-surface.test.ts`
 
 Expected: pass.
 
@@ -156,16 +156,16 @@ Expected: pass.
 Run sequentially:
 
 ```bash
-rtk pnpm test:distributed-acceptance
-rtk pnpm test:distributed-closeout
-rtk pnpm test:runtime-closeout:compose
-rtk pnpm test:observability-closeout
-rtk pnpm test:deployment-smoke
-rtk pnpm typecheck
-rtk pnpm eval:smoke
-rtk pnpm check:docs-drift
-rtk pnpm check:structure
-rtk pnpm exec fallow audit --base main
+pnpm test:distributed-acceptance
+pnpm test:distributed-closeout
+pnpm test:runtime-closeout:compose
+pnpm test:observability-closeout
+pnpm test:deployment-smoke
+pnpm typecheck
+pnpm eval:smoke
+pnpm check:docs-drift
+pnpm check:structure
+pnpm exec fallow audit --base main
 ```
 
 - [ ] **Step 3: Close Tranche 7 only on green**

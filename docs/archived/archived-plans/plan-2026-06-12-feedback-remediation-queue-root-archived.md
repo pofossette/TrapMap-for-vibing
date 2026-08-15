@@ -186,7 +186,7 @@
   - `packages/server/src/lib/feedback/pg-repository.test.ts`
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/contracts/src/domain/feedback.test.ts \
   packages/contracts/src/domain/knowledge.test.ts \
   packages/contracts/src/domain/artifacts.test.ts \
@@ -195,12 +195,12 @@ rtk pnpm test -- --run \
 ```
 - [x] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 Actual status:
 - Targeted tests passed after adding remediation contract/state wiring plus retrieval suppression coverage.
-- `rtk pnpm typecheck` passed on 2026-06-09.
+- `pnpm typecheck` passed on 2026-06-09.
 
 **Example structure or code:**
 ```ts
@@ -275,7 +275,7 @@ export interface FeedbackThresholdPolicy {
   - `packages/server/src/lib/feedback/pg-repository.test.ts`
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/routes/feedback.test.ts \
   packages/server/src/lib/feedback/repository.test.ts \
   packages/server/src/lib/feedback/pg-repository.test.ts
@@ -355,7 +355,7 @@ export interface FeedbackRemediationQueueItem {
   - `packages/server/src/lib/indexing/skill-events.test.ts`
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/routes/retrieval.test.ts \
   packages/server/src/__tests__/skill-lifecycle-flow.test.ts \
   packages/server/src/lib/retrieval/scoring/rerank.test.ts \
@@ -444,7 +444,7 @@ if (isSuppressedByFeedback(candidate.entry)) {
   - skill suppressed -> edited/reviewed -> reindexed -> visible again
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/routes/review.test.ts \
   packages/server/src/routes/operations/skill-edit.test.ts \
   packages/server/src/routes/operations/skill-review.test.ts \
@@ -519,7 +519,7 @@ async function clearActiveFeedbackPenaltyAfterRepair(args: {
 - [ ] Extend `packages/server/src/__tests__/docs-truth-smoke.test.ts` if needed for new required docs references.
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/routes/feedback.test.ts \
   packages/server/src/routes/review.test.ts \
   packages/server/src/routes/operations/skill-edit.test.ts \
@@ -530,11 +530,11 @@ rtk pnpm test -- --run \
 ```
 - [x] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 - [ ] Run:
 ```bash
-rtk pnpm eval:smoke
+pnpm eval:smoke
 ```
 
 ## Final Acceptance Checklist

@@ -55,10 +55,10 @@
 
 ## 验证门禁
 
-- 每任务：focused tests + `rtk pnpm typecheck`。
-- 跨包边界变化：`rtk pnpm exec fallow audit --base main`。
-- 检索/摘要/治理改动：`rtk pnpm eval:smoke`。
-- 文档变化：`rtk pnpm check:docs` + `rtk pnpm check:structure`。
+- 每任务：focused tests + `pnpm typecheck`。
+- 跨包边界变化：`pnpm exec fallow audit --base main`。
+- 检索/摘要/治理改动：`pnpm eval:smoke`。
+- 文档变化：`pnpm check:docs` + `pnpm check:structure`。
 - 收尾：全仓 typecheck + 受影响包全量测试 + knip/fallow 复跑记录新基线。
 
 ## 非目标

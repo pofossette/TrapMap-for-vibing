@@ -27,12 +27,12 @@
 手动运行：
 
 ```bash
-rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/agent-planning/run.ts --tier smoke --dry-run
+pnpm exec tsx --tsconfig tsconfig.base.json evals/agent-planning/run.ts --tier smoke --dry-run
 ```
 
 ## Owner 与变更门禁
 
 - **Owner**：agent-planning eval owner
 - **Tier 状态**：smoke 是 CI 门禁 tier；core 已归档到 `archived/`（`--tier core` 仍可手动运行，不进 CI）
-- **变更必跑**：`rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`（快照 parity）+ `rtk pnpm test:file -- evals/agent-planning/runner.test.ts`（数据集自洽与 dry-run）
+- **变更必跑**：`pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`（快照 parity）+ `pnpm test:file -- evals/agent-planning/runner.test.ts`（数据集自洽与 dry-run）
 - 修改 case/scenario 后若判定发生变化，需同步重新生成并提交 parity 快照（`pnpm eval:snapshots`）

@@ -665,13 +665,13 @@ scenario 加载同理，在 `loadScenario()` 中新增对 `skill-identification-
 
 ```bash
 # 单测
-rtk pnpm test:file -- evals/agent-planning/runner.test.ts
+pnpm test:file -- evals/agent-planning/runner.test.ts
 
 # dry-run smoke
-rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/agent-planning/run.ts --tier smoke --dry-run
+pnpm exec tsx --tsconfig tsconfig.base.json evals/agent-planning/run.ts --tier smoke --dry-run
 
 # 统一入口（如已接入）
-rtk pnpm eval:smoke
+pnpm eval:smoke
 ```
 
 ---

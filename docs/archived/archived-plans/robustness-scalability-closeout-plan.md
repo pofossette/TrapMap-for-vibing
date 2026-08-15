@@ -22,10 +22,10 @@
   - [x] 实现已落地，或冻结为明确结论并写清 deferred 理由
   - [x] 受影响最小测试已执行
   - [x] 受影响文档已回写
-  - [x] `rtk pnpm check:docs-drift` 已通过
-  - [x] `rtk pnpm check:structure` 已通过
+  - [x] `pnpm check:docs-drift` 已通过
+  - [x] `pnpm check:structure` 已通过
 - 若改动涉及 retrieval、summary、governance、feedback、fixtures、eval runner：
-  - [x] 补跑 `rtk pnpm eval:smoke`
+  - [x] 补跑 `pnpm eval:smoke`
 
 ## 3. 文档与测试回写总表
 
@@ -43,12 +43,12 @@
 
 ### 测试
 
-- [x] 文档-only 变更：`rtk pnpm check:docs-drift`
-- [x] 文档-only 变更：`rtk pnpm check:structure`
-- [x] contract / 类型 / client-server shape 守卫：`rtk pnpm typecheck`
-- [x] retrieval / governance / feedback / badcase / eval 相关 closeout：`rtk pnpm eval:smoke`
-- [x] 受影响包最小测试：`rtk pnpm test:file -- packages/contracts/src/domain/operations.test.ts`、`rtk pnpm test:file -- packages/server/src/routes/operations/badcases.test.ts`、`rtk pnpm test:file -- packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`
-- [x] 本轮未改 runtime/API/operator 实现面，因此 `rtk pnpm test:runtime-foundations` 与 `rtk pnpm test:deployment-smoke` 不属于本次最小 closeout 集合
+- [x] 文档-only 变更：`pnpm check:docs-drift`
+- [x] 文档-only 变更：`pnpm check:structure`
+- [x] contract / 类型 / client-server shape 守卫：`pnpm typecheck`
+- [x] retrieval / governance / feedback / badcase / eval 相关 closeout：`pnpm eval:smoke`
+- [x] 受影响包最小测试：`pnpm test:file -- packages/contracts/src/domain/operations.test.ts`、`pnpm test:file -- packages/server/src/routes/operations/badcases.test.ts`、`pnpm test:file -- packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`
+- [x] 本轮未改 runtime/API/operator 实现面，因此 `pnpm test:runtime-foundations` 与 `pnpm test:deployment-smoke` 不属于本次最小 closeout 集合
 
 ## 4. 分阶段执行
 
@@ -157,7 +157,7 @@
 
 - [x] retrieval / governance / feedback / badcase / operator / eval 之间使用同一套关键字段语义
 - [x] 关键传播证据存在 focused test 或 acceptance proof
-- [x] `rtk pnpm eval:smoke` 已通过
+- [x] `pnpm eval:smoke` 已通过
 
 ### Phase 4 守卫、文档与扩展缝隙收尾
 

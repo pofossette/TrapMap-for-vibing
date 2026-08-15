@@ -179,10 +179,10 @@ const artifactFirst = dedupeByArtifactId(recall.capsuleCandidates);
 **Test and eval updates**
 
 - [ ] Record the baseline command set for this plan:
-  - `rtk pnpm test -- --run packages/server/src/lib/indexing/skill-events.test.ts packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts packages/server/src/routes/retrieval.test.ts packages/server/src/routes/operations/skill-review.test.ts packages/server/src/routes/operations/skill-edit.test.ts packages/server/src/routes/operations/artifacts-activate.test.ts`
-  - `rtk pnpm typecheck`
-  - `rtk pnpm check`
-  - `rtk pnpm eval:retrieval:dry-run`
+  - `pnpm test -- --run packages/server/src/lib/indexing/skill-events.test.ts packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts packages/server/src/routes/retrieval.test.ts packages/server/src/routes/operations/skill-review.test.ts packages/server/src/routes/operations/skill-edit.test.ts packages/server/src/routes/operations/artifacts-activate.test.ts`
+  - `pnpm typecheck`
+  - `pnpm check`
+  - `pnpm eval:retrieval:dry-run`
 - [ ] Record which of the audited findings are currently covered only by unit tests and which have no end-to-end assertion.
 
 **Example evidence note**
@@ -409,10 +409,10 @@ app.post('/v1/operations/retrieval/capsule-index/rebuild', async (request) => {
 **Test and eval updates**
 
 - [ ] Run and record at minimum:
-  - `rtk pnpm test -- --run packages/server/src/lib/indexing/skill-events.test.ts packages/server/src/__tests__/lib/retrieval/capsule-index-sync.test.ts packages/server/src/__tests__/lib/retrieval/capsule-index-rebuild.test.ts packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts packages/server/src/routes/retrieval.test.ts packages/server/src/routes/operations/skill-review.test.ts packages/server/src/routes/operations/skill-edit.test.ts packages/server/src/routes/operations/artifacts-activate.test.ts`
-  - `rtk pnpm typecheck`
-  - `rtk pnpm check`
-  - `rtk pnpm eval:retrieval:dry-run`
+  - `pnpm test -- --run packages/server/src/lib/indexing/skill-events.test.ts packages/server/src/__tests__/lib/retrieval/capsule-index-sync.test.ts packages/server/src/__tests__/lib/retrieval/capsule-index-rebuild.test.ts packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts packages/server/src/routes/retrieval.test.ts packages/server/src/routes/operations/skill-review.test.ts packages/server/src/routes/operations/skill-edit.test.ts packages/server/src/routes/operations/artifacts-activate.test.ts`
+  - `pnpm typecheck`
+  - `pnpm check`
+  - `pnpm eval:retrieval:dry-run`
 - [ ] If retrieval eval contracts are extended to include search-by-content:
   - add smoke dataset coverage
   - add core dataset coverage for governance + artifact-first ranking
@@ -438,9 +438,9 @@ app.post('/v1/operations/retrieval/capsule-index/rebuild', async (request) => {
 
 ### Code quality
 
-- [ ] `rtk pnpm typecheck` passes
-- [ ] `rtk pnpm check` passes
-- [ ] The smallest relevant `rtk pnpm test -- --run ...` set passes
+- [ ] `pnpm typecheck` passes
+- [ ] `pnpm check` passes
+- [ ] The smallest relevant `pnpm test -- --run ...` set passes
 
 ### Retrieval/indexing verification
 

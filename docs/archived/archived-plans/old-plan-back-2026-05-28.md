@@ -162,7 +162,7 @@
 
 - [ ] Update `packages/server/src/__tests__/docs-truth-smoke.test.ts` if needed so it asserts the truth docs mention the categories above.
 - [ ] Run:
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
 
 **Necessary example structure or code:**
 
@@ -221,9 +221,9 @@
   - `docs/operations/TESTING.md`
   - `docs/operations/ENVIRONMENT.md`
 - [ ] Run:
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-  - `rtk pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts`
+  - `pnpm check:docs-drift`
+  - `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts`
 
 **Necessary example structure or code:**
 
@@ -292,10 +292,10 @@ pnpm eval:ci:core
   - `.data/skill-shareer.json` in deployment/component docs
   - PG-first wording in persistence docs
 - [ ] Run:
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-  - `rtk pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts`
-  - `rtk pnpm check:complexity`
+  - `pnpm check:docs-drift`
+  - `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts`
+  - `pnpm check:complexity`
 
 **Necessary example structure or code:**
 
@@ -354,11 +354,11 @@ services:
   - provider auto-detection / fallback wording
   - PG-first posture in persistence docs
 - [ ] Run the full local verification set:
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts`
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-  - `rtk pnpm check:complexity`
-  - `rtk pnpm eval:smoke`
+  - `pnpm check:docs-drift`
+  - `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts`
+  - `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `pnpm check:complexity`
+  - `pnpm eval:smoke`
 
 **Necessary example structure or code:**
 

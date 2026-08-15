@@ -45,7 +45,7 @@
 
 **迁移结果（2026-08-09）**：6 个 suite（retrieval / summary / agent-planning / label-alignment / graph-extraction / ingestion）全部迁移到 promptfoo 执行引擎，逐 suite 建立 `SuiteBridge` + `parity-<suite>.test.ts`。Cutover（Phase 7）完成：`scripts/run-eval.ts` 默认 `--runner promptfoo`；`eval-all.ts` / `eval-ci.ts` 收敛为 bridge 注册表循环；6 个 `run.ts` 的自研 case 循环删除（保留契约类型、报告构建器与 `getXxxEvaluationCases` 加载）；`evals/promptfoo/snapshots/` 生成 6 个 smoke 判定快照，parity 测试改为"promptfoo 输出 vs 快照"；`.github/workflows/eval.yml` 增加 blocking `eval-parity` job（无 API key 可跑）。
 
-**验收**：`rtk pnpm eval:smoke` 54/81（与本地 keyless 基线一致，无回归）；`rtk pnpm eval:ci` 无回归；6 个 parity 测试全绿（summary/retrieval 走 coordinator 临时库）；`rtk pnpm typecheck` 全绿；`check:docs-drift` / `check:structure` 全绿。退出码 / tier / dry-run / allow-empty / endpoint 过滤语义不变。
+**验收**：`pnpm eval:smoke` 54/81（与本地 keyless 基线一致，无回归）；`pnpm eval:ci` 无回归；6 个 parity 测试全绿（summary/retrieval 走 coordinator 临时库）；`pnpm typecheck` 全绿；`check:docs-drift` / `check:structure` 全绿。退出码 / tier / dry-run / allow-empty / endpoint 过滤语义不变。
 
 **Backlog 状态**（保持未做，显式登记）：
 - per-case DB schema/临时库隔离 → retrieval/summary/label-alignment-live 可并行（当前 `maxConcurrency: 1`，ADR-4）

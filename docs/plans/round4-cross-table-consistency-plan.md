@@ -494,15 +494,15 @@ Fixture 位于 `evals/ingestion/fixtures/demo-full/`，包含完整文件树和 
 
 ```bash
 # Demo acceptance test（单文件，全链路）
-rtk pnpm test -- --run packages/server/src/lib/artifacts/demo-acceptance.test.ts
+pnpm test -- --run packages/server/src/lib/artifacts/demo-acceptance.test.ts
 
 # 全部验证命令（含各环节独立测试 + smoke）
-rtk pnpm test -- --run packages/server/src/lib/artifacts/pg-repository.round4.test.ts
-rtk pnpm test -- --run packages/server/src/routes/operations/artifacts-import.test.ts
-rtk pnpm test -- --run packages/server/src/routes/operations/skill-review.test.ts
-rtk pnpm test -- --run packages/server/src/routes/operations/artifacts-export.test.ts
-rtk pnpm test -- --run packages/server/src/routes/operations/artifacts-activate.test.ts
-rtk pnpm eval:smoke
+pnpm test -- --run packages/server/src/lib/artifacts/pg-repository.round4.test.ts
+pnpm test -- --run packages/server/src/routes/operations/artifacts-import.test.ts
+pnpm test -- --run packages/server/src/routes/operations/skill-review.test.ts
+pnpm test -- --run packages/server/src/routes/operations/artifacts-export.test.ts
+pnpm test -- --run packages/server/src/routes/operations/artifacts-activate.test.ts
+pnpm eval:smoke
 ```
 
 示例验收记录模板：

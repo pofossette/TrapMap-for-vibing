@@ -39,8 +39,8 @@
 
 2026-07-06 closeout 进展：
 
-- [x] 本地 Docker daemon 已恢复可用，`rtk docker compose -f docker-compose.observability.yml up -d` 可成功拉起 `consul`、`prometheus`、`tempo`、`loki`、`promtail`、`grafana`
-- [x] 自动化 closeout 已通过：`rtk pnpm test:observability-closeout`、`rtk pnpm test:discovery-closeout`、`rtk pnpm test:distributed-closeout`、`rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
+- [x] 本地 Docker daemon 已恢复可用，`docker compose -f docker-compose.observability.yml up -d` 可成功拉起 `consul`、`prometheus`、`tempo`、`loki`、`promtail`、`grafana`
+- [x] 自动化 closeout 已通过：`pnpm test:observability-closeout`、`pnpm test:discovery-closeout`、`pnpm test:distributed-closeout`、`pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
 - [ ] 当前 live Consul catalog 仍未收口：`curl --noproxy '*' http://127.0.0.1:8500/v1/catalog/services` 只返回 `{"consul":[]}`，`/v1/health/checks/gateway` 为空，说明现有 gateway 进程未完成服务注册
 - [ ] Grafana datasource 已通过 API 确认 provisioned；Prometheus / Loki health API 为 `OK`，Tempo 容器 `/ready` 为 `ready`，但人工 UI 点击验收仍未补齐
 

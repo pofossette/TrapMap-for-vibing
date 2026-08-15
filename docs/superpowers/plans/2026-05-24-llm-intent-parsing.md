@@ -36,8 +36,8 @@
 建议提交格式：
 
 ```bash
-rtk git add <本阶段涉及文件>
-rtk git commit --no-verify -m "feat(retrieval): <phase-summary>"
+git add <本阶段涉及文件>
+git commit --no-verify -m "feat(retrieval): <phase-summary>"
 ```
 
 ## 总体文件分解
@@ -141,8 +141,8 @@ export async function parseSeedIntentWithLLM(
 
 ```md
 ### 本阶段提交
-- [ ] 已执行 `rtk git add ...`
-- [ ] 已执行 `rtk git commit --no-verify -m "feat(retrieval): ..."`
+- [ ] 已执行 `git add ...`
+- [ ] 已执行 `git commit --no-verify -m "feat(retrieval): ..."`
 ```
 
 注意事项：
@@ -273,7 +273,7 @@ export class InMemoryIntentCache implements IntentCacheStore {
 验收要求：
 
 - 所有 `ParsedIntent` 手写对象都补齐三个新字段
-- `rtk pnpm typecheck` 不再报 “missing property”
+- `pnpm typecheck` 不再报 “missing property”
 
 示例结构：
 
@@ -305,8 +305,8 @@ const intent: ParsedIntent = {
 ### 本阶段最小验证
 
 ```bash
-rtk pnpm typecheck
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent.test.ts
+pnpm typecheck
+pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent.test.ts
 ```
 
 ### Phase 1 完成验收
@@ -551,9 +551,9 @@ it('falls back to regex when chat is not configured', async () => {
 ### 本阶段最小验证
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent.test.ts
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent-cache.test.ts
-rtk pnpm typecheck
+pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent.test.ts
+pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent-cache.test.ts
+pnpm typecheck
 ```
 
 ### Phase 2 完成验收
@@ -682,9 +682,9 @@ expect(generateEmbedding).toHaveBeenCalledWith(
 ### 本阶段最小验证
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts
-rtk pnpm test -- --run packages/server/src/__tests__/lib/retrieval/capsule-semantic-channel.test.ts
-rtk pnpm typecheck
+pnpm test -- --run packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts
+pnpm test -- --run packages/server/src/__tests__/lib/retrieval/capsule-semantic-channel.test.ts
+pnpm typecheck
 ```
 
 ### Phase 3 完成验收
@@ -792,10 +792,10 @@ expect(result.plan?.recommendedSkills.length ?? result.recommendedSkills.length)
 ### 本阶段最小验证
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts
-rtk pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts
-rtk pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts
-rtk pnpm typecheck
+pnpm test -- --run packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts
+pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts
+pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts
+pnpm typecheck
 ```
 
 ### Phase 4 完成验收
@@ -921,8 +921,8 @@ expect(result.routingTrace?.intentCategory).toBe('deployment');
 示例执行命令：
 
 ```bash
-rtk pnpm eval:retrieval:smoke
-rtk pnpm eval:retrieval:core
+pnpm eval:retrieval:smoke
+pnpm eval:retrieval:core
 ```
 
 注意事项：
@@ -938,10 +938,10 @@ rtk pnpm eval:retrieval:core
 ### 本阶段最小验证
 
 ```bash
-rtk pnpm test -- --run packages/server/src/routes/retrieval.test.ts
-rtk pnpm test -- --run evals/retrieval/lib/normalize.test.ts
-rtk pnpm typecheck
-rtk pnpm eval:retrieval:smoke
+pnpm test -- --run packages/server/src/routes/retrieval.test.ts
+pnpm test -- --run evals/retrieval/lib/normalize.test.ts
+pnpm typecheck
+pnpm eval:retrieval:smoke
 ```
 
 ### Phase 5 完成验收
@@ -1059,13 +1059,13 @@ rtk pnpm eval:retrieval:smoke
 - 至少完成以下命令：
 
 ```bash
-rtk pnpm typecheck
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent.test.ts
-rtk pnpm test -- --run packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts
-rtk pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts
-rtk pnpm test -- --run packages/server/src/routes/retrieval.test.ts
-rtk pnpm eval:retrieval:smoke
+pnpm typecheck
+pnpm test -- --run packages/server/src/lib/retrieval/capsules/intent.test.ts
+pnpm test -- --run packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts
+pnpm test -- --run packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts
+pnpm test -- --run packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts
+pnpm test -- --run packages/server/src/routes/retrieval.test.ts
+pnpm eval:retrieval:smoke
 ```
 
 注意事项：
@@ -1073,7 +1073,7 @@ rtk pnpm eval:retrieval:smoke
 - 如果时间允许，再跑：
 
 ```bash
-rtk pnpm eval:retrieval:core
+pnpm eval:retrieval:core
 ```
 
 - 若任一验证失败，不得标记阶段完成

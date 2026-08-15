@@ -150,7 +150,7 @@
     },
     {
       "file": "docs/operations/REGRESSION-COMMANDS.md",
-      "mustContain": ["rtk pnpm test:observability-benchmark", "grep -i traceparent"],
+      "mustContain": ["pnpm test:observability-benchmark", "grep -i traceparent"],
       "mustNotContain": ["grep X-Trace-Id"]
     },
     {
@@ -230,7 +230,7 @@
         "Phase 5 Distributed Baseline Freeze Checks",
         "Phase 6 Mature Capability Freeze Checks",
         "Phase 7 Maintainability / CI-Testing Truth / Documentation Closeout Checks",
-        "rtk pnpm eval:smoke",
+        "pnpm eval:smoke",
         "`pnpm eval:ci`",
         "`pnpm eval:ci:core`",
         "Runtime Foundations Verification",
@@ -523,8 +523,8 @@
         "gateway-only",
         "全局完成条件",
         "非目标与问题回写",
-        "rtk pnpm check:docs-drift",
-        "rtk pnpm check:structure"
+        "pnpm check:docs-drift",
+        "pnpm check:structure"
       ],
       "mustNotContain": ["第二个 URL", "第四种 deployment profile"]
     },

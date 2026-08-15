@@ -19,7 +19,7 @@
 
 - 新发现的问题、风险和 deferred，现统一回写到 [`docs/todos/open-debt-and-compromises.md`](docs/todos/open-debt-and-compromises.md)；旧 closeout 细则仅保留历史参考：[`docs/archived/archived-plans/active-closeout-and-followups.md`](docs/archived/archived-plans/active-closeout-and-followups.md)
 - 任何 API surface、运行时默认值、部署行为、服务发现或可观测性语义变化，先更新权威事实页，再更新二级说明文档
-- 文档或目录规则改动完成后，至少运行 `rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`
+- 文档或目录规则改动完成后，至少运行 `pnpm check:docs-drift` 与 `pnpm check:structure`
 - 涉及 runtime/profile/route surface、部署默认值、健康检查或服务发现链路时，补跑对应最小验证
 
 ## 背景归档入口

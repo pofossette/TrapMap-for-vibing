@@ -112,7 +112,7 @@ Assumptions / Open Questions：
   - `packages/server/src/lib/lifecycle/outbox.test.ts`
   - `packages/server/src/lib/runtime/runtime-metadata.test.ts`
   - `packages/server/src/routes/operations/status.test.ts`
-- [x] 如涉及 retrieval freshness contract 变化，至少运行 `rtk pnpm eval:smoke`。
+- [x] 如涉及 retrieval freshness contract 变化，至少运行 `pnpm eval:smoke`。
 - [x] 为 workflow/dead-letter/resume 增补针对性测试。
 
 ## 必要示例

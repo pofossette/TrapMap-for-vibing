@@ -116,7 +116,7 @@ candidate/knowledge/artifact text
 - [x] Add `packages/server/src/lib/labels/repository.test.ts`.
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/persistence/__tests__/schema-label-catalog.test.ts \
   packages/server/src/lib/labels/repository.test.ts
 ```
@@ -184,7 +184,7 @@ export interface LabelAliasRecord {
 - [x] Add `packages/server/src/lib/labels/llm-align.test.ts`.
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/contracts/src/domain/graph-extraction.test.ts \
   packages/server/src/lib/labels/candidate-recall.test.ts \
   packages/server/src/lib/labels/llm-align.test.ts
@@ -265,7 +265,7 @@ export interface LabelAlignmentDecision {
 - [x] All existing integration tests pass (35 llm-extract + 7 documents + 15 graph + 7 graph-builders + 4 graph-assisted = 68 tests).
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts \
   packages/server/src/lib/indexing/graph-lite/documents.test.ts \
   packages/server/src/lib/indexing/adapters/graph.test.ts \
@@ -334,13 +334,13 @@ const mergeKey = node.canonicalLabelId
 - [x] Add `packages/server/src/lib/labels/merge-repair.test.ts`.
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/labels/backfill.test.ts \
   packages/server/src/lib/labels/merge-repair.test.ts
 ```
 - [x] Run:
 ```bash
-rtk pnpm backfill:labels -- --dry-run
+pnpm backfill:labels -- --dry-run
 ```
 
 **Example structure:**
@@ -408,22 +408,22 @@ historical labels
 **Tests / eval updates in this phase:**
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   evals/graph-extraction/run.test.ts \
   packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts \
   packages/server/src/lib/candidates/llm-dedup.test.ts
 ```
 - [x] Run:
 ```bash
-rtk pnpm eval:graph-extraction:smoke
+pnpm eval:graph-extraction:smoke
 ```
 - [x] Run:
 ```bash
-rtk pnpm eval:dedup:dry-run
+pnpm eval:dedup:dry-run
 ```
 - [x] If chat is configured, run:
 ```bash
-rtk pnpm eval:graph-extraction --smoke
+pnpm eval:graph-extraction --smoke
 ```
 - [x] If the live run degrades to fallback, leave this phase incomplete and document the degraded reason.
   **Note:** Smoke eval degrades to fallback because no chat provider is configured in the test environment. This is expected behavior — the eval framework correctly reports the degraded state.

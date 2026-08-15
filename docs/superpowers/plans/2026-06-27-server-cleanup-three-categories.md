@@ -140,7 +140,7 @@ rm packages/server/src/routes/compatibility-shell.ts
 - [ ] **Step 5: Run affected tests to verify no breakage**
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/routes/decay.test.ts src/routes/maintenance.test.ts
+pnpm --filter @trapmap/server test --run src/routes/decay.test.ts src/routes/maintenance.test.ts
 ```
 
 Expected: All tests pass. The 501 behavior is identical — only the code location changed.
@@ -148,7 +148,7 @@ Expected: All tests pass. The 501 behavior is identical — only the code locati
 - [ ] **Step 6: Run typecheck to verify no dangling imports**
 
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 Expected: No errors. The `compatibility-shell.ts` import was removed before deletion.
@@ -223,7 +223,7 @@ If other files exist, investigate before proceeding — stop and escalate if the
 - [ ] **Step 4: Run backend-core tests to verify no breakage**
 
 ```bash
-rtk pnpm --filter @trapmap/backend-core test --run
+pnpm --filter @trapmap/backend-core test --run
 ```
 
 Expected: All tests pass. The deleted tests were testing re-exports from the facade that no longer exists.
@@ -231,7 +231,7 @@ Expected: All tests pass. The deleted tests were testing re-exports from the fac
 - [ ] **Step 5: Run typecheck**
 
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 Expected: No errors.
@@ -239,7 +239,7 @@ Expected: No errors.
 - [ ] **Step 6: Run structure check**
 
 ```bash
-rtk pnpm check:structure
+pnpm check:structure
 ```
 
 Expected: Passes. If the structure check references `modules/`, update the structure rules.
@@ -286,7 +286,7 @@ The config.ts file also imports from several `server/lib/` sub-modules:
 - [ ] **Step 1: Audit all consumers of `server/config.ts`**
 
 ```bash
-rtk pnpm typecheck 2>&1 | grep -i 'config' | head -20
+pnpm typecheck 2>&1 | grep -i 'config' | head -20
 ```
 
 Search for all import paths:
@@ -301,7 +301,7 @@ Document all consumers. Per codegraph, the external consumer is only `config-bri
 - [ ] **Step 2: Run existing config tests to establish baseline**
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/config.test.ts
+pnpm --filter @trapmap/server test --run src/config.test.ts
 ```
 
 Expected: All tests pass. Record this as the baseline.
@@ -342,9 +342,9 @@ The actual migration requires:
 - [ ] **Step 1: Run baseline tests**
 
 ```bash
-rtk pnpm --filter @trapmap/host-local test --run src/bootstrap/server.test.ts
-rtk pnpm --filter @trapmap/host-local test --run src/nest/app.test.ts
-rtk pnpm test:deployment-smoke
+pnpm --filter @trapmap/host-local test --run src/bootstrap/server.test.ts
+pnpm --filter @trapmap/host-local test --run src/nest/app.test.ts
+pnpm test:deployment-smoke
 ```
 
 Expected: All pass. Record as baseline.
@@ -399,8 +399,8 @@ Document which files import these symbols.
 - [ ] **Step 2: Run baseline runtime tests**
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/lib/runtime/
-rtk pnpm test:runtime-foundations
+pnpm --filter @trapmap/server test --run src/lib/runtime/
+pnpm test:runtime-foundations
 ```
 
 Expected: All pass. Record as baseline.
@@ -440,7 +440,7 @@ The write path calls `createReviewApplicationService()` and `reviewService.apply
 - [ ] **Step 1: Run baseline review tests**
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/routes/review.test.ts
+pnpm --filter @trapmap/server test --run src/routes/review.test.ts
 ```
 
 Expected: All pass. Record as baseline.
@@ -484,7 +484,7 @@ Both call `attachManualResult()` and `applyResolution()` from `@trapmap/server/l
 - [ ] **Step 1: Run baseline candidates tests**
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/routes/candidates.test.ts
+pnpm --filter @trapmap/server test --run src/routes/candidates.test.ts
 ```
 
 Expected: All pass. Record as baseline.
@@ -529,7 +529,7 @@ The 501 batch write handlers can be removed outright (they're already shells). T
 - [ ] **Step 1: Run baseline tests**
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/routes/maintenance.test.ts src/routes/decay.test.ts
+pnpm --filter @trapmap/server test --run src/routes/maintenance.test.ts src/routes/decay.test.ts
 ```
 
 Expected: All pass. Record as baseline.
@@ -547,7 +547,7 @@ This is a real admin write endpoint (calls `reconcileKnowledgeIndexes`). Per the
 - [ ] **Step 4: Run tests after 501 handler removal**
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/routes/maintenance.test.ts src/routes/decay.test.ts
+pnpm --filter @trapmap/server test --run src/routes/maintenance.test.ts src/routes/decay.test.ts
 ```
 
 Expected: Tests that tested the 501 batch endpoints may need to be updated to expect 404 (route no longer exists) instead of 501.
@@ -619,7 +619,7 @@ Create a categorization table and include it in the commit message or a follow-u
 - [ ] **Step 5: Run operations tests**
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/routes/operations/
+pnpm --filter @trapmap/server test --run src/routes/operations/
 ```
 
 Expected: All pass.
@@ -652,7 +652,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 1: Run docs drift check**
 
 ```bash
-rtk pnpm check:docs-drift
+pnpm check:docs-drift
 ```
 
 If failures, fix the drift.
@@ -678,8 +678,8 @@ In `packages/backend-core/README.md`:
 - [ ] **Step 4: Run full doc and structure checks**
 
 ```bash
-rtk pnpm check:docs-drift
-rtk pnpm check:structure
+pnpm check:docs-drift
+pnpm check:structure
 ```
 
 Expected: Both pass.
@@ -702,7 +702,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 1: Connector seam tests**
 
 ```bash
-rtk pnpm --filter @trapmap/host-local test --run src/nest/adapters/adapter-factory.test.ts
+pnpm --filter @trapmap/host-local test --run src/nest/adapters/adapter-factory.test.ts
 ```
 
 Expected: Pass.
@@ -710,7 +710,7 @@ Expected: Pass.
 - [ ] **Step 2: Request/trace propagation tests**
 
 ```bash
-rtk pnpm --filter @trapmap/host-local test --run src/nest/runtime/request-context.test.ts
+pnpm --filter @trapmap/host-local test --run src/nest/runtime/request-context.test.ts
 ```
 
 Expected: Pass.
@@ -718,8 +718,8 @@ Expected: Pass.
 - [ ] **Step 3: Light host cutover tests**
 
 ```bash
-rtk pnpm --filter @trapmap/host-local test --run src/bootstrap/server.test.ts
-rtk pnpm --filter @trapmap/host-local test --run src/nest/app.test.ts
+pnpm --filter @trapmap/host-local test --run src/bootstrap/server.test.ts
+pnpm --filter @trapmap/host-local test --run src/nest/app.test.ts
 ```
 
 Expected: Pass.
@@ -727,7 +727,7 @@ Expected: Pass.
 - [ ] **Step 4: Server legacy route tests**
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/routes/review.test.ts src/routes/candidates.test.ts src/routes/maintenance.test.ts src/routes/decay.test.ts
+pnpm --filter @trapmap/server test --run src/routes/review.test.ts src/routes/candidates.test.ts src/routes/maintenance.test.ts src/routes/decay.test.ts
 ```
 
 Expected: Pass.
@@ -735,7 +735,7 @@ Expected: Pass.
 - [ ] **Step 5: Deployment smoke**
 
 ```bash
-rtk pnpm test:deployment-smoke
+pnpm test:deployment-smoke
 ```
 
 Expected: Pass.
@@ -743,7 +743,7 @@ Expected: Pass.
 - [ ] **Step 6: Typecheck**
 
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 Expected: Pass.
@@ -751,8 +751,8 @@ Expected: Pass.
 - [ ] **Step 7: Doc and structure guards**
 
 ```bash
-rtk pnpm check:docs-drift
-rtk pnpm check:structure
+pnpm check:docs-drift
+pnpm check:structure
 ```
 
 Expected: Both pass.

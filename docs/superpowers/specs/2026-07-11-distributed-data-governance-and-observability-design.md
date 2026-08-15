@@ -20,7 +20,7 @@
 
 ## 交付与验证
 
-每个任务都必须有进度复选框，列出源码、测试和文档回写位置。涉及 contracts、跨包导入、运行时、持久化或部署时，细则应要求相应 focused test、`rtk pnpm typecheck`、`rtk pnpm exec fallow audit --base main`（适用时）、`rtk pnpm test:distributed-closeout`、`rtk pnpm test:observability-closeout`、`rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`。
+每个任务都必须有进度复选框，列出源码、测试和文档回写位置。涉及 contracts、跨包导入、运行时、持久化或部署时，细则应要求相应 focused test、`pnpm typecheck`、`pnpm exec fallow audit --base main`（适用时）、`pnpm test:distributed-closeout`、`pnpm test:observability-closeout`、`pnpm check:docs-drift` 与 `pnpm check:structure`。
 
 ## 非目标与关闭条件
 

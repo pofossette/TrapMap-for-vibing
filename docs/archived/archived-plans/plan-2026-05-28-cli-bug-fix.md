@@ -70,10 +70,10 @@
 ## Global Done Criteria
 
 - [ ] All 54 confirmed bugs have corresponding test cases that fail before the fix and pass after
-- [ ] `rtk pnpm typecheck` passes
-- [ ] `rtk pnpm check` passes
-- [ ] `rtk pnpm test` passes (full suite, no regressions)
-- [ ] `rtk pnpm eval:smoke` passes
+- [ ] `pnpm typecheck` passes
+- [ ] `pnpm check` passes
+- [ ] `pnpm test` passes (full suite, no regressions)
+- [ ] `pnpm eval:smoke` passes
 - [ ] No new ESLint violations introduced
 
 ---
@@ -115,8 +115,8 @@
 - Add `isInteractiveEnvironment` test: mock `process.stdin = undefined` must return `false`
 - Add `getConfigPath` test: mock `os.homedir` throwing must return tmpdir path
 - Add `requireSessionToken` test: numeric token must throw
-- Run: `rtk pnpm test -- --run packages/cli/src/lib/skill-artifact-export.test.ts packages/cli/src/lib/output-profile.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/lib/http.test.ts`
-- Run: `rtk pnpm typecheck`
+- Run: `pnpm test -- --run packages/cli/src/lib/skill-artifact-export.test.ts packages/cli/src/lib/output-profile.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/lib/http.test.ts`
+- Run: `pnpm typecheck`
 
 **Necessary example structure or code:**
 
@@ -261,7 +261,7 @@ describe('requireSessionToken', () => {
 });
 ```
 
-Run: `rtk pnpm test -- --run packages/cli/src/lib/skill-artifact-export.test.ts packages/cli/src/lib/output-profile.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/lib/http.test.ts`
+Run: `pnpm test -- --run packages/cli/src/lib/skill-artifact-export.test.ts packages/cli/src/lib/output-profile.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/lib/http.test.ts`
 Expected: FAIL — tests assert behavior that doesn't exist yet.
 
 - [ ] **Step 1.2: Implement the 6 fixes**
@@ -270,17 +270,17 @@ Apply the code changes shown in the "Necessary example structure or code" sectio
 
 - [ ] **Step 1.3: Run tests and verify all pass**
 
-Run: `rtk pnpm test -- --run packages/cli/src/lib/skill-artifact-export.test.ts packages/cli/src/lib/output-profile.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/lib/http.test.ts`
+Run: `pnpm test -- --run packages/cli/src/lib/skill-artifact-export.test.ts packages/cli/src/lib/output-profile.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/lib/http.test.ts`
 Expected: PASS
 
-Run: `rtk pnpm typecheck`
+Run: `pnpm typecheck`
 Expected: PASS
 
 - [ ] **Step 1.4: Update security and package docs, commit**
 
 ```bash
-rtk git add packages/cli/src/lib/ docs/operations/SECURITY.md docs/PACKAGES.md
-rtk git commit -m "fix(cli): patch path traversal, crash, and auth bugs (Phase 1)"
+git add packages/cli/src/lib/ docs/operations/SECURITY.md docs/PACKAGES.md
+git commit -m "fix(cli): patch path traversal, crash, and auth bugs (Phase 1)"
 ```
 
 ---
@@ -325,8 +325,8 @@ rtk git commit -m "fix(cli): patch path traversal, crash, and auth bugs (Phase 1
 - Add test: feedback `--entry-type foo` throws `InvalidArgumentError`
 - Add test: deactivate `--reason` with 0 or 501 characters throws
 - Add test: edit `--required-level 2.5` is rejected or floored to integer
-- Run: `rtk pnpm test -- --run packages/cli/src/commands/skill.test.ts packages/cli/src/commands/operations.test.ts packages/cli/src/commands/feedback.test.ts`
-- Run: `rtk pnpm typecheck`
+- Run: `pnpm test -- --run packages/cli/src/commands/skill.test.ts packages/cli/src/commands/operations.test.ts packages/cli/src/commands/feedback.test.ts`
+- Run: `pnpm typecheck`
 
 **Necessary example structure or code:**
 
@@ -481,7 +481,7 @@ describe('deactivate --reason', () => {
 });
 ```
 
-Run: `rtk pnpm test -- --run packages/cli/src/commands/skill.test.ts packages/cli/src/commands/operations.test.ts packages/cli/src/commands/feedback.test.ts`
+Run: `pnpm test -- --run packages/cli/src/commands/skill.test.ts packages/cli/src/commands/operations.test.ts packages/cli/src/commands/feedback.test.ts`
 Expected: FAIL
 
 - [ ] **Step 2.2: Implement permission and validation fixes**
@@ -490,17 +490,17 @@ Apply all code changes shown in the "Necessary example structure or code" sectio
 
 - [ ] **Step 2.3: Run tests and verify all pass**
 
-Run: `rtk pnpm test -- --run packages/cli/src/commands/skill.test.ts packages/cli/src/commands/operations.test.ts packages/cli/src/commands/feedback.test.ts`
+Run: `pnpm test -- --run packages/cli/src/commands/skill.test.ts packages/cli/src/commands/operations.test.ts packages/cli/src/commands/feedback.test.ts`
 Expected: PASS
 
-Run: `rtk pnpm typecheck`
+Run: `pnpm typecheck`
 Expected: PASS
 
 - [ ] **Step 2.4: Update governance docs, commit**
 
 ```bash
-rtk git add packages/cli/src/commands/ packages/cli/src/index.ts docs/PACKAGES.md docs/architecture/components/GOVERNANCE.md
-rtk git commit -m "fix(cli): correct permission flags and input validation (Phase 2)"
+git add packages/cli/src/commands/ packages/cli/src/index.ts docs/PACKAGES.md docs/architecture/components/GOVERNANCE.md
+git commit -m "fix(cli): correct permission flags and input validation (Phase 2)"
 ```
 
 ---
@@ -563,8 +563,8 @@ rtk git commit -m "fix(cli): correct permission flags and input validation (Phas
 - Add test: `scanSkillDirectory` finds `skill.md` (lowercase)
 - Add test: `buildSingleSkillMdBundle` produces `scope: 'global'`
 - Add test: `formatDecayList` with `decayState: null` outputs `'unknown'`, with `undefined` outputs empty
-- Run: `rtk pnpm test -- --run packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/lib/artifact-bundle.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/commands/decay.test.ts packages/cli/src/commands/maintenance.test.ts`
-- Run: `rtk pnpm typecheck`
+- Run: `pnpm test -- --run packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/lib/artifact-bundle.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/commands/decay.test.ts packages/cli/src/commands/maintenance.test.ts`
+- Run: `pnpm typecheck`
 
 **Necessary example structure or code:**
 
@@ -708,7 +708,7 @@ if (options.stdin || hasStdinContent()) {
 
 Add tests to the existing test files as specified in "Test / eval updates required" above. Each test should assert the correct behavior that the current code fails to provide.
 
-Run: `rtk pnpm test -- --run packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/lib/artifact-bundle.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/commands/decay.test.ts packages/cli/src/commands/maintenance.test.ts`
+Run: `pnpm test -- --run packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/lib/artifact-bundle.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/commands/decay.test.ts packages/cli/src/commands/maintenance.test.ts`
 Expected: FAIL — at least the new tests should fail.
 
 - [ ] **Step 3.2: Implement the 18 logic fixes**
@@ -717,17 +717,17 @@ Apply all code changes shown in the "Necessary example structure or code" sectio
 
 - [ ] **Step 3.3: Run tests and verify all pass**
 
-Run: `rtk pnpm test -- --run packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/lib/artifact-bundle.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/commands/decay.test.ts packages/cli/src/commands/maintenance.test.ts`
+Run: `pnpm test -- --run packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/lib/artifact-bundle.test.ts packages/cli/src/lib/config.test.ts packages/cli/src/commands/decay.test.ts packages/cli/src/commands/maintenance.test.ts`
 Expected: PASS
 
-Run: `rtk pnpm typecheck`
+Run: `pnpm typecheck`
 Expected: PASS
 
 - [ ] **Step 3.4: Update code guide and testing docs, commit**
 
 ```bash
-rtk git add packages/cli/src/ docs/guides/CODE_GUIDE.md docs/operations/TESTING.md
-rtk git commit -m "fix(cli): correct logic errors in formatters, path validation, and falsy checks (Phase 3)"
+git add packages/cli/src/ docs/guides/CODE_GUIDE.md docs/operations/TESTING.md
+git commit -m "fix(cli): correct logic errors in formatters, path validation, and falsy checks (Phase 3)"
 ```
 
 ---
@@ -784,9 +784,9 @@ rtk git commit -m "fix(cli): correct logic errors in formatters, path validation
 - Add test: `formatSkillMatch` with title containing `\n` produces single-line title
 - Add test: `formatFeedbackResult` with ANSI codes in input strips them
 - Add test: `formatExportJson` with `Infinity` value does not produce `null`
-- Run: `rtk pnpm test -- --run packages/cli/src/lib/sanitize.test.ts packages/cli/src/lib/output.test.ts packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/commands/skill.test.ts packages/cli/src/commands/feedback.test.ts`
-- Run: `rtk pnpm typecheck`
-- Run: `rtk pnpm eval:smoke`
+- Run: `pnpm test -- --run packages/cli/src/lib/sanitize.test.ts packages/cli/src/lib/output.test.ts packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/commands/skill.test.ts packages/cli/src/commands/feedback.test.ts`
+- Run: `pnpm typecheck`
+- Run: `pnpm eval:smoke`
 
 **Necessary example structure or code:**
 
@@ -982,14 +982,14 @@ describe('sanitizeForDisplay', () => {
 });
 ```
 
-Run: `rtk pnpm test -- --run packages/cli/src/lib/sanitize.test.ts`
+Run: `pnpm test -- --run packages/cli/src/lib/sanitize.test.ts`
 Expected: PASS (new file, no dependencies to break)
 
 - [ ] **Step 4.2: Write failing tests for formatting and injection bugs**
 
 Add tests to existing test files as specified in "Test / eval updates required" above.
 
-Run: `rtk pnpm test -- --run packages/cli/src/lib/output.test.ts packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/commands/skill.test.ts packages/cli/src/commands/feedback.test.ts`
+Run: `pnpm test -- --run packages/cli/src/lib/output.test.ts packages/cli/src/lib/markdown-formatter.test.ts packages/cli/src/commands/skill.test.ts packages/cli/src/commands/feedback.test.ts`
 Expected: FAIL — new tests assert corrected behavior.
 
 - [ ] **Step 4.3: Implement all formatting and injection fixes**
@@ -1006,21 +1006,21 @@ Apply fixes for:
 
 - [ ] **Step 4.5: Run full test suite and eval, commit**
 
-Run: `rtk pnpm test`
+Run: `pnpm test`
 Expected: PASS
 
-Run: `rtk pnpm typecheck`
+Run: `pnpm typecheck`
 Expected: PASS
 
-Run: `rtk pnpm check`
+Run: `pnpm check`
 Expected: PASS
 
-Run: `rtk pnpm eval:smoke`
+Run: `pnpm eval:smoke`
 Expected: PASS
 
 ```bash
-rtk git add packages/cli/src/ docs/guides/CODE_GUIDE.md docs/operations/TESTING.md
-rtk git commit -m "fix(cli): correct formatting, add input sanitization, fix low-severity bugs (Phase 4)"
+git add packages/cli/src/ docs/guides/CODE_GUIDE.md docs/operations/TESTING.md
+git commit -m "fix(cli): correct formatting, add input sanitization, fix low-severity bugs (Phase 4)"
 ```
 
 ---

@@ -116,7 +116,7 @@
 
 ## 附：数据来源（2026-08-08 核对版）
 
-- `rtk fallow dupes --format json --quiet`（608 组克隆，含生产/测试/evals 分类；fallow 2.101.0）
+- `fallow dupes --format json --quiet`（608 组克隆，含生产/测试/evals 分类；fallow 2.101.0）
 - `@trapmap/lib` 源码与单测（30 个用例全绿：`vitest run --project lib`）
 - 全局符号扫描（`function|const <name>` 跨包计数）
 - `grep` 断言模式计数（as never / as unknown as / as any / 非空断言），排除 `dist/`

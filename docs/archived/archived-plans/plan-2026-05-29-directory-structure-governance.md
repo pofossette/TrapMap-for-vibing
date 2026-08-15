@@ -185,8 +185,8 @@ Add one row to `docs/reference/SYSTEM_TRUTH_SOURCES.md`:
 Run:
 
 ```bash
-rtk pnpm check:docs-drift
-rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
+pnpm check:docs-drift
+pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts
 ```
 
 Expected: both commands pass.
@@ -230,7 +230,7 @@ Expected: both commands pass.
 Run:
 
 ```bash
-rtk mkdir -p docs/archived/reports
+mkdir -p docs/archived/reports
 ```
 
 Expected: `docs/archived/reports/` exists.
@@ -240,9 +240,9 @@ Expected: `docs/archived/reports/` exists.
 Run:
 
 ```bash
-rtk git mv RETRIEVAL_V2_V3_IMPLEMENTATION_PLAN.md docs/archived/archived-plans/retrieval-v2-v3-implementation-plan.md
-rtk git mv SEA_REFERENCE_INFRA_REVIEW.md docs/archived/reports/sea-reference-infra-review.md
-rtk git mv temp.md docs/archived/temp-2026-05-28.md
+git mv RETRIEVAL_V2_V3_IMPLEMENTATION_PLAN.md docs/archived/archived-plans/retrieval-v2-v3-implementation-plan.md
+git mv SEA_REFERENCE_INFRA_REVIEW.md docs/archived/reports/sea-reference-infra-review.md
+git mv temp.md docs/archived/temp-2026-05-28.md
 ```
 
 Expected: root Markdown is reduced to the allowlist in Phase 0.4.
@@ -270,7 +270,7 @@ Ensure `README.md` links to `docs/reference/REPO_STRUCTURE.md`:
 Before the automated script exists, run:
 
 ```bash
-rtk proxy git ls-files '*.md' | grep -v '/' 
+proxy git ls-files '*.md' | grep -v '/' 
 ```
 
 Expected output:
@@ -301,7 +301,7 @@ plan.md
 ### Phase 2 测试/Eval 更新
 
 - [x] 扩展 `scripts/complexity-budgets.json` docRules，禁止 `README.md` 再链接根目录历史计划
-- [x] 运行 `rtk pnpm check:docs-drift`
+- [x] 运行 `pnpm check:docs-drift`
 - [x] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
 
 ---
@@ -321,9 +321,9 @@ plan.md
 Run:
 
 ```bash
-rtk git mv docs/archive/doc-drift-audit-report-2026-05-28.md docs/archived/reports/doc-drift-audit-report-2026-05-28.md
-rtk git mv docs/archive/doc-drift-audit-report-2026-05-28-cont.md docs/archived/reports/doc-drift-audit-report-2026-05-28-cont.md
-rtk git mv docs/archive/old_plan_back.md docs/archived/archived-plans/old-plan-back-2026-05-28.md
+git mv docs/archive/doc-drift-audit-report-2026-05-28.md docs/archived/reports/doc-drift-audit-report-2026-05-28.md
+git mv docs/archive/doc-drift-audit-report-2026-05-28-cont.md docs/archived/reports/doc-drift-audit-report-2026-05-28-cont.md
+git mv docs/archive/old_plan_back.md docs/archived/archived-plans/old-plan-back-2026-05-28.md
 ```
 
 Expected: `docs/archive/` becomes empty and can be removed.
@@ -333,7 +333,7 @@ Expected: `docs/archive/` becomes empty and can be removed.
 Run:
 
 ```bash
-rtk rmdir docs/archive
+rmdir docs/archive
 ```
 
 Expected: only `docs/archived/` remains as archive root.
@@ -403,9 +403,9 @@ Add this rule to `docs/reference/REPO_STRUCTURE.md`:
 
 ### Phase 3 测试/Eval 更新
 
-- [x] 新增结构守卫前，手动运行 `rtk proxy git ls-files 'docs/archive/**'`
+- [x] 新增结构守卫前，手动运行 `proxy git ls-files 'docs/archive/**'`
 - [x] Expected: no output
-- [x] 运行 `rtk pnpm check:docs-drift`
+- [x] 运行 `pnpm check:docs-drift`
 - [x] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
 
 ---
@@ -545,7 +545,7 @@ Extend `scripts/complexity-budgets.json` later only if the checker supports dire
 
 - [x] 更新 `packages/server/src/__tests__/docs-truth-smoke.test.ts`
 - [x] 更新 `scripts/complexity-budgets.json` docRules
-- [x] 运行 `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+- [x] 运行 `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
 - [x] 本阶段不修改 eval 数据集；不运行 `eval:smoke`
 
 ---
@@ -639,10 +639,10 @@ Add rules to `scripts/complexity-budgets.json`:
 Run:
 
 ```bash
-rtk pnpm eval:retrieval:dry-run
-rtk pnpm eval:summary:dry-run
-rtk pnpm eval:graph-extraction:dry-run
-rtk pnpm eval:ingestion:dry-run
+pnpm eval:retrieval:dry-run
+pnpm eval:summary:dry-run
+pnpm eval:graph-extraction:dry-run
+pnpm eval:ingestion:dry-run
 ```
 
 Expected: commands complete without changing reports.
@@ -825,9 +825,9 @@ The `architecture-guardrails` job runs `pnpm check:docs-drift`, `pnpm check:comp
 Run:
 
 ```bash
-rtk pnpm check:structure
-rtk pnpm check:docs-drift
-rtk pnpm check:complexity
+pnpm check:structure
+pnpm check:docs-drift
+pnpm check:complexity
 ```
 
 Expected: all commands pass.
@@ -847,7 +847,7 @@ Expected: all commands pass.
 
 ### Phase 6 测试/Eval 更新
 
-- [x] 不修改 eval 数据集；运行 `rtk pnpm eval:smoke` 作为最终回归门
+- [x] 不修改 eval 数据集；运行 `pnpm eval:smoke` 作为最终回归门
 
 ---
 
@@ -863,7 +863,7 @@ Expected: all commands pass.
 Run:
 
 ```bash
-rtk proxy git ls-files '*.md' | grep -v '/'
+proxy git ls-files '*.md' | grep -v '/'
 ```
 
 Expected:
@@ -882,7 +882,7 @@ plan.md
 Run:
 
 ```bash
-rtk proxy git ls-files 'docs/archive/**'
+proxy git ls-files 'docs/archive/**'
 ```
 
 Expected: no output.
@@ -892,12 +892,12 @@ Expected: no output.
 Run:
 
 ```bash
-rtk pnpm check:structure
-rtk pnpm check:docs-drift
-rtk pnpm check:complexity
-rtk pnpm typecheck
-rtk pnpm test
-rtk pnpm eval:smoke
+pnpm check:structure
+pnpm check:docs-drift
+pnpm check:complexity
+pnpm typecheck
+pnpm test
+pnpm eval:smoke
 ```
 
 Expected: all commands pass.
@@ -923,8 +923,8 @@ Mark completed phases in `plan.md` using checkbox syntax.
 
 ### Phase 7 测试/Eval 更新
 
-- [x] 运行全量 `rtk pnpm test`
-- [x] 运行最终 `rtk pnpm eval:smoke`
+- [x] 运行全量 `pnpm test`
+- [x] 运行最终 `pnpm eval:smoke`
 - [x] 如 `eval:smoke` 生成 reports，只提交应纳入版本控制的 `.gitkeep` 或手写文档，不提交生成 JSON
 
 ---

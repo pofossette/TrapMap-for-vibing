@@ -48,7 +48,7 @@
 
 - **分类**：existing debt confirmed
 - **影响**：读侧包边界失真，server internals 变更持续放大 blast radius
-- **来源**：[`docs/architecture/BOUNDARIES.md`](../architecture/BOUNDARIES.md)、`rtk pnpm exec fallow list --boundaries`
+- **来源**：[`docs/architecture/BOUNDARIES.md`](../architecture/BOUNDARIES.md)、`pnpm exec fallow list --boundaries`
 - **证据**：
   - 2026-07-09 Wave 1 已移除 read-side 业务文件对 `server` error taxonomy 和 graph runtime types 的直接依赖，`search-knowledge.ts` / `retrieval-recall-coordinator.ts` 改用 `InvocationError`，`context.ts` / `retrieval-recall-coordinator.ts` 改用 `runtime-infra` graph seam types
   - 2026-07-09 Wave 5 已将 `service-knowledge-read` zone 允许依赖收紧为 `backend-core`、`contracts`、`runtime-infra`，`server` 直接导入改为边界回退
@@ -56,8 +56,8 @@
   - 2026-07-09 Wave 6 已让 `retrieval-infra.ts` 直接依赖 `retrieval-infra-default.ts`，不再通过同时承载 query-port adapter 的 `server-retrieval-seam.ts` 获取默认 infra，关闭 `search-knowledge -> retrieval-infra -> server-retrieval-seam -> search-knowledge` 循环路径
   - 2026-07-09 Wave 7 已让 `http-hooks.ts` 改用 `metrics.ts`、`request-context.ts`、`runtime-contract.ts` 直接导入，关闭 `server/src/lib/runtime/http-hooks.ts` <-> `server/src/lib/runtime/index.ts` 的 runtime barrel cycle
   - 剩余 `runtime-infra` 依赖目前主要承载 repo 与 graph runtime seam 类型：`read-model.ts`、`context.ts`
-  - `rtk pnpm exec fallow dead-code --circular-deps --format json --quiet --top 10` 当前显示 `total_issues=0` / `circular_dependencies=0`
-  - `rtk pnpm exec fallow --format json --quiet --summary` 当前显示 `unused_files=0`，`retrieval-infra-default.ts` 已由 `retrieval-infra.ts` 显式引用，不再是 unused compatibility file
+  - `pnpm exec fallow dead-code --circular-deps --format json --quiet --top 10` 当前显示 `total_issues=0` / `circular_dependencies=0`
+  - `pnpm exec fallow --format json --quiet --summary` 当前显示 `unused_files=0`，`retrieval-infra-default.ts` 已由 `retrieval-infra.ts` 显式引用，不再是 unused compatibility file
 
 #### Tranche A 当前残留分类（2026-07-09 baseline）
 
@@ -92,7 +92,7 @@
 - **来源**：[`docs/architecture/BOUNDARIES.md`](../architecture/BOUNDARIES.md)
 - **证据**：
   - 2026-07-10 targeted cleanup 已将 `packages/runtime-infra/src/shared-infra.ts` 从 `instanceof PostgresStore` 切换到本地 `getStorePool(store)` 结构化 seam；对应新增 `packages/runtime-infra/src/store.test.ts` 与 import-boundary 守护
-  - `rtk rg "instanceof PostgresStore|new PostgresStore|getPool\\(" packages/runtime-infra/src packages/server/src -g '!**/*.test.ts' -g '!**/__tests__/**' -g '!**/__fixtures__/**'` 当前不再命中生产路径上的 `instanceof PostgresStore`；剩余命中集中在结构化 `getPool` seam、本地 `PostgresStore` 构造和 compatibility store 实现
+  - `rg "instanceof PostgresStore|new PostgresStore|getPool\\(" packages/runtime-infra/src packages/server/src -g '!**/*.test.ts' -g '!**/__tests__/**' -g '!**/__fixtures__/**'` 当前不再命中生产路径上的 `instanceof PostgresStore`；剩余命中集中在结构化 `getPool` seam、本地 `PostgresStore` 构造和 compatibility store 实现
   - 与 read-side coupling 同属一个收口面，后续重点转为结构化 pool seam shrinkage 与 compatibility JSONB direct-read residual，而不是继续保留 concrete-class 判断
 
 ### 新近补录的问题池（2026-07-11）
@@ -142,7 +142,7 @@
 - **状态**：queued / verify-before-action
 - **进入条件**：当 security candidate 被人工验证为真实风险，或 security rules 从 advisory/off 转为 CI gate
 - **最小证据**：
-  - `rtk pnpm exec fallow security --format json --quiet --summary` 报告 `99` 个 security candidates：high `2`、medium `96`、low `1`
+  - `pnpm exec fallow security --format json --quiet --summary` 报告 `99` 个 security candidates：high `2`、medium `96`、low `1`
   - category 分布：`sql-injection=41`、`path-traversal=32`、`ssrf=10`、`dynamic-regex=6`、`code-injection=3`、`command-injection=2`、`header-injection=2`、`secret-pii-log=2`、`insecure-randomness=1`
   - 当前 security config 中 `security_client_server_leak` 与 `security_sink` 均为 configured `off` / effective `warn`，因此这些是待验证候选，不直接作为 confirmed vulnerability 或 active mainline issue
 
@@ -161,20 +161,20 @@
 
 本轮基线证据来自以下命令：
 
-- `rtk pnpm exec vitest run packages/server/src/__tests__/routes-architecture-guard.test.ts`
-- `rtk pnpm exec vitest run packages/server/src/routes/operations/badcases.test.ts packages/server/src/routes/operations/capsule-index.test.ts`
-- `rtk pnpm exec vitest run packages/server/src/lib/store/store-pool.test.ts`
-- `rtk pnpm exec vitest run --project runtime-infra packages/runtime-infra/src/store.test.ts packages/runtime-infra/src/shared-infra.test.ts packages/runtime-infra/src/import-boundary.test.ts`
-- `rtk rg "instanceof PostgresStore|new PostgresStore|getPool\\(" packages/runtime-infra/src packages/server/src -g '!**/*.test.ts' -g '!**/__tests__/**' -g '!**/__fixtures__/**'`
-- `rtk rg "@trapmap/server" packages/service-knowledge-read/src -n`
-- `rtk pnpm exec fallow list --boundaries --format json --quiet`
-- `rtk pnpm exec fallow audit --base main --gate new-only --format json --quiet --explain || true`
-- `rtk pnpm exec fallow --format json --quiet --summary || true`
-- `rtk pnpm exec fallow health --hotspots --targets --format json --quiet --top 20 || true`
-- `rtk pnpm exec fallow dupes --format json --quiet --top 10 || true`
-- `rtk pnpm exec fallow flags --format json --quiet --top 20 || true`
-- `rtk pnpm exec fallow security --format json --quiet --summary || true`
-- `rtk pnpm exec fallow list --boundaries --format json --quiet || true`
+- `pnpm exec vitest run packages/server/src/__tests__/routes-architecture-guard.test.ts`
+- `pnpm exec vitest run packages/server/src/routes/operations/badcases.test.ts packages/server/src/routes/operations/capsule-index.test.ts`
+- `pnpm exec vitest run packages/server/src/lib/store/store-pool.test.ts`
+- `pnpm exec vitest run --project runtime-infra packages/runtime-infra/src/store.test.ts packages/runtime-infra/src/shared-infra.test.ts packages/runtime-infra/src/import-boundary.test.ts`
+- `rg "instanceof PostgresStore|new PostgresStore|getPool\\(" packages/runtime-infra/src packages/server/src -g '!**/*.test.ts' -g '!**/__tests__/**' -g '!**/__fixtures__/**'`
+- `rg "@trapmap/server" packages/service-knowledge-read/src -n`
+- `pnpm exec fallow list --boundaries --format json --quiet`
+- `pnpm exec fallow audit --base main --gate new-only --format json --quiet --explain || true`
+- `pnpm exec fallow --format json --quiet --summary || true`
+- `pnpm exec fallow health --hotspots --targets --format json --quiet --top 20 || true`
+- `pnpm exec fallow dupes --format json --quiet --top 10 || true`
+- `pnpm exec fallow flags --format json --quiet --top 20 || true`
+- `pnpm exec fallow security --format json --quiet --summary || true`
+- `pnpm exec fallow list --boundaries --format json --quiet || true`
 
 - **existing debt confirmed**
   - 2026-07-10 targeted verification 全绿：route architecture guard、badcases / capsule-index、server store-pool seam，以及 runtime-infra store/shared-infra/import-boundary tests 均通过

@@ -94,7 +94,7 @@ Use this template when the goal is to stabilize existing backend functionality b
 **Test and eval updates**
 
 - [ ] Record baseline:
-  - `rtk pnpm test -- --run [relevant test files]`
+  - `pnpm test -- --run [relevant test files]`
 ```
 
 ## Phase Template (Bug Hunt)
@@ -146,8 +146,8 @@ Use this template when the goal is to stabilize existing backend functionality b
 ## Final Phase: Verification and closeout
 
 - [ ] Run all modified test suites.
-- [ ] Run `rtk pnpm typecheck`.
-- [ ] Run `rtk pnpm check:structure`.
+- [ ] Run `pnpm typecheck`.
+- [ ] Run `pnpm check:structure`.
 - [ ] Confirm all completion standards are met.
 - [ ] Archive this plan to `docs/archived/archived-plans/`.
 

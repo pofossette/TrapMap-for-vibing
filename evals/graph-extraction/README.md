@@ -63,5 +63,5 @@ pnpm eval:conflict:dry-run
 
 - **Owner**：图提取 owner（service-knowledge-read graph + ai-providers）
 - **Tier 状态**：smoke 是 CI 门禁 tier；core tier 保留为 active（fixtures/dedup/conflict 数据集）
-- **变更必跑**：`rtk pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts`（快照 parity）+ `rtk pnpm eval:graph-extraction:smoke`
+- **变更必跑**：`pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts`（快照 parity）+ `pnpm eval:graph-extraction:smoke`
 - 修改 fixtures/断言后若判定发生变化，需同步重新生成并提交 parity 快照（`pnpm eval:snapshots`）

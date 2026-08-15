@@ -167,7 +167,7 @@
 
 - [x] Review whether `packages/server/src/__tests__/docs-truth-smoke.test.ts` needs assertions that truth-source docs mention the matrix categories. *(Already covered by existing smoke test: 'DOCS_TRUTH_MATRIX.md covers expanded drift categories' and 'SYSTEM_TRUTH_SOURCES.md covers expanded drift categories')*
 - [x] Run targeted verification after truth-doc edits:
-  - `rtk pnpm exec vitest run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `pnpm exec vitest run packages/server/src/__tests__/docs-truth-smoke.test.ts`
 
 **Necessary example structure or code:**
 
@@ -223,8 +223,8 @@
   - root `pnpm run db:migrate` / `pnpm run db:generate` references in onboarding docs *(covered)*
 - [x] Ensure `scripts/complexity-budgets.json` doc rules block recurrence for the same strings. *(covered by GETTING_STARTED.md doc rule)*
 - [x] Run:
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm exec vitest run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `pnpm check:docs-drift`
+  - `pnpm exec vitest run packages/server/src/__tests__/docs-truth-smoke.test.ts`
 
 **Necessary example structure or code:**
 
@@ -280,8 +280,8 @@ pnpm --filter @trapmap/server db:generate
 - [x] Ensure drift guards cover stale host/model/table-count strings in deep docs. *(covered by complexity-budgets.json rules)*
 - [x] Ensure docs truth smoke tests cover at least one architecture-default assertion and one schema-count assertion. *(covered by existing tests)*
 - [x] Run:
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm exec vitest run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `pnpm check:docs-drift`
+  - `pnpm exec vitest run packages/server/src/__tests__/docs-truth-smoke.test.ts`
 
 **Necessary example structure or code:**
 
@@ -336,10 +336,10 @@ pnpm --filter @trapmap/server db:generate
   - workflow-reference truth where practical *(CI/eval workflows covered by truth matrix + TESTING.md assertions)*
 - [x] Extend `scripts/__tests__/check-doc-drift.test.ts` if `scripts/check-doc-drift.ts` gains new behaviors. *(no new behaviors needed; existing check types cover all rules)*
 - [x] Run:
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm check:complexity`
-  - `rtk pnpm exec vitest run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-  - `rtk pnpm exec vitest run scripts/__tests__/check-doc-drift.test.ts`
+  - `pnpm check:docs-drift`
+  - `pnpm check:complexity`
+  - `pnpm exec vitest run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `pnpm exec vitest run scripts/__tests__/check-doc-drift.test.ts`
 
 **Necessary example structure or code:**
 
@@ -374,4 +374,4 @@ it('guards onboarding docs against stale root db commands', async () => {
 
 - Prefer targeted verification commands over `pnpm test -- --run ...` in this repo, because prior analysis showed that form can unexpectedly execute the broader suite and hit unrelated failures.
 - Do not overwrite unrelated user changes in `docs/architecture/components/AUTH.md` or `docs/operations/SECURITY.md`.
-- Use `rtk`-prefixed local commands for execution and verification in this repository.
+- Use pnpm for local command execution and verification in this repository.

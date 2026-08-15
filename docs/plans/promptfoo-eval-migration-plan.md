@@ -39,7 +39,7 @@
    [`docs/reference/SYSTEM_TRUTH_SOURCES.md`](../reference/SYSTEM_TRUTH_SOURCES.md)。
 2. 新增 CI job 必须更新 [`docs/operations/CI_CD.md`](../operations/CI_CD.md)。
 3. 新依赖、外部平台、单供应商决策必须落决策记录（Phase 0 指定落点）。
-4. 文档改动后必须运行 `rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`。
+4. 文档改动后必须运行 `pnpm check:docs-drift` 与 `pnpm check:structure`。
 5. 每 Phase 的 "Document updates" 清单未完成前，该 Phase 不得勾选完成。
 
 ## 测试代码更新要求（全局）
@@ -114,7 +114,7 @@
       retrieval/summary/label-alignment-live 必须 `maxConcurrency: 1`
   - 证据：见文末「Phase 0 证据」小节「并发边界事实」；对应 ADR-4（`docs/plans/promptfoo-decision-record.md`）
 - [x] 留存 native 基线输出（全部 suite，命令见下）
-  - 证据：`rtk pnpm typecheck` exit 0；`rtk pnpm eval:smoke` 输出留存于 `docs/plans/promptfoo-eval-migration-plan.md` 文末「Phase 0 证据」小节（本环境基线 54/81，retrieval 4/26、summary 1/6 通过，退出码 1 —— 无可用 LLM/embedding provider，见证据小节说明）
+  - 证据：`pnpm typecheck` exit 0；`pnpm eval:smoke` 输出留存于 `docs/plans/promptfoo-eval-migration-plan.md` 文末「Phase 0 证据」小节（本环境基线 54/81，retrieval 4/26、summary 1/6 通过，退出码 1 —— 无可用 LLM/embedding provider，见证据小节说明）
 - [x] 根 `package.json` devDependencies 添加 `promptfoo`（`npm view promptfoo version` 后精确锁版），
       `pnpm install`，提交 lockfile（单独提交）；`knip.json` 登记
   - 证据：`promptfoo: 0.122.0`（精确锁版）加入根 devDependencies；`knip.json` `ignoreDependencies` 增加 `promptfoo`；`pnpm install` 成功；计划用包为 `promptfoo`（`@promptfoo/api` 不存在，见 ADR-1）
@@ -123,41 +123,41 @@
       `pnpm install` 后跑全量 langfuse 相关测试（命令见下）；如 `evals/lib/platform/langfuse-adapter.ts`
       或 `packages/host-local/src/nest/observability/langfuse.service.ts` 因 API 变更需最小适配，
       不得改动 `EvalPlatformEvent` schema
-  - 证据：`npm view langfuse dist-tags.latest` = `3.38.20`（与当前版本一致，无实际版本变化）；根与 host-local 均改为 `langfuse: 3.38.20`（去 `^`）；`pnpm install` 成功；`rtk pnpm test:observability-closeout` 8 files / 222 tests 全绿；`rtk pnpm test:file -- evals/lib/platform/langfuse-adapter.test.ts` 5 tests 全绿；`rtk pnpm test:file -- evals/lib/platform/langfuse-config.test.ts` 3 tests 全绿；版本未变故无 API 适配需要
+  - 证据：`npm view langfuse dist-tags.latest` = `3.38.20`（与当前版本一致，无实际版本变化）；根与 host-local 均改为 `langfuse: 3.38.20`（去 `^`）；`pnpm install` 成功；`pnpm test:observability-closeout` 8 files / 222 tests 全绿；`pnpm test:file -- evals/lib/platform/langfuse-adapter.test.ts` 5 tests 全绿；`pnpm test:file -- evals/lib/platform/langfuse-config.test.ts` 3 tests 全绿；版本未变故无 API 适配需要
 - [x] 决策记录文档：promptfoo 为 MIT 许可但 2026-03 被 OpenAI 收购；单供应商风险显式声明；
       bridge 保持薄壳以保留换引擎能力
   - 证据：`docs/plans/promptfoo-decision-record.md`（ADR-1/ADR-2/ADR-3/ADR-4）
 - [x] 确认 guard 影响：`pnpm check:deps`（depcruise 只扫 `packages/*/src`）不受影响
-  - 证据：`rtk pnpm check:deps` → `✔ no dependency violations found (973 modules, 2943 dependencies cruised)`
+  - 证据：`pnpm check:deps` → `✔ no dependency violations found (973 modules, 2943 dependencies cruised)`
 
 **Completion standard**
 
 - 6 个 suite 的 native 基线输出全部留存；并发边界与决策落档；依赖已锁版安装并单独提交。
 - `langfuse` 已升级到 npm `latest` 并锁定精确版本，`test:observability-closeout` 与
-  `evals/lib/platform/langfuse-*.test.ts` 全绿（含 `rtk pnpm eval:smoke` 的 langfuse mirror 语义不变）。
-- `rtk pnpm typecheck` 通过；`rtk pnpm eval:smoke` 全绿。
+  `evals/lib/platform/langfuse-*.test.ts` 全绿（含 `pnpm eval:smoke` 的 langfuse mirror 语义不变）。
+- `pnpm typecheck` 通过；`pnpm eval:smoke` 全绿。
 
 **Document updates**
 
 - [x] 本计划文件落 `docs/plans/promptfoo-eval-migration-plan.md`（含本规则章节）
   - 证据：文件已存在且含规则章节；随 Phase 0 提交一并入库
-- [x] 决策记录写入后运行 `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
-  - 证据：`rtk pnpm check:docs-drift` / `rtk pnpm check:structure` 全绿（见下方 Test and eval updates）
+- [x] 决策记录写入后运行 `pnpm check:docs-drift`、`pnpm check:structure`
+  - 证据：`pnpm check:docs-drift` / `pnpm check:structure` 全绿（见下方 Test and eval updates）
 - [x] 若 langfuse 升级引入行为/配置变化，同步 `docs/operations/ENVIRONMENT.md` 与
       `docs/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md` 对应条目
   - 证据：langfuse 版本未实际变化（`3.38.20`→`3.38.20`），无行为/配置变化，条件不触发，无需同步文档
 
 **Test and eval updates**
 
-- [x] 基线命令：`rtk pnpm eval:smoke`、`rtk pnpm typecheck`
-  - 证据：`rtk pnpm typecheck` exit 0（No errors found）；`rtk pnpm eval:smoke` 输出留存见文末（本环境基线 54/81）
-- [x] langfuse 升级验证：`rtk pnpm test:observability-closeout`
+- [x] 基线命令：`pnpm eval:smoke`、`pnpm typecheck`
+  - 证据：`pnpm typecheck` exit 0（No errors found）；`pnpm eval:smoke` 输出留存见文末（本环境基线 54/81）
+- [x] langfuse 升级验证：`pnpm test:observability-closeout`
   - 证据：8 test files, 222 tests passed
-- [x] langfuse 升级验证：`rtk pnpm test:file -- evals/lib/platform/langfuse-adapter.test.ts`
+- [x] langfuse 升级验证：`pnpm test:file -- evals/lib/platform/langfuse-adapter.test.ts`
   - 证据：5 tests passed
-- [x] langfuse 升级验证：`rtk pnpm test:file -- evals/lib/platform/langfuse-config.test.ts`
+- [x] langfuse 升级验证：`pnpm test:file -- evals/lib/platform/langfuse-config.test.ts`
   - 证据：3 tests passed
-- [x] langfuse mirror 语义验证：`rtk pnpm eval -- smoke --platform langfuse`
+- [x] langfuse mirror 语义验证：`pnpm eval -- smoke --platform langfuse`
       （三条 success evidence：adapter enabled / mirrored without publish warnings / flush completed）
   - 证据：本环境无 Langfuse 实例与 Docker（无法起 self-host）。已用 coordinator 包装复跑 `eval-all.ts --tier smoke --platform langfuse`，确认无配置时优雅降级：`[eval-platform] langfuse adapter disabled: missing LANGFUSE_BASE_URL, ...`，eval 结果与退出码**不变**（54/81，exit 1），符合 Non-Negotiables「缺少 Langfuse 配置不改变 eval 退出码」。langfuse 版本未变（3.38.20），adapter 代码逐字节未变，单元级验证（adapter/config 测试 + observability-closeout）全绿。live 三条 success evidence 留待有 Langfuse 实例的环境复跑
 - [x] 基线输出留存在本文件"Phase 0 证据"小节
@@ -204,13 +204,13 @@
 
 **Completion standard**
 
-- `runner.test.ts` 全绿；`rtk pnpm typecheck` 通过。
+- `runner.test.ts` 全绿；`pnpm typecheck` 通过。
 
 **Test and eval updates**
 
-- [x] `rtk pnpm test:file -- evals/promptfoo/runner.test.ts`
+- [x] `pnpm test:file -- evals/promptfoo/runner.test.ts`
       - 证据：4 tests passed
-- [x] `rtk pnpm typecheck`
+- [x] `pnpm typecheck`
       - 证据：exit 0
 
 **Document updates**
@@ -254,14 +254,14 @@
 
 **Test and eval updates**
 
-- [x] `rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`
+- [x] `pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`
       - 证据：2 tests passed
-- [x] `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
+- [x] `pnpm test:file -- scripts/__tests__/run-eval.test.ts`
       - 证据：12 tests passed
-- [x] `rtk pnpm eval -- agent-planning --tier smoke --dry-run --runner promptfoo`
+- [x] `pnpm eval -- agent-planning --tier smoke --dry-run --runner promptfoo`
       - 证据：exit 0；`Cases: 33/33 passed`、`Avg score: 0.97`
-- [x] `rtk pnpm eval:smoke`
-      - 证据：54/81 passed（与本地 keyless 基线一致，无回归）；类型检查 `rtk pnpm typecheck` exit 0
+- [x] `pnpm eval:smoke`
+      - 证据：54/81 passed（与本地 keyless 基线一致，无回归）；类型检查 `pnpm typecheck` exit 0
 
 **Document updates**
 
@@ -306,18 +306,18 @@
 
 **Test and eval updates**
 
-- [x] `rtk pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts`
+- [x] `pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts`
       - 证据：1 test passed
-- [x] `rtk pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts`
+- [x] `pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts`
       - 证据：1 test passed
-- [x] `rtk pnpm eval:graph-extraction --dry-run --runner promptfoo`
+- [x] `pnpm eval:graph-extraction --dry-run --runner promptfoo`
       - 证据：exit 0；`Total fixtures: 25`，与 native 逐项一致
-- [x] `rtk pnpm eval:ingestion --smoke --dry-run --runner promptfoo`
+- [x] `pnpm eval:ingestion --smoke --dry-run --runner promptfoo`
       - 证据：计划命令的 `--smoke` 不被 `run-eval.ts` 接受（无该 option），已改用等价命令
-        `rtk pnpm eval:ingestion --tier smoke --dry-run --runner promptfoo`（exit 0；`Total bundles: 1`、
+        `pnpm eval:ingestion --tier smoke --dry-run --runner promptfoo`（exit 0；`Total bundles: 1`、
         `Passed: 1`、`Pass rate: 100.0%`，与 native 一致）—— 命令修正已在 TESTING.md 注明
-- [x] `rtk pnpm eval:smoke`
-      - 证据：54/81 passed（与本地 keyless 基线一致，无回归）；`rtk pnpm typecheck` exit 0；
+- [x] `pnpm eval:smoke`
+      - 证据：54/81 passed（与本地 keyless 基线一致，无回归）；`pnpm typecheck` exit 0；
         `fallow audit --base main` 无新增跨包导入违规
 
 **Document updates**
@@ -355,16 +355,16 @@
 
 **Test and eval updates**
 
-- [x] `rtk pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`
+- [x] `pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`
   - 证据：1 test passed；10/10 smoke case 双 runner 逐字段一致（含 recallReasonDistribution）
-- [x] `rtk pnpm eval -- label-alignment --tier smoke --mode dry-run --runner promptfoo`
+- [x] `pnpm eval -- label-alignment --tier smoke --mode dry-run --runner promptfoo`
   - 证据：exit 0；`Cases: 10`、`Passed: 10`、`Failed: 0`、`Accuracy: 100.0%`、`False merges: 0`、
     `Missed merges: 0`，与 native（同命令不带 `--runner`）报告头逐项一致；
     `scripts/__tests__/run-eval.test.ts` 15 tests passed（新增 label-alignment `--runner` 透传断言）
-- [x] `rtk pnpm eval:smoke`
+- [x] `pnpm eval:smoke`
   - 证据：54/81 passed（与本地 keyless 基线一致，无回归；retrieval 4/26、summary 1/6、
     graph 5 fixtures、ingestion 1/1、agent-planning 33/33、label-alignment 10/10）；
-    `rtk pnpm typecheck` exit 0；其余 parity/substrate 测试全绿
+    `pnpm typecheck` exit 0；其余 parity/substrate 测试全绿
     （agent-planning 2 / graph-extraction 1 / ingestion 1 / runner 4）
 
 **Document updates**
@@ -372,8 +372,8 @@
 - [x] `docs/operations/TESTING.md` suite 表同步（如需）
   - 证据：`--runner` 双轨小节扩展为 agent-planning、label-alignment、graph-extraction、ingestion
     四个 suite，并新增 label-alignment promptfoo 验证命令两条
-    （`rtk pnpm eval -- label-alignment --tier smoke --mode dry-run --runner promptfoo` 与
-    `rtk pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`）
+    （`pnpm eval -- label-alignment --tier smoke --mode dry-run --runner promptfoo` 与
+    `pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`）
 
 **Commit**
 
@@ -400,27 +400,27 @@
 
 **Completion standard**
 
-- parity 全绿；`rtk pnpm eval:smoke`（含 postgres-coordinated 编排）全绿。
+- parity 全绿；`pnpm eval:smoke`（含 postgres-coordinated 编排）全绿。
   - 证据：parity 1/1；summary 既有 runner-api 14 tests 无回归（execute-case 抽取行为不变）；
-    `eval:smoke` 54/81 与本地基线一致，无回归；`rtk pnpm typecheck` exit 0
+    `eval:smoke` 54/81 与本地基线一致，无回归；`pnpm typecheck` exit 0
 
 **Test and eval updates**
 
-- [x] `rtk pnpm test:file -- evals/promptfoo/parity-summary.test.ts`
+- [x] `pnpm test:file -- evals/promptfoo/parity-summary.test.ts`
   - 证据：1 test passed（mock adapters 下逐 case 判定与 native 一致）
-- [x] `rtk pnpm eval -- summary --tier smoke --dry-run --runner promptfoo`
+- [x] `pnpm eval -- summary --tier smoke --dry-run --runner promptfoo`
   - 证据：exit 0；dry-run 在分发前短路，输出与 native 一致（`Loaded 6 case(s)` + `Dry run complete`），
     不执行
-- [x] `rtk pnpm eval:smoke`
-  - 证据：54/81 passed（与本地 keyless 基线一致，无回归）；`rtk pnpm typecheck` exit 0
+- [x] `pnpm eval:smoke`
+  - 证据：54/81 passed（与本地 keyless 基线一致，无回归）；`pnpm typecheck` exit 0
 
 **Document updates**
 
 - [x] `docs/operations/TESTING.md` suite 表同步（如需）
   - 证据：`--runner` 双轨小节扩展为 agent-planning、label-alignment、summary、graph-extraction、
     ingestion 五个 suite，并新增 summary promptfoo 验证命令两条
-    （`rtk pnpm eval -- summary --tier smoke --dry-run --runner promptfoo` 与
-    `rtk pnpm test:file -- evals/promptfoo/parity-summary.test.ts`）
+    （`pnpm eval -- summary --tier smoke --dry-run --runner promptfoo` 与
+    `pnpm test:file -- evals/promptfoo/parity-summary.test.ts`）
 
 **Commit**
 
@@ -447,27 +447,27 @@
 
 **Completion standard**
 
-- parity 全绿；`rtk pnpm eval:smoke` 全绿。
+- parity 全绿；`pnpm eval:smoke` 全绿。
   - 证据：parity 1/1；真实 DB CLI 双 runner 对比（native vs `--runner promptfoo`）输出逐字节一致
     （`Total cases: 26`、`Passed: 4 / Failed: 22`、`Pass rate: 15.4%`，与 4/26 基线一致）；
-    `eval:smoke` 54/81 无回归；`rtk pnpm typecheck` exit 0
+    `eval:smoke` 54/81 无回归；`pnpm typecheck` exit 0
 
 **Test and eval updates**
 
-- [x] `rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`
+- [x] `pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`
   - 证据：1 test passed（真实 PostgreSQL，per-case passed/metrics/governance 全一致）；
     无 `TRAPMAP_POSTGRES_COORDINATOR_URL` 时自动 skip
-- [x] `rtk pnpm eval -- retrieval --tier smoke --dry-run --runner promptfoo`
+- [x] `pnpm eval -- retrieval --tier smoke --dry-run --runner promptfoo`
   - 证据：exit 0；dry-run 在分发前短路，输出与 native 一致（`Loaded 26 case(s)` + `Dry run complete`），不执行
-- [x] `rtk pnpm eval:smoke`
-  - 证据：54/81 passed（与本地 keyless 基线一致，无回归）；`rtk pnpm typecheck` exit 0
+- [x] `pnpm eval:smoke`
+  - 证据：54/81 passed（与本地 keyless 基线一致，无回归）；`pnpm typecheck` exit 0
 
 **Document updates**
 
 - [x] `docs/operations/TESTING.md` suite 表同步（如需）
   - 证据：`--runner` 双轨小节更新为全部六个 suite，并新增 retrieval promptfoo 验证命令两条
-    （`rtk pnpm eval -- retrieval --tier smoke --dry-run --runner promptfoo` 与
-    `rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`，注明需 coordinator、无则 skip）
+    （`pnpm eval -- retrieval --tier smoke --dry-run --runner promptfoo` 与
+    `pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`，注明需 coordinator、无则 skip）
 
 **Commit**
 
@@ -508,21 +508,21 @@
 
 **Completion standard**
 
-- `rtk pnpm eval:smoke`、`rtk pnpm eval:ci` 全绿；parity job 通过；全部相关测试随改随绿。
+- `pnpm eval:smoke`、`pnpm eval:ci` 全绿；parity job 通过；全部相关测试随改随绿。
 
 **Test and eval updates**
 
-- [x] `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
+- [x] `pnpm test:file -- scripts/__tests__/run-eval.test.ts`
   - 证据：17 tests passed（默认 runner 断言更新为 `--runner promptfoo`）
-- [x] `rtk pnpm test:file -- evals/scripts/__tests__/eval-all.test.ts`
+- [x] `pnpm test:file -- evals/scripts/__tests__/eval-all.test.ts`
   - 证据：16 tests passed（含新增全 bridge dry-run 路由测试）
-- [x] `rtk pnpm test:file -- evals/scripts/__tests__/eval-ci.test.ts`
+- [x] `pnpm test:file -- evals/scripts/__tests__/eval-ci.test.ts`
   - 证据：10 tests passed
-- [x] `rtk pnpm eval:smoke`、`rtk pnpm eval:ci`
+- [x] `pnpm eval:smoke`、`pnpm eval:ci`
   - 证据：`eval:smoke` 54/81（与 keyless 本地基线一致，无回归）；`eval:ci` retrieval 4/26、
     summary 1/6，`has_regressions=false`（baseline 不存在，无回归）
-- [x] `rtk pnpm typecheck`
-  - 证据：root `rtk pnpm typecheck` exit 0（TypeScript: No errors found）
+- [x] `pnpm typecheck`
+  - 证据：root `pnpm typecheck` exit 0（TypeScript: No errors found）
 
 **Document updates**
 
@@ -536,7 +536,7 @@
   - 证据：新增 `eval-parity` job 小节（pgvector service、六个 parity 测试、blocking、无 API key）
 - [x] `docs/reference/SYSTEM_TRUTH_SOURCES.md`：命令 surface 事实
   - 证据：新增 "评估快照 parity" truth-source 行；Phase 7 rule 28 命令 surface 补充 `pnpm eval:snapshots`
-- [x] `rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
+- [x] `pnpm check:docs-drift`、`pnpm check:structure`
   - 证据：`check:docs-drift` All 46 doc rule(s) passed；`check:structure` All checks passed
 
 **Commit**
@@ -550,8 +550,8 @@
 - [x] 全量 focused tests + typecheck + docs guards 复跑
   - 证据：6 个 `evals/promptfoo/parity-*.test.ts` 全绿（summary/retrieval 走 coordinator 临时库）；
     `scripts/__tests__/run-eval.test.ts` 17/17、`evals/scripts/__tests__/eval-all.test.ts` 16/16、
-    `evals/scripts/__tests__/eval-ci.test.ts` 10/10；`rtk pnpm eval:smoke` 54/81（keyless 基线一致，无回归）；
-    `rtk pnpm eval:ci` 无回归；`rtk pnpm typecheck` 全绿；`check:docs-drift` 46/46、`check:structure` 全绿
+    `evals/scripts/__tests__/eval-ci.test.ts` 10/10；`pnpm eval:smoke` 54/81（keyless 基线一致，无回归）；
+    `pnpm eval:ci` 无回归；`pnpm typecheck` 全绿；`check:docs-drift` 46/46、`check:structure` 全绿
 - [x] 决策记录 closeout：结果、剩余 backlog、单供应商风险跟踪
   - 证据：`promptfoo-decision-record.md` 状态改为「已完成」，Closeout 小节记录迁移结果、验收、
     backlog 四项（per-case DB 隔离 / promptfoo langfuse 评估 / dedup/conflict 桥接 / retrieval-live 独立）与
@@ -614,8 +614,8 @@
 
 ### 基线命令输出（2026-08-09 本机）
 
-- `rtk pnpm typecheck` → exit 0（`TypeScript: No errors found`）。
-- `rtk pnpm eval:smoke`（`TRAPMAP_POSTGRES_COORDINATOR_URL=postgres://trapmap@127.0.0.1:55432/postgres`，本地 pgvector-PG18 实例）→ **exit 1**，基线 **54/81 passed，27 failures**：
+- `pnpm typecheck` → exit 0（`TypeScript: No errors found`）。
+- `pnpm eval:smoke`（`TRAPMAP_POSTGRES_COORDINATOR_URL=postgres://trapmap@127.0.0.1:55432/postgres`，本地 pgvector-PG18 实例）→ **exit 1**，基线 **54/81 passed，27 failures**：
   - Retrieval: 4/26 passed（slice pass rate 0%–66.7%，所有 Hit@1/MRR/nDCG=0.000）
   - Summary: 1/6 passed（Groundedness=1.00，Coverage=0.17）
   - Graph Extraction: 5 fixtures, Node F1=0.381（eval-all 内 deterministic 近似）

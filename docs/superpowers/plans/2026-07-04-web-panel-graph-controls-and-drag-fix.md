@@ -28,9 +28,9 @@
 - Produces: page markup containing HeroUI `Select.Trigger`-backed button triggers instead of native `<select>` controls
 
 - [ ] **Step 1: Write the failing test**
-- [ ] **Step 2: Run `rtk pnpm --filter @trapmap/web-panel test --run src/pages/graph-page-controls.test.tsx` and confirm it fails because native `select` elements still exist**
+- [ ] **Step 2: Run `pnpm --filter @trapmap/web-panel test --run src/pages/graph-page-controls.test.tsx` and confirm it fails because native `select` elements still exist**
 - [ ] **Step 3: Replace graph page native `select` controls with HeroUI `Select`/`ListBox` composition matching existing page patterns**
-- [ ] **Step 4: Re-run `rtk pnpm --filter @trapmap/web-panel test --run src/pages/graph-page-controls.test.tsx` and confirm it passes**
+- [ ] **Step 4: Re-run `pnpm --filter @trapmap/web-panel test --run src/pages/graph-page-controls.test.tsx` and confirm it passes**
 
 ### Task 2: Lock Shared Graph Drag Behavior
 
@@ -43,9 +43,9 @@
 - Produces: shared drag behavior that updates node fixed positions during drag without restarting the force layout on `node:dragstart`
 
 - [ ] **Step 1: Write the failing test**
-- [ ] **Step 2: Run `rtk pnpm --filter @trapmap/web-panel test --run src/shared/ui/g6-graph-component.test.tsx` and confirm it fails because drag start still triggers layout**
+- [ ] **Step 2: Run `pnpm --filter @trapmap/web-panel test --run src/shared/ui/g6-graph-component.test.tsx` and confirm it fails because drag start still triggers layout**
 - [ ] **Step 3: Implement the minimal shared drag fix in `g6-graph-component.tsx`**
-- [ ] **Step 4: Re-run `rtk pnpm --filter @trapmap/web-panel test --run src/shared/ui/g6-graph-component.test.tsx` and confirm it passes**
+- [ ] **Step 4: Re-run `pnpm --filter @trapmap/web-panel test --run src/shared/ui/g6-graph-component.test.tsx` and confirm it passes**
 
 ### Task 3: Focused Verification
 
@@ -57,6 +57,6 @@
 - Consumes: green implementation from Tasks 1 and 2
 - Produces: verified regression coverage for graph page controls and shared drag behavior
 
-- [ ] **Step 1: Run `rtk pnpm --filter @trapmap/web-panel test --run src/pages/graph-page-controls.test.tsx src/shared/ui/g6-graph-component.test.tsx`**
-- [ ] **Step 2: If needed, run `rtk pnpm --filter @trapmap/web-panel typecheck` to confirm no typing regressions**
+- [ ] **Step 1: Run `pnpm --filter @trapmap/web-panel test --run src/pages/graph-page-controls.test.tsx src/shared/ui/g6-graph-component.test.tsx`**
+- [ ] **Step 2: If needed, run `pnpm --filter @trapmap/web-panel typecheck` to confirm no typing regressions**
 - [ ] **Step 3: Review the changed files for accidental scope creep and stop**

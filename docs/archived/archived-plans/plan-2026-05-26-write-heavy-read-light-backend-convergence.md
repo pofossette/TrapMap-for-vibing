@@ -21,7 +21,7 @@
 ## 执行前提
 
 - 每个阶段结束都要求 `git add -A` 并提交全部工作区改动，因此执行时必须使用独立分支或独立 worktree，避免混入无关改动。
-- 涉及索引、检索、治理、副作用异步化的阶段，除单元测试外至少运行一次 `rtk pnpm eval:smoke`。
+- 涉及索引、检索、治理、副作用异步化的阶段，除单元测试外至少运行一次 `pnpm eval:smoke`。
 
 ## 设计原则
 
@@ -189,9 +189,9 @@ return {
 - [ ] **Step 1.7：执行验证命令**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/queue/task-queue.test.ts packages/server/src/routes/candidates.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts
-rtk pnpm typecheck
-rtk pnpm eval:smoke
+pnpm test -- --run packages/server/src/lib/queue/task-queue.test.ts packages/server/src/routes/candidates.test.ts packages/server/src/__tests__/candidate-pipeline.test.ts
+pnpm typecheck
+pnpm eval:smoke
 ```
 
 - [ ] **Step 1.8：更新图谱并提交全部工作区改动**
@@ -310,9 +310,9 @@ return { entry: reviewedEntry };
 - [ ] **Step 2.7：执行验证命令**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/routes/review.test.ts packages/server/src/lib/lifecycle/outbox.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts packages/server/src/lib/indexing/events.test.ts
-rtk pnpm typecheck
-rtk pnpm eval:smoke
+pnpm test -- --run packages/server/src/routes/review.test.ts packages/server/src/lib/lifecycle/outbox.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts packages/server/src/lib/indexing/events.test.ts
+pnpm typecheck
+pnpm eval:smoke
 ```
 
 - [ ] **Step 2.8：更新图谱并提交全部工作区改动**
@@ -456,8 +456,8 @@ export function createUserRepository(config: { pool?: Pool; store: SkillShareerS
 - [ ] **Step 3.7：执行验证命令**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/auth/repository.test.ts packages/server/src/lib/persistence/migrate-identity-audit.test.ts packages/server/src/routes/auth.test.ts packages/server/src/routes/operations/audit.test.ts packages/server/src/lib/repos/index.test.ts
-rtk pnpm typecheck
+pnpm test -- --run packages/server/src/lib/auth/repository.test.ts packages/server/src/lib/persistence/migrate-identity-audit.test.ts packages/server/src/routes/auth.test.ts packages/server/src/routes/operations/audit.test.ts packages/server/src/lib/repos/index.test.ts
+pnpm typecheck
 ```
 
 - [ ] **Step 3.8：更新图谱并提交全部工作区改动**
@@ -562,9 +562,9 @@ return {
 - [ ] **Step 4.6：执行验证命令**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/candidates/pg-repository.test.ts packages/server/src/lib/persistence/__tests__/schema-candidates.test.ts packages/server/src/routes/candidates.test.ts
-rtk pnpm typecheck
-rtk pnpm eval:smoke
+pnpm test -- --run packages/server/src/lib/candidates/pg-repository.test.ts packages/server/src/lib/persistence/__tests__/schema-candidates.test.ts packages/server/src/routes/candidates.test.ts
+pnpm typecheck
+pnpm eval:smoke
 ```
 
 - [ ] **Step 4.7：更新图谱并提交全部工作区改动**
@@ -677,10 +677,10 @@ postgres-integration:
 - [ ] **Step 5.6：执行验证命令**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/config.test.ts packages/server/src/routes/auth.test.ts packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts
-rtk pnpm typecheck
-rtk pnpm check
-rtk pnpm eval:smoke
+pnpm test -- --run packages/server/src/config.test.ts packages/server/src/routes/auth.test.ts packages/server/src/lib/queue/task-queue.test.ts packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts
+pnpm typecheck
+pnpm check
+pnpm eval:smoke
 ```
 
 - [ ] **Step 5.7：更新图谱并提交全部工作区改动**

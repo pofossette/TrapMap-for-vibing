@@ -105,7 +105,7 @@ it('parses optional deployment preset and task transport config', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `rtk pnpm test -- --run packages/server/src/app.test.ts`
+Run: `pnpm test -- --run packages/server/src/app.test.ts`
 Expected: FAIL with config schema or property access errors for `deployment` / `asyncTaskTransport`.
 
 - [ ] **Step 3: Add deployment preset resolver and config schema**
@@ -195,7 +195,7 @@ const serviceUnit = preset?.serviceUnit ?? resolveServiceUnit(process.env.TRAPMA
 
 - [ ] **Step 5: Run tests to verify preset parsing passes**
 
-Run: `rtk pnpm test -- --run packages/server/src/app.test.ts packages/server/src/bootstrap/startup.test.ts`
+Run: `pnpm test -- --run packages/server/src/app.test.ts packages/server/src/bootstrap/startup.test.ts`
 Expected: PASS, with existing runtime behavior unchanged when no new env vars are set.
 
 - [ ] **Step 6: Commit**
@@ -241,7 +241,7 @@ it('reports postgres as the default task transport provider', async () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `rtk pnpm test -- --run packages/server/src/routes/operations/status.test.ts`
+Run: `pnpm test -- --run packages/server/src/routes/operations/status.test.ts`
 Expected: FAIL because `asyncTransport.task` and provider `kind` do not exist yet.
 
 - [ ] **Step 3: Refactor async transport types to separate task and event transport**
@@ -343,7 +343,7 @@ return {
 
 - [ ] **Step 6: Run tests to verify factory wiring passes**
 
-Run: `rtk pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/app.test.ts`
+Run: `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/app.test.ts`
 Expected: PASS, with status response exposing task provider and event provider.
 
 - [ ] **Step 7: Commit**
@@ -400,7 +400,7 @@ it('publishes tasks to RabbitMQ and reports provider kind', async () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `rtk pnpm test -- --run packages/server/src/lib/async/rabbitmq-task-queue.test.ts`
+Run: `pnpm test -- --run packages/server/src/lib/async/rabbitmq-task-queue.test.ts`
 Expected: FAIL because the RabbitMQ transport file does not exist.
 
 - [ ] **Step 3: Implement RabbitMQ task transport with PG-backed status mirror**
@@ -491,7 +491,7 @@ if (
 
 - [ ] **Step 6: Run tests to verify RabbitMQ transport boot logic passes**
 
-Run: `rtk pnpm test -- --run packages/server/src/lib/async/rabbitmq-task-queue.test.ts packages/server/src/bootstrap/startup.test.ts`
+Run: `pnpm test -- --run packages/server/src/lib/async/rabbitmq-task-queue.test.ts packages/server/src/bootstrap/startup.test.ts`
 Expected: PASS, with PG default tests still green and RabbitMQ branch covered.
 
 - [ ] **Step 7: Commit**
@@ -541,7 +541,7 @@ it('keeps domain events on postgres even when rabbitmq task transport is enabled
 
 - [ ] **Step 2: Run test to verify it fails or is missing coverage**
 
-Run: `rtk pnpm test -- --run packages/server/src/routes/operations/status.test.ts`
+Run: `pnpm test -- --run packages/server/src/routes/operations/status.test.ts`
 Expected: FAIL or missing assertion coverage for mixed provider mode.
 
 - [ ] **Step 3: Make mixed-mode contract explicit in lifecycle wiring**
@@ -576,7 +576,7 @@ const lifecyclePublisher = createLifecyclePublisher(
 
 - [ ] **Step 5: Run tests to verify the PG outbox guardrail passes**
 
-Run: `rtk pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/bootstrap/startup.test.ts`
+Run: `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/bootstrap/startup.test.ts`
 Expected: PASS, with RabbitMQ limited to tasks and PG retained for domain events.
 
 - [ ] **Step 6: Commit**
@@ -613,7 +613,7 @@ TRAPMAP_RABBITMQ_PREFETCH=1
 
 - [ ] **Step 2: Run targeted docs checks**
 
-Run: `rtk pnpm check:docs-drift`
+Run: `pnpm check:docs-drift`
 Expected: FAIL until docs and environment references are updated consistently.
 
 - [ ] **Step 3: Add architecture note and deployment guidance**
@@ -657,10 +657,10 @@ services:
 
 - [ ] **Step 5: Run docs and structure checks**
 
-Run: `rtk pnpm check:docs-drift`
+Run: `pnpm check:docs-drift`
 Expected: PASS
 
-Run: `rtk pnpm check:structure`
+Run: `pnpm check:structure`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
@@ -704,7 +704,7 @@ it('exposes task and event transport providers in async status', async () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `rtk pnpm test -- --run packages/server/src/routes/operations/status.test.ts`
+Run: `pnpm test -- --run packages/server/src/routes/operations/status.test.ts`
 Expected: FAIL because the status route does not yet expose provider identity.
 
 - [ ] **Step 3: Add provider identity and guardrail copy to runtime status and TODO docs**
@@ -734,10 +734,10 @@ return reply.send({
 
 - [ ] **Step 4: Run the focused verification suite**
 
-Run: `rtk pnpm test -- --run packages/server/src/app.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/routes/operations/status.test.ts packages/server/src/lib/async/rabbitmq-task-queue.test.ts`
+Run: `pnpm test -- --run packages/server/src/app.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/routes/operations/status.test.ts packages/server/src/lib/async/rabbitmq-task-queue.test.ts`
 Expected: PASS
 
-Run: `rtk pnpm type-check`
+Run: `pnpm type-check`
 Expected: PASS
 
 - [ ] **Step 5: Commit**

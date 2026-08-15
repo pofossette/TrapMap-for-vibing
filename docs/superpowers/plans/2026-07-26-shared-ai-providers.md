@@ -15,7 +15,7 @@
 - Keep prompt templates, template selection, cache, parsing, and dynamic prompt injection under `packages/server/src/lib/ai`.
 - Preserve provider selection, environment precedence, fallback behavior, lazy LangChain initialization, 30-second timeout, Google GenAI validation, and provider errors exactly.
 - `AiPromptBlock` contains only `content: string`; server `PromptBlock` remains structurally assignable without a server dependency from the new package.
-- Use `rtk` for every repository command, apply TDD before production code, and commit each coherent batch.
+- Use pnpm for every repository command, apply TDD before production code, and commit each coherent batch.
 - Do not mark Wave-8, Wave-9, or Wave-10 complete in this work.
 
 ---
@@ -76,7 +76,7 @@ and `invokeWithBlocks([{ content: 'block' }], 'user')`.
 
 - [ ] **Step 2: Run the new tests to verify the missing package fails**
 
-Run: `rtk pnpm exec vitest run --project ai-providers packages/ai-providers/src/providers.test.ts packages/ai-providers/src/provider-config.test.ts packages/ai-providers/src/import-boundary.test.ts`
+Run: `pnpm exec vitest run --project ai-providers packages/ai-providers/src/providers.test.ts packages/ai-providers/src/provider-config.test.ts packages/ai-providers/src/import-boundary.test.ts`
 
 Expected: FAIL because the `ai-providers` project and source package do not yet exist.
 
@@ -99,23 +99,23 @@ Move the provider config and provider classes verbatim except replace
 `import('./cache/api-integration.js').PromptBlock[]` with `AiPromptBlock[]`.
 Create the package manifest with `@langchain/core` and `@langchain/openai` as
 dependencies, register an `ai-providers` Vitest project, add the root TypeScript
-reference, then update the lockfile with `rtk pnpm install --lockfile-only`.
+reference, then update the lockfile with `pnpm install --lockfile-only`.
 
 - [ ] **Step 4: Run package behavior and build checks**
 
-Run: `rtk pnpm --filter @trapmap/ai-providers test`
+Run: `pnpm --filter @trapmap/ai-providers test`
 
 Expected: PASS with all provider, config, and boundary tests.
 
-Run: `rtk pnpm --filter @trapmap/ai-providers typecheck`
+Run: `pnpm --filter @trapmap/ai-providers typecheck`
 
 Expected: PASS.
 
 - [ ] **Step 5: Commit the package foundation**
 
 ```bash
-rtk git add packages/ai-providers tsconfig.json vitest.config.ts pnpm-lock.yaml
-rtk git commit -m "feat: add shared AI providers package"
+git add packages/ai-providers tsconfig.json vitest.config.ts pnpm-lock.yaml
+git commit -m "feat: add shared AI providers package"
 ```
 
 ### Task 2: Migrate Provider And Configuration Consumers
@@ -160,7 +160,7 @@ helpers.
 
 - [ ] **Step 2: Run the boundary test and verify the expected failure**
 
-Run: `rtk pnpm exec vitest run --project host-local packages/host-local/src/nest/runtime/import-boundary.test.ts`
+Run: `pnpm exec vitest run --project host-local packages/host-local/src/nest/runtime/import-boundary.test.ts`
 
 Expected: FAIL because `shared-infra.ts` imports `createAiProviders` and
 `AiProviders` from `@trapmap/server/lib/ai/index.js`.
@@ -187,23 +187,23 @@ source import.
 
 - [ ] **Step 4: Run focused consumer tests and typecheck**
 
-Run: `rtk pnpm exec vitest run --project host-local packages/host-local/src/nest/runtime/import-boundary.test.ts packages/host-local/src/nest/runtime/host-services.test.ts`
+Run: `pnpm exec vitest run --project host-local packages/host-local/src/nest/runtime/import-boundary.test.ts packages/host-local/src/nest/runtime/host-services.test.ts`
 
 Expected: PASS.
 
-Run: `rtk pnpm --filter @trapmap/server test --run src/lib/indexing/graph-lite/llm-extract.test.ts src/lib/boundary-extract.test.ts src/lib/labels/llm-align.test.ts`
+Run: `pnpm --filter @trapmap/server test --run src/lib/indexing/graph-lite/llm-extract.test.ts src/lib/boundary-extract.test.ts src/lib/labels/llm-align.test.ts`
 
 Expected: PASS.
 
-Run: `rtk pnpm typecheck`
+Run: `pnpm typecheck`
 
 Expected: PASS.
 
 - [ ] **Step 5: Commit consumer migration**
 
 ```bash
-rtk git add packages/host-local packages/server scripts/label-runner.ts evals package.json pnpm-lock.yaml
-rtk git commit -m "refactor: consume shared AI providers"
+git add packages/host-local packages/server scripts/label-runner.ts evals package.json pnpm-lock.yaml
+git commit -m "refactor: consume shared AI providers"
 ```
 
 ### Task 3: Remove Compatibility Provider Modules And Close The Provider Edge
@@ -240,7 +240,7 @@ expect(hostSharedInfra).not.toContain('@trapmap/server/lib/ai');
 
 - [ ] **Step 2: Run the retirement guard to prove the deletion contract is red**
 
-Run: `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`
+Run: `pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`
 
 Expected: FAIL because the compatibility provider files and provider import
 still exist.
@@ -260,19 +260,19 @@ that graph-query remains the unresolved Wave-8 edge.
 
 - [ ] **Step 4: Run retirement and documentation checks**
 
-Run: `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`
+Run: `pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`
 
 Expected: PASS.
 
-Run: `rtk pnpm check:docs-drift && rtk pnpm check:structure && rtk git diff --check`
+Run: `pnpm check:docs-drift && pnpm check:structure && git diff --check`
 
 Expected: PASS.
 
 - [ ] **Step 5: Commit the compatibility cleanup**
 
 ```bash
-rtk git add packages/server/src/lib/ai scripts/__tests__/compatibility-retirement-guard.test.ts docs
-rtk git commit -m "refactor: retire server AI providers"
+git add packages/server/src/lib/ai scripts/__tests__/compatibility-retirement-guard.test.ts docs
+git commit -m "refactor: retire server AI providers"
 ```
 
 ### Task 4: Execute Docker-Coordinated Acceptance
@@ -286,20 +286,20 @@ rtk git commit -m "refactor: retire server AI providers"
 
 - [ ] **Step 1: Run the shared package and composition verification set**
 
-Run: `rtk pnpm --filter @trapmap/ai-providers test && rtk pnpm exec vitest run --project host-local packages/host-local/src/nest/runtime/import-boundary.test.ts packages/host-local/src/nest/runtime/host-services.test.ts && rtk pnpm typecheck`
+Run: `pnpm --filter @trapmap/ai-providers test && pnpm exec vitest run --project host-local packages/host-local/src/nest/runtime/import-boundary.test.ts packages/host-local/src/nest/runtime/host-services.test.ts && pnpm typecheck`
 
 Expected: PASS.
 
 - [ ] **Step 2: Run Docker-coordinated behavior acceptance**
 
-Run: `rtk pnpm test:deployment-smoke && rtk pnpm test:runtime-foundations && rtk pnpm eval:smoke`
+Run: `pnpm test:deployment-smoke && pnpm test:runtime-foundations && pnpm eval:smoke`
 
 Expected: all commands PASS under the PostgreSQL coordinator; record actual
 test counts and any non-blocking inherited output exactly.
 
 - [ ] **Step 3: Run the architecture boundary audit**
 
-Run: `rtk pnpm exec fallow audit --base main --format json --quiet`
+Run: `pnpm exec fallow audit --base main --format json --quiet`
 
 Expected: `verdict: pass` and no introduced dependency-boundary violation.
 
@@ -312,8 +312,8 @@ that server graph-query ownership remains before Wave-8 can close.
 - [ ] **Step 5: Commit acceptance evidence**
 
 ```bash
-rtk git add docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md
-rtk git commit -m "docs: record shared AI provider acceptance"
+git add docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md
+git commit -m "docs: record shared AI provider acceptance"
 ```
 
 ### Task 5: Remove Duplicate Host And Legacy Embedding Provider Implementations
@@ -346,11 +346,11 @@ same unit-length vector as `new FallbackEmbeddings().embed('same input')`.
 
 - [ ] **Step 2: Run the contracts and behavior test to verify RED**
 
-Run: `rtk pnpm test:file -- packages/host-local/src/nest/config/import-boundary.test.ts`
+Run: `pnpm test:file -- packages/host-local/src/nest/config/import-boundary.test.ts`
 
 Expected: FAIL because `ai-provider-config.ts` and local config import remain.
 
-Run: `rtk pnpm test:file -- packages/server/src/lib/embeddings.test.ts`
+Run: `pnpm test:file -- packages/server/src/lib/embeddings.test.ts`
 
 Expected: FAIL because the legacy shim still owns its own fallback/provider classes.
 
@@ -380,15 +380,15 @@ Split pure provider-config helpers as needed so `loadAiProviderConfig()` and
 
 - [ ] **Step 4: Verify migration and Fallow remediation**
 
-Run: `rtk pnpm test:file -- packages/host-local/src/nest/config/import-boundary.test.ts`
+Run: `pnpm test:file -- packages/host-local/src/nest/config/import-boundary.test.ts`
 
 Expected: PASS.
 
-Run: `rtk pnpm test:file -- packages/server/src/lib/embeddings.test.ts`
+Run: `pnpm test:file -- packages/server/src/lib/embeddings.test.ts`
 
 Expected: PASS.
 
-Run: `rtk pnpm typecheck && rtk pnpm exec fallow audit --base main`
+Run: `pnpm typecheck && pnpm exec fallow audit --base main`
 
 Expected: typecheck passes and the audit reports no introduced dead-code,
 complexity, or duplication findings from the shared provider migration.
@@ -396,8 +396,8 @@ complexity, or duplication findings from the shared provider migration.
 - [ ] **Step 5: Commit the provider implementation consolidation**
 
 ```bash
-rtk git add packages/ai-providers packages/host-local/src/nest/config packages/server/src/lib/embeddings.ts packages/server/src/lib/embeddings.test.ts scripts/__tests__/compatibility-retirement-guard.test.ts
-rtk git commit -m "refactor: consolidate AI provider implementations"
+git add packages/ai-providers packages/host-local/src/nest/config packages/server/src/lib/embeddings.ts packages/server/src/lib/embeddings.test.ts scripts/__tests__/compatibility-retirement-guard.test.ts
+git commit -m "refactor: consolidate AI provider implementations"
 ```
 
 ## Self-Review

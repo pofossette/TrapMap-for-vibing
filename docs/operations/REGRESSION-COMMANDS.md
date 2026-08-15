@@ -3,45 +3,45 @@
 ## PR 必跑
 
 ```bash
-rtk pnpm typecheck
-rtk pnpm --filter @trapmap/contracts test --run
-rtk pnpm --filter @trapmap/backend-core test --run
-rtk pnpm --filter @trapmap/server test --run
-rtk pnpm --filter @trapmap/host-local test --run
+pnpm typecheck
+pnpm --filter @trapmap/contracts test --run
+pnpm --filter @trapmap/backend-core test --run
+pnpm --filter @trapmap/server test --run
+pnpm --filter @trapmap/host-local test --run
 ```
 
 ## 阶段完成验证
 
 ```bash
-rtk pnpm test:observability-closeout
-rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
-rtk pnpm test:discovery-closeout
-rtk pnpm test:distributed-closeout
-rtk pnpm test:runtime-foundations
-rtk pnpm test:deployment-smoke
-rtk pnpm test:distributed-acceptance
-rtk pnpm test:runtime-closeout
-rtk pnpm test:runtime-closeout:compose
-rtk pnpm check:docs
-rtk pnpm check:structure
+pnpm test:observability-closeout
+pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
+pnpm test:discovery-closeout
+pnpm test:distributed-closeout
+pnpm test:runtime-foundations
+pnpm test:deployment-smoke
+pnpm test:distributed-acceptance
+pnpm test:runtime-closeout
+pnpm test:runtime-closeout:compose
+pnpm check:docs
+pnpm check:structure
 ```
 
 ## 可观测性专项
 
 ```bash
-rtk pnpm test:observability-closeout
+pnpm test:observability-closeout
 ```
 
 ## 服务发现专项
 
 ```bash
-rtk pnpm test:discovery-closeout
+pnpm test:discovery-closeout
 ```
 
 ## 临时 Compose runtime closeout
 
 ```bash
-rtk pnpm test:runtime-closeout:compose
+pnpm test:runtime-closeout:compose
 ```
 
 该命令不使用固定 `4000`、不读取持久管理员密钥，并始终清理临时 Compose containers 与 volumes。它量化单个 `knowledge-write` 重启的 gateway 委托恢复时间（阈值 60 秒），同时要求 job-runtime status surface 持续成功；这是本地隔离证据，不是生产 SLO。
@@ -72,5 +72,5 @@ curl -s -D /tmp/trapmap-trace-headers.txt \
 grep -i traceparent /tmp/trapmap-trace-headers.txt
 
 # 记录 observability 性能基线
-rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
+pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
 ```

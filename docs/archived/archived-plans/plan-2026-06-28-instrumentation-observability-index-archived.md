@@ -18,7 +18,7 @@
 ## 总体要求
 
 - 根 `plan.md` 只做索引；执行细节、落点清单、阶段关闭条件、最小验证和文档回写统一写入 [`../../docs/todos/instrumentation-observability-plan.md`](../../docs/todos/instrumentation-observability-plan.md)
-- 每个阶段勾选前，必须同时完成：实现或冻结结论、聚焦测试、相关文档回写、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
+- 每个阶段勾选前，必须同时完成：实现或冻结结论、聚焦测试、相关文档回写、`pnpm check:docs-drift`、`pnpm check:structure`
 - 数据埋点必须服务于现有 truth source 和 owner 边界，不得借“观测”名义引入第二套状态机、第二套业务分类或第二套部署语义
 - 埋点字段命名、trace 关联键、metric 维度、日志事件名必须先收敛再扩散，禁止各包各写一套近似语义
 - public API 的返回面只增加确有必要的可观测字段；更细的内部 trace、debug envelope、operator 视图应优先放在内部 contract、持久化 trace 或 operations surface
@@ -66,7 +66,7 @@
 - [ ] 补齐 retrieval / governance / feedback / badcase export 的关键追踪字段和 debug surface
 - [ ] 明确 query trace、badcase trace、operator summary、eval/badcase 回放之间的关系
 - [ ] 为高频排障路径提供可复用的最小 debug contract，而不是临时日志
-- [ ] 补齐对应测试与必要的 `rtk pnpm eval:smoke`
+- [ ] 补齐对应测试与必要的 `pnpm eval:smoke`
 - 细则：[`../../docs/todos/instrumentation-observability-plan.md`](../../docs/todos/instrumentation-observability-plan.md)
 
 ### Phase 4 客户端、文档与守卫收尾 [未开始]
@@ -87,10 +87,10 @@
 
 ## 测试回写要求
 
-- 仅调整计划/索引文档：至少运行 `rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`
-- 涉及 contracts、共享类型或 client/server surface：补 `rtk pnpm typecheck` 与受影响包最小测试
-- 涉及 runtime metrics、request/trace 传播、operator status、deployment surface：补 `rtk pnpm test:runtime-foundations` 或 `rtk pnpm test:deployment-smoke`
-- 涉及 retrieval、summary、governance、feedback、badcase export、eval runner：相关包测试外，至少补 `rtk pnpm eval:smoke`
+- 仅调整计划/索引文档：至少运行 `pnpm check:docs-drift` 与 `pnpm check:structure`
+- 涉及 contracts、共享类型或 client/server surface：补 `pnpm typecheck` 与受影响包最小测试
+- 涉及 runtime metrics、request/trace 传播、operator status、deployment surface：补 `pnpm test:runtime-foundations` 或 `pnpm test:deployment-smoke`
+- 涉及 retrieval、summary、governance、feedback、badcase export、eval runner：相关包测试外，至少补 `pnpm eval:smoke`
 - 涉及 distributed hop、worker、queue、failure taxonomy：补对应 host/service acceptance 或包级最小测试，确保链路级断言存在
 
 ## 完成定义

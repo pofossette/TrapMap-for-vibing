@@ -64,7 +64,7 @@ List every file that will be created or modified:
 **Test and eval updates**
 
 - [ ] Record baseline tests:
-  - `rtk pnpm test -- --run [test-file-paths]`
+  - `pnpm test -- --run [test-file-paths]`
 
 **Example structure or code**
 
@@ -93,7 +93,7 @@ List every file that will be created or modified:
 **Test and eval updates**
 
 - [ ] [Add/extend tests for the new behavior]
-- [ ] Run: `rtk pnpm test -- --run [affected test files]`
+- [ ] Run: `pnpm test -- --run [affected test files]`
 
 **Example structure or code**
 
@@ -108,8 +108,8 @@ List every file that will be created or modified:
 ## Phase N+1: Verification and closeout
 
 - [ ] Run focused tests for all modified modules.
-- [ ] Run `rtk pnpm typecheck`.
-- [ ] Run `rtk pnpm check:structure`.
+- [ ] Run `pnpm typecheck`.
+- [ ] Run `pnpm check:structure`.
 - [ ] Update completion notes and mark plan as done.
 
 **Completion standard**

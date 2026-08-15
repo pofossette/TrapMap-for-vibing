@@ -61,7 +61,7 @@
   - 修复 `RendererRegistry` / `Renderer` 泛型不兼容诊断
   - 修复 `createRenderEnvelope` 在 `exactOptionalPropertyTypes` 下显式写入 `undefined` 的问题
   - 修复 `loadCliState` / `normalizeOutputProfile` 的 optional `outputProfile` 构造
-  - `rtk tsc -p packages/cli/tsconfig.json --noEmit` 已通过
+  - `tsc -p packages/cli/tsconfig.json --noEmit` 已通过
 - 本轮已补充 renderer 独立测试覆盖：
   - Claude retrieval-v1 XML 输出独立渲染测试
   - Codex retrieval-v1 JSON snake_case 字段独立渲染测试

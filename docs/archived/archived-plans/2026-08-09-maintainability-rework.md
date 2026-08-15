@@ -16,7 +16,7 @@
 
 ## Global Constraints
 
-- Commands in this repo run with `rtk` prefix per local convention (e.g. `rtk pnpm test:file -- <path>`).
+- Commands in this repo run directly with pnpm (e.g. `pnpm test:file -- <path>`).
 - Every Wave must end mergeable and regressable; each task runs its minimal verification set (affected package tests + `pnpm typecheck` + `pnpm check:fallow`) before completion.
 - Assertion discipline: new code must not add `as never`, `as unknown as`, `@ts-ignore`, `@ts-expect-error`. Third-party type gaps use `// lib type gap:` comments. Existing 240 occurrences are tracked in the Wave-0 exemption list and cleared in Wave 6.
 - Domain rules go to `backend-core/<ctx>/domain` (pure TS, zero IO, zero framework); infrastructure layer (`service-*` `pg-ports.ts`) must not gain new business judgment.
@@ -58,7 +58,7 @@ Run the script in record mode to emit the current 240 occurrences into `docs/tod
 
 - [ ] **Step 3: Verify guard on clean tree**
 
-Run `rtk pnpm check:asserts` — must pass with zero un-exempted findings.
+Run `pnpm check:asserts` — must pass with zero un-exempted findings.
 
 - [ ] **Step 4: Add a negative test fixture**
 
@@ -66,7 +66,7 @@ Commit a temp test file containing `as never` — guard must fail; remove fixtur
 
 - [ ] **Step 5: Biome host-local coverage**
 
-Remove the `packages/host-local/src/nest/**/*.ts` ignore entry from `biome.json`. Run `rtk pnpm check` and triage: non-assertion lint findings in host-local (unused vars/imports, formatting) must be fixed in this task. Type-assertion findings are NOT in scope — they are tracked by the Wave-0 exemption list and cleared in Wave 6; do not clear `as never`/`as unknown as` in this task.
+Remove the `packages/host-local/src/nest/**/*.ts` ignore entry from `biome.json`. Run `pnpm check` and triage: non-assertion lint findings in host-local (unused vars/imports, formatting) must be fixed in this task. Type-assertion findings are NOT in scope — they are tracked by the Wave-0 exemption list and cleared in Wave 6; do not clear `as never`/`as unknown as` in this task.
 
 - [ ] **Step 6: Wire CI**
 
@@ -74,7 +74,7 @@ Add `pnpm check:asserts` to the `doc-guardrails` job in `.github/workflows/ci.ym
 
 - [ ] **Step 7: Minimal verification**
 
-`rtk pnpm test:file -- scripts/__tests__/check-naked-asserts.test.ts` + `rtk pnpm check:asserts` + `rtk pnpm typecheck` + `rtk pnpm check:fallow` + `rtk pnpm check` (biome) + `rtk pnpm check:docs-drift` + `rtk pnpm check:structure` (exemption doc registered in index).
+`pnpm test:file -- scripts/__tests__/check-naked-asserts.test.ts` + `pnpm check:asserts` + `pnpm typecheck` + `pnpm check:fallow` + `pnpm check` (biome) + `pnpm check:docs-drift` + `pnpm check:structure` (exemption doc registered in index).
 
 **Acceptance:** `check:asserts` green on clean tree; exemption list committed with 240 entries; host-local under Biome; CI job wired.
 
@@ -119,7 +119,7 @@ Port/extend tests: `service-identity-access/src/routes.test.ts` runs against bot
 
 - [ ] **Step 6: Minimal verification**
 
-`rtk pnpm test:file -- packages/service-identity-access/src/routes.test.ts` + `rtk pnpm test:file -- packages/backend-core/src/http/adapters/adapters.test.ts` + `rtk pnpm test:deployment-smoke` + `rtk pnpm typecheck` + `rtk pnpm check:fallow`.
+`pnpm test:file -- packages/service-identity-access/src/routes.test.ts` + `pnpm test:file -- packages/backend-core/src/http/adapters/adapters.test.ts` + `pnpm test:deployment-smoke` + `pnpm typecheck` + `pnpm check:fallow`.
 
 **Acceptance:** identity-access routes implemented once as RouteDefs, served by both hosts through thin adapters; zero behavior drift (existing route tests pass unchanged).
 
@@ -165,7 +165,7 @@ Convert retrieval/search surface (v1/v2/v3, plan, skills search) to RouteDefs; `
 
 - [ ] **Step 6: Per-package verification**
 
-For each package: `rtk pnpm test:file -- <pkg>/src/<routes>.test.ts` + `rtk pnpm test:deployment-smoke` + `rtk pnpm typecheck` + `rtk pnpm check:fallow`.
+For each package: `pnpm test:file -- <pkg>/src/<routes>.test.ts` + `pnpm test:deployment-smoke` + `pnpm typecheck` + `pnpm check:fallow`.
 
 **Acceptance:** all `service-*` route implementations are RouteDef-based; no Fastify-specific route plugin code remains outside adapters; existing route tests pass.
 
@@ -201,7 +201,7 @@ Refactor `routes.ts` to iterate a gateway RouteDef list (forwarding to internal 
 
 - [ ] **Step 4: Verification**
 
-`rtk pnpm test:deployment-smoke` + `rtk pnpm test:light-target` + `rtk pnpm test:heavy-target` + `rtk pnpm test:distributed-closeout` + `rtk pnpm typecheck` + `rtk pnpm check:fallow`.
+`pnpm test:deployment-smoke` + `pnpm test:light-target` + `pnpm test:heavy-target` + `pnpm test:distributed-closeout` + `pnpm typecheck` + `pnpm check:fallow`.
 
 **Acceptance:** one RouteDef list per service serves both hosts; host-distributed gateway has no duplicate validation logic; all deployment smoke/closeout suites green.
 
@@ -241,7 +241,7 @@ Extract permission checks, security-level gating, access-key hashing/normalizati
 
 - [ ] **Step 5: Verification per context**
 
-`rtk pnpm test:file -- <ctx domain tests>` + `rtk pnpm test:file -- <ctx pg-ports.test.ts>` + `rtk pnpm typecheck` + `rtk pnpm check:fallow`. Run `pnpm check:docs-truth` to confirm architecture docs align.
+`pnpm test:file -- <ctx domain tests>` + `pnpm test:file -- <ctx pg-ports.test.ts>` + `pnpm typecheck` + `pnpm check:fallow`. Run `pnpm check:docs-truth` to confirm architecture docs align.
 
 **Acceptance:** `domain/` has real rules with offline unit tests; `pg-ports.ts` line count reduced ≥50%; no behavior change (all existing tests pass); domain imports zero framework/DB packages.
 
@@ -317,7 +317,7 @@ Compare `persistence-schema` column factories vs each `service-*` `schema.ts`; u
 
 - [ ] **Step 5: Verification**
 
-Affected package tests + `rtk pnpm test:import-export` + `rtk pnpm check:stale-package-refs` + `rtk pnpm check:structure` + `rtk pnpm typecheck`.
+Affected package tests + `pnpm test:import-export` + `pnpm check:stale-package-refs` + `pnpm check:structure` + `pnpm typecheck`.
 
 **Acceptance:** no dual-key fallback reads; no backfill scripts in active tree; empty dirs gone; doc references current; schema dedup documented.
 
@@ -347,7 +347,7 @@ When a file's entries are all cleared, drop its exemption lines. Goal: empty exe
 
 - [ ] **Step 5: Verification**
 
-`rtk pnpm check:asserts` (zero exemptions) + `rtk pnpm typecheck` + full affected-package tests.
+`pnpm check:asserts` (zero exemptions) + `pnpm typecheck` + full affected-package tests.
 
 **Acceptance:** exemption list empty; `check:asserts` enforces zero tolerance repo-wide.
 
@@ -377,7 +377,7 @@ Move one-off ops scripts (`export-retrieval-db-snapshot.ts`, `backfill-labels.ts
 
 - [ ] **Step 4: Docs archive**
 
-Move non-core active docs (historic/reference-only) to `docs/archived/`; keep ~30-40 authoritative core pages; update indexes (`docs/README.md`, archived README table). Run `rtk pnpm check:docs` + `rtk pnpm check:structure`.
+Move non-core active docs (historic/reference-only) to `docs/archived/`; keep ~30-40 authoritative core pages; update indexes (`docs/README.md`, archived README table). Run `pnpm check:docs` + `pnpm check:structure`.
 
 - [ ] **Step 5: CI consolidation**
 
@@ -385,7 +385,7 @@ Update `doc-guardrails` job to consolidated commands; remove duplicate fallow in
 
 - [ ] **Step 6: Verification**
 
-`rtk pnpm check:docs` + `rtk pnpm check:structure` + `rtk pnpm check:fallow` + CI-equivalent dry run.
+`pnpm check:docs` + `pnpm check:structure` + `pnpm check:fallow` + CI-equivalent dry run.
 
 **Acceptance:** guard count reduced to ≤7 `check:*` scripts with no coverage loss; active docs reduced to authoritative set; all index/archive references valid.
 
@@ -420,7 +420,7 @@ Add maintenance conventions to `packages/web-panel/README.md`: frozen feature su
 
 - [ ] **Step 5: Verification**
 
-`rtk pnpm eval:smoke` + `rtk pnpm test:file -- evals/promptfoo/runner.test.ts` + affected evals tests + `rtk pnpm typecheck`.
+`pnpm eval:smoke` + `pnpm test:file -- evals/promptfoo/runner.test.ts` + affected evals tests + `pnpm typecheck`.
 
 **Acceptance:** eval CI gate is `eval:smoke`; core tiers for non-core suites archived with docs; web-panel conventions documented; eval.yml consistent.
 
@@ -442,11 +442,11 @@ Add: new domain rules must land in `backend-core/<ctx>/domain`; new routes must 
 
 - [ ] **Step 2: Truth-source updates**
 
-Update `SYSTEM_TRUTH_SOURCES.md`, `REPO_STRUCTURE.md`, `BOUNDARIES.md` (RouteDef layer, domain layer), `architecture.md`/`ARCHITECTURE.md` layer descriptions. Run `rtk pnpm check:docs-truth`.
+Update `SYSTEM_TRUTH_SOURCES.md`, `REPO_STRUCTURE.md`, `BOUNDARIES.md` (RouteDef layer, domain layer), `architecture.md`/`ARCHITECTURE.md` layer descriptions. Run `pnpm check:docs-truth`.
 
 - [ ] **Step 3: Full regression**
 
-`rtk pnpm test:light-target` + `rtk pnpm test:heavy-target` + `rtk pnpm eval:smoke` + `rtk pnpm check:docs` + `rtk pnpm check:structure` + `rtk pnpm check:fallow` + `rtk pnpm typecheck` + `rtk pnpm check` (biome) + `rtk pnpm check:asserts`.
+`pnpm test:light-target` + `pnpm test:heavy-target` + `pnpm eval:smoke` + `pnpm check:docs` + `pnpm check:structure` + `pnpm check:fallow` + `pnpm typecheck` + `pnpm check` (biome) + `pnpm check:asserts`.
 
 - [ ] **Step 4: Closeout archive**
 

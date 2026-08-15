@@ -16,11 +16,11 @@
 - Archived previous root plan to `docs/archived/archived-plans/plan-2026-05-28-doc-drift-analysis-and-plan.md`
 - Active working plan: `plan.md`
 - Current automated status:
-  - `rtk pnpm check:docs-drift` passes with 6 rules
-  - `rtk pnpm check:complexity` passes
-  - `rtk pnpm exec vitest run packages/server/src/__tests__/docs-truth-smoke.test.ts` passes
+  - `pnpm check:docs-drift` passes with 6 rules
+  - `pnpm check:complexity` passes
+  - `pnpm exec vitest run packages/server/src/__tests__/docs-truth-smoke.test.ts` passes
 - Current repo caveat:
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` unexpectedly executed the full suite in this repo state and hit an unrelated existing failure in `packages/server/src/lib/feedback/repository.test.ts`
+  - `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` unexpectedly executed the full suite in this repo state and hit an unrelated existing failure in `packages/server/src/lib/feedback/repository.test.ts`
 - Existing unrelated user changes detected:
   - `docs/architecture/components/AUTH.md`
   - `docs/operations/SECURITY.md`

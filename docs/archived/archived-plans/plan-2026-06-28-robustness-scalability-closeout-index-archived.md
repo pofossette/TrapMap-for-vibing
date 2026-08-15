@@ -18,11 +18,11 @@
 ## 总体要求
 
 - 根 `plan.md` 只做索引；执行细节、落点清单、关闭条件、最小验证和文档回写统一写入 [`docs/todos/robustness-scalability-closeout-plan.md`](../../todos/robustness-scalability-closeout-plan.md)
-- 每个阶段勾选前，必须同时完成：实现或冻结结论、聚焦测试、相关文档回写、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure`
+- 每个阶段勾选前，必须同时完成：实现或冻结结论、聚焦测试、相关文档回写、`pnpm check:docs-drift`、`pnpm check:structure`
 - 本轮主线目标是健壮性与可扩展性，不得借修复名义新增第二套状态机、第二套 taxonomy、第二套 debug surface 或第二套部署语义
 - 共享命名、taxonomy、public/internal 边界、operator/debug 语义与 metrics 口径，必须优先复用既有 truth source，不允许局部复制再演化
 - 文档、计划、测试和代码必须同步收口；任何“代码已改但 contract/test/doc 仍是旧口径”的状态都不能勾选完成
-- 涉及 retrieval、governance、feedback、badcase、eval runner 的改动，最少补 `rtk pnpm eval:smoke`
+- 涉及 retrieval、governance、feedback、badcase、eval runner 的改动，最少补 `pnpm eval:smoke`
 
 ## 当前关键路径
 
@@ -69,7 +69,7 @@
 - [x] 把 request/trace/query/feedback/async 关联句柄的真实传播证据补齐到 focused tests / acceptance
 - [x] 让 retrieval、feedback、badcase export、operator drill-down、eval replay 使用同一套关键字段语义
 - [x] 为高频排障路径提供稳定、可复用的最小 debug contract
-- [x] 补齐对应测试与必要的 `rtk pnpm eval:smoke`
+- [x] 补齐对应测试与必要的 `pnpm eval:smoke`
 - 细则：[`docs/todos/robustness-scalability-closeout-plan.md`](../../todos/robustness-scalability-closeout-plan.md)
 
 ### Phase 4 守卫、文档与扩展缝隙收尾 [已完成]
@@ -91,11 +91,11 @@
 
 ## 测试回写要求
 
-- 仅调整计划/索引文档：至少运行 `rtk pnpm check:docs-drift` 与 `rtk pnpm check:structure`
-- 涉及 contracts、共享类型或 client/server surface：补 `rtk pnpm typecheck` 与受影响包最小测试
-- 涉及 runtime metrics、request/trace 传播、operator status、错误映射或 async correctness：补 `rtk pnpm test:runtime-foundations`、必要时补包级 focused tests
-- 涉及 distributed hop、gateway/internal client、service 间传播与 canonical error semantics：补相关 distributed focused tests，必要时补 `rtk pnpm test:deployment-smoke`
-- 涉及 retrieval、governance、feedback、badcase export、eval runner：相关包测试外，至少补 `rtk pnpm eval:smoke`
+- 仅调整计划/索引文档：至少运行 `pnpm check:docs-drift` 与 `pnpm check:structure`
+- 涉及 contracts、共享类型或 client/server surface：补 `pnpm typecheck` 与受影响包最小测试
+- 涉及 runtime metrics、request/trace 传播、operator status、错误映射或 async correctness：补 `pnpm test:runtime-foundations`、必要时补包级 focused tests
+- 涉及 distributed hop、gateway/internal client、service 间传播与 canonical error semantics：补相关 distributed focused tests，必要时补 `pnpm test:deployment-smoke`
+- 涉及 retrieval、governance、feedback、badcase export、eval runner：相关包测试外，至少补 `pnpm eval:smoke`
 - 任一阶段勾选完成前，至少确认“代码/contract + focused tests + 文档回写 + `check:docs-drift` + `check:structure`”同时完成
 
 ## 完成定义

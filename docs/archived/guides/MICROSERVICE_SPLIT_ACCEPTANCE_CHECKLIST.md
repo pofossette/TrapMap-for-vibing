@@ -39,16 +39,16 @@
 执行：
 
 ```bash
-rtk pnpm test:file -- packages/server（Wave-10 已删除）/src/routes/candidates.test.ts
-rtk pnpm test:file -- packages/server（Wave-10 已删除）/src/routes/review.test.ts
-rtk pnpm test:file -- packages/server（Wave-10 已删除）/src/routes/decay.test.ts
-rtk pnpm test:file -- packages/server（Wave-10 已删除）/src/routes/maintenance.test.ts
-rtk pnpm test:file -- packages/server（Wave-10 已删除）/src/app.test.ts
-rtk pnpm test:file -- packages/server（Wave-10 已删除）/src/__tests__/routes-architecture-guard.test.ts
-rtk pnpm --filter @trapmap/server build
-rtk pnpm typecheck
-rtk pnpm check:docs-drift
-rtk pnpm check:structure
+pnpm test:file -- packages/server（Wave-10 已删除）/src/routes/candidates.test.ts
+pnpm test:file -- packages/server（Wave-10 已删除）/src/routes/review.test.ts
+pnpm test:file -- packages/server（Wave-10 已删除）/src/routes/decay.test.ts
+pnpm test:file -- packages/server（Wave-10 已删除）/src/routes/maintenance.test.ts
+pnpm test:file -- packages/server（Wave-10 已删除）/src/app.test.ts
+pnpm test:file -- packages/server（Wave-10 已删除）/src/__tests__/routes-architecture-guard.test.ts
+pnpm --filter @trapmap/server build
+pnpm typecheck
+pnpm check:docs-drift
+pnpm check:structure
 ```
 
 通过标准：
@@ -69,15 +69,15 @@ rtk pnpm check:structure
 执行：
 
 ```bash
-rtk pnpm test:distributed-acceptance
-rtk pnpm test:deployment-smoke
-rtk pnpm test:runtime-foundations
+pnpm test:distributed-acceptance
+pnpm test:deployment-smoke
+pnpm test:runtime-foundations
 ```
 
 如本轮同时变更 retrieval / governance eval 真实链路，再补：
 
 ```bash
-rtk pnpm eval:smoke
+pnpm eval:smoke
 ```
 
 通过标准：
@@ -97,8 +97,8 @@ rtk pnpm eval:smoke
 执行：
 
 ```bash
-rtk pnpm test:distributed-acceptance
-rtk pnpm test:deployment-smoke
+pnpm test:distributed-acceptance
+pnpm test:deployment-smoke
 ```
 
 通过标准：
@@ -118,8 +118,8 @@ rtk pnpm test:deployment-smoke
 执行：
 
 ```bash
-rtk pnpm test:runtime-foundations
-rtk pnpm eval:smoke
+pnpm test:runtime-foundations
+pnpm eval:smoke
 ```
 
 通过标准：
@@ -139,10 +139,10 @@ rtk pnpm eval:smoke
 执行：
 
 ```bash
-rtk pnpm test:distributed-acceptance
-rtk pnpm test:runtime-foundations
-rtk pnpm test:deployment-smoke
-rtk pnpm test:runtime-closeout
+pnpm test:distributed-acceptance
+pnpm test:runtime-foundations
+pnpm test:deployment-smoke
+pnpm test:runtime-closeout
 ```
 
 通过标准：
@@ -161,8 +161,8 @@ rtk pnpm test:runtime-closeout
 执行：
 
 ```bash
-rtk pnpm check:docs-drift
-rtk pnpm check:structure
+pnpm check:docs-drift
+pnpm check:structure
 ```
 
 人工核对：
@@ -206,11 +206,11 @@ rtk pnpm check:structure
 - 可以开始物理微服务拆分 | 仍未就绪
 
 证据：
-- `rtk pnpm test:deployment-smoke`
-- `rtk pnpm test:distributed-acceptance`
-- `rtk pnpm test:runtime-closeout`
-- `rtk pnpm test:runtime-foundations`
-- `rtk pnpm eval:smoke`
+- `pnpm test:deployment-smoke`
+- `pnpm test:distributed-acceptance`
+- `pnpm test:runtime-closeout`
+- `pnpm test:runtime-foundations`
+- `pnpm eval:smoke`
 - focused route / host tests
 - docs guard results
 
@@ -232,10 +232,10 @@ rtk pnpm check:structure
 
 证据：
 
-- `rtk pnpm test:distributed-acceptance`
-- `rtk pnpm test:deployment-smoke`
-- `rtk pnpm test:runtime-foundations`
-- `rtk pnpm eval:smoke`
+- `pnpm test:distributed-acceptance`
+- `pnpm test:deployment-smoke`
+- `pnpm test:runtime-foundations`
+- `pnpm eval:smoke`
 - focused `distributed-runtime-closeout` / `job-runtime ownership` tests
 
 阻塞缺口：
@@ -256,12 +256,12 @@ rtk pnpm check:structure
 
 证据：
 
-- `rtk docker compose --profile distributed up -d --build`
-- `rtk pnpm test:runtime-closeout`
-- `rtk pnpm test:deployment-smoke`
-- `rtk pnpm test:runtime-foundations`
-- `rtk pnpm test:distributed-acceptance`
-- `rtk pnpm eval:smoke`
+- `docker compose --profile distributed up -d --build`
+- `pnpm test:runtime-closeout`
+- `pnpm test:deployment-smoke`
+- `pnpm test:runtime-foundations`
+- `pnpm test:distributed-acceptance`
+- `pnpm eval:smoke`
 - local `/ready` 与 `/v1/operations/status/async` 已报告 `deploymentProfile=distributed`、`preset=api`、`routeSurface=gateway-core`
 
 关卡 5 阻塞缺口：

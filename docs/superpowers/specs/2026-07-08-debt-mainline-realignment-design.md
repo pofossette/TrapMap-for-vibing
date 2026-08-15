@@ -164,14 +164,14 @@
 本设计进入实施时，最小验证应包括：
 
 ```bash
-rtk pnpm check:docs-drift
-rtk pnpm check:structure
+pnpm check:docs-drift
+pnpm check:structure
 ```
 
 如果归档或主线切换同时引入跨包边界结论更新，再补：
 
 ```bash
-rtk pnpm exec fallow audit --base main
+pnpm exec fallow audit --base main
 ```
 
 ## 决策总结

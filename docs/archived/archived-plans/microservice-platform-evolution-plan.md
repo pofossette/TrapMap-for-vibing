@@ -44,7 +44,7 @@
 - [x] 更新 `docs/operations/ENVIRONMENT.md`
 
 最小验证：
-- [x] `rtk pnpm check:docs-drift`
+- [x] `pnpm check:docs-drift`
 
 ### Phase 1: 服务发现与配置收口
 
@@ -61,9 +61,9 @@
 - [x] 更新 `docs/reference/REPO_STRUCTURE.md`（如新增 resolver/config seam）
 
 最小验证：
-- [x] `rtk pnpm test:deployment-smoke`
+- [x] `pnpm test:deployment-smoke`
 - [x] 受影响 host/service 包的最小测试
-- [x] `rtk pnpm check:docs-drift`
+- [x] `pnpm check:docs-drift`
 
 ### Phase 2: 内部 RPC seam 与试点
 
@@ -81,8 +81,8 @@
 
 最小验证：
 - [x] 受影响 host/service 包的最小测试
-- [x] `rtk pnpm test:deployment-smoke`
-- [x] `rtk pnpm typecheck`
+- [x] `pnpm test:deployment-smoke`
+- [x] `pnpm typecheck`
 
 当前试点事实：
 
@@ -133,9 +133,9 @@ Phase 2 transport decision（2026-06-30）：
 
 最小验证：
 - [x] 受影响 contracts/host/service/server 包测试
-- [x] `rtk pnpm test:deployment-smoke`
-- [x] `rtk pnpm eval:smoke`
-- [x] `rtk pnpm typecheck`
+- [x] `pnpm test:deployment-smoke`
+- [x] `pnpm eval:smoke`
+- [x] `pnpm typecheck`
 
 ### Phase 4: 资源治理、告警与运维收口
 
@@ -152,9 +152,9 @@ Phase 2 transport decision（2026-06-30）：
 - [x] 更新 `docs/todos/README.md`
 
 最小验证：
-- [x] `rtk pnpm test:deployment-smoke`
-- [x] `rtk pnpm check:docs-drift`
-- [x] `rtk pnpm check:structure`
+- [x] `pnpm test:deployment-smoke`
+- [x] `pnpm check:docs-drift`
+- [x] `pnpm check:structure`
 
 ## 文档回写矩阵
 
@@ -166,10 +166,10 @@ Phase 2 transport decision（2026-06-30）：
 ## 测试与完成定义
 
 - [x] 每个 Phase 至少有一组与改动直接相关的最小测试，不允许只跑根级全量 `pnpm test`
-- [x] 任何 shared contract、环境变量或 API surface 变化，都要补 `rtk pnpm typecheck`
-- [x] 涉及 distributed runtime、queue、retrieval、governance、feedback 或 operator surface 的改动，都要判断并补跑 `rtk pnpm eval:smoke`
-- [x] 所有文档回写完成后，补跑 `rtk pnpm check:docs-drift`
-- [x] 如新增目录或文档落点规则，再补 `rtk pnpm check:structure`
+- [x] 任何 shared contract、环境变量或 API surface 变化，都要补 `pnpm typecheck`
+- [x] 涉及 distributed runtime、queue、retrieval、governance、feedback 或 operator surface 的改动，都要判断并补跑 `pnpm eval:smoke`
+- [x] 所有文档回写完成后，补跑 `pnpm check:docs-drift`
+- [x] 如新增目录或文档落点规则，再补 `pnpm check:structure`
 - [x] 完成时本计划中的阶段 checklist、文档回写矩阵和最小验证项全部打勾
 
 ## Deferred 落点

@@ -313,5 +313,5 @@ pnpm eval:core
 
 - **Owner**：摘要 owner（service-knowledge-read 摘要面）
 - **Tier 状态**：smoke 是 CI 门禁 tier；core tier 保留为 active（`evals/summary/datasets/core/`、`scenarios/core/`）
-- **变更必跑**：`rtk pnpm test:file -- evals/promptfoo/parity-summary.test.ts`（快照 parity）+ `rtk pnpm eval:summary:smoke`
+- **变更必跑**：`pnpm test:file -- evals/promptfoo/parity-summary.test.ts`（快照 parity）+ `pnpm eval:summary:smoke`
 - 修改 case/scenario/judge 后若判定发生变化，需同步重新生成并提交 parity 快照（`pnpm eval:snapshots`）

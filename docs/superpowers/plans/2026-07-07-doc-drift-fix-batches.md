@@ -32,7 +32,7 @@
 
 - [ ] **Step 1: 逐文件核对权威源**
 
-Run: `rtk rg -n "knowledge-read|Fastify 宿主|Node.js 20\\+|docs/todos/trapmap-architecture-remediation-plan.md" packages/host-distributed/README.md docs/architecture/ARCHITECTURE.md docs/architecture/DEPLOYMENT.md docs/reference/DOCS_TRUTH_MATRIX.md`
+Run: `rg -n "knowledge-read|Fastify 宿主|Node.js 20\\+|docs/todos/trapmap-architecture-remediation-plan.md" packages/host-distributed/README.md docs/architecture/ARCHITECTURE.md docs/architecture/DEPLOYMENT.md docs/reference/DOCS_TRUTH_MATRIX.md`
 Expected: 命中当前待修表述，便于逐项替换
 
 - [ ] **Step 2: 更新文档事实**
@@ -45,12 +45,12 @@ Expected: 命中当前待修表述，便于逐项替换
 
 - [ ] **Step 3: 校验改动结果**
 
-Run: `rtk pnpm check:structure`
+Run: `pnpm check:structure`
 Expected: PASS
 
 - [ ] **Step 4: 校验文档守卫**
 
-Run: `rtk pnpm check:docs-drift`
+Run: `pnpm check:docs-drift`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -75,7 +75,7 @@ git commit -m "docs: fix doc truth entry batch"
 
 - [ ] **Step 1: 逐文件核对路径与数量**
 
-Run: `rtk rg -n "src/types/|57 张表|5 阶段|feedback-admin|labels.ts" packages/contracts/README.md packages/server/README.md packages/server/src/routes/README.md docs/reference/SYSTEM_TRUTH_SOURCES.md docs/README.md`
+Run: `rg -n "src/types/|57 张表|5 阶段|feedback-admin|labels.ts" packages/contracts/README.md packages/server/README.md packages/server/src/routes/README.md docs/reference/SYSTEM_TRUTH_SOURCES.md docs/README.md`
 Expected: 命中当前待修表述
 
 - [ ] **Step 2: 更新文档事实并完成中文化**
@@ -90,12 +90,12 @@ Expected: 命中当前待修表述
 
 - [ ] **Step 3: 校验文档守卫**
 
-Run: `rtk pnpm check:docs-drift`
+Run: `pnpm check:docs-drift`
 Expected: PASS
 
 - [ ] **Step 4: 校验链接**
 
-Run: `rtk pnpm check:links`
+Run: `pnpm check:links`
 Expected: PASS 或仅剩与本任务无关的既有告警
 
 - [ ] **Step 5: Commit**
@@ -122,7 +122,7 @@ git commit -m "docs: align readmes and truth sources"
 
 - [ ] **Step 1: 逐文件核对待修表述**
 
-Run: `rtk rg -n "OTEL_ENABLED|service-discovery/|前五个物理|Blocking gaps:|^#|README" docs/architecture/OBSERVABILITY.md docs/architecture/SERVICE-DISCOVERY.md docs/architecture/SERVICE_BOUNDARIES.md docs/guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md packages/server/src/lib/README.md packages/backend-core/README.md docs/architecture/MODULE_STRUCTURE.md`
+Run: `rg -n "OTEL_ENABLED|service-discovery/|前五个物理|Blocking gaps:|^#|README" docs/architecture/OBSERVABILITY.md docs/architecture/SERVICE-DISCOVERY.md docs/architecture/SERVICE_BOUNDARIES.md docs/guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md packages/server/src/lib/README.md packages/backend-core/README.md docs/architecture/MODULE_STRUCTURE.md`
 Expected: 命中待修位置和英文标题
 
 - [ ] **Step 2: 更新术语并完成中文化**
@@ -136,12 +136,12 @@ Expected: 命中待修位置和英文标题
 
 - [ ] **Step 3: 校验 Markdown 与链接**
 
-Run: `rtk pnpm check:md-lint`
+Run: `pnpm check:md-lint`
 Expected: PASS
 
 - [ ] **Step 4: 校验文档守卫**
 
-Run: `rtk pnpm check:docs-drift`
+Run: `pnpm check:docs-drift`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -166,7 +166,7 @@ git commit -m "docs: fix architecture wording and zh-cn docs"
 
 - [ ] **Step 1: 逐文件核对待修表述**
 
-Run: `rtk rg -n "Node.js|PostgreSQL|service-knowledge-read|dev:server:compat|TRAPMAP_EVAL_PLATFORM|fail-on-regression|retention|OTEL_ENABLED|OTEL_SAMPLING_RATE|OTEL_TRACES_EXPORTER|OTEL_LOGS_EXPORTER|LOKI_URL" docs/guides/GETTING_STARTED.md docs/guides/MIGRATION_GUIDE.md docs/operations/ENVIRONMENT.md docs/operations/CI_CD.md docs/operations/OBSERVABILITY-OPERATIONS.md .github/workflows/ci.yml`
+Run: `rg -n "Node.js|PostgreSQL|service-knowledge-read|dev:server:compat|TRAPMAP_EVAL_PLATFORM|fail-on-regression|retention|OTEL_ENABLED|OTEL_SAMPLING_RATE|OTEL_TRACES_EXPORTER|OTEL_LOGS_EXPORTER|LOKI_URL" docs/guides/GETTING_STARTED.md docs/guides/MIGRATION_GUIDE.md docs/operations/ENVIRONMENT.md docs/operations/CI_CD.md docs/operations/OBSERVABILITY-OPERATIONS.md .github/workflows/ci.yml`
 Expected: 命中当前待修表述
 
 - [ ] **Step 2: 更新事实并保持简体中文**
@@ -180,15 +180,15 @@ Expected: 命中当前待修表述
 
 - [ ] **Step 3: 校验文档守卫**
 
-Run: `rtk pnpm check:docs-drift`
+Run: `pnpm check:docs-drift`
 Expected: PASS
 
 - [ ] **Step 4: 校验链接与 Markdown**
 
-Run: `rtk pnpm check:links`
+Run: `pnpm check:links`
 Expected: PASS 或仅剩与本任务无关的既有告警
 
-Run: `rtk pnpm check:md-lint`
+Run: `pnpm check:md-lint`
 Expected: PASS
 
 - [ ] **Step 5: Commit**

@@ -48,6 +48,6 @@
 
 ## Closeout 前的守卫
 
-- [ ] `rtk pnpm check:docs-drift`
-- [ ] `rtk pnpm check:structure`
+- [ ] `pnpm check:docs-drift`
+- [ ] `pnpm check:structure`
 - [ ] 当前活跃细则的完成定义全部满足

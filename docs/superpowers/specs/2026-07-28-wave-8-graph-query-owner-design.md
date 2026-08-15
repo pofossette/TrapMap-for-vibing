@@ -136,12 +136,12 @@ Implementation must first add or adapt tests that prove:
 Required validation after implementation:
 
 ```bash
-rtk pnpm --filter @trapmap/contracts test --run src/domain/graph-query.test.ts
-rtk pnpm --filter @trapmap/service-knowledge-read test
-rtk pnpm --filter @trapmap/host-local test --run src/nest/runtime/import-boundary.test.ts
-rtk pnpm --filter @trapmap/server test --run src/lib/graph-query/health.test.ts src/lib/graph-query/neo4j-backend.test.ts
-rtk pnpm typecheck
-rtk pnpm exec fallow audit --base main --format json --quiet 2>/dev/null || true
+pnpm --filter @trapmap/contracts test --run src/domain/graph-query.test.ts
+pnpm --filter @trapmap/service-knowledge-read test
+pnpm --filter @trapmap/host-local test --run src/nest/runtime/import-boundary.test.ts
+pnpm --filter @trapmap/server test --run src/lib/graph-query/health.test.ts src/lib/graph-query/neo4j-backend.test.ts
+pnpm typecheck
+pnpm exec fallow audit --base main --format json --quiet 2>/dev/null || true
 ```
 
 The Fallow report must have zero introduced graph-query boundary violations,

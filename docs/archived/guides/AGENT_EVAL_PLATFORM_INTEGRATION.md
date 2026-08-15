@@ -74,12 +74,12 @@ health 返回 `{"status":"OK",...}` 后，再把 `LANGFUSE_BASE_URL=http://127.0
 
 - 代码侧 closeout 已完成到“三个 suite 都由 owner 产出 platform events，aggregate runner 只负责发布”。
 - live Langfuse closeout 已于 2026-07-07 23:24-23:25 CST 完成，目标是本地 Docker Compose 启动的官方 Langfuse v3 实例：`http://127.0.0.1:3000`。
-- 同轮先执行 `rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY TRAPMAP_EVAL_PLATFORM_FLUSH_TIMEOUT_MS`，确认当前 shell 中四项变量均非空。
-- 随后执行 `rtk pnpm eval -- smoke --platform langfuse`；runner 输出了三条 success evidence：
+- 同轮先执行 `printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY TRAPMAP_EVAL_PLATFORM_FLUSH_TIMEOUT_MS`，确认当前 shell 中四项变量均非空。
+- 随后执行 `pnpm eval -- smoke --platform langfuse`；runner 输出了三条 success evidence：
   - `[eval-platform] langfuse adapter enabled: baseUrl=http://127.0.0.1:3000 flushTimeoutMs=5000.`
   - `[eval-platform] langfuse adapter mirrored 1041 suite events without publish warnings.`
   - `[eval-platform] langfuse adapter flush completed without close warnings.`
-- 同一轮 native TrapMap smoke 仍以 `81/81 passed` 成功结束；随后补跑 `rtk pnpm eval:smoke` 也仍以 `81/81 passed` 结束，说明启用外部平台没有改变 TrapMap 自身退出语义。
+- 同一轮 native TrapMap smoke 仍以 `81/81 passed` 成功结束；随后补跑 `pnpm eval:smoke` 也仍以 `81/81 passed` 结束，说明启用外部平台没有改变 TrapMap 自身退出语义。
 - 额外复核：使用同一组 project keys 调 `GET /api/public/traces?limit=1` 已能读到 project trace 数据，说明这次不是“runner 侧假成功、服务端未落地”。
 - 当前 active closeout 已完成；该主线只剩 `MLflow` 等 deferred follow-up，不再保留 environment-blocked 状态。
 - `MLflow` 与第二平台切换验证仍属 deferred，不在当前 active closeout 范围内。

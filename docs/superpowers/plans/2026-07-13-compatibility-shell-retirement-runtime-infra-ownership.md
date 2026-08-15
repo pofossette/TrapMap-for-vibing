@@ -33,7 +33,7 @@
 
 - [ ] Write a failing static guard that scans production `packages/**/src` files, Dockerfiles, root scripts, and workspace package manifests for `@trapmap/server`, `@trapmap/runtime-infra`, `store_snapshot`, `JsonStore`, and `PostgresStore`.
 - [ ] Allow only explicitly named migration-export fixtures until Task 9; reject all runtime imports immediately after each owner wave is switched.
-- [ ] Run `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts` and confirm the baseline is red.
+- [ ] Run `pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts` and confirm the baseline is red.
 - [ ] Document the temporary allowlist, its owner, and its removal task in the new active detail; do not add an allowlist entry without a deletion wave.
 
 ## Task 2: Establish Owner Migration Entrypoints
@@ -90,7 +90,7 @@
 
 - [ ] Write destination tests for lease reclaim, retry, dead letter, outbox dispatch, and failure-to-`InvocationError` mapping.
 - [ ] Keep async callers dependent on `JobRuntimePort`, never a shared queue/repository object.
-- [ ] Run job-runtime focused tests, `rtk pnpm test:runtime-foundations`, and `rtk pnpm test:distributed-closeout`.
+- [ ] Run job-runtime focused tests, `pnpm test:runtime-foundations`, and `pnpm test:distributed-closeout`.
 
 ## Task 7: Move Knowledge Read and Retrieval Infrastructure
 
@@ -101,7 +101,7 @@
 
 - [ ] Start with import-boundary tests that require no server or runtime-infra import in the destination package.
 - [ ] Preserve retrieval result contracts and PG projection reads; do not recreate `store_snapshot` graph/index fallbacks.
-- [ ] Run knowledge-read focused tests, `rtk pnpm eval:smoke`, retrieval smoke, and Fallow architecture audit.
+- [ ] Run knowledge-read focused tests, `pnpm eval:smoke`, retrieval smoke, and Fallow architecture audit.
 
 ## Task 8: Move Host-Owned Runtime Surfaces
 
@@ -132,7 +132,7 @@
 - Modify: `docs/reference/REPO_STRUCTURE.md`, `docs/reference/SYSTEM_TRUTH_SOURCES.md`, `docs/architecture/BOUNDARIES.md`, `docs/architecture/SERVICE_BOUNDARIES.md`, `docs/architecture/DATABASE_OWNERSHIP.md`, and operations guides
 
 - [ ] Remove package-graph references before deleting directories, then make the compatibility-retirement guard green with no exceptions.
-- [ ] Run `rtk pnpm typecheck`, affected package tests, `rtk pnpm eval:smoke`, `rtk pnpm test:distributed-acceptance`, `rtk pnpm test:distributed-closeout`, `rtk pnpm test:runtime-closeout:compose`, `rtk pnpm test:deployment-smoke`, `rtk pnpm check:docs-drift`, `rtk pnpm check:structure`, and `rtk pnpm exec fallow audit --base main`.
+- [ ] Run `pnpm typecheck`, affected package tests, `pnpm eval:smoke`, `pnpm test:distributed-acceptance`, `pnpm test:distributed-closeout`, `pnpm test:runtime-closeout:compose`, `pnpm test:deployment-smoke`, `pnpm check:docs-drift`, `pnpm check:structure`, and `pnpm exec fallow audit --base main`.
 - [ ] Update the active detail with exact command results and external prerequisites, then archive it and update root `plan.md`, `docs/todos/README.md`, and `docs/archived/README.md` to retain one active execution surface.
 
 ## Completion Criteria

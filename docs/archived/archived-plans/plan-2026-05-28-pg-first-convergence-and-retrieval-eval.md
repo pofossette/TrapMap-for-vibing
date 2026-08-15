@@ -125,9 +125,9 @@
 
 - add unit tests for actor lookup assembly in `packages/server/src/lib/actors/lookup.test.ts`
 - update `packages/server/src/routes/knowledge.test.ts` so route serialization works without pre-populating snapshot user arrays
-- run `rtk pnpm test -- --run packages/server/src/lib/actors/lookup.test.ts packages/server/src/routes/knowledge.test.ts`
-- run `rtk pnpm typecheck`
-- run `rtk pnpm eval:smoke`
+- run `pnpm test -- --run packages/server/src/lib/actors/lookup.test.ts packages/server/src/routes/knowledge.test.ts`
+- run `pnpm typecheck`
+- run `pnpm eval:smoke`
 
 **Necessary example structure or code:**
 
@@ -160,7 +160,7 @@ export interface MembershipRepository {
 }
 ```
 
-Run: `rtk pnpm typecheck`  
+Run: `pnpm typecheck`  
 Expected: FAIL until implementations are added.
 
 - [x] **Step 1.2: Implement `buildUserLookupContextForKnowledge()` and cover it with unit tests**
@@ -188,10 +188,10 @@ return knowledgeEntryResponseSchema.parse({
 
 - [x] **Step 1.4: Update package/data-model documentation and rerun the targeted checks**
 
-Run: `rtk pnpm test -- --run packages/server/src/lib/actors/lookup.test.ts packages/server/src/routes/knowledge.test.ts`  
+Run: `pnpm test -- --run packages/server/src/lib/actors/lookup.test.ts packages/server/src/routes/knowledge.test.ts`  
 Expected: PASS
 
-Run: `rtk pnpm eval:smoke`  
+Run: `pnpm eval:smoke`  
 Expected: PASS
 
 ---
@@ -233,8 +233,8 @@ Expected: PASS
 - extend `access-keys.test.ts` with `issue -> login` assertions
 - add `members.test.ts` covering create/update flows and `securityLevel`
 - add `pg-first-compat.test.ts` for route-level JSON vs PG parity on auth/member flows
-- run `rtk pnpm test -- --run packages/server/src/routes/access-keys.test.ts packages/server/src/routes/auth.test.ts packages/server/src/routes/members.test.ts packages/server/src/__tests__/pg-first-compat.test.ts`
-- run `rtk pnpm eval:smoke`
+- run `pnpm test -- --run packages/server/src/routes/access-keys.test.ts packages/server/src/routes/auth.test.ts packages/server/src/routes/members.test.ts packages/server/src/__tests__/pg-first-compat.test.ts`
+- run `pnpm eval:smoke`
 
 **Necessary example structure or code:**
 
@@ -300,7 +300,7 @@ const membership = {
 
 - [x] **Step 2.4: Add cross-mode route tests and run the auth/member regression suite**
 
-Run: `rtk pnpm test -- --run packages/server/src/routes/access-keys.test.ts packages/server/src/routes/auth.test.ts packages/server/src/routes/members.test.ts packages/server/src/__tests__/pg-first-compat.test.ts`  
+Run: `pnpm test -- --run packages/server/src/routes/access-keys.test.ts packages/server/src/routes/auth.test.ts packages/server/src/routes/members.test.ts packages/server/src/__tests__/pg-first-compat.test.ts`  
 Expected: PASS
 
 ---
@@ -335,8 +335,8 @@ Expected: PASS
 - add `application-service.test.ts` for submit/resubmit/supersede semantics
 - add `traps.test.ts` covering PG-mode trap resubmission and lifecycle persistence
 - update `knowledge.test.ts` to assert shared service behavior instead of route-local mutation details
-- run `rtk pnpm test -- --run packages/server/src/lib/knowledge/application-service.test.ts packages/server/src/routes/knowledge.test.ts packages/server/src/routes/traps.test.ts`
-- run `rtk pnpm eval:smoke`
+- run `pnpm test -- --run packages/server/src/lib/knowledge/application-service.test.ts packages/server/src/routes/knowledge.test.ts packages/server/src/routes/traps.test.ts`
+- run `pnpm eval:smoke`
 
 **Necessary example structure or code:**
 
@@ -380,7 +380,7 @@ expect(updated.history).toHaveLength(2);
 
 - [x] **Step 3.4: Update architecture/code-guide docs and rerun the shared workflow suite**
 
-Run: `rtk pnpm test -- --run packages/server/src/lib/knowledge/application-service.test.ts packages/server/src/routes/knowledge.test.ts packages/server/src/routes/traps.test.ts`  
+Run: `pnpm test -- --run packages/server/src/lib/knowledge/application-service.test.ts packages/server/src/routes/knowledge.test.ts packages/server/src/routes/traps.test.ts`  
 Expected: PASS
 
 ---
@@ -417,9 +417,9 @@ Expected: PASS
 - add `read-model.test.ts` for repository-backed read-model assembly
 - update `routes/retrieval.test.ts` to cover PG-mode visibility after repo inserts
 - update `orchestrator.test.ts` and `plan-compiler.test.ts` to use repository-backed fixtures
-- run `rtk pnpm test -- --run packages/server/src/lib/retrieval/read-model.test.ts packages/server/src/routes/retrieval.test.ts packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts`
-- run `rtk pnpm eval:retrieval:smoke`
-- run `rtk pnpm eval:smoke`
+- run `pnpm test -- --run packages/server/src/lib/retrieval/read-model.test.ts packages/server/src/routes/retrieval.test.ts packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts`
+- run `pnpm eval:retrieval:smoke`
+- run `pnpm eval:smoke`
 
 **Necessary example structure or code:**
 
@@ -468,10 +468,10 @@ await services.repos.knowledge.updateEmbeddingCache(entryId, {
 
 - [x] **Step 4.4: Run retrieval-focused tests and smoke evals**
 
-Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/read-model.test.ts packages/server/src/routes/retrieval.test.ts packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts`  
+Run: `pnpm test -- --run packages/server/src/lib/retrieval/read-model.test.ts packages/server/src/routes/retrieval.test.ts packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts`  
 Expected: PASS
 
-Run: `rtk pnpm eval:retrieval:smoke`  
+Run: `pnpm eval:retrieval:smoke`  
 Expected: PASS
 
 ---
@@ -503,11 +503,11 @@ Expected: PASS
 
 - add `snapshot-usage-guard.test.ts` that scans server source and fails on non-allowlisted snapshot usage
 - rerun the full focused verification set:
-  - `rtk pnpm typecheck`
-  - `rtk pnpm check`
-  - `rtk pnpm test`
-  - `rtk pnpm eval:smoke`
-- if retrieval behavior changed materially, also run `rtk pnpm eval:core`
+  - `pnpm typecheck`
+  - `pnpm check`
+  - `pnpm test`
+  - `pnpm eval:smoke`
+- if retrieval behavior changed materially, also run `pnpm eval:core`
 
 **Necessary example structure or code:**
 
@@ -553,19 +553,19 @@ expect(disallowedSnapshotUsages).toEqual([]);
 
 - [x] **Step 5.4: Run full verification and close the plan**
 
-Run: `rtk pnpm typecheck`  
+Run: `pnpm typecheck`  
 Expected: PASS
 
-Run: `rtk pnpm check`  
+Run: `pnpm check`  
 Expected: PASS
 
-Run: `rtk pnpm test`  
+Run: `pnpm test`  
 Expected: PASS
 
-Run: `rtk pnpm eval:smoke`  
+Run: `pnpm eval:smoke`  
 Expected: PASS
 
-Run: `rtk git status --short`  
+Run: `git status --short`  
 Expected: only intended plan-following changes remain
 
 ---
@@ -702,8 +702,8 @@ Expected: only intended plan-following changes remain
 
 - extend `capsule-recall.test.ts` with artifact/capsule label-filter coverage
 - extend `recall-coordinator.test.ts` with a mixed-label multi-channel recall case
-- run `rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
-- run `rtk pnpm typecheck`
+- run `pnpm test -- --run packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
+- run `pnpm typecheck`
 
 **Necessary example structure or code:**
 
@@ -742,7 +742,7 @@ const governanceFilters = {
 };
 ```
 
-Run: `rtk pnpm typecheck`  
+Run: `pnpm typecheck`  
 Expected: FAIL until all `ArtifactGovernanceFilters` call sites are updated.
 
 - [x] **Step 6.2: Apply label/scope matching inside capsule extraction and profile shortlist assembly**
@@ -793,10 +793,10 @@ const rows = await db
 
 - [x] **Step 6.4: Verify that mixed-label capsules no longer survive coordinator output**
 
-Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`  
+Run: `pnpm test -- --run packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`  
 Expected: PASS with filtered capsule sets only.
 
-Run: `rtk pnpm typecheck`  
+Run: `pnpm typecheck`  
 Expected: PASS
 
 ---
@@ -832,10 +832,10 @@ Expected: PASS
 - extend `routes/retrieval.test.ts` with a v2 route test that seeds `nodejs` and `python` artifacts and expects only the requested label
 - extend `orchestrator.test.ts` with a summary-filter assertion that `Flask` never appears when `labels: ['nodejs']`
 - add smoke retrieval/summary eval fixtures for label filtering
-- run `rtk pnpm test -- --run packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/response/summary.test.ts packages/server/src/routes/retrieval.test.ts`
-- run `rtk pnpm eval:retrieval:smoke`
-- run `rtk pnpm eval:summary:smoke`
-- run `rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier smoke --json --json-path ./reports/codex-eval-smoke.json`
+- run `pnpm test -- --run packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/response/summary.test.ts packages/server/src/routes/retrieval.test.ts`
+- run `pnpm eval:retrieval:smoke`
+- run `pnpm eval:summary:smoke`
+- run `pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier smoke --json --json-path ./reports/codex-eval-smoke.json`
 
 **Necessary example structure or code:**
 
@@ -911,13 +911,13 @@ export const v2LabelFilterSmoke = retrievalEvalCaseSchema.parse({
 
 - [x] **Step 7.4: Run the route/orchestrator suite and smoke evals**
 
-Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/response/summary.test.ts packages/server/src/routes/retrieval.test.ts`  
+Run: `pnpm test -- --run packages/server/src/lib/retrieval/orchestration/orchestrator.test.ts packages/server/src/lib/retrieval/response/summary.test.ts packages/server/src/routes/retrieval.test.ts`  
 Expected: PASS
 
-Run: `rtk pnpm eval:retrieval:smoke`  
+Run: `pnpm eval:retrieval:smoke`  
 Expected: PASS with the new label-filter smoke case included.
 
-Run: `rtk pnpm eval:summary:smoke`  
+Run: `pnpm eval:summary:smoke`  
 Expected: PASS with no forbidden claims.
 
 ---
@@ -949,9 +949,9 @@ Expected: PASS with no forbidden claims.
 
 - add a semantic recall unit test that reproduces the Docker ranking order
 - add a coordinator-level test covering `maxResults=1` for the fixture shape
-- run `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/semantic.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
-- run `rtk pnpm eval:retrieval:core`
-- run `rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier core --json --json-path ./reports/codex-eval-core.json`
+- run `pnpm test -- --run packages/server/src/lib/retrieval/recall/semantic.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
+- run `pnpm eval:retrieval:core`
+- run `pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier core --json --json-path ./reports/codex-eval-core.json`
 
 **Necessary example structure or code:**
 
@@ -974,7 +974,7 @@ const lexicalBoost = computeLexicalIntentBoost(seed, entry);
 const finalScore = Math.min(1, Math.max(0, score + lexicalBoost + boundaryDelta));
 ```
 
-Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/semantic.test.ts`
+Run: `pnpm test -- --run packages/server/src/lib/retrieval/recall/semantic.test.ts`
 Expected: FAIL until the new ranking expectation is encoded.
 
 - [x] **Step 8.2: Add a regression test for the Docker top-1 ordering**
@@ -1007,10 +1007,10 @@ expected: {
 
 - [x] **Step 8.4: Run targeted tests and core retrieval eval**
 
-Run: `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/semantic.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
+Run: `pnpm test -- --run packages/server/src/lib/retrieval/recall/semantic.test.ts packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts`
 Expected: PASS
 
-Run: `rtk pnpm eval:retrieval:core`
+Run: `pnpm eval:retrieval:core`
 Expected: PASS with `v1-low-maxresults-core` green.
 
 ---
@@ -1033,15 +1033,15 @@ Expected: PASS with `v1-low-maxresults-core` green.
 
 **Documentation updates required:**
 
-- `evals/README.md`: show direct `rtk pnpm exec tsx ... eval-all.ts` examples for `--json`, `--dry-run`, and custom flags
+- `evals/README.md`: show direct `pnpm exec tsx ... eval-all.ts` examples for `--json`, `--dry-run`, and custom flags
 - `evals/retrieval/README.md`: replace `./reports/baseline-v2-*.json` examples with the CI path or document a migration step explicitly
 - `docs/operations/TESTING.md`: explain that retrieval case pass/fail is governance/outcome based while ranking metrics still require review or baseline comparison
 
 **Test / eval updates required:**
 
 - add or update an `eval-ci` unit test if needed so baseline lookup uses the documented path
-- run `rtk pnpm test -- --run evals/scripts/__tests__/eval-ci.test.ts`
-- run `rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts`
+- run `pnpm test -- --run evals/scripts/__tests__/eval-ci.test.ts`
+- run `env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts`
 
 **Necessary example structure or code:**
 
@@ -1054,25 +1054,25 @@ function getBaselinePath(tier: 'smoke' | 'core'): string {
 ```
 
 ```bash
-rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json
-rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json
+env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
 ```
 
 - [x] **Step 9.1: Decide on one baseline location and make docs/tests point to it**
 
 ```md
 # 写入新基线
-rtk env WRITE_BASELINE=true TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+env WRITE_BASELINE=true TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
 
 # 比较现有基线
-rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
+env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts
 ```
 
 - [x] **Step 9.2: Replace broken “script plus extra args” examples with direct runner invocations**
 
 ```md
-rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
-rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json
+pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
+pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json
 ```
 
 - [x] **Step 9.3: Add a note explaining pass/fail vs ranking metrics**
@@ -1085,13 +1085,13 @@ rtk pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-all.ts --tier
 
 - [x] **Step 9.4: Run eval-ci verification and close the remediation plan**
 
-Run: `rtk pnpm test -- --run evals/scripts/__tests__/eval-ci.test.ts`  
+Run: `pnpm test -- --run evals/scripts/__tests__/eval-ci.test.ts`  
 Expected: PASS
 
-Run: `rtk env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts`  
+Run: `env TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts`  
 Expected: baseline is discovered when present, and no path mismatch remains.
 
-Run: `rtk git status --short`  
+Run: `git status --short`  
 Expected: only intended remediation-plan and code/doc/test changes remain.
 
 ---

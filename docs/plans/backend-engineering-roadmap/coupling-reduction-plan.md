@@ -99,9 +99,9 @@
 ## 验证与收尾
 
 - [x] 对每个被改动的边界跑聚焦测试。
-- [x] 跑 `rtk pnpm test -- --run packages/server/src/__tests__/snapshot-usage-guard.test.ts packages/server/src/bootstrap/startup.test.ts`。
-- [x] 跑 `rtk pnpm typecheck`。
-- [x] 跑 `rtk pnpm check:structure`。
+- [x] 跑 `pnpm test -- --run packages/server/src/__tests__/snapshot-usage-guard.test.ts packages/server/src/bootstrap/startup.test.ts`。
+- [x] 跑 `pnpm typecheck`。
+- [x] 跑 `pnpm check:structure`。
 - [x] 当耦合热点被解决或重划范围后，更新 Stage 1 和 Stage 2。
 
 **完成标准**

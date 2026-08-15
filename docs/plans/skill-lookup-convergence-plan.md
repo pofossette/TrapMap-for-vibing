@@ -39,7 +39,7 @@
 **Test and eval updates**
 
 - [x] Record baseline tests:
-  - `rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts packages/server/src/routes/retrieval.test.ts`
+  - `pnpm test -- --run packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts packages/server/src/routes/retrieval.test.ts`
 
 **Example structure or code**
 
@@ -164,7 +164,7 @@ type SupportedEvalEndpoint =
 ## Phase 5: Verification and closeout
 
 - [x] Run focused tests.
-- [x] Run `rtk pnpm typecheck`.
+- [x] Run `pnpm typecheck`.
 - [x] Update completion notes if executed.
 
 **Completion standard**

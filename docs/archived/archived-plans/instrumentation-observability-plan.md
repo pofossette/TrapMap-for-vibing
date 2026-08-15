@@ -22,10 +22,10 @@
   - [ ] 实现已落地，或冻结为明确结论并写清 deferred 理由
   - [ ] 受影响最小测试已执行
   - [ ] 受影响文档已回写
-  - [ ] `rtk pnpm check:docs-drift` 已通过
-  - [ ] `rtk pnpm check:structure` 已通过
+  - [ ] `pnpm check:docs-drift` 已通过
+  - [ ] `pnpm check:structure` 已通过
 - 若改动涉及 retrieval、summary、governance、feedback、fixtures、eval runner：
-  - [ ] 补跑 `rtk pnpm eval:smoke`
+  - [ ] 补跑 `pnpm eval:smoke`
 
 ## 3. 文档与测试回写总表
 
@@ -44,13 +44,13 @@
 
 ### 测试
 
-- [ ] 文档-only 变更：`rtk pnpm check:docs-drift`
-- [ ] 文档-only 变更：`rtk pnpm check:structure`
-- [ ] contract / 类型 / client-server shape 变化：`rtk pnpm typecheck`
-- [ ] runtime / operator / distributed hop 变化：`rtk pnpm test:runtime-foundations`
-- [ ] deployment / host / route surface 变化：`rtk pnpm test:deployment-smoke`
-- [ ] retrieval / summary / governance / feedback / eval 相关变化：`rtk pnpm eval:smoke`
-- [ ] 受影响包最小测试：优先使用 `rtk pnpm test:file -- <path>` 或包级 `--filter` 测试
+- [ ] 文档-only 变更：`pnpm check:docs-drift`
+- [ ] 文档-only 变更：`pnpm check:structure`
+- [ ] contract / 类型 / client-server shape 变化：`pnpm typecheck`
+- [ ] runtime / operator / distributed hop 变化：`pnpm test:runtime-foundations`
+- [ ] deployment / host / route surface 变化：`pnpm test:deployment-smoke`
+- [ ] retrieval / summary / governance / feedback / eval 相关变化：`pnpm eval:smoke`
+- [ ] 受影响包最小测试：优先使用 `pnpm test:file -- <path>` 或包级 `--filter` 测试
 
 ## 4. 分阶段执行
 
@@ -145,8 +145,8 @@
 
 **本阶段最小验证：**
 
-- [ ] `rtk pnpm check:docs-drift`
-- [ ] `rtk pnpm check:structure`
+- [ ] `pnpm check:docs-drift`
+- [ ] `pnpm check:structure`
 
 ### Phase 1 埋点模型与 contract 收敛
 
@@ -170,9 +170,9 @@
 
 **本阶段最小验证：**
 
-- [ ] `rtk pnpm check:docs-drift`
-- [ ] `rtk pnpm check:structure`
-- [ ] 如 contract 或类型变更：`rtk pnpm typecheck`
+- [ ] `pnpm check:docs-drift`
+- [ ] `pnpm check:structure`
+- [ ] 如 contract 或类型变更：`pnpm typecheck`
 - [ ] 如改到相关包：补受影响包最小测试
 
 **Phase 1 冻结结论（2026-06-28）：**
@@ -232,11 +232,11 @@
 
 **最小验证：**
 
-- [ ] `rtk pnpm test:runtime-foundations`
-- [ ] `rtk pnpm test:deployment-smoke`
+- [ ] `pnpm test:runtime-foundations`
+- [ ] `pnpm test:deployment-smoke`
 - [ ] 受影响包最小测试
-- [ ] `rtk pnpm check:docs-drift`
-- [ ] `rtk pnpm check:structure`
+- [ ] `pnpm check:docs-drift`
+- [ ] `pnpm check:structure`
 
 ### Phase 3 检索、治理、feedback 与 debug 面增强
 
@@ -268,10 +268,10 @@
 **最小验证：**
 
 - [ ] 受影响包最小测试
-- [ ] `rtk pnpm eval:smoke`
-- [ ] 如涉及 route/deployment：`rtk pnpm test:deployment-smoke`
-- [ ] `rtk pnpm check:docs-drift`
-- [ ] `rtk pnpm check:structure`
+- [ ] `pnpm eval:smoke`
+- [ ] 如涉及 route/deployment：`pnpm test:deployment-smoke`
+- [ ] `pnpm check:docs-drift`
+- [ ] `pnpm check:structure`
 
 ### Phase 4 客户端、文档与守卫收尾
 
@@ -287,10 +287,10 @@
 
 **最小验证：**
 
-- [ ] `rtk pnpm check:docs-drift`
-- [ ] `rtk pnpm check:structure`
-- [ ] `rtk pnpm typecheck`（如有 shape 变化）
-- [ ] 相关最小测试与 `rtk pnpm eval:smoke`（如受影响）
+- [ ] `pnpm check:docs-drift`
+- [ ] `pnpm check:structure`
+- [ ] `pnpm typecheck`（如有 shape 变化）
+- [ ] 相关最小测试与 `pnpm eval:smoke`（如受影响）
 
 ## 5. 与现有计划的关系
 

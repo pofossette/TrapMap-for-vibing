@@ -78,10 +78,10 @@
 - [ ] **Step 3: 运行只读核对，不改实现**
 
 ```bash
-rtk jq '.bugs[] | select(.confirmation_status=="confirmed") | {id,detail_file,trigger_summary}' /home/wunai/Downloads/fm-agent-raw-reports/server/summary.json
-rtk sed -n '1,220p' packages/server/README.md
-rtk sed -n '1,220p' packages/server/src/lib/README.md
-rtk sed -n '1,220p' docs/operations/TESTING.md
+jq '.bugs[] | select(.confirmation_status=="confirmed") | {id,detail_file,trigger_summary}' /home/wunai/Downloads/fm-agent-raw-reports/server/summary.json
+sed -n '1,220p' packages/server/README.md
+sed -n '1,220p' packages/server/src/lib/README.md
+sed -n '1,220p' docs/operations/TESTING.md
 ```
 
 Expected: `server-source-pack.md` 足以指导后续每个修复同时回看 raw report、包内导航和系统文档。
@@ -142,7 +142,7 @@ it('awaits async worker shutdown before close resolves', async () => {
 - [ ] **Step 3: 跑最小 server backlog 测试集**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/app.test.ts \
   packages/server/src/bootstrap/startup.test.ts \
   packages/server/src/lib/ai/dynamic/context-resolver.test.ts \
@@ -155,14 +155,14 @@ Expected: live gap 断言先红；stale raw finding 不得重新失败。
 - [ ] **Step 4: 提交 Phase 1**
 
 ```bash
-rtk git add \
+git add \
   docs/plans/fm-agent-scan/server-live-gap-matrix.md \
   packages/server/src/app.test.ts \
   packages/server/src/bootstrap/startup.test.ts \
   packages/server/src/lib/ai/dynamic/context-resolver.test.ts \
   packages/server/src/lib/ai/provider-config.test.ts \
   packages/server/src/__tests__/docs-truth-smoke.test.ts
-rtk git commit --no-verify -m "test(server): freeze fm-agent live backlog"
+git commit --no-verify -m "test(server): freeze fm-agent live backlog"
 ```
 
 ### Phase 1 完成标准
@@ -238,7 +238,7 @@ if (!isPostgresStore) {
 - [ ] **Step 4: 运行 lifecycle/config 回归集**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/app.test.ts \
   packages/server/src/bootstrap/startup.test.ts \
   packages/server/src/config.test.ts
@@ -247,7 +247,7 @@ rtk pnpm test -- --run \
 - [ ] **Step 5: 提交 Phase 2**
 
 ```bash
-rtk git add \
+git add \
   packages/server/src/app.ts \
   packages/server/src/bootstrap/bootstrap-candidate-recovery.ts \
   packages/server/src/bootstrap/bootstrap-lifecycle.ts \
@@ -257,7 +257,7 @@ rtk git add \
   packages/server/src/app.test.ts \
   packages/server/src/bootstrap/startup.test.ts \
   packages/server/src/config.test.ts
-rtk git commit --no-verify -m "fix(server): harden app and bootstrap boundaries"
+git commit --no-verify -m "fix(server): harden app and bootstrap boundaries"
 ```
 
 ### Phase 2 完成标准
@@ -348,7 +348,7 @@ const shouldInsertBoundaryMarker = staticSections.length > 0 || dynamicSections.
 - [ ] **Step 4: 运行 AI 子系统回归集**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/ai/provider-config.test.ts \
   packages/server/src/lib/ai/prompts.test.ts \
   packages/server/src/lib/ai/providers.test.ts \
@@ -361,7 +361,7 @@ rtk pnpm test -- --run \
 - [ ] **Step 5: 提交 Phase 3**
 
 ```bash
-rtk git add \
+git add \
   packages/server/src/lib/ai/provider-config.ts \
   packages/server/src/lib/ai/prompts.ts \
   packages/server/src/lib/ai/parse.ts \
@@ -381,7 +381,7 @@ rtk git add \
   packages/server/src/lib/ai/dynamic/context-resolver.test.ts \
   packages/server/src/lib/ai/dynamic/conditions.test.ts \
   packages/server/src/lib/ai/cache/index.test.ts
-rtk git commit --no-verify -m "fix(server): harden ai provider and prompt contracts"
+git commit --no-verify -m "fix(server): harden ai provider and prompt contracts"
 ```
 
 ### Phase 3 完成标准
@@ -474,7 +474,7 @@ const sourceText = [
 - [ ] **Step 4: 运行 retrieval/indexing 测试和 eval**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/retrieval/capsules/skill-lookup.test.ts \
   packages/server/src/lib/retrieval/capsules/capsule-recall.test.ts \
   packages/server/src/lib/retrieval/capsules/intent.test.ts \
@@ -486,14 +486,14 @@ rtk pnpm test -- --run \
   packages/server/src/lib/indexing/adapters/keyword.test.ts \
   packages/server/src/lib/indexing/adapters/vector.test.ts \
   packages/server/src/routes/retrieval.test.ts
-rtk pnpm eval:retrieval:smoke
-rtk pnpm eval:graph-extraction:smoke
+pnpm eval:retrieval:smoke
+pnpm eval:graph-extraction:smoke
 ```
 
 - [ ] **Step 5: 提交 Phase 4**
 
 ```bash
-rtk git add \
+git add \
   packages/server/src/lib/retrieval/capsules/skill-lookup.ts \
   packages/server/src/lib/retrieval/capsules/capsule-recall.ts \
   packages/server/src/lib/retrieval/capsules/capsule-recall-coordinator.ts \
@@ -521,7 +521,7 @@ rtk git add \
   packages/server/src/lib/indexing/adapters/keyword.test.ts \
   packages/server/src/lib/indexing/adapters/vector.test.ts \
   packages/server/src/routes/retrieval.test.ts
-rtk git commit --no-verify -m "fix(server): stabilize capsule retrieval and indexing"
+git commit --no-verify -m "fix(server): stabilize capsule retrieval and indexing"
 ```
 
 ### Phase 4 完成标准
@@ -539,7 +539,7 @@ rtk git commit --no-verify -m "fix(server): stabilize capsule retrieval and inde
 ### Phase 4 测试 / Eval 更新
 
 - [ ] 扩展 capsule / graph-lite / adapter / retrieval 路径上的单测
-- [ ] 运行 `rtk pnpm eval:retrieval:smoke` 和 `rtk pnpm eval:graph-extraction:smoke`
+- [ ] 运行 `pnpm eval:retrieval:smoke` 和 `pnpm eval:graph-extraction:smoke`
 
 ### Phase 4 示例结构
 
@@ -626,7 +626,7 @@ const fingerprint = sha256(normalized);
 - [ ] **Step 4: 运行 persistence / artifact / candidate / route surface 测试和 ingestion smoke**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/artifacts/model.test.ts \
   packages/server/src/lib/artifacts/edit.test.ts \
   packages/server/src/lib/artifacts/pg-repository.round4.test.ts \
@@ -644,14 +644,14 @@ rtk pnpm test -- --run \
   packages/server/src/routes/operations/artifacts-export.test.ts \
   packages/server/src/routes/operations/skill-edit.test.ts \
   packages/server/src/routes/operations/skill-review.test.ts
-rtk pnpm eval:ingestion:smoke
-rtk pnpm eval:smoke
+pnpm eval:ingestion:smoke
+pnpm eval:smoke
 ```
 
 - [ ] **Step 5: 提交 Phase 5**
 
 ```bash
-rtk git add \
+git add \
   packages/server/src/lib/artifacts/model.ts \
   packages/server/src/lib/artifacts/edit.ts \
   packages/server/src/lib/artifacts/pg-repository/index.ts \
@@ -689,7 +689,7 @@ rtk git add \
   packages/server/src/routes/operations/artifacts-export.test.ts \
   packages/server/src/routes/operations/skill-edit.test.ts \
   packages/server/src/routes/operations/skill-review.test.ts
-rtk git commit --no-verify -m "fix(server): harden persistence and route contracts"
+git commit --no-verify -m "fix(server): harden persistence and route contracts"
 ```
 
 ### Phase 5 完成标准
@@ -708,8 +708,8 @@ rtk git commit --no-verify -m "fix(server): harden persistence and route contrac
 ### Phase 5 测试 / Eval 更新
 
 - [ ] 扩展 artifact / candidate / knowledge / route surface 测试
-- [ ] 运行 `rtk pnpm eval:ingestion:smoke`
-- [ ] 运行 `rtk pnpm eval:smoke`
+- [ ] 运行 `pnpm eval:ingestion:smoke`
+- [ ] 运行 `pnpm eval:smoke`
 
 ### Phase 5 示例结构
 
@@ -763,12 +763,12 @@ packages/server/src/lib/artifacts/pg-repository/
 - [x] server 相关系统文档已同步到当前 lifecycle、AI、retrieval、persistence 和 route surface
 - [x] server 相关测试代码已覆盖本轮 live backlog
 - [x] phase-targeted server tests 已按子计划全部跑通
-- [x] `rtk pnpm eval:smoke` 通过
-- [x] 若触达 ingestion / artifact lifecycle，`rtk pnpm eval:ingestion:smoke` 通过
+- [x] `pnpm eval:smoke` 通过
+- [x] 若触达 ingestion / artifact lifecycle，`pnpm eval:ingestion:smoke` 通过
 
 ## Execution Close-Out (2026-05-29)
 
 - 状态：已完成，并在 post-audit reconciliation 中迁移到 `docs/plans/fm-agent-scan/`
 - 当前 HEAD 证据：server matrix 中原 live rows 已全部重分流为 `fixed` 或 `stale/design`
-- 当前验证：仓库级 `rtk pnpm test`、`rtk pnpm typecheck`、`rtk pnpm eval:smoke`、`rtk pnpm eval:ingestion:smoke` 已重跑通过
+- 当前验证：仓库级 `pnpm test`、`pnpm typecheck`、`pnpm eval:smoke`、`pnpm eval:ingestion:smoke` 已重跑通过
 - 残留说明：MCP `unavailable` 占位结果与 JSON store candidate recovery 边界已显式文档化，不再作为 server live backlog

@@ -48,16 +48,16 @@ Fixes landed:
 
 Focused blocker rerun:
 
-- `rtk zsh -lc 'set -a && source .env && set +a && pnpm --config.store-dir=/tmp/pnpm-store exec vitest run --maxWorkers 1 --minWorkers 1 packages/server/src/routes/retrieval.test.ts -t "v2-empty-with-summary-core|skill lookup with seeded artifacts|v2 label filter assertions"'`
+- `zsh -lc 'set -a && source .env && set +a && pnpm --config.store-dir=/tmp/pnpm-store exec vitest run --maxWorkers 1 --minWorkers 1 packages/server/src/routes/retrieval.test.ts -t "v2-empty-with-summary-core|skill lookup with seeded artifacts|v2 label filter assertions"'`
 - result: all 4 previously blocked cases passed
 
 Targeted verification:
 
-- `rtk zsh -lc 'set -a && source .env && set +a && pnpm --config.store-dir=/tmp/pnpm-store exec vitest run --maxWorkers 1 --minWorkers 1 evals/retrieval/lib/adapters.test.ts packages/server/src/lib/retrieval/read-model.test.ts packages/server/src/routes/retrieval.test.ts packages/server/src/lib/retrieval/response/summary.test.ts evals/summary/__tests__/runner-api.test.ts evals/graph-extraction/run.test.ts packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts'`
+- `zsh -lc 'set -a && source .env && set +a && pnpm --config.store-dir=/tmp/pnpm-store exec vitest run --maxWorkers 1 --minWorkers 1 evals/retrieval/lib/adapters.test.ts packages/server/src/lib/retrieval/read-model.test.ts packages/server/src/routes/retrieval.test.ts packages/server/src/lib/retrieval/response/summary.test.ts evals/summary/__tests__/runner-api.test.ts evals/graph-extraction/run.test.ts packages/server/src/lib/indexing/graph-lite/llm-extract.test.ts'`
   - first pass exposed non-blocker shutdown / legacy harness issues
   - after the follow-up fixes above, the remaining changed surface was re-verified with:
-- `rtk zsh -lc 'set -a && source .env && set +a && pnpm --config.store-dir=/tmp/pnpm-store exec vitest run --maxWorkers 1 --minWorkers 1 packages/server/src/routes/retrieval.test.ts -t "includes boundaryExplanation|penalizes entry with matching exclusion|boosts entry with matching context"'`
-- `rtk zsh -lc 'set -a && source .env && set +a && pnpm --config.store-dir=/tmp/pnpm-store exec vitest run --maxWorkers 1 --minWorkers 1 packages/server/src/routes/retrieval.test.ts'`
+- `zsh -lc 'set -a && source .env && set +a && pnpm --config.store-dir=/tmp/pnpm-store exec vitest run --maxWorkers 1 --minWorkers 1 packages/server/src/routes/retrieval.test.ts -t "includes boundaryExplanation|penalizes entry with matching exclusion|boosts entry with matching context"'`
+- `zsh -lc 'set -a && source .env && set +a && pnpm --config.store-dir=/tmp/pnpm-store exec vitest run --maxWorkers 1 --minWorkers 1 packages/server/src/routes/retrieval.test.ts'`
 
 Final audited state:
 

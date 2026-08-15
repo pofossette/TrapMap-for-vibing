@@ -271,8 +271,8 @@ const mixedCandidates = mergeGraphAndVectorCandidates({
 **Tests / eval updates**
 
 - [x] Add config tests covering disabled, enabled-valid, enabled-invalid, and fail-open combinations.
-- [x] Run `rtk pnpm test -- --run packages/server/src/config.test.ts`.
-- [x] Run `rtk pnpm typecheck`.
+- [x] Run `pnpm test -- --run packages/server/src/config.test.ts`.
+- [x] Run `pnpm typecheck`.
 
 ## Phase 2: Wrap Existing Graphology Logic Behind a Query Backend
 
@@ -303,8 +303,8 @@ const mixedCandidates = mergeGraphAndVectorCandidates({
 **Tests / eval updates**
 
 - [x] Update unit tests to use backend doubles instead of raw graph document arrays where appropriate.
-- [x] Run `rtk pnpm test -- --run packages/server/src/lib/retrieval/recall/graph-assisted.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts packages/server/src/__tests__/lib/retrieval/capsule-graph-channel.test.ts`.
-- [x] Run `rtk pnpm eval:retrieval:smoke`.
+- [x] Run `pnpm test -- --run packages/server/src/lib/retrieval/recall/graph-assisted.test.ts packages/server/src/lib/retrieval/graph-plan/plan-compiler.test.ts packages/server/src/__tests__/lib/retrieval/capsule-graph-channel.test.ts`.
+- [x] Run `pnpm eval:retrieval:smoke`.
 
 ## Phase 3: Add Neo4j Projection and Sync
 
@@ -350,7 +350,7 @@ Verified on 2026-06-02: this graph DB phase did not add any PostgreSQL-side sync
 **Suggested commands**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/graph-query/projector.test.ts \
   packages/server/src/lib/graph-query/neo4j-backend.test.ts \
   packages/server/src/lib/indexing/adapters/graph.test.ts \
@@ -395,8 +395,8 @@ Decision: keep plan compilation on local subgraph only in this phase; do not int
   - graph DB enabled local graph hit
   - mixed recall improves over vector-only for a graph-linked query
   - fallback-to-memory when graph DB is unavailable
-- [x] Run `rtk pnpm eval:smoke`.
-- [x] Run `rtk pnpm eval:retrieval:smoke`.
+- [x] Run `pnpm eval:smoke`.
+- [x] Run `pnpm eval:retrieval:smoke`.
 
 Observed on 2026-06-01: `eval:smoke` and `eval:retrieval:smoke` both ran successfully through the retrieval suite, but the suite still reports 2 pre-existing keyword smoke failures (`v2-keyword-dominant-smoke`, `v2-keyword-regex-smoke`) unrelated to Phase 4 graph changes.
 
@@ -433,9 +433,9 @@ Observed on 2026-06-01: `eval:smoke` and `eval:retrieval:smoke` both ran success
 **Tests / eval updates**
 
 - [x] Add health/fallback tests.
-- [x] Run `rtk pnpm check:docs-drift`.
-- [x] Run `rtk pnpm check:mermaid` if diagrams change.
-- [x] Run `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`.
+- [x] Run `pnpm check:docs-drift`.
+- [x] Run `pnpm check:mermaid` if diagrams change.
+- [x] Run `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`.
 
 Observed on 2026-06-02: `check:docs-drift` passed. `docs-truth-smoke.test.ts` also passed when run via Vitest. No Mermaid source changed in this closeout pass, so no separate Mermaid check was required.
 
@@ -455,7 +455,7 @@ Observed on 2026-06-02: `check:docs-drift` passed. `docs-truth-smoke.test.ts` al
 - [x] Retrieval evals explicitly cover graph-enabled, graph-disabled, and fallback paths.
 - [x] All touched docs match the runtime truth.
 
-Observed on 2026-06-02: `rtk pnpm eval:retrieval:smoke` was re-run during closeout and still reports the same 2 pre-existing keyword smoke failures (`v2-keyword-dominant-smoke`, `v2-keyword-regex-smoke`) already noted in Phase 4; graph-backend-specific smoke coverage remained intact.
+Observed on 2026-06-02: `pnpm eval:retrieval:smoke` was re-run during closeout and still reports the same 2 pre-existing keyword smoke failures (`v2-keyword-dominant-smoke`, `v2-keyword-regex-smoke`) already noted in Phase 4; graph-backend-specific smoke coverage remained intact.
 
 ## Audit Addendum (2026-06-02)
 
@@ -471,10 +471,10 @@ This plan was re-audited against the current repository state instead of trustin
 
 ### Re-run verification
 
-- [x] `rtk pnpm typecheck`
-- [x] `rtk pnpm test`
-- [x] `rtk pnpm check:docs-drift`
-- [x] `rtk pnpm eval:retrieval:smoke`
+- [x] `pnpm typecheck`
+- [x] `pnpm test`
+- [x] `pnpm check:docs-drift`
+- [x] `pnpm eval:retrieval:smoke`
 
 ### Current audit outcome
 

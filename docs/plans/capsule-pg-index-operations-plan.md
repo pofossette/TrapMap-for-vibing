@@ -37,7 +37,7 @@
 **Test and eval updates**
 
 - [x] Record baseline tests:
-  - `rtk pnpm test -- --run packages/server/src/__tests__/lib/retrieval/capsule-index-sync.test.ts packages/server/src/__tests__/lib/retrieval/capsule-index-rebuild.test.ts`
+  - `pnpm test -- --run packages/server/src/__tests__/lib/retrieval/capsule-index-sync.test.ts packages/server/src/__tests__/lib/retrieval/capsule-index-rebuild.test.ts`
 
 **Example structure or code**
 
@@ -151,7 +151,7 @@ const report = await verifyCapsuleIndexHealth({ pool, artifacts });
 ## Phase 5: Verification and closeout
 
 - [x] Run focused tests.
-- [x] Run `rtk pnpm typecheck`.
+- [x] Run `pnpm typecheck`.
 - [x] Update completion notes.
 
 **Completion standard**

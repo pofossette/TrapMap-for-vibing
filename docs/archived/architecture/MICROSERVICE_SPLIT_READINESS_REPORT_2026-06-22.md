@@ -34,8 +34,8 @@
   - `preset = "api"`
   - `routeSurface = "gateway-core"`
   - queue/outbox operator-visible reclaim / dead-letter / recent failure contract
-- `rtk pnpm test:runtime-closeout` 已在本地 Docker `distributed` 环境通过。
-- `rtk pnpm test:deployment-smoke`、`rtk pnpm test:runtime-foundations`、`rtk pnpm test:distributed-acceptance`、`rtk pnpm eval:smoke` 均通过，未出现与 closeout 结论冲突的结果。
+- `pnpm test:runtime-closeout` 已在本地 Docker `distributed` 环境通过。
+- `pnpm test:deployment-smoke`、`pnpm test:runtime-foundations`、`pnpm test:distributed-acceptance`、`pnpm eval:smoke` 均通过，未出现与 closeout 结论冲突的结果。
 
 ## Remaining Work
 

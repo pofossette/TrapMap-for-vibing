@@ -72,11 +72,11 @@
 ## 测试 / Eval 更新
 
 - [x] 统一最终验证矩阵：
-  - `rtk pnpm typecheck`
-  - `rtk pnpm test`
-  - `rtk pnpm eval:smoke`
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm check:structure`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm eval:smoke`
+  - `pnpm check:docs-drift`
+  - `pnpm check:structure`
 - [x] 对每阶段要求至少标明其聚焦测试入口。
 
 ## 必要示例

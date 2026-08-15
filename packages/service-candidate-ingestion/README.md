@@ -204,9 +204,9 @@ const result = await detect(candidate, normalized);
 ## 验证
 
 ```bash
-rtk pnpm --filter @trapmap/service-candidate-ingestion test --run
-rtk pnpm --filter @trapmap/service-candidate-ingestion test --run src/processing.test.ts  # 单文件
-rtk pnpm typecheck
+pnpm --filter @trapmap/service-candidate-ingestion test --run
+pnpm --filter @trapmap/service-candidate-ingestion test --run src/processing.test.ts  # 单文件
+pnpm typecheck
 ```
 
 ## 相关文档

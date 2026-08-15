@@ -352,12 +352,12 @@ Duration: 120ms
 实现完成后至少运行：
 
 ```bash
-rtk pnpm --filter @trapmap/contracts test --run <label-alignment-contract-tests>
-rtk pnpm test:file -- <label-alignment-runner-tests>
-rtk pnpm eval:label-alignment:dry-run
-rtk pnpm eval:smoke
-rtk pnpm check:docs-drift
-rtk pnpm check:structure
+pnpm --filter @trapmap/contracts test --run <label-alignment-contract-tests>
+pnpm test:file -- <label-alignment-runner-tests>
+pnpm eval:label-alignment:dry-run
+pnpm eval:smoke
+pnpm check:docs-drift
+pnpm check:structure
 ```
 
 如果首版真实模型执行默认需要 provider env，则 dry-run 必须在无 provider env 条件下也能通过。

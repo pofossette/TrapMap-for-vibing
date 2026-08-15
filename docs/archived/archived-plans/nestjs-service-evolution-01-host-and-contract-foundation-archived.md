@@ -171,12 +171,12 @@
 
 ## 最小验证
 
-- [x] `rtk pnpm --filter @trapmap/host-local test --run <nest-related-test-path>`
-- [ ] `rtk pnpm --filter @trapmap/service-knowledge-read test --run <path>`
-- [x] `rtk pnpm typecheck`
-- [ ] `rtk pnpm test:deployment-smoke`
-- [ ] `rtk pnpm check:docs-drift`
-- [ ] `rtk pnpm check:structure`
+- [x] `pnpm --filter @trapmap/host-local test --run <nest-related-test-path>`
+- [ ] `pnpm --filter @trapmap/service-knowledge-read test --run <path>`
+- [x] `pnpm typecheck`
+- [ ] `pnpm test:deployment-smoke`
+- [ ] `pnpm check:docs-drift`
+- [ ] `pnpm check:structure`
 
 ## 证据入口
 

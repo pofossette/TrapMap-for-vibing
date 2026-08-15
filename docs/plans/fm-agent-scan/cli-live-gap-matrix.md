@@ -18,7 +18,7 @@ Classifies each confirmed fm-agent finding against current HEAD source.
 
 ## Current HEAD Status
 
-No reproducible **current-live** CLI gaps remained after the 2026-05-29 audit reran `rtk pnpm test`, `rtk pnpm typecheck`, and `rtk pnpm eval:smoke`.
+No reproducible **current-live** CLI gaps remained after the 2026-05-29 audit reran `pnpm test`, `pnpm typecheck`, and `pnpm eval:smoke`.
 
 ## Reclassified to Fixed During Audit
 

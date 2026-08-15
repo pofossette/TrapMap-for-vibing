@@ -2,7 +2,7 @@
 
 本文档说明 TrapMap 的测试架构、运行方法和用例编写规范。
 
-> **历史说明**：本文档中大量测试命令引用 `packages/server（Wave-10 已删除）` 路径，该包已于 Wave-10 删除。当前测试命令请使用 `rtk pnpm test:file -- <repo-root-relative-test-path>` 格式，路径指向当前存在的包（如 `packages/service-*`、`packages/host-local`、`packages/contracts` 等）。历史路径详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+> **历史说明**：本文档中大量测试命令引用 `packages/server（Wave-10 已删除）` 路径，该包已于 Wave-10 删除。当前测试命令请使用 `pnpm test:file -- <repo-root-relative-test-path>` 格式，路径指向当前存在的包（如 `packages/service-*`、`packages/host-local`、`packages/contracts` 等）。历史路径详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
 ## 测试架构
 
@@ -92,8 +92,8 @@ tier 归属（owner 与变更门禁详见各 suite README 与 `evals/README.md` 
 
 **Phase 3 Unified Adapter Freeze Checks:**
 - 最小验证矩阵:
-  - `rtk pnpm check:docs`
-  - `rtk pnpm check:structure`
+  - `pnpm check:docs`
+  - `pnpm check:structure`
 - 说明：Phase 3 只冻结边界文案与 authoritative placement，不扩张 runtime behavior。
 
 **Phase 3 Workflow Snapshot Checks:**
@@ -153,33 +153,33 @@ tier 归属（owner 与变更门禁详见各 suite README 与 `evals/README.md` 
 
 **Phase 4 Adapter Env / Target Freeze Checks:**
 - 最小验证矩阵：
-  - `rtk pnpm check:docs`
-  - `rtk pnpm check:structure`
+  - `pnpm check:docs`
+  - `pnpm check:structure`
 - 验证重点：Phase 4 只冻结 selector env、provider-specific env、推荐 profile/target 组合、fail-fast / fallback 规则与 optional dependency / target-pruning 文档边界，不宣称新的 runtime refactor。
 - 关闭条件：只有在 remediation detail plan、`SYSTEM_TRUTH_SOURCES.md`、`PACKAGES.md`、`ENVIRONMENT.md`、`DEPLOYMENT.md`、`TESTING.md` 已同步更新，且三条 focused checks 实际通过并记录到 phase report 后，才能勾选 Wave 4A-4C。
 
 **Phase 5 Distributed Baseline Freeze Checks:**
 - 最小验证矩阵：
-  - `rtk pnpm check:docs`
-  - `rtk pnpm check:structure`
+  - `pnpm check:docs`
+  - `pnpm check:structure`
 - 验证重点：Phase 5 只冻结 distributed maturity baseline、gateway-only external access、shared PostgreSQL transitional posture、真实内部 hop 证据、compose 当前拓扑限制与 deferred platform boundary；不引入新的 runtime behavior。
 - 关闭条件：只有在 remediation detail plan、`SYSTEM_TRUTH_SOURCES.md`、`PACKAGES.md`、`DEPLOYMENT.md`、`TESTING.md` 已同步更新，且三条 focused checks 实际通过并记录到 phase report 后，才能勾选 Wave 5A-5C。
 
 **Phase 6 Mature Capability Freeze Checks:**
 - 最小验证矩阵：
-  - `rtk pnpm check:docs`
-  - `rtk pnpm check:structure`
+  - `pnpm check:docs`
+  - `pnpm check:structure`
 - 验证重点：Phase 6 只冻结 mature-capability / library-replacement truth 边界，明确 `internal client + resilience`、`tracing + metrics`、`rate limiting + bulkhead / 背压`、`cache + invalidation`、`service discovery`、`DB budget / PgBouncer`、`health indicator`、`light` / `heavy` posture 与 graph runtime config 的 current-vs-deferred 边界；不引入新的 runtime behavior。
 - 关闭条件：只有在 remediation detail plan、`SYSTEM_TRUTH_SOURCES.md`、`PACKAGES.md`、`ENVIRONMENT.md`、`TESTING.md` 已同步更新，且三条 focused checks 实际通过并记录到 phase report 后，才能勾选 Wave 6A-6F。
 
 **Phase 7 Maintainability / CI-Testing Truth / Documentation Closeout Checks:**
 - 最小验证矩阵：
-  - `rtk pnpm check:docs`
-  - `rtk pnpm check:structure`
-  - `rtk pnpm check:asserts`
-  - `rtk pnpm check:deps`
-  - `rtk pnpm check:complexity`
-  - `rtk pnpm eval:smoke`
+  - `pnpm check:docs`
+  - `pnpm check:structure`
+  - `pnpm check:asserts`
+  - `pnpm check:deps`
+  - `pnpm check:complexity`
+  - `pnpm eval:smoke`
 - 验证重点：Phase 7 只冻结 current active execution surface、historical/deferred doc role、CI job truth、eval command semantics、以及 deferred landing spot wording；不引入新的 runtime behavior。
 - CI/testing truth 解释：
   - `pnpm run ci` 是当前仓库聚合 CI 本地入口。
@@ -258,16 +258,16 @@ Langfuse 相关测试覆盖三类：policy 验证、sink 工厂、NestJS service
 
 ```bash
 # Langfuse policy 验证（contracts 层）
-rtk pnpm test:file -- packages/contracts/src/domain/observability-config.test.ts
+pnpm test:file -- packages/contracts/src/domain/observability-config.test.ts
 
 # Langfuse sink 工厂（host-local 组合边界）
-rtk pnpm test:file -- packages/host-local/src/nest/observability/langfuse-sink.test.ts
+pnpm test:file -- packages/host-local/src/nest/observability/langfuse-sink.test.ts
 
 # Langfuse NestJS service（host-local 生命周期）
-rtk pnpm test:file -- packages/host-local/src/nest/observability/langfuse.service.test.ts
+pnpm test:file -- packages/host-local/src/nest/observability/langfuse.service.test.ts
 
 # Vendor-neutral observation wrapper（ai-providers 层）
-rtk pnpm test:file -- packages/ai-providers/src/observability.test.ts
+pnpm test:file -- packages/ai-providers/src/observability.test.ts
 
 # 全部 observability closeout（包含 Langfuse）
 pnpm test:observability-closeout
@@ -286,9 +286,9 @@ pnpm test:observability-closeout
 
 ### Retrieval Live Snapshot Checks
 
-- 真实库快照导出：运行 `rtk pnpm exec tsx --tsconfig tsconfig.base.json scripts/archived/export-retrieval-db-snapshot.ts --output <path> [--teamId <teamId>]`，确认输出 JSON 只包含 retrieval eval 回放所需的 knowledge/artifact/graph 文档，而不是全库转储。
+- 真实库快照导出：运行 `pnpm exec tsx --tsconfig tsconfig.base.json scripts/archived/export-retrieval-db-snapshot.ts --output <path> [--teamId <teamId>]`，确认输出 JSON 只包含 retrieval eval 回放所需的 knowledge/artifact/graph 文档，而不是全库转储。
 - 快照场景回放：让某个 retrieval scenario 使用 `snapshot.kind='retrieval-db-snapshot'` + `snapshot.path`，确认 runner 会先恢复快照再执行 case，并且 scenario actor 可以覆盖快照自带 actor。
-- 最小验证：至少运行相关 contracts 测试与 `rtk pnpm test:file -- evals/retrieval/lib/adapters.test.ts`；如果快照被接入 smoke/core 数据集，再补 `rtk pnpm eval:retrieval:smoke` 或 `rtk pnpm eval:smoke`。
+- 最小验证：至少运行相关 contracts 测试与 `pnpm test:file -- evals/retrieval/lib/adapters.test.ts`；如果快照被接入 smoke/core 数据集，再补 `pnpm eval:retrieval:smoke` 或 `pnpm eval:smoke`。
 
 ### Live Retrieval Eval（真实后端）
 
@@ -306,28 +306,28 @@ Live eval 在真实 TrapMap 服务实例上运行检索评测，使用命名 sna
 
 | 检查项 | 命令 |
 |---|---|
-| Live eval contracts 测试 | `rtk pnpm test:file -- evals/retrieval-live/lib/live-eval.test.ts` |
-| Snapshot fixture 加载 | `rtk pnpm test:file -- evals/retrieval-live/lib/live-eval.test.ts`（loadSnapshot 测试） |
-| Snapshot 版本导出 | `rtk pnpm exec tsx --tsconfig tsconfig.base.json scripts/archived/export-retrieval-db-snapshot.ts --version test-export --output /dev/null` |
-| Live eval dry-run | `rtk pnpm eval:retrieval:live --snapshot-version test-smoke-baseline --base-url http://localhost:3000 --dry-run` |
+| Live eval contracts 测试 | `pnpm test:file -- evals/retrieval-live/lib/live-eval.test.ts` |
+| Snapshot fixture 加载 | `pnpm test:file -- evals/retrieval-live/lib/live-eval.test.ts`（loadSnapshot 测试） |
+| Snapshot 版本导出 | `pnpm exec tsx --tsconfig tsconfig.base.json scripts/archived/export-retrieval-db-snapshot.ts --version test-export --output /dev/null` |
+| Live eval dry-run | `pnpm eval:retrieval:live --snapshot-version test-smoke-baseline --base-url http://localhost:3000 --dry-run` |
 
 **全量验证**（需要运行中的 TrapMap 服务）：
 
 ```bash
 # 1. 启动服务
-rtk pnpm dev
+pnpm dev
 
 # 2. 导出 snapshot（如已有可跳过）
-rtk pnpm exec tsx --tsconfig tsconfig.base.json scripts/archived/export-retrieval-db-snapshot.ts --version 2026-07-baseline --teamId <teamId>
+pnpm exec tsx --tsconfig tsconfig.base.json scripts/archived/export-retrieval-db-snapshot.ts --version 2026-07-baseline --teamId <teamId>
 
 # 3. 运行 live eval
-TRAPMAP_LIVE_EVAL_TOKEN=<token> rtk pnpm eval:retrieval:live:smoke \
+TRAPMAP_LIVE_EVAL_TOKEN=<token> pnpm eval:retrieval:live:smoke \
   --snapshot-version 2026-07-baseline \
   --base-url http://localhost:3000 \
   --json --json-path ./reports/live-smoke.json
 
 # 4. 对比两个版本
-rtk pnpm eval:retrieval:live:compare \
+pnpm eval:retrieval:live:compare \
   --baseline ./reports/live-baseline.json \
   --current ./reports/live-current.json
 ```
@@ -436,7 +436,7 @@ pnpm test:runtime-closeout
 真实 Compose distributed 验收使用：
 
 ```bash
-rtk pnpm test:runtime-closeout:compose
+pnpm test:runtime-closeout:compose
 ```
 
 该脚本只拉起 PostgreSQL、gateway 和六个内部服务，生成一次性管理员密钥与空闲 gateway 端口。它在重启一个 `knowledge-write` 容器时要求 gateway `/health` 和经认证的 `/v1/operations/status/async` 持续成功，并测量 gateway → governance-review → knowledge-write 的恢复时间（必须少于 60 秒）。失败时输出 gateway、knowledge-write、governance-worker、outbox-worker 日志，所有路径都会执行 `docker compose down --volumes --remove-orphans`。该验收证明本地故障隔离，不是生产 SLO 或 Level 3 声明。
@@ -566,21 +566,21 @@ pnpm eval:agent-planning:core
   `evals/promptfoo/parity-*.test.ts` 重跑 bridge 并与快照逐 case 比对（不再依赖 native 代码）。
   CI 中 `eval.yml` 的 `eval-parity` job 为 blocking。
 - 验证命令：
-  - `rtk pnpm eval -- agent-planning --tier smoke --dry-run`
-  - `rtk pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`
-  - `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
-  - `rtk pnpm eval:graph-extraction --dry-run`
-  - `rtk pnpm eval:ingestion --tier smoke --dry-run`（注意用 `--tier smoke`，run-eval 不接受 `--smoke`）
-  - `rtk pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts`
-  - `rtk pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts`
-  - `rtk pnpm eval -- label-alignment --tier smoke --mode dry-run`
-  - `rtk pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`
-  - `rtk pnpm eval -- summary --tier smoke --dry-run`
-  - `rtk pnpm test:file -- evals/promptfoo/parity-summary.test.ts`
-  - `rtk pnpm eval -- retrieval --tier smoke --dry-run`
-  - `rtk pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`（需 PostgreSQL：parity-retrieval 测试自
+  - `pnpm eval -- agent-planning --tier smoke --dry-run`
+  - `pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`
+  - `pnpm test:file -- scripts/__tests__/run-eval.test.ts`
+  - `pnpm eval:graph-extraction --dry-run`
+  - `pnpm eval:ingestion --tier smoke --dry-run`（注意用 `--tier smoke`，run-eval 不接受 `--smoke`）
+  - `pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts`
+  - `pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts`
+  - `pnpm eval -- label-alignment --tier smoke --mode dry-run`
+  - `pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`
+  - `pnpm eval -- summary --tier smoke --dry-run`
+  - `pnpm test:file -- evals/promptfoo/parity-summary.test.ts`
+  - `pnpm eval -- retrieval --tier smoke --dry-run`
+  - `pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`（需 PostgreSQL：parity-retrieval 测试自
     `TRAPMAP_POSTGRES_COORDINATOR_URL` 临时建库执行，无 coordinator 时自动 skip）
-  - `rtk pnpm eval:snapshots`（在 postgres coordinator 下重新生成全部快照）
+  - `pnpm eval:snapshots`（在 postgres coordinator 下重新生成全部快照）
 
 # 仅标签对齐评估
 pnpm eval:label-alignment:smoke
@@ -616,7 +616,7 @@ cat reports/eval-report.json
 
 当需要在 Docker + PostgreSQL 环境下验证检索/摘要/图提取/摄取的端到端行为时，使用以下命令集。
 需要 `.env` 中配置 `TRAPMAP_DATABASE_URL` 或 `DATABASE_URL`，且 `trapmap-postgres` 容器正在运行。
-如果在 Codex 中执行，按仓库约定为这些命令加上 `rtk` 前缀。
+这些命令直接使用 `pnpm` 执行。
 
 ```bash
 # 确保 .env 已加载（eval runner 不自动读取 .env）
@@ -763,12 +763,12 @@ pnpm check:structure
 | `Phase 0` | `pnpm check:docs` + `pnpm check:structure` |
 | `Phase 1` | `pnpm test -- --run packages/server（Wave-10 已删除）/src/app.test.ts packages/server（Wave-10 已删除）/src/bootstrap/startup.test.ts packages/server（Wave-10 已删除）/src/config.test.ts` + `pnpm check:docs` + `pnpm check:structure` |
 | `Phase 2` | `pnpm test -- --run packages/server（Wave-10 已删除）/src/routes/operations/status.test.ts packages/server（Wave-10 已删除）/src/lib/runtime/runtime-metadata.test.ts packages/server（Wave-10 已删除）/src/config.test.ts` + `pnpm check:docs` + `pnpm check:structure` |
-| `Phase 3` | `rtk pnpm check:docs` + `rtk pnpm check:structure` |
+| `Phase 3` | `pnpm check:docs` + `pnpm check:structure` |
 | `Phase 4` | 本轮相关测试 + `pnpm check:docs` + `pnpm check:structure`；只有在 truth-source、计划边界和 closeout 规则回写完成后才能勾选根 `plan.md` |
 | CI 配置变更 | `pnpm check:docs` + 更新 `CI_CD.md` |
 | 架构变更 | `pnpm check:docs` + `pnpm check:complexity` + `pnpm eval:smoke` |
 | 脚本/守卫变更 | `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` + `pnpm check:docs` |
-| 摘要生成变更 (`summary.ts`) | `rtk pnpm test -- --run packages/server（Wave-10 已删除）/src/lib/retrieval/response/summary.test.ts evals/summary/__tests__/runner-api.test.ts` + `pnpm eval:summary:smoke` |
+| 摘要生成变更 (`summary.ts`) | `pnpm test -- --run packages/server（Wave-10 已删除）/src/lib/retrieval/response/summary.test.ts evals/summary/__tests__/runner-api.test.ts` + `pnpm eval:summary:smoke` |
 | 评测命令变更 | `pnpm check:docs` + smoke 测试（验证 EVALUATION.md / TESTING.md 中的 eval 命令正确） |
 | 贡献指南变更 | `pnpm check:docs` + smoke 测试（验证 CONTRIBUTING.md 中的 DB 命令格式） |
 
@@ -843,7 +843,7 @@ CI 配置位于 `.github/workflows/eval.yml`。
 最小验证命令：
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   evals/retrieval/lib/normalize.test.ts \
   evals/retrieval/lib/assertions.test.ts \
   evals/retrieval/lib/report.test.ts \
@@ -1067,11 +1067,11 @@ PG → Memory fallback:
 
 | 命令 | 结果 |
 |------|------|
-| `rtk pnpm typecheck` | No errors found |
-| `rtk pnpm lint` | Checked 629 files, no fixes |
-| `rtk pnpm test` | 检索层 185 tests + route 78 tests 全通过 |
-| `rtk pnpm eval:retrieval:smoke` | 32/32 (100%), v2 Hit@1=0.82 |
-| `rtk pnpm eval:retrieval:core` | v2 Hit@1=0.86, Hit@5=0.93, MRR=0.89, nDCG=0.91 |
+| `pnpm typecheck` | No errors found |
+| `pnpm lint` | Checked 629 files, no fixes |
+| `pnpm test` | 检索层 185 tests + route 78 tests 全通过 |
+| `pnpm eval:retrieval:smoke` | 32/32 (100%), v2 Hit@1=0.82 |
+| `pnpm eval:retrieval:core` | v2 Hit@1=0.86, Hit@5=0.93, MRR=0.89, nDCG=0.91 |
 
 **Phase 7 Baseline 对比** (v2 Core):
 
@@ -1227,7 +1227,7 @@ TRAPMAP_POSTGRES_COORDINATOR_URL=postgresql://trapmap:test@localhost:5432/postgr
 建议至少运行以下验证：
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server（Wave-10 已删除）/src/routes/feedback.test.ts \
   packages/server（Wave-10 已删除）/src/routes/retrieval.test.ts \
   packages/server（Wave-10 已删除）/src/routes/review.test.ts \
@@ -1351,14 +1351,14 @@ fm-agent 针对 `packages/server（Wave-10 已删除）` 生成了 391 个已确
 
 ```bash
 # 仅运行 fm-agent 回归冻结测试
-rtk pnpm --filter @trapmap/server test -- \
+pnpm --filter @trapmap/server test -- \
   --run packages/server（Wave-10 已删除）/src/app.test.ts \
   packages/server（Wave-10 已删除）/src/bootstrap/startup.test.ts \
   packages/server（Wave-10 已删除）/src/lib/ai/dynamic/context-resolver.test.ts \
   packages/server（Wave-10 已删除）/src/lib/ai/provider-config.test.ts
 
 # 重新验证源文档和分类矩阵是否存在
-rtk pnpm check:docs
+pnpm check:docs
 ```
 
 ### 过时热点桶（HEAD 已解决）
@@ -1484,7 +1484,7 @@ trapmap operations capsule-index cleanup-orphans --json | jq .removed
 
 ## Distributed acceptance closeout
 
-运行 `rtk pnpm test:distributed-acceptance` 验证真实 HTTP owner hop、correlation、错误分类、deadline/retry 与 idempotent replay；运行 `rtk pnpm test:distributed-closeout` 验证 multi-process recovery，包括 `knowledge-write` 局部重启后 gateway delegation 恢复且 job-runtime 状态面独立可用。该证据仅支持 `Level 2 / transitional-microservice`，不宣称 Level 3。
+运行 `pnpm test:distributed-acceptance` 验证真实 HTTP owner hop、correlation、错误分类、deadline/retry 与 idempotent replay；运行 `pnpm test:distributed-closeout` 验证 multi-process recovery，包括 `knowledge-write` 局部重启后 gateway delegation 恢复且 job-runtime 状态面独立可用。该证据仅支持 `Level 2 / transitional-microservice`，不宣称 Level 3。
 
 - [模块详解（已归档）](../archived/architecture/MODULES.md) — 系统模块架构和设计
 - [API 参考 — 候选重复检索（已归档）](../archived/architecture/API.md#-candidate-deduplication-retrieval) — 检索算法和模式

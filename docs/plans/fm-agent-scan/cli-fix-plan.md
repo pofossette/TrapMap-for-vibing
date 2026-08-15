@@ -73,9 +73,9 @@
 - [ ] **Step 3: 运行只读核对，不改实现**
 
 ```bash
-rtk jq '.bugs[] | select(.confirmation_status=="confirmed") | {id,detail_file,trigger_summary}' /home/wunai/Downloads/fm-agent-raw-reports/cli/summary.json
-rtk sed -n '1,220p' packages/cli/README.md
-rtk sed -n '1,220p' docs/architecture/CLI.md
+jq '.bugs[] | select(.confirmation_status=="confirmed") | {id,detail_file,trigger_summary}' /home/wunai/Downloads/fm-agent-raw-reports/cli/summary.json
+sed -n '1,220p' packages/cli/README.md
+sed -n '1,220p' docs/architecture/CLI.md
 ```
 
 Expected: `cli-source-pack.md` 与 `cli-live-gap-matrix.md` 足以指导后续每次修复前的原始报告/文档交叉核对。
@@ -145,7 +145,7 @@ it('renders explicit empty ineligibilityReason instead of dropping it', async ()
 - [ ] **Step 3: 运行最小回归集，确认这些 case 先红后绿**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/cli/src/commands/decay.test.ts \
   packages/cli/src/commands/maintenance.test.ts \
   packages/cli/src/commands/feedback.test.ts \
@@ -162,7 +162,7 @@ Expected: 至少包含 raw matrix 标记为 `live` 的失败断言。
 - [ ] **Step 4: 提交 Phase 1**
 
 ```bash
-rtk git add \
+git add \
   docs/plans/fm-agent-scan/cli-live-gap-matrix.md \
   packages/cli/src/commands/decay.test.ts \
   packages/cli/src/commands/maintenance.test.ts \
@@ -173,7 +173,7 @@ rtk git add \
   packages/cli/src/lib/output-profile.test.ts \
   packages/cli/src/lib/skill-artifact-export.test.ts \
   packages/cli/src/lib/markdown-formatter.test.ts
-rtk git commit --no-verify -m "test(cli): freeze fm-agent live backlog"
+git commit --no-verify -m "test(cli): freeze fm-agent live backlog"
 ```
 
 ### Phase 1 完成标准
@@ -259,7 +259,7 @@ lines.push('✅ Resolution applied successfully');
 - [ ] **Step 4: 运行 formatter 回归集**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/cli/src/commands/decay.test.ts \
   packages/cli/src/commands/maintenance.test.ts \
   packages/cli/src/commands/feedback.test.ts \
@@ -272,7 +272,7 @@ Expected: 全绿，且无 snapshot/line-count regression。
 - [ ] **Step 5: 提交 Phase 2**
 
 ```bash
-rtk git add \
+git add \
   packages/cli/src/commands/decay.ts \
   packages/cli/src/commands/maintenance.ts \
   packages/cli/src/commands/feedback-admin.ts \
@@ -284,7 +284,7 @@ rtk git add \
   packages/cli/src/commands/feedback.test.ts \
   packages/cli/src/commands/skill.test.ts \
   packages/cli/src/lib/markdown-formatter.test.ts
-rtk git commit --no-verify -m "fix(cli): harden formatter contracts"
+git commit --no-verify -m "fix(cli): harden formatter contracts"
 ```
 
 ### Phase 2 完成标准
@@ -362,7 +362,7 @@ if (options.allowReview) {
 - [ ] **Step 4: 运行命令注册与参数校验测试**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/cli/src/commands/operations.test.ts \
   packages/cli/src/commands/feedback.test.ts \
   packages/cli/src/commands/skill.test.ts
@@ -371,7 +371,7 @@ rtk pnpm test -- --run \
 - [ ] **Step 5: 提交 Phase 3**
 
 ```bash
-rtk git add \
+git add \
   packages/cli/src/commands/feedback.ts \
   packages/cli/src/commands/operations.ts \
   packages/cli/src/commands/operations/index.ts \
@@ -381,7 +381,7 @@ rtk git add \
   packages/cli/src/commands/operations.test.ts \
   packages/cli/src/commands/feedback.test.ts \
   packages/cli/src/commands/skill.test.ts
-rtk git commit --no-verify -m "fix(cli): tighten command gating and flags"
+git commit --no-verify -m "fix(cli): tighten command gating and flags"
 ```
 
 ### Phase 3 完成标准
@@ -460,20 +460,20 @@ export function printJsonLine(value: unknown): void {
 - [ ] **Step 3: 运行 helper 回归集和包级验证**
 
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/cli/src/lib/config.test.ts \
   packages/cli/src/lib/output.test.ts \
   packages/cli/src/lib/output-profile.test.ts \
   packages/cli/src/lib/skill-artifact-export.test.ts \
   packages/cli/src/lib/prompts.test.ts
-rtk pnpm --filter @trapmap/cli test
-rtk pnpm --filter @trapmap/cli typecheck
+pnpm --filter @trapmap/cli test
+pnpm --filter @trapmap/cli typecheck
 ```
 
 - [ ] **Step 4: 运行仓库级 smoke，确保 CLI 修复未破坏跨包行为**
 
 ```bash
-rtk pnpm eval:smoke
+pnpm eval:smoke
 ```
 
 Expected: smoke 通过；若失败，优先回查 CLI 输出 profile 与 artifact export 相关路径。
@@ -481,7 +481,7 @@ Expected: smoke 通过；若失败，优先回查 CLI 输出 profile 与 artifac
 - [ ] **Step 5: 提交 Phase 4**
 
 ```bash
-rtk git add \
+git add \
   packages/cli/src/lib/config.ts \
   packages/cli/src/lib/output.ts \
   packages/cli/src/lib/output-profile.ts \
@@ -493,7 +493,7 @@ rtk git add \
   packages/cli/src/lib/output-profile.test.ts \
   packages/cli/src/lib/skill-artifact-export.test.ts \
   packages/cli/src/lib/prompts.test.ts
-rtk git commit --no-verify -m "fix(cli): normalize local state and render helpers"
+git commit --no-verify -m "fix(cli): normalize local state and render helpers"
 ```
 
 ### Phase 4 完成标准
@@ -511,7 +511,7 @@ rtk git commit --no-verify -m "fix(cli): normalize local state and render helper
 ### Phase 4 测试 / Eval 更新
 
 - [ ] 扩展 `config.test.ts`、`output.test.ts`、`output-profile.test.ts`、`skill-artifact-export.test.ts`、`prompts.test.ts`
-- [ ] 运行 `rtk pnpm eval:smoke` 作为跨包回归
+- [ ] 运行 `pnpm eval:smoke` 作为跨包回归
 
 ### Phase 4 示例代码
 
@@ -557,13 +557,13 @@ function normalizeOutputProfile(
 - [x] 四个 phase 的完成标准都已满足
 - [x] CLI 相关文档已同步到当前实现与测试入口
 - [x] CLI 相关测试代码已覆盖本轮 live backlog
-- [x] `rtk pnpm --filter @trapmap/cli test` 通过
-- [x] `rtk pnpm --filter @trapmap/cli typecheck` 通过
-- [x] `rtk pnpm eval:smoke` 通过
+- [x] `pnpm --filter @trapmap/cli test` 通过
+- [x] `pnpm --filter @trapmap/cli typecheck` 通过
+- [x] `pnpm eval:smoke` 通过
 
 ## Execution Close-Out (2026-05-29)
 
 - 状态：已完成，并在 post-audit reconciliation 中迁移到 `docs/plans/fm-agent-scan/`
 - 当前 HEAD 证据：CLI matrix 中原 live rows 已全部重分流为 `fixed` 或 `stale/design`
-- 当前验证：仓库级 `rtk pnpm test`、`rtk pnpm typecheck`、`rtk pnpm eval:smoke` 已重跑通过
+- 当前验证：仓库级 `pnpm test`、`pnpm typecheck`、`pnpm eval:smoke` 已重跑通过
 - 残留说明：少量 formatter / renderer / stdin 边界被回写为设计约定或非复现场景，不再作为 live CLI backlog

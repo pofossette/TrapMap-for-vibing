@@ -112,8 +112,8 @@
 - 修改：`docs/plans/backend-engineering-roadmap/coupling-reduction-plan.md`
 
 - [x] 跑 review/decay 聚焦测试。
-- [x] 跑 `rtk pnpm test -- --run packages/server/src/routes/review.test.ts packages/server/src/routes/decay.test.ts packages/server/src/__tests__/snapshot-usage-guard.test.ts`。
-- [x] 跑 `rtk pnpm typecheck`。
+- [x] 跑 `pnpm test -- --run packages/server/src/routes/review.test.ts packages/server/src/routes/decay.test.ts packages/server/src/__tests__/snapshot-usage-guard.test.ts`。
+- [x] 跑 `pnpm typecheck`。
 - [x] 完成后在 Stage 1 与耦合计划里勾选对应检查点。
 
 **验收结果**

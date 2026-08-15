@@ -22,25 +22,25 @@
 
 本轮已验证：
 
-- `rtk pnpm test:file -- evals/lib/platform/langfuse-config.test.ts`
-- `rtk pnpm test:file -- evals/lib/platform/adapter.test.ts`
-- `rtk pnpm test:file -- evals/lib/platform/langfuse-adapter.test.ts`
-- `rtk pnpm test:file -- scripts/__tests__/run-eval.test.ts`
-- `rtk pnpm test:file -- evals/scripts/__tests__/eval-all.test.ts`
-- `rtk pnpm eval -- smoke --platform langfuse`
-- `rtk pnpm eval:smoke`
-- `rtk pnpm check:docs-drift`
-- `rtk pnpm check:structure`
+- `pnpm test:file -- evals/lib/platform/langfuse-config.test.ts`
+- `pnpm test:file -- evals/lib/platform/adapter.test.ts`
+- `pnpm test:file -- evals/lib/platform/langfuse-adapter.test.ts`
+- `pnpm test:file -- scripts/__tests__/run-eval.test.ts`
+- `pnpm test:file -- evals/scripts/__tests__/eval-all.test.ts`
+- `pnpm eval -- smoke --platform langfuse`
+- `pnpm eval:smoke`
+- `pnpm check:docs-drift`
+- `pnpm check:structure`
 
 当前 active closeout 已完成：
 
 - 2026-07-07 23:24-23:25 CST 已用本地 Docker Compose 启动的官方 Langfuse v3 实例完成真实目标验证，目标地址为 `http://127.0.0.1:3000`。project keys 通过 `LANGFUSE_INIT_*` headless init 生成，仅用于本次本地 closeout，未入库。
-- 本轮先执行 `rtk printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY TRAPMAP_EVAL_PLATFORM_FLUSH_TIMEOUT_MS`，确认当前 shell 中 `LANGFUSE_BASE_URL=http://127.0.0.1:3000`、`LANGFUSE_PUBLIC_KEY=pk-lf-...`、`LANGFUSE_SECRET_KEY=sk-lf-...`、`TRAPMAP_EVAL_PLATFORM_FLUSH_TIMEOUT_MS=5000` 均非空。
-- 随后执行 `rtk pnpm eval -- smoke --platform langfuse`；成功证据为：
+- 本轮先执行 `printenv LANGFUSE_BASE_URL LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY TRAPMAP_EVAL_PLATFORM_FLUSH_TIMEOUT_MS`，确认当前 shell 中 `LANGFUSE_BASE_URL=http://127.0.0.1:3000`、`LANGFUSE_PUBLIC_KEY=pk-lf-...`、`LANGFUSE_SECRET_KEY=sk-lf-...`、`TRAPMAP_EVAL_PLATFORM_FLUSH_TIMEOUT_MS=5000` 均非空。
+- 随后执行 `pnpm eval -- smoke --platform langfuse`；成功证据为：
   - `[eval-platform] langfuse adapter enabled: baseUrl=http://127.0.0.1:3000 flushTimeoutMs=5000.`
   - `[eval-platform] langfuse adapter mirrored 1041 suite events without publish warnings.`
   - `[eval-platform] langfuse adapter flush completed without close warnings.`
-- 同一轮 native TrapMap smoke 仍以 `81/81 passed` 结束；之后补跑 `rtk pnpm eval:smoke`，native aggregate smoke 仍以 `81/81 passed` 结束，说明启用 `langfuse` mirror 没有改变 TrapMap truth-source/exit-code 语义。
+- 同一轮 native TrapMap smoke 仍以 `81/81 passed` 结束；之后补跑 `pnpm eval:smoke`，native aggregate smoke 仍以 `81/81 passed` 结束，说明启用 `langfuse` mirror 没有改变 TrapMap truth-source/exit-code 语义。
 - 额外读取验证：`curl -u pk-lf-...:sk-lf-... "http://127.0.0.1:3000/api/public/traces?limit=1"` 返回了 `projectId=48f99810-b6b7-4409-9455-cecbc09af545` 的 trace 数据，证明这次不是仅有 runner 侧日志、服务端未落地。
 - 本轮中途曾暴露一次本地 self-host 配置错误：随机化 `MINIO_ROOT_PASSWORD` 后未同步 `LANGFUSE_S3_*_SECRET_ACCESS_KEY`，导致 Langfuse 服务端日志报 `SignatureDoesNotMatch`。修正 secret 对齐并重启官方 compose 后，live smoke 成功且该错误消失。该问题归类为“本地目标环境配置错误”，不是 TrapMap adapter 缺陷。
 - 第二平台适配器（`MLflow`）仍明确留在 deferred，不作为当前 active closeout 的完成条件
@@ -84,10 +84,10 @@
 
 ## 全局测试要求
 
-- [x] 文档改动至少运行 `rtk pnpm check:docs-drift`
-- [x] 文档改动至少运行 `rtk pnpm check:structure`
-- [x] 涉及 eval runner、fixtures、judge、platform adapter 的改动，至少运行 `rtk pnpm eval:smoke`
-- [x] 涉及 `packages/contracts`、跨包导入、共享类型变更，补跑受影响包测试与 `rtk pnpm typecheck`
+- [x] 文档改动至少运行 `pnpm check:docs-drift`
+- [x] 文档改动至少运行 `pnpm check:structure`
+- [x] 涉及 eval runner、fixtures、judge、platform adapter 的改动，至少运行 `pnpm eval:smoke`
+- [x] 涉及 `packages/contracts`、跨包导入、共享类型变更，补跑受影响包测试与 `pnpm typecheck`
 
 ## 执行阶段
 
@@ -118,8 +118,8 @@
 
 **本阶段验证**
 
-- [x] `rtk pnpm check:docs-drift`
-- [x] `rtk pnpm check:structure`
+- [x] `pnpm check:docs-drift`
+- [x] `pnpm check:structure`
 
 ### Phase 1: 建立平台无关 schema 与 adapter interface
 
@@ -155,10 +155,10 @@
 
 **本阶段测试要求**
 
-- [x] `rtk pnpm --filter @trapmap/contracts test --run packages/contracts/src/domain/evals/platform.test.ts`
-- [x] `rtk pnpm test:file -- evals/scripts/__tests__/eval-ci.test.ts`（2026-07-06 Stage 1A baseline：10 tests passed）
-- [x] `rtk pnpm eval -- agent-planning --tier smoke --dry-run`（2026-07-06 Stage 1A baseline：33/33 passed，Avg score 0.97）
-- [x] `rtk pnpm typecheck`（2026-07-06 Stage 1A baseline：TypeScript: No errors found）
+- [x] `pnpm --filter @trapmap/contracts test --run packages/contracts/src/domain/evals/platform.test.ts`
+- [x] `pnpm test:file -- evals/scripts/__tests__/eval-ci.test.ts`（2026-07-06 Stage 1A baseline：10 tests passed）
+- [x] `pnpm eval -- agent-planning --tier smoke --dry-run`（2026-07-06 Stage 1A baseline：33/33 passed，Avg score 0.97）
+- [x] `pnpm typecheck`（2026-07-06 Stage 1A baseline：TypeScript: No errors found）
 
 ### Phase 2: `agent-planning` 接入统一事件模型
 
@@ -196,9 +196,9 @@
 
 **本阶段测试要求**
 
-- [x] `rtk pnpm eval -- agent-planning --tier smoke --dry-run --json --json-path ./reports/agent-planning-smoke.json`
-- [x] `rtk pnpm eval -- agent-planning --tier core --dry-run`
-- [x] `rtk pnpm eval:smoke`
+- [x] `pnpm eval -- agent-planning --tier smoke --dry-run --json --json-path ./reports/agent-planning-smoke.json`
+- [x] `pnpm eval -- agent-planning --tier core --dry-run`
+- [x] `pnpm eval:smoke`
 
 ### Phase 3: 接入 `LangfuseAdapter`
 
@@ -244,19 +244,19 @@
 
 **本阶段测试要求**
 
-- [x] `rtk pnpm eval -- agent-planning --tier smoke --dry-run`
-- [x] `rtk pnpm eval -- agent-planning --tier core --dry-run`
-- [x] `rtk pnpm eval:smoke`
-- [x] `rtk pnpm check:docs-drift`
-- [x] `rtk pnpm test:file -- evals/lib/platform/adapter.test.ts`
-- [x] `rtk pnpm test:file -- evals/lib/platform/langfuse-adapter.test.ts`
-- [x] `rtk pnpm test:file -- evals/scripts/__tests__/eval-all.test.ts`
-- [x] `rtk pnpm eval -- smoke --platform langfuse`
+- [x] `pnpm eval -- agent-planning --tier smoke --dry-run`
+- [x] `pnpm eval -- agent-planning --tier core --dry-run`
+- [x] `pnpm eval:smoke`
+- [x] `pnpm check:docs-drift`
+- [x] `pnpm test:file -- evals/lib/platform/adapter.test.ts`
+- [x] `pnpm test:file -- evals/lib/platform/langfuse-adapter.test.ts`
+- [x] `pnpm test:file -- evals/scripts/__tests__/eval-all.test.ts`
+- [x] `pnpm eval -- smoke --platform langfuse`
 
 **本阶段 closeout 结果**
 
 - [x] 用真实 Langfuse 服务完成一次 non-dry-run 联通验证，并将结果回写到本节
-- [x] 2026-07-07 23:24-23:25 CST 的本地 closeout 证据已齐备：官方 Docker Compose Langfuse v3、`rtk printenv` 非空、`rtk pnpm eval -- smoke --platform langfuse` 三条 success evidence、native smoke `81/81 passed`、`GET /api/public/traces?limit=1` 可读回 project trace
+- [x] 2026-07-07 23:24-23:25 CST 的本地 closeout 证据已齐备：官方 Docker Compose Langfuse v3、`printenv` 非空、`pnpm eval -- smoke --platform langfuse` 三条 success evidence、native smoke `81/81 passed`、`GET /api/public/traces?limit=1` 可读回 project trace
 - [x] 当前 active closeout 已关闭；此细则只剩 deferred Phase 4，不再保留 `environment-blocked / config-missing`
 
 ### Phase 4: Deferred Follow-up - 第二平台可替换性验证
@@ -289,9 +289,9 @@
 
 **本阶段测试要求**
 
-- [ ] `rtk pnpm eval -- retrieval --tier smoke --dry-run`
-- [ ] `rtk pnpm eval -- summary --tier smoke --provider fallback`
-- [ ] `rtk pnpm eval:smoke`
+- [ ] `pnpm eval -- retrieval --tier smoke --dry-run`
+- [ ] `pnpm eval -- summary --tier smoke --provider fallback`
+- [ ] `pnpm eval:smoke`
 
 ## 进度门槛
 

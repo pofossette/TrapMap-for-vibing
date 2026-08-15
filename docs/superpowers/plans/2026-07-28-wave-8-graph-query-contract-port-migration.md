@@ -47,7 +47,7 @@ existing deterministic message.
 - [ ] **Step 2: Verify RED**
 
 ```bash
-rtk pnpm --filter @trapmap/contracts test --run src/domain/graph-query.test.ts
+pnpm --filter @trapmap/contracts test --run src/domain/graph-query.test.ts
 ```
 
 Expected: FAIL because contracts does not yet export graph query helpers.
@@ -65,10 +65,10 @@ aliases with direct contracts aliases.
 - [ ] **Step 4: Verify GREEN**
 
 ```bash
-rtk pnpm --filter @trapmap/contracts test --run src/domain/graph-query.test.ts
-rtk pnpm --filter @trapmap/contracts typecheck
-rtk pnpm --filter @trapmap/service-knowledge-read test --run src/graph-query.test.ts
-rtk pnpm --filter @trapmap/service-knowledge-read typecheck
+pnpm --filter @trapmap/contracts test --run src/domain/graph-query.test.ts
+pnpm --filter @trapmap/contracts typecheck
+pnpm --filter @trapmap/service-knowledge-read test --run src/graph-query.test.ts
+pnpm --filter @trapmap/service-knowledge-read typecheck
 ```
 
 Expected: all commands pass using source-resolved workspace aliases; no ignored
@@ -77,8 +77,8 @@ Expected: all commands pass using source-resolved workspace aliases; no ignored
 - [ ] **Step 5: Commit**
 
 ```bash
-rtk git add packages/contracts packages/service-knowledge-read pnpm-lock.yaml
-rtk git commit -m "refactor: define graph query contract core"
+git add packages/contracts packages/service-knowledge-read pnpm-lock.yaml
+git commit -m "refactor: define graph query contract core"
 ```
 
 ### Task 2: Convert Server to Contracts and Injected Backends
@@ -107,7 +107,7 @@ injected memory-like fallback.
 - [ ] **Step 2: Verify RED**
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/bootstrap/bootstrap-repositories.test.ts src/lib/graph-query/health.test.ts src/lib/graph-query/neo4j-backend.test.ts
+pnpm --filter @trapmap/server test --run src/bootstrap/bootstrap-repositories.test.ts src/lib/graph-query/health.test.ts src/lib/graph-query/neo4j-backend.test.ts
 ```
 
 Expected: FAIL because `BuildServerOptions` has no injected graph backend and
@@ -126,9 +126,9 @@ fail-open/fail-closed health behavior. Do not add a fallback factory.
 - [ ] **Step 4: Verify GREEN and boundary compliance**
 
 ```bash
-rtk pnpm --filter @trapmap/server test --run src/bootstrap/bootstrap-repositories.test.ts src/lib/graph-query/health.test.ts src/lib/graph-query/neo4j-backend.test.ts
-rtk pnpm --filter @trapmap/server typecheck
-rtk rg -n "@trapmap/service-knowledge-read|createMemoryGraphQueryBackend|graph-query/(backend|memory-backend)" packages/server/src --glob '*.ts'
+pnpm --filter @trapmap/server test --run src/bootstrap/bootstrap-repositories.test.ts src/lib/graph-query/health.test.ts src/lib/graph-query/neo4j-backend.test.ts
+pnpm --filter @trapmap/server typecheck
+rg -n "@trapmap/service-knowledge-read|createMemoryGraphQueryBackend|graph-query/(backend|memory-backend)" packages/server/src --glob '*.ts'
 ```
 
 Expected: server tests/typecheck pass; the search has no production match for
@@ -137,8 +137,8 @@ knowledge-read, a memory factory, or deleted module imports.
 - [ ] **Step 5: Commit**
 
 ```bash
-rtk git add packages/server pnpm-lock.yaml
-rtk git commit -m "refactor: inject graph query into server"
+git add packages/server pnpm-lock.yaml
+git commit -m "refactor: inject graph query into server"
 ```
 
 ### Task 3: Cut Host-Local Over and Close the Exact Allowlist Entry
@@ -158,7 +158,7 @@ compatibility server composition entry.
 - [ ] **Step 2: Verify RED**
 
 ```bash
-rtk pnpm --filter @trapmap/host-local test --run src/nest/runtime/import-boundary.test.ts src/nest/runtime/host-services.test.ts
+pnpm --filter @trapmap/host-local test --run src/nest/runtime/import-boundary.test.ts src/nest/runtime/host-services.test.ts
 ```
 
 Expected: FAIL until the server graph-query import and composition injection are removed.
@@ -173,19 +173,19 @@ marking Wave 8 complete prematurely.
 - [ ] **Step 4: Verify and commit**
 
 ```bash
-rtk pnpm --filter @trapmap/contracts test --run src/domain/graph-query.test.ts
-rtk pnpm --filter @trapmap/service-knowledge-read test --run src/graph-query.test.ts src/import-boundary.test.ts
-rtk pnpm --filter @trapmap/host-local test --run src/nest/runtime/import-boundary.test.ts src/nest/runtime/host-services.test.ts
-rtk pnpm typecheck
-rtk pnpm exec fallow audit --base main --format json --quiet 2>/dev/null || true
-rtk pnpm check:docs-drift
-rtk pnpm check:structure
+pnpm --filter @trapmap/contracts test --run src/domain/graph-query.test.ts
+pnpm --filter @trapmap/service-knowledge-read test --run src/graph-query.test.ts src/import-boundary.test.ts
+pnpm --filter @trapmap/host-local test --run src/nest/runtime/import-boundary.test.ts src/nest/runtime/host-services.test.ts
+pnpm typecheck
+pnpm exec fallow audit --base main --format json --quiet 2>/dev/null || true
+pnpm check:docs-drift
+pnpm check:structure
 ```
 
 Inspect the Fallow JSON: introduced graph-query boundary/dependency/duplication
 findings must be zero. Commit only task files with:
 
 ```bash
-rtk git add packages/host-local scripts/__tests__/compatibility-retirement-guard.test.ts docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md
-rtk git commit -m "refactor: inject owner graph query from host"
+git add packages/host-local scripts/__tests__/compatibility-retirement-guard.test.ts docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md
+git commit -m "refactor: inject owner graph query from host"
 ```

@@ -137,11 +137,11 @@
 ## 测试 / Eval 更新
 
 - [x] 记录后续阶段的最小验证矩阵：
-  - `rtk pnpm typecheck`
-  - `rtk pnpm test`
-  - `rtk pnpm eval:smoke`
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm check:structure`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm eval:smoke`
+  - `pnpm check:docs-drift`
+  - `pnpm check:structure`
 - [x] 列出后续需要重点回归的测试面：
   - `packages/server/src/routes/operations/status.test.ts`
   - `packages/server/src/bootstrap/startup.test.ts`

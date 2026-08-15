@@ -8,23 +8,23 @@
 
 ### 已验证通过
 
-- `rtk pnpm typecheck`
-- `rtk pnpm check:docs-drift`
-- `rtk pnpm check:structure`
-- `rtk docker compose -f docker-compose.observability.yml up -d`
-- `rtk pnpm test:discovery-closeout`
-- `rtk pnpm test:distributed-closeout`
-- `rtk pnpm test:observability-closeout`
-- `rtk pnpm test:deployment-smoke`
-- `rtk pnpm test:runtime-foundations`
+- `pnpm typecheck`
+- `pnpm check:docs-drift`
+- `pnpm check:structure`
+- `docker compose -f docker-compose.observability.yml up -d`
+- `pnpm test:discovery-closeout`
+- `pnpm test:distributed-closeout`
+- `pnpm test:observability-closeout`
+- `pnpm test:deployment-smoke`
+- `pnpm test:runtime-foundations`
 - 通过挂载本地工作区的 `node:22-alpine` 容器成功拉起 distributed 拓扑：`gateway`、`identity-access`、`knowledge-read`、`knowledge-write`、`candidate-worker`、`governance-worker`、`outbox-worker`
 - gateway 到 `identity-access`、`knowledge-read`、`knowledge-write`、`candidate-worker`、`governance-worker`、`outbox-worker` 的内部健康探针可达
 
 ### 已确认失败
 
-- `rtk docker compose --profile distributed up -d --build`
+- `docker compose --profile distributed up -d --build`
   - `packages/host-distributed/Dockerfile` 未复制 `packages/runtime-infra`，导致 `tsc -b` 构建失败
-- `rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
+- `pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
   - distributed gateway 的 `GET /metrics` 返回 `401`
 - `curl -s http://127.0.0.1:8500/v1/agent/services`
   - Consul agent 可达，但应用侧自动注册未在 agent/catalog 中留下实例
@@ -41,13 +41,13 @@
 
 ### 已验证通过
 
-- `rtk pnpm exec vitest run --project host-distributed packages/host-distributed/src/dockerfile.test.ts`
-- `rtk pnpm test:file -- packages/host-distributed/src/gateway/routes.test.ts`
-- `rtk pnpm test:file -- packages/host-distributed/src/gateway/server.test.ts`
-- `rtk pnpm exec tsc -p packages/host-distributed/tsconfig.json --noEmit`
-- `rtk pnpm exec vitest run scripts/__tests__/distributed-compose-assets.test.ts`
-- `rtk docker compose -f docker-compose.observability.yml up -d`
-- `rtk docker compose --profile distributed up -d --build`
+- `pnpm exec vitest run --project host-distributed packages/host-distributed/src/dockerfile.test.ts`
+- `pnpm test:file -- packages/host-distributed/src/gateway/routes.test.ts`
+- `pnpm test:file -- packages/host-distributed/src/gateway/server.test.ts`
+- `pnpm exec tsc -p packages/host-distributed/tsconfig.json --noEmit`
+- `pnpm exec vitest run scripts/__tests__/distributed-compose-assets.test.ts`
+- `docker compose -f docker-compose.observability.yml up -d`
+- `docker compose --profile distributed up -d --build`
 - `curl -s http://127.0.0.1:4000/health`
   - distributed gateway 返回 `200`
 - `curl -s http://127.0.0.1:4000/live`
@@ -60,7 +60,7 @@
   - `GET /health` 会回显 `x-request-id` 与 `traceparent`
   - `trapmap_runtime_http_requests_total` 在 `chain-test-001` 请求前后从 `4` 增至 `6`
   - gateway stdout 可看到 `request.completed` 结构化日志，包含 `requestId` / `traceId`
-- `rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
+- `pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
   - benchmark 当前可执行并输出 `/health`、`/metrics` 延迟基线
 - checked-in distributed compose 现已覆盖七进程拓扑：
   - `gateway`、`identity-access`、`knowledge-read`、`knowledge-write`、`candidate-worker`、`governance-worker`、`outbox-worker`
@@ -68,18 +68,18 @@
   - `gateway:4000`、`identity-access:4001`、`knowledge-read:4002`、`knowledge-write:4003`、`candidate-worker:4004`、`governance-worker:4005`、`outbox-worker:4006`
 - checked-in observability compose 已把 `prometheus` 同时接入 `trapmap-observability` 与 `trapmap-distributed`
 - 2026-07-03 补充通过证据：
-  - `rtk docker compose -f docker-compose.observability.yml up -d`
+  - `docker compose -f docker-compose.observability.yml up -d`
     - `consul` 改为单挂 `trapmap-distributed` 后成功启动，Prometheus `consul:8500` target 转为 `up`
-  - `rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
+  - `pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
     - 当前输出 `process_resident_memory_bytes=76.93MB nodejs_heap_size_used_bytes=12.86MB nodejs_heap_size_total_bytes=14.5MB`
   - `curl -s http://127.0.0.1:9090/api/v1/targets`
     - `trapmap-gateway`、`trapmap-identity-access`、`trapmap-knowledge-read`、`trapmap-knowledge-write`、`trapmap-candidate-ingestion`、`trapmap-governance-review`、`trapmap-job-runtime` 全部 `up`
     - `consul`、`loki`、`prometheus`、`tempo` 也全部 `up`
-  - `rtk docker exec trapmap-consul wget -qO- http://127.0.0.1:8500/v1/agent/services`
+  - `docker exec trapmap-consul wget -qO- http://127.0.0.1:8500/v1/agent/services`
     - 返回 `trapmap-gateway-1`
-  - `rtk docker exec trapmap-consul wget -qO- http://127.0.0.1:8500/v1/catalog/services`
+  - `docker exec trapmap-consul wget -qO- http://127.0.0.1:8500/v1/catalog/services`
     - 返回 `{"consul":[],"gateway":[]}`
-  - `rtk docker exec trapmap-consul wget -qO- http://127.0.0.1:8500/v1/health/checks/gateway`
+  - `docker exec trapmap-consul wget -qO- http://127.0.0.1:8500/v1/health/checks/gateway`
     - `service:trapmap-gateway-1` 当前为 `passing`
   - `curl -s -D - -H 'x-request-id: tempo-check-001' -H 'traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01' http://127.0.0.1:4000/health`
     - distributed gateway 返回 `200`，并回显固定 `traceparent`
@@ -87,7 +87,7 @@
     - Tempo 现可返回 `trapmap-gateway` span，attributes 包含 `trapmap.request_id=tempo-check-001`、`http.route=/health`
   - `curl -s 'http://127.0.0.1:3200/api/search?tags=service.name=trapmap-gateway'`
     - Tempo 搜索当前返回 `traceID=4bf92f3577b34da6a3ce929d0e0e4736`
-  - `rtk docker logs --tail 60 trapmap-promtail`
+  - `docker logs --tail 60 trapmap-promtail`
     - `promtail` 现已开始 tail `/var/lib/docker/containers/*/*-json.log`，并稳定推送到 Loki
   - `curl -s -D - -H 'x-request-id: loki-check-002' -H 'traceparent: 00-cccccccccccccccccccccccccccccccc-dddddddddddddddd-01' http://127.0.0.1:4000/health`
     - distributed gateway 返回 `200`，并回显固定 `traceparent`
@@ -129,13 +129,13 @@
 ## 0. 执行约束
 
 - [ ] 仅把本清单当作当前主线的辅助执行面；权威状态仍以根 [`plan.md`](../../plan.md) 和 [`service-discovery-and-observability-plan.md`](./service-discovery-and-observability-plan.md) 为准
-- [ ] shell 命令统一使用 `rtk` 前缀
+- [ ] shell 命令统一直接使用 `pnpm`
 - [ ] `@trapmap/host-local` 的 closeout 主链路按 `build -> start -> observability-benchmark` 执行，不用 `dev` 代替
 - [ ] 记录每条命令的通过/失败结果，以及必要的人工证据（响应头、Grafana、Tempo、Loki、Consul）
 
 ## 1. 前置准备
 
-- [ ] 安装依赖：`rtk pnpm install`
+- [ ] 安装依赖：`pnpm install`
 - [ ] 准备环境文件：`cp .env.example .env`
 - [ ] 确认 `.env` 至少具备本地启动所需关键项（例如 `OPENAI_API_KEY`、`TRAPMAP_SYSTEM_ADMIN_KEY`）
 - [ ] 如需本地完整可观测性联调，准备以下环境变量：
@@ -151,14 +151,14 @@
 - [x] 阅读 [`docs/operations/REGRESSION-COMMANDS.md`](../operations/REGRESSION-COMMANDS.md)
 - [x] 阅读 [`docs/architecture/OBSERVABILITY.md`](../architecture/OBSERVABILITY.md)
 - [x] 阅读 [`docs/architecture/SERVICE-DISCOVERY.md`](../architecture/SERVICE-DISCOVERY.md)
-- [x] 运行类型检查：`rtk pnpm typecheck`
-- [x] 运行文档漂移检查：`rtk pnpm check:docs-drift`
-- [x] 运行结构守卫：`rtk pnpm check:structure`
+- [x] 运行类型检查：`pnpm typecheck`
+- [x] 运行文档漂移检查：`pnpm check:docs-drift`
+- [x] 运行结构守卫：`pnpm check:structure`
 
 ## 3. 本地最小启动链路
 
-- [ ] 构建 light host：`rtk pnpm --filter @trapmap/host-local build`
-- [ ] 启动 light host：`rtk pnpm --filter @trapmap/host-local start`
+- [ ] 构建 light host：`pnpm --filter @trapmap/host-local build`
+- [ ] 启动 light host：`pnpm --filter @trapmap/host-local start`
 - [ ] 验证 liveness：`curl -s http://127.0.0.1:4000/live`
 - [ ] 验证 readiness：`curl -s http://127.0.0.1:4000/ready`
 - [ ] 验证 health：`curl -s http://127.0.0.1:4000/health`
@@ -168,7 +168,7 @@
 
 ## 4. 本地 observability 栈联调
 
-- [x] 拉起本地基础设施：`rtk docker compose -f docker-compose.observability.yml up -d`
+- [x] 拉起本地基础设施：`docker compose -f docker-compose.observability.yml up -d`
 - [x] 确认 `consul` 健康
 - [x] 确认 `tempo` 健康
 - [x] 确认 `prometheus` 健康
@@ -262,12 +262,12 @@ diff /tmp/metrics-before.txt /tmp/metrics-after.txt
 
 ## 7. 自动化 closeout 命令
 
-- [x] 运行 observability closeout：`rtk pnpm test:observability-closeout`
-- [x] 运行性能基线入口：`rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
-- [x] 运行 discovery closeout：`rtk pnpm test:discovery-closeout`
-- [x] 运行 distributed closeout：`rtk pnpm test:distributed-closeout`
-- [x] 运行 deployment smoke：`rtk pnpm test:deployment-smoke`
-- [x] 运行 runtime foundations：`rtk pnpm test:runtime-foundations`
+- [x] 运行 observability closeout：`pnpm test:observability-closeout`
+- [x] 运行性能基线入口：`pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
+- [x] 运行 discovery closeout：`pnpm test:discovery-closeout`
+- [x] 运行 distributed closeout：`pnpm test:distributed-closeout`
+- [x] 运行 deployment smoke：`pnpm test:deployment-smoke`
+- [x] 运行 runtime foundations：`pnpm test:runtime-foundations`
 
 > 2026-07-03 实测结果：`observability-benchmark` 现已可执行并输出 `/health`、`/metrics` 延迟基线；但进程内存相关指标仍显示 `missingMB`。
 
@@ -299,7 +299,7 @@ diff /tmp/metrics-before.txt /tmp/metrics-after.txt
 
 ## 9. 性能基线记录
 
-- [ ] 至少执行 1 轮：`rtk pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
+- [ ] 至少执行 1 轮：`pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000`
 - [ ] 建议同环境执行 3 轮并记录结果
 - [ ] 记录 `/health` 的 `avg / p50 / p95 / min / max`
 - [ ] 记录 `/metrics` 的 `avg / p50 / p95 / min / max`

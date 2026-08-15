@@ -25,7 +25,7 @@
 - **eval-only 标记：** 产品零消费、仅 eval 引用的模块统一标记 `@eval-only` 并从产品公共导出面移除。
 - **禁止断言：** 不新增 `@ts-ignore`/`@ts-expect-error`/裸 `as`；删除时同步清理因删除而失效的断言与豁免。
 - **禁止大规模重构：** 不在本主线做 capability-model 拆分、OTel/Consul 双份收敛、EvalSeedPort 收窄、web-panel real 路径实现；这些进入 debt register 记录后续落点。
-- **验证门禁：** 每任务 focused test + `rtk pnpm typecheck`；跨包边界变化跑 `rtk pnpm exec fallow audit --base main`；检索/摘要/治理相关改动补 `rtk pnpm eval:smoke`；文档变化补 `rtk pnpm check:docs` 与 `rtk pnpm check:structure`。
+- **验证门禁：** 每任务 focused test + `pnpm typecheck`；跨包边界变化跑 `pnpm exec fallow audit --base main`；检索/摘要/治理相关改动补 `pnpm eval:smoke`；文档变化补 `pnpm check:docs` 与 `pnpm check:structure`。
 - **提交粒度：** 每个任务一个或多个独立 commit，commit message 遵循仓库风格（`refactor: ...` / `chore: ...` / `docs: ...`）。
 
 ## 工作流与依赖
@@ -66,7 +66,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - [ ] **Step 3: 收缩 test-utils**
   保留 `createStubAuditLog`/`createStubMetrics`/`createStubRepositoryPorts`，删除其余 16 个 stub；`capability-model.test.ts` 改用保留 stub。
 - [ ] **Step 4: 验证**
-  运行 `rtk pnpm --filter @trapmap/backend-core test --run` 与 `rtk pnpm typecheck`；确认全绿。
+  运行 `pnpm --filter @trapmap/backend-core test --run` 与 `pnpm typecheck`；确认全绿。
 - [ ] **Step 5: 全仓引用检查**
   `rg "use-cases|telemetry-ports|invocation-config|conflict-scheduler|runtime/status|runtime/topology|runtime/route-surface" packages --include-zero -g '*.ts'` 仅命中 dist 陈旧产物时通过。
 - [ ] **Step 6: Commit**
@@ -97,7 +97,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - [ ] **Step 4: 删除 graph-query 死函数**
   删除 11 个死函数；删除 `graphology-dag` 依赖并 `pnpm install` 更新锁文件；确认 `graphology`/`graphology-operators`/`graphology-shortest-path` 仍有活调用（buildGraphRuntimeSnapshot/expandSourcesOneHop/buildLocalExpansionView/calculateSourceRelationStrength）。
 - [ ] **Step 5: 验证**
-  运行 `rtk pnpm --filter @trapmap/contracts test --run`、`rtk pnpm typecheck`、`rtk pnpm exec knip`（确认 unused exports 数量下降）。
+  运行 `pnpm --filter @trapmap/contracts test --run`、`pnpm typecheck`、`pnpm exec knip`（确认 unused exports 数量下降）。
 - [ ] **Step 6: Commit**
   `refactor(contracts): remove zero-consumer schemas and graph dead code`
 
@@ -127,7 +127,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - [ ] **Step 4: 删除孤儿 + stale dist**
   删除其余 5 个 schema.ts、6 个 drizzle.config.ts、37 个 stale dist 文件。
 - [ ] **Step 5: 验证**
-  运行六个 service 包测试、`rtk pnpm typecheck`、`rtk pnpm exec knip`。
+  运行六个 service 包测试、`pnpm typecheck`、`pnpm exec knip`。
 - [ ] **Step 6: Commit**
   `refactor(service-*): mark eval-only modules, unify schema source, drop orphans`
 
@@ -152,7 +152,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - [ ] **Step 3: 消重 normalizeRoleTemplate**
   删除 backend-core-adapters.ts 内重复实现，改 import auth-context 版本；跑 host-local 测试确认无回归。
 - [ ] **Step 4: 验证**
-  `rtk pnpm --filter @trapmap/host-local test --run`、`rtk pnpm --filter @trapmap/host-distributed test --run`、`rtk pnpm typecheck`、`rtk pnpm exec knip`。
+  `pnpm --filter @trapmap/host-local test --run`、`pnpm --filter @trapmap/host-distributed test --run`、`pnpm typecheck`、`pnpm exec knip`。
 - [ ] **Step 5: Commit**
   `refactor(hosts): drop unused deps and dead validation pipe`
 
@@ -172,7 +172,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - [ ] **Step 2: 删除 + gitignore**
   `git rm` 4 个文件；根 `.gitignore` 补 `*.d.ts.map` 规则（`*.d.ts` 已有规则但被 `packages/*/src/**/*.d.ts` 精确匹配绕过，需补 `packages/*/*.d.ts` 层）。
 - [ ] **Step 3: 验证**
-  `git status` 干净、`rtk pnpm typecheck`、web-panel 构建不受影响。
+  `git status` 干净、`pnpm typecheck`、web-panel 构建不受影响。
 - [ ] **Step 4: Commit**
   `chore(web-panel): remove committed build artifacts and ignore d.ts maps`
 
@@ -194,9 +194,9 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - [ ] **Step 2: 删除孤儿目录**
   `git rm -r evals/baselines`（先确认无引用：`rg "evals/baselines" . -g '*.ts' -g '*.md'`）。
 - [ ] **Step 3: knip entry 补全**
-  更新 `knip.json` entry 列表；运行 `rtk pnpm exec knip` 验证新 entry 生效（eval 死代码可报告）。
+  更新 `knip.json` entry 列表；运行 `pnpm exec knip` 验证新 entry 生效（eval 死代码可报告）。
 - [ ] **Step 4: 验证**
-  `rtk pnpm eval -- retrieval --tier smoke --dry-run`、`rtk pnpm eval -- summary --tier smoke --dry-run`（dry-run 不依赖 PG/密钥）。
+  `pnpm eval -- retrieval --tier smoke --dry-run`、`pnpm eval -- summary --tier smoke --dry-run`（dry-run 不依赖 PG/密钥）。
 - [ ] **Step 5: Commit**
   `refactor(evals): merge ci runner into eval-all and fix knip entries`
 
@@ -218,7 +218,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - [ ] **Step 2: 统一到 persistence-schema**
   以本地版（有实际迁移验证）为准补齐 persistence-schema 差异；本地 schema.ts 改 re-export；补依赖声明。
 - [ ] **Step 3: 验证**
-  `rtk pnpm --filter @trapmap/service-candidate-ingestion test --run`、`rtk pnpm typecheck`、`rtk pnpm exec fallow audit --base main`。
+  `pnpm --filter @trapmap/service-candidate-ingestion test --run`、`pnpm typecheck`、`pnpm exec fallow audit --base main`。
 - [ ] **Step 4: Commit**
   `refactor(candidate-ingestion): single-source candidate tables from persistence-schema`
 
@@ -245,7 +245,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - [ ] **Step 3: contracts 依赖清理**
   移除 `gray-matter`/`mime-types`；评估 graphology 依赖是否仍需（若 4 个活函数已迁走，则 contracts 全部 graphology 依赖可移除）；`pnpm install` 更新锁文件。
 - [ ] **Step 4: 验证**
-  `rtk pnpm --filter @trapmap/lib test --run`、`rtk pnpm --filter @trapmap/service-knowledge-read test --run`、`rtk pnpm --filter @trapmap/cli test --run`、`rtk pnpm typecheck`、`rtk pnpm eval:smoke`、`rtk pnpm exec fallow audit --base main`。
+  `pnpm --filter @trapmap/lib test --run`、`pnpm --filter @trapmap/service-knowledge-read test --run`、`pnpm --filter @trapmap/cli test --run`、`pnpm typecheck`、`pnpm eval:smoke`、`pnpm exec fallow audit --base main`。
 - [ ] **Step 5: Commit**
   `refactor(contracts): move graph algorithms and parsing out of contracts`
 
@@ -257,7 +257,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - Modify: `packages/service-governance-review/src/review-queue-projection.ts`（同上）
 - Modify: `packages/service-knowledge-write/src/artifact-derive/types.ts`、`contextual-enrichment.ts`、`artifact-derive-from-payloads.ts`、`knowledge-record-mutations.ts`（4 处 `import ... from '@trapmap/service-knowledge-read/store.js'` 改为 contracts）
 - Modify: `packages/service-knowledge-read/package.json`（移除 devDependencies 中的 `@trapmap/service-knowledge-write` 反向声明）
-- Test: 三包受影响测试 + `rtk pnpm typecheck`
+- Test: 三包受影响测试 + `pnpm typecheck`
 
 **Interfaces:**
 - Consumes: 审查报告的 write→read import 4 处清单。
@@ -270,7 +270,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - [ ] **Step 3: 移除反向 devDep**
   read 包 package.json 移除 write 声明；`rg "@trapmap/service-knowledge-read" packages/service-knowledge-write` 确认零 import。
 - [ ] **Step 4: 验证**
-  三包测试、`rtk pnpm typecheck`、`rtk pnpm exec fallow audit --base main`、`rtk pnpm exec fallow list --boundaries`。
+  三包测试、`pnpm typecheck`、`pnpm exec fallow audit --base main`、`pnpm exec fallow list --boundaries`。
 - [ ] **Step 5: Commit**
   `refactor(services): move shared knowledge records to contracts, break read-write cycle`
 
@@ -290,7 +290,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - [ ] **Step 2: 移动 SQL 常量**
   从 backend-core domain 移到 service-job-runtime；domain 只留纯策略。
 - [ ] **Step 3: 验证**
-  两包测试、`rtk pnpm typecheck`、`rtk pnpm exec fallow audit --base main`。
+  两包测试、`pnpm typecheck`、`pnpm exec fallow audit --base main`。
 - [ ] **Step 4: Commit**
   `refactor(job-runtime): move SQL constants out of domain`
 
@@ -312,7 +312,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - [ ] **Step 3: 索引冗余确认**
   按 queue.ts 注释与迁移 SQL 确认 task_queue_type_dedupe_idx 冗余后删除（含迁移 SQL 中的对应索引，谨慎：先确认无查询依赖）。
 - [ ] **Step 4: 验证**
-  `rtk pnpm check:docs`、`rtk pnpm check:structure`、受影响包测试。
+  `pnpm check:docs`、`pnpm check:structure`、受影响包测试。
 - [ ] **Step 5: Commit**
   `docs: align DATABASE_SCHEMA with persistence-schema (64 tables)`
 
@@ -340,7 +340,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - [ ] **Step 4: @eval-only 标记守卫**
   实现扫描；3 个已标记模块为反例基线；新 eval-only 依赖必须带标记。
 - [ ] **Step 5: 验证 + 文档**
-  `rtk pnpm check:docs`、`rtk pnpm check:structure`、`rtk pnpm exec fallow audit --base main`、新增 guard 单测；更新 TESTING.md/CI_CD.md/DOCUMENTATION_GOVERNANCE.md。
+  `pnpm check:docs`、`pnpm check:structure`、`pnpm exec fallow audit --base main`、新增 guard 单测；更新 TESTING.md/CI_CD.md/DOCUMENTATION_GOVERNANCE.md。
 - [ ] **Step 6: Commit**
   `feat(guards): enforce table single-source, eval import boundaries, and eval-only markers`
 
@@ -349,7 +349,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 **Files:**
 - Modify: `docs/todos/open-debt-and-compromises.md`（回写：确认删除的死代码项关闭；未实施的大重构项——capability-model 拆分、OTel/Consul 双份收敛、EvalSeedPort 收窄、web-panel real 路径、internal-client review/governanceReview 合并、shared/ports.ts 业务下沉——登记为长期 debt 带进入条件）
 - Modify: `docs/README.md`（LLM 图提取条目标注状态；若主线完成则更新"当前整改主线"小节）
-- 全量验证：`rtk pnpm typecheck`、受影响包全量测试、`rtk pnpm exec knip`、`rtk pnpm exec fallow audit --base main`、`rtk pnpm check:docs`、`rtk pnpm check:structure`、`rtk pnpm eval:smoke`（若 docker 可用；不可用则记录 CI 需补跑）
+- 全量验证：`pnpm typecheck`、受影响包全量测试、`pnpm exec knip`、`pnpm exec fallow audit --base main`、`pnpm check:docs`、`pnpm check:structure`、`pnpm eval:smoke`（若 docker 可用；不可用则记录 CI 需补跑）
 
 **Interfaces:**
 - Consumes: Task 1-12 全部结果。
@@ -360,7 +360,7 @@ Wave 1 各任务文件域互不重叠，可最大并行；Wave 2 任务按包隔
 - [ ] **Step 2: debt register 回写**
   关闭已确认删除项；登记未实施大重构项（带来源/影响/进入条件/后续落点）。
 - [ ] **Step 3: 文档回写**
-  更新 docs/README.md 与相关 reference；`rtk pnpm check:docs` 通过。
+  更新 docs/README.md 与相关 reference；`pnpm check:docs` 通过。
 - [ ] **Step 4: 归档**
   全任务证据齐全后，本细则归档至 `docs/archived/archived-plans/`，根 `plan.md` 切换。
 - [ ] **Step 5: Commit**

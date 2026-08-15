@@ -129,18 +129,18 @@
 
 ### Connector seam
 
-- `rtk pnpm --filter @trapmap/host-local test --run src/nest/adapters/adapter-factory.test.ts`
+- `pnpm --filter @trapmap/host-local test --run src/nest/adapters/adapter-factory.test.ts`
 - 必要时补 remote adapter 单测，确认 InvocationError 映射不漂移
 
 ### Request/trace 传播
 
-- `rtk pnpm --filter @trapmap/host-local test --run src/nest/runtime/request-context.test.ts`
-- `rtk pnpm test:distributed-acceptance`
+- `pnpm --filter @trapmap/host-local test --run src/nest/runtime/request-context.test.ts`
+- `pnpm test:distributed-acceptance`
 
 ### Light host cutover / rollback
 
-- `rtk pnpm --filter @trapmap/host-local test --run src/bootstrap/server.test.ts`
-- `rtk pnpm --filter @trapmap/host-local test --run src/nest/app.test.ts`
+- `pnpm --filter @trapmap/host-local test --run src/bootstrap/server.test.ts`
+- `pnpm --filter @trapmap/host-local test --run src/nest/app.test.ts`
 
 ### Server legacy route 删除前
 
@@ -149,13 +149,13 @@
 
 ### Runtime / deployment surface
 
-- `rtk pnpm test:deployment-smoke`
-- 如改 runtime foundations：`rtk pnpm test:runtime-foundations`
+- `pnpm test:deployment-smoke`
+- 如改 runtime foundations：`pnpm test:runtime-foundations`
 
 ### 文档与结构
 
-- `rtk pnpm check:docs-drift`
-- `rtk pnpm check:structure`
+- `pnpm check:docs-drift`
+- `pnpm check:structure`
 
 ## 各包禁止新增的内容
 

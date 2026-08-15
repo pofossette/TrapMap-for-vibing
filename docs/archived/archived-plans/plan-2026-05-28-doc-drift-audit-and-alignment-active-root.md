@@ -182,7 +182,7 @@
 ### 4. 每个阶段要做的测试/Eval更新
 
 - [ ] 扩展 `packages/server/src/__tests__/docs-truth-smoke.test.ts`，断言 truth matrix 覆盖新增 topic
-- [ ] 运行 `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+- [ ] 运行 `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
 
 ### 5. 必要的示例结构或代码
 
@@ -231,9 +231,9 @@
 - [ ] 为 `TESTING.md` / `CI_CD.md` 增加 docRules，约束 `pnpm eval:ci`、`pnpm eval:ci:core`、guardrail 命令
 - [ ] 更新 `packages/server/src/__tests__/docs-truth-smoke.test.ts`
 - [ ] 运行
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-  - `rtk pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts`
+  - `pnpm check:docs-drift`
+  - `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts`
 
 ### 5. 必要的示例结构或代码
 
@@ -301,8 +301,8 @@ pnpm eval:ci:core
   - capsule index rebuild 命令 smoke test
   - k8s/Helm 交付物存在性 test 或 manifest lint
 - [ ] 运行
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `pnpm check:docs-drift`
+  - `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
 
 ### 5. 必要的示例结构或代码
 
@@ -365,8 +365,8 @@ pnpm eval:ci:core
 - [ ] 为 eval README 增加 docRules，约束 `run.ts`、`smoke.ts`、`core.ts`、`eval:ci`
 - [ ] 若 Skill workflow 文档修改了命令表面，补 CLI smoke 或脚本断言
 - [ ] 运行
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `pnpm check:docs-drift`
+  - `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
 
 ### 5. 必要的示例结构或代码
 
@@ -422,10 +422,10 @@ evals/retrieval/
 - [ ] 为每个被保留的运维入口补 smoke test
 - [ ] 为每个被删除的承诺补 `mustNotContain` 规则
 - [ ] 运行
-  - `rtk pnpm check:docs-drift`
-  - `rtk pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts`
-  - `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
-  - `rtk pnpm eval:smoke`
+  - `pnpm check:docs-drift`
+  - `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts`
+  - `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts`
+  - `pnpm eval:smoke`
 
 ### 5. 必要的示例结构或代码
 
@@ -453,7 +453,7 @@ pnpm ops:rebuild-capsule-indexes
 - [x] 所有功能性漂移都被决策为”补实现”或”删承诺”
 - [x] `DOCS_TRUTH_MATRIX.md` 和 `SYSTEM_TRUTH_SOURCES.md` 成为后续文档维护入口
 - [x] `scripts/complexity-budgets.json` 与 `docs-truth-smoke.test.ts` 对本轮漂移类别形成防线
-- [x] 至少完成一次 `rtk pnpm check:docs-drift` + `rtk pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` + `rtk pnpm eval:smoke`
+- [x] 至少完成一次 `pnpm check:docs-drift` + `pnpm test -- --run packages/server/src/__tests__/docs-truth-smoke.test.ts` + `pnpm eval:smoke`
 
 ## 4. Sub-agent 执行建议
 

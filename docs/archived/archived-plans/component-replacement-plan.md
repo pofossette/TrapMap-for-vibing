@@ -59,9 +59,9 @@
 
 最小验证：
 
-- `rtk pnpm --filter @trapmap/web-panel test --run src/app/router/router.test.tsx`
-- `rtk pnpm --filter @trapmap/web-panel test --run src/features/review-detail/service.test.ts`
-- `rtk pnpm --filter @trapmap/web-panel test --run src/stores/review-queue-store.test.ts`
+- `pnpm --filter @trapmap/web-panel test --run src/app/router/router.test.tsx`
+- `pnpm --filter @trapmap/web-panel test --run src/features/review-detail/service.test.ts`
+- `pnpm --filter @trapmap/web-panel test --run src/stores/review-queue-store.test.ts`
 
 ### Phase 2 Prompt 模板底座替换 [建议先做]
 
@@ -78,7 +78,7 @@
 
 最小验证：
 
-- `rtk pnpm test:file -- packages/server/src/lib/ai/providers/index.test.ts`
+- `pnpm test:file -- packages/server/src/lib/ai/providers/index.test.ts`
 - 若无聚焦测试，至少补对应 renderer 测试并运行
 
 ### Phase 3 CLI 与通用工具替换 [建议先做]
@@ -98,9 +98,9 @@
 
 最小验证：
 
-- `rtk pnpm --filter @trapmap/cli test --run src/lib/artifact-bundle.test.ts`
-- `rtk pnpm --filter @trapmap/cli test --run src/lib/config.test.ts`
-- 若 shared contract/helper 进入 `contracts`，补 `rtk pnpm --filter @trapmap/contracts test --run <path>`
+- `pnpm --filter @trapmap/cli test --run src/lib/artifact-bundle.test.ts`
+- `pnpm --filter @trapmap/cli test --run src/lib/config.test.ts`
+- 若 shared contract/helper 进入 `contracts`，补 `pnpm --filter @trapmap/contracts test --run <path>`
 
 ### Phase 4 pg-boss 迁移 [已确定方向]
 
@@ -127,10 +127,10 @@
 
 最小验证：
 
-- `rtk pnpm test:file -- packages/server/src/lib/queue/task-queue.test.ts`
-- `rtk pnpm test:file -- packages/server/src/lib/lifecycle/outbox.test.ts`
-- `rtk pnpm test:runtime-foundations`
-- `rtk pnpm test:deployment-smoke`
+- `pnpm test:file -- packages/server/src/lib/queue/task-queue.test.ts`
+- `pnpm test:file -- packages/server/src/lib/lifecycle/outbox.test.ts`
+- `pnpm test:runtime-foundations`
+- `pnpm test:deployment-smoke`
 
 ### Phase 5 缓存能力替换 [有条件推进]
 
@@ -147,9 +147,9 @@
 
 最小验证：
 
-- `rtk pnpm test:file -- packages/server/src/lib/cache/retrieval-cache.test.ts`
-- `rtk pnpm test:file -- packages/server/src/lib/retrieval/capsules/intent-cache.test.ts`
-- `rtk pnpm test:file -- packages/server/src/routes/operations/status.test.ts`
+- `pnpm test:file -- packages/server/src/lib/cache/retrieval-cache.test.ts`
+- `pnpm test:file -- packages/server/src/lib/retrieval/capsules/intent-cache.test.ts`
+- `pnpm test:file -- packages/server/src/routes/operations/status.test.ts`
 
 ## 当前结论
 

@@ -16,7 +16,7 @@
 - `graphIndexDocuments`, `promptVersion`, and `rebuildState` are rebuilt or retired from authoritative owner data, never copied from legacy JSONB.
 - No `store_snapshot`, `JsonStore`, `PostgresStore`, source adapter, temporary port, command, fixture, or allowlist survives Wave 9.
 - Do not drop `store_snapshot` until focused tests and representative PostgreSQL backfill evidence are green; Docker/Compose remains a required final acceptance.
-- Prefix shell commands with `rtk`; never stage `.superpowers/sdd/` workflow artifacts.
+- Prefix shell commands with `pnpm`; never stage `.superpowers/sdd/` workflow artifacts.
 
 ---
 
@@ -72,7 +72,7 @@ it.each([
 
 - [ ] **Step 2: Run the source test to verify it fails**
 
-Run: `rtk pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/source.test.ts`
+Run: `pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/source.test.ts`
 
 Expected: FAIL because `source.ts` and `loadLegacySnapshot` do not exist.
 
@@ -97,15 +97,15 @@ Define `legacySnapshotSchema` with exact known keys from `StoreData`; use `.stri
 
 - [ ] **Step 4: Run the focused source tests**
 
-Run: `rtk pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/source.test.ts`
+Run: `pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/source.test.ts`
 
 Expected: PASS with singleton query, complete source parsing, missing-bucket, unknown-bucket, and malformed-record rejection coverage.
 
 - [ ] **Step 5: Commit the source contract**
 
 ```bash
-rtk git add packages/host-distributed/src/legacy-snapshot/source.ts packages/host-distributed/src/legacy-snapshot/source.test.ts packages/host-distributed/package.json
-rtk git commit -m "feat: add legacy snapshot source contract"
+git add packages/host-distributed/src/legacy-snapshot/source.ts packages/host-distributed/src/legacy-snapshot/source.test.ts packages/host-distributed/package.json
+git commit -m "feat: add legacy snapshot source contract"
 ```
 
 ### Task 2: Compose Existing Owner Backfills in a Fail-Closed Coordinator
@@ -146,7 +146,7 @@ it('fails closed and does not run later owners after a mismatch', async () => {
 
 - [ ] **Step 2: Run the coordinator test to verify it fails**
 
-Run: `rtk pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/coordinator.test.ts`
+Run: `pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/coordinator.test.ts`
 
 Expected: FAIL because `runLegacySnapshotBackfill` and the host-only owner bundle do not exist.
 
@@ -179,15 +179,15 @@ export async function runLegacySnapshotBackfill(deps: LegacySnapshotBackfillDeps
 
 - [ ] **Step 4: Run focused coordinator and owner tests**
 
-Run: `rtk pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/source.test.ts src/legacy-snapshot/coordinator.test.ts`
+Run: `pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/source.test.ts src/legacy-snapshot/coordinator.test.ts`
 
 Expected: PASS, including ordered invocation, source/destination counts, no later owner after failure, idempotent second run, and mismatch rejection.
 
 - [ ] **Step 5: Commit the coordinator**
 
 ```bash
-rtk git add packages/host-distributed/src/legacy-snapshot packages/host-distributed/src/index.ts
-rtk git commit -m "feat: coordinate legacy snapshot backfill"
+git add packages/host-distributed/src/legacy-snapshot packages/host-distributed/src/index.ts
+git commit -m "feat: coordinate legacy snapshot backfill"
 ```
 
 ### Task 3: Close Owner Contract Gaps and Add the All-Bucket PostgreSQL Fixture
@@ -236,7 +236,7 @@ it('rejects a conflicting destination and malformed required field without overw
 
 - [ ] **Step 2: Run the integration and owner tests to verify the contract gap**
 
-Run: `rtk pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/integration.test.ts`
+Run: `pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/integration.test.ts`
 
 Expected: FAIL until the common coordinator wiring and any demonstrated owner result normalization are complete.
 
@@ -246,25 +246,25 @@ For each failure, preserve existing owner ownership and add the smallest explici
 
 - [ ] **Step 4: Run the complete focused backfill verification**
 
-Run: `rtk pnpm --filter @trapmap/service-identity-access test --run src/identity-audit-backfill.test.ts`
+Run: `pnpm --filter @trapmap/service-identity-access test --run src/identity-audit-backfill.test.ts`
 
-Run: `rtk pnpm --filter @trapmap/service-knowledge-write test --run src/knowledge-snapshot-backfill.test.ts src/wave9-artifact-backfill.test.ts src/wave9-artifact-payload-backfill.test.ts`
+Run: `pnpm --filter @trapmap/service-knowledge-write test --run src/knowledge-snapshot-backfill.test.ts src/wave9-artifact-backfill.test.ts src/wave9-artifact-payload-backfill.test.ts`
 
-Run: `rtk pnpm --filter @trapmap/service-candidate-ingestion test --run src/snapshot-backfill.test.ts`
+Run: `pnpm --filter @trapmap/service-candidate-ingestion test --run src/snapshot-backfill.test.ts`
 
-Run: `rtk pnpm --filter @trapmap/service-governance-review test --run src/snapshot-backfill.test.ts`
+Run: `pnpm --filter @trapmap/service-governance-review test --run src/snapshot-backfill.test.ts`
 
-Run: `rtk pnpm --filter @trapmap/service-knowledge-read test --run src/graph-projection-backfill.test.ts`
+Run: `pnpm --filter @trapmap/service-knowledge-read test --run src/graph-projection-backfill.test.ts`
 
-Run: `rtk pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/integration.test.ts`
+Run: `pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/integration.test.ts`
 
 Expected: PASS; every migrated bucket has matching source/destination evidence, conflict rejection, required-field rejection, idempotent rerun, and graph rebuild evidence.
 
 - [ ] **Step 5: Commit fixture and owner corrections**
 
 ```bash
-rtk git add packages/host-distributed/src/legacy-snapshot packages/service-identity-access/src packages/service-knowledge-write/src packages/service-candidate-ingestion/src packages/service-governance-review/src packages/service-knowledge-read/src
-rtk git commit -m "test: prove legacy snapshot owner backfill"
+git add packages/host-distributed/src/legacy-snapshot packages/service-identity-access/src packages/service-knowledge-write/src packages/service-candidate-ingestion/src packages/service-governance-review/src packages/service-knowledge-read/src
+git commit -m "test: prove legacy snapshot owner backfill"
 ```
 
 ### Task 4: Add the Temporary Operator Entrypoint and Record Representative Evidence
@@ -294,7 +294,7 @@ it('requires DATABASE_URL, closes the pool, and emits the verified result', asyn
 
 - [ ] **Step 2: Run the entrypoint test to verify it fails**
 
-Run: `rtk pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/run.test.ts`
+Run: `pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/run.test.ts`
 
 Expected: FAIL because the temporary command module does not exist.
 
@@ -319,19 +319,19 @@ Use a direct package entrypoint only for the cutover, document its exact invocat
 
 - [ ] **Step 4: Run the command and record factual evidence**
 
-Run: `rtk pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/run.test.ts src/legacy-snapshot/integration.test.ts`
+Run: `pnpm --filter @trapmap/host-distributed test --run src/legacy-snapshot/run.test.ts src/legacy-snapshot/integration.test.ts`
 
 Then, only with a configured representative development database:
 
-Run: `rtk pnpm -C packages/host-distributed exec tsx src/legacy-snapshot/run.ts`
+Run: `pnpm -C packages/host-distributed exec tsx src/legacy-snapshot/run.ts`
 
 Expected: JSON result with `succeeded: true`, all buckets verified, and a process exit code of `0`. Record source counts, destination counts, timestamp, and exact command in the active detail. If no database is available, record that the deletion gate remains blocked and do not continue to Task 5.
 
 - [ ] **Step 5: Commit entrypoint and evidence only when the representative run is green**
 
 ```bash
-rtk git add packages/host-distributed/src/legacy-snapshot/run.ts packages/host-distributed/src/legacy-snapshot/run.test.ts packages/host-distributed/package.json docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md
-rtk git commit -m "feat: run verified legacy snapshot backfill"
+git add packages/host-distributed/src/legacy-snapshot/run.ts packages/host-distributed/src/legacy-snapshot/run.test.ts packages/host-distributed/package.json docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md
+git commit -m "feat: run verified legacy snapshot backfill"
 ```
 
 ### Task 5: Drop the Snapshot Schema and Delete Legacy State
@@ -341,7 +341,7 @@ rtk git commit -m "feat: run verified legacy snapshot backfill"
 - Create/Modify: corresponding `packages/service-identity-access/drizzle/meta/*` journal and snapshot metadata
 - Delete: `packages/server/src/lib/store/`
 - Delete: `packages/server/src/lib/persistence/{create-store.ts,postgres-store.ts,postgres-store.test.ts,schema/index.ts}`
-- Modify: every direct production consumer identified by `rtk rg -n 'store_snapshot|JsonStore|PostgresStore|lib/store|persistence/postgres-store' packages scripts --glob '*.ts' --glob 'package.json'`
+- Modify: every direct production consumer identified by `rg -n 'store_snapshot|JsonStore|PostgresStore|lib/store|persistence/postgres-store' packages scripts --glob '*.ts' --glob 'package.json'`
 - Modify: `packages/service-identity-access/drizzle/0000_identity_access_baseline.sql` and metadata to remove the legacy table from an empty-database baseline
 - Modify: `scripts/__tests__/compatibility-retirement-guard.test.ts`
 - Modify: `docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md`
@@ -365,7 +365,7 @@ Remove every Wave 9 `allowlist` entry before deleting code, so the test is red f
 
 - [ ] **Step 2: Run the guard to verify it fails**
 
-Run: `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`
+Run: `pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`
 
 Expected: FAIL and report every remaining `store_snapshot`, `JsonStore`, `PostgresStore`, temporary source, and temporary command surface.
 
@@ -375,28 +375,28 @@ Add the owner-scoped `DROP TABLE IF EXISTS store_snapshot;` migration and update
 
 - [ ] **Step 4: Run focused deletion checks**
 
-Run: `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`
+Run: `pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`
 
-Run: `rtk pnpm --filter @trapmap/service-identity-access test --run src/migrations.test.ts`
+Run: `pnpm --filter @trapmap/service-identity-access test --run src/migrations.test.ts`
 
-Run: `rtk pnpm --filter @trapmap/host-distributed test --run src/migrate.test.ts`
+Run: `pnpm --filter @trapmap/host-distributed test --run src/migrate.test.ts`
 
-Run: `rtk pnpm typecheck`
+Run: `pnpm typecheck`
 
-Run: `rtk pnpm check:docs-drift`
+Run: `pnpm check:docs-drift`
 
-Run: `rtk pnpm check:structure`
+Run: `pnpm check:structure`
 
-Run: `rtk pnpm exec fallow audit --base main`
+Run: `pnpm exec fallow audit --base main`
 
 Expected: guard has no Wave 9 exception, owner migrations reject stale metadata, typecheck/docs/structure pass, and Fallow reports no unauthorized cross-service implementation import. Record any tool-environment failure exactly rather than treating it as success.
 
 - [ ] **Step 5: Commit the destructive retirement as one reviewed change**
 
 ```bash
-rtk git add -A
-rtk git restore --staged .superpowers/sdd
-rtk git commit -m "refactor: retire legacy snapshot state"
+git add -A
+git restore --staged .superpowers/sdd
+git commit -m "refactor: retire legacy snapshot state"
 ```
 
 ### Task 6: Prove Empty-Database Deployment and Close Wave 9 Evidence
@@ -412,13 +412,13 @@ rtk git commit -m "refactor: retire legacy snapshot state"
 
 - [ ] **Step 1: Run the empty-database migration and deployment acceptance**
 
-Run: `rtk pnpm test:deployment-smoke`
+Run: `pnpm test:deployment-smoke`
 
-Run: `rtk pnpm test:runtime-foundations`
+Run: `pnpm test:runtime-foundations`
 
-Run: `rtk pnpm test:distributed-closeout`
+Run: `pnpm test:distributed-closeout`
 
-Run: `rtk pnpm test:runtime-closeout:compose`
+Run: `pnpm test:runtime-closeout:compose`
 
 Expected: owner migrations create a usable empty database without `store_snapshot`, and the deployed composition starts with no legacy state dependency.
 
@@ -428,15 +428,15 @@ For each failure, identify the exact stale import, migration expectation, Docker
 
 - [ ] **Step 3: Run final Wave 9 verification**
 
-Run: `rtk pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`
+Run: `pnpm test:file -- scripts/__tests__/compatibility-retirement-guard.test.ts`
 
-Run: `rtk pnpm typecheck`
+Run: `pnpm typecheck`
 
-Run: `rtk pnpm check:docs-drift`
+Run: `pnpm check:docs-drift`
 
-Run: `rtk pnpm check:structure`
+Run: `pnpm check:structure`
 
-Run: `rtk pnpm exec fallow audit --base main`
+Run: `pnpm exec fallow audit --base main`
 
 Expected: all checks pass. If Docker is unavailable, record the exact socket failure and leave Wave 9 unchecked; do not claim empty-database acceptance.
 
@@ -445,8 +445,8 @@ Expected: all checks pass. If Docker is unavailable, record the exact socket fai
 Record each command/result, the representative backfill result, and whether the empty-database acceptance passed. Mark only Wave 9 complete when every deletion and acceptance criterion is evidenced; retain the active detail because Wave 10 is still pending.
 
 ```bash
-rtk git add docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md
-rtk git commit -m "docs: record legacy snapshot retirement evidence"
+git add docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md
+git commit -m "docs: record legacy snapshot retirement evidence"
 ```
 
 ## Plan Self-Review

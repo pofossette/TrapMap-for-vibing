@@ -89,8 +89,8 @@
 ## 任务 4：验证
 
 - [x] 跑相关读侧聚焦测试。
-- [x] 跑 `rtk pnpm test -- --run packages/server/src/routes/feedback.test.ts packages/server/src/routes/operations/status.test.ts packages/server/src/routes/operations/artifacts-export.test.ts packages/server/src/routes/operations/audit.test.ts packages/server/src/__tests__/snapshot-usage-guard.test.ts`。
-- [x] 跑 `rtk pnpm typecheck`。
+- [x] 跑 `pnpm test -- --run packages/server/src/routes/feedback.test.ts packages/server/src/routes/operations/status.test.ts packages/server/src/routes/operations/artifacts-export.test.ts packages/server/src/routes/operations/audit.test.ts packages/server/src/__tests__/snapshot-usage-guard.test.ts`。
+- [x] 跑 `pnpm typecheck`。
 
 **验收结果**
 

@@ -178,7 +178,7 @@ export function getRetrievalCacheStats(): Record<string, CacheStats> { ... }
 - [ ] **Step 1.2：运行测试确认失败**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/cache/retrieval-cache.test.ts
+pnpm test -- --run packages/server/src/lib/cache/retrieval-cache.test.ts
 ```
 
 Expected: 测试失败（模块不存在）。
@@ -202,13 +202,13 @@ export type { RetrievalCacheOptions, CacheStats } from './retrieval-cache.js';
 - [ ] **Step 1.5：运行测试确认通过**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/cache/retrieval-cache.test.ts
+pnpm test -- --run packages/server/src/lib/cache/retrieval-cache.test.ts
 ```
 
 - [ ] **Step 1.6：运行类型检查**
 
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 Expected: 0 errors。
@@ -284,7 +284,7 @@ export class InMemoryIntentCache implements IntentCacheStore {
 - [x] **Step 2.1：运行现有 IntentCache 测试记录基线**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/
+pnpm test -- --run packages/server/src/lib/retrieval/capsules/
 ```
 
 Expected: 全部通过。记录当前测试数量。
@@ -296,7 +296,7 @@ Expected: 全部通过。记录当前测试数量。
 - [x] **Step 2.3：运行测试确认通过**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/
+pnpm test -- --run packages/server/src/lib/retrieval/capsules/
 ```
 
 Expected: 所有测试通过（行为等价，策略从 FIFO→LRU 不影响测试结果）。
@@ -363,7 +363,7 @@ const cachedGraphDocuments = new RetrievalCache<GraphIndexDocumentRecord>({
 - [x] **Step 3.1：运行现有 graph adapter 测试记录基线**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/indexing/adapters/
+pnpm test -- --run packages/server/src/lib/indexing/adapters/
 ```
 
 - [x] **Step 3.2：替换两个裸 Map 为 RetrievalCache 实例**
@@ -375,7 +375,7 @@ rtk pnpm test -- --run packages/server/src/lib/indexing/adapters/
 - [x] **Step 3.3：运行测试确认通过**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/indexing/adapters/
+pnpm test -- --run packages/server/src/lib/indexing/adapters/
 ```
 
 - [x] **Step 3.4：Commit**
@@ -454,7 +454,7 @@ const extraction = await extractGraphEntitiesWithLLM(text, chatProvider, {
 - [x] **Step 4.1：运行现有 LLM cache 测试记录基线**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/indexing/graph-lite/llm-cache.test.ts
+pnpm test -- --run packages/server/src/lib/indexing/graph-lite/llm-cache.test.ts
 ```
 
 - [x] **Step 4.2：替换 `LlmExtractionCache` 内部实现**
@@ -474,7 +474,7 @@ rtk pnpm test -- --run packages/server/src/lib/indexing/graph-lite/llm-cache.tes
 - [x] **Step 4.5：运行所有相关测试**
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/indexing/
+pnpm test -- --run packages/server/src/lib/indexing/
 ```
 
 Expected: 所有 indexing 测试通过。
@@ -535,8 +535,8 @@ export function getRetrievalCacheStats(): Record<string, import('./retrieval-cac
 - [x] **Step 5.2：运行全量测试**
 
 ```bash
-rtk pnpm test -- --run
-rtk pnpm typecheck
+pnpm test -- --run
+pnpm typecheck
 ```
 
 Expected: 全部通过。
@@ -598,7 +598,7 @@ git commit -m "docs: add unified caching architecture documentation and metrics 
 ### 类型安全验证
 
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 - [x] 零类型错误（cache 相关模块零错误；pre-existing error in graph-plan-search.ts:192 与 cache 无关）
@@ -606,9 +606,9 @@ rtk pnpm typecheck
 ### 单元测试验证
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/cache/
-rtk pnpm test -- --run packages/server/src/lib/retrieval/capsules/
-rtk pnpm test -- --run packages/server/src/lib/indexing/graph-lite/llm-cache.test.ts
+pnpm test -- --run packages/server/src/lib/cache/
+pnpm test -- --run packages/server/src/lib/retrieval/capsules/
+pnpm test -- --run packages/server/src/lib/indexing/graph-lite/llm-cache.test.ts
 ```
 
 - [x] retrieval-cache 测试全部通过（18/18）
@@ -618,8 +618,8 @@ rtk pnpm test -- --run packages/server/src/lib/indexing/graph-lite/llm-cache.tes
 ### 集成测试验证
 
 ```bash
-rtk pnpm test -- --run packages/server/src/lib/indexing/adapters/
-rtk pnpm test -- --run packages/server/src/lib/retrieval/
+pnpm test -- --run packages/server/src/lib/indexing/adapters/
+pnpm test -- --run packages/server/src/lib/retrieval/
 ```
 
 - [x] Graph adapter 测试全部通过（15+15+7+7+7+9 = 60/60）
@@ -628,7 +628,7 @@ rtk pnpm test -- --run packages/server/src/lib/retrieval/
 ### 全量测试验证
 
 ```bash
-rtk pnpm test -- --run
+pnpm test -- --run
 ```
 
 - [x] 全量测试无失败（cache 相关模块全部通过；pre-existing failures in CLI/evals/workflow 与 cache 无关）

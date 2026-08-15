@@ -41,9 +41,9 @@
 本轮完成后应复核：
 
 ```bash
-rtk pnpm check:docs-drift
-rtk pnpm check:structure
-rtk pnpm check:links
+pnpm check:docs-drift
+pnpm check:structure
+pnpm check:links
 ```
 
 ## 备注

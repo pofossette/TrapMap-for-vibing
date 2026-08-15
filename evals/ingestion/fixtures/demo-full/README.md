@@ -21,9 +21,9 @@
 
 全链路验收测试已迁移至 owner-local artifact port/route 测试：
 
-- artifact port 测试：`rtk pnpm --filter @trapmap/service-knowledge-write test --run src/artifact-ports.test.ts`
-- artifact route 测试：`rtk pnpm --filter @trapmap/service-knowledge-write test --run src/artifact-routes.test.ts`
-- PostgreSQL composition 入口测试：`rtk pnpm test:file -- scripts/__tests__/postgres-composition-entrypoints.test.ts`
+- artifact port 测试：`pnpm --filter @trapmap/service-knowledge-write test --run src/artifact-ports.test.ts`
+- artifact route 测试：`pnpm --filter @trapmap/service-knowledge-write test --run src/artifact-routes.test.ts`
+- PostgreSQL composition 入口测试：`pnpm test:file -- scripts/__tests__/postgres-composition-entrypoints.test.ts`
 
 > 原 `packages/server/src/lib/artifacts/demo-acceptance.test.ts` 已随 Wave-9 store-backed fixture 退役删除。
 

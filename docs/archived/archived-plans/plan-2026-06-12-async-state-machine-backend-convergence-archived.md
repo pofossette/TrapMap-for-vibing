@@ -339,14 +339,14 @@ flowchart TB
   - readiness behavior when queue worker is configured but unhealthy
 - [ ] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/queue/task-queue.test.ts \
   packages/server/src/lib/runtime/runtime-metadata.test.ts \
   packages/server/src/app.test.ts
 ```
 - [ ] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**
@@ -431,13 +431,13 @@ app.get('/v1/operations/status/queue', async () => {
 - [ ] Extend `packages/server/src/app.test.ts` readiness assertions for “worker not configured here by design”.
 - [ ] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/bootstrap/startup.test.ts \
   packages/server/src/app.test.ts
 ```
 - [ ] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**
@@ -513,7 +513,7 @@ if (runtime.mode === 'worker') {
   - feedback persists hit snapshot / expected correction metadata
 - [ ] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/contracts/src/domain/retrieval.test.ts \
   packages/contracts/src/domain/feedback.test.ts \
   packages/server/src/routes/retrieval.test.ts \
@@ -521,7 +521,7 @@ rtk pnpm test -- --run \
 ```
 - [ ] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**
@@ -600,14 +600,14 @@ return retrievalV2ResponseWithHintsSchema.passthrough().parse({
 - [ ] Extend `packages/server/src/routes/feedback.test.ts` and `packages/server/src/__tests__/candidate-pipeline.test.ts` with async follow-up visibility checks.
 - [ ] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/lifecycle/subscribers/subscribers-integration.test.ts \
   packages/server/src/__tests__/candidate-pipeline.test.ts \
   packages/server/src/routes/feedback.test.ts
 ```
 - [ ] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**
@@ -668,7 +668,7 @@ await taskQueue.enqueue(
 - [ ] Extend retrieval integration tests with stale-cache guard assertions.
 - [ ] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/cache/retrieval-cache.test.ts \
   packages/server/src/lib/retrieval/orchestration/recall-coordinator.test.ts \
   packages/server/src/lib/retrieval/graph-plan/graph-plan-search.test.ts \
@@ -676,7 +676,7 @@ rtk pnpm test -- --run \
 ```
 - [ ] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**
@@ -746,13 +746,13 @@ if (event.reason === 'remediation-suppressed') {
 - [ ] Add at least one example exported retrieval eval draft fixture or snapshot test.
 - [ ] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/routes/operations/*.test.ts \
   packages/server/src/__tests__/docs-truth-smoke.test.ts
 ```
 - [ ] Run:
 ```bash
-rtk pnpm eval:smoke
+pnpm eval:smoke
 ```
 
 **Example structure or code:**
@@ -821,13 +821,13 @@ const draft: BadcaseEvalDraft = {
 - [ ] Extend stats route tests and runtime metrics tests for the new counters.
 - [ ] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/runtime/metrics.test.ts \
   packages/server/src/routes/operations/stats.test.ts
 ```
 - [ ] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
 
 **Example structure or code:**

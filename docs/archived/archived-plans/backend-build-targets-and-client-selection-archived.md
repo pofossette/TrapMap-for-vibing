@@ -26,7 +26,7 @@
 - [x] `light`/`heavy`、三档 profile、host ownership 和 gateway-only 语义在 contracts、registry、CLI、文档中一致。
 - [x] 每个 target 都能由命名入口启动/构建，并有不依赖人工解释的 focused test 和 closeout 命令。
 - [x] CLI 旧配置保持可读，新配置只写 canonical `gatewayUrl` 与 `backendTarget`。
-- [x] 所有阶段的 required docs、测试和验证记录均已回写；`rtk pnpm typecheck`、`rtk pnpm check:docs-drift`、`rtk pnpm check:structure` 通过。
+- [x] 所有阶段的 required docs、测试和验证记录均已回写；`pnpm typecheck`、`pnpm check:docs-drift`、`pnpm check:structure` 通过。
 
 ## Phase 0：冻结基线与迁移契约
 
@@ -43,8 +43,8 @@
 - [x] 明确 canonical client contract：`backendTarget: 'light' | 'heavy'`、默认和非法值回退为 `light`、唯一 `gatewayUrl`；列出旧配置兼容规则。
 - [x] 写入 target registry 的最小字段契约：`id`、`profiles`、`hostPackage`、`devTargets`、`buildCommand`、`verificationCommands`、`clientDefault`。
 - [x] 在上述架构与测试文档中同步 current-vs-deferred 边界；不得把 heavy 写成已经具备物理数据隔离或完整服务自治。
-- [x] Run: `rtk pnpm test:file -- scripts/__tests__/run-dev.test.ts`。
-- [x] Run: `rtk pnpm --filter @trapmap/cli test --run src/lib/config.test.ts`。
+- [x] Run: `pnpm test:file -- scripts/__tests__/run-dev.test.ts`。
+- [x] Run: `pnpm --filter @trapmap/cli test --run src/lib/config.test.ts`。
 - [x] 回写命令输出、发现的兼容别名和任何阻塞项到本阶段下方的执行记录。
 
 **执行记录（2026-07-11）：** 已确认并文档化：`local-agent` / `team-monolith` 由 `@trapmap/host-local` 承载并归入 `light`；`distributed` 由 `@trapmap/host-distributed` gateway/worker 拓扑承载并归入 `heavy`。canonical CLI contract 是单一 `gatewayUrl` 加 `backendTarget`，旧 `serverUrl` 仅读兼容；缺省/非法 target 回退 `light`。registry field contract 由 `scripts/backend-target-registry.ts` 实现。`run-dev.test.ts`（1 file / 7 tests）和 CLI config test（包含在 2 files / 39 tests）均通过；详情见 Phase 1 和 Phase 3 执行记录。
@@ -69,12 +69,12 @@
 - [x] 建立 `scripts/backend-target-registry.ts`，让其成为 dev target、host package、build/verification command 的唯一脚本级事实源；保留现有 `distributed:*` 别名作为兼容输入，不增加新 profile。
 - [x] 让 `run-dev.ts` 从 registry 解析 target/profile；测试 normal、compatibility alias、help text 与未知 target 失败语义。
 - [x] 在 truth-source、client architecture 和 testing docs 中标出 registry、contracts 与脚本的 owner 关系。
-- [x] Run: `rtk pnpm --filter @trapmap/contracts test --run src/enum-types/backend-target.test.ts`。
-- [x] Run: `rtk pnpm test:file -- scripts/__tests__/backend-target-registry.test.ts`。
-- [x] Run: `rtk pnpm test:file -- scripts/__tests__/run-dev.test.ts`。
-- [x] Run: `rtk pnpm typecheck`。
+- [x] Run: `pnpm --filter @trapmap/contracts test --run src/enum-types/backend-target.test.ts`。
+- [x] Run: `pnpm test:file -- scripts/__tests__/backend-target-registry.test.ts`。
+- [x] Run: `pnpm test:file -- scripts/__tests__/run-dev.test.ts`。
+- [x] Run: `pnpm typecheck`。
 
-**执行记录（2026-07-11）：** `backend-target.test.ts` passed（1 file / 3 tests）；`backend-target-registry.test.ts` passed（1 file / 3 tests）；`run-dev.test.ts` passed（1 file / 7 tests）；`rtk pnpm typecheck` reported `TypeScript: No errors found`。详情见 `.superpowers/sdd/backend-target-task-1-report.md`。
+**执行记录（2026-07-11）：** `backend-target.test.ts` passed（1 file / 3 tests）；`backend-target-registry.test.ts` passed（1 file / 3 tests）；`run-dev.test.ts` passed（1 file / 7 tests）；`pnpm typecheck` reported `TypeScript: No errors found`。详情见 `.superpowers/sdd/backend-target-task-1-report.md`。
 
 ## Phase 2：收敛两种构建与验证入口
 
@@ -92,10 +92,10 @@
 - [x] 增加两个明确的 target verification commands（`test:light-target`、`test:heavy-target`），分别聚合现有 host-local 最小证明及 distributed/discovery/runtime closeout 证明；避免把根级全量 `pnpm test` 当成 target check。
 - [x] 为命令映射写测试，验证 light 不启动 distributed worker、heavy 不把 CLI 指向内部 service，且失败 target 不被静默接受。
 - [x] 更新 README、CLI architecture、environment 与 testing：写清何时选 light/heavy、每档入口、必需环境、验证范围与 distributed 的 gateway-only 限制。
-- [x] Run: `rtk pnpm test:file -- scripts/__tests__/backend-target-build.test.ts`。
-- [x] Run: `rtk pnpm test:deployment-smoke`。
-- [x] Run: `rtk pnpm test:runtime-foundations`。
-- [x] Run: `rtk pnpm test:distributed-closeout`。
+- [x] Run: `pnpm test:file -- scripts/__tests__/backend-target-build.test.ts`。
+- [x] Run: `pnpm test:deployment-smoke`。
+- [x] Run: `pnpm test:runtime-foundations`。
+- [x] Run: `pnpm test:distributed-closeout`。
 
 **执行记录（2026-07-11）：** `backend-target-build.test.ts` passed（inherited-key regression fix 后最终重跑：1 file / 11 tests）；`deployment-smoke` passed（8 files / 170 tests / 4 skipped）；`runtime-foundations` passed（10 files / 174 tests / 10 skipped；existing graph-extraction invalid-edge stderr was expected）；`distributed-closeout` passed（5 files / 30 tests）；`build:light` and `build:heavy` both passed. Details: `.superpowers/sdd/backend-target-task-2-report.md`.
 
@@ -116,10 +116,10 @@
 - [x] 确认 `backendTarget` 仅影响诊断、提示和由 registry 定义的默认行为；HTTP client 一律继续从唯一 `gatewayUrl` 建立连接。
 - [x] 为旧配置 migration、显式 `heavy` 保留、未知值归一化、gateway URL 未分叉写测试；为 web client 的接入或不接入决定增加对应测试/断言。
 - [x] 更新四份 client 文档，给出 JSON 配置示例、两个值的 profile 映射、兼容规则和 gateway-only 非目标。
-- [x] Run: `rtk pnpm --filter @trapmap/cli test --run src/lib/config.test.ts src/lib/http.test.ts`。
-- [x] Run: `rtk pnpm typecheck`。
+- [x] Run: `pnpm --filter @trapmap/cli test --run src/lib/config.test.ts src/lib/http.test.ts`。
+- [x] Run: `pnpm typecheck`。
 
-**执行记录（2026-07-11）：** CLI config/http focused suite passed（2 files / 39 tests）；`rtk pnpm typecheck` reported `TypeScript: No errors found`。web-panel has no persisted connection configuration, so no selector or additional configuration test was added; this is now documented as the explicit no-op decision. Details: `.superpowers/sdd/backend-target-task-3-report.md`.
+**执行记录（2026-07-11）：** CLI config/http focused suite passed（2 files / 39 tests）；`pnpm typecheck` reported `TypeScript: No errors found`。web-panel has no persisted connection configuration, so no selector or additional configuration test was added; this is now documented as the explicit no-op decision. Details: `.superpowers/sdd/backend-target-task-3-report.md`.
 
 ## Phase 4：跨包边界、文档与发布关闭
 
@@ -135,14 +135,14 @@
 - [x] 检查没有在 host、CLI、web-panel 或脚本中遗留重复的 `light | heavy` union、profile 映射或平行启动命令表。
 - [x] 审核所有跨包 imports；若新增路径或包依赖，更新 `docs/architecture/BOUNDARIES.md` 的例外（仅当确有边界变化）并运行 architecture audit。
 - [x] 将实际命令、target owner、client migration 和 deferred platform boundary 同步到权威 reference 后，再更新 README/guide 等二级文档。
-- [x] Run: `rtk pnpm exec fallow audit --base main`（仅在新增跨包 import 或 package dependency 时）。
-- [x] Run: `rtk pnpm typecheck`。
-- [x] Run: `rtk pnpm check:docs-drift`。
-- [x] Run: `rtk pnpm check:structure`。
-- [x] `rtk pnpm eval:smoke` 不适用：本主线未触及检索、摘要、治理、feedback、fixtures 或 eval runner。
+- [x] Run: `pnpm exec fallow audit --base main`（仅在新增跨包 import 或 package dependency 时）。
+- [x] Run: `pnpm typecheck`。
+- [x] Run: `pnpm check:docs-drift`。
+- [x] Run: `pnpm check:structure`。
+- [x] `pnpm eval:smoke` 不适用：本主线未触及检索、摘要、治理、feedback、fixtures 或 eval runner。
 - [x] 实施、文档与可在本地执行的验证结果均已记录；部署级 `runtime-closeout` 前置条件转为归档证据，不再作为 active owner blocker。
 
-**执行记录（2026-07-11，closeout and archive）：** Earlier focused validation is recorded above. This documentation task updated authority-first reference pages and the required secondary pages. `rtk pnpm check:docs-drift` passed (`All 46 doc rule(s) passed`) and `rtk pnpm check:structure` passed (`All checks passed`). `rtk pnpm exec fallow audit --base main` completed without architecture-boundary findings; it reported existing quality metrics (2 complexity findings and 42 duplicate clone groups), which are outside this target/documentation scope. Final controller verification: `rtk pnpm test:discovery-closeout` passed (4 files / 30 tests) and `rtk pnpm typecheck` reported `TypeScript: No errors found`. `rtk pnpm test:runtime-closeout` stopped at its required external preflight because `TRAPMAP_SYSTEM_ADMIN_KEY` is unset; no runtime closeout assertions ran. This is an operator/deployment prerequisite rather than an implementation blocker, so the completed plan is archived. A future operator run should use a configured distributed gateway and admin key, recording its result in the relevant deployment evidence rather than reopening this checklist.
+**执行记录（2026-07-11，closeout and archive）：** Earlier focused validation is recorded above. This documentation task updated authority-first reference pages and the required secondary pages. `pnpm check:docs-drift` passed (`All 46 doc rule(s) passed`) and `pnpm check:structure` passed (`All checks passed`). `pnpm exec fallow audit --base main` completed without architecture-boundary findings; it reported existing quality metrics (2 complexity findings and 42 duplicate clone groups), which are outside this target/documentation scope. Final controller verification: `pnpm test:discovery-closeout` passed (4 files / 30 tests) and `pnpm typecheck` reported `TypeScript: No errors found`. `pnpm test:runtime-closeout` stopped at its required external preflight because `TRAPMAP_SYSTEM_ADMIN_KEY` is unset; no runtime closeout assertions ran. This is an operator/deployment prerequisite rather than an implementation blocker, so the completed plan is archived. A future operator run should use a configured distributed gateway and admin key, recording its result in the relevant deployment evidence rather than reopening this checklist.
 
 ## 非目标与问题回写
 

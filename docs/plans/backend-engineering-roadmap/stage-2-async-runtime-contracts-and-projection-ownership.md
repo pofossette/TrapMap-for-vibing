@@ -89,8 +89,8 @@
 ## 任务 4：验证与回写
 
 - [x] 跑 async/runtime 聚焦测试。
-- [x] 跑 `rtk pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts`。
-- [x] 跑 `rtk pnpm typecheck`。
+- [x] 跑 `pnpm test -- --run packages/server/src/routes/operations/status.test.ts packages/server/src/bootstrap/startup.test.ts packages/server/src/lib/runtime/runtime-metadata.test.ts`。
+- [x] 跑 `pnpm typecheck`。
 - [x] 回写 Stage 2 与耦合计划中的对应检查点。
 
 **验收结果**

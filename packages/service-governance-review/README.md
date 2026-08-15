@@ -269,13 +269,13 @@ This service can read job-runtime queue/outbox operator snapshots but does not h
 
 ```bash
 # Package-level tests
-rtk pnpm --filter @trapmap/service-governance-review test --run
+pnpm --filter @trapmap/service-governance-review test --run
 
 # Type checking
-rtk pnpm typecheck
+pnpm typecheck
 
 # Distributed acceptance (multi-process delegation, error mapping, request/trace propagation)
-rtk pnpm test:distributed-acceptance
+pnpm test:distributed-acceptance
 ```
 
 ## Related Docs

@@ -113,7 +113,7 @@
 
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/artifacts/derive.test.ts \
   packages/server/src/routes/operations/skill-edit.test.ts \
   packages/server/src/routes/knowledge.test.ts \
@@ -123,7 +123,7 @@ rtk pnpm test -- --run \
   - Result: 1 failing (expected regression in skill-edit), all others pass
 - [x] Run:
 ```bash
-rtk pnpm typecheck
+pnpm typecheck
 ```
   - Result: No errors
 
@@ -178,7 +178,7 @@ expect(eventBusEmitMock).not.toHaveBeenCalled();
 - [x] Extend `packages/server/src/routes/operations/skill-edit.test.ts` with a route-level assertion that edited revisions keep `latestRevision.derived`.
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/artifacts/derive.test.ts \
   packages/server/src/lib/artifacts/derive-score-integration.test.ts \
   packages/server/src/routes/operations/skill-edit.test.ts
@@ -244,7 +244,7 @@ await applyDerivedArtifactOutputs(
   - `packages/server/src/routes/operations/skill-review.test.ts`
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/lib/indexing/adapters/capsule-index.test.ts \
   packages/server/src/lib/indexing/skill-events.test.ts \
   packages/server/src/routes/operations/skill-review.test.ts
@@ -252,7 +252,7 @@ rtk pnpm test -- --run \
   - Result: All tests pass (0 failures)
 - [ ] Run:
 ```bash
-rtk pnpm eval:retrieval:dry-run
+pnpm eval:retrieval:dry-run
 ```
   - Blocked locally: `pnpm` store directory `/home/wunai/.local/share/pnpm/store/v11` is not writable in the current environment
 
@@ -311,7 +311,7 @@ if (!artifact.latestRevision.derived) {
 - [x] Keep JSON-mode tests asserting the sync fallback path.
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/server/src/routes/review.test.ts \
   packages/server/src/routes/knowledge.test.ts \
   packages/server/src/routes/decay.test.ts \
@@ -376,14 +376,14 @@ await emitLifecycleTransition({
 - [x] Add or extend CLI tests if a new operations command is exposed.
 - [x] Run:
 ```bash
-rtk pnpm test -- --run \
+pnpm test -- --run \
   packages/cli/src/commands/operations.test.ts \
   packages/server/src/routes/operations/capsule-index.test.ts
 ```
   - Result: All tests pass (0 failures)
 - [ ] Run:
 ```bash
-rtk pnpm eval:smoke
+pnpm eval:smoke
 ```
 
 **Example structure or code:**
