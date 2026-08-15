@@ -12,7 +12,7 @@ import {
   buildLocalExpansionView as buildGraphologyLocalExpansionView,
   calculateSourceRelationStrength,
   expandSourcesOneHop,
-} from '@trapmap/contracts';
+} from './graph-query-core.js';
 
 export class MemoryGraphQueryBackend implements GraphQueryBackend {
   // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers

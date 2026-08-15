@@ -167,21 +167,6 @@ importers:
 
   packages/contracts:
     dependencies:
-      graphology:
-        specifier: ^0.26.0
-        version: 0.26.0(graphology-types@0.24.8)
-      graphology-operators:
-        specifier: ^1.6.1
-        version: 1.6.1(graphology-types@0.24.8)
-      graphology-shortest-path:
-        specifier: ^2.1.0
-        version: 2.1.0(graphology-types@0.24.8)
-      gray-matter:
-        specifier: ^4.0.3
-        version: 4.0.3
-      mime-types:
-        specifier: ^3.0.2
-        version: 3.0.2
       zod:
         specifier: ^4.1.12
         version: 4.3.6
@@ -377,6 +362,12 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      gray-matter:
+        specifier: ^4.0.3
+        version: 4.0.3
+      mime-types:
+        specifier: ^3.0.2
+        version: 3.0.2
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
@@ -641,6 +632,15 @@ importers:
       fastify:
         specifier: ^5.6.1
         version: 5.8.5
+      graphology:
+        specifier: ^0.26.0
+        version: 0.26.0(graphology-types@0.24.8)
+      graphology-operators:
+        specifier: ^1.6.1
+        version: 1.6.1(graphology-types@0.24.8)
+      graphology-shortest-path:
+        specifier: ^2.1.0
+        version: 2.1.0(graphology-types@0.24.8)
       pg:
         specifier: 8.20.0
         version: 8.20.0

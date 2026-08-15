@@ -17,7 +17,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@trapmap/contracts": "workspace:*"
+    "@trapmap/contracts": "workspace:*",
+    "gray-matter": "^4.0.3",
+    "mime-types": "^3.0.2"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

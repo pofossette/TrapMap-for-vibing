@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { parseSkillMarkdown } from '../../../packages/contracts/src/domain/parsing.js';
+import { parseSkillMarkdown } from '@trapmap/lib';
 
 // =============================================================================
 // Type definitions for trap fixtures
