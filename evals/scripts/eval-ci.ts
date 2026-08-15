@@ -4,6 +4,7 @@
  * Phase 28-02: EOPS-01, EOPS-02
  *
  * CI-optimized entry point that:
+ * - Reuses the suite runners exported by eval-all.ts (single implementation)
  * - Writes JSON report to reports/eval-report.json
  * - Sets GitHub Actions output variables for pass/fail status
  * - Outputs CI-friendly compact summary
@@ -21,19 +22,20 @@
 
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type {
   BaselineReport,
   RegressionResult,
   RegressionThresholds,
   RetrievalEvalReport,
-  SummaryEvalReport,
 } from '../../packages/contracts/src/domain/evals/report.js';
 import {
   TIER_THRESHOLDS,
   baselineReportSchema,
   regressionResultSchema,
 } from '../../packages/contracts/src/domain/evals/report.js';
-import type { RunnerSummary } from '../retrieval/lib/types.js';
+import type { EvalAllOptions, RetrievalResult, SummaryResult } from './eval-all.js';
+import { runRetrievalEval, runSummaryEval } from './eval-all.js';
 
 // =============================================================================
 // GitHub Actions Output Helpers
@@ -124,7 +126,7 @@ function loadBaseline(tier: 'smoke' | 'core'): BaselineReport | null {
 /**
  * Compare current report against baseline.
  */
-function compareWithBaseline(
+export function compareWithBaseline(
   report: RetrievalEvalReport,
   baseline: BaselineReport,
   thresholds: RegressionThresholds,
@@ -219,7 +221,7 @@ function compareWithBaseline(
 /**
  * Write current results as new baseline.
  */
-function writeBaseline(
+export function writeBaseline(
   report: RetrievalEvalReport,
   tier: 'smoke' | 'core',
   durationMs: number,
@@ -274,7 +276,7 @@ function writeBaseline(
 /**
  * Format regression result for CI output.
  */
-function formatRegressionResult(regression: RegressionResult): string {
+export function formatRegressionResult(regression: RegressionResult): string {
   const lines: string[] = [];
 
   if (!regression.baselineAvailable) {
@@ -325,36 +327,23 @@ function formatRegressionResult(regression: RegressionResult): string {
 }
 
 // =============================================================================
-// Report Types (simplified for CI)
+// Report Types
 // =============================================================================
 
-interface CIReportSummary {
-  totalCases: number;
-  passedCases: number;
-  failedCases: number;
-  passRate: number;
-  passed: boolean;
-}
-
-interface CIReport {
+/**
+ * CI report written to reports/eval-report.json.
+ *
+ * Uses the same per-suite result shapes as eval-all.ts (RetrievalResult and
+ * SummaryResult from the shared runner), so the CI and aggregate runners
+ * converge on a single report schema for the suites they execute.
+ */
+export interface CIReport {
   schemaVersion: 1;
   timestamp: string;
   durationMs: number;
   tier: 'smoke' | 'core';
-  retrieval: {
-    passed: boolean;
-    summary: CIReportSummary;
-    report: unknown;
-  } | null;
-  summary: {
-    passed: boolean;
-    summary: CIReportSummary & {
-      avgGroundedness: number;
-      avgCoverage: number;
-      forbiddenClaimHits: number;
-    };
-    report: unknown;
-  } | null;
+  retrieval: RetrievalResult | null;
+  summary: SummaryResult | null;
   overall: {
     passed: boolean;
     totalCases: number;
@@ -370,88 +359,22 @@ interface CIReport {
 // =============================================================================
 
 /**
- * Run retrieval evaluation through the promptfoo bridge and return CI-friendly result.
+ * Build the shared-runner options for the CI entry point.
+ *
+ * CI always executes the suites for real (never dry-run), does not allow
+ * empty case sets, and keeps the promptfoo runner defaults.
  */
-async function runRetrievalEval(tier: 'smoke' | 'core'): Promise<CIReport['retrieval']> {
-  const startTime = Date.now();
-
-  try {
-    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
-    const { retrievalBridge } = await import('../retrieval/bridge.js');
-    const { buildReport } = await import('../retrieval/lib/report.js');
-
-    const result = await runSuiteWithPromptfoo(retrievalBridge, {
-      tier,
-      dryRun: false,
-      allowEmpty: false,
-      runner: 'promptfoo',
-      verbose: 0,
-    });
-    const summary = result.report as RunnerSummary;
-
-    // Rebuild the canonical RetrievalEvalReport from the bridge case results so
-    // the baseline comparison (which reads report.slices) keeps the native shape.
-    const report = buildReport(
-      summary.caseResults,
-      { tier, dryRun: false, allowEmpty: false, verbose: 0 },
-      Date.now() - startTime,
-    );
-
-    return {
-      passed: report.summary.failedCases === 0,
-      summary: {
-        totalCases: report.summary.totalCases,
-        passedCases: report.summary.passedCases,
-        failedCases: report.summary.failedCases,
-        passRate: report.summary.passRate,
-        passed: report.summary.failedCases === 0,
-      },
-      report,
-    };
-  } catch (error) {
-    console.error('Retrieval evaluation error:', error);
-    return null;
-  }
-}
-
-/**
- * Run summary evaluation through the promptfoo bridge and return CI-friendly result.
- */
-async function runSummaryEval(tier: 'smoke' | 'core'): Promise<CIReport['summary']> {
-  const _startTime = Date.now();
-
-  try {
-    const { runSuiteWithPromptfoo } = await import('../promptfoo/runner.js');
-    const { summaryBridge } = await import('../summary/bridge.js');
-
-    const result = await runSuiteWithPromptfoo(summaryBridge, {
-      tier,
-      dryRun: false,
-      allowEmpty: false,
-      runner: 'promptfoo',
-      provider: 'fallback',
-      verbose: 0,
-    });
-    const report = result.report as SummaryEvalReport;
-
-    return {
-      passed: report.summary.failedCases === 0,
-      summary: {
-        totalCases: report.summary.totalCases,
-        passedCases: report.summary.passedCases,
-        failedCases: report.summary.failedCases,
-        passRate: report.summary.passRate,
-        passed: report.summary.failedCases === 0,
-        avgGroundedness: report.summary.avgGroundedness,
-        avgCoverage: report.summary.avgCoverage,
-        forbiddenClaimHits: report.summary.forbiddenClaimHits,
-      },
-      report,
-    };
-  } catch (error) {
-    console.error('Summary evaluation error:', error);
-    return null;
-  }
+function getCiEvalOptions(tier: 'smoke' | 'core'): EvalAllOptions {
+  return {
+    tier,
+    json: false,
+    jsonPath: undefined,
+    platform: undefined,
+    platformOutputDir: undefined,
+    verbose: false,
+    dryRun: false,
+    allowEmpty: false,
+  };
 }
 
 // =============================================================================
@@ -481,7 +404,7 @@ function writeCIReport(report: CIReport): void {
 /**
  * Format a compact one-line summary for CI logs.
  */
-function formatCompactSummary(report: CIReport): string {
+export function formatCompactSummary(report: CIReport): string {
   const status = report.overall.passed ? 'PASS' : 'FAIL';
 
   let details = '';
@@ -521,13 +444,14 @@ async function main(): Promise<void> {
   console.log('');
 
   // Run evaluations
-  let retrievalResult: CIReport['retrieval'] = null;
-  let summaryResult: CIReport['summary'] = null;
+  let retrievalResult: RetrievalResult | null = null;
+  let summaryResult: SummaryResult | null = null;
+  const evalOptions = getCiEvalOptions(tier);
 
   // Retrieval evaluation
   console.log('Running retrieval evaluation...');
   try {
-    retrievalResult = await runRetrievalEval(tier);
+    retrievalResult = await runRetrievalEval(evalOptions);
     if (retrievalResult) {
       console.log(
         `  Completed: ${retrievalResult.summary.passedCases}/${retrievalResult.summary.totalCases} passed`,
@@ -542,7 +466,7 @@ async function main(): Promise<void> {
   // Summary evaluation
   console.log('Running summary evaluation...');
   try {
-    summaryResult = await runSummaryEval(tier);
+    summaryResult = await runSummaryEval(evalOptions);
     if (summaryResult) {
       console.log(
         `  Completed: ${summaryResult.summary.passedCases}/${summaryResult.summary.totalCases} passed`,
@@ -592,11 +516,7 @@ async function main(): Promise<void> {
   if (baseline && retrievalResult?.report) {
     console.log('Comparing against baseline...');
     const thresholds = TIER_THRESHOLDS[tier];
-    regression = compareWithBaseline(
-      retrievalResult.report as RetrievalEvalReport,
-      baseline,
-      thresholds,
-    );
+    regression = compareWithBaseline(retrievalResult.report, baseline, thresholds);
 
     // Set regression outputs
     setGitHubOutput('has_regressions', regression.hasRegressions ? 'true' : 'false');
@@ -617,7 +537,7 @@ async function main(): Promise<void> {
   // Write baseline if WRITE_BASELINE is set (Phase 31-03: EOPS-03)
   if (process.env.WRITE_BASELINE === 'true' && retrievalResult?.report) {
     console.log('Writing baseline...');
-    writeBaseline(retrievalResult.report as RetrievalEvalReport, tier, report.durationMs);
+    writeBaseline(retrievalResult.report, tier, report.durationMs);
   }
 
   // Update report with regression data
@@ -640,7 +560,9 @@ async function main(): Promise<void> {
   process.exit(0);
 }
 
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}

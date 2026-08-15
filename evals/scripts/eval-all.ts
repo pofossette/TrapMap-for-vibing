@@ -12,6 +12,9 @@
  *   pnpm exec tsx evals/scripts/eval-all.ts --tier smoke
  *   pnpm exec tsx evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json
  *   pnpm exec tsx evals/scripts/eval-all.ts --dry-run --allow-empty
+ *
+ * The retrieval and summary suite runners are exported for reuse by
+ * evals/scripts/eval-ci.ts (the CI runner is the only other consumer).
  */
 
 import { randomUUID } from 'node:crypto';
@@ -132,7 +135,7 @@ function parseArgs_(): EvalAllOptions {
 // Combined Report Types
 // =============================================================================
 
-interface RetrievalResult {
+export interface RetrievalResult {
   passed: boolean;
   report: RetrievalEvalReport | null;
   durationMs: number;
@@ -154,7 +157,7 @@ interface RetrievalResult {
   };
 }
 
-interface SummaryResult {
+export interface SummaryResult {
   passed: boolean;
   report: SummaryEvalReport | null;
   durationMs: number;
@@ -591,8 +594,12 @@ async function buildSuitePlatformEvents(
 
 /**
  * Run retrieval evaluation through the promptfoo bridge and return results.
+ *
+ * Shared with the CI runner (eval-ci.ts): in non-dry-run mode a runner
+ * failure is thrown for the caller to handle, in dry-run mode it degrades
+ * to a null result.
  */
-async function runRetrievalEval(options: EvalAllOptions): Promise<RetrievalResult | null> {
+export async function runRetrievalEval(options: EvalAllOptions): Promise<RetrievalResult | null> {
   const startTime = Date.now();
 
   try {
@@ -748,8 +755,12 @@ async function runIngestionEval(options: EvalAllOptions): Promise<IngestionResul
 
 /**
  * Run summary evaluation through the promptfoo bridge and return results.
+ *
+ * Shared with the CI runner (eval-ci.ts): in non-dry-run mode a runner
+ * failure is thrown for the caller to handle, in dry-run mode it degrades
+ * to a null result.
  */
-async function runSummaryEval(options: EvalAllOptions): Promise<SummaryResult | null> {
+export async function runSummaryEval(options: EvalAllOptions): Promise<SummaryResult | null> {
   const startTime = Date.now();
 
   try {
