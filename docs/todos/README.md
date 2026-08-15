@@ -6,7 +6,7 @@
 
 | 文件 | 主题 | 状态 |
 |---|---|---|
-| [documentation-validation-and-observability-platform.md](documentation-validation-and-observability-platform.md) | 文档校验与可观测性平台 | 进行中（唯一 active mainline） |
+| [dead-code-and-architecture-order-cleanup.md](dead-code-and-architecture-order-cleanup.md) | 死代码清理与架构秩序守卫 | 进行中（唯一 active mainline） |
 | [assert-exemptions.md](assert-exemptions.md) | 裸类型断言豁免清单（Wave 6 清理积压） | 由 `pnpm check:asserts` 门禁追踪；非 active mainline |
 | [open-debt-and-compromises.md](open-debt-and-compromises.md) | 长期工程债务与平台成熟度登记 | 受根索引管理；非第二条 active mainline |
 
@@ -20,6 +20,6 @@
 
 ## 当前状态说明
 
-当前唯一 active mainline 是 [Documentation Validation and Observability Platform](documentation-validation-and-observability-platform.md)。它以长期可维护性优先，接受为消除事实漂移、重复 telemetry seam 和隐私风险而增加短期工作量。已归档的 compatibility-shell retirement、可观测性、shared PG 治理与分布式成熟度主线仅保留历史证据。`open-debt-and-compromises.md` 仅承担长期问题的来源、影响、触发条件和后续落点登记；它不允许形成并行 tranche。平台化与其余历史证据、冻结决策或背景材料应通过 `docs/archived/` 查找，只有根 `plan.md` 显式切换后才能成为新的执行面。
+当前唯一 active mainline 是 [Dead Code and Architecture Order Cleanup](dead-code-and-architecture-order-cleanup.md)。它聚焦删除全仓确认死代码/死路径、修复双份表定义与循环依赖，并落地防复发守卫（表清单 diff、pgTable 双份、eval import 边界、@eval-only 标记）。已归档的 Documentation Validation and Observability Platform、compatibility-shell retirement、可观测性、shared PG 治理与分布式成熟度主线仅保留历史证据。`open-debt-and-compromises.md` 仅承担长期问题的来源、影响、触发条件和后续落点登记；它不允许形成并行 tranche。平台化与其余历史证据、冻结决策或背景材料应通过 `docs/archived/` 查找，只有根 `plan.md` 显式切换后才能成为新的执行面。
 
 完整归档表见 [`../archived/README.md`](../archived/README.md)。

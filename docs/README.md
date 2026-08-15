@@ -6,7 +6,7 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 ## 当前整改主线
 
-当前 active 执行主线是 [Documentation Validation and Observability Platform](todos/documentation-validation-and-observability-platform.md)。该主线优先长期维护，接受为清除事实漂移、重复 telemetry seam 与隐私风险而增加短期工作量。compatibility-shell retirement、可观测性、共享 PG 治理与分布式成熟度细则均已[归档](archived/README.md)；平台化和未量化的 Level 3 收益保留在[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。
+当前 active 执行主线是 [Dead Code and Architecture Order Cleanup](todos/dead-code-and-architecture-order-cleanup.md)，聚焦删除全仓确认死代码/死路径（约 3000+ 行）、修复双份表定义与循环依赖，并落地表清单 diff、pgTable 双份、eval import 边界与 @eval-only 标记四类防复发守卫。上一轮 [Documentation Validation and Observability Platform](archived/archived-plans/documentation-validation-and-observability-platform-archived.md) 已完成并归档；compatibility-shell retirement、可观测性、共享 PG 治理与分布式成熟度细则同样已[归档](archived/README.md)；平台化和未量化的 Level 3 收益保留在[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。
 
 light / heavy 后端构建目标与客户端选择已完成并归档，包含其未执行的部署级 runtime closeout 前置条件。其余历史主线、closeout 细则和背景材料同样不构成并行 active workstream，只能作为 archived/background reference 使用。
 
@@ -225,7 +225,7 @@ deployment flexibility 最小验证矩阵：
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
 - [根计划索引](../plan.md) — 当前链接唯一 active mainline“Documentation Validation and Observability Platform”，并保留归档、debt 与背景入口
-- [文档校验与可观测性平台细则](todos/documentation-validation-and-observability-platform.md) — source-aware docs guard、OTel runtime signal 与可选 Sentry error intelligence 的当前执行面
+- [文档校验与可观测性平台细则（已归档）](archived/archived-plans/documentation-validation-and-observability-platform-archived.md) — 上一轮已完成主线的历史证据；新执行面为 [死代码与架构秩序清理](todos/dead-code-and-architecture-order-cleanup.md)
 - 当前唯一 active execution surface 是“Documentation Validation and Observability Platform”；新的 todo 文档必须先由根 `plan.md` 显式赋予执行责任，其余材料只能作为背景输入、deferred 落点或已完成 closeout 参考
 - [健壮性与可扩展性收尾细则](archived/archived-plans/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/archived/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`

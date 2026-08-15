@@ -11,75 +11,70 @@
 
 ## 当前主线
 
-- **主题：** Documentation Validation and Observability Platform
-- **目标：** 让文档事实可由源码验证，并将 OTel 收敛为统一、可运营的遥测标准，以 Sentry 错误智能和 Langfuse LLM/eval 观测通道补齐运营闭环。
+- **主题：** Dead Code and Architecture Order Cleanup
+- **目标：** 删除全仓确认的死代码/死路径（约 3000+ 行），修复双份表定义与循环依赖，落地防复发守卫，守住 RouteDef/domain/pg-owner 架构秩序。
 - **状态：** `进行中`
-- **主细则：** [Documentation Validation and Observability Platform](docs/todos/documentation-validation-and-observability-platform.md)
-- **设计规格：** [Documentation Validation and Observability Platform Design](docs/superpowers/specs/2026-08-01-documentation-validation-and-observability-platform-design.md)
+- **主细则：** [Dead Code and Architecture Order Cleanup](docs/todos/dead-code-and-architecture-order-cleanup.md)
+- **设计规格：** [Dead Code and Architecture Order Cleanup Design](docs/superpowers/specs/2026-08-15-dead-code-and-architecture-order-cleanup-design.md)
 - **状态口径：** `进行中` 只表示该主细则仍是 active execution surface；任务完成度、阻塞项和证据以主细则复选框与 closeout 记录为准。
 
 ## 执行路线图
 
 | 阶段 | 主细则任务 | 阶段交付 | 放行条件 |
 |---|---|---|---|
-| 1. 事实边界 | Task 1-2 | active docs、权威源码路径和历史/当前边界对齐 | 退役路径不再被 active docs 当作现行事实，文档基础检查通过 |
-| 2. 文档守卫 | Task 3-4 | source-aware reference/truth guard，CI 独立阻断 | reference、truth、links 三类守卫均可定位失败并在 CI 阻断 |
-| 3. 运行时信号 | Task 5-8 | 统一 OTel policy，以及 HTTP、internal-hop、async、domain live signals | 真实运行时信号可导出，关联字段稳定，指标标签保持低基数 |
-| 4. 运营闭环 | Task 9-11 | Sentry 错误智能、Langfuse LLM/eval 观测、live verification、runbook 和 deferred gates | 两个外部通道均可选且可降级，跨信号关联和隐私边界有可复核证据 |
+| 1. 纯删除 | Task 1-6 | 全仓确认零消费者的死代码/死路径删除（backend-core、contracts、service-*、hosts、web-panel、evals） | 删除后全仓 grep 零残留（除 dist 陈旧产物），typecheck 全绿 |
+| 2. 结构修复 | Task 7-11 | candidates 表单源、contracts 逻辑下沉、循环依赖解除、SQL 落位、表清单校准 | 单源表定义、无 write↔read 环、domain 零 SQL、文档与代码表一致 |
+| 3. 守卫落地 | Task 12-13 | 表清单 diff、pgTable 双份、eval import 边界、@eval-only 标记四类守卫接入 CI；回归验证与 closeout | 守卫可阻断；全量 typecheck/测试/fallow 全绿；debt register 回写 |
 
-阶段必须按顺序推进；任一阶段未通过放行条件，不得用后续阶段的实现掩盖前置事实或守卫失败。具体步骤和证据位置见[主细则](docs/todos/documentation-validation-and-observability-platform.md)。
+阶段必须按顺序推进；任一阶段未通过放行条件，不得用后续阶段的实现掩盖前置事实或守卫失败。具体步骤和证据位置见[主细则](docs/todos/dead-code-and-architecture-order-cleanup.md)。
 
 ## 任务背景
 
-当前文档 guard 不能验证权威源码路径仍存在，CI 对链接错误也不阻断；OTel 已有接缝但部分指标不来自真实运行时。Sentry 的 shared policy、host-local module、host-distributed adapter 和脱敏测试已经存在，但 distributed 生命周期、全局异常边界和异步终态仍需接线与 closeout。Langfuse 当前只有显式 `--platform langfuse` 的 eval mirror，已覆盖 run/case/score/assertion/trace-step 和 self-host live evidence；产品运行时尚未记录 LLM/embedding generation，也没有和 OTel correlation 共用的 Langfuse privacy/config contract。本主线先建立事实与信号的正确性，再完成 Sentry 和 Langfuse 的可选运营闭环。
+2026-08-15 全仓六路并行架构审查（backend-core / hosts / service-* / contracts+persistence / cli+client-core+web-panel / evals+ai-providers+lib）确认了约 3000+ 行零消费者死代码、一批结构性漂移（candidates 表双份、knowledge-write↔knowledge-read 循环依赖、SQL 落进 backend-core domain、DATABASE_SCHEMA.md 62→64 漂移）与 eval 白盒 import 无边界。本主线先做零风险删除、再修结构、最后把"防复发"变成可验证的 CI 守卫，避免同类漂移再次发生。
 
 ## 范围边界
 
 本轮纳入：
 
-- active Markdown 的本地链接、源码路径和声明事实校验，并将结果接入阻断 CI；
-- `contracts`、`host-local` 和 `host-distributed` 之间统一的 OTel 配置、生命周期、关联和脱敏语义；
-- HTTP、内部 hop、异步任务和关键领域操作的真实运行时信号；
-- 现有 Sentry adapter 的 composition-root、全局异常、异步终态和 live transport closeout；
-- Langfuse 的显式 eval mirror、运行时 LLM/embedding observation、OTel correlation 映射和统一脱敏/失败语义；
-- 无密钥的运营验证、runbook 和外部平台采用门槛。
+- 全仓确认死代码/死路径删除（backend-core use-cases/ 四文件、telemetry-ports、runtime/status|topology|route-surface、contracts async.ts/operations.ts/graph-query.ts 死段与死函数、service-* eval-only 模块标记与孤儿 schema/drizzle.config 清理、hosts 死依赖与死文件、web-panel 误提交构建产物、evals 双轨 runner 合并）；
+- candidates 表双份合并、contracts 逻辑下沉（图算法/parsing）、write↔read 循环依赖解除、SQL 移出 domain、DATABASE_SCHEMA 校准；
+- 表清单 diff、pgTable 双份、eval import 边界、@eval-only 标记四类防复发守卫接入 CI；
+- debt register 回写与大重构项登记。
 
 本轮不纳入：
 
-- Collector、LGTM、Sentry、dashboard、retention 或 SLO 平台的默认部署资产；
-- 将 prompt、知识正文、request body、headers、cookie、credential、token、session 或动态 ID 写入遥测出口；
-- `backend-core` 或领域包直接依赖 OTel/Sentry/Langfuse SDK，或引入第二条 trace/metrics 管线；
-- 在缺少真实环境基线前冻结生产告警阈值、正式 SLO 或更高成熟度的服务自治承诺。
+- 大规模重构：capability-model 拆分、OTel/Consul 双份收敛、EvalSeedPort 收窄、web-panel real 路径实现、internal-client review/governanceReview 合并、shared/ports.ts 业务下沉——全部登记为长期 debt 带进入条件；
+- 任何运行时语义变更；不重开已归档主线。
 
 ## 总体要求
 
-- **优先考虑长期维护，接受短期工作量膨胀。** 当额外工作能消除重复 truth source、长期漂移、无 owner 的 telemetry seam 或未经测试的隐私边界时，必须优先完成；不得为压缩本轮工作量保留这些已知缺口。
-- `packages/contracts` 是 correlation、脱敏和配置 contract 的唯一来源；`backend-core` 只定义 port，不依赖 OTel/Sentry SDK；host composition root 拥有外部 SDK。
-- 遥测只记录最小必要数据：动态 ID 不得成为 Prometheus label，prompt、知识正文、request body、headers、cookie、credential、token 和 session 不得传出。
-- `OTEL_DISABLED=true`、缺失 `SENTRY_DSN`、`LANGFUSE_ENABLED=false`、Langfuse 配置不完整和任一 exporter/backend 故障均不得影响业务请求、异步任务或 eval 退出语义。
-- Langfuse mirror 的 native TrapMap JSON report 仍是唯一 eval truth source；Langfuse 不参与通过判定，也不复制全量 OTel metrics。
-- 不把 Collector、LGTM、Sentry、Langfuse、dashboard、retention 或 SLO 平台写成仓库内默认部署资产；成熟平台能力只能在满足明确进入条件后新建主线。
-- 每个完成阶段必须包含代码、focused test、相关 closeout、文档回写与 CI evidence；跨包边界变化必须运行 Fallow audit。
+- **行为不变是硬约束：** 纯删除任务不得改变保留代码语义；删除前全仓 grep 验证零消费者。
+- **契约包纯净：** `contracts` 只留 schema + 纯类型；可执行逻辑下沉到消费方。
+- **domain 纯净：** backend-core domain 零框架、零 DB、零 SQL。
+- **eval-only 标记：** 产品零消费、仅 eval 引用的模块统一标记并从产品导出面移除。
+- 禁止新增断言；禁止为压低指标引入大规模抽象。
+- 每任务包含 focused test、typecheck、必要的 fallow audit 与文档回写；跨包边界变化必须运行 Fallow audit。
 
 ## 验证门禁
 
-- 文档或目录规则变更至少运行 `rtk pnpm check:docs` 和 `rtk pnpm check:structure`；新增 reference/truth/Markdown 规则时补跑对应 guard。
+- 每任务至少运行相关包 focused tests 与 `rtk pnpm typecheck`。
+- 跨包导入或边界变化必须运行 `rtk pnpm exec fallow audit --base main`。
 - 检索、摘要、治理、feedback、fixtures 或 eval runner 受影响时，至少运行 `rtk pnpm eval:smoke`。
-- 跨包导入或边界变化必须运行 `rtk pnpm exec fallow audit --base main`，并记录基线限制而不是降低检查强度。
-- 每个阶段的 focused test、typecheck、closeout 和文档回写证据必须落在主细则；根索引只呈现路线和门禁，不替代证据。
+- 文档变化至少运行 `rtk pnpm check:docs` 和 `rtk pnpm check:structure`。
+- 收尾运行 `rtk pnpm exec knip` 并记录新基线。
 
 ## 验收边界
 
-- Active docs、源码 authority、scripts、CI、环境变量、runtime routes 和 workspace package facts 一致且由 blocking CI 验证。
-- HTTP、内部 hop、异步任务和关键领域操作能通过 request/trace/operation/causation 关联；metrics 来自真实运行时且标签低基数。
-- Sentry 仅聚合可行动系统错误，具有严格脱敏和 no-op 降级；不成为第二条 traces/metrics 管线。
-- Langfuse 在显式启用时能观测 runtime LLM/embedding generation 与三类 eval suite，使用 OTel trace/request/operation 关联字段，默认只发送经过策略化脱敏的 metadata、hash、长度、耗时、provider/model 和结果分类。
-- 告警、runbook 和 SLO 只基于实际验证过的信号与多轮基线；长期平台化需求进入显式 deferred landing spot。
+- 全仓确认死代码/死路径已删除，knip unused files/exports 显著下降。
+- contracts 无图算法/parsing/worker 运行时逻辑；六包 schema.ts 只 re-export persistence-schema；无 service-* 之间实现级 import；backend-core domain 零 SQL。
+- DATABASE_SCHEMA.md 与 persistence-schema 一致（64 表）。
+- 四类防复发守卫接入 CI 且可阻断；eval-only 模块带标记。
+- 全量 typecheck、受影响包测试全绿；fallow audit 无 changed-file issue；debt register 已回写。
 
 完成主线还必须满足：所有 active detail completion gates 均有命令输出或测试证据，CI 中的文档守卫为 blocking，未完成事项已在主细则或长期债务登记册中标明后续落点。
 
 ## 长期债务与历史入口
 
 - [长期 open debt 与触发条件](docs/todos/open-debt-and-compromises.md)：不构成第二条 active mainline。
-- [已归档 compatibility-shell retirement 主线](docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md)：保留 Wave-10 未完成证据，必要时按 debt 条件新建 scoped mainline。
+- [已归档 Documentation Validation and Observability Platform 主线](docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md)：上一轮完成主线的历史证据。
 - [历史归档总表](docs/archived/README.md)。

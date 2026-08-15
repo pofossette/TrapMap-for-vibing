@@ -56,7 +56,8 @@
         "Phase 6 mature-capability / library-replacement freeze",
         "不是当前内置运行时默认值",
         "Node `24`",
-        "DOCS_TRUTH_MATRIX.md"
+        "DOCS_TRUTH_MATRIX.md",
+        "docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md"
       ]
     },
     {
@@ -69,7 +70,9 @@
     },
     {
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
-      "mustContain": []
+      "mustContain": [
+        "docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md"
+      ]
     },
     {
       "file": "docs/reference/REPO_STRUCTURE.md",
@@ -255,11 +258,11 @@
       "file": "plan.md",
       "mustContain": [
         "执行计划索引",
-        "Documentation Validation and Observability Platform",
-        "docs/todos/documentation-validation-and-observability-platform.md",
-        "优先考虑长期维护，接受短期工作量膨胀",
         "open-debt-and-compromises.md",
-        "不承载 tranche checklist 或实施细节"
+        "不承载 tranche checklist 或实施细节",
+        "Dead Code and Architecture Order Cleanup",
+        "docs/todos/dead-code-and-architecture-order-cleanup.md",
+        "行为不变是硬约束"
       ],
       "mustNotContain": [
         "当前主线阶段：`Phase 1-2`",
@@ -326,18 +329,18 @@
       "mustContain": [
         "Documentation validation / observability platform mainline",
         "Documentation Validation and Observability Platform",
-        "docs/todos/documentation-validation-and-observability-platform.md",
-        "`doc-guardrails` job runs `pnpm check:docs`、`pnpm check:structure`、`pnpm check:asserts`、`pnpm check:deps` 和 `pnpm check:complexity`"
+        "`doc-guardrails` job runs `pnpm check:docs`、`pnpm check:structure`、`pnpm check:asserts`、`pnpm check:deps` 和 `pnpm check:complexity`",
+        "docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md"
       ]
     },
     {
       "file": "docs/todos/README.md",
       "mustContain": [
         "活跃索引",
-        "Documentation Validation and Observability Platform",
-        "documentation-validation-and-observability-platform.md",
         "当前状态说明",
-        "完整归档表见"
+        "完整归档表见",
+        "Dead Code and Architecture Order Cleanup",
+        "dead-code-and-architecture-order-cleanup.md"
       ],
       "mustNotContain": [
         "service-discovery-and-observability-plan.md` | 服务发现与可观测性升级主线细则与 closeout tasklist",
@@ -349,12 +352,12 @@
       "file": "docs/archived/README.md",
       "mustContain": [
         "不应被其他文档当作当前执行入口引用",
-        "当前根 `plan.md` 指向“Documentation Validation and Observability Platform”",
         "observability-traceability-closure.md",
         "backend-build-targets-and-client-selection-archived.md",
         "microservice-platform-evolution-plan.md",
         "微服务平台能力增强",
-        "应新建 active 细则"
+        "应新建 active 细则",
+        "当前根 `plan.md` 指向“Dead Code and Architecture Order Cleanup”"
       ]
     },
     {
@@ -422,8 +425,9 @@
       "file": "docs/todos/README.md",
       "mustContain": [
         "当前状态说明",
-        "Documentation Validation and Observability Platform",
-        "完整归档表见"
+        "完整归档表见",
+        "Dead Code and Architecture Order Cleanup",
+        "dead-code-and-architecture-order-cleanup.md"
       ]
     },
     {

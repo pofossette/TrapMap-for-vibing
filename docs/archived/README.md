@@ -108,9 +108,10 @@
 | `guides/MIGRATION_GUIDE.md` | 2026-08-09 | Wave 7 文档分层收敛：迁移指南历史说明，部署术语以 `SYSTEM_TRUTH_SOURCES.md` 为准 |
 | `guides/PG_AND_GRAPHOLOGY.md` | 2026-08-09 | Wave 7 文档分层收敛：pg / graphology 上手导读历史说明 |
 | `archived-plans/2026-08-09-maintainability-rework.md` | 2026-08-12 | 维护性整改主线（12 任务/33 commits）全部完成并 closeout：RouteDef 单实现双宿主、六 context DDD 下沉、断言零容忍、兼容债清除、守卫/文档/评测收敛 |
+| `archived-plans/documentation-validation-and-observability-platform-archived.md` | 2026-08-15 | 文档校验与可观测性平台主线（11 任务）完成并 closeout，证据见该文档 completion gates；根 `plan.md` 已切换为 Dead Code and Architecture Order Cleanup |
 
 ## 归档原则
 
 文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档当作当前执行入口引用；归档文档内部链接不再维护。
 
-当前根 `plan.md` 指向“Documentation Validation and Observability Platform”这一唯一 active mainline detail。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。
+当前根 `plan.md` 指向“Dead Code and Architecture Order Cleanup”这一唯一 active mainline detail。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。

@@ -3,8 +3,8 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > **状态：** active  
-> **根入口：** [`../../plan.md`](../../plan.md)  
-> **设计规格：** [`../superpowers/specs/2026-08-01-documentation-validation-and-observability-platform-design.md`](../superpowers/specs/2026-08-01-documentation-validation-and-observability-platform-design.md)
+> **根入口：** [`../../../plan.md`](../../../plan.md)  
+> **设计规格：** 原设计规格已随归档保留在 `docs/superpowers/specs/2026-08-01-documentation-validation-and-observability-platform-design.md`
 
 **Goal:** 建立 source-aware 文档校验、可导出的 OTel 信号、完整接线的 Sentry 异常智能层和可选 Langfuse LLM/eval 观测，使文档、配置、运行时与运维事实可长期一致维护。
 
