@@ -70,7 +70,7 @@ T1 建包后可并行开始 T2/T3 的 API 开发与单测；T4 依赖 T1-T3 的�
 - Create: `packages/assembly/src/types.ts` 或 `types.ts`（CapabilityNode / ContractDescriptor / StartupIssue / AssemblyBuilder / defineNode 输入等类型）
 - Create: `packages/assembly/src/create-assembly.ts`（createAssembly → AssemblyBuilder：`.add(node, config?) / .build() / .boot()`）
 - Create: `packages/assembly/src/define-node.ts`（defineNode({ id, contract, apply, inject, configSchema, provides, topology?, children?, implements? })）
-- Create: `packages/assembly/src/define-contract.ts`（defineContract：声明契约 id + 实现声明）
+- Create: `packages/assembly/src/define-node.ts`（含 defineContract：声明契约 id + 实现声明；实现与 defineNode 同文件，见提交 fd0f8ee0）
 - Create: `packages/assembly/src/startup-checks.ts`（startupChecks(assembly)：inject 无环、重复 id、拓扑合法性、契约实现校验）
 - Create: `packages/assembly/src/shutdown-controller.ts`（createShutdownController(dispose)：退出控制，反序 dispose）
 
@@ -96,12 +96,10 @@ T1 建包后可并行开始 T2/T3 的 API 开发与单测；T4 依赖 T1-T3 的�
 ### Task 3: 单测（组合语义 / inject 顺序与无环 / 拓扑合法性 / 契约校验 / dispose 顺序 / 退出控制）
 
 **Files:**
-- Create: `packages/assembly/src/__tests__/create-assembly.test.ts`（组合语义：add 顺序、boot、config 合并）
-- Create: `packages/assembly/src/__tests__/inject-order.test.ts`（inject 顺序与无环：依赖图推导启动/停止顺序、循环依赖失败）
-- Create: `packages/assembly/src/__tests__/topology.test.ts`（拓扑合法性：embedded/standalone/cluster、子 worker 挂载约束）
-- Create: `packages/assembly/src/__tests__/contract.test.ts`（契约校验：implements 契约存在、结构兼容、启动期断言）
-- Create: `packages/assembly/src/__tests__/dispose.test.ts`（dispose 顺序：反序清理、ctx.effect 自动回收）
-- Create: `packages/assembly/src/__tests__/shutdown-controller.test.ts`（退出控制：createShutdownController dispose、bounded shutdown）
+- Create: `packages/assembly/src/create-assembly.test.ts`（组合语义 + boot 顺序 + 契约校验 + dispose 反序 + 退出控制集成，实测 10 用例）
+- Create: `packages/assembly/src/startup-checks.test.ts`（inject 无环/未知依赖、重复 id、拓扑合法性、契约校验，实测 14 用例）
+- Create: `packages/assembly/src/define-node.test.ts`（defineNode/defineContract 校验，实测 8 用例）
+- Create: `packages/assembly/src/shutdown-controller.test.ts`（幂等/并发共享/有界超时/onShutdown/abort 信号/onError，实测 8 用例）
 
 **Interfaces:**
 - Consumes: T2 的核心 API（createAssembly / defineNode / defineContract / startupChecks / createShutdownController）。
