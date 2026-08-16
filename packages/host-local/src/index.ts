@@ -14,6 +14,8 @@
 export interface NestBootstrapOptions {
   host?: string;
   port?: number;
+  /** Selects the assembly pilot profile (defaults to TRAPMAP_DEPLOYMENT_PROFILE / local-agent). */
+  profile?: 'local-agent' | 'team-monolith';
 }
 
 export interface NestBootstrapResult {

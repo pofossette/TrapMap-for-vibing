@@ -4,7 +4,6 @@ import { createJobRuntimeModule } from '@trapmap/backend-core';
 import { createKnowledgeReadModule } from '@trapmap/backend-core';
 import { createKnowledgeWriteModule } from '@trapmap/backend-core';
 import { createCandidateIngestionModule } from '@trapmap/backend-core';
-import type { KnowledgeEntry } from '@trapmap/contracts';
 import { createCandidateIngestionDeps } from '@trapmap/service-candidate-ingestion';
 import {
   createGovernanceAsyncCommandModule,
@@ -19,7 +18,6 @@ import {
 } from '@trapmap/service-identity-access';
 import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
 import { createKnowledgeReadDeps } from '@trapmap/service-knowledge-read';
-import type { KnowledgeReadPortDeps } from '@trapmap/service-knowledge-read';
 import { createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';
 import { createCronServiceModule } from '@trapmap/service-cron';
 
@@ -47,7 +45,8 @@ import {
   createHostLocalGovernanceConflictWorkflow,
   createHostLocalGovernanceTaskHandlers,
 } from './runtime/governance-composition.js';
-import { HOST_LOCAL_RUNTIME_TOKEN, createHostLocalRuntime } from './runtime/host-runtime.js';
+import { HOST_LOCAL_RUNTIME_TOKEN, type HostLocalRuntime } from './runtime/host-runtime.js';
+import { buildKnowledgeProjection } from './runtime/knowledge-projection.js';
 import { LoggingMiddleware } from './runtime/logging.middleware.js';
 import { RequestContextMiddleware } from './runtime/request-context.middleware.js';
 import { RequestContextService } from './runtime/request-context.service.js';
@@ -67,161 +66,160 @@ import { ConsulModule } from './service-discovery/index.js';
  *   default light mainline.
  * - Legacy Fastify host paths have been removed; they do not appear in this
  *   module graph.
+ *
+ * Phase 2 (assembly pilot): runtime construction has moved out of module
+ * scope into {@link AppModule.forRuntime}. The Nest bootstrap either calls
+ * `AppModule.forRuntime(runtime)` directly (legacy direct path, used by
+ * tests) or builds the runtime through the assembly profile and lets the
+ * nest-transport node construct the same module surface.
  */
-const hostLocalRuntime = await createHostLocalRuntime();
-type HostLocalKnowledgeRepo = KnowledgeReadPortDeps['knowledgeRepo'] & {
-  getById(entryId: string): Promise<KnowledgeEntry | null>;
-  listMine(input: { userId: string; teamId?: string }): Promise<KnowledgeEntry[]>;
-  getStatus(): Promise<{ status: string; provider: string }>;
-};
-const knowledgeProjection: HostLocalKnowledgeRepo = {
-  getById: hostLocalRuntime.services.knowledgeOwner.getById,
-  async listMine(input: { userId: string; teamId?: string }) {
-    return hostLocalRuntime.services.knowledgeOwner.listByFilter({
-      ownerUserId: input.userId,
-      ...(input.teamId ? { teamId: input.teamId } : {}),
-    });
-  },
-  async getStatus() {
-    return { status: 'ready', provider: 'knowledge-write-owner' };
-  },
-  async listByFilter(filter) {
-    return (await hostLocalRuntime.services.knowledgeOwner.listByFilter({
-      ...(filter.ownerUserId !== undefined ? { ownerUserId: filter.ownerUserId } : {}),
-      ...(filter.teamId !== undefined ? { teamId: filter.teamId } : {}),
-    })) as unknown as Awaited<ReturnType<KnowledgeReadPortDeps['knowledgeRepo']['listByFilter']>>; // lib type gap: the projection repo seam bridges the owner port's contracts
-    // entry shape (KnowledgeEntry) into the backend-core KnowledgeEntryRecord
-    // shape; both describe the same runtime rows but the static shapes differ
-  },
-};
 
-const identityAccessModule = IdentityAccessModule.forPort(
-  createIdentityAccessServiceModule(
-    createIdentityAccessDeps(
-      createIdentityAccessOwnerBundle({
-        ...hostLocalRuntime.identity,
-      }),
-    ),
-  ),
-);
-
-const knowledgeReadDeps = createKnowledgeReadDeps({
-  knowledgeRepo: knowledgeProjection,
-  retrievalQuery: hostLocalRuntime.retrievalQuery,
-});
-const knowledgeReadPort = createKnowledgeReadModule(knowledgeReadDeps);
-const knowledgeReadModule = KnowledgeReadModule.forTesting(knowledgeReadPort);
-
-const knowledgeWritePort = createKnowledgeWriteModule(
-  createKnowledgeWriteDeps({
-    knowledgeOwner: hostLocalRuntime.services.knowledgeOwner,
-    auditLog: hostLocalRuntime.auditLog,
-  }),
-);
-const knowledgeWriteModule = KnowledgeWriteModule.forTesting(knowledgeWritePort);
-
-const governanceConflictWorkflow = createHostLocalGovernanceConflictWorkflow({
-  knowledgeOwner: hostLocalRuntime.services.knowledgeOwner,
-  conflictProjection: hostLocalRuntime.services.governanceReview.conflictProjection,
-});
-
-const governanceAsyncCommands = createGovernanceAsyncCommandModule({
-  feedbackRepo: hostLocalRuntime.services.governanceReview.feedbackRepo,
-  auditLog: hostLocalRuntime.auditLog,
-});
-
-const jobRuntimeDeps = createJobRuntimeDeps({
-  queuePorts: hostLocalRuntime.queuePorts,
-  auditLog: hostLocalRuntime.auditLog,
-  taskHandlers: createHostLocalGovernanceTaskHandlers(
-    governanceConflictWorkflow,
-    governanceAsyncCommands,
-  ),
-  ownsWork: true,
-});
-const jobRuntimePort = createJobRuntimeModule(jobRuntimeDeps);
-
-const governanceAdmin = createGovernanceReviewAdminModule({
-  feedbackRepo: hostLocalRuntime.services.governanceReview.feedbackRepo,
-  knowledgeRead: hostLocalRuntime.services.knowledgeOwner,
-  artifactReadProjection: hostLocalRuntime.services.artifactReadProjection,
-  knowledgeWrite: knowledgeWritePort,
-  jobRuntime: jobRuntimePort,
-  auditLog: hostLocalRuntime.auditLog,
-});
-
-const governanceReviewPort = createGovernanceReviewServiceModule(
-  createGovernanceReviewDeps({
-    knowledgeWrite: knowledgeWritePort,
-    feedbackRepo: hostLocalRuntime.services.governanceReview.feedbackRepo,
-    auditLog: hostLocalRuntime.auditLog,
-    asyncCommands: governanceAsyncCommands,
-    admin: governanceAdmin,
-    conflictWorkflow: governanceConflictWorkflow,
-    governanceRetrievalProjection: hostLocalRuntime.services.governanceReview.retrievalProjection,
-  }),
-);
-const governanceReviewModule = GovernanceReviewModule.forTesting(governanceReviewPort);
-
-const jobRuntimeModule = JobRuntimeModule.forDeps(jobRuntimeDeps);
-
-const candidateIngestionPort = createCandidateIngestionModule(
-  createCandidateIngestionDeps({
-    candidateRepo: hostLocalRuntime.services.candidateIngestion.candidateRepo,
-    auditLog: hostLocalRuntime.auditLog,
-    knowledgeWrite: knowledgeWritePort,
-    jobRuntime: jobRuntimePort,
-  }),
-);
-const candidateIngestionModule = CandidateIngestionModule.forTesting(candidateIngestionPort);
-
-const cronDeps = CronModule.cronDepsForRuntime(hostLocalRuntime);
-const cronPort = createCronServiceModule(cronDeps);
-const cronModule = CronModule.forTesting(cronPort);
-
-@Module({
-  imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      load: [() => ({ hostLocalConfig: loadHostLocalConfig() })],
-    }),
-    identityAccessModule,
-    knowledgeReadModule,
-    knowledgeWriteModule,
-    governanceReviewModule,
-    candidateIngestionModule,
-    jobRuntimeModule,
-    cronModule,
-    GatewayModule.forRuntime(hostLocalRuntime, {
-      knowledgeRead: knowledgeReadPort,
-      candidateIngestion: candidateIngestionPort,
-      governanceReview: governanceReviewPort,
-      cron: cronPort,
-    }),
-    ConsulModule,
-    OtelModule,
-    PrometheusModule,
-    LokiModule,
-    SentryModule,
-    LangfuseModule,
-    LifecycleModule,
-    HealthModule,
-  ],
-  providers: [
-    RequestContextService,
-    CandidateProcessingService,
-    {
-      provide: HOST_LOCAL_RUNTIME_TOKEN,
-      useValue: hostLocalRuntime,
-    },
-    {
-      provide: HOST_LOCAL_CONFIG_TOKEN,
-      useFactory: () => loadHostLocalConfig(),
-    },
-  ],
-  exports: [RequestContextService, HOST_LOCAL_CONFIG_TOKEN],
-})
+/**
+ * Root module builder.
+ *
+ * Kept as a Nest module class so Nest dynamic-module composition
+ * (`AppModule.forRuntime(runtime)`) yields the exact same surface as the
+ * pre-Phase-2 top-level-await wiring. All six bounded-context modules plus
+ * the gateway, observability, lifecycle and health imports are produced
+ * here from a pre-built {@link HostLocalRuntime}.
+ */
+@Module({})
+// biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
 export class AppModule implements NestModule {
+  static forRuntime(runtime: HostLocalRuntime) {
+    const knowledgeProjection = buildKnowledgeProjection(runtime);
+
+    const identityAccessModule = IdentityAccessModule.forPort(
+      createIdentityAccessServiceModule(
+        createIdentityAccessDeps(
+          createIdentityAccessOwnerBundle({
+            ...runtime.identity,
+          }),
+        ),
+      ),
+    );
+
+    const knowledgeReadDeps = createKnowledgeReadDeps({
+      knowledgeRepo: knowledgeProjection,
+      retrievalQuery: runtime.retrievalQuery,
+    });
+    const knowledgeReadPort = createKnowledgeReadModule(knowledgeReadDeps);
+    const knowledgeReadModule = KnowledgeReadModule.forTesting(knowledgeReadPort);
+
+    const knowledgeWritePort = createKnowledgeWriteModule(
+      createKnowledgeWriteDeps({
+        knowledgeOwner: runtime.services.knowledgeOwner,
+        auditLog: runtime.auditLog,
+      }),
+    );
+    const knowledgeWriteModule = KnowledgeWriteModule.forTesting(knowledgeWritePort);
+
+    const governanceConflictWorkflow = createHostLocalGovernanceConflictWorkflow({
+      knowledgeOwner: runtime.services.knowledgeOwner,
+      conflictProjection: runtime.services.governanceReview.conflictProjection,
+    });
+
+    const governanceAsyncCommands = createGovernanceAsyncCommandModule({
+      feedbackRepo: runtime.services.governanceReview.feedbackRepo,
+      auditLog: runtime.auditLog,
+    });
+
+    const jobRuntimeDeps = createJobRuntimeDeps({
+      queuePorts: runtime.queuePorts,
+      auditLog: runtime.auditLog,
+      taskHandlers: createHostLocalGovernanceTaskHandlers(
+        governanceConflictWorkflow,
+        governanceAsyncCommands,
+      ),
+      ownsWork: true,
+    });
+    const jobRuntimePort = createJobRuntimeModule(jobRuntimeDeps);
+
+    const governanceAdmin = createGovernanceReviewAdminModule({
+      feedbackRepo: runtime.services.governanceReview.feedbackRepo,
+      knowledgeRead: runtime.services.knowledgeOwner,
+      artifactReadProjection: runtime.services.artifactReadProjection,
+      knowledgeWrite: knowledgeWritePort,
+      jobRuntime: jobRuntimePort,
+      auditLog: runtime.auditLog,
+    });
+
+    const governanceReviewPort = createGovernanceReviewServiceModule(
+      createGovernanceReviewDeps({
+        knowledgeWrite: knowledgeWritePort,
+        feedbackRepo: runtime.services.governanceReview.feedbackRepo,
+        auditLog: runtime.auditLog,
+        asyncCommands: governanceAsyncCommands,
+        admin: governanceAdmin,
+        conflictWorkflow: governanceConflictWorkflow,
+        governanceRetrievalProjection: runtime.services.governanceReview.retrievalProjection,
+      }),
+    );
+    const governanceReviewModule = GovernanceReviewModule.forTesting(governanceReviewPort);
+
+    const jobRuntimeModule = JobRuntimeModule.forDeps(jobRuntimeDeps);
+
+    const candidateIngestionPort = createCandidateIngestionModule(
+      createCandidateIngestionDeps({
+        candidateRepo: runtime.services.candidateIngestion.candidateRepo,
+        auditLog: runtime.auditLog,
+        knowledgeWrite: knowledgeWritePort,
+        jobRuntime: jobRuntimePort,
+      }),
+    );
+    const candidateIngestionModule = CandidateIngestionModule.forTesting(candidateIngestionPort);
+
+    const cronDeps = CronModule.cronDepsForRuntime(runtime);
+    const cronPort = createCronServiceModule(cronDeps);
+    const cronModule = CronModule.forTesting(cronPort);
+
+    const config = loadHostLocalConfig();
+
+    return {
+      module: AppModule,
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          load: [() => ({ hostLocalConfig: config })],
+        }),
+        identityAccessModule,
+        knowledgeReadModule,
+        knowledgeWriteModule,
+        governanceReviewModule,
+        candidateIngestionModule,
+        jobRuntimeModule,
+        cronModule,
+        GatewayModule.forRuntime(runtime, {
+          knowledgeRead: knowledgeReadPort,
+          candidateIngestion: candidateIngestionPort,
+          governanceReview: governanceReviewPort,
+          cron: cronPort,
+        }),
+        ConsulModule,
+        OtelModule,
+        PrometheusModule,
+        LokiModule,
+        SentryModule,
+        LangfuseModule,
+        LifecycleModule,
+        HealthModule,
+      ],
+      providers: [
+        RequestContextService,
+        CandidateProcessingService,
+        {
+          provide: HOST_LOCAL_RUNTIME_TOKEN,
+          useValue: runtime,
+        },
+        {
+          provide: HOST_LOCAL_CONFIG_TOKEN,
+          useValue: config,
+        },
+      ],
+      exports: [RequestContextService, HOST_LOCAL_CONFIG_TOKEN],
+    };
+  }
+
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(RequestContextMiddleware, HttpMetricsMiddleware, LoggingMiddleware)

@@ -77,9 +77,17 @@ function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
   });
 }
 
-export async function createHostLocalRuntime(): Promise<HostLocalRuntime> {
-  const config = loadHostLocalConfig();
-  const services = await createHostLocalServices(config);
+/**
+ * Build a {@link HostLocalRuntime} from an already-composed
+ * {@link HostLocalServices} bundle.
+ *
+ * Phase 2 (assembly pilot): split out of {@link createHostLocalRuntime} so
+ * the assembly can build a single services bundle (owned by a
+ * host-services node) and derive the runtime from it, avoiding a duplicate
+ * store/pool owner. The legacy composition helper below is preserved for
+ * direct (non-assembly) use and golden tests.
+ */
+function createHostLocalRuntimeFromServices(services: HostLocalServices): HostLocalRuntime {
   const identity = services.identity;
   const queuePorts = createQueuePorts(services.asyncTransport);
   const runtime: HostLocalRuntime = {
@@ -101,4 +109,10 @@ export async function createHostLocalRuntime(): Promise<HostLocalRuntime> {
   };
 
   return runtime;
+}
+
+export async function createHostLocalRuntime(): Promise<HostLocalRuntime> {
+  const config = loadHostLocalConfig();
+  const services = await createHostLocalServices(config);
+  return createHostLocalRuntimeFromServices(services);
 }

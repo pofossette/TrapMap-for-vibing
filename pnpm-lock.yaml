@@ -413,6 +413,9 @@ importers:
       '@trapmap/ai-providers':
         specifier: workspace:*
         version: link:../ai-providers
+      '@trapmap/assembly':
+        specifier: workspace:*
+        version: link:../assembly
       '@trapmap/backend-core':
         specifier: workspace:*
         version: link:../backend-core
