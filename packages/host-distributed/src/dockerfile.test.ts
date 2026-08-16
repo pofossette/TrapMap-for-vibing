@@ -59,6 +59,7 @@ describe('host-distributed Dockerfile', () => {
       'service-candidate-ingestion',
       'service-governance-review',
       'service-job-runtime',
+      'service-cron',
       'host-distributed',
     ]) {
       expectPackageNodeModulesCopiedInProductionStage(packageName);

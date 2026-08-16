@@ -78,6 +78,17 @@ function createMockRuntime(): HostLocalRuntime {
         getById: vi.fn(async () => ({ id: 'entry-1', lifecycleState: 'approved' })),
         listByFilter: vi.fn(async () => []),
       },
+      asyncTransport: {
+        task: { enqueue: vi.fn(), requeue: vi.fn(), getStatusSnapshot: vi.fn() },
+        events: {},
+      },
+      cronOwnerBundle: {},
+      cronScheduler: {
+        run: vi.fn(async () => undefined),
+        stop: vi.fn(async () => undefined),
+        isRunning: vi.fn(() => false),
+        ownsWork: vi.fn(() => true),
+      },
     },
   };
 }

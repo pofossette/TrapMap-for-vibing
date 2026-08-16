@@ -11,6 +11,7 @@ const SERVICE_ENTRYPOINTS = [
   'src/candidate-ingestion/index.ts',
   'src/governance-review/index.ts',
   'src/job-runtime/index.ts',
+  'src/cron-scheduler/start.ts',
 ];
 
 describe('host-distributed service entrypoints', () => {
@@ -35,6 +36,7 @@ describe('host-distributed service entrypoints', () => {
     expect(source).toContain('startCandidateIngestionService');
     expect(source).toContain('startGovernanceReviewService');
     expect(source).toContain('startJobRuntimeService');
+    expect(source).toContain('startCronService');
     expect(source).not.toContain('const { start } = await import(');
   });
 });

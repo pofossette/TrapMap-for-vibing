@@ -60,6 +60,12 @@ async function startService(name: ServiceName): Promise<DistributedServiceHandle
       );
       return startJobRuntimeService();
     }
+    case 'cron-scheduler': {
+      const { startCronService } = await import(
+        '@trapmap/host-distributed/cron-scheduler/index.js'
+      );
+      return startCronService();
+    }
     default: {
       const exhaustive: never = name;
       throw new Error(`Unknown service: ${exhaustive}`);

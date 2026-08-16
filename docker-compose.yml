@@ -451,6 +451,42 @@ services:
     networks:
       - trapmap-distributed
 
+  cron-worker:
+    image: trap-map-host-distributed:latest
+    profiles: ["distributed"]
+    build:
+      context: .
+      dockerfile: apps/distributed/Dockerfile
+    command: ["node", "dist/index.js", "--service", "cron-scheduler"]
+    working_dir: /app/apps/distributed
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=4007
+      - TRAPMAP_SERVICE_PORT=4007
+      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+      - TRAPMAP_DEPLOYMENT_PRESET=cron-worker
+      - TRAPMAP_TASK_TRANSPORT=postgres
+      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+      - CONSUL_HOST=${CONSUL_HOST:-consul}
+      - CONSUL_PORT=${CONSUL_PORT:-8500}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+      - OTEL_DISABLED=${OTEL_DISABLED:-false}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+    networks:
+      - trapmap-distributed
+
   rabbitmq:
     image: rabbitmq:3.13-management
     profiles: ["mq"]

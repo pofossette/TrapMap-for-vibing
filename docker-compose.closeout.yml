@@ -54,6 +54,12 @@ services:
       CONSUL_ENABLED: "false"
     restart: "no"
 
+  cron-worker:
+    container_name: !reset null
+    environment:
+      CONSUL_ENABLED: "false"
+    restart: "no"
+
   postgres:
     container_name: !reset null
     ports: !reset []

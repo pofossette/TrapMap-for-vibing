@@ -15,6 +15,8 @@ const staticUrls = {
   review: 'http://localhost:4005',
   governanceReview: 'http://localhost:4005',
   jobRuntime: 'http://localhost:4006',
+
+  cronScheduler: 'http://localhost:4007',
 };
 
 describe('DiscoveryResolver', () => {
