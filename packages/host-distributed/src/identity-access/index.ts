@@ -1,11 +1,12 @@
-import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
-import { createServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
-import { createServer } from './server.js';
+/**
+ * Start the identity-access distributed service.
+ *
+ * Phase 3 convergence: delegate to the distributed assembly profile (builds
+ * config → database → server nodes and boots them) instead of re-wiring the
+ * legacy loadServiceConfig/createServiceDatabase/createServer sequence here.
+ */
+import { startDistributedService } from '../assembly/profiles/distributed.js';
 
 export async function startIdentityAccessService() {
-  const config = loadServiceConfig('identity-access');
-  const db = createServiceDatabase(config);
-  const server = await createServer(config, db);
-  await server.start();
-  return { config, db, server };
+  return startDistributedService('identity-access');
 }

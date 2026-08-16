@@ -2,7 +2,6 @@ import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
-import { createServicePorts } from '@trapmap/host-distributed/shared/ports.js';
 import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import {
   type JobRuntimeServer,
@@ -18,7 +17,6 @@ export async function createServer(
   db: ServiceDatabase,
 ): Promise<JobRuntimeServer> {
   const identity = createIdentityAccessPgDeps(db.pool, { systemAdminKey: config.systemAdminKey });
-  const ports = createServicePorts(db.pool, config.serviceName, identity);
   const queuePorts = createJobRuntimeAsyncTransport({
     config: {
       asyncTaskTransport: {
@@ -31,7 +29,7 @@ export async function createServer(
   const internalClients = createInternalServiceClients(config.internalUrls);
   const deps = createJobRuntimeDeps({
     queuePorts,
-    auditLog: ports.auditLog,
+    auditLog: identity.auditLog,
     taskHandlers: createJobRuntimeTaskHandlers(internalClients),
     outboxHandlers: [
       {

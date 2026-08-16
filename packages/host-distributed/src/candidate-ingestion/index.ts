@@ -1,11 +1,11 @@
-import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
-import { createServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
-import { createServer } from './server.js';
+/**
+ * Start the candidate-ingestion distributed service.
+ *
+ * Phase 3 convergence: delegate to the distributed assembly profile (builds
+ * the config/database/candidate-ingestion server nodes and boots them).
+ */
+import { startDistributedService } from '../assembly/profiles/distributed.js';
 
 export async function startCandidateIngestionService() {
-  const config = loadServiceConfig('candidate-ingestion');
-  const db = createServiceDatabase(config);
-  const server = await createServer(config, db);
-  await server.start();
-  return { config, db, server };
+  return startDistributedService('candidate-ingestion');
 }

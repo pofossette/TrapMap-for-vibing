@@ -1,11 +1,12 @@
-import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
-import { createServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
-import { createServer } from './server.js';
+/**
+ * Start the job-runtime distributed service (worker container).
+ *
+ * Phase 3 convergence: delegate to the distributed assembly profile, whose
+ * job-runtime case composes the service node plus its D7 worker sub-node
+ * declarations and boots them, returning the same DistributedServiceHandle.
+ */
+import { startDistributedService } from '../assembly/profiles/distributed.js';
 
 export async function startJobRuntimeService() {
-  const config = loadServiceConfig('job-runtime');
-  const db = createServiceDatabase(config);
-  const server = await createServer(config, db);
-  await server.start();
-  return { config, db, server };
+  return startDistributedService('job-runtime');
 }

@@ -4,17 +4,43 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts"],
-  "exclude": ["src/**/*.test.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts"
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
+  ],
   "references": [
-    { "path": "../backend-core" },
-    { "path": "../contracts" },
-    { "path": "../service-identity-access" },
-    { "path": "../service-candidate-ingestion" },
-    { "path": "../service-governance-review" },
-    { "path": "../service-job-runtime" },
-    { "path": "../service-cron" },
-    { "path": "../service-knowledge-read" },
-    { "path": "../service-knowledge-write" }
+    {
+      "path": "../assembly"
+    },
+    {
+      "path": "../backend-core"
+    },
+    {
+      "path": "../contracts"
+    },
+    {
+      "path": "../service-identity-access"
+    },
+    {
+      "path": "../service-candidate-ingestion"
+    },
+    {
+      "path": "../service-governance-review"
+    },
+    {
+      "path": "../service-job-runtime"
+    },
+    {
+      "path": "../service-cron"
+    },
+    {
+      "path": "../service-knowledge-read"
+    },
+    {
+      "path": "../service-knowledge-write"
+    }
   ]
 }
