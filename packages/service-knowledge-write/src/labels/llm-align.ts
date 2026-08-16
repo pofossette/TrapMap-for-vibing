@@ -209,7 +209,7 @@ export async function alignLabel(
  * Call the LLM for label alignment with strict Zod validation.
  * Returns null if the LLM call fails or returns invalid output.
  */
-async function callLlmAlignment(
+export async function callLlmAlignment(
   chat: ChatProvider,
   input: LabelAlignmentInput,
 ): Promise<LabelAlignmentDecision | null> {
