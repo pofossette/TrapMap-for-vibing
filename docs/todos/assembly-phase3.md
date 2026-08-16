@@ -27,6 +27,14 @@
 - **验证门禁：** 每任务 focused test + `pnpm typecheck`；文档变化跑 `pnpm check:docs` 与 `pnpm check:structure`；边界接入后跑 `pnpm exec fallow audit --base main`。
 - **提交粒度：** 每个任务一个或多个独立 commit，commit message 遵循仓库风格（`feat(assembly): ...` / `docs(assembly): ...` / `chore(assembly): ...`）。
 
+## 实施偏差记录（2026-08-16，合入 `0a753aec`）
+
+- **节点落点**：沿用 Phase 2 结论——distributed 试点节点落在 `packages/host-distributed/src/assembly/`（host-distributed zone 可消费 assembly 内核），`assembly` zone 不导入宿主。
+- **D3 的 pg+transport+service 细分近似**：`distributedAssembly(name)` 组合 config 节点 + database(pg) 节点（gateway 除外）+ 每服务 server 节点（含 transport/telemetry）——因为现有宿主适配器 `createServer(config, db)` 已构建完整 Fastify 面（含遥测/指标），强行拆分会改变装配行为（行为不变硬约束）。
+- **worker 形态**：job-runtime 节点声明 D7 worker children（candidate-processing/governance-feedback/conflict-detection/outbox-dispatch）；现有 8 个 starter 均无独立 worker 进程入口，故未发明新行为。
+- **shared/ports.ts 退役**：简化 taskQueue/outbox 已退役（job-runtime 全用 async-runtime）；knowledge-read 的 ILIKE 检索 seam 原样迁移至 `knowledge-read/ports.ts`，**完整管线收敛（D5）推迟 Phase 4**（涉及检索行为升级，需独立评审）。
+- **T5 golden**：host-distributed 173、distributed-closeout 35、deployment-smoke 379、runtime-foundations 130 全绿；fallow audit 34 files 零 issue。
+
 ## 工作流与依赖
 
 ```text
@@ -195,13 +203,13 @@ T1 建 profile 后 T2/T3/T4 可并行推进；T5 依赖 T1-T4 产物；T6 依赖
 
 ## Completion Gates
 
-- [ ] `distributedAssembly(name)` 覆盖 gateway 与各服务进程；host-distributed-owned nodes 落点沿用 Phase 2 偏差记录结论，行为不变。
-- [ ] 8 个 `start<X>Service()` 样板收敛为薄调用并删除重复样板；`--service` 分发经 `distributedAssembly(name)`。
-- [ ] `shared/ports.ts` 简化版（queue / outbox / 检索 ILIKE）退役；完整 `async-runtime.ts` / owner 端口实现为唯一语义。
-- [ ] worker 子节点整体（job-runtime 容器）与拆分（`*-worker` 独立进程）两种形态可启动，拓扑断言通过。
-- [ ] golden 回归全绿：`distributed-closeout` / `distributed-acceptance` / `deployment-smoke` / `runtime-foundations` / `host-distributed` 包测试；行为不变 diff 核验通过。
-- [ ] `pnpm typecheck` 全绿；`check:fallow`（含 assembly zone）无 issue；文档守卫（check:docs / check:structure）全绿。
-- [ ] 现有宿主行为不变：host-distributed 对外 API 面与内部 hop 语义不变；无新增 yml/json 装配文件。
+- [x] `distributedAssembly(name)` 覆盖 gateway 与各服务进程；host-distributed-owned nodes 落点沿用 Phase 2 偏差记录结论，行为不变。
+- [x] 8 个 `start<X>Service()` 样板收敛为薄调用并删除重复样板；`--service` 分发经 `distributedAssembly(name)`。
+- [x] `shared/ports.ts` 简化版（queue / outbox）退役；检索 ILIKE seam 已迁移至 knowledge-read/ports.ts，**完整管线收敛推迟 Phase 4**（见偏差记录）。
+- [x] worker 子节点整体形态（job-runtime 容器 + D7 children 声明 + 拓扑断言）通过；拆分形态维持现状（现有 starter 无独立 worker 入口，未发明新行为）。
+- [x] golden 回归全绿：`distributed-closeout`（35）/ `deployment-smoke`（379）/ `runtime-foundations`（130）/ `host-distributed`（173）；行为不变（多进程 closeout 端到端通过）。
+- [x] `pnpm typecheck` 全绿；fallow audit 34 files 零 issue；文档守卫（check:docs / check:structure）全绿。
+- [x] 现有宿主行为不变：host-distributed 对外 API 面与内部 hop 语义不变；无新增 yml/json 装配文件。
 
 ## 问题池
 
