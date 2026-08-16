@@ -11,15 +11,16 @@
 
 ## 当前主线
 
-- **主题：** 统一优雅组装中心（assembly）Phase 3 收敛
-- **目标：** host-distributed 改由 `distributedAssembly(name)` boot（覆盖 gateway 与各服务进程 + worker 子节点整体/拆分形态）；删除 8 个 `start<X>Service` 样板；`shared/ports.ts` 简化版退役（完整 async-runtime 为唯一实现）。现有行为不变为硬约束。
+- **主题：** 统一优雅组装中心（assembly）Phase 4 收尾
+- **目标：** 双实现收敛（检索 ILIKE → 完整 retrieval-engine 管线，D5）+ OTel/Consul 单一插件收敛（D5）+ direct-run seam 退役（所有 boot 经 app shells 经 assembly profiles）+ 别名对齐（backend-target-registry / dev:* 收敛为 shape 名→builder-command 映射）+ 集群化验证（compose replicas=2 起 candidate-worker + outbox-worker 跑 ownership/重复消费断言）；golden 全绿后归档本主线并 finalize plan.md。
 - **状态：** `进行中`
-- **主细则：** [Unified Assembly Center Phase 3](docs/todos/assembly-phase3.md)
+- **主细则：** [Unified Assembly Center Phase 4](docs/todos/assembly-phase4.md)
 - **设计规格：** [《TrapMap 统一优雅组装中心设计》](docs/superpowers/specs/2026-08-16-unified-assembly-center-design.md)
 - **状态口径：** `进行中` 只表示该主细则仍是 active execution surface；任务完成度、阻塞项和证据以主细则复选框与 closeout 记录为准。
 
 ## 上一主线
 
+- **Unity Assembly Center Phase 3 收敛已完成并归档（2026-08-16）：** 合入 0a753aec / 8b75d25d，主线 closeout 同步 a2b9b2d2；golden 全绿（host-distributed 173 / distributed-closeout 35 / deployment-smoke 379 / runtime-foundations 130）、fallow 34 files 零 issue；检索 ILIKE 完整管线收敛、OTel/Consul 收敛、direct-run seam 退役、别名对齐、集群验证 deferred 到 Phase 4。细则见 [docs/archived/archived-plans/unified-assembly-center-phase3-archived.md](docs/archived/archived-plans/unified-assembly-center-phase3-archived.md)，closeout 证据在该文档 Closeout 记录。
 - **Unity Assembly Center Phase 2 试点已完成并归档（2026-08-16）：** 提交 63c26029 / 26964daf / fc114c35 + 合并 dbf1461a；细则见 [docs/archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md](docs/archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md)，closeout 证据在该文档 Closeout 记录。
 - **Unity Assembly Center Phase 1 已完成并归档（2026-08-16）：** 提交 fd0f8ee0 / 1f18d745 / 61dd0cbb / bae2c813 + 合并 d70a1cd6 / e6be1581；细则见 [docs/archived/archived-plans/unified-assembly-center-phase1-archived.md](docs/archived/archived-plans/unified-assembly-center-phase1-archived.md)，closeout 证据在该文档 Closeout 记录。
 - **Dead Code and Architecture Order Cleanup 主线已提交（2026-08-16）：** 主细则 [Dead Code and Architecture Order Cleanup](docs/todos/dead-code-and-architecture-order-cleanup.md) 的实现已提交；其 closeout（Task 11-13，包括 debt register 回写与归档）延后，见 [长期 open debt 与触发条件](docs/todos/open-debt-and-compromises.md) 登记。
@@ -28,47 +29,49 @@
 
 | 阶段 | 主细则任务 | 阶段交付 | 放行条件 |
 |---|---|---|---|
-| 1. distributedAssembly profile | T1 | `distributedAssembly(name)` 按设计 D3 的 service switch 组合 gateway / 各服务进程 / worker；host-distributed-owned nodes 落点（沿用 Phase 2 偏差记录结论） | profile 可装载、拓扑断言通过、typecheck/fallow 全绿 |
-| 2. starter 收敛 | T2 | 8 个 `start<X>Service` 改薄调用并删除重复样板；`--service` 分发经 `distributedAssembly` | host-distributed 启动经薄调用、deployment-smoke 全绿 |
-| 3. shared/ports.ts 退役 | T3 | 简化版（queue/outbox/检索 ILIKE）移除，完整 async-runtime / owner 端口实现为唯一语义 | distributed-closeout / acceptance / deployment-smoke 全绿 |
-| 4. worker 子节点形态 | T4 | job-runtime 容器整体承载与 `*-worker` 拆分独立进程两形态打通 | 拓扑断言测试通过、deployment/runtime 全绿 |
-| 5. golden 回归 | T5 | distributed-closeout / distributed-acceptance / deployment-smoke / runtime-foundations / host-distributed 包测试；行为不变 diff 核验 | golden 全绿、行为不变 |
-| 6. closeout | T6 | 守卫 + 文档回写 + 归档评估 | 证据齐全后归档并切换下一主线（Phase 4） |
+| 1. 检索收敛 | T1 | knowledge-read ILIKE legacy seam（`packages/host-distributed/src/knowledge-read/ports.ts`）收敛至完整 retrieval-engine 管线，分布式检索行为与 monolith 一致（行为升级，Phase 3 偏差显式 deferred） | `eval:smoke` 与检索 focused tests 全绿、typecheck/fallow 全绿 |
+| 2. OTel/Consul 单一插件收敛 | T2 | host-local（otel.service.ts + consul.*）与 host-distributed（telemetry.ts + consul-discovery-adapter.ts + discovery-factory.ts + internal-observability.ts）双份接线收敛为单一 otel/consul 插件，两宿主 assembly 节点共用 | observability-closeout / discovery-closeout 全绿、运行时语义不变 |
+| 3. direct-run seam 退役 | T3 | `packages/host-local/src/index.ts` 的 `isDirectExecution` 判定与等价入口退役，所有 boot 经 app shells（`apps/light` / `apps/distributed`）经 assembly profiles | deployment-smoke / runtime-foundations 全绿 |
+| 4. 别名对齐 | T4 | `scripts/backend-target-registry.ts` 与根 `dev:*` 别名收敛为 shape 名（local-agent / team-monolith / distributed:<service>）→ builder-command 映射，单测断言 | 映射断言通过、typecheck/check:imports 全绿 |
+| 5. 集群化验证 | T5 | compose replicas=2 起 candidate-worker + outbox-worker，跑 ownership/重复消费断言（SKIP LOCKED/租约语义） | 集群断言通过、runtime/deployment 复跑全绿 |
+| 6. golden 回归 + closeout | T6 | 全门禁（typecheck；assembly + host-local + host-distributed 包测试；distributed-closeout/acceptance；deployment-smoke；runtime-foundations；observability-closeout；discovery-closeout；eval:smoke；check:imports/asserts/deps/structure/docs；fallow audit --base main）+ 文档回写 + 归档评估 | 证据齐全后归档本主线并 finalized plan.md |
 
-阶段必须按顺序推进；任一阶段未通过放行条件，不得用后续阶段的实现掩盖前置事实或守卫失败。具体步骤和证据位置见[主细则](docs/todos/assembly-phase3.md)。
+阶段必须按顺序推进；任一阶段未通过放行条件，不得用后续阶段的实现掩盖前置事实或守卫失败。具体步骤和证据位置见[主细则](docs/todos/assembly-phase4.md)。
 
 ## 任务背景
 
-2026-08-16 用户 goal 激活"统一优雅组装中心（assembly）"主线。Phase 1（packages/assembly 内核 + cordis + 测试 + 根级接线 + 文档）已完成并归档（见 [docs/archived/archived-plans/unified-assembly-center-phase1-archived.md](docs/archived/archived-plans/unified-assembly-center-phase1-archived.md)），Phase 2（host-local 试点）已完成并归档（见 [docs/archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md](docs/archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md)）。本期承接设计文档 D6 Phase 3 收敛：host-distributed 改由 `distributedAssembly(name)` boot（覆盖 gateway 与各服务进程），删除 `start<X>Service` 样板，`shared/ports.ts` 简化版退役（D5），worker 子节点整体/拆分形态打通。平行分支 `feat/phase3-core`（另一 worktree）实现 `distributedAssembly` profiles、starter 收敛与 `shared/ports.ts` 退休。现有行为不变为硬约束。判断类节点契约、OTel/Consul 收敛、集群化验证与 yml/json 装配均不在本阶段。
+2026-08-16 用户 goal 激活"统一优雅组装中心（assembly）"主线。Phase 1（packages/assembly 内核 + cordis + 测试 + 根级接线 + 文档）、Phase 2（host-local 试点）与 Phase 3（host-distributed 收敛：`distributedAssembly(name)` boot、删除 `start<X>Service` 样板、`shared/ports.ts` 简化版退役、worker 子节点整体/拆分形态打通）均已完成并归档（Phase 1 / Phase 2 / Phase 3 归档见 [docs/archived/README.md](docs/archived/README.md)）。本期承接设计文档 D6 Phase 4 收尾：检索 ILIKE 完整管线收敛（D5，行为升级为 Phase 3 显式 deferred 项）、OTel/Consul 单一插件收敛（D5）、direct-run seam 退役、别名对齐（backend-target-registry / dev:* → shape 名→builder-command 映射）、集群化验证（compose replicas=2 起 candidate-worker + outbox-worker 跑 ownership/重复消费断言）。运行时语义不变为硬约束（检索行为升级除外）。判断类节点契约（D8：intent-recognition / dedup-strategy 等）、新增 yml/json 装配与 k8s 编排均不在本阶段。
 
 ## 范围边界
 
-**Phase 3 纳入：** `distributedAssembly(name)` profile（按设计 D3 的 service switch 组合 gateway / 各服务进程 / worker；host-distributed-owned nodes 落点沿用 Phase 2 偏差记录结论）；starter 收敛（8 个 `start<X>Service` 改薄调用 + 删除重复样板；`--service` 分发经 `distributedAssembly`）；`shared/ports.ts` 简化版退役（D5：完整 `async-runtime.ts` / owner 端口实现为唯一语义）；worker 子节点整体（job-runtime 容器）与拆分（`*-worker` 独立进程）两形态打通；golden 回归（distributed-closeout / distributed-acceptance / deployment-smoke / runtime-foundations / host-distributed 包测试；行为不变 diff 核验）。
+**Phase 4 纳入：** 检索收敛（D5：knowledge-read ILIKE legacy seam → 完整 retrieval-engine 管线，分布式检索行为与 monolith 一致；行为升级为 Phase 3 显式 deferred 项）；OTel/Consul 单一插件收敛（D5：host-local 与 host-distributed assembly 节点共用单一 otel / 单一 consul 插件，运行时语义不变）；direct-run seam 退役（`packages/host-local/src/index.ts` 的 `isDirectExecution` 判定与 host-distributed 等价入口移除，所有 boot 经 `apps/light` / `apps/distributed` app shells 经 assembly profiles）；别名对齐（`scripts/backend-target-registry.ts` 与根 `dev:*` 别名收敛为 shape 名→builder-command 映射）；集群化验证（compose replicas=2 起 candidate-worker + outbox-worker，跑 ownership/重复消费断言）；golden 回归（typecheck；assembly + host-local + host-distributed 包测试；distributed-closeout / distributed-acceptance / deployment-smoke / runtime-foundations / observability-closeout / discovery-closeout；`eval:smoke`；check:imports/asserts/deps/structure/docs；fallow audit --base main）。
 
-**Phase 3 不纳入：** 判断类节点契约（intent-recognition / dedup-strategy 等，D8 后续独立收编）、OTel/Consul 双份接线收敛（Phase 4）、集群化验证与 direct-run seam 退役 / 别名对齐（Phase 4）、任何 yml/json 装配。
+**Phase 4 不纳入：** 判断类节点契约（intent-recognition / dedup-strategy 等，D8 后续独立收编主线）、任何新增 yml/json 装配文件、k8s 编排实现。
 
 ## 验证门禁
 
-- **行为不变是硬约束：** Phase 3 不改变任何现有运行时语义；golden 回归（distributed-closeout / distributed-acceptance / deployment-smoke / runtime-foundations / host-distributed 包测试）必须全绿，diff 核验 host-distributed 行为不变。
+- **运行时语义不变是硬约束（检索行为升级除外）：** Phase 4 的 OTel/Consul 收敛、direct-run seam 退役、别名对齐、集群化验证均不改变现有运行时语义；检索收敛是本阶段唯一的行为升级（ILIKE → 完整 retrieval-engine 管线，分布式行为对齐 monolith，Phase 3 偏差显式 deferred），需评审留痕并通过 `eval:smoke` 与检索 focused tests。
 - 每任务至少运行相关包 focused tests 与 `pnpm typecheck`。
 - 跨包导入或边界变化必须运行 `pnpm exec fallow audit --base main`。
 - 文档变化至少运行 `pnpm check:docs` 和 `pnpm check:structure`。
-- 边界接入后运行 `pnpm exec check:fallow`（含 assembly zone）。
+- 检索收敛变更必跑 `pnpm eval:smoke`；边界接入后运行 `pnpm exec check:fallow`（含 assembly zone）。
 
 ## 验收边界
 
-- `distributedAssembly(name)` 覆盖 gateway 与各服务进程；host-distributed-owned nodes 落点沿用 Phase 2 偏差记录结论；现有行为不变。
-- 8 个 `start<X>Service` 样板收敛为薄调用并删除重复样板；`--service` 分发经 `distributedAssembly(name)`。
-- `shared/ports.ts` 简化版（queue / outbox / 检索 ILIKE）退役；完整 `async-runtime.ts` / owner 端口实现为唯一语义。
-- worker 子节点整体（job-runtime 容器）与拆分（`*-worker` 独立进程）两形态可启动，拓扑断言通过。
-- golden 回归全绿：`distributed-closeout` / `distributed-acceptance` / `pnpm test:deployment-smoke` / `pnpm test:runtime-foundations` / host-distributed 包测试；行为不变 diff 核验通过。
-- `pnpm typecheck` 全绿；`check:fallow`（含 assembly zone）无 issue；文档守卫（check:docs / check:structure）全绿；无新增 yml/json 装配文件。
+- 检索收敛完成：`packages/host-distributed/src/knowledge-read/ports.ts` 的 ILIKE legacy seam 退役，改为消费完整 retrieval-engine 管线，分布式检索行为与 monolith 一致；`eval:smoke` 与检索 focused tests 全绿。
+- `host-local` 与 `host-distributed` 的 assembly 节点共用单一 otel / 单一 consul 插件；OTel/Consul 运行时语义不变，`observability-closeout` / `discovery-closeout` 全绿。
+- `packages/host-local/src/index.ts` 的 `isDirectExecution` 直连回退与 host-distributed 等价入口退役；所有 boot（dev / compose / closeout 测试链）均经 `apps/light` / `apps/distributed` app shells 经 assembly profiles。
+- `scripts/backend-target-registry.ts` 与根 `dev:*` 别名收敛为 shape 名（local-agent / team-monolith / distributed:<service>）→ builder-command 映射，单测断言通过。
+- 集群化验证通过：compose replicas=2 起 candidate-worker + outbox-worker，ownership / 重复消费断言通过（SKIP LOCKED / 租约语义）。
+- golden 回归全绿：typecheck；assembly + host-local + host-distributed 包测试；`test:distributed-closeout` / `test:distributed-acceptance` / `test:deployment-smoke` / `test:runtime-foundations` / `test:observability-closeout` / `test:discovery-closeout`；`eval:smoke`；check:imports / asserts / deps / structure / docs；fallow audit --base main。
+- 无新增 yml/json 装配文件；无新增断言豁免（`check:asserts` 全绿）；文档守卫（check:docs / check:structure）全绿。
 
 完成主线还必须满足：所有 active detail completion gates 均有命令输出或测试证据，CI 中的文档守卫为 blocking，未完成事项已在主细则或长期债务登记册中标明后续落点。
 
 ## 长期债务与历史入口
 
 - [长期 open debt 与触发条件](docs/todos/open-debt-and-compromises.md)：不构成第二条 active mainline。
+- [已归档 Unity Assembly Center Phase 3](docs/archived/archived-plans/unified-assembly-center-phase3-archived.md)：assembly Phase 3 收敛已完成并归档（2026-08-16）。
 - [已归档 Unity Assembly Center Phase 2](docs/archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md)：assembly Phase 2 试点已完成并归档（2026-08-16）。
 - [已归档 Unity Assembly Center Phase 1](docs/archived/archived-plans/unified-assembly-center-phase1-archived.md)：assembly Phase 1 地基已完成并归档（2026-08-16）。
 - [Dead Code and Architecture Order Cleanup 主线](docs/todos/dead-code-and-architecture-order-cleanup.md)：更早上一主线，实现已提交 2026-08-16，closeout（Task 11-13）延后，见 open-debt 登记。

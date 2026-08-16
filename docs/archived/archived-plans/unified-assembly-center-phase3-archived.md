@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **状态：** active
-> **根入口：** [`../../plan.md`](../../plan.md)
-> **设计规格：** [`../superpowers/specs/2026-08-16-unified-assembly-center-design.md`](../superpowers/specs/2026-08-16-unified-assembly-center-design.md)
+> **状态：** 已归档（Phase 3 收敛完成 closeout，2026-08-16）
+> **根入口（归档前）：** [`../../../plan.md`](../../../plan.md)
+> **设计规格（归档前）：** [`../../../superpowers/specs/2026-08-16-unified-assembly-center-design.md`](../../../superpowers/specs/2026-08-16-unified-assembly-center-design.md)
 
 **Goal:（D6 Phase 3 收敛）** host-distributed 收敛——`distributedAssembly(name)` 覆盖 gateway 与各服务进程，删除 `start<X>Service` 样板，`shared/ports.ts` 简化版退役，worker 子节点整体/拆分形态打通；现有行为不变为硬约束。
 
@@ -179,10 +179,23 @@ T1 建 profile 后 T2/T3/T4 可并行推进；T5 依赖 T1-T4 产物；T6 依赖
   确认下方 Completion Gates 全部满足。
 - [ ] **Step 4: 文档回写**
   按治理规则回写 BOUNDARIES / SYSTEM_TRUTH_SOURCES / open-debt / README 索引（见 Files）。
-- [ ] **Step 5: 归档评估**
-  仅当全部证据齐全且下一主线（Phase 4）已激活时，才把本细则归档并更新 todos/README.md 与 plan.md。
-- [ ] **Step 6: Commit**
+- [x] **Step 5: 归档评估**
+  全部证据齐全且下一主线（Phase 4）已激活，本细则归档至 `docs/archived/archived-plans/unified-assembly-center-phase3-archived.md`，并更新 todos/README.md 与 plan.md。
+- [x] **Step 6: Commit**
   `docs(assembly): close out Phase 3 convergence mainline`
+
+## Closeout 记录
+
+- **Phase 3 完成于 main（合入 `0a753aec` / `8b75d25d`，主线同步 closeout 提交 `a2b9b2d2`）；** host-distributed 收敛由 `distributedAssembly(name)` boot，删除 8 个 `start<X>Service` 样板、`shared/ports.ts` 简化版退役、worker 子节点整体（job-runtime 容器）与拆分（`*-worker` 独立进程）形态打通；现有行为不变为硬约束，全部 golden 回归全绿。
+- **证据汇总（golden evidence）：** host-distributed 全量 `173`、distributed-closeout `35`、deployment-smoke `379`、runtime-foundations `130`，fallow audit `34 files` 零 issue；`pnpm typecheck` 全绿，check:imports / asserts / deps / structure / docs 全绿；多进程 closeout 端到端通过，行为不变由 golden 全绿 + diff 核验确认，无新增 yml/json 装配文件。
+- **Deferred 项移交 Phase 4（收尾，见 `docs/todos/assembly-phase4.md`）：**
+  1. **检索 ILIKE 完整管线收敛（设计 D5）：** knowledge-read 的 ILIKE 检索 seam（`packages/host-distributed/src/knowledge-read/ports.ts`）收敛至完整 retrieval-engine 管线，分布式检索行为与 monolith 一致（本阶段延迟，因涉及检索行为升级需独立评审）。
+  2. **OTel / Consul 双份接线收敛（设计 D5）：** host-local（nest/observability/otel.service.ts + nest/service-discovery/consul.*）与 host-distributed（shared/telemetry.ts + gateway/consul-discovery-adapter.ts + discovery-factory.ts + internal-observability.ts）的双份接线收敛为单一 otel / 单一 consul 插件，两个宿主的 assembly 节点共同消费；运行时语义不变。
+  3. **direct-run seam 退役：** `packages/host-local/src/index.ts` 的 `isDirectExecution` 直连回退与 host-distributed 对应入口退役，所有 boot 均经 app shells（`apps/light` / `apps/distributed`）经 assembly profiles。
+  4. **别名对齐：** `scripts/backend-target-registry.ts` 与根 `dev:*` 别名收敛为纯 shape 名→builder-command 映射（local-agent / team-monolith / distributed:<service>），单测断言。
+  5. **集群化验证：** compose replicas=2 起 candidate-worker + outbox-worker，跑 ownership / 重复消费断言（SKIP LOCKED / 租约语义）。
+- **文档回写：** 按 T6 Step 4 完成 BOUNDARIES / SYSTEM_TRUTH_SOURCES / open-debt / README 索引回写（见本提交）。
+- **归档：** 本细则在 Phase 4 主线激活后归档至 `docs/archived/archived-plans/unified-assembly-center-phase3-archived.md`；Phase 4（收尾）主细则见 `docs/todos/assembly-phase4.md`。
 
 ## 范围边界
 
