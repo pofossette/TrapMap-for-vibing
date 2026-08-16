@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **状态：** active
+> **状态：** 挂起（实现已提交 2026-08-16；Task 11-13 closeout 延后，见 open-debt 登记）
 > **根入口：** [`../../plan.md`](../../plan.md)
 > **设计规格：** [`../superpowers/specs/2026-08-15-dead-code-and-architecture-order-cleanup-design.md`](../superpowers/specs/2026-08-15-dead-code-and-architecture-order-cleanup-design.md)
 

@@ -10,7 +10,7 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 
 ## Zone 定义
 
-项目共定义 12 个 zone，每个 zone 对应一组文件路径模式，由 `.fallowrc.json` 的 `boundaries.zones` 字段声明：
+项目共定义 13 个 zone，每个 zone 对应一组文件路径模式，由 `.fallowrc.json` 的 `boundaries.zones` 字段声明：
 
 | Zone | 包路径 | 角色 |
 |------|--------|------|
@@ -20,6 +20,7 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 | `client-core` | `packages/client-core/src/**` | 客户端核心（无依赖的纯客户端逻辑），提供 HTTP gateway SDK、会话管理、错误模型 |
 | `ai-providers` | `packages/ai-providers/src/**` | 共享 AI 服务层：provider factory、prompt 模板、LLM 工具；只依赖 `lib`（type-only 可依赖 `contracts`） |
 | `backend-core` | `packages/backend-core/src/**` | 六边形架构内核：`src/<context>/domain` 纯规则层（零框架、零 DB）+ `application/ports/use-cases` + `src/http/`（框架中立 RouteDef 路由契约与 Nest/Fastify 双 adapter）。承载运行时能力模型、端口接口、用例模式、bounded-context 模块 |
+| `assembly` | `packages/assembly/src/**` | 统一组装中心：cordis Context 封装 + 能力节点注册表 + TS 组合器 + 生命周期/退出控制 + startupChecks + 拓扑/契约校验；只依赖 backend-core/contracts/lib；被 host-*/apps 消费 |
 | `service-standard` | `packages/service-identity-access/src/**`、`packages/service-candidate-ingestion/src/**`、`packages/service-governance-review/src/**`、`packages/service-job-runtime/src/**`、`packages/service-knowledge-write/src/**`、`packages/service-cron/src/**` | 标准服务装配包（identity-access、candidate-ingestion、governance-review、job-runtime、knowledge-write、cron），只依赖 `backend-core` + `contracts`（可经 `ai-providers` 消费共享 AI 层） |
 | `service-knowledge-read` | `packages/service-knowledge-read/src/**` | 知识读取服务，拥有 read-model、retrieval 与 graph projection owner surface |
 | `host-local` | `packages/host-local/src/**` | 本地宿主库包（NestJS 光主机），为 `local-agent` 和 `team-monolith` profile 提供装配；可执行组装中心在 `apps/light` |
@@ -52,6 +53,10 @@ flowchart TB
         web-panel["web-panel"]
     end
 
+    subgraph 组装层["组装层 (Assembly)"]
+        assembly["assembly"]
+    end
+
     subgraph 服务层["服务层 (Service)"]
         service-standard["service-standard<br/>(6 个标准服务，含 cron)"]
         service-knowledge-read["service-knowledge-read"]
@@ -74,6 +79,7 @@ flowchart TB
         contracts["contracts"]
     end
 
+    host-local --> assembly
     host-local --> backend-core
     host-local --> service-standard
     host-local --> service-knowledge-read
@@ -82,12 +88,17 @@ flowchart TB
     host-local --> contracts
     host-local --> lib
 
+    host-distributed --> assembly
     host-distributed --> backend-core
     host-distributed --> service-standard
     host-distributed --> service-knowledge-read
     host-distributed --> client-core
     host-distributed --> ai-providers
     host-distributed --> contracts
+
+    assembly --> backend-core
+    assembly --> contracts
+    assembly --> lib
 
     service-standard --> backend-core
     service-standard --> contracts
@@ -118,12 +129,15 @@ flowchart TB
 简化依赖层次：
 
 ```
-host-* → service-* → backend-core → contracts
+host-* → assembly → backend-core → contracts
 host-* / service-* → ai-providers → lib → contracts
+assembly → backend-core / contracts / lib
 cli → client-core → (none)
 web-panel → client-core → (none)
 service-* / host-local / cli → lib → contracts
 ```
+
+**zone 实现说明：** `assembly` zone 已由平行代码分支 `feat/assembly-core` 写入 `.fallowrc.json`（zone `assembly`、patterns `packages/assembly/src/**`、rule `assembly → [backend-core, contracts, lib]`、并在 `host-local` / `host-distributed` 的 allow 列表加入 `assembly`、entry 加入 `packages/assembly/src/index.ts`）。
 
 ### 关键约束
 
@@ -135,6 +149,7 @@ service-* / host-local / cli → lib → contracts
 6. 宿主包（`host-local`、`host-distributed`）是最高层组合根，可以依赖所有下游 zone；其可执行组装中心在 `apps/light`、`apps/distributed`，仅做 thin assembly，不得新增业务逻辑
 7. `lib` 是共享工具叶子，type-only 依赖 `contracts`，不依赖任何服务/宿主/框架代码；`contracts` 不得反向依赖 `lib`
 8. `ai-providers` 是独立 zone（2026-08 纳入 fallow）：作为共享 AI 服务层只依赖 `lib`（type-only 可依赖 `contracts`），被 `service-standard`、`service-knowledge-read` 与两个宿主消费；不得依赖任何服务/宿主包
+9. `assembly` 是组装层 zone（2026-08-16 引入，实现于 `.fallowrc.json`）：只依赖 `backend-core` / `contracts` / `lib`，被 `host-local` / `host-distributed` 消费；`assembly` 只做装配与校验（cordis Context 封装 + 能力节点注册表 + TS 组合器 + 生命周期/退出控制 + startupChecks + 拓扑/契约校验），禁止承载业务逻辑
 
 ## backend-core 内部结构（domain 纯规则层 + http RouteDef 层）
 

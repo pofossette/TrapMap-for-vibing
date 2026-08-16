@@ -29,6 +29,7 @@
 - `packages/client-core/`：浏览器兼容的共享网关传输层（HTTP SDK、会话契约、错误模型）。供 CLI 和未来 Web 面板使用。
 - `apps/web-panel/`：基于浏览器的管理员运维面板，仅作为网关客户端表面（2026-08 从 `packages/` 迁入，见下方 `apps/` 小节）。
 - `packages/backend-core/`：主机无关的后端核心内核（运行时能力模型、端口接口、用例模式、有界上下文模块、调用模型）。Phase 2 保持无框架，将每个有界上下文重组为内部 `domain/application/module` 接缝，位于 `src/identity-access/`、`src/knowledge-read/`、`src/knowledge-write/`、`src/candidate-ingestion/`、`src/governance-review/`、`src/job-runtime/`；其中 `src/<context>/domain/` 是真实纯规则层（零框架、零 DB，配套单元测试）。`src/http/` 承载框架中立 `RouteDef` 路由契约（`route-contract.ts`）与 Nest/Fastify 双 adapter（`adapters/{nest,fastify}.ts`，唯一框架导入落点）。旧的 `src/modules/*.ts` 兼容外观已移除，消费者使用包入口或上下文入口。所有主机共用。
+- `packages/assembly/`：统一组装中心（`@trapmap/assembly`）：cordis 装配内核封装 + 能力节点定义/注册 + TS 组合器 + startupChecks + 退出控制。Phase 1 只有内核（`createAssembly` / `defineNode` / `defineContract` / `startupChecks` / `createShutdownController`），profiles 与节点包装在 Phase 2+；依赖 `@deepseek-ai/cordis`、zod；消费方自 Phase 2 起为 `host-*` / `apps/*`。
 - `packages/service-identity-access/`：拥有身份访问服务组装、内部路由注册（`createIdentityAccessRouteDefs`）和有界上下文 auth/session/team/member/access-key 接线。
 - `packages/service-knowledge-read/`：知识读取服务组装（`createKnowledgeReadRouteDefs`）。拥有检索、读模型和投影视图状态路由接线；read model 经 `packages/contracts` 的 projection helper 读取共享契约，不反向导入 server implementation。
 - `packages/service-knowledge-write/`：拥有知识写入服务组装、内部路由注册（`createKnowledgeWriteRouteDefs`）和有界上下文写入接线（knowledge/trap/skill/lifecycle/maintenance/decay）；pg-ports 只保留 SQL 与行映射。
