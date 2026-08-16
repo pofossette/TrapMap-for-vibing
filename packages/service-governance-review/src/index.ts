@@ -28,6 +28,7 @@ export {
   type GovernanceConflictWorkflowDeps,
 } from './conflict-workflow.js';
 export { createGovernanceConflictReadPort } from './conflict-read.js';
+export { createRuleConflictTrigger } from './conflict-trigger/rule-conflict-trigger.js';
 export {
   createGovernanceReviewAdminModule,
   type GovernanceReviewAdminDeps,
