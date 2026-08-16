@@ -1,13 +1,6 @@
-import type {
-  EvalPlatformEvent,
-  RetrievalEvalCase,
-  RetrievalEvalTier,
-} from '@trapmap/contracts/evals';
+import type { EvalPlatformEvent, RetrievalEvalCase, RetrievalEvalTier } from '../../types/index.js';
 
-import type {
-  RetrievalEvalFailureRecord,
-  RetrievalEvalReport,
-} from '../../../packages/contracts/src/domain/evals/report.js';
+import type { RetrievalEvalFailureRecord, RetrievalEvalReport } from '../../types/report.js';
 import {
   buildCaseAssertionEvent,
   buildCaseLifecycleEvents,

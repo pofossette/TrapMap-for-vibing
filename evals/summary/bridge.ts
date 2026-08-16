@@ -15,7 +15,7 @@ import type {
   SummaryEvalEndpoint,
   SummaryEvalReport,
   SummaryEvalTier,
-} from '@trapmap/contracts/evals';
+} from '../types/index.js';
 
 import { createJsAssertion } from '../promptfoo/assertion.js';
 import { registerBridge } from '../promptfoo/bridge.js';

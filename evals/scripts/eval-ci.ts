@@ -28,12 +28,8 @@ import type {
   RegressionResult,
   RegressionThresholds,
   RetrievalEvalReport,
-} from '../../packages/contracts/src/domain/evals/report.js';
-import {
-  TIER_THRESHOLDS,
-  baselineReportSchema,
-  regressionResultSchema,
-} from '../../packages/contracts/src/domain/evals/report.js';
+} from '../types/report.js';
+import { TIER_THRESHOLDS, baselineReportSchema, regressionResultSchema } from '../types/report.js';
 import type { EvalAllOptions, RetrievalResult, SummaryResult } from './eval-all.js';
 import { runRetrievalEval, runSummaryEval } from './eval-all.js';
 

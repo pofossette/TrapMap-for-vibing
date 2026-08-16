@@ -13,7 +13,7 @@
 
 import { parseArgs } from 'node:util';
 
-import type { RetrievalEvalCase, RetrievalEvalTier } from '@trapmap/contracts/evals';
+import type { RetrievalEvalCase, RetrievalEvalTier } from '../types/index.js';
 
 import { loadAndFilterCases, resolveRunnerValue } from '../lib/runner-cli.js';
 import { loadCases } from './lib/load.js';

@@ -1,6 +1,6 @@
 import { type CreateLangfuseScoreBody, Langfuse, type LangfuseCore } from 'langfuse';
 
-import { type EvalPlatformEvent, evalPlatformEventSchema } from '@trapmap/contracts/evals';
+import { type EvalPlatformEvent, evalPlatformEventSchema } from '../../types/index.js';
 
 import type { EvalPlatformAdapter, EvalPlatformAdapterConfig } from './types.js';
 

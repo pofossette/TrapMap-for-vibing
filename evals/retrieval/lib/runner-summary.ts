@@ -7,7 +7,7 @@
  * native runner and the promptfoo bridge.
  */
 
-import type { RetrievalEvalTier } from '@trapmap/contracts/evals';
+import type { RetrievalEvalTier } from '../../types/index.js';
 
 import { averageMetrics } from './metrics.js';
 import type { CaseResult, RunnerOptions, RunnerSummary, SliceKey, SliceMetrics } from './types.js';

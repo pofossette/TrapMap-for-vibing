@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import type { AgentPlanningContextEntry } from '@trapmap/contracts/evals';
+import type { AgentPlanningContextEntry } from '../../types/index.js';
 
 export interface CapsuleKeywordMatch {
   skillId: string;

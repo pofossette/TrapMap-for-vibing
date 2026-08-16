@@ -15,7 +15,7 @@ import type {
   LabelAlignmentEvalCase,
   LabelAlignmentEvalCaseResult,
   LabelAlignmentEvalReport,
-} from '@trapmap/contracts/evals';
+} from '../types/index.js';
 
 import { failedExecutionAssertion } from '../lib/assertion.js';
 import { createJsAssertion } from '../promptfoo/assertion.js';

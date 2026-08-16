@@ -1,4 +1,4 @@
-import type { AgentPlanningEvalReport } from '@trapmap/contracts/evals';
+import type { AgentPlanningEvalReport } from '../../types/index.js';
 
 export function formatReport(report: AgentPlanningEvalReport): string {
   const lines = [

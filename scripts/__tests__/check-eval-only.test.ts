@@ -81,13 +81,9 @@ describe('checkEvalOnlyMarkers', () => {
       '/**\n * @eval-only — product code has zero consumers.\n */\nexport const m = 1;\n',
     );
     write(root, 'evals/runner.ts', "import { m } from '../packages/service-a/src/marked.js';\n");
-    // Contracts and host-local imports are out of the eval-only scope.
-    write(root, 'packages/contracts/src/domain/evals/report.ts', 'export const r = 1;\n');
-    write(
-      root,
-      'evals/contracts.ts',
-      "import { r } from '../packages/contracts/src/domain/evals/report.js';\n",
-    );
+    // Modules outside the eval-only scope (lib/contracts) need no marker.
+    write(root, 'packages/lib/src/foo.ts', 'export const f = 1;\n');
+    write(root, 'evals/lib-consumer.ts', "import { f } from '../packages/lib/src/foo.js';\n");
     write(root, 'packages/host-local/src/nest/config/config.ts', 'export const c = 1;\n');
     write(
       root,

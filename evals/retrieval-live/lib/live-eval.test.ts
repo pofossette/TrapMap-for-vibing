@@ -23,7 +23,7 @@ import {
   liveEvalSliceDiffSchema,
   liveSnapshotDerivationContextSchema,
   liveSnapshotMetaSchema,
-} from '@trapmap/contracts/evals';
+} from '../../types/index.js';
 
 import {
   detectServiceProfile,

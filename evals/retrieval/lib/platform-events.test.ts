@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { RetrievalEvalReport } from '../../../packages/contracts/src/domain/evals/report.js';
+import type { RetrievalEvalReport } from '../../types/report.js';
 
 vi.mock('./runner-api.js', () => ({
   getRetrievalEvaluationCases: vi.fn(() => [

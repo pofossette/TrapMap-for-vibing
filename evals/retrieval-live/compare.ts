@@ -15,7 +15,7 @@ import type {
   LiveEvalCaseDiff,
   LiveEvalComparisonReport,
   LiveEvalSliceDiff,
-} from '@trapmap/contracts/evals';
+} from '../types/index.js';
 
 // =============================================================================
 // Report Shape (matches the JSON output from run.ts)

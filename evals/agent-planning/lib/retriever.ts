@@ -1,4 +1,4 @@
-import type { AgentPlanningContextEntry } from '@trapmap/contracts/evals';
+import type { AgentPlanningContextEntry } from '../../types/index.js';
 
 import type { SkillRecord } from './skill-store.js';
 import { getSkillStore } from './skill-store.js';

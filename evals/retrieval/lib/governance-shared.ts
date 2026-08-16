@@ -1,4 +1,4 @@
-import type { GraphPlanExpectations } from '@trapmap/contracts/evals';
+import type { GraphPlanExpectations } from '../../types/index.js';
 
 import type { GovernanceFailure, NormalizedResult } from './types.js';
 

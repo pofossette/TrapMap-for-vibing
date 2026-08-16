@@ -15,11 +15,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
-import type {
-  SummaryEvalCase,
-  SummaryEvalEndpoint,
-  SummaryEvalTier,
-} from '@trapmap/contracts/evals';
+import type { SummaryEvalCase, SummaryEvalEndpoint, SummaryEvalTier } from '../types/index.js';
 
 import { loadAndFilterCases, resolveRunnerValue } from '../lib/runner-cli.js';
 import { formatSummaryReport } from './lib/format.js';

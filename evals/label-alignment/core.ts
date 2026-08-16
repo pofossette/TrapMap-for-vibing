@@ -4,8 +4,8 @@ import type {
   LabelAlignmentEvalFixture,
   LabelAlignmentEvalReport,
   LabelAlignmentRecallReason,
-} from '../../packages/contracts/src/domain/evals/label-alignment.js';
-import { labelAlignmentEvalFixtureSchema } from '../../packages/contracts/src/domain/evals/label-alignment.js';
+} from '../types/label-alignment.js';
+import { labelAlignmentEvalFixtureSchema } from '../types/label-alignment.js';
 
 import { coreFixtures } from './archived/fixtures/core.js';
 import { smokeFixtures } from './fixtures/smoke.js';

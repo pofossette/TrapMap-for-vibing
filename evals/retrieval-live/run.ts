@@ -14,7 +14,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { type RetrievalEvalCase, retrievalEvalCaseSchema } from '@trapmap/contracts/evals';
+import { type RetrievalEvalCase, retrievalEvalCaseSchema } from '../types/index.js';
 
 import { evaluateGovernance } from '../retrieval/lib/governance.js';
 import { calculateMetrics } from '../retrieval/lib/metrics.js';

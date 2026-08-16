@@ -9,8 +9,8 @@ import type {
   AssertionStability,
   LiveEvalServiceProfile,
   LiveSnapshotDerivationMode,
-} from '@trapmap/contracts/evals';
-import type { RetrievalEvalCase, RetrievalEvalEndpoint } from '@trapmap/contracts/evals';
+} from '../../types/index.js';
+import type { RetrievalEvalCase, RetrievalEvalEndpoint } from '../../types/index.js';
 
 import type {
   AdapterWarning,

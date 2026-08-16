@@ -5,7 +5,7 @@ import {
   type EvalPlatformEvent,
   evalPlatformEventSchema,
   evalPlatformRunSchema,
-} from '../../../packages/contracts/src/domain/evals/platform.js';
+} from '../../types/platform.js';
 
 import type { EvalPlatformAdapter, EvalPlatformAdapterConfig } from './types.js';
 

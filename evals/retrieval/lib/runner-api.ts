@@ -9,7 +9,7 @@
  * case-loading helpers that the bridge and platform-event mirroring consume.
  */
 
-import type { RetrievalEvalCase, RetrievalEvalTier } from '@trapmap/contracts/evals';
+import type { RetrievalEvalCase, RetrievalEvalTier } from '../../types/index.js';
 
 import { filterByEndpoint, loadCases } from './load.js';
 

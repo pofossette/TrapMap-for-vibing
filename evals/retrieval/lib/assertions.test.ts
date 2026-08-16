@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { RetrievalEvalCase } from '@trapmap/contracts/evals';
+import type { RetrievalEvalCase } from '../../types/index.js';
 import {
   evaluateVerdicts,
   extractGovernanceFailures,

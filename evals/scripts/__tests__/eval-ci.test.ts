@@ -5,12 +5,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type {
-  BaselineReport,
-  RegressionResult,
-  RetrievalEvalReport,
-} from '../../../packages/contracts/src/domain/evals/report.js';
-import { TIER_THRESHOLDS } from '../../../packages/contracts/src/domain/evals/report.js';
+import type { BaselineReport, RegressionResult, RetrievalEvalReport } from '../../types/report.js';
+import { TIER_THRESHOLDS } from '../../types/report.js';
 import {
   type CIReport,
   compareWithBaseline,

@@ -4,7 +4,7 @@ import type {
   LabelAlignmentEvalCase,
   LabelAlignmentEvalCaseResult,
   LabelAlignmentRecallReason,
-} from '../../../packages/contracts/src/domain/evals/label-alignment.js';
+} from '../../types/label-alignment.js';
 
 import { buildCatalogSeed, seedCatalogEntries } from './catalog-seed.js';
 import { calculateCaseMetrics } from './metrics.js';

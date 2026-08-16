@@ -20,8 +20,8 @@ import type {
   RetrievalEvalSliceSummary,
   RetrievalEvalWarningRecord,
   RoutingDistribution,
-} from '@trapmap/contracts/evals';
-import { retrievalEvalReportSchema } from '@trapmap/contracts/evals';
+} from '../../types/index.js';
+import { retrievalEvalReportSchema } from '../../types/index.js';
 import {
   average,
   buildEvalReportMetaOptions,

@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { retrievalEvalCaseSchema, retrievalEvalScenarioSchema } from '@trapmap/contracts/evals';
+import { retrievalEvalCaseSchema, retrievalEvalScenarioSchema } from '../../types/index.js';
 
 import { coreScenarios, coreScenariosMap } from '../scenarios/core/retrieval-core-scenarios.js';
 // Import scenarios

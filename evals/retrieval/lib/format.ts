@@ -14,7 +14,7 @@ import type {
   RetrievalEvalSliceSummary,
   RetrievalEvalWarningRecord,
   RoutingDistribution,
-} from '../../../packages/contracts/src/domain/evals/report.js';
+} from '../../types/report.js';
 import { pushSliceTable, pushSummaryStats } from '../../lib/eval-report.js';
 import { compareCohortSummaries, compareSliceSummaries } from './report.js';
 

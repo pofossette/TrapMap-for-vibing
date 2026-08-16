@@ -1,7 +1,7 @@
 import type {
   AgentPlanningDeterministicPrecheck,
   AgentPlanningEvalCase,
-} from '@trapmap/contracts/evals';
+} from '../../types/index.js';
 
 export interface DeterministicPrecheckInput {
   normalizedPlan: string[];
@@ -34,7 +34,7 @@ export function evaluateDeterministicPrecheck(
 
   // Skill identification precheck fields
   const caseDef = input.caseDefinition as Pick<
-    import('@trapmap/contracts/evals').AgentPlanningEvalCase,
+    import('../../types/index.js').AgentPlanningEvalCase,
     'goldenPath' | 'expectedSkillIds' | 'expectedDistractorSkillIds' | 'contextSetKind'
   >;
   const expectedSkillHitCount =

@@ -14,7 +14,7 @@
  * Phase 25-02: REVAL-02
  */
 
-import { type RetrievalEvalScenario, retrievalEvalScenarioSchema } from '@trapmap/contracts/evals';
+import { type RetrievalEvalScenario, retrievalEvalScenarioSchema } from '../../../types/index.js';
 
 // =============================================================================
 // Core Scenario: Multiple Relevant Hits with Ranking

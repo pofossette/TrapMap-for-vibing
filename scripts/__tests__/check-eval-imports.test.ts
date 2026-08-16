@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { checkEvalImports, classifyImport } from '../check-eval-imports';
+import { checkEvalImports, checkReverseEvalImports, classifyImport } from '../check-eval-imports';
 import { sourcePathFor } from '../lib/eval-import-lib';
 import { cleanupTempRepos, makeTempRepo, write } from './helpers/temp-repo';
 
@@ -18,10 +18,10 @@ describe('sourcePathFor', () => {
 describe('classifyImport', () => {
   const root = '/repo';
 
-  it('allows packages/contracts imports', () => {
+  it('rejects deep imports into packages/contracts internals', () => {
     expect(
-      classifyImport(root, 'evals/x.ts', 1, 'packages/contracts/src/domain/evals/report.ts'),
-    ).toBeNull();
+      classifyImport(root, 'evals/x.ts', 1, 'packages/contracts/src/domain/common.ts'),
+    ).not.toBeNull();
   });
 
   it('allows the host-local eval allowlist', () => {
@@ -67,11 +67,9 @@ describe('checkEvalImports', () => {
       '/**\n * @eval-only — product code has zero consumers.\n */\nexport const y = 1;\n',
     );
     write(root, 'evals/runner.ts', "import('../packages/service-a/src/eval-only.js');\n");
-    write(
-      root,
-      'evals/contracts.ts',
-      "import { z } from '../packages/contracts/src/domain/evals/report.js';\n",
-    );
+    // Eval-only contracts now live inside evals/ (intra-evals import).
+    write(root, 'evals/types/report.ts', 'export const r = 1;\n');
+    write(root, 'evals/contracts.ts', "import { r } from './types/report.js';\n");
     write(
       root,
       'evals/facade.ts',
@@ -98,6 +96,20 @@ describe('checkEvalImports', () => {
     expect(result.messages[0]).toContain('packages/service-a/src/pg-ports.ts');
   });
 
+  it('fails on a deep relative import into packages/contracts internals', () => {
+    const root = makeTempRepo('trapmap-eval-imports-');
+    write(
+      root,
+      'evals/bad-contracts.ts',
+      "import { z } from '../packages/contracts/src/domain/common.js';\n",
+    );
+    write(root, 'packages/contracts/src/domain/common.ts', 'export const z = 1;\n');
+
+    const result = checkEvalImports(root);
+    expect(result.failures).toBe(1);
+    expect(result.messages[0]).toContain('evals/bad-contracts.ts:1');
+  });
+
   it('ignores package-name and intra-evals imports', () => {
     const root = makeTempRepo('trapmap-eval-imports-');
     write(
@@ -109,5 +121,38 @@ describe('checkEvalImports', () => {
 
     const result = checkEvalImports(root);
     expect(result.failures).toBe(0);
+  });
+});
+
+describe('checkReverseEvalImports', () => {
+  it('passes when product code never imports from evals', () => {
+    const root = makeTempRepo('trapmap-eval-reverse-');
+    write(root, 'packages/a/src/index.ts', "import { x } from '@trapmap/contracts';\n");
+    write(root, 'packages/a/src/local.ts', "import { y } from './other.js';\n");
+    write(root, 'packages/a/src/other.ts', 'export const y = 1;\n');
+    write(root, 'apps/web/src/main.ts', "import { z } from '@trapmap/contracts';\n");
+
+    const result = checkReverseEvalImports(root);
+    expect(result.failures).toBe(0);
+  });
+
+  it('fails on a relative import into evals/ from packages', () => {
+    const root = makeTempRepo('trapmap-eval-reverse-');
+    write(root, 'evals/types/report.ts', 'export const r = 1;\n');
+    write(root, 'packages/a/src/bad.ts', "import { r } from '../../../evals/types/report.js';\n");
+
+    const result = checkReverseEvalImports(root);
+    expect(result.failures).toBe(1);
+    expect(result.messages[0]).toContain('packages/a/src/bad.ts:1');
+    expect(result.messages[0]).toContain('evals/types/report.ts');
+  });
+
+  it('fails on retired or future evals package namespaces in product code', () => {
+    const root = makeTempRepo('trapmap-eval-reverse-');
+    write(root, 'packages/a/src/old.ts', "import { r } from '@trapmap/contracts/evals';\n");
+    write(root, 'apps/web/src/future.ts', "import { e } from '@trapmap/evals';\n");
+
+    const result = checkReverseEvalImports(root);
+    expect(result.failures).toBe(2);
   });
 });

@@ -2,7 +2,7 @@ import type { LabelRepository } from '@trapmap/service-knowledge-write';
 import type {
   LabelAlignmentCatalogSeedEntry,
   LabelAlignmentEvalCase,
-} from '../../../packages/contracts/src/domain/evals/label-alignment.js';
+} from '../../types/label-alignment.js';
 
 export function buildCatalogSeed(case_: LabelAlignmentEvalCase): {
   entries: LabelAlignmentCatalogSeedEntry[];

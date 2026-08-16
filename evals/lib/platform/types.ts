@@ -1,7 +1,4 @@
-import type {
-  EvalPlatformEvent,
-  EvalPlatformRun,
-} from '../../../packages/contracts/src/domain/evals/platform.js';
+import type { EvalPlatformEvent, EvalPlatformRun } from '../../types/platform.js';
 
 export type { EvalPlatformEvent, EvalPlatformRun };
 

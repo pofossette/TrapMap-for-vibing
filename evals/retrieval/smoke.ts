@@ -7,7 +7,7 @@
  * Coverage: positive hit, empty result, forbidden result for both v1 and v2 endpoints.
  */
 
-import type { RetrievalEvalCase, RetrievalEvalScenario } from '@trapmap/contracts/evals';
+import type { RetrievalEvalCase, RetrievalEvalScenario } from '../types/index.js';
 
 // Import v1 and v2 smoke datasets
 import { v1RetrievalSmokeCases } from './datasets/smoke/v1-retrieval-smoke.js';

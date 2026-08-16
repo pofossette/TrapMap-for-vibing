@@ -11,7 +11,7 @@ import {
   type KnowledgeOwnerPort,
   liveSnapshotMetaSchema,
   retrievalEvalScenarioSnapshotSchema,
-} from '@trapmap/contracts/evals';
+} from '../../evals/types/index.js';
 import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
 import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
 import { Pool } from 'pg';

@@ -6,7 +6,7 @@
  * governance, outcome, and basic ranking stability.
  */
 
-import type { RetrievalEvalCase } from '@trapmap/contracts/evals';
+import type { RetrievalEvalCase } from '../../../types/index.js';
 
 /**
  * v2 capsule retrieval live smoke cases.

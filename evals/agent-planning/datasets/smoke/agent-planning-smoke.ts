@@ -1,4 +1,4 @@
-import type { AgentPlanningEvalCase } from '@trapmap/contracts/evals';
+import type { AgentPlanningEvalCase } from '../../../types/index.js';
 
 const minimalSkillFixturePath = 'evals/ingestion/fixtures/minimal-skill/SKILL.md';
 const demoSkillFixturePath = 'evals/ingestion/fixtures/demo-full/SKILL.md';

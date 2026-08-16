@@ -16,7 +16,7 @@ import type {
   RetrievalEvalEndpoint,
   RetrievalEvalTier,
   RoutingDistribution,
-} from '@trapmap/contracts/evals';
+} from '../../types/index.js';
 
 // =============================================================================
 // Execution Metadata Types

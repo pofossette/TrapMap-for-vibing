@@ -1,8 +1,8 @@
 import type {
   LabelAlignmentEvalCaseResult,
   LabelAlignmentEvalReport,
-} from '../../../packages/contracts/src/domain/evals/label-alignment.js';
-import { labelAlignmentEvalReportSchema } from '../../../packages/contracts/src/domain/evals/label-alignment.js';
+} from '../../types/label-alignment.js';
+import { labelAlignmentEvalReportSchema } from '../../types/label-alignment.js';
 
 import { summarizeCaseResults } from './metrics.js';
 

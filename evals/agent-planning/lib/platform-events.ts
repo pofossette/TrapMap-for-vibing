@@ -3,7 +3,7 @@ import type {
   AgentPlanningEvalReport,
   AgentPlanningEvalTier,
   EvalPlatformEvent,
-} from '@trapmap/contracts/evals';
+} from '../../types/index.js';
 
 import {
   buildAssertionEvent,

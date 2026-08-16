@@ -1,4 +1,4 @@
-import type { AgentPlanningEvalCase } from '@trapmap/contracts/evals';
+import type { AgentPlanningEvalCase } from '../../../types/index.js';
 
 export const skillIdentificationSmokeCases: AgentPlanningEvalCase[] = [
   // Task 1: CLI workflow identification

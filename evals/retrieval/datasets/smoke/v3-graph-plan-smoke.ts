@@ -5,7 +5,7 @@
  * (`/v3/retrieval/search`).
  */
 
-import { type RetrievalEvalCase, retrievalEvalCaseSchema } from '@trapmap/contracts/evals';
+import { type RetrievalEvalCase, retrievalEvalCaseSchema } from '../../../types/index.js';
 
 export const v3GraphPlanSelectedSmoke = retrievalEvalCaseSchema.parse({
   schemaVersion: 1,

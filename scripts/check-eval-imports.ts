@@ -1,23 +1,32 @@
 /**
  * Eval Import Boundary Guard (check:eval-imports).
  *
- * Enforces the evals → packages boundary: evals code may only reach into
- * packages through three surfaces:
+ * Enforces the evals ↔ packages boundary:
  *
- *   1. `@trapmap/*` package-name imports (they route through each package's
- *      exports map, which is the intended public surface);
- *   2. `packages/contracts/**` (shared contracts live in the eval domain
- *      and are deliberately open to evals);
- *   3. the host-local test assembly surface actually imported by evals
- *      (see HOST_LOCAL_EVAL_ALLOWLIST below), plus modules explicitly
- *      marked `@eval-only` in their header comment.
+ *   Forward (evals → packages): evals code may only reach into packages
+ *   through two surfaces:
  *
- * Everything else — a relative import from evals straight into a service
- * package's internal file — fails the check.
+ *     1. @trapmap/* package-name imports (they route through each
+ *        package's exports map, which is the intended public surface);
+ *     2. the host-local test assembly surface actually imported by evals
+ *        (see HOST_LOCAL_EVAL_ALLOWLIST below), plus modules explicitly
+ *        marked @eval-only in their header comment.
+ *
+ *   Everything else — a relative import from evals straight into a package's
+ *   internal file — fails the check. Eval-only contracts live in
+ *   evals/types/ (they are no longer part of packages/contracts), so
+ *   deep relative imports into packages/contracts/src/** are violations
+ *   just like any other package internals import.
+ *
+ *   Reverse (packages/apps → evals): product code must never import from
+ *   evals/** (relative) and must not reference the retired
+ *   @trapmap/contracts/evals namespace or a future @trapmap/evals
+ *   package. evals is a one-way dependency of the eval tooling, never a
+ *   dependency of product code.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 
 import { finishCheckRun } from './lib/check-result.js';
 import {
@@ -25,6 +34,7 @@ import {
   collectImportRefs,
   hasEvalOnlyMarker,
   resolvePackageTarget,
+  sourcePathFor,
 } from './lib/eval-import-lib.js';
 
 // ── Allowlists ───────────────────────────────────────────────────────
@@ -84,7 +94,6 @@ export function classifyImport(
   line: number,
   target: string,
 ): EvalImportViolation | null {
-  if (target.startsWith('packages/contracts/')) return null;
   if (isAllowlisted(target)) return null;
   if (isEvalOnlyMarked(root, target)) return null;
   return { file, line, target };
@@ -97,7 +106,7 @@ function classifyRef(root: string, ref: ImportRef): EvalImportViolation | null {
   return classifyImport(root, ref.file, ref.line, target);
 }
 
-/** Scan evals/ for boundary violations. */
+/** Scan evals/ for forward boundary violations. */
 export function checkEvalImports(root: string): CheckResult {
   const messages: string[] = [];
   let failures = 0;
@@ -107,8 +116,61 @@ export function checkEvalImports(root: string): CheckResult {
     if (violation) {
       failures += 1;
       messages.push(
-        `[eval-imports] ${violation.file}:${violation.line} imports ${ref.importPath} (→ ${violation.target}) — evals may only import @trapmap/* package names, packages/contracts/**, the host-local eval allowlist, or @eval-only-marked modules`,
+        `[eval-imports] ${violation.file}:${violation.line} imports ${ref.importPath} (→ ${violation.target}) — evals may only import @trapmap/* package names, the host-local eval allowlist, or @eval-only-marked modules`,
       );
+    }
+  }
+
+  return { failures, messages };
+}
+
+/** The retired / forbidden evals package-name namespaces in product code. */
+const FORBIDDEN_EVAL_SPECIFIERS = ['@trapmap/contracts/evals', '@trapmap/evals'] as const;
+
+function isForbiddenEvalSpecifier(importPath: string): boolean {
+  return FORBIDDEN_EVAL_SPECIFIERS.some(
+    (namespace) => importPath === namespace || importPath.startsWith(`${namespace}/`),
+  );
+}
+
+/** Resolve a relative import from a product file to a repo-relative path. */
+function resolveRelativeTarget(
+  root: string,
+  fromFileRel: string,
+  importPath: string,
+): string | null {
+  if (!importPath.startsWith('.')) return null;
+  const abs = resolve(root, dirname(fromFileRel), importPath);
+  const rel = relative(root, abs).replaceAll('\\', '/');
+  if (!rel.startsWith('evals/')) return null;
+  return sourcePathFor(rel);
+}
+
+/**
+ * Reverse scan: product code (packages/ + apps/) must not import from
+ * evals/ and must not reference the evals package namespaces.
+ */
+export function checkReverseEvalImports(root: string): CheckResult {
+  const messages: string[] = [];
+  let failures = 0;
+
+  for (const sourceRoot of ['packages', 'apps']) {
+    for (const ref of collectImportRefs(resolve(root, sourceRoot), root)) {
+      if (isForbiddenEvalSpecifier(ref.importPath)) {
+        failures += 1;
+        messages.push(
+          `[eval-imports] ${ref.file}:${ref.line} references ${ref.importPath} — product code must not depend on the eval workspace`,
+        );
+        continue;
+      }
+      if (!ref.importPath.startsWith('.')) continue;
+      const target = resolveRelativeTarget(root, ref.file, ref.importPath);
+      if (target?.startsWith('evals/')) {
+        failures += 1;
+        messages.push(
+          `[eval-imports] ${ref.file}:${ref.line} imports ${ref.importPath} (→ ${target}) — product code must not import from evals/`,
+        );
+      }
     }
   }
 
@@ -120,12 +182,16 @@ export function checkEvalImports(root: string): CheckResult {
 const ROOT = resolve(import.meta.dirname, '..');
 
 function main(): void {
-  const result = checkEvalImports(ROOT);
+  const forward = checkEvalImports(ROOT);
+  const reverse = checkReverseEvalImports(ROOT);
   finishCheckRun({
     name: '[eval-imports]',
-    result,
+    result: {
+      failures: forward.failures + reverse.failures,
+      messages: [...forward.messages, ...reverse.messages],
+    },
     remedy:
-      'Prefer @trapmap/* package imports; deep relative imports into service packages require an @eval-only marker or an explicit allowlist entry.',
+      'Prefer @trapmap/* package imports; deep relative imports into service packages require an @eval-only marker or an explicit allowlist entry; product code must never import from evals/.',
     passedMessage: '[eval-imports] all evals imports respect the packages boundary.',
   });
 }

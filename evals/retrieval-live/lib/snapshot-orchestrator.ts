@@ -18,7 +18,7 @@ import {
   type LiveEvalServiceProfile,
   type LiveSnapshotMeta,
   liveSnapshotMetaSchema,
-} from '@trapmap/contracts/evals';
+} from '../../types/index.js';
 
 import { nowIso } from '@trapmap/lib';
 

@@ -10,7 +10,7 @@
  * runtime re-validation (reports/cases are already schema-validated upstream).
  */
 
-import type { EvalPlatformEvent, EvalPlatformTier } from '@trapmap/contracts/evals';
+import type { EvalPlatformEvent, EvalPlatformTier } from '../types/index.js';
 
 export type EvalPlatformSuite = 'agent-planning' | 'retrieval' | 'summary';
 

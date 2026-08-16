@@ -87,6 +87,7 @@ Wave-10 intermediate（2026-07-25）：`packages/runtime-infra/` 已退休删除
 - `evals/label-alignment/`：标签对齐 fixtures、recall/decision 评估和运行器。
 - `evals/graph-extraction/`：图提取、冲突和去重评估。
 - `evals/ingestion/`：Skill 摄取 fixtures 和运行器。
+- `evals/types/`：eval-only 共享 Zod 契约（retrieval/summary/agent-planning/label-alignment/live-eval/platform/report），2026-08 从 `packages/contracts/src/domain/evals/` 迁入；产品代码禁止反向导入 `evals/`。
 - `evals/fixtures/`：共享 trap fixtures。
 
 ## 生成或仅本地目录

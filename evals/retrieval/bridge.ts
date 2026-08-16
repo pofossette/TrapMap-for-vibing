@@ -14,7 +14,7 @@ import type {
   RetrievalEvalCase,
   RetrievalEvalEndpoint,
   RetrievalEvalTier,
-} from '@trapmap/contracts/evals';
+} from '../types/index.js';
 
 import { createJsAssertion } from '../promptfoo/assertion.js';
 import { registerBridge } from '../promptfoo/bridge.js';

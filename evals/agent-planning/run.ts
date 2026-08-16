@@ -1,4 +1,4 @@
-import type { AgentPlanningEvalReport, AgentPlanningEvalTier } from '@trapmap/contracts/evals';
+import type { AgentPlanningEvalReport, AgentPlanningEvalTier } from '../types/index.js';
 
 import type { AgentPlanningResolvedOptions } from './lib/case-execution.js';
 import { formatReport } from './lib/format.js';

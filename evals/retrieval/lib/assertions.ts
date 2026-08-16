@@ -10,7 +10,7 @@
  * - Adapter warnings are elevated to verdict-level visibility
  */
 
-import type { GraphPlanExpectations, RetrievalEvalCase } from '@trapmap/contracts/evals';
+import type { GraphPlanExpectations, RetrievalEvalCase } from '../../types/index.js';
 import {
   checkV1BucketShape,
   checkV1SkillLookupArtifacts,

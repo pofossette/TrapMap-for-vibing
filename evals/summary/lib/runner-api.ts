@@ -14,8 +14,8 @@ import {
   type SummaryEvalEndpoint,
   type SummaryEvalTier,
   summaryEvalCaseSchema,
-} from '@trapmap/contracts/evals';
-import type { SummaryEvalReport } from '../../../packages/contracts/src/domain/evals/report.js';
+} from '../../types/index.js';
+import type { SummaryEvalReport } from '../../types/report.js';
 
 import { summaryCoreCases } from '../core.js';
 import { summarySmokeCases } from '../smoke.js';

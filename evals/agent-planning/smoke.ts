@@ -1,4 +1,4 @@
-import type { AgentPlanningEvalCase, AgentPlanningEvalScenario } from '@trapmap/contracts/evals';
+import type { AgentPlanningEvalCase, AgentPlanningEvalScenario } from '../types/index.js';
 
 import { agentPlanningSmokeCases } from './datasets/smoke/agent-planning-smoke.js';
 import {

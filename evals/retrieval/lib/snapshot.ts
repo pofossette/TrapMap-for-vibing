@@ -5,7 +5,7 @@ import {
   type RetrievalEvalActor,
   type RetrievalEvalScenario,
   retrievalEvalScenarioSnapshotSchema,
-} from '@trapmap/contracts/evals';
+} from '../../types/index.js';
 
 export async function hydrateScenarioSnapshot(
   scenario: RetrievalEvalScenario,

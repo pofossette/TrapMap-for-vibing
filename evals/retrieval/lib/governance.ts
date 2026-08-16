@@ -7,7 +7,7 @@
  * Hard-fail assertions for forbidden hits, outcome mismatches, and shape violations.
  */
 
-import type { RetrievalEvalCase } from '@trapmap/contracts/evals';
+import type { RetrievalEvalCase } from '../../types/index.js';
 
 import {
   checkForbiddenHits,

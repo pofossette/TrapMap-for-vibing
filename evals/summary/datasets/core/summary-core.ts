@@ -5,7 +5,7 @@
  * coverage, governance boundary enforcement, and empty-result handling.
  */
 
-import { type SummaryEvalCase, summaryEvalCaseSchema } from '@trapmap/contracts/evals';
+import { type SummaryEvalCase, summaryEvalCaseSchema } from '../../../types/index.js';
 
 // =============================================================================
 // Core Case: Mixed Groundedness

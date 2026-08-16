@@ -12,8 +12,8 @@ import type {
   SummaryEvalFailureRecord,
   SummaryEvalReport,
   SummaryEvalReportMeta,
-} from '../../../packages/contracts/src/domain/evals/report.js';
-import { summaryEvalReportSchema } from '../../../packages/contracts/src/domain/evals/report.js';
+} from '../../types/report.js';
+import { summaryEvalReportSchema } from '../../types/report.js';
 import {
   average,
   buildEvalReportMetaOptions,

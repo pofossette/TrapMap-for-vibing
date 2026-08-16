@@ -6,7 +6,7 @@
  * and empty-result edge cases.
  */
 
-import { type RetrievalEvalScenario, retrievalEvalScenarioSchema } from '@trapmap/contracts/evals';
+import { type RetrievalEvalScenario, retrievalEvalScenarioSchema } from '../../../types/index.js';
 
 // =============================================================================
 // Core Scenario: Mixed Groundedness

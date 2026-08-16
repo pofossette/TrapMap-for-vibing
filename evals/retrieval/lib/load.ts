@@ -10,7 +10,7 @@ import {
   type RetrievalEvalScenario,
   type RetrievalEvalTier,
   retrievalEvalCaseSchema,
-} from '@trapmap/contracts/evals';
+} from '../../types/index.js';
 
 import { coreCases, coreScenariosMap } from '../core.js';
 import { smokeCases, smokeScenariosMap } from '../smoke.js';

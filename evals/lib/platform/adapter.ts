@@ -1,4 +1,4 @@
-import type { EvalPlatformEvent } from '../../../packages/contracts/src/domain/evals/platform.js';
+import type { EvalPlatformEvent } from '../../types/platform.js';
 
 import { createJsonArchiveAdapter } from './json-archive-adapter.js';
 import { createLangfuseAdapter } from './langfuse-adapter.js';

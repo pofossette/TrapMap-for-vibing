@@ -12,7 +12,7 @@ import {
   type AgentPlanningEvalScenario,
   type AgentPlanningEvalTier,
   agentPlanningEvalScenarioSchema,
-} from '@trapmap/contracts/evals';
+} from '../../types/index.js';
 
 import { skillIdentificationCoreScenarios } from '../archived/scenarios/core/skill-identification-core-scenarios.js';
 import { coreScenariosMap } from '../core.js';

@@ -7,7 +7,7 @@
  * bridge so `--runner promptfoo` is per-case identical to native.
  */
 
-import type { RetrievalEvalScenario, SummaryEvalCase } from '@trapmap/contracts/evals';
+import type { RetrievalEvalScenario, SummaryEvalCase } from '../../types/index.js';
 
 import {
   type ExecutionContext as RetrievalExecutionContext,

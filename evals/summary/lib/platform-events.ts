@@ -1,9 +1,6 @@
-import type { EvalPlatformEvent, SummaryEvalCase, SummaryEvalTier } from '@trapmap/contracts/evals';
+import type { EvalPlatformEvent, SummaryEvalCase, SummaryEvalTier } from '../../types/index.js';
 
-import type {
-  SummaryEvalFailureRecord,
-  SummaryEvalReport,
-} from '../../../packages/contracts/src/domain/evals/report.js';
+import type { SummaryEvalFailureRecord, SummaryEvalReport } from '../../types/report.js';
 import {
   buildCaseAssertionEvent,
   buildCaseLifecycleEvents,

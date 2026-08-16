@@ -144,6 +144,7 @@ evals/
 │   ├── snapshots/               # 提交的 smoke 判定快照（*-smoke.json + snapshot-schema.ts）
 │   └── scripts/
 │       └── generate-snapshots.ts # 快照生成器（含各 suite case extractor）
+├── types/                       # eval-only 共享 Zod 契约（2026-08 从 packages/contracts/src/domain/evals/ 迁入）
 └── <suite>/bridge.ts            # 各 suite 的 SuiteBridge 桥接实现
 ```
 

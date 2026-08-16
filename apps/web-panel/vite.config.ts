@@ -12,9 +12,6 @@ const clientCoreSrc = normalizePath(
 const contractsSrc = normalizePath(
   path.resolve(packageRoot, '../../packages/contracts/src/index.ts'),
 );
-const contractsEvalsSrc = normalizePath(
-  path.resolve(packageRoot, '../../packages/contracts/src/domain/evals/index.ts'),
-);
 
 export default defineConfig({
   plugins: [
@@ -84,10 +81,6 @@ export default defineConfig({
       {
         find: '@trapmap/client-core',
         replacement: clientCoreSrc,
-      },
-      {
-        find: '@trapmap/contracts/evals',
-        replacement: contractsEvalsSrc,
       },
       {
         find: '@trapmap/contracts',

@@ -2,7 +2,7 @@ import type {
   AgentPlanningDeterministicPrecheck,
   AgentPlanningEvalCase,
   AgentPlanningJudgeResult,
-} from '@trapmap/contracts/evals';
+} from '../../types/index.js';
 
 import { normalizeActorOutput } from './normalizer.js';
 

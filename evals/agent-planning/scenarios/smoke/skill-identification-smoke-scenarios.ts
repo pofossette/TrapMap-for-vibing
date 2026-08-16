@@ -1,4 +1,4 @@
-import type { AgentPlanningEvalScenario } from '@trapmap/contracts/evals';
+import type { AgentPlanningEvalScenario } from '../../../types/index.js';
 
 // Shared context entries for skill identification scenarios
 const cliWorkflowSkillProfile = {

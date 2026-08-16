@@ -22,13 +22,10 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
-import type { AgentPlanningEvalReport } from '../../packages/contracts/src/domain/evals/agent-planning.js';
-import type { AgentPlanningEvalCase } from '../../packages/contracts/src/domain/evals/agent-planning.js';
-import type { LabelAlignmentEvalReport } from '../../packages/contracts/src/domain/evals/label-alignment.js';
-import type {
-  RetrievalEvalReport,
-  SummaryEvalReport,
-} from '../../packages/contracts/src/domain/evals/report.js';
+import type { AgentPlanningEvalReport } from '../types/agent-planning.js';
+import type { AgentPlanningEvalCase } from '../types/agent-planning.js';
+import type { LabelAlignmentEvalReport } from '../types/label-alignment.js';
+import type { RetrievalEvalReport, SummaryEvalReport } from '../types/report.js';
 import { buildAgentPlanningPlatformEvents } from '../agent-planning/lib/platform-events.js';
 import type { GraphExtractionBridgeReport } from '../graph-extraction/bridge.js';
 import type { IngestionBridgeReport } from '../ingestion/bridge.js';

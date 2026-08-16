@@ -208,7 +208,7 @@ Skill 工件的客户端激活元数据，包含 references、assets、scripts �
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `packages/contracts/src/domain/evals/retrieval.ts` | Zod schema | 评估用例中的命中判定 |
+| `evals/types/retrieval.ts` | Zod schema | 评估用例中的命中判定 |
 | `evals/retrieval/` | Impl | 检索评估运行器中计算 Hit@K |
 
 ### MRR（Mean Reciprocal Rank）
@@ -217,7 +217,7 @@ Skill 工件的客户端激活元数据，包含 references、assets、scripts �
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `packages/contracts/src/domain/evals/report.ts` | TS 字段 | 评估报告中聚合计算 |
+| `evals/types/report.ts` | TS 字段 | 评估报告中聚合计算 |
 
 ### nDCG（Normalized Discounted Cumulative Gain）
 
@@ -225,7 +225,7 @@ Skill 工件的客户端激活元数据，包含 references、assets、scripts �
 
 | 位置 | 形式 | 说明 |
 |------|------|------|
-| `packages/contracts/src/domain/evals/report.ts` | TS 字段 | 评估报告中聚合计算 |
+| `evals/types/report.ts` | TS 字段 | 评估报告中聚合计算 |
 
 ### executionPlan（执行计划）
 

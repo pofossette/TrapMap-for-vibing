@@ -320,7 +320,7 @@ describe('agent planning eval scaffold', () => {
   });
 
   it('validates new context entry kinds pass schema', async () => {
-    const contractsMod = await import('@trapmap/contracts/evals').catch(() => null);
+    const contractsMod = await import('../types/index.js').catch(() => null);
     expect(contractsMod).not.toBeNull();
 
     const { agentPlanningContextEntrySchema } = contractsMod!;
@@ -345,7 +345,7 @@ describe('agent planning eval scaffold', () => {
   });
 
   it('validates new contextSetKind values pass schema', async () => {
-    const contractsMod = await import('@trapmap/contracts/evals').catch(() => null);
+    const contractsMod = await import('../types/index.js').catch(() => null);
     expect(contractsMod).not.toBeNull();
 
     const { agentPlanningContextSetKindSchema } = contractsMod!;
@@ -356,7 +356,7 @@ describe('agent planning eval scaffold', () => {
   });
 
   it('validates matchStrategy refinement on eval case schema', async () => {
-    const contractsMod = await import('@trapmap/contracts/evals').catch(() => null);
+    const contractsMod = await import('../types/index.js').catch(() => null);
     expect(contractsMod).not.toBeNull();
 
     const { agentPlanningEvalCaseSchema } = contractsMod!;

@@ -1,4 +1,4 @@
-import type { LabelAlignmentEvalReport } from '../../../packages/contracts/src/domain/evals/label-alignment.js';
+import type { LabelAlignmentEvalReport } from '../../types/label-alignment.js';
 
 export function formatLabelAlignmentReport(report: LabelAlignmentEvalReport): string {
   const lines = [

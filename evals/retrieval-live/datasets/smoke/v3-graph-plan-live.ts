@@ -7,7 +7,7 @@
  * - graph backend actually participates (not empty graph)
  */
 
-import type { RetrievalEvalCase } from '@trapmap/contracts/evals';
+import type { RetrievalEvalCase } from '../../../types/index.js';
 
 /**
  * v3 graph-plan retrieval live smoke cases.

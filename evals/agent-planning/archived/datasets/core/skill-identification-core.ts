@@ -1,4 +1,4 @@
-import type { AgentPlanningEvalCase } from '@trapmap/contracts/evals';
+import type { AgentPlanningEvalCase } from '../../../../types/index.js';
 
 import { skillIdentificationSmokeCases } from '../../../datasets/smoke/skill-identification-smoke.js';
 

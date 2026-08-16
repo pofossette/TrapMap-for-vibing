@@ -14,7 +14,8 @@ pnpm add @trapmap/contracts
 | Entry | Import Path | Description |
 |-------|-------------|-------------|
 | Main | `@trapmap/contracts` | All domain schemas, types, enum types, and utility functions |
-| Evals | `@trapmap/contracts/evals` | Evaluation schemas for retrieval, summary, live eval, agent planning, and label alignment |
+
+> Eval-only contracts (retrieval/summary/agent-planning/label-alignment/live-eval/platform schemas) moved to `evals/types/` in 2026-08; `@trapmap/contracts/evals` is retired and product code must not import from `evals/`.
 
 ## Directory Structure
 
@@ -245,19 +246,6 @@ Six-layer applicability constraints for knowledge entries:
 | `exclusions` | Inapplicability conditions |
 | `evidence` | Supporting references (issues, CVEs, commits) |
 
-### Evals Sub-Entry (`@trapmap/contracts/evals`)
-
-Evaluation contracts for retrieval quality, summary groundedness, and live eval:
-
-| Module | Description |
-|--------|-------------|
-| `retrieval.ts` | Retrieval eval scenarios, cases, tier/endpoint enums, relevance/governance/shape expectations |
-| `report.ts` | Evaluation reports with slice summaries, cohort analysis, baseline comparison, regression detection |
-| `retrieval-live.ts` | Live eval snapshots with service profiles, derivation context, version comparison |
-| `summary.ts` | Summary evaluation with groundedness and coverage scoring |
-| `agent-planning.ts` | Agent planning evaluation schemas |
-| `label-alignment.ts` | Label alignment evaluation schemas |
-
 ## Shared Validation Helpers
 
 Reusable helpers imported by all domain schemas:
@@ -374,21 +362,6 @@ const submission = knowledgeSubmissionSchema.parse({
   labels: ['docker', 'timeout'],
   shortcut: 'Docker container health check timeout',
   detail: 'When running health checks...',
-});
-```
-
-### Using the evals sub-entry
-
-```typescript
-import { retrievalEvalCaseSchema, retrievalEvalReportSchema } from '@trapmap/contracts/evals';
-
-const report = retrievalEvalReportSchema.parse({
-  meta: { /* ... */ },
-  summary: { totalCases: 10, passedCases: 8, failedCases: 2, passRate: 0.8, passed: true },
-  slices: [],
-  cases: [],
-  failures: [],
-  warnings: [],
 });
 ```
 

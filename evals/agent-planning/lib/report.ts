@@ -6,7 +6,7 @@ import {
   type AgentPlanningInterferenceLevel,
   type AgentPlanningSliceDimension,
   agentPlanningEvalReportSchema,
-} from '@trapmap/contracts/evals';
+} from '../../types/index.js';
 
 export interface AgentPlanningReportOptions {
   tier: AgentPlanningEvalTier;

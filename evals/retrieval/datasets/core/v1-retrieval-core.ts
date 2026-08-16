@@ -7,7 +7,7 @@
  * Phase 25-02: REVAL-02
  */
 
-import { type RetrievalEvalCase, retrievalEvalCaseSchema } from '@trapmap/contracts/evals';
+import { type RetrievalEvalCase, retrievalEvalCaseSchema } from '../../../types/index.js';
 
 // =============================================================================
 // v1 Core: Semantic Ranked Hits

@@ -1,4 +1,4 @@
-import type { LiveEvalServiceProfile } from '@trapmap/contracts/evals';
+import type { LiveEvalServiceProfile } from '../../types/index.js';
 
 type CorpusRecord = Record<string, unknown>;
 

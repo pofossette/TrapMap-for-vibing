@@ -13,7 +13,7 @@
  * Phase 27-01: SEVAL-01, SEVAL-02
  */
 
-import { type RetrievalEvalScenario, retrievalEvalScenarioSchema } from '@trapmap/contracts/evals';
+import { type RetrievalEvalScenario, retrievalEvalScenarioSchema } from '../../../types/index.js';
 
 // =============================================================================
 // Smoke Scenario: Grounded Summary

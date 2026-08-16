@@ -2,7 +2,7 @@ import {
   type AgentPlanningEvalCase,
   type AgentPlanningEvalTier,
   agentPlanningEvalCaseSchema,
-} from '@trapmap/contracts/evals';
+} from '../../types/index.js';
 
 import { skillIdentificationCoreCases } from '../archived/datasets/core/skill-identification-core.js';
 import { coreCases } from '../core.js';

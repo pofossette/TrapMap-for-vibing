@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { retrievalEvalReportSchema } from '@trapmap/contracts/evals';
+import { retrievalEvalReportSchema } from '../../types/index.js';
 import { formatCompactSummary, formatReport } from './format.js';
 import { buildReport } from './report.js';
 import type { CaseResult, NormalizedResult } from './types.js';

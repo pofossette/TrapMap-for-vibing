@@ -1,4 +1,4 @@
-import type { AgentPlanningEvalCase, AgentPlanningEvalScenario } from '@trapmap/contracts/evals';
+import type { AgentPlanningEvalCase, AgentPlanningEvalScenario } from '../../types/index.js';
 
 export interface ActorRunOptions {
   dryRun: boolean;

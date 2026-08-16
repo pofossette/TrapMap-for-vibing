@@ -1,4 +1,4 @@
-import type { AgentPlanningEvalScenario } from '@trapmap/contracts/evals';
+import type { AgentPlanningEvalScenario } from '../../../../types/index.js';
 
 // Re-export smoke scenarios with -core suffix on variantIds only (scenarioId stays original)
 import { skillIdentificationSmokeScenarios } from '../../../scenarios/smoke/skill-identification-smoke-scenarios.js';

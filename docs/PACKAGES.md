@@ -45,7 +45,7 @@
 
 - `backend-core` 继续保留单包，但其内部必须按六个 bounded context 收口到 `<context>/domain/`、`<context>/application/`、`<context>/module.ts`；`ports`、`invocation`、`runtime`、`testing` 继续作为共享且 framework-free 的顶层目录。当前六个 context 目录已经落地：`identity-access/`、`knowledge-read/`、`knowledge-write/`、`candidate-ingestion/`、`governance-review/`、`job-runtime/`；原 `src/modules/*.ts` compatibility re-export facade 已在 build-target closeout 的 Wave 1 清理中删除，消费方应直接使用真实 context 入口。
 - `packages/host-local/src/nest/**` 是 `light` 默认主入口终局与真实宿主实现；`embedded/local-agent` 与 `team-monolith` 继续共用这套 module graph，两档 profile 只允许在 capability、provider wiring、route surface gating 上有差异。
-- `packages/service-*` 继续只承载 thin assembly：`deps.ts`、`routes.ts`、`server.ts`、`index.ts`。业务规则不在这些包里分叉。
+- `packages/service-*` 继续只承载 thin assembly：`deps.ts`、`routes.ts`、`server.ts`、`index.ts`。业务规则不在这些包里分叉。`service-cron` 是第七个 service 包（平台级定时调度，`cron_jobs` owner），不属于六个业务 bounded context 计数；其调度域纯函数在 `backend-core/src/cron/domain/`。
 - `packages/server（Wave-10 已删除）` 是兼容壳；默认 `light` 主入口已经完全收敛到 `packages/host-local/src/nest/**`。
 - `packages/host-distributed` 继续是 distributed profile 的部署展开层，但必须消费与 modular monolith 相同的 `backend-core` + `service-*` 主实现，而不是维护第二套 business truth。
 
@@ -126,7 +126,6 @@
 | operations | `domain/operations.ts` | 导入/导出 Schema |
 | candidates | `domain/candidates.ts` | 异步摄取候选 Schema |
 | artifacts | `domain/artifacts.ts` | Skill 工件 Schema |
-| evals | `domain/evals/` | 评估相关 Schema |
 | feedback | `domain/feedback.ts` | 用户反馈 Schema、remediation/suppression 聚合状态与管理员队列契约 |
 | decay | `domain/decay.ts` | Decay 管理 Schema |
 | maintenance | `domain/maintenance.ts` | 维护管理 Schema |
@@ -443,11 +442,12 @@ flowchart TB
     服务器包 -. "HTTP API" .-> CLI包
 
     subgraph 评测包["evals/"]
+        Types["types/ (eval-only 契约)"]
         Retrieval["Retrieval Tests"]
         Summary["Summary Tests"]
     end
 
-    契约包 --> 评测包
+    评测包 --> 契约包
 ```
 
 **依赖说明:**
@@ -455,7 +455,7 @@ flowchart TB
 - `@trapmap/client-core` 依赖 contracts，提供浏览器兼容的 gateway SDK
 - `@trapmap/server` 依赖 contracts，提供 REST API
 - `@trapmap/cli` 依赖 contracts、client-core 和 server (via HTTP)
-- `evals/` 依赖 contracts 进行测试验证
+- `evals/` 依赖 contracts 进行测试验证；eval-only 共享 Zod 契约位于 `evals/types/`（2026-08 从 `packages/contracts/src/domain/evals/` 迁入），产品包不依赖 evals
 
 ---
 

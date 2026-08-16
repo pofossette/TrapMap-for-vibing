@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { SummaryEvalReport } from '../../../packages/contracts/src/domain/evals/report.js';
+import type { SummaryEvalReport } from '../../types/report.js';
 
 vi.mock('./runner-api.js', () => ({
   getSummaryEvaluationCases: vi.fn(() => [

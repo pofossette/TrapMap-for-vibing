@@ -6,10 +6,6 @@ const rootVitestMinWorkers = process.env.VITEST_MIN_WORKERS ?? '1';
 const fastifyEntry = resolve(__dirname, './node_modules/fastify/fastify.js');
 const alias = [
   {
-    find: /^@trapmap\/contracts\/evals$/,
-    replacement: resolve(__dirname, './packages/contracts/src/domain/evals/index.ts'),
-  },
-  {
     find: /^@trapmap\/backend-core\/(.+)\.js$/,
     replacement: resolve(__dirname, './packages/backend-core/src/$1.ts'),
   },

@@ -19,7 +19,7 @@ import type {
   SkillArtifact,
   SkillLookupQuery,
 } from '@trapmap/contracts';
-import type { RetrievalEvalCase, RetrievalEvalScenario } from '@trapmap/contracts/evals';
+import type { RetrievalEvalCase, RetrievalEvalScenario } from '../../types/index.js';
 import { nowIso, sha256 } from '@trapmap/lib';
 import type { ArtifactWritePort } from '@trapmap/service-knowledge-write';
 

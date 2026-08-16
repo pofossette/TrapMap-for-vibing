@@ -1,4 +1,4 @@
-import type { LabelAlignmentEvalFixture } from '../../../../packages/contracts/src/domain/evals/label-alignment.js';
+import type { LabelAlignmentEvalFixture } from '../../../types/label-alignment.js';
 
 export const coreFixtures: LabelAlignmentEvalFixture[] = [
   {

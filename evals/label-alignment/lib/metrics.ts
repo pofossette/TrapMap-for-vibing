@@ -2,7 +2,7 @@ import type {
   LabelAlignmentEvalCase,
   LabelAlignmentEvalCaseResult,
   LabelAlignmentRecallReason,
-} from '../../../packages/contracts/src/domain/evals/label-alignment.js';
+} from '../../types/label-alignment.js';
 
 import type { DryRunPrediction } from './recall-eval.js';
 

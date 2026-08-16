@@ -5,7 +5,7 @@ import type {
   AgentPlanningContextEntry,
   AgentPlanningEvalCase,
   AgentPlanningEvalScenario,
-} from '@trapmap/contracts/evals';
+} from '../../types/index.js';
 
 function loadEntryBody(entry: AgentPlanningContextEntry): string {
   if (entry.body) {
