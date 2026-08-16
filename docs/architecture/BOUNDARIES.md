@@ -36,6 +36,7 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 - **实现落点**：rule 实现放对应 service 包（`service-knowledge-read/src/intent-recognition/`、`service-candidate-ingestion/src/dedup-strategy/`、`service-governance-review/src/conflict-trigger/`、`service-knowledge-write/src/artifact-derivation/` 与 `label-alignment/`、`service-knowledge-read/src/channel-merge/`）；llm/hybrid 变体同包扩展。
 - **装配落点**：判断类节点描述符（`defineNode` + `implements` 契约 id + `configSchema`）放 host 包（`host-local/src/nest/runtime/assembly/nodes/judgment-nodes.ts`、`host-distributed/src/assembly/nodes/judgment-nodes.ts`），经 `createAssembly({ contracts: judgmentContracts })` 由 startupChecks 校验。
 - **行为不变约束**：rule 默认实现 = 现状逻辑（包装层无业务改动）；契约单测共享固定样例断言集（`backend-core/src/testing/judgment-fixtures.ts`）。
+- **消费方调用点（2026-08-16 迁移完成）**：四个有生产调用点的节点已改经 D8 port 消费——`searchKnowledge` 模式选择经 `intentRecognition` port、`graphAssistedHybridRecall` 图融合经 `channelMerge` port、`processCandidate` 去重检测经 `dedupStrategy` port、双宿主 governance composition 经 `conflictTrigger` port（rule 默认 = 现状逻辑，行为不变）；宿主在装配 seam（host-local `host-runtime.ts`、host-distributed 各 server 工厂）注入 rule 实例，llm/hybrid 变体可在该 seam 替换。artifact-derivation / label-alignment 尚无生产调用点，随 llm 变体收编评审。
 
 ## apps/ 组装中心边界
 

@@ -19,6 +19,7 @@
 | 图查询后端 (graph query backend) | `MemoryGraphQueryBackend` 实现：one-hop expansion、relation strength、local expansion view、mitigating skills 查询 |
 | 候选语料 (candidate corpus) | PostgreSQL 读端口，列出已批准的 traps 与 skills 供候选流水线使用 |
 | RAG 日志 (RAG logging) | 按日写入 JSON Lines 格式的检索流水线日志，支持文件轮转与环境变量配置 |
+| 判断类节点消费 (D8) | `searchKnowledge` 模式选择经 `intent-recognition` port 消费（rule 默认 = 现状 routing 语义）；`graphAssistedHybridRecall` 图融合经 `channel-merge` port 消费（rule 默认 = mergeCandidatesWithGraph）；宿主在检索 seam 注入 rule 实例，llm/hybrid 变体可在 seam 替换 |
 
 ## HTTP 端点
 

@@ -57,6 +57,10 @@ received → queued → analyzing → duplicate_detected / ready_for_review → 
 | >= 0.38 | `semantic-similar` | 语义相似，存在冗余 |
 | < 0.38 | 不匹配 | 不视为重复 |
 
+### 判断类节点消费（D8）
+
+`processCandidate` 的去重检测经 `dedup-strategy` port 消费（rule 默认 = `createCandidateDuplicateDetector`，宿主 `now`/`createId` 原样传递，重复案例 id 策略不变）；宿主可通过 `CandidateProcessingDeps.dedupStrategy` 注入替代变体，无需改动处理流水线。
+
 ### LLM 增强去重（Phase 2）
 
 `llm-dedup.ts` 提供可选的 LLM 驱动重复判断能力，当 LLM 配置可用时返回结构化判断（`exact`/`semantic`/`none` + 置信度 + 推理说明），否则回退到 Jaccard 检测。

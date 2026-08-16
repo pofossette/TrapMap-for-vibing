@@ -273,14 +273,11 @@
 - [ ] **要求的文档与测试：** `packages/assembly` 单测（manifest 解析/inject 无环/dispose 顺序）、新增 `check:profiles` 守卫、`pnpm test:deployment-smoke`、`pnpm test:runtime-foundations`、`pnpm test:distributed-closeout`、`pnpm check:fallow`（+assembly zone）、`pnpm check:docs`、`pnpm check:structure`。
 
 
-### 判断类节点（D8）消费方调用点迁移（2026-08-16 登记，推荐候选主线）
+### 判断类节点（D8）消费方调用点迁移（2026-08-16 登记，2026-08-16 关闭）
 
-- [ ] **来源：** D8 收编主线 closeout 后续落点（[judgment-node-contracts-d8-archived.md](../archived/archived-plans/judgment-node-contracts-d8-archived.md) Closeout 记录 + assembly 条目登记）。设计 D8 判定标准「被至少一个执行体消费」：6 个判断类节点契约三件套、rule 实现与双宿主装配挂载已就绪，但 service 包内嵌调用仍走旧直连路径（`searchKnowledge` 的 `infra.routing.selectStrategy`/`dispatchByMode`、`retrieval-recall-coordinator` 的 `mergeCandidatesWithGraph` 调用点、`processCandidate` 的 `createCandidateDuplicateDetector`、host-local governance-composition 的 `createGovernanceConflictWorkflow`），节点 port 尚无生产消费方。
-- [ ] **影响：** 节点可插拔（rule→llm/hybrid）未真正生效；旧路径与契约实现并存形成双轨，判断逻辑实际仍由内嵌代码承担。
-- [ ] **当前边界：** 不一次性全迁（设计 D8「按 D8 逐个收编，每个收编独立评审」）；行为不变硬约束（默认实现=现状逻辑，diff 核验）；artifact-derivation 与 label-alignment 无生产调用点，随 llm 变体收编评审。
-- [ ] **进入条件：** D8 主线归档完成（已满足）；经根 `plan.md` 激活（替换当前路线图占位并同步 docs/todos/README.md）或用户显式要求开始实施。
-- [ ] **后续落点：** 逐节点迁移：① intent-recognition（`searchKnowledge` 的 selectStrategy/dispatchByMode → `intentRecognition` port）；② channel-merge（`mergeCandidatesWithGraph` 调用点 → `channelMerge` port）；③ dedup-strategy（`processCandidate` → `dedupStrategy` port）；④ conflict-trigger（host-local/host-distributed governance-composition → `conflictTrigger` port）；⑤ artifact-derivation / label-alignment（随 llm 变体生产收编评审）。llm/hybrid 变体（intent llm / dedup llm / artifact llm / channel-merge 替换策略）搭此主线逐个实现。每节点独立提交：行为不变 diff 核验 + 受影响包测试 + `pnpm eval:smoke` + `pnpm test:deployment-smoke`。
-- [ ] **要求的文档与测试：** 受影响包 focused tests、`pnpm typecheck`、`pnpm eval:smoke`、`pnpm test:deployment-smoke`、`pnpm exec fallow audit --base main`；回写 `docs/architecture/BOUNDARIES.md`（判断类节点落点）与相关 service 包 README。
+- [x] **已关闭（2026-08-16，主线 1）：** 逐节点完成调用点迁移，每节点独立提交、行为不变 diff 核验（rule 默认 = 现状逻辑，宿主 now/createId/chat 等注入依赖原样传递）：① intent-recognition（6bc4226e）——`searchKnowledge` 模式选择经 `intentRecognition` port，识别出的 mode 供 trace 渲染与 `dispatchByMode` 执行（失败路径不调用判断）；② channel-merge（bd3650e1）——`graphAssistedHybridRecall` 图融合经 `channelMerge` port；③ dedup-strategy（729cdb52）——`processCandidate` 经 `dedupStrategy` port（rule 默认沿用宿主 now/createId，重复案例 id 策略不变）；④ conflict-trigger（e4b58c50）——host-local governance-composition 与 host-distributed governance-review/ports 经 `conflictTrigger` port，适配回 workflow surface（detectedCount 语义不变）。宿主 seam（host-local `host-runtime.ts`、host-distributed 各 server 工厂）注入 rule 实例；assembly 判断节点保持契约注册/组合声明面（同一工厂，行为一致）。新增调用点消费测试：host-distributed knowledge-read ports.test（intent）、service-knowledge-read channel-merge/call-site.test、service-candidate-ingestion processing.test（dedup）、host-local governance-composition.test（冲突经端口检测断言已由既有用例覆盖）。
+- [ ] **门禁证据：** `pnpm typecheck` 全绿；knowledge-read 89 / candidate-ingestion 42 / governance-review 53 / host-local 237 / host-distributed 182；`test:deployment-smoke` 388 全绿；`eval:smoke` 54/81（= main 基线，27 项环境既有失败非回归）；check:imports / asserts / docs / structure 全绿；fallow audit --base 2727fbac exit 0（3 项复杂度为继承 finding，门禁排除）。
+- [ ] **关闭后剩余（仍登记）：** llm/hybrid 生产变体（intent llm / dedup llm / artifact llm / channel-merge 替换策略）逐节点独立评审；artifact-derivation / label-alignment 无生产调用点，随 llm 变体生产收编评审（变体接入点在宿主 seam 或 assembly 节点，两者等价）。
 
 ## 审核检查表
 

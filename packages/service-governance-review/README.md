@@ -27,6 +27,10 @@ This service owns governance command receipt, eligibility check, flow interpreta
 
 Post-approval/rejection/maintenance/decay follow-up actions (retrieval projection refresh, artifact follow-up, remediation draft, badcase export draft) enter outbox/queue/workflow as async follow-up and never return to the synchronous command path. `job-runtime` owns queue/outbox/workflow transport, lease, reclaim, and dead-letter runtime.
 
+## 判断类节点消费（D8）
+
+双宿主 governance composition（host-local `governance-composition.ts`、host-distributed `governance-review/ports.ts`）的冲突检测经 `conflict-trigger` port 消费（rule 默认 = `createGovernanceConflictWorkflow`，read/projection/chat/id/time 依赖原样传递），并适配回 `GovernanceConflictWorkflowPort` surface 供任务处理器消费；llm/hybrid 变体可在宿主 seam 替换。
+
 ## Command Interface
 
 Delegated commands through `KnowledgeWritePort`:
