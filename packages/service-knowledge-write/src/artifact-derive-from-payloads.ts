@@ -1,13 +1,12 @@
 /**
- * @eval-only — product code has zero consumers; this module is imported
- * only by the evals ingestion bridge (evals/ingestion/bridge.ts) and the
- * skill annotation script (evals/scripts/annotate-skills.ts).
- * It is intentionally NOT exported from the package index.
- *
  * Retrieval-grade derivation from actual file content (Phase 14 Task 1).
  *
  * These functions derive profile/capsule content from actual SKILL.md and reference
  * text, not just title/labels placeholders. (RETR-03, CAPS-04)
+ *
+ * This is the current-logic implementation of the artifact-derivation
+ * judgment node rule (`createRuleArtifactDerivation`). It is exported from
+ * the package index so the rule port can reference it.
  */
 
 import type {
