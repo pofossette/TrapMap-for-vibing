@@ -39,6 +39,8 @@ describe('createInternalServiceClients', () => {
       review: 'http://review.test',
       governanceReview: 'http://review.test',
       jobRuntime: 'http://job.test',
+
+      cronScheduler: 'http://cron.test',
     });
 
     await expect(
@@ -90,6 +92,8 @@ describe('createInternalServiceClients', () => {
       review: 'http://review.test',
       governanceReview: 'http://review.test',
       jobRuntime: 'http://job.test',
+
+      cronScheduler: 'http://cron.test',
     });
 
     const response = await clients.knowledgeWrite.approveReviewDecision(
@@ -134,6 +138,8 @@ describe('createInternalServiceClients', () => {
       review: 'http://review.test',
       governanceReview: 'http://review.test',
       jobRuntime: 'http://job.test',
+
+      cronScheduler: 'http://cron.test',
     });
 
     await expect(clients.knowledgeWrite.getConflictCandidates('entry-1')).resolves.toEqual({
@@ -169,6 +175,8 @@ describe('createInternalServiceClients', () => {
       review: 'http://review.test',
       governanceReview: 'http://review.test',
       jobRuntime: 'http://job.test',
+
+      cronScheduler: 'http://cron.test',
     });
 
     await expect(clients.knowledgeWrite.getArtifactById('artifact-1')).resolves.toEqual({
@@ -200,6 +208,8 @@ describe('createInternalServiceClients', () => {
       review: 'http://review.test',
       governanceReview: 'http://review.test',
       jobRuntime: 'http://job.test',
+
+      cronScheduler: 'http://cron.test',
     });
 
     await expect(
@@ -291,6 +301,8 @@ describe('createInternalServiceClients', () => {
       review: 'http://review.test',
       governanceReview: 'http://governance.test',
       jobRuntime: 'http://job.test',
+
+      cronScheduler: 'http://cron.test',
     });
 
     await expect(
@@ -375,6 +387,8 @@ describe('createInternalServiceClients', () => {
       review: 'http://review.test',
       governanceReview: 'http://review.test',
       jobRuntime: 'http://job.test',
+
+      cronScheduler: 'http://cron.test',
     });
 
     const response = await clients.knowledgeWrite.publishCandidateResult(
@@ -408,6 +422,8 @@ describe('createInternalServiceClients', () => {
       review: 'http://review.test',
       governanceReview: 'http://review.test',
       jobRuntime: 'http://job.test',
+
+      cronScheduler: 'http://cron.test',
     });
 
     const response = await clients.jobRuntime.getQueueStatus();
@@ -442,6 +458,8 @@ describe('createInternalServiceClients', () => {
       review: 'http://review.test',
       governanceReview: 'http://review.test',
       jobRuntime: 'http://job.test',
+
+      cronScheduler: 'http://cron.test',
     });
 
     const response = await clients.knowledgeWrite.updateEntry(
@@ -487,6 +505,8 @@ describe('createInternalServiceClients', () => {
       review: 'http://review.test',
       governanceReview: 'http://review.test',
       jobRuntime: 'http://job.test',
+
+      cronScheduler: 'http://cron.test',
     });
 
     const response = await clients.knowledgeWrite.publishCandidateResult(

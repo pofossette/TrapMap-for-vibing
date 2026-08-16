@@ -96,7 +96,8 @@
           "packages/service-candidate-ingestion/src/**",
           "packages/service-governance-review/src/**",
           "packages/service-job-runtime/src/**",
-          "packages/service-knowledge-write/src/**"
+          "packages/service-knowledge-write/src/**",
+          "packages/service-cron/src/**"
         ]
       },
       {
@@ -139,7 +140,7 @@
       },
       {
         "from": "backend-core",
-        "allow": ["contracts", "persistence-schema"]
+        "allow": ["contracts", "persistence-schema", "lib"]
       },
       {
         "from": "service-standard",

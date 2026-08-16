@@ -475,6 +475,14 @@ const jobParamsSchema = z.object({
   body: z.unknown(),
 });
 
+const cronJobParamsSchema = actorHeadersSchema.extend({
+  params: z.object({ jobId: z.string() }),
+});
+
+const cronCreateJobSchema = actorHeadersSchema.extend({
+  body: z.record(z.string(), z.unknown()),
+});
+
 function gatewayRouteDef<Ctx extends GatewayRouteContext>(def: {
   method: HttpMethod;
   path: string;
@@ -1109,6 +1117,73 @@ export function createGatewayRouteDefs(_clients: InternalServiceClients): RouteD
           },
           retryResumeContract: { deadLetterPolicy: 'job-runtime owned' },
         });
+      },
+    }),
+
+    // ---- Cron routes (cron-scheduler) ----
+
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/v1/cron/jobs',
+      schema: actorHeadersSchema,
+      handler: async (_ctx, clients) => {
+        return forward(clients.cronScheduler.listJobs());
+      },
+    }),
+    gatewayRouteDef({
+      method: 'POST',
+      path: '/v1/cron/jobs',
+      schema: cronCreateJobSchema,
+      handler: async (ctx, clients) => {
+        const trusted = requireTrustedActor(ctx);
+        return forward(clients.cronScheduler.createJob(trusted.body, trustedActorOptions(ctx)));
+      },
+    }),
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/v1/cron/jobs/:jobId',
+      schema: cronJobParamsSchema,
+      handler: async (ctx, clients) => {
+        return forward(clients.cronScheduler.getJob(ctx.params.jobId));
+      },
+    }),
+    gatewayRouteDef({
+      method: 'PATCH',
+      path: '/v1/cron/jobs/:jobId',
+      schema: cronJobParamsSchema,
+      handler: async (ctx, clients) => {
+        const trusted = requireTrustedActor(ctx);
+        return forward(
+          clients.cronScheduler.updateJob(ctx.params.jobId, trusted.body, trustedActorOptions(ctx)),
+        );
+      },
+    }),
+    gatewayRouteDef({
+      method: 'DELETE',
+      path: '/v1/cron/jobs/:jobId',
+      schema: cronJobParamsSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(clients.cronScheduler.deleteJob(ctx.params.jobId, trustedActorOptions(ctx)));
+      },
+    }),
+    gatewayRouteDef({
+      method: 'POST',
+      path: '/v1/cron/jobs/:jobId/trigger',
+      schema: cronJobParamsSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(
+          clients.cronScheduler.triggerJob(ctx.params.jobId, trustedActorOptions(ctx)),
+        );
+      },
+    }),
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/v1/cron/status',
+      schema: actorHeadersSchema,
+      handler: async (_ctx, clients) => {
+        return forward(clients.cronScheduler.getStatus());
       },
     }),
   ];

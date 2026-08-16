@@ -47,6 +47,10 @@ COPY packages/service-job-runtime/package.json ./packages/service-job-runtime/
 COPY packages/service-job-runtime/tsconfig.json ./packages/service-job-runtime/
 COPY packages/service-job-runtime/src ./packages/service-job-runtime/src
 
+COPY packages/service-cron/package.json ./packages/service-cron/
+COPY packages/service-cron/tsconfig.json ./packages/service-cron/
+COPY packages/service-cron/src ./packages/service-cron/src
+
 COPY packages/host-local/package.json ./packages/host-local/
 COPY packages/host-local/tsconfig.json ./packages/host-local/
 COPY packages/host-local/src ./packages/host-local/src
@@ -68,6 +72,8 @@ RUN pnpm exec tsc -b \
   packages/service-candidate-ingestion/tsconfig.json \
   packages/service-governance-review/tsconfig.json \
   packages/service-knowledge-write/tsconfig.json \
+  packages/service-job-runtime/tsconfig.json \
+  packages/service-cron/tsconfig.json \
   packages/host-local/tsconfig.json \
   apps/light/tsconfig.json
 
@@ -118,6 +124,10 @@ COPY --from=build /app/packages/service-identity-access/dist ./packages/service-
 COPY packages/service-job-runtime/package.json ./packages/service-job-runtime/
 COPY packages/service-job-runtime/tsconfig.json ./packages/service-job-runtime/
 COPY --from=build /app/packages/service-job-runtime/dist ./packages/service-job-runtime/dist
+
+COPY packages/service-cron/package.json ./packages/service-cron/
+COPY packages/service-cron/tsconfig.json ./packages/service-cron/
+COPY --from=build /app/packages/service-cron/dist ./packages/service-cron/dist
 
 COPY packages/host-local/package.json ./packages/host-local/
 COPY packages/host-local/tsconfig.json ./packages/host-local/

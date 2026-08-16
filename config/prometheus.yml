@@ -57,3 +57,8 @@ scrape_configs:
     static_configs:
       - targets: ["outbox-worker:4006"]
     metrics_path: /metrics
+
+  - job_name: "trapmap-cron-scheduler"
+    static_configs:
+      - targets: ["cron-scheduler:4007"]
+    metrics_path: /metrics

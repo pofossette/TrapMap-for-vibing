@@ -11,6 +11,7 @@ export { timeout } from './async.js';
 export { truncate, normalizeLabel } from './string.js';
 export { uniq, uniqBy, chunk } from './array.js';
 export { sha256 } from './hash.js';
+export { cronNextRun, cronValidate } from './cron.js';
 export { asRecord } from './object.js';
 export { prefixedId } from './id.js';
 export {

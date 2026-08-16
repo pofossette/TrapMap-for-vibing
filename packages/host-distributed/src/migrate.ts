@@ -1,6 +1,7 @@
 import pg from 'pg';
 
 import { runCandidateIngestionMigrations } from '@trapmap/service-candidate-ingestion';
+import { runCronMigrations } from '@trapmap/service-cron';
 import { runGovernanceReviewMigrations } from '@trapmap/service-governance-review';
 import { runIdentityAccessMigrations } from '@trapmap/service-identity-access';
 import { runJobRuntimeMigrations } from '@trapmap/service-job-runtime';
@@ -16,6 +17,7 @@ export const distributedMigrationRunners = [
   runGovernanceReviewMigrations,
   runJobRuntimeMigrations,
   runKnowledgeReadMigrations,
+  runCronMigrations,
 ] as const;
 
 type MigrationRunner = (pool: pg.Pool) => Promise<void>;

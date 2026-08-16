@@ -22,6 +22,7 @@ const ENV_KNOWLEDGE_WRITE_URL = 'TRAPMAP_KNOWLEDGE_WRITE_URL';
 const ENV_CANDIDATE_INGESTION_URL = 'TRAPMAP_CANDIDATE_INGESTION_URL';
 const ENV_GOVERNANCE_REVIEW_URL = 'TRAPMAP_GOVERNANCE_REVIEW_URL';
 const ENV_JOB_RUNTIME_URL = 'TRAPMAP_JOB_RUNTIME_URL';
+const ENV_CRON_SCHEDULER_URL = 'TRAPMAP_CRON_SCHEDULER_URL';
 const ENV_KNOWLEDGE_WRITE_TRANSPORT = 'TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT';
 const ENV_LOG_LEVEL = 'TRAPMAP_LOG_LEVEL';
 const ENV_DEPLOYMENT_PROFILE = 'TRAPMAP_DEPLOYMENT_PROFILE';
@@ -49,7 +50,8 @@ export type ServiceName =
   | 'knowledge-write'
   | 'candidate-ingestion'
   | 'governance-review'
-  | 'job-runtime';
+  | 'job-runtime'
+  | 'cron-scheduler';
 
 export const ALL_SERVICES: readonly ServiceName[] = [
   'gateway',
@@ -59,6 +61,7 @@ export const ALL_SERVICES: readonly ServiceName[] = [
   'candidate-ingestion',
   'governance-review',
   'job-runtime',
+  'cron-scheduler',
 ];
 
 // ---------------------------------------------------------------------------
@@ -73,6 +76,7 @@ const DEFAULT_PORTS: Record<ServiceName, number> = {
   'candidate-ingestion': 4004,
   'governance-review': 4005,
   'job-runtime': 4006,
+  'cron-scheduler': 4007,
 };
 
 const DEFAULT_INTERNAL_HOSTS: Record<ServiceName, string> = {
@@ -83,6 +87,7 @@ const DEFAULT_INTERNAL_HOSTS: Record<ServiceName, string> = {
   'candidate-ingestion': 'localhost',
   'governance-review': 'localhost',
   'job-runtime': 'localhost',
+  'cron-scheduler': 'localhost',
 };
 
 const DISTRIBUTED_INTERNAL_HOSTS: Record<ServiceName, string> = {
@@ -93,6 +98,7 @@ const DISTRIBUTED_INTERNAL_HOSTS: Record<ServiceName, string> = {
   'candidate-ingestion': 'candidate-worker',
   'governance-review': 'governance-worker',
   'job-runtime': 'outbox-worker',
+  'cron-scheduler': 'cron-scheduler',
 };
 
 // ---------------------------------------------------------------------------
@@ -108,6 +114,7 @@ export interface InternalServiceUrls {
   review: string;
   governanceReview: string;
   jobRuntime: string;
+  cronScheduler: string;
 }
 
 export type InternalTransportKind = 'http' | 'rpc';
@@ -134,6 +141,7 @@ function buildInternalUrls(hosts: Record<ServiceName, string>): InternalServiceU
     review: `http://${hosts['governance-review']}:${DEFAULT_PORTS['governance-review']}`,
     governanceReview: `http://${hosts['governance-review']}:${DEFAULT_PORTS['governance-review']}`,
     jobRuntime: `http://${hosts['job-runtime']}:${DEFAULT_PORTS['job-runtime']}`,
+    cronScheduler: `http://${hosts['cron-scheduler']}:${DEFAULT_PORTS['cron-scheduler']}`,
   };
 }
 
@@ -321,6 +329,7 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
       review: process.env[ENV_GOVERNANCE_REVIEW_URL] ?? defaults.review,
       governanceReview: process.env[ENV_GOVERNANCE_REVIEW_URL] ?? defaults.governanceReview,
       jobRuntime: process.env[ENV_JOB_RUNTIME_URL] ?? defaults.jobRuntime,
+      cronScheduler: process.env[ENV_CRON_SCHEDULER_URL] ?? defaults.cronScheduler,
     },
     internalTransports: {
       knowledgeWrite: resolveKnowledgeWriteTransport(),

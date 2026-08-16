@@ -7,9 +7,10 @@ import {
 import type { HostLocalConfig } from '../config/index.js';
 
 export function resolveHostLocalDeployment(config: HostLocalConfig): ResolvedRuntimeDeployment {
+  const preset = config.deployment.preset;
   const runtimeDeployment = resolveRuntimeDeployment({
     profile: config.deployment.profile ?? undefined,
-    preset: config.deployment.preset,
+    preset: preset === 'cron-scheduler' ? undefined : preset,
     ...(config.deployment.resolved?.runtimeMode
       ? { runtimeMode: config.deployment.resolved.runtimeMode }
       : {}),

@@ -51,6 +51,10 @@ async function startService(name: ServiceName): Promise<DistributedServiceHandle
       const { startJobRuntimeService } = await import('./job-runtime/index.js');
       return startJobRuntimeService();
     }
+    case 'cron-scheduler': {
+      const { startCronService } = await import('./cron-scheduler/index.js');
+      return startCronService();
+    }
     default: {
       const exhaustive: never = name;
       throw new Error(`Unknown service: ${exhaustive}`);

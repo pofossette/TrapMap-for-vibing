@@ -47,6 +47,10 @@ COPY packages/service-job-runtime/package.json ./packages/service-job-runtime/
 COPY packages/service-job-runtime/tsconfig.json ./packages/service-job-runtime/
 COPY packages/service-job-runtime/src ./packages/service-job-runtime/src
 
+COPY packages/service-cron/package.json ./packages/service-cron/
+COPY packages/service-cron/tsconfig.json ./packages/service-cron/
+COPY packages/service-cron/src ./packages/service-cron/src
+
 COPY packages/host-distributed/package.json ./packages/host-distributed/
 COPY packages/host-distributed/tsconfig.json ./packages/host-distributed/
 COPY packages/host-distributed/src ./packages/host-distributed/src
@@ -70,6 +74,7 @@ RUN pnpm exec tsc -b \
   packages/service-candidate-ingestion/tsconfig.json \
   packages/service-governance-review/tsconfig.json \
   packages/service-job-runtime/tsconfig.json \
+  packages/service-cron/tsconfig.json \
   packages/host-distributed/tsconfig.json \
   apps/migration/tsconfig.json
 
@@ -134,6 +139,12 @@ COPY packages/service-job-runtime/tsconfig.json ./packages/service-job-runtime/
 COPY --from=deps /app/packages/service-job-runtime/node_modules ./packages/service-job-runtime/node_modules
 COPY --from=build /app/packages/service-job-runtime/dist ./packages/service-job-runtime/dist
 COPY packages/service-job-runtime/drizzle ./packages/service-job-runtime/drizzle
+
+COPY packages/service-cron/package.json ./packages/service-cron/
+COPY packages/service-cron/tsconfig.json ./packages/service-cron/
+COPY --from=deps /app/packages/service-cron/node_modules ./packages/service-cron/node_modules
+COPY --from=build /app/packages/service-cron/dist ./packages/service-cron/dist
+COPY packages/service-cron/drizzle ./packages/service-cron/drizzle
 
 COPY packages/host-distributed/package.json ./packages/host-distributed/
 COPY packages/host-distributed/tsconfig.json ./packages/host-distributed/

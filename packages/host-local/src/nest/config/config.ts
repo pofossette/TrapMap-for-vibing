@@ -67,7 +67,14 @@ const AsyncTaskTransportSchema = z
 const DeploymentSchema = z.object({
   profile: z.enum(['local-agent', 'team-monolith', 'distributed']).nullable().default(null),
   preset: z
-    .enum(['monolith', 'api', 'candidate-worker', 'governance-worker', 'outbox-worker'])
+    .enum([
+      'monolith',
+      'api',
+      'candidate-worker',
+      'governance-worker',
+      'outbox-worker',
+      'cron-scheduler',
+    ])
     .default('monolith'),
   compatibility: z.object({
     profile: z.enum(['local-agent', 'team-monolith', 'distributed']),
@@ -167,10 +174,11 @@ export function loadConfig(): HostLocalConfig {
     | 'candidate-worker'
     | 'governance-worker'
     | 'outbox-worker'
+    | 'cron-scheduler'
     | undefined;
   const deploymentCompatibilityInput = {
     profile: deploymentProfile,
-    preset: deploymentPreset,
+    preset: deploymentPreset === 'cron-scheduler' ? undefined : deploymentPreset,
   };
 
   const rawConfig = {

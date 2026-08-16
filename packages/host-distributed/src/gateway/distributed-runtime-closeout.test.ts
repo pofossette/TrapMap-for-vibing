@@ -188,6 +188,7 @@ describe('distributed runtime closeout', () => {
       candidate: await allocatePort(),
       governance: await allocatePort(),
       jobRuntime: await allocatePort(),
+      cron: await allocatePort(),
     };
 
     const env = {
@@ -198,6 +199,7 @@ describe('distributed runtime closeout', () => {
       TRAPMAP_CANDIDATE_INGESTION_URL: `http://127.0.0.1:${ports.candidate}`,
       TRAPMAP_GOVERNANCE_REVIEW_URL: `http://127.0.0.1:${ports.governance}`,
       TRAPMAP_JOB_RUNTIME_URL: `http://127.0.0.1:${ports.jobRuntime}`,
+      TRAPMAP_CRON_SCHEDULER_URL: `http://127.0.0.1:${ports.cron}`,
     };
 
     await startService('identity-access', 'identity-access', ports.identity, env);
@@ -384,6 +386,7 @@ describe('distributed runtime closeout', () => {
       candidate: await allocatePort(),
       governance: await allocatePort(),
       jobRuntime: await allocatePort(),
+      cron: await allocatePort(),
     };
 
     const env = {
@@ -394,6 +397,7 @@ describe('distributed runtime closeout', () => {
       TRAPMAP_CANDIDATE_INGESTION_URL: `http://127.0.0.1:${ports.candidate}`,
       TRAPMAP_GOVERNANCE_REVIEW_URL: `http://127.0.0.1:${ports.governance}`,
       TRAPMAP_JOB_RUNTIME_URL: `http://127.0.0.1:${ports.jobRuntime}`,
+      TRAPMAP_CRON_SCHEDULER_URL: `http://127.0.0.1:${ports.cron}`,
       TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT: 'rpc',
     };
 

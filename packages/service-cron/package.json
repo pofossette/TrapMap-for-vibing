@@ -1,0 +1,35 @@
+{
+  "name": "@trapmap/service-cron",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm -C ../.. exec vitest run --project service-cron --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@trapmap/backend-core": "workspace:*",
+    "@trapmap/contracts": "workspace:*",
+    "@trapmap/lib": "workspace:*",
+    "@trapmap/persistence-schema": "workspace:*",
+    "fastify": "^5.6.1",
+    "drizzle-orm": "^0.45.2",
+    "pg": "8.20.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/pg": "8.20.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.1"
+  }
+}
