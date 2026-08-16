@@ -6,7 +6,7 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 ## 当前整改主线
 
-当前 active 执行主线是 [assembly Phase 2 试点](todos/assembly-phase2.md)（统一优雅组装中心——host-local 改由 assembly boot + Nest 以 transport 插件接入，各 service 包新增 node.ts、assembly infra/transport 节点与 profiles；现有行为不变为硬约束）。设计规格见 [`superpowers/specs/2026-08-16-unified-assembly-center-design.md`](superpowers/specs/2026-08-16-unified-assembly-center-design.md)。上一主线 [assembly Phase 1](archived/archived-plans/unified-assembly-center-phase1-archived.md) 已完成并归档（2026-08-16）；更早一主线 [Dead Code and Architecture Order Cleanup](todos/dead-code-and-architecture-order-cleanup.md) 实现已提交（2026-08-16），其 closeout（Task 11-13）延后登记于[长期 debt 登记](todos/open-debt-and-compromises.md)；更早一轮 [Documentation Validation and Observability Platform](archived/archived-plans/documentation-validation-and-observability-platform-archived.md) 已完成并归档；compatibility-shell retirement、可观测性、共享 PG 治理与分布式成熟度细则同样已[归档](archived/README.md)；平台化和未量化的 Level 3 收益保留在[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。
+当前 active 执行主线是 [assembly Phase 3 收敛](todos/assembly-phase3.md)（统一优雅组装中心——host-distributed 改由 `distributedAssembly(name)` boot：`distributedAssembly` 覆盖 gateway 与各服务进程、删除 `start<X>Service` 样板、`shared/ports.ts` 简化版退役、worker 子节点整体/拆分形态打通；现有行为不变为硬约束）。设计规格见 [`superpowers/specs/2026-08-16-unified-assembly-center-design.md`](superpowers/specs/2026-08-16-unified-assembly-center-design.md)。上一主线 [assembly Phase 2](archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md) 已完成并归档（2026-08-16），其更早一主线 [assembly Phase 1](archived/archived-plans/unified-assembly-center-phase1-archived.md) 也已归档；再早一主线 [Dead Code and Architecture Order Cleanup](todos/dead-code-and-architecture-order-cleanup.md) 实现已提交（2026-08-16），其 closeout（Task 11-13）延后登记于[长期 debt 登记](todos/open-debt-and-compromises.md)；更早一轮 [Documentation Validation and Observability Platform](archived/archived-plans/documentation-validation-and-observability-platform-archived.md) 已完成并归档；compatibility-shell retirement、可观测性、共享 PG 治理与分布式成熟度细则同样已[归档](archived/README.md)；平台化和未量化的 Level 3 收益保留在[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。
 
 light / heavy 后端构建目标与客户端选择已完成并归档，包含其未执行的部署级 runtime closeout 前置条件。其余历史主线、closeout 细则和背景材料同样不构成并行 active workstream，只能作为 archived/background reference 使用。
 
@@ -224,9 +224,9 @@ deployment flexibility 最小验证矩阵：
 
 ### 待办模块
 - [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
-- [根计划索引](../plan.md) — 当前链接唯一 active mainline 为 assembly Phase 2 试点，并保留归档、debt 与背景入口
-- [assembly Phase 2 细则](todos/assembly-phase2.md) — 当前 active execution surface（统一优雅组装中心——host-local 改由 assembly boot）；[assembly Phase 1](archived/archived-plans/unified-assembly-center-phase1-archived.md) 已完成并归档；[死代码与架构秩序清理](todos/dead-code-and-architecture-order-cleanup.md) 为更早一主线细则，实现已提交 2026-08-16、closeout 延后（见 [open-debt](todos/open-debt-and-compromises.md)）
-- 当前唯一 active execution surface 是 assembly Phase 2 试点；新的 todo 文档必须先由根 `plan.md` 显式赋予执行责任，其余材料只能作为背景输入、deferred 落点或已完成 closeout 参考
+- [根计划索引](../plan.md) — 当前链接唯一 active mainline 为 assembly Phase 3 收敛，并保留归档、debt 与背景入口
+- [assembly Phase 3 细则](todos/assembly-phase3.md) — 当前 active execution surface（统一优雅组装中心——host-distributed 改由 `distributedAssembly`）；[assembly Phase 2](archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md) 与 [assembly Phase 1](archived/archived-plans/unified-assembly-center-phase1-archived.md) 已完成并归档；[死代码与架构秩序清理](todos/dead-code-and-architecture-order-cleanup.md) 为更早一主线细则，实现已提交 2026-08-16、closeout 延后（见 [open-debt](todos/open-debt-and-compromises.md)）
+- 当前唯一 active execution surface 是 assembly Phase 3 收敛；新的 todo 文档必须先由根 `plan.md` 显式赋予执行责任，其余材料只能作为背景输入、deferred 落点或已完成 closeout 参考
 - [健壮性与可扩展性收尾细则](archived/archived-plans/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/archived/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](archived/archived-plans/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪

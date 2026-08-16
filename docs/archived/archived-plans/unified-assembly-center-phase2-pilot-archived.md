@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **状态：** active
-> **根入口：** [`../../plan.md`](../../plan.md)
-> **设计规格：** [`../superpowers/specs/2026-08-16-unified-assembly-center-design.md`](../superpowers/specs/2026-08-16-unified-assembly-center-design.md)
+> **状态：** 已归档（Phase 2 试点完成 closeout，2026-08-16）
+> **根入口（归档前）：** [`../../../plan.md`](../../../plan.md)
+> **设计规格：** [`../../superpowers/specs/2026-08-16-unified-assembly-center-design.md`](../../superpowers/specs/2026-08-16-unified-assembly-center-design.md)
 
 **Goal:（D6 Phase 2 试点）** host-local 改由 assembly boot（`localAgentAssembly` / `teamMonolithAssembly` → `boot()`），Nest 以 transport 插件接入；现有行为不变为硬约束。
 
@@ -14,7 +14,7 @@
 
 ## 任务背景
 
-根 [`../../plan.md`](../../plan.md) 已切换为 assembly Phase 2 主线，承接设计文档 D6 Phase 2 试点阶段。Phase 1（packages/assembly 内核 + cordis + 测试 + 根级接线 + 文档）已完成并归档（见 [`../archived/archived-plans/unified-assembly-center-phase1-archived.md`](../archived/archived-plans/unified-assembly-center-phase1-archived.md)）。平行分支 `feat/phase2-core`（另一 worktree）将实现 service `node.ts` 包装、assembly profiles 与 host-local assembly boot；本细则承载 Phase 2 的执行清单、界面、验证命令与 closeout 责任。
+根 [`../../../plan.md`](../../../plan.md) 已切换为 assembly Phase 2 主线（现已归档），承接设计文档 D6 Phase 2 试点阶段。Phase 1（packages/assembly 内核 + cordis + 测试 + 根级接线 + 文档）已完成并归档（见 [`unified-assembly-center-phase1-archived.md`](unified-assembly-center-phase1-archived.md)）。平行分支 `feat/phase2-core`（另一 worktree）将实现 service `node.ts` 包装、assembly profiles 与 host-local assembly boot；本细则承载 Phase 2 的执行清单、界面、验证命令与 closeout 责任。
 
 ## 全局约束
 
@@ -178,14 +178,21 @@ T1 建 node.ts 后可并行 T2/T3；T4 依赖 T1-T3 的产物；T5 依赖 T4；T
   全部通过（main `dbf1461a` 复跑）：typecheck、assembly 42 + host-local 228、deployment-smoke 379、runtime-foundations 130、check:imports/asserts/docs/structure/deps 全 0、fallow audit 30 files 零 issue。
 - [x] **Step 2: 边界与文档守卫确认**
   `check:fallow` 全量 exit 0；`check:docs` / `check:structure` 全绿。
-- [ ] **Step 3: Completion Gates 核对**
+- [x] **Step 3: Completion Gates 核对**
   确认下方 Completion Gates 全部满足。
-- [ ] **Step 4: 文档回写**
+- [x] **Step 4: 文档回写**
   按治理规则回写 BOUNDARIES / SYSTEM_TRUTH_SOURCES / open-debt / README 索引（见 Files）。
 - [ ] **Step 5: 归档评估**
   仅当全部证据齐全且下一主线（Phase 3）已激活时，才把本细则归档并更新 todos/README.md 与 plan.md。
 - [ ] **Step 6: Commit**
   `docs(assembly): close out Phase 2 pilot mainline`
+
+## Closeout 记录
+
+- **Phase 2 完成于 2026-08-16**（提交 `63c26029` / `26964daf` / `fc114c35`，合并 `dbf1461a`）；host-local 试点由 assembly boot（host-local pilot nodes + local/team profiles + nest-transport）完成，服务包 `node.ts` 与通用 infra 节点（pg / task-transport / outbox）按偏差记录推迟到 Phase 3。
+- **证据汇总：** host-local 全量 228 用例、assembly 42、deployment-smoke 379、runtime-foundations 130，check:imports/asserts/docs/structure/deps 全 0，fallow audit 30 files 零 issue（main `dbf1461a` 复跑）；行为不变 diff 由 golden 全绿核验。
+- **文档回写：** 本细则按 T6 Step 4 完成 BOUNDARIES / SYSTEM_TRUTH_SOURCES / open-debt / README 索引回写（见本任务提交）。
+- **归档：** 本细则在 Phase 3 主线激活后归档至 `docs/archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md`；Phase 3（host-distributed 收敛）主细则见 `docs/todos/assembly-phase3.md`。
 
 ## 范围边界
 
