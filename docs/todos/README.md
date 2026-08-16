@@ -9,7 +9,6 @@
 | [dead-code-and-architecture-order-cleanup.md](dead-code-and-architecture-order-cleanup.md) | 死代码清理与架构秩序守卫 | 进行中（唯一 active mainline） |
 | [assert-exemptions.md](assert-exemptions.md) | 裸类型断言豁免清单（Wave 6 清理积压） | 由 `pnpm check:asserts` 门禁追踪；非 active mainline |
 | [open-debt-and-compromises.md](open-debt-and-compromises.md) | 长期工程债务与平台成熟度登记 | 受根索引管理；非第二条 active mainline |
-
 ## 目录规则
 
 - 未被当前根 `plan.md` 明确链接、且不承担当前 owner 执行职责的文档，不属于 active surface
