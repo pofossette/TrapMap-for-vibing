@@ -133,7 +133,8 @@ trapmap maintenance-verify --entries <ids> [--extend-days 90] --json
 ```bash
 trapmap skill search-by-content "<query>" [--max-results 10] --json
 trapmap skill edit <artifactId> [--title <t>] [--labels <l>] [--file <p>] --json
-trapmap skill history <artifactId> --json              # 版本历史
+trapmap skill history <artifactId> --json              # 修订历史
+trapmap skill versions <artifactId> --json             # semver 版本 + 修订历史
 ```
 
 > 重复检测命令见 §4 审核中的 `skill duplicate-job` 子命令。

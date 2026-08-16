@@ -267,3 +267,13 @@
 - [ ] 每次主线 closeout 前确认没有把 deferred 项误标为已交付能力。
 - [ ] 每次将事项提升为 active mainline 前，在根 `plan.md` 明确替换当前细则链接，并在 `docs/todos/README.md` 同步状态。
 
+
+### cron 检索版本联动数据流缺口（2026-08-16 登记）
+
+- [ ] **来源：** cron + skill 版本控制主线（2026-08-16 closeout）最终评审确认：`searchKnowledge` 只召回 `knowledge_entries`（`knowledge-write/src/knowledge-projection.ts`），`readModel.skillArtifacts` 无召回消费者，且无任何路径把 artifact 行写入 `knowledge_entries`——因此 artifact 的 `latestRevision.version` 在生产召回池中仍不可达，`versionMatchMultiplier` 与检索响应的 `version`/`revision` 字段在运行时均为惰性（恒 1/undefined）。
+- [ ] **已验证边界：** 类型链已贯通（`KnowledgeRevisionRecord.version?` + `SkillArtifactRevisionRecord.version?` + `artifactVersionOf` 类型驱动 + 真实路径测试），缺口仅在"artifact → retrieval entry"的数据面合并；neutral-unknown 裁决（未知版本 → ×1）保证该缺口不产生静默降权。
+- [ ] **影响：** versioned 衰减与检索版本暴露暂为结构性空转，直到宿主完成 artifact→entry 合并。
+- [ ] **当前边界：** 不伪造检索条目版本；不改变 knowledge_entries 写入语义；版本未接前 multiplier 保持中性。
+- [ ] **进入条件：** 需要在检索层对 skill artifact 条目启用 versioned 衰减，或需要检索响应真实携带版本供 CLI/面板消费时。
+- [ ] **后续落点：** 新建 scoped 细则实现 host artifact→retrieval entry 合并（将 artifact 投影并入召回池或检索条目组装点），随后启用 versioned 衰减并在响应中真实填充 version/revision。
+- [ ] **要求的文档与测试：** 更新 `docs/architecture/components/RETRIEVAL.md`、`docs/architecture/components/DECAY.md`（如存在）；补检索端到端测试（artifact version → retrieval result），跑 `pnpm eval:retrieval:smoke`、`pnpm test:runtime-closeout`。

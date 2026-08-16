@@ -149,6 +149,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -161,6 +163,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm check:docs
+      - run: pnpm check:skills
       - run: pnpm check:structure
       - run: pnpm check:asserts
       - run: pnpm check:table-schema

@@ -10,16 +10,36 @@ export interface TokenMatchDetail {
   fields: Array<'shortcut' | 'detail' | 'labels'>;
 }
 
+/**
+ * Read the semver version declared on the entry's latest revision.
+ *
+ * Knowledge entries do not carry versions, so the accessor is structural:
+ * skill artifacts surfaced as retrieval entries keep their
+ * `latestRevision.version` (see the artifact revision schema) and flow
+ * through unchanged when present.
+ */
+export function artifactVersionOf(entry: {
+  latestRevision?: { version?: string };
+}): string | undefined {
+  return typeof entry.latestRevision?.version === 'string'
+    ? entry.latestRevision.version
+    : undefined;
+}
+
 export interface RecallCandidate {
   entry: KnowledgeRecord;
   channel: RecallChannel;
   score: number;
   tokenMatches: TokenMatchDetail[];
+  version?: string;
+  revision?: number;
 }
 
 export interface ScoredEntry {
   entry: KnowledgeRecord;
   score: number;
+  version?: string;
+  revision?: number;
   boundaryExplanation?: BoundaryExplanation;
 }
 
@@ -34,6 +54,8 @@ export interface MergedCandidate {
   channels: RecallChannel[];
   preRerankScore: number;
   finalScore: number;
+  version?: string;
+  revision?: number;
   boundaryScoreDelta?: number;
   decayMultiplier?: number;
   boundaryExplanation?: BoundaryExplanation;

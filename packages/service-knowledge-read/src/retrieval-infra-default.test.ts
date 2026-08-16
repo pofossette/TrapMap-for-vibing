@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Pool } from 'pg';
 import { createDefaultKnowledgeReadRetrievalInfra } from './retrieval-infra-default.js';
+import { getQueryEmbedding, optimizedSemanticRecall } from './retrieval-semantic.js';
 import type { MergedCandidate } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 
@@ -19,6 +20,19 @@ function createEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord 
     history: [],
     ...overrides,
   } as KnowledgeRecord;
+}
+
+function revisionWithVersion(version: string): KnowledgeRecord['latestRevision'] {
+  return {
+    revision: 1,
+    submittedAt: '2026-01-01T00:00:00.000Z',
+    submittedByUserId: 'user-1',
+    shortcut: 'react refresh workaround',
+    detail: 'react refresh workaround details',
+    labels: [],
+    reviewNotes: [],
+    version,
+  };
 }
 
 function createCapturingPool() {
@@ -131,5 +145,92 @@ describe('default knowledge-read retrieval infra', () => {
       [/required_level <= \$2/, /scope = ANY\(\$3::text\[\]\)/, /tokens && \$4::text\[\]/],
       ['team-1', 4, ['project'], ['deploy', 'kubernetes'], 10],
     );
+  });
+
+  it('applies versioned decay to semantic scores against query versions', async () => {
+    const infra = createDefaultKnowledgeReadRetrievalInfra();
+    const services = { retrievalInfra: infra } as Parameters<typeof optimizedSemanticRecall>[0];
+    const seed = 'react refresh workaround';
+    const queryVector = await getQueryEmbedding(services, seed);
+    const entries = [
+      createEntry({
+        id: 'versioned-mismatch',
+        shortcut: seed,
+        detail: seed,
+        latestRevision: revisionWithVersion('17.0.0'),
+        decayMeta: { freshnessType: 'versioned' } as KnowledgeRecord['decayMeta'],
+      }),
+      createEntry({
+        id: 'versioned-match',
+        shortcut: seed,
+        detail: seed,
+        latestRevision: revisionWithVersion('18.2.0'),
+        decayMeta: { freshnessType: 'versioned' } as KnowledgeRecord['decayMeta'],
+      }),
+      createEntry({
+        id: 'unknown-version',
+        shortcut: seed,
+        detail: seed,
+        decayMeta: { freshnessType: 'versioned' } as KnowledgeRecord['decayMeta'],
+      }),
+      createEntry({
+        id: 'evergreen',
+        shortcut: seed,
+        detail: seed,
+        latestRevision: revisionWithVersion('17.0.0'),
+        decayMeta: { freshnessType: 'evergreen' } as KnowledgeRecord['decayMeta'],
+      }),
+      createEntry({
+        id: 'no-version-constraints',
+        shortcut: seed,
+        detail: seed,
+        decayMeta: { freshnessType: 'versioned' } as KnowledgeRecord['decayMeta'],
+      }),
+    ];
+
+    const withConstraints = await optimizedSemanticRecall(
+      services,
+      queryVector,
+      entries,
+      { labels: [], scopes: [] },
+      seed,
+      [{ package: 'react', version: '18.2.0' }],
+    );
+    const byId = new Map(withConstraints.scoredEntries.map((e) => [e.entry.id, e]));
+    expect(byId.get('versioned-match')?.score).toBeCloseTo(1);
+    expect(byId.get('versioned-mismatch')?.score).toBeCloseTo(0.5);
+    expect(byId.get('unknown-version')?.score).toBeCloseTo(1);
+    expect(byId.get('evergreen')?.score).toBeCloseTo(1);
+    expect(byId.get('no-version-constraints')?.score).toBeCloseTo(1);
+
+    const withoutConstraints = await optimizedSemanticRecall(
+      services,
+      queryVector,
+      entries,
+      { labels: [], scopes: [] },
+      seed,
+    );
+    const unconstrainedById = new Map(withoutConstraints.scoredEntries.map((e) => [e.entry.id, e]));
+    expect(unconstrainedById.get('versioned-mismatch')?.score).toBeCloseTo(1);
+  });
+
+  it('exposes artifact version and revision on reranked scored entries', () => {
+    const infra = createDefaultKnowledgeReadRetrievalInfra();
+    const candidate: MergedCandidate = {
+      entry: createEntry({ latestRevision: revisionWithVersion('1.2.3') }),
+      semanticScore: 0.6,
+      keywordScore: 0,
+      graphScore: 0,
+      channelScores: { semantic: 0.6 },
+      combinedScore: 0.6,
+      tokenMatches: [],
+      channels: ['semantic'],
+      preRerankScore: 0.6,
+      finalScore: 0.6,
+    };
+
+    const [scored] = infra.scoring.toScoredEntriesFromReranked([candidate]);
+    expect(scored?.version).toBe('1.2.3');
+    expect(scored?.revision).toBe(1);
   });
 });

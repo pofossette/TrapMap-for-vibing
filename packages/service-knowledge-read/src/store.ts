@@ -115,6 +115,8 @@ export interface SkillArtifactMetadataRecord {
 
 export interface SkillArtifactRevisionRecord {
   revision: number;
+  /** Semver version declared in the artifact's SKILL.md frontmatter (absent for unversioned skills) */
+  version?: string;
   sourceHash: string;
   files: SkillArtifactFileRecord[];
   submittedAt: string;

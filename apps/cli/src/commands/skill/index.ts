@@ -7,6 +7,7 @@ import { registerFindCommand } from './find.js';
 import { registerHistoryCommand } from './history.js';
 import { registerReviewCommands } from './review.js';
 import { registerSearchCommand } from './search.js';
+import { registerVersionsCommand } from './versions.js';
 
 export interface SkillCommandOptions {
   allowSearch: boolean;
@@ -55,6 +56,11 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
   // Phase 19: skill history (SKED-04)
   if (options.allowExport) {
     registerHistoryCommand(skill);
+  }
+
+  // skill versions: semver version + revision history (same endpoint as history)
+  if (options.allowExport) {
+    registerVersionsCommand(skill);
   }
 
   // Phase 20: skill review commands (SKED-03)

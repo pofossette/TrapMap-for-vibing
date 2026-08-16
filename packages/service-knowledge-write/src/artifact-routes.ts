@@ -9,6 +9,7 @@ import {
   type ArtifactReadProjection,
   artifactImportRequestSchema,
   artifactImportResponseSchema,
+  skillHistoryResponseSchema,
 } from '@trapmap/contracts';
 import type { FastifyInstance } from 'fastify';
 import { type ZodType, z } from 'zod';
@@ -232,7 +233,28 @@ export function createArtifactRouteDefs(_deps: ArtifactRouteDeps): RouteDef[] {
       path: '/internal/artifacts/:artifactId/history',
       schema: artifactParamsSchema,
       handler: async (ctx, module) => {
-        return module.readProjection.history(ctx.params.artifactId);
+        const artifact = await module.readProjection.getById(ctx.params.artifactId);
+        if (!artifact) {
+          return routeResponse(404, { error: 'Artifact not found', kind: 'not-found' });
+        }
+        const revisions = await module.readProjection.history(ctx.params.artifactId);
+        return skillHistoryResponseSchema.parse({
+          artifactId: artifact.id,
+          title: artifact.title,
+          currentRevision: revisions.at(-1)?.revision ?? artifact.latestRevision,
+          lifecycleState: artifact.lifecycleState,
+          // Revision rows do not carry a per-revision lifecycle state, so each
+          // summary reports the artifact's current lifecycle state. Raw revisions
+          // also have no summary text, so the optional `summary` field is omitted.
+          revisions: revisions.map((revision) => ({
+            revision: revision.revision,
+            submittedAt: revision.submittedAt,
+            submittedBy: revision.submittedBy,
+            lifecycleState: artifact.lifecycleState,
+            ...(revision.version !== undefined ? { version: revision.version } : {}),
+            sourceHash: revision.sourceHash,
+          })),
+        });
       },
     }),
 

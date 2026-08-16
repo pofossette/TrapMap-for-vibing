@@ -1,3 +1,4 @@
+import type { FreshnessDecayConfig } from '@trapmap/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -21,6 +22,7 @@ import {
   mergeCandidatesWithGraph,
   rerankCandidates,
   routingDecision,
+  versionMatchMultiplier,
 } from './index.js';
 
 interface Entry {
@@ -200,5 +202,112 @@ describe('knowledge-read ranking rules', () => {
       graphCandidateCount: 3,
     });
     expect(createGraphRecallTrace({ backendKind: 'pg', mode: 'synced' }, 0).backendKind).toBe('pg');
+  });
+
+  describe('versionMatchMultiplier', () => {
+    it('returns matchMultiplier when a versioned entry matches a query version', () => {
+      expect(
+        versionMatchMultiplier({
+          artifactVersion: '2.2.0',
+          queryVersions: [{ package: 'react', version: '2.2.0' }],
+          freshnessType: 'versioned',
+          decayConfig: DEFAULT_FRESHNESS_DECAY_CONFIG,
+        }),
+      ).toBe(DEFAULT_FRESHNESS_DECAY_CONFIG.versioned.matchMultiplier);
+    });
+
+    it('returns mismatchMultiplier when a versioned entry does not match any query version', () => {
+      expect(
+        versionMatchMultiplier({
+          artifactVersion: '2.1.0',
+          queryVersions: [{ package: 'react', version: '2.2.0' }],
+          freshnessType: 'versioned',
+          decayConfig: DEFAULT_FRESHNESS_DECAY_CONFIG,
+        }),
+      ).toBe(DEFAULT_FRESHNESS_DECAY_CONFIG.versioned.mismatchMultiplier);
+    });
+
+    it('treats an entry without a declared version as neutral (unknown is not a mismatch)', () => {
+      expect(
+        versionMatchMultiplier({
+          artifactVersion: undefined,
+          queryVersions: [{ package: 'react', version: '2.2.0' }],
+          freshnessType: 'versioned',
+          decayConfig: DEFAULT_FRESHNESS_DECAY_CONFIG,
+        }),
+      ).toBe(1);
+      expect(
+        versionMatchMultiplier({
+          artifactVersion: null,
+          queryVersions: [{ package: 'react', version: '2.2.0' }],
+          freshnessType: 'versioned',
+          decayConfig: DEFAULT_FRESHNESS_DECAY_CONFIG,
+        }),
+      ).toBe(1);
+    });
+
+    it('matches the first matching query version across packages', () => {
+      expect(
+        versionMatchMultiplier({
+          artifactVersion: '18.0.0',
+          queryVersions: [
+            { package: 'node', version: '22.0.0' },
+            { package: 'react', version: '18.0.0' },
+          ],
+          freshnessType: 'versioned',
+          decayConfig: DEFAULT_FRESHNESS_DECAY_CONFIG,
+        }),
+      ).toBe(DEFAULT_FRESHNESS_DECAY_CONFIG.versioned.matchMultiplier);
+    });
+
+    it('returns 1 for non-versioned freshness types', () => {
+      const input = {
+        artifactVersion: '2.2.0',
+        queryVersions: [{ package: 'react', version: '2.2.0' }],
+        decayConfig: DEFAULT_FRESHNESS_DECAY_CONFIG,
+      };
+      expect(versionMatchMultiplier({ ...input, freshnessType: 'evergreen' })).toBe(1);
+      expect(versionMatchMultiplier({ ...input, freshnessType: 'volatile' })).toBe(1);
+      expect(versionMatchMultiplier({ ...input, freshnessType: null })).toBe(1);
+      expect(versionMatchMultiplier({ ...input, freshnessType: undefined })).toBe(1);
+    });
+
+    it('returns 1 when the query has no version constraints', () => {
+      const input = {
+        artifactVersion: '2.2.0',
+        freshnessType: 'versioned' as const,
+        decayConfig: DEFAULT_FRESHNESS_DECAY_CONFIG,
+      };
+      expect(versionMatchMultiplier({ ...input, queryVersions: undefined })).toBe(1);
+      expect(versionMatchMultiplier({ ...input, queryVersions: [] })).toBe(1);
+      expect(versionMatchMultiplier({ ...input, queryVersions: null })).toBe(1);
+    });
+
+    it('returns 1 when the versioned decay config is disabled', () => {
+      expect(
+        versionMatchMultiplier({
+          artifactVersion: '2.1.0',
+          queryVersions: [{ package: 'react', version: '2.2.0' }],
+          freshnessType: 'versioned',
+          decayConfig: {
+            ...DEFAULT_FRESHNESS_DECAY_CONFIG,
+            versioned: { ...DEFAULT_FRESHNESS_DECAY_CONFIG.versioned, enabled: false },
+          },
+        }),
+      ).toBe(1);
+    });
+
+    it('returns 1 when the versioned decay config is absent', () => {
+      const config = { ...DEFAULT_FRESHNESS_DECAY_CONFIG };
+      delete (config as Partial<FreshnessDecayConfig>).versioned;
+      expect(
+        versionMatchMultiplier({
+          artifactVersion: '2.1.0',
+          queryVersions: [{ package: 'react', version: '2.2.0' }],
+          freshnessType: 'versioned',
+          decayConfig: config,
+        }),
+      ).toBe(1);
+    });
   });
 });

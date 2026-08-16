@@ -67,6 +67,7 @@ function urls() {
     review: env('TRAPMAP_GOVERNANCE_REVIEW_URL'),
     governanceReview: env('TRAPMAP_GOVERNANCE_REVIEW_URL'),
     jobRuntime: env('TRAPMAP_JOB_RUNTIME_URL'),
+    cronScheduler: env('TRAPMAP_CRON_SCHEDULER_URL'),
   };
 }
 

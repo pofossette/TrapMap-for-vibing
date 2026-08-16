@@ -280,6 +280,8 @@ describe('distributed gateway acceptance', () => {
       review: 'http://127.0.0.1:0',
       governanceReview: 'http://127.0.0.1:0',
       jobRuntime: 'http://127.0.0.1:0',
+
+      cronScheduler: 'http://127.0.0.1:0',
     });
 
     const candidateApp = Fastify();
@@ -305,6 +307,8 @@ describe('distributed gateway acceptance', () => {
       review: governanceUrl,
       governanceReview: governanceUrl,
       jobRuntime: 'http://127.0.0.1:0',
+
+      cronScheduler: 'http://127.0.0.1:0',
     });
 
     const gatewayApp = Fastify();
@@ -374,6 +378,8 @@ describe('distributed gateway acceptance', () => {
         review: reviewUrl,
         governanceReview: reviewUrl,
         jobRuntime: 'http://127.0.0.1:1',
+
+        cronScheduler: 'http://127.0.0.1:1',
       }),
     );
     await gatewayApp.ready();
@@ -437,6 +443,8 @@ describe('distributed gateway acceptance', () => {
         review: 'http://127.0.0.1:1',
         governanceReview: 'http://127.0.0.1:1',
         jobRuntime: 'http://127.0.0.1:1',
+
+        cronScheduler: 'http://127.0.0.1:1',
       }),
     );
     await gatewayApp.ready();
@@ -512,6 +520,8 @@ describe('distributed gateway acceptance', () => {
         review: 'http://127.0.0.1:1',
         governanceReview: 'http://127.0.0.1:1',
         jobRuntime: jobUrl,
+
+        cronScheduler: 'http://127.0.0.1:1',
       }),
     );
     await gatewayApp.ready();
@@ -565,6 +575,8 @@ describe('distributed gateway acceptance', () => {
           review: 'http://127.0.0.1:0',
           governanceReview: 'http://127.0.0.1:0',
           jobRuntime: 'http://127.0.0.1:0',
+
+          cronScheduler: 'http://127.0.0.1:0',
         }),
       ),
     );
@@ -650,6 +662,8 @@ describe('distributed gateway acceptance', () => {
       review: 'http://127.0.0.1:0',
       governanceReview: 'http://127.0.0.1:0',
       jobRuntime: 'http://127.0.0.1:0',
+
+      cronScheduler: 'http://127.0.0.1:0',
     });
 
     const governanceApp = Fastify();
@@ -665,6 +679,8 @@ describe('distributed gateway acceptance', () => {
       review: governanceUrl,
       governanceReview: governanceUrl,
       jobRuntime: 'http://127.0.0.1:0',
+
+      cronScheduler: 'http://127.0.0.1:0',
     });
     const gatewayApp = Fastify();
     registerGatewayRoutes(gatewayApp, gatewayClients);

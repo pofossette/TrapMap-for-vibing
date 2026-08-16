@@ -396,6 +396,7 @@ draft → submitted → agent-pass/agent-rejected
 |------|------|------|
 | `revision` | number | 版本号 |
 | `sourceHash` | string | 所有源文件的 SHA-256 哈希 |
+| `version` | string? | SKILL.md frontmatter 声明的 semver 版本（无版本时省略；DB 列 `artifact_revisions.version` text nullable） |
 | `files` | SkillArtifactFile[] | 所有文件清单 |
 | `submittedAt` | ISO8601 | 提交时间 |
 | `submittedBy` | ActorRef | 提交者 |
@@ -603,6 +604,33 @@ active → review-due → stale → expired
 | `reviewBy` | ISO8601? | 计划审核日期（SLA 追踪） |
 
 > 源码：`packages/contracts/src/domain/maintenance.ts`
+
+---
+
+## CronJob（定时任务）
+
+定时任务注册表，由 `service-cron` 拥有（表 `cron_jobs`，迁移 `packages/service-cron/drizzle/0000_cron_jobs.sql`）。调度器按 `schedule`/`timezone` 计算 `nextRunAt`，到期 job 经异步 task queue enqueue 对应 `taskType` 的 payload，不直接执行业务逻辑；手动 trigger 只 enqueue，不推进 `nextRunAt`。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | string (PK) | 任务唯一标识 |
+| `name` | string | 任务名称 |
+| `schedule` | string | cron 表达式（如 `0 9 * * *`） |
+| `timezone` | string | 调度时区（默认 `UTC`） |
+| `taskType` | string | 触发时 enqueue 的异步任务类型 |
+| `payload` | jsonb | enqueue 的任务负载（默认 `{}`） |
+| `enabled` | boolean | 是否参与调度（pause/resume 控制该字段） |
+| `nextRunAt` | timestamptz? | 下次调度时间（`enabled=false` 或暂停时可为 null） |
+| `lastRunAt` | timestamptz? | 最近一次执行时间（手动 trigger 会更新） |
+| `lastStatus` | `'succeeded' \| 'failed' \| 'skipped'`? | 最近一次执行结果 |
+| `lastError` | text? | 最近一次执行错误信息 |
+| `runCount` | integer | 累计执行次数 |
+| `createdAt` | timestamptz | 创建时间 |
+| `updatedAt` | timestamptz | 更新时间 |
+
+部分索引：`cron_jobs_next_run_enabled_idx (next_run_at) WHERE enabled` — 支撑调度 tick 的到期任务扫描。
+
+> 源码：`packages/contracts/src/domain/cron.ts`；表结构以 `packages/service-cron/drizzle/0000_cron_jobs.sql` 为准。
 
 ---
 

@@ -287,6 +287,31 @@ describe('retrieval schema contracts', () => {
       expect(match.boundaryExplanation).toBeUndefined();
     });
 
+    it('accepts optional version and revision fields', () => {
+      const match = retrievalMatchSchema.parse({
+        ...validMatch,
+        version: '2.1.0',
+        revision: 3,
+      });
+      expect(match.version).toBe('2.1.0');
+      expect(match.revision).toBe(3);
+    });
+
+    it('omits version and revision when absent', () => {
+      const match = retrievalMatchSchema.parse(validMatch);
+      expect(match.version).toBeUndefined();
+      expect(match.revision).toBeUndefined();
+    });
+
+    it('rejects an invalid revision value', () => {
+      expect(() =>
+        retrievalMatchSchema.parse({
+          ...validMatch,
+          revision: 0,
+        }),
+      ).toThrow();
+    });
+
     it('requires valid securityLevel (number 0-10)', () => {
       expect(() =>
         retrievalMatchSchema.parse({

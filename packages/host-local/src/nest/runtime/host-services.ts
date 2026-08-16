@@ -19,6 +19,12 @@ import {
 } from '@trapmap/service-identity-access';
 import { createJobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
 import {
+  type CronOwnerBundle,
+  type CronScheduler,
+  createCronOwnerBundle,
+  createCronScheduler,
+} from '@trapmap/service-cron';
+import {
   type OwnerReadModelProjection,
   type OwnerReadModelProjectionOptions,
   createCandidateCorpusPgReadPort,
@@ -64,6 +70,8 @@ export interface HostLocalServices {
   candidateCorpus: CandidateCorpusReadPort;
   knowledgeWrite: KnowledgeWriteOwnerBundle;
   governanceReview: GovernanceReviewPgOwnerBundle;
+  cronOwnerBundle: CronOwnerBundle;
+  cronScheduler: CronScheduler;
   knowledgeOwner: KnowledgeOwnerPort;
   artifactWriter: ArtifactWritePort;
   artifactReadProjection: ArtifactReadProjection;
@@ -100,6 +108,11 @@ export async function createHostLocalServices(config: HostLocalConfig): Promise<
     config: { asyncTaskTransport: config.asyncTaskTransport },
     pool,
   });
+  const cronOwnerBundle = createCronOwnerBundle(pool);
+  const cronScheduler = createCronScheduler({
+    bundle: cronOwnerBundle,
+    transport: { task: asyncTransport.task },
+  });
   const services: HostLocalServices = {
     config,
     runtimeDeployment,
@@ -115,6 +128,8 @@ export async function createHostLocalServices(config: HostLocalConfig): Promise<
     candidateCorpus,
     knowledgeWrite,
     governanceReview,
+    cronOwnerBundle,
+    cronScheduler,
     knowledgeOwner: knowledgeWrite.knowledgeOwner,
     artifactWriter: knowledgeWrite.artifactWriter,
     artifactReadProjection: knowledgeWrite.artifactReadProjection,

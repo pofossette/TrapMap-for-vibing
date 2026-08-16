@@ -118,6 +118,15 @@ function createClients(): InternalServiceClients & { feedbackAdmin: FeedbackAdmi
       getStatus: vi.fn(async () => ({ status: 200, body: { id: 'job-1', status: 'pending' } })),
       getQueueStatus: vi.fn(async () => ({ status: 200, body: { pending: 1 } })),
     },
+    cronScheduler: {
+      listJobs: vi.fn(async () => ({ status: 200, body: [] })),
+      createJob: vi.fn(async () => ({ status: 201, body: { id: 'cron-1' } })),
+      getJob: vi.fn(async () => ({ status: 200, body: { id: 'cron-1' } })),
+      updateJob: vi.fn(async () => ({ status: 200, body: { id: 'cron-1' } })),
+      deleteJob: vi.fn(async () => ({ status: 200, body: { ok: true } })),
+      triggerJob: vi.fn(async () => ({ status: 200, body: { id: 'cron-1' } })),
+      getStatus: vi.fn(async () => ({ status: 200, body: { jobs: [] } })),
+    },
   };
 }
 
@@ -878,6 +887,86 @@ describe('registerGatewayRoutes', () => {
       sessionToken: 'session',
     });
     expect(clients.identityAccess.logout).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it('forwards cron routes to the cron-scheduler service', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+    const headers = { authorization: 'Bearer session' };
+
+    const listResponse = await app.inject({ method: 'GET', url: '/v1/cron/jobs', headers });
+    expect(listResponse.statusCode).toBe(200);
+    expect(clients.cronScheduler.listJobs).toHaveBeenCalledWith();
+
+    const statusResponse = await app.inject({ method: 'GET', url: '/v1/cron/status', headers });
+    expect(statusResponse.statusCode).toBe(200);
+    expect(clients.cronScheduler.getStatus).toHaveBeenCalledWith();
+
+    const getResponse = await app.inject({ method: 'GET', url: '/v1/cron/jobs/cron-1', headers });
+    expect(getResponse.statusCode).toBe(200);
+    expect(clients.cronScheduler.getJob).toHaveBeenCalledWith('cron-1');
+
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/cron/jobs',
+      headers,
+      payload: { name: 'nightly', schedule: '0 3 * * *', taskType: 'reindex' },
+    });
+    expect(createResponse.statusCode).toBe(201);
+    expect(clients.cronScheduler.createJob).toHaveBeenCalledWith(
+      { name: 'nightly', schedule: '0 3 * * *', taskType: 'reindex' },
+      { headers: { 'x-trapmap-actor-id': 'user-1' } },
+    );
+
+    const updateResponse = await app.inject({
+      method: 'PATCH',
+      url: '/v1/cron/jobs/cron-1',
+      headers,
+      payload: { enabled: false },
+    });
+    expect(updateResponse.statusCode).toBe(200);
+    expect(clients.cronScheduler.updateJob).toHaveBeenCalledWith(
+      'cron-1',
+      { enabled: false },
+      { headers: { 'x-trapmap-actor-id': 'user-1' } },
+    );
+
+    const triggerResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/cron/jobs/cron-1/trigger',
+      headers,
+    });
+    expect(triggerResponse.statusCode).toBe(200);
+    expect(clients.cronScheduler.triggerJob).toHaveBeenCalledWith('cron-1', {
+      headers: { 'x-trapmap-actor-id': 'user-1' },
+    });
+
+    const deleteResponse = await app.inject({
+      method: 'DELETE',
+      url: '/v1/cron/jobs/cron-1',
+      headers,
+    });
+    expect(deleteResponse.statusCode).toBe(200);
+    expect(clients.cronScheduler.deleteJob).toHaveBeenCalledWith('cron-1', {
+      headers: { 'x-trapmap-actor-id': 'user-1' },
+    });
+    await app.close();
+  });
+
+  it('rejects a cron mutation when the body actor spoofs the authenticated actor', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/cron/jobs',
+      headers: { authorization: 'Bearer session' },
+      payload: { name: 'nightly', actorId: 'spoofed-user' },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(clients.cronScheduler.createJob).not.toHaveBeenCalled();
     await app.close();
   });
 });

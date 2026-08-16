@@ -11,6 +11,7 @@
     { "path": "./packages/service-candidate-ingestion" },
     { "path": "./packages/service-governance-review" },
     { "path": "./packages/service-job-runtime" },
+    { "path": "./packages/service-cron" },
     { "path": "./packages/service-knowledge-read" },
     { "path": "./packages/service-knowledge-write" },
     { "path": "./apps/web-panel" },

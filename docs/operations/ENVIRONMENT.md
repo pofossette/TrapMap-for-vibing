@@ -55,7 +55,7 @@ Use `pnpm build:light`, `pnpm build:heavy`, `pnpm test:light-target`, and
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `TRAPMAP_DEPLOYMENT_PROFILE` | 目标部署形态：`local-agent`、`team-monolith`、`distributed`。这是产品/部署叙事层，不直接替代 runtime/preset | 未设置（按 `TRAPMAP_DEPLOYMENT_PRESET` 推断） |
-| `TRAPMAP_DEPLOYMENT_PRESET` | 部署预设：`monolith`、`api`、`candidate-worker`、`governance-worker`、`outbox-worker` | `monolith` |
+| `TRAPMAP_DEPLOYMENT_PRESET` | 部署预设：`monolith`、`api`、`candidate-worker`、`governance-worker`、`outbox-worker`；`cron-scheduler` 为已注册的分布式 cron 调度服务预设标记（capability 解析按 profile 推断） | `monolith` |
 | `TRAPMAP_GATEWAY_URL` | CLI 默认连接的单一 gateway URL；即使 `distributed` 也不改成多服务地址 | `http://127.0.0.1:4000` |
 | `TRAPMAP_TASK_TRANSPORT` | 异步任务传输提供者：`postgres` 或 `rabbitmq` | `postgres` |
 | `TRAPMAP_RABBITMQ_URL` | RabbitMQ 连接串；仅在 `TRAPMAP_TASK_TRANSPORT=rabbitmq` 时必填 | 空 |
@@ -107,6 +107,7 @@ profile capability 语义：
 
 - 默认：`TRAPMAP_DEPLOYMENT_PRESET=monolith` + `TRAPMAP_TASK_TRANSPORT=postgres`
 - 拆分但仍走 PG task queue：`TRAPMAP_DEPLOYMENT_PRESET=api|candidate-worker|governance-worker|outbox-worker` + `TRAPMAP_TASK_TRANSPORT=postgres`
+- `cron-scheduler`：分布式 cron-scheduler 服务（`apps/distributed --service cron-scheduler`）使用的预设标记；host-local 配置接受该值但 capability 解析回退为 profile 推断，不改变 runtimeMode/serviceUnit
 - 可选 RabbitMQ task transport：通常用于 `candidate-worker` 或 `governance-worker`
 
 关键约束：

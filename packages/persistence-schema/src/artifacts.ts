@@ -139,6 +139,8 @@ export const artifactRevisions = pgTable(
     ...revisionColumns(),
     /** SHA-256 hash of all source files for this revision */
     sourceHash: text('source_hash').notNull(),
+    /** Semver version declared in SKILL.md frontmatter (null for unversioned skills) */
+    version: text('version'),
     /** All files in the skill directory at this revision */
     files: jsonb('files').notNull().$type<
       Array<{

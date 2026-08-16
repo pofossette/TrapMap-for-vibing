@@ -109,6 +109,7 @@
 | `guides/PG_AND_GRAPHOLOGY.md` | 2026-08-09 | Wave 7 文档分层收敛：pg / graphology 上手导读历史说明 |
 | `archived-plans/2026-08-09-maintainability-rework.md` | 2026-08-12 | 维护性整改主线（12 任务/33 commits）全部完成并 closeout：RouteDef 单实现双宿主、六 context DDD 下沉、断言零容忍、兼容债清除、守卫/文档/评测收敛 |
 | `archived-plans/documentation-validation-and-observability-platform-archived.md` | 2026-08-15 | 文档校验与可观测性平台主线（11 任务）完成并 closeout，证据见该文档 completion gates；根 `plan.md` 已切换为 Dead Code and Architecture Order Cleanup |
+| `archived-plans/cron-and-skill-versioning-closeout.md` | 2026-08-16 | cron 调度服务 + Skill 版本控制主线（8 任务/双轨道并行/18 commits）完成并 closeout：service-cron 包、check:skills 守卫、revision version 列、检索版本联动；证据见该文档验证章节 |
 
 ## 归档原则
 

@@ -90,6 +90,14 @@ const alias = [
     replacement: resolve(__dirname, './packages/service-job-runtime/src/index.ts'),
   },
   {
+    find: /^@trapmap\/service-cron\/(.+)\.js$/,
+    replacement: resolve(__dirname, './packages/service-cron/src/$1.ts'),
+  },
+  {
+    find: '@trapmap/service-cron',
+    replacement: resolve(__dirname, './packages/service-cron/src/index.ts'),
+  },
+  {
     find: '@trapmap/persistence-schema',
     replacement: resolve(__dirname, './packages/persistence-schema/src/index.ts'),
   },
@@ -136,6 +144,7 @@ export default defineConfig({
       project('service-candidate-ingestion', './packages/service-candidate-ingestion'),
       project('service-governance-review', './packages/service-governance-review'),
       project('service-job-runtime', './packages/service-job-runtime'),
+      project('service-cron', './packages/service-cron'),
       project('service-knowledge-read', './packages/service-knowledge-read'),
       project('service-knowledge-write', './packages/service-knowledge-write'),
       project('host-local', './packages/host-local'),

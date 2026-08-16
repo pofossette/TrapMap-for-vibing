@@ -98,6 +98,20 @@ describe('knowledge-read response assembly rules', () => {
     ]);
   });
 
+  it('threads version and revision through scored entries into retrieval matches', () => {
+    const entry = createEntry();
+    const withVersion = toRetrievalMatch(
+      { ...createScored(entry), version: '2.1.0', revision: 3 },
+      { scopes: [], labels: [] },
+    );
+    expect(withVersion.version).toBe('2.1.0');
+    expect(withVersion.revision).toBe(3);
+
+    const withoutVersion = toRetrievalMatch(createScored(entry), { scopes: [], labels: [] });
+    expect(withoutVersion.version).toBeUndefined();
+    expect(withoutVersion.revision).toBeUndefined();
+  });
+
   it('splits scored entries into global and project buckets without duplication', () => {
     const { globalConstraints, projectKnowledge } = assembleResponseBuckets(
       [

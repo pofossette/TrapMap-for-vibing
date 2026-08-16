@@ -23,6 +23,7 @@ const SERVICE_NAME_TO_URL_KEY: Record<string, keyof InternalServiceUrls> = {
   'candidate-ingestion': 'candidateIngestion',
   'governance-review': 'governanceReview',
   'job-runtime': 'jobRuntime',
+  'cron-scheduler': 'cronScheduler',
 };
 
 export interface DiscoveryResolverOptions {

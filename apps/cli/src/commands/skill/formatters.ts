@@ -7,9 +7,22 @@ import type {
   SkillLookupResponse,
   SkillReviewDecisionResponse,
   SkillReviewQueueResponse,
+  SkillRevisionSummary,
 } from '@trapmap/contracts';
 
 import { stripNewlines } from '@trapmap/cli/lib/sanitize.js';
+
+/**
+ * Payload for the skill versions command.
+ * Carries the parsed revision summaries from the artifact history endpoint
+ * plus the latest revision's derived values for JSON consumers.
+ */
+export interface SkillVersionsPayload {
+  artifactId: string;
+  currentRevision: number | undefined;
+  currentVersion: string | undefined;
+  revisions: SkillRevisionSummary[];
+}
 
 /**
  * Format a skill lookup match for text output (Phase 18 SKED-01).
@@ -91,6 +104,33 @@ export function formatSkillHistoryResponse(response: SkillHistoryResponse): stri
   });
 
   return [...header, ...revisions].join('\n');
+}
+
+/**
+ * Format skill versions payload for text output.
+ * Shows the artifact's current semver version plus a per-revision list of
+ * revision number, version, submittedAt, submittedBy, and sourceHash prefix.
+ */
+export function formatSkillVersionsResponse(response: SkillVersionsPayload): string {
+  const current = response.revisions.at(-1);
+  const lines = [
+    `Artifact ID: ${response.artifactId}`,
+    `Current Version: ${current?.version ?? '(none)'}`,
+    `Current Revision: ${current?.revision ?? '(none)'}`,
+    '',
+    'Version History:',
+  ];
+
+  for (const revision of response.revisions) {
+    const submitter = revision.submittedBy.handle ?? revision.submittedBy.id;
+    const version = revision.version ?? '(none)';
+    const sourceHash = revision.sourceHash?.slice(0, 8) ?? '';
+    lines.push(
+      `${revision.revision}. ${version}  ${revision.submittedAt} by ${submitter}  source: ${sourceHash}`,
+    );
+  }
+
+  return lines.join('\n');
 }
 
 /**

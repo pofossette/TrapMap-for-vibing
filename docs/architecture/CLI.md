@@ -144,6 +144,7 @@ Evidence 枚举值与 contracts 一致：
 | `trapmap skill apply <candidateId>` | 可选 `--json` |
 | `trapmap skill edit <artifactId>` | 工件编辑入口；支持 `--json` |
 | `trapmap skill history <artifactId>` | 可选 `--json` |
+| `trapmap skill versions <artifactId>` | 查看 semver 版本与修订历史（revision/version/submittedAt/submittedBy/sourceHash）；可选 `--json` |
 | `trapmap skill review:queue` | 可选 `--json` |
 | `trapmap skill review:approve <artifactId>` | 审核工件；可选 `--json` |
 | `trapmap skill review:reject <artifactId>` | 审核工件；可选 `--json` |
@@ -168,6 +169,42 @@ Evidence 枚举值与 contracts 一致：
 | `trapmap maintenance-assign` | 分配 maintainer；支持 `--json` |
 | `trapmap maintenance-verify` | 标记已验证；支持 `--json` |
 | `trapmap policy resolve` | 激活策略解析；支持 `--json` |
+
+## 定时任务（cron）命令
+
+| 命令 | 参数 |
+|------|------|
+| `trapmap cron list` | 列出全部 cron job；可选 `--json` |
+| `trapmap cron add` | 新增 cron job；`--name <name>`、`--schedule <expr>`、`--task-type <type>`；可选 `--timezone <tz>`（默认 `UTC`）、`--payload-json <json>`、`--enabled <true\|false>`（默认 `true`）、`--json` |
+| `trapmap cron edit <jobId>` | 编辑 cron job；`--name`/`--schedule`/`--timezone`/`--task-type`/`--payload-json`/`--enabled` 均为可选（任意子集）；可选 `--json` |
+| `trapmap cron pause <jobId>` | 暂停 cron job（等价于 edit 置 `enabled=false`）；可选 `--json` |
+| `trapmap cron resume <jobId>` | 恢复 cron job（等价于 edit 置 `enabled=true`）；可选 `--json` |
+| `trapmap cron trigger <jobId>` | 手动立即执行一次（enqueue 对应 task，不推进下次调度）；可选 `--json` |
+| `trapmap cron status` | 全部 cron job 状态快照；可选 `--json` |
+
+说明：
+
+- 命令面以 `packages/service-cron` 提供的网关路由为准：GET/POST `/v1/cron/jobs`、GET/PATCH/DELETE `/v1/cron/jobs/:id`、POST `/v1/cron/jobs/:id/trigger`、GET `/v1/cron/status`；monolith（host-local Nest）与 distributed gateway 暴露同一 `/v1/cron/*` 面
+- 输出文本中 `nextRunAt`/`lastRunAt` 渲染为 UTC 人类可读时间（`YYYY-MM-DD HH:mm UTC`）；`--json` 输出保留 contracts 原始形状
+- `cron add` 成功后会打印下一次调度预览（`Next run: ...`）
+- `cron edit` 的 `--schedule` 变更必须同时提供 `--timezone`（与 `cronJobUpdateInputSchema` 一致，CLI 会在发送前本地校验）
+- `--enabled` 只接受 `true`/`false`；`--payload-json` 必须是合法 JSON 对象（与 `cronJobCreateInputSchema` 的 `payload` 形状一致）
+
+示例：
+
+```bash
+trapmap cron add \
+  --name daily-digest \
+  --schedule '0 9 * * *' \
+  --timezone Asia/Shanghai \
+  --task-type digest \
+  --payload-json '{"channel":"slack"}'
+trapmap cron list
+trapmap cron pause cron_1
+trapmap cron resume cron_1
+trapmap cron trigger cron_1
+trapmap cron status --json
+```
 
 ## 输出约定
 

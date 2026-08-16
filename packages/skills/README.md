@@ -82,6 +82,18 @@ Skills 可以被智能体引用，用于指导工作流程：
 - 不要天真地组合许多技能。单一针对性技能加上显式 `AVOID` 警告通常比大量部分相关指导的捆绑更强大
 - 输出配置不确定时，使用 `trapmap output profile set --tool <tool>` 匹配代理环境
 
+## 版本元数据
+
+每个 Skill 的 `SKILL.md` frontmatter 必须携带 semver 版本号，便于追踪工件演进并支持客户端侧版本映射：
+
+- `version`（必填）— 遵循 `major.minor.patch`，可带 prerelease/build 标识（如 `1.2.0`、`1.2.0-rc.1`）
+- `author`（可选）— 维护者，非空字符串
+- `license`（可选）— 许可证标识（如 `MIT`），非空字符串
+- `compatibility`（可选）— 兼容性说明，非空字符串或非空字符串数组
+- `tags`（可选）— 标签，非空字符串数组（或逗号分隔字符串）
+
+版本单调递增：`version` 不得低于 git 历史中该 skill 目录最近一次提交的版本（首次引入 Skill 时跳过该检查）。CI 由 `pnpm check:skills` 守卫格式与单调性，修改 Skill 内容时请同步递增版本。
+
 ## 相关包
 
 - `@trapmap/cli` — TrapMap CLI 工具
@@ -93,6 +105,9 @@ Skills 可以被智能体引用，用于指导工作流程：
 ```bash
 # 测试 Skill 导入导出
 pnpm test:import-export
+
+# 校验 Skill 版本元数据（格式 + 单调性）
+pnpm check:skills
 
 # 验证 Skill 结构
 pnpm check:structure

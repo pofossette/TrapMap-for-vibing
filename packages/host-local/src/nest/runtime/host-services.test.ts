@@ -26,6 +26,13 @@ const sharedInfra = {
   eventBus: {},
 };
 const asyncTransport = { task: {}, events: {} };
+const cronOwnerBundle = { list: vi.fn() };
+const cronScheduler = {
+  run: vi.fn(),
+  stop: vi.fn(),
+  isRunning: vi.fn(),
+  ownsWork: vi.fn(() => true),
+};
 const ownerReadModelProjection = { getReadModel: vi.fn() };
 const graphIndexRepository = { listAll: vi.fn(), upsert: vi.fn() };
 
@@ -40,6 +47,10 @@ vi.mock('@trapmap/service-knowledge-write', () => ({
 }));
 vi.mock('@trapmap/service-job-runtime', () => ({
   createJobRuntimeAsyncTransport: vi.fn(() => asyncTransport),
+}));
+vi.mock('@trapmap/service-cron', () => ({
+  createCronOwnerBundle: vi.fn(() => cronOwnerBundle),
+  createCronScheduler: vi.fn(() => cronScheduler),
 }));
 vi.mock('@trapmap/service-knowledge-read', () => ({
   createCandidateCorpusPgReadPort: vi.fn(() => ({})),
@@ -62,6 +73,7 @@ vi.mock('./retrieval-assembly.js', () => ({
 
 import { createCandidateIngestionPgOwnerBundle } from '@trapmap/service-candidate-ingestion';
 import { createJobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
+import { createCronOwnerBundle, createCronScheduler } from '@trapmap/service-cron';
 import { createOwnerReadModelProjection } from '@trapmap/service-knowledge-read';
 import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
 import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
@@ -134,6 +146,23 @@ describe('host-local service composition', () => {
       pool,
     });
     expect(services.asyncTransport).toBe(asyncTransport);
+  });
+
+  it('wires the cron owner bundle and scheduler on the host async transport', async () => {
+    const config = {
+      systemAdminKey: 'test-key',
+      asyncTaskTransport: { provider: 'postgres', rabbitmq: null },
+    } as HostLocalConfig;
+    const services = await createHostLocalServices(config);
+
+    expect(createCronOwnerBundle).toHaveBeenCalledWith(pool);
+    expect(createCronScheduler).toHaveBeenCalledWith({
+      bundle: cronOwnerBundle,
+      transport: { task: asyncTransport.task },
+    });
+    expect(services.cronOwnerBundle).toBe(cronOwnerBundle);
+    expect(services.cronScheduler).toBe(cronScheduler);
+    expect(services.cronScheduler.ownsWork()).toBe(true);
   });
 
   it('releases its host-owned infrastructure through one close operation', async () => {

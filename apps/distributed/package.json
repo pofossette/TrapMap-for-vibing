@@ -12,11 +12,13 @@
     "dev:candidate-ingestion": "tsx watch src/index.ts --service candidate-ingestion",
     "dev:governance-review": "tsx watch src/index.ts --service governance-review",
     "dev:job-runtime": "tsx watch src/index.ts --service job-runtime",
+    "dev:cron-scheduler": "tsx watch src/index.ts --service cron-scheduler",
     "start": "node dist/index.js",
     "start:gateway": "node dist/index.js --service gateway",
     "start:candidate-ingestion": "node dist/index.js --service candidate-ingestion",
     "start:governance-review": "node dist/index.js --service governance-review",
     "start:job-runtime": "node dist/index.js --service job-runtime",
+    "start:cron-scheduler": "node dist/index.js --service cron-scheduler",
     "test": "pnpm -C ../.. exec vitest run --project app-distributed --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

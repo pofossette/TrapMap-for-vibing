@@ -562,6 +562,15 @@ export const skillRevisionSummarySchema = z.object({
   summary: z.string().max(500).optional(),
   /** Lifecycle state after this revision */
   lifecycleState: lifecycleStateSchema,
+  /** Semver version declared in SKILL.md frontmatter (absent for unversioned skills) */
+  version: z
+    .string()
+    .regex(
+      /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/,
+    )
+    .optional(),
+  /** SHA-256 hash of all source files for this revision */
+  sourceHash: sha256HexSchema.optional(),
 });
 
 /**

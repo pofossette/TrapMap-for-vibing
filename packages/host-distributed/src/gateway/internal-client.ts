@@ -68,7 +68,7 @@ function normalizeCanonicalErrorBody(status: number, body: unknown): unknown {
 
 async function callInternalService(
   url: string,
-  method: 'GET' | 'POST' | 'PUT',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   body?: unknown,
   query?: Record<string, string>,
   options?: InternalRequestOptions,
@@ -405,6 +405,19 @@ export interface InternalServiceClients {
     }): Promise<ServiceResponse>;
     getStatus(jobId: string): Promise<ServiceResponse>;
     getQueueStatus(): Promise<ServiceResponse>;
+  };
+  cronScheduler: {
+    listJobs(options?: InternalRequestOptions): Promise<ServiceResponse>;
+    createJob(body: unknown, options?: InternalRequestOptions): Promise<ServiceResponse>;
+    getJob(jobId: string, options?: InternalRequestOptions): Promise<ServiceResponse>;
+    updateJob(
+      jobId: string,
+      body: unknown,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    deleteJob(jobId: string, options?: InternalRequestOptions): Promise<ServiceResponse>;
+    triggerJob(jobId: string, options?: InternalRequestOptions): Promise<ServiceResponse>;
+    getStatus(options?: InternalRequestOptions): Promise<ServiceResponse>;
   };
 }
 
@@ -922,6 +935,64 @@ export function createInternalServiceClients(
         callInternalService(
           `${await baseUrl('job-runtime', urls.jobRuntime)}/internal/jobs/queue`,
           'GET',
+        ),
+    },
+    cronScheduler: {
+      listJobs: async (options) =>
+        callInternalService(
+          `${await baseUrl('cron-scheduler', urls.cronScheduler)}/cron/jobs`,
+          'GET',
+          undefined,
+          undefined,
+          options,
+        ),
+      createJob: async (body, options) =>
+        callInternalService(
+          `${await baseUrl('cron-scheduler', urls.cronScheduler)}/cron/jobs`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      getJob: async (jobId, options) =>
+        callInternalService(
+          `${await baseUrl('cron-scheduler', urls.cronScheduler)}/cron/jobs/${jobId}`,
+          'GET',
+          undefined,
+          undefined,
+          options,
+        ),
+      updateJob: async (jobId, body, options) =>
+        callInternalService(
+          `${await baseUrl('cron-scheduler', urls.cronScheduler)}/cron/jobs/${jobId}`,
+          'PATCH',
+          body,
+          undefined,
+          options,
+        ),
+      deleteJob: async (jobId, options) =>
+        callInternalService(
+          `${await baseUrl('cron-scheduler', urls.cronScheduler)}/cron/jobs/${jobId}`,
+          'DELETE',
+          undefined,
+          undefined,
+          options,
+        ),
+      triggerJob: async (jobId, options) =>
+        callInternalService(
+          `${await baseUrl('cron-scheduler', urls.cronScheduler)}/cron/jobs/${jobId}/trigger`,
+          'POST',
+          undefined,
+          undefined,
+          options,
+        ),
+      getStatus: async (options) =>
+        callInternalService(
+          `${await baseUrl('cron-scheduler', urls.cronScheduler)}/cron/status`,
+          'GET',
+          undefined,
+          undefined,
+          options,
         ),
     },
   };
