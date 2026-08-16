@@ -86,6 +86,42 @@ it('freezes artifact roundtrip columns and lookup indexes in the owner migration
   }
 });
 
+it('freezes the artifact revision version column in the owner migration set', async () => {
+  const migration = readFileSync(
+    new URL('../drizzle/0001_artifact_revision_version.sql', import.meta.url),
+    'utf8',
+  );
+  expect(migration).toContain('ALTER TABLE "artifact_revisions" ADD COLUMN "version" text');
+
+  const journal = JSON.parse(
+    readFileSync(new URL('../drizzle/meta/_journal.json', import.meta.url), 'utf8'),
+  ) as { entries: Array<{ tag: string }> };
+  expect(journal.entries.map((entry) => entry.tag)).toEqual([
+    '0000_youthful_gargoyle',
+    '0001_artifact_revision_version',
+  ]);
+
+  const snapshot = JSON.parse(
+    readFileSync(new URL('../drizzle/meta/0001_snapshot.json', import.meta.url), 'utf8'),
+  ) as {
+    prevId: string;
+    tables: Record<string, { columns: Record<string, { type: string; notNull: boolean }> }>;
+  };
+  const revisionTable = snapshot.tables['public.artifact_revisions'];
+  expect(revisionTable?.columns['version']).toEqual({
+    name: 'version',
+    type: 'text',
+    primaryKey: false,
+    notNull: false,
+  });
+});
+
+it('models the artifact revision version column in the shared schema', async () => {
+  const schema = await import('@trapmap/persistence-schema');
+
+  expect(schema.artifactRevisions.version).toBeDefined();
+});
+
 it('preserves every legacy knowledge aggregate in owner-local tables', () => {
   const migration = readFileSync(
     new URL('../drizzle/0000_youthful_gargoyle.sql', import.meta.url),
@@ -108,14 +144,21 @@ it('preserves every legacy knowledge aggregate in owner-local tables', () => {
 
 it('rejects external files and missing journal tags', async () => {
   const external = await createMigrationSet(
-    ['0000_youthful_gargoyle.sql', '0000_identity_access_baseline.sql'],
-    ['0000_youthful_gargoyle', '0000_identity_access_baseline'],
+    [
+      '0000_youthful_gargoyle.sql',
+      '0001_artifact_revision_version.sql',
+      '0000_identity_access_baseline.sql',
+    ],
+    ['0000_youthful_gargoyle', '0001_artifact_revision_version', '0000_identity_access_baseline'],
   );
   await expect(assertKnowledgeWriteMigrationSet(external)).rejects.toThrow(
     'unexpected=0000_identity_access_baseline',
   );
-  const missing = await createMigrationSet(['0000_youthful_gargoyle.sql'], []);
+  const missing = await createMigrationSet(
+    ['0000_youthful_gargoyle.sql', '0001_artifact_revision_version.sql'],
+    [],
+  );
   await expect(assertKnowledgeWriteMigrationSet(missing)).rejects.toThrow(
-    'missing=0000_youthful_gargoyle',
+    'missing=0000_youthful_gargoyle,0001_artifact_revision_version',
   );
 });

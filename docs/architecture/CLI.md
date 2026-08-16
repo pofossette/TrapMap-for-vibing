@@ -144,6 +144,7 @@ Evidence 枚举值与 contracts 一致：
 | `trapmap skill apply <candidateId>` | 可选 `--json` |
 | `trapmap skill edit <artifactId>` | 工件编辑入口；支持 `--json` |
 | `trapmap skill history <artifactId>` | 可选 `--json` |
+| `trapmap skill versions <artifactId>` | 查看 semver 版本与修订历史（revision/version/submittedAt/submittedBy/sourceHash）；可选 `--json` |
 | `trapmap skill review:queue` | 可选 `--json` |
 | `trapmap skill review:approve <artifactId>` | 审核工件；可选 `--json` |
 | `trapmap skill review:reject <artifactId>` | 审核工件；可选 `--json` |

@@ -178,6 +178,65 @@ describe('ArtifactBundleImportPort', () => {
     expect(client.release).toHaveBeenCalledOnce();
   });
 
+  it('maps SKILL.md frontmatter version into the revision', async () => {
+    const { pool } = createTransactionPool(() => ({ rows: [] }));
+    const importer = createArtifactBundleImportPort(pool);
+    const bundle = bundleFixture();
+    bundle.files[0]!.content = '---\nname: x\nversion: 1.0.0\n---';
+
+    const artifact = await importer.importBundle(bundle, {
+      actorId: 'owner-1',
+      teamId: null,
+      handle: 'owner',
+      securityLevel: 4,
+    });
+
+    expect(artifact.history[0]?.version).toBe('1.0.0');
+  });
+
+  it('omits version when SKILL.md frontmatter has none', async () => {
+    const { pool } = createTransactionPool(() => ({ rows: [] }));
+    const importer = createArtifactBundleImportPort(pool);
+
+    const artifact = await importer.importBundle(bundleFixture(), {
+      actorId: 'owner-1',
+      teamId: null,
+      handle: 'owner',
+      securityLevel: 4,
+    });
+
+    expect(artifact.history[0]?.version).toBeUndefined();
+  });
+
+  it('persists the revision version column when present', async () => {
+    const recorded: Array<[string, unknown[]?]> = [];
+    const client = {
+      query: vi.fn(async (sql: string, values?: unknown[]) => {
+        recorded.push([sql, values]);
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    };
+    const pool = {
+      connect: vi.fn(async () => client),
+      query: vi.fn(async () => ({ rows: [] })),
+    };
+    const importer = createArtifactBundleImportPort(pool);
+    const bundle = bundleFixture();
+    bundle.files[0]!.content = '---\nname: x\nversion: 2.3.4\n---';
+
+    await importer.importBundle(bundle, {
+      actorId: 'owner-1',
+      teamId: null,
+      handle: 'owner',
+      securityLevel: 4,
+    });
+
+    const insert = recorded.find(([sql]) => sql.includes('INSERT INTO artifact_revisions'));
+    expect(insert?.[0]).toContain(' version,');
+    expect(insert?.[1]).toContain('2.3.4');
+  });
+
   it('rejects traversal paths before opening an owner transaction', async () => {
     const { client, pool } = createTransactionPool(() => ({ rows: [] }));
     const importer = createArtifactBundleImportPort(pool);
@@ -285,6 +344,61 @@ describe('ArtifactReadProjection', () => {
     await expect(projection.getById('artifact-1')).resolves.toEqual(
       expect.objectContaining({ requiredLevel: 8 }),
     );
+  });
+
+  it('maps the revision version column when present and omits it when absent', async () => {
+    const query = vi.fn(async (sql: string) => {
+      if (sql.includes('FROM skill_artifacts')) {
+        return {
+          rows: [
+            {
+              id: 'artifact-1',
+              team_id: null,
+              required_level: 1,
+              lifecycle_state: 'approved',
+              owner_user_id: 'owner-1',
+              labels: [],
+              metadata: artifactFixture().metadata,
+              created_at: artifactFixture().createdAt,
+              updated_at: artifactFixture().updatedAt,
+            },
+          ],
+        };
+      }
+      if (sql.includes('FROM artifact_revisions')) {
+        return {
+          rows: [
+            {
+              revision_no: 1,
+              source_hash: 'source-hash',
+              files: [],
+              script_descriptors: [],
+              derived: null,
+              version: '3.2.1',
+              submitted_at: artifactFixture().createdAt,
+              submitted_by_user_id: 'owner-1',
+            },
+            {
+              revision_no: 2,
+              source_hash: 'source-hash-2',
+              files: [],
+              script_descriptors: [],
+              derived: null,
+              version: null,
+              submitted_at: artifactFixture().createdAt,
+              submitted_by_user_id: 'owner-1',
+            },
+          ],
+        };
+      }
+      return { rows: [] };
+    });
+
+    const projection = createArtifactReadProjection({ query });
+
+    const artifact = await projection.getById('artifact-1');
+    expect(artifact?.history[0]?.version).toBe('3.2.1');
+    expect(artifact?.history[1]?.version).toBeUndefined();
   });
 
   it('reads the owner-local artifact indexing projection', async () => {

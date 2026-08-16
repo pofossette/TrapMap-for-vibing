@@ -6,7 +6,10 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import type { Pool } from 'pg';
 const migrationsFolder = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../drizzle');
 export async function assertKnowledgeWriteMigrationSet(folder = migrationsFolder): Promise<void> {
-  await assertOwnerMigrationSet('knowledge-write', folder, ['0000_youthful_gargoyle']);
+  await assertOwnerMigrationSet('knowledge-write', folder, [
+    '0000_youthful_gargoyle',
+    '0001_artifact_revision_version',
+  ]);
 }
 export async function runKnowledgeWriteMigrations(pool: Pool): Promise<void> {
   await assertKnowledgeWriteMigrationSet();

@@ -396,6 +396,7 @@ draft → submitted → agent-pass/agent-rejected
 |------|------|------|
 | `revision` | number | 版本号 |
 | `sourceHash` | string | 所有源文件的 SHA-256 哈希 |
+| `version` | string? | SKILL.md frontmatter 声明的 semver 版本（无版本时省略；DB 列 `artifact_revisions.version` text nullable） |
 | `files` | SkillArtifactFile[] | 所有文件清单 |
 | `submittedAt` | ISO8601 | 提交时间 |
 | `submittedBy` | ActorRef | 提交者 |

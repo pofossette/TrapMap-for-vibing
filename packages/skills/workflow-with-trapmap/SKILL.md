@@ -1,6 +1,11 @@
 ---
 name: workflow-with-trapmap
 description: 用于规划或实施 TrapMap 工作，并将 TrapMap 检索、陷阱约束、知识沉淀、反馈和维护流程作为硬性门控。需要具体命令签名时再加载 trapmap-cli-usage-guide。
+version: 1.0.0
+author: TrapMap maintainers
+license: MIT
+compatibility: trapmap >= 0.1.0
+tags: [workflow, trapmap, governance]
 ---
 
 # Workflow With TrapMap

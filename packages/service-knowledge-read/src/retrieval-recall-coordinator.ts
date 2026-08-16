@@ -5,10 +5,11 @@ import {
   createGraphRecallTrace,
   inferChannelsFromMerged,
   mergeCandidatesWithGraph,
+  versionMatchMultiplier,
 } from '@trapmap/backend-core';
 import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
 import type { Pool } from 'pg';
-import type { MergedCandidate, ScoredEntry } from './retrieval-types.js';
+import { artifactVersionOf, type MergedCandidate, type ScoredEntry } from './retrieval-types.js';
 
 import type {
   KnowledgeReadGraphQueryRuntimeState,
@@ -84,6 +85,39 @@ function finalizeSemanticResults(
     [],
   );
   return { scoredEntries: sliced, mergedCandidates };
+}
+
+function versionMultiplierFor(
+  infra: NonNullable<ReturnType<typeof getRetrievalInfra>>,
+  entry: KnowledgeRecord,
+  parsed: ReturnType<typeof retrievalQuerySchema.parse>,
+): number {
+  return versionMatchMultiplier({
+    artifactVersion: artifactVersionOf(entry),
+    queryVersions: parsed.boundaryContext?.versions,
+    freshnessType: entry.decayMeta?.freshnessType ?? null,
+    decayConfig: infra.scoring.freshnessConfig,
+  });
+}
+
+function toScoredEntry(
+  entry: KnowledgeRecord,
+  score: number,
+  boundaryExplanation?: ScoredEntry['boundaryExplanation'],
+): ScoredEntry {
+  const scoredEntry: ScoredEntry = { entry, score };
+  const version = artifactVersionOf(entry);
+  if (version !== undefined) {
+    scoredEntry.version = version;
+  }
+  const revision = entry.latestRevision?.revision;
+  if (revision !== undefined) {
+    scoredEntry.revision = revision;
+  }
+  if (boundaryExplanation !== undefined) {
+    scoredEntry.boundaryExplanation = boundaryExplanation;
+  }
+  return scoredEntry;
 }
 
 function rerankRecallResults(
@@ -162,17 +196,15 @@ export async function semanticRecall(
           entry,
           parsed.boundaryContext,
         );
-        const boostedScore = computeScore(result.similarity, entry, parsed.filters, seed);
+        const boostedScore =
+          computeScore(result.similarity, entry, parsed.filters, seed) *
+          versionMultiplierFor(infra!, entry, parsed);
         const finalScore = Math.min(1, Math.max(0, boostedScore + boundaryDelta));
         const boundaryExplanation = parsed.boundaryContext
           ? infra!.scoring.buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
           : undefined;
 
-        const scoredEntry: ScoredEntry = { entry, score: finalScore };
-        if (boundaryExplanation !== undefined) {
-          scoredEntry.boundaryExplanation = boundaryExplanation;
-        }
-        scoredEntries.push(scoredEntry);
+        scoredEntries.push(toScoredEntry(entry, finalScore, boundaryExplanation));
       }
 
       return finalizeSemanticResults(infra!, scoredEntries, parsed);
@@ -188,6 +220,7 @@ export async function semanticRecall(
     eligibleEntries,
     parsed.filters,
     seed,
+    parsed.boundaryContext?.versions,
   );
 
   const scoredEntries: ScoredEntry[] = rawScoredEntries.map(({ entry, score }) => {
@@ -196,11 +229,7 @@ export async function semanticRecall(
     const boundaryExplanation = parsed.boundaryContext
       ? infra!.scoring.buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
       : undefined;
-    const result: ScoredEntry = { entry, score: finalScore };
-    if (boundaryExplanation !== undefined) {
-      result.boundaryExplanation = boundaryExplanation;
-    }
-    return result;
+    return toScoredEntry(entry, finalScore, boundaryExplanation);
   });
 
   return finalizeSemanticResults(infra!, scoredEntries, parsed);
@@ -253,7 +282,10 @@ export async function hybridRecall(
         .map((r: (typeof dbVectorResults)[number]) => {
           const entry = entryMap.get(r.entryId);
           if (!entry) return null;
-          return createSemanticCandidate(entry, r.similarity);
+          return createSemanticCandidate(
+            entry,
+            r.similarity * versionMultiplierFor(infra!, entry, parsed),
+          );
         })
         .filter((c): c is NonNullable<ReturnType<typeof createSemanticCandidate>> => c !== null);
 
@@ -285,7 +317,13 @@ export async function hybridRecall(
   }
 
   const [semanticCandidates, keywordCandidates] = await Promise.all([
-    computeSemanticCandidates(services!, seed, eligibleEntries, parsed.filters),
+    computeSemanticCandidates(
+      services!,
+      seed,
+      eligibleEntries,
+      parsed.filters,
+      parsed.boundaryContext?.versions,
+    ),
     keywordRecall(seed, eligibleEntries),
   ]);
 
@@ -298,6 +336,7 @@ async function computeSemanticCandidates(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
   filters: RetrievalQuery['filters'],
+  queryVersions?: ReadonlyArray<{ package: string; version: string }> | null,
 ): Promise<
   ReturnType<ReturnType<typeof getRetrievalInfra>['scoring']['createSemanticCandidate']>[]
 > {
@@ -309,6 +348,7 @@ async function computeSemanticCandidates(
     eligibleEntries,
     filters,
     seed,
+    queryVersions,
   );
   const candidates = scoredEntries.map(({ entry, score }) =>
     infra.scoring.createSemanticCandidate(entry, score),
@@ -331,7 +371,13 @@ export async function graphAssistedHybridRecall(
   }
 
   const [semanticCandidates, keywordCandidates, graphCandidates] = await Promise.all([
-    computeSemanticCandidates(services!, seed, eligibleEntries, parsed.filters),
+    computeSemanticCandidates(
+      services!,
+      seed,
+      eligibleEntries,
+      parsed.filters,
+      parsed.boundaryContext?.versions,
+    ),
     keywordRecall(seed, eligibleEntries),
     infra!.pgRecall.graphAssistedRecall(
       seed,

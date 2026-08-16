@@ -1,6 +1,11 @@
 ---
 name: trapmap-cli-usage-guide
 description: TrapMap CLI 的紧凑使用指南。仅在需要确认命令签名、标志、命令族映射或输出配置时加载。
+version: 1.0.0
+author: TrapMap maintainers
+license: MIT
+compatibility: trapmap >= 0.1.0
+tags: [cli, reference, trapmap]
 ---
 
 # TrapMap CLI Usage Guide

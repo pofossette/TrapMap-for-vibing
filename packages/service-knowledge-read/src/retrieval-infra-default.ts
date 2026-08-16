@@ -14,7 +14,7 @@ import { type FreshnessDecayConfig, enrichConflictHints } from '@trapmap/contrac
 import type { Pool } from 'pg';
 
 import type { KnowledgeReadGraphQueryBackend, KnowledgeReadRetrievalInfra } from './context.js';
-import type { RecallCandidate, ScoredEntry } from './retrieval-types.js';
+import { artifactVersionOf, type RecallCandidate, type ScoredEntry } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 
 const freshnessConfig: FreshnessDecayConfig = DEFAULT_FRESHNESS_DECAY_CONFIG;
@@ -235,10 +235,21 @@ export function createDefaultKnowledgeReadRetrievalInfra(): KnowledgeReadRetriev
       mergeCandidates,
       rerankCandidates,
       toScoredEntriesFromReranked: (candidates): ScoredEntry[] =>
-        candidates.map((candidate) => ({
-          entry: candidate.entry,
-          score: candidate.combinedScore,
-        })),
+        candidates.map((candidate) => {
+          const scoredEntry: ScoredEntry = {
+            entry: candidate.entry,
+            score: candidate.combinedScore,
+          };
+          const version = artifactVersionOf(candidate.entry);
+          if (version !== undefined) {
+            scoredEntry.version = version;
+          }
+          const revision = candidate.entry.latestRevision?.revision;
+          if (revision !== undefined) {
+            scoredEntry.revision = revision;
+          }
+          return scoredEntry;
+        }),
     },
     pgRecall: {
       isEnabled: () => process.env.USE_DB_SEARCH === 'true',
