@@ -1,16 +1,22 @@
-import type { CandidateRepositoryPort, TaskHandler, TaskQueuePort } from '@trapmap/backend-core';
+import type {
+  CandidateRepositoryPort,
+  DedupStrategyPort,
+  TaskHandler,
+  TaskQueuePort,
+} from '@trapmap/backend-core';
 import {
   DEAD_LETTER_MESSAGE,
   MAX_PROCESSING_ATTEMPTS,
   RECOVERY_REASON,
   RECOVERY_STATUS,
   buildNormalizedDuplicateInput,
-  createCandidateDuplicateDetector,
   isActionableCandidateStatus,
   isInterruptedCandidateStatus,
   statusAfterAnalysis,
 } from '@trapmap/backend-core';
 import type { CandidateCorpusReadPort, CandidateProcessingPayload } from '@trapmap/contracts';
+
+import { createRuleDedupStrategy } from './dedup-strategy/rule-dedup-strategy.js';
 
 export const CANDIDATE_PROCESSING_TASK_TYPE = 'candidate_processing' as const;
 
@@ -19,6 +25,12 @@ export interface CandidateProcessingDeps {
   corpus: CandidateCorpusReadPort;
   now(): string;
   createId(): string;
+  /**
+   * D8 dedup-strategy judgment port (design D8 call-site migration).
+   * When absent the rule implementation is used with the caller's
+   * now/createId — behavior identical to the pre-contract detector.
+   */
+  dedupStrategy?: DedupStrategyPort;
   logger?: {
     error(payload: unknown, message: string): void;
   };
@@ -57,10 +69,17 @@ export async function processCandidate(
     await deps.candidateRepo.updateStatus(candidateId, 'analyzing');
 
     const normalized = buildNormalizedDuplicateInput(candidate);
-    const result = await createCandidateDuplicateDetector(deps.corpus, {
-      now: deps.now,
-      createId: deps.createId,
-    })(candidate, normalized);
+    // D8 dedup-strategy call-site migration: duplicate detection goes through
+    // the judgment port. The rule default wraps the pre-contract detector with
+    // the caller's now/createId, so the outcome is unchanged; an llm/hybrid
+    // variant can be injected by the host without touching this pipeline.
+    const dedupStrategy =
+      deps.dedupStrategy ?? createRuleDedupStrategy({ now: deps.now, createId: deps.createId });
+    const result = await dedupStrategy.detect({
+      candidate,
+      normalized,
+      corpus: deps.corpus,
+    });
 
     await deps.candidateRepo.attachAnalysis(candidateId, result.analysisSnapshot);
     if (result.duplicateCase) {

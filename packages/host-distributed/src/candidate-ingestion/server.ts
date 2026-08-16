@@ -11,6 +11,7 @@ import {
   createCandidateIngestionServer,
   createCandidateProcessingRuntime,
   createCandidateProcessingTaskQueue,
+  createRuleDedupStrategy,
 } from '@trapmap/service-candidate-ingestion';
 import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import { createCandidateCorpusPgReadPort } from '@trapmap/service-knowledge-read';
@@ -43,6 +44,13 @@ export async function createServer(
     corpus: createCandidateCorpusPgReadPort(db.pool),
     now: () => new Date().toISOString(),
     createId: randomUUID,
+    // D8 dedup-strategy call-site migration: the processing runtime consumes
+    // the judgment port; the rule default keeps the host's id policy
+    // (randomUUID) and timestamp source unchanged.
+    dedupStrategy: createRuleDedupStrategy({
+      now: () => new Date().toISOString(),
+      createId: randomUUID,
+    }),
     queue: createCandidateProcessingTaskQueue(db.pool),
   });
   attachRuntimeMetricsRoute(server.app);

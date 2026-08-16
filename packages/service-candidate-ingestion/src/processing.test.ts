@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CandidateRepositoryPort } from '@trapmap/backend-core';
+import type { CandidateRepositoryPort, DedupStrategyResult } from '@trapmap/backend-core';
 import type { CandidateCorpusReadPort, CandidateSubmission } from '@trapmap/contracts';
 
 import {
@@ -77,6 +77,40 @@ describe('candidate owner processing', () => {
 
     expect(repo.updateStatus).toHaveBeenNthCalledWith(1, 'candidate-1', 'queued');
     expect(repo.updateStatus).toHaveBeenNthCalledWith(2, 'candidate-1', 'analyzing');
+    expect(repo.attachAnalysis).toHaveBeenCalledOnce();
+    expect(repo.updateStatus).toHaveBeenLastCalledWith('candidate-1', 'ready_for_review');
+  });
+
+  it('routes duplicate detection through the injected D8 dedupStrategy port', async () => {
+    const repo = repository();
+    const detect = vi.fn(
+      async (): Promise<DedupStrategyResult> => ({
+        duplicateCase: null,
+        analysisSnapshot: {
+          normalizedAt: '2026-07-17T00:01:00.000Z',
+          fingerprint: 'a'.repeat(64),
+          keywords: ['loop'],
+          tokens: ['loop'],
+        },
+        strategy: 'rule',
+      }),
+    );
+
+    await processCandidate('candidate-1', {
+      candidateRepo: repo,
+      corpus: noMatches,
+      now: () => '2026-07-17T00:01:00.000Z',
+      createId: () => 'duplicate-1',
+      dedupStrategy: { detect },
+    });
+
+    expect(detect).toHaveBeenCalledOnce();
+    const input = detect.mock.calls[0]![0] as {
+      candidate: CandidateSubmission;
+      corpus: CandidateCorpusReadPort;
+    };
+    expect(input.candidate.id).toBe('candidate-1');
+    expect(input.corpus).toBe(noMatches);
     expect(repo.attachAnalysis).toHaveBeenCalledOnce();
     expect(repo.updateStatus).toHaveBeenLastCalledWith('candidate-1', 'ready_for_review');
   });

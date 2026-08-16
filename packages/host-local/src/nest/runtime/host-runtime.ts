@@ -11,6 +11,7 @@ import {
   createCandidateProcessingRuntime,
 } from '@trapmap/service-candidate-ingestion';
 import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
+import { createRuleDedupStrategy } from '@trapmap/service-candidate-ingestion';
 import {
   createKnowledgeReadOwnerRetrievalServices,
   createKnowledgeReadRetrievalQuery,
@@ -114,6 +115,13 @@ function createHostLocalRuntimeFromServices(services: HostLocalServices): HostLo
       corpus: services.candidateCorpus,
       now: () => new Date().toISOString(),
       createId: crypto.randomUUID,
+      // D8 dedup-strategy call-site migration: the processing runtime consumes
+      // the judgment port; the rule default keeps the host's id policy
+      // (crypto.randomUUID) and timestamp source unchanged.
+      dedupStrategy: createRuleDedupStrategy({
+        now: () => new Date().toISOString(),
+        createId: crypto.randomUUID,
+      }),
       queue: queuePorts.task,
     }),
   };
