@@ -1,8 +1,8 @@
 # 判断类节点契约（D8）收编主线
 
 **状态：** active（2026-08-16 由用户直接要求启动：「直接由你来完成 判断类节点契约（D8）」）
-**设计输入：** [《TrapMap 统一优雅组装中心设计》](../superpowers/specs/2026-08-16-unified-assembly-center-design.md) D8（契约优先，R7）与 D2 节点映射表
-**前置主线：** assembly Phase 1-4 全部完成并归档（[unified-assembly-center-phase4-archived.md](../archived/archived-plans/unified-assembly-center-phase4-archived.md)），其中判断类节点契约（D8）明确 deferred 到本独立主线
+**设计输入：** [《TrapMap 统一优雅组装中心设计》](../../superpowers/specs/2026-08-16-unified-assembly-center-design.md) D8（契约优先，R7）与 D2 节点映射表
+**前置主线：** assembly Phase 1-4 全部完成并归档（[unified-assembly-center-phase4-archived.md](./unified-assembly-center-phase4-archived.md)），其中判断类节点契约（D8）明确 deferred 到本独立主线
 
 ## 背景
 
@@ -97,3 +97,12 @@ assembly 内核（Phase 1）已具备契约校验能力：`defineNode` 支持 `i
 - host-local 与 host-distributed assembly 均挂载判断类节点；`build()` 经 startupChecks 契约校验通过；未注册契约报 UNKNOWN_CONTRACT（有测试证据）。
 - 行为不变：除新增包装/导出外无业务逻辑改动；eval:smoke 与 golden 门禁全绿。
 - 文档守卫全绿；细则归档且 plan.md 状态口径更新。
+
+## Closeout 记录（2026-08-16）
+
+- **T1 契约层：** 6 个端口接口（`packages/backend-core/src/ports/` 下六个 `<node>-ports.ts` 文件）+ `contracts/src/domain/judgment.ts`（judgmentModeSchema + 6 节点 config schema）+ 共享固定样例断言集 `backend-core/src/testing/judgment-fixtures.ts`；契约单测全绿（contracts 846 / backend-core 203）。
+- **T2 实现层：** 6 个 rule 实现（默认=现状逻辑，行为不变；包装层 diff 核验无业务改动）：`service-knowledge-read`（intent-recognition / channel-merge）、`service-candidate-ingestion`（dedup-strategy）、`service-governance-review`（conflict-trigger）、`service-knowledge-write`（artifact-derivation + label-alignment rule + llm 变体）；label-alignment llm 变体复用现状 `callLlmAlignment`（仅加 export）；`deriveFromPayloads` 从 @eval-only 提升为生产导出（收编后获得契约消费者）。实现测试共享同一断言集（fixtures）全绿。
+- **T3 装配层：** 契约注册表落 `packages/assembly/src/contracts/judgment-contracts.ts`（assembly 内核保持零业务依赖，verify 检查 provide/configSchema/topology）；host-local `judgment-nodes.ts` 挂载 6 节点（composePilotProfile 在 service 节点后追加）；host-distributed `judgment-nodes.ts` 按服务进程挂载（knowledge-read→intent+channel-merge、candidate-ingestion→dedup、governance-review→conflict-trigger（分布式 read + pg projection）、knowledge-write→artifact+label）；`createAssembly({ contracts: judgmentContracts })` 经 startupChecks 校验；UNKNOWN_CONTRACT / CONTRACT_VIOLATION 有测试证据。
+- **T4 文档与门禁：** plan.md 激活并回写状态口径；todos/README 索引；open-debt assembly 条目更新（D8 状态 + 后续落点）；SYSTEM_TRUTH_SOURCES 术语映射；BOUNDARIES 节点契约落点；归档本细则。
+- **门禁证据：** `pnpm typecheck` 全绿；contracts 846 / backend-core 203 / assembly 48 / host-local 237 / host-distributed 181 / service-knowledge-read 88 / service-candidate-ingestion 41 / service-governance-review 53 / service-knowledge-write 116；`test:runtime-foundations` 139 / `test:deployment-smoke` 388；`eval:smoke` 54/81（与 main 基线一致，27 项失败为环境既有 LLM/fixture 问题，非回归）；check:imports / asserts / docs / structure 全绿；fallow audit --base af1527e4 PASS（0 issue，1 项 inherited 排除：alignLabel 既有复杂度）。
+- **偏差与后续落点（登记于 open-debt）：** ① 消费方内嵌调用点迁移（searchKnowledge selectStrategy、processCandidate detector、createGovernanceConflictWorkflow、alignLabel、deriveFromPayloads、mergeCandidatesWithGraph 改经节点 port 消费）逐节点独立评审（行为不变 diff 核验）；② llm/hybrid 生产收编（intent llm / dedup llm / artifact llm / channel-merge 替换策略）登记不实现；③ 宿主判断节点描述符跨 host 重复为 fallow 边界下结构性重复（host zone 不能互导、assembly zone 不能导入 service 工厂），以 fallow-ignore-file code-duplication 注明先例。
