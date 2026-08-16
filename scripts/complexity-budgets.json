@@ -262,7 +262,7 @@
         "不承载 tranche checklist 或实施细节",
         "Dead Code and Architecture Order Cleanup",
         "docs/todos/dead-code-and-architecture-order-cleanup.md",
-        "行为不变是硬约束"
+        "运行时语义不变是硬约束（检索行为升级除外）"
       ],
       "mustNotContain": [
         "当前主线阶段：`Phase 1-2`",
@@ -357,7 +357,7 @@
         "microservice-platform-evolution-plan.md",
         "微服务平台能力增强",
         "应新建 active 细则",
-        "当前根 `plan.md` 指向 assembly Phase 3 收敛"
+        "当前根 `plan.md` 指向 assembly Phase 4 收尾"
       ]
     },
     {
