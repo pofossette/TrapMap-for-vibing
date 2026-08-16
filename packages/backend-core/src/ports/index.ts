@@ -11,3 +11,9 @@ export type {
 export * from './internal-ports.js';
 export * from './discovery-ports.js';
 export * from './lifecycle-ports.js';
+export * from './intent-ports.js';
+export * from './dedup-ports.js';
+export * from './conflict-ports.js';
+export * from './artifact-derivation-ports.js';
+export * from './label-alignment-ports.js';
+export * from './channel-merge-ports.js';
