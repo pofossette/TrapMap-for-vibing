@@ -80,7 +80,8 @@ describe('distributed database pool configuration', () => {
     const snapshot = getDistributedConnectionBudgetSnapshot();
 
     process.env = previous;
-    expect(snapshot).toEqual({ configured: 24, budget: 20, withinBudget: false });
+    // ALL_SERVICES has 8 entries (gateway + 7 pool-owning services); 7 × pool size 4 = 28.
+    expect(snapshot).toEqual({ configured: 28, budget: 20, withinBudget: false });
   });
 
   it('rejects a distributed startup that exceeds the shared connection budget', () => {
