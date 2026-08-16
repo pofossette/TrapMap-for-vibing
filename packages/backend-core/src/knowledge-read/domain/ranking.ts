@@ -58,6 +58,45 @@ export function createSemanticCandidate<E>(entry: E, score: number): RecallCandi
 }
 
 // ---------------------------------------------------------------------------
+// Version-match decay
+// ---------------------------------------------------------------------------
+
+export interface VersionMatchMultiplierInput {
+  /** Semver version declared by the artifact (absent for unversioned artifacts) */
+  artifactVersion: string | null | undefined;
+  /** Runtime versions from the query boundary context ({package, version} pairs) */
+  queryVersions: ReadonlyArray<{ package: string; version: string }> | null | undefined;
+  /** Decay freshness type from the entry decay metadata */
+  freshnessType: string | null | undefined;
+  /** Freshness decay configuration (consumed read-only) */
+  decayConfig: FreshnessDecayConfig;
+}
+
+/**
+ * Step multiplier for versioned decay: an artifact whose declared version
+ * equals any query version keeps full weight; a versioned artifact that does
+ * not match is down-weighted by `mismatchMultiplier`. Non-versioned
+ * freshness types, queries without version constraints, and disabled or
+ * absent versioned config all yield 1 (no decay).
+ *
+ * Matching is exact string equality between the artifact version and the
+ * version field of the query's {package, version} entries (package names do
+ * not participate in the comparison).
+ */
+export function versionMatchMultiplier(input: VersionMatchMultiplierInput): number {
+  const { artifactVersion, queryVersions, freshnessType, decayConfig } = input;
+  if (freshnessType !== 'versioned') return 1;
+  if (!queryVersions || queryVersions.length === 0) return 1;
+  const versioned = decayConfig.versioned;
+  if (!versioned || versioned.enabled === false) return 1;
+  const matched =
+    artifactVersion !== undefined &&
+    artifactVersion !== null &&
+    queryVersions.some((entry) => entry.version === artifactVersion);
+  return matched ? versioned.matchMultiplier : versioned.mismatchMultiplier;
+}
+
+// ---------------------------------------------------------------------------
 // Mode routing
 // ---------------------------------------------------------------------------
 

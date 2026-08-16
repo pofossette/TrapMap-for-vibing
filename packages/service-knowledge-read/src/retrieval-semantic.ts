@@ -1,9 +1,15 @@
-import { buildEmbeddingText, computeScore, cosineSimilarity } from '@trapmap/backend-core';
+import {
+  buildEmbeddingText,
+  computeScore,
+  cosineSimilarity,
+  versionMatchMultiplier,
+} from '@trapmap/backend-core';
 import type { RetrievalQuery } from '@trapmap/contracts';
 
 import type { SkillShareerServices } from './context.js';
 import { getDefaultRetrievalInfra, getRetrievalInfra } from './retrieval-infra.js';
 import type { KnowledgeReadRecallChannel } from './retrieval-orchestration.js';
+import { artifactVersionOf } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 
 export { buildEmbeddingText } from '@trapmap/backend-core';
@@ -123,8 +129,10 @@ export async function optimizedSemanticRecall(
   entries: KnowledgeRecord[],
   filters: RetrievalQuery['filters'],
   seed?: string,
+  queryVersions?: ReadonlyArray<{ package: string; version: string }> | null,
 ): Promise<OptimizedSemanticRecallResult> {
   const { embeddings, stats } = await getBatchEmbeddings(services, entries);
+  const freshnessConfig = getRetrievalInfra(services).scoring.freshnessConfig;
 
   const scoredEntries: Array<{ entry: KnowledgeRecord; score: number }> = [];
 
@@ -135,7 +143,14 @@ export async function optimizedSemanticRecall(
     }
 
     const similarity = cosineSimilarity(queryVector, embeddingResult.vector);
-    const score = computeScore(similarity, entry, filters, seed);
+    const score =
+      computeScore(similarity, entry, filters, seed) *
+      versionMatchMultiplier({
+        artifactVersion: artifactVersionOf(entry),
+        queryVersions,
+        freshnessType: entry.decayMeta?.freshnessType ?? null,
+        decayConfig: freshnessConfig,
+      });
     scoredEntries.push({ entry, score });
   }
 
