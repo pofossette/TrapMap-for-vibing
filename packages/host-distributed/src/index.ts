@@ -1,18 +1,19 @@
 /**
- * @trapmap/host-distributed -- main entry point.
+ * @trapmap/host-distributed -- distributed host library.
  *
- * Accepts a `--service <name>` flag to start a specific service,
- * or starts all services when no flag is provided.
+ * Boots are wired exclusively through the app shell entry point
+ * (`apps/distributed/src/index.ts`), which owns the `--service` dispatch and
+ * provides the `startService` starter. This library package exposes only the
+ * runner API and does NOT boot on direct module execution.
  *
  * Usage:
- *   node dist/index.js                           # Start all services
- *   node dist/index.js --service gateway          # Start only gateway
- *   node dist/index.js --service identity-access  # Start only identity-access
+ *   import { startDistributedService, runDistributedServices } from '@trapmap/host-distributed';
+ *   await runDistributedServices({ startService: startDistributedService });
  */
 
 import { assertDistributedConnectionBudget } from './config/index.js';
 import type { ServiceName } from './config/index.js';
-import { type DistributedServiceHandle, runDistributedServices } from './runner.js';
+import type { DistributedServiceHandle } from './runner.js';
 
 export {
   type DistributedServiceHandle,
@@ -20,7 +21,15 @@ export {
   runDistributedServices,
 } from './runner.js';
 
-async function startService(name: ServiceName): Promise<DistributedServiceHandle> {
+/**
+ * Dispatch a single distributed service by name through the service-specific
+ * bootstrap exports. This is a library-provided starter that app shells wrap
+ * when invoking {@link runDistributedServices}; the library itself does NOT
+ * boot on direct module execution.
+ */
+export async function startDistributedService(
+  name: ServiceName,
+): Promise<DistributedServiceHandle> {
   assertDistributedConnectionBudget();
   switch (name) {
     case 'gateway': {
@@ -60,18 +69,4 @@ async function startService(name: ServiceName): Promise<DistributedServiceHandle
       throw new Error(`Unknown service: ${exhaustive}`);
     }
   }
-}
-
-const isDirectExecution =
-  process.argv[1] &&
-  (process.argv[1].endsWith('/host-distributed/src/index.ts') ||
-    process.argv[1].endsWith('\\host-distributed\\src\\index.ts') ||
-    process.argv[1].endsWith('/host-distributed/dist/index.js') ||
-    process.argv[1].endsWith('\\host-distributed\\dist\\index.js'));
-
-if (isDirectExecution) {
-  runDistributedServices({ startService }).catch((error: unknown) => {
-    console.error('Fatal error:', error);
-    process.exit(1);
-  });
 }

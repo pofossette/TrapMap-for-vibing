@@ -29,41 +29,12 @@ export interface NestBootstrapResult {
 
 /**
  * Start the default Nest light host.
+ *
+ * Boots are wired exclusively through the app shell entry point
+ * (`apps/light/src/index.ts`). The library package does NOT boot on direct
+ * module execution; consumers must call `start()` explicitly.
  */
 export async function start(options: NestBootstrapOptions = {}): Promise<NestBootstrapResult> {
   return bootstrapNest(options);
-}
-
-// ---------------------------------------------------------------------------
-// Direct execution (CLI entry)
-// ---------------------------------------------------------------------------
-
-/**
- * When run directly via `tsx src/index.ts` or `node dist/index.ts`,
- * start the Nest light host with default configuration.
- */
-const isDirectExecution =
-  process.argv[1] &&
-  (process.argv[1].endsWith('/host-local/src/index.ts') ||
-    process.argv[1].endsWith('\\host-local\\src\\index.ts') ||
-    process.argv[1].endsWith('/host-local/dist/index.js') ||
-    process.argv[1].endsWith('\\host-local\\dist\\index.js'));
-
-if (isDirectExecution) {
-  start()
-    .then((handle) => {
-      // Graceful shutdown
-      const shutdown = async () => {
-        console.log('Shutting down...');
-        await handle.close();
-        process.exit(0);
-      };
-      process.on('SIGINT', shutdown);
-      process.on('SIGTERM', shutdown);
-    })
-    .catch((error) => {
-      console.error('Failed to start host-local:', error);
-      process.exit(1);
-    });
 }
 import { bootstrapNest } from './nest/main.js';

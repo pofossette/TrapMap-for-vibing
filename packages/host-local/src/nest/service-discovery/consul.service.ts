@@ -1,21 +1,30 @@
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
-import type { DiscoveredService, DiscoveryPort, ServiceRegistration } from '@trapmap/backend-core';
-import type { HealthCheck, HealthCheckResult } from '@trapmap/backend-core';
-import Consul from 'consul';
+import {
+  ConsulHttpAdapter,
+  type DiscoveredService,
+  type DiscoveryPort,
+  type HealthCheck,
+  type HealthCheckResult,
+  type ServiceRegistration,
+} from '@trapmap/backend-core';
 import type { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
 
 /**
- * Consul-backed implementation of {@link DiscoveryPort} with graceful
- * degradation.  When Consul is unreachable or disabled the service
- * enters degraded mode — all DiscoveryPort methods return safe
- * defaults and the application continues to serve.
+ * NestJS adapter for the shared Consul HTTP plugin (design D5 single-plugin
+ * convergence). The framework-agnostic {@link ConsulHttpAdapter} lives in
+ * @trapmap/backend-core; this service provides the Nest lifecycle wiring,
+ * config binding, health-check registration and default registration.
+ *
+ * Runtime semantics preserved: graceful degradation when Consul is disabled or
+ * unreachable, health-check registration, and default service registration
+ * when CONSUL_AUTO_REGISTER=true.
  */
 @Injectable()
 export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ConsulService.name);
 
-  private consul: InstanceType<typeof Consul> | null = null;
+  private backend: ConsulHttpAdapter | null = null;
   private serviceId = '';
   private registered = false;
 
@@ -38,32 +47,32 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
     if (!this.consulEnabled) {
       this.logger.log('Consul is disabled (CONSUL_ENABLED=false). Skipping initialization.');
       this.registerHealthCheck();
+      this.consulAvailable = false;
       return;
     }
 
     const host = this.config.get<string>('CONSUL_HOST', 'localhost');
     const port = this.config.get<number>('CONSUL_PORT', 8500);
+    const address = `http://${host}:${port}`;
 
-    try {
-      this.consul = new Consul({ host, port });
+    // throwOnError so runtime failures propagate and can flip to degraded mode.
+    this.backend = new ConsulHttpAdapter({ consulAddress: address, throwOnError: true });
 
-      // Validate connectivity by listing healthy services
-      await (this.consul.health.service as any)('consul', { passing: true });
-
+    // Validate connectivity.
+    if (await this.backend.isReachable()) {
       this.consulAvailable = true;
       this.logger.log(`Consul client connected: ${host}:${port}`);
-    } catch (err) {
+    } else {
       this.consulAvailable = false;
       this.logger.warn(
-        `Consul is unavailable at ${host}:${port}. Application entering degraded mode. ` +
-          `Service discovery and registration are disabled until Consul recovers. (${err instanceof Error ? err.message : String(err)})`,
+        `Consul is unavailable at ${host}:${port}. Application entering degraded mode. Service discovery and registration are disabled until Consul recovers.`,
       );
     }
 
-    // Always register the health check, even if Consul is down right now
+    // Always register the health check, even if Consul is down right now.
     this.registerHealthCheck();
 
-    // Attempt default registration only when Consul is reachable
+    // Attempt default registration only when Consul is reachable.
     if (this.consulAvailable) {
       const shouldRegister = this.config.get<string>('CONSUL_AUTO_REGISTER', 'true');
       if (shouldRegister === 'true') {
@@ -73,7 +82,7 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
   }
 
   async onModuleDestroy() {
-    if (this.registered && this.consulAvailable) {
+    if (this.registered && this.consulAvailable && this.backend) {
       await this.deregister(this.serviceId);
     }
   }
@@ -81,25 +90,10 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
   // ─── DiscoveryPort ───────────────────────────────────────────────────
 
   async register(registration: ServiceRegistration): Promise<void> {
-    if (!this.ensureAvailable('register')) return;
+    if (!this.ensureAvailable('register') || !this.backend) return;
 
     try {
-      await (this.consul!.agent.service.register as any)({
-        id: registration.id,
-        name: registration.name,
-        address: registration.address,
-        port: registration.port,
-        ...(registration.check
-          ? {
-              check: {
-                http: registration.check.http,
-                interval: registration.check.interval,
-                timeout: registration.check.timeout,
-              },
-            }
-          : {}),
-        ...(registration.meta ? { meta: registration.meta } : {}),
-      });
+      await this.backend.register(registration);
       this.serviceId = registration.id;
       this.registered = true;
       this.logger.log(`Service registered: ${registration.id} (${registration.name})`);
@@ -112,10 +106,10 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
   }
 
   async deregister(serviceId: string): Promise<void> {
-    if (!this.ensureAvailable('deregister')) return;
+    if (!this.ensureAvailable('deregister') || !this.backend) return;
 
     try {
-      await this.consul!.agent.service.deregister(serviceId);
+      await this.backend.deregister(serviceId);
       this.registered = false;
       this.logger.log(`Service deregistered: ${serviceId}`);
     } catch (err) {
@@ -126,18 +120,10 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
   }
 
   async discover(serviceName: string): Promise<DiscoveredService[]> {
-    if (!this.ensureAvailable('discover')) return [];
+    if (!this.ensureAvailable('discover') || !this.backend) return [];
 
     try {
-      const results: any[] = await (this.consul!.health.service as any)(serviceName, {
-        passing: true,
-      });
-      return results.map((s: any) => ({
-        id: s.Service.ID,
-        address: s.Service.Address || s.Node.Address,
-        port: s.Service.Port,
-        meta: s.Service.Meta,
-      }));
+      return await this.backend.discover(serviceName);
     } catch (err) {
       this.consulAvailable = false;
       this.logger.warn(
@@ -148,11 +134,10 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
   }
 
   async getKV(key: string): Promise<string | undefined> {
-    if (!this.ensureAvailable('getKV')) return undefined;
+    if (!this.ensureAvailable('getKV') || !this.backend) return undefined;
 
     try {
-      const result = await this.consul!.kv.get(key);
-      return result?.Value ?? undefined;
+      return await this.backend.getKV(key);
     } catch (err) {
       this.consulAvailable = false;
       this.logger.warn(`getKV(${key}) failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -161,10 +146,10 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
   }
 
   async setKV(key: string, value: string): Promise<void> {
-    if (!this.ensureAvailable('setKV')) return;
+    if (!this.ensureAvailable('setKV') || !this.backend) return;
 
     try {
-      await (this.consul!.kv.set as any)(key, value);
+      await this.backend.setKV(key, value);
     } catch (err) {
       this.consulAvailable = false;
       this.logger.warn(`setKV(${key}) failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -229,7 +214,7 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
           };
         }
 
-        if (!this.consulAvailable) {
+        if (!this.consulAvailable || !this.backend) {
           return {
             name: 'consul',
             status: 'unhealthy',
@@ -238,8 +223,15 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
         }
 
         try {
-          await (this.consul!.health.service as any)('consul', { passing: true });
-          return { name: 'consul', status: 'healthy' };
+          if (await this.backend.isReachable()) {
+            return { name: 'consul', status: 'healthy' };
+          }
+          this.consulAvailable = false;
+          return {
+            name: 'consul',
+            status: 'unhealthy',
+            message: 'Consul connectivity check failed',
+          };
         } catch {
           this.consulAvailable = false;
           return {
