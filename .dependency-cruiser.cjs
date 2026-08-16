@@ -4,7 +4,7 @@
  * Enforces layer-boundary rules:
  *   contracts  -> no workspace deps
  *   backend-core -> contracts only
- *   service-*  -> no cross-deps between services
+ *   service-*  -> no cross-deps between services (including service-cron)
  *   web-panel  -> no backend-core/host-* deps
  */
 
@@ -15,6 +15,7 @@ const SERVICE_PACKAGES = [
   'service-job-runtime',
   'service-knowledge-read',
   'service-knowledge-write',
+  'service-cron',
 ];
 
 /** @type {import('dependency-cruiser').IConfiguration} */
@@ -43,22 +44,16 @@ module.exports = {
 
     // 3. service-* must not cross-depend on each other (runtime imports).
     //    Type-only imports are allowed for shared record types.
-    //    Known exception: service-knowledge-read dynamically imports
-    //    service-knowledge-write/labels/graph-align.js for optional label alignment.
+    //    The membership list mirrors the fallow service-standard zone plus
+    //    service-knowledge-read (fallow keeps it as its own zone).
     ...SERVICE_PACKAGES.map((svc) => ({
-      name: `services-must-not-cross-dep:${svc}`,
-      comment: `${svc} must NOT depend on other service-* packages (type-only imports allowed)`,
+      name: 'services-must-not-cross-dep:' + svc,
+      comment: svc + ' must NOT depend on other service-* packages (type-only imports allowed)',
       severity: 'error',
-      from: { path: `^packages/${svc}/` },
+      from: { path: '^packages/' + svc + '/' },
       to: {
         path: '^packages/service-[^/]+/',
-        pathNot: [
-          `^packages/${svc}/`,
-          // knowledge-read may dynamically import knowledge-write/labels/graph-align
-          ...(svc === 'service-knowledge-read'
-            ? ['^packages/service-knowledge-write/dist/labels/graph-align']
-            : []),
-        ],
+        pathNot: ['^packages/' + svc + '/'],
         dependencyTypesNot: ['type-only'],
       },
     })),

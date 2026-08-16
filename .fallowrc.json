@@ -86,6 +86,10 @@
         "patterns": ["packages/client-core/src/**"]
       },
       {
+        "name": "ai-providers",
+        "patterns": ["packages/ai-providers/src/**"]
+      },
+      {
         "name": "backend-core",
         "patterns": ["packages/backend-core/src/**"]
       },
@@ -143,18 +147,23 @@
         "allow": ["contracts", "persistence-schema", "lib"]
       },
       {
+        "from": "ai-providers",
+        "allow": ["contracts", "lib"]
+      },
+      {
         "from": "service-standard",
-        "allow": ["backend-core", "contracts", "persistence-schema", "lib"]
+        "allow": ["ai-providers", "backend-core", "contracts", "persistence-schema", "lib"]
       },
       {
         "from": "service-knowledge-read",
-        "allow": ["backend-core", "contracts", "persistence-schema", "lib"]
+        "allow": ["ai-providers", "backend-core", "contracts", "persistence-schema", "lib"]
       },
       {
         "from": "host-local",
         "allow": [
           "contracts",
           "client-core",
+          "ai-providers",
           "backend-core",
           "service-standard",
           "service-knowledge-read",
@@ -167,6 +176,7 @@
         "allow": [
           "contracts",
           "client-core",
+          "ai-providers",
           "backend-core",
           "service-standard",
           "service-knowledge-read",
