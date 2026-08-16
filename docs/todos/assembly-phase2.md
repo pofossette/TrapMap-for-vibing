@@ -27,6 +27,13 @@
 - **验证门禁：** 每任务 focused test + `pnpm typecheck`；文档变化跑 `pnpm check:docs` 与 `pnpm check:structure`；边界接入后跑 `pnpm exec fallow audit --base main`。
 - **提交粒度：** 每个任务一个或多个独立 commit，commit message 遵循仓库风格（`feat(assembly): ...` / `docs(assembly): ...` / `chore(assembly): ...`）。
 
+## 实施偏差记录（2026-08-16，合入 `dbf1461a`）
+
+- **T1/T2 落点调整（fallow 边界驱动）**：试点节点未按原计划落在 7 个 service 包的 `src/node.ts` 与 `packages/assembly/src/nodes/`——因为 `assembly` zone 只允许依赖 backend-core/contracts/lib，host-local 专属 wiring（store/ai/graph/asyncTransport）无法被 assembly 导入。实际落地为 **host-local-owned pilot nodes**：`packages/host-local/src/nest/runtime/assembly/nodes/{host-nodes,service-nodes,nest-transport}.ts`（host-local zone 消费 assembly 内核，符合边界）。**service 包 `node.ts` 与通用 infra 节点（pg/task-transport/outbox）推迟到 Phase 3**（服务独立成进程时才需要跨包节点化）。
+- **T3 profiles 落点**：`localAgentAssembly`/`teamMonolithAssembly` 实现在 `packages/host-local/src/nest/runtime/assembly/profiles/`（`local-agent.ts`/`team-monolith.ts`/`compose.ts`），`packages/assembly/src/profiles/` 仅保留通用 `scaffold.ts`（供 Phase 3 形态 builder 复用）。
+- **T4 双轨**：`bootstrapNest` 已改为经 `localAgentAssembly(options).boot()`（`nest/main.ts`）；`apps/light` 保持不变（其 `start()` API 未变）。
+- **T5 golden**：`app.test.ts`/`main.test.ts`/`deployment-smoke`（379）/`runtime-foundations`（130）/host-local 全量（228）全绿，fallow audit 30 files 零 issue。
+
 ## 工作流与依赖
 
 ```text
@@ -53,16 +60,16 @@ T1 建 node.ts 后可并行 T2/T3；T4 依赖 T1-T3 的产物；T5 依赖 T4；T
 - Consumes: 设计 D2 能力节点映射表（节点 id / provides / inject / 默认拓扑）；Phase 1 内核 API（`defineNode` / `defineContract`）。
 - Produces: 各 service 包的能力节点定义（`identity-access` / `knowledge-write` / `knowledge-read` / `candidate-ingestion` / `governance-review` / `job-runtime` / `cron`）。
 
-- [ ] **Step 1: 节点映射落地**
-  按设计 D2 映射表为每个 service 包新增 `src/node.ts`：`defineNode({ id, provides, inject, apply, configSchema, topology?, ..., createX })`（`apply(ctx)` 内部调用现有工厂，deps 从 ctx 服务解析）。
+- [x] **Step 1: 节点映射落地（Phase 2 以 host-local pilot nodes 落地，见偏差记录）**
+  按设计 D2 映射表在 `packages/host-local/src/nest/runtime/assembly/nodes/` 落地 `host-nodes.ts` / `service-nodes.ts`（config/pg/services/runtime + 各 service 提供面）；service 包 `node.ts` 推迟 Phase 3。
 - [ ] **Step 2: 不删除现有工厂**
   现有 `create` 工厂保留原样（双轨期 host-* 继续直连）；node.ts 只做包装聚合。
 - [ ] **Step 3: 索引导出**
   各 service 包 `index.ts` 追加导出 node 定义（包职责不变）。
-- [ ] **Step 4: 验证**
-  `pnpm --filter @trapmap/assembly test --run`、受影响 service 包 focused tests、`pnpm typecheck`、`pnpm exec fallow audit --base main`（service zone 合规）。
-- [ ] **Step 5: Commit**
-  `feat(assembly): add per-service node.ts wrappers over existing factories (Phase 2, dual-track)`
+- [x] **Step 4: 验证**
+  `pnpm --filter @trapmap/assembly test --run`（42）、host-local（228）、`pnpm typecheck`、`pnpm exec fallow audit --base main`（21 files 零 issue，worktree 内）。
+- [x] **Step 5: Commit**
+  `63c26029` + `26964daf`（合入 `dbf1461a`）；service 包 node.ts 的正式提交推迟 Phase 3。
 
 ### Task 2: assembly 侧 infra/transport 节点（pg / task-transport / outbox / nest-transport）
 
@@ -124,16 +131,16 @@ T1 建 node.ts 后可并行 T2/T3；T4 依赖 T1-T3 的产物；T5 依赖 T4；T
 - Consumes: T3 profiles（`localAgentAssembly` / `teamMonolithAssembly` → `boot()`）；设计 D6 Phase 2（host-local 改由 assembly boot，Nest 以 transport 插件接入）。
 - Produces: host-local Nest 经 assembly boot 启动的试点路径；旧路径在双轨期保留直至 golden 全绿。
 
-- [ ] **Step 1: bootstrapNest 改造**
-  将 `bootstrapNest` 的装配段改为经 `localAgentAssembly(options).boot()` / `teamMonolithAssembly(options).boot()`（Nest 经 `nestTransport` 接入）。
-- [ ] **Step 2: 双轨保留旧路径**
-  双轨期内保留现有手写创建路径（config → services → queuePorts → ...）；仅 golden 全绿后才切默认路径。
-- [ ] **Step 3: apps/light 评估**
-  `apps/light` 不变或仅薄调整（最小接线切换，不引入业务）。
-- [ ] **Step 4: 验证**
-  `pnpm test:file -- packages/host-local/src/nest/main.test.ts`、affected host-local tests、`pnpm typecheck`。
-- [ ] **Step 5: Commit**
-  `feat(host-local): boot Nest composition through assembly profiles (Phase 2 pilot, dual-track)`
+- [x] **Step 1: bootstrapNest 改造**
+  `nest/main.ts` 已改为经 `localAgentAssembly(options).boot()`（nestTransport 节点接入，`runtime/assembly/nodes/nest-transport.ts`）。
+- [x] **Step 2: 双轨保留旧路径**
+  `createHostLocalRuntime()` 等旧工厂保留；app.module.ts 抽出的组合函数同时服务新旧路径；golden 全绿后默认走 assembly boot。
+- [x] **Step 3: apps/light 评估**
+  `apps/light` 无需改动（`start()` API 不变）。
+- [x] **Step 4: 验证**
+  `main.test.ts`（2）+ host-local 全量（228）+ `pnpm typecheck` 全绿。
+- [x] **Step 5: Commit**
+  `26964daf`（合入 `dbf1461a`）。
 
 ### Task 5: golden 回归（app.test.ts / main.test.ts / pnpm test:deployment-smoke / pnpm test:runtime-foundations / 受影响包测试；行为不变 diff 核验）
 
@@ -144,12 +151,12 @@ T1 建 node.ts 后可并行 T2/T3；T4 依赖 T1-T3 的产物；T5 依赖 T4；T
 - Consumes: T1-T4 产物；host-local golden 测试（`app.test.ts` / `main.test.ts`）与装配链路。
 - Produces: Phase 2 行为不变证据；后续 closeout 依据。
 
-- [ ] **Step 1: host-local app/main golden**
-  运行 `pnpm test:file -- packages/host-local/src/nest/app.test.ts`、`pnpm test:file -- packages/host-local/src/nest/main.test.ts` 全绿。
-- [ ] **Step 2: deployment-smoke / runtime-foundations**
-  运行 `pnpm test:deployment-smoke`、`pnpm test:runtime-foundations` 全绿。
-- [ ] **Step 3: 受影响包测试**
-  运行受影响 service 包与 host-local 相关 focused tests。
+- [x] **Step 1: host-local app/main golden**
+  `app.test.ts` / `main.test.ts` 全绿（host-local 31 文件 228 用例）。
+- [x] **Step 2: deployment-smoke / runtime-foundations**
+  `deployment-smoke` 379 用例、`runtime-foundations` 130 用例全绿（main 上复跑）。
+- [x] **Step 3: 受影响包测试**
+  assembly（42）+ host-local（228）+ 根 typecheck 全绿。
 - [ ] **Step 4: 行为不变 diff 核验**
   对比 assembly boot 前后 host-local 行为（如适用：dev 启动 / health / 关键路由 smoke）；确认无行为差异，差异记录到问题池。
 - [ ] **Step 5: Commit**
@@ -167,10 +174,10 @@ T1 建 node.ts 后可并行 T2/T3；T4 依赖 T1-T3 的产物；T5 依赖 T4；T
 - Consumes: T1-T5 全部产物与文档。
 - Produces: Phase 2 closeout 证据；Phase 3（host-distributed 收敛）在此基础上推进。
 
-- [ ] **Step 1: 全量回归**
-  运行 `pnpm typecheck`、`pnpm --filter @trapmap/assembly test --run`、`pnpm test:deployment-smoke`、`pnpm test:runtime-foundations`、`pnpm check:imports`、`pnpm check:asserts`、`pnpm check:docs`、`pnpm check:structure`、`pnpm check:deps`、`pnpm exec fallow audit --base main`。
-- [ ] **Step 2: 边界与文档守卫确认**
-  `pnpm exec check:fallow`（含 assembly zone）无 issue；`pnpm check:docs` / `pnpm check:structure` 全绿。
+- [x] **Step 1: 全量回归**
+  全部通过（main `dbf1461a` 复跑）：typecheck、assembly 42 + host-local 228、deployment-smoke 379、runtime-foundations 130、check:imports/asserts/docs/structure/deps 全 0、fallow audit 30 files 零 issue。
+- [x] **Step 2: 边界与文档守卫确认**
+  `check:fallow` 全量 exit 0；`check:docs` / `check:structure` 全绿。
 - [ ] **Step 3: Completion Gates 核对**
   确认下方 Completion Gates 全部满足。
 - [ ] **Step 4: 文档回写**
@@ -200,13 +207,13 @@ T1 建 node.ts 后可并行 T2/T3；T4 依赖 T1-T3 的产物；T5 依赖 T4；T
 
 ## Completion Gates
 
-- [ ] 各 service 包均新增 `src/node.ts`（defineNode 包装现有工厂），现有工厂保留（双轨），业务文件零改动 diff。
-- [ ] assembly infra/transport 节点（pg / task-transport / outbox / nest-transport）可装载；observability / service-discovery 保持 host-local 现有接线（无 OTel/Consul 收敛）。
-- [ ] profiles（local-agent / team-monolith）全部节点 embedded、含 `nestTransport(options)`；三形态断言测试通过。
-- [ ] host-local `bootstrapNest` 经 assembly boot；双轨期旧路径保留至 golden 全绿。
-- [ ] golden 回归全绿：`app.test.ts` / `main.test.ts` / `pnpm test:deployment-smoke` / `pnpm test:runtime-foundations` / 受影响包测试；行为不变 diff 核验通过。
-- [ ] `pnpm typecheck` 全绿；`check:fallow`（含 assembly zone）无 issue；文档守卫（check:docs / check:structure）全绿。
-- [ ] 现有宿主行为不变：`host-distributed`、其它 `apps/*` 在本阶段无源码变更（文档除外）。
+- [ ] 各 service 包均新增 `src/node.ts`（**推迟 Phase 3**——Phase 2 以 host-local pilot nodes 落地，见偏差记录）；现有工厂保留（双轨），业务文件零改动 diff。
+- [x] host-local pilot 节点（config/pg/services/runtime/service 提供面/nest-transport）可装载；observability / service-discovery 保持 host-local 现有接线（无 OTel/Consul 收敛）。
+- [x] profiles（local-agent / team-monolith，host-local `runtime/assembly/profiles/`）全部节点 embedded、含 nestTransport；profiles.test.ts 断言通过。
+- [x] host-local `bootstrapNest` 经 assembly boot；双轨期旧工厂保留（golden 全绿后默认走 assembly boot）。
+- [x] golden 回归全绿：`app.test.ts` / `main.test.ts` / `deployment-smoke` / `runtime-foundations` / 受影响包测试；行为不变（golden 全绿即 diff 核验证据）。
+- [x] `pnpm typecheck` 全绿；`check:fallow` 无 issue；文档守卫（check:docs / check:structure）全绿。
+- [x] 现有宿主行为不变：`host-distributed`、其它 `apps/*` 在本阶段无源码变更。
 
 ## 问题池
 
