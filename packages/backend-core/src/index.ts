@@ -49,6 +49,12 @@ export * from './invocation/index.js';
 export * from './http/index.js';
 
 // ---------------------------------------------------------------------------
+// Shared observability plugins (OTel bootstrap + Consul HTTP adapter)
+// Framework-agnostic; consumed by both host-local and host-distributed.
+// ---------------------------------------------------------------------------
+export * from './observability/index.js';
+
+// ---------------------------------------------------------------------------
 // Testing utilities
 // ---------------------------------------------------------------------------
 export * from './testing/index.js';

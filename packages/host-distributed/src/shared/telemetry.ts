@@ -6,7 +6,7 @@ import {
   propagation,
   trace,
 } from '@opentelemetry/api';
-import { validateOtelPolicy } from '@trapmap/contracts';
+import { bootstrapOtelSdk, boundedOtelShutdown } from '@trapmap/backend-core';
 import type { OtelPolicyInput } from '@trapmap/contracts';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
@@ -15,16 +15,12 @@ const requestSpanSymbol = Symbol('trapmap.distributed.request.span');
 type RequestWithSpan = FastifyRequest & { [requestSpanSymbol]?: Span };
 
 /**
- * Maximum time (ms) to wait for OTel SDK shutdown before giving up.
- * Prevents the process from hanging on unresponsive exporters.
- */
-const SHUTDOWN_TIMEOUT_MS = 5_000;
-
-/**
  * Attach runtime telemetry hooks to a Fastify instance.
  *
- * Uses the shared {@link validateOtelPolicy} from @trapmap/contracts to
- * produce identical validated configuration semantics as host-local.
+ * Uses the shared {@link bootstrapOtelSdk} from @trapmap/backend-core (design
+ * D5 single-plugin convergence) to produce identical validated configuration
+ * semantics as host-local. The Fastify request hooks (span creation, parent
+ * trace-header propagation) remain host-specific attachment.
  *
  * When OTel is disabled or fails to bootstrap, the request hooks still run
  * (they degrade to no-ops).
@@ -33,7 +29,8 @@ export async function attachRuntimeTelemetry(
   app: FastifyInstance,
   serviceName: string,
 ): Promise<void> {
-  const sdk = await bootstrapOtel(serviceName);
+  const bootstrapped = await bootstrapOtelSdk(buildOtelPolicyInput(serviceName));
+  const sdk = bootstrapped.sdk;
 
   app.addHook('onRequest', async (request) => {
     const parentContext = propagation.extract(otelContext.active(), request.headers);
@@ -53,7 +50,7 @@ export async function attachRuntimeTelemetry(
     (request as RequestWithSpan)[requestSpanSymbol] = span;
   });
 
-  app.addHook('onResponse', async (request, reply) => {
+  app.addHook('onResponse', async (request: FastifyRequest, reply) => {
     const span = (request as RequestWithSpan)[requestSpanSymbol];
     if (!span) {
       return;
@@ -69,83 +66,26 @@ export async function attachRuntimeTelemetry(
 
   app.addHook('onClose', async () => {
     if (sdk) {
-      await boundedShutdown(sdk);
+      await boundedOtelShutdown(sdk);
     }
   });
 }
 
-async function bootstrapOtel(serviceName: string): Promise<{ shutdown(): Promise<void> } | null> {
-  const policy = validateOtelPolicy(
-    Object.fromEntries(
-      Object.entries({
-        otelDisabled: process.env.OTEL_DISABLED,
-        sampleRate: process.env.OTEL_SAMPLE_RATE,
-        endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
-        serviceName,
-        serviceVersion: process.env.npm_package_version,
-        deploymentProfile: process.env.TRAPMAP_DEPLOYMENT_PROFILE,
-        environment: process.env.NODE_ENV,
-      }).filter(([, v]) => v !== undefined),
-    ) as OtelPolicyInput,
-  );
+function buildOtelPolicyInput(serviceName: string): OtelPolicyInput {
+  const input: OtelPolicyInput = { serviceName };
+  const otelDisabled = process.env.OTEL_DISABLED;
+  const sampleRate = process.env.OTEL_SAMPLE_RATE;
+  const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+  const serviceVersion = process.env.npm_package_version;
+  const deploymentProfile = process.env.TRAPMAP_DEPLOYMENT_PROFILE;
+  const environment = process.env.NODE_ENV;
 
-  if (!policy.enabled) {
-    return null;
-  }
+  if (otelDisabled !== undefined) input.otelDisabled = otelDisabled;
+  if (sampleRate !== undefined) input.sampleRate = sampleRate;
+  if (endpoint !== undefined) input.endpoint = endpoint;
+  if (serviceVersion !== undefined) input.serviceVersion = serviceVersion;
+  if (deploymentProfile !== undefined) input.deploymentProfile = deploymentProfile;
+  if (environment !== undefined) input.environment = environment;
 
-  try {
-    const { NodeSDK } = await import('@opentelemetry/sdk-node');
-    const { resourceFromAttributes } = await import('@opentelemetry/resources');
-    const { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } = await import(
-      '@opentelemetry/semantic-conventions'
-    );
-    const { TraceIdRatioBasedSampler } = await import('@opentelemetry/sdk-trace-node');
-    const { OTLPTraceExporter } = await import('@opentelemetry/exporter-trace-otlp-http');
-    const { OTLPMetricExporter } = await import('@opentelemetry/exporter-metrics-otlp-http');
-    const { PeriodicExportingMetricReader } = await import('@opentelemetry/sdk-metrics');
-
-    const sdk = new NodeSDK({
-      resource: resourceFromAttributes({
-        [ATTR_SERVICE_NAME]: policy.serviceName,
-        [ATTR_SERVICE_VERSION]: policy.serviceVersion,
-        'deployment.environment': policy.environment,
-        'trapmap.deployment_profile': policy.deploymentProfile,
-      }),
-      sampler: new TraceIdRatioBasedSampler(policy.sampleRate),
-      traceExporter: new OTLPTraceExporter({
-        url: `${policy.endpoint}/v1/traces`,
-      }),
-      metricReader: new PeriodicExportingMetricReader({
-        exporter: new OTLPMetricExporter({
-          url: `${policy.endpoint}/v1/metrics`,
-        }),
-        exportIntervalMillis: 15_000,
-      }),
-    });
-
-    sdk.start();
-    return sdk;
-  } catch (err) {
-    // Log safe diagnostic instead of silently swallowing
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(`[telemetry] Failed to start OTel SDK: ${message}`);
-    return null;
-  }
-}
-
-/**
- * Shut down an OTel SDK with a bounded timeout to prevent process hangs.
- */
-async function boundedShutdown(sdk: { shutdown(): Promise<void> }): Promise<void> {
-  try {
-    await Promise.race([
-      sdk.shutdown(),
-      new Promise<void>((_, reject) =>
-        setTimeout(() => reject(new Error('OTel shutdown timed out')), SHUTDOWN_TIMEOUT_MS),
-      ),
-    ]);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.warn(`[telemetry] OTel SDK shutdown error: ${message}`);
-  }
+  return input;
 }
