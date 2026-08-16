@@ -36,6 +36,7 @@
     "check:fallow": "pnpm exec fallow --ci --fail-on-issues",
     "check": "biome check .",
     "check:docs": "pnpm exec tsx scripts/check-docs.ts",
+    "check:skills": "pnpm exec tsx scripts/check-skills.ts",
     "check:structure": "pnpm exec tsx scripts/check-structure.ts",
     "check:complexity": "pnpm exec tsx scripts/check-complexity-budgets.ts",
     "duplication": "jscpd --config .jscpd.json packages apps scripts evals",
