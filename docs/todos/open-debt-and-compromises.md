@@ -261,6 +261,16 @@
 - [ ] **后续落点：** 窗口关闭后删除 `packages/host-*/src/index.ts` 的 direct-run 判定与库包可执行脚本，apps/distributed 分发逻辑收敛为对库包导出 API 的纯调用；回写 `docs/operations/TESTING.md` 与 `docs/architecture/DEPLOYMENT.md`。
 - [ ] **要求的文档与测试：** `pnpm test:deployment-smoke`、`pnpm test:runtime-foundations`、closeout 相关测试、`pnpm check:docs`、`pnpm check:structure`。
 
+### 统一优雅组装中心（assembly）主线（2026-08-16 登记）
+
+- [ ] **来源：** 用户直接需求「处理架构优雅性缺陷：宿主双样板收敛为统一优雅组装中心 + 功能模块，多部署形态不可舍弃」+ 调研结论（cordis = Koishi 四年 + DeepSeek Harness 生产内核；dsh profile/bundles 模型 = 多部署形态的配置化表达）。设计输入：[《TrapMap 统一优雅组装中心设计》](../superpowers/specs/2026-08-16-unified-assembly-center-design.md)。
+- [ ] **目标缺陷（证据见设计文档）：** ① 宿主双样板——host-local（~5.1K LOC）与 host-distributed（~6.1K LOC）各自实现 runtime composition/observability/discovery/worker wiring，distributed 8 个 start<X>Service() 逐份重复样板；② bootstrap 顺序手写、`KNOWLEDGE_WRITE_MODULE.dependsOn` 恒空无依赖图；③ 同一语义双实现（queue/outbox 简化版 vs 完整版、检索 ILIKE vs 完整管线、OTel/Consul 双份）；④ 部署形态语义分散（backend-target-registry / dev:* 别名 / compose / 双宿主 config 四处表达）。
+- [ ] **设计要点：** 新包 `packages/assembly`（引入 `@deepseek-ai/cordis` 4.x，不自研 DI 图）；7 个 service 包各加薄包装文件 `plugin.ts`（现有 create<X>Deps/Module/RouteDefs 原样复用，业务零改动）；host-* 收敛为 transport 插件（Nest/Fastify adapter 不动）；部署形态 = profile manifest（local-agent / team-monolith / distributed 子集）；四阶段迁移（地基→host-local 试点→host-distributed 收敛→双实现收敛收尾）。
+- [ ] **当前边界：** 本文档为 deferred design input，不构成执行授权；不新建第二条 active mainline；不影响当前 Dead Code Cleanup 主线。
+- [ ] **进入条件：** 根 `plan.md` 显式激活（替换当前 active mainline 链接并同步 docs/todos/README.md），或用户显式要求开始实施；前置依赖：Dead Code Cleanup 主线完成（避免双主线文件域重叠）。
+- [ ] **后续落点：** 按设计 D6 四阶段执行；每阶段独立 closeout（deployment-smoke / runtime-foundations / distributed-closeout / observability-closeout 门禁）；完成后回写 ARCHITECTURE/BOUNDARIES/DEPLOYMENT/TESTING/REPO_STRUCTURE/SYSTEM_TRUTH_SOURCES。
+- [ ] **要求的文档与测试：** `packages/assembly` 单测（manifest 解析/inject 无环/dispose 顺序）、新增 `check:profiles` 守卫、`pnpm test:deployment-smoke`、`pnpm test:runtime-foundations`、`pnpm test:distributed-closeout`、`pnpm check:fallow`（+assembly zone）、`pnpm check:docs`、`pnpm check:structure`。
+
 ## 审核检查表
 
 - [ ] 每次新问题录入都标注来源、影响、分类、证据和进入条件。
