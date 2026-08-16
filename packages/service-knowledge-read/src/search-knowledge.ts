@@ -25,6 +25,7 @@ import {
 import { buildCitations } from './response-citations.js';
 import { generateRefinement } from './response-refinement.js';
 import { buildSummary } from './response-summary.js';
+import { mergeArtifactsIntoRetrievalPool } from './artifact-entry-merge.js';
 import { createRuleIntentRecognition } from './intent-recognition/rule-intent-recognition.js';
 import { getRetrievalInfra } from './retrieval-infra.js';
 import { dispatchByMode, inferChannelsFromMerged } from './retrieval-recall-coordinator.js';
@@ -152,11 +153,20 @@ export async function searchKnowledge(
       'eligibility',
       () =>
         Promise.resolve(
-          filterEligibleEntries(readModel.knowledgeEntries, auth, parsed.filters, services),
+          // cron retrieval-version linkage (2026-08-16): skill artifacts join
+          // the recall pool as entry views (latestRevision.version preserved,
+          // versioned decay meta synthesized) and are eligibility-filtered
+          // together with knowledge entries.
+          filterEligibleEntries(
+            mergeArtifactsIntoRetrievalPool(readModel.knowledgeEntries, readModel.skillArtifacts),
+            auth,
+            parsed.filters,
+            services,
+          ),
         ),
       steps,
       {
-        inputSize: readModel.knowledgeEntries.length,
+        inputSize: readModel.knowledgeEntries.length + readModel.skillArtifacts.length,
         outputSize: (r) => (r as KnowledgeRecord[]).length,
       },
     );

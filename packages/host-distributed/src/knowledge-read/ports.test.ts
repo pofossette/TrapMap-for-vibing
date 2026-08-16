@@ -7,8 +7,9 @@
  * projection and the converged retrieval query's behaviour (ranking, score
  * semantics, and snippet/detail mapping), which mirror the monolith pipeline.
  */
+import { createRetrievalArtifactFixture } from '@trapmap/contracts';
 import type { Pool } from 'pg';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createKnowledgeReadChannelRegistry,
@@ -16,6 +17,7 @@ import {
   createKnowledgeReadOwnerRetrievalServices,
   createKnowledgeReadStrategyRegistry,
   createMemoryGraphQueryBackend,
+  resetRetrievalReadModelCacheForTests,
 } from '@trapmap/service-knowledge-read';
 
 import { createConvergedRetrievalQuery } from './converged-retrieval.js';
@@ -55,15 +57,33 @@ function inMemoryKnowledgeRepo(entries: object[]) {
   } as unknown as Parameters<typeof createKnowledgeReadOwnerRetrievalServices>[0]['knowledge']; // lib type gap: owner-port seam expects contracts KnowledgeEntry rows while the pipeline consumes the same runtime entries
 }
 
-function inMemoryArtifactRepo() {
+function inMemoryArtifactRepo(artifacts: unknown[] = []) {
   return {
     async listByFilter() {
       return [];
     },
     async listForRetrieval() {
-      return [];
+      return artifacts;
     },
-  } as unknown as Parameters<typeof createKnowledgeReadOwnerRetrievalServices>[0]['artifact']; // lib type gap: owner-port seam expects contracts SkillArtifact rows (empty in this test)
+  } as unknown as Parameters<typeof createKnowledgeReadOwnerRetrievalServices>[0]['artifact']; // lib type gap: owner-port seam expects contracts SkillArtifact rows
+}
+
+/** Versioned skill artifact fixture completing the contracts artifact fixture. */
+function versionedArtifact(id: string, version: string, title: string) {
+  const fixture = createRetrievalArtifactFixture(id);
+  return {
+    ...fixture,
+    title,
+    boundary: null,
+    decayMeta: null,
+    evidenceMeta: null,
+    maintenanceMeta: null,
+    updatedAt: '2026-01-01T00:00:00Z',
+    latestRevision: {
+      ...fixture.latestRevision,
+      version,
+    },
+  };
 }
 
 function inMemoryGovernance() {
@@ -145,6 +165,7 @@ function inMemoryRetrievalServices(
     intentRecognition?: Parameters<
       typeof createKnowledgeReadOwnerRetrievalServices
     >[0]['intentRecognition'];
+    artifacts?: unknown[];
   },
 ) {
   const strategyRegistry = createKnowledgeReadStrategyRegistry();
@@ -160,7 +181,7 @@ function inMemoryRetrievalServices(
       },
     },
     knowledge: inMemoryKnowledgeRepo(entries),
-    artifact: inMemoryArtifactRepo(),
+    artifact: inMemoryArtifactRepo(extra?.artifacts ?? []),
     governance: inMemoryGovernance(),
     strategyRegistry,
     channelRegistry,
@@ -201,6 +222,12 @@ describe('createPgKnowledgeReadProjection', () => {
 });
 
 describe('createConvergedRetrievalQuery', () => {
+  // The service package caches the read model in a global single slot;
+  // reset it so each harness build sees its own knowledge/artifact rows.
+  beforeEach(() => {
+    resetRetrievalReadModelCacheForTests();
+  });
+
   it('returns ranked results with snippet mapped from entry detail and preserves the RetrievalQueryPort surface', async () => {
     const retrieval = createConvergedRetrievalQuery(
       neverPool,
@@ -273,5 +300,20 @@ describe('createConvergedRetrievalQuery', () => {
     expect(input.knownModes).toContain('semantic');
     expect(input.knownModes).toContain('graph-assisted');
     expect(result.results[0]?.entryId).toBe('entry-relevant');
+  });
+
+  it('recalls skill artifacts as retrieval entries with their declared version', async () => {
+    const retrieval = createConvergedRetrievalQuery(
+      neverPool,
+      inMemoryRetrievalServices([], {
+        artifacts: [versionedArtifact('artifact-1', '18.2.0', 'Retrieval pipeline semantic match')],
+      }),
+    );
+
+    const result = await retrieval.search({ query: 'retrieval pipeline', limit: 5 });
+
+    const artifactRow = result.results.find((row) => row.entryId === 'artifact-1');
+    expect(artifactRow).toBeDefined();
+    expect(artifactRow?.snippet).toContain('Test summary');
   });
 });

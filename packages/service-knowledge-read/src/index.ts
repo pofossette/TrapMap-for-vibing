@@ -70,6 +70,7 @@ export {
   type OwnerReadModelProjectionOptions,
   type RetrievalReadModel,
 } from './read-model.js';
+export { resetRetrievalReadModelCacheForTests } from './retrieval-read-model-cache.js';
 export {
   assembleResponseBuckets,
   buildEmptyResponse,
@@ -88,3 +89,8 @@ export {
 } from './graph-query.js';
 export { createRuleIntentRecognition } from './intent-recognition/rule-intent-recognition.js';
 export { createRuleChannelMerge } from './channel-merge/rule-channel-merge.js';
+export {
+  artifactDetail,
+  artifactToRetrievalEntry,
+  mergeArtifactsIntoRetrievalPool,
+} from './artifact-entry-merge.js';

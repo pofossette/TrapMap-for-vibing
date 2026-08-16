@@ -1,7 +1,13 @@
 import { InvocationError } from '@trapmap/backend-core';
-import { type RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
+import {
+  createRetrievalArtifactFixture,
+  type RetrievalQuery,
+  retrievalQuerySchema,
+} from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
+import { artifactToRetrievalEntry } from './artifact-entry-merge.js';
+import type { SkillArtifactRecord } from './store.js';
 import { createDefaultKnowledgeReadRetrievalInfra } from './retrieval-infra-default.js';
 import {
   ChannelRegistry,
@@ -61,6 +67,31 @@ function revisionWithVersion(version: string): KnowledgeRecord['latestRevision']
     reviewNotes: [],
     version,
   };
+}
+
+function artifactEntry(id: string, version: string): KnowledgeRecord {
+  const fixture = createRetrievalArtifactFixture(id);
+  const artifact: SkillArtifactRecord = {
+    ...fixture,
+    title: 'react refresh workaround',
+    boundary: null,
+    decayMeta: null,
+    evidenceMeta: null,
+    maintenanceMeta: null,
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    latestRevision: {
+      ...fixture.latestRevision,
+      version,
+      derived: {
+        ...fixture.latestRevision.derived,
+        profile: {
+          ...fixture.latestRevision.derived.profile,
+          summary: 'react refresh workaround details',
+        },
+      },
+    },
+  } as unknown as SkillArtifactRecord; // lib type gap: fixture subset completed with the entry-view fields
+  return artifactToRetrievalEntry(artifact);
 }
 
 describe('knowledge-read retrieval orchestration', () => {
@@ -175,5 +206,36 @@ describe('knowledge-read retrieval orchestration', () => {
     expect(byId.get('versioned-match')?.version).toBe('18.2.0');
     expect(byId.get('versioned-match')?.revision).toBe(1);
     expect(byId.get('versioned-mismatch')?.version).toBe('17.0.0');
+  });
+
+  it('applies versioned decay to merged artifact entries and exposes version metadata', async () => {
+    const infra = createDefaultKnowledgeReadRetrievalInfra();
+    const services = {
+      retrievalInfra: infra,
+      store: {},
+    } as Parameters<typeof semanticRecall>[3];
+    const seed = 'react refresh workaround';
+    const entries = [
+      artifactEntry('artifact-match', '18.2.0'),
+      artifactEntry('artifact-mismatch', '17.0.0'),
+    ];
+
+    const { scoredEntries } = await semanticRecall(
+      seed,
+      entries,
+      retrievalQuerySchema.parse({
+        seed,
+        mode: 'semantic',
+        maxResults: 10,
+        boundaryContext: { versions: [{ package: 'react', version: '18.2.0' }] },
+      }),
+      services,
+    );
+
+    const byId = new Map(scoredEntries.map((e) => [e.entry.id, e]));
+    expect(byId.get('artifact-match')?.score).toBeCloseTo(1);
+    expect(byId.get('artifact-mismatch')?.score).toBeCloseTo(0.5);
+    expect(byId.get('artifact-match')?.version).toBe('18.2.0');
+    expect(byId.get('artifact-match')?.revision).toBe(1);
   });
 });
