@@ -139,7 +139,7 @@
       },
       {
         "from": "backend-core",
-        "allow": ["contracts", "persistence-schema"]
+        "allow": ["contracts", "persistence-schema", "lib"]
       },
       {
         "from": "service-standard",

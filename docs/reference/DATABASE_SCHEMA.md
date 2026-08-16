@@ -20,9 +20,9 @@
 | 向量搜索 | pgvector (384 维 HNSW 索引) |
 | 全文搜索 | tsvector + GIN 索引 |
 
-## 表总览 (64 张表)
+## 表总览 (65 张表)
 
-> 表清单以 `packages/persistence-schema/src/` 实测 64 张 `pgTable` 为准；六个 `packages/service-*/drizzle/` 迁移 SQL 与之对齐（例外见下文 `conflict_relations` 标注）。
+> 表清单以 `packages/persistence-schema/src/` 实测 65 张 `pgTable` 为准；六个 `packages/service-*/drizzle/` 迁移 SQL 与之对齐（例外见下文 `conflict_relations` 标注）。
 
 ### 知识域 (16 表)
 
@@ -147,6 +147,18 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 | `graph_index_documents` | GraphRAG-lite 图索引文档 | `id` (text) |
 | `workflow_runs` | 工作流运行快照（Phase 3 持久化） | `run_id` (text) |
 | `retrieval_badcase_traces` | 检索坏例 trace（Phase 4 可复现性） | `id` (text) |
+
+### 调度域 (1 表)
+
+| 表名 | 用途 | 主键 |
+|------|------|------|
+| `cron_jobs` | 定时任务注册表（cron 调度服务） | `id` (text) |
+
+### cron_jobs 关键索引
+
+| 索引名 | 类型 | 列 | 条件 | 用途 |
+|--------|------|-----|------|------|
+| `cron_jobs_next_run_enabled_idx` | 部分索引 | `(next_run_at)` | `WHERE enabled` | 支撑调度 tick 的到期任务扫描 |
 
 ### task_queue 关键索引
 
