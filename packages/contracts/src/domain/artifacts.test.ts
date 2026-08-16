@@ -243,9 +243,7 @@ describe('artifacts schema fixes', () => {
     });
 
     it('rejects non-string version values', () => {
-      expect(() =>
-        skillArtifactRevisionSchema.parse({ ...baseRevision, version: 42 }),
-      ).toThrow();
+      expect(() => skillArtifactRevisionSchema.parse({ ...baseRevision, version: 42 })).toThrow();
     });
   });
 

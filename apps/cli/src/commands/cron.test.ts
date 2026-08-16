@@ -327,9 +327,9 @@ describe('CLI cron commands', () => {
     });
 
     it('rejects an empty edit with no fields', async () => {
-      await expect(
-        program.parseAsync(['node', 'test', 'cron', 'edit', 'cron_1']),
-      ).rejects.toThrow('No fields to update');
+      await expect(program.parseAsync(['node', 'test', 'cron', 'edit', 'cron_1'])).rejects.toThrow(
+        'No fields to update',
+      );
     });
   });
 

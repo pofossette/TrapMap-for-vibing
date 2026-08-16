@@ -53,10 +53,7 @@ function createModule(overrides: Partial<CronRouteDeps> = {}): CronRouteDeps {
   };
 }
 
-async function buildApp(
-  module: CronRouteDeps,
-  adapter: AdapterName,
-): Promise<RouteTestApp> {
+async function buildApp(module: CronRouteDeps, adapter: AdapterName): Promise<RouteTestApp> {
   return buildRouteTestApp(createCronRouteDefs(module), module, adapter);
 }
 

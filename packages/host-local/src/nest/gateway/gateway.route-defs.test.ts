@@ -392,12 +392,15 @@ describe('gateway route defs handler behavior (migrated from candidate-review.co
   it('rejects invalid cron job bodies with the canonical validation envelope', async () => {
     const { app, cron } = await createTestApp();
 
-    const response = await app.getHttpAdapter().getInstance().inject({
-      method: 'POST',
-      url: '/v1/cron/jobs',
-      headers: authHeaders,
-      payload: { name: 'nightly' },
-    });
+    const response = await app
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        method: 'POST',
+        url: '/v1/cron/jobs',
+        headers: authHeaders,
+        payload: { name: 'nightly' },
+      });
 
     expect(response.statusCode).toBe(400);
     expect(JSON.parse(response.payload).kind).toBe('validation');

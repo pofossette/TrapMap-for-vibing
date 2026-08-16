@@ -214,7 +214,9 @@ export function registerCronCommands(program: Command): void {
       requireSessionToken(state);
       const body = buildJobBody(flags);
       if (Object.keys(body).length === 0) {
-        throw new Error('No fields to update. Provide at least one of --name, --schedule, --timezone, --task-type, --payload-json, --enabled.');
+        throw new Error(
+          'No fields to update. Provide at least one of --name, --schedule, --timezone, --task-type, --payload-json, --enabled.',
+        );
       }
       validateJobBody(body, cronJobUpdateInputSchema);
 

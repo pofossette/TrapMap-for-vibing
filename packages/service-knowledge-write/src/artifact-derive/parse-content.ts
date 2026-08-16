@@ -17,8 +17,7 @@ export function parseFrontmatter(content: string): {
 } {
   const metadata = parseSkillMarkdown(content);
   const raw = parseMarkdownFrontmatter(content);
-  const version =
-    typeof raw.data.version === 'string' ? raw.data.version.trim() : null;
+  const version = typeof raw.data.version === 'string' ? raw.data.version.trim() : null;
   return {
     title: metadata.title,
     labels: metadata.labels,

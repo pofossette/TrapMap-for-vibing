@@ -6,7 +6,10 @@ import type { CronOwnerBundle } from './pg-ports.js';
 
 type MemoryJob = CronJob & { claimed: boolean };
 
-function createMemoryBundle(jobs: CronJob[]): { bundle: CronOwnerBundle; store: Map<string, MemoryJob> } {
+function createMemoryBundle(jobs: CronJob[]): {
+  bundle: CronOwnerBundle;
+  store: Map<string, MemoryJob>;
+} {
   const store = new Map<string, MemoryJob>(jobs.map((job) => [job.id, { ...job, claimed: false }]));
   const snapshot = (job: MemoryJob): CronJob => {
     const { claimed: _claimed, ...rest } = job;
@@ -52,7 +55,10 @@ function createMemoryBundle(jobs: CronJob[]): { bundle: CronOwnerBundle; store: 
   };
 }
 
-function createTransport(): { enqueue: ReturnType<typeof vi.fn>; transport: CronSchedulerTransport } {
+function createTransport(): {
+  enqueue: ReturnType<typeof vi.fn>;
+  transport: CronSchedulerTransport;
+} {
   const enqueue = vi.fn(async () => 'task_1');
   return { enqueue, transport: { task: { enqueue } } };
 }
@@ -88,7 +94,11 @@ describe('service-cron scheduler', () => {
 
     const claimed = await scheduler.tick();
     expect(claimed).toBe(1);
-    expect(enqueue).toHaveBeenCalledWith('purge-expired', { days: 30 }, { dedupeKey: `cron:${job.id}:${job.nextRunAt}` });
+    expect(enqueue).toHaveBeenCalledWith(
+      'purge-expired',
+      { days: 30 },
+      { dedupeKey: `cron:${job.id}:${job.nextRunAt}` },
+    );
 
     const updated = store.get(job.id)!;
     expect(updated.lastStatus).toBe('succeeded');

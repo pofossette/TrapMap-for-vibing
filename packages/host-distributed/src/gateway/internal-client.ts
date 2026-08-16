@@ -410,7 +410,11 @@ export interface InternalServiceClients {
     listJobs(options?: InternalRequestOptions): Promise<ServiceResponse>;
     createJob(body: unknown, options?: InternalRequestOptions): Promise<ServiceResponse>;
     getJob(jobId: string, options?: InternalRequestOptions): Promise<ServiceResponse>;
-    updateJob(jobId: string, body: unknown, options?: InternalRequestOptions): Promise<ServiceResponse>;
+    updateJob(
+      jobId: string,
+      body: unknown,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
     deleteJob(jobId: string, options?: InternalRequestOptions): Promise<ServiceResponse>;
     triggerJob(jobId: string, options?: InternalRequestOptions): Promise<ServiceResponse>;
     getStatus(options?: InternalRequestOptions): Promise<ServiceResponse>;

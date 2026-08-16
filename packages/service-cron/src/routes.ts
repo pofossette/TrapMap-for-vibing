@@ -232,7 +232,10 @@ export function createCronRouteDefs(_deps: CronRouteDeps): RouteDef<RouteContext
           return {
             service: 'cron',
             owner: CRON_OWNERSHIP.boundedContext,
-            scheduler: { running: module.scheduler.isRunning(), ownsWork: module.scheduler.ownsWork() },
+            scheduler: {
+              running: module.scheduler.isRunning(),
+              ownsWork: module.scheduler.ownsWork(),
+            },
             ...details,
           };
         } catch (error) {

@@ -217,7 +217,7 @@ describe('service-cron PostgreSQL owner bundle', () => {
     const owner = createCronOwnerBundle(pool);
 
     await owner.pause('cron_1234567890abcdef');
-    expect(calls[0]?.sql).toContain("SET enabled = false");
+    expect(calls[0]?.sql).toContain('SET enabled = false');
     expect(calls[0]?.sql).toContain('updated_at = NOW()');
   });
 
@@ -254,7 +254,15 @@ describe('service-cron PostgreSQL owner bundle', () => {
 
   it('records a manual trigger without advancing next_run_at', async () => {
     const { calls, pool } = createPool({
-      query: vi.fn(async () => ({ rows: [{ ...dueJobRow, last_run_at: new Date('2026-08-16T09:00:00.000Z'), last_status: 'succeeded' }] })),
+      query: vi.fn(async () => ({
+        rows: [
+          {
+            ...dueJobRow,
+            last_run_at: new Date('2026-08-16T09:00:00.000Z'),
+            last_status: 'succeeded',
+          },
+        ],
+      })),
     });
     const owner = createCronOwnerBundle(pool);
 
@@ -313,7 +321,13 @@ describe('service-cron PostgreSQL owner bundle', () => {
   it('exposes status snapshots in the shared snapshot shape', async () => {
     const { pool } = createPool({
       query: vi.fn(async () => ({
-        rows: [{ ...dueJobRow, last_status: 'succeeded', last_run_at: new Date('2026-08-16T03:00:00.000Z') }],
+        rows: [
+          {
+            ...dueJobRow,
+            last_status: 'succeeded',
+            last_run_at: new Date('2026-08-16T03:00:00.000Z'),
+          },
+        ],
       })),
     });
     const owner = createCronOwnerBundle(pool);

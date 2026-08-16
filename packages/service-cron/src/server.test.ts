@@ -22,10 +22,7 @@ describe('cron server composition', () => {
       transport: { task: { enqueue: vi.fn(async () => 'task_1') } },
     };
 
-    const server = await createCronServer(
-      { host: '127.0.0.1', port: 0, logLevel: 'silent' },
-      deps,
-    );
+    const server = await createCronServer({ host: '127.0.0.1', port: 0, logLevel: 'silent' }, deps);
 
     const jobs = await server.app.inject({ method: 'GET', url: '/cron/jobs' });
     expect(jobs.statusCode).toBe(200);
