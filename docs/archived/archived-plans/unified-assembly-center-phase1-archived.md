@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **状态：** active
-> **根入口：** [`../../plan.md`](../../plan.md)
-> **设计规格：** [`../superpowers/specs/2026-08-16-unified-assembly-center-design.md`](../superpowers/specs/2026-08-16-unified-assembly-center-design.md)
+> **状态：** 已归档（Phase 1 完成 closeout，2026-08-16）
+> **根入口（归档前）：** [`../../../plan.md`](../../../plan.md)
+> **设计规格：** [`../../superpowers/specs/2026-08-16-unified-assembly-center-design.md`](../../superpowers/specs/2026-08-16-unified-assembly-center-design.md)
 
 **Goal:（Phase 1 地基 per D6）** packages/assembly 建包 + cordis 引入 + createAssembly / defineNode / startupChecks / createShutdownController + 单测；现有宿主零改动。
 
@@ -14,7 +14,7 @@
 
 ## 任务背景
 
-根 [`../../plan.md`](../../plan.md) 已切换为 assembly Phase 1 主线：用户 goal（2026-08-16）激活"统一优雅组装中心（assembly）"主线，承接设计文档 D6 Phase 1 阶段。平行分支 `feat/assembly-core` 正在实施 Phase 1 代码（建包、cordis 引入、核心 API、单测、根级接线与 .fallowrc.json 的 assembly zone 变更）。本细则承载 Phase 1 的执行清单、界面、验证命令与 closeout 责任。
+根 [`../../../plan.md`](../../../plan.md) 已切换为 assembly Phase 1 主线（现已归档）：用户 goal（2026-08-16）激活"统一优雅组装中心（assembly）"主线，承接设计文档 D6 Phase 1 阶段。平行分支 `feat/assembly-core` 正在实施 Phase 1 代码（建包、cordis 引入、核心 API、单测、根级接线与 .fallowrc.json 的 assembly zone 变更）。本细则承载 Phase 1 的执行清单、界面、验证命令与 closeout 责任。
 
 ## 全局约束
 
@@ -54,14 +54,18 @@ T1 建包后可并行开始 T2/T3 的 API 开发与单测；T4 依赖 T1-T3 的�
 - Consumes: 设计 D1（`@deepseek-ai/cordis` ^4.0.1 依赖落点）、根 `pnpm-workspace.yaml` 的包模式。
 - Produces: 可解析、可安装的 `packages/assembly` workspace 包；锁文件含 cordis 依赖。
 
-- [ ] **Step 1: 建包骨架**
+- [x] **Step 1: 建包骨架**
   创建 `packages/assembly/` 目录、`package.json`、`tsconfig.json`、`README.md`；`package.json` 声明 `name: "@trapmap/assembly"` 与 cordis 依赖。
-- [ ] **Step 2: 安装依赖**
+  证据：提交 `fd0f8ee0` 新增 `packages/assembly/{package.json,tsconfig.json,README.md}`。
+- [x] **Step 2: 安装依赖**
   运行 `pnpm install --lockfile-only`（或 `pnpm install`）更新锁文件，确认 `@deepseek-ai/cordis` 被解析到 ^4.0.1。
-- [ ] **Step 3: 验证**
+  证据：提交 `fd0f8ee0` 更新 `pnpm-lock.yaml`（+41 行）；`pnpm install --frozen-lockfile` 解析 `@deepseek-ai+cordis@4.0.1`。
+- [x] **Step 3: 验证**
   `pnpm --filter @trapmap/assembly exec node -e "require('@deepseek-ai/cordis')"`（或按包测试入口验证包解析）+ `pnpm typecheck`。
-- [ ] **Step 4: Commit**
+  证据：`pnpm exec tsc -p packages/assembly/tsconfig.json --noEmit` 退出码 0；包解析与类型检查无错误。
+- [x] **Step 4: Commit**
   `feat(assembly): scaffold @trapmap/assembly package with cordis dependency`
+  已提交为 `fd0f8ee0`（feat(assembly): add unified assembly kernel）。
 
 ### Task 2: 核心 API 与类型（createAssembly / defineNode / defineContract / startupChecks / createShutdownController + CapabilityNode / ContractDescriptor / StartupIssue 等）
 
@@ -78,20 +82,27 @@ T1 建包后可并行开始 T2/T3 的 API 开发与单测；T4 依赖 T1-T3 的�
 - Consumes: 设计 D1 导出面（createAssembly / defineNode / defineContract / startupChecks / createShutdownController）；cordis 的 `new Context()` / `ctx.plugin()` / `inject` / `ctx.effect`。
 - Produces: 可被 Phase 2+ 宿主消费的内核 API 表面 + 类型（CapabilityNode / ContractDescriptor / StartupIssue）。
 
-- [ ] **Step 1: 定义类型与契约接口**
+- [x] **Step 1: 定义类型与契约接口**
   实现 CapabilityNode / ContractDescriptor / StartupIssue / AssemblyBuilder 类型与 defineNode / defineContract 声明。
-- [ ] **Step 2: 实现 createAssembly**
+  证据：提交 `fd0f8ee0` 的 `packages/assembly/src/types.ts` 与 `packages/assembly/src/define-node.ts`。
+- [x] **Step 2: 实现 createAssembly**
   实现 createAssembly → AssemblyBuilder（`.add(node, config?) / .build() / .boot()`），内部经 cordis Context / plugin 装载有序 bundles。
-- [ ] **Step 3: 实现 startupChecks**
+  证据：提交 `fd0f8ee0` 的 `packages/assembly/src/create-assembly.ts`（112 行）。
+- [x] **Step 3: 实现 startupChecks**
   实现 startupChecks：inject 无环检测、重复节点 id、拓扑合法性校验、契约实现校验。
-- [ ] **Step 4: 实现 createShutdownController**
+  证据：提交 `fd0f8ee0` 的 `packages/assembly/src/startup-checks.ts`（253 行）。
+- [x] **Step 4: 实现 createShutdownController**
   实现 createShutdownController(dispose)：创建关闭控制器，反序 dispose，提供 bounded shutdown。
-- [ ] **Step 5: 导出面聚合**
+  证据：提交 `fd0f8ee0` 的 `packages/assembly/src/shutdown-controller.ts`（135 行）。
+- [x] **Step 5: 导出面聚合**
   从 `index.ts` 聚合导出全部 API 与类型。
-- [ ] **Step 6: 验证**
+  证据：提交 `fd0f8ee0` 的 `packages/assembly/src/index.ts`（23 行聚合导出）。
+- [x] **Step 6: 验证**
   `pnpm --filter @trapmap/assembly test --run`（配合 T3 单测）+ `pnpm typecheck`。
-- [ ] **Step 7: Commit**
+  证据：`pnpm --filter @trapmap/assembly test --run` 40 用例全绿（T3 单测）；`pnpm exec tsc -p packages/assembly/tsconfig.json --noEmit` 退出码 0。
+- [x] **Step 7: Commit**
   `feat(assembly): implement cordis-backed assembly kernel core APIs`
+  已提交为 `fd0f8ee0`（feat(assembly): add unified assembly kernel）。
 
 ### Task 3: 单测（组合语义 / inject 顺序与无环 / 拓扑合法性 / 契约校验 / dispose 顺序 / 退出控制）
 
@@ -105,22 +116,30 @@ T1 建包后可并行开始 T2/T3 的 API 开发与单测；T4 依赖 T1-T3 的�
 - Consumes: T2 的核心 API（createAssembly / defineNode / defineContract / startupChecks / createShutdownController）。
 - Produces: 设计文档"验证方式"要求的 assembly 单测：组合语义 / inject 无环 / 拓扑合法性 / 契约校验 / dispose / 退出控制。
 
-- [ ] **Step 1: 组合语义测试**
+- [x] **Step 1: 组合语义测试**
   add 顺序 = 有序 bundles；boot 后节点依赖满足；config 按层合并语义正确。
-- [ ] **Step 2: inject 顺序与无环测试**
+  证据：`packages/assembly/src/create-assembly.test.ts`（10 用例，提交 `fd0f8ee0`）。
+- [x] **Step 2: inject 顺序与无环测试**
   依赖图推导启动顺序符合声明 inject；循环依赖 fail-loud；停止顺序为启动反序。
-- [ ] **Step 3: 拓扑合法性测试**
+  证据：`packages/assembly/src/startup-checks.test.ts`（14 用例，提交 `fd0f8ee0`）。
+- [x] **Step 3: 拓扑合法性测试**
   standalone 节点独立满足 inject；cluster 节点不得为 embedded；子 worker 只挂 job-runtime 或独立 + workerTransport。
-- [ ] **Step 4: 契约校验测试**
+  证据：`startup-checks.test.ts` 拓扑合法性用例（提交 `fd0f8ee0`）。
+- [x] **Step 4: 契约校验测试**
   implements 契约 id 存在且结构兼容；启动期 smoke 断言通过；未满足即 fail-loud。
-- [ ] **Step 5: dispose 顺序测试**
+  证据：`startup-checks.test.ts` 契约校验用例（提交 `fd0f8ee0`）。
+- [x] **Step 5: dispose 顺序测试**
   反序 dispose；ctx.effect 副作用自动回收；重复 dispose 幂等。
-- [ ] **Step 6: 退出控制测试**
+  证据：`packages/assembly/src/shutdown-controller.test.ts`（8 用例，提交 `fd0f8ee0`）。
+- [x] **Step 6: 退出控制测试**
   createShutdownController 触发 dispose 按注册反序；bounded shutdown 超时行为正确。
-- [ ] **Step 7: 验证**
+  证据：`shutdown-controller.test.ts` 退出控制用例（提交 `fd0f8ee0`）。
+- [x] **Step 7: 验证**
   `pnpm --filter @trapmap/assembly test --run` 全绿 + `pnpm typecheck`。
-- [ ] **Step 8: Commit**
+  证据：`pnpm --filter @trapmap/assembly test --run` → `Test Files 4 passed (4) / Tests 40 passed (40)`；`pnpm exec tsc -p packages/assembly/tsconfig.json --noEmit` 退出码 0。
+- [x] **Step 8: Commit**
   `test(assembly): cover composition, inject order, topology, contract, dispose, shutdown`
+  已提交为 `fd0f8ee0`（faet assembly kernel 含全部单测）。
 
 ### Task 4: 根级接线（tsconfig.base.json paths / tsconfig.json references / vitest.config.ts project / .fallowrc.json entry+zone+rules+host allow）
 
@@ -136,18 +155,24 @@ T1 建包后可并行开始 T2/T3 的 API 开发与单测；T4 依赖 T1-T3 的�
 - Consumes: T1-T3 的包与 API；根 `tsconfig.base.json` / `tsconfig.json` / `vitest.config.ts` / `.fallowrc.json`。
 - Produces: 根级构建、测试与边界守卫能把 `packages/assembly` 解析、编译、测试并纳入架构边界。
 
-- [ ] **Step 1: tsconfig paths**
+- [x] **Step 1: tsconfig paths**
   `tsconfig.base.json` 新增 `@trapmap/assembly` paths 映射，指向 `packages/assembly/src/index.ts`。
-- [ ] **Step 2: tsconfig references**
+  证据：提交 `1f18d745` 更新根 `tsconfig.base.json`。
+- [x] **Step 2: tsconfig references**
   根 `tsconfig.json` 的 references 新增 `packages/assembly`。
-- [ ] **Step 3: vitest project**
+  证据：提交 `1f18d745` 更新根 `tsconfig.json`。
+- [x] **Step 3: vitest project**
   `vitest.config.ts` 的 projects 新增 `packages/assembly`。
-- [ ] **Step 4: fallow zone 接入（由平行分支）**
+  证据：提交 `1f18d745` 更新 `vitest.config.ts`。
+- [x] **Step 4: fallow zone 接入（由平行分支）**
   确认 `.fallowrc.json` 的 entry + zone + rules + host allow 已加入 assembly（由 feat/assembly-core 落地，本步只验证）。
-- [ ] **Step 5: 验证**
+  证据：提交 `1f18d745` 更新 `.fallowrc.json`（assembly zone 接入）；`pnpm exec fallow audit --base main` 零 issue。
+- [x] **Step 5: 验证**
   `pnpm typecheck`、`pnpm --filter @trapmap/assembly test --run`、`pnpm exec fallow list --boundaries`（含 assembly zone）。
-- [ ] **Step 6: Commit**
+  证据：`pnpm typecheck` 退出码 0；`pnpm --filter @trapmap/assembly test --run`→40/40；`pnpm exec fallow list --boundaries` 含 assembly zone 且无 issue。
+- [x] **Step 6: Commit**
   `chore(assembly): wire package into root tsconfig, vitest, and fallow boundary`（由平行分支提交；本细则相应步骤若在其它分支不提交则同步证据到问题池）
+  已由平行分支提交为 `1f18d745`。
 
 ### Task 5: 守卫与文档同步（check:fallow +assembly zone / BOUNDARIES.md / REPO_STRUCTURE.md / SYSTEM_TRUTH_SOURCES.md / open-debt 回写）
 
@@ -162,18 +187,24 @@ T1 建包后可并行开始 T2/T3 的 API 开发与单测；T4 依赖 T1-T3 的�
 - Consumes: T4 的 .fallowrc.json assembly zone（平行分支）、本细则 active 状态。
 - Produces: 架构边界、目录结构、术语事实源与债务登记与 assembly 主线一致；check:fallow 无 assembly 相关 issue（需平行分支 zone 接入后）。
 
-- [ ] **Step 1: BOUNDARIES.md**
+- [x] **Step 1: BOUNDARIES.md**
   加 assembly 行到 Zone 定义表与关键约束；mermaid 加组装层 subgraph（assembly→backend-core/contracts/lib；host-local/host-distributed→assembly），保持 mermaid 合法。
-- [ ] **Step 2: REPO_STRUCTURE.md**
+  证据：提交 `61dd0cbb` 更新 `docs/architecture/BOUNDARIES.md`（assembly zone 表行 + 组装层 subgraph）。
+- [x] **Step 2: REPO_STRUCTURE.md**
   packages 列表加 `packages/assembly/`；如有包计数更新。
-- [ ] **Step 3: SYSTEM_TRUTH_SOURCES.md**
+  证据：提交 `61dd0cbb` 更新 `docs/reference/REPO_STRUCTURE.md`（加 packages/assembly）。
+- [x] **Step 3: SYSTEM_TRUTH_SOURCES.md**
   加 assembly 术语映射（能力节点 / 节点拓扑 / 统一组装中心 / 部署形态）；更新当前 active 主线措辞（若该处列 dead-code 主线）。
-- [ ] **Step 4: open-debt 回写**
+  证据：提交 `61dd0cbb` 更新 `docs/reference/SYSTEM_TRUTH_SOURCES.md`（assembly 术语映射）+ active 主线措辞。
+- [x] **Step 4: open-debt 回写**
   assembly 条目加"实施状态：2026-08-16 由用户 goal 激活，Phase 1 实施中（见 assembly-phase1.md）"，保留 v4 设计要点原文。
-- [ ] **Step 5: 验证**
+  证据：提交 `61dd0cbb` 在 `docs/todos/open-debt-and-compromises.md` 写回实施状态。
+- [x] **Step 5: 验证**
   `pnpm check:docs`、`pnpm check:structure`、`pnpm exec check:fallow`（需 .fallowrc.json 已有 assembly zone；若平行分支尚未合入则记录为待补）。
-- [ ] **Step 6: Commit**
+  证据：`pnpm check:docs` / `pnpm check:structure` / `pnpm check:imports` / `pnpm check:asserts` / `pnpm check:deps` 全部退出码 0；`pnpm exec check:fallow` 无 issue。
+- [x] **Step 6: Commit**
   `docs(assembly): document assembly zone, package structure, and truth mappings for Phase 1`
+  已提交为 `61dd0cbb`（docs(assembly): activate assembly Phase 1 mainline...），并另经 `bae2c813`（docs alignment）对齐细则文件清单。
 
 ### Task 6: 回归与 closeout（typecheck / assembly 测试 / check:imports/asserts/docs/structure/deps / fallow audit --base main；证据齐全后归档）
 
@@ -186,16 +217,21 @@ T1 建包后可并行开始 T2/T3 的 API 开发与单测；T4 依赖 T1-T3 的�
 - Consumes: T1-T5 全部产物与文档。
 - Produces: Phase 1 closeout 证据；后续主线（Phase 2+）可在此基础上推进。
 
-- [ ] **Step 1: 全量回归**
+- [x] **Step 1: 全量回归**
   运行 `pnpm typecheck`、`pnpm --filter @trapmap/assembly test --run`、`pnpm check:imports`、`pnpm check:asserts`、`pnpm check:docs`、`pnpm check:structure`、`pnpm check:deps`、`pnpm exec fallow audit --base main`。
-- [ ] **Step 2: 边界与文档守卫确认**
+  证据（本 closeout 复核，全部退码 0）：`pnpm typecheck`（tsc -b clean）→ 0；`pnpm --filter @trapmap/assembly test --run` → 40/40；`pnpm check:imports` → 0；`pnpm check:asserts` → 0（naked-asserts OK）；`pnpm check:docs` → blocking tiers green；`pnpm check:structure` → structure-guard/arch-freeze/stale-package-refs PASS；`pnpm check:deps` → 0（no dependency violations）；`pnpm exec fallow audit --base main` → 0 issue。
+- [x] **Step 2: 边界与文档守卫确认**
   `pnpm exec check:fallow`（含 assembly zone）无 issue；`pnpm check:docs` / `pnpm check:structure` 全绿。
-- [ ] **Step 3: Completion Gates 核对**
+  证据：`pnpm exec fallow audit --base main` 含 assembly zone 零 issue；`pnpm check:docs` / `pnpm check:structure` blocking tiers 全绿（见 Step 1）。
+- [x] **Step 3: Completion Gates 核对**
   确认下方 Completion Gates 全部满足（依赖 .fallowrc.json 的 assembly zone 已由平行分支接入）。
-- [ ] **Step 4: 归档评估**
+  证据：下方 5 项 Completion Gates 均已满足（见 Completion Gates 节）。
+- [x] **Step 4: 归档评估**
   仅当全部证据齐全且下一主线已激活时，才把本细则归档至 `docs/archived/archived-plans/` 并更新 todos/README.md 与 plan.md。
-- [ ] **Step 5: Commit**
+  证据：Phase 2 试点主线（assembly-phase2.md）已建立，本细则归档为 `archived-plans/unified-assembly-center-phase1-archived.md`。
+- [x] **Step 5: Commit**
   `docs(assembly): closeout assembly Phase 1 foundation`（或由后续主线承接 closeout）
+  closeout + 归档 + Phase 2 激活一并提交（docs(assembly): close out Phase 1 and activate Phase 2 pilot mainline）。
 
 ## 范围边界
 
@@ -217,11 +253,23 @@ T1 建包后可并行开始 T2/T3 的 API 开发与单测；T4 依赖 T1-T3 的�
 
 ## Completion Gates
 
-- [ ] `packages/assembly` 单测全绿（组合语义 / inject 顺序与无环 / 拓扑合法性 / 契约校验 / dispose 顺序 / 退出控制均有测试覆盖）。
-- [ ] `check:fallow` 无 assembly 相关 issue（需 .fallowrc.json assembly zone 接入，由平行分支负责）。
-- [ ] `pnpm typecheck` 全绿。
-- [ ] 现有宿主零改动 diff 为空：`host-local`、`host-distributed`、`apps/*` 在 Phase 1 内无源码变更（文档除外）。
-- [ ] 文档守卫全绿：`pnpm check:docs`、`pnpm check:structure`、`pnpm check:imports`、`pnpm check:asserts` 通过。
+- [x] `packages/assembly` 单测全绿（组合语义 / inject 顺序与无环 / 拓扑合法性 / 契约校验 / dispose 顺序 / 退出控制均有测试覆盖）。
+  证据：`pnpm --filter @trapmap/assembly test --run` → 4 files / 40 tests passed（create-assembly 10、startup-checks 14、define-node 8、shutdown-controller 8）。
+- [x] `check:fallow` 无 assembly 相关 issue（需 .fallowrc.json assembly zone 接入，由平行分支负责）。
+  证据：`.fallowrc.json` assembly zone 由 `1f18d745` 接入（平行分支）；`pnpm exec fallow audit --base main` 零 issue。
+- [x] `pnpm typecheck` 全绿。
+  证据：`pnpm typecheck`（tsc -b）退出码 0；`pnpm exec tsc -p packages/assembly/tsconfig.json --noEmit` 退出码 0。
+- [x] 现有宿主零改动 diff 为空：`host-local`、`host-distributed`、`apps/*` 在 Phase 1 内无源码变更（文档除外）。
+  证据：Phase 1 提交 fd0f8ee0/1f18d745/61dd0cbb/bae2c813 均未改动 packages/host-local、packages/host-distributed、apps/* 源码（git diff-tree 复核为空）。
+- [x] 文档守卫全绿：`pnpm check:docs`、`pnpm check:structure`、`pnpm check:imports`、`pnpm check:asserts` 通过。
+  证据：`pnpm check:docs` / `pnpm check:structure` / `pnpm check:imports` / `pnpm check:asserts` 全部退出码 0。
+
+## Closeout 记录
+
+**Phase 1 完成于 2026-08-16**（提交 `fd0f8ee0` / `1f18d745` / `61dd0cbb` / `bae2c813` + 合并 `d70a1cd6` / `e6be1581`）。本细则归档，Phase 2 见新主细则 [`../../todos/assembly-phase2.md`](../../todos/assembly-phase2.md)。
+
+- 验证证据汇总：assembly 单测 40/40、`pnpm typecheck` 全绿、`check:imports`/`check:asserts`/`check:docs`/`check:structure`/`check:deps` 全绿、fallow audit（含 assembly zone）零 issue、现有宿主（host-local/host-distributed/apps/*）零源码改动。
+- 归档日期与去向：`docs/archived/archived-plans/unified-assembly-center-phase1-archived.md`；归档表与索引已同步（`docs/archived/README.md` / `docs/todos/README.md`）。
 
 ## 问题池
 
