@@ -1,24 +1,15 @@
 /**
- * knowledge-read host ports (Phase 3 shared/ports retirement).
+ * knowledge-read host ports (Phase 3 shared/ports retirement, Phase 4 D5).
  *
  * The distributed knowledge-read service owns its PostgreSQL read-model
- * projection and ILIKE retrieval query. These were previously bundled into
- * the shared simplified `shared/ports.ts`; they now live next to the
- * knowledge-read service so the shared bundle (taskQueue/outbox simplified
- * implementations) can be retired. Behavior is unchanged.
- *
- * Design note (D5/D6): the ILIKE retrieval here is the legacy read seam; the
- * complete retrieval-engine pipeline convergence is a Phase 4 follow-up, so
- * this host keeps behaviour identical to the pre-convergence path.
+ * projection. The legacy ILIKE retrieval query was removed in Phase 4 / D5:
+ * distributed retrieval now runs the complete retrieval-engine pipeline
+ * (assembled in converged-retrieval.ts) so its semantics match the monolith.
  */
-import type {
-  KnowledgeEntryRecord,
-  KnowledgeReadProjectionPort,
-  RetrievalQueryPort,
-} from '@trapmap/backend-core';
+import type { KnowledgeEntryRecord, KnowledgeReadProjectionPort } from '@trapmap/backend-core';
 import type { LifecycleState } from '@trapmap/contracts';
 
-/** Minimal pool seam used by the knowledge-read pg ports (query-only). */
+/** Minimal pool seam used by the knowledge-read pg projection (query-only). */
 export interface KnowledgeReadPool {
   query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
 }
@@ -91,43 +82,6 @@ export function createPgKnowledgeReadProjection(
         'SELECT * FROM knowledge_entries ORDER BY created_at DESC LIMIT 100',
       );
       return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>));
-    },
-  };
-}
-
-export function createPgRetrievalQuery(pool: KnowledgeReadPool): RetrievalQueryPort {
-  return {
-    async search(params) {
-      const limit = params.limit ?? 10;
-      const conditions: string[] = ["lifecycle_state = 'approved'"];
-      const queryParams: unknown[] = [];
-      let paramIndex = 1;
-
-      if (params.teamId) {
-        conditions.push(`team_id = $${paramIndex++}`);
-        queryParams.push(params.teamId);
-      }
-
-      conditions.push(`(content ILIKE $${paramIndex} OR title ILIKE $${paramIndex})`);
-      queryParams.push(`%${params.query}%`);
-      paramIndex++;
-
-      const whereClause = conditions.join(' AND ');
-      const { rows } = await pool.query(
-        `SELECT id, content, title FROM knowledge_entries
-         WHERE ${whereClause}
-         LIMIT $${paramIndex}`,
-        [...queryParams, limit],
-      );
-
-      return {
-        results: (rows as Array<{ id: string; content: string; title: string }>).map((r) => ({
-          entryId: r.id,
-          score: 1.0,
-          snippet: r.content.slice(0, 200),
-          metadata: { title: r.title },
-        })),
-      };
     },
   };
 }

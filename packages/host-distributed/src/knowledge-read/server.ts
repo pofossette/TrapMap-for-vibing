@@ -14,7 +14,8 @@ import {
   createKnowledgeReadServer,
 } from '@trapmap/service-knowledge-read';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
-import { createPgKnowledgeReadProjection, createPgRetrievalQuery } from './ports.js';
+import { createConvergedRetrievalQuery } from './converged-retrieval.js';
+import { createPgKnowledgeReadProjection } from './ports.js';
 
 export async function createKnowledgeReadServerAdapter(
   config: ServiceConfig,
@@ -22,7 +23,7 @@ export async function createKnowledgeReadServerAdapter(
 ): ReturnType<typeof createKnowledgeReadServer> {
   const deps = createKnowledgeReadDeps({
     knowledgeRepo: createPgKnowledgeReadProjection(db.pool),
-    retrievalQuery: createPgRetrievalQuery(db.pool),
+    retrievalQuery: createConvergedRetrievalQuery(db.pool),
   });
   const server = await createKnowledgeReadServer(config, deps);
   attachRuntimeMetricsRoute(server.app);

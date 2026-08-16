@@ -150,6 +150,10 @@ async function main(): Promise<void> {
 
     const databaseUrl = databaseUrlFromAdminUrl(coordinator.adminUrl, databaseName);
     databasePool = new pg.Pool({ connectionString: databaseUrl });
+    // pgvector image ships the extension at cluster level; newly created
+    // eval databases must enable it explicitly (pre-existing infra gap that
+    // blocked eval:smoke for every temp database).
+    await databasePool.query('CREATE EXTENSION IF NOT EXISTS vector');
     for (const migrate of migrations) await migrate(databasePool);
     const extension = await databasePool.query(
       "SELECT extname FROM pg_extension WHERE extname = 'vector'",
