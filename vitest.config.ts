@@ -120,6 +120,7 @@ export default defineConfig({
   test: {
     projects: [
       project('ai-providers', './packages/ai-providers'),
+      project('assembly', './packages/assembly'),
       {
         ...project('scripts', './scripts', ['__tests__/**/*.test.ts']),
         resolve: {

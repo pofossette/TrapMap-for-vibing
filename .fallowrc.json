@@ -2,6 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "entry": [
     "packages/backend-core/src/index.ts",
+    "packages/assembly/src/index.ts",
     "packages/lib/src/index.ts",
     "apps/cli/src/index.ts",
     "packages/client-core/src/index.ts",
@@ -94,6 +95,10 @@
         "patterns": ["packages/backend-core/src/**"]
       },
       {
+        "name": "assembly",
+        "patterns": ["packages/assembly/src/**"]
+      },
+      {
         "name": "service-standard",
         "patterns": [
           "packages/service-identity-access/src/**",
@@ -147,6 +152,10 @@
         "allow": ["contracts", "persistence-schema", "lib"]
       },
       {
+        "from": "assembly",
+        "allow": ["backend-core", "contracts", "lib"]
+      },
+      {
         "from": "ai-providers",
         "allow": ["contracts", "lib"]
       },
@@ -165,6 +174,7 @@
           "client-core",
           "ai-providers",
           "backend-core",
+          "assembly",
           "service-standard",
           "service-knowledge-read",
           "persistence-schema",
@@ -178,6 +188,7 @@
           "client-core",
           "ai-providers",
           "backend-core",
+          "assembly",
           "service-standard",
           "service-knowledge-read",
           "persistence-schema",
