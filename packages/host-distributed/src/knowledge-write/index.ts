@@ -5,20 +5,15 @@
  * that loads config, connects to the database, and boots the server.
  */
 
-import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
-import { createServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
-import { createServer } from './server.js';
-
 /**
  * Boot the knowledge-write service as a standalone process.
  *
- * Loads configuration from environment variables, creates a database
- * pool, assembles the Fastify server, and starts listening.
+ * Phase 3 convergence: delegate to the distributed assembly profile, which
+ * composes the config/database/server nodes and boots them, returning the
+ * same DistributedServiceHandle shape.
  */
+import { startDistributedService } from '../assembly/profiles/distributed.js';
+
 export async function startKnowledgeWriteService() {
-  const config = loadServiceConfig('knowledge-write');
-  const db = createServiceDatabase(config);
-  const server = await createServer(config, db);
-  await server.start();
-  return { config, db, server };
+  return startDistributedService('knowledge-write');
 }

@@ -1,11 +1,11 @@
-import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
-import { createServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
-import { createServer } from './server.js';
+/**
+ * Start the governance-review distributed service.
+ *
+ * Phase 3 convergence: delegate to the distributed assembly profile (builds
+ * the config/database/governance-review server nodes and boots them).
+ */
+import { startDistributedService } from '../assembly/profiles/distributed.js';
 
 export async function startGovernanceReviewService() {
-  const config = loadServiceConfig('governance-review');
-  const db = createServiceDatabase(config);
-  const server = await createServer(config, db);
-  await server.start();
-  return { config, db, server };
+  return startDistributedService('governance-review');
 }

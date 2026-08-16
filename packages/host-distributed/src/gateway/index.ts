@@ -3,17 +3,15 @@
  *
  * The gateway is the ONLY externally-exposed service.
  * It forwards requests to internal services via HTTP.
- */
-
-import { loadServiceConfig } from '@trapmap/host-distributed/config/index.js';
-import { createServer } from './server.js';
-
-/**
+ *
  * Start the gateway service.
+ *
+ * Phase 3 convergence: delegate to the distributed assembly profile, which
+ * composes the gateway transport node and boots it, returning the same
+ * DistributedServiceHandle shape.
  */
+import { startDistributedService } from '../assembly/profiles/distributed.js';
+
 export async function startGatewayService() {
-  const config = loadServiceConfig('gateway');
-  const server = await createServer(config);
-  await server.start();
-  return { config, server };
+  return startDistributedService('gateway');
 }
