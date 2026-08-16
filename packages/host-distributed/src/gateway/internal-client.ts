@@ -422,6 +422,42 @@ export interface InternalServiceClients {
 }
 
 /**
+ * Shared governance-review client (2026-08-16 merge).
+ *
+ * `review` and `governanceReview` expose the same seven review methods
+ * with identical routes; they differ only in which static URL key the
+ * base URL comes from (`urls.review` vs `urls.governanceReview`). One
+ * implementation parameterized by the base-URL source keeps the two
+ * groups from drifting.
+ */
+function createGovernanceReviewClient(
+  baseUrlFor: () => Promise<string>,
+): InternalServiceClients['review'] {
+  return {
+    detectConflicts: async (body) =>
+      callInternalService(`${await baseUrlFor()}/internal/conflicts/detect`, 'POST', body),
+    approve: async (body) =>
+      callInternalService(`${await baseUrlFor()}/internal/review/approve`, 'POST', body),
+    reject: async (body) =>
+      callInternalService(`${await baseUrlFor()}/internal/review/reject`, 'POST', body),
+    applyMaintenance: async (body) =>
+      callInternalService(`${await baseUrlFor()}/internal/review/maintenance`, 'POST', body),
+    applyDecay: async (body) =>
+      callInternalService(`${await baseUrlFor()}/internal/review/decay`, 'POST', body),
+    reviewArtifact: async (body) =>
+      callInternalService(`${await baseUrlFor()}/internal/review/artifact`, 'POST', body),
+    submitFeedback: async (body, options) =>
+      callInternalService(
+        `${await baseUrlFor()}/internal/feedback`,
+        'POST',
+        body,
+        undefined,
+        options,
+      ),
+  };
+}
+
+/**
  * Create HTTP clients for all internal services.
  *
  * When a `resolver` is provided, each call dynamically resolves the
@@ -440,6 +476,33 @@ export function createInternalServiceClients(
   const baseUrl = async (serviceName: string, staticUrl: string): Promise<string> => {
     if (!resolver) return staticUrl;
     return resolver.resolveServiceUrl(serviceName);
+  };
+
+  // review / governanceReview share the same seven review methods; the only
+  // difference is the static URL key the base URL is taken from.
+  const reviewClient = createGovernanceReviewClient(() =>
+    baseUrl('governance-review', urls.review),
+  );
+  const governanceReviewClient: InternalServiceClients['governanceReview'] = {
+    ...createGovernanceReviewClient(() => baseUrl('governance-review', urls.governanceReview)),
+    getRetrievalProjection: async (body) =>
+      callInternalService(
+        `${await baseUrl('governance-review', urls.governanceReview)}/internal/governance-review/retrieval-projection`,
+        'POST',
+        body,
+      ),
+    reactivateRemediation: async (body) =>
+      callInternalService(
+        `${await baseUrl('governance-review', urls.governanceReview)}/internal/feedback/async/remediation-reactivation`,
+        'POST',
+        body,
+      ),
+    exportBadcaseDraft: async (body) =>
+      callInternalService(
+        `${await baseUrl('governance-review', urls.governanceReview)}/internal/feedback/async/badcase-export-draft`,
+        'POST',
+        body,
+      ),
   };
 
   return {
@@ -759,116 +822,8 @@ export function createInternalServiceClients(
           options,
         ),
     },
-    review: {
-      detectConflicts: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/conflicts/detect`,
-          'POST',
-          body,
-        ),
-      approve: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/review/approve`,
-          'POST',
-          body,
-        ),
-      reject: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/review/reject`,
-          'POST',
-          body,
-        ),
-      applyMaintenance: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/review/maintenance`,
-          'POST',
-          body,
-        ),
-      applyDecay: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/review/decay`,
-          'POST',
-          body,
-        ),
-      reviewArtifact: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/review/artifact`,
-          'POST',
-          body,
-        ),
-      submitFeedback: async (body, options) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.review)}/internal/feedback`,
-          'POST',
-          body,
-          undefined,
-          options,
-        ),
-    },
-    governanceReview: {
-      detectConflicts: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.governanceReview)}/internal/conflicts/detect`,
-          'POST',
-          body,
-        ),
-      approve: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.governanceReview)}/internal/review/approve`,
-          'POST',
-          body,
-        ),
-      reject: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.governanceReview)}/internal/review/reject`,
-          'POST',
-          body,
-        ),
-      applyMaintenance: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.governanceReview)}/internal/review/maintenance`,
-          'POST',
-          body,
-        ),
-      applyDecay: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.governanceReview)}/internal/review/decay`,
-          'POST',
-          body,
-        ),
-      reviewArtifact: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.governanceReview)}/internal/review/artifact`,
-          'POST',
-          body,
-        ),
-      submitFeedback: async (body, options) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.governanceReview)}/internal/feedback`,
-          'POST',
-          body,
-          undefined,
-          options,
-        ),
-      getRetrievalProjection: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.governanceReview)}/internal/governance-review/retrieval-projection`,
-          'POST',
-          body,
-        ),
-      reactivateRemediation: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.governanceReview)}/internal/feedback/async/remediation-reactivation`,
-          'POST',
-          body,
-        ),
-      exportBadcaseDraft: async (body) =>
-        callInternalService(
-          `${await baseUrl('governance-review', urls.governanceReview)}/internal/feedback/async/badcase-export-draft`,
-          'POST',
-          body,
-        ),
-    },
+    review: reviewClient,
+    governanceReview: governanceReviewClient,
     feedbackAdmin: {
       list: async (query, options) =>
         callInternalService(

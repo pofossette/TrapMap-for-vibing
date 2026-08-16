@@ -368,6 +368,49 @@ describe('createInternalServiceClients', () => {
     });
   });
 
+  it('routes the shared review methods to their per-key base URLs (review vs governanceReview)', async () => {
+    const calls: string[] = [];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      calls.push(String(input));
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    const clients = createInternalServiceClients({
+      gateway: 'http://gateway.test',
+      identityAccess: 'http://identity.test',
+      knowledgeRead: 'http://read.test',
+      knowledgeWrite: 'http://write.test',
+      candidateIngestion: 'http://candidate.test',
+      review: 'http://review.test',
+      governanceReview: 'http://governance.test',
+      jobRuntime: 'http://job.test',
+      cronScheduler: 'http://cron.test',
+    });
+
+    await clients.review.approve({ entryId: 'entry-1', actorId: 'user-1' });
+    await clients.governanceReview.approve({ entryId: 'entry-1', actorId: 'user-1' });
+    await clients.governanceReview.detectConflicts({ entryId: 'entry-1' });
+    await clients.review.submitFeedback({
+      entryId: 'entry-1',
+      problemType: 'unclear',
+      description: 'needs context',
+      actorId: 'user-1',
+    });
+
+    // The merged implementation keeps the URL-key separation intact:
+    // review → urls.review, governanceReview → urls.governanceReview.
+    expect(calls).toEqual([
+      'http://review.test/internal/review/approve',
+      'http://governance.test/internal/review/approve',
+      'http://governance.test/internal/conflicts/detect',
+      'http://review.test/internal/feedback',
+    ]);
+  });
+
   it('maps aborted internal calls to timeout responses', async () => {
     globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const signal = init?.signal as AbortSignal | undefined;
