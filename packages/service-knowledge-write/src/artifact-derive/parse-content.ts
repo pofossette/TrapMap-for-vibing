@@ -2,19 +2,27 @@
  * Markdown content parsing helpers for derivation.
  */
 
-import { parseSkillMarkdown } from '@trapmap/lib';
+import { parseMarkdownFrontmatter, parseSkillMarkdown } from '@trapmap/lib';
 
 /**
  * Extract frontmatter metadata from SKILL.md content.
  *
  * @param content - SKILL.md content with optional frontmatter
- * @returns Extracted title and labels
+ * @returns Extracted title, labels, and optional semver version
  */
-export function parseFrontmatter(content: string): { title: string | null; labels: string[] } {
+export function parseFrontmatter(content: string): {
+  title: string | null;
+  labels: string[];
+  version: string | null;
+} {
   const metadata = parseSkillMarkdown(content);
+  const raw = parseMarkdownFrontmatter(content);
+  const version =
+    typeof raw.data.version === 'string' ? raw.data.version.trim() : null;
   return {
     title: metadata.title,
     labels: metadata.labels,
+    version: version && version.length > 0 ? version : null,
   };
 }
 

@@ -61,7 +61,7 @@ export async function deriveFromPayloads(
   const skillMdPayload = payloads.find((p) => p.path === 'SKILL.md');
   const frontmatter = skillMdPayload
     ? parseFrontmatter(skillMdPayload.content)
-    : { title: null, labels: [] };
+    : { title: null, labels: [], version: null };
 
   // Use provided labels merged with frontmatter labels
   const allLabels = [...new Set([...context.labels, ...frontmatter.labels])];

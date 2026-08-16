@@ -179,6 +179,76 @@ describe('artifacts schema fixes', () => {
     });
   });
 
+  // Task 6: skillArtifactRevisionSchema — optional semver version field
+  describe('skillArtifactRevisionSchema version field', () => {
+    const baseRevision = {
+      revision: 1,
+      sourceHash: validHex64,
+      files: [
+        {
+          path: 'SKILL.md',
+          kind: 'skill-markdown' as const,
+          sha256: validHex64,
+          sizeBytes: 100,
+          mediaType: 'text/markdown',
+          source: 'SKILL.md' as const,
+          includeInDerivation: true,
+          activationOnly: false,
+        },
+      ],
+      submittedAt: '2025-01-01T00:00:00.000Z',
+      submittedBy: { id: 'u1', handle: 'alice', securityLevel: 0 },
+      derived: null,
+    };
+
+    it('accepts a plain semver version', () => {
+      const result = skillArtifactRevisionSchema.parse({ ...baseRevision, version: '1.0.0' });
+      expect(result.version).toBe('1.0.0');
+    });
+
+    it('accepts multi-digit semver segments', () => {
+      const result = skillArtifactRevisionSchema.parse({ ...baseRevision, version: '10.20.30' });
+      expect(result.version).toBe('10.20.30');
+    });
+
+    it('accepts semver with prerelease and build metadata', () => {
+      const result = skillArtifactRevisionSchema.parse({
+        ...baseRevision,
+        version: '1.2.0-rc.1+build.5',
+      });
+      expect(result.version).toBe('1.2.0-rc.1+build.5');
+    });
+
+    it('omits version when not provided', () => {
+      const result = skillArtifactRevisionSchema.parse(baseRevision);
+      expect(result.version).toBeUndefined();
+    });
+
+    it('rejects semver with leading zeros', () => {
+      expect(() =>
+        skillArtifactRevisionSchema.parse({ ...baseRevision, version: '1.02.0' }),
+      ).toThrow();
+    });
+
+    it('rejects semver missing the patch segment', () => {
+      expect(() =>
+        skillArtifactRevisionSchema.parse({ ...baseRevision, version: '1.0' }),
+      ).toThrow();
+    });
+
+    it('rejects a version prefixed with v', () => {
+      expect(() =>
+        skillArtifactRevisionSchema.parse({ ...baseRevision, version: 'v1.0.0' }),
+      ).toThrow();
+    });
+
+    it('rejects non-string version values', () => {
+      expect(() =>
+        skillArtifactRevisionSchema.parse({ ...baseRevision, version: 42 }),
+      ).toThrow();
+    });
+  });
+
   // Bug 5: clientManifestReferenceSchema — .strict() rejects extra keys
   describe('clientManifestReferenceSchema strict mode', () => {
     const base = {

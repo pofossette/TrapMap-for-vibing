@@ -275,6 +275,13 @@ export const skillArtifactRevisionSchema = z
     revision: z.number().int().min(1),
     /** SHA-256 hash of all source files for this revision */
     sourceHash: sha256HexSchema,
+    /** Semver version declared in SKILL.md frontmatter (absent for unversioned skills) */
+    version: z
+      .string()
+      .regex(
+        /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/,
+      )
+      .optional(),
     /** All files in the skill directory at this revision */
     files: z.array(skillArtifactFileSchema).min(1),
     /** When this revision was submitted */
