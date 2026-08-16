@@ -4,9 +4,9 @@ import {
   computeScore,
   createGraphRecallTrace,
   inferChannelsFromMerged,
-  mergeCandidatesWithGraph,
   versionMatchMultiplier,
 } from '@trapmap/backend-core';
+import type { ChannelMergePort } from '@trapmap/backend-core';
 import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 import { artifactVersionOf, type MergedCandidate, type ScoredEntry } from './retrieval-types.js';
@@ -16,6 +16,7 @@ import type {
   ResolvedAuthContext,
   SkillShareerServices,
 } from './context.js';
+import { createRuleChannelMerge } from './channel-merge/rule-channel-merge.js';
 import { getRetrievalInfra } from './retrieval-infra.js';
 import { keywordRecall, normalizeQuery } from './retrieval-keyword.js';
 import { getQueryEmbedding, optimizedSemanticRecall } from './retrieval-semantic.js';
@@ -403,7 +404,14 @@ export async function graphAssistedHybridRecall(
     );
 
   const hybridMerged = infra!.scoring.mergeCandidates(semanticCandidates, keywordCandidates);
-  const finalMerged = mergeCandidatesWithGraph(hybridMerged, governedGraphCandidates);
+  // D8 channel-merge call-site migration: the graph fusion goes through the
+  // judgment port (rule default = mergeCandidatesWithGraph, behavior-preserving).
+  const channelMerge: ChannelMergePort<KnowledgeRecord> =
+    services?.channelMerge ?? createRuleChannelMerge();
+  const finalMerged = await channelMerge.merge({
+    hybridCandidates: hybridMerged,
+    graphCandidates: governedGraphCandidates,
+  });
 
   const reranked = rerankRecallResults(infra!, finalMerged, queryTokens, parsed);
   return {

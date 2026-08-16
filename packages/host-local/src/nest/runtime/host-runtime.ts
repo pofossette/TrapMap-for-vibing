@@ -14,6 +14,7 @@ import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 import {
   createKnowledgeReadOwnerRetrievalServices,
   createKnowledgeReadRetrievalQuery,
+  createRuleChannelMerge,
   createRuleIntentRecognition,
 } from '@trapmap/service-knowledge-read';
 
@@ -61,6 +62,10 @@ function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
     // the judgment port (rule default = pre-contract routing semantics); an
     // llm/hybrid variant can replace it here without touching the pipeline.
     intentRecognition: createRuleIntentRecognition(),
+    // D8 channel-merge call-site migration: the retrieval seam consumes the
+    // judgment port (rule default = mergeCandidatesWithGraph); a replacement
+    // strategy can be wired here without touching the pipeline.
+    channelMerge: createRuleChannelMerge(),
   });
 
   return createKnowledgeReadRetrievalQuery({

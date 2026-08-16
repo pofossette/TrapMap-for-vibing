@@ -11,7 +11,7 @@ import type {
   RetrievalQuery,
   RetrievalReadModelRepositories,
 } from '@trapmap/contracts';
-import type { IntentRecognitionPort } from '@trapmap/backend-core';
+import type { ChannelMergePort, IntentRecognitionPort } from '@trapmap/backend-core';
 import type { Pool } from 'pg';
 
 import type { RagLogConfig } from './rag-log.js';
@@ -261,4 +261,6 @@ export interface SkillShareerServices {
   graphQuery: KnowledgeReadGraphQueryRuntimeState;
   /** D8 intent-recognition judgment port (rule default when absent). */
   intentRecognition?: IntentRecognitionPort;
+  /** D8 channel-merge judgment port (rule default when absent). */
+  channelMerge?: ChannelMergePort<KnowledgeRecord>;
 }

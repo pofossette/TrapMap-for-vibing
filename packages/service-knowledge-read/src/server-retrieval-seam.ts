@@ -54,6 +54,8 @@ export interface KnowledgeReadOwnerRetrievalServicesOptions {
   retrievalInfra?: KnowledgeReadRetrievalInfra;
   /** D8 intent-recognition judgment port (rule default when absent). */
   intentRecognition?: SearchKnowledgeServices['intentRecognition'];
+  /** D8 channel-merge judgment port (rule default when absent). */
+  channelMerge?: SearchKnowledgeServices['channelMerge'];
 }
 
 export function createKnowledgeReadOwnerRetrievalServices(
@@ -82,6 +84,7 @@ export function createKnowledgeReadOwnerRetrievalServices(
     ...(options.graphQueryBackend ? { graphQueryBackend: options.graphQueryBackend } : {}),
     ...(options.retrievalInfra ? { retrievalInfra: options.retrievalInfra } : {}),
     ...(options.intentRecognition ? { intentRecognition: options.intentRecognition } : {}),
+    ...(options.channelMerge ? { channelMerge: options.channelMerge } : {}),
   };
 }
 
