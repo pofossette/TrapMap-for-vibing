@@ -272,6 +272,16 @@
 - [ ] **后续落点：** 按设计 D6 四阶段执行；每阶段独立 closeout（deployment-smoke / runtime-foundations / distributed-closeout / observability-closeout 门禁）；完成后回写 ARCHITECTURE/BOUNDARIES/DEPLOYMENT/TESTING/REPO_STRUCTURE/SYSTEM_TRUTH_SOURCES。
 - [ ] **要求的文档与测试：** `packages/assembly` 单测（manifest 解析/inject 无环/dispose 顺序）、新增 `check:profiles` 守卫、`pnpm test:deployment-smoke`、`pnpm test:runtime-foundations`、`pnpm test:distributed-closeout`、`pnpm check:fallow`（+assembly zone）、`pnpm check:docs`、`pnpm check:structure`。
 
+
+### 判断类节点（D8）消费方调用点迁移（2026-08-16 登记，推荐候选主线）
+
+- [ ] **来源：** D8 收编主线 closeout 后续落点（[judgment-node-contracts-d8-archived.md](../archived/archived-plans/judgment-node-contracts-d8-archived.md) Closeout 记录 + assembly 条目登记）。设计 D8 判定标准「被至少一个执行体消费」：6 个判断类节点契约三件套、rule 实现与双宿主装配挂载已就绪，但 service 包内嵌调用仍走旧直连路径（`searchKnowledge` 的 `infra.routing.selectStrategy`/`dispatchByMode`、`retrieval-recall-coordinator` 的 `mergeCandidatesWithGraph` 调用点、`processCandidate` 的 `createCandidateDuplicateDetector`、host-local governance-composition 的 `createGovernanceConflictWorkflow`），节点 port 尚无生产消费方。
+- [ ] **影响：** 节点可插拔（rule→llm/hybrid）未真正生效；旧路径与契约实现并存形成双轨，判断逻辑实际仍由内嵌代码承担。
+- [ ] **当前边界：** 不一次性全迁（设计 D8「按 D8 逐个收编，每个收编独立评审」）；行为不变硬约束（默认实现=现状逻辑，diff 核验）；artifact-derivation 与 label-alignment 无生产调用点，随 llm 变体收编评审。
+- [ ] **进入条件：** D8 主线归档完成（已满足）；经根 `plan.md` 激活（替换当前路线图占位并同步 docs/todos/README.md）或用户显式要求开始实施。
+- [ ] **后续落点：** 逐节点迁移：① intent-recognition（`searchKnowledge` 的 selectStrategy/dispatchByMode → `intentRecognition` port）；② channel-merge（`mergeCandidatesWithGraph` 调用点 → `channelMerge` port）；③ dedup-strategy（`processCandidate` → `dedupStrategy` port）；④ conflict-trigger（host-local/host-distributed governance-composition → `conflictTrigger` port）；⑤ artifact-derivation / label-alignment（随 llm 变体生产收编评审）。llm/hybrid 变体（intent llm / dedup llm / artifact llm / channel-merge 替换策略）搭此主线逐个实现。每节点独立提交：行为不变 diff 核验 + 受影响包测试 + `pnpm eval:smoke` + `pnpm test:deployment-smoke`。
+- [ ] **要求的文档与测试：** 受影响包 focused tests、`pnpm typecheck`、`pnpm eval:smoke`、`pnpm test:deployment-smoke`、`pnpm exec fallow audit --base main`；回写 `docs/architecture/BOUNDARIES.md`（判断类节点落点）与相关 service 包 README。
+
 ## 审核检查表
 
 - [ ] 每次新问题录入都标注来源、影响、分类、证据和进入条件。
