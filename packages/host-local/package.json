@@ -13,8 +13,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "dev": "tsx watch --tsconfig tsconfig.json src/index.ts",
-    "start": "node dist/index.js",
+    "dev": "pnpm --filter @trapmap/app-light dev",
+    "start": "pnpm --filter @trapmap/app-light start",
     "test": "pnpm -C ../.. exec vitest run --project host-local --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
