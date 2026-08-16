@@ -13,6 +13,7 @@ import type {
 } from '@trapmap/contracts';
 import { validateRelativePath } from '@trapmap/contracts';
 import { prefixedId } from '@trapmap/lib';
+import { parseFrontmatter } from './artifact-derive/parse-content.js';
 
 export interface ArtifactWritePort {
   nextId(): Promise<string>;
@@ -144,6 +145,20 @@ function createImportedArtifact(
     handle: actor.handle,
     securityLevel: actor.securityLevel,
   };
+  const skillMdPayload = bundle.files.find((file) => file.path === 'SKILL.md');
+  const frontmatterVersion = skillMdPayload
+    ? parseFrontmatter(skillMdPayload.content).version
+    : null;
+  const firstRevision: SkillArtifactRevision = {
+    revision: 1,
+    sourceHash,
+    ...(frontmatterVersion ? { version: frontmatterVersion } : {}),
+    files,
+    scriptDescriptors: bundle.scriptDescriptors,
+    derived: null,
+    submittedAt: createdAt,
+    submittedBy: owner,
+  };
   const artifact: SkillArtifact = {
     id: artifactId,
     teamId: actor.teamId,
@@ -155,17 +170,7 @@ function createImportedArtifact(
     lifecycleState: 'submitted',
     owner,
     latestRevision: 1,
-    history: [
-      {
-        revision: 1,
-        sourceHash,
-        files,
-        scriptDescriptors: bundle.scriptDescriptors,
-        derived: null,
-        submittedAt: createdAt,
-        submittedBy: owner,
-      },
-    ],
+    history: [firstRevision],
     lifecycleHistory: [
       {
         id: id('artifact_event'),
@@ -263,6 +268,7 @@ function mapRevision(row: Record<string, unknown>): SkillArtifactRevision {
   return {
     revision: Number(row.revision_no),
     sourceHash: String(row.source_hash),
+    ...(typeof row.version === 'string' ? { version: row.version } : {}),
     files: (row.files as SkillArtifactRevision['files']) ?? [],
     scriptDescriptors: (row.script_descriptors as SkillArtifactRevision['scriptDescriptors']) ?? [],
     derived: (row.derived as SkillArtifactRevision['derived']) ?? null,
@@ -512,12 +518,13 @@ async function insertArtifactRows(
   );
   for (const revision of revisions) {
     await client.query(
-      'INSERT INTO artifact_revisions (id, artifact_id, revision_no, source_hash, files, script_descriptors, derived, submitted_at, submitted_by_user_id, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
+      'INSERT INTO artifact_revisions (id, artifact_id, revision_no, source_hash, version, files, script_descriptors, derived, submitted_at, submitted_by_user_id, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
       [
         `${artifact.id}_rev${revision.revision}`,
         artifact.id,
         revision.revision,
         revision.sourceHash,
+        revision.version ?? null,
         JSON.stringify(revision.files),
         JSON.stringify(revision.scriptDescriptors),
         JSON.stringify(revision.derived ?? null),
@@ -621,12 +628,13 @@ export function createArtifactWritePort(pool: TransactionalPool): ArtifactWriteP
     },
     async appendRevision(artifactId, revision) {
       await pool.query(
-        'INSERT INTO artifact_revisions (id, artifact_id, revision_no, source_hash, files, script_descriptors, derived, submitted_at, submitted_by_user_id, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())',
+        'INSERT INTO artifact_revisions (id, artifact_id, revision_no, source_hash, version, files, script_descriptors, derived, submitted_at, submitted_by_user_id, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())',
         [
           `${artifactId}_rev${revision.revision}`,
           artifactId,
           revision.revision,
           revision.sourceHash,
+          revision.version ?? null,
           JSON.stringify(revision.files),
           JSON.stringify(revision.scriptDescriptors),
           JSON.stringify(revision.derived ?? null),
