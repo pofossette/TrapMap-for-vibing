@@ -15,6 +15,7 @@ export {
   type CandidateLineageRepository,
   type CandidateResolutionOutcomeRepository,
 } from './pg-ports.js';
+export { createRuleDedupStrategy } from './dedup-strategy/rule-dedup-strategy.js';
 export {
   buildNormalizedDuplicateInput,
   createCandidateDuplicateDetector,
