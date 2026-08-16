@@ -52,6 +52,8 @@ export interface KnowledgeReadOwnerRetrievalServicesOptions {
   graphQuery: KnowledgeReadGraphQueryRuntimeState;
   graphQueryBackend?: KnowledgeReadGraphQueryBackend;
   retrievalInfra?: KnowledgeReadRetrievalInfra;
+  /** D8 intent-recognition judgment port (rule default when absent). */
+  intentRecognition?: SearchKnowledgeServices['intentRecognition'];
 }
 
 export function createKnowledgeReadOwnerRetrievalServices(
@@ -79,6 +81,7 @@ export function createKnowledgeReadOwnerRetrievalServices(
     graphQuery: options.graphQuery,
     ...(options.graphQueryBackend ? { graphQueryBackend: options.graphQueryBackend } : {}),
     ...(options.retrievalInfra ? { retrievalInfra: options.retrievalInfra } : {}),
+    ...(options.intentRecognition ? { intentRecognition: options.intentRecognition } : {}),
   };
 }
 

@@ -1,4 +1,5 @@
 import { InvocationError } from '@trapmap/backend-core';
+import type { IntentRecognitionPort } from '@trapmap/backend-core';
 import {
   type RetrievalQuery,
   type RetrievalResponse,
@@ -24,6 +25,7 @@ import {
 import { buildCitations } from './response-citations.js';
 import { generateRefinement } from './response-refinement.js';
 import { buildSummary } from './response-summary.js';
+import { createRuleIntentRecognition } from './intent-recognition/rule-intent-recognition.js';
 import { getRetrievalInfra } from './retrieval-infra.js';
 import { dispatchByMode, inferChannelsFromMerged } from './retrieval-recall-coordinator.js';
 import { buildEmbeddingText } from './retrieval-semantic.js';
@@ -40,6 +42,15 @@ function buildRoutingTrace(
     ...infra.routing.toRoutingTrace(routingDecision),
     ...(recallTrace?.graph ? { graphRetrieval: recallTrace.graph } : {}),
   } as RoutingTrace;
+}
+
+/**
+ * Resolve the D8 intent-recognition judgment port (design D8 call-site
+ * migration): the assembly/host-provided port when wired, else the rule
+ * implementation (pre-contract routing semantics, behavior-preserving).
+ */
+function getIntentRecognition(services: SkillShareerServices): IntentRecognitionPort {
+  return services.intentRecognition ?? createRuleIntentRecognition();
 }
 
 interface TimedStepOptions {
@@ -118,6 +129,7 @@ export async function searchKnowledge(
   const queryId = generateQueryId();
   const steps: PipelineStep[] = [];
   const infra = getRetrievalInfra(services);
+  const intentRecognition = getIntentRecognition(services);
 
   try {
     const parsed = await timedStep(
@@ -158,7 +170,13 @@ export async function searchKnowledge(
     );
 
     if (boundaryFiltered.length === 0) {
-      const emptyRouting = infra.routing.selectStrategy(parsed.mode, parsed.seed);
+      const emptyDecision = await intentRecognition.recognize({
+        query: parsed.seed,
+        requestedMode: parsed.mode,
+        knownModes: services.strategyRegistry.all().map((strategy) => strategy.version),
+        seed: parsed.seed,
+      });
+      const emptyRouting = infra.routing.selectStrategy(emptyDecision.mode, parsed.seed);
       const routingTrace = buildRoutingTrace(services, emptyRouting);
       void logRagRetrieval(
         services.config.ragLog,
@@ -184,9 +202,19 @@ export async function searchKnowledge(
       };
     }
 
+    let recognizedMode: string | undefined;
     const routingDecision = await timedStep(
       'routing',
-      () => Promise.resolve(infra.routing.selectStrategy(parsed.mode, parsed.seed)),
+      async () => {
+        const recognized = await intentRecognition.recognize({
+          query: parsed.seed,
+          requestedMode: parsed.mode,
+          knownModes: services.strategyRegistry.all().map((strategy) => strategy.version),
+          seed: parsed.seed,
+        });
+        recognizedMode = recognized.mode;
+        return infra.routing.selectStrategy(recognized.mode, parsed.seed);
+      },
       steps,
     );
 
@@ -194,7 +222,7 @@ export async function searchKnowledge(
       'recall',
       () =>
         dispatchByMode(
-          parsed.mode,
+          recognizedMode ?? parsed.mode,
           parsed.seed,
           boundaryFiltered,
           parsed,
@@ -304,6 +332,9 @@ export async function searchKnowledge(
       routingTrace: buildRoutingTrace(services, routingDecision, trace),
     };
   } catch (error) {
+    // Failure-trace path: render the routing trace for the RAG log without
+    // invoking the intent port — the raw mode may be schema-invalid and the
+    // failure logging must not depend on judgment.
     const failRouting = infra.routing.selectStrategy(query.mode ?? 'semantic', query.seed ?? '');
     void logRagRetrieval(
       services.config.ragLog,

@@ -11,6 +11,7 @@ import type {
   RetrievalQuery,
   RetrievalReadModelRepositories,
 } from '@trapmap/contracts';
+import type { IntentRecognitionPort } from '@trapmap/backend-core';
 import type { Pool } from 'pg';
 
 import type { RagLogConfig } from './rag-log.js';
@@ -258,4 +259,6 @@ export interface SkillShareerServices {
   knowledgeReadSupportInfra?: KnowledgeReadSupportInfra;
   graphQueryBackend?: KnowledgeReadGraphQueryBackend;
   graphQuery: KnowledgeReadGraphQueryRuntimeState;
+  /** D8 intent-recognition judgment port (rule default when absent). */
+  intentRecognition?: IntentRecognitionPort;
 }

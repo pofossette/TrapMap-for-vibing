@@ -8,7 +8,7 @@
  * semantics, and snippet/detail mapping), which mirror the monolith pipeline.
  */
 import type { Pool } from 'pg';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   createKnowledgeReadChannelRegistry,
@@ -139,7 +139,14 @@ function testEntry(id: string, shortcut: string, detail: string, labels: string[
   };
 }
 
-function inMemoryRetrievalServices(entries: object[]) {
+function inMemoryRetrievalServices(
+  entries: object[],
+  extra?: {
+    intentRecognition?: Parameters<
+      typeof createKnowledgeReadOwnerRetrievalServices
+    >[0]['intentRecognition'];
+  },
+) {
   const strategyRegistry = createKnowledgeReadStrategyRegistry();
   const channelRegistry = createKnowledgeReadChannelRegistry();
   const graphIndex = createKnowledgeReadGraphIndexRepository(neverPool);
@@ -168,6 +175,7 @@ function inMemoryRetrievalServices(entries: object[]) {
     store: { getPool: () => neverPool },
     graphQuery: { backendKind: 'memory', failOpen: true, mode: 'disabled' },
     graphQueryBackend: createMemoryGraphQueryBackend(graphIndex),
+    ...(extra ?? {}),
   });
 }
 
@@ -230,5 +238,40 @@ describe('createConvergedRetrievalQuery', () => {
         snippet: 'Complete retrieval engine using hash embeddings and reranking for robust recall.',
       }),
     );
+  });
+
+  it('routes mode selection through the injected D8 intentRecognition port', async () => {
+    const recognize = vi.fn(
+      async (input: { requestedMode?: string; knownModes: readonly string[] }) => ({
+        mode: input.requestedMode ?? 'semantic',
+        confidence: 1,
+        reason: 'test-spy',
+      }),
+    );
+    const retrieval = createConvergedRetrievalQuery(
+      neverPool,
+      inMemoryRetrievalServices(
+        [
+          testEntry(
+            'entry-relevant',
+            'Retrieval pipeline semantic match',
+            'Complete retrieval engine using hash embeddings and reranking for robust recall.',
+            ['retrieval', 'engine'],
+          ),
+        ],
+        { intentRecognition: { recognize } },
+      ),
+    );
+
+    const result = await retrieval.search({ query: 'retrieval pipeline', limit: 5 });
+
+    // The seam requests the hybrid mode; the port decides and the pipeline
+    // executes the recognized mode (behavior preserved by the rule default).
+    expect(recognize).toHaveBeenCalledTimes(1);
+    const input = recognize.mock.calls[0]![0];
+    expect(input.requestedMode).toBe('hybrid');
+    expect(input.knownModes).toContain('semantic');
+    expect(input.knownModes).toContain('graph-assisted');
+    expect(result.results[0]?.entryId).toBe('entry-relevant');
   });
 });

@@ -14,6 +14,7 @@ import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 import {
   createKnowledgeReadOwnerRetrievalServices,
   createKnowledgeReadRetrievalQuery,
+  createRuleIntentRecognition,
 } from '@trapmap/service-knowledge-read';
 
 import { loadHostLocalConfig } from '../config/index.js';
@@ -56,6 +57,10 @@ function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
     store: services.store,
     graphQuery: services.graphQuery,
     graphQueryBackend: services.graphQueryBackend,
+    // D8 intent-recognition call-site migration: the retrieval seam consumes
+    // the judgment port (rule default = pre-contract routing semantics); an
+    // llm/hybrid variant can replace it here without touching the pipeline.
+    intentRecognition: createRuleIntentRecognition(),
   });
 
   return createKnowledgeReadRetrievalQuery({
