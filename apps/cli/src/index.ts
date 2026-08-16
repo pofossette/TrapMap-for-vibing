@@ -2,6 +2,7 @@ import { Command } from 'commander';
 
 import { registerAuditCommands } from './commands/audit.js';
 import { registerAuthCommands } from './commands/auth.js';
+import { registerCronCommands } from './commands/cron.js';
 import { registerDecayCommands } from './commands/decay.js';
 import { registerEvidenceCommands } from './commands/evidence.js';
 import { registerFeedbackAdminCommands } from './commands/feedback-admin.js';
@@ -161,5 +162,6 @@ registerFeedbackCommands(program, {
 });
 registerFeedbackAdminCommands(program, { allowManage: visibility.allowFeedbackManage });
 registerPolicyCommands(program, { allowSearch: visibility.allowKnowledgeSearch });
+registerCronCommands(program);
 
 program.parseAsync(process.argv).catch(printError);
