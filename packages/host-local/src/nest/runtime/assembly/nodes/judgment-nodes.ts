@@ -1,3 +1,4 @@
+// fallow-ignore-file code-duplication -- the six judgment node descriptors must be declared inside each host zone (fallow forbids host-to-host imports and the assembly zone cannot import service factories); identical contract declarations across hosts are the sanctioned duplication, see host-distributed judgment-nodes
 /**
  * Host-local judgment-node descriptors (design D8, D2 mapping).
  *

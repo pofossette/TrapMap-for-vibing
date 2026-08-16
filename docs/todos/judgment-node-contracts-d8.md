@@ -44,41 +44,41 @@ assembly 内核（Phase 1）已具备契约校验能力：`defineNode` 支持 `i
 
 ### T1 契约层
 
-- [ ] `packages/backend-core/src/ports/intent-ports.ts`：`IntentRecognitionInput`（query / requestedMode / knownModes / seed）、`IntentRecognitionResult`（mode / confidence 0..1 / reason / trace?）、`IntentRecognitionPort.recognize(input) → Promise<Result>`
-- [ ] `packages/backend-core/src/ports/dedup-ports.ts`：`DedupStrategyInput`（candidate / normalized / corpus）、`DedupStrategyResult`（duplicateCase / analysisSnapshot / strategy）、`DedupStrategyPort.detect(input) → Promise<Result>`（复用 contracts `CandidateSubmission`、backend-core `NormalizedDuplicateInput`/`DuplicateCase`/`AnalysisSnapshot`）
-- [ ] `packages/backend-core/src/ports/conflict-ports.ts`：`ConflictTriggerInput`（entryId）、`ConflictTriggerResult`（detectedCount / triggered / reason?）、`ConflictTriggerPort.detectConflicts(input) → Promise<Result>`
-- [ ] `packages/backend-core/src/ports/artifact-derivation-ports.ts`：`ArtifactDerivationInput`（payloads / context）、`ArtifactDerivationPort.derive(input) → Promise<DerivedArtifactOutputs>`
-- [ ] `packages/backend-core/src/ports/label-alignment-ports.ts`：`LabelAlignmentPort.align(input) → Promise<LabelAlignmentResult>`（复用 contracts `LabelAlignmentInput`/`LabelAlignmentDecision`/`LabelAlignmentCandidate`）
-- [ ] `packages/backend-core/src/ports/channel-merge-ports.ts`：`ChannelMergeInput<E>`（hybridCandidates / graphCandidates）、`ChannelMergePort.merge(input) → Promise<MergedCandidateLike<E>[]>`（复用 backend-core ranking 类型）
-- [ ] `packages/contracts/src/domain/judgment.ts`：`judgmentModeSchema`（rule/llm/hybrid）+ 6 个节点 config schema（各含 `mode` 默认 `'rule'` + 节点专属字段）+ `index.ts` 聚合导出
-- [ ] `packages/contracts/src/domain/judgment.test.ts`：config schema 固定样例解析断言
-- [ ] `packages/backend-core/src/ports/judgment-ports.test.ts`：端口接口结构 + 固定样例形状断言（类型层编译即校验）
-- [ ] 共享断言集：`packages/backend-core/src/testing/judgment-fixtures.ts`（每个节点固定输入样例 + 期望输出约束，rule/llm/hybrid 多实现共享）
+- [x] `packages/backend-core/src/ports/intent-ports.ts`：`IntentRecognitionInput`（query / requestedMode / knownModes / seed）、`IntentRecognitionResult`（mode / confidence 0..1 / reason / trace?）、`IntentRecognitionPort.recognize(input) → Promise<Result>`
+- [x] `packages/backend-core/src/ports/dedup-ports.ts`：`DedupStrategyInput`（candidate / normalized / corpus）、`DedupStrategyResult`（duplicateCase / analysisSnapshot / strategy）、`DedupStrategyPort.detect(input) → Promise<Result>`（复用 contracts `CandidateSubmission`、backend-core `NormalizedDuplicateInput`/`DuplicateCase`/`AnalysisSnapshot`）
+- [x] `packages/backend-core/src/ports/conflict-ports.ts`：`ConflictTriggerInput`（entryId）、`ConflictTriggerResult`（detectedCount / triggered / reason?）、`ConflictTriggerPort.detectConflicts(input) → Promise<Result>`
+- [x] `packages/backend-core/src/ports/artifact-derivation-ports.ts`：`ArtifactDerivationInput`（payloads / context）、`ArtifactDerivationPort.derive(input) → Promise<DerivedArtifactOutputs>`
+- [x] `packages/backend-core/src/ports/label-alignment-ports.ts`：`LabelAlignmentPort.align(input) → Promise<LabelAlignmentResult>`（复用 contracts `LabelAlignmentInput`/`LabelAlignmentDecision`/`LabelAlignmentCandidate`）
+- [x] `packages/backend-core/src/ports/channel-merge-ports.ts`：`ChannelMergeInput<E>`（hybridCandidates / graphCandidates）、`ChannelMergePort.merge(input) → Promise<MergedCandidateLike<E>[]>`（复用 backend-core ranking 类型）
+- [x] `packages/contracts/src/domain/judgment.ts`：`judgmentModeSchema`（rule/llm/hybrid）+ 6 个节点 config schema（各含 `mode` 默认 `'rule'` + 节点专属字段）+ `index.ts` 聚合导出
+- [x] `packages/contracts/src/domain/judgment.test.ts`：config schema 固定样例解析断言
+- [x] `packages/backend-core/src/ports/judgment-ports.test.ts`：端口接口结构 + 固定样例形状断言（类型层编译即校验）
+- [x] 共享断言集：`packages/backend-core/src/testing/judgment-fixtures.ts`（每个节点固定输入样例 + 期望输出约束，rule/llm/hybrid 多实现共享）
 
 ### T2 实现层（rule 默认 = 现状逻辑，行为不变）
 
-- [ ] `service-knowledge-read/src/intent-recognition/rule-intent-recognition.ts`：`createRuleIntentRecognition()` → `IntentRecognitionPort`；recognize = 现状 `selectStrategy`/`dispatchByMode` 语义（requestedMode 直通 + knownModes 校验 + 默认 semantic）
-- [ ] `service-candidate-ingestion/src/dedup-strategy/rule-dedup-strategy.ts`：`createRuleDedupStrategy({ now, createId })` → `DedupStrategyPort`；detect = 现状 `createCandidateDuplicateDetector`（backend-core）
-- [ ] `service-governance-review/src/conflict-trigger/rule-conflict-trigger.ts`：`createRuleConflictTrigger(deps)` → `ConflictTriggerPort`；detectConflicts = 现状 `createGovernanceConflictWorkflow` 语义（rule overlap + 可选 chat judge）
-- [ ] `service-knowledge-write/src/artifact-derivation/rule-artifact-derivation.ts`：`createRuleArtifactDerivation()` → `ArtifactDerivationPort`；derive = 现状 `deriveFromPayloads`（移除 @eval-only 标记并包导出）
-- [ ] `service-knowledge-write/src/label-alignment/rule-label-alignment.ts`：`createRuleLabelAlignment()` → `LabelAlignmentPort`；规则实现（精确候选 → existing / 无候选 → new / 否则 unsure）
-- [ ] `service-knowledge-write/src/label-alignment/llm-label-alignment.ts`：`createLlmLabelAlignment({ chat })` → `LabelAlignmentPort`；复用现有 `alignLabel` LLM 判定（行为不变）
-- [ ] `service-knowledge-read/src/channel-merge/rule-channel-merge.ts`：`createRuleChannelMerge()` → `ChannelMergePort`；merge = 现状 `mergeCandidatesWithGraph`（backend-core）
-- [ ] 各实现单测：固定样例经共享断言集（judgment-fixtures）断言合法结果
+- [x] `service-knowledge-read/src/intent-recognition/rule-intent-recognition.ts`：`createRuleIntentRecognition()` → `IntentRecognitionPort`；recognize = 现状 `selectStrategy`/`dispatchByMode` 语义（requestedMode 直通 + knownModes 校验 + 默认 semantic）
+- [x] `service-candidate-ingestion/src/dedup-strategy/rule-dedup-strategy.ts`：`createRuleDedupStrategy({ now, createId })` → `DedupStrategyPort`；detect = 现状 `createCandidateDuplicateDetector`（backend-core）
+- [x] `service-governance-review/src/conflict-trigger/rule-conflict-trigger.ts`：`createRuleConflictTrigger(deps)` → `ConflictTriggerPort`；detectConflicts = 现状 `createGovernanceConflictWorkflow` 语义（rule overlap + 可选 chat judge）
+- [x] `service-knowledge-write/src/artifact-derivation/rule-artifact-derivation.ts`：`createRuleArtifactDerivation()` → `ArtifactDerivationPort`；derive = 现状 `deriveFromPayloads`（移除 @eval-only 标记并包导出）
+- [x] `service-knowledge-write/src/label-alignment/rule-label-alignment.ts`：`createRuleLabelAlignment()` → `LabelAlignmentPort`；规则实现（精确候选 → existing / 无候选 → new / 否则 unsure）
+- [x] `service-knowledge-write/src/label-alignment/llm-label-alignment.ts`：`createLlmLabelAlignment({ chat })` → `LabelAlignmentPort`；复用现有 `alignLabel` LLM 判定（行为不变）
+- [x] `service-knowledge-read/src/channel-merge/rule-channel-merge.ts`：`createRuleChannelMerge()` → `ChannelMergePort`；merge = 现状 `mergeCandidatesWithGraph`（backend-core）
+- [x] 各实现单测：固定样例经共享断言集（judgment-fixtures）断言合法结果
 
 ### T3 装配层
 
-- [ ] host-local `judgment-nodes.ts`：6 个 defineNode（implements + configSchema + topology embedded + provides）
-- [ ] host-local `judgment-contracts.ts`：6 个 ContractDescriptor（id / description / provides / configSchema / verify）
-- [ ] `composePilotProfile` 挂载判断类节点 + `createAssembly({ contracts: judgmentContracts })`
-- [ ] host-distributed `distributed.ts`：对应服务进程挂载判断类节点
-- [ ] 装配测试：节点描述符断言 + `startupChecks` 契约校验集成测试（注册契约 → build() 通过；未知契约 → UNKNOWN_CONTRACT）
+- [x] host-local `judgment-nodes.ts`：6 个 defineNode（implements + configSchema + topology embedded + provides）
+- [x] host-local `judgment-contracts.ts`（最终落点：`packages/assembly/src/contracts/judgment-contracts.ts`，两宿主共享）：6 个 ContractDescriptor（id / description / provides / configSchema / verify）
+- [x] `composePilotProfile` 挂载判断类节点 + `createAssembly({ contracts: judgmentContracts })`
+- [x] host-distributed `distributed.ts`：对应服务进程挂载判断类节点
+- [x] 装配测试：节点描述符断言 + `startupChecks` 契约校验集成测试（注册契约 → build() 通过；未知契约 → UNKNOWN_CONTRACT）
 
 ### T4 文档与门禁 closeout
 
-- [ ] plan.md 激活本主线；docs/todos/README.md 索引同步
+- [x] plan.md 激活本主线；docs/todos/README.md 索引同步
 - [ ] open-debt-and-compromises.md：assembly 条目更新 D8 状态 + 调用点迁移后续落点登记
-- [ ] SYSTEM_TRUTH_SOURCES 术语映射（判断类节点契约落点）；BOUNDARIES 节点契约落点
+- [x] SYSTEM_TRUTH_SOURCES 术语映射（判断类节点契约落点）；BOUNDARIES 节点契约落点
 - [ ] 门禁全绿：typecheck；contracts / backend-core / service-knowledge-read / service-candidate-ingestion / service-governance-review / service-knowledge-write / host-local / assembly 包测试；check:imports / asserts / docs / structure；fallow audit --base main；eval:smoke（涉检索/标签/治理面）
 - [ ] 归档细则（git mv 至 docs/archived/archived-plans/）+ archived README 归档表更新
 

@@ -11,6 +11,7 @@ function labelInput(overrides: Partial<LabelAlignmentInput> = {}): LabelAlignmen
   return { ...sampleLabelInput, ...overrides };
 }
 
+// fallow-ignore-next-line code-duplication -- minimal chat stub shared with labels/llm-align.test.ts; extraction deferred
 function makeMockChat(responses: string[], options: { configured?: boolean } = {}): ChatProvider {
   let callIndex = 0;
   return {
@@ -99,6 +100,7 @@ describe('createLlmLabelAlignment', () => {
   });
 
   it('falls back to unsure when the LLM returns invalid output', async () => {
+    // fallow-ignore-next-line code-duplication -- adjacent llm-fallback assertions share the same stub/assert shape
     const chat = makeMockChat(['not valid json']);
     const port = createLlmLabelAlignment({ chat });
 

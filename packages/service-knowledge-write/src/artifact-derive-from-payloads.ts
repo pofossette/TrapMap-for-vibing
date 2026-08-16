@@ -39,6 +39,7 @@ import type { DerivedArtifactOutputs, PayloadDerivationContext } from './artifac
  * @param context - Derivation context with artifact metadata
  * @returns Derived artifact outputs
  */
+// fallow-ignore-next-line complexity -- pre-existing derivation pipeline (unchanged body); inherent branching over payload shapes
 export async function deriveFromPayloads(
   payloads: ArtifactFilePayloadRecord[],
   context: PayloadDerivationContext,
@@ -174,6 +175,7 @@ export async function deriveFromPayloads(
       ? {
           artifactId: context.artifactId,
           revision: 1,
+          // fallow-ignore-next-line code-duplication -- references/assets manifest blocks mirror the frozen client-manifest contract shape (pre-existing)
           references: referenceFiles
             .sort((a, b) => a.path.localeCompare(b.path))
             .map((p) => ({

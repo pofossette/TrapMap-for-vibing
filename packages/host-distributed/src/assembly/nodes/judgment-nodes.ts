@@ -1,3 +1,4 @@
+// fallow-ignore-file code-duplication -- the six judgment node descriptors must be declared inside each host zone (fallow forbids host-to-host imports and the assembly zone cannot import service factories); identical contract declarations across hosts are the sanctioned duplication, same as the service-nodes precedent
 /**
  * Host-distributed judgment-node descriptors (design D8).
  *
@@ -53,7 +54,7 @@ function requireDatabase(): never {
 }
 
 /** intent-recognition: rule (mode passthrough + known-mode validation). */
-export const intentRecognitionNode: CapabilityNode = defineNode<unknown>({
+const intentRecognitionNode: CapabilityNode = defineNode<unknown>({
   id: 'intent-recognition',
   provides: 'intentRecognition',
   implements: 'intent-recognition',
@@ -66,7 +67,7 @@ export const intentRecognitionNode: CapabilityNode = defineNode<unknown>({
 });
 
 /** channel-merge: rule (mergeCandidatesWithGraph). */
-export const channelMergeNode: CapabilityNode = defineNode<unknown>({
+const channelMergeNode: CapabilityNode = defineNode<unknown>({
   id: 'channel-merge',
   provides: 'channelMerge',
   implements: 'channel-merge',
@@ -79,7 +80,7 @@ export const channelMergeNode: CapabilityNode = defineNode<unknown>({
 });
 
 /** dedup-strategy: rule (Jaccard/fingerprint detector). */
-export const dedupStrategyNode: CapabilityNode = defineNode<unknown>({
+const dedupStrategyNode: CapabilityNode = defineNode<unknown>({
   id: 'dedup-strategy',
   provides: 'dedupStrategy',
   implements: 'dedup-strategy',
@@ -92,7 +93,7 @@ export const dedupStrategyNode: CapabilityNode = defineNode<unknown>({
 });
 
 /** conflict-trigger: rule with distributed read (internal clients) + pg projection. */
-export const conflictTriggerNode: CapabilityNode = defineNode<unknown>({
+const conflictTriggerNode: CapabilityNode = defineNode<unknown>({
   id: 'conflict-trigger',
   provides: 'conflictTrigger',
   implements: 'conflict-trigger',
@@ -116,7 +117,7 @@ export const conflictTriggerNode: CapabilityNode = defineNode<unknown>({
 });
 
 /** artifact-derivation: rule (deriveFromPayloads pipeline). */
-export const artifactDerivationNode: CapabilityNode = defineNode<unknown>({
+const artifactDerivationNode: CapabilityNode = defineNode<unknown>({
   id: 'artifact-derivation',
   provides: 'artifactDerivation',
   implements: 'artifact-derivation',
@@ -129,7 +130,7 @@ export const artifactDerivationNode: CapabilityNode = defineNode<unknown>({
 });
 
 /** label-alignment: rule (exact-match strategy). */
-export const labelAlignmentNode: CapabilityNode = defineNode<unknown>({
+const labelAlignmentNode: CapabilityNode = defineNode<unknown>({
   id: 'label-alignment',
   provides: 'labelAlignment',
   implements: 'label-alignment',
