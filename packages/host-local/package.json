@@ -33,6 +33,7 @@
     "@opentelemetry/sdk-trace-node": "^2.8.0",
     "@opentelemetry/semantic-conventions": "^1.41.1",
     "@trapmap/ai-providers": "workspace:*",
+    "@trapmap/assembly": "workspace:*",
     "@trapmap/backend-core": "workspace:*",
     "@trapmap/contracts": "workspace:*",
     "@trapmap/lib": "workspace:*",

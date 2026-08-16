@@ -1,48 +1,77 @@
 import 'reflect-metadata';
 
-import { NestFactory } from '@nestjs/core';
-import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { createShutdownController } from '@trapmap/assembly';
 
-import { AppModule } from './app.module.js';
-import type { NestBootstrapOptions } from './resolve-listen-options.js';
 import { resolveListenOptions } from './resolve-listen-options.js';
-import { AllExceptionFilter } from './runtime/exception.filter.js';
-import { RequestContextService } from './runtime/request-context.service.js';
+import { createHostLocalRuntime } from './runtime/host-runtime.js';
+import { HTTP_SURFACE_SERVICE } from './runtime/assembly/nodes/nest-transport.js';
+import { localAgentAssembly } from './runtime/assembly/profiles/local-agent.js';
+import { teamMonolithAssembly } from './runtime/assembly/profiles/team-monolith.js';
+
+export interface NestBootstrapOptions {
+  host?: string;
+  port?: number;
+}
 
 export interface NestBootstrapResult {
   app: NestFastifyApplication;
   close: () => Promise<void>;
 }
 
+const DEPLOYMENT_PROFILES = ['local-agent', 'team-monolith'] as const;
+type DeploymentProfile = (typeof DEPLOYMENT_PROFILES)[number];
+
+export interface AssemblyNestBootstrapOptions extends NestBootstrapOptions {
+  /** Selects the pilot profile builder. Defaults to TRAPMAP_DEPLOYMENT_PROFILE or local-agent. */
+  profile?: DeploymentProfile;
+}
+
+const VALID_PROFILES: ReadonlySet<string> = new Set(['local-agent', 'team-monolith']);
+
+function readDeploymentProfile(options: AssemblyNestBootstrapOptions): DeploymentProfile {
+  const explicit = options.profile;
+  if (explicit !== undefined) return explicit;
+  const raw = process.env.TRAPMAP_DEPLOYMENT_PROFILE?.trim();
+  // Fall back to local-agent for any invalid/missing env (apps/light validates earlier).
+  return VALID_PROFILES.has(raw ?? '') ? (raw as DeploymentProfile) : 'local-agent';
+}
+
 /**
- * Bootstrap the Nest host with FastifyAdapter.
+ * Bootstrap the Nest host through the Phase 2 assembly pilot.
  *
- * Frozen facts (Phase 2 boundary freeze):
- * - FastifyAdapter is the fixed HTTP底座
- * - Nest host is the frozen default light mainline (`src/nest/**`)
- * - AppModule registers all six bounded-context modules; default provider
- *   wiring currently uses stubs (see app.module.ts)
+ * The profile assembly (local-agent or team-monolith) boots first; the
+ * nest-transport node builds the Nest Fastify application via
+ * {@link AppModule.forRuntime}. `close` disposes the whole assembly, which
+ * tears down services (store/pool) and the application in reverse order.
  */
 export async function bootstrapNest(
-  options: NestBootstrapOptions = {},
+  options: AssemblyNestBootstrapOptions = {},
 ): Promise<NestBootstrapResult> {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
-    logger: ['error', 'warn', 'log'],
-  });
+  const profile = readDeploymentProfile(options);
+  const { host, port } = resolveListenOptions(options);
 
-  const requestContext = app.get(RequestContextService);
+  // cordis 4.x does not dependably wake injecting fibers when a providing
+  // node's apply is async, so the composed runtime (which internally builds
+  // host services / the shared store pool) is created here, outside cordis,
+  // and handed to the profile's synchronous host nodes.
+  const runtime = await createHostLocalRuntime();
 
-  app.useGlobalFilters(new AllExceptionFilter(requestContext));
+  const builder =
+    profile === 'team-monolith'
+      ? teamMonolithAssembly({ runtime, host, port })
+      : localAgentAssembly({ runtime, host, port });
 
-  const { port, host } = resolveListenOptions(options);
-
-  await app.listen(port, host);
+  const assembly = builder.build();
+  const running = await assembly.boot();
+  const app = running.ctx.get(HTTP_SURFACE_SERVICE) as NestFastifyApplication | undefined;
+  if (!app) {
+    throw new Error(`Assembly boot did not produce an httpSurface (profile=${profile})`);
+  }
 
   return {
     app,
-    close: async () => {
-      await app.close();
-    },
+    close: () => running.dispose(),
   };
 }
 
@@ -54,12 +83,12 @@ const isDirectRun =
 if (isDirectRun) {
   bootstrapNest()
     .then(({ close }) => {
-      const shutdown = async () => {
-        await close();
-        process.exit(0);
+      const shutdown = createShutdownController(close);
+      const run = () => {
+        void shutdown.shutdown();
       };
-      process.on('SIGINT', shutdown);
-      process.on('SIGTERM', shutdown);
+      process.on('SIGINT', run);
+      process.on('SIGTERM', run);
     })
     .catch((error) => {
       console.error('Nest host failed to start:', error);
