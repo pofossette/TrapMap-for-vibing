@@ -9,12 +9,12 @@
 - 新发现的问题先进入主细则的问题池或 [长期债务登记册](docs/todos/open-debt-and-compromises.md)，不得因为"仍有参考价值"而创建第二条并行主线。
 - 主线范围、入口或验收边界发生变化时，先更新主细则，再同步本索引；所有阶段完成并留存证据后才归档主细则。
 
-## 当前主线（assembly 四阶段已全部完成）
-- **主题：** 统一优雅组装中心（assembly）——四阶段主线已全部完成并归档（Phase 1 地基 / Phase 2 host-local 试点 / Phase 3 host-distributed 收敛 / Phase 4 收尾：双实现收敛 D5 + direct-run seam 退役 + 别名对齐 + 集群化验证）。
-- **状态：** `已完成`（2026-08-16）
-- **Phase 4 细则：** [Unified Assembly Center Phase 4（已归档）](docs/archived/archived-plans/unified-assembly-center-phase4-archived.md)
-- **设计规格：** [《TrapMap 统一优雅组装中心设计》](docs/superpowers/specs/2026-08-16-unified-assembly-center-design.md)
-- **状态口径：** 主线完成后 `plan.md` 不再链接 active 主细则；后续如开独立判断类节点收编主线（设计 D8）另行激活。
+## 当前主线（判断类节点契约 D8）
+- **主题：** 判断类节点契约（D8）收编——契约优先：6 个判断类能力节点（intent-recognition / dedup-strategy / conflict-trigger / artifact-derivation / label-alignment / channel-merge）先立契约三件套（backend-core ports 端口接口 + contracts Zod 配置 schema + 数据契约），rule 实现为默认（= 现状逻辑，行为不变），host-local / host-distributed assembly 挂载判断类节点，startupChecks 契约校验生效。
+- **状态：** `进行中`（2026-08-16 激活）
+- **主细则：** [判断类节点契约（D8）收编主线](docs/todos/judgment-node-contracts-d8.md)
+- **设计规格：** [《TrapMap 统一优雅组装中心设计》](docs/superpowers/specs/2026-08-16-unified-assembly-center-design.md) D8
+- **状态口径：** 前置主线 assembly 四阶段已全部完成并归档（Phase 4 细则见 [Unified Assembly Center Phase 4（已归档）](docs/archived/archived-plans/unified-assembly-center-phase4-archived.md)）。
 
 ## 上一主线
 

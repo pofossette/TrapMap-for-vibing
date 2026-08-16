@@ -11,10 +11,7 @@ function labelInput(overrides: Partial<LabelAlignmentInput> = {}): LabelAlignmen
   return { ...sampleLabelInput, ...overrides };
 }
 
-function makeMockChat(
-  responses: string[],
-  options: { configured?: boolean } = {},
-): ChatProvider {
+function makeMockChat(responses: string[], options: { configured?: boolean } = {}): ChatProvider {
   let callIndex = 0;
   return {
     provider: 'mock',
