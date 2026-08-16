@@ -6,8 +6,8 @@ import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shar
 import {
   type GovernanceReviewServiceDeps,
   createGovernanceAsyncCommandModule,
-  createGovernanceConflictWorkflow,
   createGovernanceReviewAdminModule,
+  createRuleConflictTrigger,
 } from '@trapmap/service-governance-review';
 import {
   type GovernanceReviewPgOwnerBundle,
@@ -72,10 +72,20 @@ export function createGovernanceReviewDeps(
     jobRuntime,
     auditLog: identity.auditLog,
   });
-  const conflictWorkflow = createGovernanceConflictWorkflow({
+  // D8 conflict-trigger call-site migration: the governance composition
+  // consumes the judgment port (rule default = createGovernanceConflictWorkflow
+  // with the same distributed read/projection, behavior-preserving) and adapts
+  // the triggered decision back to the workflow surface.
+  const conflictTrigger = createRuleConflictTrigger({
     read: createDistributedGovernanceConflictReadPort(internalClients),
     projection: owner.conflictProjection,
   });
+  const conflictWorkflow = {
+    async detectConflicts({ entryId }: { entryId: string }) {
+      const result = await conflictTrigger.detectConflicts({ entryId });
+      return { detectedCount: result.detectedCount };
+    },
+  };
 
   return createServiceGovernanceReviewDeps({
     knowledgeWrite,
