@@ -85,7 +85,11 @@ export function createCronScheduler(config: CronSchedulerConfig): CronScheduler 
       running = true;
       loop = (async () => {
         while (running) {
-          await tick();
+          try {
+            await tick();
+          } catch (error) {
+            console.error('[cron-scheduler] tick failed, retrying on next poll:', error);
+          }
           await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
         }
       })();

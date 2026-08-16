@@ -18,9 +18,12 @@ export interface TokenMatchDetail {
  * `latestRevision.version` (see the artifact revision schema) and flow
  * through unchanged when present.
  */
-export function artifactVersionOf(entry: { latestRevision?: unknown }): string | undefined {
-  const latest = entry.latestRevision as { version?: unknown } | undefined;
-  return typeof latest?.version === 'string' ? latest.version : undefined;
+export function artifactVersionOf(entry: {
+  latestRevision?: { version?: string };
+}): string | undefined {
+  return typeof entry.latestRevision?.version === 'string'
+    ? entry.latestRevision.version
+    : undefined;
 }
 
 export interface RecallCandidate {

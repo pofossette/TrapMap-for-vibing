@@ -1,8 +1,8 @@
 import type { CronJob } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createCronScheduler, type CronSchedulerTransport } from './scheduler.js';
 import type { CronOwnerBundle } from './pg-ports.js';
+import { type CronSchedulerTransport, createCronScheduler } from './scheduler.js';
 
 type MemoryJob = CronJob & { claimed: boolean };
 
@@ -64,6 +64,15 @@ function createTransport(): {
 }
 
 const NOW = new Date('2026-08-16T04:00:00.000Z');
+
+async function waitForCondition(condition: () => boolean, timeoutMs = 1000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (condition()) return;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  throw new Error('condition not met within timeout');
+}
 
 function jobFixture(overrides: Partial<CronJob> = {}): CronJob {
   return {
@@ -224,5 +233,45 @@ describe('service-cron scheduler', () => {
     expect(scheduler.isRunning()).toBe(false);
     await expect(scheduler.tick()).resolves.toBe(0);
     expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it('survives a transient claimDue failure and keeps polling on the next tick', async () => {
+    const job = jobFixture();
+    const { bundle } = createMemoryBundle([job]);
+    const { enqueue, transport } = createTransport();
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    let claimCalls = 0;
+    const flakyBundle: CronOwnerBundle = {
+      ...bundle,
+      async claimDue(now, limit) {
+        claimCalls += 1;
+        if (claimCalls === 1) {
+          throw new Error('connection reset');
+        }
+        return bundle.claimDue(now, limit);
+      },
+    };
+    const scheduler = createCronScheduler({
+      bundle: flakyBundle,
+      transport,
+      pollIntervalMs: 10,
+      clock: () => NOW,
+    });
+
+    await scheduler.run();
+    expect(scheduler.isRunning()).toBe(true);
+
+    await waitForCondition(() => enqueue.mock.calls.length >= 1);
+    expect(claimCalls).toBeGreaterThanOrEqual(2);
+    expect(errorSpy).toHaveBeenCalledWith(
+      '[cron-scheduler] tick failed, retrying on next poll:',
+      expect.any(Error),
+    );
+    expect(scheduler.isRunning()).toBe(true);
+    expect(enqueue).toHaveBeenCalledTimes(1);
+
+    await scheduler.stop();
+    expect(scheduler.isRunning()).toBe(false);
+    errorSpy.mockRestore();
   });
 });

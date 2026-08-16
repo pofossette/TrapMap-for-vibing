@@ -22,9 +22,7 @@ function createEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord 
   } as KnowledgeRecord;
 }
 
-function revisionWithVersion(
-  version: string,
-): KnowledgeRecord['latestRevision'] & { version?: string } {
+function revisionWithVersion(version: string): KnowledgeRecord['latestRevision'] {
   return {
     revision: 1,
     submittedAt: '2026-01-01T00:00:00.000Z',

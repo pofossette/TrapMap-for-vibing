@@ -2,6 +2,7 @@ import { InvocationError } from '@trapmap/backend-core';
 import { type RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
+import { createDefaultKnowledgeReadRetrievalInfra } from './retrieval-infra-default.js';
 import {
   ChannelRegistry,
   type KnowledgeReadRecallChannel,
@@ -9,7 +10,6 @@ import {
   StrategyRegistry,
 } from './retrieval-orchestration.js';
 import { dispatchByMode, semanticRecall } from './retrieval-recall-coordinator.js';
-import { createDefaultKnowledgeReadRetrievalInfra } from './retrieval-infra-default.js';
 import type { MergedCandidate, ScoredEntry } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 
@@ -50,9 +50,7 @@ function createEntry(overrides: Partial<KnowledgeRecord> = {}): KnowledgeRecord 
   } as KnowledgeRecord;
 }
 
-function revisionWithVersion(
-  version: string,
-): KnowledgeRecord['latestRevision'] & { version?: string } {
+function revisionWithVersion(version: string): KnowledgeRecord['latestRevision'] {
   return {
     revision: 1,
     submittedAt: '2026-01-01T00:00:00.000Z',

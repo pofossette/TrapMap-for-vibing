@@ -127,6 +127,8 @@ export interface MaintenanceMetaRecord {
 
 export interface KnowledgeRevisionRecord {
   revision: number;
+  /** Semver version declared on the artifact's latest revision (absent for unversioned entries) */
+  version?: string;
   submittedAt: string;
   submittedByUserId: string;
   shortcut: string;
