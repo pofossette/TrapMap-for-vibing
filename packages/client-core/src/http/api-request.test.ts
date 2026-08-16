@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { SessionProvider } from '@trapmap/client-core/session/session-provider.js';
+import type { SessionProvider } from '../session/session-provider.js';
 import { ApiError, apiRequest } from './index.js';
 
 function makeProvider(overrides: Partial<SessionProvider> = {}): SessionProvider {

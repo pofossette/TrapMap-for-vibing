@@ -1,4 +1,4 @@
-import type { SessionProvider } from '@trapmap/client-core/session/session-provider.js';
+import type { SessionProvider } from '../session/session-provider.js';
 import { ApiError } from './api-error.js';
 import type { ApiResponse, RequestOptions } from './request-envelope.js';
 

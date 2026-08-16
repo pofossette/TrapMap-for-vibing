@@ -1,11 +1,28 @@
 #!/usr/bin/env node
 /**
- * 检查 packages/ 下是否存在相对路径导入 (../ 或 ./)
+ * Import path hygiene guard (check:imports).
  *
- * 用法:
- *   node scripts/check-relative-imports.mjs          # 检查并报告 (非零退出)
- *   node scripts/check-relative-imports.mjs --fix    # 提示使用 codemod 修复
- *   node scripts/check-relative-imports.mjs --only-cross-dir  # 仅检查 ../ (跳过 ./)
+ * Two checks over packages/:
+ *
+ *  1. Cross-package relative imports (../ or ./ that resolve into another
+ *     workspace package) are violations: every cross-package dependency must
+ *     go through the @trapmap/* package-name surface (exports map), which is
+ *     what enables bundlers to resolve and tree-shake the intended entry.
+ *     Intra-package relative imports are the normal, tree-shaking-friendly
+ *     way to reference sibling modules and are always allowed.
+ *
+ *  2. Self-package imports (a file importing its own package by name, e.g.
+ *     '@trapmap/client-core/session/session-provider.js' from inside
+ *     client-core) are violations except in @trapmap/host-distributed, which
+ *     deliberately references its own subpath exports (see its exports map).
+ *     Self-imports force the module through the package boundary, which is
+ *     unnecessary indirection and hurts tree-shaking in bundled consumers
+ *     (e.g. web-panel bundling client-core); use a relative path instead.
+ *
+ * Usage:
+ *   node scripts/check-relative-imports.mjs                  # check and report (non-zero exit)
+ *   node scripts/check-relative-imports.mjs --fix            # print suggested fixes
+ *   node scripts/check-relative-imports.mjs --only-cross-dir # only ../ cross-package relative imports
  */
 
 import { readFile, readdir } from 'node:fs/promises';
@@ -22,11 +39,14 @@ const fixMode = args.includes('--fix');
 const onlyCrossDir = args.includes('--only-cross-dir');
 
 /**
- * 扫描各包的 package.json，找出有显式 exports 字段的包。
- * 对于这些包，包内相对导入是合法的 (因为 exports 限制了子路径导入)，不应报错。
+ * Packages that deliberately reference their own subpath exports. Keep this
+ * list as small as possible: self-imports are the exception, relative paths
+ * are the rule.
  */
-async function findExportsPackages() {
-  const exportsPackages = new Set();
+const SELF_IMPORT_EXCEPTION_PACKAGES = new Set(['@trapmap/host-distributed']);
+
+async function collectPackages() {
+  const packages = new Map(); // rel dir -> { name }
   for (const root of sourceRoots) {
     const absRoot = path.resolve(repoRoot, root);
     let entries;
@@ -40,126 +60,167 @@ async function findExportsPackages() {
       const pkgJsonPath = path.join(absRoot, entry.name, 'package.json');
       try {
         const pkgJson = JSON.parse(await readFile(pkgJsonPath, 'utf8'));
-        if (pkgJson.exports) {
-          exportsPackages.add(path.join(root, entry.name));
+        if (typeof pkgJson.name === 'string') {
+          packages.set(path.join(root, entry.name), pkgJson.name);
         }
       } catch {
         // no package.json or invalid JSON
       }
     }
   }
-  return exportsPackages;
+  return packages;
 }
 
-async function main() {
-  // 跳过有显式 exports 字段的包 (包内相对导入是合法模式)
-  const exportsPackages = await findExportsPackages();
-
-  const violations = [];
-
-  for (const root of sourceRoots) {
-    const absRoot = path.resolve(repoRoot, root);
-    await scanDirectory(absRoot, root, violations, exportsPackages);
-  }
-
-  if (violations.length === 0) {
-    console.log('No relative imports found. All good.');
-    process.exit(0);
-  }
-
-  if (fixMode) {
-    console.log(
-      `Found ${violations.length} relative import(s). Run the archived codemod to fix:\n  bash scripts/archived/codemod-batch.sh\n`,
-    );
-  } else {
-    console.error(`Found ${violations.length} relative import(s):\n`);
-    for (const v of violations) {
-      console.error(`  ${v.file}:${v.line}  "${v.importPath}"`);
-    }
-    console.error('\nFix with: bash scripts/archived/codemod-batch.sh');
-    process.exit(1);
-  }
-}
-
-async function scanDirectory(dir, workspacePrefix, violations, exportsPackages) {
+async function walk(dir, out) {
   let entries;
   try {
     entries = await readdir(dir, { withFileTypes: true });
   } catch {
     return;
   }
-
   for (const entry of entries) {
     if (excludeDirs.has(entry.name)) continue;
-
     const fullPath = path.join(dir, entry.name);
-    const relPath = path.relative(repoRoot, fullPath);
-
     if (entry.isDirectory()) {
-      await scanDirectory(fullPath, workspacePrefix, violations, exportsPackages);
+      await walk(fullPath, out);
     } else if (sourceExtensions.has(path.extname(entry.name))) {
-      // 跳过有显式 exports 的包 (包内 ../ 相对导入是合法模式)
-      if (isInExportsPackage(relPath, exportsPackages)) continue;
-      await checkFile(fullPath, relPath, violations);
+      out.push(fullPath);
     }
   }
 }
 
-function isInExportsPackage(relPath, exportsPackages) {
-  for (const pkg of exportsPackages) {
-    if (relPath.startsWith(`${pkg}/`)) return true;
+/** Extract import specifiers from one line (static, dynamic, re-export). */
+function extractSpecifiers(line) {
+  const specifiers = [];
+  const ws = '[ \t]';
+  const re = new RegExp(
+    '(?:import|export)' +
+      ws +
+      '+(?:[^;]*?' +
+      ws +
+      '+from' +
+      ws +
+      '+)?[\'"]([^\'"]+)[\'"]|import' +
+      ws +
+      '*([ \t]*[\'"](' +
+      '[^\'"]+' +
+      ')[\'"]' +
+      ws +
+      '*)',
+    'g',
+  );
+  let match;
+  while ((match = re.exec(line)) !== null) {
+    const specifier = match[1] || match[2];
+    if (specifier) specifiers.push(specifier);
   }
-  return false;
+  return specifiers;
 }
 
-async function checkFile(absPath, relPath, violations) {
-  const contents = await readFile(absPath, 'utf8');
+function isSkippedLine(trimmed) {
+  return (
+    trimmed.startsWith('//') ||
+    trimmed.startsWith('/*') ||
+    trimmed.startsWith('*') ||
+    trimmed.includes('vi.mock(') ||
+    trimmed.includes('vi.importActual(') ||
+    trimmed.includes('typeof import(')
+  );
+}
 
-  const lines = contents.split('\n');
-  let inBlockComment = false;
+async function main() {
+  const packages = await collectPackages();
+  const violations = [];
 
-  for (let lineNum = 0; lineNum < lines.length; lineNum++) {
-    const line = lines[lineNum] ?? '';
-    const lineNumber = lineNum + 1;
+  for (const [pkgRel, pkgName] of packages) {
+    const absRoot = path.resolve(repoRoot, pkgRel);
+    const files = [];
+    await walk(absRoot, files);
+    for (const absFile of files) {
+      const relFile = path.relative(repoRoot, absFile).replaceAll('\\', '/');
+      const contents = await readFile(absFile, 'utf8');
+      const lines = contents.split(String.fromCharCode(10));
+      let inBlockComment = false;
 
-    // 跳过注释行和块注释内的行
-    if (inBlockComment) {
-      if (line.includes('*/')) {
-        inBlockComment = false;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i] ?? '';
+        const lineNumber = i + 1;
+        if (inBlockComment) {
+          if (line.includes('*/')) inBlockComment = false;
+          continue;
+        }
+        const trimmed = line.trimStart();
+        if (trimmed.startsWith('/*')) {
+          inBlockComment = !line.includes('*/');
+          continue;
+        }
+        if (isSkippedLine(trimmed)) continue;
+
+        for (const specifier of extractSpecifiers(line)) {
+          // 1) Self-package import check.
+          if (specifier === pkgName || specifier.startsWith(pkgName + '/')) {
+            if (!SELF_IMPORT_EXCEPTION_PACKAGES.has(pkgName)) {
+              violations.push({
+                kind: 'self-import',
+                file: relFile,
+                line: lineNumber,
+                importPath: specifier,
+                message:
+                  'self-import of ' +
+                  pkgName +
+                  ' — use a relative path instead (self-imports break tree-shaking in bundled consumers)',
+              });
+            }
+            continue;
+          }
+          // 2) Cross-package relative import check.
+          if (!specifier.startsWith('.')) continue;
+          if (onlyCrossDir && !specifier.startsWith('../')) continue;
+          const targetAbs = path.resolve(path.dirname(absFile), specifier);
+          const targetRel = path.relative(repoRoot, targetAbs).replaceAll('\\', '/');
+          if (!targetRel.startsWith('packages/')) continue;
+          if (targetRel.startsWith(pkgRel + '/')) continue; // intra-package
+          violations.push({
+            kind: 'cross-package-relative',
+            file: relFile,
+            line: lineNumber,
+            importPath: specifier,
+            message:
+              'cross-package relative import into ' +
+              targetRel +
+              ' — use the @trapmap/* package-name surface',
+          });
+        }
       }
-      continue;
     }
+  }
 
-    if (line.trimStart().startsWith('//')) continue;
-    if (line.trimStart().startsWith('/*')) {
-      inBlockComment = !line.includes('*/');
-      continue;
-    }
+  if (violations.length === 0) {
+    console.log('No import path hygiene violations found. All good.');
+    process.exit(0);
+  }
 
-    // 跳过 vi.mock() / vi.importActual() 调用 (测试工具)
-    if (line.includes('vi.mock(') || line.includes('vi.importActual(')) continue;
-
-    // 跳过测试文件中的 typeof import() 类型
-    if (line.includes('typeof import(')) continue;
-
-    // 根据 --only-cross-dir 选择匹配模式
-    const prefix = onlyCrossDir ? '\\.\\./' : '\\.\\.?/';
-    const importRegex = new RegExp(
-      `(?:import|export)\\s+(?:[^;]*?\\s+from\\s+)?['"](${prefix}[^'"]*)['"]|import\\s*\\(\\s*['"](${prefix}[^'"]*)['"]\\s*\\)`,
+  if (fixMode) {
+    console.log(
+      'Found ' +
+        violations.length +
+        ' violation(s). Prefer relative paths for self-imports and @trapmap/* package names for cross-package imports.',
     );
-
-    const match = importRegex.exec(line);
-    if (match) {
-      const importPath = match[1] || match[2];
-      if (importPath) {
-        violations.push({
-          file: relPath,
-          line: lineNumber,
-          importPath,
-        });
-      }
+    for (const v of violations) {
+      console.log('  ' + v.file + ':' + v.line + '  "' + v.importPath + '"  (' + v.message + ')');
     }
+    process.exit(1);
   }
+
+  console.error(
+    'Found ' + violations.length + ' import path violation(s):' + String.fromCharCode(10),
+  );
+  for (const v of violations) {
+    console.error('  ' + v.file + ':' + v.line + '  "' + v.importPath + '"');
+    console.error('      ' + v.message);
+  }
+  console.error(String.fromCharCode(10) + 'Fix them, then re-run. (Use --fix for details.)');
+  process.exit(1);
 }
 
 main().catch((err) => {

@@ -1,4 +1,4 @@
-import { toInvocationErrorResponse } from '@trapmap/backend-core';
+import { toInvocationErrorResponse } from '../invocation/invocation-model.js';
 import { describe, expect, it } from 'vitest';
 
 import { InvocationError } from '../invocation/invocation-model.js';
