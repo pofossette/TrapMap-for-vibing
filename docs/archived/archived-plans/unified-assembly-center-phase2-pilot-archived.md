@@ -8,7 +8,7 @@
 
 **Goal:（D6 Phase 2 试点）** host-local 改由 assembly boot（`localAgentAssembly` / `teamMonolithAssembly` → `boot()`），Nest 以 transport 插件接入；现有行为不变为硬约束。
 
-**Architecture:** 承接 Phase 1 已建 `packages/assembly`（`@trapmap/assembly`，cordis-backed assembly kernel）与 `createAssembly / defineNode / defineContract / startupChecks / createShutdownController` 内核 API。本阶段在 7 个 service 包各新增 `src/node.ts`（`defineNode` 包装现有 `create` 工厂，provides/inject 按设计 D2 映射表；不删除现有工厂，保持双轨）；在 assembly 侧新增 infra/transport 节点（`pg` / `task-transport` / `outbox` / `nest-transport`，observability 与 service-discovery 保持 host-local 现有接线）；新增形态 builders `profiles/local-agent.ts` + `profiles/team-monolith.ts`（全部节点 embedded，含 `nestTransport(options)`）；host-local 的 `bootstrapNest` 改经 assembly boot（双轨期保留旧路径直至 golden 全绿）。`apps/light` 不变或仅薄调整。
+**Architecture:** 承接 Phase 1 已建 `packages/assembly`（`@trapmap/assembly`，cordis-backed assembly kernel）与 `createAssembly / defineNode / defineContract / startupChecks / createShutdownController` 内核 API。本阶段在 7 个 service 包各新增 `packages/host-local/src/nest/runtime/assembly/nodes/service-nodes.ts`（`defineNode` 包装现有 `create` 工厂，provides/inject 按设计 D2 映射表；不删除现有工厂，保持双轨）；在 assembly 侧新增 infra/transport 节点（`pg` / `task-transport` / `outbox` / `nest-transport`，observability 与 service-discovery 保持 host-local 现有接线）；新增形态 builders `profiles/local-agent.ts` + `profiles/team-monolith.ts`（全部节点 embedded，含 `nestTransport(options)`）；host-local 的 `bootstrapNest` 改经 assembly boot（双轨期保留旧路径直至 golden 全绿）。`apps/light` 不变或仅薄调整。
 
 **Tech Stack:** TypeScript, `@deepseek-ai/cordis` (^4.0.1), zod, NestJS, Vitest, Biome, fallow, pnpm.
 
@@ -19,7 +19,7 @@
 ## 全局约束
 
 - **行为不变是硬约束：** Phase 2 不改变任何现有运行时语义；golden 回归（app.test.ts / main.test.ts / deployment-smoke / runtime-foundations）必须全绿，diff 核验 host-local 行为不变。
-- **双轨期保留现有工厂：** 各 service 新增 `src/node.ts`（`defineNode` 包装），**不删除**现有 `create` 工厂；双轨期 host-* 继续直连旧路径，直至 golden 全绿后才切换（T4）。
+- **双轨期保留现有工厂：** 各 service 新增 `packages/host-local/src/nest/runtime/assembly/nodes/service-nodes.ts`（`defineNode` 包装），**不删除**现有 `create` 工厂；双轨期 host-* 继续直连旧路径，直至 golden 全绿后才切换（T4）。
 - **编程式装配，无配置文件：** 只采用 cordis 编程式 `new Context()` / `ctx.plugin()`；禁止新增 yml/json 装配文件、loader 或 patch 层（设计 D1 全局约束）。
 - **assembly 依赖规则不变：** assembly zone（Phase 1 已写入 `.fallowrc.json`）只依赖 backend-core / contracts / lib；service `node.ts` 落在各 service 包内（其 zone 依赖规则继续生效）。
 - **observability / service-discovery 保持 host-local 现有接线：** Phase 2 不收敛 OTel / Consul 双份——那是 Phase 3/4 debt，本阶段不触碰 host-local 的 observability 与 service-discovery 模块。
@@ -29,7 +29,7 @@
 
 ## 实施偏差记录（2026-08-16，合入 `dbf1461a`）
 
-- **T1/T2 落点调整（fallow 边界驱动）**：试点节点未按原计划落在 7 个 service 包的 `src/node.ts` 与 `packages/assembly/src/nodes/`——因为 `assembly` zone 只允许依赖 backend-core/contracts/lib，host-local 专属 wiring（store/ai/graph/asyncTransport）无法被 assembly 导入。实际落地为 **host-local-owned pilot nodes**：`packages/host-local/src/nest/runtime/assembly/nodes/{host-nodes,service-nodes,nest-transport}.ts`（host-local zone 消费 assembly 内核，符合边界）。**service 包 `node.ts` 与通用 infra 节点（pg/task-transport/outbox）推迟到 Phase 3**（服务独立成进程时才需要跨包节点化）。
+- **T1/T2 落点调整（fallow 边界驱动）**：试点节点未按原计划落在 7 个 service 包的 `packages/host-local/src/nest/runtime/assembly/nodes/service-nodes.ts` 与 `packages/assembly/src/nodes/`——因为 `assembly` zone 只允许依赖 backend-core/contracts/lib，host-local 专属 wiring（store/ai/graph/asyncTransport）无法被 assembly 导入。实际落地为 **host-local-owned pilot nodes**：`packages/host-local/src/nest/runtime/assembly/nodes/{host-nodes,service-nodes,nest-transport}.ts`（host-local zone 消费 assembly 内核，符合边界）。**service 包 `node.ts` 与通用 infra 节点（pg/task-transport/outbox）推迟到 Phase 3**（服务独立成进程时才需要跨包节点化）。
 - **T3 profiles 落点**：`localAgentAssembly`/`teamMonolithAssembly` 实现在 `packages/host-local/src/nest/runtime/assembly/profiles/`（`local-agent.ts`/`team-monolith.ts`/`compose.ts`），`packages/assembly/src/profiles/` 仅保留通用 `scaffold.ts`（供 Phase 3 形态 builder 复用）。
 - **T4 双轨**：`bootstrapNest` 已改为经 `localAgentAssembly(options).boot()`（`nest/main.ts`）；`apps/light` 保持不变（其 `start()` API 未变）。
 - **T5 golden**：`app.test.ts`/`main.test.ts`/`deployment-smoke`（379）/`runtime-foundations`（130）/host-local 全量（228）全绿，fallow audit 30 files 零 issue。
@@ -49,11 +49,11 @@ T1 建 node.ts 后可并行 T2/T3；T4 依赖 T1-T3 的产物；T5 依赖 T4；T
 
 ## 执行任务
 
-### Task 1: 各 service 包新增 `src/node.ts`（defineNode 包装现有工厂，provides/inject 按设计 D2 映射表；不删除现有工厂，双轨）
+### Task 1: 各 service 包新增 `packages/host-local/src/nest/runtime/assembly/nodes/service-nodes.ts`（defineNode 包装现有工厂，provides/inject 按设计 D2 映射表；不删除现有工厂，双轨）
 
 **Files:**
 - Create: 每个 service 包 `packages/service-*/src/node.ts`（`defineNode` 包装现有 `create` 工厂；`provides` / `inject` 按设计 D2 映射表）
-- Modify: 各 service 包 `src/index.ts`（导出 node.ts，保守聚合节点定义）——若包已有聚合导出则仅追加
+- Modify: host-local `packages/host-local/src/nest/runtime/assembly/nodes/service-nodes.ts`（导出 node.ts，保守聚合节点定义）——若包已有聚合导出则仅追加
 - 不改动：现有 `create` 工厂、routes、pg-ports、业务文件（双轨，零行为变更）
 
 **Interfaces:**
@@ -74,10 +74,10 @@ T1 建 node.ts 后可并行 T2/T3；T4 依赖 T1-T3 的产物；T5 依赖 T4；T
 ### Task 2: assembly 侧 infra/transport 节点（pg / task-transport / outbox / nest-transport）
 
 **Files:**
-- Create: `packages/assembly/src/nodes/pg.ts`（`pg` infra 节点：host-local 现有 pg 装配语义，`required` / 连接选项）
-- Create: `packages/assembly/src/nodes/task-transport.ts`（`task-transport` infra 节点：postgres 任务队列语义）
-- Create: `packages/assembly/src/nodes/outbox.ts`（`outbox` infra 节点）
-- Create: `packages/assembly/src/nodes/nest-transport.ts`（`nest-transport` transport 节点：接入 Nest 适配器 / host-local Nest runtime）
+- Create: `packages/host-local/src/nest/runtime/assembly/nodes/host-nodes.ts`（`pg` infra 节点：host-local 现有 pg 装配语义，`required` / 连接选项）
+- Create: `packages/host-local/src/nest/runtime/assembly/nodes/host-nodes.ts`（`task-transport` infra 节点：postgres 任务队列语义）
+- Create: `packages/host-local/src/nest/runtime/assembly/nodes/host-nodes.ts`（`outbox` infra 节点）
+- Create: `packages/host-local/src/nest/runtime/assembly/nodes/nest-transport.ts`（`nest-transport` transport 节点：接入 Nest 适配器 / host-local Nest runtime）
 - 不改动：`packages/host-local/src/nest/**` 的 observability 与 service-discovery 接线（Phase 2 保持 host-local 现有接线，见范围边界）
 
 **Interfaces:**
@@ -85,13 +85,13 @@ T1 建 node.ts 后可并行 T2/T3；T4 依赖 T1-T3 的产物；T5 依赖 T4；T
 - Produces: assembly 可装载的 infra/transport 节点（`pg` / `task-transport` / `outbox` / `nest-transport`）。
 
 - [ ] **Step 1: pg 节点**
-  新增 `packages/assembly/src/nodes/pg.ts`：封装 host-local 现有 postgres 工厂/deps，暴露 `pg` 服务，支持 `{ required: boolean }` 配置。
+  新增 `packages/host-local/src/nest/runtime/assembly/nodes/host-nodes.ts`：封装 host-local 现有 postgres 工厂/deps，暴露 `pg` 服务，支持 `{ required: boolean }` 配置。
 - [ ] **Step 2: task-transport 节点**
-  新增 `packages/assembly/src/nodes/task-transport.ts`：暴露 `taskQueue` 服务（postgres 语义，复用完整实现 `async-runtime.ts`）。
+  新增 `packages/host-local/src/nest/runtime/assembly/nodes/host-nodes.ts`：暴露 `taskQueue` 服务（postgres 语义，复用完整实现 `async-runtime.ts`）。
 - [ ] **Step 3: outbox 节点**
-  新增 `packages/assembly/src/nodes/outbox.ts`：暴露 `outbox` 服务。
+  新增 `packages/host-local/src/nest/runtime/assembly/nodes/host-nodes.ts`：暴露 `outbox` 服务。
 - [ ] **Step 4: nest-transport 节点**
-  新增 `packages/assembly/src/nodes/nest-transport.ts`：`nestTransport(options)`，消费各节点 RouteDef 并接入 host-local Nest runtime / adapter（Phase 2 只接 host-local）。
+  新增 `packages/host-local/src/nest/runtime/assembly/nodes/nest-transport.ts`：`nestTransport(options)`，消费各节点 RouteDef 并接入 host-local Nest runtime / adapter（Phase 2 只接 host-local）。
 - [ ] **Step 5: 验证**
   `pnpm --filter @trapmap/assembly test --run`、`pnpm typecheck`、`pnpm exec fallow audit --base main`。
 - [ ] **Step 6: Commit**
@@ -100,9 +100,9 @@ T1 建 node.ts 后可并行 T2/T3；T4 依赖 T1-T3 的产物；T5 依赖 T4；T
 ### Task 3: profiles（local-agent.ts + team-monolith.ts：全部节点 embedded，含 nestTransport(options)；三形态断言测试）
 
 **Files:**
-- Create: `packages/assembly/src/profiles/local-agent.ts`（`localAgentAssembly(options)`：全部节点 embedded，含 `nestTransport(options)`）
-- Create: `packages/assembly/src/profiles/team-monolith.ts`（`teamMonolithAssembly(options)`：同上，`pg({ required: true })`）
-- Create: `packages/assembly/src/profiles/profiles.test.ts`（三形态断言测试：local-agent / team-monolith 组合 OK；distributed 相关留 Phase 3）——或按包现有测试组织
+- Create: `packages/host-local/src/nest/runtime/assembly/profiles/local-agent.ts`（`localAgentAssembly(options)`：全部节点 embedded，含 `nestTransport(options)`）
+- Create: `packages/host-local/src/nest/runtime/assembly/profiles/team-monolith.ts`（`teamMonolithAssembly(options)`：同上，`pg({ required: true })`）
+- Create: `packages/host-local/src/nest/runtime/assembly/profiles/profiles.test.ts`（三形态断言测试：local-agent / team-monolith 组合 OK；distributed 相关留 Phase 3）——或按包现有测试组织
 
 **Interfaces:**
 - Consumes: 设计 D3 部署形态 = TS 组合器；T1 的 service node.ts、T2 的 infra/transport 节点。
@@ -192,15 +192,15 @@ T1 建 node.ts 后可并行 T2/T3；T4 依赖 T1-T3 的产物；T5 依赖 T4；T
 - **Phase 2 完成于 2026-08-16**（提交 `63c26029` / `26964daf` / `fc114c35`，合并 `dbf1461a`）；host-local 试点由 assembly boot（host-local pilot nodes + local/team profiles + nest-transport）完成，服务包 `node.ts` 与通用 infra 节点（pg / task-transport / outbox）按偏差记录推迟到 Phase 3。
 - **证据汇总：** host-local 全量 228 用例、assembly 42、deployment-smoke 379、runtime-foundations 130，check:imports/asserts/docs/structure/deps 全 0，fallow audit 30 files 零 issue（main `dbf1461a` 复跑）；行为不变 diff 由 golden 全绿核验。
 - **文档回写：** 本细则按 T6 Step 4 完成 BOUNDARIES / SYSTEM_TRUTH_SOURCES / open-debt / README 索引回写（见本任务提交）。
-- **归档：** 本细则在 Phase 3 主线激活后归档至 `docs/archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md`；Phase 3（host-distributed 收敛）主细则见 `docs/todos/assembly-phase3.md`。
+- **归档：** 本细则在 Phase 3 主线激活后归档至 `docs/archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md`；Phase 3（host-distributed 收敛）主细则见 `docs/archived/archived-plans/unified-assembly-center-phase3-archived.md`。
 
 ## 范围边界
 
 **Phase 2 纳入：**
 
-- 各 service 包 `src/node.ts`（defineNode 包装现有工厂，provides/inject 按设计 D2 映射表；不删除现有工厂，双轨）。
+- 各 service 包 `packages/host-local/src/nest/runtime/assembly/nodes/service-nodes.ts`（defineNode 包装现有工厂，provides/inject 按设计 D2 映射表；不删除现有工厂，双轨）。
 - assembly infra/transport 节点：`pg` / `task-transport` / `outbox` / `nest-transport`。
-- profiles：`packages/assembly/src/profiles/local-agent.ts` + `team-monolith.ts`（全部节点 embedded，含 `nestTransport(options)`；三形态断言测试）。
+- profiles：`packages/host-local/src/nest/runtime/assembly/profiles/local-agent.ts` + `team-monolith.ts`（全部节点 embedded，含 `nestTransport(options)`；三形态断言测试）。
 - host-local 试点切换：`bootstrapNest` 改经 assembly boot（双轨期保留旧路径直至 golden 全绿；`apps/light` 不变或仅薄调整）。
 - golden 回归：`app.test.ts` / `main.test.ts` / `pnpm test:deployment-smoke` / `pnpm test:runtime-foundations` / 受影响包测试；行为不变 diff 核验。
 
@@ -214,7 +214,7 @@ T1 建 node.ts 后可并行 T2/T3；T4 依赖 T1-T3 的产物；T5 依赖 T4；T
 
 ## Completion Gates
 
-- [ ] 各 service 包均新增 `src/node.ts`（**推迟 Phase 3**——Phase 2 以 host-local pilot nodes 落地，见偏差记录）；现有工厂保留（双轨），业务文件零改动 diff。
+- [ ] 各 service 包均新增 `packages/host-local/src/nest/runtime/assembly/nodes/service-nodes.ts`（**推迟 Phase 3**——Phase 2 以 host-local pilot nodes 落地，见偏差记录）；现有工厂保留（双轨），业务文件零改动 diff。
 - [x] host-local pilot 节点（config/pg/services/runtime/service 提供面/nest-transport）可装载；observability / service-discovery 保持 host-local 现有接线（无 OTel/Consul 收敛）。
 - [x] profiles（local-agent / team-monolith，host-local `runtime/assembly/profiles/`）全部节点 embedded、含 nestTransport；profiles.test.ts 断言通过。
 - [x] host-local `bootstrapNest` 经 assembly boot；双轨期旧工厂保留（golden 全绿后默认走 assembly boot）。

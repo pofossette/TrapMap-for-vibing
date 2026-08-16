@@ -201,7 +201,7 @@
 
 ### host-distributed shared/ports.ts 业务下沉（2026-08-15 登记）
 
-- [ ] **来源：** 六路审查 hosts 车道：`packages/host-distributed/src/shared/ports.ts`（353 行，其中 109-302）宿主直接手写检索/队列/outbox SQL 实现（宿主应只做装配，SQL 应留在 service pg-ports 或 backend-core 端口实现）。
+- [x] **来源（已解决）：** 六路审查 hosts 车道：`packages/host-distributed/src/assembly/nodes/distributed-service-nodes.ts`（shared/ports.ts 已退役；原 353 行，其中 109-302）宿主直接手写检索/队列/outbox SQL 实现（宿主应只做装配，SQL 应留在 service pg-ports 或 backend-core 端口实现）。Phase 3/4 已退役 `shared/ports.ts`（ILIKE 检索收敛、queue/outbox 简化版退役、direct-run seam 退役），宿主只保留装配组合（`packages/host-distributed/src/assembly/nodes/distributed-service-nodes.ts`）。
 - [ ] **影响：** 宿主持有业务 SQL，绕过 service 包 pg-ports 与 domain 规则；SQL 逻辑在宿主与 service 间可能漂移。
 - [ ] **当前边界：** 本轮不迁移（宿主行为不变硬约束；迁移涉及 distributed 装配面）。
 - [ ] **进入条件：** `shared/ports.ts` 任一 SQL 实现出现行为不一致修复，或 service 包 pg-ports 签名变化使宿主实现可自然替换。
@@ -287,7 +287,7 @@
 - [ ] **当前边界：** 不伪造检索条目版本；不改变 knowledge_entries 写入语义；版本未接前 multiplier 保持中性。
 - [ ] **进入条件：** 需要在检索层对 skill artifact 条目启用 versioned 衰减，或需要检索响应真实携带版本供 CLI/面板消费时。
 - [ ] **后续落点：** 新建 scoped 细则实现 host artifact→retrieval entry 合并（将 artifact 投影并入召回池或检索条目组装点），随后启用 versioned 衰减并在响应中真实填充 version/revision。
-- [ ] **要求的文档与测试：** 更新 `docs/architecture/components/RETRIEVAL.md`、`docs/architecture/components/DECAY.md`（如存在）；补检索端到端测试（artifact version → retrieval result），跑 `pnpm eval:retrieval:smoke`、`pnpm test:runtime-closeout`。
+- [ ] **要求的文档与测试：** 更新 `docs/architecture/components/RETRIEVAL.md`；补检索端到端测试（artifact version → retrieval result），跑 `pnpm eval:retrieval:smoke`、`pnpm test:runtime-closeout`。
 
 ### 本地 trap-map-host-distributed 镜像与当前 compose/Dockerfile 漂移（2026-08-16 登记）
 - [ ] **来源：** Phase 4 T5 集群化验证时发现：本地 `trap-map-host-distributed:latest` 为 2026-07-13 旧构建（WORKDIR `/app/packages/host-distributed`），而当前 `apps/distributed/Dockerfile` 与 `docker-compose.yml` 均指向 `/app/apps/distributed`（thin app shell）；`docker compose up --scale candidate-worker=2` 会因镜像内缺少 `/app/apps/distributed/dist/index.js` 而 MODULE_NOT_FOUND。沙箱无外网导致 docker build（pnpm install/tsc）不可行，无法重建镜像。

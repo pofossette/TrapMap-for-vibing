@@ -1,7 +1,4 @@
-import {
-  assertIntentResultShape,
-  intentSampleInput,
-} from '@trapmap/backend-core';
+import { assertIntentResultShape, intentSampleInput } from '@trapmap/backend-core';
 import { describe, expect, it } from 'vitest';
 
 import { createRuleIntentRecognition } from './rule-intent-recognition.js';
@@ -30,11 +27,14 @@ describe('createRuleIntentRecognition', () => {
     assertIntentResultShape(result);
   });
 
-  it('rejects an explicitly requested unknown mode', async () => {
+  it('rejects an explicitly requested mode the engine cannot execute', async () => {
     const rule = createRuleIntentRecognition();
+    // 'hybrid' is a valid contract mode but absent from knownModes → the
+    // rule implementation must reject it (mirrors dispatchByMode).
     const input = {
       ...intentSampleInput,
-      requestedMode: 'bogus' as never,
+      requestedMode: 'hybrid' as const,
+      knownModes: ['semantic'],
     };
 
     await expect(rule.recognize(input)).rejects.toThrow();

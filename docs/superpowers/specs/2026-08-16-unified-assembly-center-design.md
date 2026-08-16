@@ -170,7 +170,7 @@ apps/*（thin assembly：调用对应形态 builder → boot；禁止业务）
 
 要点：
 
-- 每个 service 包**新增** `src/node.ts`（`defineNode(...)` 包装现有工厂），**不删除**现有工厂（双轨期 host-* 继续直连）。
+- 每个 service 包**新增** 节点包装（Phase 2 实际落点 `packages/host-local/src/nest/runtime/assembly/nodes/service-nodes.ts`，`defineNode(...)` 包装现有工厂），**不删除**现有工厂（双轨期 host-* 继续直连）。
 - `routes` 聚合服务收集各节点 RouteDef 供 transport 消费；依赖方向不变（节点只依赖 backend-core ports + contracts，fallow 规则继续生效）。
 - 子 worker 复用现有 typed handlers；判断类能力节点**先立契约、实现后迁**（见 D8）。
 
@@ -283,7 +283,7 @@ export function distributedAssembly(service: DistributedServiceName) {
 ## 影响面
 
 - **新增**：`packages/assembly`（含 cordis 依赖）；`profiles/{local-agent,team-monolith,distributed}.ts`；`backend-core/src/ports/` 下判断类契约（`intent-ports.ts`、`dedup-ports.ts`、`conflict-ports.ts` 等，Phase 2+ 按 D8 逐个立）；节点契约单测。
-- **改造**：`packages/service-*` 各加 `src/node.ts`；host-* 收敛为 transport 插件；判断类能力从内嵌迁为契约节点（**行为不变：默认实现即现状逻辑**）；`docker-compose.yml` 对齐节点拓扑；`backend-target-registry.ts`、`dev:*` 别名。
+- **改造**：`packages/service-*` 各加节点包装（实际落点 host 包 `packages/host-local/src/nest/runtime/assembly/nodes/service-nodes.ts` 与 `packages/host-distributed/src/assembly/nodes/distributed-service-nodes.ts`）；host-* 收敛为 transport 插件；判断类能力从内嵌迁为契约节点（**行为不变：默认实现即现状逻辑**）；`docker-compose.yml` 对齐节点拓扑；`backend-target-registry.ts`、`dev:*` 别名。
 - **不动**：`backend-core` domain/RouteDef 双 adapter、`contracts`（新增契约按现有规则落位）、`persistence-schema`、`lib`、对外 API 面。
 - **明确不做**：yml/json 装配文件、cordis loader、patch 层；k8s 编排实现（compose replicas 即验证）；判断类能力的一次性全量重写（按 D8 逐个收编，每个收编独立评审）。
 - **文档**：ARCHITECTURE/BOUNDARIES（+assembly zone + 节点契约落点）/DEPLOYMENT（节点拓扑）/TESTING/REPO_STRUCTURE/SYSTEM_TRUTH_SOURCES（术语映射）。

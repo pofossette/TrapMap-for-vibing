@@ -3,8 +3,8 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > **状态：** 已归档
-> **根入口：** [`../../plan.md`](../../plan.md)
-> **设计规格：** [`../superpowers/specs/2026-08-16-unified-assembly-center-design.md`](../superpowers/specs/2026-08-16-unified-assembly-center-design.md)
+> **根入口：** [`../../../plan.md`](../../../plan.md)
+> **设计规格：** [`../../superpowers/specs/2026-08-16-unified-assembly-center-design.md`](../../superpowers/specs/2026-08-16-unified-assembly-center-design.md)
 
 **Goal:（D6 Phase 4 收尾）** 双实现收敛 + 直接运行 seam 退役 + 别名对齐 + 集群化验证——检索 ILIKE 完整管线收敛（D5）、OTel/Consul 单一插件收敛（D5）、direct-run seam 退役（所有 boot 经 app shells 经 assembly profiles）、`backend-target-registry`/`dev:*` 别名对齐、compose replicas=2 集群化 ownership/重复消费断言；golden 全绿后归档并 finalize `plan.md`。
 
@@ -14,7 +14,7 @@
 
 ## 任务背景
 
-根 [`../../plan.md`](../../plan.md) 已切换为 assembly Phase 4 收尾主线，承接设计文档 D6 Phase 4。Phase 1（packages/assembly 内核 + cordis + 测试 + 根级接线 + 文档）已完成并归档（见 [`../archived/archived-plans/unified-assembly-center-phase1-archived.md`](../archived/archived-plans/unified-assembly-center-phase1-archived.md)）。Phase 2（host-local 试点）已完成并归档（见 [`../archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md`](../archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md)，`63c26029` / `26964daf` / `fc114c35`，合并 `dbf1461a`）。Phase 3（host-distributed 收敛）已完成并归档（见 [`../archived/archived-plans/unified-assembly-center-phase3-archived.md`](../archived/archived-plans/unified-assembly-center-phase3-archived.md)，合入 `0a753aec` / `8b75d25d`，closeout 同步 `a2b9b2d2`）。Phase 3 将检索 ILIKE 完整管线收敛、OTel/Consul 双份接线收敛、direct-run seam 退役、别名对齐、集群化验证显式 deferred 到本阶段（见 Phase 3 Closeout 记录）。判断类节点契约（D8：intent-recognition / dedup-strategy / conflict-trigger / artifact-derivation / label-alignment / channel-merge）明确不在本阶段——后续独立收编主线。
+根 [`../../../plan.md`](../../../plan.md) 已切换为 assembly Phase 4 收尾主线，承接设计文档 D6 Phase 4。Phase 1（packages/assembly 内核 + cordis + 测试 + 根级接线 + 文档）已完成并归档（见 [`./unified-assembly-center-phase1-archived.md`](./unified-assembly-center-phase1-archived.md)）。Phase 2（host-local 试点）已完成并归档（见 [`./unified-assembly-center-phase2-pilot-archived.md`](./unified-assembly-center-phase2-pilot-archived.md)，`63c26029` / `26964daf` / `fc114c35`，合并 `dbf1461a`）。Phase 3（host-distributed 收敛）已完成并归档（见 [`./unified-assembly-center-phase3-archived.md`](./unified-assembly-center-phase3-archived.md)，合入 `0a753aec` / `8b75d25d`，closeout 同步 `a2b9b2d2`）。Phase 3 将检索 ILIKE 完整管线收敛、OTel/Consul 双份接线收敛、direct-run seam 退役、别名对齐、集群化验证显式 deferred 到本阶段（见 Phase 3 Closeout 记录）。判断类节点契约（D8：intent-recognition / dedup-strategy / conflict-trigger / artifact-derivation / label-alignment / channel-merge）明确不在本阶段——后续独立收编主线。
 
 ## 全局约束
 
@@ -222,4 +222,3 @@ T1-T4 相互独立可并行推进；T5 依赖检索收敛后的 retrieval 语义
 - **本地 trap-map-host-distributed 镜像与当前 compose/Dockerfile 漂移**（2026-07-13 旧构建，WORKDIR 指向 host-distributed 包）：compose replicas 真实 scale 演示需重建镜像（联网/CI），已登记 open-debt；不影响代码门禁与 in-process ownership 验证。
 - **eval:smoke 基线通过率 54/81**：retrieval 4/26（15.4%）与 summary 1/6（16.7%）为环境既有 fixture/LLM 依赖问题，main 与收敛分支结果一致（非回归）；后续独立评估数据/评判器优化，不在本主线。
 - **判断类节点契约（D8）**：intent-recognition / dedup-strategy / conflict-trigger / artifact-derivation / label-alignment / channel-merge 按设计 D8 后续独立收编主线，本阶段明确不纳入。
-

@@ -82,7 +82,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Produces:** this detail is the only active execution surface; the former compatibility plan is historical evidence and its incomplete Wave-10 is a named deferred risk.
 
-- [x] Confirm `plan.md` links only `docs/todos/documentation-validation-and-observability-platform.md` and contains the long-term-maintainability principle verbatim.
+- [x] Confirm `plan.md` links only `docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md` and contains the long-term-maintainability principle verbatim.
 - [x] Confirm `docs/todos/README.md`, `docs/README.md`, `docs/archived/README.md`, and `SYSTEM_TRUTH_SOURCES.md` describe the new active detail and old detail as archived.
 - [x] Add a debt-register entry with source path, impact, re-entry condition, and required verification for compatibility Wave-10; do not mark it completed.
 - [x] Run `pnpm check:docs-drift`, `pnpm check:structure`, `pnpm check:md-lint`, and `git diff --check`.
@@ -209,7 +209,7 @@ Sentry 不是待安装的空白能力：`contracts` 已有 shared policy，`host
 
 **Files:**
 - Modify: existing retrieval, candidate-ingestion, governance-review, knowledge-write, projection, and job-runtime owner entrypoints
-- Modify: `packages/backend-core/src/ports/telemetry-ports.ts` and tests only if a missing generic port operation blocks owner instrumentation
+- Modify: `packages/backend-core/src/observability/index.ts` and tests only if a missing generic port operation blocks owner instrumentation
 - Modify: `packages/contracts/src/domain/log-schema.ts`, `log-schema.test.ts`
 - Modify: `docs/architecture/OBSERVABILITY.md`, `docs/operations/OBSERVABILITY-OPERATIONS.md`
 
