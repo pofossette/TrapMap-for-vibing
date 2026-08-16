@@ -86,3 +86,5 @@ export {
   createMemoryGraphQueryBackend,
   type MemoryGraphQueryBackend,
 } from './graph-query.js';
+export { createRuleIntentRecognition } from './intent-recognition/rule-intent-recognition.js';
+export { createRuleChannelMerge } from './channel-merge/rule-channel-merge.js';
