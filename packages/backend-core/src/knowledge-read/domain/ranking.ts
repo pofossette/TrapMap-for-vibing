@@ -74,10 +74,13 @@ export interface VersionMatchMultiplierInput {
 
 /**
  * Step multiplier for versioned decay: an artifact whose declared version
- * equals any query version keeps full weight; a versioned artifact that does
- * not match is down-weighted by `mismatchMultiplier`. Non-versioned
- * freshness types, queries without version constraints, and disabled or
- * absent versioned config all yield 1 (no decay).
+ * equals any query version keeps full weight; a versioned artifact that
+ * declares a version not present in the query versions is down-weighted by
+ * `mismatchMultiplier`. An artifact WITHOUT a declared version is treated as
+ * neutral (1): "unknown" is not "mismatch", so it must not be silently
+ * penalized while runtime version wiring is pending. Non-versioned freshness
+ * types, queries without version constraints, and disabled or absent
+ * versioned config all yield 1 (no decay).
  *
  * Matching is exact string equality between the artifact version and the
  * version field of the query's {package, version} entries (package names do
@@ -89,10 +92,8 @@ export function versionMatchMultiplier(input: VersionMatchMultiplierInput): numb
   if (!queryVersions || queryVersions.length === 0) return 1;
   const versioned = decayConfig.versioned;
   if (!versioned || versioned.enabled === false) return 1;
-  const matched =
-    artifactVersion !== undefined &&
-    artifactVersion !== null &&
-    queryVersions.some((entry) => entry.version === artifactVersion);
+  if (artifactVersion === undefined || artifactVersion === null) return 1;
+  const matched = queryVersions.some((entry) => entry.version === artifactVersion);
   return matched ? versioned.matchMultiplier : versioned.mismatchMultiplier;
 }
 

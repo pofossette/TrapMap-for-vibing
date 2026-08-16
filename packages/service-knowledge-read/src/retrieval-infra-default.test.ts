@@ -151,9 +151,7 @@ describe('default knowledge-read retrieval infra', () => {
 
   it('applies versioned decay to semantic scores against query versions', async () => {
     const infra = createDefaultKnowledgeReadRetrievalInfra();
-    const services = { retrievalInfra: infra } as Parameters<
-      typeof optimizedSemanticRecall
-    >[0];
+    const services = { retrievalInfra: infra } as Parameters<typeof optimizedSemanticRecall>[0];
     const seed = 'react refresh workaround';
     const queryVector = await getQueryEmbedding(services, seed);
     const entries = [
@@ -161,6 +159,7 @@ describe('default knowledge-read retrieval infra', () => {
         id: 'versioned-mismatch',
         shortcut: seed,
         detail: seed,
+        latestRevision: revisionWithVersion('17.0.0'),
         decayMeta: { freshnessType: 'versioned' } as KnowledgeRecord['decayMeta'],
       }),
       createEntry({
@@ -168,6 +167,12 @@ describe('default knowledge-read retrieval infra', () => {
         shortcut: seed,
         detail: seed,
         latestRevision: revisionWithVersion('18.2.0'),
+        decayMeta: { freshnessType: 'versioned' } as KnowledgeRecord['decayMeta'],
+      }),
+      createEntry({
+        id: 'unknown-version',
+        shortcut: seed,
+        detail: seed,
         decayMeta: { freshnessType: 'versioned' } as KnowledgeRecord['decayMeta'],
       }),
       createEntry({
@@ -196,8 +201,9 @@ describe('default knowledge-read retrieval infra', () => {
     const byId = new Map(withConstraints.scoredEntries.map((e) => [e.entry.id, e]));
     expect(byId.get('versioned-match')?.score).toBeCloseTo(1);
     expect(byId.get('versioned-mismatch')?.score).toBeCloseTo(0.5);
+    expect(byId.get('unknown-version')?.score).toBeCloseTo(1);
     expect(byId.get('evergreen')?.score).toBeCloseTo(1);
-    expect(byId.get('no-version-constraints')?.score).toBeCloseTo(0.5);
+    expect(byId.get('no-version-constraints')?.score).toBeCloseTo(1);
 
     const withoutConstraints = await optimizedSemanticRecall(
       services,
@@ -206,9 +212,7 @@ describe('default knowledge-read retrieval infra', () => {
       { labels: [], scopes: [] },
       seed,
     );
-    const unconstrainedById = new Map(
-      withoutConstraints.scoredEntries.map((e) => [e.entry.id, e]),
-    );
+    const unconstrainedById = new Map(withoutConstraints.scoredEntries.map((e) => [e.entry.id, e]));
     expect(unconstrainedById.get('versioned-mismatch')?.score).toBeCloseTo(1);
   });
 

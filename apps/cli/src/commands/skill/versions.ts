@@ -1,11 +1,11 @@
-import { skillArtifactRevisionSchema } from '@trapmap/contracts';
+import { skillHistoryResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
 
-import { formatSkillVersionsResponse, type SkillVersionsPayload } from './formatters.js';
+import { type SkillVersionsPayload, formatSkillVersionsResponse } from './formatters.js';
 
 /**
  * Register the skill versions subcommand.
@@ -34,12 +34,13 @@ export function registerVersionsCommand(skill: Command): void {
           path: `/v1/operations/artifacts/${artifactId}/history`,
         });
 
-        const revisions = skillArtifactRevisionSchema.array().parse(response.data);
+        const parsed = skillHistoryResponseSchema.parse(response.data);
+        const revisions = parsed.revisions;
         const current = revisions.at(-1);
 
         const payload: SkillVersionsPayload = {
           artifactId,
-          currentRevision: current?.revision,
+          currentRevision: current?.revision ?? parsed.currentRevision,
           currentVersion: current?.version,
           revisions,
         };

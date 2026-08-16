@@ -2,26 +2,26 @@ import type {
   ApplyResolutionResponse,
   DuplicateJobBundleResponse,
   ManualResultResponse,
-  SkillArtifactRevision,
   SkillEditResponse,
   SkillHistoryResponse,
   SkillLookupResponse,
   SkillReviewDecisionResponse,
   SkillReviewQueueResponse,
+  SkillRevisionSummary,
 } from '@trapmap/contracts';
 
 import { stripNewlines } from '@trapmap/cli/lib/sanitize.js';
 
 /**
  * Payload for the skill versions command.
- * Carries the parsed revision array from the artifact history endpoint plus
- * the latest revision's derived values for JSON consumers.
+ * Carries the parsed revision summaries from the artifact history endpoint
+ * plus the latest revision's derived values for JSON consumers.
  */
 export interface SkillVersionsPayload {
   artifactId: string;
   currentRevision: number | undefined;
   currentVersion: string | undefined;
-  revisions: SkillArtifactRevision[];
+  revisions: SkillRevisionSummary[];
 }
 
 /**
@@ -124,7 +124,7 @@ export function formatSkillVersionsResponse(response: SkillVersionsPayload): str
   for (const revision of response.revisions) {
     const submitter = revision.submittedBy.handle ?? revision.submittedBy.id;
     const version = revision.version ?? '(none)';
-    const sourceHash = revision.sourceHash.slice(0, 8);
+    const sourceHash = revision.sourceHash?.slice(0, 8) ?? '';
     lines.push(
       `${revision.revision}. ${version}  ${revision.submittedAt} by ${submitter}  source: ${sourceHash}`,
     );

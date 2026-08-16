@@ -227,7 +227,7 @@ describe('knowledge-read ranking rules', () => {
       ).toBe(DEFAULT_FRESHNESS_DECAY_CONFIG.versioned.mismatchMultiplier);
     });
 
-    it('treats an entry without a declared version as a mismatch', () => {
+    it('treats an entry without a declared version as neutral (unknown is not a mismatch)', () => {
       expect(
         versionMatchMultiplier({
           artifactVersion: undefined,
@@ -235,7 +235,15 @@ describe('knowledge-read ranking rules', () => {
           freshnessType: 'versioned',
           decayConfig: DEFAULT_FRESHNESS_DECAY_CONFIG,
         }),
-      ).toBe(DEFAULT_FRESHNESS_DECAY_CONFIG.versioned.mismatchMultiplier);
+      ).toBe(1);
+      expect(
+        versionMatchMultiplier({
+          artifactVersion: null,
+          queryVersions: [{ package: 'react', version: '2.2.0' }],
+          freshnessType: 'versioned',
+          decayConfig: DEFAULT_FRESHNESS_DECAY_CONFIG,
+        }),
+      ).toBe(1);
     });
 
     it('matches the first matching query version across packages', () => {

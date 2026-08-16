@@ -4,6 +4,7 @@ import {
   type RouteTestApp,
   buildRouteTestApp,
 } from '@trapmap/backend-core/testing/route-test-app.js';
+import type { SkillArtifact, SkillArtifactRevision } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ArtifactBundleImportPort, ArtifactWritePort } from './artifact-ports.js';
@@ -48,6 +49,70 @@ async function createArtifactRouteApp(
   };
   const app = await buildRouteTestApp(createArtifactRouteDefs(deps), deps, adapter);
   return { app, artifacts, importer };
+}
+
+function createRevision(overrides: Partial<SkillArtifactRevision> = {}): SkillArtifactRevision {
+  return {
+    revision: 1,
+    sourceHash: 'a'.repeat(64),
+    files: [
+      {
+        path: 'SKILL.md',
+        kind: 'skill-markdown',
+        sha256: 'a'.repeat(64),
+        sizeBytes: 120,
+        mediaType: 'text/markdown',
+        source: 'SKILL.md',
+        includeInDerivation: true,
+        activationOnly: false,
+      },
+    ],
+    scriptDescriptors: [],
+    derived: null,
+    submittedAt: '2026-05-01T10:00:00Z',
+    submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 0 },
+    ...overrides,
+  };
+}
+
+function createArtifact(overrides: Partial<SkillArtifact> = {}): SkillArtifact {
+  return {
+    id: 'artifact-1',
+    teamId: null,
+    scope: 'global',
+    labels: ['skill'],
+    title: 'Docker Troubleshooting',
+    slug: 'docker-troubleshooting',
+    requiredLevel: 0,
+    lifecycleState: 'approved',
+    owner: { id: 'user-1', handle: 'alice', securityLevel: 0 },
+    latestRevision: 2,
+    history: [
+      createRevision({ revision: 1, version: '1.0.0', sourceHash: 'b'.repeat(64) }),
+      createRevision({ revision: 2, version: '2.1.0', sourceHash: 'c'.repeat(64) }),
+    ],
+    metadata: {
+      sourceKind: 'single-skill-md',
+      latestDecision: null,
+      latestReviewedAt: null,
+      latestSubmissionId: null,
+      latestSubmittedAt: null,
+      resubmissionCount: 0,
+      revisionCount: 2,
+      submissionCount: 2,
+    },
+    agentReview: null,
+    reviewHistory: [],
+    reviewNotes: [],
+    lifecycleHistory: [],
+    boundaryMeta: null,
+    evidenceMeta: null,
+    maintenanceMeta: null,
+    remediation: null,
+    createdAt: '2026-05-01T10:00:00Z',
+    updatedAt: '2026-05-01T10:00:00Z',
+    ...overrides,
+  };
 }
 
 describe.each(ADAPTERS)('artifact owner routes (%s adapter)', (adapter) => {
@@ -184,6 +249,80 @@ describe.each(ADAPTERS)('artifact owner routes (%s adapter)', (adapter) => {
       error: 'artifact owner unavailable',
       kind: 'unavailable',
     });
+    await app.close();
+  });
+
+  it('returns the object-shaped skill history response with revision summaries', async () => {
+    const getById = vi.fn(async () => createArtifact());
+    const history = vi.fn(async () => [
+      createRevision({ revision: 1, version: '1.0.0', sourceHash: 'b'.repeat(64) }),
+      createRevision({
+        revision: 2,
+        version: '2.1.0',
+        sourceHash: 'c'.repeat(64),
+        submittedAt: '2026-05-09T10:00:00Z',
+        submittedBy: { id: 'user-2', handle: 'bob', securityLevel: 0 },
+      }),
+    ]);
+    const artifacts = createArtifacts();
+    const importer = createImporter();
+    const deps = {
+      artifacts,
+      readProjection: createArtifactReadProjectionFixture(getById, history),
+      importer,
+    };
+    const app = await buildRouteTestApp(createArtifactRouteDefs(deps), deps, adapter);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/internal/artifacts/artifact-1/history',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      artifactId: 'artifact-1',
+      title: 'Docker Troubleshooting',
+      currentRevision: 2,
+      lifecycleState: 'approved',
+      revisions: [
+        {
+          revision: 1,
+          submittedAt: '2026-05-01T10:00:00Z',
+          submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 0 },
+          lifecycleState: 'approved',
+          version: '1.0.0',
+          sourceHash: 'b'.repeat(64),
+        },
+        {
+          revision: 2,
+          submittedAt: '2026-05-09T10:00:00Z',
+          submittedBy: { id: 'user-2', handle: 'bob', securityLevel: 0 },
+          lifecycleState: 'approved',
+          version: '2.1.0',
+          sourceHash: 'c'.repeat(64),
+        },
+      ],
+    });
+    await app.close();
+  });
+
+  it('returns 404 when the artifact for the history route is missing', async () => {
+    const artifacts = createArtifacts();
+    const importer = createImporter();
+    const deps = {
+      artifacts,
+      readProjection: createArtifactReadProjectionFixture(),
+      importer,
+    };
+    const app = await buildRouteTestApp(createArtifactRouteDefs(deps), deps, adapter);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/internal/artifacts/unknown/history',
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({ error: 'Artifact not found', kind: 'not-found' });
     await app.close();
   });
 });

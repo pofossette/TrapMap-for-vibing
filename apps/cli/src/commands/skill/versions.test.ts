@@ -1,4 +1,4 @@
-import type { SkillArtifactRevision } from '@trapmap/contracts';
+import type { SkillRevisionSummary } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -23,27 +23,30 @@ vi.mock('../../lib/config.js', () => ({
 
 const fakeHash = 'a'.repeat(64);
 
-function makeRevision(overrides: Partial<SkillArtifactRevision> = {}): SkillArtifactRevision {
+function makeRevisionSummary(overrides: Partial<SkillRevisionSummary> = {}): SkillRevisionSummary {
   return {
     revision: 1,
-    sourceHash: fakeHash,
-    files: [
-      {
-        path: 'SKILL.md',
-        kind: 'skill-markdown',
-        sha256: fakeHash,
-        sizeBytes: 120,
-        mediaType: 'text/markdown',
-        source: 'SKILL.md',
-        includeInDerivation: true,
-        activationOnly: false,
-      },
-    ],
-    scriptDescriptors: [],
-    derived: null,
     submittedAt: '2026-05-01T10:00:00Z',
     submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 0 },
+    lifecycleState: 'approved',
+    sourceHash: fakeHash,
     ...overrides,
+  };
+}
+
+function makeHistoryResponse(revisions: SkillRevisionSummary[]): {
+  artifactId: string;
+  title: string;
+  currentRevision: number;
+  lifecycleState: string;
+  revisions: SkillRevisionSummary[];
+} {
+  return {
+    artifactId: 'artifact.db',
+    title: 'Docker Troubleshooting',
+    currentRevision: revisions.at(-1)?.revision ?? 0,
+    lifecycleState: 'approved',
+    revisions,
   };
 }
 
@@ -94,21 +97,21 @@ describe('CLI skill versions command', () => {
   describe('execution', () => {
     it('fetches the artifact history endpoint and renders version history in text', async () => {
       vi.mocked(http.apiRequest).mockResolvedValue({
-        data: [
-          makeRevision({
+        data: makeHistoryResponse([
+          makeRevisionSummary({
             revision: 1,
             sourceHash: 'b'.repeat(64),
             submittedAt: '2026-05-01T10:00:00Z',
             submittedBy: { id: 'user-1', handle: 'alice', securityLevel: 0 },
           }),
-          makeRevision({
+          makeRevisionSummary({
             revision: 2,
             version: '2.1.0',
             sourceHash: 'c'.repeat(64),
             submittedAt: '2026-05-09T10:00:00Z',
             submittedBy: { id: 'user-2', handle: 'bob', securityLevel: 0 },
           }),
-        ],
+        ]),
         sessionToken: 'mock-token',
       });
 
@@ -147,7 +150,7 @@ describe('CLI skill versions command', () => {
 
     it('renders unversioned artifacts without a declared version', async () => {
       vi.mocked(http.apiRequest).mockResolvedValue({
-        data: [makeRevision()],
+        data: makeHistoryResponse([makeRevisionSummary()]),
         sessionToken: 'mock-token',
       });
 
@@ -171,17 +174,17 @@ describe('CLI skill versions command', () => {
 
     it('emits JSON payload with version fields when --json is passed', async () => {
       vi.mocked(http.apiRequest).mockResolvedValue({
-        data: [
-          makeRevision({
+        data: makeHistoryResponse([
+          makeRevisionSummary({
             revision: 1,
             sourceHash: 'b'.repeat(64),
           }),
-          makeRevision({
+          makeRevisionSummary({
             revision: 2,
             version: '2.1.0',
             sourceHash: 'c'.repeat(64),
           }),
-        ],
+        ]),
         sessionToken: 'mock-token',
       });
 

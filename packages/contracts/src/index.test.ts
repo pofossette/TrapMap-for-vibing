@@ -3005,7 +3005,43 @@ describe('Phase 19: Skill Edit and History Contracts', () => {
 
       const parsed = skillRevisionSummarySchema.parse(summary);
       expect('files' in parsed).toBe(false);
-      expect('sourceHash' in parsed).toBe(false);
+      expect(parsed.sourceHash).toBeUndefined();
+      expect(parsed.version).toBeUndefined();
+    });
+
+    it('accepts version and sourceHash on a revision summary', () => {
+      const summary = {
+        revision: 2,
+        submittedAt: '2024-01-02T00:00:00Z',
+        submittedBy: {
+          id: 'user_1',
+          handle: 'testuser',
+          securityLevel: 5,
+        },
+        lifecycleState: 'approved' as const,
+        version: '2.1.0',
+        sourceHash: 'a'.repeat(64),
+      };
+
+      const parsed = skillRevisionSummarySchema.parse(summary);
+      expect(parsed.version).toBe('2.1.0');
+      expect(parsed.sourceHash).toBe('a'.repeat(64));
+    });
+
+    it('rejects a non-semver version on a revision summary', () => {
+      const summary = {
+        revision: 1,
+        submittedAt: '2024-01-01T00:00:00Z',
+        submittedBy: {
+          id: 'user_1',
+          handle: 'testuser',
+          securityLevel: 5,
+        },
+        lifecycleState: 'approved' as const,
+        version: 'v2.1.0',
+      };
+
+      expect(() => skillRevisionSummarySchema.parse(summary)).toThrow();
     });
   });
 
@@ -3073,6 +3109,8 @@ describe('Phase 19: Skill Edit and History Contracts', () => {
             submittedAt: '2024-01-01T00:00:00Z',
             submittedBy: { id: 'user_1', handle: 'test', securityLevel: 5 },
             lifecycleState: 'approved' as const,
+            version: '1.0.0',
+            sourceHash: 'a'.repeat(64),
           },
         ],
       };
@@ -3085,9 +3123,11 @@ describe('Phase 19: Skill Edit and History Contracts', () => {
       expect('format' in parsed).toBe(false);
       expect('exportedAt' in parsed).toBe(false);
 
-      // Revisions should NOT have full file manifests
+      // Revisions should NOT have full file manifests, but DO carry
+      // version/sourceHash for the versions view
       expect('files' in parsed.revisions[0]!).toBe(false);
-      expect('sourceHash' in parsed.revisions[0]!).toBe(false);
+      expect(parsed.revisions[0]?.version).toBe('1.0.0');
+      expect(parsed.revisions[0]?.sourceHash).toBe('a'.repeat(64));
     });
 
     it('is distinct from skillArtifactSchema (metadata-only, no full history)', () => {

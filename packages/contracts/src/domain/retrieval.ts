@@ -103,6 +103,10 @@ export const retrievalMatchSchema = z
     conflicts: z.array(conflictHintSchema).optional(),
     /** Boundary explanation for why this entry is applicable (Phase 66) */
     boundaryExplanation: boundaryExplanationSchema.optional(),
+    /** Semver version declared on the artifact's latest revision (absent for unversioned entries) */
+    version: z.string().optional(),
+    /** Latest revision number of the artifact backing this entry (absent for legacy knowledge entries) */
+    revision: z.number().int().min(1).optional(),
   })
   .strict();
 

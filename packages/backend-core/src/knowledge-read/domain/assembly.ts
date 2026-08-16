@@ -33,6 +33,10 @@ export interface ScoredEntryLike<E> {
   entry: E;
   score: number;
   boundaryExplanation?: BoundaryExplanation;
+  /** Semver version declared on the entry's latest revision (absent for unversioned entries) */
+  version?: string;
+  /** Latest revision number of the artifact backing this entry */
+  revision?: number;
 }
 
 /**
@@ -71,7 +75,7 @@ export function toRetrievalMatch<E extends MatchableEntryView>(
   citation?: RetrievalCitation,
   conflicts?: ConflictHint[],
 ): RetrievalMatch {
-  const { entry, score, boundaryExplanation } = scoredEntry;
+  const { entry, score, boundaryExplanation, version, revision } = scoredEntry;
   return retrievalMatchSchema.parse({
     entryId: entry.id,
     scope: entry.scope,
@@ -84,6 +88,8 @@ export function toRetrievalMatch<E extends MatchableEntryView>(
     citation,
     ...(conflicts && conflicts.length > 0 ? { conflicts } : {}),
     ...(boundaryExplanation ? { boundaryExplanation } : {}),
+    ...(version !== undefined ? { version } : {}),
+    ...(revision !== undefined ? { revision } : {}),
   });
 }
 

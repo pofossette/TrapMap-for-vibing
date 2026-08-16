@@ -1,4 +1,4 @@
-import type { ArtifactReadProjection } from '@trapmap/contracts';
+import type { ArtifactReadProjection, SkillArtifactRevision } from '@trapmap/contracts';
 import { vi } from 'vitest';
 
 export function createTransactionPool(
@@ -24,12 +24,13 @@ export function createTransactionPool(
 
 export function createArtifactReadProjectionFixture(
   getById = vi.fn(async () => null),
+  history = vi.fn(async () => [] as SkillArtifactRevision[]),
 ): ArtifactReadProjection {
   return {
     getById,
     listByFilter: vi.fn(async () => []),
     listForRetrieval: vi.fn(async () => []),
-    history: vi.fn(async () => []),
+    history,
     exportArtifacts: vi.fn(async () => []),
     reviewQueue: vi.fn(async () => []),
     getIndexingEntry: vi.fn(async () => null),
