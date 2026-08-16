@@ -189,15 +189,9 @@
 - [ ] **后续落点：** 将 seed 端口收窄为最小契约（只暴露 eval 需要的 seed 能力），其余写路径回到产品端口。
 - [ ] **要求的文档与测试：** evals focused tests、`pnpm eval:smoke`（CI）、`pnpm typecheck`。
 
-### internal-client review/governanceReview 双组合并（2026-08-15 登记）
+### internal-client review/governanceReview 双组合并（2026-08-15 登记，2026-08-16 关闭）
 
-- [ ] **来源：** 六路审查 hosts 车道：`packages/host-distributed/src/gateway/internal-client.ts`（928 行）的 `review` 与 `governanceReview` 两组 7 方法逐字重复（同一 governance-review 服务的两个 URL key：`urls.review`/`urls.governanceReview`；`governanceReview` 额外含 getRetrievalProjection/reactivateRemediation/exportBadcaseDraft）。
-- [ ] **影响：** 方法签名/路径改动需双处同步；新增内部方法要复制两份。
-- [ ] **当前边界：** 本轮不合并（涉及 gateway 客户端语义与 baseUrl 选择逻辑）。
-- [ ] **进入条件：** governance-review 内部接口新增/变更方法时，或 `urls.review`/`urls.governanceReview` 任一 URL key 被确认可退役。
-- [ ] **后续落点：** 合并为单组并按 baseUrl 来源选择 URL key（或统一为一个 URL key），补 gateway 客户端测试。
-- [ ] **设计输入：** [`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 定义目标架构（deferred 设计输入，激活前不构成执行授权）。
-- [ ] **要求的文档与测试：** host-distributed gateway focused tests、`pnpm test:deployment-smoke`、`pnpm typecheck`。
+- [x] **已关闭（2026-08-16，主线 3）：** `internal-client.ts` 的 `review` 与 `governanceReview` 两组 7 方法逐字重复已合并（9b3a7b4d）：单一工厂 `createGovernanceReviewClient(baseUrlFor)` 实现该组一次，`review` / `governanceReview` 各自按 URL key 来源（`urls.review` / `urls.governanceReview`）组合，`governanceReview` 保留三个扩展方法。行为不变（路由/方法签名/静态与 resolver URL 语义/公开 `InternalServiceClients` 形状均未变）；新增测试证明两组仍各自路由到自己的 URL key。门禁：host-distributed 184 全绿、全量 typecheck、fallow audit --base 68cb8392 exit 0（生产重复组消除；剩余 warn 为测试文件预存 fixture 重复）。
 
 ### host-distributed shared/ports.ts 业务下沉（2026-08-15 登记）
 
