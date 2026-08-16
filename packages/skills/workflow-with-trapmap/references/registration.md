@@ -68,4 +68,5 @@ trapmap edit <entryId> --shortcut "更新的描述" --labels auth,security --jso
 trapmap skill edit <artifactId> --title "新标题" --labels auth,oauth2 --json
 trapmap skill edit <artifactId> --file ./updated-SKILL.md --json
 trapmap skill history <artifactId> --json   # 查看版本历史
+trapmap skill versions <artifactId> --json  # 查看 semver 版本与修订历史
 ```
