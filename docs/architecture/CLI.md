@@ -169,6 +169,20 @@ Evidence 枚举值与 contracts 一致：
 | `trapmap maintenance-verify` | 标记已验证；支持 `--json` |
 | `trapmap policy resolve` | 激活策略解析；支持 `--json` |
 
+## 定时任务（cron）命令
+
+| 命令 | 参数 |
+|------|------|
+| `trapmap cron list` | 列出全部 cron job；可选 `--json` |
+| `trapmap cron add` | 新增 cron job；`--name <name>`、`--schedule <expr>`、`--timezone <tz>`、`--task-type <type>`、`--payload <json>`；可选 `--json` |
+| `trapmap cron edit <jobId>` | 编辑 cron job；参数同 add，均为可选；可选 `--json` |
+| `trapmap cron pause <jobId>` | 暂停 cron job；可选 `--json` |
+| `trapmap cron resume <jobId>` | 恢复 cron job；可选 `--json` |
+| `trapmap cron trigger <jobId>` | 手动立即执行一次（不推进下次调度）；可选 `--json` |
+| `trapmap cron status` | 全部 cron job 状态快照；可选 `--json` |
+
+> 占位章节：命令注册与实现由 Task 4（CLI 接入）落地，路由面已在 `packages/service-cron` 提供（GET/POST `/cron/jobs`、GET/PATCH/DELETE `/cron/jobs/:id`、POST `/cron/jobs/:id/trigger`、GET `/cron/status`）。
+
 ## 输出约定
 
 - 大多数用户命令都提供 `--json`
