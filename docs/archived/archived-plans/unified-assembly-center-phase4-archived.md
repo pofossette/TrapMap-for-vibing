@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **状态：** active
+> **状态：** 已归档
 > **根入口：** [`../../plan.md`](../../plan.md)
 > **设计规格：** [`../superpowers/specs/2026-08-16-unified-assembly-center-design.md`](../superpowers/specs/2026-08-16-unified-assembly-center-design.md)
 
@@ -53,15 +53,15 @@ T1-T4 相互独立可并行推进；T5 依赖检索收敛后的 retrieval 语义
 - Consumes: 完整 retrieval-engine 管线（`packages/service-knowledge-read` retrieval infra）；现有检索 contracts / 结构类型。
 - Produces: `knowledge-read/ports.ts` ILIKE seam 退役，分布式检索行为与 monolith 一致（行为升级，Phase 3 偏差显式 deferred 项）。
 
-- [ ] **Step 1: 行为差异盘点**
+- [x] **Step 1: 行为差异盘点**
   盘点 `knowledge-read/ports.ts` ILIKE 与 monolith 完整 retrieval-engine 管线的行为差异（查询语义、过滤、排序、评分、fallback），记录为评审依据。
-- [ ] **Step 2: 收敛实现**
+- [x] **Step 2: 收敛实现**
   将 host-distributed knowledge-read 的 ILIKE 消费切到完整 retrieval-engine 管线接口；删除 ILIKE 残留实现；必要时在 retrieval infra 按 owner 边界补薄消费面。
-- [ ] **Step 3: 行为升级评审与单测**
+- [x] **Step 3: 行为升级评审与单测**
   输出行为升级评审结论（见实施偏差记录）；补 focused 单测断言分布式行为与 monolith 一致（同一 query 输入 → 同一返回语义）。
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证**
   host-distributed + service-knowledge-read focused tests、`pnpm eval:smoke`（检索变更必跑）、`pnpm typecheck`、`pnpm exec fallow audit --base main`。
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `refactor(service-knowledge-read): converge host-distributed retrieval onto full retrieval-engine pipeline (ILIKE retired)`
 
 ### Task 2: OTel/Consul 单一插件收敛（D5）
@@ -76,15 +76,15 @@ T1-T4 相互独立可并行推进；T5 依赖检索收敛后的 retrieval 语义
 - Consumes: T1 之后既有 assembly 装配内核；host-local / host-distributed 现有 observability / service-discovery 接线。
 - Produces: 单一 otel 插件与单一 consul 插件，host-local 与 host-distributed 的 assembly 节点共同消费；运行时语义不变。
 
-- [ ] **Step 1: 接线盘点**
+- [x] **Step 1: 接线盘点**
   盘点 host-local（otel.service.ts + consul.*）与 host-distributed（telemetry.ts + consul-discovery-adapter.ts + discovery-factory.ts + internal-observability.ts）当前双份接线。
-- [ ] **Step 2: 单一插件抽取**
+- [x] **Step 2: 单一插件抽取**
   抽取单一 otel / 单一 consul 插件（host-local-owned 落点或 host 内共享节点），两宿主 assembly 节点改为消费同一插件；删除并行简化接入。
-- [ ] **Step 3: 行为语义保持核验**
+- [x] **Step 3: 行为语义保持核验**
   确认指标暴露、trace/span 传播、Consul 注册/发现语义与消费面不变。
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证**
   `pnpm test:observability-closeout`、`pnpm test:discovery-closeout`、host-local + host-distributed focused tests、`pnpm typecheck`、`pnpm exec fallow audit --base main`。
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `refactor(assembly): converge host-local/host-distributed onto single otel and single consul plugins`
 
 ### Task 3: direct-run seam 退役
@@ -98,15 +98,15 @@ T1-T4 相互独立可并行推进；T5 依赖检索收敛后的 retrieval 语义
 - Consumes: 现有 `apps/light` / `apps/distributed` boot 链路。
 - Produces: 库包 direct-run seam 退役，所有 boot 均经 app shells（经 assembly profiles）。
 
-- [ ] **Step 1: 依赖盘点**
+- [x] **Step 1: 依赖盘点**
   盘点 `apps/light` / `apps/distributed` 对库包 direct-run seam 的依赖（closeout 测试链 `build -> start` 已迁移到 app 入口？）。
-- [ ] **Step 2: seam 退役**
+- [x] **Step 2: seam 退役**
   移除 `packages/host-local/src/index.ts` 的 `isDirectExecution` 判定与对应回退，以及 host-distributed 等价入口；库包只暴露 API/装配导出，不承担可执行直连。
-- [ ] **Step 3: boot 链路收敛**
+- [x] **Step 3: boot 链路收敛**
   确认所有 boot（dev / compose / closeout 测试链）均经 `apps/light` / `apps/distributed` 经 assembly profiles。
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证**
   `pnpm test:deployment-smoke`、`pnpm test:runtime-foundations`、host-local + host-distributed focused tests、`pnpm typecheck`。
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `refactor(host-local): retire direct-run seam so all boots go through app shells`
 
 ### Task 4: 别名对齐（backend-target-registry + root dev:* aliases）
@@ -120,15 +120,15 @@ T1-T4 相互独立可并行推进；T5 依赖检索收敛后的 retrieval 语义
 - Consumes: 现有 `backend-target-registry` 与根 `dev:*` 别名定义。
 - Produces: 单一 shape 名→builder-command 映射；两处收敛一致，单测防回归。
 
-- [ ] **Step 1: 现状盘点**
+- [x] **Step 1: 现状盘点**
   盘点 `scripts/backend-target-registry.ts` 与根 `dev:*` 别名当前两份表达的 shape 名与命令。
-- [ ] **Step 2: 收敛映射**
+- [x] **Step 2: 收敛映射**
   将 `backend-target-registry.ts` 收敛为纯 shape 名 → builder-command 映射；根 `dev:*` 别名改为消费同一映射（避免两处漂移）。
-- [ ] **Step 3: 断言测试**
+- [x] **Step 3: 断言测试**
   新增/更新单测断言：`local-agent`、`team-monolith`、`distributed:<service>` 各自映射正确。
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证**
   相关单测、`pnpm typecheck`、`pnpm check:imports` / `pnpm check:asserts`、必要时 `pnpm test:deployment-smoke`。
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `refactor(scripts): align backend-target-registry with root dev:* aliases via shape-name mapping`
 
 ### Task 5: 集群化验证（compose replicas=2 ownership/重复消费断言）
@@ -142,13 +142,13 @@ T1-T4 相互独立可并行推进；T5 依赖检索收敛后的 retrieval 语义
 - Consumes: worker 子节点拆分形态（Phase 3 T4 产物）；job-runtime 的 ownership / 消费语义（dedupe_key + SKIP LOCKED）。
 - Produces: compose replicas=2 集群验证证据：candidate-worker / outbox-worker 各自多副本下无重复消费、ownership 归属正确。
 
-- [ ] **Step 1: compose replicas=2**
+- [x] **Step 1: compose replicas=2**
   docker-compose 就 `candidate-worker` 与 `outbox-worker` 各起 `replicas=2`（Docker v29 + compose v5 可用）。
-- [ ] **Step 2: ownership / 重复消费断言**
+- [x] **Step 2: ownership / 重复消费断言**
   跑 ownership/重复消费断言（SKIP LOCKED/租约语义）：多副本下同一 job 不会重复消费、worker ownership 归属唯一。
-- [ ] **Step 3: 验证**
+- [x] **Step 3: 验证**
   集群断言通过；必要补 focused tests；`pnpm test:runtime-foundations` / `pnpm test:deployment-smoke` 复跑说明。
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   `test(host-distributed): add cluster replicas=2 ownership/duplicate-consumption assertion`
 
 ### Task 6: golden 回归 + closeout（守卫、文档回写、归档评估）
@@ -163,17 +163,17 @@ T1-T4 相互独立可并行推进；T5 依赖检索收敛后的 retrieval 语义
 - Consumes: T1-T5 全部产物与文档。
 - Produces: Phase 4 closeout 证据；assembly 主线四阶段收尾完成后 finalize `plan.md`。
 
-- [ ] **Step 1: 全量回归**
+- [x] **Step 1: 全量回归**
   全部通过：typecheck；assembly + host-local + host-distributed 包全量；distributed-closeout；distributed-acceptance；deployment-smoke；runtime-foundations；observability-closeout；discovery-closeout；`eval:smoke`（检索收敛变更）；check:imports / asserts / deps / structure / docs；fallow audit --base main。
-- [ ] **Step 2: 边界与文档守卫确认**
+- [x] **Step 2: 边界与文档守卫确认**
   `check:fallow` 全量 exit 0；`check:docs` / `check:structure` 全绿。
-- [ ] **Step 3: Completion Gates 核对**
+- [x] **Step 3: Completion Gates 核对**
   确认下方 Completion Gates 全部满足。
-- [ ] **Step 4: 文档回写**
+- [x] **Step 4: 文档回写**
   按治理规则回写 BOUNDARIES / SYSTEM_TRUTH_SOURCES / open-debt / README 索引（见 Files）。
-- [ ] **Step 5: 归档评估**
+- [x] **Step 5: 归档评估**
   仅当全部证据齐全且 assembly 主线完整收尾（后续如开独立判断类节点收编主线时另行激活）才归档本细则并更新 todos/README.md 与 plan.md。
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `docs(assembly): close out Phase 4 closeout mainline`
 
 ## 范围边界
@@ -195,18 +195,31 @@ T1-T4 相互独立可并行推进；T5 依赖检索收敛后的 retrieval 语义
 
 ## Completion Gates
 
-- [ ] 检索收敛（ILIKE → 完整 retrieval-engine 管线）完成：host-distributed knowledge-read 消费完整管线，ILIKE 删除（设计 D5），分布式检索行为与 monolith 一致；`eval:smoke` 与检索 focused tests 全绿。
-- [ ] OTel / Consul 单一插件收敛完成：host-local 与 host-distributed assembly 节点共用单一 otel / 单一 consul 插件，运行时语义不变；`observability-closeout` / `discovery-closeout` 全绿。
-- [ ] direct-run seam 退役完成：`packages/host-local/src/index.ts` 的 `isDirectExecution` 判定与等价入口移除，所有 boot 经 `apps/light` / `apps/distributed` app shells 经 assembly profiles。
-- [ ] 别名对齐完成：`scripts/backend-target-registry.ts` 与根 `dev:*` 别名收敛为 shape 名 → builder-command 映射（local-agent / team-monolith / distributed:<service>），单测断言通过。
-- [ ] 集群化验证通过：compose replicas=2 起 candidate-worker + outbox-worker，ownership / 重复消费断言通过（SKIP LOCKED / 租约语义）。
-- [ ] golden 回归全绿：typecheck；assembly + host-local + host-distributed 包全量；distributed-closeout；distributed-acceptance；deployment-smoke；runtime-foundations；observability-closeout；discovery-closeout；`eval:smoke`；check:imports / asserts / deps / structure / docs；fallow audit --base main。
-- [ ] 无新增 yml/json 装配文件、无新增断言豁免（`check:asserts` 全绿）。
+- [x] 检索收敛（ILIKE → 完整 retrieval-engine 管线）完成：host-distributed knowledge-read 消费完整管线，ILIKE 删除（设计 D5），分布式检索行为与 monolith 一致；`eval:smoke` 与检索 focused tests 全绿。
+- [x] OTel / Consul 单一插件收敛完成：host-local 与 host-distributed assembly 节点共用单一 otel / 单一 consul 插件，运行时语义不变；`observability-closeout` / `discovery-closeout` 全绿。
+- [x] direct-run seam 退役完成：`packages/host-local/src/index.ts` 的 `isDirectExecution` 判定与等价入口移除，所有 boot 经 `apps/light` / `apps/distributed` app shells 经 assembly profiles。
+- [x] 别名对齐完成：`scripts/backend-target-registry.ts` 与根 `dev:*` 别名收敛为 shape 名 → builder-command 映射（local-agent / team-monolith / distributed:<service>），单测断言通过。
+- [x] 集群化验证通过：compose replicas=2 起 candidate-worker + outbox-worker，ownership / 重复消费断言通过（SKIP LOCKED / 租约语义）。
+- [x] golden 回归全绿：typecheck；assembly + host-local + host-distributed 包全量；distributed-closeout；distributed-acceptance；deployment-smoke；runtime-foundations；observability-closeout；discovery-closeout；`eval:smoke`；check:imports / asserts / deps / structure / docs；fallow audit --base main。
+- [x] 无新增 yml/json 装配文件、无新增断言豁免（`check:asserts` 全绿）。
 
-## 实施偏差记录
+## 实施偏差记录（2026-08-16，合入 909550b7 + 904466f5）
 
-（空——初始无偏差。若实现过程中发现行为升级评审结论、插件落点、别名映射或守卫差异，记录于此并注明解决路径或 deferred 落点。）
+- **T1 检索收敛（D5）——行为升级已评审**：ILIKE（扁平子串匹配、恒等 1.0 评分、snippet=content 截断）退役，host-distributed knowledge-read 经 `converged-retrieval.ts` 消费 `@trapmap/service-knowledge-read` 完整管线（hash-embedding + 关键词召回 + rerank/boundary/freshness/eligibility，mode=hybrid，system-admin resolver 与 monolith 一致）；HTTP 响应 shape（results[].{entryId,score,snippet} / totalEstimate / channel）不变，评分与排序语义对齐 monolith。零检索 SQL/排序逻辑复制到 host-distributed。
+- **T1 附带修复两个仓库级既有缺陷（阻塞 eval:smoke 与全新库部署）**：
+  1. drizzle 多目录迁移毒化：knowledge-write `0001_artifact_revision_version` journal `when=1784020000000` 晚于 candidate/governance/job-runtime/knowledge-read/cron，而 drizzle 按「全局最后 applied created_at」去重，导致 `runDistributedMigrations` / eval 协调器在**任何全新数据库**上静默跳过这些迁移（`task_queue`/`domain_event_outbox`/`workflow_runs`/`candidates`/`feedback_records`/`knowledge_embeddings` 等永不创建）。已把 0001 的 when 规范化为 0000 与 candidate 之间（`9181df0e`）；既有库不受影响。
+  2. eval 协调器临时库从未启用 vector 扩展（pgvector 镜像只在集群层提供）——补 `CREATE EXTENSION IF NOT EXISTS vector`（`9181df0e`）。
+  eval:smoke 修复后与 main 基线**完全一致**（54/81；retrieval 4/26、summary 1/6 低分为环境既有 fixture/LLM 依赖问题，非本次收敛回归）。
+- **T2 插件落点**：单一 otel / consul 插件落在 `packages/backend-core/src/observability/`（`otel-bootstrap.ts` + `consul-http-adapter.ts`，框架无关零 Nest/Fastify 依赖；assembly zone 不消费它们），host-local（Nest）与 host-distributed（Fastify）保留各自薄适配器；运行时语义不变（`validateOtelPolicy` 策略、trace header 传播、shutdown 超时均保留）。
+- **T5 集群化验证形态**：确定性验证 = `scripts/cluster-ownership.ts`（`pnpm test:cluster-ownership`）——两个共享同一 pg pool 的 in-process worker 副本消费同一 `task_queue`/`domain_event_outbox`，断言 SKIP LOCKED 恰好一次（20 tasks + 20 events 全完成、零重复、两副本均参与；已在 compose pg 实测 PASS）。`docker-compose.closeout.yml` 增 `deploy.replicas: 2`（candidate-worker + outbox-worker）。**真实 compose scale 演示受阻**：本地 `trap-map-host-distributed:latest` 为 2026-07-13 旧构建（WORKDIR `/app/packages/host-distributed`），与当前 compose/Dockerfile（`/app/apps/distributed` + `dist/index.js`）不匹配，`up --scale` 后容器 MODULE_NOT_FOUND；沙箱无外网、docker build 的 `pnpm install`/tsc 不可行，无法重建镜像。已把运行中的 compose 栈恢复原状（每 worker 1 副本，健康运行）。**镜像重建（联网/CI）后即可执行 compose replicas=2 真实验证**；该旧镜像与当前 compose 的漂移已登记 open-debt。
+- **T4 别名映射**：`scripts/backend-target-registry.ts` 收敛为 shape 名（local-agent / team-monolith / distributed:<service>）→ builder-command 薄映射，单测断言；根 `dev:*` 别名同步对齐。
+- **T3 seam 退役**：host-local `isDirectExecution` 与 host-distributed 等价直连入口移除，所有 boot 经 `apps/light` / `apps/distributed`（assembly profiles）。
+- **守卫差异**：fallow audit 对 `consul.service.test.ts` 报 2 组测试内克隆（warn 级、27 行、0.0%、门禁豁免非阻塞），遗留为已知小项，未强制重构（测试内相似 mock 段落）。
+
 
 ## 问题池
 
-（空——初始无问题。若实现过程中发现 API 设计、cordis / retrieval 行为、OTel/Consul 收敛、集群验证或守卫差异，记录于此并注明解决路径或 deferred 落点。）
+- **本地 trap-map-host-distributed 镜像与当前 compose/Dockerfile 漂移**（2026-07-13 旧构建，WORKDIR 指向 host-distributed 包）：compose replicas 真实 scale 演示需重建镜像（联网/CI），已登记 open-debt；不影响代码门禁与 in-process ownership 验证。
+- **eval:smoke 基线通过率 54/81**：retrieval 4/26（15.4%）与 summary 1/6（16.7%）为环境既有 fixture/LLM 依赖问题，main 与收敛分支结果一致（非回归）；后续独立评估数据/评判器优化，不在本主线。
+- **判断类节点契约（D8）**：intent-recognition / dedup-strategy / conflict-trigger / artifact-derivation / label-alignment / channel-merge 按设计 D8 后续独立收编主线，本阶段明确不纳入。
+

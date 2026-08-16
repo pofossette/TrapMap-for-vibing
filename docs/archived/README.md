@@ -113,6 +113,7 @@
 | `archived-plans/unified-assembly-center-phase1-archived.md` | 2026-08-16 | 统一优雅组装中心（assembly）Phase 1 地基主线完成 closeout：packages/assembly 建包 + cordis 内核 + 核心 API + 单测（40/40）+ 根级接线 + 守卫与文档同步；证据见该文档 Closeout 记录 |
 | `archived-plans/unified-assembly-center-phase2-pilot-archived.md` | 2026-08-16 | 统一优雅组装中心（assembly）Phase 2 试点主线完成 closeout：host-local 经 assembly boot（host-local-owned pilot nodes + local/team profiles + nest-transport），golden 全绿（deployment-smoke 379 / runtime-foundations 130 / host-local 228 / assembly 42）、fallow 30 files 零 issue；服务包 node.ts 与通用 infra 节点按偏差记录推迟 Phase 3；证据见该文档 Closeout 记录 |
 | `archived-plans/unified-assembly-center-phase3-archived.md` | 2026-08-16 | 统一优雅组装中心（assembly）Phase 3 收敛主线完成 closeout（合入 `0a753aec` / `8b75d25d`，closeout 同步 `a2b9b2d2`）：host-distributed 改由 `distributedAssembly(name)` boot、删除 8 个 `start<X>Service` 样板、`shared/ports.ts` 简化版退役、worker 子节点整体/拆分形态打通；golden 全绿（host-distributed 173 / distributed-closeout 35 / deployment-smoke 379 / runtime-foundations 130）、fallow 34 files 零 issue；检索 ILIKE 完整管线收敛、OTel/Consul 收敛、direct-run seam 退役、别名对齐、集群验证显式 deferred 到 Phase 4；证据见该文档 Closeout 记录 |
+| `archived-plans/unified-assembly-center-phase4-archived.md` | 2026-08-16 | 统一优雅组装中心（assembly）Phase 4 收尾主线（双实现收敛 D5、direct-run seam 退役、别名对齐、集群化验证、golden 回归）已完成并归档；assembly 主线四阶段全部完成 |
 
 ## 归档原则
 

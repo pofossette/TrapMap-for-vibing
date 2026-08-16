@@ -6,7 +6,7 @@
 
 | 文件 | 主题 | 状态 |
 |---|---|---|
-| [assembly-phase4.md](assembly-phase4.md) | 统一优雅组装中心（assembly）Phase 4 收尾（双实现收敛 + direct-run seam 退役 + 别名对齐 + 集群化验证） | 进行中 — 当前唯一 active mainline |
+| [assembly-phase4.md](../archived/archived-plans/unified-assembly-center-phase4-archived.md)（已归档） | 统一优雅组装中心（assembly）Phase 4 收尾（双实现收敛 + direct-run seam 退役 + 别名对齐 + 集群化验证） | 已完成（2026-08-16），已归档 |
 | [assembly-phase1.md](../archived/archived-plans/unified-assembly-center-phase1-archived.md)（已归档） | 统一优雅组装中心（assembly）Phase 1 地基 | 已完成（2026-08-16），已归档 |
 | [assembly-phase2.md](../archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md)（已归档） | 统一优雅组装中心（assembly）Phase 2 试点（host-local 改由 assembly boot） | 已完成（2026-08-16），已归档 |
 | [assembly-phase3.md](../archived/archived-plans/unified-assembly-center-phase3-archived.md)（已归档） | 统一优雅组装中心（assembly）Phase 3 收敛（host-distributed 改 `distributedAssembly`） | 已完成（2026-08-16），已归档 |
@@ -23,6 +23,6 @@
 
 ## 当前状态说明
 
-当前唯一 active mainline 是 [assembly Phase 4](assembly-phase4.md)（统一优雅组装中心——收尾：检索 ILIKE 完整管线收敛（D5）、OTel/Consul 单一插件收敛（D5）、direct-run seam 退役、别名对齐、集群化验证；golden 全绿后归档并 finalize plan.md）。[assembly Phase 3](../archived/archived-plans/unified-assembly-center-phase3-archived.md) 已完成（2026-08-16）并归档至 [unified-assembly-center-phase3-archived.md](../archived/archived-plans/unified-assembly-center-phase3-archived.md)；更早的 [assembly Phase 2](../archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md) 与 [assembly Phase 1](../archived/archived-plans/unified-assembly-center-phase1-archived.md) 均已完成（2026-08-16）并归档。[Dead Code and Architecture Order Cleanup](dead-code-and-architecture-order-cleanup.md) 作为上一主线：实现已提交（2026-08-16），其 closeout（Task 11-13）延后，登记在 `open-debt-and-compromises.md`。已归档的 Documentation Validation and Observability Platform、compatibility-shell retirement、可观测性、shared PG 治理与分布式成熟度主线仅保留历史证据。`open-debt-and-compromises.md` 仅承担长期问题的来源、影响、触发条件和后续落点登记；它不允许形成并行 tranche。平台化与其余历史证据、冻结决策或背景材料应通过 `docs/archived/` 查找，只有根 `plan.md` 显式切换后才能成为新的执行面。
+“统一优雅组装中心（assembly）”主线四阶段已全部完成（2026-08-16），当前无 active mainline；后续如开独立判断类节点收编主线（设计 D8）再激活。[assembly Phase 3](../archived/archived-plans/unified-assembly-center-phase3-archived.md) 已完成（2026-08-16）并归档至 [unified-assembly-center-phase3-archived.md](../archived/archived-plans/unified-assembly-center-phase3-archived.md)；更早的 [assembly Phase 2](../archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md) 与 [assembly Phase 1](../archived/archived-plans/unified-assembly-center-phase1-archived.md) 均已完成（2026-08-16）并归档。[Dead Code and Architecture Order Cleanup](dead-code-and-architecture-order-cleanup.md) 作为上一主线：实现已提交（2026-08-16），其 closeout（Task 11-13）延后，登记在 `open-debt-and-compromises.md`。已归档的 Documentation Validation and Observability Platform、compatibility-shell retirement、可观测性、shared PG 治理与分布式成熟度主线仅保留历史证据。`open-debt-and-compromises.md` 仅承担长期问题的来源、影响、触发条件和后续落点登记；它不允许形成并行 tranche。平台化与其余历史证据、冻结决策或背景材料应通过 `docs/archived/` 查找，只有根 `plan.md` 显式切换后才能成为新的执行面。
 
 完整归档表见 [`../archived/README.md`](../archived/README.md)。

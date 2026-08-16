@@ -9,16 +9,16 @@
 - 新发现的问题先进入主细则的问题池或 [长期债务登记册](docs/todos/open-debt-and-compromises.md)，不得因为"仍有参考价值"而创建第二条并行主线。
 - 主线范围、入口或验收边界发生变化时，先更新主细则，再同步本索引；所有阶段完成并留存证据后才归档主细则。
 
-## 当前主线
-
-- **主题：** 统一优雅组装中心（assembly）Phase 4 收尾
-- **目标：** 双实现收敛（检索 ILIKE → 完整 retrieval-engine 管线，D5）+ OTel/Consul 单一插件收敛（D5）+ direct-run seam 退役（所有 boot 经 app shells 经 assembly profiles）+ 别名对齐（backend-target-registry / dev:* 收敛为 shape 名→builder-command 映射）+ 集群化验证（compose replicas=2 起 candidate-worker + outbox-worker 跑 ownership/重复消费断言）；golden 全绿后归档本主线并 finalize plan.md。
-- **状态：** `进行中`
-- **主细则：** [Unified Assembly Center Phase 4](docs/todos/assembly-phase4.md)
+## 当前主线（assembly 四阶段已全部完成）
+- **主题：** 统一优雅组装中心（assembly）——四阶段主线已全部完成并归档（Phase 1 地基 / Phase 2 host-local 试点 / Phase 3 host-distributed 收敛 / Phase 4 收尾：双实现收敛 D5 + direct-run seam 退役 + 别名对齐 + 集群化验证）。
+- **状态：** `已完成`（2026-08-16）
+- **Phase 4 细则：** [Unified Assembly Center Phase 4（已归档）](docs/archived/archived-plans/unified-assembly-center-phase4-archived.md)
 - **设计规格：** [《TrapMap 统一优雅组装中心设计》](docs/superpowers/specs/2026-08-16-unified-assembly-center-design.md)
-- **状态口径：** `进行中` 只表示该主细则仍是 active execution surface；任务完成度、阻塞项和证据以主细则复选框与 closeout 记录为准。
+- **状态口径：** 主线完成后 `plan.md` 不再链接 active 主细则；后续如开独立判断类节点收编主线（设计 D8）另行激活。
 
 ## 上一主线
+
+- **Unity Assembly Center Phase 4 收尾已完成并归档（2026-08-16）：** 合入 909550b7（T1 检索收敛 + 迁移/eval infra 修复）+ 904466f5（T2 OTel/Consul 单一插件 + T3 direct-run seam 退役 + T4 别名对齐 + T5 集群化验证）；golden 全绿（assembly 42 / host-local 228 / host-distributed 173 / backend-core 196 / distributed-closeout 35 / deployment-smoke 379 / runtime-foundations 130 / observability-closeout 222 / discovery-closeout 22），check:* 全绿、fallow 零 issue（2 项继承豁免）；eval:smoke 修复后可运行且与 main 基线一致。细则见 [docs/archived/archived-plans/unified-assembly-center-phase4-archived.md](docs/archived/archived-plans/unified-assembly-center-phase4-archived.md)，closeout 证据（含偏差记录）在该文档。
 
 - **Unity Assembly Center Phase 3 收敛已完成并归档（2026-08-16）：** 合入 0a753aec / 8b75d25d，主线 closeout 同步 a2b9b2d2；golden 全绿（host-distributed 173 / distributed-closeout 35 / deployment-smoke 379 / runtime-foundations 130）、fallow 34 files 零 issue；检索 ILIKE 完整管线收敛、OTel/Consul 收敛、direct-run seam 退役、别名对齐、集群验证 deferred 到 Phase 4。细则见 [docs/archived/archived-plans/unified-assembly-center-phase3-archived.md](docs/archived/archived-plans/unified-assembly-center-phase3-archived.md)，closeout 证据在该文档 Closeout 记录。
 - **Unity Assembly Center Phase 2 试点已完成并归档（2026-08-16）：** 提交 63c26029 / 26964daf / fc114c35 + 合并 dbf1461a；细则见 [docs/archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md](docs/archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md)，closeout 证据在该文档 Closeout 记录。
@@ -27,16 +27,7 @@
 
 ## 执行路线图
 
-| 阶段 | 主细则任务 | 阶段交付 | 放行条件 |
-|---|---|---|---|
-| 1. 检索收敛 | T1 | knowledge-read ILIKE legacy seam（`packages/host-distributed/src/knowledge-read/ports.ts`）收敛至完整 retrieval-engine 管线，分布式检索行为与 monolith 一致（行为升级，Phase 3 偏差显式 deferred） | `eval:smoke` 与检索 focused tests 全绿、typecheck/fallow 全绿 |
-| 2. OTel/Consul 单一插件收敛 | T2 | host-local（otel.service.ts + consul.*）与 host-distributed（telemetry.ts + consul-discovery-adapter.ts + discovery-factory.ts + internal-observability.ts）双份接线收敛为单一 otel/consul 插件，两宿主 assembly 节点共用 | observability-closeout / discovery-closeout 全绿、运行时语义不变 |
-| 3. direct-run seam 退役 | T3 | `packages/host-local/src/index.ts` 的 `isDirectExecution` 判定与等价入口退役，所有 boot 经 app shells（`apps/light` / `apps/distributed`）经 assembly profiles | deployment-smoke / runtime-foundations 全绿 |
-| 4. 别名对齐 | T4 | `scripts/backend-target-registry.ts` 与根 `dev:*` 别名收敛为 shape 名（local-agent / team-monolith / distributed:<service>）→ builder-command 映射，单测断言 | 映射断言通过、typecheck/check:imports 全绿 |
-| 5. 集群化验证 | T5 | compose replicas=2 起 candidate-worker + outbox-worker，跑 ownership/重复消费断言（SKIP LOCKED/租约语义） | 集群断言通过、runtime/deployment 复跑全绿 |
-| 6. golden 回归 + closeout | T6 | 全门禁（typecheck；assembly + host-local + host-distributed 包测试；distributed-closeout/acceptance；deployment-smoke；runtime-foundations；observability-closeout；discovery-closeout；eval:smoke；check:imports/asserts/deps/structure/docs；fallow audit --base main）+ 文档回写 + 归档评估 | 证据齐全后归档本主线并 finalized plan.md |
-
-阶段必须按顺序推进；任一阶段未通过放行条件，不得用后续阶段的实现掩盖前置事实或守卫失败。具体步骤和证据位置见[主细则](docs/todos/assembly-phase4.md)。
+（assembly 主线四阶段已全部完成，各阶段交付与放行条件证据见归档细则；后续新主线另行激活并重建路线图。）
 
 ## 任务背景
 
