@@ -53,6 +53,7 @@
     "test:discovery-closeout": "vitest run packages/host-distributed/src/gateway/consul-discovery-adapter.test.ts packages/host-distributed/src/gateway/discovery-resolver.test.ts packages/backend-core/src/runtime/dynamic-discovery.test.ts",
     "test:distributed-closeout": "vitest run --project host-distributed packages/host-distributed/src/gateway/distributed-acceptance.test.ts packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts packages/host-distributed/src/gateway/internal-client.test.ts packages/host-distributed/src/shared/internal-knowledge-write-client.test.ts packages/host-distributed/src/job-runtime/ownership-acceptance.test.ts",
     "test:runtime-closeout": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/runtime-closeout.ts",
+    "test:cluster-ownership": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/cluster-ownership.ts",
     "test:runtime-closeout:compose": "bash scripts/run-compose-runtime-closeout.sh",
     "test:runtime-foundations": "pnpm exec vitest run packages/host-local/src/nest/runtime packages/host-distributed/src/gateway",
     "test:deployment-smoke": "pnpm exec vitest run packages/host-local/src/nest packages/host-distributed/src/gateway apps/cli/src/lib/http.test.ts apps/cli/src/commands/auth.test.ts apps/cli/src/commands/retrieval.test.ts",

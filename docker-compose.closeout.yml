@@ -31,6 +31,8 @@ services:
     restart: "no"
 
   candidate-worker:
+    deploy:
+      replicas: 2
     container_name: !reset null
     environment:
       CONSUL_ENABLED: "false"
@@ -49,6 +51,8 @@ services:
     restart: "no"
 
   outbox-worker:
+    deploy:
+      replicas: 2
     container_name: !reset null
     environment:
       CONSUL_ENABLED: "false"
