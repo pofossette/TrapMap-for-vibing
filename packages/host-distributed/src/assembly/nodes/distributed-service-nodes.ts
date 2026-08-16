@@ -26,7 +26,7 @@ import { createServer as createCandidateIngestionServer } from '../../candidate-
 import { createServer as createGovernanceReviewServer } from '../../governance-review/server.js';
 import { createServer as createJobRuntimeServer } from '../../job-runtime/server.js';
 import { createServer as createCronServer } from '../../cron-scheduler/server.js';
-import { createServer as createKnowledgeReadServer } from '../../knowledge-read/server.js';
+import { createKnowledgeReadServerAdapter } from '../../knowledge-read/server.js';
 
 /** Context service token under which the assembled server handle is provided. */
 export const SERVICE_SERVER_SERVICE = 'serviceServer';
@@ -76,7 +76,7 @@ export const knowledgeReadServiceNode: CapabilityNode = defineNode({
     const config = requireConfig(ctx);
     const db = ctx.get(SERVICE_DATABASE_SERVICE);
     if (!db) requireDatabase();
-    ctx.provide(SERVICE_SERVER_SERVICE, await createKnowledgeReadServer(config, db));
+    ctx.provide(SERVICE_SERVER_SERVICE, await createKnowledgeReadServerAdapter(config, db));
   },
 });
 
