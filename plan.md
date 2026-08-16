@@ -30,7 +30,7 @@
 （assembly 主线四阶段 + 判断类节点契约（D8）主线已完成并归档。以下为推荐的后续候选主线，按推荐顺序排列；激活时新建 active 主细则并重建本段。）
 
 1. **判断类节点（D8）消费方调用点迁移（已完成 2026-08-16）**——四个有生产调用点的节点已逐节点迁移（intent-recognition 6bc4226e / channel-merge bd3650e1 / dedup-strategy 729cdb52 / conflict-trigger e4b58c50）：service 包与双宿主 composition 改经 D8 port 消费，rule 默认 = 现状逻辑行为不变；门禁全绿（typecheck、deployment-smoke 388、eval:smoke 54/81 = main 基线、fallow audit exit 0）；artifact-derivation / label-alignment 无生产调用点，随 llm 变体收编评审；llm/hybrid 生产变体（intent llm / dedup llm / artifact llm / channel-merge 替换策略）仍为后续落点。登记：[open-debt「判断类节点（D8）消费方调用点迁移」](docs/todos/open-debt-and-compromises.md)。
-2. **cron 检索版本联动数据流缺口（推荐第二）**——`versionMatchMultiplier` 恒 1、检索响应 version/revision 惰性的结构性空转：实现 host artifact→retrieval entry 合并后启用 versioned 衰减并真实填充版本字段。登记：[open-debt「cron 检索版本联动数据流缺口」](docs/todos/open-debt-and-compromises.md)。
+2. **cron 检索版本联动数据流缺口（已完成 2026-08-16）**——68cb8392 实现 artifact→retrieval entry 合并（`service-knowledge-read/src/artifact-entry-merge.ts`）：skill artifact 并入召回池、versioned 衰减真实生效、响应 version/revision 真实填充；门禁全绿（typecheck、eval:smoke 54/81 = main 基线、deployment-smoke 388 之前基线）。登记：[open-debt「cron 检索版本联动数据流缺口」](docs/todos/open-debt-and-compromises.md)。
 3. **internal-client review/governanceReview 双组合并（快赢）**——`packages/host-distributed/src/gateway/internal-client.ts`（928 行）两组 7 方法逐字重复：合并为单组并按 baseUrl 来源选择 URL key。登记：[open-debt「internal-client review/governanceReview 双组合并」](docs/todos/open-debt-and-compromises.md)。
 
 不推荐近期开：capability-model 拆分与 EvalSeedPort 收窄（进入条件未触发）；平台化/服务自治（需先冻结部署目标）。

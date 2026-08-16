@@ -213,6 +213,17 @@ flowchart TB
 - 可选 Neo4j backend 只替换 traversal efficiency；semantic / keyword 仍然决定 mixed recall 的主体。
 - plan compiler 继续只使用 seed neighborhood 的 local subgraph，不在本阶段引入 broader/global graph lookup。
 
+### 版本衰减与 artifact 召回池合并（2026-08-16）
+
+cron 检索版本联动数据流缺口已关闭：skill artifact 投影并入 v1 召回池（检索条目组装点），版本字段与 versioned 衰减真实生效。
+
+- **合并落点**：`service-knowledge-read/src/artifact-entry-merge.ts`（`artifactToRetrievalEntry` / `mergeArtifactsIntoRetrievalPool`）。`searchKnowledge` 的 eligibility 步骤将 `readModel.skillArtifacts` 映射为条目形状后与 `knowledgeEntries` 一起过滤召回；读模型对 owner/admin 投影仍保持 `knowledgeEntries` 与 `skillArtifacts` 分离。
+- **映射规则**：`title` → shortcut；detail 取派生 profile summary/description + capsule content（缺省回退 title）；`latestRevision.version` / `revision` 原样保留；scope/teamId/requiredLevel/lifecycleState/labels/boundary/remediation 透传。
+- **衰减启用**：声明版本的 artifact 条目视图 `decayMeta.freshnessType = 'versioned'`（decayState active），`versionMatchMultiplier` 据此生效——查询 boundaryContext 版本命中 ×`matchMultiplier`，未命中 ×`mismatchMultiplier`；无版本 artifact 保持 evergreen（中性 ×1，不静默降权）。
+- **响应字段**：scored entry 的 `version` / `revision` 经 `toRetrievalMatch` 写入 RetrievalMatch（schema 已有可选字段），artifact 命中即真实填充。
+- **id 冲突**：条目 id 优先（merge 幂等、防碰撞）。
+- **验证**：`artifact-entry-merge.test.ts`（映射/去重）、`retrieval-orchestration.test.ts`（versioned 衰减 ×1/×0.5 + version/revision 暴露）、host-distributed `ports.test.ts`（e2e artifact 召回）；`eval:smoke` 54/81 与 main 基线一致（无回归）。环境注记：持久 dev DB 需应用 `0001_artifact_revision_version` 迁移（`artifact_revisions.version` 列）才能跑独立 `eval:retrieval:smoke`。
+
 ---
 
 ## v2 检索 (Capsule-native Retrieval)

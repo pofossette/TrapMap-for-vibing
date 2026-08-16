@@ -286,15 +286,10 @@
 - [ ] 每次将事项提升为 active mainline 前，在根 `plan.md` 明确替换当前细则链接，并在 `docs/todos/README.md` 同步状态。
 
 
-### cron 检索版本联动数据流缺口（2026-08-16 登记）
+### cron 检索版本联动数据流缺口（2026-08-16 登记，2026-08-16 关闭）
 
-- [ ] **来源：** cron + skill 版本控制主线（2026-08-16 closeout）最终评审确认：`searchKnowledge` 只召回 `knowledge_entries`（`knowledge-write/src/knowledge-projection.ts`），`readModel.skillArtifacts` 无召回消费者，且无任何路径把 artifact 行写入 `knowledge_entries`——因此 artifact 的 `latestRevision.version` 在生产召回池中仍不可达，`versionMatchMultiplier` 与检索响应的 `version`/`revision` 字段在运行时均为惰性（恒 1/undefined）。
-- [ ] **已验证边界：** 类型链已贯通（`KnowledgeRevisionRecord.version?` + `SkillArtifactRevisionRecord.version?` + `artifactVersionOf` 类型驱动 + 真实路径测试），缺口仅在"artifact → retrieval entry"的数据面合并；neutral-unknown 裁决（未知版本 → ×1）保证该缺口不产生静默降权。
-- [ ] **影响：** versioned 衰减与检索版本暴露暂为结构性空转，直到宿主完成 artifact→entry 合并。
-- [ ] **当前边界：** 不伪造检索条目版本；不改变 knowledge_entries 写入语义；版本未接前 multiplier 保持中性。
-- [ ] **进入条件：** 需要在检索层对 skill artifact 条目启用 versioned 衰减，或需要检索响应真实携带版本供 CLI/面板消费时。
-- [ ] **后续落点：** 新建 scoped 细则实现 host artifact→retrieval entry 合并（将 artifact 投影并入召回池或检索条目组装点），随后启用 versioned 衰减并在响应中真实填充 version/revision。
-- [ ] **要求的文档与测试：** 更新 `docs/architecture/components/RETRIEVAL.md`；补检索端到端测试（artifact version → retrieval result），跑 `pnpm eval:retrieval:smoke`、`pnpm test:runtime-closeout`。
+- [x] **已关闭（2026-08-16，主线 2）：** 实现 host artifact→retrieval entry 合并（68cb8392）：`service-knowledge-read/src/artifact-entry-merge.ts` 将 artifact 投影映射为召回条目（title→shortcut、派生 profile/capsules→detail、`latestRevision.version`/`revision` 保留），`searchKnowledge` eligibility 步骤把 `skillArtifacts` 并入召回池；声明版本的 artifact 条目视图 `decayMeta.freshnessType='versioned'`（decayState active），versioned 衰减真实生效（命中 ×matchMultiplier / 未命中 ×mismatchMultiplier），无版本 artifact 保持 evergreen 中性 ×1；`version`/`revision` 经 `toRetrievalMatch` 真实写入响应。读模型对 owner/admin 投影仍保持双列表分离；id 冲突条目优先。验证：knowledge-read 94 / host-local 237 / host-distributed 183 / 全量 typecheck；`eval:smoke` 54/81（= main 基线，无回归）；新增单元（映射/去重）、召回级（versioned 衰减 ×1/×0.5）与 e2e（artifact 召回 + version）测试。文档回写：RETRIEVAL.md「版本衰减与 artifact 召回池合并」。
+- [ ] **环境注记：** 持久 dev DB（5434 trapmap）无 drizzle journal，`eval:retrieval:smoke` 需先应用项目自带 `0001_artifact_revision_version`（`ALTER TABLE artifact_revisions ADD COLUMN version text`，已应用）；独立 retrieval eval 场景仍受陈旧 compose 宿主镜像约束（与代码无关）。
 
 ### 本地 trap-map-host-distributed 镜像与当前 compose/Dockerfile 漂移（2026-08-16 登记）
 - [ ] **来源：** Phase 4 T5 集群化验证时发现：本地 `trap-map-host-distributed:latest` 为 2026-07-13 旧构建（WORKDIR `/app/packages/host-distributed`），而当前 `apps/distributed/Dockerfile` 与 `docker-compose.yml` 均指向 `/app/apps/distributed`（thin app shell）；`docker compose up --scale candidate-worker=2` 会因镜像内缺少 `/app/apps/distributed/dist/index.js` 而 MODULE_NOT_FOUND。沙箱无外网导致 docker build（pnpm install/tsc）不可行，无法重建镜像。
