@@ -17,6 +17,8 @@ import {
   hostLocalServicesNode,
 } from '../nodes/host-nodes.js';
 import { type NestTransportConfig, nestTransportNode } from '../nodes/nest-transport.js';
+import { judgmentContracts } from '@trapmap/assembly';
+import { judgmentNodes } from '../nodes/judgment-nodes.js';
 import { serviceNodes } from '../nodes/service-nodes.js';
 
 export interface PilotProfileOptions {
@@ -43,13 +45,17 @@ function transportConfig(options: PilotProfileOptions): NestTransportConfig {
 
 /** Build the shared embedded pilot AssemblyBuilder for a given profile name. */
 export function composePilotProfile(options: PilotProfileOptions) {
-  const builder = createAssembly()
+  const builder = createAssembly({ contracts: judgmentContracts })
     .add(hostLocalConfigNode, hostConfig(options))
     .add(hostLocalServicesNode, hostConfig(options))
     .add(hostLocalPgNode, hostConfig(options))
     .add(hostLocalRuntimeNode, hostConfig(options));
 
   for (const node of serviceNodes) {
+    builder.add(node);
+  }
+
+  for (const node of judgmentNodes) {
     builder.add(node);
   }
 

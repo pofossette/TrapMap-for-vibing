@@ -5,10 +5,7 @@
  * `ConflictTriggerPort`, preserving the current behavior exactly.
  */
 
-import type {
-  ConflictTriggerPort,
-  GovernanceConflictReadPort,
-} from '@trapmap/backend-core';
+import type { ConflictTriggerPort, GovernanceConflictReadPort } from '@trapmap/backend-core';
 
 import {
   createGovernanceConflictWorkflow,

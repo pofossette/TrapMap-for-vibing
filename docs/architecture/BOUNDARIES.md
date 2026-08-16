@@ -28,6 +28,15 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 | `cli` | `apps/cli/src/**` | CLI 客户端界面（Commander.js），消费 `client-core` |
 | `web-panel` | `apps/web-panel/src/**` | Web 管理面板，消费 `client-core` |
 
+## 判断类节点契约落点（D8）
+
+判断类能力（intent-recognition / dedup-strategy / conflict-trigger / artifact-derivation / label-alignment / channel-merge）按契约优先（D8）组织，边界固定：
+
+- **契约落点**（跨包共享，禁止在实现/装配处重定义）：端口接口 `packages/backend-core/src/ports/` 下六个 `<node>-ports.ts` 文件（零框架、零宿主依赖，`intent-ports.ts` / `dedup-ports.ts` / `conflict-ports.ts` / `artifact-derivation-ports.ts` / `label-alignment-ports.ts` / `channel-merge-ports.ts`）；节点配置 schema `packages/contracts/src/domain/judgment.ts`；契约注册表（`ContractDescriptor` + `verify`）`packages/assembly/src/contracts/judgment-contracts.ts`（assembly zone 内，只依赖 cordis + zod）。
+- **实现落点**：rule 实现放对应 service 包（`service-knowledge-read/src/intent-recognition/`、`service-candidate-ingestion/src/dedup-strategy/`、`service-governance-review/src/conflict-trigger/`、`service-knowledge-write/src/artifact-derivation/` 与 `label-alignment/`、`service-knowledge-read/src/channel-merge/`）；llm/hybrid 变体同包扩展。
+- **装配落点**：判断类节点描述符（`defineNode` + `implements` 契约 id + `configSchema`）放 host 包（`host-local/src/nest/runtime/assembly/nodes/judgment-nodes.ts`、`host-distributed/src/assembly/nodes/judgment-nodes.ts`），经 `createAssembly({ contracts: judgmentContracts })` 由 startupChecks 校验。
+- **行为不变约束**：rule 默认实现 = 现状逻辑（包装层无业务改动）；契约单测共享固定样例断言集（`backend-core/src/testing/judgment-fixtures.ts`）。
+
 ## apps/ 组装中心边界
 
 `apps/` 下的组装中心（`apps/light`、`apps/distributed`、`apps/migration`、`apps/cli`、`apps/web-panel`）是顶层 pnpm workspace 中的 thin assembly 落点，不构成独立 zone（fallow 未单独约束）：

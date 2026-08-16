@@ -1,7 +1,4 @@
-import {
-  assertChannelMergeShape,
-  buildSampleChannelInput,
-} from '@trapmap/backend-core';
+import { assertChannelMergeShape, buildSampleChannelInput } from '@trapmap/backend-core';
 import { describe, expect, it } from 'vitest';
 
 import { createRuleChannelMerge } from './rule-channel-merge.js';
@@ -21,9 +18,7 @@ describe('createRuleChannelMerge', () => {
     expect(entryB?.channels).toContain('graph');
 
     for (let i = 1; i < merged.length; i += 1) {
-      expect(merged[i - 1]!.combinedScore).toBeGreaterThanOrEqual(
-        merged[i]!.combinedScore,
-      );
+      expect(merged[i - 1]!.combinedScore).toBeGreaterThanOrEqual(merged[i]!.combinedScore);
     }
   });
 

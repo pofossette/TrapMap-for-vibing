@@ -205,13 +205,13 @@ title: Git Workflow
 labels: [git, workflow]
 ---
 
-# Situation
+## Situation
 When a team collaborates on a shared repository, coordination breaks down.
 
-# Problem
+## Problem
 Merge conflicts and lost work accumulate without a shared workflow.
 
-# Goal
+## Goal
 Establish a review-based git workflow that keeps main stable.
 
 ## Guide

@@ -7,10 +7,7 @@
  * variants plug in behind the same port.
  */
 
-import {
-  buildUnknownModeMessage,
-  InvocationError,
-} from '@trapmap/backend-core';
+import { buildUnknownModeMessage, InvocationError } from '@trapmap/backend-core';
 import type { IntentRecognitionPort } from '@trapmap/backend-core';
 
 /** Default strategy when the caller does not request an explicit mode. */
@@ -44,9 +41,7 @@ export function createRuleIntentRecognition(): IntentRecognitionPort {
 
       if (requestedMode !== undefined) {
         if (!knownModes.includes(requestedMode)) {
-          throw InvocationError.validation(
-            buildUnknownModeMessage(requestedMode, knownModes),
-          );
+          throw InvocationError.validation(buildUnknownModeMessage(requestedMode, knownModes));
         }
         return {
           mode: requestedMode,
@@ -58,7 +53,7 @@ export function createRuleIntentRecognition(): IntentRecognitionPort {
 
       const defaultMode = knownModes.includes(DEFAULT_MODE)
         ? DEFAULT_MODE
-        : knownModes[0] ?? DEFAULT_MODE;
+        : (knownModes[0] ?? DEFAULT_MODE);
       return {
         mode: defaultMode,
         confidence: 1,

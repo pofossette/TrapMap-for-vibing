@@ -15,7 +15,7 @@
  * are reused verbatim (they already attach metrics + runtime telemetry), which
  * keeps runtime semantics identical to the pre-convergence paths.
  */
-import { createAssembly } from '@trapmap/assembly';
+import { createAssembly, judgmentContracts } from '@trapmap/assembly';
 import type { Assembly, CapabilityNode } from '@trapmap/assembly';
 
 import {
@@ -40,6 +40,12 @@ import {
   knowledgeWriteServiceNode,
   outboxDispatchWorkerNode,
 } from '../nodes/distributed-service-nodes.js';
+import {
+  candidateIngestionJudgmentNodes,
+  governanceReviewJudgmentNodes,
+  knowledgeReadJudgmentNodes,
+  knowledgeWriteJudgmentNodes,
+} from '../nodes/judgment-nodes.js';
 import { SERVICE_DATABASE_SERVICE, serviceDatabaseNode } from '../nodes/service-database.js';
 import { SERVICE_CONFIG_SERVICE, serviceConfigNode } from '../nodes/service-config.js';
 
@@ -73,6 +79,22 @@ const DB_BACKED_SERVICES: ReadonlySet<ServiceName> = new Set(
   ALL_SERVICES.filter((name) => name !== 'gateway'),
 );
 
+/** Judgment nodes owned by each distributed service process (D8). */
+function judgmentNodesFor(serviceName: ServiceName): readonly CapabilityNode[] {
+  switch (serviceName) {
+    case 'knowledge-read':
+      return knowledgeReadJudgmentNodes;
+    case 'candidate-ingestion':
+      return candidateIngestionJudgmentNodes;
+    case 'governance-review':
+      return governanceReviewJudgmentNodes;
+    case 'knowledge-write':
+      return knowledgeWriteJudgmentNodes;
+    default:
+      return [];
+  }
+}
+
 /**
  * Build an assembly for the named distributed service. Call `.build()` to run
  * startup checks, then `.boot()` to mount the nodes.
@@ -81,7 +103,7 @@ export function distributedAssembly(
   serviceName: ServiceName,
   options: DistributedAssemblyOptions = {},
 ): ReturnType<typeof createAssembly> {
-  const builder = createAssembly().add(serviceConfigNode, {
+  const builder = createAssembly({ contracts: judgmentContracts }).add(serviceConfigNode, {
     serviceName,
     ...(options.config !== undefined ? { config: options.config } : {}),
   });
@@ -89,6 +111,9 @@ export function distributedAssembly(
     builder.add(serviceDatabaseNode);
   }
   builder.add(SERVICE_NODE[serviceName]);
+  for (const node of judgmentNodesFor(serviceName)) {
+    builder.add(node);
+  }
   if (serviceName === 'job-runtime') {
     for (const worker of JOB_RUNTIME_WORKER_CHILDREN) {
       builder.add(worker);

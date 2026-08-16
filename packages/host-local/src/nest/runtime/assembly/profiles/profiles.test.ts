@@ -16,6 +16,12 @@ const PILOT_NODE_IDS = [
   'governance-review',
   'candidate-ingestion',
   'cron',
+  'intent-recognition',
+  'dedup-strategy',
+  'conflict-trigger',
+  'artifact-derivation',
+  'label-alignment',
+  'channel-merge',
   'nest-transport',
 ] as const;
 

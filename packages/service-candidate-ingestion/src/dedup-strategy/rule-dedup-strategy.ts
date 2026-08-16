@@ -27,10 +27,7 @@ export function createRuleDedupStrategy(deps: RuleDedupStrategyDeps = {}): Dedup
         now,
         createId,
       });
-      const { duplicateCase, analysisSnapshot } = await detector(
-        input.candidate,
-        input.normalized,
-      );
+      const { duplicateCase, analysisSnapshot } = await detector(input.candidate, input.normalized);
       return { duplicateCase, analysisSnapshot, strategy: 'rule' };
     },
   };

@@ -44,9 +44,7 @@ describe('rule conflict trigger', () => {
           'Reset admin password',
           'stop the service then rotate the secret and restart the daemon',
         ),
-        candidates: [
-          entry('entry-conflict-2', 'Reset admin password', '完全相同 detail'),
-        ],
+        candidates: [entry('entry-conflict-2', 'Reset admin password', '完全相同 detail')],
       }),
       projection: createProjection(),
     });

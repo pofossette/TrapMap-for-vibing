@@ -14,15 +14,10 @@ import type { ChannelMergePort } from '@trapmap/backend-core';
  * candidates with graph-channel candidates using the canonical
  * graph-merge ranking rules.
  */
-export function createRuleChannelMerge<
-  E extends { id: string },
->(): ChannelMergePort<E> {
+export function createRuleChannelMerge<E extends { id: string }>(): ChannelMergePort<E> {
   return {
     async merge(input) {
-      return mergeCandidatesWithGraph(
-        input.hybridCandidates,
-        input.graphCandidates,
-      );
+      return mergeCandidatesWithGraph(input.hybridCandidates, input.graphCandidates);
     },
   };
 }

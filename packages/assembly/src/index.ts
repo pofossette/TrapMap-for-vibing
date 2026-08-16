@@ -21,3 +21,12 @@ export type {
   StartupIssue,
 } from './types.js';
 export { AssemblyStartupError } from './types.js';
+export { judgmentContracts } from './contracts/judgment-contracts.js';
+export {
+  intentRecognitionContract,
+  dedupStrategyContract,
+  conflictTriggerContract,
+  artifactDerivationContract,
+  labelAlignmentContract,
+  channelMergeContract,
+} from './contracts/judgment-contracts.js';

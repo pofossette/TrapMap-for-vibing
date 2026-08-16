@@ -81,4 +81,31 @@ describe('distributedAssembly profile switch', () => {
     const assembly = buildDistributedAssembly('knowledge-read');
     expect(Object.isFrozen(assembly.nodes)).toBe(true);
   });
+
+  it.each([
+    ['knowledge-read', ['intent-recognition', 'channel-merge']],
+    ['candidate-ingestion', ['dedup-strategy']],
+    ['governance-review', ['conflict-trigger']],
+    ['knowledge-write', ['artifact-derivation', 'label-alignment']],
+  ] as const)('%s mounts its D8 judgment nodes', (serviceName, judgmentIds) => {
+    const assembly = buildDistributedAssembly(serviceName);
+    const ids = new Set(assembly.nodes.map((n) => n.id));
+    for (const id of judgmentIds) {
+      expect(ids).toContain(id);
+    }
+  });
+
+  it.each(['gateway', 'identity-access', 'job-runtime', 'cron-scheduler'] as const)(
+    '%s mounts no judgment nodes',
+    (serviceName) => {
+      const assembly = buildDistributedAssembly(serviceName);
+      const ids = assembly.nodes.map((n) => n.id);
+      expect(ids).not.toContain('intent-recognition');
+      expect(ids).not.toContain('dedup-strategy');
+      expect(ids).not.toContain('conflict-trigger');
+      expect(ids).not.toContain('artifact-derivation');
+      expect(ids).not.toContain('label-alignment');
+      expect(ids).not.toContain('channel-merge');
+    },
+  );
 });
