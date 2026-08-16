@@ -266,7 +266,7 @@ T1 建包后可并行开始 T2/T3 的 API 开发与单测；T4 依赖 T1-T3 的�
 
 ## Closeout 记录
 
-**Phase 1 完成于 2026-08-16**（提交 `fd0f8ee0` / `1f18d745` / `61dd0cbb` / `bae2c813` + 合并 `d70a1cd6` / `e6be1581`）。本细则归档，Phase 2 见新主细则 [`../../todos/assembly-phase2.md`](../../todos/assembly-phase2.md)。
+**Phase 1 完成于 2026-08-16**（提交 `fd0f8ee0` / `1f18d745` / `61dd0cbb` / `bae2c813` + 合并 `d70a1cd6` / `e6be1581`）。本细则归档，Phase 2 承接并已完成归档（见 [`unified-assembly-center-phase2-pilot-archived.md`](unified-assembly-center-phase2-pilot-archived.md)）。
 
 - 验证证据汇总：assembly 单测 40/40、`pnpm typecheck` 全绿、`check:imports`/`check:asserts`/`check:docs`/`check:structure`/`check:deps` 全绿、fallow audit（含 assembly zone）零 issue、现有宿主（host-local/host-distributed/apps/*）零源码改动。
 - 归档日期与去向：`docs/archived/archived-plans/unified-assembly-center-phase1-archived.md`；归档表与索引已同步（`docs/archived/README.md` / `docs/todos/README.md`）。
