@@ -451,7 +451,7 @@ services:
     networks:
       - trapmap-distributed
 
-  cron-worker:
+  cron-scheduler:
     image: trap-map-host-distributed:latest
     profiles: ["distributed"]
     build:
@@ -466,7 +466,7 @@ services:
       - TRAPMAP_SERVICE_PORT=4007
       - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
       - TRAPMAP_DEPLOYMENT_PROFILE=distributed
-      - TRAPMAP_DEPLOYMENT_PRESET=cron-worker
+      - TRAPMAP_DEPLOYMENT_PRESET=cron-scheduler
       - TRAPMAP_TASK_TRANSPORT=postgres
       - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
       - CONSUL_HOST=${CONSUL_HOST:-consul}

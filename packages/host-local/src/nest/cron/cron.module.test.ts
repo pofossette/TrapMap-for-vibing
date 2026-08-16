@@ -36,13 +36,13 @@ function createServiceModule(scheduler: CronScheduler): CronServiceModule {
 }
 
 describe('host-local cron module', () => {
-  it('registers the cron service module through the Nest adapter and exposes the scheduler token', () => {
+  it('registers the cron port and scheduler tokens without mounting business routes', () => {
     const scheduler = createScheduler();
     const module = createServiceModule(scheduler);
 
     const dynamicModule = CronModule.forTesting(module);
 
-    expect(dynamicModule.controllers).toHaveLength(1);
+    expect(dynamicModule.controllers).toEqual([]);
     const providers = dynamicModule.providers as Array<{ provide: unknown; useValue?: unknown }>;
     expect(providers).toContainEqual(expect.objectContaining({ provide: CRON_PORT }));
     expect(providers).toContainEqual(
@@ -52,24 +52,23 @@ describe('host-local cron module', () => {
     expect(dynamicModule.exports).toContain(CRON_SCHEDULER);
   });
 
-  it('builds the deps from the host runtime when wiring for the monolith', () => {
+  it('derives the cron deps from the host runtime', () => {
     const scheduler = createScheduler();
     const bundle = { list: vi.fn() };
+    const enqueue = vi.fn(async () => undefined);
     const runtime = {
       services: {
-        asyncTransport: { task: { enqueue: vi.fn() }, events: {} },
+        asyncTransport: { task: { enqueue }, events: {} },
         cronOwnerBundle: bundle,
         cronScheduler: scheduler,
       },
     } as HostLocalRuntime;
 
-    const dynamicModule = CronModule.forRuntime(runtime);
+    const deps = CronModule.cronDepsForRuntime(runtime);
 
-    const providers = dynamicModule.providers as Array<{ provide: unknown; useValue?: unknown }>;
-    const port = providers.find((provider) => provider.provide === CRON_PORT)
-      ?.useValue as CronServiceModule;
-    expect(port).toBeDefined();
-    expect(port.scheduler).toBe(scheduler);
+    expect(deps.bundle).toBe(bundle);
+    expect(deps.scheduler).toBe(scheduler);
+    expect(deps.transport.task.enqueue).toBe(enqueue);
   });
 
   it('rejects a monolith runtime without the async task transport', () => {
@@ -81,7 +80,7 @@ describe('host-local cron module', () => {
       },
     } as HostLocalRuntime;
 
-    expect(() => CronModule.forRuntime(runtime)).toThrow(/async task transport/);
+    expect(() => CronModule.cronDepsForRuntime(runtime)).toThrow(/async task transport/);
   });
 });
 

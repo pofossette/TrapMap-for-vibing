@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { CandidateIngestionPort, KnowledgeReadPort, ReviewPort } from '@trapmap/backend-core';
+import type { CronServiceModule } from '@trapmap/service-cron';
 
 import { GatewayModule } from './gateway/gateway.module.js';
 import { KnowledgeReadModule } from './knowledge-read/knowledge-read.module.js';
@@ -66,6 +67,26 @@ function createMockReviewPort(): ReviewPort {
   };
 }
 
+function createMockCronPort(): CronServiceModule {
+  return {
+    create: vi.fn().mockResolvedValue({ id: 'cron-1' }),
+    list: vi.fn().mockResolvedValue([]),
+    getById: vi.fn().mockResolvedValue({ id: 'cron-1' }),
+    update: vi.fn().mockResolvedValue({ id: 'cron-1' }),
+    pause: vi.fn(),
+    resume: vi.fn(),
+    delete: vi.fn().mockResolvedValue(true),
+    trigger: vi.fn().mockResolvedValue({ id: 'cron-1' }),
+    statusSnapshots: vi.fn().mockResolvedValue([]),
+    scheduler: {
+      run: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+      isRunning: vi.fn(() => false),
+      ownsWork: vi.fn(() => true),
+    },
+  };
+}
+
 function createMockRuntime(): HostLocalRuntime {
   return {
     services: {
@@ -94,17 +115,6 @@ function createMockRuntime(): HostLocalRuntime {
         getById: vi.fn(async () => ({ id: 'entry-1', lifecycleState: 'approved' })),
         listByFilter: vi.fn(async () => []),
       },
-      asyncTransport: {
-        task: { enqueue: vi.fn(), requeue: vi.fn(), getStatusSnapshot: vi.fn() },
-        events: {},
-      },
-      cronOwnerBundle: {},
-      cronScheduler: {
-        run: vi.fn(async () => undefined),
-        stop: vi.fn(async () => undefined),
-        isRunning: vi.fn(() => false),
-        ownsWork: vi.fn(() => true),
-      },
     },
   };
 }
@@ -113,6 +123,7 @@ async function createTestApp(
   mockPort: KnowledgeReadPort,
   candidatePort: CandidateIngestionPort = createMockCandidatePort(),
   reviewPort: ReviewPort = createMockReviewPort(),
+  cronPort: CronServiceModule = createMockCronPort(),
 ) {
   const moduleRef = await Test.createTestingModule({
     imports: [
@@ -121,6 +132,7 @@ async function createTestApp(
         knowledgeRead: mockPort,
         candidateIngestion: candidatePort,
         governanceReview: reviewPort,
+        cron: cronPort,
       }),
     ],
     providers: [RequestContextService],

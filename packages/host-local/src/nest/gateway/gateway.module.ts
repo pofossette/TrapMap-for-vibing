@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { type CandidateIngestionPort, createNestAdapter } from '@trapmap/backend-core';
 import type { KnowledgeReadPort, ReviewPort } from '@trapmap/backend-core';
+import type { CronServiceModule } from '@trapmap/service-cron';
 
-import { CronModule } from '../cron/cron.module.js';
 import { AuthGuard } from '../runtime/auth.guard.js';
 import { HOST_LOCAL_RUNTIME_TOKEN, type HostLocalRuntime } from '../runtime/host-runtime.js';
 import { type GatewayRouteDeps, createGatewayRouteDefs } from './gateway.route-defs.js';
@@ -11,6 +11,7 @@ export interface GatewayPorts {
   knowledgeRead: KnowledgeReadPort;
   candidateIngestion: CandidateIngestionPort;
   governanceReview: ReviewPort;
+  cron: CronServiceModule;
 }
 
 /**
@@ -23,9 +24,9 @@ export interface GatewayPorts {
  * adapter context extractor surfaces the guard-resolved auth context to the
  * RouteDef handlers.
  *
- * The module also aggregates the cron bounded context (`CronModule`): its
- * RouteDefs are mounted on the monolith through the same adapter, and the
- * scheduler lifecycle follows the Nest host boot/shutdown.
+ * The cron bounded context is aggregated here as `/v1/cron/*` routes over
+ * its service module port (the same port the `CronModule` registers); the
+ * scheduler lifecycle is owned by the CronModule provider, not the gateway.
  */
 @Module({})
 // biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
@@ -35,7 +36,6 @@ export class GatewayModule {
 
     return {
       module: GatewayModule,
-      imports: [CronModule.forRuntime(runtime)],
       controllers: [
         createNestAdapter(createGatewayRouteDefs(deps), deps, {
           guards: [AuthGuard],

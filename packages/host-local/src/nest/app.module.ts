@@ -21,10 +21,12 @@ import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
 import { createKnowledgeReadDeps } from '@trapmap/service-knowledge-read';
 import type { KnowledgeReadPortDeps } from '@trapmap/service-knowledge-read';
 import { createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';
+import { createCronServiceModule } from '@trapmap/service-cron';
 
 import { CandidateIngestionModule } from './candidate-ingestion/candidate-ingestion.module.js';
 import { CandidateProcessingService } from './candidate-ingestion/candidate-processing.service.js';
 import { HOST_LOCAL_CONFIG_TOKEN, loadHostLocalConfig } from './config/index.js';
+import { CronModule } from './cron/cron.module.js';
 import { GatewayModule } from './gateway/gateway.module.js';
 import { GovernanceReviewModule } from './governance-review/governance-review.module.js';
 import { HealthModule } from './health/index.js';
@@ -173,6 +175,10 @@ const candidateIngestionPort = createCandidateIngestionModule(
 );
 const candidateIngestionModule = CandidateIngestionModule.forTesting(candidateIngestionPort);
 
+const cronDeps = CronModule.cronDepsForRuntime(hostLocalRuntime);
+const cronPort = createCronServiceModule(cronDeps);
+const cronModule = CronModule.forTesting(cronPort);
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -185,10 +191,12 @@ const candidateIngestionModule = CandidateIngestionModule.forTesting(candidateIn
     governanceReviewModule,
     candidateIngestionModule,
     jobRuntimeModule,
+    cronModule,
     GatewayModule.forRuntime(hostLocalRuntime, {
       knowledgeRead: knowledgeReadPort,
       candidateIngestion: candidateIngestionPort,
       governanceReview: governanceReviewPort,
+      cron: cronPort,
     }),
     ConsulModule,
     OtelModule,

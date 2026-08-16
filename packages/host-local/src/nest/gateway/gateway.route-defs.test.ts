@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import type { CandidateIngestionPort, KnowledgeReadPort, ReviewPort } from '@trapmap/backend-core';
+import type { CronServiceModule } from '@trapmap/service-cron';
 import { buildOwnerReviewQueueProjection } from '@trapmap/service-governance-review';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -50,6 +51,26 @@ function createMockReviewPort(): ReviewPort {
   };
 }
 
+function createMockCronPort(): CronServiceModule {
+  return {
+    create: vi.fn().mockResolvedValue({ id: 'cron-1' }),
+    list: vi.fn().mockResolvedValue([]),
+    getById: vi.fn().mockResolvedValue({ id: 'cron-1' }),
+    update: vi.fn().mockResolvedValue({ id: 'cron-1' }),
+    pause: vi.fn(),
+    resume: vi.fn(),
+    delete: vi.fn().mockResolvedValue(true),
+    trigger: vi.fn().mockResolvedValue({ id: 'cron-1' }),
+    statusSnapshots: vi.fn().mockResolvedValue([]),
+    scheduler: {
+      run: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+      isRunning: vi.fn(() => false),
+      ownsWork: vi.fn(() => true),
+    },
+  };
+}
+
 function createMockRuntime(): HostLocalRuntime {
   return {
     services: {
@@ -78,17 +99,6 @@ function createMockRuntime(): HostLocalRuntime {
         getById: vi.fn(async () => ({ id: 'entry-1', lifecycleState: 'approved' })),
         listByFilter: vi.fn(async () => []),
       },
-      asyncTransport: {
-        task: { enqueue: vi.fn(), requeue: vi.fn(), getStatusSnapshot: vi.fn() },
-        events: {},
-      },
-      cronOwnerBundle: {},
-      cronScheduler: {
-        run: vi.fn(async () => undefined),
-        stop: vi.fn(async () => undefined),
-        isRunning: vi.fn(() => false),
-        ownsWork: vi.fn(() => true),
-      },
     },
   };
 }
@@ -98,12 +108,14 @@ interface TestHarness {
   runtime: HostLocalRuntime;
   candidateIngestion: CandidateIngestionPort;
   governanceReview: ReviewPort;
+  cron: CronServiceModule;
 }
 
 async function createTestApp(): Promise<TestHarness> {
   const runtime = createMockRuntime();
   const candidateIngestion = createMockCandidatePort();
   const governanceReview = createMockReviewPort();
+  const cron = createMockCronPort();
 
   const moduleRef = await Test.createTestingModule({
     imports: [
@@ -111,6 +123,7 @@ async function createTestApp(): Promise<TestHarness> {
         knowledgeRead: createMockKnowledgeReadPort(),
         candidateIngestion,
         governanceReview,
+        cron,
       }),
     ],
     providers: [RequestContextService],
@@ -121,7 +134,7 @@ async function createTestApp(): Promise<TestHarness> {
   app.useGlobalFilters(new AllExceptionFilter(requestContext));
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
-  return { app, runtime, candidateIngestion, governanceReview };
+  return { app, runtime, candidateIngestion, governanceReview, cron };
 }
 
 const authHeaders = { authorization: 'Bearer test-token' };
@@ -261,6 +274,134 @@ describe('gateway route defs handler behavior (migrated from candidate-review.co
       }),
     );
     expect(JSON.parse(response.payload)).toEqual({ items: [], nextCursor: null, total: 0 });
+
+    await app.close();
+  });
+
+  it('serves the cron management surface as session-guarded /v1 routes', async () => {
+    const { app, cron } = await createTestApp();
+    const inject = (input: {
+      method: string;
+      url: string;
+      headers?: Record<string, string>;
+      payload?: unknown;
+    }) => app.getHttpAdapter().getInstance().inject(input);
+
+    const list = await inject({ method: 'GET', url: '/v1/cron/jobs', headers: authHeaders });
+    expect(list.statusCode).toBe(200);
+    expect(cron.list).toHaveBeenCalled();
+
+    const create = await inject({
+      method: 'POST',
+      url: '/v1/cron/jobs',
+      headers: authHeaders,
+      payload: { name: 'nightly', schedule: '0 3 * * *', timezone: 'UTC', taskType: 'reindex' },
+    });
+    expect(create.statusCode).toBe(201);
+    expect(cron.create).toHaveBeenCalledWith({
+      name: 'nightly',
+      schedule: '0 3 * * *',
+      timezone: 'UTC',
+      taskType: 'reindex',
+      payload: {},
+      enabled: true,
+    });
+
+    const get = await inject({ method: 'GET', url: '/v1/cron/jobs/cron-1', headers: authHeaders });
+    expect(get.statusCode).toBe(200);
+    expect(cron.getById).toHaveBeenCalledWith('cron-1');
+
+    const update = await inject({
+      method: 'PATCH',
+      url: '/v1/cron/jobs/cron-1',
+      headers: authHeaders,
+      payload: { enabled: false },
+    });
+    expect(update.statusCode).toBe(200);
+    expect(cron.update).toHaveBeenCalledWith('cron-1', { enabled: false });
+
+    const trigger = await inject({
+      method: 'POST',
+      url: '/v1/cron/jobs/cron-1/trigger',
+      headers: authHeaders,
+    });
+    expect(trigger.statusCode).toBe(200);
+    expect(cron.trigger).toHaveBeenCalledWith('cron-1');
+
+    const del = await inject({
+      method: 'DELETE',
+      url: '/v1/cron/jobs/cron-1',
+      headers: authHeaders,
+    });
+    expect(del.statusCode).toBe(200);
+    expect(cron.delete).toHaveBeenCalledWith('cron-1');
+
+    const status = await inject({ method: 'GET', url: '/v1/cron/status', headers: authHeaders });
+    expect(status.statusCode).toBe(200);
+    expect(cron.statusSnapshots).toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it('rejects unauthenticated cron mutations and maps missing jobs to 404', async () => {
+    const { app, cron } = await createTestApp();
+    const inject = (input: {
+      method: string;
+      url: string;
+      headers?: Record<string, string>;
+      payload?: unknown;
+    }) => app.getHttpAdapter().getInstance().inject(input);
+
+    const unauthorized = await inject({
+      method: 'POST',
+      url: '/v1/cron/jobs',
+      payload: { name: 'nightly', schedule: '0 3 * * *', timezone: 'UTC', taskType: 'reindex' },
+    });
+    expect(unauthorized.statusCode).toBe(401);
+    expect(cron.create).not.toHaveBeenCalled();
+
+    vi.mocked(cron.getById as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+    const missing = await inject({
+      method: 'GET',
+      url: '/v1/cron/jobs/missing-1',
+      headers: authHeaders,
+    });
+    expect(missing.statusCode).toBe(404);
+    expect(JSON.parse(missing.payload).kind).toBe('not-found');
+
+    vi.mocked(cron.update as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+    const missingUpdate = await inject({
+      method: 'PATCH',
+      url: '/v1/cron/jobs/missing-1',
+      headers: authHeaders,
+      payload: { enabled: false },
+    });
+    expect(missingUpdate.statusCode).toBe(404);
+
+    vi.mocked(cron.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
+    const missingDelete = await inject({
+      method: 'DELETE',
+      url: '/v1/cron/jobs/missing-1',
+      headers: authHeaders,
+    });
+    expect(missingDelete.statusCode).toBe(404);
+
+    await app.close();
+  });
+
+  it('rejects invalid cron job bodies with the canonical validation envelope', async () => {
+    const { app, cron } = await createTestApp();
+
+    const response = await app.getHttpAdapter().getInstance().inject({
+      method: 'POST',
+      url: '/v1/cron/jobs',
+      headers: authHeaders,
+      payload: { name: 'nightly' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.payload).kind).toBe('validation');
+    expect(cron.create).not.toHaveBeenCalled();
 
     await app.close();
   });

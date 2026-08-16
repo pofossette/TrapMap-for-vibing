@@ -28,12 +28,29 @@ function createDeps() {
       reviewArtifact: vi.fn(),
       submitFeedback: vi.fn(),
     },
+    cron: {
+      create: vi.fn(),
+      list: vi.fn(),
+      getById: vi.fn(),
+      update: vi.fn(),
+      pause: vi.fn(),
+      resume: vi.fn(),
+      delete: vi.fn(),
+      trigger: vi.fn(),
+      statusSnapshots: vi.fn(),
+      scheduler: {
+        run: vi.fn(),
+        stop: vi.fn(),
+        isRunning: vi.fn(),
+        ownsWork: vi.fn(),
+      },
+    },
     runtime: {} as HostLocalRuntime,
   };
 }
 
 describe('gateway route defs', () => {
-  it('exposes the documented /v1 knowledge and candidate surface', () => {
+  it('exposes the documented /v1 knowledge, candidate and cron surface', () => {
     const defs = createGatewayRouteDefs(createDeps());
 
     expect(defs.map((def) => `${def.method} ${def.path}`)).toEqual([
@@ -45,6 +62,13 @@ describe('gateway route defs', () => {
       'POST /v1/candidates/:candidateId/apply-resolution',
       'GET /v1/knowledge/review-queue',
       'POST /v1/knowledge/review',
+      'GET /v1/cron/jobs',
+      'POST /v1/cron/jobs',
+      'GET /v1/cron/jobs/:jobId',
+      'PATCH /v1/cron/jobs/:jobId',
+      'DELETE /v1/cron/jobs/:jobId',
+      'POST /v1/cron/jobs/:jobId/trigger',
+      'GET /v1/cron/status',
     ]);
   });
 
