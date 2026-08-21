@@ -164,7 +164,8 @@
 
 ### OTel 双份接线收敛（2026-08-15 登记）
 
-- [ ] **来源：** 六路审查 hosts 车道：host-local（nest observability 模块）与 host-distributed（`shared/telemetry.ts` + `gateway/internal-observability.ts` + `shared/observability.ts`）各维护一套 OTel/指标接线，规则与导出语义存在两份实现。
+- [x] **来源：** 六路审查 hosts 车道：host-local（nest observability 模块）与 host-distributed（`shared/telemetry.ts` + `gateway/internal-observability.ts` + `shared/observability.ts`）各维护一套 OTel/指标接线，规则与导出语义存在两份实现。
+- [x] **已核验关闭（2026-08-21）：** 两宿主 OTel 接线已收敛到 `@trapmap/backend-core` 共享单插件支持——host-local `nest/observability/otel.service.ts` 与 host-distributed `shared/telemetry.ts` 均经共享 `bootstrapOtelSdk` 接线（两侧源码注释均标注 design D5 single-plugin convergence）；归档证据见 [unified-assembly-center-phase3-archived.md](../archived/archived-plans/unified-assembly-center-phase3-archived.md)、[unified-assembly-center-phase4-archived.md](../archived/archived-plans/unified-assembly-center-phase4-archived.md)。
 - [ ] **影响：** OTel 语义调整需双处同步，漂移风险高；host-local 与 distributed 的 metrics/span 行为可能不一致。
 - [ ] **当前边界：** 本轮不合并（涉及两个宿主 runtime 行为，属大重构）。
 - [ ] **进入条件：** 出现需双宿主同步修改的 OTel 语义变更（span 属性、采样策略、脱敏规则），或指标口径在两侧被证实不一致。
@@ -174,7 +175,8 @@
 
 ### Consul 双份实现收敛（2026-08-15 登记）
 
-- [ ] **来源：** 六路审查 hosts 车道：host-local 维护 NestJS `service-discovery/consul.module.ts`+`consul.service.ts`，host-distributed 维护 framework-free `gateway/consul-discovery-adapter.ts`+`discovery-factory.ts`（实现 backend-core `DiscoveryPort`），两套 Consul 发现实现并行。
+- [x] **来源：** 六路审查 hosts 车道：host-local 维护 NestJS `service-discovery/consul.module.ts`+`consul.service.ts`，host-distributed 维护 framework-free `gateway/consul-discovery-adapter.ts`+`discovery-factory.ts`（实现 backend-core `DiscoveryPort`），两套 Consul 发现实现并行。
+- [x] **已核验关闭（2026-08-21）：** Consul 发现已单源化到 backend-core framework-free `ConsulHttpAdapter`——host-local `consul.service.ts` 仅保留 NestJS 薄包装（implements `DiscoveryPort`，内部委托共享 adapter），host-distributed `consul-discovery-adapter.ts` 同样从 `@trapmap/backend-core` 导入同一 adapter；核验 `rg -l "consul-discovery-adapter|consul.module"` 确认无第二套独立实现；归档证据见 [unified-assembly-center-phase3-archived.md](../archived/archived-plans/unified-assembly-center-phase3-archived.md)。
 - [ ] **影响：** Consul 健康检查/KV/重试语义双处漂移；服务发现行为验证需覆盖两个实现。
 - [ ] **当前边界：** 本轮不合并。
 - [ ] **进入条件：** Consul 行为（健康检查、KV、重试）需双宿主一致修改，或出现真实 Consul 故障归因不一致。
@@ -198,7 +200,8 @@
 ### host-distributed shared/ports.ts 业务下沉（2026-08-15 登记）
 
 - [x] **来源（已解决）：** 六路审查 hosts 车道：`packages/host-distributed/src/assembly/nodes/distributed-service-nodes.ts`（shared/ports.ts 已退役；原 353 行，其中 109-302）宿主直接手写检索/队列/outbox SQL 实现（宿主应只做装配，SQL 应留在 service pg-ports 或 backend-core 端口实现）。Phase 3/4 已退役 `shared/ports.ts`（ILIKE 检索收敛、queue/outbox 简化版退役、direct-run seam 退役），宿主只保留装配组合（`packages/host-distributed/src/assembly/nodes/distributed-service-nodes.ts`）。
-- [ ] **影响：** 宿主持有业务 SQL，绕过 service 包 pg-ports 与 domain 规则；SQL 逻辑在宿主与 service 间可能漂移。
+- [x] **影响：** 宿主持有业务 SQL，绕过 service 包 pg-ports 与 domain 规则；SQL 逻辑在宿主与 service 间可能漂移。
+- [x] **已核验关闭（2026-08-21）：** host-distributed 的 `shared/ports.ts` 已不存在（核验命令 `ls packages/host-distributed/src/shared/ports.ts` 返回 No such file），宿主仅保留装配组合（`assembly/nodes/distributed-service-nodes.ts`）；归档证据见 [unified-assembly-center-phase3-archived.md](../archived/archived-plans/unified-assembly-center-phase3-archived.md)、[unified-assembly-center-phase4-archived.md](../archived/archived-plans/unified-assembly-center-phase4-archived.md)。
 - [ ] **当前边界：** 本轮不迁移（宿主行为不变硬约束；迁移涉及 distributed 装配面）。
 - [ ] **进入条件：** `shared/ports.ts` 任一 SQL 实现出现行为不一致修复，或 service 包 pg-ports 签名变化使宿主实现可自然替换。
 - [ ] **后续落点：** 宿主改消费对应 service 包/backend-core 的端口实现，`shared/ports.ts` 只保留装配与组合。
@@ -250,7 +253,8 @@
 ### apps workspace 组装中心迁移遗留（2026-08-15 登记）
 
 - [ ] **来源：** 用户要求的 5 个 app 组装中心（apps/light、apps/distributed、apps/migration、apps/cli、apps/web-panel）全量实施完成：cli/web-panel 自 packages/ 迁入 apps/，light/distributed/migration 为新建 thin assembly 入口，registry 字段 hostPackage→appPackage+libraryPackage，Dockerfile/compose/文档/守卫同步迁移。验证：build:light/heavy、test:light-target、deployment-smoke、runtime-foundations、distributed-closeout、observability-closeout、discovery-closeout、cli(537)/web-panel(30) 测试、check:docs/structure/asserts/imports、全量 typecheck 全绿。设计输入：[`../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md`](../superpowers/specs/2026-08-15-distributed-architecture-order-performance-design.md) 分项设计 F。
-- [ ] **遗留 1（迁移窗口双入口）**：`packages/host-local/src/index.ts` 与 `packages/host-distributed/src/index.ts` 的 direct-run seam 在窗口内保留（设计 F 迁移窗口策略），apps/distributed 的 `--service` 分发薄壳与库包 main 存在约 97 行结构重复。
+- [x] **遗留 1（迁移窗口双入口）**：`packages/host-local/src/index.ts` 与 `packages/host-distributed/src/index.ts` 的 direct-run seam 在窗口内保留（设计 F 迁移窗口策略），apps/distributed 的 `--service` 分发薄壳与库包 main 存在约 97 行结构重复。
+- [x] **已核验关闭（2026-08-21）：** 库包 direct-run seam 已退役——`rg -n "isDirectExecution" packages/host-local/src` 无输出，两个库包 `index.ts` 均不再直接 boot（boot 由 app shell `apps/*/src/index.ts` 承接）；归档证据见 [unified-assembly-center-phase4-archived.md](../archived/archived-plans/unified-assembly-center-phase4-archived.md)。
 - [ ] **遗留 2（fallow 基线变化）**：git mv 使 cli/web-panel 全部文件进入 changed 集，fallow complexity 从基线 3 升至 34 findings（绝大多数为既有代码路径变更重新暴露，非新增）；apps/light parsePort 已加 fallow-ignore 注释。
 - [ ] **当前边界：** 不删除库包 direct-run seam（closeout 测试链 `build -> start` 依赖）；不合并组装入口重复（窗口期预期）；不逐条修复迁移暴露的既有复杂度。
 - [ ] **进入条件：** closeout 测试链迁移到 app 入口完成（TESTING.md 中 `@trapmap/app-light` build/start 成为唯一主链路）时，退役库包 direct-run seam 并消除组装入口重复；fallow 在迁移暴露的既有 finding 上出现真实变更时按常规处理。
@@ -260,6 +264,7 @@
 ### 统一优雅组装中心（assembly）主线（2026-08-16 登记）
 
 - [ ] **实施状态：** 2026-08-16 由用户 goal 激活，Phase 1 完成（2026-08-16，归档见 [archived-plans/unified-assembly-center-phase1-archived.md](../archived/archived-plans/unified-assembly-center-phase1-archived.md)），Phase 2 完成（2026-08-16，归档见 [archived-plans/unified-assembly-center-phase2-pilot-archived.md](../archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md)），Phase 3 收敛完成（2026-08-16，归档见 [archived-plans/unified-assembly-center-phase3-archived.md](../archived/archived-plans/unified-assembly-center-phase3-archived.md)），Phase 4 收尾完成（2026-08-16，归档见 [archived-plans/unified-assembly-center-phase4-archived.md](../archived/archived-plans/unified-assembly-center-phase4-archived.md)）。assembly 主线四阶段全部完成。**判断类节点契约（D8）收编主线已激活并实施**（2026-08-16，主细则 [judgment-node-contracts-d8-archived.md](../archived/archived-plans/judgment-node-contracts-d8-archived.md)）：6 个判断类节点契约三件套（backend-core ports + contracts judgment config schema + 数据契约）、rule 实现（默认=现状逻辑）、契约注册表（packages/assembly/src/contracts/judgment-contracts.ts）、host-local/host-distributed 装配挂载与 startupChecks 契约校验已完成；消费方内嵌调用点迁移（service 包内改经节点 port 消费）与 llm/hybrid 生产收编（intent llm / dedup llm / artifact llm / channel-merge 替换策略）登记为逐节点独立评审的后续落点。
+- [x] **已核验关闭（2026-08-21）：** 四阶段全部完成并归档，历史记录保留；执行授权已由后续主线承接。
 - [ ] **来源：** 用户直接需求「处理架构优雅性缺陷：宿主双样板收敛为统一优雅组装中心 + 功能模块，多部署形态不可舍弃」+ 调研结论（cordis = Koishi 四年 + DeepSeek Harness 生产内核；dsh profile/bundles 模型 = 多部署形态的配置化表达）。设计输入：[《TrapMap 统一优雅组装中心设计》](../superpowers/specs/2026-08-16-unified-assembly-center-design.md)。
 - [ ] **目标缺陷（证据见设计文档）：** ① 宿主双样板——host-local（~5.1K LOC）与 host-distributed（~6.1K LOC）各自实现 runtime composition/observability/discovery/worker wiring，distributed 8 个 start<X>Service() 逐份重复样板；② bootstrap 顺序手写、`KNOWLEDGE_WRITE_MODULE.dependsOn` 恒空无依赖图；③ 同一语义双实现（queue/outbox 简化版 vs 完整版、检索 ILIKE vs 完整管线、OTel/Consul 双份）；④ 部署形态语义分散（backend-target-registry / dev:* 别名 / compose / 双宿主 config 四处表达）。
 - [ ] **设计要点（v4，叠加用户预期效果：契约优先——判断类能力批量节点化，意图识别为示例、节点不止一个）：** 新包 `packages/assembly`（引入 `@deepseek-ai/cordis` 4.x 编程式装配，不自研 DI 图、不引入 loader/patch 配置文件）；7 个 service 包各加薄包装文件 `node.ts`（defineNode：现有工厂原样复用，业务零改动）；host-* 收敛为 transport 插件；部署形态 = TS 组合器（localAgentAssembly / teamMonolithAssembly / distributedAssembly，无任何 yml/json）；检索（knowledge-read）与入库处理（candidate-ingestion）等能力以能力节点挂载，拓扑声明 embedded / standalone / cluster 可选；worker 云原生化：子 worker 节点可选整体挂在 job-runtime 容器下（nginx 类比）或拆分独立成进程；**契约优先（D8）：判断类能力节点群（intent-recognition 为示例，另有 dedup-strategy/conflict-trigger/artifact-derivation/label-alignment/channel-merge 等一批，可扩展）先立契约三件套（端口接口 + Zod 配置 schema + 数据契约），实现可插拔（rule/llm/hybrid），按判定标准逐个收编、不强加契约**；集群化语义 = 节点 replicas 声明 + SKIP LOCKED/租约/幂等 handler + 连接预算校验，编排层（compose replicas/k8s）保持 deferred；四阶段迁移（地基→host-local 试点→host-distributed 收敛→双实现收敛+集群化验证收尾）。
