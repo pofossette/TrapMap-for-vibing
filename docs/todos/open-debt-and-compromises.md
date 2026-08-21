@@ -3,6 +3,8 @@
 > **角色：** 受根 [`../../plan.md`](../../plan.md) 明确管理的长期问题登记册。
 > **状态：** `deferred`；不构成第二条 active mainline，不承载当前 tranche 的实施顺序。
 
+> **2026-08-21 全量派发裁决：** 经用户 2026-08-21 goal 授权，本登记册全部条目已派发至 active mainline [`./debt-mcp-platformization-mainline.md`](./debt-mcp-platformization-mainline.md)（根索引 [`../../plan.md`](../../plan.md)）按 A/B/C 三工作流并行执行；执行期间被派发条目原位更新——勾选并追加一行证据，不在本登记册新增任何条目；执行中发现的新问题一律进上述主细则「问题池」，不回写本登记册。
+
 ## 使用规则
 
 - 每项记录必须包含来源、影响、当前边界、进入条件和后续落点；未验证的扫描信号不得描述为已确认缺陷。
