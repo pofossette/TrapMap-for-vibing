@@ -169,6 +169,7 @@ export default defineConfig({
         },
       },
       project('cli', './apps/cli'),
+      project('mcp', './apps/mcp'),
       project('app-light', './apps/light'),
       project('app-distributed', './apps/distributed'),
       project('app-migration', './apps/migration'),

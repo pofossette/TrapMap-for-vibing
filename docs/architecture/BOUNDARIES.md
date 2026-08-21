@@ -10,7 +10,7 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 
 ## Zone 定义
 
-项目共定义 13 个 zone，每个 zone 对应一组文件路径模式，由 `.fallowrc.json` 的 `boundaries.zones` 字段声明：
+项目共定义 14 个 zone，每个 zone 对应一组文件路径模式，由 `.fallowrc.json` 的 `boundaries.zones` 字段声明：
 
 | Zone | 包路径 | 角色 |
 |------|--------|------|
@@ -27,6 +27,7 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 | `host-distributed` | `packages/host-distributed/src/**` | 分布式宿主库包（完整微服务宿主），为 `distributed` profile 提供装配；可执行组装中心在 `apps/distributed` |
 | `cli` | `apps/cli/src/**` | CLI 客户端界面（Commander.js），消费 `client-core` |
 | `web-panel` | `apps/web-panel/src/**` | Web 管理面板，消费 `client-core` |
+| `mcp` | `apps/mcp/src/**` | MCP server 协议封装层（thin 协议封装），只经 `client-core` 的 gateway HTTP API 访问后端 |
 
 ## 判断类节点契约落点（D8）
 
@@ -40,7 +41,7 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 
 ## apps/ 组装中心边界
 
-`apps/` 下的组装中心（`apps/light`、`apps/distributed`、`apps/migration`、`apps/cli`、`apps/web-panel`）是顶层 pnpm workspace 中的 thin assembly 落点，不构成独立 zone（fallow 未单独约束）：
+`apps/` 下的组装中心（`apps/light`、`apps/distributed`、`apps/migration`、`apps/cli`、`apps/web-panel`、`apps/mcp`）是顶层 pnpm workspace 中的 thin assembly 落点；其中 `apps/light`、`apps/distributed`、`apps/migration` 不构成独立 zone（fallow 未单独约束），`apps/cli` / `apps/web-panel` / `apps/mcp` 各自构成独立客户端封装 zone（见上表）：
 
 - `apps/light` / `apps/distributed` 只做宿主装配：`apps/light` 消费 `@trapmap/host-local` 的 `start()` API，`apps/distributed` 消费 `@trapmap/host-distributed` 子路径导出的各 `start<X>Service()` API 与依赖注入，暴露可执行入口。
 - 组装中心**禁止新增业务逻辑**：不得承载 domain 规则、路由声明、端口实现或 repository 行为；业务判断必须留在 `backend-core` 的 `domain/` 纯规则层或各 service 包的 owner 接线中。
@@ -61,6 +62,7 @@ flowchart TB
     subgraph 客户端层["客户端层 (Client)"]
         cli["cli"]
         web-panel["web-panel"]
+        mcp["mcp"]
     end
 
     subgraph 组装层["组装层 (Assembly)"]
@@ -132,6 +134,10 @@ flowchart TB
     web-panel --> client-core
     web-panel --> contracts
 
+    mcp --> client-core
+    mcp --> contracts
+    mcp --> lib
+
     client-core -.-> contracts
     lib --> contracts
 ```
@@ -144,6 +150,7 @@ host-* / service-* → ai-providers → lib → contracts
 assembly → backend-core / contracts / lib
 cli → client-core → (none)
 web-panel → client-core → (none)
+mcp → client-core / lib → contracts
 service-* / host-local / cli → lib → contracts
 ```
 
@@ -155,7 +162,7 @@ service-* / host-local / cli → lib → contracts
 2. `client-core` 不依赖 `backend-core` 或任何服务端包
 3. `backend-core` 只依赖 `contracts` 与 `lib`（`.fallowrc.json` 的 allow 列表另有 `persistence-schema` 但当前无消费方），不依赖任何服务或宿主包；外部框架依赖（`fastify`、`@nestjs/*`）只允许出现在 `src/http/adapters/`（测试接缝 `src/testing/` 除外），不得扩散到 `domain/`、`application/`、`ports/`、`use-cases/`；`backend-core → lib` 依赖仅限纯函数工具消费（如 cron 封装），不得引入框架
 4. 标准服务包（`service-standard`，含 `service-cron` 共 6 个）只依赖 `backend-core`、`contracts`、`lib` 与 `ai-providers`，服务包之间不直接依赖
-5. `cli` 和 `web-panel` 只依赖 `client-core`、`contracts`（`cli` 另可依赖 `lib`），不依赖任何服务端包；代码落点现为 `apps/cli/src/**`、`apps/web-panel/src/**`
+5. `cli` 和 `web-panel` 只依赖 `client-core`、`contracts`（`cli` 另可依赖 `lib`），不依赖任何服务端包；代码落点现为 `apps/cli/src/**`、`apps/web-panel/src/**`；`mcp` zone（`apps/mcp/src/**`）同属客户端封装层，只依赖 `client-core`、`contracts`、`lib`，禁止导入任何 `service-*` / `host-*` 包
 6. 宿主包（`host-local`、`host-distributed`）是最高层组合根，可以依赖所有下游 zone；其可执行组装中心在 `apps/light`、`apps/distributed`，仅做 thin assembly，不得新增业务逻辑
 7. `lib` 是共享工具叶子，type-only 依赖 `contracts`，不依赖任何服务/宿主/框架代码；`contracts` 不得反向依赖 `lib`
 8. `ai-providers` 是独立 zone（2026-08 纳入 fallow）：作为共享 AI 服务层只依赖 `lib`（type-only 可依赖 `contracts`），被 `service-standard`、`service-knowledge-read` 与两个宿主消费；不得依赖任何服务/宿主包

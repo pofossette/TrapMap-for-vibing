@@ -5,6 +5,7 @@
     "packages/assembly/src/index.ts",
     "packages/lib/src/index.ts",
     "apps/cli/src/index.ts",
+    "apps/mcp/src/index.ts",
     "packages/client-core/src/index.ts",
     "packages/contracts/src/index.ts",
     "packages/persistence-schema/src/index.ts",
@@ -17,7 +18,7 @@
     "apps/cli/src/testing/index.ts",
     "evals/**/*.ts"
   ],
-  "ignoreDependencies": ["amqplib", "markdown-link-check"],
+  "ignoreDependencies": ["@modelcontextprotocol/sdk", "amqplib", "markdown-link-check"],
   "usedClassMembers": [
     {
       "implements": "EmbeddingsProvider",
@@ -128,6 +129,10 @@
       {
         "name": "web-panel",
         "patterns": ["apps/web-panel/src/**"]
+      },
+      {
+        "name": "mcp",
+        "patterns": ["apps/mcp/src/**"]
       }
     ],
     "rules": [
@@ -202,6 +207,10 @@
       {
         "from": "web-panel",
         "allow": ["client-core", "contracts"]
+      },
+      {
+        "from": "mcp",
+        "allow": ["client-core", "contracts", "lib"]
       }
     ],
     "coverage": {
