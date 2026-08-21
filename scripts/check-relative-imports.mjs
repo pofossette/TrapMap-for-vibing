@@ -94,25 +94,14 @@ function extractSpecifiers(line) {
   const specifiers = [];
   const ws = '[ \t]';
   const re = new RegExp(
-    '(?:import|export)' +
-      ws +
-      '+(?:[^;]*?' +
-      ws +
-      '+from' +
-      ws +
-      '+)?[\'"]([^\'"]+)[\'"]|import' +
-      ws +
-      '*([ \t]*[\'"](' +
-      '[^\'"]+' +
-      ')[\'"]' +
-      ws +
-      '*)',
+    `(?:import|export)${ws}+(?:[^;]*?${ws}+from${ws}+)?[\'"]([^\'"]+)[\'"]|import${ws}*([ \t]*[\'"]([^\'"]+)[\'"]${ws}*)`,
     'g',
   );
-  let match;
-  while ((match = re.exec(line)) !== null) {
+  let match = re.exec(line);
+  while (match !== null) {
     const specifier = match[1] || match[2];
     if (specifier) specifiers.push(specifier);
+    match = re.exec(line);
   }
   return specifiers;
 }
@@ -158,17 +147,14 @@ async function main() {
 
         for (const specifier of extractSpecifiers(line)) {
           // 1) Self-package import check.
-          if (specifier === pkgName || specifier.startsWith(pkgName + '/')) {
+          if (specifier === pkgName || specifier.startsWith(`${pkgName}/`)) {
             if (!SELF_IMPORT_EXCEPTION_PACKAGES.has(pkgName)) {
               violations.push({
                 kind: 'self-import',
                 file: relFile,
                 line: lineNumber,
                 importPath: specifier,
-                message:
-                  'self-import of ' +
-                  pkgName +
-                  ' — use a relative path instead (self-imports break tree-shaking in bundled consumers)',
+                message: `self-import of ${pkgName} — use a relative path instead (self-imports break tree-shaking in bundled consumers)`,
               });
             }
             continue;
@@ -179,16 +165,13 @@ async function main() {
           const targetAbs = path.resolve(path.dirname(absFile), specifier);
           const targetRel = path.relative(repoRoot, targetAbs).replaceAll('\\', '/');
           if (!targetRel.startsWith('packages/')) continue;
-          if (targetRel.startsWith(pkgRel + '/')) continue; // intra-package
+          if (targetRel.startsWith(`${pkgRel}/`)) continue; // intra-package
           violations.push({
             kind: 'cross-package-relative',
             file: relFile,
             line: lineNumber,
             importPath: specifier,
-            message:
-              'cross-package relative import into ' +
-              targetRel +
-              ' — use the @trapmap/* package-name surface',
+            message: `cross-package relative import into ${targetRel} — use the @trapmap/* package-name surface`,
           });
         }
       }
@@ -202,24 +185,20 @@ async function main() {
 
   if (fixMode) {
     console.log(
-      'Found ' +
-        violations.length +
-        ' violation(s). Prefer relative paths for self-imports and @trapmap/* package names for cross-package imports.',
+      `Found ${violations.length} violation(s). Prefer relative paths for self-imports and @trapmap/* package names for cross-package imports.`,
     );
     for (const v of violations) {
-      console.log('  ' + v.file + ':' + v.line + '  "' + v.importPath + '"  (' + v.message + ')');
+      console.log(`  ${v.file}:${v.line}  "${v.importPath}"  (${v.message})`);
     }
     process.exit(1);
   }
 
-  console.error(
-    'Found ' + violations.length + ' import path violation(s):' + String.fromCharCode(10),
-  );
+  console.error(`Found ${violations.length} import path violation(s):${String.fromCharCode(10)}`);
   for (const v of violations) {
-    console.error('  ' + v.file + ':' + v.line + '  "' + v.importPath + '"');
-    console.error('      ' + v.message);
+    console.error(`  ${v.file}:${v.line}  "${v.importPath}"`);
+    console.error(`      ${v.message}`);
   }
-  console.error(String.fromCharCode(10) + 'Fix them, then re-run. (Use --fix for details.)');
+  console.error(`${String.fromCharCode(10)}Fix them, then re-run. (Use --fix for details.)`);
   process.exit(1);
 }
 

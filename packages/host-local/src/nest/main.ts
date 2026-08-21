@@ -4,10 +4,10 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { createShutdownController } from '@trapmap/assembly';
 
 import { resolveListenOptions } from './resolve-listen-options.js';
-import { createHostLocalRuntime } from './runtime/host-runtime.js';
 import { HTTP_SURFACE_SERVICE } from './runtime/assembly/nodes/nest-transport.js';
 import { localAgentAssembly } from './runtime/assembly/profiles/local-agent.js';
 import { teamMonolithAssembly } from './runtime/assembly/profiles/team-monolith.js';
+import { createHostLocalRuntime } from './runtime/host-runtime.js';
 
 export interface NestBootstrapOptions {
   host?: string;

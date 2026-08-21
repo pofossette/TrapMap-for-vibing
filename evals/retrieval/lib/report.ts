@@ -6,6 +6,12 @@
  * Both JSON and terminal output are derived from one canonical report structure.
  */
 
+import {
+  average,
+  buildEvalReportMetaOptions,
+  compareFailuresByCaseThenKind,
+  computeCaseTotals,
+} from '../../lib/eval-report.js';
 import type {
   CohortKey,
   CohortSummary,
@@ -22,12 +28,6 @@ import type {
   RoutingDistribution,
 } from '../../types/index.js';
 import { retrievalEvalReportSchema } from '../../types/index.js';
-import {
-  average,
-  buildEvalReportMetaOptions,
-  compareFailuresByCaseThenKind,
-  computeCaseTotals,
-} from '../../lib/eval-report.js';
 import type { CaseResult, SliceKey, SliceMetrics } from './types.js';
 import {
   deriveQueryType,

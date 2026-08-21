@@ -47,13 +47,13 @@ module.exports = {
     //    The membership list mirrors the fallow service-standard zone plus
     //    service-knowledge-read (fallow keeps it as its own zone).
     ...SERVICE_PACKAGES.map((svc) => ({
-      name: 'services-must-not-cross-dep:' + svc,
-      comment: svc + ' must NOT depend on other service-* packages (type-only imports allowed)',
+      name: `services-must-not-cross-dep:${svc}`,
+      comment: `${svc} must NOT depend on other service-* packages (type-only imports allowed)`,
       severity: 'error',
-      from: { path: '^packages/' + svc + '/' },
+      from: { path: `^packages/${svc}/` },
       to: {
         path: '^packages/service-[^/]+/',
-        pathNot: ['^packages/' + svc + '/'],
+        pathNot: [`^packages/${svc}/`],
         dependencyTypesNot: ['type-only'],
       },
     })),

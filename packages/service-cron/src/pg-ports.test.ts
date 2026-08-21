@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createCronOwnerBundle, type Queryable } from './pg-ports.js';
+import { type Queryable, createCronOwnerBundle } from './pg-ports.js';
 
 function createPool(overrides: Partial<Queryable> = {}): {
   calls: Array<{ sql: string; values?: unknown[] }>;

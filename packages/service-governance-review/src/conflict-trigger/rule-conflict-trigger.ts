@@ -8,9 +8,9 @@
 import type { ConflictTriggerPort, GovernanceConflictReadPort } from '@trapmap/backend-core';
 
 import {
-  createGovernanceConflictWorkflow,
   type GovernanceConflictChat,
   type GovernanceConflictProjection,
+  createGovernanceConflictWorkflow,
 } from '../conflict-workflow.js';
 
 export interface RuleConflictTriggerDeps {

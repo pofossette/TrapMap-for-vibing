@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CronServiceDeps, CronServiceModule, CronScheduler } from '@trapmap/service-cron';
+import type { CronScheduler, CronServiceDeps, CronServiceModule } from '@trapmap/service-cron';
 import type { HostLocalRuntime } from '../runtime/host-runtime.js';
 import { CronSchedulerProvider } from './cron-scheduler.provider.js';
 import { CronModule } from './cron.module.js';

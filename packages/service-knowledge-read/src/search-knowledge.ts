@@ -8,8 +8,10 @@ import {
 } from '@trapmap/contracts';
 import { nowIso } from '@trapmap/lib';
 
+import { mergeArtifactsIntoRetrievalPool } from './artifact-entry-merge.js';
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
+import { createRuleIntentRecognition } from './intent-recognition/rule-intent-recognition.js';
 import {
   type PipelineStep,
   type RagLogEntry,
@@ -25,8 +27,6 @@ import {
 import { buildCitations } from './response-citations.js';
 import { generateRefinement } from './response-refinement.js';
 import { buildSummary } from './response-summary.js';
-import { mergeArtifactsIntoRetrievalPool } from './artifact-entry-merge.js';
-import { createRuleIntentRecognition } from './intent-recognition/rule-intent-recognition.js';
 import { getRetrievalInfra } from './retrieval-infra.js';
 import { dispatchByMode, inferChannelsFromMerged } from './retrieval-recall-coordinator.js';
 import { buildEmbeddingText } from './retrieval-semantic.js';

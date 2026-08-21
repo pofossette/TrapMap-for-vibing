@@ -22,10 +22,6 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
-import type { AgentPlanningEvalReport } from '../types/agent-planning.js';
-import type { AgentPlanningEvalCase } from '../types/agent-planning.js';
-import type { LabelAlignmentEvalReport } from '../types/label-alignment.js';
-import type { RetrievalEvalReport, SummaryEvalReport } from '../types/report.js';
 import { buildAgentPlanningPlatformEvents } from '../agent-planning/lib/platform-events.js';
 import type { GraphExtractionBridgeReport } from '../graph-extraction/bridge.js';
 import type { IngestionBridgeReport } from '../ingestion/bridge.js';
@@ -41,6 +37,10 @@ import { resolveLangfuseAdapterConfigFromEnv } from '../lib/platform/langfuse-co
 import { buildRetrievalPlatformEvents } from '../retrieval/lib/platform-events.js';
 import type { RunnerSummary } from '../retrieval/lib/types.js';
 import { buildSummaryPlatformEvents } from '../summary/lib/platform-events.js';
+import type { AgentPlanningEvalReport } from '../types/agent-planning.js';
+import type { AgentPlanningEvalCase } from '../types/agent-planning.js';
+import type { LabelAlignmentEvalReport } from '../types/label-alignment.js';
+import type { RetrievalEvalReport, SummaryEvalReport } from '../types/report.js';
 
 // =============================================================================
 // CLI Argument Parsing

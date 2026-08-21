@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { RetrievalEvalScenario } from '../../types/index.js';
 import { sha256 } from '@trapmap/lib';
+import type { RetrievalEvalScenario } from '../../types/index.js';
 
 import {
   closeExecutionContext,

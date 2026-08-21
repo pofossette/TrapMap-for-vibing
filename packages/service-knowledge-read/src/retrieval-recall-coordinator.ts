@@ -9,14 +9,14 @@ import {
 import type { ChannelMergePort } from '@trapmap/backend-core';
 import type { RetrievalQuery, retrievalQuerySchema } from '@trapmap/contracts';
 import type { Pool } from 'pg';
-import { artifactVersionOf, type MergedCandidate, type ScoredEntry } from './retrieval-types.js';
+import { type MergedCandidate, type ScoredEntry, artifactVersionOf } from './retrieval-types.js';
 
+import { createRuleChannelMerge } from './channel-merge/rule-channel-merge.js';
 import type {
   KnowledgeReadGraphQueryRuntimeState,
   ResolvedAuthContext,
   SkillShareerServices,
 } from './context.js';
-import { createRuleChannelMerge } from './channel-merge/rule-channel-merge.js';
 import { getRetrievalInfra } from './retrieval-infra.js';
 import { keywordRecall, normalizeQuery } from './retrieval-keyword.js';
 import { getQueryEmbedding, optimizedSemanticRecall } from './retrieval-semantic.js';

@@ -1,11 +1,11 @@
 import { createRetrievalArtifactFixture } from '@trapmap/contracts';
 import { describe, expect, it } from 'vitest';
 
-import type { SkillArtifactRecord } from './store.js';
 import {
   artifactToRetrievalEntry,
   mergeArtifactsIntoRetrievalPool,
 } from './artifact-entry-merge.js';
+import type { SkillArtifactRecord } from './store.js';
 
 function artifact(
   id: string,

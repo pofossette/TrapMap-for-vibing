@@ -5,6 +5,7 @@ import { createKnowledgeReadModule } from '@trapmap/backend-core';
 import { createKnowledgeWriteModule } from '@trapmap/backend-core';
 import { createCandidateIngestionModule } from '@trapmap/backend-core';
 import { createCandidateIngestionDeps } from '@trapmap/service-candidate-ingestion';
+import { createCronServiceModule } from '@trapmap/service-cron';
 import {
   createGovernanceAsyncCommandModule,
   createGovernanceReviewAdminModule,
@@ -19,7 +20,6 @@ import {
 import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
 import { createKnowledgeReadDeps } from '@trapmap/service-knowledge-read';
 import { createKnowledgeWriteDeps } from '@trapmap/service-knowledge-write';
-import { createCronServiceModule } from '@trapmap/service-cron';
 
 import { CandidateIngestionModule } from './candidate-ingestion/candidate-ingestion.module.js';
 import { CandidateProcessingService } from './candidate-ingestion/candidate-processing.service.js';
@@ -84,7 +84,6 @@ import { ConsulModule } from './service-discovery/index.js';
  * here from a pre-built {@link HostLocalRuntime}.
  */
 @Module({})
-// biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
 export class AppModule implements NestModule {
   static forRuntime(runtime: HostLocalRuntime) {
     const knowledgeProjection = buildKnowledgeProjection(runtime);

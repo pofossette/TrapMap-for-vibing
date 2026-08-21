@@ -1,5 +1,5 @@
-import { toInvocationErrorResponse } from '../invocation/invocation-model.js';
 import { describe, expect, it } from 'vitest';
+import { toInvocationErrorResponse } from '../invocation/invocation-model.js';
 
 import { InvocationError } from '../invocation/invocation-model.js';
 import {

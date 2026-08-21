@@ -6,6 +6,7 @@
  * Derived from the canonical report structure for consistency.
  */
 
+import { pushSliceTable, pushSummaryStats } from '../../lib/eval-report.js';
 import type {
   CohortSummary,
   ModeComparison,
@@ -15,7 +16,6 @@ import type {
   RetrievalEvalWarningRecord,
   RoutingDistribution,
 } from '../../types/report.js';
-import { pushSliceTable, pushSummaryStats } from '../../lib/eval-report.js';
 import { compareCohortSummaries, compareSliceSummaries } from './report.js';
 
 // =============================================================================

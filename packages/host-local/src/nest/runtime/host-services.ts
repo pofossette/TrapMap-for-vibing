@@ -10,6 +10,12 @@ import {
   createCandidateIngestionPgOwnerBundle,
 } from '@trapmap/service-candidate-ingestion';
 import {
+  type CronOwnerBundle,
+  type CronScheduler,
+  createCronOwnerBundle,
+  createCronScheduler,
+} from '@trapmap/service-cron';
+import {
   type GovernanceReviewPgOwnerBundle,
   createGovernanceReviewPgOwnerBundle,
 } from '@trapmap/service-governance-review';
@@ -18,12 +24,6 @@ import {
   createIdentityAccessPgDeps,
 } from '@trapmap/service-identity-access';
 import { createJobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
-import {
-  type CronOwnerBundle,
-  type CronScheduler,
-  createCronOwnerBundle,
-  createCronScheduler,
-} from '@trapmap/service-cron';
 import {
   type OwnerReadModelProjection,
   type OwnerReadModelProjectionOptions,

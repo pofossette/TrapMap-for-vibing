@@ -20,12 +20,9 @@ import type {
   DuplicateCase,
   LabelAlignmentInput,
 } from '@trapmap/contracts';
-import type {
-  GovernanceConflictCandidateSet,
-  GovernanceConflictReadPort,
-} from '../ports/internal-ports.js';
 import { labelAlignmentDecisionSchema } from '@trapmap/contracts';
 import { buildNormalizedDuplicateInput } from '../candidate-ingestion/domain/dedup.js';
+import type { MergedCandidateLike, RecallCandidateLike } from '../knowledge-read/domain/ranking.js';
 import type {
   ArtifactDerivationContext,
   ArtifactDerivationInput,
@@ -34,8 +31,11 @@ import type { ChannelMergeInput } from '../ports/channel-merge-ports.js';
 import type { ConflictTriggerInput, ConflictTriggerResult } from '../ports/conflict-ports.js';
 import type { DedupStrategyResult } from '../ports/dedup-ports.js';
 import type { IntentRecognitionInput, IntentRecognitionResult } from '../ports/intent-ports.js';
+import type {
+  GovernanceConflictCandidateSet,
+  GovernanceConflictReadPort,
+} from '../ports/internal-ports.js';
 import type { LabelAlignmentResult } from '../ports/label-alignment-ports.js';
-import type { MergedCandidateLike, RecallCandidateLike } from '../knowledge-read/domain/ranking.js';
 
 /** Approved trap record shape returned by the corpus port. */
 export interface FixtureTrapRecord {

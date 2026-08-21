@@ -8,9 +8,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { ALL_SERVICES, type ServiceName } from '../../config/index.js';
+import { SERVICE_SERVER_SERVICE } from '../nodes/distributed-service-nodes.js';
 import { SERVICE_CONFIG_SERVICE } from '../nodes/service-config.js';
 import { SERVICE_DATABASE_SERVICE } from '../nodes/service-database.js';
-import { SERVICE_SERVER_SERVICE } from '../nodes/distributed-service-nodes.js';
 import { buildDistributedAssembly, distributedAssembly } from './distributed.js';
 
 const SERVICE_NODE_ID: Record<ServiceName, string> = {

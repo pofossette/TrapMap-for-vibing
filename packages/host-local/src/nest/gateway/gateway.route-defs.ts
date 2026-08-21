@@ -10,54 +10,29 @@
  * context from the adapter-enriched RouteContext.
  */
 
-import {
-  type HttpMethod,
-  InvocationError,
-  type RouteContext,
-  type RouteDef,
-} from '@trapmap/backend-core';
-import type { CandidateIngestionPort, KnowledgeReadPort, ReviewPort } from '@trapmap/backend-core';
+import { InvocationError, type RouteDef } from '@trapmap/backend-core';
 import {
   ManualResultSubmissionSchema,
-  cronJobCreateInputSchema,
-  cronJobUpdateInputSchema,
   manualResultResponseSchema,
   reviewDecisionRequestSchema,
   reviewQueueResponseSchema,
 } from '@trapmap/contracts';
 import { buildOwnerReviewQueueProjection } from '@trapmap/service-governance-review';
-import type { CronServiceModule } from '@trapmap/service-cron';
 import {
   knowledgeReadMineSchema,
   knowledgeReadSearchSchema,
   toKnowledgeReadSearchArgs,
 } from '@trapmap/service-knowledge-read';
-import { type ZodType, z } from 'zod';
+import { z } from 'zod';
 
-import type { resolveHostLocalAuthContext } from '../runtime/auth-context.js';
-import type { HostLocalRuntime } from '../runtime/host-runtime.js';
-
-type GatewayAuthContext = Awaited<ReturnType<typeof resolveHostLocalAuthContext>>;
-
-export interface GatewayRouteDeps {
-  knowledgeRead: KnowledgeReadPort;
-  candidateIngestion: CandidateIngestionPort;
-  governanceReview: ReviewPort;
-  cron: CronServiceModule;
-  runtime: HostLocalRuntime;
-}
-
-interface GatewayRouteContext extends RouteContext {
-  authContext?: GatewayAuthContext;
-}
-
-const emptyRecord = z.record(z.string(), z.unknown());
-/**
- * The AuthGuard runs before every route below, so the schema requires the
- * auth context field; the adapter injects it from the request. 401 stays in
- * the guard layer (裁决 b), so handlers never re-check it.
- */
-const authContextSchema = z.custom<GatewayAuthContext>();
+import { createCronGatewayRouteDefs } from './gateway.cron-route-defs.js';
+import {
+  type GatewayRouteContext,
+  type GatewayRouteDeps,
+  authContextSchema,
+  emptyRecord,
+  gatewayRouteDef,
+} from './gateway.route-kit.js';
 
 const entryParamsSchema = z.object({
   params: z.object({ entryId: z.string() }),
@@ -94,34 +69,6 @@ const reviewDecisionSchema = z.object({
   authContext: authContextSchema,
 });
 
-const cronJobListSchema = z.object({
-  params: emptyRecord,
-  query: emptyRecord,
-  body: z.unknown(),
-  authContext: authContextSchema,
-});
-
-const cronJobParamsSchema = z.object({
-  params: z.object({ jobId: z.string() }),
-  query: emptyRecord,
-  body: z.unknown(),
-  authContext: authContextSchema,
-});
-
-const cronJobCreateSchema = z.object({
-  params: emptyRecord,
-  query: emptyRecord,
-  body: cronJobCreateInputSchema,
-  authContext: authContextSchema,
-});
-
-const cronJobUpdateSchema = z.object({
-  params: z.object({ jobId: z.string() }),
-  query: emptyRecord,
-  body: cronJobUpdateInputSchema,
-  authContext: authContextSchema,
-});
-
 function reviewDecisionInput(
   ctx: GatewayRouteContext,
   actorId: string,
@@ -144,21 +91,7 @@ function reviewDecisionInput(
   };
 }
 
-/**
- * The AuthGuard guarantees the auth context on guarded routes, so handlers
- * read `ctx.authContext` directly — 401 never enters the handler layer.
- */
-function gatewayRouteDef<Ctx extends GatewayRouteContext>(def: {
-  method: HttpMethod;
-  path: string;
-  schema: ZodType<Ctx>;
-  successStatus?: number;
-  handler(ctx: Ctx, deps: GatewayRouteDeps): Promise<unknown>;
-}): RouteDef<Ctx, GatewayRouteDeps> {
-  return def;
-}
-
-export function createGatewayRouteDefs(_deps: GatewayRouteDeps): RouteDef[] {
+export function createGatewayRouteDefs(deps: GatewayRouteDeps): RouteDef[] {
   return [
     gatewayRouteDef({
       method: 'GET',
@@ -309,87 +242,6 @@ export function createGatewayRouteDefs(_deps: GatewayRouteDeps): RouteDef[] {
     }),
 
     // ---- Cron routes (cron bounded context) ----
-    //
-    // The monolith serves the cron management surface as session-guarded
-    // `/v1/cron/*` gateway routes over the cron service module port — the
-    // service package's own RouteDefs gate on a client-supplied
-    // `x-trapmap-actor-id` which the monolith cannot verify, so they are
-    // not mounted on the public port (mirrors the distributed gateway).
-
-    gatewayRouteDef({
-      method: 'GET',
-      path: '/v1/cron/jobs',
-      schema: cronJobListSchema,
-      handler: async (_ctx, deps) => {
-        return deps.cron.list();
-      },
-    }),
-
-    gatewayRouteDef({
-      method: 'POST',
-      path: '/v1/cron/jobs',
-      schema: cronJobCreateSchema,
-      successStatus: 201,
-      handler: async (ctx, deps) => {
-        return deps.cron.create(ctx.body);
-      },
-    }),
-
-    gatewayRouteDef({
-      method: 'GET',
-      path: '/v1/cron/jobs/:jobId',
-      schema: cronJobParamsSchema,
-      handler: async (ctx, deps) => {
-        const job = await deps.cron.getById(ctx.params.jobId);
-        if (!job) {
-          throw InvocationError.notFound('Cron job not found');
-        }
-        return job;
-      },
-    }),
-
-    gatewayRouteDef({
-      method: 'PATCH',
-      path: '/v1/cron/jobs/:jobId',
-      schema: cronJobUpdateSchema,
-      handler: async (ctx, deps) => {
-        const job = await deps.cron.update(ctx.params.jobId, ctx.body);
-        if (!job) {
-          throw InvocationError.notFound('Cron job not found');
-        }
-        return job;
-      },
-    }),
-
-    gatewayRouteDef({
-      method: 'DELETE',
-      path: '/v1/cron/jobs/:jobId',
-      schema: cronJobParamsSchema,
-      handler: async (ctx, deps) => {
-        const deleted = await deps.cron.delete(ctx.params.jobId);
-        if (!deleted) {
-          throw InvocationError.notFound('Cron job not found');
-        }
-        return { ok: true };
-      },
-    }),
-
-    gatewayRouteDef({
-      method: 'POST',
-      path: '/v1/cron/jobs/:jobId/trigger',
-      schema: cronJobParamsSchema,
-      handler: async (ctx, deps) => {
-        return deps.cron.trigger(ctx.params.jobId);
-      },
-    }),
-
-    gatewayRouteDef({
-      method: 'GET',
-      path: '/v1/cron/status',
-      schema: cronJobListSchema,
-      handler: async (_ctx, deps) => {
-        return deps.cron.statusSnapshots();
-      },
-    }),
+    ...createCronGatewayRouteDefs(deps),
   ];
 }

@@ -27,8 +27,8 @@ import {
 import type { DistributedServiceHandle } from '../../runner.js';
 import { SERVICE_SERVER_SERVICE } from '../nodes/distributed-service-nodes.js';
 import {
-  candidateProcessingWorkerNode,
   candidateIngestionServiceNode,
+  candidateProcessingWorkerNode,
   conflictDetectionWorkerNode,
   cronServiceNode,
   gatewayServiceNode,
@@ -46,8 +46,8 @@ import {
   knowledgeReadJudgmentNodes,
   knowledgeWriteJudgmentNodes,
 } from '../nodes/judgment-nodes.js';
-import { SERVICE_DATABASE_SERVICE, serviceDatabaseNode } from '../nodes/service-database.js';
 import { SERVICE_CONFIG_SERVICE, serviceConfigNode } from '../nodes/service-config.js';
+import { SERVICE_DATABASE_SERVICE, serviceDatabaseNode } from '../nodes/service-database.js';
 
 /** Worker sub-nodes attached to the job-runtime container (D7). */
 const JOB_RUNTIME_WORKER_CHILDREN: readonly CapabilityNode[] = [

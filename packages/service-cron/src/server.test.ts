@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { CronServiceDeps } from './deps.js';
-import { createCronServer } from './server.js';
 import { createCronOwnerBundle } from './pg-ports.js';
 import { createCronScheduler } from './scheduler.js';
+import { createCronServer } from './server.js';
 
 const emptyPool = {
   query: vi.fn(async () => ({ rows: [] })),

@@ -16,17 +16,17 @@
 import { defineNode } from '@trapmap/assembly';
 import type { CapabilityNode } from '@trapmap/assembly';
 
+import { createServer as createCandidateIngestionServer } from '../../candidate-ingestion/server.js';
 import type { ServiceConfig } from '../../config/index.js';
+import { createServer as createCronServer } from '../../cron-scheduler/server.js';
+import { createServer as createGatewayServer } from '../../gateway/server.js';
+import { createServer as createGovernanceReviewServer } from '../../governance-review/server.js';
+import { createServer as createIdentityAccessServer } from '../../identity-access/server.js';
+import { createServer as createJobRuntimeServer } from '../../job-runtime/server.js';
+import { createKnowledgeReadServerAdapter } from '../../knowledge-read/server.js';
+import { createServer as createKnowledgeWriteServer } from '../../knowledge-write/server.js';
 import { SERVICE_CONFIG_SERVICE } from './service-config.js';
 import { SERVICE_DATABASE_SERVICE } from './service-database.js';
-import { createServer as createGatewayServer } from '../../gateway/server.js';
-import { createServer as createIdentityAccessServer } from '../../identity-access/server.js';
-import { createServer as createKnowledgeWriteServer } from '../../knowledge-write/server.js';
-import { createServer as createCandidateIngestionServer } from '../../candidate-ingestion/server.js';
-import { createServer as createGovernanceReviewServer } from '../../governance-review/server.js';
-import { createServer as createJobRuntimeServer } from '../../job-runtime/server.js';
-import { createServer as createCronServer } from '../../cron-scheduler/server.js';
-import { createKnowledgeReadServerAdapter } from '../../knowledge-read/server.js';
 
 /** Context service token under which the assembled server handle is provided. */
 export const SERVICE_SERVER_SERVICE = 'serviceServer';

@@ -28,13 +28,13 @@ import {
   createRuleConflictTrigger,
 } from '@trapmap/service-governance-review';
 import {
-  createRuleArtifactDerivation,
-  createRuleLabelAlignment,
-} from '@trapmap/service-knowledge-write';
-import {
   createRuleChannelMerge,
   createRuleIntentRecognition,
 } from '@trapmap/service-knowledge-read';
+import {
+  createRuleArtifactDerivation,
+  createRuleLabelAlignment,
+} from '@trapmap/service-knowledge-write';
 import type { HostLocalRuntime } from '../../host-runtime.js';
 
 function requireRuntime(ctx: Parameters<CapabilityNode['apply']>[0]): HostLocalRuntime {

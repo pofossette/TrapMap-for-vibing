@@ -4,6 +4,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
+import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
+import { Pool } from 'pg';
+import { detectServiceProfile } from '../../evals/retrieval-live/lib/snapshot-support.js';
 import {
   type ArtifactReadProjection,
   type GraphIndexDocumentRecord,
@@ -12,10 +16,6 @@ import {
   liveSnapshotMetaSchema,
   retrievalEvalScenarioSnapshotSchema,
 } from '../../evals/types/index.js';
-import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
-import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
-import { Pool } from 'pg';
-import { detectServiceProfile } from '../../evals/retrieval-live/lib/snapshot-support.js';
 import { reportEntrypointFailure } from '../testing/entrypoint.js';
 
 interface CliOptions {

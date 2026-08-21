@@ -108,7 +108,7 @@ it('freezes the artifact revision version column in the owner migration set', as
     tables: Record<string, { columns: Record<string, { type: string; notNull: boolean }> }>;
   };
   const revisionTable = snapshot.tables['public.artifact_revisions'];
-  expect(revisionTable?.columns['version']).toEqual({
+  expect(revisionTable?.columns.version).toEqual({
     name: 'version',
     type: 'text',
     primaryKey: false,

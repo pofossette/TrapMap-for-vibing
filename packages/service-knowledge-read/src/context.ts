@@ -1,3 +1,4 @@
+import type { ChannelMergePort, IntentRecognitionPort } from '@trapmap/backend-core';
 import type {
   BoundaryContext,
   BoundaryExplanation,
@@ -11,7 +12,6 @@ import type {
   RetrievalQuery,
   RetrievalReadModelRepositories,
 } from '@trapmap/contracts';
-import type { ChannelMergePort, IntentRecognitionPort } from '@trapmap/backend-core';
 import type { Pool } from 'pg';
 
 import type { RagLogConfig } from './rag-log.js';

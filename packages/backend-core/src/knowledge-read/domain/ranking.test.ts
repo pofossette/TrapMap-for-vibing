@@ -299,7 +299,7 @@ describe('knowledge-read ranking rules', () => {
 
     it('returns 1 when the versioned decay config is absent', () => {
       const config = { ...DEFAULT_FRESHNESS_DECAY_CONFIG };
-      delete (config as Partial<FreshnessDecayConfig>).versioned;
+      (config as Partial<FreshnessDecayConfig>).versioned = undefined;
       expect(
         versionMatchMultiplier({
           artifactVersion: '2.1.0',

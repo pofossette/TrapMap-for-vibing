@@ -7,8 +7,8 @@
  * and CI logging.
  */
 
-import type { SummaryEvalCaseResult, SummaryEvalReport } from '../../types/report.js';
 import { pushSummaryStats } from '../../lib/eval-report.js';
+import type { SummaryEvalCaseResult, SummaryEvalReport } from '../../types/report.js';
 import type { SummaryCaseResult } from './types.js';
 
 // =============================================================================

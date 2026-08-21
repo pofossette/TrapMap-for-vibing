@@ -119,4 +119,4 @@
 
 文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档当作当前执行入口引用；归档文档内部链接不再维护。
 
-当前根 `plan.md` 指向 assembly Phase 4 收尾这一唯一 active mainline detail（[`archived-plans/unified-assembly-center-phase4-archived.md`](archived-plans/unified-assembly-center-phase4-archived.md)；assembly Phase 1、Phase 2 与 Phase 3 已完成并归档）。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。
+当前根 `plan.md` 指向“Dead Code and Architecture Order Cleanup”这一唯一 active mainline detail（[`docs/todos/dead-code-and-architecture-order-cleanup.md`](../todos/dead-code-and-architecture-order-cleanup.md)；实现已提交 2026-08-16，closeout 延后并登记于 open-debt）。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。

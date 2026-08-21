@@ -5,7 +5,8 @@ import type { CronServiceModule } from '@trapmap/service-cron';
 
 import { AuthGuard } from '../runtime/auth.guard.js';
 import { HOST_LOCAL_RUNTIME_TOKEN, type HostLocalRuntime } from '../runtime/host-runtime.js';
-import { type GatewayRouteDeps, createGatewayRouteDefs } from './gateway.route-defs.js';
+import { createGatewayRouteDefs } from './gateway.route-defs.js';
+import type { GatewayRouteDeps } from './gateway.route-kit.js';
 
 export interface GatewayPorts {
   knowledgeRead: KnowledgeReadPort;

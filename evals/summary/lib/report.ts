@@ -7,6 +7,12 @@
  * The report structure is validated through Zod schemas for type safety.
  */
 
+import {
+  average,
+  buildEvalReportMetaOptions,
+  compareFailuresByCaseThenKind,
+  computeCaseTotals,
+} from '../../lib/eval-report.js';
 import type {
   SummaryEvalCaseResult,
   SummaryEvalFailureRecord,
@@ -14,12 +20,6 @@ import type {
   SummaryEvalReportMeta,
 } from '../../types/report.js';
 import { summaryEvalReportSchema } from '../../types/report.js';
-import {
-  average,
-  buildEvalReportMetaOptions,
-  compareFailuresByCaseThenKind,
-  computeCaseTotals,
-} from '../../lib/eval-report.js';
 import type { JudgeProvider, RunnerOptions, SummaryCaseResult } from './types.js';
 
 // =============================================================================

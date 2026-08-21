@@ -12,9 +12,9 @@ import { startupChecks } from '@trapmap/assembly';
 import {
   SERVICE_SERVER_SERVICE,
   candidateIngestionServiceNode,
+  candidateProcessingWorkerNode,
   conflictDetectionWorkerNode,
   cronServiceNode,
-  candidateProcessingWorkerNode,
   gatewayServiceNode,
   governanceFeedbackWorkerNode,
   governanceReviewServiceNode,
@@ -24,8 +24,8 @@ import {
   knowledgeWriteServiceNode,
   outboxDispatchWorkerNode,
 } from './distributed-service-nodes.js';
-import { SERVICE_DATABASE_SERVICE } from './service-database.js';
 import { SERVICE_CONFIG_SERVICE } from './service-config.js';
+import { SERVICE_DATABASE_SERVICE } from './service-database.js';
 
 function injectsOf(node: { inject?: readonly string[] | undefined }): readonly string[] {
   return node.inject ?? [];

@@ -9,6 +9,7 @@ import { createAssembly } from '@trapmap/assembly';
 import type { CapabilityNode } from '@trapmap/assembly';
 import type { HostLocalRuntime } from '../../host-runtime.js';
 
+import { judgmentContracts } from '@trapmap/assembly';
 import {
   type PilotHostNodeConfig,
   hostLocalConfigNode,
@@ -16,9 +17,8 @@ import {
   hostLocalRuntimeNode,
   hostLocalServicesNode,
 } from '../nodes/host-nodes.js';
-import { type NestTransportConfig, nestTransportNode } from '../nodes/nest-transport.js';
-import { judgmentContracts } from '@trapmap/assembly';
 import { judgmentNodes } from '../nodes/judgment-nodes.js';
+import { type NestTransportConfig, nestTransportNode } from '../nodes/nest-transport.js';
 import { serviceNodes } from '../nodes/service-nodes.js';
 
 export interface PilotProfileOptions {

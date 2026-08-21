@@ -10,8 +10,8 @@ import {
   type CandidateProcessingRuntime,
   createCandidateProcessingRuntime,
 } from '@trapmap/service-candidate-ingestion';
-import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 import { createRuleDedupStrategy } from '@trapmap/service-candidate-ingestion';
+import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 import {
   createKnowledgeReadOwnerRetrievalServices,
   createKnowledgeReadRetrievalQuery,

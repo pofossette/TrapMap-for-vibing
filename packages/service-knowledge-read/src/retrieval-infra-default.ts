@@ -14,7 +14,7 @@ import { type FreshnessDecayConfig, enrichConflictHints } from '@trapmap/contrac
 import type { Pool } from 'pg';
 
 import type { KnowledgeReadGraphQueryBackend, KnowledgeReadRetrievalInfra } from './context.js';
-import { artifactVersionOf, type RecallCandidate, type ScoredEntry } from './retrieval-types.js';
+import { type RecallCandidate, type ScoredEntry, artifactVersionOf } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 
 const freshnessConfig: FreshnessDecayConfig = DEFAULT_FRESHNESS_DECAY_CONFIG;

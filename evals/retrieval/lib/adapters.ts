@@ -19,9 +19,9 @@ import type {
   SkillArtifact,
   SkillLookupQuery,
 } from '@trapmap/contracts';
-import type { RetrievalEvalCase, RetrievalEvalScenario } from '../../types/index.js';
 import { nowIso, sha256 } from '@trapmap/lib';
 import type { ArtifactWritePort } from '@trapmap/service-knowledge-write';
+import type { RetrievalEvalCase, RetrievalEvalScenario } from '../../types/index.js';
 
 import type { HostLocalRuntime } from '../../../packages/host-local/src/nest/runtime/host-runtime.js';
 import type { HostLocalServices } from '../../../packages/host-local/src/nest/runtime/host-services.js';
