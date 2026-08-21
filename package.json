@@ -100,7 +100,7 @@
     "eval:retrieval:live:compare": "pnpm exec tsx --tsconfig tsconfig.base.json evals/retrieval-live/compare.ts",
     "download:skills": "pnpm exec tsx scripts/batch-download-skills.ts",
     "download:skills:dry": "pnpm exec tsx scripts/batch-download-skills.ts --dry-run --verbose",
-    "test:import-export": "pnpm exec tsx scripts/test-skill-import-export.ts",
+    "test:import-export": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/test-skill-import-export.ts",
     "check:imports": "node scripts/check-relative-imports.mjs --only-cross-dir",
     "check:deps": "depcruise --config .dependency-cruiser.cjs packages/*/src",
     "docs:api": "typedoc",
