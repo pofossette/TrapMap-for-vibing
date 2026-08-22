@@ -11,7 +11,7 @@
 
 ## 当前主线
 
-当前无 active mainline（2026-08-22）。上一主线「债务全量派发 + Agent MCP 接入 + 微服务平台化」已完成并归档：[docs/archived/archived-plans/debt-mcp-platformization-mainline-archived.md]。残余环境门控验证与运营项见 [长期债务登记册](docs/todos/open-debt-and-compromises.md)。
+- **Skill Lookup 契约漂移修复（2026-08-22 激活，执行中）：** 目标是让 `POST /v1/retrieval/skills/search-by-content` 成为真实可用的网关端点（artifact-first，复用现代 shared recall 管线），对齐 CLI / 文档 / 评测三面契约，并落地文档路由路径存在性守卫防复发。执行模型：git worktree + subagent-driven development，A（后端能力）/ B（网关路由）/ C（文档对齐）/ D（防复发守卫）四条工作流最大并行。主细则见 [docs/todos/skill-lookup-surface-mainline.md](docs/todos/skill-lookup-surface-mainline.md)；上一主线「债务全量派发 + Agent MCP 接入 + 微服务平台化」已完成并归档：[docs/archived/archived-plans/debt-mcp-platformization-mainline-archived.md]。
 
 ## 上一主线
 
