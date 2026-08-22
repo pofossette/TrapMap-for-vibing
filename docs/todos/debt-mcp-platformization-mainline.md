@@ -270,7 +270,7 @@ git commit -m "docs(gateway): actorId 放宽族人类拍板结论与（可选）
 **Interfaces:**
 - Produces: 全新环境应用迁移后 DB 表结构 = persistence-schema 单源 64 表（无 store_snapshot、无 candidates 3 个 legacy JSONB 列、无冗余索引）；表清单守卫保持 64=64。
 
-- [ ] **Step 1:** 写 SQL：
+- [x] **Step 1:** 写 SQL：
 
 ```sql
 -- 0001_drop_candidates_legacy_jsonb.sql
@@ -337,7 +337,7 @@ git commit -m "refactor(runtime): capability-model 按类型/默认值/校验/�
 **Interfaces:**
 - Produces: `EvalSeedPort`（最小契约，方法集以 Step 1 盘点为准，预期形如 `seedKnowledgeEntry` / `seedTrap` / `resetScenario`）；eval adapters 类型上只可见 seed 能力，产品写端口不再对 evals 全量暴露。
 
-- [ ] **Step 1:** 盘点：grep `evals/**` 对 `HostLocalServices` 的实际方法调用面，列出 eval 真正使用的 seed 方法清单（写入 PR/commit message）。
+- [x] **Step 1:** 盘点：grep `evals/**` 对 `HostLocalServices` 的实际方法调用面，列出 eval 真正使用的 seed 方法清单（写入 PR/commit message）。
 - [ ] **Step 2:** 定义窄接口并让 HostLocalServices 结构化满足它；evals adapters 的参数类型从 `HostLocalServices` 收窄为 `EvalSeedPort`。
 - [ ] **Step 3:** 门禁：`pnpm --filter @trapmap/backend-core test --run src/testing` + evals focused tests + `pnpm typecheck` + `pnpm eval:smoke`（离线部分，结果 = main 基线）。
 - [ ] **Step 4:** 回写登记册条目 `[x]`；提交：
@@ -951,7 +951,7 @@ git commit -m "docs(platform): Level 3 交付物文档回写与回归命令更�
 
 ## Tranche-2 剩余任务（2026-08-22 排期，主线保持 active）
 
-A3 web-panel 测试修复 · A7 迁移批处理 · A9 EvalSeedPort 收窄 · A10 web-panel admin 后端 · A11-A13 调查/基线报告 · C7 amqp 适配器实现 · C8 job-runtime 隔离试点实现 · C9 golden 回归 · A14/A15【环境门控：docker/kind】 · A16 登记册最终修剪与归档。
+已完成追加：A7（ffab7ebf，17+17+6 测试绿）、A9（e05f3065）。剩余：A3 web-panel 测试修复 · A10 web-panel admin 后端 · A11-A13 调查/基线报告 · C7 amqp 适配器实现 · C8 job-runtime 隔离试点实现 · C9 golden 回归 · A14/A15【环境门控：docker/kind】 · A16 登记册最终修剪与归档。
 
 已获人类批准待实施：C8 试点 owner=job-runtime；C7 走 TRAPMAP_TASK_TRANSPORT 特性开关。
 
