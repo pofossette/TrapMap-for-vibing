@@ -18,7 +18,7 @@
     "apps/cli/src/testing/index.ts",
     "evals/**/*.ts"
   ],
-  "ignoreDependencies": ["@modelcontextprotocol/sdk", "amqplib", "markdown-link-check"],
+  "ignoreDependencies": ["amqplib", "markdown-link-check"],
   "usedClassMembers": [
     {
       "implements": "EmbeddingsProvider",
