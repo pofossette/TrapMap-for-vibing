@@ -268,7 +268,7 @@ const createTeamBodySchema = z.object({
 
 const listTeamsSchema = z.object({
   params: emptyRecord,
-  query: z.object({ userId: z.string() }),
+  query: z.object({ userId: z.string().min(1) }),
   body: z.unknown(),
 });
 
@@ -288,7 +288,7 @@ const updateMemberSchema = actorHeadersSchema.extend({
   params: z.object({ memberId: z.string() }),
   body: z.object({
     updates: z.record(z.string(), z.unknown()).optional(),
-    actorId: z.string().optional(),
+    actorId: z.string(),
   }),
 });
 
@@ -300,7 +300,7 @@ const provisionAccessKeyBodySchema = z.object({
 
 const mineQuerySchema = z.object({
   params: emptyRecord,
-  query: z.object({ userId: z.string(), teamId: z.string().optional() }),
+  query: z.object({ userId: z.string().min(1), teamId: z.string().min(1).optional() }),
   body: z.unknown(),
 });
 
@@ -316,7 +316,7 @@ const knowledgeSubmitSchema = actorHeadersSchema.extend({
     title: z.string().optional(),
     labels: z.array(z.string()).optional(),
     teamId: z.string().optional(),
-    actorId: z.string().optional(),
+    actorId: z.string(),
   }),
 });
 
@@ -335,13 +335,13 @@ const createTrapSchema = actorHeadersSchema.extend({
     content: z.string(),
     teamId: z.string(),
     title: z.string().optional(),
-    actorId: z.string().optional(),
+    actorId: z.string(),
   }),
 });
 
 const listTrapsSchema = z.object({
   params: emptyRecord,
-  query: z.object({ teamId: z.string() }),
+  query: z.object({ teamId: z.string().min(1) }),
   body: z.unknown(),
 });
 
@@ -406,7 +406,7 @@ const knowledgeActionSchema = actorHeadersSchema.extend({
     action: z.string(),
     note: z.string().optional(),
     evidence: z.record(z.string(), z.unknown()).optional(),
-    actorId: z.string().optional(),
+    actorId: z.string(),
   }),
 });
 

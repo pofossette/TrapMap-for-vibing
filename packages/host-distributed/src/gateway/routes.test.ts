@@ -294,11 +294,20 @@ describe('registerGatewayRoutes', () => {
   });
 
   it.each([
-    { description: 'with a body actor', payload: { content: 'content', actorId: 'user-1' } },
-    { description: 'before body validation', payload: { content: 'content' } },
+    {
+      description: 'with a body actor',
+      payload: { content: 'content', actorId: 'user-1' },
+      expectedStatus: 401,
+    },
+    // A6 拍板（恢复严格契约）：body.actorId 必填，schema 校验（400）先于 handler 的 trusted-actor 检查
+    {
+      description: 'before body validation (A6 strict schema)',
+      payload: { content: 'content' },
+      expectedStatus: 400,
+    },
   ])(
     'rejects a mutation when the authenticated identity has no actor $description',
-    async ({ payload }) => {
+    async ({ payload, expectedStatus }) => {
       const clients = createClients();
       clients.identityAccess.validateSession = vi.fn(async () => ({
         status: 200,
@@ -313,7 +322,7 @@ describe('registerGatewayRoutes', () => {
         payload,
       });
 
-      expect(response.statusCode).toBe(401);
+      expect(response.statusCode).toBe(expectedStatus);
       expect(clients.knowledgeWrite.submit).not.toHaveBeenCalled();
       await app.close();
     },
@@ -967,6 +976,25 @@ describe('registerGatewayRoutes', () => {
 
     expect(response.statusCode).toBe(403);
     expect(clients.cronScheduler.createJob).not.toHaveBeenCalled();
+    await app.close();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A6: restored strict contracts (body.actorId required; empty-string queries rejected)
+// ---------------------------------------------------------------------------
+
+describe('A6 strict query contracts', () => {
+  it('listTeams rejects an empty-string userId with 400', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/teams?userId=',
+      headers: { authorization: 'Bearer session-token' },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(clients.identityAccess.listTeams).not.toHaveBeenCalled();
     await app.close();
   });
 });
