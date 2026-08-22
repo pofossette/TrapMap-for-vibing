@@ -1,3 +1,4 @@
+// fallow-ignore-file code-duplication -- gateway internal-client 测试的 fetch/clients 装配模式有意相似；跨用例抽取 helper 会降低可读性（Task C2 变更激活了既有克隆面）
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createInternalServiceClients } from './internal-client.js';
 import {
@@ -583,5 +584,106 @@ describe('createInternalServiceClients', () => {
         }),
       ]),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Task C2: resilient wrapper (breaker + idempotent retry + timeout budgets)
+// ---------------------------------------------------------------------------
+
+import {
+  resolveInternalTimeoutMs,
+  serviceNameForInternalHost,
+} from '@trapmap/host-distributed/config/index.js';
+
+describe('C2 resilient internal client', () => {
+  function stubFetchSequence(responses: Array<{ status: number; body?: unknown }>) {
+    const fetchMock = vi.fn(async () => {
+      const next = responses.shift() ?? { status: 503 };
+      return new Response(JSON.stringify(next.body ?? { error: 't', kind: 'unavailable' }), {
+        status: next.status,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+    return fetchMock;
+  }
+
+  function clientsFor(host: string) {
+    return createInternalServiceClients({
+      gateway: `http://${host}`,
+      identityAccess: `http://${host}`,
+      knowledgeRead: `http://${host}`,
+      knowledgeWrite: `http://${host}`,
+      candidateIngestion: `http://${host}`,
+      review: `http://${host}`,
+      governanceReview: `http://${host}`,
+      jobRuntime: `http://${host}`,
+      cronScheduler: `http://${host}`,
+    });
+  }
+
+  it('retries GET on transient 503 when TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS allows', async () => {
+    vi.stubEnv('TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS', '3');
+    const fetchMock = stubFetchSequence([{ status: 503 }, { status: 200, body: { ok: true } }]);
+    const clients = clientsFor('retry-get.test');
+
+    await expect(clients.knowledgeRead.getById('entry-1')).resolves.toEqual({
+      status: 200,
+      body: { ok: true },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry non-idempotent POST even when retries are enabled', async () => {
+    vi.stubEnv('TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS', '3');
+    const fetchMock = stubFetchSequence([{ status: 503 }]);
+    const clients = clientsFor('post-noretry.test');
+
+    await expect(
+      clients.identityAccess.login({ handle: 'a', password: 'b' }),
+    ).resolves.toMatchObject({ status: 503 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns transient responses unchanged when retry is disabled by default', async () => {
+    delete process.env.TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS;
+    const fetchMock = stubFetchSequence([{ status: 503 }]);
+    const clients = clientsFor('default-single.test');
+
+    await expect(clients.knowledgeRead.getById('entry-1')).resolves.toMatchObject({ status: 503 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the breaker after consecutive failures and short-circuits with zero network calls', async () => {
+    vi.stubEnv('TRAPMAP_INTERNAL_BREAKER_THRESHOLD', '1');
+    vi.stubEnv('TRAPMAP_INTERNAL_BREAKER_COOLDOWN_MS', '60000');
+    const fetchMock = stubFetchSequence([{ status: 503 }]);
+    const clients = clientsFor('breaker.test');
+
+    // First call fails transiently and trips the breaker (threshold=1).
+    await expect(clients.knowledgeRead.getById('entry-1')).resolves.toMatchObject({ status: 503 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Second call is short-circuited: no fetch, canonical unavailable envelope.
+    await expect(clients.knowledgeRead.getById('entry-2')).resolves.toEqual({
+      status: 503,
+      body: { error: 'Internal service unavailable', kind: 'unavailable' },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('maps internal hosts to service names and parses timeout overrides', () => {
+    expect(serviceNameForInternalHost('knowledge-read')).toBe('knowledge-read');
+    expect(serviceNameForInternalHost('candidate-worker')).toBe('candidate-ingestion');
+    expect(serviceNameForInternalHost('unknown-host.example')).toBeUndefined();
+
+    expect(
+      resolveInternalTimeoutMs({ TRAPMAP_KNOWLEDGE_READ_TIMEOUT_MS: '2500' }, 'knowledge-read'),
+    ).toBe(2500);
+    expect(
+      resolveInternalTimeoutMs({ TRAPMAP_KNOWLEDGE_READ_TIMEOUT_MS: 'bad' }, 'knowledge-read'),
+    ).toBeUndefined();
+    expect(resolveInternalTimeoutMs({}, 'gateway')).toBeUndefined();
   });
 });

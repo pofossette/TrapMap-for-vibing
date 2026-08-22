@@ -11,4 +11,6 @@ export {
   assertDistributedConnectionBudget,
   getDistributedConnectionBudgetSnapshot,
   loadServiceConfig,
+  resolveInternalTimeoutMs,
+  serviceNameForInternalHost,
 } from './service-config.js';
