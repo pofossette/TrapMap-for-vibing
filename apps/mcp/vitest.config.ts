@@ -1,0 +1,17 @@
+import { resolve } from 'node:path';
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    include: ['src/**/*.test.ts'],
+    pool: 'forks',
+  },
+  resolve: {
+    alias: {
+      '@trapmap/contracts': resolve(__dirname, '../../packages/contracts/src/index.ts'),
+      '@trapmap/client-core': resolve(__dirname, '../../packages/client-core/src/index.ts'),
+      '@trapmap/lib': resolve(__dirname, '../../packages/lib/src/index.ts'),
+      '@trapmap/app-mcp': resolve(__dirname, 'src'),
+    },
+  },
+});

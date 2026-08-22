@@ -63,7 +63,7 @@ CLI 接入语义在这三个 profile 下保持一致：
 
 当前阶段的明确非目标：
 
-- 不做 MCP 协议。
+- TrapMap 服务本体不实现 MCP 协议；agent 接入经 `apps/mcp` 外层封装（见 `docs/guides/CLIENT_INTEGRATION.md`）。
 - 不让 CLI 直连多个微服务。
 - 第一阶段不拆分数据库。
 - 不把 Kafka、NATS、Redis Streams 作为默认基础设施。

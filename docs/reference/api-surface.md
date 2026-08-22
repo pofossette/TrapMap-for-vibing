@@ -240,3 +240,8 @@ Phase 4 closeout 补充：
 - **Round 2 更新**：知识、陷阱（traps）、候选提交的内部实现已从 `store_snapshot` JSONB 切换为 PostgreSQL 专用表（通过 `KnowledgeRepository` / `CandidateRepository`）。API 契约表面未变，所有请求/响应 Schema 保持不变。`DualWrite*Repository` 兼容层已删除。
 - **Round 3 更新**：知识域标签（`knowledge_labels`）、边界（`knowledge_boundary_*` ×6）、维护（`knowledge_maintenance_assignments`）已从 JSONB 拆为 PostgreSQL 结构化子表。`knowledge_entries` 及 `lifecycle_events` 表已补齐 `CHECK` 约束。`knowledge_revisions` 表已补齐 `unique(entry_id, revision_no)` 约束。知识条目读写 API 契约无变更。
 - 后续阶段可能会添加内部辅助路由，但新的面向用户的工作流路由应扩展此列表而非替换它。
+
+
+## MCP 工具面（apps/mcp，2026-08-22 主线新增）
+
+`@trapmap/app-mcp` 以 stdio 暴露 10 个工具，全部经 gateway `/v1` 表面转发；角色门控与审计见 `docs/guides/CLIENT_INTEGRATION.md`。映射：search_knowledge→POST /v1/retrieval/search；get_skill_manifest/read_skill_files→POST /v1/operations/artifacts/export；submit_knowledge→POST /v1/knowledge；submit_skill_draft→POST /v1/operations/artifacts/import；submit_feedback→POST /v1/feedback；list_review_queue→GET /v1/operations/artifacts/review-queue；get_review_detail→GET /v1/operations/artifacts/:id/history；review_decision→POST /v1/artifacts/review；complete_remediation→POST /v1/operations/feedback/remediation/:entryId/complete。

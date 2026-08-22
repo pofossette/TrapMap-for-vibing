@@ -1,0 +1,20 @@
+{
+  "name": "@trapmap/app-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@trapmap/client-core": "workspace:*",
+    "@trapmap/contracts": "workspace:*",
+    "@trapmap/lib": "workspace:*",
+    "zod": "^4.1.12"
+  }
+}

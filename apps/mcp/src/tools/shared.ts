@@ -1,0 +1,48 @@
+import type { z } from 'zod';
+
+import type { McpConfig } from '../config.js';
+
+export type { Role } from '../permissions.js';
+
+/**
+ * Role model (full matrix lands in Task B5 — permissions.ts).
+ * Ordered from least to most privileged.
+ */
+export type Role = 'viewer' | 'contributor' | 'reviewer' | 'operator';
+
+/**
+ * Structured audit surface (Task B6): one correlated ok|error line per tool
+ * call, identifiers/timing only.
+ */
+export interface AuditLogger {
+  toolSpan(tool: string): { ok: () => void; fail: () => void };
+}
+
+export interface ToolContext {
+  config: McpConfig;
+  logger: AuditLogger;
+  /** Resolved session role — enforced by the server wrapper before handlers run. */
+  role: Role;
+  /** Injectable fetch for tests; defaults to globalThis.fetch. */
+  fetchImpl?: typeof fetch;
+}
+
+/**
+ * A TrapMap MCP tool definition.
+ *
+ * `inputSchema` is a Zod **raw shape** (the MCP SDK expects a shape for
+ * protocol-level JSON schema); handlers receive values already validated
+ * with `.strict()` semantics — unknown keys are rejected before the handler
+ * runs, so write tools cannot smuggle e.g. `lifecycle_state` or `actorId`.
+ */
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: z.ZodRawShape;
+  requiredRole: Role;
+  handler(input: Record<string, unknown>, ctx: ToolContext): Promise<unknown>;
+}
+
+export function defineTool(def: ToolDefinition): ToolDefinition {
+  return def;
+}

@@ -93,14 +93,36 @@ cp -R ./.tmp/skills/<skill-slug> ~/.claude/skills/<skill-slug>
 
 ---
 
-## 与 MCP 的关系
+## 与 MCP 的关系（apps/mcp，主线 B 工作流已交付）
 
-TrapMap 本身是"受治理的知识与 Skill 仓库"，不要求客户端通过 MCP 接入：
+TrapMap 服务本体不实现 MCP 协议；agent 接入经 `apps/mcp`（`@trapmap/app-mcp`）外层封装——gateway HTTP API 仍是唯一后端数据源。
 
-- **直接 HTTP API**：最简单的集成方式
-- **MCP 封装**：在外层封装 MCP server，暴露检索和激活接口
+### 启动
 
-推荐把 TrapMap 作为后端数据源，而不是把所有 Skill 硬编码进 MCP server。
+```bash
+TRAPMAP_GATEWAY_URL=http://127.0.0.1:4000 \
+TRAPMAP_ACCESS_TOKEN=<token> \
+pnpm --filter @trapmap/app-mcp start
+```
+
+Agent 宿主以 stdio 方式挂载该进程即可。可选：`TRAPMAP_MCP_ROLE`（viewer/contributor/reviewer/operator，默认 viewer）、`TRAPMAP_MCP_SCRIPT_POLICY`（脚本四态策略的本地收紧覆盖）。
+
+### 工具面（10 个）
+
+| 工具 | 最低角色 | 后端端点 | 语义约束 |
+|---|---|---|---|
+| trapmap_search_knowledge | viewer | POST /v1/retrieval/search | 仅元数据结果 |
+| trapmap_get_skill_manifest | viewer | POST /v1/operations/artifacts/export | 内容剥离的 manifest |
+| trapmap_read_skill_files | viewer | POST /v1/operations/artifacts/export | 四态激活策略客户端强制；blocked 拒绝 |
+| trapmap_submit_knowledge | contributor | POST /v1/knowledge | 草稿进审核队列；无 lifecycle_state/actorId 入参 |
+| trapmap_submit_skill_draft | contributor | POST /v1/operations/artifacts/import | pending review，绝不自动发布 |
+| trapmap_submit_feedback | contributor | POST /v1/feedback | 结构化反馈 |
+| trapmap_list_review_queue | reviewer | GET /v1/operations/artifacts/review-queue | 审核队列 |
+| trapmap_get_review_detail | reviewer | GET /v1/operations/artifacts/:id/history | 历史详情 |
+| trapmap_review_decision | operator | POST /v1/artifacts/review | approve/reject + note |
+| trapmap_complete_remediation | operator | POST /v1/operations/feedback/remediation/:entryId/complete | 整改完成 |
+
+角色门控 deny-by-default（`apps/mcp/src/permissions.ts`）；每次调用输出一行脱敏审计 JSON 到 stderr（工具名/correlationId/耗时/outcome）。gateway 权限模型仍是最终边界。
 
 ---
 
