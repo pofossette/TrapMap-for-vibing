@@ -37,7 +37,11 @@ describe('createTrapmapMcpServer', () => {
       'trapmap_search_knowledge',
       'trapmap_get_skill_manifest',
       'trapmap_read_skill_files',
+      'trapmap_submit_knowledge',
+      'trapmap_submit_skill_draft',
+      'trapmap_submit_feedback',
     ]);
-    expect(allTools.every((tool) => tool.requiredRole === 'viewer')).toBe(true);
+    expect(allTools.slice(0, 3).every((tool) => tool.requiredRole === 'viewer')).toBe(true);
+    expect(allTools.slice(3).every((tool) => tool.requiredRole === 'contributor')).toBe(true);
   });
 });

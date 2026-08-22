@@ -1,5 +1,8 @@
 import type { ToolDefinition } from './shared.js';
 
+import { submitFeedbackTool } from './submit-feedback.js';
+import { submitKnowledgeTool } from './submit-knowledge.js';
+import { submitSkillDraftTool } from './submit-skill-draft.js';
 import { readSkillFilesTool } from './skill-files.js';
 import { getSkillManifestTool } from './skill-manifest.js';
 import { searchKnowledgeTool } from './search-knowledge.js';
@@ -12,4 +15,7 @@ export const allTools: ToolDefinition[] = [
   searchKnowledgeTool,
   getSkillManifestTool,
   readSkillFilesTool,
+  submitKnowledgeTool,
+  submitSkillDraftTool,
+  submitFeedbackTool,
 ];
