@@ -1,5 +1,11 @@
 import type { ToolDefinition } from './shared.js';
 
+import {
+  completeRemediationTool,
+  getReviewDetailTool,
+  listReviewQueueTool,
+  reviewDecisionTool,
+} from './governance-tools.js';
 import { submitFeedbackTool } from './submit-feedback.js';
 import { submitKnowledgeTool } from './submit-knowledge.js';
 import { submitSkillDraftTool } from './submit-skill-draft.js';
@@ -18,4 +24,8 @@ export const allTools: ToolDefinition[] = [
   submitKnowledgeTool,
   submitSkillDraftTool,
   submitFeedbackTool,
+  listReviewQueueTool,
+  getReviewDetailTool,
+  reviewDecisionTool,
+  completeRemediationTool,
 ];

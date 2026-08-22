@@ -1,11 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { loadMcpConfig } from '../config.js';
-import { createTrapmapMcpServer } from '../server.js';
-import { allTools } from './registry.js';
-import { readSkillFilesTool, effectivePolicy } from './skill-files.js';
+import { effectivePolicy } from './skill-files.js';
+import { makeToolCaller } from './tool-caller.js';
 
-const config = loadMcpConfig({ TRAPMAP_ACCESS_TOKEN: 'test-token' });
+const callTool = makeToolCaller('viewer');
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
@@ -21,20 +19,6 @@ function stubFetch(handler: (input: string, init?: RequestInit) => Response | Pr
   );
   globalThis.fetch = fetchMock as typeof fetch;
   return fetchMock;
-}
-
-function callTool(
-  name: string,
-  args: unknown,
-): Promise<{ isError?: boolean; content: Array<{ text: string }> }> {
-  const { registeredTools } = createTrapmapMcpServer(config);
-  expect(registeredTools).toContain(name);
-  const tool = allTools.find((t) => t.name === name);
-  if (!tool) throw new Error(`tool ${name} not registered`);
-  return tool.handler(args as Record<string, unknown>, {
-    config,
-    logger: { info: () => {}, error: () => {} },
-  }) as Promise<{ isError?: boolean; content: Array<{ text: string }> }>;
 }
 
 describe('trapmap_search_knowledge', () => {

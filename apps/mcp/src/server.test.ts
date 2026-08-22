@@ -40,8 +40,14 @@ describe('createTrapmapMcpServer', () => {
       'trapmap_submit_knowledge',
       'trapmap_submit_skill_draft',
       'trapmap_submit_feedback',
+      'trapmap_list_review_queue',
+      'trapmap_get_review_detail',
+      'trapmap_review_decision',
+      'trapmap_complete_remediation',
     ]);
     expect(allTools.slice(0, 3).every((tool) => tool.requiredRole === 'viewer')).toBe(true);
-    expect(allTools.slice(3).every((tool) => tool.requiredRole === 'contributor')).toBe(true);
+    expect(allTools.slice(3, 6).every((tool) => tool.requiredRole === 'contributor')).toBe(true);
+    expect(allTools.slice(6, 8).every((tool) => tool.requiredRole === 'reviewer')).toBe(true);
+    expect(allTools.slice(8).every((tool) => tool.requiredRole === 'operator')).toBe(true);
   });
 });

@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { loadMcpConfig } from '../config.js';
 import { allTools } from './registry.js';
 
-const config = loadMcpConfig({ TRAPMAP_ACCESS_TOKEN: 'test-token' });
+import { stubFetchCapture } from './stub-fetch.js';
+import { makeToolCaller } from './tool-caller.js';
+
 const originalFetch = globalThis.fetch;
 
 afterEach(() => {
@@ -11,31 +12,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function callTool(name: string, args: unknown) {
-  const tool = allTools.find((t) => t.name === name);
-  if (!tool) throw new Error(`tool ${name} not registered`);
-  return tool.handler(args as Record<string, unknown>, {
-    config,
-    logger: { info: () => {}, error: () => {} },
-  }) as Promise<unknown>;
-}
-
-function stubCapture() {
-  const calls: Array<{ url: string; init?: RequestInit }> = [];
-  globalThis.fetch = vi.fn(async (input: string | URL | RequestInfo, init?: RequestInit) => {
-    calls.push({ url: String(input), init });
-    return new Response(JSON.stringify({ ok: true, id: 'x-1' }), {
-      status: 201,
-      headers: { 'content-type': 'application/json' },
-    });
-  }) as typeof fetch;
-  return calls;
-}
-
 describe('B4 draft write tools', () => {
   it('trapmap_submit_knowledge posts to /v1/knowledge without lifecycle_state or actorId', async () => {
-    const calls = stubCapture();
-    await callTool('trapmap_submit_knowledge', {
+    const calls = stubFetchCapture();
+    await makeToolCaller('contributor')('trapmap_submit_knowledge', {
       title: 'T',
       content: 'C',
       labels: ['a'],
@@ -50,14 +30,14 @@ describe('B4 draft write tools', () => {
 
   it('strict schema rejects smuggled lifecycle_state/actorId on all write tools', async () => {
     await expect(
-      callTool('trapmap_submit_knowledge', {
+      makeToolCaller('contributor')('trapmap_submit_knowledge', {
         title: 'T',
         content: 'C',
         lifecycle_state: 'approved',
       }),
     ).rejects.toThrow();
     await expect(
-      callTool('trapmap_submit_feedback', {
+      makeToolCaller('contributor')('trapmap_submit_feedback', {
         entryId: 'e',
         problemType: 'p',
         description: 'd',
@@ -65,7 +45,7 @@ describe('B4 draft write tools', () => {
       }),
     ).rejects.toThrow();
     await expect(
-      callTool('trapmap_submit_skill_draft', {
+      makeToolCaller('contributor')('trapmap_submit_skill_draft', {
         slug: 's',
         title: 't',
         files: [{ path: 'SKILL.md', content: 'x' }],
@@ -75,8 +55,8 @@ describe('B4 draft write tools', () => {
   });
 
   it('trapmap_submit_skill_draft wraps files into a pending-review bundle', async () => {
-    const calls = stubCapture();
-    await callTool('trapmap_submit_skill_draft', {
+    const calls = stubFetchCapture();
+    await makeToolCaller('contributor')('trapmap_submit_skill_draft', {
       slug: 'my-skill',
       title: 'My Skill',
       files: [
@@ -92,8 +72,8 @@ describe('B4 draft write tools', () => {
   });
 
   it('trapmap_submit_feedback posts the canonical feedback body', async () => {
-    const calls = stubCapture();
-    await callTool('trapmap_submit_feedback', {
+    const calls = stubFetchCapture();
+    await makeToolCaller('contributor')('trapmap_submit_feedback', {
       entryId: 'e-1',
       problemType: 'outdated',
       description: 'fix',

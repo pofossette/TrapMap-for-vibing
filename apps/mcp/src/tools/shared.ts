@@ -2,6 +2,8 @@ import type { z } from 'zod';
 
 import type { McpConfig } from '../config.js';
 
+export type { Role } from '../permissions.js';
+
 /**
  * Role model (full matrix lands in Task B5 — permissions.ts).
  * Ordered from least to most privileged.
@@ -17,6 +19,8 @@ export interface AuditLogger {
 export interface ToolContext {
   config: McpConfig;
   logger: AuditLogger;
+  /** Resolved session role — enforced by the server wrapper before handlers run. */
+  role: Role;
   /** Injectable fetch for tests; defaults to globalThis.fetch. */
   fetchImpl?: typeof fetch;
 }
