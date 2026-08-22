@@ -61,11 +61,7 @@ CREATE TABLE "sessions" (
 	CONSTRAINT "sessions_token_hash_unique" UNIQUE("token_hash")
 );
 --> statement-breakpoint
-CREATE TABLE "store_snapshot" (
-	"key" text PRIMARY KEY DEFAULT 'main' NOT NULL,
-	"data" jsonb NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
-);
+-- A7 迁移窗口批处理：store_snapshot 幽灵表已从基线移除（Wave-9 退役模块残留，persistence-schema 无此表）
 --> statement-breakpoint
 CREATE TABLE "teams" (
 	"id" text PRIMARY KEY NOT NULL,

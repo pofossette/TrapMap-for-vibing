@@ -453,3 +453,10 @@ feedback_records (1) ──→ (N) feedback_custom_answers       [CASCADE]
 - [DATA_MODEL.md](DATA_MODEL.md) - 完整数据模型文档
 - [PERSISTENCE.md](../architecture/components/PERSISTENCE.md) - 持久化层架构
 - [api-surface.md](api-surface.md) - API 契约
+
+
+## A7 迁移窗口批处理（2026-08-22）
+
+- `candidates` 三个 legacy JSONB 列（analysis_snapshot/duplicate_case/manual_result）经 `service-candidate-ingestion/drizzle/0001` 退役。
+- `task_queue_type_dedupe_idx` 冗余索引退役：persistence-schema 单源移除定义 + `drizzle/0001 DROP INDEX IF EXISTS`；dedupe 回查由部分唯一索引覆盖。
+- identity-access 基线移除 `store_snapshot` 幽灵表 CREATE TABLE（Wave-9 残留）；`conflict_relations` 裁决：有意不建模，归属 governance-review 独立 baseline，随该服务演进处理。

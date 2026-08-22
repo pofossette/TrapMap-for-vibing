@@ -25,7 +25,6 @@ import { auditTimestamps, taskQueueColumns } from './column-factories.js';
  *   WHERE status IN ('pending', 'running');
  */
 export const taskQueue = pgTable('task_queue', taskQueueColumns(), (table) => [
-  index('task_queue_type_dedupe_idx').on(table.type, table.dedupeKey),
   index('task_queue_running_lease_idx')
     .on(table.type, table.leaseUntil, table.updatedAt)
     .where(sql`${table.status} = 'running'`),
