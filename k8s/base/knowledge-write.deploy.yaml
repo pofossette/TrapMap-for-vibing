@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: knowledge-write
+  namespace: trapmap
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: knowledge-write }
+  template:
+    metadata:
+      labels: { app: knowledge-write }
+    spec:
+      containers:
+        - name: knowledge-write
+          image: trap-map-host-distributed:latest
+          args: ["--service", "knowledge-write"]
+          ports: [{ containerPort: 4003 }]
+          envFrom:
+            - configMapRef: { name: trapmap-config }
+          readinessProbe:
+            httpGet: { path: /ready, port: 4003 }
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: { path: /live, port: 4003 }
+            initialDelaySeconds: 10
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: knowledge-write
+  namespace: trapmap
+spec:
+  selector: { app: knowledge-write }
+  ports: [{ port: 4003, targetPort: 4003 }]

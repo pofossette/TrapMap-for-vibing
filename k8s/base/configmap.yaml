@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trapmap-config
+  namespace: trapmap
+data:
+  NODE_ENV: production
+  # 服务发现默认值经 Docker DNS 语义映射到 k8s Service 名（见 service-config.ts DISTRIBUTED_INTERNAL_HOSTS）
+  TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS: "3"
+  TRAPMAP_INTERNAL_BREAKER_THRESHOLD: "5"
+  TRAPMAP_INTERNAL_BREAKER_COOLDOWN_MS: "30000"

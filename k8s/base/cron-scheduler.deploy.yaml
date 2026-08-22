@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cron-scheduler
+  namespace: trapmap
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: cron-scheduler }
+  template:
+    metadata:
+      labels: { app: cron-scheduler }
+    spec:
+      containers:
+        - name: cron-scheduler
+          image: trap-map-host-distributed:latest
+          args: ["--service", "cron-scheduler"]
+          ports: [{ containerPort: 4007 }]
+          envFrom:
+            - configMapRef: { name: trapmap-config }
+          readinessProbe:
+            httpGet: { path: /ready, port: 4007 }
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: { path: /live, port: 4007 }
+            initialDelaySeconds: 10
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cron-scheduler
+  namespace: trapmap
+spec:
+  selector: { app: cron-scheduler }
+  ports: [{ port: 4007, targetPort: 4007 }]

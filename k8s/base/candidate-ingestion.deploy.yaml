@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: candidate-worker
+  namespace: trapmap
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: candidate-worker }
+  template:
+    metadata:
+      labels: { app: candidate-worker }
+    spec:
+      containers:
+        - name: candidate-worker
+          image: trap-map-host-distributed:latest
+          args: ["--service", "candidate-ingestion"]
+          ports: [{ containerPort: 4004 }]
+          envFrom:
+            - configMapRef: { name: trapmap-config }
+          readinessProbe:
+            httpGet: { path: /ready, port: 4004 }
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: { path: /live, port: 4004 }
+            initialDelaySeconds: 10
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: candidate-worker
+  namespace: trapmap
+spec:
+  selector: { app: candidate-worker }
+  ports: [{ port: 4004, targetPort: 4004 }]

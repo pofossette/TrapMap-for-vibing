@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: governance-worker
+  namespace: trapmap
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: governance-worker }
+  template:
+    metadata:
+      labels: { app: governance-worker }
+    spec:
+      containers:
+        - name: governance-worker
+          image: trap-map-host-distributed:latest
+          args: ["--service", "governance-review"]
+          ports: [{ containerPort: 4005 }]
+          envFrom:
+            - configMapRef: { name: trapmap-config }
+          readinessProbe:
+            httpGet: { path: /ready, port: 4005 }
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: { path: /live, port: 4005 }
+            initialDelaySeconds: 10
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: governance-worker
+  namespace: trapmap
+spec:
+  selector: { app: governance-worker }
+  ports: [{ port: 4005, targetPort: 4005 }]
