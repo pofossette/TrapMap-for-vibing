@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   SURFACE_EXEMPTIONS,
   SURFACE_INVENTORY_DRIFT,
+  type SurfaceViolation,
   checkSurface,
   collectDocumentedPaths,
   collectRoutePathsFromSource,
@@ -114,6 +115,13 @@ describe('checkSurface', () => {
   const routeFile = 'packages/host-local/src/nest/gateway/gateway.route-defs.ts';
   const apiSurfaceFile = 'docs/reference/api-surface.md';
   const clientFile = 'docs/guides/CLIENT_INTEGRATION.md';
+  const skillLookup = '/v1/retrieval/skills/search-by-content';
+
+  function expectSkillLookupGap(violations: SurfaceViolation[]) {
+    expect(violations).toHaveLength(1);
+    expect(violations[0]?.kind).toBe('documented-not-real');
+    expect(violations[0]?.path).toBe(skillLookup);
+  }
 
   it('passes when every documented path exists as a gateway route (:param normalized)', () => {
     const real = [
@@ -133,14 +141,12 @@ describe('checkSurface', () => {
     const real = [{ path: '/v1/retrieval/search', file: routeFile, line: 2 }];
     const documented = [
       { path: '/v1/retrieval/search', file: apiSurfaceFile, line: 11 },
-      { path: '/v1/retrieval/skills/search-by-content', file: apiSurfaceFile, line: 12 },
-      { path: '/v1/retrieval/skills/search-by-content', file: clientFile, line: 53 },
+      { path: skillLookup, file: apiSurfaceFile, line: 12 },
+      { path: skillLookup, file: clientFile, line: 53 },
     ];
 
     const violations = checkSurface(real, documented, SURFACE_EXEMPTIONS);
-    expect(violations).toHaveLength(1);
-    expect(violations[0].kind).toBe('documented-not-real');
-    expect(violations[0].path).toBe('/v1/retrieval/skills/search-by-content');
+    expectSkillLookupGap(violations);
     expect(violations[0].refs).toEqual([
       { path: '/v1/retrieval/skills/search-by-content', file: apiSurfaceFile, line: 12 },
       { path: '/v1/retrieval/skills/search-by-content', file: clientFile, line: 53 },
@@ -213,13 +219,11 @@ describe('checkSurface', () => {
       { path: '/v1/retrieval/search', file: apiSurfaceFile, line: 115 },
       { path: '/v2/retrieval/search', file: apiSurfaceFile, line: 116 },
       { path: '/v3/retrieval/search', file: apiSurfaceFile, line: 117 },
-      { path: '/v1/retrieval/skills/search-by-content', file: apiSurfaceFile, line: 119 },
+      { path: skillLookup, file: apiSurfaceFile, line: 119 },
     ];
 
     const violations = checkSurface(real, documented, SURFACE_EXEMPTIONS);
-    expect(violations).toHaveLength(1);
-    expect(violations[0].kind).toBe('documented-not-real');
-    expect(violations[0].path).toBe('/v1/retrieval/skills/search-by-content');
+    expectSkillLookupGap(violations);
   });
 
   it('freezes known adoption-time drift without hiding new documented paths', () => {

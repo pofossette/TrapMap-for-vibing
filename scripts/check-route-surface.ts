@@ -104,15 +104,48 @@ export function normalizeRoutePath(path: string): string {
   return path.replace(/:[A-Za-z0-9_]+/g, ':param');
 }
 
+function routePathLiteral(line: string): string | null {
+  const match = line.match(/path:\s*'([^']+)'/);
+  return match?.[1] ?? null;
+}
+
+function versionedPath(routePath: string): boolean {
+  return /^\/(?:v1|v2|v3)\//.test(routePath);
+}
+
+function versionedRouteRef(
+  line: string | undefined,
+  file: string,
+  lineNumber: number,
+): PathRef | null {
+  const routePath = routePathLiteral(line ?? '');
+  if (!routePath || !versionedPath(routePath)) return null;
+  return { path: routePath, file, line: lineNumber };
+}
+
+function documentPathRefs(
+  refs: PathRef[],
+  seen: Set<string>,
+  file: string,
+  line: string,
+  lineNumber: number,
+): void {
+  for (const match of line.matchAll(VERSIONED_PATH_RE)) {
+    const routePath = match[0].replace(/[)\]、。，;:'"\s]+$/g, '');
+    const key = `${file}\u0000${routePath}\u0000${lineNumber}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    refs.push({ path: routePath, file, line: lineNumber });
+  }
+}
+
 export function collectRoutePathsFromSource(source: string, file: string): PathRef[] {
   const refs: PathRef[] = [];
   const lines = source.split('\n');
   for (let index = 0; index < lines.length; index++) {
-    const match = lines[index].match(/path:\s*'([^']+)'/);
-    if (!match?.[1]) continue;
-    const routePath = match[1];
-    if (/^\/(?:v1|v2|v3)\//.test(routePath)) {
-      refs.push({ path: routePath, file, line: index + 1 });
+    const ref = versionedRouteRef(lines[index], file, index + 1);
+    if (ref) {
+      refs.push(ref);
     }
   }
   return refs;
@@ -124,13 +157,7 @@ export function collectDocumentedPaths(files: string[]): PathRef[] {
   for (const file of files) {
     const lines = readFileSync(file, 'utf8').split('\n');
     for (let index = 0; index < lines.length; index++) {
-      for (const match of lines[index].matchAll(VERSIONED_PATH_RE)) {
-        const routePath = match[0].replace(/[)\]、。，;:'"\s]+$/g, '');
-        const key = `${file}\u0000${routePath}\u0000${index + 1}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        refs.push({ path: routePath, file, line: index + 1 });
-      }
+      documentPathRefs(refs, seen, file, lines[index] ?? '', index + 1);
     }
   }
   return refs;
@@ -142,48 +169,71 @@ export function checkSurface(
   exemptions: readonly string[],
   inventoryDrift: readonly string[] = [],
 ): SurfaceViolation[] {
-  const realByNormalized = new Map(real.map((ref) => [normalizeRoutePath(ref.path), ref]));
   const exemptSet = new Set(exemptions.map(normalizeRoutePath));
   const knownDriftSet = new Set(inventoryDrift.map(normalizeRoutePath));
-  const violations: SurfaceViolation[] = [];
+  const documentedBlockedPaths = new Set([...exemptSet, ...knownDriftSet]);
 
-  // Direction 1: documented ⊆ real (exemptions apply only here).
+  return [
+    ...undocumentedDocumentViolations(real, documented, documentedBlockedPaths),
+    ...undocumentedRealViolations(real, documented, knownDriftSet),
+  ];
+}
+
+function groupDocumentedRefs(documented: PathRef[]): Map<string, PathRef[]> {
   const docRefsByNormalized = new Map<string, PathRef[]>();
   for (const ref of documented) {
     const key = normalizeRoutePath(ref.path);
-    const bucket = docRefsByNormalized.get(key);
-    if (bucket) bucket.push(ref);
-    else docRefsByNormalized.set(key, [ref]);
+    docRefsByNormalized.set(key, [...(docRefsByNormalized.get(key) ?? []), ref]);
   }
+  return docRefsByNormalized;
+}
+
+function missingDocumentViolation(
+  realByNormalized: ReadonlyMap<string, PathRef>,
+  blockedPaths: ReadonlySet<string>,
+  refs: PathRef[],
+): SurfaceViolation | null {
+  const representative = refs[0];
+  if (!representative) return null;
+  const normalizedPath = normalizeRoutePath(representative.path);
+  if (blockedPaths.has(normalizedPath) || realByNormalized.has(normalizedPath)) return null;
+  return { kind: 'documented-not-real', path: representative.path, refs };
+}
+
+function undocumentedDocumentViolations(
+  real: PathRef[],
+  documented: PathRef[],
+  blockedPaths: ReadonlySet<string>,
+): SurfaceViolation[] {
+  const realByNormalized = new Map(real.map((ref) => [normalizeRoutePath(ref.path), ref]));
+  const violations: SurfaceViolation[] = [];
+  const docRefsByNormalized = groupDocumentedRefs(documented);
   for (const refs of docRefsByNormalized.values()) {
-    const representative = refs[0];
-    if (!representative) continue;
-    const normalizedPath = normalizeRoutePath(representative.path);
-    if (
-      !realByNormalized.has(normalizedPath) &&
-      !exemptSet.has(normalizedPath) &&
-      !knownDriftSet.has(normalizedPath)
-    ) {
-      violations.push({ kind: 'documented-not-real', path: representative.path, refs });
-    }
+    const violation = missingDocumentViolation(realByNormalized, blockedPaths, refs);
+    if (violation) violations.push(violation);
   }
 
-  // Direction 2: real ⊆ api-surface.md (exemptions never apply).
+  return violations;
+}
+
+function undocumentedRealViolations(
+  real: PathRef[],
+  documented: PathRef[],
+  blockedPaths: ReadonlySet<string>,
+): SurfaceViolation[] {
   const apiSurfaceDocSet = new Set(
     documented
       .filter((ref) => ref.file.includes('api-surface.md'))
       .map((ref) => normalizeRoutePath(ref.path)),
   );
-  for (const ref of real) {
-    if (
-      !apiSurfaceDocSet.has(normalizeRoutePath(ref.path)) &&
-      !knownDriftSet.has(normalizeRoutePath(ref.path))
-    ) {
-      violations.push({ kind: 'real-not-documented', path: ref.path, refs: [ref] });
-    }
-  }
 
-  return violations;
+  return real.flatMap((ref) => {
+    const normalizedPath = normalizeRoutePath(ref.path);
+    if (apiSurfaceDocSet.has(normalizedPath) || blockedPaths.has(normalizedPath)) {
+      return [];
+    }
+    return [{ kind: 'real-not-documented' as const, path: ref.path, refs: [ref] }];
+  });
 }
 
 // ── CLI entry point ──────────────────────────────────────────────────
