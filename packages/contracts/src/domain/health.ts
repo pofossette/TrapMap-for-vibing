@@ -34,3 +34,27 @@ export const healthStatusSchema = z
   .strict();
 
 export type HealthStatus = z.infer<typeof healthStatusSchema>;
+
+/**
+ * Task C5: aggregate dependency summary for readiness decisions.
+ * Optional and additive — existing producers remain valid.
+ */
+export const dependencySummarySchema = z
+  .object({
+    /** DB connection pool saturation, 0 (idle) … 1 (exhausted). */
+    dbPoolSaturation: z.number().min(0).max(1),
+    /** Outstanding tasks in the job-runtime queue. */
+    queueDepth: z.number().int().nonnegative(),
+    /** Circuit breaker states per service key (Task C2). */
+    breakerStates: z.record(z.string(), z.enum(['closed', 'open', 'half-open'])),
+  })
+  .strict();
+
+export type DependencySummary = z.infer<typeof dependencySummarySchema>;
+
+/** Readiness payload: liveness facts plus the optional dependency summary. */
+export const readinessStatusSchema = healthStatusSchema.extend({
+  dependencySummary: dependencySummarySchema.optional(),
+});
+
+export type ReadinessStatus = z.infer<typeof readinessStatusSchema>;

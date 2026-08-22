@@ -199,3 +199,52 @@ describe('health contracts', () => {
     });
   });
 });
+
+describe('C5 dependency summary / readiness schema', () => {
+  it('accepts healthStatusSchema payloads unchanged (additive optional)', async () => {
+    const { healthStatusSchema, readinessStatusSchema } = await import('./health.js');
+    const base = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
+      uptime: 1,
+      readiness: 'ready',
+      liveness: 'alive',
+      dependencies: [],
+    } as const;
+    expect(healthStatusSchema.safeParse(base).success).toBe(true);
+    expect(readinessStatusSchema.safeParse(base).success).toBe(true);
+  });
+
+  it('validates dependencySummary bounds and enum states', async () => {
+    const { readinessStatusSchema } = await import('./health.js');
+    const base = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
+      uptime: 1,
+      readiness: 'ready',
+      liveness: 'alive',
+      dependencies: [],
+    };
+    const ok = readinessStatusSchema.safeParse({
+      ...base,
+      dependencySummary: {
+        dbPoolSaturation: 0.5,
+        queueDepth: 3,
+        breakerStates: { 'http://a': 'closed', 'http://b': 'open' },
+      },
+    });
+    expect(ok.success).toBe(true);
+    const bad = readinessStatusSchema.safeParse({
+      ...base,
+      dependencySummary: { dbPoolSaturation: 1.5, queueDepth: 0, breakerStates: {} },
+    });
+    expect(bad.success).toBe(false);
+    const badState = readinessStatusSchema.safeParse({
+      ...base,
+      dependencySummary: { dbPoolSaturation: 0, queueDepth: 0, breakerStates: { x: 'flapping' } },
+    });
+    expect(badState.success).toBe(false);
+  });
+});

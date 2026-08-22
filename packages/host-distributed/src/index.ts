@@ -11,7 +11,10 @@
  *   await runDistributedServices({ startService: startDistributedService });
  */
 
-import { assertDistributedConnectionBudget } from './config/index.js';
+import {
+  assertDistributedConnectionBudget,
+  assertDistributedResilienceConfig,
+} from './config/index.js';
 import type { ServiceName } from './config/index.js';
 import type { DistributedServiceHandle } from './runner.js';
 
@@ -31,6 +34,7 @@ export async function startDistributedService(
   name: ServiceName,
 ): Promise<DistributedServiceHandle> {
   assertDistributedConnectionBudget();
+  assertDistributedResilienceConfig();
   switch (name) {
     case 'gateway': {
       const { startGatewayService } = await import('./gateway/index.js');

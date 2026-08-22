@@ -220,6 +220,15 @@ function breakerForOrigin(origin: string): CircuitBreaker {
   return breaker;
 }
 
+/** Task C5: snapshot of per-origin circuit breaker states for readiness reporting. */
+export function breakerStatesSnapshot(): Record<string, 'closed' | 'open' | 'half-open'> {
+  const states: Record<string, 'closed' | 'open' | 'half-open'> = {};
+  for (const [origin, breaker] of internalBreakersByOrigin) {
+    states[origin] = breaker.state;
+  }
+  return states;
+}
+
 class TransientInternalResponseError extends Error {
   constructor(public readonly response: ServiceResponse) {
     super(`transient internal response ${response.status}`);

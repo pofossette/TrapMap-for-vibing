@@ -19,7 +19,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { registerFastifyRoutes } from '@trapmap/backend-core';
 
-import type { InternalServiceClients } from './internal-client.js';
+import { breakerStatesSnapshot, type InternalServiceClients } from './internal-client.js';
 import { recordGatewayRateLimited } from './internal-observability.js';
 import { resolveRateLimitConfig, TokenBucketRateLimiter } from './rate-limit.js';
 import { createGatewayRouteDefs, gatewayActorContext } from './route-defs.js';
@@ -162,10 +162,14 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
   });
 
   app.get('/ready', async (_request: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send({
+    // Task C5: readiness reflects internal-hop circuit breaker states.
+    const breakerStates = breakerStatesSnapshot();
+    const anyOpen = Object.values(breakerStates).some((state) => state === 'open');
+    return reply.status(anyOpen ? 503 : 200).send({
       service: 'gateway',
-      status: 'ready',
+      status: anyOpen ? 'degraded' : 'ready',
       timestamp: new Date().toISOString(),
+      dependencySummary: { breakerStates },
     });
   });
 
