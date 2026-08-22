@@ -114,11 +114,12 @@
 | `archived-plans/unified-assembly-center-phase2-pilot-archived.md` | 2026-08-16 | 统一优雅组装中心（assembly）Phase 2 试点主线完成 closeout：host-local 经 assembly boot（host-local-owned pilot nodes + local/team profiles + nest-transport），golden 全绿（deployment-smoke 379 / runtime-foundations 130 / host-local 228 / assembly 42）、fallow 30 files 零 issue；服务包 node.ts 与通用 infra 节点按偏差记录推迟 Phase 3；证据见该文档 Closeout 记录 |
 | `archived-plans/unified-assembly-center-phase3-archived.md` | 2026-08-16 | 统一优雅组装中心（assembly）Phase 3 收敛主线完成 closeout（合入 `0a753aec` / `8b75d25d`，closeout 同步 `a2b9b2d2`）：host-distributed 改由 `distributedAssembly(name)` boot、删除 8 个 `start<X>Service` 样板、`shared/ports.ts` 简化版退役、worker 子节点整体/拆分形态打通；golden 全绿（host-distributed 173 / distributed-closeout 35 / deployment-smoke 379 / runtime-foundations 130）、fallow 34 files 零 issue；检索 ILIKE 完整管线收敛、OTel/Consul 收敛、direct-run seam 退役、别名对齐、集群验证显式 deferred 到 Phase 4；证据见该文档 Closeout 记录 |
 | `archived-plans/unified-assembly-center-phase4-archived.md` | 2026-08-16 | 统一优雅组装中心（assembly）Phase 4 收尾主线（双实现收敛 D5、direct-run seam 退役、别名对齐、集群化验证、golden 回归）已完成并归档；assembly 主线四阶段全部完成 |
+| `archived-plans/skill-lookup-surface-mainline-archived.md` | 2026-08-22 | Skill Lookup 契约漂移修复主线完成 closeout：artifact-first 端点重建、双宿主 RouteDef/internal-client、文档/eval 对齐、route-surface guard 与 deferred parity 登记；证据见该文档 Closeout Record |
 
 ## 归档原则
 
 文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档当作当前执行入口引用；归档文档内部链接不再维护。
 
-当前根 `plan.md` 指向“Dead Code and Architecture Order Cleanup”这一唯一 active mainline detail（[`docs/todos/dead-code-and-architecture-order-cleanup.md`](../todos/dead-code-and-architecture-order-cleanup.md)；实现已提交 2026-08-16，closeout 延后并登记于 open-debt）。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。
+当前根 `plan.md` 无 active mainline detail。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。
 
 | debt-mcp-platformization-mainline-archived.md | 债务全量派发+MCP接入+平台化 | 2026-08-22 |

@@ -134,7 +134,7 @@ describe('closeout surface guardrails', () => {
       ]),
     );
     expect(archiveRule?.mustContain ?? []).toEqual(
-      expect.arrayContaining(['当前根 `plan.md` 指向“Dead Code and Architecture Order Cleanup”']),
+      expect.arrayContaining(['当前根 `plan.md` 无 active mainline detail']),
     );
   });
 

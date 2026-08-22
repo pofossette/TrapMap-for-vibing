@@ -11,10 +11,11 @@
 
 ## 当前主线
 
-- **Skill Lookup 契约漂移修复（2026-08-22 激活，执行中）：** 目标是让 `POST /v1/retrieval/skills/search-by-content` 成为真实可用的网关端点（artifact-first，复用现代 shared recall 管线），对齐 CLI / 文档 / 评测三面契约，并落地文档路由路径存在性守卫防复发。执行模型：git worktree + subagent-driven development，A（后端能力）/ B（网关路由）/ C（文档对齐）/ D（防复发守卫）四条工作流最大并行。主细则见 [docs/todos/skill-lookup-surface-mainline.md](docs/todos/skill-lookup-surface-mainline.md)；上一主线「债务全量派发 + Agent MCP 接入 + 微服务平台化」已完成并归档：[docs/archived/archived-plans/debt-mcp-platformization-mainline-archived.md]。
+- 当前无 active mainline。新工作必须先创建新的 active detail 并由本索引显式链接；不得把已归档细则当作执行面。
 
 ## 上一主线
 
+- **Skill Lookup 契约漂移修复已完成并归档（2026-08-22）：** `POST /v1/retrieval/skills/search-by-content` 已在两宿主注册为真实 artifact-first 端点；knowledge-read 内部能力、runtime/composition 接线、CLI/文档/eval 口径和 route-surface 守卫同步交付。集成验证与 deferred 问题处置记录见 [docs/archived/archived-plans/skill-lookup-surface-mainline-archived.md](docs/archived/archived-plans/skill-lookup-surface-mainline-archived.md)。
 - **判断类节点契约（D8）收编已完成并归档（2026-08-16）：** 6 个判断类能力节点契约三件套 + rule 默认实现 + assembly 挂载与 startupChecks 契约校验；消费方调用点迁移、cron 检索版本联动、internal-client 双组合并三项后续主线亦已完成（2026-08-16）。细则见 [docs/archived/archived-plans/judgment-node-contracts-d8-archived.md](docs/archived/archived-plans/judgment-node-contracts-d8-archived.md)；llm/hybrid 生产变体收编保留在 [长期债务登记册](docs/todos/open-debt-and-compromises.md)。
 - **Unity Assembly Center Phase 4 收尾已完成并归档（2026-08-16）：** 合入 909550b7（T1 检索收敛 + 迁移/eval infra 修复）+ 904466f5（T2 OTel/Consul 单一插件 + T3 direct-run seam 退役 + T4 别名对齐 + T5 集群化验证）；golden 全绿（assembly 42 / host-local 228 / host-distributed 173 / backend-core 196 / distributed-closeout 35 / deployment-smoke 379 / runtime-foundations 130 / observability-closeout 222 / discovery-closeout 22），check:* 全绿、fallow 零 issue（2 项继承豁免）；eval:smoke 修复后可运行且与 main 基线一致。细则见 [docs/archived/archived-plans/unified-assembly-center-phase4-archived.md](docs/archived/archived-plans/unified-assembly-center-phase4-archived.md)，closeout 证据（含偏差记录）在该文档。
 

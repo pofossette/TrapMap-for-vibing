@@ -1,4 +1,4 @@
-# Skill Lookup 契约漂移修复主线（active）
+# Skill Lookup 契约漂移修复主线（archived）
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans 逐任务实施本细则。步骤使用复选框（`- [ ]`）语法跟踪；复选框只有在代码/文档变更、focused test、事实守卫和必要 closeout 都有证据后才能勾选。
 >
@@ -33,7 +33,7 @@
 - 网关缺路由：`packages/host-distributed/src/gateway/route-defs.ts` 只有 `/v1/retrieval/search`（:827）与 `/v3/retrieval/search`（:835）；`packages/host-local/src/nest/gateway/gateway.route-defs.ts` 只有 `/v1/retrieval/search`（:121）。两宿主均无 `/v1/retrieval/skills/search-by-content`。
 - CLI 已指向正确路径：`apps/cli/src/commands/skill/search.ts:39` 调用 `POST /v1/retrieval/skills/search-by-content` 并解析 `skillLookupResponseSchema`（当前会 404/解析失败）；CLI 单测 mock apiRequest，无法捕获。
 - 评测 harness 自造路径：`scripts/testing/postgres-server-composition.ts:107` 注册该路径但映射到 `runtime.retrievalQuery.search`（v1 entry 形状），而 `evals/retrieval/lib/normalize.ts:119` 的 `normalizeV1SkillLookupResponse` 期望 `matches` 形状——评测面为假阳性。
-- 原实现：`packages/server/src/lib/retrieval/capsules/skill-lookup.ts`（该文件已随 packages/server 退役一并删除；artifact-first：intent → 治理过滤 → capsule recall → 按 artifactId 去重 → `SkillLookupResultItem`），历史见 `a66d94e6`。
+- 原实现位于已退役 server 包的 capsule skill-lookup 模块（artifact-first：intent → 治理过滤 → capsule recall → 按 artifactId 去重 → `SkillLookupResultItem`），文件已随 Wave-10 删除，历史见 `a66d94e6`。
 - 现代管线：`packages/service-knowledge-read/src/artifact-entry-merge.ts` 将 artifacts 并入检索条目池（`id = artifact.id`），`RetrievalMatch`（backend-core `knowledge-read/domain/assembly.ts`）带 entryId/shortcut/labels/scope/requiredLevel/score/reason，但**无 slug/sourceKind、无 artifact 标记**——需 artifact 元数据注册表补全。
 - 契约已存在：`packages/contracts/src/domain/retrieval.ts:496`（`skillLookupQuerySchema`：`text`/`maxResults`）与 :534（`skillLookupResponseSchema`：`matches`）。
 - 文档漂移：`docs/guides/CLIENT_INTEGRATION.md:53` curl body 用了 `query`/`limit`（应 `text`/`maxResults`）；`docs/reference/api-surface.md:119` 注记"源码来自已删除的 packages/server"；`docs/architecture/components/ARTIFACTS.md`、`docs/operations/TESTING.md:843`、`evals/retrieval/README.md` 均按真实端点表述。
@@ -89,7 +89,7 @@ export function toSkillLookupMatches(
 - Modify: `packages/service-knowledge-read/src/server-retrieval-seam.ts`（新增 `createKnowledgeReadSkillLookupQuery(options)`：复用 `searchKnowledge` 管线 + `services.repos.artifact` 元数据注册表构造 artifactMetaByEntryId）
 - Modify: `packages/service-knowledge-read/src/deps.ts`（`KnowledgeReadDeps` 增 `skillLookup`，透传给 module）
 - Modify: `packages/service-knowledge-read/src/routes.ts`（新增内部 RouteDef `/internal/retrieval/skills/search-by-content`）+ 对应测试 `routes.test.ts`
-- Modify: `packages/service-knowledge-read/src/module.ts`（`KnowledgeReadPort` 实现含 `skillLookup`）
+- Modify: `packages/backend-core/src/knowledge-read/application/module.ts`（`KnowledgeReadPort` 实现含 `skillLookup`）
 - Modify: `packages/host-local/src/nest/runtime/host-runtime.ts`（`HostLocalRuntime` 增 `skillLookup`，复用 `createRetrievalQuery` 中的 retrievalServices 构造）
 - Modify: `packages/host-local/src/nest/app.module.ts`（`createKnowledgeReadDeps` 增 `skillLookup: runtime.skillLookup`）
 - Modify: `scripts/testing/postgres-server-composition.ts`（skill-lookup 路由改接 `runtime.skillLookup`，返回真实 `matches` 形状）
@@ -99,13 +99,13 @@ export function toSkillLookupMatches(
 - Consumes: `skillLookupQuerySchema`/`skillLookupResponseSchema`（contracts 现有）；`searchKnowledge`（service-knowledge-read）；`RetrievalMatch`（backend-core domain/assembly.ts）。
 - Produces: `KnowledgeReadPort.skillLookup` 签名、内部路由 `/internal/retrieval/skills/search-by-content`、`toSkillLookupMatches` 纯函数导出、`HostLocalRuntime.skillLookup`。
 
-- [ ] **Step 1:** TDD：先写 `skill-lookup.test.ts`（artifact 命中映射 / 非 artifact 过滤 / 按 artifactId 去重保最高分 / title 回退 / 空输入 / schema 解析），实现 `toSkillLookupMatches`，绿。
-- [ ] **Step 2:** `internal-ports.ts` 增 `KnowledgeReadPort.skillLookup`（类型仅签名，先让下游编译通过所需的实现随后补齐）。
-- [ ] **Step 3:** service-knowledge-read：`createKnowledgeReadSkillLookupQuery` + deps 接线 + 内部 RouteDef + module 端口实现 + focused tests 全绿。
-- [ ] **Step 4:** host-local runtime/app.module 接线 `runtime.skillLookup`，`gateway.schemas.test` 或 runtime 测试补覆盖。
-- [ ] **Step 5:** `scripts/testing/postgres-server-composition.ts` 改接真实 `runtime.skillLookup`。
-- [ ] **Step 6:** 验证：`pnpm --filter @trapmap/backend-core test --run ...`、`pnpm --filter @trapmap/service-knowledge-read test --run ...`、`pnpm --filter @trapmap/host-local test --run ...`、`pnpm typecheck`、`pnpm exec fallow audit --base main --ci`。
-- [ ] **Step 7:** Commit（可多提交）。
+- [x] **Step 1:** TDD：先写 `skill-lookup.test.ts`（artifact 命中映射 / 非 artifact 过滤 / 按 artifactId 去重保最高分 / title 回退 / 空输入 / schema 解析），实现 `toSkillLookupMatches`，绿。
+- [x] **Step 2:** `internal-ports.ts` 增 `KnowledgeReadPort.skillLookup`（类型仅签名，先让下游编译通过所需的实现随后补齐）。
+- [x] **Step 3:** service-knowledge-read：`createKnowledgeReadSkillLookupQuery` + deps 接线 + 内部 RouteDef + module 端口实现 + focused tests 全绿。
+- [x] **Step 4:** host-local runtime/app.module 接线 `runtime.skillLookup`，`gateway.schemas.test` 或 runtime 测试补覆盖。
+- [x] **Step 5:** `scripts/testing/postgres-server-composition.ts` 改接真实 `runtime.skillLookup`。
+- [x] **Step 6:** 验证：`pnpm --filter @trapmap/backend-core test --run ...`、`pnpm --filter @trapmap/service-knowledge-read test --run ...`、`pnpm --filter @trapmap/host-local test --run ...`、`pnpm typecheck`、`pnpm exec fallow audit --base main --ci`。
+- [x] **Step 7:** Commit（可多提交）。
 
 ## Workstream B：双网关外部 RouteDef + internal-client（wt-b，branch `ml/b-skill-gateway`）
 
@@ -120,11 +120,11 @@ export function toSkillLookupMatches(
 - Consumes: 接口契约中 `KnowledgeReadPort.skillLookup` 签名、内部路由路径 `/internal/retrieval/skills/search-by-content`（Workstream A 声明，本任务按契约实现即可并行）。
 - Produces: 两宿主外部路由 `/v1/retrieval/skills/search-by-content` + `internalClient.knowledgeRead.searchByContent`。
 
-- [ ] **Step 1:** TDD：先补 `internal-client.test.ts`（searchByContent 请求形状）与 gateway 测试（路由注册/转发），红。
-- [ ] **Step 2:** host-local `gateway.route-defs.ts` 外部路由实现（守护路由照旧，handler 直连 port）。
-- [ ] **Step 3:** host-distributed `route-defs.ts` + `internal-client.ts` 实现。
-- [ ] **Step 4:** 测试转绿：`pnpm --filter @trapmap/host-local test --run src/nest/gateway`、`pnpm --filter @trapmap/host-distributed test --run src/gateway`、`pnpm typecheck`。
-- [ ] **Step 5:** Commit。
+- [x] **Step 1:** TDD：先补 `internal-client.test.ts`（searchByContent 请求形状）与 gateway 测试（路由注册/转发），红。
+- [x] **Step 2:** host-local `gateway.route-defs.ts` 外部路由实现（守护路由照旧，handler 直连 port）。
+- [x] **Step 3:** host-distributed `route-defs.ts` + `internal-client.ts` 实现。
+- [x] **Step 4:** 测试转绿：`pnpm --filter @trapmap/host-local test --run src/nest/gateway`、`pnpm --filter @trapmap/host-distributed test --run src/gateway`、`pnpm typecheck`。
+- [x] **Step 5:** Commit。
 - 注意：若合并时 A 的签名有出入，rebase 后按 A 实际签名微调；不得自行改接口契约文档。
 
 ## Workstream C：文档对齐（wt-c，branch `ml/c-skill-docs`）
@@ -140,9 +140,9 @@ export function toSkillLookupMatches(
 - Consumes: 仅文档；不改代码与契约。
 - Produces: 文档面与契约一致；`check:docs`/`check:structure` 全绿。
 
-- [ ] **Step 1:** 逐文件核对并将 curl 示例 body 改为 `text`/`maxResults`；删除 packages/server（已删除）源码注记。
-- [ ] **Step 2:** 运行 `pnpm check:docs`、`pnpm check:structure` 全绿（含 link 校验通过）。
-- [ ] **Step 3:** Commit `docs(retrieval): align skill search-by-content surface docs with contract`。
+- [x] **Step 1:** 逐文件核对并将 curl 示例 body 改为 `text`/`maxResults`；删除 packages/server（已删除）源码注记。
+- [x] **Step 2:** 运行 `pnpm check:docs`、`pnpm check:structure` 全绿（含 link 校验通过）。
+- [x] **Step 3:** Commit `docs(retrieval): align skill search-by-content surface docs with contract`。
 
 ## Workstream D：防复发守卫——文档路由路径存在性检查（wt-d，branch `ml/d-route-surface-guard`）
 
@@ -157,10 +157,10 @@ export function toSkillLookupMatches(
 - Consumes: 上述 RouteDef 文件与文档文件（契约最终面，含 A/B 合并后新增的 `/v1/retrieval/skills/search-by-content`）。
 - Produces: `pnpm check:docs` 新增 blocking 步骤；脚本可被 vitest 单测覆盖（纯函数拆分：`collectRoutePathsFromSource` / `collectDocumentedPaths` / `checkSurface(real, documented, exemptions)`）。
 
-- [ ] **Step 1:** TDD：`scripts/__tests__/check-route-surface.test.ts` 覆盖三纯函数 + 例外语义，红。
-- [ ] **Step 2:** `scripts/check-route-surface.ts` 实现；接入 `scripts/check-docs.ts`（blocking）。
-- [ ] **Step 3:** 在**合并后基线**（A/B/C 已合入 main）跑 `pnpm check:docs` 全绿；独立在 base main 跑应仅因 skill-lookup/v2 两条体现差异（skill-lookup 将被 A/B 的真实路由覆盖，v2 走例外）。
-- [ ] **Step 4:** Commit `chore(docs): add route-surface existence guard to check:docs`。
+- [x] **Step 1:** TDD：`scripts/__tests__/check-route-surface.test.ts` 覆盖三纯函数 + 例外语义，红。
+- [x] **Step 2:** `scripts/check-route-surface.ts` 实现；接入 `scripts/check-docs.ts`（blocking）。
+- [x] **Step 3:** 在**合并后基线**（A/B/C 已合入 main）跑 `pnpm check:docs` 全绿；独立在 base main 跑仅暴露已知 skill-lookup 缺口；守卫首次接入发现的存量漂移冻结为 tracked inventory debt。
+- [x] **Step 4:** Commit `chore(docs): add route-surface existence guard to check:docs`。
 
 ---
 
@@ -168,22 +168,29 @@ export function toSkillLookupMatches(
 
 合并顺序 **A → B → C → D**（D 依赖 A/B/C 后的最终契约面；C 依赖 B 后的真实端点口径）。后合并者先 `git fetch && git rebase main`。
 
-- [ ] `pnpm typecheck` 全绿
-- [ ] 包级测试：backend-core / service-knowledge-read / host-local / host-distributed / cli 全绿
-- [ ] `pnpm test:deployment-smoke` / `test:runtime-foundations` 全绿
-- [ ] `pnpm check:docs` / `check:structure` / `check:asserts` / `check:imports` 全绿；无新增断言豁免
-- [ ] `pnpm exec fallow audit --base main` exit 0
-- [ ] CLI `skill search-by-content` 端点契约测试（新外部路由）由 B 的 gateway 测试覆盖
-- [ ] eval 面：`evals/retrieval` 相关单测绿；`pnpm eval:smoke` 全量环境门控，回填登记册
+- [x] `pnpm typecheck` 全绿
+- [x] 包级测试：backend-core / service-knowledge-read / host-local / host-distributed / cli 全绿
+- [x] `pnpm test:deployment-smoke` / `test:runtime-foundations` 全绿
+- [x] `pnpm check:docs` / `check:structure` / `check:asserts` / `check:imports` 全绿；无新增断言豁免
+- [x] `pnpm exec fallow audit --base main` exit 0
+- [x] CLI `skill search-by-content` 端点契约测试（新外部路由）由 B 的 gateway 测试覆盖
+- [x] eval 面：`evals/retrieval` 相关单测绿；`pnpm eval:smoke` 全量环境门控，回填登记册
 
-## 问题池（执行期新发现进这里，closeout 逐条清空或转登记册）
+## 问题池（closeout 已清空；处置记录保留）
 
-- **`/v2/retrieval/search` 网关面缺失**（2026-08-22 integrator 勘察发现）：CLI `apps/cli/src/commands/retrieval.ts:234`（`--v2`）调用该路径，两宿主 RouteDef 均未注册；api-surface.md 有该行。与 skill-lookup 同源（v2 胶囊检索原实现已删除，随 packages/server 退役）。处置：closeout 转登记册 deferred（进入条件：CLI `--v2` 或胶囊检索产品需求）。
-- **host-local 网关缺少 `/v3/retrieval/search`**（2026-08-22 勘察发现）：host-distributed 有（:835），host-local 无；CLI `load`（`apps/cli/src/commands/load.ts:80`）在 host-local 后端下会 404。处置：closeout 转登记册 deferred 或在后续宿主面 parity 任务中修复。
+- **`/v2/retrieval/search` 网关面缺失**：已转登记册 [gateway surface parity gaps](../../todos/open-debt-and-compromises.md)。
+- **host-local 网关缺少 `/v3/retrieval/search`**：已转同一 gateway parity 登记条目。
+- **route-surface 存量 inventory drift**：已登记为独立 adoption-time inventory drift；新增漂移由 D 守卫阻断。
+
+## Closeout Record（2026-08-22）
+
+- 工作流证据：A `6b1cc40d`（backend capability/runtime/composition）；B `94977a85`（dual-gateway + internal client）；C `91b00778`（docs alignment）；D `c690555b` + `1e5b4565`（guard + budget refactor）。集成分支按 A→B→C→D cherry-pick，最终 closeout 提交见归档表。
+- 集成验证：backend-core 210 tests、service-knowledge-read 97 tests、host-distributed 228 tests、CLI 565 tests 全绿；deployment-smoke 425 tests、runtime-foundations 175 tests 全绿；retrieval eval 单测 124 passed / 13 environment-skipped。`typecheck`、`check:docs`、`check:structure`、`check:asserts`、`check:imports` 与 `fallow audit --base main --ci` 均 exit 0。
+- 已知环境门控：完整 `eval:smoke` 需 docker/CI，已回填既有登记条目。
 
 ## closeout 要求
 
-- [ ] 全部 A/B/C/D 复选框勾选且证据（commit hash + 门禁摘要）完整
-- [ ] 问题池逐条处置；转 deferred 的条目回写 `docs/todos/open-debt-and-compromises.md`（含来源/影响/进入条件/落点）
+- [x] 全部 A/B/C/D 复选框勾选且证据（commit hash + 门禁摘要）完整
+- [x] 问题池逐条处置；转 deferred 的条目回写 `docs/todos/open-debt-and-compromises.md`（含来源/影响/进入条件/落点）
 - [ ] `docs/todos/README.md` 活跃索引移除本细则；`plan.md` 状态切换
 - [ ] 本细则 `git mv` 至 `docs/archived/archived-plans/skill-lookup-surface-mainline-archived.md`，同步归档三件套

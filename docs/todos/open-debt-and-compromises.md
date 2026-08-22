@@ -20,6 +20,7 @@
 ### eval:smoke CI 完整补跑（环境门控，刷新于 2026-08-22）
 
 - 来源：本机无 docker daemon；A4 端到端、A15 镜像重建与 compose replicas 演示均需 docker/kind。
+- 2026-08-22 增补：Skill Lookup 主线的 retrieval 单测已绿；完整 `pnpm eval:smoke` 继续受同一环境门控约束。
 - 进入条件：CI 或具备 docker 的本地环境。
 - 后续落点：CI 跑 `pnpm eval:smoke` 全量 + `docker compose build candidate-worker outbox-worker` + replicas 演示，结果回填本条并关闭。
 
@@ -43,6 +44,14 @@
 - 当前边界：例外只允许既有清单；新增 documented-not-real 或 real-not-documented 会立即被 `check:docs` 阻断。`/v2/retrieval/search` 继续单独豁免。
 - 进入条件：清理 api-surface / ARTIFACTS 与两宿主 RouteDef 的历史面，或启动宿主网关 parity tranche。
 - 后续落点：按服务族拆分“route surface inventory reconciliation”，先修正文档，再决定缺失端点是实现还是移出公开契约。
+
+### gateway surface parity gaps：v2 capsule 与 host-local v3（2026-08-22 新立）
+
+- 来源：Skill Lookup closeout 勘察确认 `/v2/retrieval/search` 在两宿主均缺 RouteDef，CLI `--v2` 会 404；`/v3/retrieval/search` 只在 host-distributed 注册，host-local 的 CLI `load` 会 404。两项原实现均随旧 server 包退役或未做宿主 parity。
+- 影响：CLI 的对应调用路径在指定后端形态下不可用；api-surface 对 v2 的承诺仍超出真实网关面。
+- 当前边界：不阻塞 v1 检索和新的 artifact-first skill lookup；D 守卫将 `/v2/retrieval/search` 显式豁免，其余新增漂移会被阻断。
+- 进入条件：CLI `--v2` 或 capsule retrieval 产品需求启动时处理 v2；host-local/v3 parity 纳入下一个 gateway surface reconciliation tranche。
+- 后续落点：优先决定“实现 endpoint”还是“收缩 CLI/docs surface”，然后按 RouteDef 工厂补齐并更新 api-surface。
 
 ### 工程维护信号（持续跟踪，基线见 FALLOW_BASELINE_2026-08-22.md）
 
