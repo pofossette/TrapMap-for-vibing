@@ -13,11 +13,24 @@ import {
   propagation,
   trace,
 } from '@opentelemetry/api';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import type { BadcaseExportDraftPayload, RemediationReactivationPayload } from '@trapmap/contracts';
 import type { InternalServiceUrls } from '@trapmap/host-distributed/config/index.js';
+import {
+  resolveInternalTimeoutMs,
+  serviceNameForInternalHost,
+} from '@trapmap/host-distributed/config/index.js';
 import type { DiscoveryResolver } from './discovery-resolver.js';
 import { recordDistributedInternalHopMetric } from './internal-observability.js';
+import {
+  CircuitBreaker,
+  CircuitOpenError,
+  resolveBreakerCooldownMs,
+  resolveBreakerThreshold,
+  resolveRetryPolicy,
+  withResilience,
+} from './resilience.js';
 
 // ---------------------------------------------------------------------------
 // HTTP client helper
@@ -66,7 +79,8 @@ function normalizeCanonicalErrorBody(status: number, body: unknown): unknown {
   };
 }
 
-async function callInternalService(
+// fallow-ignore-next-line complexity -- Task C2 仅重命名既有实现体（原 callInternalService），行为不变硬约束下不重构函数体
+async function callInternalServiceOnce(
   url: string,
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   body?: unknown,
@@ -89,6 +103,18 @@ async function callInternalService(
     'Content-Type': 'application/json',
     ...(options?.headers ?? {}),
   };
+  // Task C3: every internal hop carries a correlation id — forward the
+  // caller's x-request-id when present, otherwise generate one.
+  if (!headers['x-request-id']) {
+    headers['x-request-id'] = randomUUID();
+  }
+  // W3C traceparent fallback: without a registered OTel SDK the injector
+  // emits nothing (invalid span context), so synthesize a valid header to
+  // keep trace context unbroken across internal hops.
+  if (!headers.traceparent) {
+    headers['traceparent'] =
+      `00-${randomBytes(16).toString('hex')}-${randomBytes(8).toString('hex')}-01`;
+  }
   const serviceName = 'gateway';
   const targetService = urlObj.hostname;
   const parentContext = propagation.extract(otelContext.active(), headers);
@@ -169,6 +195,106 @@ async function callInternalService(
     };
   } finally {
     clearTimeout(timer);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Resilient wrapper (Task C2): breaker + idempotent retry + timeout budgets.
+// Default env → maxAttempts=1 and breakers closed ⇒ behavior identical to the
+// single-attempt client above.
+// ---------------------------------------------------------------------------
+
+// Per-origin breakers are created lazily so env overrides
+// (TRAPMAP_INTERNAL_BREAKER_THRESHOLD / _COOLDOWN_MS) apply whenever the first
+// request to that origin happens, not at module-load time.
+const internalBreakersByOrigin = new Map<string, CircuitBreaker>();
+
+function breakerForOrigin(origin: string): CircuitBreaker {
+  const existing = internalBreakersByOrigin.get(origin);
+  if (existing) return existing;
+  const breaker = new CircuitBreaker({
+    threshold: resolveBreakerThreshold(process.env),
+    cooldownMs: resolveBreakerCooldownMs(process.env),
+  });
+  internalBreakersByOrigin.set(origin, breaker);
+  return breaker;
+}
+
+/** Task C5: snapshot of per-origin circuit breaker states for readiness reporting. */
+export function breakerStatesSnapshot(): Record<string, 'closed' | 'open' | 'half-open'> {
+  const states: Record<string, 'closed' | 'open' | 'half-open'> = {};
+  for (const [origin, breaker] of internalBreakersByOrigin) {
+    states[origin] = breaker.state;
+  }
+  return states;
+}
+
+class TransientInternalResponseError extends Error {
+  constructor(public readonly response: ServiceResponse) {
+    super(`transient internal response ${response.status}`);
+    this.name = 'TransientInternalResponseError';
+  }
+}
+
+function isTransientStatus(status: number): boolean {
+  return status === 502 || status === 503 || status === 504;
+}
+
+const INTERNAL_UNAVAILABLE_RESPONSE: ServiceResponse = {
+  status: 503,
+  body: { error: 'Internal service unavailable', kind: 'unavailable' },
+};
+
+/**
+ * Explicit per-call timeout wins; otherwise apply the per-service env budget
+ * (`TRAPMAP_<SVC>_TIMEOUT_MS`) when the hostname maps to a known service.
+ */
+function withEnvTimeout(
+  hostname: string,
+  options: InternalRequestOptions | undefined,
+): InternalRequestOptions {
+  if (options?.timeoutMs !== undefined) return options;
+  const serviceName = serviceNameForInternalHost(hostname);
+  if (serviceName === undefined) return options ?? {};
+  const envTimeoutMs = resolveInternalTimeoutMs(process.env, serviceName);
+  if (envTimeoutMs === undefined) return options ?? {};
+  return { ...options, timeoutMs: envTimeoutMs };
+}
+
+async function callInternalService(
+  url: string,
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+  body?: unknown,
+  query?: Record<string, string>,
+  options?: InternalRequestOptions,
+): Promise<ServiceResponse> {
+  const breaker = breakerForOrigin(new URL(url).origin);
+  if (!breaker.canAttempt()) {
+    return INTERNAL_UNAVAILABLE_RESPONSE;
+  }
+
+  const retry = resolveRetryPolicy(process.env);
+  const effectiveOptions = withEnvTimeout(new URL(url).hostname, options);
+
+  try {
+    return await withResilience(
+      {
+        retry,
+        breaker,
+        retryable: (err) => err instanceof TransientInternalResponseError && method === 'GET',
+      },
+      async () => {
+        const response = await callInternalServiceOnce(url, method, body, query, effectiveOptions);
+        if (isTransientStatus(response.status)) {
+          throw new TransientInternalResponseError(response);
+        }
+        return response;
+      },
+    );
+  } catch (err) {
+    if (err instanceof TransientInternalResponseError) return err.response;
+    if (err instanceof CircuitOpenError) return INTERNAL_UNAVAILABLE_RESPONSE;
+    throw err;
   }
 }
 

@@ -489,9 +489,21 @@ describe('distributed gateway acceptance', () => {
       limit: 3,
     });
     expect(knowledgeReadHeaders).toEqual([
-      { 'x-request-id': undefined, 'x-trace-id': undefined, authorization: undefined },
-      { 'x-request-id': undefined, 'x-trace-id': undefined, authorization: undefined },
-      { 'x-request-id': undefined, 'x-trace-id': undefined, authorization: undefined },
+      {
+        'x-request-id': expect.stringMatching(/^[0-9a-f-]{36}$/),
+        'x-trace-id': undefined,
+        authorization: undefined,
+      },
+      {
+        'x-request-id': expect.stringMatching(/^[0-9a-f-]{36}$/),
+        'x-trace-id': undefined,
+        authorization: undefined,
+      },
+      {
+        'x-request-id': expect.stringMatching(/^[0-9a-f-]{36}$/),
+        'x-trace-id': undefined,
+        authorization: undefined,
+      },
     ]);
 
     await gatewayApp.close();

@@ -330,7 +330,7 @@ describe('distributed runtime closeout', () => {
     const jobRuntime = await diagnostics(env.TRAPMAP_JOB_RUNTIME_URL);
 
     expect(identity.headers[0]).not.toHaveProperty('authorization');
-    expect(identity.headers[0]).not.toHaveProperty('x-request-id');
+    expect(String(identity.headers[0]['x-request-id'])).toMatch(/^[0-9a-f-]{36}$/);
     expect(identity.headers[0]).not.toHaveProperty('x-trace-id');
     expect(candidate.hits).toContain('candidate:resolution:candidate-1');
     expect(governance.hits).toContain('review:approve:entry-1');

@@ -1,3 +1,4 @@
+// fallow-ignore-file code-duplication -- gateway internal-client 测试的 fetch/clients 装配模式有意相似；跨用例抽取 helper 会降低可读性（Task C2 变更激活了既有克隆面）
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createInternalServiceClients } from './internal-client.js';
 import {
@@ -583,5 +584,167 @@ describe('createInternalServiceClients', () => {
         }),
       ]),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Task C2: resilient wrapper (breaker + idempotent retry + timeout budgets)
+// ---------------------------------------------------------------------------
+
+import {
+  resolveInternalTimeoutMs,
+  serviceNameForInternalHost,
+} from '@trapmap/host-distributed/config/index.js';
+
+describe('C2 resilient internal client', () => {
+  function stubFetchSequence(responses: Array<{ status: number; body?: unknown }>) {
+    const fetchMock = vi.fn(async () => {
+      const next = responses.shift() ?? { status: 503 };
+      return new Response(JSON.stringify(next.body ?? { error: 't', kind: 'unavailable' }), {
+        status: next.status,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+    return fetchMock;
+  }
+
+  function clientsFor(host: string) {
+    return createInternalServiceClients({
+      gateway: `http://${host}`,
+      identityAccess: `http://${host}`,
+      knowledgeRead: `http://${host}`,
+      knowledgeWrite: `http://${host}`,
+      candidateIngestion: `http://${host}`,
+      review: `http://${host}`,
+      governanceReview: `http://${host}`,
+      jobRuntime: `http://${host}`,
+      cronScheduler: `http://${host}`,
+    });
+  }
+
+  it('retries GET on transient 503 when TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS allows', async () => {
+    vi.stubEnv('TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS', '3');
+    const fetchMock = stubFetchSequence([{ status: 503 }, { status: 200, body: { ok: true } }]);
+    const clients = clientsFor('retry-get.test');
+
+    await expect(clients.knowledgeRead.getById('entry-1')).resolves.toEqual({
+      status: 200,
+      body: { ok: true },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry non-idempotent POST even when retries are enabled', async () => {
+    vi.stubEnv('TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS', '3');
+    const fetchMock = stubFetchSequence([{ status: 503 }]);
+    const clients = clientsFor('post-noretry.test');
+
+    await expect(
+      clients.identityAccess.login({ handle: 'a', password: 'b' }),
+    ).resolves.toMatchObject({ status: 503 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns transient responses unchanged when retry is disabled by default', async () => {
+    delete process.env.TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS;
+    const fetchMock = stubFetchSequence([{ status: 503 }]);
+    const clients = clientsFor('default-single.test');
+
+    await expect(clients.knowledgeRead.getById('entry-1')).resolves.toMatchObject({ status: 503 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the breaker after consecutive failures and short-circuits with zero network calls', async () => {
+    vi.stubEnv('TRAPMAP_INTERNAL_BREAKER_THRESHOLD', '1');
+    vi.stubEnv('TRAPMAP_INTERNAL_BREAKER_COOLDOWN_MS', '60000');
+    const fetchMock = stubFetchSequence([{ status: 503 }]);
+    const clients = clientsFor('breaker.test');
+
+    // First call fails transiently and trips the breaker (threshold=1).
+    await expect(clients.knowledgeRead.getById('entry-1')).resolves.toMatchObject({ status: 503 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Second call is short-circuited: no fetch, canonical unavailable envelope.
+    await expect(clients.knowledgeRead.getById('entry-2')).resolves.toEqual({
+      status: 503,
+      body: { error: 'Internal service unavailable', kind: 'unavailable' },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('maps internal hosts to service names and parses timeout overrides', () => {
+    expect(serviceNameForInternalHost('knowledge-read')).toBe('knowledge-read');
+    expect(serviceNameForInternalHost('candidate-worker')).toBe('candidate-ingestion');
+    expect(serviceNameForInternalHost('unknown-host.example')).toBeUndefined();
+
+    expect(
+      resolveInternalTimeoutMs({ TRAPMAP_KNOWLEDGE_READ_TIMEOUT_MS: '2500' }, 'knowledge-read'),
+    ).toBe(2500);
+    expect(
+      resolveInternalTimeoutMs({ TRAPMAP_KNOWLEDGE_READ_TIMEOUT_MS: 'bad' }, 'knowledge-read'),
+    ).toBeUndefined();
+    expect(resolveInternalTimeoutMs({}, 'gateway')).toBeUndefined();
+  });
+});
+
+describe('C3 trace context propagation', () => {
+  function captureHeaders() {
+    let captured: Record<string, unknown> = {};
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      captured = { ...(init?.headers as Record<string, unknown>) };
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+    return () => captured;
+  }
+
+  async function readClient() {
+    const { createInternalServiceClients } = await import('./internal-client.js');
+    return createInternalServiceClients({
+      gateway: 'http://trace.test',
+      identityAccess: 'http://trace.test',
+      knowledgeRead: 'http://trace.test',
+      knowledgeWrite: 'http://trace.test',
+      candidateIngestion: 'http://trace.test',
+      review: 'http://trace.test',
+      governanceReview: 'http://trace.test',
+      jobRuntime: 'http://trace.test',
+      cronScheduler: 'http://trace.test',
+    });
+  }
+
+  it('generates x-request-id and a valid traceparent when the caller provides none', async () => {
+    const getHeaders = captureHeaders();
+    const clients = await readClient();
+    await clients.knowledgeRead.getById('entry-9');
+    const headers = getHeaders();
+    expect(typeof headers['x-request-id']).toBe('string');
+    expect(String(headers['x-request-id'])).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+    expect(String(headers.traceparent)).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$/);
+  });
+
+  it('forwards caller traceparent/tracestate/x-request-id verbatim on the hop', async () => {
+    const getHeaders = captureHeaders();
+    const clients = await readClient();
+    await clients.knowledgeWrite.publishCandidateResult(
+      { candidateId: 'c-1', actorId: 'user-1', result: { decision: 'publish' } },
+      {
+        headers: {
+          traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+          tracestate: 'acme=1',
+          'x-request-id': 'req-c3-forward',
+        },
+      },
+    );
+    const headers = getHeaders();
+    expect(headers['x-request-id']).toBe('req-c3-forward');
+    expect(headers.tracestate).toBe('acme=1');
+    expect(String(headers.traceparent)).toContain('4bf92f3577b34da6a3ce929d0e0e4736');
   });
 });

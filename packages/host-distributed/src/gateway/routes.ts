@@ -19,7 +19,9 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { registerFastifyRoutes } from '@trapmap/backend-core';
 
-import type { InternalServiceClients } from './internal-client.js';
+import { breakerStatesSnapshot, type InternalServiceClients } from './internal-client.js';
+import { recordGatewayRateLimited } from './internal-observability.js';
+import { resolveRateLimitConfig, TokenBucketRateLimiter } from './rate-limit.js';
 import { createGatewayRouteDefs, gatewayActorContext } from './route-defs.js';
 
 // ---------------------------------------------------------------------------
@@ -96,6 +98,31 @@ function registerAuthHook(app: FastifyInstance, clients: InternalServiceClients)
 }
 
 // ---------------------------------------------------------------------------
+// Rate limiting hook (Task C4)
+// ---------------------------------------------------------------------------
+
+/**
+ * Register an `onRequest` hook (after auth) that applies the per-actor token
+ * bucket. Disabled entirely unless configured — see `resolveRateLimitConfig`.
+ */
+export function registerRateLimitHook(app: FastifyInstance): void {
+  const limiter = new TokenBucketRateLimiter(resolveRateLimitConfig(process.env));
+  if (!limiter.enabled) return;
+
+  app.addHook('onRequest', async (request, reply) => {
+    const actorId = (request as FastifyRequest & { actorId?: string }).actorId;
+    const key = actorId ?? request.ip;
+    const decision = limiter.tryConsume(key);
+    if (!decision.allowed) {
+      recordGatewayRateLimited(actorId !== undefined ? 'session' : 'ip');
+      const retryAfterSeconds = Math.max(1, Math.ceil(decision.retryAfterMs / 1000));
+      reply.header('Retry-After', String(retryAfterSeconds));
+      return reply.status(429).send({ error: 'Too many requests', kind: 'rate_limited' });
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Route registration
 // ---------------------------------------------------------------------------
 
@@ -108,6 +135,10 @@ function registerAuthHook(app: FastifyInstance, clients: InternalServiceClients)
 export function registerGatewayRoutes(app: FastifyInstance, clients: InternalServiceClients): void {
   // Apply authentication middleware (skips public paths)
   registerAuthHook(app, clients);
+
+  // Per-actor rate limiting runs after auth (so session actorId is the key)
+  // and before any forwarding. No-op when disabled.
+  registerRateLimitHook(app);
 
   registerFastifyRoutes(app, createGatewayRouteDefs(clients), clients, {
     context: gatewayActorContext,
@@ -131,10 +162,14 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
   });
 
   app.get('/ready', async (_request: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send({
+    // Task C5: readiness reflects internal-hop circuit breaker states.
+    const breakerStates = breakerStatesSnapshot();
+    const anyOpen = Object.values(breakerStates).some((state) => state === 'open');
+    return reply.status(anyOpen ? 503 : 200).send({
       service: 'gateway',
-      status: 'ready',
+      status: anyOpen ? 'degraded' : 'ready',
       timestamp: new Date().toISOString(),
+      dependencySummary: { breakerStates },
     });
   });
 

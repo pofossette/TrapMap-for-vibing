@@ -338,3 +338,91 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
     consulAddress,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Internal hop timeout budget (Task C2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve a per-service internal timeout override:
+ * `TRAPMAP_<SERVICE_NAME_UPPER_SNAKE>_TIMEOUT_MS` (e.g.
+ * `TRAPMAP_KNOWLEDGE_READ_TIMEOUT_MS`). Returns undefined when unset/invalid,
+ * in which case the gateway default (10s) applies.
+ */
+export function resolveInternalTimeoutMs(
+  env: Record<string, string | undefined>,
+  serviceName: ServiceName,
+): number | undefined {
+  const key = `TRAPMAP_${serviceName.toUpperCase().replace(/-/g, '_')}_TIMEOUT_MS`;
+  const raw = env[key];
+  if (raw !== undefined) {
+    const parsed = Number.parseInt(raw, 10);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return undefined;
+}
+
+const SERVICE_NAME_BY_INTERNAL_HOST = new Map<string, ServiceName>(
+  ALL_SERVICES.flatMap(
+    (name): Array<[string, ServiceName]> => [
+      [DISTRIBUTED_INTERNAL_HOSTS[name], name],
+      [DEFAULT_INTERNAL_HOSTS[name], name],
+    ],
+  ),
+);
+
+/** Map an internal hostname back to its logical service name (undefined if unknown). */
+export function serviceNameForInternalHost(host: string): ServiceName | undefined {
+  return SERVICE_NAME_BY_INTERNAL_HOST.get(host);
+}
+
+/**
+ * Task C5: fail fast at boot on invalid resilience/rate-limit configuration.
+ * Values are the same ones consumed by the gateway resilience wrapper
+ * (`resolveRetryPolicy`), breakers (`resolveBreakerThreshold`/`resolveBreakerCooldownMs`)
+ * and limiter (`resolveRateLimitConfig`).
+ */
+export function assertDistributedResilienceConfig(
+  env: Record<string, string | undefined> = process.env,
+): void {
+  const intAtLeastOne = (name: string): number => {
+    const raw = env[name];
+    if (raw === undefined) return 1;
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      throw new RangeError(`Invalid ${name}: expected an integer >= 1, got "${raw}"`);
+    }
+    return parsed;
+  };
+  intAtLeastOne('TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS');
+  intAtLeastOne('TRAPMAP_INTERNAL_BREAKER_THRESHOLD');
+
+  const cooldownRaw = env.TRAPMAP_INTERNAL_BREAKER_COOLDOWN_MS;
+  if (cooldownRaw !== undefined) {
+    const parsed = Number.parseInt(cooldownRaw, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      throw new RangeError(
+        `Invalid TRAPMAP_INTERNAL_BREAKER_COOLDOWN_MS: expected a positive integer, got "${cooldownRaw}"`,
+      );
+    }
+  }
+
+  const rpsRaw = env.TRAPMAP_GATEWAY_RATE_LIMIT_RPS;
+  if (rpsRaw !== undefined) {
+    const parsed = Number.parseFloat(rpsRaw);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      throw new RangeError(
+        `Invalid TRAPMAP_GATEWAY_RATE_LIMIT_RPS: expected a non-negative number, got "${rpsRaw}"`,
+      );
+    }
+  }
+  const burstRaw = env.TRAPMAP_GATEWAY_RATE_LIMIT_BURST;
+  if (burstRaw !== undefined) {
+    const parsed = Number.parseFloat(burstRaw);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      throw new RangeError(
+        `Invalid TRAPMAP_GATEWAY_RATE_LIMIT_BURST: expected a non-negative number, got "${burstRaw}"`,
+      );
+    }
+  }
+}
