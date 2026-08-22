@@ -1,5 +1,6 @@
 import {
   type KnowledgeReadDeps,
+  type KnowledgeReadPort,
   type ReadModelProjectionStatus,
   createKnowledgeReadModule,
 } from '@trapmap/backend-core';
@@ -19,6 +20,7 @@ export interface KnowledgeReadPortDeps {
     }>;
   };
   retrievalQuery: KnowledgeReadDeps['retrievalQuery'];
+  skillLookup: KnowledgeReadPort['skillLookup'];
 }
 
 async function createProjectionStatus(
@@ -156,6 +158,7 @@ export function createKnowledgeReadDeps(deps: KnowledgeReadPortDeps): KnowledgeR
       rebuild: () => entryProjection.rebuild(),
     },
     retrievalQuery: deps.retrievalQuery,
+    skillLookup: deps.skillLookup,
   };
 }
 

@@ -6,7 +6,7 @@ import {
   routeResponse,
 } from '@trapmap/backend-core';
 import type { KnowledgeReadPort } from '@trapmap/backend-core';
-import { retrievalSearchBodySchema } from '@trapmap/contracts';
+import { retrievalSearchBodySchema, skillLookupQuerySchema } from '@trapmap/contracts';
 import type { FastifyInstance } from 'fastify';
 import { type ZodType, z } from 'zod';
 
@@ -33,6 +33,12 @@ export const knowledgeReadSearchSchema = z.object({
   body: retrievalSearchBodySchema,
 });
 
+export const knowledgeReadSkillLookupSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: skillLookupQuerySchema,
+});
+
 export function toKnowledgeReadSearchArgs(body: {
   limit?: number;
   query: string;
@@ -46,6 +52,22 @@ export function toKnowledgeReadSearchArgs(body: {
     query: body.query,
     ...(body.teamId !== undefined ? { teamId: body.teamId } : {}),
     ...(body.limit !== undefined ? { limit: body.limit } : {}),
+  };
+}
+
+export function toKnowledgeReadSkillLookupArgs(body: {
+  text: string;
+  teamId?: string;
+  maxResults?: number;
+}): {
+  text: string;
+  teamId?: string;
+  maxResults?: number;
+} {
+  return {
+    text: body.text,
+    ...(body.teamId !== undefined ? { teamId: body.teamId } : {}),
+    ...(body.maxResults !== undefined ? { maxResults: body.maxResults } : {}),
   };
 }
 
@@ -79,6 +101,19 @@ export function createKnowledgeReadRouteDefs(
           throw InvocationError.notFound('Knowledge entry not found');
         }
         return entry;
+      },
+    }),
+
+    knowledgeReadRouteDef({
+      method: 'POST',
+      path: '/internal/retrieval/skills/search-by-content',
+      schema: knowledgeReadSkillLookupSchema,
+      handler: async (ctx, deps) => {
+        return deps.skillLookup(
+          toKnowledgeReadSkillLookupArgs(
+            ctx.body as Parameters<typeof toKnowledgeReadSkillLookupArgs>[0],
+          ),
+        );
       },
     }),
 

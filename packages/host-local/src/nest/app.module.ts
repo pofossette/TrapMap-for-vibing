@@ -101,6 +101,7 @@ export class AppModule implements NestModule {
     const knowledgeReadDeps = createKnowledgeReadDeps({
       knowledgeRepo: knowledgeProjection,
       retrievalQuery: runtime.retrievalQuery,
+      skillLookup: runtime.skillLookup,
     });
     const knowledgeReadPort = createKnowledgeReadModule(knowledgeReadDeps);
     const knowledgeReadModule = KnowledgeReadModule.forTesting(knowledgeReadPort);

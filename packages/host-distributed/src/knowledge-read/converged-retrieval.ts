@@ -15,7 +15,7 @@
  * @trapmap/service-knowledge-read; this host only supplies concrete
  * infrastructure (pool-backed repos, registries, ai stub, graph seam).
  */
-import type { RetrievalQueryPort } from '@trapmap/backend-core';
+import type { KnowledgeReadPort, RetrievalQueryPort } from '@trapmap/backend-core';
 import { permissionSchema } from '@trapmap/contracts';
 import { createGovernanceReviewPgOwnerBundle } from '@trapmap/service-governance-review';
 import {
@@ -24,6 +24,7 @@ import {
   createKnowledgeReadGraphIndexRepository,
   createKnowledgeReadOwnerRetrievalServices,
   createKnowledgeReadRetrievalQuery,
+  createKnowledgeReadSkillLookupQuery,
   createKnowledgeReadStrategyRegistry,
   createMemoryGraphQueryBackend,
   loadRagLogConfig,
@@ -89,16 +90,16 @@ function createDistributedRetrievalServices(pool: Pool): RetrievalServices {
  * @param services Optional override used only by tests to inject an in-memory
  *   retrieval services bundle; production always builds from the pool.
  */
-export function createConvergedRetrievalQuery(
+export function createConvergedKnowledgeReadQueries(
   pool: Pool,
   services?: RetrievalServices,
-): RetrievalQueryPort {
+): { retrievalQuery: RetrievalQueryPort; skillLookup: KnowledgeReadPort['skillLookup'] } {
   const retrievalServices = services ?? createDistributedRetrievalServices(pool);
-  return createKnowledgeReadRetrievalQuery({
+  const queryOptions = {
     services: retrievalServices,
-    resolveAuthContext(params) {
+    resolveAuthContext(params: { teamId?: string }) {
       return {
-        subjectType: 'system-admin',
+        subjectType: 'system-admin' as const,
         actorId: 'distributed-knowledge-read',
         handle: 'distributed-knowledge-read',
         activeTeamId: params.teamId ?? null,
@@ -109,6 +110,18 @@ export function createConvergedRetrievalQuery(
         team: null,
       };
     },
-    mode: 'hybrid',
-  });
+    mode: 'hybrid' as const,
+  };
+
+  return {
+    retrievalQuery: createKnowledgeReadRetrievalQuery(queryOptions),
+    skillLookup: createKnowledgeReadSkillLookupQuery(queryOptions),
+  };
+}
+
+export function createConvergedRetrievalQuery(
+  pool: Pool,
+  services?: RetrievalServices,
+): RetrievalQueryPort {
+  return createConvergedKnowledgeReadQueries(pool, services).retrievalQuery;
 }

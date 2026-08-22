@@ -102,16 +102,18 @@ export async function buildPostgresComposedServer(
   }));
 
   // Register skill lookup route
-  registerRetrievalRoute(
-    app,
-    services,
-    runtime,
-    '/v1/retrieval/skills/search-by-content',
-    (body) => ({
-      query: body.text as string,
-      limit: body.maxResults as number | undefined,
-    }),
-  );
+  app.post('/v1/retrieval/skills/search-by-content', async (request, reply) => {
+    try {
+      const body = request.body as Record<string, unknown>;
+      const result = await runtime.skillLookup({
+        text: body.text as string,
+        ...(body.maxResults ? { maxResults: body.maxResults as number } : {}),
+      });
+      return reply.send(result);
+    } catch (error) {
+      return sendError(reply, error);
+    }
+  });
 
   // Register auth session route
   app.post('/v1/auth/session', async (request, reply) => {

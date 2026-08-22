@@ -9,8 +9,10 @@ export {
   createKnowledgeReadRouteDefs,
   knowledgeReadMineSchema,
   knowledgeReadSearchSchema,
+  knowledgeReadSkillLookupSchema,
   registerKnowledgeReadRoutes,
   toKnowledgeReadSearchArgs,
+  toKnowledgeReadSkillLookupArgs,
 } from './routes.js';
 export {
   createKnowledgeReadServer,
@@ -27,8 +29,10 @@ export {
   createKnowledgeReadOwnerRetrievalServices,
   createKnowledgeReadRetrievalInfra,
   createKnowledgeReadRetrievalQuery,
+  createKnowledgeReadSkillLookupQuery,
   createKnowledgeReadStrategyRegistry,
   type KnowledgeReadRetrievalQueryOptions,
+  type KnowledgeReadSkillLookupQueryOptions,
   type KnowledgeReadOwnerRetrievalServicesOptions,
 } from './server-retrieval-seam.js';
 export {

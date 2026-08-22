@@ -26,6 +26,7 @@ import type {
   FeedbackStatsResponse,
   GovernanceConflictDetectionPayload,
   RemediationReactivationPayload,
+  SkillLookupResponse,
 } from '@trapmap/contracts';
 
 import type { FeedbackQueueRecord, KnowledgeEntryRecord } from './repo-ports.js';
@@ -72,6 +73,11 @@ export interface KnowledgeReadPort {
     teamId?: string;
     limit?: number;
   }): Promise<RetrievalSearchResponse>;
+  skillLookup(params: {
+    text: string;
+    teamId?: string;
+    maxResults?: number;
+  }): Promise<SkillLookupResponse>;
   getProjectionStatus(): Promise<ReadModelProjectionStatus>;
   /** Rebuild the owner projection; available only on operator-facing hosts. */
   rebuildProjection?(): Promise<ReadModelProjectionStatus>;

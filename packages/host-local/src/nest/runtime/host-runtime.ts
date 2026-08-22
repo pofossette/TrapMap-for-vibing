@@ -1,5 +1,6 @@
 import type {
   AuditLogPort,
+  KnowledgeReadPort,
   PermissionCheckPort,
   QueuePorts,
   RetrievalQueryPort,
@@ -15,6 +16,7 @@ import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 import {
   createKnowledgeReadOwnerRetrievalServices,
   createKnowledgeReadRetrievalQuery,
+  createKnowledgeReadSkillLookupQuery,
   createRuleChannelMerge,
   createRuleIntentRecognition,
 } from '@trapmap/service-knowledge-read';
@@ -30,6 +32,7 @@ export interface HostLocalRuntime {
   services: HostLocalServices;
   identity: IdentityAccessPortDeps;
   retrievalQuery: RetrievalQueryPort;
+  skillLookup: KnowledgeReadPort['skillLookup'];
   sessionLookup: SessionLookupPort;
   teamLookup: TeamLookupPort;
   permissionCheck: PermissionCheckPort;
@@ -42,7 +45,9 @@ type GovernanceRetrievalSeam = Parameters<
   typeof createKnowledgeReadOwnerRetrievalServices
 >[0]['governance'];
 
-function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
+function createKnowledgeReadQueries(
+  services: HostLocalServices,
+): Pick<HostLocalRuntime, 'retrievalQuery' | 'skillLookup'> {
   // lib type gap: the governance owner bundle returns the backend-core minimal
   // FeedbackQueueRecord shape while the retrieval seam expects knowledge-read's
   // richer store record — same feedback rows at runtime
@@ -69,23 +74,24 @@ function createRetrievalQuery(services: HostLocalServices): RetrievalQueryPort {
     channelMerge: createRuleChannelMerge(),
   });
 
-  return createKnowledgeReadRetrievalQuery({
-    services: retrievalServices,
-    resolveAuthContext(params) {
-      return {
-        subjectType: 'system-admin',
-        actorId: 'nest-light-runtime',
-        handle: 'nest-light-runtime',
-        activeTeamId: params.teamId ?? null,
-        securityLevel: Number.MAX_SAFE_INTEGER,
-        effectivePermissions: resolveEffectivePermissions('system-admin', []),
-        user: null,
-        membership: null,
-        team: null,
-      };
-    },
-    mode: 'hybrid',
+  const resolveAuthContext = (params: { teamId?: string }) => ({
+    subjectType: 'system-admin' as const,
+    actorId: 'nest-light-runtime',
+    handle: 'nest-light-runtime',
+    activeTeamId: params.teamId ?? null,
+    securityLevel: Number.MAX_SAFE_INTEGER,
+    effectivePermissions: resolveEffectivePermissions('system-admin', []),
+    user: null,
+    membership: null,
+    team: null,
   });
+
+  const queryOptions = { services: retrievalServices, resolveAuthContext, mode: 'hybrid' as const };
+
+  return {
+    retrievalQuery: createKnowledgeReadRetrievalQuery(queryOptions),
+    skillLookup: createKnowledgeReadSkillLookupQuery(queryOptions),
+  };
 }
 
 /**
@@ -104,7 +110,7 @@ function createHostLocalRuntimeFromServices(services: HostLocalServices): HostLo
   const runtime: HostLocalRuntime = {
     services,
     identity,
-    retrievalQuery: createRetrievalQuery(services),
+    ...createKnowledgeReadQueries(services),
     sessionLookup: identity.sessionLookup,
     teamLookup: identity.teamLookup,
     permissionCheck: identity.permissionCheck,

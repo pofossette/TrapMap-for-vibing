@@ -94,6 +94,7 @@ export const knowledgeReadNode: CapabilityNode = defineNode({
       createKnowledgeReadDeps({
         knowledgeRepo: buildKnowledgeProjection(runtime),
         retrievalQuery: runtime.retrievalQuery,
+        skillLookup: runtime.skillLookup,
       }),
     );
     ctx.provide('knowledgeRead', port);

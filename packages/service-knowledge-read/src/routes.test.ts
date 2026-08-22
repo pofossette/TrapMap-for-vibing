@@ -128,6 +128,7 @@ function createModule(): KnowledgeReadPort {
     })),
     listMine: vi.fn(async () => []),
     search: vi.fn(async () => ({ results: [], totalEstimate: 0, channel: 'derived-index' })),
+    skillLookup: vi.fn(async () => ({ matches: [] })),
     getProjectionStatus: vi.fn(async () => createProjectionStatus()),
     rebuildProjection: vi.fn(async () => createProjectionStatus()),
   };
@@ -266,6 +267,50 @@ describe.each(ADAPTERS)('knowledge-read routes (%s adapter)', (adapter) => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual(createProjectionStatus());
+
+    await app.close();
+  });
+
+  it('serves artifact-first skill lookup through the internal route', async () => {
+    const module = createModule();
+    vi.mocked(module.skillLookup).mockResolvedValueOnce({
+      matches: [
+        {
+          artifactId: 'artifact-1',
+          title: 'Docker cleanup',
+          slug: 'docker-cleanup',
+          labels: ['docker'],
+          scope: 'global',
+          requiredLevel: 0,
+          sourceKind: 'skill-directory',
+          score: 0.94,
+          reason: 'semantic similarity',
+        },
+      ],
+    });
+    const app = await buildApp(module, adapter);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/retrieval/skills/search-by-content',
+      payload: { text: 'docker cleanup', maxResults: 5 },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      matches: [{ artifactId: 'artifact-1', slug: 'docker-cleanup' }],
+    });
+    expect(module.skillLookup).toHaveBeenCalledWith({
+      text: 'docker cleanup',
+      maxResults: 5,
+    });
+
+    const invalid = await app.inject({
+      method: 'POST',
+      url: '/internal/retrieval/skills/search-by-content',
+      payload: {},
+    });
+    expect(invalid.statusCode).toBe(400);
 
     await app.close();
   });

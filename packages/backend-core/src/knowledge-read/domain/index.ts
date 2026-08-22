@@ -22,3 +22,4 @@ export * from './boundary.js';
 export * from './ranking.js';
 export * from './assembly.js';
 export * from './refinement.js';
+export * from './skill-lookup.js';

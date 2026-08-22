@@ -5,6 +5,7 @@
  * is read-only — it does not modify domain state.
  */
 
+import type { SkillLookupResponse } from '@trapmap/contracts';
 import type { KnowledgeReadPort } from '../../ports/internal-ports.js';
 import type { KnowledgeEntryRecord } from '../../ports/repo-ports.js';
 import type {
@@ -21,6 +22,11 @@ import { KNOWLEDGE_READ_OWNED_CAPABILITIES } from '../domain/index.js';
 export interface KnowledgeReadDeps {
   knowledgeProjection: KnowledgeReadProjectionPort<KnowledgeEntryRecord>;
   retrievalQuery: RetrievalQueryPort;
+  skillLookup(params: {
+    text: string;
+    teamId?: string;
+    maxResults?: number;
+  }): Promise<SkillLookupResponse>;
 }
 
 // ---------------------------------------------------------------------------
@@ -54,6 +60,14 @@ export function createKnowledgeReadModule(deps: KnowledgeReadDeps): KnowledgeRea
         query: params.query,
         ...(params.teamId !== undefined ? { teamId: params.teamId } : {}),
         ...(params.limit !== undefined ? { limit: params.limit } : {}),
+      });
+    },
+
+    async skillLookup(params: { text: string; teamId?: string; maxResults?: number }) {
+      return deps.skillLookup({
+        text: params.text,
+        ...(params.teamId !== undefined ? { teamId: params.teamId } : {}),
+        ...(params.maxResults !== undefined ? { maxResults: params.maxResults } : {}),
       });
     },
 

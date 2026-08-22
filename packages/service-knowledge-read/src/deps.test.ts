@@ -23,7 +23,11 @@ describe('knowledge-read deps', () => {
       search: vi.fn(async () => ({ results: [] })),
     };
 
-    const deps = createKnowledgeReadDeps({ knowledgeRepo, retrievalQuery });
+    const deps = createKnowledgeReadDeps({
+      knowledgeRepo,
+      retrievalQuery,
+      skillLookup: vi.fn(async () => ({ matches: [] })),
+    });
     const module = createKnowledgeReadServiceModule(deps);
 
     expectTypeOf(deps).toMatchTypeOf<BackendKnowledgeReadDeps>();
@@ -65,7 +69,11 @@ describe('knowledge-read deps', () => {
       })),
     };
 
-    const deps = createKnowledgeReadDeps({ knowledgeRepo, retrievalQuery });
+    const deps = createKnowledgeReadDeps({
+      knowledgeRepo,
+      retrievalQuery,
+      skillLookup: vi.fn(async () => ({ matches: [] })),
+    });
     const module = createKnowledgeReadServiceModule(deps);
 
     await expect(module.getById('entry-1')).resolves.toMatchObject({ id: 'entry-1' });
@@ -94,6 +102,7 @@ describe('knowledge-read deps', () => {
       retrievalQuery: {
         search: vi.fn(async () => ({ results: [] })),
       },
+      skillLookup: vi.fn(async () => ({ matches: [] })),
     });
 
     const status = await deps.knowledgeProjection.getStatus();
@@ -179,6 +188,7 @@ describe('knowledge-read deps', () => {
           }),
       },
       retrievalQuery: { search: vi.fn(async () => ({ results: [] })) },
+      skillLookup: vi.fn(async () => ({ matches: [] })),
     });
     const module = createKnowledgeReadServiceModule(deps);
 

@@ -1,4 +1,6 @@
 import type { RetrievalQueryPort } from '@trapmap/backend-core';
+import { type SkillLookupArtifactMeta, toSkillLookupMatches } from '@trapmap/backend-core';
+import { type SkillLookupResponse, skillLookupResponseSchema } from '@trapmap/contracts';
 import type {
   ArtifactReadProjection,
   ConflictRelation,
@@ -39,6 +41,8 @@ export interface KnowledgeReadRetrievalQueryOptions {
   resolveAuthContext(params: { teamId?: string }): SearchKnowledgeAuth;
   mode?: RetrievalQuery['mode'];
 }
+
+export type KnowledgeReadSkillLookupQueryOptions = KnowledgeReadRetrievalQueryOptions;
 
 export interface KnowledgeReadOwnerRetrievalServicesOptions {
   config: SearchKnowledgeServices['config'];
@@ -155,5 +159,62 @@ export function createKnowledgeReadRetrievalQuery(
         channel: result.routingTrace?.channelsUsed.join(',') ?? 'semantic',
       };
     },
+  };
+}
+
+export function createKnowledgeReadSkillLookupQuery(
+  options: KnowledgeReadSkillLookupQueryOptions,
+): (params: {
+  text: string;
+  teamId?: string;
+  maxResults?: number;
+}) => Promise<SkillLookupResponse> {
+  return async (params) => {
+    const auth = options.resolveAuthContext(params) as ResolvedAuthContext;
+    const maxResults = params.maxResults ?? 10;
+    const artifactRepository = options.services.repos.artifact;
+    if (!artifactRepository?.listForRetrieval) {
+      throw new Error('skill lookup requires the knowledge-read artifact retrieval projection');
+    }
+    const [result, artifacts] = await Promise.all([
+      searchKnowledge(options.services, auth, {
+        seed: params.text,
+        filters: {
+          labels: [],
+          scopes: ['global', 'project'],
+          ...(params.teamId ? { teamId: params.teamId } : {}),
+        },
+        includeRefinement: false,
+        includeSummary: false,
+        mode: options.mode ?? 'hybrid',
+        maxResults: 50,
+      }),
+      artifactRepository.listForRetrieval({}),
+    ]);
+
+    const matchedIds = new Set(
+      [...result.globalConstraints, ...result.projectKnowledge].map((match) => match.entryId),
+    );
+    const artifactMetaByEntryId = new Map<string, SkillLookupArtifactMeta>(
+      artifacts
+        .filter((artifact) => matchedIds.has(artifact.id))
+        .map((artifact) => [
+          artifact.id,
+          {
+            slug: artifact.slug,
+            sourceKind: artifact.metadata.sourceKind,
+            title: artifact.title,
+          },
+        ]),
+    );
+    const matches = toSkillLookupMatches(
+      [...result.globalConstraints, ...result.projectKnowledge],
+      artifactMetaByEntryId,
+    ).slice(0, maxResults);
+
+    return skillLookupResponseSchema.parse({
+      ...(result.queryId ? { queryId: result.queryId } : {}),
+      matches,
+    });
   };
 }
