@@ -1,6 +1,8 @@
-# 债务全量派发 + Agent MCP 接入 + 微服务平台化主线
+# 债务全量派发 + Agent MCP 接入 + 微服务平台化主线（已归档）
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans 逐任务实施本细则。步骤使用复选框（`- [ ]`）语法跟踪；复选框只有在代码/文档变更、focused test、事实守卫和必要 closeout 都有证据后才能勾选。
+>
+> **Closeout：** 2026-08-22 tranche-1+2 完成（22+9 任务），残余=环境门控验证与运营项，已转入登记册刷新条目；本细则归档留痕。
 >
 > **激活授权：** 2026-08-21 用户 goal 显式激活本主线，并对登记册做出三项裁决：① 登记册条目**全量派发**（进入条件由本主线显式覆盖，属登记册使用规则中"用户显式要求开始实施"路径）；② MCP 接入采用**完整读写**面；③ 微服务优化走 **Level 3 平台化方向**（DEPLOYMENT.md 冻结声明由本主线显式解除并回写）。
 

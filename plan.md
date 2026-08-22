@@ -9,11 +9,9 @@
 - 新发现的问题先进入主细则的问题池或 [长期债务登记册](docs/todos/open-debt-and-compromises.md)，不得因为"仍有参考价值"而创建第二条并行主线。
 - 主线范围、入口或验收边界发生变化时，先更新主细则，再同步本索引；所有阶段完成并留存证据后才归档主细则。
 
-## 当前主线（债务全量派发 + Agent MCP 接入 + 微服务平台化，2026-08-21 激活）
-- **主题：** 三工作流并行主线（git worktree + subagent-driven development）：A——长期债务登记册全量派发清偿并净收缩登记册；B——新建 `apps/mcp` MCP server 让外部 agent 完整读写接入 TrapMap（gateway HTTP API 为唯一后端数据源）；C——微服务逻辑优化升级至 Level 3 方向（韧性硬化 + k8s 编排资产 + 平台化决策冻结）。
-- **状态：** `active`（2026-08-21 用户 goal 激活；三项裁决：登记册全量派发、MCP 完整读写、Level 3 方向）
-- **主细则：** [债务全量派发 + Agent MCP 接入 + 微服务平台化主线](docs/todos/debt-mcp-platformization-mainline.md)
-- **执行模型：** 三 worktree（wt-a/wt-b/wt-c）+ 任务级 fresh subagent 两阶段评审；合并顺序 A → B → C；两个人工门（actorId 拍板、平台化决策批准）与三个环境门控任务在主细则中显式标注。
+## 当前主线
+
+当前无 active mainline（2026-08-22）。上一主线「债务全量派发 + Agent MCP 接入 + 微服务平台化」已完成并归档：[docs/archived/archived-plans/debt-mcp-platformization-mainline-archived.md]。残余环境门控验证与运营项见 [长期债务登记册](docs/todos/open-debt-and-compromises.md)。
 
 ## 上一主线
 
