@@ -36,6 +36,14 @@
 - 进入条件：具备 k8s(kind)/docker 环境。
 - 后续落点：逐项验证后更新 DEPLOYMENT.md/SERVICE-DISCOVERY.md 成熟度表述至 Level 3 达成口径。
 
+### route-surface adoption-time inventory drift（2026-08-22 新立）
+
+- 来源：`scripts/check-route-surface.ts` 首次接入时发现 api-surface 保留已退役 server 包路由、部分真实 gateway RouteDef 未列入 canonical API 表，以及 ARTIFACTS 图表中的历史 operations/artifacts 路径。完整路径清单冻结在 `SURFACE_INVENTORY_DRIFT`。
+- 影响：守卫可阻断新增漂移，但已知旧差异在清账前不会失败；文档读者仍可能看到未实现的旧外部端点。
+- 当前边界：例外只允许既有清单；新增 documented-not-real 或 real-not-documented 会立即被 `check:docs` 阻断。`/v2/retrieval/search` 继续单独豁免。
+- 进入条件：清理 api-surface / ARTIFACTS 与两宿主 RouteDef 的历史面，或启动宿主网关 parity tranche。
+- 后续落点：按服务族拆分“route surface inventory reconciliation”，先修正文档，再决定缺失端点是实现还是移出公开契约。
+
 ### 工程维护信号（持续跟踪，基线见 FALLOW_BASELINE_2026-08-22.md）
 
 - 已知继承热点清单与进入条件维持原登记口径；仅 hotspot 关联生产故障/边界违规时开 scoped tranche。

@@ -94,6 +94,11 @@ const steps: CheckStep[] = [
     ...resolveBinStep('md-lint', 'markdownlint-cli2', 'docs/**/*.md', 'README.md', 'evals/**/*.md'),
   },
   {
+    name: 'route-surface',
+    command: 'pnpm',
+    args: ['exec', 'tsx', 'scripts/check-route-surface.ts'],
+  },
+  {
     name: 'doc-truth',
     command: 'pnpm',
     args: ['exec', 'tsx', 'scripts/check-doc-truth.ts'],
