@@ -203,7 +203,7 @@ git commit -m "fix(web-panel): 修复预存 stubEnv/MODE 测试失败，恢复�
 **Interfaces:**
 - Produces: owner/read 两侧 `listByFilter(filter, page?: { offset: number; limit: number })` → `Promise<{ items: KnowledgeEntryRecord[]; total: number }>`；`page` 缺省时 `offset=0, limit=100`（向后兼容默认上限，但语义显式化）；桥两侧签名同步。
 
-- [ ] **Step 1:** 写失败测试（pg-ports.test.ts）：seed 120 条同 filter 条目，断言 `listByFilter(filter)` 返回 `items.length === 100 && total === 120`；`listByFilter(filter, { offset: 100, limit: 50 })` 返回 20 条且 `total === 120`。
+- [x] **Step 1:** 写失败测试（pg-ports.test.ts）：seed 120 条同 filter 条目，断言 `listByFilter(filter)` 返回 `items.length === 100 && total === 120`；`listByFilter(filter, { offset: 100, limit: 50 })` 返回 20 条且 `total === 120`。
 - [ ] **Step 2:** 运行确认失败：
 
 ```bash
@@ -226,7 +226,7 @@ git commit -m "feat(knowledge): listByFilter 显式分页契约，消除 LIMIT 1
 - Test: `packages/service-knowledge-read/src/`（listMine 过滤字段回归测试，位置随实际 projection 文件）
 - Modify: 视结论而定（若证实：read-side projection 或桥层按 `owner.userId` 对齐过滤字段）
 
-- [ ] **Step 1:** 写探针测试：构造带 `owner.userId` 的知识条目，调用 read-side `entryProjection.listMine`，断言非空。运行记录结果。
+- [x] **Step 1:** 写探针测试：构造带 `owner.userId` 的知识条目，调用 read-side `entryProjection.listMine`，断言非空。运行记录结果。
 - [ ] **Step 2a（证伪）:** 若现有实现已正确返回：登记册条目标记 `[x] 已证伪关闭（2026-08-21）`，附测试证据，测试保留为回归用例。
 - [ ] **Step 2b（证实）:** 若返回空集：在 read-side projection 按 `owner.userId` 对齐过滤字段，补 host-local 与 distributed listMine 非空回归测试，回写 `docs/reference/api-surface.md`。
 - [ ] **Step 3:** 门禁：相关包 focused tests + `pnpm test:deployment-smoke` + 裸 `pnpm typecheck`。
@@ -948,6 +948,12 @@ git commit -m "docs(platform): Level 3 交付物文档回写与回归命令更�
 ```
 
 ---
+
+## Tranche-2 剩余任务（2026-08-22 排期，主线保持 active）
+
+A3 web-panel 测试修复 · A7 迁移批处理 · A9 EvalSeedPort 收窄 · A10 web-panel admin 后端 · A11-A13 调查/基线报告 · C7 amqp 适配器实现 · C8 job-runtime 隔离试点实现 · C9 golden 回归 · A14/A15【环境门控：docker/kind】 · A16 登记册最终修剪与归档。
+
+已获人类批准待实施：C8 试点 owner=job-runtime；C7 走 TRAPMAP_TASK_TRANSPORT 特性开关。
 
 ## 问题池（执行期新发现问题进这里，不进登记册）
 
