@@ -32,7 +32,12 @@ describe('createTrapmapMcpServer', () => {
     expect(seen).toEqual([]);
   });
 
-  it('starts with an empty tool registry (tools arrive in B3+)', () => {
-    expect(allTools.map((tool) => tool.name)).toEqual([]);
+  it('registers the B3 read tools', () => {
+    expect(allTools.map((tool) => tool.name)).toEqual([
+      'trapmap_search_knowledge',
+      'trapmap_get_skill_manifest',
+      'trapmap_read_skill_files',
+    ]);
+    expect(allTools.every((tool) => tool.requiredRole === 'viewer')).toBe(true);
   });
 });
