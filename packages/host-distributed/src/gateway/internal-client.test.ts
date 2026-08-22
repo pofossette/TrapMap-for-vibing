@@ -687,3 +687,64 @@ describe('C2 resilient internal client', () => {
     expect(resolveInternalTimeoutMs({}, 'gateway')).toBeUndefined();
   });
 });
+
+describe('C3 trace context propagation', () => {
+  function captureHeaders() {
+    let captured: Record<string, unknown> = {};
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      captured = { ...(init?.headers as Record<string, unknown>) };
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+    return () => captured;
+  }
+
+  async function readClient() {
+    const { createInternalServiceClients } = await import('./internal-client.js');
+    return createInternalServiceClients({
+      gateway: 'http://trace.test',
+      identityAccess: 'http://trace.test',
+      knowledgeRead: 'http://trace.test',
+      knowledgeWrite: 'http://trace.test',
+      candidateIngestion: 'http://trace.test',
+      review: 'http://trace.test',
+      governanceReview: 'http://trace.test',
+      jobRuntime: 'http://trace.test',
+      cronScheduler: 'http://trace.test',
+    });
+  }
+
+  it('generates x-request-id and a valid traceparent when the caller provides none', async () => {
+    const getHeaders = captureHeaders();
+    const clients = await readClient();
+    await clients.knowledgeRead.getById('entry-9');
+    const headers = getHeaders();
+    expect(typeof headers['x-request-id']).toBe('string');
+    expect(String(headers['x-request-id'])).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+    expect(String(headers.traceparent)).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$/);
+  });
+
+  it('forwards caller traceparent/tracestate/x-request-id verbatim on the hop', async () => {
+    const getHeaders = captureHeaders();
+    const clients = await readClient();
+    await clients.knowledgeWrite.publishCandidateResult(
+      { candidateId: 'c-1', actorId: 'user-1', result: { decision: 'publish' } },
+      {
+        headers: {
+          traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+          tracestate: 'acme=1',
+          'x-request-id': 'req-c3-forward',
+        },
+      },
+    );
+    const headers = getHeaders();
+    expect(headers['x-request-id']).toBe('req-c3-forward');
+    expect(headers.tracestate).toBe('acme=1');
+    expect(String(headers.traceparent)).toContain('4bf92f3577b34da6a3ce929d0e0e4736');
+  });
+});

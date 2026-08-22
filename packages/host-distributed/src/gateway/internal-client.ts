@@ -13,6 +13,7 @@ import {
   propagation,
   trace,
 } from '@opentelemetry/api';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import type { BadcaseExportDraftPayload, RemediationReactivationPayload } from '@trapmap/contracts';
 import type { InternalServiceUrls } from '@trapmap/host-distributed/config/index.js';
@@ -102,6 +103,18 @@ async function callInternalServiceOnce(
     'Content-Type': 'application/json',
     ...(options?.headers ?? {}),
   };
+  // Task C3: every internal hop carries a correlation id — forward the
+  // caller's x-request-id when present, otherwise generate one.
+  if (!headers['x-request-id']) {
+    headers['x-request-id'] = randomUUID();
+  }
+  // W3C traceparent fallback: without a registered OTel SDK the injector
+  // emits nothing (invalid span context), so synthesize a valid header to
+  // keep trace context unbroken across internal hops.
+  if (!headers.traceparent) {
+    headers['traceparent'] =
+      `00-${randomBytes(16).toString('hex')}-${randomBytes(8).toString('hex')}-01`;
+  }
   const serviceName = 'gateway';
   const targetService = urlObj.hostname;
   const parentContext = propagation.extract(otelContext.active(), headers);
