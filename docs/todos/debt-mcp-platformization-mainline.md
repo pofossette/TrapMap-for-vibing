@@ -106,7 +106,7 @@ git worktree add ../Trap-Map-wt-c -b ml/c-platformization main
 - Modify: `docs/todos/open-debt-and-compromises.md`（仅在登记册顶部追加一段"2026-08-21 全量派发裁决"说明，引用本细则；不新增条目）
 - Modify: 本细则（勾选 A0）
 
-- [ ] **Step 1:** 在主仓库执行上文 Worktree 布局命令，确认三个 worktree `pnpm install` 成功（`pnpm exec vitest --version` 可运行）。
+- [x] **Step 1:** 在主仓库执行上文 Worktree 布局命令，确认三个 worktree `pnpm install` 成功（`pnpm exec vitest --version` 可运行）。
 - [ ] **Step 2:** 在 wt-a 中给登记册顶部追加裁决段（≤5 行）：全量派发授权来源、本细则链接、"新问题进主细则问题池"指引。
 - [ ] **Step 3:** 提交：
 
@@ -124,7 +124,7 @@ git commit -m "chore(debt): 登记 2026-08-21 全量派发裁决并链接平台�
 **Interfaces:**
 - Produces: 登记册中以下条目标记 `[x] 已核验关闭（2026-08-21，Phase 3/4 证据）`：OTel 双份接线收敛、Consul 双份实现收敛、shared/ports.ts 业务下沉、apps workspace 遗留1（direct-run seam）、internal-client 双组合并、candidates 表双份单源化、vitest fastify 别名漂移、Dockerfile 冗余 COPY、remediation-complete 契约反转、listMine 之外的已关闭 D8/cron 条目、assembly 主线历史记录段。
 
-- [ ] **Step 1:** 逐条核验（只读）：OTel 单插件（host-local nest observability 模块与 host-distributed telemetry 共用 backend-core 支持）、Consul 单实现（DiscoveryPort framework-free adapter）、direct-run seam 已退役（`packages/host-local/src/index.ts` 无 `isDirectExecution`）、`shared/ports.ts` 不存在。
+- [x] **Step 1:** 逐条核验（只读）：OTel 单插件（host-local nest observability 模块与 host-distributed telemetry 共用 backend-core 支持）、Consul 单实现（DiscoveryPort framework-free adapter）、direct-run seam 已退役（`packages/host-local/src/index.ts` 无 `isDirectExecution`）、`shared/ports.ts` 不存在。
 - [ ] **Step 2:** 对核验通过的条目勾选并追加一行关闭证据（引用 Phase 3/4 归档文档 + 本次核验日期）；核验不通过的条目保持 open 并移入本细则问题池说明偏差。
 - [ ] **Step 3:** 运行 `pnpm check:docs && pnpm check:structure`，预期全绿。
 - [ ] **Step 4:** 提交：
@@ -144,7 +144,7 @@ git commit -m "chore(debt): 关闭已被 assembly Phase 3/4 与既有主线完�
 - Consumes: `tsconfig.base.json` 的 paths 映射（可解析全部 `@trapmap/*` 包）。
 - Produces: `pnpm test:import-export` 可通过 npm script 直接运行（模块解析修复；运行时仍需 skill bundles 与 PostgreSQL，属环境前提不变）。
 
-- [ ] **Step 1:** 修改根 `package.json`：
+- [x] **Step 1:** 修改根 `package.json`：
 
 ```json
 "test:import-export": "tsx --tsconfig tsconfig.base.json scripts/test-skill-import-export.ts"
@@ -246,7 +246,7 @@ git commit -m "test(knowledge): listMine owner.userId 过滤断言（证实/证�
 **Interfaces:**
 - 备忘内容必须包含：两类放宽的精确 schema 清单（actorId optional 族 6 个 schema；空串 query 族 3 个 schema）、现状安全边界（`requireTrustedActor` 保证 handler actor 来自会话）、两个选项的影响分析与推荐项。
 
-- [ ] **Step 1:** 写备忘（含推荐：恢复 `actorId: z.string().min(1)` 必填与 query 非空校验，因无已知调用方依赖放宽语义，恢复可消除契约漂移）。
+- [x] **Step 1:** 写备忘（含推荐：恢复 `actorId: z.string().min(1)` 必填与 query 非空校验，因无已知调用方依赖放宽语义，恢复可消除契约漂移）。
 - [ ] **Step 2:** 向人类呈现备忘等待拍板（question 工具）。**此复选框在人类裁决前不得勾选。**
 - [ ] **Step 3a（拍板恢复）:** 修改 route-defs.ts 恢复必填/非空约束，`routes.test.ts` 补 400 断言（body 缺 actorId → 400；query `userId: ''` → 400）；跑 gateway focused tests + `pnpm test:deployment-smoke` + 裸 `pnpm typecheck`。
 - [ ] **Step 3b（拍板保留）:** 在登记册条目标注裁决结论并关闭，不改代码。
@@ -316,7 +316,7 @@ git commit -m "chore(schema): 迁移窗口批处理——清理 legacy JSONB 列
 **Interfaces:**
 - Produces: `runtime/capability-model.ts` 继续导出原有全部公共符号（纯移动，零行为变化）；内部模块职责：types（类型定义）、defaults（默认值）、validation（校验）、resolution（宿主能力组合推导）。
 
-- [ ] **Step 1:** 记录拆分前基线：`wc -l packages/backend-core/src/runtime/capability-model.ts`（500 行）+ 既有测试全绿截图/摘要。
+- [x] **Step 1:** 记录拆分前基线：`wc -l packages/backend-core/src/runtime/capability-model.ts`（500 行）+ 既有测试全绿截图/摘要。
 - [ ] **Step 2:** 按符号归属机械移动到四个模块（不改任何实现体）；barrel 文件 `export * from './capability-model/types.js'` 等聚合。
 - [ ] **Step 3:** 门禁：backend-core focused tests + `pnpm typecheck` + `pnpm exec fallow audit --base main`。
 - [ ] **Step 4:** 回写登记册条目 `[x]`；提交：
@@ -512,7 +512,7 @@ git commit -m "docs(todos): 平台化主线 closeout——登记册修剪与主�
 **Interfaces:**
 - Produces: `@trapmap/app-mcp` 可构建可测试的空壳；BOUNDARIES 声明：mcp zone 只允许依赖 client-core/contracts/lib，禁止直接导入 service-*/host-*。
 
-- [ ] **Step 1:** 创建上述文件；package.json scripts：`{"test": "vitest --run", "typecheck": "tsc --noEmit", "start": "tsx src/index.ts"}`。
+- [x] **Step 1:** 创建上述文件；package.json scripts：`{"test": "vitest --run", "typecheck": "tsc --noEmit", "start": "tsx src/index.ts"}`。
 - [ ] **Step 2:** `pnpm install` 后验证：
 
 ```bash
@@ -565,7 +565,7 @@ export function defineTool(def: ToolDefinition): ToolDefinition;
 export function createTrapmapMcpServer(cfg: McpConfig, deps?: { fetchImpl?: typeof fetch }): McpServer;
 ```
 
-- [ ] **Step 1:** 写失败测试：`loadMcpConfig({})` 抛出（缺 token）；`createTrapmapMcpServer` 实例可列出全部注册工具名（此时 registry 为空数组也通过）。
+- [x] **Step 1:** 写失败测试：`loadMcpConfig({})` 抛出（缺 token）；`createTrapmapMcpServer` 实例可列出全部注册工具名（此时 registry 为空数组也通过）。
 - [ ] **Step 2:** 实现 config/server/shared；stdio transport 连接 + SIGINT/SIGTERM 优雅退出写在 `index.ts`。
 - [ ] **Step 3:** `pnpm --filter @trapmap/app-mcp test --run` 全绿；提交：
 
@@ -608,7 +608,7 @@ export function createGatewayClient(cfg: McpConfig, fetchImpl?: typeof fetch): {
 //     policy 为 blocked 的文件直接拒绝（对齐 apps/cli/src/lib/activation-policy.ts 语义）
 ```
 
-- [ ] **Step 1:** 写失败测试（fetch stub）：断言 method/path/auth 头/body 正确；blocked 文件拒绝；limit 越界 400 透传。
+- [x] **Step 1:** 写失败测试（fetch stub）：断言 method/path/auth 头/body 正确；blocked 文件拒绝；limit 越界 400 透传。
 - [ ] **Step 2:** 实现三工具并注册；registry 导出 `allTools: ToolDefinition[]`。
 - [ ] **Step 3:** 测试全绿；提交：
 
@@ -638,7 +638,7 @@ git commit -m "feat(mcp): 读工具组——检索/manifest/按需文件读取�
 // actorId 恒取会话身份，客户端不可自报
 ```
 
-- [ ] **Step 1:** 写失败测试：strict schema 拒绝含 `lifecycle_state`/`actorId` 的未知键输入（400 语义）；stub gateway 断言提交后状态为待审核。
+- [x] **Step 1:** 写失败测试：strict schema 拒绝含 `lifecycle_state`/`actorId` 的未知键输入（400 语义）；stub gateway 断言提交后状态为待审核。
 - [ ] **Step 2:** 实现三工具；提交：
 
 ```bash
@@ -672,7 +672,7 @@ export async function resolveSessionRole(client: GatewayClient): Promise<Role>;
 
 工具 ↔ 最低角色：search/manifest/files/submit_* → `contributor`（submit 类）；review-queue/detail → `reviewer`；review-decision/remediation-complete → `operator`；纯读 search/manifest → `viewer`。
 
-- [ ] **Step 1:** 写失败测试：权限矩阵全组合断言；role 不足时工具返回结构化拒绝（不触达 gateway）。
+- [x] **Step 1:** 写失败测试：权限矩阵全组合断言；role 不足时工具返回结构化拒绝（不触达 gateway）。
 - [ ] **Step 2:** 实现四工具 + assertRole 接线；提交：
 
 ```bash
@@ -689,7 +689,7 @@ git commit -m "feat(mcp): 治理工具组与四级角色门控（deny-by-default
 **Interfaces:**
 - Produces: 每次 tool call 输出一行结构化 JSON `{ ts, tool, correlationId, durationMs, outcome }` 到 stderr（stdio transport 下 stdout 属协议通道）；`correlationId = crypto.randomUUID()`；**永不**记录 token、文件内容、知识正文。
 
-- [ ] **Step 1:** 写脱敏失败测试（输入含 token 样式的字符串，断言日志行不含）。
+- [x] **Step 1:** 写脱敏失败测试（输入含 token 样式的字符串，断言日志行不含）。
 - [ ] **Step 2:** 实现并在 `defineTool` 包装层接线；提交：
 
 ```bash
@@ -707,7 +707,7 @@ git commit -m "feat(mcp): 工具调用审计日志（结构化、脱敏、correl
 - Modify: `docs/architecture/DEPLOYMENT.md`（"不做 MCP 协议"限定为服务本体；agent 接入经 apps/mcp 外层封装）
 - Modify: `docs/architecture/components/AI_PROVIDER.md`（getMcpServerStatus 占位注记指向 apps/mcp 后续接线，登记问题池）
 
-- [ ] **Step 1:** 完成上述回写；工具表覆盖 B3-B5 全部 10 个工具（名称/最低角色/映射端点/语义约束）。
+- [x] **Step 1:** 完成上述回写；工具表覆盖 B3-B5 全部 10 个工具（名称/最低角色/映射端点/语义约束）。
 - [ ] **Step 2:** 门禁：`pnpm check:docs` + `pnpm check:structure`。
 - [ ] **Step 3:** 提交：
 
@@ -739,7 +739,7 @@ git commit -m "docs(mcp): agent 接入指南、工具映射表与真相源同步
   4. **SLO 基线：** gateway 可用性 99.5%；内部 hop p99 ≤ 500ms；gateway 读 p99 ≤ 1s；RPO=0（共享 PG WAL）；单服务重启 RTO ≤ 60s（沿用 closeout 验证阈值口径并升格为 SLO）。
   5. **DB 隔离：** 选择性隔离（database-per-service 仅对有热点的 owner 逐个实施，首个试点 = job-runtime，见 C8）；不做全量拆分、不引入跨服务事务/XA。
 
-- [ ] **Step 1:** 撰写设计规格（含上述五项 + 各 service 资源预算推导，引用 pool budget seam）。
+- [x] **Step 1:** 撰写设计规格（含上述五项 + 各 service 资源预算推导，引用 pool budget seam）。
 - [ ] **Step 2:** 更新 DEPLOYMENT.md：删除/替换 L101（Level 2 固定）、L126（不做 DB 拆分）、L149（先不做清单）为"已冻结决策 + 演进路径"；成熟度表述改为"Level 3 目标架构落地中（编排/隔离按 C6-C8 交付进度）"。
 - [ ] **Step 3:** 向人类呈现五项决策等待批准（question 工具）。**此复选框在人类批准前不得勾选；C6/C7/C8 在批准前不得开工。**
 - [ ] **Step 4:** 门禁：`pnpm check:docs` + `pnpm check:structure`；提交：
@@ -786,7 +786,7 @@ export async function withResilience<T>(opts: {
 - breaker open 时立即失败，错误归一化为 canonical `unavailable` 信封（对齐 `InvocationError` kind 语义，不经网关打到下游）。
 - 超时预算分级：`TRAPMAP_<SVC>_TIMEOUT_MS`（如 `TRAPMAP_KNOWLEDGE_READ_TIMEOUT_MS`）覆盖 `DEFAULT_INTERNAL_TIMEOUT_MS = 10_000`，在 `service-config.ts` 旁新增解析 helper。
 
-- [ ] **Step 1:** 写失败测试：fake clock 退避序列断言；breaker closed→open→half-open→closed 全迁移；POST 不重试而 GET 重试；open 时零网络调用；timeout override 解析。
+- [x] **Step 1:** 写失败测试：fake clock 退避序列断言；breaker closed→open→half-open→closed 全迁移；POST 不重试而 GET 重试；open 时零网络调用；timeout override 解析。
 - [ ] **Step 2:** 实现 resilience.ts 并接入 callInternalService（AbortController 超时语义保留，lib `timeout` 注释中的差异说明同步更新）。
 - [ ] **Step 3:** 门禁：`pnpm --filter @trapmap/host-distributed test --run src/gateway` + `pnpm test:deployment-smoke` + `pnpm typecheck` + `pnpm exec fallow audit --base main`。
 - [ ] **Step 4:** 回写 `docs/architecture/OBSERVABILITY.md`（熔断指标暴露，若 C5 未先行则此处只留 TODO 于问题池）；提交：
@@ -806,7 +806,7 @@ git commit -m "feat(gateway): internal-client 韧性硬化——幂等重试/熔
 **Interfaces:**
 - Produces: `callInternalService` 向下游转发入站 `traceparent`/`tracestate`/`x-request-id`；入站缺失时生成合法 W3C `traceparent`（随机 trace-id/span-id，flags=01）。
 
-- [ ] **Step 1:** 写失败测试：入站带头 → 原样转发；入站无头 → 生成且格式合法（正则断言）。
+- [x] **Step 1:** 写失败测试：入站带头 → 原样转发；入站无头 → 生成且格式合法（正则断言）。
 - [ ] **Step 2:** 实现；门禁同 C2 Step 3；提交：
 
 ```bash
@@ -836,7 +836,7 @@ export class TokenBucketRateLimiter {
 
 - key = 会话 actorId，缺省回退客户端 IP；超限返回 429 + `Retry-After`（秒，向上取整）；prometheus 计数器 `trapmap_gateway_rate_limited_total{actor_kind}`（actor_kind: session|ip）；测试环境默认关闭（env 未设且 NODE_ENV=test 时不启用）。
 
-- [ ] **Step 1:** 写失败测试：令牌桶补充数学；per-key 隔离；429 响应形状（status/header/body）；关闭模式直通。
+- [x] **Step 1:** 写失败测试：令牌桶补充数学；per-key 隔离；429 响应形状（status/header/body）；关闭模式直通。
 - [ ] **Step 2:** 实现并接线；门禁同 C2 Step 3 + `pnpm test:observability-closeout`（计数器注册）；提交：
 
 ```bash
@@ -863,7 +863,7 @@ dependencySummary: z.object({
 }).optional(),
 ```
 
-- [ ] **Step 1:** contracts schema 先行 + 测试；[ ] **Step 2:** 逐 service 暴露 `/readyz`（RouteDef 工厂）；[ ] **Step 3:** startupChecks 校验新 env（非法值启动失败并给出可读错误）。
+- [x] **Step 1:** contracts schema 先行 + 测试；[ ] **Step 2:** 逐 service 暴露 `/readyz`（RouteDef 工厂）；[ ] **Step 3:** startupChecks 校验新 env（非法值启动失败并给出可读错误）。
 - [ ] **Step 4:** 门禁：`pnpm --filter @trapmap/contracts test --run src/domain/health.test.ts` + `pnpm test:observability-closeout` + `pnpm test:discovery-closeout` + `pnpm test:deployment-smoke`；提交：
 
 ```bash
@@ -881,7 +881,7 @@ git commit -m "feat(health): readiness/liveness 分离与依赖摘要契约"
 **Interfaces:**
 - Produces: 每个 deployment 的 probes：liveness `/healthz`、readiness `/readyz`（C5 契约）；resources requests/limits 与 service-config pool budget 推导一致；镜像复用 `apps/distributed/Dockerfile` 产物。
 
-- [ ] **Step 1:** 编写 manifests（image 引用统一变量化，便于 kind 加载本地镜像）。
+- [x] **Step 1:** 编写 manifests（image 引用统一变量化，便于 kind 加载本地镜像）。
 - [ ] **Step 2:** 【环境门控】kind 集群冒烟：`kind create cluster && kind load docker-image <images> && kubectl apply -k k8s/base`，断言全部 pod Ready 且 gateway `/readyz` 200；环境不可用则在 DEPLOYMENT.md 明确标注"k8s 资产未经集群验证，验证步骤如下"。
 - [ ] **Step 3:** 门禁：`pnpm test:deployment-smoke` + `pnpm check:docs`；提交：
 
@@ -951,7 +951,7 @@ git commit -m "docs(platform): Level 3 交付物文档回写与回归命令更�
 
 ## 问题池（执行期新发现问题进这里，不进登记册）
 
-- （空）——执行期间按 `- 来源 / 影响 / 处置（当场修 / 转 deferred）` 格式追加；closeout 时逐条清空（当场修的删除，转 deferred 的进刷新后登记册）。
+- **search-by-content 死路径**：来源——B3 实现时发现 `POST /v1/retrieval/skills/search-by-content` 在 CLIENT_INTEGRATION.md 与 CLI 中引用，但 host-local/host-distributed gateway 均无该路由（仅 `/v1/retrieval/search` 真实存在）。影响：文档误导集成方。处置：B3 工具改用真实端点；CLIENT_INTEGRATION.md 的 curl 示例待 tranche-2 修正（check:docs 未覆盖路径存在性）。——执行期间按 `- 来源 / 影响 / 处置（当场修 / 转 deferred）` 格式追加；closeout 时逐条清空（当场修的删除，转 deferred 的进刷新后登记册）。
 
 ## Completion Gates（三 workstream 全部合并后在主仓库执行）
 
