@@ -53,7 +53,7 @@ mTLS, independent control-plane ownership, or capability parity.
 curl -X POST http://127.0.0.1:4000/v1/retrieval/skills/search-by-content \
   -H 'content-type: application/json' \
   -H 'authorization: Bearer <token>' \
-  -d '{"query": "JWT token validation", "limit": 5}'
+  -d '{"text": "JWT token validation", "maxResults": 5}'
 ```
 
 CLI 激活示例：

@@ -118,7 +118,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `POST` | `/v3/retrieval/plan` | `planQuerySchema` | `trapFirstPlanSchema` | v3 陷阱优先计划生成 |
 | `POST` | `/v1/retrieval/skills/search-by-content` | `skillLookupQuerySchema` | `skillLookupResponseSchema` | 按内容搜索技能（additive `queryId`） |
 
-> 源码：`packages/server（Wave-10 已删除）/src/routes/retrieval.ts`
+> 源码：`packages/service-knowledge-read/src/routes.ts`（内部检索路由）、`packages/host-local/src/nest/gateway/gateway.route-defs.ts`、`packages/host-distributed/src/gateway/route-defs.ts`（外部网关 RouteDef）
 
 ## 反馈
 

@@ -33,7 +33,7 @@
 - 网关缺路由：`packages/host-distributed/src/gateway/route-defs.ts` 只有 `/v1/retrieval/search`（:827）与 `/v3/retrieval/search`（:835）；`packages/host-local/src/nest/gateway/gateway.route-defs.ts` 只有 `/v1/retrieval/search`（:121）。两宿主均无 `/v1/retrieval/skills/search-by-content`。
 - CLI 已指向正确路径：`apps/cli/src/commands/skill/search.ts:39` 调用 `POST /v1/retrieval/skills/search-by-content` 并解析 `skillLookupResponseSchema`（当前会 404/解析失败）；CLI 单测 mock apiRequest，无法捕获。
 - 评测 harness 自造路径：`scripts/testing/postgres-server-composition.ts:107` 注册该路径但映射到 `runtime.retrievalQuery.search`（v1 entry 形状），而 `evals/retrieval/lib/normalize.ts:119` 的 `normalizeV1SkillLookupResponse` 期望 `matches` 形状——评测面为假阳性。
-- 原实现：`packages/server/src/lib/retrieval/capsules/skill-lookup.ts`（artifact-first：intent → 治理过滤 → capsule recall → 按 artifactId 去重 → `SkillLookupResultItem`），随 `a66d94e6` 删除。
+- 原实现：`packages/server/src/lib/retrieval/capsules/skill-lookup.ts`（该文件已随 packages/server 退役一并删除；artifact-first：intent → 治理过滤 → capsule recall → 按 artifactId 去重 → `SkillLookupResultItem`），历史见 `a66d94e6`。
 - 现代管线：`packages/service-knowledge-read/src/artifact-entry-merge.ts` 将 artifacts 并入检索条目池（`id = artifact.id`），`RetrievalMatch`（backend-core `knowledge-read/domain/assembly.ts`）带 entryId/shortcut/labels/scope/requiredLevel/score/reason，但**无 slug/sourceKind、无 artifact 标记**——需 artifact 元数据注册表补全。
 - 契约已存在：`packages/contracts/src/domain/retrieval.ts:496`（`skillLookupQuerySchema`：`text`/`maxResults`）与 :534（`skillLookupResponseSchema`：`matches`）。
 - 文档漂移：`docs/guides/CLIENT_INTEGRATION.md:53` curl body 用了 `query`/`limit`（应 `text`/`maxResults`）；`docs/reference/api-surface.md:119` 注记"源码来自已删除的 packages/server"；`docs/architecture/components/ARTIFACTS.md`、`docs/operations/TESTING.md:843`、`evals/retrieval/README.md` 均按真实端点表述。
@@ -140,7 +140,7 @@ export function toSkillLookupMatches(
 - Consumes: 仅文档；不改代码与契约。
 - Produces: 文档面与契约一致；`check:docs`/`check:structure` 全绿。
 
-- [ ] **Step 1:** 逐文件核对并将 curl 示例 body 改为 `text`/`maxResults`；删除 packages/server 注记。
+- [ ] **Step 1:** 逐文件核对并将 curl 示例 body 改为 `text`/`maxResults`；删除 packages/server（已删除）源码注记。
 - [ ] **Step 2:** 运行 `pnpm check:docs`、`pnpm check:structure` 全绿（含 link 校验通过）。
 - [ ] **Step 3:** Commit `docs(retrieval): align skill search-by-content surface docs with contract`。
 
@@ -178,7 +178,7 @@ export function toSkillLookupMatches(
 
 ## 问题池（执行期新发现进这里，closeout 逐条清空或转登记册）
 
-- **`/v2/retrieval/search` 网关面缺失**（2026-08-22 integrator 勘察发现）：CLI `apps/cli/src/commands/retrieval.ts:234`（`--v2`）调用该路径，两宿主 RouteDef 均未注册；api-surface.md 有该行。与 skill-lookup 同源（v2 胶囊检索原实现随 packages/server 退役删除）。处置：closeout 转登记册 deferred（进入条件：CLI `--v2` 或胶囊检索产品需求）。
+- **`/v2/retrieval/search` 网关面缺失**（2026-08-22 integrator 勘察发现）：CLI `apps/cli/src/commands/retrieval.ts:234`（`--v2`）调用该路径，两宿主 RouteDef 均未注册；api-surface.md 有该行。与 skill-lookup 同源（v2 胶囊检索原实现已删除，随 packages/server 退役）。处置：closeout 转登记册 deferred（进入条件：CLI `--v2` 或胶囊检索产品需求）。
 - **host-local 网关缺少 `/v3/retrieval/search`**（2026-08-22 勘察发现）：host-distributed 有（:835），host-local 无；CLI `load`（`apps/cli/src/commands/load.ts:80`）在 host-local 后端下会 404。处置：closeout 转登记册 deferred 或在后续宿主面 parity 任务中修复。
 
 ## closeout 要求

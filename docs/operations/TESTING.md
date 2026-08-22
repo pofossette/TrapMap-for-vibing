@@ -840,7 +840,7 @@ CI 配置位于 `.github/workflows/eval.yml`。
 
 ### Skill Lookup 检索评测边界
 
-`/v1/retrieval/skills/search-by-content` 现在纳入 retrieval eval 合同边界，不再只依赖独立 route/helper 测试：
+`/v1/retrieval/skills/search-by-content` 现在纳入 retrieval eval 合同边界，不再只依赖独立 route/helper 测试；真实网关（host-local / host-distributed）已实现该端点：
 
 - **Smoke**: `v1-skill-lookup-positive-smoke` 验证 artifact-first 正向命中
 - **Core**: `v1-skill-lookup-governance-core` 验证 artifact-first 返回在 mixed-visibility 场景下仍遵守治理边界

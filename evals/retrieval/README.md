@@ -35,7 +35,7 @@ pnpm eval:retrieval --tier smoke --endpoint /v2/retrieval/search
 | 端点 | 响应形状 | 说明 |
 |------|----------|------|
 | `/v1/retrieval/search` | 分桶（`globalConstraints`、`projectKnowledge`） | 旧版端点，兼容性敏感 |
-| `/v1/retrieval/skills/search-by-content` | artifact-first（`matches`） | 复用共享 capsule recall，但保持 artifact-first HTTP 契约 |
+| `/v1/retrieval/skills/search-by-content` | artifact-first（`matches`） | 真实端点；eval composition 复用 host-local runtime 同一条实现路径 |
 | `/v2/retrieval/search` | 胶囊优先（`capsules`、`profileHints`） | 当前推荐端点 |
 | `/v3/retrieval/search` | 图规划包装（`plan` 或 governed `fallback`） | 附加 GraphRAG-lite 路由，含路由追踪 |
 

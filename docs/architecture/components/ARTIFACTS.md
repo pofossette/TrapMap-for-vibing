@@ -356,7 +356,7 @@ flowchart TB
 | `/v1/operations/artifacts/:artifactId/deactivate` | POST | 停用工件 | knowledge:update |
 | `/v1/operations/artifacts/export` | POST | 导出工件 | knowledge:export |
 | `/v1/operations/artifacts/import` | POST | 导入工件 | knowledge:import |
-| `/v1/retrieval/skills/search-by-content` | POST | 搜索胶囊 | knowledge:search |
+| `/v1/retrieval/skills/search-by-content` | POST | 按内容搜索技能 | knowledge:search |
 
 ---
 
@@ -570,8 +570,8 @@ POST /v1/operations/artifacts/:artifactId/review
 ```bash
 POST /v1/retrieval/skills/search-by-content
 {
-  "query": "authentication setup",
-  "limit": 5
+  "text": "authentication setup",
+  "maxResults": 5
 }
 ```
 
