@@ -1,0 +1,39 @@
+# 资源预算推导：pool budget × 20MB/conn + 256MB 基座；limits ×2（见 Level 3 设计规格 D1/资源节）
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: trapmap
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: gateway }
+  template:
+    metadata:
+      labels: { app: gateway }
+    spec:
+      containers:
+        - name: gateway
+          image: trap-map-host-distributed:latest
+          args: ["--service", "gateway"]
+          ports: [{ containerPort: 4000 }]
+          envFrom:
+            - configMapRef: { name: trapmap-config }
+          readinessProbe:
+            httpGet: { path: /ready, port: 4000 }
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: { path: /live, port: 4000 }
+            initialDelaySeconds: 10
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: trapmap
+spec:
+  selector: { app: gateway }
+  ports: [{ port: 4000, targetPort: 4000 }]

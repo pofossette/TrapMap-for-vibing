@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: knowledge-read
+  namespace: trapmap
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: knowledge-read }
+  template:
+    metadata:
+      labels: { app: knowledge-read }
+    spec:
+      containers:
+        - name: knowledge-read
+          image: trap-map-host-distributed:latest
+          args: ["--service", "knowledge-read"]
+          ports: [{ containerPort: 4002 }]
+          envFrom:
+            - configMapRef: { name: trapmap-config }
+          readinessProbe:
+            httpGet: { path: /ready, port: 4002 }
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: { path: /live, port: 4002 }
+            initialDelaySeconds: 10
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: knowledge-read
+  namespace: trapmap
+spec:
+  selector: { app: knowledge-read }
+  ports: [{ port: 4002, targetPort: 4002 }]
