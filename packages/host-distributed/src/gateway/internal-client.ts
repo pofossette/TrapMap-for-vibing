@@ -6,6 +6,7 @@
  * service configuration.
  */
 
+import { randomBytes, randomUUID } from 'node:crypto';
 import {
   SpanKind,
   SpanStatusCode,
@@ -13,9 +14,13 @@ import {
   propagation,
   trace,
 } from '@opentelemetry/api';
-import { randomBytes, randomUUID } from 'node:crypto';
 
-import type { BadcaseExportDraftPayload, RemediationReactivationPayload } from '@trapmap/contracts';
+import {
+  type BadcaseExportDraftPayload,
+  type RemediationReactivationPayload,
+  type SkillLookupQuery,
+  skillLookupResponseSchema,
+} from '@trapmap/contracts';
 import type { InternalServiceUrls } from '@trapmap/host-distributed/config/index.js';
 import {
   resolveInternalTimeoutMs,
@@ -327,6 +332,7 @@ export interface InternalServiceClients {
     getById(entryId: string): Promise<ServiceResponse>;
     listMine(userId: string, teamId?: string): Promise<ServiceResponse>;
     search(body: { query: string; teamId?: string; limit?: number }): Promise<ServiceResponse>;
+    searchByContent(params: SkillLookupQuery): Promise<ServiceResponse>;
     getProjectionStatus(): Promise<ServiceResponse>;
   };
   knowledgeWrite: {
@@ -717,6 +723,20 @@ export function createInternalServiceClients(
           'POST',
           body,
         ),
+      searchByContent: async (params) => {
+        const response = await callInternalService(
+          `${await baseUrl('knowledge-read', urls.knowledgeRead)}/internal/retrieval/skills/search-by-content`,
+          'POST',
+          params,
+        );
+        return {
+          status: response.status,
+          body:
+            response.status >= 200 && response.status < 300
+              ? skillLookupResponseSchema.parse(response.body)
+              : response.body,
+        };
+      },
       getProjectionStatus: async () =>
         callInternalService(
           `${await baseUrl('knowledge-read', urls.knowledgeRead)}/internal/knowledge-read/projection-status`,

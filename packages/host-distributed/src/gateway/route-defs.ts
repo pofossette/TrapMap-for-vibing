@@ -20,6 +20,7 @@ import {
   type RouteDef,
   routeResponse,
 } from '@trapmap/backend-core';
+import { type SkillLookupQuery, skillLookupQuerySchema } from '@trapmap/contracts';
 
 import type { InternalServiceClients } from './internal-client.js';
 
@@ -170,6 +171,11 @@ function searchBodyArgs(ctx: GatewayRouteContext): {
     ...(body.teamId !== undefined ? { teamId: body.teamId } : {}),
     ...(body.limit !== undefined ? { limit: body.limit } : {}),
   };
+}
+
+function skillLookupArgs(ctx: GatewayRouteContext): SkillLookupQuery {
+  const body = ctx.body as SkillLookupQuery;
+  return { text: body.text, maxResults: body.maxResults };
 }
 
 function knowledgeActionBodyArgs(ctx: GatewayRouteContext): {
@@ -359,6 +365,12 @@ const searchBodySchema = z.object({
     teamId: z.string().optional(),
     limit: z.number().optional(),
   }),
+});
+
+const skillLookupBodySchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: skillLookupQuerySchema,
 });
 
 const candidateSubmitSchema = z.object({
@@ -836,6 +848,14 @@ export function createGatewayRouteDefs(_clients: InternalServiceClients): RouteD
       schema: searchBodySchema,
       handler: async (ctx, clients) => {
         return forward(clients.knowledgeRead.search(searchBodyArgs(ctx)));
+      },
+    }),
+    gatewayRouteDef({
+      method: 'POST',
+      path: '/v1/retrieval/skills/search-by-content',
+      schema: skillLookupBodySchema,
+      handler: async (ctx, clients) => {
+        return forward(clients.knowledgeRead.searchByContent(skillLookupArgs(ctx)));
       },
     }),
 

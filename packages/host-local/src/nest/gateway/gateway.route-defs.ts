@@ -16,6 +16,7 @@ import {
   manualResultResponseSchema,
   reviewDecisionRequestSchema,
   reviewQueueResponseSchema,
+  skillLookupQuerySchema,
 } from '@trapmap/contracts';
 import { buildOwnerReviewQueueProjection } from '@trapmap/service-governance-review';
 import {
@@ -125,6 +126,25 @@ export function createGatewayRouteDefs(deps: GatewayRouteDeps): RouteDef[] {
         return deps.knowledgeRead.search(
           toKnowledgeReadSearchArgs(ctx.body as Parameters<typeof toKnowledgeReadSearchArgs>[0]),
         );
+      },
+    }),
+
+    gatewayRouteDef({
+      method: 'POST',
+      path: '/v1/retrieval/skills/search-by-content',
+      schema: z.object({
+        params: emptyRecord,
+        query: emptyRecord,
+        body: skillLookupQuerySchema,
+        authContext: authContextSchema,
+      }),
+      successStatus: 200,
+      handler: async (ctx, deps) => {
+        return deps.knowledgeRead.skillLookup({
+          text: ctx.body.text,
+          maxResults: ctx.body.maxResults,
+          ...(ctx.authContext?.activeTeamId ? { teamId: ctx.authContext.activeTeamId } : {}),
+        });
       },
     }),
 

@@ -10,6 +10,7 @@ function createDeps() {
       getById: vi.fn(),
       listMine: vi.fn(),
       search: vi.fn(),
+      skillLookup: vi.fn(),
       getProjectionStatus: vi.fn(),
     },
     candidateIngestion: {
@@ -57,6 +58,7 @@ describe('gateway route defs', () => {
       'GET /v1/knowledge/:entryId',
       'GET /v1/knowledge/mine',
       'POST /v1/retrieval/search',
+      'POST /v1/retrieval/skills/search-by-content',
       'GET /v1/knowledge/projection-status',
       'POST /v1/candidates/:candidateId/manual-result',
       'POST /v1/candidates/:candidateId/apply-resolution',
@@ -88,5 +90,53 @@ describe('gateway route defs', () => {
     expect(review?.schema).toBeDefined();
     expect(manualResult?.schema).toBeDefined();
     expect(reviewQueue?.schema).toBeDefined();
+  });
+
+  it('registers the skill lookup route and forwards body plus active team id to the port', async () => {
+    const deps = createDeps();
+    const defs = createGatewayRouteDefs(deps);
+    const route = defs.find((def) => def.path === '/v1/retrieval/skills/search-by-content');
+
+    expect(route?.method).toBe('POST');
+    expect(contracts.skillLookupQuerySchema).toBeDefined();
+
+    const handler = route?.handler as (
+      ctx: {
+        params: Record<string, unknown>;
+        query: Record<string, unknown>;
+        body: { text: string; maxResults?: number };
+        authContext?: { activeTeamId?: string | null };
+      },
+      routeDeps: ReturnType<typeof createDeps>,
+    ) => Promise<unknown>;
+
+    await handler(
+      {
+        params: {},
+        query: {},
+        body: { text: 'postgres timeout', maxResults: 3 },
+        authContext: { activeTeamId: 'team-1' },
+      },
+      deps,
+    );
+    expect(deps.knowledgeRead.skillLookup).toHaveBeenCalledWith({
+      text: 'postgres timeout',
+      maxResults: 3,
+      teamId: 'team-1',
+    });
+
+    await handler(
+      {
+        params: {},
+        query: {},
+        body: { text: 'postgres timeout' },
+        authContext: { activeTeamId: null },
+      },
+      deps,
+    );
+    expect(deps.knowledgeRead.skillLookup).toHaveBeenLastCalledWith({
+      text: 'postgres timeout',
+      maxResults: undefined,
+    });
   });
 });

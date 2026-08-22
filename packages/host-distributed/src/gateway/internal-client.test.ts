@@ -748,3 +748,102 @@ describe('C3 trace context propagation', () => {
     expect(String(headers.traceparent)).toContain('4bf92f3577b34da6a3ce929d0e0e4736');
   });
 });
+
+describe('knowledgeRead.searchByContent skill lookup client', () => {
+  function skillClients() {
+    return createInternalServiceClients({
+      gateway: 'http://gateway.test',
+      identityAccess: 'http://identity.test',
+      knowledgeRead: 'http://read.test',
+      knowledgeWrite: 'http://write.test',
+      candidateIngestion: 'http://candidate.test',
+      review: 'http://review.test',
+      governanceReview: 'http://review.test',
+      jobRuntime: 'http://job.test',
+      cronScheduler: 'http://cron.test',
+    });
+  }
+
+  it('posts { text, maxResults } to the skill search internal path and parses the schema', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe('http://read.test/internal/retrieval/skills/search-by-content');
+      expect(init?.method).toBe('POST');
+      expect(JSON.parse(String(init?.body))).toEqual({ text: 'postgres timeout', maxResults: 3 });
+      return new Response(
+        JSON.stringify({
+          matches: [
+            {
+              artifactId: 'artifact-1',
+              title: 'Postgres query timeout',
+              slug: 'postgres-query-timeout',
+              labels: ['postgres'],
+              scope: 'global',
+              requiredLevel: 1,
+              sourceKind: 'skill-directory',
+              score: 0.9,
+              reason: 'matched text',
+            },
+          ],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(
+      skillClients().knowledgeRead.searchByContent({ text: 'postgres timeout', maxResults: 3 }),
+    ).resolves.toEqual({
+      status: 200,
+      body: {
+        matches: [
+          {
+            artifactId: 'artifact-1',
+            title: 'Postgres query timeout',
+            slug: 'postgres-query-timeout',
+            labels: ['postgres'],
+            scope: 'global',
+            requiredLevel: 1,
+            sourceKind: 'skill-directory',
+            score: 0.9,
+            reason: 'matched text',
+          },
+        ],
+      },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('parses a body without matches into a defaulted empty matches array', async () => {
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({}), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    ) as typeof fetch;
+
+    await expect(
+      skillClients().knowledgeRead.searchByContent({ text: 'nothing', maxResults: 5 }),
+    ).resolves.toEqual({
+      status: 200,
+      body: { matches: [] },
+    });
+  });
+
+  it('forwards non-2xx skill lookup responses as-is without schema parsing', async () => {
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ error: 'boom', kind: 'internal' }), {
+          status: 500,
+          headers: { 'content-type': 'application/json' },
+        }),
+    ) as typeof fetch;
+
+    await expect(
+      skillClients().knowledgeRead.searchByContent({ text: 'failing', maxResults: 5 }),
+    ).resolves.toEqual({
+      status: 500,
+      body: { error: 'boom', kind: 'internal' },
+    });
+  });
+});

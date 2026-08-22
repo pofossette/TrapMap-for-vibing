@@ -511,6 +511,83 @@ describe('distributed gateway acceptance', () => {
     await identityApp.close();
   });
 
+  it('exposes the skill lookup surface by forwarding to the knowledge-read internal route', async () => {
+    const identityApp = createIdentityApp([]);
+    const receivedBodies: Array<{ text: string; maxResults: number }> = [];
+    const knowledgeReadApp = Fastify();
+    knowledgeReadApp.post(
+      '/internal/retrieval/skills/search-by-content',
+      async (request, reply) => {
+        receivedBodies.push((request.body ?? {}) as { text: string; maxResults: number });
+        return reply.status(200).send({
+          matches: [
+            {
+              artifactId: 'artifact-1',
+              title: 'Postgres query timeout',
+              slug: 'postgres-query-timeout',
+              labels: ['postgres'],
+              scope: 'global',
+              requiredLevel: 1,
+              sourceKind: 'skill-directory',
+              score: 0.9,
+              reason: 'matched text',
+            },
+          ],
+        });
+      },
+    );
+
+    const identityUrl = await listen(identityApp);
+    const knowledgeReadUrl = await listen(knowledgeReadApp);
+
+    const gatewayApp = Fastify();
+    registerGatewayRoutes(
+      gatewayApp,
+      createInternalServiceClients({
+        gateway: 'http://127.0.0.1:0',
+        identityAccess: identityUrl,
+        knowledgeRead: knowledgeReadUrl,
+        knowledgeWrite: 'http://127.0.0.1:1',
+        candidateIngestion: 'http://127.0.0.1:1',
+        review: 'http://127.0.0.1:1',
+        governanceReview: 'http://127.0.0.1:1',
+        jobRuntime: 'http://127.0.0.1:1',
+
+        cronScheduler: 'http://127.0.0.1:1',
+      }),
+    );
+    await gatewayApp.ready();
+
+    const response = await gatewayApp.inject({
+      method: 'POST',
+      url: '/v1/retrieval/skills/search-by-content',
+      headers: { authorization: 'Bearer session' },
+      payload: { text: 'postgres timeout', maxResults: 3 },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      matches: [
+        {
+          artifactId: 'artifact-1',
+          title: 'Postgres query timeout',
+          slug: 'postgres-query-timeout',
+          labels: ['postgres'],
+          scope: 'global',
+          requiredLevel: 1,
+          sourceKind: 'skill-directory',
+          score: 0.9,
+          reason: 'matched text',
+        },
+      ],
+    });
+    expect(receivedBodies).toEqual([{ text: 'postgres timeout', maxResults: 3 }]);
+
+    await gatewayApp.close();
+    await knowledgeReadApp.close();
+    await identityApp.close();
+  });
+
   it('exposes distributed job-runtime ownership through real HTTP scheduling and status hops', async () => {
     const identityApp = createIdentityApp([]);
     const jobCalls: string[] = [];
