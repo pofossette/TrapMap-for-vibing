@@ -24,7 +24,7 @@ import type { ArtifactWritePort } from '@trapmap/service-knowledge-write';
 import type { RetrievalEvalCase, RetrievalEvalScenario } from '../../types/index.js';
 
 import type { HostLocalRuntime } from '../../../packages/host-local/src/nest/runtime/host-runtime.js';
-import type { HostLocalServices } from '../../../packages/host-local/src/nest/runtime/host-services.js';
+import type { EvalSeedPort } from '@trapmap/backend-core';
 import { resetRetrievalReadModelCacheForTests } from '../../../packages/service-knowledge-read/src/retrieval-read-model-cache.js';
 import { createKnowledgeEntryRecord } from '../../../packages/service-knowledge-write/src/knowledge-record-mutations.js';
 import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
@@ -184,7 +184,7 @@ export interface ExecutionContext {
   /** Host-local runtime with all service ports. */
   runtime: HostLocalRuntime;
   /** Host-local services (identity, graphIndex, graphQueryBackend, etc.). */
-  services: HostLocalServices;
+  services: EvalSeedPort;
   /** Host-owned PostgreSQL pool for fixture cleanup. */
   pool: Pool;
   /** Session token for authentication */
