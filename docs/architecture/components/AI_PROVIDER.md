@@ -380,7 +380,7 @@ EMBEDDING_MODEL=nomic-embed-text
 | `graph-extraction-planner` | 不包含 |
 
 仅 `knowledge-refinement` 任务会注入 MCP 服务器状态，其他任务仅包含基础上下文。
-MCP 状态返回 JSON 数组，当前为占位实现（pending MCP server manager integration）。
+MCP 状态返回 JSON 数组，当前为占位实现（pending MCP server manager integration）。注：agent 对 TrapMap 的 MCP 接入已由 `apps/mcp` 提供（消费方协议封装），此处 `${MCP_SERVERS}` 注入指 ai-providers 自身的外部 MCP 管理器接线，二者独立、后者仍 deferred。
 
 ---
 
