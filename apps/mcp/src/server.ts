@@ -2,14 +2,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import type { McpConfig } from './config.js';
+import { createAuditLogger } from './audit.js';
 import { assertRole, resolveSessionRole } from './permissions.js';
 import { allTools } from './tools/registry.js';
 import type { AuditLogger, ToolContext } from './tools/shared.js';
-
-const noopLogger: AuditLogger = {
-  info: () => {},
-  error: () => {},
-};
 
 export interface TrapmapMcpServer {
   mcpServer: McpServer;
@@ -30,9 +26,10 @@ export function createTrapmapMcpServer(
   deps?: { fetchImpl?: typeof fetch; logger?: AuditLogger; role?: ToolContext['role'] },
 ): TrapmapMcpServer {
   const mcpServer = new McpServer({ name: 'trapmap-mcp', version: '0.1.0' });
+  const logger: AuditLogger = deps?.logger ?? createAuditLogger();
   const ctx: ToolContext = {
     config,
-    logger: deps?.logger ?? noopLogger,
+    logger,
     role: deps?.role ?? resolveSessionRole(process.env),
     ...(deps?.fetchImpl !== undefined ? { fetchImpl: deps.fetchImpl } : {}),
   };
@@ -45,12 +42,15 @@ export function createTrapmapMcpServer(
       tool.name,
       { description: tool.description, inputSchema: tool.inputSchema },
       async (args: unknown) => {
+        const span = logger.toolSpan(tool.name);
         try {
           assertRole(ctx.role, tool.requiredRole);
           const parsed = schema.parse(args ?? {});
           const output = await tool.handler(parsed as Record<string, unknown>, ctx);
+          span.ok();
           return { content: [{ type: 'text' as const, text: JSON.stringify(output) }] };
         } catch (err) {
+          span.fail();
           const message = err instanceof Error ? err.message : String(err);
           return {
             isError: true as const,

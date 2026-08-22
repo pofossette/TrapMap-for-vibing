@@ -10,10 +10,12 @@ export type { Role } from '../permissions.js';
  */
 export type Role = 'viewer' | 'contributor' | 'reviewer' | 'operator';
 
-/** Minimal audit surface (replaced by structured audit logger in Task B6). */
+/**
+ * Structured audit surface (Task B6): one correlated ok|error line per tool
+ * call, identifiers/timing only.
+ */
 export interface AuditLogger {
-  info(line: string): void;
-  error(line: string): void;
+  toolSpan(tool: string): { ok: () => void; fail: () => void };
 }
 
 export interface ToolContext {
