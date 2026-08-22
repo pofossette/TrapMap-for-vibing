@@ -115,3 +115,27 @@ describe('distributed database pool configuration', () => {
     process.env = previous;
   });
 });
+
+import { describe, expect, it } from 'vitest';
+
+describe('C8 selective DB isolation fallback', () => {});
+
+describe('C8 selective DB isolation fallback', () => {
+  it('job-runtime resolves an isolated URL env without throwing (fallback semantics)', async () => {
+    const prev = process.env.TRAPMAP_JOB_RUNTIME_DATABASE_URL;
+    process.env.TRAPMAP_JOB_RUNTIME_DATABASE_URL = 'postgres://iso:5432/jr';
+    try {
+      const { createServiceDatabase } = await import('./database.js');
+      expect(() =>
+        createServiceDatabase({
+          serviceName: 'job-runtime',
+          databaseUrl: undefined,
+          port: 4006,
+        }),
+      ).not.toThrow();
+    } finally {
+      if (prev === undefined) delete process.env.TRAPMAP_JOB_RUNTIME_DATABASE_URL;
+      else process.env.TRAPMAP_JOB_RUNTIME_DATABASE_URL = prev;
+    }
+  });
+});

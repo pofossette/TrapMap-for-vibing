@@ -93,7 +93,13 @@ export function getServicePoolSnapshot(
  */
 export function createServiceDatabase(config: ServiceConfig): ServiceDatabase {
   const databaseUrl =
-    config.databaseUrl ?? process.env.DATABASE_URL ?? process.env.TRAPMAP_DATABASE_URL;
+    // C8 选择性数据库隔离试点：job-runtime 可指向独立库，缺省回退共享库
+    (config.serviceName === 'job-runtime'
+      ? process.env.TRAPMAP_JOB_RUNTIME_DATABASE_URL
+      : undefined) ??
+    config.databaseUrl ??
+    process.env.DATABASE_URL ??
+    process.env.TRAPMAP_DATABASE_URL;
 
   if (!databaseUrl) {
     throw new Error(

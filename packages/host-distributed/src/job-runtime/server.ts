@@ -20,7 +20,7 @@ export async function createServer(
   const queuePorts = createJobRuntimeAsyncTransport({
     config: {
       asyncTaskTransport: {
-        provider: 'postgres',
+        provider: process.env.TRAPMAP_TASK_TRANSPORT === 'amqp' ? 'rabbitmq' : 'postgres',
         rabbitmq: null,
       },
     },
