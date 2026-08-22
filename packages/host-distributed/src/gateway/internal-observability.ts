@@ -55,6 +55,7 @@ interface ObservabilityRegistry {
   hopCounter: Counter;
   hopDuration: Histogram;
   asyncLifecycleCounter: Counter;
+  rateLimitedCounter: Counter;
 }
 
 function createRegistry(): ObservabilityRegistry {
@@ -74,6 +75,9 @@ function createRegistry(): ObservabilityRegistry {
     }),
     asyncLifecycleCounter: meter.createCounter('trapmap_async_lifecycle_events_total', {
       description: 'Total async lifecycle events by type',
+    }),
+    rateLimitedCounter: meter.createCounter('trapmap_gateway_rate_limited_total', {
+      description: 'Gateway requests rejected by the per-actor rate limiter',
     }),
   };
 }
@@ -100,6 +104,10 @@ export function recordDistributedInternalHopMetric(params: {
   };
   registry.hopCounter.add(1, labels);
   registry.hopDuration.record(params.latencyMs, labels);
+}
+
+export function recordGatewayRateLimited(actorKind: 'session' | 'ip'): void {
+  registry.rateLimitedCounter.add(1, { actor_kind: actorKind });
 }
 
 export function recordAsyncLifecycleEvent(params: {
