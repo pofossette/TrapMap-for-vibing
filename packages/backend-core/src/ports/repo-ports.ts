@@ -163,12 +163,15 @@ export interface KnowledgeRepositoryPort {
   ): Promise<KnowledgeEntryRecord>;
   appendRevision(entryId: string, revision: KnowledgeRevisionRecord): Promise<void>;
   appendLifecycleEvent(entryId: string, event: KnowledgeLifecycleEventRecord): Promise<void>;
-  listByFilter(filter: {
-    lifecycleState?: LifecycleState;
-    teamId?: string;
-    ownerUserId?: string;
-    labels?: string[];
-  }): Promise<KnowledgeEntryRecord[]>;
+  listByFilter(
+    filter: {
+      lifecycleState?: LifecycleState;
+      teamId?: string;
+      ownerUserId?: string;
+      labels?: string[];
+    },
+    page?: { offset: number; limit: number },
+  ): Promise<{ items: KnowledgeEntryRecord[]; total: number }>;
   updateGovernance(
     entryId: string,
     governance: { labels?: string[]; requiredLevel?: number },

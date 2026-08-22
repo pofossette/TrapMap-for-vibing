@@ -12,7 +12,11 @@ export interface KnowledgeReadPortDeps {
   knowledgeRepo: {
     listByFilter(
       filter: Record<string, never>,
-    ): Promise<Awaited<ReturnType<KnowledgeReadDeps['knowledgeProjection']['listMine']>>>;
+      page?: { offset: number; limit: number },
+    ): Promise<{
+      items: Awaited<ReturnType<KnowledgeReadDeps['knowledgeProjection']['listMine']>>[number][];
+      total: number;
+    }>;
   };
   retrievalQuery: KnowledgeReadDeps['retrievalQuery'];
 }

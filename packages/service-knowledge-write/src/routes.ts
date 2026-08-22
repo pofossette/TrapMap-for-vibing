@@ -330,7 +330,7 @@ export function createKnowledgeWriteRouteDefs(
         }
         const entry = await module.conflictCandidateRead.getById(ctx.params.entryId);
         if (!entry || entry.lifecycleState !== 'approved') return null;
-        const candidates = await module.conflictCandidateRead.listByFilter({
+        const { items: candidates } = await module.conflictCandidateRead.listByFilter({
           lifecycleState: 'approved',
         });
         return {

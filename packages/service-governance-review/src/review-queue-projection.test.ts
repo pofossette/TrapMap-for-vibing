@@ -119,7 +119,7 @@ describe('buildReviewQueueProjection', () => {
     } as KnowledgeEntry;
     const knowledge: Pick<KnowledgeOwnerPort, 'listByFilter'> = {
       async listByFilter() {
-        return [entry];
+        return { items: [entry], total: 1 };
       },
     };
 

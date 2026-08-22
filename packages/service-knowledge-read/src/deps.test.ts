@@ -17,7 +17,7 @@ describe('knowledge-read deps', () => {
 
   it('exports backend-core aligned deps and module contract', () => {
     const knowledgeRepo = {
-      listByFilter: vi.fn(async () => []),
+      listByFilter: vi.fn(async () => ({ items: [], total: 0 })),
     };
     const retrievalQuery = {
       search: vi.fn(async () => ({ results: [] })),
@@ -37,22 +37,25 @@ describe('knowledge-read deps', () => {
       getById: vi.fn(async () => {
         throw new Error('direct getById must not be used by knowledge-read');
       }),
-      listByFilter: vi.fn(async () => [
-        {
-          id: 'entry-1',
-          content: 'hello',
-          lifecycleState: 'approved' as const,
-          ownerUserId: 'user-1',
-          teamId: 'team-1',
-        },
-        {
-          id: 'entry-2',
-          content: 'team filtered',
-          lifecycleState: 'approved' as const,
-          ownerUserId: 'user-1',
-          teamId: 'team-2',
-        },
-      ]),
+      listByFilter: vi.fn(async () => ({
+        items: [
+          {
+            id: 'entry-1',
+            content: 'hello',
+            lifecycleState: 'approved' as const,
+            ownerUserId: 'user-1',
+            teamId: 'team-1',
+          },
+          {
+            id: 'entry-2',
+            content: 'team filtered',
+            lifecycleState: 'approved' as const,
+            ownerUserId: 'user-1',
+            teamId: 'team-2',
+          },
+        ],
+        total: 3,
+      })),
     };
     const retrievalQuery = {
       search: vi.fn(async () => ({
@@ -86,7 +89,7 @@ describe('knowledge-read deps', () => {
   it('keeps the phase-2 projection status contract closed over derived surfaces', async () => {
     const deps = createKnowledgeReadDeps({
       knowledgeRepo: {
-        listByFilter: vi.fn(async () => []),
+        listByFilter: vi.fn(async () => ({ items: [], total: 0 })),
       },
       retrievalQuery: {
         search: vi.fn(async () => ({ results: [] })),
@@ -150,24 +153,30 @@ describe('knowledge-read deps', () => {
       knowledgeRepo: {
         listByFilter: vi
           .fn()
-          .mockResolvedValueOnce([
-            {
-              id: 'entry-1',
-              content: 'before',
-              lifecycleState: 'approved',
-              ownerUserId: 'u',
-              teamId: 't',
-            },
-          ])
-          .mockResolvedValueOnce([
-            {
-              id: 'entry-1',
-              content: 'after',
-              lifecycleState: 'approved',
-              ownerUserId: 'u',
-              teamId: 't',
-            },
-          ]),
+          .mockResolvedValueOnce({
+            items: [
+              {
+                id: 'entry-1',
+                content: 'before',
+                lifecycleState: 'approved',
+                ownerUserId: 'u',
+                teamId: 't',
+              },
+            ],
+            total: 1,
+          })
+          .mockResolvedValueOnce({
+            items: [
+              {
+                id: 'entry-1',
+                content: 'after',
+                lifecycleState: 'approved',
+                ownerUserId: 'u',
+                teamId: 't',
+              },
+            ],
+            total: 1,
+          }),
       },
       retrievalQuery: { search: vi.fn(async () => ({ results: [] })) },
     });

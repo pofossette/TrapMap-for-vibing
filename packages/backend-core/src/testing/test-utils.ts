@@ -98,8 +98,8 @@ function createStubKnowledgeRepository(): KnowledgeRepositoryPort {
     async appendLifecycleEvent(_entryId, _event) {
       /* no-op */
     },
-    async listByFilter(_filter) {
-      return [];
+    async listByFilter(_filter, _page) {
+      return { items: [], total: 0 };
     },
     async updateGovernance(_entryId, _governance) {
       /* no-op */

@@ -50,7 +50,8 @@ export async function buildOwnerReviewQueueProjection(
   knowledge: Pick<KnowledgeOwnerPort, 'listByFilter'>,
   input: { auth: ReviewQueueProjectionAuth; status?: string },
 ): Promise<ReviewQueueProjection> {
-  const entries = filterReviewQueueEntries(await knowledge.listByFilter({}), input);
+  const { items: ownerEntries } = await knowledge.listByFilter({});
+  const entries = filterReviewQueueEntries(ownerEntries, input);
   const items = entries.map((entry) => ({
     entry,
     agentReview: entry.agentReview,

@@ -12,15 +12,18 @@ describe('governance conflict read adapter', () => {
     };
     const owner = {
       getById: vi.fn(async () => entry),
-      listByFilter: vi.fn(async () => [
-        entry,
-        {
-          id: 'entry-old',
-          shortcut: 'Postgres query timeout',
-          detail: 'use index planner',
-          lifecycleState: 'approved',
-        },
-      ]),
+      listByFilter: vi.fn(async () => ({
+        items: [
+          entry,
+          {
+            id: 'entry-old',
+            shortcut: 'Postgres query timeout',
+            detail: 'use index planner',
+            lifecycleState: 'approved',
+          },
+        ],
+        total: 2,
+      })),
     };
 
     const read = createGovernanceConflictReadPort(owner);

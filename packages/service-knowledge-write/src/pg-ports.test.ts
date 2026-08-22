@@ -178,11 +178,12 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
     await owner.knowledgeOwner.listByFilter({});
     await owner.knowledgeOwner.listByFilter({ operation: 'decay-eligible' });
 
-    expect(query).toHaveBeenNthCalledWith(1, expect.not.stringContaining('WHERE'), []);
+    // A4: pagination params appended after filter values (defaults 100/0)
+    expect(query).toHaveBeenNthCalledWith(1, expect.not.stringContaining('WHERE'), [100, 0]);
     expect(query).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining("ke.lifecycle_state = 'approved'"),
-      [],
+      [100, 0],
     );
   });
 
@@ -549,5 +550,50 @@ describe('knowledge-write PostgreSQL owner bundle', () => {
         'COMMIT',
       ]),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A4: listByFilter pagination contract (offset/limit + total)
+// ---------------------------------------------------------------------------
+
+describe('A4 knowledgeRepo.listByFilter pagination', () => {
+  it('applies offset/limit and reports total via window count', async () => {
+    const queries: Array<{ sql: string; values: unknown[] }> = [];
+    const rows = Array.from({ length: 120 }, (_, i) => ({ id: `e${i}`, __total: 120 }));
+    const pool = {
+      query: vi.fn(async (sql: string, values: unknown[] = []) => {
+        queries.push({ sql, values });
+        const limit = Number(values.at(-2));
+        const offset = Number(values.at(-1));
+        return { rows: rows.slice(offset, offset + limit) };
+      }),
+    };
+    const { createKnowledgeOwnerProjection } = await import('./knowledge-projection.js');
+    const typedPool = pool as unknown as Parameters<typeof createKnowledgeOwnerProjection>[0]; // lib type gap: test stub narrows Queryable surface
+    const projection = createKnowledgeOwnerProjection(typedPool);
+    const page1 = await projection.listByFilter({}, { offset: 0, limit: 100 });
+    expect(page1.items).toHaveLength(100);
+    expect(page1.total).toBe(120);
+    expect(queries[0]?.sql).toContain('LIMIT $');
+    expect(queries[0]?.sql).toContain('OFFSET $');
+    expect(queries[0]?.sql).toContain('COUNT(*) OVER()');
+    expect(queries[0]?.values).toEqual([100, 0]);
+  });
+
+  it('defaults to offset=0 limit=100 when page is omitted', async () => {
+    const queries: Array<{ values: unknown[] }> = [];
+    const pool = {
+      query: vi.fn(async (_sql: string, values: unknown[] = []) => {
+        queries.push({ values });
+        return { rows: [] };
+      }),
+    };
+    const { createKnowledgeOwnerProjection } = await import('./knowledge-projection.js');
+    const typedPool = pool as unknown as Parameters<typeof createKnowledgeOwnerProjection>[0]; // lib type gap: test stub narrows Queryable surface
+    const projection = createKnowledgeOwnerProjection(typedPool);
+    const result = await projection.listByFilter({});
+    expect(result).toEqual({ items: [], total: 0 });
+    expect(queries[0]?.values).toEqual([100, 0]);
   });
 });

@@ -41,7 +41,10 @@ function mapKnowledgeRow(row: Record<string, unknown>): KnowledgeEntryRecord {
 export function createPgKnowledgeReadProjection(
   pool: KnowledgeReadPool,
 ): KnowledgeReadProjectionPort<KnowledgeEntryRecord> & {
-  listByFilter(filter: Record<string, never>): Promise<KnowledgeEntryRecord[]>;
+  listByFilter(
+    filter: Record<string, never>,
+    page?: { offset: number; limit: number },
+  ): Promise<{ items: KnowledgeEntryRecord[]; total: number }>;
 } {
   return {
     async getById(entryId) {
@@ -77,11 +80,21 @@ export function createPgKnowledgeReadProjection(
         surfaces: [],
       };
     },
-    async listByFilter(_filter: Record<string, never>) {
+    async listByFilter(_filter: Record<string, never>, page?: { offset: number; limit: number }) {
+      const limit = page?.limit ?? 100;
+      const offset = page?.offset ?? 0;
       const { rows } = await pool.query(
-        'SELECT * FROM knowledge_entries ORDER BY created_at DESC LIMIT 100',
+        'SELECT *, COUNT(*) OVER() AS __total FROM knowledge_entries ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+        [limit, offset],
       );
-      return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>));
+      const total =
+        (rows[0] as { __total?: string | number } | undefined)?.__total !== undefined
+          ? Number((rows[0] as { __total: string | number }).__total)
+          : rows.length;
+      return {
+        items: rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>)),
+        total,
+      };
     },
   };
 }

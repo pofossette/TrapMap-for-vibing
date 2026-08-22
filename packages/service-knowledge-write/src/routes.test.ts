@@ -187,14 +187,17 @@ describe.each(ADAPTERS)('service-knowledge-write routes (%s adapter)', (adapter)
         detail: 'avoid table scan',
         lifecycleState: 'approved' as const,
       })),
-      listByFilter: vi.fn(async () => [
-        {
-          id: 'entry-old',
-          shortcut: 'Postgres query timeout',
-          detail: 'use index planner',
-          lifecycleState: 'approved' as const,
-        },
-      ]),
+      listByFilter: vi.fn(async () => ({
+        items: [
+          {
+            id: 'entry-old',
+            shortcut: 'Postgres query timeout',
+            detail: 'use index planner',
+            lifecycleState: 'approved' as const,
+          },
+        ],
+        total: 1,
+      })),
     };
     const module = createModule();
     const app = await buildRouteTestApp(

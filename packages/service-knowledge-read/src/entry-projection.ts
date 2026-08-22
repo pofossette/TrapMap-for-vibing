@@ -15,7 +15,10 @@ interface KnowledgeEntryProjectionSnapshot {
 }
 
 export interface KnowledgeEntryProjectionRepo {
-  listByFilter(filter: Record<string, never>): Promise<KnowledgeEntryRecord[]>;
+  listByFilter(
+    filter: Record<string, never>,
+    page?: { offset: number; limit: number },
+  ): Promise<{ items: KnowledgeEntryRecord[]; total: number }>;
 }
 
 export interface KnowledgeEntryProjection {
@@ -80,7 +83,7 @@ async function getOrBuildSnapshot(
     return cached;
   }
 
-  const entries = await knowledgeRepo.listByFilter({});
+  const { items: entries } = await knowledgeRepo.listByFilter({});
   const snapshot = buildSnapshot(entries);
   getEntryProjectionCache().set(ENTRY_PROJECTION_CACHE_KEY, snapshot);
   lastRefreshedAt = new Date().toISOString();

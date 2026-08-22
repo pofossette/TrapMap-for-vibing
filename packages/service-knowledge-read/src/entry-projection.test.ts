@@ -36,7 +36,7 @@ describe('knowledge entry projection', () => {
       createEntry('entry-2', { ownerUserId: 'user-2', teamId: 'team-2' }),
     ];
     const knowledgeRepo = {
-      listByFilter: vi.fn(async () => entries),
+      listByFilter: vi.fn(async () => ({ items: entries, total: entries.length })),
     };
     const projection = createKnowledgeEntryProjection({ knowledgeRepo });
 
@@ -52,8 +52,8 @@ describe('knowledge entry projection', () => {
     const knowledgeRepo = {
       listByFilter: vi
         .fn()
-        .mockResolvedValueOnce([createEntry('entry-1', { content: 'before' })])
-        .mockResolvedValueOnce([createEntry('entry-1', { content: 'after' })]),
+        .mockResolvedValueOnce({ items: [createEntry('entry-1', { content: 'before' })], total: 1 })
+        .mockResolvedValueOnce({ items: [createEntry('entry-1', { content: 'after' })], total: 1 }),
     };
     const projection = createKnowledgeEntryProjection({ knowledgeRepo });
 
@@ -69,8 +69,8 @@ describe('knowledge entry projection', () => {
     const knowledgeRepo = {
       listByFilter: vi
         .fn()
-        .mockResolvedValueOnce([createEntry('entry-1', { content: 'before' })])
-        .mockResolvedValueOnce([createEntry('entry-1', { content: 'after' })]),
+        .mockResolvedValueOnce({ items: [createEntry('entry-1', { content: 'before' })], total: 1 })
+        .mockResolvedValueOnce({ items: [createEntry('entry-1', { content: 'after' })], total: 1 }),
     };
     const projection = createKnowledgeEntryProjection({ knowledgeRepo });
 
@@ -100,7 +100,7 @@ describe('knowledge entry projection', () => {
     ];
     const projection = createKnowledgeEntryProjection({
       knowledgeRepo: {
-        listByFilter: vi.fn(async () => entries),
+        listByFilter: vi.fn(async () => ({ items: entries, total: entries.length })),
       },
     });
 
@@ -111,5 +111,21 @@ describe('knowledge entry projection', () => {
     await expect(projection.listMine({ userId: 'user-1', teamId: 'team-2' })).resolves.toEqual([
       entries[1],
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A5: listMine honors owner.userId (probe for the registered follow-up)
+// ---------------------------------------------------------------------------
+
+describe('A5 listMine owner.userId probe', () => {
+  it('returns entries owned by the requesting user (non-empty regression)', async () => {
+    const entries = [createEntry('entry-1', { ownerUserId: 'user-1' })];
+    const projection = createKnowledgeEntryProjection({
+      knowledgeRepo: {
+        listByFilter: vi.fn(async () => ({ items: entries, total: 1 })),
+      },
+    });
+    await expect(projection.listMine({ userId: 'user-1' })).resolves.toEqual(entries);
   });
 });

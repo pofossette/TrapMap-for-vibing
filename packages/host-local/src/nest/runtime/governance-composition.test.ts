@@ -18,14 +18,17 @@ describe('host-local governance composition', () => {
         detail: 'avoid table scan',
         lifecycleState: 'approved',
       }),
-      listByFilter: vi.fn().mockResolvedValue([
-        {
-          id: 'entry-old',
-          shortcut: 'Postgres query timeout',
-          detail: 'use index planner',
-          lifecycleState: 'approved',
-        },
-      ]),
+      listByFilter: vi.fn().mockResolvedValue({
+        items: [
+          {
+            id: 'entry-old',
+            shortcut: 'Postgres query timeout',
+            detail: 'use index planner',
+            lifecycleState: 'approved',
+          },
+        ],
+        total: 1,
+      }),
     };
     const conflictProjection: GovernanceReviewPgOwnerBundle['conflictProjection'] = {
       listByEntryIds: vi.fn().mockResolvedValue([]),

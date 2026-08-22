@@ -213,8 +213,8 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
     },
 
     async listTraps(teamId: string) {
-      const entries = await deps.knowledgeOwner.listByFilter({ teamId });
-      return entries.map(toKnowledgeEntryRecord);
+      const { items } = await deps.knowledgeOwner.listByFilter({ teamId });
+      return items.map(toKnowledgeEntryRecord);
     },
 
     async getTrap(trapId: string) {

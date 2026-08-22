@@ -46,15 +46,18 @@ export interface KnowledgeOperationsProjection {
   getIndexingEntry(entryId: string): Promise<KnowledgeIndexingEntry | null>;
   listIndexingEntries(input: { offset: number; limit: number }): Promise<KnowledgeIndexingPage>;
   getByIds(entryIds: string[]): Promise<KnowledgeEntry[]>;
-  listByFilter(filter: {
-    entryIds?: string[];
-    lifecycleState?: LifecycleState;
-    teamId?: string;
-    ownerUserId?: string;
-    labels?: string[];
-    requiredLevelMax?: number;
-    operation?: string;
-  }): Promise<KnowledgeEntry[]>;
+  listByFilter(
+    filter: {
+      entryIds?: string[];
+      lifecycleState?: LifecycleState;
+      teamId?: string;
+      ownerUserId?: string;
+      labels?: string[];
+      requiredLevelMax?: number;
+      operation?: string;
+    },
+    page?: { offset: number; limit: number },
+  ): Promise<{ items: KnowledgeEntry[]; total: number }>;
   updateEmbeddingCache(
     entryId: string,
     cache: {

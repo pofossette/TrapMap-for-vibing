@@ -194,13 +194,22 @@ export function createKnowledgeOwnerProjection(
       );
       return result.rows.map((row) => toKnowledgeEntryProjection(row as Record<string, unknown>));
     },
-    async listByFilter(filter) {
+    async listByFilter(filter, page) {
+      const offset = page?.offset ?? 0;
+      const limit = page?.limit ?? 100;
       const { where, values } = buildKnowledgeProjectionWhere(filter);
       const result = await pool.query(
-        `SELECT ke.* FROM knowledge_entries ke ${where} ORDER BY ke.updated_at DESC LIMIT 100`,
-        values,
+        `SELECT ke.*, COUNT(*) OVER() AS __total FROM knowledge_entries ke ${where} ORDER BY ke.updated_at DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+        [...values, limit, offset],
       );
-      return result.rows.map((row) => toKnowledgeEntryProjection(row as Record<string, unknown>));
+      const total =
+        (result.rows[0] as { __total?: string | number } | undefined)?.__total !== undefined
+          ? Number((result.rows[0] as { __total: string | number }).__total)
+          : result.rows.length;
+      return {
+        items: result.rows.map((row) => toKnowledgeEntryProjection(row as Record<string, unknown>)),
+        total,
+      };
     },
   };
 }
