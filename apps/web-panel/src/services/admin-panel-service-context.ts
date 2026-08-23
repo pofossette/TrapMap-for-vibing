@@ -17,6 +17,8 @@ const ADMIN_PANEL_API_MODE_MOCK = 'mock';
 const ADMIN_PANEL_API_MODE_REAL = 'real';
 const fallbackBaseUrl = 'http://127.0.0.1:4000';
 
+export type AdminPanelApiMode = typeof ADMIN_PANEL_API_MODE_REAL | typeof ADMIN_PANEL_API_MODE_MOCK;
+
 function getAdminPanelBaseUrl(): string {
   const explicitBaseUrl = import.meta.env.VITE_ADMIN_PANEL_API_BASE_URL as string | undefined;
   if (explicitBaseUrl) {
@@ -30,7 +32,7 @@ function getAdminPanelBaseUrl(): string {
   return fallbackBaseUrl;
 }
 
-function createRuntimeApi() {
+function resolveAdminPanelApiMode(): AdminPanelApiMode {
   const mode = import.meta.env.VITE_ADMIN_PANEL_API_MODE;
   const runtimeMode = import.meta.env.MODE;
 
@@ -40,7 +42,7 @@ function createRuntimeApi() {
         'VITE_ADMIN_PANEL_API_MODE=mock is only supported in development and test runtimes.',
       );
     }
-    return createMockAdminPanelApi();
+    return ADMIN_PANEL_API_MODE_MOCK;
   }
 
   if (mode !== undefined && mode !== ADMIN_PANEL_API_MODE_REAL) {
@@ -49,11 +51,24 @@ function createRuntimeApi() {
     );
   }
 
+  return ADMIN_PANEL_API_MODE_REAL;
+}
+
+function createRuntimeApi(mode: AdminPanelApiMode) {
+  if (mode === ADMIN_PANEL_API_MODE_MOCK) {
+    return createMockAdminPanelApi();
+  }
+
   return createAdminPanelApi(createHttpClient(browserSessionProvider));
 }
 
-const runtimeApi = createRuntimeApi();
+const adminPanelApiMode = resolveAdminPanelApiMode();
+const runtimeApi = createRuntimeApi(adminPanelApiMode);
 
 export function getAdminPanelApi() {
   return runtimeApi;
+}
+
+export function getAdminPanelApiMode(): AdminPanelApiMode {
+  return adminPanelApiMode;
 }

@@ -71,4 +71,17 @@ describe('admin-panel service context', () => {
       /only supported in development and test runtimes/i,
     );
   });
+
+  it.each([
+    [undefined, 'real'],
+    ['real', 'real'],
+    ['mock', 'mock'],
+  ])('reports the %s API mode as %s', async (envMode, expectedMode) => {
+    vi.stubEnv('VITE_ADMIN_PANEL_API_MODE', envMode);
+    if (envMode === 'mock') vi.stubEnv('MODE', 'test');
+
+    const { getAdminPanelApiMode } = await import('./admin-panel-service-context.js');
+
+    expect(getAdminPanelApiMode()).toBe(expectedMode);
+  });
 });

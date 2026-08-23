@@ -17,6 +17,7 @@ import type {
   SessionAccount,
 } from '@trapmap/web-panel/shared/enum-types';
 import { applyReviewQueueQuery } from './review-queue-query';
+import { applyActivityFeedQuery } from './activity-feed-query';
 
 const mockArtifacts: SkillArtifact[] = [
   {
@@ -609,7 +610,20 @@ const mockActivityFeed: ActivityFeedResponse = {
       tone: 'warning',
       typeLabel: 'Intervention',
     },
+    {
+      id: 'evt-3',
+      actor: 'candidate-bot',
+      description: 'Candidate payload accepted into governance ingestion.',
+      relatedReviewId: 'rev-201',
+      timestamp: '2026-06-19T09:20:00.000Z',
+      title: 'Candidate ingested',
+      tone: 'success',
+      typeLabel: 'System Ingestion',
+    },
   ],
+  filteredTotal: 3,
+  nextCursor: null,
+  total: 3,
 };
 
 const mockAccounts: SessionAccount[] = [
@@ -814,8 +828,8 @@ export function createMockAdminPanelApi(): AdminPanelApiContract {
 
       return { savedAt };
     },
-    async loadActivityFeed() {
-      return structuredClone(activityState);
+    async loadActivityFeed(query) {
+      return applyActivityFeedQuery(structuredClone(activityState.events), query);
     },
     async loadArtifacts(query) {
       let filtered = [...mockArtifacts];

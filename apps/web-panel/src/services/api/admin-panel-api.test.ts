@@ -44,3 +44,42 @@ describe('admin panel review queue transport', () => {
     });
   });
 });
+
+describe('admin panel activity transport', () => {
+  it('sends actor, time, type, search, and paging parameters', async () => {
+    const paths: string[] = [];
+    const client: HttpClient = {
+      async request(options) {
+        paths.push(options.path);
+        return {
+          events: [],
+          nextCursor: null,
+          filteredTotal: 0,
+          total: 0,
+        };
+      },
+    };
+
+    await createAdminPanelApi(client).loadActivityFeed({
+      actor: ' reviewer ',
+      cursor: '20',
+      from: '2026-06-01T00:00:00.000Z',
+      limit: 20,
+      search: 'schema drift',
+      to: '2026-06-30T23:59:59.999Z',
+      type: 'decision',
+    });
+
+    const url = new URL(paths[0] ?? '', 'http://localhost');
+    expect(url.pathname).toBe('/api/admin/activity');
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      actor: 'reviewer',
+      cursor: '20',
+      from: '2026-06-01T00:00:00.000Z',
+      limit: '20',
+      search: 'schema drift',
+      to: '2026-06-30T23:59:59.999Z',
+      type: 'decision',
+    });
+  });
+});

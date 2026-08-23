@@ -13,7 +13,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Suspense, type ReactElement, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
-import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
+import {
+  getAdminPanelApi,
+  getAdminPanelApiMode,
+  type AdminPanelApiMode,
+} from '@trapmap/web-panel/services/admin-panel-service-context';
 import { SkeletonBlock } from '@trapmap/web-panel/shared/ui/skeleton-block';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import { useSessionStore } from '@trapmap/web-panel/stores/session-store';
@@ -255,6 +259,75 @@ const navigationItems: NavigationItem[] = [
   { to: '/activity', labelKey: 'activity', icon: ActivityIcon },
 ];
 
+function ApiModeBadge({ mode }: { mode: AdminPanelApiMode }): ReactElement {
+  const { t } = useI18nStore();
+
+  return (
+    <Chip
+      className={
+        mode === 'mock'
+          ? 'border border-panel-accent bg-panel-accent text-[11px] font-bold text-panel-accent-contrast'
+          : 'border border-panel-line bg-panel-surface text-[11px] font-medium text-panel-text'
+      }
+      size="sm"
+    >
+      {mode === 'mock' ? t('mockData') : t('liveApi')}
+    </Chip>
+  );
+}
+
+function SidebarNavigation({ onNavigate }: { onNavigate?: () => void }): ReactElement {
+  const { t } = useI18nStore();
+
+  return (
+    <nav className="space-y-1.5">
+      {navigationItems.map((item) => {
+        const Icon = item.icon;
+        return (
+          <NavLink
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition ${
+                isActive
+                  ? 'border border-panel-line bg-panel-text text-[var(--panel-bg)]'
+                  : 'border border-transparent text-panel-muted hover:bg-panel-surface-strong hover:text-panel-text'
+              }`
+            }
+            end={item.end ?? false}
+            key={item.to}
+            onClick={onNavigate}
+            to={item.to}
+          >
+            <Icon />
+            <span>{t(item.labelKey)}</span>
+          </NavLink>
+        );
+      })}
+    </nav>
+  );
+}
+
+function SidebarEnvironmentFooter({ mode }: { mode: AdminPanelApiMode }): ReactElement {
+  const { t } = useI18nStore();
+
+  return (
+    <div className="space-y-3 border-t border-panel-line pt-4">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-mono text-[12px] font-medium uppercase text-panel-muted">
+          {t('environment')}
+        </span>
+        <ApiModeBadge mode={mode} />
+      </div>
+      <div className="flex items-center gap-2.5 rounded-panel-lg border border-panel-line bg-panel-surface-strong p-3">
+        <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-panel-text" />
+        <div className="text-xs">
+          <p className="font-semibold text-panel-text">team-monolith</p>
+          <p className="mt-0.5 font-mono text-[12px] text-panel-muted">{t('localProfile')}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AppShell(): ReactElement {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<'profile' | 'security' | 'switch-account' | null>(
@@ -272,6 +345,7 @@ export function AppShell(): ReactElement {
   const { t, language, setLanguage } = useI18nStore();
   const theme = useThemeStore((state) => state.theme);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
+  const apiMode = getAdminPanelApiMode();
 
   useEffect(() => {
     document.documentElement.lang = language === 'cn' ? 'zh-CN' : 'en';
@@ -409,50 +483,10 @@ export function AppShell(): ReactElement {
             </div>
           </div>
 
-          <nav className="space-y-1.5">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.to}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition ${
-                      isActive
-                        ? 'border border-panel-line bg-panel-text text-[var(--panel-bg)]'
-                        : 'border border-transparent text-panel-muted hover:bg-panel-surface-strong hover:text-panel-text'
-                    }`
-                  }
-                  end={item.end ?? false}
-                  to={item.to}
-                >
-                  <Icon />
-                  <span>{t(item.labelKey)}</span>
-                </NavLink>
-              );
-            })}
-          </nav>
+          <SidebarNavigation />
         </div>
 
-        <div className="space-y-3 border-t border-panel-line pt-4">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-              {t('environment')}
-            </span>
-            <Chip
-              className="border border-panel-line bg-panel-surface text-[11px] font-medium text-panel-text"
-              size="sm"
-            >
-              {t('online')}
-            </Chip>
-          </div>
-          <div className="flex items-center gap-2.5 rounded-2xl border border-panel-line bg-panel-surface-strong p-3">
-            <div className="h-2.5 w-2.5 rounded-full bg-panel-text" />
-            <div className="text-xs">
-              <p className="font-semibold text-panel-text">team-monolith</p>
-              <p className="mt-0.5 font-mono text-[12px] text-panel-muted">{t('localProfile')}</p>
-            </div>
-          </div>
-        </div>
+        <SidebarEnvironmentFooter mode={apiMode} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-panel-bg">
@@ -499,6 +533,8 @@ export function AppShell(): ReactElement {
           </div>
 
           <div className="flex items-center gap-3">
+            <ApiModeBadge mode={apiMode} />
+
             <Button
               size="sm"
               variant="tertiary"
@@ -693,50 +729,10 @@ export function AppShell(): ReactElement {
                   </Button>
                 </div>
 
-                <nav className="space-y-1.5">
-                  {navigationItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <NavLink
-                        key={item.to}
-                        className={({ isActive }) =>
-                          `flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition ${
-                            isActive
-                              ? 'border border-panel-line bg-panel-text text-[var(--panel-bg)]'
-                              : 'border border-transparent text-panel-muted hover:bg-panel-surface-strong hover:text-panel-text'
-                          }`
-                        }
-                        end={item.end ?? false}
-                        onClick={() => setMobileMenuOpen(false)}
-                        to={item.to}
-                      >
-                        <Icon />
-                        <span>{t(item.labelKey)}</span>
-                      </NavLink>
-                    );
-                  })}
-                </nav>
+                <SidebarNavigation onNavigate={() => setMobileMenuOpen(false)} />
               </div>
 
-              <div className="space-y-3 border-t border-panel-line pt-4">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-mono text-[12px] font-medium uppercase text-panel-muted">
-                    {t('environment')}
-                  </span>
-                  <Chip
-                    className="border border-panel-line bg-panel-surface text-[11px] font-medium text-panel-text"
-                    size="sm"
-                  >
-                    {t('online')}
-                  </Chip>
-                </div>
-                <div className="flex items-center gap-2.5 rounded-xl border border-panel-line bg-panel-surface-strong p-3">
-                  <div className="h-2.5 w-2.5 rounded-full bg-panel-text" />
-                  <div>
-                    <p className="text-xs font-semibold text-panel-text">team-monolith</p>
-                  </div>
-                </div>
-              </div>
+              <SidebarEnvironmentFooter mode={apiMode} />
             </motion.aside>
           </div>
         )}

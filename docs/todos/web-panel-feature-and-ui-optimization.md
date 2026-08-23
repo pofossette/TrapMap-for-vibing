@@ -25,8 +25,8 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 - 七条管理路由已经存在：Dashboard、Review Queue、Review Detail、Artifacts、Trap Graph、Skill Graph、Activity。
 - 已有中英双语 i18n、Zustand stores、real/mock API seam、G6 graph、review/JSON-edit actions。
-- 第三批实现后测试规模为 20 个文件、42 tests。
-- 剩余功能缺口包括 auth/RBAC 缺失和 browser bearer provider 为 null。Dashboard 硬编码、图谱/规模预览失真、return-for-correction 映射为 reject，以及 review queue 的客户端 filter/sort/pagination 已清理。
+- 第四批实现后测试规模为 21 个文件、49 tests。
+- 剩余功能缺口包括 auth/RBAC 缺失和 browser bearer provider 为 null。Dashboard 硬编码、图谱/规模预览失真、return-for-correction 映射为 reject、review queue 客户端 filter/sort/pagination，以及 activity 本地过滤/无 cursor 已清理。
 - 目标 dark/yellow token 已建立并替换蓝色/Geist 默认值；全站响应式细节、空态统一与真实模式仍待完成。
 
 ## Phased Plan
@@ -58,7 +58,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - [ ] Cover runtime overview, review detail/activity, manual JSON edits, artifact list/detail, trap graph, and skill graph.
 - [ ] Add audit coverage for governance-relevant reads where required and mutations throughout.
 - [ ] Propagate session tokens through `SessionProvider`.
-- [ ] Keep mock mode for development/tests, with a visible and explicit mock label in the UI.
+- [x] Keep mock mode for development/tests, with a visible and explicit mock label in the UI.
 
 ### Phase 3: Feature Completion
 
@@ -68,7 +68,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - [x] Introduce distinct return-for-correction semantics instead of mapping that decision to reject.
 - [ ] Add artifact level filtering, search, and robust pagination.
 - [ ] Wire graph depth, search, and mode controls to actual graph requests/state.
-- [ ] Add activity actor/time/type filters and cursor paging.
+- [x] Add activity actor/time/type filters and cursor paging.
 
 ### Phase 4: UI Polish and Responsive Behavior
 
@@ -120,6 +120,13 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - Host-local gateway 使用共享 schema 接收查询参数，Panel transport 发送完整筛选与分页参数，客户端不再二次过滤或排序。
 - Review Queue store 维护 cursor 分页并在筛选变化时重置；页面提供上一页/下一页控制。Mock seam 同步实现服务端语义并扩充多状态 fixture。
 - 当前构建首屏主 JS 为 `712.07 kB (gzip 227.77 kB)`；共享评分逻辑保留在 Panel mapper 内，避免为一个小函数引入 contracts runtime barrel。
+
+### 2026-08-23: activity-query and mock-signal tranche
+
+- Activity seam 新增 actor、type、search、起止时间过滤与 offset cursor；响应区分 `filteredTotal`、授权总量 `total` 和 `nextCursor`。
+- Activity 页面移除本地二次过滤，改为服务端式查询状态；工具栏支持操作员、类型、日期范围、搜索，并提供上一页/下一页。
+- Mock mode 同步实现查询语义并补充 system-ingestion fixture；`getAdminPanelApiMode()` 驱动桌面/移动端常显黄色 “Mock 数据” 标识。
+- Mock 模式桌面/移动截图确认侧边栏和 header 都能显式识别 “Mock 数据”；真实模式冒烟与 `/api/admin/activity` 生产 RouteDef 仍待补。
 
 ## Acceptance Gates
 

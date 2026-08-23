@@ -1,8 +1,8 @@
+import { Button } from '@heroui/react';
+import type { ReactElement } from 'react';
+
 import { useActivityPageModel } from '@trapmap/web-panel/features/activity/use-activity-page-model';
-import {
-  localizeActivityType,
-  normalizeActivityType,
-} from '@trapmap/web-panel/shared/lib/display-labels';
+import { localizeActivityType } from '@trapmap/web-panel/shared/lib/display-labels';
 import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
   EmptyState,
@@ -16,34 +16,19 @@ import {
   TimelineItem,
 } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
-import { type ReactElement, useMemo, useState } from 'react';
+
+const activityInputClassName =
+  'h-panel-control w-full rounded-panel-md border border-panel-line bg-panel-surface px-3 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent';
 
 export function ActivityPage(): ReactElement {
   const model = useActivityPageModel();
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
   const { t } = useI18nStore();
-
-  // Local client-side filtering of activity logs
-  const filteredEvents = useMemo(() => {
-    return model.events.filter((event) => {
-      const matchesSearch =
-        event.title.toLowerCase().includes(search.toLowerCase()) ||
-        event.actor.toLowerCase().includes(search.toLowerCase()) ||
-        event.description.toLowerCase().includes(search.toLowerCase());
-
-      const matchesType =
-        typeFilter === 'all' || normalizeActivityType(event.typeLabel) === typeFilter;
-
-      return matchesSearch && matchesType;
-    });
-  }, [model.events, search, typeFilter]);
 
   if (model.error) {
     return (
       <PageTransition className="space-y-6">
         <SectionHeader title={t('activityTitle')} />
-        <ErrorPanel message={model.error} />
+        <ErrorPanel message={model.error} onRetry={() => void model.refresh()} />
       </PageTransition>
     );
   }
@@ -54,81 +39,114 @@ export function ActivityPage(): ReactElement {
         <SectionHeader description={t('activityDesc')} title={t('activityTitle')} />
 
         <section className="grid gap-4 lg:grid-cols-3">
-          <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
+          <div className="rounded-panel-lg border border-panel-line bg-panel-surface p-5 shadow-panel">
             <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
               {t('eventVolume')}
             </p>
             <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-panel-text">
-              {filteredEvents.length}
+              {model.page.filteredTotal}
             </p>
             <p className="mt-2 text-sm leading-6 text-panel-muted">{t('eventVolumeDesc')}</p>
           </div>
-          <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
+          <div className="rounded-panel-lg border border-panel-line bg-panel-surface p-5 shadow-panel">
             <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
               {t('searchFocus')}
             </p>
-            <p className="mt-3 text-lg font-semibold text-panel-text">
-              {search.trim() || t('allOperatorsAndEvents')}
+            <p className="mt-3 truncate text-lg font-semibold text-panel-text">
+              {model.filters.search.trim() ||
+                model.filters.actor.trim() ||
+                t('allOperatorsAndEvents')}
             </p>
             <p className="mt-2 text-sm leading-6 text-panel-muted">{t('searchFocusDesc')}</p>
           </div>
-          <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
+          <div className="rounded-panel-lg border border-panel-line bg-panel-surface p-5 shadow-panel">
             <p className="font-mono text-[12px] font-medium uppercase text-panel-muted">
               {t('typeSlice')}
             </p>
             <p className="mt-3 text-lg font-semibold text-panel-text">
-              {typeFilter === 'all'
+              {model.filters.type === 'all'
                 ? t('allTypes')
-                : typeFilter === 'decision'
+                : model.filters.type === 'decision'
                   ? t('decisions')
-                  : typeFilter === 'intervention'
+                  : model.filters.type === 'intervention'
                     ? t('interventions')
-                    : typeFilter === 'system-ingestion'
-                      ? t('systemIngestion')
-                      : t('unknownType')}
+                    : t('systemIngestion')}
             </p>
             <p className="mt-2 text-sm leading-6 text-panel-muted">{t('typeSliceDesc')}</p>
           </div>
         </section>
 
-        {/* Filters Toolbar */}
         <FilterToolbar>
-          <FilterItem label={t('searchLogs')}>
+          <FilterItem label={t('actorFilter')}>
             <input
-              className="w-full rounded-md border border-panel-line bg-panel-surface px-3 py-2.5 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent"
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('searchLogsPlaceholder')}
+              className={activityInputClassName}
+              onChange={(event) => model.updateFilters({ actor: event.target.value })}
+              placeholder={t('allOperators')}
               type="text"
-              value={search}
+              value={model.filters.actor}
             />
           </FilterItem>
+
           <FilterItem label={t('typeFilter')}>
             <FilterSelect
-              value={typeFilter}
-              onChange={setTypeFilter}
+              onChange={(value) =>
+                model.updateFilters({
+                  type: value as typeof model.filters.type,
+                })
+              }
               options={[
                 { id: 'all', label: t('allTypes') },
                 { id: 'decision', label: t('decisions') },
                 { id: 'intervention', label: t('interventions') },
                 { id: 'system-ingestion', label: t('systemIngestion') },
               ]}
+              value={model.filters.type}
+            />
+          </FilterItem>
+
+          <FilterItem label={t('fromLabel')}>
+            <input
+              className={activityInputClassName}
+              max={model.filters.to || undefined}
+              min={model.filters.from || undefined}
+              onChange={(event) => model.updateFilters({ from: event.target.value })}
+              type="date"
+              value={model.filters.from}
+            />
+          </FilterItem>
+
+          <FilterItem label={t('toLabel')}>
+            <input
+              className={activityInputClassName}
+              max={model.filters.to || undefined}
+              min={model.filters.from || undefined}
+              onChange={(event) => model.updateFilters({ to: event.target.value })}
+              type="date"
+              value={model.filters.to}
+            />
+          </FilterItem>
+
+          <FilterItem label={t('searchLogs')}>
+            <input
+              className={activityInputClassName}
+              onChange={(event) => model.updateFilters({ search: event.target.value })}
+              placeholder={t('searchLogsPlaceholder')}
+              type="search"
+              value={model.filters.search}
             />
           </FilterItem>
         </FilterToolbar>
 
-        {/* List states */}
         {model.loading ? (
           <SkeletonBlock count={5} variant="table" />
-        ) : filteredEvents.length === 0 ? (
+        ) : model.page.filteredTotal === 0 ? (
           <EmptyState
-            description={
-              model.events.length === 0 ? t('noActivityLogsDesc') : t('noMatchedLogsDesc')
-            }
+            description={model.page.total === 0 ? t('noActivityLogsDesc') : t('noMatchedLogsDesc')}
             title={t('noActivityLogs')}
           />
         ) : (
           <FadeIn>
-            <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
+            <div className="rounded-panel-lg border border-panel-line bg-panel-surface p-5 shadow-panel">
               <div className="mb-5 flex items-center justify-between gap-3 border-b border-panel-line pb-4">
                 <div>
                   <h3 className="text-lg font-semibold text-panel-text">
@@ -138,7 +156,7 @@ export function ActivityPage(): ReactElement {
                 </div>
               </div>
               <div className="relative ml-2 border-l-0 border-panel-line/30">
-                {filteredEvents.map((event) => (
+                {model.page.events.map((event) => (
                   <TimelineItem
                     actor={event.actor}
                     description={event.description}
@@ -153,6 +171,28 @@ export function ActivityPage(): ReactElement {
               </div>
             </div>
           </FadeIn>
+        )}
+
+        {model.page.events.length > 0 && (
+          <nav className="flex items-center justify-between gap-3">
+            <Button
+              isDisabled={model.cursor === null}
+              variant="secondary"
+              onPress={() => {
+                const offset = Number.parseInt(model.cursor ?? '0', 10);
+                model.updateCursor(offset > 20 ? String(offset - 20) : null);
+              }}
+            >
+              {t('previousPage')}
+            </Button>
+            <Button
+              isDisabled={model.page.nextCursor === null}
+              variant="secondary"
+              onPress={() => model.updateCursor(model.page.nextCursor)}
+            >
+              {t('nextPage')}
+            </Button>
+          </nav>
         )}
       </PageContainer>
     </PageTransition>

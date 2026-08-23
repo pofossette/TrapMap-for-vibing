@@ -24,6 +24,7 @@
 - 来源/影响/边界：同原登记（5 个 `/api/admin/*` 无后端实现，mock 模式可用）。`apps/web-panel` 本身仍是战略性 human-in-the-loop 产品和治理人工审核保障，必须保留；本条债务仅限于其管理动作尚未接入生产化后端。
 - 2026-08-23 刷新：面板侧已完成 design-token、Dashboard snapshot 绑定、队列 filtered/total 计数区分和 route-level splitting 第一批工作；这不改变 real admin 路由缺失、bearer provider 为 null 或 RBAC 缺失的债务状态。
 - 2026-08-23 追加：治理审核的 `return-for-correction` 已接入 contracts、governance/knowledge owner 和双宿主网关；Web Panel 不再把它伪装成 reject。real admin surface 与 RBAC 债务继续保留。
+- 2026-08-23 追加：Activity 的 actor/type/time/search/cursor 查询已在 mock seam 与页面完成，UI 常显 mock 标识；这不改变 `/api/admin/activity` 生产 RouteDef 缺失或 bearer/RBAC 债务。
 - 进入条件：需要真实管理控制台时。
 - 后续落点：按 [`web-panel-feature-and-ui-optimization.md`](web-panel-feature-and-ui-optimization.md) 的 phased path 实现；实现必须继续使用 RouteDef 工厂补 owner service 路由，并回填 SessionProvider token。
 

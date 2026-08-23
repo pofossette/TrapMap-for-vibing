@@ -50,16 +50,12 @@ function buildReviewQueueQuery(request?: Partial<ReviewQueueRequest>): string {
 function buildActivityQuery(query?: ActivityFeedQuery): string {
   const params = new URLSearchParams();
 
-  if (query?.actor) {
-    params.set('actor', query.actor);
-  }
-
-  if (query?.type) {
-    params.set('type', query.type);
-  }
-
-  if (query?.limit) {
-    params.set('limit', String(query.limit));
+  for (const [key, value] of Object.entries(query ?? {})) {
+    if (value === undefined || value === null) continue;
+    const normalizedValue = typeof value === 'string' ? value.trim() : value;
+    if (normalizedValue !== '') {
+      params.set(key, String(normalizedValue));
+    }
   }
 
   const serialized = params.toString();

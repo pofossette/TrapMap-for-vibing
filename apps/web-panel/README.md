@@ -64,7 +64,7 @@ Endpoints consumed:
 | GET | `/api/admin/reviews/:id` | Review detail with files and activity |
 | POST | `/v1/knowledge/review` | Submit approve/reject/return decision |
 | POST | `/api/admin/reviews/:id/json-edits` | Save manual JSON edit |
-| GET | `/api/admin/activity` | Activity feed (filterable by actor, type) |
+| GET | `/api/admin/activity` | Activity feed (filterable by actor, type, time, search; cursor-paginated) |
 | GET | `/api/admin/artifacts` | Skill artifact list (filterable by lifecycle, scope, level, search) |
 | GET | `/api/admin/artifacts/:id` | Skill artifact detail |
 | GET | `/api/admin/graphs/trap` | Trap topology graph data |
