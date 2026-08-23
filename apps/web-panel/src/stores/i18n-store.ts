@@ -273,6 +273,8 @@ const translations = {
     skillArtifactsCount: 'Skill 工件',
     capsules: 'Capsules',
     artifactsDesc: '查看并检查受治理的 Skill 工件、知识修订和推导产物。',
+    artifactsResult: '个匹配工件',
+    allLevels: '所有级别',
     artifactSearchPlaceholder: '按 ID 或标题搜索...',
     allStates: '所有状态',
     draft: '草稿',
@@ -649,6 +651,8 @@ const translations = {
     capsules: 'Capsules',
     artifactsDesc:
       'View and inspect governed skill artifacts, knowledge revisions, and derived capsules.',
+    artifactsResult: 'matching artifacts',
+    allLevels: 'All levels',
     artifactSearchPlaceholder: 'Search by ID or title...',
     allStates: 'All States',
     draft: 'Draft',

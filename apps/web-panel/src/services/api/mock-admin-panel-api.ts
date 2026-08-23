@@ -16,8 +16,9 @@ import type {
   RuntimeOverviewResponse,
   SessionAccount,
 } from '@trapmap/web-panel/shared/enum-types';
-import { applyReviewQueueQuery } from './review-queue-query';
 import { applyActivityFeedQuery } from './activity-feed-query';
+import { applyArtifactQuery } from './artifact-query';
+import { applyReviewQueueQuery } from './review-queue-query';
 
 const mockArtifacts: SkillArtifact[] = [
   {
@@ -832,26 +833,7 @@ export function createMockAdminPanelApi(): AdminPanelApiContract {
       return applyActivityFeedQuery(structuredClone(activityState.events), query);
     },
     async loadArtifacts(query) {
-      let filtered = [...mockArtifacts];
-      if (query?.lifecycleState && query.lifecycleState !== 'all') {
-        filtered = filtered.filter((a) => a.lifecycleState === query.lifecycleState);
-      }
-      if (query?.scope && query.scope !== 'all') {
-        filtered = filtered.filter((a) => a.scope === query.scope);
-      }
-      if (query?.requiredLevel) {
-        filtered = filtered.filter((a) => a.requiredLevel === query.requiredLevel);
-      }
-      if (query?.search) {
-        const s = query.search.toLowerCase();
-        filtered = filtered.filter(
-          (a) => a.title.toLowerCase().includes(s) || a.id.toLowerCase().includes(s),
-        );
-      }
-      return {
-        items: filtered,
-        total: filtered.length,
-      };
+      return applyArtifactQuery(structuredClone(mockArtifacts), query);
     },
     async loadArtifactDetail(id) {
       const art = mockArtifacts.find((a) => a.id === id);

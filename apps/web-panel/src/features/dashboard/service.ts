@@ -24,6 +24,7 @@ export type DashboardSnapshot = {
 };
 
 const emptyGraph: GraphDataResponse = { nodes: [], edges: [] };
+const DASHBOARD_ARTIFACT_SNAPSHOT_LIMIT = 100;
 
 function countCapsules(
   artifacts: Array<{ history: Array<{ derived?: { capsules?: unknown[] } | null }> }>,
@@ -34,6 +35,12 @@ function countCapsules(
     );
     return total + revisionCapsules.reduce((revisionTotal, count) => revisionTotal + count, 0);
   }, 0);
+}
+
+function hasDerivedRevision(artifact: {
+  history: Array<{ derived?: unknown }>;
+}): boolean {
+  return artifact.history.some((revision) => Boolean(revision.derived));
 }
 
 async function loadRuntimeOverview(api: AdminPanelApiContract): Promise<RuntimeOverview> {
@@ -47,9 +54,10 @@ export async function loadDashboardSnapshot(
   const [overview, trapGraph, artifacts] = await Promise.all([
     loadRuntimeOverview(api),
     api.loadTrapGraph(),
-    api.loadArtifacts(),
+    api.loadArtifacts({ limit: DASHBOARD_ARTIFACT_SNAPSHOT_LIMIT }),
   ]);
-  const primaryArtifact = artifacts.items[0] ?? null;
+  const primaryArtifact =
+    artifacts.items.find((artifact) => hasDerivedRevision(artifact)) ?? artifacts.items[0] ?? null;
   const skillGraph = primaryArtifact
     ? await api.loadSkillGraph(primaryArtifact.id, { mode: 'derivation' })
     : emptyGraph;

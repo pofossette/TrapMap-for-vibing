@@ -10,11 +10,22 @@ import { PageTransition } from '@trapmap/web-panel/shared/motion';
 import { PageContainer, SectionHeader, StatusBadge } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 
-function buildArtifactsQuery(search: string, lifecycleState: string, scope: string): ArtifactQuery {
+const ARTIFACT_PAGE_LIMIT = 20;
+
+function buildArtifactPageQuery(
+  search: string,
+  lifecycleState: string,
+  scope: string,
+  requiredLevel: string,
+  cursor: string | null,
+): ArtifactQuery {
   return {
-    ...(search ? { search } : {}),
+    ...(cursor ? { cursor } : {}),
     ...(lifecycleState !== 'all' ? { lifecycleState } : {}),
+    limit: ARTIFACT_PAGE_LIMIT,
     ...(scope !== 'all' ? { scope } : {}),
+    ...(requiredLevel !== 'all' ? { requiredLevel: Number.parseInt(requiredLevel, 10) } : {}),
+    ...(search.trim() ? { search: search.trim() } : {}),
   };
 }
 
@@ -33,6 +44,8 @@ function ArtifactFilters({
   onLifecycleStateChange,
   scope,
   onScopeChange,
+  requiredLevel,
+  onRequiredLevelChange,
 }: {
   search: string;
   onSearchChange: (value: string) => void;
@@ -40,10 +53,12 @@ function ArtifactFilters({
   onLifecycleStateChange: (value: string) => void;
   scope: string;
   onScopeChange: (value: string) => void;
+  requiredLevel: string;
+  onRequiredLevelChange: (value: string) => void;
 }): ReactElement {
   const { t } = useI18nStore();
   return (
-    <div className="grid gap-4 md:grid-cols-3 bg-panel-surface border border-panel-line rounded-2xl p-4">
+    <div className="grid gap-4 md:grid-cols-4 bg-panel-surface border border-panel-line rounded-panel-lg p-4">
       <input
         className="w-full rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
         placeholder={t('artifactSearchPlaceholder')}
@@ -70,6 +85,20 @@ function ArtifactFilters({
         <option value="all">{t('allScopes')}</option>
         <option value="global">{t('globalScope')}</option>
         <option value="project">{t('projectScope')}</option>
+      </select>
+
+      <select
+        aria-label={t('requiredLevel')}
+        className="w-full rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none"
+        value={requiredLevel}
+        onChange={(event) => onRequiredLevelChange(event.target.value)}
+      >
+        <option value="all">{t('allLevels')}</option>
+        {[1, 2, 3, 4, 5].map((level) => (
+          <option key={level} value={String(level)}>
+            {`${level} - ${level <= 2 ? t('lowRisk') : level === 3 ? t('mediumRisk') : t('highRisk')}`}
+          </option>
+        ))}
       </select>
     </div>
   );
@@ -411,13 +440,20 @@ export function ArtifactsPage(): ReactElement {
   const navigate = useNavigate();
 
   const [artifacts, setArtifacts] = useState<SkillArtifact[]>([]);
+  const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paging, setPaging] = useState({
+    filteredTotal: 0,
+    nextCursor: null as string | null,
+    total: 0,
+  });
 
   // Filters state
   const [search, setSearch] = useState('');
   const [lifecycleState, setLifecycleState] = useState('all');
   const [scope, setScope] = useState('all');
+  const [requiredLevel, setRequiredLevel] = useState('all');
 
   // Detail Drawer state
   const [selectedArtifact, setSelectedArtifact] = useState<SkillArtifact | null>(null);
@@ -429,15 +465,20 @@ export function ArtifactsPage(): ReactElement {
     setError(null);
     try {
       const response = await getAdminPanelApi().loadArtifacts(
-        buildArtifactsQuery(search, lifecycleState, scope),
+        buildArtifactPageQuery(search, lifecycleState, scope, requiredLevel, cursor),
       );
       setArtifacts(response.items);
+      setPaging({
+        filteredTotal: response.filteredTotal,
+        nextCursor: response.nextCursor,
+        total: response.total,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load artifacts');
     } finally {
       setLoading(false);
     }
-  }, [lifecycleState, scope, search]);
+  }, [cursor, lifecycleState, requiredLevel, scope, search]);
 
   useEffect(() => {
     void fetchArtifacts();
@@ -475,12 +516,32 @@ export function ArtifactsPage(): ReactElement {
         {/* Filters bar */}
         <ArtifactFilters
           search={search}
-          onSearchChange={setSearch}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setCursor(null);
+          }}
           lifecycleState={lifecycleState}
-          onLifecycleStateChange={setLifecycleState}
+          onLifecycleStateChange={(value) => {
+            setLifecycleState(value);
+            setCursor(null);
+          }}
           scope={scope}
-          onScopeChange={setScope}
+          onScopeChange={(value) => {
+            setScope(value);
+            setCursor(null);
+          }}
+          requiredLevel={requiredLevel}
+          onRequiredLevelChange={(value) => {
+            setRequiredLevel(value);
+            setCursor(null);
+          }}
         />
+
+        {!loading && (
+          <p className="px-1 font-mono text-xs text-panel-muted">
+            {paging.filteredTotal} / {paging.total} {t('artifactsResult')}
+          </p>
+        )}
 
         {/* Artifacts Table */}
         <ArtifactTable
@@ -490,6 +551,29 @@ export function ArtifactsPage(): ReactElement {
           onRetry={() => void fetchArtifacts()}
           onRowClick={(artifact) => void handleRowClick(artifact)}
         />
+
+        {!loading && artifacts.length > 0 && (
+          <nav className="flex items-center justify-between gap-3">
+            <Button
+              isDisabled={cursor === null}
+              variant="secondary"
+              onPress={() => {
+                const offset = Number.parseInt(cursor ?? '0', 10);
+                const previous = offset - ARTIFACT_PAGE_LIMIT;
+                setCursor(previous > 0 ? String(previous) : null);
+              }}
+            >
+              {t('previousPage')}
+            </Button>
+            <Button
+              isDisabled={paging.nextCursor === null}
+              variant="secondary"
+              onPress={() => setCursor(paging.nextCursor)}
+            >
+              {t('nextPage')}
+            </Button>
+          </nav>
+        )}
       </PageContainer>
 
       {/* Detail Drawer */}

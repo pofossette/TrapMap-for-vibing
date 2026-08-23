@@ -20,4 +20,21 @@ describe('loadDashboardSnapshot', () => {
       capsules: 2,
     });
   });
+
+  it('prefers a derived artifact for the preview graph while paging artifacts', async () => {
+    const requests: unknown[] = [];
+    const derivedArtifact = createMockAdminPanelApi();
+    const api = {
+      ...derivedArtifact,
+      loadArtifacts(query) {
+        requests.push(query);
+        return derivedArtifact.loadArtifacts(query);
+      },
+    };
+
+    const snapshot = await loadDashboardSnapshot(api);
+
+    expect(requests).toEqual([{ limit: 100 }]);
+    expect(snapshot.skillGraph.nodes).toHaveLength(7);
+  });
 });

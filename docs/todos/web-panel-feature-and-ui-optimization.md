@@ -25,8 +25,8 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 - 七条管理路由已经存在：Dashboard、Review Queue、Review Detail、Artifacts、Trap Graph、Skill Graph、Activity。
 - 已有中英双语 i18n、Zustand stores、real/mock API seam、G6 graph、review/JSON-edit actions。
-- 第四批实现后测试规模为 21 个文件、49 tests。
-- 剩余功能缺口包括 auth/RBAC 缺失和 browser bearer provider 为 null。Dashboard 硬编码、图谱/规模预览失真、return-for-correction 映射为 reject、review queue 客户端 filter/sort/pagination，以及 activity 本地过滤/无 cursor 已清理。
+- 第五批实现后测试规模为 22 个文件、54 tests。
+- 剩余功能缺口包括 auth/RBAC 缺失和 browser bearer provider 为 null。Dashboard 硬编码、return-for-correction 映射为 reject、review queue 客户端 filter/sort/pagination，以及 activity 本地过滤/无 cursor 已清理。Dashboard 的 artifact 规模统计仍受 snapshot 首页上限约束。
 - 目标 dark/yellow token 已建立并替换蓝色/Geist 默认值；全站响应式细节、空态统一与真实模式仍待完成。
 
 ## Phased Plan
@@ -66,7 +66,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - [x] Move review-queue filtering, sorting, search, and pagination to the server; preserve distinct filtered and total counts.
 - [ ] Load real review files and review activity.
 - [x] Introduce distinct return-for-correction semantics instead of mapping that decision to reject.
-- [ ] Add artifact level filtering, search, and robust pagination.
+- [x] Add artifact level filtering, search, and robust pagination.
 - [ ] Wire graph depth, search, and mode controls to actual graph requests/state.
 - [x] Add activity actor/time/type filters and cursor paging.
 
@@ -127,6 +127,18 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - Activity 页面移除本地二次过滤，改为服务端式查询状态；工具栏支持操作员、类型、日期范围、搜索，并提供上一页/下一页。
 - Mock mode 同步实现查询语义并补充 system-ingestion fixture；`getAdminPanelApiMode()` 驱动桌面/移动端常显黄色 “Mock 数据” 标识。
 - Mock 模式桌面/移动截图确认侧边栏和 header 都能显式识别 “Mock 数据”；真实模式冒烟与 `/api/admin/activity` 生产 RouteDef 仍待补。
+
+### 2026-08-23: artifact-query tranche
+
+- Artifact seam 新增 lifecycle、scope、requiredLevel 和 search 组合过滤，按更新时间与 ID 确定性排序，并使用 offset cursor 分页；响应区分筛选命中 `filteredTotal` 与授权总量 `total`。
+- Real transport 序列化完整查询参数，页面移除全量加载假设，增加需求级别筛选、结果计数和上一页/下一页控制；筛选变化时重置 cursor。
+- Dashboard snapshot 显式请求最多 100 个工件，并优先选择带推导结果的工件作为 Skill Graph 预览，避免分页排序变化让空推导 fixture 抢占预览位。
+- 当前构建首屏主 JS 为 `730.14 kB (gzip 232.61 kB)`；异步 G6 preset 保持 `1,411.49 kB (gzip 408.80 kB)` 且不进入首屏 script。
+
+### Current compromises
+
+- Artifact 查询仍只在 mock seam 实现；生产 `/api/admin/artifacts` RouteDef、bearer/session propagation 和 RBAC 继续留在 Phase 1 / Phase 2。
+- Dashboard 的 capsule 计数来自 snapshot 首页最多 100 个工件，超过该规模的精确聚合需要专用 admin aggregate endpoint。
 
 ## Acceptance Gates
 

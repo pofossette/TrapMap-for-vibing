@@ -6,6 +6,7 @@ import type {
   AdminPanelApiContract,
   AdminPanelSession,
   ArtifactListResponse,
+  ArtifactQuery,
   GraphDataResponse,
   ManualJsonEditInput,
   ReviewDetailResponse,
@@ -57,6 +58,24 @@ function buildActivityQuery(query?: ActivityFeedQuery): string {
       params.set(key, String(normalizedValue));
     }
   }
+
+  const serialized = params.toString();
+  return serialized.length > 0 ? `?${serialized}` : '';
+}
+
+function buildArtifactQuery(query?: ArtifactQuery): string {
+  const params = new URLSearchParams();
+
+  if (query?.cursor) params.set('cursor', query.cursor);
+  if (query?.lifecycleState && query.lifecycleState !== 'all') {
+    params.set('lifecycleState', query.lifecycleState);
+  }
+  if (query?.limit) params.set('limit', String(query.limit));
+  if (query?.scope && query.scope !== 'all') params.set('scope', query.scope);
+  if (query?.requiredLevel !== undefined) {
+    params.set('requiredLevel', String(query.requiredLevel));
+  }
+  if (query?.search?.trim()) params.set('search', query.search.trim());
 
   const serialized = params.toString();
   return serialized.length > 0 ? `?${serialized}` : '';
@@ -119,14 +138,8 @@ export function createAdminPanelApi(client: HttpClient): AdminPanelApiContract {
     },
 
     loadArtifacts(query) {
-      const params = new URLSearchParams();
-      if (query?.lifecycleState) params.set('lifecycleState', query.lifecycleState);
-      if (query?.scope) params.set('scope', query.scope);
-      if (query?.requiredLevel) params.set('requiredLevel', String(query.requiredLevel));
-      if (query?.search) params.set('search', query.search);
-      const serialized = params.toString();
       return client.request<ArtifactListResponse>({
-        path: `/api/admin/artifacts${serialized.length > 0 ? `?${serialized}` : ''}`,
+        path: `/api/admin/artifacts${buildArtifactQuery(query)}`,
       });
     },
 

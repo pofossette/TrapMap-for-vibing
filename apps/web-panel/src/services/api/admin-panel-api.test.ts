@@ -83,3 +83,40 @@ describe('admin panel activity transport', () => {
     });
   });
 });
+
+describe('admin panel artifact transport', () => {
+  it('sends level, search, lifecycle, scope, and paging parameters', async () => {
+    const paths: string[] = [];
+    const client: HttpClient = {
+      async request(options) {
+        paths.push(options.path);
+        return {
+          items: [],
+          nextCursor: null,
+          filteredTotal: 0,
+          total: 0,
+        };
+      },
+    };
+
+    await createAdminPanelApi(client).loadArtifacts({
+      cursor: '12',
+      lifecycleState: 'approved',
+      limit: 12,
+      requiredLevel: 3,
+      scope: 'project',
+      search: ' docker ',
+    });
+
+    const url = new URL(paths[0] ?? '', 'http://localhost');
+    expect(url.pathname).toBe('/api/admin/artifacts');
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      cursor: '12',
+      lifecycleState: 'approved',
+      limit: '12',
+      requiredLevel: '3',
+      scope: 'project',
+      search: 'docker',
+    });
+  });
+});
