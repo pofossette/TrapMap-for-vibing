@@ -14,6 +14,7 @@
 - `CLAUDE.md`
 - `CHANGELOG.md`
 - `README.md`
+- `DESIGN.md`：Web Panel 视觉系统基线，供产品/UI TODO 和后续实现引用。
 - `architecture.md`
 - `plan.md`
 

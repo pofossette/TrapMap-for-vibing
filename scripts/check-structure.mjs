@@ -10,6 +10,7 @@ const ROOT_MD_ALLOWLIST = [
   'CLAUDE.md',
   'CHANGELOG.md',
   'README.md',
+  'DESIGN.md',
   'architecture.md',
   'plan.md',
 ];
