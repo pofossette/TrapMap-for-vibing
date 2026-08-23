@@ -95,6 +95,10 @@ export interface KnowledgeCommandPort {
     entryId: string;
     lifecycleState: 'rejected';
   }>;
+  returnReviewDecision(input: KnowledgeOwnerCommandInput): Promise<{
+    entryId: string;
+    lifecycleState: 'submitted';
+  }>;
   applyMaintenanceDecision(input: KnowledgeOwnerCommandInput): Promise<{
     entryId: string;
     action: string;

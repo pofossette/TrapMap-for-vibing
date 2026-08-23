@@ -3,7 +3,7 @@
 ## Status
 
 - **Active mainline（2026-08-23 启动）。**
-- Owner 已选择本细则并授权开始实现；当前处于 Phase 0 / 3 / 5 交叉推进状态，尚未满足 closeout 条件。
+- Owner 已选择本细则并授权开始实现；当前处于 Phase 0 / 2 / 3 / 5 定向切片交叉推进状态，尚未满足 closeout 条件。
 
 ## Product Stance
 
@@ -25,8 +25,8 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 - 七条管理路由已经存在：Dashboard、Review Queue、Review Detail、Artifacts、Trap Graph、Skill Graph、Activity。
 - 已有中英双语 i18n、Zustand stores、real/mock API seam、G6 graph、review/JSON-edit actions。
-- 首批实现后测试规模为 17 个文件、36 tests。
-- 剩余功能缺口包括 review queue 客户端过滤与排序、auth/RBAC 缺失、browser bearer provider 为 null、缺少 server pagination/filtering，以及 return-for-correction 被映射为 reject。Dashboard 硬编码和图谱/规模预览失真已在首批清理。
+- 第二批实现后测试规模为 18 个文件、39 tests。
+- 剩余功能缺口包括 review queue 客户端过滤与排序、auth/RBAC 缺失、browser bearer provider 为 null，以及缺少 server pagination/filtering。Dashboard 硬编码、图谱/规模预览失真和 return-for-correction 映射为 reject 已在首批清理。
 - 目标 dark/yellow token 已建立并替换蓝色/Geist 默认值；全站响应式细节、空态统一与真实模式仍待完成。
 
 ## Phased Plan
@@ -65,7 +65,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - [x] Remove dashboard hardcoding and bind workload, graph, scale, incident, and preview data to real API state.
 - [ ] Move review-queue filtering, sorting, search, and pagination to the server; preserve distinct filtered and total counts.
 - [ ] Load real review files and review activity.
-- [ ] Introduce distinct return-for-correction semantics instead of mapping that decision to reject.
+- [x] Introduce distinct return-for-correction semantics instead of mapping that decision to reject.
 - [ ] Add artifact level filtering, search, and robust pagination.
 - [ ] Wire graph depth, search, and mode controls to actual graph requests/state.
 - [ ] Add activity actor/time/type filters and cursor paging.
@@ -105,6 +105,13 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - Phase 0 的 before screenshots 尚未捕获，Phase 5 的 after screenshot review 也未完成。
 - Review Queue 仍在客户端执行 search/source/risk/sort；server-side filtering、cursor paging 和 distinct total contract 要按 Phase 2/3 单独处理。
 - Real admin routes、browser bearer/session propagation、RBAC 和 visible mock label 未实现。
+
+### 2026-08-23: correction-return tranche
+
+- 将 `return-for-correction` 从 Web Panel 本地映射为 reject 改为共享契约中的一等决策。
+- 打通 governance-review → knowledge-write → PostgreSQL owner 链路：该决策记录独立审计和历史事件，并把知识条目送回 `submitted` 修正流，不再永久锁定。
+- host-local Nest gateway 与 host-distributed gateway 均支持该决策；distributed internal HTTP/RPC client 补齐 `returnReviewDecision` 方法。
+- Mock API 同步使用 `submitted` 状态；Web Panel 抽取 decision helper 并用测试锁住“不改写决策、拒绝/退回必须填写理由”的行为。
 
 ## Acceptance Gates
 

@@ -23,4 +23,17 @@ describe('review-detail service', () => {
     expect(updated.status).toBe('approved');
     expect(updated.reviewHistory.at(-1)?.notes).toBe('looks good');
   });
+
+  it('keeps return-for-correction out of the rejected lifecycle', async () => {
+    const updated = await submitReviewDecision(createMockAdminPanelApi(), {
+      entryId: 'rev-201',
+      decision: 'return-for-correction',
+      notes: 'revise the boundary fields',
+    });
+
+    expect(updated.status).toBe('submitted');
+    expect(updated.rawEntry.lifecycleState).toBe('submitted');
+    expect(updated.reviewHistory.at(-1)?.decision).toBe('return-for-correction');
+    expect(updated.reviewHistory.at(-1)?.notes).toBe('revise the boundary fields');
+  });
 });

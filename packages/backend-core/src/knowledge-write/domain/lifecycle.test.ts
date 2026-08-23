@@ -24,7 +24,7 @@ describe('knowledge-write lifecycle domain', () => {
   it('locks the full transition table as the authoritative truth', () => {
     expect(LIFECYCLE_TRANSITIONS).toEqual({
       draft: ['submitted', 'approved'],
-      submitted: ['agent-pass', 'agent-rejected'],
+      submitted: ['submitted', 'agent-pass', 'agent-rejected'],
       'agent-pass': ['approved', 'rejected', 'deactivated', 'agent-pass'],
       'agent-rejected': ['agent-pass', 'rejected', 'approved', 'deactivated', 'agent-rejected'],
       approved: ['deactivated', 'agent-pass', 'agent-rejected'],

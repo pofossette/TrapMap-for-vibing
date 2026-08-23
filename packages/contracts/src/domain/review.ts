@@ -31,9 +31,10 @@ export const reviewDecisionRequestSchema = z
       (value) => {
         if (value === 'approved') return 'approve';
         if (value === 'rejected') return 'reject';
+        if (value === 'returned') return 'return-for-correction';
         return value;
       },
-      z.enum(['approve', 'reject']),
+      z.enum(['approve', 'reject', 'return-for-correction']),
     ),
     notes: z.string().min(1).max(2000),
     boundary: boundarySchema.nullable().optional(),

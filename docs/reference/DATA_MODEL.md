@@ -157,6 +157,9 @@ draft → submitted → agent-pass/agent-rejected
                     approved        rejected
                         ↓               ↓
                    (可更新)      (可 resubmit)
+
+`return-for-correction` 是审核决策值，不是新增生命周期状态；它将或保持条目在
+`submitted`，同时写入独立的 review history 与 audit 记录。
 ```
 
 ### Scope（作用域）

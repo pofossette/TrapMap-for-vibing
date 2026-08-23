@@ -17,6 +17,10 @@ function createModule(
   return {
     approve: vi.fn(async () => ({ entryId: 'entry-1', lifecycleState: 'approved' as const })),
     reject: vi.fn(async () => ({ entryId: 'entry-1', lifecycleState: 'rejected' as const })),
+    returnForCorrection: vi.fn(async () => ({
+      entryId: 'entry-1',
+      lifecycleState: 'submitted' as const,
+    })),
     applyMaintenance: vi.fn(async () => ({ entryId: 'entry-1', action: 'refresh' })),
     applyDecay: vi.fn(async () => ({ entryId: 'entry-1', action: 'suppress' })),
     reviewArtifact: vi.fn(async () => undefined),
@@ -89,6 +93,31 @@ describe.each(ADAPTERS)('service-governance-review routes (%s adapter)', (adapte
     expect(response.json()).toEqual({ detectedCount: 1 });
     expect(detectConflicts).toHaveBeenCalledWith({ entryId: 'entry-1' });
 
+    await app.close();
+  });
+
+  it('routes return-for-correction as its own command', async () => {
+    const module = createModule();
+    const app = await buildApp(module, adapter);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/review/return-for-correction',
+      payload: {
+        entryId: 'entry-1',
+        actorId: 'user-1',
+        note: 'revise the boundary fields',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ entryId: 'entry-1', lifecycleState: 'submitted' });
+    expect(module.returnForCorrection).toHaveBeenCalledWith({
+      entryId: 'entry-1',
+      actorId: 'user-1',
+      note: 'revise the boundary fields',
+    });
+    expect(module.reject).not.toHaveBeenCalled();
     await app.close();
   });
 

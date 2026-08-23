@@ -129,6 +129,17 @@ describe('knowledge schema contracts', () => {
       expect(decision.decision).toBe('reject');
     });
 
+    it('accepts return-for-correction as a distinct decision record', () => {
+      const decision = reviewDecisionSchema.parse({
+        decidedAt: '2024-01-01T00:00:00Z',
+        decidedBy: validActorRef,
+        decision: 'return-for-correction',
+        notes: 'Needs boundary details',
+      });
+
+      expect(decision.decision).toBe('return-for-correction');
+    });
+
     it('rejects empty notes', () => {
       expect(() =>
         reviewDecisionSchema.parse({

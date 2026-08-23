@@ -675,7 +675,12 @@ export function createMockAdminPanelApi(): AdminPanelApiContract {
         decision: input.decision,
         notes: input.notes,
       });
-      detail.entry.lifecycleState = input.decision === 'approve' ? 'approved' : 'rejected';
+      detail.entry.lifecycleState =
+        input.decision === 'approve'
+          ? 'approved'
+          : input.decision === 'return-for-correction'
+            ? 'submitted'
+            : 'rejected';
 
       reviewQueueState = {
         ...reviewQueueState,

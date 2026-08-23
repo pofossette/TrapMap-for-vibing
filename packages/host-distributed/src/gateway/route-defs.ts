@@ -406,7 +406,7 @@ const reviewDecisionSchema = z.object({
   query: emptyRecord,
   body: z.object({
     entryId: z.string(),
-    decision: z.enum(['approve', 'reject']),
+    decision: z.enum(['approve', 'reject', 'return-for-correction']),
     actorId: z.string(),
     note: z.string().optional(),
   }),
@@ -934,7 +934,9 @@ export function createGatewayRouteDefs(_clients: InternalServiceClients): RouteD
         return forward(
           ctx.body.decision === 'approve'
             ? clients.review.approve(command)
-            : clients.review.reject(command),
+            : ctx.body.decision === 'return-for-correction'
+              ? clients.review.returnForCorrection(command)
+              : clients.review.reject(command),
         );
       },
     }),

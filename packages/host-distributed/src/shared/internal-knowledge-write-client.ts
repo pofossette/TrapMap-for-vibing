@@ -64,6 +64,7 @@ export function createRemoteKnowledgeWriteClient(
   | 'publishCandidateResult'
   | 'approveReviewDecision'
   | 'rejectReviewDecision'
+  | 'returnReviewDecision'
   | 'applyMaintenanceDecision'
   | 'applyDecayDecision'
 > {
@@ -111,6 +112,13 @@ export function createRemoteKnowledgeWriteClient(
         input,
         `knowledge-write rejectReviewDecision failed for entry: ${input.entryId}`,
         clients.knowledgeWrite.rejectReviewDecision(input, requestOptions),
+      ),
+    returnReviewDecision: (input) =>
+      invoke<{ entryId: string; lifecycleState: 'submitted' }>(
+        'returnReviewDecision',
+        input,
+        `knowledge-write returnReviewDecision failed for entry: ${input.entryId}`,
+        clients.knowledgeWrite.returnReviewDecision(input, requestOptions),
       ),
     applyMaintenanceDecision: (input) =>
       invoke<{ entryId: string; action: string }>(

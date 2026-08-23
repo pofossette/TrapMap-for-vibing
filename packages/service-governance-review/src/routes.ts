@@ -67,6 +67,7 @@ const GOVERNANCE_REVIEW_OWNERSHIP = {
   commandSurface: [
     'approve',
     'reject',
+    'returnForCorrection',
     'applyMaintenance',
     'applyDecay',
     'reviewArtifact',
@@ -298,6 +299,13 @@ export function createGovernanceReviewRouteDefs(
       path: '/internal/review/reject',
       schema: reviewCommandSchema,
       handler: (ctx, module) => module.reject(reviewCommandArgs(ctx)),
+    }),
+
+    governanceRouteDef({
+      method: 'POST',
+      path: '/internal/review/return-for-correction',
+      schema: reviewCommandSchema,
+      handler: (ctx, module) => module.returnForCorrection(reviewCommandArgs(ctx)),
     }),
 
     governanceRouteDef({

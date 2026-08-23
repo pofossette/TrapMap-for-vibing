@@ -10,7 +10,7 @@ import type { LifecycleState } from '@trapmap/contracts';
 
 export const LIFECYCLE_TRANSITIONS: Readonly<Record<LifecycleState, readonly LifecycleState[]>> = {
   draft: ['submitted', 'approved'],
-  submitted: ['agent-pass', 'agent-rejected'],
+  submitted: ['submitted', 'agent-pass', 'agent-rejected'],
   'agent-pass': ['approved', 'rejected', 'deactivated', 'agent-pass'],
   'agent-rejected': ['agent-pass', 'rejected', 'approved', 'deactivated', 'agent-rejected'],
   approved: ['deactivated', 'agent-pass', 'agent-rejected'],

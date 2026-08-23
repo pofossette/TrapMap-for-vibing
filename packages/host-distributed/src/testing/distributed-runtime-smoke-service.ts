@@ -124,6 +124,10 @@ function createKnowledgeWriteModule(state: DiagnosticsState): KnowledgeWritePort
       state.hits.push(`knowledge-write:reject:${input.entryId}`);
       return { entryId: input.entryId, lifecycleState: 'rejected' };
     },
+    returnReviewDecision: async (input) => {
+      state.hits.push(`knowledge-write:return:${input.entryId}`);
+      return { entryId: input.entryId, lifecycleState: 'submitted' };
+    },
     applyMaintenanceDecision: async (input) => {
       state.hits.push(`knowledge-write:maintenance:${input.entryId}`);
       return { entryId: input.entryId, action: input.action };
@@ -253,6 +257,17 @@ function createGovernanceModule(
         },
       });
       return response.body as { entryId: string; lifecycleState: 'rejected' };
+    },
+    returnForCorrection: async (input) => {
+      state.hits.push(`review:return:${input.entryId}`);
+      const response = await clients.knowledgeWrite.returnReviewDecision(input, {
+        headers: {
+          'x-request-id': 'req-closeout',
+          'x-trace-id': 'trace-closeout',
+          'x-trapmap-actor-id': input.actorId,
+        },
+      });
+      return response.body as { entryId: string; lifecycleState: 'submitted' };
     },
     applyMaintenance: async (input) => {
       state.hits.push(`review:maintenance:${input.entryId}`);

@@ -132,6 +132,13 @@ export interface KnowledgeWritePort {
     evidence?: Record<string, unknown>;
   }): Promise<{ entryId: string; lifecycleState: 'rejected' }>;
 
+  returnReviewDecision(input: {
+    entryId: string;
+    actorId: string;
+    note?: string;
+    evidence?: Record<string, unknown>;
+  }): Promise<{ entryId: string; lifecycleState: 'submitted' }>;
+
   applyMaintenanceDecision(input: {
     entryId: string;
     actorId: string;
@@ -200,6 +207,12 @@ export interface ReviewPort {
     note?: string;
     evidence?: Record<string, unknown>;
   }): Promise<{ entryId: string; lifecycleState: 'rejected' }>;
+  returnForCorrection(input: {
+    entryId: string;
+    actorId: string;
+    note?: string;
+    evidence?: Record<string, unknown>;
+  }): Promise<{ entryId: string; lifecycleState: 'submitted' }>;
   applyMaintenance(input: {
     entryId: string;
     actorId: string;

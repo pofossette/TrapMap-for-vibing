@@ -27,6 +27,7 @@ export interface GovernanceReviewDeps {
     KnowledgeWritePort,
     | 'approveReviewDecision'
     | 'rejectReviewDecision'
+    | 'returnReviewDecision'
     | 'applyMaintenanceDecision'
     | 'applyDecayDecision'
   >;
@@ -67,6 +68,19 @@ export function createGovernanceReviewModule(deps: GovernanceReviewDeps): Review
 
       await deps.auditLog.record({
         action: 'review.reject',
+        actorId: input.actorId,
+        entityId: input.entryId,
+        metadata: { note: input.note, evidence: input.evidence ?? null },
+      });
+
+      return result;
+    },
+
+    async returnForCorrection(input) {
+      const result = await deps.knowledgeWrite.returnReviewDecision(input);
+
+      await deps.auditLog.record({
+        action: 'review.return-for-correction',
         actorId: input.actorId,
         entityId: input.entryId,
         metadata: { note: input.note, evidence: input.evidence ?? null },

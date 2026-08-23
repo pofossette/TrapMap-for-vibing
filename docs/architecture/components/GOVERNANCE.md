@@ -68,7 +68,7 @@ type Permission =
   // 知识操作
   | 'knowledge:submit'     // 提交新知识
   | 'knowledge:search'     // 搜索和检索
-  | 'knowledge:review'     // 审核（批准/拒绝）
+  | 'knowledge:review'     // 审核（批准/拒绝/退回修正）
   | 'knowledge:update'     // 更新现有条目
   | 'knowledge:import'     // 批量导入
   | 'knowledge:export'     // 批量导出
@@ -149,7 +149,7 @@ CLI 入口 (`apps/cli/src/index.ts`) 将 RBAC 权限和安全等级组合为 `vi
 |-------------|------|----------|
 | `allowKnowledgeSubmit` | `knowledge:submit` | `submit`, `resubmit`, `trap submit`, `skill edit` |
 | `allowKnowledgeSearch` | `knowledge:search` | `search`, `load`, `feedback`, `skill search-by-content` |
-| `allowKnowledgeReview` | `securityLevel >= 1` + `knowledge:review` | `review:queue/approve/reject`, `skill review:*`, `skill duplicate-job *` |
+| `allowKnowledgeReview` | `securityLevel >= 1` + `knowledge:review` | `review:queue/approve/reject/return-for-correction`, `skill review:*`, `skill duplicate-job *` |
 | `allowKnowledgeExport` | `knowledge:export` | `list`, `export`, `activate`, `status`, `skill history` |
 | `allowKnowledgeImport` | `securityLevel >= 1` + `knowledge:import` | `import`, `migrate` |
 | `allowKnowledgeUpdate` | `securityLevel >= 1` + `knowledge:update` | `edit`, `deactivate` |

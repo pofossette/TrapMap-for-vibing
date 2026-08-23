@@ -295,7 +295,7 @@ deployment flexibility 最小验证矩阵：
 ```typescript
 knowledge:submit    // 提交新知识条目
 knowledge:search   // 搜索和检索条目
-knowledge:review   // 审批/拒绝提交
+knowledge:review   // 审批、拒绝或退回修正提交
 knowledge:update   // 编辑现有条目
 knowledge:import   // 批量导入
 knowledge:export   // 批量导出
@@ -310,7 +310,7 @@ member:key:create  // 生成访问密钥
 
 ### 生命周期状态（知识条目示意）
 ```
-draft → submitted → agent-pass/agent-rejected → approved/rejected → deactivated
+draft → submitted ⇄(return-for-correction) → agent-pass/agent-rejected → approved/rejected → deactivated
 ```
 
 更完整的数据模型、状态枚举和路由差异请参考 [reference/DATA_MODEL.md](reference/DATA_MODEL.md) 与 [reference/api-surface.md](reference/api-surface.md)。

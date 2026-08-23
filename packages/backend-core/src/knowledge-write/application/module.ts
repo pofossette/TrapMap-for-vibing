@@ -162,6 +162,27 @@ export function createKnowledgeWriteModule(deps: KnowledgeWriteDeps): KnowledgeW
       return result;
     },
 
+    async returnReviewDecision(input) {
+      const entry = await ownerEntry(input.entryId);
+      assertValidLifecycleTransition(
+        entry.lifecycleState,
+        reviewDecisionTargetState('return-for-correction'),
+      );
+      const result = await deps.knowledgeOwner.returnReviewDecision({
+        ...input,
+        note: input.note ?? 'Returned for correction',
+      });
+
+      await deps.auditLog.record({
+        action: 'knowledge.review-returned',
+        actorId: input.actorId,
+        entityId: input.entryId,
+        metadata: { evidence: input.evidence ?? null, note: input.note ?? null },
+      });
+
+      return result;
+    },
+
     async applyMaintenanceDecision(input) {
       const entry = await ownerEntry(input.entryId);
       if (isDeactivationAction(String(input.action))) {

@@ -77,6 +77,10 @@ function createClients(): InternalServiceClients & { feedbackAdmin: FeedbackAdmi
       applyMaintenanceDecision: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       listTraps: vi.fn(async () => ({ status: 200, body: [{ id: 'trap-1' }] })),
       getTrap: vi.fn(async () => ({ status: 200, body: { id: 'trap-1' } })),
+      returnReviewDecision: vi.fn(async () => ({
+        status: 200,
+        body: { entryId: 'entry-1', lifecycleState: 'submitted' },
+      })),
     },
     candidateIngestion: {
       submit: vi.fn(async () => ({ status: 201, body: { id: 'candidate-1' } })),
@@ -92,6 +96,10 @@ function createClients(): InternalServiceClients & { feedbackAdmin: FeedbackAdmi
     review: {
       approve: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       reject: vi.fn(async () => ({ status: 200, body: { ok: true } })),
+      returnForCorrection: vi.fn(async () => ({
+        status: 200,
+        body: { entryId: 'entry-1', lifecycleState: 'submitted' },
+      })),
       applyMaintenance: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       applyDecay: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       reviewArtifact: vi.fn(async () => ({ status: 200, body: { ok: true } })),
@@ -100,6 +108,10 @@ function createClients(): InternalServiceClients & { feedbackAdmin: FeedbackAdmi
     governanceReview: {
       approve: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       reject: vi.fn(async () => ({ status: 200, body: { ok: true } })),
+      returnForCorrection: vi.fn(async () => ({
+        status: 200,
+        body: { entryId: 'entry-1', lifecycleState: 'submitted' },
+      })),
       applyMaintenance: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       applyDecay: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       reviewArtifact: vi.fn(async () => ({ status: 200, body: { ok: true } })),
@@ -290,6 +302,32 @@ describe('registerGatewayRoutes', () => {
 
     expect(response.statusCode).toBe(403);
     expect(clients.knowledgeWrite.activateArtifact).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it('forwards return-for-correction through the governance service', async () => {
+    const clients = createClients();
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/knowledge/review',
+      headers: { authorization: 'Bearer session-token' },
+      payload: {
+        entryId: 'entry-1',
+        actorId: 'user-1',
+        decision: 'return-for-correction',
+        note: 'revise the boundary fields',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(clients.review.reject).not.toHaveBeenCalled();
+    expect(clients.review.returnForCorrection).toHaveBeenCalledWith({
+      entryId: 'entry-1',
+      actorId: 'user-1',
+      note: 'revise the boundary fields',
+    });
     await app.close();
   });
 

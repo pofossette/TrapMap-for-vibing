@@ -419,6 +419,15 @@ export interface InternalServiceClients {
       },
       options?: InternalRequestOptions,
     ): Promise<ServiceResponse>;
+    returnReviewDecision(
+      body: {
+        entryId: string;
+        actorId: string;
+        note?: string;
+        evidence?: Record<string, unknown>;
+      },
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
     applyMaintenanceDecision(
       body: {
         entryId: string;
@@ -475,6 +484,11 @@ export interface InternalServiceClients {
     detectConflicts(body: { entryId: string }): Promise<ServiceResponse>;
     approve(body: { entryId: string; actorId: string; note?: string }): Promise<ServiceResponse>;
     reject(body: { entryId: string; actorId: string; note?: string }): Promise<ServiceResponse>;
+    returnForCorrection(body: {
+      entryId: string;
+      actorId: string;
+      note?: string;
+    }): Promise<ServiceResponse>;
     applyMaintenance(body: {
       entryId: string;
       actorId: string;
@@ -572,6 +586,12 @@ function createGovernanceReviewClient(
       callInternalService(`${await baseUrlFor()}/internal/review/approve`, 'POST', body),
     reject: async (body) =>
       callInternalService(`${await baseUrlFor()}/internal/review/reject`, 'POST', body),
+    returnForCorrection: async (body) =>
+      callInternalService(
+        `${await baseUrlFor()}/internal/review/return-for-correction`,
+        'POST',
+        body,
+      ),
     applyMaintenance: async (body) =>
       callInternalService(`${await baseUrlFor()}/internal/review/maintenance`, 'POST', body),
     applyDecay: async (body) =>
@@ -872,6 +892,14 @@ export function createInternalServiceClients(
       rejectReviewDecision: async (body, options) =>
         callInternalService(
           `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge/review/reject`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      returnReviewDecision: async (body, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/knowledge/review/return-for-correction`,
           'POST',
           body,
           undefined,

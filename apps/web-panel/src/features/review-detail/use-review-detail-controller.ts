@@ -6,6 +6,7 @@ import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import { useJsonEditorStore } from '@trapmap/web-panel/stores/json-editor-store';
 import { useReviewDetailStore } from '@trapmap/web-panel/stores/review-detail-store';
 import { loadReviewDetail, submitReviewDecision } from './service';
+import { prepareReviewDecision } from './decision';
 
 type ContextCard = {
   label: 'assignedReviewer' | 'createdAt' | 'sourceLabel' | 'statusLabel';
@@ -73,21 +74,22 @@ export function useReviewDetailController(reviewId: string) {
         return false;
       }
 
-      if (decision !== 'approve' && decisionRationale.trim().length === 0) {
+      let command;
+
+      try {
+        command = prepareReviewDecision({
+          decision,
+          defaultNote: t('approvedInWebPanel'),
+          rationale: decisionRationale,
+        });
+      } catch {
         return false;
       }
-
-      const notes =
-        decision === 'return-for-correction'
-          ? `[return-for-correction] ${decisionRationale.trim()}`
-          : decisionRationale.trim() || t('approvedInWebPanel');
-      const mappedDecision = decision === 'return-for-correction' ? 'reject' : decision;
 
       try {
         const updated = await submitReviewDecision(api, {
           entryId: current.id,
-          decision: mappedDecision,
-          notes,
+          ...command,
         });
         setDetail({
           ...updated,

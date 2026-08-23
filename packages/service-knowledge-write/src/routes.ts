@@ -51,6 +51,7 @@ const KNOWLEDGE_WRITE_OWNERSHIP = {
     'createTrap',
     'approveReviewDecision',
     'rejectReviewDecision',
+    'returnReviewDecision',
     'applyMaintenanceDecision',
     'applyDecayDecision',
     'publishCandidateResult',
@@ -63,6 +64,7 @@ const KNOWLEDGE_WRITE_OWNERSHIP = {
 type KnowledgeWriteRpcMethod =
   | 'approveReviewDecision'
   | 'rejectReviewDecision'
+  | 'returnReviewDecision'
   | 'applyMaintenanceDecision'
   | 'applyDecayDecision'
   | 'publishCandidateResult';
@@ -118,6 +120,10 @@ async function invokeKnowledgeWriteRpc(
     case 'rejectReviewDecision':
       return module.rejectReviewDecision(
         input as Parameters<KnowledgeWritePort['rejectReviewDecision']>[0],
+      );
+    case 'returnReviewDecision':
+      return module.returnReviewDecision(
+        input as Parameters<KnowledgeWritePort['returnReviewDecision']>[0],
       );
     case 'applyMaintenanceDecision':
       return module.applyMaintenanceDecision(
@@ -238,6 +244,7 @@ const rpcSchema = z.object({
     method: z.enum([
       'approveReviewDecision',
       'rejectReviewDecision',
+      'returnReviewDecision',
       'applyMaintenanceDecision',
       'applyDecayDecision',
       'publishCandidateResult',
@@ -428,6 +435,15 @@ export function createKnowledgeWriteRouteDefs(
       schema: reviewDecisionSchema,
       handler: async (ctx, module) => {
         return module.rejectReviewDecision(reviewDecisionArgs(ctx));
+      },
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/knowledge/review/return-for-correction',
+      schema: reviewDecisionSchema,
+      handler: async (ctx, module) => {
+        return module.returnReviewDecision(reviewDecisionArgs(ctx));
       },
     }),
 

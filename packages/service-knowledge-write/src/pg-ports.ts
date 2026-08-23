@@ -92,6 +92,18 @@ export function createKnowledgeWriteOwnerBundle(pool: TransactionPool): Knowledg
       );
       return { entryId, lifecycleState: 'rejected' };
     },
+    async returnReviewDecision(input) {
+      const entryId = String(input.entryId);
+      await persistEntryUpdateTx(
+        pool,
+        entryId,
+        {},
+        input.actorId,
+        'submitted',
+        typeof input.note === 'string' ? input.note : 'Returned for correction',
+      );
+      return { entryId, lifecycleState: 'submitted' };
+    },
     async applyMaintenanceDecision(input) {
       return persistOperationalDecisionTx(pool, input, 'maintenance');
     },

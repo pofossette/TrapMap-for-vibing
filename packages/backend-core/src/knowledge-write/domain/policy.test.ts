@@ -30,6 +30,7 @@ describe('knowledge-write policy domain', () => {
   it('maps review decisions to their target states', () => {
     expect(reviewDecisionTargetState('approve')).toBe('approved');
     expect(reviewDecisionTargetState('reject')).toBe('rejected');
+    expect(reviewDecisionTargetState('return-for-correction')).toBe('submitted');
   });
 
   it('exposes fixed command target states', () => {

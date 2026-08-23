@@ -94,6 +94,21 @@ const outboxRollbackCases: Array<{
       }),
   },
   {
+    name: 'return-for-correction decision',
+    lifecycleState: 'submitted',
+    operation: (owner) =>
+      owner.returnReviewDecision({
+        entryId: 'entry-1',
+        actorId: 'reviewer-1',
+        note: 'revise boundary details',
+      }),
+    sqlFragments: [
+      'UPDATE knowledge_entries SET lifecycle_state',
+      'INSERT INTO knowledge_revisions',
+      'INSERT INTO lifecycle_events',
+    ],
+  },
+  {
     name: 'supersede decision',
     lifecycleState: 'approved',
     operation: (owner) => owner.supersede('entry-1', 'replacement-1', 'editor-1'),

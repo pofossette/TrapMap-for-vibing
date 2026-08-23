@@ -25,6 +25,10 @@ function createModule(overrides: Partial<KnowledgeWritePort> = {}): KnowledgeWri
       entryId: 'entry-1',
       lifecycleState: 'rejected' as const,
     })),
+    returnReviewDecision: vi.fn(async () => ({
+      entryId: 'entry-1',
+      lifecycleState: 'submitted' as const,
+    })),
     applyMaintenanceDecision: vi.fn(async () => ({
       entryId: 'entry-1',
       action: 'refresh',
@@ -117,6 +121,31 @@ describe.each(ADAPTERS)('service-knowledge-write routes (%s adapter)', (adapter)
     expect(missing.statusCode).toBe(401);
     expect(spoofed.statusCode).toBe(403);
     expect(module.applyMaintenanceDecision).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it('routes return-for-correction to the owner without mapping it to rejection', async () => {
+    const module = createModule();
+    const app = await buildApp(module, adapter);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/knowledge/review/return-for-correction',
+      headers: { 'x-trapmap-actor-id': 'trusted-user' },
+      payload: {
+        entryId: 'entry-1',
+        actorId: 'trusted-user',
+        note: 'revise the boundary fields',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(module.returnReviewDecision).toHaveBeenCalledWith({
+      entryId: 'entry-1',
+      actorId: 'trusted-user',
+      note: 'revise the boundary fields',
+    });
+    expect(module.rejectReviewDecision).not.toHaveBeenCalled();
     await app.close();
   });
 

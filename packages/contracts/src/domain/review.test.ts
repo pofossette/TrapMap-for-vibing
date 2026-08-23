@@ -86,4 +86,14 @@ describe('review schema contracts', () => {
       ).toThrow();
     });
   });
+
+  it('accepts return-for-correction as a distinct review decision', () => {
+    const request = reviewDecisionRequestSchema.parse({
+      entryId: 'entry-1',
+      decision: 'return-for-correction',
+      notes: 'please revise the schema',
+    });
+
+    expect(request.decision).toBe('return-for-correction');
+  });
 });

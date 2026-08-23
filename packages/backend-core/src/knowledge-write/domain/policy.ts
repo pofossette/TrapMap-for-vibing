@@ -34,8 +34,12 @@ export function initialLifecycleEventType(
 }
 
 /** Target state of a review decision command. */
-export function reviewDecisionTargetState(decision: 'approve' | 'reject'): 'approved' | 'rejected' {
-  return decision === 'approve' ? 'approved' : 'rejected';
+export function reviewDecisionTargetState(
+  decision: 'approve' | 'reject' | 'return-for-correction',
+): 'approved' | 'rejected' | 'submitted' {
+  if (decision === 'approve') return 'approved';
+  if (decision === 'return-for-correction') return RESUBMIT_TARGET_STATE;
+  return 'rejected';
 }
 
 /** Whether a maintenance action deactivates the entry. */

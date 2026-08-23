@@ -44,6 +44,9 @@ function createMockReviewPort(): ReviewPort {
   return {
     approve: vi.fn().mockResolvedValue({ entryId: 'entry-1', lifecycleState: 'approved' }),
     reject: vi.fn(),
+    returnForCorrection: vi
+      .fn()
+      .mockResolvedValue({ entryId: 'entry-1', lifecycleState: 'submitted' }),
     applyMaintenance: vi.fn(),
     applyDecay: vi.fn(),
     reviewArtifact: vi.fn(),
@@ -275,6 +278,40 @@ describe('gateway route defs handler behavior (migrated from candidate-review.co
     );
     expect(JSON.parse(response.payload)).toEqual({ items: [], nextCursor: null, total: 0 });
 
+    await app.close();
+  });
+
+  it('keeps return-for-correction distinct from rejection', async () => {
+    const { app, governanceReview, runtime } = await createTestApp();
+    runtime.services.knowledgeOwner.getById = vi.fn(async () => ({
+      id: 'entry-1',
+      lifecycleState: 'submitted',
+    }));
+
+    const response = await app
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        method: 'POST',
+        url: '/v1/knowledge/review',
+        headers: { ...authHeaders, 'content-type': 'application/json' },
+        payload: JSON.stringify({
+          entryId: 'entry-1',
+          decision: 'return-for-correction',
+          notes: 'revise the boundary fields',
+        }),
+      });
+
+    expect(response.statusCode).toBe(200);
+    expect(governanceReview.returnForCorrection).toHaveBeenCalledWith({
+      entryId: 'entry-1',
+      actorId: 'user-1',
+      note: 'revise the boundary fields',
+    });
+    expect(governanceReview.reject).not.toHaveBeenCalled();
+    expect(JSON.parse(response.payload)).toEqual({
+      entry: { id: 'entry-1', lifecycleState: 'submitted' },
+    });
     await app.close();
   });
 

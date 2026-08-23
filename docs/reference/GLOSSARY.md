@@ -259,6 +259,9 @@ draft → submitted → agent-pass/agent-rejected
                         ↓               ↓
                    (可更新)      (可 resubmit)
 
+审核者可使用 `return-for-correction` 记录退回修正；目标是 `submitted`，
+允许已处于 `submitted` 的条目记录同态修正事件。
+
 所有状态均可 → deactivated
 ```
 

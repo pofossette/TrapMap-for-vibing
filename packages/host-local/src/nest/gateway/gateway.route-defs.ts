@@ -248,7 +248,9 @@ export function createGatewayRouteDefs(deps: GatewayRouteDeps): RouteDef[] {
         const result =
           ctx.body.decision === 'approve'
             ? await deps.governanceReview.approve(input)
-            : await deps.governanceReview.reject(input);
+            : ctx.body.decision === 'return-for-correction'
+              ? await deps.governanceReview.returnForCorrection(input)
+              : await deps.governanceReview.reject(input);
 
         const entry = await deps.runtime.services.knowledgeOwner.getById(result.entryId);
 

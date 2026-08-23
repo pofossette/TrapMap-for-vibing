@@ -34,7 +34,7 @@ export const agentReviewResultSchema = z.object({
 export const reviewDecisionSchema = z.object({
   decidedAt: isoTimestampSchema,
   decidedBy: actorRefSchema,
-  decision: z.enum(['approve', 'reject']),
+  decision: z.enum(['approve', 'reject', 'return-for-correction']),
   notes: z.string().min(1).max(2000),
 });
 
