@@ -951,17 +951,21 @@ git commit -m "docs(platform): Level 3 交付物文档回写与回归命令更�
 
 ---
 
-## Tranche-2 剩余任务（2026-08-22 排期，主线保持 active）
+## Tranche-2 剩余任务（2026-08-22 排期；2026-08-23 归档校正：主线已关闭）
 
 已完成追加：A7（ffab7ebf，17+17+6 测试绿）、A9（e05f3065）。剩余：A3 web-panel 测试修复 · A10 web-panel admin 后端 · A11-A13 调查/基线报告 · C7 amqp 适配器实现 · C8 job-runtime 隔离试点实现 · C9 golden 回归 · A14/A15【环境门控：docker/kind】 · A16 登记册最终修剪与归档。
 
 已获人类批准待实施：C8 试点 owner=job-runtime；C7 走 TRAPMAP_TASK_TRANSPORT 特性开关。
+
+> **归档状态校正：** 本文件已于 2026-08-22 关闭并归档；这里保留当时的 active 措辞和未勾选 gate 作为历史快照，不表示当前仍有 active mainline。Tranche-1/2 的交付与残余项分流见文件顶部 Closeout；仍开放的环境门控和运营验证以 [`../../../todos/open-debt-and-compromises.md`](../../../todos/open-debt-and-compromises.md) 为准。不得把本节恢复为第二条执行面。
 
 ## 问题池（执行期新发现问题进这里，不进登记册）
 
 - **search-by-content 死路径**：来源——B3 实现时发现 `POST /v1/retrieval/skills/search-by-content` 在 CLIENT_INTEGRATION.md 与 CLI 中引用，但 host-local/host-distributed gateway 均无该路由（仅 `/v1/retrieval/search` 真实存在）。影响：文档误导集成方。处置：B3 工具改用真实端点；CLIENT_INTEGRATION.md 的 curl 示例待 tranche-2 修正（check:docs 未覆盖路径存在性）。——执行期间按 `- 来源 / 影响 / 处置（当场修 / 转 deferred）` 格式追加；closeout 时逐条清空（当场修的删除，转 deferred 的进刷新后登记册）。
 
 ## Completion Gates（三 workstream 全部合并后在主仓库执行）
+
+> 以下复选框是归档前的执行计划快照；其“未勾选”状态不能覆盖顶部 2026-08-22 Closeout 和登记册净收缩记录。当前事实以根 `plan.md`、归档索引和长期债务登记册为准。
 
 - [ ] `pnpm typecheck` 全绿
 - [ ] 包级测试：contracts / backend-core / assembly / host-local / host-distributed / cli / web-panel / app-mcp 全绿
