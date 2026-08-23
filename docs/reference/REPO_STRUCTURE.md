@@ -14,7 +14,7 @@
 - `CLAUDE.md`
 - `CHANGELOG.md`
 - `README.md`
-- `DESIGN.md`：Web Panel 视觉系统基线，供产品/UI TODO 和后续实现引用。
+- `DESIGN.md`：ClickHouse 视觉语言分析参考，不是 TrapMap 原生品牌规范；Web Panel TODO 只借鉴其暗色底、黄色强调、字体和响应式策略，并结合治理面板语境适配。
 - `architecture.md`
 - `plan.md`
 
