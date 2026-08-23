@@ -23,7 +23,7 @@
 
 - 来源/影响/边界：同原登记（5 个 `/api/admin/*` 无后端实现，mock 模式可用）。`apps/web-panel` 本身仍是战略性 human-in-the-loop 产品和治理人工审核保障，必须保留；本条债务仅限于其管理动作尚未接入生产化后端。
 - 进入条件：需要真实管理控制台时。
-- 后续落点：按 RouteDef 工厂补 owner service 路由 + SessionProvider token 回填（蓝图见主线归档 Task A10）。
+- 后续落点：按 [`web-panel-feature-and-ui-optimization.md`](web-panel-feature-and-ui-optimization.md) 的 phased path 实现；实现必须继续使用 RouteDef 工厂补 owner service 路由，并回填 SessionProvider token。
 
 ### eval:smoke CI 完整补跑（环境门控，刷新于 2026-08-22）
 

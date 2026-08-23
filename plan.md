@@ -14,6 +14,10 @@
 
 - 当前无 active mainline。新工作必须先创建新的 active detail 并由本索引显式链接；不得把已归档细则当作执行面。
 
+## 下一候选
+
+- [Web Panel 功能补全与 UI 美化优化](docs/todos/web-panel-feature-and-ui-optimization.md)：owner 已授权的 planning backlog；在某个 phase 被选择并启动前不是 active mainline。
+
 ## 历史主线与入口
 
 - **Skill Lookup 契约漂移修复已完成并归档（2026-08-22）：** 集成验证与 deferred 问题处置记录见 [skill-lookup-surface-mainline-archived.md](docs/archived/archived-plans/skill-lookup-surface-mainline-archived.md)。
