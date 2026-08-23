@@ -38,10 +38,6 @@ export interface EvalSeedGraphQueryBackendPort {
   rebuildProjection(docs: readonly unknown[]): Promise<unknown>;
 }
 
-export interface EvalSeedKnowledgeOwnerPort {
-  submit(input: Record<string, unknown>): Promise<unknown>;
-}
-
 export interface EvalSeedPort {
   store: EvalSeedStorePort;
   identity: EvalSeedIdentityPort;

@@ -64,6 +64,7 @@ export async function loadPendingReviews(
 
   return {
     items: sortItems(filtered, request),
+    filteredTotal: filtered.length,
     total: response.total,
   };
 }

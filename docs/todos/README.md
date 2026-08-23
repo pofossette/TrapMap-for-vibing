@@ -4,11 +4,11 @@
 
 ## 活跃索引
 
-当前没有 active mainline 行。授权待办、长期登记与受控文件如下：
+当前 active mainline 行如下；长期登记与受控文件一并列出：
 
 | 文件 | 角色 | 状态 |
 |---|---|---|
-| [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md) | Web Panel 功能补全与 UI 美化优化的分阶段计划 | 已授权待办；未开始实现 |
+| [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md) | Web Panel 功能补全与 UI 美化优化的分阶段计划 | Active mainline；2026-08-23 启动首批实现 |
 | [open-debt-and-compromises.md](open-debt-and-compromises.md) | 长期工程债务与平台成熟度登记 | 长期登记册；受根索引管理，非第二条 active mainline |
 | [assert-exemptions.md](assert-exemptions.md) | 裸类型断言豁免清单 | 由 `pnpm check:asserts` 门禁追踪；非 active mainline |
 | [dead-code-and-architecture-order-cleanup.md](dead-code-and-architecture-order-cleanup.md) | Dead Code and Architecture Order Cleanup：死代码清理与架构秩序守卫 | 挂起的历史实现细节；实现已提交 2026-08-16，Task 11-13 closeout 延后并登记在长期登记册 |
@@ -37,6 +37,6 @@
 
 ## 当前状态说明
 
-**当前无 active mainline。** 最新完成的 Skill Lookup 契约漂移修复已于 2026-08-22 closeout 归档（细则见 [skill-lookup-surface-mainline-archived.md](../archived/archived-plans/skill-lookup-surface-mainline-archived.md)）。[web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md) 是已授权的下一候选，在实现被启动前不属于 active mainline。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪；[dead-code-and-architecture-order-cleanup.md](dead-code-and-architecture-order-cleanup.md) 是挂起的历史实现细节，其 Task 11-13 closeout 延后并登记在长期登记册中。其余主线均只能作为历史证据查找，只有根 `plan.md` 显式链接新的 active detail 后才能重新成为执行面。
+**当前 active mainline 是 Web Panel 功能补全与 UI 美化优化。** 该细则已于 2026-08-23 启动首批实现，进度与未完成项以其 Progress Log 为准。最新完成的 Skill Lookup 契约漂移修复历史见 [skill-lookup-surface-mainline-archived.md](../archived/archived-plans/skill-lookup-surface-mainline-archived.md)。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪；[dead-code-and-architecture-order-cleanup.md](dead-code-and-architecture-order-cleanup.md) 是挂起的历史实现细节，其 Task 11-13 closeout 延后并登记在长期登记册中。其余主线均只能作为历史证据查找。
 
 完整归档表见 [`../archived/README.md`](../archived/README.md)。

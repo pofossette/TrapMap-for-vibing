@@ -66,6 +66,7 @@ export type ReviewQueueFilters = {
 };
 
 export type ReviewQueuePage = {
+  filteredTotal: number;
   items: ReviewItemViewModel[];
   total: number;
 };

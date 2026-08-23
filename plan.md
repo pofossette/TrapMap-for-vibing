@@ -12,11 +12,11 @@
 
 ## 当前主线
 
-- 当前无 active mainline。新工作必须先创建新的 active detail 并由本索引显式链接；不得把已归档细则当作执行面。
+- 当前主线是 [Web Panel 功能补全与 UI 美化优化](docs/todos/web-panel-feature-and-ui-optimization.md)，已于 2026-08-23 启动 Phase 0 / 3 / 5 交叉实施；阶段顺序、验收证据和剩余范围以主细则为准。
 
 ## 下一候选
 
-- [Web Panel 功能补全与 UI 美化优化](docs/todos/web-panel-feature-and-ui-optimization.md)：owner 已授权的 planning backlog；在某个 phase 被选择并启动前不是 active mainline。
+- 当前无额外下一候选；新问题优先进入当前主细则或长期债务登记册。
 
 ## 历史主线与入口
 

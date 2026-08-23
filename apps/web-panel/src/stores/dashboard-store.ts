@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import type { RuntimeOverview } from '@trapmap/web-panel/shared/enum-types';
+import type { DashboardSnapshot } from '@trapmap/web-panel/features/dashboard/service';
 import {
   type RequestState,
   createErrorRequestState,
@@ -10,14 +10,14 @@ import {
 } from '@trapmap/web-panel/shared/lib/request-state';
 
 type DashboardStore = {
-  request: RequestState<RuntimeOverview>;
+  request: RequestState<DashboardSnapshot>;
   setError: (message: string) => void;
   setLoading: () => void;
-  setOverview: (overview: RuntimeOverview, at?: string) => void;
+  setOverview: (overview: DashboardSnapshot, at?: string) => void;
 };
 
 export const useDashboardStore = create<DashboardStore>((set) => ({
-  request: createIdleRequestState<RuntimeOverview>(null),
+  request: createIdleRequestState<DashboardSnapshot>(null),
   setLoading: () =>
     set((state) => ({
       request: createLoadingRequestState(state.request),

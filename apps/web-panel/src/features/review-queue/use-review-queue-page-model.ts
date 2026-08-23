@@ -9,6 +9,7 @@ export function useReviewQueuePageModel(): {
   error: string | null;
   filters: ReviewQueueFilters;
   items: ReviewItemViewModel[];
+  filteredTotal: number;
   loading: boolean;
   refresh: () => Promise<void>;
   total: number;
@@ -47,6 +48,7 @@ export function useReviewQueuePageModel(): {
     () =>
       request.payload ?? {
         items: [],
+        filteredTotal: 0,
         total: 0,
       },
     [request.payload],
@@ -55,6 +57,7 @@ export function useReviewQueuePageModel(): {
   return {
     filters,
     items: payload.items,
+    filteredTotal: payload.filteredTotal,
     total: payload.total,
     loading: request.status === 'loading' || request.status === 'idle',
     error: request.error,

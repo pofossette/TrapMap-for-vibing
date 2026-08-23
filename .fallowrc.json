@@ -19,6 +19,52 @@
     "evals/**/*.ts"
   ],
   "ignoreDependencies": ["amqplib", "markdown-link-check"],
+  "ignoreExports": [
+    {
+      "file": "packages/host-local/src/nest/main.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "packages/host-local/src/nest/resolve-listen-options.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "packages/service-knowledge-write/src/artifact-ports.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "packages/service-knowledge-write/src/pg-ports.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "packages/host-distributed/src/candidate-ingestion/server.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "packages/host-distributed/src/cron-scheduler/server.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "packages/host-distributed/src/gateway/server.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "packages/host-distributed/src/governance-review/server.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "packages/host-distributed/src/identity-access/server.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "packages/host-distributed/src/job-runtime/server.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "packages/host-distributed/src/knowledge-write/server.ts",
+      "exports": ["*"]
+    }
+  ],
   "usedClassMembers": [
     {
       "implements": "EmbeddingsProvider",

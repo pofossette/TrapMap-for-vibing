@@ -10,10 +10,11 @@ import {
   toast,
 } from '@heroui/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { type ReactElement, useEffect, useState } from 'react';
+import { Suspense, type ReactElement, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
+import { SkeletonBlock } from '@trapmap/web-panel/shared/ui/skeleton-block';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import { useSessionStore } from '@trapmap/web-panel/stores/session-store';
 import { useThemeStore } from '@trapmap/web-panel/stores/theme-store';
@@ -620,7 +621,9 @@ export function AppShell(): ReactElement {
         </header>
 
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
-          <Outlet />
+          <Suspense fallback={<SkeletonBlock count={6} variant="line" />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
 

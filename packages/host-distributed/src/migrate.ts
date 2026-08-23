@@ -9,7 +9,6 @@ import { runKnowledgeReadMigrations } from '@trapmap/service-knowledge-read';
 import { runKnowledgeWriteMigrations } from '@trapmap/service-knowledge-write';
 import { loadServiceConfig } from './config/index.js';
 
-// fallow-ignore-next-line unused-export -- bootstrap surface for dist/migrate.js entry invoked by docker-compose migration service
 export const distributedMigrationRunners = [
   runIdentityAccessMigrations,
   runKnowledgeWriteMigrations,
@@ -44,7 +43,6 @@ export function createDistributedMigrationRunner({
   };
 }
 
-// fallow-ignore-next-line unused-export -- invoked as `node dist/migrate.js` by docker-compose migration service and used in-file as the direct-execution entry
 export async function runDistributedMigrations(): Promise<void> {
   await createDistributedMigrationRunner()();
 }

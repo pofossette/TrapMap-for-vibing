@@ -1,7 +1,7 @@
 import { ListBox, Select } from '@heroui/react';
 import type { ReactElement } from 'react';
 
-export interface FilterSelectOption {
+interface FilterSelectOption {
   id: string;
   label: string;
 }
@@ -19,7 +19,7 @@ export function FilterSelect({ onChange, options, value }: FilterSelectProps): R
       value={value}
       onChange={(val) => onChange(val ? String(val) : 'all')}
     >
-      <Select.Trigger className="relative w-full flex items-center justify-between rounded-md border border-panel-line bg-panel-surface px-3 py-2.5 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent cursor-pointer transition duration-200 outline-none">
+      <Select.Trigger className="h-panel-control relative w-full flex items-center justify-between rounded-panel-md border border-panel-line bg-panel-surface px-3 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent cursor-pointer transition duration-200 outline-none">
         <Select.Value />
         <Select.Indicator className="text-panel-muted transition-transform duration-200" />
       </Select.Trigger>
@@ -30,7 +30,7 @@ export function FilterSelect({ onChange, options, value }: FilterSelectProps): R
               key={option.id}
               id={option.id}
               textValue={option.label}
-              className="flex items-center justify-between px-3 py-2 text-sm rounded-lg text-panel-text hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium transition duration-150"
+              className="flex min-h-[36px] items-center justify-between px-3 py-2 text-sm rounded-panel-sm text-panel-text hover:bg-panel-elevated/60 cursor-pointer outline-none data-[focused=true]:bg-panel-elevated/60 data-[selected=true]:text-panel-accent data-[selected=true]:font-medium transition duration-150"
             >
               {option.label}
               <ListBox.ItemIndicator>

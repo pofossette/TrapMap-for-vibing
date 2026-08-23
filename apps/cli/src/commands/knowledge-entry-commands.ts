@@ -42,7 +42,7 @@ export const trapEntryDescriptor: KnowledgeEntryDescriptor = {
   scopeNoun: 'Trap scope',
 };
 
-export function formatKnowledgeEntry(entry: KnowledgeEntry): string {
+function formatKnowledgeEntry(entry: KnowledgeEntry): string {
   const lines = [
     `${entry.id} [${entry.lifecycleState}]`,
     `Scope: ${entry.scope}`,
@@ -74,7 +74,7 @@ export function formatKnowledgeEntry(entry: KnowledgeEntry): string {
   return lines.join('\n');
 }
 
-export function formatKnowledgeHistory(items: KnowledgeEntry[], emptyMessage: string): string {
+function formatKnowledgeHistory(items: KnowledgeEntry[], emptyMessage: string): string {
   if (items.length === 0) {
     return emptyMessage;
   }

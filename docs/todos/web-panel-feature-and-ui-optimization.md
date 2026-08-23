@@ -2,8 +2,8 @@
 
 ## Status
 
-- **Planned / owner-authorized backlog（2026-08-23）。**
-- 本文件是下一候选细则，不是 active mainline；只有在 owner 选择并启动某个 phase 后才开始实现。
+- **Active mainline（2026-08-23 启动）。**
+- Owner 已选择本细则并授权开始实现；当前处于 Phase 0 / 3 / 5 交叉推进状态，尚未满足 closeout 条件。
 
 ## Product Stance
 
@@ -25,20 +25,20 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 - 七条管理路由已经存在：Dashboard、Review Queue、Review Detail、Artifacts、Trap Graph、Skill Graph、Activity。
 - 已有中英双语 i18n、Zustand stores、real/mock API seam、G6 graph、review/JSON-edit actions。
-- 现有测试规模为 13 个文件、30 tests。
-- 已知功能缺口包括 dashboard 数据硬编码、review queue 客户端过滤、auth/RBAC 缺失、browser bearer provider 为 null、缺少 server pagination/filtering，以及 return-for-correction 被映射为 reject。
-- 当前视觉方向仍是蓝色/Geist 风格，尚未形成目标 dark/yellow 运维面板体系。
+- 首批实现后测试规模为 17 个文件、36 tests。
+- 剩余功能缺口包括 review queue 客户端过滤与排序、auth/RBAC 缺失、browser bearer provider 为 null、缺少 server pagination/filtering，以及 return-for-correction 被映射为 reject。Dashboard 硬编码和图谱/规模预览失真已在首批清理。
+- 目标 dark/yellow token 已建立并替换蓝色/Geist 默认值；全站响应式细节、空态统一与真实模式仍待完成。
 
 ## Phased Plan
 
 ### Phase 0: Baseline and Design-Token Foundation
 
 - [ ] Capture desktop and mobile screenshots of the current seven-route baseline.
-- [ ] Map `DESIGN.md` tokens into panel CSS variables without treating it as TrapMap brand law.
-- [ ] Establish dark-first styling while retaining light mode.
-- [ ] Define electric-yellow usage rules for primary action and key-stat emphasis only.
-- [ ] Replace blue/Geist defaults with Inter and JetBrains Mono.
-- [ ] Establish 4/6/8/12px radii, hairlines, status colors, and a 40px minimum interactive target size.
+- [x] Map `DESIGN.md` tokens into panel CSS variables without treating it as TrapMap brand law.
+- [x] Establish dark-first styling while retaining light mode.
+- [x] Define electric-yellow usage rules for primary action and key-stat emphasis only.
+- [x] Replace blue/Geist defaults with Inter and JetBrains Mono.
+- [x] Establish 4/6/8/12px radii, hairlines, status colors, and a 40px minimum interactive target size.
 
 ### Phase 1: Session and RBAC
 
@@ -62,7 +62,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 ### Phase 3: Feature Completion
 
-- [ ] Remove dashboard hardcoding and bind workload, graph, scale, incident, and preview data to real API state.
+- [x] Remove dashboard hardcoding and bind workload, graph, scale, incident, and preview data to real API state.
 - [ ] Move review-queue filtering, sorting, search, and pagination to the server; preserve distinct filtered and total counts.
 - [ ] Load real review files and review activity.
 - [ ] Introduce distinct return-for-correction semantics instead of mapping that decision to reject.
@@ -82,11 +82,29 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 ### Phase 5: Quality and Performance
 
 - [ ] Add controller, store, mapper, RBAC, localization, and error-path tests.
-- [ ] Add route-level code splitting.
-- [ ] Lazy-load G6.
-- [ ] Audit bundle size against the pre-split baseline.
+- [x] Add route-level code splitting.
+- [x] Lazy-load G6.
+- [x] Audit bundle size against the pre-split baseline.
 - [ ] Document new routes and environment behavior.
 - [ ] Capture before/after desktop/mobile screenshots as phase evidence.
+
+## Progress Log
+
+### 2026-08-23: foundation tranche
+
+- 建立 Inter / JetBrains Mono、dark-first yellow accent、hairline surface、radius 与 40px control token，并为 token 回归补测试。
+- Dashboard 改为一次加载 runtime、trap graph、artifact list 和 primary skill graph 的 snapshot；工作负载、事件、图谱统计与知识规模不再使用硬编码数字。
+- 将 Dashboard header/service/pending/graph/scale/incident sections 拆分为独立组件，并移除模型中计算后从未渲染的 cards 数组，避免继续扩大页面级复杂度。
+- Review Queue 区分 `filteredTotal`（当前筛选命中数）与后端 `total`，先修复分页下计数误导；服务端 filter/sort/pagination 仍是后续 tranche。
+- 七个页面全部 route-level lazy load；App Shell 增加 skeleton Suspense boundary。G6 随 graph route chunk 延迟加载。
+- 构建基线从单 JS `2,248.09 kB (gzip 666.27 kB)` 变为初始主 JS `710.25 kB (gzip 227.32 kB)` 加异步 G6 preset `1,411.49 kB (gzip 408.80 kB)`；preset 不进入首屏 script。
+- 全仓 fallow dead-code 从 13 项清零：移除确认未用导出/类型与过期豁免，显式声明 CLI 直接依赖的 zod，并把有意重复的 host/server entry exports 登记到 fallow 配置。
+
+### Deferred after this tranche
+
+- Phase 0 的 before screenshots 尚未捕获，Phase 5 的 after screenshot review 也未完成。
+- Review Queue 仍在客户端执行 search/source/risk/sort；server-side filtering、cursor paging 和 distinct total contract 要按 Phase 2/3 单独处理。
+- Real admin routes、browser bearer/session propagation、RBAC 和 visible mock label 未实现。
 
 ## Acceptance Gates
 

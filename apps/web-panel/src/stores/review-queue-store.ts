@@ -36,6 +36,7 @@ export const useReviewQueueStore = create<ReviewQueueStore>((set) => ({
   },
   request: createIdleRequestState<ReviewQueuePage>({
     items: [] as ReviewItemViewModel[],
+    filteredTotal: 0,
     total: 0,
   }),
   updateFilters: (patch) =>

@@ -2,7 +2,7 @@ import type { RagLogConfig } from '@trapmap/service-knowledge-read';
 
 import { loadRotationConfig } from './log-rotation.js';
 
-export type { PipelineStep, RagLogConfig, RagLogEntry } from '@trapmap/service-knowledge-read';
+export type { RagLogConfig } from '@trapmap/service-knowledge-read';
 
 export function loadRagLogConfig(): RagLogConfig {
   const enabled = process.env.LOG_RAG_ENABLED === 'true';

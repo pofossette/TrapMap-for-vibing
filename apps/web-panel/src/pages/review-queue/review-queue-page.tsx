@@ -45,7 +45,7 @@ export function ReviewQueuePage(): ReactElement {
               {t('queuePulse')}
             </p>
             <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-panel-text">
-              {model.items.length}
+              {model.filteredTotal}
             </p>
             <p className="mt-2 text-sm leading-6 text-panel-muted">{t('queuePulseDesc')}</p>
           </div>
@@ -111,7 +111,7 @@ export function ReviewQueuePage(): ReactElement {
 
           <FilterItem label={t('sourceLabel')}>
             <input
-              className="w-full rounded-md border border-panel-line bg-panel-surface px-3 py-2.5 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent"
+              className="h-panel-control w-full rounded-panel-md border border-panel-line bg-panel-surface px-3 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent"
               onChange={(event) => model.updateFilters({ source: event.target.value || 'all' })}
               placeholder={t('allSources')}
               type="text"
@@ -134,7 +134,7 @@ export function ReviewQueuePage(): ReactElement {
 
           <FilterItem label={t('searchQuery')}>
             <input
-              className="w-full rounded-md border border-panel-line bg-panel-surface px-3 py-2.5 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent"
+              className="h-panel-control w-full rounded-panel-md border border-panel-line bg-panel-surface px-3 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent"
               onChange={(event) => model.updateFilters({ search: event.target.value })}
               placeholder={t('searchQueryPlaceholder')}
               type="text"
@@ -197,7 +197,7 @@ export function ReviewQueuePage(): ReactElement {
                     </div>
 
                     <Link
-                      className="inline-flex items-center justify-center rounded-full border border-panel-text bg-panel-text px-4 py-3 text-sm font-medium text-white transition shrink-0 select-none cursor-pointer"
+                      className="panel-primary-action inline-flex shrink-0 select-none items-center justify-center rounded-panel-md border px-4 text-sm font-semibold transition cursor-pointer"
                       to={`/reviews/${item.id}`}
                     >
                       {t('viewDetails')}

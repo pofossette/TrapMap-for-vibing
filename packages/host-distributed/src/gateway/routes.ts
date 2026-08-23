@@ -105,7 +105,7 @@ function registerAuthHook(app: FastifyInstance, clients: InternalServiceClients)
  * Register an `onRequest` hook (after auth) that applies the per-actor token
  * bucket. Disabled entirely unless configured — see `resolveRateLimitConfig`.
  */
-export function registerRateLimitHook(app: FastifyInstance): void {
+function registerRateLimitHook(app: FastifyInstance): void {
   const limiter = new TokenBucketRateLimiter(resolveRateLimitConfig(process.env));
   if (!limiter.enabled) return;
 

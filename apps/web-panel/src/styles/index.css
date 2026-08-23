@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 
 @import "tailwindcss";
 @import "@heroui/styles";
@@ -10,42 +10,51 @@
 
 :root {
   color-scheme: dark;
+  --panel-radius-xs: 4px;
+  --panel-radius-sm: 6px;
+  --panel-radius-md: 8px;
+  --panel-radius-lg: 12px;
+  --panel-control-height: 40px;
   --panel-bg: #0a0a0a;
-  --panel-bg-deep: #0a0a0a;
-  --panel-surface: #111111;
-  --panel-surface-strong: #171717;
-  --panel-elevated: #171717;
-  --panel-line: #27272a;
-  --panel-line-strong: #3f3f46;
+  --panel-bg-deep: #060606;
+  --panel-surface: #121212;
+  --panel-surface-strong: #1a1a1a;
+  --panel-elevated: #242424;
+  --panel-line: #2a2a2a;
+  --panel-line-strong: #3a3a3a;
   --panel-text: #fafafa;
-  --panel-muted: #a1a1aa;
-  --panel-accent: #0070f3;
-  --panel-accent-strong: #3291ff;
-  --panel-success: #3291ff;
-  --panel-warning: #f5a623;
-  --panel-danger: #ee0000;
+  --panel-muted: #888888;
+  --panel-body: #cccccc;
+  --panel-accent: #faff69;
+  --panel-accent-strong: #e6eb52;
+  --panel-accent-contrast: #0a0a0a;
+  --panel-success: #22c55e;
+  --panel-warning: #f59e0b;
+  --panel-danger: #ef4444;
   --panel-shadow: 0 1px 1px rgba(0, 0, 0, 0.2), 0 10px 24px -12px rgba(0, 0, 0, 0.45);
-  --panel-glow: radial-gradient(circle at center, rgba(0, 124, 240, 0.2), transparent 44%);
+  --panel-glow: radial-gradient(circle at center, rgba(250, 255, 105, 0.08), transparent 44%);
 }
 
 :root.light {
   color-scheme: light;
   --panel-bg: #fafafa;
-  --panel-bg-deep: #fafafa;
+  --panel-bg-deep: #f2f2f2;
   --panel-surface: #ffffff;
-  --panel-surface-strong: #ffffff;
-  --panel-elevated: #ffffff;
+  --panel-surface-strong: #f7f7f7;
+  --panel-elevated: #eeeeee;
   --panel-line: #ebebeb;
   --panel-line-strong: #dcdcdc;
   --panel-text: #171717;
-  --panel-muted: #4d4d4d;
-  --panel-accent: #0070f3;
-  --panel-accent-strong: #0761d1;
-  --panel-success: #0070f3;
-  --panel-warning: #f5a623;
-  --panel-danger: #ee0000;
+  --panel-muted: #5a5a5a;
+  --panel-body: #333333;
+  --panel-accent: #e6eb52;
+  --panel-accent-strong: #d4d944;
+  --panel-accent-contrast: #171717;
+  --panel-success: #16a34a;
+  --panel-warning: #d97706;
+  --panel-danger: #dc2626;
   --panel-shadow: 0 1px 1px rgba(0, 0, 0, 0.04), 0 8px 16px -8px rgba(0, 0, 0, 0.06);
-  --panel-glow: radial-gradient(circle at center, rgba(0, 124, 240, 0.16), transparent 44%);
+  --panel-glow: radial-gradient(circle at center, rgba(163, 163, 0, 0.09), transparent 44%);
 }
 
 html,
@@ -56,7 +65,7 @@ body,
 
 body {
   margin: 0;
-  font-family: "Geist", Arial, sans-serif;
+  font-family: "Inter", Arial, sans-serif;
   background: var(--panel-bg);
   color: var(--panel-text);
   letter-spacing: 0;
@@ -81,10 +90,21 @@ select {
 code,
 pre,
 .font-mono {
-  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 ::selection {
-  background: rgba(120, 214, 255, 0.24);
+  background: rgba(250, 255, 105, 0.24);
   color: var(--panel-text);
+}
+
+.panel-primary-action {
+  min-height: var(--panel-control-height);
+  border-color: var(--panel-accent) !important;
+  background: var(--panel-accent) !important;
+  color: var(--panel-accent-contrast) !important;
+}
+
+.panel-primary-action:hover {
+  background: var(--panel-accent-strong) !important;
 }
