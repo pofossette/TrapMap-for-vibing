@@ -25,7 +25,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 - 七条管理路由已经存在：Dashboard、Review Queue、Review Detail、Artifacts、Trap Graph、Skill Graph、Activity。
 - 已有中英双语 i18n、Zustand stores、real/mock API seam、G6 graph、review/JSON-edit actions。
-- 第五批实现后测试规模为 22 个文件、54 tests。
+- 第六批实现后测试规模为 23 个文件、59 tests。
 - 剩余功能缺口包括 auth/RBAC 缺失和 browser bearer provider 为 null。Dashboard 硬编码、return-for-correction 映射为 reject、review queue 客户端 filter/sort/pagination，以及 activity 本地过滤/无 cursor 已清理。Dashboard 的 artifact 规模统计仍受 snapshot 首页上限约束。
 - 目标 dark/yellow token 已建立并替换蓝色/Geist 默认值；全站响应式细节、空态统一与真实模式仍待完成。
 
@@ -67,7 +67,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - [ ] Load real review files and review activity.
 - [x] Introduce distinct return-for-correction semantics instead of mapping that decision to reject.
 - [x] Add artifact level filtering, search, and robust pagination.
-- [ ] Wire graph depth, search, and mode controls to actual graph requests/state.
+- [x] Wire graph depth, search, and mode controls to actual graph requests/state.
 - [x] Add activity actor/time/type filters and cursor paging.
 
 ### Phase 4: UI Polish and Responsive Behavior
@@ -139,6 +139,17 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 - Artifact 查询仍只在 mock seam 实现；生产 `/api/admin/artifacts` RouteDef、bearer/session propagation 和 RBAC 继续留在 Phase 1 / Phase 2。
 - Dashboard 的 capsule 计数来自 snapshot 首页最多 100 个工件，超过该规模的精确聚合需要专用 admin aggregate endpoint。
+
+### 2026-08-23: graph-controls tranche
+
+- 将 Trap Graph 的邻域深度从展示控件接入实际视图状态：以选中节点为根计算无向 1-hop、2-hop 或完整连通分量，并只保留可见节点诱导的边；层级过滤先于邻域遍历执行。
+- Skill Graph 的 derivation/semantic 模式请求和节点搜索高亮状态补齐回归测试；artifact picker 显式请求最多 100 个工件，避免正确分页后的 Artifacts API 默认首页让选择器意外截断。
+- 新增纯 `trap-graph-view` helper 与 5 个测试，覆盖层级过滤、1/2 hop、连通分量、诱导边和无选中根的全量回退。
+- 当前构建首屏主 JS 保持 `730.14 kB (gzip 232.62 kB)`；异步 G6 preset 保持 `1,411.49 kB (gzip 408.80 kB)` 且不进入首屏 script。
+
+### Graph compromises
+
+- Artifact picker 的 100-item snapshot 是当前 UI 上限；超过该规模的完整选择、搜索和分页需要专用 admin artifact-summary query 或 picker 分页流程。
 
 ## Acceptance Gates
 

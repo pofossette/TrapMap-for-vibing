@@ -3,17 +3,19 @@ import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createMockAdminPanelApi } from '@trapmap/web-panel/services/api/mock-admin-panel-api';
+
 import { SkillGraphPage } from './skill-graph/skill-graph-page';
 import { TrapGraphPage } from './trap-graph/trap-graph-page';
 
+const adminApi = vi.hoisted(() => ({
+  loadArtifacts: vi.fn(),
+  loadSkillGraph: vi.fn(),
+  loadTrapGraph: vi.fn(),
+}));
+
 vi.mock('@trapmap/web-panel/services/admin-panel-service-context', () => ({
-  getAdminPanelApi: () => ({
-    loadTrapGraph: vi.fn(async () => ({ nodes: [], edges: [] })),
-    loadArtifacts: vi.fn(async () => ({
-      items: [{ id: 'artifact-1', title: 'Artifact One' }],
-    })),
-    loadSkillGraph: vi.fn(async () => ({ nodes: [], edges: [] })),
-  }),
+  getAdminPanelApi: () => adminApi,
 }));
 
 vi.mock('@trapmap/web-panel/shared/ui', async () => {
@@ -39,6 +41,12 @@ describe('graph page controls', () => {
 
   beforeEach(() => {
     document.body.innerHTML = '';
+    const mockApi = createMockAdminPanelApi();
+    adminApi.loadArtifacts.mockImplementation((query) => mockApi.loadArtifacts(query));
+    adminApi.loadSkillGraph.mockImplementation((artifactId, query) =>
+      mockApi.loadSkillGraph(artifactId, query),
+    );
+    adminApi.loadTrapGraph.mockImplementation(() => mockApi.loadTrapGraph());
   });
 
   it('renders the trap graph neighborhood depth control without a native select', async () => {
@@ -81,8 +89,24 @@ describe('graph page controls', () => {
     expect(container.querySelector('select.flex-1')).toBeNull();
     expect(
       Array.from(container.querySelectorAll('button')).some((button) =>
-        button.textContent?.includes('Artifact One'),
+        button.textContent?.includes('Kubernetes Network Security Policies'),
       ),
+    ).toBe(true);
+    expect(adminApi.loadArtifacts).toHaveBeenCalledWith({ limit: 100 });
+
+    const semanticButton = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Semantic Graph'),
+    );
+    await act(async () => {
+      semanticButton?.click();
+    });
+
+    expect(
+      adminApi.loadSkillGraph.mock.calls.some(([artifactId, query]) => {
+        return (
+          typeof artifactId === 'string' && artifactId.length > 0 && query?.mode === 'semantic'
+        );
+      }),
     ).toBe(true);
 
     await act(async () => {

@@ -19,6 +19,7 @@ import {
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 
 type GraphViewMode = 'derivation' | 'semantic';
+const SKILL_GRAPH_ARTIFACT_SNAPSHOT_LIMIT = 100;
 
 function SkillGraphToolbar({
   artifacts,
@@ -252,7 +253,9 @@ export function SkillGraphPage(): ReactElement {
   useEffect(() => {
     const loadList = async () => {
       try {
-        const res = await getAdminPanelApi().loadArtifacts();
+        const res = await getAdminPanelApi().loadArtifacts({
+          limit: SKILL_GRAPH_ARTIFACT_SNAPSHOT_LIMIT,
+        });
         setArtifacts(res.items);
 
         // Determine initial artifact id

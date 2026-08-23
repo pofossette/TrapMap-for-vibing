@@ -22,16 +22,11 @@ import {
   useGraphSelection,
 } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
-
-type NodeFilterState = {
-  trap: boolean;
-  cue: boolean;
-  tool: boolean;
-  environment: boolean;
-  mitigation: boolean;
-};
-
-type NeighborhoodDepth = '1' | '2' | 'all';
+import {
+  type TrapNeighborhoodDepth,
+  type TrapNodeFilterState,
+  applyTrapGraphView,
+} from './trap-graph-view';
 
 function TrapGraphErrorBanner({
   message,
@@ -59,10 +54,10 @@ function TrapGraphControls({
   nodeCount,
   edgeCount,
 }: {
-  nodeFilter: NodeFilterState;
-  onNodeFilterChange: Dispatch<SetStateAction<NodeFilterState>>;
-  neighborhoodDepth: NeighborhoodDepth;
-  onNeighborhoodDepthChange: Dispatch<SetStateAction<NeighborhoodDepth>>;
+  nodeFilter: TrapNodeFilterState;
+  onNodeFilterChange: Dispatch<SetStateAction<TrapNodeFilterState>>;
+  neighborhoodDepth: TrapNeighborhoodDepth;
+  onNeighborhoodDepthChange: Dispatch<SetStateAction<TrapNeighborhoodDepth>>;
   nodeCount: number;
   edgeCount: number;
 }): ReactElement {
@@ -106,7 +101,7 @@ function TrapGraphControls({
           className="w-full"
           value={neighborhoodDepth}
           onChange={(value) =>
-            onNeighborhoodDepthChange((value ? String(value) : '1') as NeighborhoodDepth)
+            onNeighborhoodDepthChange((value ? String(value) : '1') as TrapNeighborhoodDepth)
           }
         >
           <Select.Trigger className="relative w-full flex items-center justify-between rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none transition duration-200 focus:ring-1 focus:ring-panel-accent cursor-pointer">
@@ -220,7 +215,7 @@ function TrapGraphInspector({
 
 export function TrapGraphPage(): ReactElement {
   const { t } = useI18nStore();
-  const [neighborhoodDepth, setNeighborhoodDepth] = useState<NeighborhoodDepth>('1');
+  const [neighborhoodDepth, setNeighborhoodDepth] = useState<TrapNeighborhoodDepth>('1');
 
   const [graphData, setGraphData] = useState<{ nodes: G6Node[]; edges: G6Edge[] }>({
     nodes: [],
@@ -236,7 +231,7 @@ export function TrapGraphPage(): ReactElement {
   const [searchKeyword, setSearchKeyword] = useState('');
 
   // Graph filters state
-  const [nodeFilter, setNodeFilter] = useState<NodeFilterState>({
+  const [nodeFilter, setNodeFilter] = useState<TrapNodeFilterState>({
     trap: true,
     cue: true,
     tool: true,
@@ -261,28 +256,12 @@ export function TrapGraphPage(): ReactElement {
     void fetchGraph();
   }, [fetchGraph]);
 
-  // Apply filters locally
-  const filteredNodes = graphData.nodes.filter((node) => {
-    const kind = node.kind || 'unknown';
-    if (kind === 'trap' && !nodeFilter.trap) return false;
-    if (kind === 'cue' && !nodeFilter.cue) return false;
-    if (kind === 'tool' && !nodeFilter.tool) return false;
-    if (kind === 'environment' && !nodeFilter.environment) return false;
-    if (kind === 'mitigation' && !nodeFilter.mitigation) return false;
-    return true;
-  });
-
-  const filteredEdges = graphData.edges.filter((edge) => {
-    // Only include edge if source and target are not filtered out
-    const sourceExists = filteredNodes.some((n) => n.id === edge.source);
-    const targetExists = filteredNodes.some((n) => n.id === edge.target);
-    return sourceExists && targetExists;
-  });
-
-  const displayData = {
-    nodes: filteredNodes,
-    edges: filteredEdges,
-  };
+  const displayData = applyTrapGraphView(
+    graphData,
+    nodeFilter,
+    neighborhoodDepth,
+    selectedElement?.type === 'node' ? selectedElement.id : null,
+  );
 
   return (
     <PageTransition className="space-y-6">
@@ -299,8 +278,8 @@ export function TrapGraphPage(): ReactElement {
               onNodeFilterChange={setNodeFilter}
               neighborhoodDepth={neighborhoodDepth}
               onNeighborhoodDepthChange={setNeighborhoodDepth}
-              nodeCount={filteredNodes.length}
-              edgeCount={filteredEdges.length}
+              nodeCount={displayData.nodes.length}
+              edgeCount={displayData.edges.length}
             />
 
             {/* Center Canvas Pane */}
