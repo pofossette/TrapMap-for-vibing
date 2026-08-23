@@ -1,8 +1,10 @@
 import { type ReviewQueueProjectionAuth, filterReviewQueueEntries } from '@trapmap/backend-core';
+import { applyReviewQueueQuery } from '@trapmap/backend-core';
 import {
   type KnowledgeEntry,
   type KnowledgeOwnerPort,
   type KnowledgeRecord,
+  type ReviewQueueQuery,
   type KnowledgeReviewDecisionRecord,
   type KnowledgeReviewNoteRecord,
   type KnowledgeRevisionRecord,
@@ -42,17 +44,25 @@ interface ReviewQueueRepos {
 }
 
 export interface ReviewQueueProjection {
+  filteredTotal: number;
   items: ReviewQueueItem[];
+  nextCursor: string | null;
   total: number;
 }
 
 export async function buildOwnerReviewQueueProjection(
   knowledge: Pick<KnowledgeOwnerPort, 'listByFilter'>,
-  input: { auth: ReviewQueueProjectionAuth; status?: string },
+  input: { auth: ReviewQueueProjectionAuth; query?: ReviewQueueQuery; status?: string },
 ): Promise<ReviewQueueProjection> {
   const { items: ownerEntries } = await knowledge.listByFilter({});
   const entries = filterReviewQueueEntries(ownerEntries, input);
-  const items = entries.map((entry) => ({
+  const queueQuery: ReviewQueueQuery = input.query ?? {
+    cursor: undefined,
+    limit: 25,
+    sort: 'highest-risk',
+  };
+  const queryResult = applyReviewQueueQuery(entries, queueQuery);
+  const items = queryResult.items.map((entry) => ({
     entry,
     agentReview: entry.agentReview,
     submittedBy: entry.latestSubmission?.submittedBy ?? entry.owner,
@@ -61,7 +71,12 @@ export async function buildOwnerReviewQueueProjection(
     lastDecision: entry.reviewHistory.at(-1) ?? null,
   }));
 
-  return { items, total: items.length };
+  return {
+    items,
+    filteredTotal: queryResult.filteredTotal,
+    nextCursor: queryResult.nextCursor,
+    total: queryResult.total,
+  };
 }
 
 function collectActorIds(record: KnowledgeRecord): string[] {
@@ -310,9 +325,56 @@ function toKnowledgeEntry(data: UserLookupContext, record: KnowledgeRecord): Kno
   });
 }
 
+async function buildLastDecision(
+  entry: KnowledgeRecord,
+  owner: UserRecord,
+  repos: Pick<ReviewQueueRepos, 'user'>,
+): Promise<ReviewQueueItem['lastDecision']> {
+  const record = entry.reviewHistory.at(-1);
+  if (!record) return null;
+
+  const decidedById = record.decidedByUserId;
+  const decidedByUser =
+    decidedById === owner.id ? owner : await repos.user.getById(decidedById ?? owner.id);
+
+  return {
+    decidedAt: record.decidedAt,
+    decidedBy: {
+      id: decidedById,
+      handle: decidedByUser?.handle ?? owner.handle,
+      securityLevel: entry.requiredLevel,
+    },
+    decision: record.decision,
+    notes: record.notes,
+  };
+}
+
+async function shapeReviewQueueItem(
+  entry: KnowledgeRecord,
+  repos: ReviewQueueRepos,
+  lookup: UserLookupContext,
+): Promise<ReviewQueueItem | null> {
+  const owner = await repos.user.getById(entry.ownerUserId);
+  if (!owner) {
+    return null;
+  }
+
+  const serializedEntry = toKnowledgeEntry(lookup, entry);
+  const latestSubmission = serializedEntry.latestSubmission;
+  const lastDecision = await buildLastDecision(entry, owner, repos);
+  return {
+    entry: serializedEntry,
+    agentReview: entry.agentReview,
+    submittedBy: latestSubmission?.submittedBy ?? serializedEntry.owner,
+    latestSubmission,
+    reviewNotes: serializedEntry.reviewNotes,
+    lastDecision,
+  };
+}
+
 export async function buildReviewQueueProjection(
   repos: ReviewQueueRepos,
-  input: { auth: ReviewQueueProjectionAuth; status?: string },
+  input: { auth: ReviewQueueProjectionAuth; query?: ReviewQueueQuery; status?: string },
 ): Promise<ReviewQueueProjection> {
   const allEntries = await repos.knowledge.listByFilter({});
   const filteredEntries = filterReviewQueueEntries(allEntries, input);
@@ -324,46 +386,28 @@ export async function buildReviewQueueProjection(
   );
   const lookup = await buildUserLookupContextFromRepos(repos, fullEntries);
 
-  const items = (
-    await Promise.all(
-      fullEntries.map(async (entry): Promise<ReviewQueueItem | null> => {
-        const owner = await repos.user.getById(entry.ownerUserId);
-        if (!owner) {
-          return null;
-        }
-
-        const lastDecision = entry.reviewHistory.at(-1) ?? null;
-        const lastDecisionUserId = lastDecision?.decidedByUserId ?? owner.id;
-        const lastDecisionUser =
-          lastDecisionUserId === owner.id ? owner : await repos.user.getById(lastDecisionUserId);
-
-        const serializedEntry = toKnowledgeEntry(lookup, entry);
-        const latestSubmission = serializedEntry.latestSubmission;
-        return {
-          entry: serializedEntry,
-          agentReview: entry.agentReview,
-          submittedBy: latestSubmission?.submittedBy ?? serializedEntry.owner,
-          latestSubmission,
-          reviewNotes: serializedEntry.reviewNotes,
-          lastDecision: lastDecision
-            ? {
-                decidedAt: lastDecision.decidedAt,
-                decidedBy: {
-                  id: lastDecisionUserId,
-                  handle: lastDecisionUser?.handle ?? owner.handle,
-                  securityLevel: entry.requiredLevel,
-                },
-                decision: lastDecision.decision,
-                notes: lastDecision.notes,
-              }
-            : null,
-        };
-      }),
-    )
+  const allItems = (
+    await Promise.all(fullEntries.map((entry) => shapeReviewQueueItem(entry, repos, lookup)))
   ).filter((item): item is ReviewQueueItem => item !== null);
+
+  const queueQuery: ReviewQueueQuery = input.query ?? {
+    cursor: undefined,
+    limit: 25,
+    sort: 'highest-risk',
+  };
+  const queryResult = applyReviewQueueQuery(
+    allItems.map((item) => item.entry),
+    queueQuery,
+  );
+  const itemById = new Map(allItems.map((item) => [item.entry.id, item]));
+  const items = queryResult.items
+    .map((entry) => itemById.get(entry.id))
+    .filter((item): item is ReviewQueueItem => item !== undefined);
 
   return {
     items,
-    total: items.length,
+    filteredTotal: queryResult.filteredTotal,
+    nextCursor: queryResult.nextCursor,
+    total: queryResult.total,
   };
 }

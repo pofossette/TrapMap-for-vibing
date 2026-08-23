@@ -149,6 +149,8 @@ const translations = {
     searchQuery: '搜索查询',
     searchQueryPlaceholder: '搜索标题、描述或 ID...',
     sortBy: '排序方式',
+    previousPage: '上一页',
+    nextPage: '下一页',
 
     // Activity Page Dashboard Cards
     eventVolume: '事件总量',
@@ -508,6 +510,8 @@ const translations = {
     searchQuery: 'Search Query',
     searchQueryPlaceholder: 'Search title, description or ID...',
     sortBy: 'Sort By',
+    previousPage: 'Previous',
+    nextPage: 'Next',
 
     // Activity Page Dashboard Cards
     eventVolume: 'Event Volume',

@@ -145,7 +145,12 @@ const authHeaders = { authorization: 'Bearer test-token' };
 describe('gateway route defs handler behavior (migrated from candidate-review.controller)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(buildOwnerReviewQueueProjection).mockResolvedValue({ items: [], total: 0 });
+    vi.mocked(buildOwnerReviewQueueProjection).mockResolvedValue({
+      items: [],
+      filteredTotal: 0,
+      nextCursor: null,
+      total: 0,
+    });
   });
 
   it('routes apply-resolution as a read-modify-write through the candidate port', async () => {
@@ -276,8 +281,51 @@ describe('gateway route defs handler behavior (migrated from candidate-review.co
         auth: expect.objectContaining({ actorId: 'user-1' }),
       }),
     );
-    expect(JSON.parse(response.payload)).toEqual({ items: [], nextCursor: null, total: 0 });
+    expect(buildOwnerReviewQueueProjection).toHaveBeenCalledWith(
+      runtime.services.knowledgeOwner,
+      expect.objectContaining({
+        query: expect.objectContaining({ limit: 25, sort: 'highest-risk' }),
+      }),
+    );
+    expect(JSON.parse(response.payload)).toEqual({
+      items: [],
+      nextCursor: null,
+      filteredTotal: 0,
+      total: 0,
+    });
+    await app.close();
+  });
 
+  it('passes panel queue filters and paging to the server-side projection', async () => {
+    const { app, runtime } = await createTestApp();
+
+    const response = await app.getHttpAdapter().getInstance().inject({
+      method: 'GET',
+      url: '/v1/knowledge/review-queue?search=schema%20drift&source=candidate-ingestion&riskLevel=high&sort=oldest&limit=1',
+      headers: authHeaders,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(buildOwnerReviewQueueProjection).toHaveBeenCalledWith(
+      runtime.services.knowledgeOwner,
+      expect.objectContaining({
+        auth: expect.objectContaining({ actorId: 'user-1' }),
+        query: {
+          cursor: undefined,
+          limit: 1,
+          search: 'schema drift',
+          source: 'candidate-ingestion',
+          riskLevel: 'high',
+          sort: 'oldest',
+        },
+      }),
+    );
+    expect(JSON.parse(response.payload)).toEqual({
+      items: [],
+      nextCursor: null,
+      filteredTotal: 0,
+      total: 0,
+    });
     await app.close();
   });
 

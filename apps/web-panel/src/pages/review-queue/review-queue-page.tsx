@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { Button } from '@heroui/react';
 import { Link } from 'react-router-dom';
 
 import { useReviewQueuePageModel } from '@trapmap/web-panel/features/review-queue/use-review-queue-page-model';
@@ -207,6 +208,29 @@ export function ReviewQueuePage(): ReactElement {
               ))}
             </div>
           </FadeIn>
+        )}
+
+        {model.items.length > 0 && (
+          <nav className="flex items-center justify-between gap-3">
+            <Button
+              isDisabled={model.paging.cursor === null}
+              variant="secondary"
+              onPress={() => {
+                const offset = Number.parseInt(model.paging.cursor ?? '0', 10);
+                const previous = offset - model.paging.limit;
+                model.updatePaging({ cursor: previous > 0 ? String(previous) : null });
+              }}
+            >
+              {t('previousPage')}
+            </Button>
+            <Button
+              isDisabled={model.nextCursor === null}
+              variant="secondary"
+              onPress={() => model.updatePaging({ cursor: model.nextCursor })}
+            >
+              {t('nextPage')}
+            </Button>
+          </nav>
         )}
       </PageContainer>
     </PageTransition>

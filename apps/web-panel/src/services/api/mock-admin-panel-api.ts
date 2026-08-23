@@ -1,4 +1,9 @@
-import type { ReviewDecisionRequest, ReviewQueueResponse, SkillArtifact } from '@trapmap/contracts';
+import type {
+  ReviewDecisionRequest,
+  ReviewQueueItem,
+  ReviewQueueResponse,
+  SkillArtifact,
+} from '@trapmap/contracts';
 
 import type {
   ActivityFeedResponse,
@@ -11,6 +16,7 @@ import type {
   RuntimeOverviewResponse,
   SessionAccount,
 } from '@trapmap/web-panel/shared/enum-types';
+import { applyReviewQueueQuery } from './review-queue-query';
 
 const mockArtifacts: SkillArtifact[] = [
   {
@@ -375,7 +381,8 @@ const mockRuntimeOverview: RuntimeOverviewResponse = {
   ],
 };
 
-const mockReviewQueue: ReviewQueueResponse = {
+const baseMockReviewQueue: ReviewQueueResponse = {
+  filteredTotal: 1,
   items: [
     {
       entry: {
@@ -484,6 +491,100 @@ const mockReviewQueue: ReviewQueueResponse = {
   ],
   nextCursor: null,
   total: 1,
+};
+
+type MockReviewRisk = 'low' | 'medium' | 'high';
+
+function createMockReviewQueueItem(input: {
+  detail: string;
+  id: string;
+  risks: { completeness: MockReviewRisk; correctness: MockReviewRisk; duplicate: MockReviewRisk };
+  source: string;
+  submittedAt: string;
+  title: string;
+}): ReviewQueueItem {
+  const item = structuredClone(baseMockReviewQueue.items[0]!);
+  const entryAgentReview = {
+    ...item.entry.agentReview!,
+    completenessRisk: input.risks.completeness,
+    correctnessRisk: input.risks.correctness,
+    duplicateRisk: input.risks.duplicate,
+  };
+
+  item.entry = {
+    ...item.entry,
+    id: input.id,
+    shortcut: input.title,
+    detail: input.detail,
+    createdAt: input.submittedAt,
+    updatedAt: input.submittedAt,
+    metadata: {
+      ...item.entry.metadata,
+      latestSubmissionId: input.source,
+      latestSubmittedAt: input.submittedAt,
+    },
+    latestRevision: {
+      ...item.entry.latestRevision,
+      submittedAt: input.submittedAt,
+      shortcut: input.title,
+      detail: input.detail,
+    },
+    history: [
+      {
+        ...item.entry.history[0]!,
+        submittedAt: input.submittedAt,
+        shortcut: input.title,
+        detail: input.detail,
+      },
+    ],
+    latestSubmission: {
+      ...item.entry.latestSubmission!,
+      id: input.source,
+      submittedAt: input.submittedAt,
+      agentReview: entryAgentReview,
+    },
+    agentReview: entryAgentReview,
+  };
+  item.agentReview = entryAgentReview;
+  item.latestSubmission = {
+    id: input.source,
+    revision: item.entry.latestRevision.revision,
+    submittedAt: input.submittedAt,
+    submittedBy: item.entry.owner,
+    lifecycleState: item.entry.lifecycleState,
+    resubmissionOf: null,
+    agentReview: null,
+    reviewerDecision: null,
+    reviewNotes: [],
+  };
+
+  return item;
+}
+
+const mockReviewQueue: ReviewQueueResponse = {
+  ...baseMockReviewQueue,
+  items: [
+    baseMockReviewQueue.items[0]!,
+    createMockReviewQueueItem({
+      id: 'rev-202',
+      title: 'Network policy candidate',
+      detail: 'Beta network isolation rules require governance review.',
+      source: 'candidate-ingestion',
+      submittedAt: '2026-06-19T10:15:00.000Z',
+      risks: { completeness: 'medium', correctness: 'medium', duplicate: 'low' },
+    }),
+    createMockReviewQueueItem({
+      id: 'rev-203',
+      title: 'Observability checklist',
+      detail: 'Gamma audit checklist with low operational risk.',
+      source: 'knowledge-entry',
+      submittedAt: '2026-06-19T10:10:00.000Z',
+      risks: { completeness: 'low', correctness: 'low', duplicate: 'low' },
+    }),
+  ],
+  filteredTotal: 3,
+  nextCursor: null,
+  total: 3,
 };
 
 const mockActivityFeed: ActivityFeedResponse = {
@@ -654,8 +755,9 @@ export function createMockAdminPanelApi(): AdminPanelApiContract {
     async loadRuntimeOverview() {
       return structuredClone(mockRuntimeOverview);
     },
-    async loadPendingReviews() {
-      return cloneReviewQueue();
+    async loadPendingReviews(request) {
+      const queue = cloneReviewQueue();
+      return applyReviewQueueQuery(queue.items, request);
     },
     async loadReviewDetail(reviewId) {
       return buildReviewDetailResponse(reviewId);

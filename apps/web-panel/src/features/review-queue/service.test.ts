@@ -20,6 +20,7 @@ describe('loadPendingReviews', () => {
 
     expect(page.items).toHaveLength(0);
     expect(page.filteredTotal).toBe(0);
-    expect(page.total).toBe(1);
+    expect(page.total).toBe(3);
+    expect(page.nextCursor).toBeNull();
   });
 });

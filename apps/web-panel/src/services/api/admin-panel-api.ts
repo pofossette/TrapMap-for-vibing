@@ -22,6 +22,18 @@ function buildReviewQueueQuery(request?: Partial<ReviewQueueRequest>): string {
   if (filters?.status && filters.status !== 'all') {
     query.set('status', filters.status);
   }
+  if (filters?.search.trim()) {
+    query.set('search', filters.search.trim());
+  }
+  if (filters?.source && filters.source !== 'all') {
+    query.set('source', filters.source);
+  }
+  if (filters?.riskLevel && filters.riskLevel !== 'all') {
+    query.set('riskLevel', filters.riskLevel);
+  }
+  if (filters?.sort) {
+    query.set('sort', filters.sort);
+  }
 
   if (paging?.cursor) {
     query.set('cursor', paging.cursor);

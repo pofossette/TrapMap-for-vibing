@@ -60,7 +60,7 @@ Endpoints consumed:
 | GET | `/v1/auth/session` | Load current session |
 | POST | `/v1/auth/session/switch` | Switch active account |
 | GET | `/api/admin/runtime-overview` | Dashboard metrics |
-| GET | `/v1/knowledge/review-queue` | Pending review list (paginated, filtered by status) |
+| GET | `/v1/knowledge/review-queue` | Pending review list with server-side status/search/source/risk filters, sorting, and cursor paging |
 | GET | `/api/admin/reviews/:id` | Review detail with files and activity |
 | POST | `/v1/knowledge/review` | Submit approve/reject/return decision |
 | POST | `/api/admin/reviews/:id/json-edits` | Save manual JSON edit |

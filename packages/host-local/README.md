@@ -102,7 +102,7 @@ function start(options?: NestBootstrapOptions): Promise<NestBootstrapResult>;
 |---|---|---|
 | POST | `/v1/candidates/:candidateId/manual-result` | Submit manual candidate result |
 | POST | `/v1/candidates/:candidateId/apply-resolution` | Apply candidate resolution |
-| GET | `/v1/knowledge/review-queue` | Get governance review queue (`?status=`) |
+| GET | `/v1/knowledge/review-queue` | Get governance review queue (`?status=&search=&source=&riskLevel=&sort=&cursor=&limit=`) |
 | POST | `/v1/knowledge/review` | Apply review decision (approve/reject) |
 
 All authenticated endpoints require a `Bearer` token in the `Authorization` header.

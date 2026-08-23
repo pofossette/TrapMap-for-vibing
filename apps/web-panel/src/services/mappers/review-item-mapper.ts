@@ -12,7 +12,7 @@ function formatActor(actor: ActorRefDto | null | undefined): string | null {
   return actor?.handle ?? null;
 }
 
-function calculateRiskScore(item: ReviewQueueItemDto): number {
+export function calculateReviewQueueRiskScore(item: ReviewQueueItemDto): number {
   const agentReview = item.agentReview;
 
   if (!agentReview) {
@@ -67,7 +67,7 @@ function mapReviewHistoryItem(item: ReviewDecision): ReviewHistoryEntry {
 }
 
 export function mapReviewQueueItem(item: ReviewQueueItemDto): ReviewItemViewModel {
-  const riskScore = calculateRiskScore(item);
+  const riskScore = calculateReviewQueueRiskScore(item);
   const latestSubmission = item.latestSubmission;
 
   return {

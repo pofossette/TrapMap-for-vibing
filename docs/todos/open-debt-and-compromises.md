@@ -55,9 +55,10 @@
 - 进入条件：清理 api-surface / ARTIFACTS 与两宿主 RouteDef 的历史面，或启动宿主网关 parity tranche。
 - 后续落点：按服务族拆分“route surface inventory reconciliation”，先修正文档，再决定缺失端点是实现还是移出公开契约。
 
-### gateway surface parity gaps：v2 capsule 与 host-local v3（2026-08-22 新立）
+### gateway surface parity gaps：v2 capsule、knowledge review queue 与 host-local v3（2026-08-22 新立）
 
 - 来源：Skill Lookup closeout 勘察确认 `/v2/retrieval/search` 在两宿主均缺 RouteDef，CLI `--v2` 会 404；`/v3/retrieval/search` 只在 host-distributed 注册，host-local 的 CLI `load` 会 404。两项原实现均随旧 server 包退役或未做宿主 parity。
+- 2026-08-23 补充：`GET /v1/knowledge/review-queue` 目前只有 host-local RouteDef；host-distributed 缺少同路径 parity，因此 Web Panel 的新 server-side queue query 不适用于 heavy 形态。
 - 影响：CLI 的对应调用路径在指定后端形态下不可用；api-surface 对 v2 的承诺仍超出真实网关面。
 - 当前边界：不阻塞 v1 检索和新的 artifact-first skill lookup；D 守卫将 `/v2/retrieval/search` 显式豁免，其余新增漂移会被阻断。
 - 进入条件：CLI `--v2` 或 capsule retrieval 产品需求启动时处理 v2；host-local/v3 parity 纳入下一个 gateway surface reconciliation tranche。

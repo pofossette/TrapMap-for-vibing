@@ -15,11 +15,14 @@ import {
 
 type ReviewQueueStore = {
   filters: ReviewQueueFilters;
+  paging: { cursor: string | null; limit: number };
   request: RequestState<ReviewQueuePage>;
   setError: (message: string) => void;
   setItems: (page: ReviewQueuePage, at?: string) => void;
   setLoading: () => void;
+  setPaging: (paging: { cursor: string | null; limit: number }) => void;
   updateFilters: (patch: Partial<ReviewQueueFilters>) => void;
+  updatePaging: (patch: Partial<{ cursor: string | null; limit: number }>) => void;
 };
 
 const initialFilters: ReviewQueueFilters = {
@@ -37,14 +40,25 @@ export const useReviewQueueStore = create<ReviewQueueStore>((set) => ({
   request: createIdleRequestState<ReviewQueuePage>({
     items: [] as ReviewItemViewModel[],
     filteredTotal: 0,
+    nextCursor: null,
     total: 0,
   }),
+  paging: { cursor: null, limit: 25 },
   updateFilters: (patch) =>
     set((state) => ({
       filters: {
         ...state.filters,
         ...patch,
       },
+      paging: {
+        ...state.paging,
+        cursor: null,
+      },
+    })),
+  setPaging: (paging) => set({ paging }),
+  updatePaging: (patch) =>
+    set((state) => ({
+      paging: { ...state.paging, ...patch },
     })),
   setLoading: () =>
     set((state) => ({

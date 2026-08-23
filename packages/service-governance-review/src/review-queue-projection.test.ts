@@ -142,6 +142,55 @@ describe('buildReviewQueueProjection', () => {
           lastDecision: null,
         },
       ],
+      filteredTotal: 1,
+      nextCursor: null,
+      total: 1,
+    });
+  });
+
+  it('applies the shared queue query before shaping owner items', async () => {
+    const raw = createKnowledgeEntryRecord();
+    const owner = { id: 'owner-1', handle: 'owner', securityLevel: 7 };
+    const entry = {
+      ...raw,
+      owner,
+      latestRevision: { ...raw.latestRevision, submittedBy: owner, reviewNotes: [] },
+      history: raw.history.map((revision) => ({
+        ...revision,
+        submittedBy: owner,
+        reviewNotes: [],
+      })),
+      latestSubmission: {
+        ...raw.submissionHistory[0]!,
+        submittedBy: owner,
+        reviewerDecision: null,
+        reviewNotes: [],
+      },
+      submissionHistory: raw.submissionHistory.map((submission) => ({
+        ...submission,
+        submittedBy: owner,
+        reviewerDecision: null,
+        reviewNotes: [],
+      })),
+      reviewHistory: [],
+      reviewNotes: [],
+      lifecycleHistory: [],
+    } as KnowledgeEntry;
+    const knowledge: Pick<KnowledgeOwnerPort, 'listByFilter'> = {
+      async listByFilter() {
+        return { items: [entry], total: 1 };
+      },
+    };
+
+    const projection = await buildOwnerReviewQueueProjection(knowledge, {
+      auth: { subjectType: 'user', activeTeamId: 'team-1', securityLevel: 9 },
+      query: { cursor: undefined, limit: 10, search: 'does-not-match', sort: 'highest-risk' },
+    });
+
+    expect(projection).toEqual({
+      items: [],
+      filteredTotal: 0,
+      nextCursor: null,
       total: 1,
     });
   });

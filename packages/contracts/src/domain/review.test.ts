@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { reviewDecisionRequestSchema, reviewQueueQuerySchema } from './review.js';
+import { reviewQueueResponseSchema } from './review.js';
 
 describe('review schema contracts', () => {
   describe('reviewDecisionRequestSchema', () => {
@@ -74,7 +75,26 @@ describe('review schema contracts', () => {
 
     it('accepts empty query with defaults', () => {
       const query = reviewQueueQuerySchema.parse({});
-      expect(query.limit).toBe(25);
+      expect(query).toMatchObject({ limit: 25, sort: 'highest-risk' });
+    });
+
+    it('accepts panel filters and canonical server sort', () => {
+      const query = reviewQueueQuerySchema.parse({
+        status: 'submitted',
+        search: 'schema drift',
+        source: 'candidate-ingestion',
+        riskLevel: 'high',
+        sort: 'longest-waiting',
+        limit: 25,
+      });
+
+      expect(query).toMatchObject({
+        status: 'submitted',
+        search: 'schema drift',
+        source: 'candidate-ingestion',
+        riskLevel: 'high',
+        sort: 'longest-waiting',
+      });
     });
 
     it('rejects extra fields (strict mode)', () => {
@@ -84,6 +104,20 @@ describe('review schema contracts', () => {
           unknownField: 'should fail',
         }),
       ).toThrow();
+    });
+  });
+
+  describe('reviewQueueResponseSchema', () => {
+    it('requires distinct filtered and authorized totals', () => {
+      const response = reviewQueueResponseSchema.parse({
+        items: [],
+        nextCursor: null,
+        filteredTotal: 2,
+        total: 9,
+      });
+
+      expect(response.filteredTotal).toBe(2);
+      expect(response.total).toBe(9);
     });
   });
 

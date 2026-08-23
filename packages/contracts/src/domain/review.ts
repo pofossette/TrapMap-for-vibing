@@ -21,6 +21,10 @@ export const reviewQueueQuerySchema = paginatedQuerySchema
   .extend({
     status: lifecycleStateSchema.optional(),
     teamId: entityIdSchema.optional(),
+    search: z.string().trim().min(1).max(200).optional(),
+    source: z.string().trim().min(1).max(128).optional(),
+    riskLevel: z.enum(['high', 'medium', 'low']).optional(),
+    sort: z.enum(['highest-risk', 'longest-waiting', 'newest', 'oldest']).default('highest-risk'),
   })
   .strict();
 
@@ -61,6 +65,7 @@ export const reviewQueueResponseSchema = z
   .object({
     items: z.array(reviewQueueItemSchema),
     nextCursor: z.string().nullable(),
+    filteredTotal: z.number().int().min(0),
     total: z.number().int().min(0),
   })
   .strict();

@@ -15,6 +15,7 @@ import {
   ManualResultSubmissionSchema,
   manualResultResponseSchema,
   reviewDecisionRequestSchema,
+  reviewQueueQuerySchema,
   reviewQueueResponseSchema,
   skillLookupQuerySchema,
 } from '@trapmap/contracts';
@@ -56,9 +57,16 @@ const manualResultSchema = z.object({
   authContext: authContextSchema,
 });
 
+const reviewQueueHttpQuerySchema = reviewQueueQuerySchema.extend({
+  limit: z.preprocess(
+    (value) => (typeof value === 'string' ? Number.parseInt(value, 10) : value),
+    reviewQueueQuerySchema.shape.limit,
+  ),
+});
+
 const reviewQueueSchema = z.object({
   params: emptyRecord,
-  query: z.object({ status: z.string().optional() }),
+  query: reviewQueueHttpQuerySchema,
   body: z.unknown(),
   authContext: authContextSchema,
 });
@@ -227,11 +235,12 @@ export function createGatewayRouteDefs(deps: GatewayRouteDeps): RouteDef[] {
         const auth = ctx.authContext;
         const projection = await buildOwnerReviewQueueProjection(
           deps.runtime.services.knowledgeOwner,
-          ctx.query.status !== undefined ? { auth, status: ctx.query.status } : { auth },
+          { auth, query: ctx.query },
         );
         return reviewQueueResponseSchema.parse({
           items: projection.items,
-          nextCursor: null,
+          nextCursor: projection.nextCursor,
+          filteredTotal: projection.filteredTotal,
           total: projection.total,
         });
       },

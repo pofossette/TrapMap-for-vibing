@@ -74,7 +74,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `PATCH` | `/v1/knowledge/:entryId` | `knowledgeUpdateSchema` | `knowledgeEntryResponseSchema` | 具有足够权限时更新已批准的条目 |
 | `POST` | `/v1/knowledge/:entryId/resubmit` | `knowledgeResubmissionSchema` | `knowledgeEntryResponseSchema` | 重新提交被拒内容并保留历史记录 |
 | `POST` | `/v1/knowledge/:entryId/supersede` | `{ replacementId: string }` | `knowledgeEntryResponseSchema` | 标记条目已被新条目取代 |
-| `GET` | `/v1/knowledge/review-queue` | `reviewQueueQuerySchema` | `reviewQueueResponseSchema` | 列出待审核条目 |
+| `GET` | `/v1/knowledge/review-queue` | `reviewQueueQuerySchema` | `reviewQueueResponseSchema` | 服务端筛选、排序和分页列出待审核条目；响应区分 `filteredTotal` 与授权队列 `total` |
 | `POST` | `/v1/knowledge/review` | `reviewDecisionRequestSchema` | `knowledgeEntryResponseSchema` | 批准、拒绝或退回修正提交；默认 `light` 主线通过 `host-local` Nest gateway 委托 `governance-review` owner，`heavy` 通过 distributed gateway 转发到 `governance-review` service |
 | `PATCH` | `/v1/knowledge/:id/evidence` | `evidenceMetaSchema`（部分） | `{ evidence: evidenceMetaSchema }` | 更新知识条目的 evidence 元数据 |
 | `POST` | `/v1/operations/knowledge/:entryId/deactivate` | `knowledgeDeactivateRequestSchema` | `knowledgeDeactivateResponseSchema` | 停用知识条目并记录审计日志 |

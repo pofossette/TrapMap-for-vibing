@@ -14,10 +14,11 @@ describe('review-queue-store', () => {
       },
       request: {
         status: 'idle',
-        payload: { items: [], total: 0 },
+        payload: { items: [], filteredTotal: 0, nextCursor: null, total: 0 },
         error: null,
         lastUpdatedAt: null,
       },
+      paging: { cursor: null, limit: 25 },
     });
   });
 
@@ -25,8 +26,14 @@ describe('review-queue-store', () => {
     const state = useReviewQueueStore.getState();
 
     expect(state.filters.sort).toBe('highest-risk');
+    expect(state.paging).toEqual({ cursor: null, limit: 25 });
     expect(state.request.status).toBe('idle');
-    expect(state.request.payload).toEqual({ items: [], total: 0 });
+    expect(state.request.payload).toEqual({
+      items: [],
+      filteredTotal: 0,
+      nextCursor: null,
+      total: 0,
+    });
   });
 
   it('tracks request lifecycle and filter updates', () => {
@@ -49,6 +56,8 @@ describe('review-queue-store', () => {
           riskTone: 'danger',
         },
       ],
+      filteredTotal: 1,
+      nextCursor: null,
       total: 1,
     });
 
@@ -58,5 +67,18 @@ describe('review-queue-store', () => {
     expect(next.filters.riskLevel).toBe('high');
     expect(next.request.status).toBe('success');
     expect(next.request.payload?.items).toHaveLength(1);
+  });
+
+  it('resets pagination when filters change and tracks explicit paging', () => {
+    const store = useReviewQueueStore.getState();
+
+    store.setPaging({ cursor: '25', limit: 25 });
+    store.updateFilters({ search: 'schema' });
+
+    const afterFilter = useReviewQueueStore.getState();
+    expect(afterFilter.paging.cursor).toBeNull();
+
+    afterFilter.updatePaging({ cursor: '50' });
+    expect(useReviewQueueStore.getState().paging).toEqual({ cursor: '50', limit: 25 });
   });
 });
