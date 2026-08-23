@@ -4,9 +4,9 @@
 
 TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治理基础设施。本文档负责导航到项目中的权威说明，重点覆盖治理、检索、评测与按需激活相关材料。
 
-## 当前整改主线
+## 当前状态
 
-当前 active 执行主线是 [assembly Phase 4 收尾](archived/archived-plans/unified-assembly-center-phase4-archived.md)（统一优雅组装中心——收尾：检索 ILIKE 完整管线收敛（D5）、OTel/Consul 单一插件收敛（D5）、direct-run seam 退役、别名对齐（backend-target-registry / dev:* → shape 名→builder-command 映射）、集群化验证（compose replicas=2 起 candidate-worker + outbox-worker 跑 ownership/重复消费断言）；golden 全绿后归档并 finalize plan.md）。设计规格见 [`superpowers/specs/2026-08-16-unified-assembly-center-design.md`](superpowers/specs/2026-08-16-unified-assembly-center-design.md)。上一主线 [assembly Phase 3](archived/archived-plans/unified-assembly-center-phase3-archived.md) 已完成并归档（2026-08-16），其更早主线 [assembly Phase 2](archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md) 与 [assembly Phase 1](archived/archived-plans/unified-assembly-center-phase1-archived.md) 也已归档；再早一主线 [Dead Code and Architecture Order Cleanup](todos/dead-code-and-architecture-order-cleanup.md) 实现已提交（2026-08-16），其 closeout（Task 11-13）延后登记于[长期 debt 登记](todos/open-debt-and-compromises.md)；更早一轮 [Documentation Validation and Observability Platform](archived/archived-plans/documentation-validation-and-observability-platform-archived.md) 已完成并归档；compatibility-shell retirement、可观测性、共享 PG 治理与分布式成熟度细则同样已[归档](archived/README.md)；平台化和未量化的 Level 3 收益保留在[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。
+当前无 active mainline。最新的 Skill Lookup 契约漂移修复已于 2026-08-22 完成并归档（见 [Skill Lookup 归档细则](archived/archived-plans/skill-lookup-surface-mainline-archived.md)）；剩余工作进入[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。`apps/web-panel` 是保留的运维与 human-review 产品，继续承担治理流程中的人工审核保障；其现有 debt 仅针对真实 owner-service admin 路由替换 mock admin endpoint。
 
 light / heavy 后端构建目标与客户端选择已完成并归档，包含其未执行的部署级 runtime closeout 前置条件。其余历史主线、closeout 细则和背景材料同样不构成并行 active workstream，只能作为 archived/background reference 使用。
 
@@ -223,10 +223,11 @@ deployment flexibility 最小验证矩阵：
 - 文档事实变更时补 `pnpm check:docs`
 
 ### 待办模块
-- [待办文档索引](todos/README.md) — 当前待推进议题与方案入口
-- [根计划索引](../plan.md) — 当前链接唯一 active mainline 为 assembly Phase 4 收尾，并保留归档、debt 与背景入口
-- [assembly Phase 4 细则](archived/archived-plans/unified-assembly-center-phase4-archived.md) — 当前 active execution surface（统一优雅组装中心——收尾：检索 ILIKE 完整管线收敛、OTel/Consul 单一插件收敛、direct-run seam 退役、别名对齐、集群化验证）；[assembly Phase 3](archived/archived-plans/unified-assembly-center-phase3-archived.md)、[assembly Phase 2](archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md) 与 [assembly Phase 1](archived/archived-plans/unified-assembly-center-phase1-archived.md) 已完成并归档；[死代码与架构秩序清理](todos/dead-code-and-architecture-order-cleanup.md) 为更早一主线细则，实现已提交 2026-08-16、closeout 延后（见 [open-debt](todos/open-debt-and-compromises.md)）
-- 当前唯一 active execution surface 是 assembly Phase 4 收尾；新的 todo 文档必须先由根 `plan.md` 显式赋予执行责任，其余材料只能作为背景输入、deferred 落点或已完成 closeout 参考
+- [待办文档索引](todos/README.md) — 长期登记册、守卫追踪清单、挂起历史实现细节与归档主线入口
+- [根计划索引](../plan.md) — 当前无 active mainline，保留历史主线、归档、debt 与背景入口
+- [Skill Lookup 归档细则](archived/archived-plans/skill-lookup-surface-mainline-archived.md) — 最新已完成并归档的主线（2026-08-22）；[assembly Phase 4](archived/archived-plans/unified-assembly-center-phase4-archived.md)、[assembly Phase 3](archived/archived-plans/unified-assembly-center-phase3-archived.md)、[assembly Phase 2](archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md) 与 [assembly Phase 1](archived/archived-plans/unified-assembly-center-phase1-archived.md) 也均为历史证据；[死代码与架构秩序清理](todos/dead-code-and-architecture-order-cleanup.md) 为挂起历史实现细则，closeout 见 [open-debt](todos/open-debt-and-compromises.md)
+- 当前没有 active execution surface；新的 todo 文档必须先由根 `plan.md` 显式赋予执行责任，其余材料只能作为背景输入、deferred 落点或已完成 closeout 参考
+- [Web Panel](../apps/web-panel) — 保留的运维与 human-review 产品，用于治理流程中的人工审核；其 debt 只覆盖以真实 owner-service routes 替换 mock admin endpoints
 - [健壮性与可扩展性收尾细则](archived/archived-plans/robustness-scalability-closeout-plan.md) — 已完成的上一轮 closeout 细则，保留作 truth source、observability 与 debug 收口背景参考
 - 本轮 Phase 3/4 closeout 已冻结 badcase export 边界：route `debug` 仅用于 operator/debug 闭环，`scripts/archived/export-badcase-to-eval.ts` 与 eval fixture 只消费 deterministic `draft`
 - [数据埋点增强细则](archived/archived-plans/instrumentation-observability-plan.md) — 上一轮 observability 主线细则，现仅作为本轮问题池与审计背景输入，不再由根计划直接跟踪

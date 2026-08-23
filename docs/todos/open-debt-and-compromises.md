@@ -11,9 +11,17 @@
 
 ## 长期问题池
 
+### Dead Code and Architecture Order Cleanup closeout 延后（2026-08-22 补登记）
+
+- 来源：主线实现已于 2026-08-16 提交，但 Task 11-13 的正式 closeout、debt-register 回写核对与归档仍未完成；挂起的历史实现细节保留在 [`dead-code-and-architecture-order-cleanup.md`](dead-code-and-architecture-order-cleanup.md)。
+- 影响：实现事实与主线档案状态不一致，读者可能把挂起的历史 checklist 误认作仍开放的主线；closeout 证据也没有统一归档。
+- 当前边界：这是文档与 closeout 债务，不是重新实施信号；不得把该文件恢复为第二条 active mainline。
+- 进入条件：owner 启动专门的 closeout tranche 并确认无需补充实现工作。
+- 后续落点：完成 Task 11-13，核对本册条目后用 `git mv` 归档细则，并同步根计划、todo 与归档索引。
+
 ### web-panel real admin 路径不可运行（刷新于 2026-08-22）
 
-- 来源/影响/边界：同原登记（5 个 /api/admin/* 无后端实现，mock 模式可用）。
+- 来源/影响/边界：同原登记（5 个 `/api/admin/*` 无后端实现，mock 模式可用）。`apps/web-panel` 本身仍是战略性 human-in-the-loop 产品和治理人工审核保障，必须保留；本条债务仅限于其管理动作尚未接入生产化后端。
 - 进入条件：需要真实管理控制台时。
 - 后续落点：按 RouteDef 工厂补 owner service 路由 + SessionProvider token 回填（蓝图见主线归档 Task A10）。
 

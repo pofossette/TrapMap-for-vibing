@@ -192,5 +192,5 @@ export function toSkillLookupMatches(
 
 - [x] 全部 A/B/C/D 复选框勾选且证据（commit hash + 门禁摘要）完整
 - [x] 问题池逐条处置；转 deferred 的条目回写 `docs/todos/open-debt-and-compromises.md`（含来源/影响/进入条件/落点）
-- [ ] `docs/todos/README.md` 活跃索引移除本细则；`plan.md` 状态切换
-- [ ] 本细则 `git mv` 至 `docs/archived/archived-plans/skill-lookup-surface-mainline-archived.md`，同步归档三件套
+- [x] `docs/todos/README.md` 活跃索引移除本细则；`plan.md` 状态切换（58662cb8）
+- [x] 本细则 `git mv` 至 `docs/archived/archived-plans/skill-lookup-surface-mainline-archived.md`，同步归档三件套（58662cb8）
