@@ -2,8 +2,9 @@
 
 ## Status
 
-- **Active mainline（2026-08-23 启动）。**
-- Owner 已选择本细则并授权开始实现；当前处于 Phase 0 / 2 / 3 / 5 定向切片交叉推进状态，尚未满足 closeout 条件。
+- **Paused / Deferred Successor。**
+- 本细则已于 2026-08-23 启动首批实现；2026-08-25 起暂停，等待 Experience Gene Infrastructure and Pipeline 主线完成 closeout 后恢复。
+- 恢复时不得直接把本文件当作 active checklist 使用；必须由根 `plan.md` 显式切换回 Web Panel 主线，并按需将细则迁回 `docs/todos/` 或创建新的 active 细则。
 
 ## Product Stance
 
@@ -25,7 +26,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 - 七条管理路由已经存在：Dashboard、Review Queue、Review Detail、Artifacts、Trap Graph、Skill Graph、Activity。
 - 已有中英双语 i18n、Zustand stores、real/mock API seam、G6 graph、review/JSON-edit actions。
-- 第六批实现后测试规模为 23 个文件、59 tests。
+- 第六批实现后测试规模为 23 个文件、62 tests。
 - 剩余功能缺口包括 auth/RBAC 缺失和 browser bearer provider 为 null。Dashboard 硬编码、return-for-correction 映射为 reject、review queue 客户端 filter/sort/pagination，以及 activity 本地过滤/无 cursor 已清理。Dashboard 的 artifact 规模统计仍受 snapshot 首页上限约束。
 - 目标 dark/yellow token 已建立并替换蓝色/Geist 默认值；全站响应式细节、空态统一与真实模式仍待完成。
 
@@ -143,8 +144,9 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 ### 2026-08-23: graph-controls tranche
 
 - 将 Trap Graph 的邻域深度从展示控件接入实际视图状态：以选中节点为根计算无向 1-hop、2-hop 或完整连通分量，并只保留可见节点诱导的边；层级过滤先于邻域遍历执行。
-- Skill Graph 的 derivation/semantic 模式请求和节点搜索高亮状态补齐回归测试；artifact picker 显式请求最多 100 个工件，避免正确分页后的 Artifacts API 默认首页让选择器意外截断。
-- 新增纯 `trap-graph-view` helper 与 5 个测试，覆盖层级过滤、1/2 hop、连通分量、诱导边和无选中根的全量回退。
+- Skill Graph 的 derivation/semantic 模式请求补齐回归测试；节点搜索关键字继续作为 G6 高亮输入。Artifact picker 显式请求最多 100 个工件，避免正确分页后的 Artifacts API 默认首页让选择器意外截断。
+- 新增纯 `trap-graph-view` helper 与 7 个测试，覆盖层级过滤、1/2 hop、连通分量、诱导边、无选中根的全量回退、隐藏根识别和深度窄化。
+- 当选中根被层级过滤隐藏时，页面显式清空 selection 并回到无根全量过滤态；深度选项经窄化 parser 归一化，避免未知值绕过类型约束。
 - 当前构建首屏主 JS 保持 `730.14 kB (gzip 232.62 kB)`；异步 G6 preset 保持 `1,411.49 kB (gzip 408.80 kB)` 且不进入首屏 script。
 
 ### Graph compromises
@@ -152,6 +154,12 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - Artifact picker 的 100-item snapshot 是当前 UI 上限；超过该规模的完整选择、搜索和分页需要专用 admin artifact-summary query 或 picker 分页流程。
 
 ## Acceptance Gates
+
+### Pause Gates
+
+- Experience Gene 主线已完成代码/契约、聚焦测试、事实源回写和文档守卫验证。
+- 根 `plan.md` 已显式把 active mainline 切回本主题。
+- 本文件已迁回 `docs/todos/`，或已基于其最新状态创建新的 active 细则。
 
 - `pnpm --filter @trapmap/web-panel test --run`
 - `pnpm --filter @trapmap/web-panel typecheck`

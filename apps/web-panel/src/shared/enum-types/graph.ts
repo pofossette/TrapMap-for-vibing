@@ -21,3 +21,5 @@ export type GraphDataResponse = {
   nodes: G6Node[];
   edges: G6Edge[];
 };
+
+export type TrapNeighborhoodDepth = '1' | '2' | 'all';

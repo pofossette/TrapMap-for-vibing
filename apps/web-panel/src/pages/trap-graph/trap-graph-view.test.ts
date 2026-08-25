@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import type { G6Edge, G6Node } from '@trapmap/web-panel/shared/enum-types';
-import { type TrapNodeFilterState, applyTrapGraphView } from './trap-graph-view';
+import {
+  type TrapNodeFilterState,
+  applyTrapGraphView,
+  isTrapNodeVisibleForLayers,
+  parseTrapNeighborhoodDepth,
+} from './trap-graph-view';
 
 const nodes: G6Node[] = [
   { id: 'trap', label: 'Trap', kind: 'trap' },
@@ -28,6 +33,18 @@ const allLayersEnabled: TrapNodeFilterState = {
 };
 
 describe('applyTrapGraphView', () => {
+  it('identifies nodes hidden by layer filters so callers can reset stale roots', () => {
+    expect(isTrapNodeVisibleForLayers(nodes[0], allLayersEnabled)).toBe(true);
+    expect(isTrapNodeVisibleForLayers(nodes[0], { ...allLayersEnabled, trap: false })).toBe(false);
+  });
+
+  it('narrows unexpected depth values to one hop', () => {
+    expect(parseTrapNeighborhoodDepth('1')).toBe('1');
+    expect(parseTrapNeighborhoodDepth('2')).toBe('2');
+    expect(parseTrapNeighborhoodDepth('all')).toBe('all');
+    expect(parseTrapNeighborhoodDepth('unexpected')).toBe('1');
+  });
+
   it('returns the complete filtered graph when no node is selected', () => {
     const view = applyTrapGraphView(
       { nodes, edges },

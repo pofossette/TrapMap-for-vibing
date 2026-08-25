@@ -8,7 +8,12 @@
 
 | 文件 | 角色 | 状态 |
 |---|---|---|
-| [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md) | Web Panel 功能补全与 UI 美化优化的分阶段计划 | Active mainline；2026-08-23 启动首批实现 |
+| [experience-gene-program-mainline.md](experience-gene-program-mainline.md) | Experience Gene Infrastructure and Pipeline 的 owner mainline | Active mainline；2026-08-25 启动 |
+| [experience-gene-infrastructure-foundation.md](experience-gene-infrastructure-foundation.md) | Gene 主线阶段 1：向量、structured generation 与 derivation 骨架 | Delegated active surface |
+| [experience-gene-contracts-and-storage.md](experience-gene-contracts-and-storage.md) | Gene 主线阶段 2：共享契约与 PostgreSQL 投影 | Delegated active surface |
+| [experience-gene-derivation-pipeline.md](experience-gene-derivation-pipeline.md) | Gene 主线阶段 3：trap/skill/capsule 派生与治理门禁 | Delegated active surface |
+| [experience-gene-retrieval-and-activation.md](experience-gene-retrieval-and-activation.md) | Gene 主线阶段 4：gene-native 检索与 agent 注入 | Delegated active surface |
+| [experience-gene-governance-evaluation-rollout.md](experience-gene-governance-evaluation-rollout.md) | Gene 主线阶段 5：治理、评测和灰度 rollout | Delegated active surface |
 | [open-debt-and-compromises.md](open-debt-and-compromises.md) | 长期工程债务与平台成熟度登记 | 长期登记册；受根索引管理，非第二条 active mainline |
 | [assert-exemptions.md](assert-exemptions.md) | 裸类型断言豁免清单 | 由 `pnpm check:asserts` 门禁追踪；非 active mainline |
 | [dead-code-and-architecture-order-cleanup.md](dead-code-and-architecture-order-cleanup.md) | Dead Code and Architecture Order Cleanup：死代码清理与架构秩序守卫 | 挂起的历史实现细节；实现已提交 2026-08-16，Task 11-13 closeout 延后并登记在长期登记册 |
@@ -37,6 +42,6 @@
 
 ## 当前状态说明
 
-**当前 active mainline 是 Web Panel 功能补全与 UI 美化优化。** 该细则已于 2026-08-23 启动首批实现，进度与未完成项以其 Progress Log 为准。最新完成的 Skill Lookup 契约漂移修复历史见 [skill-lookup-surface-mainline-archived.md](../archived/archived-plans/skill-lookup-surface-mainline-archived.md)。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪；[dead-code-and-architecture-order-cleanup.md](dead-code-and-architecture-order-cleanup.md) 是挂起的历史实现细节，其 Task 11-13 closeout 延后并登记在长期登记册中。其余主线均只能作为历史证据查找。
+**当前 active mainline 是 Experience Gene Infrastructure and Pipeline。** owner 细则见 [experience-gene-program-mainline.md](experience-gene-program-mainline.md)；五个 delegated phase 文档只能作为该主线的执行切片推进，不构成并行主线。[Web Panel 功能补全与 UI 美化优化](../plans/web-panel-feature-and-ui-optimization-paused.md) 已暂停，是 Gene closeout 后的第一个恢复候选。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪；[dead-code-and-architecture-order-cleanup.md](dead-code-and-architecture-order-cleanup.md) 是挂起的历史实现细节，其 Task 11-13 closeout 延后并登记在长期登记册中。其余主线均只能作为历史证据查找。
 
 完整归档表见 [`../archived/README.md`](../archived/README.md)。

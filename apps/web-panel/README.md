@@ -140,7 +140,7 @@ Reusable components exported from `src/shared/ui`:
 
 `@trapmap/web-panel` 是保留并持续维护的包，但按以下约定收敛维护面（本约定只描述规则，不修改源码）：
 
-- **Feature surface 基线**：现有 Routes 表中的页面与功能是当前基线。新增页面、路由或功能必须遵循 [`docs/todos/web-panel-feature-and-ui-optimization.md`](../../docs/todos/web-panel-feature-and-ui-optimization.md)，并取得明确的 owner 决策；不得为了演示或实验随意扩面。
+- **Feature surface 基线**：现有 Routes 表中的页面与功能是当前基线。Experience Gene 主线 closeout 前，新增页面、路由或功能必须先获得明确 owner 决策并切换主线；恢复实现时遵循 [`docs/plans/web-panel-feature-and-ui-optimization-paused.md`](../../docs/plans/web-panel-feature-and-ui-optimization-paused.md)，不得为了演示或实验随意扩面。
 - **依赖边界**：panel 只消费 `@trapmap/client-core`（API 传输）与 `@trapmap/contracts`（共享类型/契约）；禁止引入 `@trapmap/backend-core`、`@trapmap/lib`、`@trapmap/service-*` 等后端包。后端数据一律经 gateway API + `createAdminPanelApi` 获取。
 - **第三方依赖**：现有依赖（react/react-dom、react-router-dom、zustand、framer-motion、@heroui/react + styles、@antv/g6、tailwindcss 等）为冻结基线；新增任何第三方依赖必须在 PR 中给出文档化理由（用途、替代方案评估、体积/维护成本），并回写本 README 的依赖清单。
 - **测试保留**：vitest 配置与 co-located 测试（`*.test.ts(x)`）是强制保留的维护资产，新增/修改页面逻辑时必须同步补充测试；`pnpm --filter @trapmap/web-panel test` 必须保持通过。

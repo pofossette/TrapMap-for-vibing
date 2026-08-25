@@ -28,7 +28,7 @@
 - 2026-08-23 追加：Artifacts 的 level/search/lifecycle/scope 过滤、确定性排序和 cursor 分页已在 mock seam 与页面完成；这不改变 `/api/admin/artifacts` 生产 RouteDef 缺失或 bearer/RBAC 债务。
 - 2026-08-23 追加：Trap/Skill 图谱的深度、搜索和模式状态已完成接线；Skill 工件选择器仍受最多 100 个 snapshot 工件约束，且不改变生产 admin graph/artifact RouteDef 缺失或 bearer/RBAC 债务。
 - 进入条件：需要真实管理控制台时。
-- 后续落点：按 [`web-panel-feature-and-ui-optimization.md`](web-panel-feature-and-ui-optimization.md) 的 phased path 实现；实现必须继续使用 RouteDef 工厂补 owner service 路由，并回填 SessionProvider token。
+- 后续落点：Gene 主线 closeout 后恢复 [`../plans/web-panel-feature-and-ui-optimization-paused.md`](../plans/web-panel-feature-and-ui-optimization-paused.md) 的 phased path 实现；实现必须继续使用 RouteDef 工厂补 owner service 路由，并回填 SessionProvider token。
 
 ### eval:smoke CI 完整补跑（环境门控，刷新于 2026-08-22）
 

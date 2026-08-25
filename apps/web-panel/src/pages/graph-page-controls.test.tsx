@@ -27,7 +27,18 @@ vi.mock('@trapmap/web-panel/shared/ui', async () => {
 });
 
 vi.mock('../shared/ui/g6-graph-component', () => ({
-  G6GraphComponent: () => <div data-testid="mock-graph" />,
+  G6GraphComponent: ({
+    onSelectNode,
+  }: {
+    onSelectNode: (node: { id: string; kind: string; label: string }) => void;
+  }) => (
+    <button
+      type="button"
+      onClick={() => onSelectNode({ id: 'trap-1', kind: 'trap', label: 'Docker socket exposure' })}
+    >
+      Select trap fixture
+    </button>
+  ),
 }));
 
 // @ts-ignore
@@ -47,6 +58,9 @@ describe('graph page controls', () => {
       mockApi.loadSkillGraph(artifactId, query),
     );
     adminApi.loadTrapGraph.mockImplementation(() => mockApi.loadTrapGraph());
+    adminApi.loadArtifacts.mockClear();
+    adminApi.loadSkillGraph.mockClear();
+    adminApi.loadTrapGraph.mockClear();
   });
 
   it('renders the trap graph neighborhood depth control without a native select', async () => {
@@ -93,21 +107,52 @@ describe('graph page controls', () => {
       ),
     ).toBe(true);
     expect(adminApi.loadArtifacts).toHaveBeenCalledWith({ limit: 100 });
+    expect(adminApi.loadSkillGraph.mock.calls[0]).toEqual(['art-102', { mode: 'derivation' }]);
 
     const semanticButton = Array.from(container.querySelectorAll('button')).find((button) =>
       button.textContent?.includes('Semantic Graph'),
     );
+    adminApi.loadSkillGraph.mockClear();
     await act(async () => {
       semanticButton?.click();
     });
 
-    expect(
-      adminApi.loadSkillGraph.mock.calls.some(([artifactId, query]) => {
-        return (
-          typeof artifactId === 'string' && artifactId.length > 0 && query?.mode === 'semantic'
-        );
-      }),
-    ).toBe(true);
+    expect(adminApi.loadSkillGraph).toHaveBeenCalledTimes(1);
+    expect(adminApi.loadSkillGraph).toHaveBeenCalledWith('art-102', { mode: 'semantic' });
+
+    await act(async () => {
+      root.unmount();
+    });
+    document.body.removeChild(container);
+  });
+
+  it('clears a selected trap node when its layer filter hides the root', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<TrapGraphPage />);
+    });
+
+    const selectFixture = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Select trap fixture'),
+    );
+    await act(async () => {
+      selectFixture?.click();
+    });
+    expect(container.textContent).toContain('trap-1');
+
+    const trapLayerLabel = Array.from(container.querySelectorAll('label')).find((label) =>
+      label.textContent?.includes('Trap (Threat Risks)'),
+    );
+    const trapCheckbox = trapLayerLabel?.querySelector('input');
+    await act(async () => {
+      trapCheckbox?.click();
+    });
+
+    expect(container.textContent).toContain('Select a node or edge to inspect its details.');
+    expect(container.textContent).not.toContain('trap-1');
 
     await act(async () => {
       root.unmount();

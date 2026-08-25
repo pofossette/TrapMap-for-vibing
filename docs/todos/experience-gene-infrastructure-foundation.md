@@ -1,0 +1,195 @@
+# Experience Gene Infrastructure Foundation
+
+## Status
+
+- Owned by [Experience Gene Infrastructure and Pipeline](experience-gene-program-mainline.md).
+- Phase order: 1 / 5.
+
+## Goal
+
+先收敛 Gene 管线要复用的向量、structured generation 和 derivation task 骨架，避免在后续阶段复制 pgvector、embedding cache、JSON 解析和任务幂等逻辑。
+
+## Non-goals
+
+- 不新建 `@trapmap/vector-store` 包。
+- 不替换现有 embedding provider 或引入第二套向量索引。
+- 不改变既有 knowledge entry、capsule 和 label 检索语义。
+- 不实现 ExperienceGene 业务对象。
+
+## Current facts
+
+- `cosineSimilarity` 目前位于 `packages/backend-core/src/knowledge-read/domain/ranking.ts`。
+- pgvector 用法分散在 knowledge embeddings、capsule embeddings 和 canonical label embeddings。
+- embedding provider 工厂已经由 `@trapmap/ai-providers` 统一提供。
+- artifact derivation 已有 judgment-node contract：`ArtifactDerivationPort`。
+- task/outbox 基础设施位于 `packages/service-job-runtime/src/async-runtime.ts`。
+
+## Design decisions
+
+### Vector utilities
+
+- 将纯函数 `cosineSimilarity` 和新增 `normalizeVector` 移入 `packages/lib/src/vector.ts`。
+- 新增 `createDeterministicFallbackVector(text: string, dimension = 384): number[]`，算法与现有 `FallbackEmbeddings` 完全一致；`@trapmap/ai-providers` 改为消费该 helper。
+- `backend-core` 改为从 `@trapmap/lib` 导入 `cosineSimilarity` 并在原 public barrel re-export，避免破坏既有消费方。
+- 本阶段不替换 `service-knowledge-read/retrieval-infra-default.ts` 现有的本地 embedding 函数，避免改变未配置 provider 时的既有检索向量。
+- `cosineSimilarity` 对 dimension mismatch、`NaN` 和非 finite 输入抛错；zero vector 返回 `0`。`normalizeVector` 返回新数组，不修改输入；zero/non-finite vector 分别返回全零和抛错。deterministic helper 对相同 text/dimension 必须逐位一致。
+
+### Vector search port
+
+新增 `packages/backend-core/src/ports/vector-search-ports.ts`:
+
+```ts
+export interface VectorSearchRecord {
+  sourceId: string;
+  sourceRevision: number;
+  contentHash: string;
+  vector: number[];
+  teamId: string | null;
+  scope: 'global' | 'project';
+  requiredLevel: number;
+}
+
+export interface VectorSearchFilters {
+  teamId: string | null;
+  maxRequiredLevel: number;
+  scopes: Array<'global' | 'project'>;
+  sourceIds?: string[];
+}
+
+export interface VectorSearchHit {
+  sourceId: string;
+  similarity: number;
+}
+
+export interface VectorSearchPort {
+  upsert(records: VectorSearchRecord[]): Promise<void>;
+  search(vector: number[], filters: VectorSearchFilters, limit: number): Promise<VectorSearchHit[]>;
+  deleteBySource(sourceId: string): Promise<void>;
+  health(): Promise<{ ok: boolean; reason?: string }>;
+}
+```
+
+- Port 只定义能力，不绑定 pgvector。
+- PostgreSQL/pgvector 实现留在对应 service owner infrastructure；第一阶段允许 knowledge-read 与后续 Gene read/write adapter 分别装配同一 port。
+- Port 表示一个 logical collection；具体表名、namespace 和 embedding model/version 由宿主装配时绑定，不在每次调用里混用不同集合。
+- 查询必须强制 governance filters，不得让调用方绕过 team/scope/security level。
+- `upsert` 必须以 `(source_id, source_revision, content_hash)` 为逻辑幂等键；重复 upsert 更新 vector 与 governance columns，不产生第二行。
+- `search` 的 similarity 必须 clamp 到 `[0, 1]`，按 similarity desc、sourceId asc 排序，保证测试稳定。
+
+### Structured generation seam
+
+在 `@trapmap/ai-providers` 增加 provider-neutral helper:
+
+```ts
+export interface StructuredGenerationResult<T> {
+  value: T;
+  rawText: string;
+  rawTextSha256: string;
+  provider: string;
+  model: string | null;
+  attempts: number;
+}
+
+export async function generateStructured<T>(options: {
+  chat: ChatProvider;
+  system: string;
+  prompt: string;
+  schema: ZodType<T>;
+  maxRetries?: number;
+  retryBaseDelayMs?: number;
+}): Promise<StructuredGenerationResult<T>>;
+```
+
+- helper 复用现有 JSON fence 清理思路，负责 Zod parse、bounded retry、raw output hash 和 redacted observability metadata；默认 `maxRetries = 2`，允许范围 `0..5`。
+- 为避免破坏既有调用方，可为 `ChatProvider` 增加 optional `readonly model?: string | null`；result.model 取该值或 `null`，不得从 prompt/raw text 推断模型名。
+- prompt 内容仍由调用方拥有；不在 ai-providers 内编写 Gene 业务 prompt。
+- chat 未配置、invoke 失败或重试后仍无法通过 Zod parse 时抛出 typed `StructuredGenerationError`，携带 `attempts` 和 redacted last failure class，由上层决定降级策略。
+
+### Canonical JSON
+
+新增 `canonicalJsonStringify(value: unknown): string` 到 `@trapmap/lib`：
+
+- 递归排序 object key，保留 array order，不写入空白字符。
+- `undefined` object properties 被省略；array 中的 `undefined` 和 non-finite number 抛错。
+- 该 helper 是后续 Gene content hash 与 task idempotency key 的唯一稳定序列化入口。
+
+### Derivation task skeleton
+
+新增通用 derivation contract 到 `packages/backend-core/src/ports/derivation-ports.ts`:
+
+```ts
+export interface DerivationRequest<TSnapshot> {
+  sourceType: string;
+  sourceId: string;
+  sourceRevision: number;
+  sourceHash: string;
+  snapshot: TSnapshot;
+}
+
+export interface ValidationIssue {
+  code: string;
+  field: string;
+  message: string;
+}
+
+export interface ValidationReport {
+  valid: boolean;
+  issues: ValidationIssue[];
+}
+
+export interface DerivationCandidate<TOutput> {
+  output: TOutput;
+  validatorReport: ValidationReport;
+  provenance: {
+    generator: 'rule' | 'llm' | 'hybrid';
+    model: string | null;
+    promptVersion: string;
+  };
+}
+```
+
+- 该骨架只约束请求溯源、候选输出和验证报告，不定义 Gene 字段。
+- task enqueue 继续使用现有 pending/running in-flight dedupe 规则；业务层 key 至少包含 source type/id/revision/source hash、derivation unit id、generator kind 和 prompt version。
+- `ValidationReport.valid === false` 不抛错；是否保存 rejected event、重试或终止由领域管线决定。
+
+## Implementation checklist
+
+- [ ] 把 cosine/vector pure helpers 迁移到 `@trapmap/lib` 并补测试。
+- [ ] backend-core 保持原导出兼容并改用 lib implementation。
+- [ ] deterministic fallback helper 保持 `FallbackEmbeddings` 现有输出不变。
+- [ ] 新增 `VectorSearchPort` 与最小 fixture-based contract tests。
+- [ ] 为 knowledge-read 现有 pgvector path 建立 port-backed adapter seam。
+- [ ] 在 ai-providers 增加 `generateStructured` 与 retry/parser tests。
+- [ ] 新增 derivation request/candidate/report contracts 与 fixture tests。
+- [ ] 新增 `canonicalJsonStringify` 与 nested-object/array edge-case tests。
+- [ ] 运行 focused tests、typecheck 和 fallow audit。
+
+## Acceptance criteria
+
+1. 旧 `cosineSimilarity` public import path 继续可用，ranking 相关 focused tests 全绿。
+2. `FallbackEmbeddings.embed` 对固定输入的输出在重构前后一致。
+3. knowledge-read 默认检索行为、路由和响应 shape 不变；pgvector adapter 只替换 seam，不改 SQL 语义。
+4. structured generation 对 fence、invalid JSON、schema failure、invoke failure 和成功 retry 各有确定性 fake-chat 测试。
+5. 没有新建向量包、数据库连接管理器或 Gene 业务类型。
+6. 相同逻辑对象的 canonical JSON 输出与 key insertion order 无关。
+
+## Test plan
+
+```bash
+pnpm --filter @trapmap/lib test --run src/vector.test.ts
+pnpm --filter @trapmap/lib test --run src/canonical-json.test.ts
+pnpm --filter @trapmap/backend-core test --run src/ports/vector-search-ports.test.ts
+pnpm --filter @trapmap/service-knowledge-read test --run src/retrieval-infra-default.test.ts
+pnpm --filter @trapmap/ai-providers test --run src/structured-generation.test.ts
+pnpm typecheck
+pnpm exec fallow audit --base main
+```
+
+## Rollout and rollback
+
+- 本阶段不改默认路由行为。
+- 若 pgvector adapter seam 引发回归，直接回退 caller wiring，保留 lib pure helpers 和 ports。
+
+## Debt register
+
+- 若多个 service 出现重复 pgvector SQL，登记为下一阶段抽取 shared adapter 的触发条件；当前不以新包预判抽象。

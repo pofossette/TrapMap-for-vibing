@@ -31,6 +31,7 @@
 | `v2-multi-recall-plan.md` | historical-reference | 检索设计上下文，现仅作背景引用 |
 | `promptfoo-eval-migration-plan.md` | historical-reference | promptfoo eval 引擎迁移（6 suite 桥接 + cutover）已完成，`promptfoo-decision-record.md` 记录 ADR 与 backlog；现仅作背景引用 |
 | `promptfoo-decision-record.md` | historical-reference | 决策记录（ADR-1..4 + closeout），含 backlog 与单供应商风险跟踪 |
+| `web-panel-feature-and-ui-optimization-paused.md` | paused-successor | Web Panel 已启动但未完成；由根 `plan.md` 登记为 Experience Gene closeout 后的第一个恢复候选，当前不是 active execution surface |
 
 ## 后端工程化阶段总结
 
@@ -51,7 +52,7 @@
 当前默认阅读顺序应为：
 
 1. 根 `plan.md`
-2. 根计划当前显式链接的 `docs/todos/*` 活跃细则
+2. 根计划当前显式链接的 Experience Gene owner 细则及其 delegated phase 文档
 3. 本目录中的 historical-reference 计划
 
 本目录的角色现在是：

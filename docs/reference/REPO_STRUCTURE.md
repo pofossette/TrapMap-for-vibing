@@ -78,7 +78,7 @@ Wave-10 intermediate（2026-07-25）：`packages/runtime-infra/` 已退休删除
 - `docs/architecture/`：架构概览和组件文档。
 - `docs/reference/`：真相源、Schema、术语表、API 表面和仓库结构。
 - `docs/plans/`：历史设计参考，仅在当前根 `plan.md` 显式重新链接时才重新激活。默认不是并行的 active execution surface。
-- `docs/todos/`：当前执行文档目录。只有被根 `plan.md` 显式链接、且明确承担当前 owner 执行责任的文档才属于 active surface；“仍有参考价值”不足以继续留在这里。
+- `docs/todos/`：当前执行文档目录。只有被根 `plan.md` 显式链接、且明确承担当前 owner 执行责任的文档属于 active surface；owner 主细则可将其执行顺序中的阶段子文档声明为同一主线的 delegated surface。“仍有参考价值”不足以继续留在这里。
 - `docs/archived/`：过时的计划、历史报告和退役的决策。
 - `docs/superpowers/`：由 Superpowers 工作流生成的计划和规范。
 

@@ -12,11 +12,12 @@
 
 ## 当前主线
 
-- 当前主线是 [Web Panel 功能补全与 UI 美化优化](docs/todos/web-panel-feature-and-ui-optimization.md)，已于 2026-08-23 启动 Phase 0 / 3 / 5 交叉实施；阶段顺序、验收证据和剩余范围以主细则为准。
+- 当前主线是 [Experience Gene Infrastructure and Pipeline](docs/todos/experience-gene-program-mainline.md)。该主线把已治理的 trap 与 skill/capsule 经验派生为 compact、control-oriented、evolution-ready 的 Gene，并建立独立生命周期、持久化投影、gene-native 检索和受控 rollout。
+- 执行顺序固定为：基础设施抽离整合 -> [contracts/storage](docs/todos/experience-gene-contracts-and-storage.md) -> [derivation pipeline](docs/todos/experience-gene-derivation-pipeline.md) -> [retrieval/activation](docs/todos/experience-gene-retrieval-and-activation.md) -> [governance/evaluation/rollout](docs/todos/experience-gene-governance-evaluation-rollout.md)。基础设施要求见 [infrastructure foundation](docs/todos/experience-gene-infrastructure-foundation.md)。阶段顺序、owner、证据、问题池和 closeout 记录以主细则为准。
 
 ## 下一候选
 
-- 当前无额外下一候选；新问题优先进入当前主细则或长期债务登记册。
+- 下一候选是 [Web Panel 功能补全与 UI 美化优化（paused successor）](docs/plans/web-panel-feature-and-ui-optimization-paused.md)。它不是并行执行面；只有在 Experience Gene 主线完成 closeout 并归档后，才由根 `plan.md` 显式切回并恢复为 active mainline。
 
 ## 历史主线与入口
 

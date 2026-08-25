@@ -78,7 +78,7 @@
       "file": "docs/reference/REPO_STRUCTURE.md",
       "mustContain": [
         "`docs/plans/`：历史设计参考，仅在当前根 `plan.md` 显式重新链接时才重新激活。",
-        "`docs/todos/`：当前执行文档目录。只有被根 `plan.md` 显式链接、且明确承担当前 owner 执行责任的文档才属于 active surface；“仍有参考价值”不足以继续留在这里。",
+        "`docs/todos/`：当前执行文档目录。只有被根 `plan.md` 显式链接、且明确承担当前 owner 执行责任的文档属于 active surface；owner 主细则可将其执行顺序中的阶段子文档声明为同一主线的 delegated surface。“仍有参考价值”不足以继续留在这里。",
         "packages/host-local/src/nest/runtime/backend-core-adapters.ts",
         "packages/host-distributed/src/gateway/",
         "packages/host-distributed/src/shared/"
@@ -357,7 +357,7 @@
         "microservice-platform-evolution-plan.md",
         "微服务平台能力增强",
         "应新建 active 细则",
-        "当前根 `plan.md` 无 active mainline detail"
+        "当前根 `plan.md` 的 active mainline 是 Experience Gene Infrastructure and Pipeline"
       ]
     },
     {

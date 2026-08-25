@@ -1,4 +1,4 @@
-import type { G6Edge, G6Node } from '@trapmap/web-panel/shared/enum-types';
+import type { G6Edge, G6Node, TrapNeighborhoodDepth } from '@trapmap/web-panel/shared/enum-types';
 
 export type TrapNodeFilterState = {
   trap: boolean;
@@ -7,8 +7,6 @@ export type TrapNodeFilterState = {
   environment: boolean;
   mitigation: boolean;
 };
-
-export type TrapNeighborhoodDepth = '1' | '2' | 'all';
 
 type GraphData = {
   nodes: G6Node[];
@@ -23,6 +21,14 @@ function isEnabledForLayer(node: G6Node, filters: TrapNodeFilterState): boolean 
   if (kind === 'environment') return filters.environment;
   if (kind === 'mitigation') return filters.mitigation;
   return true;
+}
+
+export function isTrapNodeVisibleForLayers(node: G6Node, filters: TrapNodeFilterState): boolean {
+  return isEnabledForLayer(node, filters);
+}
+
+export function parseTrapNeighborhoodDepth(value: unknown): TrapNeighborhoodDepth {
+  return value === '2' || value === 'all' ? value : '1';
 }
 
 function collectNeighborhood(

@@ -6,7 +6,7 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 ## 当前状态
 
-当前无 active mainline。最新的 Skill Lookup 契约漂移修复已于 2026-08-22 完成并归档（见 [Skill Lookup 归档细则](archived/archived-plans/skill-lookup-surface-mainline-archived.md)）；剩余工作进入[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。`apps/web-panel` 是保留的运维与 human-review 产品，继续承担治理流程中的人工审核保障；其现有 debt 仅针对真实 owner-service admin 路由替换 mock admin endpoint。
+当前 active mainline 是 Experience Gene Infrastructure and Pipeline，入口见根 [plan.md](../plan.md) 和 [todos/experience-gene-program-mainline.md](todos/experience-gene-program-mainline.md)。最新的 Skill Lookup 契约漂移修复已于 2026-08-22 完成并归档（见 [Skill Lookup 归档细则](archived/archived-plans/skill-lookup-surface-mainline-archived.md)）；剩余工作进入[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。`apps/web-panel` 是保留的运维与 human-review 产品，继续承担治理流程中的人工审核保障；其功能扩展主线已暂停，等待 Gene 主线 closeout 后恢复。
 
 light / heavy 后端构建目标与客户端选择已完成并归档，包含其未执行的部署级 runtime closeout 前置条件。其余历史主线、closeout 细则和背景材料同样不构成并行 active workstream，只能作为 archived/background reference 使用。
 
@@ -224,7 +224,7 @@ deployment flexibility 最小验证矩阵：
 
 ### 待办模块
 - [待办文档索引](todos/README.md) — 长期登记册、守卫追踪清单、挂起历史实现细节与归档主线入口
-- [根计划索引](../plan.md) — 当前无 active mainline，保留历史主线、归档、debt 与背景入口
+- [根计划索引](../plan.md) — 当前 Experience Gene mainline 入口，同时保留历史主线、归档、debt 与背景入口
 - [Skill Lookup 归档细则](archived/archived-plans/skill-lookup-surface-mainline-archived.md) — 最新已完成并归档的主线（2026-08-22）；[assembly Phase 4](archived/archived-plans/unified-assembly-center-phase4-archived.md)、[assembly Phase 3](archived/archived-plans/unified-assembly-center-phase3-archived.md)、[assembly Phase 2](archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md) 与 [assembly Phase 1](archived/archived-plans/unified-assembly-center-phase1-archived.md) 也均为历史证据；[死代码与架构秩序清理](todos/dead-code-and-architecture-order-cleanup.md) 为挂起历史实现细则，closeout 见 [open-debt](todos/open-debt-and-compromises.md)
 - 当前没有 active execution surface；新的 todo 文档必须先由根 `plan.md` 显式赋予执行责任，其余材料只能作为背景输入、deferred 落点或已完成 closeout 参考
 - [Web Panel](../apps/web-panel) — 保留的运维与 human-review 产品，用于治理流程中的人工审核；其 debt 只覆盖以真实 owner-service routes 替换 mock admin endpoints

@@ -9,7 +9,7 @@ import {
 } from 'react';
 
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
-import type { G6Edge, G6Node } from '@trapmap/web-panel/shared/enum-types';
+import type { G6Edge, G6Node, TrapNeighborhoodDepth } from '@trapmap/web-panel/shared/enum-types';
 import { PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
   GraphCanvasPane,
@@ -23,9 +23,10 @@ import {
 } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import {
-  type TrapNeighborhoodDepth,
   type TrapNodeFilterState,
   applyTrapGraphView,
+  isTrapNodeVisibleForLayers,
+  parseTrapNeighborhoodDepth,
 } from './trap-graph-view';
 
 function TrapGraphErrorBanner({
@@ -100,9 +101,7 @@ function TrapGraphControls({
           aria-label={t('neighborhoodDepth')}
           className="w-full"
           value={neighborhoodDepth}
-          onChange={(value) =>
-            onNeighborhoodDepthChange((value ? String(value) : '1') as TrapNeighborhoodDepth)
-          }
+          onChange={(value) => onNeighborhoodDepthChange(parseTrapNeighborhoodDepth(value))}
         >
           <Select.Trigger className="relative w-full flex items-center justify-between rounded-xl border border-panel-line bg-panel-surface px-3 py-2 text-sm text-panel-text outline-none transition duration-200 focus:ring-1 focus:ring-panel-accent cursor-pointer">
             <Select.Value />
@@ -225,7 +224,8 @@ export function TrapGraphPage(): ReactElement {
   const [error, setError] = useState<string | null>(null);
 
   // Inspector selected element
-  const { selectedElement, handleSelectNode, handleSelectEdge } = useGraphSelection();
+  const { selectedElement, handleSelectNode, handleSelectEdge, resetSelection } =
+    useGraphSelection();
 
   // Search keyword
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -255,6 +255,16 @@ export function TrapGraphPage(): ReactElement {
   useEffect(() => {
     void fetchGraph();
   }, [fetchGraph]);
+
+  const selectedNodeId = selectedElement?.type === 'node' ? selectedElement.id : null;
+
+  useEffect(() => {
+    if (!selectedNodeId) return;
+    const selectedNode = graphData.nodes.find((node) => node.id === selectedNodeId);
+    if (!selectedNode || !isTrapNodeVisibleForLayers(selectedNode, nodeFilter)) {
+      resetSelection();
+    }
+  }, [graphData.nodes, nodeFilter, resetSelection, selectedNodeId]);
 
   const displayData = applyTrapGraphView(
     graphData,

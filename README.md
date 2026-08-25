@@ -110,7 +110,7 @@ TrapMap 有两类典型使用方式：
 - CLI 与 web-panel 继续只面向统一 gateway；HTTP / internal / event contract 分别统一收敛到 `packages/contracts`、`packages/backend-core` 和共享 async contract
 - 当前 `distributed` 定位已冻结为 `Level 2 / transitional-microservice`，第一批成熟服务样板 `knowledge-write + governance-review` 已完成 closeout
 
-当前没有 active mainline。两档后端构建目标已由共享 contract 与 repository-owned registry 收敛，客户端以 gateway-only `backendTarget` 配置表达目标偏好；该完成细则及其部署级 runtime closeout 前置条件已归档至 [`docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md`](docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md)。
+当前 active mainline 是 [Experience Gene Infrastructure and Pipeline](plan.md)。两档后端构建目标已由共享 contract 与 repository-owned registry 收敛，客户端以 gateway-only `backendTarget` 配置表达目标偏好；该完成细则及其部署级 runtime closeout 前置条件已归档至 [`docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md`](docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md)。
 
 新的执行工作必须从 [`plan.md`](plan.md) 显式链接的主细则开始；已完成的 Agent Eval 主线同样仅在 [`docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md`](docs/archived/archived-plans/agent-eval-framework-evaluation-and-plan.md) 保留历史参考。
 
