@@ -17,6 +17,9 @@
       "path": "../contracts"
     },
     {
+      "path": "../infra"
+    },
+    {
       "path": "../lib"
     }
   ]

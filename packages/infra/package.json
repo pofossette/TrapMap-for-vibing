@@ -1,0 +1,35 @@
+{
+  "name": "@trapmap/infra",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./vector": {
+      "types": "./dist/vector/index.d.ts",
+      "import": "./dist/vector/index.js"
+    },
+    "./embedding": {
+      "types": "./dist/embedding/index.d.ts",
+      "import": "./dist/embedding/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm -C ../.. exec vitest run --project infra --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@trapmap/lib": "workspace:*",
+    "@trapmap/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.1"
+  }
+}

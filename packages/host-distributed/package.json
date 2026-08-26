@@ -123,6 +123,7 @@
     "@trapmap/assembly": "workspace:*",
     "@trapmap/backend-core": "workspace:*",
     "@trapmap/contracts": "workspace:*",
+    "@trapmap/infra": "workspace:*",
     "@trapmap/service-candidate-ingestion": "workspace:*",
     "@trapmap/service-governance-review": "workspace:*",
     "@trapmap/service-identity-access": "workspace:*",

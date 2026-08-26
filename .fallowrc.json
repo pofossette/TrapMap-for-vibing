@@ -4,6 +4,7 @@
     "packages/backend-core/src/index.ts",
     "packages/assembly/src/index.ts",
     "packages/lib/src/index.ts",
+    "packages/infra/src/index.ts",
     "apps/cli/src/index.ts",
     "apps/mcp/src/index.ts",
     "packages/client-core/src/index.ts",
@@ -12,6 +13,10 @@
     "packages/persistence-schema/src/experience-genes.test.ts",
     "packages/host-distributed/src/index.ts",
     "packages/host-local/src/index.ts",
+    "apps/light/src/index.ts",
+    "apps/distributed/src/index.ts",
+    "apps/light/src/composition/experience-gene.ts",
+    "apps/distributed/src/composition/experience-gene.ts",
     "apps/web-panel/index.html",
     "apps/web-panel/src/main.tsx",
     "scripts/*.ts",
@@ -127,6 +132,10 @@
         "patterns": ["packages/lib/src/**"]
       },
       {
+        "name": "infra",
+        "patterns": ["packages/infra/src/**"]
+      },
+      {
         "name": "persistence-schema",
         "patterns": ["packages/persistence-schema/src/**"]
       },
@@ -180,6 +189,14 @@
       {
         "name": "mcp",
         "patterns": ["apps/mcp/src/**"]
+      },
+      {
+        "name": "app-light",
+        "patterns": ["apps/light/src/**"]
+      },
+      {
+        "name": "app-distributed",
+        "patterns": ["apps/distributed/src/**"]
       }
     ],
     "rules": [
@@ -192,6 +209,10 @@
         "allow": ["contracts"]
       },
       {
+        "from": "infra",
+        "allow": ["contracts", "lib"]
+      },
+      {
         "from": "persistence-schema",
         "allow": ["contracts"]
       },
@@ -201,7 +222,7 @@
       },
       {
         "from": "backend-core",
-        "allow": ["contracts", "persistence-schema", "lib"]
+        "allow": ["contracts", "persistence-schema", "lib", "infra"]
       },
       {
         "from": "assembly",
@@ -209,15 +230,15 @@
       },
       {
         "from": "ai-providers",
-        "allow": ["contracts", "lib"]
+        "allow": ["contracts", "lib", "infra"]
       },
       {
         "from": "service-standard",
-        "allow": ["ai-providers", "backend-core", "contracts", "persistence-schema", "lib"]
+        "allow": ["ai-providers", "backend-core", "contracts", "persistence-schema", "lib", "infra"]
       },
       {
         "from": "service-knowledge-read",
-        "allow": ["ai-providers", "backend-core", "contracts", "persistence-schema", "lib"]
+        "allow": ["ai-providers", "backend-core", "contracts", "persistence-schema", "lib", "infra"]
       },
       {
         "from": "host-local",
@@ -230,7 +251,8 @@
           "service-standard",
           "service-knowledge-read",
           "persistence-schema",
-          "lib"
+          "lib",
+          "infra"
         ]
       },
       {
@@ -244,7 +266,8 @@
           "service-standard",
           "service-knowledge-read",
           "persistence-schema",
-          "lib"
+          "lib",
+          "infra"
         ]
       },
       {
@@ -258,6 +281,14 @@
       {
         "from": "mcp",
         "allow": ["client-core", "contracts", "lib"]
+      },
+      {
+        "from": "app-light",
+        "allow": ["host-local", "contracts", "infra", "service-knowledge-read", "lib"]
+      },
+      {
+        "from": "app-distributed",
+        "allow": ["host-distributed", "contracts", "infra", "service-knowledge-read", "lib"]
       }
     ],
     "coverage": {

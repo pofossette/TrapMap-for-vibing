@@ -17,7 +17,12 @@ import {
   experienceGeneSchema,
   experienceGeneSolidifiedOutboxPayloadSchema,
 } from '@trapmap/contracts';
-import { createDeterministicFallbackVector, prefixedId } from '@trapmap/lib';
+import {
+  buildGeneSearchDocument,
+  createFallbackEmbedding,
+  formatVectorLiteral,
+} from '@trapmap/infra';
+import { prefixedId } from '@trapmap/lib';
 
 type GeneRow = {
   id: string;
@@ -86,18 +91,10 @@ function strings(value: unknown): string[] {
     : [];
 }
 
-function searchDocument(gene: {
-  title: string;
-  summary: string;
-  strategy: readonly string[];
-  avoid: readonly string[];
-  validation: readonly string[];
-}): string {
-  return [gene.title, gene.summary, ...gene.strategy, ...gene.avoid, ...gene.validation].join('\n');
-}
+const searchDocument = buildGeneSearchDocument;
 
 function vectorLiteral(vector: number[]): string {
-  return `[${vector.join(',')}]`;
+  return formatVectorLiteral(vector);
 }
 
 const FALLBACK_EMBEDDING_MODEL_VERSION = 'experience-gene-fallback-v1';
@@ -215,7 +212,7 @@ export class PgExperienceGeneRepository
           payloadSnapshotHash: gene.contentHash,
           payload: {},
         });
-        const embedding = createDeterministicFallbackVector(searchDocument(gene), 384);
+        const embedding = createFallbackEmbedding(searchDocument(gene));
         await this.pool.query(
           `INSERT INTO experience_gene_embeddings
              (gene_id,content_hash,embedding,embedding_model_version,status,last_error,updated_at)

@@ -42,7 +42,7 @@ import {
   createKnowledgeWriteOwnerBundle,
 } from '@trapmap/service-knowledge-write';
 
-import { createDeterministicFallbackVector } from '@trapmap/lib';
+import { embedWithFallback } from '@trapmap/infra';
 import type { HostLocalConfig } from '../config/index.js';
 import { createPrometheusExperienceGeneMetrics } from '../observability/experience-gene-metrics.js';
 import {
@@ -117,7 +117,7 @@ export async function createHostLocalServices(config: HostLocalConfig): Promise<
   const experienceGenePlan = createExperienceGeneDerivationPlanner(pool).planFromLifecycle;
   const experienceGeneSearch = createPgExperienceGeneSearchPort({
     pool,
-    embed: async (seed) => createDeterministicFallbackVector(seed),
+    embed: embedWithFallback,
     metrics: experienceGeneMetrics,
     mode: config.experienceGenesMode,
   });

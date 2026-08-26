@@ -10,7 +10,8 @@ import {
   type ExperienceGeneValidationReport,
   experienceGeneEventSchema,
 } from '@trapmap/contracts';
-import { createDeterministicFallbackVector, sha256CanonicalJson } from '@trapmap/lib';
+import { createFallbackEmbedding } from '@trapmap/infra';
+import { sha256CanonicalJson } from '@trapmap/lib';
 
 export interface ExperienceGeneSnapshotLoaders {
   trap?(request: { sourceId: string }): Promise<ExperienceGeneSourceSnapshot | null>;
@@ -156,7 +157,7 @@ async function projectValidated(
   try {
     vector =
       dependencies.embedding === undefined
-        ? createDeterministicFallbackVector(experienceGeneEmbeddingText(gene), 384)
+        ? createFallbackEmbedding(experienceGeneEmbeddingText(gene))
         : await dependencies.embedding.generate(experienceGeneEmbeddingText(gene));
   } catch {
     const retained = await dependencies.repository.markIndexStatus(

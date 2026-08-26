@@ -27,9 +27,10 @@
 - `packages/contracts/`：共享 Zod schema 和 TypeScript 类型；`packages/contracts/src/domain/retrieval-projection.ts` 放置无副作用的 retrieval projection/read-model helper，`packages/contracts/src/domain/retrieval-fixtures.ts` 放置确定性的跨包 retrieval fixture builder。
 - `packages/persistence-schema/`：中立的 Drizzle PostgreSQL 表、关系与可复用无状态列工厂；不承载路由、repository 或服务行为。
 - `packages/skills/`：项目级 Skill 工件。
-- `packages/client-core/`：浏览器兼容的共享网关传输层（HTTP SDK、会话契约、错误模型）。供 CLI 和未来 Web 面板使用。
-- `apps/web-panel/`：基于浏览器的管理员运维面板，仅作为网关客户端表面（2026-08 从 `packages/` 迁入，见下方 `apps/` 小节）。
-- `packages/backend-core/`：主机无关的后端核心内核（运行时能力模型、端口接口、用例模式、有界上下文模块、调用模型）。Phase 2 保持无框架，将每个有界上下文重组为内部 `domain/application/module` 接缝，位于 `src/identity-access/`、`src/knowledge-read/`、`src/knowledge-write/`、`src/candidate-ingestion/`、`src/governance-review/`、`src/job-runtime/`；其中 `src/<context>/domain/` 是真实纯规则层（零框架、零 DB，配套单元测试）。`src/http/` 承载框架中立 `RouteDef` 路由契约（`route-contract.ts`）与 Nest/Fastify 双 adapter（`adapters/{nest,fastify}.ts`，唯一框架导入落点）。旧的 `src/modules/*.ts` 兼容外观已移除，消费者使用包入口或上下文入口。所有主机共用。
+ - `packages/client-core/`：浏览器兼容的共享网关传输层（HTTP SDK、会话契约、错误模型）。供 CLI 和未来 Web 面板使用。
+ - `apps/web-panel/`：基于浏览器的管理员运维面板，仅作为网关客户端表面（2026-08 从 `packages/` 迁入，见下方 `apps/` 小节）。
+ - `packages/infra/`：共享基础设施包（`@trapmap/infra`）：通用、宿主无关的 pgvector / embedding 基础设施。`src/vector/` 提供 `formatVectorLiteral`、`clampSimilarity`、`appendTeamFilter`、`appendScopeFilter`、`appendExperienceGeneGovernanceFilters`、`buildGeneSearchDocument` 等纯 pgvector 构建器（原先分散在 `service-knowledge-read` / `service-knowledge-write`）；`src/embedding/` 提供 384 维确定性 fallback embedding（`createFallbackEmbedding` / `embedWithFallback`，封装 `@trapmap/lib::createDeterministicFallbackVector`）。2026-08 Experience Gene infrastructure foundation 抽离成果；禁止承载业务规则或框架代码。
+ - `packages/backend-core/`：主机无关的后端核心内核（运行时能力模型、端口接口、用例模式、有界上下文模块、调用模型）。Phase 2 保持无框架，将每个有界上下文重组为内部 `domain/application/module` 接缝，位于 `src/identity-access/`、`src/knowledge-read/`、`src/knowledge-write/`、`src/candidate-ingestion/`、`src/governance-review/`、`src/job-runtime/`；其中 `src/<context>/domain/` 是真实纯规则层（零框架、零 DB，配套单元测试）。`src/http/` 承载框架中立 `RouteDef` 路由契约（`route-contract.ts`）与 Nest/Fastify 双 adapter（`adapters/{nest,fastify}.ts`，唯一框架导入落点）。旧的 `src/modules/*.ts` 兼容外观已移除，消费者使用包入口或上下文入口。所有主机共用。
 - `packages/assembly/`：统一组装中心（`@trapmap/assembly`）：cordis 装配内核封装 + 能力节点定义/注册 + TS 组合器 + startupChecks + 退出控制。Phase 1 只有内核（`createAssembly` / `defineNode` / `defineContract` / `startupChecks` / `createShutdownController`），profiles 与节点包装在 Phase 2+；依赖 `@deepseek-ai/cordis`、zod；消费方自 Phase 2 起为 `host-*` / `apps/*`。
 - `packages/service-identity-access/`：拥有身份访问服务组装、内部路由注册（`createIdentityAccessRouteDefs`）和有界上下文 auth/session/team/member/access-key 接线。
 - `packages/service-knowledge-read/`：知识读取服务组装（`createKnowledgeReadRouteDefs`）。拥有检索、读模型和投影视图状态路由接线；read model 经 `packages/contracts` 的 projection helper 读取共享契约，不反向导入 server implementation。
@@ -56,9 +57,9 @@ Wave-10 intermediate（2026-07-25）：`packages/runtime-infra/` 已退休删除
 
 `apps/` 是顶层 pnpm workspace（`pnpm-workspace.yaml` 的 `apps/*`），承载 6 个可执行组装中心。它们是 **thin assembly**：只做依赖装配、启动入口与可执行产物暴露，禁止承载业务逻辑（业务规则在 `packages/backend-core/src/<context>/domain/`，领域接线在各 service 包）。backend target registry（`scripts/backend-target-registry.ts`）以 `appPackage` 字段指向 light/distributed 组装中心（`libraryPackage` 字段保留对应的宿主库包名）；客户端封装组装中心（`apps/cli`、`apps/web-panel`、`apps/mcp`）不在该 registry 内。
 
-- `apps/light/`（`@trapmap/app-light`）：light 宿主组装中心，消费 `packages/host-local` 库包，为 `local-agent` / `team-monolith` profile 组装可执行入口。
-- `apps/distributed/`（`@trapmap/app-distributed`）：distributed 宿主组装中心，消费 `packages/host-distributed` 库包，组装 gateway 与 candidate/governance/outbox worker 进程。
-- `apps/migration/`（`@trapmap/app-migration`）：迁移作业组装中心。
+ - `apps/light/`（`@trapmap/app-light`）：light 宿主组装中心，消费 `packages/host-local` 库包，为 `local-agent` / `team-monolith` profile 组装可执行入口。`src/composition/experience-gene.ts` 是 Experience Gene 薄组装 seam（消费 `@trapmap/infra` 的 `embedWithFallback` 组装 `PgExperienceGeneSearchPort`，`packages/host-local` 仅提供库实现）。
+ - `apps/distributed/`（`@trapmap/app-distributed`）：distributed 宿主组装中心，消费 `packages/host-distributed` 库包，组装 gateway 与 candidate/governance/outbox worker 进程。`src/composition/experience-gene.ts` 对等提供 distributed 侧的 gene search 组装。
+ - `apps/migration/`（`@trapmap/app-migration`）：迁移作业组装中心。
 - `apps/cli/`（`@trapmap/cli`）：Commander CLI 及 CLI 测试，2026-08 从 `packages/` 迁入。
 - `apps/web-panel/`（`@trapmap/web-panel`）：基于浏览器的管理员运维面板，2026-08 从 `packages/` 迁入。
 - `apps/mcp/`（`@trapmap/app-mcp`）：MCP server 协议封装层（thin 协议封装），经 gateway HTTP API 访问后端；由主线 debt-mcp-platformization-mainline Task B1 创建，工具面见后续任务。

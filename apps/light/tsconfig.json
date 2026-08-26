@@ -6,5 +6,9 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"],
-  "references": [{ "path": "../../packages/host-local" }]
+  "references": [
+    { "path": "../../packages/host-local" },
+    { "path": "../../packages/infra" },
+    { "path": "../../packages/service-knowledge-read" }
+  ]
 }

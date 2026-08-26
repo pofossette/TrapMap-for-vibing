@@ -34,6 +34,10 @@ const alias = [
     replacement: resolve(__dirname, './packages/lib/src/index.ts'),
   },
   {
+    find: '@trapmap/infra',
+    replacement: resolve(__dirname, './packages/infra/src/index.ts'),
+  },
+  {
     find: '@trapmap/backend-core',
     replacement: resolve(__dirname, './packages/backend-core/src/index.ts'),
   },
@@ -136,6 +140,7 @@ export default defineConfig({
       project('contracts', './packages/contracts'),
       project('persistence-schema', './packages/persistence-schema'),
       project('lib', './packages/lib'),
+      project('infra', './packages/infra'),
       project('backend-core', './packages/backend-core'),
       project('client-core', './packages/client-core'),
       project('service-identity-access', './packages/service-identity-access'),

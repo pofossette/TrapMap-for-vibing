@@ -13,6 +13,7 @@ import {
   type GeneSearchResponse,
   disabledExperienceGeneSearchResponse,
 } from '@trapmap/contracts';
+import { appendExperienceGeneGovernanceFilters, formatVectorLiteral } from '@trapmap/infra';
 
 import { withExperienceGeneSearchMetrics } from './experience-gene-metrics.js';
 
@@ -127,21 +128,7 @@ function governanceFilters(
   context: ExperienceGeneDbContext,
   filters: { labels: string[]; scopes: Array<'global' | 'project'> },
 ): void {
-  if (context.teamId === null) conditions.push('g.team_id IS NULL');
-  else {
-    params.push(context.teamId);
-    conditions.push(`(g.team_id IS NULL OR g.team_id = $${params.length})`);
-  }
-  params.push(context.maxRequiredLevel);
-  conditions.push(`g.required_level <= $${params.length}`);
-  if (filters.scopes.length > 0) {
-    params.push(filters.scopes);
-    conditions.push(`g.scope = ANY($${params.length}::text[])`);
-  }
-  if (filters.labels.length > 0) {
-    params.push(JSON.stringify(filters.labels));
-    conditions.push(`g.labels @> $${params.length}::jsonb`);
-  }
+  appendExperienceGeneGovernanceFilters(conditions, params, context, filters, 'g');
 }
 
 async function keywordRecall(
@@ -179,7 +166,7 @@ async function vectorRecall(
   const params: unknown[] = [];
   const conditions = ["g.status = 'solidified'", "p.status = 'ready'"];
   governanceFilters(conditions, params, context, filters);
-  params.push(`[${vector.join(',')}]`, 20);
+  params.push(formatVectorLiteral(vector), 20);
   const vectorIndex = params.length - 1;
   const result = await pool.query<GeneRow>(
     `SELECT g.*, 0.0 AS keyword_score,

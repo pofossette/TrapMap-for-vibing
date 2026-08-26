@@ -1,7 +1,7 @@
 import type { ExperienceGeneMetricsPort } from '@trapmap/backend-core';
 import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
 import type { ExperienceGeneDerivationTaskPayload, ExperienceGeneMode } from '@trapmap/contracts';
-import { createDeterministicFallbackVector } from '@trapmap/lib';
+import { createFallbackEmbedding } from '@trapmap/infra';
 import {
   type ArtifactBundleImportPort,
   type ArtifactWritePort,
@@ -84,7 +84,7 @@ export function createExperienceGeneDerivationOperation(
       findDuplicate: async (gene) => {
         const vector = options.embedding
           ? await options.embedding.generate(experienceGeneEmbeddingText(gene))
-          : createDeterministicFallbackVector(experienceGeneEmbeddingText(gene), 384);
+          : createFallbackEmbedding(experienceGeneEmbeddingText(gene));
         return repository.findDuplicateProjection(gene, vector);
       },
       ...(options.llm ? { llm: options.llm } : {}),

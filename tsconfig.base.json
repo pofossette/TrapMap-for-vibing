@@ -30,6 +30,8 @@
       "@trapmap/lib": ["./packages/lib/src/index.ts"],
       "@trapmap/lib/*": ["./packages/lib/src/*"],
       "@trapmap/contracts/*": ["./packages/contracts/src/*"],
+      "@trapmap/infra": ["./packages/infra/src/index.ts"],
+      "@trapmap/infra/*": ["./packages/infra/src/*"],
       "@trapmap/persistence-schema": ["./packages/persistence-schema/src/index.ts"],
       "@trapmap/persistence-schema/*": ["./packages/persistence-schema/src/*"],
       "@trapmap/service-identity-access": ["./packages/service-identity-access/src/index.ts"],

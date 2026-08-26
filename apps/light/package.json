@@ -13,7 +13,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@trapmap/host-local": "workspace:*"
+    "@trapmap/host-local": "workspace:*",
+    "@trapmap/infra": "workspace:*",
+    "@trapmap/service-knowledge-read": "workspace:*",
+    "@trapmap/contracts": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

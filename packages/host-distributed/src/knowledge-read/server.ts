@@ -10,7 +10,7 @@ import { registerFastifyRoutes } from '@trapmap/backend-core';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
-import { createDeterministicFallbackVector } from '@trapmap/lib';
+import { embedWithFallback } from '@trapmap/infra';
 import {
   createKnowledgeReadDeps,
   createKnowledgeReadServer,
@@ -39,7 +39,7 @@ export async function createKnowledgeReadServerAdapter(
       mode: config.experienceGenesMode,
       searchGenes: createPgExperienceGeneSearchPort({
         pool: db.pool,
-        embed: async (seed) => createDeterministicFallbackVector(seed),
+        embed: embedWithFallback,
         metrics: createExperienceGeneOtelMetrics(),
         mode: config.experienceGenesMode,
       }).searchGenes,

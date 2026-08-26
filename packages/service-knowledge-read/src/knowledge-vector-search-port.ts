@@ -3,6 +3,12 @@ import type {
   VectorSearchPort,
   VectorSearchRecord,
 } from '@trapmap/backend-core';
+import {
+  appendScopeFilter,
+  appendTeamFilter,
+  clampSimilarity,
+  formatVectorLiteral,
+} from '@trapmap/infra';
 import type { Pool } from 'pg';
 
 export interface KnowledgeEmbeddingVectorSearchFilters
@@ -31,37 +37,6 @@ export interface KnowledgeEmbeddingVectorSearchPort extends Omit<VectorSearchPor
   ): Promise<KnowledgeEmbeddingVectorSearchHit[]>;
 }
 
-function appendTeamFilter(
-  conditions: string[],
-  params: Array<string | number | string[]>,
-  teamId: string | null | undefined,
-): void {
-  if (teamId === undefined) return;
-  if (teamId === null) {
-    conditions.push('ke.team_id IS NULL');
-    return;
-  }
-
-  conditions.push(`(ke.team_id IS NULL OR ke.team_id = $${params.length + 1})`);
-  params.push(teamId);
-}
-
-function appendScopeFilter(
-  conditions: string[],
-  params: Array<string | number | string[]>,
-  scopes: Array<'global' | 'project'>,
-): void {
-  if (!scopes || scopes.length === 0) return;
-  if (scopes.length === 1) {
-    conditions.push(`ke.scope = $${params.length + 1}`);
-    params.push(scopes[0]!);
-    return;
-  }
-
-  conditions.push(`ke.scope = ANY($${params.length + 1}::text[])`);
-  params.push(scopes);
-}
-
 export function createKnowledgeEmbeddingsVectorSearchPort(
   pool: Pool,
 ): KnowledgeEmbeddingVectorSearchPort {
@@ -87,7 +62,7 @@ export function createKnowledgeEmbeddingsVectorSearchPort(
             record.sourceId,
             record.sourceRevision,
             record.contentHash,
-            `[${record.vector.join(',')}]`,
+            formatVectorLiteral(record.vector),
             record.teamId,
             record.scope,
             record.requiredLevel,
@@ -104,17 +79,17 @@ export function createKnowledgeEmbeddingsVectorSearchPort(
       const conditions = ["ke.status = 'synced'"];
       const params: Array<string | number | string[]> = [];
 
-      appendTeamFilter(conditions, params, filters.teamId);
+      appendTeamFilter(conditions, params, filters.teamId, 'ke.team_id');
       conditions.push(`ke.required_level <= $${params.length + 1}`);
       params.push(filters.maxRequiredLevel ?? 0);
-      appendScopeFilter(conditions, params, filters.scopes ?? ['global', 'project']);
+      appendScopeFilter(conditions, params, filters.scopes ?? ['global', 'project'], 'ke.scope');
       if (filters.sourceIds && filters.sourceIds.length > 0) {
         conditions.push(`ke.entry_id = ANY($${params.length + 1})`);
         params.push(filters.sourceIds);
       }
 
       const vectorIndex = params.length + 1;
-      params.push(`[${vector.join(',')}]`);
+      params.push(formatVectorLiteral(vector));
       params.push(limit);
       const result = await pool.query<{
         entry_id: string;
@@ -140,7 +115,7 @@ export function createKnowledgeEmbeddingsVectorSearchPort(
 
       return result.rows.map((row) => ({
         sourceId: row.entry_id,
-        similarity: Math.max(0, Math.min(1, row.similarity)),
+        similarity: clampSimilarity(row.similarity),
         metadata: {
           shortcut: row.shortcut ?? row.entry_id,
           labels: row.labels ?? [],

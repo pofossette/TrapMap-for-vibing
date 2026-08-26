@@ -13,6 +13,7 @@
     { "path": "../ai-providers" },
     { "path": "../backend-core" },
     { "path": "../contracts" },
+    { "path": "../infra" },
     { "path": "../lib" },
     { "path": "../service-identity-access" },
     { "path": "../service-candidate-ingestion" },

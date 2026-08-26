@@ -24,6 +24,7 @@
     "@trapmap/ai-providers": "workspace:*",
     "@trapmap/backend-core": "workspace:*",
     "@trapmap/contracts": "workspace:*",
+    "@trapmap/infra": "workspace:*",
     "@trapmap/lib": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.6.1",
