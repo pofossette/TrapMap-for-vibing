@@ -59,14 +59,14 @@ TrapMap 已经具备 trap 治理、skill artifact 版本化、capsule/profile/cl
 
 ## Cross-phase acceptance gates
 
-- [ ] 通用向量与 structured generation seam 已抽离，既有检索行为保持不变。
+- [x] [通用向量与 structured generation 抽离至 `@trapmap/infra` 并覆盖 tri-state 组装，既有检索行为保持不变](experience-gene-infrastructure-foundation.md#第三检查点)。
 - [x] [`ExperienceGene` contracts、枚举、持久化表和 repository tests 已落地](experience-gene-contracts-and-storage.md#execution-record2026-08-25)。
 - [x] [trap/skill/capsule 派生管线具备 idempotency、validation、lineage、index retry 和 stale 处理](experience-gene-derivation-pipeline.md#execution-record2026-08-26)。
-- [x] [gene-native retrieval 通过 RouteDef 在两个宿主暴露](experience-gene-retrieval-and-activation.md#execution-record2026-08-26)。
+- [x] [gene-native retrieval 通过 RouteDef 在两个宿主暴露，已补 off/shadow/serve 三态 route/config 回归](experience-gene-retrieval-and-activation.md#execution-record2026-08-26)。
 - [x] [CLI/MCP 可渲染 `<strategy-gene>` 控制块](experience-gene-retrieval-and-activation.md#execution-record2026-08-26)。
-- [ ] rollout 默认关闭，baseline 与 enabled 模式有评测证据。
+- [ ] rollout 默认关闭，baseline 与 enabled 模式有评测证据（deterministic offline 已满足，live 仍等待真实 runtime）。
 - [x] [架构、API、数据模型、CLI/MCP 文档完成同步](experience-gene-governance-evaluation-rollout.md#documentation-closeout)。
-- [ ] `pnpm typecheck`、相关 focused tests、`pnpm eval:smoke`、`pnpm exec fallow audit --base main --ci`、`pnpm check:docs` 和 `pnpm check:structure` 通过。
+- [ ] `pnpm typecheck`、相关 focused tests、`pnpm eval:smoke`、`pnpm exec fallow audit --base main --ci`、`pnpm check:docs` 和 `pnpm check:structure` 通过（`typecheck`/`check:docs`/`check:structure` 已通过，`eval:smoke` 与 `--base main` 仍受本机 Docker 与 stale baseline 门控）。
 
 每项 gate 的回写记录必须包含：变更文件、执行的命令、关键测试名或评测指标、以及残余 debt/deferred 落点。只有 owner mainline 可以汇总宣告 cross-phase acceptance 完成。
 

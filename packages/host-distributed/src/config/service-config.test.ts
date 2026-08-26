@@ -1,4 +1,37 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+
+describe('distributed experience gene rollout modes', () => {
+  afterEach(() => {
+    delete process.env.TRAPMAP_EXPERIENCE_GENE_MODE;
+    delete process.env.TRAPMAP_EXPERIENCE_GENES_MODE;
+  });
+
+  it('defaults both modes to off and falls back on unknown values', async () => {
+    delete process.env.TRAPMAP_EXPERIENCE_GENE_MODE;
+    delete process.env.TRAPMAP_EXPERIENCE_GENES_MODE;
+    const { loadServiceConfig } = await import('./service-config.js');
+    expect(loadServiceConfig('gateway').experienceGeneMode).toBe('off');
+    expect(loadServiceConfig('gateway').experienceGenesMode).toBe('off');
+
+    process.env.TRAPMAP_EXPERIENCE_GENE_MODE = 'unexpected';
+    process.env.TRAPMAP_EXPERIENCE_GENES_MODE = 'bad';
+    const fallback = await import('./service-config.js').then((m) =>
+      m.loadServiceConfig('gateway'),
+    );
+    // loadServiceConfig reads env at call time, unknown values must fallback to off
+    expect(fallback.experienceGeneMode).toBe('off');
+    expect(fallback.experienceGenesMode).toBe('off');
+  });
+
+  it('parses shadow and serve for both gene mode envs', async () => {
+    process.env.TRAPMAP_EXPERIENCE_GENE_MODE = 'shadow';
+    process.env.TRAPMAP_EXPERIENCE_GENES_MODE = 'serve';
+    const { loadServiceConfig } = await import('./service-config.js');
+    const cfg = loadServiceConfig('gateway');
+    expect(cfg.experienceGeneMode).toBe('shadow');
+    expect(cfg.experienceGenesMode).toBe('serve');
+  });
+});
 
 describe('C5 assertDistributedResilienceConfig', () => {
   it('passes with unset env', async () => {

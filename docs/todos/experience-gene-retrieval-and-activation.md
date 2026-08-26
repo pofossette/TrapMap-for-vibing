@@ -123,7 +123,7 @@ Strategy:
 - [x] 补 distributed internal client forwarding。
 - [x] CLI/MCP formatter/renderer integration。
 - [x] 更新 api-surface and route-surface expectations。
-- [ ] 为 off/shadow/serve 三态补 route/config tests。
+- [x] 为 off/shadow/serve 三态补 route/config tests。
 
 ## Test plan
 
@@ -188,4 +188,23 @@ pnpm check:docs && pnpm check:structure && pnpm check:asserts
 # exit 0; route-surface includes the service-owned Gene RouteDef factory
 pnpm exec fallow audit --base HEAD --no-cache
 # exit 0; two high-complexity warnings are inherited gateway handlers excluded by the incremental gate
+```
+
+### 第二检查点：off/shadow/serve 三态补足与 `@trapmap/infra` 抽离（2026-08-26）
+
+- `host-local/src/nest/knowledge-read/experience-gene-route-defs.test.ts` 新增 off/shadow disabled envelope 与 serve 转发两态覆盖（dual adapter：fastify/nest），与 `service-knowledge-read/src/experience-gene-routes.test.ts` 的全量 tri-state 覆盖形成双层保证；`host-distributed/src/gateway/experience-gene-route-defs.test.ts` 已覆盖 gateway 层 off/shadow 无 internal hop 与 serve 受信任 header 转发。
+- `host-distributed/src/config/service-config.test.ts` 新增 `TRAPMAP_EXPERIENCE_GENE_MODE` / `TRAPMAP_EXPERIENCE_GENES_MODE` 三态默认回退与 shadow/serve 解析回归；`host-local/src/nest/config/config.test.ts` 已覆盖同语义。全部 tri-state 路由与配置测试回归绿。
+- 通用 pgvector 与 fallback embedding helpers 已抽至 `@trapmap/infra`（见 `docs/todos/experience-gene-infrastructure-foundation.md#第三检查点`）；service 与 host 层消费 shared infra，重复 SQL debt 触发条件已闭合。
+
+### 验证证据（第二检查点）
+
+```bash
+pnpm --filter @trapmap/host-local test --run src/nest/knowledge-read/experience-gene-route-defs.test.ts
+# 1 file / 5 tests passed
+pnpm --filter @trapmap/host-distributed test --run src/config/service-config.test.ts
+# 1 file / 10 tests passed
+pnpm --filter @trapmap/service-knowledge-read test --run src/experience-gene-routes.test.ts
+# 2 files / 13 tests (off/shadow/serve tri-state)
+pnpm typecheck
+# exit 0
 ```

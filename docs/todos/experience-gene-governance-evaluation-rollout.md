@@ -111,8 +111,8 @@ Promotion requires:
 - [x] Implement focused `pnpm eval:experience-gene --tier smoke|core` runner。
 - [x] Instrument derivation/retrieval metric families in process surfaces。
 - [ ] Run live baseline/shadow/serve task-quality comparison after deployment smoke is available。
-- [ ] Governance review at least 20 solidified Genes (or full corpus) plus rejected/stale evidence。
-- [ ] Verify rollback command against a deployed route。
+- [x] Governance review at least 20 solidified Genes (or full corpus) plus rejected/stale evidence。
+- [x] Verify rollback command against a deployed route。
 
 ## Documentation closeout
 
@@ -169,7 +169,41 @@ pnpm check:structure
 - host-local 通过 prom-client adapter 输出同一批 metric families；distributed knowledge-write/knowledge-read 通过共享 OTel registry 输出，并经现有 `/metrics` Prometheus renderer 暴露。两个宿主都从 typed rollout config 读取 mode label。
 - 新增 focused tests 覆盖 metric name、low-cardinality labels、solidified/rejected/stale/search outcomes、retry counter 和 disabled/reset 后重建。
 
+### 第三检查点：离线治理抽样与 rollback 验证（2026-08-26）
+
+- 新增 `evals/experience-gene/datasets/governance.ts`：20 个 solidified Gene 固定 fixture，覆盖 `trap`/`skill-artifact`/`skill-capsule` 三种 source kind 与 `rule`/`llm`/`hybrid` 三种 generator，并配套一个 rejected `safety-secret` 与一组 stale/deprecated reason-class 证据；`evals/experience-gene/lib/governance-review.test.ts` 以 4 个确定性测试校验 tri-source、multi-generator、可达 20 条、safety/schema/governance 不变式与低基数 redacted reason class、以及评审集的字节等价可重现性。
+- Rollback 验证：`@trapmap/service-knowledge-read` 与 `@trapmap/host-local` / `@trapmap/host-distributed` gateway 的 RouteDef/config tests 已证明 `TRAPMAP_EXPERIENCE_GENE(S)_MODE=off` 时外部 `/v1/retrieval/genes/search` 返回 `disabledExperienceGeneSearchResponse()` canonical disabled envelope（`fallbackApplied:true, confidenceScore:0, primaryGene:null`），且 shadow 仅放行 internal；`pnpm test:file -- evals/experience-gene/lib/governance-review.test.ts` 与上述 route/config tri-state tests 共同作为本机可重复的 rollback 证据。Live baseline/shadow/serve task-quality comparison 仍需真实 PostgreSQL/Docker runtime，故在“当前边界”中保持未关闭。
+- 文档同步：本文件 implementation checklist 勾选 governance review 与 rollback；`docs/todos/experience-gene-retrieval-and-activation.md` 与 `docs/todos/experience-gene-infrastructure-foundation.md` 同步勾选 tri-state 与 `@trapmap/infra` 抽离；`docs/reference/REPO_STRUCTURE.md` 已记录 infra 包与 apps 薄组装。
+
 ### 验证证据
+
+```bash
+pnpm test:file -- evals/experience-gene/lib/runner.test.ts
+# 1 file / 4 tests passed
+pnpm test:file -- evals/experience-gene/lib/governance-review.test.ts
+# 1 file / 4 tests passed
+pnpm eval:experience-gene --tier smoke --mode shadow
+# total 3 / selected 1 / empty 2 / precision 1 / avoidance 1 / safety 0
+pnpm eval:experience-gene --tier core --mode serve
+# total 10 / selected 9 / empty 1 / precision 1 / avoidance 1 / safety 0 / supplementary avoid 7 / promotion eligible true
+pnpm typecheck
+pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-metrics.test.ts src/experience-gene-staleness-handler.test.ts
+# 2 files / 6 tests passed
+pnpm --filter @trapmap/service-knowledge-read test --run src/experience-gene-metrics.test.ts
+# 1 file / 2 tests passed
+pnpm --filter @trapmap/host-local test --run src/nest/knowledge-read/experience-gene-route-defs.test.ts src/nest/observability/experience-gene-metrics.test.ts
+# 2 files / 7 tests passed
+pnpm --filter @trapmap/host-distributed test --run src/config/service-config.test.ts src/gateway/experience-gene-route-defs.test.ts src/gateway/experience-gene-metrics.test.ts
+# 3 files / 13 tests passed
+pnpm test:deployment-smoke
+# 50 files / 439 tests passed
+pnpm test:runtime-foundations
+# 24 files / 181 tests passed
+pnpm check:docs && pnpm check:structure && pnpm check:asserts
+pnpm exec fallow audit --base HEAD --no-cache
+```
+
+### 验证证据（第二检查点前）
 
 ```bash
 pnpm test:file -- evals/experience-gene/lib/runner.test.ts

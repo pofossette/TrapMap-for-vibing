@@ -154,14 +154,15 @@ export interface DerivationCandidate<TOutput> {
 
 ## Implementation checklist
 
-- [ ] 把 cosine/vector pure helpers 迁移到 `@trapmap/lib` 并补测试。
-- [ ] backend-core 保持原导出兼容并改用 lib implementation。
-- [ ] deterministic fallback helper 保持 `FallbackEmbeddings` 现有输出不变。
-- [ ] 新增 `VectorSearchPort` 与最小 fixture-based contract tests。
-- [ ] 为 knowledge-read 现有 pgvector path 建立 port-backed adapter seam。
-- [ ] 在 ai-providers 增加 `generateStructured` 与 retry/parser tests。
-- [ ] 新增 derivation request/candidate/report contracts 与 fixture tests。
-- [ ] 新增 `canonicalJsonStringify` 与 nested-object/array edge-case tests。
+- [x] 把 cosine/vector pure helpers 迁移到 `@trapmap/lib` 并补测试。
+- [x] backend-core 保持原导出兼容并改用 lib implementation。
+- [x] deterministic fallback helper 保持 `FallbackEmbeddings` 现有输出不变。
+- [x] 新增 `VectorSearchPort` 与最小 fixture-based contract tests。
+- [x] 为 knowledge-read 现有 pgvector path 建立 port-backed adapter seam。
+- [x] 在 ai-providers 增加 `generateStructured` 与 retry/parser tests。
+- [x] 新增 derivation request/candidate/report contracts 与 fixture tests。
+- [x] 新增 `canonicalJsonStringify` 与 nested-object/array edge-case tests。
+- [x] 抽离通用 pgvector/embedding helpers 至 `@trapmap/infra` 并迁移至 `apps/` 薄组装（见第三检查点）。
 - [x] 运行 focused tests、typecheck 和增量 fallow audit；`--base main` 的分支级审计基线问题保留在问题池，阶段 closeout 前必须解决。
 
 ## Acceptance criteria
@@ -228,6 +229,12 @@ pnpm check:asserts
 pnpm exec fallow list --boundaries
 # service-knowledge-read → backend-core/contracts/lib 边界保持合规
 ```
+
+### 第三检查点：通用基础设施抽离至 `@trapmap/infra` 薄组装（2026-08-26）
+
+- 新建 `@trapmap/infra`：`src/vector/pgvector.ts` 统一 `formatVectorLiteral`、`clampSimilarity`、`appendTeamFilter`、`appendScopeFilter`、`appendExperienceGeneGovernanceFilters`、`buildGeneSearchDocument`，`src/embedding/index.ts` 统一 `createFallbackEmbedding`/`embedWithFallback`（384 维，`experience-gene-fallback-v1`，透传 `@trapmap/lib::createDeterministicFallbackVector`）。两个宿主与两个 service 包已迁移至该包，消除 pgvector SQL 重复抽取触发条件。
+- `service-knowledge-read` 的 `knowledge-vector-search-port`/`experience-gene-retrieval` 与 `service-knowledge-write` 的 `experience-gene-repository`/`pg-ports`/`experience-gene-derivation`、`host-local`/`host-distributed` knowledge-read server 均改为消费 `@trapmap/infra`。`apps/light` 与 `apps/distributed` 新增 `src/composition/experience-gene.ts` 薄 seam，负责 `embedWithFallback` 到 `PgExperienceGeneSearchPort` 的组装，`packages/host-*` 保持库实现。
+- 更新 `tsconfig.base.json` paths、`vitest.config.ts` projects、`pnpm-workspace` 依赖、`fallow` zones（`infra`/`app-light`/`app-distributed`）与 `docs/reference/REPO_STRUCTURE.md`。`pnpm typecheck` 通过，`infra` 9 tests、`service-knowledge-read` 14、`service-knowledge-write` 53、`host-local` 6、`host-distributed` 12 全绿；`fallow audit --base HEAD` 通过；`check:docs`/`check:structure` 通过（补 `packages/infra/README.md`）。
 
 ### 当前未关闭项
 
