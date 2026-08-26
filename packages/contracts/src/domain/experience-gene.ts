@@ -236,6 +236,19 @@ export type ExperienceGeneDerivationTaskPayload = z.infer<
   typeof experienceGeneDerivationTaskPayloadSchema
 >;
 
+export const experienceGeneLlmOutputSchema = z
+  .object({
+    signalsMatch: z.array(z.string().min(1).max(120)).min(1).max(20),
+    summary: z.string().min(1).max(1000),
+    strategy: z.array(z.string().min(1).max(500)).min(1).max(7),
+    avoid: z.array(z.string().min(1).max(500)).max(7),
+    constraints: z.array(z.string().min(1).max(280)).max(20),
+    validation: z.array(z.string().min(1).max(280)).max(20),
+  })
+  .strict();
+
+export type ExperienceGeneLlmOutput = z.infer<typeof experienceGeneLlmOutputSchema>;
+
 const snapshotGovernance = {
   labels: z.array(labelSchema).min(1).max(20),
   scope: scopeSchema,

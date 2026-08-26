@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createExperienceGeneFixture } from './experience-gene-fixtures.js';
 import {
   buildExperienceGeneContentProjection,
+  experienceGeneLlmOutputSchema,
   experienceGeneModeSchema,
   experienceGeneSchema,
 } from './experience-gene.js';
@@ -71,5 +72,27 @@ describe('experience gene contract', () => {
         'generator',
       ].sort(),
     );
+  });
+});
+
+describe('experience gene LLM output contract', () => {
+  it('bounds structured control fields and rejects unrelated output', () => {
+    const output = experienceGeneLlmOutputSchema.parse({
+      signalsMatch: ['queue retries grow'],
+      summary: 'Give one worker ownership.',
+      strategy: ['Claim the lease before publishing.'],
+      avoid: ['Publish from every retry.'],
+      constraints: [],
+      validation: ['Only one publisher succeeds.'],
+    });
+
+    expect(output.strategy).toHaveLength(1);
+    expect(() => experienceGeneLlmOutputSchema.parse({ ...output, sourceId: 'x' })).toThrow();
+    expect(() =>
+      experienceGeneLlmOutputSchema.parse({
+        ...output,
+        strategy: Array.from({ length: 8 }, (_, index) => `Step ${index}`),
+      }),
+    ).toThrow();
   });
 });

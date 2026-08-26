@@ -1,6 +1,7 @@
 import {
   type ExperienceGene,
   type ExperienceGeneSourceSnapshot,
+  type GeneratorMetadata,
   type ValidationIssue,
   experienceGeneSchema,
 } from '@trapmap/contracts';
@@ -122,6 +123,7 @@ type RuleGeneInput = {
   strategy: string[];
   avoid: string[];
   validation: string[];
+  generator: GeneratorMetadata;
   nowIso: string;
 };
 
@@ -142,11 +144,7 @@ function contentProjection(input: RuleGeneInput): Record<string, unknown> {
     requiredLevel: snapshot.requiredLevel,
     source: sourceFromSnapshot(snapshot),
     derivationUnitId: snapshot.derivationUnitId,
-    generator: {
-      kind: 'rule',
-      model: null,
-      promptVersion: RULE_PROMPT_VERSION,
-    },
+    generator: input.generator,
   };
 }
 
@@ -211,9 +209,16 @@ export function extractRuleExperienceGene(input: {
       strategy: sections.STRATEGY,
       avoid: sections.AVOID,
       validation: sections.VERIFY,
+      generator: { kind: 'rule', model: null, promptVersion: RULE_PROMPT_VERSION },
       nowIso: input.nowIso,
     }),
   };
+}
+
+export function createExperienceGeneCandidate(
+  input: Omit<RuleGeneInput, 'nowIso'> & { nowIso: string },
+): ExperienceGene {
+  return makeGene(input);
 }
 
 export type ExperienceGeneGate =

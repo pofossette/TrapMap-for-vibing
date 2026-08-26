@@ -64,10 +64,14 @@ export async function generateStructured<T>(options: {
   schema: ZodType<T>;
   maxRetries?: number;
   retryBaseDelayMs?: number;
+  temperature?: number;
 }): Promise<StructuredGenerationResult<T>> {
   const maxRetries = options.maxRetries ?? 2;
   assertRetryLimit(maxRetries);
   const baseDelayMs = options.retryBaseDelayMs ?? 100;
+  if (options.temperature !== undefined && (options.temperature < 0 || options.temperature > 2)) {
+    throw new RangeError('temperature must be between 0 and 2');
+  }
 
   if (!options.chat.isConfigured) {
     throw new StructuredGenerationError(0, 'chat-unconfigured');
@@ -78,7 +82,15 @@ export async function generateStructured<T>(options: {
   while (attempts <= maxRetries) {
     attempts += 1;
     try {
-      const rawText = await options.chat.invoke(options.system, options.prompt);
+      const rawText =
+        options.temperature === undefined
+          ? await options.chat.invoke(options.system, options.prompt)
+          : await (
+              options.chat.invokeWithTemperature?.bind(options.chat) ??
+              (() => {
+                throw new Error('ChatProvider does not support explicit temperature');
+              })
+            )(options.system, options.prompt, options.temperature);
       const value = parseStructuredValue(rawText, options.schema);
 
       return {

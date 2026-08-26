@@ -97,8 +97,8 @@ stale Gene 不参与 serve 模式。重建成功后旧 Gene 转 deprecated，新
 - [x] 定义 outbox event payloads 和 task payload schemas。
 - [x] 实现 trap/skill/capsule snapshot loaders。
 - [x] 实现 rule extractor 与 parser tests。
-- [ ] 实现 LLM extractor 与 structured failure tests。
-- [ ] 实现 validator/normalizer/safety scanner。
+- [x] 实现 LLM extractor 与 structured failure tests。
+- [x] 实现 validator/normalizer/safety scanner。
 - [ ] 实现 duplicate/conflict check。
 - [ ] 接入 task queue、retry、dead-letter 和 idempotency key。
 - [ ] 实现 solidify/stale/deprecate transactional writes。
@@ -142,10 +142,12 @@ pnpm typecheck
 - 新增 compactness/fidelity/governance validator 与 safety scanner；fidelity 支持lexical coverage >=0.30 或 embedding cosine >=0.50。safety scanner 覆盖 secret assignment、bearer/API token、chat transcript、stack trace、executable body、private key/binary signature、private absolute path 和 tenant identifier。duplicate callback 在前置 gate 失败时不会执行。
 - knowledge-write owner 新增 approved trap、approved artifact revision + SKILL.md unit、以及 current approved capsule 的 PostgreSQL snapshot loaders。loader 在 SQL 中强制 lifecycle/remediation eligibility，trap source hash 从 canonical revision content 派生，artifact 使用 immutable revision source hash，capsule 使用 capsule-specific canonical hash。
 - 新增 rule-first derivation orchestrator：重新读取 snapshot 后校验 revision/source-hash/snapshot-hash；stale-source 直接结束且不写 rejection。rule candidate 通过 deterministic gates 后 save candidate 并标记 validated；schema/safety/fidelity/governance rejection 写 immutable rejected event；同 provenance 主键冲突返回 idempotent，不产生第二个 active Gene。
+- Contracts 新增 bounded LLM output schema；service owner 新增 `GenerateStructuredExperienceGeneExtractor`，固定 `experience-gene-llm-v1` prompt version，显式接收 temperature、max retries 和 retry delay，并通过 structured generation 只接受 schema-valid output。OpenAI-compatible chat 支持显式 temperature 调用。
+- Orchestrator 在 rule extractor 返回 insufficient structure 后才调用可选 LLM fallback；无 fallback 或 fallback 失败写 `generator-unavailable` rejection event，LLM candidate 仍必须通过 fidelity/safety/governance/duplicate gates 后才能 persist。
 
 ### 当前边界
 
-本记录是 Phase 3 的第二检查点。LLM extractor、task queue/outbox enqueue 与 dead-letter wiring、embedding/index retry、solidified outbox 写入、staleness/remediation handlers 尚未实现；因此 duplicate/conflict 投影集成和相关 checklist 保持打开。
+本记录是 Phase 3 的第三检查点。task queue/outbox enqueue 与 dead-letter wiring、embedding/index retry、solidified outbox 写入、staleness/remediation handlers 尚未实现；因此 duplicate/conflict 投影集成和相关 checklist 保持打开。
 
 ### 验证证据
 
@@ -155,7 +157,9 @@ pnpm --filter @trapmap/contracts test --run src/domain/experience-gene.test.ts s
 pnpm --filter @trapmap/backend-core test --run src/knowledge-write/domain/experience-gene-derivation.test.ts src/knowledge-write/domain/experience-gene-safety.test.ts src/knowledge-write/domain/experience-gene-hashing.test.ts
 # 3 files / 10 tests passed
 pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-snapshots.test.ts src/experience-gene-derivation.test.ts
-# 2 files / 6 tests passed
+# 2 files / 6 tests passed（第二检查点）
+pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-llm.test.ts src/experience-gene-derivation.test.ts
+# 2 files / 6 tests passed（第三检查点）
 pnpm typecheck
 # exit 0
 pnpm exec biome check <changed-files>

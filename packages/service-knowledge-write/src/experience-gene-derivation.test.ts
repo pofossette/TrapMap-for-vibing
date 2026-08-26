@@ -97,6 +97,28 @@ function createDependencies() {
 }
 
 describe('rule-first experience gene derivation', () => {
+  function createUnstructuredScenario() {
+    const source = {
+      ...snapshot,
+      text: 'Queues sometimes fail and retries are tricky.',
+      sourceHash: 'b'.repeat(64),
+    };
+    const state = createDependencies();
+    state.deps.loaders = {
+      ...state.deps.loaders,
+      async skillArtifact() {
+        state.calls.push('load');
+        return source;
+      },
+    };
+    const request = experienceGeneDerivationTaskPayloadSchema.parse({
+      ...taskPayload(),
+      source: { ...taskPayload().source, sourceHash: source.sourceHash },
+      snapshotHash: sha256CanonicalJson(source),
+    });
+    return { ...state, request };
+  }
+
   it('loads the immutable snapshot, saves a rule candidate, and marks it validated', async () => {
     const { deps, calls, saved } = createDependencies();
     const result = await deriveExperienceGeneFromRule(taskPayload(), deps);
@@ -120,29 +142,33 @@ describe('rule-first experience gene derivation', () => {
   });
 
   it('stores a rejected event when the source has no derivable strategy', async () => {
-    const unstructured = {
-      ...snapshot,
-      text: 'Queues sometimes fail and retries are tricky.',
-      sourceHash: 'b'.repeat(64),
-    };
-    const { deps, rejected, calls, saved } = createDependencies();
-    deps.loaders = {
-      ...deps.loaders,
-      async skillArtifact() {
-        calls.push('load');
-        return unstructured;
-      },
-    };
-    const request = experienceGeneDerivationTaskPayloadSchema.parse({
-      ...taskPayload(),
-      source: { ...taskPayload().source, sourceHash: unstructured.sourceHash },
-      snapshotHash: sha256CanonicalJson(unstructured),
-    });
+    const { deps, rejected, calls, saved, request } = createUnstructuredScenario();
     const result = await deriveExperienceGeneFromRule(request, deps);
 
     expect(result.status).toBe('rejected');
-    expect(rejected[0]).toMatchObject({ type: 'rejected', reasonClass: 'insufficient-structure' });
+    expect(rejected[0]).toMatchObject({ type: 'rejected', reasonClass: 'generator-unavailable' });
     expect(saved).toEqual([]);
     expect(calls).toEqual(['load', 'reject']);
+  });
+
+  it('uses the configured LLM fallback only after rule extraction is insufficient', async () => {
+    const { deps, calls, saved, request } = createUnstructuredScenario();
+    let llmCalls = 0;
+    const source = experienceGeneSchema.parse({
+      ...createExperienceGeneFixture(),
+      contentHash: 'c'.repeat(64),
+    });
+    deps.llm = {
+      async extract() {
+        llmCalls += 1;
+        return source;
+      },
+    };
+    const result = await deriveExperienceGeneFromRule(request, deps);
+
+    expect(result.status).toBe('validated');
+    expect(llmCalls).toBe(1);
+    expect(calls).toEqual(['load', 'save', 'validate']);
+    expect(saved[0]).toBe(source);
   });
 });

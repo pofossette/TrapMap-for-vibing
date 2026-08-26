@@ -40,6 +40,7 @@ export {
 export { createRuleArtifactDerivation } from './artifact-derivation/rule-artifact-derivation.js';
 export { PgExperienceGeneRepository } from './experience-gene-repository.js';
 export { createPgExperienceGeneSourceLoaders } from './experience-gene-snapshots.js';
+export { GenerateStructuredExperienceGeneExtractor } from './experience-gene-llm.js';
 export {
   deriveExperienceGeneFromRule,
   type ExperienceGeneDerivationDependencies,

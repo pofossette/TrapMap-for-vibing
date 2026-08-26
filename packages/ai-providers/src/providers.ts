@@ -119,6 +119,23 @@ export class OpenAICompatibleChat implements ChatProvider {
     return typeof result.content === 'string' ? result.content : String(result.content);
   }
 
+  async invokeWithTemperature(
+    systemPrompt: string,
+    userMessage: string,
+    temperature: number,
+  ): Promise<string> {
+    const { HumanMessage, SystemMessage } = await import('@langchain/core/messages');
+    const { ChatOpenAI } = await import('@langchain/openai');
+    const result = await new ChatOpenAI({
+      modelName: this.chatConfig.chatModel,
+      apiKey: this.chatConfig.apiKey,
+      timeout: 30_000,
+      temperature,
+      configuration: { baseURL: this.chatConfig.baseUrl },
+    }).invoke([new SystemMessage(systemPrompt), new HumanMessage(userMessage)]);
+    return typeof result.content === 'string' ? result.content : String(result.content);
+  }
+
   async invokeWithBlocks(blocks: AiPromptBlock[], userMessage: string): Promise<string> {
     return this.invoke(blocks.map((block) => block.content).join('\n'), userMessage);
   }

@@ -34,6 +34,9 @@ export interface ExperienceGeneDerivationDependencies {
         sourceId: string;
       }
     | null;
+  llm?: {
+    extract(snapshot: ExperienceGeneSourceSnapshot): Promise<ExperienceGene>;
+  };
 }
 
 export type ExperienceGeneDerivationResult =
@@ -163,18 +166,42 @@ export async function deriveExperienceGeneFromRule(
     return validateAndPersist(extracted.gene, snapshot, request, dependencies);
   }
 
-  return rejectCandidate(
-    dependencies,
-    rejectedEvent(request, {
-      reasonClass: 'insufficient-structure',
-      issues: [
-        {
-          code: 'insufficient-structure',
-          field: 'text',
-          message: 'Source does not contain a verifiable strategy structure',
-        },
-      ],
-    }),
-    'insufficient-structure',
-  );
+  if (!dependencies.llm) {
+    return rejectCandidate(
+      dependencies,
+      rejectedEvent(request, {
+        reasonClass: 'generator-unavailable',
+        issues: [
+          {
+            code: 'generator-unavailable',
+            field: 'llm',
+            message: 'No configured LLM fallback is available',
+          },
+        ],
+      }),
+      'generator-unavailable',
+    );
+  }
+
+  let llmGene: ExperienceGene;
+  try {
+    llmGene = await dependencies.llm.extract(snapshot);
+  } catch {
+    return rejectCandidate(
+      dependencies,
+      rejectedEvent(request, {
+        reasonClass: 'generator-unavailable',
+        issues: [
+          {
+            code: 'generator-unavailable',
+            field: 'llm',
+            message: 'LLM fallback failed or returned an invalid response',
+          },
+        ],
+      }),
+      'generator-unavailable',
+    );
+  }
+
+  return validateAndPersist(llmGene, snapshot, request, dependencies);
 }
