@@ -172,6 +172,53 @@ describe.each(ADAPTERS)('service-knowledge-write routes (%s adapter)', (adapter)
     await app.close();
   });
 
+  it('plans derivation tasks through the knowledge owner source loaders', async () => {
+    const request = {
+      name: 'knowledge.approved',
+      entryId: 'trap-1',
+      previousState: 'agent-pass',
+      nextState: 'approved',
+      actorId: 'system',
+      reason: 'approved',
+      timestamp: '2026-08-26T00:00:00.000Z',
+    };
+    const tasks = [
+      {
+        requestId: 'request-1',
+        source: {
+          kind: 'trap',
+          sourceId: 'trap-1',
+          sourceRevision: 1,
+          sourceHash: 'a'.repeat(64),
+          artifactId: null,
+          capsuleId: null,
+          artifactRevision: null,
+        },
+        derivationUnitId: 'trap:trap-1:v1',
+        generatorKind: 'rule',
+        promptVersion: 'experience-gene-rule-v1',
+        snapshotHash: 'b'.repeat(64),
+      },
+    ];
+    const planExperienceGeneDerivations = vi.fn(async () => tasks);
+    const deps = {
+      ...createModule(),
+      planExperienceGeneDerivations,
+    };
+    const app = await buildRouteTestApp(createKnowledgeWriteRouteDefs(deps), deps, adapter);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/experience-genes/derivation-plan',
+      payload: request,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ tasks });
+    expect(planExperienceGeneDerivations).toHaveBeenCalledWith(request);
+    await app.close();
+  });
+
   it('rejects missing or spoofed body actors on command routes', async () => {
     const module = createModule();
     const app = await buildApp(module, adapter);

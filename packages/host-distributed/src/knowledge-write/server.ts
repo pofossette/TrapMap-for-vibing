@@ -18,6 +18,7 @@ import {
   createKnowledgeWriteOwnerBundle,
   createKnowledgeWriteServer as createServiceKnowledgeWriteServer,
 } from '@trapmap/service-knowledge-write';
+import { createExperienceGeneDerivationPlanner } from '@trapmap/service-knowledge-write';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 
 export function createKnowledgeWriteReadinessOptions(
@@ -48,6 +49,8 @@ export async function createServer(
     config,
     deps,
     createKnowledgeWriteReadinessOptions(owner, {
+      planExperienceGeneDerivations: createExperienceGeneDerivationPlanner(db.pool)
+        .planFromLifecycle,
       checkDependency: async () => {
         const health = await db.healthCheck();
         return {

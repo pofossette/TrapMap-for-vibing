@@ -100,7 +100,7 @@ stale Gene 不参与 serve 模式。重建成功后旧 Gene 转 deprecated，新
 - [x] 实现 LLM extractor 与 structured failure tests。
 - [x] 实现 validator/normalizer/safety scanner。
 - [ ] 实现 duplicate/conflict check。
-- [ ] 接入 task queue、retry、dead-letter 和 idempotency key。
+- [x] 接入 task queue、retry、dead-letter 和 idempotency key。
 - [ ] 实现 solidify/stale/deprecate transactional writes。
 - [ ] 注册 truth-source lifecycle/remediation handlers。
 - [x] 测试 source revision/hash、remediation、deactivation 和 governance 收紧四类 stale trigger。
@@ -147,10 +147,12 @@ pnpm typecheck
 - knowledge-write RouteDefs 新增 `/internal/experience-genes/derive` owner operation；service-job-runtime 新增 frozen `experience-gene.derive` TaskHandler。distributed host 通过 internal client 委派回 knowledge-write owner，并使用 `TRAPMAP_EXPERIENCE_GENE_MODE` gate consumer：默认 `off` 不注册 handler。
 - backend-core 新增 pure staleness evaluator，按固定优先级识别 `source-revision`、`source-hash`、`remediation`、`source-lifecycle` 和 governance tightening；fresh approved source 返回 not-stale。
 - PG repository 新增 `markStaleForSource`：按 source kind/id 在一个事务中锁定并失效所有 active Gene（candidate/validated/solidified），每个 Gene append 一条带 reason class 的 `staled` event。该方法不要求调用方提供旧 revision/hash，因此适用于源已变化的 trigger。
+- knowledge-write owner 新增 derivation planner：从 approved trap/artifact/capsule source state 生成 deterministic immutable task payload；artifact 首版规划一个 bounded SKILL.md unit，capsule 每个 current derived capsule 一个任务。owner RouteDefs 暴露 `/internal/experience-genes/derivation-plan`。
+- distributed job-runtime 新增 rollout-gated outbox fanout：known truth-source lifecycle events 先 Zod parse，再向 owner 请求 plan，并按 `experience-gene.derive:<requestId>` dedupe key enqueue。off mode 不创建 fanout handler 也不消费 derive tasks。
 
 ### 当前边界
 
-本记录是 Phase 3 的第五检查点。outbox-to-task enqueue、dead-letter policy、embedding/index retry、solidified outbox 写入和 truth-source handler registration 尚未实现；duplicate/conflict 投影集成保持打开。
+本记录是 Phase 3 的第六检查点。embedding/index retry、solidified outbox 写入和 explicit truth-source stale handler registration 尚未实现；duplicate/conflict 投影集成保持打开。task retry/dead-letter 目前依赖 job-runtime 现有通用 policy。
 
 ### 验证证据
 
@@ -171,6 +173,10 @@ pnpm --filter @trapmap/host-distributed test --run src/job-runtime/handlers.test
 pnpm --filter @trapmap/backend-core test --run src/knowledge-write/domain/experience-gene-staleness.test.ts src/ports/experience-gene-ports.test.ts
 pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-ports.test.ts
 # 3 files / 19 tests passed（第五检查点）
+pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-planning.test.ts src/routes.test.ts
+# 2 files / 26 tests passed（第六检查点）
+pnpm --filter @trapmap/host-distributed test --run src/job-runtime/handlers.test.ts
+# 1 file / 10 tests passed（第六检查点）
 pnpm typecheck
 # exit 0
 pnpm exec biome check <changed-files>

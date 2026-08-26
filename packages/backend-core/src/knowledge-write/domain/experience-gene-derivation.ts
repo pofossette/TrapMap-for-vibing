@@ -9,7 +9,8 @@ import { sha256CanonicalJson } from '@trapmap/lib';
 import { normalizeQuery } from '../../knowledge-read/domain/tokenization.js';
 import { scanExperienceGeneSafety } from './experience-gene-safety.js';
 
-const RULE_PROMPT_VERSION = 'experience-gene-rule-v1';
+export const EXPERIENCE_GENE_RULE_PROMPT_VERSION = 'experience-gene-rule-v1';
+const RULE_PROMPT_VERSION = EXPERIENCE_GENE_RULE_PROMPT_VERSION;
 
 export type RuleExtractionResult =
   | { gene: ExperienceGene }

@@ -1,4 +1,7 @@
-import { experienceGeneModeSchema } from '@trapmap/contracts';
+import {
+  experienceGeneDerivationTaskPayloadSchema,
+  experienceGeneModeSchema,
+} from '@trapmap/contracts';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
@@ -10,8 +13,9 @@ import {
   createJobRuntimeDeps,
   createJobRuntimeServer,
 } from '@trapmap/service-job-runtime';
+import { z } from 'zod';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
-import { createJobRuntimeTaskHandlers } from './handlers.js';
+import { createExperienceGeneOutboxHandlers, createJobRuntimeTaskHandlers } from './handlers.js';
 
 export async function createServer(
   config: ServiceConfig,
@@ -31,6 +35,9 @@ export async function createServer(
   const experienceGeneMode = experienceGeneModeSchema
     .catch('off')
     .parse(process.env.TRAPMAP_EXPERIENCE_GENE_MODE);
+  const derivationPlanResponseSchema = z.object({
+    tasks: z.array(experienceGeneDerivationTaskPayloadSchema),
+  });
   const deps = createJobRuntimeDeps({
     queuePorts,
     auditLog: identity.auditLog,
@@ -61,6 +68,17 @@ export async function createServer(
           );
         },
       },
+      ...createExperienceGeneOutboxHandlers(queuePorts, {
+        mode: experienceGeneMode,
+        plan: async (event) => {
+          const response =
+            await internalClients.knowledgeWrite.planExperienceGeneDerivations(event);
+          if (response.status < 200 || response.status >= 300) {
+            throw new Error('experience gene planning unavailable');
+          }
+          return derivationPlanResponseSchema.parse(response.body).tasks;
+        },
+      }),
     ],
     ownsWork: true,
   });

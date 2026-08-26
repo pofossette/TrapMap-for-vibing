@@ -21,6 +21,7 @@ export interface KnowledgeWriteReadinessOptions {
   getOperatorStatus?: () => Promise<Record<string, unknown>>;
   conflictCandidateRead?: Pick<KnowledgeOwnerPort, 'getById' | 'listByFilter'>;
   experienceGeneDerive?: (request: ExperienceGeneDerivationTaskPayload) => Promise<unknown>;
+  planExperienceGeneDerivations?: (event: unknown) => Promise<unknown>;
 }
 
 export type KnowledgeWriteRouteDeps = KnowledgeWritePort & Partial<KnowledgeWriteReadinessOptions>;
@@ -496,6 +497,23 @@ export function createKnowledgeWriteRouteDefs(
           throw InvocationError.unavailable('experience gene derivation is not assembled');
         }
         return deps.experienceGeneDerive(ctx.body);
+      },
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/experience-genes/derivation-plan',
+      schema: z.object({
+        params: emptyRecord,
+        query: emptyRecord,
+        headers: headersSchema,
+        body: z.unknown(),
+      }),
+      handler: async (ctx, deps) => {
+        if (!deps.planExperienceGeneDerivations) {
+          throw InvocationError.unavailable('experience gene planning is not assembled');
+        }
+        return { tasks: await deps.planExperienceGeneDerivations(ctx.body) };
       },
     }),
 

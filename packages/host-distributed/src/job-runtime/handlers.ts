@@ -2,9 +2,16 @@ import {
   type GovernanceAsyncCommandPort,
   type GovernanceConflictWorkflowPort,
   InvocationError,
+  type QueuePorts,
   type TaskHandler,
 } from '@trapmap/backend-core';
-import { type ExperienceGeneMode, experienceGeneModeSchema } from '@trapmap/contracts';
+import {
+  EXPERIENCE_GENE_DERIVE_TASK_EVENT,
+  type ExperienceGeneDerivationTaskPayload,
+  type ExperienceGeneMode,
+  experienceGeneModeSchema,
+  experienceGeneSourceLifecycleEventSchema,
+} from '@trapmap/contracts';
 import type { InternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
 import {
   createExperienceGeneDerivationTaskHandler,
@@ -12,6 +19,7 @@ import {
   createGovernanceConflictTaskHandler,
   createGovernanceRemediationTaskHandler,
 } from '@trapmap/service-job-runtime';
+import type { JobRuntimeOutboxHandler } from '@trapmap/service-job-runtime';
 import { recordAsyncLifecycleEvent } from '../gateway/internal-observability.js';
 import { toInvocationError } from '../shared/invocation-error.js';
 
@@ -129,4 +137,38 @@ export function createJobRuntimeTaskHandlers(
     );
   }
   return handlers.map(withLifecycleRecording);
+}
+
+const EXPERIENCE_GENE_SOURCE_EVENT_NAMES = [
+  'knowledge.approved',
+  'knowledge.lifecycle-updated',
+  'knowledge.rejected',
+  'artifact.approved',
+  'artifact.lifecycle-updated',
+  'artifact.deactivated',
+] as const;
+
+export function createExperienceGeneOutboxHandlers(
+  queuePorts: Pick<QueuePorts, 'task'>,
+  params: {
+    mode: ExperienceGeneMode;
+    plan(event: unknown): Promise<ExperienceGeneDerivationTaskPayload[]>;
+  },
+): JobRuntimeOutboxHandler[] {
+  if (params.mode === 'off') return [];
+
+  return EXPERIENCE_GENE_SOURCE_EVENT_NAMES.map((eventName) => ({
+    eventName,
+    async handle(payload: unknown) {
+      const event = experienceGeneSourceLifecycleEventSchema.parse(payload);
+      const tasks = await params.plan(event);
+      await Promise.all(
+        tasks.map((task) =>
+          queuePorts.task.enqueue(EXPERIENCE_GENE_DERIVE_TASK_EVENT, task, {
+            dedupeKey: `${EXPERIENCE_GENE_DERIVE_TASK_EVENT}:${task.requestId}`,
+          }),
+        ),
+      );
+    },
+  }));
 }

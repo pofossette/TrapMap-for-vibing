@@ -1,8 +1,11 @@
 import { InvocationError } from '@trapmap/backend-core';
-import { experienceGeneDerivationTaskPayloadSchema } from '@trapmap/contracts';
+import {
+  experienceGeneDerivationTaskPayloadSchema,
+  experienceGeneSourceLifecycleEventSchema,
+} from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createJobRuntimeTaskHandlers } from './handlers.js';
+import { createExperienceGeneOutboxHandlers, createJobRuntimeTaskHandlers } from './handlers.js';
 
 describe('distributed job-runtime task handlers', () => {
   it('returns the distributed governance task handlers with the exact task types', () => {
@@ -74,6 +77,57 @@ describe('distributed job-runtime task handlers', () => {
     );
 
     expect(deriveExperienceGene).toHaveBeenCalledWith(request);
+  });
+
+  it('enqueues planned Gene derivation tasks when rollout is enabled', async () => {
+    const enqueue = vi.fn(async () => 'task-id');
+    const request = experienceGeneDerivationTaskPayloadSchema.parse({
+      requestId: 'knowledge.approved:trap-1:v1',
+      source: {
+        kind: 'trap',
+        sourceId: 'trap-1',
+        sourceRevision: 1,
+        sourceHash: 'a'.repeat(64),
+        artifactId: null,
+        capsuleId: null,
+        artifactRevision: null,
+      },
+      derivationUnitId: 'trap:trap-1:v1',
+      generatorKind: 'rule',
+      promptVersion: 'experience-gene-rule-v1',
+      snapshotHash: 'b'.repeat(64),
+    });
+    const handlers = createExperienceGeneOutboxHandlers(
+      { task: { enqueue } },
+      {
+        mode: 'shadow',
+        plan: vi.fn(async () => [request]),
+      },
+    );
+
+    const rawEvent = {
+      name: 'knowledge.approved',
+      entryId: 'trap-1',
+      nextState: 'approved',
+      timestamp: '2026-08-26T00:00:00.000Z',
+    };
+    const event = experienceGeneSourceLifecycleEventSchema.parse(rawEvent);
+    const handler = handlers.find(({ eventName }) => eventName === event.name);
+    await handler?.handle(rawEvent);
+
+    expect(handler?.eventName).toBe('knowledge.approved');
+    expect(enqueue).toHaveBeenCalledWith('experience-gene.derive', request, {
+      dedupeKey: `experience-gene.derive:${request.requestId}`,
+    });
+  });
+
+  it('does not create Gene outbox fanout handlers when rollout is off', () => {
+    expect(
+      createExperienceGeneOutboxHandlers(
+        { task: { enqueue: vi.fn() } },
+        { mode: 'off', plan: vi.fn() },
+      ),
+    ).toEqual([]);
   });
 
   it('consumes governance conflict tasks through the governance owner client', async () => {
