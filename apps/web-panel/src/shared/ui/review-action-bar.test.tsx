@@ -11,10 +11,12 @@ vi.mock('@trapmap/web-panel/stores/i18n-store', () => ({
 describe('ReviewActionBar RBAC', () => {
   it('disables all actions for read-only-operator and shows noPermission', () => {
     const markup = renderToStaticMarkup(
+      // biome-ignore lint/a11y/useValidAriaRole: role is a business prop, not an ARIA role
       <ReviewActionBar
         onChangeRationale={() => {}}
         onSubmitDecision={() => {}}
         rationale="needs correction"
+        role="read-only-operator"
       />,
     );
     expect(markup).toContain('noPermission');
