@@ -41,7 +41,9 @@ describe('experience gene stale handlers', () => {
       listActiveBySource: vi.fn(async () => [trapGene()]),
       markStaleForSource: vi.fn(async () => 1),
     };
-    const marked = await createExperienceGeneStaleHandler({ pool, repository }).handle({
+    const onStale = vi.fn();
+    const handler = createExperienceGeneStaleHandler({ pool, repository, onStale });
+    const marked = await handler.handle({
       name: 'knowledge.rejected',
       entryId: 'trap-1',
       previousState: 'approved',
@@ -50,6 +52,7 @@ describe('experience gene stale handlers', () => {
     });
 
     expect(marked).toBe(1);
+    expect(onStale).toHaveBeenCalledWith('source-lifecycle', 1);
     expect(repository.markStaleForSource).toHaveBeenCalledWith(
       { kind: 'trap', sourceId: 'trap-1' },
       'source-lifecycle',

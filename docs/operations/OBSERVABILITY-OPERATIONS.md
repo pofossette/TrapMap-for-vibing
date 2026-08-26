@@ -167,6 +167,7 @@ interface HealthStatus {
 | `trapmap_experience_gene_candidates_total` | `mode`, `generator` | Rule/LLM candidate production |
 | `trapmap_experience_gene_validation_rejections_total` | `mode`, `gate` | Deterministic gate rejections |
 | `trapmap_experience_gene_solidified_total` | `mode`, `source_kind` | Successful solidification |
+| `trapmap_experience_gene_derivation_retries_total` | `mode`, `outcome` | Derivation retry attempts |
 | `trapmap_experience_gene_stale_total` | `mode`, `reason_class` | Truth-source invalidation |
 | `trapmap_experience_gene_derivation_duration_ms` | `mode`, `outcome` | Derivation latency and retry analysis |
 | `trapmap_experience_gene_search_duration_ms` | `mode`, `outcome` | Gene-native search latency |
@@ -174,6 +175,7 @@ interface HealthStatus {
 | `trapmap_experience_gene_empty_results_total` | `mode` | Empty canonical search responses |
 
 Label values must remain low-cardinality mode/source/generator/outcome/reason-class enums; raw seed, source id, tenant id and prompt text are forbidden labels.
+Host-local emits these families through Prometheus; distributed knowledge-write/knowledge-read emit the same names through the shared OTel registry rendered at `/metrics`.
 
 ### 探针配置参考
 

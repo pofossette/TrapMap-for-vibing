@@ -21,6 +21,7 @@ import {
   createKnowledgeWriteServer as createServiceKnowledgeWriteServer,
 } from '@trapmap/service-knowledge-write';
 import { createExperienceGeneDerivationPlanner } from '@trapmap/service-knowledge-write';
+import { createExperienceGeneOtelMetrics } from '../gateway/internal-observability.js';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 
 export function createKnowledgeWriteReadinessOptions(
@@ -40,6 +41,7 @@ export async function createServer(
   const identity = createIdentityAccessPgDeps(db.pool, { systemAdminKey: config.systemAdminKey });
   const owner = createKnowledgeWriteOwnerBundle(db.pool);
   const outbox = createKnowledgeWriteOutboxDiagnostics(db.pool);
+  const experienceGeneMetrics = createExperienceGeneOtelMetrics();
   const deps = createKnowledgeWriteDeps({
     knowledgeOwner: owner.knowledgeOwner,
     auditLog: identity.auditLog,
@@ -53,8 +55,14 @@ export async function createServer(
     createKnowledgeWriteReadinessOptions(owner, {
       planExperienceGeneDerivations: createExperienceGeneDerivationPlanner(db.pool)
         .planFromLifecycle,
-      experienceGeneDerive: createExperienceGeneDerivationOperation(db.pool),
-      markExperienceGenesStale: createExperienceGeneStaleOperation(db.pool),
+      experienceGeneDerive: createExperienceGeneDerivationOperation(db.pool, {
+        metrics: experienceGeneMetrics,
+        mode: config.experienceGeneMode,
+      }),
+      markExperienceGenesStale: createExperienceGeneStaleOperation(db.pool, {
+        metrics: experienceGeneMetrics,
+        mode: config.experienceGeneMode,
+      }),
       checkDependency: async () => {
         const health = await db.healthCheck();
         return {

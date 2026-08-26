@@ -5,11 +5,16 @@ import {
   normalizeQuery,
   selectExperienceGenes,
 } from '@trapmap/backend-core';
+import type { ExperienceGeneMetricsPort } from '@trapmap/backend-core';
 import {
   type ExperienceGene,
+  type ExperienceGeneMode,
+  type GeneSearchQuery,
   type GeneSearchResponse,
   disabledExperienceGeneSearchResponse,
 } from '@trapmap/contracts';
+
+import { withExperienceGeneSearchMetrics } from './experience-gene-metrics.js';
 
 type Queryable = Pick<Pool, 'query'>;
 
@@ -253,9 +258,14 @@ function toSearchResponse(
 export function createPgExperienceGeneSearchPort(deps: {
   pool: Queryable;
   embed?: ((text: string) => Promise<number[]>) | undefined;
+  metrics?: ExperienceGeneMetricsPort;
+  mode?: ExperienceGeneMode;
 }): PgExperienceGeneSearchPort {
-  return {
-    async searchGenes(input, context): Promise<GeneSearchResponse> {
+  const search = {
+    async searchGenes(
+      input: GeneSearchQuery,
+      context: ExperienceGeneDbContext,
+    ): Promise<GeneSearchResponse> {
       let vector: number[] | null = null;
       if (deps.embed) {
         try {
@@ -281,6 +291,18 @@ export function createPgExperienceGeneSearchPort(deps: {
         maxResults: input.maxResults,
       });
       return toSearchResponse(result, vector !== null);
+    },
+  };
+
+  if (!deps.metrics || !deps.mode) return search;
+  const metrics = deps.metrics;
+  const mode = deps.mode;
+  return {
+    async searchGenes(input, context) {
+      return withExperienceGeneSearchMetrics(search.searchGenes, {
+        metrics,
+        mode,
+      })(input, context);
     },
   };
 }

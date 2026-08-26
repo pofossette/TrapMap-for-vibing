@@ -1,6 +1,7 @@
 import type {
   ExperienceGene,
   ExperienceGeneEvent,
+  ExperienceGeneMode,
   ExperienceGeneValidationReport,
   GeneIndexStatus,
 } from '@trapmap/contracts';
@@ -53,4 +54,39 @@ export interface ExperienceGeneReadPort {
     source: GeneSourceRef,
     access: ExperienceGeneAccessContext,
   ): Promise<ExperienceGene[]>;
+}
+
+export type ExperienceGeneDerivationMetricOutcome =
+  | 'validated'
+  | 'solidified'
+  | 'rejected'
+  | 'stale-source'
+  | 'idempotent'
+  | 'error';
+
+export interface ExperienceGeneDerivationMetricParams {
+  mode: ExperienceGeneMode;
+  sourceKind: ExperienceGene['source']['kind'];
+  generator: 'rule' | 'llm' | 'hybrid';
+  outcome: ExperienceGeneDerivationMetricOutcome;
+  durationMs: number;
+  reasonClass?: string;
+  retryCount?: number;
+}
+
+export interface ExperienceGeneMetricsPort {
+  recordDerivation(params: ExperienceGeneDerivationMetricParams): void;
+  recordValidationRejection(params: { mode: ExperienceGeneMode; gate: string }): void;
+  recordSolidified(params: {
+    mode: ExperienceGeneMode;
+    sourceKind: ExperienceGene['source']['kind'];
+  }): void;
+  recordStale(params: { mode: ExperienceGeneMode; reasonClass: string; count: number }): void;
+  recordSearch(params: {
+    mode: ExperienceGeneMode;
+    outcome: 'ok' | 'empty' | 'error';
+    durationMs: number;
+  }): void;
+  recordPrimarySelected(params: { mode: ExperienceGeneMode }): void;
+  recordEmptyResult(params: { mode: ExperienceGeneMode }): void;
 }

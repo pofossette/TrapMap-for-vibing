@@ -183,6 +183,7 @@ async function artifactTargets(pool: Queryable, artifactId: string) {
 export function createExperienceGeneStaleHandler(params: {
   pool: Queryable;
   repository: ExperienceGeneStaleRepository;
+  onStale?: ((reasonClass: string, count: number) => void) | undefined;
 }) {
   const lifecycleTargets = async (event: ExperienceGeneSourceLifecycleEvent) => {
     const targets: Array<{
@@ -253,10 +254,12 @@ export function createExperienceGeneStaleHandler(params: {
             .map((result) => result.reason),
         );
         for (const reason of reasons) {
-          marked += await params.repository.markStaleForSource(
+          const count = await params.repository.markStaleForSource(
             { kind: target.kind, sourceId: target.sourceId },
             reason,
           );
+          if (count > 0) params.onStale?.(reason, count);
+          marked += count;
         }
       }
       return marked;

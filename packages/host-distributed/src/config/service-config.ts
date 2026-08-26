@@ -201,6 +201,9 @@ export interface ServiceConfig {
   /** Experience Gene retrieval rollout gate. */
   experienceGenesMode: 'off' | 'shadow' | 'serve';
 
+  /** Experience Gene derivation/task rollout gate. */
+  experienceGeneMode: 'off' | 'shadow' | 'serve';
+
   /** Whether Consul-backed service discovery is enabled. */
   consulEnabled: boolean;
 
@@ -275,6 +278,11 @@ function resolveExperienceGenesMode(): 'off' | 'shadow' | 'serve' {
   return value === 'shadow' || value === 'serve' ? value : 'off';
 }
 
+function resolveExperienceGeneMode(): 'off' | 'shadow' | 'serve' {
+  const value = process.env.TRAPMAP_EXPERIENCE_GENE_MODE;
+  return value === 'shadow' || value === 'serve' ? value : 'off';
+}
+
 // fallow-ignore-next-line complexity -- flat env aggregation for a single ServiceConfig shape; splitting would add indirection without reducing decision count meaningfully
 export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
   const name: ServiceName =
@@ -343,6 +351,7 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
       knowledgeWrite: resolveKnowledgeWriteTransport(),
     },
     experienceGenesMode: resolveExperienceGenesMode(),
+    experienceGeneMode: resolveExperienceGeneMode(),
     consulEnabled: process.env[ENV_CONSUL_ENABLED] === 'true',
     consulAddress,
   };

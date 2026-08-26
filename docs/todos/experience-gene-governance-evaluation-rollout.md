@@ -109,7 +109,7 @@ Promotion requires:
 
 - [x] Freeze 3-case smoke and 10-case core Gene evaluation datasets。
 - [x] Implement focused `pnpm eval:experience-gene --tier smoke|core` runner。
-- [ ] Instrument derivation/retrieval metric families in process surfaces。
+- [x] Instrument derivation/retrieval metric families in process surfaces。
 - [ ] Run live baseline/shadow/serve task-quality comparison after deployment smoke is available。
 - [ ] Governance review at least 20 solidified Genes (or full corpus) plus rejected/stale evidence。
 - [ ] Verify rollback command against a deployed route。
@@ -161,6 +161,12 @@ pnpm check:structure
 
 本检查点是 deterministic offline selection/safety evaluation，不是 live agent task-quality promotion。Promotion 还必须等待 process metric emission、deployment smoke/live baseline comparison、20-Gene governance review（含 rejected/stale evidence）和 rollback verification。`pnpm eval:smoke` 继续受本地 Docker 缺失约束。
 
+### 第二检查点：process metric instrumentation
+
+- backend-core 新增 host-neutral `ExperienceGeneMetricsPort`；service wrapper 在 derivation/search/stale boundary 记录 outcome、redacted reason class、duration、primary selection 和 empty result，不暴露 request id、source id、seed 或 prompt。
+- host-local 通过 prom-client adapter 输出同一批 metric families；distributed knowledge-write/knowledge-read 通过共享 OTel registry 输出，并经现有 `/metrics` Prometheus renderer 暴露。两个宿主都从 typed rollout config 读取 mode label。
+- 新增 focused tests 覆盖 metric name、low-cardinality labels、solidified/rejected/stale/search outcomes、retry counter 和 disabled/reset 后重建。
+
 ### 验证证据
 
 ```bash
@@ -171,6 +177,14 @@ pnpm eval:experience-gene --tier smoke --mode shadow
 pnpm eval:experience-gene --tier core --mode serve
 # total 10 / selected 9 / empty 1 / precision 1 / avoidance 1 / safety 0 / supplementary avoid 7 / promotion eligible true
 pnpm typecheck
+pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-metrics.test.ts src/experience-gene-staleness-handler.test.ts
+# 2 files / 6 tests passed
+pnpm --filter @trapmap/service-knowledge-read test --run src/experience-gene-metrics.test.ts
+# 1 file / 2 tests passed
+pnpm --filter @trapmap/host-local test --run src/nest/observability/experience-gene-metrics.test.ts
+# 1 file / 2 tests passed
+pnpm --filter @trapmap/host-distributed test --run src/gateway/experience-gene-metrics.test.ts
+# 1 file / 1 test passed
 pnpm check:docs && pnpm check:structure && pnpm check:asserts
 pnpm exec fallow audit --base HEAD --no-cache
 ```

@@ -19,6 +19,7 @@ import {
   createExperienceGeneRouteDefs,
   createPgExperienceGeneSearchPort,
 } from '@trapmap/service-knowledge-read';
+import { createExperienceGeneOtelMetrics } from '../gateway/internal-observability.js';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import { createConvergedKnowledgeReadQueries } from './converged-retrieval.js';
 import { createPgKnowledgeReadProjection } from './ports.js';
@@ -39,6 +40,8 @@ export async function createKnowledgeReadServerAdapter(
       searchGenes: createPgExperienceGeneSearchPort({
         pool: db.pool,
         embed: async (seed) => createDeterministicFallbackVector(seed),
+        metrics: createExperienceGeneOtelMetrics(),
+        mode: config.experienceGenesMode,
       }).searchGenes,
     }),
     {},

@@ -19,6 +19,7 @@ import {
   MetricReader,
 } from '@opentelemetry/sdk-metrics';
 
+import type { ExperienceGeneMetricsPort } from '@trapmap/backend-core';
 import type { AsyncLifecycleEventName } from '@trapmap/contracts';
 
 // ---------------------------------------------------------------------------
@@ -56,6 +57,16 @@ interface ObservabilityRegistry {
   hopDuration: Histogram;
   asyncLifecycleCounter: Counter;
   rateLimitedCounter: Counter;
+  geneRequests: Counter;
+  geneCandidates: Counter;
+  geneRejections: Counter;
+  geneSolidified: Counter;
+  geneRetries: Counter;
+  geneStale: Counter;
+  geneDerivationDuration: Histogram;
+  geneSearchDuration: Histogram;
+  genePrimarySelected: Counter;
+  geneEmptyResults: Counter;
 }
 
 function createRegistry(): ObservabilityRegistry {
@@ -78,6 +89,37 @@ function createRegistry(): ObservabilityRegistry {
     }),
     rateLimitedCounter: meter.createCounter('trapmap_gateway_rate_limited_total', {
       description: 'Gateway requests rejected by the per-actor rate limiter',
+    }),
+    geneRequests: meter.createCounter('trapmap_experience_gene_requests_total', {
+      description: 'Experience Gene derivation requests',
+    }),
+    geneCandidates: meter.createCounter('trapmap_experience_gene_candidates_total', {
+      description: 'Experience Gene candidates produced by generator',
+    }),
+    geneRejections: meter.createCounter('trapmap_experience_gene_validation_rejections_total', {
+      description: 'Experience Gene deterministic gate rejections',
+    }),
+    geneSolidified: meter.createCounter('trapmap_experience_gene_solidified_total', {
+      description: 'Experience Genes successfully solidified',
+    }),
+    geneRetries: meter.createCounter('trapmap_experience_gene_derivation_retries_total', {
+      description: 'Experience Gene derivation retry attempts',
+    }),
+    geneStale: meter.createCounter('trapmap_experience_gene_stale_total', {
+      description: 'Experience Genes marked stale by reason class',
+    }),
+    geneDerivationDuration: meter.createHistogram(
+      'trapmap_experience_gene_derivation_duration_ms',
+      { description: 'Experience Gene derivation duration in milliseconds' },
+    ),
+    geneSearchDuration: meter.createHistogram('trapmap_experience_gene_search_duration_ms', {
+      description: 'Experience Gene search duration in milliseconds',
+    }),
+    genePrimarySelected: meter.createCounter('trapmap_experience_gene_primary_selected_total', {
+      description: 'Gene searches that selected a primary Gene',
+    }),
+    geneEmptyResults: meter.createCounter('trapmap_experience_gene_empty_results_total', {
+      description: 'Gene searches that returned no primary Gene',
     }),
   };
 }
@@ -122,6 +164,64 @@ export function recordAsyncLifecycleEvent(params: {
     owner_surface: params.ownerSurface,
     failure_classification: params.failureClassification ?? 'none',
   });
+}
+
+export function createExperienceGeneOtelMetrics(): ExperienceGeneMetricsPort {
+  return {
+    recordDerivation(params) {
+      const requestLabels = {
+        mode: params.mode,
+        source_kind: params.sourceKind,
+        generator: params.generator,
+        outcome: params.outcome,
+        reason_class: params.reasonClass ?? 'none',
+      };
+      registry.geneRequests.add(1, requestLabels);
+      registry.geneCandidates.add(1, {
+        mode: params.mode,
+        generator: params.generator,
+      });
+      registry.geneDerivationDuration.record(params.durationMs, {
+        mode: params.mode,
+        source_kind: params.sourceKind,
+        generator: params.generator,
+        outcome: params.outcome,
+      });
+      if ((params.retryCount ?? 0) > 0) {
+        registry.geneRetries.add(params.retryCount ?? 0, {
+          mode: params.mode,
+          outcome: params.outcome,
+        });
+      }
+    },
+    recordValidationRejection(params) {
+      registry.geneRejections.add(1, { mode: params.mode, gate: params.gate });
+    },
+    recordSolidified(params) {
+      registry.geneSolidified.add(1, {
+        mode: params.mode,
+        source_kind: params.sourceKind,
+      });
+    },
+    recordStale(params) {
+      registry.geneStale.add(params.count, {
+        mode: params.mode,
+        reason_class: params.reasonClass,
+      });
+    },
+    recordSearch(params) {
+      registry.geneSearchDuration.record(params.durationMs, {
+        mode: params.mode,
+        outcome: params.outcome,
+      });
+    },
+    recordPrimarySelected(params) {
+      registry.genePrimarySelected.add(1, { mode: params.mode });
+    },
+    recordEmptyResult(params) {
+      registry.geneEmptyResults.add(1, { mode: params.mode });
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------

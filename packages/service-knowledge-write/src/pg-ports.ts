@@ -1,5 +1,6 @@
+import type { ExperienceGeneMetricsPort } from '@trapmap/backend-core';
 import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
-import type { ExperienceGeneDerivationTaskPayload } from '@trapmap/contracts';
+import type { ExperienceGeneDerivationTaskPayload, ExperienceGeneMode } from '@trapmap/contracts';
 import { createDeterministicFallbackVector } from '@trapmap/lib';
 import {
   type ArtifactBundleImportPort,
@@ -13,6 +14,7 @@ import {
   deriveExperienceGeneFromRule,
   experienceGeneEmbeddingText,
 } from './experience-gene-derivation.js';
+import { withExperienceGeneDerivationMetrics } from './experience-gene-metrics.js';
 import { PgExperienceGeneRepository } from './experience-gene-repository.js';
 import { createPgExperienceGeneSourceLoaders } from './experience-gene-snapshots.js';
 import { createExperienceGeneStaleHandler } from './experience-gene-staleness-handler.js';
@@ -63,7 +65,10 @@ export interface KnowledgeWriteOutboxDiagnostics {
 }
 
 export interface ExperienceGeneDerivationRuntimeOptions
-  extends Pick<ExperienceGeneDerivationDependencies, 'llm' | 'embedding'> {}
+  extends Pick<ExperienceGeneDerivationDependencies, 'llm' | 'embedding'> {
+  metrics?: ExperienceGeneMetricsPort;
+  mode?: ExperienceGeneMode;
+}
 
 export function createExperienceGeneDerivationOperation(
   pool: TransactionPool,
@@ -71,7 +76,7 @@ export function createExperienceGeneDerivationOperation(
 ) {
   const repository = new PgExperienceGeneRepository({ pool });
   const loaders = createPgExperienceGeneSourceLoaders(pool);
-  return async (request: ExperienceGeneDerivationTaskPayload) =>
+  const operation = async (request: ExperienceGeneDerivationTaskPayload) =>
     deriveExperienceGeneFromRule(request, {
       loaders,
       repository,
@@ -85,12 +90,30 @@ export function createExperienceGeneDerivationOperation(
       ...(options.llm ? { llm: options.llm } : {}),
       ...(options.embedding ? { embedding: options.embedding } : {}),
     });
+
+  if (!options.metrics || !options.mode) return operation;
+  return withExperienceGeneDerivationMetrics(operation, {
+    metrics: options.metrics,
+    mode: options.mode,
+  });
 }
 
-export function createExperienceGeneStaleOperation(pool: TransactionPool) {
+export function createExperienceGeneStaleOperation(
+  pool: TransactionPool,
+  options: { metrics?: ExperienceGeneMetricsPort; mode?: ExperienceGeneMode } = {},
+) {
   return createExperienceGeneStaleHandler({
     pool,
     repository: new PgExperienceGeneRepository({ pool }),
+    ...(options.metrics && options.mode
+      ? {
+          onStale: (reasonClass: string, count: number) => {
+            if (options.metrics && options.mode) {
+              options.metrics.recordStale({ mode: options.mode, reasonClass, count });
+            }
+          },
+        }
+      : {}),
   }).handle;
 }
 

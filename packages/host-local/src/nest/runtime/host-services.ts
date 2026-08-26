@@ -44,6 +44,7 @@ import {
 
 import { createDeterministicFallbackVector } from '@trapmap/lib';
 import type { HostLocalConfig } from '../config/index.js';
+import { createPrometheusExperienceGeneMetrics } from '../observability/experience-gene-metrics.js';
 import {
   type HostLocalChannelRegistry,
   type HostLocalStrategyRegistry,
@@ -104,12 +105,21 @@ export async function createHostLocalServices(config: HostLocalConfig): Promise<
   const candidateCorpus: CandidateCorpusReadPort = createCandidateCorpusPgReadPort(pool);
   const graphIndex = createKnowledgeReadGraphIndexRepository(pool);
   const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
-  const experienceGeneDerive = createExperienceGeneDerivationOperation(pool);
-  const experienceGeneMarkStale = createExperienceGeneStaleOperation(pool);
+  const experienceGeneMetrics = createPrometheusExperienceGeneMetrics();
+  const experienceGeneDerive = createExperienceGeneDerivationOperation(pool, {
+    metrics: experienceGeneMetrics,
+    mode: config.experienceGeneMode,
+  });
+  const experienceGeneMarkStale = createExperienceGeneStaleOperation(pool, {
+    metrics: experienceGeneMetrics,
+    mode: config.experienceGeneMode,
+  });
   const experienceGenePlan = createExperienceGeneDerivationPlanner(pool).planFromLifecycle;
   const experienceGeneSearch = createPgExperienceGeneSearchPort({
     pool,
     embed: async (seed) => createDeterministicFallbackVector(seed),
+    metrics: experienceGeneMetrics,
+    mode: config.experienceGenesMode,
   });
   const governanceReview = createGovernanceReviewPgOwnerBundle(pool);
   const ownerReadModel = createOwnerReadModelProjection({
