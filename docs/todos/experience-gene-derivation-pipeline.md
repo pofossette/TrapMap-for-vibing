@@ -103,7 +103,7 @@ stale Gene 不参与 serve 模式。重建成功后旧 Gene 转 deprecated，新
 - [ ] 接入 task queue、retry、dead-letter 和 idempotency key。
 - [ ] 实现 solidify/stale/deprecate transactional writes。
 - [ ] 注册 truth-source lifecycle/remediation handlers。
-- [ ] 测试 source revision/hash、remediation、deactivation 和 governance 收紧四类 stale trigger。
+- [x] 测试 source revision/hash、remediation、deactivation 和 governance 收紧四类 stale trigger。
 
 ## Acceptance criteria
 
@@ -145,10 +145,12 @@ pnpm typecheck
 - Contracts 新增 bounded LLM output schema；service owner 新增 `GenerateStructuredExperienceGeneExtractor`，固定 `experience-gene-llm-v1` prompt version，显式接收 temperature、max retries 和 retry delay，并通过 structured generation 只接受 schema-valid output。OpenAI-compatible chat 支持显式 temperature 调用。
 - Orchestrator 在 rule extractor 返回 insufficient structure 后才调用可选 LLM fallback；无 fallback 或 fallback 失败写 `generator-unavailable` rejection event，LLM candidate 仍必须通过 fidelity/safety/governance/duplicate gates 后才能 persist。
 - knowledge-write RouteDefs 新增 `/internal/experience-genes/derive` owner operation；service-job-runtime 新增 frozen `experience-gene.derive` TaskHandler。distributed host 通过 internal client 委派回 knowledge-write owner，并使用 `TRAPMAP_EXPERIENCE_GENE_MODE` gate consumer：默认 `off` 不注册 handler。
+- backend-core 新增 pure staleness evaluator，按固定优先级识别 `source-revision`、`source-hash`、`remediation`、`source-lifecycle` 和 governance tightening；fresh approved source 返回 not-stale。
+- PG repository 新增 `markStaleForSource`：按 source kind/id 在一个事务中锁定并失效所有 active Gene（candidate/validated/solidified），每个 Gene append 一条带 reason class 的 `staled` event。该方法不要求调用方提供旧 revision/hash，因此适用于源已变化的 trigger。
 
 ### 当前边界
 
-本记录是 Phase 3 的第四检查点。outbox-to-task enqueue、dead-letter policy、embedding/index retry、solidified outbox 写入、staleness/remediation handlers 尚未实现；因此 duplicate/conflict 投影集成和相关 checklist 保持打开。
+本记录是 Phase 3 的第五检查点。outbox-to-task enqueue、dead-letter policy、embedding/index retry、solidified outbox 写入和 truth-source handler registration 尚未实现；duplicate/conflict 投影集成保持打开。
 
 ### 验证证据
 
@@ -166,6 +168,9 @@ pnpm --filter @trapmap/service-knowledge-write test --run src/routes.test.ts
 pnpm --filter @trapmap/service-job-runtime test --run src/handlers/experience-gene.test.ts
 pnpm --filter @trapmap/host-distributed test --run src/job-runtime/handlers.test.ts
 # 2 files / 10 tests passed（第四检查点）
+pnpm --filter @trapmap/backend-core test --run src/knowledge-write/domain/experience-gene-staleness.test.ts src/ports/experience-gene-ports.test.ts
+pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-ports.test.ts
+# 3 files / 19 tests passed（第五检查点）
 pnpm typecheck
 # exit 0
 pnpm exec biome check <changed-files>

@@ -195,6 +195,33 @@ describe('PostgreSQL experience gene repository', () => {
     expect(queries.filter(({ sql }) => sql.includes("'staled'"))).toHaveLength(1);
   });
 
+  it('marks every active Gene for a source stale without requiring old provenance', async () => {
+    const gene = validCandidate();
+    const rows = [
+      { id: `${gene.geneId}-1`, content_hash: gene.contentHash },
+      { id: `${gene.geneId}-2`, content_hash: gene.contentHash },
+    ];
+    const { pool, queries } = createQueryPool((sql) => {
+      if (sql.includes('FOR UPDATE')) return { rows, rowCount: rows.length };
+      return { rows: [], rowCount: 1 };
+    });
+
+    await expect(
+      new PgExperienceGeneRepository({ pool }).markStaleForSource(
+        { kind: gene.source.kind, sourceId: gene.source.sourceId },
+        'source-revision',
+      ),
+    ).resolves.toBe(2);
+
+    const select = queries.find(({ sql }) => sql.includes('FOR UPDATE'));
+    expect(select?.sql).toContain('source_type = $1 AND source_id = $2');
+    const whereClause = select?.sql.slice(select.sql.indexOf('WHERE')) ?? '';
+    expect(whereClause).not.toContain('source_revision');
+    expect(whereClause).not.toContain('source_hash');
+    expect(queries.filter(({ sql }) => sql.includes("status = 'stale'"))).toHaveLength(2);
+    expect(queries.filter(({ params }) => params.includes('source-revision'))).toHaveLength(2);
+  });
+
   it('persists rejected validator reports without mutating an aggregate', async () => {
     const gene = validCandidate();
     const event = experienceGeneEventSchema.parse({

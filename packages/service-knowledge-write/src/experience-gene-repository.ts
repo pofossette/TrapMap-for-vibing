@@ -346,6 +346,53 @@ export class PgExperienceGeneRepository implements ExperienceGeneWritePort, Expe
     });
   }
 
+  async markStaleForSource(
+    source: Pick<ExperienceGene['source'], 'kind' | 'sourceId'>,
+    reasonClass: string,
+  ): Promise<number> {
+    return this.transaction(async () => {
+      const selected = await this.pool.query<
+        Pick<
+          GeneRow,
+          'id' | 'content_hash' | 'source_type' | 'source_id' | 'source_revision' | 'source_hash'
+        >
+      >(
+        `SELECT id, content_hash, source_type, source_id, source_revision, source_hash
+         FROM experience_genes
+         WHERE source_type = $1 AND source_id = $2
+           AND status IN ('candidate','validated','solidified')
+         FOR UPDATE`,
+        [source.kind, source.sourceId],
+      );
+
+      for (const row of selected.rows) {
+        await this.pool.query(
+          `UPDATE experience_genes SET status = 'stale', updated_at = now() WHERE id = $1`,
+          [row.id],
+        );
+        await this.pool.query(
+          `INSERT INTO experience_gene_events
+             (id,gene_id,type,source_type,source_id,source_revision,source_hash,actor_kind,actor_id,
+              validator_summary,reason_class,payload_snapshot_hash,payload,created_at)
+           VALUES ($1,$2,'staled',$3,$4,$5,$6,'system',NULL,$7,$8,$9,$10,now())`,
+          [
+            `${row.id}:staled`,
+            row.id,
+            row.source_type,
+            row.source_id,
+            row.source_revision,
+            row.source_hash,
+            JSON.stringify({ valid: true, issueCodes: [] }),
+            reasonClass,
+            row.content_hash,
+            '{}',
+          ],
+        );
+      }
+      return selected.rows.length;
+    });
+  }
+
   async saveRejectedCandidate(event: ExperienceGeneEvent): Promise<void> {
     const parsed = experienceGeneEventSchema.parse(event);
     if (parsed.type !== 'rejected') throw new Error('rejected candidate event required');

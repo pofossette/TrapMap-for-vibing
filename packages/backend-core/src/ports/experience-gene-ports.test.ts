@@ -36,6 +36,10 @@ class PortShapeFixture implements ExperienceGeneWritePort, ExperienceGeneReadPor
     return Number(source.sourceRevision);
   }
 
+  async markStaleForSource() {
+    return 0;
+  }
+
   async saveRejectedCandidate(
     _event: Parameters<ExperienceGeneWritePort['saveRejectedCandidate']>[0],
   ) {}

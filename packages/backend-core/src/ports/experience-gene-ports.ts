@@ -22,6 +22,10 @@ export interface ExperienceGeneWritePort {
     error?: string | undefined,
   ): Promise<ExperienceGene>;
   markStale(source: GeneSourceRef): Promise<number>;
+  markStaleForSource(
+    source: Pick<GeneSourceRef, 'kind' | 'sourceId'>,
+    reasonClass: string,
+  ): Promise<number>;
   saveRejectedCandidate(event: ExperienceGeneEvent): Promise<void>;
 }
 
