@@ -5,7 +5,7 @@
 - **Active mainline（2026-08-25 启动）。**
 - 本细则是根 `plan.md` 当前唯一链接的 owner execution surface。
 - 执行顺序固定为基础设施先行，然后进入契约、派生、检索和治理 rollout。
-- Phase 1-3 已提交。Phase 3 完成 snapshot loaders、rule/LLM extractors、validation/safety/duplicate gates、projection retry、solidified outbox emission、truth-source stale/remediation handling 和双宿主 rollout-gated task fanout/consume。Phase 4 已开始：Gene retrieval contracts、pure selection、keyword/vector recall adapters 与双宿主 RouteDefs 已落地；CLI/MCP rendering、evaluation 和 rollout closeout 进行中。
+- Phase 1-4 已提交。Phase 3 完成 snapshot loaders、rule/LLM extractors、validation/safety/duplicate gates、projection retry、solidified outbox emission、truth-source stale/remediation handling 和双宿主 rollout-gated task fanout/consume。Phase 4 完成 Gene retrieval contracts、pure selection、keyword/vector recall adapters、双宿主 RouteDefs、internal client forwarding 和 `<strategy-gene>` activation rendering。Phase 5 已开始：focused deterministic evaluation harness 与 documentation truth 同步已落地；process metrics、live promotion comparison、governance sampling 与 rollback verification 进行中。
 - Phase 1 实现已落地并通过 focused tests、typecheck 和新增发现审计；阶段 closeout 仍受 Fallow branch baseline 决策与本机 Docker 环境门控约束，详见 [infrastructure problem pool](experience-gene-infrastructure-foundation.md#problem-pool)。
 
 ## Background
@@ -62,10 +62,10 @@ TrapMap 已经具备 trap 治理、skill artifact 版本化、capsule/profile/cl
 - [ ] 通用向量与 structured generation seam 已抽离，既有检索行为保持不变。
 - [x] [`ExperienceGene` contracts、枚举、持久化表和 repository tests 已落地](experience-gene-contracts-and-storage.md#execution-record2026-08-25)。
 - [x] [trap/skill/capsule 派生管线具备 idempotency、validation、lineage、index retry 和 stale 处理](experience-gene-derivation-pipeline.md#execution-record2026-08-26)。
-- [ ] gene-native retrieval 通过 RouteDef 在两个宿主暴露。
-- [ ] CLI/MCP 可渲染 `<strategy-gene>` 控制块。
+- [x] [gene-native retrieval 通过 RouteDef 在两个宿主暴露](experience-gene-retrieval-and-activation.md#execution-record2026-08-26)。
+- [x] [CLI/MCP 可渲染 `<strategy-gene>` 控制块](experience-gene-retrieval-and-activation.md#execution-record2026-08-26)。
 - [ ] rollout 默认关闭，baseline 与 enabled 模式有评测证据。
-- [ ] 架构、API、数据模型、CLI/MCP 文档完成同步。
+- [x] [架构、API、数据模型、CLI/MCP 文档完成同步](experience-gene-governance-evaluation-rollout.md#documentation-closeout)。
 - [ ] `pnpm typecheck`、相关 focused tests、`pnpm eval:smoke`、`pnpm exec fallow audit --base main --ci`、`pnpm check:docs` 和 `pnpm check:structure` 通过。
 
 每项 gate 的回写记录必须包含：变更文件、执行的命令、关键测试名或评测指标、以及残余 debt/deferred 落点。只有 owner mainline 可以汇总宣告 cross-phase acceptance 完成。
