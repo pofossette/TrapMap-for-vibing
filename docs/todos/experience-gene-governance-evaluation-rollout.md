@@ -159,7 +159,9 @@ pnpm check:structure
 
 ### 当前边界
 
-本检查点是 deterministic offline selection/safety evaluation，不是 live agent task-quality promotion。Promotion 还必须等待 process metric emission、deployment smoke/live baseline comparison、20-Gene governance review（含 rejected/stale evidence）和 rollback verification。`pnpm eval:smoke` 继续受本地 Docker 缺失约束。
+本检查点是 deterministic offline selection/safety evaluation，不是 live agent task-quality promotion。Process metrics、deployment smoke 和 runtime foundations 已经落地；live promotion 仍必须等待 PostgreSQL/Docker runtime、live baseline comparison、20-Gene governance review（含 rejected/stale evidence）和 rollback verification。`pnpm eval:smoke` 继续受本地 Docker 缺失约束。
+
+本机环境证据：`docker version` 无法连接 Docker daemon；`DATABASE_URL`/`TRAPMAP_DATABASE_URL` 未设置，且 `pg_isready` 报告 5432 无响应。因此 `pnpm eval:smoke`、真实 Gene 数据治理抽样和 deployed rollback verification 不能在本机完成。
 
 ### 第二检查点：process metric instrumentation
 
@@ -185,6 +187,10 @@ pnpm --filter @trapmap/host-local test --run src/nest/observability/experience-g
 # 1 file / 2 tests passed
 pnpm --filter @trapmap/host-distributed test --run src/gateway/experience-gene-metrics.test.ts
 # 1 file / 1 test passed
+pnpm test:deployment-smoke
+# 50 files / 439 tests passed
+pnpm test:runtime-foundations
+# 24 files / 181 tests passed
 pnpm check:docs && pnpm check:structure && pnpm check:asserts
 pnpm exec fallow audit --base HEAD --no-cache
 ```

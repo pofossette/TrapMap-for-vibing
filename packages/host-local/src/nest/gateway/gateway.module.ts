@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { type CandidateIngestionPort, createNestAdapter } from '@trapmap/backend-core';
 import type { KnowledgeReadPort, ReviewPort } from '@trapmap/backend-core';
+import { disabledExperienceGeneSearchResponse } from '@trapmap/contracts';
 import type { CronServiceModule } from '@trapmap/service-cron';
 import { createExperienceGeneRouteDefs } from '@trapmap/service-knowledge-read';
 
@@ -42,9 +43,17 @@ export function createHostLocalExperienceGeneGatewayDefs(
 // biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
 export class GatewayModule {
   static forRuntime(runtime: HostLocalRuntime, ports: GatewayPorts) {
+    const searchGenes = runtime.services?.experienceGeneSearch?.searchGenes;
+    const hasSearchGenes = typeof searchGenes === 'function';
+    const mode = runtime.services?.config?.experienceGenesMode ?? 'off';
+    if (mode !== 'off' && !runtime.services.experienceGeneSearch) {
+      throw new Error(`experience gene ${mode} mode requires the in-process search port`);
+    }
     const experienceGeneDeps = {
-      mode: runtime.services.config.experienceGenesMode,
-      searchGenes: runtime.services.experienceGeneSearch.searchGenes,
+      mode,
+      ...(hasSearchGenes
+        ? { searchGenes }
+        : { searchGenes: async () => disabledExperienceGeneSearchResponse() }),
     };
     const deps: GatewayRouteDeps & typeof experienceGeneDeps = {
       ...ports,

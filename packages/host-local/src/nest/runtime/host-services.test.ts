@@ -44,6 +44,9 @@ vi.mock('@trapmap/service-candidate-ingestion', () => ({
 }));
 vi.mock('@trapmap/service-knowledge-write', () => ({
   createKnowledgeWriteOwnerBundle: vi.fn(() => ownerBundle),
+  createExperienceGeneDerivationOperation: vi.fn(() => async () => ({ status: 'idempotent' })),
+  createExperienceGeneDerivationPlanner: vi.fn(() => ({ planFromLifecycle: vi.fn() })),
+  createExperienceGeneStaleOperation: vi.fn(() => async () => 0),
 }));
 vi.mock('@trapmap/service-job-runtime', () => ({
   createJobRuntimeAsyncTransport: vi.fn(() => asyncTransport),
@@ -56,6 +59,7 @@ vi.mock('@trapmap/service-knowledge-read', () => ({
   createCandidateCorpusPgReadPort: vi.fn(() => ({})),
   createKnowledgeReadGraphIndexRepository: vi.fn(() => graphIndexRepository),
   createOwnerReadModelProjection: vi.fn(() => ownerReadModelProjection),
+  createPgExperienceGeneSearchPort: vi.fn(() => ({ searchGenes: vi.fn() })),
 }));
 vi.mock('./shared-infra.js', () => ({
   createHostLocalSharedInfra: vi.fn(async () => sharedInfra),
