@@ -136,6 +136,7 @@ export interface HostLocalConfig {
   deployment: z.infer<typeof DeploymentSchema>;
   asyncTaskTransport: z.infer<typeof AsyncTaskTransportSchema>;
   experienceGeneMode: ExperienceGeneMode;
+  experienceGenesMode: ExperienceGeneMode;
   userOpsLog: z.infer<typeof UserOpsLogSchema>;
   ragLog: z.infer<typeof RagLogSchema>;
   graphDb: z.infer<typeof GraphDbConfigSchema>;
@@ -158,6 +159,9 @@ export function loadConfig(): HostLocalConfig {
   const experienceGeneMode = experienceGeneModeSchema
     .catch('off')
     .parse(process.env.TRAPMAP_EXPERIENCE_GENE_MODE);
+  const experienceGenesMode = experienceGeneModeSchema
+    .catch('off')
+    .parse(process.env.TRAPMAP_EXPERIENCE_GENES_MODE);
 
   const corsOriginRaw = process.env.CORS_ORIGINS?.trim();
   const corsOrigins =
@@ -223,6 +227,7 @@ export function loadConfig(): HostLocalConfig {
         : null,
     },
     experienceGeneMode,
+    experienceGenesMode,
     userOpsLog,
     ragLog,
     graphDb,
@@ -243,6 +248,7 @@ export function loadConfig(): HostLocalConfig {
       deployment: DeploymentSchema,
       asyncTaskTransport: AsyncTaskTransportSchema,
       experienceGeneMode: experienceGeneModeSchema,
+      experienceGenesMode: experienceGeneModeSchema,
       userOpsLog: UserOpsLogSchema,
       ragLog: RagLogSchema,
       graphDb: GraphDbConfigSchema,

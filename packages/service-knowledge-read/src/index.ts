@@ -98,3 +98,14 @@ export {
   artifactToRetrievalEntry,
   mergeArtifactsIntoRetrievalPool,
 } from './artifact-entry-merge.js';
+export {
+  createExperienceGeneRouteDefs,
+  toExperienceGeneSearchContext,
+  type ExperienceGeneRouteDeps,
+  type ExperienceGeneSearchAccess,
+  type ExperienceGeneSearchContext,
+} from './experience-gene-routes.js';
+export {
+  createPgExperienceGeneSearchPort,
+  type PgExperienceGeneSearchPort,
+} from './experience-gene-retrieval.js';

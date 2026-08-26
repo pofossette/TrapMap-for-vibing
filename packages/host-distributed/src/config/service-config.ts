@@ -198,6 +198,9 @@ export interface ServiceConfig {
   /** Transport seam for selected high-frequency internal owner hops. */
   internalTransports: InternalServiceTransports;
 
+  /** Experience Gene retrieval rollout gate. */
+  experienceGenesMode: 'off' | 'shadow' | 'serve';
+
   /** Whether Consul-backed service discovery is enabled. */
   consulEnabled: boolean;
 
@@ -267,6 +270,11 @@ function resolveKnowledgeWriteTransport(): InternalTransportKind {
   return process.env[ENV_KNOWLEDGE_WRITE_TRANSPORT] === 'rpc' ? 'rpc' : 'http';
 }
 
+function resolveExperienceGenesMode(): 'off' | 'shadow' | 'serve' {
+  const value = process.env.TRAPMAP_EXPERIENCE_GENES_MODE;
+  return value === 'shadow' || value === 'serve' ? value : 'off';
+}
+
 // fallow-ignore-next-line complexity -- flat env aggregation for a single ServiceConfig shape; splitting would add indirection without reducing decision count meaningfully
 export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
   const name: ServiceName =
@@ -334,6 +342,7 @@ export function loadServiceConfig(serviceName?: ServiceName): ServiceConfig {
     internalTransports: {
       knowledgeWrite: resolveKnowledgeWriteTransport(),
     },
+    experienceGenesMode: resolveExperienceGenesMode(),
     consulEnabled: process.env[ENV_CONSUL_ENABLED] === 'true',
     consulAddress,
   };

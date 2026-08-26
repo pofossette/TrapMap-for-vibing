@@ -31,6 +31,7 @@ import {
   createCandidateCorpusPgReadPort,
   createKnowledgeReadGraphIndexRepository,
   createOwnerReadModelProjection,
+  createPgExperienceGeneSearchPort,
 } from '@trapmap/service-knowledge-read';
 import {
   type ArtifactWritePort,
@@ -41,6 +42,7 @@ import {
   createKnowledgeWriteOwnerBundle,
 } from '@trapmap/service-knowledge-write';
 
+import { createDeterministicFallbackVector } from '@trapmap/lib';
 import type { HostLocalConfig } from '../config/index.js';
 import {
   type HostLocalChannelRegistry,
@@ -76,6 +78,7 @@ export interface HostLocalServices {
   experienceGeneDerive: ReturnType<typeof createExperienceGeneDerivationOperation>;
   experienceGeneMarkStale: ReturnType<typeof createExperienceGeneStaleOperation>;
   experienceGenePlan: (event: unknown) => Promise<ExperienceGeneDerivationTaskPayload[]>;
+  experienceGeneSearch: ReturnType<typeof createPgExperienceGeneSearchPort>;
   governanceReview: GovernanceReviewPgOwnerBundle;
   cronOwnerBundle: CronOwnerBundle;
   cronScheduler: CronScheduler;
@@ -104,6 +107,10 @@ export async function createHostLocalServices(config: HostLocalConfig): Promise<
   const experienceGeneDerive = createExperienceGeneDerivationOperation(pool);
   const experienceGeneMarkStale = createExperienceGeneStaleOperation(pool);
   const experienceGenePlan = createExperienceGeneDerivationPlanner(pool).planFromLifecycle;
+  const experienceGeneSearch = createPgExperienceGeneSearchPort({
+    pool,
+    embed: async (seed) => createDeterministicFallbackVector(seed),
+  });
   const governanceReview = createGovernanceReviewPgOwnerBundle(pool);
   const ownerReadModel = createOwnerReadModelProjection({
     knowledge: knowledgeWrite.knowledgeOwner,
@@ -140,6 +147,7 @@ export async function createHostLocalServices(config: HostLocalConfig): Promise<
     experienceGeneDerive,
     experienceGeneMarkStale,
     experienceGenePlan,
+    experienceGeneSearch,
     governanceReview,
     cronOwnerBundle,
     cronScheduler,

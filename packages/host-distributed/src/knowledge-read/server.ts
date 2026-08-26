@@ -1,3 +1,4 @@
+import { registerFastifyRoutes } from '@trapmap/backend-core';
 /**
  * Host adapter for the knowledge-read service (Phase 3 convergence).
  *
@@ -9,9 +10,14 @@
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
+import { createDeterministicFallbackVector } from '@trapmap/lib';
 import {
   createKnowledgeReadDeps,
   createKnowledgeReadServer,
+} from '@trapmap/service-knowledge-read';
+import {
+  createExperienceGeneRouteDefs,
+  createPgExperienceGeneSearchPort,
 } from '@trapmap/service-knowledge-read';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 import { createConvergedKnowledgeReadQueries } from './converged-retrieval.js';
@@ -26,6 +32,17 @@ export async function createKnowledgeReadServerAdapter(
     ...createConvergedKnowledgeReadQueries(db.pool),
   });
   const server = await createKnowledgeReadServer(config, deps);
+  registerFastifyRoutes(
+    server.app,
+    createExperienceGeneRouteDefs({
+      mode: config.experienceGenesMode,
+      searchGenes: createPgExperienceGeneSearchPort({
+        pool: db.pool,
+        embed: async (seed) => createDeterministicFallbackVector(seed),
+      }).searchGenes,
+    }),
+    {},
+  );
   attachRuntimeMetricsRoute(server.app);
   await attachRuntimeTelemetry(server.app, 'knowledge-read');
   return server;

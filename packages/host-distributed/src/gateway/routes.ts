@@ -18,10 +18,15 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { registerFastifyRoutes } from '@trapmap/backend-core';
+import { type GeneSearchQuery, geneSearchResponseSchema } from '@trapmap/contracts';
+import {
+  type ExperienceGeneSearchContext,
+  createExperienceGeneRouteDefs,
+} from '@trapmap/service-knowledge-read';
 
-import { breakerStatesSnapshot, type InternalServiceClients } from './internal-client.js';
+import { type InternalServiceClients, breakerStatesSnapshot } from './internal-client.js';
 import { recordGatewayRateLimited } from './internal-observability.js';
-import { resolveRateLimitConfig, TokenBucketRateLimiter } from './rate-limit.js';
+import { TokenBucketRateLimiter, resolveRateLimitConfig } from './rate-limit.js';
 import { createGatewayRouteDefs, gatewayActorContext } from './route-defs.js';
 
 // ---------------------------------------------------------------------------
@@ -126,13 +131,38 @@ function registerRateLimitHook(app: FastifyInstance): void {
 // Route registration
 // ---------------------------------------------------------------------------
 
+function createExperienceGeneGatewayDeps(
+  clients: InternalServiceClients,
+  mode: 'off' | 'shadow' | 'serve',
+) {
+  return {
+    mode,
+    async searchGenes(input: GeneSearchQuery, context: ExperienceGeneSearchContext) {
+      const response = await clients.knowledgeRead.searchGenes(input, {
+        headers: {
+          ...(context.teamId ? { 'x-trapmap-team-id': context.teamId } : {}),
+          'x-trapmap-security-level': String(context.maxRequiredLevel),
+        },
+      });
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error('experience gene search unavailable');
+      }
+      return geneSearchResponseSchema.parse(response.body);
+    },
+  };
+}
+
 /**
  * Register all external gateway routes.
  *
  * These are the public-facing API endpoints that clients use.
  * Each route forwards to the appropriate internal service.
  */
-export function registerGatewayRoutes(app: FastifyInstance, clients: InternalServiceClients): void {
+export function registerGatewayRoutes(
+  app: FastifyInstance,
+  clients: InternalServiceClients,
+  options: { experienceGenesMode?: 'off' | 'shadow' | 'serve' } = {},
+): void {
   // Apply authentication middleware (skips public paths)
   registerAuthHook(app, clients);
 
@@ -140,9 +170,26 @@ export function registerGatewayRoutes(app: FastifyInstance, clients: InternalSer
   // and before any forwarding. No-op when disabled.
   registerRateLimitHook(app);
 
-  registerFastifyRoutes(app, createGatewayRouteDefs(clients), clients, {
-    context: gatewayActorContext,
-  });
+  const experienceGeneDeps = createExperienceGeneGatewayDeps(
+    clients,
+    options.experienceGenesMode ?? 'off',
+  );
+
+  const adapterDeps = { ...clients, ...experienceGeneDeps };
+
+  registerFastifyRoutes(
+    app,
+    [
+      ...createGatewayRouteDefs(clients),
+      ...createExperienceGeneRouteDefs(experienceGeneDeps).filter(
+        (route) => route.path === '/v1/retrieval/genes/search',
+      ),
+    ],
+    adapterDeps,
+    {
+      context: gatewayActorContext,
+    },
+  );
 
   // ---- Health ----
 

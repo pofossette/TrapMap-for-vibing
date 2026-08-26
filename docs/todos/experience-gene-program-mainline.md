@@ -5,7 +5,7 @@
 - **Active mainline（2026-08-25 启动）。**
 - 本细则是根 `plan.md` 当前唯一链接的 owner execution surface。
 - 执行顺序固定为基础设施先行，然后进入契约、派生、检索和治理 rollout。
-- Phase 1-3 已提交；Phase 3 完成 snapshot loaders、rule/LLM extractors、validation/safety/duplicate gates、projection retry、solidified outbox emission、truth-source stale/remediation handling 和 rollout-gated task fanout/consume。下一阶段是 gene-native retrieval and activation。
+- Phase 1-3 已提交。Phase 3 完成 snapshot loaders、rule/LLM extractors、validation/safety/duplicate gates、projection retry、solidified outbox emission、truth-source stale/remediation handling 和双宿主 rollout-gated task fanout/consume。Phase 4 已开始：Gene retrieval contracts、pure selection、keyword/vector recall adapters 与双宿主 RouteDefs 已落地；CLI/MCP rendering、evaluation 和 rollout closeout 进行中。
 - Phase 1 实现已落地并通过 focused tests、typecheck 和新增发现审计；阶段 closeout 仍受 Fallow branch baseline 决策与本机 Docker 环境门控约束，详见 [infrastructure problem pool](experience-gene-infrastructure-foundation.md#problem-pool)。
 
 ## Background

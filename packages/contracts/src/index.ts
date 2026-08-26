@@ -13,6 +13,7 @@ export * from './domain/decay.js';
 export * from './domain/evidence.js';
 export * from './domain/experience-gene.js';
 export * from './domain/experience-gene-fixtures.js';
+export * from './domain/experience-gene-retrieval.js';
 export * from './domain/graph-extraction.js';
 export * from './domain/graph-index.js';
 export * from './domain/graph-query.js';

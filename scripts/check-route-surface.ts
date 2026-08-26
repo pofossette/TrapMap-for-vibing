@@ -241,6 +241,7 @@ function undocumentedRealViolations(
 const ROOT = resolve(import.meta.dirname, '..');
 
 const REAL_ROUTE_FILES = [
+  'packages/service-knowledge-read/src/experience-gene-routes.ts',
   'packages/host-local/src/nest/gateway/gateway.route-defs.ts',
   'packages/host-local/src/nest/gateway/gateway.cron-route-defs.ts',
   'packages/host-distributed/src/gateway/route-defs.ts',

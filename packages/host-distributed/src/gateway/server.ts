@@ -290,7 +290,9 @@ export async function createServer(config: ServiceConfig): Promise<GatewayServer
   const clients = createInternalServiceClients(config.internalUrls, resolver);
 
   // Register gateway routes (external API surface)
-  registerGatewayRoutes(app, clients);
+  registerGatewayRoutes(app, clients, {
+    experienceGenesMode: config.experienceGenesMode,
+  });
   app.get('/metrics', async (_request, reply) => {
     return reply
       .header('content-type', 'text/plain; version=0.0.4; charset=utf-8')

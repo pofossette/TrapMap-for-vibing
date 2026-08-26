@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { type CandidateIngestionPort, createNestAdapter } from '@trapmap/backend-core';
 import type { KnowledgeReadPort, ReviewPort } from '@trapmap/backend-core';
 import type { CronServiceModule } from '@trapmap/service-cron';
+import { createExperienceGeneRouteDefs } from '@trapmap/service-knowledge-read';
 
 import { AuthGuard } from '../runtime/auth.guard.js';
 import { HOST_LOCAL_RUNTIME_TOKEN, type HostLocalRuntime } from '../runtime/host-runtime.js';
@@ -13,6 +14,14 @@ export interface GatewayPorts {
   candidateIngestion: CandidateIngestionPort;
   governanceReview: ReviewPort;
   cron: CronServiceModule;
+}
+
+export function createHostLocalExperienceGeneGatewayDefs(
+  deps: Parameters<typeof createExperienceGeneRouteDefs>[0],
+) {
+  return createExperienceGeneRouteDefs(deps).filter(
+    (route) => route.path === '/v1/retrieval/genes/search',
+  );
 }
 
 /**
@@ -33,15 +42,30 @@ export interface GatewayPorts {
 // biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic-module pattern (static factory is the idiomatic composition API)
 export class GatewayModule {
   static forRuntime(runtime: HostLocalRuntime, ports: GatewayPorts) {
-    const deps: GatewayRouteDeps = { ...ports, runtime };
+    const experienceGeneDeps = {
+      mode: runtime.services.config.experienceGenesMode,
+      searchGenes: runtime.services.experienceGeneSearch.searchGenes,
+    };
+    const deps: GatewayRouteDeps & typeof experienceGeneDeps = {
+      ...ports,
+      runtime,
+      ...experienceGeneDeps,
+    };
 
     return {
       module: GatewayModule,
       controllers: [
-        createNestAdapter(createGatewayRouteDefs(deps), deps, {
-          guards: [AuthGuard],
-          context: (request) => ({ authContext: request.authContext }),
-        }),
+        createNestAdapter(
+          [
+            ...createGatewayRouteDefs(deps),
+            ...createHostLocalExperienceGeneGatewayDefs(experienceGeneDeps),
+          ],
+          deps,
+          {
+            guards: [AuthGuard],
+            context: (request) => ({ authContext: request.authContext }),
+          },
+        ),
       ],
       providers: [
         {

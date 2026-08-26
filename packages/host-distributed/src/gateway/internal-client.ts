@@ -19,6 +19,7 @@ import {
   type BadcaseExportDraftPayload,
   type RemediationReactivationPayload,
   type SkillLookupQuery,
+  geneSearchResponseSchema,
   skillLookupResponseSchema,
 } from '@trapmap/contracts';
 import type { InternalServiceUrls } from '@trapmap/host-distributed/config/index.js';
@@ -332,6 +333,7 @@ export interface InternalServiceClients {
     listMine(userId: string, teamId?: string): Promise<ServiceResponse>;
     search(body: { query: string; teamId?: string; limit?: number }): Promise<ServiceResponse>;
     searchByContent(params: SkillLookupQuery): Promise<ServiceResponse>;
+    searchGenes(body: unknown, options?: InternalRequestOptions): Promise<ServiceResponse>;
     getProjectionStatus(): Promise<ServiceResponse>;
   };
   knowledgeWrite: {
@@ -773,6 +775,22 @@ export function createInternalServiceClients(
           `${await baseUrl('knowledge-read', urls.knowledgeRead)}/internal/knowledge-read/projection-status`,
           'GET',
         ),
+      searchGenes: async (body, options) => {
+        const response = await callInternalService(
+          `${await baseUrl('knowledge-read', urls.knowledgeRead)}/internal/retrieval/genes/search`,
+          'POST',
+          body,
+          undefined,
+          options,
+        );
+        return {
+          status: response.status,
+          body:
+            response.status >= 200 && response.status < 300
+              ? geneSearchResponseSchema.parse(response.body)
+              : response.body,
+        };
+      },
     },
     knowledgeWrite: {
       deriveExperienceGene: async (body, options) =>

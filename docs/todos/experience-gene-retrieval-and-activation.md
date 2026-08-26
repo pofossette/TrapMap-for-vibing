@@ -116,11 +116,11 @@ Strategy:
 
 ## Implementation checklist
 
-- [ ] 新增 query/response/public gene schemas 和 tests。
-- [ ] 实现 gene keyword and vector recall adapters。
-- [ ] 实现 merge/rerank/select pure domain functions。
-- [ ] 注册 internal and external RouteDefs in both hosts。
-- [ ] 补 distributed internal client forwarding。
+- [x] 新增 query/response/public gene schemas 和 tests。
+- [x] 实现 gene keyword and vector recall adapters。
+- [x] 实现 merge/rerank/select pure domain functions。
+- [x] 注册 internal and external RouteDefs in both hosts。
+- [x] 补 distributed internal client forwarding。
 - [ ] CLI/MCP formatter/renderer integration。
 - [ ] 更新 api-surface and route-surface expectations。
 - [ ] 为 off/shadow/serve 三态补 route/config tests。
@@ -149,3 +149,36 @@ pnpm eval:smoke
 ## Debt register
 
 - 多 Gene composition 明确延后；只有 single-gene eval 显示补充 warning 不足时才另行立项。
+
+## Execution record（2026-08-26）
+
+### 第一检查点：contracts、rule selection 与双宿主 search surface
+
+- Contracts 新增 bounded query/match/public Gene/citation response schema 和 canonical disabled envelope。public projection 解析完整 aggregate 时剥离 source、lineage、generator、indexing、content hash 与 creation metadata。
+- backend-core knowledge-read domain 新增纯 Gene selection rules：semantic `0.6` / keyword `0.4` 固定权重，named exact-signal/error-text/boundary/fresh-validation/source-authority boosts，missing-validation/broad-match penalties，solidified-only eligibility，score clamp，以及 geneId lexicographic tie-break。
+- service-knowledge-read 新增 `createExperienceGeneRouteDefs(deps)`，同时声明 internal/external POST routes；trusted actor/header context 只允许 external team filter 收窄。off 时两条 route 返回 disabled envelope，shadow 仅放行 internal，serve 正常 search。
+- PostgreSQL search adapter 组合 governed tsvector 与 pgvector recall，应用 team/security/scope/label filters，并复用 pure selection 输出一条 primary Gene 与最多三条 distinct-source avoid warnings。
+- host-local monolith 注入 in-process Pg search port 并只把 factory 的 `/v1` external route 加进 gateway；distributed knowledge-read 注册 internal route，gateway 通过 typed internal client 复用同一 external factory。
+
+### 验证证据
+
+```bash
+pnpm --filter @trapmap/contracts test --run src/domain/experience-gene-retrieval.test.ts
+# 1 file / 4 tests passed
+pnpm --filter @trapmap/backend-core test --run src/knowledge-read/domain/gene-selection.test.ts
+# 1 file / 4 tests passed
+pnpm --filter @trapmap/service-knowledge-read test --run src/experience-gene-retrieval.test.ts src/experience-gene-routes.test.ts
+# 2 files / 13 tests passed
+pnpm --filter @trapmap/host-local test --run src/nest/config/config.test.ts src/nest/runtime/experience-gene-composition.test.ts src/nest/knowledge-read/experience-gene-route-defs.test.ts
+# 3 files / 5 tests passed
+pnpm --filter @trapmap/host-distributed test --run src/gateway/experience-gene-route-defs.test.ts
+# 1 file / 2 tests passed
+pnpm typecheck
+# exit 0
+pnpm exec biome check <changed-files>
+# exit 0
+pnpm check:docs && pnpm check:structure && pnpm check:asserts
+# exit 0; route-surface includes the service-owned Gene RouteDef factory
+pnpm exec fallow audit --base HEAD --no-cache
+# exit 0; two high-complexity warnings are inherited gateway handlers excluded by the incremental gate
+```
