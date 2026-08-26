@@ -89,6 +89,42 @@ export function createAdminPanelApi(client: HttpClient): AdminPanelApiContract {
       });
     },
 
+    async login(input) {
+      const response = await client.request<{
+        session?: unknown;
+        authenticated?: boolean;
+        token?: string | null;
+        user?: AdminPanelSession['user'];
+        accounts?: AdminPanelSession['accounts'];
+        activeAccountId?: string | null;
+      }>({
+        path: '/v1/auth/login',
+        method: 'POST',
+        body: { accessKey: input.accessKey },
+      });
+      // Gateway returns { session: ActiveSession }; map to AdminPanelSession shape for panel.
+      // For mock compatibility we normalize via loadSession if response lacks panel shape.
+      if (
+        response &&
+        'accounts' in response &&
+        Array.isArray((response as AdminPanelSession).accounts)
+      ) {
+        return response as AdminPanelSession;
+      }
+      // Fallback: treat as contracted login then fetch session via gateway
+      const session = await client.request<AdminPanelSession>({
+        path: '/v1/auth/session',
+      });
+      return session;
+    },
+
+    async logout() {
+      await client.request<{ ok: boolean }>({
+        path: '/v1/auth/logout',
+        method: 'POST',
+      });
+    },
+
     switchSessionAccount(accountId) {
       return client.request<AdminPanelSession>({
         path: '/v1/auth/session/switch',

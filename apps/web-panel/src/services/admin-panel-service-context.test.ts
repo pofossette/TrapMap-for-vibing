@@ -72,6 +72,70 @@ describe('admin-panel service context', () => {
     );
   });
 
+  it('attaches bearer token from session store to real requests', async () => {
+    vi.stubEnv('VITE_ADMIN_PANEL_API_MODE', 'real');
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ authenticated: true, token: 'mock-session-token-admin' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    const { getAdminPanelApi, browserSessionProvider } = await import(
+      './admin-panel-service-context.js'
+    );
+    const { useSessionStore } = await import('../stores/session-store.js');
+
+    // Initially no token
+    expect(browserSessionProvider.getSessionToken()).toBeNull();
+
+    // Seed a session with token
+    useSessionStore.getState().setSession({
+      authenticated: true,
+      activeAccountId: 'acct-admin',
+      accounts: [],
+      availableRoles: ['administrator'],
+      token: 'test-bearer-1234567890abcdef',
+      user: {
+        displayName: 'TrapMap Operator',
+        handle: 'operator@trapmap.local',
+        role: 'administrator',
+      },
+    });
+
+    expect(browserSessionProvider.getSessionToken()).toBe('test-bearer-1234567890abcdef');
+
+    await getAdminPanelApi().loadSession();
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit & { headers: Record<string, string> };
+    expect(init.headers.authorization).toBe('Bearer test-bearer-1234567890abcdef');
+
+    // Cleanup for other tests
+    useSessionStore.getState().clearSession();
+  });
+
+  it('mock login validates access key and can logout to unauthenticated', async () => {
+    vi.stubEnv('VITE_ADMIN_PANEL_API_MODE', 'mock');
+    vi.stubEnv('MODE', 'test');
+    globalThis.fetch = vi.fn() as typeof fetch;
+
+    const { getAdminPanelApi } = await import('./admin-panel-service-context.js');
+    const api = getAdminPanelApi();
+
+    await expect(api.login({ accessKey: 'short' })).rejects.toThrow(/at least 16/);
+
+    const session = await api.login({ accessKey: 'valid-access-key-123456' });
+    expect(session.authenticated).toBe(true);
+    expect(session.token).toBeTruthy();
+
+    await api.logout();
+    const after = await api.loadSession();
+    expect(after.authenticated).toBe(false);
+  });
+
   it.each([
     [undefined, 'real'],
     ['real', 'real'],

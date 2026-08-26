@@ -10,6 +10,7 @@ type ReviewActionBarProps = {
     decision: 'approve' | 'reject' | 'return-for-correction',
   ) => void | Promise<void>;
   rationale: string;
+  role?: string | null;
 };
 
 export function ReviewActionBar({
@@ -18,9 +19,11 @@ export function ReviewActionBar({
   onChangeRationale,
   onSubmitDecision,
   rationale,
+  role = null,
 }: ReviewActionBarProps): ReactElement {
   const { t } = useI18nStore();
   const isRationaleMissing = !rationale.trim();
+  const isReadOnly = role === 'read-only-operator';
 
   return (
     <div className="rounded-2xl border border-panel-line bg-panel-surface p-5 shadow-panel">
@@ -47,11 +50,12 @@ export function ReviewActionBar({
         </div>
 
         {error ? <p className="text-xs text-rose-300 font-medium">⚠️ {error}</p> : null}
+        {isReadOnly ? <p className="text-xs text-amber-300">{t('noPermission')}</p> : null}
 
         <div className="grid gap-3 pt-2 sm:grid-cols-3">
           <Button
             className="border border-panel-text bg-panel-text py-3 text-white font-medium"
-            isDisabled={isPending}
+            isDisabled={isPending || isReadOnly}
             isPending={isPending}
             onPress={() => void onSubmitDecision('approve')}
             variant="primary"
@@ -60,7 +64,7 @@ export function ReviewActionBar({
           </Button>
           <Button
             className="border border-[#ffd9d9] bg-[#fff5f5] py-3 text-[#c50000]"
-            isDisabled={isRationaleMissing || isPending}
+            isDisabled={isRationaleMissing || isPending || isReadOnly}
             isPending={isPending}
             onPress={() => void onSubmitDecision('reject')}
             variant="danger"
@@ -69,7 +73,7 @@ export function ReviewActionBar({
           </Button>
           <Button
             className="border border-[#ffd79e] bg-[#ffefcf] py-3 text-[#ab570a]"
-            isDisabled={isRationaleMissing || isPending}
+            isDisabled={isRationaleMissing || isPending || isReadOnly}
             isPending={isPending}
             onPress={() => void onSubmitDecision('return-for-correction')}
             variant="secondary"
@@ -78,9 +82,9 @@ export function ReviewActionBar({
           </Button>
         </div>
 
-        {isRationaleMissing && (
+        {isRationaleMissing && !isReadOnly ? (
           <p className="text-xs text-amber-300">{t('rationaleRequiredWarning')}</p>
-        )}
+        ) : null}
       </div>
     </div>
   );

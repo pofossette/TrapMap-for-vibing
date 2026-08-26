@@ -12,6 +12,7 @@ import {
 type SessionStore = {
   request: RequestState<AdminPanelSession>;
   switchError: string | null;
+  clearSession: () => void;
   setError: (message: string) => void;
   setLoading: () => void;
   setSession: (session: AdminPanelSession, at?: string) => void;
@@ -21,6 +22,11 @@ type SessionStore = {
 export const useSessionStore = create<SessionStore>((set) => ({
   request: createIdleRequestState<AdminPanelSession>(null),
   switchError: null,
+  clearSession: () =>
+    set({
+      request: createIdleRequestState<AdminPanelSession>(null),
+      switchError: null,
+    }),
   setLoading: () =>
     set((state) => ({
       request: createLoadingRequestState(state.request),

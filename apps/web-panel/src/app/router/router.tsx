@@ -2,6 +2,7 @@ import { lazy, type ReactElement } from 'react';
 import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
 
 import { AppShell } from '@trapmap/web-panel/app/shell/app-shell';
+import { useSessionStore } from '@trapmap/web-panel/stores/session-store';
 
 const ActivityPage = lazy(() =>
   import('@trapmap/web-panel/pages/activity/activity-page').then(({ ActivityPage }) => ({
@@ -38,11 +39,34 @@ const TrapGraphPage = lazy(() =>
     default: TrapGraphPage,
   })),
 );
+const LoginPage = lazy(() =>
+  import('@trapmap/web-panel/pages/login/login-page').then(({ LoginPage }) => ({
+    default: LoginPage,
+  })),
+);
+
+function RequireAuth({ children }: { children: ReactElement }): ReactElement {
+  const request = useSessionStore((state) => state.request);
+  // While session is still resolving, render the shell's loading state via children
+  // The AppShell itself initiates loadSession; we only guard after success.
+  if (request.status === 'success' && !request.payload?.authenticated) {
+    return <Navigate replace to="/login" />;
+  }
+  return children;
+}
 
 const router = createBrowserRouter([
   {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
     path: '/',
-    element: <AppShell />,
+    element: (
+      <RequireAuth>
+        <AppShell />
+      </RequireAuth>
+    ),
     children: [
       {
         index: true,

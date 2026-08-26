@@ -11,7 +11,7 @@ import {
 } from '@heroui/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Suspense, type ReactElement, useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import {
   getAdminPanelApi,
@@ -28,6 +28,7 @@ type NavigationItem = {
   labelKey: 'dashboard' | 'reviewQueue' | 'artifacts' | 'trapGraph' | 'skillGraph' | 'activity';
   to: string;
   icon: () => ReactElement;
+  roles?: Array<'administrator' | 'reviewer' | 'read-only-operator'>;
 };
 
 const DashboardIcon = () => (
@@ -252,12 +253,22 @@ const ThemeIcon = ({
 
 const navigationItems: NavigationItem[] = [
   { to: '/', labelKey: 'dashboard', end: true, icon: DashboardIcon },
-  { to: '/reviews', labelKey: 'reviewQueue', icon: QueueIcon },
+  {
+    to: '/reviews',
+    labelKey: 'reviewQueue',
+    icon: QueueIcon,
+    roles: ['administrator', 'reviewer'],
+  },
   { to: '/artifacts', labelKey: 'artifacts', icon: ArtifactsIcon },
   { to: '/trap-graph', labelKey: 'trapGraph', icon: TrapGraphIcon },
   { to: '/skill-graph', labelKey: 'skillGraph', icon: SkillGraphIcon },
   { to: '/activity', labelKey: 'activity', icon: ActivityIcon },
 ];
+
+function getVisibleNavigation(role?: string | null): NavigationItem[] {
+  if (!role) return navigationItems;
+  return navigationItems.filter((item) => !item.roles || item.roles.includes(role as never));
+}
 
 function ApiModeBadge({ mode }: { mode: AdminPanelApiMode }): ReactElement {
   const { t } = useI18nStore();
@@ -276,12 +287,19 @@ function ApiModeBadge({ mode }: { mode: AdminPanelApiMode }): ReactElement {
   );
 }
 
-function SidebarNavigation({ onNavigate }: { onNavigate?: () => void }): ReactElement {
+function SidebarNavigation({
+  onNavigate,
+  role,
+}: {
+  onNavigate?: () => void;
+  role?: string | null;
+}): ReactElement {
   const { t } = useI18nStore();
+  const visible = getVisibleNavigation(role);
 
   return (
     <nav className="space-y-1.5">
-      {navigationItems.map((item) => {
+      {visible.map((item) => {
         const Icon = item.icon;
         return (
           <NavLink
@@ -339,6 +357,8 @@ export function AppShell(): ReactElement {
   const setLoading = useSessionStore((state) => state.setLoading);
   const setError = useSessionStore((state) => state.setError);
   const setSwitchError = useSessionStore((state) => state.setSwitchError);
+  const clearSession = useSessionStore((state) => state.clearSession);
+  const navigate = useNavigate();
 
   const [displayNameInput, setDisplayNameInput] = useState('');
   const location = useLocation();
@@ -413,7 +433,17 @@ export function AppShell(): ReactElement {
     } else if (key === 'security') {
       setActiveModal('security');
     } else if (key === 'logout') {
-      toast.info(t('loggingOut'));
+      void (async () => {
+        toast.info(t('loggingOut'));
+        try {
+          await getAdminPanelApi().logout();
+        } catch {
+          // best-effort: still clear local session even if gateway is unreachable
+        }
+        clearSession();
+        toast.success(t('logoutSuccess'));
+        navigate('/login');
+      })();
     }
   };
 
@@ -483,7 +513,7 @@ export function AppShell(): ReactElement {
             </div>
           </div>
 
-          <SidebarNavigation />
+          <SidebarNavigation role={user?.role ?? null} />
         </div>
 
         <SidebarEnvironmentFooter mode={apiMode} />
@@ -729,7 +759,10 @@ export function AppShell(): ReactElement {
                   </Button>
                 </div>
 
-                <SidebarNavigation onNavigate={() => setMobileMenuOpen(false)} />
+                <SidebarNavigation
+                  onNavigate={() => setMobileMenuOpen(false)}
+                  role={user?.role ?? null}
+                />
               </div>
 
               <SidebarEnvironmentFooter mode={apiMode} />

@@ -22,11 +22,13 @@ import {
   TimelineItem,
 } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
+import { useSessionStore } from '@trapmap/web-panel/stores/session-store';
 
 export function ReviewDetailPage(): ReactElement {
   const params = useParams();
   const model = useReviewDetailController(params.id ?? 'unknown');
   const { t } = useI18nStore();
+  const role = useSessionStore((state) => state.request.payload?.user?.role ?? null);
 
   // Local state for decision action confirmation dialog
   const [pendingDecision, setPendingDecision] = useState<
@@ -253,6 +255,7 @@ export function ReviewDetailPage(): ReactElement {
                     onChangeRationale={model.setDecisionRationale}
                     onSubmitDecision={handleActionClick}
                     rationale={model.decisionRationale}
+                    role={role}
                   />
                 </FadeIn>
 

@@ -48,6 +48,19 @@ const translations = {
     securityLevelDesc: '5级 - 管理员权限',
     close: '关闭',
 
+    // Login
+    loginTitle: '登录管理工作区',
+    loginDesc: '使用访问密钥登录以访问治理审核与运维视图。',
+    accessKeyLabel: '访问密钥',
+    accessKeyPlaceholder: '输入至少 16 位访问密钥',
+    loginButton: '登录',
+    loginFailed: '登录失败，请检查访问密钥。',
+    loginSuccess: '登录成功。',
+    loggingIn: '正在登录...',
+    authRequired: '请先登录以继续。',
+    logoutSuccess: '已退出登录。',
+    noPermission: '当前角色无权执行该操作。',
+
     // Dashboard translations
     systemDashboard: '系统控制台',
     dashboardDesc: '用于监测服务健康状况、队列和治理积压工作的工作台。',
@@ -416,6 +429,19 @@ const translations = {
     securityLevel: 'Session Security Level',
     securityLevelDesc: 'Level 5 - Administrator Privileges',
     close: 'Close',
+
+    // Login
+    loginTitle: 'Sign in to Admin Workspace',
+    loginDesc: 'Authenticate with an access key to access governance and operational views.',
+    accessKeyLabel: 'Access Key',
+    accessKeyPlaceholder: 'Enter at least 16 characters',
+    loginButton: 'Sign In',
+    loginFailed: 'Sign-in failed. Check your access key.',
+    loginSuccess: 'Signed in successfully.',
+    loggingIn: 'Signing in...',
+    authRequired: 'Please sign in to continue.',
+    logoutSuccess: 'Signed out.',
+    noPermission: 'Your role does not have permission for this action.',
 
     // Dashboard translations
     systemDashboard: 'System Dashboard',

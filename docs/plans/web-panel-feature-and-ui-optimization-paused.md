@@ -25,9 +25,9 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 ## Current Baseline
 
 - 七条管理路由已经存在：Dashboard、Review Queue、Review Detail、Artifacts、Trap Graph、Skill Graph、Activity。
-- 已有中英双语 i18n、Zustand stores、real/mock API seam、G6 graph、review/JSON-edit actions。
-- 第六批实现后测试规模为 23 个文件、62 tests。
-- 剩余功能缺口包括 auth/RBAC 缺失和 browser bearer provider 为 null。Dashboard 硬编码、return-for-correction 映射为 reject、review queue 客户端 filter/sort/pagination，以及 activity 本地过滤/无 cursor 已清理。Dashboard 的 artifact 规模统计仍受 snapshot 首页上限约束。
+- 已有中英双语 i18n（含 2026-08-26 新增 `loginTitle`/`noPermission` 等 10 项）、Zustand stores（含 `clearSession`）、real/mock API seam（含 `login`/`logout`）、G6 graph、review/JSON-edit actions。
+- 第七批实现后测试规模为 23 个文件、64 tests（含 `admin-panel-service-context.test.ts` bearer 透传与 mock login/logout）。
+- 剩余功能缺口包括 server-side authorization tests 与 gateway session/cookie 偏好待补；browser bearer provider 为 null、路由未保护、导航未按角色区分的缺口已在 2026-08-26 tranche 关闭。Dashboard 硬编码、return-for-correction 映射为 reject、review queue 客户端 filter/sort/pagination，以及 activity 本地过滤/无 cursor 已清理。Dashboard 的 artifact 规模统计仍受 snapshot 首页上限约束。
 - 目标 dark/yellow token 已建立并替换蓝色/Geist 默认值；全站响应式细节、空态统一与真实模式仍待完成。
 
 ## Phased Plan
@@ -43,11 +43,11 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 ### Phase 1: Session and RBAC
 
-- [ ] Add login, logout, and session restoration.
-- [ ] Replace the null browser bearer provider with token-bearing HTTP transport.
-- [ ] Protect routes from unauthenticated access.
-- [ ] Make navigation and actions role-aware.
-- [ ] Implement meaningful account switching.
+- [x] Add login, logout, and session restoration (`apps/web-panel/src/pages/login/login-page.tsx`, `Apps/web-panel/src/stores/session-store.ts:clearSession`, `services/admin-panel-service-context.test.ts` mock login/logout coverage).
+- [x] Replace the null browser bearer provider with token-bearing HTTP transport (`services/admin-panel-service-context.ts:browserSessionProvider` now reads `useSessionStore.getState().request.payload.token`, bearer header verified in `admin-panel-service-context.test.ts:attaches bearer token`).
+- [x] Protect routes from unauthenticated access (`app/router/router.tsx:RequireAuth` + `/login` lazy route, `app/router/router-code-splitting.test.ts` updated to 8, preserves mock vs real seam).
+- [x] Make navigation and actions role-aware (`app/shell/app-shell.tsx:getVisibleNavigation` filters `/reviews` to `administrator|reviewer`, `shared/ui/review-action-bar.tsx` disables for `read-only-operator` with `t('noPermission')`, `pages/review-detail/review-detail-page.tsx` passes role).
+- [x] Implement meaningful account switching (mock seam already `switchSessionAccount`; real path now propagates bearer token via `SessionProvider`; desktop + mobile shell both use `getVisibleNavigation`).
 - [ ] Add server-side authorization tests.
 - [ ] Prefer gateway session/cookie semantics over insecure browser token persistence when the gateway contract supports it.
 
@@ -138,7 +138,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 ### Current compromises
 
-- Artifact 查询仍只在 mock seam 实现；生产 `/api/admin/artifacts` RouteDef、bearer/session propagation 和 RBAC 继续留在 Phase 1 / Phase 2。
+- 已在 2026-08-26 关闭 bearer null / 路由未保护 / 导航未按角色区分；生产 `/api/admin/*` RouteDef、server-side authorization tests、gateway session/cookie 偏好仍待 Gene closeout 后的 Phase 2。
 - Dashboard 的 capsule 计数来自 snapshot 首页最多 100 个工件，超过该规模的精确聚合需要专用 admin aggregate endpoint。
 
 ### 2026-08-23: graph-controls tranche
@@ -152,6 +152,14 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 ### Graph compromises
 
 - Artifact picker 的 100-item snapshot 是当前 UI 上限；超过该规模的完整选择、搜索和分页需要专用 admin artifact-summary query 或 picker 分页流程。
+
+### 2026-08-26: session and RBAC tranche (user-authorized, off mainline)
+
+- 修复 `services/admin-panel-service-context.ts:browserSessionProvider` 从 `null` 改为 `useSessionStore.getState().request.payload.token` 的 token-bearing transport；`shared/enum-types/api.ts` 新增 `login`/`logout`，`services/api/admin-panel-api.ts` 实现 `POST /v1/auth/login|logout`，`services/api/mock-admin-panel-api.ts` 校验 16 位阈值并切换 `activeAccountId`/`authenticated`。
+- 新增 `pages/login/login-page.tsx`（`loginTitle`/`accessKeyPlaceholder`/`authRequired` 等 10 项双语），`app/router/router.tsx` 新增 `/login` lazy 路由与 `RequireAuth` 守卫（`authenticated===false -> /login`），桌面/移动端共享同一守卫；`app/router/router-code-splitting.test.ts` 更新为 8 个 lazy `pages/` 导入。
+- 导航与操作按角色区分：`app/shell/app-shell.tsx:getVisibleNavigation` 限制 `read-only-operator` 不可见 `/reviews`，`shared/ui/review-action-bar.tsx` 对 `read-only-operator` 全量禁用并显示 `t('noPermission')`，`pages/review-detail/review-detail-page.tsx` 传入 `role`；`stores/session-store.ts` 新增 `clearSession`，`app/shell` 的 `logout` 走 `POST /v1/auth/logout` best-effort 后本地清理并 `navigate('/login')`。
+- i18n 新增 10 项 login/noPermission，`admin-panel-service-context.test.ts` 新增 bearer 透传与 mock login/logout 回归；当前构建主 JS `732.38 kB (gzip 233.37 kB)` + login chunk `1.88 kB (gzip 0.95 kB)`，`pnpm --filter @trapmap/web-panel test` 23 files 64 tests、`typecheck`、`build`、`pnpm typecheck`、`check:docs`/`check:structure` 均通过，`fallow audit --base HEAD` 13 changed files 无新增问题。
+- 仍保留：server-side authorization tests、gateway session/cookie 偏好、`Phase 2` 的真实 `contracts` RouteDefs 与 `Phase 4/5` 的 UI polish/screenshot 证据（按 paused successor 约束，不在本 tranche 内宣告 closeout）。
 
 ## Acceptance Gates
 

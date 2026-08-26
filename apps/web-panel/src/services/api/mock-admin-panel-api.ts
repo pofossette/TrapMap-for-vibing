@@ -762,6 +762,18 @@ export function createMockAdminPanelApi(): AdminPanelApiContract {
     async loadSession() {
       return buildSession();
     },
+    async login(input) {
+      const trimmed = input.accessKey.trim();
+      if (trimmed.length < 16) {
+        throw new Error('Invalid access key: must be at least 16 characters');
+      }
+      // In mock, any 16+ char key authenticates as the first account (administrator)
+      activeAccountId = mockAccounts[0]?.id ?? null;
+      return buildSession();
+    },
+    async logout() {
+      activeAccountId = null;
+    },
     async switchSessionAccount(accountId) {
       activeAccountId =
         mockAccounts.find((account) => account.id === accountId)?.id ?? activeAccountId;

@@ -27,6 +27,7 @@
 - 2026-08-23 追加：Activity 的 actor/type/time/search/cursor 查询已在 mock seam 与页面完成，UI 常显 mock 标识；这不改变 `/api/admin/activity` 生产 RouteDef 缺失或 bearer/RBAC 债务。
 - 2026-08-23 追加：Artifacts 的 level/search/lifecycle/scope 过滤、确定性排序和 cursor 分页已在 mock seam 与页面完成；这不改变 `/api/admin/artifacts` 生产 RouteDef 缺失或 bearer/RBAC 债务。
 - 2026-08-23 追加：Trap/Skill 图谱的深度、搜索和模式状态已完成接线；Skill 工件选择器仍受最多 100 个 snapshot 工件约束，且不改变生产 admin graph/artifact RouteDef 缺失或 bearer/RBAC 债务。
+- 2026-08-26 追加（user-authorized tranche）：`browserSessionProvider` 已改为 token-bearing（`useSessionStore`），新增 `/login` 守卫与 `read-only-operator` 导航/操作区分，mock `login`/`logout` 与 bearer 透传已补回归；这不改变 `/api/admin/*` 生产 RouteDef 缺失与 server-side authorization tests 债务。
 - 进入条件：需要真实管理控制台时。
 - 后续落点：Gene 主线 closeout 后恢复 [`../plans/web-panel-feature-and-ui-optimization-paused.md`](../plans/web-panel-feature-and-ui-optimization-paused.md) 的 phased path 实现；实现必须继续使用 RouteDef 工厂补 owner service 路由，并回填 SessionProvider token。
 

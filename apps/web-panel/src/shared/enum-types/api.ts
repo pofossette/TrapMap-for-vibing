@@ -17,6 +17,8 @@ export type AdminPanelApiContract = {
   loadReviewDetail(reviewId: string): Promise<ReviewDetailResponse>;
   loadRuntimeOverview(): Promise<RuntimeOverviewResponse>;
   loadSession(): Promise<AdminPanelSession>;
+  login(input: { accessKey: string }): Promise<AdminPanelSession>;
+  logout(): Promise<void>;
   loadPendingReviews(request?: Partial<ReviewQueueRequest>): Promise<ReviewQueueResponse>;
   saveManualJsonEdit(input: ManualJsonEditInput): Promise<{ savedAt: string }>;
   switchSessionAccount(accountId: string): Promise<AdminPanelSession>;

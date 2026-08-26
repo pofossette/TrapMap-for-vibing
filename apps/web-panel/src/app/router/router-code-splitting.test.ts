@@ -11,7 +11,7 @@ const shellSource = readFileSync(path.join(packageSrc, 'app/shell/app-shell.tsx'
 describe('web panel route code splitting', () => {
   it('loads every route page lazily', () => {
     expect(routerSource).not.toMatch(/import \{ .*Page \} from '@trapmap\/web-panel\/pages\//);
-    expect(routerSource.match(/import\('@trapmap\/web-panel\/pages\//g) ?? []).toHaveLength(7);
+    expect(routerSource.match(/import\('@trapmap\/web-panel\/pages\//g) ?? []).toHaveLength(8);
   });
 
   it('keeps a non-empty suspense boundary around routed content', () => {
