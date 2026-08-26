@@ -343,6 +343,10 @@ export interface InternalServiceClients {
       body: unknown,
       options?: InternalRequestOptions,
     ): Promise<ServiceResponse>;
+    markExperienceGenesStale(
+      body: unknown,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
     importArtifact(
       body: Record<string, unknown>,
       options?: InternalRequestOptions,
@@ -782,6 +786,14 @@ export function createInternalServiceClients(
       planExperienceGeneDerivations: async (body, options) =>
         callInternalService(
           `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/experience-genes/derivation-plan`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+      markExperienceGenesStale: async (body, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/experience-genes/stale`,
           'POST',
           body,
           undefined,

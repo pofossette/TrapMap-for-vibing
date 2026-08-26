@@ -246,6 +246,13 @@ type FidelityOptions = {
   embed?: ((text: string) => Promise<number[]>) | undefined;
 };
 
+export type ExperienceGeneDuplicateMatch =
+  | { sourceId: string }
+  | {
+      source: { kind: ExperienceGene['source']['kind']; sourceId: string };
+      similarity: number;
+    };
+
 export function checkExperienceGeneCompactness(candidate: ExperienceGene): ValidationIssue[] {
   const withinBudget =
     candidate.signalsMatch.length <= 20 &&
@@ -379,9 +386,7 @@ export async function validateExperienceGeneCandidate(
     source: SourceGovernance;
     embed?: ((text: string) => Promise<number[]>) | undefined;
     findDuplicate?:
-      | ((
-          gene: ExperienceGene,
-        ) => Promise<{ sourceId: string } | null> | { sourceId: string } | null)
+      | ((gene: ExperienceGene) => Promise<ExperienceGeneDuplicateMatch | null>)
       | undefined;
   },
 ): Promise<ExperienceGeneValidationResult> {
@@ -400,10 +405,14 @@ export async function validateExperienceGeneCandidate(
   if (!blockedBeforeDuplicate && options.findDuplicate) {
     const duplicate = await options.findDuplicate(candidate);
     if (duplicate) {
+      const duplicateSource =
+        'source' in duplicate ? `${duplicate.source.kind}:${duplicate.source.sourceId}` : null;
       issues.push({
         code: 'duplicate-source-pair',
         field: 'contentHash',
-        message: 'Candidate duplicates an existing Gene projection',
+        message: duplicateSource
+          ? `Candidate duplicates an existing Gene projection from ${duplicateSource}`
+          : 'Candidate duplicates an existing Gene projection',
       });
       return { valid: false, firstFailingGate: 'duplicate', issues };
     }

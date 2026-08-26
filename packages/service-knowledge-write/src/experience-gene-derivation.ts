@@ -1,4 +1,8 @@
-import { extractRuleExperienceGene, validateExperienceGeneCandidate } from '@trapmap/backend-core';
+import {
+  type ExperienceGeneDuplicateMatch,
+  extractRuleExperienceGene,
+  validateExperienceGeneCandidate,
+} from '@trapmap/backend-core';
 import {
   type ExperienceGene,
   type ExperienceGeneDerivationTaskPayload,
@@ -6,7 +10,7 @@ import {
   type ExperienceGeneValidationReport,
   experienceGeneEventSchema,
 } from '@trapmap/contracts';
-import { sha256CanonicalJson } from '@trapmap/lib';
+import { createDeterministicFallbackVector, sha256CanonicalJson } from '@trapmap/lib';
 
 export interface ExperienceGeneSnapshotLoaders {
   trap?(request: { sourceId: string }): Promise<ExperienceGeneSourceSnapshot | null>;
@@ -21,6 +25,17 @@ export interface ExperienceGeneSnapshotLoaders {
 export interface ExperienceGeneDerivationRepository {
   saveCandidate(gene: ExperienceGene): Promise<ExperienceGene>;
   markValidated(geneId: string, report: ExperienceGeneValidationReport): Promise<ExperienceGene>;
+  prepareProjections(
+    geneId: string,
+    embedding: number[],
+    modelVersion: string,
+  ): Promise<ExperienceGene>;
+  solidify(geneId: string): Promise<ExperienceGene>;
+  markIndexStatus(
+    geneId: string,
+    status: 'failed',
+    error?: string | undefined,
+  ): Promise<ExperienceGene>;
   saveRejectedCandidate(event: unknown): Promise<void>;
 }
 
@@ -28,14 +43,13 @@ export interface ExperienceGeneDerivationDependencies {
   loaders: ExperienceGeneSnapshotLoaders;
   repository: ExperienceGeneDerivationRepository;
   nowIso: string;
-  findDuplicate?: (gene: ExperienceGene) =>
-    | Promise<{ sourceId: string } | null>
-    | {
-        sourceId: string;
-      }
-    | null;
+  findDuplicate?: (gene: ExperienceGene) => Promise<ExperienceGeneDuplicateMatch | null>;
   llm?: {
     extract(snapshot: ExperienceGeneSourceSnapshot): Promise<ExperienceGene>;
+  };
+  embedding?: {
+    version: string;
+    generate(text: string): Promise<number[]>;
   };
 }
 
@@ -43,7 +57,19 @@ export type ExperienceGeneDerivationResult =
   | { status: 'validated'; gene: ExperienceGene }
   | { status: 'rejected'; reasonClass: string }
   | { status: 'stale-source' }
-  | { status: 'idempotent' };
+  | { status: 'idempotent' }
+  | { status: 'solidified'; gene: ExperienceGene };
+
+export function experienceGeneEmbeddingText(gene: ExperienceGene): string {
+  return [
+    gene.title,
+    ...gene.signalsMatch,
+    gene.summary,
+    ...gene.strategy,
+    ...gene.avoid,
+    ...gene.validation,
+  ].join('\n');
+}
 
 async function loadSnapshot(
   request: ExperienceGeneDerivationTaskPayload,
@@ -107,15 +133,47 @@ async function persistValidated(
 ): Promise<ExperienceGeneDerivationResult> {
   try {
     const saved = await dependencies.repository.saveCandidate(gene);
+    if (saved.geneId !== gene.geneId) {
+      if (saved.status === 'validated') return projectValidated(saved, dependencies);
+      return { status: 'idempotent' };
+    }
     const validated = await dependencies.repository.markValidated(saved.geneId, {
       valid: true,
       issues: [],
     });
-    return { status: 'validated', gene: validated };
+    return projectValidated(validated, dependencies);
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;
     return { status: 'idempotent' };
   }
+}
+
+async function projectValidated(
+  gene: ExperienceGene,
+  dependencies: ExperienceGeneDerivationDependencies,
+): Promise<ExperienceGeneDerivationResult> {
+  let vector: number[];
+  try {
+    vector =
+      dependencies.embedding === undefined
+        ? createDeterministicFallbackVector(experienceGeneEmbeddingText(gene), 384)
+        : await dependencies.embedding.generate(experienceGeneEmbeddingText(gene));
+  } catch {
+    const retained = await dependencies.repository.markIndexStatus(
+      gene.geneId,
+      'failed',
+      'embedding-unavailable',
+    );
+    return { status: 'validated', gene: retained };
+  }
+
+  const ready = await dependencies.repository.prepareProjections(
+    gene.geneId,
+    vector,
+    dependencies.embedding?.version ?? 'experience-gene-fallback-v1',
+  );
+  const solidified = await dependencies.repository.solidify(ready.geneId);
+  return { status: 'solidified', gene: solidified };
 }
 
 async function validateAndPersist(

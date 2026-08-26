@@ -9,6 +9,7 @@ export { assertJobRuntimeMigrationSet, runJobRuntimeMigrations } from './migrati
 export { createJobRuntimeRouteDefs, registerJobRuntimeRoutes } from './routes.js';
 export { createGovernanceConflictTaskHandler } from './handlers/governance-conflict.js';
 export { createExperienceGeneDerivationTaskHandler } from './handlers/experience-gene.js';
+export { createExperienceGeneOutboxHandlers } from './handlers/experience-gene-outbox.js';
 export {
   createGovernanceBadcaseExportDraftTaskHandler,
   createGovernanceRemediationTaskHandler,

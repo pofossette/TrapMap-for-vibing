@@ -1,5 +1,3 @@
-import type { Pool } from 'pg';
-
 import { EXPERIENCE_GENE_RULE_PROMPT_VERSION } from '@trapmap/backend-core';
 import {
   type ExperienceGeneDerivationTaskPayload,
@@ -11,7 +9,12 @@ import {
 } from '@trapmap/contracts';
 import { sha256CanonicalJson } from '@trapmap/lib';
 
-type Queryable = Pick<Pool, 'query'>;
+type Queryable = {
+  query<T extends Record<string, unknown>>(
+    sql: string,
+    values?: unknown[],
+  ): Promise<{ rows: T[]; rowCount?: number | null }>;
+};
 type Row = Record<string, unknown>;
 
 function string(value: unknown): string {

@@ -5,7 +5,7 @@
 - **Active mainline（2026-08-25 启动）。**
 - 本细则是根 `plan.md` 当前唯一链接的 owner execution surface。
 - 执行顺序固定为基础设施先行，然后进入契约、派生、检索和治理 rollout。
-- Phase 1-2 已提交；Phase 3 完成 snapshot loaders、rule/LLM extractors、validation/safety gates、rollout-gated task consume/enqueue 和 staleness triggers，indexing/outbox emission/handler registration 仍在执行中。
+- Phase 1-3 已提交；Phase 3 完成 snapshot loaders、rule/LLM extractors、validation/safety/duplicate gates、projection retry、solidified outbox emission、truth-source stale/remediation handling 和 rollout-gated task fanout/consume。下一阶段是 gene-native retrieval and activation。
 - Phase 1 实现已落地并通过 focused tests、typecheck 和新增发现审计；阶段 closeout 仍受 Fallow branch baseline 决策与本机 Docker 环境门控约束，详见 [infrastructure problem pool](experience-gene-infrastructure-foundation.md#problem-pool)。
 
 ## Background
@@ -61,7 +61,7 @@ TrapMap 已经具备 trap 治理、skill artifact 版本化、capsule/profile/cl
 
 - [ ] 通用向量与 structured generation seam 已抽离，既有检索行为保持不变。
 - [x] [`ExperienceGene` contracts、枚举、持久化表和 repository tests 已落地](experience-gene-contracts-and-storage.md#execution-record2026-08-25)。
-- [ ] trap/skill/capsule 派生管线具备 idempotency、validation、lineage、index retry 和 stale 处理。
+- [x] [trap/skill/capsule 派生管线具备 idempotency、validation、lineage、index retry 和 stale 处理](experience-gene-derivation-pipeline.md#execution-record2026-08-26)。
 - [ ] gene-native retrieval 通过 RouteDef 在两个宿主暴露。
 - [ ] CLI/MCP 可渲染 `<strategy-gene>` 控制块。
 - [ ] rollout 默认关闭，baseline 与 enabled 模式有评测证据。

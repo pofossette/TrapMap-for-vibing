@@ -1,20 +1,23 @@
-import type { Pool } from 'pg';
-
 import {
   type ExperienceGeneAccessContext,
+  type ExperienceGeneDuplicateProjection,
+  type ExperienceGeneDuplicateProjectionPort,
   type ExperienceGeneReadPort,
   type ExperienceGeneWritePort,
   createExperienceGeneContentHash,
   createExperienceGeneIdempotencyKeyFromGene,
 } from '@trapmap/backend-core';
 import {
+  EXPERIENCE_GENE_SOLIDIFIED_OUTBOX_EVENT,
   type ExperienceGene,
   type ExperienceGeneEvent,
   type ExperienceGeneEventPayload,
   type ExperienceGeneValidationReport,
   experienceGeneEventSchema,
   experienceGeneSchema,
+  experienceGeneSolidifiedOutboxPayloadSchema,
 } from '@trapmap/contracts';
+import { createDeterministicFallbackVector, prefixedId } from '@trapmap/lib';
 
 type GeneRow = {
   id: string;
@@ -51,6 +54,13 @@ type GeneRow = {
   updated_at: Date | string;
 };
 
+type ExperienceGeneQueryable = {
+  query<T extends Record<string, unknown>>(
+    sql: string,
+    values?: unknown[],
+  ): Promise<{ rows: T[]; rowCount?: number | null }>;
+};
+
 const GENE_COLUMNS = `id, schema_version, status, title, signals_match, summary, strategy,
   avoid, "constraints", validation, labels, scope, team_id, required_level,
   source_type, source_id, source_revision, source_hash, artifact_id, capsule_id,
@@ -75,6 +85,22 @@ function strings(value: unknown): string[] {
     ? value.filter((item): item is string => typeof item === 'string')
     : [];
 }
+
+function searchDocument(gene: {
+  title: string;
+  summary: string;
+  strategy: readonly string[];
+  avoid: readonly string[];
+  validation: readonly string[];
+}): string {
+  return [gene.title, gene.summary, ...gene.strategy, ...gene.avoid, ...gene.validation].join('\n');
+}
+
+function vectorLiteral(vector: number[]): string {
+  return `[${vector.join(',')}]`;
+}
+
+const FALLBACK_EMBEDDING_MODEL_VERSION = 'experience-gene-fallback-v1';
 
 function mapGene(row: GeneRow): ExperienceGene {
   return experienceGeneSchema.parse({
@@ -123,10 +149,12 @@ function mapGene(row: GeneRow): ExperienceGene {
   });
 }
 
-export class PgExperienceGeneRepository implements ExperienceGeneWritePort, ExperienceGeneReadPort {
-  private readonly pool: Pool;
+export class PgExperienceGeneRepository
+  implements ExperienceGeneWritePort, ExperienceGeneReadPort, ExperienceGeneDuplicateProjectionPort
+{
+  private readonly pool: ExperienceGeneQueryable;
 
-  constructor(config: { pool: Pool }) {
+  constructor(config: { pool: ExperienceGeneQueryable }) {
     this.pool = config.pool;
   }
 
@@ -136,19 +164,12 @@ export class PgExperienceGeneRepository implements ExperienceGeneWritePort, Expe
     }
 
     return this.transaction(async () => {
-      await this.pool.query(
+      const inserted = await this.pool.query<GeneRow>(
         `INSERT INTO experience_genes (${GENE_COLUMNS}, idempotency_key)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
                  $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
          ON CONFLICT (idempotency_key) WHERE status IN ('candidate','validated','solidified')
-         DO UPDATE SET
-           title = EXCLUDED.title, signals_match = EXCLUDED.signals_match,
-           summary = EXCLUDED.summary, strategy = EXCLUDED.strategy,
-           avoid = EXCLUDED.avoid, "constraints" = EXCLUDED."constraints",
-           validation = EXCLUDED.validation, labels = EXCLUDED.labels,
-           scope = EXCLUDED.scope, team_id = EXCLUDED.team_id,
-           required_level = EXCLUDED.required_level, content_hash = EXCLUDED.content_hash,
-           generator_model = EXCLUDED.generator_model, updated_at = EXCLUDED.updated_at`,
+         DO NOTHING RETURNING ${GENE_COLUMNS}`,
         [
           gene.geneId,
           gene.schemaVersion,
@@ -185,14 +206,127 @@ export class PgExperienceGeneRepository implements ExperienceGeneWritePort, Expe
           this.idempotencyKey(gene),
         ],
       );
-      await this.insertEvent(gene, 'derived', {
-        actor: { kind: 'system', id: null },
-        validatorSummary: { valid: true, issueCodes: [] },
-        reasonClass: null,
-        payloadSnapshotHash: gene.contentHash,
-        payload: {},
-      });
-      return gene;
+      const insertedRow = inserted.rows[0];
+      if (insertedRow) {
+        await this.insertEvent(gene, 'derived', {
+          actor: { kind: 'system', id: null },
+          validatorSummary: { valid: true, issueCodes: [] },
+          reasonClass: null,
+          payloadSnapshotHash: gene.contentHash,
+          payload: {},
+        });
+        const embedding = createDeterministicFallbackVector(searchDocument(gene), 384);
+        await this.pool.query(
+          `INSERT INTO experience_gene_embeddings
+             (gene_id,content_hash,embedding,embedding_model_version,status,last_error,updated_at)
+           VALUES ($1,$2,$3::vector,$4,'pending',NULL,now())
+           ON CONFLICT (gene_id) DO UPDATE SET
+             content_hash = EXCLUDED.content_hash, embedding = EXCLUDED.embedding,
+             embedding_model_version = EXCLUDED.embedding_model_version, status = 'pending',
+             last_error = NULL, updated_at = now()`,
+          [
+            gene.geneId,
+            gene.contentHash,
+            vectorLiteral(embedding),
+            FALLBACK_EMBEDDING_MODEL_VERSION,
+          ],
+        );
+        await this.pool.query(
+          `INSERT INTO experience_gene_search_documents
+             (gene_id,content_hash,document,labels,status,last_error,updated_at)
+           VALUES ($1,$2,to_tsvector('english',$3),$4,'pending',NULL,now())
+           ON CONFLICT (gene_id) DO UPDATE SET
+             content_hash = EXCLUDED.content_hash, document = EXCLUDED.document,
+             labels = EXCLUDED.labels, status = 'pending', last_error = NULL,
+             updated_at = now()`,
+          [gene.geneId, gene.contentHash, searchDocument(gene), gene.labels],
+        );
+        return mapGene(insertedRow);
+      }
+
+      const existing = await this.pool.query<GeneRow>(
+        `SELECT ${GENE_COLUMNS} FROM experience_genes
+         WHERE idempotency_key = $1 AND status IN ('candidate','validated','solidified')
+         ORDER BY updated_at DESC, id ASC LIMIT 1`,
+        [this.idempotencyKey(gene)],
+      );
+      const row = existing.rows[0];
+      if (!row) throw new Error(`experience gene candidate disappeared: ${gene.geneId}`);
+      return mapGene(row);
+    });
+  }
+
+  async findDuplicateProjection(
+    gene: ExperienceGene,
+    embedding: number[],
+  ): Promise<ExperienceGeneDuplicateProjection | null> {
+    const result = await this.pool.query<{
+      gene_id: string;
+      source_type: ExperienceGene['source']['kind'];
+      source_id: string;
+      cosine_similarity: number;
+    }>(
+      `SELECT e.id AS gene_id, e.source_type, e.source_id,
+              1 - (p.embedding <=> $2::vector) AS cosine_similarity
+       FROM experience_genes e
+       JOIN experience_gene_embeddings p ON p.gene_id = e.id AND p.content_hash = e.content_hash
+       WHERE p.status = 'ready'
+         AND e.status IN ('candidate', 'validated', 'solidified')
+         AND e.content_hash <> $3
+         AND 1 - (p.embedding <=> $2::vector) >= 0.93
+       ORDER BY cosine_similarity DESC, e.id ASC
+       LIMIT 1`,
+      [gene.geneId, `[${embedding.join(',')}]`, gene.contentHash],
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+    return {
+      geneId: row.gene_id,
+      source: { kind: row.source_type, sourceId: row.source_id },
+      similarity: row.cosine_similarity,
+    };
+  }
+
+  async prepareProjections(
+    geneId: string,
+    embedding: number[],
+    modelVersion: string,
+  ): Promise<ExperienceGene> {
+    if (embedding.length !== 384 || embedding.some((value) => !Number.isFinite(value))) {
+      throw new Error('experience gene embedding must contain 384 finite values');
+    }
+
+    return this.transaction(async () => {
+      const current = await this.selectForUpdate(geneId);
+      if (current.status !== 'validated') {
+        throw new Error(`experience gene projections cannot be prepared from ${current.status}`);
+      }
+
+      const embeddingResult = await this.pool.query(
+        `UPDATE experience_gene_embeddings
+         SET content_hash = $2, embedding = $3::vector, embedding_model_version = $4,
+             status = 'ready', last_error = NULL, updated_at = now()
+         WHERE gene_id = $1`,
+        [geneId, current.content_hash, vectorLiteral(embedding), modelVersion],
+      );
+      const documentResult = await this.pool.query(
+        `UPDATE experience_gene_search_documents
+         SET status = 'ready', last_error = NULL, updated_at = now()
+         WHERE gene_id = $1 AND content_hash = $2`,
+        [geneId, current.content_hash],
+      );
+      if (embeddingResult.rowCount !== 1 || documentResult.rowCount !== 1) {
+        throw new Error(`missing retry projection for experience gene: ${geneId}`);
+      }
+      const updated = await this.pool.query<GeneRow>(
+        `UPDATE experience_genes SET index_status = 'ready', index_last_error = NULL,
+           updated_at = now()
+         WHERE id = $1 AND status = 'validated' RETURNING ${GENE_COLUMNS}`,
+        [geneId],
+      );
+      const row = updated.rows[0];
+      if (!row) throw new Error(`experience gene cannot ready projections: ${geneId}`);
+      return mapGene(row);
     });
   }
 
@@ -233,13 +367,6 @@ export class PgExperienceGeneRepository implements ExperienceGeneWritePort, Expe
         throw new Error(`experience gene projections are not ready: ${geneId}`);
       }
 
-      const documentParts = [
-        current.title,
-        current.summary,
-        ...strings(current.strategy),
-        ...strings(current.avoid),
-        ...strings(current.validation),
-      ];
       await this.pool.query(
         `INSERT INTO experience_gene_search_documents
            (gene_id,content_hash,document,labels,status,last_error,updated_at)
@@ -248,7 +375,7 @@ export class PgExperienceGeneRepository implements ExperienceGeneWritePort, Expe
            content_hash = EXCLUDED.content_hash, document = EXCLUDED.document,
            labels = EXCLUDED.labels, status = 'ready', last_error = NULL,
            updated_at = now()`,
-        [geneId, current.content_hash, documentParts.join('\n'), current.labels],
+        [geneId, current.content_hash, searchDocument(current), current.labels],
       );
 
       const updated = await this.updateStatus(geneId, 'solidified', ['validated']);
@@ -259,6 +386,24 @@ export class PgExperienceGeneRepository implements ExperienceGeneWritePort, Expe
         payloadSnapshotHash: updated.contentHash,
         payload: {},
       });
+      const outboxPayload = experienceGeneSolidifiedOutboxPayloadSchema.parse({
+        geneId,
+        source: updated.source,
+        contentHash: updated.contentHash,
+        occurredAt: new Date().toISOString(),
+      });
+      await this.pool.query(
+        `INSERT INTO domain_event_outbox
+           (id, aggregate_type, aggregate_id, event_name, payload, status,
+            available_at, attempts, created_at)
+         VALUES ($1, 'experience-gene', $2, $3, $4, 'pending', NOW(), 0, NOW())`,
+        [
+          prefixedId('evt'),
+          geneId,
+          EXPERIENCE_GENE_SOLIDIFIED_OUTBOX_EVENT,
+          JSON.stringify(outboxPayload),
+        ],
+      );
       return updated;
     });
   }
@@ -444,6 +589,20 @@ export class PgExperienceGeneRepository implements ExperienceGeneWritePort, Expe
       `SELECT ${GENE_COLUMNS} FROM experience_genes WHERE ${conditions.join(' AND ')}
        ORDER BY updated_at DESC, id ASC`,
       params,
+    );
+    return result.rows.map((row) => mapGene(row));
+  }
+
+  // fallow-ignore-next-line unused-class-member -- consumed through ExperienceGeneStaleRepository's structural contract
+  async listActiveBySource(
+    source: Pick<ExperienceGene['source'], 'kind' | 'sourceId'>,
+  ): Promise<ExperienceGene[]> {
+    const result = await this.pool.query<GeneRow>(
+      `SELECT ${GENE_COLUMNS} FROM experience_genes
+       WHERE source_type = $1 AND source_id = $2
+         AND status IN ('candidate', 'validated', 'solidified')
+       ORDER BY updated_at DESC, id ASC`,
+      [source.kind, source.sourceId],
     );
     return result.rows.map((row) => mapGene(row));
   }

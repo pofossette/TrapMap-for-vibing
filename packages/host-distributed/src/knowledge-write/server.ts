@@ -13,6 +13,8 @@ import {
   type KnowledgeWriteOwnerBundle,
   type KnowledgeWriteReadinessOptions,
   type KnowledgeWriteServer,
+  createExperienceGeneDerivationOperation,
+  createExperienceGeneStaleOperation,
   createKnowledgeWriteDeps,
   createKnowledgeWriteOutboxDiagnostics,
   createKnowledgeWriteOwnerBundle,
@@ -51,6 +53,8 @@ export async function createServer(
     createKnowledgeWriteReadinessOptions(owner, {
       planExperienceGeneDerivations: createExperienceGeneDerivationPlanner(db.pool)
         .planFromLifecycle,
+      experienceGeneDerive: createExperienceGeneDerivationOperation(db.pool),
+      markExperienceGenesStale: createExperienceGeneStaleOperation(db.pool),
       checkDependency: async () => {
         const health = await db.healthCheck();
         return {

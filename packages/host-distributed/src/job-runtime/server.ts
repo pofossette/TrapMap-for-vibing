@@ -70,6 +70,13 @@ export async function createServer(
       },
       ...createExperienceGeneOutboxHandlers(queuePorts, {
         mode: experienceGeneMode,
+        markStale: async (event) => {
+          const response = await internalClients.knowledgeWrite.markExperienceGenesStale(event);
+          if (response.status < 200 || response.status >= 300) {
+            throw new Error('experience gene staleness handling unavailable');
+          }
+          return response.body;
+        },
         plan: async (event) => {
           const response =
             await internalClients.knowledgeWrite.planExperienceGeneDerivations(event);

@@ -219,6 +219,45 @@ describe.each(ADAPTERS)('service-knowledge-write routes (%s adapter)', (adapter)
     await app.close();
   });
 
+  it('delegates explicit Gene staleness signals to the owner handler', async () => {
+    const markExperienceGenesStale = vi.fn(async () => 2);
+    const deps = {
+      ...createModule(),
+      markExperienceGenesStale,
+    };
+    const app = await buildRouteTestApp(createKnowledgeWriteRouteDefs(deps), deps, adapter);
+    const request = {
+      name: 'knowledge.remediation',
+      entryId: 'trap-1',
+      suppressedFromRetrieval: true,
+      timestamp: '2026-08-26T00:00:00.000Z',
+    };
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/experience-genes/stale',
+      payload: request,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ marked: 2 });
+    expect(markExperienceGenesStale).toHaveBeenCalledWith(request);
+    await app.close();
+  });
+
+  it('returns unavailable when Gene staleness handling is not assembled', async () => {
+    const app = await buildApp(createModule(), adapter);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/experience-genes/stale',
+      payload: { name: 'unknown' },
+    });
+
+    expect(response.statusCode).toBe(503);
+    await app.close();
+  });
+
   it('rejects missing or spoofed body actors on command routes', async () => {
     const module = createModule();
     const app = await buildApp(module, adapter);

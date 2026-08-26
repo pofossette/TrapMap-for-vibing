@@ -2,6 +2,7 @@ import type { ResolvedRuntimeDeployment } from '@trapmap/backend-core';
 import type {
   ArtifactReadProjection,
   CandidateCorpusReadPort,
+  ExperienceGeneDerivationTaskPayload,
   GraphIndexRepositoryPort,
   KnowledgeOwnerPort,
 } from '@trapmap/contracts';
@@ -34,6 +35,9 @@ import {
 import {
   type ArtifactWritePort,
   type KnowledgeWriteOwnerBundle,
+  createExperienceGeneDerivationOperation,
+  createExperienceGeneDerivationPlanner,
+  createExperienceGeneStaleOperation,
   createKnowledgeWriteOwnerBundle,
 } from '@trapmap/service-knowledge-write';
 
@@ -69,6 +73,9 @@ export interface HostLocalServices {
   candidateIngestion: CandidateIngestionPgOwnerBundle;
   candidateCorpus: CandidateCorpusReadPort;
   knowledgeWrite: KnowledgeWriteOwnerBundle;
+  experienceGeneDerive: ReturnType<typeof createExperienceGeneDerivationOperation>;
+  experienceGeneMarkStale: ReturnType<typeof createExperienceGeneStaleOperation>;
+  experienceGenePlan: (event: unknown) => Promise<ExperienceGeneDerivationTaskPayload[]>;
   governanceReview: GovernanceReviewPgOwnerBundle;
   cronOwnerBundle: CronOwnerBundle;
   cronScheduler: CronScheduler;
@@ -94,6 +101,9 @@ export async function createHostLocalServices(config: HostLocalConfig): Promise<
   const candidateCorpus: CandidateCorpusReadPort = createCandidateCorpusPgReadPort(pool);
   const graphIndex = createKnowledgeReadGraphIndexRepository(pool);
   const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
+  const experienceGeneDerive = createExperienceGeneDerivationOperation(pool);
+  const experienceGeneMarkStale = createExperienceGeneStaleOperation(pool);
+  const experienceGenePlan = createExperienceGeneDerivationPlanner(pool).planFromLifecycle;
   const governanceReview = createGovernanceReviewPgOwnerBundle(pool);
   const ownerReadModel = createOwnerReadModelProjection({
     knowledge: knowledgeWrite.knowledgeOwner,
@@ -127,6 +137,9 @@ export async function createHostLocalServices(config: HostLocalConfig): Promise<
     candidateIngestion,
     candidateCorpus,
     knowledgeWrite,
+    experienceGeneDerive,
+    experienceGeneMarkStale,
+    experienceGenePlan,
     governanceReview,
     cronOwnerBundle,
     cronScheduler,

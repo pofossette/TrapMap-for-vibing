@@ -71,9 +71,13 @@ function databaseRow(gene: ReturnType<typeof validCandidate>, overrides = {}) {
 
 describe('PostgreSQL experience gene repository', () => {
   it('saves candidates and the derived event in one transaction', async () => {
-    const { pool, queries } = createQueryPool();
-    const repository = new PgExperienceGeneRepository({ pool });
     const gene = validCandidate();
+    const { pool, queries } = createQueryPool((sql) =>
+      sql.includes('INSERT INTO experience_genes')
+        ? { rows: [databaseRow(gene)], rowCount: 1 }
+        : { rows: [], rowCount: 1 },
+    );
+    const repository = new PgExperienceGeneRepository({ pool });
 
     await expect(repository.saveCandidate(gene)).resolves.toEqual(gene);
 
@@ -81,11 +85,15 @@ describe('PostgreSQL experience gene repository', () => {
       'BEGIN',
       expect.stringContaining('INSERT INTO experience_genes'),
       expect.stringContaining('INSERT INTO experience_gene_events'),
+      expect.stringContaining('INSERT INTO experience_gene_embeddings'),
+      expect.stringContaining('INSERT INTO experience_gene_search_documents'),
       'COMMIT',
     ]);
     const geneInsert = queries[1]!;
     const expectedKey = createExperienceGeneIdempotencyKeyFromGene(gene);
     expect(geneInsert.params.at(-1)).toBe(expectedKey);
+    expect(queries[3]!.sql).toContain("'pending'");
+    expect(queries[4]!.sql).toContain("'pending'");
   });
 
   it('keeps governance filtering inside every read statement', async () => {
@@ -102,6 +110,35 @@ describe('PostgreSQL experience gene repository', () => {
     expect(queries[0]?.sql).toContain('required_level <= $3');
     expect(queries[1]?.sql).toContain('team_id IS NULL');
     expect(queries[1]?.sql).toContain('required_level <= $5');
+  });
+
+  it('finds the nearest different-content projection above the duplicate threshold', async () => {
+    const gene = validCandidate();
+    const embedding = Array.from({ length: 384 }, (_, index) => (index === 0 ? 1 : 0));
+    const duplicate = {
+      gene_id: 'gene-existing',
+      source_type: 'trap',
+      source_id: 'entry-existing',
+      cosine_similarity: 0.97,
+    };
+    const { pool, queries } = createQueryPool(() => ({ rows: [duplicate], rowCount: 1 }));
+
+    await expect(
+      new PgExperienceGeneRepository({ pool }).findDuplicateProjection(gene, embedding),
+    ).resolves.toEqual({
+      geneId: 'gene-existing',
+      source: { kind: 'trap', sourceId: 'entry-existing' },
+      similarity: 0.97,
+    });
+
+    const query = queries[0]!;
+    expect(query.sql).toContain('JOIN experience_gene_embeddings');
+    expect(query.sql).toContain('<=>');
+    expect(query.sql).toContain('e.content_hash <> $3');
+    expect(query.sql).toContain("e.status IN ('candidate', 'validated', 'solidified')");
+    expect(query.sql).toContain('ORDER BY cosine_similarity DESC');
+    expect(query.sql).toContain('LIMIT 1');
+    expect(query.params[1]).toBe(`[${embedding.join(',')}]`);
   });
 
   it('validates a candidate atomically and appends its event', async () => {
@@ -146,8 +183,44 @@ describe('PostgreSQL experience gene repository', () => {
     expect(
       queries.some(({ sql }) => sql.includes('INSERT INTO experience_gene_search_documents')),
     ).toBe(true);
+    expect(queries.some(({ sql }) => sql.includes('INSERT INTO domain_event_outbox'))).toBe(true);
     expect(queries[0]?.sql).toBe('BEGIN');
     expect(queries.at(-1)?.sql).toBe('COMMIT');
+  });
+
+  it('readies both projections for an embedding retry from validated state', async () => {
+    const gene = validCandidate();
+    const readyRow = databaseRow(gene, { status: 'validated', index_status: 'ready' });
+    const { pool, queries } = createQueryPool((sql) => {
+      if (sql.includes('FOR UPDATE')) {
+        return {
+          rows: [databaseRow(gene, { status: 'validated', index_status: 'failed' })],
+          rowCount: 1,
+        };
+      }
+      if (sql.startsWith('UPDATE experience_genes')) return { rows: [readyRow], rowCount: 1 };
+      return { rows: [], rowCount: 1 };
+    });
+    const embedding = Array.from({ length: 384 }, (_, index) => (index === 0 ? 0.5 : 0));
+
+    await expect(
+      new PgExperienceGeneRepository({ pool }).prepareProjections(
+        'gene-1',
+        embedding,
+        'provider-model-v1',
+      ),
+    ).resolves.toEqual(
+      experienceGeneSchema.parse({
+        ...gene,
+        status: 'validated',
+        indexing: { status: 'ready', lastError: null, updatedAt: gene.indexing.updatedAt },
+      }),
+    );
+
+    expect(queries.filter(({ sql }) => sql.includes('UPDATE experience_gene_'))).toHaveLength(2);
+    expect(
+      queries.find(({ sql }) => sql.includes('UPDATE experience_gene_embeddings'))?.params,
+    ).toEqual(['gene-1', gene.contentHash, `[${embedding.join(',')}]`, 'provider-model-v1']);
   });
 
   it('records an index-failed event while retaining validated lifecycle state', async () => {
@@ -178,6 +251,26 @@ describe('PostgreSQL experience gene repository', () => {
       expect.stringContaining('UPDATE experience_genes'),
       expect.stringContaining('INSERT INTO experience_gene_events'),
     ]);
+  });
+
+  it('returns an existing identical candidate without updating its aggregate', async () => {
+    const gene = validCandidate();
+    const existingRow = databaseRow(gene);
+    const { pool, queries } = createQueryPool((sql) => {
+      if (sql.includes('ON CONFLICT (idempotency_key)')) return { rows: [], rowCount: 0 };
+      if (sql.includes('idempotency_key = $1')) return { rows: [existingRow], rowCount: 1 };
+      return { rows: [], rowCount: 1 };
+    });
+
+    await expect(new PgExperienceGeneRepository({ pool }).saveCandidate(gene)).resolves.toEqual(
+      gene,
+    );
+
+    expect(queries.some(({ sql }) => sql.includes('DO NOTHING'))).toBe(true);
+    expect(queries.some(({ sql }) => sql.includes('UPDATE\n           title'))).toBe(false);
+    expect(
+      queries.filter(({ sql }) => sql.includes('INSERT INTO experience_gene_events')),
+    ).toHaveLength(0);
   });
 
   it('marks every active revision stale and appends one event per Gene', async () => {

@@ -3,7 +3,7 @@
 ## Status
 
 - Owned by [Experience Gene Infrastructure and Pipeline](experience-gene-program-mainline.md).
-- Phase order: 3 / 5.
+- Phase order: 4 / 5.
 
 ## Goal
 
@@ -99,10 +99,10 @@ stale Gene 不参与 serve 模式。重建成功后旧 Gene 转 deprecated，新
 - [x] 实现 rule extractor 与 parser tests。
 - [x] 实现 LLM extractor 与 structured failure tests。
 - [x] 实现 validator/normalizer/safety scanner。
-- [ ] 实现 duplicate/conflict check。
+- [x] 实现 duplicate/conflict check。
 - [x] 接入 task queue、retry、dead-letter 和 idempotency key。
-- [ ] 实现 solidify/stale/deprecate transactional writes。
-- [ ] 注册 truth-source lifecycle/remediation handlers。
+- [x] 实现 solidify/stale/deprecate transactional writes。
+- [x] 注册 truth-source lifecycle/remediation handlers。
 - [x] 测试 source revision/hash、remediation、deactivation 和 governance 收紧四类 stale trigger。
 
 ## Acceptance criteria
@@ -144,15 +144,45 @@ pnpm typecheck
 - 新增 rule-first derivation orchestrator：重新读取 snapshot 后校验 revision/source-hash/snapshot-hash；stale-source 直接结束且不写 rejection。rule candidate 通过 deterministic gates 后 save candidate 并标记 validated；schema/safety/fidelity/governance rejection 写 immutable rejected event；同 provenance 主键冲突返回 idempotent，不产生第二个 active Gene。
 - Contracts 新增 bounded LLM output schema；service owner 新增 `GenerateStructuredExperienceGeneExtractor`，固定 `experience-gene-llm-v1` prompt version，显式接收 temperature、max retries 和 retry delay，并通过 structured generation 只接受 schema-valid output。OpenAI-compatible chat 支持显式 temperature 调用。
 - Orchestrator 在 rule extractor 返回 insufficient structure 后才调用可选 LLM fallback；无 fallback 或 fallback 失败写 `generator-unavailable` rejection event，LLM candidate 仍必须通过 fidelity/safety/governance/duplicate gates 后才能 persist。
-- knowledge-write RouteDefs 新增 `/internal/experience-genes/derive` owner operation；service-job-runtime 新增 frozen `experience-gene.derive` TaskHandler。distributed host 通过 internal client 委派回 knowledge-write owner，并使用 `TRAPMAP_EXPERIENCE_GENE_MODE` gate consumer：默认 `off` 不注册 handler。
+- knowledge-write RouteDefs 新增 `/internal/experience-genes/derive` 和 `/internal/experience-genes/stale` owner operations；service-job-runtime 新增 frozen `experience-gene.derive` TaskHandler。distributed host 通过 internal client 委派回 knowledge-write owner；monolith 直接组装同一 service operation。
 - backend-core 新增 pure staleness evaluator，按固定优先级识别 `source-revision`、`source-hash`、`remediation`、`source-lifecycle` 和 governance tightening；fresh approved source 返回 not-stale。
 - PG repository 新增 `markStaleForSource`：按 source kind/id 在一个事务中锁定并失效所有 active Gene（candidate/validated/solidified），每个 Gene append 一条带 reason class 的 `staled` event。该方法不要求调用方提供旧 revision/hash，因此适用于源已变化的 trigger。
 - knowledge-write owner 新增 derivation planner：从 approved trap/artifact/capsule source state 生成 deterministic immutable task payload；artifact 首版规划一个 bounded SKILL.md unit，capsule 每个 current derived capsule 一个任务。owner RouteDefs 暴露 `/internal/experience-genes/derivation-plan`。
-- distributed job-runtime 新增 rollout-gated outbox fanout：known truth-source lifecycle events 先 Zod parse，再向 owner 请求 plan，并按 `experience-gene.derive:<requestId>` dedupe key enqueue。off mode 不创建 fanout handler 也不消费 derive tasks。
+- service-job-runtime 新增 host-agnostic rollout-gated outbox fanout：known truth-source lifecycle/remediation events 先 Zod parse 或显式识别，再触发 stale invalidation、向 owner 请求 plan，并按 `experience-gene.derive:<requestId>` dedupe key enqueue。host-local 与 distributed 共用该 factory；off mode 不创建 fanout handler 也不消费 derive tasks。
+
+### 第七检查点：duplicate projection、index retry、solidification 与 stale handlers
+
+- `PgExperienceGeneRepository` 新增 pgvector nearest-projection duplicate lookup：ready embedding cosine `>=0.93` 且 content hash 不同的 active Gene 会进入 duplicate gate；same idempotency key 走 conflict-nothing read 并返回既有 aggregate，不再原地改写。
+- candidate 首次落库时同一事务写入 pending embedding/search projections；embedding provider 失败时 Gene 保持 `validated` 并写 redacted `embedding-unavailable` index failure，后续任务可重试。
+- `prepareProjections` 在 validated 状态下原子 ready 两类 projection；`solidify` 只接受 ready projections，并同一事务写 search document、solidified event 和 `experience-gene.solidified` outbox payload。
+- knowledge-write owner 暴露 `/internal/experience-genes/stale` RouteDef；handler 先 Zod parse known truth-source lifecycle 或 explicit remediation signal，再读取当前 source governance/lifecycle/remediation state，经 staleness evaluator 判定后调用 exact-source invalidation。unknown shape 不触发读或写。
+- shared outbox handler 在 enabled mode 下先调用 owner stale operation，再 plan/enqueue derivation tasks；`knowledge.remediation` 是显式 remediation 入口。monolith 通过 `TRAPMAP_EXPERIENCE_GENE_MODE` 组装 local consume/fanout，distributed gateway 通过 internal client 到达相同 owner operations；off mode 在两个宿主都不注册 handler/consumer。
 
 ### 当前边界
 
-本记录是 Phase 3 的第六检查点。embedding/index retry、solidified outbox 写入和 explicit truth-source stale handler registration 尚未实现；duplicate/conflict 投影集成保持打开。task retry/dead-letter 目前依赖 job-runtime 现有通用 policy。
+Phase 3 acceptance 已满足；host-local monolith 不在 public gateway 暴露 internal Gene routes，但 enabled mode 直接组装 owner operations 并注册同一 shared consume/fanout handlers。task retry/dead-letter 继续依赖 job-runtime 通用 policy。
+
+### 验证证据（第七检查点）
+
+```bash
+pnpm --filter @trapmap/contracts test --run src/domain/experience-gene.test.ts src/domain/experience-gene-events.test.ts
+# 2 files / 11 tests passed
+pnpm --filter @trapmap/backend-core test --run src/knowledge-write/domain/experience-gene-derivation.test.ts src/knowledge-write/domain/experience-gene-safety.test.ts src/knowledge-write/domain/experience-gene-hashing.test.ts src/knowledge-write/domain/experience-gene-staleness.test.ts src/ports/experience-gene-ports.test.ts
+# 5 files / 16 tests passed
+pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-ports.test.ts src/experience-gene-derivation.test.ts src/experience-gene-staleness-handler.test.ts src/routes.test.ts src/experience-gene-snapshots.test.ts src/experience-gene-planning.test.ts
+# 6 files / 53 tests passed
+pnpm --filter @trapmap/service-job-runtime test --run src/handlers/experience-gene.test.ts
+pnpm --filter @trapmap/host-distributed test --run src/job-runtime/handlers.test.ts
+# 2 files / 12 tests passed
+pnpm --filter @trapmap/host-local test --run src/nest/config/config.test.ts src/nest/runtime/experience-gene-composition.test.ts src/nest/job-runtime/job-runtime-worker.service.test.ts
+# 3 files / 4 tests passed
+pnpm typecheck
+# exit 0
+pnpm exec biome check <changed-files>
+# exit 0
+pnpm exec fallow audit --base HEAD --no-cache
+# exit 0; duplication warnings are inherited loader/test clone families
+```
 
 ### 验证证据
 

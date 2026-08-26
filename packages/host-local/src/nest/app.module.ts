@@ -41,6 +41,7 @@ import {
   PrometheusModule,
   SentryModule,
 } from './observability/index.js';
+import { createHostLocalExperienceGeneHandlers } from './runtime/experience-gene-composition.js';
 import {
   createHostLocalGovernanceConflictWorkflow,
   createHostLocalGovernanceTaskHandlers,
@@ -124,13 +125,27 @@ export class AppModule implements NestModule {
       auditLog: runtime.auditLog,
     });
 
+    const experienceGeneRuntime = createHostLocalExperienceGeneHandlers({
+      experienceGeneMode: runtime.services.config.experienceGeneMode,
+      derive: runtime.services.experienceGeneDerive,
+      markStale: runtime.services.experienceGeneMarkStale,
+      plan: runtime.services.experienceGenePlan,
+      queuePorts: runtime.queuePorts,
+    });
+
     const jobRuntimeDeps = createJobRuntimeDeps({
       queuePorts: runtime.queuePorts,
       auditLog: runtime.auditLog,
-      taskHandlers: createHostLocalGovernanceTaskHandlers(
-        governanceConflictWorkflow,
-        governanceAsyncCommands,
-      ),
+      taskHandlers: [
+        ...createHostLocalGovernanceTaskHandlers(
+          governanceConflictWorkflow,
+          governanceAsyncCommands,
+        ),
+        ...(experienceGeneRuntime.taskHandler ? [experienceGeneRuntime.taskHandler] : []),
+      ],
+      ...(experienceGeneRuntime.outboxHandlers.length > 0
+        ? { outboxHandlers: experienceGeneRuntime.outboxHandlers }
+        : {}),
       ownsWork: true,
     });
     const jobRuntimePort = createJobRuntimeModule(jobRuntimeDeps);

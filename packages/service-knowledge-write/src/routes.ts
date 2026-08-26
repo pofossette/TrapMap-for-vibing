@@ -22,6 +22,7 @@ export interface KnowledgeWriteReadinessOptions {
   conflictCandidateRead?: Pick<KnowledgeOwnerPort, 'getById' | 'listByFilter'>;
   experienceGeneDerive?: (request: ExperienceGeneDerivationTaskPayload) => Promise<unknown>;
   planExperienceGeneDerivations?: (event: unknown) => Promise<unknown>;
+  markExperienceGenesStale?: (event: unknown) => Promise<number>;
 }
 
 export type KnowledgeWriteRouteDeps = KnowledgeWritePort & Partial<KnowledgeWriteReadinessOptions>;
@@ -272,6 +273,13 @@ const experienceGeneDerivationSchema = z.object({
   body: experienceGeneDerivationTaskPayloadSchema,
 });
 
+const experienceGeneStalenessSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z.unknown(),
+});
+
 const healthSchema = z.object({
   params: emptyRecord,
   query: emptyRecord,
@@ -514,6 +522,18 @@ export function createKnowledgeWriteRouteDefs(
           throw InvocationError.unavailable('experience gene planning is not assembled');
         }
         return { tasks: await deps.planExperienceGeneDerivations(ctx.body) };
+      },
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/experience-genes/stale',
+      schema: experienceGeneStalenessSchema,
+      handler: async (ctx, deps) => {
+        if (!deps.markExperienceGenesStale) {
+          throw InvocationError.unavailable('experience gene staleness handling is not assembled');
+        }
+        return { marked: await deps.markExperienceGenesStale(ctx.body) };
       },
     }),
 

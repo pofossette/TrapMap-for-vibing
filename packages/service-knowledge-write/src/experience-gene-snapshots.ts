@@ -1,12 +1,15 @@
-import type { Pool } from 'pg';
-
 import {
   type ExperienceGeneSourceSnapshot,
   experienceGeneSourceSnapshotSchema,
 } from '@trapmap/contracts';
 import { sha256CanonicalJson } from '@trapmap/lib';
 
-type Queryable = Pick<Pool, 'query'>;
+type Queryable = {
+  query<T extends Record<string, unknown>>(
+    sql: string,
+    values?: unknown[],
+  ): Promise<{ rows: T[]; rowCount?: number | null }>;
+};
 type Row = Record<string, unknown>;
 
 function string(value: unknown, fallback = ''): string {

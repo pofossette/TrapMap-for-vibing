@@ -1,4 +1,6 @@
 import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
+import type { ExperienceGeneDerivationTaskPayload } from '@trapmap/contracts';
+import { createDeterministicFallbackVector } from '@trapmap/lib';
 import {
   type ArtifactBundleImportPort,
   type ArtifactWritePort,
@@ -6,6 +8,14 @@ import {
   createArtifactReadProjection,
   createArtifactWritePort,
 } from './artifact-ports.js';
+import {
+  type ExperienceGeneDerivationDependencies,
+  deriveExperienceGeneFromRule,
+  experienceGeneEmbeddingText,
+} from './experience-gene-derivation.js';
+import { PgExperienceGeneRepository } from './experience-gene-repository.js';
+import { createPgExperienceGeneSourceLoaders } from './experience-gene-snapshots.js';
+import { createExperienceGeneStaleHandler } from './experience-gene-staleness-handler.js';
 import {
   persistEntryUpdateTx,
   persistEvidenceReviewTx,
@@ -17,13 +27,19 @@ import { createKnowledgeOwnerProjection } from './knowledge-projection.js';
 
 /** Minimal query-only pool seam (structural; satisfied by pg.Pool). */
 export interface Queryable {
-  query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+  query<T extends Record<string, unknown>>(
+    sql: string,
+    values?: unknown[],
+  ): Promise<{ rows: T[]; rowCount?: number | null }>;
 }
 
 /** Minimal transactional pool seam (structural; satisfied by pg.Pool). */
 export interface TransactionPool extends Queryable {
   connect(): Promise<{
-    query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+    query<T extends Record<string, unknown>>(
+      sql: string,
+      values?: unknown[],
+    ): Promise<{ rows: T[]; rowCount?: number | null }>;
     release(): void;
   }>;
 }
@@ -44,6 +60,38 @@ export interface KnowledgeWriteOutboxDiagnostics {
     staleProcessing: number;
     reclaimCount: number;
   }>;
+}
+
+export interface ExperienceGeneDerivationRuntimeOptions
+  extends Pick<ExperienceGeneDerivationDependencies, 'llm' | 'embedding'> {}
+
+export function createExperienceGeneDerivationOperation(
+  pool: TransactionPool,
+  options: ExperienceGeneDerivationRuntimeOptions = {},
+) {
+  const repository = new PgExperienceGeneRepository({ pool });
+  const loaders = createPgExperienceGeneSourceLoaders(pool);
+  return async (request: ExperienceGeneDerivationTaskPayload) =>
+    deriveExperienceGeneFromRule(request, {
+      loaders,
+      repository,
+      nowIso: new Date().toISOString(),
+      findDuplicate: async (gene) => {
+        const vector = options.embedding
+          ? await options.embedding.generate(experienceGeneEmbeddingText(gene))
+          : createDeterministicFallbackVector(experienceGeneEmbeddingText(gene), 384);
+        return repository.findDuplicateProjection(gene, vector);
+      },
+      ...(options.llm ? { llm: options.llm } : {}),
+      ...(options.embedding ? { embedding: options.embedding } : {}),
+    });
+}
+
+export function createExperienceGeneStaleOperation(pool: TransactionPool) {
+  return createExperienceGeneStaleHandler({
+    pool,
+    repository: new PgExperienceGeneRepository({ pool }),
+  }).handle;
 }
 
 export function createKnowledgeWriteOwnerBundle(pool: TransactionPool): KnowledgeWriteOwnerBundle {

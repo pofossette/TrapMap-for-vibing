@@ -12,9 +12,27 @@ export interface ExperienceGeneAccessContext {
 
 export type GeneSourceRef = ExperienceGene['source'];
 
+export interface ExperienceGeneDuplicateProjection {
+  geneId: string;
+  source: Pick<GeneSourceRef, 'kind' | 'sourceId'>;
+  similarity: number;
+}
+
+export interface ExperienceGeneDuplicateProjectionPort {
+  findDuplicateProjection(
+    gene: ExperienceGene,
+    embedding: number[],
+  ): Promise<ExperienceGeneDuplicateProjection | null>;
+}
+
 export interface ExperienceGeneWritePort {
   saveCandidate(gene: ExperienceGene): Promise<ExperienceGene>;
   markValidated(geneId: string, report: ExperienceGeneValidationReport): Promise<ExperienceGene>;
+  prepareProjections(
+    geneId: string,
+    embedding: number[],
+    modelVersion: string,
+  ): Promise<ExperienceGene>;
   solidify(geneId: string): Promise<ExperienceGene>;
   markIndexStatus(
     geneId: string,

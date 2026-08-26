@@ -339,6 +339,20 @@ export type ExperienceGeneSourceLifecycleEvent = z.infer<
   typeof experienceGeneSourceLifecycleEventSchema
 >;
 
+export const EXPERIENCE_GENE_REMEDIATION_SIGNAL_EVENT = 'knowledge.remediation';
+
+export const experienceGeneRemediationSignalSchema = z
+  .object({
+    name: z.literal(EXPERIENCE_GENE_REMEDIATION_SIGNAL_EVENT),
+    entryId: entityIdSchema,
+    suppressedFromRetrieval: z.boolean(),
+    sourceEventId: entityIdSchema.nullable().optional(),
+    timestamp: isoTimestampSchema,
+  })
+  .strict();
+
+export type ExperienceGeneRemediationSignal = z.infer<typeof experienceGeneRemediationSignalSchema>;
+
 export const experienceGeneSolidifiedOutboxPayloadSchema = z
   .object({
     geneId: entityIdSchema,

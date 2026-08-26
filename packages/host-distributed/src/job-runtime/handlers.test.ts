@@ -81,6 +81,8 @@ describe('distributed job-runtime task handlers', () => {
 
   it('enqueues planned Gene derivation tasks when rollout is enabled', async () => {
     const enqueue = vi.fn(async () => 'task-id');
+    const markStale = vi.fn(async () => ({ marked: 0 }));
+    const plan = vi.fn(async () => [request]);
     const request = experienceGeneDerivationTaskPayloadSchema.parse({
       requestId: 'knowledge.approved:trap-1:v1',
       source: {
@@ -101,7 +103,8 @@ describe('distributed job-runtime task handlers', () => {
       { task: { enqueue } },
       {
         mode: 'shadow',
-        plan: vi.fn(async () => [request]),
+        markStale,
+        plan,
       },
     );
 
@@ -116,6 +119,8 @@ describe('distributed job-runtime task handlers', () => {
     await handler?.handle(rawEvent);
 
     expect(handler?.eventName).toBe('knowledge.approved');
+    expect(markStale).toHaveBeenCalledWith(rawEvent);
+    expect(plan).toHaveBeenCalledWith(event);
     expect(enqueue).toHaveBeenCalledWith('experience-gene.derive', request, {
       dedupeKey: `experience-gene.derive:${request.requestId}`,
     });
@@ -125,7 +130,7 @@ describe('distributed job-runtime task handlers', () => {
     expect(
       createExperienceGeneOutboxHandlers(
         { task: { enqueue: vi.fn() } },
-        { mode: 'off', plan: vi.fn() },
+        { mode: 'off', markStale: vi.fn(), plan: vi.fn() },
       ),
     ).toEqual([]);
   });

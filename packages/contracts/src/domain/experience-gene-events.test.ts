@@ -4,10 +4,12 @@ import { createExperienceGeneFixture } from './experience-gene-fixtures.js';
 import {
   EXPERIENCE_GENE_DEPRECATED_OUTBOX_EVENT,
   EXPERIENCE_GENE_DERIVE_TASK_EVENT,
+  EXPERIENCE_GENE_REMEDIATION_SIGNAL_EVENT,
   EXPERIENCE_GENE_SOLIDIFIED_OUTBOX_EVENT,
   EXPERIENCE_GENE_STALED_OUTBOX_EVENT,
   experienceGeneDerivationTaskPayloadSchema,
   experienceGeneEventSchema,
+  experienceGeneRemediationSignalSchema,
   experienceGeneSourceLifecycleEventSchema,
   experienceGeneSourceSnapshotSchema,
 } from './experience-gene.js';
@@ -99,6 +101,18 @@ describe('experience gene events', () => {
 
     expect(trap.kind).toBe('trap');
     expect(() => experienceGeneSourceSnapshotSchema.parse({ ...trap, secretToken: 'x' })).toThrow();
+  });
+
+  it('parses explicit remediation signals and rejects unknown shapes', () => {
+    const signal = experienceGeneRemediationSignalSchema.parse({
+      name: EXPERIENCE_GENE_REMEDIATION_SIGNAL_EVENT,
+      entryId: 'entry-1',
+      suppressedFromRetrieval: true,
+      timestamp: '2026-08-26T00:00:00.000Z',
+    });
+
+    expect(signal.suppressedFromRetrieval).toBe(true);
+    expect(() => experienceGeneRemediationSignalSchema.parse({ ...signal, extra: true })).toThrow();
   });
 
   it('validates known truth-source lifecycle payloads without guessing shapes', () => {

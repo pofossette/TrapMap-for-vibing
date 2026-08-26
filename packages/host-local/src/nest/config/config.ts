@@ -6,6 +6,7 @@ import {
   resolveDeploymentProfileCompatibility,
   resolveRuntimeDeployment,
 } from '@trapmap/backend-core';
+import { type ExperienceGeneMode, experienceGeneModeSchema } from '@trapmap/contracts';
 
 import { GraphDbConfigSchema, loadGraphDbConfig } from './graph-db-config.js';
 import { loadRagLogConfig } from './rag-log.js';
@@ -134,6 +135,7 @@ export interface HostLocalConfig {
   };
   deployment: z.infer<typeof DeploymentSchema>;
   asyncTaskTransport: z.infer<typeof AsyncTaskTransportSchema>;
+  experienceGeneMode: ExperienceGeneMode;
   userOpsLog: z.infer<typeof UserOpsLogSchema>;
   ragLog: z.infer<typeof RagLogSchema>;
   graphDb: z.infer<typeof GraphDbConfigSchema>;
@@ -153,6 +155,9 @@ export function loadConfig(): HostLocalConfig {
   const ragLog = loadRagLogConfig();
   const graphDb = loadGraphDbConfig();
   const ai = loadAiProviderConfig();
+  const experienceGeneMode = experienceGeneModeSchema
+    .catch('off')
+    .parse(process.env.TRAPMAP_EXPERIENCE_GENE_MODE);
 
   const corsOriginRaw = process.env.CORS_ORIGINS?.trim();
   const corsOrigins =
@@ -217,6 +222,7 @@ export function loadConfig(): HostLocalConfig {
           }
         : null,
     },
+    experienceGeneMode,
     userOpsLog,
     ragLog,
     graphDb,
@@ -236,6 +242,7 @@ export function loadConfig(): HostLocalConfig {
       runtime: RuntimeConfigSchema,
       deployment: DeploymentSchema,
       asyncTaskTransport: AsyncTaskTransportSchema,
+      experienceGeneMode: experienceGeneModeSchema,
       userOpsLog: UserOpsLogSchema,
       ragLog: RagLogSchema,
       graphDb: GraphDbConfigSchema,

@@ -83,6 +83,18 @@ function createDependencies() {
       calls.push('validate');
       return gene;
     },
+    async prepareProjections() {
+      calls.push('prepare');
+      return gene;
+    },
+    async solidify() {
+      calls.push('solidify');
+      return { ...gene, status: 'solidified' };
+    },
+    async markIndexStatus() {
+      calls.push('index-failed');
+      return gene;
+    },
     async saveRejectedCandidate(event: unknown) {
       calls.push('reject');
       rejected.push(event);
@@ -123,9 +135,23 @@ describe('rule-first experience gene derivation', () => {
     const { deps, calls, saved } = createDependencies();
     const result = await deriveExperienceGeneFromRule(taskPayload(), deps);
 
-    expect(result.status).toBe('validated');
-    expect(calls).toEqual(['load', 'save', 'validate']);
+    expect(result.status).toBe('solidified');
+    expect(calls).toEqual(['load', 'save', 'validate', 'prepare', 'solidify']);
     expect(saved).toHaveLength(1);
+  });
+
+  it('keeps a validated Gene retryable when embedding generation fails', async () => {
+    const { deps, calls } = createDependencies();
+    deps.embedding = {
+      version: 'provider-model-v1',
+      async generate() {
+        throw new Error('embedding unavailable');
+      },
+    };
+    const result = await deriveExperienceGeneFromRule(taskPayload(), deps);
+
+    expect(result.status).toBe('validated');
+    expect(calls).toEqual(['load', 'save', 'validate', 'index-failed']);
   });
 
   it('ends a stale-source task without writing aggregate or rejection events', async () => {
@@ -166,9 +192,9 @@ describe('rule-first experience gene derivation', () => {
     };
     const result = await deriveExperienceGeneFromRule(request, deps);
 
-    expect(result.status).toBe('validated');
+    expect(result.status).toBe('solidified');
     expect(llmCalls).toBe(1);
-    expect(calls).toEqual(['load', 'save', 'validate']);
+    expect(calls).toEqual(['load', 'save', 'validate', 'prepare', 'solidify']);
     expect(saved[0]).toBe(source);
   });
 });

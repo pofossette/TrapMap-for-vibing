@@ -19,8 +19,11 @@ export {
 export {
   createKnowledgeWriteOutboxDiagnostics,
   createKnowledgeWriteOwnerBundle,
+  createExperienceGeneDerivationOperation,
+  createExperienceGeneStaleOperation,
   type KnowledgeWriteOutboxDiagnostics,
   type KnowledgeWriteOwnerBundle,
+  type ExperienceGeneDerivationRuntimeOptions,
 } from './pg-ports.js';
 export {
   createArtifactReadProjection,
@@ -41,6 +44,7 @@ export { createRuleArtifactDerivation } from './artifact-derivation/rule-artifac
 export { PgExperienceGeneRepository } from './experience-gene-repository.js';
 export { createPgExperienceGeneSourceLoaders } from './experience-gene-snapshots.js';
 export { createExperienceGeneDerivationPlanner } from './experience-gene-planning.js';
+export { createExperienceGeneStaleHandler } from './experience-gene-staleness-handler.js';
 export { GenerateStructuredExperienceGeneExtractor } from './experience-gene-llm.js';
 export {
   deriveExperienceGeneFromRule,
