@@ -23,8 +23,8 @@
  * rather than deep inside `packages/host-local`.
  */
 
-import { embedWithFallback } from '@trapmap/infra';
 import type { ExperienceGeneMode } from '@trapmap/contracts';
+import { embedWithFallback } from '@trapmap/infra';
 import { createPgExperienceGeneSearchPort } from '@trapmap/service-knowledge-read';
 
 type PoolLike = { query: (...args: unknown[]) => Promise<unknown> };

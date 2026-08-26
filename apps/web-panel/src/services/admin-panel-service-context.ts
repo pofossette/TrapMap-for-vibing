@@ -1,9 +1,9 @@
 import type { SessionProvider } from '@trapmap/client-core';
 
+import { useSessionStore } from '@trapmap/web-panel/stores/session-store';
 import { createAdminPanelApi } from './api/admin-panel-api';
 import { createHttpClient } from './api/http-client';
 import { createMockAdminPanelApi } from './api/mock-admin-panel-api';
-import { useSessionStore } from '@trapmap/web-panel/stores/session-store';
 
 export const browserSessionProvider: SessionProvider = {
   getBaseUrl() {

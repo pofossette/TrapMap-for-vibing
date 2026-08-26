@@ -42,7 +42,7 @@ describe('resolveBreakerThreshold / resolveBreakerCooldownMs', () => {
 
 describe('CircuitBreaker', () => {
   it('opens after threshold consecutive failures', () => {
-    let t = 0;
+    const t = 0;
     const breaker = new CircuitBreaker({ threshold: 3, cooldownMs: 1000, now: () => t });
     expect(breaker.state).toBe('closed');
     breaker.recordFailure();

@@ -23,8 +23,8 @@ import { nowIso, sha256 } from '@trapmap/lib';
 import type { ArtifactWritePort } from '@trapmap/service-knowledge-write';
 import type { RetrievalEvalCase, RetrievalEvalScenario } from '../../types/index.js';
 
-import type { HostLocalRuntime } from '../../../packages/host-local/src/nest/runtime/host-runtime.js';
 import type { EvalSeedPort } from '@trapmap/backend-core';
+import type { HostLocalRuntime } from '../../../packages/host-local/src/nest/runtime/host-runtime.js';
 import { resetRetrievalReadModelCacheForTests } from '../../../packages/service-knowledge-read/src/retrieval-read-model-cache.js';
 import { createKnowledgeEntryRecord } from '../../../packages/service-knowledge-write/src/knowledge-record-mutations.js';
 import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';

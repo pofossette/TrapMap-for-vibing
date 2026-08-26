@@ -1,8 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import type { McpConfig } from './config.js';
 import { createAuditLogger } from './audit.js';
+import type { McpConfig } from './config.js';
 import { assertRole, resolveSessionRole } from './permissions.js';
 import { allTools } from './tools/registry.js';
 import type { AuditLogger, ToolContext } from './tools/shared.js';

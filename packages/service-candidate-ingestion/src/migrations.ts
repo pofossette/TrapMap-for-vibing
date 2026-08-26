@@ -8,7 +8,10 @@ const migrationsFolder = path.resolve(path.dirname(fileURLToPath(import.meta.url
 export async function assertCandidateIngestionMigrationSet(
   folder = migrationsFolder,
 ): Promise<void> {
-  await assertOwnerMigrationSet('candidate-ingestion', folder, ['0000_colorful_silk_fever']);
+  await assertOwnerMigrationSet('candidate-ingestion', folder, [
+    '0000_colorful_silk_fever',
+    '0001_drop_candidates_legacy_jsonb',
+  ]);
 }
 export async function runCandidateIngestionMigrations(pool: Pool): Promise<void> {
   await assertCandidateIngestionMigrationSet();

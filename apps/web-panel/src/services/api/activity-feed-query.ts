@@ -1,8 +1,8 @@
-import { normalizeActivityType } from '@trapmap/web-panel/shared/lib/display-labels';
 import type {
   ActivityEventViewModel,
   ActivityFeedQuery,
 } from '@trapmap/web-panel/shared/enum-types';
+import { normalizeActivityType } from '@trapmap/web-panel/shared/lib/display-labels';
 
 type ActivityFeedPage = {
   events: ActivityEventViewModel[];

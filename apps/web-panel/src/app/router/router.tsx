@@ -1,4 +1,4 @@
-import { lazy, type ReactElement } from 'react';
+import { type ReactElement, lazy } from 'react';
 import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
 
 import { AppShell } from '@trapmap/web-panel/app/shell/app-shell';

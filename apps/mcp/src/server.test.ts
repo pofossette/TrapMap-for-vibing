@@ -35,6 +35,7 @@ describe('createTrapmapMcpServer', () => {
   it('registers the B3 read tools', () => {
     expect(allTools.map((tool) => tool.name)).toEqual([
       'trapmap_search_knowledge',
+      'trapmap_search_experience_genes',
       'trapmap_get_skill_manifest',
       'trapmap_read_skill_files',
       'trapmap_submit_knowledge',
@@ -45,9 +46,9 @@ describe('createTrapmapMcpServer', () => {
       'trapmap_review_decision',
       'trapmap_complete_remediation',
     ]);
-    expect(allTools.slice(0, 3).every((tool) => tool.requiredRole === 'viewer')).toBe(true);
-    expect(allTools.slice(3, 6).every((tool) => tool.requiredRole === 'contributor')).toBe(true);
-    expect(allTools.slice(6, 8).every((tool) => tool.requiredRole === 'reviewer')).toBe(true);
-    expect(allTools.slice(8).every((tool) => tool.requiredRole === 'operator')).toBe(true);
+    expect(allTools.slice(0, 4).every((tool) => tool.requiredRole === 'viewer')).toBe(true);
+    expect(allTools.slice(4, 7).every((tool) => tool.requiredRole === 'contributor')).toBe(true);
+    expect(allTools.slice(7, 9).every((tool) => tool.requiredRole === 'reviewer')).toBe(true);
+    expect(allTools.slice(9).every((tool) => tool.requiredRole === 'operator')).toBe(true);
   });
 });

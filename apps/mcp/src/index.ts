@@ -7,8 +7,8 @@
  *   <agent> mcp add trapmap -- pnpm --filter @trapmap/app-mcp start
  */
 
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { pathToFileURL } from 'node:url';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 import { loadMcpConfig } from './config.js';
 import { createTrapmapMcpServer } from './server.js';

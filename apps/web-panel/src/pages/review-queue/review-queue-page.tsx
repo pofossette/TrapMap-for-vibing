@@ -1,5 +1,5 @@
-import type { ReactElement } from 'react';
 import { Button } from '@heroui/react';
+import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useReviewQueuePageModel } from '@trapmap/web-panel/features/review-queue/use-review-queue-page-model';

@@ -134,7 +134,7 @@ describe('closeout surface guardrails', () => {
       ]),
     );
     expect(archiveRule?.mustContain ?? []).toEqual(
-      expect.arrayContaining(['当前根 `plan.md` 无 active mainline detail']),
+      expect.arrayContaining(['不应被其他文档当作当前执行入口引用']),
     );
   });
 

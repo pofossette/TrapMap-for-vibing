@@ -8,7 +8,7 @@ const callTool = makeToolCaller('viewer');
 afterEach(() => {
   globalThis.fetch = originalFetch;
   vi.restoreAllMocks();
-  delete process.env.TRAPMAP_MCP_SCRIPT_POLICY;
+  process.env.TRAPMAP_MCP_SCRIPT_POLICY = undefined;
 });
 
 const originalFetch = globalThis.fetch;
@@ -94,7 +94,7 @@ describe('trapmap_get_skill_manifest', () => {
 
 describe('effectivePolicy (four-state activation policy)', () => {
   it('takes the stricter side of server default and local override', () => {
-    delete process.env.TRAPMAP_MCP_SCRIPT_POLICY;
+    process.env.TRAPMAP_MCP_SCRIPT_POLICY = undefined;
     expect(effectivePolicy('client-executable')).toBe('client-executable');
     process.env.TRAPMAP_MCP_SCRIPT_POLICY = 'blocked';
     expect(effectivePolicy('client-executable')).toBe('blocked');
@@ -103,7 +103,7 @@ describe('effectivePolicy (four-state activation policy)', () => {
   });
 
   it('degrades unknown server values to reference-only', () => {
-    delete process.env.TRAPMAP_MCP_SCRIPT_POLICY;
+    process.env.TRAPMAP_MCP_SCRIPT_POLICY = undefined;
     expect(effectivePolicy('mystery-value')).toBe('reference-only');
     expect(effectivePolicy(undefined)).toBe('reference-only');
   });
@@ -142,7 +142,7 @@ describe('trapmap_read_skill_files', () => {
   });
 
   it('marks scripts with their effective policy (server needs-approval by default)', async () => {
-    delete process.env.TRAPMAP_MCP_SCRIPT_POLICY;
+    process.env.TRAPMAP_MCP_SCRIPT_POLICY = undefined;
     stubFetch(() => bundleResponse());
     const result = (await callTool('trapmap_read_skill_files', {
       artifactId: 'artifact-9',

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { resolveRateLimitConfig, TokenBucketRateLimiter } from './rate-limit.js';
+import { TokenBucketRateLimiter, resolveRateLimitConfig } from './rate-limit.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -41,7 +41,7 @@ describe('resolveRateLimitConfig', () => {
 
 describe('TokenBucketRateLimiter', () => {
   it('allows bursts up to capacity then rejects with retry-after', () => {
-    let t = 0;
+    const t = 0;
     const limiter = new TokenBucketRateLimiter({ rps: 1, burst: 3 }, () => t);
     expect(limiter.tryConsume('a').allowed).toBe(true);
     expect(limiter.tryConsume('a').allowed).toBe(true);
@@ -73,7 +73,7 @@ describe('TokenBucketRateLimiter', () => {
   });
 
   it('passes everything through when disabled', () => {
-    let t = 0;
+    const t = 0;
     const limiter = new TokenBucketRateLimiter({ rps: 0, burst: 0 }, () => t);
     for (let i = 0; i < 10; i += 1) {
       expect(limiter.tryConsume(`k${i}`).allowed).toBe(true);

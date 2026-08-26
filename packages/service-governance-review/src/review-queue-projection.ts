@@ -4,11 +4,11 @@ import {
   type KnowledgeEntry,
   type KnowledgeOwnerPort,
   type KnowledgeRecord,
-  type ReviewQueueQuery,
   type KnowledgeReviewDecisionRecord,
   type KnowledgeReviewNoteRecord,
   type KnowledgeRevisionRecord,
   type ReviewQueueItem,
+  type ReviewQueueQuery,
   knowledgeEntrySchema,
 } from '@trapmap/contracts';
 

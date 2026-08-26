@@ -647,7 +647,7 @@ describe('C2 resilient internal client', () => {
   });
 
   it('returns transient responses unchanged when retry is disabled by default', async () => {
-    delete process.env.TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS;
+    process.env.TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS = undefined;
     const fetchMock = stubFetchSequence([{ status: 503 }]);
     const clients = clientsFor('default-single.test');
 

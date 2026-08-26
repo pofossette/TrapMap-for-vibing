@@ -1,23 +1,23 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  assertRole,
   PermissionDeniedError,
-  resolveSessionRole,
   type Role,
+  assertRole,
+  resolveSessionRole,
 } from '../permissions.js';
 import { allTools } from './registry.js';
-import { makeToolCaller } from './tool-caller.js';
 import { stubFetchCapture } from './stub-fetch.js';
+import { makeToolCaller } from './tool-caller.js';
 const originalFetch = globalThis.fetch;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
   vi.restoreAllMocks();
-  delete process.env.TRAPMAP_MCP_ROLE;
+  process.env.TRAPMAP_MCP_ROLE = undefined;
 });
 
-const callToolAs = makeToolCaller();
+const _callToolAs = makeToolCaller();
 
 describe('resolveSessionRole', () => {
   it('defaults to viewer (deny-by-default)', () => {

@@ -116,10 +116,6 @@ describe('distributed database pool configuration', () => {
   });
 });
 
-import { describe, expect, it } from 'vitest';
-
-describe('C8 selective DB isolation fallback', () => {});
-
 describe('C8 selective DB isolation fallback', () => {
   it('job-runtime resolves an isolated URL env without throwing (fallback semantics)', async () => {
     const prev = process.env.TRAPMAP_JOB_RUNTIME_DATABASE_URL;
@@ -134,7 +130,7 @@ describe('C8 selective DB isolation fallback', () => {
         }),
       ).not.toThrow();
     } finally {
-      if (prev === undefined) delete process.env.TRAPMAP_JOB_RUNTIME_DATABASE_URL;
+      if (prev === undefined) process.env.TRAPMAP_JOB_RUNTIME_DATABASE_URL = undefined;
       else process.env.TRAPMAP_JOB_RUNTIME_DATABASE_URL = prev;
     }
   });

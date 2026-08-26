@@ -5,8 +5,8 @@ import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-servic
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import { useJsonEditorStore } from '@trapmap/web-panel/stores/json-editor-store';
 import { useReviewDetailStore } from '@trapmap/web-panel/stores/review-detail-store';
-import { loadReviewDetail, submitReviewDecision } from './service';
 import { prepareReviewDecision } from './decision';
+import { loadReviewDetail, submitReviewDecision } from './service';
 
 type ContextCard = {
   label: 'assignedReviewer' | 'createdAt' | 'sourceLabel' | 'statusLabel';
@@ -74,7 +74,7 @@ export function useReviewDetailController(reviewId: string) {
         return false;
       }
 
-      let command;
+      let command: ReturnType<typeof prepareReviewDecision>;
 
       try {
         command = prepareReviewDecision({

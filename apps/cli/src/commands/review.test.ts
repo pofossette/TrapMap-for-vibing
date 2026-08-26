@@ -515,6 +515,7 @@ describe('CLI review commands with evidence flags (Phase 58-06)', () => {
           },
         ],
         nextCursor: null,
+        filteredTotal: 1,
         total: 1,
       };
       mockedApiRequest.mockResolvedValue({ data: queueResponse, sessionToken: 'test-token' });
