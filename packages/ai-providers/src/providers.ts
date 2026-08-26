@@ -1,40 +1,6 @@
+import { createDeterministicFallbackVector } from '@trapmap/lib';
 import type { AiProviderConfig } from './provider-config.js';
 import type { AiPromptBlock, AiProviders, ChatProvider, EmbeddingsProvider } from './types.js';
-
-const FALLBACK_EMBEDDING_DIMENSION = 384;
-
-function addTokenContribution(vector: number[], token: string): void {
-  let hash = 0;
-  for (let index = 0; index < token.length; index++) {
-    hash = (hash * 31 + token.charCodeAt(index)) | 0;
-  }
-  for (let index = 0; index < 6; index++) {
-    const vectorIndex = Math.abs(hash) % FALLBACK_EMBEDDING_DIMENSION;
-    vector[vectorIndex]! += index < 3 ? 1 : -0.5;
-    hash = (hash * 1103515245 + 12345) | 0;
-  }
-}
-
-function fillCharacterEmbedding(vector: number[], text: string): void {
-  let seed = 0;
-  for (let index = 0; index < text.length; index++) {
-    seed = (seed * 31 + text.charCodeAt(index)) | 0;
-  }
-  for (let index = 0; index < FALLBACK_EMBEDDING_DIMENSION; index++) {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    vector[index] = (seed % 10000) / 5000 - 1;
-  }
-}
-
-function normalizeEmbedding(vector: number[]): number[] {
-  const magnitude = Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0));
-  if (magnitude > 0) {
-    for (let index = 0; index < FALLBACK_EMBEDDING_DIMENSION; index++) {
-      vector[index]! /= magnitude;
-    }
-  }
-  return vector;
-}
 
 export class OpenAICompatibleEmbeddings implements EmbeddingsProvider {
   readonly provider: string;
@@ -113,29 +79,21 @@ export class FallbackEmbeddings implements EmbeddingsProvider {
   readonly isConfigured = false;
 
   async embed(text: string): Promise<number[]> {
-    const vector = new Array(FALLBACK_EMBEDDING_DIMENSION).fill(0);
-    const normalizedText = text.toLowerCase().trim();
-    const tokens = normalizedText.split(/\s+/).filter((token) => token.length > 2);
-
-    if (tokens.length > 0) {
-      for (const token of tokens) addTokenContribution(vector, token);
-    } else {
-      fillCharacterEmbedding(vector, normalizedText);
-    }
-
-    return normalizeEmbedding(vector);
+    return createDeterministicFallbackVector(text, 384);
   }
 }
 
 export class OpenAICompatibleChat implements ChatProvider {
   readonly provider: string;
   readonly isConfigured: boolean;
+  readonly model: string;
   private impl: import('@langchain/openai').ChatOpenAI | null = null;
   private readonly chatConfig: AiProviderConfig;
 
   constructor(config: AiProviderConfig) {
     this.provider = config.provider;
     this.isConfigured = config.isConfigured;
+    this.model = config.chatModel;
     this.chatConfig = config;
   }
 

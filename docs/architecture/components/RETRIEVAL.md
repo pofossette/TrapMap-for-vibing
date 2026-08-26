@@ -875,16 +875,13 @@ interface RetrievalFilter {
 
 ### 向量相似度
 
-使用余弦相似度：
+使用 `@trapmap/lib` 的共享纯函数 `cosineSimilarity()`；`backend-core` 继续在原 public barrel re-export。该 helper 要求维度一致且数值有限，零向量返回 `0`。
 
 ```typescript
-function cosineSimilarity(a: number[], b: number[]): number {
-  const dotProduct = a.reduce((sum, ai, i) => sum + ai * b[i], 0);
-  const normA = Math.sqrt(a.reduce((sum, ai) => sum + ai * ai, 0));
-  const normB = Math.sqrt(b.reduce((sum, bi) => sum + bi * bi, 0));
-  return dotProduct / (normA * normB);
-}
+import { cosineSimilarity } from '@trapmap/lib';
 ```
+
+PostgreSQL 向量召回经 service-owned `createKnowledgeEmbeddingsVectorSearchPort(pool)` 装配；该 adapter 满足 backend-core 的 `VectorSearchPort`,保留 team/scope/security-level 过滤、similarity clamp 和稳定排序，并把 knowledge-read 需要的 shortcut/label 投影作为扩展 hit metadata 返回。
 
 ### 词汇意图提升 (Lexical Intent Boost)
 

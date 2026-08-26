@@ -5,6 +5,7 @@
 - **Active mainline（2026-08-25 启动）。**
 - 本细则是根 `plan.md` 当前唯一链接的 owner execution surface。
 - 执行顺序固定为基础设施先行，然后进入契约、派生、检索和治理 rollout。
+- Phase 1 实现已落地并通过 focused tests、typecheck 和新增发现审计；阶段 closeout 仍受 Fallow branch baseline 决策与本机 Docker 环境门控约束，详见 [infrastructure problem pool](experience-gene-infrastructure-foundation.md#problem-pool)。
 
 ## Background
 
@@ -58,7 +59,7 @@ TrapMap 已经具备 trap 治理、skill artifact 版本化、capsule/profile/cl
 ## Cross-phase acceptance gates
 
 - [ ] 通用向量与 structured generation seam 已抽离，既有检索行为保持不变。
-- [ ] `ExperienceGene` contracts、枚举、持久化表和 repository tests 已落地。
+- [x] [`ExperienceGene` contracts、枚举、持久化表和 repository tests 已落地](experience-gene-contracts-and-storage.md#execution-record2026-08-25)。
 - [ ] trap/skill/capsule 派生管线具备 idempotency、validation、lineage、index retry 和 stale 处理。
 - [ ] gene-native retrieval 通过 RouteDef 在两个宿主暴露。
 - [ ] CLI/MCP 可渲染 `<strategy-gene>` 控制块。
@@ -80,7 +81,7 @@ Web Panel 已迁移到 [`docs/plans/web-panel-feature-and-ui-optimization-paused
 ## Problem pool
 
 - 新增问题先进入本节；影响长期架构能力的项同步登记到 [长期债务登记册](open-debt-and-compromises.md)。
-- 当前问题池为空。
+- Phase 1 问题池记录了 Fallow audit baseline 与 Experience Gene 工作分支不一致的问题；`pnpm eval:smoke` 另受本机 Docker 缺失约束。两项都未关闭，不得宣告 cross-phase acceptance 完成。
 
 ## Closeout rules
 

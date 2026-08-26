@@ -60,6 +60,7 @@ interface EmbeddingsProvider {
 interface ChatProvider {
   readonly provider: string;
   readonly isConfigured: boolean;
+  readonly model?: string | null;
   invoke(systemPrompt: string, userMessage: string): Promise<string>;
   invokeWithBlocks?(blocks: PromptBlock[], userMessage: string): Promise<string>;
 }
@@ -69,6 +70,8 @@ interface AiProviders {
   chat: ChatProvider;
 }
 ```
+
+`generateStructured()` 是跨管线的结构化输出入口：负责 fence cleanup、Zod parse、`0..5` 次 bounded retry、raw-text SHA-256 与不含 raw content 的 failure class。业务 prompt 和 schema 仍由调用方持有。
 
 ### 配置接口
 
@@ -392,6 +395,10 @@ MCP 状态返回 JSON 数组，当前为占位实现（pending MCP server manage
 
 - `FallbackEmbeddings`：确定性哈希向量（384 维），用于本地/CI 环境
 - `FallbackChat`：调用时抛出 `Error('No AI chat provider configured')`
+
+### 结构化生成失败
+
+`generateStructured()` 未配置 provider 时立即抛出 typed error；invoke、JSON parse 或 schema validation 失败会按 bounded retry 重试。最终错误只携带 attempts 与 lastFailureClass，不携带模型原始文本。
 
 ### LangChain 内置重试
 

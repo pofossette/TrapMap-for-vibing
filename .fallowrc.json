@@ -9,6 +9,7 @@
     "packages/client-core/src/index.ts",
     "packages/contracts/src/index.ts",
     "packages/persistence-schema/src/index.ts",
+    "packages/persistence-schema/src/experience-genes.test.ts",
     "packages/host-distributed/src/index.ts",
     "packages/host-local/src/index.ts",
     "apps/web-panel/index.html",

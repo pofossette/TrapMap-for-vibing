@@ -14,6 +14,11 @@ import { type FreshnessDecayConfig, enrichConflictHints } from '@trapmap/contrac
 import type { Pool } from 'pg';
 
 import type { KnowledgeReadGraphQueryBackend, KnowledgeReadRetrievalInfra } from './context.js';
+import {
+  type KnowledgeEmbeddingVectorSearchFilters,
+  type KnowledgeEmbeddingVectorSearchPort,
+  createKnowledgeEmbeddingsVectorSearchPort,
+} from './knowledge-vector-search-port.js';
 import { type RecallCandidate, type ScoredEntry, artifactVersionOf } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 
@@ -32,6 +37,10 @@ function embed(text: string): number[] {
   return magnitude === 0 ? vector : vector.map((value) => value / magnitude);
 }
 
+interface DefaultRetrievalInfraOptions {
+  vectorSearchPort?: KnowledgeEmbeddingVectorSearchPort;
+}
+
 async function vectorSimilaritySearch(
   pool: Pool,
   options: {
@@ -42,55 +51,20 @@ async function vectorSimilaritySearch(
     scope?: 'global' | 'project';
     entryIds?: string[];
   },
+  injectedPort?: KnowledgeEmbeddingVectorSearchPort,
 ) {
-  const conditions = ["ke.status = 'synced'"];
-  const params: Array<string | number | string[]> = [];
-  let paramIndex = 1;
-  if (options.teamId !== undefined) {
-    if (options.teamId === null) {
-      conditions.push('ke.team_id IS NULL');
-    } else {
-      conditions.push(`(ke.team_id IS NULL OR ke.team_id = $${paramIndex})`);
-      params.push(options.teamId);
-      paramIndex += 1;
-    }
-  }
-  conditions.push(`ke.required_level <= $${paramIndex}`);
-  params.push(options.maxLevel ?? 0);
-  paramIndex += 1;
-  if (options.scope) {
-    conditions.push(`ke.scope = $${paramIndex}`);
-    params.push(options.scope);
-    paramIndex += 1;
-  }
-  if (options.entryIds && options.entryIds.length > 0) {
-    conditions.push(`ke.entry_id = ANY($${paramIndex})`);
-    params.push(options.entryIds);
-    paramIndex += 1;
-  }
-  const vectorIndex = paramIndex;
-  params.push(`[${options.queryVector.join(',')}]`);
-  params.push(options.limit);
-  const result = await pool.query<{
-    entry_id: string;
-    similarity: number;
-    shortcut: string;
-    labels: string[];
-    scope: string;
-    required_level: number;
-  }>(
-    `SELECT ke.entry_id, 1 - (ke.vector <=> $${vectorIndex}::vector) AS similarity, COALESCE(entries.shortcut, ke.entry_id) AS shortcut, COALESCE(entries.labels, '{}'::text[]) AS labels, ke.scope, ke.required_level FROM knowledge_embeddings ke LEFT JOIN knowledge_entries entries ON entries.id = ke.entry_id WHERE ${conditions.join(' AND ')} ORDER BY ke.vector <=> $${vectorIndex}::vector LIMIT $${vectorIndex + 1}`,
-    params,
-  );
-  return result.rows.map((row) => ({
-    entryId: row.entry_id,
-    similarity: Math.max(0, Math.min(1, row.similarity)),
-    metadata: {
-      shortcut: row.shortcut,
-      labels: row.labels,
-      scope: row.scope,
-      requiredLevel: row.required_level,
-    },
+  const port = injectedPort ?? createKnowledgeEmbeddingsVectorSearchPort(pool);
+  const filters: KnowledgeEmbeddingVectorSearchFilters = {
+    ...(options.teamId !== undefined ? { teamId: options.teamId } : {}),
+    maxRequiredLevel: options.maxLevel ?? 0,
+    scopes: options.scope ? [options.scope] : ['global', 'project'],
+    ...(options.entryIds ? { sourceIds: options.entryIds } : {}),
+  };
+  const hits = await port.search(options.queryVector, filters, options.limit);
+  return hits.map((hit) => ({
+    entryId: hit.sourceId,
+    similarity: hit.similarity,
+    metadata: hit.metadata,
   }));
 }
 
@@ -197,7 +171,9 @@ async function graphRecall(
   );
 }
 
-export function createDefaultKnowledgeReadRetrievalInfra(): KnowledgeReadRetrievalInfra {
+export function createDefaultKnowledgeReadRetrievalInfra(
+  options: DefaultRetrievalInfraOptions = {},
+): KnowledgeReadRetrievalInfra {
   return {
     embeddings: {
       generate: async (text) => embed(text),
@@ -254,7 +230,8 @@ export function createDefaultKnowledgeReadRetrievalInfra(): KnowledgeReadRetriev
     pgRecall: {
       isEnabled: () => process.env.USE_DB_SEARCH === 'true',
       getPool: (store) => store.getPool?.() ?? null,
-      vectorSimilaritySearch,
+      vectorSimilaritySearch: (pool, request) =>
+        vectorSimilaritySearch(pool, request, options.vectorSearchPort),
       keywordRecall,
       graphAssistedRecall: graphRecall,
     },

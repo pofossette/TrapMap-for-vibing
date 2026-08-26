@@ -662,6 +662,37 @@ active → review-due → stale → expired
 
 ---
 
+## ExperienceGene（经验基因）
+
+ExperienceGene 是从已治理 trap 或 skill artifact/capsule 派生的 compact control asset；它不是第三个人工提交真相源，也不会反向修改 trap/skill。Gene 的内容 hash 只包含控制内容、治理边界、source 和 derivation unit/generator 元数据，不包含 `geneId`、生命周期状态、索引状态或审计时间。
+
+### experience_genes（Gene aggregate）
+
+| 字段组 | 类型/说明 |
+|------|------|
+| identity/schema | `id`, `schemaVersion='1'`, `status='candidate' \| 'validated' \| 'solidified' \| 'stale' \| 'deprecated'` |
+| control content | `title`, `signalsMatch[1..20]`, `summary`, `strategy[1..7]`, `avoid[0..7]`, `constraints[]`, `validation[]` |
+| governance | `labels[1..n]`, `scope`, `teamId?`, `requiredLevel` |
+| source lineage | `sourceType/sourceId/sourceRevision/sourceHash`; skill 来源另带 `artifactId/artifactRevision`，capsule 来源还带 `capsuleId` |
+| derivation | `derivationUnitId`, `idempotencyKey`, `contentHash`, `parentEventId?`, `priorGeneHash?` |
+| generator/indexing | `generatorKind/model/promptVersion`; `indexStatus/indexLastError/indexUpdatedAt` |
+
+唯一约束：`idempotency_key` 仅在 `candidate|validated|solidified` 状态部分唯一；同一 provenance 在 stale/deprecated 后可以重建新 Gene。
+
+### experience_gene_events（immutable events）
+
+事件类型冻结为 `derived | validated | rejected | solidified | staled | deprecated | index-failed`。rejected event 必须携带完整 validator report；aggregate 不保存 rejected candidate row。
+
+### 派生检索投影
+
+- `experience_gene_embeddings`: 384 维 pgvector，固定逻辑模型版本，HNSW cosine index。
+- `experience_gene_search_documents`: tsvector + GIN index。
+- 两张表都是可重建投影；只有 `solidified` Gene 进入 ready 投影。
+
+### 任务与 outbox 名称
+
+派生 task 固定为 `experience-gene.derive`；lifecycle outbox 固定为 `experience-gene.solidified`、`experience-gene.staled`、`experience-gene.deprecated`。
+
 ## CanonicalLabel（规范标签目录）
 
 > **Canonical Label Catalog 更新**：新增标签合并真实来源，用于图提取和检索阶段的语义合并。已有的 `knowledge_labels` 和 artifact `labels` JSONB 列保持不变。
@@ -736,6 +767,7 @@ active → review-due → stale → expired
 | `domain/knowledge.ts` | KnowledgeEntry, KnowledgeRevision, KnowledgeSubmission |
 | `schema.ts` (DB) | knowledge_entries, knowledge_revisions, lifecycle_events, knowledge_labels, knowledge_boundary_* (×6), knowledge_maintenance_assignments |
 | `domain/artifacts.ts` | SkillArtifact, SkillCapsule, SkillProfile, ClientManifest |
+| `domain/experience-gene.ts` | ExperienceGene, ExperienceGeneEvent, DerivationTaskPayload, ContentProjection |
 | `domain/retrieval.ts` | RetrievalQuery, RetrievalResponse, CapsuleMatch, RetrievalCitation |
 | `domain/candidates.ts` | CandidateSubmission, DuplicateCase, CandidateStatus |
 | `domain/review.ts` | ReviewDecision, ReviewNote, AgentReviewResult |

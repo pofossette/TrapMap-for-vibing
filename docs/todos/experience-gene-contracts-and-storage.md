@@ -189,13 +189,13 @@ export interface ExperienceGeneReadPort {
 
 ## Implementation checklist
 
-- [ ] 新增 enum-types、domain schema、types 和 contracts tests。
-- [ ] 新增 source/lineage/generator/event/task payload schemas 与 public projection schema。
-- [ ] 新增 persistence tables、indexes、constraints 和 migration runner registration。
-- [ ] 新增 write/read ports 与 PG repository implementation。
-- [ ] 实现 aggregate/projection/event 同事务写入。
-- [ ] 实现 embedding failure 到 pending/failed/ready index-state transition。
-- [ ] 更新 database schema truth documentation。
+- [x] 新增 enum-types、domain schema、types 和 contracts tests。
+- [x] 新增 source/lineage/generator/event/task payload schemas 与 public projection schema。
+- [x] 新增 persistence tables、indexes、constraints 和 migration runner registration。
+- [x] 新增 write/read ports 与 PG repository implementation。
+- [x] 实现 aggregate/projection/event 同事务写入。
+- [x] 实现 embedding failure 到 pending/failed/ready index-state transition。
+- [x] 更新 database schema truth documentation。
 
 ## Test plan
 
@@ -203,7 +203,7 @@ export interface ExperienceGeneReadPort {
 pnpm --filter @trapmap/contracts test --run src/domain/experience-gene.test.ts
 pnpm --filter @trapmap/contracts test --run src/domain/experience-gene-events.test.ts
 pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-ports.test.ts
-pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-schema.test.ts
+pnpm --filter @trapmap/persistence-schema test --run src/experience-genes.test.ts
 pnpm check:table-schema
 pnpm check:pgtable-single-source
 pnpm typecheck
@@ -217,3 +217,40 @@ pnpm typecheck
 ## Debt register
 
 - 若后续需要非-384 维 embedding model，新增 embedding model/version 列和重建流程；禁止混用不同模型的 vectors。
+
+## Execution record（2026-08-25）
+
+### 已完成实现
+
+- `@trapmap/contracts` 冻结 Gene/source/lineage/generator/indexing 枚举与 strict schemas；事件 payload 在 `rejected` 类型上强制完整 validator report；派生 task 与三个 outbox event names 已冻结。
+- `backend-core/knowledge-write/domain` 提供 canonical content projection、Gene content hash 和 task idempotency key helper；hash 不含 `geneId/status/indexing/createdAt/updatedAt/parentEventId/priorGeneHash`。
+- `persistence-schema` 新增四张 Experience Gene 表；knowledge-write owner migration `0002_experience_genes` 注册 active partial-unique idempotency、governance/lifecycle indexes、HNSW vector index 和 tsvector GIN projection，并同步 Drizzle journal/snapshot。
+- backend-core 定义 governance-aware read/write ports；knowledge-write `PgExperienceGeneRepository` 在事务内维护 aggregate、immutable events 和 retrieval projection。candidate/validated/solidified/stale 状态转换、rejected report append-only 写入、pending/failed/ready index transitions 均有 focused coverage。
+
+### 验证证据
+
+```bash
+pnpm --filter @trapmap/lib test --run src/canonical-json.test.ts src/canonical-hash.test.ts
+# 2 files / 4 tests passed
+pnpm --filter @trapmap/contracts test --run src/domain/experience-gene.test.ts src/domain/experience-gene-events.test.ts
+# 2 files / 7 tests passed
+pnpm --filter @trapmap/backend-core test --run src/knowledge-write/domain/experience-gene-hashing.test.ts src/ports/experience-gene-ports.test.ts
+# 2 files / 4 tests passed
+pnpm --filter @trapmap/persistence-schema test --run src/experience-genes.test.ts
+# 1 file / 2 tests passed
+pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-ports.test.ts src/migrations.test.ts
+# 2 files / 16 tests passed
+pnpm check:table-schema
+# persistence-schema models 69 table(s); DATABASE_SCHEMA.md declares 69 table(s)
+pnpm check:pgtable-single-source
+# exit 0
+pnpm typecheck
+# exit 0
+pnpm exec fallow audit --base HEAD --no-cache
+# verdict pass; 0 introduced dead-code / complexity / boundary findings
+```
+
+### 当前边界
+
+- 本阶段不生成 embedding 或对外暴露 HTTP route；`solidify()` 要求调用方先通过 index seam 将两张投影推进到 ready。派生管线、embedding retry worker、RouteDef surface 属于后续阶段。
+- `experience_gene_embeddings.embedding_model_version` 已建模逻辑版本隔离；默认模型版本与 rollout flag 在 derivation/retrieval phases 接线时冻结为 `off`。

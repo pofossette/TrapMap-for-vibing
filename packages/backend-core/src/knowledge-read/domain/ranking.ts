@@ -14,9 +14,12 @@ import type {
   GraphQueryRuntimeState,
   RetrievalQuery,
 } from '@trapmap/contracts';
+import { cosineSimilarity as sharedCosineSimilarity } from '@trapmap/lib';
 
 import { type BoundaryEntryView, computeBoundaryScoreDelta } from './boundary.js';
 import { type TokenMatchDetailLike, normalizeQuery } from './tokenization.js';
+
+export const cosineSimilarity = sharedCosineSimilarity;
 
 // ---------------------------------------------------------------------------
 // Channel vocabulary
@@ -371,33 +374,6 @@ export interface ScorableEntryView {
   scope: string;
   shortcut: string;
   detail: string;
-}
-
-export function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error('Vector dimensions must match');
-  }
-
-  let dotProduct = 0;
-  let magnitudeA = 0;
-  let magnitudeB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    const ai = a[i] ?? 0;
-    const bi = b[i] ?? 0;
-    dotProduct += ai * bi;
-    magnitudeA += ai * ai;
-    magnitudeB += bi * bi;
-  }
-
-  magnitudeA = Math.sqrt(magnitudeA);
-  magnitudeB = Math.sqrt(magnitudeB);
-
-  if (magnitudeA === 0 || magnitudeB === 0) {
-    return 0;
-  }
-
-  return dotProduct / (magnitudeA * magnitudeB);
 }
 
 export function buildEmbeddingText(entry: ScorableEntryView): string {

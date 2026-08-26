@@ -20,9 +20,9 @@
 | 向量搜索 | pgvector (384 维 HNSW 索引) |
 | 全文搜索 | tsvector + GIN 索引 |
 
-## 表总览 (65 张表)
+## 表总览 (69 张表)
 
-> 表清单以 `packages/persistence-schema/src/` 实测 65 张 `pgTable` 为准；六个 `packages/service-*/drizzle/` 迁移 SQL 与之对齐（例外见下文 `conflict_relations` 标注）。
+> 表清单以 `packages/persistence-schema/src/` 实测 69 张 `pgTable` 为准；六个 `packages/service-*/drizzle/` 迁移 SQL 与之对齐（例外见下文 `conflict_relations` 标注）。
 
 ### 知识域 (16 表)
 
@@ -86,6 +86,27 @@
 | `candidate_manual_results` | 人工审核结果 (1:1) | `candidate_id` (text) |
 | `candidate_resolution_outcomes` | 解析结果 (1:1) | `candidate_id` (text) |
 | `entity_lineage` | 实体溯源 | `id` (text) |
+
+### Experience Gene 域 (4 表)
+
+> **事实源规则**：`experience_genes` 是 Gene aggregate 当前状态事实源；`experience_gene_events` append-only 承载派生、验证、拒绝、固化、失效和废弃审计。两张检索表是可重建投影，不承载业务真相。Owner 是 knowledge-write，迁移为 `service-knowledge-write/drizzle/0002_experience_genes`。
+
+| 表名 | 用途 | 主键 |
+|------|------|------|
+| `experience_genes` | Gene 当前状态、内容、治理边界和 source lineage | `id` (text) |
+| `experience_gene_events` | immutable Gene lifecycle/validator/rejection events | `id` (text) |
+| `experience_gene_embeddings` | solidified Gene 的 384 维 pgvector 投影 | `gene_id` (text) |
+| `experience_gene_search_documents` | solidified Gene 的 tsvector 全文投影 | `gene_id` (text) |
+
+### Experience Gene 关键索引与约束
+
+| 索引/约束 | 类型 | 目标 | 说明 |
+|--------|------|-----|------|
+| `uq_experience_genes_active_idempotency` | 部分唯一索引 | `(idempotency_key)` | 仅 `candidate/validated/solidified` 防重；stale/deprecated 后允许重建 |
+| `idx_experience_genes_status_updated` | B-tree | `(status, updated_at)` | lifecycle 扫描 |
+| `idx_experience_genes_governance` | B-tree | `(scope, team_id, required_level)` | read path 内联治理过滤 |
+| `idx_experience_gene_embeddings_vector_hnsw` | HNSW | `embedding vector_cosine_ops` | gene-native semantic recall |
+| `idx_experience_gene_search_documents_document_gin` | GIN | `document tsvector` | keyword/full-text recall |
 
 ### 身份与审计域 (6 表) — Round 10 Phase 3
 

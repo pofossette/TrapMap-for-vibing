@@ -11,6 +11,7 @@ export interface EmbeddingsProvider {
 export interface ChatProvider {
   readonly provider: string;
   readonly isConfigured: boolean;
+  readonly model?: string | null;
   invoke(systemPrompt: string, userMessage: string): Promise<string>;
   invokeWithBlocks?(blocks: AiPromptBlock[], userMessage: string): Promise<string>;
 }

@@ -160,6 +160,27 @@ const parsed = await invokeWithParseRetry({
 });
 ```
 
+### 结构化生成
+
+新管线应优先使用 provider-neutral 的 `generateStructured`；它统一 code fence 清洗、Zod 校验、bounded retry、raw output hash 和 redacted failure metadata：
+
+```typescript
+import { generateStructured } from '@trapmap/ai-providers';
+import { z } from 'zod';
+
+const result = await generateStructured({
+  chat: providers.chat,
+  system: 'Return only JSON.',
+  prompt: 'Extract the control signal.',
+  schema: z.object({ strategy: z.string().min(1) }).strict(),
+  maxRetries: 2,
+});
+
+console.log(result.value, result.model, result.attempts, result.rawTextSha256);
+```
+
+`maxRetries` 默认为 `2`，允许范围是 `0..5`。重试耗尽时抛出 `StructuredGenerationError`，其 `lastFailureClass` 只暴露 `chat-unconfigured`、`invoke`、`json-parse` 或 `schema-validation`。
+
 ### 领域提示词构建器
 
 ```typescript

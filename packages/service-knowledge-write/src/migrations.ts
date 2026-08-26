@@ -9,6 +9,7 @@ export async function assertKnowledgeWriteMigrationSet(folder = migrationsFolder
   await assertOwnerMigrationSet('knowledge-write', folder, [
     '0000_youthful_gargoyle',
     '0001_artifact_revision_version',
+    '0002_experience_genes',
   ]);
 }
 export async function runKnowledgeWriteMigrations(pool: Pool): Promise<void> {

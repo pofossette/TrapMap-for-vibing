@@ -99,6 +99,7 @@ it('freezes the artifact revision version column in the owner migration set', as
   expect(journal.entries.map((entry) => entry.tag)).toEqual([
     '0000_youthful_gargoyle',
     '0001_artifact_revision_version',
+    '0002_experience_genes',
   ]);
 
   const snapshot = JSON.parse(
@@ -114,6 +115,23 @@ it('freezes the artifact revision version column in the owner migration set', as
     primaryKey: false,
     notNull: false,
   });
+});
+
+it('freezes experience gene identity, governance, and projection indexes', () => {
+  const migration = readFileSync(
+    new URL('../drizzle/0002_experience_genes.sql', import.meta.url),
+    'utf8',
+  );
+
+  expect(migration).toContain('"idempotency_key" text NOT NULL');
+  expect(migration).toContain('CREATE UNIQUE INDEX "uq_experience_genes_active_idempotency"');
+  expect(migration).toContain(
+    "WHERE \"experience_genes\".\"status\" IN ('candidate', 'validated', 'solidified')",
+  );
+  expect(migration).toContain('"embedding" vector(384) NOT NULL');
+  expect(migration).toContain('USING hnsw ("embedding" vector_cosine_ops)');
+  expect(migration).toContain('ALTER COLUMN "document" TYPE tsvector');
+  expect(migration).toContain('USING gin ("document")');
 });
 
 it('models the artifact revision version column in the shared schema', async () => {

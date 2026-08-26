@@ -134,6 +134,7 @@ export default defineConfig({
         },
       },
       project('contracts', './packages/contracts'),
+      project('persistence-schema', './packages/persistence-schema'),
       project('lib', './packages/lib'),
       project('backend-core', './packages/backend-core'),
       project('client-core', './packages/client-core'),

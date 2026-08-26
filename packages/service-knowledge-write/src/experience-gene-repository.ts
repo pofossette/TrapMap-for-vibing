@@ -1,0 +1,490 @@
+import type { Pool } from 'pg';
+
+import {
+  type ExperienceGeneAccessContext,
+  type ExperienceGeneReadPort,
+  type ExperienceGeneWritePort,
+  createExperienceGeneContentHash,
+  createExperienceGeneIdempotencyKeyFromGene,
+} from '@trapmap/backend-core';
+import {
+  type ExperienceGene,
+  type ExperienceGeneEvent,
+  type ExperienceGeneEventPayload,
+  type ExperienceGeneValidationReport,
+  experienceGeneEventSchema,
+  experienceGeneSchema,
+} from '@trapmap/contracts';
+
+type GeneRow = {
+  id: string;
+  schema_version: string;
+  status: ExperienceGene['status'];
+  title: string;
+  signals_match: string[];
+  summary: string;
+  strategy: string[];
+  avoid: string[];
+  constraints: string[];
+  validation: string[];
+  labels: string[];
+  scope: ExperienceGene['scope'];
+  team_id: string | null;
+  required_level: number;
+  source_type: ExperienceGene['source']['kind'];
+  source_id: string;
+  source_revision: number;
+  source_hash: string;
+  artifact_id: string | null;
+  capsule_id: string | null;
+  artifact_revision: number | null;
+  derivation_unit_id: string;
+  content_hash: string;
+  parent_event_id: string | null;
+  prior_gene_hash: string | null;
+  generator_kind: ExperienceGene['generator']['kind'];
+  generator_model: string | null;
+  prompt_version: string;
+  index_status: ExperienceGene['indexing']['status'];
+  index_last_error: string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
+};
+
+const GENE_COLUMNS = `id, schema_version, status, title, signals_match, summary, strategy,
+  avoid, "constraints", validation, labels, scope, team_id, required_level,
+  source_type, source_id, source_revision, source_hash, artifact_id, capsule_id,
+  artifact_revision, derivation_unit_id, content_hash, parent_event_id, prior_gene_hash,
+  generator_kind, generator_model, prompt_version, index_status, index_last_error,
+  created_at, updated_at`;
+
+type LifecycleEventDetails = {
+  actor: { kind: 'system' | 'user' | 'agent'; id: string | null };
+  validatorSummary: { valid: boolean; issueCodes: string[] };
+  reasonClass: string | null;
+  payloadSnapshotHash: string;
+  payload: ExperienceGeneEventPayload;
+};
+
+function iso(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+function strings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+}
+
+function mapGene(row: GeneRow): ExperienceGene {
+  return experienceGeneSchema.parse({
+    geneId: row.id,
+    schemaVersion: row.schema_version,
+    status: row.status,
+    title: row.title,
+    signalsMatch: strings(row.signals_match),
+    summary: row.summary,
+    strategy: strings(row.strategy),
+    avoid: strings(row.avoid),
+    constraints: strings(row.constraints),
+    validation: strings(row.validation),
+    labels: strings(row.labels),
+    scope: row.scope,
+    teamId: row.team_id,
+    requiredLevel: row.required_level,
+    source: {
+      kind: row.source_type,
+      sourceId: row.source_id,
+      sourceRevision: row.source_revision,
+      sourceHash: row.source_hash,
+      artifactId: row.artifact_id,
+      capsuleId: row.capsule_id,
+      artifactRevision: row.artifact_revision,
+    },
+    lineage: {
+      derivationUnitId: row.derivation_unit_id,
+      parentEventId: row.parent_event_id,
+      promptVersion: row.prompt_version,
+      priorGeneHash: row.prior_gene_hash,
+    },
+    generator: {
+      kind: row.generator_kind,
+      model: row.generator_model,
+      promptVersion: row.prompt_version,
+    },
+    indexing: {
+      status: row.index_status,
+      lastError: row.index_last_error,
+      updatedAt: iso(row.updated_at),
+    },
+    contentHash: row.content_hash,
+    createdAt: iso(row.created_at),
+    updatedAt: iso(row.updated_at),
+  });
+}
+
+export class PgExperienceGeneRepository implements ExperienceGeneWritePort, ExperienceGeneReadPort {
+  private readonly pool: Pool;
+
+  constructor(config: { pool: Pool }) {
+    this.pool = config.pool;
+  }
+
+  async saveCandidate(gene: ExperienceGene): Promise<ExperienceGene> {
+    if (gene.contentHash !== createExperienceGeneContentHash(gene)) {
+      throw new Error('experience gene content hash mismatch');
+    }
+
+    return this.transaction(async () => {
+      await this.pool.query(
+        `INSERT INTO experience_genes (${GENE_COLUMNS}, idempotency_key)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
+                 $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
+         ON CONFLICT (idempotency_key) WHERE status IN ('candidate','validated','solidified')
+         DO UPDATE SET
+           title = EXCLUDED.title, signals_match = EXCLUDED.signals_match,
+           summary = EXCLUDED.summary, strategy = EXCLUDED.strategy,
+           avoid = EXCLUDED.avoid, "constraints" = EXCLUDED."constraints",
+           validation = EXCLUDED.validation, labels = EXCLUDED.labels,
+           scope = EXCLUDED.scope, team_id = EXCLUDED.team_id,
+           required_level = EXCLUDED.required_level, content_hash = EXCLUDED.content_hash,
+           generator_model = EXCLUDED.generator_model, updated_at = EXCLUDED.updated_at`,
+        [
+          gene.geneId,
+          gene.schemaVersion,
+          gene.status,
+          gene.title,
+          JSON.stringify(gene.signalsMatch),
+          gene.summary,
+          JSON.stringify(gene.strategy),
+          JSON.stringify(gene.avoid),
+          JSON.stringify(gene.constraints),
+          JSON.stringify(gene.validation),
+          JSON.stringify(gene.labels),
+          gene.scope,
+          gene.teamId,
+          gene.requiredLevel,
+          gene.source.kind,
+          gene.source.sourceId,
+          gene.source.sourceRevision,
+          gene.source.sourceHash,
+          gene.source.artifactId,
+          gene.source.capsuleId,
+          gene.source.artifactRevision,
+          gene.lineage.derivationUnitId,
+          gene.contentHash,
+          gene.lineage.parentEventId,
+          gene.lineage.priorGeneHash,
+          gene.generator.kind,
+          gene.generator.model,
+          gene.generator.promptVersion,
+          gene.indexing.status,
+          gene.indexing.lastError,
+          gene.createdAt,
+          gene.updatedAt,
+          this.idempotencyKey(gene),
+        ],
+      );
+      await this.insertEvent(gene, 'derived', {
+        actor: { kind: 'system', id: null },
+        validatorSummary: { valid: true, issueCodes: [] },
+        reasonClass: null,
+        payloadSnapshotHash: gene.contentHash,
+        payload: {},
+      });
+      return gene;
+    });
+  }
+
+  async markValidated(
+    geneId: string,
+    report: ExperienceGeneValidationReport,
+  ): Promise<ExperienceGene> {
+    if (!report.valid) throw new Error('validated gene requires a passing report');
+
+    return this.transaction(async () => {
+      const current = await this.selectForUpdate(geneId);
+      if (current.status !== 'candidate') {
+        throw new Error(`experience gene cannot be validated from ${current.status}`);
+      }
+
+      const updated = await this.updateStatus(geneId, 'validated', ['candidate']);
+      await this.insertEvent(updated, 'validated', {
+        actor: { kind: 'system', id: null },
+        validatorSummary: {
+          valid: true,
+          issueCodes: report.issues.map((issue) => issue.code),
+        },
+        reasonClass: null,
+        payloadSnapshotHash: updated.contentHash,
+        payload: {},
+      });
+      return updated;
+    });
+  }
+
+  async solidify(geneId: string): Promise<ExperienceGene> {
+    return this.transaction(async () => {
+      const current = await this.selectForUpdate(geneId);
+      if (current.status !== 'validated') {
+        throw new Error(`experience gene cannot solidify from ${current.status}`);
+      }
+      if (current.index_status !== 'ready') {
+        throw new Error(`experience gene projections are not ready: ${geneId}`);
+      }
+
+      const documentParts = [
+        current.title,
+        current.summary,
+        ...strings(current.strategy),
+        ...strings(current.avoid),
+        ...strings(current.validation),
+      ];
+      await this.pool.query(
+        `INSERT INTO experience_gene_search_documents
+           (gene_id,content_hash,document,labels,status,last_error,updated_at)
+         VALUES ($1,$2,to_tsvector('english',$3),$4,'ready',NULL,now())
+         ON CONFLICT (gene_id) DO UPDATE SET
+           content_hash = EXCLUDED.content_hash, document = EXCLUDED.document,
+           labels = EXCLUDED.labels, status = 'ready', last_error = NULL,
+           updated_at = now()`,
+        [geneId, current.content_hash, documentParts.join('\n'), current.labels],
+      );
+
+      const updated = await this.updateStatus(geneId, 'solidified', ['validated']);
+      await this.insertEvent(updated, 'solidified', {
+        actor: { kind: 'system', id: null },
+        validatorSummary: { valid: true, issueCodes: [] },
+        reasonClass: null,
+        payloadSnapshotHash: updated.contentHash,
+        payload: {},
+      });
+      return updated;
+    });
+  }
+
+  async markIndexStatus(
+    geneId: string,
+    status: ExperienceGene['indexing']['status'],
+    error?: string | undefined,
+  ): Promise<ExperienceGene> {
+    if (error !== undefined && (error.length === 0 || error.length > 500)) {
+      throw new Error('invalid experience gene index error');
+    }
+    if (status === 'ready' && error !== undefined) {
+      throw new Error('ready genes cannot have an index error');
+    }
+
+    return this.transaction(async () => {
+      if (status !== 'pending') {
+        for (const table of ['experience_gene_embeddings', 'experience_gene_search_documents']) {
+          const result = await this.pool.query(
+            `UPDATE ${table} SET status = $2, last_error = $3, updated_at = now()
+             WHERE gene_id = $1`,
+            [geneId, status, error ?? null],
+          );
+          if (status === 'ready' && result.rowCount !== 1) {
+            throw new Error(`missing ready projection in ${table}`);
+          }
+        }
+      }
+
+      const updated = await this.pool.query<GeneRow>(
+        `UPDATE experience_genes SET index_status = $2, index_last_error = $3, updated_at = now()
+         WHERE id = $1 RETURNING ${GENE_COLUMNS}`,
+        [geneId, status, error ?? null],
+      );
+      const row = updated.rows[0];
+      if (!row) throw new Error(`experience gene not found: ${geneId}`);
+      const mapped = mapGene(row);
+      if (status === 'failed') {
+        await this.insertEvent(mapped, 'index-failed', {
+          actor: { kind: 'system', id: null },
+          validatorSummary: { valid: false, issueCodes: ['projection-index'] },
+          reasonClass: 'indexing',
+          payloadSnapshotHash: mapped.contentHash,
+          payload: {},
+        });
+      }
+      return mapped;
+    });
+  }
+
+  async markStale(source: ExperienceGene['source']): Promise<number> {
+    return this.transaction(async () => {
+      const selected = await this.pool.query<Pick<GeneRow, 'id' | 'content_hash'>>(
+        `SELECT id, content_hash FROM experience_genes
+         WHERE source_type = $1 AND source_id = $2 AND source_revision = $3 AND source_hash = $4
+           AND status IN ('candidate','validated','solidified') FOR UPDATE`,
+        [source.kind, source.sourceId, source.sourceRevision, source.sourceHash],
+      );
+
+      for (const row of selected.rows) {
+        await this.pool.query(
+          `UPDATE experience_genes SET status = 'stale', updated_at = now() WHERE id = $1`,
+          [row.id],
+        );
+        await this.pool.query(
+          `INSERT INTO experience_gene_events
+             (id,gene_id,type,source_type,source_id,source_revision,source_hash,actor_kind,actor_id,
+              validator_summary,reason_class,payload_snapshot_hash,payload,created_at)
+           VALUES ($1,$2,'staled',$3,$4,$5,$6,'system',NULL,$7,NULL,$8,$9,now())`,
+          [
+            `${row.id}:staled`,
+            row.id,
+            source.kind,
+            source.sourceId,
+            source.sourceRevision,
+            source.sourceHash,
+            JSON.stringify({ valid: true, issueCodes: [] }),
+            row.content_hash,
+            '{}',
+          ],
+        );
+      }
+      return selected.rows.length;
+    });
+  }
+
+  async saveRejectedCandidate(event: ExperienceGeneEvent): Promise<void> {
+    const parsed = experienceGeneEventSchema.parse(event);
+    if (parsed.type !== 'rejected') throw new Error('rejected candidate event required');
+
+    await this.transaction(async () => {
+      await this.insertEvent(parsed, 'rejected', {
+        actor: parsed.actor,
+        validatorSummary: parsed.validatorSummary,
+        reasonClass: parsed.reasonClass,
+        payloadSnapshotHash: parsed.payloadSnapshotHash,
+        payload: parsed.payload,
+      });
+    });
+  }
+
+  async getById(
+    geneId: string,
+    access: ExperienceGeneAccessContext,
+  ): Promise<ExperienceGene | null> {
+    const conditions = ['id = $1'];
+    const params: Array<string | number | null> = [geneId];
+    this.appendAccessFilters(conditions, params, access);
+    const result = await this.pool.query<GeneRow>(
+      `SELECT ${GENE_COLUMNS} FROM experience_genes WHERE ${conditions.join(' AND ')}`,
+      params,
+    );
+    const row = result.rows[0];
+    return row ? mapGene(row) : null;
+  }
+
+  async listBySource(
+    source: ExperienceGene['source'],
+    access: ExperienceGeneAccessContext,
+  ): Promise<ExperienceGene[]> {
+    const conditions = [
+      'source_type = $1',
+      'source_id = $2',
+      'source_revision = $3',
+      'source_hash = $4',
+    ];
+    const params: Array<string | number | null> = [
+      source.kind,
+      source.sourceId,
+      source.sourceRevision,
+      source.sourceHash,
+    ];
+    this.appendAccessFilters(conditions, params, access);
+    const result = await this.pool.query<GeneRow>(
+      `SELECT ${GENE_COLUMNS} FROM experience_genes WHERE ${conditions.join(' AND ')}
+       ORDER BY updated_at DESC, id ASC`,
+      params,
+    );
+    return result.rows.map((row) => mapGene(row));
+  }
+
+  private idempotencyKey(gene: ExperienceGene): string {
+    return createExperienceGeneIdempotencyKeyFromGene(gene);
+  }
+
+  private appendAccessFilters(
+    conditions: string[],
+    params: Array<string | number | null>,
+    access: ExperienceGeneAccessContext,
+  ): void {
+    if (access.teamId === null) {
+      conditions.push('team_id IS NULL');
+    } else {
+      params.push(access.teamId);
+      conditions.push(`(team_id IS NULL OR team_id = $${params.length})`);
+    }
+    params.push(access.maxRequiredLevel);
+    conditions.push(`required_level <= $${params.length}`);
+  }
+
+  private async selectForUpdate(geneId: string): Promise<GeneRow> {
+    const result = await this.pool.query<GeneRow>(
+      `SELECT ${GENE_COLUMNS} FROM experience_genes WHERE id = $1 FOR UPDATE`,
+      [geneId],
+    );
+    const row = result.rows[0];
+    if (!row) throw new Error(`experience gene not found: ${geneId}`);
+    return row;
+  }
+
+  private async updateStatus(
+    geneId: string,
+    status: Extract<ExperienceGene['status'], 'validated' | 'solidified'>,
+    allowedFrom: Array<ExperienceGene['status']>,
+  ): Promise<ExperienceGene> {
+    const result = await this.pool.query<GeneRow>(
+      `UPDATE experience_genes SET status = $2, updated_at = now()
+       WHERE id = $1 AND status = ANY($3::text[]) RETURNING ${GENE_COLUMNS}`,
+      [geneId, status, allowedFrom],
+    );
+    const row = result.rows[0];
+    if (!row) throw new Error(`experience gene cannot transition to ${status}: ${geneId}`);
+    return mapGene(row);
+  }
+
+  private async insertEvent(
+    gene: Pick<ExperienceGene, 'geneId' | 'source'>,
+    type: Extract<
+      ExperienceGeneEvent['type'],
+      'derived' | 'validated' | 'solidified' | 'rejected' | 'index-failed'
+    >,
+    details: LifecycleEventDetails,
+  ): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO experience_gene_events
+         (id,gene_id,type,source_type,source_id,source_revision,source_hash,actor_kind,actor_id,
+          validator_summary,reason_class,payload_snapshot_hash,payload,created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,now())`,
+      [
+        `${gene.geneId}:${type}`,
+        gene.geneId,
+        type,
+        gene.source.kind,
+        gene.source.sourceId,
+        gene.source.sourceRevision,
+        gene.source.sourceHash,
+        details.actor.kind,
+        details.actor.id,
+        JSON.stringify(details.validatorSummary),
+        details.reasonClass,
+        details.payloadSnapshotHash,
+        JSON.stringify(details.payload),
+      ],
+    );
+  }
+
+  private async transaction<T>(operation: () => Promise<T>): Promise<T> {
+    await this.pool.query('BEGIN');
+    try {
+      const result = await operation();
+      await this.pool.query('COMMIT');
+      return result;
+    } catch (error) {
+      await this.pool.query('ROLLBACK');
+      throw error;
+    }
+  }
+}

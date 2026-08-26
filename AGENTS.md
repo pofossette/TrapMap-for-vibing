@@ -32,7 +32,7 @@
 
 ## Vitest 使用要求
 
-- 根目录 `pnpm test` 会读取根 [`vitest.config.ts`](vitest.config.ts)，按 multi-project workspace 同时加载 `scripts`、`contracts`、`backend-core`、`client-core`、`cli`、`evals`、各 `service-*`、`host-local`、`host-distributed` 测试；不要把它当成轻量失败筛选命令
+- 根目录 `pnpm test` 会读取根 [`vitest.config.ts`](vitest.config.ts)，按 multi-project workspace 同时加载 `scripts`、`contracts`、`persistence-schema`、`backend-core`、`client-core`、`cli`、`evals`、各 `service-*`、`host-local`、`host-distributed` 测试；不要把它当成轻量失败筛选命令
 - 默认 `pnpm test` 是一次性执行；需要 watch 时必须显式调用 `pnpm exec vitest`
 - 禁止使用根级全量测试再接 `grep`、`tail`、`head` 的方式查看失败列表，例如 `pnpm test 2>&1 | tail ...`
 - 单文件测试优先使用 `pnpm test:file -- <repo-root-relative-test-path>`

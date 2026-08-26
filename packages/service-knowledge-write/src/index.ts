@@ -38,6 +38,7 @@ export {
   type ArtifactRouteDeps,
 } from './artifact-routes.js';
 export { createRuleArtifactDerivation } from './artifact-derivation/rule-artifact-derivation.js';
+export { PgExperienceGeneRepository } from './experience-gene-repository.js';
 export { createRuleLabelAlignment } from './label-alignment/rule-label-alignment.js';
 export { createLlmLabelAlignment } from './label-alignment/llm-label-alignment.js';
 export { deriveFromPayloads } from './artifact-derive-from-payloads.js';

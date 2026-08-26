@@ -162,7 +162,7 @@ export interface DerivationCandidate<TOutput> {
 - [ ] 在 ai-providers 增加 `generateStructured` 与 retry/parser tests。
 - [ ] 新增 derivation request/candidate/report contracts 与 fixture tests。
 - [ ] 新增 `canonicalJsonStringify` 与 nested-object/array edge-case tests。
-- [ ] 运行 focused tests、typecheck 和 fallow audit。
+- [x] 运行 focused tests、typecheck 和增量 fallow audit；`--base main` 的分支级审计基线问题保留在问题池，阶段 closeout 前必须解决。
 
 ## Acceptance criteria
 
@@ -193,3 +193,53 @@ pnpm exec fallow audit --base main
 ## Debt register
 
 - 若多个 service 出现重复 pgvector SQL，登记为下一阶段抽取 shared adapter 的触发条件；当前不以新包预判抽象。
+
+## Execution record（2026-08-25）
+
+### 已完成实现
+
+- `@trapmap/lib` 新增 `vector.ts` 与 `canonical-json.ts`，并经 barrel 导出；`backend-core/ranking.ts` 改为消费共享 cosine helper 且保持原导出。
+- `@trapmap/ai-providers` 的 fallback embedding 改为消费 `createDeterministicFallbackVector`；`ChatProvider` 增加 optional `model`，OpenAI-compatible chat 暴露配置模型；新增 `generateStructured` 与 typed failure class。
+- `backend-core/ports` 新增 `VectorSearchPort`、通用 derivation request/report/candidate contract。
+- `service-knowledge-read` 新增 owner-local knowledge embeddings pgvector adapter；默认 retrieval infra 经该 adapter 执行向量召回并支持注入替换。SQL governance filters、similarity clamp、metadata projection 和稳定排序保持不变。
+- 文档同步：AI provider README、AI provider architecture、retrieval architecture 已记录 structured generation、shared vector helper 和 pgvector port seam。
+
+### 验证证据
+
+```bash
+pnpm --filter @trapmap/lib test --run src/vector.test.ts src/canonical-json.test.ts
+# 2 files / 9 tests passed
+pnpm --filter @trapmap/backend-core test --run src/knowledge-read/domain/ranking.test.ts src/ports/vector-search-ports.test.ts src/ports/derivation-ports.test.ts
+# 3 files / 20 tests passed
+pnpm --filter @trapmap/service-knowledge-read test --run src/retrieval-infra-default.test.ts src/knowledge-vector-search-port.test.ts src/import-boundary.test.ts
+# 3 files / 21 tests passed
+pnpm --filter @trapmap/ai-providers test --run src/providers.test.ts src/structured-generation.test.ts
+# 2 files / 16 tests passed
+pnpm typecheck
+# exit 0
+pnpm exec fallow audit --base HEAD --no-cache
+# verdict pass; new-only dead code, complexity, boundary all 0
+pnpm check:docs
+# blocking tiers green；doc-references 对 Phase 2-4 计划中的未来文件有 non-blocking warning
+pnpm check:structure
+# exit 0
+pnpm check:asserts
+# exit 0
+pnpm exec fallow list --boundaries
+# service-knowledge-read → backend-core/contracts/lib 边界保持合规
+```
+
+### 当前未关闭项
+
+- `pnpm exec fallow audit --base main --no-cache` 在当前 `pre` 分支报告 145 个 committed changed files 中的 35 个 clone groups 与 21 个 complexity findings；这些属于分支相对 stale `main` 的既有质量债，但按当前计划命令仍阻断阶段 closeout。增量 `--base HEAD` 通过证明本轮没有引入 dead-code/boundary/complexity finding。
+- `pnpm eval:smoke` 因本机无 Docker daemon 失败：`failed to connect to the docker API at unix:///var/run/docker.sock`。这是已知环境门控，需在 CI 或具备 Docker 的环境补跑。
+
+## Problem pool
+
+### Fallow audit baseline 与 Experience Gene 工作分支不一致（2026-08-25）
+
+- 来源：Phase 1 要求 `fallow audit --base main`，但当前 `pre` 分支相对 `main` 有 145 个已提交变更文件，其中包含 Web Panel、gateway、route、测试等既有 clone/complexity 债。
+- 影响：无法用计划中的精确命令证明 Phase 1 closeout；即使本轮增量审计通过，阶段复选框也不能在 `--base main` 通过前勾完。
+- 当前边界：不回退既有分支工作，不用 suppress 掩盖债务；本轮已将新增 helper 复杂度重构到阈值下，并通过 `--base HEAD --no-cache` 的新增发现审计。
+- 进入条件：Experience Gene Phase 1 closeout 前，要么把 `main` 同步为包含当前分支已合并基线，要么在主细则冻结一个明确的 activation-commit audit base 并解释为何它等价于 PR merge-base。
+- 后续落点：先由 owner mainline 决策审计基线；若选择 activation commit，更新 Phase 1 与 cross-phase 命令后再重跑。

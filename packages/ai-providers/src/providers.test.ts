@@ -1,3 +1,4 @@
+import { createDeterministicFallbackVector } from '@trapmap/lib';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AiProviderConfig } from './provider-config.js';
@@ -98,6 +99,14 @@ describe('FallbackEmbeddings', () => {
     expect(first).toEqual(second);
     expect(Math.sqrt(first.reduce((sum, value) => sum + value * value, 0))).toBeCloseTo(1, 5);
   });
+
+  it('matches the shared deterministic vector implementation', async () => {
+    const embeddings = new FallbackEmbeddings();
+
+    await expect(embeddings.embed('hello world')).resolves.toEqual(
+      createDeterministicFallbackVector('hello world', 384),
+    );
+  });
 });
 
 describe('FallbackChat', () => {
@@ -109,6 +118,12 @@ describe('FallbackChat', () => {
 });
 
 describe('OpenAI-compatible providers', () => {
+  it('exposes the configured chat model for structured generation provenance', () => {
+    const chat = new OpenAICompatibleChat(openaiConfig);
+
+    expect(chat.model).toBe(openaiConfig.chatModel);
+  });
+
   it('propagates lazy OpenAI embedding failures', async () => {
     await expect(new OpenAICompatibleEmbeddings(openaiConfig).embed('test')).rejects.toThrow();
   });

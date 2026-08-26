@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Pool } from 'pg';
+import type { KnowledgeEmbeddingVectorSearchPort } from './knowledge-vector-search-port.js';
 import { createDefaultKnowledgeReadRetrievalInfra } from './retrieval-infra-default.js';
 import { getQueryEmbedding, optimizedSemanticRecall } from './retrieval-semantic.js';
 import type { MergedCandidate } from './retrieval-types.js';
@@ -104,6 +105,62 @@ describe('default knowledge-read retrieval infra', () => {
       [/scope = \$3/, /entry_id = ANY\(\$4\)/],
       ['team-1', 3, 'project', ['entry-1'], '[1,0]', 5],
     );
+  });
+
+  it('delegates PostgreSQL vector recall to an injected port-backed adapter', async () => {
+    const calls: Array<{
+      vector: number[];
+      filters: unknown;
+      limit: number;
+    }> = [];
+    const vectorSearchPort: KnowledgeEmbeddingVectorSearchPort = {
+      async upsert() {},
+      async search(vector, filters, limit) {
+        calls.push({ vector, filters, limit });
+        return [
+          {
+            sourceId: 'entry-1',
+            similarity: 0.75,
+            metadata: { shortcut: 'entry', labels: [], scope: 'project', requiredLevel: 1 },
+          },
+        ];
+      },
+      async deleteBySource() {},
+      async health() {
+        return { ok: true };
+      },
+    };
+    const infra = createDefaultKnowledgeReadRetrievalInfra({ vectorSearchPort });
+
+    await expect(
+      infra.pgRecall.vectorSimilaritySearch({} as Pool, {
+        queryVector: [1, 0],
+        limit: 5,
+        teamId: 'team-1',
+        maxLevel: 3,
+        scope: 'project',
+        entryIds: ['entry-1'],
+      }),
+    ).resolves.toEqual([
+      {
+        entryId: 'entry-1',
+        similarity: 0.75,
+        metadata: { shortcut: 'entry', labels: [], scope: 'project', requiredLevel: 1 },
+      },
+    ]);
+
+    expect(calls).toEqual([
+      {
+        vector: [1, 0],
+        filters: {
+          teamId: 'team-1',
+          maxRequiredLevel: 3,
+          scopes: ['project'],
+          sourceIds: ['entry-1'],
+        },
+        limit: 5,
+      },
+    ]);
   });
 
   it('honors compatible version ranges and excluded boundary contexts', () => {
