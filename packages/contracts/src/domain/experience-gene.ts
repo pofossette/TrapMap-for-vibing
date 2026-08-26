@@ -281,7 +281,7 @@ export const experienceGeneSourceSnapshotSchema = z.discriminatedUnion('kind', [
       situation: z.string().max(4_000),
       problem: z.string().max(4_000),
       goal: z.string().max(4_000),
-      errorText: z.string().max(4_000),
+      errorText: z.string().max(4_000).nullable(),
       contextualPrefix: z.string().max(4_000).nullable(),
       sourcePaths: z.array(z.string().min(1).max(280)).max(50),
       ...snapshotProvenance,

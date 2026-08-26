@@ -18,3 +18,4 @@ export const KNOWLEDGE_WRITE_OWNED_CAPABILITIES = [
 export * from './lifecycle.js';
 export * from './policy.js';
 export * from './experience-gene-hashing.js';
+export * from './experience-gene-derivation.js';

@@ -39,6 +39,13 @@ export {
 } from './artifact-routes.js';
 export { createRuleArtifactDerivation } from './artifact-derivation/rule-artifact-derivation.js';
 export { PgExperienceGeneRepository } from './experience-gene-repository.js';
+export { createPgExperienceGeneSourceLoaders } from './experience-gene-snapshots.js';
+export {
+  deriveExperienceGeneFromRule,
+  type ExperienceGeneDerivationDependencies,
+  type ExperienceGeneDerivationRepository,
+  type ExperienceGeneSnapshotLoaders,
+} from './experience-gene-derivation.js';
 export { createRuleLabelAlignment } from './label-alignment/rule-label-alignment.js';
 export { createLlmLabelAlignment } from './label-alignment/llm-label-alignment.js';
 export { deriveFromPayloads } from './artifact-derive-from-payloads.js';

@@ -95,8 +95,8 @@ stale Gene 不参与 serve 模式。重建成功后旧 Gene 转 deprecated，新
 ## Implementation checklist
 
 - [x] 定义 outbox event payloads 和 task payload schemas。
-- [ ] 实现 trap/skill/capsule snapshot loaders。
-- [ ] 实现 rule extractor 与 parser tests。
+- [x] 实现 trap/skill/capsule snapshot loaders。
+- [x] 实现 rule extractor 与 parser tests。
 - [ ] 实现 LLM extractor 与 structured failure tests。
 - [ ] 实现 validator/normalizer/safety scanner。
 - [ ] 实现 duplicate/conflict check。
@@ -140,10 +140,12 @@ pnpm typecheck
 - backend-core knowledge-write domain 新增 deterministic rule extractor：支持 case-insensitive、可选编号的 `MATCH/GOAL/STRATEGY/AVOID/VERIFY` heading 与 list items，并识别 trap 的 problem/fix/avoid/verify 标签。无 strategy 时返回 `insufficient-structure`，不编造步骤。
 - 相同 snapshot/time 输入生成相同 aggregate/content hash；Gene ID 从 provenance idempotency key 派生。snapshot text 首版由 schema 限制在 16,000 characters，`truncated` 显式进入 snapshot contract。
 - 新增 compactness/fidelity/governance validator 与 safety scanner；fidelity 支持lexical coverage >=0.30 或 embedding cosine >=0.50。safety scanner 覆盖 secret assignment、bearer/API token、chat transcript、stack trace、executable body、private key/binary signature、private absolute path 和 tenant identifier。duplicate callback 在前置 gate 失败时不会执行。
+- knowledge-write owner 新增 approved trap、approved artifact revision + SKILL.md unit、以及 current approved capsule 的 PostgreSQL snapshot loaders。loader 在 SQL 中强制 lifecycle/remediation eligibility，trap source hash 从 canonical revision content 派生，artifact 使用 immutable revision source hash，capsule 使用 capsule-specific canonical hash。
+- 新增 rule-first derivation orchestrator：重新读取 snapshot 后校验 revision/source-hash/snapshot-hash；stale-source 直接结束且不写 rejection。rule candidate 通过 deterministic gates 后 save candidate 并标记 validated；schema/safety/fidelity/governance rejection 写 immutable rejected event；同 provenance 主键冲突返回 idempotent，不产生第二个 active Gene。
 
 ### 当前边界
 
-本记录是 Phase 3 的第一检查点。snapshot loaders、LLM extractor、task queue/dead-letter wiring、solidify outbox 写入、staleness/remediation handlers 尚未实现；因此 Phase 3 checklist 除 payload contract 外暂不勾选。
+本记录是 Phase 3 的第二检查点。LLM extractor、task queue/outbox enqueue 与 dead-letter wiring、embedding/index retry、solidified outbox 写入、staleness/remediation handlers 尚未实现；因此 duplicate/conflict 投影集成和相关 checklist 保持打开。
 
 ### 验证证据
 
@@ -152,6 +154,8 @@ pnpm --filter @trapmap/contracts test --run src/domain/experience-gene.test.ts s
 # 2 files / 9 tests passed
 pnpm --filter @trapmap/backend-core test --run src/knowledge-write/domain/experience-gene-derivation.test.ts src/knowledge-write/domain/experience-gene-safety.test.ts src/knowledge-write/domain/experience-gene-hashing.test.ts
 # 3 files / 10 tests passed
+pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-snapshots.test.ts src/experience-gene-derivation.test.ts
+# 2 files / 6 tests passed
 pnpm typecheck
 # exit 0
 pnpm exec biome check <changed-files>

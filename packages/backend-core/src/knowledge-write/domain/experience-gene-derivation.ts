@@ -237,7 +237,7 @@ type SourceGovernance = Pick<
 
 type FidelityOptions = {
   sourceText: string;
-  embed?: (text: string) => Promise<number[]>;
+  embed?: ((text: string) => Promise<number[]>) | undefined;
 };
 
 export function checkExperienceGeneCompactness(candidate: ExperienceGene): ValidationIssue[] {
@@ -371,10 +371,12 @@ export async function validateExperienceGeneCandidate(
   options: {
     sourceText: string;
     source: SourceGovernance;
-    embed?: (text: string) => Promise<number[]>;
-    findDuplicate?: (
-      gene: ExperienceGene,
-    ) => Promise<{ sourceId: string } | null> | { sourceId: string } | null;
+    embed?: ((text: string) => Promise<number[]>) | undefined;
+    findDuplicate?:
+      | ((
+          gene: ExperienceGene,
+        ) => Promise<{ sourceId: string } | null> | { sourceId: string } | null)
+      | undefined;
   },
 ): Promise<ExperienceGeneValidationResult> {
   const issues = schemaIssues(candidate);
