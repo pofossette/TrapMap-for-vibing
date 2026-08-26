@@ -21,11 +21,12 @@ pnpm --filter @trapmap/web-panel typecheck   # TypeScript type checking only
 
 | Path | Page | Description |
 |---|---|---|
+| `/login` | Login | Access-key authentication; redirects authenticated sessions to `/` and unauthenticated `/` to `/login` via `RequireAuth` |
 | `/` | Dashboard | Runtime overview: service health, workload metrics, graph previews, active incidents |
-| `/reviews` | Review Queue | Filterable/sortable governance review queue with risk scoring |
-| `/reviews/:id` | Review Detail | Full review workspace: metadata, validation reports, JSON editor, approve/reject/return actions |
-| `/artifacts` | Artifacts | Skill artifact browser with lifecycle, scope, and level filters; detail drawer with derivation output |
-| `/trap-graph` | Trap Graph | Interactive topology visualization of traps, cues, tools, environments, and mitigations |
+| `/reviews` | Review Queue | Filterable/sortable governance review queue with risk scoring (hidden for `read-only-operator`) |
+| `/reviews/:id` | Review Detail | Full review workspace: metadata, validation reports, JSON editor, approve/reject/return actions (disabled for `read-only-operator`) |
+| `/artifacts` | Artifacts | Skill artifact browser with lifecycle, scope, and level filters; detail drawer with derivation output; mobile table scrolls horizontally (`min-w-[640px]`) |
+| `/trap-graph` | Trap Graph | Interactive topology visualization of traps, cues, tools, environments, and mitigations; `drag-canvas`/`zoom-canvas`, `autoResize`, `min-h-[450px]` responsive container |
 | `/skill-graph` | Skill Graph | Per-artifact graph in derivation or semantic mode, with inspector panel |
 | `/activity` | Activity Feed | Audit timeline of review decisions, manual interventions, and system events |
 
@@ -53,21 +54,23 @@ The panel communicates with the TrapMap gateway via `AdminPanelApiContract`. Two
 - **Real API** (`createAdminPanelApi`) -- HTTP client backed by `@trapmap/client-core`'s `apiRequest`.
 - **Mock API** (`createMockAdminPanelApi`) -- In-memory mock for local development and testing.
 
-Endpoints consumed:
+Endpoints consumed (via token-bearing `browserSessionProvider` reading `useSessionStore`):
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/v1/auth/session` | Load current session |
-| POST | `/v1/auth/session/switch` | Switch active account |
+| POST | `/v1/auth/login` | Authenticate with `accessKey` (`>=16` chars); mock validates length, real proxies to gateway and reloads `/v1/auth/session` |
+| POST | `/v1/auth/logout` | Invalidate session (best-effort, always clears local `clearSession` and navigates to `/login`) |
+| GET | `/v1/auth/session` | Load current session (used for restoration and `RequireAuth` guard) |
+| POST | `/v1/auth/session/switch` | Switch active account (role-aware navigation via `getVisibleNavigation`) |
 | GET | `/api/admin/runtime-overview` | Dashboard metrics |
 | GET | `/v1/knowledge/review-queue` | Pending review list with server-side status/search/source/risk filters, sorting, and cursor paging |
-| GET | `/api/admin/reviews/:id` | Review detail with files and activity |
-| POST | `/v1/knowledge/review` | Submit approve/reject/return decision |
+| GET | `/api/admin/reviews/:id` | Review detail with files and activity (both `files` and `activity` come from this single real response) |
+| POST | `/v1/knowledge/review` | Submit approve/reject/return decision (disabled for `read-only-operator` with `noPermission`) |
 | POST | `/api/admin/reviews/:id/json-edits` | Save manual JSON edit |
 | GET | `/api/admin/activity` | Activity feed (filterable by actor, type, time, search; cursor-paginated) |
 | GET | `/api/admin/artifacts` | Skill artifact list (filterable by lifecycle, scope, level, search) |
 | GET | `/api/admin/artifacts/:id` | Skill artifact detail |
-| GET | `/api/admin/graphs/trap` | Trap topology graph data |
+| GET | `/api/admin/graphs/trap` | Trap topology graph data (`drag-canvas`/`zoom-canvas`, `min-h-[450px]`) |
 | GET | `/api/admin/graphs/skill/:id` | Skill graph data (derivation or semantic mode) |
 
 ### State Management
@@ -114,11 +117,15 @@ Full bilingual support (Chinese `cn` and English `en`) via `useI18nStore`. All u
 pnpm --filter @trapmap/web-panel test
 ```
 
-Test files are co-located with their modules (`*.test.ts` / `*.test.tsx`). Current coverage includes:
+Test files are co-located with their modules (`*.test.ts` / `*.test.tsx`). Current suite is 27 files / 77 tests and includes:
 
-- `src/app/router/router.test.tsx` -- Route configuration assertions
-- `src/features/review-detail/service.test.ts` -- Review detail mapping and decision submission
-- `src/services/admin-panel-service-context.test.ts` -- API context creation
+- `src/app/router/router.test.tsx` + `router-code-splitting.test.ts` -- 8 lazy pages + Suspense boundary
+- `src/features/review-detail/service.test.ts` -- Review detail mapping and decision submission (`files` + `activity` from `loadReviewDetail`)
+- `src/services/admin-panel-service-context.test.ts` -- `mock` vs `real` mode, bearer `Authorization` header from `useSessionStore`, mock `login` (16-char) / `logout`
+- `src/stores/session-store.test.ts` -- `idle -> loading -> success -> error -> clearSession`, `switchError` isolation
+- `src/shared/ui/review-action-bar.test.tsx` -- RBAC `read-only-operator` disables all + `noPermission`, `rationaleRequiredWarning` gates `reject`/`return`
+- `src/shared/ui/panel-states.test.tsx` -- `EmptyState` hairline `border-dashed` + `border-panel-line`, `ErrorPanel` retry
+- `src/stores/i18n-login.test.ts` -- `loginTitle`/`noPermission` bilingual + `*:focus-visible` token presence
 - `src/services/mappers/review-item-mapper.test.ts` -- DTO-to-view-model mapping
 - `src/stores/json-editor-store.test.ts` -- JSON editor store behavior
 - `src/stores/review-queue-store.test.ts` -- Review queue store behavior
@@ -126,9 +133,12 @@ Test files are co-located with their modules (`*.test.ts` / `*.test.tsx`). Curre
 - `src/shared/ui/g6-graph-component.test.tsx` -- Graph component rendering
 - `src/shared/ui/json-editor-panel.test.tsx` -- JSON editor panel rendering
 - `src/shared/ui/localization.test.tsx` -- Localization coverage
-- `src/pages/graph-page-controls.test.tsx` -- Graph page controls
+- `src/pages/graph-page-controls.test.tsx` -- Graph page controls + `trap-graph-view` depth/search helpers
 - `src/pages/localization-regressions.test.ts` -- Localization regression checks
+- `src/styles/design-tokens.test.ts` -- Dark-first `Inter`/`JetBrains Mono`, `--panel-accent: #faff69`, radii, `40px` control, `*:focus-visible` outline
 - `src/vite-config-selection.test.ts` -- Vite config alias resolution
+
+Current production bundle (2026-08-26 tranche): main `732.38 kB (gzip 233.37)` + `login-page 1.88 kB` + G6 preset `1,411.27 kB (gzip 408.72)`; preset is async and not in first-screen script.
 
 ## Shared UI Components
 

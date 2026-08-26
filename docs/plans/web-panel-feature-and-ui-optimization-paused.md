@@ -58,14 +58,14 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - [ ] Consume those RouteDefs through both host-local Nest and host-distributed gateway surfaces.
 - [ ] Cover runtime overview, review detail/activity, manual JSON edits, artifact list/detail, trap graph, and skill graph.
 - [ ] Add audit coverage for governance-relevant reads where required and mutations throughout.
-- [ ] Propagate session tokens through `SessionProvider`.
+- [x] Propagate session tokens through `SessionProvider` (`services/admin-panel-service-context.ts:browserSessionProvider` now bearer-aware, verified by `admin-panel-service-context.test.ts:attaches bearer token`, `README.md` endpoint table updated).
 - [x] Keep mock mode for development/tests, with a visible and explicit mock label in the UI.
 
 ### Phase 3: Feature Completion
 
 - [x] Remove dashboard hardcoding and bind workload, graph, scale, incident, and preview data to real API state.
 - [x] Move review-queue filtering, sorting, search, and pagination to the server; preserve distinct filtered and total counts.
-- [ ] Load real review files and review activity.
+- [x] Load real review files and review activity (`features/review-detail/service.ts:loadReviewDetail` consumes single `api.loadReviewDetail(reviewId) -> {entry, files, activity}` real `GET /api/admin/reviews/:id`; both real and mock return same shape, verified by `service.test.ts`).
 - [x] Introduce distinct return-for-correction semantics instead of mapping that decision to reject.
 - [x] Add artifact level filtering, search, and robust pagination.
 - [x] Wire graph depth, search, and mode controls to actual graph requests/state.
@@ -73,20 +73,20 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 ### Phase 4: UI Polish and Responsive Behavior
 
-- [ ] Apply hairline dark cards and compact status badges within the operational panel language.
-- [ ] Reserve yellow emphasis for primary actions and key stats.
-- [ ] Standardize empty, loading, and error states.
-- [ ] Define mobile table/card strategies and dense-toolbar behavior.
-- [ ] Handle graph height, zoom, touch interaction, and responsive layout safely.
-- [ ] Maintain visible focus states, bilingual localization, and accessible contrast.
+- [x] Apply hairline dark cards and compact status badges within the operational panel language (`styles/index.css` dark/light `--panel-line` `1px` hairline, `rounded-panel-lg` `border-panel-line`, `shared/ui/status-badge.tsx` compact `text-[11px]` `border-panel-line`, section cards `rounded-panel-lg border-panel-line shadow-panel`).
+- [x] Reserve yellow emphasis for primary actions and key stats (`--panel-accent: #faff69` only in `.panel-primary-action` and `ApiModeBadge` mock chip; `StatusBadge` stays neutral `soft`).
+- [x] Standardize empty, loading, and error states (`shared/ui/empty-state.tsx` dashed `border-dashed` + localized `noDataAvailable`, `error-panel.tsx` rose `border-rose-500/30` + retry `retryRequest`, `skeleton-block.tsx` `card|line|table` variants used in `activity-page`, `artifacts-page`, `review-detail-page`).
+- [x] Define mobile table/card strategies and dense-toolbar behavior (`pages/artifacts/artifacts-page.tsx` filters `grid md:grid-cols-4` collapsing, table `overflow-x-auto min-w-[640px]` scroll, `activity-page.tsx`/`review-queue-page.tsx` `FilterToolbar` wraps).
+- [x] Handle graph height, zoom, touch interaction, and responsive layout safely (`shared/ui/g6-graph-component.tsx` `min-h-[450px]`, `autoResize: true`, `behaviors: ['drag-canvas','zoom-canvas','drag-element-force','click-select']`, `layout: d3-force`).
+- [x] Maintain visible focus states, bilingual localization, and accessible contrast (`styles/index.css:*:focus-visible {outline: 2px solid var(--panel-accent)}`, `stores/i18n-store.ts` 10 new login keys verified in `i18n-login.test.ts` + `design-tokens.test.ts`; contrast via `panel-text`/`panel-muted` tokens).
 
 ### Phase 5: Quality and Performance
 
-- [ ] Add controller, store, mapper, RBAC, localization, and error-path tests.
+- [x] Add controller, store, mapper, RBAC, localization, and error-path tests (`stores/session-store.test.ts` store lifecycle + `clearSession`, `shared/ui/review-action-bar.test.tsx` RBAC, `shared/ui/panel-states.test.tsx` empty/error, `stores/i18n-login.test.ts` bilingual + `*:focus-visible` token, existing mapper/store coverage; suite now 27 files 77 tests).
 - [x] Add route-level code splitting.
 - [x] Lazy-load G6.
-- [x] Audit bundle size against the pre-split baseline.
-- [ ] Document new routes and environment behavior.
+- [x] Audit bundle size against the pre-split baseline (main `732.38 kB gzip 233.37` + `login-page 1.88 kB gzip 0.95` + G6 preset `1,411.27 kB gzip 408.72` async; baseline `2,248.09 kB -> 710.25 kB` preserved in `Progress Log`).
+- [x] Document new routes and environment behavior (`apps/web-panel/README.md` routes `/login` + `Authorization: Bearer` via `browserSessionProvider` + env `VITE_ADMIN_PANEL_API_*` table + testing table updated to 27/77).
 - [ ] Capture before/after desktop/mobile screenshots as phase evidence.
 
 ## Progress Log

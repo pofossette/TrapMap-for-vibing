@@ -128,13 +128,13 @@ function ArtifactTable({
           </Button>
         </div>
       ) : (
-        <div className="border border-panel-line rounded-2xl bg-panel-surface overflow-hidden">
+        <div className="border border-panel-line rounded-2xl bg-panel-surface overflow-hidden overflow-x-auto">
           {loading ? (
             <div className="p-6 text-sm text-panel-muted">{t('loadingArtifacts')}</div>
           ) : artifacts.length === 0 ? (
             <div className="p-6 text-sm text-panel-muted">{t('noGovernedArtifacts')}</div>
           ) : (
-            <table className="w-full border-collapse text-sm">
+            <table className="min-w-[640px] w-full border-collapse text-sm">
               <thead className="bg-panel-surface-strong text-panel-muted font-mono text-[11px] uppercase tracking-wider">
                 <tr>
                   <th className="border-b border-panel-line px-4 py-3 text-left">ID</th>
