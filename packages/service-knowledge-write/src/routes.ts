@@ -8,6 +8,10 @@ import {
   routeResponse,
 } from '@trapmap/backend-core';
 import type { KnowledgeOwnerPort } from '@trapmap/contracts';
+import {
+  type ExperienceGeneDerivationTaskPayload,
+  experienceGeneDerivationTaskPayloadSchema,
+} from '@trapmap/contracts';
 import type { FastifyInstance } from 'fastify';
 import { type ZodType, z } from 'zod';
 import { trustedActor } from './route-helpers.js';
@@ -16,6 +20,7 @@ export interface KnowledgeWriteReadinessOptions {
   checkDependency?: () => Promise<{ reachable: boolean; detail?: string }>;
   getOperatorStatus?: () => Promise<Record<string, unknown>>;
   conflictCandidateRead?: Pick<KnowledgeOwnerPort, 'getById' | 'listByFilter'>;
+  experienceGeneDerive?: (request: ExperienceGeneDerivationTaskPayload) => Promise<unknown>;
 }
 
 export type KnowledgeWriteRouteDeps = KnowledgeWritePort & Partial<KnowledgeWriteReadinessOptions>;
@@ -259,6 +264,13 @@ const conflictCandidatesSchema = z.object({
   body: z.unknown(),
 });
 
+const experienceGeneDerivationSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  headers: headersSchema,
+  body: experienceGeneDerivationTaskPayloadSchema,
+});
+
 const healthSchema = z.object({
   params: emptyRecord,
   query: emptyRecord,
@@ -472,6 +484,18 @@ export function createKnowledgeWriteRouteDefs(
       handler: async (ctx, module) => {
         const body = trustedActor(ctx.headers ?? {}, ctx.body);
         return module.publishCandidateResult(body);
+      },
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'POST',
+      path: '/internal/experience-genes/derive',
+      schema: experienceGeneDerivationSchema,
+      handler: async (ctx, deps) => {
+        if (!deps.experienceGeneDerive) {
+          throw InvocationError.unavailable('experience gene derivation is not assembled');
+        }
+        return deps.experienceGeneDerive(ctx.body);
       },
     }),
 

@@ -8,6 +8,7 @@ export {
 export { assertJobRuntimeMigrationSet, runJobRuntimeMigrations } from './migrations.js';
 export { createJobRuntimeRouteDefs, registerJobRuntimeRoutes } from './routes.js';
 export { createGovernanceConflictTaskHandler } from './handlers/governance-conflict.js';
+export { createExperienceGeneDerivationTaskHandler } from './handlers/experience-gene.js';
 export {
   createGovernanceBadcaseExportDraftTaskHandler,
   createGovernanceRemediationTaskHandler,

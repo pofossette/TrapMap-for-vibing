@@ -58,6 +58,7 @@ Use `pnpm build:light`, `pnpm build:heavy`, `pnpm test:light-target`, and
 | `TRAPMAP_DEPLOYMENT_PRESET` | 部署预设：`monolith`、`api`、`candidate-worker`、`governance-worker`、`outbox-worker`；`cron-scheduler` 为已注册的分布式 cron 调度服务预设标记（capability 解析按 profile 推断） | `monolith` |
 | `TRAPMAP_GATEWAY_URL` | CLI 默认连接的单一 gateway URL；即使 `distributed` 也不改成多服务地址 | `http://127.0.0.1:4000` |
 | `TRAPMAP_TASK_TRANSPORT` | 异步任务传输提供者：`postgres` 或 `rabbitmq` | `postgres` |
+| `TRAPMAP_EXPERIENCE_GENE_MODE` | Experience Gene rollout gate：`off`、`shadow`、`serve`；`off` 不注册 Gene task consumer，后续 enqueue 接线也必须同样被此 gate 阻断 | `off` |
 | `TRAPMAP_RABBITMQ_URL` | RabbitMQ 连接串；仅在 `TRAPMAP_TASK_TRANSPORT=rabbitmq` 时必填 | 空 |
 | `TRAPMAP_RABBITMQ_TASK_EXCHANGE` | RabbitMQ task exchange 名称 | `trapmap.tasks` |
 | `TRAPMAP_RABBITMQ_TASK_QUEUE` | 当前 worker 绑定的 task queue 名称 | `trapmap.default` |

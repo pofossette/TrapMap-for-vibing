@@ -4,8 +4,10 @@ import {
   InvocationError,
   type TaskHandler,
 } from '@trapmap/backend-core';
+import { type ExperienceGeneMode, experienceGeneModeSchema } from '@trapmap/contracts';
 import type { InternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
 import {
+  createExperienceGeneDerivationTaskHandler,
   createGovernanceBadcaseExportDraftTaskHandler,
   createGovernanceConflictTaskHandler,
   createGovernanceRemediationTaskHandler,
@@ -95,12 +97,36 @@ function withLifecycleRecording(handler: TaskHandler<unknown>): TaskHandler<unkn
 }
 
 export function createJobRuntimeTaskHandlers(
-  clients: Pick<InternalServiceClients, 'governanceReview'>,
+  clients: Pick<InternalServiceClients, 'governanceReview'> & {
+    knowledgeWrite?: Pick<InternalServiceClients['knowledgeWrite'], 'deriveExperienceGene'>;
+  },
+  options: { experienceGeneMode?: ExperienceGeneMode } = {},
 ): TaskHandler<unknown>[] {
   const governanceAsyncCommands = createRemoteGovernanceAsyncCommandClient(clients);
-  return [
+  const modeResult = experienceGeneModeSchema.safeParse(options.experienceGeneMode ?? 'off');
+  if (!modeResult.success) throw new Error('Invalid experience gene rollout mode');
+
+  const handlers: TaskHandler<unknown>[] = [
     createGovernanceConflictTaskHandler(createRemoteGovernanceConflictWorkflowClient(clients)),
     createGovernanceRemediationTaskHandler(governanceAsyncCommands),
     createGovernanceBadcaseExportDraftTaskHandler(governanceAsyncCommands),
-  ].map(withLifecycleRecording);
+  ];
+  if (modeResult.data !== 'off') {
+    const knowledgeWrite = clients.knowledgeWrite;
+    if (!knowledgeWrite) {
+      throw new Error('experience gene consumption requires knowledge-write owner client');
+    }
+    handlers.push(
+      createExperienceGeneDerivationTaskHandler({
+        derive: async (request) => {
+          const response = await knowledgeWrite.deriveExperienceGene(request);
+          if (response.status < 200 || response.status >= 300) {
+            throw InvocationError.unavailable('experience gene derivation unavailable');
+          }
+          return response.body;
+        },
+      }),
+    );
+  }
+  return handlers.map(withLifecycleRecording);
 }

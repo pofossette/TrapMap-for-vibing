@@ -4,6 +4,7 @@ import {
   type RouteTestApp,
   buildRouteTestApp,
 } from '@trapmap/backend-core/testing/route-test-app.js';
+import { experienceGeneDerivationTaskPayloadSchema } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createKnowledgeWriteRouteDefs } from './routes.ts';
@@ -99,6 +100,75 @@ describe.each(ADAPTERS)('service-knowledge-write routes (%s adapter)', (adapter)
       action: 'suppress',
     });
 
+    await app.close();
+  });
+
+  it('invokes the injected experience gene derivation owner operation', async () => {
+    const source = {
+      kind: 'skill-artifact',
+      sourceId: 'artifact-1:unit',
+      sourceRevision: 4,
+      sourceHash: 'a'.repeat(64),
+      artifactId: 'artifact-1',
+      capsuleId: null,
+      artifactRevision: 4,
+    };
+    const request = experienceGeneDerivationTaskPayloadSchema.parse({
+      requestId: 'request-1',
+      source,
+      derivationUnitId: 'unit',
+      generatorKind: 'rule',
+      promptVersion: 'experience-gene-rule-v1',
+      snapshotHash: 'b'.repeat(64),
+    });
+    const deriveExperienceGene = vi.fn(async () => ({ status: 'idempotent' }));
+    const deps = {
+      ...createModule(),
+      experienceGeneDerive: deriveExperienceGene,
+    } satisfies Parameters<typeof createKnowledgeWriteRouteDefs>[0];
+    const app = await buildRouteTestApp(createKnowledgeWriteRouteDefs(deps), deps, adapter);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/experience-genes/derive',
+      payload: request,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ status: 'idempotent' });
+    expect(deriveExperienceGene).toHaveBeenCalledWith(request);
+    await app.close();
+  });
+
+  it('returns unavailable when experience gene derivation is not assembled', async () => {
+    const app = await buildApp(
+      createKnowledgeWriteRouteDefs(createModule()),
+      createModule(),
+      adapter,
+    );
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/experience-genes/derive',
+      payload: {
+        requestId: 'request-1',
+        source: {
+          kind: 'trap',
+          sourceId: 'trap-1',
+          sourceRevision: 1,
+          sourceHash: 'a'.repeat(64),
+          artifactId: null,
+          capsuleId: null,
+          artifactRevision: null,
+        },
+        derivationUnitId: 'trap:trap-1:v1',
+        generatorKind: 'rule',
+        promptVersion: 'experience-gene-rule-v1',
+        snapshotHash: 'b'.repeat(64),
+      },
+    });
+
+    expect(response.statusCode).toBe(503);
     await app.close();
   });
 

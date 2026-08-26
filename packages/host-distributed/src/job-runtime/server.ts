@@ -1,3 +1,4 @@
+import { experienceGeneModeSchema } from '@trapmap/contracts';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/internal-client.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
@@ -27,10 +28,15 @@ export async function createServer(
     pool: db.pool,
   });
   const internalClients = createInternalServiceClients(config.internalUrls);
+  const experienceGeneMode = experienceGeneModeSchema
+    .catch('off')
+    .parse(process.env.TRAPMAP_EXPERIENCE_GENE_MODE);
   const deps = createJobRuntimeDeps({
     queuePorts,
     auditLog: identity.auditLog,
-    taskHandlers: createJobRuntimeTaskHandlers(internalClients),
+    taskHandlers: createJobRuntimeTaskHandlers(internalClients, {
+      experienceGeneMode,
+    }),
     outboxHandlers: [
       {
         eventName: 'knowledge.approved',

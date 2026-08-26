@@ -117,8 +117,7 @@ async function callInternalServiceOnce(
   // emits nothing (invalid span context), so synthesize a valid header to
   // keep trace context unbroken across internal hops.
   if (!headers.traceparent) {
-    headers['traceparent'] =
-      `00-${randomBytes(16).toString('hex')}-${randomBytes(8).toString('hex')}-01`;
+    headers.traceparent = `00-${randomBytes(16).toString('hex')}-${randomBytes(8).toString('hex')}-01`;
   }
   const serviceName = 'gateway';
   const targetService = urlObj.hostname;
@@ -336,6 +335,10 @@ export interface InternalServiceClients {
     getProjectionStatus(): Promise<ServiceResponse>;
   };
   knowledgeWrite: {
+    deriveExperienceGene(
+      body: Record<string, unknown>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
     importArtifact(
       body: Record<string, unknown>,
       options?: InternalRequestOptions,
@@ -764,6 +767,14 @@ export function createInternalServiceClients(
         ),
     },
     knowledgeWrite: {
+      deriveExperienceGene: async (body, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/experience-genes/derive`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
       importArtifact: async (body, options) =>
         callInternalService(
           `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/internal/artifacts/import`,

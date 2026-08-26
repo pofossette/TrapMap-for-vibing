@@ -1,4 +1,5 @@
 import { InvocationError } from '@trapmap/backend-core';
+import { experienceGeneDerivationTaskPayloadSchema } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createJobRuntimeTaskHandlers } from './handlers.js';
@@ -18,6 +19,61 @@ describe('distributed job-runtime task handlers', () => {
       'feedback.remediation-reactivation',
       'feedback.badcase-export-draft',
     ]);
+  });
+
+  it('omits experience gene consumption when rollout is off', () => {
+    const handlers = createJobRuntimeTaskHandlers(
+      {
+        governanceReview: {
+          detectConflicts: vi.fn(),
+          reactivateRemediation: vi.fn(),
+          exportBadcaseDraft: vi.fn(),
+        },
+        knowledgeWrite: { deriveExperienceGene: vi.fn() },
+      },
+      { experienceGeneMode: 'off' },
+    );
+
+    expect(handlers.map(({ type }) => type)).not.toContain('experience-gene.derive');
+  });
+
+  it('delegates experience gene tasks to the knowledge-write owner when enabled', async () => {
+    const deriveExperienceGene = vi.fn(async () => ({ status: 'validated' }));
+    const handlers = createJobRuntimeTaskHandlers(
+      {
+        governanceReview: {
+          detectConflicts: vi.fn(),
+          reactivateRemediation: vi.fn(),
+          exportBadcaseDraft: vi.fn(),
+        },
+        knowledgeWrite: { deriveExperienceGene },
+      },
+      { experienceGeneMode: 'shadow' },
+    );
+    const handler = handlers.find(({ type }) => type === 'experience-gene.derive');
+    const request = experienceGeneDerivationTaskPayloadSchema.parse({
+      requestId: 'request-1',
+      source: {
+        kind: 'trap',
+        sourceId: 'trap-1',
+        sourceRevision: 1,
+        sourceHash: 'a'.repeat(64),
+        artifactId: null,
+        capsuleId: null,
+        artifactRevision: null,
+      },
+      derivationUnitId: 'trap:trap-1:v1',
+      generatorKind: 'rule',
+      promptVersion: 'experience-gene-rule-v1',
+      snapshotHash: 'b'.repeat(64),
+    });
+
+    await handler?.handle(
+      { id: 'gene-task', type: handler.type, payload: request, attempt: 1 },
+      new AbortController().signal,
+    );
+
+    expect(deriveExperienceGene).toHaveBeenCalledWith(request);
   });
 
   it('consumes governance conflict tasks through the governance owner client', async () => {
