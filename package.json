@@ -96,6 +96,7 @@
     "eval:snapshots": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-postgres-coordinated.ts -- pnpm exec tsx --tsconfig tsconfig.base.json evals/promptfoo/scripts/generate-snapshots.ts",
     "eval:ci:core": "TIER=core pnpm exec tsx --tsconfig tsconfig.base.json evals/scripts/eval-ci.ts",
     "eval:retrieval:live": "pnpm exec tsx --tsconfig tsconfig.base.json evals/retrieval-live/run.ts",
+    "eval:experience-gene": "pnpm exec tsx --tsconfig tsconfig.base.json evals/experience-gene/run.ts",
     "eval:retrieval:live:smoke": "pnpm exec tsx --tsconfig tsconfig.base.json evals/retrieval-live/run.ts --tier smoke",
     "eval:retrieval:live:compare": "pnpm exec tsx --tsconfig tsconfig.base.json evals/retrieval-live/compare.ts",
     "download:skills": "pnpm exec tsx scripts/batch-download-skills.ts",

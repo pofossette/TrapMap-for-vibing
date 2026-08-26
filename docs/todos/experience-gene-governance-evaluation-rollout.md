@@ -105,14 +105,23 @@ Promotion requires:
 - architecture/API/data-model/CLI/MCP docs updated;
 - rollback command verified.
 
+## Implementation checklist
+
+- [x] Freeze 3-case smoke and 10-case core Gene evaluation datasets。
+- [x] Implement focused `pnpm eval:experience-gene --tier smoke|core` runner。
+- [ ] Instrument derivation/retrieval metric families in process surfaces。
+- [ ] Run live baseline/shadow/serve task-quality comparison after deployment smoke is available。
+- [ ] Governance review at least 20 solidified Genes (or full corpus) plus rejected/stale evidence。
+- [ ] Verify rollback command against a deployed route。
+
 ## Documentation closeout
 
-- [ ] Update `docs/architecture/components/ARTIFACTS.md` for Gene as derived asset。
-- [ ] Update `docs/reference/DATA_MODEL.md` and `DATABASE_SCHEMA.md`。
-- [ ] Update `docs/reference/api-surface.md`。
-- [ ] Update CLI/MCP/client integration guides。
-- [ ] Update operations testing, observability, and environment pages with the rollout mode。
-- [ ] Confirm root `plan.md`, owner mainline and subdocument indexes agree。
+- [x] Update `docs/architecture/components/ARTIFACTS.md` for Gene as derived asset。
+- [x] Update `docs/reference/DATA_MODEL.md` and `DATABASE_SCHEMA.md`。
+- [x] Update `docs/reference/api-surface.md`。
+- [x] Update CLI/MCP/client integration guides。
+- [x] Update operations testing, observability, and environment pages with the rollout mode。
+- [x] Confirm root `plan.md`, owner mainline and subdocument indexes agree。
 
 ## Final gates
 
@@ -138,3 +147,30 @@ pnpm check:structure
 ## Debt register
 
 - Reviewer editing UX、automatic mutation loop 和 multi-gene composition 都是后续独立主题；本主线 closeout 前不得隐式扩张范围。
+
+## Execution record（2026-08-26）
+
+### 第一检查点：focused evaluation harness 与文档 truth 同步
+
+- 新增 `evals/experience-gene/`：3 个 smoke case、10 个 core case；corpus 覆盖 trap/skill-artifact/skill-capsule、rule/LLM generator、stale/deprecated、governance、empty result、broad penalty、tie-break 与 supplementary avoid。
+- Runner 复用 backend-core pure selection rules，并逐 case 执行 expected primary、known avoid cue、forbidden Gene、safety scanner、overconstraint 与 context-token budget 断言。core + serve 模式只有在 safety=0、precision>=0.80、quality 不回退、avoidance>=0.80、overconstraint<=10%、token cost increase<=10% 时才置 `promotionEligible=true`。
+- 根脚本新增 `pnpm eval:experience-gene --tier smoke|core --mode baseline|shadow|serve`。smoke/shadow 实测 precision=1.00、avoidance=1.00、safety violations=0；core/serve 实测 9 selected + 1 expected empty、precision=1.00、avoidance=1.00、supplementary avoid=7、token cost ratio≈0.90、promotion eligible=true。
+- 权威文档同步：ARTIFACTS 增加 Gene derived-asset ownership/lineage/projection boundary；API surface 记录 search endpoint 和 CLI/MCP activation；client integration 记录第 11 个 MCP tool；operations TESTING 记录 focused runner 与实测结果；observability operations 冻结 metric families 和 low-cardinality label rules；DATA_MODEL/DATABASE_SCHEMA 已在 storage 阶段记录四表模型并保持一致。
+
+### 当前边界
+
+本检查点是 deterministic offline selection/safety evaluation，不是 live agent task-quality promotion。Promotion 还必须等待 process metric emission、deployment smoke/live baseline comparison、20-Gene governance review（含 rejected/stale evidence）和 rollback verification。`pnpm eval:smoke` 继续受本地 Docker 缺失约束。
+
+### 验证证据
+
+```bash
+pnpm test:file -- evals/experience-gene/lib/runner.test.ts
+# 1 file / 4 tests passed
+pnpm eval:experience-gene --tier smoke --mode shadow
+# total 3 / selected 1 / empty 2 / precision 1 / avoidance 1 / safety 0
+pnpm eval:experience-gene --tier core --mode serve
+# total 10 / selected 9 / empty 1 / precision 1 / avoidance 1 / safety 0 / supplementary avoid 7 / promotion eligible true
+pnpm typecheck
+pnpm check:docs && pnpm check:structure && pnpm check:asserts
+pnpm exec fallow audit --base HEAD --no-cache
+```

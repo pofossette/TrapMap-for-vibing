@@ -159,6 +159,22 @@ interface HealthStatus {
 - **响应体**：标准 Prometheus exposition format，包含 `trapmap_http_requests_total`、`trapmap_http_request_duration_seconds`、`trapmap_active_connections` 等指标
 - **用途**：Prometheus scrape target
 
+#### Experience Gene metric families
+
+| Metric family | Labels | 用途 |
+|---|---|---|
+| `trapmap_experience_gene_requests_total` | `mode`, `source_kind` | Derivation request volume |
+| `trapmap_experience_gene_candidates_total` | `mode`, `generator` | Rule/LLM candidate production |
+| `trapmap_experience_gene_validation_rejections_total` | `mode`, `gate` | Deterministic gate rejections |
+| `trapmap_experience_gene_solidified_total` | `mode`, `source_kind` | Successful solidification |
+| `trapmap_experience_gene_stale_total` | `mode`, `reason_class` | Truth-source invalidation |
+| `trapmap_experience_gene_derivation_duration_ms` | `mode`, `outcome` | Derivation latency and retry analysis |
+| `trapmap_experience_gene_search_duration_ms` | `mode`, `outcome` | Gene-native search latency |
+| `trapmap_experience_gene_primary_selected_total` | `mode` | Primary Gene selection volume |
+| `trapmap_experience_gene_empty_results_total` | `mode` | Empty canonical search responses |
+
+Label values must remain low-cardinality mode/source/generator/outcome/reason-class enums; raw seed, source id, tenant id and prompt text are forbidden labels.
+
 ### 探针配置参考
 
 Kubernetes Deployment 建议配置：

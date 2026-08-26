@@ -557,6 +557,10 @@ pnpm eval:summary:core
 pnpm eval:agent-planning:smoke
 pnpm eval:agent-planning:core
 
+# 仅 Experience Gene selection/safety 评估
+pnpm eval:experience-gene --tier smoke --mode shadow
+pnpm eval:experience-gene --tier core --mode serve
+
 **`--runner promptfoo` 引擎（native 已移除）**
 
 - 六个 suite 全部运行在 promptfoo 执行引擎（SuiteBridge），自研 native case 循环与
@@ -1079,6 +1083,8 @@ PG → Memory fallback:
 | `pnpm test` | 检索层 185 tests + route 78 tests 全通过 |
 | `pnpm eval:retrieval:smoke` | 32/32 (100%), v2 Hit@1=0.82 |
 | `pnpm eval:retrieval:core` | v2 Hit@1=0.86, Hit@5=0.93, MRR=0.89, nDCG=0.91 |
+| `pnpm eval:experience-gene --tier smoke --mode shadow` | 1 selected, 2 expected empty; precision=1.00, avoidance=1.00, safety violations=0 |
+| `pnpm eval:experience-gene --tier core --mode serve` | 9 selected, 1 expected empty; precision=1.00, avoidance=1.00, safety violations=0, token cost ratio≈0.90 |
 
 **Phase 7 Baseline 对比** (v2 Core):
 

@@ -54,6 +54,10 @@ pnpm eval -- agent-planning --tier core --dry-run
 pnpm eval -- label-alignment --tier smoke --mode dry-run
 pnpm eval -- label-alignment --tier core --mode dry-run
 
+# 仅 Experience Gene selection/safety
+pnpm eval:experience-gene --tier smoke --mode shadow
+pnpm eval:experience-gene --tier core --mode serve
+
 # 从持久化 badcase trace 导出 eval draft
 pnpm exec tsx scripts/archived/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
 ```
@@ -91,6 +95,10 @@ evals/
 │   ├── datasets/                # 检索用例定义
 │   ├── scenarios/               # Fixture 状态定义
 │   └── lib/                     # 运行器基础设施
+├── experience-gene/
+│   ├── run.ts                   # Gene selection/safety runner entrypoint
+│   ├── datasets/                # 3 smoke cases + 10 core cases
+│   └── lib/                     # deterministic runner and fixture factory
 ├── summary/
 │   ├── README.md                # 摘要评测文档
 │   ├── run.ts                   # 摘要运行器入口

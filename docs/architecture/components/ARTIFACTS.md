@@ -608,6 +608,15 @@ interface CapsuleRetrievalResponse {
 
 ## 存储
 
+## Experience Gene 派生资产
+
+Experience Gene 是 trap 与 skill artifact/capsule 的派生控制资产，不是新的编辑真相源。Gene 只能由 approved、未被 remediation 抑制的 source revision/unit 派生；`solidified` 后进入独立检索投影，truth source 修订、下线或治理收紧时通过 immutable `staled` event 失效。
+
+- **Owner**：knowledge-write 拥有 derivation、lifecycle events 和 PostgreSQL aggregate；knowledge-read 只消费 ready projections。
+- **Lineage**：aggregate 保存 source kind/id/revision/hash、derivation unit、generator/prompt version；append-only events 回答 validation、rejection、solidification、stale/deprecated 状态变化。
+- **Retrieval projection**：keyword tsvector 与 pgvector embedding 均是可重建派生表；search 结果只暴露 public Gene fields，不暴露 prompt、validator internals、index error 或 raw source body。
+- **Activation**：`POST /v1/retrieval/genes/search` 返回一条 primary Gene 和最多三条 distinct-source avoid warnings。CLI 渲染 `<strategy-gene>`；MCP 返回 structured response。
+
 ### PostgreSQL 表
 
 工件通过 `PgArtifactRepository`（`artifacts/pg-repository/index.ts`）持久化到 PostgreSQL，使用原始 SQL 查询（非 Drizzle ORM）。主要表：
