@@ -7,6 +7,7 @@ export const registry: RendererRegistry = {
     'retrieval-v2': { id: 'generic:retrieval-v2', render: renderGeneric },
     'graph-plan': { id: 'generic:graph-plan', render: renderGeneric },
     'skill-lookup': { id: 'generic:skill-lookup', render: renderGeneric },
+    'experience-gene': { id: 'generic:experience-gene', render: renderGeneric },
     'artifact-export': { id: 'generic:artifact-export', render: renderGeneric },
     'command-result': { id: 'generic:command-result', render: renderGeneric },
     generic: { id: 'generic:generic', render: renderGeneric },
@@ -16,6 +17,7 @@ export const registry: RendererRegistry = {
     'retrieval-v2': { id: 'claude-code:retrieval-v2', render: renderClaude },
     'graph-plan': { id: 'claude-code:graph-plan', render: renderClaude },
     'skill-lookup': { id: 'claude-code:skill-lookup', render: renderClaude },
+    'experience-gene': { id: 'claude-code:experience-gene', render: renderClaude },
     'command-result': { id: 'claude-code:command-result', render: renderClaude },
   },
   codex: {
@@ -23,6 +25,7 @@ export const registry: RendererRegistry = {
     'retrieval-v2': { id: 'codex:retrieval-v2', render: renderCodex },
     'graph-plan': { id: 'codex:graph-plan', render: renderCodex },
     'skill-lookup': { id: 'codex:skill-lookup', render: renderCodex },
+    'experience-gene': { id: 'codex:experience-gene', render: renderCodex },
     'command-result': { id: 'codex:command-result', render: renderCodex },
   },
   opencode: {
@@ -30,6 +33,7 @@ export const registry: RendererRegistry = {
     'retrieval-v2': { id: 'opencode:retrieval-v2', render: renderOpenCode },
     'graph-plan': { id: 'opencode:graph-plan', render: renderOpenCode },
     'skill-lookup': { id: 'opencode:skill-lookup', render: renderOpenCode },
+    'experience-gene': { id: 'opencode:experience-gene', render: renderOpenCode },
     'command-result': { id: 'opencode:command-result', render: renderOpenCode },
   },
 };

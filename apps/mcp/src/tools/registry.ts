@@ -1,17 +1,18 @@
 import type { ToolDefinition } from './shared.js';
 
+import { searchExperienceGenesTool } from './experience-gene.js';
 import {
   completeRemediationTool,
   getReviewDetailTool,
   listReviewQueueTool,
   reviewDecisionTool,
 } from './governance-tools.js';
+import { searchKnowledgeTool } from './search-knowledge.js';
+import { readSkillFilesTool } from './skill-files.js';
+import { getSkillManifestTool } from './skill-manifest.js';
 import { submitFeedbackTool } from './submit-feedback.js';
 import { submitKnowledgeTool } from './submit-knowledge.js';
 import { submitSkillDraftTool } from './submit-skill-draft.js';
-import { readSkillFilesTool } from './skill-files.js';
-import { getSkillManifestTool } from './skill-manifest.js';
-import { searchKnowledgeTool } from './search-knowledge.js';
 
 /**
  * Registry of all TrapMap MCP tools. Populated by the tool-group tasks
@@ -19,6 +20,7 @@ import { searchKnowledgeTool } from './search-knowledge.js';
  */
 export const allTools: ToolDefinition[] = [
   searchKnowledgeTool,
+  searchExperienceGenesTool,
   getSkillManifestTool,
   readSkillFilesTool,
   submitKnowledgeTool,

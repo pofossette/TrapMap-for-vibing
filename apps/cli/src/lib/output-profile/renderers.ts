@@ -1,8 +1,10 @@
 import type {
+  GeneSearchResponse,
   RetrievalResponse,
   RetrievalV2Response,
   SkillLookupResponse,
 } from '@trapmap/contracts';
+import { formatStrategyGene } from '@trapmap/lib';
 
 import { formatLoadContext } from '@trapmap/cli/lib/markdown-formatter.js';
 import type { GraphPlanSearchResponse } from '@trapmap/contracts';
@@ -358,6 +360,9 @@ export function renderGeneric(envelope: RenderEnvelope<RenderPayload>): string {
       view.querySummary,
       ...view.matches.map((item) => `Match: ${String(item.artifactId)} -> ${String(item.title)}`),
     ].join('\n');
+  }
+  if (envelope.kind === 'experience-gene') {
+    return formatStrategyGene(envelope.payload as GeneSearchResponse);
   }
   if (envelope.kind === 'command-result') {
     const view = buildCommandResultView(envelope.payload as Record<string, unknown>);

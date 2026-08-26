@@ -121,8 +121,8 @@ Strategy:
 - [x] 实现 merge/rerank/select pure domain functions。
 - [x] 注册 internal and external RouteDefs in both hosts。
 - [x] 补 distributed internal client forwarding。
-- [ ] CLI/MCP formatter/renderer integration。
-- [ ] 更新 api-surface and route-surface expectations。
+- [x] CLI/MCP formatter/renderer integration。
+- [x] 更新 api-surface and route-surface expectations。
 - [ ] 为 off/shadow/serve 三态补 route/config tests。
 
 ## Test plan
@@ -159,6 +159,7 @@ pnpm eval:smoke
 - service-knowledge-read 新增 `createExperienceGeneRouteDefs(deps)`，同时声明 internal/external POST routes；trusted actor/header context 只允许 external team filter 收窄。off 时两条 route 返回 disabled envelope，shadow 仅放行 internal，serve 正常 search。
 - PostgreSQL search adapter 组合 governed tsvector 与 pgvector recall，应用 team/security/scope/label filters，并复用 pure selection 输出一条 primary Gene 与最多三条 distinct-source avoid warnings。
 - host-local monolith 注入 in-process Pg search port 并只把 factory 的 `/v1` external route 加进 gateway；distributed knowledge-read 注册 internal route，gateway 通过 typed internal client 复用同一 external factory。
+- shared formatter 落在 `@trapmap/lib::formatStrategyGene`，保持 strategy 顺序并把 avoid cue 渲染为独立 `AVOID:` 行。CLI 新增 `search-gene` 并注册 four profiles 的 `experience-gene` renderer；MCP 新增 `trapmap_search_experience_genes` structured tool。
 
 ### 验证证据
 
@@ -172,6 +173,12 @@ pnpm --filter @trapmap/service-knowledge-read test --run src/experience-gene-ret
 pnpm --filter @trapmap/host-local test --run src/nest/config/config.test.ts src/nest/runtime/experience-gene-composition.test.ts src/nest/knowledge-read/experience-gene-route-defs.test.ts
 # 3 files / 5 tests passed
 pnpm --filter @trapmap/host-distributed test --run src/gateway/experience-gene-route-defs.test.ts
+# 1 file / 2 tests passed
+pnpm --filter @trapmap/lib test --run src/strategy-gene.test.ts
+# 1 file / 2 tests passed
+pnpm --filter @trapmap/cli test --run src/lib/output-profile.test.ts src/commands/retrieval.test.ts
+# 2 files / 63 tests passed
+pnpm --filter @trapmap/app-mcp test --run src/tools/experience-gene.test.ts
 # 1 file / 2 tests passed
 pnpm typecheck
 # exit 0

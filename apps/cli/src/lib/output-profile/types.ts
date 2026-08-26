@@ -1,4 +1,5 @@
 import type {
+  GeneSearchResponse,
   GraphPlanSearchResponse,
   RetrievalResponse,
   RetrievalV2Response,
@@ -15,6 +16,7 @@ import type {
 export type RenderKind =
   | 'retrieval-v1'
   | 'retrieval-v2'
+  | 'experience-gene'
   | 'graph-plan'
   | 'skill-lookup'
   | 'artifact-export'
@@ -44,6 +46,7 @@ export interface Renderer<T = RenderPayload> {
 export type RenderPayload =
   | RetrievalResponse
   | RetrievalV2Response
+  | GeneSearchResponse
   | GraphPlanSearchResponse
   | SkillLookupResponse
   | Record<string, unknown>;

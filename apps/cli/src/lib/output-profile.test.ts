@@ -1,4 +1,5 @@
 import type {
+  GeneSearchResponse,
   GraphPlanSearchResponse,
   RetrievalResponse,
   RetrievalV2Response,
@@ -31,6 +32,7 @@ describe('output profile helpers', () => {
     expect(resolveRenderKind('retrieval-v2')).toBe('retrieval-v2');
     expect(resolveRenderKind('graph-plan')).toBe('graph-plan');
     expect(resolveRenderKind('skill-lookup')).toBe('skill-lookup');
+    expect(resolveRenderKind('experience-gene')).toBe('experience-gene');
   });
 
   it('falls back to generic renderer when tool-specific kind renderer is unavailable', () => {
@@ -95,7 +97,13 @@ describe('output profile helpers', () => {
   });
 
   it('produces renderer ids for each supported tool skeleton', () => {
-    const kinds = ['retrieval-v1', 'retrieval-v2', 'graph-plan', 'skill-lookup'] as const;
+    const kinds = [
+      'retrieval-v1',
+      'retrieval-v2',
+      'graph-plan',
+      'skill-lookup',
+      'experience-gene',
+    ] as const;
 
     for (const tool of ['generic', 'claude-code', 'codex', 'opencode'] as const) {
       for (const kind of kinds) {
@@ -110,6 +118,62 @@ describe('output profile helpers', () => {
         expect(renderer.id).toBe(`${tool}:${kind}`);
       }
     }
+  });
+
+  it('renders a Gene response as the frozen strategy control block', () => {
+    const payload: GeneSearchResponse = {
+      primaryGene: {
+        gene: {
+          geneId: 'gene-1',
+          schemaVersion: '1',
+          status: 'solidified',
+          title: 'Bound retry fan-out at the queue boundary',
+          signalsMatch: ['queue retries'],
+          summary: 'Cap retry concurrency.',
+          strategy: ['Claim the lease', 'Publish once'],
+          avoid: ['Publish from every retry'],
+          constraints: [],
+          validation: [],
+          labels: ['queue'],
+          scope: 'project',
+          teamId: null,
+          requiredLevel: 2,
+          updatedAt: '2026-08-26T00:00:00.000Z',
+        },
+        score: 0.91,
+        reason: 'exact-signal',
+        sourceCitation: {
+          kind: 'trap',
+          sourceId: 'trap-1',
+          sourceRevision: 1,
+          artifactId: null,
+          capsuleId: null,
+        },
+        warnings: [],
+      },
+      supplementaryAvoid: [],
+    };
+
+    expect(createRenderEnvelope('experience-gene', payload, getDefaultOutputProfile())).toEqual({
+      kind: 'experience-gene',
+      payload,
+      context: expect.objectContaining({ tool: 'generic' }),
+    });
+    const renderer = resolveRenderer(getDefaultOutputProfile(), 'experience-gene');
+    expect(
+      renderer.render(createRenderEnvelope('experience-gene', payload, getDefaultOutputProfile())),
+    ).toBe(
+      [
+        '<strategy-gene>',
+        'Domain keywords: queue retries',
+        'Summary: Cap retry concurrency.',
+        'Strategy:',
+        '  1. Claim the lease',
+        '  2. Publish once',
+        '  3. AVOID: Publish from every retry',
+        '</strategy-gene>',
+      ].join('\n'),
+    );
   });
 
   it('accepts all first-phase payload shapes when constructing envelopes', () => {

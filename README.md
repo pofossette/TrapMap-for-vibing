@@ -66,7 +66,7 @@ TrapMap 的核心思路不是“把所有 Skill 都塞进上下文”，而是�
 - 只拉取当前任务真正需要的文件，避免默认全量注入上下文
 - CLI、服务端 API 与评测工具配套，方便集成和迭代
 
-- **MCP（agent 接入）**：`apps/mcp` 提供 stdio MCP server——检索、manifest、按需文件、草稿写与角色门控治理共 10 个工具；TrapMap 仍是受治理的后端数据源（见 `docs/guides/CLIENT_INTEGRATION.md`）。
+- **MCP（agent 接入）**：`apps/mcp` 提供 stdio MCP server——检索、Gene 检索、manifest、按需文件、草稿写与角色门控治理共 11 个工具；TrapMap 仍是受治理的后端数据源（见 `docs/guides/CLIENT_INTEGRATION.md`）。
 
 ## 它和常见方案有什么不同
 

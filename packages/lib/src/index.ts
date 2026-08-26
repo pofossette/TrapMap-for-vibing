@@ -14,6 +14,7 @@ export { sha256 } from './hash.js';
 export { sha256CanonicalJson } from './canonical-hash.js';
 export { cosineSimilarity, createDeterministicFallbackVector, normalizeVector } from './vector.js';
 export { canonicalJsonStringify } from './canonical-json.js';
+export { formatStrategyGene } from './strategy-gene.js';
 export { cronNextRun, cronValidate } from './cron.js';
 export { asRecord } from './object.js';
 export { prefixedId } from './id.js';

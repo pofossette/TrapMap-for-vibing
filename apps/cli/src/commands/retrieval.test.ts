@@ -1,5 +1,10 @@
 import type { RetrievalResponse, RetrievalV2Response } from '@trapmap/contracts';
-import { retrievalResponseSchema, retrievalV2ResponseSchema } from '@trapmap/contracts';
+import {
+  createExperienceGeneFixture,
+  geneSearchResponseSchema,
+  retrievalResponseSchema,
+  retrievalV2ResponseSchema,
+} from '@trapmap/contracts';
 import { Command } from 'commander';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -1651,6 +1656,45 @@ describe('CLI retrieval commands', () => {
       expect(parsed.globalConstraints[0]).not.toHaveProperty('indexState');
       expect(parsed.globalConstraints[0]).not.toHaveProperty('ownerUserId');
 
+      consoleLogSpy.mockRestore();
+    });
+  });
+
+  describe('search-gene command', () => {
+    it('calls the Gene search endpoint and renders the strategy control block', async () => {
+      const gene = createExperienceGeneFixture();
+      const response = geneSearchResponseSchema.parse({
+        primaryGene: {
+          gene,
+          score: 0.91,
+          reason: 'exact-signal',
+          sourceCitation: gene.source,
+          warnings: [],
+        },
+        supplementaryAvoid: [],
+      });
+      vi.mocked(http.apiRequest).mockResolvedValue({ data: response, sessionToken: 'mock-token' });
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const program = new Command();
+      registerRetrievalCommands(program, { allowSearch: true });
+      await program.parseAsync(['search-gene', 'queue retry'], { from: 'user' });
+
+      expect(http.apiRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          method: 'POST',
+          path: '/v1/retrieval/genes/search',
+          body: expect.objectContaining({
+            seed: 'queue retry',
+            maxResults: 1,
+            includeActivationHints: false,
+          }),
+        }),
+      );
+      const output = consoleLogSpy.mock.calls.map((call) => call[0]).join('\n');
+      expect(output).toContain('<strategy-gene>');
+      expect(output).toContain('AVOID: Retry publishes directly from the request handler');
       consoleLogSpy.mockRestore();
     });
   });

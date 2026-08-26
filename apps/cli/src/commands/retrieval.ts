@@ -1,11 +1,22 @@
-import type { ConflictHint, RetrievalResponse, RetrievalV2Response } from '@trapmap/contracts';
-import { retrievalResponseSchema, retrievalV2ResponseSchema } from '@trapmap/contracts';
+import type {
+  ConflictHint,
+  GeneSearchResponse,
+  RetrievalResponse,
+  RetrievalV2Response,
+} from '@trapmap/contracts';
+import {
+  geneSearchQuerySchema,
+  geneSearchResponseSchema,
+  retrievalResponseSchema,
+  retrievalV2ResponseSchema,
+} from '@trapmap/contracts';
 import type { Command } from 'commander';
 
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { collectValues, resolveSearchSeed } from '@trapmap/cli/lib/input.js';
 import { printAdaptiveResult } from '@trapmap/cli/lib/output.js';
+import { formatStrategyGene } from '@trapmap/lib';
 
 interface RetrievalCommandOptions {
   allowSearch: boolean;
@@ -169,6 +180,50 @@ function formatV2RetrievalResponse(response: RetrievalV2Response): string {
   return joinSections(sections);
 }
 
+function registerExperienceGeneSearchCommand(program: Command): void {
+  program
+    .command('search-gene')
+    .description('Search for one governed Experience Gene strategy block')
+    .argument('[seed]', 'Task, error, or goal seed text')
+    .option('--label <label>', 'Filter by label', collectValues, [])
+    .option('--scope <scope>', 'Filter by scope (global or project)')
+    .option('--max-results <n>', 'Maximum number of genes (1-5)', '1')
+    .option('--stdin', 'Read search seed from stdin')
+    .option('--json', 'Output JSON')
+    .action(
+      async (
+        seed: string | undefined,
+        flags: {
+          label: string[];
+          scope?: string;
+          maxResults: string;
+          stdin?: boolean;
+          json?: boolean;
+        },
+      ) => {
+        const state = await loadCliState();
+        requireSessionToken(state);
+        const searchSeed = await resolveSearchSeed(seed, flags);
+        const body = geneSearchQuerySchema.parse({
+          seed: searchSeed,
+          filters: {
+            labels: flags.label,
+            ...(flags.scope ? { scopes: [flags.scope] } : {}),
+          },
+          maxResults: Number.parseInt(flags.maxResults, 10),
+          includeActivationHints: false,
+        });
+        const response = await apiRequest<GeneSearchResponse>(state, {
+          method: 'POST',
+          path: '/v1/retrieval/genes/search',
+          body,
+        });
+        const parsed = geneSearchResponseSchema.parse(response.data);
+        printAdaptiveResult('experience-gene', parsed, state, flags, formatStrategyGene);
+      },
+    );
+}
+
 export function registerRetrievalCommands(
   program: Command,
   options: RetrievalCommandOptions,
@@ -261,4 +316,6 @@ export function registerRetrievalCommands(
         }
       },
     );
+
+  registerExperienceGeneSearchCommand(program);
 }

@@ -107,11 +107,12 @@ pnpm --filter @trapmap/app-mcp start
 
 Agent 宿主以 stdio 方式挂载该进程即可。可选：`TRAPMAP_MCP_ROLE`（viewer/contributor/reviewer/operator，默认 viewer）、`TRAPMAP_MCP_SCRIPT_POLICY`（脚本四态策略的本地收紧覆盖）。
 
-### 工具面（10 个）
+### 工具面（11 个）
 
 | 工具 | 最低角色 | 后端端点 | 语义约束 |
 |---|---|---|---|
 | trapmap_search_knowledge | viewer | POST /v1/retrieval/search | 仅元数据结果 |
+| trapmap_search_experience_genes | viewer | POST /v1/retrieval/genes/search | 结构化 Gene response；不返回 validator internals 或 source body |
 | trapmap_get_skill_manifest | viewer | POST /v1/operations/artifacts/export | 内容剥离的 manifest |
 | trapmap_read_skill_files | viewer | POST /v1/operations/artifacts/export | 四态激活策略客户端强制；blocked 拒绝 |
 | trapmap_submit_knowledge | contributor | POST /v1/knowledge | 草稿进审核队列；无 lifecycle_state/actorId 入参 |
