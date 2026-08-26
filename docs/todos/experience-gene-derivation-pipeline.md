@@ -94,7 +94,7 @@ stale Gene 不参与 serve 模式。重建成功后旧 Gene 转 deprecated，新
 
 ## Implementation checklist
 
-- [ ] 定义 outbox event payloads 和 task payload schemas。
+- [x] 定义 outbox event payloads 和 task payload schemas。
 - [ ] 实现 trap/skill/capsule snapshot loaders。
 - [ ] 实现 rule extractor 与 parser tests。
 - [ ] 实现 LLM extractor 与 structured failure tests。
@@ -131,3 +131,31 @@ pnpm typecheck
 ## Debt register
 
 - 自动 fidelity threshold 首版保守设置；若 false rejection 过高，先补充 badcase 再调参，不在事故中临时放宽安全 gate。
+
+## Execution record（2026-08-26）
+
+### 已完成实现
+
+- Contracts 新增 bounded trap/skill-artifact/skill-capsule immutable snapshot schemas、truth-source lifecycle event schema 和 solidified outbox payload schema；已知 lifecycle payload 必须携带 `entryId` 或 `artifactId`，未知 shape 不会进入 Gene handler。
+- backend-core knowledge-write domain 新增 deterministic rule extractor：支持 case-insensitive、可选编号的 `MATCH/GOAL/STRATEGY/AVOID/VERIFY` heading 与 list items，并识别 trap 的 problem/fix/avoid/verify 标签。无 strategy 时返回 `insufficient-structure`，不编造步骤。
+- 相同 snapshot/time 输入生成相同 aggregate/content hash；Gene ID 从 provenance idempotency key 派生。snapshot text 首版由 schema 限制在 16,000 characters，`truncated` 显式进入 snapshot contract。
+- 新增 compactness/fidelity/governance validator 与 safety scanner；fidelity 支持lexical coverage >=0.30 或 embedding cosine >=0.50。safety scanner 覆盖 secret assignment、bearer/API token、chat transcript、stack trace、executable body、private key/binary signature、private absolute path 和 tenant identifier。duplicate callback 在前置 gate 失败时不会执行。
+
+### 当前边界
+
+本记录是 Phase 3 的第一检查点。snapshot loaders、LLM extractor、task queue/dead-letter wiring、solidify outbox 写入、staleness/remediation handlers 尚未实现；因此 Phase 3 checklist 除 payload contract 外暂不勾选。
+
+### 验证证据
+
+```bash
+pnpm --filter @trapmap/contracts test --run src/domain/experience-gene.test.ts src/domain/experience-gene-events.test.ts
+# 2 files / 9 tests passed
+pnpm --filter @trapmap/backend-core test --run src/knowledge-write/domain/experience-gene-derivation.test.ts src/knowledge-write/domain/experience-gene-safety.test.ts src/knowledge-write/domain/experience-gene-hashing.test.ts
+# 3 files / 10 tests passed
+pnpm typecheck
+# exit 0
+pnpm exec biome check <changed-files>
+# exit 0
+pnpm exec fallow audit --base HEAD --no-cache
+# verdict pass; no introduced dead-code, complexity, duplication, or boundary findings
+```

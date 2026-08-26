@@ -2,10 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { createExperienceGeneFixture } from './experience-gene-fixtures.js';
 import {
+  EXPERIENCE_GENE_DEPRECATED_OUTBOX_EVENT,
   EXPERIENCE_GENE_DERIVE_TASK_EVENT,
   EXPERIENCE_GENE_SOLIDIFIED_OUTBOX_EVENT,
+  EXPERIENCE_GENE_STALED_OUTBOX_EVENT,
   experienceGeneDerivationTaskPayloadSchema,
   experienceGeneEventSchema,
+  experienceGeneSourceLifecycleEventSchema,
+  experienceGeneSourceSnapshotSchema,
 } from './experience-gene.js';
 
 describe('experience gene events', () => {
@@ -73,5 +77,49 @@ describe('experience gene events', () => {
     expect(payload.requestId).toBe('request-1');
     expect(EXPERIENCE_GENE_DERIVE_TASK_EVENT).toBe('experience-gene.derive');
     expect(EXPERIENCE_GENE_SOLIDIFIED_OUTBOX_EVENT).toBe('experience-gene.solidified');
+    expect(EXPERIENCE_GENE_STALED_OUTBOX_EVENT).toBe('experience-gene.staled');
+    expect(EXPERIENCE_GENE_DEPRECATED_OUTBOX_EVENT).toBe('experience-gene.deprecated');
+  });
+
+  it('parses bounded immutable source snapshots', () => {
+    const trap = experienceGeneSourceSnapshotSchema.parse({
+      kind: 'trap',
+      sourceId: 'trap-1',
+      revision: 3,
+      sourceHash: 'a'.repeat(64),
+      derivationUnitId: 'trap:trap-1:v3',
+      title: 'Queue retry storm',
+      labels: ['queue'],
+      scope: 'project',
+      teamId: null,
+      requiredLevel: 2,
+      text: 'Problem: retries fan out\nFix: claim a lease first',
+      truncated: false,
+    });
+
+    expect(trap.kind).toBe('trap');
+    expect(() => experienceGeneSourceSnapshotSchema.parse({ ...trap, secretToken: 'x' })).toThrow();
+  });
+
+  it('validates known truth-source lifecycle payloads without guessing shapes', () => {
+    const event = experienceGeneSourceLifecycleEventSchema.parse({
+      name: 'knowledge.approved',
+      entryId: 'entry-1',
+      previousState: 'agent-pass',
+      nextState: 'approved',
+      actorId: 'user-1',
+      reason: 'approved',
+      timestamp: '2026-08-26T00:00:00.000Z',
+    });
+
+    expect(event.entryId).toBe('entry-1');
+    expect(() =>
+      experienceGeneSourceLifecycleEventSchema.parse({
+        name: 'artifact.approved',
+        entryId: 'wrong-id',
+        nextState: 'approved',
+        timestamp: '2026-08-26T00:00:00.000Z',
+      }),
+    ).toThrow();
   });
 });

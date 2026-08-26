@@ -9,9 +9,11 @@ import {
   geneStatusSchema,
 } from '../enum-types/experience-gene.js';
 import {
+  type LifecycleState,
   entityIdSchema,
   isoTimestampSchema,
   labelSchema,
+  lifecycleStateSchema,
   scopeSchema,
   securityLevelSchema,
   sha256HexSchema,
@@ -232,6 +234,109 @@ export const experienceGeneDerivationTaskPayloadSchema = z
 
 export type ExperienceGeneDerivationTaskPayload = z.infer<
   typeof experienceGeneDerivationTaskPayloadSchema
+>;
+
+const snapshotGovernance = {
+  labels: z.array(labelSchema).min(1).max(20),
+  scope: scopeSchema,
+  teamId: entityIdSchema.nullable(),
+  requiredLevel: securityLevelSchema,
+};
+
+const snapshotProvenance = {
+  revision: z.number().int().min(1),
+  sourceHash: sha256HexSchema,
+  derivationUnitId: z.string().min(1).max(160),
+  title: z.string().min(1).max(280),
+  text: z.string().max(16_000),
+  truncated: z.boolean(),
+};
+
+export const experienceGeneSourceSnapshotSchema = z.discriminatedUnion('kind', [
+  z
+    .object({
+      kind: z.literal('trap'),
+      sourceId: entityIdSchema,
+      ...snapshotProvenance,
+      ...snapshotGovernance,
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('skill-artifact'),
+      sourceId: entityIdSchema,
+      artifactId: entityIdSchema,
+      artifactRevision: z.number().int().min(1),
+      ...snapshotProvenance,
+      ...snapshotGovernance,
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('skill-capsule'),
+      sourceId: entityIdSchema,
+      artifactId: entityIdSchema,
+      artifactRevision: z.number().int().min(1),
+      capsuleId: entityIdSchema,
+      situation: z.string().max(4_000),
+      problem: z.string().max(4_000),
+      goal: z.string().max(4_000),
+      errorText: z.string().max(4_000),
+      contextualPrefix: z.string().max(4_000).nullable(),
+      sourcePaths: z.array(z.string().min(1).max(280)).max(50),
+      ...snapshotProvenance,
+      ...snapshotGovernance,
+    })
+    .strict(),
+]);
+
+export type ExperienceGeneSourceSnapshot = z.infer<typeof experienceGeneSourceSnapshotSchema>;
+
+export const experienceGeneSourceLifecycleEventSchema = z
+  .object({
+    name: z.enum([
+      'knowledge.approved',
+      'knowledge.lifecycle-updated',
+      'knowledge.rejected',
+      'artifact.approved',
+      'artifact.lifecycle-updated',
+      'artifact.deactivated',
+    ]),
+    entryId: entityIdSchema.nullable(),
+    artifactId: entityIdSchema.nullable().optional(),
+    previousState: lifecycleStateSchema.nullable().optional(),
+    nextState: z.custom<LifecycleState>(),
+    actorId: entityIdSchema.nullable().optional(),
+    reason: z.string().max(500).nullable().optional(),
+    timestamp: isoTimestampSchema,
+    sourceEventId: entityIdSchema.nullable().optional(),
+  })
+  .strict()
+  .superRefine((event, context) => {
+    const knowledge = event.name.startsWith('knowledge.');
+    if (knowledge && !event.entryId) {
+      context.addIssue({ code: 'custom', message: 'knowledge events require entryId' });
+    }
+    if (!knowledge && !event.artifactId) {
+      context.addIssue({ code: 'custom', message: 'artifact events require artifactId' });
+    }
+  });
+
+export type ExperienceGeneSourceLifecycleEvent = z.infer<
+  typeof experienceGeneSourceLifecycleEventSchema
+>;
+
+export const experienceGeneSolidifiedOutboxPayloadSchema = z
+  .object({
+    geneId: entityIdSchema,
+    source: experienceGeneSourceSchema,
+    contentHash: sha256HexSchema,
+    occurredAt: isoTimestampSchema,
+  })
+  .strict();
+
+export type ExperienceGeneSolidifiedOutboxPayload = z.infer<
+  typeof experienceGeneSolidifiedOutboxPayloadSchema
 >;
 
 export const EXPERIENCE_GENE_DERIVE_TASK_EVENT = 'experience-gene.derive';

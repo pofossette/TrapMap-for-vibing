@@ -5,6 +5,7 @@
 - **Active mainline（2026-08-25 启动）。**
 - 本细则是根 `plan.md` 当前唯一链接的 owner execution surface。
 - 执行顺序固定为基础设施先行，然后进入契约、派生、检索和治理 rollout。
+- Phase 1-2 已提交；Phase 3 完成 payload contract、deterministic rule extractor 和 validation/safety gate 第一检查点，loader/task wiring/staleness 仍在执行中。
 - Phase 1 实现已落地并通过 focused tests、typecheck 和新增发现审计；阶段 closeout 仍受 Fallow branch baseline 决策与本机 Docker 环境门控约束，详见 [infrastructure problem pool](experience-gene-infrastructure-foundation.md#problem-pool)。
 
 ## Background
