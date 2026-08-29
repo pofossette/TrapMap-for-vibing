@@ -427,7 +427,8 @@ describe('CLI load command — integration with real formatter', () => {
 
     expect(output).toContain('<!-- trapmap-load-context -->');
     expect(output).toContain('<!-- /trapmap-load-context -->');
-    expect(output).toContain('### Blocking Traps');
+    expect(output).toContain('### Nodes (1)');
+    expect(output).toContain('[001]');
     expect(output).toContain('[HARD] Avoid global state');
     expect(output).toContain('### Routing');
     expect(output).toContain('Mode: mix');

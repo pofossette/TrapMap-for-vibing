@@ -349,7 +349,10 @@ describe('output profile helpers', () => {
       artifactId: 'artifact.prepare',
       label: 'Prepare migration rollout',
     });
-    expect(parsed.next_steps).toEqual(['Prepare migration rollout', 'Run throttled backfill']);
+    expect(parsed.next_steps).toEqual([
+      '[001] Prepare migration rollout (rank 0, blockedBy: -)',
+      '[002] Run throttled backfill (rank 1, blockedBy: [001])',
+    ]);
     expect(parsed.activation_hints[0]).toMatchObject({
       artifactId: 'artifact.prepare',
       references: ['docs/migrations.md'],

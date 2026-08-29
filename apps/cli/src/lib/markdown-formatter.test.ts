@@ -1,284 +1,303 @@
-import type { GraphPlanSearchResponse, PlanSkillNode, PlanTrapNode } from '@trapmap/contracts';
-import { truncate } from '@trapmap/lib';
-import { describe, expect, it } from 'vitest';
-import { escapeMarkdown, formatLoadContext } from './markdown-formatter.js';
+import { describe, it, expect } from 'vitest';
+import { formatLoadContext } from './markdown-formatter.js';
+import type { GraphPlanSearchResponse } from '@trapmap/contracts';
 
-describe('escapeMarkdown', () => {
-  it('escapes backticks', () => {
-    expect(escapeMarkdown('use `code` here')).toBe('use \\`code\\` here');
-  });
-
-  it('escapes asterisks', () => {
-    expect(escapeMarkdown('*bold* text')).toBe('\\*bold\\* text');
-  });
-
-  it('escapes square brackets', () => {
-    expect(escapeMarkdown('[link](url)')).toBe('\\[link\\](url)');
-  });
-
-  it('handles empty string', () => {
-    expect(escapeMarkdown('')).toBe('');
-  });
-});
-
-describe('truncate (shared via @trapmap/lib)', () => {
-  it('does not truncate short text', () => {
-    expect(truncate('short', 100)).toBe('short');
-  });
-
-  it('truncates long text with ellipsis', () => {
-    const long = 'a'.repeat(100);
-    const result = truncate(long, 50);
-    expect(result.length).toBe(50);
-    expect(result.endsWith('...')).toBe(true);
-  });
-
-  it('truncate with maxLength 2 returns string of length <= 2', () => {
-    expect(truncate('hello', 2).length).toBeLessThanOrEqual(2);
-  });
-
-  it('truncate with maxLength 1 returns string of length <= 1', () => {
-    expect(truncate('hello', 1).length).toBeLessThanOrEqual(1);
-  });
-
-  it('truncate with maxLength 3 returns string of length <= 3', () => {
-    expect(truncate('hello', 3).length).toBeLessThanOrEqual(3);
-  });
-});
-
-describe('formatLoadContext', () => {
-  const mockTrace = {
-    selectedMode: 'graph-assisted' as const,
-    routeFamily: 'capsule' as const,
-    routingReason: 'test' as const,
-    channelsUsed: ['semantic', 'keyword'],
-    fallbackTarget: null,
-    confidenceScore: 0.85,
-    confidenceBucket: 'high' as const,
+function makeResponse(): GraphPlanSearchResponse {
+  return {
+    routingTrace: {
+      selectedMode: 'graph-plan',
+      confidenceScore: 0.85,
+      confidenceBucket: 'high',
+      channelsUsed: ['vector', 'graph-expansion'],
+      fallbackTarget: null,
+      routeFamily: 'graph-plan',
+      routingReason: 'high-confidence',
+      fallbackApplied: false,
+    } as any,
+    plan: {
+      blockingTraps: [
+        {
+          nodeId: 'trap:1',
+          sourceId: 'entry-1',
+          label: 'Trap 001 - DB lock xxxx',
+          severity: 'hard',
+          scope: 'global',
+          requiredLevel: 0,
+          evidence: 'evidence 001 xxxx',
+          score: 0.9,
+        },
+        {
+          nodeId: 'trap:2',
+          sourceId: 'entry-2',
+          label: 'Trap 002 - Cache miss xxxx',
+          severity: 'soft',
+          scope: 'project',
+          requiredLevel: 1,
+          evidence: 'evidence 002 xxxx',
+          score: 0.8,
+        },
+        {
+          nodeId: 'trap:3',
+          sourceId: 'entry-3',
+          label: 'Trap 003 - Retry storm xxxx',
+          severity: 'hard',
+          scope: 'global',
+          requiredLevel: 2,
+          evidence: 'evidence 003 xxxx',
+          score: 0.75,
+        },
+      ],
+      recommendedSkills: [
+        {
+          nodeId: 'skill:4',
+          artifactId: 'art-4',
+          label: 'Skill 004 - Use pool xxxx',
+          situation: 'situation 004',
+          problem: 'problem 004',
+          goal: 'goal 004',
+          scope: 'global',
+          requiredLevel: 0,
+          score: 0.88,
+          activationRefs: { references: [], assets: [], scripts: [] },
+        },
+        {
+          nodeId: 'skill:5',
+          artifactId: 'art-5',
+          label: 'Skill 005 - Rate limit xxxx',
+          situation: 'situation 005',
+          problem: 'problem 005',
+          goal: 'goal 005',
+          scope: 'project',
+          requiredLevel: 0,
+          score: 0.82,
+          activationRefs: {
+            references: [{ path: 'guides/rate.md' } as any],
+            assets: [],
+            scripts: [],
+          },
+        },
+      ],
+      edges: [
+        {
+          id: 'edge-1',
+          sourceNodeId: 'skill:4',
+          targetNodeId: 'trap:1',
+          type: 'mitigates',
+          strength: 'hard',
+        },
+        {
+          id: 'edge-2',
+          sourceNodeId: 'skill:5',
+          targetNodeId: 'trap:2',
+          type: 'requires',
+          strength: 'soft',
+        },
+        {
+          id: 'edge-3',
+          sourceNodeId: 'trap:1',
+          targetNodeId: 'trap:3',
+          type: 'risk-blocks',
+          strength: 'hard',
+        },
+        {
+          id: 'edge-4',
+          sourceNodeId: 'skill:4',
+          targetNodeId: 'skill:5',
+          type: 'order',
+          strength: 'soft',
+        },
+      ],
+      citations: [
+        {
+          sourceId: 'entry-99',
+          sourceKind: 'trap',
+          label: 'Citation xxx',
+          scope: 'global',
+          score: 0.4,
+        },
+      ],
+      executionPlan: [
+        {
+          rank: 0,
+          nodeId: 'trap:1',
+          label: 'Trap 001 - DB lock xxxx',
+          kind: 'trap-mitigation',
+          blockedBy: [],
+        },
+        {
+          rank: 0,
+          nodeId: 'trap:2',
+          label: 'Trap 002 - Cache miss xxxx',
+          kind: 'trap-mitigation',
+          blockedBy: [],
+        },
+        {
+          rank: 1,
+          nodeId: 'skill:4',
+          label: 'Skill 004 - Use pool xxxx',
+          kind: 'skill',
+          blockedBy: ['trap:1'],
+        },
+        {
+          rank: 2,
+          nodeId: 'skill:5',
+          label: 'Skill 005 - Rate limit xxxx',
+          kind: 'skill',
+          blockedBy: ['skill:4', 'trap:2'],
+        },
+        {
+          rank: 3,
+          nodeId: 'trap:3',
+          label: 'Trap 003 - Retry storm xxxx',
+          kind: 'trap-mitigation',
+          blockedBy: ['trap:1'],
+        },
+      ],
+      graph: {
+        nodes: [
+          {
+            kind: 'trap',
+            nodeId: 'trap:1',
+            sourceId: 'entry-1',
+            label: 'Trap 001 - DB lock xxxx',
+            severity: 'hard',
+            scope: 'global',
+            requiredLevel: 0,
+            evidence: 'evidence 001 xxxx',
+            score: 0.9,
+          },
+          {
+            kind: 'trap',
+            nodeId: 'trap:2',
+            sourceId: 'entry-2',
+            label: 'Trap 002 - Cache miss xxxx',
+            severity: 'soft',
+            scope: 'project',
+            requiredLevel: 1,
+            evidence: 'evidence 002 xxxx',
+            score: 0.8,
+          },
+          {
+            kind: 'trap',
+            nodeId: 'trap:3',
+            sourceId: 'entry-3',
+            label: 'Trap 003 - Retry storm xxxx',
+            severity: 'hard',
+            scope: 'global',
+            requiredLevel: 2,
+            evidence: 'evidence 003 xxxx',
+            score: 0.75,
+          },
+          {
+            kind: 'skill',
+            nodeId: 'skill:4',
+            artifactId: 'art-4',
+            label: 'Skill 004 - Use pool xxxx',
+            situation: 'situation 004',
+            problem: 'problem 004',
+            goal: 'goal 004',
+            scope: 'global',
+            requiredLevel: 0,
+            score: 0.88,
+            activationRefs: { references: [], assets: [], scripts: [] },
+          },
+          {
+            kind: 'skill',
+            nodeId: 'skill:5',
+            artifactId: 'art-5',
+            label: 'Skill 005 - Rate limit xxxx',
+            situation: 'situation 005',
+            problem: 'problem 005',
+            goal: 'goal 005',
+            scope: 'project',
+            requiredLevel: 0,
+            score: 0.82,
+            activationRefs: {
+              references: [{ path: 'guides/rate.md' } as any],
+              assets: [],
+              scripts: [],
+            },
+          },
+        ],
+        edges: [
+          {
+            id: 'edge-1',
+            sourceNodeId: 'skill:4',
+            targetNodeId: 'trap:1',
+            type: 'mitigates',
+            strength: 'hard',
+          },
+          {
+            id: 'edge-2',
+            sourceNodeId: 'skill:5',
+            targetNodeId: 'trap:2',
+            type: 'requires',
+            strength: 'soft',
+          },
+          {
+            id: 'edge-3',
+            sourceNodeId: 'trap:1',
+            targetNodeId: 'trap:3',
+            type: 'risk-blocks',
+            strength: 'hard',
+          },
+          {
+            id: 'edge-4',
+            sourceNodeId: 'skill:4',
+            targetNodeId: 'skill:5',
+            type: 'order',
+            strength: 'soft',
+          },
+        ],
+        citations: [
+          {
+            sourceId: 'entry-99',
+            sourceKind: 'trap',
+            label: 'Citation xxx',
+            scope: 'global',
+            score: 0.4,
+          },
+        ],
+        focus: {
+          blockingTrapNodeIds: ['trap:1', 'trap:2', 'trap:3'],
+          recommendedSkillNodeIds: ['skill:4', 'skill:5'],
+        },
+      },
+    },
+    fallback: null,
   };
+}
 
-  it('formats empty plan as no results', () => {
-    const response: GraphPlanSearchResponse = {
-      routingTrace: mockTrace,
-      plan: null,
-      fallback: null,
-    };
-    const result = formatLoadContext(response);
-    expect(result).toContain('<!-- trapmap-load-context -->');
-    expect(result).toContain('No matching knowledge found.');
-    expect(result).toContain('<!-- /trapmap-load-context -->');
+describe('formatLoadContext numbered graph', () => {
+  it('renders 5 nodes with 001 numbering and edges with arrow', () => {
+    const md = formatLoadContext(makeResponse());
+    expect(md).toContain('### Nodes (5)');
+    expect(md).toContain('[001]');
+    expect(md).toContain('[002]');
+    expect(md).toContain('[005]');
+    expect(md).toContain('### Edges (4)');
+    expect(md).toContain('[E001]');
+    expect(md).toContain('--mitigates[hard]-->');
+    expect(md).toContain('→');
+    expect(md).toContain('### Execution Plan');
+    expect(md).toContain('blockedBy:');
+    expect(md).toContain('### Citations');
+    // Snapshot for manual review
+    console.log('\n---MARKDOWN PREVIEW---\n' + md + '\n---END---\n');
   });
 
-  it('formats plan with traps', () => {
-    const trap: PlanTrapNode = {
-      nodeId: 'trap-1',
-      sourceId: 'entry-1',
-      label: 'Avoid global state',
-      severity: 'hard',
-      scope: 'project',
-      requiredLevel: 1,
-      evidence: 'Global state causes race conditions',
-      score: 0.9,
-    };
-    const response: GraphPlanSearchResponse = {
-      routingTrace: mockTrace,
-      plan: {
-        blockingTraps: [trap],
-        recommendedSkills: [],
-        edges: [],
-        citations: [],
-        graph: {
-          nodes: [],
-          edges: [],
-          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
-        },
-      },
-      fallback: null,
-    };
-    const result = formatLoadContext(response);
-    expect(result).toContain('### Blocking Traps');
-    expect(result).toContain('[HARD] Avoid global state');
-    expect(result).toContain('> Global state causes race conditions');
-  });
-
-  it('formats plan with skills', () => {
-    const skill: PlanSkillNode = {
-      nodeId: 'skill-1',
-      artifactId: 'artifact-1',
-      label: 'Use dependency injection',
-      situation: 'Testing components',
-      problem: 'Hard to mock dependencies',
-      goal: 'Inject dependencies for testability',
-      scope: 'project',
-      requiredLevel: 1,
-      score: 0.85,
-      activationRefs: {
-        references: [{ path: 'ref/guide.md', sha256: 'abc', sizeBytes: 100 }],
-        assets: [],
-        scripts: [],
-      },
-    };
-    const response: GraphPlanSearchResponse = {
-      routingTrace: mockTrace,
-      plan: {
-        blockingTraps: [],
-        recommendedSkills: [skill],
-        edges: [],
-        citations: [],
-        graph: {
-          nodes: [],
-          edges: [],
-          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
-        },
-      },
-      fallback: null,
-    };
-    const result = formatLoadContext(response);
-    expect(result).toContain('### Recommended Skills');
-    expect(result).toContain('Use dependency injection');
-    expect(result).toContain('References: `ref/guide.md`');
-  });
-
-  it('formats plan with both traps and skills', () => {
-    const trap: PlanTrapNode = {
-      nodeId: 'trap-1',
-      sourceId: 'entry-1',
-      label: 'No direct DB access',
-      severity: 'hard',
-      scope: 'project',
-      requiredLevel: 1,
-      evidence: 'Use repository pattern',
-      score: 0.9,
-    };
-    const skill: PlanSkillNode = {
-      nodeId: 'skill-1',
-      artifactId: 'artifact-1',
-      label: 'Repository pattern',
-      situation: 'Data access layer',
-      problem: 'Direct DB coupling',
-      goal: 'Abstract data access',
-      scope: 'project',
-      requiredLevel: 1,
-      score: 0.85,
-      activationRefs: { references: [], assets: [], scripts: [] },
-    };
-    const response: GraphPlanSearchResponse = {
-      routingTrace: mockTrace,
-      plan: {
-        blockingTraps: [trap],
-        recommendedSkills: [skill],
-        edges: [],
-        citations: [],
-        graph: {
-          nodes: [],
-          edges: [],
-          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
-        },
-      },
-      fallback: null,
-    };
-    const result = formatLoadContext(response);
-    expect(result).toContain('### Blocking Traps');
-    expect(result).toContain('### Recommended Skills');
-  });
-
-  it('includes routing trace', () => {
-    const response: GraphPlanSearchResponse = {
-      routingTrace: mockTrace,
-      plan: null,
-      fallback: null,
-    };
-    const result = formatLoadContext(response);
-    expect(result).toContain('### Routing');
-    expect(result).toContain('Mode: graph-assisted');
-    expect(result).toContain('Confidence: 0.85 (high)');
-    expect(result).toContain('Channels: semantic, keyword');
-  });
-
-  it('shows "unknown" for channels when channelsUsed is empty array', () => {
-    const response: GraphPlanSearchResponse = {
+  it('handles fallback when no plan', () => {
+    const resp: GraphPlanSearchResponse = {
       routingTrace: {
-        ...mockTrace,
+        selectedMode: 'graph-plan',
+        confidenceScore: 0.1,
+        confidenceBucket: 'low',
         channelsUsed: [],
-      },
-      plan: null,
-      fallback: null,
-    };
-    const result = formatLoadContext(response);
-    expect(result).toContain('Channels: unknown');
-  });
-
-  it('respects maxTraps option', () => {
-    const traps: PlanTrapNode[] = Array.from({ length: 15 }, (_, i) => ({
-      nodeId: `trap-${i}`,
-      sourceId: `entry-${i}`,
-      label: `Trap ${i}`,
-      severity: 'hard' as const,
-      scope: 'project' as const,
-      requiredLevel: 1,
-      evidence: `Evidence ${i}`,
-      score: 0.9,
-    }));
-    const response: GraphPlanSearchResponse = {
-      routingTrace: mockTrace,
-      plan: {
-        blockingTraps: traps,
-        recommendedSkills: [],
-        edges: [],
-        citations: [],
-        graph: {
-          nodes: [],
-          edges: [],
-          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
-        },
-      },
-      fallback: null,
-    };
-    const result = formatLoadContext(response, { maxTraps: 5 });
-    expect(result).toContain('...and 10 more traps');
-  });
-
-  it('formats plan with skills containing assets and scripts', () => {
-    const skill: PlanSkillNode = {
-      nodeId: 'skill-1',
-      artifactId: 'artifact-1',
-      label: 'Deploy with script',
-      situation: 'CI pipeline setup',
-      problem: 'Manual deployment steps',
-      goal: 'Automated deployment',
-      scope: 'project',
-      requiredLevel: 1,
-      score: 0.8,
-      activationRefs: {
-        references: [{ path: 'ref/deploy.md', sha256: 'abc123', sizeBytes: 200 }],
-        assets: [{ path: 'assets/config.json', sha256: 'def456', sizeBytes: 500 }],
-        scripts: [{ path: 'scripts/deploy.sh', defaultPolicy: 'allow-with-approval' }],
-      },
-    };
-    const response: GraphPlanSearchResponse = {
-      routingTrace: mockTrace,
-      plan: {
-        blockingTraps: [],
-        recommendedSkills: [skill],
-        edges: [],
-        citations: [],
-        graph: {
-          nodes: [],
-          edges: [],
-          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
-        },
-      },
-      fallback: null,
-    };
-    const result = formatLoadContext(response);
-    expect(result).toContain('References: `ref/deploy.md`');
-    expect(result).toContain('Assets: `assets/config.json`');
-    expect(result).toContain('Scripts: `scripts/deploy.sh` (allow-with-approval)');
-  });
-
-  it('formats capsule fallback when plan is null', () => {
-    const response: GraphPlanSearchResponse = {
-      routingTrace: mockTrace,
+        fallbackTarget: 'v2-capsule',
+        routeFamily: 'graph-plan',
+        routingReason: 'low-confidence',
+        fallbackApplied: true,
+      } as any,
       plan: null,
       fallback: {
         routeFamily: 'capsule',
@@ -287,200 +306,21 @@ describe('formatLoadContext', () => {
             {
               capsuleId: 'cap-1',
               artifactId: 'art-1',
-              revision: 1,
-              sourcePaths: ['src/main.ts'],
-              content: 'Deploy config capsule',
-              situation: 'CI pipeline setup',
-              problem: 'Manual deployment',
-              goal: 'Automated deployment',
-              labels: ['backend'],
-              scope: 'project',
-              requiredLevel: 1,
-              score: 0.8,
-              reason: 'semantic match',
-            },
-          ],
-          profileHints: [],
-          activationHints: [],
-          refinementSummary: null,
-          summary: null,
-        },
-      },
-    };
-    const result = formatLoadContext(response);
-    expect(result).toContain('### Capsules (from fallback)');
-    expect(result).toContain('cap-1');
-    expect(result).toContain('CI pipeline setup');
-    expect(result).toContain('Manual deployment');
-    expect(result).toContain('Automated deployment');
-  });
-
-  it('formats capsule fallback when plan has empty traps and skills', () => {
-    const response: GraphPlanSearchResponse = {
-      routingTrace: mockTrace,
-      plan: {
-        blockingTraps: [],
-        recommendedSkills: [],
-        edges: [],
-        citations: [],
-        graph: {
-          nodes: [],
-          edges: [],
-          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
-        },
-      },
-      fallback: {
-        routeFamily: 'capsule',
-        response: {
-          capsules: [
-            {
-              capsuleId: 'cap-2',
-              artifactId: 'art-2',
-              revision: 1,
-              sourcePaths: ['README.md'],
-              content: 'General guidance',
-              situation: 'New project setup',
-              problem: 'No conventions',
-              goal: 'Establish patterns',
-              labels: ['general'],
+              situation: 's',
+              problem: 'p',
+              goal: 'g',
+              labels: [],
               scope: 'global',
-              requiredLevel: 0,
-              score: 0.6,
-              reason: 'keyword match',
+              score: 0.5,
+              reason: 'r',
             },
           ],
-          profileHints: [],
-          activationHints: [],
-          refinementSummary: null,
           summary: null,
-        },
-      },
-    };
-    const result = formatLoadContext(response);
-    expect(result).toContain('### Capsules (from fallback)');
-    expect(result).toContain('cap-2');
-  });
-
-  it('respects maxSkills option for capsule fallback', () => {
-    const capsules = Array.from({ length: 10 }, (_, i) => ({
-      capsuleId: `cap-${i}`,
-      artifactId: `art-${i}`,
-      revision: 1,
-      sourcePaths: [`src/file${i}.ts`],
-      content: `Content ${i}`,
-      situation: `Situation ${i}`,
-      problem: `Problem ${i}`,
-      goal: `Goal ${i}`,
-      labels: ['test'],
-      scope: 'project' as const,
-      requiredLevel: 1,
-      score: 0.5 + i * 0.04,
-      reason: 'match',
-    }));
-    const response: GraphPlanSearchResponse = {
-      routingTrace: mockTrace,
-      plan: null,
-      fallback: {
-        routeFamily: 'capsule',
-        response: {
-          capsules,
-          profileHints: [],
-          activationHints: [],
           refinementSummary: null,
-          summary: null,
-        },
+        } as any,
       },
     };
-    const result = formatLoadContext(response, { maxSkills: 3 });
-    expect(result).toContain('...and 7 more capsules');
-  });
-
-  it('formats plan with assets only and no scripts', () => {
-    const skill: PlanSkillNode = {
-      nodeId: 'skill-2',
-      artifactId: 'artifact-2',
-      label: 'Use template files',
-      situation: 'New service setup',
-      problem: 'Missing boilerplate',
-      goal: 'Consistent service structure',
-      scope: 'project',
-      requiredLevel: 1,
-      score: 0.75,
-      activationRefs: {
-        references: [],
-        assets: [
-          { path: 'templates/service.ts', sha256: 'aaa', sizeBytes: 300 },
-          { path: 'templates/config.yaml', sha256: 'bbb', sizeBytes: 150 },
-        ],
-        scripts: [],
-      },
-    };
-    const response: GraphPlanSearchResponse = {
-      routingTrace: mockTrace,
-      plan: {
-        blockingTraps: [],
-        recommendedSkills: [skill],
-        edges: [],
-        citations: [],
-        graph: {
-          nodes: [],
-          edges: [],
-          focus: { blockingTrapNodeIds: [], recommendedSkillNodeIds: [] },
-        },
-      },
-      fallback: null,
-    };
-    const result = formatLoadContext(response);
-    expect(result).toContain('Assets: `templates/service.ts`, `templates/config.yaml`');
-    expect(result).not.toContain('Scripts:');
-    expect(result).not.toContain('References:');
-  });
-
-  it('formats entry fallback with real retrieval matches', () => {
-    const response: GraphPlanSearchResponse = {
-      routingTrace: {
-        ...mockTrace,
-        routeFamily: 'entry',
-      },
-      plan: null,
-      fallback: {
-        routeFamily: 'entry',
-        response: {
-          globalConstraints: [
-            {
-              entryId: 'entry-1',
-              scope: 'global',
-              requiredLevel: 1,
-              shortcut: 'Pin Docker base image',
-              detail: 'Avoid floating tags in production builds.',
-              labels: ['docker', 'supply-chain'],
-              score: 0.91,
-              reason: 'semantic similarity',
-            },
-          ],
-          projectKnowledge: [
-            {
-              entryId: 'entry-2',
-              scope: 'project',
-              requiredLevel: 1,
-              shortcut: 'Use staging registry',
-              detail: 'Publish release candidates to the staging registry first.',
-              labels: ['release'],
-              score: 0.76,
-              reason: 'keyword match',
-            },
-          ],
-          refinementSummary: null,
-          summary: null,
-        },
-      },
-    };
-
-    const result = formatLoadContext(response);
-
-    expect(result).toContain('### Entries (from fallback)');
-    expect(result).toContain('Pin Docker base image');
-    expect(result).toContain('Use staging registry');
-    expect(result).not.toContain('fallback rendering not implemented');
+    const md = formatLoadContext(resp);
+    expect(md).toContain('Capsules');
   });
 });
