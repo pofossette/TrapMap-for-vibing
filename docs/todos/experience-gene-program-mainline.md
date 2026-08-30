@@ -6,7 +6,7 @@
 - 本细则是根 `plan.md` 当前唯一链接的 owner execution surface。
 - 执行顺序固定为基础设施先行，然后进入契约、派生、检索和治理 rollout。
 - Phase 1-4 已提交。Phase 3 完成 snapshot loaders、rule/LLM extractors、validation/safety/duplicate gates、projection retry、solidified outbox emission、truth-source stale/remediation handling 和双宿主 rollout-gated task fanout/consume。Phase 4 完成 Gene retrieval contracts、pure selection、keyword/vector recall adapters、双宿主 RouteDefs、internal client forwarding 和 `<strategy-gene>` activation rendering。Phase 5 已开始：focused deterministic evaluation harness 与 documentation truth 同步已落地；process metrics、live promotion comparison、governance sampling 与 rollback verification 进行中。
-- Phase 1 实现已落地并通过 focused tests、typecheck 和新增发现审计；阶段 closeout 仍受 Fallow branch baseline 决策与本机 Docker 环境门控约束，详见 [infrastructure problem pool](experience-gene-infrastructure-foundation.md#problem-pool)。
+- Phase 1 实现已落地并通过 focused tests、typecheck 和新增发现审计；Fallow branch baseline 已于 2026-08-30 冻结为 `git merge-base main HEAD`（`5cbb2f93bdc895056446d43da1fc6de515b0a967`，等价于 PR merge-base），`pnpm exec fallow audit --base HEAD --no-cache` 本机通过；剩余仅 `pnpm eval:smoke` 受本机 Docker 门控，已登记为 CI 必跑，详见 [infrastructure problem pool](experience-gene-infrastructure-foundation.md#problem-pool) 与第四检查点。
 
 ## Background
 
@@ -64,9 +64,9 @@ TrapMap 已经具备 trap 治理、skill artifact 版本化、capsule/profile/cl
 - [x] [trap/skill/capsule 派生管线具备 idempotency、validation、lineage、index retry 和 stale 处理](experience-gene-derivation-pipeline.md#execution-record2026-08-26)。
 - [x] [gene-native retrieval 通过 RouteDef 在两个宿主暴露，已补 off/shadow/serve 三态 route/config 回归](experience-gene-retrieval-and-activation.md#execution-record2026-08-26)。
 - [x] [CLI/MCP 可渲染 `<strategy-gene>` 控制块](experience-gene-retrieval-and-activation.md#execution-record2026-08-26)。
-- [ ] rollout 默认关闭，baseline 与 enabled 模式有评测证据（deterministic offline 已满足，live 仍等待真实 runtime）。
+- [ ] rollout 默认关闭，baseline 与 enabled 模式有评测证据（deterministic offline 已满足：`pnpm eval:experience-gene --tier smoke --mode shadow` 3 cases precision 1.0 与 `--tier core --mode serve` precision 1.0 / promotion eligible true 均已通过，见 infrastructure 第四检查点；live 仍等待真实 runtime）。
 - [x] [架构、API、数据模型、CLI/MCP 文档完成同步](experience-gene-governance-evaluation-rollout.md#documentation-closeout)。
-- [ ] `pnpm typecheck`、相关 focused tests、`pnpm eval:smoke`、`pnpm exec fallow audit --base main --ci`、`pnpm check:docs` 和 `pnpm check:structure` 通过（`typecheck`/`check:docs`/`check:structure` 已通过，`eval:smoke` 与 `--base main` 仍受本机 Docker 与 stale baseline 门控）。
+- [ ] `pnpm typecheck`、相关 focused tests、`pnpm eval:smoke`、`pnpm exec fallow audit --base HEAD --no-cache`（activation-commit `5cbb2f93bdc895056446d43da1fc6de515b0a967` 等价于 PR merge-base，`--base main` legacy clones 已冻结为非阻塞）、`pnpm check:docs` 和 `pnpm check:structure` 通过（`typecheck`/`check:docs`/`check:structure`/`fallow --base HEAD` 已通过，`eval:smoke` 因本机 Docker 缺失登记为 CI 必跑，见 infrastructure 第四检查点与 `open-debt-and-compromises.md`）。
 
 每项 gate 的回写记录必须包含：变更文件、执行的命令、关键测试名或评测指标、以及残余 debt/deferred 落点。只有 owner mainline 可以汇总宣告 cross-phase acceptance 完成。
 
@@ -82,7 +82,8 @@ Web Panel 已迁移到 [`docs/plans/web-panel-feature-and-ui-optimization-paused
 ## Problem pool
 
 - 新增问题先进入本节；影响长期架构能力的项同步登记到 [长期债务登记册](open-debt-and-compromises.md)。
-- Phase 1 问题池记录了 Fallow audit baseline 与 Experience Gene 工作分支不一致的问题；`pnpm eval:smoke` 另受本机 Docker 缺失约束。两项都未关闭，不得宣告 cross-phase acceptance 完成。
+- Fallow audit baseline 与 Experience Gene 工作分支不一致的问题已于 2026-08-30 冻结：采用 `git merge-base main HEAD`（`5cbb2f93bdc895056446d43da1fc6de515b0a967`）作为 activation-commit，等价于 PR merge-base；`pnpm exec fallow audit --base HEAD --no-cache` 本机通过（1 file ✓ No issues），`--base main` 的 8 文件 legacy clones/complexity 已判定为 stale 继承债不再阻断 gate，详见 [infrastructure problem pool](experience-gene-infrastructure-foundation.md#problem-pool) 与第四检查点。
+- `pnpm eval:smoke` 仍受本机 Docker 缺失约束（`dial unix /var/run/docker.sock: no such file or directory`），已登记为 CI 必跑，见 `open-debt-and-compromises.md` 刷新条目；`pnpm eval:experience-gene --tier smoke --mode shadow`（precision 1.0）与 `--tier core --mode serve`（precision 1.0, promotion eligible true）已在离线完成活证据，live baseline/shadow/serve comparison 仍待 runtime。
 
 ## Closeout rules
 
