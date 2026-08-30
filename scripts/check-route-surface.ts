@@ -44,35 +44,29 @@ export interface SurfaceViolation {
 export const SURFACE_EXEMPTIONS: readonly string[] = ['/v2/retrieval/search'];
 
 /**
- * Pre-existing inventory drift frozen at guard adoption.
+ * Pre-existing inventory drift — retired server docs not in gateway.
  *
- * These are not approvals for new endpoints. They record drift that predates
- * the guard (retired server-package docs and gateway routes missing canonical
- * API-surface rows) and are tracked together in
- * docs/todos/open-debt-and-compromises.md. New paths must never be added here;
- * fix the route or documentation instead.
+ * T3 reconciliation (2026-08-30): real gateway RouteDefs now have canonical
+ * api-surface rows for `/v1/cron/*` (7 routes), `/v1/jobs*` (3 routes),
+ * `/v1/knowledge/projection-status`, `/v1/knowledge/decay`,
+ * `/v1/knowledge/maintenance`, `/v1/candidates/:candidateId/resolution`, and
+ * ARTIFACTS.md history artifacts paths (`/v1/operations/artifacts`,
+ * `/v1/operations/artifacts/:id/derive`). Those 13 entries were removed from
+ * this list (43 → 30). Remaining 30 are retired `packages/server`
+ * (Wave-10 deleted) docs still present in `docs/reference/api-surface.md`
+ * for historical reference but not implemented in any host gateway. They are
+ * tracked together in `docs/todos/open-debt-and-compromises.md` and
+ * `SURFACE_EXEMPTIONS` still only holds `/v2/retrieval/search`. New paths must
+ * never be added here; fix the route or documentation instead.
  */
 export const SURFACE_INVENTORY_DRIFT: readonly string[] = [
   '/v1/admin/reconcile-knowledge-indexes',
   '/v1/auth/login',
   '/v1/auth/session',
-  '/v1/candidates/:candidateId/resolution',
-  '/v1/cron/jobs',
-  '/v1/cron/jobs/:jobId',
-  '/v1/cron/jobs/:jobId/trigger',
-  '/v1/cron/status',
   '/v1/duplicates',
   '/v1/duplicates/:candidateId',
   '/v1/duplicates/:candidateId/bundle',
-  '/v1/jobs',
-  '/v1/jobs/:jobId',
-  '/v1/jobs/queue',
   '/v1/knowledge/:id/evidence',
-  '/v1/knowledge/decay',
-  '/v1/knowledge/maintenance',
-  '/v1/knowledge/projection-status',
-  '/v1/operations/artifacts',
-  '/v1/operations/artifacts/:id/derive',
   '/v1/operations/audit',
   '/v1/operations/badcases/:feedbackId/export',
   '/v1/operations/capsule-index/cleanup-orphans',
