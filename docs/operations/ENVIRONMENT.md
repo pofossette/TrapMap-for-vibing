@@ -57,13 +57,14 @@ Use `pnpm build:light`, `pnpm build:heavy`, `pnpm test:light-target`, and
 | `TRAPMAP_DEPLOYMENT_PROFILE` | 目标部署形态：`local-agent`、`team-monolith`、`distributed`。这是产品/部署叙事层，不直接替代 runtime/preset | 未设置（按 `TRAPMAP_DEPLOYMENT_PRESET` 推断） |
 | `TRAPMAP_DEPLOYMENT_PRESET` | 部署预设：`monolith`、`api`、`candidate-worker`、`governance-worker`、`outbox-worker`；`cron-scheduler` 为已注册的分布式 cron 调度服务预设标记（capability 解析按 profile 推断） | `monolith` |
 | `TRAPMAP_GATEWAY_URL` | CLI 默认连接的单一 gateway URL；即使 `distributed` 也不改成多服务地址 | `http://127.0.0.1:4000` |
-| `TRAPMAP_TASK_TRANSPORT` | 异步任务传输提供者：`postgres` 或 `rabbitmq` | `postgres` |
+| `TRAPMAP_TASK_TRANSPORT` | 异步任务传输提供者：`postgres`（默认）或 `rabbitmq`/`amqp`；`amqp` 为 `host-distributed` 对 `rabbitmq` 的别名，`postgres` 仍为默认且 `domain_event_outbox` 在所有模式下保留 PostgreSQL | `postgres` |
 | `TRAPMAP_EXPERIENCE_GENE_MODE` | Experience Gene rollout gate：`off`、`shadow`、`serve`；`off` 不注册 Gene task consumer，后续 enqueue 接线也必须同样被此 gate 阻断 | `off` |
 | `TRAPMAP_EXPERIENCE_GENES_MODE` | Experience Gene retrieval rollout gate：`off`、`shadow`、`serve`；`shadow` 允许 internal search，external 返回 canonical disabled envelope | `off` |
-| `TRAPMAP_RABBITMQ_URL` | RabbitMQ 连接串；仅在 `TRAPMAP_TASK_TRANSPORT=rabbitmq` 时必填 | 空 |
+| `TRAPMAP_RABBITMQ_URL` | RabbitMQ 连接串；仅在 `TRAPMAP_TASK_TRANSPORT=rabbitmq` 或 `amqp` 时必填 | 空 |
 | `TRAPMAP_RABBITMQ_TASK_EXCHANGE` | RabbitMQ task exchange 名称 | `trapmap.tasks` |
 | `TRAPMAP_RABBITMQ_TASK_QUEUE` | 当前 worker 绑定的 task queue 名称 | `trapmap.default` |
 | `TRAPMAP_RABBITMQ_PREFETCH` | RabbitMQ consumer prefetch | `1` |
+| `TRAPMAP_JOB_RUNTIME_DATABASE_URL` | job-runtime 可选隔离库；设置时 `job-runtime` 使用独立 PostgreSQL，缺省回退至 `TRAPMAP_DATABASE_URL`/`DATABASE_URL` 共享库；其余服务不读取该变量 | 空（回退共享库） |
 
 profile 兼容约定：
 
@@ -115,9 +116,10 @@ profile capability 语义：
 关键约束：
 
 - `domain_event_outbox` 在所有模式下都保留 PostgreSQL，不受 `TRAPMAP_TASK_TRANSPORT` 影响。
-- `TRAPMAP_TASK_TRANSPORT=rabbitmq` 只适用于 task-capable runtime。
-- 没有明确 backlog / isolation 需求时，建议保持 `TRAPMAP_TASK_TRANSPORT=postgres`。
-- `TRAPMAP_TASK_TRANSPORT=rabbitmq` 且 `runtimeMode=api` 时，不应假设 API 进程自己拥有 shared-job backlog；应确保独立 worker preset 在运行，这类风险会通过 `configGovernance.conflictWarnings` 暴露。
+- `TRAPMAP_TASK_TRANSPORT=rabbitmq`/`amqp` 只适用于 task-capable runtime；`host-local` 经 Zod 校验 `postgres`/`rabbitmq`，`host-distributed` 将 `amqp` 归一为 `rabbitmq` 语义（`packages/host-distributed/src/job-runtime/server.ts`），默认值在所有宿主保持 `postgres`。
+- 没有明确 backlog / isolation 需求时，建议保持 `TRAPMAP_TASK_TRANSPORT=postgres`（显式不设该变量即为默认）；切到 `amqp`/`rabbitmq` 需同时提供 `TRAPMAP_RABBITMQ_URL` 等 RabbitMQ 配置，缺失时宿主启动期 fail-fast。
+- `TRAPMAP_TASK_TRANSPORT=rabbitmq`/`amqp` 且 `runtimeMode=api` 时，不应假设 API 进程自己拥有 shared-job backlog；应确保独立 worker preset 在运行，这类风险会通过 `configGovernance.conflictWarnings` 暴露。
+- `TRAPMAP_JOB_RUNTIME_DATABASE_URL` 仅影响 `job-runtime`（见 `packages/host-distributed/src/shared/database.ts`）；设置后 `job-runtime` 指向隔离库，缺省回退共享库，等价性与回滚需经双库双跑与回滚演练验证（见 `docs/architecture/DEPLOYMENT.md` L3 章节与 `scripts/verify-l3-platform.ts`）。
 
 ### Phase 4 freeze
 

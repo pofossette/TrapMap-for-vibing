@@ -1,3 +1,6 @@
+# L3 verification overlay — replicas check (candidate-worker:2 / outbox-worker:2) and transport default pg
+# Verify offline: pnpm exec tsx scripts/verify-l3-platform.ts --check compose-replicas --check transport-default
+# Live smokes (CI_REQUIRED): TRAPMAP_TASK_TRANSPORT=amqp pg default unchanged; dual-DB via TRAPMAP_JOB_RUNTIME_DATABASE_URL
 services:
   migration:
     container_name: !reset null

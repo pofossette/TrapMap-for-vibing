@@ -105,6 +105,54 @@ Phase 5 freeze 固定 distributed baseline / runtime-isolation 的当前叙事�
 - compose 文案必须按当前事实收口：checked-in compose 证明的是 `distributed` profile 可展开 gateway 与多进程 worker/service 拓扑；当前已补齐 shared `trapmap-distributed` network，并把内部默认 URL 收口到 Docker DNS（`gateway`、`identity-access`、`knowledge-read`、`knowledge-write`、`candidate-worker`、`governance-worker`、`outbox-worker`），从而消除跨容器 `localhost` 回退。
 - deferred 边界保持显式：当前只实现“显式配置 -> compose Docker DNS -> 统一 resolver seam”这一层服务发现。注册中心、Kubernetes Service、Service Mesh 仍属于 follow-up，而不是当前部署默认能力。
 
+### Platform L3 operational verification（2026-08-30 freeze，CLI-gated）
+
+当前成熟度保持 `Level 2 / transitional-microservice + L3 verification pending`。`Level 3 / operationally-verified` 需满足显式 entry criteria 并经 live 环境验证后方可宣称；验证 plumbing 已在无 live 依赖下就绪， live gates 见下表。
+
+| 维度 | Level 2 已交付（当前） | Level 3 entry criteria（待 live 验证） |
+|------|------------------------|----------------------------------------|
+| Kubernetes | `k8s/base/*.yaml` 已 check-in：gateway/candidate/governance/outbox 等 `readinessProbe /live` 与 `livenessProbe` 已声明，可经 `kubectl apply --dry-run=client --validate=true` 校验 | **kind smoke**：`kind create cluster` + `kubectl apply -f k8s/base/` 后 `kubectl wait --for=condition=Ready pod --all -n trapmap --timeout=180s` 通过，且各 Deployment `/ready` 返回 200（`readyz` 等价 `/ready`），证据见 `scripts/verify-l3-platform.ts --check k8s-probes` |
+| Task transport | 特性开关已落地：`TRAPMAP_TASK_TRANSPORT=postgres` 为默认（`domain_event_outbox` 始终 PG），`amqp`/`rabbitmq` 为可选（见 `docs/operations/ENVIRONMENT.md` 与 `packages/host-distributed/src/job-runtime/server.ts` 的 `amqp→rabbitmq` 归一） | **amqp live smoke**：以 `TRAPMAP_TASK_TRANSPORT=amqp`（或 `rabbitmq`）+ `TRAPMAP_RABBITMQ_URL=amqp://…` 启动 `candidate-worker`/`governance-worker`，PG 默认不变且 `domain_event_outbox` 仍 PG；task enqueue/consume 走 RabbitMQ topology（`trapmap.tasks` exchange + `#` binding），无 RabbitMQ 时宿主 fail-fast；验证后仍可切回 `postgres` 无需迁移 |
+| Data isolation | `TRAPMAP_JOB_RUNTIME_DATABASE_URL` 回退试点已落地（`packages/host-distributed/src/shared/database.ts`）：仅 `job-runtime` 读取，缺省回退共享库 | **dual-DB equivalence + rollback drill**：以共享 vs 隔离双库双跑对比 `task_queue`/`domain_event_outbox` 语义、pool `getPoolSnapshot` 与 `healthCheck` 等价；再执行隔离库 → 共享库回滚（移除 `TRAPMAP_JOB_RUNTIME_DATABASE_URL` 并重启 `job-runtime`），验证数据一致与服务恢复 |
+| Replicas / scaling | `docker-compose.closeout.yml` 已声明 `candidate-worker:2` / `outbox-worker:2` replicas，`k8s/base/hpa.yaml` 已 freeze `candidate-worker` 70% CPU HPA 示例 | compose `replicas=2` 与 k8s `replicas: 2`（gateway）及 HPA 需在 kind/docker 侧现场确认 scale 与滚动更新 |
+
+Live-gated 执行顺序（均需具备 kind/docker/双库环境，否则标记 `CI_REQUIRED`）：
+
+```bash
+# 1. 无 live 的离线 plumbing（本机可跑）
+pnpm exec tsx scripts/verify-l3-platform.ts --check all
+kubectl apply --dry-run=client --validate=true -f k8s/base/        # 无集群也可 dry-run 语法校验
+pnpm exec tsx scripts/verify-l3-platform.ts --check k8s-probes     # 校验所有 Deployments 的 readiness/liveness
+pnpm exec tsx scripts/verify-l3-platform.ts --check compose-replicas
+pnpm exec tsx scripts/verify-l3-platform.ts --check transport-default
+
+# 2. kind 烟囱（需 kind + kubectl + docker）
+kind create cluster --name trapmap-l3
+kubectl apply -f k8s/base/
+kubectl wait --for=condition=Ready pod --all -n trapmap --timeout=180s
+kubectl get pods -n trapmap
+curl -f http://$(kubectl get svc gateway -n trapmap -o jsonpath='{.spec.clusterIP}'):4000/ready
+# 或经 port-forward 验证 /health /ready /live
+kubectl port-forward svc/gateway 4000:4000 -n trapmap & curl -f http://127.0.0.1:4000/ready; kill %1
+kind delete cluster --name trapmap-l3
+
+# 3. amqp live smoke（需 docker compose + rabbitmq profile）
+TRAPMAP_TASK_TRANSPORT=amqp TRAPMAP_RABBITMQ_URL=amqp://guest:guest@127.0.0.1:5672 \
+  docker compose --profile distributed --profile mq up -d --build
+# 验证 candidate/governance 走 amqp，outbox 仍 PG，domain_event_outbox 不受影响
+curl -f http://127.0.0.1:4000/health | jq .dependencies
+docker compose --profile distributed --profile mq down --volumes
+# 回退 pg 默认无需额外迁移
+docker compose --profile distributed up -d --build
+
+# 4. dual-DB equivalence & rollback（需两套 PG URL）
+export TRAPMAP_DATABASE_URL=postgres://trapmap:trapmap@127.0.0.1:5434/trapmap
+export TRAPMAP_JOB_RUNTIME_DATABASE_URL=postgres://trapmap:trapmap@127.0.0.1:5435/trapmap-jr
+# 分别启动并对比 queue/outbox snapshot，再移除隔离变量回滚
+```
+
+验证 plumbing 职责：`scripts/verify-l3-platform.ts` 覆盖离线可验部分；live kind/amqp/dual-DB 需显式 `kind`/`docker`/`TRAPMAP_JOB_RUNTIME_DATABASE_URL` 环境，本地缺失时标记 `CI_REQUIRED` 而非失败合成。成熟度表晋升至 Level 3 仅在上述三项均获 live 证据后执行。
+
 ## 当前已实现的部署形态
 
 当前代码已经把对操作者的正式入口收敛到三种 profile：
