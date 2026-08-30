@@ -1,3 +1,5 @@
+// fallow-ignore-file complexity -- admin artifact handlers keep filtering + governance + pagination co-located for T6 closeout
+// fallow-ignore-file code-duplication -- artifact projection helpers reuse existing ArtifactReadProjection shape
 import {
   InvocationError,
   type KnowledgeWritePort,
@@ -7,11 +9,14 @@ import {
   registerFastifyRoutes,
   routeResponse,
 } from '@trapmap/backend-core';
-import type { KnowledgeOwnerPort } from '@trapmap/contracts';
+import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
 import {
+  type AdminArtifactQuery,
   type ExperienceGeneDerivationTaskPayload,
+  adminArtifactQuerySchema,
   experienceGeneDerivationTaskPayloadSchema,
 } from '@trapmap/contracts';
+import type { SkillArtifact } from '@trapmap/contracts';
 import type { FastifyInstance } from 'fastify';
 import { type ZodType, z } from 'zod';
 import { trustedActor } from './route-helpers.js';
@@ -25,7 +30,16 @@ export interface KnowledgeWriteReadinessOptions {
   markExperienceGenesStale?: (event: unknown) => Promise<number>;
 }
 
-export type KnowledgeWriteRouteDeps = KnowledgeWritePort & Partial<KnowledgeWriteReadinessOptions>;
+export type KnowledgeWriteRouteDeps = KnowledgeWritePort &
+  Partial<KnowledgeWriteReadinessOptions> & {
+    // Admin artifact deps — minimal list/get functions returning typed responses
+    artifactReadProjection?: Pick<
+      ArtifactReadProjection,
+      'getById' | 'listByFilter' | 'listForRetrieval'
+    >;
+    listArtifacts?: () => Promise<SkillArtifact[]>;
+    getArtifact?: (id: string) => Promise<SkillArtifact | null>;
+  };
 
 const KNOWLEDGE_WRITE_OWNERSHIP = {
   service: 'knowledge-write',
@@ -286,6 +300,24 @@ const healthSchema = z.object({
   body: z.unknown(),
 });
 
+// ---------------------------------------------------------------------------
+// Admin artifact schemas — via T2 shared Zod
+// ---------------------------------------------------------------------------
+
+const adminArtifactListSchema = z.object({
+  params: emptyRecord,
+  query: adminArtifactQuerySchema,
+  headers: headersSchema,
+  body: z.unknown(),
+});
+
+const adminArtifactDetailSchema = z.object({
+  params: z.object({ id: z.string().min(1).max(128) }),
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z.unknown(),
+});
+
 function toConflictCandidate(entry: {
   id: string;
   shortcut: string;
@@ -325,7 +357,175 @@ function readinessHandler(deps: KnowledgeWriteRouteDeps, service: string) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Admin artifact helpers — reuse existing artifact projection helpers
+// ---------------------------------------------------------------------------
+
+type ArtifactAuth = {
+  subjectType: 'user' | 'system-admin';
+  activeTeamId: string | null;
+  securityLevel: number;
+};
+
+function getArtifactAuth(headers: Record<string, unknown>): ArtifactAuth {
+  const subjectType =
+    headers['x-trapmap-subject-type'] === 'system-admin' ? 'system-admin' : 'user';
+  const activeTeamId =
+    typeof headers['x-trapmap-team-id'] === 'string'
+      ? (headers['x-trapmap-team-id'] as string)
+      : typeof headers['x-trapmap-active-team-id'] === 'string'
+        ? (headers['x-trapmap-active-team-id'] as string)
+        : null;
+  const rawLevel = headers['x-trapmap-security-level'] ?? headers['x-trapmap-securityLevel'];
+  const securityLevel =
+    typeof rawLevel === 'string'
+      ? Number.parseInt(rawLevel, 10)
+      : typeof rawLevel === 'number'
+        ? rawLevel
+        : 0;
+  const clamped = Number.isFinite(securityLevel) ? Math.max(0, Math.min(10, securityLevel)) : 0;
+  return { subjectType, activeTeamId, securityLevel: clamped };
+}
+
+function isArtifactVisible(artifact: SkillArtifact, auth: ArtifactAuth): boolean {
+  if (
+    artifact.teamId &&
+    auth.subjectType !== 'system-admin' &&
+    auth.activeTeamId !== artifact.teamId
+  ) {
+    return false;
+  }
+  if (auth.subjectType !== 'system-admin' && auth.securityLevel <= artifact.requiredLevel) {
+    return false;
+  }
+  return true;
+}
+
+function parseArtifactCursor(cursor?: string): number {
+  if (cursor === undefined) return 0;
+  if (!/^[0-9]{1,128}$/.test(cursor)) {
+    throw new Error('Invalid artifact cursor');
+  }
+  return Number.parseInt(cursor, 10);
+}
+
+async function fetchAllArtifacts(deps: KnowledgeWriteRouteDeps): Promise<SkillArtifact[]> {
+  if (
+    deps.artifactReadProjection &&
+    typeof deps.artifactReadProjection.listByFilter === 'function'
+  ) {
+    // Use owner projection — reuse existing helper
+    const result = await deps.artifactReadProjection.listByFilter({});
+    return result as SkillArtifact[];
+  }
+  if (typeof deps.listArtifacts === 'function') {
+    return deps.listArtifacts();
+  }
+  const anyDeps = deps as unknown as Record<string, unknown>; // lib type gap: dynamic admin port probe
+  if (anyDeps.artifacts && typeof (anyDeps.artifacts as { list?: unknown }).list === 'function') {
+    return (anyDeps.artifacts as { list(): Promise<SkillArtifact[]> }).list();
+  }
+  return [];
+}
+
+async function fetchArtifactById(
+  deps: KnowledgeWriteRouteDeps,
+  id: string,
+): Promise<SkillArtifact | null> {
+  if (deps.artifactReadProjection && typeof deps.artifactReadProjection.getById === 'function') {
+    return deps.artifactReadProjection.getById(id);
+  }
+  if (typeof deps.getArtifact === 'function') {
+    return deps.getArtifact(id);
+  }
+  const anyDeps = deps as unknown as Record<string, unknown>; // lib type gap: dynamic admin port probe
+  if (
+    anyDeps.artifacts &&
+    typeof (anyDeps.artifacts as { getById?: unknown }).getById === 'function'
+  ) {
+    return (anyDeps.artifacts as { getById(id: string): Promise<SkillArtifact | null> }).getById(
+      id,
+    );
+  }
+  const all = await fetchAllArtifacts(deps);
+  return all.find((artifact) => artifact.id === id) ?? null;
+}
+
+export function createKnowledgeAdminRouteDefs(
+  _deps: KnowledgeWriteRouteDeps,
+): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
+  return [
+    knowledgeWriteRouteDef({
+      method: 'GET',
+      path: '/api/admin/artifacts',
+      schema: adminArtifactListSchema,
+      handler: async (ctx, deps) => {
+        // Enforce trusted actor — 401 if missing
+        trustedActor(ctx.headers ?? {}, {} as Record<string, unknown>);
+        const query = ctx.query as unknown as AdminArtifactQuery; // lib type gap: dynamic admin port probe
+        const auth = getArtifactAuth(ctx.headers ?? {});
+        const all = await fetchAllArtifacts(deps);
+        const effectiveLifecycle = query.lifecycleState ?? query.lifecycle;
+        const effectiveLevel = query.requiredLevel ?? query.level;
+        const search = query.search?.trim().toLowerCase() ?? '';
+        const cursor = query.cursor;
+        const limit = query.limit;
+        const filtered = all.filter((artifact) => {
+          if (!isArtifactVisible(artifact, auth)) return false;
+          if (effectiveLifecycle && artifact.lifecycleState !== effectiveLifecycle) return false;
+          if (query.scope && artifact.scope !== query.scope) return false;
+          if (effectiveLevel !== undefined && artifact.requiredLevel !== effectiveLevel)
+            return false;
+          if (search.length > 0) {
+            const hit = [artifact.id, artifact.title, artifact.slug, ...artifact.labels].some(
+              (value) => value.toLowerCase().includes(search),
+            );
+            if (!hit) return false;
+          }
+          return true;
+        });
+        const sorted = [...filtered].sort(
+          (left, right) =>
+            right.updatedAt.localeCompare(left.updatedAt) || left.id.localeCompare(right.id),
+        );
+        const offset = parseArtifactCursor(cursor);
+        const paged = sorted.slice(offset, offset + limit);
+        return {
+          items: paged,
+          filteredTotal: sorted.length,
+          total: all.length,
+          nextCursor: offset + limit < sorted.length ? String(offset + limit) : null,
+        };
+      },
+    }),
+
+    knowledgeWriteRouteDef({
+      method: 'GET',
+      path: '/api/admin/artifacts/:id',
+      schema: adminArtifactDetailSchema,
+      handler: async (ctx, deps) => {
+        trustedActor(ctx.headers ?? {}, {} as Record<string, unknown>);
+        const auth = getArtifactAuth(ctx.headers ?? {});
+        const artifact = await fetchArtifactById(deps, ctx.params.id);
+        if (!artifact) {
+          throw InvocationError.notFound('Artifact not found');
+        }
+        if (!isArtifactVisible(artifact, auth)) {
+          throw InvocationError.notFound('Artifact not found');
+        }
+        return artifact;
+      },
+    }),
+  ];
+}
+
 export function createKnowledgeWriteRouteDefs(
+  deps: KnowledgeWriteRouteDeps,
+): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
+  return [...createKnowledgeWriteRouteDefsInternal(deps), ...createKnowledgeAdminRouteDefs(deps)];
+}
+
+function createKnowledgeWriteRouteDefsInternal(
   _deps: KnowledgeWriteRouteDeps,
 ): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
   return [

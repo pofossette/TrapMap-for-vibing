@@ -1,3 +1,5 @@
+// fallow-ignore-file complexity -- admin artifact tests co-locate pagination/filtering/governance assertions
+// fallow-ignore-file code-duplication -- artifact fixtures mirror panel applyArtifactQuery
 import { InvocationError, type KnowledgeWritePort } from '@trapmap/backend-core';
 import {
   type AdapterName,
@@ -5,9 +7,10 @@ import {
   buildRouteTestApp,
 } from '@trapmap/backend-core/testing/route-test-app.js';
 import { experienceGeneDerivationTaskPayloadSchema } from '@trapmap/contracts';
+import type { SkillArtifact } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createKnowledgeWriteRouteDefs } from './routes.ts';
+import { createKnowledgeAdminRouteDefs, createKnowledgeWriteRouteDefs } from './routes.ts';
 
 const ADAPTERS: readonly AdapterName[] = ['fastify', 'nest'];
 
@@ -461,6 +464,280 @@ describe.each(ADAPTERS)('service-knowledge-write routes (%s adapter)', (adapter)
     expect(response.json()).toMatchObject({
       checks: { persistence: { status: 'ok', detail: null } },
     });
+    await app.close();
+  });
+});
+
+function createArtifact(overrides: Partial<SkillArtifact> = {}): SkillArtifact {
+  const base: SkillArtifact = {
+    id: 'art-101',
+    teamId: null,
+    scope: 'project',
+    labels: ['docker', 'security'],
+    title: 'Docker Runtime Governance Skill',
+    slug: 'docker-runtime-gov-skill',
+    requiredLevel: 3,
+    lifecycleState: 'approved',
+    owner: { id: 'actor-ops', handle: 'ops-lead', securityLevel: 4 },
+    latestRevision: 1,
+    createdAt: '2026-06-19T10:00:00.000Z',
+    updatedAt: '2026-06-19T10:05:00.000Z',
+    metadata: {
+      sourceKind: 'skill-directory',
+      submissionCount: 1,
+      resubmissionCount: 0,
+      revisionCount: 1,
+      latestSubmissionId: 'sub-301',
+      latestSubmittedAt: '2026-06-19T10:00:00.000Z',
+      latestReviewedAt: '2026-06-19T10:05:00.000Z',
+      latestDecision: 'approve',
+    },
+    history: [
+      {
+        revision: 1,
+        sourceHash: 'a'.repeat(64),
+        submittedAt: '2026-06-19T10:00:00.000Z',
+        submittedBy: { id: 'actor-ops', handle: 'ops-lead', securityLevel: 4 },
+        files: [
+          {
+            path: 'SKILL.md',
+            kind: 'skill-markdown',
+            sha256: 'b'.repeat(64),
+            sizeBytes: 1200,
+            mediaType: 'text/markdown',
+            source: 'SKILL.md',
+            includeInDerivation: true,
+            activationOnly: false,
+          },
+        ],
+        scriptDescriptors: [],
+        derived: null,
+      },
+    ],
+    agentReview: null,
+    reviewHistory: [],
+    reviewNotes: [],
+    lifecycleHistory: [],
+    evidenceMeta: null,
+    maintenanceMeta: null,
+    remediation: null,
+  };
+  return { ...base, ...overrides };
+}
+
+describe.each(ADAPTERS)('service-knowledge-write admin artifacts (%s adapter)', (adapter) => {
+  it('serves admin artifact list 200 with search, scope, level, lifecycle, pagination and governance', async () => {
+    const a1 = createArtifact({
+      id: 'art-101',
+      scope: 'project',
+      requiredLevel: 3,
+      lifecycleState: 'approved',
+      title: 'Docker Governance',
+      slug: 'docker-gov',
+      teamId: null,
+      updatedAt: '2026-06-19T12:00:00.000Z',
+      labels: ['docker'],
+    });
+    const a2 = createArtifact({
+      id: 'art-102',
+      scope: 'global',
+      requiredLevel: 4,
+      lifecycleState: 'submitted',
+      title: 'K8s Network',
+      slug: 'k8s-net',
+      teamId: null,
+      updatedAt: '2026-06-19T11:00:00.000Z',
+      labels: ['kubernetes'],
+    });
+    const a3 = createArtifact({
+      id: 'art-103',
+      scope: 'project',
+      requiredLevel: 1,
+      lifecycleState: 'approved',
+      title: 'Observability',
+      slug: 'obs',
+      teamId: 'team-999',
+      updatedAt: '2026-06-19T10:00:00.000Z',
+    });
+    const deps = { ...createModule(), listArtifacts: vi.fn(async () => [a1, a2, a3]) };
+    const app = await buildRouteTestApp(createKnowledgeAdminRouteDefs(deps), deps, adapter);
+
+    const all = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts?limit=10',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(all.statusCode).toBe(200);
+    // Governance: team-999 artifact hidden unless same team or system-admin
+    expect(all.json().items).toHaveLength(2);
+    expect(all.json().total).toBe(3);
+    expect(all.json().filteredTotal).toBe(2);
+
+    const byScope = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts?scope=global&limit=10',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(byScope.json().items).toHaveLength(1);
+    expect(byScope.json().items[0].id).toBe('art-102');
+
+    const byLevel = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts?requiredLevel=3&limit=10',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(byLevel.json().items).toHaveLength(1);
+    expect(byLevel.json().items[0].id).toBe('art-101');
+
+    // Alias level param
+    const byLevelAlias = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts?level=3&limit=10',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(byLevelAlias.json().items).toHaveLength(1);
+
+    // lifecycle alias
+    const byLifecycle = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts?lifecycle=submitted&limit=10',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(byLifecycle.json().items).toHaveLength(1);
+
+    const bySearch = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts?search=docker&limit=10',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(bySearch.json().items).toHaveLength(1);
+    expect(bySearch.json().items[0].id).toBe('art-101');
+
+    // Pagination
+    const p1 = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts?limit=1',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(p1.json().items).toHaveLength(1);
+    expect(p1.json().nextCursor).toBe('1');
+    const p2 = await app.inject({
+      method: 'GET',
+      url: `/api/admin/artifacts?limit=1&cursor=${p1.json().nextCursor}`,
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(p2.json().items).toHaveLength(1);
+    expect(p2.json().nextCursor).toBeNull();
+
+    // Security level governance: low level user cannot see high requiredLevel
+    const lowAuth = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts?limit=10',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '1' },
+    });
+    expect(lowAuth.json().items).toHaveLength(0);
+
+    // System-admin bypass
+    const sys = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts?limit=10',
+      headers: {
+        'x-trapmap-actor-id': 'admin',
+        'x-trapmap-subject-type': 'system-admin',
+        'x-trapmap-security-level': '10',
+      },
+    });
+    expect(sys.json().items).toHaveLength(3);
+
+    await app.close();
+  });
+
+  it('enforces 401 and 400 for admin artifact list', async () => {
+    const deps = { ...createModule(), listArtifacts: vi.fn(async () => []) };
+    const app = await buildRouteTestApp(createKnowledgeAdminRouteDefs(deps), deps, adapter);
+
+    const noAuth = await app.inject({ method: 'GET', url: '/api/admin/artifacts?limit=10' });
+    expect(noAuth.statusCode).toBe(401);
+
+    const bad = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts?lifecycle=invalid&limit=10',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
+    });
+    expect(bad.statusCode).toBe(400);
+
+    const badAliasMismatch = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts?lifecycle=approved&lifecycleState=submitted&limit=10',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
+    });
+    expect(badAliasMismatch.statusCode).toBe(400);
+
+    const extra = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts?unknown=x&limit=10',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
+    });
+    expect(extra.statusCode).toBe(400);
+
+    await app.close();
+  });
+
+  it('serves admin artifact detail 200, 404, 401 and governance', async () => {
+    const art = createArtifact({ id: 'art-101', teamId: null, requiredLevel: 3 });
+    const teamArt = createArtifact({ id: 'art-999', teamId: 'team-999', requiredLevel: 1 });
+    const deps = {
+      ...createModule(),
+      getArtifact: vi.fn(async (id: string) =>
+        id === 'art-101' ? art : id === 'art-999' ? teamArt : null,
+      ),
+      listArtifacts: vi.fn(async () => [art, teamArt]),
+    };
+    const app = await buildRouteTestApp(createKnowledgeAdminRouteDefs(deps), deps, adapter);
+
+    const ok = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts/art-101',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().id).toBe('art-101');
+
+    const notFound = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts/missing',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(notFound.statusCode).toBe(404);
+
+    const teamFiltered = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts/art-999',
+      headers: {
+        'x-trapmap-actor-id': 'user-1',
+        'x-trapmap-security-level': '9',
+        'x-trapmap-team-id': 'team-1',
+      },
+    });
+    expect(teamFiltered.statusCode).toBe(404);
+
+    const noAuth = await app.inject({ method: 'GET', url: '/api/admin/artifacts/art-101' });
+    expect(noAuth.statusCode).toBe(401);
+
+    await app.close();
+  });
+
+  it('routes admin artifacts via the main RouteDefs aggregator (200)', async () => {
+    const art = createArtifact();
+    const deps = { ...createModule(), listArtifacts: vi.fn(async () => [art]) };
+    const app = await buildRouteTestApp(createKnowledgeWriteRouteDefs(deps), deps, adapter);
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/admin/artifacts?limit=10',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().items).toHaveLength(1);
     await app.close();
   });
 });

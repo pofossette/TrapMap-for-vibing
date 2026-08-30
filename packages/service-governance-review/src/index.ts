@@ -35,6 +35,7 @@ export {
   type GovernanceReviewAdminModule,
 } from './admin.js';
 export {
+  createGovernanceAdminRouteDefs,
   createGovernanceReviewRouteDefs,
   registerGovernanceReviewRoutes,
   type GovernanceReviewReadinessOptions,

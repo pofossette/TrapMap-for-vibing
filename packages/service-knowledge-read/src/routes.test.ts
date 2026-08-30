@@ -1,3 +1,5 @@
+// fallow-ignore-file complexity -- admin graph tests co-locate search/mode/pagination/governance assertions
+// fallow-ignore-file code-duplication -- graph fixtures mirror panel applyArtifactQuery
 import { InvocationError, type KnowledgeReadPort, type RouteTestApp } from '@trapmap/backend-core';
 import {
   type AdapterName,
@@ -5,7 +7,7 @@ import {
 } from '@trapmap/backend-core/testing/route-test-app.js';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createKnowledgeReadRouteDefs } from './routes.js';
+import { createKnowledgeAdminGraphRouteDefs, createKnowledgeReadRouteDefs } from './routes.js';
 
 const ADAPTERS: readonly AdapterName[] = ['fastify', 'nest'];
 
@@ -444,4 +446,246 @@ describe.each(ADAPTERS)('knowledge-read routes (%s adapter)', (adapter) => {
       await app.close();
     },
   );
+});
+
+const mockTrapGraph = {
+  nodes: [
+    {
+      id: 'trap-1',
+      label: 'Docker socket exposure',
+      kind: 'trap',
+      severity: 'critical',
+      scope: 'global',
+      requiredLevel: 4,
+    },
+    { id: 'cue-1', label: 'Mounting /var/run/docker.sock', kind: 'cue' },
+    { id: 'tool-1', label: 'Docker CLI', kind: 'tool' },
+    { id: 'env-1', label: 'Host environment', kind: 'environment' },
+    { id: 'mit-1', label: 'Rootless container runtimes', kind: 'mitigation' },
+    {
+      id: 'trap-2',
+      label: 'Writable root filesystem',
+      kind: 'trap',
+      scope: 'project',
+      requiredLevel: 2,
+    },
+  ],
+  edges: [
+    { id: 'e-1', source: 'cue-1', target: 'trap-1', kind: 'evidence' },
+    { id: 'e-2', source: 'tool-1', target: 'trap-1', kind: 'requires' },
+    { id: 'e-4', source: 'mit-1', target: 'trap-1', kind: 'mitigates' },
+  ],
+};
+
+const mockSkillGraphs: Record<
+  string,
+  { derivation: typeof mockTrapGraph; semantic: typeof mockTrapGraph }
+> = {
+  'art-101': {
+    derivation: {
+      nodes: [
+        { id: 'art-101', label: 'Docker Governance', kind: 'artifact' },
+        { id: 'prof-101', label: 'Docker Governance Profile', kind: 'profile' },
+        { id: 'cap-101-1', label: 'cap-101-1: Read-only root FS', kind: 'capsule' },
+      ],
+      edges: [{ id: 'ed-1', source: 'art-101', target: 'prof-101', kind: 'derives' }],
+    },
+    semantic: {
+      nodes: [
+        { id: 'skill-101', label: 'Docker Governance Skill', kind: 'skill' },
+        { id: 'cap-101-1', label: 'cap-101-1: Read-only root FS', kind: 'capsule' },
+        { id: 'mit-readonly', label: 'Read-only root filesystem flag', kind: 'mitigation' },
+      ],
+      edges: [{ id: 'es-1', source: 'skill-101', target: 'cap-101-1', kind: 'has-capsule' }],
+    },
+  },
+};
+
+function createGraphModule(overrides: Record<string, unknown> = {}) {
+  return {
+    ...createModule(),
+    getTrapGraph: vi.fn(async (query: Record<string, unknown>) => {
+      if (
+        query.search &&
+        typeof query.search === 'string' &&
+        query.search.toLowerCase().includes('writable')
+      ) {
+        return {
+          nodes: mockTrapGraph.nodes.filter((n) => n.label.toLowerCase().includes('writable')),
+          edges: [],
+        };
+      }
+      return mockTrapGraph;
+    }),
+    getSkillGraph: vi.fn(async (query: Record<string, unknown>) => {
+      const artifactId = query.artifactId as string | undefined;
+      const mode = (query.mode as string) ?? 'derivation';
+      if (artifactId && mockSkillGraphs[artifactId]) {
+        return (
+          mockSkillGraphs[artifactId][mode as 'derivation' | 'semantic'] ??
+          mockSkillGraphs[artifactId].derivation
+        );
+      }
+      if (
+        query.search &&
+        typeof query.search === 'string' &&
+        query.search.toLowerCase().includes('docker')
+      ) {
+        return mockSkillGraphs['art-101']!.derivation;
+      }
+      return { nodes: [], edges: [] };
+    }),
+    ...overrides,
+  };
+}
+
+describe.each(ADAPTERS)('knowledge-read admin graphs (%s adapter)', (adapter) => {
+  it('serves trap graph 200 with search, governance, depth and pagination', async () => {
+    const module = createGraphModule();
+    const app = await buildRouteTestApp(
+      createKnowledgeAdminGraphRouteDefs(module as never), // lib type gap: test deps union injection
+      module as never, // lib type gap: test deps union injection
+      adapter,
+    );
+
+    const all = await app.inject({
+      method: 'GET',
+      url: '/api/admin/graph/traps?depth=1&mode=derivation',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(all.statusCode).toBe(200);
+    expect(all.json().nodes.length).toBeGreaterThan(0);
+    expect(all.json().edges.length).toBeGreaterThan(0);
+
+    const bySearch = await app.inject({
+      method: 'GET',
+      url: '/api/admin/graph/traps?search=writable',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(bySearch.json().nodes).toHaveLength(1);
+    expect(bySearch.json().nodes[0].id).toBe('trap-2');
+
+    // Governance: low security cannot see high requiredLevel trap-1 (requires 4)
+    const lowAuth = await app.inject({
+      method: 'GET',
+      url: '/api/admin/graph/traps',
+      headers: {
+        'x-trapmap-actor-id': 'user-1',
+        'x-trapmap-security-level': '1',
+        'x-trapmap-team-id': 'team-1',
+      },
+    });
+    // trap-1 should be filtered out, only trap-2 visible (or none)
+    expect(lowAuth.json().nodes.some((n: { id: string }) => n.id === 'trap-1')).toBe(false);
+
+    // Pagination
+    const p1 = await app.inject({
+      method: 'GET',
+      url: '/api/admin/graph/traps?limit=2',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(p1.json().nodes).toHaveLength(2);
+    const p2 = await app.inject({
+      method: 'GET',
+      url: '/api/admin/graph/traps?limit=2&cursor=2',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(p2.json().nodes.length).toBeGreaterThan(0);
+
+    await app.close();
+  });
+
+  it('serves skill graph 200 with mode, artifactId, search and validation', async () => {
+    const module = createGraphModule();
+    const app = await buildRouteTestApp(
+      createKnowledgeAdminGraphRouteDefs(module as never), // lib type gap: test deps union injection
+      module as never, // lib type gap: test deps union injection
+      adapter,
+    );
+
+    const derivation = await app.inject({
+      method: 'GET',
+      url: '/api/admin/graph/skills?artifactId=art-101&mode=derivation',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(derivation.statusCode).toBe(200);
+    expect(derivation.json().nodes.some((n: { kind: string }) => n.kind === 'profile')).toBe(true);
+
+    const semantic = await app.inject({
+      method: 'GET',
+      url: '/api/admin/graph/skills?artifactId=art-101&mode=semantic',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(semantic.json().nodes.some((n: { kind: string }) => n.kind === 'mitigation')).toBe(true);
+
+    // Alias path: /api/admin/graphs/skill/:artifactId
+    const alias = await app.inject({
+      method: 'GET',
+      url: '/api/admin/graphs/skill/art-101?mode=derivation',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(alias.statusCode).toBe(200);
+    expect(alias.json().nodes).toHaveLength(3);
+
+    // Search filtering within skill graph
+    const bySearch = await app.inject({
+      method: 'GET',
+      url: '/api/admin/graph/skills?search=docker',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(bySearch.json().nodes.length).toBeGreaterThan(0);
+
+    await app.close();
+  });
+
+  it('enforces 401 and 400 for graph routes', async () => {
+    const module = createGraphModule();
+    const app = await buildRouteTestApp(
+      createKnowledgeAdminGraphRouteDefs(module as never), // lib type gap: test deps union injection
+      module as never, // lib type gap: test deps union injection
+      adapter,
+    );
+
+    const noAuth = await app.inject({ method: 'GET', url: '/api/admin/graph/traps' });
+    expect(noAuth.statusCode).toBe(401);
+
+    const badDepth = await app.inject({
+      method: 'GET',
+      url: '/api/admin/graph/traps?depth=3',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
+    });
+    expect(badDepth.statusCode).toBe(400);
+
+    const badMode = await app.inject({
+      method: 'GET',
+      url: '/api/admin/graph/skills?mode=invalid',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
+    });
+    expect(badMode.statusCode).toBe(400);
+
+    const badExtra = await app.inject({
+      method: 'GET',
+      url: '/api/admin/graph/traps?unknown=x',
+      headers: { 'x-trapmap-actor-id': 'user-1' },
+    });
+    expect(badExtra.statusCode).toBe(400);
+
+    await app.close();
+  });
+
+  it('routes admin graphs via the main RouteDefs aggregator', async () => {
+    const module = createGraphModule();
+    const app = await buildRouteTestApp(
+      createKnowledgeReadRouteDefs(module as never), // lib type gap: test deps union injection
+      module as never, // lib type gap: test deps union injection
+      adapter,
+    );
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/admin/graph/traps',
+      headers: { 'x-trapmap-actor-id': 'user-1', 'x-trapmap-security-level': '9' },
+    });
+    expect(res.statusCode).toBe(200);
+    await app.close();
+  });
 });
