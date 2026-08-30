@@ -36,11 +36,13 @@
 - 进入条件：CI 或具备 docker 的本地环境（且 `DATABASE_URL`/`TRAPMAP_DATABASE_URL` 指向可响应 pgvector 实例）。
 - 后续落点：CI 跑 `pnpm eval:smoke` 全量 + `docker compose build candidate-worker outbox-worker` + replicas 演示 + `pnpm eval:experience-gene --tier core --mode serve` 的 live comparison，结果回填本条并关闭；`fallow --base main` legacy 债务转工程维护信号跟踪。
 
-### 安全候选 CI advisory 补跑（2026-08-22 新拆）
+### 安全候选 CI advisory 补跑（2026-08-22 新拆，2026-08-30 已在线基线）
 
-- 来源：A13 reachability 人工矩阵 reachable=0（见 docs/archived/reports/SECURITY_CANDIDATES_2026-08-22.md）；pnpm audit 因离线未执行。
-- 进入条件：联网 CI 环境。
-- 后续落点：CI 执行 audit 并回填矩阵行。
+- 来源：A13 人工矩阵 historical 3 候选 reachable=0 已关闭（见 docs/archived/reports/SECURITY_CANDIDATES_2026-08-22.md）；2026-08-30 本地在线补跑 `pnpm audit --prod --registry=https://registry.npmjs.org`（pnpm 10.33.0 / node v24.16.0，因 `.npmrc` 默认 `registry.npmmirror.com` 不支持 audit，需 `--registry` 覆盖）。
+- 基线结果：`22 advisories` / `23 instances` / `650 prod deps` => `8 moderate` / `15 high` / `0 critical`；分包见报告分包可达性矩阵（js-yaml 3、brace-expansion 3、langsmith 2、uuid 1、protobufjs 1、@opentelemetry/propagator-jaeger 1、fast-uri 5、find-my-way 1、ip-address 3、react-router 1、@opentelemetry/core 1）。historical 仍 reachable=0；新增 direct reachable 4（fastify find-my-way 1 + ip-address 3）、条件可达 12+、打包绑定/不可达其余，无 critical。
+- 当前边界：矩阵已回填 `docs/archived/reports/SECURITY_CANDIDATES_2026-08-22.md`（含可达性四档与处置列）；本机 JSON 已落 `/tmp/pnpm-audit-prod.json`。CI 仍需必跑 `pnpm audit --prod --registry=https://registry.npmjs.org` 作回归门控（建议在 `.github/workflows/ci.yml` 新增 audit job，见报告 CI 建议；本 tranche 按分区约束仅文档化不改 CI）。
+- 进入条件：已满足（本地在线）；CI 持久化校验为常态。
+- 后续落点：按报告处置分批升级（P0 fastify/ip-address 直达面、P1 react-router/js-yaml/langsmith 小补丁、P2 fast-uri/OTEL/sentry 联动），每次重跑 audit 回填矩阵并核销；direct high 归零且 CI 持久化后可关闭或转常态跟踪。
 
 ### 平台化 L3 运营验证批（C6-C8 残余，2026-08-22 新立）
 
