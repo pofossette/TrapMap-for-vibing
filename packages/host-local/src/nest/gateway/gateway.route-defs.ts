@@ -139,6 +139,18 @@ export function createGatewayRouteDefs(deps: GatewayRouteDeps): RouteDef[] {
 
     gatewayRouteDef({
       method: 'POST',
+      path: '/v3/retrieval/search',
+      schema: knowledgeReadSearchSchema,
+      successStatus: 200,
+      handler: async (ctx, deps) => {
+        return deps.knowledgeRead.search(
+          toKnowledgeReadSearchArgs(ctx.body as Parameters<typeof toKnowledgeReadSearchArgs>[0]),
+        );
+      },
+    }),
+
+    gatewayRouteDef({
+      method: 'POST',
       path: '/v1/retrieval/skills/search-by-content',
       schema: z.object({
         params: emptyRecord,

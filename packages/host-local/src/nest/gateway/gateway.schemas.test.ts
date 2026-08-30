@@ -58,6 +58,7 @@ describe('gateway route defs', () => {
       'GET /v1/knowledge/:entryId',
       'GET /v1/knowledge/mine',
       'POST /v1/retrieval/search',
+      'POST /v3/retrieval/search',
       'POST /v1/retrieval/skills/search-by-content',
       'GET /v1/knowledge/projection-status',
       'POST /v1/candidates/:candidateId/manual-result',

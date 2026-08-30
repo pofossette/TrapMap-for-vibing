@@ -104,16 +104,105 @@ export class AppModule implements NestModule {
       retrievalQuery: runtime.retrievalQuery,
       skillLookup: runtime.skillLookup,
     });
-    const knowledgeReadPort = createKnowledgeReadModule(knowledgeReadDeps);
-    const knowledgeReadModule = KnowledgeReadModule.forTesting(knowledgeReadPort);
+    const knowledgeReadPortBase = createKnowledgeReadModule(knowledgeReadDeps);
+    // Admin graph wiring — inject GraphIndex-backed providers for
+    // createKnowledgeAdminGraphRouteDefs (uses KnowledgeOwnerPort/GraphIndex)
+    const knowledgeReadPort = Object.assign(knowledgeReadPortBase, {
+      getTrapGraph: async (query: Record<string, unknown>) => {
+        const docs = await runtime.services.graphIndex.listAll();
+        const artifactId = query.artifactId as string | undefined;
+        const sourceDocs = artifactId
+          ? docs.filter((doc) => doc.sourceId === artifactId)
+          : docs.filter((doc) => doc.sourceType === 'trap');
+        return {
+          nodes: sourceDocs.flatMap((doc) =>
+            doc.nodes.map((node) => ({
+              id: node.id,
+              label: node.label,
+              kind: node.kind,
+              severity: node.severity,
+              teamId: doc.teamId,
+              requiredLevel: doc.requiredLevel,
+              scope: doc.scope,
+            })),
+          ),
+          edges: sourceDocs.flatMap((doc) =>
+            doc.edges.map((edge) => ({
+              id: edge.id,
+              source: edge.sourceNodeId,
+              target: edge.targetNodeId,
+              kind: edge.relationType,
+              label: edge.evidence,
+            })),
+          ),
+        };
+      },
+      getSkillGraph: async (query: Record<string, unknown>) => {
+        const docs = await runtime.services.graphIndex.listAll();
+        const artifactId = query.artifactId as string | undefined;
+        const sourceDocs = artifactId
+          ? docs.filter((doc) => doc.sourceId === artifactId)
+          : docs.filter((doc) => doc.sourceType === 'skill');
+        return {
+          nodes: sourceDocs.flatMap((doc) =>
+            doc.nodes.map((node) => ({
+              id: node.id,
+              label: node.label,
+              kind: node.kind,
+              severity: node.severity,
+              teamId: doc.teamId,
+              requiredLevel: doc.requiredLevel,
+              scope: doc.scope,
+            })),
+          ),
+          edges: sourceDocs.flatMap((doc) =>
+            doc.edges.map((edge) => ({
+              id: edge.id,
+              source: edge.sourceNodeId,
+              target: edge.targetNodeId,
+              kind: edge.relationType,
+              label: edge.evidence,
+            })),
+          ),
+        };
+      },
+      listGraphDocuments: async () => {
+        const docs = await runtime.services.graphIndex.listAll();
+        return docs.map((doc) => ({
+          nodes: doc.nodes.map((node) => ({
+            id: node.id,
+            label: node.label,
+            kind: node.kind,
+          })),
+          edges: doc.edges.map((edge) => ({
+            id: edge.id,
+            source: edge.sourceNodeId,
+            target: edge.targetNodeId,
+          })),
+          teamId: doc.teamId,
+          requiredLevel: doc.requiredLevel,
+          artifactId: doc.sourceId,
+        }));
+      },
+    });
+    const knowledgeReadModule = KnowledgeReadModule.forTesting(
+      knowledgeReadPort as unknown as typeof knowledgeReadPortBase, // lib type gap: dynamic admin port probe
+    );
 
-    const knowledgeWritePort = createKnowledgeWriteModule(
+    const knowledgeWritePortBase = createKnowledgeWriteModule(
       createKnowledgeWriteDeps({
         knowledgeOwner: runtime.services.knowledgeOwner,
         auditLog: runtime.auditLog,
+        artifactReadProjection: runtime.services.artifactReadProjection,
+        artifactWriter: runtime.services.artifactWriter,
       }),
     );
-    const knowledgeWriteModule = KnowledgeWriteModule.forTesting(knowledgeWritePort);
+    const knowledgeWritePort = Object.assign(knowledgeWritePortBase, {
+      artifactReadProjection: runtime.services.artifactReadProjection,
+    });
+    const knowledgeWriteModule = KnowledgeWriteModule.forTesting(
+      knowledgeWritePort as unknown as typeof knowledgeWritePortBase, // lib type gap: dynamic admin port probe
+    );
 
     const governanceConflictWorkflow = createHostLocalGovernanceConflictWorkflow({
       knowledgeOwner: runtime.services.knowledgeOwner,
@@ -159,7 +248,7 @@ export class AppModule implements NestModule {
       auditLog: runtime.auditLog,
     });
 
-    const governanceReviewPort = createGovernanceReviewServiceModule(
+    const governanceReviewPortBase = createGovernanceReviewServiceModule(
       createGovernanceReviewDeps({
         knowledgeWrite: knowledgeWritePort,
         feedbackRepo: runtime.services.governanceReview.feedbackRepo,
@@ -170,7 +259,13 @@ export class AppModule implements NestModule {
         governanceRetrievalProjection: runtime.services.governanceReview.retrievalProjection,
       }),
     );
-    const governanceReviewModule = GovernanceReviewModule.forTesting(governanceReviewPort);
+    const governanceReviewPort = Object.assign(governanceReviewPortBase, {
+      knowledgeOwner: runtime.services.knowledgeOwner,
+      artifactReadProjection: runtime.services.artifactReadProjection,
+    });
+    const governanceReviewModule = GovernanceReviewModule.forTesting(
+      governanceReviewPort as unknown as typeof governanceReviewPortBase, // lib type gap: dynamic admin port probe
+    );
 
     const jobRuntimeModule = JobRuntimeModule.forDeps(jobRuntimeDeps);
 
