@@ -16,6 +16,7 @@ const adminApi = vi.hoisted(() => ({
 
 vi.mock('@trapmap/web-panel/services/admin-panel-service-context', () => ({
   getAdminPanelApi: () => adminApi,
+  getAdminPanelApiMode: () => 'mock',
 }));
 
 vi.mock('@trapmap/web-panel/shared/ui', async () => {

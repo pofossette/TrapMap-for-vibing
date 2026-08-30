@@ -25,9 +25,21 @@ export type AdminPanelApiContract = {
   submitReviewDecision(input: ReviewDecisionRequest): Promise<{ entry: KnowledgeEntry }>;
   loadArtifacts(query?: ArtifactQuery): Promise<ArtifactListResponse>;
   loadArtifactDetail(id: string): Promise<SkillArtifact>;
-  loadTrapGraph(): Promise<GraphDataResponse>;
+  loadTrapGraph(query?: {
+    depth?: '1' | '2' | 'all';
+    search?: string;
+    mode?: 'derivation' | 'semantic';
+    cursor?: string;
+    limit?: number;
+  }): Promise<GraphDataResponse>;
   loadSkillGraph(
     artifactId: string,
-    query?: { mode?: 'derivation' | 'semantic' },
+    query?: {
+      mode?: 'derivation' | 'semantic';
+      depth?: string;
+      search?: string;
+      cursor?: string;
+      limit?: number;
+    },
   ): Promise<GraphDataResponse>;
 };

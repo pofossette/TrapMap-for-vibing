@@ -1,4 +1,5 @@
 import { mapRuntimeOverview } from '@trapmap/web-panel/services/mappers/runtime-status-mapper';
+import { getAdminPanelApiMode } from '@trapmap/web-panel/services/admin-panel-service-context';
 import type {
   AdminPanelApiContract,
   GraphDataResponse,
@@ -24,7 +25,8 @@ export type DashboardSnapshot = {
 };
 
 const emptyGraph: GraphDataResponse = { nodes: [], edges: [] };
-const DASHBOARD_ARTIFACT_SNAPSHOT_LIMIT = 100;
+const DASHBOARD_ARTIFACT_MOCK_SNAPSHOT_LIMIT = 100;
+const DASHBOARD_ARTIFACT_REAL_PAGE_LIMIT = 20;
 
 function countCapsules(
   artifacts: Array<{ history: Array<{ derived?: { capsules?: unknown[] } | null }> }>,
@@ -51,10 +53,18 @@ async function loadRuntimeOverview(api: AdminPanelApiContract): Promise<RuntimeO
 export async function loadDashboardSnapshot(
   api: AdminPanelApiContract,
 ): Promise<DashboardSnapshot> {
+  // keep 100 snapshot for mock mode where the dataset is tiny and deterministic;
+  // in real mode use a bounded page (20) and rely on `total` for scale metrics
+  // so that the panel paginates via the new `items/filteredTotal/total/nextCursor`
+  // shape instead of a hardcoded snapshot.
+  const limit =
+    getAdminPanelApiMode() === 'mock'
+      ? DASHBOARD_ARTIFACT_MOCK_SNAPSHOT_LIMIT
+      : DASHBOARD_ARTIFACT_REAL_PAGE_LIMIT;
   const [overview, trapGraph, artifacts] = await Promise.all([
     loadRuntimeOverview(api),
     api.loadTrapGraph(),
-    api.loadArtifacts({ limit: DASHBOARD_ARTIFACT_SNAPSHOT_LIMIT }),
+    api.loadArtifacts({ limit }),
   ]);
   const primaryArtifact =
     artifacts.items.find((artifact) => hasDerivedRevision(artifact)) ?? artifacts.items[0] ?? null;

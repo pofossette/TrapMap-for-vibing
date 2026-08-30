@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createMockAdminPanelApi } from '@trapmap/web-panel/services/api/mock-admin-panel-api';
 
@@ -22,19 +22,46 @@ describe('loadDashboardSnapshot', () => {
   });
 
   it('prefers a derived artifact for the preview graph while paging artifacts', async () => {
-    const requests: unknown[] = [];
-    const derivedArtifact = createMockAdminPanelApi();
-    const api = {
-      ...derivedArtifact,
-      loadArtifacts(query) {
-        requests.push(query);
-        return derivedArtifact.loadArtifacts(query);
+    // Real mode uses bounded page (20) via new pagination shape
+    vi.stubEnv('VITE_ADMIN_PANEL_API_MODE', 'real');
+    vi.resetModules();
+    const { loadDashboardSnapshot: loadReal } = await import('./service.js');
+    const { createMockAdminPanelApi: createMock } = await import(
+      '@trapmap/web-panel/services/api/mock-admin-panel-api.js'
+    );
+    const derivedReal = createMock();
+    const requestsReal: unknown[] = [];
+    const apiReal = {
+      ...derivedReal,
+      loadArtifacts(query: unknown) {
+        requestsReal.push(query);
+        return derivedReal.loadArtifacts(query as never);
       },
-    };
+    } as unknown as Parameters<typeof loadReal>[0];
+    const snapshotReal = await loadReal(apiReal);
+    expect(requestsReal).toEqual([{ limit: 20 }]);
+    expect(snapshotReal.skillGraph.nodes).toHaveLength(7);
 
-    const snapshot = await loadDashboardSnapshot(api);
-
-    expect(requests).toEqual([{ limit: 100 }]);
-    expect(snapshot.skillGraph.nodes).toHaveLength(7);
+    // Mock mode keeps 100 snapshot for deterministic fixture
+    vi.stubEnv('VITE_ADMIN_PANEL_API_MODE', 'mock');
+    vi.stubEnv('MODE', 'test');
+    vi.resetModules();
+    const { loadDashboardSnapshot: loadMock } = await import('./service.js');
+    const { createMockAdminPanelApi: createMock2 } = await import(
+      '@trapmap/web-panel/services/api/mock-admin-panel-api.js'
+    );
+    const derivedMock = createMock2();
+    const requestsMock: unknown[] = [];
+    const apiMock = {
+      ...derivedMock,
+      loadArtifacts(query: unknown) {
+        requestsMock.push(query);
+        return derivedMock.loadArtifacts(query as never);
+      },
+    } as unknown as Parameters<typeof loadMock>[0];
+    const snapshotMock = await loadMock(apiMock);
+    expect(requestsMock).toEqual([{ limit: 100 }]);
+    expect(snapshotMock.skillGraph.nodes).toHaveLength(7);
+    vi.unstubAllEnvs();
   });
 });
