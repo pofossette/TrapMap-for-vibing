@@ -46,12 +46,38 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run smoke evaluation
+      - name: Self-check eval help (pnpm eval -- smoke --help)
+        run: pnpm eval -- smoke --help
+
+      - name: Build candidate-worker and outbox-worker images
+        run: docker compose --profile distributed build candidate-worker outbox-worker
+
+      - name: Verify replicas=2 closeout wiring (docker compose config)
+        run: |
+          docker compose --profile distributed -f docker-compose.yml -f docker-compose.closeout.yml config | grep -q "replicas: 2"
+          echo "replicas=2 smoke wiring verified (candidate-worker, outbox-worker via docker-compose.closeout.yml)"
+
+      - name: Run smoke evaluation (CI baseline, retrieval+summary)
         id: eval
         run: pnpm eval:ci
         env:
           NODE_ENV: test
           BASELINE_PATH: reports/baselines/baseline-smoke.json
+
+      - name: Run full eval:smoke (postgres-coordinated, requires Docker)
+        run: pnpm eval:smoke
+        env:
+          NODE_ENV: test
+
+      - name: Run experience-gene smoke (shadow)
+        run: pnpm eval:experience-gene --tier smoke --mode shadow
+        env:
+          NODE_ENV: test
+
+      - name: Run experience-gene core (serve) — promotion gate
+        run: pnpm eval:experience-gene --tier core --mode serve
+        env:
+          NODE_ENV: test
 
       - name: Upload eval report
         if: always()
@@ -154,11 +180,29 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build candidate-worker and outbox-worker images
+        run: docker compose --profile distributed build candidate-worker outbox-worker
+
+      - name: Verify replicas=2 closeout wiring (docker compose config)
+        run: |
+          docker compose --profile distributed -f docker-compose.yml -f docker-compose.closeout.yml config | grep -q "replicas: 2"
+          echo "replicas=2 smoke wiring verified"
+
       - name: Run core evaluation
         run: pnpm eval:ci:core
         env:
           NODE_ENV: test
           WRITE_BASELINE: 'true'
+
+      - name: Run experience-gene core (serve) — promotion gate
+        run: pnpm eval:experience-gene --tier core --mode serve
+        env:
+          NODE_ENV: test
+
+      - name: Run experience-gene smoke (shadow) — baseline comparison
+        run: pnpm eval:experience-gene --tier smoke --mode shadow
+        env:
+          NODE_ENV: test
 
       - name: Upload eval report
         if: always()
