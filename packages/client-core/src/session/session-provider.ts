@@ -11,4 +11,13 @@ export interface SessionProvider {
 
   /** Return the current bearer session token, or null when unauthenticated. */
   getSessionToken(): string | null;
+
+  /**
+   * Optional per-provider fetch options for gateway-cookie transport.
+   * When the provider prefers cookie auth (no bearer), it can return
+   * `{ credentials: 'include' }` so that `apiRequest` sends cookies
+   * per-request without mutating global fetch. Called per-request
+   * so concurrent bearer vs cookie requests remain isolated.
+   */
+  getFetchOptions?(): { credentials?: RequestCredentials };
 }

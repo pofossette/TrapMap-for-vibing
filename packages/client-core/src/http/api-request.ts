@@ -45,12 +45,15 @@ export async function apiRequest<T>(
     headers.authorization = `Bearer ${token}`;
   }
 
+  const credentials = options.credentials ?? provider.getFetchOptions?.()?.credentials;
+
   let response: Response;
 
   try {
     response = await fetch(url, {
       method: options.method ?? 'GET',
       headers,
+      ...(credentials ? { credentials } : {}),
       ...(options.body ? { body: JSON.stringify(options.body) } : {}),
     });
   } catch (error) {
