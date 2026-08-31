@@ -115,7 +115,7 @@ const alias = [
   },
   { find: 'fastify', replacement: fastifyEntry },
 ];
-const project = (name: string, root: string, include = ['src/**/*.test.ts']) => ({
+const project = (name: string, root: string, include = ['test/**/*.test.ts']) => ({
   test: { name, root, include },
   resolve: { alias },
 });
@@ -126,7 +126,7 @@ export default defineConfig({
       project('ai-providers', './packages/ai-providers'),
       project('assembly', './packages/assembly'),
       {
-        ...project('scripts', './scripts', ['__tests__/**/*.test.ts']),
+        ...project('scripts', './scripts', ['__tests__/**/*.test.ts', 'test/**/*.test.ts']),
         resolve: {
           alias: [
             ...alias,
@@ -153,11 +153,11 @@ export default defineConfig({
       project('host-local', './packages/host-local'),
       project('host-distributed', './packages/host-distributed'),
       {
-        ...project('web-panel', './apps/web-panel', ['src/**/*.test.ts', 'src/**/*.test.tsx']),
+        ...project('web-panel', './apps/web-panel', ['test/**/*.test.ts', 'test/**/*.test.tsx']),
         test: {
           name: 'web-panel',
           root: './apps/web-panel',
-          include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+          include: ['test/**/*.test.ts', 'test/**/*.test.tsx'],
           environment: 'jsdom',
         },
         resolve: {

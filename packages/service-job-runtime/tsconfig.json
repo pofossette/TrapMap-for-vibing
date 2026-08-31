@@ -5,7 +5,7 @@
     "outDir": "dist"
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["src/**/*.test.ts", "test/**/*.test.ts", "test/**/*.test.tsx"],
   "references": [
     {
       "path": "../backend-core"

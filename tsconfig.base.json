@@ -55,7 +55,10 @@
       "@trapmap/app-distributed": ["./apps/distributed/src/index.ts"],
       "@trapmap/app-distributed/*": ["./apps/distributed/src/*"],
       "@trapmap/app-migration": ["./apps/migration/src/index.ts"],
-      "@trapmap/app-migration/*": ["./apps/migration/src/*"]
+      "@trapmap/app-migration/*": ["./apps/migration/src/*"],
+      "@trapmap/db": ["./packages/db/src/index.ts"],
+      "@trapmap/db/*": ["./packages/db/src/*"]
     }
-  }
+  },
+  "exclude": ["**/dist", "**/test", "**/__tests__", "coverage", "node_modules"]
 }

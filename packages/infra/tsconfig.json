@@ -5,6 +5,13 @@
     "outDir": "dist"
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
-  "exclude": ["src/**/*.test.ts"],
-  "references": [{ "path": "../lib" }, { "path": "../contracts" }]
+  "exclude": ["src/**/*.test.ts", "test/**/*.test.ts", "test/**/*.test.tsx"],
+  "references": [
+    {
+      "path": "../lib"
+    },
+    {
+      "path": "../contracts"
+    }
+  ]
 }

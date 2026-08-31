@@ -7,20 +7,46 @@
     "emitDecoratorMetadata": true
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["src/**/*.test.ts", "test/**/*.test.ts", "test/**/*.test.tsx"],
   "references": [
-    { "path": "../assembly" },
-    { "path": "../ai-providers" },
-    { "path": "../backend-core" },
-    { "path": "../contracts" },
-    { "path": "../infra" },
-    { "path": "../lib" },
-    { "path": "../service-identity-access" },
-    { "path": "../service-candidate-ingestion" },
-    { "path": "../service-governance-review" },
-    { "path": "../service-job-runtime" },
-    { "path": "../service-cron" },
-    { "path": "../service-knowledge-read" },
-    { "path": "../service-knowledge-write" }
+    {
+      "path": "../assembly"
+    },
+    {
+      "path": "../ai-providers"
+    },
+    {
+      "path": "../backend-core"
+    },
+    {
+      "path": "../contracts"
+    },
+    {
+      "path": "../infra"
+    },
+    {
+      "path": "../lib"
+    },
+    {
+      "path": "../service-identity-access"
+    },
+    {
+      "path": "../service-candidate-ingestion"
+    },
+    {
+      "path": "../service-governance-review"
+    },
+    {
+      "path": "../service-job-runtime"
+    },
+    {
+      "path": "../service-cron"
+    },
+    {
+      "path": "../service-knowledge-read"
+    },
+    {
+      "path": "../service-knowledge-write"
+    }
   ]
 }

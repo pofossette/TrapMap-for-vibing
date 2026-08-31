@@ -5,10 +5,16 @@
     "outDir": "dist"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["src/**/*.test.ts", "test/**/*.test.ts", "test/**/*.test.tsx"],
   "references": [
-    { "path": "../../packages/host-local" },
-    { "path": "../../packages/infra" },
-    { "path": "../../packages/service-knowledge-read" }
+    {
+      "path": "../../packages/host-local"
+    },
+    {
+      "path": "../../packages/infra"
+    },
+    {
+      "path": "../../packages/service-knowledge-read"
+    }
   ]
 }
