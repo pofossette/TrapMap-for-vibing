@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { BADCASE_TAXONOMY_VALUES } from '../../src/enum-types/badcase-taxonomy.js';
 import {
   feedbackBatchItemSchema,
   feedbackBatchResponseSchema,
@@ -11,6 +10,7 @@ import {
   feedbackSubmissionSchema,
   qualityScoreSchema,
 } from '../../src/domain/feedback.js';
+import { BADCASE_TAXONOMY_VALUES } from '../../src/enum-types/badcase-taxonomy.js';
 
 describe('feedback schema', () => {
   describe('feedbackProblemTypeSchema', () => {

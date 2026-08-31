@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { createExperienceGeneFixture } from '../../../src/testing/experience-gene-fixtures.js';
 import * as selection from '../../../src/knowledge-read/domain/gene-selection.js';
+import { createExperienceGeneFixture } from '../../../src/testing/experience-gene-fixtures.js';
 
 function geneWith(id: string, overrides = {}) {
   const gene = createExperienceGeneFixture();

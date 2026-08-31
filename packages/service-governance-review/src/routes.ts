@@ -18,6 +18,11 @@ import {
   routeResponse,
 } from '@trapmap/backend-core';
 import {
+  filterReviewQueueEntries,
+  isReviewQueueEntryVisible,
+} from '@trapmap/backend-core/governance-review/domain/policy.js';
+import { applyReviewQueueQuery } from '@trapmap/backend-core/governance-review/domain/review-queue-query.js';
+import {
   adminActivityQuerySchema,
   adminReviewQueueQuerySchema,
   badcaseExportDraftPayloadSchema,
@@ -34,11 +39,6 @@ import type {
 } from '@trapmap/contracts';
 import type { FastifyInstance } from 'fastify';
 import { type ZodType, z } from 'zod';
-import {
-  filterReviewQueueEntries,
-  isReviewQueueEntryVisible,
-} from '@trapmap/backend-core/governance-review/domain/policy.js';
-import { applyReviewQueueQuery } from '@trapmap/backend-core/governance-review/domain/review-queue-query.js';
 
 export type GovernanceReviewRouteModule = ReviewPort & {
   asyncCommands?: GovernanceAsyncCommandPort;

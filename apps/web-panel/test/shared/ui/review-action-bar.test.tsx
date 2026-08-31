@@ -11,11 +11,12 @@ vi.mock('@trapmap/web-panel/stores/i18n-store', () => ({
 describe('ReviewActionBar RBAC', () => {
   it('disables all actions for read-only-operator and shows noPermission', () => {
     const markup = renderToStaticMarkup(
+      // biome-ignore lint/a11y/useValidAriaRole: role is app-specific prop, not ARIA
       <ReviewActionBar
+        role="read-only-operator"
         onChangeRationale={() => {}}
         onSubmitDecision={() => {}}
         rationale="needs correction"
-        role="read-only-operator"
       />,
     );
     expect(markup).toContain('noPermission');
@@ -30,7 +31,6 @@ describe('ReviewActionBar RBAC', () => {
         onChangeRationale={() => {}}
         onSubmitDecision={() => {}}
         rationale="looks good"
-        role="reviewer"
       />,
     );
     expect(markup).not.toContain('noPermission');
@@ -41,12 +41,7 @@ describe('ReviewActionBar RBAC', () => {
 
   it('requires rationale for reject/return for non-readonly', () => {
     const markup = renderToStaticMarkup(
-      <ReviewActionBar
-        onChangeRationale={() => {}}
-        onSubmitDecision={() => {}}
-        rationale=""
-        role="administrator"
-      />,
+      <ReviewActionBar onChangeRationale={() => {}} onSubmitDecision={() => {}} rationale="" />,
     );
     expect(markup).toContain('rationaleRequiredWarning');
     expect(markup).toContain('rejectBtn');

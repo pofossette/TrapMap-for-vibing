@@ -104,7 +104,7 @@ describe('closeout surface guardrails', () => {
     expect(rule?.mustContain ?? []).toEqual(
       expect.arrayContaining([
         'Dead Code and Architecture Order Cleanup',
-        'docs/todos/dead-code-and-architecture-order-cleanup.md',
+        'docs/archived/archived-plans/dead-code-and-architecture-order-cleanup-archived.md',
         'open-debt-and-compromises.md',
       ]),
     );
@@ -134,7 +134,7 @@ describe('closeout surface guardrails', () => {
       ]),
     );
     expect(archiveRule?.mustContain ?? []).toEqual(
-      expect.arrayContaining(['当前根 `plan.md` 无 active mainline detail']),
+      expect.arrayContaining(['不应被其他文档当作当前执行入口引用']),
     );
   });
 

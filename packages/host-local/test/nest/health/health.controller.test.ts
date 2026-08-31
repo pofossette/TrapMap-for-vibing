@@ -1,8 +1,8 @@
 import { healthStatusSchema } from '@trapmap/contracts';
 import { register } from 'prom-client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LifecycleManagerService } from '../../../src/nest/lifecycle/lifecycle-manager.service.js';
 import { HealthController } from '../../../src/nest/health/health.controller.js';
+import { LifecycleManagerService } from '../../../src/nest/lifecycle/lifecycle-manager.service.js';
 
 function createMockPrometheusService() {
   return {

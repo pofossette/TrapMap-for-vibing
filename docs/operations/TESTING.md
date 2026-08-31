@@ -120,9 +120,9 @@ tier 归属（owner 与变更门禁详见各 suite README 与 `evals/README.md` 
 - Request-to-async correlation：提交带 badcase 的 feedback，并带上 `TRAPMAP_REQUEST_ID_HEADER` / `TRAPMAP_TRACE_HEADER_NAME`，确认 `task_queue.payload` 与 `/v1/operations/status/async` 的 `workflows[*].correlation` 都能看到同一组 `requestId`、`traceId`、`queryId`、`feedbackId`、`asyncJobId` 句柄。
 - Focused end-to-end proof：在 PostgreSQL 模式下先走一次 retrieval 拿到真实 `queryId`，再提交 badcase feedback，消费 `feedback.badcase-export-draft` 任务并写入 `workflow_runs`，最后调用 `GET /v1/operations/badcases/:feedbackId/export`；确认 `debug.correlation`、`debug.durableTrace`、`debug.workflow` 与 queued payload / workflow snapshot 使用同一组语义，同时 `draft.request` 仍不泄露 `asyncJobId`、`workflowRunId`。
 - Failure taxonomy：制造 dead-letter / failed event，确认 operator 仍通过统一 taxonomy 解释为 `permanent-failure`，而不是只输出底层 status 字符串。
-- Distributed hop correlation：运行 `packages/host-distributed/src/gateway/internal-client.test.ts` 或 distributed acceptance/closeout，确认 `x-request-id`、`x-trace-id` 与既有 `x-correlation-id` 跨 hop 透传，且 `403/404/409/503/504` canonical `kind` 不因 internal client 而漂移；上游空 body 或 transport 级失败也必须被归一化成 canonical body。
+- Distributed hop correlation：运行 `packages/host-distributed/test/gateway/internal-client.test.ts` 或 distributed acceptance/closeout，确认 `x-request-id`、`x-trace-id` 与既有 `x-correlation-id` 跨 hop 透传，且 `403/404/409/503/504` canonical `kind` 不因 internal client 而漂移；上游空 body 或 transport 级失败也必须被归一化成 canonical body。
 - Phase 3 runtime metrics export：运行 `packages/server（Wave-10 已删除）/src/app.test.ts`，确认 `/metrics` 返回 Prometheus text，包含 `trapmap_runtime_executions_total`、`trapmap_runtime_request_duration_ms_*` 等真实样本，并且 label 中不出现 `requestId` / `traceId` 这类高基数键。
-- Phase 3 span propagation：运行 `packages/host-distributed/src/gateway/routes.test.ts` 与 `packages/host-distributed/src/gateway/internal-client.test.ts`，确认 distributed write hop 继续透传 `traceparent`，并由 internal client 生成 `x-trapmap-span-id` / `x-trapmap-parent-span-id`。
+- Phase 3 span propagation：运行 `packages/host-distributed/test/gateway/routes.test.ts` 与 `packages/host-distributed/test/gateway/internal-client.test.ts`，确认 distributed write hop 继续透传 `traceparent`，并由 internal client 生成 `x-trapmap-span-id` / `x-trapmap-parent-span-id`。
 - Phase 3 structured logging：运行 `packages/server（Wave-10 已删除）/src/app.test.ts` 与 `packages/server（Wave-10 已删除）/src/lib/runtime/resilience.test.ts`，确认 request / resilience 日志至少带 `eventCategory`、`eventName`、`requestId`、`traceId`、`serviceName`、必要时 `attempt`。
 
 **Phase 7 Badcase Export / Decision Metrics Checks:**
@@ -408,7 +408,7 @@ pnpm dev:cli -- retrieval search "capsule recall"
 为了把 acceptance 级证据提升为可重复 closeout，本仓库现在把 `pnpm test:distributed-acceptance` 视为两层证据的聚合入口：
 
 - acceptance 层：单测试进程内的真实 internal HTTP hop，证明 gateway 转发、knowledge-write 委托、error/header/auth 语义不依赖 fetch mock
-- runtime closeout 层：`packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts` 会启动多个独立 Node 子进程，固定化 `gateway -> candidate-ingestion/governance-review -> knowledge-write -> job-runtime` 联调序列，并记录 queue reclaim、outbox retryable/dead-letter/stale-processing reclaim 证据
+- runtime closeout 层：`packages/host-distributed/test/gateway/distributed-runtime-closeout.test.ts` 会启动多个独立 Node 子进程，固定化 `gateway -> candidate-ingestion/governance-review -> knowledge-write -> job-runtime` 联调序列，并记录 queue reclaim、outbox retryable/dead-letter/stale-processing reclaim 证据
 
 该 closeout 测试当前固定覆盖：
 
@@ -518,7 +518,7 @@ capability parity with `light`.
 Phase 4 最小真实落地补充：
 
 - distributed 资源治理当前真实可测的默认值只到 DB pool budget env seam：`TRAPMAP_SERVICE_POOL_SIZE` 与 `TRAPMAP_<SERVICE>_POOL_SIZE`
-- focused proof 先看 `packages/host-distributed/src/job-runtime/ownership-acceptance.test.ts`，确认 shared default 与 per-service override 都能进入 `loadServiceConfig()`
+- focused proof 先看 `packages/host-distributed/test/job-runtime/ownership-acceptance.test.ts`，确认 shared default 与 per-service override 都能进入 `loadServiceConfig()`
 - operator runbook 当前仍以现有 `/health`、`/ready`、`/metrics`、`/v1/operations/status/async` 为入口，不新增第二套 runtime control plane
 - dashboard/alert/SLO 当前已冻结为首批 operator 文档面：task queue、internal hop latency、error rate 三组指标必须有 dashboard/alert/SLO 说明，但仍不要求新增 checked-in Grafana/Prometheus asset
 - root-plan closeout 的最小文档证据应能回答 operator runbook、dashboard/alert/SLO、以及 active-vs-archived 索引状态三件事
@@ -1218,12 +1218,12 @@ TRAPMAP_POSTGRES_COORDINATOR_URL=postgresql://trapmap:test@localhost:5432/postgr
 
 | 模块 | 测试文件 | 说明 |
 |------|----------|------|
-| Feedback | `packages/service-governance-review/src/pg-ports.test.ts` | 反馈 CRUD、过滤、约束验证 |
-| Governance Review | `packages/service-governance-review/src/routes.test.ts` | 治理审核路由集成测试 |
+| Feedback | `packages/service-governance-review/test/pg-ports.test.ts` | 反馈 CRUD、过滤、约束验证 |
+| Governance Review | `packages/service-governance-review/test/routes.test.ts` | 治理审核路由集成测试 |
 | Candidates | `packages/service-candidate-ingestion/src/` | 候选提交、分析、判重 |
 | Knowledge Write | `packages/service-knowledge-write/src/` | 知识条目 CRUD、标签过滤、约束验证 |
-| Task Queue | `packages/contracts/src/domain/task-queue.test.ts` | 持久化任务队列：入队、出队、重试、死信队列 |
-| Lifecycle | `packages/host-local/src/nest/lifecycle/lifecycle-manager.service.test.ts` | 生命周期管理器集成测试 |
+| Task Queue | `packages/contracts/test/domain/task-queue.test.ts` | 持久化任务队列：入队、出队、重试、死信队列 |
+| Lifecycle | `packages/host-local/test/nest/lifecycle/lifecycle-manager.service.test.ts` | 生命周期管理器集成测试 |
 
 ---
 

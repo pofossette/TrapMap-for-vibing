@@ -1,14 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { labelAlignmentDecisionSchema } from '@trapmap/contracts';
-import {
-  buildSampleArtifactInput,
-  buildSampleChannelInput,
-  buildSampleDedupInput,
-  conflictSampleInput,
-  intentSampleInput,
-  sampleLabelInput,
-} from '../../src/testing/judgment-fixtures.js';
 import type {
   ArtifactDerivationPort,
   ChannelMergePort,
@@ -17,6 +9,14 @@ import type {
   IntentRecognitionPort,
   LabelAlignmentPort,
 } from '../../src/ports/index.js';
+import {
+  buildSampleArtifactInput,
+  buildSampleChannelInput,
+  buildSampleDedupInput,
+  conflictSampleInput,
+  intentSampleInput,
+  sampleLabelInput,
+} from '../../src/testing/judgment-fixtures.js';
 
 /**
  * Contract-shape tests (design D8): the fixed samples must satisfy the

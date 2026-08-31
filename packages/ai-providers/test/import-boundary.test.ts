@@ -7,7 +7,7 @@ import type { AiPromptBlock, ChatProvider } from '../src/types.js';
 
 describe('ai-providers import boundary', () => {
   it('has no compatibility or prompt-package imports', async () => {
-    const source = await readFile(resolve(import.meta.dirname, 'index.ts'), 'utf8');
+    const source = await readFile(resolve(import.meta.dirname, '../src/index.ts'), 'utf8');
 
     expect(source).not.toContain('@trapmap/server');
     expect(source).not.toContain('/prompts');

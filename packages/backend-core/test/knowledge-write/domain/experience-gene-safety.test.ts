@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { createExperienceGeneFixture } from '../../../src/testing/experience-gene-fixtures.js';
 import { scanExperienceGeneSafety } from '../../../src/knowledge-write/domain/experience-gene-safety.js';
+import { createExperienceGeneFixture } from '../../../src/testing/experience-gene-fixtures.js';
 
 describe('experience gene safety scanner', () => {
   it('detects forbidden material without returning the secret value', () => {

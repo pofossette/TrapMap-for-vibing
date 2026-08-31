@@ -43,7 +43,10 @@ describe('createServer observability surface', () => {
   });
 
   it('owns the gateway request-context type instead of importing the compatibility server', async () => {
-    const source = await readFile(path.join(import.meta.dirname, 'server.ts'), 'utf8');
+    const source = await readFile(
+      path.join(import.meta.dirname, '../../src/gateway/server.ts'),
+      'utf8',
+    );
 
     expect(source).not.toContain('@trapmap/server/lib/runtime/index.js');
     expect(source).toContain('interface GatewayRequestContext');

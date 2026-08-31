@@ -22,8 +22,8 @@
  *   kubectl apply --dry-run=client --validate=true -f k8s/base/
  */
 
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 type CheckResult = { name: string; ok: boolean; details: string[]; ciGate?: string };
@@ -373,10 +373,11 @@ function main() {
   }
 
   console.log(
-    '\n' +
-      (allOk
+    `\n${
+      allOk
         ? 'L3 offline plumbing: ALL PASS (live gates CI_REQUIRED if kind/docker absent)'
-        : 'L3 offline plumbing: SOME FAIL'),
+        : 'L3 offline plumbing: SOME FAIL'
+    }`,
   );
 
   const liveHints = `

@@ -6,8 +6,8 @@ import type {
 } from '@trapmap/backend-core';
 import { remediationState } from '@trapmap/backend-core';
 import type { ConflictReadProjection, ConflictRelation } from '@trapmap/contracts';
-import { prefixedId } from '@trapmap/lib';
 import { feedbackCustomAnswers, feedbackRecords } from '@trapmap/db';
+import { prefixedId } from '@trapmap/lib';
 import { getTableName } from 'drizzle-orm';
 
 export interface GovernanceReviewPgOwnerBundle {

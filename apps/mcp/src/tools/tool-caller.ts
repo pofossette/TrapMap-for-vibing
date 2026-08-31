@@ -1,6 +1,6 @@
+import { loadMcpConfig } from '../config.js';
 import type { Role } from '../permissions.js';
 import { assertRole } from '../permissions.js';
-import { loadMcpConfig } from '../config.js';
 
 const config = loadMcpConfig({ TRAPMAP_ACCESS_TOKEN: 'test-token' });
 

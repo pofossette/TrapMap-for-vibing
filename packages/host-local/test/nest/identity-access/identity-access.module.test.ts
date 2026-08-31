@@ -6,9 +6,9 @@ import type { IdentityAccessPort } from '@trapmap/backend-core';
 import type { FastifyInstance } from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 
+import { IdentityAccessModule } from '../../../src/nest/identity-access/identity-access.module.js';
 import { AllExceptionFilter } from '../../../src/nest/runtime/exception.filter.js';
 import { RequestContextService } from '../../../src/nest/runtime/request-context.service.js';
-import { IdentityAccessModule } from '../../../src/nest/identity-access/identity-access.module.js';
 
 function createMockPort(): IdentityAccessPort {
   return {

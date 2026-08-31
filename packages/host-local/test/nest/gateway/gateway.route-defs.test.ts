@@ -7,10 +7,10 @@ import type { CronServiceModule } from '@trapmap/service-cron';
 import { buildOwnerReviewQueueProjection } from '@trapmap/service-governance-review';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { GatewayModule } from '../../../src/nest/gateway/gateway.module.js';
 import { AllExceptionFilter } from '../../../src/nest/runtime/exception.filter.js';
 import type { HostLocalRuntime } from '../../../src/nest/runtime/host-runtime.js';
 import { RequestContextService } from '../../../src/nest/runtime/request-context.service.js';
-import { GatewayModule } from '../../../src/nest/gateway/gateway.module.js';
 
 vi.mock('@trapmap/service-governance-review', async () => {
   const actual = await vi.importActual('@trapmap/service-governance-review');

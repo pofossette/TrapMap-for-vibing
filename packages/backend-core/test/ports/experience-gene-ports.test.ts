@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { createExperienceGeneFixture } from '../../src/testing/experience-gene-fixtures.js';
 import type {
   ExperienceGeneAccessContext,
   ExperienceGeneReadPort,
@@ -8,6 +7,7 @@ import type {
   ExperienceGeneWritePort,
   GeneSourceRef,
 } from '../../src/ports/experience-gene-ports.js';
+import { createExperienceGeneFixture } from '../../src/testing/experience-gene-fixtures.js';
 
 class PortShapeFixture implements ExperienceGeneWritePort, ExperienceGeneReadPort {
   async saveCandidate(gene: Parameters<ExperienceGeneWritePort['saveCandidate']>[0]) {

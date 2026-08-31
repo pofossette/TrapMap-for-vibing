@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { createJobRuntimeModule } from '../../../src/job-runtime/application/module.js';
 import type { AuditLogPort } from '../../../src/ports/audit-ports.js';
 import type { OutboxPort } from '../../../src/ports/queue-ports.js';
-import { createJobRuntimeModule } from '../../../src/job-runtime/application/module.js';
 
 describe('job-runtime module', () => {
   it('forwards scheduling dedupe keys to the task queue', async () => {

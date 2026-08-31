@@ -1,11 +1,11 @@
 import {
+  type ReviewDecisionRequest,
+  type ReviewQueueResponse,
+  type SkillArtifact,
   adminActivityQuerySchema,
   adminArtifactQuerySchema,
   adminGraphQuerySchema,
   adminReviewQueueQuerySchema,
-  type ReviewDecisionRequest,
-  type ReviewQueueResponse,
-  type SkillArtifact,
 } from '@trapmap/contracts';
 
 import type {

@@ -401,6 +401,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/db':
+        specifier: workspace:*
+        version: link:../db
       '@trapmap/infra':
         specifier: workspace:*
         version: link:../infra
@@ -748,6 +751,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/db':
+        specifier: workspace:*
+        version: link:../db
       '@trapmap/lib':
         specifier: workspace:*
         version: link:../lib
@@ -800,6 +806,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/db':
+        specifier: workspace:*
+        version: link:../db
       '@trapmap/lib':
         specifier: workspace:*
         version: link:../lib
@@ -855,6 +864,9 @@ importers:
       '@trapmap/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@trapmap/db':
+        specifier: workspace:*
+        version: link:../db
       '@trapmap/infra':
         specifier: workspace:*
         version: link:../infra

@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { formatLoadContext } from '../../src/lib/markdown-formatter.js';
 import type { GraphPlanSearchResponse } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
+import { formatLoadContext } from '../../src/lib/markdown-formatter.js';
 
 function makeResponse(): GraphPlanSearchResponse {
   return {
@@ -283,7 +283,7 @@ describe('formatLoadContext numbered graph', () => {
     expect(md).toContain('blockedBy:');
     expect(md).toContain('### Citations');
     // Snapshot for manual review
-    console.log('\n---MARKDOWN PREVIEW---\n' + md + '\n---END---\n');
+    console.log(`\n---MARKDOWN PREVIEW---\n${md}\n---END---\n`);
   });
 
   it('handles fallback when no plan', () => {

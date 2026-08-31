@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RequestContextService } from '../../../src/nest/runtime/request-context.service.js';
 import { HttpMetricsMiddleware } from '../../../src/nest/observability/http-metrics.middleware.js';
 import type { PrometheusService } from '../../../src/nest/observability/prometheus.service.js';
+import type { RequestContextService } from '../../../src/nest/runtime/request-context.service.js';
 
 describe('HttpMetricsMiddleware', () => {
   let middleware: HttpMetricsMiddleware;

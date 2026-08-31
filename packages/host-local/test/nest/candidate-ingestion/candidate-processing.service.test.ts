@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { HostLocalRuntime } from '../../../src/nest/runtime/host-runtime.js';
 import { CandidateProcessingService } from '../../../src/nest/candidate-ingestion/candidate-processing.service.js';
+import type { HostLocalRuntime } from '../../../src/nest/runtime/host-runtime.js';
 
 describe('CandidateProcessingService', () => {
   it('starts and stops the owner processing runtime with the Nest lifecycle', async () => {

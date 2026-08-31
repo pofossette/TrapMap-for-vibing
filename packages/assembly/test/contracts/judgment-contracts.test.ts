@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { defineNode } from '../../src/define-node.js';
-import type { CapabilityNode } from '../../src/types.js';
 import {
   artifactDerivationContract,
   channelMergeContract,
@@ -12,6 +10,8 @@ import {
   judgmentContracts,
   labelAlignmentContract,
 } from '../../src/contracts/judgment-contracts.js';
+import { defineNode } from '../../src/define-node.js';
+import type { CapabilityNode } from '../../src/types.js';
 
 const testConfigSchema = z.object({ mode: z.enum(['rule', 'llm', 'hybrid']).default('rule') });
 

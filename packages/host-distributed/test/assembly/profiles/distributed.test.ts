@@ -7,7 +7,6 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { ALL_SERVICES, type ServiceName } from '../../../src/config/index.js';
 import { SERVICE_SERVER_SERVICE } from '../../../src/assembly/nodes/distributed-service-nodes.js';
 import { SERVICE_CONFIG_SERVICE } from '../../../src/assembly/nodes/service-config.js';
 import { SERVICE_DATABASE_SERVICE } from '../../../src/assembly/nodes/service-database.js';
@@ -15,6 +14,7 @@ import {
   buildDistributedAssembly,
   distributedAssembly,
 } from '../../../src/assembly/profiles/distributed.js';
+import { ALL_SERVICES, type ServiceName } from '../../../src/config/index.js';
 
 const SERVICE_NODE_ID: Record<ServiceName, string> = {
   gateway: 'gateway-service',

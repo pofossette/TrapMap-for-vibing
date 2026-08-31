@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { SessionProvider } from '../../src/session/session-provider.js';
 import { ApiError, apiRequest } from '../../src/http/index.js';
+import type { SessionProvider } from '../../src/session/session-provider.js';
 
 function makeProvider(overrides: Partial<SessionProvider> = {}): SessionProvider {
   return {

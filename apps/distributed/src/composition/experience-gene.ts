@@ -16,8 +16,8 @@
  * app-owned seam instead of embedding the decision in `packages/host-distributed`.
  */
 
-import { embedWithFallback } from '@trapmap/infra';
 import type { ExperienceGeneMode } from '@trapmap/contracts';
+import { embedWithFallback } from '@trapmap/infra';
 import { createPgExperienceGeneSearchPort } from '@trapmap/service-knowledge-read';
 
 type PoolLike = { query: (...args: unknown[]) => Promise<unknown> };

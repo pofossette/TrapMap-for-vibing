@@ -187,6 +187,13 @@ describe('active surface discovery', () => {
       'docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md',
       'docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md',
       'docs/archived/README.md',
+      'docs/archived/archived-plans/skill-lookup-surface-mainline-archived.md',
+      'docs/archived/archived-plans/judgment-node-contracts-d8-archived.md',
+      'docs/archived/archived-plans/unified-assembly-center-phase1-archived.md',
+      'docs/archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md',
+      'docs/archived/archived-plans/unified-assembly-center-phase3-archived.md',
+      'docs/archived/archived-plans/unified-assembly-center-phase4-archived.md',
+      'docs/archived/archived-plans/dead-code-and-architecture-order-cleanup-archived.md',
     ];
     const archivedIssues = issues.filter((i) => i.file.startsWith('docs/archived/'));
     const nonReactivatedIssues = archivedIssues.filter(

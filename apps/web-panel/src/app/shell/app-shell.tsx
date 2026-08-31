@@ -10,14 +10,14 @@ import {
   toast,
 } from '@heroui/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Suspense, type ReactElement, useEffect, useState } from 'react';
+import { type ReactElement, Suspense, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import {
+  type AdminPanelApiMode,
   getAdminPanelApi,
   getAdminPanelApiMode,
   isUnauthorizedError,
-  type AdminPanelApiMode,
 } from '@trapmap/web-panel/services/admin-panel-service-context';
 import { SkeletonBlock } from '@trapmap/web-panel/shared/ui/skeleton-block';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';

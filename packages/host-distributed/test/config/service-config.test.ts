@@ -2,13 +2,13 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 describe('distributed experience gene rollout modes', () => {
   afterEach(() => {
-    delete process.env.TRAPMAP_EXPERIENCE_GENE_MODE;
-    delete process.env.TRAPMAP_EXPERIENCE_GENES_MODE;
+    process.env.TRAPMAP_EXPERIENCE_GENE_MODE = undefined;
+    process.env.TRAPMAP_EXPERIENCE_GENES_MODE = undefined;
   });
 
   it('defaults both modes to off and falls back on unknown values', async () => {
-    delete process.env.TRAPMAP_EXPERIENCE_GENE_MODE;
-    delete process.env.TRAPMAP_EXPERIENCE_GENES_MODE;
+    process.env.TRAPMAP_EXPERIENCE_GENE_MODE = undefined;
+    process.env.TRAPMAP_EXPERIENCE_GENES_MODE = undefined;
     const { loadServiceConfig } = await import('../../src/config/service-config.js');
     expect(loadServiceConfig('gateway').experienceGeneMode).toBe('off');
     expect(loadServiceConfig('gateway').experienceGenesMode).toBe('off');

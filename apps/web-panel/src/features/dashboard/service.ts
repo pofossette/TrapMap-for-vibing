@@ -1,5 +1,5 @@
-import { mapRuntimeOverview } from '@trapmap/web-panel/services/mappers/runtime-status-mapper';
 import { getAdminPanelApiMode } from '@trapmap/web-panel/services/admin-panel-service-context';
+import { mapRuntimeOverview } from '@trapmap/web-panel/services/mappers/runtime-status-mapper';
 import type {
   AdminPanelApiContract,
   GraphDataResponse,

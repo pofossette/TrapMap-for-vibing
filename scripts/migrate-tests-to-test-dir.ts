@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 // One-time migration: move colocated src tests to sibling test directory.
 // Usage: pnpm exec tsx scripts/migrate-tests-to-test-dir.ts [--dry-run]
 // For each package/app under packages/* and apps/*, find src tests, compute target test,
@@ -6,7 +7,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
 
 /**
  * Rewrite a single import string from oldFile context to newFile context.
@@ -20,7 +20,7 @@ export function rewriteImportPath(original: string, oldFile: string, newFile: st
   const newDir = path.posix.dirname(toPosix(newFile));
   const absoluteTarget = path.posix.normalize(path.posix.join(oldDir, original));
   let relative = path.posix.relative(newDir, absoluteTarget);
-  if (!relative.startsWith('.')) relative = './' + relative;
+  if (!relative.startsWith('.')) relative = `./${relative}`;
   return relative;
 }
 

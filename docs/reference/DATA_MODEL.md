@@ -612,7 +612,7 @@ active → review-due → stale → expired
 
 ## CronJob（定时任务）
 
-定时任务注册表，由 `service-cron` 拥有（表 `cron_jobs`，迁移 `packages/service-cron/drizzle/0000_cron_jobs.sql`）。调度器按 `schedule`/`timezone` 计算 `nextRunAt`，到期 job 经异步 task queue enqueue 对应 `taskType` 的 payload，不直接执行业务逻辑；手动 trigger 只 enqueue，不推进 `nextRunAt`。
+定时任务注册表，由 `service-cron` 拥有（表 `cron_jobs`，迁移 `packages/db/migrations/schema.sql`）。调度器按 `schedule`/`timezone` 计算 `nextRunAt`，到期 job 经异步 task queue enqueue 对应 `taskType` 的 payload，不直接执行业务逻辑；手动 trigger 只 enqueue，不推进 `nextRunAt`。
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -633,7 +633,7 @@ active → review-due → stale → expired
 
 部分索引：`cron_jobs_next_run_enabled_idx (next_run_at) WHERE enabled` — 支撑调度 tick 的到期任务扫描。
 
-> 源码：`packages/contracts/src/domain/cron.ts`；表结构以 `packages/service-cron/drizzle/0000_cron_jobs.sql` 为准。
+> 源码：`packages/contracts/src/domain/cron.ts`；表结构以 `packages/db/migrations/schema.sql` 为准。
 
 ---
 

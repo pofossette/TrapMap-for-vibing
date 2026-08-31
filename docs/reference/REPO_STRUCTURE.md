@@ -57,8 +57,8 @@ Wave-10 intermediate（2026-07-25）：`packages/runtime-infra/` 已退休删除
 
 `apps/` 是顶层 pnpm workspace（`pnpm-workspace.yaml` 的 `apps/*`），承载 6 个可执行组装中心。它们是 **thin assembly**：只做依赖装配、启动入口与可执行产物暴露，禁止承载业务逻辑（业务规则在 `packages/backend-core/src/<context>/domain/`，领域接线在各 service 包）。backend target registry（`scripts/backend-target-registry.ts`）以 `appPackage` 字段指向 light/distributed 组装中心（`libraryPackage` 字段保留对应的宿主库包名）；客户端封装组装中心（`apps/cli`、`apps/web-panel`、`apps/mcp`）不在该 registry 内。
 
- - `apps/light/`（`@trapmap/app-light`）：light 宿主组装中心，消费 `packages/host-local` 库包，为 `local-agent` / `team-monolith` profile 组装可执行入口。`src/composition/experience-gene.ts` 是 Experience Gene 薄组装 seam（消费 `@trapmap/infra` 的 `embedWithFallback` 组装 `PgExperienceGeneSearchPort`，`packages/host-local` 仅提供库实现）。
- - `apps/distributed/`（`@trapmap/app-distributed`）：distributed 宿主组装中心，消费 `packages/host-distributed` 库包，组装 gateway 与 candidate/governance/outbox worker 进程。`src/composition/experience-gene.ts` 对等提供 distributed 侧的 gene search 组装。
+ - `apps/light/`（`@trapmap/app-light`）：light 宿主组装中心，消费 `packages/host-local` 库包，为 `local-agent` / `team-monolith` profile 组装可执行入口。`apps/light/src/composition/experience-gene.ts` 是 Experience Gene 薄组装 seam（消费 `@trapmap/infra` 的 `embedWithFallback` 组装 `PgExperienceGeneSearchPort`，`packages/host-local` 仅提供库实现）。
+ - `apps/distributed/`（`@trapmap/app-distributed`）：distributed 宿主组装中心，消费 `packages/host-distributed` 库包，组装 gateway 与 candidate/governance/outbox worker 进程。`apps/distributed/src/composition/experience-gene.ts` 对等提供 distributed 侧的 gene search 组装。
  - `apps/migration/`（`@trapmap/app-migration`）：迁移作业组装中心。
 - `apps/cli/`（`@trapmap/cli`）：Commander CLI 及 CLI 测试，2026-08 从 `packages/` 迁入。
 - `apps/web-panel/`（`@trapmap/web-panel`）：基于浏览器的管理员运维面板，2026-08 从 `packages/` 迁入。

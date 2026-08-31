@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildExperienceGeneContentProjection } from '@trapmap/contracts';
-import { createExperienceGeneFixture } from '../../../src/testing/experience-gene-fixtures.js';
 import {
   createExperienceGeneContentHash,
   createExperienceGeneIdempotencyKey,
   createExperienceGeneIdempotencyKeyFromGene,
 } from '../../../src/knowledge-write/domain/experience-gene-hashing.js';
+import { createExperienceGeneFixture } from '../../../src/testing/experience-gene-fixtures.js';
 
 describe('experience gene hashing', () => {
   it('projects only governance-stable content fields', () => {

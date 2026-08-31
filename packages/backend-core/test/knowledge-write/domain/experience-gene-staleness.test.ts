@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { createExperienceGeneFixture } from '../../../src/testing/experience-gene-fixtures.js';
 import { evaluateExperienceGeneStaleness } from '../../../src/knowledge-write/domain/experience-gene-staleness.js';
+import { createExperienceGeneFixture } from '../../../src/testing/experience-gene-fixtures.js';
 
 describe('experience gene staleness evaluation', () => {
   it('detects source revision and hash changes separately', () => {

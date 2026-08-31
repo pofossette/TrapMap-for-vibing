@@ -9,15 +9,15 @@ import {
 } from '@trapmap/backend-core';
 import type { KnowledgeReadPort } from '@trapmap/backend-core';
 import {
+  ADMIN_GRAPH_DEPTH_1_MAX_NODES,
+  ADMIN_GRAPH_DEPTH_2_MAX_NODES,
+} from '@trapmap/backend-core';
+import {
   adminGraphQuerySchema,
   retrievalSearchBodySchema,
   skillLookupQuerySchema,
 } from '@trapmap/contracts';
 import type { AdminGraphQuery, AdminGraphResponse } from '@trapmap/contracts';
-import {
-  ADMIN_GRAPH_DEPTH_1_MAX_NODES,
-  ADMIN_GRAPH_DEPTH_2_MAX_NODES,
-} from '@trapmap/backend-core';
 import type { FastifyInstance } from 'fastify';
 import { type ZodType, z } from 'zod';
 

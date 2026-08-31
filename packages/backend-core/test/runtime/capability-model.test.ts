@@ -3,11 +3,6 @@ import { toInvocationErrorResponse } from '../../src/invocation/invocation-model
 
 import { InvocationError } from '../../src/invocation/invocation-model.js';
 import {
-  createStubAuditLog,
-  createStubMetrics,
-  createStubRepositoryPorts,
-} from '../../src/testing/test-utils.js';
-import {
   getServiceUnitProfile,
   resolveAsyncWorkerState,
   resolveDeploymentPreset,
@@ -19,6 +14,11 @@ import {
   shouldBootTaskWorker,
   shouldOwnAsyncWork,
 } from '../../src/runtime/capability-model.js';
+import {
+  createStubAuditLog,
+  createStubMetrics,
+  createStubRepositoryPorts,
+} from '../../src/testing/test-utils.js';
 
 describe('runtime/capability-model', () => {
   describe('resolveRuntimeDeployment', () => {

@@ -2,13 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createAssembly } from '@trapmap/assembly';
 
-import { createFakeHostRuntime } from '../../../../../src/nest/runtime/assembly/test-fixtures.js';
 import {
   hostLocalConfigNode,
   hostLocalPgNode,
   hostLocalRuntimeNode,
   hostLocalServicesNode,
 } from '../../../../../src/nest/runtime/assembly/nodes/host-nodes.js';
+import { createFakeHostRuntime } from '../../../../../src/nest/runtime/assembly/test-fixtures.js';
 
 const originalDatabaseUrl = process.env.TRAPMAP_DATABASE_URL;
 

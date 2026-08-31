@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { createBuildRuntime } from '../../../../../src/nest/runtime/assembly/test-fixtures.js';
 import { localAgentAssembly } from '../../../../../src/nest/runtime/assembly/profiles/local-agent.js';
 import { teamMonolithAssembly } from '../../../../../src/nest/runtime/assembly/profiles/team-monolith.js';
+import { createBuildRuntime } from '../../../../../src/nest/runtime/assembly/test-fixtures.js';
 
 const PILOT_NODE_IDS = [
   'host-local-config',

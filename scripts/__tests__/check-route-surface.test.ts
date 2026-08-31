@@ -241,8 +241,8 @@ describe('checkSurface', () => {
   });
 
   it('freezes known undocumented gateway routes but still requires new routes to be documented', () => {
-    const known = SURFACE_INVENTORY_DRIFT.find((path) => path === '/v1/cron/status');
-    if (!known) throw new Error('cron status drift fixture is required');
+    const known = SURFACE_INVENTORY_DRIFT.find((path) => path === '/v1/operations/status');
+    if (!known) throw new Error('operations status drift fixture is required');
     const real = [
       { path: known, file: routeFile, line: 2 },
       { path: '/v1/new/undocumented', file: routeFile, line: 3 },

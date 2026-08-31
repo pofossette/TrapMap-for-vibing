@@ -139,7 +139,7 @@ Gene content hash 使用 `sha256(canonicalJsonStringify(value))`，输入只包�
 
 ## Persistence design
 
-表定义放在 `packages/persistence-schema/src/experience-genes.ts`；knowledge-write 是 migration owner，直接消费 shared persistence schema 并在 owner migration test 中冻结关键列/index。不在 service 内复制 Drizzle 表定义。
+表定义放在 `packages/db/src/schema/experience-genes.ts`；knowledge-write 是 migration owner，直接消费 shared persistence schema 并在 owner migration test 中冻结关键列/index。不在 service 内复制 Drizzle 表定义。
 
 | 表 | 职责 |
 |---|---|
@@ -203,7 +203,7 @@ export interface ExperienceGeneReadPort {
 pnpm --filter @trapmap/contracts test --run src/domain/experience-gene.test.ts
 pnpm --filter @trapmap/contracts test --run src/domain/experience-gene-events.test.ts
 pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-ports.test.ts
-pnpm --filter @trapmap/persistence-schema test --run src/experience-genes.test.ts
+pnpm --filter @trapmap/db test --run src/experience-genes.test.ts
 pnpm check:table-schema
 pnpm check:pgtable-single-source
 pnpm typecheck
@@ -224,7 +224,7 @@ pnpm typecheck
 
 - `@trapmap/contracts` 冻结 Gene/source/lineage/generator/indexing 枚举与 strict schemas；事件 payload 在 `rejected` 类型上强制完整 validator report；派生 task 与三个 outbox event names 已冻结。
 - `backend-core/knowledge-write/domain` 提供 canonical content projection、Gene content hash 和 task idempotency key helper；hash 不含 `geneId/status/indexing/createdAt/updatedAt/parentEventId/priorGeneHash`。
-- `persistence-schema` 新增四张 Experience Gene 表；knowledge-write owner migration `0002_experience_genes` 注册 active partial-unique idempotency、governance/lifecycle indexes、HNSW vector index 和 tsvector GIN projection，并同步 Drizzle journal/snapshot。
+- `db` 新增四张 Experience Gene 表；knowledge-write owner migration `0002_experience_genes` 注册 active partial-unique idempotency、governance/lifecycle indexes、HNSW vector index 和 tsvector GIN projection，并同步 Drizzle journal/snapshot。
 - backend-core 定义 governance-aware read/write ports；knowledge-write `PgExperienceGeneRepository` 在事务内维护 aggregate、immutable events 和 retrieval projection。candidate/validated/solidified/stale 状态转换、rejected report append-only 写入、pending/failed/ready index transitions 均有 focused coverage。
 
 ### 验证证据
@@ -236,12 +236,12 @@ pnpm --filter @trapmap/contracts test --run src/domain/experience-gene.test.ts s
 # 2 files / 7 tests passed
 pnpm --filter @trapmap/backend-core test --run src/knowledge-write/domain/experience-gene-hashing.test.ts src/ports/experience-gene-ports.test.ts
 # 2 files / 4 tests passed
-pnpm --filter @trapmap/persistence-schema test --run src/experience-genes.test.ts
+pnpm --filter @trapmap/db test --run src/experience-genes.test.ts
 # 1 file / 2 tests passed
 pnpm --filter @trapmap/service-knowledge-write test --run src/experience-gene-ports.test.ts src/migrations.test.ts
 # 2 files / 16 tests passed
 pnpm check:table-schema
-# persistence-schema models 69 table(s); DATABASE_SCHEMA.md declares 69 table(s)
+# db models 69 table(s); DATABASE_SCHEMA.md declares 69 table(s)
 pnpm check:pgtable-single-source
 # exit 0
 pnpm typecheck

@@ -71,7 +71,7 @@ describe('extractWorkspacePackages', () => {
     expect(names).toContain('host-local');
     expect(names).toContain('host-distributed');
     expect(names).toContain('backend-core');
-    expect(names).toContain('persistence-schema');
+    expect(names).toContain('db');
   });
 
   it('includes package.json path for each package', () => {

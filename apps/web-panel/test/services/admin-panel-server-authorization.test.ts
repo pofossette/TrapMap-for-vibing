@@ -24,7 +24,7 @@ describe('server-side authorization — gateway enforces auth (real transport)',
   afterEach(() => {
     globalThis.fetch = originalFetch;
     window.history.pushState({}, '', '/');
-    delete (window as unknown as { __trapmapNavigate?: unknown }).__trapmapNavigate;
+    (window as unknown as { __trapmapNavigate?: unknown }).__trapmapNavigate = undefined;
     Object.defineProperty(document, 'cookie', {
       value: '',
       writable: true,

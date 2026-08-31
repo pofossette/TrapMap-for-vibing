@@ -183,7 +183,7 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 
 ### task_queue 关键索引
 
-> 以 `packages/db/src/queue.ts` 与 `service-job-runtime/drizzle/0000_sharp_old_lace.sql` 为准。历史迁移 0009 中的 `task_queue_pending_dequeue_idx`（出队谓词索引）当前 schema 已不存在，仅保留在 queue.ts 注释中；SKIP LOCKED 出队谓词（`status='pending' AND process_after<=NOW() ORDER BY priority DESC, created_at ASC`）目前无专门索引支撑。
+> 以 `packages/db/src/schema/queue.ts` 与 `service-job-runtime/drizzle/0000_sharp_old_lace.sql` 为准。历史迁移 0009 中的 `task_queue_pending_dequeue_idx`（出队谓词索引）当前 schema 已不存在，仅保留在 queue.ts 注释中；SKIP LOCKED 出队谓词（`status='pending' AND process_after<=NOW() ORDER BY priority DESC, created_at ASC`）目前无专门索引支撑。
 
 | 索引名 | 类型 | 列 | 条件 | 用途 |
 |--------|------|-----|------|------|

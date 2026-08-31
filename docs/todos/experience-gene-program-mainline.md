@@ -59,7 +59,7 @@ TrapMap 已经具备 trap 治理、skill artifact 版本化、capsule/profile/cl
 
 ## Cross-phase acceptance gates
 
-- [x] [通用向量与 structured generation 抽离至 `@trapmap/infra` 并覆盖 tri-state 组装，既有检索行为保持不变](experience-gene-infrastructure-foundation.md#第三检查点)。
+- [x] [通用向量与 structured generation 抽离至 `@trapmap/infra` 并覆盖 tri-state 组装，既有检索行为保持不变](experience-gene-infrastructure-foundation.md)。
 - [x] [`ExperienceGene` contracts、枚举、持久化表和 repository tests 已落地](experience-gene-contracts-and-storage.md#execution-record2026-08-25)。
 - [x] [trap/skill/capsule 派生管线具备 idempotency、validation、lineage、index retry 和 stale 处理](experience-gene-derivation-pipeline.md#execution-record2026-08-26)。
 - [x] [gene-native retrieval 通过 RouteDef 在两个宿主暴露，已补 off/shadow/serve 三态 route/config 回归](experience-gene-retrieval-and-activation.md#execution-record2026-08-26)。

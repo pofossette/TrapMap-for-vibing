@@ -1,8 +1,8 @@
 import * as contracts from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { HostLocalRuntime } from '../../../src/nest/runtime/host-runtime.js';
 import { createGatewayRouteDefs } from '../../../src/nest/gateway/gateway.route-defs.js';
+import type { HostLocalRuntime } from '../../../src/nest/runtime/host-runtime.js';
 
 function createDeps() {
   return {
