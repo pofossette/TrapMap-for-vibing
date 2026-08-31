@@ -4,6 +4,8 @@ import {
   cosineSimilarity,
   versionMatchMultiplier,
 } from '@trapmap/backend-core';
+import { batchCosineWithFallback } from '@trapmap/infra/go-accelerator/fallback.js';
+import { getGoAcceleratorClient } from '@trapmap/infra/go-accelerator/client.js';
 import type { RetrievalQuery } from '@trapmap/contracts';
 
 import type { SkillShareerServices } from './context.js';
@@ -135,6 +137,43 @@ export async function optimizedSemanticRecall(
   const freshnessConfig = getRetrievalInfra(services).scoring.freshnessConfig;
 
   const scoredEntries: Array<{ entry: KnowledgeRecord; score: number }> = [];
+
+  // Batch cosine via Go accelerator when enabled (distributed only); fallback to per-entry JS.
+  // This preserves host-local zero-Go: getGoAcceleratorClient returns disabled client there.
+  const goClient = getGoAcceleratorClient();
+  const useBatch = goClient.isEnabled && entries.length > 1;
+
+  if (useBatch) {
+    const entryIds: string[] = [];
+    const vectors: number[][] = [];
+    const entryById = new Map<string, KnowledgeRecord>();
+    for (const entry of entries) {
+      const er = embeddings.get(entry.id);
+      if (!er) continue;
+      entryIds.push(entry.id);
+      vectors.push(er.vector);
+      entryById.set(entry.id, entry);
+    }
+    if (vectors.length > 0) {
+      const similarities = await batchCosineWithFallback(queryVector, vectors, goClient);
+      for (let idx = 0; idx < entryIds.length; idx++) {
+        const entryId = entryIds[idx]!;
+        const entry = entryById.get(entryId)!;
+        const similarity = similarities[idx] ?? cosineSimilarity(queryVector, vectors[idx]!);
+        const score =
+          computeScore(similarity, entry, filters, seed) *
+          versionMatchMultiplier({
+            artifactVersion: artifactVersionOf(entry),
+            queryVersions,
+            freshnessType: entry.decayMeta?.freshnessType ?? null,
+            decayConfig: freshnessConfig,
+          });
+        scoredEntries.push({ entry, score });
+      }
+      scoredEntries.sort((a, b) => b.score - a.score);
+      return { scoredEntries, cacheStats: stats };
+    }
+  }
 
   for (const entry of entries) {
     const embeddingResult = embeddings.get(entry.id);

@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package trapmap.compute.v1;
+
+option go_package = "trapmap-go-accelerator/proto/compute/v1;computev1";
+
+// BatchCosine — high-throughput internal binary path (JSON remains external)
+// Mirrors POST /v1/vector/batch-cosine but as protobuf for infra-internal batch
+message BatchCosineRequest {
+  repeated double query = 1;
+  repeated Vector vectors = 2;
+  message Vector {
+    repeated double values = 1;
+  }
+}
+
+message BatchCosineResponse {
+  repeated double scores = 1;
+}
+
+message RankingBatchRequest {
+  repeated RankingEntry entries = 1;
+  repeated string query_tokens = 2;
+  uint32 max_candidates = 3;
+}
+
+message RankingEntry {
+  string id = 1;
+  double semantic_score = 2;
+  double keyword_score = 3;
+  double combined_score = 4;
+}
+
+// Dedup
+message DedupFingerprintRequest {
+  repeated string parts = 1;
+}
+message DedupFingerprintResponse {
+  string fingerprint = 1;
+}
+
+service ComputeService {
+  rpc BatchCosine(BatchCosineRequest) returns (BatchCosineResponse);
+  rpc DedupFingerprint(DedupFingerprintRequest) returns (DedupFingerprintResponse);
+}

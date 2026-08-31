@@ -107,3 +107,4 @@ graphify-out/
 # go-accelerator
 services/go-accelerator/bin/
 services/go-accelerator/vendor/
+benchmarks/results/

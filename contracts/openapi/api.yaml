@@ -1,0 +1,507 @@
+openapi: 3.1.0
+info:
+  title: TrapMap Go Accelerator
+  description: |
+    Distributed-only compute hub for TrapMap. SSOT is `packages/contracts/src/domain/go-accelerator.ts` (Zod);
+    this spec is the HTTP boundary projection ($ref to generated JSON Schema) and the source for
+    oapi-codegen (Go chi) + openapi-typescript (TS). CI enforces drift via `pnpm generate:openapi:check`.
+  version: 0.1.0
+servers:
+  - url: http://localhost:4100
+    description: Local dev
+  - url: http://go-accelerator:4100
+    description: Docker distributed
+paths:
+  /health:
+    get:
+      summary: Health
+      operationId: getHealth
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: './api.yaml#/components/schemas/HealthResponse' }
+  /ready:
+    get:
+      summary: Ready
+      operationId: getReady
+      responses:
+        '200':
+          description: ready
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string }
+  /v1/hash/canonical:
+    post:
+      summary: Canonical JSON + sha256
+      operationId: postCanonicalHash
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CanonicalHashRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CanonicalHashResponse' }
+  /v1/vector/cosine:
+    post:
+      summary: Cosine similarity
+      operationId: postCosine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VectorCosineRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VectorCosineResponse' }
+  /v1/vector/batch-cosine:
+    post:
+      summary: Batch cosine
+      operationId: postBatchCosine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BatchCosineRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BatchCosineResponse' }
+  /v1/vector/fallback:
+    post:
+      summary: Deterministic fallback vector (384d)
+      operationId: postFallbackVector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FallbackVectorRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FallbackVectorResponse' }
+  /v1/text/tokenize:
+    post:
+      summary: Tokenize + chunk
+      operationId: postTokenize
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenizeRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenizeResponse' }
+  /v1/retrieval/score:
+    post:
+      summary: Retrieval scoring + bucketing
+      operationId: postRetrievalScore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RetrievalScoreRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RetrievalScoreResponse' }
+  /v1/retrieval/ranking-batch:
+    post:
+      summary: Ranking batch (merge/rerank/mergeWithGraph/computeScore + boundaryDelta)
+      operationId: postRankingBatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RankingBatchRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RankingBatchResponse' }
+  /v1/retrieval/keyword-score:
+    post:
+      summary: Keyword scoring per entry (weights 3/2/1)
+      operationId: postKeywordScore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/KeywordScoreRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KeywordScoreResponse' }
+  /v1/dedup/fingerprint:
+    post:
+      summary: Dedup fingerprint (sha256 of normalized parts)
+      operationId: postDedupFingerprint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DedupFingerprintRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DedupFingerprintResponse' }
+  /v1/dedup/similarity:
+    post:
+      summary: Dedup Jaccard similarity
+      operationId: postDedupSimilarity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DedupSimilarityRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DedupSimilarityResponse' }
+  /v1/gene/derive-batch:
+    post:
+      summary: Gene derive batch (10 regex + 2x hash per trap)
+      operationId: postGeneDeriveBatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GeneDeriveBatchRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GeneDeriveBatchResponse' }
+  /v1/gene/select:
+    post:
+      summary: Gene selection (8-factor rerank)
+      operationId: postGeneSelect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GeneSelectRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GeneSelectResponse' }
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, service, version]
+      properties:
+        status: { type: string, example: ok }
+        service: { type: string, example: go-accelerator }
+        version: { type: string, example: 0.1.0 }
+    CanonicalHashRequest:
+      type: object
+      required: [payload]
+      properties:
+        payload: { description: "any JSON (maps to Go json.RawMessage / Zod z.unknown())" }
+      additionalProperties: false
+      x-go-type: json.RawMessage
+    CanonicalHashResponse:
+      type: object
+      required: [canonical, hash]
+      properties:
+        canonical: { type: string }
+        hash: { type: string, pattern: "^[0-9a-f]{64}$", x-go-type: Sha256Hex }
+    VectorCosineRequest:
+      type: object
+      required: [a, b]
+      properties:
+        a: { type: array, items: { type: number, format: double } }
+        b: { type: array, items: { type: number, format: double } }
+    VectorCosineResponse:
+      type: object
+      required: [similarity, normA, normB]
+      properties:
+        similarity: { type: number, format: double }
+        normA: { type: number, format: double, minimum: 0 }
+        normB: { type: number, format: double, minimum: 0 }
+    BatchCosineRequest:
+      type: object
+      required: [query, vectors]
+      properties:
+        query: { type: array, items: { type: number, format: double } }
+        vectors: { type: array, items: { type: array, items: { type: number, format: double } } }
+    BatchCosineResponse:
+      type: object
+      required: [scores]
+      properties:
+        scores: { type: array, items: { type: number, format: double } }
+    FallbackVectorRequest:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string }
+        dim: { type: integer, minimum: 1, maximum: 4096, default: 384 }
+    FallbackVectorResponse:
+      type: object
+      required: [vector, dim]
+      properties:
+        vector: { type: array, items: { type: number, format: double } }
+        dim: { type: integer, minimum: 1, maximum: 4096 }
+    TokenizeRequest:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string }
+        maxTokens: { type: integer, minimum: 1 }
+        chunkSize: { type: integer, minimum: 1, maximum: 10000 }
+        overlap: { type: integer, minimum: 0, maximum: 1000 }
+    TokenizeResponse:
+      type: object
+      required: [tokens, chunks, count]
+      properties:
+        tokens: { type: array, items: { type: string } }
+        chunks: { type: array, items: { type: string } }
+        count: { type: integer, minimum: 0 }
+    RetrievalScoreEntry:
+      type: object
+      required: [id, scope, labels, requiredLevel, shortcut, detail]
+      properties:
+        id: { type: string }
+        scope: { type: string }
+        labels: { type: array, items: { type: string } }
+        requiredLevel: { type: integer, minimum: 0, maximum: 10 }
+        shortcut: { type: string }
+        detail: { type: string }
+        score: { type: number, format: double }
+    RetrievalScoreRequest:
+      type: object
+      required: [entries, query, filters]
+      properties:
+        entries: { type: array, items: { $ref: '#/components/schemas/RetrievalScoreEntry' } }
+        query: { type: string }
+        filters:
+          type: object
+          required: [labels, scopes]
+          properties:
+            labels: { type: array, items: { type: string } }
+            scopes: { type: array, items: { type: string } }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+    RetrievalScoreResponse:
+      type: object
+      required: [globalConstraints, projectKnowledge, reason]
+      properties:
+        globalConstraints: { type: array, items: { $ref: '#/components/schemas/RetrievalScoreEntry' } }
+        projectKnowledge: { type: array, items: { $ref: '#/components/schemas/RetrievalScoreEntry' } }
+        reason: { type: string }
+    KeywordScoreRequest:
+      type: object
+      required: [queryTokens, entryTokens]
+      properties:
+        queryTokens: { type: array, items: { type: string } }
+        entryTokens:
+          type: object
+          required: [shortcut, detail, labels]
+          properties:
+            shortcut: { type: array, items: { type: string } }
+            detail: { type: array, items: { type: string } }
+            labels: { type: array, items: { type: string } }
+    KeywordScoreResponse:
+      type: object
+      required: [score, tokenMatches]
+      properties:
+        score: { type: number, format: double, minimum: 0, maximum: 1 }
+        tokenMatches:
+          type: array
+          items:
+            type: object
+            required: [token, fields]
+            properties:
+              token: { type: string }
+              fields: { type: array, items: { type: string, enum: [shortcut, detail, labels] } }
+    RankingBatchRequest:
+      type: object
+      required: [query, entries]
+      properties:
+        query:
+          type: object
+          properties:
+            text: { type: string }
+            filters:
+              type: object
+              properties:
+                labels: { type: array, items: { type: string } }
+                scopes: { type: array, items: { type: string } }
+            boundaryContext:
+              type: object
+              properties:
+                contexts: { type: array, items: { type: string } }
+                platform: { type: string }
+                versions: { type: array, items: { type: object } }
+            decayConfig:
+              type: object
+        entries:
+          type: array
+          items:
+            type: object
+            required: [id]
+            properties:
+              id: { type: string }
+              semanticScore: { type: number, format: double }
+              keywordScore: { type: number, format: double }
+              graphScore: { type: number, format: double }
+              channelScores: { type: object, additionalProperties: { type: number } }
+              tokenMatches: { type: array, items: { type: object } }
+              channels: { type: array, items: { type: string } }
+              scope: { type: string }
+              labels: { type: array, items: { type: string } }
+              boundary: { type: object }
+              decayMeta: { type: object }
+              requiredLevel: { type: integer }
+              shortcut: { type: string }
+              detail: { type: string }
+        freshnessConfig: { type: object }
+    RankingBatchResponse:
+      type: object
+      required: [merged]
+      properties:
+        merged:
+          type: array
+          items:
+            type: object
+            required: [id, combinedScore, preRerankScore, finalScore]
+            properties:
+              id: { type: string }
+              semanticScore: { type: number }
+              keywordScore: { type: number }
+              graphScore: { type: number }
+              combinedScore: { type: number }
+              preRerankScore: { type: number }
+              finalScore: { type: number }
+              boundaryScoreDelta: { type: number }
+              decayMultiplier: { type: number }
+              channels: { type: array, items: { type: string } }
+              reasons: { type: array, items: { type: string } }
+    DedupFingerprintRequest:
+      type: object
+      required: [parts]
+      properties:
+        parts: { type: array, items: { type: string } }
+    DedupFingerprintResponse:
+      type: object
+      required: [fingerprint]
+      properties:
+        fingerprint: { type: string, pattern: "^[0-9a-f]{64}$" }
+    DedupSimilarityRequest:
+      type: object
+      required: [leftTokens, rightTokens]
+      properties:
+        leftTokens: { type: array, items: { type: string } }
+        rightTokens: { type: array, items: { type: string } }
+    DedupSimilarityResponse:
+      type: object
+      required: [similarity, sharedCount, unionCount]
+      properties:
+        similarity: { type: number, format: double, minimum: 0, maximum: 1 }
+        sharedCount: { type: integer, minimum: 0 }
+        unionCount: { type: integer, minimum: 0 }
+    GeneCandidate:
+      type: object
+      required: [geneId, semanticScore, keywordScore, exactSignalMatch, errorTextMatch, boundaryMatch, freshValidation, broadMatch, sourceKind]
+      properties:
+        geneId: { type: string }
+        title: { type: string }
+        semanticScore: { type: number, format: double, minimum: 0, maximum: 1 }
+        keywordScore: { type: number, format: double, minimum: 0, maximum: 1 }
+        exactSignalMatch: { type: boolean }
+        errorTextMatch: { type: boolean }
+        boundaryMatch: { type: boolean }
+        freshValidation: { type: boolean }
+        broadMatch: { type: boolean }
+        sourceKind: { type: string, enum: [trap, skill-artifact, skill-capsule] }
+    GeneSelectRequest:
+      type: object
+      required: [candidates, query]
+      properties:
+        candidates: { type: array, items: { $ref: '#/components/schemas/GeneCandidate' } }
+        query: { type: string }
+        maxResults: { type: integer, minimum: 1, maximum: 100 }
+    GeneDeriveBatchRequest:
+      type: object
+      required: [traps]
+      properties:
+        traps:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            type: object
+            required: [trapId, trapText, derivationUnitId]
+            properties:
+              trapId: { type: string }
+              trapText: { type: string }
+              derivationUnitId: { type: string }
+    GeneDeriveBatchResponse:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            required: [trapId, derivationUnitId, sections, contentHash, sourceHash]
+            properties:
+              trapId: { type: string }
+              derivationUnitId: { type: string }
+              sections:
+                type: object
+                required: [MATCH, GOAL, STRATEGY, AVOID, VERIFY]
+                properties:
+                  MATCH: { type: array, items: { type: string } }
+                  GOAL: { type: array, items: { type: string } }
+                  STRATEGY: { type: array, items: { type: string } }
+                  AVOID: { type: array, items: { type: string } }
+                  VERIFY: { type: array, items: { type: string } }
+              contentHash: { type: string, pattern: "^[0-9a-f]{64}$" }
+              sourceHash: { type: string, pattern: "^[0-9a-f]{64}$" }
+    GeneSelectResponse:
+      type: object
+      required: [selected]
+      properties:
+        selected:
+          type: array
+          items:
+            type: object
+            required: [geneId, score, reasons]
+            properties:
+              geneId: { type: string }
+              score: { type: number, format: double }
+              reasons: { type: array, items: { type: string } }
+        warnings: { type: array, items: { type: string } }

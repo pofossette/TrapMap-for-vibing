@@ -20,6 +20,9 @@ Active execution surface for Go acceleration plane (distributed-only).
 - contracts changes (no new shared types beyond go-accelerator internal)
 - retrieval DB / pgvector (still in Node)
 
+
+> **深化**：本 scaffold 已合入 `pre@a9b413b5`，剩余重计算全量盘点与批处理迁移见 [`go-compute-hub-mainline.md`](go-compute-hub-mainline.md)；类型约束见 [`type-alignment-mainline.md`](type-alignment-mainline.md) P0。
+
 ## Checklist
 - [x] Hotspot analysis (hash, vector, tokenize, retrieval, gene)
 - [x] Go service scaffold + handlers

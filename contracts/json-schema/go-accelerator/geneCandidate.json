@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "geneId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "default": "",
+      "type": "string"
+    },
+    "semanticScore": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "keywordScore": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "exactSignalMatch": {
+      "type": "boolean"
+    },
+    "errorTextMatch": {
+      "type": "boolean"
+    },
+    "boundaryMatch": {
+      "type": "boolean"
+    },
+    "freshValidation": {
+      "type": "boolean"
+    },
+    "broadMatch": {
+      "type": "boolean"
+    },
+    "sourceKind": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "geneId",
+    "title",
+    "semanticScore",
+    "keywordScore",
+    "exactSignalMatch",
+    "errorTextMatch",
+    "boundaryMatch",
+    "freshValidation",
+    "broadMatch",
+    "sourceKind"
+  ],
+  "additionalProperties": false,
+  "title": "geneCandidate"
+}

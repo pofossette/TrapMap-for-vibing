@@ -14,7 +14,7 @@ func CanonicalHash(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	canonical, h, err := hash.CanonicalHash(req.Payload)
+	canonical, h, err := hash.CanonicalHashRaw(req.Payload)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

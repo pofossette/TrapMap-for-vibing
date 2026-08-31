@@ -6,6 +6,7 @@ import (
 )
 
 type Config struct {
+	CacheSize      int
 	Port           string
 	LogLevel       string
 	ReadTimeoutMs  int
@@ -25,6 +26,7 @@ func Load() Config {
 		lvl = "info"
 	}
 	return Config{
+		CacheSize:      getIntEnv("TRAPMAP_GO_ACCEL_CACHE_SIZE", 10000),
 		Port:           port,
 		LogLevel:       lvl,
 		ReadTimeoutMs:  getIntEnv("TRAPMAP_GO_ACCELERATOR_READ_TIMEOUT_MS", 10000),

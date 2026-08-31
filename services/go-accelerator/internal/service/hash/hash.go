@@ -60,6 +60,18 @@ func marshalCanonical(v interface{}) ([]byte, error) {
 	}
 }
 
+
+func CanonicalHashRaw(raw json.RawMessage) (canonical string, hash string, err error) {
+	if len(raw) == 0 {
+		return CanonicalHash(nil)
+	}
+	var v interface{}
+	if err := json.Unmarshal(raw, &v); err != nil {
+		return "", "", err
+	}
+	return CanonicalHash(v)
+}
+
 func SHA256Hex(s string) string {
 	h := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(h[:])

@@ -102,11 +102,100 @@ export class GoAcceleratorClient {
     return this.post('/v1/gene/select', params);
   }
 
+  async fallbackVector(text: string, dim?: number): Promise<{ vector: number[]; dim: number }> {
+    return this.post('/v1/vector/fallback', { text, dim });
+  }
+
+  async rankingBatch(params: {
+    entries: Array<{
+      id: string;
+      semanticScore: number;
+      keywordScore: number;
+      graphScore?: number;
+      channelScores: Record<string, number>;
+      combinedScore: number;
+      tokenMatches: Array<{ token: string; fields: string[] }>;
+      channels: string[];
+      preRerankScore: number;
+      finalScore: number;
+      labels: string[];
+      scope: string;
+      shortcut: string;
+      detail: string;
+      decayState?: string;
+      boundary?: { context?: string[]; exclusions?: Array<{ kind: string; description: string }> };
+    }>;
+    semanticEntries?: typeof params.entries;
+    keywordEntries?: typeof params.entries;
+    graphEntries?: typeof params.entries;
+    queryTokens?: string[];
+    maxCandidates?: number;
+    boundaryContext?: { contexts: string[]; platform?: string };
+  }): Promise<{ merged: typeof params.entries }> {
+    return this.post('/v1/retrieval/ranking-batch', params);
+  }
+
+  async keywordScore(params: {
+    queryTokens: string[];
+    entryTokens: { shortcut: string[]; detail: string[]; labels: string[] };
+  }): Promise<{ score: number; tokenMatches: Array<{ token: string; fields: string[] }> }> {
+    return this.post('/v1/retrieval/keyword-score', params);
+  }
+
+  async dedupFingerprint(parts: string[]): Promise<{ fingerprint: string }> {
+    return this.post('/v1/dedup/fingerprint', { parts });
+  }
+
+  async dedupSimilarity(
+    leftTokens: string[],
+    rightTokens: string[],
+  ): Promise<{ similarity: number; sharedCount: number; unionCount: number }> {
+    return this.post('/v1/dedup/similarity', { leftTokens, rightTokens });
+  }
+
+  async geneDeriveBatch(
+    traps: Array<{ trapId: string; trapText: string; derivationUnitId: string }>,
+  ): Promise<{
+    results: Array<{
+      trapId: string;
+      derivationUnitId: string;
+      sections: {
+        MATCH: string[];
+        GOAL: string[];
+        STRATEGY: string[];
+        AVOID: string[];
+        VERIFY: string[];
+      };
+      contentHash: string;
+      sourceHash: string;
+    }>;
+  }> {
+    return this.post('/v1/gene/derive-batch', { traps });
+  }
+
   async health(): Promise<{ status: string; service: string }> {
     const res = await this.fetchImpl(`${this.config.baseUrl}/health`);
     if (!res.ok) throw new Error(`health failed ${res.status}`);
     return (await res.json()) as { status: string; service: string };
   }
+}
+
+let cachedClient: GoAcceleratorClient | null = null;
+
+export function getGoAcceleratorClient(): GoAcceleratorClient {
+  if (cachedClient) return cachedClient;
+  const env =
+    typeof process !== 'undefined' ? (process.env as Record<string, string | undefined>) : {};
+  cachedClient = createGoAcceleratorClientFromEnv(env);
+  return cachedClient;
+}
+
+export function setGoAcceleratorClient(client: GoAcceleratorClient | null): void {
+  cachedClient = client;
+}
+
+export function resetGoAcceleratorClient(): void {
+  cachedClient = null;
 }
 
 export function createGoAcceleratorClientFromEnv(
