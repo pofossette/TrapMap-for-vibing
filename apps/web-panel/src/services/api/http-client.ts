@@ -15,10 +15,15 @@ export function createHttpClient(provider: SessionProvider): HttpClient {
   // mutated global state. Now we expose the gateway cookie preference via
   // `SessionProvider.getFetchOptions()` and per-request `RequestOptions.credentials`
   // so `apiRequest` sends cookies per-call without touching globals.
+  // Cookie preference branching: respect explicit provider.getFetchOptions() (e.g.
+  // browserSessionProvider in VITE_ADMIN_PANEL_SESSION_MODE=cookie or when
+  // trapmap_session cookie is present) before falling back to token-presence heuristic.
   const wrappedProvider: SessionProvider = {
     getBaseUrl: () => provider.getBaseUrl(),
     getSessionToken: () => provider.getSessionToken(),
     getFetchOptions: () => {
+      const explicit = provider.getFetchOptions?.();
+      if (explicit?.credentials) return explicit;
       const token = provider.getSessionToken();
       const credentials = getCredentialsForToken(token);
       return credentials ? { credentials } : {};

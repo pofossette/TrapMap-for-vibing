@@ -832,6 +832,12 @@ TrapMap 的服务端 AI 提示词支持“插槽式”覆盖。你可以提供�
 | `RATE_LIMIT_MAX_PER_MINUTE` | 每分钟最大请求数（0 = 无限制） | `0` |
 | `SESSION_TRANSPORT` | 会话传输方式：`bearer-header` 或 `cookie` | `bearer-header` |
 
+> **Gateway session / cookie 偏好（P4B，conditional）：**
+> - `SESSION_TRANSPORT` 是 `host-local` 侧的 gateway 会话传输开关（`bearer-header` 默认，`cookie` 预留）。当前 `packages/host-local/src/nest/runtime/auth-context.ts:15-24` 仅校验 `Authorization: Bearer` / `x-session-token`，`packages/host-distributed/src/gateway/routes.ts:50-103` 的 `registerAuthHook` 亦仅校验 `Bearer`；`cookie` 传输需要未来 `Set-Cookie: trapmap_session=...; HttpOnly; Secure; SameSite` + `Cookie: trapmap_session=` 的 gateway 契约扩展后才端到端生效。
+> - Web Panel 已实现条件偏好：`apps/web-panel/src/stores/session-store.ts:resolveSessionTransportPreference()` + `isCookieTransportPreferred()` 在 `VITE_ADMIN_PANEL_SESSION_MODE=cookie` 或 `document.cookie` 已含 `trapmap_session` 时返回 `cookie`，否则 `bearer`；`apps/web-panel/src/services/admin-panel-service-context.ts:browserSessionProvider.getFetchOptions()` 在该条件下返回 `{credentials:'include'}`（经 `packages/client-core/src/session/session-provider.ts:getFetchOptions` + `apps/web-panel/src/services/api/http-client.ts:createHttpClient` 的 `wrappedProvider.getFetchOptions()` 尊重显式 cookie 偏好，`--` 回退到 token-presence 启发的 `include`），与 `host-local` 的 `SESSION_TRANSPORT` 对齐。
+> - 当 gateway 尚未暴露 `Set-Cookie` / cookie 校验时，panel 保持 `browserSessionProvider.getSessionToken() → useSessionStore.request.payload.token` 的 bearer 回退，但该持久化被视为不安全（JS 可访问，XSS 可泄露），相较 `httpOnly` cookie 的安全级别应文档化并在启用 `cookie` 后优先使用 `credentials:'include'`。`VITE_ADMIN_PANEL_SESSION_MODE` 在 `apps/web-panel/src/vite-env.d.ts` 声明为 `'cookie'|'bearer'`，默认 `bearer`。
+> - 浏览器端 `VITE_ADMIN_PANEL_SESSION_MODE` 仅影响 `web-panel` 发起请求的 `fetch` `credentials`，不直接改变 `SESSION_TRANSPORT` 的服务端行为；两端需同时切 `cookie` 才形成真正 `httpOnly` 闭环。
+
 ## 日志配置
 
 ### 用户操作日志

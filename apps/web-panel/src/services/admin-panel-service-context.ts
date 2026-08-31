@@ -4,7 +4,19 @@ import { createAdminPanelApi } from './api/admin-panel-api';
 import { createHttpClient } from './api/http-client';
 import { createMockAdminPanelApi } from './api/mock-admin-panel-api';
 import type { AdminPanelApiContract } from '@trapmap/web-panel/shared/enum-types';
-import { useSessionStore } from '@trapmap/web-panel/stores/session-store';
+import {
+  isCookieTransportPreferred,
+  resolveSessionTransportPreference,
+  useSessionStore,
+} from '@trapmap/web-panel/stores/session-store';
+
+export function isGatewayCookieModePreferred(): boolean {
+  return isCookieTransportPreferred();
+}
+
+export function getSessionTransportPreference() {
+  return resolveSessionTransportPreference();
+}
 
 export const browserSessionProvider: SessionProvider = {
   getBaseUrl() {
@@ -18,6 +30,10 @@ export const browserSessionProvider: SessionProvider = {
     // non-httpOnly cookie if present so that the fetch layer can still
     // attach credentials via `credentials: 'include'`. The httpClient below
     // also sets `credentials: 'include'` when no bearer is present.
+    // When gateway signals cookie support (VITE_ADMIN_PANEL_SESSION_MODE=cookie
+    // or trapmap_session cookie present), this fallback keeps the transport
+    // working even for non-httpOnly cookies; httpOnly cookies are sent
+    // automatically via `credentials:'include'` without JS access.
     if (typeof document !== 'undefined') {
       const match = document.cookie.match(/(?:^|; )trapmap_session=([^;]*)/);
       if (match?.[1]) {
@@ -29,6 +45,29 @@ export const browserSessionProvider: SessionProvider = {
       }
     }
     return null;
+  },
+  getFetchOptions() {
+    // P3A client-core extension: prefer gateway httpOnly cookie semantics
+    // (`credentials:'include'`) over insecure bearer persistence when gateway
+    // signals cookie mode. Condition is env `VITE_ADMIN_PANEL_SESSION_MODE=cookie`
+    // or an existing `trapmap_session` cookie (see session-store helpers).
+    // In cookie mode we always return `include` even if a bearer token exists,
+    // to avoid JS-accessible token exfiltration (XSS) when httpOnly is available.
+    // In bearer mode we keep the existing fallback: only send `include` when no
+    // bearer token is present, so opportunistic cookie still works.
+    // WARNING: bearer persistence in `useSessionStore` is JS-accessible and
+    // considered insecure relative to httpOnly cookie; keep it only when gateway
+    // does not yet expose Set-Cookie / cookie validation (current host-local
+    // `auth-context.ts` and host-distributed `registerAuthHook` are Bearer-only).
+    if (isCookieTransportPreferred()) {
+      return { credentials: 'include' };
+    }
+    // Bearer fallback — preserve P3A behavior: include only when no token
+    const token = useSessionStore.getState().request.payload?.token ?? null;
+    if (!token && typeof document !== 'undefined' && document.cookie.includes('trapmap_session=')) {
+      return { credentials: 'include' };
+    }
+    return token ? {} : { credentials: 'include' };
   },
 };
 
