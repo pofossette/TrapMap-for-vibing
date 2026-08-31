@@ -45,7 +45,9 @@ export class InstallService {
     const cwd = options.cwd ?? process.cwd();
     const base = scope === 'global' ? path.join(process.env.HOME ?? cwd, '.trapmap', 'skills', slug) : path.join(cwd, '.trapmap', 'skills', slug);
     const agents = options.agentTargets ?? ['trapmap'];
-    const agentPaths = agents.map((agent) => {
+    // Dedupe agents sharing same directory (mature ai-pkgs pattern: .agents/skills universal)
+    const deduped = [...new Set(agents)];
+    const agentPaths = deduped.map((agent) => {
       const dir = AGENT_SKILL_DIRS[agent] ?? `.agents/skills`;
       const root = scope === 'global' ? path.join(process.env.HOME ?? cwd, dir) : path.join(cwd, dir);
       return path.join(root, slug);

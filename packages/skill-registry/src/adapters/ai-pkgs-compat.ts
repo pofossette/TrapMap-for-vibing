@@ -48,7 +48,7 @@ export class AiPkgsCompatAdapter implements RegistryAdapter {
     if (!res.ok) throw new Error(`ai-pkgs fetch failed: ${res.status} ${url}`);
     const meta = (await res.json()) as { dist: { tarball: string }; readme?: string; version: string };
     // Simplified bundle: use readme as SKILL.md if available
-    const { sha256 } = await import('@trapmap/lib');
+    const { sha256 } = await import('@trapmap/lib/hash.js');
     const content = meta.readme ?? `# ${name}\n\nFetched via ai-pkgs compat`;
     return {
       slug: name,

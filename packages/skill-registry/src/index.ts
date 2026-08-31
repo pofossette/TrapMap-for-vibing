@@ -17,3 +17,4 @@ export * from './services/update-service.js';
 export * from './services/merge-service.js';
 
 export * from './cli/index.js';
+\nexport * from './domain/conflicts.js';\nexport * from './domain/agents.js';\n

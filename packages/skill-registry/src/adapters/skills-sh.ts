@@ -59,7 +59,7 @@ export class SkillsShAdapter implements RegistryAdapter {
     const res = await fetch(`${base}/SKILL.md`);
     if (!res.ok) throw new Error(`GitHub raw fetch failed: ${res.status} ${base}/SKILL.md`);
     const content = await res.text();
-    const { sha256 } = await import('@trapmap/lib');
+    const { sha256 } = await import('@trapmap/lib/hash.js');
     const hash = await sha256(content);
     return {
       slug: source.slug ?? source.subpath?.split('/').pop() ?? source.repo ?? 'unknown',

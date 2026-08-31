@@ -18,10 +18,11 @@ export class LocalAdapter implements RegistryAdapter {
 
   async fetchBundle(source: SkillSource): Promise<SkillBundle> {
     const raw = source.raw.replace(/^file:\/\//, '');
+    // Support universal .agents/skills and home expansion (copy ccswitch/ai-pkgs agents/targets)
     const resolved = raw.startsWith('~') ? path.join(process.env.HOME ?? '', raw.slice(1)) : path.resolve(raw);
     const st = await stat(resolved);
     const files: SkillBundle['files'] = [];
-    const { sha256 } = await import('@trapmap/lib');
+    const { sha256 } = await import('@trapmap/lib/hash.js');
     if (st.isDirectory()) {
       // Read SKILL.md + references recursively (shallow copy of ccswitch skill layout)
       const skillMd = path.join(resolved, 'SKILL.md');

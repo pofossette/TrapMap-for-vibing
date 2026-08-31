@@ -30,3 +30,13 @@ describe('threeWayMerge', () => {
     expect(res.merged.files[0]?.content).toBe('local');
   });
 });
+
+import { diffSnapshots } from './diff.js';
+describe('diffSnapshots union', () => {
+  it('diff works', () => {
+    const base = { slug: 's', files: [{ path: 'a', sha256: '1', content: '1' }] };
+    const local = { slug: 's', files: [{ path: 'a', sha256: '2', content: '2' }] };
+    const d = diffSnapshots(base as any, local as any);
+    expect(d.files[0].status).toBe('modified');
+  });
+});

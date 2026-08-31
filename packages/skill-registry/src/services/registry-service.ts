@@ -12,6 +12,18 @@ import { skillSourceSchema } from '../contracts/skill-source.js';
  * and ccswitch's resolver that tries ~/.claude/skills, ~/.codex/skills, etc.
  * Priority: local > skills.sh > github > ai-pkgs
  */
+export function isFullGitCloneUrl(source: string): boolean {
+  return /^https?:\/\//.test(source) || /^git@[^:]+:.+/.test(source);
+}
+
+export const resolveRegistry = (source: string, registry?: string): string => {
+  if (source.startsWith('file:') || source.startsWith('.') || source.startsWith('/') || source.startsWith('~')) return 'file';
+  if (source.startsWith('github:') || source.includes('github.com')) return 'github';
+  if (source.startsWith('gitlab:') || source.includes('gitlab')) return 'gitlab';
+  if (isFullGitCloneUrl(source)) return 'gitlab';
+  return 'github';
+};
+
 export class RegistryService {
   private readonly adapters: RegistryAdapter[];
 

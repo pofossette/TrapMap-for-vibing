@@ -16,3 +16,11 @@ export const skillManifestSchema = z.object({
 });
 
 export type SkillManifest = z.infer<typeof skillManifestSchema>;
+
+export function stringifyManifestSorted(manifest: SkillManifest): string {
+  // Deterministic sorted JSON (copy mature ai-pkgs manifest store)
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(manifest.skills).sort()) sorted[key] = manifest.skills[key];
+  return JSON.stringify({ version: manifest.version, skills: sorted }, null, 2) + '\n';
+}
+
