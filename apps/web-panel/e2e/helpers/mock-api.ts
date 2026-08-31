@@ -610,18 +610,29 @@ const skillGraphFixture = {
       { id: 'ed-1', kind: 'derives', source: 'art-101', target: 'prof-101' },
       { id: 'ed-2', kind: 'contains', source: 'art-101', target: 'man-101' },
       { id: 'ed-3', kind: 'defines-capsule', source: 'prof-101', target: 'cap-101-1' },
+      { id: 'ed-4', kind: 'defines-capsule', source: 'prof-101', target: 'cap-101-2' },
+      { id: 'ed-5', kind: 'references-file', source: 'man-101', target: 'ref-101' },
+      { id: 'ed-6', kind: 'contains-script', source: 'man-101', target: 'script-101' },
     ],
     nodes: [
       { id: 'art-101', kind: 'artifact', label: 'Docker Governance' },
       { id: 'prof-101', kind: 'profile', label: 'Docker Governance Profile' },
       { id: 'cap-101-1', kind: 'capsule', label: 'cap-101-1: Read-only root FS' },
+      { id: 'cap-101-2', kind: 'capsule', label: 'cap-101-2: Restrict Socket Exposure' },
+      { id: 'ref-101', kind: 'reference', label: 'references/docker-best-practices.md' },
+      { id: 'script-101', kind: 'script', label: 'scripts/cleanup.sh' },
+      { id: 'man-101', kind: 'manifest', label: 'Artifact Manifest' },
     ],
   },
   semantic: {
-    edges: [{ id: 'es-1', kind: 'has-capsule', source: 'skill-101', target: 'cap-101-1' }],
+    edges: [
+      { id: 'es-1', kind: 'has-capsule', source: 'skill-101', target: 'cap-101-1' },
+      { id: 'es-2', kind: 'has-capsule', source: 'skill-101', target: 'cap-101-2' },
+    ],
     nodes: [
       { id: 'skill-101', kind: 'skill', label: 'Docker Governance Skill' },
       { id: 'cap-101-1', kind: 'capsule', label: 'cap-101-1: Read-only root FS' },
+      { id: 'cap-101-2', kind: 'capsule', label: 'cap-101-2: Restrict Socket Exposure' },
     ],
   },
 };

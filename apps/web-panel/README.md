@@ -14,6 +14,8 @@ pnpm --filter @trapmap/web-panel dev        # Start Vite dev server
 pnpm --filter @trapmap/web-panel build       # Typecheck + production build
 pnpm --filter @trapmap/web-panel preview     # Preview production build
 pnpm --filter @trapmap/web-panel test        # Run vitest suite
+pnpm --filter @trapmap/web-panel test:e2e    # Run Playwright e2e suite
+pnpm --filter @trapmap/web-panel test:e2e:ui # Playwright UI mode
 pnpm --filter @trapmap/web-panel typecheck   # TypeScript type checking only
 ```
 
@@ -139,6 +141,57 @@ Test files are co-located with their modules (`*.test.ts` / `*.test.tsx`). Curre
 - `src/vite-config-selection.test.ts` -- Vite config alias resolution
 
 Current production bundle (2026-08-26 tranche): main `732.38 kB (gzip 233.37)` + `login-page 1.88 kB` + G6 preset `1,411.27 kB (gzip 408.72)`; preset is async and not in first-screen script.
+
+## E2E Tests
+
+Playwright e2e scaffold lives in `apps/web-panel/e2e` with `playwright.config.ts` (`testDir: ./e2e`, `baseURL: http://127.0.0.1:4173`, `webServer: pnpm --filter @trapmap/web-panel preview`, `projects: chromium + mobile-chrome`, `expect.timeout 10s`).
+
+```bash
+pnpm exec playwright install --with-deps chromium
+pnpm --filter @trapmap/web-panel build
+pnpm --filter @trapmap/web-panel test:e2e
+pnpm --filter @trapmap/web-panel test:e2e:ui      # UI mode
+pnpm --filter @trapmap/web-panel test:e2e:headed   # headed
+pnpm --filter @trapmap/web-panel test:e2e:debug    # debug
+```
+
+All commands are `pnpm`-only; use `pnpm exec` for Playwright.
+
+### Fixtures and helpers
+
+- `e2e/helpers/fixtures.ts` extends Playwright `test` with `mockApi: MockApi`, `vCursor: VCursor`, `authenticatedPage`, plus page-object fixtures (`loginPage`, `appShell`, `reviewQueuePage`, etc.) and `gotoWithRole(page, mockApi, role)`. Each test gets isolated `page`/`mockApi`/`vCursor` (high-parallel). Import via `import { test, expect } from '../helpers/fixtures.js';` and add header `// run with pnpm --filter @trapmap/web-panel test:e2e`.
+- `e2e/helpers/mock-api.ts` provides `MockApi(page)` with `page.route` interception for `/v1/auth/session`, `/v1/auth/login`, `/api/admin/**`, `/v1/knowledge/review-queue*`, `/api/admin/graph/**` using static fixtures (4 preset sessions `administrator`/`reviewer`/`read-only-operator`/`unauthenticated`, review queue, runtime, artifacts, trap/skill graphs, activity). Use `await mockApi.mockAllAuthenticated('administrator')` or `await mockApi.mockUnauthorized()` plus `await mockApi.clearMocks()`.
+- `e2e/page-objects/**` (`LoginPage`, `AppShell`, `ReviewQueuePage`, `ArtifactPage`, `DashboardPage`, `TrapGraphPage`, `SkillGraphPage`, `ActivityPage`) each accept `(page, vCursor)` and use `vCursor` for clicks.
+
+### v-cursor usage
+
+`VCursor` (`e2e/helpers/v-cursor.ts`) renders a virtual cursor (`[data-v-cursor]`, `#faff69`, `20px`, optional trail/ripple) and animates `moveTo`/`click`/`hover`/`dragTo`/`typeWithCursor`:
+
+```ts
+import { test, expect } from '../helpers/fixtures.js';
+test('example', async ({ page, mockApi, vCursor }) => {
+  await mockApi.mockAllAuthenticated('administrator');
+  await page.goto('/');
+  const shell = new AppShell(page, vCursor);
+  await vCursor.click(shell.reviewsLink);
+  await expect(page).toHaveURL(/\/reviews/);
+  await vCursor.hover(shell.trapGraphLink);
+  await vCursor.dragTo(shell.dashboardLink, shell.activityLink);
+});
+```
+
+Every spec must use `vCursor` for at least one click (`vCursor.click(locator)`). `vCursor.init()` is auto-called by the fixture; `moveTo` handles `boundingBox` + `scrollIntoViewIfNeeded` + center offset.
+
+### Example specs
+
+`e2e/specs/` contains 4 example specs (12 tests):
+
+- `login.spec.ts` — unauthenticated redirect, valid login via `vCursor`, invalid key error, logout
+- `navigation.spec.ts` — authenticated navigation to 7 routes via `vCursor`, back/forward, 404 redirect
+- `rbac.spec.ts` — `administrator`/`reviewer` see `/reviews`, `read-only-operator` hidden and `ReviewActionBar` disabled
+- `review-queue.spec.ts` — queue load/filter/sort via `vCursor`, click review item, `vCursor` hover/drag on trap graph
+
+Run with `pnpm --filter @trapmap/web-panel test:e2e` to validate scaffold and `v-cursor`.
 
 ## Shared UI Components
 
