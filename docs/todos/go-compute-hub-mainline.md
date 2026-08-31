@@ -4,8 +4,9 @@
 > **前置**：`go-accelerator-mainline.md` 的 scaffold 已合入 `pre`（hash/vector/tokenize/retrieval/gene 6 端点 + `infra` fallback + gateway `go/ready -> degraded` 聚合）。
 > **本主线**：在 scaffold 之上补齐剩余重计算的系统化迁移、缺口接线与基准化，属于 `go-accelerator` 的 Phase 2-4 深化。
 > **关联**：依赖 `type-alignment-mainline.md` 的 P0 生成门禁为新增端点提供 `contracts -> Go` 类型约束。
-> **状态**：Phase 0 已落地（2026-08-31），Phase 1 已落地（2026-08-31）。
+> **状态**：Phase 0 已落地（2026-08-31），Phase 1 已落地（2026-08-31），**Phase 1 真实接线于 2026-08-31 完成**（`a745e614`）。
 > **落地证据**：`services/go-accelerator/pkg/api/types.go` payload RawMessage + `handlers/fallback_vector.go` + `ranking/dedup` (`internal/service/ranking|dedup` + `handlers/ranking|dedup` + `ranking-batch/keyword-score/dedup/*`) + `infra/ranking*|keyword*|dedup*` fallbacks + `cmd/server/main.go` 注册 `POST /v1/vector/fallback` + `infra/client.fallback` `fallbackVector/deterministicFallbackWithFallback` + `retrieval-semantic.ts` `batchCosineWithFallback` 批处理 + `infra/client getGoAcceleratorClient` + `docs/architecture/GO-ACCELERATOR.md` 更新
+> **新增接线（a745e614）**：`service-knowledge-read/retrieval-recall-coordinator.ts` `rerankRecallResults` 改 async 并经 `getGoAcceleratorClient().rankingBatch` 真实调用 Go `ranking-batch`（`toGoRankingEntries/fromGoRankingEntries` 完整映射 `labels/scope/shortcut/detail/boundary/decayState`，`host-local` 零 Go 直接 `localFallback`，`distributed` 3s 超时 fallback）；`infra/embedding` `embedWithFallback` 经 `deterministicFallbackWithFallback` 接 Go `POST /v1/vector/fallback`；`service-candidate-ingestion/processing.ts` `processCandidate` 指纹经 `dedupFingerprintWithFallback` 接 Go；Go `ranking` 常量对齐 `DUAL 0.15/COVERAGE 0.1`（与 `backend-core/ranking.ts` 一致），`gene` 补 `MissingValidationPenalty 0.05` + `validationCount` + clamp 0-1 + `GeneID` 二级排序，`contracts` `go-accelerator.ts` + `pkg/api/types.go` + `infra` 同步 `validationCount`，`vitest.config.ts` 补 `infra` 子路径别名，`service-candidate-ingestion/tsconfig` 补 `infra` 引用。
 > **Owner**：backend-core + service-knowledge-read + service-candidate-ingestion + infra
 
 ---
@@ -99,14 +100,14 @@
 ### Phase 1 — Ranking/Tokenization 批处理（2 周）
 
 - [x] 新增 `POST /v1/retrieval/ranking-batch` — `internal/service/ranking/{merge,rerank,mergeWithGraph,computeScore}` + `handlers/ranking.go` + `pkg/api/types.go` RankingEntry/TokenMatch + `infra/rankingBatchWithFallback`（`mergeCandidates + rerankCandidates + computeScore + boundaryDelta` 合批），Go `internal/service/ranking/{merge,rerank,boundary}.go` 复刻 `backend-core/knowledge-read/domain/ranking.ts` 语义
-- [x] `infra` 已提供 `rankingBatchWithFallback/keywordScoreWithFallback/dedup*` (async, Go→fallback JS)，`retrieval-infra-default` 保留 sync 原语供 `host-local`，`recall-coordinator` 可按需切 Go batch (fallback wrappers ready)（`combinedScore/preRerankScore/finalScore` 全保留）
+- [x] `infra` 已提供 `rankingBatchWithFallback/keywordScoreWithFallback/dedup*` (async, Go→fallback JS)，`retrieval-infra-default` 保留 sync 原语供 `host-local`，`recall-coordinator` **已真实接线** `rerankRecallResults` → `Go ranking-batch`（`a745e614`，`getGoAcceleratorClient` 判定，`toGo/fromGo` 完整映射，`host-local` 直接 JS，`distributed` Go→fallback，`hybridRecall`/`graphAssisted` 均 `await`）（`combinedScore/preRerankScore/finalScore` 全保留）
 - [x] `tokenize` — Go `handlers/keyword.go` 已对齐 `KEYWORD_LABEL_WEIGHT=3.0` 等 (`handlers/ranking.go: KeywordScore`) + `infra/keywordScoreWithFallback`，Go `tokenize.Tokenize/Chunk` 已覆盖 `normalizeQuery` 分支
-- [x] `gene/select` — Go `internal/service/gene` 已覆盖 8因子 (0.6/0.4 + 0.1/0.05*3 + 0.03/0.02/0.01 authority + BroadPenalty)，`pkg/api GeneCandidate` 含 `sourceKind` 枚举, warnings 保留, 需后续补 `missing-validation` 需 validationCount 字段
+- [x] `gene/select` — Go `internal/service/gene` 已覆盖 9因子 (0.6/0.4 + 0.1/0.05*3 + 0.03/0.02/0.01 authority + `MissingValidationPenalty 0.05` + `BroadPenalty 0.1`，`validationCount` 可选，clamp 0-1，`GeneID` 二级排序与 `backend-core/gene-selection.ts` 完全对齐 `a745e614`)，`pkg/api GeneCandidate` + `contracts` + `infra` 同步 `validationCount`，warnings 保留
 - [x] 基准：`go test -bench` Ranking ok (`go test -run` 已覆盖), `go test -bench` 可后续单独跑, `GO-ACCELERATOR.md Benchmarks` 待更新 (deferred)（若有）对比，`docs/architecture/GO-ACCELERATOR.md Benchmarks` 更新
 
 ### Phase 2 — Dedup 与派生管线（2 周）
 
-- [x] 新增 `POST /v1/dedup/{fingerprint,similarity}` — `internal/service/dedup` (`Fingerprint` sha256 hex + `JaccardSimilarity` case-insensitive) + `handlers/dedup.go` + `pkg/api Dedup*` + `infra/dedup*WithFallback`，Go `internal/service/dedup/{fingerprint,jaccard}.go`（`sha256` + `n-gram Jaccard`），`service-candidate-ingestion/dedup-strategy/rule-dedup-strategy.ts` 改调 `dedupWithFallback`
+- [x] 新增 `POST /v1/dedup/{fingerprint,similarity}` — `internal/service/dedup` (`Fingerprint` sha256 hex + `JaccardSimilarity` case-insensitive) + `handlers/dedup.go` + `pkg/api Dedup*` + `infra/dedup*WithFallback`，Go `internal/service/dedup/{fingerprint,jaccard}.go`（`sha256` + `n-gram Jaccard`），`service-candidate-ingestion/processing.ts` **已真实接线** `buildNormalizedDuplicateInput` → `dedupFingerprintWithFallback`（`a745e614`，`distributed` 单次 `sha256` 调用，`host-local` 零 Go），`rule-dedup-strategy` 仍经 D8 port（`Jaccard` 批调用 deferred，单次 HTTP 负收益）
 - [x] 新增 `POST /v1/gene/derive-batch` — `internal/service/gene-derive` 10 regex + 2×hash (32-shard) + `handlers/gene_derive.go` + `pkg/api GeneDerive*` + `contracts GeneDeriveBatch*` (20 schemas) + `infra geneDeriveBatchWithFallback` + `openapi /v1/gene/derive-batch` (已落地 2026-08-31 22:05)
 - [x] `candidate-ingestion` 批处理压测：`BenchmarkDedupFingerprint` Go ~0.04ms/fp, `GO_ACCELERATOR_BENCH.md` 已记录 2×+，`benchmarks/GO_ACCELERATOR_BENCH.md`
 - [x] `fallow` — `service-knowledge-read`/`service-standard` 已允许 `infra` (现有规则)，`candidate-ingestion` 无需新增边 (infra already allowed), `audit 0 boundary`
