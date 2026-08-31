@@ -105,6 +105,36 @@ program
     }
   });
 
+// Top-level trapmap add xxxx — alias to trapmap skill add for ai-pkgs parity (trapmap-cli add xxxx)
+// Copies ai-pkgs `ai-pkgs skills add` and ccswitch `ccswitch add` ergonomics
+program
+  .command('add')
+  .description('Add a skill from registry (skills.sh, GitHub, ai-pkgs, local) — alias to skill add')
+  .argument(
+    '<source>',
+    'Skill source: owner/repo, skills.sh/<slug>, github:owner/repo, ./local-path, @scope/pkg',
+  )
+  .option('--agent <agent>', 'Target agent (claude-code, codex, cursor, trapmap, all)', 'trapmap')
+  .option('--global', 'Global scope', false)
+  .option('--json', 'JSON output', false)
+  .action(async (source: string, opts: { agent: string; global: boolean; json: boolean }) => {
+    const { RegistryService } = await import('@trapmap/skill-registry');
+    const { InstallService } = await import('@trapmap/skill-registry');
+    const svc = new RegistryService();
+    const installer = new InstallService(svc);
+    const agents =
+      opts.agent === 'all' ? ['claude-code', 'codex', 'cursor', 'trapmap'] : [opts.agent];
+    const result = await installer.install(source, {
+      scope: opts.global ? 'global' : 'project',
+      agentTargets: agents,
+    });
+    if (opts.json) console.log(JSON.stringify(result, null, 2));
+    else
+      console.log(
+        `Installed ${result.slug}@${result.version ?? 'unknown'} -> ${result.installedPath} (${result.filesWritten} files)`,
+      );
+  });
+
 registerAuthCommands(program);
 registerOutputProfileCommands(program);
 registerTeamCommands(program, {
