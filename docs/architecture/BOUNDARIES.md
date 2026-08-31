@@ -16,7 +16,7 @@ TrapMap 项目使用 [fallow](https://github.com/fallow-rs/fallow) 进行架构�
 |------|--------|------|
 | `contracts` | `packages/contracts/src/**` | 共享契约层（Zod schema、TypeScript 类型），最底层叶子节点，不依赖任何其他 zone |
 | `lib` | `packages/lib/src/**` | 共享纯函数工具层（时间/异步/字符串/数组/哈希工具），type-only 依赖 `contracts`（复用 `Sha256Hex` 等类型） |
-| `persistence-schema` | `packages/persistence-schema/src/**` | 中立 Drizzle schema 层，只承载物理表定义与无状态列工厂，依赖 `contracts` |
+| `db` | `packages/db/src/**` | 中立 Drizzle schema 层，只承载物理表定义与无状态列工厂，依赖 `contracts` |
 | `client-core` | `packages/client-core/src/**` | 客户端核心（无依赖的纯客户端逻辑），提供 HTTP gateway SDK、会话管理、错误模型 |
 | `ai-providers` | `packages/ai-providers/src/**` | 共享 AI 服务层：provider factory、prompt 模板、LLM 工具；只依赖 `lib`（type-only 可依赖 `contracts`） |
 | `backend-core` | `packages/backend-core/src/**` | 六边形架构内核：`src/<context>/domain` 纯规则层（零框架、零 DB）+ `application/ports/use-cases` + `src/http/`（框架中立 RouteDef 路由契约与 Nest/Fastify 双 adapter）。承载运行时能力模型、端口接口、用例模式、bounded-context 模块 |
@@ -160,7 +160,7 @@ service-* / host-local / cli → lib → contracts
 
 1. `contracts` 是最底层叶子节点，不依赖任何其他 zone
 2. `client-core` 不依赖 `backend-core` 或任何服务端包
-3. `backend-core` 只依赖 `contracts` 与 `lib`（`.fallowrc.json` 的 allow 列表另有 `persistence-schema` 但当前无消费方），不依赖任何服务或宿主包；外部框架依赖（`fastify`、`@nestjs/*`）只允许出现在 `src/http/adapters/`（测试接缝 `src/testing/` 除外），不得扩散到 `domain/`、`application/`、`ports/`、`use-cases/`；`backend-core → lib` 依赖仅限纯函数工具消费（如 cron 封装），不得引入框架
+3. `backend-core` 只依赖 `contracts` 与 `lib`（`.fallowrc.json` 的 allow 列表另有 `db` 但当前无消费方），不依赖任何服务或宿主包；外部框架依赖（`fastify`、`@nestjs/*`）只允许出现在 `src/http/adapters/`（测试接缝 `src/testing/` 除外），不得扩散到 `domain/`、`application/`、`ports/`、`use-cases/`；`backend-core → lib` 依赖仅限纯函数工具消费（如 cron 封装），不得引入框架
 4. 标准服务包（`service-standard`，含 `service-cron` 共 6 个）只依赖 `backend-core`、`contracts`、`lib` 与 `ai-providers`，服务包之间不直接依赖
 5. `cli` 和 `web-panel` 只依赖 `client-core`、`contracts`（`cli` 另可依赖 `lib`），不依赖任何服务端包；代码落点现为 `apps/cli/src/**`、`apps/web-panel/src/**`；`mcp` zone（`apps/mcp/src/**`）同属客户端封装层，只依赖 `client-core`、`contracts`、`lib`，禁止导入任何 `service-*` / `host-*` 包
 6. 宿主包（`host-local`、`host-distributed`）是最高层组合根，可以依赖所有下游 zone；其可执行组装中心在 `apps/light`、`apps/distributed`，仅做 thin assembly，不得新增业务逻辑

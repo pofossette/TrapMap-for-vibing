@@ -9,8 +9,8 @@
 | 启动序列 | `packages/host-local/src/nest/main.ts`（light 宿主）+ `packages/host-distributed/src/`（distributed 宿主） | `docs/architecture/ARCHITECTURE.md`、`docs/guides/CODE_GUIDE.md` |
 | ~~Server 层归属~~ | **已删除**（Wave-10）。历史分层见 `docs/plans/backend-engineering-masterplan/01-boundaries-and-compat-convergence.md`。当前归属见六服务边界 | — |
 | 持久化迁移状态 | `docs/reference/DATA_MODEL.md` | `docs/PACKAGES.md`、`docs/architecture/ARCHITECTURE.md` |
-| 数据库 schema | `packages/persistence-schema/src/`（owner-local schema 模块）+ 各 `packages/service-*/src/schema.ts` | `docs/reference/DATABASE_SCHEMA.md` |
-| Experience Gene contract/storage | `packages/contracts/src/domain/experience-gene.ts` + `packages/contracts/src/enum-types/experience-gene.ts` + `packages/persistence-schema/src/experience-genes.ts` + `packages/backend-core/src/ports/experience-gene-ports.ts` + `packages/service-knowledge-write/src/experience-gene-repository.ts` | `docs/reference/DATA_MODEL.md`、`docs/reference/DATABASE_SCHEMA.md`、`docs/architecture/components/PERSISTENCE.md` |
+| 数据库 schema | `packages/db/src/schema/`（owner-local schema 模块）+ 各 `packages/service-*/src/schema.ts` | `docs/reference/DATABASE_SCHEMA.md` |
+| Experience Gene contract/storage | `packages/contracts/src/domain/experience-gene.ts` + `packages/contracts/src/enum-types/experience-gene.ts` + `packages/db/src/schema/experience-genes.ts` + `packages/backend-core/src/ports/experience-gene-ports.ts` + `packages/service-knowledge-write/src/experience-gene-repository.ts` | `docs/reference/DATA_MODEL.md`、`docs/reference/DATABASE_SCHEMA.md`、`docs/architecture/components/PERSISTENCE.md` |
 | ~~Server 数据访问边界~~ | **已删除**（Wave-10）。当前数据访问由各 service owner ports 管理 | — |
 | ~~Server 有界上下文与层归属~~ | **已删除**（Wave-10）。当前归属见六服务边界 | — |
 | 六服务归属边界（`identity-access` / `candidate-ingestion` / `knowledge-write` / `governance-review` [`backend-core` 描述符简称：`review`] / `knowledge-read` / `job-runtime`） | `packages/backend-core/src/ports/internal-ports.ts` + `packages/backend-core/src/<context>/{domain,application/module.ts,index.ts}`（六个上下文目录：`identity-access/`、`knowledge-read/`、`knowledge-write/`、`candidate-ingestion/`、`governance-review/`、`job-runtime/`；`domain/` 为纯规则层，零框架/零 DB）+ `packages/host-distributed/src/config/service-config.ts` + `packages/service-*/src/index.ts` | `docs/architecture/ARCHITECTURE.md`、`packages/backend-core/README.md`、`packages/host-distributed/README.md` |
@@ -31,9 +31,9 @@
 | Nest 服务演进 Phase 4 归属矩阵 / 迁移窗口 / closeout 冻结 | `plan.md` + `docs/archived/archived-plans/nestjs-service-evolution-04-data-runtime-and-cutover-archived.md` + `packages/service-knowledge-write/README.md` + `packages/service-governance-review/README.md` + `docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md` | `README.md`、`docs/README.md`、`docs/PACKAGES.md`、`docs/operations/TESTING.md`、`docs/reference/REPO_STRUCTURE.md`、`docs/architecture/DEPLOYMENT.md` |
 | 分布式成熟度基线（`Level 2 / transitional-microservice`） | `docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md` + `packages/host-distributed/src/gateway/distributed-acceptance.test.ts` + `packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts` + `packages/host-distributed/src/shared/database.ts` | `plan.md`、`README.md`、`docs/README.md`、`docs/PACKAGES.md`、`docs/architecture/DEPLOYMENT.md` |
 | 后端构建目标映射、app/host ownership 与 root target commands（`light` / `heavy`） | `packages/contracts/src/enum-types/backend-target.ts`（profile-to-target contract）+ `scripts/backend-target-registry.ts`（registry owner；`appPackage`：`light`→`@trapmap/app-light`、`heavy`→`@trapmap/app-distributed`；`libraryPackage`：`@trapmap/host-local` / `@trapmap/host-distributed`；组装中心落点在 `apps/`）+ `scripts/run-dev.ts` + `scripts/run-backend-target.ts` + `package.json`（`build:light`、`build:heavy`、`test:light-target`、`test:heavy-target`） | `README.md`、`docs/architecture/CLI.md`、`docs/operations/TESTING.md`、`docs/operations/ENVIRONMENT.md`、package README |
-| 持久化姿态 | `README.md` + `packages/persistence-schema/src/*.ts` + 各 `packages/service-*/src/schema.ts` | `docs/README.md`、`docs/guides/GETTING_STARTED.md`、`docs/architecture/DEPLOYMENT.md` |
+| 持久化姿态 | `README.md` + `packages/db/src/schema/*.ts` + 各 `packages/service-*/src/schema.ts` | `docs/README.md`、`docs/guides/GETTING_STARTED.md`、`docs/architecture/DEPLOYMENT.md` |
 | CI 任务 | `.github/workflows/ci.yml` | `docs/operations/CI_CD.md`、`docs/operations/TESTING.md` |
-| Schema 数量 | `packages/persistence-schema/src/*.ts` + 各 `packages/service-*/src/schema.ts` | `docs/reference/DATABASE_SCHEMA.md`、`docs/README.md` |
+| Schema 数量 | `packages/db/src/schema/*.ts` + 各 `packages/service-*/src/schema.ts` | `docs/reference/DATABASE_SCHEMA.md`、`docs/README.md` |
 | 护栏命令 | `scripts/complexity-budgets.json` + `.github/workflows/ci.yml` | `docs/reference/SYSTEM_TRUTH_SOURCES.md`、`docs/operations/TESTING.md`、`docs/operations/CI_CD.md` |
 | 启动命令 | `package.json` scripts 部分 + `scripts/run-dev.ts` | `docs/README.md`、`docs/guides/GETTING_STARTED.md`、`docs/archived/guides/MIGRATION_GUIDE.md` |
 | 评估入口 | `package.json` scripts 部分 + `scripts/run-eval.ts` | `docs/operations/TESTING.md`、`docs/operations/CI_CD.md` |
@@ -59,7 +59,7 @@
 | 生命周期端口（Phase 1A） | `packages/backend-core/src/ports/lifecycle-ports.ts`（`LifecycleManager`、`HealthCheckRegistrar`、`HealthCheck`、`LifecycleHook`） | `docs/operations/ENVIRONMENT.md`、`docs/architecture/OBSERVABILITY.md` |
 | 服务发现端口（Phase 1A） | `packages/backend-core/src/ports/discovery-ports.ts`（`DiscoveryPort`、`ServiceRegistration`、`DiscoveredService`） | `docs/operations/ENVIRONMENT.md`、`docs/architecture/SERVICE-DISCOVERY.md` |
 | 检索 `queryId` 生成与查询追踪日志 | `packages/service-knowledge-read/src/`（retrieval orchestration）+ `packages/contracts/src/domain/observability.ts` | `docs/archived/archived-plans/instrumentation-observability-plan.md`、`docs/operations/TESTING.md` |
-| 反馈 badcase 捕获与持久化 badcase 追踪 | `packages/service-governance-review/src/`（feedback/badcase owner）+ `packages/persistence-schema/src/` | `docs/archived/archived-plans/badcase-feedback-loop.md`、`docs/reference/DATA_MODEL.md` |
+| 反馈 badcase 捕获与持久化 badcase 追踪 | `packages/service-governance-review/src/`（feedback/badcase owner）+ `packages/db/src/schema/` | `docs/archived/archived-plans/badcase-feedback-loop.md`、`docs/reference/DATA_MODEL.md` |
 | Badcase 导出草稿操作者界面 | `packages/service-governance-review/src/`（badcase export owner）+ `scripts/archived/export-badcase-to-eval.ts` | `docs/archived/archived-plans/instrumentation-observability-plan.md`、`docs/reference/api-surface.md` |
 | 脚本专属 badcase 评估草稿 payload 边界 | `packages/contracts/src/domain/operations.ts`（`badcaseEvalDraftSchema`）+ `scripts/archived/export-badcase-to-eval.ts` | `evals/README.md`、`docs/operations/TESTING.md`、`docs/reference/api-surface.md` |
 | 异步操作者状态契约（`runtimeContract` / `freshnessContract` / `idempotencyContract` / `retryResumeContract` / `failureTaxonomy`） | `packages/contracts/src/domain/operations.ts` + `packages/contracts/src/domain/observability.ts`（`observabilityFailureTaxonomyItems`）+ `packages/service-job-runtime/src/` | `docs/architecture/components/ASYNC_MODEL.md`、`docs/operations/ENVIRONMENT.md`、`docs/operations/TESTING.md` |
@@ -78,9 +78,9 @@
 | 队列 / outbox 可靠性策略 | `packages/service-job-runtime/src/`（`packages/server/src/lib/queue/` 已删除） | `docs/operations/TESTING.md`、`docs/operations/CI_CD.md`、`docs/architecture/DEPLOYMENT.md` |
 | AI 提供者/模型默认值 | `packages/host-local/src/nest/config/config.ts` + `packages/host-distributed/src/config/service-config.ts`（packages/server/src/lib/ai/provider-config.ts 已删除） | `docs/operations/ENVIRONMENT.md`、`docs/architecture/ARCHITECTURE.md`、`docs/guides/GETTING_STARTED.md` |
 | 评估工作流 | `.github/workflows/eval.yml` | `docs/operations/TESTING.md`、`docs/operations/CI_CD.md` |
-| 深层架构持久化文档 | `packages/persistence-schema/src/*.ts` + 各 `packages/service-*/src/schema.ts` | `docs/architecture/components/PERSISTENCE.md`、`docs/reference/DATABASE_SCHEMA.md` |
+| 深层架构持久化文档 | `packages/db/src/schema/*.ts` + 各 `packages/service-*/src/schema.ts` | `docs/architecture/components/PERSISTENCE.md`、`docs/reference/DATABASE_SCHEMA.md` |
 | 健康/就绪端点 | `packages/host-local/src/nest/` + `packages/host-distributed/src/`（packages/server/src/app.ts 已删除） | `docs/architecture/DEPLOYMENT.md`、`docs/guides/GETTING_STARTED.md` |
-| 深层架构组件文档 | `packages/persistence-schema/src/*.ts` + 各 service owner 源码 | `docs/architecture/components/*.md` |
+| 深层架构组件文档 | `packages/db/src/schema/*.ts` + 各 service owner 源码 | `docs/architecture/components/*.md` |
 | 操作者专属内部 API | `packages/service-knowledge-read/src/`（`packages/server` 已删除） | `docs/operations/ENVIRONMENT.md`、`docs/architecture/components/RETRIEVAL.md` |
 | 仓库布局 | `docs/reference/REPO_STRUCTURE.md` | `README.md`、`docs/README.md`、`docs/guides/CODE_GUIDE.md` |
 
@@ -156,7 +156,7 @@ pnpm check:complexity
 |---|---|---|
 | `packages/host-local/src/nest/app.module.ts` | 350 行 | — |
 | `packages/host-local/src/nest/gateway/gateway.route-defs.ts` | 300 行 | — |
-| `packages/persistence-schema/src/knowledge.ts` | 200 行 | — |
+| `packages/db/src/schema/knowledge.ts` | 200 行 | — |
 
 **调整预算：** 编辑 `scripts/complexity-budgets.json` 并更新相关文件的 `maxLines` 值。预算应设置在文件变得不可管理之前触发警告的水平，而非当前大小。
 

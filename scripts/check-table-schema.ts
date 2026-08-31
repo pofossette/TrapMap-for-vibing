@@ -1,12 +1,12 @@
 /**
  * Table Schema vs Documentation Guard (check:table-schema).
  *
- * Extracts every pgTable name from `packages/persistence-schema/src/` — the
+ * Extracts every pgTable name from `packages/db/src/schema/` — the
  * single source of truth for the table inventory — and diffs it against the
  * table inventory declared in `docs/reference/DATABASE_SCHEMA.md`. Any drift
  * fails the check:
  *
- *   - a table modeled in persistence-schema but missing from the doc,
+ *   - a table modeled in db but missing from the doc,
  *   - a ghost table listed in the doc but not modeled anywhere,
  *   - a section count in the doc ("### X (N 表)") that does not match the
  *     number of table rows it actually declares,
@@ -18,7 +18,7 @@
  * store_snapshot note: the identity-access migration SQL still contains a
  * legacy `CREATE TABLE store_snapshot` (66 CREATE TABLE total = 64 +
  * conflict_relations + store_snapshot). The guard intentionally scopes to
- * persistence-schema, the authoritative 64-table source; migration-SQL
+ * db/src/schema, the authoritative 64-table source; migration-SQL
  * residue is tracked in the cleanup mainline, not here.
  */
 
@@ -62,9 +62,9 @@ function tableNamesIn(content: string): string[] {
   return names;
 }
 
-/** Extract every pgTable name from packages/persistence-schema/src/. */
+/** Extract every pgTable name from packages/db/src/schema/. */
 export function extractSchemaTableNames(root: string): string[] {
-  const schemaDir = join(root, 'packages', 'persistence-schema', 'src');
+  const schemaDir = join(root, 'packages', 'db', 'src', 'schema');
   if (!existsSync(schemaDir)) return [];
 
   const names = new Set<string>();
@@ -145,7 +145,7 @@ function missingTables(schemaTables: string[], docSet: Set<string>): string[] {
   for (const table of schemaTables) {
     if (docSet.has(table)) continue;
     messages.push(
-      `[table-schema] MISSING in DATABASE_SCHEMA.md: ${table} (modeled in persistence-schema, not declared in the doc)`,
+      `[table-schema] MISSING in DATABASE_SCHEMA.md: ${table} (modeled in db, not declared in the doc)`,
     );
   }
   return messages;
@@ -156,7 +156,7 @@ function ghostTables(schemaSet: Set<string>, docTables: string[]): string[] {
   for (const table of docTables) {
     if (schemaSet.has(table)) continue;
     messages.push(
-      `[table-schema] GHOST in DATABASE_SCHEMA.md: ${table} (declared in the doc, not modeled in persistence-schema)`,
+      `[table-schema] GHOST in DATABASE_SCHEMA.md: ${table} (declared in the doc, not modeled in db)`,
     );
   }
   return messages;
@@ -190,13 +190,13 @@ export function checkTableSchema(root: string, docContent: string): CheckResult 
 
   if (inventory.declaredTotal !== null && inventory.declaredTotal !== schemaTables.length) {
     messages.push(
-      `[table-schema] TOTAL MISMATCH: doc declares ${inventory.declaredTotal} 张表 but persistence-schema models ${schemaTables.length}`,
+      `[table-schema] TOTAL MISMATCH: doc declares ${inventory.declaredTotal} 张表 but db models ${schemaTables.length}`,
     );
   }
 
   if (schemaTables.length > 0) {
     console.log(
-      `[table-schema] persistence-schema models ${schemaTables.length} table(s); doc declares ${inventory.tables.length} table(s).`,
+      `[table-schema] db models ${schemaTables.length} table(s); doc declares ${inventory.tables.length} table(s).`,
     );
   }
 
@@ -215,9 +215,8 @@ function main(): void {
     name: '[table-schema]',
     result,
     remedy:
-      'Update docs/reference/DATABASE_SCHEMA.md and/or packages/persistence-schema/src to keep the table inventory aligned.',
-    passedMessage:
-      '[table-schema] persistence-schema and DATABASE_SCHEMA.md table inventories are aligned.',
+      'Update docs/reference/DATABASE_SCHEMA.md and/or packages/db/src/schema to keep the table inventory aligned.',
+    passedMessage: '[table-schema] db and DATABASE_SCHEMA.md table inventories are aligned.',
   });
 }
 

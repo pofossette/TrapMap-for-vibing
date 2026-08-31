@@ -20,7 +20,7 @@
       "path": "../lib"
     },
     {
-      "path": "../persistence-schema"
+      "path": "../db"
     }
   ]
 }

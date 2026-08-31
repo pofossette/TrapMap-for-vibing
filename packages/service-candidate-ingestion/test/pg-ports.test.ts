@@ -400,9 +400,9 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
     expect(sources.join('\n')).not.toMatch(/@trapmap\/(server|runtime-infra)/);
   });
 
-  it('references the shared persistence-schema project as table source', async () => {
+  it('references the shared db project as table source', async () => {
     const tsconfig = await readFile(new URL('../tsconfig.json', import.meta.url), 'utf8');
 
-    expect(tsconfig).toContain('../persistence-schema');
+    expect(tsconfig).toContain('../db');
   });
 });

@@ -1,26 +1,68 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/ai-providers" },
-    { "path": "./packages/assembly" },
-    { "path": "./packages/contracts" },
-    { "path": "./packages/lib" },
-    { "path": "./packages/persistence-schema" },
-    { "path": "./packages/client-core" },
-    { "path": "./packages/backend-core" },
-    { "path": "./packages/service-identity-access" },
-    { "path": "./packages/service-candidate-ingestion" },
-    { "path": "./packages/service-governance-review" },
-    { "path": "./packages/service-job-runtime" },
-    { "path": "./packages/service-cron" },
-    { "path": "./packages/service-knowledge-read" },
-    { "path": "./packages/service-knowledge-write" },
-    { "path": "./apps/web-panel" },
-    { "path": "./packages/host-local" },
-    { "path": "./packages/host-distributed" },
-    { "path": "./apps/cli" },
-    { "path": "./apps/light" },
-    { "path": "./apps/distributed" },
-    { "path": "./apps/migration" }
+    {
+      "path": "./packages/ai-providers"
+    },
+    {
+      "path": "./packages/assembly"
+    },
+    {
+      "path": "./packages/contracts"
+    },
+    {
+      "path": "./packages/lib"
+    },
+    {
+      "path": "./packages/db"
+    },
+    {
+      "path": "./packages/client-core"
+    },
+    {
+      "path": "./packages/backend-core"
+    },
+    {
+      "path": "./packages/service-identity-access"
+    },
+    {
+      "path": "./packages/service-candidate-ingestion"
+    },
+    {
+      "path": "./packages/service-governance-review"
+    },
+    {
+      "path": "./packages/service-job-runtime"
+    },
+    {
+      "path": "./packages/service-cron"
+    },
+    {
+      "path": "./packages/service-knowledge-read"
+    },
+    {
+      "path": "./packages/service-knowledge-write"
+    },
+    {
+      "path": "./apps/web-panel"
+    },
+    {
+      "path": "./packages/host-local"
+    },
+    {
+      "path": "./packages/host-distributed"
+    },
+    {
+      "path": "./apps/cli"
+    },
+    {
+      "path": "./apps/light"
+    },
+    {
+      "path": "./apps/distributed"
+    },
+    {
+      "path": "./apps/migration"
+    }
   ]
 }

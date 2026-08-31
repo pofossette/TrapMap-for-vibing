@@ -98,8 +98,8 @@ const alias = [
     replacement: resolve(__dirname, './packages/service-cron/src/index.ts'),
   },
   {
-    find: '@trapmap/persistence-schema',
-    replacement: resolve(__dirname, './packages/persistence-schema/src/index.ts'),
+    find: '@trapmap/db',
+    replacement: resolve(__dirname, './packages/db/src/index.ts'),
   },
   {
     find: '@trapmap/client-core',
@@ -138,7 +138,7 @@ export default defineConfig({
         },
       },
       project('contracts', './packages/contracts'),
-      project('persistence-schema', './packages/persistence-schema'),
+      project('db', './packages/db'),
       project('lib', './packages/lib'),
       project('infra', './packages/infra'),
       project('backend-core', './packages/backend-core'),

@@ -32,8 +32,6 @@
       "@trapmap/contracts/*": ["./packages/contracts/src/*"],
       "@trapmap/infra": ["./packages/infra/src/index.ts"],
       "@trapmap/infra/*": ["./packages/infra/src/*"],
-      "@trapmap/persistence-schema": ["./packages/persistence-schema/src/index.ts"],
-      "@trapmap/persistence-schema/*": ["./packages/persistence-schema/src/*"],
       "@trapmap/service-identity-access": ["./packages/service-identity-access/src/index.ts"],
       "@trapmap/service-candidate-ingestion": [
         "./packages/service-candidate-ingestion/src/index.ts"

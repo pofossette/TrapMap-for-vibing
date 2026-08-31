@@ -39,6 +39,9 @@
     },
     {
       "path": "../service-knowledge-write"
+    },
+    {
+      "path": "../db"
     }
   ]
 }

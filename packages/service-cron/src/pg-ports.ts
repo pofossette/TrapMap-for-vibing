@@ -14,7 +14,7 @@ import type {
   CronJobUpdateInput,
 } from '@trapmap/contracts';
 import { cronValidate, prefixedId } from '@trapmap/lib';
-import { cronJobs } from '@trapmap/persistence-schema';
+import { cronJobs } from '@trapmap/db';
 import { getTableName } from 'drizzle-orm';
 
 const cronJobsTable = getTableName(cronJobs);

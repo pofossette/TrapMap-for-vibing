@@ -9,8 +9,8 @@
     "apps/mcp/src/index.ts",
     "packages/client-core/src/index.ts",
     "packages/contracts/src/index.ts",
-    "packages/persistence-schema/src/index.ts",
-    "packages/persistence-schema/src/experience-genes.test.ts",
+    "packages/db/src/index.ts",
+    "packages/db/test/schema.test.ts",
     "packages/host-distributed/src/index.ts",
     "packages/host-local/src/index.ts",
     "apps/light/src/index.ts",
@@ -136,8 +136,8 @@
         "patterns": ["packages/infra/src/**"]
       },
       {
-        "name": "persistence-schema",
-        "patterns": ["packages/persistence-schema/src/**"]
+        "name": "db",
+        "patterns": ["packages/db/src/**"]
       },
       {
         "name": "client-core",
@@ -213,7 +213,7 @@
         "allow": ["contracts", "lib"]
       },
       {
-        "from": "persistence-schema",
+        "from": "db",
         "allow": ["contracts"]
       },
       {
@@ -222,7 +222,7 @@
       },
       {
         "from": "backend-core",
-        "allow": ["contracts", "persistence-schema", "lib", "infra"]
+        "allow": ["contracts", "db", "lib", "infra"]
       },
       {
         "from": "assembly",
@@ -234,11 +234,11 @@
       },
       {
         "from": "service-standard",
-        "allow": ["ai-providers", "backend-core", "contracts", "persistence-schema", "lib", "infra"]
+        "allow": ["ai-providers", "backend-core", "contracts", "db", "lib", "infra"]
       },
       {
         "from": "service-knowledge-read",
-        "allow": ["ai-providers", "backend-core", "contracts", "persistence-schema", "lib", "infra"]
+        "allow": ["ai-providers", "backend-core", "contracts", "db", "lib", "infra"]
       },
       {
         "from": "host-local",
@@ -250,7 +250,7 @@
           "assembly",
           "service-standard",
           "service-knowledge-read",
-          "persistence-schema",
+          "db",
           "lib",
           "infra"
         ]
@@ -265,7 +265,7 @@
           "assembly",
           "service-standard",
           "service-knowledge-read",
-          "persistence-schema",
+          "db",
           "lib",
           "infra"
         ]

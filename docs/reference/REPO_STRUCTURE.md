@@ -25,7 +25,7 @@
 - `apps/cli/`：Commander CLI 及 CLI 测试（2026-08 从 `packages/` 迁入，见下方 `apps/` 小节）。
 - `packages/server（Wave-10 已删除）/`：Fastify 兼容壳和共享运行时/状态接缝。不再充当默认的 `light` 主机入口或本地回退主机。
 - `packages/contracts/`：共享 Zod schema 和 TypeScript 类型；`packages/contracts/src/domain/retrieval-projection.ts` 放置无副作用的 retrieval projection/read-model helper，`packages/contracts/src/domain/retrieval-fixtures.ts` 放置确定性的跨包 retrieval fixture builder。
-- `packages/persistence-schema/`：中立的 Drizzle PostgreSQL 表、关系与可复用无状态列工厂；不承载路由、repository 或服务行为。
+- `packages/db/`：中立的 Drizzle PostgreSQL 表、关系与可复用无状态列工厂；不承载路由、repository 或服务行为。
 - `packages/skills/`：项目级 Skill 工件。
  - `packages/client-core/`：浏览器兼容的共享网关传输层（HTTP SDK、会话契约、错误模型）。供 CLI 和未来 Web 面板使用。
  - `apps/web-panel/`：基于浏览器的管理员运维面板，仅作为网关客户端表面（2026-08 从 `packages/` 迁入，见下方 `apps/` 小节）。
@@ -38,7 +38,7 @@
 - `packages/service-governance-review/`：拥有治理审核服务组装、内部路由注册（`createGovernanceReviewRouteDefs`）和有界上下文 review/feedback/conflict/remediation/operator projection 接线，同时将最终生命周期变更委托给 knowledge-write。
 - `packages/service-candidate-ingestion/`：拥有候选摄取服务组装、内部路由注册（`createCandidateIngestionRouteDefs`）和有界上下文 candidate 接线，同时将结果发布委托给 knowledge-write。
 - `packages/service-job-runtime/`：拥有作业运行时服务组装、内部路由注册（`createJobRuntimeRouteDefs`）、队列/重试/租约/dead-letter 依赖接线、typed owner handlers 和运行时服务器引导表面。
-- `packages/service-cron/`：拥有定时调度服务组装（`createCronRouteDefs`/`createCronServer`）、`cron_jobs` 注册表 owner 接线（`createCronOwnerBundle`，全部 SQL 落位 pg-ports）与轮询调度器（`createCronScheduler`，`FOR UPDATE SKIP LOCKED` 认领到期 job 后经 task transport enqueue，不执行业务逻辑）。迁移文件位于包内 `drizzle/`（`runCronMigrations`）。
+- `packages/service-cron/`：拥有定时调度服务组装（`createCronRouteDefs`/`createCronServer`）、`cron_jobs` 注册表 owner 接线（`createCronOwnerBundle`，全部 SQL 落位 pg-ports）与轮询调度器（`createCronScheduler`，`FOR UPDATE SKIP LOCKED` 认领到期 job 后经 task transport enqueue，不执行业务逻辑）。迁移由 `@trapmap/db` 统一管理（`packages/db/migrations/schema.sql`），本包无独立 `drizzle/`；`runCronMigrations` 委托至 `runMigrations`。
 - `packages/host-local/`：轻量宿主库包（组装入口在 `apps/light`，2026-08 起由 `@trapmap/app-light` 消费其 `start()` / `start<X>Service()` API），服务于 `local-agent` 和 `team-monolith`。冻结的默认轻量主线为 `src/nest/**`，通过包默认入口（`packages/host-local/src/index.ts`）和默认 `dev` / `start` 脚本暴露。六个有界上下文 Nest module 与 `gateway.module.ts` 都经 `createNestAdapter` 消费各 service 包的 `create<X>RouteDefs` 声明，不在宿主内手写路由实现。
   `packages/host-local/src/nest/runtime/backend-core-adapters.ts` 是轻量主机中主机拥有的端口适配器选择的权威放置位置（`in-process` vs `remote`）。这些文件是内部端口的适配器接缝，不是仓库适配器，也不是主机组装的万能目录。
   迁移期共享基础设施组合留在 host-local 的 runtime composition 内；它可暂时调用 server compatibility helpers，但不形成独立 workspace package 或 service-to-service concrete import。

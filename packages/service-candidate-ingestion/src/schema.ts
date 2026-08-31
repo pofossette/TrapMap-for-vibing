@@ -1,1 +1,1 @@
-export * from '@trapmap/persistence-schema';
+export * from '@trapmap/db';
