@@ -63,14 +63,31 @@ function search(dir: string): string[] {
 
 function rewriteFileImports(content: string, oldFile: string, newFile: string): string {
   return content
-    .replace(/(from\s+)(['"])(\.[^'"]+)(['"])/g, (_m, prefix, q1, spec, q2) => {
-      const rewritten = rewriteImportPath(spec, oldFile, newFile);
-      return `${prefix}${q1}${rewritten}${q2}`;
-    })
+    .replace(
+      /((?:import|export)[^'"]*?from\s+)(['"])(\.[^'"]+)(['"])/g,
+      (_m, prefix, q1, spec, q2) => {
+        const rewritten = rewriteImportPath(spec, oldFile, newFile);
+        return `${prefix}${q1}${rewritten}${q2}`;
+      },
+    )
     .replace(/(import\s*\(\s*)(['"])(\.[^'"]+)(['"])/g, (_m, prefix, q1, spec, q2) => {
       const rewritten = rewriteImportPath(spec, oldFile, newFile);
       return `${prefix}${q1}${rewritten}${q2}`;
-    });
+    })
+    .replace(
+      /(vi\.(?:mock|doMock|unmock)\s*\(\s*)(['"])(\.[^'"]+)(['"])/g,
+      (_m, prefix, q1, spec, q2) => {
+        const rewritten = rewriteImportPath(spec, oldFile, newFile);
+        return `${prefix}${q1}${rewritten}${q2}`;
+      },
+    )
+    .replace(
+      /(vi\.importActual\s*(?:<[^>]*>\s*)?\(\s*)(['"])(\.[^'"]+)(['"])/g,
+      (_m, prefix, q1, spec, q2) => {
+        const rewritten = rewriteImportPath(spec, oldFile, newFile);
+        return `${prefix}${q1}${rewritten}${q2}`;
+      },
+    );
 }
 
 function main(): void {
