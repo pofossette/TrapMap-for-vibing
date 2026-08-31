@@ -14,6 +14,10 @@ import {
   skillLookupQuerySchema,
 } from '@trapmap/contracts';
 import type { AdminGraphQuery, AdminGraphResponse } from '@trapmap/contracts';
+import {
+  ADMIN_GRAPH_DEPTH_1_MAX_NODES,
+  ADMIN_GRAPH_DEPTH_2_MAX_NODES,
+} from '@trapmap/backend-core';
 import type { FastifyInstance } from 'fastify';
 import { type ZodType, z } from 'zod';
 
@@ -244,14 +248,20 @@ function filterGraphByQuery(
     // We don't drop nodes strictly — just demonstrate that mode is respected (no-op for tests)
   }
 
-  // Depth handling is retained for query validation; actual neighborhood expansion is handled by deps
-  // if deps provides pre-expanded graph. We treat depth as limit on node count for '1'/'2' vs 'all'
-  if (query.depth === '1' && nodes.length > 10) {
-    nodes = nodes.slice(0, 10);
+  // Depth caps — shallow previews trim *after* governance + search.
+  // Ordering: governance (isGraphNodeVisible, first) → search filter
+  // → depth cap (ADMIN_GRAPH_DEPTH_*_MAX_NODES, ≤ ADMIN_GRAPH_MAX_NODES
+  // which mirrors adminGraphQuerySchema limit max 100) → cursor/limit
+  // pagination in the route handler. Governance runs first so a
+  // low-privilege caller never sees a high requiredLevel node even when
+  // a depth cap would otherwise have hidden it; pagination then slices
+  // the already depth-capped, governance-filtered view.
+  if (query.depth === '1' && nodes.length > ADMIN_GRAPH_DEPTH_1_MAX_NODES) {
+    nodes = nodes.slice(0, ADMIN_GRAPH_DEPTH_1_MAX_NODES);
     const nodeIds = new Set(nodes.map((node) => node.id));
     edges = edges.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target));
-  } else if (query.depth === '2' && nodes.length > 50) {
-    nodes = nodes.slice(0, 50);
+  } else if (query.depth === '2' && nodes.length > ADMIN_GRAPH_DEPTH_2_MAX_NODES) {
+    nodes = nodes.slice(0, ADMIN_GRAPH_DEPTH_2_MAX_NODES);
     const nodeIds = new Set(nodes.map((node) => node.id));
     edges = edges.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target));
   }

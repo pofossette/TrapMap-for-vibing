@@ -24,3 +24,4 @@ export * from './assembly.js';
 export * from './gene-selection.js';
 export * from './refinement.js';
 export * from './skill-lookup.js';
+export * from './graph-mapping.js';
