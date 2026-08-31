@@ -48,7 +48,10 @@ export class GoAcceleratorClient {
     return this.post('/v1/hash/canonical', { payload });
   }
 
-  async cosine(a: number[], b: number[]): Promise<{ similarity: number; normA: number; normB: number }> {
+  async cosine(
+    a: number[],
+    b: number[],
+  ): Promise<{ similarity: number; normA: number; normB: number }> {
     return this.post('/v1/vector/cosine', { a, b });
   }
 
@@ -56,12 +59,24 @@ export class GoAcceleratorClient {
     return this.post('/v1/vector/batch-cosine', { query, vectors });
   }
 
-  async tokenize(text: string, chunkSize?: number, overlap?: number): Promise<{ tokens: string[]; chunks: string[]; count: number }> {
+  async tokenize(
+    text: string,
+    chunkSize?: number,
+    overlap?: number,
+  ): Promise<{ tokens: string[]; chunks: string[]; count: number }> {
     return this.post('/v1/text/tokenize', { text, chunkSize, overlap });
   }
 
   async retrievalScore(params: {
-    entries: Array<{ id: string; scope: string; labels: string[]; requiredLevel: number; shortcut: string; detail: string; score?: number }>;
+    entries: Array<{
+      id: string;
+      scope: string;
+      labels: string[];
+      requiredLevel: number;
+      shortcut: string;
+      detail: string;
+      score?: number;
+    }>;
     query: string;
     filters: { labels: string[]; scopes: string[] };
     limit?: number;
@@ -94,9 +109,17 @@ export class GoAcceleratorClient {
   }
 }
 
-export function createGoAcceleratorClientFromEnv(env: Record<string, string | undefined>): GoAcceleratorClient {
-  const enabled = env.TRAPMAP_GO_ACCELERATOR_ENABLED === 'true' || env.GO_ACCELERATOR_ENABLED === 'true';
-  const baseUrl = env.TRAPMAP_GO_ACCELERATOR_URL ?? env.GO_ACCELERATOR_URL ?? 'http://localhost:4100';
+export function createGoAcceleratorClientFromEnv(
+  env: Record<string, string | undefined>,
+): GoAcceleratorClient {
+  const enabled =
+    env.TRAPMAP_GO_ACCELERATOR_ENABLED === 'true' || env.GO_ACCELERATOR_ENABLED === 'true';
+  const baseUrl =
+    env.TRAPMAP_GO_ACCELERATOR_URL ?? env.GO_ACCELERATOR_URL ?? 'http://localhost:4100';
   const timeoutMs = Number.parseInt(env.TRAPMAP_GO_ACCELERATOR_TIMEOUT_MS ?? '3000', 10);
-  return new GoAcceleratorClient({ enabled, baseUrl, timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : 3000 });
+  return new GoAcceleratorClient({
+    enabled,
+    baseUrl,
+    timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : 3000,
+  });
 }

@@ -201,9 +201,13 @@ export function registerGatewayRoutes(
       try {
         const controller = new AbortController();
         const t = setTimeout(() => controller.abort(), 800);
-        const res = await fetch(`${goCfg.url.replace(/\/$/, '')}/health`, { signal: controller.signal });
+        const res = await fetch(`${goCfg.url.replace(/\/$/, '')}/health`, {
+          signal: controller.signal,
+        });
         clearTimeout(t);
-        goStatus = res.ok ? (await res.json() as Record<string, unknown>) : { status: 'unreachable', httpStatus: res.status };
+        goStatus = res.ok
+          ? ((await res.json()) as Record<string, unknown>)
+          : { status: 'unreachable', httpStatus: res.status };
       } catch (e) {
         goStatus = { status: 'unreachable', error: String(e) };
       }
@@ -231,7 +235,9 @@ export function registerGatewayRoutes(
     let goReady: Record<string, unknown> | undefined;
     if (goCfg.enabled) {
       try {
-        const res = await fetch(`${goCfg.url.replace(/\/$/, '')}/ready`, { signal: AbortSignal.timeout(800) });
+        const res = await fetch(`${goCfg.url.replace(/\/$/, '')}/ready`, {
+          signal: AbortSignal.timeout(800),
+        });
         goReady = res.ok ? { status: 'ready' } : { status: 'unreachable', httpStatus: res.status };
       } catch (e) {
         goReady = { status: 'unreachable', error: String(e) };

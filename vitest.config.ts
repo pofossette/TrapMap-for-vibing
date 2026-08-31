@@ -46,6 +46,10 @@ const alias = [
     replacement: resolve(__dirname, './packages/lib/src/index.ts'),
   },
   {
+    find: '@trapmap/skill-registry',
+    replacement: resolve(__dirname, './packages/skill-registry/src/index.ts'),
+  },
+  {
     find: '@trapmap/infra',
     replacement: resolve(__dirname, './packages/infra/src/index.ts'),
   },
@@ -191,6 +195,10 @@ export default defineConfig({
       project('app-light', './apps/light'),
       project('app-distributed', './apps/distributed'),
       project('app-migration', './apps/migration'),
+      project('skill-registry', './packages/skill-registry', [
+        'test/**/*.test.ts',
+        'src/**/*.test.ts',
+      ]),
       project('evals', './evals', ['**/*.test.ts']),
     ],
     pool: 'forks',

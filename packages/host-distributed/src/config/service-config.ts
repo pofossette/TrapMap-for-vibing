@@ -454,7 +454,6 @@ export function assertDistributedResilienceConfig(
   }
 }
 
-
 export function getGoAcceleratorConfig(): GoAcceleratorConfig {
   const enabled = process.env[ENV_GO_ACCELERATOR_ENABLED] === 'true';
   const url = process.env[ENV_GO_ACCELERATOR_URL] ?? 'http://localhost:4100';

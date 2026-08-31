@@ -1,0 +1,40 @@
+{
+  "name": "@trapmap/skill-registry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./cli": {
+      "types": "./dist/cli/index.d.ts",
+      "import": "./dist/cli/index.js"
+    },
+    "./cli/add.js": {
+      "types": "./dist/cli/add.d.ts",
+      "import": "./dist/cli/add.js"
+    },
+    "./cli/search.js": {
+      "types": "./dist/cli/search.d.ts",
+      "import": "./dist/cli/search.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@trapmap/contracts": "workspace:*",
+    "@trapmap/lib": "workspace:*",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.5"
+  }
+}
