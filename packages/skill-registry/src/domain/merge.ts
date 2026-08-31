@@ -1,5 +1,4 @@
 import type { FileSnapshot, SkillSnapshot } from './diff.js';
-import { diffSnapshots } from './diff.js';
 
 export type MergeStrategy = 'ours' | 'theirs' | 'union' | 'manual';
 

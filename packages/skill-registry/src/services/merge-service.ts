@@ -49,7 +49,7 @@ export class MergeService {
     const local = await readSnapshot(localDir, remoteBundle.slug);
     const remote: SkillSnapshot = {
       slug: remoteBundle.slug,
-      version: remoteBundle.version,
+      ...(remoteBundle.version !== undefined ? { version: remoteBundle.version } : {}),
       files: remoteBundle.files.map((f) => ({
         path: f.path,
         content: f.content,
@@ -81,7 +81,7 @@ export class MergeService {
     const local = await readSnapshot(localDir, remoteBundle.slug);
     const remote: SkillSnapshot = {
       slug: remoteBundle.slug,
-      version: remoteBundle.version,
+      ...(remoteBundle.version !== undefined ? { version: remoteBundle.version } : {}),
       files: remoteBundle.files.map((f) => ({
         path: f.path,
         content: f.content,

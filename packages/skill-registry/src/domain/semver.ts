@@ -12,9 +12,9 @@ export function parseSemver(
   );
   if (!m) return null;
   return {
-    major: Number.parseInt(m[1], 10),
-    minor: Number.parseInt(m[2], 10),
-    patch: Number.parseInt(m[3], 10),
+    major: Number.parseInt(m[1]!, 10),
+    minor: Number.parseInt(m[2]!, 10),
+    patch: Number.parseInt(m[3]!, 10),
     prerelease: m[4],
     build: m[5],
   };

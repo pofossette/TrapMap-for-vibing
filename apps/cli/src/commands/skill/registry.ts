@@ -68,7 +68,12 @@ export function registerRegistryCommands(program: Command): void {
       try {
         const raw = await readFile(lockPath, 'utf-8');
         const lock = skillLockfileSchema.parse(JSON.parse(raw));
-        const entries = Object.values(lock.entries);
+        const entries = Object.values(lock.entries) as Array<{
+          slug: string;
+          version: string;
+          scope: string;
+          source: { canonical: string };
+        }>;
         if (opts.json) console.log(JSON.stringify(entries, null, 2));
         else
           for (const e of entries)

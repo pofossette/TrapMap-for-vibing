@@ -17,6 +17,7 @@ export function isFullGitCloneUrl(source: string): boolean {
 }
 
 export const resolveRegistry = (source: string, registry?: string): string => {
+  if (registry) return registry;
   if (
     source.startsWith('file:') ||
     source.startsWith('.') ||
@@ -117,8 +118,9 @@ export class RegistryService {
     const found = this.adapters.find((a) => a.kind === source.kind);
     if (found) return found;
     // fallback mapping
-    if (source.kind === 'trapmap-internal') return this.adapters[1] ?? this.adapters[0];
-    return this.adapters[1] ?? this.adapters[0];
+    if (source.kind === 'trapmap-internal')
+      return (this.adapters[1] ?? this.adapters[0]) as RegistryAdapter;
+    return (this.adapters[1] ?? this.adapters[0]) as RegistryAdapter;
   }
 
   async searchAll(

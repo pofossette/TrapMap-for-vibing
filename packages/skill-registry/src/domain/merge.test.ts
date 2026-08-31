@@ -15,7 +15,7 @@ describe('threeWayMerge', () => {
     const local = snap('s', { 'SKILL.md': 'base' });
     const remote = snap('s', { 'SKILL.md': 'remote' });
     const res = threeWayMerge(base, local, remote, 'manual');
-    expect(res.merged.files[0]?.content).toBe('remote');
+    expect(res.merged.files[0]!.content).toBe('remote');
     expect(res.conflicts.length).toBe(0);
   });
   it('conflicts when both diverged', () => {
@@ -30,7 +30,7 @@ describe('threeWayMerge', () => {
     const local = snap('s', { 'SKILL.md': 'local' });
     const remote = snap('s', { 'SKILL.md': 'remote' });
     const res = threeWayMerge(base, local, remote, 'ours');
-    expect(res.merged.files[0]?.content).toBe('local');
+    expect(res.merged.files[0]!.content).toBe('local');
   });
 });
 
@@ -40,6 +40,6 @@ describe('diffSnapshots union', () => {
     const base = { slug: 's', files: [{ path: 'a', sha256: '1', content: '1' }] };
     const local = { slug: 's', files: [{ path: 'a', sha256: '2', content: '2' }] };
     const d = diffSnapshots(base as any, local as any);
-    expect(d.files[0].status).toBe('modified');
+    expect(d.files[0]!.status).toBe('modified');
   });
 });

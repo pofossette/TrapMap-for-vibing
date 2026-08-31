@@ -1,7 +1,6 @@
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { RegistryService } from './registry-service.js';
-import type { SkillBundle } from '../adapters/registry-adapter.js';
 import type { SkillLockEntry, SkillLockfile } from '../contracts/skill-lock.js';
 import { skillLockfileSchema } from '../contracts/skill-lock.js';
 
@@ -147,7 +146,7 @@ export class InstallService {
     const raw = await readFile(lockPath, 'utf-8');
     const lockfile = skillLockfileSchema.parse(JSON.parse(raw));
     const results: InstallResult[] = [];
-    for (const [slug, entry] of Object.entries(lockfile.entries)) {
+    for (const [, entry] of Object.entries(lockfile.entries)) {
       const bundle = await this.registry.fetchBundle(entry.resolved, entry.version);
       const result = await this.install(bundle.source.raw, {
         ...options,

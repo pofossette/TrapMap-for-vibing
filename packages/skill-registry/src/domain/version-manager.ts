@@ -29,14 +29,15 @@ export class SkillVersionManager {
   resolveVersion(available: string[], requested?: string): string | null {
     if (available.length === 0) return null;
     const sorted = [...available].sort((a, b) => compareSemver(a, b));
-    if (!requested || requested === '*' || requested === 'latest') return sorted[sorted.length - 1];
+    if (!requested || requested === '*' || requested === 'latest')
+      return sorted[sorted.length - 1] ?? null;
     // exact match first
     if (available.includes(requested)) return requested;
     // caret/tilde/ranges via semver helper - find max satisfying
     // Do simple exact fallback if no range match
     const candidates = available.filter((v) => this.satisfies(v, requested));
     if (candidates.length === 0) return null;
-    return candidates.sort((a, b) => compareSemver(a, b))[candidates.length - 1];
+    return candidates.sort((a, b) => compareSemver(a, b))[candidates.length - 1] ?? null;
   }
 
   private satisfies(version: string, range: string): boolean {
