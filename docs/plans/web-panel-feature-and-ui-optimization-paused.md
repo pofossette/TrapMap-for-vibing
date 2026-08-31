@@ -48,7 +48,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - [x] Protect routes from unauthenticated access (`app/router/router.tsx:RequireAuth` + `/login` lazy route, `app/router/router-code-splitting.test.ts` updated to 8, preserves mock vs real seam).
 - [x] Make navigation and actions role-aware (`app/shell/app-shell.tsx:getVisibleNavigation` filters `/reviews` to `administrator|reviewer`, `shared/ui/review-action-bar.tsx` disables for `read-only-operator` with `t('noPermission')`, `pages/review-detail/review-detail-page.tsx` passes role).
 - [x] Implement meaningful account switching (mock seam already `switchSessionAccount`; real path now propagates bearer token via `SessionProvider`; desktop + mobile shell both use `getVisibleNavigation`).
-- [ ] Add server-side authorization tests.
+- [x] Add server-side authorization tests. (`apps/web-panel/src/services/admin-panel-server-authorization.test.ts` 6 real-transport tests: unauthenticated `GET /api/admin/reviews` → 401 → `isUnauthorizedError` + `RequireAuth` redirect `/login`, unauthenticated `POST /api/admin/reviews/:id/decision` → 401 → redirect, authenticated `read-only-operator` `POST` → 403 → `noPermission` no redirect, `administrator` `GET` 200, `reviewer` `POST` 200, `isUnauthorizedError` contract; mock 403 already in `admin-panel-rbac.test.ts`; verified `pnpm --filter @trapmap/web-panel test --run` 30 files 98 tests, `typecheck`/`build` PASS; commit `test(web-panel): add server-side authorization tests`).
 - [ ] Prefer gateway session/cookie semantics over insecure browser token persistence when the gateway contract supports it.
 
 ### Phase 2: Shared Admin Contracts and Real Routes
@@ -138,7 +138,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 ### Current compromises
 
-- 已在 2026-08-26 关闭 bearer null / 路由未保护 / 导航未按角色区分；生产 `/api/admin/*` RouteDef、server-side authorization tests、gateway session/cookie 偏好仍待 Gene closeout 后的 Phase 2。
+- 已在 2026-08-26 关闭 bearer null / 路由未保护 / 导航未按角色区分；已在 2026-08-31 关闭 server-side authorization tests（真实传输 401/403 + `RequireAuth` 重定向覆盖，`apps/web-panel/src/services/admin-panel-server-authorization.test.ts` 6 tests）；生产 `/api/admin/*` RouteDef、gateway session/cookie 偏好仍待 Gene closeout 后的 Phase 2。
 - Dashboard 的 capsule 计数来自 snapshot 首页最多 100 个工件，超过该规模的精确聚合需要专用 admin aggregate endpoint。
 
 ### 2026-08-23: graph-controls tranche
@@ -159,7 +159,14 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - 新增 `pages/login/login-page.tsx`（`loginTitle`/`accessKeyPlaceholder`/`authRequired` 等 10 项双语），`app/router/router.tsx` 新增 `/login` lazy 路由与 `RequireAuth` 守卫（`authenticated===false -> /login`），桌面/移动端共享同一守卫；`app/router/router-code-splitting.test.ts` 更新为 8 个 lazy `pages/` 导入。
 - 导航与操作按角色区分：`app/shell/app-shell.tsx:getVisibleNavigation` 限制 `read-only-operator` 不可见 `/reviews`，`shared/ui/review-action-bar.tsx` 对 `read-only-operator` 全量禁用并显示 `t('noPermission')`，`pages/review-detail/review-detail-page.tsx` 传入 `role`；`stores/session-store.ts` 新增 `clearSession`，`app/shell` 的 `logout` 走 `POST /v1/auth/logout` best-effort 后本地清理并 `navigate('/login')`。
 - i18n 新增 10 项 login/noPermission，`admin-panel-service-context.test.ts` 新增 bearer 透传与 mock login/logout 回归；当前构建主 JS `732.38 kB (gzip 233.37 kB)` + login chunk `1.88 kB (gzip 0.95 kB)`，`pnpm --filter @trapmap/web-panel test` 23 files 64 tests、`typecheck`、`build`、`pnpm typecheck`、`check:docs`/`check:structure` 均通过，`fallow audit --base HEAD` 13 changed files 无新增问题。
-- 仍保留：server-side authorization tests、gateway session/cookie 偏好、`Phase 2` 的真实 `contracts` RouteDefs 与 `Phase 4/5` 的 UI polish/screenshot 证据（按 paused successor 约束，不在本 tranche 内宣告 closeout）。
+- 仍保留：gateway session/cookie 偏好、`Phase 2` 的真实 `contracts` RouteDefs 与 `Phase 4/5` 的 UI polish/screenshot 证据（按 paused successor 约束，不在本 tranche 内宣告 closeout；server-side authorization tests 已于 2026-08-31 通过 `admin-panel-server-authorization.test.ts` 关闭）。
+
+### 2026-08-31: server-side authorization tranche (P4A off mainline)
+
+- 新增 `services/admin-panel-server-authorization.test.ts` 6 个真实传输授权测试：`GET /api/admin/reviews` 401 → `isUnauthorizedError` 真且 `withAuthRedirect` 经 `queueMicrotask` 清理 `useSessionStore` 并经 `window.__trapmapNavigate` 重定向 `/login`（`RequireAuth` 的 `isUnauthorizedSession` 覆盖 `error` 与 `authenticated:false` 分支）；`POST /api/admin/reviews/:id/decision` 401 同路径；`read-only-operator` `POST` 403 → `isUnauthorizedError` 假、无重定向、`isUnauthorizedSession` 仍 `false` 对应 `noPermission` 禁用（服务端强制）；`administrator` `GET` 与 `reviewer` `POST` 200 成功且附 `Bearer` 头校验。
+- 复用 `services/admin-panel-rbac.test.ts` 的 mock 侧 403/401 已覆盖；新用例补足真实 `apiRequest` → `ApiError(401/403)` → `isUnauthorizedError` → `RequireAuth` 的 gateway 侧链路，证明授权不止于客户端守卫。
+- 当前取证：`pnpm --filter @trapmap/web-panel test --run` 30 files 98 tests、`pnpm --filter @trapmap/web-panel typecheck` 0、`pnpm --filter @trapmap/web-panel build` 3659 modules（首屏 `732.38 kB gzip 233.37` + `login 1.88 kB gzip 0.95` + G6 `1,411.27 kB gzip 408.72` async）、`pnpm typecheck` 0；`docs/plans/web-panel-feature-and-ui-optimization-paused.md` Phase1 `Add server-side authorization tests` 勾选并回写 `Current compromises` 移除该项；commit `test(web-panel): add server-side authorization tests`。
+- 仍保留：gateway session/cookie 偏好（`browserSessionProvider` 已支持 `trapmap_session` cookie 回退与 `credentials:include` 隔离，参见 `http-client.ts:10-24` P3A 修复）、`Phase 2` RouteDefs 与截图证据。
 
 ## Acceptance Gates
 
