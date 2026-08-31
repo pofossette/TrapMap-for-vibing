@@ -30,6 +30,18 @@ const alias = [
     replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
   },
   {
+    find: '@trapmap/lib/hash.js',
+    replacement: resolve(__dirname, './packages/lib/src/hash.ts'),
+  },
+  {
+    find: '@trapmap/lib/canonical-json.js',
+    replacement: resolve(__dirname, './packages/lib/src/canonical-json.ts'),
+  },
+  {
+    find: '@trapmap/lib/vector.js',
+    replacement: resolve(__dirname, './packages/lib/src/vector.ts'),
+  },
+  {
     find: '@trapmap/lib',
     replacement: resolve(__dirname, './packages/lib/src/index.ts'),
   },

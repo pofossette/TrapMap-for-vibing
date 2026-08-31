@@ -25,6 +25,7 @@ import {
 } from '@trapmap/service-knowledge-read';
 
 import { type InternalServiceClients, breakerStatesSnapshot } from './internal-client.js';
+import { getGoAcceleratorConfig } from '../config/service-config.js';
 import { recordGatewayRateLimited } from './internal-observability.js';
 import { TokenBucketRateLimiter, resolveRateLimitConfig } from './rate-limit.js';
 import { createGatewayRouteDefs, gatewayActorContext } from './route-defs.js';
@@ -194,10 +195,24 @@ export function registerGatewayRoutes(
   // ---- Health ----
 
   app.get('/health', async (_request: FastifyRequest, reply: FastifyReply) => {
+    const goCfg = getGoAcceleratorConfig();
+    let goStatus: Record<string, unknown> | undefined;
+    if (goCfg.enabled) {
+      try {
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), 800);
+        const res = await fetch(`${goCfg.url.replace(/\/$/, '')}/health`, { signal: controller.signal });
+        clearTimeout(t);
+        goStatus = res.ok ? (await res.json() as Record<string, unknown>) : { status: 'unreachable', httpStatus: res.status };
+      } catch (e) {
+        goStatus = { status: 'unreachable', error: String(e) };
+      }
+    }
     return reply.status(200).send({
       service: 'gateway',
       status: 'ok',
       timestamp: new Date().toISOString(),
+      ...(goStatus ? { goAccelerator: goStatus } : {}),
     });
   });
 
@@ -209,14 +224,25 @@ export function registerGatewayRoutes(
   });
 
   app.get('/ready', async (_request: FastifyRequest, reply: FastifyReply) => {
-    // Task C5: readiness reflects internal-hop circuit breaker states.
+    // Task C5: readiness reflects internal-hop circuit breaker states + go-accelerator when enabled.
     const breakerStates = breakerStatesSnapshot();
     const anyOpen = Object.values(breakerStates).some((state) => state === 'open');
-    return reply.status(anyOpen ? 503 : 200).send({
+    const goCfg = getGoAcceleratorConfig();
+    let goReady: Record<string, unknown> | undefined;
+    if (goCfg.enabled) {
+      try {
+        const res = await fetch(`${goCfg.url.replace(/\/$/, '')}/ready`, { signal: AbortSignal.timeout(800) });
+        goReady = res.ok ? { status: 'ready' } : { status: 'unreachable', httpStatus: res.status };
+      } catch (e) {
+        goReady = { status: 'unreachable', error: String(e) };
+      }
+    }
+    const degraded = anyOpen || (goReady !== undefined && goReady.status !== 'ready');
+    return reply.status(degraded ? 503 : 200).send({
       service: 'gateway',
-      status: anyOpen ? 'degraded' : 'ready',
+      status: degraded ? 'degraded' : 'ready',
       timestamp: new Date().toISOString(),
-      dependencySummary: { breakerStates },
+      dependencySummary: { breakerStates, ...(goReady ? { goAccelerator: goReady } : {}) },
     });
   });
 

@@ -38,6 +38,9 @@ const ENV_SERVICE_QUERY_TIMEOUT_MS = 'TRAPMAP_SERVICE_QUERY_TIMEOUT_MS';
 const ENV_SERVICE_IDLE_IN_TRANSACTION_TIMEOUT_MS = 'TRAPMAP_SERVICE_IDLE_IN_TRANSACTION_TIMEOUT_MS';
 const ENV_DATABASE_CONNECTION_BUDGET = 'TRAPMAP_DATABASE_CONNECTION_BUDGET';
 const ENV_SYSTEM_ADMIN_KEY = 'TRAPMAP_SYSTEM_ADMIN_KEY';
+const ENV_GO_ACCELERATOR_ENABLED = 'TRAPMAP_GO_ACCELERATOR_ENABLED';
+const ENV_GO_ACCELERATOR_URL = 'TRAPMAP_GO_ACCELERATOR_URL';
+const ENV_GO_ACCELERATOR_TIMEOUT_MS = 'TRAPMAP_GO_ACCELERATOR_TIMEOUT_MS';
 
 // ---------------------------------------------------------------------------
 // Service names
@@ -118,6 +121,12 @@ export interface InternalServiceUrls {
 }
 
 export type InternalTransportKind = 'http' | 'rpc';
+
+export interface GoAcceleratorConfig {
+  enabled: boolean;
+  url: string;
+  timeoutMs: number;
+}
 
 export interface InternalServiceTransports {
   knowledgeWrite: InternalTransportKind;
@@ -443,4 +452,16 @@ export function assertDistributedResilienceConfig(
       );
     }
   }
+}
+
+
+export function getGoAcceleratorConfig(): GoAcceleratorConfig {
+  const enabled = process.env[ENV_GO_ACCELERATOR_ENABLED] === 'true';
+  const url = process.env[ENV_GO_ACCELERATOR_URL] ?? 'http://localhost:4100';
+  const timeoutMs = Number.parseInt(process.env[ENV_GO_ACCELERATOR_TIMEOUT_MS] ?? '3000', 10);
+  return {
+    enabled,
+    url,
+    timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : 3000,
+  };
 }
