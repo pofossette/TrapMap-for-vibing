@@ -50,6 +50,10 @@ const alias = [
     replacement: resolve(__dirname, './packages/skill-registry/src/index.ts'),
   },
   {
+    find: /^@trapmap\/infra\/(.+)\.js$/,
+    replacement: resolve(__dirname, './packages/infra/src/$1.ts'),
+  },
+  {
     find: '@trapmap/infra',
     replacement: resolve(__dirname, './packages/infra/src/index.ts'),
   },

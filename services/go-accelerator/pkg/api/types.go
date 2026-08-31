@@ -90,6 +90,7 @@ type GeneCandidate struct {
 	FreshValidation bool    `json:"freshValidation"`
 	BroadMatch      bool    `json:"broadMatch"`
 	SourceKind      string  `json:"sourceKind"`
+	ValidationCount *int    `json:"validationCount,omitempty"`
 }
 
 type GeneSelectRequest struct {

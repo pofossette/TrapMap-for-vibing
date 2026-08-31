@@ -169,6 +169,7 @@ export const goAcceleratorGeneCandidateSchema = z
     freshValidation: z.boolean(),
     broadMatch: z.boolean(),
     sourceKind: z.string().min(1),
+    validationCount: z.number().int().min(0).optional(),
   })
   .strict();
 

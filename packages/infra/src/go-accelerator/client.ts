@@ -95,6 +95,7 @@ export class GoAcceleratorClient {
       freshValidation: boolean;
       broadMatch: boolean;
       sourceKind: string;
+      validationCount?: number;
     }>;
     query: string;
     maxResults?: number;

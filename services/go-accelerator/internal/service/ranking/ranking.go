@@ -9,9 +9,9 @@ import (
 const (
 	MergeSemanticWeight      = 0.6
 	MergeKeywordWeight       = 0.4
-	DualChannelRerankBoost   = 0.08
+	DualChannelRerankBoost   = 0.15
 	TokenCoverageRatio       = 0.5
-	TokenCoverageBonus       = 0.05
+	TokenCoverageBonus       = 0.1
 	StaleDecayPenalty        = 0.1
 	GraphScoreBoostFactor    = 0.2
 )

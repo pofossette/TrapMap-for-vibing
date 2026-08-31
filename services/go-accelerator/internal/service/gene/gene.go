@@ -1,15 +1,18 @@
 package gene
 
-import "sort"
+import (
+	"sort"
+)
 
 const (
-	SemanticWeight = 0.6
-	KeywordWeight  = 0.4
-	ExactBoost     = 0.1
-	ErrorTextBoost = 0.05
-	BoundaryBoost  = 0.05
-	FreshBoost     = 0.04
-	BroadPenalty   = 0.1
+	SemanticWeight          = 0.6
+	KeywordWeight           = 0.4
+	ExactBoost              = 0.1
+	ErrorTextBoost          = 0.05
+	BoundaryBoost           = 0.05
+	FreshBoost              = 0.04
+	MissingValidationPenalty = 0.05
+	BroadPenalty            = 0.1
 )
 
 var authorityBoost = map[string]float64{
@@ -19,15 +22,16 @@ var authorityBoost = map[string]float64{
 }
 
 type Candidate struct {
-	GeneID          string
-	SemanticScore   float64
-	KeywordScore    float64
-	ExactMatch      bool
-	ErrorTextMatch  bool
-	BoundaryMatch   bool
-	FreshValidation bool
-	BroadMatch      bool
-	SourceKind      string
+	GeneID          string  `json:"geneId"`
+	SemanticScore   float64 `json:"semanticScore"`
+	KeywordScore    float64 `json:"keywordScore"`
+	ExactMatch      bool    `json:"exactSignalMatch"`
+	ErrorTextMatch  bool    `json:"errorTextMatch"`
+	BoundaryMatch   bool    `json:"boundaryMatch"`
+	FreshValidation bool    `json:"freshValidation"`
+	BroadMatch      bool    `json:"broadMatch"`
+	SourceKind      string  `json:"sourceKind"`
+	ValidationCount *int    `json:"validationCount,omitempty"`
 }
 
 type Scored struct {
@@ -64,6 +68,15 @@ func Score(c Candidate) (float64, []string) {
 		score += b
 		reasons = append(reasons, "authority:"+c.SourceKind)
 	}
+	if c.ValidationCount != nil && *c.ValidationCount == 0 {
+		score -= MissingValidationPenalty
+		reasons = append(reasons, "missing-validation")
+	}
+	if score < 0 {
+		score = 0
+	} else if score > 1 {
+		score = 1
+	}
 	if len(reasons) == 0 {
 		reasons = append(reasons, "base")
 	}
@@ -76,7 +89,12 @@ func Select(candidates []Candidate, maxResults int) []Scored {
 		s, r := Score(c)
 		scored = append(scored, Scored{GeneID: c.GeneID, Score: s, Reasons: r})
 	}
-	sort.Slice(scored, func(a, b int) bool { return scored[a].Score > scored[b].Score })
+	sort.Slice(scored, func(a, b int) bool {
+		if scored[a].Score == scored[b].Score {
+			return scored[a].GeneID < scored[b].GeneID
+		}
+		return scored[a].Score > scored[b].Score
+	})
 	if maxResults > 0 && len(scored) > maxResults {
 		scored = scored[:maxResults]
 	}

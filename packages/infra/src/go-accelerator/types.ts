@@ -41,4 +41,5 @@ export interface GeneCandidateInput {
   freshValidation: boolean;
   broadMatch: boolean;
   sourceKind: string;
+  validationCount?: number;
 }

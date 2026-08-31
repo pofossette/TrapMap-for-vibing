@@ -20,6 +20,7 @@ func GeneSelect(w http.ResponseWriter, r *http.Request) {
 			GeneID: c.GeneID, SemanticScore: c.SemanticScore, KeywordScore: c.KeywordScore,
 			ExactMatch: c.ExactMatch, ErrorTextMatch: c.ErrorTextMatch, BoundaryMatch: c.BoundaryMatch,
 			FreshValidation: c.FreshValidation, BroadMatch: c.BroadMatch, SourceKind: c.SourceKind,
+			ValidationCount: c.ValidationCount,
 		})
 	}
 	max := 5
