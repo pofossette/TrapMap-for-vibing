@@ -4,8 +4,14 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts", "test/**/*.test.ts", "test/**/*.test.tsx"],
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "test/**/*.test.ts",
+    "test/**/*.test.tsx"
+  ],
   "references": [
     {
       "path": "../../packages/contracts"
@@ -15,6 +21,9 @@
     },
     {
       "path": "../../packages/client-core"
+    },
+    {
+      "path": "../../packages/skill-registry"
     }
   ]
 }

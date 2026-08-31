@@ -8,6 +8,7 @@ import { registerHistoryCommand } from './history.js';
 import { registerReviewCommands } from './review.js';
 import { registerSearchCommand } from './search.js';
 import { registerVersionsCommand } from './versions.js';
+import { registerRegistryCommands, registerSkillAddTopLevel } from './registry.js';
 
 export interface SkillCommandOptions {
   allowSearch: boolean;
@@ -67,6 +68,15 @@ export function registerSkillCommands(program: Command, options: SkillCommandOpt
   if (options.allowReview) {
     registerReviewCommands(skill);
   }
+
+  // Skill registry package-manager (ai-pkgs/skills.sh/GitHub/local) — @trapmap/skill-registry
+  // Provides: trapmap skill add <source>, trapmap skill registry {search,list,outdated,update,status}
+  try {
+    registerRegistryCommands(skill);
+  } catch {}
+  try {
+    registerSkillAddTopLevel(skill);
+  } catch {}
 
   // Phase 34: duplicate-job commands
   if (options.allowReview) {
