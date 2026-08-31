@@ -1,5 +1,6 @@
-import { canonicalJsonStringify, sha256 } from '@trapmap/lib';
-import { cosineSimilarity, normalizeVector } from '@trapmap/lib';
+import { canonicalJsonStringify } from '@trapmap/lib/canonical-json.js';
+import { sha256 } from '@trapmap/lib/hash.js';
+import { cosineSimilarity, normalizeVector } from '@trapmap/lib/vector.js';
 import type { GoAcceleratorClient } from './client.js';
 
 /**

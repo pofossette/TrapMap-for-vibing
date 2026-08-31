@@ -1,6 +1,9 @@
 package vector
 
-import "math"
+import (
+	"math"
+	"sync"
+)
 
 func Dot(a, b []float64) float64 {
 	n := len(a)
@@ -45,9 +48,23 @@ func Cosine(a, b []float64) float64 {
 
 func BatchCosine(query []float64, vectors [][]float64) []float64 {
 	scores := make([]float64, len(vectors))
-	for i, v := range vectors {
-		scores[i] = Cosine(query, v)
+	var wg sync.WaitGroup
+	// Parallelize over shards to reduce goroutine overhead for large batches (mature pattern)
+	const shardSize = 64
+	for start := 0; start < len(vectors); start += shardSize {
+		end := start + shardSize
+		if end > len(vectors) {
+			end = len(vectors)
+		}
+		wg.Add(1)
+		go func(s, e int) {
+			defer wg.Done()
+			for i := s; i < e; i++ {
+				scores[i] = Cosine(query, vectors[i])
+			}
+		}(start, end)
 	}
+	wg.Wait()
 	return scores
 }
 

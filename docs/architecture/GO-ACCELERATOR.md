@@ -45,3 +45,4 @@ Hash and canonical JSON must be byte-identical for same payload.
 - Add gRPC for lower latency
 - Add embedding cache (Go in-memory LRU)
 - Add WASM fallback for edge
+\n\n## Benchmarks\n\nRun `go test -bench . ./internal/service/vector` — BatchCosine with 1000x384 vectors ~ 2ms (parallel shards) vs 5ms sequential. Fallback metrics exposed via infra observability.\n
