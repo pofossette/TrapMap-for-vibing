@@ -59,6 +59,10 @@ opencode.jsonc
 coverage/
 *.lcov
 .nyc_output/
+playwright-report/
+test-results/
+apps/web-panel/playwright-report/
+apps/web-panel/test-results/
 
 # Package manager locks (optional - uncomment if needed)
 # pnpm-lock.yaml
