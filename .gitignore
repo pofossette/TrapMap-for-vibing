@@ -103,3 +103,7 @@ data/
 graphify-out/
 .fallow/
 .superpowers/
+
+# go-accelerator
+services/go-accelerator/bin/
+services/go-accelerator/vendor/
