@@ -21,7 +21,9 @@
       "maximum": 1000
     }
   },
-  "required": ["text"],
+  "required": [
+    "text"
+  ],
   "additionalProperties": false,
   "title": "tokenizeRequest"
 }

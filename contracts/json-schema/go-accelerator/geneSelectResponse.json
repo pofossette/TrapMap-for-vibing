@@ -21,7 +21,11 @@
             }
           }
         },
-        "required": ["geneId", "score", "reasons"],
+        "required": [
+          "geneId",
+          "score",
+          "reasons"
+        ],
         "additionalProperties": false
       }
     },
@@ -32,7 +36,9 @@
       }
     }
   },
-  "required": ["selected"],
+  "required": [
+    "selected"
+  ],
   "additionalProperties": false,
   "title": "geneSelectResponse"
 }

@@ -4,7 +4,9 @@
   "properties": {
     "payload": {}
   },
-  "required": ["payload"],
+  "required": [
+    "payload"
+  ],
   "additionalProperties": false,
   "title": "canonicalHashRequest"
 }

@@ -36,7 +36,14 @@
             "type": "number"
           }
         },
-        "required": ["id", "scope", "labels", "requiredLevel", "shortcut", "detail"],
+        "required": [
+          "id",
+          "scope",
+          "labels",
+          "requiredLevel",
+          "shortcut",
+          "detail"
+        ],
         "additionalProperties": false
       }
     },
@@ -74,7 +81,14 @@
             "type": "number"
           }
         },
-        "required": ["id", "scope", "labels", "requiredLevel", "shortcut", "detail"],
+        "required": [
+          "id",
+          "scope",
+          "labels",
+          "requiredLevel",
+          "shortcut",
+          "detail"
+        ],
         "additionalProperties": false
       }
     },
@@ -83,7 +97,11 @@
       "minLength": 1
     }
   },
-  "required": ["globalConstraints", "projectKnowledge", "reason"],
+  "required": [
+    "globalConstraints",
+    "projectKnowledge",
+    "reason"
+  ],
   "additionalProperties": false,
   "title": "retrievalScoreResponse"
 }

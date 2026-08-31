@@ -12,7 +12,10 @@
       "maximum": 4096
     }
   },
-  "required": ["text", "dim"],
+  "required": [
+    "text",
+    "dim"
+  ],
   "additionalProperties": false,
   "title": "fallbackVectorRequest"
 }
