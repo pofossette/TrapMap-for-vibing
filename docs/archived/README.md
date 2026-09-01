@@ -117,6 +117,7 @@
 | `archived-plans/skill-lookup-surface-mainline-archived.md` | 2026-08-22 | Skill Lookup 契约漂移修复主线完成 closeout：artifact-first 端点重建、双宿主 RouteDef/internal-client、文档/eval 对齐、route-surface guard 与 deferred parity 登记；证据见该文档 Closeout Record |
 | `archived-plans/debt-mcp-platformization-mainline-archived.md` | 2026-08-22 | 债务全量派发 + Agent MCP 接入 + 微服务平台化主线完成 closeout：交付物、残余运营验证与开放债务分流记录见该归档细则和 debt register |
 | `archived-plans/dead-code-and-architecture-order-cleanup-archived.md` | 2026-08-30 | Dead Code and Architecture Order Cleanup 完成 closeout 并归档（实现已提交 2026-08-16，归档 2026-08-30）：约 3000 行死代码删除、契约/宿主/图算法与 SQL 下沉、4 类防复发守卫与 closeout 回写完成；历史细则见归档路径 |
+| `archived-plans/go-service-gradual-migration-archived.md` | 2026-09-01 | 服务渐进 Go 化主线完成 closeout：读路径整段 `knowledge-read-go` 模块化（`query 75/32/47 / recall 78/58/62/38/27 / ranking 35/33/56/24 / assembly 21/29/23 / cache 61 / api 134/25/11`，单文件 max 134 ≤300，模块 max 292 ≤600），网关 `off/shadow/dual/go` 绞杀器，契约 Zod→JSON Schema→Go 21/22 schemas，`go-accelerator` 检索/排序 `394 行` 已拆并 `410 Gone + X-Deprecated` 及时退出，`fallback` 直通本地；`main@d5f18c43 PR #3/#4` 已合入，门禁 `typecheck/structure/complexity/fallow 0/go vet/test` 全绿 |
 
 ## 归档原则
 

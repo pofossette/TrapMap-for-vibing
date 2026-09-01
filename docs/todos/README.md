@@ -21,7 +21,7 @@
 | [go-compute-hub-mainline.md](go-compute-hub-mainline.md) | **Go 计算中枢深化**：剩余重计算全量盘点与批处理迁移 | 并行主线（待激活）；分布式-only，`infra` fallback 一致性门禁 |
 | [type-alignment-mainline.md](type-alignment-mainline.md) | **跨语言类型对齐**：Zod->JSON Schema->Go / OpenAPI / proto 三期选型与门禁 | 并行主线（待激活）；为计算中枢提供 `contracts->Go` 编译期约束 |
 | [skill-registry-mainline.md](skill-registry-mainline.md) | Skill Registry 版本管理器抽离（已合入 `pre`） | 已合入 `pre@a9b413b5`；`@trapmap/skill-registry` 子包 |
-| [go-service-gradual-migration-mainline.md](go-service-gradual-migration-mainline.md) | **服务渐进 Go 化**：读路径整段绞杀 + 模块化（query/recall/ranking/assembly/cache）+ 其余服务按 RICE 排期 | 草案（2026-09-01，待激活）；单仓多模块，不抢占 Gene 主线 |
+| [go-service-gradual-migration-archived.md](../archived/archived-plans/go-service-gradual-migration-archived.md) | **服务渐进 Go 化**：读路径整段绞杀 + 模块化（query/recall/ranking/assembly/cache）+ 其余服务按 RICE 排期 | 已完成并归档（2026-09-01，`main@d5f18c43`，`PR #3/#4`）；原 `docs/todos/go-service-gradual-migration-mainline.md` 已归档 |
 
 ## 归档主线索引
 
@@ -37,6 +37,7 @@
 | [unified-assembly-center-phase2-pilot-archived.md](../archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md) | 统一优雅组装中心（assembly）Phase 2 试点 | 已完成（2026-08-16），已归档 |
 | [unified-assembly-center-phase1-archived.md](../archived/archived-plans/unified-assembly-center-phase1-archived.md) | 统一优雅组装中心（assembly）Phase 1 地基 | 已完成（2026-08-16），已归档 |
 | [dead-code-and-architecture-order-cleanup-archived.md](../archived/archived-plans/dead-code-and-architecture-order-cleanup-archived.md) | Dead Code and Architecture Order Cleanup：死代码清理与架构秩序守卫 | 已完成（2026-08-16 实现，2026-08-30 归档，原 docs/todos/dead-code-and-architecture-order-cleanup.md） |
+| [go-service-gradual-migration-archived.md](../archived/archived-plans/go-service-gradual-migration-archived.md) | 服务渐进 Go 化（读路径模块化绞杀 + 函数级及时退出） | 已完成并归档（2026-09-01，`main@d5f18c43`，`PR #3/#4`，模块化 6 模块 1348 行，`ranking 394→拆三`，`go-accelerator 410 Gone`） |
 
 ## 目录规则
 
@@ -54,6 +55,6 @@
 - **Go 计算中枢**：`go-accelerator-mainline.md` scaffold 已合入 `pre@a9b413b5`，深化见 [`go-compute-hub-mainline.md`](go-compute-hub-mainline.md)（P0 批余弦/回退向量/hash 接线 → P1 ranking/keyword 批处理 → P2 dedup/派生管线 → P3 缓存/proto 可选）。
 - **Skill Registry**：`skill-registry-mainline.md` 已合入 `pre@a9b413b5`，子包 `@trapmap/skill-registry` 抽离完成。
 - **类型对齐**：[`type-alignment-mainline.md`](type-alignment-mainline.md) 以 `Zod(contracts) -> JSON Schema -> Go` 为 P0，`OpenAPI contract-first` 为 P1，`proto+buf` 为 P2（benchmark gated），为计算中枢提供类型门禁（`pnpm generate:contracts --check` + `git diff --exit-code`）。
-- **服务渐进 Go 化**：[`go-service-gradual-migration-mainline.md`](go-service-gradual-migration-mainline.md)（草案 2026-09-01，待激活）—— 从“函数加速”升级为“服务接管”，读路径 `query→recall→ranking→assembly→cache` 模块化绞杀（单仓多模块单二进制起步，三二进制触发式），写侧仅收敛 `dedup/derive` 纯计算。
+- **服务渐进 Go 化**：[`go-service-gradual-migration-archived.md`](../archived/archived-plans/go-service-gradual-migration-archived.md)（已完成并归档 2026-09-01，`main@d5f18c43`）—— 从“函数加速”升级为“服务接管”，读路径 `query→recall→ranking→assembly→cache` 模块化绞杀（单仓多模块单二进制起步，三二进制触发式），写侧仅收敛 `dedup/derive` 纯计算；模块化 6 模块 1348 行，`ranking 394→拆三`，`go-accelerator 410 Gone`。
 
 完整归档表见 [`../archived/README.md`](../archived/README.md)。
