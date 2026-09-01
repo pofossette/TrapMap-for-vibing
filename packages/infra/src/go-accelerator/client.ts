@@ -147,6 +147,13 @@ export class GoAcceleratorClient {
     return this.post('/v1/dedup/fingerprint', { parts });
   }
 
+  async dedupBatchSimilarity(
+    leftTokens: string[],
+    rightTokensList: string[][],
+  ): Promise<{ similarities: number[]; sharedCounts: number[]; unionCounts: number[] }> {
+    return this.post('/v1/dedup/batch-similarity', { leftTokens, rightTokensList });
+  }
+
   async dedupSimilarity(
     leftTokens: string[],
     rightTokens: string[],

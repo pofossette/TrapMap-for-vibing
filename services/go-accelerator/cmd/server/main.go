@@ -43,6 +43,7 @@ func main() {
 	r.Post("/v1/retrieval/keyword-score", handlers.KeywordScore)
 	r.Post("/v1/dedup/fingerprint", handlers.DedupFingerprint)
 	r.Post("/v1/dedup/similarity", handlers.DedupSimilarity)
+	r.Post("/v1/dedup/batch-similarity", handlers.DedupBatchSimilarity)
 	r.Post("/v1/gene/derive-batch", handlers.GeneDeriveBatch)
 	r.Post("/v1/gene/select", handlers.GeneSelect)
 

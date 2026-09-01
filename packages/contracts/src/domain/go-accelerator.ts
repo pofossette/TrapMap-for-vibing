@@ -198,6 +198,25 @@ export const goAcceleratorGeneSelectResponseSchema = z
 // Gene Derive Batch (P2) — 10 regex + 2×canonical hash per trap
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Dedup — batch similarity (P0-1)
+// ---------------------------------------------------------------------------
+
+export const goAcceleratorDedupBatchSimilarityRequestSchema = z
+  .object({
+    leftTokens: z.array(z.string()),
+    rightTokensList: z.array(z.array(z.string())),
+  })
+  .strict();
+
+export const goAcceleratorDedupBatchSimilarityResponseSchema = z
+  .object({
+    similarities: z.array(z.number().finite().min(0).max(1)),
+    sharedCounts: z.array(z.number().int().min(0)),
+    unionCounts: z.array(z.number().int().min(0)),
+  })
+  .strict();
+
 export const goAcceleratorGeneDeriveBatchRequestSchema = z
   .object({
     traps: z
@@ -254,6 +273,8 @@ export const goAcceleratorSchemas = {
   retrievalScoreResponse: goAcceleratorRetrievalScoreResponseSchema,
   geneCandidate: goAcceleratorGeneCandidateSchema,
   geneSelectRequest: goAcceleratorGeneSelectRequestSchema,
+  dedupBatchSimilarityRequest: goAcceleratorDedupBatchSimilarityRequestSchema,
+  dedupBatchSimilarityResponse: goAcceleratorDedupBatchSimilarityResponseSchema,
   geneDeriveBatchRequest: goAcceleratorGeneDeriveBatchRequestSchema,
   geneDeriveBatchResponse: goAcceleratorGeneDeriveBatchResponseSchema,
   geneSelectResponse: goAcceleratorGeneSelectResponseSchema,

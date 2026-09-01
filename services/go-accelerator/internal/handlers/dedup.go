@@ -45,3 +45,15 @@ func DedupSimilarity(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(api.DedupSimilarityResponse{Similarity: sim, SharedCount: shared, UnionCount: union})
 }
+
+func DedupBatchSimilarity(w http.ResponseWriter, r *http.Request) {
+	var req api.DedupBatchSimilarityRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	sims, shared, union := dedup.BatchSimilaritySharedUnion(req.LeftTokens, req.RightTokensList)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(api.DedupBatchSimilarityResponse{Similarities: sims, SharedCounts: shared, UnionCounts: union})
+}
+

@@ -177,6 +177,29 @@ export async function dedupFingerprintWithFallback(
   return createHash('sha256').update(parts.join('\n'), 'utf8').digest('hex');
 }
 
+export async function dedupBatchSimilarityWithFallback(
+  leftTokens: string[],
+  rightTokensList: string[][],
+  client: GoAcceleratorClient | null,
+): Promise<number[]> {
+  if (client?.isEnabled && rightTokensList.length > 0) {
+    try {
+      const res = await client.dedupBatchSimilarity(leftTokens, rightTokensList);
+      return res.similarities;
+    } catch {}
+  }
+  // JS fallback: per-pair Jaccard
+  return rightTokensList.map((rightTokens) => {
+    const leftSet = new Set(leftTokens.map((t) => t.toLowerCase()));
+    const rightSet = new Set(rightTokens.map((t) => t.toLowerCase()));
+    if (leftSet.size === 0 || rightSet.size === 0) return 0;
+    let shared = 0;
+    for (const k of leftSet) if (rightSet.has(k)) shared++;
+    const union = leftSet.size + rightSet.size - shared;
+    return union === 0 ? 0 : shared / union;
+  });
+}
+
 export async function dedupSimilarityWithFallback(
   leftTokens: string[],
   rightTokens: string[],

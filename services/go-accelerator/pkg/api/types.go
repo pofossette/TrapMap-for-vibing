@@ -200,6 +200,17 @@ type DedupSimilarityRequest struct {
 	RightTokens []string `json:"rightTokens"`
 }
 
+type DedupBatchSimilarityRequest struct {
+	LeftTokens   []string   `json:"leftTokens"`
+	RightTokensList [][]string `json:"rightTokensList"`
+}
+
+type DedupBatchSimilarityResponse struct {
+	Similarities []float64 `json:"similarities"`
+	SharedCounts []int     `json:"sharedCounts"`
+	UnionCounts  []int     `json:"unionCounts"`
+}
+
 type DedupSimilarityResponse struct {
 	Similarity  float64 `json:"similarity"`
 	SharedCount int     `json:"sharedCount"`
