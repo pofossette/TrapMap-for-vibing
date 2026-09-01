@@ -596,7 +596,27 @@
     },
     {
       "file": "packages/service-governance-review/src/routes.ts",
-      "maxLines": 1000
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-governance-review/src/routes/admin.routes.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "packages/service-governance-review/src/routes/feedback.routes.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "packages/service-governance-review/src/routes/helpers.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-governance-review/src/routes/maintenance.routes.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "packages/service-governance-review/src/routes/queue.routes.ts",
+      "maxLines": 300
     },
     {
       "file": "packages/service-knowledge-read/src/retrieval-infra-default.ts",
