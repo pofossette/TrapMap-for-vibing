@@ -15,11 +15,7 @@
       "minLength": 1
     }
   },
-  "required": [
-    "status",
-    "service",
-    "version"
-  ],
+  "required": ["status", "service", "version"],
   "additionalProperties": false,
   "title": "healthResponse"
 }

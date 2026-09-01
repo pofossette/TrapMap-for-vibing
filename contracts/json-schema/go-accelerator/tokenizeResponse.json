@@ -20,11 +20,7 @@
       "maximum": 9007199254740991
     }
   },
-  "required": [
-    "tokens",
-    "chunks",
-    "count"
-  ],
+  "required": ["tokens", "chunks", "count"],
   "additionalProperties": false,
   "title": "tokenizeResponse"
 }
