@@ -67,6 +67,7 @@ Phase 5 六服务 ownership 冻结补充事实：
 - `candidate-ingestion` 拥有候选提交、去重、预处理、resolution/manual result/lineage 事实；它不直接写 knowledge repo，必须通过 `KnowledgeWritePort` 发布结果。
 - `knowledge-read` 只消费写侧/治理侧派生事件或只读投影，不直接复用写侧事务对象。
 - `job-runtime` 只拥有 queue/outbox/worker/retry/reclaim/status 等 runtime 编排；worker handler 只做 transport glue，不内嵌业务判断。
+- `knowledge-read-go`（Go, `services/knowledge-read-go :4101`）为 `knowledge-read` 的分布式 Go 实现：`query→recall→ranking→assembly+cache` 同进程闭环，`TRAPMAP_READ_IMPL=off|shadow|dual|go` 绞杀（见 `docs/architecture/GO_TECH_STACK.md` 与 `docs/architecture/SERVICE-DISCOVERY.md`），`host-local` 零 Go，契约见 `packages/contracts/src/domain/knowledge-read-go.ts`。
 
 ## 当前分层与传输统一（2026-08 maintainability-rework）
 

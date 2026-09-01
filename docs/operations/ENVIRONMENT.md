@@ -131,7 +131,9 @@ Phase 4 freeze 只冻结当前 selector env / provider-specific env / fail-fast 
 - `packages/host-distributed/src/config/service-config.ts` 现在还冻结了首个 host-distributed transport seam：`TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT` 只允许 `http` 或 `rpc`，默认值是 `http`。当前它只影响 `governance-review -> knowledge-write` 与 `candidate-ingestion -> knowledge-write` 这两个 owner-hop 的 host wiring，不改变 gateway external surface，也不改变 `KnowledgeWritePort` contract。
 - 当前 `rpc` 值表示仓库自有 envelope RPC，而不是 Connect RPC 或 gRPC。切到更正式协议层需要额外接受 Protobuf schema、Buf/codegen、以及对应 operator/runtime 复杂度进入主线 truth source；在此之前 `TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT=rpc` 只代表启用当前 pilot seam。
 - 当前 closeout 证据已覆盖两条 owner-hop：
-  - `gateway -> governance-review -> knowledge-write`
+  - `gateway -> governance-review -> knowledge-write
+- `TRAPMAP_READ_IMPL`（`off|shadow|dual|go`，默认 `off`，`packages/host-distributed/src/config/service-config.ts`）：分布式读路径绞杀器，`off` 纯 Node，`shadow` 5% 影子比对，`dual` 10% 双跑回退，`go` 主路径 Go；`host-local` 忽略该变量，仅 `distributed` 生效。对应服务 `services/knowledge-read-go :4101`（`chi`+`pgx`+`lru`+`singleflight`），网关 `POST /v1/knowledge/read` 按模式转发，`/health`/`/ready` 聚合其探活（800ms）。
+- `TRAPMAP_GO_ACCELERATOR_ENABLED` / `TRAPMAP_GO_ACCELERATOR_URL` / `TRAPMAP_KNOWLEDGE_READ_GO_URL` 等 Go 加速开关见 `docs/architecture/GO-ACCELERATOR.md` 与 `GO_TECH_STACK.md`。`
   - `gateway -> candidate-ingestion -> knowledge-write`（通过 `manual-result` distributed closeout 样板验证）
 - 推荐组合冻结为：`local-agent` -> `light` + in-process/internal defaults + `json-store-ok`；`team-monolith` -> `light` + `postgres-required` + `gateway-core` + `split-owned`；`distributed` -> `heavy` + service/gateway split + `remote-expected`。
 - fail-fast / fallback 规则冻结为：`TRAPMAP_TASK_TRANSPORT=rabbitmq` 时必须同时提供 RabbitMQ config；`distributed` profile 需要 PostgreSQL；`local-agent` 仍允许 `.data/skill-shareer.json` 这类 JSON store fallback；internal service URLs 在 `in-process` mode 下继续视为 ignored config，而不是必填值。

@@ -47,6 +47,7 @@ flowchart TB
     GW -->|resolveServiceUrl| CI
     GW -->|resolveServiceUrl| GR
     GW -->|resolveServiceUrl| JR
+    GW -.->|TRAPMAP_READ_IMPL off/shadow/dual/go| KRG["knowledge-read-go :4101 (Go)"]
 
     ID -->|register / health| CONSUL
     KR -->|register / health| CONSUL
@@ -54,6 +55,7 @@ flowchart TB
     CI -->|register / health| CONSUL
     GR -->|register / health| CONSUL
     JR -->|register / health| CONSUL
+    KRG -->|register / health| CONSUL
 ```
 
 ## 当前仓库事实
@@ -64,6 +66,7 @@ flowchart TB
 | distributed 默认地址 | `packages/host-distributed/src/config/service-config.ts` 负责 `localhost` 默认值、Docker DNS 默认值与 `TRAPMAP_*_URL` 覆盖 | `packages/host-distributed/src/config/service-config.ts` |
 | gateway 解析器 | `DiscoveryResolver` 先尝试动态发现，再回退到静态 URL | `packages/host-distributed/src/gateway/discovery-resolver.ts` |
 | 健康契约 | 统一复用 `packages/contracts/src/domain/health.ts` 与现有 `/health` 输出 | `packages/contracts/src/domain/health.ts`、宿主 health 代码 |
+| Go 读服务 | `services/knowledge-read-go` 独立二进制（`:4101`，`TRAPMAP_READ_IMPL=off/shadow/dual/go` 绞杀，`distributed-only`，`host-local` 零 Go）| `services/knowledge-read-go/*`、`packages/host-distributed/src/config/service-config.ts`、`packages/host-distributed/src/gateway/routes.ts`、`docker-compose.yml` |
 
 ## Consul 的职责
 
@@ -100,6 +103,17 @@ KV 只作为可选的运行时配置增强层，不替代环境变量。当前�
 
 - distributed 默认 URL 由 `TRAPMAP_*_URL` 或 profile 默认值提供
 - Consul 不可用时，gateway 仍然可以靠静态 URL 继续工作
+
+### knowledge-read-go 分布式只读服务（Go, :4101）
+
+> **2026-09-01 新增**：读路径已支持 Go 独立服务化。`services/knowledge-read-go` 为 `distributed` 专属的 Go 二进制（`chi` + `pgx` + `lru` + `singleflight`），`host-local` 保持零 Go 依赖（`fallow ignorePatterns`）。
+
+- **端口与部署**：`:4101`，`docker-compose.yml` `profiles:["distributed"]`，`Dockerfile` `golang:1.23 → distroless`。
+- **绞杀器**：`TRAPMAP_READ_IMPL=off | shadow | dual | go`（`packages/host-distributed/src/config/service-config.ts:TRAPMAP_READ_IMPL`）。`off` 纯 Node，`shadow` 5% 影子比对落 metrics，`dual` 10% 双跑回退 Node，`go` 主路径 Go。
+- **health 聚合**：`packages/host-distributed/src/gateway/routes.ts` 的 `/health` / `/ready` 聚合 `knowledge-read-go` 的 `/health` + `/ready`，超时 800ms 回退，`breakerStatesSnapshot` 暴露熔断状态。
+- **契约**：`packages/contracts/src/domain/knowledge-read-go.ts` (Zod SSOT) → `contracts/json-schema/knowledge-read-go/*` → `services/knowledge-read-go/pkg/api/types.go` (`json.RawMessage` 承载 `payload: z.unknown()`)，门禁 `pnpm check:go-contract` + `pnpm generate:openapi:check`。
+- **模块化**：`query → recall → ranking → assembly + cache` 同进程闭环，`ranking` 已拆 `merge/rerank/boundary` 三域，单文件 ≤300 / 模块 ≤600 / 占比 ≤30%（`pnpm check:complexity` 9/9 守卫）。
+- **及时退出**：`services/go-accelerator` 的 `POST /v1/retrieval/ranking-batch|keyword-score|score` 已 `410 Gone + X-Deprecated: use knowledge-read-go`，`infra fallback` 直通本地 JS。
 
 ## 注册与注销归属
 

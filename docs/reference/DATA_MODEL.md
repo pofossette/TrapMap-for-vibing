@@ -8,11 +8,13 @@
 >
 > **Phase 1 (PG-First Convergence) 更新**：路由层的 actor 查找（用户 handle、成员安全等级）已从 `store.snapshot()` 迁移到仓库-backed 的 `lib/actors/lookup.ts`。核心路由（knowledge、traps）不再调用 `store.snapshot()` 进行序列化；supersede 已由 `KnowledgeOwnerPort` 的 owner-local transaction/outbox 路径处理。剩余的 `store.snapshot()` / `store.transact()` 只限于尚未迁移辅助域与启动/诊断路径。
 >
-> **Round 6 更新**：反馈（feedback）已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表（`feedback_records` + `feedback_custom_answers`）。`PgFeedbackRepository` 替代 `InMemoryFeedbackRepository` 成为主路径。用法统计新增 `usage_events_daily_rollup` 预聚合表。治理冲突关系由 `conflict_relations` 持久化，知识读侧仅通过 `ConflictReadProjection` 查询。
+> **Round 6 更新**：反馈（feedback）已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表（`feedback_records`）。`PgFeedbackRepository` 替代 `InMemoryFeedbackRepository` 成为主路径。低频自定义问答由 `feedback_records.custom_answers` JSONB + GIN 承载（原 `feedback_custom_answers` 表已于 2026-09-01 压缩移除，80-90%性能保底）。用法统计为主表 `usage_events`，`usage_events_daily_rollup` 已于 2026-09-01 移除（改为实时查询 + 物化视图派生）。治理冲突关系由 `conflict_relations` 持久化，知识读侧仅通过 `ConflictReadProjection` 查询。
 >
 > **Round 7 更新**：检索索引模型完成结构化改造。`knowledge_keywords.tokens` 和 `field_tokens` 从 JSONB 迁移为原生 `text[]` 类型，使用 `&&`（数组重叠）替代 `?|`（JSONB 包含）进行 token 匹配。`knowledge_embeddings.labels` 从 JSONB 迁移为 `text[]`。新增 `knowledge_search_documents` 表（tsvector 全文检索）和 `graph_index_documents` 表（GraphRAG-lite 持久化，替代 `store_snapshot.graphIndexDocuments` 内存存储）。
 >
-> **Round 3 更新**：知识域完成结构化改造。`knowledge_entries` 表补齐 `CHECK` 约束（`scope`、`lifecycle_state`、`required_level`）。`knowledge_labels` 表从 JSONB 拆分为结构化子表，支持按标签精确过滤和聚合。边界（boundary）从单 JSONB 列拆为六个子表：`knowledge_boundary_contexts`、`knowledge_boundary_versions`、`knowledge_boundary_prerequisites`、`knowledge_boundary_signals`、`knowledge_boundary_exclusions`、`knowledge_boundary_evidence`。维护（maintenance）拆为 `knowledge_maintenance_assignments` 独立表。`knowledge_revisions` 补齐 `(entry_id, revision_no)` 唯一约束。`lifecycle_events` 补齐 `type` CHECK 约束。JSONB 列保留为读优化缓存，与结构化子表同步。
+> **Round 3 更新（历史，2026-09-01 前）**：知识域完成结构化改造。`knowledge_entries` 表补齐 `CHECK` 约束（`scope`、`lifecycle_state`、`required_level`）。`knowledge_labels` 表从 JSONB 拆分为结构化子表，支持按标签精确过滤和聚合。边界（boundary）曾从单 JSONB 列拆为六个子表：`knowledge_boundary_contexts`、`knowledge_boundary_versions`、`knowledge_boundary_prerequisites`、`knowledge_boundary_signals`、`knowledge_boundary_exclusions`、`knowledge_boundary_evidence`（**已于 2026-09-01 压缩移除，回退为 JSONB+GIN，见下条压缩更新**）。维护（maintenance）拆为 `knowledge_maintenance_assignments` 独立表。`knowledge_revisions` 补齐 `(entry_id, revision_no)` 唯一约束。`lifecycle_events` 补齐 `type` CHECK 约束。
+
+> **2026-09-01 压缩更新（69→55，80-90%性能保底）**：知识域 6 个 `knowledge_boundary_*` 子表与技能域 6 个 `skill_artifact_boundary_*` 子表共 12 张表已移除，统一回退为 `knowledge_entries.boundary` / `skill_artifacts.boundary` JSONB + GIN 索引；`feedback_custom_answers` 与 `usage_events_daily_rollup` 同步移除。详见 `docs/reference/DATABASE_SCHEMA.md` 表压缩说明。
 
 ## 基线冻结（Round 0）
 
@@ -28,9 +30,9 @@ Round 0 的目标不是立即改完所有表，而是冻结后续数据库现代
 | Task Queue | PostgreSQL 结构化表 | 队列表和相关索引由 Drizzle migration 管理 |
 | Team / User / Member / Session / AccessKey / Audit | PostgreSQL 结构化表 | 主读写路径已切换为 PG repo，通过 `repos.team/user/membership/session/accessKey/audit` 访问 |
 | Duplicates / Lineage / Graph Index 等辅助域 | PostgreSQL 结构化表 | `candidate_duplicate_cases` / `candidate_duplicate_matches` / `entity_lineage`（Round 5）、`graph_index_documents`（Round 7）均已迁移为 PG 结构化表 |
-| Feedback | PostgreSQL 结构化表 | `feedback_records` + `feedback_custom_answers`，Round 6 迁移 |
+| Feedback | PostgreSQL 结构化表 | `feedback_records`（`custom_answers` JSONB + GIN，原 `feedback_custom_answers` 已压缩移除 2026-09-01） |
 | Conflict | PostgreSQL 结构化表 | `conflict_relations`；governance-review 写入，knowledge-read 只读投影 |
-| Usage Analytics | PostgreSQL 结构化表 | `usage_events` + `usage_events_daily_rollup`，Rollup 为派生表 |
+| Usage Analytics | PostgreSQL 结构化表 | `usage_events` 主表（`usage_events_daily_rollup` 已于 2026-09-01 移除，改为实时查询 + 物化视图派生） |
 | Server 路由 actor 查找 | 仓库-backed（`lib/actors/lookup.ts`） | 用户 handle 和成员安全等级通过 `repos.user` / `repos.membership` 解析；检索数据通过 `buildRetrievalReadModel()` 从 `repos.knowledge` / `repos.artifact` 组装，冲突关系暂从 `store.snapshot()` 获取 |
 | 检索读模型 | 仓库-backed（`lib/retrieval/read-model.ts`） | 知识条目和技能工件通过 `repos.knowledge` / `repos.artifact` 读取，冲突关系暂从 `store.snapshot()` 获取 |
 
@@ -234,7 +236,7 @@ draft → submitted → agent-pass/agent-rejected
 
 知识条目是 TrapMap 的核心可检索单元。
 
-> **Round 3 结构化**：`labels`、`boundary`、`maintenanceMeta` 已从单 JSONB 列拆分为独立可查询子表。见下方「KnowledgeEntry 子表」各节。JSONB 列保留为读优化缓存，`PgKnowledgeRepository` 写入时同步维护结构化表。
+> **Round 3 结构化 + 2026-09-01 压缩**：`labels`、`maintenanceMeta` 仍为独立子表；`boundary` 已于 2026-09-01 回退为 `knowledge_entries.boundary` JSONB + GIN（6 子表已移除）。见下方「KnowledgeEntry 子表」各节（边界 6 表已归档）。`PgKnowledgeRepository` 按当前真相写入。
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -256,7 +258,7 @@ draft → submitted → agent-pass/agent-rejected
 | `reviewHistory` | ReviewDecision[] | 审核决定历史 |
 | `reviewNotes` | ReviewNote[] | 审核备注 |
 | `lifecycleHistory` | KnowledgeLifecycleEvent[] | 生命周期事件（`type` 受 `CHECK` 约束） |
-| `boundary` | Boundary? | 边界约束（JSONB 缓存列，结构化存储见六个边界子表） |
+| `boundary` | Boundary? | 边界约束（JSONB 列，`knowledge_entries.boundary` + GIN；原 6 个 `knowledge_boundary_*` 子表已于 2026-09-01 移除） |
 | `maintenanceMeta` | MaintenanceMeta? | 维护元数据（JSONB 缓存列，结构化存储见 `knowledge_maintenance_assignments`） |
 | `createdAt` | ISO8601 | 创建时间 |
 | `updatedAt` | ISO8601 | 更新时间 |
@@ -287,6 +289,8 @@ draft → submitted → agent-pass/agent-rejected
 | `createdAt` | ISO8601 | 创建时间 |
 
 唯一约束：`unique(entry_id, label)`。支持按标签精确过滤（AND 语义）和聚合统计。
+
+> **已归档 2026-09-01**：以下 6 个 `knowledge_boundary_*` 子表（`contexts/versions/prerequisites/signals/exclusions/evidence`）已于表压缩（69→55）中移除，现由 `knowledge_entries.boundary` JSONB + GIN 统一承载；历史 schema 仅供参考，代码真相以 `packages/db/src/schema/knowledge.ts` 为准。
 
 #### knowledge_boundary_contexts（边界上下文）
 
@@ -549,7 +553,7 @@ new → triaged → resolved
               → dismissed
 ```
 
-> **Round 6 更新**：反馈已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表。`feedback_records` 表包含所有反馈主字段，`feedback_custom_answers` 表存储自定义问答对。`entryType`、`problemType`、`status` 已补齐 `CHECK` 约束。索引覆盖 `entryId`、`entryType`、`status`、`problemType`、`submittedByUserId` 维度。
+> **Round 6 更新**：反馈已从 `store_snapshot` JSONB 迁移为 PostgreSQL 结构化表。`feedback_records` 表（`custom_answers` JSONB + GIN）承载所有反馈主字段与低频自定义问答（原 `feedback_custom_answers` 表已于 2026-09-01 压缩移除）。`entryType`、`problemType`、`status` 已补齐 `CHECK` 约束。索引覆盖 `entryId`、`entryType`、`status`、`problemType`、`submittedByUserId` 及 `custom_answers` GIN 维度。
 
 > **2026-06-09 更新**：在原始 feedback 历史之外，系统会按 entry 聚合出 `FeedbackRemediationState`。这是读取期派生状态，不替代原始 feedback 事实。当前阈值为同一 `entryId` 上 `status in ('new','triaged')` 的未解决反馈数达到 `10`。
 
@@ -765,7 +769,7 @@ ExperienceGene 是从已治理 trap 或 skill artifact/capsule 派生的 compact
 | `domain/common.ts` | EntityId, LifecycleState, Scope, SecurityLevel, Permission, ActorRef |
 | `domain/team.ts` | Team, Member, AccessKey |
 | `domain/knowledge.ts` | KnowledgeEntry, KnowledgeRevision, KnowledgeSubmission |
-| `schema.ts` (DB) | knowledge_entries, knowledge_revisions, lifecycle_events, knowledge_labels, knowledge_boundary_* (×6), knowledge_maintenance_assignments |
+| `schema.ts` (DB) | knowledge_entries, knowledge_revisions, lifecycle_events, knowledge_labels, knowledge_maintenance_assignments（`knowledge_boundary_*` 6 子表已于 2026-09-01 JSONB+GIN 化移除） |
 | `domain/artifacts.ts` | SkillArtifact, SkillCapsule, SkillProfile, ClientManifest |
 | `domain/experience-gene.ts` | ExperienceGene, ExperienceGeneEvent, DerivationTaskPayload, ContentProjection |
 | `domain/retrieval.ts` | RetrievalQuery, RetrievalResponse, CapsuleMatch, RetrievalCitation |
@@ -785,15 +789,15 @@ ExperienceGene 是从已治理 trap 或 skill artifact/capsule 派生的 compact
 
 | 领域 | 读路径 | 写路径 | 存储后端 |
 |------|--------|--------|----------|
-| Knowledge | `KnowledgeRepository` (PG) | `PgKnowledgeRepository` | `knowledge_entries` / `knowledge_revisions` / `lifecycle_events` / `knowledge_labels` / `knowledge_boundary_*` (6 表) / `knowledge_maintenance_assignments` |
+| Knowledge | `KnowledgeRepository` (PG) | `PgKnowledgeRepository` | `knowledge_entries` / `knowledge_revisions` / `lifecycle_events` / `knowledge_labels` / `knowledge_maintenance_assignments`（`boundary` 为 `knowledge_entries.boundary` JSONB + GIN，6 子表已移除 2026-09-01） |
 | Artifact | `ArtifactRepository` (PG) | `PgArtifactRepository` | `skill_artifacts` / `artifact_revisions` / `artifact_lifecycle_events` / `skill_artifact_files` / `skill_artifact_script_descriptors` / `skill_artifact_profiles` / `skill_artifact_capsules` / `skill_artifact_client_manifests` / `skill_artifact_manifest_*` |
 
 > **Round 4 更新**：Skill Artifact 已从“仅 PostgreSQL JSONB 聚合”推进到“结构化子表 + JSONB 兼容缓存”模式。`artifact_revisions.files`、`artifact_revisions.script_descriptors` 与 `artifact_revisions.derived` 仍保留为受控缓存列，用于兼容既有读取链路；数据库事实源已经补充到 `skill_artifact_files`、`skill_artifact_script_descriptors`、`skill_artifact_profiles`、`skill_artifact_capsules`、`skill_artifact_client_manifests` 及其 manifest 子表。`PgArtifactRepository` 在写入 revision 时同步维护两套表示，并在读取时优先从结构化子表重建对象。
 | Candidate | `CandidateRepository` (PG) | `PgCandidateRepository` | `candidates` + `candidate_analyses` / `candidate_duplicate_cases` / `candidate_duplicate_matches` / `candidate_manual_results` / `candidate_resolution_outcomes` |
 | Duplicate | `DuplicateRepository` (PG) | `PgDuplicateRepository` | `candidate_duplicate_cases` / `candidate_duplicate_matches` |
 | Lineage | `LineageRepository` (PG) | `PgLineageRepository` | `entity_lineage` |
-| Usage Analytics | `UsageAnalyticsRepository` (PG) | `PgUsageAnalyticsRepository` | `usage_events` / `usage_events_daily_rollup` |
-| Feedback | `FeedbackRepository` (PG) | `PgFeedbackRepository` | `feedback_records` / `feedback_custom_answers` |
+| Usage Analytics | `UsageAnalyticsRepository` (PG) | `PgUsageAnalyticsRepository` | `usage_events`（`usage_events_daily_rollup` 已移除，实时/物化视图） |
+| Feedback | `FeedbackRepository` (PG) | `PgFeedbackRepository` | `feedback_records`（`custom_answers` JSONB + GIN） |
 | Retrieval: Vector | `vectorSimilaritySearch()` (PG) | `PgVectorAdapter` | `knowledge_embeddings` (pgvector HNSW) |
 | Retrieval: Keyword | `createPgKeywordRecall()` (PG) | `PgKeywordAdapter` | `knowledge_keywords` (text[] GIN) |
 | Retrieval: Full-text | — | — | `knowledge_search_documents` (tsvector GIN) |

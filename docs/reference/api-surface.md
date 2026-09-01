@@ -138,7 +138,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `GET` | `/v1/operations/feedback/stats/:entryId` | 无 | `feedbackStatsResponseSchema` | 获取条目的反馈统计和质量分数 |
 | `POST` | `/v1/artifacts/review` | `artifactReviewBodySchema` | `artifactReviewResponseSchema` | 旧版 artifact 审核入口（distributed gateway 兼容现存 MCP `trapmap_review_decision`，与 `/v1/operations/artifacts/:artifactId/review` 并存） |
 
-> **Round 6 更新**：反馈持久化已从 `store_snapshot` JSONB 迁移为 `feedback_records` + `feedback_custom_answers` PostgreSQL 结构化表。API 契约不变。
+> **Round 6 更新**：反馈持久化已从 `store_snapshot` JSONB 迁移为 `feedback_records` PostgreSQL 结构化表（`custom_answers` JSONB + GIN，原 `feedback_custom_answers` 表已于 2026-09-01 压缩移除）。API 契约不变。
 
 > **2026-06-09 更新**：当同一 `trap` 或 `skill` 的未解决反馈数达到阈值（当前为 `10`）时，系统会在读取时聚合出 remediation/suppression 状态，并通过 `/v1/operations/feedback/remediation*` 暴露人工处理队列。当前 suppression 先通过检索时硬过滤生效；索引摘除/重建仍是后续增强项。
 
