@@ -61,7 +61,7 @@ export class AiPkgsCompatAdapter implements RegistryAdapter {
       version: string;
     };
     // Simplified bundle: use readme as SKILL.md if available
-    const { sha256 } = await import('@trapmap/lib/hash.js');
+    const { sha256 } = await import('@trapmap/lib');
     const content = meta.readme ?? `# ${name}\n\nFetched via ai-pkgs compat`;
     return {
       slug: name,

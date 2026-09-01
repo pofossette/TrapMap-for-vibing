@@ -7,7 +7,7 @@ import { diffSnapshots } from '../domain/diff.js';
 
 async function readSnapshot(dir: string, slug: string, version?: string): Promise<SkillSnapshot> {
   const files: SkillSnapshot['files'] = [];
-  const { sha256 } = await import('@trapmap/lib/hash.js');
+  const { sha256 } = await import('@trapmap/lib');
   async function walk(current: string, base: string) {
     const entries = await readdir(current, { withFileTypes: true });
     for (const e of entries) {

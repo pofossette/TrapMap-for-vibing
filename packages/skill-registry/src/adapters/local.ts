@@ -24,7 +24,7 @@ export class LocalAdapter implements RegistryAdapter {
       : path.resolve(raw);
     const st = await stat(resolved);
     const files: SkillBundle['files'] = [];
-    const { sha256 } = await import('@trapmap/lib/hash.js');
+    const { sha256 } = await import('@trapmap/lib');
     if (st.isDirectory()) {
       // Read SKILL.md + references recursively (shallow copy of ccswitch skill layout)
       const skillMd = path.join(resolved, 'SKILL.md');

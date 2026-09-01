@@ -56,7 +56,7 @@ export class GithubAdapter implements RegistryAdapter {
     const subpath = source.subpath ? `/${source.subpath.replace(/^\//, '')}` : '';
     const base = `https://raw.githubusercontent.com/${source.owner}/${source.repo}/${ref}${subpath}`;
     const files: SkillBundle['files'] = [];
-    const { sha256 } = await import('@trapmap/lib/hash.js');
+    const { sha256 } = await import('@trapmap/lib');
     // Fetch SKILL.md + try common references (copying ccswitch skill layout)
     const candidates = ['SKILL.md', 'README.md', 'references/cli-index.md'];
     for (const cand of candidates) {
