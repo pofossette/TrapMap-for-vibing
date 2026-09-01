@@ -640,7 +640,15 @@
     },
     {
       "file": "packages/service-knowledge-write/src/routes.ts",
-      "maxLines": 1000
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-write/src/routes/knowledge.routes.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "packages/service-knowledge-write/src/routes/submission.routes.ts",
+      "maxLines": 300
     },
     {
       "file": "services/knowledge-read-go/cmd/server/main.go",
