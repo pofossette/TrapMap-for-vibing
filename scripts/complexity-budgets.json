@@ -567,6 +567,22 @@
   ],
   "lineBudgets": [
     {
+      "file": "packages/contracts/src/domain/operations.ts",
+      "maxLines": 700
+    },
+    {
+      "file": "packages/db/src/schema/knowledge.ts",
+      "maxLines": 800
+    },
+    {
+      "file": "packages/host-distributed/src/gateway/internal-client.ts",
+      "maxLines": 1500
+    },
+    {
+      "file": "packages/host-distributed/src/gateway/route-defs.ts",
+      "maxLines": 1500
+    },
+    {
       "file": "packages/host-local/src/nest/app.module.ts",
       "maxLines": 350
     },
@@ -575,12 +591,44 @@
       "maxLines": 300
     },
     {
-      "file": "packages/db/src/schema/knowledge.ts",
-      "maxLines": 800
+      "file": "packages/host-local/src/nest/runtime/backend-core-adapters.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-governance-review/src/routes.ts",
+      "maxLines": 1000
+    },
+    {
+      "file": "packages/service-knowledge-read/src/retrieval-infra-default.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "packages/service-knowledge-read/src/retrieval-recall-coordinator.ts",
+      "maxLines": 1000
+    },
+    {
+      "file": "packages/service-knowledge-read/src/retrieval-semantic.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "packages/service-knowledge-read/src/search-knowledge.ts",
+      "maxLines": 1000
     },
     {
       "file": "packages/service-knowledge-write/src/artifact-ports.ts",
       "maxLines": 800
+    },
+    {
+      "file": "packages/service-knowledge-write/src/routes.ts",
+      "maxLines": 1000
+    },
+    {
+      "file": "services/knowledge-read-go/cmd/server/main.go",
+      "maxLines": 150
+    },
+    {
+      "file": "services/knowledge-read-go/internal/ranking/domain/boundary.go",
+      "maxLines": 150
     },
     {
       "file": "services/knowledge-read-go/internal/ranking/domain/merge.go",
@@ -591,16 +639,12 @@
       "maxLines": 200
     },
     {
-      "file": "services/knowledge-read-go/internal/ranking/domain/boundary.go",
-      "maxLines": 150
+      "file": "services/knowledge-read-go/internal/ranking/service/ranking.go",
+      "maxLines": 200
     },
     {
       "file": "services/knowledge-read-go/internal/recall/service/semantic.go",
       "maxLines": 200
-    },
-    {
-      "file": "services/knowledge-read-go/cmd/server/main.go",
-      "maxLines": 150
     }
   ]
 }
