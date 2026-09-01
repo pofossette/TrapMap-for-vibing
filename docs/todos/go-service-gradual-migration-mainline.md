@@ -3,7 +3,7 @@
 > **角色**：TrapMap 全仓服务从 Node/TypeScript 向 Go 的渐进迁移 owner 文档，承接 `go-accelerator-mainline → go-compute-hub-mainline` 的「函数级加速」成果，升级为「服务级接管」。读多写少（读:写 ≈ 50:1）下，**优先将读路径整段搬 Go**，其余服务按瓶颈与收益排期绞杀迁移。
 > **前置**：`services/go-accelerator` chi :4100 已合入 `main@622a0732`（6 端点 + `infra fallback` + `distributed-only`），`go-compute-hub-mainline` 已完成 P0-P2 重计算批处理与 `canonicalHash` 链路，`type-alignment-mainline` P0 `Zod→JSON Schema→Go` 门禁已落地。
 > **本主线**：定义**服务级**迁移的愿景、边界、模块化原则、分期与验收门禁。读服务必须**模块化内聚、部署解耦**，禁止单 Go 二进制承载检索/排序/组装/缓存等全部能力。
-> **状态**：Phase 0-3 已交付（2026-09-01 subagent 并行），Phase 4-5 待收敛，待激活为归档；当前 `plan.md` Active 仍为 Experience Gene，主线切流前仅作设计与试点，不抢占 Gene 主线资源。
+> **状态**：Phase 0-4 已交付，Phase 5 门禁与文档已收敛（main@20e38a79 PR #3 已合入），仅余归档待 Gene 主线 closeout 后执行；当前 `plan.md` Active 仍为 Experience Gene，主线切流前仅作设计与试点，不抢占 Gene 主线资源。
 > **Owner**：`infra` + `backend-core` + `service-knowledge-read` + `host-distributed` + `go-accelerator`
 > **关联**：`go-compute-hub-mainline.md`（函数→服务）、`type-alignment-mainline.md`（合同）、`performance-infra-mainline.md`（bench/stress/可观测）、`GO-ACCELERATOR.md`、`BOUNDARIES.md`、`SYSTEM_TRUTH_SOURCES.md`
 
@@ -333,9 +333,9 @@ sequenceDiagram
 
 ### Phase 5 — Closeout 与归档
 
-- [ ] `pnpm typecheck 0`、`pnpm check:structure` `PASS`、`fallow audit 0`、`go vet/test` 全仓 ok
-- [ ] `docs/architecture/GO-ACCELERATOR.md` 与 `SERVICE-DISCOVERY.md` 更新（新增 `knowledge-read-go` 的发现与健康契约）
-- [ ] 本文档归档至 `docs/archived/archived-plans/go-service-gradual-migration-archived.md`，`docs/todos/README.md` 与 `docs/archived/README.md` 索引同步
+- [x] `pnpm typecheck 0`、`pnpm check:structure` `PASS`、`fallow audit 0`、`go vet/test` 全仓 ok（main@20e38a79，pre→main PR #3 已合入，`pnpm typecheck 0 / check:structure PASS / check:docs PASS / check:complexity 9/9 PASS / fallow 0 boundary / go vet 0 / go test 4/4 PASS`）
+- [x] `docs/architecture/GO-ACCELERATOR.md` 与 `SERVICE-DISCOVERY.md` 更新（新增 `knowledge-read-go` 的发现与健康契约，见 `7ffea38a docs+fix: GO-ACCELERATOR timely exit + SERVICE-DISCOVERY`）
+- [ ] 本文档归档至 `docs/archived/archived-plans/go-service-gradual-migration-archived.md`，`docs/todos/README.md` 与 `docs/archived/README.md` 索引同步（待 Gene 主线 closeout 后执行，当前 `plan.md` Active 仍为 Experience Gene，避免抢占）
 
 ---
 
